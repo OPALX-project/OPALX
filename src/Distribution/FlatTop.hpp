@@ -16,8 +16,7 @@ public:
     FlatTop(std::shared_ptr<ParticleContainer_t> &pc, std::shared_ptr<FieldContainer_t> &fc, std::shared_ptr<Distribution_t> &opalDist)
         : SamplingBase(pc, fc, opalDist) {}
 
-    void generateUniformDisk(size_t& numberOfParticles, Vector_t<double, 3> nr) {
-        GeneratorPool rand_pool64((size_t)(Options::seed + 100 * ippl::Comm->rank()));
+    void generateUniformDisk(size_t& numberOfParticles, Vector_t<double, 3> nr, GeneratorPool &rand_pool) {
 
         double mu[3], sd[3];
         Vector_t<double, 3> rmin;
@@ -27,9 +26,6 @@ public:
         view_type &Rview = pc_m->R.getView();
         view_type &Pview = pc_m->P.getView();
 
-        auto& mesh = fc_m->getMesh();
-        auto& FL = fc_m->getFL();
-
         // STEP1: sample (Rx,Ry) uniformly on a unit disk.
         // Here, we use Muller-Marsaglia method https://mathworld.wolfram.com/HyperspherePointPicking.html
         // first sample normal distribution
@@ -37,27 +33,29 @@ public:
             mu[i] = 0.0;
             sd[i] = 1.0;
         }
-        const double par[6] = {mu[0], sd[0], mu[1], sd[1], mu[2], sd[2]};
-        using Dist_t = ippl::random::NormalDistribution<double, Dim>;
-        using sampling_t = ippl::random::InverseTransformSampling<double, Dim, Kokkos::DefaultExecutionSpace, Dist_t>;
-        Dist_t dist(par);
 
-        hr = 6.0 / nr;
-        rmin = -3.0;
-        rmax = 3.0;
-        mesh.setMeshSpacing(hr);
-        mesh.setOrigin(rmin);
-        pc_m->getLayout().updateLayout(FL, mesh);
+        MPI_Comm comm = MPI_COMM_WORLD;
+        int nranks;
+        int rank;
+        MPI_Comm_size(comm, &nranks);
+        MPI_Comm_rank(comm, &rank);
 
-        ippl::detail::RegionLayout<double, Dim, Mesh_t<Dim>> rlayout;
-        rlayout = ippl::detail::RegionLayout<double, Dim, Mesh_t<Dim>>(FL, mesh);
+        size_type nlocal = floor(numberOfParticles/nranks);
 
-        sampling_t sampling(dist, rmax, rmin, rlayout, numberOfParticles);
+        size_t remaining = numberOfParticles - nlocal*nranks;
 
-        size_type nlocal = sampling.getLocalSamplesNum();
+        if(remaining>0 && rank==0){
+            nlocal += remaining;
+        }
+
         pc_m->create(nlocal);
 
-        sampling.generate(Rview, rand_pool64);
+        auto rand_gen = ippl::random::randn<double, 3>(Rview, rand_pool, mu, sd);
+        Kokkos::parallel_for(nlocal, KOKKOS_LAMBDA(const int i) {
+            rand_gen(i);  // Call the random generator functor for each index
+        });
+
+        Kokkos::fence();
 
         // then bring (Rx,Ry) to a unit ring, and then unit disk
         Kokkos::parallel_for(
@@ -68,11 +66,11 @@ public:
                 Rview(j)[1] /= r;
                 Rview(j)[2]  = 0.0;
                 // (Rx,Ry) to a unit disk
-                auto generator = rand_pool64.get_state();
+                auto generator = rand_pool.get_state();
                 double scale = generator.drand(0., 1.);
                 Rview(j)[0] *= scale;
                 Rview(j)[1] *= scale;
-                rand_pool64.free_state(generator);
+                rand_pool.free_state(generator);
         });
         Kokkos::fence();
 
@@ -86,13 +84,11 @@ public:
                Pview(j)[1] = 0.0;
         });
 	Kokkos::fence();
-
     }
 
-    void generateLongFlattopT(size_t& numberOfParticles){
+    void generateLongFlattopT(size_t& numberOfParticles, GeneratorPool &rand_pool){
 
         using size_type = ippl::detail::size_type;
-        GeneratorPool rand_pool64((size_t)(Options::seed + 100 * ippl::Comm->rank()));
         view_type &Rview = pc_m->R.getView();
         view_type &Pview = pc_m->P.getView();
         auto &tview = pc_m->t.getView();
@@ -122,7 +118,7 @@ public:
 
         using size_type = ippl::detail::size_type;
         sampling_t sampling(dist, tmax, tmin, numFall);
-        sampling.generate(tview, rand_pool64);
+        sampling.generate(tview, rand_pool);
 
         double sigmaTFall = opalDist_m->getSigmaTFall();
         Vector_t<double, 3> cutoffR = opalDist_m->getCutoffR();
@@ -147,20 +143,20 @@ public:
             "onflattop", Kokkos::RangePolicy<>(numFall, numFall+numFlat), KOKKOS_LAMBDA(const size_t j) {
 
             if (modulationAmp == 0.0 || numModulationPeriods == 0.0) {
-                auto generator = rand_pool64.get_state();
+                auto generator = rand_pool.get_state();
                 double r = generator.drand(0., 1.);
                 tview(j) = r * flattopTime;
-                rand_pool64.free_state(generator);
+                rand_pool.free_state(generator);
             }
             else{
                 bool allow = false;
                 double randNums[2] = {0.0, 0.0};
                 double temp = 0.0;
                 while (!allow) {
-                   auto generator = rand_pool64.get_state();
+                   auto generator = rand_pool.get_state();
                    randNums[0]= generator.drand(0., 1.);
                    randNums[1]= generator.drand(0., 1.);
-                   rand_pool64.free_state(generator);
+                   rand_pool.free_state(generator);
 
                    temp = randNums[0] * flattopTime;
 
@@ -186,7 +182,7 @@ public:
         sampling_t sampling2(dist2, tmax, tmin, numRise);
 
         Kokkos::View<ippl::Vector<double, 1>*> subview(&tview(numFall + numFlat), numRise);
-        sampling2.generate(subview, rand_pool64);
+        sampling2.generate(subview, rand_pool);
 
         Kokkos::parallel_for(
                "rise", numRise, KOKKOS_LAMBDA(const size_t j) {
@@ -203,13 +199,21 @@ public:
 
     void generateParticles(size_t& numberOfParticles, Vector_t<double, 3> nr) override {
 
-        GeneratorPool rand_pool64((size_t)(Options::seed + 100 * ippl::Comm->rank()));
+        size_t randInit;
+        if (Options::seed == -1) {
+            randInit = 1234567;
+            *gmsg << "* Seed = " << randInit << " on all ranks" << endl;
+        }
+	else
+            randInit = (size_t)(Options::seed + 100 * ippl::Comm->rank());
 
-        generateUniformDisk(numberOfParticles, nr);
+        GeneratorPool rand_pool(randInit);
+
+        generateUniformDisk(numberOfParticles, nr, rand_pool);
 
         size_type nlocal = pc_m->getLocalNum();
 
-        generateLongFlattopT(nlocal);
+        generateLongFlattopT(nlocal, rand_pool);
     }
 };
 #endif
