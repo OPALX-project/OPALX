@@ -6,6 +6,7 @@
 #include <Kokkos_Sort.hpp>
 //#include <Kokkos_NestedSort.hpp> 
 #include <memory>
+#include <cmath>
 
 using ParticleContainer_t = ParticleContainer<double, 3>;
 using FieldContainer_t = FieldContainer<double, 3>;
@@ -29,21 +30,12 @@ public:
 
     void generateUniformDisk(size_t& numberOfParticles, Vector_t<double, 3> nr, GeneratorPool &rand_pool) {
 
-        double mu[3], sd[3];
         Vector_t<double, 3> rmin;
         Vector_t<double, 3> rmax;
         Vector_t<double, 3> hr;
 
         view_type &Rview = pc_m->R.getView();
         view_type &Pview = pc_m->P.getView();
-
-        // STEP1: sample (Rx,Ry) uniformly on a unit disk.
-        // Here, we use Muller-Marsaglia method https://mathworld.wolfram.com/HyperspherePointPicking.html
-        // first sample normal distribution
-        for(int i=0; i<3; i++){
-            mu[i] = 0.0;
-            sd[i] = 1.0;
-        }
 
         MPI_Comm comm = MPI_COMM_WORLD;
         int nranks;
@@ -61,40 +53,24 @@ public:
 
         pc_m->create(nlocal);
 
-        auto rand_gen = ippl::random::randn<double, 3>(Rview, rand_pool, mu, sd);
-        Kokkos::parallel_for(nlocal, KOKKOS_LAMBDA(const int i) {
-            rand_gen(i);
-        });
-
-        Kokkos::fence();
-
-        // then bring (Rx,Ry) to a unit ring, and then unit disk
+        double pi = Physics::pi;
+        Vector_t<double, 3> sigmaR = opalDist_m->getSigmaR();
+        // Sample (Rx,Ry) on a unit ring, then scale with sigmaRx and sigmaRy, set Px=Py=0
         Kokkos::parallel_for(
                "unitDisk", nlocal, KOKKOS_LAMBDA(const size_t j) {
-                double r = Kokkos::sqrt( Kokkos::pow( Rview(j)[0], 2 ) + Kokkos::pow( Rview(j)[1], 2 ) );
-                // (Rx,Ry) to a unit ring
-                Rview(j)[0] /= r;
-                Rview(j)[1] /= r;
-                Rview(j)[2]  = 0.0;
-                // (Rx,Ry) to a unit disk
                 auto generator = rand_pool.get_state();
-                double scale = generator.drand(0., 1.);
-                Rview(j)[0] *= scale;
-                Rview(j)[1] *= scale;
+                double r = Kokkos::sqrt( generator.drand(0., 1.) );
+                double theta = 2.0 * pi * generator.drand(0., 1.);
                 rand_pool.free_state(generator);
+
+                Rview(j)[0] = r * Kokkos::cos(theta) * sigmaR[0];
+                Rview(j)[1] = r * Kokkos::sin(theta) * sigmaR[1];
+                Rview(j)[2]  = 0.0;
+                Pview(j)[0] = 0.0;
+                Pview(j)[1] = 0.0;
         });
         Kokkos::fence();
 
-       // STEP2: scale Rx and Ry with sigmaRx and sigmaRy. Also, set Px=Py=0.
-        Vector_t<double, 3> sigmaR = opalDist_m->getSigmaR();
-        Kokkos::parallel_for(
-               "scaleRxRy", nlocal, KOKKOS_LAMBDA(const size_t j) {
-               Rview(j)[0] *= sigmaR[0];
-               Rview(j)[1] *= sigmaR[1];
-               Pview(j)[0] = 0.0;
-               Pview(j)[1] = 0.0;
-        });
-	Kokkos::fence();
     }
 
     void generateLongFlattopT(size_t& nlocal, GeneratorPool &rand_pool){
@@ -110,7 +86,8 @@ public:
         if (flattopTime < 0.0)
               flattopTime = 0.0;
 
-        double normalizedFlankArea = 0.5 * std::sqrt(Physics::two_pi) * gsl_sf_erf(opalDist_m->getCutoffR()[2] / std::sqrt(2.0));
+        double normalizedFlankArea = 0.5 * std::sqrt(Physics::two_pi) * std::erf(opalDist_m->getCutoffR()[2] / std::sqrt(2.0));
+        //gsl_sf_erf(opalDist_m->getCutoffR()[2] / std::sqrt(2.0));
         double distArea = flattopTime
                 + (opalDist_m->getSigmaTRise() + opalDist_m->getSigmaTFall()) * normalizedFlankArea;
 
@@ -121,18 +98,17 @@ public:
 
         // Generate particles in tail.
         double sigmaTFall = opalDist_m->getSigmaTFall();
+        Vector_t<double, 3> cutoffR = opalDist_m->getCutoffR();
         const double par[2] = {0.0, sigmaTFall};
         using Dist_t = ippl::random::NormalDistribution<double, 1>;
         using sampling_t = ippl::random::InverseTransformSampling<double, 1, Kokkos::DefaultExecutionSpace, Dist_t>;
         Dist_t dist(par);
         Vector<double, 1> tmin = 0.0;
-        Vector<double, 1> tmax = opalDist_m->getSigmaTFall() * opalDist_m->getCutoffR()[2];
+        Vector<double, 1> tmax = sigmaTFall * cutoffR[2];
 
-        using size_type = ippl::detail::size_type;
         sampling_t sampling(dist, tmax, tmin, tmax, tmin, numFall);
         sampling.generate(tview, rand_pool);
 
-        Vector_t<double, 3> cutoffR = opalDist_m->getCutoffR();
         Kokkos::parallel_for(
                "falltime", numFall, KOKKOS_LAMBDA(const size_t j) {
                tview(j) = -tview(j) + sigmaTFall * cutoffR[2];
@@ -149,6 +125,9 @@ public:
         if (numModulationPeriods != 0.0)
             modulationPeriod = flattopTime / numModulationPeriods;
 
+std::cout<< "flattopTime " << flattopTime << std::endl;
+std::cout<< "modulationAmp " << modulationAmp << std::endl;
+std::cout<< "modulationPeriod " << modulationPeriod << std::endl;
         double two_pi = Physics::two_pi;
         Kokkos::parallel_for(
             "onflattop", Kokkos::RangePolicy<>(numFall, numFall+numFlat), KOKKOS_LAMBDA(const size_t j) {
@@ -185,7 +164,6 @@ public:
 
         // Generate particles in rise.
         const double par2[2] = {0.0, opalDist_m->getSigmaTRise() };
-        using Dist_t = ippl::random::NormalDistribution<double, 1>;
         Dist_t dist2(par2);
         tmin = 0.0;
         tmax = opalDist_m->getSigmaTRise() * opalDist_m->getCutoffR()[2];
@@ -240,6 +218,14 @@ public:
         generateLongFlattopT(nlocal, rand_pool);
 
         *gmsg << "* Done with flat top particle generation" << endl;
+
+
+    std::ofstream file("position_time.txt");
+    for (size_t i = 0; i < nlocal; ++i) {
+        file << pc_m->R(i)[0] << " " << pc_m->R(i)[1] << " " << pc_m->R(i)[2] << " " << pc_m->t(i)[0] << "\n";  // Write each element on a new line
+    }
+    file.close();
+
     }
 };
 #endif
