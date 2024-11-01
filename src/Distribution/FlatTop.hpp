@@ -3,6 +3,8 @@
 
 #include "Distribution.h"
 #include "SamplingBase.hpp"
+#include <Kokkos_Sort.hpp>
+//#include <Kokkos_NestedSort.hpp> 
 #include <memory>
 
 using ParticleContainer_t = ParticleContainer<double, 3>;
@@ -10,6 +12,15 @@ using FieldContainer_t = FieldContainer<double, 3>;
 using Distribution_t = Distribution;
 using GeneratorPool = typename Kokkos::Random_XorShift64_Pool<>;
 using Dist_t = ippl::random::NormalDistribution<double, 3>;
+
+struct VectorComparator {
+    KOKKOS_INLINE_FUNCTION
+    bool operator()(const ippl::Vector<double, 1>& a, const ippl::Vector<double, 1>& b) const {
+        // Define comparison based on specific needs, e.g., comparing the first element
+        return a[0] < b[0];  // Customize comparison logic as needed
+    }
+};
+
 
 class FlatTop : public SamplingBase {
 public:
@@ -52,14 +63,14 @@ public:
 
         auto rand_gen = ippl::random::randn<double, 3>(Rview, rand_pool, mu, sd);
         Kokkos::parallel_for(nlocal, KOKKOS_LAMBDA(const int i) {
-            rand_gen(i);  // Call the random generator functor for each index
+            rand_gen(i);
         });
 
         Kokkos::fence();
 
         // then bring (Rx,Ry) to a unit ring, and then unit disk
         Kokkos::parallel_for(
-               "unitDisk", pc_m->getLocalNum(), KOKKOS_LAMBDA(const size_t j) {
+               "unitDisk", nlocal, KOKKOS_LAMBDA(const size_t j) {
                 double r = Kokkos::sqrt( Kokkos::pow( Rview(j)[0], 2 ) + Kokkos::pow( Rview(j)[1], 2 ) );
                 // (Rx,Ry) to a unit ring
                 Rview(j)[0] /= r;
@@ -77,7 +88,7 @@ public:
        // STEP2: scale Rx and Ry with sigmaRx and sigmaRy. Also, set Px=Py=0.
         Vector_t<double, 3> sigmaR = opalDist_m->getSigmaR();
         Kokkos::parallel_for(
-               "scaleRxRy", pc_m->getLocalNum(), KOKKOS_LAMBDA(const size_t j) {
+               "scaleRxRy", nlocal, KOKKOS_LAMBDA(const size_t j) {
                Rview(j)[0] *= sigmaR[0];
                Rview(j)[1] *= sigmaR[1];
                Pview(j)[0] = 0.0;
@@ -86,7 +97,7 @@ public:
 	Kokkos::fence();
     }
 
-    void generateLongFlattopT(size_t& numberOfParticles, GeneratorPool &rand_pool){
+    void generateLongFlattopT(size_t& nlocal, GeneratorPool &rand_pool){
 
         using size_type = ippl::detail::size_type;
         view_type &Rview = pc_m->R.getView();
@@ -104,12 +115,13 @@ public:
                 + (opalDist_m->getSigmaTRise() + opalDist_m->getSigmaTFall()) * normalizedFlankArea;
 
         // Find number of particles in rise, fall and flat top.
-        size_type numRise = numberOfParticles * opalDist_m->getSigmaTRise() * normalizedFlankArea / distArea;
-        size_type numFall = numberOfParticles * opalDist_m->getSigmaTFall() * normalizedFlankArea / distArea;
-        size_type numFlat = numberOfParticles - numRise - numFall;
+        size_type numRise = nlocal * opalDist_m->getSigmaTRise() * normalizedFlankArea / distArea;
+        size_type numFall = nlocal * opalDist_m->getSigmaTFall() * normalizedFlankArea / distArea;
+        size_type numFlat = nlocal - numRise - numFall;
 
         // Generate particles in tail.
-        const double par[2] = {0.0, opalDist_m->getSigmaTFall() };
+        double sigmaTFall = opalDist_m->getSigmaTFall();
+        const double par[2] = {0.0, sigmaTFall};
         using Dist_t = ippl::random::NormalDistribution<double, 1>;
         using sampling_t = ippl::random::InverseTransformSampling<double, 1, Kokkos::DefaultExecutionSpace, Dist_t>;
         Dist_t dist(par);
@@ -117,10 +129,9 @@ public:
         Vector<double, 1> tmax = opalDist_m->getSigmaTFall() * opalDist_m->getCutoffR()[2];
 
         using size_type = ippl::detail::size_type;
-        sampling_t sampling(dist, tmax, tmin, numFall);
+        sampling_t sampling(dist, tmax, tmin, tmax, tmin, numFall);
         sampling.generate(tview, rand_pool);
 
-        double sigmaTFall = opalDist_m->getSigmaTFall();
         Vector_t<double, 3> cutoffR = opalDist_m->getCutoffR();
         Kokkos::parallel_for(
                "falltime", numFall, KOKKOS_LAMBDA(const size_t j) {
@@ -191,10 +202,21 @@ public:
 
         // Set Pz=Rz=0
         Kokkos::parallel_for(
-               "RzPz=0", numberOfParticles, KOKKOS_LAMBDA(const size_t j) {
+               "RzPz=0", nlocal, KOKKOS_LAMBDA(const size_t j) {
                Rview(j)[2] = 0.0;
                Pview(j)[2] = 0.0;
         });
+
+        Kokkos::parallel_for("custom_sort", Kokkos::RangePolicy<>(0, nlocal - 1), KOKKOS_LAMBDA(const int i) {
+            for (size_type j = i + 1; j < nlocal; ++j) {
+                if (VectorComparator()(tview(j), tview(i))) {
+                  auto temp = tview(i);
+                  tview(i) = tview(j);
+                  tview(j) = temp;
+                }
+            }
+        });
+
     }
 
     void generateParticles(size_t& numberOfParticles, Vector_t<double, 3> nr) override {
@@ -209,11 +231,15 @@ public:
 
         GeneratorPool rand_pool(randInit);
 
+        *gmsg << "* generate particles on a disc" << endl;
         generateUniformDisk(numberOfParticles, nr, rand_pool);
 
         size_type nlocal = pc_m->getLocalNum();
 
+        *gmsg << "* sample particle time" << endl;
         generateLongFlattopT(nlocal, rand_pool);
+
+        *gmsg << "* Done with flat top particle generation" << endl;
     }
 };
 #endif
