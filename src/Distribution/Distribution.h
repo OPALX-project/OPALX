@@ -113,6 +113,9 @@ public:
     bool emitting_m;                     /// Distribution is an emitted, and is currently
                                          /// emitting, rather than an injected, beam.
 
+    double getTEmission() const;
+    void setTEmission(double tEmission);
+
 private:
     enum class EmissionModel : unsigned short { NONE, ASTRA, NONEQUIL };
 
@@ -218,6 +221,8 @@ private:
 
     double FTOSCAmplitude_m;
     double FTOSCPeriods_m;
+
+    double tEmission_m;
 };
 
 inline Inform& operator<<(Inform& os, const Distribution& d) {

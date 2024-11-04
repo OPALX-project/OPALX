@@ -4,7 +4,6 @@
 #include "Distribution.h"
 #include "SamplingBase.hpp"
 #include <Kokkos_Sort.hpp>
-//#include <Kokkos_NestedSort.hpp> 
 #include <memory>
 #include <cmath>
 
@@ -18,7 +17,7 @@ struct VectorComparator {
     KOKKOS_INLINE_FUNCTION
     bool operator()(const ippl::Vector<double, 1>& a, const ippl::Vector<double, 1>& b) const {
         // Define comparison based on specific needs, e.g., comparing the first element
-        return a[0] < b[0];  // Customize comparison logic as needed
+        return a[0] > b[0];  // Customize comparison logic as needed
     }
 };
 
@@ -125,9 +124,6 @@ public:
         if (numModulationPeriods != 0.0)
             modulationPeriod = flattopTime / numModulationPeriods;
 
-std::cout<< "flattopTime " << flattopTime << std::endl;
-std::cout<< "modulationAmp " << modulationAmp << std::endl;
-std::cout<< "modulationPeriod " << modulationPeriod << std::endl;
         double two_pi = Physics::two_pi;
         Kokkos::parallel_for(
             "onflattop", Kokkos::RangePolicy<>(numFall, numFall+numFlat), KOKKOS_LAMBDA(const size_t j) {
@@ -135,8 +131,8 @@ std::cout<< "modulationPeriod " << modulationPeriod << std::endl;
             if (modulationAmp == 0.0 || numModulationPeriods == 0.0) {
                 auto generator = rand_pool.get_state();
                 double r = generator.drand(0., 1.);
-                tview(j) = r * flattopTime;
                 rand_pool.free_state(generator);
+                tview(j) = r * flattopTime;
             }
             else{
                 bool allow = false;
@@ -144,8 +140,8 @@ std::cout<< "modulationPeriod " << modulationPeriod << std::endl;
                 double temp = 0.0;
                 while (!allow) {
                    auto generator = rand_pool.get_state();
-                   randNums[0]= generator.drand(0., 1.);
-                   randNums[1]= generator.drand(0., 1.);
+                   randNums[0] = generator.drand(0., 1.);
+                   randNums[1] = generator.drand(0., 1.);
                    rand_pool.free_state(generator);
 
                    temp = randNums[0] * flattopTime;
@@ -157,8 +153,8 @@ std::cout<< "modulationPeriod " << modulationPeriod << std::endl;
                     allow = (randNums[1] <= funcValue);
                 }
                 tview(j) = temp;
-                tview(j) += sigmaTFall * cutoffR[2];
             }
+            tview(j) += sigmaTFall * cutoffR[2];
         });
 	Kokkos::fence();
 
@@ -168,7 +164,7 @@ std::cout<< "modulationPeriod " << modulationPeriod << std::endl;
         tmin = 0.0;
         tmax = opalDist_m->getSigmaTRise() * opalDist_m->getCutoffR()[2];
 
-        sampling_t sampling2(dist2, tmax, tmin, numRise);
+        sampling_t sampling2(dist2, tmax, tmin, tmax, tmin, numRise);
 
         Kokkos::View<ippl::Vector<double, 1>*> subview(&tview(numFall + numFlat), numRise);
         sampling2.generate(subview, rand_pool);
@@ -197,6 +193,21 @@ std::cout<< "modulationPeriod " << modulationPeriod << std::endl;
 
     }
 
+    void setEmissionTime() {
+        opalDist_m->setTEmission( opalDist_m->getTPulseLengthFWHM() + (opalDist_m->getCutoffR()[2] - std::sqrt(2.0 * std::log(2.0))) * ( opalDist_m->getSigmaTRise() + opalDist_m->getSigmaTFall() ) );
+    }
+
+    void shiftBeam(size_t nlocal){
+
+        double tEmission = opalDist_m->getTEmission();
+        auto &tview = pc_m->t.getView();
+
+        Kokkos::parallel_for("shift t", nlocal, KOKKOS_LAMBDA(const size_t j) {
+               tview(j) -= tEmission;
+        });
+
+    }
+
     void generateParticles(size_t& numberOfParticles, Vector_t<double, 3> nr) override {
 
         size_t randInit;
@@ -216,6 +227,11 @@ std::cout<< "modulationPeriod " << modulationPeriod << std::endl;
 
         *gmsg << "* sample particle time" << endl;
         generateLongFlattopT(nlocal, rand_pool);
+
+        *gmsg << "* shift beam to have negative time" << endl;
+
+        setEmissionTime();
+        shiftBeam(nlocal);
 
         *gmsg << "* Done with flat top particle generation" << endl;
 

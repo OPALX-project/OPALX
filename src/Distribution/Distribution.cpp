@@ -227,6 +227,14 @@ void Distribution::setAvrgPz(double avrgpz){
     avrgpz_m = avrgpz;
 }
 
+void Distribution::setTEmission(double tEmission) {
+        tEmission_m = tEmission;
+}
+
+double Distribution::getTEmission() const {
+        return tEmission_m;
+}
+
 void Distribution::setDistParametersGauss() {
     /*
      * Set distribution parameters. Do all the necessary checks depending
