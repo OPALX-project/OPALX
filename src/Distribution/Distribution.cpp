@@ -62,7 +62,7 @@ using view_type = typename ippl::detail::ViewType<ippl::Vector<double, Dim>, 1>:
 namespace DISTRIBUTION {
     enum { TYPE, FNAME, SIGMAX, SIGMAY, SIGMAZ, SIGMAPX, SIGMAPY, SIGMAPZ, CORR,
            CUTOFFPX, CUTOFFPY, CUTOFFPZ, CUTOFFX, CUTOFFY, CUTOFFLONG, CORRX, CORRY,
-           CORRZ, CORRT, SIGMAT, TPULSEFWHM, TRISE, TFALL, FTOSCAMPLITUDE, FTOSCPERIODS, SIZE };
+           CORRZ, CORRT, SIGMAT, TPULSEFWHM, TRISE, TFALL, FTOSCAMPLITUDE, FTOSCPERIODS, EMITTED, SIZE };
 }
 
 /*
@@ -126,6 +126,10 @@ Distribution::Distribution()
         = Attributes::makeReal("FTOSCPERIODS", "Number of oscillations superimposed on "
                                "flat top portion of emitted GAUSS "
                                "distribution", 0.0);
+
+    itsAttr[DISTRIBUTION::EMITTED]
+        = Attributes::makeBool("EMITTED", "Emitted beam, from cathode, as opposed to "
+                               "an injected beam.", false);
 
     registerOwnership(AttributeHandler::STATEMENT);
 }
@@ -331,6 +335,8 @@ void Distribution::setDistParametersFlatTop() {
 
     if (Attributes::getReal(itsAttr[DISTRIBUTION::CORRZ]) != 0.0)
         correlationMatrix_m[5][4] = Attributes::getReal(itsAttr[DISTRIBUTION::CORRZ]);
+
+    emitting_m = Attributes::getBool(itsAttr[DISTRIBUTION::EMITTED]);
 
     if (emitting_m) {
         sigmaR_m[2] = 0.0;
