@@ -490,10 +490,11 @@ int main(int argc, char* argv[]) {
         bins->debug();
         bins->initLimits(); // TODO
 
-        bins->assignBinsToParticles(); // TODO
-        bins->print();
-
-        bins->doFullRebin(8);
+        // do the rebinning 10 times
+        for (unsigned int i = 0; i < 10; i++) {
+            bins->assignBinsToParticles();
+        }
+        //bins->doFullRebin(8);
         bins->print();
         
 
