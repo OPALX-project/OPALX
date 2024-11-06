@@ -30,6 +30,49 @@
 #include "Ippl.h"
 // #include <Kokkos_ScatterView.hpp> // necessary, since not a standard import of Kokkos (experimental)
 
+namespace ParticleBinning {  
+    template<typename SizeType, typename IndexType, IndexType N>
+    struct ArrayReduction {
+        SizeType the_array[N];
+
+        KOKKOS_INLINE_FUNCTION   // Default constructor - Initialize to 0's
+        ArrayReduction() { 
+            for (IndexType i = 0; i < N; i++ ) { the_array[i] = 0; }
+        }
+        KOKKOS_INLINE_FUNCTION   // Copy Constructor
+        ArrayReduction(const ArrayReduction& rhs) { 
+            for (IndexType i = 0; i < N; i++ ){
+                the_array[i] = rhs.the_array[i];
+            }
+        }
+        KOKKOS_INLINE_FUNCTION
+        ArrayReduction& operator=(const ArrayReduction& rhs) {
+        if (this != &rhs) {
+            for (IndexType i = 0; i < N; ++i) {
+                the_array[i] = rhs.the_array[i];
+            }
+        }
+        return *this;
+    }
+
+        KOKKOS_INLINE_FUNCTION   // add operator
+        ArrayReduction& operator+=(const ArrayReduction& src) {
+            for (IndexType i = 0; i < N; i++ ) {
+                the_array[i] += src.the_array[i];
+            }
+            return *this;
+        }
+    };
+}
+namespace Kokkos { //reduction identity must be defined in Kokkos namespace
+    template<typename SizeType, typename IndexType, IndexType N>
+    struct reduction_identity<ParticleBinning::ArrayReduction<SizeType, IndexType, N>> {
+        KOKKOS_FORCEINLINE_FUNCTION static ParticleBinning::ArrayReduction<SizeType, IndexType, N> sum() {
+            return ParticleBinning::ArrayReduction<SizeType, IndexType, N>();
+        }
+    };
+}
+
 namespace ParticleBinning {
 
     /**
