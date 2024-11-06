@@ -28,50 +28,6 @@
 //#include <memory>
 //#include <iostream>
 #include "Ippl.h"
-// #include <Kokkos_ScatterView.hpp> // necessary, since not a standard import of Kokkos (experimental)
-
-namespace ParticleBinning {  
-    template<typename SizeType, typename IndexType, IndexType N>
-    struct ArrayReduction {
-        SizeType the_array[N];
-
-        KOKKOS_INLINE_FUNCTION   // Default constructor - Initialize to 0's
-        ArrayReduction() { 
-            for (IndexType i = 0; i < N; i++ ) { the_array[i] = 0; }
-        }
-        KOKKOS_INLINE_FUNCTION   // Copy Constructor
-        ArrayReduction(const ArrayReduction& rhs) { 
-            for (IndexType i = 0; i < N; i++ ){
-                the_array[i] = rhs.the_array[i];
-            }
-        }
-        KOKKOS_INLINE_FUNCTION
-        ArrayReduction& operator=(const ArrayReduction& rhs) {
-        if (this != &rhs) {
-            for (IndexType i = 0; i < N; ++i) {
-                the_array[i] = rhs.the_array[i];
-            }
-        }
-        return *this;
-    }
-
-        KOKKOS_INLINE_FUNCTION   // add operator
-        ArrayReduction& operator+=(const ArrayReduction& src) {
-            for (IndexType i = 0; i < N; i++ ) {
-                the_array[i] += src.the_array[i];
-            }
-            return *this;
-        }
-    };
-}
-namespace Kokkos { //reduction identity must be defined in Kokkos namespace
-    template<typename SizeType, typename IndexType, IndexType N>
-    struct reduction_identity<ParticleBinning::ArrayReduction<SizeType, IndexType, N>> {
-        KOKKOS_FORCEINLINE_FUNCTION static ParticleBinning::ArrayReduction<SizeType, IndexType, N> sum() {
-            return ParticleBinning::ArrayReduction<SizeType, IndexType, N>();
-        }
-    };
-}
 
 namespace ParticleBinning {
 
@@ -252,6 +208,24 @@ namespace ParticleBinning {
             #endif
         }
 
+        template<typename ReducedType>
+        void performReductionAndFinalize(ReducedType& update) {
+            bin_view_type binIndex       = bunch_m->bin.getView();
+            bin_histo_type localBinHisto = localBinHisto_m;
+            bin_index_type binCount      = getCurrentBinCount();
+
+            // Perform the parallel reduction
+            Kokkos::parallel_reduce("initLocalHist", bunch_m->getLocalNum(), KOKKOS_LAMBDA(const size_type& i, ReducedType& update) {
+                bin_index_type ndx = binIndex(i);  // Determine the bin index for this particle
+                update.the_array[ndx]++;           // Increment the corresponding bin count in the reduction array
+            }, Kokkos::Sum<ReducedType>(update));
+
+            // Copy the reduced histogram results to the final histogram
+            Kokkos::parallel_for("finalize_histogram", binCount, KOKKOS_LAMBDA(const size_type& i) {
+                localBinHisto(i) = update.the_array[i];
+            });
+        }
+
     private:
         std::shared_ptr<BunchType> bunch_m;    ///< Shared pointer to the particle container.
         bin_index_type maxBins_m;              ///< Maximum number of bins.
@@ -260,10 +234,12 @@ namespace ParticleBinning {
         value_type xMax_m;                     ///< Maximum boundary for bins.
         value_type binWidth_m;                 ///< Width of each bin.
         bin_histo_type localBinHisto_m;        ///< Local histogram view for bin counts.
+
     };
 
 }
 
+#include "ParallelReduceTools.h"
 #include "AdaptBins.hpp"
 
 #endif  // ADAPT_BINS_H

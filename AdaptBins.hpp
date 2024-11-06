@@ -99,27 +99,27 @@ namespace ParticleBinning {
         initializeHistogram(); // Init histogram (no need to set to 0, since contribute_into overwrites values...)
         msg << "Histogram initialized to 0" << endl;
 
-        bin_view_type binIndex            = bunch_m->bin.getView();
-        bin_histo_type localBinHisto      = localBinHisto_m;
         //const size_type localNumParticles = bunch_m->getLocalNum(); 
 
-        using reduced_type = ArrayReduction<size_type, bin_index_type, 10>;
-        reduced_type to_reduce;
-
-        msg << "Starting reducer...." << endl;
-        static IpplTimings::TimerRef initLocalHisto = IpplTimings::getTimer("initLocalHisto");
-        IpplTimings::startTimer(initLocalHisto);
-
-        Kokkos::parallel_reduce("initLocalHist", bunch_m->getLocalNum(), KOKKOS_LAMBDA(const size_type& i, reduced_type& update) {
-            bin_index_type ndx = binIndex(i);  
-            update.the_array[ndx]++;
-        }, Kokkos::Sum<reduced_type>(to_reduce));
+        // Select the appropriate reduction type based on exact match
+        //auto to_reduce_variant = ParticleBinning::createReductionObject<size_type, bin_index_type>(binCount);
         
-        IpplTimings::stopTimer(initLocalHisto);
+        // Create the reduction object based on binCount directly 
+        const bin_index_type binCount = getCurrentBinCount();
+        auto to_reduce_variant        = selectReductionType<size_type, bin_index_type>(binCount); // static_cast<bin_index_type>(
 
-        Kokkos::parallel_for("finalize_histogram", getCurrentBinCount(), KOKKOS_LAMBDA(const size_type& i) {
-            localBinHisto(i) = to_reduce.the_array[i];
-        });
+        // Use std::visit to handle each variant type dynamically
+        std::visit([&](auto& to_reduce) {
+            msg << "Starting reducer...." << endl;
+            static IpplTimings::TimerRef initLocalHisto = IpplTimings::getTimer("initLocalHisto");
+            IpplTimings::startTimer(initLocalHisto);
+
+            // Perform the parallel reduction
+            using ReducedType = std::decay_t<decltype(to_reduce)>;
+            performReductionAndFinalize<ReducedType>(to_reduce);
+
+            IpplTimings::stopTimer(initLocalHisto);
+        }, to_reduce_variant);
 
         msg << "Reducer ran without error." << endl;
     }
