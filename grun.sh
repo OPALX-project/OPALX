@@ -35,7 +35,7 @@ echo "Finished compiling. Now running the program..."
 
 cd /data/user/liemen_a/build_ippl_cuda/test/binning/
 ## ./Binning_pic3d 32 32 32 1000 10 --info 10
-srun ./Binning_pic3d 8 8 8 1000000 1 --info 10 
+srun ./Binning_pic3d 8 8 8 10000000 1 --info 10 
 # srun ./Binning_pic3d 8 8 8 1000000 1 --info 10 --kokkos-disable-cuda # use this to run ONLY on CPU
 
 

@@ -101,70 +101,17 @@ namespace ParticleBinning {
 
         bin_view_type binIndex            = bunch_m->bin.getView();
         bin_histo_type localBinHisto      = localBinHisto_m;
-        const bin_index_type binCount     = getCurrentBinCount();
         const size_type localNumParticles = bunch_m->getLocalNum(); 
-
-        using team_policy = Kokkos::TeamPolicy<>;
-        using member_type = team_policy::member_type;
-
-        // Define a scratch space view type
-        using scratch_view_type = Kokkos::View<size_type*, Kokkos::DefaultExecutionSpace::scratch_memory_space, Kokkos::MemoryTraits<Kokkos::Unmanaged>>;
-
-        // Calculate shared memory size for the histogram (binCount elements)
-        const size_t shared_size = scratch_view_type::shmem_size(binCount);
-
-        // Set up team policy with scratch memory allocation for each team
-        team_policy policy(localNumParticles, Kokkos::AUTO); // Kokkos::AUTO
-        policy = policy.set_scratch_size(0, Kokkos::PerTeam(shared_size));
-
-        // Create ScatterView as a global histogram (copy constructed from localBinHisto)
-        Kokkos::Experimental::ScatterView<size_type*> scatterHisto(localBinHisto); 
-
-        msg << "Starting reducer with team size...." << endl;
+        
+        msg << "Starting reducer...." << endl;
         static IpplTimings::TimerRef initLocalHisto = IpplTimings::getTimer("initLocalHisto");
         IpplTimings::startTimer(initLocalHisto);
 
-        // Launch a team parallel_for with the scratch memory setup
-        Kokkos::parallel_for("initLocalHist", policy, KOKKOS_LAMBDA(const member_type& teamMember) {
-            // Allocate team-local histogram in scratch memory
-            scratch_view_type team_local_hist(teamMember.team_scratch(0), binCount);
-
-            // Initialize shared memory histogram to zero
-            Kokkos::parallel_for(Kokkos::TeamThreadRange(teamMember, binCount), [&](bin_index_type b) {
-                team_local_hist(b) = 0;
-            });
-            teamMember.team_barrier();
-
-            // Each thread in the team processes particles assigned to its team (conditional to ensure ALL particles are processed)
-            const size_type team_size  = teamMember.team_size();
-            const size_type team_start = teamMember.league_rank() * team_size;
-            const size_type team_end   = team_start + team_size < localNumParticles ? team_start + team_size : localNumParticles;
-
-            // Just some debug output TODO: remove
-            /*if (teamMember.league_rank() == 0) {
-                printf("Actual team size selected: %lu\n", static_cast<unsigned long>(team_size));
-            }*/
-
-            Kokkos::parallel_for(Kokkos::TeamThreadRange(teamMember, team_start, team_end), [&](const size_type i) {
-                bin_index_type ndx = binIndex(i); // Get bin index for the particle
-                if (ndx < binCount) Kokkos::atomic_fetch_add(&team_local_hist(ndx), 1); // Atomic within shared memory
-            });
-            teamMember.team_barrier();
-
-            // Reduce the team-local histogram into global memory
-            auto scatterHisto_access = scatterHisto.access();
-            Kokkos::single(Kokkos::PerTeam(teamMember), [&]() {
-                for (bin_index_type b = 0; b < binCount; ++b) {
-                    //Kokkos::atomic_fetch_add(&localBinHisto(b), team_local_hist(b));
-                    scatterHisto_access(b) += team_local_hist(b);
-                }
-            });
+        Kokkos::parallel_for("initLocalHist", localNumParticles, KOKKOS_LAMBDA(const size_type i) {
+            Kokkos::atomic_increment(&localBinHisto(binIndex(i)));
         });
         
         IpplTimings::stopTimer(initLocalHisto);
-
-        // Contribute the results of all team-local histograms in the ScatterView to finalize the global histogram
-        Kokkos::Experimental::contribute(localBinHisto, scatterHisto);
 
         msg << "Reducer ran without error." << endl;
     }
