@@ -208,23 +208,9 @@ namespace ParticleBinning {
             #endif
         }
 
-        template<typename ReducedType>
-        void performReductionAndFinalize(ReducedType& update) {
-            bin_view_type binIndex       = bunch_m->bin.getView();
-            bin_histo_type localBinHisto = localBinHisto_m;
-            bin_index_type binCount      = getCurrentBinCount();
+        //template<bin_index_type N = 1>
+        //void performLocalHistoReduction(bin_index_type binCount);
 
-            // Perform the parallel reduction
-            Kokkos::parallel_reduce("initLocalHist", bunch_m->getLocalNum(), KOKKOS_LAMBDA(const size_type& i, ReducedType& update) {
-                bin_index_type ndx = binIndex(i);  // Determine the bin index for this particle
-                update.the_array[ndx]++;           // Increment the corresponding bin count in the reduction array
-            }, Kokkos::Sum<ReducedType>(update));
-
-            // Copy the reduced histogram results to the final histogram
-            Kokkos::parallel_for("finalize_histogram", binCount, KOKKOS_LAMBDA(const size_type& i) {
-                localBinHisto(i) = update.the_array[i];
-            });
-        }
 
     private:
         std::shared_ptr<BunchType> bunch_m;    ///< Shared pointer to the particle container.

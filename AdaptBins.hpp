@@ -99,27 +99,34 @@ namespace ParticleBinning {
         initializeHistogram(); // Init histogram (no need to set to 0, since contribute_into overwrites values...)
         msg << "Histogram initialized to 0" << endl;
 
-        //const size_type localNumParticles = bunch_m->getLocalNum(); 
-
-        // Select the appropriate reduction type based on exact match
-        //auto to_reduce_variant = ParticleBinning::createReductionObject<size_type, bin_index_type>(binCount);
-        
-        // Create the reduction object based on binCount directly 
+        //bin_view_type binIndex        = bunch_m->bin.getView();  
+        bin_histo_type localBinHisto  = localBinHisto_m;
         const bin_index_type binCount = getCurrentBinCount();
-        auto to_reduce_variant        = selectReductionType<size_type, bin_index_type>(binCount); // static_cast<bin_index_type>(
 
-        // Use std::visit to handle each variant type dynamically
-        std::visit([&](auto& to_reduce) {
-            msg << "Starting reducer...." << endl;
-            static IpplTimings::TimerRef initLocalHisto = IpplTimings::getTimer("initLocalHisto");
-            IpplTimings::startTimer(initLocalHisto);
+        // Create the reduction object directly based on binCount
+        //auto to_reduce       = create_array_reduction<size_type, bin_index_type>(binCount);
+        //using to_reduce_type = decltype(to_reduce);
 
-            // Perform the parallel reduction
-            using ReducedType = std::decay_t<decltype(to_reduce)>;
-            performReductionAndFinalize<ReducedType>(to_reduce);
+        // Use the created reduction object
+        msg << "Starting reducer...." << endl;
+        static IpplTimings::TimerRef initLocalHisto = IpplTimings::getTimer("initLocalHisto");
+        IpplTimings::startTimer(initLocalHisto);
 
-            IpplTimings::stopTimer(initLocalHisto);
-        }, to_reduce_variant);
+        selectReductionType<BunchType, size_type, bin_index_type>(bunch_m, binCount, localBinHisto);
+        //performLocalHistoReduction<>(binCount);
+        /*// Perform the Kokkos reduction
+        Kokkos::parallel_reduce("initLocalHist", bunch_m->getLocalNum(), 
+            KOKKOS_LAMBDA(const size_type& i, to_reduce_type& update) {
+                bin_index_type ndx = binIndex(i);  // Determine the bin index for this particle
+                update.the_array[ndx]++;      // Increment the corresponding bin count in the reduction array
+            }, Kokkos::Sum<to_reduce_type>(to_reduce));
+
+        // Copy the reduced histogram results to the final histogram
+        Kokkos::parallel_for("finalize_histogram", binCount, KOKKOS_LAMBDA(const size_type& i) {
+            localBinHisto(i) = to_reduce.the_array[i];
+        });*/
+
+        IpplTimings::stopTimer(initLocalHisto);
 
         msg << "Reducer ran without error." << endl;
     }
