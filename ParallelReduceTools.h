@@ -79,9 +79,26 @@ namespace ParticleBinning {
     template<typename SizeType, typename IndexType>
     using ReductionVariant = typename ReductionVariantHelper<SizeType, IndexType, std::make_integer_sequence<int, maxArrSize<IndexType>>>::type;
 
+    template<typename SizeType, typename IndexType, int N>
+    ReductionVariant<SizeType, IndexType> createReductionObjectHelper(IndexType binCount) {
+        if constexpr (N > maxArrSize<IndexType>) {
+            throw std::out_of_range("binCount is out of the allowed range");
+        } else if (binCount == N) {
+            return ArrayReduction<SizeType, IndexType, N>();
+        } else {
+            return createReductionObjectHelper<SizeType, IndexType, N + 1>(binCount);
+        }
+    }
+
+    template<typename SizeType, typename IndexType>
+    ReductionVariant<SizeType, IndexType> createReductionObject(IndexType binCount) {
+        return createReductionObjectHelper<SizeType, IndexType, 1>(binCount);
+    }
+
+
 
     // Factory function to create the appropriate reduction object
-    template<typename SizeType, typename IndexType>
+    /*template<typename SizeType, typename IndexType>
     ReductionVariant<SizeType, IndexType> createReductionObject(IndexType binCount) {
         switch (binCount) {
             case 9: return ArrayReduction<SizeType, IndexType, 9>();
@@ -90,7 +107,7 @@ namespace ParticleBinning {
             case 12: return ArrayReduction<SizeType, IndexType, 12>();
             default: throw std::out_of_range("binCount is out of the allowed range");
         }
-    }
+    }*/
 
 
 
