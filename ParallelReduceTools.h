@@ -70,16 +70,16 @@ namespace ParticleBinning {
     struct ReductionVariantHelper;
 
     // Specialization of ReductionVariantHelper that accepts std::integer_sequence and expands it
-    template<typename SizeType, typename IndexType, int... Sizes>
-    struct ReductionVariantHelper<SizeType, IndexType, std::integer_sequence<int, Sizes...>> {
+    template<typename SizeType, typename IndexType, IndexType... Sizes>
+    struct ReductionVariantHelper<SizeType, IndexType, std::integer_sequence<IndexType, Sizes...>> {
         using type = std::variant<ArrayReduction<SizeType, IndexType, Sizes + 1>...>;
     };
 
     // Define the ReductionVariant type alias using the helper with std::make_integer_sequence
     template<typename SizeType, typename IndexType>
-    using ReductionVariant = typename ReductionVariantHelper<SizeType, IndexType, std::make_integer_sequence<int, maxArrSize<IndexType>>>::type;
+    using ReductionVariant = typename ReductionVariantHelper<SizeType, IndexType, std::make_integer_sequence<IndexType, maxArrSize<IndexType>>>::type;
 
-    template<typename SizeType, typename IndexType, int N>
+    template<typename SizeType, typename IndexType, IndexType N>
     ReductionVariant<SizeType, IndexType> createReductionObjectHelper(IndexType binCount) {
         if constexpr (N > maxArrSize<IndexType>) {
             throw std::out_of_range("binCount is out of the allowed range");

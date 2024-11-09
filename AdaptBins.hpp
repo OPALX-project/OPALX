@@ -101,7 +101,7 @@ namespace ParticleBinning {
         bin_histo_type localBinHisto  = localBinHisto_m;
         bin_index_type binCount       = getCurrentBinCount();
 
-        static IpplTimings::TimerRef initLocalHisto = IpplTimings::getTimer("initLocalHisto");
+        static IpplTimings::TimerRef initLocalHisto = IpplTimings::getTimer("initLocalHistoParallelReduce");
         IpplTimings::startTimer(initLocalHisto);
         Kokkos::parallel_reduce("initLocalHist", bunch_m->getLocalNum(), 
             KOKKOS_LAMBDA(const size_type& i, ReducerType& update) {
@@ -146,7 +146,7 @@ namespace ParticleBinning {
             bin_histo_type localBinHisto = localBinHisto_m;
             bin_view_type binIndex       = bunch_m->bin.getView();  
 
-            static IpplTimings::TimerRef initLocalHisto = IpplTimings::getTimer("initLocalHisto");
+            static IpplTimings::TimerRef initLocalHisto = IpplTimings::getTimer("initLocalHistoAtomic");
             IpplTimings::startTimer(initLocalHisto);
             Kokkos::parallel_for("initLocalHistoAtomic", bunch_m->getLocalNum(), 
                 KOKKOS_LAMBDA(const bin_index_type& i) {
