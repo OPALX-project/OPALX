@@ -1,11 +1,10 @@
 #ifndef PARALLEL_REDUCE_TOOLS_H
 #define PARALLEL_REDUCE_TOOLS_H
 
-#include <tuple>
-#include <variant>
-#include <utility>
 #include <iostream>
-#include <stdexcept>
+#include <variant>
+#include <array>
+#include <memory>
 
 namespace ParticleBinning {
 
@@ -36,13 +35,51 @@ namespace ParticleBinning {
     };
 
     /*
+    Test 09.11.2024 --> only a few possible hardcoded ArrayReduction types in the factory function
+    */
+
+    // Define a variant type that can hold any of the Reduction<N> types
+    template<typename SizeType, typename IndexType>
+    using ReductionVariant = std::variant<
+        ArrayReduction<SizeType, IndexType, 9>, ArrayReduction<SizeType, IndexType, 10>, ArrayReduction<SizeType, IndexType, 11>, ArrayReduction<SizeType, IndexType, 12>
+    >;
+
+    // Factory function to create the appropriate reduction object
+    template<typename SizeType, typename IndexType>
+    ReductionVariant<SizeType, IndexType> createReductionObject(int binCount) {
+        switch (binCount) {
+            case 9: return ArrayReduction<SizeType, IndexType, 9>();
+            case 10: return ArrayReduction<SizeType, IndexType, 10>();
+            case 11: return ArrayReduction<SizeType, IndexType, 11>();
+            case 12: return ArrayReduction<SizeType, IndexType, 12>();
+            default: throw std::out_of_range("binCount is out of the allowed range");
+        }
+    }
+
+    /*template<typename SizeType, typename IndexType>
+    void performReduction(Kokkos::View<IndexType*> bins, Kokkos::View<SizeType*> localBinHisto,
+                          ReductionVariant<SizeType, IndexType>& to_reduce, SizeType localNum, IndexType binCount) {   
+
+        std::visit([&](auto& arg) {
+            using T = std::decay_t<decltype(arg)>;
+            std::cout << "Performing reduction with type: " << typeid(T).name() << std::endl;
+            std::cout << "Size of the_array: " << arg.n_elements << std::endl;
+            executeReduction<SizeType, IndexType>(bins, localBinHisto, arg, localNum, binCount);
+        }, to_reduce);
+    }*/
+
+
+
+
+
+    /*
     Define logic for maxArrSize different reducer array types where N \in [1, ..., maxArrSize] 
     */
 
     // Set max array size as a constexpr
     constexpr int maxArrSize = 128;
 
-    // Function to execute the Kokkos reduction, separate from recursive template
+    /*// Function to execute the Kokkos reduction, separate from recursive template
     template<typename BunchType, typename SizeType, typename IndexType, IndexType N>
     void executeKokkosReduction(BunchType* bunch_m, ArrayReduction<SizeType, IndexType, N>& to_reduce, Kokkos::View<SizeType*> localBinHisto) {
         Kokkos::View<IndexType*> binIndex = bunch_m->bin.getView();  
@@ -73,7 +110,7 @@ namespace ParticleBinning {
         } else {
             selectReductionType<BunchType, SizeType, IndexType, N + 1>(bunch_m, binCount, localBinHisto);
         }
-    }
+    }*/
 
     /*
     // Helper to create an integer sequence from 1 to N

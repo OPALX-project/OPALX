@@ -131,6 +131,9 @@ namespace ParticleBinning {
          */
         void initLocalHisto();
 
+        template<typename ReducerType>
+        void executeInitLocalHistoReduction(ReducerType& to_reduce);
+
         /**
          * @brief Retrieves the global histogram across all processes.
          * 

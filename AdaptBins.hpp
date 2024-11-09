@@ -3,6 +3,7 @@
 
 // #include "AdaptBins.h"
 
+
 namespace ParticleBinning {
 
     template <typename BunchType>
@@ -93,15 +94,38 @@ namespace ParticleBinning {
         msg << "Local Histogram initialized." << endl;
     }
 
+    template<typename BunchType>
+    template<typename ReducerType>
+    void AdaptBins<BunchType>::executeInitLocalHistoReduction(ReducerType& to_reduce) {
+        bin_view_type binIndex        = bunch_m->bin.getView();  
+        bin_histo_type localBinHisto  = localBinHisto_m;
+        bin_index_type binCount       = getCurrentBinCount();
+
+        // Perform the Kokkos reduction
+        Kokkos::parallel_reduce("initLocalHist", bunch_m->getLocalNum(), 
+            KOKKOS_LAMBDA(const size_type& i, ReducerType& update) {
+                bin_index_type ndx = binIndex(i);  // Determine the bin index for this particle
+                update.the_array[ndx]++;           // Increment the corresponding bin count in the reduction array
+            }, Kokkos::Sum<ReducerType>(to_reduce)
+        );
+
+        // Copy the reduced results to the final histogram
+        Kokkos::parallel_for("finalize_histogram", binCount, 
+            KOKKOS_LAMBDA(const bin_index_type& i) {
+                localBinHisto(i) = to_reduce.the_array[i];
+            }
+        );
+    }
+
     template <typename BunchType>
     void AdaptBins<BunchType>::initLocalHisto() {
         Inform msg("AdaptBins");
         initializeHistogram(); // Init histogram (no need to set to 0, since contribute_into overwrites values...)
         msg << "Histogram initialized to 0" << endl;
 
-        //bin_view_type binIndex        = bunch_m->bin.getView();  
+        bin_view_type binIndex        = bunch_m->bin.getView();  
         bin_histo_type localBinHisto  = localBinHisto_m;
-        const bin_index_type binCount = getCurrentBinCount();
+        bin_index_type binCount       = getCurrentBinCount();
 
         // Create the reduction object directly based on binCount
         //auto to_reduce       = create_array_reduction<size_type, bin_index_type>(binCount);
@@ -112,9 +136,28 @@ namespace ParticleBinning {
         static IpplTimings::TimerRef initLocalHisto = IpplTimings::getTimer("initLocalHisto");
         IpplTimings::startTimer(initLocalHisto);
 
-        selectReductionType<BunchType, size_type, bin_index_type>(bunch_m, binCount, localBinHisto);
+        // Create the reduction object directly based on binCount
+        auto to_reduce = createReductionObject<size_type, bin_index_type>(binCount);
+
+        //performReduction<size_type, bin_index_type>(binIndex, localBinHisto, to_reduce, bunch_m->getLocalNum(), binCount); 
+        std::visit([&](auto& arg) {
+            using T = std::decay_t<decltype(arg)>;
+            std::cout << "Size of the_array: " << sizeof(arg.the_array) / sizeof(arg.the_array[0]) << std::endl;
+            executeInitLocalHistoReduction(arg);
+        }, to_reduce);
+
+
+        /*std::visit(& {
+            Kokkos::parallel_reduce("initLocalHist", bunch_m->getLocalNum(),
+                KOKKOS_LAMBDA(const size_type& i, auto& update) {
+                    bin_index_type ndx = binIndex(i);  // Determine the bin index for this particle
+                    update.increment(ndx);             // Increment the corresponding bin count in the reduction array
+                }, CustomReducer(reduction.the_array, binCount));
+        }, to_reduce);
+
+        //selectReductionType<BunchType, size_type, bin_index_type>(bunch_m, binCount, localBinHisto);
         //performLocalHistoReduction<>(binCount);
-        /*// Perform the Kokkos reduction
+        // Perform the Kokkos reduction
         Kokkos::parallel_reduce("initLocalHist", bunch_m->getLocalNum(), 
             KOKKOS_LAMBDA(const size_type& i, to_reduce_type& update) {
                 bin_index_type ndx = binIndex(i);  // Determine the bin index for this particle
