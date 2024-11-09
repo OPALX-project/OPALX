@@ -32,36 +32,13 @@ namespace ParticleBinning {
             return *this;
         }
     };
-
-    /*
-    Test 09.11.2024 --> only a few possible hardcoded ArrayReduction types in the factory function (for testing)
     
-
-    // Define a variant type that can hold any of the Reduction<N> types
-    template<typename SizeType, typename IndexType>
-    using ReductionVariant = std::variant<
-        ArrayReduction<SizeType, IndexType, 9>, ArrayReduction<SizeType, IndexType, 10>, ArrayReduction<SizeType, IndexType, 11>, ArrayReduction<SizeType, IndexType, 12>
-    >;
-
-    // Factory function to create the appropriate reduction object
-    template<typename SizeType, typename IndexType>
-    ReductionVariant<SizeType, IndexType> createReductionObject(int binCount) {
-        switch (binCount) {
-            case 9: return ArrayReduction<SizeType, IndexType, 9>();
-            case 10: return ArrayReduction<SizeType, IndexType, 10>();
-            case 11: return ArrayReduction<SizeType, IndexType, 11>();
-            case 12: return ArrayReduction<SizeType, IndexType, 12>();
-            default: throw std::out_of_range("binCount is out of the allowed range");
-        }
-    }*/
 
     /*
     Define logic for maxArrSize different reducer array types where N \in [1, ..., maxArrSize] 
     */
 
     // Set max array size as a constexpr
-    //template<typename IndexType>
-    //constexpr IndexType maxArrSize = 50;
     template<typename IndexType>
     constexpr IndexType maxArrSize = 15; // 128 needs a few minutes to compile. Good in between is 30. Fast compilation with 15
 
@@ -94,22 +71,6 @@ namespace ParticleBinning {
     ReductionVariant<SizeType, IndexType> createReductionObject(IndexType binCount) {
         return createReductionObjectHelper<SizeType, IndexType, 1>(binCount);
     }
-
-
-
-    // Factory function to create the appropriate reduction object
-    /*template<typename SizeType, typename IndexType>
-    ReductionVariant<SizeType, IndexType> createReductionObject(IndexType binCount) {
-        switch (binCount) {
-            case 9: return ArrayReduction<SizeType, IndexType, 9>();
-            case 10: return ArrayReduction<SizeType, IndexType, 10>();
-            case 11: return ArrayReduction<SizeType, IndexType, 11>();
-            case 12: return ArrayReduction<SizeType, IndexType, 12>();
-            default: throw std::out_of_range("binCount is out of the allowed range");
-        }
-    }*/
-
-
 
 }
 
