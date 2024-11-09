@@ -125,9 +125,7 @@ namespace ParticleBinning {
         initializeHistogram(true); // Init histogram (no need to set to 0, since executeInitLocalHistoReduction overwrites values from reduction...) --> true, since it is necessary for atomics option...
         msg << "Histogram initialized to 0" << endl;
         msg << "Starting reducer...." << endl;
-
-        //bin_view_type binIndex        = bunch_m->bin.getView();  
-        //bin_histo_type localBinHisto  = localBinHisto_m;
+        
         bin_index_type binCount       = getCurrentBinCount();
 
         if (binCount <= maxArrSize<bin_index_type>) {
