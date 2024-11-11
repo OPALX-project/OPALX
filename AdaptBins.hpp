@@ -3,7 +3,6 @@
 
 // #include "AdaptBins.h"
 
-
 namespace ParticleBinning {
 
     template <typename BunchType>
