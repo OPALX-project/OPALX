@@ -193,20 +193,34 @@ namespace ParticleBinning {
             Inform msg("KOKKOS DEBUG", INFORM_ALL_NODES);
 
             int rank = ippl::Comm->rank();
+            msg << "=====================================" << endl;
+            msg << " Kokkos Debug Information (Rank " << rank << ")" << endl;
+            msg << "=====================================" << endl;
 
-            // Check number of CPU threads
+            // Check number of CPU threads (OpenMP or other CPU execution spaces)
             #ifdef KOKKOS_ENABLE_OPENMP
             int num_threads = Kokkos::OpenMP::concurrency();
-            msg << "Number of CPU threads: " << num_threads << endl;
-            #endif  
+            msg << "CPU Threads (OpenMP): " << num_threads << endl;
+            #elif defined(KOKKOS_ENABLE_THREADS)
+            int num_threads = Kokkos::Threads::concurrency();
+            msg << "CPU Threads (Kokkos::Threads): " << num_threads << endl;
+            #else
+            msg << "CPU Threads: No multi-threaded CPU execution space enabled." << endl;
+            #endif
 
             // Check number of GPUs (CUDA devices)
             #ifdef KOKKOS_ENABLE_CUDA
             int num_gpus = Kokkos::Cuda::detect_device_count();
-            msg << "Rank " << rank << " sees " << num_gpus << " GPUs available." << endl;
+            msg << "CUDA Enabled: Rank " << rank << " sees " << num_gpus << " GPU(s) available." << endl;
             #else
-            msg << "Rank " << rank << ": Kokkos is not using CUDA (GPU support disabled)." << endl;
+            msg << "CUDA: GPU support disabled.\n";
             #endif
+
+            // Additional information on concurrency in the default execution space
+            int default_concurrency = Kokkos::DefaultExecutionSpace::concurrency();
+            msg << "Default Execution Space Concurrency: " << default_concurrency << endl;
+
+            msg << "=====================================" << endl;
         }
 
     private:
