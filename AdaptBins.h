@@ -28,6 +28,7 @@
 //#include <memory>
 //#include <iostream>
 #include "Ippl.h"
+//#include <Kokkos_ScatterView.hpp> // necessary, since not a standard import of Kokkos (experimental)
 
 namespace ParticleBinning {
 
@@ -128,32 +129,8 @@ namespace ParticleBinning {
          * 
          * This function prepares a local histogram, enabling binning of particles within
          * local data, which can then be reduced into a global histogram.
-         * Calls executeInitLocalHistoReduction to perform the reduction (has more information).
          */
         void initLocalHisto();
-
-        /**
-        * @brief Executes a parallel reduction to initialize the local histogram for particle bins.
-        *
-        * This function performs a Kokkos parallel reduction over the particles in the bunch, incrementing 
-        * counts in the reduction array `to_reduce` based on the bin index for each particle. 
-        * After the reduction, the results are copied to the final histogram `localBinHisto`.
-        *
-        * @tparam ReducerType The type of the reduction object, which should support `the_array` for bin counts.
-        * @param to_reduce A reduction object that accumulates bin counts for the histogram.
-        *
-        * The function performs the following steps:
-        * - Executes a Kokkos parallel reduction loop where each particle increments the bin count 
-        *   corresponding to its bin index.
-        * - Executes a parallel loop to copy the reduced bin counts from `to_reduce` to `localBinHisto`.
-        *
-        * @note This function uses the Kokkos parallel programming model and assumes that `to_reduce` 
-        * has a `the_array` member which stores the histogram counts. So far, only ParticleBinning::ArrayReduction
-        * is implemented in that way (to work together with Kokkos::Sum reducer). `the_array` needs to have a known
-        * size at compile time.
-        */
-        template<typename ReducerType>
-        void executeInitLocalHistoReduction(ReducerType& to_reduce);
 
         /**
          * @brief Retrieves the global histogram across all processes.
@@ -235,6 +212,8 @@ namespace ParticleBinning {
             #ifdef KOKKOS_ENABLE_CUDA
             int num_gpus = Kokkos::Cuda::detect_device_count();
             msg << "CUDA Enabled: Rank " << rank << " sees " << num_gpus << " GPU(s) available." << endl;
+            Kokkos::Cuda cuda_instance;  
+            cuda_instance.print_configuration(std::cout);
             #else
             msg << "CUDA: GPU support disabled.\n";
             #endif
@@ -258,7 +237,6 @@ namespace ParticleBinning {
 
 }
 
-#include "ParallelReduceTools.h"
 #include "AdaptBins.hpp"
 
 #endif  // ADAPT_BINS_H
