@@ -93,34 +93,65 @@ namespace ParticleBinning {
         msg << "Local Histogram initialized." << endl;
     }
 
+    template<typename BunchType>
+    template<typename ReducerType>
+    void AdaptBins<BunchType>::executeInitLocalHistoReduction(ReducerType& to_reduce) {
+        bin_view_type binIndex        = bunch_m->bin.getView();  
+        bin_histo_type localBinHisto  = localBinHisto_m;
+        bin_index_type binCount       = getCurrentBinCount();
+
+        static IpplTimings::TimerRef initLocalHisto = IpplTimings::getTimer("initLocalHistoParallelReduce");
+        IpplTimings::startTimer(initLocalHisto);
+        Kokkos::parallel_reduce("initLocalHist", bunch_m->getLocalNum(), 
+            KOKKOS_LAMBDA(const size_type& i, ReducerType& update) {
+                bin_index_type ndx = binIndex(i);  // Determine the bin index for this particle
+                update.the_array[ndx]++;           // Increment the corresponding bin count in the reduction array
+            }, Kokkos::Sum<ReducerType>(to_reduce)
+        );
+        IpplTimings::stopTimer(initLocalHisto);
+
+        // Copy the reduced results to the final histogram
+        Kokkos::parallel_for("finalize_histogram", binCount, 
+            KOKKOS_LAMBDA(const bin_index_type& i) {
+                localBinHisto(i) = to_reduce.the_array[i];
+            }
+        );
+    }
+
     template <typename BunchType>
     void AdaptBins<BunchType>::initLocalHisto() {
         Inform msg("AdaptBins");
-        initializeHistogram(); // Init histogram (no need to set to 0, since contribute_into overwrites values...)
+        initializeHistogram(true); // Init histogram (no need to set to 0, since executeInitLocalHistoReduction overwrites values from reduction...) --> true, since it is necessary for atomics option...
         msg << "Histogram initialized to 0" << endl;
-
-        bin_view_type binIndex       = bunch_m->bin.getView();
-        bin_histo_type localBinHisto = localBinHisto_m;
-        //bin_index_type binCount      = getCurrentBinCount();
+        msg << "Starting reducer...." << endl;
         
-        msg << "Starting reducer." << endl;
+        bin_index_type binCount       = getCurrentBinCount();
 
-        static IpplTimings::TimerRef initLocalHisto = IpplTimings::getTimer("initLocalHisto");
-        IpplTimings::startTimer(initLocalHisto);
+        if (binCount <= maxArrSize<bin_index_type>) {
+            // Create the reduction object directly based on binCount
+            auto to_reduce = createReductionObject<size_type, bin_index_type>(binCount);
+            std::visit([&](auto& reducer_arr) {
+                // Some debug information:
+                // using T = std::decay_t<decltype(arg)>;
+                msg << "Size of the_array: " << sizeof(reducer_arr.the_array) / sizeof(reducer_arr.the_array[0]) << endl;
 
-        //Kokkos::Experimental::ScatterView<size_type*> scatter_view("scatter_view", binCount);
-        Kokkos::Experimental::ScatterView<size_type*> scatter_view(localBinHisto); // does not contribute if not done like this...
-        Kokkos::parallel_for("initLocalHist", bunch_m->getLocalNum(), KOKKOS_LAMBDA(const size_type i) {
-                auto scatter = scatter_view.access();
-                bin_index_type ndx = binIndex(i);
-                scatter(ndx)++; // scatter(ndx)++;
-            });
+                // Put kernels into own function to avoid nested lambdas (forbidden in C++)
+                executeInitLocalHistoReduction(reducer_arr);
+            }, to_reduce);
+        } else {
+            msg << "Bin count is too large, falling back to pure atomics." << endl;
+            bin_histo_type localBinHisto = localBinHisto_m;
+            bin_view_type binIndex       = bunch_m->bin.getView();  
 
-        msg << "Reduced, now contributing." << endl;
-        scatter_view.contribute_into(localBinHisto); // does nothing if "scatter_view.subview().data() == localBinHisto_m.data()", so can as well remain just in case
-        
-        IpplTimings::stopTimer(initLocalHisto);
-
+            static IpplTimings::TimerRef initLocalHisto = IpplTimings::getTimer("initLocalHistoAtomic");
+            IpplTimings::startTimer(initLocalHisto);
+            Kokkos::parallel_for("initLocalHistoAtomic", bunch_m->getLocalNum(), 
+                KOKKOS_LAMBDA(const bin_index_type& i) {
+                    Kokkos::atomic_increment(&localBinHisto(binIndex(i)));
+                }
+            );
+            IpplTimings::stopTimer(initLocalHisto);
+        }
         msg << "Reducer ran without error." << endl;
     }
 

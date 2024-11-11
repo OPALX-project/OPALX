@@ -486,15 +486,23 @@ int main(int argc, char* argv[]) {
         P->initPositions(FL, hr, nloc, 2);
 
         
-        std::unique_ptr<ParticleBinning::AdaptBins<bunch_type>> bins = std::make_unique<ParticleBinning::AdaptBins<bunch_type>>(P, 10);
+        std::unique_ptr<ParticleBinning::AdaptBins<bunch_type>> bins = std::make_unique<ParticleBinning::AdaptBins<bunch_type>>(P, 128); // maxBins = 128
+        bins->setCurrentBinCount(10);
         bins->debug();
         bins->initLimits(); // TODO
 
-        bins->assignBinsToParticles(); // TODO
+        // do the rebinning 10 times
+        for (unsigned int i = 0; i < 10; i++) {
+            bins->assignBinsToParticles();
+        }
+        //bins->assignBinsToParticles();
         bins->print();
-
-        bins->doFullRebin(8);
+        bins->doFullRebin(15);
         bins->print();
+        bins->doFullRebin(34);
+        bins->print();
+        //bins->doFullRebin(9);
+        //bins->print();
         
 
         P->qm = P->Q_m / totalP;
