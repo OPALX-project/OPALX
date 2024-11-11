@@ -261,6 +261,7 @@ namespace ParticleBinning {
 
 }
 
+#include "ParallelReduceTools.h"
 #include "AdaptBins.hpp"
 
 #endif  // ADAPT_BINS_H
