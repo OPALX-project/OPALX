@@ -862,70 +862,8 @@ void ParallelTracker::writePhaseSpace(const long long /*step*/, bool psDump, boo
     }
 
     if (psDump && (itsBunch_m->getTotalNum() > 0)) {
-        // Write fields to .h5 file.
-        /*
-        auto pc = itsBunch_m->getParticleContainer();
-        const size_t localNum    = pc->getLocalNum();
-        double distToLastStop    = stepSizes_m.getFinalZStop() - pathLength_m;
-        Vector_t<double, 3> beta = itsBunch_m->RefPartP_m / Util::getGamma(itsBunch_m->RefPartP_m);
-        Vector_t<double, 3> driftPerTimeStep =
-            itsBunch_m->getdT()
-            * Physics::c;  // \todo  * itsBunch_m->toLabTrafo_m.rotateFrom(beta);
-        bool driftToCorrectPosition =
-            std::abs(distToLastStop) < 0.5 * euclidean_norm(driftPerTimeStep);
-        // \todo Ppos_t stashedR;
-        Vector_t<double, 3> stashedR;
-        Vector_t<double, 3> stashedRefPartR;
-
-        if (driftToCorrectPosition) {
-            const double tau =
-                distToLastStop / euclidean_norm(driftPerTimeStep) * itsBunch_m->getdT();
-
-            if (localNum > 0) {
-
-                stashedR.create(localNum);
-                stashedR        = itsBunch_m->R;
-                stashedRefPartR = itsBunch_m->RefPartR_m;
-
-                for (size_t i = 0; i < localNum; ++i) {
-                    itsBunch_m->R[i] +=
-                        tau
-                        * (Physics::c * itsBunch_m->P[i] / Util::getGamma(itsBunch_m->P[i])
-                           - driftPerTimeStep / itsBunch_m->getdT());
-                }
-
-            }
-
-            driftPerTimeStep = itsBunch_m->toLabTrafo_m.rotateTo(driftPerTimeStep);
-            itsBunch_m->RefPartR_m =
-                itsBunch_m->RefPartR_m + tau * driftPerTimeStep / itsBunch_m->getdT();
-            CoordinateSystemTrafo update(
-                tau * driftPerTimeStep / itsBunch_m->getdT(), Quaternion(1.0, 0.0, 0.0, 0.0));
-            itsBunch_m->toLabTrafo_m = itsBunch_m->toLabTrafo_m * update.inverted();
-
-            itsBunch_m->set_sPos(stepSizes_m.getFinalZStop());
-
-            itsBunch_m->calcBeamParameters();
-        }
-        if (!statDump && !driftToCorrectPosition)
-            itsBunch_m->calcBeamParameters();
-        */
-        //msg << *itsBunch_m << endl;
+        // Write bunch to .h5 file.
         itsDataSink_m->dumpH5(itsBunch_m, FDext);
-
-        /*
-        if (driftToCorrectPosition) {
-            if (localNum > 0) {
-                itsBunch_m->R = stashedR;
-                stashedR.destroy(localNum, 0);
-            }
-
-            itsBunch_m->RefPartR_m = stashedRefPartR;
-            itsBunch_m->set_sPos(pathLength_m);
-
-            itsBunch_m->calcBeamParameters();
-        }
-        */
         msg << level2 << "* Wrote beam phase space." << endl;
     }
 }
