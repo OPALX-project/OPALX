@@ -407,10 +407,11 @@ void H5PartWrapperForPT::writeStepHeader(
 }
 
 void H5PartWrapperForPT::writeStepData(PartBunch_t* bunch) {
-    size_t numLocalParticles = bunch->getLocalNum();
+    auto pc = bunch->getParticleContainer();
+    size_t numLocalParticles = pc->getLocalNum();
 
     REPORTONERROR(H5PartSetNumParticles(file_m, numLocalParticles));
-    /* ADA
+
     std::vector<char> buffer(numLocalParticles * sizeof(h5_float64_t));
     char* buffer_ptr        = Util::c_data(buffer);
     h5_float64_t* f64buffer = reinterpret_cast<h5_float64_t*>(buffer_ptr);
@@ -418,29 +419,29 @@ void H5PartWrapperForPT::writeStepData(PartBunch_t* bunch) {
     h5_int32_t* i32buffer   = reinterpret_cast<h5_int32_t*>(buffer_ptr);
 
     for (size_t i = 0; i < numLocalParticles; ++i)
-        f64buffer[i] = bunch->R(i)(0);
+        f64buffer[i] = pc->R(i)[0];
     WRITEDATA(Float64, file_m, "x", f64buffer);
 
     for (size_t i = 0; i < numLocalParticles; ++i)
-        f64buffer[i] = bunch->R(i)(1);
+        f64buffer[i] = pc->R(i)[1];
     WRITEDATA(Float64, file_m, "y", f64buffer);
 
     for (size_t i = 0; i < numLocalParticles; ++i)
-        f64buffer[i] = bunch->R(i)(2);
+        f64buffer[i] = pc->R(i)[2];
     WRITEDATA(Float64, file_m, "z", f64buffer);
 
     for (size_t i = 0; i < numLocalParticles; ++i)
-        f64buffer[i] = bunch->P(i)(0);
+        f64buffer[i] = pc->P(i)[0];
     WRITEDATA(Float64, file_m, "px", f64buffer);
 
     for (size_t i = 0; i < numLocalParticles; ++i)
-        f64buffer[i] = bunch->P(i)(1);
+        f64buffer[i] = pc->P(i)[1];
     WRITEDATA(Float64, file_m, "py", f64buffer);
 
     for (size_t i = 0; i < numLocalParticles; ++i)
-        f64buffer[i] = bunch->P(i)(2);
+        f64buffer[i] = pc->P(i)[2];
     WRITEDATA(Float64, file_m, "pz", f64buffer);
-
+/*
     for (size_t i = 0; i < numLocalParticles; ++i)
         f64buffer[i] = bunch->Q(i);
     WRITEDATA(Float64, file_m, "q", f64buffer);
