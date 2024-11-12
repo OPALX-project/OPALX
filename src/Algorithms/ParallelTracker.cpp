@@ -861,11 +861,11 @@ void ParallelTracker::writePhaseSpace(const long long /*step*/, bool psDump, boo
         msg << level3 << "* Wrote beam statistics." << endl;
     }
 
-    /* \todo
-
     if (psDump && (itsBunch_m->getTotalNum() > 0)) {
         // Write fields to .h5 file.
-        const size_t localNum    = itsBunch_m->getLocalNum();
+        /*
+        auto pc = itsBunch_m->getParticleContainer();
+        const size_t localNum    = pc->getLocalNum();
         double distToLastStop    = stepSizes_m.getFinalZStop() - pathLength_m;
         Vector_t<double, 3> beta = itsBunch_m->RefPartP_m / Util::getGamma(itsBunch_m->RefPartP_m);
         Vector_t<double, 3> driftPerTimeStep =
@@ -909,10 +909,11 @@ void ParallelTracker::writePhaseSpace(const long long /*step*/, bool psDump, boo
         }
         if (!statDump && !driftToCorrectPosition)
             itsBunch_m->calcBeamParameters();
-
-        msg << *itsBunch_m << endl;
+        */
+        //msg << *itsBunch_m << endl;
         itsDataSink_m->dumpH5(itsBunch_m, FDext);
 
+        /*
         if (driftToCorrectPosition) {
             if (localNum > 0) {
                 itsBunch_m->R = stashedR;
@@ -924,10 +925,9 @@ void ParallelTracker::writePhaseSpace(const long long /*step*/, bool psDump, boo
 
             itsBunch_m->calcBeamParameters();
         }
-
+        */
         msg << level2 << "* Wrote beam phase space." << endl;
     }
-    */
 }
 
 void ParallelTracker::updateReference(const BorisPusher& pusher) {
