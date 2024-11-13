@@ -270,7 +270,9 @@ namespace ParticleBinning {
             int num_gpus = Kokkos::Cuda::detect_device_count();
             msg << "CUDA Enabled: Rank " << rank << " sees " << num_gpus << " GPU(s) available." << endl;
             Kokkos::Cuda cuda_instance;  
-            cuda_instance.print_configuration(std::cout);
+            std::stringstream ss;
+            cuda_instance.print_configuration(ss);
+            msg << ss.str();
             #else
             msg << "CUDA: GPU support disabled.\n";
             #endif
