@@ -134,6 +134,13 @@ namespace ParticleBinning {
         void initLocalHisto();
 
         /**
+         * @brief TODO
+         * 
+         * TODO
+         */
+        void executeInitLocalHistoReductionTeamFor();
+
+        /**
         * @brief Executes a parallel reduction to initialize the local histogram for particle bins.
         *
         * This function performs a Kokkos parallel reduction over the particles in the bunch, incrementing 
