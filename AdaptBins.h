@@ -135,10 +135,38 @@ namespace ParticleBinning {
         void initLocalHisto(HistoReductionMode modePreference = HistoReductionMode::Standard);
 
         /**
-         * @brief TODO
-         * 
-         * TODO
-         */
+        * @brief Initializes and performs a team-based histogram reduction for particle bins.
+        *
+        * This function allocates scratch memory on each team, initializes a local
+        * histogram for each team in shared memory, updates it based on bin indices of particles,
+        * and finally reduces the team-local histograms into a global histogram in device memory
+        * using pure atomics.
+        * 
+        * @details The process consists of the following steps:
+        * - Allocating scratch memory for each team's local histogram.
+        * - Initializing the local histogram to zero.
+        * - Assigning particles to bins in parallel within each team.
+        * - Reducing each team's local histogram into a global histogram (atomics).
+        *
+        * ### Parameters
+        * - **binIndex**: A view of bin indices for each particle.
+        * - **localBinHisto**: A global histogram where the final reduction result is stored.
+        * - **binCount**: The total number of histogram bins.
+        * - **localNumParticles**: The number of particles in the local process.
+        *
+        * ### Memory and Execution
+        * - **Scratch Memory**: Scratch memory is allocated per team for a local histogram, with size `binCount`.
+        * - **Concurrency**: `team_size` specifies the number of threads per team, and each team processes a `block_size`.
+        *
+        * @note This function is optimized for GPU execution using team-based parallelism,
+        *       it does not work on Host (since team_size is hardcoded and to big). 
+        *       If you want to run this on Host, change team_size=1 and increase block_size.
+        *
+        * @pre `localBinHisto` and `binIndex` must be initialized with appropriate sizes before calling this function.
+        * 
+        * @post `localBinHisto` contains the reduced histogram for the local data. 
+        *       Next step is to reduce across all MPI ranks. @see getGlobalHistogram
+        */
         void executeInitLocalHistoReductionTeamFor();
 
         /**
