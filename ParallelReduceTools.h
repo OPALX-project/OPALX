@@ -11,7 +11,8 @@ namespace ParticleBinning {
     enum class HistoReductionMode {
         Standard,          // Default auto selection
         ParallelReduce,    // Force usage of parallel_reduce if binCount <= maxArrSize
-        TeamBased          // Force team-based/atomic reduction if gpu enabled
+        TeamBased,         // Force team-based/atomic reduction if gpu enabled
+        HostOnly
     };
 
     template<typename SizeType, typename IndexType, IndexType N>
@@ -78,14 +79,75 @@ namespace ParticleBinning {
     ReductionVariant<SizeType, IndexType> createReductionObject(IndexType binCount) {
         return createReductionObjectHelper<SizeType, IndexType, 1>(binCount);
     }
+    
+
+    /*
+    The following struct is only used for the host version of the code. It is not used in the CUDA version.
+    ...since dynamically allocated arrays work only on host (but still faster than team based!)
+     */
+    template<typename SizeType, typename IndexType>
+    struct HostArrayReduction {
+        SizeType* the_array;
+
+        // Static variable to define array size
+        static IndexType binCountStatic;
+
+        // Only compile without CUDA, since it is not needed otherwise and would not compile with the reduction identity below!
+        #ifndef KOKKOS_ENABLE_CUDA
+        HostArrayReduction() { 
+            the_array = new SizeType[binCountStatic];
+            for (IndexType i = 0; i < binCountStatic; i++ ) { the_array[i] = 0; }
+        }
+
+        HostArrayReduction(const HostArrayReduction& rhs) { 
+            the_array = new SizeType[binCountStatic];
+            for (IndexType i = 0; i < binCountStatic; i++ ){ the_array[i] = rhs.the_array[i]; }
+        }
+        
+        ~HostArrayReduction() { delete[] the_array; }
+        
+        HostArrayReduction& operator=(const HostArrayReduction& rhs) {
+            the_array = new SizeType[binCountStatic];
+            if (this != &rhs) {
+                for (IndexType i = 0; i < binCountStatic; ++i) { the_array[i] = rhs.the_array[i]; }
+            }
+            return *this;
+        }
+        
+        HostArrayReduction& operator+=(const HostArrayReduction& src) {
+            for (IndexType i = 0; i < binCountStatic; i++ ) { the_array[i] += src.the_array[i]; }
+            return *this;
+        }
+        #else
+        KOKKOS_INLINE_FUNCTION
+        HostArrayReduction& operator+=(const HostArrayReduction& src) {
+            // throw an error if this function is called on CUDA (shouldn't happen)
+            Kokkos::abort("Error: HostArrayReduction is not supported on CUDA!\n       Note: It exists only for compilation compatibility.");
+            return *this;
+        }
+        #endif
+    };
+
+    // Initialize the static variable outside the struct
+    template<typename SizeType, typename IndexType>
+    IndexType HostArrayReduction<SizeType, IndexType>::binCountStatic = 10;
 
 }
 
 namespace Kokkos {  
+    // This one is for usage on GPU
     template<typename SizeType, typename IndexType, IndexType N>
     struct reduction_identity<ParticleBinning::ArrayReduction<SizeType, IndexType, N>> {
         KOKKOS_FORCEINLINE_FUNCTION static ParticleBinning::ArrayReduction<SizeType, IndexType, N> sum() {
             return ParticleBinning::ArrayReduction<SizeType, IndexType, N>();
+        }
+    };
+    
+    // This one is for usage on host
+    template<typename SizeType, typename IndexType>
+    struct reduction_identity<ParticleBinning::HostArrayReduction<SizeType, IndexType>> {
+        KOKKOS_FORCEINLINE_FUNCTION static ParticleBinning::HostArrayReduction<SizeType, IndexType> sum() {
+            return ParticleBinning::HostArrayReduction<SizeType, IndexType>();
         }
     };
 }

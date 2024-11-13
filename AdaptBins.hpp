@@ -94,6 +94,19 @@ namespace ParticleBinning {
     }
 
     template<typename BunchType>
+    HistoReductionMode AdaptBins<BunchType>::determineHistoReductionMode(HistoReductionMode modePreference, bin_index_type binCount) {
+        // Overwrite standard mode if compiled with default host execution space!
+        if (std::is_same<Kokkos::DefaultExecutionSpace, Kokkos::DefaultHostExecutionSpace>::value) return HistoReductionMode::HostOnly;
+
+        // Otherwise choose automatically if Standard and respect preference if not on host and not standard!
+        if (modePreference == HistoReductionMode::Standard) {
+            return (binCount <= maxArrSize<bin_index_type>) ? HistoReductionMode::ParallelReduce : HistoReductionMode::TeamBased;
+        } else {
+            return modePreference;
+        }
+    } 
+
+    template<typename BunchType>
     template<typename ReducerType>
     void AdaptBins<BunchType>::executeInitLocalHistoReduction(ReducerType& to_reduce) {
         bin_view_type binIndex        = bunch_m->bin.getView();  
@@ -135,16 +148,18 @@ namespace ParticleBinning {
         const size_t shared_size = scratch_view_type::shmem_size(binCount);
 
         // Determine the team size based on the execution space
-        const size_type team_size = 1; // 128 threads per team for CUDA, 1 for CPU --> full data duplication on cpu
-        #ifdef KOKKOS_ENABLE_CUDA
-            team_size = 128; // Use 128 for CUDA
-        #endif
+        //const size_type team_size = 1; // 128 threads per team for CUDA, 1 for CPU --> full data duplication on cpu
+        //#ifdef KOKKOS_ENABLE_CUDA
+        //    team_size = 128; // Use 128 for CUDA
+        //#endif
+        const size_type team_size = 128;
 
         // Calculate the block size based on the number of particles and the team size for CPU and roughly atomic-collision-free for GPU 
-        const size_type block_size = (localNumParticles / 2) / Kokkos::DefaultExecutionSpace::concurrency(); // only for openmp (to use all available cpu cores!)
-        #ifdef KOKKOS_ENABLE_CUDA
-            block_size  = team_size * 8; // Use 128 for CUDA
-        #endif
+        //const size_type block_size = (localNumParticles / 2) / Kokkos::DefaultExecutionSpace::concurrency(); // only for openmp (to use all available cpu cores!)
+        //#ifdef KOKKOS_ENABLE_CUDA
+        //    block_size  = team_size * 8; // Use 128 for CUDA
+        //#endif
+        const size_type block_size = team_size * 8;
 
         const size_type num_leagues = (localNumParticles + block_size - 1) / block_size; // number of teams!
         
@@ -185,20 +200,46 @@ namespace ParticleBinning {
     }
 
     template <typename BunchType>
-    void AdaptBins<BunchType>::initLocalHisto(HistoReductionMode mode) {
+    void AdaptBins<BunchType>::initLocalHisto(HistoReductionMode modePreference) {
         Inform msg("AdaptBins");
         initializeHistogram(true); // Init histogram (no need to set to 0, since executeInitLocalHistoReduction overwrites values from reduction...) --> true, since it is necessary for atomics option...
 
         bin_index_type binCount = getCurrentBinCount();
 
-        bool useParallelReduce = (binCount <= maxArrSize<bin_index_type>); // Standard option (mode = Standard), is default parameter in header file
-        /*if (mode == HistoReductionMode::ParallelReduce) {
+        // Determine the execution method based on the bin count and the mode...
+        HistoReductionMode mode = determineHistoReductionMode(modePreference, binCount);
+
+        if (mode == HistoReductionMode::HostOnly) {
+            msg << "Using host-only parallel_reduce reduction." << endl;
+            HostArrayReduction<size_type, bin_index_type>::binCountStatic = binCount; // set size of the histogram 
+            HostArrayReduction<size_type, bin_index_type> reducer_arr;
+            executeInitLocalHistoReduction(reducer_arr);
+        } else if (mode == HistoReductionMode::TeamBased) {
+            msg << "Using team-based + atomic reduction." << endl;
+            executeInitLocalHistoReductionTeamFor();
+        } else if (mode == HistoReductionMode::ParallelReduce) {
+            auto to_reduce = createReductionObject<size_type, bin_index_type>(binCount);
+            std::visit([&](auto& reducer_arr) {
+                msg << "Starting parallel_reduce, array size = " << sizeof(reducer_arr.the_array) / sizeof(reducer_arr.the_array[0]) << endl;
+                executeInitLocalHistoReduction(reducer_arr);
+            }, to_reduce);
+        } else {
+            msg << "No valid execution method defined to initialize local histogram for energy binning." << endl;
+            ippl::Comm->abort(); // Exit, since error!
+        }
+
+        //if (std::is_same<Kokkos::DefaultExecutionSpace, Kokkos::DefaultHostExecutionSpace>::value) {
+        // On host, always use the dynamically allocated parallel_reduce version!
+            
+            
+        /*bool useParallelReduce = (binCount <= maxArrSize<bin_index_type>); // Standard option (mode = Standard), is default parameter in header file
+        if (mode == HistoReductionMode::ParallelReduce) {
             useParallelReduce = true;
         } else if (mode == HistoReductionMode::TeamBased) {
             useParallelReduce = false;
         }*/
 
-        if (useParallelReduce) {
+        /*if (useParallelReduce) {
             // Create the reduction object directly based on binCount
             auto to_reduce = createReductionObject<size_type, bin_index_type>(binCount);
             std::visit([&](auto& reducer_arr) {
@@ -208,7 +249,8 @@ namespace ParticleBinning {
         } else {
             msg << "Using team-based atomic reduction." << endl;
             executeInitLocalHistoReductionTeamFor();
-        }
+        }*/
+
         msg << "Reducer ran without error." << endl;
     }
 

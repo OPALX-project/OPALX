@@ -132,7 +132,7 @@ namespace ParticleBinning {
          * local data, which can then be reduced into a global histogram.
          * Calls executeInitLocalHistoReduction to perform the reduction (has more information).
          */
-        void initLocalHisto(HistoReductionMode mode = HistoReductionMode::Standard);
+        void initLocalHisto(HistoReductionMode modePreference = HistoReductionMode::Standard);
 
         /**
          * @brief TODO
@@ -165,6 +165,32 @@ namespace ParticleBinning {
         void executeInitLocalHistoReduction(ReducerType& to_reduce);
 
         /**
+        * @brief Determines the appropriate histogram reduction mode based on user preference, 
+        *        bin count, and execution environment.
+        *
+        * This function selects the optimal histogram reduction method. If the code is compiled 
+        * with a host execution space (e.g., Serial or OpenMP), it forces the reduction mode to 
+        * `HistoReductionMode::HostOnly`, disregarding the user's preference. Otherwise, if the 
+        * user preference is `HistoReductionMode::Standard`, it automatically chooses between 
+        * `ParallelReduce` or `TeamBased` based on the `binCount`. If a specific preference is 
+        * provided (not `Standard`), that preference is respected.
+        *
+        * @param modePreference The user's preferred reduction mode.
+        *                       - `Standard` to select a mode based on bin count.
+        *                       - `ParallelReduce`, `TeamBased`, or `HostOnly` to force a specific mode.
+        * @return HistoReductionMode The selected histogram reduction mode:
+        *         - `HostOnly` if the default execution space is a host space.
+        *         - `ParallelReduce` if `binCount` is within `maxArrSize<bin_index_type>`.
+        *         - `TeamBased` if `binCount` exceeds `maxArrSize<bin_index_type>`.
+        *         - Otherwise, respects the specified `modePreference`.
+        *
+        * @note If compiled for a host-only execution environment, the returned mode will always be 
+        *       `HistoReductionMode::HostOnly`, regardless of `modePreference`.
+        * @see HistoReductionMode
+        */
+        HistoReductionMode determineHistoReductionMode(HistoReductionMode modePreference, bin_index_type binCount);
+
+        /**
          * @brief Retrieves the global histogram across all processes.
          * 
          * This function reduces the local histograms across all MPI processes into
@@ -183,7 +209,6 @@ namespace ParticleBinning {
             setCurrentBinCount(nBins);
             assignBinsToParticles();
         }
-
 
         /**
          * @brief Prints the current global histogram to the output stream.
