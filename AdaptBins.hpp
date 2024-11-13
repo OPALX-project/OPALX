@@ -32,7 +32,7 @@ namespace ParticleBinning {
     }
 
     template <typename BunchType>
-    void AdaptBins<BunchType>::initializeHistogram(bool setToZero) {
+    void AdaptBins<BunchType>::instantiateHistogram(bool setToZero) {
         // Reinitialize the histogram view with the new size (numBins)
         const bin_index_type numBins = getCurrentBinCount();
         localBinHisto_m = bin_histo_type("binHisto_m", numBins);
@@ -63,7 +63,7 @@ namespace ParticleBinning {
     }
 
     template <typename BunchType>    
-    void AdaptBins<BunchType>::assignBinsToParticles() {
+    void AdaptBins<BunchType>::assignBinsToParticles(HistoReductionMode reductionPreference) {
         // Set the bin attribute for the given particle
         Inform msg("AdaptBins");
 
@@ -89,7 +89,7 @@ namespace ParticleBinning {
         IpplTimings::stopTimer(assignParticleBins);
         msg << "All bins assigned." << endl; 
 
-        initLocalHisto();
+        initLocalHisto(modePreference=reductionPreference);
         msg << "Local Histogram initialized." << endl;
     }
 
@@ -190,7 +190,7 @@ namespace ParticleBinning {
     template <typename BunchType>
     void AdaptBins<BunchType>::initLocalHisto(HistoReductionMode modePreference) {
         Inform msg("AdaptBins");
-        initializeHistogram(true); // Init histogram (no need to set to 0, since executeInitLocalHistoReduction overwrites values from reduction...) --> true, since it is necessary for atomics option...
+        instantiateHistogram(true); // Init histogram (no need to set to 0, since executeInitLocalHistoReduction overwrites values from reduction...) --> true, since it is necessary for atomics option...
 
         bin_index_type binCount = getCurrentBinCount();
 
@@ -215,7 +215,7 @@ namespace ParticleBinning {
             msg << "No valid execution method defined to initialize local histogram for energy binning." << endl;
             ippl::Comm->abort(); // Exit, since error!
         }
-        
+
         msg << "Reducer ran without error." << endl;
     }
 

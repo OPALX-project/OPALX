@@ -115,7 +115,7 @@ namespace ParticleBinning {
          * 
          * @param setToZero If true, initializes the histogram view to zero. Default is false. The 0 initialization is not needed if it is overwritten anyways.
          */
-        void initializeHistogram(bool setToZero = false);
+        void instantiateHistogram(bool setToZero = false);
 
         /**
          * @brief Assigns each particle in the bunch to a bin based on its position.
@@ -123,7 +123,7 @@ namespace ParticleBinning {
          * This function iterates over all particles in the bunch, calculates their bin
          * index, and updates the bin structure accordingly.
          */
-        void assignBinsToParticles();
+        void assignBinsToParticles(HistoReductionMode modePreference = HistoReductionMode::Standard);
 
         /**
          * @brief Initializes a local histogram view for particle binning.
