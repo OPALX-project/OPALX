@@ -7,6 +7,13 @@
 
 namespace ParticleBinning {
 
+    // Possibility to manually choose between different reduction methods! 
+    enum class HistoReductionMode {
+        Standard,          // Default auto selection
+        ParallelReduce,    // Force usage of parallel_reduce if binCount <= maxArrSize
+        TeamBased          // Force team-based/atomic reduction if gpu enabled
+    };
+
     template<typename SizeType, typename IndexType, IndexType N>
     struct ArrayReduction {
         SizeType the_array[N];

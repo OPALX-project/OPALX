@@ -28,7 +28,8 @@
 //#include <memory>
 //#include <iostream>
 #include "Ippl.h"
-//#include <Kokkos_ScatterView.hpp> // necessary, since not a standard import of Kokkos (experimental)
+
+#include "ParallelReduceTools.h"
 
 namespace ParticleBinning {
 
@@ -131,7 +132,7 @@ namespace ParticleBinning {
          * local data, which can then be reduced into a global histogram.
          * Calls executeInitLocalHistoReduction to perform the reduction (has more information).
          */
-        void initLocalHisto();
+        void initLocalHisto(HistoReductionMode mode = HistoReductionMode::Standard);
 
         /**
          * @brief TODO
@@ -268,7 +269,6 @@ namespace ParticleBinning {
 
 }
 
-#include "ParallelReduceTools.h"
 #include "AdaptBins.hpp"
 
 #endif  // ADAPT_BINS_H

@@ -134,9 +134,18 @@ namespace ParticleBinning {
         // Calculate shared memory size for the histogram (binCount elements)
         const size_t shared_size = scratch_view_type::shmem_size(binCount);
 
-        // Decide on a team size
-        const size_type team_size   = 128; // Kokkos::AUTO; // 256 threads per team
-        const size_type block_size  = team_size * 8; // 8 elements to process per thread 
+        // Determine the team size based on the execution space
+        const size_type team_size = 1; // 128 threads per team for CUDA, 1 for CPU --> full data duplication on cpu
+        #ifdef KOKKOS_ENABLE_CUDA
+            team_size = 128; // Use 128 for CUDA
+        #endif
+
+        // Calculate the block size based on the number of particles and the team size for CPU and roughly atomic-collision-free for GPU 
+        const size_type block_size = (localNumParticles / 2) / Kokkos::DefaultExecutionSpace::concurrency(); // only for openmp (to use all available cpu cores!)
+        #ifdef KOKKOS_ENABLE_CUDA
+            block_size  = team_size * 8; // Use 128 for CUDA
+        #endif
+
         const size_type num_leagues = (localNumParticles + block_size - 1) / block_size; // number of teams!
         
         // Set up team policy with scratch memory allocation for each team
@@ -176,13 +185,20 @@ namespace ParticleBinning {
     }
 
     template <typename BunchType>
-    void AdaptBins<BunchType>::initLocalHisto() {
+    void AdaptBins<BunchType>::initLocalHisto(HistoReductionMode mode) {
         Inform msg("AdaptBins");
         initializeHistogram(true); // Init histogram (no need to set to 0, since executeInitLocalHistoReduction overwrites values from reduction...) --> true, since it is necessary for atomics option...
 
         bin_index_type binCount = getCurrentBinCount();
 
-        if (binCount <= maxArrSize<bin_index_type>) {
+        bool useParallelReduce = (binCount <= maxArrSize<bin_index_type>); // Standard option (mode = Standard), is default parameter in header file
+        /*if (mode == HistoReductionMode::ParallelReduce) {
+            useParallelReduce = true;
+        } else if (mode == HistoReductionMode::TeamBased) {
+            useParallelReduce = false;
+        }*/
+
+        if (useParallelReduce) {
             // Create the reduction object directly based on binCount
             auto to_reduce = createReductionObject<size_type, bin_index_type>(binCount);
             std::visit([&](auto& reducer_arr) {
@@ -190,7 +206,7 @@ namespace ParticleBinning {
                 executeInitLocalHistoReduction(reducer_arr);
             }, to_reduce);
         } else {
-            msg << "Bin count is too large, falling back to team-based atomic reduction." << endl;
+            msg << "Using team-based atomic reduction." << endl;
             executeInitLocalHistoReductionTeamFor();
         }
         msg << "Reducer ran without error." << endl;
