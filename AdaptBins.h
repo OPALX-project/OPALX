@@ -29,7 +29,8 @@
 //#include <iostream>
 #include "Ippl.h"
 
-#include "ParallelReduceTools.h"
+#include "ParallelReduceTools.h" // Has custom reducer objects (--> needed in AdaptBins.h and BinningTools.h)
+#include "BinningTools.h" // Has custom particle selection
 
 namespace ParticleBinning {
 
@@ -43,10 +44,10 @@ namespace ParticleBinning {
      *
      * @tparam BunchType The type of particle bunch (container) used in the binning process.
      */
-    template <typename BunchType>
+    template <typename BunchType, typename BinningSelector>
     class AdaptBins {
     public:
-        using value_type             = typename BunchType::Layout_t::value_type;
+        using value_type             = typename BinningSelector::value_type;
         using particle_position_type = typename BunchType::particle_position_type;
         using position_view_type     = typename particle_position_type::view_type;
         using size_type              = typename BunchType::size_type;
@@ -55,6 +56,7 @@ namespace ParticleBinning {
         using bin_view_type          = typename bin_type::view_type;
         using bin_histo_type         = Kokkos::View<size_type*>;
         using bin_host_histo_type    = Kokkos::View<size_type*, Kokkos::HostSpace>;
+        // using binning_var_selector_type = typename BinningVariableSelector<size_type>;
 
         /**
          * @brief Constructs an AdaptBins object with a specified maximum number of bins.
@@ -62,9 +64,10 @@ namespace ParticleBinning {
          * @param bunch A shared pointer to the particle container.
          * @param maxBins The maximum number of bins to initialize with (default is 10).
          */
-        AdaptBins(std::shared_ptr<BunchType> bunch, bin_index_type maxBins = 10)
+        AdaptBins(std::shared_ptr<BunchType> bunch, BinningSelector var_selector, bin_index_type maxBins = 10)
             : bunch_m(bunch)
-            , maxBins_m(maxBins) {
+            , maxBins_m(maxBins)
+            , var_selector_m(var_selector) {
 
             currentBins_m = maxBins; // TODO for now...
         }
@@ -193,32 +196,6 @@ namespace ParticleBinning {
         void executeInitLocalHistoReduction(ReducerType& to_reduce);
 
         /**
-        * @brief Determines the appropriate histogram reduction mode based on user preference, 
-        *        bin count, and execution environment.
-        *
-        * This function selects the optimal histogram reduction method. If the code is compiled 
-        * with a host execution space (e.g., Serial or OpenMP), it forces the reduction mode to 
-        * `HistoReductionMode::HostOnly`, disregarding the user's preference. Otherwise, if the 
-        * user preference is `HistoReductionMode::Standard`, it automatically chooses between 
-        * `ParallelReduce` or `TeamBased` based on the `binCount`. If a specific preference is 
-        * provided (not `Standard`), that preference is respected.
-        *
-        * @param modePreference The user's preferred reduction mode.
-        *                       - `Standard` to select a mode based on bin count.
-        *                       - `ParallelReduce`, `TeamBased`, or `HostOnly` to force a specific mode.
-        * @return HistoReductionMode The selected histogram reduction mode:
-        *         - `HostOnly` if the default execution space is a host space.
-        *         - `ParallelReduce` if `binCount` is within `maxArrSize<bin_index_type>`.
-        *         - `TeamBased` if `binCount` exceeds `maxArrSize<bin_index_type>`.
-        *         - Otherwise, respects the specified `modePreference`.
-        *
-        * @note If compiled for a host-only execution environment, the returned mode will always be 
-        *       `HistoReductionMode::HostOnly`, regardless of `modePreference`.
-        * @see HistoReductionMode
-        */
-        HistoReductionMode determineHistoReductionMode(HistoReductionMode modePreference, bin_index_type binCount);
-
-        /**
          * @brief Retrieves the global histogram across all processes.
          * 
          * This function reduces the local histograms across all MPI processes into
@@ -327,7 +304,8 @@ namespace ParticleBinning {
         value_type xMax_m;                     ///< Maximum boundary for bins.
         value_type binWidth_m;                 ///< Width of each bin.
         bin_histo_type localBinHisto_m;        ///< Local histogram view for bin counts.
-        bin_histo_type globalBinHisto_m;        ///< Global histogram view (over ranks reduced local histograms).
+        bin_histo_type globalBinHisto_m;       ///< Global histogram view (over ranks reduced local histograms).
+        BinningSelector var_selector_m;        ///< Variable selector for binning.
     };
 
 }

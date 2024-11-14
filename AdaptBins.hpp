@@ -5,15 +5,19 @@
 
 namespace ParticleBinning {
 
-    template <typename BunchType>
-    void AdaptBins<BunchType>::initLimits() {
+    template <typename BunchType, typename BinningSelector>
+    void AdaptBins<BunchType, BinningSelector>::initLimits() {
         Inform msg("AdaptBins");  // INFORM_ALL_NODES
 
         Kokkos::MinMaxScalar<value_type> localMinMax;
-        position_view_type localData = bunch_m->R.getView();
+        // position_view_type localData = bunch_m->R.getView();
+        BinningSelector var_selector = var_selector_m; 
         
-        Kokkos::parallel_reduce("localBinLimitReduction", bunch_m->getLocalNum(), KOKKOS_LAMBDA(const int i, Kokkos::MinMaxScalar<value_type>& update) {
-            value_type val = localData(i)[2]; // use z axis for binning!
+        static IpplTimings::TimerRef histoLimits = IpplTimings::getTimer("initHistoLimits");
+        IpplTimings::startTimer(histoLimits);
+
+        Kokkos::parallel_reduce("localBinLimitReduction", bunch_m->getLocalNum(), KOKKOS_LAMBDA(const size_type i, Kokkos::MinMaxScalar<value_type>& update) {
+            value_type val = var_selector(i); // localData(i)[2]; // use z axis for binning!
             update.min_val = Kokkos::min(update.min_val, val);
             update.max_val = Kokkos::max(update.max_val, val);
         }, Kokkos::MinMax<value_type>(localMinMax));
@@ -26,13 +30,15 @@ namespace ParticleBinning {
         ippl::Comm->allreduce(xMax_m, 1, std::greater<value_type>());
         ippl::Comm->allreduce(xMin_m, 1, std::less<value_type>());
 
+        IpplTimings::stopTimer(histoLimits);
+
         binWidth_m = (xMax_m - xMin_m) / currentBins_m;
         
         msg << "Initialized limits. Min: " << xMin_m << ", max: " << xMax_m << ", binWidth: " << binWidth_m << endl;
     }
 
-    template <typename BunchType>
-    void AdaptBins<BunchType>::instantiateHistogram(bool setToZero) {
+    template <typename BunchType, typename BinningSelector>
+    void AdaptBins<BunchType, BinningSelector>::instantiateHistogram(bool setToZero) {
         // Reinitialize the histogram view with the new size (numBins)
         const bin_index_type numBins = getCurrentBinCount();
         localBinHisto_m = bin_histo_type("binHisto_m", numBins);
@@ -46,9 +52,9 @@ namespace ParticleBinning {
         }
     }
 
-    template <typename BunchType>
-    KOKKOS_INLINE_FUNCTION typename AdaptBins<BunchType>::bin_index_type 
-    AdaptBins<BunchType>::getBin(value_type x, value_type xMin, value_type xMax, value_type binWidthInv, bin_index_type numBins) {
+    template <typename BunchType, typename BinningSelector>
+    KOKKOS_INLINE_FUNCTION typename AdaptBins<BunchType, BinningSelector>::bin_index_type 
+    AdaptBins<BunchType, BinningSelector>::getBin(value_type x, value_type xMin, value_type xMax, value_type binWidthInv, bin_index_type numBins) {
         // Explanation: Don't access xMin, binWidth, ... through the members to avoid implicit
         // variable capture by Kokkos and potential copying overhead. Instead, pass them as an 
         // argument, s.t. Kokkos can capture them explicitly!
@@ -62,12 +68,13 @@ namespace ParticleBinning {
         return (bin >= numBins) ? (numBins - 1) : bin;  // Clamp to the maximum bin
     }
 
-    template <typename BunchType>    
-    void AdaptBins<BunchType>::assignBinsToParticles() {
+    template <typename BunchType, typename BinningSelector>    
+    void AdaptBins<BunchType, BinningSelector>::assignBinsToParticles() {
         // Set the bin attribute for the given particle
         Inform msg("AdaptBins");
 
-        position_view_type localData = bunch_m->R.getView();
+        // position_view_type localData = bunch_m->R.getView();
+        BinningSelector var_selector = var_selector_m; 
         bin_view_type binIndex       = bunch_m->bin.getView();  
 
         // Declare the variables locally before the Kokkos::parallel_for (to avoid implicit this capture in Kokkos lambda)
@@ -80,7 +87,7 @@ namespace ParticleBinning {
 
         Kokkos::parallel_for("assignParticleBins", bunch_m->getLocalNum(), KOKKOS_LAMBDA(const size_type i) {
                 // Access the z-axis position of the i-th particle
-                value_type v = localData(i)[2];  
+                value_type v = var_selector(i); // localData(i)[2];  
                 
                 // Assign the bin index to the particle (directly on device)
                 bin_index_type bin = getBin(v, xMin, xMax, binWidthInv, numBins);
@@ -90,22 +97,9 @@ namespace ParticleBinning {
         msg << "All bins assigned." << endl; 
     }
 
-    template<typename BunchType>
-    HistoReductionMode AdaptBins<BunchType>::determineHistoReductionMode(HistoReductionMode modePreference, bin_index_type binCount) {
-        // Overwrite standard mode if compiled with default host execution space!
-        if (std::is_same<Kokkos::DefaultExecutionSpace, Kokkos::DefaultHostExecutionSpace>::value) return HistoReductionMode::HostOnly;
-
-        // Otherwise choose automatically if Standard and respect preference if not on host and not standard!
-        if (modePreference == HistoReductionMode::Standard) {
-            return (binCount <= maxArrSize<bin_index_type>) ? HistoReductionMode::ParallelReduce : HistoReductionMode::TeamBased;
-        } else {
-            return modePreference;
-        }
-    } 
-
-    template<typename BunchType>
+    template<typename BunchType, typename BinningSelector>
     template<typename ReducerType>
-    void AdaptBins<BunchType>::executeInitLocalHistoReduction(ReducerType& to_reduce) {
+    void AdaptBins<BunchType, BinningSelector>::executeInitLocalHistoReduction(ReducerType& to_reduce) {
         bin_view_type binIndex        = bunch_m->bin.getView();  
         bin_histo_type localBinHisto  = localBinHisto_m;
         bin_index_type binCount       = getCurrentBinCount();
@@ -128,8 +122,8 @@ namespace ParticleBinning {
         );
     }
 
-    template <typename BunchType>
-    void AdaptBins<BunchType>::executeInitLocalHistoReductionTeamFor() {
+    template <typename BunchType, typename BinningSelector>
+    void AdaptBins<BunchType, BinningSelector>::executeInitLocalHistoReductionTeamFor() {
         bin_view_type binIndex            = bunch_m->bin.getView();
         bin_histo_type localBinHisto      = localBinHisto_m;
         const bin_index_type binCount     = getCurrentBinCount();
@@ -184,8 +178,8 @@ namespace ParticleBinning {
         IpplTimings::stopTimer(initLocalHisto);
     }
 
-    template <typename BunchType>
-    void AdaptBins<BunchType>::initLocalHisto(HistoReductionMode modePreference) {
+    template <typename BunchType, typename BinningSelector>
+    void AdaptBins<BunchType, BinningSelector>::initLocalHisto(HistoReductionMode modePreference) {
         Inform msg("AdaptBins");
         
         bin_index_type binCount = getCurrentBinCount();
@@ -215,8 +209,8 @@ namespace ParticleBinning {
         msg << "Reducer ran without error." << endl;
     }
 
-    template <typename BunchType>
-    void AdaptBins<BunchType>::initGlobalHistogram() {
+    template <typename BunchType, typename BinningSelector>
+    void AdaptBins<BunchType, BinningSelector>::initGlobalHistogram() {
         Inform msg("GetGlobalHistogram");
 
         // Get the current number of bins

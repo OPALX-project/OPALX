@@ -2,7 +2,7 @@
 #define PARALLEL_REDUCE_TOOLS_H
 
 #include <variant> // for std::variant
-#include <memory>
+// #include <memory>
 #include <utility> // for std::index_sequence
 
 namespace ParticleBinning {

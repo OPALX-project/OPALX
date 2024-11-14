@@ -4,15 +4,15 @@
 #SBATCH --output=output/bins_%j.out
 #SBATCH --time=00:05:00
 #SBATCH --nodes=1                   # Request node
-#SBATCH --ntasks-per-node=4        # ranks per node
+#SBATCH --ntasks-per-node=1        # ranks per node
 #SBATCH --mem-per-cpu=8G
-#SBATCH --cpus-per-task=2           # "threads" per task (for e.g. multithreading in Kokkod:parallel_for?)
+#SBATCH --cpus-per-task=4           # "threads" per task (for e.g. multithreading in Kokkod:parallel_for?)
 #SBATCH --cluster=gmerlin6 # gmerlin6
 #SBATCH --partition=gwendolen # Mandatory, as gwendolen is not the default partition
 #SBATCH --account=gwendolen   # Mandatory, as gwendolen is not the default account
 ##SBATCH --exclusive
 ##SBATCH --nodelist=merlin-c-001   # Modify node list if needed for non-GPU nodes
-#SBATCH --gpus=4
+#SBATCH --gpus=1
 
 # for gpu: use "--gpus=1", "--cluster=gmerlin6" and "--partition=gpu-short" instead of "--cluster=merlin6", "--partition=hourly"
 

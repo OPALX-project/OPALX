@@ -486,8 +486,10 @@ int main(int argc, char* argv[]) {
         P->initPositions(FL, hr, nloc, 2);
 
         
-        std::unique_ptr<ParticleBinning::AdaptBins<bunch_type>> bins = std::make_unique<ParticleBinning::AdaptBins<bunch_type>>(P, 128); // maxBins = 128
-        // bins->setCurrentBinCount(10);
+        using selector_type = typename ParticleBinning::CoordinateSelector<bunch_type>;
+        selector_type selector(P->R.getView(), 2);
+        std::unique_ptr<ParticleBinning::AdaptBins<bunch_type, selector_type>> bins = std::make_unique<ParticleBinning::AdaptBins<bunch_type, selector_type>>(P, selector, 128); // maxBins = 128
+        
         bins->debug();
         bins->initLimits(); // Only needs to be called once the particle configuration changed (not if only bin number changes!)
 
