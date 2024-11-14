@@ -64,7 +64,7 @@ namespace ParticleBinning {
          * @param bunch A shared pointer to the particle container.
          * @param maxBins The maximum number of bins to initialize with (default is 10).
          */
-        AdaptBins(std::shared_ptr<BunchType> bunch, BinningSelector var_selector, bin_index_type maxBins = 10)
+        AdaptBins(std::shared_ptr<BunchType> bunch, BinningSelector& var_selector, bin_index_type maxBins = 10)
             : bunch_m(bunch)
             , maxBins_m(maxBins)
             , var_selector_m(var_selector) {
@@ -305,7 +305,7 @@ namespace ParticleBinning {
         value_type binWidth_m;                 ///< Width of each bin.
         bin_histo_type localBinHisto_m;        ///< Local histogram view for bin counts.
         bin_histo_type globalBinHisto_m;       ///< Global histogram view (over ranks reduced local histograms).
-        BinningSelector var_selector_m;        ///< Variable selector for binning.
+        BinningSelector& var_selector_m;       ///< Variable selector for binning.
     };
 
 }
