@@ -37,9 +37,11 @@ cd /data/user/liemen_a/build_ippl_openmp/
 make -j $(nproc)
 echo "Finished compiling. Now running the program..."
 
-cd /data/user/liemen_a/build_ippl_openmp/test/binning/test/pic3d/
-## ./Binning_pic3d 32 32 32 1000 10 --info 10
-srun ./Binning_pic3d 8 8 8 10000000 1 --info 10
+# cd /data/user/liemen_a/build_ippl_openmp/test/binning/test/pic3d/
+# srun ./Binning_pic3d 8 8 8 10000000 1 --info 10
+
+cd /data/user/liemen_a/build_ippl_openmp/test/binning/test/alpine/
+srun ./BinningLandauDamping 16 16 16 1000000 10 FFT 0.01 LeapFrog --overallocate 2.0 --info 10
 
 # srun --cpus-per-task=1 ./Binning_pic3d 8 8 8 1000000 1 --info 10
 
