@@ -123,7 +123,7 @@ namespace ParticleBinning {
          * This function iterates over all particles in the bunch, calculates their bin
          * index, and updates the bin structure accordingly.
          */
-        void assignBinsToParticles(HistoReductionMode modePreference = HistoReductionMode::Standard);
+        void assignBinsToParticles();
 
         /**
          * @brief Initializes a local histogram view for particle binning.
@@ -226,20 +226,27 @@ namespace ParticleBinning {
          * 
          * @return A view of the global histogram in host space (used for debugging output).
          */
-        bin_host_histo_type getGlobalHistogram();
+        void initGlobalHistogram();
 
         /**
          * @brief Performs a full rebinning of particles with a specified number of bins.
          * 
          * @param nBins The new number of bins to use for rebinning.
          */
-        void doFullRebin(bin_index_type nBins) {
+        void doFullRebin(bin_index_type nBins, HistoReductionMode modePreference = HistoReductionMode::Standard) {
             setCurrentBinCount(nBins);
             assignBinsToParticles();
+            initHistogram(modePreference);
+        }
+
+        void initHistogram(HistoReductionMode modePreference = HistoReductionMode::Standard) {
+            instantiateHistogram(true); // Init histogram (no need to set to 0, since executeInitLocalHistoReduction overwrites values from reduction...) --> true, since it is necessary for atomics option...
+            initLocalHisto(modePreference);
+            initGlobalHistogram();
         }
 
         /**
-         * @brief Prints the current global histogram to the output stream.
+         * @brief Prints the current global histogram to the Inform output stream.
          * 
          * This function outputs the global histogram data (bin counts) to the standard output.
          * Note: Only works correctly for rank 0 in an MPI environment.
@@ -255,12 +262,12 @@ namespace ParticleBinning {
             os << "Bin #;Val" << endl;
 
             // Get the global histogram (reduced across all nodes)
-            bin_host_histo_type globalBinHisto = getGlobalHistogram();
+            bin_host_histo_type globalBinHistoHost = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), globalBinHisto_m);
 
             // Only rank 0 prints the global histogram
             size_type total = 0;
             for (bin_index_type i = 0; i < numBins; ++i) {
-                size_type val = globalBinHisto(i);
+                size_type val = globalBinHistoHost(i);
                 os << i << ";" << val << endl;
                 total += val;
             }   
@@ -275,7 +282,7 @@ namespace ParticleBinning {
          * (in CUDA) available on the current MPI rank, along with other debug information.
          */
         void debug() {
-            Inform msg("KOKKOS DEBUG", INFORM_ALL_NODES);
+            Inform msg("KOKKOS DEBUG"); // , INFORM_ALL_NODES
 
             int rank = ippl::Comm->rank();
             msg << "=====================================" << endl;
@@ -320,6 +327,7 @@ namespace ParticleBinning {
         value_type xMax_m;                     ///< Maximum boundary for bins.
         value_type binWidth_m;                 ///< Width of each bin.
         bin_histo_type localBinHisto_m;        ///< Local histogram view for bin counts.
+        bin_histo_type globalBinHisto_m;        ///< Global histogram view (over ranks reduced local histograms).
     };
 
 }

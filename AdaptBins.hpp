@@ -63,7 +63,7 @@ namespace ParticleBinning {
     }
 
     template <typename BunchType>    
-    void AdaptBins<BunchType>::assignBinsToParticles(HistoReductionMode reductionPreference) {
+    void AdaptBins<BunchType>::assignBinsToParticles() {
         // Set the bin attribute for the given particle
         Inform msg("AdaptBins");
 
@@ -88,9 +88,6 @@ namespace ParticleBinning {
         });
         IpplTimings::stopTimer(assignParticleBins);
         msg << "All bins assigned." << endl; 
-
-        initLocalHisto(modePreference=reductionPreference);
-        msg << "Local Histogram initialized." << endl;
     }
 
     template<typename BunchType>
@@ -147,8 +144,8 @@ namespace ParticleBinning {
         // Calculate shared memory size for the histogram (binCount elements)
         const size_t shared_size = scratch_view_type::shmem_size(binCount);
 
-        const size_type team_size = 128;
-        const size_type block_size = team_size * 8;
+        const size_type team_size   = 128;
+        const size_type block_size  = team_size * 8;
         const size_type num_leagues = (localNumParticles + block_size - 1) / block_size; // number of teams!
         
         // Set up team policy with scratch memory allocation for each team
@@ -174,7 +171,7 @@ namespace ParticleBinning {
 
             Kokkos::parallel_for(Kokkos::TeamThreadRange(teamMember, start_i, end_i), [&](const size_type i) {
                 bin_index_type ndx = binIndex(i); // Get bin index for the particle
-                if (ndx < binCount) Kokkos::atomic_fetch_add(&team_local_hist(ndx), 1); // Atomic within shared memory
+                if (ndx < binCount) Kokkos::atomic_increment(&team_local_hist(ndx)); // Kokkos::atomic_fetch_add(&team_local_hist(ndx), 1); // Atomic within shared memory
             });
             teamMember.team_barrier();
 
@@ -190,8 +187,7 @@ namespace ParticleBinning {
     template <typename BunchType>
     void AdaptBins<BunchType>::initLocalHisto(HistoReductionMode modePreference) {
         Inform msg("AdaptBins");
-        instantiateHistogram(true); // Init histogram (no need to set to 0, since executeInitLocalHistoReduction overwrites values from reduction...) --> true, since it is necessary for atomics option...
-
+        
         bin_index_type binCount = getCurrentBinCount();
 
         // Determine the execution method based on the bin count and the mode...
@@ -220,32 +216,38 @@ namespace ParticleBinning {
     }
 
     template <typename BunchType>
-    AdaptBins<BunchType>::bin_host_histo_type AdaptBins<BunchType>::getGlobalHistogram() {
+    void AdaptBins<BunchType>::initGlobalHistogram() {
         Inform msg("GetGlobalHistogram");
 
         // Get the current number of bins
         bin_index_type numBins = getCurrentBinCount(); // number of local bins = number of global bins!
         
         // Create a view to hold the global histogram on all ranks
-        bin_host_histo_type globalBinHisto("globalBinHisto", numBins);
+        bin_host_histo_type globalBinHisto("globalBinHistoHost", numBins);
 
+        static IpplTimings::TimerRef globalHistoReduce = IpplTimings::getTimer("allReduceGlobalHisto");
+        IpplTimings::startTimer(globalHistoReduce);
+        
         // Need host mirror, otherwise the data is not available when the histogram is created using CUDA
         auto localBinHistoHost = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), localBinHisto_m);
         
-        static IpplTimings::TimerRef globalHistoReduce = IpplTimings::getTimer("allReduceGlobalHisto");
-        IpplTimings::startTimer(globalHistoReduce);
-        // Loop through each bin and reduce its value across all nodes
-        for (bin_index_type i = 0; i < numBins; ++i) {
-            size_type localValue = localBinHistoHost(i);
-            size_type globalValue = 0;
-            
-            ippl::Comm->allreduce(localValue, globalValue, 1, std::plus<size_type>());  // Reduce to all nodes
-            globalBinHisto(i) = globalValue; // Saves global histogram on ALL ranks...
-        }
+        /*
+         * Note: The allreduce also works when the .data() returns a CUDA space pointer.
+         *       However, for some reason, copying manually to host and then allreducing is faster. 
+         */
+        ippl::Comm->allreduce(
+            localBinHistoHost.data(),           // Pointer to local data
+            globalBinHisto.data(),              // Pointer to global data
+            numBins,                            // Number of elements to reduce
+            std::plus<size_type>()              // Reduction operation
+        );
         IpplTimings::stopTimer(globalHistoReduce);
 
-        // Return the global histogram (note: only meaningful on rank 0)
-        return globalBinHisto;
+        // The global histogram is currently on host, but can be saved on device
+        globalBinHisto_m = bin_histo_type("globalBinHisto", numBins);
+        Kokkos::deep_copy(globalBinHisto_m, globalBinHisto); // Copy to device view
+
+        msg << "Global histogram created." << endl;
     }
 
 }

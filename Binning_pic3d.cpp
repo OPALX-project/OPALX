@@ -487,17 +487,16 @@ int main(int argc, char* argv[]) {
 
         
         std::unique_ptr<ParticleBinning::AdaptBins<bunch_type>> bins = std::make_unique<ParticleBinning::AdaptBins<bunch_type>>(P, 128); // maxBins = 128
-        bins->setCurrentBinCount(10);
+        // bins->setCurrentBinCount(10);
         bins->debug();
         bins->initLimits(); // Only needs to be called once the particle configuration changed (not if only bin number changes!)
 
         // do the rebinning 10 times
-        for (unsigned int i = 0; i < 10; i++) bins->assignBinsToParticles();
+        for (unsigned int i = 0; i < 10; i++) bins->doFullRebin(10);
         bins->print();
 
         // Use team_parallel for method 10 times
-        bins->setCurrentBinCount(20);
-        for (unsigned int i = 0; i < 10; i++) bins->assignBinsToParticles(); 
+        for (unsigned int i = 0; i < 10; i++) bins->doFullRebin(20); 
         bins->print();
         
 
