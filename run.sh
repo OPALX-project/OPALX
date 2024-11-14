@@ -37,7 +37,7 @@ cd /data/user/liemen_a/build_ippl_openmp/
 make -j $(nproc)
 echo "Finished compiling. Now running the program..."
 
-cd /data/user/liemen_a/build_ippl_openmp/test/binning/
+cd /data/user/liemen_a/build_ippl_openmp/test/binning/test/pic3d/
 ## ./Binning_pic3d 32 32 32 1000 10 --info 10
 srun ./Binning_pic3d 8 8 8 10000000 1 --info 10
 

@@ -1,20 +1,21 @@
-file (RELATIVE_PATH _relPath "${CMAKE_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
-message (STATUS "Adding binning example found in ${_relPath}")
 
-include_directories (
-    ${CMAKE_SOURCE_DIR}/src
-)
+# set (_HDRS
+#     AdaptBins.h
+#     AdaptBins.hpp
+#     BinningTools.h
+#     ParallelReduceTools.h
+#     )
 
-link_directories (
-    ${CMAKE_CURRENT_SOURCE_DIR}
-    ${Kokkos_DIR}/..
-)
+# include_DIRECTORIES (
+#     ${CMAKE_CURRENT_SOURCE_DIR}
+#     )
 
-set (IPPL_LIBS ippl ${MPI_CXX_LIBRARIES})
-set (COMPILE_FLAGS ${OPAL_CXX_FLAGS})
+# add_ippl_headers (${_HDRS})
 
-add_executable (Binning_pic3d Binning_pic3d.cpp)
-target_link_libraries (Binning_pic3d ${IPPL_LIBS})
+# install (FILES ${_HDRS} DESTINATION include/binning)
+
+# Add subdirectory for the binning tests
+add_subdirectory(test)
 
 # vi: set et ts=4 sw=4 sts=4:
 
