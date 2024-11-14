@@ -75,8 +75,8 @@ namespace ParticleBinning {
         /// Type representing the view of particle positions.
         using position_view_type = typename bunch_type::particle_position_type::view_type;
 
-        const int axis; ///< Index of the coordinate axis to use for binning.
         position_view_type data_arr; ///< Kokkos view of the particle data array.
+        const int axis;              ///< Index of the coordinate axis to use for binning.
 
         /**
         * @brief Constructs a CoordinateSelector for a specific axis.
