@@ -98,6 +98,7 @@ namespace ParticleBinning {
         */
         KOKKOS_INLINE_FUNCTION
         value_type operator()(const size_type& i) const {
+            std::cout << "CoordinateSelector: " << i << std::endl;
             return data_arr(i)[axis];
         }
     };

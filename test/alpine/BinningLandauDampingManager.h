@@ -14,6 +14,8 @@
 #include "Random/NormalDistribution.h"
 #include "Random/Randn.h"
 
+#include "AdaptBins.h" // TODO: Binning
+
 using view_type = typename ippl::detail::ViewType<ippl::Vector<double, Dim>, 1>::view_type;
 
 // define functions used in sampling particles
@@ -44,6 +46,10 @@ public:
     using FieldContainer_t = FieldContainer<T, Dim>;
     using FieldSolver_t= FieldSolver<T, Dim>;
     using LoadBalancer_t= LoadBalancer<T, Dim>;
+
+    // TODO: Binning
+    using BinningSelector_t = typename ParticleBinning::CoordinateSelector<ParticleContainer_t>;
+    using AdaptBins_t       = typename ParticleBinning::AdaptBins<ParticleContainer_t, BinningSelector_t>;
 
     LandauDampingManager(size_type totalP_, int nt_, Vector_t<int, Dim> &nr_,
                        double lbt_, std::string& solver_, std::string& stepMethod_)
@@ -93,7 +99,16 @@ public:
 
         this->setLoadBalancer( std::make_shared<LoadBalancer_t>( this->lbt_m, this->fcontainer_m, this->pcontainer_m, this->fsolver_m) );
 
+        //TODO: Binning - Create the bins object
+        this->setBins( std::make_shared<AdaptBins_t>(this->getParticleContainer(), 
+                                                     BinningSelector_t(this->pcontainer_m->R.getView(), 2), // std::make_shared<view_type>( 
+                                                     128) );
+        this->bins_m->debug();
+
         initializeParticles();
+
+        // TODO: Binning - After initializing the particles, create the limits
+        this->bins_m->initLimits();
 
         static IpplTimings::TimerRef DummySolveTimer  = IpplTimings::getTimer("solveWarmup");
         IpplTimings::startTimer(DummySolveTimer);
@@ -211,9 +226,8 @@ public:
     void advance() override {
         if (this->stepMethod_m == "LeapFrog") {
             LeapFrogStep();
-        }
-	else{
-            throw IpplException(TestName, "Step method is not set/recognized!");
+        } else {
+                throw IpplException(TestName, "Step method is not set/recognized!");
         }
     }
 

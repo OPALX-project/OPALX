@@ -10,9 +10,14 @@ class ParticleContainer : public ippl::ParticleBase<ippl::ParticleSpatialLayout<
     using Base = ippl::ParticleBase<ippl::ParticleSpatialLayout<T, Dim>>;
 
     public:
+        using bin_index_type = int; // TODO: Binning - public, needs to be accessed from inside AdaptBins class
+
         ippl::ParticleAttrib<double> q;                 // charge
         typename Base::particle_position_type P;  // particle velocity
         typename Base::particle_position_type E;  // electric field at particle position
+
+        typename ippl::ParticleAttrib<bin_index_type> bin; // TODO: Binning
+
     private:
         PLayout_t<T, Dim> pl_m;
     public:
@@ -33,6 +38,7 @@ class ParticleContainer : public ippl::ParticleBase<ippl::ParticleSpatialLayout<
 		this->addAttribute(q);
 		this->addAttribute(P);
 		this->addAttribute(E);
+        this->addAttribute(bin); // TODO: Binning
 	}
 	void setupBCs() { setBCAllPeriodic(); }
 

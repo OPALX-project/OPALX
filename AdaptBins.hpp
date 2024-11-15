@@ -11,7 +11,7 @@ namespace ParticleBinning {
 
         Kokkos::MinMaxScalar<value_type> localMinMax;
         // position_view_type localData = bunch_m->R.getView();
-        BinningSelector& var_selector = var_selector_m; 
+        BinningSelector var_selector = var_selector_m; 
         
         static IpplTimings::TimerRef histoLimits = IpplTimings::getTimer("initHistoLimits");
         IpplTimings::startTimer(histoLimits);
@@ -21,7 +21,7 @@ namespace ParticleBinning {
             update.min_val = Kokkos::min(update.min_val, val);
             update.max_val = Kokkos::max(update.max_val, val);
         }, Kokkos::MinMax<value_type>(localMinMax));
-
+        msg << "Local limits initialized." << endl;
         xMin_m = localMinMax.min_val;
         xMax_m = localMinMax.max_val;
 
@@ -29,6 +29,7 @@ namespace ParticleBinning {
         // Note: boradcast does not exist, use allreduce for reduce+broadcast together!
         ippl::Comm->allreduce(xMax_m, 1, std::greater<value_type>());
         ippl::Comm->allreduce(xMin_m, 1, std::less<value_type>());
+        msg << "Global limits initialized." << endl;
 
         IpplTimings::stopTimer(histoLimits);
 
@@ -74,7 +75,7 @@ namespace ParticleBinning {
         Inform msg("AdaptBins");
 
         // position_view_type localData = bunch_m->R.getView();
-        BinningSelector& var_selector = var_selector_m; 
+        BinningSelector var_selector = var_selector_m; 
         bin_view_type binIndex        = bunch_m->bin.getView();  
 
         // Declare the variables locally before the Kokkos::parallel_for (to avoid implicit this capture in Kokkos lambda)

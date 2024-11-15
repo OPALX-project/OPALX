@@ -14,6 +14,8 @@
 #include "Random/NormalDistribution.h"
 #include "Random/Randn.h"
 
+#include "AdaptBins.h" // TODO: Binning
+
 using view_type = typename ippl::detail::ViewType<ippl::Vector<double, Dim>, 1>::view_type;
 
 template <typename T, unsigned Dim>
@@ -26,6 +28,11 @@ public:
     using FieldSolver_t= FieldSolver<T, Dim>;
     using LoadBalancer_t= LoadBalancer<T, Dim>;
     using Base= ippl::ParticleBase<ippl::ParticleSpatialLayout<T, Dim>>;
+
+    // TODO: Binning
+    using BinningSelector_t = typename ParticleBinning::CoordinateSelector<ParticleContainer_t>;
+    using AdaptBins_t       = typename ParticleBinning::AdaptBins<ParticleContainer_t, BinningSelector_t>;
+
 protected:
     size_type totalP_m;
     int nt_m;
@@ -33,6 +40,8 @@ protected:
     double lbt_m;
     std::string solver_m;
     std::string stepMethod_m;
+    std::shared_ptr<AdaptBins_t> bins_m; // TODO: Binning
+
 public:
     AlpineManager(size_type totalP_, int nt_, Vector_t<int, Dim>& nr_, double lbt_, std::string& solver_, std::string& stepMethod_)
         : ippl::PicManager<T, Dim, ParticleContainer<T, Dim>, FieldContainer<T, Dim>, LoadBalancer<T, Dim>>()
@@ -41,7 +50,8 @@ public:
         , nr_m(nr_)
         , lbt_m(lbt_)
         , solver_m(solver_)
-        , stepMethod_m(stepMethod_){}
+        , stepMethod_m(stepMethod_)
+        , bins_m(nullptr) {} // TODO: Binning
     ~AlpineManager(){}
 
 protected:
@@ -62,6 +72,9 @@ protected:
     double rhoNorm_m;
 
 public:
+    std::shared_ptr<AdaptBins_t> getBins() { return bins_m; } // TODO: Binning
+    void setBins(std::shared_ptr<AdaptBins_t> bins) { bins_m = bins; } // TODO: Binning
+
     size_type getTotalP() const { return totalP_m; }
 
     void setTotalP(size_type totalP_) { totalP_m = totalP_; }
