@@ -239,6 +239,8 @@ public:
           isFirstRepartition_m(true),
           qi_m(qi),
           mi_m(mi),
+          RefPartR_m(0.0),
+          RefPartP_m(0.0),  
           rmsDensity_m(0.0),
           localTrackStep_m(0),
           globalTrackStep_m(0),
