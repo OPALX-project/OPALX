@@ -69,11 +69,6 @@ set (CMAKE_CXX_FLAGS_RELEASE "-g -O3 ")
 set (CMAKE_CXX_FLAGS_DEBUG  "-g -O0")
 
 
-#if (NOT "${IPPL_PLATFORMS}" STREQUAL "CUDA" AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-#    # Use sanitizer flags for GCC or Clang only
-#     set (CMAKE_CXX_FLAGS_DEBUG  "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address,undefined")
-#endif ()
-
 if ("${IPPL_PLATFORMS}" STREQUAL "CUDA")
     set (CMAKE_CXX_FLAGS_DEBUG  "${CMAKE_CXX_FLAGS_DEBUG} -G -diag-suppress=611")
 endif()
@@ -107,9 +102,9 @@ endif ()
 option (OPALX_SANITIZER "Enable Sanitizer" OFF)
 if (OPALX_SANITIZER)
  if (NOT "${IPPL_PLATFORMS}" STREQUAL "CUDA" AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang") # maybe we need to add this AND ${CMAKE_BUILD_TYPE} STREQUAL "Debug")
-    # Use sanitizer flags for GCC or Clang only
-    set (CMAKE_CXX_FLAGS_DEBUG  "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address,undefined")
-    add_link_options (-fsanitize=undefined,address)
+ # Use sanitizer flags for GCC or Clang only
+ set (CMAKE_CXX_FLAGS_DEBUG  "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address,undefined")
+ add_link_options (-fsanitize=undefined,address)
  endif ()
 endif ()
 
