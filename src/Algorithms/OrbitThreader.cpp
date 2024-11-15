@@ -88,6 +88,7 @@ OrbitThreader::OrbitThreader(
     stepRange_m.enlargeIfOutside(stepSizes_m.getNumStepsFinestResolution());
     distTrackBack_m = std::min(pathLength_m, std::max(0.0, maxDiffZBunch));
     computeBoundingBox();
+    *gmsg << "OrbitThreader::p_m= " << p_m << endl;
 }
 
 void OrbitThreader::checkElementLengths(const std::set<std::shared_ptr<Component>>& fields) {
@@ -148,6 +149,9 @@ void OrbitThreader::execute() {
 
         integrate(elementSet, maxDistance);
 
+        *gmsg << "OrbitThreader maxDistance= " << maxDistance << endl;
+        *gmsg << "OrbitThreader #elements  = " << elementSet.size() << endl;
+        
         registerElement(elementSet, initialS, initialR, initialP);
 
         if (errorFlag_m == HITMATERIAL) {
@@ -439,7 +443,7 @@ void OrbitThreader::computeBoundingBox() {
     FieldList allElements         = itsOpalBeamline_m.getElementByType(ElementType::ANY);
     FieldList::iterator it        = allElements.begin();
     const FieldList::iterator end = allElements.end();
-
+    *gmsg << "OrbitThreader::computeBoundingBox #elements= " << allElements.size() << endl; 
     for (; it != end; ++it) {
         if (it->getElement()->getType() == ElementType::MARKER) {
             continue;
@@ -452,9 +456,11 @@ void OrbitThreader::computeBoundingBox() {
 
 void OrbitThreader::updateBoundingBoxWithCurrentPosition() {
     Vector_t<double, 3> dR = Physics::c * dt_m * p_m / Util::getGamma(p_m);
+    *gmsg << "dt = " << dt_m <<	" p= " << p_m << " dr= " << dR <<endl;
     std::array<Vector_t<double, 3>, 2> positions = {r_m - 10 * dR, r_m + 10 * dR};
    
     for (const Vector_t<double, 3>& pos : positions) {
+        *gmsg << "OrbitThreader::updateBoundingBoxWithCurrentPosition: " << pos << endl;
         globalBoundingBox_m.enlargeToContainPosition(pos);
     }
     

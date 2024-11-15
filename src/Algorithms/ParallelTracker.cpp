@@ -951,11 +951,11 @@ void ParallelTracker::updateReferenceParticle(const BorisPusher& pusher) {
     const double dt = direction * std::min(itsBunch_m->getT(), direction * itsBunch_m->getdT());
     const double scaleFactor = Physics::c * dt;
     Vector_t<double, 3> Ef(0.0), Bf(0.0);
-
+    *gmsg << "updateReferenceParticle scaleFactor= " << scaleFactor << " dt= " << dt << " r= " << itsBunch_m->RefPartR_m << endl;
     itsBunch_m->RefPartR_m /= scaleFactor;
     pusher.push(itsBunch_m->RefPartR_m, itsBunch_m->RefPartP_m, dt);
     itsBunch_m->RefPartR_m *= scaleFactor;
-
+    *gmsg << "updateReferenceParticle after pusher.push r= " << itsBunch_m->RefPartR_m << endl;
     IndexMap::value_t elements           = itsOpalBeamline_m.getElements(itsBunch_m->RefPartR_m);
     IndexMap::value_t::const_iterator it = elements.begin();
     const IndexMap::value_t::const_iterator end = elements.end();
