@@ -97,7 +97,6 @@ public:
            meanR[i] = meanR[i]/(1.*numberOfParticles);
         }
 
-<<<<<<< HEAD
         Kokkos::parallel_for(
                 numberOfParticles,KOKKOS_LAMBDA(
                     const int k) {
@@ -111,8 +110,6 @@ public:
         Kokkos::fence();
         ippl::Comm->barrier();
 
-=======
->>>>>>> remove shift to zero in z
         // sample P
         for(int i=0; i<3; i++){
             mu[i] = 0.0;

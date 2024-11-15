@@ -937,7 +937,7 @@ void ParallelTracker::writePhaseSpace(const long long /*step*/, bool psDump, boo
 
         */
         
-        msg << level2 << "* Wrote beam phase space." << endl;
+        *gmsg << level2 << "* Wrote beam phase space." << endl;
     }
 }
 
