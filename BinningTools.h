@@ -99,6 +99,9 @@ namespace ParticleBinning {
         * by retrieving the view from `bunch->R`. This ensures `data_arr` is synchronized with any
         * recent changes to the particle data (if bunch->create() is called between binnings!).
         * AdaptBins calls this function automatically everytime the binning parameter is used.
+        *
+        * @note If you have your own class, you need to implement this signature and potentially
+        *       update all data arrays that operator() uses (e.g. also velocity or E).
         */
         void updateDataArr(std::shared_ptr<bunch_type> bunch) { data_arr = bunch->R.getView(); }
 
