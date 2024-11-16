@@ -62,6 +62,11 @@ namespace ParticleBinning {
     * CoordinateSelector<bunch_type> selector(bunch->R.getView(), 2); // Access z-axis of position
     * ```
     *
+    * @note Using a shared pointer does not work, since these are managed on host only! Using a simple
+    *       passed Kokkos::View also does not work, since create() might be called which calls Kokkos::realloc(),
+    *       which is a problem, since the copied view does not know the reallocated data. 
+    *       Therefore, the view is passed as a raw pointer!
+    *
     * @tparam bunch_type Type of the particle bunch (derived from ParticleBase).
     */
     template <typename bunch_type>
@@ -84,9 +89,18 @@ namespace ParticleBinning {
         * @param data_ Kokkos view representing the particle data array.
         * @param axis_ Index of the axis to use for binning (e.g., 0 for x, 1 for y, 2 for z).
         */
-        CoordinateSelector(position_view_type data_, int axis_) 
-            : data_arr(data_)
-            , axis(axis_) {}
+        CoordinateSelector(int axis_) 
+            : axis(axis_) {}
+
+        /**
+        * @brief Updates the data array view with the latest particle data.
+        *
+        * This function updates `data_arr` to reflect the latest particle data in the container
+        * by retrieving the view from `bunch->R`. This ensures `data_arr` is synchronized with any
+        * recent changes to the particle data (if bunch->create() is called between binnings!).
+        * AdaptBins calls this function automatically everytime the binning parameter is used.
+        */
+        void updateDataArr(std::shared_ptr<bunch_type> bunch) { data_arr = bunch->R.getView(); }
 
         /**
         * @brief Returns the value of the binning variable for a given particle index.

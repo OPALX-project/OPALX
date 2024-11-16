@@ -102,9 +102,11 @@ public:
         initializeParticles();
 
         //TODO: Binning - Create the bins object
-        this->setBins( std::make_shared<AdaptBins_t>(this->getParticleContainer(), 
-                                                     BinningSelector_t(this->pcontainer_m->R.getView(), 2), // std::make_shared<view_type>( 
-                                                     128) );
+        this->setBins(std::make_shared<AdaptBins_t>(
+            this->getParticleContainer(), 
+            BinningSelector_t(2), // no need to be a pointer, is only used inside the AdaptBins class
+            128)
+        );
         this->bins_m->debug();
 
         // TODO: Binning - After initializing the particles, create the limits
@@ -209,7 +211,7 @@ public:
 
         double mu[Dim];
         double sd[Dim];
-        for(unsigned int i=0; i<Dim; i++){
+        for(unsigned int i=0; i<Dim; i++) {
             mu[i] = 0.0;
             sd[i] = 1.0;
         }
@@ -226,8 +228,10 @@ public:
     void advance() override {
         if (this->stepMethod_m == "LeapFrog") {
             LeapFrogStep();
+            this->bins_m->doFullRebin(10); // rebin with 10 bins 
+            this->bins_m->print();
         } else {
-                throw IpplException(TestName, "Step method is not set/recognized!");
+            throw IpplException(TestName, "Step method is not set/recognized!");
         }
     }
 

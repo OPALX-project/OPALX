@@ -11,7 +11,8 @@ namespace ParticleBinning {
 
         Kokkos::MinMaxScalar<value_type> localMinMax;
         // position_view_type localData = bunch_m->R.getView();
-        BinningSelector var_selector = var_selector_m; 
+        var_selector_m.updateDataArr(bunch_m); // update needed if bunch->create() is called between binnings!
+        BinningSelector var_selector = var_selector_m;  
         
         static IpplTimings::TimerRef histoLimits = IpplTimings::getTimer("initHistoLimits");
         IpplTimings::startTimer(histoLimits);
@@ -73,7 +74,8 @@ namespace ParticleBinning {
         Inform msg("AdaptBins");
 
         // position_view_type localData = bunch_m->R.getView();
-        BinningSelector var_selector = var_selector_m; 
+        var_selector_m.updateDataArr(bunch_m);
+        BinningSelector var_selector  = var_selector_m; 
         bin_view_type binIndex        = bunch_m->bin.getView();  
 
         // Declare the variables locally before the Kokkos::parallel_for (to avoid implicit this capture in Kokkos lambda)

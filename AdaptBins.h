@@ -213,7 +213,8 @@ namespace ParticleBinning {
          * 
          * @param nBins The new number of bins to use for rebinning.
          */
-        void doFullRebin(bin_index_type nBins, HistoReductionMode modePreference = HistoReductionMode::Standard) {
+        void doFullRebin(bin_index_type nBins, bool recalculateLimits = true, HistoReductionMode modePreference = HistoReductionMode::Standard) {
+            if (recalculateLimits) initLimits();
             setCurrentBinCount(nBins);
             assignBinsToParticles();
             initHistogram(modePreference);
