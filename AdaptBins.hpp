@@ -21,7 +21,6 @@ namespace ParticleBinning {
             update.min_val = Kokkos::min(update.min_val, val);
             update.max_val = Kokkos::max(update.max_val, val);
         }, Kokkos::MinMax<value_type>(localMinMax));
-        msg << "Local limits initialized." << endl;
         xMin_m = localMinMax.min_val;
         xMax_m = localMinMax.max_val;
 
@@ -29,7 +28,6 @@ namespace ParticleBinning {
         // Note: boradcast does not exist, use allreduce for reduce+broadcast together!
         ippl::Comm->allreduce(xMax_m, 1, std::greater<value_type>());
         ippl::Comm->allreduce(xMin_m, 1, std::less<value_type>());
-        msg << "Global limits initialized." << endl;
 
         IpplTimings::stopTimer(histoLimits);
 

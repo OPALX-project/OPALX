@@ -99,13 +99,13 @@ public:
 
         this->setLoadBalancer( std::make_shared<LoadBalancer_t>( this->lbt_m, this->fcontainer_m, this->pcontainer_m, this->fsolver_m) );
 
+        initializeParticles();
+
         //TODO: Binning - Create the bins object
         this->setBins( std::make_shared<AdaptBins_t>(this->getParticleContainer(), 
                                                      BinningSelector_t(this->pcontainer_m->R.getView(), 2), // std::make_shared<view_type>( 
                                                      128) );
         this->bins_m->debug();
-
-        initializeParticles();
 
         // TODO: Binning - After initializing the particles, create the limits
         this->bins_m->initLimits();
