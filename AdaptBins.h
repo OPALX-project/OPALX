@@ -226,6 +226,13 @@ namespace ParticleBinning {
             initGlobalHistogram();
         }
 
+        bin_index_type getNPartInBin(bin_index_type binIndex) {
+            // TODO: Might not be as efficient because of copy action? 
+            // Idea: save a second mirror copy on host?
+            bin_host_histo_type globalBinHistoHost = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), globalBinHisto_m);
+            return globalBinHistoHost(binIndex);
+        }
+
         /**
          * @brief Prints the current global histogram to the Inform output stream.
          * 
