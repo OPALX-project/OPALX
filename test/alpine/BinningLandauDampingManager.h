@@ -110,7 +110,9 @@ public:
         this->bins_m->debug();
 
         // TODO: Binning - After initializing the particles, create the limits
-        this->bins_m->initLimits();
+        //this->bins_m->initLimits();
+        this->bins_m->doFullRebin(10); // test with 10 bins
+
 
         static IpplTimings::TimerRef DummySolveTimer  = IpplTimings::getTimer("solveWarmup");
         IpplTimings::startTimer(DummySolveTimer);
@@ -244,7 +246,6 @@ public:
         static IpplTimings::TimerRef RTimer           = IpplTimings::getTimer("pushPosition");
         static IpplTimings::TimerRef updateTimer      = IpplTimings::getTimer("update");
         static IpplTimings::TimerRef domainDecomposition = IpplTimings::getTimer("loadBalance");
-        static IpplTimings::TimerRef SolveTimer       = IpplTimings::getTimer("solve");
 
         double dt                               = this->dt_m;
         std::shared_ptr<ParticleContainer_t> pc = this->pcontainer_m;
@@ -275,6 +276,7 @@ public:
                 IpplTimings::stopTimer(domainDecomposition);
         }
 
+        /*
         // scatter the charge onto the underlying grid
         this->par2grid();
 
@@ -285,11 +287,75 @@ public:
 
         // gather E field
         this->grid2par();
+        */
+        runBinnedSolver();
 
         // kick
         IpplTimings::startTimer(PTimer);
         pc->P = pc->P - 0.5 * dt * pc->E;
         IpplTimings::stopTimer(PTimer);
+    }
+
+    void runBinnedSolver() {
+        /*
+         * Strategy:
+         * Initialize E field to 0.
+         * for every bin:
+         *      1. par2grid() for all charges(bin) onto rho_m
+         *      2. Solve Poisson equation, only for Base:SOL
+         *      3. Add grad(phi_m)*\gamma to E field
+         * grid2par()
+         */
+        Inform msg("runBinnedSolver");
+        static IpplTimings::TimerRef SolveTimer = IpplTimings::getTimer("solve");
+        using binIndex_t = typename ParticleContainer_t::bin_index_type;
+        using binIndexView_t = typename ippl::ParticleAttrib<binIndex_t>::view_type;
+
+        // Defines used views
+        std::shared_ptr<ParticleContainer_t> pc = this->pcontainer_m;
+        std::shared_ptr<FieldContainer_t> fc    = this->fcontainer_m;
+        view_type viewP                         = pc->P.getView();
+        binIndexView_t bin                      = pc->bin.getView();
+
+        // Define temp E field to save results
+        VField_t<T, Dim> E_m;
+        E_m.initialize(fc->getMesh(), fc->getFL()); // , fc->getGuardCellSizes()
+        // E_m = 0.0;
+        msg << "E_m initialized" << endl;
+
+        // Iterate over bins
+        IpplTimings::startTimer(SolveTimer);
+        for (binIndex_t i = 0; i < this->bins_m->getCurrentBinCount(); ++i) {
+            msg << "Bin " << i << endl;
+            // Scatter only for current bin index
+            this->par2gridPerBin(i);
+            msg << "Scatter done" << endl;
+
+            // Run solver: obtains phi_m only for what was scattered in the previous step
+            this->fsolver_m->runSolver();
+            msg << "Solver done" << endl;
+
+            // Calculate gamma factor for field back transformation --> TODO: change iteration if decide to use sorted particles!
+            Vector_t<double, 3> gamma_bin = 0.0;
+            Kokkos::parallel_reduce("SumSpeeds", pc->getLocalNum(), 
+                KOKKOS_LAMBDA(const size_t i, Vector_t<double, 3>& local_sum_speed) {
+                    Vector_t<double, 3> velocity = viewP(i); // Get the velocity vector for particle i
+                    
+                    double is_in_bin = static_cast<double>(bin(i) == i); // TODO: may need to add static cast to avoid warning!
+                    local_sum_speed = local_sum_speed + velocity*velocity * is_in_bin; // velocity.dot(velocity);
+                }, Kokkos::Sum<Vector_t<double, 3>>(gamma_bin));
+            gamma_bin = 1.0 / sqrt(1.0 + gamma_bin);
+            msg << "Gamma factor calculated" << endl;
+
+            // Calculate field gradient and add to E field container with gamma factor (use z coordinate...)
+            E_m = E_m - gamma_bin[2] * grad(fc->getPhi());
+            msg << "Field gradient calculated" << endl;
+        }
+        IpplTimings::stopTimer(SolveTimer);
+
+        // gather E field from locally built up E_m
+        gather(this->pcontainer_m->E, E_m, this->pcontainer_m->R);
+        msg << "Field gathered" << endl;
     }
 
     void dump() override {
