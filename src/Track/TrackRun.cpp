@@ -362,9 +362,7 @@ void TrackRun::execute() {
     bunch_m->bunchUpdate();
 
     bunch_m->print(*gmsg);
-
-//    initDataSink();
-
+    initDataSink();
     /*
     if (!isFollowupTrack_m) {
         *gmsg << std::scientific;
@@ -372,7 +370,6 @@ void TrackRun::execute() {
     }
     */
 
-/*
     if (bunch_m->getTotalNum() > 0) {
         double spos = Track::block->zstart;
         auto& zstop = Track::block->zstop;
@@ -388,7 +385,7 @@ void TrackRun::execute() {
     } else {
         Track::block->zstart = 0.0;
     }
-*/
+
     /* \todo this is also not unsed in the master.
        This needs to come back as soon as we have RF
 
@@ -396,14 +393,13 @@ void TrackRun::execute() {
 
     */
 
-/*
     itsTracker_m = new ParallelTracker(
         *Track::block->use->fetchLine(), bunch_m.get(), *ds_m, Track::block->reference, false,
         Attributes::getBool(itsAttr[TRACKRUN::TRACKBACK]), Track::block->localTimeSteps,
         Track::block->zstart, Track::block->zstop, Track::block->dT);
 
     itsTracker_m->execute();
-*/
+
     /*
     opal_m->setRestartRun(false);
 
