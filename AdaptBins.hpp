@@ -208,6 +208,8 @@ namespace ParticleBinning {
         }
 
         msg << "Reducer ran without error." << endl;
+        
+        localBinHistoHost_m = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), localBinHisto_m);
     }
 
     template <typename BunchType, typename BinningSelector>

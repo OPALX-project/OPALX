@@ -226,12 +226,25 @@ namespace ParticleBinning {
             initGlobalHistogram();
         }
 
-        bin_index_type getNPartInBin(bin_index_type binIndex, bool global = false) {
+        size_type getNPartInBin(bin_index_type binIndex, bool global = false) {
             // TODO: Might not be as efficient because of copy action? 
             // Idea: save a second mirror copy on host?
-            bin_host_histo_type binHisto = global ? Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), globalBinHisto_m)
-                                                  : Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), localBinHisto_m);
-            return binHisto(binIndex);
+            Inform m("getNPartInBin");
+            m << "Getting number of particles in bin " << binIndex << endl;
+            /*bin_host_histo_type binHisto = global ? Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), globalBinHisto_m)
+                                                  : Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), localBinHisto_m);*/
+            // Create a mirror view on the host
+            /*bin_host_histo_type binHisto("test", 10); // Kokkos::create_mirror_view(Kokkos::HostSpace(), global ? globalBinHisto_m : localBinHisto_m);
+            m << "Created mirror view. " << localBinHisto_m.extent(0) << " - " << binHisto.extent(0) << endl;
+
+            // Ensure device synchronization before copying
+            Kokkos::fence();
+            Kokkos::deep_copy(binHisto, localBinHisto_m); // global ? globalBinHisto_m : localBinHisto_m
+
+            m << "Got mirror view" << endl;
+            Kokkos::fence(); // Necessary when copying between spaces!
+            return binHisto(binIndex);*/
+            return localBinHistoHost_m(binIndex);
         }
 
         /**
@@ -316,6 +329,7 @@ namespace ParticleBinning {
         value_type xMax_m;                     ///< Maximum boundary for bins.
         value_type binWidth_m;                 ///< Width of each bin.
         bin_histo_type localBinHisto_m;        ///< Local histogram view for bin counts.
+        bin_host_histo_type localBinHistoHost_m; // TODO: Use DualView instead!!!!
         bin_histo_type globalBinHisto_m;       ///< Global histogram view (over ranks reduced local histograms).
         BinningSelector var_selector_m;       ///< Variable selector for binning.
     };
