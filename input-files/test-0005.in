@@ -10,6 +10,7 @@ OPTION, BOUNDPDESTROYFQ = 10;    // Delete lost particles, if any out of 10 \sig
 OPTION, AUTOPHASE       = 4;     // Autophase is on, and phase of max energy
                                  // gain will be found automatically for cavities.
 OPTION, VERSION=10900;
+OPTION, SEED  = -1;
 
 Title, string="AWA Photoinjector";
 
@@ -19,7 +20,7 @@ Value,{OPALVERSION};
 // Global Parameters
 
 REAL rf_freq             = 1.3e9;    // RF frequency. (Hz)
-REAL n_particles         = 1E4;      // Number of particles in simulation.
+REAL n_particles         = 2E4;      // Number of particles in simulation.
 REAL beam_bunch_charge   = 1e-9;     // Charge of bunch. (C)
 
 //----------------------------------------------------------------------------

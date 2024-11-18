@@ -258,9 +258,9 @@ void PartBunch<double,3>::bunchUpdate() {
 
     /// \brief assume o < 0.0?
 
-    ippl::Vector<double, 3> o = pc->getMinR();
-    ippl::Vector<double, 3> e = pc->getMaxR();
-    ippl::Vector<double, 3> l = e - o; 
+    ippl::Vector<double, 3> o = pc->getMinR() - 1e-15;
+    ippl::Vector<double, 3> e = pc->getMaxR() + 1e-15;
+    ippl::Vector<double, 3> l = e - o;
     hr_m = (1.0+this->OPALFieldSolver_m->getBoxIncr()/100.)*(l / this->nr_m);
     mesh->setMeshSpacing(hr_m);
     mesh->setOrigin(o-0.5*hr_m*this->OPALFieldSolver_m->getBoxIncr()/100.);

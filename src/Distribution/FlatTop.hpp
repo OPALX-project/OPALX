@@ -21,7 +21,6 @@ struct VectorComparator {
     }
 };
 
-
 class FlatTop : public SamplingBase {
 public:
     FlatTop(std::shared_ptr<ParticleContainer_t> &pc, std::shared_ptr<FieldContainer_t> &fc, std::shared_ptr<Distribution_t> &opalDist)
@@ -69,7 +68,6 @@ public:
                 Pview(j)[1] = 0.0;
         });
         Kokkos::fence();
-
     }
 
     void generateLongFlattopT(size_t& nlocal, GeneratorPool &rand_pool){
@@ -166,12 +164,12 @@ public:
 
         sampling_t sampling2(dist2, tmax, tmin, tmax, tmin, numRise);
 
-        Kokkos::View<ippl::Vector<double, 1>*> subview(&tview(numFall + numFlat), numRise);
+        auto subview = Kokkos::subview(tview, std::make_pair(numFall + numFlat, numFall + numFlat + numRise));
         sampling2.generate(subview, rand_pool);
 
         Kokkos::parallel_for(
                "rise", numRise, KOKKOS_LAMBDA(const size_t j) {
-                tview(j+numFall + numFlat) = subview(j) + sigmaTFall * cutoffR[2] + flattopTime;
+                subview(j) += + sigmaTFall * cutoffR[2] + flattopTime;
         });
 
         // Set Pz=Rz=0
@@ -181,6 +179,27 @@ public:
                Pview(j)[2] = 0.0;
         });
 
+        // Assume tview is Kokkos::View<ippl::Vector<double, 1>*>
+        Kokkos::View<double*> keys("keys", nlocal);
+
+        // Extract the sortable keys (e.g., a[0])
+        Kokkos::parallel_for("ExtractKeys", Kokkos::RangePolicy<>(0, nlocal), KOKKOS_LAMBDA(const int i) {
+            keys(i) = tview(i)[0];
+        });
+
+        // Sort the keys
+        Kokkos::sort(keys);
+
+        // Reorder tview based on sorted keys
+        Kokkos::parallel_for("Reorder", Kokkos::RangePolicy<>(0, nlocal), KOKKOS_LAMBDA(const int i) {
+            tview(i)[0] = keys(i);
+        });
+
+        //Kokkos::sort(tview, VectorComparator()); // this doesn't work, because tview is not a Kokkos view, but an array of it
+
+/*
+// this doesn't work (wrong solution) on GPU, data race
+std::cout << "sort\n";
         Kokkos::parallel_for("custom_sort", Kokkos::RangePolicy<>(0, nlocal - 1), KOKKOS_LAMBDA(const int i) {
             for (size_type j = i + 1; j < nlocal; ++j) {
                 if (VectorComparator()(tview(j), tview(i))) {
@@ -190,7 +209,7 @@ public:
                 }
             }
         });
-
+*/
     }
 
     void setEmissionTime() {
@@ -235,13 +254,13 @@ public:
 
         *gmsg << "* Done with flat top particle generation" << endl;
 
-
+/*
     std::ofstream file("position_time.txt");
     for (size_t i = 0; i < nlocal; ++i) {
         file << pc_m->R(i)[0] << " " << pc_m->R(i)[1] << " " << pc_m->R(i)[2] << " " << pc_m->t(i)[0] << "\n";  // Write each element on a new line
     }
     file.close();
-
+*/
     }
 };
 #endif
