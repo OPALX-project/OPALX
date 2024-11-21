@@ -247,6 +247,32 @@ namespace ParticleBinning {
         msg << "Global histogram created." << endl;
     }
 
+    template <typename BunchType, typename BinningSelector>
+    template <typename T, unsigned Dim>
+    VField_t<T, Dim>& AdaptBins<BunchType, BinningSelector>::LTrans(VField_t<T, Dim>& field) {
+        bin_view_type binIndex            = bunch_m->bin.getView();
+        const size_type localNumParticles = bunch_m->getLocalNum(); 
+        position_view_type P              = bunch_m->P.getView();
+
+        // Calculate gamma factor for field back transformation --> TODO: change iteration if decide to use sorted particles!
+        Vector<T, Dim> gamma_bin(0.0);
+        Kokkos::parallel_reduce("CalculateGammaFactor", localNumParticles, 
+            KOKKOS_LAMBDA(const size_type& i, Vector<double, 3>& local_sum_speed) {
+                Vector<double, 3> v_comp = P(i); 
+                local_sum_speed         += v_comp.dot(v_comp) * (binIndex(i) == i); 
+            }, Kokkos::Sum<Vector<T, Dim>>(gamma_bin));
+        gamma_bin = 1.0 / sqrt(1.0 + gamma_bin);
+        std::cout << "Gamma factor calculated = " << gamma_bin << std::endl;
+
+        // Next apply the transformation --> do it manually, since fc->E*gamma does not exist in IPPL...
+        ippl::parallel_for("TransformFieldWithVelocity", field.getFieldRangePolicy(), 
+            KOKKOS_LAMBDA(const ippl::RangePolicy<Dim>::index_array_type& idx) {
+                apply(field, idx) *= gamma_bin;
+            });
+
+        return field;
+    }
+
 }
 
 #endif // ADAPT_BINS_HPP

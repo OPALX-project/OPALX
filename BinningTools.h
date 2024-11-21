@@ -120,33 +120,6 @@ namespace ParticleBinning {
         }
     };
 
-    /*
-    // @brief A ippl::vector wrapper that broadcasts vector operations to grid elements. Used for fc->getE()*gamma_bin
-    // TODO: remove
-    template <typename T, unsigned Dim>
-    struct BroadcastVector {
-        explicit BroadcastVector(const ippl::Vector<T, Dim>& vec) : vector_(vec) {}
-
-        // Overload the call operator to return the whole vector
-        template <typename... Args>
-        KOKKOS_INLINE_FUNCTION const ippl::Vector<T, Dim>& operator()(Args... args) const {
-            static_assert(sizeof...(Args) == 0, "BroadcastVector should not be indexed as multi-dimensional");
-            return vector_;  // Return the encapsulated vector
-        }
-
-        // Overload the multiplication operator for compatibility with the expression system
-        template <typename E>
-        KOKKOS_INLINE_FUNCTION auto operator*(const E& other) const {
-            // Assume `other` is a grid element (e.g., ippl::Vector<T, Dim>)
-            return other * vector_;  // Element-wise multiplication with encapsulated vector
-        }
-
-    private:
-        ippl::Vector<T, Dim> vector_;  // Encapsulated ippl::Vector
-    };*/
-
-
-
 
 } // namespace ParticleBinning
 
