@@ -136,6 +136,15 @@ namespace ParticleBinning {
     /**
      * The following are some helper functions for debugging
      */
+
+    /**
+    * @brief Computes the \(p\)-norm of a vector field (for debugging purpose).
+    * 
+    * @param field The input vector field.
+    * @param p The order of the norm (default is 2 for Euclidean norm).
+    * 
+    * @return The computed \(p\)-norm of the vector field.
+    */
     template<typename T, unsigned Dim>
     T vnorm(const VField_t<T, Dim>& field, int p = 2) {
         T sum = 0;
