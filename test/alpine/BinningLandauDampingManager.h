@@ -310,7 +310,7 @@ public:
         static IpplTimings::TimerRef SolveTimer = IpplTimings::getTimer("solveBinned");
         using binIndex_t       = typename ParticleContainer_t::bin_index_type;
         using binIndexView_t   = typename ippl::ParticleAttrib<binIndex_t>::view_type;
-        // using index_array_type = typename RangePolicy<3, Kokkos::DefaultExecutionSpace>::index_array_type;
+        using index_array_type = typename ippl::RangePolicy<Dim>::index_array_type; // TODO: only added for E field addition
 
         this->bins_m->print();
 
@@ -338,21 +338,14 @@ public:
             this->fsolver_m->runSolver();
             //msg << "Solver done" << endl;
 
-            // Calculate gamma factor for field back transformation --> TODO: change iteration if decide to use sorted particles!
-            /*Vector<double, 3> gamma_bin(0.0);
-            Kokkos::parallel_reduce("SumSpeeds", pc->getLocalNum(), 
-                KOKKOS_LAMBDA(const size_t i, Vector<double, 3>& local_sum_speed) {
-                    Vector<double, 3> v_comp = viewP(i); // Get the velocity vector for particle i
-                    local_sum_speed         += v_comp*v_comp * (bin(i) == i); // velocity.dot(velocity);
-                }, Kokkos::Sum<Vector<double, 3>>(gamma_bin));
-            gamma_bin = 1.0 / sqrt(1.0 + gamma_bin);*/
-            double gamma_bin = 0.0;
+            
+            /*double gamma_bin = 0.0;
             Kokkos::parallel_reduce("SumSpeeds", pc->getLocalNum(), 
                 KOKKOS_LAMBDA(const size_t i, gamma_bin& local_sum_speed) {
                     gamma_bin v_comp = viewP(i)[2]; // Get the velocity vector for particle i
                     local_sum_speed += v_comp*v_comp * (bin(i) == i); // velocity.dot(velocity);
                 }, Kokkos::Sum<gamma_bin>(gamma_bin));
-            gamma_bin = 1.0 / sqrt(1.0 + gamma_bin);
+            gamma_bin = 1.0 / sqrt(1.0 + gamma_bin);*/
 
             //msg << "Gamma factor calculated" << endl;
 
@@ -370,7 +363,24 @@ public:
             //phi_tmp = phi_tmp + fc->getPhi() * gamma_bin;
             // Note: Need to use E field, since potential phi is never calculated by most poisson solvers (like FFT...)
             //fc->getE() = fc->getE() * gamma_bin; // need to separate it (otherwise, does not work?!)
-            E_tmp = E_tmp - fc->getE(); // elementwise calculation (multiply E(x, y, z)*\vec{gamma} elementwise at every frid point coordinate) // grad(fc->getPhi()) * gamma_bin
+            
+            //Vector<double, 3> gamma(1.0);
+            //fc->getE() = fc->getE() * gamma; 
+            
+            // gamma = gamma * gamma_bin; // works...?!
+
+            //fc->getE() = fc->getE() * gamma_bin; 
+            //E_tmp = E_tmp - fc->getE() * ParticleBinning::BroadcastVector<double, 3>(gamma_bin); // * gamma_bin; // elementwise calculation (multiply E(x, y, z)*\vec{gamma} elementwise at every frid point coordinate) // grad(fc->getPhi()) * gamma_bin
+            E_tmp = E_tmp - this->bins_m->LTrans(fc->getE());
+            /*auto Eview = fc->getE().getView();
+            auto E_tmp_view = E_tmp.getView();
+            ippl::parallel_for(
+                "applyGammaFactor", ippl::getRangePolicy(Eview), // , fc->getE().getNghost()
+                KOKKOS_LAMBDA(const index_array_type& idx) {
+                    //for (int d = 0; d < 3; ++d) {
+                    E_tmp_view(idx) -= Eview(idx) * gamma_bin;
+                    //}
+                });*/
             //msg << "Phi contribution assigned." << endl;
         }
         IpplTimings::stopTimer(SolveTimer);
@@ -438,5 +448,6 @@ public:
         }
         ippl::Comm->barrier();
     }
+
 };
 #endif

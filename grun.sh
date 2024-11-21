@@ -5,7 +5,7 @@
 #SBATCH --time=00:05:00
 #SBATCH --nodes=1                   # Request node
 #SBATCH --ntasks-per-node=1        # ranks per node
-#SBATCH --mem-per-cpu=16G
+#SBATCH --mem-per-cpu=8G
 #SBATCH --cpus-per-task=4           # "threads" per task (for e.g. multithreading in Kokkod:parallel_for?)
 #SBATCH --cluster=gmerlin6 # gmerlin6
 #SBATCH --partition=gwendolen # Mandatory, as gwendolen is not the default partition
