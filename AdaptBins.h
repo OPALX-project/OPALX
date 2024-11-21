@@ -242,6 +242,8 @@ namespace ParticleBinning {
             }
         }
 
+        void sortContainerByBin();
+
         /**
          * @brief Prints the current global histogram to the Inform output stream.
          * 

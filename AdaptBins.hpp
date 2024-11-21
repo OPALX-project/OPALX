@@ -212,8 +212,7 @@ namespace ParticleBinning {
 
         msg << "Reducer ran without error." << endl;
         
-        localBinHisto_m.sync_host(); // since all reductions happen on device --> marked as modified
-        // localBinHistoHost_m = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), localBinHisto_m);
+        localBinHisto_m.sync_host(); // since all reductions happen on device --> marked as modified 
     }
 
     template <typename BunchType, typename BinningSelector>
@@ -249,9 +248,7 @@ namespace ParticleBinning {
 
         // The global histogram is currently on host, but can be saved on device
         globalBinHisto_m.modify_host();
-        globalBinHisto_m.sync_device();
-        // globalBinHisto_m = bin_histo_type("globalBinHisto", numBins);
-        //Kokkos::deep_copy(globalBinHisto_m, globalBinHisto); // Copy to device view
+        globalBinHisto_m.sync_device(); 
 
         msg << "Global histogram created." << endl;
     }
@@ -284,6 +281,39 @@ namespace ParticleBinning {
             });
 
         return field;
+    }
+
+    template <typename BunchType, typename BinningSelector>
+    void AdaptBins<BunchType, BinningSelector>::sortContainerByBin() {
+        Inform msg("AdaptBinsBunchSorting");
+
+        bin_view_type bins = bunch_m->bin.getView();
+        /*
+        1. Use parallel scan to find "off sets" like this:
+            Kokkos::View<int*> bin_offsets("bin_offsets", num_bins + 1);
+            Kokkos::parallel_scan("ExclusiveScan", num_bins, KOKKOS_LAMBDA(const int i, int& partial_sum, bool final) {
+                if (final) {
+                    bin_offsets(i + 1) = partial_sum + bin_counts(i);
+                }
+                partial_sum += bin_counts(i);
+            });
+
+        2. Use team based approach with pre allocated indices to write indices in parallel like this:
+            Kokkos::parallel_for("SortParticlesTeams", Kokkos::TeamPolicy<>(num_bins, Kokkos::AUTO), KOKKOS_LAMBDA(const Kokkos::TeamPolicy<>::member_type& team) {
+                int bin_idx = team.league_rank();
+                int start   = bin_offsets(bin_idx);
+                int end     = bin_offsets(bin_idx + 1);
+
+                Kokkos::parallel_for(Kokkos::TeamThreadRange(team, start, end), [&](int i) {
+                    int particle_idx = ... // Map from i to the corresponding particle index
+                    sorted_particles[i] = particles(particle_idx);
+                });
+            });
+
+        3. TODO: figure this out and it may be very efficient and highly parallelizable :)!
+        */
+
+        msg << "Particles sorted by bin index." << endl;
     }
 
 }
