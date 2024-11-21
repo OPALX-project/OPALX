@@ -29,6 +29,7 @@
 //#include <iostream>
 #include "Ippl.h"
 
+#include <Kokkos_DualView.hpp> // Looks like no one ever used it before, so import it here...
 #include "ParallelReduceTools.h" // Has custom reducer objects (--> needed in AdaptBins.h and BinningTools.h)
 #include "BinningTools.h" // Has custom particle selection
 
@@ -54,8 +55,9 @@ namespace ParticleBinning {
         using bin_index_type         = typename BunchType::bin_index_type;
         using bin_type               = typename ippl::ParticleAttrib<bin_index_type>;
         using bin_view_type          = typename bin_type::view_type;
-        using bin_histo_type         = Kokkos::View<size_type*>;
-        using bin_host_histo_type    = Kokkos::View<size_type*, Kokkos::HostSpace>;
+        //using bin_histo_type         = Kokkos::View<size_type*>;
+        //using bin_host_histo_type    = Kokkos::View<size_type*, Kokkos::HostSpace>;
+        using bin_histo_dual_type     = typename Kokkos::DualView<size_type*>;
         // using binning_var_selector_type = typename BinningVariableSelector<size_type>;
 
         /**
@@ -66,8 +68,8 @@ namespace ParticleBinning {
          */
         AdaptBins(std::shared_ptr<BunchType> bunch, BinningSelector var_selector, bin_index_type maxBins = 10)
             : bunch_m(bunch)
-            , maxBins_m(maxBins)
-            , var_selector_m(var_selector) {
+            , var_selector_m(var_selector)
+            , maxBins_m(maxBins) {
 
             currentBins_m = maxBins; // TODO for now...
 
@@ -227,24 +229,17 @@ namespace ParticleBinning {
         }
 
         size_type getNPartInBin(bin_index_type binIndex, bool global = false) {
-            // TODO: Might not be as efficient because of copy action? 
-            // Idea: save a second mirror copy on host?
-            Inform m("getNPartInBin");
-            m << "Getting number of particles in bin " << binIndex << endl;
-            /*bin_host_histo_type binHisto = global ? Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), globalBinHisto_m)
-                                                  : Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), localBinHisto_m);*/
-            // Create a mirror view on the host
-            /*bin_host_histo_type binHisto("test", 10); // Kokkos::create_mirror_view(Kokkos::HostSpace(), global ? globalBinHisto_m : localBinHisto_m);
-            m << "Created mirror view. " << localBinHisto_m.extent(0) << " - " << binHisto.extent(0) << endl;
-
-            // Ensure device synchronization before copying
-            Kokkos::fence();
-            Kokkos::deep_copy(binHisto, localBinHisto_m); // global ? globalBinHisto_m : localBinHisto_m
-
-            m << "Got mirror view" << endl;
-            Kokkos::fence(); // Necessary when copying between spaces!
-            return binHisto(binIndex);*/
-            return localBinHistoHost_m(binIndex);
+            /**
+             * Assume DualView was properly synchronized.
+             * Might create some overhead from .view_host() call if called often.
+             * However, it is only for host and debugging, so should be fine. You can make it
+             * more efficient by avoiding the Kokkos:View "copying-action" with e.g. dualView.h_view(binIndex)
+             */
+            if (global) {
+                return globalBinHisto_m.view_host()(binIndex);
+            } else {
+                return localBinHisto_m.view_host()(binIndex);
+            }
         }
 
         /**
@@ -263,13 +258,12 @@ namespace ParticleBinning {
             os << "Bins = " << numBins << " hBin = " << binWidth_m << endl;
             os << "Bin #;Val" << endl;
 
-            // Get the global histogram (reduced across all nodes)
-            bin_host_histo_type globalBinHistoHost = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), globalBinHisto_m);
+            auto globalHostHisto = globalBinHisto_m.view_host();
 
             // Only rank 0 prints the global histogram
             size_type total = 0;
             for (bin_index_type i = 0; i < numBins; ++i) {
-                size_type val = globalBinHistoHost(i);
+                size_type val = globalHostHisto(i); // Can do it like this, since DualView knows it is on host
                 os << i << ";" << val << endl;
                 total += val;
             }   
@@ -340,10 +334,6 @@ namespace ParticleBinning {
         * - **Field Transformation:** After computing the gamma factor, each component of the field is
         *   multiplied by the corresponding gamma factor.
         * 
-        * @note 
-        * - The function assumes that the field and particle velocities are already initialized.
-        * - The gamma factor is calculated for each dimension independently.
-        * 
         * ### Example Usage:
         * ```cpp
         * VField_t<double, 3> field = ...; // Initialize the field
@@ -355,15 +345,16 @@ namespace ParticleBinning {
 
     private:
         std::shared_ptr<BunchType> bunch_m;    ///< Shared pointer to the particle container.
+        BinningSelector var_selector_m;        ///< Variable selector for binning.
         bin_index_type maxBins_m;              ///< Maximum number of bins.
         bin_index_type currentBins_m;          ///< Current number of bins in use.
         value_type xMin_m;                     ///< Minimum boundary for bins.
         value_type xMax_m;                     ///< Maximum boundary for bins.
         value_type binWidth_m;                 ///< Width of each bin.
-        bin_histo_type localBinHisto_m;        ///< Local histogram view for bin counts.
-        bin_host_histo_type localBinHistoHost_m; // TODO: Use DualView instead!!!!
-        bin_histo_type globalBinHisto_m;       ///< Global histogram view (over ranks reduced local histograms).
-        BinningSelector var_selector_m;       ///< Variable selector for binning.
+
+        bin_histo_dual_type localBinHisto_m;    ///< Local histogram view for bin counts.
+        //bin_host_histo_type localBinHistoHost_m; // TODO: Use DualView instead!!!!
+        bin_histo_dual_type globalBinHisto_m;   ///< Global histogram view (over ranks reduced local histograms).
     };
 
 }
