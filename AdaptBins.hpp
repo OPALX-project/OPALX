@@ -41,14 +41,16 @@ namespace ParticleBinning {
     void AdaptBins<BunchType, BinningSelector>::instantiateHistogram(bool setToZero) {
         // Reinitialize the histogram view with the new size (numBins)
         const bin_index_type numBins = getCurrentBinCount();
-        localBinHisto_m = bin_histo_type("binHisto_m", numBins);
+        localBinHisto_m = bin_histo_dual_type("localBinHisto_m", numBins);
         
         // Optionally, initialize the histogram to zero
         if (setToZero) {
-            bin_histo_type localBinHisto = localBinHisto_m; // avoid implicit "this" capture
+            auto device_histo = localBinHisto_m.view_device();
             Kokkos::parallel_for("initHistogram", numBins, KOKKOS_LAMBDA(const bin_index_type i) {
-                localBinHisto(i) = 0;
+                device_histo(i) = 0;
             });
+            localBinHisto_m.modify_device();
+            localBinHisto_m.sync_host();
         }
     }
 
@@ -102,7 +104,7 @@ namespace ParticleBinning {
     template<typename ReducerType>
     void AdaptBins<BunchType, BinningSelector>::executeInitLocalHistoReduction(ReducerType& to_reduce) {
         bin_view_type binIndex        = bunch_m->bin.getView();  
-        bin_histo_type localBinHisto  = localBinHisto_m;
+        auto device_histo             = localBinHisto_m.view_device();
         bin_index_type binCount       = getCurrentBinCount();
 
         static IpplTimings::TimerRef initLocalHisto = IpplTimings::getTimer("initLocalHistoParallelReduce");
@@ -118,15 +120,15 @@ namespace ParticleBinning {
         // Copy the reduced results to the final histogram
         Kokkos::parallel_for("finalize_histogram", binCount, 
             KOKKOS_LAMBDA(const bin_index_type& i) {
-                localBinHisto(i) = to_reduce.the_array[i];
-            }
-        );
+                device_histo(i) = to_reduce.the_array[i];
+            });
+        localBinHisto_m.modify_device();
     }
 
     template <typename BunchType, typename BinningSelector>
     void AdaptBins<BunchType, BinningSelector>::executeInitLocalHistoReductionTeamFor() {
         bin_view_type binIndex            = bunch_m->bin.getView();
-        bin_histo_type localBinHisto      = localBinHisto_m;
+        auto device_histo                 = localBinHisto_m.view_device();
         const bin_index_type binCount     = getCurrentBinCount();
         const size_type localNumParticles = bunch_m->getLocalNum(); 
 
@@ -172,11 +174,12 @@ namespace ParticleBinning {
 
             // Reduce the team-local histogram into global memory
             Kokkos::parallel_for(Kokkos::TeamThreadRange(teamMember, binCount), [&](const bin_index_type i) {
-                Kokkos::atomic_add(&localBinHisto(i), team_local_hist(i));
+                Kokkos::atomic_add(&device_histo(i), team_local_hist(i));
             });
         });
         
         IpplTimings::stopTimer(initLocalHisto);
+        localBinHisto_m.modify_device();
     }
 
     template <typename BunchType, typename BinningSelector>
@@ -209,7 +212,8 @@ namespace ParticleBinning {
 
         msg << "Reducer ran without error." << endl;
         
-        localBinHistoHost_m = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), localBinHisto_m);
+        localBinHisto_m.sync_host(); // since all reductions happen on device --> marked as modified
+        // localBinHistoHost_m = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), localBinHisto_m);
     }
 
     template <typename BunchType, typename BinningSelector>
@@ -220,29 +224,34 @@ namespace ParticleBinning {
         bin_index_type numBins = getCurrentBinCount(); // number of local bins = number of global bins!
         
         // Create a view to hold the global histogram on all ranks
-        bin_host_histo_type globalBinHisto("globalBinHistoHost", numBins);
+        //bin_host_histo_type globalBinHisto("globalBinHistoHost", numBins);
+        globalBinHisto_m = bin_histo_dual_type("globalBinHisto_m", numBins);
+
+        
+        // Need host mirror, otherwise the data is not available when the histogram is created using CUDA
+        auto localBinHistoHost  = localBinHisto_m.view_host(); 
+        auto globalBinHistoHost = globalBinHisto_m.view_host(); 
 
         static IpplTimings::TimerRef globalHistoReduce = IpplTimings::getTimer("allReduceGlobalHisto");
         IpplTimings::startTimer(globalHistoReduce);
-        
-        // Need host mirror, otherwise the data is not available when the histogram is created using CUDA
-        auto localBinHistoHost = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), localBinHisto_m);
-        
+
         /*
          * Note: The allreduce also works when the .data() returns a CUDA space pointer.
          *       However, for some reason, copying manually to host and then allreducing is faster. 
          */
         ippl::Comm->allreduce(
             localBinHistoHost.data(),           // Pointer to local data
-            globalBinHisto.data(),              // Pointer to global data
+            globalBinHistoHost.data(),              // Pointer to global data
             numBins,                            // Number of elements to reduce
             std::plus<size_type>()              // Reduction operation
         );
         IpplTimings::stopTimer(globalHistoReduce);
 
         // The global histogram is currently on host, but can be saved on device
-        globalBinHisto_m = bin_histo_type("globalBinHisto", numBins);
-        Kokkos::deep_copy(globalBinHisto_m, globalBinHisto); // Copy to device view
+        globalBinHisto_m.modify_host();
+        globalBinHisto_m.sync_device();
+        // globalBinHisto_m = bin_histo_type("globalBinHisto", numBins);
+        //Kokkos::deep_copy(globalBinHisto_m, globalBinHisto); // Copy to device view
 
         msg << "Global histogram created." << endl;
     }
@@ -254,20 +263,24 @@ namespace ParticleBinning {
         const size_type localNumParticles = bunch_m->getLocalNum(); 
         position_view_type P              = bunch_m->P.getView();
 
+        // TODO: remove once in OPAL, since it shoud already exist over there!
+        constexpr double c2 = 299792458.0*299792458.0; // Speed of light in m/s
+
         // Calculate gamma factor for field back transformation --> TODO: change iteration if decide to use sorted particles!
-        Vector<T, Dim> gamma_bin(0.0);
+        Vector<T, Dim> gamma_bin2(0.0);
         Kokkos::parallel_reduce("CalculateGammaFactor", localNumParticles, 
-            KOKKOS_LAMBDA(const size_type& i, Vector<double, 3>& local_sum_speed) {
+            KOKKOS_LAMBDA(const size_type& i, Vector<double, 3>& v2) {
                 Vector<double, 3> v_comp = P(i); 
-                local_sum_speed         += v_comp.dot(v_comp) * (binIndex(i) == i); 
-            }, Kokkos::Sum<Vector<T, Dim>>(gamma_bin));
-        gamma_bin = 1.0 / sqrt(1.0 - gamma_bin);
-        std::cout << "Gamma factor calculated = " << gamma_bin << std::endl;
+                v2                      += v_comp.dot(v_comp) * (binIndex(i) == i); 
+            }, Kokkos::Sum<Vector<T, Dim>>(gamma_bin2));
+        gamma_bin2 /= localNumParticles; 
+        gamma_bin2 /= sqrt(1.0 - gamma_bin2 / c2);
+        std::cout << "Gamma factor calculated = " << gamma_bin2 << std::endl;
 
         // Next apply the transformation --> do it manually, since fc->E*gamma does not exist in IPPL...
         ippl::parallel_for("TransformFieldWithVelocity", field.getFieldRangePolicy(), 
             KOKKOS_LAMBDA(const ippl::RangePolicy<Dim>::index_array_type& idx) {
-                apply(field, idx) *= gamma_bin;
+                apply(field, idx) *= gamma_bin2;
             });
 
         return field;
