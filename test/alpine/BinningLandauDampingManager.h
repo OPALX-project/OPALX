@@ -310,7 +310,6 @@ public:
         static IpplTimings::TimerRef SolveTimer = IpplTimings::getTimer("solveBinned");
         using binIndex_t       = typename ParticleContainer_t::bin_index_type;
         using binIndexView_t   = typename ippl::ParticleAttrib<binIndex_t>::view_type;
-        using index_array_type = typename ippl::RangePolicy<Dim>::index_array_type; // TODO: only added for E field addition
 
         this->bins_m->print();
 
