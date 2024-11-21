@@ -331,7 +331,7 @@ public:
 
             // Run solver: obtains phi_m only for what was scattered in the previous step
             this->fsolver_m->runSolver();
-            E_tmp = E_tmp - this->bins_m->LTrans(fc->getE());
+            E_tmp = E_tmp - this->bins_m->LTrans(fc->getE(), i);
         }
         IpplTimings::stopTimer(SolveTimer);
 

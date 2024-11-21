@@ -258,7 +258,7 @@ namespace ParticleBinning {
 
     template <typename BunchType, typename BinningSelector>
     template <typename T, unsigned Dim>
-    VField_t<T, Dim>& AdaptBins<BunchType, BinningSelector>::LTrans(VField_t<T, Dim>& field) {
+    VField_t<T, Dim>& AdaptBins<BunchType, BinningSelector>::LTrans(VField_t<T, Dim>& field, const bin_index_type& currentBin) {
         bin_view_type binIndex            = bunch_m->bin.getView();
         const size_type localNumParticles = bunch_m->getLocalNum(); 
         position_view_type P              = bunch_m->P.getView();
@@ -271,10 +271,10 @@ namespace ParticleBinning {
         Kokkos::parallel_reduce("CalculateGammaFactor", localNumParticles, 
             KOKKOS_LAMBDA(const size_type& i, Vector<double, 3>& v2) {
                 Vector<double, 3> v_comp = P(i); 
-                v2                      += v_comp.dot(v_comp) * (binIndex(i) == i); 
+                v2                      += v_comp.dot(v_comp) * (binIndex(i) == currentBin); 
             }, Kokkos::Sum<Vector<T, Dim>>(gamma_bin2));
-        gamma_bin2 /= localNumParticles; 
-        gamma_bin2 /= sqrt(1.0 - gamma_bin2 / c2);
+        gamma_bin2 /= getNPartInBin(currentBin); 
+        gamma_bin2  = 1.0 / sqrt(1.0 - gamma_bin2 / c2);
         std::cout << "Gamma factor calculated = " << gamma_bin2 << std::endl;
 
         // Next apply the transformation --> do it manually, since fc->E*gamma does not exist in IPPL...

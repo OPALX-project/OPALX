@@ -232,7 +232,7 @@ namespace ParticleBinning {
             /**
              * Assume DualView was properly synchronized.
              * Might create some overhead from .view_host() call if called often.
-             * However, it is only for host and debugging, so should be fine. You can make it
+             * However, it is only called on host (max nBins times per iteration), so should be fine. You can make it
              * more efficient by avoiding the Kokkos:View "copying-action" with e.g. dualView.h_view(binIndex)
              */
             if (global) {
@@ -341,7 +341,7 @@ namespace ParticleBinning {
         * ```
         */
         template <typename T, unsigned Dim>
-        VField_t<T, Dim>& LTrans(VField_t<T, Dim>& field); // TODO: may want to add usage of c constant when it exists...
+        VField_t<T, Dim>& LTrans(VField_t<T, Dim>& field, const bin_index_type& currentBin); // TODO: may want to add usage of c constant when it exists...
 
     private:
         std::shared_ptr<BunchType> bunch_m;    ///< Shared pointer to the particle container.
