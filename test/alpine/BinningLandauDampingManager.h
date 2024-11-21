@@ -275,19 +275,8 @@ public:
                 this->loadbalancer_m->repartition(FL, mesh, isFirstRepartition);
                 IpplTimings::stopTimer(domainDecomposition);
         }
+        
 
-        /*
-        // scatter the charge onto the underlying grid
-        this->par2grid();
-
-        // Field solve
-        IpplTimings::startTimer(SolveTimer);
-        this->fsolver_m->runSolver();
-        IpplTimings::stopTimer(SolveTimer);
-
-        // gather E field
-        this->grid2par();
-        */
         runBinnedSolver();
 
         // kick
@@ -335,7 +324,15 @@ public:
         }
         IpplTimings::stopTimer(SolveTimer);
 
-        msg << "E assigned from " << this->bins_m->getCurrentBinCount() << " bins." << endl;
+        msg << "E assigned from " << this->bins_m->getCurrentBinCount() << " bins. Norm = " << ParticleBinning::vnorm(E_tmp) << endl;
+
+        // A little debug output:
+        {
+            this->par2grid();
+            this->fsolver_m->runSolver();
+            Inform m("runBinnedSolver");
+            m << "              Single bin norm = " << ParticleBinning::vnorm(fc->getE()) << endl;
+        }
 
         // gather E field from locally built up E_m
         gather(pc->E, E_tmp, this->pcontainer_m->R); // fc->getE()
