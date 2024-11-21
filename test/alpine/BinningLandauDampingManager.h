@@ -324,14 +324,12 @@ public:
         }
         IpplTimings::stopTimer(SolveTimer);
 
-        msg << "E assigned from " << this->bins_m->getCurrentBinCount() << " bins. Norm = " << ParticleBinning::vnorm(E_tmp) << endl;
-
-        // A little debug output:
+        // TODO: remove. A little debug output:
         {
             this->par2grid();
             this->fsolver_m->runSolver();
-            Inform m("runBinnedSolver");
-            m << "              Single bin norm = " << ParticleBinning::vnorm(fc->getE()) << endl;
+            msg << "E assigned from " << this->bins_m->getCurrentBinCount() << " bins. Norm = " << ParticleBinning::vnorm(E_tmp) << endl;
+            msg << "              Single bin norm = " << ParticleBinning::vnorm(fc->getE()) << endl;
         }
 
         // gather E field from locally built up E_m
