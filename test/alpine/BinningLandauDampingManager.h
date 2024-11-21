@@ -322,71 +322,20 @@ public:
 
         // Define temp phi potential
         VField_t<double, 3> E_tmp;
-        E_tmp.initialize(fc->getMesh(), fc->getFL()); // , fc->getGuardCellSizes()
-        // E_m = 0.0;
-        //msg << "Phi_tmp initialized" << endl;
+        E_tmp.initialize(fc->getMesh(), fc->getFL()); 
 
         // Iterate over bins
         IpplTimings::startTimer(SolveTimer);
         for (binIndex_t i = 0; i < this->bins_m->getCurrentBinCount(); ++i) {
-            //msg << "Bin " << i << endl;
             // Scatter only for current bin index
             this->par2gridPerBin(i);
-            //msg << "par2gridPerBin(" << i << ") done." << endl;
 
             // Run solver: obtains phi_m only for what was scattered in the previous step
             this->fsolver_m->runSolver();
-            //msg << "Solver done" << endl;
-
-            
-            /*double gamma_bin = 0.0;
-            Kokkos::parallel_reduce("SumSpeeds", pc->getLocalNum(), 
-                KOKKOS_LAMBDA(const size_t i, gamma_bin& local_sum_speed) {
-                    gamma_bin v_comp = viewP(i)[2]; // Get the velocity vector for particle i
-                    local_sum_speed += v_comp*v_comp * (bin(i) == i); // velocity.dot(velocity);
-                }, Kokkos::Sum<gamma_bin>(gamma_bin));
-            gamma_bin = 1.0 / sqrt(1.0 + gamma_bin);*/
-
-            //msg << "Gamma factor calculated" << endl;
-
-            /*auto view_tmp  = phi_tmp.getView();
-            auto view_calc = fc->getPhi().getView();
-            ippl::parallel_for("calculateTransformPhiPotential", phi_tmp.getFieldRangePolicy(),
-                KOKKOS_LAMBDA(const index_array_type& args) {
-                    apply(view_tmp, args) += apply(view_calc, args); // * gamma_bin;
-                });*/
-
-            // Calculate field gradient and add to E field container with gamma factor (use z coordinate...)
-            /*for (size_t i = 0; i < VField_t<double, 3>::view_type::rank; ++i) {
-                std::cout << E_tmp.getView().extent(i) << " - " << fc->getE().getView().extent(i) << std::endl;
-            }*/
-            //phi_tmp = phi_tmp + fc->getPhi() * gamma_bin;
-            // Note: Need to use E field, since potential phi is never calculated by most poisson solvers (like FFT...)
-            //fc->getE() = fc->getE() * gamma_bin; // need to separate it (otherwise, does not work?!)
-            
-            //Vector<double, 3> gamma(1.0);
-            //fc->getE() = fc->getE() * gamma; 
-            
-            // gamma = gamma * gamma_bin; // works...?!
-
-            //fc->getE() = fc->getE() * gamma_bin; 
-            //E_tmp = E_tmp - fc->getE() * ParticleBinning::BroadcastVector<double, 3>(gamma_bin); // * gamma_bin; // elementwise calculation (multiply E(x, y, z)*\vec{gamma} elementwise at every frid point coordinate) // grad(fc->getPhi()) * gamma_bin
             E_tmp = E_tmp - this->bins_m->LTrans(fc->getE());
-            /*auto Eview = fc->getE().getView();
-            auto E_tmp_view = E_tmp.getView();
-            ippl::parallel_for(
-                "applyGammaFactor", ippl::getRangePolicy(Eview), // , fc->getE().getNghost()
-                KOKKOS_LAMBDA(const index_array_type& idx) {
-                    //for (int d = 0; d < 3; ++d) {
-                    E_tmp_view(idx) -= Eview(idx) * gamma_bin;
-                    //}
-                });*/
-            //msg << "Phi contribution assigned." << endl;
         }
         IpplTimings::stopTimer(SolveTimer);
 
-        // Calculate E field from phi_tmp
-        // fc->getE() = -grad(phi_tmp);
         msg << "E assigned from " << this->bins_m->getCurrentBinCount() << " bins." << endl;
 
         // gather E field from locally built up E_m

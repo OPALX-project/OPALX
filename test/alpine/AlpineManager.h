@@ -188,46 +188,28 @@ public:
     void par2gridPerBin(binIndex_t binIndex) {
         Inform m("scatterPerBin");
         this->fcontainer_m->getRho() = 0.0;
-        //m << "Field container initialized to 0." << endl;
-
-        //ippl::ParticleAttrib<double> *q          = &this->pcontainer_m->q;
+        
         ippl::ParticleAttrib<double> *q          = &this->pcontainer_m->q;
         charge_view_t viewQ                      = q->getView();
-        //m << "Charge view initialized." << endl;
         typename Base::particle_position_type *R = &this->pcontainer_m->R;
-        //m << "R initialized." << endl;
         Field_t<Dim> *rho                        = &this->fcontainer_m->getRho();
-        //m << "Rho initialized." << endl;
         Vector_t<double, Dim> rmin	             = rmin_m;
         Vector_t<double, Dim> rmax	             = rmax_m;
         Vector_t<double, Dim> hr                 = hr_m;
-        //m << "Vectors initialized." << endl;
         binIndexView_t bin                       = this->pcontainer_m->bin.getView();
-        //m << "Bin initialized." << endl;  
         size_type localParticles                 = this->pcontainer_m->getLocalNum();
-        //m << "Local particles initialized." << endl;
-        //m << "Inside Bin = " << this->bins_m->getNPartInBin(binIndex) << endl;
         double Q                                 = Q_m * this->bins_m->getNPartInBin(binIndex)/localParticles; // Q_m;
 
-        //m << "Stuff is initialized...." << endl;
         // TODO: binning set charges to 0 for particles not in the bin
         Kokkos::parallel_for("setChargesTo0", localParticles, KOKKOS_LAMBDA(const size_t i) {
-            //double bin_mult = (bin(i) == i);
-            //viewQ(i) *= bin_mult;
-            //if (bin(i) != binIndex) viewQ(i) = 0;
             viewQ(i) *= (bin(i) == binIndex);
         });
-        //m << "Charges set to 0 for particles not in the bin. Per Bin = " << this->bins_m->getNPartInBin(binIndex) << endl;
 
         scatter(*q, *rho, *R);
-        //m << "Scatter done" << endl;
         double relError = std::fabs((Q-(*rho).sum())/Q);
-        //m << "Q = " << Q << " rho = " << (*rho).sum() << " relError = " << relError << endl;
 
-        // TODO:binning reset particle charges
         this->pcontainer_m->q = Q_m / totalP_m;
-        //m << "Charges reset." << endl;
-
+        
         /*
          * Didn't change anything after here...
          */

@@ -261,7 +261,7 @@ namespace ParticleBinning {
                 Vector<double, 3> v_comp = P(i); 
                 local_sum_speed         += v_comp.dot(v_comp) * (binIndex(i) == i); 
             }, Kokkos::Sum<Vector<T, Dim>>(gamma_bin));
-        gamma_bin = 1.0 / sqrt(1.0 + gamma_bin);
+        gamma_bin = 1.0 / sqrt(1.0 - gamma_bin);
         std::cout << "Gamma factor calculated = " << gamma_bin << std::endl;
 
         // Next apply the transformation --> do it manually, since fc->E*gamma does not exist in IPPL...

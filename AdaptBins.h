@@ -333,7 +333,7 @@ namespace ParticleBinning {
         * - **Gamma Factor Calculation:** The gamma factor is derived from the velocity components of particles.
         *   For a given particle velocity \(v\), the gamma factor is computed as:
         *   \[
-        *   \gamma = \frac{1}{\sqrt{1 + \vec{v} \cdot \vec{v}}}
+        *   \gamma = \frac{1}{\sqrt{1 - \vec{v} \cdot \vec{v}}}
         *   \]
         *   where \(\vec{v}\) is the velocity vector of a particle.
         * 
@@ -351,7 +351,7 @@ namespace ParticleBinning {
         * ```
         */
         template <typename T, unsigned Dim>
-        VField_t<T, Dim>& LTrans(VField_t<T, Dim>& field);
+        VField_t<T, Dim>& LTrans(VField_t<T, Dim>& field); // TODO: may want to add usage of c constant when it exists...
 
     private:
         std::shared_ptr<BunchType> bunch_m;    ///< Shared pointer to the particle container.
