@@ -458,7 +458,6 @@ void H5PartWrapperForPT::writeStepData(PartBunch_t* bunch) {
         f64buffer[i] = qView(i);
     WRITEDATA(Float64, file_m, "q", f64buffer);
 
-
     auto tViewDevice  = bunch->getParticleContainer()->t.getView();
     auto tView = Kokkos::create_mirror_view(tViewDevice);
     Kokkos::deep_copy(tView,tViewDevice);
