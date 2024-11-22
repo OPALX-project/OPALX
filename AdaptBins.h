@@ -235,11 +235,7 @@ namespace ParticleBinning {
         void initLocalPostSum() { 
             localBinHistoPostSum_m = bin_histo_dual_type("localBinHistoPostSum_m", getCurrentBinCount() + 1);
 
-            static IpplTimings::TimerRef initLocalPrefixSumT = IpplTimings::getTimer("initLocalPrefixSum");
-            IpplTimings::startTimer(initLocalPrefixSumT);
             computePostSum<size_type>(localBinHisto_m.view_device(), localBinHistoPostSum_m.view_device());
-            IpplTimings::stopTimer(initLocalPrefixSumT);
-
             localBinHistoPostSum_m.modify_device(); 
             localBinHistoPostSum_m.sync_host(); 
 

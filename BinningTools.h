@@ -132,11 +132,14 @@ namespace ParticleBinning {
         Kokkos::parallel_for("InitPostSum", 1, KOKKOS_LAMBDA(const SizeType) {
             post_sum_view(0) = 0;
         });
-
+        
+        static IpplTimings::TimerRef initLocalPrefixSumT = IpplTimings::getTimer("initLocalPrefixSum");
+        IpplTimings::startTimer(initLocalPrefixSumT);
         Kokkos::parallel_scan("ComputePostSum", input_view.extent(0), KOKKOS_LAMBDA(const SizeType& i, SizeType& partial_sum, bool final) {
             partial_sum += input_view(i); // Update the partial sum
             if (final) { post_sum_view(i + 1) = partial_sum; } 
         });
+        IpplTimings::stopTimer(initLocalPrefixSumT);
     }
 
 
