@@ -190,7 +190,7 @@ public:
         this->fcontainer_m->getRho() = 0.0;
         
         ippl::ParticleAttrib<double> *q          = &this->pcontainer_m->q;
-        charge_view_t viewQ                      = q->getView();
+        //charge_view_t viewQ                      = q->getView();
         typename Base::particle_position_type *R = &this->pcontainer_m->R;
         Field_t<Dim> *rho                        = &this->fcontainer_m->getRho();
         Vector_t<double, Dim> rmin	             = rmin_m;
@@ -201,14 +201,14 @@ public:
         double Q                                 = Q_m * this->bins_m->getNPartInBin(binIndex)/localParticles; // Q_m;
 
         // TODO: binning set charges to 0 for particles not in the bin
-        Kokkos::parallel_for("setChargesTo0", localParticles, KOKKOS_LAMBDA(const size_t i) {
-            viewQ(i) *= (bin(i) == binIndex);
-        });
+        //Kokkos::parallel_for("setChargesTo0", localParticles, KOKKOS_LAMBDA(const size_t i) {
+        //    viewQ(i) *= (bin(i) == binIndex);
+        //});
 
-        scatter(*q, *rho, *R);
+        scatter(*q, *rho, *R, this->bins_m->getBinIterationPolicy(binIndex));
         double relError = std::fabs((Q-(*rho).sum())/Q);
 
-        this->pcontainer_m->q = Q_m / totalP_m;
+        //this->pcontainer_m->q = Q_m / totalP_m;
         
         /*
          * Didn't change anything after here...

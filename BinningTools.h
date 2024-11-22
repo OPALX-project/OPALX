@@ -120,19 +120,23 @@ namespace ParticleBinning {
         }
     };
 
-    template <typenam SizeType>
-    Kokkos::View<SizeType*> computePrefixSum(const Kokkos::View<SizeType*> input_view) {
-        Kokkos::View<SizeType*> prefix_sum_view("PrefixSumView", input_view.extent(0) + 1);
+    template <typename SizeType>
+    void computePostSum(const Kokkos::View<SizeType*> input_view, Kokkos::View<SizeType*> post_sum_view) {
+        if (post_sum_view.extent(0) != input_view.extent(0) + 1) {
+            Inform m("computePostSum");
+            m << "Output view must have size input_view.extent(0) + 1" << endl;
+            ippl::Comm->abort();
+        }
 
-        Kokkos::deep_copy(prefix_sum_view(0), 0); // Initialize the first element of the prefix sum to 0
-
-        // Perform the exclusive scan
-        Kokkos::parallel_scan("ComputePrefixSum", input_view.extent(0), KOKKOS_LAMBDA(const SizeType& i, SizeType& partial_sum, bool final) {
-            if (final) { prefix_sum_view(i + 1) = partial_sum; }
-            partial_sum += input_view(i); // Update the partial sum
+        // Initialize the first element to 0
+        Kokkos::parallel_for("InitPostSum", 1, KOKKOS_LAMBDA(const SizeType) {
+            post_sum_view(0) = 0;
         });
 
-        return prefix_sum_view;
+        Kokkos::parallel_scan("ComputePostSum", input_view.extent(0), KOKKOS_LAMBDA(const SizeType& i, SizeType& partial_sum, bool final) {
+            partial_sum += input_view(i); // Update the partial sum
+            if (final) { post_sum_view(i + 1) = partial_sum; } 
+        });
     }
 
 

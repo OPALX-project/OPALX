@@ -287,6 +287,12 @@ namespace ParticleBinning {
     void AdaptBins<BunchType, BinningSelector>::sortContainerByBin() {
         Inform msg("AdaptBinsBunchSorting");
 
+        /**
+         * Assume, this function is called after the prefix sum is initialized.
+         * Then the particles need to be changed (sorted) in the right order and finally
+         * the range_policy can simply be retrieved from the prefix sum for the scatter().
+         */
+
         bin_view_type bins = bunch_m->bin.getView();
         /*
         1. Use parallel scan to find "off sets" like this:
@@ -312,6 +318,12 @@ namespace ParticleBinning {
 
         3. TODO: figure this out and it may be very efficient and highly parallelizable :)!
         */
+
+        // Get index array for sorting
+        Kokkos::View<size_type*> indices("indices", bunch_m->getLocalNum());
+        Kokkos::parallel_for("FillIndices", bunch_m->getLocalNum(), KOKKOS_LAMBDA(const size_type& i) { indices(i) = i; });
+
+
 
         msg << "Particles sorted by bin index." << endl;
     }

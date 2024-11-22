@@ -6,7 +6,7 @@
 #SBATCH --nodes=1                   # Request node
 #SBATCH --ntasks-per-node=1         # cores per node
 ##SBATCH --mem-per-cpu=4G
-#SBATCH --cpus-per-task=4           # "threads" per task (for e.g. multithreading in Kokkod:parallel_for?)
+#SBATCH --cpus-per-task=16           # "threads" per task (for e.g. multithreading in Kokkod:parallel_for?)
 #SBATCH --cluster=merlin6 # gmerlin6
 #SBATCH --partition=hourly #gpu-short #              # Non-GPU partition, check cluster for correct partition
 #SBATCH --account=merlin
