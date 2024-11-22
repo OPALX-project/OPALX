@@ -195,7 +195,22 @@ public:
             tview(i)[0] = keys(i);
         });
 
-        //Kokkos::sort(tview, VectorComparator()); // this doesn't work, because tview is not a Kokkos view, but an array of it
+        // sanity check
+        bool sorted = true;
+        Kokkos::parallel_reduce(
+            "CheckSorted",
+            tview.extent(0) - 1, // Check up to the second-to-last element
+            KOKKOS_LAMBDA(const size_type i, bool &local_sorted) {
+                if (tview(i)[0] > tview(i + 1)[0]) {
+                    local_sorted = false;
+                }
+            },
+            Kokkos::LAnd<bool>(sorted) // Logical AND reduction to ensure all checks pass
+        );
+        if(sorted == true)
+            *gmsg << "* Sorting of particles w.r.t. emission time PAASED the sanity check!\n";
+        else
+            *gmsg << "* Sorting of particles w.r.t emission time FAILED the sanity check!\n";
 
 /*
 // this doesn't work (wrong solution) on GPU, data race
@@ -254,12 +269,37 @@ std::cout << "sort\n";
 
         *gmsg << "* Done with flat top particle generation" << endl;
 
+        auto tViewDevice  = pc_m->t.getView();
+        auto tView = Kokkos::create_mirror_view(tViewDevice);
+        Kokkos::deep_copy(tView,tViewDevice);
+
+        int rank, numRanks;
+        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+        MPI_Comm_size(MPI_COMM_WORLD, &numRanks);
+        std::string filename = "time_" + std::to_string(rank) + ".txt";
+        std::ofstream file(filename);
+
+        for (size_t i = 0; i < nlocal; ++i) {
+           file << tView(i)[0] << "\n";
+        }
+
+        file.close();
+
 /*
-    std::ofstream file("position_time.txt");
-    for (size_t i = 0; i < nlocal; ++i) {
-        file << pc_m->R(i)[0] << " " << pc_m->R(i)[1] << " " << pc_m->R(i)[2] << " " << pc_m->t(i)[0] << "\n";  // Write each element on a new line
-    }
-    file.close();
+        // There is a problem with writing to the same file. 
+        // The barrier does not seem to really work.
+        // Sequential writing: ranks write one after another
+        for (int currentRank = 0; currentRank < numRanks; ++currentRank) {
+            if (rank == currentRank) {
+            // Writing only for the current rank
+                 for (size_t i = 0; i < nlocal; ++i) {
+                     file << tView(i)[0] << " \n";
+                 }
+            }
+            // Synchronize with other ranks
+            MPI_Barrier(MPI_COMM_WORLD);
+        }
+        file.close();
 */
     }
 };
