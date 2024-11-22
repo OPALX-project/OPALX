@@ -230,8 +230,7 @@ public:
     void advance() override {
         if (this->stepMethod_m == "LeapFrog") {
             LeapFrogStep();
-            this->bins_m->doFullRebin(10); // rebin with 10 bins 
-            this->bins_m->print();
+            this->bins_m->print(); // just some debug output TODO: binning, remove later
         } else {
             throw IpplException(TestName, "Step method is not set/recognized!");
         }
@@ -276,7 +275,9 @@ public:
                 IpplTimings::stopTimer(domainDecomposition);
         }
         
-
+        // TODO: binning
+        this->bins_m->doFullRebin(10); // rebin with 10 bins
+        this->bins_m->sortContainerByBin(); // sort particles after creating bins for scatter() operation inside LeapFrogStep 
         runBinnedSolver();
 
         // kick
@@ -296,7 +297,7 @@ public:
          * grid2par()
          */
         Inform msg("runBinnedSolver");
-        static IpplTimings::TimerRef SolveTimer = IpplTimings::getTimer("solveBinned");
+        static IpplTimings::TimerRef SolveTimer = IpplTimings::getTimer("solve");
         using binIndex_t       = typename ParticleContainer_t::bin_index_type;
         using binIndexView_t   = typename ippl::ParticleAttrib<binIndex_t>::view_type;
 

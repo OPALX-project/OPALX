@@ -293,7 +293,6 @@ namespace ParticleBinning {
          * the range_policy can simply be retrieved from the prefix sum for the scatter().
          */
 
-        bin_view_type bins = bunch_m->bin.getView();
         /*
         1. Use parallel scan to find "off sets" like this:
             Kokkos::View<int*> bin_offsets("bin_offsets", num_bins + 1);
@@ -319,11 +318,21 @@ namespace ParticleBinning {
         3. TODO: figure this out and it may be very efficient and highly parallelizable :)!
         */
 
+        msg << "Sorting particles by bin index." << endl;
+        auto postSumDevice = localBinHistoPostSum_m.view_device();
+        bin_view_type bins = bunch_m->bin.getView();
+
         // Get index array for sorting
-        Kokkos::View<size_type*> indices("indices", bunch_m->getLocalNum());
-        Kokkos::parallel_for("FillIndices", bunch_m->getLocalNum(), KOKKOS_LAMBDA(const size_type& i) { indices(i) = i; });
+        //Kokkos::View<size_type*> indices("indices", bunch_m->getLocalNum());
+        //Kokkos::parallel_for("FillIndices", bunch_m->getLocalNum(), KOKKOS_LAMBDA(const size_type& i) { indices(i) = i; });
 
 
+        static IpplTimings::TimerRef sortContainerByBins = IpplTimings::getTimer("sortContainerByBins");
+        IpplTimings::startTimer(sortContainerByBins);
+
+        // TODO: start sorting...
+
+        IpplTimings::stopTimer(sortContainerByBins);
 
         msg << "Particles sorted by bin index." << endl;
     }

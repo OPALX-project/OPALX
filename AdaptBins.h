@@ -240,11 +240,11 @@ namespace ParticleBinning {
             localBinHistoPostSum_m.sync_host(); 
 
             // Print the prefix sum for debugging
-            Inform msg("AdaptBins");
+            /*Inform msg("AdaptBins");
             auto localPostSumHost = localBinHistoPostSum_m.view_host();
             for (bin_index_type i = 0; i < getCurrentBinCount() + 1; ++i) {
                 msg << "PrefixSum[" << i << "] = " << localPostSumHost(i) << endl;
-            }
+            }*/
         }
 
         size_type getNPartInBin(bin_index_type binIndex, bool global = false) {

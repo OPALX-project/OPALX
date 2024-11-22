@@ -120,6 +120,18 @@ namespace ParticleBinning {
         }
     };
 
+    /**
+     * @brief Computes the post-sum (inclusive prefix sum) of the input view and stores the result in the post-sum view.
+     *
+     * This function calculates the inclusive prefix sum of the elements in the input view and stores the result in the post-sum view.
+     * The first element of the post-sum view is initialized to 0, and the subsequent elements contain the prefix sums of the input view.
+     *
+     * @tparam SizeType The type of the elements in the input and post-sum views.
+     * @param input_view The input view containing the elements to be summed.
+     * @param post_sum_view The output view where the post-sum results will be stored. It must have a size of input_view.extent(0) + 1.
+     *
+     * @throws `ippl::Comm->abort();` if the size of the post_sum_view is not equal to input_view.extent(0) + 1.
+     */
     template <typename SizeType>
     void computePostSum(const Kokkos::View<SizeType*> input_view, Kokkos::View<SizeType*> post_sum_view) {
         if (post_sum_view.extent(0) != input_view.extent(0) + 1) {

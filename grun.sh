@@ -2,7 +2,7 @@
 #SBATCH --job-name=adapt_bins_test_gpu
 #SBATCH --error=output/bins_%j.err
 #SBATCH --output=output/bins_%j.out
-#SBATCH --time=00:05:00
+#SBATCH --time=00:15:00
 #SBATCH --nodes=1                   # Request node
 #SBATCH --ntasks-per-node=1        # ranks per node
 #SBATCH --mem-per-cpu=8G
