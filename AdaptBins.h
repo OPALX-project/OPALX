@@ -55,7 +55,7 @@ namespace ParticleBinning {
         using bin_index_type         = typename BunchType::bin_index_type;
         using bin_type               = typename ippl::ParticleAttrib<bin_index_type>;
         using bin_view_type          = typename bin_type::view_type;
-        //using bin_histo_type         = Kokkos::View<size_type*>;
+        using bin_histo_type         = Kokkos::View<size_type*>;
         //using bin_host_histo_type    = Kokkos::View<size_type*, Kokkos::HostSpace>;
         using bin_histo_dual_type     = typename Kokkos::DualView<size_type*>;
         // using binning_var_selector_type = typename BinningVariableSelector<size_type>;
@@ -225,8 +225,14 @@ namespace ParticleBinning {
         void initHistogram(HistoReductionMode modePreference = HistoReductionMode::Standard) {
             instantiateHistogram(true); // Init histogram (no need to set to 0, since executeInitLocalHistoReduction overwrites values from reduction...) --> true, since it is necessary for atomics option...
             initLocalHisto(modePreference);
+            initLocalPrefixSum();
             initGlobalHistogram();
         }
+
+        /**
+         * @brief Initializes the prefix sum for the local histogram (used e.g. for sorting and indexing in `scatter(...)`).
+         */
+        void initLocalPrefixSum() { localBinHistoPrefixSum_m = computePrefixSum(localBinHisto_m.view_device()); }
 
         size_type getNPartInBin(bin_index_type binIndex, bool global = false) {
             /**
@@ -354,9 +360,10 @@ namespace ParticleBinning {
         value_type xMax_m;                     ///< Maximum boundary for bins.
         value_type binWidth_m;                 ///< Width of each bin.
 
-        bin_histo_dual_type localBinHisto_m;    ///< Local histogram view for bin counts.
+        bin_histo_dual_type localBinHisto_m;     ///< Local histogram view for bin counts.
+        bin_histo_type localBinHistoPrefixSum_m; ///< Local prefix sum view for bin counts.
         //bin_host_histo_type localBinHistoHost_m; // TODO: Use DualView instead!!!!
-        bin_histo_dual_type globalBinHisto_m;   ///< Global histogram view (over ranks reduced local histograms).
+        bin_histo_dual_type globalBinHisto_m;    ///< Global histogram view (over ranks reduced local histograms).
     };
 
 }

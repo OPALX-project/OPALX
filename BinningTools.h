@@ -120,6 +120,21 @@ namespace ParticleBinning {
         }
     };
 
+    template <typenam SizeType>
+    Kokkos::View<SizeType*> computePrefixSum(const Kokkos::View<SizeType*> input_view) {
+        Kokkos::View<SizeType*> prefix_sum_view("PrefixSumView", input_view.extent(0) + 1);
+
+        Kokkos::deep_copy(prefix_sum_view(0), 0); // Initialize the first element of the prefix sum to 0
+
+        // Perform the exclusive scan
+        Kokkos::parallel_scan("ComputePrefixSum", input_view.extent(0), KOKKOS_LAMBDA(const SizeType& i, SizeType& partial_sum, bool final) {
+            if (final) { prefix_sum_view(i + 1) = partial_sum; }
+            partial_sum += input_view(i); // Update the partial sum
+        });
+
+        return prefix_sum_view;
+    }
+
 
 } // namespace ParticleBinning
 
