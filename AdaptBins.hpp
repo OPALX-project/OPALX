@@ -345,14 +345,19 @@ namespace ParticleBinning {
             indices(target_pos) = current_idx;
         });
 
-        bunch_m->forAllAttributes([&]<typename Attribute>(Attribute*& attribute) {
-            auto attrib_view = attribute->getView();
-            permuteAttribute<size_type>(attrib_view, indices, localNumParticles);
+        auto viewR = bunch_m->R.getView();
+        auto viewP = bunch_m->P.getView();
+        permuteAttribute<size_type>(viewR, indices, localNumParticles);
+        permuteAttribute<size_type>(viewP, indices, localNumParticles);
+
+        //bunch_m->forAllAttributes([&]<typename Attribute>(Attribute*& attribute) {
+        //    auto attrib_view = attribute->getView();
+        //    permuteAttribute<size_type>(attrib_view, indices, localNumParticles);
             /*
             TODO: does not work. Need to figure out how to get the attribute type and then call the permuteAttribute function with the correct type.
             Is it even possible to call something on all particle attributes that involves accessing the elements?
             */
-        });
+        //});
 
         IpplTimings::stopTimer(sortContainerByBins);
         msg << "Particles sucessfully sorted by bin index." << endl;
