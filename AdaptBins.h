@@ -235,7 +235,7 @@ namespace ParticleBinning {
         void initLocalPostSum() { 
             localBinHistoPostSum_m = bin_histo_dual_type("localBinHistoPostSum_m", getCurrentBinCount() + 1);
 
-            computePostSum<size_type>(localBinHisto_m.view_device(), localBinHistoPostSum_m.view_device());
+            computeFixSum<size_type>(localBinHisto_m.view_device(), localBinHistoPostSum_m.view_device(), true);
             localBinHistoPostSum_m.modify_device(); 
             localBinHistoPostSum_m.sync_host(); 
 

@@ -318,23 +318,54 @@ namespace ParticleBinning {
         3. TODO: figure this out and it may be very efficient and highly parallelizable :)!
         */
 
-        msg << "Sorting particles by bin index." << endl;
-        auto postSumDevice = localBinHistoPostSum_m.view_device();
-        bin_view_type bins = bunch_m->bin.getView();
-
-        // Get index array for sorting
-        //Kokkos::View<size_type*> indices("indices", bunch_m->getLocalNum());
-        //Kokkos::parallel_for("FillIndices", bunch_m->getLocalNum(), KOKKOS_LAMBDA(const size_type& i) { indices(i) = i; });
-
+        //auto postSumDevice = localBinHistoPostSum_m.view_device();
+        bin_view_type bins          = bunch_m->bin.getView();
+        size_type localNumParticles = bunch_m->getLocalNum();
+        size_type numBins           = getCurrentBinCount();
+        auto bin_counts             = localBinHisto_m.view_device();
 
         static IpplTimings::TimerRef sortContainerByBins = IpplTimings::getTimer("sortContainerByBins");
         IpplTimings::startTimer(sortContainerByBins);
 
-        // TODO: start sorting...
+        // Get prefix sum for count sort (pass postSum=false for exclusive scan)
+        Kokkos::View<size_type*> bin_offsets("bin_offsets", numBins + 1);
+        computeFixSum<size_type>(bin_counts, bin_offsets, false);
+
+        // Get index array for sorting
+        Kokkos::View<size_type*> indices("indices", localNumParticles);
+        Kokkos::parallel_for("FillIndices", localNumParticles, KOKKOS_LAMBDA(const size_type& i) { indices(i) = i; });
+
+        // Perform the actual count sort
+        Kokkos::parallel_for("InPlaceSortIndices", localNumParticles, KOKKOS_LAMBDA(const size_type& i) {
+            size_type current_idx = indices(i);
+            size_type target_bin = bins(current_idx);
+            size_type target_pos = Kokkos::atomic_fetch_add(&bin_offsets(target_bin), 1) - 1;
+
+            // Place the current particle directly into its target position
+            indices(target_pos) = current_idx;
+        });
+
+        bunch_m->forAllAttributes([&]<typename Attribute>(Attribute*& attribute) {
+            auto attrib_view = attribute->getView();
+            permuteAttribute<size_type>(attrib_view, indices, localNumParticles);
+            /*
+            TODO: does not work. Need to figure out how to get the attribute type and then call the permuteAttribute function with the correct type.
+            Is it even possible to call something on all particle attributes that involves accessing the elements?
+            */
+        });
 
         IpplTimings::stopTimer(sortContainerByBins);
+        msg << "Particles sucessfully sorted by bin index." << endl;
 
-        msg << "Particles sorted by bin index." << endl;
+        // Some debug output to check if the sorting was successful
+        auto host_indices = Kokkos::create_mirror_view(indices);
+        auto host_bins = Kokkos::create_mirror_view(bins);
+        for (size_type i = 1; i < bunch_m->getLocalNum(); ++i) {
+            if (host_bins(host_indices(i-1)) > host_bins(host_indices(i))) {
+                msg << "Sorting failed at index " << i << " with values " << host_indices(i-1) << " and " << host_indices(i) << endl;
+                break;
+            }
+        }
     }
 
 }

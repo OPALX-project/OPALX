@@ -121,19 +121,17 @@ namespace ParticleBinning {
     };
 
     /**
-     * @brief Computes the post-sum (inclusive prefix sum) of the input view and stores the result in the post-sum view.
+     * @brief Computes the post- or prefix-sum of the input view and stores the result in the ...-sum view.
      *
-     * This function calculates the inclusive prefix sum of the elements in the input view and stores the result in the post-sum view.
-     * The first element of the post-sum view is initialized to 0, and the subsequent elements contain the prefix sums of the input view.
-     *
-     * @tparam SizeType The type of the elements in the input and post-sum views.
+     * @tparam SizeType The type of the elements in the input and ...-sum views.
      * @param input_view The input view containing the elements to be summed.
-     * @param post_sum_view The output view where the post-sum results will be stored. It must have a size of input_view.extent(0) + 1.
+     * @param post_sum_view The output view where the ...-sum results will be stored. It must have a size of input_view.extent(0) + 1.
+     * @param postSum If true, the post-sum is computed; otherwise, the prefix-sum is computed.
      *
      * @throws `ippl::Comm->abort();` if the size of the post_sum_view is not equal to input_view.extent(0) + 1.
      */
     template <typename SizeType>
-    void computePostSum(const Kokkos::View<SizeType*> input_view, Kokkos::View<SizeType*> post_sum_view) {
+    void computeFixSum(const Kokkos::View<SizeType*> input_view, Kokkos::View<SizeType*> post_sum_view, bool postSum = true) {
         if (post_sum_view.extent(0) != input_view.extent(0) + 1) {
             Inform m("computePostSum");
             m << "Output view must have size input_view.extent(0) + 1" << endl;
@@ -145,13 +143,29 @@ namespace ParticleBinning {
             post_sum_view(0) = 0;
         });
         
-        static IpplTimings::TimerRef initLocalPrefixSumT = IpplTimings::getTimer("initLocalPrefixSum");
-        IpplTimings::startTimer(initLocalPrefixSumT);
+        static IpplTimings::TimerRef initLocalPostSumT = IpplTimings::getTimer("initLocalPostSum");
+        IpplTimings::startTimer(initLocalPostSumT);
         Kokkos::parallel_scan("ComputePostSum", input_view.extent(0), KOKKOS_LAMBDA(const SizeType& i, SizeType& partial_sum, bool final) {
-            partial_sum += input_view(i); // Update the partial sum
+            if (postSum) partial_sum += input_view(i); 
             if (final) { post_sum_view(i + 1) = partial_sum; } 
+            if (!postSum) partial_sum += input_view(i); 
         });
-        IpplTimings::stopTimer(initLocalPrefixSumT);
+        IpplTimings::stopTimer(initLocalPostSumT);
+    }
+
+    template <typename SizeType, typename AttribView>
+    void permuteAttribute(AttribView orig_attrib, Kokkos::View<SizeType*> index, SizeType npart) {
+        // using attrib_type = std::remove_pointer_t<Attrib>;
+        using type = typename AttribView::value_type; 
+
+        Kokkos::View<type*> temp("tmpDataPermuteView", npart);
+        // Kokkos::View<type*> temp((type*)this->permuteTemp_m.data(), npart);
+        Kokkos::parallel_for("Permute", npart, KOKKOS_LAMBDA(const SizeType& i) {
+            temp(index(i)) = orig_attrib(i);
+        });
+        Kokkos::parallel_for("Permute", npart, KOKKOS_LAMBDA(const SizeType& i) {
+            orig_attrib(i) = temp(i);
+        });
     }
 
 
