@@ -70,3 +70,44 @@ inline void scatter(const Attrib1& attrib, Field& f, const Attrib2& pp, policy_t
 ```
 These do not change `scatter(...)` function calls, but allow the user to pass custom range policies for the scatter.
 
+
+# Change `ParticleAttribBase` to allow overwrite unpack:
+
+First you need to adapt `ParticleAttribBase.h` as follows:
+```c++
+...
+virtual void unpack(size_type, bool overwrite = false) = 0;
+...
+```
+Next you change the implementation in `PartAttrib.hpp` as follows:
+```c++
+template <typename T, class... Properties>
+void ParticleAttrib<T, Properties...>::unpack(size_type nrecvs, bool overwrite) {
+    auto size          = dview_m.extent(0);
+    size_type required = overwrite ? nrecvs : (*(this->localNum_mp) + nrecvs);
+    if (size < required) {
+        int overalloc = Comm->getDefaultOverallocation();
+        this->resize(required * overalloc);
+    }
+
+    size_type count   = overwrite ? 0 : *(this->localNum_mp); // Changed this!
+    using policy_type = Kokkos::RangePolicy<execution_space>;
+    Kokkos::parallel_for(
+        "ParticleAttrib::unpack()", policy_type(0, nrecvs),
+        KOKKOS_CLASS_LAMBDA(const size_t i) { dview_m(count + i) = buf_m(i); });
+    Kokkos::fence();
+}
+```
+Now when you want to apply an index array after "argsort", you can simply call the following:
+```c++
+bunch_m->template forAllAttributes([&]<typename Attribute>(Attribute*& attribute) {
+    attribute->pack(indices);
+    attribute->unpack(localNumParticles, true);
+});
+```
+That way, all values in the corresponding view get put into the internal buffer (already exists in `ParticleAttrib.h`) according to the `hash`, which here is simply `indices`. Then, `unpack` puts all values from the buffer back into the main view, now in the new order. 
+
+Make sure that `indices` has length `localNumParticles` and that `overwrite = true`. Otherwise, you will probably get segmentation faults.
+
+Also: For some reason, `hash_type` is `Kokkos::View<int*>` instead of `Kokkos::View<size_type*>`. But I guess maybe that is enough...
+
