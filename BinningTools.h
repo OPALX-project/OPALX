@@ -131,7 +131,7 @@ namespace ParticleBinning {
      * @throws `ippl::Comm->abort();` if the size of the post_sum_view is not equal to input_view.extent(0) + 1.
      */
     template <typename SizeType>
-    void computeFixSum(const Kokkos::View<SizeType*> input_view, Kokkos::View<SizeType*> post_sum_view, bool postSum = true) {
+    void computeFixSum(const Kokkos::View<SizeType*> input_view, Kokkos::View<SizeType*> post_sum_view) {
         if (post_sum_view.extent(0) != input_view.extent(0) + 1) {
             Inform m("computePostSum");
             m << "Output view must have size input_view.extent(0) + 1" << endl;
@@ -146,19 +146,34 @@ namespace ParticleBinning {
         static IpplTimings::TimerRef initLocalPostSumT = IpplTimings::getTimer("initLocalPostSum");
         IpplTimings::startTimer(initLocalPostSumT);
         Kokkos::parallel_scan("ComputePostSum", input_view.extent(0), KOKKOS_LAMBDA(const SizeType& i, SizeType& partial_sum, bool final) {
-            if (postSum) partial_sum += input_view(i); 
+            /*if (postSum)*/ partial_sum += input_view(i); 
             if (final) { post_sum_view(i + 1) = partial_sum; } 
-            if (!postSum) partial_sum += input_view(i); 
+            // if (!postSum) partial_sum += input_view(i); 
         });
         IpplTimings::stopTimer(initLocalPostSumT);
     }
 
-    template <typename SizeType, typename AttribView>
-    void permuteAttribute(AttribView orig_attrib, Kokkos::View<SizeType*> index, SizeType npart) {
+    template <typename SizeType, typename BufferViewType, typename AttribView>
+    void permuteAttribute(AttribView orig_attrib, Kokkos::View<SizeType*> index, SizeType npart, BufferViewType& permuteTemp) {
         // using attrib_type = std::remove_pointer_t<Attrib>;
-        using type = typename AttribView::value_type; 
+        using type = typename AttribView::value_type;
 
-        Kokkos::View<type*> temp("tmpDataPermuteView", npart);
+        //Kokkos::View<type*> temp("tmpDataPermuteView", npart);
+        /*
+        Allocation on GPU is potentially expensive. Therefore, save a "temp" (it is used in all steps anyways, so would need to be
+        reallocated every timestep) as a member variable of the container. This way, the allocation is done only once and the already
+        allocated memory can be accessed here. If the particle number changes, the memory is reallocated.
+        Inspired by https://github.com/IPPL-framework/ippl/blob/performance-opt-eurohack/alpine/LandauDampingManager.h#401
+         */
+
+        // size of temp should be (overalloc factor * npart) to match Rview
+        // int overalloc = ippl::Comm->getDefaultOverallocation();
+        size_t val = sizeof(type)/sizeof(int);
+        if (permuteTemp.extent(0) < npart * val) {
+            permuteTemp = Kokkos::View<int*> ("particlePermuteTempView", npart * val); 
+        }
+        Kokkos::View<type*, Kokkos::MemoryTraits<Kokkos::Unmanaged>> temp((type*)permuteTemp.data(), npart);
+
         // Kokkos::View<type*> temp((type*)this->permuteTemp_m.data(), npart);
         Kokkos::parallel_for("Permute", npart, KOKKOS_LAMBDA(const SizeType& i) {
             temp(index(i)) = orig_attrib(i);
@@ -166,6 +181,16 @@ namespace ParticleBinning {
         Kokkos::parallel_for("Permute", npart, KOKKOS_LAMBDA(const SizeType& i) {
             orig_attrib(i) = temp(i);
         });
+        Kokkos::fence();
+    }
+
+    template <typename SizeType>
+    bool viewIsSorted (const auto view, SizeType npart) {
+        bool sorted = true;
+        Kokkos::parallel_reduce("CheckSorted", npart - 1, KOKKOS_LAMBDA(const SizeType& i, bool& update) {
+            if (view(i) > view(i + 1)) update = false;
+        }, Kokkos::LAnd<bool>(sorted));
+        return sorted;
     }
 
 

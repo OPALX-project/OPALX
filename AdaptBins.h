@@ -57,8 +57,9 @@ namespace ParticleBinning {
         using bin_view_type          = typename bin_type::view_type;
         // using bin_histo_type         = Kokkos::View<size_type*>;
         //using bin_host_histo_type    = Kokkos::View<size_type*, Kokkos::HostSpace>;
-        using bin_histo_dual_type     = typename Kokkos::DualView<size_type*>;
+        using bin_histo_dual_type    = typename Kokkos::DualView<size_type*>;
         // using binning_var_selector_type = typename BinningVariableSelector<size_type>;
+        using buffer_view_type       = Kokkos::View<int*>;
 
         /**
          * @brief Constructs an AdaptBins object with a specified maximum number of bins.
@@ -71,7 +72,8 @@ namespace ParticleBinning {
             , var_selector_m(var_selector)
             , maxBins_m(maxBins) {
 
-            currentBins_m = maxBins; // TODO for now...
+            currentBins_m   = maxBins; // TODO for now...
+            sortingBuffer_m = Kokkos::View<int*>("particlePermutationBuffer", bunch->getLocalNum());
 
             Inform msg("AdaptBins");
             msg << "AdaptBins initialized with maxBins = " << maxBins << endl;
@@ -235,7 +237,7 @@ namespace ParticleBinning {
         void initLocalPostSum() { 
             localBinHistoPostSum_m = bin_histo_dual_type("localBinHistoPostSum_m", getCurrentBinCount() + 1);
 
-            computeFixSum<size_type>(localBinHisto_m.view_device(), localBinHistoPostSum_m.view_device(), true);
+            computeFixSum<size_type>(localBinHisto_m.view_device(), localBinHistoPostSum_m.view_device());
             localBinHistoPostSum_m.modify_device(); 
             localBinHistoPostSum_m.sync_host(); 
 
@@ -382,6 +384,8 @@ namespace ParticleBinning {
         bin_histo_dual_type localBinHistoPostSum_m; ///< Local prefix sum view for bin counts.
         //bin_host_histo_type localBinHistoHost_m; // TODO: Use DualView instead!!!!
         bin_histo_dual_type globalBinHisto_m;         ///< Global histogram view (over ranks reduced local histograms).
+
+        buffer_view_type sortingBuffer_m;      ///< Buffer for permutating particles after sorting by bin index.
     };
 
 }

@@ -276,7 +276,7 @@ public:
         }
         
         // TODO: binning
-        this->bins_m->doFullRebin(10); // rebin with 10 bins
+        this->bins_m->doFullRebin(25); // rebin with 10 bins
         this->bins_m->sortContainerByBin(); // sort particles after creating bins for scatter() operation inside LeapFrogStep 
         runBinnedSolver();
 
