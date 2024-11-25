@@ -76,7 +76,7 @@ These do not change `scatter(...)` function calls, but allow the user to pass cu
 First you need to adapt `ParticleAttribBase.h` as follows:
 ```c++
 ...
-virtual void unpack(size_type, bool overwrite = false) = 0;
+virtual void unpack(size_type, bool overwrite = false) = 0; // Add overwrite parameter (with default to make it compatible with the rest)
 ...
 ```
 Next you change the implementation in `PartAttrib.hpp` as follows:
@@ -84,7 +84,7 @@ Next you change the implementation in `PartAttrib.hpp` as follows:
 template <typename T, class... Properties>
 void ParticleAttrib<T, Properties...>::unpack(size_type nrecvs, bool overwrite) {
     auto size          = dview_m.extent(0);
-    size_type required = overwrite ? nrecvs : (*(this->localNum_mp) + nrecvs);
+    size_type required = overwrite ? nrecvs : (*(this->localNum_mp) + nrecvs); // Change this (more memory efficient)!
     if (size < required) {
         int overalloc = Comm->getDefaultOverallocation();
         this->resize(required * overalloc);
