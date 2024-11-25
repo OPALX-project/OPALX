@@ -60,6 +60,7 @@ namespace ParticleBinning {
         using bin_histo_dual_type    = typename Kokkos::DualView<size_type*>;
         // using binning_var_selector_type = typename BinningVariableSelector<size_type>;
         using buffer_view_type       = Kokkos::View<int*>;
+        using hash_type              = ippl::detail::hash_type<Kokkos::DefaultExecutionSpace::memory_space>;
 
         /**
          * @brief Constructs an AdaptBins object with a specified maximum number of bins.
@@ -385,7 +386,7 @@ namespace ParticleBinning {
         //bin_host_histo_type localBinHistoHost_m; // TODO: Use DualView instead!!!!
         bin_histo_dual_type globalBinHisto_m;         ///< Global histogram view (over ranks reduced local histograms).
 
-        buffer_view_type sortingBuffer_m;      ///< Buffer for permutating particles after sorting by bin index.
+        // buffer_view_type sortingBuffer_m;      ///< Buffer for permutating particles after sorting by bin index.
     };
 
 }
