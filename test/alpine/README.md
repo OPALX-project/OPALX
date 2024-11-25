@@ -105,6 +105,11 @@ bunch_m->template forAllAttributes([&]<typename Attribute>(Attribute*& attribute
     attribute->unpack(localNumParticles, true);
 });
 ```
+Note that your index array needs to have the following type (technically, the execution space does not matter, but it needs to be the same as the attribute):
+```c++
+using hash_type = ippl::detail::hash_type<Kokkos::DefaultExecutionSpace::memory_space>;
+hash_type indices("indices", localNumParticles);
+```
 That way, all values in the corresponding view get put into the internal buffer (already exists in `ParticleAttrib.h`) according to the `hash`, which here is simply `indices`. Then, `unpack` puts all values from the buffer back into the main view, now in the new order. 
 
 Make sure that `indices` has length `localNumParticles` and that `overwrite = true`. Otherwise, you will probably get segmentation faults.
