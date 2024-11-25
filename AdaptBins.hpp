@@ -306,13 +306,17 @@ namespace ParticleBinning {
         Kokkos::View<size_type*> bin_offsets("bin_offsets", numBins + 1);
         Kokkos::deep_copy(bin_offsets, localBinHistoPostSum_m.view_device());
 
-        Kokkos::View<size_type*> indices("indices", localNumParticles);
+        hash_type indices("indices", localNumParticles);
+        /*
+        TODO: maybe change value_type of hash_type to size_type instead int of at some point???
+        */
+
         Kokkos::parallel_for("InPlaceSortIndices", localNumParticles, KOKKOS_LAMBDA(const size_type& i) {
             size_type target_bin = bins(i);
             size_type target_pos = Kokkos::atomic_fetch_add(&bin_offsets(target_bin), 1);
-            
+
             // Place the current particle directly into its target position
-            indices(i) = target_pos;
+            indices(target_pos) = i;
         });
         
         IpplTimings::stopTimer(argSortBins);
@@ -321,13 +325,13 @@ namespace ParticleBinning {
 
         IpplTimings::startTimer(permutationTimer);
         // For now hardcode the sorting of all individual attributes:
-        auto viewR = bunch_m->R.getView();
+        /*auto viewR = bunch_m->R.getView();
         auto viewP = bunch_m->P.getView(); 
         auto viewE = bunch_m->E.getView(); 
         permuteAttribute<size_type, buffer_view_type>(viewR, indices, localNumParticles, sortingBuffer_m);
         permuteAttribute<size_type, buffer_view_type>(viewP, indices, localNumParticles, sortingBuffer_m);
         permuteAttribute<size_type, buffer_view_type>(bins, indices, localNumParticles, sortingBuffer_m);
-        permuteAttribute<size_type, buffer_view_type>(viewE, indices, localNumParticles, sortingBuffer_m);
+        permuteAttribute<size_type, buffer_view_type>(viewE, indices, localNumParticles, sortingBuffer_m);*/
         //bunch_m->forAllAttributes([&]<typename Attribute>(Attribute*& attribute) {
         //    auto attrib_view = attribute->getView();
         //    permuteAttribute<size_type>(attrib_view, indices, localNumParticles);
@@ -336,18 +340,20 @@ namespace ParticleBinning {
             Is it even possible to call something on all particle attributes that involves accessing the elements?
             */
         //});
-        //bunch_m->template forAllAttributes([&](auto*& attribute) {
-        //    std::cout << "Attribute type: " << typeid(*attribute).name() << "\n";
+        bunch_m->template forAllAttributes([&]<typename Attribute>(Attribute*& attribute) {
+            attribute->pack(indices);
+            attribute->unpack(localNumParticles, true);
+            //std::cout << "Attribute type: " << typeid(*attribute).name() << "\n";
             //using AttributeType = std::decay_t<decltype(*attribute)>;
             //auto* derivedAttrib = dynamic_cast<ParticleAttrib<typename AttributeType::view_type::value_type>*>(attribute);
             //permuteAttribute<size_type>(derivedAttrib->getView(), indices, localNumParticles);
-        //});
+        });
         IpplTimings::stopTimer(permutationTimer);
         msg << "Permutation of particle attributes completed." << endl;
 
-        // TODO: remove, just for testing purposes
+        // TODO: remove, just for testing purposes (get new bin view, since the old memory address might be overwritten by this action...)
         IpplTimings::startTimer(isSortedCheck);
-        if (!viewIsSorted<bin_index_type>(bins, localNumParticles)) {
+        if (!viewIsSorted<bin_index_type>(bunch_m->bin.getView(), localNumParticles)) {
             msg << "Sorting failed." << endl;
             ippl::Comm->abort();
         } 
