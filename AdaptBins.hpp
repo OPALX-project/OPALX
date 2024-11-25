@@ -285,73 +285,41 @@ namespace ParticleBinning {
 
     template <typename BunchType, typename BinningSelector>
     void AdaptBins<BunchType, BinningSelector>::sortContainerByBin() {
-        Inform msg("AdaptBinsBunchSorting");
-
-        /**
+        /*
          * Assume, this function is called after the prefix sum is initialized.
          * Then the particles need to be changed (sorted) in the right order and finally
          * the range_policy can simply be retrieved from the prefix sum for the scatter().
          */
+        Inform msg("AdaptBinsBunchSorting");
 
-        /*
-        1. Use parallel scan to find "off sets" like this:
-            Kokkos::View<int*> bin_offsets("bin_offsets", num_bins + 1);
-            Kokkos::parallel_scan("ExclusiveScan", num_bins, KOKKOS_LAMBDA(const int i, int& partial_sum, bool final) {
-                if (final) {
-                    bin_offsets(i + 1) = partial_sum + bin_counts(i);
-                }
-                partial_sum += bin_counts(i);
-            });
+        static IpplTimings::TimerRef argSortBins      = IpplTimings::getTimer("argSortBins");
+        static IpplTimings::TimerRef permutationTimer = IpplTimings::getTimer("sortPermutationTimer");
+        static IpplTimings::TimerRef isSortedCheck    = IpplTimings::getTimer("isSortedCheck");
 
-        2. Use team based approach with pre allocated indices to write indices in parallel like this:
-            Kokkos::parallel_for("SortParticlesTeams", Kokkos::TeamPolicy<>(num_bins, Kokkos::AUTO), KOKKOS_LAMBDA(const Kokkos::TeamPolicy<>::member_type& team) {
-                int bin_idx = team.league_rank();
-                int start   = bin_offsets(bin_idx);
-                int end     = bin_offsets(bin_idx + 1);
-
-                Kokkos::parallel_for(Kokkos::TeamThreadRange(team, start, end), [&](int i) {
-                    int particle_idx = ... // Map from i to the corresponding particle index
-                    sorted_particles[i] = particles(particle_idx);
-                });
-            });
-
-        3. TODO: figure this out and it may be very efficient and highly parallelizable :)!
-        */
-
-        //auto postSumDevice = localBinHistoPostSum_m.view_device();
         bin_view_type bins          = bunch_m->bin.getView();
         size_type localNumParticles = bunch_m->getLocalNum();
         size_type numBins           = getCurrentBinCount();
         auto bin_counts             = localBinHisto_m.view_device();
 
-        static IpplTimings::TimerRef sortContainerByBins = IpplTimings::getTimer("sortContainerByBins");
-        IpplTimings::startTimer(sortContainerByBins);
-
+        IpplTimings::startTimer(argSortBins);
         // Get post sum (already calculated with histogram and saved inside local_bin_histo_post_sum_m), use copy to not modify the original
         Kokkos::View<size_type*> bin_offsets("bin_offsets", numBins + 1);
         Kokkos::deep_copy(bin_offsets, localBinHistoPostSum_m.view_device());
 
-        /*auto bin_offsets_host = Kokkos::create_mirror_view(bin_offsets);
-        for (size_type i = 0; i < numBins + 1; ++i) {
-            std::cout << "Bin offset[" << i << "] = " << bin_offsets_host(i) << std::endl;
-        }*/
-
-        // Get index array for sorting
         Kokkos::View<size_type*> indices("indices", localNumParticles);
-        //Kokkos::deep_copy(indices, -1);
-        //Kokkos::parallel_for("FillIndices", localNumParticles, KOKKOS_LAMBDA(const size_type& i) { indices(i) = i; });
-
-        // Perform the actual count sort
         Kokkos::parallel_for("InPlaceSortIndices", localNumParticles, KOKKOS_LAMBDA(const size_type& i) {
-            //size_type current_idx = indices(i);
             size_type target_bin = bins(i);
             size_type target_pos = Kokkos::atomic_fetch_add(&bin_offsets(target_bin), 1);
-
+            
             // Place the current particle directly into its target position
             indices(i) = target_pos;
         });
+        
+        IpplTimings::stopTimer(argSortBins);
+        msg << "Argsort on bin index completed." << endl;
         //Kokkos::fence();
 
+        IpplTimings::startTimer(permutationTimer);
         // For now hardcode the sorting of all individual attributes:
         auto viewR = bunch_m->R.getView();
         auto viewP = bunch_m->P.getView(); 
@@ -360,7 +328,6 @@ namespace ParticleBinning {
         permuteAttribute<size_type, buffer_view_type>(viewP, indices, localNumParticles, sortingBuffer_m);
         permuteAttribute<size_type, buffer_view_type>(bins, indices, localNumParticles, sortingBuffer_m);
         permuteAttribute<size_type, buffer_view_type>(viewE, indices, localNumParticles, sortingBuffer_m);
-
         //bunch_m->forAllAttributes([&]<typename Attribute>(Attribute*& attribute) {
         //    auto attrib_view = attribute->getView();
         //    permuteAttribute<size_type>(attrib_view, indices, localNumParticles);
@@ -375,30 +342,16 @@ namespace ParticleBinning {
             //auto* derivedAttrib = dynamic_cast<ParticleAttrib<typename AttributeType::view_type::value_type>*>(attribute);
             //permuteAttribute<size_type>(derivedAttrib->getView(), indices, localNumParticles);
         //});
-
-        IpplTimings::stopTimer(sortContainerByBins);
-        msg << "Particles sucessfully sorted by bin index." << endl;
+        IpplTimings::stopTimer(permutationTimer);
+        msg << "Permutation of particle attributes completed." << endl;
 
         // TODO: remove, just for testing purposes
-        static IpplTimings::TimerRef isSortedCheck = IpplTimings::getTimer("isSortedCheck");
         IpplTimings::startTimer(isSortedCheck);
         if (!viewIsSorted<bin_index_type>(bins, localNumParticles)) {
             msg << "Sorting failed." << endl;
             ippl::Comm->abort();
         } 
         IpplTimings::stopTimer(isSortedCheck);
-
-        // Some debug output to check if the sorting was successful
-        /*auto host_indices = Kokkos::create_mirror_view(indices);
-        auto host_bins = Kokkos::create_mirror_view(bins);
-        //Kokkos::fence();
-        for (size_type i = 1; i < bunch_m->getLocalNum(); ++i) {
-            //if (!(host_bins(host_indices(i-1)) <= host_bins(host_indices(i)))) {
-            if (!(host_bins(i-1) <= host_bins(i))) {
-                msg << "Sorting failed at index " << i << " with values " << host_bins(i-1) << " and " << host_bins(i) << endl;
-                ippl::Comm->abort();
-            }
-        }*/
     }
 
 }
