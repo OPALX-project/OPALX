@@ -184,8 +184,8 @@ namespace ParticleBinning {
         Kokkos::fence();
     }
 
-    template <typename SizeType>
-    bool viewIsSorted (const auto view, SizeType npart) {
+    template <typename ValueType, typename SizeType>
+    bool viewIsSorted (const Kokkos::View<ValueType*> view, SizeType npart) {
         bool sorted = true;
         Kokkos::parallel_reduce("CheckSorted", npart - 1, KOKKOS_LAMBDA(const SizeType& i, bool& update) {
             if (view(i) > view(i + 1)) update = false;

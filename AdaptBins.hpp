@@ -382,7 +382,7 @@ namespace ParticleBinning {
         // TODO: remove, just for testing purposes
         static IpplTimings::TimerRef isSortedCheck = IpplTimings::getTimer("isSortedCheck");
         IpplTimings::startTimer(isSortedCheck);
-        if (!viewIsSorted(bins, localNumParticles)) {
+        if (!viewIsSorted<bin_index_type>(bins, localNumParticles)) {
             msg << "Sorting failed." << endl;
             ippl::Comm->abort();
         } 
