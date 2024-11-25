@@ -154,43 +154,6 @@ namespace ParticleBinning {
     }
 
     /**
-     * @brief Permutes the elements of an attribute view based on a given index view. Potentially called after an argsort.
-     *
-     * @tparam SizeType The type used for the size and indexing.
-     * @tparam BufferViewType The type of the buffer view used for temporary storage.
-     * @tparam AttribView The type of the attribute view to be permuted.
-     * @param orig_attrib The original attribute view to be permuted.
-     * @param index The view containing the permutation indices.
-     * @param npart The number of particles (elements) to be permuted.
-     * @param permuteTemp A int-buffer view used for temporary storage during permutation. If the buffer is not large enough, it will be reallocated.
-     */
-    template <typename SizeType, typename BufferViewType, typename AttribView>
-    void permuteAttribute(AttribView orig_attrib, Kokkos::View<SizeType*> index, SizeType npart, BufferViewType& permuteTemp) {
-        /*
-        Allocation on GPU is potentially expensive. Therefore, save a "temp" (it is used in all steps anyways, so would need to be
-        reallocated every timestep) as a member variable of the container. This way, the allocation is done only once and the already
-        allocated memory can be accessed here. If the particle number changes, the memory is reallocated.
-        Inspired by https://github.com/IPPL-framework/ippl/blob/performance-opt-eurohack/alpine/LandauDampingManager.h#401
-         */
-        
-        using type = typename AttribView::value_type;
-        size_t val = sizeof(type)/sizeof(int);
-        if (permuteTemp.extent(0) < npart * val) {
-            permuteTemp = Kokkos::View<int*> ("particlePermuteTempView", npart * val); 
-        }
-        Kokkos::View<type*, Kokkos::MemoryTraits<Kokkos::Unmanaged>> temp((type*)permuteTemp.data(), npart);
-
-        // Assign elements to temporary view based on the permutation index, then copy back to original view
-        Kokkos::parallel_for("Permute", npart, KOKKOS_LAMBDA(const SizeType& i) {
-            temp(index(i)) = orig_attrib(i);
-        });
-        Kokkos::parallel_for("Permute", npart, KOKKOS_LAMBDA(const SizeType& i) {
-            orig_attrib(i) = temp(i);
-        });
-        // Kokkos::fence();
-    }
-
-    /**
      * @brief Checks if the elements in a Kokkos::View are sorted in non-decreasing order.
      *
      * @tparam ValueType The type of the elements in the Kokkos::View so be checked.
