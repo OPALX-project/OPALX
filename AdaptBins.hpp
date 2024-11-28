@@ -295,6 +295,7 @@ namespace ParticleBinning {
         static IpplTimings::TimerRef argSortBins      = IpplTimings::getTimer("argSortBins");
         static IpplTimings::TimerRef permutationTimer = IpplTimings::getTimer("sortPermutationTimer");
         static IpplTimings::TimerRef isSortedCheck    = IpplTimings::getTimer("isSortedCheck");
+        static IpplTimings::TimerRef binSortingAndScatterT = IpplTimings::getTimer("binSortingAndScatter");
 
         bin_view_type bins          = bunch_m->bin.getView();
         size_type localNumParticles = bunch_m->getLocalNum();
@@ -310,7 +311,7 @@ namespace ParticleBinning {
         /*
         TODO: maybe change value_type of hash_type to size_type instead int of at some point???
         */
-
+        IpplTimings::startTimer(binSortingAndScatterT);
         Kokkos::parallel_for("InPlaceSortIndices", localNumParticles, KOKKOS_LAMBDA(const size_type& i) {
             size_type target_bin = bins(i);
             size_type target_pos = Kokkos::atomic_fetch_add(&bin_offsets(target_bin), 1);
@@ -348,6 +349,7 @@ namespace ParticleBinning {
             //auto* derivedAttrib = dynamic_cast<ParticleAttrib<typename AttributeType::view_type::value_type>*>(attribute);
             //permuteAttribute<size_type>(derivedAttrib->getView(), indices, localNumParticles);
         });
+        IpplTimings::stopTimer(binSortingAndScatterT);
         IpplTimings::stopTimer(permutationTimer);
         msg << "Permutation of particle attributes completed." << endl;
 

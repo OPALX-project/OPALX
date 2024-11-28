@@ -276,7 +276,7 @@ public:
         }
         
         // TODO: binning
-        this->bins_m->doFullRebin(25); // rebin with 10 bins
+        this->bins_m->doFullRebin(10); // rebin with 10 bins
         this->bins_m->sortContainerByBin(); // sort particles after creating bins for scatter() operation inside LeapFrogStep 
         runBinnedSolver();
 
@@ -298,6 +298,7 @@ public:
          */
         Inform msg("runBinnedSolver");
         static IpplTimings::TimerRef SolveTimer = IpplTimings::getTimer("solve");
+        static IpplTimings::TimerRef binSortingAndScatterT = IpplTimings::getTimer("binSortingAndScatter");
         using binIndex_t       = typename ParticleContainer_t::bin_index_type;
         using binIndexView_t   = typename ippl::ParticleAttrib<binIndex_t>::view_type;
 
@@ -317,7 +318,9 @@ public:
         IpplTimings::startTimer(SolveTimer);
         for (binIndex_t i = 0; i < this->bins_m->getCurrentBinCount(); ++i) {
             // Scatter only for current bin index
+            IpplTimings::startTimer(binSortingAndScatterT);
             this->par2gridPerBin(i);
+            IpplTimings::stopTimer(binSortingAndScatterT);
 
             // Run solver: obtains phi_m only for what was scattered in the previous step
             this->fsolver_m->runSolver();
