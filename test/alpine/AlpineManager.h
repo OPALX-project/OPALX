@@ -198,7 +198,7 @@ public:
         Vector_t<double, Dim> hr                 = hr_m;
         binIndexView_t bin                       = this->pcontainer_m->bin.getView();
         size_type localParticles                 = this->pcontainer_m->getLocalNum();
-        double Q                                 = Q_m * this->bins_m->getNPartInBin(binIndex)/localParticles; // Q_m;
+        double Q                                 = Q_m * this->bins_m->getNPartInBin(binIndex, true)/totalP_m; // Q_m;
 
         // TODO: binning set charges to 0 for particles not in the bin
         //Kokkos::parallel_for("setChargesTo0", localParticles, KOKKOS_LAMBDA(const size_t i) {

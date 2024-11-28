@@ -164,11 +164,11 @@ namespace ParticleBinning {
      * 
      * @note This function does not leverage short circuiting.
      */
-    template <typename ValueType, typename SizeType>
-    bool viewIsSorted (const Kokkos::View<ValueType*> view, SizeType npart) {
+    template <typename ValueType, typename SizeType, typename HashType>
+    bool viewIsSorted (const Kokkos::View<ValueType*> view, HashType indices, SizeType npart) {
         bool sorted = true;
         Kokkos::parallel_reduce("CheckSorted", npart - 1, KOKKOS_LAMBDA(const SizeType& i, bool& update) {
-            if (view(i) > view(i + 1)) update = false;
+            if (view(indices(i)) > view(indices(i + 1))) update = false;
         }, Kokkos::LAnd<bool>(sorted));
         return sorted;
     }

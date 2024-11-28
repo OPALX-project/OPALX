@@ -2,9 +2,9 @@
 #SBATCH --job-name=adapt_bins_test
 #SBATCH --error=output/bins_%j.err
 #SBATCH --output=output/bins_%j.out
-#SBATCH --time=00:05:00
-#SBATCH --nodes=1                   # Request node
-#SBATCH --ntasks-per-node=1         # cores per node
+#SBATCH --time=00:20:00
+#SBATCH --nodes=4                   # Request node
+#SBATCH --ntasks-per-node=4         # cores per node
 ##SBATCH --mem-per-cpu=4G
 #SBATCH --cpus-per-task=4           # "threads" per task (for e.g. multithreading in Kokkod:parallel_for?)
 #SBATCH --cluster=merlin6 # gmerlin6
@@ -41,7 +41,7 @@ echo "Finished compiling. Now running the program..."
 # srun ./Binning_pic3d 8 8 8 10000000 1 --info 10
 
 cd /data/user/liemen_a/build_ippl_openmp/test/binning/test/alpine/
-srun ./BinningLandauDamping 32 32 32 1000000 5 FFT 0.01 LeapFrog --overallocate 2.0 --info 10
+srun ./BinningLandauDamping 256 256 256 200000000 5 FFT 0.01 LeapFrog --overallocate 2.0 --info 10
 
 # srun --cpus-per-task=1 ./Binning_pic3d 8 8 8 1000000 1 --info 10
 

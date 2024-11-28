@@ -271,8 +271,8 @@ namespace ParticleBinning {
                 v2                      += v_comp.dot(v_comp) * (binIndex(i) == currentBin); 
             }, Kokkos::Sum<Vector<T, Dim>>(gamma_bin2));
         gamma_bin2 /= getNPartInBin(currentBin); 
-        gamma_bin2  = 1.0 / sqrt(1.0 - gamma_bin2 / c2);
-        std::cout << "Gamma factor calculated = " << gamma_bin2 << std::endl;
+        gamma_bin2  = -1.0 / sqrt(1.0 - gamma_bin2 / c2); // negative sign, since we want the inverse transformation
+        // std::cout << "Gamma factor calculated = " << gamma_bin2 << std::endl;
 
         // Next apply the transformation --> do it manually, since fc->E*gamma does not exist in IPPL...
         ippl::parallel_for("TransformFieldWithVelocity", field.getFieldRangePolicy(), 
@@ -293,7 +293,7 @@ namespace ParticleBinning {
         Inform msg("AdaptBinsBunchSorting");
 
         static IpplTimings::TimerRef argSortBins      = IpplTimings::getTimer("argSortBins");
-        static IpplTimings::TimerRef permutationTimer = IpplTimings::getTimer("sortPermutationTimer");
+        //static IpplTimings::TimerRef permutationTimer = IpplTimings::getTimer("sortPermutationTimer");
         static IpplTimings::TimerRef isSortedCheck    = IpplTimings::getTimer("isSortedCheck");
         static IpplTimings::TimerRef binSortingAndScatterT = IpplTimings::getTimer("binSortingAndScatter");
 
@@ -341,12 +341,12 @@ namespace ParticleBinning {
         //msg << "Permutation of particle attributes completed." << endl;
 
         // TODO: remove, just for testing purposes (get new bin view, since the old memory address might be overwritten by this action...)
-        /*IpplTimings::startTimer(isSortedCheck);
-        if (!viewIsSorted<bin_index_type>(bunch_m->bin.getView(), localNumParticles)) {
+        IpplTimings::startTimer(isSortedCheck);
+        if (!viewIsSorted<bin_index_type>(bunch_m->bin.getView(), indices, localNumParticles)) {
             msg << "Sorting failed." << endl;
             ippl::Comm->abort();
         } 
-        IpplTimings::stopTimer(isSortedCheck);*/
+        IpplTimings::stopTimer(isSortedCheck);
     }
 
 }
