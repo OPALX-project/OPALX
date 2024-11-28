@@ -342,7 +342,12 @@ namespace ParticleBinning {
             */
         //});
         bunch_m->template forAllAttributes([&]<typename Attribute>(Attribute*& attribute) {
-            attribute->pack(indices);
+            using memory_space    = typename Attribute::memory_space;
+
+            // Ensure indices are in the correct memory space --> copies data ONLY when different memory spaces, so should be efficient
+            auto indices_device = Kokkos::create_mirror_view_and_copy(memory_space{}, indices);
+
+            attribute->pack(indices_device);
             attribute->unpack(localNumParticles, true);
             //std::cout << "Attribute type: " << typeid(*attribute).name() << "\n";
             //using AttributeType = std::decay_t<decltype(*attribute)>;
