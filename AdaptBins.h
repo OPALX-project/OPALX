@@ -97,6 +97,8 @@ namespace ParticleBinning {
             binWidth_m    = (xMax_m - xMin_m) / currentBins_m; // assuming particles did not change!
         }
 
+        hash_type getHashArray() { return sortedIndexArr_m; }
+
         /**
          * @brief Calculates the bin index for a given position value.
          * 
@@ -385,7 +387,7 @@ namespace ParticleBinning {
         bin_histo_dual_type localBinHistoPostSum_m; ///< Local prefix sum view for bin counts.
         //bin_host_histo_type localBinHistoHost_m; // TODO: Use DualView instead!!!!
         bin_histo_dual_type globalBinHisto_m;         ///< Global histogram view (over ranks reduced local histograms).
-
+        hash_type sortedIndexArr_m;                  ///< Hash table for sorting particles by bin index.
         // buffer_view_type sortingBuffer_m;      ///< Buffer for permutating particles after sorting by bin index.
     };
 

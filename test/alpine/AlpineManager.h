@@ -204,8 +204,11 @@ public:
         //Kokkos::parallel_for("setChargesTo0", localParticles, KOKKOS_LAMBDA(const size_t i) {
         //    viewQ(i) *= (bin(i) == binIndex);
         //});
-
-        scatter(*q, *rho, *R, this->bins_m->getBinIterationPolicy(binIndex));
+        
+        static IpplTimings::TimerRef binSortingAndScatterT = IpplTimings::getTimer("binSortingAndScatter");
+        IpplTimings::startTimer(binSortingAndScatterT);
+        scatter(*q, *rho, *R, this->bins_m->getBinIterationPolicy(binIndex), this->bins_m->getHashArray());
+        IpplTimings::stopTimer(binSortingAndScatterT);
         double relError = std::fabs((Q-(*rho).sum())/Q);
 
         //this->pcontainer_m->q = Q_m / totalP_m;

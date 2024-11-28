@@ -307,7 +307,9 @@ namespace ParticleBinning {
         Kokkos::View<size_type*> bin_offsets("bin_offsets", numBins + 1);
         Kokkos::deep_copy(bin_offsets, localBinHistoPostSum_m.view_device());
 
-        hash_type indices("indices", localNumParticles);
+        sortedIndexArr_m  = hash_type("indices", localNumParticles);
+        hash_type indices = sortedIndexArr_m;
+        
         /*
         TODO: maybe change value_type of hash_type to size_type instead int of at some point???
         */
@@ -324,23 +326,7 @@ namespace ParticleBinning {
         msg << "Argsort on bin index completed." << endl;
         //Kokkos::fence();
 
-        IpplTimings::startTimer(permutationTimer);
-        // For now hardcode the sorting of all individual attributes:
-        /*auto viewR = bunch_m->R.getView();
-        auto viewP = bunch_m->P.getView(); 
-        auto viewE = bunch_m->E.getView(); 
-        permuteAttribute<size_type, buffer_view_type>(viewR, indices, localNumParticles, sortingBuffer_m);
-        permuteAttribute<size_type, buffer_view_type>(viewP, indices, localNumParticles, sortingBuffer_m);
-        permuteAttribute<size_type, buffer_view_type>(bins, indices, localNumParticles, sortingBuffer_m);
-        permuteAttribute<size_type, buffer_view_type>(viewE, indices, localNumParticles, sortingBuffer_m);*/
-        //bunch_m->forAllAttributes([&]<typename Attribute>(Attribute*& attribute) {
-        //    auto attrib_view = attribute->getView();
-        //    permuteAttribute<size_type>(attrib_view, indices, localNumParticles);
-            /*
-            TODO: does not work. Need to figure out how to get the attribute type and then call the permuteAttribute function with the correct type.
-            Is it even possible to call something on all particle attributes that involves accessing the elements?
-            */
-        //});
+        /*IpplTimings::startTimer(permutationTimer);
         bunch_m->template forAllAttributes([&]<typename Attribute>(Attribute*& attribute) {
             using memory_space    = typename Attribute::memory_space;
 
@@ -349,22 +335,18 @@ namespace ParticleBinning {
 
             attribute->pack(indices_device);
             attribute->unpack(localNumParticles, true);
-            //std::cout << "Attribute type: " << typeid(*attribute).name() << "\n";
-            //using AttributeType = std::decay_t<decltype(*attribute)>;
-            //auto* derivedAttrib = dynamic_cast<ParticleAttrib<typename AttributeType::view_type::value_type>*>(attribute);
-            //permuteAttribute<size_type>(derivedAttrib->getView(), indices, localNumParticles);
         });
+        IpplTimings::stopTimer(permutationTimer);*/
         IpplTimings::stopTimer(binSortingAndScatterT);
-        IpplTimings::stopTimer(permutationTimer);
-        msg << "Permutation of particle attributes completed." << endl;
+        //msg << "Permutation of particle attributes completed." << endl;
 
         // TODO: remove, just for testing purposes (get new bin view, since the old memory address might be overwritten by this action...)
-        IpplTimings::startTimer(isSortedCheck);
+        /*IpplTimings::startTimer(isSortedCheck);
         if (!viewIsSorted<bin_index_type>(bunch_m->bin.getView(), localNumParticles)) {
             msg << "Sorting failed." << endl;
             ippl::Comm->abort();
         } 
-        IpplTimings::stopTimer(isSortedCheck);
+        IpplTimings::stopTimer(isSortedCheck);*/
     }
 
 }
