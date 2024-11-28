@@ -51,7 +51,7 @@ public:
     using BinningSelector_t = typename ParticleBinning::CoordinateSelector<ParticleContainer_t>;
     using AdaptBins_t       = typename ParticleBinning::AdaptBins<ParticleContainer_t, BinningSelector_t>;
 
-    //VField_t<double, 3> E_tmp; // temporary field for adding up the lorentz transformed E field
+    VField_t<double, 3> E_tmp; // temporary field for adding up the lorentz transformed E field
 
     LandauDampingManager(size_type totalP_, int nt_, Vector_t<int, Dim> &nr_,
                        double lbt_, std::string& solver_, std::string& stepMethod_)
@@ -114,7 +114,7 @@ public:
         // TODO: Binning - After initializing the particles, create the limits
         //this->bins_m->initLimits();
         this->bins_m->doFullRebin(10); // test with 10 bins
-        //this->E_tmp.initialize(fc->getMesh(), fc->getFL()); // initialize temporary field 
+        this->E_tmp.initialize(this->fcontainer_m->getMesh(), this->fcontainer_m->getFL()); // initialize temporary field 
 
 
         static IpplTimings::TimerRef DummySolveTimer  = IpplTimings::getTimer("solveWarmup");
@@ -283,7 +283,7 @@ public:
         this->bins_m->doFullRebin(10); // rebin with 10 bins
         this->bins_m->sortContainerByBin(); // sort particles after creating bins for scatter() operation inside LeapFrogStep 
 
-        //E_tmp = 0.0; // reset temporary field
+        E_tmp = 0.0; // reset temporary field
         IpplTimings::startTimer(runBinnedSolverT);
         runBinnedSolver();
         IpplTimings::stopTimer(runBinnedSolverT);
@@ -317,24 +317,14 @@ public:
         view_type viewP                         = pc->P.getView();
         binIndexView_t bin                      = pc->bin.getView();
 
-        // Define temp phi potential
-        // VField_t<double, 3> E_tmp;
-        //E_tmp.initialize(fc->getMesh(), fc->getFL()); 
-
-        // Iterate over bins
-        //IpplTimings::startTimer(SolveTimer);
         for (binIndex_t i = 0; i < this->bins_m->getCurrentBinCount(); ++i) {
             // Scatter only for current bin index
             this->par2gridPerBin(i);
 
             // Run solver: obtains phi_m only for what was scattered in the previous step
             this->fsolver_m->runSolver();
-            //E_tmp = E_tmp + this->bins_m->LTrans(fc->getE(), i);
-
-            //this->bins_m->LTrans(fc->getE(), i);
-            gather(pc->E, this->bins_m->LTrans(fc->getE(), i), this->pcontainer_m->R, true);
+            E_tmp = E_tmp + this->bins_m->LTrans(fc->getE(), i);
         }
-        //IpplTimings::stopTimer(SolveTimer);
 
         // TODO: remove. A little debug output:
         /*{
@@ -345,7 +335,12 @@ public:
         }*/
 
         // gather E field from locally built up E_m
-        // gather(pc->E, E_tmp, this->pcontainer_m->R); // fc->getE()
+        gather(pc->E, E_tmp, this->pcontainer_m->R); 
+        /*
+        Alternative: don't use a temporary field, but directly gather the field for every particles inside the loop.
+        Problem: gather routine is way more expensive than simple additions on a temporary field instance. 
+        However: if the field is big and memory is crucial, one might consider this approach and remove E_tmp.
+        */
         msg << "Field gathered" << endl;
     }
 

@@ -159,6 +159,7 @@ namespace ParticleBinning {
      * @tparam ValueType The type of the elements in the Kokkos::View so be checked.
      * @tparam SizeType The type used for indexing and size.
      * @param view The Kokkos::View containing the elements to be checked.
+     * @param indices Argsort of view.
      * @param npart The number of elements in the view to be checked.
      * @return true if the elements are sorted in non-decreasing order, false otherwise.
      * 

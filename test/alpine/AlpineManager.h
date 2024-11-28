@@ -200,18 +200,11 @@ public:
         size_type localParticles                 = this->pcontainer_m->getLocalNum();
         double Q                                 = Q_m * this->bins_m->getNPartInBin(binIndex, true)/totalP_m; // Q_m;
 
-        // TODO: binning set charges to 0 for particles not in the bin
-        //Kokkos::parallel_for("setChargesTo0", localParticles, KOKKOS_LAMBDA(const size_t i) {
-        //    viewQ(i) *= (bin(i) == binIndex);
-        //});
-        
         static IpplTimings::TimerRef binSortingAndScatterT = IpplTimings::getTimer("binSortingAndScatter");
         IpplTimings::startTimer(binSortingAndScatterT);
         scatter(*q, *rho, *R, this->bins_m->getBinIterationPolicy(binIndex), this->bins_m->getHashArray());
         IpplTimings::stopTimer(binSortingAndScatterT);
         double relError = std::fabs((Q-(*rho).sum())/Q);
-
-        //this->pcontainer_m->q = Q_m / totalP_m;
         
         /*
          * Didn't change anything after here...
