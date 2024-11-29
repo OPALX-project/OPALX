@@ -13,14 +13,6 @@ using Distribution_t = Distribution;
 using GeneratorPool = typename Kokkos::Random_XorShift64_Pool<>;
 using Dist_t = ippl::random::NormalDistribution<double, 3>;
 
-struct VectorComparator {
-    KOKKOS_INLINE_FUNCTION
-    bool operator()(const ippl::Vector<double, 1>& a, const ippl::Vector<double, 1>& b) const {
-        // Define comparison based on specific needs, e.g., comparing the first element
-        return a[0] > b[0];  // Customize comparison logic as needed
-    }
-};
-
 class FlatTop : public SamplingBase {
 public:
     FlatTop(std::shared_ptr<ParticleContainer_t> &pc, std::shared_ptr<FieldContainer_t> &fc, std::shared_ptr<Distribution_t> &opalDist)
@@ -187,12 +179,12 @@ public:
             keys(i) = tview(i)[0];
         });
 
-        // Sort the keys
+        // Sort the keys, by default kokkos::sort sorts array in an ascending order
         Kokkos::sort(keys);
 
-        // Reorder tview based on sorted keys
+        // Reorder tview based on sorted keys in a descending order
         Kokkos::parallel_for("Reorder", Kokkos::RangePolicy<>(0, nlocal), KOKKOS_LAMBDA(const int i) {
-            tview(i)[0] = keys(i);
+            tview(i)[0] = keys(nlocal-i-1);
         });
 
         // sanity check
@@ -201,7 +193,7 @@ public:
             "CheckSorted",
             tview.extent(0) - 1, // Check up to the second-to-last element
             KOKKOS_LAMBDA(const size_type i, bool &local_sorted) {
-                if (tview(i)[0] > tview(i + 1)[0]) {
+                if (tview(i)[0] < tview(i + 1)[0]) {
                     local_sorted = false;
                 }
             },
@@ -212,19 +204,6 @@ public:
         else
             *gmsg << "* Sorting of particles w.r.t emission time FAILED the sanity check!\n";
 
-/*
-// this doesn't work (wrong solution) on GPU, data race
-std::cout << "sort\n";
-        Kokkos::parallel_for("custom_sort", Kokkos::RangePolicy<>(0, nlocal - 1), KOKKOS_LAMBDA(const int i) {
-            for (size_type j = i + 1; j < nlocal; ++j) {
-                if (VectorComparator()(tview(j), tview(i))) {
-                  auto temp = tview(i);
-                  tview(i) = tview(j);
-                  tview(j) = temp;
-                }
-            }
-        });
-*/
     }
 
     void setEmissionTime() {
@@ -284,23 +263,6 @@ std::cout << "sort\n";
         }
 
         file.close();
-
-/*
-        // There is a problem with writing to the same file. 
-        // The barrier does not seem to really work.
-        // Sequential writing: ranks write one after another
-        for (int currentRank = 0; currentRank < numRanks; ++currentRank) {
-            if (rank == currentRank) {
-            // Writing only for the current rank
-                 for (size_t i = 0; i < nlocal; ++i) {
-                     file << tView(i)[0] << " \n";
-                 }
-            }
-            // Synchronize with other ranks
-            MPI_Barrier(MPI_COMM_WORLD);
-        }
-        file.close();
-*/
     }
 };
 #endif
