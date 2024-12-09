@@ -2,9 +2,9 @@
 #SBATCH --job-name=adapt_bins_test
 #SBATCH --error=output/bins_%j.err
 #SBATCH --output=output/bins_%j.out
-#SBATCH --time=00:20:00
-#SBATCH --nodes=4                   # Request node
-#SBATCH --ntasks-per-node=4         # cores per node
+#SBATCH --time=00:10:00
+#SBATCH --nodes=1                   # Request node
+#SBATCH --ntasks-per-node=2         # cores per node
 ##SBATCH --mem-per-cpu=4G
 #SBATCH --cpus-per-task=4           # "threads" per task (for e.g. multithreading in Kokkod:parallel_for?)
 #SBATCH --cluster=merlin6 # gmerlin6
@@ -34,14 +34,14 @@ echo "Number of threads: $(nproc)"
 
 cd /data/user/liemen_a/build_ippl_openmp/
 # cmake ../ippl/ -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=20 -DIPPL_PLATFORMS=OPENMP -DENABLE_TESTS=ON -DENABLE_SOLVERS=ON -DENABLE_FFT=ON -DONLY_BINNING=ON
-make -j $(nproc)
+# make -j $(nproc)
 echo "Finished compiling. Now running the program..."
 
 # cd /data/user/liemen_a/build_ippl_openmp/test/binning/test/pic3d/
 # srun ./Binning_pic3d 8 8 8 10000000 1 --info 10
 
 cd /data/user/liemen_a/build_ippl_openmp/test/binning/test/alpine/
-srun ./BinningLandauDamping 256 256 256 200000000 5 FFT 0.01 LeapFrog --overallocate 2.0 --info 10
+srun ./BinningLandauDamping 32 32 32 1000000 5 FFT 0.01 LeapFrog --overallocate 2.0 --info 10
 
 # srun --cpus-per-task=1 ./Binning_pic3d 8 8 8 1000000 1 --info 10
 

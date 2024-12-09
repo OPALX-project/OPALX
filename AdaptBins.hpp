@@ -41,16 +41,17 @@ namespace ParticleBinning {
     void AdaptBins<BunchType, BinningSelector>::instantiateHistogram(bool setToZero) {
         // Reinitialize the histogram view with the new size (numBins)
         const bin_index_type numBins = getCurrentBinCount();
-        localBinHisto_m = bin_histo_dual_type("localBinHisto_m", numBins);
+        localBinHisto_m = d_histo_type("localBinHisto_m", numBins, xMax_m - xMin_m);
         
         // Optionally, initialize the histogram to zero
         if (setToZero) {
             auto device_histo = localBinHisto_m.view_device();
-            Kokkos::parallel_for("initHistogram", numBins, KOKKOS_LAMBDA(const bin_index_type i) {
+            Kokkos::deep_copy(device_histo, 0);
+            /*Kokkos::parallel_for("initHistogram", numBins, KOKKOS_LAMBDA(const bin_index_type i) {
                 device_histo(i) = 0;
-            });
+            });*/
             localBinHisto_m.modify_device();
-            localBinHisto_m.sync_host();
+            localBinHisto_m.sync();
         }
     }
 
@@ -212,7 +213,7 @@ namespace ParticleBinning {
 
         msg << "Reducer ran without error." << endl;
         
-        localBinHisto_m.sync_host(); // since all reductions happen on device --> marked as modified 
+        localBinHisto_m.sync(); // since all reductions happen on device --> marked as modified 
     }
 
     template <typename BunchType, typename BinningSelector>
@@ -224,7 +225,7 @@ namespace ParticleBinning {
         
         // Create a view to hold the global histogram on all ranks
         //bin_host_histo_type globalBinHisto("globalBinHistoHost", numBins);
-        globalBinHisto_m = bin_histo_dual_type("globalBinHisto_m", numBins);
+        globalBinHisto_m = d_histo_type("globalBinHisto_m", numBins, xMax_m - xMin_m);
 
         
         // Need host mirror, otherwise the data is not available when the histogram is created using CUDA
@@ -248,8 +249,9 @@ namespace ParticleBinning {
 
         // The global histogram is currently on host, but can be saved on device
         globalBinHisto_m.modify_host();
-        globalBinHisto_m.sync_device(); 
-
+        globalBinHisto_m.sync(); 
+        //globalBinHisto_m.init(); // syncs and inits the initial postSum/widths array
+ 
         msg << "Global histogram created." << endl;
     }
 
@@ -305,7 +307,8 @@ namespace ParticleBinning {
         IpplTimings::startTimer(argSortBins);
         // Get post sum (already calculated with histogram and saved inside local_bin_histo_post_sum_m), use copy to not modify the original
         Kokkos::View<size_type*> bin_offsets("bin_offsets", numBins + 1);
-        Kokkos::deep_copy(bin_offsets, localBinHistoPostSum_m.view_device());
+        // typename d_histo_type::dview_type postSumView = localBinHisto_m.view_device(HistoTypeIdentifier::PostSum);
+        Kokkos::deep_copy(bin_offsets, localBinHisto_m.view_device(HistoTypeIdentifier::PostSum));
 
         sortedIndexArr_m  = hash_type("indices", localNumParticles);
         hash_type indices = sortedIndexArr_m;
