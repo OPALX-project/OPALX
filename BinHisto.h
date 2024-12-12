@@ -6,10 +6,24 @@
 
 namespace ParticleBinning {
 
+    /**
+     * \enum HistoTypeIdentifier
+     * \brief Enum to identify the type of histogram.
+     * \details Provides identifiers for different histogram-related views.
+     *
+     * \var HistoTypeIdentifier::Histogram
+     * Indicates the main histogram view, storing the particle counts in bins.
+     *
+     * \var HistoTypeIdentifier::BinWidth
+     * Indicates the view storing the widths of each bin.
+     *
+     * \var HistoTypeIdentifier::PostSum
+     * Indicates the view storing the cumulative sums for post-processing.
+     */
     enum class HistoTypeIdentifier {
-        Histogram,
-        BinWidth,
-        PostSum
+        Histogram, ///< Main histogram view.
+        BinWidth,  ///< Bin width view.
+        PostSum    ///< Post-sum view.
     };
 
 
@@ -28,8 +42,18 @@ namespace ParticleBinning {
                                               typename view_type::t_host, 
                                               view_type>;
 
+        /**
+         * @brief Default constructor for the Histogram class.
+         */
         Histogram() = default;
 
+        /**
+         * @brief Constructor for the Histogram class with a given name, number of bins, and total bin width.
+         *
+         * @param debug_name The name of the histogram for debugging purposes. Is passed as a name for the Kokkos::...View.
+         * @param numBins The number of bins in the histogram. Might change once the adaptive algorithm is used.
+         * @param totalBinWidth The total width of the value range covered by the particles, so $x_\mathrm{max} - x_\mathrm{min}$.
+         */
         Histogram(std::string debug_name, bin_index_type numBins, value_type totalBinWidth)
             : debug_name_m(debug_name)
             , numBins_m(numBins)
@@ -37,48 +61,50 @@ namespace ParticleBinning {
             instantiateHistograms();
         }
 
-        // Destructor
-        ~Histogram() = default; /*{
-            // So destruction does not cause race conditions...?!
-            std::cout << "Histogram destructor called." << std::endl;
-            //Kokkos::fence();
-            //ippl::Comm->barrier();
-        }*/
+        /**
+         * @brief Default destructor for the Histogram class.
+         */
+        ~Histogram() = default; 
 
-        // Copy constructor 
+        /**
+         * @brief Copy constructor for copying the fields from another Histogram object.
+         * 
+         * @see copyFields() for more information on how the fields are copied (Kokkos shallow copy).
+         */
         Histogram(const Histogram& other) {
             copyFields(other);
         }
 
+        /**
+         * @brief Assignment operator for copying the fields from another Histogram object.
+         * 
+         * @see copyFields() for more information on how the fields are copied (Kokkos shallow copy).
+         */
         Histogram& operator=(const Histogram& other) {
             if (this == &other) return *this;
             copyFields(other);
             return *this;
         }
-
-        // copy fields
-        void copyFields(const Histogram& other) {
-            debug_name_m    = other.debug_name_m;
-            numBins_m       = other.numBins_m;
-            totalBinWidth_m = other.totalBinWidth_m;
-
-            histogram_m = other.histogram_m;
-            binWidths_m = other.binWidths_m;
-            postSum_m   = other.postSum_m;
-        }
-        
         
         /*
         Some functions to access only single elements of the histogram.
         */
 
+        /**
+         * @brief Retrieves the number of particles in a specified bin.
+         *
+         * This function returns the number of particles in the bin specified by the given index.
+         * It assumes that the DualView has been properly synchronized and initialized. If the function is called
+         * frequently, it might create some overhead due to the .view_host() call. However, since
+         * it is only called on the host (a maximum of nBins times per iteration), the overhead
+         * should be manageable. For better efficiency, one can avoid the Kokkos::View "copying-action"
+         * by using dualView.h_view(binIndex).
+         *
+         * @tparam UseDualView A boolean template parameter indicating whether DualView is used.
+         * @param binIndex The index of the bin for which the number of particles is to be retrieved.
+         * @return The number of particles in the specified bin.
+         */
         size_type getNPartInBin(bin_index_type binIndex) {
-            /**
-             * Assume DualView was properly synchronized.
-             * Might create some overhead from .view_host() call if called often.
-             * However, it is only called on host (max nBins times per iteration), so should be fine. You can make it
-             * more efficient by avoiding the Kokkos:View "copying-action" with e.g. dualView.h_view(binIndex).
-             */
             if constexpr (UseDualView) {
                 histogram_m.hview(binIndex);
             } else {
@@ -94,14 +120,20 @@ namespace ParticleBinning {
         Some function for initialization.
         */
         
-        // Called after initializing with constant bins width from inside (e.g.) AdaptBins
+        /**
+         * @brief Instantiates the histogram, bin widths, and post-sum views (Possibly DualView).
+         */
         void instantiateHistograms() {
             histogram_m = view_type("histogram", numBins_m);
             binWidths_m = view_type("binWidths", numBins_m - 1);
             postSum_m   = view_type("postSum", numBins_m + 1);
         }
 
-        // Possibly updates the other histograms --> meant for when the histogram is built during the first call!
+        /**
+         * @brief Synchronizes the histogram view and initializes the bin widths and post-sum.
+         *
+         * @note The bin widths are assumed to be constant. Should only be called the first time the histogram is created.
+         */
         void init() { // const value_type constBinWidth
             static IpplTimings::TimerRef histoInitTimer = IpplTimings::getTimer("syncInitHistoTools");
 
@@ -113,10 +145,14 @@ namespace ParticleBinning {
             IpplTimings::stopTimer(histoInitTimer);
         }
 
+        /**
+         * @brief Initializes the bin widths with a constant value.
+         *
+         * @param constBinWidth The constant value to set for all bin widths.
+         * 
+         * @note Should not be called again after merging bins, since the bin widths will all be different.
+         */
         void initConstBinWidths(const value_type constBinWidth) {
-            //dview_type binWidthsView = getDeviceView(binWidths_m);
-            //constexpr auto binWidthsView = UseDualView ? binWidths_m.view_device() : binWidths_m;
-
             Kokkos::deep_copy(getDeviceView(binWidths_m), constBinWidth);
             if constexpr (UseDualView) {
                 binWidths_m.modify_device();
@@ -124,6 +160,14 @@ namespace ParticleBinning {
             }
         }
 
+        /**
+         * @brief Initializes and computes the post-sum for the histogram.
+         *
+         * This function initializes the post-sum by computing the fixed sum on the device view of the post-sum member.
+         * If the UseDualView constant is true, it modifies the device view and synchronizes it with the host.
+         *
+         * @tparam size_type The type used for the size of the elements.
+         */
         void initPostSum() {
             //auto postSumView = constexpr UseDualView ? postSum_m.view_device() : postSum_m;
             // dview_type postSumView = getDeviceView(postSum_m);
@@ -134,6 +178,16 @@ namespace ParticleBinning {
             }
         }
 
+        /**
+         * @brief Returns a Kokkos::RangePolicy for iterating over the elements in a specified bin.
+         *
+         * This function generates a range policy for iterating over the elements within a given bin index.
+         * If no DualView is used, it needs to copy some values to host, which might cause overhead.
+         *
+         * @tparam bin_index_type The type of the bin index.
+         * @param binIndex The index of the bin for which the iteration policy is to be generated.
+         * @return Kokkos::RangePolicy<> The range policy for iterating over the elements in the specified bin.
+         */
         Kokkos::RangePolicy<> getBinIterationPolicy(const bin_index_type& binIndex) {
             if constexpr (UseDualView) {
                 // localPostSumHost = postSum_m.view_host();
@@ -154,6 +208,17 @@ namespace ParticleBinning {
         are modified inside this class only. 
         */
 
+        /**
+         * @brief Synchronizes the histogram data between host and device.
+         *
+         * This function checks if the histogram data needs to be synchronized between
+         * the host and the device. If both the host and device have modifications, it
+         * issues a warning and overwrites the changes on the host. It then performs
+         * the necessary synchronization based on where the modifications occurred.
+         *
+         * @note This function only performs synchronization if the `UseDualView` 
+         *       template parameter is true. Otherwise it does nothing.
+         */
         void sync() {
             if constexpr (UseDualView) {
                 if (histogram_m.need_sync_host() && histogram_m.need_sync_device()) {
@@ -167,14 +232,33 @@ namespace ParticleBinning {
             }
         }
 
-        void modify_device() {
-            if constexpr (UseDualView) histogram_m.modify_device();
-        }
+        /**
+         * @brief If a DualView is used, it sets the flag on the view that the device has been modified.
+         * 
+         * @see sync() After this function you might call sync at some point.
+         */
+        void modify_device() { if constexpr (UseDualView) histogram_m.modify_device(); }
 
-        void modify_host() {
-            if constexpr (UseDualView) histogram_m.modify_host();
-        }
+        /**
+         * @brief If a DualView is used, it sets the flag on the view that the host has been modified.
+         * 
+         * @see sync() After this function you might call sync at some point.
+         */
+        void modify_host() { if constexpr (UseDualView) histogram_m.modify_host(); }
 
+        /**
+         * @brief This function provides access to different types of histogram data stored on the host. Depending on the provided histogram type identifier, it returns the corresponding host view.
+         * 
+         * @param histo_type The type of histogram data to retrieve. It can be one of the following:
+         *                   - HistoTypeIdentifier::Histogram: Returns the host view of the main histogram data.
+         *                   - HistoTypeIdentifier::BinWidth: Returns the host view of the bin widths.
+         *                   - HistoTypeIdentifier::PostSum: Returns the host view of the post-sum data.
+         * 
+         * @return hview_type The host view corresponding to the specified histogram type.
+         * 
+         * @note If an unknown histogram type identifier is provided, an error message is printed,
+         *       the program is aborted.
+         */
         hview_type view_host(HistoTypeIdentifier histo_type = HistoTypeIdentifier::Histogram) { 
             switch (histo_type) {
                 case HistoTypeIdentifier::Histogram:
@@ -190,6 +274,14 @@ namespace ParticleBinning {
             }
         }
 
+        /**
+         * @brief Returns a device view of the histogram data based on the specified histogram type.
+         *
+         * @param histo_type The type of histogram data to view. Default is `HistoTypeIdentifier::Histogram`.
+         * @return dview_type A device view of the requested histogram data.
+         *
+         * @see view_host() for similar functionality on the host side and more explanation.
+         */
         dview_type view_device(HistoTypeIdentifier histo_type = HistoTypeIdentifier::Histogram) { 
             switch (histo_type) {
                 case HistoTypeIdentifier::Histogram:
@@ -205,6 +297,16 @@ namespace ParticleBinning {
             }
         }
 
+        /**
+         * @brief Retrieves the device view of the histogram.
+         *
+         * This function returns the device view of the histogram if the `UseDualView`
+         * flag is set to true. Otherwise, it returns the histogram itself.
+         *
+         * @tparam HistogramType The type of the histogram.
+         * @param histo Reference to the histogram.
+         * @return The device view of the histogram if `UseDualView` is true, otherwise the histogram itself.
+         */
         template <typename HistogramType>
         static constexpr dview_type getDeviceView(HistogramType& histo) {
             if constexpr (UseDualView) {
@@ -214,6 +316,16 @@ namespace ParticleBinning {
             }
         }
 
+        /**
+         * @brief Retrieves a host view of the given histogram.
+         *
+         * This function returns a host view of the provided histogram object. If a 
+         * DualView is used, it calls the `view_host()`, otherwise it returns the normal view.
+         *
+         * @tparam HistogramType The type of the histogram object.
+         * @param histo The histogram object from which to retrieve the host view.
+         * @return A host view of the histogram object.
+         */
         template <typename HistogramType>
         static constexpr hview_type getHostView(HistogramType& histo) {
             if constexpr (UseDualView) {
@@ -223,14 +335,30 @@ namespace ParticleBinning {
             }
         }
 
-    private:
-        std::string debug_name_m;
-        bin_index_type numBins_m;
-        value_type totalBinWidth_m;
+        /*
+        The following contain functions that are used to make the histogram adaptive.
+        */
 
-        view_type histogram_m;
-        view_type binWidths_m;
-        view_type postSum_m;
+        void mergeBins(const value_type maxBinRatio);
+
+    private:
+        std::string debug_name_m;   /// \brief Debug name for identifying the histogram instance.
+        bin_index_type numBins_m;   /// \brief Number of bins in the histogram.
+        value_type totalBinWidth_m; /// \brief Total width of all bins combined.
+
+        view_type histogram_m;      /// \brief View storing the particle counts in each bin.
+        view_type binWidths_m;      /// \brief View storing the widths of the bins.
+        view_type postSum_m;        /// \brief View storing the cumulative sum of bin counts (used in sorting, generating range policies).
+
+        /**
+         * @brief Copies the fields from another Histogram object.
+         *
+         * This function copies the internal fields from the provided Histogram object
+         * to the current object. The fields are copied using Kokkos' shallow copy.
+         *
+         * @param other The Histogram object from which to copy the fields.
+         */
+        void copyFields(const Histogram& other);
     };
     
 }
