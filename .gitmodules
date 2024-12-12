@@ -1,0 +1,4 @@
+[submodule "src/PartBunch/Binning"]
+	path = src/PartBunch/Binning
+	url = git@gitlab.psi.ch:liemen_a/binning-pic3d.git
+	branch = binned-solver-sortedRangeIt
