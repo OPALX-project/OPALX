@@ -19,6 +19,10 @@ class ParticleContainer : public ippl::ParticleBase<ippl::ParticleSpatialLayout<
     using Base = ippl::ParticleBase<ippl::ParticleSpatialLayout<T, Dim>>;
 
 public:
+    /// Defines which type to use as a particle bin.
+    using bin_index_type = short int;  // Needed in AdaptBins class
+
+public:
     /// charge in [Cb]
     ippl::ParticleAttrib<double> Q;
 
@@ -32,7 +36,7 @@ public:
     ippl::ParticleAttrib<double> Phi;
 
     /// the energy bin the particle is in
-    ippl::ParticleAttrib<short int> Bin;
+    ippl::ParticleAttrib<bin_index_type> Bin;
 
     /// the particle specis
     ippl::ParticleAttrib<short> Sp;
