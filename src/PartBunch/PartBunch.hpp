@@ -61,6 +61,8 @@ diagnostics(): calculate statistics and maybe write tp h5 and stat files
 
 #include "Algorithms/PartData.h"
 
+#include "PartBunch/Binning/AdaptBins.h" // TODO: binning
+
 
 template <typename T>
 KOKKOS_INLINE_FUNCTION typename T::value_type L2Norm(T& x) {
@@ -82,6 +84,10 @@ public:
     using FieldSolver_t       = FieldSolver<T, Dim>;
     using LoadBalancer_t      = LoadBalancer<T, Dim>;
     using Base                = ippl::ParticleBase<ippl::ParticleSpatialLayout<T, Dim>>;
+
+    using BinningSelector_t   = typename ParticleBinning::CoordinateSelector<ParticleContainer_t>;
+    using AdaptBins_t         = typename ParticleBinning::AdaptBins<ParticleContainer_t, BinningSelector_t>;
+    using binIndex_t          = typename ParticleContainer_t::bin_index_type;
 
     double time_m;
 
@@ -169,7 +175,8 @@ private:
     // FIXME: this should go into the Bin class!
     //  holds number of emitted particles of the bin
     //  jjyang: opal-cycl use *nBin_m of pbin_m
-    std::unique_ptr<size_t[]> binemitted_m;
+    //std::unique_ptr<size_t[]> binemitted_m; // liemen_a: TODO remove!
+    std::shared_ptr<AdaptBins_t> bins_m; // added by liemen_a for AdaptBins class!
 
     /// steps per turn for OPAL-cycl
     int stepsPerTurn_m;
@@ -285,6 +292,13 @@ public:
 
         IpplTimings::stopTimer(gatherInfoPartBunch);
 
+        this->setBins(std::make_shared<AdaptBins_t>(
+            this->getParticleContainer(), 
+            BinningSelector_t(2), // TODO: hardcode z axis with coordinate selector at axis index 2
+            128)
+        );
+        this->getBins()->debug();
+
         static IpplTimings::TimerRef setSolverT = IpplTimings::getTimer("setSolver");
         IpplTimings::startTimer(setSolverT);
         setSolver(OPALFieldSolver_m->getType());
@@ -312,6 +326,10 @@ public:
     void pre_run() override ;
     
 public:
+    std::shared_ptr<AdaptBins_t> getBins() { return bins_m; } // TODO: Binning
+    
+    void setBins(std::shared_ptr<AdaptBins_t> bins) { bins_m = bins; } // TODO: Binning
+
     void updateMoments(){
         this->pcontainer_m->updateMoments();
     }
