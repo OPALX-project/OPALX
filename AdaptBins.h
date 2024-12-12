@@ -65,6 +65,7 @@ namespace ParticleBinning {
 
         //using histo_type      = Histogram<size_type, bin_index_type, value_type>;
         using d_histo_type = Histogram<size_type, bin_index_type, value_type, true>;
+        using dview_type   = typename d_histo_type::dview_type;
 
         /**
          * @brief Constructs an AdaptBins object with a specified maximum number of bins.

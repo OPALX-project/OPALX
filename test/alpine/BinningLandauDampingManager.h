@@ -233,7 +233,7 @@ public:
     void advance() override {
         if (this->stepMethod_m == "LeapFrog") {
             LeapFrogStep();
-            this->bins_m->print(); // just some debug output TODO: binning, remove later
+            //this->bins_m->print(); // just some debug output TODO: binning, remove later
         } else {
             throw IpplException(TestName, "Step method is not set/recognized!");
         }

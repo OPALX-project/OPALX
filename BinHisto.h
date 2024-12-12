@@ -36,6 +36,36 @@ namespace ParticleBinning {
             , totalBinWidth_m(totalBinWidth) {
             instantiateHistograms();
         }
+
+        // Destructor
+        ~Histogram() = default; /*{
+            // So destruction does not cause race conditions...?!
+            std::cout << "Histogram destructor called." << std::endl;
+            //Kokkos::fence();
+            //ippl::Comm->barrier();
+        }*/
+
+        // Copy constructor 
+        Histogram(const Histogram& other) {
+            copyFields(other);
+        }
+
+        Histogram& operator=(const Histogram& other) {
+            if (this == &other) return *this;
+            copyFields(other);
+            return *this;
+        }
+
+        // copy fields
+        void copyFields(const Histogram& other) {
+            debug_name_m    = other.debug_name_m;
+            numBins_m       = other.numBins_m;
+            totalBinWidth_m = other.totalBinWidth_m;
+
+            histogram_m = other.histogram_m;
+            binWidths_m = other.binWidths_m;
+            postSum_m   = other.postSum_m;
+        }
         
         
         /*
@@ -84,10 +114,10 @@ namespace ParticleBinning {
         }
 
         void initConstBinWidths(const value_type constBinWidth) {
-            dview_type binWidthsView = getDeviceView(binWidths_m);
+            //dview_type binWidthsView = getDeviceView(binWidths_m);
             //constexpr auto binWidthsView = UseDualView ? binWidths_m.view_device() : binWidths_m;
 
-            Kokkos::deep_copy(binWidthsView, constBinWidth);
+            Kokkos::deep_copy(getDeviceView(binWidths_m), constBinWidth);
             if constexpr (UseDualView) {
                 binWidths_m.modify_device();
                 binWidths_m.sync_host();
@@ -96,8 +126,8 @@ namespace ParticleBinning {
 
         void initPostSum() {
             //auto postSumView = constexpr UseDualView ? postSum_m.view_device() : postSum_m;
-            dview_type postSumView = getDeviceView(postSum_m);
-            computeFixSum<size_type>(view_device(), postSumView);
+            // dview_type postSumView = getDeviceView(postSum_m);
+            computeFixSum<size_type>(view_device(), getDeviceView(postSum_m));
             if constexpr (UseDualView) {
                 postSum_m.modify_device();
                 postSum_m.sync_host();

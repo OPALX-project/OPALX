@@ -4,9 +4,9 @@
 #SBATCH --output=output/bins_%j.out
 #SBATCH --time=00:10:00
 #SBATCH --nodes=1                   # Request node
-#SBATCH --ntasks-per-node=2         # cores per node
+#SBATCH --ntasks-per-node=4         # cores per node
 ##SBATCH --mem-per-cpu=4G
-#SBATCH --cpus-per-task=4           # "threads" per task (for e.g. multithreading in Kokkod:parallel_for?)
+#SBATCH --cpus-per-task=8           # "threads" per task (for e.g. multithreading in Kokkod:parallel_for?)
 #SBATCH --cluster=merlin6 # gmerlin6
 #SBATCH --partition=hourly #gpu-short #              # Non-GPU partition, check cluster for correct partition
 #SBATCH --account=merlin
@@ -34,7 +34,7 @@ echo "Number of threads: $(nproc)"
 
 cd /data/user/liemen_a/build_ippl_openmp/
 # cmake ../ippl/ -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=20 -DIPPL_PLATFORMS=OPENMP -DENABLE_TESTS=ON -DENABLE_SOLVERS=ON -DENABLE_FFT=ON -DONLY_BINNING=ON
-# make -j $(nproc)
+make -j $(nproc)
 echo "Finished compiling. Now running the program..."
 
 # cd /data/user/liemen_a/build_ippl_openmp/test/binning/test/pic3d/

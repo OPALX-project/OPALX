@@ -45,7 +45,7 @@ namespace ParticleBinning {
         
         // Optionally, initialize the histogram to zero
         if (setToZero) {
-            auto device_histo = localBinHisto_m.view_device();
+            dview_type device_histo = localBinHisto_m.view_device();
             Kokkos::deep_copy(device_histo, 0);
             /*Kokkos::parallel_for("initHistogram", numBins, KOKKOS_LAMBDA(const bin_index_type i) {
                 device_histo(i) = 0;
@@ -105,7 +105,7 @@ namespace ParticleBinning {
     template<typename ReducerType>
     void AdaptBins<BunchType, BinningSelector>::executeInitLocalHistoReduction(ReducerType& to_reduce) {
         bin_view_type binIndex        = bunch_m->bin.getView();  
-        auto device_histo             = localBinHisto_m.view_device();
+        dview_type device_histo       = localBinHisto_m.view_device();
         bin_index_type binCount       = getCurrentBinCount();
 
         static IpplTimings::TimerRef initLocalHisto = IpplTimings::getTimer("initLocalHistoParallelReduce");
@@ -129,7 +129,7 @@ namespace ParticleBinning {
     template <typename BunchType, typename BinningSelector>
     void AdaptBins<BunchType, BinningSelector>::executeInitLocalHistoReductionTeamFor() {
         bin_view_type binIndex            = bunch_m->bin.getView();
-        auto device_histo                 = localBinHisto_m.view_device();
+        dview_type device_histo           = localBinHisto_m.view_device();
         const bin_index_type binCount     = getCurrentBinCount();
         const size_type localNumParticles = bunch_m->getLocalNum(); 
 
@@ -302,7 +302,7 @@ namespace ParticleBinning {
         bin_view_type bins          = bunch_m->bin.getView();
         size_type localNumParticles = bunch_m->getLocalNum();
         size_type numBins           = getCurrentBinCount();
-        auto bin_counts             = localBinHisto_m.view_device();
+        dview_type bin_counts       = localBinHisto_m.view_device();
 
         IpplTimings::startTimer(argSortBins);
         // Get post sum (already calculated with histogram and saved inside local_bin_histo_post_sum_m), use copy to not modify the original
