@@ -226,6 +226,9 @@ private:
     bool dcBeam_m;
     double periodLength_m;
 
+    /// Temporary E field container used to store temporary E field during binned solver
+    std::shared_ptr<VField_t<T, Dim>> Etmp_m;
+
 public:
     PartBunch(
               double qi, double mi, size_t totalP, int nt, double lbt, std::string integration_method,
@@ -299,6 +302,8 @@ public:
         );
         this->getBins()->debug();
 
+        this->setTempEField(std::make_shared<VField_t<T, Dim>>(this->fcontainer_m->getMesh(), this->fcontainer_m->getFL()));
+
         static IpplTimings::TimerRef setSolverT = IpplTimings::getTimer("setSolver");
         IpplTimings::startTimer(setSolverT);
         setSolver(OPALFieldSolver_m->getType());
@@ -326,6 +331,9 @@ public:
     void pre_run() override ;
     
 public:
+    std::shared_ptr<VField_t<T, Dim>> getTempEField() { return this->Etmp_m; }
+    void setTempEField(std::shared_ptr<VField_t<T, Dim>> Etmp) { this->Etmp_m = Etmp; }
+
     std::shared_ptr<AdaptBins_t> getBins() { return bins_m; } // TODO: Binning
     
     void setBins(std::shared_ptr<AdaptBins_t> bins) { bins_m = bins; } // TODO: Binning
