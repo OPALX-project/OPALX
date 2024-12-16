@@ -120,6 +120,59 @@ namespace ParticleBinning {
         }
     };
 
+    /**
+     * @brief Computes the post- or prefix-sum of the input view and stores the result in the ...-sum view.
+     *
+     * @tparam SizeType The type of the elements in the input and ...-sum views.
+     * @param input_view The input view containing the elements to be summed.
+     * @param post_sum_view The output view where the ...-sum results will be stored. It must have a size of input_view.extent(0) + 1.
+     * @param postSum If true, the post-sum is computed; otherwise, the prefix-sum is computed.
+     *
+     * @throws `ippl::Comm->abort();` if the size of the post_sum_view is not equal to input_view.extent(0) + 1.
+     */
+    template <typename SizeType>
+    void computeFixSum(const Kokkos::View<SizeType*> input_view, Kokkos::View<SizeType*> post_sum_view) {
+        if (post_sum_view.extent(0) != input_view.extent(0) + 1) {
+            Inform m("computePostSum");
+            m << "Output view must have size input_view.extent(0) + 1" << endl;
+            ippl::Comm->abort();
+        }
+
+        // Initialize the first element to 0
+        Kokkos::parallel_for("InitPostSum", 1, KOKKOS_LAMBDA(const SizeType) {
+            post_sum_view(0) = 0;
+        });
+        
+        static IpplTimings::TimerRef initLocalPostSumT = IpplTimings::getTimer("initLocalPostSum");
+        IpplTimings::startTimer(initLocalPostSumT);
+        Kokkos::parallel_scan("ComputePostSum", input_view.extent(0), KOKKOS_LAMBDA(const SizeType& i, SizeType& partial_sum, bool final) {
+            /*if (postSum)*/ partial_sum += input_view(i); 
+            if (final) { post_sum_view(i + 1) = partial_sum; } 
+            // if (!postSum) partial_sum += input_view(i); 
+        });
+        IpplTimings::stopTimer(initLocalPostSumT);
+    }
+
+    /**
+     * @brief Checks if the elements in a Kokkos::View are sorted in non-decreasing order.
+     *
+     * @tparam ValueType The type of the elements in the Kokkos::View so be checked.
+     * @tparam SizeType The type used for indexing and size.
+     * @param view The Kokkos::View containing the elements to be checked.
+     * @param indices Argsort of view.
+     * @param npart The number of elements in the view to be checked.
+     * @return true if the elements are sorted in non-decreasing order, false otherwise.
+     * 
+     * @note This function does not leverage short circuiting.
+     */
+    template <typename ValueType, typename SizeType, typename HashType>
+    bool viewIsSorted (const Kokkos::View<ValueType*> view, HashType indices, SizeType npart) {
+        bool sorted = true;
+        Kokkos::parallel_reduce("CheckSorted", npart - 1, KOKKOS_LAMBDA(const SizeType& i, bool& update) {
+            if (view(indices(i)) > view(indices(i + 1))) update = false;
+        }, Kokkos::LAnd<bool>(sorted));
+        return sorted;
+    }
 
 
 } // namespace ParticleBinning

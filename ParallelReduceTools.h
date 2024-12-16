@@ -132,6 +132,30 @@ namespace ParticleBinning {
     template<typename SizeType, typename IndexType>
     IndexType HostArrayReduction<SizeType, IndexType>::binCountStatic = 10;
 
+
+    /**
+     * The following are some helper functions for debugging
+     */
+
+    /**
+    * @brief Computes the \(p\)-norm of a vector field (for debugging purpose).
+    * 
+    * @param field The input vector field.
+    * @param p The order of the norm (default is 2 for Euclidean norm).
+    * 
+    * @return The computed \(p\)-norm of the vector field.
+    */
+    template<typename T, unsigned Dim>
+    T vnorm(const VField_t<T, Dim>& field, int p = 2) {
+        T sum = 0;
+        ippl::parallel_reduce("VectorFieldNormReduce", field.getFieldRangePolicy(),
+            KOKKOS_LAMBDA(const ippl::RangePolicy<Dim>::index_array_type& idx, T& loc_sum) {
+                ippl::Vector<T, Dim> e = apply(field, idx);
+                loc_sum += std::pow(e.dot(e), p/2.0);
+            }, Kokkos::Sum<T>(sum));
+        return std::pow(sum, 1.0/p);
+    }
+
 }
 
 namespace Kokkos {  

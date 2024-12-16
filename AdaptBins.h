@@ -29,8 +29,10 @@
 //#include <iostream>
 #include "Ippl.h"
 
+#include <Kokkos_DualView.hpp>   // Looks like no one ever used it before, so import it here...
 #include "ParallelReduceTools.h" // Has custom reducer objects (--> needed in AdaptBins.h and BinningTools.h)
-#include "BinningTools.h" // Has custom particle selection
+#include "BinningTools.h"        // Has custom particle selection
+#include "BinHisto.h"           // Has custom histogram class for DualView management
 
 namespace ParticleBinning {
 
@@ -54,9 +56,16 @@ namespace ParticleBinning {
         using bin_index_type         = typename BunchType::bin_index_type;
         using bin_type               = typename ippl::ParticleAttrib<bin_index_type>;
         using bin_view_type          = typename bin_type::view_type;
-        using bin_histo_type         = Kokkos::View<size_type*>;
-        using bin_host_histo_type    = Kokkos::View<size_type*, Kokkos::HostSpace>;
+        // using bin_histo_type         = Kokkos::View<size_type*>;
+        //using bin_host_histo_type    = Kokkos::View<size_type*, Kokkos::HostSpace>;
+        // using bin_histo_dual_type    = typename Kokkos::DualView<size_type*>;
         // using binning_var_selector_type = typename BinningVariableSelector<size_type>;
+        // using buffer_view_type       = Kokkos::View<int*>;
+        using hash_type              = ippl::detail::hash_type<Kokkos::DefaultExecutionSpace::memory_space>;
+
+        //using histo_type      = Histogram<size_type, bin_index_type, value_type>;
+        using d_histo_type = Histogram<size_type, bin_index_type, value_type, true>;
+        using dview_type   = typename d_histo_type::dview_type;
 
         /**
          * @brief Constructs an AdaptBins object with a specified maximum number of bins.
@@ -66,10 +75,11 @@ namespace ParticleBinning {
          */
         AdaptBins(std::shared_ptr<BunchType> bunch, BinningSelector var_selector, bin_index_type maxBins = 10)
             : bunch_m(bunch)
-            , maxBins_m(maxBins)
-            , var_selector_m(var_selector) {
+            , var_selector_m(var_selector)
+            , maxBins_m(maxBins) {
 
-            currentBins_m = maxBins; // TODO for now...
+            currentBins_m   = maxBins; // TODO for now...
+            // sortingBuffer_m = Kokkos::View<int*>("particlePermutationBuffer", bunch->getLocalNum());
 
             Inform msg("AdaptBins");
             msg << "AdaptBins initialized with maxBins = " << maxBins << endl;
@@ -92,6 +102,8 @@ namespace ParticleBinning {
             binWidth_m    = (xMax_m - xMin_m) / currentBins_m; // assuming particles did not change!
         }
 
+        hash_type getHashArray() { return sortedIndexArr_m; }
+
         /**
          * @brief Calculates the bin index for a given position value.
          * 
@@ -113,6 +125,8 @@ namespace ParticleBinning {
          * 
          * This function calculates the minimum and maximum limits (xMin and xMax) from the
          * particle positions, which are then used to define bin boundaries.
+         * 
+         * @note Needs to be called _before_ bins and histograms are initialized.
          */
         void initLimits();
 
@@ -223,7 +237,52 @@ namespace ParticleBinning {
         void initHistogram(HistoReductionMode modePreference = HistoReductionMode::Standard) {
             instantiateHistogram(true); // Init histogram (no need to set to 0, since executeInitLocalHistoReduction overwrites values from reduction...) --> true, since it is necessary for atomics option...
             initLocalHisto(modePreference);
+            //initLocalPostSum();
             initGlobalHistogram();
+
+            // Init both histograms --> buils postSums and widths arrays
+            localBinHisto_m.init();
+            globalBinHisto_m.init();
+        }
+
+        /**
+         * @brief Initializes the prefix sum for the local histogram (used e.g. for sorting and indexing in `scatter(...)`).
+         */
+        /*void initLocalPostSum() { 
+            localBinHistoPostSum_m = bin_histo_dual_type("localBinHistoPostSum_m", getCurrentBinCount() + 1);
+
+            computeFixSum<size_type>(localBinHisto_m.view_device(), localBinHistoPostSum_m.view_device());
+            localBinHistoPostSum_m.modify_device(); 
+            localBinHistoPostSum_m.sync_host(); 
+
+            // Print the prefix sum for debugging
+            Inform msg("AdaptBins");
+            auto localPostSumHost = localBinHistoPostSum_m.view_host();
+            for (bin_index_type i = 0; i < getCurrentBinCount() + 1; ++i) {
+                msg << "PrefixSum[" << i << "] = " << localPostSumHost(i) << endl;
+            }
+        }*/
+
+        size_type getNPartInBin(bin_index_type binIndex, bool global = false) {
+            /**
+             * Assume DualView was properly synchronized.
+             * Might create some overhead from .view_host() call if called often.
+             * However, it is only called on host (max nBins times per iteration), so should be fine. You can make it
+             * more efficient by avoiding the Kokkos:View "copying-action" with e.g. dualView.h_view(binIndex)
+             */
+            if (global) {
+                return globalBinHisto_m.view_host()(binIndex);
+            } else {
+                return localBinHisto_m.view_host()(binIndex);
+            }
+        }
+
+        void sortContainerByBin();
+
+        Kokkos::RangePolicy<> getBinIterationPolicy(const bin_index_type& binIndex) {
+            return localBinHisto_m.getBinIterationPolicy(binIndex);
+            //auto localPostSumHost = localBinHistoPostSum_m.view_host();
+            //return Kokkos::RangePolicy<>(localPostSumHost(binIndex), localPostSumHost(binIndex + 1));
         }
 
         /**
@@ -242,13 +301,12 @@ namespace ParticleBinning {
             os << "Bins = " << numBins << " hBin = " << binWidth_m << endl;
             os << "Bin #;Val" << endl;
 
-            // Get the global histogram (reduced across all nodes)
-            bin_host_histo_type globalBinHistoHost = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), globalBinHisto_m);
+            auto globalHostHisto = globalBinHisto_m.view_host();
 
             // Only rank 0 prints the global histogram
             size_type total = 0;
             for (bin_index_type i = 0; i < numBins; ++i) {
-                size_type val = globalBinHistoHost(i);
+                size_type val = globalHostHisto(i); // Can do it like this, since DualView knows it is on host
                 os << i << ";" << val << endl;
                 total += val;
             }   
@@ -300,16 +358,54 @@ namespace ParticleBinning {
             msg << "=====================================" << endl;
         }
 
+        /**
+        * @brief Applies a Lorentz transformation to a given vector field based on particle velocities.
+        * 
+        * @tparam T The data type of the field components (e.g., `double`, `float`).
+        * @tparam Dim The dimensionality of the field.
+        * @param field A reference to the vector field to be transformed.
+        * @return A reference to the transformed field.
+        * 
+        * @details
+        * - **Gamma Factor Calculation:** The gamma factor is derived from the velocity components of particles.
+        *   For a given particle velocity \(v\), the gamma factor is computed as:
+        *   \[
+        *   \gamma = \frac{1}{\sqrt{1 - \vec{v} \cdot \vec{v}}}
+        *   \]
+        *   where \(\vec{v}\) is the velocity vector of a particle.
+        * 
+        * - **Field Transformation:** After computing the gamma factor, each component of the field is
+        *   multiplied by the corresponding gamma factor.
+        * 
+        * ### Example Usage:
+        * ```cpp
+        * VField_t<double, 3> field = ...; // Initialize the field
+        * this->bins_m->LTrans(field);     // Apply Lorentz transformation
+        * ```
+        */
+        template <typename T, unsigned Dim>
+        VField_t<T, Dim>& LTrans(VField_t<T, Dim>& field, const bin_index_type& currentBin); // TODO: may want to add usage of c constant when it exists...
+
     private:
         std::shared_ptr<BunchType> bunch_m;    ///< Shared pointer to the particle container.
+        BinningSelector var_selector_m;        ///< Variable selector for binning.
         bin_index_type maxBins_m;              ///< Maximum number of bins.
         bin_index_type currentBins_m;          ///< Current number of bins in use.
         value_type xMin_m;                     ///< Minimum boundary for bins.
         value_type xMax_m;                     ///< Maximum boundary for bins.
         value_type binWidth_m;                 ///< Width of each bin.
-        bin_histo_type localBinHisto_m;        ///< Local histogram view for bin counts.
-        bin_histo_type globalBinHisto_m;       ///< Global histogram view (over ranks reduced local histograms).
-        BinningSelector var_selector_m;       ///< Variable selector for binning.
+
+        // Histograms 
+        d_histo_type localBinHisto_m;          ///< Local histogram view for bin counts.
+        d_histo_type globalBinHisto_m;         ///< Global histogram view (over ranks reduced local histograms).
+
+
+        //bin_histo_dual_type localBinHisto_m;          ///< Local histogram view for bin counts.
+        //bin_histo_dual_type localBinHistoPostSum_m; ///< Local prefix sum view for bin counts.
+        //bin_host_histo_type localBinHistoHost_m; // TODO: Use DualView instead!!!!
+        //bin_histo_dual_type globalBinHisto_m;         ///< Global histogram view (over ranks reduced local histograms).
+        hash_type sortedIndexArr_m;                  ///< Hash table for sorting particles by bin index.
+        // buffer_view_type sortingBuffer_m;      ///< Buffer for permutating particles after sorting by bin index.
     };
 
 }

@@ -10,7 +10,7 @@ class ParticleContainer : public ippl::ParticleBase<ippl::ParticleSpatialLayout<
     using Base = ippl::ParticleBase<ippl::ParticleSpatialLayout<T, Dim>>;
 
     public:
-        using bin_index_type = int; // TODO: Binning - public, needs to be accessed from inside AdaptBins class
+        using bin_index_type = unsigned int; // TODO: Binning - public, needs to be accessed from inside AdaptBins class
 
         ippl::ParticleAttrib<double> q;                 // charge
         typename Base::particle_position_type P;  // particle velocity

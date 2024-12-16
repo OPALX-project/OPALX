@@ -32,6 +32,10 @@ public:
     // TODO: Binning
     using BinningSelector_t = typename ParticleBinning::CoordinateSelector<ParticleContainer_t>;
     using AdaptBins_t       = typename ParticleBinning::AdaptBins<ParticleContainer_t, BinningSelector_t>;
+    
+    using binIndex_t = typename ParticleContainer_t::bin_index_type;
+    using binIndexView_t = typename ippl::ParticleAttrib<binIndex_t>::view_type;
+    using charge_view_t = typename ippl::ParticleAttrib<double>::view_type;
 
 protected:
     size_type totalP_m;
@@ -159,10 +163,70 @@ public:
                 m << "Rel. error in charge conservation: " << relError << endl;
                 ippl::Comm->abort();
             }
-	}
+	    }
 
-	double cellVolume = std::reduce(hr.begin(), hr.end(), 1., std::multiplies<double>());
+	    double cellVolume = std::reduce(hr.begin(), hr.end(), 1., std::multiplies<double>());
         (*rho)          = (*rho) / cellVolume;
+
+        rhoNorm_m = norm(*rho);
+
+        // rho = rho_e - rho_i (only if periodic BCs)
+        if (this->fsolver_m->getStype() != "OPEN") {
+            double size = 1;
+            for (unsigned d = 0; d < Dim; d++) {
+                size *= rmax[d] - rmin[d];
+            }
+            *rho = *rho - (Q / size);
+        }
+    }
+
+    
+    /*
+     * TODO: binning
+     * The following contains extra scatter functions for the scatter-per-bin operations!
+     */
+    void par2gridPerBin(binIndex_t binIndex) {
+        Inform m("scatterPerBin");
+        this->fcontainer_m->getRho() = 0.0;
+        
+        ippl::ParticleAttrib<double> *q          = &this->pcontainer_m->q;
+        //charge_view_t viewQ                      = q->getView();
+        typename Base::particle_position_type *R = &this->pcontainer_m->R;
+        Field_t<Dim> *rho                        = &this->fcontainer_m->getRho();
+        Vector_t<double, Dim> rmin	             = rmin_m;
+        Vector_t<double, Dim> rmax	             = rmax_m;
+        Vector_t<double, Dim> hr                 = hr_m;
+        binIndexView_t bin                       = this->pcontainer_m->bin.getView();
+        size_type localParticles                 = this->pcontainer_m->getLocalNum();
+        double Q                                 = Q_m * this->bins_m->getNPartInBin(binIndex, true)/totalP_m; // Q_m;
+
+        static IpplTimings::TimerRef binSortingAndScatterT = IpplTimings::getTimer("binSortingAndScatter");
+        IpplTimings::startTimer(binSortingAndScatterT);
+        scatter(*q, *rho, *R, this->bins_m->getBinIterationPolicy(binIndex), this->bins_m->getHashArray());
+        IpplTimings::stopTimer(binSortingAndScatterT);
+        double relError = std::fabs((Q-(*rho).sum())/Q);
+        
+        /*
+         * Didn't change anything after here...
+         */
+        m << relError << endl;
+
+        size_type TotalParticles = 0;
+
+        ippl::Comm->reduce(localParticles, TotalParticles, 1, std::plus<size_type>());
+
+        if (ippl::Comm->rank() == 0) {
+            if (TotalParticles != totalP_m || relError > 1e-10) {
+                m << "Time step: " << it_m << endl;
+                m << "Total particles in the sim. " << totalP_m << " "
+                  << "after update: " << TotalParticles << endl;
+                m << "Rel. error in charge conservation: " << relError << endl;
+                ippl::Comm->abort();
+            }
+	    }
+
+	    double cellVolume = std::reduce(hr.begin(), hr.end(), 1., std::multiplies<double>());
+        (*rho)            = (*rho) / cellVolume;
 
         rhoNorm_m = norm(*rho);
 

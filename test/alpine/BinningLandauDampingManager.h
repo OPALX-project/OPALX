@@ -51,9 +51,11 @@ public:
     using BinningSelector_t = typename ParticleBinning::CoordinateSelector<ParticleContainer_t>;
     using AdaptBins_t       = typename ParticleBinning::AdaptBins<ParticleContainer_t, BinningSelector_t>;
 
+    VField_t<double, 3> E_tmp; // temporary field for adding up the lorentz transformed E field
+
     LandauDampingManager(size_type totalP_, int nt_, Vector_t<int, Dim> &nr_,
                        double lbt_, std::string& solver_, std::string& stepMethod_)
-        : AlpineManager<T, Dim>(totalP_, nt_, nr_, lbt_, solver_, stepMethod_){}
+        : AlpineManager<T, Dim>(totalP_, nt_, nr_, lbt_, solver_, stepMethod_) {}
 
     ~LandauDampingManager(){}
 
@@ -110,7 +112,10 @@ public:
         this->bins_m->debug();
 
         // TODO: Binning - After initializing the particles, create the limits
-        this->bins_m->initLimits();
+        //this->bins_m->initLimits();
+        this->bins_m->doFullRebin(10); // test with 10 bins
+        this->E_tmp.initialize(this->fcontainer_m->getMesh(), this->fcontainer_m->getFL()); // initialize temporary field 
+
 
         static IpplTimings::TimerRef DummySolveTimer  = IpplTimings::getTimer("solveWarmup");
         IpplTimings::startTimer(DummySolveTimer);
@@ -228,8 +233,7 @@ public:
     void advance() override {
         if (this->stepMethod_m == "LeapFrog") {
             LeapFrogStep();
-            this->bins_m->doFullRebin(10); // rebin with 10 bins 
-            this->bins_m->print();
+            //this->bins_m->print(); // just some debug output TODO: binning, remove later
         } else {
             throw IpplException(TestName, "Step method is not set/recognized!");
         }
@@ -244,7 +248,7 @@ public:
         static IpplTimings::TimerRef RTimer           = IpplTimings::getTimer("pushPosition");
         static IpplTimings::TimerRef updateTimer      = IpplTimings::getTimer("update");
         static IpplTimings::TimerRef domainDecomposition = IpplTimings::getTimer("loadBalance");
-        static IpplTimings::TimerRef SolveTimer       = IpplTimings::getTimer("solve");
+        static IpplTimings::TimerRef runBinnedSolverT = IpplTimings::getTimer("runBinnedSolver");
 
         double dt                               = this->dt_m;
         std::shared_ptr<ParticleContainer_t> pc = this->pcontainer_m;
@@ -274,22 +278,70 @@ public:
                 this->loadbalancer_m->repartition(FL, mesh, isFirstRepartition);
                 IpplTimings::stopTimer(domainDecomposition);
         }
+        
+        // TODO: binning
+        this->bins_m->doFullRebin(10); // rebin with 10 bins
+        this->bins_m->sortContainerByBin(); // sort particles after creating bins for scatter() operation inside LeapFrogStep 
 
-        // scatter the charge onto the underlying grid
-        this->par2grid();
-
-        // Field solve
-        IpplTimings::startTimer(SolveTimer);
-        this->fsolver_m->runSolver();
-        IpplTimings::stopTimer(SolveTimer);
-
-        // gather E field
-        this->grid2par();
+        E_tmp = 0.0; // reset temporary field
+        IpplTimings::startTimer(runBinnedSolverT);
+        runBinnedSolver();
+        IpplTimings::stopTimer(runBinnedSolverT);
 
         // kick
         IpplTimings::startTimer(PTimer);
         pc->P = pc->P - 0.5 * dt * pc->E;
         IpplTimings::stopTimer(PTimer);
+    }
+
+    void runBinnedSolver() {
+        /*
+         * Strategy:
+         * Initialize E field to 0.
+         * for every bin:
+         *      1. par2grid() for all charges(bin) onto rho_m
+         *      2. Solve Poisson equation, only for Base:SOL
+         *      3. Add grad(phi_m)*\gamma to E field
+         * grid2par()
+         */
+        Inform msg("runBinnedSolver");
+        //static IpplTimings::TimerRef SolveTimer = IpplTimings::getTimer("solve");
+        using binIndex_t       = typename ParticleContainer_t::bin_index_type;
+        using binIndexView_t   = typename ippl::ParticleAttrib<binIndex_t>::view_type;
+
+        this->bins_m->print();
+
+        // Defines used views
+        std::shared_ptr<ParticleContainer_t> pc = this->pcontainer_m;
+        std::shared_ptr<FieldContainer_t> fc    = this->fcontainer_m;
+        view_type viewP                         = pc->P.getView();
+        binIndexView_t bin                      = pc->bin.getView();
+
+        for (binIndex_t i = 0; i < this->bins_m->getCurrentBinCount(); ++i) {
+            // Scatter only for current bin index
+            this->par2gridPerBin(i);
+
+            // Run solver: obtains phi_m only for what was scattered in the previous step
+            this->fsolver_m->runSolver();
+            E_tmp = E_tmp + this->bins_m->LTrans(fc->getE(), i);
+        }
+
+        // TODO: remove. A little debug output:
+        /*{
+            this->par2grid();
+            this->fsolver_m->runSolver();
+            msg << "E assigned from " << this->bins_m->getCurrentBinCount() << " bins. Norm = " << ParticleBinning::vnorm(E_tmp) << endl;
+            msg << "              Single bin norm = " << ParticleBinning::vnorm(fc->getE()) << endl;
+        }*/
+
+        // gather E field from locally built up E_m
+        gather(pc->E, E_tmp, this->pcontainer_m->R); 
+        /*
+        Alternative: don't use a temporary field, but directly gather the field for every particles inside the loop.
+        Problem: gather routine is way more expensive than simple additions on a temporary field instance. 
+        However: if the field is big and memory is crucial, one might consider this approach and remove E_tmp.
+        */
+        msg << "Field gathered" << endl;
     }
 
     void dump() override {
@@ -346,5 +398,6 @@ public:
         }
         ippl::Comm->barrier();
     }
+
 };
 #endif
