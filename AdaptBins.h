@@ -86,6 +86,13 @@ namespace ParticleBinning {
         }
 
         /**
+         * @brief Returns a view to the particle bin array.
+         * 
+         * @note How the bin attribute it named might change, so this function exists!
+         */
+        bin_view_type getBinView() { return bunch_m->Bin.getView(); }
+
+        /**
          * @brief Gets the current number of bins.
          * 
          * @return The current bin count.
