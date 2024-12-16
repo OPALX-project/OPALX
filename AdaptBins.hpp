@@ -79,7 +79,7 @@ namespace ParticleBinning {
         // position_view_type localData = bunch_m->R.getView();
         var_selector_m.updateDataArr(bunch_m);
         BinningSelector var_selector  = var_selector_m; 
-        bin_view_type binIndex        = bunch_m->bin.getView();  
+        bin_view_type binIndex        = getBinView();
 
         // Declare the variables locally before the Kokkos::parallel_for (to avoid implicit this capture in Kokkos lambda)
         value_type xMin = xMin_m, xMax = xMax_m, binWidthInv = 1.0/binWidth_m;
@@ -104,7 +104,7 @@ namespace ParticleBinning {
     template<typename BunchType, typename BinningSelector>
     template<typename ReducerType>
     void AdaptBins<BunchType, BinningSelector>::executeInitLocalHistoReduction(ReducerType& to_reduce) {
-        bin_view_type binIndex        = bunch_m->bin.getView();  
+        bin_view_type binIndex        = getBinView();
         dview_type device_histo       = localBinHisto_m.view_device();
         bin_index_type binCount       = getCurrentBinCount();
 
@@ -128,7 +128,7 @@ namespace ParticleBinning {
 
     template <typename BunchType, typename BinningSelector>
     void AdaptBins<BunchType, BinningSelector>::executeInitLocalHistoReductionTeamFor() {
-        bin_view_type binIndex            = bunch_m->bin.getView();
+        bin_view_type binIndex            = getBinView();
         dview_type device_histo           = localBinHisto_m.view_device();
         const bin_index_type binCount     = getCurrentBinCount();
         const size_type localNumParticles = bunch_m->getLocalNum(); 
@@ -258,7 +258,7 @@ namespace ParticleBinning {
     template <typename BunchType, typename BinningSelector>
     template <typename T, unsigned Dim>
     VField_t<T, Dim>& AdaptBins<BunchType, BinningSelector>::LTrans(VField_t<T, Dim>& field, const bin_index_type& currentBin) {
-        bin_view_type binIndex            = bunch_m->bin.getView();
+        bin_view_type binIndex            = getBinView();
         const size_type localNumParticles = bunch_m->getLocalNum(); 
         position_view_type P              = bunch_m->P.getView();
 
@@ -299,7 +299,7 @@ namespace ParticleBinning {
         static IpplTimings::TimerRef isSortedCheck    = IpplTimings::getTimer("isSortedCheck");
         static IpplTimings::TimerRef binSortingAndScatterT = IpplTimings::getTimer("binSortingAndScatter");
 
-        bin_view_type bins          = bunch_m->bin.getView();
+        bin_view_type bins          = getBinView();
         size_type localNumParticles = bunch_m->getLocalNum();
         size_type numBins           = getCurrentBinCount();
         dview_type bin_counts       = localBinHisto_m.view_device();
@@ -345,7 +345,7 @@ namespace ParticleBinning {
 
         // TODO: remove, just for testing purposes (get new bin view, since the old memory address might be overwritten by this action...)
         IpplTimings::startTimer(isSortedCheck);
-        if (!viewIsSorted<bin_index_type>(bunch_m->bin.getView(), indices, localNumParticles)) {
+        if (!viewIsSorted<bin_index_type>(getBinView(), indices, localNumParticles)) {
             msg << "Sorting failed." << endl;
             ippl::Comm->abort();
         } 
