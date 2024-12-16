@@ -335,30 +335,33 @@ template <>
 void PartBunch<double,3>::computeSelfFields() {
     // Start binning and sorting
     std::shared_ptr<AdaptBins_t> bins = this->getBins();
+    VField_t<double, 3>& Etmp = *(this->getTempEField());
     bins->doFullRebin(10); // rebin with 10 bins
     bins->sortContainerByBin(); 
     bins->print(); // For debugging...
 
 
-    Inform m("computeSelfFields ");
+    Inform m("computeSelfFields");
     static IpplTimings::TimerRef SolveTimer = IpplTimings::getTimer("SolveTimer");
     IpplTimings::startTimer(SolveTimer);
 
     m << "Running binned solver routine." << endl;
 
     // Run solver for each bin
-    this->Etmp_m = 0.0; // reset temporary field to zero
+    Etmp = 0.0; // reset temporary field to zero
     for (binIndex_t i = 0; i < bins->getCurrentBinCount(); ++i) {
         // Scatter only for current bin index
-        this->scatterCIC(i);
+        this->scatterCICPerBin(i);
 
         // Run solver: obtains phi_m only for what was scattered in the previous step
         this->fsolver_m->runSolver();
-        this->Etmp_m = this->Etmp_m + bins->LTrans(this->fcontainer_m->getE(), i);
+        Etmp = Etmp + bins->LTrans(this->fcontainer_m->getE(), i);
     }
+    m << "Field for all bins calculated. Gathering now." << endl;
 
     // Gather built up temporary E field to the particles
-    gather(this->pcontainer_m->E, this->Etmp_m, this->pcontainer_m->R);
+    gather(this->pcontainer_m->E, Etmp, this->pcontainer_m->R);
+    m << "Fields gathered." << endl;
 
     spaceChargeEFieldCheck();
     IpplTimings::stopTimer(SolveTimer);
@@ -431,12 +434,12 @@ void PartBunch<double,3>::computeSelfFields() {
     //IpplTimings::stopTimer(SolveTimer);
 }
 
-template <>
-void PartBunch<double,3>::scatterCIC(binIndex_t binIndex) {
+template <typename T, unsigned Dim>
+void PartBunch<T,Dim>::scatterCICPerBin(PartBunch<T,Dim>::binIndex_t binIndex) {
     /**
      * Scatters only particles in bin binIndex. Scatters all particles if binIndex=-1
      */
-    Inform m("scatterCIC ");
+    Inform m("scatterCICPerBin");
     m << "Scattering binIndex = " << binIndex << " to grid." << endl;
 
     this->fcontainer_m->getRho() = 0.0;
