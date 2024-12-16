@@ -392,7 +392,7 @@ public:
 */
     }
 
-    void scatterCIC(); 
+    void scatterCIC(binIndex_t i = -1); 
 
     /*
       Up to here it is like the opaltest
