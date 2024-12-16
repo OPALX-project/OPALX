@@ -432,7 +432,7 @@ void PartBunch<double,3>::computeSelfFields() {
 }
 
 template <>
-void PartBunch<double,3>::scatterCIC(binIndex_t binIndex = -1) {
+void PartBunch<double,3>::scatterCIC(binIndex_t binIndex) {
     /**
      * Scatters only particles in bin binIndex. Scatters all particles if binIndex=-1
      */
