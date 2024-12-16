@@ -333,10 +333,42 @@ void PartBunch<double,3>::bunchUpdate() {
 // ADA
 template <>
 void PartBunch<double,3>::computeSelfFields() {
+    // Start binning and sorting
+    std::shared_ptr<AdaptBins_t> bins = this->getBins();
+    bins->doFullRebin(10); // rebin with 10 bins
+    bins->sortContainerByBin(); 
+    bins->print(); // For debugging...
+
+
     Inform m("computeSelfFields ");
     static IpplTimings::TimerRef SolveTimer = IpplTimings::getTimer("SolveTimer");
     IpplTimings::startTimer(SolveTimer);
 
+    m << "Running binned solver routine." << endl;
+
+    // Run solver for each bin
+    this->Etmp_m = 0.0; // reset temporary field to zero
+    for (binIndex_t i = 0; i < bins->getCurrentBinCount(); ++i) {
+        // Scatter only for current bin index
+        this->scatterCIC(i);
+
+        // Run solver: obtains phi_m only for what was scattered in the previous step
+        this->fsolver_m->runSolver();
+        this->Etmp_m = this->Etmp_m + bins->LTrans(this->fcontainer_m->getE(), i);
+    }
+
+    // Gather built up temporary E field to the particles
+    gather(this->pcontainer_m->E, this->Etmp_m, this->pcontainer_m->R);
+
+    spaceChargeEFieldCheck();
+    IpplTimings::stopTimer(SolveTimer);
+
+
+    /**
+     * Didn't change anything after this for the binning, might be nice for debug output.
+     * However, not necessary once the binning is working. 
+     * Or might need to be modified...
+     */
     Field_t<3>& rho                          = this->fcontainer_m->getRho();
     auto rhoView                             = rho.getView();
     ippl::ParticleAttrib<double>& Q          = this->pcontainer_m->Q;
@@ -390,61 +422,69 @@ void PartBunch<double,3>::computeSelfFields() {
     m << "hr_scaled = " << hr_scaled << endl;
     m << "coupling constant= " << getCouplingConstant() << endl;
     
-    this->fsolver_m->runSolver();    
+    //this->fsolver_m->runSolver();    
 
-    gather(this->pcontainer_m->E, this->fcontainer_m->getE(), this->pcontainer_m->R);
+    //gather(this->pcontainer_m->E, this->fcontainer_m->getE(), this->pcontainer_m->R);
 
-    spaceChargeEFieldCheck();
+    //spaceChargeEFieldCheck();
 
-    IpplTimings::stopTimer(SolveTimer);
+    //IpplTimings::stopTimer(SolveTimer);
 }
 
 template <>
-void PartBunch<double,3>::scatterCIC() {
-        Inform m("scatterCIC ");
+void PartBunch<double,3>::scatterCIC(binIndex_t binIndex = -1) {
+    /**
+     * Scatters only particles in bin binIndex. Scatters all particles if binIndex=-1
+     */
+    Inform m("scatterCIC ");
+    m << "Scattering binIndex = " << binIndex << " to grid." << endl;
 
-        this->fcontainer_m->getRho() = 0.0;
+    this->fcontainer_m->getRho() = 0.0;
 
-        ippl::ParticleAttrib<double>* q          = &this->pcontainer_m->Q;
-        typename Base::particle_position_type* R = &this->pcontainer_m->R;
-        Field_t<3>* rho                          = &this->fcontainer_m->getRho();
-        double Q                                 = this->qi_m * this->getTotalNum();
-        Vector_t<double, 3> rmin                 = rmin_m;
-        Vector_t<double, 3> rmax                 = rmax_m;
-        Vector_t<double, 3> hr                   = hr_m;
+    ippl::ParticleAttrib<double>* q          = &this->pcontainer_m->Q;
+    typename Base::particle_position_type* R = &this->pcontainer_m->R;
+    Field_t<3>* rho                          = &this->fcontainer_m->getRho();
+    double Q                                 = this->qi_m * this->bins_m->getNPartInBin(binIndex, true);
+    Vector_t<double, 3> rmin                 = rmin_m;
+    Vector_t<double, 3> rmax                 = rmax_m;
+    Vector_t<double, 3> hr                   = hr_m;
 
+    if (binIndex == -1) {
         scatter(*q, *rho, *R);
+    } else {
+        scatter(*q, *rho, *R, this->bins_m->getBinIterationPolicy(binIndex), this->bins_m->getHashArray());
+    }
 
-        m << "gammz= " << this->pcontainer_m->getMeanP()[2] << endl;
-        
-        double relError = std::fabs((Q - (*rho).sum()) / Q);
-        size_type TotalParticles = 0;
-        size_type localParticles = this->pcontainer_m->getLocalNum();
+    m << "gammz= " << this->pcontainer_m->getMeanP()[2] << endl;
+    
+    double relError = std::fabs((Q - (*rho).sum()) / Q);
+    size_type TotalParticles = 0;
+    size_type localParticles = this->pcontainer_m->getLocalNum();
 
-        m << "computeSelfFields sum rho " << (*rho).sum() << endl;
-        
-        ippl::Comm->reduce(localParticles, TotalParticles, 1, std::plus<size_type>());
+    m << "computeSelfFields sum rho = " << (*rho).sum() << ", relError = " << relError << endl;
+    
+    ippl::Comm->reduce(localParticles, TotalParticles, 1, std::plus<size_type>());
 
-        if (ippl::Comm->rank() == 0) {
-            if (TotalParticles != totalP_m || relError > 1e-10) {
-                m << "Time step: " << it_m << endl;
-                m << "Total particles in the sim. " << totalP_m << " "
-                  << "after update: " << TotalParticles << endl;
-                m << "Rel. error in charge conservation: " << relError << endl;
-                ippl::Comm->abort();
-            }
+    if (ippl::Comm->rank() == 0) {
+        if (TotalParticles != totalP_m || relError > 1e-10) {
+            m << "Time step: " << it_m << endl;
+            m << "Total particles in the sim. " << totalP_m << " "
+                << "after update: " << TotalParticles << endl;
+            m << "Rel. error in charge conservation: " << relError << endl;
+            ippl::Comm->abort();
         }
+    }
 
-        double cellVolume = std::reduce(hr.begin(), hr.end(), 1., std::multiplies<double>());
-        (*rho)            = (*rho) / cellVolume;
+    double cellVolume = std::reduce(hr.begin(), hr.end(), 1., std::multiplies<double>());
+    (*rho)            = (*rho) / cellVolume;
 
-        // double rhoNorm = norm(*rho);
-        // rho = rho_e - rho_i (only if periodic BCs)
-        if (this->fsolver_m->getStype() != "OPEN") {
-            double size = 1;
-            for (unsigned d = 0; d < 3; d++) {
-                size *= rmax[d] - rmin[d];
-            }
-            *rho = *rho - (Q / size);
+    // double rhoNorm = norm(*rho);
+    // rho = rho_e - rho_i (only if periodic BCs)
+    if (this->fsolver_m->getStype() != "OPEN") {
+        double size = 1;
+        for (unsigned d = 0; d < 3; d++) {
+            size *= rmax[d] - rmin[d];
         }
+        *rho = *rho - (Q / size);
+    }
 }

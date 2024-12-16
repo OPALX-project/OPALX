@@ -48,7 +48,7 @@ public:
     typename Base::particle_position_type E;
 
     /// electric field for gun simulation with bins
-    typename Base::particle_position_type Etmp;
+    typename Base::particle_position_type Etmp; // TODO: might not need this...
 
     /// magnetic field at particle position
     typename Base::particle_position_type B;
