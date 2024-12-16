@@ -300,7 +300,7 @@ namespace ParticleBinning {
          * Note: Only works correctly for rank 0 in an MPI environment.
          */
         void print() {
-            Inform os("PHisto");
+            Inform os("AdaptBins");
             // Only works correct for rank 0
             os << "-----------------------------------------" << endl;
             os << "     Output Global Binning Structure     " << endl;
