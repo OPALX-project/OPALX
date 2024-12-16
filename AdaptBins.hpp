@@ -259,9 +259,10 @@ namespace ParticleBinning {
     template <typename T, unsigned Dim>
     VField_t<T, Dim>& AdaptBins<BunchType, BinningSelector>::LTrans(VField_t<T, Dim>& field, const bin_index_type& currentBin) {
         Inform m("AdaptBins");
-        bin_view_type binIndex            = getBinView();
-        const size_type localNumParticles = bunch_m->getLocalNum(); 
-        position_view_type P              = bunch_m->P.getView();
+        //bin_view_type binIndex            = getBinView();
+        //const size_type localNumParticles = bunch_m->getLocalNum(); 
+        position_view_type P = bunch_m->P.getView();
+        hash_type indices    = sortedIndexArr_m;
 
         // TODO: remove once in OPAL, since it shoud already exist over there!
         // constexpr double c2 = 299792458.0*299792458.0; // Speed of light in m/s
@@ -270,9 +271,9 @@ namespace ParticleBinning {
         // Calculate gamma factor for field back transformation --> TODO: change iteration if decide to use sorted particles!
         // Note that P is saved normalized in OPAL, so technically p/mc
         Vector<T, Dim> gamma_bin2(0.0);
-        Kokkos::parallel_reduce("CalculateGammaFactor", localNumParticles, 
+        Kokkos::parallel_reduce("CalculateGammaFactor", getBinIterationPolicy(currentBin), // localNumParticles, 
             KOKKOS_LAMBDA(const size_type& i, Vector<double, 3>& v2) {
-                Vector<double, 3> v_comp = P(i); 
+                Vector<double, 3> v_comp = P(indices(i)); 
                 v2                      += v_comp*v_comp; // like this for elemntwise multiplication (not .dot...) // v_comp.dot(v_comp) * (binIndex(i) == currentBin); 
             }, Kokkos::Sum<Vector<T, Dim>>(gamma_bin2));
         gamma_bin2 /= getNPartInBin(currentBin); // Now we have <P^2> for this bin
