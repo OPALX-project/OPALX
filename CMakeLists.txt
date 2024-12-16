@@ -83,12 +83,15 @@ if(NOT IPPL_VERSION)
     set(IPPL_VERSION "3.2.0")
     message(STATUS "Defaulting to IPPL-${IPPL_VERSION}")
 endif()
+set(IPPL_BRANCH feature-branch CACHE STRING "Branch of IPPL to use")
 FetchContent_Declare(ippl
     #URL https://github.com/IPPL-framework/ippl/archive/refs/tags/IPPL-${IPPL_VERSION}.tar.gz
     GIT_REPOSITORY https://github.com/IPPL-framework/ippl.git
+    GIT_TAG ${IPPL_BRANCH}
     GIT_SHALLOW True
     DOWNLOAD_EXTRACT_TIMESTAMP True
 )
+message(STATUS "Using IPPL branch: ${IPPL_BRANCH}")
 set(ENABLE_COSMOLOGY OFF CACHE BOOL "Disable Cosmology in IPPL")
 
 FetchContent_MakeAvailable(ippl)
