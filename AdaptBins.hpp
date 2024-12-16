@@ -272,14 +272,14 @@ namespace ParticleBinning {
         // Note that P is saved normalized in OPAL, so technically p/mc
         Vector<T, Dim> gamma_bin2(0.0);
         Kokkos::parallel_reduce("CalculateGammaFactor", getBinIterationPolicy(currentBin), // localNumParticles, 
-            KOKKOS_LAMBDA(const size_type& i, Vector<double, 3>& v2) {
+            KOKKOS_LAMBDA(const size_type& i, Vector<double, 3>& v) {
                 Vector<double, 3> v_comp = P(indices(i)); 
-                v2                      += v_comp*v_comp; // like this for elemntwise multiplication (not .dot...) // v_comp.dot(v_comp) * (binIndex(i) == currentBin); 
+                v                       += v_comp; // like this for elemntwise multiplication (not .dot...) // v_comp.dot(v_comp) * (binIndex(i) == currentBin); 
             }, Kokkos::Sum<Vector<T, Dim>>(gamma_bin2));
-        gamma_bin2 /= getNPartInBin(currentBin); // Now we have <P^2> for this bin
-        gamma_bin2  = -sqrt(1.0 + gamma_bin2); // -1.0 / sqrt(1.0 - gamma_bin2 / c2); // negative sign, since we want the inverse transformation
+        gamma_bin2 /= getNPartInBin(currentBin); // Now we have <P> for this bin
+        gamma_bin2  = -sqrt(1.0 + gamma_bin2*gamma_bin2); // in these units: gamma=sqrt(1 + <P>^2), assuming <P^2>~0 (since bunch per bin should be "considered constant") // -1.0 / sqrt(1.0 - gamma_bin2 / c2); // negative sign, since we want the inverse transformation
         // std::cout << "Gamma factor calculated = " << gamma_bin2 << std::endl;
-        m << "Gamma(binIndex = " << currentBin << ") = " << gamma_bin2 << endl;
+        m << "Gamma(binIndex = " << currentBin << ") = " << -gamma_bin2 << endl;
 
         // Next apply the transformation --> do it manually, since fc->E*gamma does not exist in IPPL...
         ippl::parallel_for("TransformFieldWithVelocity", field.getFieldRangePolicy(), 
