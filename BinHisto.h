@@ -290,7 +290,7 @@ namespace ParticleBinning {
          * @return The device view of the histogram if `UseDualView` is true, otherwise the histogram itself.
          */
         template <typename return_type, typename HistogramType>
-        static constexpr return_type getDeviceView(HistogramType& histo) {
+        static constexpr return_type getDeviceView(HistogramType histo) {
             if constexpr (UseDualView) {
                 return histo.view_device();
             } else {
@@ -309,7 +309,7 @@ namespace ParticleBinning {
          * @return A host view of the histogram object.
          */
         template <typename return_type, typename HistogramType>
-        static constexpr return_type getHostView(HistogramType& histo) {
+        static constexpr return_type getHostView(HistogramType histo) {
             if constexpr (UseDualView) {
                 return histo.view_host();
             } else {
