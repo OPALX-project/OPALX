@@ -22,11 +22,11 @@ namespace ParticleBinning {
      * \var HistoTypeIdentifier::PostSum
      * Indicates the view storing the cumulative sums for post-processing.
      */
-    enum class HistoTypeIdentifier {
+    /*enum class HistoTypeIdentifier {
         Histogram, ///< Main histogram view.
         BinWidth,  ///< Bin width view.
         PostSum    ///< Post-sum view.
-    };
+    };*/
 
 
     template <typename size_type, typename bin_index_type, typename value_type, 
@@ -277,7 +277,7 @@ namespace ParticleBinning {
          * @see sync() After this function you might call sync at some point.
          */
         void modify_host() { if constexpr (UseDualView) histogram_m.modify_host(); }
-        
+
 
         /**
          * @brief Retrieves the device view of the histogram.
