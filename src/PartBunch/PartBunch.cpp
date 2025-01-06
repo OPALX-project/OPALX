@@ -333,11 +333,18 @@ void PartBunch<double,3>::bunchUpdate() {
 // ADA
 template <>
 void PartBunch<double,3>::computeSelfFields() {
+    static IpplTimings::TimerRef MergeBinsTimer = IpplTimings::getTimer("MergingBins");
+
     // Start binning and sorting
     std::shared_ptr<AdaptBins_t> bins = this->getBins();
     VField_t<double, 3>& Etmp = *(this->getTempEField());
-    bins->doFullRebin(10); // rebin with 10 bins
-    bins->sortContainerByBin(); 
+    bins->doFullRebin(bins->getMaxBinCount()); // rebin with 128 bins
+    bins->sortContainerByBin(); // Sort BEFORE, since it generates less atomics overhead with more bins!
+
+    IpplTimings::startTimer(MergeBinsTimer);
+    bins->genAdaptiveHistogram(); // merge bins with width/N_part ratio of 1.0
+    IpplTimings::stopTimer(MergeBinsTimer);
+
     bins->print(); // For debugging...
 
 
