@@ -45,7 +45,7 @@ namespace ParticleBinning {
         
         // Optionally, initialize the histogram to zero
         if (setToZero) {
-            dview_type device_histo = localBinHisto_m.view_device();
+            dview_type device_histo = localBinHisto_m.template getDeviceView<dview_type>(localBinHisto_m.getHistogram());
             Kokkos::deep_copy(device_histo, 0);
             /*Kokkos::parallel_for("initHistogram", numBins, KOKKOS_LAMBDA(const bin_index_type i) {
                 device_histo(i) = 0;
@@ -88,8 +88,7 @@ namespace ParticleBinning {
 
         static IpplTimings::TimerRef assignParticleBins = IpplTimings::getTimer("assignParticleBins");
         IpplTimings::startTimer(assignParticleBins);
-
-        Kokkos::parallel_for("assignParticleBins", bunch_m->getLocalNum(), KOKKOS_LAMBDA(const size_type i) {
+        Kokkos::parallel_for("assignParticleBinsConst", bunch_m->getLocalNum(), KOKKOS_LAMBDA(const size_type& i) {
                 // Access the z-axis position of the i-th particle
                 value_type v = var_selector(i); // localData(i)[2];  
                 
@@ -104,8 +103,8 @@ namespace ParticleBinning {
     template<typename BunchType, typename BinningSelector>
     template<typename ReducerType>
     void AdaptBins<BunchType, BinningSelector>::executeInitLocalHistoReduction(ReducerType& to_reduce) {
-        bin_view_type binIndex        = getBinView();
-        dview_type device_histo       = localBinHisto_m.view_device();
+        bin_view_type binIndex        = getBinView(); 
+        dview_type device_histo       = localBinHisto_m.template getDeviceView<dview_type>(localBinHisto_m.getHistogram());
         bin_index_type binCount       = getCurrentBinCount();
 
         static IpplTimings::TimerRef initLocalHisto = IpplTimings::getTimer("initLocalHistoParallelReduce");
@@ -129,7 +128,7 @@ namespace ParticleBinning {
     template <typename BunchType, typename BinningSelector>
     void AdaptBins<BunchType, BinningSelector>::executeInitLocalHistoReductionTeamFor() {
         bin_view_type binIndex            = getBinView();
-        dview_type device_histo           = localBinHisto_m.view_device();
+        dview_type device_histo           = localBinHisto_m.template getDeviceView<dview_type>(localBinHisto_m.getHistogram());
         const bin_index_type binCount     = getCurrentBinCount();
         const size_type localNumParticles = bunch_m->getLocalNum(); 
 
@@ -229,8 +228,8 @@ namespace ParticleBinning {
 
         
         // Need host mirror, otherwise the data is not available when the histogram is created using CUDA
-        auto localBinHistoHost  = localBinHisto_m.view_host(); 
-        auto globalBinHistoHost = globalBinHisto_m.view_host(); 
+        hview_type localBinHistoHost  = localBinHisto_m.template getHostView<hview_type>(localBinHisto_m.getHistogram()); 
+        hview_type globalBinHistoHost = globalBinHisto_m.template getHostView<hview_type>(globalBinHisto_m.getHistogram()); 
 
         static IpplTimings::TimerRef globalHistoReduce = IpplTimings::getTimer("allReduceGlobalHisto");
         IpplTimings::startTimer(globalHistoReduce);
@@ -307,13 +306,13 @@ namespace ParticleBinning {
         bin_view_type bins          = getBinView();
         size_type localNumParticles = bunch_m->getLocalNum();
         size_type numBins           = getCurrentBinCount();
-        dview_type bin_counts       = localBinHisto_m.view_device();
+        dview_type bin_counts       = localBinHisto_m.template getDeviceView<dview_type>(localBinHisto_m.getHistogram());
 
         IpplTimings::startTimer(argSortBins);
         // Get post sum (already calculated with histogram and saved inside local_bin_histo_post_sum_m), use copy to not modify the original
         Kokkos::View<size_type*> bin_offsets("bin_offsets", numBins + 1);
         // typename d_histo_type::dview_type postSumView = localBinHisto_m.view_device(HistoTypeIdentifier::PostSum);
-        Kokkos::deep_copy(bin_offsets, localBinHisto_m.view_device(HistoTypeIdentifier::PostSum));
+        Kokkos::deep_copy(bin_offsets, localBinHisto_m.template getDeviceView<dview_type>(localBinHisto_m.getPostSum()));
 
         sortedIndexArr_m  = hash_type("indices", localNumParticles);
         hash_type indices = sortedIndexArr_m;

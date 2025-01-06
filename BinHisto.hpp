@@ -16,7 +16,8 @@ namespace ParticleBinning {
     }
 
     template <typename size_type, typename bin_index_type, typename value_type, bool UseDualView, class... Properties>
-    void Histogram<size_type, bin_index_type, value_type, UseDualView, Properties...>::mergeBins(value_type maxBinRatio) {
+    Histogram<size_type, bin_index_type, value_type, UseDualView, Properties...>::index_transform_type
+    Histogram<size_type, bin_index_type, value_type, UseDualView, Properties...>::mergeBins(value_type maxBinRatio) {
         // TODO 
         // Should merge neighbouring bins such that the width/N_part ratio is roughly maxBinRatio.
         // TODO: Find algorithm for that
@@ -27,17 +28,19 @@ namespace ParticleBinning {
         if constexpr (!UseDualView) {
             m << "This does not work if the histogram is not saved in a DualView, since it needs host access to the data." << endl;
             ippl::Comm->abort();
-            return;
+            return index_transform_type("error", 0);
         }
 
         // Get host views
-        hview_type oldHistHost       = view_host(HistoTypeIdentifier::Histogram);
-        hwidth_view_type oldBinWHost = view_host<hwidth_view_type>(HistoTypeIdentifier::BinWidth);
+        hview_type oldHistHost       = getHostView<hview_type>(histogram_m);
+        hwidth_view_type oldBinWHost = getHostView<hwidth_view_type>(binWidths_m);
 
         const bin_index_type n = numBins_m;
         if (n < 2) {
             m << "Not merging, since n_bins = " << n << " is too small!" << endl;
-            return;
+            index_transform_type oldToNewBinsView("oldToNewBinsView", n);
+            Kokkos::deep_copy(oldToNewBinsView, 0);
+            return oldToNewBinsView;
         }
 
 
@@ -170,6 +173,18 @@ namespace ParticleBinning {
             newWidths[j] = sumWidth;
         }
 
+        // Also generate a lookup table that maps the old bin index to the new bin index
+        index_transform_type oldToNewBinsView("oldToNewBinsView", n);
+        // For j in [0 .. mergedBinsCount-1], the range of old bins is [boundaries[j], boundaries[j+1]-1].
+        // So fill oldToNewBinsView(i) = j for i in that range.
+        for (bin_index_type j = 0; j < mergedBinsCount; ++j) {
+            bin_index_type startIdx = boundaries[j];
+            bin_index_type endIdx   = boundaries[j+1]; // exclusive
+            for (bin_index_type i = startIdx; i < endIdx; ++i) {
+                oldToNewBinsView(i) = j;
+            }
+        }
+
 
         // ----------------------------------------------------------------
         // 7) Overwrite the old histogram arrays with the new merged ones
@@ -183,8 +198,8 @@ namespace ParticleBinning {
         // Copy data into the new Kokkos Views (on host)
         {
             // These return the views initialized view lines above
-            hview_type newHistHost        = view_host(HistoTypeIdentifier::Histogram);
-            hwidth_view_type newWidthHost = view_host<hwidth_view_type>(HistoTypeIdentifier::BinWidth);
+            hview_type newHistHost        = getHostView<hview_type>(histogram_m);
+            hwidth_view_type newWidthHost = getHostView<hwidth_view_type>(binWidths_m);
             for (bin_index_type i = 0; i < numBins_m; ++i) {
                 newHistHost(i)   = newCounts[i];
                 newWidthHost(i)  = newWidths[i];
@@ -212,6 +227,8 @@ namespace ParticleBinning {
         m << "Re-binned from " << n << " bins down to " 
           << numBins_m << " bins (optimal partition for, ratio <= " 
           << maxBinRatio << ")." << endl;
+
+        return oldToNewBinsView;
     }
 
 

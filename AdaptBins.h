@@ -64,8 +64,11 @@ namespace ParticleBinning {
         using hash_type              = ippl::detail::hash_type<Kokkos::DefaultExecutionSpace::memory_space>;
 
         //using histo_type      = Histogram<size_type, bin_index_type, value_type>;
-        using d_histo_type = Histogram<size_type, bin_index_type, value_type, true>;
-        using dview_type   = typename d_histo_type::dview_type;
+        using d_histo_type         = Histogram<size_type, bin_index_type, value_type, true>;
+        using dview_type           = typename d_histo_type::dview_type;
+        using hview_type           = typename d_histo_type::hview_type;
+        using dwidth_view_type     = typename d_histo_type::dwidth_view_type;
+        using index_transform_type = typename d_histo_type::index_transform_type;
 
         /**
          * @brief Constructs an AdaptBins object with a specified maximum number of bins.
@@ -105,6 +108,13 @@ namespace ParticleBinning {
          * @return The maximum allowed number of bins.
          */
         bin_index_type getMaxBinCount() const { return maxBins_m; }
+
+        /**
+         * @brief Gets the average binwidth.
+         * 
+         * @return Corresponds to (xmax_m - xmin_m)/n_bins.
+         */
+        value_type getBinWidth() const { return binWidth_m; }
 
         /**
          * @brief Sets the current number of bins and adjusts the bin width.
@@ -286,9 +296,9 @@ namespace ParticleBinning {
              */
             if (binIndex < 0 || binIndex >= getCurrentBinCount()) { return bunch_m->getTotalNum(); }
             if (global) {
-                return globalBinHisto_m.view_host()(binIndex);
+                return globalBinHisto_m.getNPartInBin(binIndex);
             } else {
-                return localBinHisto_m.view_host()(binIndex);
+                return localBinHisto_m.getNPartInBin(binIndex);
             }
         }
 
@@ -298,6 +308,31 @@ namespace ParticleBinning {
             return localBinHisto_m.getBinIterationPolicy(binIndex);
             //auto localPostSumHost = localBinHistoPostSum_m.view_host();
             //return Kokkos::RangePolicy<>(localPostSumHost(binIndex), localPostSumHost(binIndex + 1));
+        }
+
+        void genAdaptiveHistogram() {
+            // 1. Run merging algorithm on globalHisto --> generates global binWidths array and postSum.
+            // Note: Assumes that the histograms are properly initialized.
+            double tmp_ratio                  = binWidth_m*currentBins_m / bunch_m->getTotalNum()  /  10; // should be ~10 bins 
+            index_transform_type adaptLookup  = globalBinHisto_m.mergeBins(tmp_ratio);
+            dview_type adaptLookupDevice      = dview_type("adaptLookupDevice", currentBins_m);
+            Kokkos::deep_copy(adaptLookupDevice, adaptLookup);
+            bin_view_type binIndex            = getBinView();
+
+            setCurrentBinCount(globalBinHisto_m.getCurrentBinCount());
+
+            // 2. Map old indices to the new histogram ("Rebin")
+            Kokkos::parallel_for("RebinParticles", bunch_m->getLocalNum(), KOKKOS_LAMBDA(const size_type& i) {
+                bin_index_type oldBin = binIndex(i);
+                binIndex(i) = adaptLookupDevice(oldBin);
+            });
+
+            // 3. Update local histogram with new indices
+            instantiateHistogram(true);
+            initLocalHisto(); // Runs reducer on new bin indices (also does the sync)
+
+            localBinHisto_m.initPostSum(); // only init postsum, since the widths are not constant anymore
+            localBinHisto_m.copyBinWidths(globalBinHisto_m);
         }
 
         /**
@@ -316,7 +351,7 @@ namespace ParticleBinning {
             os << "Bins = " << numBins << " hBin = " << binWidth_m << endl;
             os << "Bin #;Val" << endl;
 
-            auto globalHostHisto = globalBinHisto_m.view_host();
+            hview_type globalHostHisto = globalBinHisto_m.template getHostView<hview_type>(globalBinHisto_m.getHistogram());
 
             // Only rank 0 prints the global histogram
             size_type total = 0;
@@ -327,6 +362,9 @@ namespace ParticleBinning {
             }   
             os << "Total = " << total << endl;
             os << "-----------------------------------------" << endl;
+
+            // TODO
+            globalBinHisto_m.printHistogram();
         }
 
         /**
