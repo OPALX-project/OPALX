@@ -279,7 +279,7 @@ namespace ParticleBinning {
         gamma_bin2 /= getNPartInBin(currentBin); // Now we have <P> for this bin
         gamma_bin2  = -sqrt(1.0 + gamma_bin2*gamma_bin2); // in these units: gamma=sqrt(1 + <P>^2), assuming <P^2>~0 (since bunch per bin should be "considered constant") // -1.0 / sqrt(1.0 - gamma_bin2 / c2); // negative sign, since we want the inverse transformation
         // std::cout << "Gamma factor calculated = " << gamma_bin2 << std::endl;
-        m << "Gamma(binIndex = " << currentBin << ") = " << -gamma_bin2 << endl;
+        m << "Gamma(binIndex = " << currentBin << ") = -" << gamma_bin2 << endl;
 
         // Next apply the transformation --> do it manually, since fc->E*gamma does not exist in IPPL...
         ippl::parallel_for("TransformFieldWithVelocity", field.getFieldRangePolicy(), 

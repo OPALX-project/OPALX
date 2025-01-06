@@ -42,6 +42,14 @@ namespace ParticleBinning {
                                               typename view_type::t_host, 
                                               view_type>;
 
+        using width_view_type = std::conditional_t<UseDualView,
+                                                   Kokkos::DualView<value_type*, Properties...>,
+                                                   Kokkos::View<value_type*, Properties...>>;
+                                                   
+        using hwidth_view_type = std::conditional_t<UseDualView, 
+                                                   typename width_view_type::t_host, 
+                                                   width_view_type>;
+
         /**
          * @brief Default constructor for the Histogram class.
          */
@@ -125,7 +133,7 @@ namespace ParticleBinning {
          */
         void instantiateHistograms() {
             histogram_m = view_type("histogram", numBins_m);
-            binWidths_m = view_type("binWidths", numBins_m - 1);
+            binWidths_m = width_view_type("binWidths", numBins_m);
             postSum_m   = view_type("postSum", numBins_m + 1);
         }
 
@@ -259,18 +267,19 @@ namespace ParticleBinning {
          * @note If an unknown histogram type identifier is provided, an error message is printed,
          *       the program is aborted.
          */
-        hview_type view_host(HistoTypeIdentifier histo_type = HistoTypeIdentifier::Histogram) { 
+        template <typename return_type = hview_type>
+        return_type view_host(HistoTypeIdentifier histo_type = HistoTypeIdentifier::Histogram) { 
             switch (histo_type) {
                 case HistoTypeIdentifier::Histogram:
-                    return getHostView(histogram_m);
+                    return getHostView<return_type>(histogram_m);
                 case HistoTypeIdentifier::BinWidth:
-                    return getHostView(binWidths_m);
+                    return getHostView<return_type>(binWidths_m);
                 case HistoTypeIdentifier::PostSum:
-                    return getHostView(postSum_m);
+                    return getHostView<return_type>(postSum_m);
                 default:
                     std::cerr << "Error: Unknown histogram type identifier!" << std::endl;
                     ippl::Comm->abort();
-                    return getHostView(histogram_m); // just so it compiles...
+                    return getHostView<return_type>(histogram_m); // just so it compiles...
             }
         }
 
@@ -282,18 +291,19 @@ namespace ParticleBinning {
          *
          * @see view_host() for similar functionality on the host side and more explanation.
          */
-        dview_type view_device(HistoTypeIdentifier histo_type = HistoTypeIdentifier::Histogram) { 
+        template <typename return_type = dview_type>
+        return_type view_device(HistoTypeIdentifier histo_type = HistoTypeIdentifier::Histogram) { 
             switch (histo_type) {
                 case HistoTypeIdentifier::Histogram:
-                    return getDeviceView(histogram_m);
+                    return getDeviceView<return_type>(histogram_m);
                 case HistoTypeIdentifier::BinWidth:
-                    return getDeviceView(binWidths_m);
+                    return getDeviceView<return_type>(binWidths_m);
                 case HistoTypeIdentifier::PostSum:
-                    return getDeviceView(postSum_m);
+                    return getDeviceView<return_type>(postSum_m);
                 default:
                     std::cerr << "Error: Unknown histogram type identifier!" << std::endl;
                     ippl::Comm->abort();
-                    return getDeviceView(histogram_m); // just so it compiles...
+                    return getDeviceView<return_type>(histogram_m); // just so it compiles...
             }
         }
 
@@ -307,8 +317,8 @@ namespace ParticleBinning {
          * @param histo Reference to the histogram.
          * @return The device view of the histogram if `UseDualView` is true, otherwise the histogram itself.
          */
-        template <typename HistogramType>
-        static constexpr dview_type getDeviceView(HistogramType& histo) {
+        template <typename return_type, typename HistogramType>
+        static constexpr return_type getDeviceView(HistogramType& histo) {
             if constexpr (UseDualView) {
                 return histo.view_device();
             } else {
@@ -326,8 +336,8 @@ namespace ParticleBinning {
          * @param histo The histogram object from which to retrieve the host view.
          * @return A host view of the histogram object.
          */
-        template <typename HistogramType>
-        static constexpr hview_type getHostView(HistogramType& histo) {
+        template <typename return_type, typename HistogramType>
+        static constexpr return_type getHostView(HistogramType& histo) {
             if constexpr (UseDualView) {
                 return histo.view_host();
             } else {
@@ -346,9 +356,9 @@ namespace ParticleBinning {
         bin_index_type numBins_m;   /// \brief Number of bins in the histogram.
         value_type totalBinWidth_m; /// \brief Total width of all bins combined.
 
-        view_type histogram_m;      /// \brief View storing the particle counts in each bin.
-        view_type binWidths_m;      /// \brief View storing the widths of the bins.
-        view_type postSum_m;        /// \brief View storing the cumulative sum of bin counts (used in sorting, generating range policies).
+        view_type       histogram_m;      /// \brief View storing the particle counts in each bin.
+        width_view_type binWidths_m;      /// \brief View storing the widths of the bins.
+        view_type       postSum_m;        /// \brief View storing the cumulative sum of bin counts (used in sorting, generating range policies).
 
         /**
          * @brief Copies the fields from another Histogram object.

@@ -100,6 +100,13 @@ namespace ParticleBinning {
         bin_index_type getCurrentBinCount() const { return currentBins_m; }
 
         /**
+         * @brief Gets the maximum number of bins.
+         * 
+         * @return The maximum allowed number of bins.
+         */
+        bin_index_type getMaxBinCount() const { return maxBins_m; }
+
+        /**
          * @brief Sets the current number of bins and adjusts the bin width.
          * 
          * @param nBins The new number of bins.
@@ -397,7 +404,7 @@ namespace ParticleBinning {
     private:
         std::shared_ptr<BunchType> bunch_m;    ///< Shared pointer to the particle container.
         BinningSelector var_selector_m;        ///< Variable selector for binning.
-        bin_index_type maxBins_m;              ///< Maximum number of bins.
+        const bin_index_type maxBins_m;              ///< Maximum number of bins.
         bin_index_type currentBins_m;          ///< Current number of bins in use.
         value_type xMin_m;                     ///< Minimum boundary for bins.
         value_type xMax_m;                     ///< Maximum boundary for bins.
