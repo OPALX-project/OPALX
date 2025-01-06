@@ -16,10 +16,58 @@ using Dist_t = ippl::random::NormalDistribution<double, 3>;
 class FlatTop : public SamplingBase {
 public:
     FlatTop(std::shared_ptr<ParticleContainer_t> &pc, std::shared_ptr<FieldContainer_t> &fc, std::shared_ptr<Distribution_t> &opalDist)
-        : SamplingBase(pc, fc, opalDist) {}
+        : SamplingBase(pc, fc, opalDist), rand_pool_m(determineRandInit()), setParameters(opalDist)) {}
 
-    void generateUniformDisk(size_t& numberOfParticles, Vector_t<double, 3> nr, GeneratorPool &rand_pool) {
+private:
+    GeneratorPool rand_pool_m;
+    double flattopTime_m;
+    double normalizedFlankArea_m;
+    double distArea_m;
+    double sigmaTFall_m;
+    double sigmaTRise_m;
+    Vector_t<double, 3> cutoffR_m;
+    double fallTime_m;
+    double flattopTime_m;
+    double riseTime_m;
+    bool emitting_m;
 
+    static size_t determineRandInit() {
+        size_t randInit;
+        if (Options::seed == -1) {
+            randInit = 1234567;
+            *gmsg << "* Seed = " << randInit << " on all ranks" << endl;
+        } else {
+            randInit = static_cast<size_t>(Options::seed + 100 * ippl::Comm->rank());
+        }
+        return randInit;
+    }
+
+    static setParameters(const std::shared_ptr<Distribution_t> &opalDist) {
+        emitting_m = opalDist->emitting_m;
+        // time span of fall is [0, fallTime]
+        sigmaTFall_m = opalDist_m->getSigmaTFall();
+        cutoffR_m = opalDist_m->getCutoffR();
+        fallTime_m = sigmaTFall_m * cutoffR_m[2]; // fall is [0, fallTime]
+
+        // time of span flattop is [fallTime, fallTime+flattopTime]
+        flattopTime_m = opalDist->getTPulseLengthFWHM()
+            - std::sqrt(2.0 * std::log(2.0)) * (opalDist->getSigmaTRise() + opalDist->getSigmaTFall());
+        if (flattopTime_m < 0.0) {
+            flattopTime_m = 0.0;
+        }
+
+        // time span of rise is [fallTime+flattopTime, fallTime+flattopTime+riseTime]
+        riseTime_m = opalDist_m->getSigmaTRise() * opalDist_m->getCutoffR()[2];
+
+        normalizedFlankArea_m = 0.5 * std::sqrt(Physics::two_pi) * std::erf(opalDist_m->getCutoffR()[2] / std::sqrt(2.0));
+        distArea_m = flattopTime_m
+                + (opalDist_m->getSigmaTRise() + opalDist_m->getSigmaTFall()) * normalizedFlankArea_m;
+    }
+
+public:
+    void generateUniformDisk(size_t& numberOfParticles) {
+
+        GeneratorPool rand_pool = rand_pool_m;
         Vector_t<double, 3> rmin;
         Vector_t<double, 3> rmax;
         Vector_t<double, 3> hr;
@@ -62,7 +110,44 @@ public:
         Kokkos::fence();
     }
 
-    void generateLongFlattopT(size_t& nlocal, GeneratorPool &rand_pool){
+    double FlatTopProfile(double t){
+        double t0;
+        if(t<fallTime_m){
+            t0 = fallTime_m;
+            return exp( -pow((t-t0)/fallTime_m,2) /2. ) / std::sqrt(Physics::two_pi) / sigmaTFall_m;
+        }
+        else if( t>fallTime_m && t<fallTime_m + flattopTime_m){
+            return 1.
+        }
+        else if(t>fallTime_m + flattopTime_m && t < fallTime_m + flattopTime_m + riseTime_m){
+            t0 = fallTime_m + flattopTime_m + riseTime_m;
+            return exp( -pow((t-t0)/sigmaTRise_m,2)/2. ) / std::sqrt(Physics::two_pi) / sigmaTRise_m;
+        }
+        else
+            return 0.;
+    }
+
+    double countEnteringParticles(double t0, double tf){
+        double tmin, tmax;
+        if(t0 < fallTime ){
+            tmin = t0;
+            tmax = min(tf, fallTime);
+        }
+        else if( tf > fallTime && t0 < fallTime + flattoptime){
+            tmin = max(t0, fallTime); // in case t0<fallTime, tmin should be fallTime
+            tmax = min(tf, fallTime+flattopTime); //  in case tf>fallTime+flattopTime, tmax should be fallTime+flattopTime
+        }
+        else if( tf > fallTime + flattopTime && t0 < fallTime + flattopTime + riseTime){
+            tmin = max(t0, fallTime+flattopTime);
+            tmax = min(tf, fallTime+flattopTime+riseTime);
+        }
+        double tArea = 0.5 * ( FlatTopProfile(tmin) + FlatTopProfile(tmax) ); // Trapezoidal rule
+        return totalN_m * tArea / distArea;
+    }
+
+    void generateLongFlattopT(size_t& nlocal){
+
+        GeneratorPool rand_pool = rand_pool_m;
 
         using size_type = ippl::detail::size_type;
         view_type &Rview = pc_m->R.getView();
@@ -76,7 +161,6 @@ public:
               flattopTime = 0.0;
 
         double normalizedFlankArea = 0.5 * std::sqrt(Physics::two_pi) * std::erf(opalDist_m->getCutoffR()[2] / std::sqrt(2.0));
-        //gsl_sf_erf(opalDist_m->getCutoffR()[2] / std::sqrt(2.0));
         double distArea = flattopTime
                 + (opalDist_m->getSigmaTRise() + opalDist_m->getSigmaTFall()) * normalizedFlankArea;
 
@@ -221,33 +305,31 @@ public:
 
     }
 
-    void generateParticles(size_t& numberOfParticles, Vector_t<double, 3> nr) override {
+    void generateParticles(size_t& numberOfParticles) override {
+        if(!emitting_m){
+            *gmsg << "* generate particles on a disc" << endl;
+            generateUniformDisk(numberOfParticles);
 
-        size_t randInit;
-        if (Options::seed == -1) {
-            randInit = 1234567;
-            *gmsg << "* Seed = " << randInit << " on all ranks" << endl;
+            size_type nlocal = pc_m->getLocalNum();
+
+            *gmsg << "* sample particle time" << endl;
+            generateLongFlattopT(nlocal);
+
+            *gmsg << "* shift beam to have negative time" << endl;
+
+            setEmissionTime();
+            shiftBeam(nlocal);
         }
-	else
-            randInit = (size_t)(Options::seed + 100 * ippl::Comm->rank());
+        else{
+            // TODO: somehow, we need to bring t and dt here
+            n_new = countEnteringParticles(t, t + dt);
 
-        GeneratorPool rand_pool(randInit);
+            *gmsg << "* generate particles on a disc" << endl;
+            generateUniformDisk(n_new);// TODO: make sure that the ranges here are from nlocal to nlocal+n_new
 
-        *gmsg << "* generate particles on a disc" << endl;
-        generateUniformDisk(numberOfParticles, nr, rand_pool);
-
-        size_type nlocal = pc_m->getLocalNum();
-
-        *gmsg << "* sample particle time" << endl;
-        generateLongFlattopT(nlocal, rand_pool);
-
-        *gmsg << "* shift beam to have negative time" << endl;
-
-        setEmissionTime();
-        shiftBeam(nlocal);
-
+        }
         *gmsg << "* Done with flat top particle generation" << endl;
-
+/*
         auto tViewDevice  = pc_m->t.getView();
         auto tView = Kokkos::create_mirror_view(tViewDevice);
         Kokkos::deep_copy(tView,tViewDevice);
@@ -263,6 +345,7 @@ public:
         }
 
         file.close();
+*/
     }
 };
 #endif
