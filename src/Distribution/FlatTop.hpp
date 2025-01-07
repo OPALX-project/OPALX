@@ -49,26 +49,26 @@ private:
         emitting_m = opalDist->emitting_m;
         // time span of fall is [0, fallTime]
         sigmaTFall_m = opalDist_m->getSigmaTFall();
+        sigmaTRise_m = opalDist_m->getSigmaTRise();
         cutoffR_m = opalDist_m->getCutoffR();
         fallTime_m = sigmaTFall_m * cutoffR_m[2]; // fall is [0, fallTime]
 
         // time of span flattop is [fallTime, fallTime+flattopTime]
         flattopTime_m = opalDist->getTPulseLengthFWHM()
-            - std::sqrt(2.0 * std::log(2.0)) * (opalDist->getSigmaTRise() + opalDist->getSigmaTFall());
+            - std::sqrt(2.0 * std::log(2.0)) * (sigmaTRise_m + sigmaTFall_m);
         if (flattopTime_m < 0.0) {
             flattopTime_m = 0.0;
         }
 
         // time span of rise is [fallTime+flattopTime, fallTime+flattopTime+riseTime]
-        riseTime_m = opalDist_m->getSigmaTRise() * opalDist_m->getCutoffR()[2];
+        riseTime_m = sigmaTRise_m * cutoffR_m[2];
 
         // These expression are take from the old OPAL
         // I think normalizedFlankArea is int_0^{cutoff} exp(-(x/sigma)^2/2 ) / sigma
         // Instead of int_0^{cutoff} exp(-(x/sigma)^2/2 ) / sqrt(2*pi) / sigma, which is strange!
         // So the distribution of tails are exp(-(x/sigma)^2/2 ) and not Gaussian!
-        normalizedFlankArea_m = 0.5 * std::sqrt(Physics::two_pi) * std::erf(opalDist_m->getCutoffR()[2] / std::sqrt(2.0));
-        distArea_m = flattopTime_m
-                + (opalDist_m->getSigmaTRise() + opalDist_m->getSigmaTFall()) * normalizedFlankArea_m;
+        normalizedFlankArea_m = 0.5 * std::sqrt(Physics::two_pi) * std::erf(cutoffR_m[2] / std::sqrt(2.0));
+        distArea_m = flattopTime_m + (sigmaTRise_m + sigmaTFall_m) * normalizedFlankArea_m;
     }
 
 public:
@@ -97,6 +97,7 @@ public:
                 Rview(j)[2]  = 0.0;
                 Pview(j)[0] = 0.0;
                 Pview(j)[1] = 0.0;
+                Pview(j)[2] = 0.0;
         });
         Kokkos::fence();
     }
@@ -106,7 +107,6 @@ public:
         GeneratorPool rand_pool = rand_pool_m;
 
         view_type &Rview = pc_m->R.getView();
-        view_type &Pview = pc_m->P.getView();
         auto &tview = pc_m->t.getView();
 
         // Find number of particles in rise, fall and flat top.
@@ -196,11 +196,10 @@ public:
                 subview(j) += + sigmaTFall * cutoffR[2] + flattopTime;
         });
 
-        // Set Pz=Rz=0
+        // Set Rz=0
         Kokkos::parallel_for(
                "RzPz=0", nlocal, KOKKOS_LAMBDA(const size_t j) {
                Rview(j)[2] = 0.0;
-               Pview(j)[2] = 0.0;
         });
 
         // Assume tview is Kokkos::View<ippl::Vector<double, 1>*>
@@ -258,20 +257,21 @@ public:
         // initial allocation is similar for both emitting and non-emitting cases
         allocateParticles(numberOfParticles);
 
-        if(!emitting_m){
+        //if(!emitting_m){
+            size_type nlocal = pc_m->getLocalNum();
+
             *gmsg << "* generate particles on a disc" << endl;
-            generateUniformDisk(numberOfParticles);
+            generateUniformDisk(0, nlocal);
 
             *gmsg << "* sample particle time" << endl;
-            size_type nlocal = pc_m->getLocalNum();
             generateLongFlattopT(nlocal);
 
             *gmsg << "* shift beam to have negative time" << endl;
 
             setEmissionTime();
             shiftBeam(nlocal);
-        }
-/*
+        //}
+
         auto tViewDevice  = pc_m->t.getView();
         auto tView = Kokkos::create_mirror_view(tViewDevice);
         Kokkos::deep_copy(tView,tViewDevice);
@@ -287,7 +287,6 @@ public:
         }
 
         file.close();
-*/
     }
 
     double FlatTopProfile(double t){
