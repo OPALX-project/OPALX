@@ -16,9 +16,12 @@ using Dist_t = ippl::random::NormalDistribution<double, 3>;
 class FlatTop : public SamplingBase {
 public:
     FlatTop(std::shared_ptr<ParticleContainer_t> &pc, std::shared_ptr<FieldContainer_t> &fc, std::shared_ptr<Distribution_t> &opalDist)
-        : SamplingBase(pc, fc, opalDist), rand_pool_m(determineRandInit()), setParameters(opalDist)) {}
+        : SamplingBase(pc, fc, opalDist), rand_pool_m(determineRandInit()) {
+            setParameters(opalDist);
+        }
 
 private:
+    using size_type = ippl::detail::size_type;
     GeneratorPool rand_pool_m;
     double flattopTime_m;
     double normalizedFlankArea_m;
@@ -27,9 +30,9 @@ private:
     double sigmaTRise_m;
     Vector_t<double, 3> cutoffR_m;
     double fallTime_m;
-    double flattopTime_m;
     double riseTime_m;
     bool emitting_m;
+    size_type totalN_m;
 
     static size_t determineRandInit() {
         size_t randInit;
@@ -42,7 +45,7 @@ private:
         return randInit;
     }
 
-    static setParameters(const std::shared_ptr<Distribution_t> &opalDist) {
+    void setParameters(const std::shared_ptr<Distribution_t> &opalDist) {
         emitting_m = opalDist->emitting_m;
         // time span of fall is [0, fallTime]
         sigmaTFall_m = opalDist_m->getSigmaTFall();
@@ -65,7 +68,7 @@ private:
     }
 
 public:
-    void generateUniformDisk(size_t& numberOfParticles) {
+    void generateUniformDisk(size_type nlocal=0, size_t nNew=0) {
 
         GeneratorPool rand_pool = rand_pool_m;
         Vector_t<double, 3> rmin;
@@ -75,27 +78,11 @@ public:
         view_type &Rview = pc_m->R.getView();
         view_type &Pview = pc_m->P.getView();
 
-        MPI_Comm comm = MPI_COMM_WORLD;
-        int nranks;
-        int rank;
-        MPI_Comm_size(comm, &nranks);
-        MPI_Comm_rank(comm, &rank);
-
-        size_type nlocal = floor(numberOfParticles/nranks);
-
-        size_t remaining = numberOfParticles - nlocal*nranks;
-
-        if(remaining>0 && rank==0){
-            nlocal += remaining;
-        }
-
-        pc_m->create(nlocal);
-
         double pi = Physics::pi;
         Vector_t<double, 3> sigmaR = opalDist_m->getSigmaR();
         // Sample (Rx,Ry) on a unit ring, then scale with sigmaRx and sigmaRy, set Px=Py=0
         Kokkos::parallel_for(
-               "unitDisk", nlocal, KOKKOS_LAMBDA(const size_t j) {
+               "unitDisk", Kokkos::RangePolicy<>(nlocal, nNew), KOKKOS_LAMBDA(const size_t j) {
                 auto generator = rand_pool.get_state();
                 double r = Kokkos::sqrt( generator.drand(0., 1.) );
                 double theta = 2.0 * pi * generator.drand(0., 1.);
@@ -110,46 +97,10 @@ public:
         Kokkos::fence();
     }
 
-    double FlatTopProfile(double t){
-        double t0;
-        if(t<fallTime_m){
-            t0 = fallTime_m;
-            return exp( -pow((t-t0)/fallTime_m,2) /2. ) / std::sqrt(Physics::two_pi) / sigmaTFall_m;
-        }
-        else if( t>fallTime_m && t<fallTime_m + flattopTime_m){
-            return 1.
-        }
-        else if(t>fallTime_m + flattopTime_m && t < fallTime_m + flattopTime_m + riseTime_m){
-            t0 = fallTime_m + flattopTime_m + riseTime_m;
-            return exp( -pow((t-t0)/sigmaTRise_m,2)/2. ) / std::sqrt(Physics::two_pi) / sigmaTRise_m;
-        }
-        else
-            return 0.;
-    }
-
-    double countEnteringParticles(double t0, double tf){
-        double tmin, tmax;
-        if(t0 < fallTime ){
-            tmin = t0;
-            tmax = min(tf, fallTime);
-        }
-        else if( tf > fallTime && t0 < fallTime + flattoptime){
-            tmin = max(t0, fallTime); // in case t0<fallTime, tmin should be fallTime
-            tmax = min(tf, fallTime+flattopTime); //  in case tf>fallTime+flattopTime, tmax should be fallTime+flattopTime
-        }
-        else if( tf > fallTime + flattopTime && t0 < fallTime + flattopTime + riseTime){
-            tmin = max(t0, fallTime+flattopTime);
-            tmax = min(tf, fallTime+flattopTime+riseTime);
-        }
-        double tArea = 0.5 * ( FlatTopProfile(tmin) + FlatTopProfile(tmax) ); // Trapezoidal rule
-        return totalN_m * tArea / distArea;
-    }
-
-    void generateLongFlattopT(size_t& nlocal){
+    void generateLongFlattopT(size_type nlocal){
 
         GeneratorPool rand_pool = rand_pool_m;
 
-        using size_type = ippl::detail::size_type;
         view_type &Rview = pc_m->R.getView();
         view_type &Pview = pc_m->P.getView();
         auto &tview = pc_m->t.getView();
@@ -160,6 +111,10 @@ public:
         if (flattopTime < 0.0)
               flattopTime = 0.0;
 
+        // These expression are take from the old OPAL
+        // I think normalizedFlankArea is int_0^{cutoff} exp(-(x/sigma)^2/2 ) / sigma
+        // Instead of int_0^{cutoff} exp(-(x/sigma)^2/2 ) / sqrt(2*pi) / sigma, which is strange!
+        // So the distribution of tails are exp(-(x/sigma)^2/2 ) and not Gaussian!
         double normalizedFlankArea = 0.5 * std::sqrt(Physics::two_pi) * std::erf(opalDist_m->getCutoffR()[2] / std::sqrt(2.0));
         double distArea = flattopTime
                 + (opalDist_m->getSigmaTRise() + opalDist_m->getSigmaTFall()) * normalizedFlankArea;
@@ -305,14 +260,17 @@ public:
 
     }
 
-    void generateParticles(size_t& numberOfParticles) override {
+    void generateParticles(size_t& numberOfParticles, Vector_t<double, 3> nr) override {
+
+        // initial allocation is similar for both emitting and non-emitting cases
+        allocateParticles(numberOfParticles);
+
         if(!emitting_m){
             *gmsg << "* generate particles on a disc" << endl;
             generateUniformDisk(numberOfParticles);
 
-            size_type nlocal = pc_m->getLocalNum();
-
             *gmsg << "* sample particle time" << endl;
+            size_type nlocal = pc_m->getLocalNum();
             generateLongFlattopT(nlocal);
 
             *gmsg << "* shift beam to have negative time" << endl;
@@ -320,15 +278,6 @@ public:
             setEmissionTime();
             shiftBeam(nlocal);
         }
-        else{
-            // TODO: somehow, we need to bring t and dt here
-            n_new = countEnteringParticles(t, t + dt);
-
-            *gmsg << "* generate particles on a disc" << endl;
-            generateUniformDisk(n_new);// TODO: make sure that the ranges here are from nlocal to nlocal+n_new
-
-        }
-        *gmsg << "* Done with flat top particle generation" << endl;
 /*
         auto tViewDevice  = pc_m->t.getView();
         auto tView = Kokkos::create_mirror_view(tViewDevice);
@@ -346,6 +295,105 @@ public:
 
         file.close();
 */
+    }
+
+    double FlatTopProfile(double t){
+        double t0;
+        if(t<fallTime_m){
+            t0 = fallTime_m;
+            return exp( -pow((t-t0)/fallTime_m,2) /2. );
+            //  In the old opal, tails seem to be exp(-x^2/sigma^2/2) rather than Gaussian with normalizing factor.
+        }
+	else if( t>fallTime_m && t<fallTime_m + flattopTime_m){
+            return 1.;
+        }
+	else if(t>fallTime_m + flattopTime_m && t < fallTime_m + flattopTime_m + riseTime_m){
+            t0 = fallTime_m + flattopTime_m + riseTime_m;
+            return exp( -pow((t-t0)/sigmaTRise_m,2)/2. );
+            //  In the old opal, tails seem to be exp(-x^2/sigma^2/2) rather than Gaussian with normalizing factor.
+        }
+	else
+            return 0.;
+    }
+
+    size_t computeNlocal(size_t nglobal){
+        MPI_Comm comm = MPI_COMM_WORLD;
+        int nranks;
+        int rank;
+        MPI_Comm_size(comm, &nranks);
+        MPI_Comm_rank(comm, &rank);
+
+        size_type nlocal = floor(nglobal/nranks);
+
+        size_t remaining = nglobal - nlocal*nranks;
+
+        if(remaining>0 && rank==0){
+            nlocal += remaining;
+        }
+        return nlocal;
+    }
+
+    double ingerateTrapezoidal(double x1, double x2, double y1, double y2){
+        return 0.5 * (y1+y2) * fabs(x2-x1);
+    }
+
+    double countEnteringParticlesPerRank(double t0, double tf){
+        double tmin, tmax;
+
+        if(t0 < fallTime_m ){
+            tmin = t0;
+            tmax = std::min(tf, fallTime_m);
+        }
+	else if( tf > fallTime_m && t0 < fallTime_m + flattopTime_m){
+            tmin = std::max(t0, fallTime_m); // in case t0<fallTime, tmin should be fallTime
+            tmax = std::min(tf, fallTime_m+flattopTime_m); //  in case tf>fallTime+flattopTime, tmax should be fallTime+flattopTime
+        }
+	else if( tf > fallTime_m + flattopTime_m && t0 < fallTime_m + flattopTime_m + riseTime_m){
+            tmin = std::max(t0, fallTime_m+flattopTime_m);
+            tmax = std::min(tf, fallTime_m+flattopTime_m+riseTime_m);
+        }
+
+        double tArea = ingerateTrapezoidal(tmin, tmax, FlatTopProfile(tmin), FlatTopProfile(tmax));
+
+        size_type totalNew = floor(totalN_m * tArea / distArea_m);
+
+        size_type nlocalNew = computeNlocal(totalNew);
+
+        return nlocalNew;
+    }
+
+    void allocateParticles(size_t numberOfParticles){
+        totalN_m = numberOfParticles;
+
+        size_type nlocal;
+
+        nlocal = computeNlocal(totalN_m);
+
+        pc_m->create(nlocal);
+    }
+
+    void emittParticles(double t, double dt){
+        // count number of new particles to be emitted
+        size_t nNew = countEnteringParticlesPerRank(t, t + dt);
+
+        if( fabs(t) < 1e-15 ){
+            // set nlocal to 0 for the very first time step, before sampling particles
+            // maybe it is better to pass the time step instead of t
+            pc_m->setLocalNum(0);
+        }
+        if(nNew > 0){
+            // current number of particles per rank
+            size_type nlocal = pc_m->getLocalNum();
+
+            // extend particle container to accomodate new particles
+            pc_m->create(nNew);
+
+            // generate new particles on uniform disc
+            *gmsg << "* generate particles on a disc" << endl;
+            generateUniformDisk(nlocal, nNew);
+
+            *gmsg << "* new particles emmitted" << endl;
+        }
     }
 };
 #endif
