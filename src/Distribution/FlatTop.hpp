@@ -62,6 +62,10 @@ private:
         // time span of rise is [fallTime+flattopTime, fallTime+flattopTime+riseTime]
         riseTime_m = opalDist_m->getSigmaTRise() * opalDist_m->getCutoffR()[2];
 
+        // These expression are take from the old OPAL
+        // I think normalizedFlankArea is int_0^{cutoff} exp(-(x/sigma)^2/2 ) / sigma
+        // Instead of int_0^{cutoff} exp(-(x/sigma)^2/2 ) / sqrt(2*pi) / sigma, which is strange!
+        // So the distribution of tails are exp(-(x/sigma)^2/2 ) and not Gaussian!
         normalizedFlankArea_m = 0.5 * std::sqrt(Physics::two_pi) * std::erf(opalDist_m->getCutoffR()[2] / std::sqrt(2.0));
         distArea_m = flattopTime_m
                 + (opalDist_m->getSigmaTRise() + opalDist_m->getSigmaTFall()) * normalizedFlankArea_m;
@@ -105,28 +109,17 @@ public:
         view_type &Pview = pc_m->P.getView();
         auto &tview = pc_m->t.getView();
 
-        double flattopTime = opalDist_m->getTPulseLengthFWHM()
-             - std::sqrt(2.0 * std::log(2.0)) * (opalDist_m->getSigmaTRise() + opalDist_m->getSigmaTFall());
-
-        if (flattopTime < 0.0)
-              flattopTime = 0.0;
-
-        // These expression are take from the old OPAL
-        // I think normalizedFlankArea is int_0^{cutoff} exp(-(x/sigma)^2/2 ) / sigma
-        // Instead of int_0^{cutoff} exp(-(x/sigma)^2/2 ) / sqrt(2*pi) / sigma, which is strange!
-        // So the distribution of tails are exp(-(x/sigma)^2/2 ) and not Gaussian!
-        double normalizedFlankArea = 0.5 * std::sqrt(Physics::two_pi) * std::erf(opalDist_m->getCutoffR()[2] / std::sqrt(2.0));
-        double distArea = flattopTime
-                + (opalDist_m->getSigmaTRise() + opalDist_m->getSigmaTFall()) * normalizedFlankArea;
-
         // Find number of particles in rise, fall and flat top.
-        size_type numRise = nlocal * opalDist_m->getSigmaTRise() * normalizedFlankArea / distArea;
-        size_type numFall = nlocal * opalDist_m->getSigmaTFall() * normalizedFlankArea / distArea;
+        size_type numRise = nlocal * sigmaTRise_m * normalizedFlankArea_m / distArea_m;
+        size_type numFall = nlocal * sigmaTFall_m * normalizedFlankArea_m / distArea_m;
         size_type numFlat = nlocal - numRise - numFall;
 
+        double flattopTime = flattopTime_m;
+        double sigmaTFall = sigmaTFall_m;
+        double sigmaTRise = sigmaTRise_m;
+        Vector_t<double, 3> cutoffR = cutoffR_m;
+
         // Generate particles in tail.
-        double sigmaTFall = opalDist_m->getSigmaTFall();
-        Vector_t<double, 3> cutoffR = opalDist_m->getCutoffR();
         const double par[2] = {0.0, sigmaTFall};
         using Dist_t = ippl::random::NormalDistribution<double, 1>;
         using sampling_t = ippl::random::InverseTransformSampling<double, 1, Kokkos::DefaultExecutionSpace, Dist_t>;
@@ -188,10 +181,10 @@ public:
 	Kokkos::fence();
 
         // Generate particles in rise.
-        const double par2[2] = {0.0, opalDist_m->getSigmaTRise() };
+        const double par2[2] = {0.0, sigmaTRise };
         Dist_t dist2(par2);
         tmin = 0.0;
-        tmax = opalDist_m->getSigmaTRise() * opalDist_m->getCutoffR()[2];
+        tmax = sigmaTRise * cutoffR[2];
 
         sampling_t sampling2(dist2, tmax, tmin, tmax, tmin, numRise);
 
