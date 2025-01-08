@@ -47,20 +47,17 @@ private:
 
     void setParameters(const std::shared_ptr<Distribution_t> &opalDist) {
         emitting_m = opalDist->emitting_m;
-        // time span of fall is [0, fallTime]
+        // time span of fall is [0, riseTime, riseTime+flattopTime, fallTime+flattopTime+riseTime ]
         sigmaTFall_m = opalDist_m->getSigmaTFall();
         sigmaTRise_m = opalDist_m->getSigmaTRise();
         cutoffR_m = opalDist_m->getCutoffR();
-        fallTime_m = sigmaTFall_m * cutoffR_m[2]; // fall is [0, fallTime]
 
-        // time of span flattop is [fallTime, fallTime+flattopTime]
+        fallTime_m = sigmaTFall_m * cutoffR_m[2]; // fall is [0, fallTime]
         flattopTime_m = opalDist->getTPulseLengthFWHM()
             - std::sqrt(2.0 * std::log(2.0)) * (sigmaTRise_m + sigmaTFall_m);
         if (flattopTime_m < 0.0) {
             flattopTime_m = 0.0;
         }
-
-        // time span of rise is [fallTime+flattopTime, fallTime+flattopTime+riseTime]
         riseTime_m = sigmaTRise_m * cutoffR_m[2];
 
         // These expression are take from the old OPAL
@@ -291,17 +288,17 @@ public:
 
     double FlatTopProfile(double t){
         double t0;
-        if(t<fallTime_m){
-            t0 = fallTime_m;
-            return exp( -pow((t-t0)/fallTime_m,2) /2. );
+        if(t<riseTime_m){
+            t0 = riseTime_m;
+            return exp( -pow((t-t0)/sigmaTRise_m,2) /2. );
             //  In the old opal, tails seem to be exp(-x^2/sigma^2/2) rather than Gaussian with normalizing factor.
         }
-	else if( t>fallTime_m && t<fallTime_m + flattopTime_m){
+	else if( t>riseTime_m && t<riseTime_m + flattopTime_m){
             return 1.;
         }
-	else if(t>fallTime_m + flattopTime_m && t < fallTime_m + flattopTime_m + riseTime_m){
-            t0 = fallTime_m + flattopTime_m + riseTime_m;
-            return exp( -pow((t-t0)/sigmaTRise_m,2)/2. );
+	else if(t>riseTime_m + flattopTime_m && t < fallTime_m + flattopTime_m + riseTime_m){
+            t0 = fallTime_m + flattopTime_m;
+            return exp( -pow((t-t0)/sigmaTFall_m,2)/2. );
             //  In the old opal, tails seem to be exp(-x^2/sigma^2/2) rather than Gaussian with normalizing factor.
         }
 	else
@@ -330,22 +327,9 @@ public:
     }
 
     double countEnteringParticlesPerRank(double t0, double tf){
-        double tmin, tmax;
+        double tArea = 0.0;
 
-        if(t0 < fallTime_m ){
-            tmin = t0;
-            tmax = std::min(tf, fallTime_m);
-        }
-	else if( tf > fallTime_m && t0 < fallTime_m + flattopTime_m){
-            tmin = std::max(t0, fallTime_m); // in case t0<fallTime, tmin should be fallTime
-            tmax = std::min(tf, fallTime_m+flattopTime_m); //  in case tf>fallTime+flattopTime, tmax should be fallTime+flattopTime
-        }
-	else if( tf > fallTime_m + flattopTime_m && t0 < fallTime_m + flattopTime_m + riseTime_m){
-            tmin = std::max(t0, fallTime_m+flattopTime_m);
-            tmax = std::min(tf, fallTime_m+flattopTime_m+riseTime_m);
-        }
-
-        double tArea = ingerateTrapezoidal(tmin, tmax, FlatTopProfile(tmin), FlatTopProfile(tmax));
+        tArea = ingerateTrapezoidal(t0, tf, FlatTopProfile(t0), FlatTopProfile(tf));
 
         size_type totalNew = floor(totalN_m * tArea / distArea_m);
 
@@ -364,9 +348,9 @@ public:
         pc_m->create(nlocal);
     }
 
-    void emittParticles(double t, double dt){
+    void emitParticles(double t, double dt) override {
         // count number of new particles to be emitted
-        size_t nNew = countEnteringParticlesPerRank(t, t + dt);
+        size_type nNew = countEnteringParticlesPerRank(t, t + dt);
 
         if( fabs(t) < 1e-15 ){
             // set nlocal to 0 for the very first time step, before sampling particles
@@ -386,6 +370,24 @@ public:
 
             *gmsg << "* new particles emmitted" << endl;
         }
+    }
+
+    void testNumEmitParticles(size_type nsteps, double dt) override {
+        size_type nNew;
+        int rank, numRanks;
+        double t = 0.0;
+
+        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+        MPI_Comm_size(MPI_COMM_WORLD, &numRanks);
+        std::string filename = "timeNpart_" + std::to_string(rank) + ".txt";
+        std::ofstream file(filename);
+
+        for(size_type i=0; i<nsteps; i++){
+            nNew = countEnteringParticlesPerRank(t, t + dt);
+            file << t << "  " << nNew << "\n";
+            t = t + dt;
+        }
+        file.close();
     }
 };
 #endif

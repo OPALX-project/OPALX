@@ -21,6 +21,11 @@ class SamplingBase{
        virtual ~SamplingBase() {}
 
        virtual void generateParticles(size_t& numberOfParticles, Vector_t<double, 3> nr) {}
+
+       virtual void emitParticles(double t, double dt) {}
+
+       // testNumEmitParticles is purely made for testing and should be removed
+       virtual void testNumEmitParticles(size_t nsteps, double dt) {}
 };
 #endif
 
