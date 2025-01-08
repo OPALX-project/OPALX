@@ -103,8 +103,8 @@ public:
                     Rview(k)[0] -= meanR[0];
                     Rview(k)[1] -= meanR[1];
                     Rview(k)[2] -= meanR[2];
-                    if (Rview(k)[2] < 0.0)
-                        Rview(k)[2] = 0.0;
+                    //     if (Rview(k)[2] < 0.0)
+                    //     Rview(k)[2] = 0.0;
                 }
         );
         Kokkos::fence();
