@@ -69,21 +69,21 @@ private:
     }
 
 public:
-    void generateUniformDisk(size_type nlocal=0, size_t nNew=0) {
+    void generateUniformDisk(size_type nlocal, size_t nNew) {
 
         GeneratorPool rand_pool = rand_pool_m;
         Vector_t<double, 3> rmin;
         Vector_t<double, 3> rmax;
         Vector_t<double, 3> hr;
 
-        view_type &Rview = pc_m->R.getView();
-        view_type &Pview = pc_m->P.getView();
+        view_type Rview = pc_m->R.getView();
+        view_type Pview = pc_m->P.getView();
 
         double pi = Physics::pi;
         Vector_t<double, 3> sigmaR = opalDist_m->getSigmaR();
         // Sample (Rx,Ry) on a unit ring, then scale with sigmaRx and sigmaRy, set Px=Py=0
         Kokkos::parallel_for(
-               "unitDisk", Kokkos::RangePolicy<>(nlocal, nNew), KOKKOS_LAMBDA(const size_t j) {
+               "unitDisk", Kokkos::RangePolicy<>(nlocal, nlocal+nNew), KOKKOS_LAMBDA(const size_t j) {
                 auto generator = rand_pool.get_state();
                 double r = Kokkos::sqrt( generator.drand(0., 1.) );
                 double theta = 2.0 * pi * generator.drand(0., 1.);
@@ -99,191 +99,15 @@ public:
         Kokkos::fence();
     }
 
-    void generateLongFlattopT(size_type nlocal){
-
-        GeneratorPool rand_pool = rand_pool_m;
-
-        view_type &Rview = pc_m->R.getView();
-        auto &tview = pc_m->t.getView();
-
-        // Find number of particles in rise, fall and flat top.
-        size_type numRise = nlocal * sigmaTRise_m * normalizedFlankArea_m / distArea_m;
-        size_type numFall = nlocal * sigmaTFall_m * normalizedFlankArea_m / distArea_m;
-        size_type numFlat = nlocal - numRise - numFall;
-
-        double flattopTime = flattopTime_m;
-        double sigmaTFall = sigmaTFall_m;
-        double sigmaTRise = sigmaTRise_m;
-        Vector_t<double, 3> cutoffR = cutoffR_m;
-
-        // Generate particles in tail.
-        const double par[2] = {0.0, sigmaTFall};
-        using Dist_t = ippl::random::NormalDistribution<double, 1>;
-        using sampling_t = ippl::random::InverseTransformSampling<double, 1, Kokkos::DefaultExecutionSpace, Dist_t>;
-        Dist_t dist(par);
-        Vector<double, 1> tmin = 0.0;
-        Vector<double, 1> tmax = sigmaTFall * cutoffR[2];
-
-        sampling_t sampling(dist, tmax, tmin, tmax, tmin, numFall);
-        sampling.generate(tview, rand_pool);
-
-        Kokkos::parallel_for(
-               "falltime", numFall, KOKKOS_LAMBDA(const size_t j) {
-               tview(j) = -tview(j) + sigmaTFall * cutoffR[2];
-        });
-	Kokkos::fence();
-
-        // Generate particles in flat top.
-        double modulationAmp = opalDist_m->getFTOSCAmplitude() / 100.0;
-        if (modulationAmp > 1.0)
-            modulationAmp = 1.0;
-        double numModulationPeriods = opalDist_m->getFTOSCPeriods();
-
-        double modulationPeriod = 0.0;
-        if (numModulationPeriods != 0.0)
-            modulationPeriod = flattopTime / numModulationPeriods;
-
-        double two_pi = Physics::two_pi;
-        Kokkos::parallel_for(
-            "onflattop", Kokkos::RangePolicy<>(numFall, numFall+numFlat), KOKKOS_LAMBDA(const size_t j) {
-
-            if (modulationAmp == 0.0 || numModulationPeriods == 0.0) {
-                auto generator = rand_pool.get_state();
-                double r = generator.drand(0., 1.);
-                rand_pool.free_state(generator);
-                tview(j) = r * flattopTime;
-            }
-            else{
-                bool allow = false;
-                double randNums[2] = {0.0, 0.0};
-                double temp = 0.0;
-                while (!allow) {
-                   auto generator = rand_pool.get_state();
-                   randNums[0] = generator.drand(0., 1.);
-                   randNums[1] = generator.drand(0., 1.);
-                   rand_pool.free_state(generator);
-
-                   temp = randNums[0] * flattopTime;
-
-                   double funcValue = (1.0 + modulationAmp
-                                    * Kokkos::sin(two_pi * temp / modulationPeriod))
-                                    / (1.0 + Kokkos::abs(modulationAmp));
-
-                    allow = (randNums[1] <= funcValue);
-                }
-                tview(j) = temp;
-            }
-            tview(j) += sigmaTFall * cutoffR[2];
-        });
-	Kokkos::fence();
-
-        // Generate particles in rise.
-        const double par2[2] = {0.0, sigmaTRise };
-        Dist_t dist2(par2);
-        tmin = 0.0;
-        tmax = sigmaTRise * cutoffR[2];
-
-        sampling_t sampling2(dist2, tmax, tmin, tmax, tmin, numRise);
-
-        auto subview = Kokkos::subview(tview, std::make_pair(numFall + numFlat, numFall + numFlat + numRise));
-        sampling2.generate(subview, rand_pool);
-
-        Kokkos::parallel_for(
-               "rise", numRise, KOKKOS_LAMBDA(const size_t j) {
-                subview(j) += + sigmaTFall * cutoffR[2] + flattopTime;
-        });
-
-        // Set Rz=0
-        Kokkos::parallel_for(
-               "RzPz=0", nlocal, KOKKOS_LAMBDA(const size_t j) {
-               Rview(j)[2] = 0.0;
-        });
-
-        // Assume tview is Kokkos::View<ippl::Vector<double, 1>*>
-        Kokkos::View<double*> keys("keys", nlocal);
-
-        // Extract the sortable keys (e.g., a[0])
-        Kokkos::parallel_for("ExtractKeys", Kokkos::RangePolicy<>(0, nlocal), KOKKOS_LAMBDA(const int i) {
-            keys(i) = tview(i)[0];
-        });
-
-        // Sort the keys, by default kokkos::sort sorts array in an ascending order
-        Kokkos::sort(keys);
-
-        // Reorder tview based on sorted keys in a descending order
-        Kokkos::parallel_for("Reorder", Kokkos::RangePolicy<>(0, nlocal), KOKKOS_LAMBDA(const int i) {
-            tview(i)[0] = keys(nlocal-i-1);
-        });
-
-        // sanity check
-        bool sorted = true;
-        Kokkos::parallel_reduce(
-            "CheckSorted",
-            tview.extent(0) - 1, // Check up to the second-to-last element
-            KOKKOS_LAMBDA(const size_type i, bool &local_sorted) {
-                if (tview(i)[0] < tview(i + 1)[0]) {
-                    local_sorted = false;
-                }
-            },
-            Kokkos::LAnd<bool>(sorted) // Logical AND reduction to ensure all checks pass
-        );
-        if(sorted == true)
-            *gmsg << "* Sorting of particles w.r.t. emission time PAASED the sanity check!\n";
-        else
-            *gmsg << "* Sorting of particles w.r.t emission time FAILED the sanity check!\n";
-
-    }
-
-    void setEmissionTime() {
-        opalDist_m->setTEmission( opalDist_m->getTPulseLengthFWHM() + (opalDist_m->getCutoffR()[2] - std::sqrt(2.0 * std::log(2.0))) * ( opalDist_m->getSigmaTRise() + opalDist_m->getSigmaTFall() ) );
-    }
-
-    void shiftBeam(size_t nlocal){
-
-        double tEmission = opalDist_m->getTEmission();
-        auto &tview = pc_m->t.getView();
-
-        Kokkos::parallel_for("shift t", nlocal, KOKKOS_LAMBDA(const size_t j) {
-               tview(j) -= tEmission;
-        });
-
-    }
-
     void generateParticles(size_t& numberOfParticles, Vector_t<double, 3> nr) override {
 
         // initial allocation is similar for both emitting and non-emitting cases
         allocateParticles(numberOfParticles);
 
-        //if(!emitting_m){
-            size_type nlocal = pc_m->getLocalNum();
-
-            *gmsg << "* generate particles on a disc" << endl;
-            generateUniformDisk(0, nlocal);
-
-            *gmsg << "* sample particle time" << endl;
-            generateLongFlattopT(nlocal);
-
-            *gmsg << "* shift beam to have negative time" << endl;
-
-            setEmissionTime();
-            shiftBeam(nlocal);
-        //}
-
-        auto tViewDevice  = pc_m->t.getView();
-        auto tView = Kokkos::create_mirror_view(tViewDevice);
-        Kokkos::deep_copy(tView,tViewDevice);
-
-        int rank, numRanks;
-        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-        MPI_Comm_size(MPI_COMM_WORLD, &numRanks);
-        std::string filename = "time_" + std::to_string(rank) + ".txt";
-        std::ofstream file(filename);
-
-        for (size_t i = 0; i < nlocal; ++i) {
-           file << tView(i)[0] << "\n";
+        if(emitting_m){
+            // set nlocal to 0 for the very first time step, before sampling particles
+            pc_m->setLocalNum(0);
         }
-
-        file.close();
     }
 
     double FlatTopProfile(double t){
@@ -319,6 +143,7 @@ public:
         if(remaining>0 && rank==0){
             nlocal += remaining;
         }
+
         return nlocal;
     }
 
@@ -352,11 +177,6 @@ public:
         // count number of new particles to be emitted
         size_type nNew = countEnteringParticlesPerRank(t, t + dt);
 
-        if( fabs(t) < 1e-15 ){
-            // set nlocal to 0 for the very first time step, before sampling particles
-            // maybe it is better to pass the time step instead of t
-            pc_m->setLocalNum(0);
-        }
         if(nNew > 0){
             // current number of particles per rank
             size_type nlocal = pc_m->getLocalNum();
@@ -388,6 +208,15 @@ public:
             t = t + dt;
         }
         file.close();
+    }
+
+    void testEmitParticles(size_type nsteps, double dt) override {
+        double t = 0.0;
+
+        for(size_type i=0; i<nsteps; i++){
+            emitParticles(t, dt);
+            t = t + dt;
+        }
     }
 };
 #endif
