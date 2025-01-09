@@ -17,7 +17,7 @@ namespace ParticleBinning {
 
     template <typename size_type, typename bin_index_type, typename value_type, bool UseDualView, class... Properties>
     Histogram<size_type, bin_index_type, value_type, UseDualView, Properties...>::index_transform_type
-    Histogram<size_type, bin_index_type, value_type, UseDualView, Properties...>::mergeBins(value_type maxBinRatio) {
+    Histogram<size_type, bin_index_type, value_type, UseDualView, Properties...>::mergeBins(const value_type maxBinRatio) {
         // TODO 
         // Should merge neighbouring bins such that the width/N_part ratio is roughly maxBinRatio.
         // TODO: Find algorithm for that
@@ -43,7 +43,6 @@ namespace ParticleBinning {
             return oldToNewBinsView;
         }
 
-
         // ----------------------------------------------------------------
         // 2) Build prefix sums on the host
         //
@@ -62,7 +61,7 @@ namespace ParticleBinning {
             prefixCount(i+1) = prefixCount(i) + oldHistHost(i);
             prefixWidth(i+1) = prefixWidth(i) + oldBinWHost(i);
         }
-
+        m << "Prefix sums computed." << endl;
 
         // ----------------------------------------------------------------
         // 3) Dynamic Programming arrays:
@@ -78,7 +77,7 @@ namespace ParticleBinning {
             prevIdx(k) = -1;
         }
         dp(0) = 0;  // 0 bins needed to cover an empty set (base case)
-
+        m << "DP arrays initialized." << endl;
 
         // ----------------------------------------------------------------
         // 4) Fill dp with an O(n^2) algorithm to find the optimal partition
@@ -93,12 +92,14 @@ namespace ParticleBinning {
                 // If sumCount==0 and sumWidth==0, ratio is 0/0 => interpret as 0 or skip
                 if (sumCount == 0) {
                     if (sumWidth != value_type(0)) {
+                        //m << "Skipping i=" << i << ", k=" << k << " with sumWidth=" << sumWidth << endl;
                         continue; // can't form a valid bin with ratio <= maxBinRatio
                     }
                     // else sumWidth=0 => ratio=0 => valid
                 } else {
-                    value_type ratio = sumWidth / static_cast<value_type>(sumCount);
+                    value_type ratio = sumWidth; // / totalBinWidth_m / static_cast<value_type>(sumCount);
                     if (ratio > maxBinRatio) {
+                        //m << "Skipping i=" << i << ", k=" << k << " with ratio=" << ratio << endl;
                         continue;  // doesn't meet ratio constraint
                     }
                 }
@@ -112,11 +113,16 @@ namespace ParticleBinning {
                 }
             }
         }
+        m << "DP arrays filled." << endl;
 
         int mergedBinsCount = dp(n);
-        if (mergedBinsCount < 1) {
+        if (mergedBinsCount < 1 || mergedBinsCount == std::numeric_limits<int>::max()) {
             // Shouldn't happen unless everything is zero?
             mergedBinsCount = 1;
+        }
+
+        for (bin_index_type k = 0; k <= n; ++k) {
+            m << "dp(" << k << ") = " << dp(k) << ", prevIdx(" << k << ") = " << prevIdx(k) << endl;
         }
 
 
@@ -153,6 +159,7 @@ namespace ParticleBinning {
             // Just a consistency check
             mergedBinsCount = static_cast<int>(boundaries.size()) - 1;
         }
+        m << "Merged bins: " << mergedBinsCount << endl;
 
 
         // ----------------------------------------------------------------
@@ -164,26 +171,28 @@ namespace ParticleBinning {
         std::vector<size_type>  newCounts(mergedBinsCount, 0);
         std::vector<value_type> newWidths(mergedBinsCount, value_type(0));
 
-        for (int j = 0; j < mergedBinsCount; ++j) {
-            int start = boundaries[j];
-            int end   = boundaries[j+1] - 1;  // inclusive
+        for (bin_index_type j = 0; j < static_cast<bin_index_type>(mergedBinsCount); ++j) {
+            bin_index_type start = boundaries[j];
+            bin_index_type end   = boundaries[j+1] - 1;  // inclusive
             size_type  sumCount  = prefixCount(end+1) - prefixCount(start);
             value_type sumWidth  = prefixWidth(end+1) - prefixWidth(start);
             newCounts[j] = sumCount;
             newWidths[j] = sumWidth;
         }
+        m << "New bins computed." << endl;
 
         // Also generate a lookup table that maps the old bin index to the new bin index
         index_transform_type oldToNewBinsView("oldToNewBinsView", n);
         // For j in [0 .. mergedBinsCount-1], the range of old bins is [boundaries[j], boundaries[j+1]-1].
         // So fill oldToNewBinsView(i) = j for i in that range.
-        for (bin_index_type j = 0; j < mergedBinsCount; ++j) {
+        for (bin_index_type j = 0; j < static_cast<bin_index_type>(mergedBinsCount); ++j) {
             bin_index_type startIdx = boundaries[j];
             bin_index_type endIdx   = boundaries[j+1]; // exclusive
             for (bin_index_type i = startIdx; i < endIdx; ++i) {
                 oldToNewBinsView(i) = j;
             }
         }
+        m << "Lookup table generated." << endl;
 
 
         // ----------------------------------------------------------------
@@ -192,6 +201,7 @@ namespace ParticleBinning {
         numBins_m = static_cast<bin_index_type>(mergedBinsCount);
 
         instantiateHistograms();
+        m << "New histograms instantiated." << endl;
         //histogram_m = view_type("histogram", newNumBins);
         //binWidths_m = width_view_type("binWidths", newNumBins); 
 
@@ -205,6 +215,7 @@ namespace ParticleBinning {
                 newWidthHost(i)  = newWidths[i];
             }
         }
+        m << "New histograms filled." << endl;
 
 
         // ----------------------------------------------------------------
@@ -218,6 +229,7 @@ namespace ParticleBinning {
             binWidths_m.modify_host();
             binWidths_m.sync_device();
         }
+        m << "Host views modified." << endl;
 
         // ----------------------------------------------------------------
         // 9) Recompute postSum for the new histogram

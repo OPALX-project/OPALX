@@ -122,7 +122,7 @@ namespace ParticleBinning {
          */
         size_type getNPartInBin(bin_index_type binIndex) {
             if constexpr (UseDualView) {
-                histogram_m.h_view(binIndex);
+                return histogram_m.h_view(binIndex);
             } else {
                 std::cerr << "Warning: Accessing BinHisto.getNPartInBin without DualView might be inefficient!" << std::endl;
                 Kokkos::View<size_type, Kokkos::HostSpace> host_scalar("host_scalar");
@@ -185,7 +185,7 @@ namespace ParticleBinning {
          * @note Should not be called again after merging bins, since the bin widths will all be different.
          */
         void initConstBinWidths(const value_type constBinWidth) {
-            Kokkos::deep_copy(getDeviceView<dwidth_view_type>(binWidths_m), constBinWidth);
+            Kokkos::deep_copy(getDeviceView<dwidth_view_type>(binWidths_m), constBinWidth / numBins_m);
             if constexpr (UseDualView) {
                 binWidths_m.modify_device();
                 binWidths_m.sync_host();

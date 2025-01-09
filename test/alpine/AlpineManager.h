@@ -196,7 +196,7 @@ public:
         Vector_t<double, Dim> rmin	             = rmin_m;
         Vector_t<double, Dim> rmax	             = rmax_m;
         Vector_t<double, Dim> hr                 = hr_m;
-        binIndexView_t bin                       = this->pcontainer_m->bin.getView();
+        binIndexView_t bin                       = this->pcontainer_m->Bin.getView();
         size_type localParticles                 = this->pcontainer_m->getLocalNum();
         double Q                                 = Q_m * this->bins_m->getNPartInBin(binIndex, true)/totalP_m; // Q_m;
 
