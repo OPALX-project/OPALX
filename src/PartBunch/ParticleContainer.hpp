@@ -28,9 +28,6 @@ public:
     /// timestep in [s]
     ippl::ParticleAttrib<double> dt;
 
-    // time [s]
-    ippl::ParticleAttrib<ippl::Vector<double, 1>> t;
-
     /// the scalar potential in [Cb/s]
     ippl::ParticleAttrib<double> Phi;
 
@@ -66,7 +63,6 @@ public:
         this->addAttribute(Q);
         this->addAttribute(M);
         this->addAttribute(dt);
-        this->addAttribute(t);
         this->addAttribute(Phi);
         this->addAttribute(Bin);
         this->addAttribute(Sp);
