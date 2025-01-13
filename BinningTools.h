@@ -133,7 +133,8 @@ namespace ParticleBinning {
     template <typename ViewType>
     void computeFixSum(const ViewType& input_view, const ViewType& post_sum_view) {
         using execution_space = typename ViewType::execution_space;
-        using size_type = typename ViewType::value_type;
+        using size_type       = typename ViewType::size_type;
+        using value_type      = typename ViewType::value_type;
 
         // Ensure the output view has the correct size
         if (post_sum_view.extent(0) != input_view.extent(0) + 1) {
@@ -152,7 +153,7 @@ namespace ParticleBinning {
         static IpplTimings::TimerRef initLocalPostSumT = IpplTimings::getTimer("initLocalPostSum");
         IpplTimings::startTimer(initLocalPostSumT);
         Kokkos::parallel_scan("ComputePostSum", Kokkos::RangePolicy<execution_space>(0, input_view.extent(0)),
-            KOKKOS_LAMBDA(const size_type& i, size_type& partial_sum, bool final) {
+            KOKKOS_LAMBDA(const size_type& i, value_type& partial_sum, bool final) {
                 partial_sum += input_view(i);
                 if (final) {
                     post_sum_view(i + 1) = partial_sum;
