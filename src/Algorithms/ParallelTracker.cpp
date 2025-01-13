@@ -359,6 +359,77 @@ void ParallelTracker::execute() {
         itsBunch_m->getT(), (back_track ? -minTimeStep : minTimeStep), stepSizes_m,
         itsOpalBeamline_m);
 
+
+    // Simple step loop:
+    unsigned long long step = itsBunch_m->getGlobalTrackStep();
+
+    stepSizes_m.printDirect(*gmsg);
+
+    while (!stepSizes_m.reachedEnd()) {
+        unsigned long long trackSteps = stepSizes_m.getNumSteps() + step;
+        dtCurrentTrack_m              = stepSizes_m.getdT();
+        for (; step < trackSteps; ++step) {
+            Vector_t<double, 3> rmin(0.0), rmax(0.0);
+            if (itsBunch_m->getTotalNum() > 0) {
+                itsBunch_m->get_bounds(rmin, rmax);
+            }
+
+            //timeIntegration1(pusher);
+
+            computeSpaceChargeFields(step);
+            
+            // \todo for a drift we can neglect that 
+            // computeExternalFields(oth);
+
+            //timeIntegration2(pusher);
+
+            selectDT(back_track);
+            // \todo emitParticles(step);
+            //selectDT(back_track);
+
+            itsBunch_m->incrementT();
+
+            
+            //if (itsBunch_m->getT() > 0.0 || itsBunch_m->getdT() < 0.0) {
+            //    updateReference(pusher);
+            //}
+
+            //if (deletedParticles_m) {
+                // \todo doDelete
+            //    deletedParticles_m = false;
+            //}
+
+            itsBunch_m->set_sPos(pathLength_m);
+            
+            // if (hasEndOfLineReached(globalBoundingBox)) break;
+
+            /*bool const psDump =
+                ((itsBunch_m->getGlobalTrackStep() % Options::psDumpFreq) + 1
+                == Options::psDumpFreq);
+            bool const statDump =
+                ((itsBunch_m->getGlobalTrackStep() % Options::statDumpFreq) + 1
+                == Options::statDumpFreq);
+            dumpStats(step, psDump, statDump);*/
+
+            itsBunch_m->incTrackSteps();
+
+            /*ippl::Vector<double,3> pdivg = itsBunch_m->RefPartP_m / Util::getGamma(itsBunch_m->RefPartP_m);
+            double beta = euclidean_norm(pdivg);
+            double driftPerTimeStep = std::abs(itsBunch_m->getdT()) * Physics::c * beta;
+
+            if (std::abs(stepSizes_m.getZStop() - pathLength_m) < 0.5 * driftPerTimeStep) {
+                break;
+            }*/
+        }
+
+        if (globalEOL_m)
+            break;
+        ++stepSizes_m;    
+    }
+    itsBunch_m->set_sPos(pathLength_m);
+
+    numParticlesInSimulation_m = itsBunch_m->getTotalNum();
+/*
     oth.execute();
 
     BoundingBox globalBoundingBox = oth.getBoundingBox();
@@ -468,7 +539,7 @@ void ParallelTracker::execute() {
 
     itsOpalBeamline_m.switchElementsOff();
 
-    
+    */
     OPALTimer::Timer myt3;
     *gmsg << endl << "* Done executing ParallelTracker at " << myt3.time() << endl << endl;
 }
