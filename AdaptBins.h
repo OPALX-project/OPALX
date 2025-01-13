@@ -295,7 +295,7 @@ namespace ParticleBinning {
              * However, it is only called on host (max nBins times per iteration), so should be fine. You can make it
              * more efficient by avoiding the Kokkos:View "copying-action" with e.g. dualView.h_view(binIndex)
              */
-            if (binIndex >= getCurrentBinCount()) { return bunch_m->getTotalNum(); } // shouldn't happen..., "binIndex < 0" unnecessary, since binIndex is usually unsigned
+            if (binIndex < 0 || binIndex >= getCurrentBinCount()) { return bunch_m->getTotalNum(); } // shouldn't happen..., "binIndex < 0" unnecessary, since binIndex is usually unsigned
             if (global) {
                 return globalBinHisto_m.getNPartInBin(binIndex);
             } else {
