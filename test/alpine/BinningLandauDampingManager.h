@@ -212,7 +212,7 @@ public:
 
         view_type* R = &(this->pcontainer_m->R.getView());
         samplingR.generate(*R, rand_pool64);
-        this->pcontainer_m->R = (this->pcontainer_m->R * this->pcontainer_m->R) / 13; // change distribution a bit for binning tests
+        // this->pcontainer_m->R = (this->pcontainer_m->R * this->pcontainer_m->R) / 13; // change distribution a bit for binning tests
 
         view_type* P = &(this->pcontainer_m->P.getView());
 

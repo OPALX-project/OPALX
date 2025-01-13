@@ -56,7 +56,11 @@ namespace ParticleBinning {
                                                     typename width_view_type::t_dev, 
                                                     width_view_type>;
 
-        using index_transform_type = Kokkos::View<bin_index_type*, Kokkos::HostSpace>;
+        template <class... Args>
+        using index_transform_type = Kokkos::View<bin_index_type*, Args...>;
+        
+        using dindex_transform_type = index_transform_type<Kokkos::DefaultExecutionSpace>;
+        using hindex_transform_type = index_transform_type<Kokkos::HostSpace>;
 
         /**
          * @brief Default constructor for the Histogram class.
@@ -322,7 +326,7 @@ namespace ParticleBinning {
         The following contain functions that are used to make the histogram adaptive.
         */
 
-        index_transform_type mergeBins(const value_type maxBinRatio);
+        hindex_transform_type mergeBins(const value_type maxBinRatio);
 
         KOKKOS_INLINE_FUNCTION // in case it is needed...
         static value_type computeDeviationCost(const size_type& sumCount,
@@ -360,6 +364,7 @@ namespace ParticleBinning {
          * @param os The output stream to write to (defaults to std::cout).
          */
         void printHistogram(std::ostream &os = std::cout) {
+            if (ippl::Comm->rank() != 0) return;
             hview_type countsHost       = getHostView<hview_type>(histogram_m); 
             hwidth_view_type widthsHost = getHostView<hwidth_view_type>(binWidths_m);
 
@@ -391,6 +396,7 @@ namespace ParticleBinning {
         }
 
         void printPythonArrays() const {
+            if (ippl::Comm->rank() != 0) return;
             hview_type hostCounts = getHostView<hview_type>(histogram_m);
             hwidth_view_type hostWidths = getHostView<hwidth_view_type>(binWidths_m);
 
