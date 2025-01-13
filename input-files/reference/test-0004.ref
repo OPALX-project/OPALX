@@ -1,0 +1,274 @@
+OPAL> Reading startup file '/psi/home/sadr_m/init.opal'
+OPAL> 
+OPAL> value: {TESTVAL} = {1.23457}
+OPAL> 
+OPAL> Finished reading startup file.
+OPAL>                ____  _____       ___ 
+OPAL>               / __ \|  __ \ /\   | | 
+OPAL>              | |  | | |__) /  \  | |
+OPAL>              | |  | |  ___/ /\ \ | |
+OPAL>              | |__| | |  / ____ \| |____
+OPAL>               \____/|_| /_/    \_\______|
+OPAL> 
+OPAL> This is OPAL (Object Oriented Parallel Accelerator Library) Version 2022.2.99
+OPAL>             git rev. 78879c6d7b30c3212683549fbbe882e6a6d33186
+OPAL> 
+OPAL> 
+OPAL>                      (c) PSI, http://amas.web.psi.ch
+OPAL> 
+OPAL> 
+OPAL> The optimiser (former opt-Pilot) is integrated 
+OPAL> 
+OPAL> Please send cookies, goodies or other motivations (wine and beer ... ) 
+OPAL> to the OPAL developers opal@lists.psi.ch
+OPAL> 
+OPAL> Time: 15:25:37 date: 29/08/2024
+OPAL> 
+OPAL> * Reading input stream 'test-0004.in'
+OPAL> 
+OPAL> value: {OPALVERSION} = {20222}
+OPAL> 
+OPAL> 
+OPAL> value: {EDES,P0} = {1, 1.00051}
+OPAL> 
+OPAL> * Use r to specify correlations
+OPAL> * m before gsl_linalg_cholesky_decomp
+OPAL> * r(0, : ) =          1 &       0.01 &       0.02 &          0 &          0 &          0 \\
+OPAL> * r(1, : ) =       0.01 &          1 &          0 &          0 &          0 &          0 \\
+OPAL> * r(2, : ) =       0.02 &          0 &          1 &          0 &          0 &          0 \\
+OPAL> * r(3, : ) =          0 &          0 &          0 &          1 &          0 &          0 \\
+OPAL> * r(4, : ) =          0 &          0 &          0 &          0 &          1 &          0 \\
+OPAL> * r(5, : ) =          0 &          0 &          0 &          0 &          0 &          1 \\
+OPAL> 
+OPAL> * ************* T R A C K  R U N *************************************************** 
+OPAL> * Selected Tracking Method == PARALLEL-T, NEW TRACK
+OPAL> * ********************************************************************************** 
+OPAL> * Phase space dump frequency    = 10
+OPAL> * Statistics dump frequency     = 1 w.r.t. the time step.
+OPAL> * DT                            = 1e-12 [s]
+OPAL> * MAXSTEPS                      = 1
+OPAL> * Mass of simulation particle   = 0.3189 [GeV/c^2]
+OPAL> * Charge of simulation particle = -1e-16 [C]
+OPAL> * ********************************************************************************** 
+Ippl> * Creating new file for data: 'test-0004.stat'
+Ippl> * Creating new file for data: 'test-0004.lbal'
+OPAL> 
+OPAL> * ************* D I S T R I B U T I O N ********************************************
+OPAL> * 
+OPAL> * Number of particles: 10000000
+OPAL> * 
+OPAL> * Distribution input momentum units: [Beta Gamma]
+OPAL> * 
+OPAL> * Distribution type: GAUSS
+OPAL> * 
+OPAL> * SIGMAX     = 1.0000e-01 [m]
+OPAL> * SIGMAY     = 1.0000e-02 [m]
+OPAL> * SIGMAZ     = 1.0000e-03 [m]
+OPAL> * SIGMAPX    = 1.0000e-02 [Beta Gamma]
+OPAL> * SIGMAPY    = 1.0000e-03 [Beta Gamma]
+OPAL> * SIGMAPZ    = 2.0000e-03 [Beta Gamma]
+OPAL> * AVRGPZ     = 1.9580e+03 [Beta Gamma]
+OPAL> * CORRX      = 1.0000e-02
+OPAL> * CORRY      = 0.0000e+00
+OPAL> * CORRZ      = 0.0000e+00
+OPAL> * R61        = 0.0000e+00
+OPAL> * R62        = 0.0000e+00
+OPAL> * R51        = 0.0000e+00
+OPAL> * R52        = 0.0000e+00
+OPAL> * CUTOFFX    = 3.0000e+00 [units of SIGMAX]
+OPAL> * CUTOFFY    = 3.0000e+00 [units of SIGMAY]
+OPAL> * CUTOFFLONG = 3.0000e+00 [units of SIGMAZ]
+OPAL> * CUTOFFPX   = 3.0000e+00 [units of SIGMAPX]
+OPAL> * CUTOFFPY   = 3.0000e+00 [units of SIGMAPY]
+OPAL> * CUTOFFPZ   = 3.0000e+00 [units of SIGMAPY]
+OPAL> * 
+OPAL> * Distribution is injected.
+OPAL> * 
+OPAL> * **********************************************************************************
+OPAL> 
+OPAL> * ************* B E A M ************************************************************ 
+OPAL> * BEAM        BEAM1
+OPAL> * PARTICLE    ELECTRON
+OPAL> * REST MASS   5.1100e-04 [GeV]
+OPAL> * CHARGE      -e * 1.0000e+00 
+OPAL> * MOMENTUM    1.0005e+09 [eV/c]
+OPAL> * MOMENTUM TOLERANCE 1.0000e-02
+OPAL> * CURRENT     1.3000e+06 [A]
+OPAL> * FREQUENCY   1.3000e+09 [MHz]
+OPAL> * NPART       1.0000e+07
+OPAL> * ********************************************************************************** 
+OPAL> 
+OPAL> * ************* F I E L D S O L V E R ********************************************** 
+OPAL> * FIELDSOLVER  FS1
+OPAL> * TYPE         FFT
+OPAL> * N-PROCESSORS 1
+OPAL> * MX           8.0000e+00
+OPAL> * MY           8.0000e+00
+OPAL> * MT           8.0000e+00
+OPAL> * BBOXINCR     1.0000e+00
+OPAL> * GREENSF      INTEGRATED
+OPAL> * XDIM         parallel  
+OPAL> * YDIM         parallel  
+OPAL> * Z(T)DIM      serial  
+OPAL> 
+OPAL> * ********************************************************************************** 
+OPAL> 
+OPAL> 
+OPAL> * Size of map 1 sections 
+OPAL> * Key: (0.000000 - 1.000108) number of overlapping elements 1
+OPAL> *                            D1
+OPAL> 
+Ippl> * Creating new file for data: 'data/test-0004_ElementPositions.sdds'
+OPAL> 
+OPAL> * ************** B U N C H ********************************************************* 
+OPAL> * NP              = 10000000
+OPAL> * Qtot            =        1.000 [nC]         Qi    =        0.100 [fC]
+OPAL> * Ekin            =    1000.000 [MeV]         dEkin =       1.009 [keV]
+OPAL> * rmax            = (    299.96844 ,     29.99362 ,      2.99972 ) [mm]
+OPAL> * rmin            = (   -299.96327 ,    -29.99320 ,     -3.00023 ) [mm]
+OPAL> * rms beam size   = (     97.39483 ,      9.74680 ,      0.98677 ) [mm]
+OPAL> * rms momenta     = (  9.74145e-03 ,  9.74480e-04 ,  1.97359e-03 ) [beta gamma]
+OPAL> * mean position   = (     -0.00000 ,     -0.00000 ,      0.00000 ) [um]
+OPAL> * mean momenta    = ( -3.63276e-19 , -8.31841e-21 ,  1.95795e+03 ) [beta gamma]
+OPAL> * rms emittance   = (  4.84549e-07 ,  4.85102e-09 ,  9.94650e-10 ) (not normalized)
+OPAL> * rms correlation = (  9.56886e-03 , -2.41544e-04 , -2.98838e-04 )
+OPAL> * hr              = (     87.41862 ,      8.74094 ,      0.87428 ) [mm]
+OPAL> * dh              =   1.00000e+00 [%]
+OPAL> * t               =        0.000 [fs]         dT    =        1.000 [ps]
+OPAL> * spos            =        0.000 [um]
+OPAL> * cov(0, : ) = 9.4858e-03 & 9.0786e-06 & 1.6725e-05 & -1.0483e-08 & 2.6060e-08 & 1.2489e-07
+OPAL> * cov(1, : ) = 9.0786e-06 & 9.4896e-05 & 7.4832e-08 & 3.2116e-09 & 1.0452e-09 & -1.5502e-09
+OPAL> * cov(2, : ) = 1.6725e-05 & 7.4832e-08 & 9.5000e-05 & -2.2942e-09 & -4.1334e-09 & 1.2865e-09
+OPAL> * cov(3, : ) = -1.0483e-08 & 3.2116e-09 & -2.2942e-09 & 9.4961e-07 & 1.9588e-10 & 3.1569e-10
+OPAL> * cov(4, : ) = 2.6060e-08 & 1.0452e-09 & -4.1334e-09 & 1.9588e-10 & 9.7371e-07 & -5.8198e-10
+OPAL> * cov(5, : ) = 1.2489e-07 & -1.5502e-09 & 1.2865e-09 & 3.1569e-10 & -5.8198e-10 & 5.1255e-06
+OPAL> * ********************************************************************************** 
+OPAL> 
+OPAL> * Track start at: 15:25:47, t= 0.000 [fs]; zstart at: 0.000 [um]
+OPAL> * Executing ParallelTTracker
+OPAL> * Initial dt = 1.000 [ps]
+OPAL> * Max integration steps = 1, next step = 0
+OPAL> 
+OPAL > 
+OPAL > * ************** B U N C H ********************************************************* 
+OPAL > * NP              = 10000000
+OPAL > * Qtot            =        1.000 [nC]         Qi    =        0.100 [fC]
+OPAL > * Ekin            =    1000.000 [MeV]         dEkin =       1.009 [keV]
+OPAL > * rmax            = (    299.96844 ,     29.99362 ,      2.99972 ) [mm]
+OPAL > * rmin            = (   -299.96327 ,    -29.99320 ,     -3.00023 ) [mm]
+OPAL > * rms beam size   = (     97.39483 ,      9.74680 ,      0.98677 ) [mm]
+OPAL > * rms momenta     = (  9.74145e-03 ,  9.74480e-04 ,  1.97359e-03 ) [beta gamma]
+OPAL > * mean position   = (     -0.00000 ,     -0.00000 ,     -0.00000 ) [um]
+OPAL > * mean momenta    = ( -2.11293e-18 ,  4.15847e-17 ,  1.95795e+03 ) [beta gamma]
+OPAL > * rms emittance   = (  4.84549e-07 ,  4.85102e-09 ,  9.94650e-10 ) (not normalized)
+OPAL > * rms correlation = (  9.56888e-03 , -2.41532e-04 , -2.98405e-04 )
+OPAL > * hr              = (     87.41862 ,      8.74094 ,      0.87428 ) [mm]
+OPAL > * dh              =   1.00000e+00 [%]
+OPAL > * t               =        1.000 [ps]         dT    =        1.000 [ps]
+OPAL > * spos            =      299.792 [um]
+OPAL > * cov(0, : ) = 9.4858e-03 & 9.0786e-06 & 1.6725e-05 & -1.0483e-08 & 2.6060e-08 & 1.2489e-07
+OPAL > * cov(1, : ) = 9.0786e-06 & 9.4896e-05 & 7.4832e-08 & 3.2116e-09 & 1.0452e-09 & -1.5502e-09
+OPAL > * cov(2, : ) = 1.6725e-05 & 7.4832e-08 & 9.5000e-05 & -2.2941e-09 & -4.1334e-09 & 1.2865e-09
+OPAL > * cov(3, : ) = -1.0483e-08 & 3.2116e-09 & -2.2941e-09 & 9.4961e-07 & 1.9588e-10 & 3.1569e-10
+OPAL > * cov(4, : ) = 2.6060e-08 & 1.0452e-09 & -4.1334e-09 & 1.9588e-10 & 9.7371e-07 & -5.8114e-10
+OPAL > * cov(5, : ) = 1.2489e-07 & -1.5502e-09 & 1.2865e-09 & 3.1569e-10 & -5.8114e-10 & 5.2215e-06
+OPAL > * ********************************************************************************** 
+OPAL > 
+OPAL> 
+OPAL> * Done executing ParallelTTracker at 15:25:58
+OPAL> 
+OPAL> * End of input stream 'test-0004.in'
+Timings> -----------------------------------------------------------------
+Timings>      Timing results for 1 nodes:
+Timings> -----------------------------------------------------------------
+Timings> mainTimer........... Wall tot =    20.5162, CPU tot =      20.43
+Timings> 
+Timings> Binaryrepart........ Wall max =          0, CPU max =          0
+Timings>                      Wall avg =          0, CPU avg =          0
+Timings>                      Wall min =          0, CPU min =          0
+Timings> 
+Timings> Boundingbox......... Wall max =   0.287541, CPU max =       0.29
+Timings>                      Wall avg =   0.287541, CPU avg =       0.29
+Timings>                      Wall min =   0.287541, CPU min =       0.29
+Timings> 
+Timings> Boundingbox-bounds.. Wall max =  0.0861922, CPU max =       0.09
+Timings>                      Wall avg =  0.0861922, CPU avg =       0.09
+Timings>                      Wall min =  0.0861922, CPU min =       0.09
+Timings> 
+Timings> Boundingbox-update.. Wall max =   0.201227, CPU max =        0.2
+Timings>                      Wall avg =   0.201227, CPU avg =        0.2
+Timings>                      Wall min =   0.201227, CPU min =        0.2
+Timings> 
+Timings> Compute Statistics.. Wall max =     3.7657, CPU max =       3.75
+Timings>                      Wall avg =     3.7657, CPU avg =       3.75
+Timings>                      Wall min =     3.7657, CPU min =       3.75
+Timings> 
+Timings> ComputePotential.... Wall max = 0.00065271, CPU max =          0
+Timings>                      Wall avg = 0.00065271, CPU avg =          0
+Timings>                      Wall min = 0.00065271, CPU min =          0
+Timings> 
+Timings> Create Distr........ Wall max =    8.75119, CPU max =       8.74
+Timings>                      Wall avg =    8.75119, CPU avg =       8.74
+Timings>                      Wall min =    8.75119, CPU min =       8.74
+Timings> 
+Timings> External field eval. Wall max =    2.03363, CPU max =       2.03
+Timings>                      Wall avg =    2.03363, CPU avg =       2.03
+Timings>                      Wall min =    2.03363, CPU min =       2.03
+Timings> 
+Timings> Fast inside test.... Wall max =          0, CPU max =          0
+Timings>                      Wall avg =          0, CPU avg =          0
+Timings>                      Wall min =          0, CPU min =          0
+Timings> 
+Timings> Histogram........... Wall max =          0, CPU max =          0
+Timings>                      Wall avg =          0, CPU avg =          0
+Timings>                      Wall min =          0, CPU min =          0
+Timings> 
+Timings> Initialize geometry. Wall max =          0, CPU max =          0
+Timings>                      Wall avg =          0, CPU avg =          0
+Timings>                      Wall min =          0, CPU min =          0
+Timings> 
+Timings> Inside test......... Wall max =          0, CPU max =          0
+Timings>                      Wall avg =          0, CPU avg =          0
+Timings>                      Wall min =          0, CPU min =          0
+Timings> 
+Timings> Load Distr.......... Wall max =          0, CPU max =          0
+Timings>                      Wall avg =          0, CPU avg =          0
+Timings>                      Wall min =          0, CPU min =          0
+Timings> 
+Timings> Particle Inside..... Wall max =          0, CPU max =          0
+Timings>                      Wall avg =          0, CPU avg =          0
+Timings>                      Wall min =          0, CPU min =          0
+Timings> 
+Timings> Ray tracing......... Wall max =          0, CPU max =          0
+Timings>                      Wall avg =          0, CPU avg =          0
+Timings>                      Wall min =          0, CPU min =          0
+Timings> 
+Timings> SelfField total..... Wall max =    1.81278, CPU max =       1.81
+Timings>                      Wall avg =    1.81278, CPU avg =       1.81
+Timings>                      Wall min =    1.81278, CPU min =       1.81
+Timings> 
+Timings> SF: GreensFTotal.... Wall max = 0.000372736, CPU max =          0
+Timings>                      Wall avg = 0.000372736, CPU avg =          0
+Timings>                      Wall min = 0.000372736, CPU min =          0
+Timings> 
+Timings> TIntegration1....... Wall max =   0.168628, CPU max =       0.17
+Timings>                      Wall avg =   0.168628, CPU avg =       0.17
+Timings>                      Wall min =   0.168628, CPU min =       0.17
+Timings> 
+Timings> TIntegration2....... Wall max =   0.529548, CPU max =       0.52
+Timings>                      Wall avg =   0.529548, CPU avg =       0.52
+Timings>                      Wall min =   0.529548, CPU min =       0.52
+Timings> 
+Timings> WakeField........... Wall max =          0, CPU max =          0
+Timings>                      Wall avg =          0, CPU avg =          0
+Timings>                      Wall min =          0, CPU min =          0
+Timings> 
+Timings> Write H5-File....... Wall max =    1.30996, CPU max =       1.28
+Timings>                      Wall avg =    1.30996, CPU avg =       1.28
+Timings>                      Wall min =    1.30996, CPU min =       1.28
+Timings> 
+Timings> Write Stat.......... Wall max =  0.0183946, CPU max =       0.01
+Timings>                      Wall avg =  0.0183946, CPU avg =       0.01
+Timings>                      Wall min =  0.0183946, CPU min =       0.01
+Timings> 
+Timings> -----------------------------------------------------------------

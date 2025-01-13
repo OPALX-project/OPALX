@@ -34,6 +34,8 @@
 
 #include "Distribution/MultiVariateGaussian.hpp"
 
+#include "Distribution/FlatTop.hpp"
+
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
 
@@ -55,6 +57,8 @@
 #include <cmath>
 #include <fstream>
 #include <iomanip>
+
+#include <unistd.h>
 
 extern Inform* gmsg;
 
@@ -295,6 +299,20 @@ void TrackRun::execute() {
     //    deltaP = Util::convertMomentumEVoverCToBetaGamma(deltaP, beam->getM());
     //}
 
+    if (ippl::Comm->rank() == 0) {
+        long number_of_processors = sysconf(_SC_NPROCESSORS_ONLN);
+        *gmsg << "number_of_processors " << number_of_processors << endl;
+
+//        *gmsg << "omp_get_max_threads() " << omp_get_max_threads() << endl;
+
+        int world_size;
+        MPI_Comm_size( MPI_COMM_WORLD, &world_size );
+        *gmsg << "MPI_Comm_size " << world_size << endl;
+    }
+
+    static IpplTimings::TimerRef samplingTime = IpplTimings::getTimer("samplingTime");
+    IpplTimings::startTimer(samplingTime);
+
     // set distribution type
     dist_m->setDist();
     dist_m->setAvrgPz( beam->getMomentum()/beam->getMass() );
@@ -314,6 +332,9 @@ void TrackRun::execute() {
         case DistributionType::MULTIVARIATEGAUSS:
             sampler_m = std::make_shared<MultiVariateGaussian>(pc, fc, opalDist);
             break;
+        case DistributionType::FLATTOP:
+            sampler_m = std::make_shared<FlatTop>(pc, fc, opalDist);
+            break;
         default:
             throw OpalException("Distribution::create", "Unknown \"TYPE\" of \"DISTRIBUTION\"");
     }
@@ -329,6 +350,8 @@ void TrackRun::execute() {
 
     *gmsg << "* Particle creation done" << endl;
     
+    IpplTimings::stopTimer(samplingTime);
+
     /* 
        reset the fieldsolver with correct hr_m
        based on the distribution
@@ -337,11 +360,8 @@ void TrackRun::execute() {
     bunch_m->setCharge();
     bunch_m->setMass();
     bunch_m->bunchUpdate();
-
     bunch_m->print(*gmsg);
-
     initDataSink();
-
     /*
     if (!isFollowupTrack_m) {
         *gmsg << std::scientific;

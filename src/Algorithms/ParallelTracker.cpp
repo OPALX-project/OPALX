@@ -348,11 +348,17 @@ void ParallelTracker::execute() {
     *gmsg << "itsBunch_m->RefPartR_m= " << itsBunch_m->RefPartR_m << endl;
     *gmsg << "itsBunch_m->RefPartP_m= " << itsBunch_m->RefPartP_m << endl;
 
+    bool const psDump0 = 1;
+    bool const statDump0 = 1;
+
+    writePhaseSpace(0, psDump0, statDump0);
+    msg << level2 << "Dump initial phase space" << endl;
+
     OrbitThreader oth(
         itsReference, itsBunch_m->RefPartR_m, itsBunch_m->RefPartP_m, pathLength_m, -rmin(2),
         itsBunch_m->getT(), (back_track ? -minTimeStep : minTimeStep), stepSizes_m,
         itsOpalBeamline_m);
-
+/*
     oth.execute();
 
     BoundingBox globalBoundingBox = oth.getBoundingBox();
@@ -368,7 +374,6 @@ void ParallelTracker::execute() {
     OPALTimer::Timer myt1;
     *gmsg << "* Track start at: " << myt1.time() << ", t= " << Util::getTimeString(time) << "; "
           << "zstart at: " << Util::getLengthString(pathLength_m) << endl;
-
     *gmsg << "* Executing ParallelTracker\n"
           << "* Initial dt = " << Util::getTimeString(itsBunch_m->getdT()) << "\n"
           << "* Max integration steps = " << stepSizes_m.getMaxSteps() << ", next step = " << step
@@ -463,6 +468,7 @@ void ParallelTracker::execute() {
 
     itsOpalBeamline_m.switchElementsOff();
 
+    */
     OPALTimer::Timer myt3;
     *gmsg << endl << "* Done executing ParallelTracker at " << myt3.time() << endl << endl;
 }
