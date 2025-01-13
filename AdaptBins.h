@@ -313,7 +313,7 @@ namespace ParticleBinning {
         void genAdaptiveHistogram() {
             // 1. Run merging algorithm on globalHisto --> generates global binWidths array and postSum.
             // Note: Assumes that the histograms are properly initialized.
-            double tmp_ratio                  = (xMax_m - xMin_m) / 10; // should be ~10 bins // bunch_m->getTotalNum()  /  
+            double tmp_ratio                  = (xMax_m - xMin_m) * sqrt(bunch_m->getTotalNum()) / 20; // (xMax_m - xMin_m) / 10 * (xMax_m - xMin_m)/bunch_m->getTotalNum(); // should be ~10 bins // bunch_m->getTotalNum()  /  
             index_transform_type adaptLookup  = globalBinHisto_m.mergeBins(tmp_ratio);
             dview_type adaptLookupDevice      = dview_type("adaptLookupDevice", currentBins_m);
             Kokkos::deep_copy(adaptLookupDevice, adaptLookup);
@@ -342,7 +342,7 @@ namespace ParticleBinning {
          * Note: Only works correctly for rank 0 in an MPI environment.
          */
         void print() {
-            Inform os("AdaptBins");
+            /*Inform os("AdaptBins");
             // Only works correct for rank 0
             os << "-----------------------------------------" << endl;
             os << "     Output Global Binning Structure     " << endl;
@@ -361,10 +361,13 @@ namespace ParticleBinning {
                 total += val;
             }   
             os << "Total = " << total << endl;
-            os << "-----------------------------------------" << endl;
+            os << "-----------------------------------------" << endl;*/
 
             // TODO
+            
             globalBinHisto_m.printHistogram();
+
+            globalBinHisto_m.printPythonArrays();
         }
 
         /**

@@ -15,6 +15,27 @@ namespace ParticleBinning {
         postSum_m   = other.postSum_m;
     }
 
+
+    // Implementation of the cost function
+    template <typename size_type, typename bin_index_type, typename value_type, bool UseDualView, class... Properties>
+    KOKKOS_INLINE_FUNCTION
+    value_type Histogram<size_type, bin_index_type, value_type, UseDualView, Properties...>::computeDeviationCost(
+        const size_type& sumCount, const value_type& sumWidth, const value_type& maxBinRatio, const value_type& largeVal) const {
+        if (sumCount == 0) {
+            // If sumWidth is also 0, ratio is 0 => cost = |0 - maxBinRatio| (0 width bins should never happen...)
+            if (sumWidth == value_type(0)) {
+                return std::fabs(0.0 - maxBinRatio);
+            } else {
+                // ratio would be infinite => pick a large penalty
+                return largeVal;
+            }
+        } else {
+            value_type ratio = sumWidth * sqrt(sumCount); // (sumWidth * sumWidth) / static_cast<value_type>(sumCount);
+            return std::fabs(ratio - maxBinRatio);
+        }
+    }
+
+
     template <typename size_type, typename bin_index_type, typename value_type, bool UseDualView, class... Properties>
     Histogram<size_type, bin_index_type, value_type, UseDualView, Properties...>::index_transform_type
     Histogram<size_type, bin_index_type, value_type, UseDualView, Properties...>::mergeBins(const value_type maxBinRatio) {
@@ -23,7 +44,8 @@ namespace ParticleBinning {
         // TODO: Find algorithm for that
         // std::cout << "Warning: mergeBins not implemented yet!" << std::endl;
         Inform m("Histogram");
-        m << "Merging bins with maxBinRatio = " << maxBinRatio << endl;
+        m << "Merging bins with cost-based approach (minimize deviation from maxBinRatio = "
+          << maxBinRatio << ")" << endl;
 
         if constexpr (!UseDualView) {
             m << "This does not work if the histogram is not saved in a DualView, since it needs host access to the data." << endl;
@@ -37,6 +59,7 @@ namespace ParticleBinning {
 
         const bin_index_type n = numBins_m;
         if (n < 2) {
+            // Should not happen, since this function is to be called after generating a very fine histogram, e.g. 128 bins
             m << "Not merging, since n_bins = " << n << " is too small!" << endl;
             index_transform_type oldToNewBinsView("oldToNewBinsView", n);
             Kokkos::deep_copy(oldToNewBinsView, 0);
@@ -44,14 +67,9 @@ namespace ParticleBinning {
         }
 
         // ----------------------------------------------------------------
-        // 2) Build prefix sums on the host
-        //
+        // 1) Build prefix sums on the host
         //    prefixCount[k] = sum of counts in bins [0..k-1]
         //    prefixWidth[k] = sum of widths in bins [0..k-1]
-        //
-        //    i.e. prefixCount[0] = 0, prefixCount[1] = oldHistHost(0), etc.
-        //
-        //    Note: everything on host, since algorithm is not parallelized.
         // ----------------------------------------------------------------
         Kokkos::View<size_type*,  Kokkos::HostSpace> prefixCount("prefixCount", n+1);
         Kokkos::View<value_type*, Kokkos::HostSpace> prefixWidth("prefixWidth", n+1);
@@ -63,24 +81,28 @@ namespace ParticleBinning {
         }
         m << "Prefix sums computed." << endl;
 
+
         // ----------------------------------------------------------------
-        // 3) Dynamic Programming arrays:
-        //    dp(k)      = minimum number of merged bins covering [0..k-1]
-        //    prevIdx(k) = the index i that yields that minimal partition
+        // 2) Dynamic Programming arrays:
+        //    dp(k)      = minimal total cost covering [0..k-1]
+        //    prevIdx(k) = the index i that yields that minimal cost
         // ----------------------------------------------------------------
-        Kokkos::View<int*, Kokkos::HostSpace> dp("dp", n+1);
-        Kokkos::View<int*, Kokkos::HostSpace> prevIdx("prevIdx", n+1);
+        // We'll store dp as a floating-point "value_type" array
+        Kokkos::View<value_type*, Kokkos::HostSpace> dp("dp", n+1);
+        Kokkos::View<int*,        Kokkos::HostSpace> prevIdx("prevIdx", n+1);
 
         // Initialize dp with something large
+        value_type largeVal = std::numeric_limits<value_type>::max() / value_type(2);
         for (bin_index_type k = 0; k <= n; ++k) {
-            dp(k)      = std::numeric_limits<int>::max();
+            dp(k)      = largeVal;
             prevIdx(k) = -1;
         }
-        dp(0) = 0;  // 0 bins needed to cover an empty set (base case)
+        dp(0) = value_type(0);  // 0 cost to cover an empty set
         m << "DP arrays initialized." << endl;
 
+
         // ----------------------------------------------------------------
-        // 4) Fill dp with an O(n^2) algorithm to find the optimal partition
+        // 3) Fill dp with an O(n^2) algorithm to find the minimal total cost
         // ----------------------------------------------------------------
         for (bin_index_type k = 1; k <= n; ++k) {
             // Try all possible start indices i for the last merged bin
@@ -88,37 +110,38 @@ namespace ParticleBinning {
                 size_type  sumCount  = prefixCount(k) - prefixCount(i);
                 value_type sumWidth  = prefixWidth(k) - prefixWidth(i);
 
-                // If sumCount==0 but sumWidth!=0, ratio = infinite => not valid
-                // If sumCount==0 and sumWidth==0, ratio is 0/0 => interpret as 0 or skip
-                if (sumCount == 0) {
-                    if (sumWidth != value_type(0)) {
-                        //m << "Skipping i=" << i << ", k=" << k << " with sumWidth=" << sumWidth << endl;
-                        continue; // can't form a valid bin with ratio <= maxBinRatio
+                // Compute the cost of merging bins [i..k-1]
+                // cost = |(sumWidth/sumCount) - maxBinRatio|, if sumCount>0
+                // or if sumCount=0 => handle specially
+                value_type segCost = computeDeviationCost(sumCount, sumWidth, maxBinRatio, largeVal);
+                /*if (sumCount == 0) {
+                    if (sumWidth == value_type(0)) {
+                        // ratio = 0/0 => treat as 0 => cost = |0 - maxBinRatio|
+                        segCost = std::fabs(0.0 - maxBinRatio);
+                    } else {
+                        // ratio = infinite => pick a large penalty
+                        segCost = largeVal;
                     }
-                    // else sumWidth=0 => ratio=0 => valid
                 } else {
-                    value_type ratio = sumWidth; // / totalBinWidth_m / static_cast<value_type>(sumCount);
-                    if (ratio > maxBinRatio) {
-                        //m << "Skipping i=" << i << ", k=" << k << " with ratio=" << ratio << endl;
-                        continue;  // doesn't meet ratio constraint
-                    }
-                }
+                    value_type ratio = sumWidth / static_cast<value_type>(sumCount);
+                    segCost = std::fabs(ratio - maxBinRatio);
+                }*/
 
-                // If we can form one valid merged bin from [i..k-1], 
-                // check if that yields a better (fewer bins) partition
-                int cost = dp(i) + 1; 
-                if (cost < dp(k)) {
-                    dp(k)      = cost;
+                value_type candidate = dp(i) + segCost;
+                if (candidate < dp(k)) {
+                    dp(k)      = candidate;
                     prevIdx(k) = i;
                 }
             }
         }
         m << "DP arrays filled." << endl;
 
-        int mergedBinsCount = dp(n);
-        if (mergedBinsCount < 1 || mergedBinsCount == std::numeric_limits<int>::max()) {
-            // Shouldn't happen unless everything is zero?
-            mergedBinsCount = 1;
+        // dp(n) is the minimal total cost for covering [0..n-1].
+        value_type totalCost = dp(n);
+        if (totalCost >= largeVal) {
+            // Means everything was effectively "impossible" => fallback
+            std::cerr << "Warning: no feasible merges found. Setting cost=0, no merges." << std::endl;
+            totalCost = value_type(0);
         }
 
         for (bin_index_type k = 0; k <= n; ++k) {
@@ -127,119 +150,112 @@ namespace ParticleBinning {
 
 
         // ----------------------------------------------------------------
-        // 5) Reconstruct boundaries from prevIdx
-        //
+        // 4) Reconstruct boundaries from prevIdx
         //    We start from k=n and step backwards until k=0
-        //    Each boundary = i => means the last bin covered [i..k-1]
         // ----------------------------------------------------------------
-        std::vector<int> boundaries; 
-        boundaries.reserve(mergedBinsCount+1);
+        std::vector<int> boundaries;
         {
             int cur = n;
+            // We'll just push them in reverse
             while (cur > 0) {
-                int start = prevIdx(cur); 
+                int start = prevIdx(cur);
                 if (start < 0) {
-                    // fallback: something went wrong, break to avoid infinite loop
-                    // this should not happen if dp was computed correctly
-                    std::cerr << "Error: prevIdx(" << cur << ") < 0. Merging not successful, aborted loop." << std::endl;
+                    std::cerr << "Error: prevIdx(" << cur << ") < 0. "
+                              << "Merging not successful, aborted loop." << std::endl;
+                    // fallback, break out
                     break;
                 }
                 boundaries.push_back(start);
                 cur = start;
             }
-            // boundaries is in reverse order of merges, e.g. [startK, ..., 0]
+            // boundaries is reversed (e.g. [startK, i2, i1, 0])
             std::reverse(boundaries.begin(), boundaries.end());
-            // now boundaries = [0, i1, i2, ..., iLast]
-            // The final bin covers [iLast..n-1].
+            // final boundary is n
             boundaries.push_back(n);
         }
 
-        // The number of bins we actually have is boundaries.size() - 1
-        if (static_cast<int>(boundaries.size()) - 1 != mergedBinsCount) {
-            // Just a consistency check
-            mergedBinsCount = static_cast<int>(boundaries.size()) - 1;
-        }
-        m << "Merged bins: " << mergedBinsCount << endl;
+        // Now the number of merged bins is boundaries.size() - 1
+        size_type mergedBinsCount = static_cast<size_type>(boundaries.size()) - 1;
+        m << "Merged bins (based on minimal cost partition): " << mergedBinsCount << ". Minimal total cost = " << totalCost << endl;
 
 
         // ----------------------------------------------------------------
-        // 6) Build new arrays for the merged bins
-        //
-        //    For each merged bin j from 0..(mergedBinsCount-1):
-        //       start = boundaries[j], end = boundaries[j+1]-1
+        // 5) Build new arrays for the merged bins
         // ----------------------------------------------------------------
-        std::vector<size_type>  newCounts(mergedBinsCount, 0);
-        std::vector<value_type> newWidths(mergedBinsCount, value_type(0));
+        Kokkos::View<size_type*,  Kokkos::HostSpace> newCounts("newCounts", mergedBinsCount);
+        Kokkos::View<value_type*, Kokkos::HostSpace> newWidths("newWidths", mergedBinsCount);
 
-        for (bin_index_type j = 0; j < static_cast<bin_index_type>(mergedBinsCount); ++j) {
+        for (size_type j = 0; j < mergedBinsCount; ++j) {
             bin_index_type start = boundaries[j];
             bin_index_type end   = boundaries[j+1] - 1;  // inclusive
             size_type  sumCount  = prefixCount(end+1) - prefixCount(start);
             value_type sumWidth  = prefixWidth(end+1) - prefixWidth(start);
-            newCounts[j] = sumCount;
-            newWidths[j] = sumWidth;
+            newCounts(j) = sumCount;
+            newWidths(j) = sumWidth;
         }
         m << "New bins computed." << endl;
 
-        // Also generate a lookup table that maps the old bin index to the new bin index
+
+        // Also generate a lookup table that maps the old bin index
+        // to the new bin index
         index_transform_type oldToNewBinsView("oldToNewBinsView", n);
-        // For j in [0 .. mergedBinsCount-1], the range of old bins is [boundaries[j], boundaries[j+1]-1].
-        // So fill oldToNewBinsView(i) = j for i in that range.
-        for (bin_index_type j = 0; j < static_cast<bin_index_type>(mergedBinsCount); ++j) {
-            bin_index_type startIdx = boundaries[j];
-            bin_index_type endIdx   = boundaries[j+1]; // exclusive
-            for (bin_index_type i = startIdx; i < endIdx; ++i) {
-                oldToNewBinsView(i) = j;
+        {
+            for (size_type j = 0; j < mergedBinsCount; ++j) {
+                bin_index_type startIdx = boundaries[j];
+                bin_index_type endIdx   = boundaries[j+1]; // exclusive
+                for (bin_index_type i = startIdx; i < endIdx; ++i) {
+                    oldToNewBinsView(i) = j;
+                }
             }
         }
         m << "Lookup table generated." << endl;
 
 
         // ----------------------------------------------------------------
-        // 7) Overwrite the old histogram arrays with the new merged ones
+        // 6) Overwrite the old histogram arrays with the new merged ones
         // ----------------------------------------------------------------
         numBins_m = static_cast<bin_index_type>(mergedBinsCount);
 
         instantiateHistograms();
         m << "New histograms instantiated." << endl;
-        //histogram_m = view_type("histogram", newNumBins);
-        //binWidths_m = width_view_type("binWidths", newNumBins); 
 
-        // Copy data into the new Kokkos Views (on host)
+        // Copy the data into the new Kokkos Views (on host)
         {
-            // These return the views initialized view lines above
-            hview_type newHistHost        = getHostView<hview_type>(histogram_m);
-            hwidth_view_type newWidthHost = getHostView<hwidth_view_type>(binWidths_m);
-            for (bin_index_type i = 0; i < numBins_m; ++i) {
-                newHistHost(i)   = newCounts[i];
-                newWidthHost(i)  = newWidths[i];
-            }
+            hview_type newHistHost       = getHostView<hview_type>(histogram_m);
+            hwidth_view_type newWidthHost= getHostView<hwidth_view_type>(binWidths_m);
+            Kokkos::deep_copy(newHistHost, newCounts);
+            Kokkos::deep_copy(newWidthHost, newWidths);
+            /*for (bin_index_type i = 0; i < numBins_m; ++i) {
+                newHistHost(i)  = newCounts(i);
+                newWidthHost(i) = newWidths(i);
+            }*/
         }
         m << "New histograms filled." << endl;
 
 
         // ----------------------------------------------------------------
-        // 8) If using DualView, mark host as modified so that a future sync 
-        //    will push to device if needed (should always happen)
+        // 7) If using DualView, mark host as modified & sync
         // ----------------------------------------------------------------
         if constexpr (UseDualView) {
-            modify_host(); // histogram
+            modify_host(); 
             sync();
 
             binWidths_m.modify_host();
             binWidths_m.sync_device();
         }
-        m << "Host views modified." << endl;
+        m << "Host views modified/synced." << endl;
+
 
         // ----------------------------------------------------------------
-        // 9) Recompute postSum for the new histogram
+        // 8) Recompute postSum for the new histogram
         // ----------------------------------------------------------------
         initPostSum();
 
-        m << "Re-binned from " << n << " bins down to " 
-          << numBins_m << " bins (optimal partition for, ratio <= " 
-          << maxBinRatio << ")." << endl;
+        m << "Re-binned from " << n << " bins down to "
+          << numBins_m << " bins. Total deviation cost = "
+          << totalCost << endl;
 
+        // Return the old->new index transform
         return oldToNewBinsView;
     }
 

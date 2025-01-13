@@ -323,6 +323,12 @@ namespace ParticleBinning {
 
         index_transform_type mergeBins(const value_type maxBinRatio);
 
+        KOKKOS_INLINE_FUNCTION // in case it is needed...
+        value_type computeDeviationCost(const size_type& sumCount,
+                                        const value_type& sumWidth,
+                                        const value_type& maxBinRatio,
+                                        const value_type& largeVal) const;
+
     private:
         std::string debug_name_m;   /// \brief Debug name for identifying the histogram instance.
         bin_index_type numBins_m;   /// \brief Number of bins in the histogram.
@@ -357,7 +363,7 @@ namespace ParticleBinning {
             hwidth_view_type widthsHost = getHostView<hwidth_view_type>(binWidths_m);
 
             // 3) Print header
-            os << "Histogram \"" << debug_name_m << "\" with " << numBins_m << " bins.\n\n";
+            os << "Histogram \"" << debug_name_m << "\" with " << numBins_m << " bins. BinWidth = " << totalBinWidth_m << ".\n\n";
 
             // Format columns: BinIndex, Count, Width
             // Adjust widths as needed
@@ -381,6 +387,27 @@ namespace ParticleBinning {
 
             //os << "-----------------------------------------" << endl;
             os << std::endl; // extra newline at the end
+        }
+
+        void printPythonArrays() const {
+            hview_type hostCounts = getHostView<hview_type>(histogram_m);
+            hwidth_view_type hostWidths = getHostView<hwidth_view_type>(binWidths_m);
+
+            // Output counts as a Python NumPy array
+            std::cout << "bin_counts = np.array([";
+            for (bin_index_type i = 0; i < numBins_m; ++i) {
+                std::cout << hostCounts(i);
+                if (i < numBins_m - 1) std::cout << ", ";
+            }
+            std::cout << "])" << std::endl;
+
+            // Output widths as a Python NumPy array
+            std::cout << "bin_widths = np.array([";
+            for (bin_index_type i = 0; i < numBins_m; ++i) {
+                std::cout << std::fixed << std::setprecision(6) << hostWidths(i);
+                if (i < numBins_m - 1) std::cout << ", ";
+            }
+            std::cout << "])" << std::endl;
         }
 
     };

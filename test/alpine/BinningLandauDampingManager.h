@@ -212,7 +212,7 @@ public:
 
         view_type* R = &(this->pcontainer_m->R.getView());
         samplingR.generate(*R, rand_pool64);
-        this->pcontainer_m->R = this->pcontainer_m->R * this->pcontainer_m->R * this->pcontainer_m->R; // just do something...
+        this->pcontainer_m->R = (this->pcontainer_m->R * this->pcontainer_m->R) / 13; // change distribution a bit for binning tests
 
         view_type* P = &(this->pcontainer_m->P.getView());
 
@@ -283,6 +283,7 @@ public:
         
         // TODO: binning
         this->bins_m->doFullRebin(this->bins_m->getMaxBinCount());
+        this->bins_m->print(); // for debugging...
         this->bins_m->sortContainerByBin(); // sort particles after creating bins for scatter() operation inside LeapFrogStep 
 
         static IpplTimings::TimerRef MergeBinsTimer = IpplTimings::getTimer("MergingBins");
