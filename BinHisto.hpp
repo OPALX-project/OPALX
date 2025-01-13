@@ -87,12 +87,12 @@ namespace ParticleBinning {
         hwidth_view_type prefixWidth("prefixWidth", n+1);
         prefixCount(0) = 0;
         prefixWidth(0) = 0;
-        /*for (bin_index_type i = 0; i < n; ++i) {
+        for (bin_index_type i = 0; i < n; ++i) {
             prefixCount(i+1) = prefixCount(i) + oldHistHost(i);
             prefixWidth(i+1) = prefixWidth(i) + oldBinWHost(i);
-        }*/
-        computeFixSum<hview_type>(oldHistHost, prefixCount);
-        computeFixSum<hwidth_view_type>(oldBinWHost, prefixWidth);
+        }
+        //computeFixSum<hview_type>(oldHistHost, prefixCount);
+        //computeFixSum<hwidth_view_type>(oldBinWHost, prefixWidth);
 
         m << "Prefix sums computed." << endl;
 
