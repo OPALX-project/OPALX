@@ -223,8 +223,9 @@ namespace ParticleBinning {
         Kokkos::RangePolicy<> getBinIterationPolicy(const bin_index_type& binIndex) {
             if constexpr (UseDualView) {
                 // localPostSumHost = postSum_m.view_host();
-                hview_type localPostSumHost = getHostView<hview_type>(postSum_m);
-                return Kokkos::RangePolicy<>(localPostSumHost(binIndex), localPostSumHost(binIndex + 1));
+                //hview_type localPostSumHost = getHostView<hview_type>(postSum_m);
+                //return Kokkos::RangePolicy<>(localPostSumHost(binIndex), localPostSumHost(binIndex + 1));
+                return Kokkos::RangePolicy<>(postSum_m.h_view(binIndex), postSum_m.h_view(binIndex + 1));
             } else {
                 std::cerr << "Warning: Accessing BinHisto.getBinIterationPolicy without DualView might be inefficient!" << std::endl;
                 Kokkos::View<bin_index_type[2], Kokkos::HostSpace> host_ranges("host_scalar");

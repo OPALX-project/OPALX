@@ -107,10 +107,10 @@ namespace ParticleBinning {
 
         // Initialize dp with something large
         value_type largeVal = std::numeric_limits<value_type>::max() / value_type(2);
-        /*for (bin_index_type k = 0; k <= n; ++k) {
-            dp(k)      = largeVal;
-            prevIdx(k) = -1;
-        }*/
+        //for (bin_index_type k = 0; k <= n; ++k) {
+        //    dp(k)      = largeVal;
+        //    prevIdx(k) = -1;
+        //}
         Kokkos::parallel_for("InitDP", Kokkos::RangePolicy<exec_space>(0, n+1), 
             KOKKOS_LAMBDA(const bin_index_type k) {
                 dp(k)      = largeVal;
@@ -134,18 +134,18 @@ namespace ParticleBinning {
                 // cost = |(sumWidth/sumCount) - maxBinRatio|, if sumCount>0
                 // or if sumCount=0 => handle specially
                 //value_type segCost = computeDeviationCost(sumCount, sumWidth, maxBinRatio, largeVal);
-                /*if (sumCount == 0) {
-                    if (sumWidth == value_type(0)) {
-                        // ratio = 0/0 => treat as 0 => cost = |0 - maxBinRatio|
-                        segCost = std::fabs(0.0 - maxBinRatio);
-                    } else {
-                        // ratio = infinite => pick a large penalty
-                        segCost = largeVal;
-                    }
-                } else {
-                    value_type ratio = sumWidth / static_cast<value_type>(sumCount);
-                    segCost = std::fabs(ratio - maxBinRatio);
-                }*/
+                //if (sumCount == 0) {
+                //    if (sumWidth == value_type(0)) {
+                //        // ratio = 0/0 => treat as 0 => cost = |0 - maxBinRatio|
+                //        segCost = std::fabs(0.0 - maxBinRatio);
+                //    } else {
+                //        // ratio = infinite => pick a large penalty
+                //        segCost = largeVal;
+                //    }
+                //} else {
+                //    value_type ratio = sumWidth / static_cast<value_type>(sumCount);
+                //    segCost = std::fabs(ratio - maxBinRatio);
+                //}
 
                 //value_type candidate = dp(i) + segCost;
                 //if (candidate < dp(k)) {
@@ -185,9 +185,9 @@ namespace ParticleBinning {
             totalCost = value_type(0);
         }
 
-        /*for (bin_index_type k = 0; k <= n; ++k) {
-            m << "dp(" << k << ") = " << dp(k) << ", prevIdx(" << k << ") = " << prevIdx(k) << endl;
-        }*/
+        //for (bin_index_type k = 0; k <= n; ++k) {
+        //    m << "dp(" << k << ") = " << dp(k) << ", prevIdx(" << k << ") = " << prevIdx(k) << endl;
+        //}
 
 
         // ----------------------------------------------------------------
@@ -224,14 +224,14 @@ namespace ParticleBinning {
         Kokkos::View<size_type*,  Kokkos::HostSpace> newCounts("newCounts", mergedBinsCount);
         Kokkos::View<value_type*, Kokkos::HostSpace> newWidths("newWidths", mergedBinsCount);
 
-        /*for (size_type j = 0; j < mergedBinsCount; ++j) {
-            bin_index_type start = boundaries[j];
-            bin_index_type end   = boundaries[j+1] - 1;  // inclusive
-            size_type  sumCount  = prefixCount(end+1) - prefixCount(start);
-            value_type sumWidth  = prefixWidth(end+1) - prefixWidth(start);
-            newCounts(j) = sumCount;
-            newWidths(j) = sumWidth;
-        }*/
+        //for (size_type j = 0; j < mergedBinsCount; ++j) {
+        //    bin_index_type start = boundaries[j];
+        //    bin_index_type end   = boundaries[j+1] - 1;  // inclusive
+        //    size_type  sumCount  = prefixCount(end+1) - prefixCount(start);
+        //    value_type sumWidth  = prefixWidth(end+1) - prefixWidth(start);
+        //    newCounts(j) = sumCount;
+        //    newWidths(j) = sumWidth;
+        //}
         auto policy = Kokkos::RangePolicy<exec_space>(0, mergedBinsCount);
         Kokkos::parallel_for("build_new_bins", policy,
             KOKKOS_LAMBDA(const size_type j) {
@@ -250,19 +250,18 @@ namespace ParticleBinning {
         // Also generate a lookup table that maps the old bin index
         // to the new bin index
         index_transform_type oldToNewBinsView("oldToNewBinsView", n);
-            /*for (size_type j = 0; j < mergedBinsCount; ++j) {
-                bin_index_type startIdx = boundaries[j];
-                bin_index_type endIdx   = boundaries[j+1]; // exclusive
+            //for (size_type j = 0; j < mergedBinsCount; ++j) {
+            //    bin_index_type startIdx = boundaries[j];
+            //    bin_index_type endIdx   = boundaries[j+1]; // exclusive
 
-                for (bin_index_type i = startIdx; i < endIdx; ++i) {
-                    oldToNewBinsView(i) = j;
-                }
-            }*/
-        /*
-        Might want to change this to a MDRangePolicy if it every runs on GPU (only Host atm).
-        It is not a pretty solution, but as long as it runs on host with multiple cores, it might
-        at least take advantage of some host-side parallelism.
-        */
+            //    for (bin_index_type i = startIdx; i < endIdx; ++i) {
+            //        oldToNewBinsView(i) = j;
+            //    }
+            //}
+
+        //Might want to change this to a MDRangePolicy if it every runs on GPU (only Host atm).
+        //It is not a pretty solution, but as long as it runs on host with multiple cores, it might
+        //at least take advantage of some host-side parallelism.
         Kokkos::parallel_for("FillOldToNewBins", Kokkos::RangePolicy<exec_space>(0, mergedBinsCount), 
             KOKKOS_LAMBDA(const bin_index_type j) {
                 bin_index_type startIdx = boundaries[j];
