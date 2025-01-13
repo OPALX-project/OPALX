@@ -56,7 +56,11 @@ namespace ParticleBinning {
                                                     typename width_view_type::t_dev, 
                                                     width_view_type>;
 
-        using index_transform_type = Kokkos::View<bin_index_type*, Kokkos::HostSpace>;
+        template <class... Args>
+        using index_transform_type = Kokkos::View<bin_index_type*, Args...>;
+        
+        using dindex_transform_type = index_transform_type<Kokkos::DefaultExecutionSpace>;
+        using hindex_transform_type = index_transform_type<Kokkos::HostSpace>;
 
         /**
          * @brief Default constructor for the Histogram class.
@@ -122,7 +126,7 @@ namespace ParticleBinning {
          */
         size_type getNPartInBin(bin_index_type binIndex) {
             if constexpr (UseDualView) {
-                histogram_m.h_view(binIndex);
+                return histogram_m.h_view(binIndex);
             } else {
                 std::cerr << "Warning: Accessing BinHisto.getNPartInBin without DualView might be inefficient!" << std::endl;
                 Kokkos::View<size_type, Kokkos::HostSpace> host_scalar("host_scalar");
@@ -185,7 +189,7 @@ namespace ParticleBinning {
          * @note Should not be called again after merging bins, since the bin widths will all be different.
          */
         void initConstBinWidths(const value_type constBinWidth) {
-            Kokkos::deep_copy(getDeviceView<dwidth_view_type>(binWidths_m), constBinWidth);
+            Kokkos::deep_copy(getDeviceView<dwidth_view_type>(binWidths_m), constBinWidth / numBins_m);
             if constexpr (UseDualView) {
                 binWidths_m.modify_device();
                 binWidths_m.sync_host();
@@ -203,7 +207,7 @@ namespace ParticleBinning {
         void initPostSum() {
             //auto postSumView = constexpr UseDualView ? postSum_m.view_device() : postSum_m;
             // dview_type postSumView = getDeviceView(postSum_m);
-            computeFixSum<size_type>(getDeviceView<dview_type>(histogram_m), getDeviceView<dview_type>(postSum_m));
+            computeFixSum<dview_type>(getDeviceView<dview_type>(histogram_m), getDeviceView<dview_type>(postSum_m));
             if constexpr (UseDualView) {
                 postSum_m.modify_device();
                 postSum_m.sync_host();
@@ -223,8 +227,9 @@ namespace ParticleBinning {
         Kokkos::RangePolicy<> getBinIterationPolicy(const bin_index_type& binIndex) {
             if constexpr (UseDualView) {
                 // localPostSumHost = postSum_m.view_host();
-                hview_type localPostSumHost = getHostView<hview_type>(postSum_m);
-                return Kokkos::RangePolicy<>(localPostSumHost(binIndex), localPostSumHost(binIndex + 1));
+                //hview_type localPostSumHost = getHostView<hview_type>(postSum_m);
+                //return Kokkos::RangePolicy<>(localPostSumHost(binIndex), localPostSumHost(binIndex + 1));
+                return Kokkos::RangePolicy<>(postSum_m.h_view(binIndex), postSum_m.h_view(binIndex + 1));
             } else {
                 std::cerr << "Warning: Accessing BinHisto.getBinIterationPolicy without DualView might be inefficient!" << std::endl;
                 Kokkos::View<bin_index_type[2], Kokkos::HostSpace> host_ranges("host_scalar");
@@ -321,7 +326,13 @@ namespace ParticleBinning {
         The following contain functions that are used to make the histogram adaptive.
         */
 
-        index_transform_type mergeBins(const value_type maxBinRatio);
+        hindex_transform_type mergeBins(const value_type maxBinRatio);
+
+        KOKKOS_INLINE_FUNCTION // in case it is needed...
+        static value_type computeDeviationCost(const size_type& sumCount,
+                                              const value_type& sumWidth,
+                                              const value_type& maxBinRatio,
+                                              const value_type& largeVal);
 
     private:
         std::string debug_name_m;   /// \brief Debug name for identifying the histogram instance.
@@ -353,11 +364,12 @@ namespace ParticleBinning {
          * @param os The output stream to write to (defaults to std::cout).
          */
         void printHistogram(std::ostream &os = std::cout) {
+            if (ippl::Comm->rank() != 0) return;
             hview_type countsHost       = getHostView<hview_type>(histogram_m); 
             hwidth_view_type widthsHost = getHostView<hwidth_view_type>(binWidths_m);
 
             // 3) Print header
-            os << "Histogram \"" << debug_name_m << "\" with " << numBins_m << " bins.\n\n";
+            os << "Histogram \"" << debug_name_m << "\" with " << numBins_m << " bins. BinWidth = " << totalBinWidth_m << ".\n\n";
 
             // Format columns: BinIndex, Count, Width
             // Adjust widths as needed
@@ -381,6 +393,28 @@ namespace ParticleBinning {
 
             //os << "-----------------------------------------" << endl;
             os << std::endl; // extra newline at the end
+        }
+
+        void printPythonArrays() const {
+            if (ippl::Comm->rank() != 0) return;
+            hview_type hostCounts = getHostView<hview_type>(histogram_m);
+            hwidth_view_type hostWidths = getHostView<hwidth_view_type>(binWidths_m);
+
+            // Output counts as a Python NumPy array
+            std::cout << "bin_counts = np.array([";
+            for (bin_index_type i = 0; i < numBins_m; ++i) {
+                std::cout << hostCounts(i);
+                if (i < numBins_m - 1) std::cout << ", ";
+            }
+            std::cout << "])" << std::endl;
+
+            // Output widths as a Python NumPy array
+            std::cout << "bin_widths = np.array([";
+            for (bin_index_type i = 0; i < numBins_m; ++i) {
+                std::cout << std::fixed << std::setprecision(6) << hostWidths(i);
+                if (i < numBins_m - 1) std::cout << ", ";
+            }
+            std::cout << "])" << std::endl;
         }
 
     };

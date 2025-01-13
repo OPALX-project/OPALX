@@ -114,6 +114,7 @@ public:
         // TODO: Binning - After initializing the particles, create the limits
         //this->bins_m->initLimits();
         this->bins_m->doFullRebin(10); // test with 10 bins
+        this->bins_m->print(); // TODO For debugging...
         this->E_tmp.initialize(this->fcontainer_m->getMesh(), this->fcontainer_m->getFL()); // initialize temporary field 
 
 
@@ -211,6 +212,7 @@ public:
 
         view_type* R = &(this->pcontainer_m->R.getView());
         samplingR.generate(*R, rand_pool64);
+        // this->pcontainer_m->R = (this->pcontainer_m->R * this->pcontainer_m->R) / 13; // change distribution a bit for binning tests
 
         view_type* P = &(this->pcontainer_m->P.getView());
 
@@ -280,8 +282,18 @@ public:
         }
         
         // TODO: binning
-        this->bins_m->doFullRebin(10); // rebin with 10 bins
+        this->bins_m->doFullRebin(this->bins_m->getMaxBinCount());
+        this->bins_m->print(); // for debugging...
         this->bins_m->sortContainerByBin(); // sort particles after creating bins for scatter() operation inside LeapFrogStep 
+
+        static IpplTimings::TimerRef MergeBinsTimer = IpplTimings::getTimer("MergingBins");
+
+        IpplTimings::startTimer(MergeBinsTimer);
+        this->bins_m->genAdaptiveHistogram(); // merge bins with width/N_part ratio of 1.0
+        IpplTimings::stopTimer(MergeBinsTimer);
+
+        this->bins_m->print(); // For debugging...
+
 
         E_tmp = 0.0; // reset temporary field
         IpplTimings::startTimer(runBinnedSolverT);
@@ -315,7 +327,7 @@ public:
         std::shared_ptr<ParticleContainer_t> pc = this->pcontainer_m;
         std::shared_ptr<FieldContainer_t> fc    = this->fcontainer_m;
         view_type viewP                         = pc->P.getView();
-        binIndexView_t bin                      = pc->bin.getView();
+        binIndexView_t bin                      = pc->Bin.getView();
 
         for (binIndex_t i = 0; i < this->bins_m->getCurrentBinCount(); ++i) {
             // Scatter only for current bin index
