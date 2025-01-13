@@ -83,14 +83,17 @@ namespace ParticleBinning {
         //    prefixCount[k] = sum of counts in bins [0..k-1]
         //    prefixWidth[k] = sum of widths in bins [0..k-1]
         // ----------------------------------------------------------------
-        Kokkos::View<size_type*,  Kokkos::HostSpace> prefixCount("prefixCount", n+1);
-        Kokkos::View<value_type*, Kokkos::HostSpace> prefixWidth("prefixWidth", n+1);
+        hview_type       prefixCount("prefixCount", n+1);
+        hwidth_view_type prefixWidth("prefixWidth", n+1);
         prefixCount(0) = 0;
         prefixWidth(0) = 0;
-        for (bin_index_type i = 0; i < n; ++i) {
+        /*for (bin_index_type i = 0; i < n; ++i) {
             prefixCount(i+1) = prefixCount(i) + oldHistHost(i);
             prefixWidth(i+1) = prefixWidth(i) + oldBinWHost(i);
-        }
+        }*/
+        computeFixSum<hview_type>(oldHistHost, prefixCount);
+        computeFixSum<hwidth_view_type>(oldBinWHost, prefixWidth);
+
         m << "Prefix sums computed." << endl;
 
 

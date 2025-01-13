@@ -130,7 +130,38 @@ namespace ParticleBinning {
      *
      * @throws `ippl::Comm->abort();` if the size of the post_sum_view is not equal to input_view.extent(0) + 1.
      */
-    template <typename SizeType>
+    template <typename ViewType>
+    void computeFixSum(const ViewType& input_view, const ViewType& post_sum_view) {
+        using execution_space = typename ViewType::execution_space;
+        using size_type = typename ViewType::value_type;
+
+        // Ensure the output view has the correct size
+        if (post_sum_view.extent(0) != input_view.extent(0) + 1) {
+            Inform m("computePostSum");
+            m << "Output view must have size input_view.extent(0) + 1" << endl;
+            ippl::Comm->abort();
+        }
+
+        // Initialize the first element to 0
+        Kokkos::parallel_for("InitPostSum", Kokkos::RangePolicy<execution_space>(0, 1),
+            KOKKOS_LAMBDA(const size_type) {
+                post_sum_view(0) = 0;
+            });
+
+        // Timers for profiling
+        static IpplTimings::TimerRef initLocalPostSumT = IpplTimings::getTimer("initLocalPostSum");
+        IpplTimings::startTimer(initLocalPostSumT);
+        Kokkos::parallel_scan("ComputePostSum", Kokkos::RangePolicy<execution_space>(0, input_view.extent(0)),
+            KOKKOS_LAMBDA(const size_type& i, size_type& partial_sum, bool final) {
+                partial_sum += input_view(i);
+                if (final) {
+                    post_sum_view(i + 1) = partial_sum;
+                }
+            });
+        IpplTimings::stopTimer(initLocalPostSumT);
+    }
+
+    /*template <typename SizeType>
     void computeFixSum(const Kokkos::View<SizeType*> input_view, Kokkos::View<SizeType*> post_sum_view) {
         if (post_sum_view.extent(0) != input_view.extent(0) + 1) {
             Inform m("computePostSum");
@@ -146,12 +177,12 @@ namespace ParticleBinning {
         static IpplTimings::TimerRef initLocalPostSumT = IpplTimings::getTimer("initLocalPostSum");
         IpplTimings::startTimer(initLocalPostSumT);
         Kokkos::parallel_scan("ComputePostSum", input_view.extent(0), KOKKOS_LAMBDA(const SizeType& i, SizeType& partial_sum, bool final) {
-            /*if (postSum)*/ partial_sum += input_view(i); 
+            partial_sum += input_view(i); // if (postSum)
             if (final) { post_sum_view(i + 1) = partial_sum; } 
             // if (!postSum) partial_sum += input_view(i); 
         });
         IpplTimings::stopTimer(initLocalPostSumT);
-    }
+    }*/
 
     /**
      * @brief Checks if the elements in a Kokkos::View are sorted in non-decreasing order.

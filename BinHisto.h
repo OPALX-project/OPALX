@@ -207,7 +207,7 @@ namespace ParticleBinning {
         void initPostSum() {
             //auto postSumView = constexpr UseDualView ? postSum_m.view_device() : postSum_m;
             // dview_type postSumView = getDeviceView(postSum_m);
-            computeFixSum<size_type>(getDeviceView<dview_type>(histogram_m), getDeviceView<dview_type>(postSum_m));
+            computeFixSum<dview_type>(getDeviceView<dview_type>(histogram_m), getDeviceView<dview_type>(postSum_m));
             if constexpr (UseDualView) {
                 postSum_m.modify_device();
                 postSum_m.sync_host();
