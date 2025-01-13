@@ -9,6 +9,14 @@ namespace ParticleBinning {
     void AdaptBins<BunchType, BinningSelector>::initLimits() {
         Inform msg("AdaptBins");  // INFORM_ALL_NODES
 
+        if (bunch_m->getLocalNum() == 0) {
+            msg << "No particles in the bunch. Settings limits to 0." << endl;
+            xMin_m = 0;
+            xMax_m = 0;
+            binWidth_m = 0;
+            return;
+        }
+
         Kokkos::MinMaxScalar<value_type> localMinMax;
         // position_view_type localData = bunch_m->R.getView();
         var_selector_m.updateDataArr(bunch_m); // update needed if bunch->create() is called between binnings!
