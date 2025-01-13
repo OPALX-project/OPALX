@@ -324,10 +324,10 @@ namespace ParticleBinning {
         index_transform_type mergeBins(const value_type maxBinRatio);
 
         KOKKOS_INLINE_FUNCTION // in case it is needed...
-        value_type computeDeviationCost(const size_type& sumCount,
-                                        const value_type& sumWidth,
-                                        const value_type& maxBinRatio,
-                                        const value_type& largeVal) const;
+        static value_type computeDeviationCost(const size_type& sumCount,
+                                              const value_type& sumWidth,
+                                              const value_type& maxBinRatio,
+                                              const value_type& largeVal);
 
     private:
         std::string debug_name_m;   /// \brief Debug name for identifying the histogram instance.
