@@ -239,7 +239,8 @@ void PartBunch<double,3>::bunchUpdate() {
       1. calculates and set hr
       2. do repartitioning
      */
-
+    Inform m("bunchUpdate");
+    m << "Updating bunch." << endl;
 
     auto *mesh = &this->fcontainer_m->getMesh();
     auto *FL   = &this->fcontainer_m->getFL();
@@ -339,6 +340,7 @@ void PartBunch<double,3>::computeSelfFields() {
     std::shared_ptr<AdaptBins_t> bins = this->getBins();
     VField_t<double, 3>& Etmp = *(this->getTempEField());
     bins->doFullRebin(bins->getMaxBinCount()); // rebin with 128 bins
+    bins->print(); // For debugging...
     bins->sortContainerByBin(); // Sort BEFORE, since it generates less atomics overhead with more bins!
 
     IpplTimings::startTimer(MergeBinsTimer);
