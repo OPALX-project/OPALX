@@ -49,7 +49,7 @@ class Beam;
 class Beamline;
 class H5PartWrapper;
 
-enum class DistributionType : short { NODIST = -1, GAUSS, MULTIVARIATEGAUSS };
+enum class DistributionType : short { NODIST = -1, GAUSS, MULTIVARIATEGAUSS, FLATTOP, FROMFILE };
 
 using ParticleContainer_t = ParticleContainer<double, 3>;
 using FieldContainer_t = FieldContainer<double, 3>;
@@ -90,6 +90,13 @@ public:
     ippl::Vector<double, 3> getSigmaR() const;
     ippl::Vector<double, 3> getSigmaP() const;
 
+    double getSigmaTRise() const;
+    double getSigmaTFall() const;
+    double getTPulseLengthFWHM() const;
+
+    double getFTOSCAmplitude() const;
+    double getFTOSCPeriods() const;
+
     void setDistType();
 
     void setDist();
@@ -102,6 +109,12 @@ public:
     ippl::Vector<double, 3> getCutoffP() const;
 
     Matrix_t correlationMatrix_m;
+
+    bool emitting_m;                     /// Distribution is an emitted, and is currently
+                                         /// emitting, rather than an injected, beam.
+
+    double getTEmission() const;
+    void setTEmission(double tEmission);
 
 private:
     enum class EmissionModel : unsigned short { NONE, ASTRA, NONEQUIL };
@@ -171,12 +184,15 @@ private:
     void printDist(Inform& os, size_t numberOfParticles) const;
     void printDistGauss(Inform& os) const;
     void printDistMultiVariateGauss(Inform& os) const;
+    void printDistFlatTop(Inform& os) const;
 
     void setAttributes();
 
     void setDistParametersGauss();
 
     void setDistParametersMultiVariateGauss();
+
+    void setDistParametersFlatTop();
 
     void setSigmaR_m();
 
@@ -195,9 +211,18 @@ private:
 
     ippl::Vector<double, 3> pmean_m, xmean_m, sigmaR_m, sigmaP_m, cutoffR_m, cutoffP_m;
 
+    double sigmaTRise_m;
+    double sigmaTFall_m;
+    double tPulseLengthFWHM_m;
+
     DistributionType distrTypeT_m;
 
     double avrgpz_m;
+
+    double FTOSCAmplitude_m;
+    double FTOSCPeriods_m;
+
+    double tEmission_m;
 };
 
 inline Inform& operator<<(Inform& os, const Distribution& d) {
@@ -226,6 +251,26 @@ inline ippl::Vector<double, 3> Distribution::getCutoffR() const {
 
 inline ippl::Vector<double, 3> Distribution::getCutoffP() const {
     return cutoffP_m;
+}
+
+inline double Distribution::getSigmaTRise() const {
+    return sigmaTRise_m;
+}
+
+inline double Distribution::getSigmaTFall() const {
+    return sigmaTFall_m;
+}
+
+inline double Distribution::getTPulseLengthFWHM() const {
+    return tPulseLengthFWHM_m;
+}
+
+inline double Distribution::getFTOSCAmplitude() const {
+    return FTOSCAmplitude_m;
+}
+
+inline double Distribution::getFTOSCPeriods() const {
+    return FTOSCPeriods_m;
 }
 
 inline DistributionType Distribution::getType() const {
