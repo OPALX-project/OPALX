@@ -352,9 +352,6 @@ void TrackRun::execute() {
     
     IpplTimings::stopTimer(samplingTime);
 
-    // following is purely for test purposes and should be removed
-    sampler_m->testNumEmitParticles(200, Track::block->dT[0]);
-    sampler_m->testEmitParticles(200, Track::block->dT[0]);
     /* 
        reset the fieldsolver with correct hr_m
        based on the distribution
@@ -363,7 +360,6 @@ void TrackRun::execute() {
     bunch_m->setCharge();
     bunch_m->setMass();
     bunch_m->bunchUpdate();
-
     bunch_m->print(*gmsg);
     initDataSink();
     /*

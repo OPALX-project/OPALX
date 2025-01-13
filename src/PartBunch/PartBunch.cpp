@@ -245,6 +245,7 @@ void PartBunch<double,3>::bunchUpdate() {
     auto *FL   = &this->fcontainer_m->getFL();
 
     std::shared_ptr<ParticleContainer_t> pc = this->getParticleContainer();
+
     pc->computeMinMaxR();
     /* 
        This needs to go 
@@ -264,7 +265,7 @@ void PartBunch<double,3>::bunchUpdate() {
     hr_m = (1.0+this->OPALFieldSolver_m->getBoxIncr()/100.)*(l / this->nr_m);
     mesh->setMeshSpacing(hr_m);
     mesh->setOrigin(o-0.5*hr_m*this->OPALFieldSolver_m->getBoxIncr()/100.);
-    
+
     pc->getLayout().updateLayout(*FL, *mesh);
     pc->update();
 
