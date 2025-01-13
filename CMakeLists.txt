@@ -15,7 +15,7 @@
 # install (FILES ${_HDRS} DESTINATION include/binning)
 
 # Add subdirectory for the binning tests
-add_subdirectory(test)
+# add_subdirectory(test)
 
 # vi: set et ts=4 sw=4 sts=4:
 
@@ -32,21 +32,21 @@ add_subdirectory(test)
 #    FieldSolver.cpp
 #)
 
-#include_directories (
-#    ${CMAKE_CURRENT_SOURCE_DIR}
-#    )
+include_directories (
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    )
 
 #add_opal_sources (${_SRCS})
 
-#set (HDRS
-#    AdaptBins.h    
-#    AdaptBins.hpp
-#    BinHisto.h
-#    BinHisto.hpp
-#    BinningTools.h
-#    ParallelReduceTools.h
-#)
+set (HDRS
+    AdaptBins.h    
+    AdaptBins.hpp
+    BinHisto.h
+    BinHisto.hpp
+    BinningTools.h
+    ParallelReduceTools.h
+)
 
-#install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/PartBunch/Binning")
+install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/PartBunch/Binning")
 
 message (STATUS "Added Binning files.")
