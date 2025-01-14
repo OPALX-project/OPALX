@@ -293,7 +293,13 @@ void DistributionMoments::computeMinMaxPosition(ippl::ParticleAttrib<Vector_t<do
     double rmax[Dim];
     double rmin[Dim];
 
+    for(int i=0; i<Dim; i++){
+        rmin_loc[i] = 0.;
+        rmax_loc[i] = 0.;
+    }
+
     for (unsigned d = 0; d < Dim; ++d) {
+        if (Nlocal > 0) {
             Kokkos::parallel_reduce(
                 "rel max", Nlocal,
                 KOKKOS_LAMBDA(const int i, double& mm) {
@@ -309,6 +315,7 @@ void DistributionMoments::computeMinMaxPosition(ippl::ParticleAttrib<Vector_t<do
                     mm             = tmp_vel < mm ? tmp_vel : mm;
                 },
                 Kokkos::Min<double>(rmin_loc[d]));
+         }
      }
      Kokkos::fence();
      MPI_Allreduce(rmax_loc, rmax, Dim, MPI_DOUBLE, MPI_MAX, ippl::Comm->getCommunicator());
