@@ -401,7 +401,7 @@ void ParallelTracker::execute() {
             // ADA
             timeIntegration1(pusher);
             
-            computeSpaceChargeFields(step);
+            // computeSpaceChargeFields(step);
             
             // \todo for a drift we can neglect that 
             // computeExternalFields(oth);
@@ -414,7 +414,6 @@ void ParallelTracker::execute() {
 
             itsBunch_m->incrementT();
 
-            
             if (itsBunch_m->getT() > 0.0 || itsBunch_m->getdT() < 0.0) {
                 updateReference(pusher);
             }
@@ -425,7 +424,7 @@ void ParallelTracker::execute() {
             }
 
             itsBunch_m->set_sPos(pathLength_m);
-            
+
             // if (hasEndOfLineReached(globalBoundingBox)) break;
   
             bool const psDump =
@@ -951,11 +950,11 @@ void ParallelTracker::updateReferenceParticle(const BorisPusher& pusher) {
     const double dt = direction * std::min(itsBunch_m->getT(), direction * itsBunch_m->getdT());
     const double scaleFactor = Physics::c * dt;
     Vector_t<double, 3> Ef(0.0), Bf(0.0);
-    *gmsg << "updateReferenceParticle scaleFactor= " << scaleFactor << " dt= " << dt << " r= " << itsBunch_m->RefPartR_m << endl;
+
     itsBunch_m->RefPartR_m /= scaleFactor;
     pusher.push(itsBunch_m->RefPartR_m, itsBunch_m->RefPartP_m, dt);
     itsBunch_m->RefPartR_m *= scaleFactor;
-    *gmsg << "updateReferenceParticle after pusher.push r= " << itsBunch_m->RefPartR_m << endl;
+
     IndexMap::value_t elements           = itsOpalBeamline_m.getElements(itsBunch_m->RefPartR_m);
     IndexMap::value_t::const_iterator it = elements.begin();
     const IndexMap::value_t::const_iterator end = elements.end();
@@ -988,7 +987,7 @@ void ParallelTracker::updateReferenceParticle(const BorisPusher& pusher) {
 void ParallelTracker::transformBunch(const CoordinateSystemTrafo& trafo) {
     const unsigned int localNum = itsBunch_m->getLocalNum();
     for (unsigned int i = 0; i < localNum; ++i) {
-        /*
+        /* \todo host device .... 
         itsBunch_m->R[i]  = trafo.transformTo(itsBunch_m->R[i]);
         itsBunch_m->P[i]  = trafo.rotateTo(itsBunch_m->P[i]);
         itsBunch_m->Ef[i] = trafo.rotateTo(itsBunch_m->Ef[i]);
@@ -998,13 +997,23 @@ void ParallelTracker::transformBunch(const CoordinateSystemTrafo& trafo) {
 }
 
 void ParallelTracker::updateRefToLabCSTrafo() {
-    itsBunch_m->toLabTrafo_m.transformFrom(itsBunch_m->RefPartR_m);
-    Vector_t<double, 3> R = itsBunch_m->RefPartR_m;
+    /*
+    Inform m("updateRefToLabCSTrafo ");
+    m << " initial RefPartR: " << itsBunch_m->RefPartR_m << endl;
+    m << " RefPartR after transformFrom( " << itsBunch_m->RefPartR_m << endl;
     itsBunch_m->toLabTrafo_m.rotateFrom(itsBunch_m->RefPartP_m);
     Vector_t<double, 3> P = itsBunch_m->RefPartP_m;
-
+    m << " CS " << itsBunch_m->toLabTrafo_m << endl;
+    m << " rotMat= " << itsBunch_m->toLabTrafo_m.getRotationMatrix() << endl;
+    m << " initial: path Lenght= " << pathLength_m << endl;
+    m << " dt= " << itsBunch_m->getdT() << " R=" << R << endl;
+    */
+    
+    Vector_t R = itsBunch_m->toLabTrafo_m.transformFrom(itsBunch_m->RefPartR_m);
+    Vector_t P = itsBunch_m->toLabTrafo_m.transformFrom(itsBunch_m->RefPartP_m);
+    
     pathLength_m += std::copysign(1, itsBunch_m->getdT()) * euclidean_norm(R);
-
+        
     CoordinateSystemTrafo update(R, getQuaternion(P, Vector_t<double, 3>(0, 0, 1)));
 
     transformBunch(update);
