@@ -88,7 +88,6 @@ OrbitThreader::OrbitThreader(
     stepRange_m.enlargeIfOutside(stepSizes_m.getNumStepsFinestResolution());
     distTrackBack_m = std::min(pathLength_m, std::max(0.0, maxDiffZBunch));
     computeBoundingBox();
-    *gmsg << "OrbitThreader::p_m= " << p_m << endl;
 }
 
 void OrbitThreader::checkElementLengths(const std::set<std::shared_ptr<Component>>& fields) {
@@ -456,11 +455,9 @@ void OrbitThreader::computeBoundingBox() {
 
 void OrbitThreader::updateBoundingBoxWithCurrentPosition() {
     Vector_t<double, 3> dR = Physics::c * dt_m * p_m / Util::getGamma(p_m);
-    *gmsg << "dt = " << dt_m <<	" p= " << p_m << " dr= " << dR <<endl;
     std::array<Vector_t<double, 3>, 2> positions = {r_m - 10 * dR, r_m + 10 * dR};
    
     for (const Vector_t<double, 3>& pos : positions) {
-        *gmsg << "OrbitThreader::updateBoundingBoxWithCurrentPosition: " << pos << endl;
         globalBoundingBox_m.enlargeToContainPosition(pos);
     }
     
