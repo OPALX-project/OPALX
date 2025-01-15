@@ -442,7 +442,6 @@ void OrbitThreader::computeBoundingBox() {
     FieldList allElements         = itsOpalBeamline_m.getElementByType(ElementType::ANY);
     FieldList::iterator it        = allElements.begin();
     const FieldList::iterator end = allElements.end();
-    *gmsg << "OrbitThreader::computeBoundingBox #elements= " << allElements.size() << endl; 
     for (; it != end; ++it) {
         if (it->getElement()->getType() == ElementType::MARKER) {
             continue;
