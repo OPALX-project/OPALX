@@ -84,7 +84,9 @@ ParallelTracker::ParallelTracker(
 ParallelTracker::ParallelTracker(
     const Beamline& beamline, PartBunch_t* bunch, DataSink& ds, const PartData& reference,
     bool revBeam, bool revTrack, const std::vector<unsigned long long>& maxSteps, double zstart,
-    const std::vector<double>& zstop, const std::vector<double>& dt)
+    const std::vector<double>& zstop, const std::vector<double>& dt,
+    std::shared_ptr<SamplingBase> sampler // TODO: added for flattop binning test
+)
     : Tracker(beamline, bunch, reference, revBeam, revTrack),
       itsDataSink_m(&ds),
       itsOpalBeamline_m(beamline.getOrigin3D(), beamline.getInitialDirection()),
@@ -99,6 +101,7 @@ ParallelTracker::ParallelTracker(
       repartFreq_m(-1),
       emissionSteps_m(std::numeric_limits<unsigned int>::max()),
       numParticlesInSimulation_m(0),
+      sampler_m(sampler), // TODO: added for flattop binning test
       timeIntegrationTimer1_m(IpplTimings::getTimer("TIntegration1")),
       timeIntegrationTimer2_m(IpplTimings::getTimer("TIntegration2")),
       fieldEvaluationTimer_m(IpplTimings::getTimer("External field eval")),
@@ -348,11 +351,17 @@ void ParallelTracker::execute() {
     *gmsg << "itsBunch_m->RefPartR_m= " << itsBunch_m->RefPartR_m << endl;
     *gmsg << "itsBunch_m->RefPartP_m= " << itsBunch_m->RefPartP_m << endl;
 
+    double time = itsBunch_m->getT() - globalTimeShift;
+    itsBunch_m->setT(time);
+
     /*
     Just for testing the flattop sampling and the binning.
     MaxSteps can be set in the runfile (track line...)
     */
     for (size_t step = 0; step < stepSizes_m.getMaxSteps(); ++step) {
+        // Emit particles if necessary
+        sampler_m->emitParticles(time + step*dtCurrentTrack_m, dtCurrentTrack_m);
+
         timeIntegration1(pusher);
         itsBunch_m->bunchUpdate();
         computeSpaceChargeFields(step);
