@@ -48,7 +48,7 @@ public:
     typename Base::particle_position_type E;
 
     /// electric field for gun simulation with bins
-    typename Base::particle_position_type Etmp; // TODO: might not need this...
+    //typename Base::particle_position_type Etmp; // TODO: might not need this...
 
     /// magnetic field at particle position
     typename Base::particle_position_type B;
@@ -72,7 +72,7 @@ public:
         this->addAttribute(Sp);
         this->addAttribute(P);
         this->addAttribute(E);
-        this->addAttribute(Etmp);
+        //this->addAttribute(Etmp);
         this->addAttribute(B);
     }
     void setupBCs() {
