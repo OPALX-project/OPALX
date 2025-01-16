@@ -115,15 +115,15 @@ namespace ParticleBinning {
         dview_type device_histo       = localBinHisto_m.template getDeviceView<dview_type>(localBinHisto_m.getHistogram());
         bin_index_type binCount       = getCurrentBinCount();
 
-        static IpplTimings::TimerRef initLocalHisto = IpplTimings::getTimer("initLocalHistoParallelReduce");
-        IpplTimings::startTimer(initLocalHisto);
+        //static IpplTimings::TimerRef initLocalHisto = IpplTimings::getTimer("initLocalHistoParallelReduce");
+        //IpplTimings::startTimer(initLocalHisto);
         Kokkos::parallel_reduce("initLocalHist", bunch_m->getLocalNum(), 
             KOKKOS_LAMBDA(const size_type& i, ReducerType& update) {
                 bin_index_type ndx = binIndex(i);  // Determine the bin index for this particle
                 update.the_array[ndx]++;           // Increment the corresponding bin count in the reduction array
             }, Kokkos::Sum<ReducerType>(to_reduce)
         );
-        IpplTimings::stopTimer(initLocalHisto);
+        //IpplTimings::stopTimer(initLocalHisto);
 
         // Copy the reduced results to the final histogram
         Kokkos::parallel_for("finalize_histogram", binCount, 
@@ -157,8 +157,8 @@ namespace ParticleBinning {
         team_policy policy(num_leagues, team_size); 
         policy = policy.set_scratch_size(0, Kokkos::PerTeam(shared_size));
 
-        static IpplTimings::TimerRef initLocalHisto = IpplTimings::getTimer("initLocalHistoTeamBased");
-        IpplTimings::startTimer(initLocalHisto);
+        //static IpplTimings::TimerRef initLocalHisto = IpplTimings::getTimer("initLocalHistoTeamBased");
+        //IpplTimings::startTimer(initLocalHisto);
 
         // Launch a team parallel_for with the scratch memory setup
         Kokkos::parallel_for("initLocalHist", policy, KOKKOS_LAMBDA(const member_type& teamMember) {
@@ -186,7 +186,7 @@ namespace ParticleBinning {
             });
         });
         
-        IpplTimings::stopTimer(initLocalHisto);
+        //IpplTimings::stopTimer(initLocalHisto);
         localBinHisto_m.modify_device();
     }
 
@@ -283,7 +283,15 @@ namespace ParticleBinning {
                 Vector<double, 3> v_comp = P(indices(i)); 
                 v                       += v_comp; // like this for elemntwise multiplication (not .dot...) // v_comp.dot(v_comp) * (binIndex(i) == currentBin); 
             }, Kokkos::Sum<Vector<T, Dim>>(gamma_bin2));
-        gamma_bin2 /= getNPartInBin(currentBin); // Now we have <P> for this bin
+        bin_index_type npart_bin = getNPartInBin(currentBin);
+        /**
+         * 
+         * TODO Note: when the load balancer is not called often enough, then the adaptive bin
+         * can lead to a phenomenon where the number of particles in a bin is zero, which leads to
+         * a division by zero. 
+         * So: either check if the number is 0 or make sure ranks always have enough particles!
+         */
+        gamma_bin2 /= (npart_bin == 0) ? 0 : npart_bin; // Now we have <P> for this bin
         gamma_bin2  = -sqrt(1.0 + gamma_bin2*gamma_bin2); // in these units: gamma=sqrt(1 + <P>^2), assuming <P^2>~0 (since bunch per bin should be "considered constant") // -1.0 / sqrt(1.0 - gamma_bin2 / c2); // negative sign, since we want the inverse transformation
         // std::cout << "Gamma factor calculated = " << gamma_bin2 << std::endl;
         m << "Gamma(binIndex = " << currentBin << ") = -" << gamma_bin2 << endl;
@@ -309,7 +317,7 @@ namespace ParticleBinning {
         static IpplTimings::TimerRef argSortBins      = IpplTimings::getTimer("argSortBins");
         //static IpplTimings::TimerRef permutationTimer = IpplTimings::getTimer("sortPermutationTimer");
         static IpplTimings::TimerRef isSortedCheck    = IpplTimings::getTimer("isSortedCheck");
-        static IpplTimings::TimerRef binSortingAndScatterT = IpplTimings::getTimer("binSortingAndScatter");
+        //static IpplTimings::TimerRef binSortingAndScatterT = IpplTimings::getTimer("binSortingAndScatter");
 
         bin_view_type bins          = getBinView();
         size_type localNumParticles = bunch_m->getLocalNum();
@@ -328,7 +336,7 @@ namespace ParticleBinning {
         /*
         TODO: maybe change value_type of hash_type to size_type instead int of at some point???
         */
-        IpplTimings::startTimer(binSortingAndScatterT);
+        //IpplTimings::startTimer(binSortingAndScatterT);
         Kokkos::parallel_for("InPlaceSortIndices", localNumParticles, KOKKOS_LAMBDA(const size_type& i) {
             size_type target_bin = bins(i);
             size_type target_pos = Kokkos::atomic_fetch_add(&bin_offsets(target_bin), 1);
@@ -352,7 +360,7 @@ namespace ParticleBinning {
             attribute->unpack(localNumParticles, true);
         });
         IpplTimings::stopTimer(permutationTimer);*/
-        IpplTimings::stopTimer(binSortingAndScatterT);
+        //IpplTimings::stopTimer(binSortingAndScatterT);
         //msg << "Permutation of particle attributes completed." << endl;
 
         // TODO: remove, just for testing purposes (get new bin view, since the old memory address might be overwritten by this action...)

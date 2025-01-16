@@ -84,7 +84,9 @@ namespace ParticleBinning {
         /**
          * @brief Default destructor for the Histogram class.
          */
-        ~Histogram() = default; 
+        ~Histogram() {
+            std::cout << "Histogram " << debug_name_m << " destroyed." << std::endl;
+        } 
 
         /**
          * @brief Copy constructor for copying the fields from another Histogram object.
@@ -171,14 +173,14 @@ namespace ParticleBinning {
          * @note The bin widths are assumed to be constant. Should only be called the first time the histogram is created.
          */
         void init() { // const value_type constBinWidth
-            static IpplTimings::TimerRef histoInitTimer = IpplTimings::getTimer("syncInitHistoTools");
+            //static IpplTimings::TimerRef histoInitTimer = IpplTimings::getTimer("syncInitHistoTools");
 
             // Assumes you have initialized histogram_m from the outside!
-            IpplTimings::startTimer(histoInitTimer);
+            //IpplTimings::startTimer(histoInitTimer);
             sync();
             initConstBinWidths(totalBinWidth_m);
             initPostSum();
-            IpplTimings::stopTimer(histoInitTimer);
+            //IpplTimings::stopTimer(histoInitTimer);
         }
 
         /**
@@ -257,6 +259,8 @@ namespace ParticleBinning {
          *       template parameter is true. Otherwise it does nothing.
          */
         void sync() {
+            static IpplTimings::TimerRef histoSyncOperation = IpplTimings::getTimer("histoSyncOperation");
+            IpplTimings::startTimer(histoSyncOperation);
             if constexpr (UseDualView) {
                 if (histogram_m.need_sync_host() && histogram_m.need_sync_device()) {
                     std::cerr << "Warning: Histogram was modified on host AND device -- overwriting changes on host." << std::endl;
@@ -267,6 +271,7 @@ namespace ParticleBinning {
                     histogram_m.sync_device();
                 } // else do nothing
             }
+            IpplTimings::stopTimer(histoSyncOperation);
         }
 
         /**

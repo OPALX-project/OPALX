@@ -51,6 +51,8 @@ namespace ParticleBinning {
     template <typename size_type, typename bin_index_type, typename value_type, bool UseDualView, class... Properties>
     Histogram<size_type, bin_index_type, value_type, UseDualView, Properties...>::hindex_transform_type
     Histogram<size_type, bin_index_type, value_type, UseDualView, Properties...>::mergeBins(const value_type maxBinRatio) {
+        static IpplTimings::TimerRef mergeBinsTimer = IpplTimings::getTimer("mergeBins");
+
         // TODO 
         // Should merge neighbouring bins such that the width/N_part ratio is roughly maxBinRatio.
         // TODO: Find algorithm for that
@@ -78,6 +80,7 @@ namespace ParticleBinning {
             return oldToNewBinsView;
         }
 
+        IpplTimings::startTimer(mergeBinsTimer);
         // ----------------------------------------------------------------
         // 1) Build prefix sums on the host
         //    prefixCount[k] = sum of counts in bins [0..k-1]
@@ -243,6 +246,7 @@ namespace ParticleBinning {
         // 8) Recompute postSum for the new histogram
         // ----------------------------------------------------------------
         initPostSum();
+        IpplTimings::stopTimer(mergeBinsTimer);
 
         m << "Re-binned from " << n << " bins down to "
           << numBins_m << " bins. Total deviation cost = "

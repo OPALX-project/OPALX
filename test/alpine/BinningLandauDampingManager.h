@@ -250,7 +250,11 @@ public:
         static IpplTimings::TimerRef RTimer           = IpplTimings::getTimer("pushPosition");
         static IpplTimings::TimerRef updateTimer      = IpplTimings::getTimer("update");
         static IpplTimings::TimerRef domainDecomposition = IpplTimings::getTimer("loadBalance");
-        static IpplTimings::TimerRef runBinnedSolverT = IpplTimings::getTimer("runBinnedSolver");
+
+        //static IpplTimings::TimerRef runBinnedSolverT = IpplTimings::getTimer("runBinnedSolver");
+        static IpplTimings::TimerRef GenAdaptiveHistogram = IpplTimings::getTimer("genAdaptiveHistogram");
+        static IpplTimings::TimerRef FullRebin128 = IpplTimings::getTimer("FullRebin128");
+        static IpplTimings::TimerRef TotalBinningTimer = IpplTimings::getTimer("TotalBinning");
 
         double dt                               = this->dt_m;
         std::shared_ptr<ParticleContainer_t> pc = this->pcontainer_m;
@@ -264,12 +268,12 @@ public:
         IpplTimings::startTimer(RTimer);
         pc->R = pc->R + dt * pc->P;
         IpplTimings::stopTimer(RTimer);
-
+        
         // Since the particles have moved spatially update them to correct processors
         IpplTimings::startTimer(updateTimer);
         pc->update();
         IpplTimings::stopTimer(updateTimer);
-
+        
         size_type totalP        = this->totalP_m;
         int it                  = this->it_m;
         bool isFirstRepartition = false;
@@ -281,24 +285,30 @@ public:
                 IpplTimings::stopTimer(domainDecomposition);
         }
         
+        IpplTimings::startTimer(TotalBinningTimer);
+
         // TODO: binning
+        IpplTimings::startTimer(FullRebin128);
         this->bins_m->doFullRebin(this->bins_m->getMaxBinCount());
-        this->bins_m->print(); // for debugging...
+        IpplTimings::stopTimer(FullRebin128);
+        //this->bins_m->print(); // for debugging...
+        
         this->bins_m->sortContainerByBin(); // sort particles after creating bins for scatter() operation inside LeapFrogStep 
 
-        static IpplTimings::TimerRef MergeBinsTimer = IpplTimings::getTimer("MergingBins");
 
-        IpplTimings::startTimer(MergeBinsTimer);
+        IpplTimings::startTimer(GenAdaptiveHistogram);
         this->bins_m->genAdaptiveHistogram(); // merge bins with width/N_part ratio of 1.0
-        IpplTimings::stopTimer(MergeBinsTimer);
+        IpplTimings::stopTimer(GenAdaptiveHistogram);
 
-        this->bins_m->print(); // For debugging...
+        //this->bins_m->print(); // For debugging...
 
 
+        //IpplTimings::startTimer(runBinnedSolverT);
         E_tmp = 0.0; // reset temporary field
-        IpplTimings::startTimer(runBinnedSolverT);
         runBinnedSolver();
-        IpplTimings::stopTimer(runBinnedSolverT);
+        //IpplTimings::stopTimer(runBinnedSolverT);
+
+        IpplTimings::stopTimer(TotalBinningTimer);
 
         // kick
         IpplTimings::startTimer(PTimer);
@@ -307,6 +317,8 @@ public:
     }
 
     void runBinnedSolver() {
+        static IpplTimings::TimerRef PerBinSolver = IpplTimings::getTimer("PerBinSolver");
+        static IpplTimings::TimerRef CombineEFieldTimer = IpplTimings::getTimer("CombineEField");
         /*
          * Strategy:
          * Initialize E field to 0.
@@ -334,8 +346,13 @@ public:
             this->par2gridPerBin(i);
 
             // Run solver: obtains phi_m only for what was scattered in the previous step
+            IpplTimings::startTimer(PerBinSolver);
             this->fsolver_m->runSolver();
+            IpplTimings::stopTimer(PerBinSolver);
+
+            IpplTimings::startTimer(CombineEFieldTimer);
             E_tmp = E_tmp + this->bins_m->LTrans(fc->getE(), i);
+            IpplTimings::stopTimer(CombineEFieldTimer);
         }
 
         // TODO: remove. A little debug output:

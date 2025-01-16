@@ -150,8 +150,8 @@ namespace ParticleBinning {
             });
 
         // Timers for profiling
-        static IpplTimings::TimerRef initLocalPostSumT = IpplTimings::getTimer("initLocalPostSum");
-        IpplTimings::startTimer(initLocalPostSumT);
+        //static IpplTimings::TimerRef initLocalPostSumT = IpplTimings::getTimer("initLocalPostSum");
+        //IpplTimings::startTimer(initLocalPostSumT);
         Kokkos::parallel_scan("ComputePostSum", Kokkos::RangePolicy<execution_space>(0, input_view.extent(0)),
             KOKKOS_LAMBDA(const size_type& i, value_type& partial_sum, bool final) {
                 partial_sum += input_view(i);
@@ -159,7 +159,7 @@ namespace ParticleBinning {
                     post_sum_view(i + 1) = partial_sum;
                 }
             });
-        IpplTimings::stopTimer(initLocalPostSumT);
+        //IpplTimings::stopTimer(initLocalPostSumT);
     }
 
     /*template <typename SizeType>
