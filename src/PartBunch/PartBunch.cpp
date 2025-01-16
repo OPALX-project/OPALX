@@ -360,6 +360,11 @@ void PartBunch<double,3>::computeSelfFields() {
     // Run solver for each bin
     Etmp = 0.0; // reset temporary field to zero
     for (binIndex_t i = 0; i < bins->getCurrentBinCount(); ++i) {
+        if (bins->getNPartInBin(i) == 0) {
+            m << "0 particles in bin " << i << ", skipping." << endl;
+            continue;
+        }
+
         // Scatter only for current bin index
         this->scatterCICPerBin(i);
 
