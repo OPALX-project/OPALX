@@ -139,7 +139,9 @@ public:
     explicit ParallelTracker(
         const Beamline& bl, PartBunch_t* bunch, DataSink& ds, const PartData& data, bool revBeam,
         bool revTrack, const std::vector<unsigned long long>& maxSTEPS, double zstart,
-        const std::vector<double>& zstop, const std::vector<double>& dt);
+        const std::vector<double>& zstop, const std::vector<double>& dt,
+        std::shared_ptr<SamplingBase> sampler // TODO: added for flattop binning test
+    );
 
     virtual ~ParallelTracker();
 
