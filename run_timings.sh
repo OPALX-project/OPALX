@@ -2,10 +2,10 @@
 #SBATCH --job-name=adapt_bins_test
 #SBATCH --error=output/bins_%j.err
 #SBATCH --output=output/bins_%j.out
-#SBATCH --time=00:05:00
+#SBATCH --time=00:30:00
 #SBATCH --nodes=1                   # Request node
-#SBATCH --ntasks-per-node=4         # cores per node
-##SBATCH --mem-per-cpu=4G
+#SBATCH --ntasks-per-node=16         # cores per node
+##SBATCH --mem-per-cpu=32G
 #SBATCH --cpus-per-task=4           # "threads" per task (for e.g. multithreading in Kokkod:parallel_for?)
 #SBATCH --cluster=merlin6 # gmerlin6
 #SBATCH --partition=hourly #gpu-short #              # Non-GPU partition, check cluster for correct partition
@@ -41,7 +41,16 @@ echo "Finished compiling. Now running the program..."
 #srun ./Binning_pic3d 8 8 8 1000000 1 --info 10
 
 cd /data/user/liemen_a/ippl/build_ippl_openmp/test/binning/test/alpine/
-srun ./BinningLandauDamping 32 32 32 1000000 5 FFT 0.01 LeapFrog --overallocate 2.0 --info 10
+export OMP_NUM_THREADS=4
+srun --ntasks=1 ./BinningLandauDamping 32 32 32 5000000 5 FFT 0.01 LeapFrog --overallocate 2.0 --info 10 
+export OMP_NUM_THREADS=8
+srun --ntasks=2 ./BinningLandauDamping 32 32 32 5000000 5 FFT 0.01 LeapFrog --overallocate 2.0 --info 10 
+export OMP_NUM_THREADS=16
+srun --ntasks=4 ./BinningLandauDamping 32 32 32 5000000 5 FFT 0.01 LeapFrog --overallocate 2.0 --info 10 
+export OMP_NUM_THREADS=32
+srun --ntasks=8 ./BinningLandauDamping 32 32 32 5000000 5 FFT 0.01 LeapFrog --overallocate 2.0 --info 10 
+export OMP_NUM_THREADS=64
+srun --ntasks=16 ./BinningLandauDamping 32 32 32 5000000 5 FFT 0.01 LeapFrog --overallocate 2.0 --info 10 # note: 0.01 leads to seg fault, needs 1...
 
 # srun --cpus-per-task=1 ./Binning_pic3d 8 8 8 1000000 1 --info 10
 
