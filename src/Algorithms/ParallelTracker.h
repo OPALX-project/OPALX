@@ -48,6 +48,8 @@
 #include "Beamlines/Beamline.h"
 #include "Elements/OpalBeamline.h"
 
+#include "Distribution/SamplingBase.hpp" // TODO: added for binning flattop test
+
 #include <list>
 #include <memory>
 #include <tuple>
@@ -110,6 +112,8 @@ class ParallelTracker : public Tracker {
 
     std::set<ParticleMatterInteractionHandler*> activeParticleMatterInteractionHandlers_m;
     bool particleMatterStatus_m;
+
+    std::shared_ptr<SamplingBase> sampler_m; // TODO: added for flattop binning test
 
 public:
     typedef std::vector<double> dvector_t;

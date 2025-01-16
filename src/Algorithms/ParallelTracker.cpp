@@ -348,88 +348,26 @@ void ParallelTracker::execute() {
     *gmsg << "itsBunch_m->RefPartR_m= " << itsBunch_m->RefPartR_m << endl;
     *gmsg << "itsBunch_m->RefPartP_m= " << itsBunch_m->RefPartP_m << endl;
 
-    bool const psDump0 = 1;
-    bool const statDump0 = 1;
+    /*
+    Just for testing the flattop sampling and the binning.
+    MaxSteps can be set in the runfile (track line...)
+    */
+    for (size_t step = 0; step < stepSizes_m.getMaxSteps(); ++step) {
+        timeIntegration1(pusher);
+        itsBunch_m->bunchUpdate();
+        computeSpaceChargeFields(step);
+        timeIntegration2(pusher);
+        itsBunch_m->bunchUpdate();
 
-    writePhaseSpace(0, psDump0, statDump0);
-    msg << level2 << "Dump initial phase space" << endl;
+        itsBunch_m->incrementT();
+        itsBunch_m->incTrackSteps();
+    }
 
-    OrbitThreader oth(
+    /*OrbitThreader oth(
         itsReference, itsBunch_m->RefPartR_m, itsBunch_m->RefPartP_m, pathLength_m, -rmin(2),
         itsBunch_m->getT(), (back_track ? -minTimeStep : minTimeStep), stepSizes_m,
         itsOpalBeamline_m);
 
-
-    // Simple step loop:
-    unsigned long long step = itsBunch_m->getGlobalTrackStep();
-
-    stepSizes_m.printDirect(*gmsg);
-
-    while (!stepSizes_m.reachedEnd()) {
-        unsigned long long trackSteps = stepSizes_m.getNumSteps() + step;
-        dtCurrentTrack_m              = stepSizes_m.getdT();
-        for (; step < trackSteps; ++step) {
-            Vector_t<double, 3> rmin(0.0), rmax(0.0);
-            if (itsBunch_m->getTotalNum() > 0) {
-                itsBunch_m->get_bounds(rmin, rmax);
-            }
-
-            //timeIntegration1(pusher);
-
-            computeSpaceChargeFields(step);
-            
-            // \todo for a drift we can neglect that 
-            // computeExternalFields(oth);
-
-            //timeIntegration2(pusher);
-
-            selectDT(back_track);
-            // \todo emitParticles(step);
-            //selectDT(back_track);
-
-            itsBunch_m->incrementT();
-
-            
-            //if (itsBunch_m->getT() > 0.0 || itsBunch_m->getdT() < 0.0) {
-            //    updateReference(pusher);
-            //}
-
-            //if (deletedParticles_m) {
-                // \todo doDelete
-            //    deletedParticles_m = false;
-            //}
-
-            itsBunch_m->set_sPos(pathLength_m);
-            
-            // if (hasEndOfLineReached(globalBoundingBox)) break;
-
-            /*bool const psDump =
-                ((itsBunch_m->getGlobalTrackStep() % Options::psDumpFreq) + 1
-                == Options::psDumpFreq);
-            bool const statDump =
-                ((itsBunch_m->getGlobalTrackStep() % Options::statDumpFreq) + 1
-                == Options::statDumpFreq);
-            dumpStats(step, psDump, statDump);*/
-
-            itsBunch_m->incTrackSteps();
-
-            /*ippl::Vector<double,3> pdivg = itsBunch_m->RefPartP_m / Util::getGamma(itsBunch_m->RefPartP_m);
-            double beta = euclidean_norm(pdivg);
-            double driftPerTimeStep = std::abs(itsBunch_m->getdT()) * Physics::c * beta;
-
-            if (std::abs(stepSizes_m.getZStop() - pathLength_m) < 0.5 * driftPerTimeStep) {
-                break;
-            }*/
-        }
-
-        if (globalEOL_m)
-            break;
-        ++stepSizes_m;    
-    }
-    itsBunch_m->set_sPos(pathLength_m);
-
-    numParticlesInSimulation_m = itsBunch_m->getTotalNum();
-/*
     oth.execute();
 
     BoundingBox globalBoundingBox = oth.getBoundingBox();
@@ -445,6 +383,7 @@ void ParallelTracker::execute() {
     OPALTimer::Timer myt1;
     *gmsg << "* Track start at: " << myt1.time() << ", t= " << Util::getTimeString(time) << "; "
           << "zstart at: " << Util::getLengthString(pathLength_m) << endl;
+
     *gmsg << "* Executing ParallelTracker\n"
           << "* Initial dt = " << Util::getTimeString(itsBunch_m->getdT()) << "\n"
           << "* Max integration steps = " << stepSizes_m.getMaxSteps() << ", next step = " << step
@@ -537,12 +476,12 @@ void ParallelTracker::execute() {
 
     msg << level2 << "Dump phase space of last step" << endl;
 
-    itsOpalBeamline_m.switchElementsOff();
+    itsOpalBeamline_m.switchElementsOff();*/
 
-    */
     OPALTimer::Timer myt3;
     *gmsg << endl << "* Done executing ParallelTracker at " << myt3.time() << endl << endl;
 }
+
     /*
     OpalData::getInstance()->setPriorTrack();
     */
