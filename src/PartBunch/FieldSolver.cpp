@@ -133,7 +133,7 @@ void FieldSolver<double,3>::dumpVectField(std::string what) {
             }
         }
     fout.close();
-    m << "*** FINISHED DUMPING " + Util::toUpper(what) + " FIELD ***" << endl;
+    m << "*** FINISHED DUMPING " + Util::toUpper(what) + " FIELD *** to " << file.string() << endl;
 }
 
 template <>
@@ -264,7 +264,7 @@ void FieldSolver<double,3>::dumpScalField(std::string what) {
         }
     }
     fout.close();
-    m << "*** FINISHED DUMPING " + Util::toUpper(what) + " FIELD ***" << endl;
+    m << "*** FINISHED DUMPING " + Util::toUpper(what) + " FIELD *** to " << file.string() << endl;
 }
 
 template <>
@@ -283,25 +283,18 @@ void FieldSolver<double,3>::initOpenSolver() {
 
 template <>
 void FieldSolver<double,3>::initSolver() {
-
-    initOpenSolver();
-    /*
     Inform m;
     if (this->getStype() == "FFT") {
-    
-    } else if (this->getStype() == "CG") {
-        initCGSolver();
-    } else if (this->getStype() == "P3M") {
-        initP3MSolver();
+        initOpenSolver();    
     } else if (this->getStype() == "FFTOPEN") {
-        initFFTSolver();
+        initOpenSolver();    
     } else if (this->getStype() == "NONE") {
         initNullSolver();
     }
     else {
         m << "No solver matches the argument: " << this->getStype() << endl;
+        throw std::runtime_error("No solver match");
     }
-    */
 }
 
 template <>
@@ -375,23 +368,23 @@ void FieldSolver<double,3>::runSolver() {
                 call_counter_m++;
 #endif
             }
-        } else {
-            throw std::runtime_error("Unknown solver type");
-        }
-
+    } else if (this->getStype() == "NONE") {
+        std::get<NullSolver_t<T, Dim>>(this->getSolver()).solve();
+    } else {
+        throw std::runtime_error("Unknown solver type");
+    }
 }
 
-/*
 template<>
 void FieldSolver<double,3>::initNullSolver() {
-    //        if constexpr (Dim == 2 || Dim == 3) {
-    //ippl::ParameterList sp;
-    throw std::runtime_error("Not implemented Null solver");
-    //  } else {
-    //throw std::runtime_error("Unsupported dimensionality for Null solver");
-    //}
+    ippl::ParameterList sp;
+    if constexpr (Dim == 2 || Dim == 3) {
+        initSolverWithParams<NullSolver_t<T, Dim>>(sp);
+    } else {
+        throw std::runtime_error("Unsupported dimensionality for Null solver");
+    }
 }
-*/
+
 
 /*
 template <>

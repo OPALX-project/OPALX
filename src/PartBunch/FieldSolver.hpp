@@ -38,10 +38,11 @@ using FFTSolver_t = ConditionalType<
     Dim == 2 || Dim == 3, ippl::FFTPeriodicPoissonSolver<VField_t<T, Dim>, Field_t<Dim>>>;
 
 // \fixme NullSolver
-//template <typename T = double, unsigned Dim = 3>
-//using NullSolver_t = ConditionalType<
-//    Dim == 2 || Dim == 3, ippl::NullSolver<VField_t<T, Dim>, Field_t<Dim>>>;
-
+/*
+template <typename T = double, unsigned Dim = 3>
+using NullSolver_t = ConditionalType<
+    Dim == 2 || Dim == 3, ippl::NullSolver<VField_t<T, Dim>, Field_t<Dim>>>;
+*/
 template <typename T = double, unsigned Dim = 3>
 using P3MSolver_t = ConditionalType<Dim == 3, ippl::P3MSolver<VField_t<T, Dim>, Field_t<Dim>>>;
 
@@ -49,9 +50,9 @@ template <typename T = double, unsigned Dim = 3>
 using OpenSolver_t =
     ConditionalType<Dim == 3, ippl::FFTOpenPoissonSolver<VField_t<T, Dim>, Field_t<Dim>>>;
 
-template <typename T = double, unsigned Dim = 3>
-using Solver_t = VariantFromConditionalTypes<
-    CGSolver_t<T, Dim>, FFTSolver_t<T, Dim>, P3MSolver_t<T, Dim>, OpenSolver_t<T, Dim>>;
+//template <typename T = double, unsigned Dim = 3>
+//using Solver_t = VariantFromConditionalTypes<
+//    CGSolver_t<T, Dim>, FFTSolver_t<T, Dim>, P3MSolver_t<T, Dim>, OpenSolver_t<T, Dim>>;
 
 // Define the FieldSolver class
 template <typename T, unsigned Dim>
@@ -116,7 +117,7 @@ public:
             // uses this to get the electric field
             solver.setLhs(*phi_m);
             solver.setGradient(*E_m);
-        } else {
+        } else if constexpr (std::is_same_v<Solver, OpenSolver_t<T, Dim>>) {
             // The periodic Poisson solver, Open boundaries solver,
             // and the P3M solver compute the electric field directly
             solver.setLhs(*E_m);
@@ -125,7 +126,7 @@ public:
         call_counter_m = 0;
     }
 
-    void initNullSolver() { }
+    void initNullSolver();
     
     void initFFTSolver() {
     ippl::ParameterList sp;
@@ -144,4 +145,9 @@ public:
     void initP3MSolver() { }
 
 };
+
+// Explicit specialization declaration
+template<>
+void FieldSolver<double, 3>::initNullSolver();
+
 #endif
