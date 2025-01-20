@@ -117,6 +117,8 @@ target_link_libraries( opalx
     z
     ${CMAKE_DL_LIBS}
     ${MPI_CXX_LIBRARIES}
+#    ubsan
+#    asan
     )
 
 message (STATUS "src/CmakeLists IPPL_LIBRARY : ${IPPL_LIBRARY}")
