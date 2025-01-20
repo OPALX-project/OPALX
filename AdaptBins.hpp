@@ -8,30 +8,29 @@ namespace ParticleBinning {
     template <typename BunchType, typename BinningSelector>
     void AdaptBins<BunchType, BinningSelector>::initLimits() {
         Inform msg("AdaptBins");  // INFORM_ALL_NODES
+            
+        static IpplTimings::TimerRef histoLimits = IpplTimings::getTimer("initHistoLimits");
+        IpplTimings::startTimer(histoLimits);
 
         if (bunch_m->getLocalNum() == 0) {
             msg << "No particles in the bunch. Settings limits to 0." << endl;
             xMin_m = 0;
             xMax_m = 0;
             binWidth_m = 0;
-            return;
+        } else {
+            Kokkos::MinMaxScalar<value_type> localMinMax;
+            // position_view_type localData = bunch_m->R.getView();
+            var_selector_m.updateDataArr(bunch_m); // update needed if bunch->create() is called between binnings!
+            BinningSelector var_selector = var_selector_m;  
+
+            Kokkos::parallel_reduce("localBinLimitReduction", bunch_m->getLocalNum(), KOKKOS_LAMBDA(const size_type i, Kokkos::MinMaxScalar<value_type>& update) {
+                value_type val = var_selector(i); // localData(i)[2]; // use z axis for binning!
+                update.min_val = Kokkos::min(update.min_val, val);
+                update.max_val = Kokkos::max(update.max_val, val);
+            }, Kokkos::MinMax<value_type>(localMinMax));
+            xMin_m = localMinMax.min_val;
+            xMax_m = localMinMax.max_val;
         }
-
-        Kokkos::MinMaxScalar<value_type> localMinMax;
-        // position_view_type localData = bunch_m->R.getView();
-        var_selector_m.updateDataArr(bunch_m); // update needed if bunch->create() is called between binnings!
-        BinningSelector var_selector = var_selector_m;  
-        
-        static IpplTimings::TimerRef histoLimits = IpplTimings::getTimer("initHistoLimits");
-        IpplTimings::startTimer(histoLimits);
-
-        Kokkos::parallel_reduce("localBinLimitReduction", bunch_m->getLocalNum(), KOKKOS_LAMBDA(const size_type i, Kokkos::MinMaxScalar<value_type>& update) {
-            value_type val = var_selector(i); // localData(i)[2]; // use z axis for binning!
-            update.min_val = Kokkos::min(update.min_val, val);
-            update.max_val = Kokkos::max(update.max_val, val);
-        }, Kokkos::MinMax<value_type>(localMinMax));
-        xMin_m = localMinMax.min_val;
-        xMax_m = localMinMax.max_val;
 
         // Putting the same to-reduce variable as an argument ensures that every node gets the correct min/max and not just the root node!
         // Note: boradcast does not exist, use allreduce for reduce+broadcast together!
