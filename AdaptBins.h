@@ -366,7 +366,7 @@ namespace ParticleBinning {
 
             // TODO
             
-            globalBinHisto_m.printHistogram();
+            // globalBinHisto_m.printHistogram();
 
             globalBinHisto_m.printPythonArrays();
         }
