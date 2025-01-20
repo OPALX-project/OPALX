@@ -395,7 +395,7 @@ void TrackRun::execute() {
     itsTracker_m = new ParallelTracker(
         *Track::block->use->fetchLine(), bunch_m.get(), *ds_m, Track::block->reference, false,
         Attributes::getBool(itsAttr[TRACKRUN::TRACKBACK]), Track::block->localTimeSteps,
-        Track::block->zstart, Track::block->zstop, Track::block->dT, sampler_m); // TODO: added sampler_m for flattop binning test
+        Track::block->zstart, Track::block->zstop, Track::block->dT, sampler_m); // TODO: added sampler_m for flattop binning test (later we might want to inject it differently)
 
     itsTracker_m->execute();
 

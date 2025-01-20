@@ -351,13 +351,19 @@ void ParallelTracker::execute() {
     *gmsg << "itsBunch_m->RefPartR_m= " << itsBunch_m->RefPartR_m << endl;
     *gmsg << "itsBunch_m->RefPartP_m= " << itsBunch_m->RefPartP_m << endl;
 
-    double time = itsBunch_m->getT() - globalTimeShift;
+    bool const psDump0 = 1;
+    bool const statDump0 = 1;
+
+    writePhaseSpace(0, psDump0, statDump0);
+    msg << level2 << "Dump initial phase space" << endl;
+
+    /*double time = itsBunch_m->getT() - globalTimeShift;
     itsBunch_m->setT(time);
 
-    /*
-    Just for testing the flattop sampling and the binning.
-    MaxSteps can be set in the runfile (track line...)
-    */
+    
+    //Just for testing the flattop sampling and the binning.
+    //MaxSteps can be set in the runfile (track line...)
+    
     for (size_t step = 0; step < stepSizes_m.getMaxSteps(); ++step) {
         // Emit particles if necessary
         sampler_m->emitParticles(time + step*dtCurrentTrack_m, dtCurrentTrack_m);
@@ -370,14 +376,14 @@ void ParallelTracker::execute() {
 
         itsBunch_m->incrementT();
         itsBunch_m->incTrackSteps();
-    }
+    }*/
 
-    /*OrbitThreader oth(
+    OrbitThreader oth(
         itsReference, itsBunch_m->RefPartR_m, itsBunch_m->RefPartP_m, pathLength_m, -rmin(2),
         itsBunch_m->getT(), (back_track ? -minTimeStep : minTimeStep), stepSizes_m,
         itsOpalBeamline_m);
 
-    oth.execute();
+    // oth.execute(); // TODO: commented this out, since it woudln't run on GPU and just stop...
 
     BoundingBox globalBoundingBox = oth.getBoundingBox();
 
@@ -485,7 +491,7 @@ void ParallelTracker::execute() {
 
     msg << level2 << "Dump phase space of last step" << endl;
 
-    itsOpalBeamline_m.switchElementsOff();*/
+    itsOpalBeamline_m.switchElementsOff();
 
     OPALTimer::Timer myt3;
     *gmsg << endl << "* Done executing ParallelTracker at " << myt3.time() << endl << endl;
