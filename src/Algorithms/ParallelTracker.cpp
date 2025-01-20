@@ -106,8 +106,6 @@ ParallelTracker::ParallelTracker(
       BinRepartTimer_m(IpplTimings::getTimer("Binaryrepart")),
       OrbThreader_m(IpplTimings::getTimer("OrbThreader")) {
     
-      *gmsg << "* ParallelTracker zstop.size()= " << zstop.size() << endl;
-
       for (unsigned int i = 0; i < zstop.size(); ++i) {
           stepSizes_m.push_back(dt[i], zstop[i], maxSteps[i]);
       }
@@ -401,7 +399,7 @@ void ParallelTracker::execute() {
             // ADA
             timeIntegration1(pusher);
             
-            // computeSpaceChargeFields(step);
+            computeSpaceChargeFields(step);
             
             // \todo for a drift we can neglect that 
             // computeExternalFields(oth);
