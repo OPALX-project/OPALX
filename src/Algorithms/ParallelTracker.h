@@ -349,7 +349,10 @@ inline void ParallelTracker::pushParticles(const BorisPusher& pusher) {
 
 
     itsBunch_m->switchOffUnitlessPositions(true);
-    itsBunch_m->getParticleContainer()->update();
+    
+    //itsBunch_m->getParticleContainer()->update();
+    itsBunch_m->bunchUpdate(); // should call this, since bunchUpdate is more general and also calls update of the container!
+
     ippl::Comm->barrier();
 }
 
