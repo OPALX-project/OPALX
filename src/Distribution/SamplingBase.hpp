@@ -29,6 +29,10 @@ class SamplingBase{
 
        // testEmitParticles is purely made for testing and should be removed
        virtual void testEmitParticles(size_t nsteps, double dt) {}
+
+       virtual void initDomainDecomp(Mesh_t<3> *mesh, FieldLayout_t<3> *FL, double BoxIncr) {}
+
+       virtual void setWithDomainDecomp(bool withDomainDecomp) {}
 };
 #endif
 
