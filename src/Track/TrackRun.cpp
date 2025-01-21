@@ -352,6 +352,14 @@ void TrackRun::execute() {
     
     IpplTimings::stopTimer(samplingTime);
 
+// following is only for testing
+sampler_m->setWithDomainDecomp(true);
+auto *mesh = &fc->getMesh();
+auto *FL   = &fc->getFL();
+sampler_m->initDomainDecomp(mesh, FL, 1.);
+sampler_m->testNumEmitParticles(100, Track::block->dT[0]);
+
+
     /* 
        reset the fieldsolver with correct hr_m
        based on the distribution

@@ -18,6 +18,7 @@ public:
     FlatTop(std::shared_ptr<ParticleContainer_t> &pc, std::shared_ptr<FieldContainer_t> &fc, std::shared_ptr<Distribution_t> &opalDist)
         : SamplingBase(pc, fc, opalDist), rand_pool_m(determineRandInit()) {
             setParameters(opalDist);
+            withDomainDecomp_m = false;
         }
 
 private:
@@ -33,6 +34,14 @@ private:
     double riseTime_m;
     bool emitting_m;
     size_type totalN_m;
+    bool withDomainDecomp_m;
+    double emissionTime_m;
+    Vector_t<double, 3> nr_m;
+    Vector_t<double, 3> hr_m;
+
+    void setWithDomainDecomp(bool withDomainDecomp) override {
+        withDomainDecomp_m = withDomainDecomp;
+    }
 
     static size_t determineRandInit() {
         size_t randInit;
@@ -59,6 +68,9 @@ private:
             flattopTime_m = 0.0;
         }
         riseTime_m = sigmaTRise_m * cutoffR_m[2];
+
+        emissionTime_m = fallTime_m + flattopTime_m + riseTime_m;
+        opalDist_m->setTEmission(emissionTime_m);
 
         // These expression are take from the old OPAL
         // I think normalizedFlankArea is int_0^{cutoff} exp(-(x/sigma)^2/2 ) / sigma
@@ -99,7 +111,12 @@ public:
         Kokkos::fence();
     }
 
+    void setNr(Vector_t<double, 3> nr){
+        nr_m = nr;
+    }
     void generateParticles(size_t& numberOfParticles, Vector_t<double, 3> nr) override {
+
+        setNr(nr);
 
         // initial allocation is similar for both emitting and non-emitting cases
         allocateParticles(numberOfParticles);
@@ -129,7 +146,7 @@ public:
             return 0.;
     }
 
-    size_t computeNlocal(size_t nglobal){
+    size_t computeNlocalUniformly(size_t nglobal){
         MPI_Comm comm = MPI_COMM_WORLD;
         int nranks;
         int rank;
@@ -147,19 +164,98 @@ public:
         return nlocal;
     }
 
-    double ingerateTrapezoidal(double x1, double x2, double y1, double y2){
+    double integrateTrapezoidal(double x1, double x2, double y1, double y2){
         return 0.5 * (y1+y2) * fabs(x2-x1);
     }
 
+    void initDomainDecomp(Mesh_t<3> *mesh, FieldLayout_t<3> *FL, double BoxIncr) override {
+        Vector_t<double, 3> sigmaR = opalDist_m->getSigmaR();
+        ippl::Vector<double, 3> o;
+        ippl::Vector<double, 3> e;
+        double tol = 1e-15; // enlarge grid by tol to avoid missing particles on boundaries
+        o[0] = -sigmaR[0] - tol;
+        e[0] =  sigmaR[0] + tol;
+        o[1] = -sigmaR[1] - tol;
+        e[1] =  sigmaR[1] + tol;
+        o[2] = 0.0 - tol;
+        e[2] = Physics::c * emissionTime_m + tol;
+
+        ippl::Vector<double, 3> l = e - o;
+        //hr_m = (1.0+this->OPALFieldSolver_m->getBoxIncr()/100.)*(l / this->nr_m);
+        hr_m = (1.0+BoxIncr/100.)*(l / nr_m);
+        mesh->setMeshSpacing(hr_m);
+        mesh->setOrigin(o-0.5*hr_m*BoxIncr/100.);
+        pc_m->getLayout().updateLayout(*FL, *mesh);
+    }
+
     double countEnteringParticlesPerRank(double t0, double tf){
+
+        size_type nlocalNew;
+
         double tArea = 0.0;
 
-        tArea = ingerateTrapezoidal(t0, tf, FlatTopProfile(t0), FlatTopProfile(tf));
+        tArea = integrateTrapezoidal(t0, tf, FlatTopProfile(t0), FlatTopProfile(tf));
 
         size_type totalNew = floor(totalN_m * tArea / distArea_m);
 
-        size_type nlocalNew = computeNlocal(totalNew);
+        nlocalNew = 0;
 
+        if(totalNew>0){
+          if(!withDomainDecomp_m){
+            // the same number of particles per rank
+            nlocalNew = computeNlocalUniformly(totalNew);
+          }
+          else{
+            // select number of particles per rank using estimated domain decomposition at final emission time
+            // find min/max of particle positions for [t,t+dt]
+            Vector_t<double, 3> prmin, prmax;
+            Vector_t<double, 3> sigmaR = opalDist_m->getSigmaR();
+            prmin[0] = -sigmaR[0];
+            prmax[0] =  sigmaR[0];
+            prmin[1] = -sigmaR[1];
+            prmax[1] =  sigmaR[1];
+            prmin[2] = Physics::c*t0;
+            prmax[2] = Physics::c*tf;
+
+            double dx = prmax[0] - prmin[0];
+            double dy = prmax[1] - prmin[1];
+            double dz = prmax[2] - prmin[2];
+
+            if (dx <= 0 || dy <= 0 || dz <= 0) {
+                throw std::runtime_error("Invalid global particle volume: prmax must be greater than prmin.");
+            }
+
+            double globalpvolume = dx * dy * dz;
+
+            // find min/max of subdomains for the current rank
+            auto regions = pc_m->getLayout().getRegionLayout().gethLocalRegions();
+            int rank = ippl::Comm->rank();
+            Vector_t<double, 3> locrmin, locrmax;
+            for (unsigned d = 0; d < Dim; ++d) {
+               locrmax[d] = regions(rank)[d].max();
+               locrmin[d] = regions(rank)[d].min();
+            }
+
+            if (prmax[0] >= locrmin[0] && prmin[0] <= locrmax[0] &&
+                prmax[1] >= locrmin[1] && prmin[1] <= locrmax[1] &&
+                prmax[2] >= locrmin[2] && prmin[2] <= locrmax[2]) {
+
+                double x1 = std::max(prmin[0], locrmin[0]);
+                double x2 = std::min(prmax[0], locrmax[0]);
+                double y1 = std::max(prmin[1], locrmin[1]);
+                double y2 = std::min(prmax[1], locrmax[1]);
+                double z1 = std::max(prmin[2], locrmin[2]);
+                double z2 = std::min(prmax[2], locrmax[2]);
+
+                if (x2 >= x1 && y2 >= y1 && z2 >= z1) {
+                    double locpvolume = (x2 - x1) * (y2 - y1) * (z2 - z1);
+                    nlocalNew = static_cast<int>(totalNew * locpvolume / globalpvolume);
+                } else {
+                    nlocalNew = 0;
+                }
+            }
+          }
+        }
         return nlocalNew;
     }
 
@@ -168,7 +264,7 @@ public:
 
         size_type nlocal;
 
-        nlocal = computeNlocal(totalN_m);
+        nlocal = computeNlocalUniformly(totalN_m);
 
         pc_m->create(nlocal);
     }
@@ -204,7 +300,7 @@ public:
 
         for(size_type i=0; i<nsteps; i++){
             nNew = countEnteringParticlesPerRank(t, t + dt);
-            file << t << "  " << nNew << "\n";
+            file << t << " " << t*Physics::c << " " << nNew << "\n";
             t = t + dt;
         }
         file.close();
