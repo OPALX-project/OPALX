@@ -385,7 +385,6 @@ void FieldSolver<double,3>::initNullSolver() {
     }
 }
 
-
 /*
 template <>
 void FieldSolver<double,3>::initCGSolver() {
