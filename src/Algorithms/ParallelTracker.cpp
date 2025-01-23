@@ -73,12 +73,13 @@ ParallelTracker::ParallelTracker(
       minStepforReBin_m(-1),
       repartFreq_m(-1),
       emissionSteps_m(std::numeric_limits<unsigned int>::max()),
-      numParticlesInSimulation_m(0),
+      numParticlesInSimulation_m(0), 
       timeIntegrationTimer1_m(IpplTimings::getTimer("TIntegration1")),
       timeIntegrationTimer2_m(IpplTimings::getTimer("TIntegration2")),
       fieldEvaluationTimer_m(IpplTimings::getTimer("External field eval")),
       PluginElemTimer_m(IpplTimings::getTimer("PluginElements")),
-      BinRepartTimer_m(IpplTimings::getTimer("Binaryrepart")) {
+      BinRepartTimer_m(IpplTimings::getTimer("Binaryrepart")),
+      sampler_m(nullptr) {
 }
 
 ParallelTracker::ParallelTracker(
@@ -101,11 +102,11 @@ ParallelTracker::ParallelTracker(
       repartFreq_m(-1),
       emissionSteps_m(std::numeric_limits<unsigned int>::max()),
       numParticlesInSimulation_m(0),
-      sampler_m(sampler), // TODO: added for flattop binning test
       timeIntegrationTimer1_m(IpplTimings::getTimer("TIntegration1")),
       timeIntegrationTimer2_m(IpplTimings::getTimer("TIntegration2")),
       fieldEvaluationTimer_m(IpplTimings::getTimer("External field eval")),
-      BinRepartTimer_m(IpplTimings::getTimer("Binaryrepart")) {
+      BinRepartTimer_m(IpplTimings::getTimer("Binaryrepart")),
+      sampler_m(sampler) {
 
     *gmsg << "* ParallelTracker zstop.size()= " << zstop.size() << endl;
 
@@ -422,7 +423,7 @@ void ParallelTracker::execute() {
         for (; step < trackSteps; ++step) {
             // At the beginning of a step test if new particles are supposed to be created.
             // TODO: This might change later and ist just temporary for testing the flattop sampling
-            sampler_m->emitParticles(this->bunch_m->getT(), dtCurrentTrack_m);
+            sampler_m->emitParticles(this->itsBunch_m->getT(), dtCurrentTrack_m);
 
             Vector_t<double, 3> rmin(0.0), rmax(0.0);
             if (itsBunch_m->getTotalNum() > 0) {
