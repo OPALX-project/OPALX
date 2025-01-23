@@ -23,10 +23,12 @@ namespace ParticleBinning {
             Kokkos::MinMaxScalar<value_type> localMinMax;
             // Sadly this is necessary, since Kokkos seems to have a problem when nlocal == 1 where it does not update localMinMax...
             if (nlocal == 1) {
-                Kokkos::View<value_type*> tmp_dvalue("tmp_dvalue", 1);
-                Kokkos::parallel_for("tmp_dvalue", 1, KOKKOS_LAMBDA(const size_type) { tmp_dvalue(0) = var_selector(0); });
-                Kokkos::deep_copy(localMinMax.min_val, tmp_dvalue());
-                localMinMax.max_val = localMinMax.min_val;
+                Kokkos::View<value_type, Kokkos::HostSpace> host_scalar("host_scalar"); 
+                Kokkos::View<value_type> tmp_dvalue("tmp_dvalue");
+                Kokkos::parallel_for("tmp_dvalue", 1, KOKKOS_LAMBDA(const size_type) { tmp_dvalue() = var_selector(0); });
+                Kokkos::deep_copy(host_scalar, tmp_dvalue);
+                localMinMax.max_val = localMinMax.min_val = host_scalar();
+                std::cout << "Meh " << host_scalar() << std::endl;
             } else {
                 Kokkos::parallel_reduce("localBinLimitReduction", nlocal, KOKKOS_LAMBDA(const size_type i, Kokkos::MinMaxScalar<value_type>& update) {
                     value_type val = var_selector(i); // localData(i)[2]; // use z axis for binning!
@@ -93,6 +95,12 @@ namespace ParticleBinning {
         var_selector_m.updateDataArr(bunch_m);
         BinningSelector var_selector  = var_selector_m; 
         bin_view_type binIndex        = getBinView();
+
+        if (bunch_m->getLocalNum() <= 1) {
+            msg << "Too few bins, assigning all bins to index 0." << endl;
+            Kokkos::deep_copy(binIndex, 0);
+            return;
+        }
 
         // Declare the variables locally before the Kokkos::parallel_for (to avoid implicit this capture in Kokkos lambda)
         value_type xMin = xMin_m, xMax = xMax_m, binWidthInv = 1.0/binWidth_m;
