@@ -340,15 +340,15 @@ void PartBunch<double,3>::computeSelfFields() {
     // Start binning and sorting
     std::shared_ptr<AdaptBins_t> bins = this->getBins();
     VField_t<double, 3>& Etmp = *(this->getTempEField());
-    bins->doFullRebin(bins->getMaxBinCount()); // rebin with 128 bins
+    bins->doFullRebin(10); // rebin with 128 bins // bins->getMaxBinCount()
     bins->print(); // For debugging...
     bins->sortContainerByBin(); // Sort BEFORE, since it generates less atomics overhead with more bins!
 
     IpplTimings::startTimer(MergeBinsTimer);
-    bins->genAdaptiveHistogram(); // merge bins with width/N_part ratio of 1.0
+    //bins->genAdaptiveHistogram(); // merge bins with width/N_part ratio of 1.0
     IpplTimings::stopTimer(MergeBinsTimer);
 
-    bins->print(); // For debugging...
+    //bins->print(); // For debugging...
 
 
     Inform m("computeSelfFields");
