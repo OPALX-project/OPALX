@@ -85,6 +85,8 @@ public:
 
     void updateMoments(){
         size_t Np = this->getTotalNum();
+        Np = (Np == 0) ? 1 : Np; // only used for normalization in the moments class --> avoid division by zero
+
         size_t Nlocal = this->getLocalNum();
         distMoments_m.computeMoments(this->R.getView(), this->P.getView(), this->M.getView(), Np, Nlocal);
     }
@@ -180,6 +182,8 @@ public:
 
     double computeDebyeLength(double density){
         size_t Np = this->getTotalNum();
+        Np = (Np == 0) ? 1 : Np; // only used for normalization in the moments class --> avoid division by zero
+
         size_t Nlocal = this->getLocalNum();
         distMoments_m.computeDebyeLength(this->R.getView(), this->P.getView(), Np, Nlocal, density);
         return distMoments_m.getDebyeLength();
