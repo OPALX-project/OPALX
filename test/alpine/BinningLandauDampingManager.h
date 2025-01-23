@@ -127,7 +127,7 @@ public:
 
         IpplTimings::stopTimer(DummySolveTimer);
 
-        this->par2grid();
+        if (this->pcontainer_m->getLocalNum() > 0) this->par2grid();
 
         static IpplTimings::TimerRef SolveTimer = IpplTimings::getTimer("solve");
         IpplTimings::startTimer(SolveTimer);
@@ -246,6 +246,23 @@ public:
         // Here, we assume a constant charge-to-mass ratio of -1 for
         // all the particles hence eliminating the need to store mass as
         // an attribute
+
+        // Create 5 new particles every timestep with random position values and 0 velocity
+        {
+            size_type nnew = 1;
+            size_type nlocal = this->pcontainer_m->getLocalNum();
+            this->pcontainer_m->create(nnew);
+            view_type R = this->pcontainer_m->R.getView();
+            view_type P = this->pcontainer_m->P.getView();
+            Kokkos::deep_copy(Kokkos::subview(P, Kokkos::make_pair(nlocal, nlocal + nnew)), 0.0); // set new particles' velocity to 0
+
+            Kokkos::Random_XorShift64_Pool<> rand_pool64((size_type)(42 + 100 * ippl::Comm->rank()));
+            Kokkos::parallel_for(Kokkos::RangePolicy(nlocal, nlocal+nnew), ippl::random::randn<double, Dim>(R, rand_pool64));
+            
+            ippl::Comm->reduce(this->pcontainer_m->getLocalNum(), this->totalP_m, 1, std::plus<size_type>());
+            this->pcontainer_m->q = this->Q_m/this->totalP_m;
+        }
+
         static IpplTimings::TimerRef PTimer           = IpplTimings::getTimer("pushVelocity");
         static IpplTimings::TimerRef RTimer           = IpplTimings::getTimer("pushPosition");
         static IpplTimings::TimerRef updateTimer      = IpplTimings::getTimer("update");
@@ -342,6 +359,7 @@ public:
         binIndexView_t bin                      = pc->Bin.getView();
 
         for (binIndex_t i = 0; i < this->bins_m->getCurrentBinCount(); ++i) {
+            if (this->bins_m->getNPartInBin(i) == 0) { continue; }
             // Scatter only for current bin index
             this->par2gridPerBin(i);
 
