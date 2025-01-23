@@ -176,6 +176,7 @@ public:
     void emitParticles(double t, double dt) override {
         // count number of new particles to be emitted
         size_type nNew = countEnteringParticlesPerRank(t, t + dt);
+        std::cout << "New Particles = " << nNew << std::endl; 
 
         if(nNew > 0){
             // current number of particles per rank

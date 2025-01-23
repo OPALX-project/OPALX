@@ -420,6 +420,10 @@ void ParallelTracker::execute() {
         changeDT(back_track);
 
         for (; step < trackSteps; ++step) {
+            // At the beginning of a step test if new particles are supposed to be created.
+            // TODO: This might change later and ist just temporary for testing the flattop sampling
+            sampler_m->emitParticles(this->bunch_m->getT(), dtCurrentTrack_m);
+
             Vector_t<double, 3> rmin(0.0), rmax(0.0);
             if (itsBunch_m->getTotalNum() > 0) {
                 itsBunch_m->get_bounds(rmin, rmax);
