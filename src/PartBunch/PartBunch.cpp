@@ -30,57 +30,58 @@ void PartBunch<double,3>::setSolver(std::string solver) {
 template<>
 void PartBunch<double,3>::spaceChargeEFieldCheck() {
 
- Inform msg("EParticleStats");
+    Inform msg("EParticleStats");
 
- auto pE_view = this->pcontainer_m->E.getView();
- 
- double avgE          = 0.0;
- double minEComponent = std::numeric_limits<double>::max();
- double maxEComponent = std::numeric_limits<double>::min();
- double minE          = std::numeric_limits<double>::max();
- double maxE          = std::numeric_limits<double>::min();
- double cc            = getCouplingConstant();
- 
- int myRank = ippl::Comm->rank();
- Kokkos::parallel_reduce(
-                         "check e-field", this->getLocalNum(),
-                         KOKKOS_LAMBDA(const int i, double& loc_avgE, double& loc_minEComponent,
-                                       double& loc_maxEComponent, double& loc_minE, double& loc_maxE) {
-                             double EX    = pE_view[i][0]*cc;
-                             double EY    = pE_view[i][1]*cc;
-                             double EZ    = pE_view[i][2]*cc;
+    auto pE_view = this->pcontainer_m->E.getView();
 
-                             double ENorm = Kokkos::sqrt(EX*EX + EY*EY + EZ*EZ);
-                             
-                             loc_avgE += ENorm;
+    double avgE          = 0.0;
+    double minEComponent = std::numeric_limits<double>::max();
+    double maxEComponent = std::numeric_limits<double>::min();
+    double minE          = std::numeric_limits<double>::max();
+    double maxE          = std::numeric_limits<double>::min();
+    double cc            = getCouplingConstant();
 
-                             loc_minEComponent = EX < loc_minEComponent ? EX : loc_minEComponent;
-                             loc_minEComponent = EY < loc_minEComponent ? EY : loc_minEComponent;
-                             loc_minEComponent = EZ < loc_minEComponent ? EZ : loc_minEComponent;
-                             
-                             loc_maxEComponent = EX > loc_maxEComponent ? EX : loc_maxEComponent;
-                             loc_maxEComponent = EY > loc_maxEComponent ? EY : loc_maxEComponent;
-                             loc_maxEComponent = EZ > loc_maxEComponent ? EZ : loc_maxEComponent;
+    int myRank = ippl::Comm->rank();
+    Kokkos::parallel_reduce(
+                            "check e-field", this->getLocalNum(),
+                            KOKKOS_LAMBDA(const int i, double& loc_avgE, double& loc_minEComponent,
+                                        double& loc_maxEComponent, double& loc_minE, double& loc_maxE) {
+                                double EX    = pE_view[i][0]*cc;
+                                double EY    = pE_view[i][1]*cc;
+                                double EZ    = pE_view[i][2]*cc;
 
-                             loc_minE = ENorm < loc_minE ? ENorm : loc_minE;
-                             loc_maxE = ENorm > loc_maxE ? ENorm : loc_maxE;
-                         },
-                         Kokkos::Sum<double>(avgE), Kokkos::Min<double>(minEComponent),
-                         Kokkos::Max<double>(maxEComponent), Kokkos::Min<double>(minE),
-                         Kokkos::Max<double>(maxE));
+                                double ENorm = Kokkos::sqrt(EX*EX + EY*EY + EZ*EZ);
+                                
+                                loc_avgE += ENorm;
 
- MPI_Reduce(myRank == 0 ? MPI_IN_PLACE : &avgE, &avgE, 1, MPI_DOUBLE, MPI_SUM, 0, ippl::Comm->getCommunicator());
- MPI_Reduce(myRank == 0 ? MPI_IN_PLACE : &minEComponent, &minEComponent, 1, MPI_DOUBLE, MPI_MIN, 0, ippl::Comm->getCommunicator());
- MPI_Reduce(myRank == 0 ? MPI_IN_PLACE : &maxEComponent, &maxEComponent, 1, MPI_DOUBLE, MPI_MAX, 0, ippl::Comm->getCommunicator());
- MPI_Reduce(myRank == 0 ? MPI_IN_PLACE : &minE, &minE, 1, MPI_DOUBLE, MPI_MIN, 0, ippl::Comm->getCommunicator());
- MPI_Reduce(myRank == 0 ? MPI_IN_PLACE : &maxE, &maxE, 1, MPI_DOUBLE, MPI_MAX, 0, ippl::Comm->getCommunicator());
- 
- avgE /= this->getTotalNum();
- msg << "avgENorm = " << avgE << endl;
- msg << "minEComponent = " << minEComponent << endl;
- msg << "maxEComponent = " << maxEComponent << endl;
- msg << "minE = " << minE << endl;
- msg << "maxE = " << maxE << endl;
+                                loc_minEComponent = EX < loc_minEComponent ? EX : loc_minEComponent;
+                                loc_minEComponent = EY < loc_minEComponent ? EY : loc_minEComponent;
+                                loc_minEComponent = EZ < loc_minEComponent ? EZ : loc_minEComponent;
+                                
+                                loc_maxEComponent = EX > loc_maxEComponent ? EX : loc_maxEComponent;
+                                loc_maxEComponent = EY > loc_maxEComponent ? EY : loc_maxEComponent;
+                                loc_maxEComponent = EZ > loc_maxEComponent ? EZ : loc_maxEComponent;
+
+                                loc_minE = ENorm < loc_minE ? ENorm : loc_minE;
+                                loc_maxE = ENorm > loc_maxE ? ENorm : loc_maxE;
+                            },
+                            Kokkos::Sum<double>(avgE), Kokkos::Min<double>(minEComponent),
+                            Kokkos::Max<double>(maxEComponent), Kokkos::Min<double>(minE),
+                            Kokkos::Max<double>(maxE));
+
+    MPI_Reduce(myRank == 0 ? MPI_IN_PLACE : &avgE, &avgE, 1, MPI_DOUBLE, MPI_SUM, 0, ippl::Comm->getCommunicator());
+    MPI_Reduce(myRank == 0 ? MPI_IN_PLACE : &minEComponent, &minEComponent, 1, MPI_DOUBLE, MPI_MIN, 0, ippl::Comm->getCommunicator());
+    MPI_Reduce(myRank == 0 ? MPI_IN_PLACE : &maxEComponent, &maxEComponent, 1, MPI_DOUBLE, MPI_MAX, 0, ippl::Comm->getCommunicator());
+    MPI_Reduce(myRank == 0 ? MPI_IN_PLACE : &minE, &minE, 1, MPI_DOUBLE, MPI_MIN, 0, ippl::Comm->getCommunicator());
+    MPI_Reduce(myRank == 0 ? MPI_IN_PLACE : &maxE, &maxE, 1, MPI_DOUBLE, MPI_MAX, 0, ippl::Comm->getCommunicator());
+
+    size_type ntotal_tmp = this->getTotalNum();
+    avgE /= (ntotal_tmp > 0) ? ntotal_tmp : 1; // avoid division by zero for empty simulation
+    msg << "avgENorm = " << avgE << endl;
+    msg << "minEComponent = " << minEComponent << endl;
+    msg << "maxEComponent = " << maxEComponent << endl;
+    msg << "minE = " << minE << endl;
+    msg << "maxE = " << maxE << endl;
 }
 
 template<>
