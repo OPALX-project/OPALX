@@ -12,22 +12,28 @@ namespace ParticleBinning {
         static IpplTimings::TimerRef histoLimits = IpplTimings::getTimer("initHistoLimits");
         IpplTimings::startTimer(histoLimits);
 
-        if (bunch_m->getLocalNum() == 0) {
-            msg << "No particles in the bunch. Settings limits to 0." << endl;
-            xMin_m = 0;
-            xMax_m = 0;
-            binWidth_m = 0;
+        var_selector_m.updateDataArr(bunch_m); // update needed if bunch->create() is called between binnings!
+        BinningSelector var_selector = var_selector_m;  
+        size_type nlocal             = bunch_m->getLocalNum();
+
+        if (nlocal <= 0) {
+            msg << "Particles in the bunch = " << nlocal << ". Overwriting limits manually." << endl;
+            xMin_m = xMax_m = (nlocal == 0) ? 0 : 0; // var_selector(0); 
         } else {
             Kokkos::MinMaxScalar<value_type> localMinMax;
-            // position_view_type localData = bunch_m->R.getView();
-            var_selector_m.updateDataArr(bunch_m); // update needed if bunch->create() is called between binnings!
-            BinningSelector var_selector = var_selector_m;  
-
-            Kokkos::parallel_reduce("localBinLimitReduction", bunch_m->getLocalNum(), KOKKOS_LAMBDA(const size_type i, Kokkos::MinMaxScalar<value_type>& update) {
-                value_type val = var_selector(i); // localData(i)[2]; // use z axis for binning!
-                update.min_val = Kokkos::min(update.min_val, val);
-                update.max_val = Kokkos::max(update.max_val, val);
-            }, Kokkos::MinMax<value_type>(localMinMax));
+            // Sadly this is necessary, since Kokkos seems to have a problem when nlocal == 1 where it does not update localMinMax...
+            if (nlocal == 1) {
+                Kokkos::View<value_type*> tmp_dvalue("tmp_dvalue", 1);
+                Kokkos::parallel_for("tmp_dvalue", 1, KOKKOS_LAMBDA(const size_type) { tmp_dvalue(0) = var_selector(0); });
+                Kokkos::deep_copy(localMinMax.min_val, tmp_dvalue());
+                localMinMax.max_val = localMinMax.min_val;
+            } else {
+                Kokkos::parallel_reduce("localBinLimitReduction", nlocal, KOKKOS_LAMBDA(const size_type i, Kokkos::MinMaxScalar<value_type>& update) {
+                    value_type val = var_selector(i); // localData(i)[2]; // use z axis for binning!
+                    update.min_val = Kokkos::min(update.min_val, val);
+                    update.max_val = Kokkos::max(update.max_val, val);
+                }, Kokkos::MinMax<value_type>(localMinMax));
+            }
             xMin_m = localMinMax.min_val;
             xMax_m = localMinMax.max_val;
         }
@@ -364,7 +370,7 @@ namespace ParticleBinning {
 
         // TODO: remove, just for testing purposes (get new bin view, since the old memory address might be overwritten by this action...)
         IpplTimings::startTimer(isSortedCheck);
-        if (!viewIsSorted<bin_index_type>(getBinView(), indices, localNumParticles)) {
+        if (localNumParticles > 1 && !viewIsSorted<bin_index_type>(getBinView(), indices, localNumParticles)) {
             msg << "Sorting failed." << endl;
             ippl::Comm->abort();
         } 
