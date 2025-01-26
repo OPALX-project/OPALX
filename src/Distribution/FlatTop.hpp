@@ -106,7 +106,22 @@ public:
 
         if(emitting_m){
             // set nlocal to 0 for the very first time step, before sampling particles
-            pc_m->setLocalNum(0);
+            //pc_m->setLocalNum(0);
+            
+            /*
+            Cannot use pc_m->setLocalNum(0) here, because there is no way to update totalNum_m
+            in the ParticleBase class. Instead, one has to call destroy(), which is efficient, if
+            all particles are destroyed. In that case it simply updates also the totalNum_m count
+            and sets localNum_m to 0. 
+            However, it expects a bool Kokkos::View that indicates which particles are to be deleted.
+            It is never used when ALL particles are deleted, so we can just pass an empty one.
+
+            Note: this ONLY works if ALL particles are to be deleted. This does not work if a few
+            might be sampled and some space is to be reserved for the rest. In that case, we would éither need
+            to implement a "reserve" function in ParticleBase/ParticleContainer or write a setter for totalNum_m.
+            */ 
+            Kokkos::View<bool*> tmp_invalid("tmp_invalid", 0);
+            pc_m->destroy(tmp_invalid, pc_m->getLocalNum());
         }
     }
 
@@ -176,6 +191,7 @@ public:
     void emitParticles(double t, double dt) override {
         // count number of new particles to be emitted
         size_type nNew = countEnteringParticlesPerRank(t, t + dt);
+        std::cout << "New Particles = " << nNew << std::endl; 
 
         if(nNew > 0){
             // current number of particles per rank
