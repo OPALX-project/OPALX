@@ -69,6 +69,10 @@ void PartBunch<double,3>::spaceChargeEFieldCheck() {
                             Kokkos::Max<double>(maxEComponent), Kokkos::Min<double>(minE),
                             Kokkos::Max<double>(maxE));
 
+    if (this->getLocalNum() == 0) {
+        minEComponent = maxEComponent = minE = maxE = avgE = 0.0;
+    }
+
     MPI_Reduce(myRank == 0 ? MPI_IN_PLACE : &avgE, &avgE, 1, MPI_DOUBLE, MPI_SUM, 0, ippl::Comm->getCommunicator());
     MPI_Reduce(myRank == 0 ? MPI_IN_PLACE : &minEComponent, &minEComponent, 1, MPI_DOUBLE, MPI_MIN, 0, ippl::Comm->getCommunicator());
     MPI_Reduce(myRank == 0 ? MPI_IN_PLACE : &maxEComponent, &maxEComponent, 1, MPI_DOUBLE, MPI_MAX, 0, ippl::Comm->getCommunicator());
