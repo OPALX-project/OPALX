@@ -121,6 +121,7 @@ public:
             to implement a "reserve" function in ParticleBase/ParticleContainer or write a setter for totalNum_m.
             */ 
             Kokkos::View<bool*> tmp_invalid("tmp_invalid", 0);
+            // \todo might be abuse of semantics: maybe think about new pc_m->setTotalNum or pc_m->updateTotal function instead?
             pc_m->destroy(tmp_invalid, pc_m->getLocalNum());
         }
     }
