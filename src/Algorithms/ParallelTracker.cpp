@@ -424,13 +424,20 @@ void ParallelTracker::execute() {
             // At the beginning of a step test if new particles are supposed to be created.
             // TODO: This might change later and ist just temporary for testing the flattop sampling
             sampler_m->emitParticles(this->itsBunch_m->getT(), dtCurrentTrack_m);
+            itsBunch_m->getParticleContainer()->update();
+
+            std::cout << "R(0) = " << itsBunch_m->getParticleContainer()->R(0) << std::endl;
 
             Vector_t<double, 3> rmin(0.0), rmax(0.0);
             if (itsBunch_m->getTotalNum() > 0) {
                 itsBunch_m->get_bounds(rmin, rmax);
             }
 
+            std::cout << "R(0) = " << itsBunch_m->getParticleContainer()->R(0) << std::endl;
+
             timeIntegration1(pusher);
+
+            std::cout << "R(0) = " << itsBunch_m->getParticleContainer()->R(0) << std::endl;
 
             computeSpaceChargeFields(step);
             
@@ -593,10 +600,16 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
         
     itsBunch_m->calcBeamParameters();
 
-    Quaternion alignment = getQuaternion(itsBunch_m->get_pmean(), Vector_t<double, 3>(0, 0, 1));
+    Vector_t<double, 3> pmean = itsBunch_m->get_pmean();
+    pmean = (dot(pmean, pmean) == 0) ? Vector_t<double, 3>(0, 0, 1) : pmean; // No rotation for zero momentum (e.g. beginning of simulation, no kick yet)
+    Quaternion alignment = getQuaternion(pmean, Vector_t<double, 3>(0, 0, 1));
+
+    std::cout << "alignment = " << alignment << std::endl;
 
     CoordinateSystemTrafo beamToReferenceCSTrafo(
         Vector_t<double, 3>(0, 0, pathLength_m), alignment.conjugate());
+
+    std::cout << "org = " << beamToReferenceCSTrafo.getOrigin() << std::endl;
 
     CoordinateSystemTrafo referenceToBeamCSTrafo = beamToReferenceCSTrafo.inverted();
 
@@ -611,6 +624,8 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
     const matrix_t                rot = referenceToBeamCSTrafo.getRotationMatrix();
     const ippl::Vector<double, 3> org = referenceToBeamCSTrafo.getOrigin();
 
+    std::cout << "org = " << referenceToBeamCSTrafo.getOrigin() << std::endl;
+
 
     typedef Kokkos::View<double**>  ViewMatrixType;
     ViewMatrixType Rot("Rot", 3, 3);
@@ -620,6 +635,7 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
     for ( int i = 0; i < 3; ++i ) {
         for ( int j = 0; j < 3; ++j ) {
             h_Rot( i, j ) = rot(i, j);
+            std::cout << "rot(" << i << "," << j << ") = " << rot(i, j) << std::endl;
         }
     }
     
@@ -629,19 +645,23 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
     auto Eview  = itsBunch_m->getParticleContainer()->E.getView();
     auto Bview  = itsBunch_m->getParticleContainer()->B.getView();
 
+    std::cout << "R(0) = " << itsBunch_m->getParticleContainer()->R(0) << std::endl;
+
     Kokkos::parallel_for(
-                         "referenceToBeamCSTrafo", ippl::getRangePolicy(Rview),
-                         KOKKOS_LAMBDA(const int i) {
-                             ippl::Vector<double, 3> x({Rview(i)[0],Rview(i)[1],Rview(i)[2]});
+                         "referenceToBeamCSTrafo", itsBunch_m->getLocalNum(), // ippl::getRangePolicy(Rview)
+                         KOKKOS_LAMBDA(const int k) {
+                             ippl::Vector<double, 3> x = Rview(k); // (copies values anyways) ({Rview(k)[0],Rview(k)[1],Rview(k)[2]});
                              x = x - org;
                              for ( int j = 0; j < 3; ++j ) {
                                  for ( int i = 0; i < 3; ++i ) {
-                                     Rview(j) = Rot(i,j) * x(i);
+                                     Rview[k](j) = Rot(i,j) * x(i);
                                  }
                              }
-                             Eview(i) = ippl::Vector<double, 3>(0.0);   // was done outside of the routine in the past
-                             Bview(i) = ippl::Vector<double, 3>(0.0); 
+                             Eview(k) = ippl::Vector<double, 3>(0.0);   // was done outside of the routine in the past
+                             Bview(k) = ippl::Vector<double, 3>(0.0); 
                          });         
+
+    std::cout << "R(0) = " << itsBunch_m->getParticleContainer()->R(0) << std::endl;
 
     itsBunch_m->boundp();
 
