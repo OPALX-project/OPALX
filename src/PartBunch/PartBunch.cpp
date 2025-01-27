@@ -75,8 +75,8 @@ void PartBunch<double,3>::spaceChargeEFieldCheck() {
     MPI_Reduce(myRank == 0 ? MPI_IN_PLACE : &minE, &minE, 1, MPI_DOUBLE, MPI_MIN, 0, ippl::Comm->getCommunicator());
     MPI_Reduce(myRank == 0 ? MPI_IN_PLACE : &maxE, &maxE, 1, MPI_DOUBLE, MPI_MAX, 0, ippl::Comm->getCommunicator());
 
-    size_type ntotal_tmp = this->getTotalNum();
-    avgE /= (ntotal_tmp > 0) ? ntotal_tmp : 1; // avoid division by zero for empty simulation
+    size_t Np = this->getTotalNum();
+    avgE     /= (Np == 0) ? 1 : Np; // avoid division by zero for empty simulations (see also DistributionMoments::computeMeans implementation) 
     msg << "avgENorm = " << avgE << endl;
     msg << "minEComponent = " << minEComponent << endl;
     msg << "maxEComponent = " << maxEComponent << endl;
