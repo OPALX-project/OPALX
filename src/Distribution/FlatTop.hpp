@@ -88,15 +88,20 @@ public:
                 double r = Kokkos::sqrt( generator.drand(0., 1.) );
                 double theta = 2.0 * pi * generator.drand(0., 1.);
                 rand_pool.free_state(generator);
-
                 Rview(j)[0] = r * Kokkos::cos(theta) * sigmaR[0];
                 Rview(j)[1] = r * Kokkos::sin(theta) * sigmaR[1];
                 Rview(j)[2]  = 0.0;
                 Pview(j)[0] = 0.0;
                 Pview(j)[1] = 0.0;
                 Pview(j)[2] = 0.0;
+
+                std::cout << "Rview(j) = " << Rview(j) << ", j = " << j << std::endl;
         });
         Kokkos::fence();
+
+        std::cout << "Rview1(0) = " << Rview(0) << std::endl;
+        std::cout << "Rview2(0) = " << pc_m->R(0) << std::endl;
+        std::cout << "Rview3(0) = " << pc_m->R.getView()(0) << std::endl;
     }
 
     void generateParticles(size_t& numberOfParticles, Vector_t<double, 3> nr) override {
