@@ -1,6 +1,6 @@
 /*      Drinft-3.in
 	OPALX
-	1 timesteps with 100nC 
+	10 timesteps with 1nC 
 */
 
 OPTION, PSDUMPFREQ      = 1;     // 6d data written every 10th time step (h5).
@@ -19,7 +19,7 @@ Value,{OPALVERSION};
 REAL N                   = 64;
 REAL rf_freq             = 1.3e9;    // RF frequency. (Hz)
 REAL n_particles         = N*N*N;    // Number of particles in simulation.
-REAL beam_bunch_charge   = 1e-7;     // Charge of bunch. (C)
+REAL beam_bunch_charge   = 1e-9;     // Charge of bunch. (C)
 
 // ----------------------------------------------------------------------------
 // Initial Momentum Calculation
@@ -46,7 +46,7 @@ FS1: Fieldsolver, NX=N, NY=N, NZ=N, TYPE=FFT, PARFFTX = true, PARFFTY = true, PA
 Dist1: DISTRIBUTION, TYPE= GAUSS, SIGMAX=1e-3, SIGMAY=1e-3, SIGMAZ=1e-3, SIGMAPX=1e-6, SIGMAPY=1e-6, SIGMAPZ=1e-6;
 
 
-TRACK, LINE = myLine, BEAM = BEAM1, MAXSTEPS = 2, DT = {1e-11}, ZSTOP=0.25; 
+TRACK, LINE = myLine, BEAM = BEAM1, MAXSTEPS = 10, DT = {1e-11}, ZSTOP=0.25; 
  RUN, METHOD = "PARALLEL", BEAM = BEAM1, FIELDSOLVER = FS1, DISTRIBUTION = Dist1;
 ENDTRACK;
 QUIT;
