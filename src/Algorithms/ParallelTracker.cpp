@@ -349,10 +349,19 @@ void ParallelTracker::execute() {
     *gmsg << "itsBunch_m->RefPartP_m= " << itsBunch_m->RefPartP_m << endl;
 
     IpplTimings::startTimer(OrbThreader_m);
+
+    bool const psDump0 = 0;
+    bool const statDump0 = 0;
+
+    writePhaseSpace(0, psDump0, statDump0);
+    msg << level2 << "Dump initial phase space" << endl;
+
+
     OrbitThreader oth(
         itsReference, itsBunch_m->RefPartR_m, itsBunch_m->RefPartP_m, pathLength_m, -rmin(2),
         itsBunch_m->getT(), (back_track ? -minTimeStep : minTimeStep), stepSizes_m,
         itsOpalBeamline_m);
+
     oth.execute();
     IpplTimings::stopTimer(OrbThreader_m);
     
@@ -369,7 +378,6 @@ void ParallelTracker::execute() {
     OPALTimer::Timer myt1;
     *gmsg << "* Track start at: " << myt1.time() << ", t= " << Util::getTimeString(time) << "; "
           << "zstart at: " << Util::getLengthString(pathLength_m) << endl;
-
     *gmsg << "* Executing ParallelTracker\n"
           << "* Initial dt = " << Util::getTimeString(itsBunch_m->getdT()) << "\n"
           << "* Max integration steps = " << stepSizes_m.getMaxSteps() << ", next step = " << step
