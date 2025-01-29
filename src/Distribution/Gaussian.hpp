@@ -120,7 +120,6 @@ public:
             nlocal, ippl::random::randn<double, 3>(Pview, rand_pool64, mu, sd)
         );
         Kokkos::fence();
-        ippl::Comm->barrier();
 
         // correct the mean
         double avrgpz = opalDist_m->getAvrgpz();

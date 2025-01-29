@@ -36,32 +36,57 @@ void PartBunch<double,3>::spaceChargeEFieldCheck(Vector_t<double, 3> efScale) {
  auto fphi_view = this->fcontainer_m->getPhi().getView();
 
 
- double avgE          = 0.0;
+ 
  double avgphi        = 0.0;
-
+ double avgE          = 0.0;
+ double minEComponent = std::numeric_limits<double>::max();
+ double maxEComponent = std::numeric_limits<double>::min();
+ double minE          = std::numeric_limits<double>::max();
+ double maxE          = std::numeric_limits<double>::min();
+ double cc            = getCouplingConstant();
+ 
  int myRank = ippl::Comm->rank();
 
- size_t nloc = this->getLocalNum();
- 
  Kokkos::parallel_reduce(
-                         "check e-field", nloc,
-                         KOKKOS_LAMBDA(const size_t i, double& loc_avgE) {
-                             double EX    = pE_view[i][0]*efScale[0];
-                             double EY    = pE_view[i][1]*efScale[1];
-                             double EZ    = pE_view[i][2]*efScale[2];
+                         "check e-field", this->getLocalNum(),
+                         KOKKOS_LAMBDA(const int i, double& loc_avgE, double& loc_minEComponent,
+                                       double& loc_maxEComponent, double& loc_minE, double& loc_maxE) {
+                             double EX    = pE_view[i][0]*cc;
+                             double EY    = pE_view[i][1]*cc;
+                             double EZ    = pE_view[i][2]*cc;
 
-                             //                             if ((i<5) || (i>nloc-4))
-                             //    std::cout << "E[" << i << "]= (" << EX << "," << EY << "," << EZ << ")" << std::endl;
-                             
                              double ENorm = Kokkos::sqrt(EX*EX + EY*EY + EZ*EZ);
                              
                              loc_avgE += ENorm;
 
+                             loc_minEComponent = EX < loc_minEComponent ? EX : loc_minEComponent;
+                             loc_minEComponent = EY < loc_minEComponent ? EY : loc_minEComponent;
+                             loc_minEComponent = EZ < loc_minEComponent ? EZ : loc_minEComponent;
+                             
+                             loc_maxEComponent = EX > loc_maxEComponent ? EX : loc_maxEComponent;
+                             loc_maxEComponent = EY > loc_maxEComponent ? EY : loc_maxEComponent;
+                             loc_maxEComponent = EZ > loc_maxEComponent ? EZ : loc_maxEComponent;
+
+                             loc_minE = ENorm < loc_minE ? ENorm : loc_minE;
+                             loc_maxE = ENorm > loc_maxE ? ENorm : loc_maxE;
                          },
-                         Kokkos::Sum<double>(avgE));
- 
+                         Kokkos::Sum<double>(avgE), Kokkos::Min<double>(minEComponent),
+                         Kokkos::Max<double>(maxEComponent), Kokkos::Min<double>(minE),
+                         Kokkos::Max<double>(maxE));
+
+  if (this->getLocalNum() == 0) {
+     minEComponent = maxEComponent = minE = maxE = avgE = 0.0;
+ }
+
  MPI_Reduce(myRank == 0 ? MPI_IN_PLACE : &avgE, &avgE, 1, MPI_DOUBLE, MPI_SUM, 0, ippl::Comm->getCommunicator());
- avgE /= this->getTotalNum();
+ MPI_Reduce(myRank == 0 ? MPI_IN_PLACE : &minEComponent, &minEComponent, 1, MPI_DOUBLE, MPI_MIN, 0, ippl::Comm->getCommunicator());
+ MPI_Reduce(myRank == 0 ? MPI_IN_PLACE : &maxEComponent, &maxEComponent, 1, MPI_DOUBLE, MPI_MAX, 0, ippl::Comm->getCommunicator());
+ MPI_Reduce(myRank == 0 ? MPI_IN_PLACE : &minE, &minE, 1, MPI_DOUBLE, MPI_MIN, 0, ippl::Comm->getCommunicator());
+ MPI_Reduce(myRank == 0 ? MPI_IN_PLACE : &maxE, &maxE, 1, MPI_DOUBLE, MPI_MAX, 0, ippl::Comm->getCommunicator());
+ 
+ size_t Np = this->getTotalNum();
+ avgE /= (Np == 0) ? 1 : Np; // avoid division by zero for empty simulations (see also DistributionMoments::computeMeans implementation) 
+
  msg << "avgENorm = " << avgE << endl;
 
  using mdrange_type             = Kokkos::MDRangePolicy<Kokkos::Rank<3>>;
@@ -243,14 +268,14 @@ void PartBunch<double,3>::bunchUpdate(ippl::Vector<double, 3> hr) {
 
     /// \brief assume o < 0.0?
 
-    ippl::Vector<double, 3> o = pc->getMinR();
-    ippl::Vector<double, 3> e = pc->getMaxR();
+    ippl::Vector<double, 3> o = pc->getMinR() - std::numeric_limits<double>::lowest();
+    ippl::Vector<double, 3> e = pc->getMaxR() + std::numeric_limits<double>::lowest();
     ippl::Vector<double, 3> l = e - o;
-    
-    mesh->setMeshSpacing(hr);
-    
-    mesh->setOrigin(o-0.5*hr*this->OPALFieldSolver_m->getBoxIncr()/100.);
-    
+
+    hr_m = (1.0+this->OPALFieldSolver_m->getBoxIncr()/100.)*(l / this->nr_m);
+    mesh->setMeshSpacing(hr_m);
+    mesh->setOrigin(o-0.5*hr_m*this->OPALFieldSolver_m->getBoxIncr()/100.);
+
     pc->getLayout().updateLayout(*FL, *mesh);
     pc->update();
 
@@ -385,14 +410,13 @@ void PartBunch<double,3>::computeSelfFields() {
     m << "cellVolume= " << cellVolume << endl;
     m << "Sum over E-field after gather = " << this->fcontainer_m->getE().sum() << endl;
 #endif
-    
+
     /*
-      const double cc = getCouplingConstant();
-      Vector_t<double, 3> efScale = Vector_t<double,3>(gammaz*cc/hr_scaled[0], gammaz*cc/hr_scaled[1], cc / gammaz / hr_scaled[2]);
-      m << "efScale = " << efScale << endl;    
-      spaceChargeEFieldCheck(efScale);
+    Vector_t<double, 3> efScale = Vector_t<double,3>(gammaz*cc/hr_scaled[0], gammaz*cc/hr_scaled[1], cc / gammaz / hr_scaled[2]);
+    m << "efScale = " << efScale << endl;    
+    spaceChargeEFieldCheck(efScale);
     */
-    
+
     IpplTimings::stopTimer(SolveTimer);
 }
 

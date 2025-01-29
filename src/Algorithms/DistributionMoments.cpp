@@ -49,6 +49,15 @@ void DistributionMoments::computeMeans(ippl::ParticleAttrib<Vector_t<double,3>>:
                                          ippl::ParticleAttrib<double>::view_type&  Mview,
                                          size_t Np,
                                          size_t Nlocal) {
+    /*
+     Np is the total number of particles (reduced over ranks). In this function, it is only used to 
+     average over the number of total particles. For an empty simulation, this leads to divisions by
+     0. Since, however, some of the computed moments might be needed regardless, we compute them but
+     need to make sure that we do not divide by 0. 
+     Solution: Set Np to 1 if it is 0.
+     */
+    Np = (Np == 0) ? 1 : Np;
+
     const int Dim = 3;
     double loc_centroid[2 * Dim]        = {};
     double centroid[2 * Dim]        = {};
@@ -129,6 +138,8 @@ void DistributionMoments::computeMoments(ippl::ParticleAttrib<Vector_t<double,3>
                                          ippl::ParticleAttrib<double>::view_type&  Mview,
                                          size_t Np,
                                          size_t Nlocal) {
+    Np = (Np == 0) ? 1 : Np; // Explanation: see DistributionMoments::computeMeans implementation
+
     reset();
     computeMeans(Rview, Pview, Mview, Np, Nlocal);
 
@@ -293,7 +304,13 @@ void DistributionMoments::computeMinMaxPosition(ippl::ParticleAttrib<Vector_t<do
     double rmax[Dim];
     double rmin[Dim];
 
+    for(int i=0; i<Dim; i++){
+        rmin_loc[i] = 0.;
+        rmax_loc[i] = 0.;
+    }
+
     for (unsigned d = 0; d < Dim; ++d) {
+        if (Nlocal > 0) {
             Kokkos::parallel_reduce(
                 "rel max", Nlocal,
                 KOKKOS_LAMBDA(const int i, double& mm) {
@@ -309,6 +326,7 @@ void DistributionMoments::computeMinMaxPosition(ippl::ParticleAttrib<Vector_t<do
                     mm             = tmp_vel < mm ? tmp_vel : mm;
                 },
                 Kokkos::Min<double>(rmin_loc[d]));
+         }
      }
      Kokkos::fence();
      MPI_Allreduce(rmax_loc, rmax, Dim, MPI_DOUBLE, MPI_MAX, ippl::Comm->getCommunicator());
@@ -728,6 +746,8 @@ void DistributionMoments::computeDebyeLength(ippl::ParticleAttrib<Vector_t<doubl
                                          size_t Np,
                                          size_t Nlocal,
                                          double density){
+    Np = (Np == 0) ? 1 : Np; // Explanation: see DistributionMoments::computeMeans implementation
+
     resetPlasmaParameters();
     double loc_avgVel[3] = {};
     double avgVel[3] = {};
