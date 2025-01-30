@@ -92,6 +92,7 @@ public:
         
         MPI_Allreduce(loc_meanR, meanR, 3, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
         ippl::Comm->barrier();  
+        
         for(int i=0; i<3; i++){
            meanR[i] = meanR[i]/(1.*numberOfParticles);
         }
@@ -107,7 +108,6 @@ public:
                 }
         );
         Kokkos::fence();
-        ippl::Comm->barrier();
 
         // sample P
         for(int i=0; i<3; i++){
@@ -129,7 +129,6 @@ public:
             }
         );
         Kokkos::fence();
-        ippl::Comm->barrier();
         IpplTimings::stopTimer(samperTimer_m);
     }
 };
