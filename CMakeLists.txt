@@ -124,8 +124,8 @@ if(NOT IPPL_VERSION)
     message(STATUS "Defaulting to IPPL-${IPPL_VERSION}")
 endif()
 
-# Allow the user to specify a branch or tag; default to "main" if not provided.
-set(IPPL_GIT_TAG "main" CACHE STRING "Branch or tag for IPPL (default: main)")
+# Allow the user to specify a branch or tag; default to "master" if not provided.
+set(IPPL_GIT_TAG "master" CACHE STRING "Branch or tag for IPPL (default: master)")
 message(STATUS "Fetching IPPL branch/tag: ${IPPL_GIT_TAG}")
 
 # Declare the external dependency
