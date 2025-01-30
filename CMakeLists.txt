@@ -117,42 +117,32 @@ message (STATUS "The C++ compiler version is: ${CMAKE_CXX_COMPILER_VERSION}")
 message (STATUS "The MPI C++ compiler is: ${MPI_CXX_COMPILER}")
 message (STATUS "The underlying C++ compiler is: ${CMAKE_CXX_COMPILER}")
 
-message (STATUS "Found IPPL_DIR: ${IPPL_DIR}")
+message(STATUS "Found IPPL_DIR: ${IPPL_DIR}")
+
 if(NOT IPPL_VERSION)
     set(IPPL_VERSION "3.2.0")
     message(STATUS "Defaulting to IPPL-${IPPL_VERSION}")
 endif()
 
+# Allow the user to specify a branch or tag; default to "main" if not provided.
+set(IPPL_GIT_TAG "main" CACHE STRING "Branch or tag for IPPL (default: main)")
+message(STATUS "Fetching IPPL branch/tag: ${IPPL_GIT_TAG}")
+
+# Declare the external dependency
 FetchContent_Declare(ippl
-    #URL https://github.com/IPPL-framework/ippl/archive/refs/tags/IPPL-${IPPL_VERSION}.tar.gz
     GIT_REPOSITORY https://github.com/IPPL-framework/ippl.git
+    GIT_TAG ${IPPL_GIT_TAG}
     GIT_SHALLOW True
     DOWNLOAD_EXTRACT_TIMESTAMP True
 )
-set(ENABLE_COSMOLOGY OFF CACHE BOOL "Disable Cosmology in IPPL")
 
-set(IPPL_GIT_TAG "" CACHE STRING "Optional branch or tag for IPPL")
-#URL https://github.com/IPPL-framework/ippl/archive/refs/tags/IPPL-${IPPL_VERSION}.tar.gz
-if(IPPL_GIT_TAG)
-    FetchContent_Declare(ippl
-        GIT_REPOSITORY https://github.com/IPPL-framework/ippl.git
-        GIT_TAG ${IPPL_GIT_TAG}
-        GIT_SHALLOW True
-        DOWNLOAD_EXTRACT_TIMESTAMP True
-    )
-else()
-    FetchContent_Declare(ippl
-        GIT_REPOSITORY https://github.com/IPPL-framework/ippl.git
-        GIT_SHALLOW True
-        DOWNLOAD_EXTRACT_TIMESTAMP True
-    )
-endif()
-
+# Make IPPL available
 FetchContent_MakeAvailable(ippl)
 include_directories("${IPPL_SOURCE_DIR}/src")
 
-message (STATUS "Found Ippl_INC: ${IPPL_INCLUDE_DIR}")
-message (STATUS "Found Ippl_LIB: ${IPPL_LIBRARY}")
+# Print relevant paths
+message(STATUS "Found Ippl_INC: ${IPPL_INCLUDE_DIR}")
+message(STATUS "Found Ippl_LIB: ${IPPL_LIBRARY}")
 
 message (STATUS "FFTW lib(s): ${OPAL_FFTW_LIBS}")  
 message (STATUS "MPI lib(s): ${OPAL_MPI_LIBS}")
