@@ -73,7 +73,7 @@ public:
 
 private:
     std::vector<SDDSColumn> columns_m;
-    std::map<std::string, unsigned int> name2idx_m;
+    std::map<std::string, size_t> name2idx_m;
 };
 
 

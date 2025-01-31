@@ -70,6 +70,8 @@ class Euclid3DGeometry : public BGeometryBase {
     //  position [b]fromS[/b] to the position [b]toS[/b].
     virtual Euclid3D getTransform(double fromS, double toS) const;
 
+    virtual Euclid3D getTransform(double fromS) const;
+
     /// Get total transform from beginning to end
     //  Corresponds to the Euclid3D
     virtual Euclid3D getTotalTransform() const;
