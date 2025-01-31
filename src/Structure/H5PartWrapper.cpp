@@ -67,8 +67,6 @@ void H5PartWrapper::close() {
 }
 
 void H5PartWrapper::open(h5_int32_t flags) {
-    close();
-
     h5_prop_t props = H5CreateFileProp();
     MPI_Comm comm   = ippl::Comm->getCommunicator();
     h5_err_t h5err  = H5SetPropFileMPIOCollective(props, &comm);
