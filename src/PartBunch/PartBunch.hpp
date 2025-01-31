@@ -39,6 +39,8 @@ diagnostics(): calculate statistics and maybe write tp h5 and stat files
 
 */
 
+
+
 #include <memory>
 
 #include "Algorithms/BoostMatrix.h"
@@ -62,15 +64,14 @@ diagnostics(): calculate statistics and maybe write tp h5 and stat files
 #include "Algorithms/PartData.h"
 
 
+extern Inform* gmsg;
+
 template <typename T>
 KOKKOS_INLINE_FUNCTION typename T::value_type L2Norm(T& x) {
     return sqrt(dot(x, x).apply());
 }
 
-
-
 using view_type = typename ippl::detail::ViewType<ippl::Vector<double, 3>, 1>::view_type;
-
 
 template <typename T, unsigned Dim>
 class PartBunch
@@ -142,6 +143,7 @@ public:
 
 private:
 
+    std::unique_ptr<size_t[]> globalPartPerNode_m;   
 
     // ParticleOrigin refPOrigin_m;
     // ParticleType refPType_m;
@@ -238,6 +240,8 @@ public:
           qi_m(qi),
           mi_m(mi),
           rmsDensity_m(0.0),
+          RefPartR_m(0.0),
+          RefPartP_m(0.0),  
           localTrackStep_m(0),
           globalTrackStep_m(0),
           OPALdist_m(OPALdistribution),
@@ -294,13 +298,16 @@ public:
         IpplTimings::startTimer(prerun);
         pre_run();
         IpplTimings::stopTimer(prerun);
+
+        globalPartPerNode_m = std::make_unique<size_t[]>(ippl::Comm->size());
+
     }
 
     void bunchUpdate();
-
+    void bunchUpdate(ippl::Vector<double, 3> hr);
+    
     ~PartBunch() {
-        Inform m("PartBunch Destructor ");
-        m << "Finished time step: " << this->it_m << " time: " << this->time_m << endl;
+        *gmsg << "* Finished time step: " << this->it_m << " time: " << this->time_m << endl;
     }
 
     std::shared_ptr<ParticleContainer_t> getParticleContainer() {
@@ -445,10 +452,13 @@ public:
     }
 
     void gatherLoadBalanceStatistics() {
+        std::fill_n(globalPartPerNode_m.get(), ippl::Comm->size(), 0);  // Fill the array with zeros        
+        globalPartPerNode_m[ippl::Comm->rank()] = getLocalNum();
+        ippl::Comm->allreduce(globalPartPerNode_m.get(), ippl::Comm->size(), std::plus<size_t>());
     }
 
     size_t getLoadBalance(int p) {
-        return 0;
+        return globalPartPerNode_m[p];
     }
 
     void resizeMesh() {
@@ -692,7 +702,7 @@ public:
     }
 
     double get_meanKineticEnergy() {
-        return 0.0;
+        return this->pcontainer_m->getMeanKineticEnergy();
     }
 
     Vector_t<double, Dim> get_origin() const {
@@ -873,7 +883,7 @@ public:
     }
 
     // Sanity check functions
-    void spaceChargeEFieldCheck();
+    void spaceChargeEFieldCheck(Vector_t<double, 3> efScale);
 
 };
 
