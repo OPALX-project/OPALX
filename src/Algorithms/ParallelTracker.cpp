@@ -1014,12 +1014,12 @@ void ParallelTracker::updateRefToLabCSTrafo() {
     m << " initial: path Lenght= " << pathLength_m << endl;
     m << " dt= " << itsBunch_m->getdT() << " R=" << R << endl;
     */
-    
-    Vector_t R = itsBunch_m->toLabTrafo_m.transformFrom(itsBunch_m->RefPartR_m);
-    Vector_t P = itsBunch_m->toLabTrafo_m.transformFrom(itsBunch_m->RefPartP_m);
+
+    Vector_t<double, 3> R = itsBunch_m->toLabTrafo_m.transformFrom(itsBunch_m->RefPartR_m);
+    Vector_t<double, 3> P = itsBunch_m->toLabTrafo_m.transformFrom(itsBunch_m->RefPartP_m);
     
     pathLength_m += std::copysign(1, itsBunch_m->getdT()) * euclidean_norm(R);
-        
+
     CoordinateSystemTrafo update(R, getQuaternion(P, Vector_t<double, 3>(0, 0, 1)));
 
     transformBunch(update);
