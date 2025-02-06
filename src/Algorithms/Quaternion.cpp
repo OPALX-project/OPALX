@@ -128,8 +128,8 @@ ippl::Vector<double, 3> Quaternion::rotate(const ippl::Vector<double, 3>& vec) c
 #endif
 
     Quaternion quat(vec);
-    std::cout << "quat (nan?) = " << quat << std::endl;
-    std::cout << "quat conj (nan?) = " << (*this).conjugate() << std::endl;
+    //std::cout << "quat (nan?) = " << quat << std::endl;
+    //std::cout << "quat conj (nan?) = " << (*this).conjugate() << std::endl;
 
     return ((*this) * (quat * (*this).conjugate())).imag();
 }
@@ -138,11 +138,11 @@ matrix_t Quaternion::getRotationMatrix() const {
     Quaternion rot(*this);
     matrix_t mat(3, 3);
     double rotNorm = rot.Norm();
-    std::cout << "HHeyyyy sooo = " << rotNorm << std::endl;
+    //std::cout << "HHeyyyy sooo = " << rotNorm << std::endl;
 
     // Avoid nan rotation --> nan positions after pushing in ParallelTracker
     if (std::isnan(rotNorm) || rotNorm < 1e-12) {
-        std::cout << "yep, rotNorm is nan" << std::endl;
+        //std::cout << "yep, rotNorm is nan" << std::endl;
         mat(0, 0) = 1.0;
         mat(0, 1) = 0.0;
         mat(0, 2) = 0.0;

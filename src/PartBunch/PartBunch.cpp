@@ -492,7 +492,7 @@ void PartBunch<T,Dim>::scatterCICPerBin(PartBunch<T,Dim>::binIndex_t binIndex) {
     if (ippl::Comm->rank() == 0) {
         if (TotalParticles != totalP_tmp || relError > 1e-10) {
             m << "Time step: " << it_m << endl;
-            m << "Total particles in the sim. " << totalP_m << " "
+            m << "Total particles in the sim. " << totalP_tmp << " "
                 << "after update: " << TotalParticles << endl;
             m << "Rel. error in charge conservation: " << relError << endl;
             ippl::Comm->abort();
