@@ -345,7 +345,7 @@ void PartBunch<double,3>::computeSelfFields() {
     // Start binning and sorting
     std::shared_ptr<AdaptBins_t> bins = this->getBins();
     VField_t<double, 3>& Etmp = *(this->getTempEField());
-    bins->doFullRebin(10); // rebin with 128 bins // bins->getMaxBinCount()
+    bins->doFullRebin(bins->getMaxBinCount()); // rebin with 128 bins // bins->getMaxBinCount()
     bins->print(); // For debugging...
     bins->sortContainerByBin(); // Sort BEFORE, since it generates less atomics overhead with more bins!
 
@@ -475,6 +475,12 @@ void PartBunch<T,Dim>::scatterCICPerBin(PartBunch<T,Dim>::binIndex_t binIndex) {
     if (binIndex == -1) {
         scatter(*q, *rho, *R);
     } else {
+        //m << "We are here!" << endl;
+        //Kokkos::RangePolicy<> policy = this->bins_m->getBinIterationPolicy(binIndex);
+        //m << "Policy range: " << policy.begin() << " - " << policy.end() << endl;
+        //m << "Hash array size: " << this->bins_m->getHashArray().extent(0) << ". Index(0) = " << this->bins_m->getHashArray()(0) << endl;
+        //m << "R(0) = " << (*R)(0) << endl;
+        //m << "Q(0) = " << (*q)(0) << endl;
         scatter(*q, *rho, *R, this->bins_m->getBinIterationPolicy(binIndex), this->bins_m->getHashArray());
     }
 

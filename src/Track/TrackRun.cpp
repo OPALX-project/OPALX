@@ -396,8 +396,50 @@ void TrackRun::execute() {
         *Track::block->use->fetchLine(), bunch_m.get(), *ds_m, Track::block->reference, false,
         Attributes::getBool(itsAttr[TRACKRUN::TRACKBACK]), Track::block->localTimeSteps,
         Track::block->zstart, Track::block->zstop, Track::block->dT, sampler_m); // TODO: added sampler_m for flattop binning test (later we might want to inject it differently)
+    
+    itsTracker_m->execute(); // Do the tracking loop manually for now ...
+    
+    //using ParticleContainer_t = typename bunch_type::ParticleContainer_t;
+    /*using AdaptBins_t         = typename bunch_type::AdaptBins_t;
 
-    itsTracker_m->execute();
+    //std::shared_ptr<ParticleContainer_t> pc = bunch_m->getParticleContainer();
+    std::shared_ptr<AdaptBins_t> bins       = bunch_m->getBins();
+    size_type nsteps = Track::block->localTimeSteps[0];
+    double dt        = bunch_m->getdT(); // TODO
+    for (size_type step = 0; step < nsteps; ++step) {
+        *gmsg << "* Step " << step << " of " << nsteps << endl;
+        double time = bunch_m->getT();
+        *gmsg << "* Time = " << time << ", dt = " << dt << endl;
+        bunch_m->incrementT();
+        *gmsg << "* Emitting particles ..." << endl;
+
+        sampler_m->emitParticles(time, dt);
+        *gmsg << "* Setting charge and mass ..." << endl;
+        bunch_m->setCharge();
+        bunch_m->setMass();
+        pc->dt = dt; // idk if this is necessary?
+        bunch_m->bunchUpdate();
+        //itsBunch_m->getParticleContainer()->Q = itsBunch_m->getChargePerParticle();
+        //itsBunch_m->getParticleContainer()->M = itsBunch_m->getMassPerParticle();
+        //itsBunch_m->getParticleContainer()->update();
+        
+        *gmsg << "* Starting leapfrog ..." << endl;
+        pc->P = pc->P - 0.5 * dt * pc->E; // kick 1
+        pc->R = pc->R + dt * pc->P;       // drift
+        pc->update();
+
+        // do full rebin
+        bins->doFullRebin(bins->getMaxBinCount());
+        bins->print();
+        bins->sortContainerByBin();
+        bins->genAdaptiveHistogram();
+        bins->print();
+
+        // Run binned solver
+        bunch_m->computeSelfFields();
+
+        pc->P = pc->P - 0.5 * dt * pc->E; // kick 2
+    }*/
 
     /*
     opal_m->setRestartRun(false);

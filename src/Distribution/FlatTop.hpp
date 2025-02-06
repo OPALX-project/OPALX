@@ -196,6 +196,7 @@ public:
     void emitParticles(double t, double dt) override {
         // count number of new particles to be emitted
         size_type nNew = countEnteringParticlesPerRank(t, t + dt);
+        * gmsg << "* " << nNew << " new particles to be emitted" << endl;
 
         if(nNew > 0){
             // current number of particles per rank
