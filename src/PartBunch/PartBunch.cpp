@@ -483,13 +483,14 @@ void PartBunch<T,Dim>::scatterCICPerBin(PartBunch<T,Dim>::binIndex_t binIndex) {
     double relError = std::fabs((Q - (*rho).sum()) / Q);
     size_type TotalParticles = 0;
     size_type localParticles = this->pcontainer_m->getLocalNum();
+    size_type totalP_tmp = this->pcontainer_m->getTotalNum(); // Use this instead of totalP_m, since not all part might be emitted yet
 
     m << "computeSelfFields sum rho = " << (*rho).sum() << ", relError = " << relError << endl;
     
     ippl::Comm->reduce(localParticles, TotalParticles, 1, std::plus<size_type>());
 
     if (ippl::Comm->rank() == 0) {
-        if (TotalParticles != totalP_m || relError > 1e-10) {
+        if (TotalParticles != totalP_tmp || relError > 1e-10) {
             m << "Time step: " << it_m << endl;
             m << "Total particles in the sim. " << totalP_m << " "
                 << "after update: " << TotalParticles << endl;
