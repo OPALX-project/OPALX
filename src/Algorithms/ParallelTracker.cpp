@@ -424,8 +424,8 @@ void ParallelTracker::execute() {
         for (; step < trackSteps; ++step) {
             *gmsg << "* Step " << step << " of " << trackSteps << endl;
             sampler_m->emitParticles(this->itsBunch_m->getT(), dtCurrentTrack_m);
-            pc->P = pc->P + 1e-7; // add some value to get some effect for testing.
-            //pc->R = pc->R + 1e-5; 
+            pc->P = pc->P + 1.0; // add some value to get some effect for testing.
+            pc->R = pc->R + 1e-8; 
             itsBunch_m->setCharge();
             itsBunch_m->setMass();
             setTime();
