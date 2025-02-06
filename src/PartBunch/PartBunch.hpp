@@ -297,7 +297,7 @@ public:
 
         this->setBins(std::make_shared<AdaptBins_t>(
             this->getParticleContainer(), 
-            BinningSelector_t(0), // TODO: hardcode z axis with coordinate selector at axis index 2
+            BinningSelector_t(2), // TODO: hardcode z axis with coordinate selector at axis index 2
             128)
         );
         this->getBins()->debug();

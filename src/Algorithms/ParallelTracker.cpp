@@ -441,7 +441,8 @@ void ParallelTracker::execute() {
 
             //std::cout << "R(0) = " << itsBunch_m->getParticleContainer()->R(0) << std::endl;
 
-            computeSpaceChargeFields(step);
+            // computeSpaceChargeFields(step);
+            itsBunch_m->computeSelfFields(); // since lab-transformation has problems!
             
             // \todo for a drift we can neglect that 
             // computeExternalFields(oth);
