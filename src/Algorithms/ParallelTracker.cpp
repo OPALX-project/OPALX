@@ -424,20 +424,22 @@ void ParallelTracker::execute() {
             // At the beginning of a step test if new particles are supposed to be created.
             // TODO: This might change later and ist just temporary for testing the flattop sampling
             sampler_m->emitParticles(this->itsBunch_m->getT(), dtCurrentTrack_m);
+            itsBunch_m->getParticleContainer()->Q = itsBunch_m->getChargePerParticle();
+            itsBunch_m->getParticleContainer()->M = itsBunch_m->getMassPerParticle();
             itsBunch_m->getParticleContainer()->update();
 
-            std::cout << "R(0) = " << itsBunch_m->getParticleContainer()->R(0) << std::endl;
+            //std::cout << "R(0) = " << itsBunch_m->getParticleContainer()->R(0) << std::endl;
 
             Vector_t<double, 3> rmin(0.0), rmax(0.0);
             if (itsBunch_m->getTotalNum() > 0) {
                 itsBunch_m->get_bounds(rmin, rmax);
             }
 
-            std::cout << "R(0) = " << itsBunch_m->getParticleContainer()->R(0) << std::endl;
+            //std::cout << "R(0) = " << itsBunch_m->getParticleContainer()->R(0) << std::endl;
 
             timeIntegration1(pusher);
 
-            std::cout << "R(0) = " << itsBunch_m->getParticleContainer()->R(0) << std::endl;
+            //std::cout << "R(0) = " << itsBunch_m->getParticleContainer()->R(0) << std::endl;
 
             computeSpaceChargeFields(step);
             
@@ -604,12 +606,12 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
     pmean = (dot(pmean, pmean) == 0) ? Vector_t<double, 3>(0, 0, 1) : pmean; // No rotation for zero momentum (e.g. beginning of simulation, no kick yet)
     Quaternion alignment = getQuaternion(pmean, Vector_t<double, 3>(0, 0, 1));
 
-    std::cout << "alignment = " << alignment << std::endl;
+    //std::cout << "alignment = " << alignment << std::endl;
 
     CoordinateSystemTrafo beamToReferenceCSTrafo(
         Vector_t<double, 3>(0, 0, pathLength_m), alignment.conjugate());
 
-    std::cout << "org = " << beamToReferenceCSTrafo.getOrigin() << std::endl;
+    //std::cout << "org = " << beamToReferenceCSTrafo.getOrigin() << std::endl;
 
     CoordinateSystemTrafo referenceToBeamCSTrafo = beamToReferenceCSTrafo.inverted();
 
@@ -624,7 +626,7 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
     const matrix_t                rot = referenceToBeamCSTrafo.getRotationMatrix();
     const ippl::Vector<double, 3> org = referenceToBeamCSTrafo.getOrigin();
 
-    std::cout << "org = " << referenceToBeamCSTrafo.getOrigin() << std::endl;
+    //std::cout << "org = " << referenceToBeamCSTrafo.getOrigin() << std::endl;
 
 
     typedef Kokkos::View<double**>  ViewMatrixType;
@@ -635,7 +637,7 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
     for ( int i = 0; i < 3; ++i ) {
         for ( int j = 0; j < 3; ++j ) {
             h_Rot( i, j ) = rot(i, j);
-            std::cout << "rot(" << i << "," << j << ") = " << rot(i, j) << std::endl;
+            //std::cout << "rot(" << i << "," << j << ") = " << rot(i, j) << std::endl;
         }
     }
     
@@ -645,7 +647,7 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
     auto Eview  = itsBunch_m->getParticleContainer()->E.getView();
     auto Bview  = itsBunch_m->getParticleContainer()->B.getView();
 
-    std::cout << "R(0) = " << itsBunch_m->getParticleContainer()->R(0) << std::endl;
+    //std::cout << "R(0) = " << itsBunch_m->getParticleContainer()->R(0) << std::endl;
 
     Kokkos::parallel_for(
                          "referenceToBeamCSTrafo", itsBunch_m->getLocalNum(), // ippl::getRangePolicy(Rview)
@@ -661,7 +663,7 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
                              Bview(k) = ippl::Vector<double, 3>(0.0); 
                          });         
 
-    std::cout << "R(0) = " << itsBunch_m->getParticleContainer()->R(0) << std::endl;
+    //std::cout << "R(0) = " << itsBunch_m->getParticleContainer()->R(0) << std::endl;
 
     itsBunch_m->boundp();
 
