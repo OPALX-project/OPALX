@@ -93,15 +93,15 @@ public:
                 Rview(j)[2]  = 0.0;
                 Pview(j)[0] = 0.0;
                 Pview(j)[1] = 0.0;
-                Pview(j)[2] = 0.0;
+                Pview(j)[2] = 0.1 + r;
 
-                std::cout << "Rview(j) = " << Rview(j) << ", j = " << j << std::endl;
+                //std::cout << "Rview(j) = " << Rview(j) << ", j = " << j << std::endl;
         });
         Kokkos::fence();
 
-        std::cout << "Rview1(0) = " << Rview(0) << std::endl;
-        std::cout << "Rview2(0) = " << pc_m->R(0) << std::endl;
-        std::cout << "Rview3(0) = " << pc_m->R.getView()(0) << std::endl;
+        //std::cout << "Rview1(0) = " << Rview(0) << std::endl;
+        //std::cout << "Rview2(0) = " << pc_m->R(0) << std::endl;
+        //std::cout << "Rview3(0) = " << pc_m->R.getView()(0) << std::endl;
     }
 
     void generateParticles(size_t& numberOfParticles, Vector_t<double, 3> nr) override {
