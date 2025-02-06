@@ -350,10 +350,10 @@ void PartBunch<double,3>::computeSelfFields() {
     bins->sortContainerByBin(); // Sort BEFORE, since it generates less atomics overhead with more bins!
 
     IpplTimings::startTimer(MergeBinsTimer);
-    //bins->genAdaptiveHistogram(); // merge bins with width/N_part ratio of 1.0
+    bins->genAdaptiveHistogram(); // merge bins with width/N_part ratio of 1.0
     IpplTimings::stopTimer(MergeBinsTimer);
 
-    //bins->print(); // For debugging...
+    bins->print(); // For debugging...
 
 
     Inform m("computeSelfFields");

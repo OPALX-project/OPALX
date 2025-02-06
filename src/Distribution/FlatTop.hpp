@@ -93,7 +93,7 @@ public:
                 Rview(j)[2]  = 0.0;
                 Pview(j)[0] = 0.0;
                 Pview(j)[1] = 0.0;
-                Pview(j)[2] = 0.1 + r;
+                Pview(j)[2] = 0.0;
 
                 //std::cout << "Rview(j) = " << Rview(j) << ", j = " << j << std::endl;
         });
