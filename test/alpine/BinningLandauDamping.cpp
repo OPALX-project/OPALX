@@ -61,11 +61,12 @@ int main(int argc, char* argv[]) {
         int nt             = std::atoi(argv[arg++]);
         std::string solver = argv[arg++];
 
-        double lbt              = std::atof(argv[arg++]);
-        std::string step_method = argv[arg++];
+        double lbt                  = std::atof(argv[arg++]);
+        std::string step_method     = argv[arg++];
+        std::string sampling_method = argv[arg++]; // flattop or landau
 
         // Create an instance of a manger for the considered application
-        LandauDampingManager<T, Dim> manager(totalP, nt, nr, lbt, solver, step_method);
+        LandauDampingManager<T, Dim> manager(totalP, nt, nr, lbt, solver, step_method, sampling_method);
 
         // Perform pre-run operations, including creating mesh, particles,...
         manager.pre_run();

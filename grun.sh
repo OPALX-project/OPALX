@@ -37,7 +37,8 @@ echo "Finished compiling. Now running the program..."
 #srun ./Binning_pic3d 8 8 8 10000000 1 --info 10 
 
 cd /data/user/liemen_a/ippl/build_ippl_cuda/test/binning/test/alpine/
-srun ./BinningLandauDamping 32 32 32 1000000 5 FFT 0.01 LeapFrog --overallocate 2.0 --info 10
+srun ./BinningLandauDamping 32 32 32 1000000 5 FFT 0.01 LeapFrog Flattop --overallocate 2.0 --info 10
+srun ./BinningLandauDamping 32 32 32 1000000 5 FFT 0.01 LeapFrog Landau --overallocate 2.0 --info 10 
 
 
 

@@ -212,13 +212,14 @@ public:
         m << relError << endl;
 
         size_type TotalParticles = 0;
+        size_type totalP_tmp = this->pcontainer_m->getTotalNum(); // use this, since not all particles might be emitted
 
         ippl::Comm->reduce(localParticles, TotalParticles, 1, std::plus<size_type>());
 
         if (ippl::Comm->rank() == 0) {
-            if (TotalParticles != totalP_m || relError > 1e-10) {
+            if (TotalParticles != totalP_tmp || relError > 1e-10) {
                 m << "Time step: " << it_m << endl;
-                m << "Total particles in the sim. " << totalP_m << " "
+                m << "Total particles in the sim. " << totalP_tmp << " "
                   << "after update: " << TotalParticles << endl;
                 m << "Rel. error in charge conservation: " << relError << endl;
                 ippl::Comm->abort();
