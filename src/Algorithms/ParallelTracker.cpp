@@ -358,26 +358,26 @@ void ParallelTracker::execute() {
     writePhaseSpace(0, psDump0, statDump0);
     msg << level2 << "Dump initial phase space" << endl;
 
-    /*double time = itsBunch_m->getT() - globalTimeShift;
-    itsBunch_m->setT(time);
+    //double time = itsBunch_m->getT() - globalTimeShift;
+    //itsBunch_m->setT(time);
 
     
     //Just for testing the flattop sampling and the binning.
     //MaxSteps can be set in the runfile (track line...)
     
-    for (size_t step = 0; step < stepSizes_m.getMaxSteps(); ++step) {
-        // Emit particles if necessary
-        sampler_m->emitParticles(time + step*dtCurrentTrack_m, dtCurrentTrack_m);
+    //for (size_t step = 0; step < stepSizes_m.getMaxSteps(); ++step) {
+    //    // Emit particles if necessary
+    //    sampler_m->emitParticles(time + step*dtCurrentTrack_m, dtCurrentTrack_m);
 
-        timeIntegration1(pusher);
-        itsBunch_m->bunchUpdate();
-        computeSpaceChargeFields(step);
-        timeIntegration2(pusher);
-        itsBunch_m->bunchUpdate();
+    //    timeIntegration1(pusher);
+    //    itsBunch_m->bunchUpdate();
+    //    computeSpaceChargeFields(step);
+    //    timeIntegration2(pusher);
+    //    itsBunch_m->bunchUpdate();
 
-        itsBunch_m->incrementT();
-        itsBunch_m->incTrackSteps();
-    }*/
+    //    itsBunch_m->incrementT();
+    //    itsBunch_m->incTrackSteps();
+    //}
 
     OrbitThreader oth(
         itsReference, itsBunch_m->RefPartR_m, itsBunch_m->RefPartP_m, pathLength_m, -rmin(2),
@@ -408,7 +408,52 @@ void ParallelTracker::execute() {
 
     setOptionalVariables();
 
-    globalEOL_m        = false;
+    /**
+     * My own track function for testing!
+     */
+    {
+        using AdaptBins_t = typename PartBunch_t::AdaptBins_t;
+        using ParticleContainer_t = typename PartBunch_t::ParticleContainer_t;
+        std::shared_ptr<AdaptBins_t> bins = itsBunch_m->getBins();
+        std::shared_ptr<ParticleContainer_t> pc = itsBunch_m->getParticleContainer();
+
+        unsigned long long trackSteps = stepSizes_m.getNumSteps() + step;
+        dtCurrentTrack_m              = stepSizes_m.getdT();
+        changeDT(back_track);
+
+        for (; step < trackSteps; ++step) {
+            *gmsg << "* Step " << step << " of " << trackSteps << endl;
+            sampler_m->emitParticles(this->itsBunch_m->getT(), dtCurrentTrack_m);
+            pc->P = pc->P + 1e-7; // add some value to get some effect for testing.
+            //pc->R = pc->R + 1e-5; 
+            itsBunch_m->setCharge();
+            itsBunch_m->setMass();
+            setTime();
+            // itsBunch_m->bunchUpdate();
+
+            pc->P = pc->P - 0.5 * dtCurrentTrack_m * pc->E; // kick 1
+            pc->R = pc->R + dtCurrentTrack_m * pc->P;       // drift
+            //pc->update();
+            itsBunch_m->bunchUpdate(); // only pc->update gives an semgentation fault (idk why...)
+
+            // do full rebin
+            //bins->doFullRebin(bins->getMaxBinCount());
+            //bins->print();
+            //bins->sortContainerByBin();
+            //bins->genAdaptiveHistogram();
+            //bins->print();
+
+            // Run binned solver
+            itsBunch_m->computeSelfFields();
+
+            pc->P = pc->P - 0.5 * dtCurrentTrack_m * pc->E;
+
+            itsBunch_m->incrementT();
+            itsBunch_m->incTrackSteps();
+        }
+    }
+
+    /*globalEOL_m        = false;
     wakeStatus_m       = false;
     deletedParticles_m = false;
     OpalData::getInstance()->setInPrepState(false);
@@ -506,7 +551,7 @@ void ParallelTracker::execute() {
 
     msg << level2 << "Dump phase space of last step" << endl;
 
-    itsOpalBeamline_m.switchElementsOff();
+    itsOpalBeamline_m.switchElementsOff(); */
 
     OPALTimer::Timer myt3;
     *gmsg << endl << "* Done executing ParallelTracker at " << myt3.time() << endl << endl;
