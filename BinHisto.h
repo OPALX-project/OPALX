@@ -337,7 +337,13 @@ namespace ParticleBinning {
         static value_type computeDeviationCost(const size_type& sumCount,
                                               const value_type& sumWidth,
                                               const value_type& maxBinRatio,
-                                              const value_type& largeVal);
+                                              const value_type& alpha, 
+                                              const value_type& mergedStd);
+
+        static value_type mergedBinStd(const bin_index_type& i, const bin_index_type& k,
+                                       const size_type& sumCount, const value_type& varPerBin, 
+                                       const hwidth_view_type& prefixWidth, // for midpoints
+                                       const hview_type& fineCounts, const hwidth_view_type& fineWidths);
 
     private:
         std::string debug_name_m;   /// \brief Debug name for identifying the histogram instance.

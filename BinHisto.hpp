@@ -34,17 +34,50 @@ namespace ParticleBinning {
     template <typename size_type, typename bin_index_type, typename value_type, bool UseDualView, class... Properties>
     KOKKOS_INLINE_FUNCTION value_type
     Histogram<size_type, bin_index_type, value_type, UseDualView, Properties...>::computeDeviationCost(
-        const size_type& sumCount, const value_type& sumWidth, const value_type& maxBinRatio, const value_type& largeVal) {
+        const size_type& sumCount, const value_type& sumWidth, const value_type& maxBinRatio,
+        const value_type& alpha, const value_type& mergedStd
+    ) {
+        value_type h = alpha * mergedStd * pow(sumCount, 3); // from "/ sumCount^1/3"
+        return pow(maxBinRatio - sumWidth * h, 2);
+
         // Written such that there if no warp divergence
         // Compute the ratio
-        value_type ratio = sumWidth * sqrt(static_cast<value_type>(sumCount));
+        //value_type ratio = sumWidth * sqrt(static_cast<value_type>(sumCount));
         
         // Select the cost based on the conditions
-        value_type costWhenSumCountZero = (sumWidth == value_type(0)) ? std::fabs(0.0 - maxBinRatio) : largeVal;
-        value_type costWhenSumCountNonZero = std::fabs(ratio - maxBinRatio);
+        // Explanation: when the bin is empty, the cost is "inf" to guarantee merging this bin
+        //value_type costWhenSumCountZero = (sumWidth == value_type(0)) ? std::fabs(0.0 - maxBinRatio) : largeVal;
+        //value_type costWhenSumCountNonZero = std::fabs(ratio - maxBinRatio);
         
         // Use a conditional select to avoid branching
-        return (sumCount == 0) ? costWhenSumCountZero : costWhenSumCountNonZero;
+        //return (sumCount == 0) ? costWhenSumCountZero : costWhenSumCountNonZero;
+    }
+
+    template <typename size_type, typename bin_index_type, typename value_type, bool UseDualView, class... Properties>
+    value_type
+    Histogram<size_type, bin_index_type, value_type, UseDualView, Properties...>::mergedBinStd(
+        const bin_index_type& i, const bin_index_type& k,
+        const size_type& sumCount, const value_type& varPerBin, 
+        const hwidth_view_type& prefixWidth, 
+        const hview_type& fineCounts, const hwidth_view_type& fineWidths
+    ) {
+        // Calculate the weighted mean
+        value_type weightedMean = 0;
+        for (bin_index_type j = i; j < k; ++j) {
+            value_type binMidpoint = prefixWidth(j) + 0.5 * fineWidths(j);
+            weightedMean += fineCounts(j) * binMidpoint;
+        }
+        weightedMean /= sumCount;
+
+        // Calculate the variance
+        value_type variance = 0;
+        for (bin_index_type j = i; j < k; ++j) {
+            value_type binMidpoint = prefixWidth(j) + 0.5 * fineWidths(j);
+            variance += fineCounts(j) * ( pow(binMidpoint - weightedMean, 2)+ varPerBin );
+        }
+        variance /= sumCount;
+
+        return sqrt(variance);
     }
 
 
@@ -53,6 +86,9 @@ namespace ParticleBinning {
     Histogram<size_type, bin_index_type, value_type, UseDualView, Properties...>::mergeBins(const value_type maxBinRatio) {
         static IpplTimings::TimerRef mergeBinsTimer = IpplTimings::getTimer("mergeBins");
 
+        // Maybe set this later as a parameter
+        value_type alpha = 3.49; // scotts normal reference rule, see https://en.wikipedia.org/wiki/Histogram#Scott's_normal_reference_rule
+        
         // TODO 
         // Should merge neighbouring bins such that the width/N_part ratio is roughly maxBinRatio.
         // TODO: Find algorithm for that
@@ -122,12 +158,18 @@ namespace ParticleBinning {
         // ----------------------------------------------------------------
         // 3) Fill dp with an O(n^2) algorithm to find the minimal total cost
         // ----------------------------------------------------------------
+        value_type varPerBin = pow(oldBinWHost(0), 2) / 12; // assume equal width, assume uniform distribution per fine bin
         for (bin_index_type k = 1; k <= n; ++k) {
             // Try all possible start indices i for the last merged bin
             for (bin_index_type i = 0; i < k; ++i) {
                 size_type  sumCount  = prefixCount(k) - prefixCount(i);
                 value_type sumWidth  = prefixWidth(k) - prefixWidth(i);
-                value_type segCost   = computeDeviationCost(sumCount, sumWidth, maxBinRatio, largeVal);
+                value_type segCost   = largeVal;
+                if (sumCount > 0) {
+                    value_type mergedStd = mergedBinStd(i, k, sumCount, varPerBin, prefixWidth, oldHistHost, oldBinWHost);
+                    segCost              = computeDeviationCost(sumCount, sumWidth, maxBinRatio, alpha, mergedStd);
+                }
+                //value_type segCost   = computeDeviationCost(sumCount, sumWidth, maxBinRatio, largeVal, alpha);
 
                 value_type candidate = dp(i) + segCost;
                 if (candidate < dp(k)) {
