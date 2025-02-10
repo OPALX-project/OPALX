@@ -52,10 +52,12 @@ public:
     using AdaptBins_t       = typename ParticleBinning::AdaptBins<ParticleContainer_t, BinningSelector_t>;
 
     VField_t<double, 3> E_tmp; // temporary field for adding up the lorentz transformed E field
+    std::string samplingMethod_m;
 
     LandauDampingManager(size_type totalP_, int nt_, Vector_t<int, Dim> &nr_,
-                       double lbt_, std::string& solver_, std::string& stepMethod_)
-        : AlpineManager<T, Dim>(totalP_, nt_, nr_, lbt_, solver_, stepMethod_) {}
+                       double lbt_, std::string& solver_, std::string& stepMethod_, std::string& samplingMethod_)
+        : AlpineManager<T, Dim>(totalP_, nt_, nr_, lbt_, solver_, stepMethod_),
+          samplingMethod_m(samplingMethod_) {}
 
     ~LandauDampingManager(){}
 
@@ -101,7 +103,13 @@ public:
 
         this->setLoadBalancer( std::make_shared<LoadBalancer_t>( this->lbt_m, this->fcontainer_m, this->pcontainer_m, this->fsolver_m) );
 
-        initializeParticles();
+        if (samplingMethod_m == "Landau") {
+            initializeParticles();
+        } else if (samplingMethod_m == "Flattop") {
+            initializeParticlesFlattop();
+        } else {
+            throw IpplException("LandauDamping", "Unknown sampling method!");
+        }
 
         //TODO: Binning - Create the bins object
         this->setBins(std::make_shared<AdaptBins_t>(
@@ -232,6 +240,118 @@ public:
         m << "particles created and initial conditions assigned " << endl;
     }
 
+    void initializeParticlesFlattop() {
+        // Reserve a few particles!
+        double overalloc = ippl::Comm->getDefaultOverallocation();
+        size_type totalP = this->totalP_m;
+        size_type nlocal = (totalP / ippl::Comm->size() + 1) * overalloc;
+        this->pcontainer_m->create(nlocal);
+
+        Kokkos::View<bool*> tmp_invalid("tmp_invalid", 0);
+        this->pcontainer_m->destroy(tmp_invalid, nlocal);
+    }
+
+    double flatTopProfile(double t, double riseTime, double sigmaTRise,
+                          double flattopTime, double sigmaTFall, double fallTime) {
+        if (t < riseTime) {
+            // Rising tail; center is at riseTime.
+            return std::exp( - std::pow((t - riseTime) / sigmaTRise, 2) / 2.0 );
+        } else if (t >= riseTime && t < riseTime + flattopTime) {
+            return 1.0;
+        } else if (t >= riseTime + flattopTime && t < riseTime + flattopTime + fallTime) {
+            // Falling tail; center is at (riseTime + flattopTime + fallTime)
+            return std::exp( - std::pow((t - (riseTime + flattopTime + fallTime)) / sigmaTFall, 2) / 2.0 );
+        } else {
+            return 0.0;
+        }
+    }
+    double integrateTrapezoidal(double x1, double x2, double y1, double y2) {
+        return 0.5 * (y1 + y2) * std::fabs(x2 - x1);
+    }
+    size_type countEnteringParticles(double t0, double tf, double riseTime, double sigmaTRise,
+                                     double flattopTime, double sigmaTFall, double fallTime, size_type totalN,
+                                     double distArea) {
+        double y1 = flatTopProfile(t0, riseTime, sigmaTRise, flattopTime, sigmaTFall, fallTime);
+        double y2 = flatTopProfile(tf, riseTime, sigmaTRise, flattopTime, sigmaTFall, fallTime);
+        double tArea = integrateTrapezoidal(t0, tf, y1, y2);
+
+        std::size_t totalNew = static_cast<size_type>(std::floor(totalN * tArea / distArea));
+        return totalNew;
+    }
+    size_type computeLocalParticleCount(size_type totalNew) {
+        int rank = ippl::Comm->rank();
+        int numRanks = ippl::Comm->size();
+        std::size_t nlocal = totalNew / numRanks;
+        std::size_t remainder = totalNew % numRanks;
+        if (rank == 0) {
+            nlocal += remainder;
+        }
+        return nlocal;
+    }
+
+
+    void emitFlattop(double t, double dt) {
+        Inform m("Emit Flattop");
+
+        size_type totalNew = countEnteringParticles(t, t + dt, 2.0, 1.0, 5.0, 1.0, 2.0, this->totalP_m, 1.0);
+        size_type nNew = computeLocalParticleCount(totalNew);
+        
+        if (nNew <= 0) {
+            m << "No new particles to emit at time " << t << " (dt=" << dt << ")." << endl;
+            return;
+        }
+        
+        m << "Emitting " << nNew << " new particles at time " << t << endl;
+        
+        size_type oldNum = this->pcontainer_m->getLocalNum();
+        
+        this->pcontainer_m->create(nNew);
+
+        auto *mesh = &this->fcontainer_m->getMesh();
+        auto *FL   = &this->fcontainer_m->getFL();
+        
+        ippl::detail::RegionLayout<double, Dim, Mesh_t<Dim>> rlayout(*FL, *mesh);
+        
+        using DistR_t = ippl::random::Distribution<double, Dim, 2 * Dim, CustomDistributionFunctions>;
+        double parR[2 * Dim];
+        for (unsigned int i = 0; i < Dim; i++) {
+            parR[i * 2]     = this->alpha_m;
+            parR[i * 2 + 1] = this->kw_m[i];
+        }
+        DistR_t distR(parR);
+
+        using samplingR_t = ippl::random::InverseTransformSampling<double, Dim, Kokkos::DefaultExecutionSpace, DistR_t>;
+        Vector_t<double, Dim> rmin = this->rmin_m;
+        Vector_t<double, Dim> rmax = this->rmax_m;
+        samplingR_t samplingR(distR, rmax, rmin, rlayout, nNew);
+
+        // Get the view for positions. We only want to fill in the newly created indices.
+        view_type fullR = this->pcontainer_m->R.getView();
+        auto new_R = Kokkos::subview(fullR, std::make_pair(oldNum, oldNum + nNew));
+        
+        Kokkos::Random_XorShift64_Pool<> rand_pool64((size_type)(42 + 100 * ippl::Comm->rank() + this->getNt()));
+
+        samplingR.generate(new_R, rand_pool64);
+
+        view_type fullP = this->pcontainer_m->P.getView();
+        auto new_P = Kokkos::subview(fullP, std::make_pair(oldNum, oldNum + nNew));
+        
+        double mu[Dim];
+        double sd[Dim];
+        for (unsigned int i = 0; i < Dim; i++) {
+            mu[i] = 0.0;
+            sd[i] = 1.0;
+        }
+        
+        Kokkos::parallel_for("SampleVelocities", new_P.extent(0),
+            ippl::random::randn<double, Dim>(new_P, rand_pool64, mu, sd));
+        Kokkos::fence();
+
+        this->pcontainer_m->q = this->Q_m/this->totalP_m;
+
+        m << "Particles emitted and new positions/velocities sampled." << endl;
+    }
+
     void advance() override {
         if (this->stepMethod_m == "LeapFrog") {
             LeapFrogStep();
@@ -248,7 +368,7 @@ public:
         // an attribute
 
         // Create 5 new particles every timestep with random position values and 0 velocity
-        {
+        /*{
             size_type nnew = 1;
             size_type nlocal = this->pcontainer_m->getLocalNum();
             this->pcontainer_m->create(nnew);
@@ -261,7 +381,7 @@ public:
             
             ippl::Comm->reduce(this->pcontainer_m->getLocalNum(), this->totalP_m, 1, std::plus<size_type>());
             this->pcontainer_m->q = this->Q_m/this->totalP_m;
-        }
+        }*/
 
         static IpplTimings::TimerRef PTimer           = IpplTimings::getTimer("pushVelocity");
         static IpplTimings::TimerRef RTimer           = IpplTimings::getTimer("pushPosition");
@@ -288,6 +408,7 @@ public:
         
         // Since the particles have moved spatially update them to correct processors
         IpplTimings::startTimer(updateTimer);
+        if (samplingMethod_m == "Flattop") emitFlattop(this->it_m * 1.0, 1.0);
         pc->update();
         IpplTimings::stopTimer(updateTimer);
         
