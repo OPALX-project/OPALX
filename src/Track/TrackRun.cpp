@@ -354,9 +354,7 @@ void TrackRun::execute() {
 
 // following is only for testing
 sampler_m->setWithDomainDecomp(true);
-auto *mesh = &fc->getMesh();
-auto *FL   = &fc->getFL();
-sampler_m->initDomainDecomp(mesh, FL, 1.);
+sampler_m->initDomainDecomp(1.);
 sampler_m->testNumEmitParticles(100, Track::block->dT[0]);
 
 

@@ -78,6 +78,30 @@ message (STATUS "The C++ compiler version is: ${CMAKE_CXX_COMPILER_VERSION}")
 message (STATUS "The MPI C++ compiler is: ${MPI_CXX_COMPILER}")
 message (STATUS "The underlying C++ compiler is: ${CMAKE_CXX_COMPILER}")
 
+message(STATUS "Found IPPL_DIR: ${IPPL_DIR}")
+
+if(NOT IPPL_VERSION)
+    set(IPPL_VERSION "3.2.0")
+    message(STATUS "Defaulting to IPPL-${IPPL_VERSION}")
+endif()
+
+# Allow the user to specify a branch or tag; default to "master" if not provided.
+set(IPPL_GIT_TAG "master" CACHE STRING "Branch or tag for IPPL (default: master)")
+message(STATUS "Fetching IPPL branch/tag: ${IPPL_GIT_TAG}")
+
+# Declare the external dependency
+FetchContent_Declare(ippl
+    GIT_REPOSITORY https://github.com/IPPL-framework/ippl.git
+    GIT_TAG ${IPPL_GIT_TAG}
+    GIT_SHALLOW True
+    DOWNLOAD_EXTRACT_TIMESTAMP True
+)
+
+# Make IPPL available
+FetchContent_MakeAvailable(ippl)
+include_directories("${IPPL_SOURCE_DIR}/src")
+
+
 message (STATUS "Found IPPL_DIR: ${IPPL_DIR}")
 if(NOT IPPL_VERSION)
     set(IPPL_VERSION "3.2.0")
