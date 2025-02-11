@@ -301,6 +301,9 @@ int main(int argc, char* argv[]) {
                 } else if (argStr == std::string("--info")) {
                     ++ii;
                     continue;
+                } else if (argStr == std::string("--overallocate")) {
+                    ++ii;
+                    continue;
                 } else {
                     if (inputFileArgument == -1 && (ii == 1 || ii + 1 == argc)
                         && argv[ii][0] != '-') {

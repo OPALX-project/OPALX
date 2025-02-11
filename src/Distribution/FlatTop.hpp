@@ -78,6 +78,9 @@ private:
         // So the distribution of tails are exp(-(x/sigma)^2/2 ) and not Gaussian!
         normalizedFlankArea_m = 0.5 * std::sqrt(Physics::two_pi) * std::erf(cutoffR_m[2] / std::sqrt(2.0));
         distArea_m = flattopTime_m + (sigmaTRise_m + sigmaTFall_m) * normalizedFlankArea_m;
+
+        // make sure only z direction is decomposed
+        fc_m->setDecomp({false, false, true});
     }
 
 public:
@@ -123,7 +126,11 @@ public:
 
         if(emitting_m){
             // set nlocal to 0 for the very first time step, before sampling particles
-            pc_m->setLocalNum(0);
+            //pc_m->setLocalNum(0);
+
+            Kokkos::View<bool*> tmp_invalid("tmp_invalid", 0);
+            // \todo might be abuse of semantics: maybe think about new pc_m->setTotalNum or pc_m->updateTotal function instead?
+            pc_m->destroy(tmp_invalid, pc_m->getLocalNum());
         }
     }
 
@@ -168,7 +175,9 @@ public:
         return 0.5 * (y1+y2) * fabs(x2-x1);
     }
 
-    void initDomainDecomp(Mesh_t<3> *mesh, FieldLayout_t<3> *FL, double BoxIncr) override {
+    void initDomainDecomp(double BoxIncr) override {
+        auto *mesh = &fc_m->getMesh();
+        auto *FL   = &fc_m->getFL();
         Vector_t<double, 3> sigmaR = opalDist_m->getSigmaR();
         ippl::Vector<double, 3> o;
         ippl::Vector<double, 3> e;
@@ -181,7 +190,6 @@ public:
         e[2] = Physics::c * emissionTime_m + tol;
 
         ippl::Vector<double, 3> l = e - o;
-        //hr_m = (1.0+this->OPALFieldSolver_m->getBoxIncr()/100.)*(l / this->nr_m);
         hr_m = (1.0+BoxIncr/100.)*(l / nr_m);
         mesh->setMeshSpacing(hr_m);
         mesh->setOrigin(o-0.5*hr_m*BoxIncr/100.);
@@ -189,15 +197,10 @@ public:
     }
 
     double countEnteringParticlesPerRank(double t0, double tf){
-
-        size_type nlocalNew;
-
+        size_type nlocalNew=0;
         double tArea = 0.0;
-
         tArea = integrateTrapezoidal(t0, tf, FlatTopProfile(t0), FlatTopProfile(tf));
-
         size_type totalNew = floor(totalN_m * tArea / distArea_m);
-
         nlocalNew = 0;
 
         if(totalNew>0){
@@ -214,7 +217,7 @@ public:
             prmax[0] =  sigmaR[0];
             prmin[1] = -sigmaR[1];
             prmax[1] =  sigmaR[1];
-            prmin[2] = Physics::c*t0;
+            prmin[2] = std::max(0.0, Physics::c * t0);
             prmax[2] = Physics::c*tf;
 
             double dx = prmax[0] - prmin[0];
@@ -230,6 +233,11 @@ public:
             // find min/max of subdomains for the current rank
             auto regions = pc_m->getLayout().getRegionLayout().gethLocalRegions();
             int rank = ippl::Comm->rank();
+
+            if (rank < 0 || static_cast<size_t>(rank) >= regions.size()) {
+                throw std::runtime_error("Invalid rank index in gethLocalRegions()");
+            }
+
             Vector_t<double, 3> locrmin, locrmax;
             for (unsigned d = 0; d < Dim; ++d) {
                locrmax[d] = regions(rank)[d].max();
@@ -249,7 +257,12 @@ public:
 
                 if (x2 >= x1 && y2 >= y1 && z2 >= z1) {
                     double locpvolume = (x2 - x1) * (y2 - y1) * (z2 - z1);
-                    nlocalNew = static_cast<int>(totalNew * locpvolume / globalpvolume);
+                    if (globalpvolume > 0) {
+                        nlocalNew = static_cast<int>(totalNew * locpvolume / globalpvolume);
+                    }
+                    else{
+                        nlocalNew = 0;
+                    }
                 } else {
                     nlocalNew = 0;
                 }
@@ -273,7 +286,39 @@ public:
         // count number of new particles to be emitted
         size_type nNew = countEnteringParticlesPerRank(t, t + dt);
 
-        if(nNew > 0){
+        // current number of particles per rank
+        size_type nlocal = pc_m->getLocalNum();
+
+        // extend particle container to accomodate new particles
+        pc_m->create(nNew);
+
+        // generate new particles on uniform disc
+        *gmsg << "* generate particles on a disc" << endl;
+        generateUniformDisk(nlocal, nNew);
+
+        *gmsg << "* new particles emmitted" << endl;
+    }
+
+    void testNumEmitParticles(size_type nsteps, double dt) override {
+        size_type nNew;
+        int rank, numRanks;
+        double t = 0.0;
+        double c = Physics::c;
+
+        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+        MPI_Comm_size(MPI_COMM_WORLD, &numRanks);
+
+        std::string filename = "timeNpart_" + std::to_string(rank) + ".txt";
+        std::ofstream file(filename);
+
+        // Check if the file opened successfully
+        if (!file.is_open()) {
+            throw std::runtime_error("Failed to open file: " + filename);
+        }
+
+        for(size_type i=0; i<nsteps; i++){
+            nNew = countEnteringParticlesPerRank(t, t + dt);
+
             // current number of particles per rank
             size_type nlocal = pc_m->getLocalNum();
 
@@ -281,29 +326,22 @@ public:
             pc_m->create(nNew);
 
             // generate new particles on uniform disc
-            *gmsg << "* generate particles on a disc" << endl;
             generateUniformDisk(nlocal, nNew);
 
-            *gmsg << "* new particles emmitted" << endl;
-        }
-    }
+            // write to a file
+            auto rViewDevice  = pc_m->R.getView();
+            auto rView = Kokkos::create_mirror_view(rViewDevice);
+            Kokkos::deep_copy(rView,rViewDevice);
 
-    void testNumEmitParticles(size_type nsteps, double dt) override {
-        size_type nNew;
-        int rank, numRanks;
-        double t = 0.0;
+            for(size_type j=nlocal; j<nlocal+nNew; j++){
+                file << t << " " << (emissionTime_m-t)*c << " " << rView(j)[0] << " " << rView(j)[1] << "\n";
+            }
+            file.flush();  // Ensure data is written to disk
 
-        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-        MPI_Comm_size(MPI_COMM_WORLD, &numRanks);
-        std::string filename = "timeNpart_" + std::to_string(rank) + ".txt";
-        std::ofstream file(filename);
-
-        for(size_type i=0; i<nsteps; i++){
-            nNew = countEnteringParticlesPerRank(t, t + dt);
-            file << t << " " << t*Physics::c << " " << nNew << "\n";
             t = t + dt;
         }
         file.close();
+        ippl::Comm->barrier();
     }
 
     void testEmitParticles(size_type nsteps, double dt) override {
@@ -311,6 +349,7 @@ public:
 
         for(size_type i=0; i<nsteps; i++){
             emitParticles(t, dt);
+
             t = t + dt;
         }
     }
