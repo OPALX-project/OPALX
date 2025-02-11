@@ -17,11 +17,6 @@ if (${CMAKE_BUILD_TYPE} STREQUAL "Release")
     add_definitions (-DNOPAssert)
 endif ()
 
-if (NOT "${IPPL_PLATFORMS}" STREQUAL "CUDA" AND ${CMAKE_BUILD_TYPE} STREQUAL "Debug")
-    add_compile_options (-fsanitize=undefined,address)
-    add_link_options (-fsanitize=undefined,address)
-endif ()
-
 add_compile_options (-Wall)
 add_compile_options (-Wunused)
 add_compile_options (-Wextra)
@@ -36,6 +31,35 @@ option (USE_STATIC_LIBRARIES "Link with static libraries if available" ON)
 
 message (STATUS "Build type is: " ${CMAKE_BUILD_TYPE})
 
+# Check the compiler type
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    message(STATUS "Using GCC")
+    add_compile_options(-Wno-overloaded-virtual)
+
+elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    message(STATUS "Using Clang")
+    add_compile_options(-Wno-overloaded-virtual)
+
+elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
+    message(STATUS "Using Intel Compiler")
+    add_compile_options(-diag-disable 611)
+
+elseif (CMAKE_CXX_COMPILER_ID STREQUAL "ARM")
+    message(STATUS "Using ARM Compiler")
+    add_compile_options(--diag_suppress=611)
+
+elseif (CMAKE_CXX_COMPILER_ID STREQUAL "AMD")
+    message(STATUS "Using AMD Compiler")
+    add_compile_options(-Wno-overloaded-virtual)
+
+elseif (CMAKE_CXX_COMPILER_ID STREQUAL "NVIDIA")
+    message(STATUS "Using NVIDIA CUDA Compiler")
+    add_compile_options(-Xcudafe --diag_suppress=611)
+
+else()
+    message(WARNING "Unknown compiler: ${CMAKE_CXX_COMPILER_ID}")
+endif()
+
 # Select flags.
 set (CMAKE_CXX_STANDARD 20)
 set (CMAKE_CUDA_EXTENSIONS OFF)
@@ -44,10 +68,10 @@ set (CMAKE_CXX_FLAGS_RELWITHDEBINFO "-g -O3")
 set (CMAKE_CXX_FLAGS_RELEASE "-g -O3 ")
 set (CMAKE_CXX_FLAGS_DEBUG  "-g -O0")
 
-if (NOT "${IPPL_PLATFORMS}" STREQUAL "CUDA" AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-    # Use sanitizer flags for GCC or Clang only
-     set (CMAKE_CXX_FLAGS_DEBUG  "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address,undefined")
-endif ()
+
+if ("${IPPL_PLATFORMS}" STREQUAL "CUDA")
+    set (CMAKE_CXX_FLAGS_DEBUG  "${CMAKE_CXX_FLAGS_DEBUG} -G -diag-suppress=611")
+endif()
 
 message (STATUS "CMAKE_CXX_FLAGS_DEBUG: ${CMAKE_CXX_FLAGS_DEBUG}")
 
@@ -63,11 +87,26 @@ add_compile_options (-Wno-error=unused-but-set-variable)
 add_compile_options (-Wno-error=maybe-uninitialized)
 add_compile_options (-Wno-error=reorder)
 add_compile_options (-Wno-cpp)
+add_compile_options (-Wno-overloaded-virtual)
 add_compile_options (-funroll-loops)
 add_compile_options (-fstrict-aliasing)
 add_compile_options (-DKOKKOS_DEPENDENCE)
 add_compile_options (-Wno-return-type)
 add_compile_options (-gdwarf-4)                           # avoid dwarf errors on merlin
+
+option (OPALX_ARCH_HOPPER90 "Enable HOPPE GPU" OFF)
+if(OPALX_ARCH_HOPPER90)
+ add_compile_options (-Wdangling-reference)                # need for G&H
+endif ()
+
+option (OPALX_SANITIZER "Enable Sanitizer" OFF)
+if (OPALX_SANITIZER)
+ set (CMAKE_CXX_FLAGS_DEBUG  "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address,undefined")
+ add_link_options (-fsanitize=undefined,address)
+else ()
+ message (STATUS "Sanitizer status is: ${OPALX_SANITIZER}")   
+ add_compile_options (-fno-sanitize=all)
+endif ()
 
 # Resolve all library dependencies
 set (CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/CMakeModules")
@@ -101,25 +140,9 @@ FetchContent_Declare(ippl
 FetchContent_MakeAvailable(ippl)
 include_directories("${IPPL_SOURCE_DIR}/src")
 
-
-message (STATUS "Found IPPL_DIR: ${IPPL_DIR}")
-if(NOT IPPL_VERSION)
-    set(IPPL_VERSION "3.2.0")
-    message(STATUS "Defaulting to IPPL-${IPPL_VERSION}")
-endif()
-FetchContent_Declare(ippl
-    #URL https://github.com/IPPL-framework/ippl/archive/refs/tags/IPPL-${IPPL_VERSION}.tar.gz
-    GIT_REPOSITORY https://github.com/IPPL-framework/ippl.git
-    GIT_SHALLOW True
-    DOWNLOAD_EXTRACT_TIMESTAMP True
-)
-set(ENABLE_COSMOLOGY OFF CACHE BOOL "Disable Cosmology in IPPL")
-
-FetchContent_MakeAvailable(ippl)
-include_directories("${IPPL_SOURCE_DIR}/src")
-
-message (STATUS "Found Ippl_INC: ${IPPL_INCLUDE_DIR}")
-message (STATUS "Found Ippl_LIB: ${IPPL_LIBRARY}")
+# Print relevant paths
+message(STATUS "Found Ippl_INC: ${IPPL_INCLUDE_DIR}")
+message(STATUS "Found Ippl_LIB: ${IPPL_LIBRARY}")
 
 message (STATUS "FFTW lib(s): ${OPAL_FFTW_LIBS}")  
 message (STATUS "MPI lib(s): ${OPAL_MPI_LIBS}")
@@ -246,6 +269,7 @@ endif ()
 #
 # Handle options
 #
+
 option (BUILD_OPAL_UNIT_TESTS "Unit tests" OFF)
 if (BUILD_OPAL_UNIT_TESTS)
     find_package (GTest REQUIRED HINT $ENV{GTEST_PREFIX})
@@ -265,10 +289,10 @@ if (ENABLE_DOXYDOC)
         )
 endif ()
 
-option (DBG_SCALARFIELD "Enable dump of scalar field rho_m" OFF)
-if (DBG_SCALARFIELD)
-    message (STATUS "Write scalar rho_m field is enabled ")
-    add_definitions (-DDBG_SCALARFIELD)
+option (OPALX_FIELD_DEBUG "Enable dump of scalar and vector fields (only one rank for now)" OFF)
+if (OPALX_FIELD_DEBUG)
+    message (STATUS "Write scalar/vector field enabled ")
+    add_definitions (-DOPALX_FIELD_DEBUG)
 endif ()
 
 #
@@ -280,12 +304,10 @@ add_custom_target(
     src/OPALrevision.h
     )
 
-add_custom_command(
-    OUTPUT src/OPALrevision.h
-    COMMAND ./gen_OPALrevision
+add_custom_target(makeOPALrevision
+#    OUTPUT src/OPALrevision.h
+    COMMAND ${CMAKE_SOURCE_DIR}/gen_OPALrevision
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    DEPENDS
-#    always_rebuild
     )
 
 add_subdirectory (src)
