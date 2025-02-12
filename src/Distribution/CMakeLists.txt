@@ -1,5 +1,6 @@
 set (_SRCS
     Distribution.cpp
+    FlatTop.cpp
     LaserProfile.cpp
     )
 
@@ -11,6 +12,7 @@ add_opal_sources(${_SRCS})
 
 set (HDRS
     Distribution.h
+    FlatTop.h
     LaserProfile.h
     MapGenerator.h
     matrix_vector_operation.h

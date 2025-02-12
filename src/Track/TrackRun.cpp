@@ -34,7 +34,7 @@
 
 #include "Distribution/MultiVariateGaussian.hpp"
 
-#include "Distribution/FlatTop.hpp"
+#include "Distribution/FlatTop.h"
 
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
@@ -351,12 +351,6 @@ void TrackRun::execute() {
     *gmsg << "* Particle creation done" << endl;
     
     IpplTimings::stopTimer(samplingTime);
-
-// following is only for testing
-sampler_m->setWithDomainDecomp(true);
-sampler_m->initDomainDecomp(1.);
-sampler_m->testNumEmitParticles(100, Track::block->dT[0]);
-
 
     /* 
        reset the fieldsolver with correct hr_m
