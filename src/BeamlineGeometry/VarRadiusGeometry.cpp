@@ -45,3 +45,10 @@ Euclid3D VarRadiusGeometry::getTransform(double fromS, double toS) const {
     v.setZ(ref_to[1] - ref_from[1]);
     return v;
 }
+
+Euclid3D VarRadiusGeometry::getTransform(double fromS) const {
+    throw GeneralClassicException("Euclid3DGeometry::getTransform", "Not implemented");
+}
+
+
+
