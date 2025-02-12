@@ -32,6 +32,9 @@ public:
     // testEmitParticles is purely made for testing and should be removed
     virtual void testEmitParticles(size_t nsteps, double dt) {}
 
+    virtual void initDomainDecomp(double BoxIncr) {}
+
+    virtual void setWithDomainDecomp(bool withDomainDecomp) {}
 };
 #endif
 
