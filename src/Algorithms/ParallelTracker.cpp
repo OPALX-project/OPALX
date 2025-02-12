@@ -71,14 +71,15 @@ ParallelTracker::ParallelTracker(
       zstart_m(0.0),
       dtCurrentTrack_m(0.0),
       minStepforReBin_m(-1),
-      repartFreq_m(-1),
+      repartFreq_m(0),
       emissionSteps_m(std::numeric_limits<unsigned int>::max()),
       numParticlesInSimulation_m(0),
       timeIntegrationTimer1_m(IpplTimings::getTimer("TIntegration1")),
       timeIntegrationTimer2_m(IpplTimings::getTimer("TIntegration2")),
       fieldEvaluationTimer_m(IpplTimings::getTimer("External field eval")),
       PluginElemTimer_m(IpplTimings::getTimer("PluginElements")),
-      BinRepartTimer_m(IpplTimings::getTimer("Binaryrepart")) {
+      BinRepartTimer_m(IpplTimings::getTimer("Binaryrepart")),
+      OrbThreader_m(IpplTimings::getTimer("OrbThreader")) {
 }
 
 ParallelTracker::ParallelTracker(
@@ -96,22 +97,21 @@ ParallelTracker::ParallelTracker(
       zstart_m(zstart),
       dtCurrentTrack_m(0.0),
       minStepforReBin_m(-1),
-      repartFreq_m(-1),
+      repartFreq_m(0),
       emissionSteps_m(std::numeric_limits<unsigned int>::max()),
       numParticlesInSimulation_m(0),
       timeIntegrationTimer1_m(IpplTimings::getTimer("TIntegration1")),
       timeIntegrationTimer2_m(IpplTimings::getTimer("TIntegration2")),
       fieldEvaluationTimer_m(IpplTimings::getTimer("External field eval")),
-      BinRepartTimer_m(IpplTimings::getTimer("Binaryrepart")) {
+      BinRepartTimer_m(IpplTimings::getTimer("Binaryrepart")),
+      OrbThreader_m(IpplTimings::getTimer("OrbThreader")) {
+    
+      for (unsigned int i = 0; i < zstop.size(); ++i) {
+          stepSizes_m.push_back(dt[i], zstop[i], maxSteps[i]);
+      }
 
-    *gmsg << "* ParallelTracker zstop.size()= " << zstop.size() << endl;
-
-    for (unsigned int i = 0; i < zstop.size(); ++i) {
-        stepSizes_m.push_back(dt[i], zstop[i], maxSteps[i]);
-    }
-
-    stepSizes_m.sortAscendingZStop();
-    stepSizes_m.resetIterator();
+      stepSizes_m.sortAscendingZStop();
+      stepSizes_m.resetIterator();
 }
 
 ParallelTracker::~ParallelTracker() {
@@ -348,19 +348,23 @@ void ParallelTracker::execute() {
     *gmsg << "itsBunch_m->RefPartR_m= " << itsBunch_m->RefPartR_m << endl;
     *gmsg << "itsBunch_m->RefPartP_m= " << itsBunch_m->RefPartP_m << endl;
 
-    bool const psDump0 = 1;
-    bool const statDump0 = 1;
+    IpplTimings::startTimer(OrbThreader_m);
+
+    bool const psDump0 = 0;
+    bool const statDump0 = 0;
 
     writePhaseSpace(0, psDump0, statDump0);
     msg << level2 << "Dump initial phase space" << endl;
+
 
     OrbitThreader oth(
         itsReference, itsBunch_m->RefPartR_m, itsBunch_m->RefPartP_m, pathLength_m, -rmin(2),
         itsBunch_m->getT(), (back_track ? -minTimeStep : minTimeStep), stepSizes_m,
         itsOpalBeamline_m);
-/*
-    oth.execute();
 
+    oth.execute();
+    IpplTimings::stopTimer(OrbThreader_m);
+    
     BoundingBox globalBoundingBox = oth.getBoundingBox();
 
     numParticlesInSimulation_m = itsBunch_m->getTotalNum();
@@ -388,8 +392,9 @@ void ParallelTracker::execute() {
     OpalData::getInstance()->setInPrepState(false);
 
     stepSizes_m.printDirect(*gmsg);
-
+    
     while (!stepSizes_m.reachedEnd()) {
+
         unsigned long long trackSteps = stepSizes_m.getNumSteps() + step;
         dtCurrentTrack_m              = stepSizes_m.getdT();
         changeDT(back_track);
@@ -399,23 +404,22 @@ void ParallelTracker::execute() {
             if (itsBunch_m->getTotalNum() > 0) {
                 itsBunch_m->get_bounds(rmin, rmax);
             }
-
+            // ADA
             timeIntegration1(pusher);
-
+            
             computeSpaceChargeFields(step);
             
             // \todo for a drift we can neglect that 
             // computeExternalFields(oth);
 
             timeIntegration2(pusher);
-
+            
             selectDT(back_track);
             // \todo emitParticles(step);
             //selectDT(back_track);
 
             itsBunch_m->incrementT();
 
-            
             if (itsBunch_m->getT() > 0.0 || itsBunch_m->getdT() < 0.0) {
                 updateReference(pusher);
             }
@@ -426,7 +430,7 @@ void ParallelTracker::execute() {
             }
 
             itsBunch_m->set_sPos(pathLength_m);
-            
+
             // if (hasEndOfLineReached(globalBoundingBox)) break;
   
             bool const psDump =
@@ -464,11 +468,10 @@ void ParallelTracker::execute() {
 
     writePhaseSpace((step + 1), psDump, statDump);
 
-    msg << level2 << "Dump phase space of last step" << endl;
+    *gmsg << "* Dump phase space of last step" << endl;
 
     itsOpalBeamline_m.switchElementsOff();
 
-    */
     OPALTimer::Timer myt3;
     *gmsg << endl << "* Done executing ParallelTracker at " << myt3.time() << endl << endl;
 }
@@ -514,6 +517,7 @@ void ParallelTracker::timeIntegration2(BorisPusher& pusher) {
     // switchElements();
     pushParticles(pusher);
 
+    
     auto dtview  = itsBunch_m->getParticleContainer()->dt.getView();
     double newdT = itsBunch_m->getdT();
 
@@ -522,7 +526,7 @@ void ParallelTracker::timeIntegration2(BorisPusher& pusher) {
                          KOKKOS_LAMBDA(const int i) {
                              dtview(i) = newdT;
                          });                     
-
+    
     IpplTimings::stopTimer(timeIntegrationTimer2_m);
 }
 
@@ -578,6 +582,7 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
 
      */
 
+    
     const matrix_t                rot = referenceToBeamCSTrafo.getRotationMatrix();
     const ippl::Vector<double, 3> org = referenceToBeamCSTrafo.getOrigin();
 
@@ -633,7 +638,7 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
             prod_boost_vector(boost::numeric::ublas::trans(rotationMatrix_m)
 
      */
-
+    
     Kokkos::parallel_for(
                          "CSTrafo:transformTo", ippl::getRangePolicy(Rview),
                          KOKKOS_LAMBDA(const int i) {                           
@@ -759,18 +764,19 @@ void ParallelTracker::doBinaryRepartition() {
 
 void ParallelTracker::dumpStats(long long step, bool psDump, bool statDump) {
     OPALTimer::Timer myt2;
-    Inform msg("ParallelTracker ", *gmsg);
 
+    /*
     if (itsBunch_m->getGlobalTrackStep() % 1000 + 1 == 1000) {
-        msg << level1;
+        *gmsg << level1;
     } else if (itsBunch_m->getGlobalTrackStep() % 100 + 1 == 100) {
-        msg << level2;
+        *gmsg << level2;
     } else {
-        msg << level3;
+        *gmsg << level3;
     }
-
+    */
+    
     if (numParticlesInSimulation_m == 0) {
-        msg << myt2.time() << " "
+        *gmsg << "* " << myt2.time() << " "
             << "Step " << std::setw(6) << itsBunch_m->getGlobalTrackStep() << "; "
             << "   -- no emission yet --     "
             << "t= " << Util::getTimeString(itsBunch_m->getT()) << endl;
@@ -784,7 +790,7 @@ void ParallelTracker::dumpStats(long long step, bool psDump, bool statDump) {
             "ParallelTracker::dumpStats()",
             "there seems to be something wrong with the position of the bunch!");
     } else {
-        msg << myt2.time() << " "
+        *gmsg << "* " << myt2.time() << " "
             << "Step " << std::setw(6) << itsBunch_m->getGlobalTrackStep() << " "
             << "at " << Util::getLengthString(pathLength_m) << ", "
             << "t= " << Util::getTimeString(itsBunch_m->getT()) << ", "
@@ -796,7 +802,6 @@ void ParallelTracker::dumpStats(long long step, bool psDump, bool statDump) {
 
 void ParallelTracker::setOptionalVariables() {
 
-    Inform msg("ParallelTracker ", *gmsg);
     /*
     minStepforReBin_m = Options::minStepForRebin;
     RealVariable* br =
@@ -808,14 +813,14 @@ void ParallelTracker::setOptionalVariables() {
 
     // there is no point to do repartitioning with one node
     if (ippl::Comm->size() == 1) {
-        repartFreq_m = std::numeric_limits<unsigned int>::max();
+        repartFreq_m = std::numeric_limits<unsigned long long>::max();
     } else {
         repartFreq_m = Options::repartFreq * 100;
         RealVariable* rep =
             dynamic_cast<RealVariable*>(OpalData::getInstance()->find("REPARTFREQ"));
         if (rep)
             repartFreq_m = static_cast<int>(rep->getReal());
-        msg << level2 << "REPARTFREQ " << repartFreq_m << endl;
+        *gmsg  << "* REPARTFREQ " << repartFreq_m << endl;
     }
 }
 
@@ -839,8 +844,6 @@ void ParallelTracker::setTime() {
 }
 
 void ParallelTracker::writePhaseSpace(const long long /*step*/, bool psDump, bool statDump) {
-    extern Inform* gmsg;
-    Inform msg("OPAL ", *gmsg);
     Vector_t<double, 3> externalE, externalB;
     Vector_t<double, 3> FDext[2];  // FDext = {BHead, EHead, BRef, ERef, BTail, ETail}.
 
@@ -864,13 +867,82 @@ void ParallelTracker::writePhaseSpace(const long long /*step*/, bool psDump, boo
 
     if (statDump) {
         itsDataSink_m->dumpSDDS(itsBunch_m, FDext, -1.0);
-        msg << level3 << "* Wrote beam statistics." << endl;
+        *gmsg << "* Wrote beam statistics." << endl;
     }
 
     if (psDump && (itsBunch_m->getTotalNum() > 0)) {
         // Write bunch to .h5 file.
         itsDataSink_m->dumpH5(itsBunch_m, FDext);
-        msg << level2 << "* Wrote beam phase space." << endl;
+
+        /*
+        // Write fields to .h5 file.
+        const size_t localNum    = itsBunch_m->getLocalNum();
+        double distToLastStop    = stepSizes_m.getFinalZStop() - pathLength_m;
+        Vector_t<double, 3> beta = itsBunch_m->RefPartP_m / Util::getGamma(itsBunch_m->RefPartP_m);
+        Vector_t<double, 3> driftPerTimeStep =
+            itsBunch_m->getdT()
+            * Physics::c;  // \todo  * itsBunch_m->toLabTrafo_m.rotateFrom(beta);
+        bool driftToCorrectPosition =
+            std::abs(distToLastStop) < 0.5 * euclidean_norm(driftPerTimeStep);
+        // \todo Ppos_t stashedR;
+        Vector_t<double, 3> stashedR;
+        Vector_t<double, 3> stashedRefPartR;
+
+        if (driftToCorrectPosition) {
+            const double tau =
+                distToLastStop / euclidean_norm(driftPerTimeStep) * itsBunch_m->getdT();
+
+            if (localNum > 0) {
+
+                stashedR.create(localNum);
+                stashedR        = itsBunch_m->R;
+                stashedRefPartR = itsBunch_m->RefPartR_m;
+
+                for (size_t i = 0; i < localNum; ++i) {
+                    itsBunch_m->R[i] +=
+                        tau
+                        * (Physics::c * itsBunch_m->P[i] / Util::getGamma(itsBunch_m->P[i])
+                           - driftPerTimeStep / itsBunch_m->getdT());
+                }
+
+            }
+
+            driftPerTimeStep = itsBunch_m->toLabTrafo_m.rotateTo(driftPerTimeStep);
+            itsBunch_m->RefPartR_m =
+                itsBunch_m->RefPartR_m + tau * driftPerTimeStep / itsBunch_m->getdT();
+            CoordinateSystemTrafo update(
+                tau * driftPerTimeStep / itsBunch_m->getdT(), Quaternion(1.0, 0.0, 0.0, 0.0));
+            itsBunch_m->toLabTrafo_m = itsBunch_m->toLabTrafo_m * update.inverted();
+
+            itsBunch_m->set_sPos(stepSizes_m.getFinalZStop());
+
+            itsBunch_m->calcBeamParameters();
+        }
+        if (!statDump && !driftToCorrectPosition)
+            itsBunch_m->calcBeamParameters();
+
+            msg << *itsBunch_m << endl;
+        
+        itsDataSink_m->dumpH5(itsBunch_m, FDext);
+        */
+        
+        /*
+        
+        if (driftToCorrectPosition) {
+            if (localNum > 0) {
+                itsBunch_m->R = stashedR;
+                stashedR.destroy(localNum, 0);
+            }
+
+            itsBunch_m->RefPartR_m = stashedRefPartR;
+            itsBunch_m->set_sPos(pathLength_m);
+
+            itsBunch_m->calcBeamParameters();
+        }
+
+        */
+        
+        *gmsg << level2 << "* Wrote beam phase space." << endl;
     }
 }
 
@@ -921,7 +993,7 @@ void ParallelTracker::updateReferenceParticle(const BorisPusher& pusher) {
 void ParallelTracker::transformBunch(const CoordinateSystemTrafo& trafo) {
     const unsigned int localNum = itsBunch_m->getLocalNum();
     for (unsigned int i = 0; i < localNum; ++i) {
-        /*
+        /* \todo host device .... 
         itsBunch_m->R[i]  = trafo.transformTo(itsBunch_m->R[i]);
         itsBunch_m->P[i]  = trafo.rotateTo(itsBunch_m->P[i]);
         itsBunch_m->Ef[i] = trafo.rotateTo(itsBunch_m->Ef[i]);
@@ -931,11 +1003,21 @@ void ParallelTracker::transformBunch(const CoordinateSystemTrafo& trafo) {
 }
 
 void ParallelTracker::updateRefToLabCSTrafo() {
-    itsBunch_m->toLabTrafo_m.transformFrom(itsBunch_m->RefPartR_m);
-    Vector_t<double, 3> R = itsBunch_m->RefPartR_m;
+    /*
+    Inform m("updateRefToLabCSTrafo ");
+    m << " initial RefPartR: " << itsBunch_m->RefPartR_m << endl;
+    m << " RefPartR after transformFrom( " << itsBunch_m->RefPartR_m << endl;
     itsBunch_m->toLabTrafo_m.rotateFrom(itsBunch_m->RefPartP_m);
     Vector_t<double, 3> P = itsBunch_m->RefPartP_m;
+    m << " CS " << itsBunch_m->toLabTrafo_m << endl;
+    m << " rotMat= " << itsBunch_m->toLabTrafo_m.getRotationMatrix() << endl;
+    m << " initial: path Lenght= " << pathLength_m << endl;
+    m << " dt= " << itsBunch_m->getdT() << " R=" << R << endl;
+    */
 
+    Vector_t<double, 3> R = itsBunch_m->toLabTrafo_m.transformFrom(itsBunch_m->RefPartR_m);
+    Vector_t<double, 3> P = itsBunch_m->toLabTrafo_m.transformFrom(itsBunch_m->RefPartP_m);
+    
     pathLength_m += std::copysign(1, itsBunch_m->getdT()) * euclidean_norm(R);
 
     CoordinateSystemTrafo update(R, getQuaternion(P, Vector_t<double, 3>(0, 0, 1)));

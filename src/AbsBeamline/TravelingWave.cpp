@@ -235,6 +235,13 @@ void TravelingWave::initialise(PartBunch_t* bunch, double& startField, double& e
         - Physics::two_pi * ((numCells_m - 1) * mode_m - std::floor((numCells_m - 1) * mode_m));
 }
 
+void TravelingWave::initialise(PartBunch_t* bunch, std::shared_ptr<AbstractTimeDependence> freq_atd,
+                               std::shared_ptr<AbstractTimeDependence> ampl_atd,
+                               std::shared_ptr<AbstractTimeDependence> phase_atd) {
+    
+}
+
+
 void TravelingWave::finalise() {
 }
 

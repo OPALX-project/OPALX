@@ -99,7 +99,7 @@ bool RK4<FieldFunction, Arguments...>::derivate_m(
 
     bool outOfBound = this->fieldfunc_m(t, i, externalE, externalB, args...);
 
-    double qtom;  // \todo  = bunch->Q(i) / (bunch->M(i) * mass_coeff);  // m^2/s^2/GV
+    double qtom = 1.0;  // \todo  = bunch->Q(i) / (bunch->M(i) * mass_coeff);  // m^2/s^2/GV
 
     double tempgamma = sqrt(1 + (y[3] * y[3] + y[4] * y[4] + y[5] * y[5]));
 

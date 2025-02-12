@@ -1,6 +1,31 @@
 #ifndef OPAL_TYPES_HH
 #define OPAL_TYPES_HH
 
+#ifdef __CUDACC__
+#pragma push_macro("__cpp_consteval")
+#pragma push_macro("_NODISCARD")
+#pragma push_macro("__builtin_LINE")
+
+#define __cpp_consteval 201811L
+
+#ifdef _NODISCARD
+    #undef _NODISCARD
+    #define _NODISCARD
+#endif
+
+#define consteval constexpr
+
+#include <source_location>
+
+#undef consteval
+#pragma pop_macro("__cpp_consteval")
+#pragma pop_macro("_NODISCARD")
+#else
+#include <source_location>
+#endif
+
+#include "Ippl.h"
+
 #include <mpi.h>
 #include <Kokkos_MathematicalConstants.hpp>
 #include <Kokkos_MathematicalFunctions.hpp>
@@ -11,63 +36,15 @@
 #include <string>
 #include <thread>
 #include <vector>
-#include "Communicate/Operations.h"
-#include "Ippl.h"
-
 #include <chrono>
 #include <iostream>
 #include <string>
 
 #include "PartBunch/datatypes.h"
-
-#include "Utility/IpplTimings.h"
-
 #include "Manager/PicManager.h"
 #include "PartBunch/PartBunch.hpp"
 
 using PartBunch_t = PartBunch<double, 3>;
-
-// some typedefs
-
-/*
-template <unsigned Dim = 3>
-using Mesh_t = ippl::UniformCartesian<double, Dim>;
-
-template <typename T, unsigned Dim = 3>
-using PLayout_t = typename ippl::ParticleSpatialLayout<T, Dim, Mesh_t<Dim>>;
-
-template <unsigned Dim = 3>
-using Centering_t = typename Mesh_t<Dim>::DefaultCentering;
-
-template <unsigned Dim = 3>
-using FieldLayout_t = ippl::FieldLayout<Dim>;
-
-using size_type = ippl::detail::size_type;
-
-template <typename T, unsigned Dim = 3>
-using Vector = ippl::Vector<T, Dim>;
-
-template <typename T, unsigned Dim = 3, class... ViewArgs>
-using Field = ippl::Field<T, Dim, Mesh_t<Dim>, Centering_t<Dim>, ViewArgs...>;
-
-template <unsigned Dim, class... ViewArgs>
-using Field_t = Field<double, Dim, ViewArgs...>;
-
-template <typename T = double, unsigned Dim = 3>
-using ORB = ippl::OrthogonalRecursiveBisection<Field<double, Dim>, T>;
-
-template <typename T>
-using ParticleAttrib = ippl::ParticleAttrib<T>;
-
-template <typename T, unsigned Dim = 3>
-using Vector_t = ippl::Vector<T, Dim>;
-
-template <unsigned Dim = 3, class... ViewArgs>
-using Field_t = Field<double, Dim, ViewArgs...>;
-
-template <typename T = double, unsigned Dim = 3, class... ViewArgs>
-using VField_t = Field<Vector_t<T, Dim>, Dim, ViewArgs...>;
-*/
 
 template <typename T, unsigned Dim>
 using Vector_t = ippl::Vector<T, Dim>;
@@ -75,9 +52,6 @@ using Vector_t = ippl::Vector<T, Dim>;
 typedef typename std::pair<Vector_t<double, 3>, Vector_t<double, 3>> VectorPair_t;
 
 enum UnitState_t { units = 0, unitless = 1 };
-
-/// \todo includes needs to reorganized
-// #include "PartBunch/PartBunch.hpp"
 
 // euclidean norm
 template <class T, unsigned D>
@@ -101,5 +75,4 @@ KOKKOS_INLINE_FUNCTION double dot(const Vector_t<T, D>& v) {
         res += v(i) * v(i);
     return res;
 }
-
 #endif
