@@ -223,19 +223,20 @@ namespace ParticleBinning {
          * If no DualView is used, it needs to copy some values to host, which might cause overhead.
          *
          * @tparam bin_index_type The type of the bin index.
-         * @param binIndex The index of the bin for which the iteration policy is to be generated.
+         * @param binIndex1 The index of the bin for which the iteration policy is to be generated.
+         * @param numBins The number of bins to iterate over (default is 1) starting at `binIndex1`.
          * @return Kokkos::RangePolicy<> The range policy for iterating over the elements in the specified bin.
          */
-        Kokkos::RangePolicy<> getBinIterationPolicy(const bin_index_type& binIndex) {
+        Kokkos::RangePolicy<> getBinIterationPolicy(const bin_index_type& binIndex1, const bin_index_type numBins = 1) {
             if constexpr (UseDualView) {
                 // localPostSumHost = postSum_m.view_host();
                 //hview_type localPostSumHost = getHostView<hview_type>(postSum_m);
                 //return Kokkos::RangePolicy<>(localPostSumHost(binIndex), localPostSumHost(binIndex + 1));
-                return Kokkos::RangePolicy<>(postSum_m.h_view(binIndex), postSum_m.h_view(binIndex + 1));
+                return Kokkos::RangePolicy<>(postSum_m.h_view(binIndex1), postSum_m.h_view(binIndex1 + numBins));
             } else {
                 std::cerr << "Warning: Accessing BinHisto.getBinIterationPolicy without DualView might be inefficient!" << std::endl;
                 Kokkos::View<bin_index_type[2], Kokkos::HostSpace> host_ranges("host_scalar");
-                Kokkos::deep_copy(host_ranges, Kokkos::subview(postSum_m, std::make_pair(binIndex, binIndex + 1)));
+                Kokkos::deep_copy(host_ranges, Kokkos::subview(postSum_m, std::make_pair(binIndex1, binIndex1 + numBins)));
                 return Kokkos::RangePolicy<>(host_ranges(0), host_ranges(1));
             }
         }
