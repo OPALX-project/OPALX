@@ -31,7 +31,7 @@ namespace ParticleBinning {
 
 
     // Implementation of the cost function
-    template <typename size_type, typename bin_index_type, typename value_type, bool UseDualView, class... Properties>
+    /*template <typename size_type, typename bin_index_type, typename value_type, bool UseDualView, class... Properties>
     KOKKOS_INLINE_FUNCTION value_type
     Histogram<size_type, bin_index_type, value_type, UseDualView, Properties...>::computeDeviationCost(
         const size_type& sumCount, const value_type& sumWidth, const value_type& maxBinRatio,
@@ -51,6 +51,35 @@ namespace ParticleBinning {
         
         // Use a conditional select to avoid branching
         //return (sumCount == 0) ? costWhenSumCountZero : costWhenSumCountNonZero;
+    }*/
+
+    template <typename size_type, typename bin_index_type, typename value_type, bool UseDualView, class... Properties>
+    value_type 
+    Histogram<size_type, bin_index_type, value_type, UseDualView, Properties...>::partialMergedCDFIntegralCost(
+        const size_type& sumCount,
+        const value_type& sumWidth,
+        const value_type& alpha,
+        const value_type& mergedStd,
+        const value_type& segFineMoment
+    ) {
+        // Compute the representative value as the weighted average. 
+        const value_type representative      = segFineMoment / static_cast<value_type>(sumCount);
+        const value_type mergedSegmentMoment = representative * sumCount;
+
+        // Without any offset, this is just 0... (TODO: later)
+        const value_type costMoment = pow(segFineMoment - mergedSegmentMoment, 2);
+
+        // higher internal spread (mergedStd) and a larger (sumWidth)
+        // lead to a larger integrated difference between the fine and merged CDFs 
+        const value_type costCDF = mergedStd * mergedStd; // * sumWidth;
+
+        // Add a penalty to discourage segments that are too narrow --> TODO: might want this to balance modeling error!
+        const value_type dmin = 2.34e-4; 
+        const value_type narrowPenalty = (sumWidth < dmin) ? pow(dmin - sumWidth, 2) : 0.0;
+
+        // Note: At the moment, costMoment is zero :( -- TODO: what can I do here???
+        // return alpha * costCDF + costMoment + narrowPenalty;
+        return alpha * costCDF + mergedStd / pow(sumCount, 1.0/3.0) + narrowPenalty;
     }
 
     template <typename size_type, typename bin_index_type, typename value_type, bool UseDualView, class... Properties>
@@ -87,7 +116,7 @@ namespace ParticleBinning {
         static IpplTimings::TimerRef mergeBinsTimer = IpplTimings::getTimer("mergeBins");
 
         // Maybe set this later as a parameter
-        value_type alpha = 3.49; // scotts normal reference rule, see https://en.wikipedia.org/wiki/Histogram#Scott's_normal_reference_rule
+        value_type alpha = 150; // scotts normal reference rule, see https://en.wikipedia.org/wiki/Histogram#Scott's_normal_reference_rule
         
         // TODO 
         // Should merge neighbouring bins such that the width/N_part ratio is roughly maxBinRatio.
@@ -124,11 +153,18 @@ namespace ParticleBinning {
         // ----------------------------------------------------------------
         hview_type       prefixCount("prefixCount", n+1);
         hwidth_view_type prefixWidth("prefixWidth", n+1);
-        prefixCount(0) = 0;
-        prefixWidth(0) = 0;
+        Kokkos::View<value_type*, Kokkos::HostSpace> prefixMoment("prefixMoment", n+1); // Needed for first order moment error estimation
+        prefixCount(0)  = 0;
+        prefixWidth(0)  = 0;
+        prefixMoment(0) = 0;
         for (bin_index_type i = 0; i < n; ++i) {
             prefixCount(i+1) = prefixCount(i) + oldHistHost(i);
             prefixWidth(i+1) = prefixWidth(i) + oldBinWHost(i);
+
+            value_type binCenter = prefixWidth(i) + 0.5 * oldBinWHost(i); // Technically not necessary, but more general for non-uniform bins...
+            prefixMoment(i+1) = prefixMoment(i) + oldHistHost(i) * binCenter; // Something like the cumulative distribution function for the "actual" histogram (fine bins...)
+                                                                              // Basically the "integral" \int_{0}^{x} x f(x) dx
+                                                                              // TODO: might want to use different integration rule?
         }
         //computeFixSum<hview_type>(oldHistHost, prefixCount);
         //computeFixSum<hwidth_view_type>(oldBinWHost, prefixWidth);
@@ -143,15 +179,17 @@ namespace ParticleBinning {
         // ----------------------------------------------------------------
         // We'll store dp as a floating-point "value_type" array
         Kokkos::View<value_type*, Kokkos::HostSpace> dp("dp", n+1);
+        Kokkos::View<value_type*, Kokkos::HostSpace> dpMoment("dpMoment", n+1); // Store cumulative moments --> allow first order moment error estimation
         Kokkos::View<int*,        Kokkos::HostSpace> prevIdx("prevIdx", n+1);
 
         // Initialize dp with something large
         value_type largeVal = std::numeric_limits<value_type>::max() / value_type(2);
         for (bin_index_type k = 0; k <= n; ++k) {
-            dp(k)      = largeVal;
-            prevIdx(k) = -1;
+            dp(k)       = largeVal;
+            dpMoment(k) = 0; // Added this!
+            prevIdx(k)  = -1;
         }
-        dp(0) = value_type(0);  // 0 cost to cover an empty set
+        dp(0) = value_type(0);  // 0 cost to cover an empty set (dpMoment(0) = 0, for no bins...)
         m << "DP arrays initialized." << endl;
 
 
@@ -162,15 +200,21 @@ namespace ParticleBinning {
         for (bin_index_type k = 1; k <= n; ++k) {
             // Try all possible start indices i for the last merged bin
             for (bin_index_type i = 0; i < k; ++i) {
-                size_type  sumCount  = prefixCount(k) - prefixCount(i);
-                value_type sumWidth  = prefixWidth(k) - prefixWidth(i);
+                size_type  sumCount      = prefixCount(k) - prefixCount(i);
+                value_type sumWidth      = prefixWidth(k) - prefixWidth(i);
                 value_type segCost   = largeVal;
                 if (sumCount > 0) {
-                    value_type mergedStd = mergedBinStd(i, k, sumCount, varPerBin, prefixWidth, oldHistHost, oldBinWHost);
-                    segCost              = computeDeviationCost(sumCount, sumWidth, maxBinRatio, alpha, mergedStd);
+                    value_type segFineMoment = prefixMoment(k) - prefixMoment(i); // "exact" integral value for first order moment (from fine histo)
+                    value_type mergedStd     = mergedBinStd(i, k, sumCount, varPerBin, prefixWidth, oldHistHost, oldBinWHost);
+                    //segCost              = computeDeviationCost(sumCount, sumWidth, maxBinRatio, alpha, mergedStd);
+                    segCost = partialMergedCDFIntegralCost(sumCount, sumWidth, alpha, mergedStd, segFineMoment);
+
+                    if (k % 10 == 0 && i % 10 == 0) {
+                        m << "k = " << k << ", i = " << i << ", sumCount = " << sumCount << ", sumWidth = " << sumWidth
+                          << ", segCost = " << segCost << ", mergedStd = " << mergedStd << endl;
+                    }
                 }
                 //value_type segCost   = computeDeviationCost(sumCount, sumWidth, maxBinRatio, largeVal, alpha);
-
                 value_type candidate = dp(i) + segCost;
                 if (candidate < dp(k)) {
                     dp(k)      = candidate;

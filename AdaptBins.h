@@ -315,7 +315,7 @@ namespace ParticleBinning {
             // 1. Run merging algorithm on globalHisto --> generates global binWidths array and postSum.
             // Note: Assumes that the histograms are properly initialized.
             //double tmp_ratio                        = (xMax_m - xMin_m) * sqrt(bunch_m->getTotalNum()) / 20; // (xMax_m - xMin_m) / 10 * (xMax_m - xMin_m)/bunch_m->getTotalNum(); // should be ~10 bins // bunch_m->getTotalNum()  /  
-            double tmp_ratio                        = (xMax_m - xMin_m) / 10;
+            double tmp_ratio                        = bunch_m->getTotalNum() / 10; // (xMax_m - xMin_m) / 10;
             hindex_transform_type adaptLookup       = globalBinHisto_m.mergeBins(tmp_ratio);
             dindex_transform_type adaptLookupDevice = dindex_transform_type("adaptLookupDevice", currentBins_m);
             Kokkos::deep_copy(adaptLookupDevice, adaptLookup);
