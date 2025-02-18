@@ -305,7 +305,8 @@ namespace ParticleBinning {
          * a division by zero. 
          * So: either check if the number is 0 or make sure ranks always have enough particles!
          */
-        gamma_bin2 /= (npart_bin == 0) ? 0 : npart_bin; // Now we have <P> for this bin
+
+        gamma_bin2  = (npart_bin == 0) ? Vector<double, 3>(0.0) : gamma_bin2/npart_bin; // Now we have <P> for this bin
         gamma_bin2  = -sqrt(1.0 + gamma_bin2*gamma_bin2); // in these units: gamma=sqrt(1 + <P>^2), assuming <P^2>~0 (since bunch per bin should be "considered constant") // -1.0 / sqrt(1.0 - gamma_bin2 / c2); // negative sign, since we want the inverse transformation
         // std::cout << "Gamma factor calculated = " << gamma_bin2 << std::endl;
         m << "Gamma(binIndex = " << currentBin << ") = -" << gamma_bin2 << endl;

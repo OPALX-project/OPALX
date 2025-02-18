@@ -54,6 +54,7 @@ namespace ParticleBinning {
     }*/
 
     template <typename size_type, typename bin_index_type, typename value_type, bool UseDualView, class... Properties>
+    template <typename BinningSelector_t>
     value_type 
     Histogram<size_type, bin_index_type, value_type, UseDualView, Properties...>::partialMergedCDFIntegralCost(
         const bin_index_type& i, const bin_index_type& k,
@@ -66,20 +67,24 @@ namespace ParticleBinning {
         //const value_type& mergedStd,
         //const value_type& segFineMoment
     ) {
+        //std::cout << "i = " << i << ", k = " << k << ", sumCount = " << sumCount << ", sumWidth = " << sumWidth << std::endl;
         // 1. Calculate mean of segment to be merged
         value_type valueMean = 0.0;
-        Kokkos::parallel_reduce(getBinIterationPolicy(i, k), KOKKOS_LAMBDA(const bin_index_type& j, value_type& valueMean) {
+        Kokkos::parallel_reduce(getBinIterationPolicy(i, k-i), KOKKOS_LAMBDA(const bin_index_type& j, value_type& valueMean) {
             const bin_index_type idx = sortedIndexArr(j);
             valueMean += var_selector(idx);
         }, valueMean);
         valueMean /= sumCount;
+        //std::cout << "Hey there!" << std::endl;
 
         // 2. Calculate variance of segment to be merged
         value_type squaredDiff = 0.0;
-        Kokkos::parallel_reduce(getBinIterationPolicy(i, k), KOKKOS_LAMBDA(const bin_index_type& j, value_type& squaredDiff) {
+        Kokkos::parallel_reduce(getBinIterationPolicy(i, k-i), KOKKOS_LAMBDA(const bin_index_type& j, value_type& squaredDiff) {
             const bin_index_type idx = sortedIndexArr(j);
             squaredDiff += pow(var_selector(idx) - valueMean, 2);
         }, squaredDiff);
+
+        //std::cout << "Hey there!" << std::endl;
 
         value_type varEstimate = squaredDiff / sumCount;
 
@@ -139,6 +144,7 @@ namespace ParticleBinning {
 
 
     template <typename size_type, typename bin_index_type, typename value_type, bool UseDualView, class... Properties>
+    template <typename BinningSelector_t>
     Histogram<size_type, bin_index_type, value_type, UseDualView, Properties...>::hindex_transform_type
     Histogram<size_type, bin_index_type, value_type, UseDualView, Properties...>::mergeBins(
         const hash_type sortedIndexArr,
@@ -147,15 +153,15 @@ namespace ParticleBinning {
         static IpplTimings::TimerRef mergeBinsTimer = IpplTimings::getTimer("mergeBins");
 
         // Maybe set this later as a parameter
-        value_type alpha = 150; // scotts normal reference rule, see https://en.wikipedia.org/wiki/Histogram#Scott's_normal_reference_rule
+        value_type alpha = 1.0; // scotts normal reference rule, see https://en.wikipedia.org/wiki/Histogram#Scott's_normal_reference_rule
         
         // TODO 
         // Should merge neighbouring bins such that the width/N_part ratio is roughly maxBinRatio.
         // TODO: Find algorithm for that
         // std::cout << "Warning: mergeBins not implemented yet!" << std::endl;
         Inform m("Histogram");
-        m << "Merging bins with cost-based approach (minimize deviation from maxBinRatio = "
-          << maxBinRatio << ")" << endl;
+        //m << "Merging bins with cost-based approach (minimize deviation from maxBinRatio = "
+        //  << maxBinRatio << ")" << endl;
 
         if constexpr (!UseDualView) {
             m << "This does not work if the histogram is not saved in a DualView, since it needs host access to the data." << endl;
@@ -227,13 +233,13 @@ namespace ParticleBinning {
         // ----------------------------------------------------------------
         // 3) Fill dp with an O(n^2) algorithm to find the minimal total cost
         // ----------------------------------------------------------------
-        value_type varPerBin = pow(oldBinWHost(0), 2) / 12; // assume equal width, assume uniform distribution per fine bin
+        // value_type varPerBin = pow(oldBinWHost(0), 2) / 12; // assume equal width, assume uniform distribution per fine bin
         for (bin_index_type k = 1; k <= n; ++k) {
             // Try all possible start indices i for the last merged bin
             for (bin_index_type i = 0; i < k; ++i) {
                 size_type  sumCount      = prefixCount(k) - prefixCount(i);
                 value_type sumWidth      = prefixWidth(k) - prefixWidth(i);
-                value_type segCost   = largeVal;
+                value_type segCost       = largeVal;
                 if (sumCount > 0) {
                     //value_type segFineMoment = prefixMoment(k) - prefixMoment(i); // "exact" integral value for first order moment (from fine histo)
                     //value_type mergedStd     = mergedBinStd(i, k, sumCount, varPerBin, prefixWidth, oldHistHost, oldBinWHost);

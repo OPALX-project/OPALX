@@ -103,7 +103,7 @@ namespace ParticleBinning {
         * @note If you have your own class, you need to implement this signature and potentially
         *       update all data arrays that operator() uses (e.g. also velocity or E).
         */
-        void updateDataArr(std::shared_ptr<bunch_type> bunch) { data_arr = bunch->R.getView(); }
+        void updateDataArr(std::shared_ptr<bunch_type> bunch) { data_arr = bunch->P.getView(); }
 
         /**
         * @brief Returns the value of the binning variable for a given particle index.
@@ -116,7 +116,8 @@ namespace ParticleBinning {
         KOKKOS_INLINE_FUNCTION
         value_type operator()(const size_type& i) const {
             //std::cout << "CoordinateSelector: " << i << std::endl; // TODO: debug, remove later
-            return data_arr(i)[axis];
+            const value_type value = abs(data_arr(i)[axis]);
+            return value / sqrt(1 + value * value); // Normalize to v/c, so v in [0, 1]
         }
     };
 

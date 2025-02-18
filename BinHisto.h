@@ -334,6 +334,7 @@ namespace ParticleBinning {
         The following contain functions that are used to make the histogram adaptive.
         */
 
+        template <typename BinningSelector_t>
         hindex_transform_type mergeBins(const hash_type sortedIndexArr, const BinningSelector_t var_selector);
 
         /*KOKKOS_INLINE_FUNCTION // in case it is needed...
@@ -350,11 +351,14 @@ namespace ParticleBinning {
             const hview_type& fineCounts, const hwidth_view_type& fineWidths
         );
 
+        template <typename BinningSelector_t>
         value_type partialMergedCDFIntegralCost(
             const bin_index_type& i, const bin_index_type& k,
             const size_type& sumCount,
             const value_type& sumWidth,
-            const hash_type sortedIndexArr
+            const value_type& wideBinPenalty,
+            const hash_type sortedIndexArr, 
+            const BinningSelector_t var_selector
         );
 
     private:
