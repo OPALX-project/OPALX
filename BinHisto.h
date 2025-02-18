@@ -62,6 +62,8 @@ namespace ParticleBinning {
         using dindex_transform_type = index_transform_type<Kokkos::DefaultExecutionSpace>;
         using hindex_transform_type = index_transform_type<Kokkos::HostSpace>;
 
+        using hash_type             = ippl::detail::hash_type<Kokkos::DefaultExecutionSpace::memory_space>;
+
         /**
          * @brief Default constructor for the Histogram class.
          */
@@ -332,7 +334,7 @@ namespace ParticleBinning {
         The following contain functions that are used to make the histogram adaptive.
         */
 
-        hindex_transform_type mergeBins(const value_type maxBinRatio);
+        hindex_transform_type mergeBins(const hash_type sortedIndexArr, const BinningSelector_t var_selector);
 
         /*KOKKOS_INLINE_FUNCTION // in case it is needed...
         static value_type computeDeviationCost(const size_type& sumCount,
@@ -349,11 +351,10 @@ namespace ParticleBinning {
         );
 
         value_type partialMergedCDFIntegralCost(
-                                   const size_type& sumCount,
-                                   const value_type& sumWidth,
-                                   const value_type& alpha,
-                                   const value_type& mergedStd,
-                                   const value_type& segFineMoment
+            const bin_index_type& i, const bin_index_type& k,
+            const size_type& sumCount,
+            const value_type& sumWidth,
+            const hash_type sortedIndexArr
         );
 
     private:

@@ -56,12 +56,40 @@ namespace ParticleBinning {
     template <typename size_type, typename bin_index_type, typename value_type, bool UseDualView, class... Properties>
     value_type 
     Histogram<size_type, bin_index_type, value_type, UseDualView, Properties...>::partialMergedCDFIntegralCost(
+        const bin_index_type& i, const bin_index_type& k,
         const size_type& sumCount,
         const value_type& sumWidth,
-        const value_type& alpha,
-        const value_type& mergedStd,
-        const value_type& segFineMoment
+        const value_type& wideBinPenalty,
+        const hash_type sortedIndexArr,
+        const BinningSelector_t var_selector
+        // const value_type& alpha, // TODO: maybe later
+        //const value_type& mergedStd,
+        //const value_type& segFineMoment
     ) {
+        // 1. Calculate mean of segment to be merged
+        value_type valueMean = 0.0;
+        Kokkos::parallel_reduce(getBinIterationPolicy(i, k), KOKKOS_LAMBDA(const bin_index_type& j, value_type& valueMean) {
+            const bin_index_type idx = sortedIndexArr(j);
+            valueMean += var_selector(idx);
+        }, valueMean);
+        valueMean /= sumCount;
+
+        // 2. Calculate variance of segment to be merged
+        value_type squaredDiff = 0.0;
+        Kokkos::parallel_reduce(getBinIterationPolicy(i, k), KOKKOS_LAMBDA(const bin_index_type& j, value_type& squaredDiff) {
+            const bin_index_type idx = sortedIndexArr(j);
+            squaredDiff += pow(var_selector(idx) - valueMean, 2);
+        }, squaredDiff);
+
+        value_type varEstimate = squaredDiff / sumCount;
+
+        // Basically assuming Gaussian distribution per bin and calculating the log-likelihood. 
+        // Aims to give a penalty for bins too wide and bins with not enough particles.
+        return sumCount / 2 * log(2*3.1415926) 
+                + sumCount * log(sqrt(varEstimate))
+                + 1 / (2 * varEstimate) * squaredDiff
+                + wideBinPenalty * sumWidth;
+        /*
         // Compute the representative value as the weighted average. 
         const value_type representative      = segFineMoment / static_cast<value_type>(sumCount);
         const value_type mergedSegmentMoment = representative * sumCount;
@@ -79,7 +107,7 @@ namespace ParticleBinning {
 
         // Note: At the moment, costMoment is zero :( -- TODO: what can I do here???
         // return alpha * costCDF + costMoment + narrowPenalty;
-        return alpha * costCDF + mergedStd / pow(sumCount, 1.0/3.0) + narrowPenalty;
+        return alpha * costCDF + mergedStd / pow(sumCount, 1.0/3.0) + narrowPenalty;*/
     }
 
     template <typename size_type, typename bin_index_type, typename value_type, bool UseDualView, class... Properties>
@@ -112,7 +140,10 @@ namespace ParticleBinning {
 
     template <typename size_type, typename bin_index_type, typename value_type, bool UseDualView, class... Properties>
     Histogram<size_type, bin_index_type, value_type, UseDualView, Properties...>::hindex_transform_type
-    Histogram<size_type, bin_index_type, value_type, UseDualView, Properties...>::mergeBins(const value_type maxBinRatio) {
+    Histogram<size_type, bin_index_type, value_type, UseDualView, Properties...>::mergeBins(
+        const hash_type sortedIndexArr,
+        const BinningSelector_t var_selector
+    ) {
         static IpplTimings::TimerRef mergeBinsTimer = IpplTimings::getTimer("mergeBins");
 
         // Maybe set this later as a parameter
@@ -204,14 +235,15 @@ namespace ParticleBinning {
                 value_type sumWidth      = prefixWidth(k) - prefixWidth(i);
                 value_type segCost   = largeVal;
                 if (sumCount > 0) {
-                    value_type segFineMoment = prefixMoment(k) - prefixMoment(i); // "exact" integral value for first order moment (from fine histo)
-                    value_type mergedStd     = mergedBinStd(i, k, sumCount, varPerBin, prefixWidth, oldHistHost, oldBinWHost);
+                    //value_type segFineMoment = prefixMoment(k) - prefixMoment(i); // "exact" integral value for first order moment (from fine histo)
+                    //value_type mergedStd     = mergedBinStd(i, k, sumCount, varPerBin, prefixWidth, oldHistHost, oldBinWHost);
                     //segCost              = computeDeviationCost(sumCount, sumWidth, maxBinRatio, alpha, mergedStd);
-                    segCost = partialMergedCDFIntegralCost(sumCount, sumWidth, alpha, mergedStd, segFineMoment);
+                    //segCost = partialMergedCDFIntegralCost(sumCount, sumWidth, alpha, mergedStd, segFineMoment);
+                    segCost = partialMergedCDFIntegralCost(i, k, sumCount, sumWidth, alpha, sortedIndexArr, var_selector);
 
                     if (k % 10 == 0 && i % 10 == 0) {
                         m << "k = " << k << ", i = " << i << ", sumCount = " << sumCount << ", sumWidth = " << sumWidth
-                          << ", segCost = " << segCost << ", mergedStd = " << mergedStd << endl;
+                          << ", segCost = " << segCost << endl; // ", mergedStd = " << mergedStd << endl;
                     }
                 }
                 //value_type segCost   = computeDeviationCost(sumCount, sumWidth, maxBinRatio, largeVal, alpha);
