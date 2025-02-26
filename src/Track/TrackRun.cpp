@@ -30,9 +30,9 @@
 
 #include "Distribution/Distribution.h"
 
-#include "Distribution/Gaussian.hpp"
+#include "Distribution/Gaussian.h"
 
-#include "Distribution/MultiVariateGaussian.hpp"
+#include "Distribution/MultiVariateGaussian.h"
 
 #include "Distribution/FlatTop.h"
 
