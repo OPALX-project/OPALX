@@ -318,7 +318,7 @@ namespace ParticleBinning {
             // double tmp_ratio                        = bunch_m->getTotalNum() / 10; // (xMax_m - xMin_m) / 10;
 
             var_selector_m.updateDataArr(bunch_m); // Probably not necessary, since it is called before updating particles; but just in case!
-            hindex_transform_type adaptLookup       = globalBinHisto_m.mergeBins(sortedIndexArr_m, var_selector_m);
+            hindex_transform_type adaptLookup       = globalBinHisto_m.mergeBins(/*sortedIndexArr_m, var_selector_m*/);
             dindex_transform_type adaptLookupDevice = dindex_transform_type("adaptLookupDevice", currentBins_m);
             Kokkos::deep_copy(adaptLookupDevice, adaptLookup);
             

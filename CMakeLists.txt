@@ -27,22 +27,20 @@
 # End:
 
 
-#set (_SRCS
-#    PartBunch.cpp
-#    FieldSolver.cpp
-#)
+set (_SRCS
+    AdaptBins.cpp
+    BinHisto.cpp
+)
 
 include_directories (
     ${CMAKE_CURRENT_SOURCE_DIR}
     )
 
-#add_opal_sources (${_SRCS})
+add_opal_sources (${_SRCS})
 
 set (HDRS
     AdaptBins.h    
-    AdaptBins.hpp
     BinHisto.h
-    BinHisto.hpp
     BinningTools.h
     ParallelReduceTools.h
 )

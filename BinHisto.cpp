@@ -56,15 +56,16 @@ namespace ParticleBinning {
     }*/
 
     template <typename size_type, typename bin_index_type, typename value_type, bool UseDualView, class... Properties>
-    template <typename BinningSelector_t>
+    //template <typename BinningSelector_t>
     value_type 
     Histogram<size_type, bin_index_type, value_type, UseDualView, Properties...>::partialMergedCDFIntegralCost(
-        const bin_index_type& i, const bin_index_type& k,
+        //const bin_index_type& i, const bin_index_type& k,
         const size_type& sumCount,
         const value_type& sumWidth,
         const value_type& wideBinPenalty,
-        const hash_type sortedIndexArr,
-        const BinningSelector_t var_selector
+        const size_type& totalNumParticles
+        //const hash_type sortedIndexArr,
+        //const BinningSelector_t var_selector
         // const value_type& alpha, // TODO: maybe later
         //const value_type& mergedStd,
         //const value_type& segFineMoment
@@ -89,7 +90,7 @@ namespace ParticleBinning {
         //std::cout << "Hey there!" << std::endl;
 
         value_type varEstimate = squaredDiff / sumCount;*/
-        value_type totalSum = static_cast<value_type>(sortedIndexArr.extent(0));
+        value_type totalSum = static_cast<value_type>(totalNumParticles);
         value_type sumCountNorm = sumCount / totalSum; // static_cast<value_type>(sumCount) / totalSum;
 
         // Basically assuming Gaussian distribution per bin and calculating the log-likelihood. 
@@ -99,13 +100,16 @@ namespace ParticleBinning {
                 - 1 / (2 * varEstimate) * squaredDiff
                 - wideBinPenalty * sumWidth;*/
         //return -sumCountNorm * log(sumCountNorm/sumWidth) + sumCountNorm + wideBinPenalty * sumWidth;
-        value_type penalty = pow(0.1 - sumWidth, 2);// (sumWidth > 0.1) ? pow(0.1 - sumWidth, 2) : 0.0;
+        value_type penalty = 0.1 - sumWidth;// (sumWidth > 0.1) ? pow(0.1 - sumWidth, 2) : 0.0;
 
         if (k % 10 == 0 && i % 10 == 0) {
             std::cout << ", sum1 = " << (sumCountNorm*log(sumWidth)) << ", sum2 = " << (wideBinPenalty*penalty) << std::endl;
         }
 
-        return sumCountNorm * log(sumWidth) + wideBinPenalty * penalty; // + wideBinPenalty / sumWidth;
+        // return sumCountNorm * log(sumWidth) + wideBinPenalty * penalty; // + wideBinPenalty / sumWidth;
+        return (1-wideBinPenalty) * sumCountNorm*log(sumCountNorm)*sumWidth
+                + wideBinPenalty  * (penalty - pow(penalty, 2)/2 + pow(penalty, 3)/3);
+
         /*
         // Compute the representative value as the weighted average. 
         const value_type representative      = segFineMoment / static_cast<value_type>(sumCount);
@@ -127,7 +131,7 @@ namespace ParticleBinning {
         return alpha * costCDF + mergedStd / pow(sumCount, 1.0/3.0) + narrowPenalty;*/
     }
 
-    template <typename size_type, typename bin_index_type, typename value_type, bool UseDualView, class... Properties>
+    /*template <typename size_type, typename bin_index_type, typename value_type, bool UseDualView, class... Properties>
     value_type
     Histogram<size_type, bin_index_type, value_type, UseDualView, Properties...>::mergedBinStd(
         const bin_index_type& i, const bin_index_type& k,
@@ -152,20 +156,20 @@ namespace ParticleBinning {
         variance /= sumCount;
 
         return sqrt(variance);
-    }
+    }*/
 
 
     template <typename size_type, typename bin_index_type, typename value_type, bool UseDualView, class... Properties>
-    template <typename BinningSelector_t>
+    //template <typename BinningSelector_t>
     Histogram<size_type, bin_index_type, value_type, UseDualView, Properties...>::hindex_transform_type
     Histogram<size_type, bin_index_type, value_type, UseDualView, Properties...>::mergeBins(
-        const hash_type sortedIndexArr,
-        const BinningSelector_t var_selector
+        //const hash_type sortedIndexArr,
+        //const BinningSelector_t var_selector
     ) {
         static IpplTimings::TimerRef mergeBinsTimer = IpplTimings::getTimer("mergeBins");
 
         // Maybe set this later as a parameter
-        value_type alpha = 20.0; // scotts normal reference rule, see https://en.wikipedia.org/wiki/Histogram#Scott's_normal_reference_rule
+        value_type alpha = 0.5; // scotts normal reference rule, see https://en.wikipedia.org/wiki/Histogram#Scott's_normal_reference_rule
         
         // TODO 
         // Should merge neighbouring bins such that the width/N_part ratio is roughly maxBinRatio.
@@ -215,6 +219,7 @@ namespace ParticleBinning {
                                                                               // Basically the "integral" \int_{0}^{x} x f(x) dx
                                                                               // TODO: might want to use different integration rule?
         }
+        const size_type totalNumParticles = prefixCount(n); // Last value in prefixCount is the total number of particles
         //computeFixSum<hview_type>(oldHistHost, prefixCount);
         //computeFixSum<hwidth_view_type>(oldBinWHost, prefixWidth);
 
@@ -257,7 +262,8 @@ namespace ParticleBinning {
                     //value_type mergedStd     = mergedBinStd(i, k, sumCount, varPerBin, prefixWidth, oldHistHost, oldBinWHost);
                     //segCost              = computeDeviationCost(sumCount, sumWidth, maxBinRatio, alpha, mergedStd);
                     //segCost = partialMergedCDFIntegralCost(sumCount, sumWidth, alpha, mergedStd, segFineMoment);
-                    segCost = partialMergedCDFIntegralCost(i, k, sumCount, sumWidth, alpha, sortedIndexArr, var_selector);
+                    //segCost = partialMergedCDFIntegralCost(i, k, sumCount, sumWidth, alpha, sortedIndexArr, var_selector);
+                    segCost = partialMergedCDFIntegralCost(sumCount, sumWidth, alpha, totalNumParticles);
 
                     if (k % 10 == 0 && i % 10 == 0) {
                         m << "k = " << k << ", i = " << i << ", sumCount = " << sumCount << ", sumWidth = " << sumWidth
