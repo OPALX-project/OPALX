@@ -471,7 +471,7 @@ namespace ParticleBinning {
 
 }
 
-#include "AdaptBins.hpp"
+// #include "AdaptBins.cpp"
 
 #endif  // ADAPT_BINS_H
 

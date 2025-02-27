@@ -1,5 +1,7 @@
-#ifndef BINHISTO_HPP
-#define BINHISTO_HPP
+#ifndef BINHISTO_CPP
+#define BINHISTO_CPP
+
+#include "BinHisto.h"
 
 namespace ParticleBinning {
 
@@ -69,7 +71,7 @@ namespace ParticleBinning {
     ) {
         //std::cout << "i = " << i << ", k = " << k << ", sumCount = " << sumCount << ", sumWidth = " << sumWidth << std::endl;
         // 1. Calculate mean of segment to be merged
-        value_type valueMean = 0.0;
+        /*value_type valueMean = 0.0;
         Kokkos::parallel_reduce(getBinIterationPolicy(i, k-i), KOKKOS_LAMBDA(const bin_index_type& j, value_type& valueMean) {
             const bin_index_type idx = sortedIndexArr(j);
             valueMean += var_selector(idx);
@@ -86,14 +88,24 @@ namespace ParticleBinning {
 
         //std::cout << "Hey there!" << std::endl;
 
-        value_type varEstimate = squaredDiff / sumCount;
+        value_type varEstimate = squaredDiff / sumCount;*/
+        value_type totalSum = static_cast<value_type>(sortedIndexArr.extent(0));
+        value_type sumCountNorm = sumCount / totalSum; // static_cast<value_type>(sumCount) / totalSum;
 
         // Basically assuming Gaussian distribution per bin and calculating the log-likelihood. 
         // Aims to give a penalty for bins too wide and bins with not enough particles.
-        return sumCount / 2 * log(2*3.1415926) 
-                + sumCount * log(sqrt(varEstimate))
-                + 1 / (2 * varEstimate) * squaredDiff
-                + wideBinPenalty * sumWidth;
+        /*return -sumCount / 2 * log(2*3.1415926) 
+                - sumCount * log(sqrt(varEstimate))
+                - 1 / (2 * varEstimate) * squaredDiff
+                - wideBinPenalty * sumWidth;*/
+        //return -sumCountNorm * log(sumCountNorm/sumWidth) + sumCountNorm + wideBinPenalty * sumWidth;
+        value_type penalty = pow(0.1 - sumWidth, 2);// (sumWidth > 0.1) ? pow(0.1 - sumWidth, 2) : 0.0;
+
+        if (k % 10 == 0 && i % 10 == 0) {
+            std::cout << ", sum1 = " << (sumCountNorm*log(sumWidth)) << ", sum2 = " << (wideBinPenalty*penalty) << std::endl;
+        }
+
+        return sumCountNorm * log(sumWidth) + wideBinPenalty * penalty; // + wideBinPenalty / sumWidth;
         /*
         // Compute the representative value as the weighted average. 
         const value_type representative      = segFineMoment / static_cast<value_type>(sumCount);
@@ -153,7 +165,7 @@ namespace ParticleBinning {
         static IpplTimings::TimerRef mergeBinsTimer = IpplTimings::getTimer("mergeBins");
 
         // Maybe set this later as a parameter
-        value_type alpha = 1.0; // scotts normal reference rule, see https://en.wikipedia.org/wiki/Histogram#Scott's_normal_reference_rule
+        value_type alpha = 20.0; // scotts normal reference rule, see https://en.wikipedia.org/wiki/Histogram#Scott's_normal_reference_rule
         
         // TODO 
         // Should merge neighbouring bins such that the width/N_part ratio is roughly maxBinRatio.
