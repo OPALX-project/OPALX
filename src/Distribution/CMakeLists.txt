@@ -1,7 +1,9 @@
 set (_SRCS
     Distribution.cpp
     FlatTop.cpp
+    Gaussian.cpp
     LaserProfile.cpp
+    MultiVariateGaussian.cpp
     )
 
 include_directories (
@@ -13,8 +15,10 @@ add_opal_sources(${_SRCS})
 set (HDRS
     Distribution.h
     FlatTop.h
+    Gaussian.h
     LaserProfile.h
     MapGenerator.h
+    MultiVariateGaussian.h
     matrix_vector_operation.h
     )
 
