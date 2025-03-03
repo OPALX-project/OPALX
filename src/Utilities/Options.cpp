@@ -103,4 +103,8 @@ namespace Options {
     unsigned int delPartFreq = 1;
 
     bool computePercentiles = false;
+
+    int maxBins         = 128;
+    double binningAlpha = 0.6;
+    double desiredWidth = 0.1;
 }  // namespace Options

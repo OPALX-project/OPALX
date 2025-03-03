@@ -295,11 +295,13 @@ public:
 
         IpplTimings::stopTimer(gatherInfoPartBunch);
 
+        using bin_index_type = typename ParticleContainer_t::bin_index_type;
+        bin_index_type maxBins = Options::maxBins;
         this->setBins(std::make_shared<AdaptBins_t>(
             this->getParticleContainer(), 
             BinningSelector_t(2), // TODO: hardcode z axis with coordinate selector at axis index 2
-            128)
-        );
+            static_cast<bin_index_type>(maxBins)
+        ));
         this->getBins()->debug();
 
         this->setTempEField(std::make_shared<VField_t<T, Dim>>(this->fcontainer_m->getMesh(), this->fcontainer_m->getFL()));
