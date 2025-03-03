@@ -105,6 +105,7 @@ namespace Options {
     bool computePercentiles = false;
 
     int maxBins         = 128;
-    double binningAlpha = 0.6;
+    double binningAlpha = 1.0;
+    double binningBeta = 1.0;
     double desiredWidth = 0.1;
 }  // namespace Options

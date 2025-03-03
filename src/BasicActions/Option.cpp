@@ -91,6 +91,7 @@ namespace {
         COMPUTEPERCENTILES,
         MAXBINS,
         BINNINGALPHA,
+        BINNINGBETA,
         DESIREDWIDTH,
         SIZE
     };
@@ -329,6 +330,11 @@ Option::Option()
         "BINNINGALPHA",
         "A value [0, 1] that determines how aggressive the algorithm tries to reduce the number of bins.",
         binningAlpha);
+    
+    itsAttr[BINNINGBETA] = Attributes::makeReal(
+        "BINNINGBETA",
+        "A value [0, 1] that determines how aggressive the algorithm tries to use wider bins.",
+        binningBeta);
 
     itsAttr[DESIREDWIDTH] = Attributes::makeReal(
         "DESIREDWIDTH",
@@ -384,6 +390,7 @@ Option::Option(const std::string& name, Option* parent) : Action(name, parent) {
 
     Attributes::setReal(itsAttr[MAXBINS], maxBins);
     Attributes::setReal(itsAttr[BINNINGALPHA], binningAlpha);
+    Attributes::setReal(itsAttr[BINNINGBETA], binningBeta);
     Attributes::setReal(itsAttr[DESIREDWIDTH], desiredWidth);
 }
 
@@ -419,6 +426,7 @@ void Option::execute() {
 
     maxBins       = Attributes::getReal(itsAttr[MAXBINS]);
     binningAlpha  = Attributes::getReal(itsAttr[BINNINGALPHA]);
+    binningBeta   = Attributes::getReal(itsAttr[BINNINGBETA]);
     desiredWidth  = Attributes::getReal(itsAttr[DESIREDWIDTH]);
 
     /// note: rangen is used only for the random number generator in the OPAL language
@@ -533,6 +541,10 @@ void Option::execute() {
 
     if (itsAttr[BINNINGALPHA]) {
         binningAlpha = Attributes::getReal(itsAttr[BINNINGALPHA]);
+    }
+
+    if (itsAttr[BINNINGBETA]) {
+        binningBeta = Attributes::getReal(itsAttr[BINNINGBETA]);
     }
 
     if (itsAttr[DESIREDWIDTH]) {
