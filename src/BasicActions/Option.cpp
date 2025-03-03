@@ -89,6 +89,9 @@ namespace {
         MINBINEMITTED,
         MINSTEPFORREBIN,
         COMPUTEPERCENTILES,
+        MAXBINS,
+        BINNINGALPHA,
+        DESIREDWIDTH,
         SIZE
     };
 }  // namespace
@@ -316,6 +319,22 @@ Option::Option()
         "for the beam size and the normalized emittance should "
         "be computed. Default: false",
         computePercentiles);
+    
+    itsAttr[MAXBINS] = Attributes::makeReal(
+        "MAXBINS",
+        "The maximum number of bins used for energy binning. Default: 128",
+        maxBins);
+
+    itsAttr[BINNINGALPHA] = Attributes::makeReal(
+        "BINNINGALPHA",
+        "A value [0, 1] that determines how aggressive the algorithm tries to reduce the number of bins.",
+        binningAlpha);
+
+    itsAttr[DESIREDWIDTH] = Attributes::makeReal(
+        "DESIREDWIDTH",
+        "A bias [0, 1] that tries to steer the bin size to the given variable.",
+        desiredWidth);
+    
 
     registerOwnership(AttributeHandler::STATEMENT);
 
@@ -362,6 +381,10 @@ Option::Option(const std::string& name, Option* parent) : Action(name, parent) {
     Attributes::setReal(itsAttr[HALOSHIFT], haloShift);
     Attributes::setReal(itsAttr[DELPARTFREQ], delPartFreq);
     Attributes::setBool(itsAttr[COMPUTEPERCENTILES], computePercentiles);
+
+    Attributes::setReal(itsAttr[MAXBINS], maxBins);
+    Attributes::setReal(itsAttr[BINNINGALPHA], binningAlpha);
+    Attributes::setReal(itsAttr[DESIREDWIDTH], desiredWidth);
 }
 
 Option::~Option() {
@@ -393,6 +416,10 @@ void Option::execute() {
     haloShift          = Attributes::getReal(itsAttr[HALOSHIFT]);
     delPartFreq        = Attributes::getReal(itsAttr[DELPARTFREQ]);
     computePercentiles = Attributes::getBool(itsAttr[COMPUTEPERCENTILES]);
+
+    maxBins       = Attributes::getReal(itsAttr[MAXBINS]);
+    binningAlpha  = Attributes::getReal(itsAttr[BINNINGALPHA]);
+    desiredWidth  = Attributes::getReal(itsAttr[DESIREDWIDTH]);
 
     /// note: rangen is used only for the random number generator in the OPAL language
     ///       not for the distributions
@@ -498,6 +525,18 @@ void Option::execute() {
         cloTuneOnly = bool(Attributes::getBool(itsAttr[CLOTUNEONLY]));
     } else {
         cloTuneOnly = false;
+    }
+
+    if (itsAttr[MAXBINS]) {
+        maxBins = int(Attributes::getReal(itsAttr[MAXBINS]));
+    } 
+
+    if (itsAttr[BINNINGALPHA]) {
+        binningAlpha = Attributes::getReal(itsAttr[BINNINGALPHA]);
+    }
+
+    if (itsAttr[DESIREDWIDTH]) {
+        desiredWidth = Attributes::getReal(itsAttr[DESIREDWIDTH]);
     }
 
     // Set message flags.
