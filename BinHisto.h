@@ -80,6 +80,10 @@ namespace ParticleBinning {
             : debug_name_m(debug_name)
             , numBins_m(numBins)
             , totalBinWidth_m(totalBinWidth) {
+            
+            binningAlpha = Options::binningAlpha;
+            binningBeta = Options::binningBeta;
+            desiredWidth = Options::desiredWidth;
             instantiateHistograms();
         }
 
@@ -356,7 +360,6 @@ namespace ParticleBinning {
             //const bin_index_type& i, const bin_index_type& k,
             const size_type& sumCount,
             const value_type& sumWidth,
-            const value_type& wideBinPenalty,
             const size_type& totalNumParticles
             //const hash_type sortedIndexArr, 
             //const BinningSelector_t var_selector
@@ -366,6 +369,10 @@ namespace ParticleBinning {
         std::string debug_name_m;   /// \brief Debug name for identifying the histogram instance.
         bin_index_type numBins_m;   /// \brief Number of bins in the histogram.
         value_type totalBinWidth_m; /// \brief Total width of all bins combined.
+
+        value_type binningAlpha; 
+        value_type binningBeta;
+        value_type desiredWidth;
 
         view_type       histogram_m;      /// \brief View storing the particle counts in each bin.
         width_view_type binWidths_m;      /// \brief View storing the widths of the bins.

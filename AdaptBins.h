@@ -86,7 +86,10 @@ namespace ParticleBinning {
             // sortingBuffer_m = Kokkos::View<int*>("particlePermutationBuffer", bunch->getLocalNum());
 
             Inform msg("AdaptBins");
-            msg << "AdaptBins initialized with maxBins = " << maxBins << endl;
+            msg << "AdaptBins initialized with maxBins = " << Options::maxBins 
+                << ", alpha = " << Options::binningAlpha
+                << ", beta = " << Options::binningBeta
+                << ", desiredWidth = " << Options::desiredWidth << endl;
         }
 
         /**

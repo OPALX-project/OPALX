@@ -47,4 +47,6 @@ srun ./BinningLandauDamping 32 32 32 1000000 5 FFT 0.01 LeapFrog Flattop --overa
 # srun --cpus-per-task=1 ./Binning_pic3d 8 8 8 1000000 1 --info 10
 
 
+# For interactive shell:
+# bash run.sh > output/opalx_$(date +%Y%m%d_%H%M%S).out 2> output/opalx_$(date +%Y%m%d_%H%M%S).err
 

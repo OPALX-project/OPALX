@@ -1,6 +1,7 @@
 #ifndef BINNINGTOOLS_H
 #define BINNINGTOOLS_H
 
+#include "Utilities/Options.h"
 #include "ParallelReduceTools.h" // needed for HistoReductionMode and maxArrSize
 
 namespace ParticleBinning {

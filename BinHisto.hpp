@@ -28,6 +28,10 @@ namespace ParticleBinning {
         numBins_m       = other.numBins_m;
         totalBinWidth_m = other.totalBinWidth_m;
 
+        binningAlpha = other.binningAlpha;
+        binningBeta = other.binningBeta;
+        desiredWidth = other.desiredWidth;
+
         histogram_m = other.histogram_m;
         binWidths_m = other.binWidths_m;
         postSum_m   = other.postSum_m;
@@ -64,7 +68,6 @@ namespace ParticleBinning {
         //const bin_index_type& i, const bin_index_type& k,
         const size_type& sumCount,
         const value_type& sumWidth,
-        const value_type& wideBinPenalty,
         const size_type& totalNumParticles
         //const hash_type sortedIndexArr,
         //const BinningSelector_t var_selector
@@ -102,20 +105,23 @@ namespace ParticleBinning {
                 - 1 / (2 * varEstimate) * squaredDiff
                 - wideBinPenalty * sumWidth;*/
         //return -sumCountNorm * log(sumCountNorm/sumWidth) + sumCountNorm + wideBinPenalty * sumWidth;
-        value_type penalty = 0.1 - sumWidth;// (sumWidth > 0.1) ? pow(0.1 - sumWidth, 2) : 0.0;
+        value_type penalty = sumWidth - desiredWidth;// (sumWidth > 0.1) ? pow(0.1 - sumWidth, 2) : 0.0;
+        value_type wideBinPenalty = binningAlpha;
+        value_type fineBinPenalty = binningBeta * sumCountNorm;
 
         //if (k % 10 == 0 && i % 10 == 0) {
         //    std::cout << ", sum1 = " << (sumCountNorm*log(sumWidth)) << ", sum2 = " << (wideBinPenalty*penalty) << std::endl;
         //}
-        if (std::rand() < RAND_MAX / 100) {
+        /*if (std::rand() < RAND_MAX / 100) {
             std::cout << "Term 1 = " << (1-wideBinPenalty) * sumCountNorm*log(sumCountNorm)*sumWidth
                       << ", Term 2 = " << wideBinPenalty  * (penalty - pow(penalty, 2)/2 + pow(penalty, 3)/3) << std::endl;
-        }
+        }*/
         
 
         // return sumCountNorm * log(sumWidth) + wideBinPenalty * penalty; // + wideBinPenalty / sumWidth;
-        return (1-wideBinPenalty) * sumCountNorm*log(sumCountNorm)*sumWidth
-                - wideBinPenalty  * (penalty - pow(penalty, 2)/2);// + pow(penalty, 3)/3);
+        return sumCountNorm*log(sumCountNorm)*sumWidth
+                - wideBinPenalty * penalty 
+                + fineBinPenalty * pow(penalty, 2); // penalty + pow(penalty, 3)/3);
 
         /*
         // Compute the representative value as the weighted average. 
@@ -176,8 +182,9 @@ namespace ParticleBinning {
         std::srand(time(0)); // TODO: remove! 
         static IpplTimings::TimerRef mergeBinsTimer = IpplTimings::getTimer("mergeBins");
 
+        // scotts normal reference rule, see https://en.wikipedia.org/wiki/Histogram#Scott's_normal_reference_rule
         // Maybe set this later as a parameter
-        value_type alpha = 0.5; // scotts normal reference rule, see https://en.wikipedia.org/wiki/Histogram#Scott's_normal_reference_rule
+        //value_type alpha = 0.2; // Some parameter...
         
         // TODO 
         // Should merge neighbouring bins such that the width/N_part ratio is roughly maxBinRatio.
@@ -271,7 +278,7 @@ namespace ParticleBinning {
                     //segCost              = computeDeviationCost(sumCount, sumWidth, maxBinRatio, alpha, mergedStd);
                     //segCost = partialMergedCDFIntegralCost(sumCount, sumWidth, alpha, mergedStd, segFineMoment);
                     //segCost = partialMergedCDFIntegralCost(i, k, sumCount, sumWidth, alpha, sortedIndexArr, var_selector);
-                    segCost = partialMergedCDFIntegralCost(sumCount, sumWidth, alpha, totalNumParticles);
+                    segCost = partialMergedCDFIntegralCost(sumCount, sumWidth, totalNumParticles);
 
                     if (k % 10 == 0 && i % 10 == 0) {
                         m << "k = " << k << ", i = " << i << ", sumCount = " << sumCount << ", sumWidth = " << sumWidth
