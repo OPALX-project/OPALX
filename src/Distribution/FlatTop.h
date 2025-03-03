@@ -24,8 +24,14 @@ using Dist_t = ippl::random::NormalDistribution<double, 3>;
 /**
  * @class FlatTop
  * @brief Implements the sampling method for the flat-top distribution.
- *        x and y coordinates are uniformly distributed inside a circle 
+ *        x and y coordinates are uniformly distributed inside a circle
  *        and number of particles entering domain in [t, t+dt] follows flattop profile.
+ *
+ *        The FlatTop distribution is
+ *        f(t)/Z = exp[ -((t-riseTime_m)/sigma)^2/2 ]                            t < riseTime
+ *                 1.0                                                           riseTime < t < t<riseTime + flattopTime
+ *                 exp[ -((t-(fallTime_m + flattopTime_m))/sigmaTFall_m)^2/2 ]   t>riseTime + flattopTime
+ *         where Z is the normalizing factor.
  */
 class FlatTop : public SamplingBase {
 public:
@@ -124,10 +130,10 @@ public:
 
     /**
      * @brief Integrates using the trapezoidal rule.
-     * @param x1 First x-value.
-     * @param x2 Second x-value.
-     * @param y1 First y-value.
-     * @param y2 Second y-value.
+     * @param x1 begining of interval [x1,x2].
+     * @param x2 end of interval [x1,x2].
+     * @param y1 value of f(x1).
+     * @param y2 value of f(x2).
      * @return Integrated result.
      */
     double integrateTrapezoidal(double x1, double x2, double y1, double y2);
