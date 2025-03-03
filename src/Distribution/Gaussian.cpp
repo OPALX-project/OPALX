@@ -21,10 +21,6 @@ Gaussian::Gaussian(std::shared_ptr<ParticleContainer_t> &pc,
 /**
  * @brief Generates particles following a Gaussian distribution.
  *
- * This function samples particle positions and momenta based on
- * a normal distribution, ensuring proper normalization and
- * correcting mean values.
- *
  * @param numberOfParticles The total number of particles to generate.
  * @param nr The number of grid points in each dimension (not used here).
  */
@@ -94,7 +90,7 @@ void Gaussian::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> 
     Kokkos::fence();
 
     MPI_Allreduce(loc_meanR, meanR, 3, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
-    ippl::Comm->barrier();  
+    ippl::Comm->barrier(); 
 
     for (int i = 0; i < 3; i++) {
         meanR[i] = meanR[i] / static_cast<double>(numberOfParticles);

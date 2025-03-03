@@ -3,7 +3,7 @@
 #include <mpi.h>
 
 /**
- * @brief Constructs a MultiVariateGaussian sampler.
+ * @brief Constructs the MultiVariateGaussian class.
  */
 MultiVariateGaussian::MultiVariateGaussian(std::shared_ptr<ParticleContainer_t> &pc, 
                                            std::shared_ptr<FieldContainer_t> &fc, 
@@ -36,7 +36,7 @@ void MultiVariateGaussian::ComputeCholeskyFactorization() {
 }
 
 /**
- * @brief Computes normalized boundaries for the Gaussian sampling.
+ * @brief Computes normalized boundaries for the multivariate Gaussian sampling.
  */
 void MultiVariateGaussian::ComputeCenteredBounds() {
     rmin_m = -opalDist_m->getCutoffR();
@@ -54,6 +54,32 @@ void MultiVariateGaussian::ComputeCenteredBounds() {
         max_m(i * 2) = rmax_m(i);
         min_m(i * 2 + 1) = pmin_m(i);
         max_m(i * 2 + 1) = pmax_m(i);
+    }
+
+    normMin_m = 0.0;
+    normMax_m = 0.0;
+    double sumMin, sumMax;
+    for(int i=0; i<6; i++){
+        sumMin = 0.0;
+        sumMax = 0.0;
+        for(int j=0; j<i; j++){
+           sumMin += -L_m[i][j]*normMin_m(j);
+           sumMax += -L_m[i][j]*normMax_m(j);
+        }
+        normMin_m(i) = (min_m(i)-sumMin)/L_m[i][i];
+        normMax_m(i) = (max_m(i)-sumMax)/L_m[i][i];
+    }
+
+    for(int i=0; i<3; i++){
+        normRmin_m(i) = min_m(2*i)/opalDist_m->getSigmaR()[i];
+        normRmax_m(i) = max_m(2*i)/opalDist_m->getSigmaR()[i];
+        normPmin_m(i) = min_m(2*i+1)/opalDist_m->getSigmaP()[i];
+        normPmax_m(i) = max_m(2*i+1)/opalDist_m->getSigmaP()[i];
+
+        rmin_m(i) /= opalDist_m->getSigmaR()[i];
+        rmax_m(i) /= opalDist_m->getSigmaR()[i];
+        pmin_m(i) /= opalDist_m->getSigmaP()[i];
+        pmax_m(i) /= opalDist_m->getSigmaP()[i];
     }
 }
 
@@ -79,7 +105,10 @@ void MultiVariateGaussian::generateParticles(size_t &numberOfParticles, Vector_t
         }
     }
 
+    // compute L using Cholesky factorization cov=L*LT
     ComputeCholeskyFactorization();
+
+    // compute boundaries of normal random numbers
     ComputeCenteredBounds();
 
     view_type &Rview = pc_m->R.getView();
@@ -95,6 +124,7 @@ void MultiVariateGaussian::generateParticles(size_t &numberOfParticles, Vector_t
     MPI_Comm_size(comm, &nranks);
     MPI_Comm_rank(comm, &rank);
 
+    // if nlocal*nranks > numberOfParticles, put the remaining in rank 0
     size_t nlocal = floor(numberOfParticles / nranks);
     size_t remaining = numberOfParticles - nlocal * nranks;
     if (remaining > 0 && rank == 0) {
@@ -133,5 +163,85 @@ void MultiVariateGaussian::generateParticles(size_t &numberOfParticles, Vector_t
         }
     });
 
+    Kokkos::fence();
+
+
+    // zero mean of R
+    double meanR[3], loc_meanR[3];
+    for(int i=0; i<3; i++){
+       meanR[i] = 0.0;
+       loc_meanR[i] = 0.0;
+    }
+
+    Kokkos::parallel_reduce(
+            "calc moments of particle distr.", nlocal,
+            KOKKOS_LAMBDA(
+                    const int k, double& cent0, double& cent1, double& cent2) {
+                    cent0 += Rview(k)[0];
+                    cent1 += Rview(k)[1];
+                    cent2 += Rview(k)[2];
+            },
+            Kokkos::Sum<double>(loc_meanR[0]), Kokkos::Sum<double>(loc_meanR[1]), Kokkos::Sum<double>(loc_meanR[2]));
+    Kokkos::fence();
+
+    MPI_Allreduce(loc_meanR, meanR, 3, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
+    ippl::Comm->barrier();
+
+    for(int i=0; i<3; i++){
+       meanR[i] = meanR[i]/(1.*numberOfParticles);
+    }
+
+    Kokkos::parallel_for(
+            nlocal, KOKKOS_LAMBDA(
+                    const int k) {
+                    Rview(k)[0] -= meanR[0];
+                    Rview(k)[1] -= meanR[1];
+                    Rview(k)[2] -= meanR[2];
+            }
+    );
+    Kokkos::fence();
+
+    // zero mean of P
+    double meanP[3], loc_meanP[3];
+    for(int i=0; i<3; i++){
+       meanP[i] = 0.0;
+       loc_meanP[i] = 0.0;
+    }
+    Kokkos::parallel_reduce(
+            "calc moments of particle distr.", nlocal,
+            KOKKOS_LAMBDA(
+                    const int k, double& cent0, double& cent1, double& cent2) {
+                    cent0 += Pview(k)[0];
+                    cent1 += Pview(k)[1];
+                    cent2 += Pview(k)[2];
+            },
+	    Kokkos::Sum<double>(loc_meanP[0]), Kokkos::Sum<double>(loc_meanP[1]), Kokkos::Sum<double>(loc_meanP[2]));
+    Kokkos::fence();
+
+    MPI_Allreduce(loc_meanP, meanP, 3, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
+    ippl::Comm->barrier();
+
+    for(int i=0; i<3; i++){
+       meanP[i] = meanP[i]/(1.*numberOfParticles);
+    }
+
+    Kokkos::parallel_for(
+            nlocal, KOKKOS_LAMBDA(
+                    const int k) {
+                    Pview(k)[0] -= meanP[0];
+                    Pview(k)[1] -= meanP[1];
+                    Pview(k)[2] -= meanP[2];
+            }
+    );
+    Kokkos::fence();
+
+    // correct the means of R and P
+    double avrgpz = opalDist_m->getAvrgpz();
+    Kokkos::parallel_for(
+            nlocal, KOKKOS_LAMBDA(
+                    const int k) {
+                    Pview(k)[2] += avrgpz;
+            }
+    );
     Kokkos::fence();
 }
