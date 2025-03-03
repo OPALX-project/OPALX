@@ -424,17 +424,17 @@ void ParallelTracker::execute() {
         for (; step < trackSteps; ++step) {
             *gmsg << "* Step " << step << " of " << trackSteps << endl;
             sampler_m->emitParticles(this->itsBunch_m->getT(), dtCurrentTrack_m);
-            pc->P = pc->P + 1.0; // add some value to get some effect for testing.
+            // pc->P = pc->P + 1.0; // add some value to get some effect for testing.
             pc->R = pc->R + 1e-8; 
             itsBunch_m->setCharge();
             itsBunch_m->setMass();
             setTime();
             // itsBunch_m->bunchUpdate();
+            itsBunch_m->bunchUpdate();
 
-            pc->P = pc->P - 0.5 * dtCurrentTrack_m * pc->E; // kick 1
-            pc->R = pc->R + dtCurrentTrack_m * pc->P;       // drift
-            //pc->update();
-            itsBunch_m->bunchUpdate(); // only pc->update gives an semgentation fault (idk why...)
+            //pc->P = pc->P - 0.5 * dtCurrentTrack_m * pc->E; // kick 1
+            //pc->R = pc->R + dtCurrentTrack_m * pc->P;       // drift
+            //itsBunch_m->bunchUpdate();
 
             // do full rebin
             //bins->doFullRebin(bins->getMaxBinCount());
@@ -445,8 +445,13 @@ void ParallelTracker::execute() {
 
             // Run binned solver
             itsBunch_m->computeSelfFields();
+            timeIntegration1(pusher); // use this to respect units...
+            //pc->update();
+            itsBunch_m->bunchUpdate(); // only pc->update gives an semgentation fault (idk why...)
+            timeIntegration2(pusher);
+            itsBunch_m->bunchUpdate();
 
-            pc->P = pc->P - 0.5 * dtCurrentTrack_m * pc->E;
+            // pc->P = pc->P - 0.5 * dtCurrentTrack_m * pc->E;
 
             itsBunch_m->incrementT();
             itsBunch_m->incTrackSteps();
