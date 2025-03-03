@@ -156,6 +156,7 @@ namespace Options {
     // Binning related options
     extern int maxBins;
     extern double binningAlpha;
+    extern double binningBeta;
     extern double desiredWidth;
 }  // namespace Options
 
