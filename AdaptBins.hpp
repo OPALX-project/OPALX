@@ -1,8 +1,6 @@
 #ifndef ADAPT_BINS_HPP
 #define ADAPT_BINS_HPP
 
-// #include "AdaptBins.h"
-
 namespace ParticleBinning {
 
     template <typename BunchType, typename BinningSelector>

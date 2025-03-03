@@ -15,7 +15,7 @@
 # install (FILES ${_HDRS} DESTINATION include/binning)
 
 # Add subdirectory for the binning tests
-# add_subdirectory(test)
+
 
 # vi: set et ts=4 sw=4 sts=4:
 
@@ -27,20 +27,22 @@
 # End:
 
 
-set (_SRCS
-    AdaptBins.cpp
-    BinHisto.cpp
-)
+# set (_SRCS
+#     AdaptBins.cpp
+#     BinHisto.cpp
+# )
 
 include_directories (
     ${CMAKE_CURRENT_SOURCE_DIR}
     )
 
-add_opal_sources (${_SRCS})
+# add_opal_sources (${_SRCS})
 
 set (HDRS
     AdaptBins.h    
+    AdaptBins.hpp
     BinHisto.h
+    BinHisto.hpp
     BinningTools.h
     ParallelReduceTools.h
 )
@@ -48,3 +50,5 @@ set (HDRS
 install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/PartBunch/Binning")
 
 message (STATUS "Added Binning files.")
+
+# add_subdirectory(test)

@@ -351,7 +351,7 @@ namespace ParticleBinning {
             const hview_type& fineCounts, const hwidth_view_type& fineWidths
         );*/
 
-        template <typename BinningSelector_t>
+        //template <typename BinningSelector_t>
         value_type partialMergedCDFIntegralCost(
             //const bin_index_type& i, const bin_index_type& k,
             const size_type& sumCount,
@@ -449,6 +449,6 @@ namespace ParticleBinning {
     
 }
 
-//#include "BinHisto.cpp"
+#include "BinHisto.hpp"
 
 #endif // BIN_HISTO_H

@@ -1,7 +1,9 @@
-#ifndef BINHISTO_CPP
-#define BINHISTO_CPP
+#ifndef BINHISTO_HPP
+#define BINHISTO_HPP
 
-#include "BinHisto.h"
+// #include "BinHisto.h"
+
+#include <random>
 
 namespace ParticleBinning {
 
@@ -102,13 +104,18 @@ namespace ParticleBinning {
         //return -sumCountNorm * log(sumCountNorm/sumWidth) + sumCountNorm + wideBinPenalty * sumWidth;
         value_type penalty = 0.1 - sumWidth;// (sumWidth > 0.1) ? pow(0.1 - sumWidth, 2) : 0.0;
 
-        if (k % 10 == 0 && i % 10 == 0) {
-            std::cout << ", sum1 = " << (sumCountNorm*log(sumWidth)) << ", sum2 = " << (wideBinPenalty*penalty) << std::endl;
+        //if (k % 10 == 0 && i % 10 == 0) {
+        //    std::cout << ", sum1 = " << (sumCountNorm*log(sumWidth)) << ", sum2 = " << (wideBinPenalty*penalty) << std::endl;
+        //}
+        if (std::rand() < RAND_MAX / 100) {
+            std::cout << "Term 1 = " << (1-wideBinPenalty) * sumCountNorm*log(sumCountNorm)*sumWidth
+                      << ", Term 2 = " << wideBinPenalty  * (penalty - pow(penalty, 2)/2 + pow(penalty, 3)/3) << std::endl;
         }
+        
 
         // return sumCountNorm * log(sumWidth) + wideBinPenalty * penalty; // + wideBinPenalty / sumWidth;
         return (1-wideBinPenalty) * sumCountNorm*log(sumCountNorm)*sumWidth
-                + wideBinPenalty  * (penalty - pow(penalty, 2)/2 + pow(penalty, 3)/3);
+                - wideBinPenalty  * (penalty - pow(penalty, 2)/2);// + pow(penalty, 3)/3);
 
         /*
         // Compute the representative value as the weighted average. 
@@ -166,6 +173,7 @@ namespace ParticleBinning {
         //const hash_type sortedIndexArr,
         //const BinningSelector_t var_selector
     ) {
+        std::srand(time(0)); // TODO: remove! 
         static IpplTimings::TimerRef mergeBinsTimer = IpplTimings::getTimer("mergeBins");
 
         // Maybe set this later as a parameter
