@@ -17,10 +17,16 @@ using GeneratorPool = typename Kokkos::Random_XorShift64_Pool<>;
 using Dist_t = ippl::random::NormalDistribution<double, 3>;
 
 /**
- * @brief Represents a multivariate Gaussian particle sampler.
- * 
- * This class generates particles following a multivariate Gaussian distribution 
- * using Cholesky factorization and transformation sampling.
+ * @class MultiVariateGaussian
+ * @brief A particle generation method following multivariate Gaussian distribution.
+ *
+ * This class generates particles following a multivariate Gaussian distribution
+ * using Cholesky factorization and inverse transformation sampling.
+ *
+ * Given covariance matrix cov_m = [ Cov(R0,R0), Cov(R0,P0), Cov(R0,R1), Cov(R0,P1), ...]
+ * whose values are read from opalDist_m->correlationMatrix_m.
+ * First, the Cholesky factorization is computed cov_m = L_m * L_m^T
+ * Then, normally distribution particles R=P~N(0,I) are transformed to multivariate using L_m.
  */
 class MultiVariateGaussian : public SamplingBase {
 public:

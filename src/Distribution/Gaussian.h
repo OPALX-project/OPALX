@@ -17,11 +17,26 @@ using GeneratorPool = typename Kokkos::Random_XorShift64_Pool<>;
 using Dist_t = ippl::random::NormalDistribution<double, 3>;
 
 /**
- * @class Gaussian
- * @brief A Gaussian-based particle sampler.
+ * @class Gaussian Distribution
+ * @brief Generating particles following a Gaussian distribution.
  *
- * This class generates particles following a Gaussian distribution
- * in both position and momentum space.
+ * This function samples particle positions R and momenta P given following normal distributions
+ * a normal distribution
+ * R ~ N ( [0, 0, 0     ], sdR)
+ * P ~ N ( [0, 0, avrgpz], sdP)
+ * where sdR = [SigmaR[0] 0         0
+                0         SigmaR[1] 0
+                0         0         SigmaR[2]]
+ *
+ * and sdP =    [SigmaP[0] 0         0
+                0          SigmaP[1] 0
+                0          0         SigmaP[2]].
+ *
+ * Here, R is sampled in a bounded domains R \in [-CutoffR*SigmaR, CutoffR*SigmaR]^3
+ * and corrected by translation to ensure mean = [0,0,0].
+ *
+ * @param numberOfParticles The total number of particles to generate.
+ * @param nr The number of grid points in each dimension (not used here).
  */
 class Gaussian : public SamplingBase {
 public:
@@ -45,7 +60,7 @@ public:
      * @brief Generates particles with a Gaussian distribution.
      *
      * @param numberOfParticles The total number of particles to generate.
-     * @param nr The number of grid cells in R (used in domain decomposition).
+     * @param nr the number of grid cells in R (used in domain decomposition).
      */
     void generateParticles(size_t& numberOfParticles, Vector_t<double, 3> nr) override;
 };
