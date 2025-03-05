@@ -18,7 +18,7 @@
 #ifndef OPAL_H5_WRITER_H
 #define OPAL_H5_WRITER_H
 
-#include "PartBunch/PartBunch.hpp"
+#include "PartBunch/PartBunch.h"
 #include "H5hut.h"
 #include "Structure/H5PartWrapper.h"
 

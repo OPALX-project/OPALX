@@ -1,11 +1,114 @@
-#include "PartBunch/PartBunch.hpp"
+#include "PartBunch/PartBunch.h"
 #include <boost/numeric/ublas/io.hpp>
 #include "Utilities/Util.h"
 
 #undef doDEBUG
 
-template<>
-void PartBunch<double,3>::setSolver(std::string solver) {
+template <typename T, unsigned Dim>
+PartBunch<T, Dim>::PartBunch(double qi, double mi, size_t totalP, int nt, double lbt,
+                             std::string integration_method, std::shared_ptr<Distribution> &OPALdistribution,
+                             std::shared_ptr<FieldSolverCmd> &OPALFieldSolver)
+    : ippl::PicManager<T, Dim, ParticleContainer<T, Dim>, FieldContainer<T, Dim>, LoadBalancer<T, Dim>>(),
+      time_m(0.0),
+      totalP_m(totalP),
+      nt_m(nt),
+      lbt_m(lbt),
+      dt_m(0),
+      it_m(0),
+      integration_method_m(integration_method),
+      solver_m(""),
+      isFirstRepartition_m(true),
+      qi_m(qi),
+      mi_m(mi),
+      rmsDensity_m(0.0),
+      RefPartR_m(0.0),
+      RefPartP_m(0.0),
+      localTrackStep_m(0),
+      globalTrackStep_m(0),
+      OPALdist_m(OPALdistribution),
+      OPALFieldSolver_m(OPALFieldSolver) {
+
+    static IpplTimings::TimerRef gatherInfoPartBunch = IpplTimings::getTimer("gatherInfoPartBunch");
+    IpplTimings::startTimer(gatherInfoPartBunch);
+
+    *gmsg << "PartBunch Constructor" << endl;
+
+    /*
+      get the needed information from OPAL FieldSolver command
+    */
+
+    nr_m = Vector_t<int, Dim>(
+            OPALFieldSolver_m->getNX(), OPALFieldSolver_m->getNY(), OPALFieldSolver_m->getNZ());
+
+    const Vector_t<bool, 3> domainDecomposition = OPALFieldSolver_m->getDomDec();
+
+    for (unsigned i = 0; i < Dim; i++) {
+        this->domain_m[i] = ippl::Index(nr_m[i]);
+        this->decomp_m[i] = domainDecomposition[i];
+    }
+
+    bool isAllPeriodic = true;  // \fixme need to get BCs from OPAL Fieldsolver
+
+    /*
+          set stuff for pre_run i.e. warmup
+          this will be reset when the correct computational
+          domain is set
+    */
+
+    Vector_t<double, Dim> length (6.0);
+    this->hr_m = length / this->nr_m;
+    this->origin_m = -3.0;
+    this->dt_m = 0.5 / this->nr_m[2];
+
+    rmin_m = origin_m;
+    rmax_m = origin_m + length;
+
+    this->setFieldContainer( std::make_shared<FieldContainer_t>(hr_m, rmin_m, rmax_m, decomp_m, domain_m, origin_m, isAllPeriodic) );
+
+    this->setParticleContainer(std::make_shared<ParticleContainer_t>(
+        this->fcontainer_m->getMesh(), this->fcontainer_m->getFL()));
+
+    IpplTimings::stopTimer(gatherInfoPartBunch);
+
+    static IpplTimings::TimerRef setSolverT = IpplTimings::getTimer("setSolver");
+    IpplTimings::startTimer(setSolverT);
+    setSolver(OPALFieldSolver_m->getType());
+    IpplTimings::stopTimer(setSolverT);
+
+    static IpplTimings::TimerRef prerun = IpplTimings::getTimer("prerun");
+    IpplTimings::startTimer(prerun);
+    pre_run();
+    IpplTimings::stopTimer(prerun);
+
+    globalPartPerNode_m = std::make_unique<size_t[]>(ippl::Comm->size());
+}
+
+template <typename T, unsigned Dim>
+void PartBunch<T, Dim>::gatherCIC() {
+    using Base = ippl::ParticleBase<ippl::ParticleSpatialLayout<T, Dim>>;
+    typename Base::particle_position_type* Ep = &this->pcontainer_m->E;
+    typename Base::particle_position_type* R = &this->pcontainer_m->R;
+    VField_t<T, Dim>* Ef = &this->fcontainer_m->getE();
+    gather(*Ep, *Ef, *R);
+}
+
+template <typename T, unsigned Dim>
+void PartBunch<T, Dim>::do_binaryRepart() {
+    using FieldContainer_t = FieldContainer<T, Dim>;
+    std::shared_ptr<FieldContainer_t> fc = this->fcontainer_m;
+
+    size_type totalP = this->getTotalNum();
+    int it = this->it_m;
+
+    if (this->loadbalancer_m->balance(totalP, it + 1)) {
+        auto* mesh = &fc->getRho().get_mesh();
+        auto* FL = &fc->getFL();
+        this->loadbalancer_m->repartition(FL, mesh, isFirstRepartition_m);
+    }
+}
+
+template <typename T, unsigned Dim>
+void PartBunch<T, Dim>::setSolver(std::string solver) {
 
     if (this->solver_m != "")
         *gmsg << "* Warning solver already initiated but overwrite ..." << endl;
@@ -26,8 +129,8 @@ void PartBunch<double,3>::setSolver(std::string solver) {
     *gmsg << "* Solver and Load Balancer set" << endl;
 }
 
-template<>
-void PartBunch<double,3>::spaceChargeEFieldCheck(Vector_t<double, 3> efScale) {
+template <typename T, unsigned Dim>
+void PartBunch<T, Dim>::spaceChargeEFieldCheck(Vector_t<double, 3> efScale) {
 
  Inform msg("EParticleStats");
 
@@ -38,10 +141,10 @@ void PartBunch<double,3>::spaceChargeEFieldCheck(Vector_t<double, 3> efScale) {
  
  double avgphi        = 0.0;
  double avgE          = 0.0;
- double minEComponent = std::numeric_limits<double>::max();
- double maxEComponent = std::numeric_limits<double>::min();
- double minE          = std::numeric_limits<double>::max();
- double maxE          = std::numeric_limits<double>::min();
+ double minEComponent = std::numeric_limits<T>::max();
+ double maxEComponent = std::numeric_limits<T>::min();
+ double minE          = std::numeric_limits<T>::max();
+ double maxE          = std::numeric_limits<T>::min();
  double cc            = getCouplingConstant();
  
  int myRank = ippl::Comm->rank();
@@ -69,9 +172,9 @@ void PartBunch<double,3>::spaceChargeEFieldCheck(Vector_t<double, 3> efScale) {
                              loc_minE = ENorm < loc_minE ? ENorm : loc_minE;
                              loc_maxE = ENorm > loc_maxE ? ENorm : loc_maxE;
                          },
-                         Kokkos::Sum<double>(avgE), Kokkos::Min<double>(minEComponent),
-                         Kokkos::Max<double>(maxEComponent), Kokkos::Min<double>(minE),
-                         Kokkos::Max<double>(maxE));
+                         Kokkos::Sum<T>(avgE), Kokkos::Min<T>(minEComponent),
+                         Kokkos::Max<T>(maxEComponent), Kokkos::Min<T>(minE),
+                         Kokkos::Max<T>(maxE));
 
   if (this->getLocalNum() == 0) {
      minEComponent = maxEComponent = minE = maxE = avgE = 0.0;
@@ -96,7 +199,7 @@ void PartBunch<double,3>::spaceChargeEFieldCheck(Vector_t<double, 3> efScale) {
                              double phi = fphi_view(i,j,k);
                              loc_avgphi += phi;
                          },
-                         Kokkos::Sum<double>(avgphi));
+                         Kokkos::Sum<T>(avgphi));
 
  MPI_Reduce(myRank == 0 ? MPI_IN_PLACE : &avgphi, &avgphi, 1, MPI_DOUBLE, MPI_SUM, 0, ippl::Comm->getCommunicator());
  avgphi /= this->getTotalNum(); 
@@ -104,11 +207,9 @@ void PartBunch<double,3>::spaceChargeEFieldCheck(Vector_t<double, 3> efScale) {
 
 }
 
-template<>
-void PartBunch<double,3>::calcBeamParameters() {
-    // Usefull constants
-    const int Dim = 3;
-    
+template <typename T, unsigned Dim>
+void PartBunch<T, Dim>::calcBeamParameters() {
+
     std::shared_ptr<ParticleContainer_t> pc = this->pcontainer_m;
     
     auto Rview = pc->R.getView();
@@ -155,10 +256,10 @@ void PartBunch<double,3>::calcBeamParameters() {
                                     mom4 += part[i] * part[4];
                                     mom5 += part[i] * part[5];
                                 },
-                                Kokkos::Sum<double>(loc_centroid[i]), Kokkos::Sum<double>(loc_moment[i][0]),
-                                Kokkos::Sum<double>(loc_moment[i][1]), Kokkos::Sum<double>(loc_moment[i][2]),
-                                Kokkos::Sum<double>(loc_moment[i][3]), Kokkos::Sum<double>(loc_moment[i][4]),
-                                Kokkos::Sum<double>(loc_moment[i][5]));
+                                Kokkos::Sum<T>(loc_centroid[i]), Kokkos::Sum<T>(loc_moment[i][0]),
+                                Kokkos::Sum<T>(loc_moment[i][1]), Kokkos::Sum<T>(loc_moment[i][2]),
+                                Kokkos::Sum<T>(loc_moment[i][3]), Kokkos::Sum<T>(loc_moment[i][4]),
+                                Kokkos::Sum<T>(loc_moment[i][5]));
         Kokkos::fence();
     }
     ippl::Comm->barrier();
@@ -178,7 +279,7 @@ void PartBunch<double,3>::calcBeamParameters() {
                                     double tmp_vel = Rview(i)[d];
                                     mm             = tmp_vel > mm ? tmp_vel : mm;
                                 },
-                                Kokkos::Max<double>(rmax_loc[d]));
+                                Kokkos::Max<T>(rmax_loc[d]));
         
         Kokkos::parallel_reduce(
                                 "rel min", this->getLocalNum(),
@@ -186,7 +287,7 @@ void PartBunch<double,3>::calcBeamParameters() {
                                     double tmp_vel = Rview(i)[d];
                                     mm             = tmp_vel < mm ? tmp_vel : mm;
                                 },
-                                Kokkos::Min<double>(rmin_loc[d]));
+                                Kokkos::Min<T>(rmin_loc[d]));
     }
     Kokkos::fence();
     MPI_Allreduce(rmax_loc, rmax, Dim, MPI_DOUBLE, MPI_MAX, ippl::Comm->getCommunicator());
@@ -200,18 +301,17 @@ void PartBunch<double,3>::calcBeamParameters() {
     ippl::Comm->barrier();
 }
 
-template<>
-void PartBunch<double,3>::pre_run() {
+template <typename T, unsigned Dim>
+void PartBunch<T, Dim>::pre_run() {
     this->fcontainer_m->getRho() = 0.0;
     this->fsolver_m->runSolver();
 }
 
-template<>
-Inform& PartBunch<double,3>::print(Inform& os) {
+template <typename T, unsigned Dim>
+Inform& PartBunch<T, Dim>::print(Inform& os) {
     // if (this->getLocalNum() != 0) {  // to suppress Nans
     Inform::FmtFlags_t ff = os.flags();
-    const int Dim = 3;
-    
+
     os << std::scientific;
     os << level1 << "\n";
     os << "* ************** B U N C H "
@@ -247,8 +347,8 @@ Inform& PartBunch<double,3>::print(Inform& os) {
     return os;
 }
 
-template <>
-void PartBunch<double,3>::bunchUpdate(ippl::Vector<double, 3> hr) {
+template <typename T, unsigned Dim>
+void PartBunch<T, Dim>::bunchUpdate(ippl::Vector<double, 3> hr) {
     /* \brief
        1. calculates and set hr
        2. do repartitioning
@@ -265,8 +365,8 @@ void PartBunch<double,3>::bunchUpdate(ippl::Vector<double, 3> hr) {
 
     /// \brief assume o < 0.0?
 
-    ippl::Vector<double, 3> o = pc->getMinR() - std::numeric_limits<double>::lowest();
-    ippl::Vector<double, 3> e = pc->getMaxR() + std::numeric_limits<double>::lowest();
+    ippl::Vector<double, 3> o = pc->getMinR() - std::numeric_limits<T>::lowest();
+    ippl::Vector<double, 3> e = pc->getMaxR() + std::numeric_limits<T>::lowest();
     ippl::Vector<double, 3> l = e - o;
 
     hr_m = (1.0+this->OPALFieldSolver_m->getBoxIncr()/100.)*(l / this->nr_m);
@@ -286,8 +386,8 @@ void PartBunch<double,3>::bunchUpdate(ippl::Vector<double, 3> hr) {
     this->updateMoments();
 }
 
-template <>
-void PartBunch<double,3>::bunchUpdate() {
+template <typename T, unsigned Dim>
+void PartBunch<T, Dim>::bunchUpdate() {
 
     /* \brief
        1. calculates and set hr
@@ -335,9 +435,8 @@ void PartBunch<double,3>::bunchUpdate() {
     this->updateMoments();
 }
 
-
-template <>
-void PartBunch<double,3>::computeSelfFields() {
+template <typename T, unsigned Dim>
+void PartBunch<T, Dim>::computeSelfFields() {
 
     static IpplTimings::TimerRef SolveTimer = IpplTimings::getTimer("SolveTimer");
     IpplTimings::startTimer(SolveTimer);
@@ -369,11 +468,11 @@ void PartBunch<double,3>::computeSelfFields() {
     */
 
 
-    ippl::ParticleAttrib<double>* Q          = &this->pcontainer_m->Q;
+    ippl::ParticleAttrib<T>* Q          = &this->pcontainer_m->Q;
     typename Base::particle_position_type* R = &this->pcontainer_m->R;
 
     this->fcontainer_m->getRho()             = 0.0;
-    Field_t<3>* rho                          = &this->fcontainer_m->getRho();
+    Field_t<Dim>* rho                          = &this->fcontainer_m->getRho();
 
     scatter(*Q, *rho, *R);
 
@@ -421,17 +520,17 @@ void PartBunch<double,3>::computeSelfFields() {
     IpplTimings::stopTimer(SolveTimer);
 }
 
-template <>
-void PartBunch<double,3>::scatterCIC() {
+template <typename T, unsigned Dim>
+void PartBunch<T, Dim>::scatterCIC() {
 
     Inform m("scatterCIC ");
 
 
-    ippl::ParticleAttrib<double>* q          = &this->pcontainer_m->Q;
+    ippl::ParticleAttrib<T>* q          = &this->pcontainer_m->Q;
     typename Base::particle_position_type* R = &this->pcontainer_m->R;
 
     this->fcontainer_m->getRho()             = 0.0;
-    Field_t<3>* rho                          = &this->fcontainer_m->getRho();
+    Field_t<Dim>* rho                          = &this->fcontainer_m->getRho();
 
     double Q                                 = this->qi_m * this->getTotalNum();
     Vector_t<double, 3> rmin                 = rmin_m;
@@ -474,3 +573,6 @@ void PartBunch<double,3>::scatterCIC() {
         *rho = *rho - (Q / size);
     }
 }
+
+// Explicit instantiations
+template class PartBunch<double, 3>;

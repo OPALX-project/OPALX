@@ -42,7 +42,7 @@
 
 #include "PartBunch/datatypes.h"
 #include "Manager/PicManager.h"
-#include "PartBunch/PartBunch.hpp"
+#include "PartBunch/PartBunch.h"
 
 using PartBunch_t = PartBunch<double, 3>;
 
