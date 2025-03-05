@@ -21,7 +21,7 @@
 #include <boost/filesystem.hpp>
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Fields/Fieldmap.h"
-#include "PartBunch/PartBunch.hpp"
+#include "PartBunch/PartBunch.h"
 #include "Physics/Units.h"
 #include "Steppers/BorisPusher.h"
 #include "Utilities/GeneralClassicException.h"
