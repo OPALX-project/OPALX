@@ -33,9 +33,7 @@ PartBunch<T, Dim>::PartBunch(double qi, double mi, size_t totalP, int nt, double
 
     *gmsg << "PartBunch Constructor" << endl;
 
-    /*
-      get the needed information from OPAL FieldSolver command
-    */
+    //  get the needed information from OPAL FieldSolver command
 
     nr_m = Vector_t<int, Dim>(
             OPALFieldSolver_m->getNX(), OPALFieldSolver_m->getNY(), OPALFieldSolver_m->getNZ());
@@ -49,11 +47,9 @@ PartBunch<T, Dim>::PartBunch(double qi, double mi, size_t totalP, int nt, double
 
     bool isAllPeriodic = true;  // \fixme need to get BCs from OPAL Fieldsolver
 
-    /*
-          set stuff for pre_run i.e. warmup
-          this will be reset when the correct computational
-          domain is set
-    */
+    //      set stuff for pre_run i.e. warmup
+    //      this will be reset when the correct computational
+    //      domain is set
 
     Vector_t<double, Dim> length (6.0);
     this->hr_m = length / this->nr_m;
@@ -108,8 +104,14 @@ void PartBunch<T, Dim>::do_binaryRepart() {
 }
 
 template <typename T, unsigned Dim>
-void PartBunch<T, Dim>::setSolver(std::string solver) {
+void  PartBunch<T, Dim>::gatherLoadBalanceStatistics() {
+        std::fill_n(globalPartPerNode_m.get(), ippl::Comm->size(), 0);  // Fill the array with zeros
+        globalPartPerNode_m[ippl::Comm->rank()] = getLocalNum();
+        ippl::Comm->allreduce(globalPartPerNode_m.get(), ippl::Comm->size(), std::plus<size_t>());
+}
 
+template <typename T, unsigned Dim>
+void PartBunch<T, Dim>::setSolver(std::string solver) {
     if (this->solver_m != "")
         *gmsg << "* Warning solver already initiated but overwrite ..." << endl;
 
@@ -131,7 +133,6 @@ void PartBunch<T, Dim>::setSolver(std::string solver) {
 
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::spaceChargeEFieldCheck(Vector_t<double, 3> efScale) {
-
  Inform msg("EParticleStats");
 
  auto pE_view   = this->pcontainer_m->E.getView();
@@ -209,7 +210,6 @@ void PartBunch<T, Dim>::spaceChargeEFieldCheck(Vector_t<double, 3> efScale) {
 
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::calcBeamParameters() {
-
     std::shared_ptr<ParticleContainer_t> pc = this->pcontainer_m;
     
     auto Rview = pc->R.getView();
@@ -262,10 +262,10 @@ void PartBunch<T, Dim>::calcBeamParameters() {
                                 Kokkos::Sum<T>(loc_moment[i][5]));
         Kokkos::fence();
     }
-    ippl::Comm->barrier();
 
     MPI_Allreduce(loc_moment, moment, 2 * Dim * 2 * Dim, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
     MPI_Allreduce(loc_centroid, centroid, 2 * Dim, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
+    ippl::Comm->barrier();
 
     double rmax_loc[Dim];
     double rmin_loc[Dim];
@@ -292,13 +292,13 @@ void PartBunch<T, Dim>::calcBeamParameters() {
     Kokkos::fence();
     MPI_Allreduce(rmax_loc, rmax, Dim, MPI_DOUBLE, MPI_MAX, ippl::Comm->getCommunicator());
     MPI_Allreduce(rmin_loc, rmin, Dim, MPI_DOUBLE, MPI_MIN, ippl::Comm->getCommunicator());
+    ippl::Comm->barrier();
 
     // \todo can we do this nicer? 
     for (unsigned int i=0; i<Dim; i++) {
         rmax_m(i) = rmax[i];
         rmin_m(i) = rmin[i];
     }
-    ippl::Comm->barrier();
 }
 
 template <typename T, unsigned Dim>
@@ -353,7 +353,6 @@ void PartBunch<T, Dim>::bunchUpdate(ippl::Vector<double, 3> hr) {
        1. calculates and set hr
        2. do repartitioning
     */
-    
     Inform m ("bunchUpdate ");
     
     auto *mesh = &this->fcontainer_m->getMesh();
@@ -370,7 +369,7 @@ void PartBunch<T, Dim>::bunchUpdate(ippl::Vector<double, 3> hr) {
     ippl::Vector<double, 3> l = e - o;
 
     hr_m = (1.0+this->OPALFieldSolver_m->getBoxIncr()/100.)*(l / this->nr_m);
-    mesh->setMeshSpacing(hr_m);
+    mesh->setMeshSpacing(hr);
     mesh->setOrigin(o-0.5*hr_m*this->OPALFieldSolver_m->getBoxIncr()/100.);
     
     pc->getLayout().updateLayout(*FL, *mesh);
@@ -393,45 +392,33 @@ void PartBunch<T, Dim>::bunchUpdate() {
        1. calculates and set hr
        2. do repartitioning
     */
-    
-    Inform m ("bunchUpdate ");
- 
+
     auto *mesh = &this->fcontainer_m->getMesh();
     auto *FL   = &this->fcontainer_m->getFL();
 
     std::shared_ptr<ParticleContainer_t> pc = this->getParticleContainer();
 
     pc->computeMinMaxR();
-    
-    /// \brief assume o < 0.0?
 
     ippl::Vector<double, 3> o = pc->getMinR();
     ippl::Vector<double, 3> e = pc->getMaxR();
     ippl::Vector<double, 3> l = e - o;
-    
+
     hr_m = (1.0+this->OPALFieldSolver_m->getBoxIncr()/100.)*(l / this->nr_m);
     mesh->setMeshSpacing(hr_m);
-    
     mesh->setOrigin(o-0.5*hr_m*this->OPALFieldSolver_m->getBoxIncr()/100.);
-    
-    pc->getLayout().updateLayout(*FL, *mesh);
-    pc->update();
 
     this->getFieldContainer()->setRMin(o);
     this->getFieldContainer()->setRMax(e);
     this->getFieldContainer()->setHr(hr_m);
-    
-    mesh->setMeshSpacing(hr_m);
-    mesh->setOrigin(o-0.5*hr_m);
 
-    this->getParticleContainer()->getLayout().updateLayout(*FL, *mesh);
-    this->getParticleContainer()->update();
-    
+    pc->getLayout().updateLayout(*FL, *mesh);
+    pc->update();
+
     this->isFirstRepartition_m = true;
     this->loadbalancer_m->initializeORB(FL, mesh);
-    
-    // \fixme with the OPEN solver repartion does not work.
-    // this->loadbalancer_m->repartition(FL, mesh, this->isFirstRepartition_m);
+    //this->loadbalancer_m->repartition(FL, mesh, this->isFirstRepartition_m);
+
     this->updateMoments();
 }
 
