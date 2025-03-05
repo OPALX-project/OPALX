@@ -28,7 +28,7 @@
 #include <cmath>
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "AbsBeamline/ScalingFFAMagnet.h"
-#include "PartBunch/PartBunch.hpp"
+#include "PartBunch/PartBunch.h"
 #include "Physics/Units.h"
 ScalingFFAMagnet::ScalingFFAMagnet(const std::string& name)
     : Component(name), planarArcGeometry_m(1., 1.), dummy(), endField_m(nullptr) {

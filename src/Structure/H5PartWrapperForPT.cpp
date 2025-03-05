@@ -18,7 +18,7 @@
 #include "Structure/H5PartWrapperForPT.h"
 
 #include "AbstractObjects/OpalData.h"
-#include "PartBunch/PartBunch.hpp"
+#include "PartBunch/PartBunch.h"
 
 #include "OPALconfig.h"
 #include "Physics/Physics.h"

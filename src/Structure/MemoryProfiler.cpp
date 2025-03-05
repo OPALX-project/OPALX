@@ -26,7 +26,7 @@
 #endif
 
 #include "AbstractObjects/OpalData.h"
-#include "PartBunch/PartBunch.hpp"
+#include "PartBunch/PartBunch.h"
 #include "Physics/Units.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Timer.h"
