@@ -105,9 +105,9 @@ namespace ParticleBinning {
                 - 1 / (2 * varEstimate) * squaredDiff
                 - wideBinPenalty * sumWidth;*/
         //return -sumCountNorm * log(sumCountNorm/sumWidth) + sumCountNorm + wideBinPenalty * sumWidth;
-        value_type penalty = sumWidth - desiredWidth;// (sumWidth > 0.1) ? pow(0.1 - sumWidth, 2) : 0.0;
+        value_type penalty        = sumWidth - desiredWidth;// (sumWidth > 0.1) ? pow(0.1 - sumWidth, 2) : 0.0;
         value_type wideBinPenalty = binningAlpha;
-        value_type fineBinPenalty = binningBeta * sumCountNorm;
+        value_type binSizeBias    = binningBeta * sqrt(sumCountNorm);
 
         //if (k % 10 == 0 && i % 10 == 0) {
         //    std::cout << ", sum1 = " << (sumCountNorm*log(sumWidth)) << ", sum2 = " << (wideBinPenalty*penalty) << std::endl;
@@ -119,9 +119,10 @@ namespace ParticleBinning {
         
 
         // return sumCountNorm * log(sumWidth) + wideBinPenalty * penalty; // + wideBinPenalty / sumWidth;
-        return sumCountNorm*log(sumCountNorm)*sumWidth
-                - wideBinPenalty * penalty 
-                + fineBinPenalty * pow(penalty, 2); // penalty + pow(penalty, 3)/3);
+        return sumCountNorm*log(sumCountNorm)*sumWidth // minimize shannon entropy as a basis
+                + wideBinPenalty * sumWidth       // >0 wants smallest possible bin
+                                                  // <0 wants largest possible bin
+                + binSizeBias * pow(penalty, 2);  // bias towards desiredWidth
 
         /*
         // Compute the representative value as the weighted average. 
