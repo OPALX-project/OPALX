@@ -20,7 +20,7 @@
 
 #include "AbstractObjects/OpalData.h"
 #include "OPALconfig.h"
-#include "PartBunch/PartBunch.hpp"
+#include "PartBunch/PartBunch.h"
 #include "Physics/Units.h"
 #include "Utilities/Timer.h"
 #include "Utilities/Util.h"

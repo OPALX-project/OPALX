@@ -20,7 +20,7 @@
 #include "Track/Track.h"
 
 #include "AbstractObjects/OpalData.h"
-#include "PartBunch/PartBunch.hpp"
+#include "PartBunch/PartBunch.h"
 #include "Utilities/Options.h"
 
 Track* Track::block = 0;
