@@ -1,7 +1,7 @@
-#ifndef BINHISTO_HPP
-#define BINHISTO_HPP
+#ifndef BINHISTO_TPP
+#define BINHISTO_TPP
 
-// #include "BinHisto.h"
+#include "BinHisto.h"
 
 #include <random>
 
@@ -417,4 +417,4 @@ namespace ParticleBinning {
 
 } // namespace ParticleBinning
 
-#endif // BINHISTO_HPP
+#endif // BINHISTO_TPP

@@ -27,22 +27,22 @@
 # End:
 
 
-# set (_SRCS
-#     AdaptBins.cpp
-#     BinHisto.cpp
-# )
+set (_SRCS
+    AdaptBins.tpp
+    BinHisto.tpp
+)
 
 include_directories (
     ${CMAKE_CURRENT_SOURCE_DIR}
     )
 
-# add_opal_sources (${_SRCS})
+add_opal_sources (${_SRCS})
 
 set (HDRS
     AdaptBins.h    
-    AdaptBins.hpp
+    # AdaptBins.hpp
     BinHisto.h
-    BinHisto.hpp
+    # BinHisto.hpp
     BinningTools.h
     ParallelReduceTools.h
 )
