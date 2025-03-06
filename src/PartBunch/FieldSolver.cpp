@@ -278,12 +278,14 @@ void FieldSolver<double,3>::initOpenSolver() {
         sp.add("comm", ippl::p2p_pl);
         sp.add("r2c_direction", 0);
         sp.add("algorithm", OpenSolver_t<double, 3>::HOCKNEY);
+std::cout << "sp" << sp << std::endl;
         initSolverWithParams<OpenSolver_t<double, 3>>(sp);
 }
 
 template <>
 void FieldSolver<double,3>::initSolver() {
     Inform m;
+std::cout << "this->getStype" << this->getStype() << std::endl;
     if (this->getStype() == "FFT") {
         initOpenSolver();    
     } else if (this->getStype() == "FFTOPEN") {

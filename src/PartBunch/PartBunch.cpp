@@ -70,13 +70,14 @@ PartBunch<T, Dim>::PartBunch(double qi, double mi, size_t totalP, int nt, double
     IpplTimings::startTimer(setSolverT);
     setSolver(OPALFieldSolver_m->getType());
     IpplTimings::stopTimer(setSolverT);
-
+/*
     static IpplTimings::TimerRef prerun = IpplTimings::getTimer("prerun");
     IpplTimings::startTimer(prerun);
     pre_run();
     IpplTimings::stopTimer(prerun);
 
     globalPartPerNode_m = std::make_unique<size_t[]>(ippl::Comm->size());
+*/
 }
 
 template <typename T, unsigned Dim>
@@ -122,9 +123,8 @@ void PartBunch<T, Dim>::setSolver(std::string solver) {
     this->setFieldSolver(std::make_shared<FieldSolver_t>(
                                                          this->solver_m, &this->fcontainer_m->getRho(), &this->fcontainer_m->getE(),
                                                          &this->fcontainer_m->getPhi()));
-
     this->fsolver_m->initSolver();
-        
+
     /// ADA we need to be able to set a load balancer when not having a field solver
     this->setLoadBalancer(std::make_shared<LoadBalancer_t>(this->lbt_m, this->fcontainer_m, this->pcontainer_m, this->fsolver_m));
     
