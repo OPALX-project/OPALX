@@ -30,7 +30,7 @@
 #include "H5hut.h"
 
 #include "AbstractObjects/OpalData.h"
-#include "PartBunch/PartBunch.hpp"
+#include "PartBunch/PartBunch.h"
 #include "Elements/OpalBeamline.h"
 #include "Expressions/SRefExpr.h"
 #include "Physics/Physics.h"

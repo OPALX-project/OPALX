@@ -17,7 +17,7 @@
 //
 #include "AbsBeamline/Probe.h"
 #include "AbsBeamline/BeamlineVisitor.h"
-#include "PartBunch/PartBunch.hpp"
+#include "PartBunch/PartBunch.h"
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
 #include "Structure/LossDataSink.h"

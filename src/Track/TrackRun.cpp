@@ -359,6 +359,7 @@ void TrackRun::execute() {
     bunch_m->bunchUpdate();
     bunch_m->print(*gmsg);
     initDataSink();
+
     /*
     if (!isFollowupTrack_m) {
         *gmsg << std::scientific;

@@ -139,11 +139,11 @@ public:
     Vector_t<double, Dim> RefPartR_m;
     Vector_t<double, Dim> RefPartP_m;
 
-    CoordinateSystemTrafo toLabTrafo_m; 
+    CoordinateSystemTrafo toLabTrafo_m;
 
 private:
 
-    std::unique_ptr<size_t[]> globalPartPerNode_m;   
+    std::unique_ptr<size_t[]> globalPartPerNode_m;
 
     // ParticleOrigin refPOrigin_m;
     // ParticleType refPType_m;
@@ -222,88 +222,12 @@ private:
     double periodLength_m;
 
 public:
-    PartBunch(
-              double qi, double mi, size_t totalP, int nt, double lbt, std::string integration_method,
-        std::shared_ptr<Distribution> &OPALdistribution,
-        std::shared_ptr<FieldSolverCmd> &OPALFieldSolver)
-        : ippl::PicManager<
-            T, Dim, ParticleContainer<T, Dim>, FieldContainer<T, Dim>, LoadBalancer<T, Dim>>(),
-          time_m(0.0),
-          totalP_m(totalP),
-          nt_m(nt),
-          lbt_m(lbt),
-          dt_m(0),
-          it_m(0),
-          integration_method_m(integration_method),
-          solver_m(""),
-          isFirstRepartition_m(true),
-          qi_m(qi),
-          mi_m(mi),
-          rmsDensity_m(0.0),
-          RefPartR_m(0.0),
-          RefPartP_m(0.0),  
-          localTrackStep_m(0),
-          globalTrackStep_m(0),
-          OPALdist_m(OPALdistribution),
-          OPALFieldSolver_m(OPALFieldSolver){
 
-        Inform m("PartBunch() ");
-
-        static IpplTimings::TimerRef gatherInfoPartBunch = IpplTimings::getTimer("gatherInfoPartBunch");
-        IpplTimings::startTimer(gatherInfoPartBunch);
-
-        /*
-          get the needed information from OPAL FieldSolver command
-        */
-
-        nr_m = Vector_t<int, Dim>(
-            OPALFieldSolver_m->getNX(), OPALFieldSolver_m->getNY(), OPALFieldSolver_m->getNZ());
-
-        const Vector_t<bool, 3> domainDecomposition = OPALFieldSolver_m->getDomDec();
-
-        for (unsigned i = 0; i < Dim; i++) {
-            this->domain_m[i] = ippl::Index(nr_m[i]);
-            this->decomp_m[i] = domainDecomposition[i];
-        }
-
-        bool isAllPeriodic = true;  // \fixme need to get BCs from OPAL Fieldsolver
-
-        /*
-          set stuff for pre_run i.e. warmup
-          this will be reset when the correct computational
-          domain is set
-        */
-
-        Vector_t<double, Dim> length (6.0);
-        this->hr_m = length / this->nr_m;
-        this->origin_m = -3.0;
-        this->dt_m = 0.5 / this->nr_m[2];
-
-        rmin_m = origin_m;
-        rmax_m = origin_m + length;
-
-        this->setFieldContainer( std::make_shared<FieldContainer_t>(hr_m, rmin_m, rmax_m, decomp_m, domain_m, origin_m, isAllPeriodic) );
-
-        this->setParticleContainer(std::make_shared<ParticleContainer_t>(
-            this->fcontainer_m->getMesh(), this->fcontainer_m->getFL()));
-
-        IpplTimings::stopTimer(gatherInfoPartBunch);
-
-        static IpplTimings::TimerRef setSolverT = IpplTimings::getTimer("setSolver");
-        IpplTimings::startTimer(setSolverT);
-        setSolver(OPALFieldSolver_m->getType());
-        IpplTimings::stopTimer(setSolverT);
-
-        static IpplTimings::TimerRef prerun = IpplTimings::getTimer("prerun");
-        IpplTimings::startTimer(prerun);
-        pre_run();
-        IpplTimings::stopTimer(prerun);
-
-        globalPartPerNode_m = std::make_unique<size_t[]>(ippl::Comm->size());
-
-    }
+    PartBunch(double qi, double mi, size_t totalP, int nt, double lbt, std::string integration_method,
+              std::shared_ptr<Distribution> &OPALdistribution, std::shared_ptr<FieldSolverCmd> &OPALFieldSolver);
 
     void bunchUpdate();
+
     void bunchUpdate(ippl::Vector<double, 3> hr);
     
     ~PartBunch() {
@@ -317,7 +241,7 @@ public:
     void setSolver(std::string solver);
 
     void pre_run() override ;
-    
+
 public:
     void updateMoments(){
         this->pcontainer_m->updateMoments();
@@ -363,17 +287,9 @@ public:
         gatherCIC();
     }
 
-    void gatherCIC() {
-/*
-        using Base = ippl::ParticleBase<ippl::ParticleSpatialLayout<T, Dim>>;
-        typename Base::particle_position_type* Ep = &this->pcontainer_m->E;
-        typename Base::particle_position_type* R = &this->pcontainer_m->R;
-        VField_t<T, Dim>* Ef = &this->fcontainer_m->getE();
-        gather(*Ep, *Ef, *R);
-*/
-    }
+    void gatherCIC();
 
-    void scatterCIC(); 
+    void scatterCIC();
 
     /*
       Up to here it is like the opaltest
@@ -389,19 +305,7 @@ public:
 
     void calcBeamParameters();
 
-    void do_binaryRepart()
-    {
-        using FieldContainer_t    = FieldContainer<T, Dim>;
-        std::shared_ptr<FieldContainer_t> fc    = this->fcontainer_m; 
-
-        size_type totalP = this->getTotalNum() ;
-        int it           = this->it_m;
-        if (this->loadbalancer_m->balance(totalP, it + 1)) {
-            auto* mesh = &fc->getRho().get_mesh();
-            auto* FL   = &fc->getFL();
-            this->loadbalancer_m->repartition(FL, mesh, isFirstRepartition_m);
-        }
-    }
+    void do_binaryRepart();
 
     void setCharge() {
         this->getParticleContainer()->Q = qi_m;
@@ -451,11 +355,7 @@ public:
         return 1.0;
     }
 
-    void gatherLoadBalanceStatistics() {
-        std::fill_n(globalPartPerNode_m.get(), ippl::Comm->size(), 0);  // Fill the array with zeros        
-        globalPartPerNode_m[ippl::Comm->rank()] = getLocalNum();
-        ippl::Comm->allreduce(globalPartPerNode_m.get(), ippl::Comm->size(), std::plus<size_t>());
-    }
+    void gatherLoadBalanceStatistics();
 
     size_t getLoadBalance(int p) {
         return globalPartPerNode_m[p];
@@ -887,10 +787,7 @@ public:
 
 };
 
-/* \todo
-Inform& operator<<(Inform& os, PartBunch<double, 3>& p) {
-    return p.print(os);
-}
-*/
+// Explicit instantiations
+extern template class PartBunch<double, 3>;
 
 #endif
