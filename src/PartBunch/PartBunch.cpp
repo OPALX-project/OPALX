@@ -455,11 +455,11 @@ void PartBunch<T, Dim>::computeSelfFields() {
     */
 
 
-    ippl::ParticleAttrib<T>* Q          = &this->pcontainer_m->Q;
+    ippl::ParticleAttrib<T>* Q               = &this->pcontainer_m->Q;
     typename Base::particle_position_type* R = &this->pcontainer_m->R;
 
     this->fcontainer_m->getRho()             = 0.0;
-    Field_t<Dim>* rho                          = &this->fcontainer_m->getRho();
+    Field_t<Dim>* rho                        = &this->fcontainer_m->getRho();
 
     scatter(*Q, *rho, *R);
 
@@ -512,12 +512,11 @@ void PartBunch<T, Dim>::scatterCIC() {
 
     Inform m("scatterCIC ");
 
-
-    ippl::ParticleAttrib<T>* q          = &this->pcontainer_m->Q;
+    ippl::ParticleAttrib<T>* q               = &this->pcontainer_m->Q;
     typename Base::particle_position_type* R = &this->pcontainer_m->R;
 
     this->fcontainer_m->getRho()             = 0.0;
-    Field_t<Dim>* rho                          = &this->fcontainer_m->getRho();
+    Field_t<Dim>* rho                        = &this->fcontainer_m->getRho();
 
     double Q                                 = this->qi_m * this->getTotalNum();
     Vector_t<double, 3> rmin                 = rmin_m;
