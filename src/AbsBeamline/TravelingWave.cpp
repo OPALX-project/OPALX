@@ -18,7 +18,7 @@
 #include "AbsBeamline/TravelingWave.h"
 
 #include "AbsBeamline/BeamlineVisitor.h"
-#include "PartBunch/PartBunch.hpp"
+#include "PartBunch/PartBunch.h"
 #include "Fields/Fieldmap.h"
 #include "Physics/Units.h"
 
