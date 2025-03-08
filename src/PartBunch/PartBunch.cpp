@@ -31,7 +31,7 @@ PartBunch<T, Dim>::PartBunch(double qi, double mi, size_t totalP, int nt, double
     static IpplTimings::TimerRef gatherInfoPartBunch = IpplTimings::getTimer("gatherInfoPartBunch");
     IpplTimings::startTimer(gatherInfoPartBunch);
 
-    *gmsg << "PartBunch Constructor" << endl;
+    *gmsg << "* PartBunch Constructor:" << endl;
 
     //  get the needed information from OPAL FieldSolver command
 
@@ -70,14 +70,13 @@ PartBunch<T, Dim>::PartBunch(double qi, double mi, size_t totalP, int nt, double
     IpplTimings::startTimer(setSolverT);
     setSolver(OPALFieldSolver_m->getType());
     IpplTimings::stopTimer(setSolverT);
-/*
+
     static IpplTimings::TimerRef prerun = IpplTimings::getTimer("prerun");
     IpplTimings::startTimer(prerun);
     pre_run();
     IpplTimings::stopTimer(prerun);
 
     globalPartPerNode_m = std::make_unique<size_t[]>(ippl::Comm->size());
-*/
 }
 
 template <typename T, unsigned Dim>

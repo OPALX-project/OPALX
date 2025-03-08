@@ -139,16 +139,13 @@ void FieldSolver<double,3>::dumpVectField(std::string what) {
 template <>
 void FieldSolver<double,3>::dumpScalField(std::string what) {
 
-    /*
-      what == phi | rho
-     */
+    //  what == phi | rho
 
     Inform m("FS::dumpScalField() ");
 
     if (ippl::Comm->size() > 1 || call_counter_m<2) {
         return;
     }
-
 /* Save the files in the output directory of the simulation. The file
  * name of vector fields is
  *
@@ -163,7 +160,6 @@ void FieldSolver<double,3>::dumpScalField(std::string what) {
  *   'name':     field name (input argument of function)
  *   '******':   call_counter_m padded with zeros to 6 digits
  */
-    
 
     std::string dirname = "data/";
 
@@ -267,29 +263,63 @@ void FieldSolver<double,3>::dumpScalField(std::string what) {
     m << "*** FINISHED DUMPING " + Util::toUpper(what) + " FIELD *** to " << file.string() << endl;
 }
 
+template <typename T, unsigned Dim>
+template <typename Solver>
+void FieldSolver<T, Dim>::initSolverWithParams(const ippl::ParameterList& sp) {
+
+    this->getSolver().template emplace<Solver>();
+
+    if (std::holds_alternative<Solver>(this->getSolver())) {
+        *gmsg << "* Solver was correctly emplaced." << endl;
+    } else {
+        throw std::runtime_error("Failed to emplace Solver in std::variant.");
+    }
+
+    Solver& solver = std::get<Solver>(this->getSolver());
+
+    solver.mergeParameters(sp);
+
+    solver.setRhs(*rho_m);
+
+        if constexpr (std::is_same_v<Solver, CGSolver_t<T, Dim>>) {
+            // The CG solver computes the potential directly and
+            // uses this to get the electric field
+            solver.setLhs(*phi_m);
+            solver.setGradient(*E_m);
+        }
+        else{
+            // The periodic Poisson solver, Open boundaries solver,
+            // and the P3M solver compute the electric field directly
+            solver.setLhs(*E_m);
+            if constexpr (std::is_same_v<Solver, OpenSolver_t<T, Dim>>){
+                solver.setGradFD();
+            }
+        }
+        call_counter_m = 0;
+}
+
 template <>
 void FieldSolver<double,3>::initOpenSolver() {
-        ippl::ParameterList sp;
-        sp.add("output_type", OpenSolver_t<double, 3>::SOL_AND_GRAD);
-        sp.add("use_heffte_defaults", false);
-        sp.add("use_pencils", true);
-        sp.add("use_reorder", false);
-        sp.add("use_gpu_aware", true);
-        sp.add("comm", ippl::p2p_pl);
-        sp.add("r2c_direction", 0);
-        sp.add("algorithm", OpenSolver_t<double, 3>::HOCKNEY);
-std::cout << "sp" << sp << std::endl;
-        initSolverWithParams<OpenSolver_t<double, 3>>(sp);
+    ippl::ParameterList sp;
+    sp.add("output_type", OpenSolver_t<double, 3>::SOL);
+    sp.add("use_heffte_defaults", false);
+    sp.add("use_pencils", true);
+    sp.add("use_reorder", false);
+    sp.add("use_gpu_aware", true);
+    sp.add("comm", ippl::p2p_pl);
+    sp.add("r2c_direction", 0);
+    sp.add("algorithm", OpenSolver_t<double, 3>::HOCKNEY);
+    initSolverWithParams<OpenSolver_t<double, 3>>(sp);
 }
 
 template <>
 void FieldSolver<double,3>::initSolver() {
     Inform m;
-std::cout << "this->getStype" << this->getStype() << std::endl;
+
     if (this->getStype() == "FFT") {
-        initOpenSolver();    
+        initFFTSolver();
     } else if (this->getStype() == "FFTOPEN") {
-        initOpenSolver();    
+        initOpenSolver();
     } else if (this->getStype() == "NONE") {
         initNullSolver();
     }
@@ -345,8 +375,7 @@ void FieldSolver<double,3>::runSolver() {
                 this->dumpScalField("rho");
                 call_counter_m++;
 #endif
-
-                std::get<OpenSolver_t<double, 3>>(this->getSolver()).solve();
+                std::get<FFTSolver_t<T, Dim>>(this->getSolver()).solve();
 #ifdef OPALX_FIELD_DEBUG
                 this->dumpScalField("phi");
                 this->dumpVectField("ef");
@@ -417,3 +446,8 @@ void FieldSolver<double,3>::initP3MSolver() {
 }
 
 */
+
+template class FieldSolver<double, 3>;
+template void FieldSolver<double, 3>::initSolverWithParams<CGSolver_t<double, 3>>(const ippl::ParameterList&);
+template void FieldSolver<double, 3>::initSolverWithParams<OpenSolver_t<double, 3>>(const ippl::ParameterList&);
+template void FieldSolver<double, 3>::initSolverWithParams<FFTSolver_t<double, 3>>(const ippl::ParameterList&);

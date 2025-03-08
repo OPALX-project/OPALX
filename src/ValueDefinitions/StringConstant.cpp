@@ -131,6 +131,7 @@ StringConstant::StringConstant()
 
     // FieldSolver / FSTYPE
     CREATE_STRINGCONSTANT("FFT");
+    CREATE_STRINGCONSTANT("FFTOPEN");
     CREATE_STRINGCONSTANT("FFTPERIODIC");
     // additionally: NONE
 
