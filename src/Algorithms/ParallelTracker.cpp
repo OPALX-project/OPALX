@@ -410,13 +410,11 @@ void ParallelTracker::execute() {
             computeSpaceChargeFields(step);
             
             // \todo for a drift we can neglect that 
-            // computeExternalFields(oth);
+            computeExternalFields(oth);
 
             timeIntegration2(pusher);
             
             selectDT(back_track);
-            // \todo emitParticles(step);
-            //selectDT(back_track);
 
             itsBunch_m->incrementT();
 
@@ -668,7 +666,9 @@ void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
     IpplTimings::startTimer(fieldEvaluationTimer_m);
     Inform msg("ParallelTracker ", *gmsg);
     const unsigned int localNum = itsBunch_m->getLocalNum();
-    bool locPartOutOfBounds = false, globPartOutOfBounds = false;
+    Kokkos::View<bool> locPartOutOfBounds("localoutofbounds");
+    locPartOutOfBounds() = false;
+    bool globPartOutOfBounds = false;
     Vector_t<double, 3> rmin(0.0), rmax(0.0);
     if (itsBunch_m->getTotalNum() > 0)
         itsBunch_m->get_bounds(rmin, rmax);
@@ -681,6 +681,12 @@ void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
         return;
     }
 
+    // get the views 
+    auto Rview  = itsBunch_m->getParticleContainer()->R.getView();
+    auto Pview  = itsBunch_m->getParticleContainer()->P.getView();
+    auto Eview  = itsBunch_m->getParticleContainer()->E.getView();
+    auto Bview  = itsBunch_m->getParticleContainer()->B.getView();
+
     IndexMap::value_t::const_iterator it        = elements.begin();
     const IndexMap::value_t::const_iterator end = elements.end();
 
@@ -692,38 +698,45 @@ void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
 
         CoordinateSystemTrafo localToRefCSTrafo = refToLocalCSTrafo.inverted();
 
-        (*it)->setCurrentSCoordinate(pathLength_m + rmin(2));
+        (*it)->setCurrentSCoordinate(pathLength_m + rmin(2));   
 
-        for (unsigned int i = 0; i < localNum; ++i) {
-            // \todo if (itsBunch_m->Bin[i] < 0)
-            //     continue;
+        Kokkos::parallel_for(
+             "computeExternalField", localNum,
+             KOKKOS_LAMBDA(const int i) {
+            //for (unsigned int i = 0; i < localNum; ++i) {
 
-            // \todo itsBunch_m->R[i] = refToLocalCSTrafo.transformTo(itsBunch_m->R[i]);
-            // \todo itsBunch_m->P[i] = refToLocalCSTrafo.rotateTo(itsBunch_m->P[i]);
-            double dt = 1.0;  // \todo itsBunch_m->dt[i];
+            // Is this still needed?
+            // if (itsBunch_m->Bin[i] < 0)
+            //      continue;
 
+            Rview(i) = refToLocalCSTrafo.transformTo(Rview(i));
+            Pview(i) = refToLocalCSTrafo.rotateTo(Pview(i));
+            double dt = 1.0;  // \todo itsBunch_m->dt[i];n
+            
             Vector_t<double, 3> localE(0.0), localB(0.0);
-
+            
             if ((*it)->apply(i, itsBunch_m->getT() + 0.5 * dt, localE, localB)) {
-                // itsBunch_m->R[i]   = localToRefCSTrafo.transformTo(itsBunch_m->R[i]);
-                // itsBunch_m->P[i]   = localToRefCSTrafo.rotateTo(itsBunch_m->P[i]);
-                // itsBunch_m->Bin[i] = -1;
-                locPartOutOfBounds = true;
-
-                continue;
+                Rview(i)   = localToRefCSTrafo.transformTo(Rview(i));
+                Pview(i)   = localToRefCSTrafo.rotateTo(Pview(i));
+                //itsBunch_m->Bin[i] = -1;
+                locPartOutOfBounds() = true;
+                
+                // this is not the else statement from below
+                //continue;
+            } else {  
+                Rview(i) = localToRefCSTrafo.transformTo(Rview(i));
+                Pview(i) = localToRefCSTrafo.rotateTo(Pview(i));
+                Eview(i) += localToRefCSTrafo.rotateTo(localE);
+                Bview(i) += localToRefCSTrafo.rotateTo(localB);
             }
-
-            // itsBunch_m->R[i] = localToRefCSTrafo.transformTo(itsBunch_m->R[i]);
-            // itsBunch_m->P[i] = localToRefCSTrafo.rotateTo(itsBunch_m->P[i]);
-            // itsBunch_m->Ef[i] += localToRefCSTrafo.rotateTo(localE);
-            // itsBunch_m->Bf[i] += localToRefCSTrafo.rotateTo(localB);
-        }
+        });    
+        //}
     }
 
     IpplTimings::stopTimer(fieldEvaluationTimer_m);
 
     // \todo reduce(locPartOutOfBounds, globPartOutOfBounds, OpOrAssign());
-    ippl::Comm->reduce(locPartOutOfBounds, globPartOutOfBounds, 1, std::logical_or<bool>());
+    ippl::Comm->reduce(locPartOutOfBounds(), globPartOutOfBounds, 1, std::logical_or<bool>());
 
     size_t ne = 0;
     if (globPartOutOfBounds) {
