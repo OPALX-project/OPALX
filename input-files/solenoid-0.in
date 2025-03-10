@@ -1,0 +1,68 @@
+/*      SolenoidTest-1.in
+	OPAL-X
+	Test simple Gaussian distribution in a solenoid, no space charge
+*/
+
+OPTION, PSDUMPFREQ      = 1;     // 6d data written every 10th time step (h5).
+OPTION, STATDUMPFREQ    = 1;     // Beam Stats written every time step (stat).
+OPTION, BOUNDPDESTROYFQ = 10;    // Delete lost particles, if any out of 10 \sigma
+OPTION, AUTOPHASE       = 4;     // Autophase is on, and phase of max energy
+                                 // gain will be found automatically for cavities.
+OPTION, VERSION=10900;
+
+Title, string="Test of a solenoid";
+
+Value,{OPALVERSION};
+
+// ----------------------------------------------------------------------------
+// Global Parameters
+
+REAL rf_freq             = 1.3e3;    // RF frequency. (MHz)
+REAL n_particles         = 1E5;      // Number of particles in simulation.
+REAL beam_bunch_charge   = 1e-9;     // Charge of bunch. (C)
+
+// ----------------------------------------------------------------------------
+// Initial Momentum Calculation
+
+REAL Edes    = 1.4e-9; //initial energy in GeV
+REAL gamma   = (Edes+EMASS)/EMASS; 
+REAL beta    = sqrt(1-(1/gamma^2));
+REAL P0      = gamma*beta*EMASS;    //inital z momentum
+
+//Printing initial energy and momentum to terminal output.
+value, {Edes, P0, OPALVERSION};
+
+REAL KSBF = 0.162544398;
+if (OPALVERSION>10500)
+ KSBF = KSBF/1.3528;
+
+BF: Solenoid, L = 0.5, ELEMEDGE=0.0, KS = KSBF, FMAPFN = "input-files/fieldmaps/BF_550.T7";
+    
+SOLine: Line = (BF);
+
+Dist1: DISTRIBUTION, TYPE=GAUSS,
+SIGMAX=0.001,
+SIGMAY=0.001,
+SIGMAZ=0.001,
+SIGMAPX=0.0,
+SIGMAPY=0.0,
+SIGMAPZ=0.0;
+
+FS1: Fieldsolver, Type=NONE,
+     NX = 32, NY = 32, NZ = 32,
+     PARFFTX = TRUE,
+     PARFFTY = TRUE,
+     PARFFTZ = TRUE,
+     BCFFTX = OPEN,
+     BCFFTY = OPEN, 
+     BCFFTZ = OPEN,
+     BBOXINCR = 1, GREENSF = STANDARD;
+
+
+BEAM1:  BEAM, PARTICLE = ELECTRON, pc = P0, NPART = n_particles,
+        BFREQ = rf_freq, BCURRENT = beam_bunch_charge * rf_freq * 1e6, CHARGE = -1;
+
+TRACK, LINE = SOLine, BEAM = BEAM1, MAXSTEPS = 100, DT = {1e-10}, ZSTOP=0.25; 
+ RUN, METHOD = "PARALLEL", BEAM = BEAM1, FIELDSOLVER = FS1, DISTRIBUTION = Dist1;
+ENDTRACK;
+QUIT;
