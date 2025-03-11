@@ -257,7 +257,6 @@ void TrackRun::execute() {
     bunch_m = std::make_shared<bunch_type>(macrocharge_m,
                                            beam->getMass()*1e9*Units::eV2MeV,
                                            beam->getNumberOfParticles(), 10, 1.0, "LF2", dist_m, fs_m);
-/*
     bunch_m->setT(0.0);
     bunch_m->setBeamFrequency(beam->getFrequency() * Units::MHz2Hz);
 
@@ -277,7 +276,7 @@ void TrackRun::execute() {
             throw OpalException("TrackRun::execute", "Unknown \"METHOD\" for the \"RUN\" command");
         }
     }
-*/
+
 
     /*
       \todo Mohsen here we need to create the particles based on dist_m
@@ -296,7 +295,7 @@ void TrackRun::execute() {
     //if (inputMoUnits_m == InputMomentumUnits::EVOVERC) {
     //    deltaP = Util::convertMomentumEVoverCToBetaGamma(deltaP, beam->getM());
     //}
-/*
+
     if (ippl::Comm->rank() == 0) {
         long number_of_processors = sysconf(_SC_NPROCESSORS_ONLN);
         *gmsg << "number_of_processors " << number_of_processors << endl;
@@ -349,19 +348,17 @@ void TrackRun::execute() {
     *gmsg << "* Particle creation done" << endl;
     
     IpplTimings::stopTimer(samplingTime);
-*/
+
     /* 
        reset the fieldsolver with correct hr_m
        based on the distribution
     */
 
-/*
     bunch_m->setCharge();
     bunch_m->setMass();
     bunch_m->bunchUpdate();
     bunch_m->print(*gmsg);
     initDataSink();
-*/
     /*
     if (!isFollowupTrack_m) {
         *gmsg << std::scientific;
@@ -369,7 +366,6 @@ void TrackRun::execute() {
     }
     */
 
-/*
     if (bunch_m->getTotalNum() > 0) {
         double spos = Track::block->zstart;
         auto& zstop = Track::block->zstop;
@@ -385,7 +381,6 @@ void TrackRun::execute() {
     } else {
         Track::block->zstart = 0.0;
     }
-*/
 
     /* \todo this is also not unsed in the master.
        This needs to come back as soon as we have RF
@@ -394,14 +389,12 @@ void TrackRun::execute() {
 
     */
 
-/*
     itsTracker_m = new ParallelTracker(
         *Track::block->use->fetchLine(), bunch_m.get(), *ds_m, Track::block->reference, false,
         Attributes::getBool(itsAttr[TRACKRUN::TRACKBACK]), Track::block->localTimeSteps,
         Track::block->zstart, Track::block->zstop, Track::block->dT);
 
     itsTracker_m->execute();
-*/
 
     /*
     opal_m->setRestartRun(false);

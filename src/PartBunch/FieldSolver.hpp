@@ -96,29 +96,6 @@ public:
     template <typename Solver>
     void initSolverWithParams(const ippl::ParameterList& sp);
 
-/*    
-    template <typename Solver>
-    void initSolverWithParams(const ippl::ParameterList& sp) {
-        this->getSolver().template emplace<Solver>();
-        Solver& solver = std::get<Solver>(this->getSolver());
-        solver.mergeParameters(sp);
-        solver.setRhs(*rho_m);
-        if constexpr (std::is_same_v<Solver, CGSolver_t<T, Dim>>) {
-            // The CG solver computes the potential directly and
-            // uses this to get the electric field
-            solver.setLhs(*phi_m);
-            solver.setGradient(*E_m);
-        }
-        else{
-        //} else if constexpr (std::is_same_v<Solver, OpenSolver_t<T, Dim>>) {
-            // The periodic Poisson solver, Open boundaries solver,
-            // and the P3M solver compute the electric field directly
-            solver.setLhs(*E_m);
-            solver.setGradFD();
-        }
-        call_counter_m = 0;
-    }
-*/
     void initNullSolver();
 
     void initFFTSolver() {
