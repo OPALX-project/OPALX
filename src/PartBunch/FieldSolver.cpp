@@ -318,9 +318,9 @@ void FieldSolver<double,3>::initSolver() {
     Inform m;
 
     if (this->getStype() == "FFT") {
-        initFFTSolver();
-    } else if (this->getStype() == "FFTOPEN") {
         initOpenSolver();
+    } else if (this->getStype() == "FFTPERIODIC") {
+        initFFTSolver();
     } else if (this->getStype() == "NONE") {
         initNullSolver();
     }
@@ -376,7 +376,7 @@ void FieldSolver<double,3>::runSolver() {
                 this->dumpScalField("rho");
                 call_counter_m++;
 #endif
-                std::get<FFTSolver_t<T, Dim>>(this->getSolver()).solve();
+                std::get<OpenSolver_t<double, 3>>(this->getSolver()).solve();
 #ifdef OPALX_FIELD_DEBUG
                 this->dumpScalField("phi");
                 this->dumpVectField("ef");
@@ -387,13 +387,13 @@ void FieldSolver<double,3>::runSolver() {
             if constexpr (Dim == 3) {
                 std::get<P3MSolver_t<double, 3>>(this->getSolver()).solve();
             }
-        } else if (this->getStype() == "FFTOPEN") {
+        } else if (this->getStype() == "FFTPERIODIC") {
             if constexpr (Dim == 3) {
 #ifdef OPALX_FIELD_DEBUG
                 this->dumpScalField("rho");
                 call_counter_m++;
 #endif
-                std::get<OpenSolver_t<double, 3>>(this->getSolver()).solve();
+                std::get<FFTSolver_t<T, Dim>>(this->getSolver()).solve();
 #ifdef OPALX_FIELD_DEBUG
                 this->dumpScalField("phi");
                 this->dumpVectField("ef");
