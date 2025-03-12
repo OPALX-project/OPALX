@@ -291,10 +291,9 @@ void FieldSolver<T, Dim>::initSolverWithParams(const ippl::ParameterList& sp) {
             // The periodic Poisson solver, Open boundaries solver,
             // and the P3M solver compute the electric field directly
             solver.setLhs(*E_m);
-            // for debugging, comment setGradFG, as I try to replicate alpine settings here
-            //if constexpr (std::is_same_v<Solver, OpenSolver_t<T, Dim>>){
-            //    solver.setGradFD();
-            //}
+            if constexpr (std::is_same_v<Solver, OpenSolver_t<T, Dim>>){
+                solver.setGradFD();
+            }
         }
         call_counter_m = 0;
 }
@@ -302,7 +301,7 @@ void FieldSolver<T, Dim>::initSolverWithParams(const ippl::ParameterList& sp) {
 template <>
 void FieldSolver<double,3>::initOpenSolver() {
     ippl::ParameterList sp;
-    sp.add("output_type", OpenSolver_t<double, 3>::GRAD);
+    sp.add("output_type", OpenSolver_t<double, 3>::SOL_AND_GRAD);
     sp.add("use_heffte_defaults", false);
     sp.add("use_pencils", true);
     sp.add("use_reorder", false);
