@@ -61,6 +61,7 @@ diagnostics(): calculate statistics and maybe write tp h5 and stat files
 
 #include "Algorithms/PartData.h"
 
+#include "Utilities/Options.h" // Needed to define binning parameters!
 #include "PartBunch/Binning/AdaptBins.h" // TODO: binning
 
 
