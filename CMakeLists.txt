@@ -110,6 +110,8 @@ if (USE_STATIC_LIBRARIES)
     set (HDF5_USE_STATIC_LIBRARIES ON)
 endif ()
 
+find_package(ZLIB REQUIRED) # add this first, since it is needed for hdf5?
+
 set (HDF5_PREFER_PARALLEL ON)
 find_package (HDF5 REQUIRED)
 if(UNIX AND NOT APPLE)
