@@ -313,7 +313,7 @@ void ParallelTracker::execute() {
     OpalData::getInstance()->setGlobalPhaseShift(0.0);
 
     // the time step needs to be positive in the setup
-    itsBunch_m->setdT(std::abs(itsBunch_m->getdT()));
+    itsBunch_m->setdT(itsBunch_m->getdT()); // itsBunch_m->getdT(), std::abs(1e-12)
     dtCurrentTrack_m = itsBunch_m->getdT();
 
     if (OpalData::getInstance()->hasPriorTrack() || OpalData::getInstance()->inRestartRun()) {
@@ -425,7 +425,7 @@ void ParallelTracker::execute() {
             *gmsg << "* Step " << step << " of " << trackSteps << endl;
             sampler_m->emitParticles(this->itsBunch_m->getT(), dtCurrentTrack_m);
             // pc->P = pc->P + 1.0; // add some value to get some effect for testing.
-            pc->R = pc->R + 1e-8; 
+            // pc->R = pc->R + 1e-8; 
             itsBunch_m->setCharge();
             itsBunch_m->setMass();
             setTime();
@@ -445,11 +445,20 @@ void ParallelTracker::execute() {
 
             // Run binned solver
             itsBunch_m->computeSelfFields();
-            timeIntegration1(pusher); // use this to respect units...
-            //pc->update();
-            itsBunch_m->bunchUpdate(); // only pc->update gives an semgentation fault (idk why...)
-            timeIntegration2(pusher);
+
+            // Do relativistic update myself...
+            pc->R = pc->R + dtCurrentTrack_m/2 * pc->P / sqrt(1 + dot(pc->P, pc->P)) * Physics::c;
             itsBunch_m->bunchUpdate();
+            pc->P = pc->P + dtCurrentTrack_m * (pc->Q * Physics::c / pc->M) * pc->E;
+            //*gmsg << "* P = " << pc->P[0] << ", R = " << pc->R[0] << ", E = " << pc->E[0] << ", Q = " << pc->Q[0] << ", M = " << pc->M[0] << endl;
+            pc->R = pc->R + dtCurrentTrack_m/2 * pc->P / sqrt(1 + dot(pc->P, pc->P)) * Physics::c;
+            itsBunch_m->bunchUpdate(); 
+
+            //timeIntegration1(pusher); // use this to respect units...
+            //pc->update();
+            //itsBunch_m->bunchUpdate(); // only pc->update gives an semgentation fault (idk why...)
+            //timeIntegration2(pusher);
+            //itsBunch_m->bunchUpdate();
 
             // pc->P = pc->P - 0.5 * dtCurrentTrack_m * pc->E;
 
