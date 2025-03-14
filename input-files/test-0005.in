@@ -9,6 +9,17 @@ OPTION, STATDUMPFREQ    = 1;     // Beam Stats written every time step (stat).
 OPTION, BOUNDPDESTROYFQ = 10;    // Delete lost particles, if any out of 10 \sigma
 OPTION, AUTOPHASE       = 4;     // Autophase is on, and phase of max energy
                                  // gain will be found automatically for cavities.
+
+// ----------------------------------------------------------------------------
+// Binning related parameters. 
+
+OPTION, MAXBINS=128;
+OPTION, DESIREDWIDTH=0.1; // A bias towards bin width 0.1
+OPTION, BINNINGALPHA=0.5; // [-1, 1], <0 will favor wider bins, >0 will favor smaller bins (0 is no penalty)
+OPTION, BINNINGBETA=3.0;  // [0, inf] determines how strong the bias towards WIDTH is 
+                          // (pick a very big number if you want to force "constant binning")
+// ----------------------------------------------------------------------------
+
 OPTION, VERSION=10900;
 OPTION, SEED  = -1;
 

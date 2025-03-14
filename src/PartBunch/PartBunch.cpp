@@ -363,7 +363,7 @@ void PartBunch<double,3>::computeSelfFields() {
     m << "Running binned solver routine." << endl;
 
     // Run solver for each bin
-    Etmp = 0.0; // reset temporary field to zero
+    Etmp = {0, 0, 60.0e6}; // reset temporary field to 60 MV/m (roughly the field of the outside accelerating field....)
     for (binIndex_t i = 0; i < bins->getCurrentBinCount(); ++i) {
         if (bins->getNPartInBin(i) == 0) {
             m << "0 particles in bin " << i << ", skipping." << endl;
@@ -381,7 +381,7 @@ void PartBunch<double,3>::computeSelfFields() {
 
     // Gather built up temporary E field to the particles
     gather(this->pcontainer_m->E, Etmp, this->pcontainer_m->R);
-    m << "Fields gathered." << endl;
+    m << "Fields gathered. Etmp[0] = " << this->pcontainer_m->E(0) << endl;
 
     spaceChargeEFieldCheck();
     IpplTimings::stopTimer(SolveTimer);
