@@ -107,7 +107,12 @@ namespace ParticleBinning {
         //return -sumCountNorm * log(sumCountNorm/sumWidth) + sumCountNorm + wideBinPenalty * sumWidth;
         value_type penalty        = sumWidth - desiredWidth;// (sumWidth > 0.1) ? pow(0.1 - sumWidth, 2) : 0.0;
         value_type wideBinPenalty = binningAlpha;
-        value_type binSizeBias    = binningBeta;
+        value_type binSizeBias    = binningBeta * sqrt(sumCountNorm);
+
+        // The following is OK when normalized!
+        value_type sparse_penalty = ((sumCount > 0) && (sumCountNorm < desiredWidth)) 
+                                        ? desiredWidth / sumCountNorm // normalize penalty by desiredWidth
+                                        : 0.0;
 
         //if (k % 10 == 0 && i % 10 == 0) {
         //    std::cout << ", sum1 = " << (sumCountNorm*log(sumWidth)) << ", sum2 = " << (wideBinPenalty*penalty) << std::endl;
@@ -123,7 +128,8 @@ namespace ParticleBinning {
                 + wideBinPenalty * sumWidth       // >0 wants smallest possible bin
                                                   // <0 wants largest possible bin
                 + binSizeBias * pow(penalty, 2)   // bias towards desiredWidth
-                + 0.25 / sqrt(sumCountNorm);               
+                + sparse_penalty;                 // penalty for too few particles
+                // + 0.25 / sqrt(sumCountNorm);               
 
         /*
         // Compute the representative value as the weighted average. 
