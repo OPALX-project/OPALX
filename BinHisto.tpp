@@ -7,21 +7,6 @@
 
 namespace ParticleBinning {
 
-    // We'll reduce to find the minimal candidate and the index i that achieves it.
-    /*template <typename value_type, typename bin_index_type>
-    struct MinPair {
-        value_type val;
-        bin_index_type idx;
-    };
-
-    template <typename value_type, typename bin_index_type>
-    static KOKKOS_INLINE_FUNCTION
-    MinPair<value_type, bin_index_type> combineMinPair(const MinPair<value_type, bin_index_type>& a, 
-                                                       const MinPair<value_type, bin_index_type>& b) {
-        return (a.val < b.val) ? a : b;
-    }*/
-
-
     template <typename size_type, typename bin_index_type, typename value_type, bool UseDualView, class... Properties>
     void Histogram<size_type, bin_index_type, value_type, UseDualView, Properties...>::copyFields(const Histogram& other) {
         debug_name_m    = other.debug_name_m;
@@ -38,146 +23,44 @@ namespace ParticleBinning {
     }
 
 
-    // Implementation of the cost function
-    /*template <typename size_type, typename bin_index_type, typename value_type, bool UseDualView, class... Properties>
-    KOKKOS_INLINE_FUNCTION value_type
-    Histogram<size_type, bin_index_type, value_type, UseDualView, Properties...>::computeDeviationCost(
-        const size_type& sumCount, const value_type& sumWidth, const value_type& maxBinRatio,
-        const value_type& alpha, const value_type& mergedStd
-    ) {
-        value_type h = alpha * mergedStd * pow(sumCount, 3); // from "/ sumCount^1/3"
-        return pow(maxBinRatio - sumWidth * h, 2);
-
-        // Written such that there if no warp divergence
-        // Compute the ratio
-        //value_type ratio = sumWidth * sqrt(static_cast<value_type>(sumCount));
-        
-        // Select the cost based on the conditions
-        // Explanation: when the bin is empty, the cost is "inf" to guarantee merging this bin
-        //value_type costWhenSumCountZero = (sumWidth == value_type(0)) ? std::fabs(0.0 - maxBinRatio) : largeVal;
-        //value_type costWhenSumCountNonZero = std::fabs(ratio - maxBinRatio);
-        
-        // Use a conditional select to avoid branching
-        //return (sumCount == 0) ? costWhenSumCountZero : costWhenSumCountNonZero;
-    }*/
-
+    // PRE: sumCount > 0
     template <typename size_type, typename bin_index_type, typename value_type, bool UseDualView, class... Properties>
-    //template <typename BinningSelector_t>
     value_type 
     Histogram<size_type, bin_index_type, value_type, UseDualView, Properties...>::partialMergedCDFIntegralCost(
-        //const bin_index_type& i, const bin_index_type& k,
         const size_type& sumCount,
         const value_type& sumWidth,
         const size_type& totalNumParticles
-        //const hash_type sortedIndexArr,
-        //const BinningSelector_t var_selector
-        // const value_type& alpha, // TODO: maybe later
-        //const value_type& mergedStd,
-        //const value_type& segFineMoment
     ) {
-        //std::cout << "i = " << i << ", k = " << k << ", sumCount = " << sumCount << ", sumWidth = " << sumWidth << std::endl;
-        // 1. Calculate mean of segment to be merged
-        /*value_type valueMean = 0.0;
-        Kokkos::parallel_reduce(getBinIterationPolicy(i, k-i), KOKKOS_LAMBDA(const bin_index_type& j, value_type& valueMean) {
-            const bin_index_type idx = sortedIndexArr(j);
-            valueMean += var_selector(idx);
-        }, valueMean);
-        valueMean /= sumCount;
-        //std::cout << "Hey there!" << std::endl;
+        # ifdef DEBUG
+        if (sumCount == 0) {
+            Inform err("mergeBins");
+            err << "Error in partialMergedCDFIntegralCost: " 
+                << "sumCount = " << sumCount
+                << ", sumWidth = " << sumWidth
+                << ", totalNumParticles = " << totalNumParticles << endl;
+            ippl::Comm->abort();
+        }
+        # endif
 
-        // 2. Calculate variance of segment to be merged
-        value_type squaredDiff = 0.0;
-        Kokkos::parallel_reduce(getBinIterationPolicy(i, k-i), KOKKOS_LAMBDA(const bin_index_type& j, value_type& squaredDiff) {
-            const bin_index_type idx = sortedIndexArr(j);
-            squaredDiff += pow(var_selector(idx) - valueMean, 2);
-        }, squaredDiff);
-
-        //std::cout << "Hey there!" << std::endl;
-
-        value_type varEstimate = squaredDiff / sumCount;*/
         value_type totalSum = static_cast<value_type>(totalNumParticles);
         value_type sumCountNorm = sumCount / totalSum; // static_cast<value_type>(sumCount) / totalSum;
 
-        // Basically assuming Gaussian distribution per bin and calculating the log-likelihood. 
-        // Aims to give a penalty for bins too wide and bins with not enough particles.
-        /*return -sumCount / 2 * log(2*3.1415926) 
-                - sumCount * log(sqrt(varEstimate))
-                - 1 / (2 * varEstimate) * squaredDiff
-                - wideBinPenalty * sumWidth;*/
-        //return -sumCountNorm * log(sumCountNorm/sumWidth) + sumCountNorm + wideBinPenalty * sumWidth;
         value_type penalty        = sumWidth - desiredWidth;// (sumWidth > 0.1) ? pow(0.1 - sumWidth, 2) : 0.0;
         value_type wideBinPenalty = binningAlpha;
-        value_type binSizeBias    = binningBeta * sqrt(sumCountNorm);
+        value_type binSizeBias    = binningBeta; // * sqrt(sumCountNorm);
 
         // The following is OK when normalized!
-        value_type sparse_penalty = ((sumCount > 0) && (sumCountNorm < desiredWidth)) 
-                                        ? desiredWidth / sumCountNorm // normalize penalty by desiredWidth
-                                        : 0.0;
+        value_type sparse_penalty = (sumCountNorm < desiredWidth) // (sumCount > 0) && (removed, since pre condition!)
+                                     ? desiredWidth / sumCountNorm // normalize penalty by desiredWidth
+                                     : 0.0;
 
-        //if (k % 10 == 0 && i % 10 == 0) {
-        //    std::cout << ", sum1 = " << (sumCountNorm*log(sumWidth)) << ", sum2 = " << (wideBinPenalty*penalty) << std::endl;
-        //}
-        /*if (std::rand() < RAND_MAX / 100) {
-            std::cout << "Term 1 = " << (1-wideBinPenalty) * sumCountNorm*log(sumCountNorm)*sumWidth
-                      << ", Term 2 = " << wideBinPenalty  * (penalty - pow(penalty, 2)/2 + pow(penalty, 3)/3) << std::endl;
-        }*/
-        
-
-        // return sumCountNorm * log(sumWidth) + wideBinPenalty * penalty; // + wideBinPenalty / sumWidth;
         return sumCountNorm*log(sumCountNorm)*sumWidth // minimize shannon entropy as a basis
-                + wideBinPenalty * sumWidth       // >0 wants smallest possible bin
-                                                  // <0 wants largest possible bin
-                + binSizeBias * pow(penalty, 2)   // bias towards desiredWidth
-                + sparse_penalty;                 // penalty for too few particles
-                // + 0.25 / sqrt(sumCountNorm);               
-
-        /*
-        // Compute the representative value as the weighted average. 
-        const value_type representative      = segFineMoment / static_cast<value_type>(sumCount);
-        const value_type mergedSegmentMoment = representative * sumCount;
-
-        // Without any offset, this is just 0... (TODO: later)
-        const value_type costMoment = pow(segFineMoment - mergedSegmentMoment, 2);
-
-        // higher internal spread (mergedStd) and a larger (sumWidth)
-        // lead to a larger integrated difference between the fine and merged CDFs 
-        const value_type costCDF = mergedStd * mergedStd; // * sumWidth;
-
-        // Add a penalty to discourage segments that are too narrow --> TODO: might want this to balance modeling error!
-        const value_type dmin = 2.34e-4; 
-        const value_type narrowPenalty = (sumWidth < dmin) ? pow(dmin - sumWidth, 2) : 0.0;
-
-        // Note: At the moment, costMoment is zero :( -- TODO: what can I do here???
-        // return alpha * costCDF + costMoment + narrowPenalty;
-        return alpha * costCDF + mergedStd / pow(sumCount, 1.0/3.0) + narrowPenalty;*/
+                + wideBinPenalty * pow(sumWidth, 3)    // >0 wants smallest possible bin
+                                                       // <0 wants largest possible bin
+                                                       // Use ^3 to make it reasonably sensitive
+                + binSizeBias * pow(penalty, 2)        // bias towards desiredWidth
+                + sparse_penalty;                      // penalty for too few particles (specifically "distribution tails")
     }
-
-    /*template <typename size_type, typename bin_index_type, typename value_type, bool UseDualView, class... Properties>
-    value_type
-    Histogram<size_type, bin_index_type, value_type, UseDualView, Properties...>::mergedBinStd(
-        const bin_index_type& i, const bin_index_type& k,
-        const size_type& sumCount, const value_type& varPerBin, 
-        const hwidth_view_type& prefixWidth, 
-        const hview_type& fineCounts, const hwidth_view_type& fineWidths
-    ) {
-        // Calculate the weighted mean
-        value_type weightedMean = 0;
-        for (bin_index_type j = i; j < k; ++j) {
-            value_type binMidpoint = prefixWidth(j) + 0.5 * fineWidths(j);
-            weightedMean += fineCounts(j) * binMidpoint;
-        }
-        weightedMean /= sumCount;
-
-        // Calculate the variance
-        value_type variance = 0;
-        for (bin_index_type j = i; j < k; ++j) {
-            value_type binMidpoint = prefixWidth(j) + 0.5 * fineWidths(j);
-            variance += fineCounts(j) * ( pow(binMidpoint - weightedMean, 2)+ varPerBin );
-        }
-        variance /= sumCount;
-
-        return sqrt(variance);
-    }*/
 
 
     template <typename size_type, typename bin_index_type, typename value_type, bool UseDualView, class... Properties>
