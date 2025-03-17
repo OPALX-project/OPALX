@@ -83,29 +83,12 @@ if(NOT IPPL_VERSION)
     set(IPPL_VERSION "3.2.0")
     message(STATUS "Defaulting to IPPL-${IPPL_VERSION}")
 endif()
-
-# Allow the user to specify a branch or tag; default to "master" if not provided.
-set(IPPL_GIT_TAG "master" CACHE STRING "Branch or tag for IPPL (default: master)")
-message(STATUS "Fetching IPPL branch/tag: ${IPPL_GIT_TAG}")
-
-# Declare the external dependency
 FetchContent_Declare(ippl
+    #URL https://github.com/IPPL-framework/ippl/archive/refs/tags/IPPL-${IPPL_VERSION}.tar.gz
     GIT_REPOSITORY https://github.com/IPPL-framework/ippl.git
-    GIT_TAG ${IPPL_GIT_TAG}
-    GIT_SHALLOW False
+    GIT_SHALLOW True
     DOWNLOAD_EXTRACT_TIMESTAMP True
 )
-
-
-#set(IPPL_BRANCH master CACHE STRING "Branch of IPPL to use")
-#FetchContent_Declare(ippl
-#    #URL https://github.com/IPPL-framework/ippl/archive/refs/tags/IPPL-${IPPL_VERSION}.tar.gz
-#    GIT_REPOSITORY https://github.com/IPPL-framework/ippl.git
-#    GIT_TAG ${IPPL_BRANCH}
-#    GIT_SHALLOW True
-#    DOWNLOAD_EXTRACT_TIMESTAMP True
-#)
-#message(STATUS "Using IPPL branch: ${IPPL_BRANCH}")
 set(ENABLE_COSMOLOGY OFF CACHE BOOL "Disable Cosmology in IPPL")
 
 FetchContent_MakeAvailable(ippl)
@@ -123,8 +106,6 @@ find_package (H5Hut REQUIRED)
 if (USE_STATIC_LIBRARIES)
     set (HDF5_USE_STATIC_LIBRARIES ON)
 endif ()
-
-find_package(ZLIB REQUIRED) # add this first, since it is needed for hdf5?
 
 set (HDF5_PREFER_PARALLEL ON)
 find_package (HDF5 REQUIRED)
