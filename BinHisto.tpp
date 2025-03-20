@@ -112,16 +112,16 @@ namespace ParticleBinning {
         // ----------------------------------------------------------------
         hview_type       prefixCount("prefixCount", n+1);
         hwidth_view_type prefixWidth("prefixWidth", n+1);
-        Kokkos::View<value_type*, Kokkos::HostSpace> prefixMoment("prefixMoment", n+1); // Needed for first order moment error estimation
+        // Kokkos::View<value_type*, Kokkos::HostSpace> prefixMoment("prefixMoment", n+1); // Needed for first order moment error estimation
         prefixCount(0)  = 0;
         prefixWidth(0)  = 0;
-        prefixMoment(0) = 0;
+        // prefixMoment(0) = 0;
         for (bin_index_type i = 0; i < n; ++i) {
             prefixCount(i+1) = prefixCount(i) + oldHistHost(i);
             prefixWidth(i+1) = prefixWidth(i) + oldBinWHost(i);
 
             value_type binCenter = prefixWidth(i) + 0.5 * oldBinWHost(i); // Technically not necessary, but more general for non-uniform bins...
-            prefixMoment(i+1) = prefixMoment(i) + oldHistHost(i) * binCenter; // Something like the cumulative distribution function for the "actual" histogram (fine bins...)
+            //prefixMoment(i+1) = prefixMoment(i) + oldHistHost(i) * binCenter; // Something like the cumulative distribution function for the "actual" histogram (fine bins...)
                                                                               // Basically the "integral" \int_{0}^{x} x f(x) dx
                                                                               // TODO: might want to use different integration rule?
         }
