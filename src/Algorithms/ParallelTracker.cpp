@@ -406,7 +406,16 @@ void ParallelTracker::execute() {
             }
             // ADA
             timeIntegration1(pusher);
-            
+
+            // reset the field back to 0
+            auto Eview  = itsBunch_m->getParticleContainer()->E.getView();
+            auto Bview  = itsBunch_m->getParticleContainer()->B.getView();
+            auto n = itsBunch_m->getLocalNum();
+            for (size_t i = 0; i < n; ++i) {                
+                Eview(i) = 0;
+                Bview(i) = 0;
+            }
+
             computeSpaceChargeFields(step);
             
             // \todo for a drift we can neglect that 
@@ -1004,14 +1013,19 @@ void ParallelTracker::updateReferenceParticle(const BorisPusher& pusher) {
 }
 
 void ParallelTracker::transformBunch(const CoordinateSystemTrafo& trafo) {
+    
+    auto Rview  = itsBunch_m->getParticleContainer()->R.getView();
+    auto Pview  = itsBunch_m->getParticleContainer()->P.getView();
+    auto Eview  = itsBunch_m->getParticleContainer()->E.getView();
+    auto Bview  = itsBunch_m->getParticleContainer()->B.getView();
+
     const unsigned int localNum = itsBunch_m->getLocalNum();
     for (unsigned int i = 0; i < localNum; ++i) {
-        /* \todo host device .... 
-        itsBunch_m->R[i]  = trafo.transformTo(itsBunch_m->R[i]);
-        itsBunch_m->P[i]  = trafo.rotateTo(itsBunch_m->P[i]);
-        itsBunch_m->Ef[i] = trafo.rotateTo(itsBunch_m->Ef[i]);
-        itsBunch_m->Bf[i] = trafo.rotateTo(itsBunch_m->Bf[i]);
-        */
+        
+        Rview(i) = trafo.transformTo(Rview(i));
+        Pview(i) = trafo.rotateTo   (Pview(i));
+        Eview(i) = trafo.rotateTo   (Eview(i));
+        Bview(i) = trafo.rotateTo   (Bview(i));
     }
 }
 
