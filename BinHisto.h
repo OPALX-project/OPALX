@@ -153,8 +153,10 @@ namespace ParticleBinning {
          * @return The number of particles in the specified bin.
          */
         size_type getNPartInBin(bin_index_type binIndex) {
-            if constexpr (UseDualView || std::is_same<typename hview_type::memory_space, Kokkos::HostSpace>::value) {
+            if constexpr (UseDualView) {
                 return histogram_m.h_view(binIndex);
+            } else if (std::is_same<typename hview_type::memory_space, Kokkos::HostSpace>::value) { // No DualView, but on host anyways
+                return histogram_m(binIndex);
             } else {
                 std::cerr << "Warning: Accessing BinHisto.getNPartInBin without DualView might be inefficient!" << std::endl;
                 Kokkos::View<size_type, Kokkos::HostSpace> host_scalar("host_scalar");
