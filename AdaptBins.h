@@ -64,12 +64,16 @@ namespace ParticleBinning {
         using hash_type              = ippl::detail::hash_type<Kokkos::DefaultExecutionSpace::memory_space>;
 
         //using histo_type      = Histogram<size_type, bin_index_type, value_type>;
-        using d_histo_type         = Histogram<size_type, bin_index_type, value_type, true>;
-        using dview_type           = typename d_histo_type::dview_type;
-        using hview_type           = typename d_histo_type::hview_type;
-        using dwidth_view_type     = typename d_histo_type::dwidth_view_type;
+        using d_histo_type          = Histogram<size_type, bin_index_type, value_type, true>;
+        using dview_type            = typename d_histo_type::dview_type;
+        using hview_type            = typename d_histo_type::hview_type;
+        using dwidth_view_type      = typename d_histo_type::dwidth_view_type;
         using hindex_transform_type = typename d_histo_type::hindex_transform_type;
         using dindex_transform_type = typename d_histo_type::dindex_transform_type;
+
+        using h_histo_type_g         = Histogram<size_type, bin_index_type, value_type, false, Kokkos::HostSpace>; 
+        using hview_type_g           = typename h_histo_type_g::hview_type;
+        using hindex_transform_type_g= typename h_histo_type_g::hindex_transform_type;
 
         /**
          * @brief Constructs an AdaptBins object with a specified maximum number of bins.
@@ -461,7 +465,7 @@ namespace ParticleBinning {
 
         // Histograms 
         d_histo_type localBinHisto_m;          ///< Local histogram view for bin counts.
-        d_histo_type globalBinHisto_m;         ///< Global histogram view (over ranks reduced local histograms).
+        h_histo_type_g globalBinHisto_m;         ///< Global histogram view (over ranks reduced local histograms).
 
 
         //bin_histo_dual_type localBinHisto_m;          ///< Local histogram view for bin counts.

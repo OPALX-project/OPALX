@@ -246,12 +246,12 @@ namespace ParticleBinning {
         
         // Create a view to hold the global histogram on all ranks
         //bin_host_histo_type globalBinHisto("globalBinHistoHost", numBins);
-        globalBinHisto_m = d_histo_type("globalBinHisto_m", numBins, xMax_m - xMin_m);
+        globalBinHisto_m = h_histo_type_g("globalBinHisto_m", numBins, xMax_m - xMin_m);
 
         
         // Need host mirror, otherwise the data is not available when the histogram is created using CUDA
-        hview_type localBinHistoHost  = localBinHisto_m.template getHostView<hview_type>(localBinHisto_m.getHistogram()); 
-        hview_type globalBinHistoHost = globalBinHisto_m.template getHostView<hview_type>(globalBinHisto_m.getHistogram()); 
+        hview_type localBinHistoHost    = localBinHisto_m.template getHostView<hview_type>(localBinHisto_m.getHistogram()); 
+        hview_type_g globalBinHistoHost = globalBinHisto_m.template getHostView<hview_type_g>(globalBinHisto_m.getHistogram()); 
 
         static IpplTimings::TimerRef globalHistoReduce = IpplTimings::getTimer("allReduceGlobalHisto");
         IpplTimings::startTimer(globalHistoReduce);
