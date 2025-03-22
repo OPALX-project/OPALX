@@ -85,7 +85,11 @@ namespace ParticleBinning {
         //m << "Merging bins with cost-based approach (minimize deviation from maxBinRatio = "
         //  << maxBinRatio << ")" << endl;
 
-        if constexpr (!UseDualView) {
+        /*
+        The following if makes sure that the mergeBins function is only called if the histogram is
+        actually available on host!.
+        */
+        if constexpr (!std::is_same<typename hview_type::memory_space, Kokkos::HostSpace>::value) {
             m << "This does not work if the histogram is not saved in a DualView, since it needs host access to the data." << endl;
             ippl::Comm->abort();
             return hindex_transform_type("error", 0);
@@ -120,7 +124,7 @@ namespace ParticleBinning {
             prefixCount(i+1) = prefixCount(i) + oldHistHost(i);
             prefixWidth(i+1) = prefixWidth(i) + oldBinWHost(i);
 
-            value_type binCenter = prefixWidth(i) + 0.5 * oldBinWHost(i); // Technically not necessary, but more general for non-uniform bins...
+            // value_type binCenter = prefixWidth(i) + 0.5 * oldBinWHost(i); // Technically not necessary, but more general for non-uniform bins...
             //prefixMoment(i+1) = prefixMoment(i) + oldHistHost(i) * binCenter; // Something like the cumulative distribution function for the "actual" histogram (fine bins...)
                                                                               // Basically the "integral" \int_{0}^{x} x f(x) dx
                                                                               // TODO: might want to use different integration rule?

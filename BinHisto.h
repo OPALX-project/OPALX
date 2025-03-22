@@ -28,6 +28,24 @@ namespace ParticleBinning {
         PostSum    ///< Post-sum view.
     };*/
 
+    // Define a traits class for obtaining the device view type.
+    template <bool UseDualView, typename ViewType>
+    struct DeviceViewTraits;
+
+    // Specialization when UseDualView is true
+    template <typename ViewType>
+    struct DeviceViewTraits<true, ViewType> {
+        using h_type = typename ViewType::t_host;
+        using d_type = typename ViewType::t_dev;
+    };
+
+    // Specialization when UseDualView is false
+    template <typename ViewType>
+    struct DeviceViewTraits<false, ViewType> {
+        using h_type = ViewType;
+        using d_type = ViewType;
+    };
+
 
     template <typename size_type, typename bin_index_type, typename value_type, 
               bool UseDualView = false, class... Properties>
@@ -37,24 +55,26 @@ namespace ParticleBinning {
         using view_type  = std::conditional_t<UseDualView, 
                                              Kokkos::DualView<size_type*, Properties...>, 
                                              Kokkos::View<size_type*, Properties...>>;
-        using dview_type = std::conditional_t<UseDualView, 
+        /*using dview_type = std::conditional_t<UseDualView, 
                                               typename view_type::t_dev, 
                                               view_type>;
         using hview_type = std::conditional_t<UseDualView, 
                                               typename view_type::t_host, 
-                                              view_type>;
+                                              view_type>;*/
+        using dview_type = typename DeviceViewTraits<UseDualView, view_type>::d_type;
+        using hview_type = typename DeviceViewTraits<UseDualView, view_type>::h_type;        
 
         using width_view_type = std::conditional_t<UseDualView,
                                                    Kokkos::DualView<value_type*, Properties...>,
                                                    Kokkos::View<value_type*, Properties...>>;
-                                                   
-        using hwidth_view_type = std::conditional_t<UseDualView, 
+        /*using hwidth_view_type = std::conditional_t<UseDualView, 
                                                    typename width_view_type::t_host, 
                                                    width_view_type>;
-
         using dwidth_view_type = std::conditional_t<UseDualView, 
                                                     typename width_view_type::t_dev, 
-                                                    width_view_type>;
+                                                    width_view_type>;*/
+        using hwidth_view_type = typename DeviceViewTraits<UseDualView, width_view_type>::h_type;
+        using dwidth_view_type = typename DeviceViewTraits<UseDualView, width_view_type>::d_type;
 
         template <class... Args>
         using index_transform_type = Kokkos::View<bin_index_type*, Args...>;
@@ -125,7 +145,7 @@ namespace ParticleBinning {
          * It assumes that the DualView has been properly synchronized and initialized. If the function is called
          * frequently, it might create some overhead due to the .view_host() call. However, since
          * it is only called on the host (a maximum of nBins times per iteration), the overhead
-         * should be manageable. For better efficiency, one can avoid the Kokkos::View "copying-action"
+         * should be minimal. For better efficiency, one can avoid the Kokkos::View "copying-action"
          * by using dualView.h_view(binIndex).
          *
          * @tparam UseDualView A boolean template parameter indicating whether DualView is used.
@@ -133,7 +153,7 @@ namespace ParticleBinning {
          * @return The number of particles in the specified bin.
          */
         size_type getNPartInBin(bin_index_type binIndex) {
-            if constexpr (UseDualView) {
+            if constexpr (UseDualView || std::is_same<typename hview_type::memory_space, Kokkos::HostSpace>::value) {
                 return histogram_m.h_view(binIndex);
             } else {
                 std::cerr << "Warning: Accessing BinHisto.getNPartInBin without DualView might be inefficient!" << std::endl;
@@ -147,13 +167,18 @@ namespace ParticleBinning {
 
         view_type getHistogram() { return histogram_m; }
 
-        view_type getPostSum() { return postSum_m; }        
+        view_type getPostSum() { return postSum_m; }      
+        
+        width_view_type getBinWidths() const { return binWidths_m; }
 
         /**
          * @brief Sets the bin widths by copying them from a different Histogram instance (usually global -> local)
          */
-        void copyBinWidths(const Histogram& other) {
-            Kokkos::deep_copy(getDeviceView<dwidth_view_type>(binWidths_m), getDeviceView<dwidth_view_type>(other.binWidths_m));
+        template <typename Histogram_t>
+        void copyBinWidths(const Histogram_t& other) {
+            using other_dwidth_view_type = typename Histogram_t::dwidth_view_type;
+            Kokkos::deep_copy(getDeviceView<dwidth_view_type>(binWidths_m), 
+                              other.template getDeviceView<other_dwidth_view_type>(other.getBinWidths()));
             if constexpr (UseDualView) {
                 binWidths_m.modify_device();
                 binWidths_m.sync_host();
