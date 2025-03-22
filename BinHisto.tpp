@@ -3,7 +3,7 @@
 
 #include "BinHisto.h"
 
-#include <random>
+// #include <random>
 
 namespace ParticleBinning {
 
@@ -55,7 +55,7 @@ namespace ParticleBinning {
                                      : 0.0;
 
         return sumCountNorm*log(sumCountNorm)*sumWidth // minimize shannon entropy as a basis
-                + wideBinPenalty * pow(sumWidth, 3)    // >0 wants smallest possible bin
+                + wideBinPenalty * pow(sumWidth, 2)    // >0 wants smallest possible bin
                                                        // <0 wants largest possible bin
                                                        // Use ^3 to make it reasonably sensitive
                 + binSizeBias * pow(penalty, 2)        // bias towards desiredWidth
@@ -70,7 +70,7 @@ namespace ParticleBinning {
         //const hash_type sortedIndexArr,
         //const BinningSelector_t var_selector
     ) {
-        std::srand(time(0)); // TODO: remove! 
+        // std::srand(time(0)); // TODO: remove! 
         static IpplTimings::TimerRef mergeBinsTimer = IpplTimings::getTimer("mergeBins");
 
         // scotts normal reference rule, see https://en.wikipedia.org/wiki/Histogram#Scott's_normal_reference_rule
