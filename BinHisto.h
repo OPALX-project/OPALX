@@ -465,6 +465,7 @@ namespace ParticleBinning {
             if (ippl::Comm->rank() != 0) return;
             hview_type hostCounts = getHostView<hview_type>(histogram_m);
             hwidth_view_type hostWidths = getHostView<hwidth_view_type>(binWidths_m);
+            // TODO: if I leave this here, it may need a deep_copy to make it save for every execution space
 
             // Output counts as a Python NumPy array
             std::cout << "bin_counts = np.array([";

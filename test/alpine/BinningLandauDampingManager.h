@@ -115,14 +115,15 @@ public:
         this->setBins(std::make_shared<AdaptBins_t>(
             this->getParticleContainer(), 
             BinningSelector_t(2), // no need to be a pointer, is only used inside the AdaptBins class
-            128,
+            256,
             1.0, 1.5, 0.05 // cost function parameters
         ));
         this->bins_m->debug();
 
         // TODO: Binning - After initializing the particles, create the limits
         //this->bins_m->initLimits();
-        this->bins_m->doFullRebin(10); // test with 10 bins
+        //this->bins_m->doFullRebin(10, true, ParticleBinning::HistoReductionMode::TeamBased); // test with 10 bins
+        this->bins_m->doFullRebin(10);
         this->bins_m->print(); // TODO For debugging...
         this->E_tmp.initialize(this->fcontainer_m->getMesh(), this->fcontainer_m->getFL()); // initialize temporary field 
 
@@ -427,19 +428,57 @@ public:
         IpplTimings::startTimer(TotalBinningTimer);
 
         // TODO: binning
-        IpplTimings::startTimer(FullRebin128);
-        this->bins_m->doFullRebin(this->bins_m->getMaxBinCount());
-        IpplTimings::stopTimer(FullRebin128);
-        //this->bins_m->print(); // for debugging...
+        /*std::cout << "=============== Starting Reduction Experiment parallel_reduce ===============" << std::endl;
+        for (size_t i = 2; i < 129; i++) {
+            this->bins_m->initLimits();
+            this->bins_m->setCurrentBinCount(i);
+            this->bins_m->assignBinsToParticles();
+            this->bins_m->initLocalHisto(ParticleBinning::HistoReductionMode::ParallelReduce);
+            // this->bins_m->doFullRebin(i, true, HistoReductionMode::Standard);
+        }
+
+        std::cout << "=============== Starting Reduction Experiment team_for ===============" << std::endl;
+        for (size_t i = 2; i < 256; i++) {
+            this->bins_m->initLimits();
+            this->bins_m->setCurrentBinCount(i);
+            this->bins_m->assignBinsToParticles();
+            this->bins_m->initLocalHisto(ParticleBinning::HistoReductionMode::TeamBased);
+            // this->bins_m->doFullRebin(i, true, HistoReductionMode::Standard);
+        }
+
+        std::cout << "=============== Starting Reduction Experiment Atomics ===============" << std::endl;
+        for (size_t i = 2; i < 256; i++) {
+            this->bins_m->initLimits();
+            this->bins_m->setCurrentBinCount(i);
+            this->bins_m->assignBinsToParticles();
+
+            // Now do the reduction. init kokkos view
+            auto bins = this->pcontainer_m->Bin.getView();
+            Kokkos::View<size_type*> to_reduce("to_reduce", i);
+            auto start = std::chrono::high_resolution_clock::now(); // TODO: remove
+            Kokkos::parallel_for("atomic", this->pcontainer_m->getLocalNum(), KOKKOS_LAMBDA(const size_t j) {
+                Kokkos::atomic_increment(&to_reduce(bins(j)));
+            });
+            auto end = std::chrono::high_resolution_clock::now(); // TODO: remove
+            long long duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count(); // TODO: remove
+            std::cout << "executeAtomicReduction;" << this->pcontainer_m->getLocalNum() << ";" << i << ";" << duration << std::endl; // TODO: remove
+        }*/
+
+        //IpplTimings::startTimer(FullRebin128);
+        this->bins_m->doFullRebin(128);
+
+        // this->bins_m->doFullRebin(10, true, HistoReductionMode::Standard);
+        //IpplTimings::stopTimer(FullRebin128);
+        this->bins_m->print(); // for debugging...
         
         this->bins_m->sortContainerByBin(); // sort particles after creating bins for scatter() operation inside LeapFrogStep 
+        // this->bins_m->initLocalHisto(HistoReductionMode::Standard);
 
-
-        IpplTimings::startTimer(GenAdaptiveHistogram);
+        //IpplTimings::startTimer(GenAdaptiveHistogram);
         this->bins_m->genAdaptiveHistogram(); // merge bins with width/N_part ratio of 1.0
-        IpplTimings::stopTimer(GenAdaptiveHistogram);
+        //IpplTimings::stopTimer(GenAdaptiveHistogram);
 
-        //this->bins_m->print(); // For debugging...
+        this->bins_m->print(); // For debugging...
 
 
         //IpplTimings::startTimer(runBinnedSolverT);

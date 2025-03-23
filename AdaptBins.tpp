@@ -120,7 +120,7 @@ namespace ParticleBinning {
                 binIndex(i)        = bin;
         });
         IpplTimings::stopTimer(assignParticleBins);
-        msg << "All bins assigned." << endl; 
+        //msg << "All bins assigned." << endl; 
     }
 
     template<typename BunchType, typename BinningSelector>
@@ -132,6 +132,9 @@ namespace ParticleBinning {
 
         //static IpplTimings::TimerRef initLocalHisto = IpplTimings::getTimer("initLocalHistoParallelReduce");
         //IpplTimings::startTimer(initLocalHisto);
+        
+        //auto start = std::chrono::high_resolution_clock::now(); // TODO: remove
+
         Kokkos::parallel_reduce("initLocalHist", bunch_m->getLocalNum(), 
             KOKKOS_LAMBDA(const size_type& i, ReducerType& update) {
                 bin_index_type ndx = binIndex(i);  // Determine the bin index for this particle
@@ -140,11 +143,18 @@ namespace ParticleBinning {
         );
         //IpplTimings::stopTimer(initLocalHisto);
 
+        //auto end = std::chrono::high_resolution_clock::now(); // TODO: remove
+        //long long duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count(); // TODO: remove
+        //std::cout << "executeInitLocalHistoReduction;" << bunch_m->getLocalNum() << ";" << binCount << ";" << duration << std::endl; // TODO: remove
+
         // Copy the reduced results to the final histogram
         Kokkos::parallel_for("finalize_histogram", binCount, 
             KOKKOS_LAMBDA(const bin_index_type& i) {
                 device_histo(i) = to_reduce.the_array[i];
-            });
+            }
+        );
+        
+
         localBinHisto_m.modify_device();
     }
 
@@ -174,6 +184,7 @@ namespace ParticleBinning {
 
         //static IpplTimings::TimerRef initLocalHisto = IpplTimings::getTimer("initLocalHistoTeamBased");
         //IpplTimings::startTimer(initLocalHisto);
+        //auto start = std::chrono::high_resolution_clock::now(); // TODO: remove
 
         // Launch a team parallel_for with the scratch memory setup
         Kokkos::parallel_for("initLocalHist", policy, KOKKOS_LAMBDA(const member_type& teamMember) {
@@ -200,6 +211,10 @@ namespace ParticleBinning {
                 Kokkos::atomic_add(&device_histo(i), team_local_hist(i));
             });
         });
+
+        //auto end = std::chrono::high_resolution_clock::now(); // TODO: remove
+        //long long duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count(); // TODO: remove
+        //std::cout << "executeInitLocalHistoReductionTeamFor;" << bunch_m->getLocalNum() << ";" << binCount << ";" << duration << std::endl; // TODO: remove
         
         //IpplTimings::stopTimer(initLocalHisto);
         localBinHisto_m.modify_device();
@@ -212,7 +227,7 @@ namespace ParticleBinning {
         bin_index_type binCount = getCurrentBinCount();
 
         // Determine the execution method based on the bin count and the mode...
-        HistoReductionMode mode = determineHistoReductionMode(modePreference, binCount);
+        HistoReductionMode mode = determineHistoReductionMode(modePreference, binCount); // modePreference;
 
         if (mode == HistoReductionMode::HostOnly) {
             msg << "Using host-only parallel_reduce reduction." << endl;
@@ -233,7 +248,7 @@ namespace ParticleBinning {
             ippl::Comm->abort(); // Exit, since error!
         }
 
-        msg << "Reducer ran without error." << endl;
+        //msg << "Reducer ran without error." << endl;
         
         localBinHisto_m.sync(); // since all reductions happen on device --> marked as modified 
     }
