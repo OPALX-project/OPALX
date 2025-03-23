@@ -115,8 +115,9 @@ public:
         this->setBins(std::make_shared<AdaptBins_t>(
             this->getParticleContainer(), 
             BinningSelector_t(2), // no need to be a pointer, is only used inside the AdaptBins class
-            128)
-        );
+            128,
+            1.0, 1.5, 0.05 // cost function parameters
+        ));
         this->bins_m->debug();
 
         // TODO: Binning - After initializing the particles, create the limits
