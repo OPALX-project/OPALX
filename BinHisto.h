@@ -115,7 +115,7 @@ namespace ParticleBinning {
          * @brief Default destructor for the Histogram class.
          */
         ~Histogram() {
-            std::cout << "Histogram " << debug_name_m << " destroyed." << std::endl;
+            //std::cout << "Histogram " << debug_name_m << " destroyed." << std::endl;
         } 
 
         /**

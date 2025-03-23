@@ -464,6 +464,15 @@ public:
             std::cout << "executeAtomicReduction;" << this->pcontainer_m->getLocalNum() << ";" << i << ";" << duration << std::endl; // TODO: remove
         }*/
 
+        /*for (size_t i = 2; i < 257; i++) {
+            //this->bins_m->initLimits();
+            //this->bins_m->assignBinsToParticles();
+            //this->bins_m->initLocalHisto(ParticleBinning::HistoReductionMode::TeamBased);
+            //this->bins_m->doFullRebin(10);
+            this->bins_m->doFullRebin(i);
+            this->bins_m->sortContainerByBin();
+        }*/
+
         //IpplTimings::startTimer(FullRebin128);
         this->bins_m->doFullRebin(128);
 

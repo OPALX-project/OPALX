@@ -120,7 +120,7 @@ namespace ParticleBinning {
                 binIndex(i)        = bin;
         });
         IpplTimings::stopTimer(assignParticleBins);
-        //msg << "All bins assigned." << endl; 
+        msg << "All bins assigned." << endl; 
     }
 
     template<typename BunchType, typename BinningSelector>
@@ -248,7 +248,7 @@ namespace ParticleBinning {
             ippl::Comm->abort(); // Exit, since error!
         }
 
-        //msg << "Reducer ran without error." << endl;
+        msg << "Reducer ran without error." << endl;
         
         localBinHisto_m.sync(); // since all reductions happen on device --> marked as modified 
     }
@@ -369,6 +369,7 @@ namespace ParticleBinning {
         TODO: maybe change value_type of hash_type to size_type instead int of at some point???
         */
         //IpplTimings::startTimer(binSortingAndScatterT);
+        //auto start = std::chrono::high_resolution_clock::now(); // TODO: remove
         Kokkos::parallel_for("InPlaceSortIndices", localNumParticles, KOKKOS_LAMBDA(const size_type& i) {
             size_type target_bin = bins(i);
             size_type target_pos = Kokkos::atomic_fetch_add(&bin_offsets(target_bin), 1);
@@ -376,9 +377,12 @@ namespace ParticleBinning {
             // Place the current particle directly into its target position
             indices(target_pos) = i;
         });
+        //auto end = std::chrono::high_resolution_clock::now(); // TODO: remove
+        //long long duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count(); // TODO: remove
+        //std::cout << "sortIndices;" << localNumParticles << ";" << numBins << ";" << duration << std::endl; // TODO: remove
         
         IpplTimings::stopTimer(argSortBins);
-        msg << "Argsort on bin index completed." << endl;
+        //msg << "Argsort on bin index completed." << endl;
         //Kokkos::fence();
 
         /*IpplTimings::startTimer(permutationTimer);
