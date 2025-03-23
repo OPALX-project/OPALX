@@ -301,11 +301,13 @@ public:
         this->setBins(std::make_shared<AdaptBins_t>(
             this->getParticleContainer(), 
             BinningSelector_t(2), // TODO: hardcode z axis with coordinate selector at axis index 2
-            static_cast<bin_index_type>(maxBins)
+            static_cast<bin_index_type>(maxBins),
+            Options::binningAlpha, Options::binningBeta, Options::desiredWidth // Cost function parameters
         ));
         this->getBins()->debug();
 
-        this->setTempEField(std::make_shared<VField_t<T, Dim>>(this->fcontainer_m->getMesh(), this->fcontainer_m->getFL()));
+        this->setTempEField(std::make_shared<VField_t<T, Dim>>(this->fcontainer_m->getE())); // user copy constructor
+        this->getTempEField().initialize(this->fcontainer_m->getMesh(), this->fcontainer_m->getFL());
 
         static IpplTimings::TimerRef setSolverT = IpplTimings::getTimer("setSolver");
         IpplTimings::startTimer(setSolverT);
