@@ -1,7 +1,7 @@
 #ifndef BINNINGTOOLS_H
 #define BINNINGTOOLS_H
 
-#include "Utilities/Options.h"
+// #include "Utilities/Options.h"
 #include "ParallelReduceTools.h" // needed for HistoReductionMode and maxArrSize
 
 namespace ParticleBinning {
@@ -36,10 +36,10 @@ namespace ParticleBinning {
         if (std::is_same<Kokkos::DefaultExecutionSpace, Kokkos::DefaultHostExecutionSpace>::value) return HistoReductionMode::HostOnly;
 
         // Otherwise choose automatically if Standard and respect preference if not on host and not standard!
-        if (modePreference == HistoReductionMode::Standard || modePreference == HistoReductionMode::HostOnly) {
-            if (modePreference == HistoReductionMode::HostOnly) {
-                std::cerr << "Warning: HostOnly mode is not supported on CUDA! Switching to Standard mode." << std::endl;
-            }
+        if (modePreference == HistoReductionMode::Standard) { //  || modePreference == HistoReductionMode::HostOnly
+            //if (modePreference == HistoReductionMode::HostOnly) {
+            //    std::cerr << "Warning: HostOnly mode is not supported on CUDA! Switching to Standard mode." << std::endl;
+            //}
             return (binCount <= maxArrSize<bin_index_type>) ? HistoReductionMode::ParallelReduce : HistoReductionMode::TeamBased;
         } else {
             return modePreference;

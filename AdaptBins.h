@@ -81,10 +81,14 @@ namespace ParticleBinning {
          * @param bunch A shared pointer to the particle container.
          * @param maxBins The maximum number of bins to initialize with (default is 10).
          */
-        AdaptBins(std::shared_ptr<BunchType> bunch, BinningSelector var_selector, bin_index_type maxBins = 10)
+        AdaptBins(std::shared_ptr<BunchType> bunch, BinningSelector var_selector, bin_index_type maxBins,
+                  value_type binningAlpha, value_type binningBeta, value_type desiredWidth)
             : bunch_m(bunch)
             , var_selector_m(var_selector)
-            , maxBins_m(maxBins) {
+            , maxBins_m(maxBins)
+            , binningAlpha_m(binningAlpha)
+            , binningBeta_m(binningBeta)
+            , desiredWidth_m(desiredWidth) {
 
             currentBins_m   = maxBins; // TODO for now...
             // sortingBuffer_m = Kokkos::View<int*>("particlePermutationBuffer", bunch->getLocalNum());
@@ -422,6 +426,7 @@ namespace ParticleBinning {
             // Additional information on concurrency in the default execution space
             int default_concurrency = Kokkos::DefaultExecutionSpace::concurrency();
             msg << "Default Execution Space Concurrency: " << default_concurrency << endl;
+            msg << "Binning cost function parameters: alpha = " << binningAlpha_m << ", beta = " << binningBeta_m << ", desiredWidth = " << desiredWidth_m << endl;
 
             msg << "=====================================" << endl;
         }
@@ -462,6 +467,10 @@ namespace ParticleBinning {
         value_type xMin_m;                     ///< Minimum boundary for bins.
         value_type xMax_m;                     ///< Maximum boundary for bins.
         value_type binWidth_m;                 ///< Width of each bin.
+
+        value_type binningAlpha_m;               ///< Alpha parameter for binning cost function. 
+        value_type binningBeta_m;                ///< Beta parameter for binning cost function.
+        value_type desiredWidth_m;               ///< Desired bin width for binning cost function.
 
         // Histograms 
         d_histo_type localBinHisto_m;          ///< Local histogram view for bin counts.

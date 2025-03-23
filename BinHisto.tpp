@@ -13,9 +13,9 @@ namespace ParticleBinning {
         numBins_m       = other.numBins_m;
         totalBinWidth_m = other.totalBinWidth_m;
 
-        binningAlpha = other.binningAlpha;
-        binningBeta = other.binningBeta;
-        desiredWidth = other.desiredWidth;
+        binningAlpha_m = other.binningAlpha_m;
+        binningBeta_m = other.binningBeta_m;
+        desiredWidth_m = other.desiredWidth_m;
 
         histogram_m = other.histogram_m;
         binWidths_m = other.binWidths_m;
@@ -45,13 +45,13 @@ namespace ParticleBinning {
         value_type totalSum = static_cast<value_type>(totalNumParticles);
         value_type sumCountNorm = sumCount / totalSum; // static_cast<value_type>(sumCount) / totalSum;
 
-        value_type penalty        = sumWidth - desiredWidth;// (sumWidth > 0.1) ? pow(0.1 - sumWidth, 2) : 0.0;
-        value_type wideBinPenalty = binningAlpha;
-        value_type binSizeBias    = binningBeta; // * sqrt(sumCountNorm);
+        value_type penalty        = sumWidth - desiredWidth_m;// (sumWidth > 0.1) ? pow(0.1 - sumWidth, 2) : 0.0;
+        value_type wideBinPenalty = binningAlpha_m;
+        value_type binSizeBias    = binningBeta_m; // * sqrt(sumCountNorm);
 
         // The following is OK when normalized!
-        value_type sparse_penalty = (sumCountNorm < desiredWidth) // (sumCount > 0) && (removed, since pre condition!)
-                                     ? desiredWidth / sumCountNorm // normalize penalty by desiredWidth
+        value_type sparse_penalty = (sumCountNorm < desiredWidth_m) // (sumCount > 0) && (removed, since pre condition!)
+                                     ? desiredWidth_m / sumCountNorm // normalize penalty by desiredWidth
                                      : 0.0;
 
         return sumCountNorm*log(sumCountNorm)*sumWidth // minimize shannon entropy as a basis

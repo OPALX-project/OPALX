@@ -96,14 +96,18 @@ namespace ParticleBinning {
          * @param numBins The number of bins in the histogram. Might change once the adaptive algorithm is used.
          * @param totalBinWidth The total width of the value range covered by the particles, so $x_\mathrm{max} - x_\mathrm{min}$.
          */
-        Histogram(std::string debug_name, bin_index_type numBins, value_type totalBinWidth)
+        Histogram(std::string debug_name, bin_index_type numBins, value_type totalBinWidth,
+                  value_type binningAlpha, value_type binningBeta, value_type desiredWidth)
             : debug_name_m(debug_name)
             , numBins_m(numBins)
-            , totalBinWidth_m(totalBinWidth) {
+            , totalBinWidth_m(totalBinWidth)
+            , binningAlpha_m(binningAlpha)
+            , binningBeta_m(binningBeta)
+            , desiredWidth_m(desiredWidth) {
             
-            binningAlpha = Options::binningAlpha;
-            binningBeta = Options::binningBeta;
-            desiredWidth = Options::desiredWidth;
+            // binningAlpha_m = Options::binningAlpha;
+            // binningBeta_m  = Options::binningBeta;
+            // desiredWidth_m = Options::desiredWidth;
             instantiateHistograms();
         }
 
@@ -397,9 +401,9 @@ namespace ParticleBinning {
         bin_index_type numBins_m;   /// \brief Number of bins in the histogram.
         value_type totalBinWidth_m; /// \brief Total width of all bins combined.
 
-        value_type binningAlpha; 
-        value_type binningBeta;
-        value_type desiredWidth;
+        value_type binningAlpha_m; 
+        value_type binningBeta_m;
+        value_type desiredWidth_m;
 
         view_type       histogram_m;      /// \brief View storing the particle counts in each bin.
         width_view_type binWidths_m;      /// \brief View storing the widths of the bins.

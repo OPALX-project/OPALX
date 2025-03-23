@@ -57,7 +57,8 @@ namespace ParticleBinning {
     void AdaptBins<BunchType, BinningSelector>::instantiateHistogram(bool setToZero) {
         // Reinitialize the histogram view with the new size (numBins)
         const bin_index_type numBins = getCurrentBinCount();
-        localBinHisto_m = d_histo_type("localBinHisto_m", numBins, xMax_m - xMin_m);
+        localBinHisto_m = d_histo_type("localBinHisto_m", numBins, xMax_m - xMin_m,
+                                       binningAlpha_m, binningBeta_m, desiredWidth_m);
         
         // Optionally, initialize the histogram to zero
         if (setToZero) {
@@ -246,7 +247,8 @@ namespace ParticleBinning {
         
         // Create a view to hold the global histogram on all ranks
         //bin_host_histo_type globalBinHisto("globalBinHistoHost", numBins);
-        globalBinHisto_m = h_histo_type_g("globalBinHisto_m", numBins, xMax_m - xMin_m);
+        globalBinHisto_m = h_histo_type_g("globalBinHisto_m", numBins, xMax_m - xMin_m,
+                                          binningAlpha_m, binningBeta_m, desiredWidth_m);
 
         
         // Need host mirror, otherwise the data is not available when the histogram is created using CUDA
