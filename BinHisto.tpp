@@ -276,8 +276,8 @@ namespace ParticleBinning {
         //m << "New histograms instantiated." << endl;
 
         // Copy the data into the new Kokkos Views (on host)
-        hview_type newHistHost       = getHostView<hview_type>(histogram_m);
-        hwidth_view_type newWidthHost= getHostView<hwidth_view_type>(binWidths_m);
+        hview_type newHistHost        = getHostView<hview_type>(histogram_m);
+        hwidth_view_type newWidthHost = getHostView<hwidth_view_type>(binWidths_m);
         Kokkos::deep_copy(newHistHost, newCounts);
         Kokkos::deep_copy(newWidthHost, newWidths);
         //m << "New histograms filled." << endl;
@@ -291,7 +291,10 @@ namespace ParticleBinning {
             sync();
 
             binWidths_m.modify_host();
+
+            IpplTimings::startTimer(bDeviceSyncronizationT);
             binWidths_m.sync_device();
+            IpplTimings::stopTimer(bDeviceSyncronizationT);
             //m << "Host views modified/synced." << endl;
         }
 

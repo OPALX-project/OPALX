@@ -196,7 +196,10 @@ namespace ParticleBinning {
                               other.template getDeviceView<other_dwidth_view_type>(other.getBinWidths()));
             if constexpr (UseDualView) {
                 binWidths_m.modify_device();
+
+                IpplTimings::startTimer(bDeviceSyncronizationT);
                 binWidths_m.sync_host();
+                IpplTimings::stopTimer(bDeviceSyncronizationT);
             }
         }
 
@@ -223,10 +226,8 @@ namespace ParticleBinning {
 
             // Assumes you have initialized histogram_m from the outside!
             sync();
-            IpplTimings::startTimer(bHistogramInitT);
             initConstBinWidths(totalBinWidth_m);
             initPostSum();
-            IpplTimings::stopTimer(bHistogramInitT);
         }
 
         /**
@@ -239,14 +240,25 @@ namespace ParticleBinning {
         void initConstBinWidths(const value_type constBinWidth) {
             dwidth_view_type dWidthView = getDeviceView<dwidth_view_type>(binWidths_m);
             const value_type binWidth   = constBinWidth / numBins_m;
-            Kokkos::deep_copy(dWidthView, binWidth);
+            using execution_space       = typename dwidth_view_type::execution_space;
+            //Kokkos::deep_copy(dWidthView, binWidth);
+            IpplTimings::startTimer(bHistogramInitT);
+            Kokkos::parallel_for("InitConstBinWidths", 
+                Kokkos::RangePolicy<execution_space>(0, numBins_m), KOKKOS_LAMBDA(const size_t i) {
+                    dWidthView(i) = binWidth;
+                }
+            );
+            IpplTimings::stopTimer(bHistogramInitT);
             /*
             Note: DON'T use "Kokkos::deep_copy(getDeviceView<dwidth_view_type>(binWidths_m), constBinWidth / numBins_m);"!
             For some reason, this resulted in a huge overhead (always 0.3s just for this function)
             */
             if constexpr (UseDualView) {
                 binWidths_m.modify_device();
+
+                IpplTimings::startTimer(bDeviceSyncronizationT);
                 binWidths_m.sync_host();
+                IpplTimings::stopTimer(bDeviceSyncronizationT);
             }
         }
 
@@ -261,10 +273,15 @@ namespace ParticleBinning {
         void initPostSum() {
             //auto postSumView = constexpr UseDualView ? postSum_m.view_device() : postSum_m;
             // dview_type postSumView = getDeviceView(postSum_m);
+            IpplTimings::startTimer(bHistogramInitT);
             computeFixSum<dview_type>(getDeviceView<dview_type>(histogram_m), getDeviceView<dview_type>(postSum_m));
+            IpplTimings::stopTimer(bHistogramInitT);
             if constexpr (UseDualView) {
                 postSum_m.modify_device();
+
+                IpplTimings::startTimer(bDeviceSyncronizationT);
                 postSum_m.sync_host();
+                IpplTimings::stopTimer(bDeviceSyncronizationT);
             }
         }
 
