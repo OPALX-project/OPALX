@@ -4,7 +4,7 @@
 #SBATCH --output=output/bins_%j.out
 #SBATCH --time=00:20:00
 #SBATCH --nodes=1                   # Request node
-#SBATCH --ntasks-per-node=1        # ranks per node
+#SBATCH --ntasks-per-node=8        # ranks per node
 #SBATCH --mem-per-cpu=4G
 #SBATCH --cpus-per-task=16           # "threads" per task (for e.g. multithreading in Kokkod:parallel_for?)
 #SBATCH --cluster=gmerlin6 # gmerlin6
@@ -12,7 +12,7 @@
 #SBATCH --account=gwendolen   # Mandatory, as gwendolen is not the default account
 ##SBATCH --exclusive
 ##SBATCH --nodelist=merlin-c-001   # Modify node list if needed for non-GPU nodes
-#SBATCH --gpus=1
+#SBATCH --gpus=8
 
 # for gpu: use "--gpus=1", "--cluster=gmerlin6" and "--partition=gpu-short" instead of "--cluster=merlin6", "--partition=hourly"
 
@@ -37,9 +37,9 @@ echo "Finished compiling. Now running the program..."
 #srun ./Binning_pic3d 8 8 8 10000000 1 --info 10 
 
 cd /data/user/liemen_a/ippl/build_ippl_cuda/test/binning/test/alpine/
-#srun ./BinningLandauDamping 32 32 32 1000000 5 FFT 0.01 LeapFrog Flattop --overallocate 2.0 --info 10
-#srun ./BinningLandauDamping 32 32 32 1000000 5 FFT 0.01 LeapFrog Landau --overallocate 2.0 --info 10 
-srun ./BinningLandauDamping 16 16 16 1000000 1 FFT 0.01 LeapFrog Landau --overallocate 2.0 --info 10
+#srun ./BinningLandauDamping 16 16 16 1000000 10 FFT 0.01 LeapFrog Flattop --overallocate 2.0 --info 10
+srun ./BinningLandauDamping 32 32 32 1000000 5 FFT 0.01 LeapFrog Landau --overallocate 2.0 --info 10 
+#srun ./BinningLandauDamping 16 16 16 1000000 1 FFT 0.01 LeapFrog Landau --overallocate 2.0 --info 10
 
 
 

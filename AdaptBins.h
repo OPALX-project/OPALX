@@ -93,6 +93,15 @@ namespace ParticleBinning {
             currentBins_m   = maxBins; // TODO for now...
             // sortingBuffer_m = Kokkos::View<int*>("particlePermutationBuffer", bunch->getLocalNum());
 
+            // Initialize all the timers
+            bInitLimitsT            = IpplTimings::getTimer("bInitLimits");
+            bAllReduceLimitsT       = IpplTimings::getTimer("bAllReduceLimits");
+            bAllReduceGlobalHistoT  = IpplTimings::getTimer("bAllReduceGlobalHisto");
+            bAssignUniformBinsT     = IpplTimings::getTimer("bAssignUniformBins");
+            bExecuteHistoReductionT = IpplTimings::getTimer("bExecuteHistoReduction");
+            bSortContainerByBinT    = IpplTimings::getTimer("bSortContainerByBin");
+            bVerifySortingT         = IpplTimings::getTimer("bVerifySorting");
+
             Inform msg("AdaptBins");
             msg << "AdaptBins initialized with maxBins = " << maxBins_m 
                 << ", alpha = " << binningAlpha_m
@@ -483,6 +492,15 @@ namespace ParticleBinning {
         //bin_histo_dual_type globalBinHisto_m;         ///< Global histogram view (over ranks reduced local histograms).
         hash_type sortedIndexArr_m;                  ///< Hash table for sorting particles by bin index.
         // buffer_view_type sortingBuffer_m;      ///< Buffer for permutating particles after sorting by bin index.
+
+        // Here are all the timer
+        IpplTimings::TimerRef bInitLimitsT;
+        IpplTimings::TimerRef bAllReduceLimitsT;
+        IpplTimings::TimerRef bAllReduceGlobalHistoT;
+        IpplTimings::TimerRef bAssignUniformBinsT;
+        IpplTimings::TimerRef bExecuteHistoReductionT;
+        IpplTimings::TimerRef bSortContainerByBinT;
+        IpplTimings::TimerRef bVerifySortingT;
     };
 
 }

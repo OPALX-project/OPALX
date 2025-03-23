@@ -109,6 +109,9 @@ namespace ParticleBinning {
             // binningBeta_m  = Options::binningBeta;
             // desiredWidth_m = Options::desiredWidth;
             instantiateHistograms();
+
+            // Initialize timers
+            initTimers();
         }
 
         /**
@@ -136,6 +139,12 @@ namespace ParticleBinning {
             if (this == &other) return *this;
             copyFields(other);
             return *this;
+        }
+
+        void initTimers() {
+            bDeviceSyncronizationT = IpplTimings::getTimer("bDeviceSyncronization");
+            bHistogramInitT        = IpplTimings::getTimer("bHistogramInit");
+            bMergeBinsT            = IpplTimings::getTimer("bMergeBins");
         }
         
         /*
@@ -213,11 +222,11 @@ namespace ParticleBinning {
             //static IpplTimings::TimerRef histoInitTimer = IpplTimings::getTimer("syncInitHistoTools");
 
             // Assumes you have initialized histogram_m from the outside!
-            //IpplTimings::startTimer(histoInitTimer);
             sync();
+            IpplTimings::startTimer(bHistogramInitT);
             initConstBinWidths(totalBinWidth_m);
             initPostSum();
-            //IpplTimings::stopTimer(histoInitTimer);
+            IpplTimings::stopTimer(bHistogramInitT);
         }
 
         /**
@@ -228,7 +237,13 @@ namespace ParticleBinning {
          * @note Should not be called again after merging bins, since the bin widths will all be different.
          */
         void initConstBinWidths(const value_type constBinWidth) {
-            Kokkos::deep_copy(getDeviceView<dwidth_view_type>(binWidths_m), constBinWidth / numBins_m);
+            dwidth_view_type dWidthView = getDeviceView<dwidth_view_type>(binWidths_m);
+            const value_type binWidth   = constBinWidth / numBins_m;
+            Kokkos::deep_copy(dWidthView, binWidth);
+            /*
+            Note: DON'T use "Kokkos::deep_copy(getDeviceView<dwidth_view_type>(binWidths_m), constBinWidth / numBins_m);"!
+            For some reason, this resulted in a huge overhead (always 0.3s just for this function)
+            */
             if constexpr (UseDualView) {
                 binWidths_m.modify_device();
                 binWidths_m.sync_host();
@@ -297,8 +312,8 @@ namespace ParticleBinning {
          *       template parameter is true. Otherwise it does nothing.
          */
         void sync() {
-            static IpplTimings::TimerRef histoSyncOperation = IpplTimings::getTimer("histoSyncOperation");
-            IpplTimings::startTimer(histoSyncOperation);
+            //static IpplTimings::TimerRef histoSyncOperation = IpplTimings::getTimer("histoSyncOperation");
+            IpplTimings::startTimer(bDeviceSyncronizationT);
             if constexpr (UseDualView) {
                 if (histogram_m.need_sync_host() && histogram_m.need_sync_device()) {
                     std::cerr << "Warning: Histogram was modified on host AND device -- overwriting changes on host." << std::endl;
@@ -309,7 +324,8 @@ namespace ParticleBinning {
                     histogram_m.sync_device();
                 } // else do nothing
             }
-            IpplTimings::stopTimer(histoSyncOperation);
+            IpplTimings::stopTimer(bDeviceSyncronizationT);
+            //IpplTimings::stopTimer(histoSyncOperation);
         }
 
         /**
@@ -408,6 +424,11 @@ namespace ParticleBinning {
         view_type       histogram_m;      /// \brief View storing the particle counts in each bin.
         width_view_type binWidths_m;      /// \brief View storing the widths of the bins.
         view_type       postSum_m;        /// \brief View storing the cumulative sum of bin counts (used in sorting, generating range policies).
+
+        // Some timers
+        IpplTimings::TimerRef bDeviceSyncronizationT;
+        IpplTimings::TimerRef bHistogramInitT;
+        IpplTimings::TimerRef bMergeBinsT;
 
         /**
          * @brief Copies the fields from another Histogram object.

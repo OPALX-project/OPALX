@@ -20,6 +20,8 @@ namespace ParticleBinning {
         histogram_m = other.histogram_m;
         binWidths_m = other.binWidths_m;
         postSum_m   = other.postSum_m;
+
+        initTimers();
     }
 
 
@@ -71,7 +73,7 @@ namespace ParticleBinning {
         //const BinningSelector_t var_selector
     ) {
         // std::srand(time(0)); // TODO: remove! 
-        static IpplTimings::TimerRef mergeBinsTimer = IpplTimings::getTimer("mergeBins");
+        //static IpplTimings::TimerRef mergeBinsTimer = IpplTimings::getTimer("mergeBins");
 
         // scotts normal reference rule, see https://en.wikipedia.org/wiki/Histogram#Scott's_normal_reference_rule
         // Maybe set this later as a parameter
@@ -108,7 +110,7 @@ namespace ParticleBinning {
             return oldToNewBinsView;
         }
 
-        IpplTimings::startTimer(mergeBinsTimer);
+        IpplTimings::startTimer(bMergeBinsT);
         // ----------------------------------------------------------------
         // 1) Build prefix sums on the host
         //    prefixCount[k] = sum of counts in bins [0..k-1]
@@ -133,7 +135,7 @@ namespace ParticleBinning {
         //computeFixSum<hview_type>(oldHistHost, prefixCount);
         //computeFixSum<hwidth_view_type>(oldBinWHost, prefixWidth);
 
-        m << "Prefix sums computed." << endl;
+        //m << "Prefix sums computed." << endl;
 
 
         // ----------------------------------------------------------------
@@ -154,7 +156,7 @@ namespace ParticleBinning {
             prevIdx(k)  = -1;
         }
         dp(0) = value_type(0);  // 0 cost to cover an empty set (dpMoment(0) = 0, for no bins...)
-        m << "DP arrays initialized." << endl;
+        //m << "DP arrays initialized." << endl;
 
 
         // ----------------------------------------------------------------
@@ -175,10 +177,10 @@ namespace ParticleBinning {
                     //segCost = partialMergedCDFIntegralCost(i, k, sumCount, sumWidth, alpha, sortedIndexArr, var_selector);
                     segCost = partialMergedCDFIntegralCost(sumCount, sumWidth, totalNumParticles);
 
-                    if (k % 10 == 0 && i % 10 == 0) {
-                        m << "k = " << k << ", i = " << i << ", sumCount = " << sumCount << ", sumWidth = " << sumWidth
-                          << ", segCost = " << segCost << endl; // ", mergedStd = " << mergedStd << endl;
-                    }
+                    //if (k % 10 == 0 && i % 10 == 0) {
+                    //    m << "k = " << k << ", i = " << i << ", sumCount = " << sumCount << ", sumWidth = " << sumWidth
+                    //      << ", segCost = " << segCost << endl; // ", mergedStd = " << mergedStd << endl;
+                    //}
                 }
                 //value_type segCost   = computeDeviationCost(sumCount, sumWidth, maxBinRatio, largeVal, alpha);
                 value_type candidate = dp(i) + segCost;
@@ -189,7 +191,7 @@ namespace ParticleBinning {
             }
         }
 
-        m << "DP arrays filled." << endl;
+        //m << "DP arrays filled." << endl;
 
         // dp(n) is the minimal total cost for covering [0..n-1].
         value_type totalCost = dp(n);
@@ -230,7 +232,7 @@ namespace ParticleBinning {
 
         // Now the number of merged bins is boundaries.size() - 1
         size_type mergedBinsCount = static_cast<size_type>(boundaries.size()) - 1;
-        m << "Merged bins (based on minimal cost partition): " << mergedBinsCount << ". Minimal total cost = " << totalCost << endl;
+        //m << "Merged bins (based on minimal cost partition): " << mergedBinsCount << ". Minimal total cost = " << totalCost << endl;
 
 
 
@@ -248,7 +250,7 @@ namespace ParticleBinning {
             newCounts(j) = sumCount;
             newWidths(j) = sumWidth;
         }
-        m << "New bins computed." << endl;
+        //m << "New bins computed." << endl;
 
 
 
@@ -262,7 +264,7 @@ namespace ParticleBinning {
                 oldToNewBinsView(i) = j;
             }
         }
-        m << "Lookup table generated." << endl;
+        //m << "Lookup table generated." << endl;
 
 
         // ----------------------------------------------------------------
@@ -271,14 +273,14 @@ namespace ParticleBinning {
         numBins_m = static_cast<bin_index_type>(mergedBinsCount);
 
         instantiateHistograms();
-        m << "New histograms instantiated." << endl;
+        //m << "New histograms instantiated." << endl;
 
         // Copy the data into the new Kokkos Views (on host)
         hview_type newHistHost       = getHostView<hview_type>(histogram_m);
         hwidth_view_type newWidthHost= getHostView<hwidth_view_type>(binWidths_m);
         Kokkos::deep_copy(newHistHost, newCounts);
         Kokkos::deep_copy(newWidthHost, newWidths);
-        m << "New histograms filled." << endl;
+        //m << "New histograms filled." << endl;
 
 
         // ----------------------------------------------------------------
@@ -290,7 +292,7 @@ namespace ParticleBinning {
 
             binWidths_m.modify_host();
             binWidths_m.sync_device();
-            m << "Host views modified/synced." << endl;
+            //m << "Host views modified/synced." << endl;
         }
 
 
@@ -298,7 +300,7 @@ namespace ParticleBinning {
         // 8) Recompute postSum for the new histogram
         // ----------------------------------------------------------------
         initPostSum();
-        IpplTimings::stopTimer(mergeBinsTimer);
+        IpplTimings::stopTimer(bMergeBinsT);
 
         m << "Re-binned from " << n << " bins down to "
           << numBins_m << " bins. Total deviation cost = "

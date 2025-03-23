@@ -390,9 +390,9 @@ public:
         static IpplTimings::TimerRef updateTimer      = IpplTimings::getTimer("update");
         static IpplTimings::TimerRef domainDecomposition = IpplTimings::getTimer("loadBalance");
 
-        //static IpplTimings::TimerRef runBinnedSolverT = IpplTimings::getTimer("runBinnedSolver");
-        static IpplTimings::TimerRef GenAdaptiveHistogram = IpplTimings::getTimer("genAdaptiveHistogram");
-        static IpplTimings::TimerRef FullRebin128 = IpplTimings::getTimer("FullRebin128");
+        static IpplTimings::TimerRef runBinnedSolverT = IpplTimings::getTimer("runBinnedSolver");
+        //static IpplTimings::TimerRef GenAdaptiveHistogram = IpplTimings::getTimer("genAdaptiveHistogram");
+        //static IpplTimings::TimerRef FullRebin128 = IpplTimings::getTimer("FullRebin128");
         static IpplTimings::TimerRef TotalBinningTimer = IpplTimings::getTimer("TotalBinning");
 
         double dt                               = this->dt_m;
@@ -475,27 +475,28 @@ public:
 
         //IpplTimings::startTimer(FullRebin128);
         this->bins_m->doFullRebin(128);
+        this->bins_m->print(); // For debugging...
 
         // this->bins_m->doFullRebin(10, true, HistoReductionMode::Standard);
         //IpplTimings::stopTimer(FullRebin128);
-        this->bins_m->print(); // for debugging...
+        //this->bins_m->print(); // for debugging...
         
         this->bins_m->sortContainerByBin(); // sort particles after creating bins for scatter() operation inside LeapFrogStep 
         // this->bins_m->initLocalHisto(HistoReductionMode::Standard);
 
         //IpplTimings::startTimer(GenAdaptiveHistogram);
         this->bins_m->genAdaptiveHistogram(); // merge bins with width/N_part ratio of 1.0
+        IpplTimings::stopTimer(TotalBinningTimer);
         //IpplTimings::stopTimer(GenAdaptiveHistogram);
 
         this->bins_m->print(); // For debugging...
 
 
-        //IpplTimings::startTimer(runBinnedSolverT);
+        IpplTimings::startTimer(runBinnedSolverT);
         E_tmp = 0.0; // reset temporary field
-        runBinnedSolver();
-        //IpplTimings::stopTimer(runBinnedSolverT);
+        //runBinnedSolver();
+        IpplTimings::stopTimer(runBinnedSolverT);
 
-        IpplTimings::stopTimer(TotalBinningTimer);
 
         // kick
         IpplTimings::startTimer(PTimer);
@@ -520,7 +521,7 @@ public:
         using binIndex_t       = typename ParticleContainer_t::bin_index_type;
         using binIndexView_t   = typename ippl::ParticleAttrib<binIndex_t>::view_type;
 
-        this->bins_m->print();
+        //this->bins_m->print();
 
         // Defines used views
         std::shared_ptr<ParticleContainer_t> pc = this->pcontainer_m;

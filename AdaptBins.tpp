@@ -9,13 +9,14 @@ namespace ParticleBinning {
     void AdaptBins<BunchType, BinningSelector>::initLimits() {
         Inform msg("AdaptBins");  // INFORM_ALL_NODES
             
-        static IpplTimings::TimerRef histoLimits = IpplTimings::getTimer("initHistoLimits");
-        IpplTimings::startTimer(histoLimits);
+        //static IpplTimings::TimerRef histoLimits = IpplTimings::getTimer("initHistoLimits");
+        //IpplTimings::startTimer(histoLimits);
 
         var_selector_m.updateDataArr(bunch_m); // update needed if bunch->create() is called between binnings!
         BinningSelector var_selector = var_selector_m;  
         size_type nlocal             = bunch_m->getLocalNum();
 
+        IpplTimings::startTimer(bInitLimitsT);
         if (nlocal <= 0) {
             msg << "Particles in the bunch = " << nlocal << ". Overwriting limits manually." << endl;
             xMin_m = xMax_m = (nlocal == 0) ? 0 : 0; // var_selector(0); 
@@ -40,13 +41,16 @@ namespace ParticleBinning {
             xMin_m = localMinMax.min_val;
             xMax_m = localMinMax.max_val;
         }
+        IpplTimings::stopTimer(bInitLimitsT);
 
         // Putting the same to-reduce variable as an argument ensures that every node gets the correct min/max and not just the root node!
         // Note: boradcast does not exist, use allreduce for reduce+broadcast together!
+        IpplTimings::startTimer(bAllReduceLimitsT);
         ippl::Comm->allreduce(xMax_m, 1, std::greater<value_type>());
         ippl::Comm->allreduce(xMin_m, 1, std::less<value_type>());
+        IpplTimings::stopTimer(bAllReduceLimitsT);
 
-        IpplTimings::stopTimer(histoLimits);
+        //IpplTimings::stopTimer(histoLimits);
 
         binWidth_m = (xMax_m - xMin_m) / currentBins_m;
         
@@ -98,6 +102,7 @@ namespace ParticleBinning {
         BinningSelector var_selector  = var_selector_m; 
         bin_view_type binIndex        = getBinView();
 
+        IpplTimings::startTimer(bAssignUniformBinsT);
         if (bunch_m->getLocalNum() <= 1) {
             msg << "Too few bins, assigning all bins to index 0." << endl;
             Kokkos::deep_copy(binIndex, 0);
@@ -109,8 +114,8 @@ namespace ParticleBinning {
         bin_index_type numBins = currentBins_m;
         // Alternatively explicit capture: [xMin = xMin_m, xMax = xMax_m, binWidth = binWidth_m, numBins = currentBins_m, localData = localData, binIndex = binIndex]
 
-        static IpplTimings::TimerRef assignParticleBins = IpplTimings::getTimer("assignParticleBins");
-        IpplTimings::startTimer(assignParticleBins);
+        //static IpplTimings::TimerRef assignParticleBins = IpplTimings::getTimer("assignParticleBins");
+        //IpplTimings::startTimer(assignParticleBins);
         Kokkos::parallel_for("assignParticleBinsConst", bunch_m->getLocalNum(), KOKKOS_LAMBDA(const size_type& i) {
                 // Access the z-axis position of the i-th particle
                 value_type v = var_selector(i); // localData(i)[2];  
@@ -119,7 +124,8 @@ namespace ParticleBinning {
                 bin_index_type bin = getBin(v, xMin, xMax, binWidthInv, numBins);
                 binIndex(i)        = bin;
         });
-        IpplTimings::stopTimer(assignParticleBins);
+        IpplTimings::stopTimer(bAssignUniformBinsT);
+        //IpplTimings::stopTimer(assignParticleBins);
         msg << "All bins assigned." << endl; 
     }
 
@@ -229,6 +235,7 @@ namespace ParticleBinning {
         // Determine the execution method based on the bin count and the mode...
         HistoReductionMode mode = determineHistoReductionMode(modePreference, binCount); // modePreference;
 
+        IpplTimings::startTimer(bExecuteHistoReductionT);
         if (mode == HistoReductionMode::HostOnly) {
             msg << "Using host-only parallel_reduce reduction." << endl;
             HostArrayReduction<size_type, bin_index_type>::binCountStatic = binCount; // set size of the histogram 
@@ -247,6 +254,7 @@ namespace ParticleBinning {
             msg << "No valid execution method defined to initialize local histogram for energy binning." << endl;
             ippl::Comm->abort(); // Exit, since error!
         }
+        IpplTimings::stopTimer(bExecuteHistoReductionT);
 
         msg << "Reducer ran without error." << endl;
         
@@ -270,20 +278,22 @@ namespace ParticleBinning {
         hview_type localBinHistoHost    = localBinHisto_m.template getHostView<hview_type>(localBinHisto_m.getHistogram()); 
         hview_type_g globalBinHistoHost = globalBinHisto_m.template getHostView<hview_type_g>(globalBinHisto_m.getHistogram()); 
 
-        static IpplTimings::TimerRef globalHistoReduce = IpplTimings::getTimer("allReduceGlobalHisto");
-        IpplTimings::startTimer(globalHistoReduce);
+        //static IpplTimings::TimerRef globalHistoReduce = IpplTimings::getTimer("allReduceGlobalHisto");
+        //IpplTimings::startTimer(globalHistoReduce);
 
         /*
          * Note: The allreduce also works when the .data() returns a CUDA space pointer.
          *       However, for some reason, copying manually to host and then allreducing is faster. 
          */
+        IpplTimings::startTimer(bAllReduceGlobalHistoT);
         ippl::Comm->allreduce(
             localBinHistoHost.data(),           // Pointer to local data
             globalBinHistoHost.data(),              // Pointer to global data
             numBins,                            // Number of elements to reduce
             std::plus<size_type>()              // Reduction operation
         );
-        IpplTimings::stopTimer(globalHistoReduce);
+        IpplTimings::stopTimer(bAllReduceGlobalHistoT);
+        //IpplTimings::stopTimer(globalHistoReduce);
 
         // The global histogram is currently on host, but can be saved on device
         globalBinHisto_m.modify_host();
@@ -346,9 +356,9 @@ namespace ParticleBinning {
          */
         Inform msg("AdaptBins");
 
-        static IpplTimings::TimerRef argSortBins      = IpplTimings::getTimer("argSortBins");
+        //static IpplTimings::TimerRef argSortBins      = IpplTimings::getTimer("argSortBins");
         //static IpplTimings::TimerRef permutationTimer = IpplTimings::getTimer("sortPermutationTimer");
-        static IpplTimings::TimerRef isSortedCheck    = IpplTimings::getTimer("isSortedCheck");
+        //static IpplTimings::TimerRef isSortedCheck    = IpplTimings::getTimer("isSortedCheck");
         //static IpplTimings::TimerRef binSortingAndScatterT = IpplTimings::getTimer("binSortingAndScatter");
 
         bin_view_type bins          = getBinView();
@@ -356,7 +366,7 @@ namespace ParticleBinning {
         size_type numBins           = getCurrentBinCount();
         dview_type bin_counts       = localBinHisto_m.template getDeviceView<dview_type>(localBinHisto_m.getHistogram());
 
-        IpplTimings::startTimer(argSortBins);
+        //IpplTimings::startTimer(argSortBins);
         // Get post sum (already calculated with histogram and saved inside local_bin_histo_post_sum_m), use copy to not modify the original
         Kokkos::View<size_type*> bin_offsets("bin_offsets", numBins + 1);
         // typename d_histo_type::dview_type postSumView = localBinHisto_m.view_device(HistoTypeIdentifier::PostSum);
@@ -370,6 +380,7 @@ namespace ParticleBinning {
         */
         //IpplTimings::startTimer(binSortingAndScatterT);
         //auto start = std::chrono::high_resolution_clock::now(); // TODO: remove
+        IpplTimings::startTimer(bSortContainerByBinT);
         Kokkos::parallel_for("InPlaceSortIndices", localNumParticles, KOKKOS_LAMBDA(const size_type& i) {
             size_type target_bin = bins(i);
             size_type target_pos = Kokkos::atomic_fetch_add(&bin_offsets(target_bin), 1);
@@ -377,11 +388,12 @@ namespace ParticleBinning {
             // Place the current particle directly into its target position
             indices(target_pos) = i;
         });
+        IpplTimings::stopTimer(bSortContainerByBinT);
         //auto end = std::chrono::high_resolution_clock::now(); // TODO: remove
         //long long duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count(); // TODO: remove
         //std::cout << "sortIndices;" << localNumParticles << ";" << numBins << ";" << duration << std::endl; // TODO: remove
         
-        IpplTimings::stopTimer(argSortBins);
+        //IpplTimings::stopTimer(argSortBins);
         //msg << "Argsort on bin index completed." << endl;
         //Kokkos::fence();
 
@@ -400,12 +412,12 @@ namespace ParticleBinning {
         //msg << "Permutation of particle attributes completed." << endl;
 
         // TODO: remove, just for testing purposes (get new bin view, since the old memory address might be overwritten by this action...)
-        IpplTimings::startTimer(isSortedCheck);
+        IpplTimings::startTimer(bVerifySortingT);
         if (localNumParticles > 1 && !viewIsSorted<bin_index_type>(getBinView(), indices, localNumParticles)) {
             msg << "Sorting failed." << endl;
             ippl::Comm->abort();
         } 
-        IpplTimings::stopTimer(isSortedCheck);
+        IpplTimings::stopTimer(bVerifySortingT);
     }
 
 }
