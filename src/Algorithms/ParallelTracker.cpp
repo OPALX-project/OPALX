@@ -449,7 +449,7 @@ void ParallelTracker::execute() {
             // Do relativistic update myself...
             pc->R = pc->R + dtCurrentTrack_m/2 * pc->P / sqrt(1 + dot(pc->P, pc->P)) * Physics::c;
             itsBunch_m->bunchUpdate();
-            pc->P = pc->P + dtCurrentTrack_m * (pc->Q * Physics::c / pc->M) * pc->E;
+            pc->P = pc->P + dtCurrentTrack_m * (Physics::c / pc->M) * (pc->Q*pc->E); //  + 0.2
             //*gmsg << "* P = " << pc->P[0] << ", R = " << pc->R[0] << ", E = " << pc->E[0] << ", Q = " << pc->Q[0] << ", M = " << pc->M[0] << endl;
             pc->R = pc->R + dtCurrentTrack_m/2 * pc->P / sqrt(1 + dot(pc->P, pc->P)) * Physics::c;
             itsBunch_m->bunchUpdate(); 

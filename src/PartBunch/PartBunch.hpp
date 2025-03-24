@@ -307,7 +307,7 @@ public:
         this->getBins()->debug();
 
         this->setTempEField(std::make_shared<VField_t<T, Dim>>(this->fcontainer_m->getE())); // user copy constructor
-        this->getTempEField().initialize(this->fcontainer_m->getMesh(), this->fcontainer_m->getFL());
+        this->getTempEField()->initialize(this->fcontainer_m->getMesh(), this->fcontainer_m->getFL());
 
         static IpplTimings::TimerRef setSolverT = IpplTimings::getTimer("setSolver");
         IpplTimings::startTimer(setSolverT);

@@ -340,18 +340,20 @@ void PartBunch<double,3>::bunchUpdate() {
 // ADA
 template <>
 void PartBunch<double,3>::computeSelfFields() {
-    static IpplTimings::TimerRef MergeBinsTimer = IpplTimings::getTimer("MergingBins");
+    static IpplTimings::TimerRef completeBinningT = IpplTimings::getTimer("bTotalBinningT");
 
     // Start binning and sorting
     std::shared_ptr<AdaptBins_t> bins = this->getBins();
     VField_t<double, 3>& Etmp = *(this->getTempEField());
+
+    IpplTimings::startTimer(completeBinningT);
     bins->doFullRebin(bins->getMaxBinCount()); // rebin with 128 bins // bins->getMaxBinCount()
     bins->print(); // For debugging...
     bins->sortContainerByBin(); // Sort BEFORE, since it generates less atomics overhead with more bins!
 
-    IpplTimings::startTimer(MergeBinsTimer);
+    
     bins->genAdaptiveHistogram(); // merge bins with width/N_part ratio of 1.0
-    IpplTimings::stopTimer(MergeBinsTimer);
+    IpplTimings::stopTimer(completeBinningT);
 
     bins->print(); // For debugging...
 
@@ -363,7 +365,7 @@ void PartBunch<double,3>::computeSelfFields() {
     m << "Running binned solver routine." << endl;
 
     // Run solver for each bin
-    Etmp = {0, 0, 0}; // reset temporary field to 60 MV/m (roughly the field of the outside accelerating field....)
+    Etmp = {0, 0, 0}; // reset temporary field to 2.6 GV/m (roughly the field of the outside accelerating field....)
     for (binIndex_t i = 0; i < bins->getCurrentBinCount(); ++i) {
         if (bins->getNPartInBin(i) == 0) {
             m << "0 particles in bin " << i << ", skipping." << endl;
