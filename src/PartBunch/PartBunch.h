@@ -438,7 +438,11 @@ public:
 
 
     bool hasFieldSolver() {
-        return true;
+        if (OPALFieldSolver_m)
+            return OPALFieldSolver_m->hasValidSolver();
+        else
+            return false;
+
     }
 
     bool getFieldSolverType() {
