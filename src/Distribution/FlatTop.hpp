@@ -93,7 +93,7 @@ public:
                 Rview(j)[2]  = 0.0;
                 Pview(j)[0] = 0.0;
                 Pview(j)[1] = 0.0;
-                Pview(j)[2] = 1.00051; // Initial energy: 1.4eV?
+                Pview(j)[2] = 0.0; // Initial energy: 1.4eV?
 
                 //std::cout << "Rview(j) = " << Rview(j) << ", j = " << j << std::endl;
         });
