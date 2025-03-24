@@ -248,6 +248,7 @@ namespace ParticleBinning {
                     dWidthView(i) = binWidth;
                 }
             );
+            //std::cout << "Hey!" << std::endl;
             IpplTimings::stopTimer(bHistogramInitT);
             /*
             Note: DON'T use "Kokkos::deep_copy(getDeviceView<dwidth_view_type>(binWidths_m), constBinWidth / numBins_m);"!
