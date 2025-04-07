@@ -196,11 +196,11 @@ public:
         Vector_t<double, Dim> rmin	             = rmin_m;
         Vector_t<double, Dim> rmax	             = rmax_m;
         Vector_t<double, Dim> hr                 = hr_m;
-        binIndexView_t bin                       = this->pcontainer_m->bin.getView();
+        binIndexView_t bin                       = this->pcontainer_m->Bin.getView();
         size_type localParticles                 = this->pcontainer_m->getLocalNum();
         double Q                                 = Q_m * this->bins_m->getNPartInBin(binIndex, true)/totalP_m; // Q_m;
 
-        static IpplTimings::TimerRef binSortingAndScatterT = IpplTimings::getTimer("binSortingAndScatter");
+        static IpplTimings::TimerRef binSortingAndScatterT = IpplTimings::getTimer("perBinScatter");
         IpplTimings::startTimer(binSortingAndScatterT);
         scatter(*q, *rho, *R, this->bins_m->getBinIterationPolicy(binIndex), this->bins_m->getHashArray());
         IpplTimings::stopTimer(binSortingAndScatterT);
@@ -212,13 +212,14 @@ public:
         m << relError << endl;
 
         size_type TotalParticles = 0;
+        size_type totalP_tmp = this->pcontainer_m->getTotalNum(); // use this, since not all particles might be emitted
 
         ippl::Comm->reduce(localParticles, TotalParticles, 1, std::plus<size_type>());
 
         if (ippl::Comm->rank() == 0) {
-            if (TotalParticles != totalP_m || relError > 1e-10) {
+            if (TotalParticles != totalP_tmp || relError > 1e-10) {
                 m << "Time step: " << it_m << endl;
-                m << "Total particles in the sim. " << totalP_m << " "
+                m << "Total particles in the sim. " << totalP_tmp << " "
                   << "after update: " << TotalParticles << endl;
                 m << "Rel. error in charge conservation: " << relError << endl;
                 ippl::Comm->abort();

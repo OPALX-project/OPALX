@@ -48,7 +48,7 @@ namespace ParticleBinning {
 
     // Set max array size as a constexpr
     template<typename IndexType>
-    constexpr IndexType maxArrSize = 15; // 128 needs a few minutes to compile. Good in between magic number is 30. Fast compilation with 15
+    constexpr IndexType maxArrSize = 5; // 128 needs a few minutes to compile. Good in between magic number is 30. Fast compilation with 15
 
     // Primary template for ReductionVariantHelper (not used directly)
     template<typename SizeType, typename IndexType, typename Sequence>
