@@ -69,7 +69,7 @@ namespace ParticleBinning {
     * @note Using a shared pointer does not work, since these are managed on host only! Using a simple
     *       passed Kokkos::View also does not work, since create() might be called which calls Kokkos::realloc(),
     *       which is a problem, since the copied view does not know the reallocated data. 
-    *       Therefore, the view is passed as a raw pointer!
+    *       Therefore, the view is updated with `updateDataArr`!
     *
     * @tparam bunch_type Type of the particle bunch (derived from ParticleBase).
     */
