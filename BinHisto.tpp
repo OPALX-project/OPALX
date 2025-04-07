@@ -25,10 +25,9 @@ namespace ParticleBinning {
     }
 
 
-    // PRE: sumCount > 0
     template <typename size_type, typename bin_index_type, typename value_type, bool UseDualView, class... Properties>
     value_type 
-    Histogram<size_type, bin_index_type, value_type, UseDualView, Properties...>::partialMergedCDFIntegralCost(
+    Histogram<size_type, bin_index_type, value_type, UseDualView, Properties...>::adaptiveBinningCostFunction(
         const size_type& sumCount,
         const value_type& sumWidth,
         const size_type& totalNumParticles
@@ -36,7 +35,7 @@ namespace ParticleBinning {
         # ifdef DEBUG
         if (sumCount == 0) {
             Inform err("mergeBins");
-            err << "Error in partialMergedCDFIntegralCost: " 
+            err << "Error in adaptiveBinningCostFunction: " 
                 << "sumCount = " << sumCount
                 << ", sumWidth = " << sumWidth
                 << ", totalNumParticles = " << totalNumParticles << endl;
@@ -44,16 +43,15 @@ namespace ParticleBinning {
         }
         # endif
 
-        value_type totalSum = static_cast<value_type>(totalNumParticles);
-        value_type sumCountNorm = sumCount / totalSum; // static_cast<value_type>(sumCount) / totalSum;
+        value_type totalSum     = static_cast<value_type>(totalNumParticles);
+        value_type sumCountNorm = sumCount / totalSum; 
 
-        value_type penalty        = sumWidth - desiredWidth_m;// (sumWidth > 0.1) ? pow(0.1 - sumWidth, 2) : 0.0;
+        value_type penalty        = sumWidth - desiredWidth_m;
         value_type wideBinPenalty = binningAlpha_m;
-        value_type binSizeBias    = binningBeta_m; // * sqrt(sumCountNorm);
+        value_type binSizeBias    = binningBeta_m; 
 
-        // The following is OK when normalized!
-        value_type sparse_penalty = (sumCountNorm < desiredWidth_m) // (sumCount > 0) && (removed, since pre condition!)
-                                     ? desiredWidth_m / sumCountNorm // normalize penalty by desiredWidth
+        value_type sparse_penalty = (sumCountNorm < desiredWidth_m) 
+                                     ? desiredWidth_m / sumCountNorm 
                                      : 0.0;
 
         return sumCountNorm*log(sumCountNorm)*sumWidth // minimize shannon entropy as a basis
@@ -66,26 +64,9 @@ namespace ParticleBinning {
 
 
     template <typename size_type, typename bin_index_type, typename value_type, bool UseDualView, class... Properties>
-    //template <typename BinningSelector_t>
     Histogram<size_type, bin_index_type, value_type, UseDualView, Properties...>::hindex_transform_type
-    Histogram<size_type, bin_index_type, value_type, UseDualView, Properties...>::mergeBins(
-        //const hash_type sortedIndexArr,
-        //const BinningSelector_t var_selector
-    ) {
-        // std::srand(time(0)); // TODO: remove! 
-        //static IpplTimings::TimerRef mergeBinsTimer = IpplTimings::getTimer("mergeBins");
-
-        // scotts normal reference rule, see https://en.wikipedia.org/wiki/Histogram#Scott's_normal_reference_rule
-        // Maybe set this later as a parameter
-        //value_type alpha = 0.2; // Some parameter...
-        
-        // TODO 
-        // Should merge neighbouring bins such that the width/N_part ratio is roughly maxBinRatio.
-        // TODO: Find algorithm for that
-        // std::cout << "Warning: mergeBins not implemented yet!" << std::endl;
+    Histogram<size_type, bin_index_type, value_type, UseDualView, Properties...>::mergeBins() {
         Inform m("Histogram");
-        //m << "Merging bins with cost-based approach (minimize deviation from maxBinRatio = "
-        //  << maxBinRatio << ")" << endl;
 
         /*
         The following if makes sure that the mergeBins function is only called if the histogram is
@@ -110,6 +91,7 @@ namespace ParticleBinning {
             return oldToNewBinsView;
         }
 
+
         IpplTimings::startTimer(bMergeBinsT);
         // ----------------------------------------------------------------
         // 1) Build prefix sums on the host
@@ -118,24 +100,15 @@ namespace ParticleBinning {
         // ----------------------------------------------------------------
         hview_type       prefixCount("prefixCount", n+1);
         hwidth_view_type prefixWidth("prefixWidth", n+1);
-        // Kokkos::View<value_type*, Kokkos::HostSpace> prefixMoment("prefixMoment", n+1); // Needed for first order moment error estimation
+        
         prefixCount(0)  = 0;
         prefixWidth(0)  = 0;
-        // prefixMoment(0) = 0;
+        
         for (bin_index_type i = 0; i < n; ++i) {
             prefixCount(i+1) = prefixCount(i) + oldHistHost(i);
             prefixWidth(i+1) = prefixWidth(i) + oldBinWHost(i);
-
-            // value_type binCenter = prefixWidth(i) + 0.5 * oldBinWHost(i); // Technically not necessary, but more general for non-uniform bins...
-            //prefixMoment(i+1) = prefixMoment(i) + oldHistHost(i) * binCenter; // Something like the cumulative distribution function for the "actual" histogram (fine bins...)
-                                                                              // Basically the "integral" \int_{0}^{x} x f(x) dx
-                                                                              // TODO: might want to use different integration rule?
         }
         const size_type totalNumParticles = prefixCount(n); // Last value in prefixCount is the total number of particles
-        //computeFixSum<hview_type>(oldHistHost, prefixCount);
-        //computeFixSum<hwidth_view_type>(oldBinWHost, prefixWidth);
-
-        //m << "Prefix sums computed." << endl;
 
 
         // ----------------------------------------------------------------
@@ -143,26 +116,24 @@ namespace ParticleBinning {
         //    dp(k)      = minimal total cost covering [0..k-1]
         //    prevIdx(k) = the index i that yields that minimal cost
         // ----------------------------------------------------------------
-        // We'll store dp as a floating-point "value_type" array
         Kokkos::View<value_type*, Kokkos::HostSpace> dp("dp", n+1);
-        Kokkos::View<value_type*, Kokkos::HostSpace> dpMoment("dpMoment", n+1); // Store cumulative moments --> allow first order moment error estimation
+        // Kokkos::View<value_type*, Kokkos::HostSpace> dpMoment("dpMoment", n+1); // Store cumulative moments --> allow first order moment error estimation
         Kokkos::View<int*,        Kokkos::HostSpace> prevIdx("prevIdx", n+1);
 
         // Initialize dp with something large
         value_type largeVal = std::numeric_limits<value_type>::max() / value_type(2);
         for (bin_index_type k = 0; k <= n; ++k) {
             dp(k)       = largeVal;
-            dpMoment(k) = 0; // Added this!
+            // dpMoment(k) = 0; 
             prevIdx(k)  = -1;
         }
-        dp(0) = value_type(0);  // 0 cost to cover an empty set (dpMoment(0) = 0, for no bins...)
+        dp(0) = value_type(0);  // 0 cost to cover an empty set 
         //m << "DP arrays initialized." << endl;
 
 
         // ----------------------------------------------------------------
         // 3) Fill dp with an O(n^2) algorithm to find the minimal total cost
         // ----------------------------------------------------------------
-        // value_type varPerBin = pow(oldBinWHost(0), 2) / 12; // assume equal width, assume uniform distribution per fine bin
         for (bin_index_type k = 1; k <= n; ++k) {
             // Try all possible start indices i for the last merged bin
             for (bin_index_type i = 0; i < k; ++i) {
@@ -170,19 +141,9 @@ namespace ParticleBinning {
                 value_type sumWidth      = prefixWidth(k) - prefixWidth(i);
                 value_type segCost       = largeVal;
                 if (sumCount > 0) {
-                    //value_type segFineMoment = prefixMoment(k) - prefixMoment(i); // "exact" integral value for first order moment (from fine histo)
-                    //value_type mergedStd     = mergedBinStd(i, k, sumCount, varPerBin, prefixWidth, oldHistHost, oldBinWHost);
-                    //segCost              = computeDeviationCost(sumCount, sumWidth, maxBinRatio, alpha, mergedStd);
-                    //segCost = partialMergedCDFIntegralCost(sumCount, sumWidth, alpha, mergedStd, segFineMoment);
-                    //segCost = partialMergedCDFIntegralCost(i, k, sumCount, sumWidth, alpha, sortedIndexArr, var_selector);
-                    segCost = partialMergedCDFIntegralCost(sumCount, sumWidth, totalNumParticles);
-
-                    //if (k % 10 == 0 && i % 10 == 0) {
-                    //    m << "k = " << k << ", i = " << i << ", sumCount = " << sumCount << ", sumWidth = " << sumWidth
-                    //      << ", segCost = " << segCost << endl; // ", mergedStd = " << mergedStd << endl;
-                    //}
+                    // Division by 0 if called with sumCount=0. Merge anyways --> set cost to a "very large" value instead
+                    segCost = adaptiveBinningCostFunction(sumCount, sumWidth, totalNumParticles);
                 }
-                //value_type segCost   = computeDeviationCost(sumCount, sumWidth, maxBinRatio, largeVal, alpha);
                 value_type candidate = dp(i) + segCost;
                 if (candidate < dp(k)) {
                     dp(k)      = candidate;
@@ -190,20 +151,15 @@ namespace ParticleBinning {
                 }
             }
         }
-
         //m << "DP arrays filled." << endl;
 
         // dp(n) is the minimal total cost for covering [0..n-1].
         value_type totalCost = dp(n);
         if (totalCost >= largeVal) {
-            // Means everything was effectively "impossible" => fallback
+            // Means everything was effectively "impossible" => fallback (should not happen!)
             std::cerr << "Warning: no feasible merges found. Setting cost=0, no merges." << std::endl;
             totalCost = value_type(0);
         }
-
-        //for (bin_index_type k = 0; k <= n; ++k) {
-        //    m << "dp(" << k << ") = " << dp(k) << ", prevIdx(" << k << ") = " << prevIdx(k) << endl;
-        //}
 
 
         // ----------------------------------------------------------------
@@ -211,7 +167,7 @@ namespace ParticleBinning {
         //    We start from k=n and step backwards until k=0
         // ----------------------------------------------------------------
         std::vector<int> boundaries;
-        boundaries.reserve(20); // should be sufficient for most use cases
+        boundaries.reserve(20); // should be sufficient for most use cases (usually aim for <10)
         int cur = n;
         // We'll just push them in reverse
         while (cur > 0) {
@@ -225,7 +181,7 @@ namespace ParticleBinning {
             boundaries.push_back(start);
             cur = start;
         }
-        // boundaries is reversed (e.g. [startK, i2, i1, 0])
+        // boundaries are reversed (e.g. [startK, i2, i1, 0])
         std::reverse(boundaries.begin(), boundaries.end());
         // final boundary is n
         boundaries.push_back(n);
@@ -233,7 +189,6 @@ namespace ParticleBinning {
         // Now the number of merged bins is boundaries.size() - 1
         size_type mergedBinsCount = static_cast<size_type>(boundaries.size()) - 1;
         //m << "Merged bins (based on minimal cost partition): " << mergedBinsCount << ". Minimal total cost = " << totalCost << endl;
-
 
 
         // ----------------------------------------------------------------
@@ -252,10 +207,7 @@ namespace ParticleBinning {
         }
         //m << "New bins computed." << endl;
 
-
-
-        // Also generate a lookup table that maps the old bin index
-        // to the new bin index
+        // Also generate a lookup table that maps the old bin index to the new bin index (for "rebin")
         hindex_transform_type oldToNewBinsView("oldToNewBinsView", n);
         for (size_type j = 0; j < mergedBinsCount; ++j) {
             bin_index_type startIdx = boundaries[j];
@@ -271,7 +223,6 @@ namespace ParticleBinning {
         // 6) Overwrite the old histogram arrays with the new merged ones
         // ----------------------------------------------------------------
         numBins_m = static_cast<bin_index_type>(mergedBinsCount);
-
         instantiateHistograms();
         //m << "New histograms instantiated." << endl;
 
@@ -300,7 +251,7 @@ namespace ParticleBinning {
 
 
         // ----------------------------------------------------------------
-        // 8) Recompute postSum for the new histogram
+        // 8) Recompute postSum for the new merged histogram
         // ----------------------------------------------------------------
         initPostSum();
         IpplTimings::stopTimer(bMergeBinsT);
