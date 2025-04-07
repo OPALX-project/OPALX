@@ -1,5 +1,5 @@
-#ifndef ADAPT_BINS_HPP
-#define ADAPT_BINS_HPP
+#ifndef ADAPT_BINS_TPP
+#define ADAPT_BINS_TPP
 
 #include "AdaptBins.h"
 

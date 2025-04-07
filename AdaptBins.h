@@ -3,36 +3,21 @@
  * @brief Defines a structure to hold particles in energy bins and their associated data.
  * 
  * "AdaptBins" is a improved version of "PartBins" from the old OPAL. AdaptBins uses
- * data structures from IPPL and Kokkos to make improve performance when using MPI and Cuda.
- * In contrast to the old PartBin, this class allows for the use of rebinning during runtime. 
- */
-
-/**
- * @copyright Copyright (c) 2007-2020, Paul Scherrer Institut, Villigen PSI, Switzerland
- * All rights reserved
- *
- * This file is part of OPALX.
- *
- * OPAL is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * You should have received a copy of the GNU General Public License
- * along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+ * data structures from IPPL and Kokkos to improve parallelized performance and the binning
+ * algorithm itself. 
+ * In contrast to the old PartBin, this class re-bins adaptively on the fly without
+ * copying data. 
  */
 
 #ifndef ADAPT_BINS_H
 #define ADAPT_BINS_H
 
-//#include <memory>
-//#include <iostream>
 #include "Ippl.h"
 
-#include <Kokkos_DualView.hpp>   // Looks like no one ever used it before, so import it here...
-#include "ParallelReduceTools.h" // Has custom reducer objects (--> needed in AdaptBins.h and BinningTools.h)
-#include "BinningTools.h"        // Has custom particle selection
-#include "BinHisto.h"           // Has custom histogram class for DualView management
+#include <Kokkos_DualView.hpp>   /// Potentially used in BinHisto.h as a base data structure.
+#include "ParallelReduceTools.h" 
+#include "BinningTools.h"        
+#include "BinHisto.h"           
 
 namespace ParticleBinning {
 
@@ -56,14 +41,9 @@ namespace ParticleBinning {
         using bin_index_type         = typename BunchType::bin_index_type;
         using bin_type               = typename ippl::ParticleAttrib<bin_index_type>;
         using bin_view_type          = typename bin_type::view_type;
-        // using bin_histo_type         = Kokkos::View<size_type*>;
-        //using bin_host_histo_type    = Kokkos::View<size_type*, Kokkos::HostSpace>;
-        // using bin_histo_dual_type    = typename Kokkos::DualView<size_type*>;
-        // using binning_var_selector_type = typename BinningVariableSelector<size_type>;
-        // using buffer_view_type       = Kokkos::View<int*>;
         using hash_type              = ippl::detail::hash_type<Kokkos::DefaultExecutionSpace::memory_space>;
 
-        //using histo_type      = Histogram<size_type, bin_index_type, value_type>;
+        // Types from BinHisto.h to manage histogram structures without "auto"
         using d_histo_type          = Histogram<size_type, bin_index_type, value_type, true>;
         using dview_type            = typename d_histo_type::dview_type;
         using hview_type            = typename d_histo_type::hview_type;
@@ -71,15 +51,23 @@ namespace ParticleBinning {
         using hindex_transform_type = typename d_histo_type::hindex_transform_type;
         using dindex_transform_type = typename d_histo_type::dindex_transform_type;
 
-        using h_histo_type_g         = Histogram<size_type, bin_index_type, value_type, false, Kokkos::HostSpace>; 
-        using hview_type_g           = typename h_histo_type_g::hview_type;
-        using hindex_transform_type_g= typename h_histo_type_g::hindex_transform_type;
+        using h_histo_type_g          = Histogram<size_type, bin_index_type, value_type, false, Kokkos::HostSpace>; 
+        using hview_type_g            = typename h_histo_type_g::hview_type;
+        using hindex_transform_type_g = typename h_histo_type_g::hindex_transform_type;
 
         /**
-         * @brief Constructs an AdaptBins object with a specified maximum number of bins.
+         * @brief Constructs an AdaptBins object with a specified maximum number of bins and a selector.
          * 
-         * @param bunch A shared pointer to the particle container.
-         * @param maxBins The maximum number of bins to initialize with (default is 10).
+         * @param bunch A shared pointer to the underlying particle container.
+         * @param var_selector A function or functor that selects the variable for binning (based on attributes).
+         * @param maxBins The maximum number of bins to initialize with (usually 128).
+         * @param binningAlpha The alpha parameter for the adaptive binning (merging) algorithm.
+         * @param binningBeta The beta parameter for the adaptive binning (merging) algorithm.
+         * @param desiredWidth The desiredWidth for the adaptive binning (merging) algorithm.
+         * 
+         * @note The cost function parameters for the adaptive binning are outlined in 
+         *       the AdaptBins::partialMergedCDFIntegralCost function and explained in detail
+         *       in Alexander Liemen's master thesis "Adaptive Energy Binning in OPAL-X".
          */
         AdaptBins(std::shared_ptr<BunchType> bunch, BinningSelector var_selector, bin_index_type maxBins,
                   value_type binningAlpha, value_type binningBeta, value_type desiredWidth)
@@ -90,8 +78,8 @@ namespace ParticleBinning {
             , binningBeta_m(binningBeta)
             , desiredWidth_m(desiredWidth) {
 
-            currentBins_m   = maxBins; // TODO for now...
-            // sortingBuffer_m = Kokkos::View<int*>("particlePermutationBuffer", bunch->getLocalNum());
+            // Will be set during usage/rebinning
+            currentBins_m = maxBins;
 
             // Initialize all the timers
             bInitLimitsT            = IpplTimings::getTimer("bInitLimits");
@@ -112,55 +100,65 @@ namespace ParticleBinning {
         /**
          * @brief Returns a view to the particle bin array.
          * 
-         * @note How the bin attribute it named might change, so this function exists!
+         * @note: Change this function if the name of the Bin attribute in the container is changed.
          */
         bin_view_type getBinView() { return bunch_m->Bin.getView(); }
 
         /**
-         * @brief Gets the current number of bins.
+         * @brief Returns the current number of bins.
          * 
          * @return The current bin count.
          */
         bin_index_type getCurrentBinCount() const { return currentBins_m; }
 
         /**
-         * @brief Gets the maximum number of bins.
+         * @brief Gets the maximum number of bins. Will be used for the fine uniform histogram before merging.
          * 
          * @return The maximum allowed number of bins.
          */
         bin_index_type getMaxBinCount() const { return maxBins_m; }
 
         /**
-         * @brief Gets the average binwidth.
+         * @brief Returns the average binwidth.
          * 
-         * @return Corresponds to (xmax_m - xmin_m)/n_bins.
+         * @return Corresponds to (xmax_m - xmin_m)/n_bins. Used in the fine histogram.
          */
         value_type getBinWidth() const { return binWidth_m; }
 
         /**
          * @brief Sets the current number of bins and adjusts the bin width.
          * 
-         * @param nBins The new number of bins.
+         * @param nBins The new number of currently used bins (locally).
+         * 
+         * @note The other parameters (limits) are set before this function is called in doFullRebin().
          */
         void setCurrentBinCount(bin_index_type nBins) {
             currentBins_m = (nBins > maxBins_m) ? maxBins_m : nBins; 
-            binWidth_m    = (xMax_m - xMin_m) / currentBins_m; // assuming particles did not change!
+            binWidth_m    = (xMax_m - xMin_m) / currentBins_m; 
         }
 
+        /**
+         * @brief Returns the index map that sorts the particle container by bin number.
+         * 
+         * @return hash_type sorting the container.
+         */
         hash_type getHashArray() { return sortedIndexArr_m; }
 
         /**
-         * @brief Calculates the bin index for a given position value.
+         * @brief Calculates the bin index for a given position value in a uniform histogram.
          * 
          * This static method calculates which bin a position value falls into based on the bin
-         * boundaries and bin width.
+         * boundaries and bin width. Uses integer casting to get bin index and clamps it to the 
+         * biggest bin if out of range (only happens if limits and the particle bunch are out
+         * of sync -- should not happen since particle push is not done between limit calculation
+         * and bin assignment).
          * 
-         * @param x The "position" value.
+         * @param x The binning parameter value (e.g. z-velocity).
          * @param xMin Minimum boundary for the bins.
          * @param xMax Maximum boundary for the bins.
          * @param binWidthInv Inverse of the bin width for efficiency.
          * @param numBins The total number of bins.
-         * @return The calculated bin index for the position value.
+         * @return The calculated bin index for the given x value.
          */
         KOKKOS_INLINE_FUNCTION
         static bin_index_type getBin(value_type x, value_type xMin, value_type xMax, value_type binWidthInv, bin_index_type numBins);
@@ -169,16 +167,17 @@ namespace ParticleBinning {
          * @brief Initializes the limits for binning based on the particle data.
          * 
          * This function calculates the minimum and maximum limits (xMin and xMax) from the
-         * particle positions, which are then used to define bin boundaries.
+         * binning attribute (e.g. velocity), which are then used to define bin boundaries.
          * 
-         * @note Needs to be called _before_ bins and histograms are initialized.
+         * @note Called _before_ bins and histograms are initialized.
          */
         void initLimits();
 
         /**
          * @brief Initializes the histogram view for binning and optionally sets it to zero.
          * 
-         * @param setToZero If true, initializes the histogram view to zero. Default is false. The 0 initialization is not needed if it is overwritten anyways.
+         * @param setToZero If true, initializes the histogram view to zero. Default is false. 
+         *                  The 0 initialization is not needed if data is overwritten anyways.
          */
         void instantiateHistogram(bool setToZero = false);
 
@@ -186,26 +185,31 @@ namespace ParticleBinning {
          * @brief Assigns each particle in the bunch to a bin based on its position.
          * 
          * This function iterates over all particles in the bunch, calculates their bin
-         * index, and updates the bin structure accordingly.
+         * index using getBin(...), and updates the "Bin" attribute in the container
+         * structure accordingly.
+         * 
+         * @note It only calculates the fine uniform histogram using maxBins bins.
          */
         void assignBinsToParticles();
 
         /**
-         * @brief Initializes a local histogram view for particle binning.
+         * @brief Initializes a local histogram for particle binning.
          * 
-         * This function prepares a local histogram, enabling binning of particles within
-         * local data, which can then be reduced into a global histogram.
-         * Calls executeInitLocalHistoReduction to perform the reduction (has more information).
+         * This function initializes the local histogram (instance of BinHisto) after bin indices
+         * were assigned using assignBinsToParticles(). It reduces the indices to a histogram using
+         * on the the reduction functions in this class. It chooses which function to use based on the
+         * HistoReductionMode parameter (defined in ParallelReduceTools.h) or the optimal method based
+         * on the current architecture/bin number.  
          */
         void initLocalHisto(HistoReductionMode modePreference = HistoReductionMode::Standard);
 
         /**
         * @brief Initializes and performs a team-based histogram reduction for particle bins.
         *
-        * This function allocates scratch memory on each team, initializes a local
-        * histogram for each team in shared memory, updates it based on bin indices of particles,
-        * and finally reduces the team-local histograms into a global histogram in device memory
-        * using pure atomics.
+        * This function allocates scratch memory for each team on device, initializes a local
+        * histogram for each team in shared memory, updates it based on bin indices of particles
+        * assigned to that team and finally reduces the team-local histograms into a global 
+        * histogram in device memory using pure atomics.
         * 
         * @details The process consists of the following steps:
         * - Allocating scratch memory for each team's local histogram.
@@ -213,19 +217,16 @@ namespace ParticleBinning {
         * - Assigning particles to bins in parallel within each team.
         * - Reducing each team's local histogram into a global histogram (atomics).
         *
-        * ### Parameters
-        * - **binIndex**: A view of bin indices for each particle.
-        * - **localBinHisto**: A global histogram where the final reduction result is stored.
-        * - **binCount**: The total number of histogram bins.
-        * - **localNumParticles**: The number of particles in the local process.
-        *
         * ### Memory and Execution
+        * For GPU architecture, this function does not need to be changed. Should problems with unusal execution
+        * time occur (e.g. if this function is supposed to be called on CPU -- which it shouldn't), it might make
+        * sense to look at the following parameters calculated in the function:
         * - **Scratch Memory**: Scratch memory is allocated per team for a local histogram, with size `binCount`.
         * - **Concurrency**: `team_size` specifies the number of threads per team, and each team processes a `block_size`.
         *
         * @note This function is optimized for GPU execution using team-based parallelism,
-        *       it does not work on Host (since team_size is hardcoded and to big). 
-        *       If you want to run this on Host, change team_size=1 and increase block_size.
+        *       it does not work on Host (since `team_size` is hardcoded and to a big number). 
+        *       If you want to run this on Host, change `team_size=1` and increase `block_size`.
         *
         * @pre `localBinHisto` and `binIndex` must be initialized with appropriate sizes before calling this function.
         * 
@@ -237,7 +238,7 @@ namespace ParticleBinning {
         /**
         * @brief Executes a parallel reduction to initialize the local histogram for particle bins.
         *
-        * This function performs a Kokkos parallel reduction over the particles in the bunch, incrementing 
+        * This function performs a `Kokkos::parallel_reduce` over the particles in the bunch, incrementing 
         * counts in the reduction array `to_reduce` based on the bin index for each particle. 
         * After the reduction, the results are copied to the final histogram `localBinHisto`.
         *
@@ -250,9 +251,10 @@ namespace ParticleBinning {
         * - Executes a parallel loop to copy the reduced bin counts from `to_reduce` to `localBinHisto`.
         *
         * @note This function uses the Kokkos parallel programming model and assumes that `to_reduce` 
-        * has a `the_array` member which stores the histogram counts. So far, only ParticleBinning::ArrayReduction
-        * is implemented in that way (to work together with Kokkos::Sum reducer). `the_array` needs to have a known
-        * size at compile time.
+        * has a `the_array` member which stores the histogram counts. So far, only `ParticleBinning::ArrayReduction`
+        * is implemented in that way (to work together with `Kokkos::Sum` reducer). `the_array` needs to have a known
+        * size at compile time. To use it on GPU anyways, ParallelReduceTools.h contains a function `createReductionObject()`
+        * to select the reducer object from a `std::variant` of pre-compiled reducer sizes. 
         */
         template<typename ReducerType>
         void executeInitLocalHistoReduction(ReducerType& to_reduce);
@@ -263,14 +265,23 @@ namespace ParticleBinning {
          * This function reduces the local histograms across all MPI processes into
          * a single global histogram view.
          * 
-         * @return A view of the global histogram in host space (used for debugging output).
+         * @return A view of the global histogram in host space (used for merging/the adaptive histogram).
          */
         void initGlobalHistogram();
 
         /**
-         * @brief Performs a full rebinning of particles with a specified number of bins.
+         * @brief Performs a full rebinning operation on the bunch.
+         * 
+         * It does the following steps:
+         * - Initializes the limits of the binning attribute.
+         * - Sets the current number of bins to nBins (usually 128 for the fine histogram).
+         * - Assigns uniform bins to particles based on the new limits and bin count.
+         * - (Re-)initializes the local histogram based on the new bins.
          * 
          * @param nBins The new number of bins to use for rebinning.
+         * @param recalculateLimits If true, the limits are recalculated based on the current particle data.
+         * @param modePreference The preferred mode for histogram reduction (default is Standard and choses 
+         *                       the best method itself).
          */
         void doFullRebin(bin_index_type nBins, bool recalculateLimits = true, HistoReductionMode modePreference = HistoReductionMode::Standard) {
             if (recalculateLimits) initLimits();
