@@ -2,9 +2,7 @@
  * @file AdaptBins.h
  * @brief Defines a structure to hold particles in energy bins and their associated data.
  * 
- * "AdaptBins" is a improved version of "PartBins" from the old OPAL. AdaptBins uses
- * data structures from IPPL and Kokkos to improve parallelized performance and the binning
- * algorithm itself. 
+ * "AdaptBins" is developed for OPAL-X and replaces the "PartBins" clas from the old OPAL.
  * In contrast to the old PartBin, this class re-bins adaptively on the fly without
  * copying data. 
  */
@@ -14,7 +12,7 @@
 
 #include "Ippl.h"
 
-#include <Kokkos_DualView.hpp>   /// Potentially used in BinHisto.h as a base data structure.
+#include <Kokkos_DualView.hpp>
 #include "ParallelReduceTools.h" 
 #include "BinningTools.h"        
 #include "BinHisto.h"           
@@ -23,17 +21,21 @@ namespace ParticleBinning {
 
     /**
      * @class AdaptBins
-     * @brief A class that bins particles in energy bins and allows for runtime rebinning.
+     * @brief A class that bins particles in energy bins and allows for adaptive runtime rebinning.
      * 
      * This class provides functionality to group particles into energy bins, initialize and reinitialize
      * bin structures, and update bin contents using data structures from IPPL and Kokkos. It is optimized
-     * for usage with MPI and CUDA backends.
+     * for usage on CPU and GPU. It is explained in detail in Alexander Liemen's master thesis and was
+     * developed for OPAL-X to improve the performance when solving the electric field in a relativistic
+     * particle bunch.  
      *
      * @tparam BunchType The type of particle bunch (container) used in the binning process.
+     * @tparam BinningSelector A function or functor that selects the variable for binning (based on attributes).
      */
     template <typename BunchType, typename BinningSelector>
     class AdaptBins {
     public:
+        // Variable type definitions
         using value_type             = typename BinningSelector::value_type;
         using particle_position_type = typename BunchType::particle_position_type;
         using position_view_type     = typename particle_position_type::view_type;
@@ -276,7 +278,7 @@ namespace ParticleBinning {
          * - Initializes the limits of the binning attribute.
          * - Sets the current number of bins to nBins (usually 128 for the fine histogram).
          * - Assigns uniform bins to particles based on the new limits and bin count.
-         * - (Re-)initializes the local histogram based on the new bins.
+         * - (Re-)initializes the local **and** global histogram based on the new bins.
          * 
          * @param nBins The new number of bins to use for rebinning.
          * @param recalculateLimits If true, the limits are recalculated based on the current particle data.
@@ -290,10 +292,14 @@ namespace ParticleBinning {
             initHistogram(modePreference);
         }
 
+        /**
+         * @brief Initializes the local/global histogram based on the Bin attribute.
+         * 
+         * @param modePreference The preferred mode for histogram reduction (default is Standard).
+         */
         void initHistogram(HistoReductionMode modePreference = HistoReductionMode::Standard) {
-            instantiateHistogram(true); // Init histogram (no need to set to 0, since executeInitLocalHistoReduction overwrites values from reduction...) --> true, since it is necessary for atomics option...
+            instantiateHistogram(true); 
             initLocalHisto(modePreference);
-            //initLocalPostSum();
             initGlobalHistogram();
 
             // Init both histograms --> buils postSums and widths arrays
@@ -302,31 +308,24 @@ namespace ParticleBinning {
         }
 
         /**
-         * @brief Initializes the prefix sum for the local histogram (used e.g. for sorting and indexing in `scatter(...)`).
+         * @brief Retrieves the number of particles in a specified bin.
+         * 
+         * This function returns the number of particles in the bin specified by the given index.
+         * It assumes that the DualView (if used) has been properly synchronized and initialized. If the function is called
+         * frequently, it might create some overhead due to the .view_host() call. However, since
+         * it is only called on the host (a maximum of nBins times per iteration), the overhead
+         * should be minimal. For better efficiency, one can avoid the Kokkos::View "copying-action"
+         * by using dualView.h_view(binIndex). Just be careful, since this might change the underlying
+         * data structure of the BinHisto class.
+         * 
+         * @param binIndex The index of the bin for which the number of particles is to be retrieved.
+         * @param global If true, retrieves from global histogram, otherwise from local histogram.
+         * @return The number of particles in the specified bin.
          */
-        /*void initLocalPostSum() { 
-            localBinHistoPostSum_m = bin_histo_dual_type("localBinHistoPostSum_m", getCurrentBinCount() + 1);
-
-            computeFixSum<size_type>(localBinHisto_m.view_device(), localBinHistoPostSum_m.view_device());
-            localBinHistoPostSum_m.modify_device(); 
-            localBinHistoPostSum_m.sync_host(); 
-
-            // Print the prefix sum for debugging
-            Inform msg("AdaptBins");
-            auto localPostSumHost = localBinHistoPostSum_m.view_host();
-            for (bin_index_type i = 0; i < getCurrentBinCount() + 1; ++i) {
-                msg << "PrefixSum[" << i << "] = " << localPostSumHost(i) << endl;
-            }
-        }*/
-
         size_type getNPartInBin(bin_index_type binIndex, bool global = false) {
-            /**
-             * Assume DualView was properly synchronized.
-             * Might create some overhead from .view_host() call if called often (solved: not anymore with DualView).
-             * However, it is only called on host (max nBins times per iteration), so should be fine. You can make it
-             * more efficient by avoiding the Kokkos:View "copying-action" with e.g. dualView.h_view(binIndex)
-             */
-            if (binIndex < 0 || binIndex >= getCurrentBinCount()) { return bunch_m->getTotalNum(); } // shouldn't happen..., "binIndex < 0" unnecessary, since binIndex is usually unsigned
+            // shouldn't happen..., "binIndex < 0" unnecessary, since binIndex is usually unsigned; but just in case the type is changed
+            if (binIndex < 0 || binIndex >= getCurrentBinCount()) { return bunch_m->getTotalNum(); } 
+
             if (global) {
                 return globalBinHisto_m.getNPartInBin(binIndex);
             } else {
@@ -334,75 +333,70 @@ namespace ParticleBinning {
             }
         }
 
+        /**
+         * @brief Sorts the container of particles by their bin indices.
+         *
+         * This function assumes that the prefix sum (post-sum) has already been initialized.
+         * It rearranges a particle indices array into the correct order based on their Bin attribute
+         * and verifies the sorting. The function uses a parallelized bin sort.
+         *
+         * Steps:
+         * 1. Retrieves the bin view and initializes the bin offsets using the prefix sum
+         *    that is saved inside the localBinHisto_m instance (should be of type BinHisto
+         *    in DualView mode). 
+         * 2. Allocates a `hash_array` to store the sorted indices of particles.
+         * 3. Uses a Kokkos loop to place each particle into its target position based 
+         *    on its bin index.
+         * 4. (In Debug mode) verifies that the sorting was successful.
+         * 
+         * @note This function is most efficient with a large number of bins, since this minimizes
+         *       overhead from the atomic operations. Therefore, it should be called before merging
+         *       (even though calling it afterwards also works). 
+         */
         void sortContainerByBin();
 
+        /**
+         * @brief Returns the bin iteration policy for a given bin index.
+         * 
+         * This function generates a range policy for iterating over the elements within a given bin index.
+         * If no DualView is used, it might need to copy some values to host, which might cause overhead.
+         * However, this only happens if the localBinHisto_m is implemented as a device only view, which
+         * is not its intended type.
+         * 
+         * @param binIndex The index of the bin for which the iteration policy is to be generated.
+         * @return Kokkos::RangePolicy<> The range policy for iterating over the elements in the specified bin.
+         * 
+         * @note It returns an iteration policy that can be used together with sortedIndexArr_m inside
+         *       `scatter()` to only iterate and scatter particles in a specific bin. 
+         */
         Kokkos::RangePolicy<> getBinIterationPolicy(const bin_index_type& binIndex) {
             return localBinHisto_m.getBinIterationPolicy(binIndex);
-            //auto localPostSumHost = localBinHistoPostSum_m.view_host();
-            //return Kokkos::RangePolicy<>(localPostSumHost(binIndex), localPostSumHost(binIndex + 1));
         }
 
-        void genAdaptiveHistogram() {
-            // 1. Run merging algorithm on globalHisto --> generates global binWidths array and postSum.
-            // Note: Assumes that the histograms are properly initialized.
-            //double tmp_ratio                        = (xMax_m - xMin_m) * sqrt(bunch_m->getTotalNum()) / 20; // (xMax_m - xMin_m) / 10 * (xMax_m - xMin_m)/bunch_m->getTotalNum(); // should be ~10 bins // bunch_m->getTotalNum()  /  
-            // double tmp_ratio                        = bunch_m->getTotalNum() / 10; // (xMax_m - xMin_m) / 10;
-
-            var_selector_m.updateDataArr(bunch_m); // Probably not necessary, since it is called before updating particles; but just in case!
-            hindex_transform_type adaptLookup       = globalBinHisto_m.mergeBins(/*sortedIndexArr_m, var_selector_m*/);
-            dindex_transform_type adaptLookupDevice = dindex_transform_type("adaptLookupDevice", currentBins_m);
-            Kokkos::deep_copy(adaptLookupDevice, adaptLookup);
-            
-            bin_view_type binIndex                  = getBinView();
-
-            setCurrentBinCount(globalBinHisto_m.getCurrentBinCount());
-
-            // 2. Map old indices to the new histogram ("Rebin")
-            Kokkos::parallel_for("RebinParticles", bunch_m->getLocalNum(), KOKKOS_LAMBDA(const size_type& i) {
-                bin_index_type oldBin = binIndex(i);
-                binIndex(i) = adaptLookupDevice(oldBin);
-            });
-
-            // 3. Update local histogram with new indices
-            instantiateHistogram(true);
-            initLocalHisto(); // Runs reducer on new bin indices (also does the sync)
-
-            localBinHisto_m.initPostSum(); // only init postsum, since the widths are not constant anymore
-            localBinHisto_m.copyBinWidths(globalBinHisto_m);
-        }
+        /**
+         * @brief Generates an adaptive histogram based on a fine global histogram.
+         * 
+         * This function is used to create an adaptive histogram from a fine global histogram. The fine global
+         * histogram (usually 128 bins) has to be created beforehand, but does not necessarily have to be 
+         * uniform (even though this is recommended). The algorithm works perfectly fine as long as the 
+         * globalBinHisto_m.binWidths_m field is initialized correctly. If not specified otherwise, it will
+         * be initialized either uniformly at initialization, or changed by the `mergeBins()` call or
+         * copied from another `BinHisto` instance. 
+         * 
+         * It performs the following steps:
+         * 1. Merges bins in the global histogram to create an adaptive histogram (see `BinHisto::mergeBins()`).
+         * 2. Maps old bin indices to new bin indices using the lookup table returned by `mergeBins()`.
+         * 3. Updates the local histogram with the new bin indices and widths.
+         */
+        void genAdaptiveHistogram();
 
         /**
          * @brief Prints the current global histogram to the Inform output stream.
          * 
          * This function outputs the global histogram data (bin counts) to the standard output.
-         * Note: Only works correctly for rank 0 in an MPI environment.
+         * Note: Only for rank 0 in an MPI environment.
          */
         void print() {
-            /*Inform os("AdaptBins");
-            // Only works correct for rank 0
-            os << "-----------------------------------------" << endl;
-            os << "     Output Global Binning Structure     " << endl;
-
-            bin_index_type numBins = getCurrentBinCount();
-            os << "Bins = " << numBins << " hBin = " << binWidth_m << endl;
-            os << "Bin #;Val" << endl;
-
-            hview_type globalHostHisto = globalBinHisto_m.template getHostView<hview_type>(globalBinHisto_m.getHistogram());
-
-            // Only rank 0 prints the global histogram
-            size_type total = 0;
-            for (bin_index_type i = 0; i < numBins; ++i) {
-                size_type val = globalHostHisto(i); // Can do it like this, since DualView knows it is on host
-                os << i << ";" << val << endl;
-                total += val;
-            }   
-            os << "Total = " << total << endl;
-            os << "-----------------------------------------" << endl;*/
-
-            // TODO
-            
-            // globalBinHisto_m.printHistogram();
-
             globalBinHisto_m.printPythonArrays();
         }
 
@@ -475,6 +469,9 @@ namespace ParticleBinning {
         * VField_t<double, 3> field = ...; // Initialize the field
         * this->bins_m->LTrans(field);     // Apply Lorentz transformation
         * ```
+        * 
+        * @note This function should not be used inside OPAL-X, since it makes assumptions regarding the actual
+        *       particle bunch. It is just for testing during development. 
         */
         template <typename T, unsigned Dim>
         VField_t<T, Dim>& LTrans(VField_t<T, Dim>& field, const bin_index_type& currentBin); // TODO: may want to add usage of c constant when it exists...
@@ -482,29 +479,24 @@ namespace ParticleBinning {
     private:
         std::shared_ptr<BunchType> bunch_m;    ///< Shared pointer to the particle container.
         BinningSelector var_selector_m;        ///< Variable selector for binning.
-        const bin_index_type maxBins_m;              ///< Maximum number of bins.
+        const bin_index_type maxBins_m;        ///< Maximum number of bins. 
         bin_index_type currentBins_m;          ///< Current number of bins in use.
-        value_type xMin_m;                     ///< Minimum boundary for bins.
-        value_type xMax_m;                     ///< Maximum boundary for bins.
-        value_type binWidth_m;                 ///< Width of each bin.
+        value_type xMin_m;                     ///< Minimum value of bin attribute.
+        value_type xMax_m;                     ///< Maximum value of bin attribute.
+        value_type binWidth_m;                 ///< Width of each bin (assumes a uniform histogram).
 
-        value_type binningAlpha_m;               ///< Alpha parameter for binning cost function. 
-        value_type binningBeta_m;                ///< Beta parameter for binning cost function.
-        value_type desiredWidth_m;               ///< Desired bin width for binning cost function.
+        // Merging cost function parameters
+        value_type binningAlpha_m;             ///< Alpha parameter for binning cost function. 
+        value_type binningBeta_m;              ///< Beta parameter for binning cost function.
+        value_type desiredWidth_m;             ///< Desired bin width for binning cost function.
 
         // Histograms 
         d_histo_type localBinHisto_m;          ///< Local histogram view for bin counts.
-        h_histo_type_g globalBinHisto_m;         ///< Global histogram view (over ranks reduced local histograms).
+        h_histo_type_g globalBinHisto_m;       ///< Global histogram view (over ranks reduced local histograms).
 
+        hash_type sortedIndexArr_m;            ///< Particle index map that sorts the bunch by bin index.
 
-        //bin_histo_dual_type localBinHisto_m;          ///< Local histogram view for bin counts.
-        //bin_histo_dual_type localBinHistoPostSum_m; ///< Local prefix sum view for bin counts.
-        //bin_host_histo_type localBinHistoHost_m; // TODO: Use DualView instead!!!!
-        //bin_histo_dual_type globalBinHisto_m;         ///< Global histogram view (over ranks reduced local histograms).
-        hash_type sortedIndexArr_m;                  ///< Hash table for sorting particles by bin index.
-        // buffer_view_type sortingBuffer_m;      ///< Buffer for permutating particles after sorting by bin index.
-
-        // Here are all the timer
+        // Timers...
         IpplTimings::TimerRef bInitLimitsT;
         IpplTimings::TimerRef bAllReduceLimitsT;
         IpplTimings::TimerRef bAllReduceGlobalHistoT;
