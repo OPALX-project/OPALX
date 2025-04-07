@@ -83,7 +83,20 @@ namespace ParticleBinning {
             // Will be set during usage/rebinning
             currentBins_m = maxBins;
 
-            // Initialize all the timers
+            initTimers();
+
+            Inform msg("AdaptBins");
+            msg << "AdaptBins initialized with maxBins = " << maxBins_m 
+                << ", alpha = " << binningAlpha_m
+                << ", beta = " << binningBeta_m
+                << ", desiredWidth = " << desiredWidth_m << endl;
+        }
+
+        
+        /**
+         * @brief Initializes timers for various operations in the binning process.
+         */
+        void initTimers() {
             bInitLimitsT            = IpplTimings::getTimer("bInitLimits");
             bAllReduceLimitsT       = IpplTimings::getTimer("bAllReduceLimits");
             bAllReduceGlobalHistoT  = IpplTimings::getTimer("bAllReduceGlobalHisto");
@@ -91,12 +104,6 @@ namespace ParticleBinning {
             bExecuteHistoReductionT = IpplTimings::getTimer("bExecuteHistoReduction");
             bSortContainerByBinT    = IpplTimings::getTimer("bSortContainerByBin");
             bVerifySortingT         = IpplTimings::getTimer("bVerifySorting");
-
-            Inform msg("AdaptBins");
-            msg << "AdaptBins initialized with maxBins = " << maxBins_m 
-                << ", alpha = " << binningAlpha_m
-                << ", beta = " << binningBeta_m
-                << ", desiredWidth = " << desiredWidth_m << endl;
         }
 
         /**

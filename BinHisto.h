@@ -406,28 +406,10 @@ namespace ParticleBinning {
         //template <typename BinningSelector_t>
         hindex_transform_type mergeBins(/*const hash_type sortedIndexArr, const BinningSelector_t var_selector*/);
 
-        /*KOKKOS_INLINE_FUNCTION // in case it is needed...
-        static value_type computeDeviationCost(const size_type& sumCount,
-                                              const value_type& sumWidth,
-                                              const value_type& maxBinRatio,
-                                              const value_type& alpha, 
-                                              const value_type& mergedStd);*/
-
-        /*value_type mergedBinStd(
-            const bin_index_type& i, const bin_index_type& k,
-            const size_type& sumCount, const value_type& varPerBin, 
-            const hwidth_view_type& prefixWidth, 
-            const hview_type& fineCounts, const hwidth_view_type& fineWidths
-        );*/
-
-        //template <typename BinningSelector_t>
         value_type partialMergedCDFIntegralCost(
-            //const bin_index_type& i, const bin_index_type& k,
             const size_type& sumCount,
             const value_type& sumWidth,
             const size_type& totalNumParticles
-            //const hash_type sortedIndexArr, 
-            //const BinningSelector_t var_selector
         );
 
     private:
