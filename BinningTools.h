@@ -1,7 +1,6 @@
 #ifndef BINNINGTOOLS_H
 #define BINNINGTOOLS_H
 
-// #include "Utilities/Options.h"
 #include "ParallelReduceTools.h" // needed for HistoReductionMode and maxArrSize
 
 namespace ParticleBinning {
@@ -45,6 +44,7 @@ namespace ParticleBinning {
             return modePreference;
         }
     } 
+
 
     /**
     * @brief Example struct used to access the binning variable for each particle.
@@ -125,6 +125,7 @@ namespace ParticleBinning {
         }
     };
 
+
     /**
      * @brief Computes the post- or prefix-sum of the input view and stores the result in the ...-sum view.
      *
@@ -154,9 +155,7 @@ namespace ParticleBinning {
                 post_sum_view(0) = 0;
             });
 
-        // Timers for profiling
-        //static IpplTimings::TimerRef initLocalPostSumT = IpplTimings::getTimer("initLocalPostSum");
-        //IpplTimings::startTimer(initLocalPostSumT);
+        // Compute the fix sum
         Kokkos::parallel_scan("ComputePostSum", Kokkos::RangePolicy<execution_space>(0, input_view.extent(0)),
             KOKKOS_LAMBDA(const size_type& i, value_type& partial_sum, bool final) {
                 partial_sum += input_view(i);
@@ -164,31 +163,8 @@ namespace ParticleBinning {
                     post_sum_view(i + 1) = partial_sum;
                 }
             });
-        //IpplTimings::stopTimer(initLocalPostSumT);
     }
 
-    /*template <typename SizeType>
-    void computeFixSum(const Kokkos::View<SizeType*> input_view, Kokkos::View<SizeType*> post_sum_view) {
-        if (post_sum_view.extent(0) != input_view.extent(0) + 1) {
-            Inform m("computePostSum");
-            m << "Output view must have size input_view.extent(0) + 1" << endl;
-            ippl::Comm->abort();
-        }
-
-        // Initialize the first element to 0
-        Kokkos::parallel_for("InitPostSum", 1, KOKKOS_LAMBDA(const SizeType) {
-            post_sum_view(0) = 0;
-        });
-        
-        static IpplTimings::TimerRef initLocalPostSumT = IpplTimings::getTimer("initLocalPostSum");
-        IpplTimings::startTimer(initLocalPostSumT);
-        Kokkos::parallel_scan("ComputePostSum", input_view.extent(0), KOKKOS_LAMBDA(const SizeType& i, SizeType& partial_sum, bool final) {
-            partial_sum += input_view(i); // if (postSum)
-            if (final) { post_sum_view(i + 1) = partial_sum; } 
-            // if (!postSum) partial_sum += input_view(i); 
-        });
-        IpplTimings::stopTimer(initLocalPostSumT);
-    }*/
 
     /**
      * @brief Checks if the elements in a Kokkos::View are sorted in non-decreasing order.
