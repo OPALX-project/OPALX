@@ -20,7 +20,6 @@ endif ()
 add_compile_options (-Wall)
 add_compile_options (-Wunused)
 add_compile_options (-Wextra)
-# add_compile_options (-Werror)
 add_compile_options (-Wno-unused-parameter)
 add_compile_options (-Wno-error=unused-variable)
 
@@ -99,15 +98,6 @@ if(OPALX_ARCH_HOPPER90)
  add_compile_options (-Wdangling-reference)                # need for G&H
 endif ()
 
-option (OPALX_SANITIZER "Enable Sanitizer" OFF)
-if (OPALX_SANITIZER)
- set (CMAKE_CXX_FLAGS_DEBUG  "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address,undefined")
- add_link_options (-fsanitize=undefined,address)
-else ()
- message (STATUS "Sanitizer status is: ${OPALX_SANITIZER}")   
- add_compile_options (-fno-sanitize=all)
-endif ()
-
 # Resolve all library dependencies
 set (CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/CMakeModules")
 
@@ -181,8 +171,6 @@ message (STATUS "Found Boost library dirs: ${Boost_LIBRARY_DIRS}")
 message (STATUS "Found Boost libraries: ${Boost_LIBRARIES}")
 include_directories (SYSTEM ${Boost_INCLUDE_DIRS})
 
-
-
 option (USE_STATIC_LIBRARIES "Link with static libraries if available" ON)
 if (NOT ${USE_STATIC_LIBRARIES})
     add_compile_options (-fPIE -fPIC)
@@ -195,6 +183,7 @@ endif ()
 #
 
 message (STATUS "The underlying C++ compiler ID is: ${CMAKE_CXX_COMPILER_ID}")
+
 if ( ${CMAKE_CXX_COMPILER_ID} STREQUAL "Intel" )
     add_compile_options ("-diag-disable 383")
     add_compile_options ("-diag-disable 981")
@@ -206,7 +195,7 @@ if ( ${CMAKE_CXX_COMPILER_ID} STREQUAL "Intel" )
 elseif (${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
     add_compile_options (-Warray-bounds-pointer-arithmetic)
     add_compile_options (-Wno-overloaded-virtual)
-# Increase template depth for boost
+    # Increase template depth for boost
     add_compile_options (-ftemplate-depth=1024)
     # get rid of linking warning with boost. Looks like that boost
     # is using this visibility setting.
@@ -238,8 +227,11 @@ elseif (${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
 
     # Enables extra error checking in the form of precondition assertion, such
     # as bounds checking and null pointer checks when dereferencing smart pointers
-    if (NOT ${BUILD_FOR_PRODUCTION})
+
+    if (${CMAKE_BUILD_TYPE} MATCHES "Debug")
         add_compile_options(-Wp,-D_GLIBCXX_ASSERTIONS)
+        add_link_options (-lasan -lubsan -llsan)        # this is because of the new IPPL cmake
+        message (STATUS "Add bounds checking and null pointer checks & asan unsan lsan.")
     endif()
 else ()
     message (STATUS "Unknown C++ compiler. Please use the GNU or Intel compiler, if you are having problems.")
