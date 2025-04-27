@@ -5,7 +5,7 @@
 
 #include "PartBunch/ParticleContainer.hpp"
 
-template <typename T = double, unsigned Dim = 3>
+template <typename T, unsigned Dim>
 using ORB = ippl::OrthogonalRecursiveBisection<Field<double, Dim>, T>;
 
 template <typename T, unsigned Dim>
