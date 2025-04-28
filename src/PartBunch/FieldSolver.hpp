@@ -28,22 +28,6 @@
 #include "Manager/BaseManager.h"
 #include "Manager/FieldSolverBase.h"
 
-template <typename T = double, unsigned Dim = 3>
-using CGSolver_t = ippl::PoissonCG<Field<T, Dim>, Field_t<Dim>>;
-
-using ippl::detail::ConditionalType, ippl::detail::VariantFromConditionalTypes;
-
-template <typename T = double, unsigned Dim = 3>
-using FFTSolver_t = ConditionalType<
-    Dim == 2 || Dim == 3, ippl::FFTPeriodicPoissonSolver<VField_t<T, Dim>, Field_t<Dim>>>;
-
-template <typename T = double, unsigned Dim = 3>
-using P3MSolver_t = ConditionalType<Dim == 3, ippl::P3MSolver<VField_t<T, Dim>, Field_t<Dim>>>;
-
-template <typename T = double, unsigned Dim = 3>
-using OpenSolver_t =
-    ConditionalType<Dim == 3, ippl::FFTOpenPoissonSolver<VField_t<T, Dim>, Field_t<Dim>>>;
-
 // Define the FieldSolver class
 template <typename T, unsigned Dim>
 class FieldSolver : public ippl::FieldSolverBase<T, Dim> {
