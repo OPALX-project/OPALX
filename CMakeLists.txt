@@ -66,7 +66,7 @@ set (CMAKE_CXX_STANDARD_REQUIRED ON)
 set (CMAKE_CXX_FLAGS_RELWITHDEBINFO "-g -O3")
 set (CMAKE_CXX_FLAGS_RELEASE "-g -O3 ")
 set (CMAKE_CXX_FLAGS_DEBUG  "-g -O0")
-
+option(OPALX_ENABLE_SANITIZER "Enable sanitizer(s)" OFF)
 
 if ("${IPPL_PLATFORMS}" STREQUAL "CUDA")
     set (CMAKE_CXX_FLAGS_DEBUG  "${CMAKE_CXX_FLAGS_DEBUG} -G -diag-suppress=611")
@@ -230,7 +230,10 @@ elseif (${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
 
     if (${CMAKE_BUILD_TYPE} MATCHES "Debug")
         add_compile_options(-Wp,-D_GLIBCXX_ASSERTIONS)
-        add_link_options (-lasan -lubsan -llsan)        # this is because of the new IPPL cmake
+        if(OPALX_ENABLE_SANITIZER)
+            add_compile_options(-fsanitize=address,undefined)
+            add_link_options(-fsanitize=address,undefined)
+        endif()
         message (STATUS "Add bounds checking and null pointer checks & asan unsan lsan.")
     endif()
 else ()
