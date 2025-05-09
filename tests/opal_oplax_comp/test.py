@@ -8,12 +8,15 @@ import pandas as pd
 
 import matplotlib.pyplot as plt
 
-EPSILON = 1e-12
+EPSILON = 1e-9
 
-opalstat = load_dataset('./reference/', fname='Solenoid-1.stat').dataframe
+#this is with the newly compiled version of opal
+#opalstat = load_dataset('./reference/', fname='Solenoid-1.stat').dataframe
+
 #opalxstat = load_dataset('/psi/home/adelmann/regression-tests/RegressionTests/Solenoid-1/', fname='Solenoid-1.stat').dataframe
-opalxstat = load_dataset('/data/user/binder_j/opalx-elements/input-files/', fname='Solenoid-old.stat').dataframe
 
+opalxstat = load_dataset('/data/user/binder_j/opalx-elements/input-files/', fname='Solenoid-old.stat').dataframe
+opalstat = load_dataset('./reference/', fname='Solenoid-0.stat').dataframe
 
 def plot_stat(stat, title="opal"):
     plt.figure(figsize=(10, 10))
@@ -59,7 +62,7 @@ def compare(stat1, stat2):
     passed = 0
     for c in stat1.columns:
         if all(abs(stat1[c] - stat2[c]) < EPSILON) == False:
-            print(f"\033[31mFailed {c} test\033[0m")  
+            print(f"\033[31mFailed {c} test: Max diff {max(abs(stat1[c] - stat2[c])):.0e}\033[0m")  
         else:
             print(f"\033[34mPassed {c} test\033[0m")  
             passed += 1

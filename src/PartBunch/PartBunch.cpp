@@ -211,10 +211,9 @@ void PartBunch<T, Dim>::spaceChargeEFieldCheck(Vector_t<double, 3> efScale) {
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::calcBeamParameters() {
     std::shared_ptr<ParticleContainer_t> pc = this->pcontainer_m;
-    
     auto Rview = pc->R.getView();
     auto Pview = pc->P.getView();
-
+    this->updateMoments();
     ////////////////////////////////////
     //// Calculate Moments of R and P //
     ////////////////////////////////////
@@ -557,6 +556,38 @@ void PartBunch<T, Dim>::scatterCIC() {
             size *= rmax[d] - rmin[d];
         }
         *rho = *rho - (Q / size);
+    }
+}
+
+template <typename T, unsigned Dim>
+void PartBunch<T, Dim>::switchToUnitlessPositions(bool use_dt_per_particle) {
+	auto dtview = getParticleContainer()->dt.getView();
+	auto rview  = getParticleContainer()->R.getView();
+	// TODO change to a kokkos loop later
+	for (size_t i = 0; i < getLocalNum(); i++) {
+		double dt = getdT();
+
+		if (use_dt_per_particle) {
+			dt = dtview(i);
+		}
+        
+        rview(i) /= Vector_t<double, 3>(Physics::c * dt);
+    }
+}
+
+template <typename T, unsigned Dim>
+void PartBunch<T, Dim>::switchOffUnitlessPositions(bool use_dt_per_particle) {
+	auto dtview = getParticleContainer()->dt.getView();
+	auto rview  = getParticleContainer()->R.getView();
+	// TODO change to a kokkos loop later
+	for (size_t i = 0; i < getLocalNum(); i++) {
+		double dt = getdT();
+
+		if (use_dt_per_particle) {
+			dt = dtview(i);
+		}
+        
+        rview(i) *= Vector_t<double, 3>(Physics::c * dt);
     }
 }
 
