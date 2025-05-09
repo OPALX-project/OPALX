@@ -412,10 +412,8 @@ public:
     }
     void gatherStatistics(unsigned int totalP) {
     }
-    void switchToUnitlessPositions(bool use_dt_per_particle = false) {
-    }
-    void switchOffUnitlessPositions(bool use_dt_per_particle = false) {
-    }
+    void switchToUnitlessPositions(bool use_dt_per_particle = false);
+    void switchOffUnitlessPositions(bool use_dt_per_particle = false);
 
     size_t calcNumPartsOutside(Vector_t<double, Dim> x) {
         return 0;
