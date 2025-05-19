@@ -1,0 +1,69 @@
+SDDS1
+&description
+        text="Processor statistics 'opal/run1-1e8.in' 19/05/202513:21:48",
+        contents="lbal parameters"
+&end
+&parameter
+        name=processors,
+        type=long,
+        description="Number of Cores used"
+&end
+&parameter
+        name=revision,
+        type=string,
+        description="git revision of opal"
+&end
+&parameter
+        name=flavor,
+        type=string,
+        description="OPAL flavor that wrote file"
+&end
+&column
+        name=t,
+        type=double,
+        units=ns,
+        description="1 Time"
+&end
+&column
+        name="processor-0",
+        type=long,
+        units=1,
+        description="2 Number of particles of processor 0"
+&end
+&data
+        mode=ascii,
+        no_row_counts=1
+&end
+1
+OPAL 2.4.0 git rev. #d8ff221c41199b343045ce9be97cbca84afe7a70
+opal-t
+1.000000000000000e-01         	10000000         	
+2.000000000000001e-01         	10000000         	
+3.000000000000001e-01         	10000000         	
+4.000000000000001e-01         	10000000         	
+5.000000000000001e-01         	10000000         	
+6.000000000000002e-01         	10000000         	
+7.000000000000003e-01         	10000000         	
+8.000000000000004e-01         	10000000         	
+9.000000000000004e-01         	10000000         	
+1.000000000000000e+00         	10000000         	
+1.100000000000001e+00         	10000000         	
+1.200000000000001e+00         	10000000         	
+1.300000000000001e+00         	10000000         	
+1.400000000000001e+00         	10000000         	
+1.500000000000001e+00         	10000000         	
+1.600000000000001e+00         	10000000         	
+1.700000000000001e+00         	10000000         	
+1.800000000000001e+00         	10000000         	
+1.900000000000001e+00         	10000000         	
+2.000000000000001e+00         	10000000         	
+2.100000000000001e+00         	10000000         	
+2.200000000000001e+00         	10000000         	
+2.300000000000001e+00         	10000000         	
+2.400000000000001e+00         	10000000         	
+2.500000000000001e+00         	10000000         	
+2.600000000000001e+00         	10000000         	
+2.700000000000002e+00         	10000000         	
+2.800000000000002e+00         	10000000         	
+2.900000000000002e+00         	10000000         	
+3.000000000000002e+00         	10000000         	
