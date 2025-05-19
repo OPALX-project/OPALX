@@ -38,7 +38,7 @@ MODE = "compare"
 parameters = {
     "run1" : {
         "steps" : "10",
-        "amount" : ["1e2", "1e3", "1e4"],
+        "amount" : ["1e2", "1e3", "1e4", "1e5", "1e6", "1e7"],
         "ref" : "ref-10steps.stat"
     },
     #"run2" : {
@@ -203,12 +203,12 @@ def plot_all():
 def get_user_choice():
     global MODE
     while True:
-        user_input = input("Run using slurm, locally or cancel (s,[l],c): ").lower().strip()
-        if user_input == 's':
+        user_input = input("Run using slurm, locally or cancel ([s],l,c): ").lower().strip()
+        if user_input == 's' or user_input == '':
             MODE = "slurm"
             print("Running using Slurm")
             return 'slurm'
-        elif user_input == 'l' or user_input == '': # 'l' or empty input (default)
+        elif user_input == 'l': # 'l' or empty input (default)
             MODE = "local"
             print("Running on login node")
             return 'local'
