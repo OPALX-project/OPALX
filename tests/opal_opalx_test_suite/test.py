@@ -32,17 +32,22 @@ BOLD="\033[1m"
 RESET="\033[0m"
 
 OPALX_EXECUTABLE_FILE = "/data/user/binder_j/opalx-test/build/src/opalx"
-OPAL_EXECUTABLE_FILE = "/data/user/binder_j/opal/build/src/opal"
-
+MODE = "compare"
 
 # define the parameters
 parameters = {
     "run1" : {
-        "steps" : "30",
+        "steps" : "10",
         "amount" : ["1e2", "1e3", "1e4"],
-        "ref" : "ref.stat"
-    }
+        "ref" : "ref-10steps.stat"
+    },
+    #"run2" : {
+    #    "steps" : "30",
+    #    "amount" : ["1e2", "1e3", "1e4"],
+    #    "ref" : "ref.stat"
+    #}
 }
+
 
 # coloumns that get plotted in the end
 plotting_cols = [
@@ -73,58 +78,59 @@ def run_opalx(filename):
         print(f"{MAGENTA}Skipping execution with file {BLUE}{filename}{MAGENTA} for {ORANGE}Opalx{WHITE}")
         return
 
-    try:
-        print(f"Running {ORANGE}Opalx{WHITE} on dataset {BLUE + filename + WHITE}", end="", flush=True)
+    if MODE == "slurm":
+        try:
+            print(f"Starting {ORANGE}Slurm script{WHITE} on dataset {BLUE + filename + WHITE}", end="", flush=True)
 
-        start_time = time.time()
-        result = subprocess.run([OPALX_EXECUTABLE_FILE, f"opalx/{filename}", "--info", "10"], capture_output=True, text=True, check=True)
-        stop_time = time.time()
+            result = subprocess.run(["sbatch", f"{filename.replace('in', 'slurm')}"], capture_output=True, text=True, check=True, cwd="opalx")
 
-        if result.returncode == 0:
-            print(f" --- {GREEN}Done{WHITE} in {BOLD}{stop_time - start_time:.2f} seconds{RESET}")
-        else:
-            print(f"{RED}Return Code: {result.returncode + WHITE}")
-            print(result.stdout)
-            print(f"Code execution took {BOLD}{stop_time - start_time:.2f} seconds{RESET}")
+            if result.returncode == 0:
+                print(f" --- {GREEN}Done{WHITE}")
+            else:
+                print(f"{RED}Return Code: {result.returncode + WHITE}")
+                print(result.stdout)
+                print(f"Code execution took {BOLD}{stop_time - start_time:.2f} seconds{RESET}")
 
-    except subprocess.CalledProcessError as e:
-        print(f"Command failed with return code {e.returncode}:")
-        print(f"Standard Error:\n{e.stderr}")
-    except Exception as e:
-        print(f"An unexpected error occurred: {e}")
+        except subprocess.CalledProcessError as e:
+            print(f"Command failed with return code {e.returncode}:")
+            print(f"Standard Error:\n{e.stderr}")
+        except Exception as e:
+            print(f"An unexpected error occurred: {e}")
+    else:
+        try:
+            print(f"Running {ORANGE}Opalx{WHITE} on dataset {BLUE + filename + WHITE}", end="", flush=True)
+
+            start_time = time.time()
+            result = subprocess.run([OPALX_EXECUTABLE_FILE, f"{filename}", "--info", "10"], capture_output=True, text=True, check=True, cwd="opalx")
+            stop_time = time.time()
+
+            if result.returncode == 0:
+                print(f" --- {GREEN}Done{WHITE} in {BOLD}{stop_time - start_time:.2f} seconds{RESET}")
+            else:
+                print(f"{RED}Return Code: {result.returncode + WHITE}")
+                print(result.stdout)
+                print(f"Code execution took {BOLD}{stop_time - start_time:.2f} seconds{RESET}")
+
+        except subprocess.CalledProcessError as e:
+            print(f"Command failed with return code {e.returncode}:")
+            print(f"Standard Error:\n{e.stderr}")
+        except Exception as e:
+            print(f"An unexpected error occurred: {e}")
         
-def run_opal(filename):
-    if os.path.isfile(f"opal/{filename.replace('in', 'stat')}"):
-        print(f"{MAGENTA}Skipping execution with file {BLUE}{filename}{MAGENTA} for {ORANGE}Opal{WHITE}")
-        return
-
-    try:
-        print(f"Running {ORANGE}Opal{WHITE} on dataset {BLUE + filename + WHITE}", end="", flush=True)
-        start_time = time.time()
-        result = subprocess.run([OPAL_EXECUTABLE_FILE, f"opal/{filename}", "--info", "10"], capture_output=True, text=True, check=True)
-        stop_time = time.time()
-        if result.returncode == 0:
-            print(f" --- {GREEN}Done{WHITE} in {BOLD}{stop_time - start_time:.2f} seconds{RESET}")
-        else:
-            print(f"{RED}Return Code: {result.returncode + WHITE}")
-            print(result.stdout)
-            print(f"Code execution took {BOLD}{stop_time - start_time:.2f} seconds{RESET}")
-
-    except subprocess.CalledProcessError as e:
-        print(f"Command failed with return code {e.returncode}:")
-        print(f"Standard Error:\n{e.stderr}")
-    except Exception as e:
-        print(f"An unexpected error occurred: {e}")
-
 def create_file(filename, amount, steps):
-    print(f"Creating {BLUE+filename+WHITE}")
-    with open(f"opal/{filename}", "w") as f:
-        f.write(get_opal_string(amount, steps))
-        f.close()
-    
+    if MODE == "slurm":
+        print(f"Creating {BLUE+filename+WHITE} and {BLUE+filename.replace('in', 'slurm')+WHITE}")
+    else:
+        print(f"Creating {BLUE+filename+WHITE}")
+
     with open(f"opalx/{filename}", "w") as f:
         f.write(get_opalx_string(amount, steps))
         f.close()
+    
+    if MODE == "slurm":
+        with open(f"opalx/{filename.replace('in', 'slurm')}", "w") as f:
+            f.write(get_slurm_string(OPALX_EXECUTABLE_FILE, filename))
+            f.close()
 
 def compare(stat1, stat2, runname):
     amount = len(stat1.columns)
@@ -134,7 +140,7 @@ def compare(stat1, stat2, runname):
             # add the error if its observedd
             parameters[runname]["data"][c]["error"].append((abs(stat1[c] - stat2[c])).to_numpy())
 
-        if all(abs(stat1[c] - stat2[c]) < EPSILON) == False:
+        if all(abs(stat1[c] - stat2[c]) < EPSILON) == False and c != "numParticles":
             print(f"\033[31mFailed {c} test: Max diff {max(abs(stat1[c] - stat2[c])):e}\033[0m")
             pass
         else:
@@ -148,11 +154,12 @@ def compare(stat1, stat2, runname):
 def compare_data(filename, runname):
     # get the filenames and repplace the *.in to *.stat
     opalx_filename = filename.replace("in", "stat")
-    opal_filename  = filename.replace("in", "stat")
-    print(f"Loading stats {BLUE}opalx/{opalx_filename + WHITE} and {BLUE}opal/{opal_filename + WHITE}")
+    opal_filename  = parameters[runname]["ref"]
+    print(f"Loading stats {BLUE}opalx/{opalx_filename + WHITE} and {BLUE}reference/{opal_filename + WHITE}")
     # load in the dataset
     opalxstat = load_dataset('opalx', fname=opalx_filename).dataframe
-    opalstat = load_dataset('opal', fname=opal_filename).dataframe
+    opalstat = load_dataset('reference', fname=opal_filename).dataframe
+    print(f"Reference is using {MAGENTA}{opalstat['numParticles'][0]:.1e}{WHITE} Particles")
     # compare and save the errors
     compare(opalxstat, opalstat, runname)
 
@@ -164,8 +171,6 @@ def calculate_statistics():
             # now calculate any statisitcs like mean or median
             param["data"][data_key]["mean_error"]   = np.mean(param["data"][data_key]["error"], axis=1)
             param["data"][data_key]["median_error"] = np.median(param["data"][data_key]["error"], axis=1)
-
-
 
 def plot_all():
     # get all runs
@@ -195,20 +200,67 @@ def plot_all():
             plt.savefig(f"{key}-{data_key}.png")
             plt.close()
 
-for (key, param) in parameters.items():
-    for amounts in param["amount"]:
-        filename = f"{key}-{amounts}.in"
-        create_file(filename, amounts, param["steps"])
+def get_user_choice():
+    global MODE
+    while True:
+        user_input = input("Run using slurm, locally or cancel (s,[l],c): ").lower().strip()
+        if user_input == 's':
+            MODE = "slurm"
+            print("Running using Slurm")
+            return 'slurm'
+        elif user_input == 'l' or user_input == '': # 'l' or empty input (default)
+            MODE = "local"
+            print("Running on login node")
+            return 'local'
+        elif user_input == 'c':
+            MODE = "compare"
+            return "compare"
+        else:
+            print("Invalid choice. Please enter 's', 'l', or 'c'.")
+
+def check_if_file_exists(filepath, pollingrate = 3, timeout = 60):
+    start_time = time.time()
+    print(f"Waiting for file '{BLUE+filepath+WHITE}'", end="", flush=True)
+    while time.time() - start_time < timeout:
+        if os.path.exists(filepath):
+            print(f" --- {GREEN} Found {WHITE}")
+            return True
+        time.sleep(pollingrate)
+    print(f" --- {RED} Timeout waiting for file '{filepath}' {WHITE}.")
+    return False
+
+
+if __name__ == "__main__":
+    get_user_choice()
+
+    if MODE == "slurm":
+        for (key, param) in parameters.items():
+            for amounts in param["amount"]:
+                filename = f"{key}-{amounts}.in"
+                create_file(filename, amounts, param["steps"])
+                run_opalx(filename)
+
+        for (key, param) in parameters.items():
+            for amounts in param["amount"]:
+                filename = f"{key}-{amounts}.stat"
+                if not check_if_file_exists(f"opalx/{filename}"):
+                    exit(0)
+        MODE = "compare"
+
+    if MODE == "local":
+        for (key, param) in parameters.items():
+            for amounts in param["amount"]:
+                filename = f"{key}-{amounts}.in"
+                create_file(filename, amounts, param["steps"])
+                run_opalx(filename)
+        MODE = "compare"
         
-        run_opal(filename)
-        run_opalx(filename)
-
-        compare_data(filename, key)
-    pass
-
-print("Plotting data...")
-calculate_statistics()
-plot_all()
-print(f"{GREEN} --- Done --- {WHITE}")
-#print(plotting_cols)
-#plot_all()
+    if MODE == "compare":
+        for (key, param) in parameters.items():
+            for amounts in param["amount"]:
+                filename = f"{key}-{amounts}.in"
+                compare_data(filename, key)
+        
+        print("Plotting data...")
+        calculate_statistics()
+        plot_all()
