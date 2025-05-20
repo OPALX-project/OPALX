@@ -183,7 +183,7 @@ def get_slurm_string(executable, filename):
 #SBATCH --nodes=1               # No. of nodes
 #SBATCH --ntasks-per-node=1     # No. of MPI ranks per node. Merlin CPU nodes have 44 cores
 #SBATCH --cpus-per-task=1      # No. of OMP threads
-#SBATCH --time=00:10:00         # Define max time job will run (e.g. here 5 mins)
+#SBATCH --time=00:30:00         # Define max time job will run (e.g. here 5 mins)
 #SBATCH --hint=nomultithread    # Without hyperthreading
 ##SBATCH --exclusive            # The allocations will be exclusive if turned on (remove extra hashtag to turn on)
 
