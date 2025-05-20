@@ -37,9 +37,9 @@ MODE = "compare"
 # define the parameters
 parameters = {
     "run1" : {
-        "steps" : "10",
+        "steps" : "33",
         "amount" : ["1e2", "1e3", "1e4", "1e5", "1e6", "1e7"],
-        "ref" : "ref-10steps.stat"
+        "ref" : "ref-33step.stat"
     },
     #"run2" : {
     #    "steps" : "30",
@@ -218,7 +218,7 @@ def get_user_choice():
         else:
             print("Invalid choice. Please enter 's', 'l', or 'c'.")
 
-def check_if_file_exists(filepath, pollingrate = 3, timeout = 60):
+def check_if_file_exists(filepath, pollingrate = 3, timeout = 1800):
     start_time = time.time()
     print(f"Waiting for file '{BLUE+filepath+WHITE}'", end="", flush=True)
     while time.time() - start_time < timeout:
@@ -228,7 +228,6 @@ def check_if_file_exists(filepath, pollingrate = 3, timeout = 60):
         time.sleep(pollingrate)
     print(f" --- {RED} Timeout waiting for file '{filepath}' {WHITE}.")
     return False
-
 
 if __name__ == "__main__":
     get_user_choice()
