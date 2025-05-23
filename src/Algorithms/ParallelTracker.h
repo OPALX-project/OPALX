@@ -251,6 +251,8 @@ private:
     void selectDT(bool backTrack = false);
     void emitParticles(long long step);
     void computeExternalFields(OrbitThreader& oth);
+    // Resets both the E-fields and B-fields back to 0
+    void resetFields();
     void computeWakefield(IndexMap::value_t& elements);
     void computeParticleMatterInteraction(IndexMap::value_t elements, OrbitThreader& oth);
 
