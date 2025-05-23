@@ -298,30 +298,6 @@ void ParallelTracker::restoreCavityPhases() {
     }
 }
 
-#define DO_PRINT\
-    {\
-        auto Rview  = itsBunch_m->getParticleContainer()->R.getView();\
-        *gmsg << level1<< Rview(0) << endl;\
-    }\
-
-#define DO_PRINT_P\
-    {\
-        auto Rview  = itsBunch_m->getParticleContainer()->P.getView();\
-        *gmsg << level1<< Rview(0) << endl;\
-    }\
-
-#define DO_PRINT_E\
-    {\
-        auto Rview  = itsBunch_m->getParticleContainer()->E.getView();\
-        *gmsg << level1<< Rview(0) << endl;\
-    }\
-
-#define DO_PRINT_B\
-    {\
-        auto Rview  = itsBunch_m->getParticleContainer()->B.getView();\
-        *gmsg << level1<< Rview(0) << endl;\
-    }\
-
 void ParallelTracker::execute() {
     Inform msg("ParallelTracker ", *gmsg);
     OpalData::getInstance()->setInPrepState(true);
@@ -433,14 +409,7 @@ void ParallelTracker::execute() {
             // ADA
             timeIntegration1(pusher); // works
        
-            // reset the field back to 0
-            auto Eview  = itsBunch_m->getParticleContainer()->E.getView();
-            auto Bview  = itsBunch_m->getParticleContainer()->B.getView();
-            auto n = itsBunch_m->getLocalNum(); // TODO KOKKOS LOOP
-            for (size_t i = 0; i < n; ++i) {                
-                Eview(i) = 0;
-                Bview(i) = 0;
-            }
+            resetFields();
 
             computeSpaceChargeFields(step);
             
@@ -535,36 +504,20 @@ void ParallelTracker::pushParticles(const BorisPusher& pusher) {
     auto Pview  = itsBunch_m->getParticleContainer()->P.getView();
     auto dtview = itsBunch_m->getParticleContainer()->dt.getView();
 
-    //Kokkos::parallel_for(
-      //                   "pushParticles", ippl::getRangePolicy(Rview),
-        //                 KOKKOS_LAMBDA(const int i) {
-          //                   Vector_t<double, 3> x = {Rview(i)[0],Rview(i)[1],Rview(i)[2]};
-            //                 Vector_t<double, 3> p = {Pview(i)[0],Pview(i)[1],Pview(i)[2]};
-              //               double dt = dtview(i);
+    Kokkos::parallel_for("pushParticles", ippl::getRangePolicy(Rview), KOKKOS_LAMBDA(const int i) {
 
-                                 /** \f[ \vec{x}_{n+1/2} = \vec{x}_{n} + \frac{1}{2}\vec{v}_{n-1/2}\quad (= \vec{x}_{n} +
-                                  * \frac{\Delta t}{2} \frac{\vec{\beta}_{n-1/2}\gamma_{n-1/2}}{\gamma_{n-1/2}}) \f]
-                                  *
-                                  * \code
-                                  * R[i] += 0.5 * P[i] * recpgamma;
-                                  * \endcode
-                                  */
-                             // \TODO check +-
-    for (size_t i = 0; i < itsBunch_m->getLocalNum(); i ++) {
         auto x = Rview(i);
         auto p = Pview(i);
         auto dt = dtview(i);
-
+        
         pusher.push(x, p, dt);
-
-        //auto x = 0.5 * Pview(i) / Kokkos::sqrt(1.0 + dot(Pview(i)));
+           
         Rview(i) = x;
-    }
-                //         });
+    });
 
 
     itsBunch_m->switchOffUnitlessPositions(true);
-    //itsBunch_m->getParticleContainer()->update();
+    //itsBunch_m->getParticleContainer()->update(); TODO
     ippl::Comm->barrier();
 }
 
@@ -580,8 +533,7 @@ void ParallelTracker::kickParticles(const BorisPusher& pusher) {
     const double mass = itsReference.getM();
     const double charge = itsReference.getQ();
 
-    int localNum = itsBunch_m->getLocalNum();
-    for (int i = 0; i < localNum; ++i) {
+    Kokkos::parallel_for("kickParticles", ippl::getRangePolicy(Rview), KOKKOS_LAMBDA(const int i) {
         const auto x = Rview(i);
         auto p = Pview(i); // only p changes
 
@@ -592,7 +544,7 @@ void ParallelTracker::kickParticles(const BorisPusher& pusher) {
         
         pusher.kick(x, p, e, b, dt, mass, charge);
         Pview(i) = p;
-    }
+    });
 
     ippl::Comm->barrier();
 }
@@ -771,7 +723,7 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
 void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
     IpplTimings::startTimer(fieldEvaluationTimer_m);
     Inform msg("ParallelTracker ", *gmsg);
-    const unsigned int localNum = itsBunch_m->getLocalNum();
+
     Kokkos::View<bool> locPartOutOfBounds("localoutofbounds");
     locPartOutOfBounds() = false;
     bool globPartOutOfBounds = false;
@@ -807,10 +759,8 @@ void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
 
         (*it)->setCurrentSCoordinate(pathLength_m + rmin(2));   
 
-        //Kokkos::parallel_for(
-        //     "computeExternalField", localNum,
-        //     KOKKOS_LAMBDA(const int i) {
-        for (unsigned int i = 0; i < localNum; ++i) {
+        Kokkos::parallel_for("computeExternalField", ippl::getRangePolicy(Rview),
+             [=,this] (const int i) {
 
             // Is this still needed?
             // if (itsBunch_m->Bin[i] < 0)
@@ -835,8 +785,7 @@ void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
                 Eview(i) += localToRefCSTrafo.rotateTo(localE);
                 Bview(i) += localToRefCSTrafo.rotateTo(localB);
             }
-        }    
-        //}
+        });  
     }
 
     IpplTimings::stopTimer(fieldEvaluationTimer_m);
@@ -865,6 +814,17 @@ void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
         msg << level1 << "* Deleted " << ne << " particles, "
             << "remaining " << numParticlesInSimulation_m << " particles" << endl;
     }
+}
+
+void ParallelTracker::resetFields() {    
+    // reset the field back to 0
+    auto Eview  = itsBunch_m->getParticleContainer()->E.getView();
+    auto Bview  = itsBunch_m->getParticleContainer()->B.getView();
+   
+    Kokkos::parallel_for("resetField", ippl::getRangePolicy(Eview), KOKKOS_LAMBDA(const int i) {
+        Eview(i) = 0;
+        Bview(i) = 0;
+    });
 }
 
 void ParallelTracker::doBinaryRepartition() {
@@ -1116,14 +1076,13 @@ void ParallelTracker::transformBunch(const CoordinateSystemTrafo& trafo) {
     auto Eview  = itsBunch_m->getParticleContainer()->E.getView();
     auto Bview  = itsBunch_m->getParticleContainer()->B.getView();
 
-    const unsigned int localNum = itsBunch_m->getLocalNum();
-    for (unsigned int i = 0; i < localNum; ++i) {
-        
+    Kokkos::parallel_for("transformBunch", ippl::getRangePolicy(Rview), KOKKOS_LAMBDA(const int i) {
         Rview(i) = trafo.transformTo(Rview(i));
         Pview(i) = trafo.rotateTo   (Pview(i));
         Eview(i) = trafo.rotateTo   (Eview(i));
         Bview(i) = trafo.rotateTo   (Bview(i));
-    }
+    });
+        
 }
 
 void ParallelTracker::updateRefToLabCSTrafo() {

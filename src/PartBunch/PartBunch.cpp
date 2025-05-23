@@ -213,7 +213,7 @@ void PartBunch<T, Dim>::calcBeamParameters() {
     std::shared_ptr<ParticleContainer_t> pc = this->pcontainer_m;
     auto Rview = pc->R.getView();
     auto Pview = pc->P.getView();
-    this->updateMoments();
+    this->updateMoments(); 
     ////////////////////////////////////
     //// Calculate Moments of R and P //
     ////////////////////////////////////
@@ -563,15 +563,18 @@ template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::switchToUnitlessPositions(bool use_dt_per_particle) {
 	auto dtview = getParticleContainer()->dt.getView();
 	auto rview  = getParticleContainer()->R.getView();
-	// TODO change to a kokkos loop later
-	for (size_t i = 0; i < getLocalNum(); i++) {
-		double dt = getdT();
 
-		if (use_dt_per_particle) {
-			dt = dtview(i);
-		}
-        
-        rview(i) /= Vector_t<double, 3>(Physics::c * dt);
+    if (use_dt_per_particle) {
+        Kokkos::parallel_for("switchToUnitlessPositionsPerParticle", ippl::getRangePolicy(rview), KOKKOS_LAMBDA(const int i){
+            double dt = dtview(i);
+            
+            rview(i) /= Vector_t<double, 3>(Physics::c * dt);
+        });
+    } else {
+        double dt = getdT();
+        Kokkos::parallel_for("switchToUnitlessPositions", ippl::getRangePolicy(rview), KOKKOS_LAMBDA(const int i){
+            rview(i) /= Vector_t<double, 3>(Physics::c * dt);
+        });
     }
 }
 
@@ -579,15 +582,18 @@ template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::switchOffUnitlessPositions(bool use_dt_per_particle) {
 	auto dtview = getParticleContainer()->dt.getView();
 	auto rview  = getParticleContainer()->R.getView();
-	// TODO change to a kokkos loop later
-	for (size_t i = 0; i < getLocalNum(); i++) {
-		double dt = getdT();
 
-		if (use_dt_per_particle) {
-			dt = dtview(i);
-		}
-        
-        rview(i) *= Vector_t<double, 3>(Physics::c * dt);
+    if (use_dt_per_particle) {
+        Kokkos::parallel_for("switchOffUnitlessPositionsPerParticle", ippl::getRangePolicy(rview), KOKKOS_LAMBDA(const int i){
+            double dt = dtview(i);
+            
+            rview(i) *= Vector_t<double, 3>(Physics::c * dt);
+        });
+    } else {
+        double dt = getdT();
+        Kokkos::parallel_for("switchOffUnitlessPositions", ippl::getRangePolicy(rview), KOKKOS_LAMBDA(const int i){
+            rview(i) *= Vector_t<double, 3>(Physics::c * dt);
+        });
     }
 }
 
