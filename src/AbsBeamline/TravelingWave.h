@@ -68,6 +68,10 @@ public:
 
     virtual void initialise(PartBunch_t* bunch, double& startField, double& endField) override;
 
+    virtual void initialise(PartBunch_t* bunch, std::shared_ptr<AbstractTimeDependence> freq_atd,
+        std::shared_ptr<AbstractTimeDependence> ampl_atd,
+        std::shared_ptr<AbstractTimeDependence> phase_atd) override;
+    
     virtual void finalise() override;
 
     virtual bool bends() const override;

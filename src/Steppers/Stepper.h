@@ -20,7 +20,7 @@
 
 #include "OPALTypes.h"
 
-#include "PartBunch/PartBunch.hpp"
+#include "PartBunch/PartBunch.h"
 
 #include <functional>
 

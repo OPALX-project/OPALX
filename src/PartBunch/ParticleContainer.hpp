@@ -75,6 +75,7 @@ public:
         //this->addAttribute(Etmp);
         this->addAttribute(B);
     }
+
     void setupBCs() {
         setBCAllPeriodic();
     }

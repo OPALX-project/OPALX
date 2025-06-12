@@ -14,7 +14,7 @@ ClassicField::~ClassicField() {
 void ClassicField::setOn(const double& kineticEnergy) {
     if (!is_on_m) {
         element_m->goOnline(kineticEnergy);
-        *ippl::Info << level3 << element_m->getName() << " gone live" << endl;
+        *gmsg << "* " << element_m->getName() << " gone live" << endl;
         is_on_m = true;
     }
 }
@@ -22,7 +22,7 @@ void ClassicField::setOn(const double& kineticEnergy) {
 void ClassicField::setOff() {
     if (is_on_m) {
         element_m->goOffline();
-        *ippl::Info << level3 << element_m->getName() << " gone off" << endl;
+        *gmsg << "* " << element_m->getName() << " gone off" << endl;
         is_on_m = false;
     }
 }
