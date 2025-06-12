@@ -68,10 +68,6 @@ set (CMAKE_CXX_FLAGS_RELEASE "-g -O3 ")
 set (CMAKE_CXX_FLAGS_DEBUG  "-g -O0")
 option(OPALX_ENABLE_SANITIZER "Enable sanitizer(s)" OFF)
 
-<<<<<<< HEAD
-
-=======
->>>>>>> master
 if ("${IPPL_PLATFORMS}" STREQUAL "CUDA")
     set (CMAKE_CXX_FLAGS_DEBUG  "${CMAKE_CXX_FLAGS_DEBUG} -G -diag-suppress=611")
 endif()
@@ -102,18 +98,6 @@ if(OPALX_ARCH_HOPPER90)
  add_compile_options (-Wdangling-reference)                # need for G&H
 endif ()
 
-<<<<<<< HEAD
-option (OPALX_SANITIZER "Enable Sanitizer" OFF)
-if (OPALX_SANITIZER)
- set (CMAKE_CXX_FLAGS_DEBUG  "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address,undefined")
- add_link_options (-fsanitize=undefined,address)
-else ()
- message (STATUS "Sanitizer status is: ${OPALX_SANITIZER}")   
- add_compile_options (-fno-sanitize=all)
-endif ()
-
-=======
->>>>>>> master
 # Resolve all library dependencies
 set (CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/CMakeModules")
 
