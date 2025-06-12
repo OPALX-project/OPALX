@@ -17,7 +17,7 @@ using Centering_t = typename Mesh_t<Dim>::DefaultCentering;
 template <unsigned Dim>
 using FieldLayout_t = ippl::FieldLayout<Dim>;
 
-template <typename T, unsigned Dim = 3, class... ViewArgs>
+template <typename T, unsigned Dim, class... ViewArgs>
 using Field = ippl::Field<T, Dim, Mesh_t<Dim>, Centering_t<Dim>, ViewArgs...>;
 
 template <unsigned Dim, class... ViewArgs>
@@ -26,7 +26,7 @@ using Field_t = Field<double, Dim, ViewArgs...>;
 template <typename T, unsigned Dim>
 using Vector_t = ippl::Vector<T, Dim>;
 
-template <typename T = double, unsigned Dim = 3, class... ViewArgs>
+template <typename T, unsigned Dim, class... ViewArgs>
 using VField_t = Field<Vector_t<T, Dim>, Dim, ViewArgs...>;
 
 // Define the FieldsContainer class

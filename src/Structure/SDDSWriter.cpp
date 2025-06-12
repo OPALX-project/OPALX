@@ -19,7 +19,7 @@
 #include "Structure/SDDSWriter.h"
 
 #include "AbstractObjects/OpalData.h"
-#include "PartBunch/PartBunch.hpp"
+#include "PartBunch/PartBunch.h"
 #include "OPALconfig.h"
 #include "Utilities/SDDSParser.h"
 #include "Utilities/Util.h"
@@ -28,15 +28,17 @@
 
 #include <queue>
 
+extern Inform* gmsg;
+
 SDDSWriter::SDDSWriter(const std::string& fname, bool restart)
     : fname_m(fname), mode_m(std::ios::out), indent_m("        ") {
     namespace fs = boost::filesystem;
 
     if (fs::exists(fname_m) && restart) {
         mode_m = std::ios::app;
-        *ippl::Info << "* Appending data to existing data file: '" << fname_m << "'" << endl;
+        *gmsg<< "* Appending data to existing data file: '" << fname_m << "'" << endl;
     } else {
-        *ippl::Info << "* Creating new file for data: '" << fname_m << "'" << endl;
+        *gmsg << "* Creating new file for data: '" << fname_m << "'" << endl;
     }
 }
 

@@ -19,7 +19,7 @@
 
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Fields/Fieldmap.h"
-#include "PartBunch/PartBunch.hpp"
+#include "PartBunch/PartBunch.h"
 #include "Physics/Physics.h"
 #include "Utilities/GeneralClassicException.h"
 

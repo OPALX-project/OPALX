@@ -10,7 +10,7 @@ include_directories (
 add_opal_sources (${_SRCS})
 
 set (HDRS
-    PartBunch.hpp    
+    PartBunch.h
     FieldSolver.hpp
     FieldContainer.hpp
     LoadBalancer.hpp

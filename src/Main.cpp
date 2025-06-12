@@ -112,6 +112,20 @@ namespace OPALXMAIN {
               << PACKAGE_BUGREPORT << "\n"
               << endl;
         *gmsg << "Time: " << timeStr << " date: " << dateStr << "\n" << endl;
+
+        // Check which host device is being used
+        *gmsg << "* Host:   " << Kokkos::HostSpace::execution_space::name() << endl;
+
+    // Check which device is being used (this works for CUDA, HIP, or any device-enabled execution space)
+#ifdef KOKKOS_ENABLE_CUDA
+        *gmsg << "* Device: " << Kokkos::Cuda::name() << endl << endl;
+#elif defined(KOKKOS_ENABLE_HIP)
+        *gmsg << "* Device: " << Kokkos::Experimental::HIP::name() << endl << endl;
+#elif defined(KOKKOS_ENABLE_OPENMP)
+        *gmsg << "* Device: " << Kokkos::OpenMP::name() << endl << endl;
+#else
+        *gmsg << "* Device: Serial execution" << endl << endl;
+#endif
     }
 
     void printHelp() {
@@ -139,7 +153,7 @@ int main(int argc, char* argv[]) {
     {
         gmsg         = new Inform("OPAL-X");
         namespace fs = boost::filesystem;
-
+        
         H5SetVerbosityLevel(1);  // 65535);
 
         gsl_set_error_handler(&handleGSLErrors);
@@ -299,6 +313,9 @@ int main(int argc, char* argv[]) {
                     restartFileName = std::string(argv[++ii]);
                     continue;
                 } else if (argStr == std::string("--info")) {
+                    ++ii;
+                    continue;
+                } else if (argStr == std::string("--overallocate")) {
                     ++ii;
                     continue;
                 } else {

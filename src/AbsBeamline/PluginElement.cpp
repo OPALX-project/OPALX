@@ -19,7 +19,7 @@
 #include "AbsBeamline/PluginElement.h"
 
 #include "AbsBeamline/BeamlineVisitor.h"
-#include "PartBunch/PartBunch.hpp"
+#include "PartBunch/PartBunch.h"
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
 #include "Structure/LossDataSink.h"
@@ -76,6 +76,14 @@ bool PluginElement::apply(
     const size_t& /*i*/, const double&, Vector_t<double, 3>&, Vector_t<double, 3>&) {
     return false;
 }
+
+bool PluginElement::apply(
+        const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
+        Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
+    return false;
+}
+
+
 
 bool PluginElement::applyToReferenceParticle(
     const Vector_t<double, 3>&, const Vector_t<double, 3>&, const double&, Vector_t<double, 3>&,
