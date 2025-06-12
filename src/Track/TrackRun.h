@@ -21,7 +21,7 @@
 #include "OPALTypes.h"
 
 #include "AbstractObjects/Action.h"
-#include "PartBunch/PartBunch.hpp"
+#include "PartBunch/PartBunch.h"
 #include "Distribution/SamplingBase.hpp"
 
 #include "Structure/FieldSolverCmd.h"

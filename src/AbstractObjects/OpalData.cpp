@@ -28,7 +28,7 @@
 #include "AbstractObjects/ObjectFunction.h"
 #include "AbstractObjects/Table.h"
 #include "AbstractObjects/ValueDefinition.h"
-#include "PartBunch/PartBunch.hpp"
+#include "PartBunch/PartBunch.h"
 #include "Attributes/Attributes.h"
 #include "OpalParser/FileStream.h"
 #include "OpalParser/OpalParser.h"

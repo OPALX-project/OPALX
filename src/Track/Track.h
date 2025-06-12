@@ -19,7 +19,7 @@
 
 #ifndef OPAL_Track_HH
 #define OPAL_Track_HH
-#include "PartBunch/PartBunch.hpp"
+#include "PartBunch/PartBunch.h"
 #include "Algorithms/PartData.h"
 #include "Steppers/Steppers.h"
 #include "Track/TrackCmd.h"

@@ -30,11 +30,11 @@
 
 #include "Distribution/Distribution.h"
 
-#include "Distribution/Gaussian.hpp"
+#include "Distribution/Gaussian.h"
 
-#include "Distribution/MultiVariateGaussian.hpp"
+#include "Distribution/MultiVariateGaussian.h"
 
-#include "Distribution/FlatTop.hpp"
+#include "Distribution/FlatTop.h"
 
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
@@ -248,13 +248,10 @@ void TrackRun::execute() {
     macrocharge_m = beam->getChargePerParticle();
     macromass_m   = beam->getMassPerParticle();
 
-    // double Qtot = macrocharge_m * beam->getNumberOfParticles();
-
     /*
       Here we can allocate the bunch
 
      */
-    
     
     // There's a change of units for particle mass that seems strange -> gives consistent Kinetic Energy
     bunch_m = std::make_shared<bunch_type>(macrocharge_m,
@@ -362,6 +359,7 @@ void TrackRun::execute() {
     bunch_m->bunchUpdate();
     bunch_m->print(*gmsg);
     initDataSink();
+
     /*
     if (!isFollowupTrack_m) {
         *gmsg << std::scientific;

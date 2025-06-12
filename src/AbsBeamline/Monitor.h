@@ -19,7 +19,7 @@
 #define CLASSIC_Monitor_HH
 
 #include "AbsBeamline/Component.h"
-#include "PartBunch/PartBunch.hpp"
+#include "PartBunch/PartBunch.h"
 #include "BeamlineGeometry/StraightGeometry.h"
 #include "Structure/LossDataSink.h"
 
@@ -63,6 +63,10 @@ public:
 
     virtual bool apply(
         const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
+
+    virtual bool apply(
+        const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
+	Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 
     virtual bool applyToReferenceParticle(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
