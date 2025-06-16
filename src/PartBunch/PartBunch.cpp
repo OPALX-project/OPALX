@@ -148,39 +148,23 @@ void PartBunch<T, Dim>::setSolver(std::string solver) {
 
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::spaceChargeEFieldCheck(Vector_t<double, 3> efScale) {
- Inform msg("EParticleStats");
+    Inform msg("EParticleStats");
 
- auto pE_view   = this->pcontainer_m->E.getView();
- auto fphi_view = this->fcontainer_m->getPhi().getView();
+    auto pE_view   = this->pcontainer_m->E.getView();
+    auto fphi_view = this->fcontainer_m->getPhi().getView();
 
 
- 
- double avgphi        = 0.0;
- double avgE          = 0.0;
- double minEComponent = std::numeric_limits<T>::max();
- double maxEComponent = std::numeric_limits<T>::min();
- double minE          = std::numeric_limits<T>::max();
- double maxE          = std::numeric_limits<T>::min();
- double cc            = getCouplingConstant();
- 
- int myRank = ippl::Comm->rank();
-
- Kokkos::parallel_reduce(
-                         "check e-field", this->getLocalNum(),
-                         KOKKOS_LAMBDA(const int i, double& loc_avgE, double& loc_minEComponent,
-                                       double& loc_maxEComponent, double& loc_minE, double& loc_maxE) {
-                             double EX    = pE_view[i][0]*cc;
-                             double EY    = pE_view[i][1]*cc;
-                             double EZ    = pE_view[i][2]*cc;
-
+    
+    double avgphi        = 0.0;
     double avgE          = 0.0;
-    double minEComponent = std::numeric_limits<double>::max();
-    double maxEComponent = std::numeric_limits<double>::min();
-    double minE          = std::numeric_limits<double>::max();
-    double maxE          = std::numeric_limits<double>::min();
+    double minEComponent = std::numeric_limits<T>::max();
+    double maxEComponent = std::numeric_limits<T>::min();
+    double minE          = std::numeric_limits<T>::max();
+    double maxE          = std::numeric_limits<T>::min();
     double cc            = getCouplingConstant();
-
+    
     int myRank = ippl::Comm->rank();
+
     Kokkos::parallel_reduce(
                             "check e-field", this->getLocalNum(),
                             KOKKOS_LAMBDA(const int i, double& loc_avgE, double& loc_minEComponent,
@@ -188,13 +172,25 @@ void PartBunch<T, Dim>::spaceChargeEFieldCheck(Vector_t<double, 3> efScale) {
                                 double EX    = pE_view[i][0]*cc;
                                 double EY    = pE_view[i][1]*cc;
                                 double EZ    = pE_view[i][2]*cc;
+                            
+                                double ENorm = Kokkos::sqrt(EX*EX + EY*EY + EZ*EZ);
+                             
+                                loc_avgE += ENorm;
+   
+                                loc_minEComponent = EX < loc_minEComponent ? EX : loc_minEComponent;
+                                loc_minEComponent = EY < loc_minEComponent ? EY : loc_minEComponent;
+                                loc_minEComponent = EZ < loc_minEComponent ? EZ : loc_minEComponent;
+                                
+                                loc_maxEComponent = EX > loc_maxEComponent ? EX : loc_maxEComponent;
+                                loc_maxEComponent = EY > loc_maxEComponent ? EY : loc_maxEComponent;
+                                loc_maxEComponent = EZ > loc_maxEComponent ? EZ : loc_maxEComponent;   
 
-                             loc_minE = ENorm < loc_minE ? ENorm : loc_minE;
-                             loc_maxE = ENorm > loc_maxE ? ENorm : loc_maxE;
-                         },
-                         Kokkos::Sum<T>(avgE), Kokkos::Min<T>(minEComponent),
-                         Kokkos::Max<T>(maxEComponent), Kokkos::Min<T>(minE),
-                         Kokkos::Max<T>(maxE));
+                                loc_minE = ENorm < loc_minE ? ENorm : loc_minE;
+                                loc_maxE = ENorm > loc_maxE ? ENorm : loc_maxE;
+                            },
+                            Kokkos::Sum<T>(avgE), Kokkos::Min<T>(minEComponent),
+                            Kokkos::Max<T>(maxEComponent), Kokkos::Min<T>(minE),
+                            Kokkos::Max<T>(maxE));
 
   if (this->getLocalNum() == 0) {
      minEComponent = maxEComponent = minE = maxE = avgE = 0.0;
