@@ -26,6 +26,8 @@ gtest/1.13.0-1
 hdf5/1.10.8_slurm     
 
 gnutls/3.5.19
+
+cuda/12.8.1
 ```
 
 
