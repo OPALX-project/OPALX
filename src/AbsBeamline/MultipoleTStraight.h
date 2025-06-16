@@ -79,29 +79,6 @@
 #include "AbsBeamline/MultipoleTBase.h"
 #include <vector>
 
-#ifdef __CUDACC__
-#pragma push_macro("__cpp_consteval")
-#pragma push_macro("_NODISCARD")
-#pragma push_macro("__builtin_LINE")
-
-#define __cpp_consteval 201811L
-
-#ifdef _NODISCARD
-    #undef _NODISCARD
-    #define _NODISCARD
-#endif
-
-#define consteval constexpr
-
-#include <source_location>
-
-#undef consteval
-#pragma pop_macro("__cpp_consteval")
-#pragma pop_macro("_NODISCARD")
-#else
-#include <source_location>
-#endif
-
 class MultipoleTStraight: public MultipoleTBase {
 public: 
     /** Constructor
