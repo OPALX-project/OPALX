@@ -496,8 +496,6 @@ void ParallelTracker::timeIntegration1(BorisPusher& pusher) {
     IpplTimings::stopTimer(timeIntegrationTimer1_m);
 }
 void ParallelTracker::pushParticles(const BorisPusher& pusher) {
-    
-
     itsBunch_m->switchToUnitlessPositions(true);
 
     auto Rview  = itsBunch_m->getParticleContainer()->R.getView();
@@ -505,7 +503,6 @@ void ParallelTracker::pushParticles(const BorisPusher& pusher) {
     auto dtview = itsBunch_m->getParticleContainer()->dt.getView();
 
     Kokkos::parallel_for("pushParticles", ippl::getRangePolicy(Rview), KOKKOS_LAMBDA(const int i) {
-
         auto x = Rview(i);
         auto p = Pview(i);
         auto dt = dtview(i);
@@ -515,9 +512,8 @@ void ParallelTracker::pushParticles(const BorisPusher& pusher) {
         Rview(i) = x;
     });
 
-
     itsBunch_m->switchOffUnitlessPositions(true);
-    //itsBunch_m->getParticleContainer()->update(); TODO
+    //itsBunch_m->getParticleContainer()->update(); //\TODO
     ippl::Comm->barrier();
 }
 
@@ -545,7 +541,7 @@ void ParallelTracker::kickParticles(const BorisPusher& pusher) {
         pusher.kick(x, p, e, b, dt, mass, charge);
         Pview(i) = p;
     });
-
+        
     ippl::Comm->barrier();
 }
 
@@ -581,7 +577,7 @@ void ParallelTracker::timeIntegration2(BorisPusher& pusher) {
                          "changeDT", ippl::getRangePolicy(dtview),
                          KOKKOS_LAMBDA(const int i) {
                              dtview(i) = newdT;
-                         });                     
+                         });
     
     IpplTimings::stopTimer(timeIntegrationTimer2_m);
 }
@@ -606,8 +602,7 @@ void ParallelTracker::changeDT(bool backTrack) {
                          "changeDT", ippl::getRangePolicy(dtview),
                          KOKKOS_LAMBDA(const int i) {
                              dtview(i) = newdT;
-                         });                     
-    
+                         });
 }
 
 void ParallelTracker::emitParticles(long long step) {
@@ -673,7 +668,6 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
                              Eview(i) = ippl::Vector<double, 3>(0.0);   // was done outside of the routine in the past
                              Bview(i) = ippl::Vector<double, 3>(0.0); 
                          });         
-
     itsBunch_m->boundp();
 
     if (step % repartFreq_m + 1 == repartFreq_m) {
@@ -717,7 +711,6 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
                                  }
                              }
                          });         
-
 }
 
 void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
@@ -919,7 +912,7 @@ void ParallelTracker::setTime() {
                          "changeDT", ippl::getRangePolicy(dtview),
                          KOKKOS_LAMBDA(const int i) {
                              dtview(i) = newdT;
-                         });                     
+                         });           
 }
 
 void ParallelTracker::writePhaseSpace(const long long /*step*/, bool psDump, bool statDump) {
