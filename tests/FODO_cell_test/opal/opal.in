@@ -1,0 +1,98 @@
+OPTION, PSDUMPFREQ = 1;   // 6d data written every 300000 time steps (h5).
+OPTION, STATDUMPFREQ = 1;  // Beam Stats written every 10 time steps (stat).
+OPTION, BOUNDPDESTROYFQ=10; // Delete lost particles, if any
+OPTION, AUTOPHASE=4;        // Autophase is on, and phase of max energy
+                            // gain will be found automatically for cavities
+Option, VERSION=10900;
+
+Title, string="Solenoid-1 test";
+
+//----------------------------------------------------------------------------
+//Global Parameters
+
+REAL rf_freq             = 1.3e3;     //RF frequency. (Hz)
+REAL n_particles         = 1E4;      //Number of particles in simulation.
+REAL beam_bunch_charge   = 1e-9;      //Charge of bunch. (C)
+
+//Initial Momentum Calculation
+REAL Edes    = 1;  // initial energy in GeV
+REAL gamma   = (Edes+EMASS)/EMASS;
+REAL beta    = sqrt(1-(1/gamma^2));
+REAL P0      = gamma*beta*EMASS;    //inital z momentum
+
+//Printing initial energy and momentum to terminal output.
+value , {Edes, P0, OPALVERSION};
+
+//----------------------------------------------------------------------------
+// Solenoids
+//
+// L:           Physcial element length (m)
+// ELEMEDGE:    Physcial start of element (m)
+// KS:          Solenoid strength (Rad/m)
+// FMAPFM:      Field file (string)
+
+// Note: OPAL scales the field file based on the max magnetic
+// field value in the file, not Bz on axis. The max field
+// value is normalized to 1 [T], and scaled with KS.
+// i.e. The max value in the BF_559 file = 0.162544398 [T].
+// Therefore, setting KS = 0.162544398 runs the magnet at max current.
+
+FOCUS_POLE_1  : MULTIPOLE, L=0.5, ELEMEDGE=0,   KN={0, 0.54102};
+DRIFT_1       : DRIFT    , L=2.5, ELEMEDGE=0.5;
+DEFOCUS_POLE_1: MULTIPOLE, L=0.5, ELEMEDGE=3,   KN={0, -0.54102};
+DRIFT_2       : DRIFT    , L=2.5, ELEMEDGE=3.5;
+
+FOCUS_POLE_2  : MULTIPOLE, L=0.5, ELEMEDGE=6,   KN={0, 0.54102};
+DRIFT_3       : DRIFT    , L=2.5, ELEMEDGE=6.5;
+DEFOCUS_POLE_2: MULTIPOLE, L=0.5, ELEMEDGE=9,   KN={0, -0.54102};
+DRIFT_4       : DRIFT    , L=2.5, ELEMEDGE=9.5;
+
+FOCUS_POLE_3  : MULTIPOLE, L=0.5, ELEMEDGE=12,   KN={0, 0.54102};
+DRIFT_5       : DRIFT    , L=2.5, ELEMEDGE=12.5;
+DEFOCUS_POLE_3: MULTIPOLE, L=0.5, ELEMEDGE=15,   KN={0, -0.54102};
+DRIFT_6       : DRIFT    , L=2.5, ELEMEDGE=15.5;
+
+SOLine: Line = (
+    FOCUS_POLE_1, DRIFT_1, DEFOCUS_POLE_1, DRIFT_2,
+    FOCUS_POLE_2, DRIFT_3, DEFOCUS_POLE_2, DRIFT_4,
+    FOCUS_POLE_3, DRIFT_5, DEFOCUS_POLE_3, DRIFT_6
+);
+
+Dist: DISTRIBUTION, TYPE = GAUSS,
+        SIGMAX = 0.001,
+        SIGMAY = 0.001,
+	SIGMAZ = 0.001;
+
+//----------------------------------------------------------------------------
+// Define Field solvers
+// The mesh sizes should be a factor of 2
+// for most efficient space charge calculation.
+
+FS_SC: Fieldsolver, FSTYPE = NONE,
+            MX = 16, MY = 16, MT = 16, // SC grid size is 32^3
+            PARFFTX = false,
+            PARFFTY = false,
+            PARFFTT = true,  // parallel in the z direction only
+            BCFFTX = open,
+            BCFFTY = open,
+            BCFFTT = open,
+            BBOXINCR = 1,
+            GREENSF = INTEGRATED;
+
+//----------------------------------------------------------------------------
+// Electron Beam Definition
+
+BEAM1:  BEAM, PARTICLE = ELECTRON, pc = P0, NPART = n_particles,
+        BFREQ = rf_freq, BCURRENT = beam_bunch_charge * rf_freq * 1e6, CHARGE = -1;
+
+//----------------------------------------------------------------------------
+// Simulate the beamline using TRACK and RUN.
+// Note, different time steps are set based on the z location in the beam line.
+// In the case below, 1.0e-13 is used for 0.0 to 0.4 m,
+// and 3.0e-12 is used from 0.4 to 5 m.
+
+TRACK, LINE = SOLine, BEAM = BEAM1, MAXSTEPS = 10000, DT = {7e-12};
+RUN, METHOD = "PARALLEL-T", BEAM = BEAM1,
+    FIELDSOLVER = FS_SC, DISTRIBUTION = Dist;
+ENDTRACK;
+Quit;
