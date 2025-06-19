@@ -88,13 +88,14 @@ Quit;
 
     """
 
-def get_opalx_string(amount="1e4", steps="10"):
+def get_opalx_string(amount="1e4", steps="10", seed=""):
     return f"""OPTION, PSDUMPFREQ = 1;   // 6d data written every 300000 time steps (h5).
 OPTION, STATDUMPFREQ = 1;  // Beam Stats written every 10 time steps (stat).
 OPTION, BOUNDPDESTROYFQ=10; // Delete lost particles, if any
 OPTION, AUTOPHASE=4;        // Autophase is on, and phase of max energy
                             // gain will be found automatically for cavities
 Option, VERSION=10900;
+Option, SEED={seed};
 
 Title, string="Solenoid-1 test";
 
@@ -183,7 +184,7 @@ def get_slurm_string(executable, filename, threads = "1"):
 #SBATCH --nodes=1               # No. of nodes
 #SBATCH --ntasks-per-node=1     # No. of MPI ranks per node. Merlin CPU nodes have 44 cores
 #SBATCH --cpus-per-task={threads}      # No. of OMP threads
-#SBATCH --time=00:30:00         # Define max time job will run (e.g. here 5 mins)
+#SBATCH --time=01:00:00         # Define max time job will run (e.g. here 5 mins)
 #SBATCH --hint=nomultithread    # Without hyperthreading
 ##SBATCH --exclusive            # The allocations will be exclusive if turned on (remove extra hashtag to turn on)
 

@@ -29,7 +29,7 @@ def get_slurm_string(nodes, threads, exe):
 #SBATCH --cpus-per-task={threads}      # No. of OMP threads
 #SBATCH --time=00:30:00         # Define max time job will run (e.g. here 5 mins)
 #SBATCH --hint=nomultithread    # Without hyperthreading
-##SBATCH --exclusive            # The allocations will be exclusive if turned on (remove extra hashtag to turn on)
+#SBATCH --exclusive            # The allocations will be exclusive if turned on (remove extra hashtag to turn on)
 
 #SBATCH --output={nodes}-{threads}.out  # Name of output file
 #SBATCH --error={nodes}-{threads}.err    # Name of error file
@@ -50,6 +50,8 @@ parameters = [
     [ 1    , 8],
     [ 1    , 16],
     [ 1    , 32],
+    [ 2    , 32],
+    [ 4    , 32],
 ]
 
 def get_folder_name(n, t):

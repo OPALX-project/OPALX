@@ -30,7 +30,7 @@ Running the script will then automatically generated all folders and slurm scrip
 
 ### Plotting
 Running [test.py](test.py) will plot all times and errors of all generated data. Here the most important variables are
-- `failed_col`: This will automatically be filled with all colounms where the error is bigger than `EPSILON`. Add your own coloumns and it will plot it aswell
+- `failed_col`: This will automatically be filled with all colounms where the error is bigger than `EPSILON`. Add your own coloumns and it will plot it aswell. (deprecated but still works)
 - `time_col`: This decides which cols will be plotted in the times plot
 
 Note that `test.py` should be run after the OPALX finished running

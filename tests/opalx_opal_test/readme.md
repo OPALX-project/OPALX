@@ -2,7 +2,7 @@
 written by Jan Luca Binder
 
 ### Abstract
-This script will automatically create the input files and slurm script for OPALX and then run it for different particle amounts. Afterwhich it will compare the solution of the simulation with a given reference solution. 
+This script will automatically create the input files and slurm script for OPALX and then run it for a given particle amount n times. It will do this single and multi threaded. Afterwhich it will compare the solution of the simulation with a given reference solution. 
 
 ### Introduction
 
@@ -20,21 +20,20 @@ OPALX_EXECUTABLE_FILE = "/data/user/<user name>/opalx-elements/build/src/opalx"
 
 ### Parameters
 Next you can edit the parameters. The name of the run is the key of each entry in the map. Each entry should have two further entries
-1. An array called `amounts`: This decides how many particles will be used for each simulation
-2. A file path called `ref`: The script excpects the reference stat files to be in a subfolder called `references`. Add your file there and add the name of the file to the map
+1. A field called `amount`: This decides how many particles will be used for each simulation
+2. `avg`: How oftern will a simulation be run with  "`amount`" particles
+3. A file path called `ref`: The script excpects the reference stat files to be in a subfolder called `references`. Add your file there and add the name of the file to the map
 
 Example
 ```python
 parameters = {
     "run1" : {
-        "amount" : ["1e2", "1e3", "1e4", "1e5"],
-        "ref" : "ref-10steps.stat"
-    },
-    "run2" : {
-        "amount" : ["1e2", "1e3", "1e4", "5e4"],
+        "amount" : "1e7",
+        "avg" : 10,
         "ref" : "ref-33step.stat"
     }
 }
+
 ```
 
 ### Plotting
