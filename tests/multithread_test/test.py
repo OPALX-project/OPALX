@@ -78,6 +78,7 @@ def compare_all_cols():
 
 def compare_times():
     all_data = {}
+    # get all times and put into a map
     for folder in os.listdir(ROOT_FOLDER):
         path = os.path.join(ROOT_FOLDER, folder)
         
@@ -92,20 +93,26 @@ def compare_times():
     for col in time_col:
         data = []
         for name in all_data.keys():
+            # extract the amount of nodes and threads that were used for a run
             nodes   = int(check.match(name)[1])
             threads = int(check.match(name)[2])
             data.append([nodes * threads, all_data[name][col]])
-        data = np.array(sorted(data, key=lambda x: x[0]))
-        plt.plot(data[:,0], data[:,1], ls="--", marker="x", label=col, zorder=100)
 
-            
+        # sort them
+        data = np.array(sorted(data, key=lambda x: x[0]))
+
+        # and plot
+        plt.plot(data[:,0], data[:,1], ls="--", marker="D", label=col, zorder=100)
+    
+    # using the reference solution print out more data
+
     plt.yscale('log')
     plt.xscale('log')
     plt.xlabel("Amount of threads")
     plt.ylabel("Time in [s]")
     plt.legend()
     plt.grid()
-    plt.title("Time plot")
+    plt.title(f"Speedup with {REFERENCE_SOLUTION['numParticles'][0]:.0e} particles, {len(REFERENCE_SOLUTION['numParticles'])} steps @ $\Delta t$ = {REFERENCE_SOLUTION['t'][0]} ns")
     plt.savefig("times.png")
 
         
@@ -127,6 +134,7 @@ def compare(stat1, stat2):
     ratio = passed/amount
     
     print(f"\033[35m --- Passed {ratio:.2%} of tests --- \033[0m")
-    
-compare_all_cols()
+
+# not needed anymore   
+#compare_all_cols()
 compare_times()
