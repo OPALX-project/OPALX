@@ -32,15 +32,12 @@ BOLD="\033[1m"
 RESET="\033[0m"
 
 OPALX_EXECUTABLE_FILE = "/data/user/binder_j/opalx-elements/build/src/opalx"
+AMOUNT_THREADS = "16"
 
 # define the parameters
 parameters = {
     "run1" : {
         "amount" : ["1e2", "1e3", "1e4", "1e5"],
-        "ref" : "ref-10steps.stat"
-    },
-    "run2" : {
-        "amount" : ["1e2", "1e3", "1e4", "5e4"],
         "ref" : "ref-33step.stat"
     }
 }
@@ -51,6 +48,9 @@ plotting_cols = [
     "rms_x",
     "rms_y",
     "rms_s",
+    "emit_x",
+    "emit_y",
+    "emit_s",
     "max_x",
     "max_y",
     "max_s",
@@ -80,6 +80,9 @@ def run_opalx(filename):
 
         result = subprocess.run(["sbatch", f"{filename.replace('in', 'slurm')}"], capture_output=True, text=True, check=True, cwd="opalx")
 
+        #todo ignoring result
+        subprocess.run(["sbatch", f"multi_{filename.replace('in', 'slurm')}"], capture_output=True, text=True, check=True, cwd="opalx")
+
         if result.returncode == 0:
             print(f" --- {GREEN}Done{WHITE}")
         else:
@@ -103,6 +106,14 @@ def create_file(filename, amount, steps):
     
     with open(f"opalx/{filename.replace('in', 'slurm')}", "w") as f:
         f.write(get_slurm_string(OPALX_EXECUTABLE_FILE, filename))
+        f.close()
+
+    with open(f"opalx/multi_{filename}", "w") as f:
+        f.write(get_opalx_string(amount, steps))
+        f.close()
+
+    with open(f"opalx/multi_{filename.replace('in', 'slurm')}", "w") as f:
+        f.write(get_slurm_string(OPALX_EXECUTABLE_FILE, f"multi_{filename}", AMOUNT_THREADS))
         f.close()
 
 def compare(stat1, stat2, runname):
@@ -241,6 +252,7 @@ if __name__ == "__main__":
             for amounts in param["amount"]:
                 filename = f"{key}-{amounts}.in"
                 watch(filename, steps)
+                watch(f"multi_{filename}", steps)
 
     for (key, param) in parameters.items():
         for amounts in param["amount"]:
