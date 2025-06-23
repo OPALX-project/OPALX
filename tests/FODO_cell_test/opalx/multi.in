@@ -16,7 +16,7 @@ REAL n_particles         = 1E4;       //Number of particles in simulation.
 REAL beam_bunch_charge   = 1e-9;      //Charge of bunch. (C)
 
 //Initial Momentum Calculation
-REAL Edes    = 1;  // initial energy in GeV
+REAL Edes    = 1e-3;  // initial energy in GeV
 REAL gamma   = (Edes+EMASS)/EMASS;
 REAL beta    = sqrt(1-(1/gamma^2));
 REAL P0      = gamma*beta*EMASS;    //inital z momentum
@@ -43,20 +43,30 @@ if (OPALVERSION>10500)
    KSBF = KSBF/1.3528;
 
 
-FOCUS_POLE_1  : MULTIPOLE, L=0.5, ELEMEDGE=0,   KN={0, 0.54102};
-DRIFT_1       : DRIFT    , L=2.5, ELEMEDGE=0.5;
-DEFOCUS_POLE_1: MULTIPOLE, L=0.5, ELEMEDGE=3,   KN={0, -0.54102};
-DRIFT_2       : DRIFT    , L=2.5, ELEMEDGE=3.5;
+REAL RIGIDITY = 3.336;
+REAL LENS__SPACE = 0.01;
+REAL DRIFT_SPACE = 0.1;
 
-FOCUS_POLE_2  : MULTIPOLE, L=0.5, ELEMEDGE=6,   KN={0, 0.54102};
-DRIFT_3       : DRIFT    , L=2.5, ELEMEDGE=6.5;
-DEFOCUS_POLE_2: MULTIPOLE, L=0.5, ELEMEDGE=9,   KN={0, -0.54102};
-DRIFT_4       : DRIFT    , L=2.5, ELEMEDGE=9.5;
+REAL i = 0;
 
-FOCUS_POLE_3  : MULTIPOLE, L=0.5, ELEMEDGE=12,   KN={0, 0.54102};
-DRIFT_5       : DRIFT    , L=2.5, ELEMEDGE=12.5;
-DEFOCUS_POLE_3: MULTIPOLE, L=0.5, ELEMEDGE=15,   KN={0, -0.54102};
-DRIFT_6       : DRIFT    , L=2.5, ELEMEDGE=15.5;
+FOCUS_POLE_1  : MULTIPOLE, L=LENS__SPACE, ELEMEDGE=0,                            KN={0, 0.5};
+DRIFT_1       : DRIFT    , L=DRIFT_SPACE, ELEMEDGE=LENS__SPACE;
+DEFOCUS_POLE_1: MULTIPOLE, L=LENS__SPACE, ELEMEDGE=LENS__SPACE + DRIFT_SPACE,    KN={0, -0.5};
+DRIFT_2       : DRIFT    , L=DRIFT_SPACE, ELEMEDGE=LENS__SPACE * 2 + DRIFT_SPACE;
+
+REAL i = 1;
+
+FOCUS_POLE_2  : MULTIPOLE, L=LENS__SPACE, ELEMEDGE= 2 * i * (LENS__SPACE + DRIFT_SPACE),                                KN={0, 0.5};
+DRIFT_3       : DRIFT    , L=DRIFT_SPACE, ELEMEDGE= 2 * i * (LENS__SPACE + DRIFT_SPACE) + LENS__SPACE;
+DEFOCUS_POLE_2: MULTIPOLE, L=LENS__SPACE, ELEMEDGE= 2 * i * (LENS__SPACE + DRIFT_SPACE) + LENS__SPACE + DRIFT_SPACE,    KN={0, -0.5};
+DRIFT_4       : DRIFT    , L=DRIFT_SPACE, ELEMEDGE= 2 * i * (LENS__SPACE + DRIFT_SPACE) + LENS__SPACE * 2 + DRIFT_SPACE;
+
+REAL i = 2;
+
+FOCUS_POLE_3  : MULTIPOLE, L=LENS__SPACE, ELEMEDGE= 2 * i * (LENS__SPACE + DRIFT_SPACE),                                KN={0, 0.5};
+DRIFT_5       : DRIFT    , L=DRIFT_SPACE, ELEMEDGE= 2 * i * (LENS__SPACE + DRIFT_SPACE) + LENS__SPACE;
+DEFOCUS_POLE_3: MULTIPOLE, L=LENS__SPACE, ELEMEDGE= 2 * i * (LENS__SPACE + DRIFT_SPACE) + LENS__SPACE + DRIFT_SPACE,    KN={0, -0.5};
+DRIFT_6       : DRIFT    , L=DRIFT_SPACE, ELEMEDGE= 2 * i * (LENS__SPACE + DRIFT_SPACE) + LENS__SPACE * 2 + DRIFT_SPACE;
 
 SOLine: Line = (
     FOCUS_POLE_1, DRIFT_1, DEFOCUS_POLE_1, DRIFT_2,
@@ -97,7 +107,7 @@ BEAM1:  BEAM, PARTICLE = ELECTRON, pc = P0, NPART = n_particles,
 // In the case below, 1.0e-13 is used for 0.0 to 0.4 m,
 // and 3.0e-12 is used from 0.4 to 5 m.
 
-TRACK, LINE = SOLine, BEAM = BEAM1, MAXSTEPS = 10000, DT = {7e-12};
+TRACK, LINE = SOLine, BEAM = BEAM1, MAXSTEPS = 400, DT = {1e-11};
 RUN, METHOD = "PARALLEL", BEAM = BEAM1,
     FIELDSOLVER = FS1, DISTRIBUTION = Dist;
 ENDTRACK;

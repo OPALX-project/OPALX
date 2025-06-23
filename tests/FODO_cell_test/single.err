@@ -1,0 +1,18 @@
+Error> 
+Error> *** User error detected by function "OrbitThreader::checkElementLengths"
+Error>     The time step is too long compared to the length of the
+Error>     element 'FOCUS_POLE_1'
+Error>     The length of the element is: 0.010000
+Error>     The distance the particles drift in 10 time step(s) is: 0.028213
+--------------------------------------------------------------------------
+MPI_ABORT was invoked on rank 0 in communicator MPI_COMM_WORLD
+with errorcode -100.
+
+NOTE: invoking MPI_ABORT causes Open MPI to kill all MPI processes.
+You may or may not see output from other processes, depending on
+exactly when Open MPI kills them.
+--------------------------------------------------------------------------
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+slurmstepd: error: *** STEP 24905676.0 ON merlin-c-010 CANCELLED AT 2025-06-19T17:42:55 ***
+slurmstepd: error: *** STEP 24905676.0 ON merlin-c-010 CANCELLED AT 2025-06-19T17:42:55 ***
+srun: error: merlin-c-010: task 0: Killed
