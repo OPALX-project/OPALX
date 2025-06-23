@@ -32,7 +32,7 @@ RESET="\033[0m"
 OPALX_EXECUTABLE_FILE = "/data/user/binder_j/opalx-test/build/src/opalx"
 MODE = "compare"
 
-opal = load_dataset('./opal', fname='opal.stat').dataframe
+opal = load_dataset('./opal', fname='test.stat').dataframe
 opalx = load_dataset('./opalx', fname='multi.stat').dataframe
 
 # coloumns that get plotted in the end

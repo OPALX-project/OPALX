@@ -1,4 +1,9 @@
+set -e
+
+python calc.py
+
 cd opal
-opal opal.in
+opal test.in
 cd ..
+
 python test.py
