@@ -32,7 +32,7 @@ WHITE = "\033[0m"
 BOLD="\033[1m"
 RESET="\033[0m"
 
-OPALX_EXECUTABLE_FILE = "/data/user/binder_j/opalx-elements/build/src/opalx"
+OPALX_EXECUTABLE_FILE = "/data/user/binder_j/opalx-elements/build_rel/src/opalx"
 AMOUNT_THREADS = "16"
 
 # define the parameters
