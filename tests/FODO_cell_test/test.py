@@ -106,25 +106,28 @@ def plot_all():
         plt.close()
 
 
-compare(opal, opalx)
+#compare(opal, opalx)
 #plot_all()
 
 plt.figure(figsize=(7,5))
 plt.title("RMS plot")
-plt.plot(opalx["s"], opalx["rms_x"], label="rms x opalx", color = "blue")
+#plt.plot(opalx["s"], opalx["rms_x"], label="rms x opalx", color = "blue")
 plt.plot(opal["s"], opal["rms_x"], ls = "--", label="rms x opal", color = "cyan")
 
-plt.plot(opalx["s"], opalx["rms_y"], label="rms y opalx", color ="red")
+#plt.plot(opalx["s"], opalx["rms_y"], label="rms y opalx", color ="red")
 plt.plot(opal["s"], opal["rms_y"], ls = "--", label="rms y opal", color = "orange")
-
-plt.axvline(0.4)
-plt.axvline(0.8)
-plt.axvline(1.2)
-plt.axvline(1.6)
-plt.axvline(2)
 
 plt.grid()
 plt.xlabel("s in [m]")
 plt.ylabel("rms in [m]")
 plt.legend()
 plt.savefig("s-rms.png", dpi=300)
+plt.close()
+
+
+plt.figure(figsize=(7,5))
+plt.title("Beta function")
+plt.plot(opal["s"], opal["rms_x"]**2/opal["emit_x"])
+plt.plot(opal["s"], opal["rms_y"]**2/opal["emit_y"])
+plt.savefig("beta.png", dpi = 300)
+plt.close()

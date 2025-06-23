@@ -1,0 +1,73 @@
+=== If no file names and line numbers are shown below, one can run
+            addr2line -Cfie my_exefile my_line_address
+    to convert `my_line_address` (e.g., 0x4a6b) into file name and line number.
+
+=== Please note that the line number reported by addr2line may not be accurate.
+    One can use
+            readelf -wl my_exefile | grep my_line_address'
+    to find out the offset for that line.
+
+ 0: opal() [0x4f6e076]
+
+ 1: opal() [0x4f6eed8]
+
+ 2: /lib64/libc.so.6(+0x4e5b0) [0x7f41c79875b0]
+
+ 3: /lib64/libpthread.so.0(fsync+0x37) [0x7f41cc0f3047]
+
+ 4: /opt/psi/Compiler/openmpi/4.1.5_slurm/gcc/10.4.0/lib64/libmpi.so.40(mca_fs_base_file_sync+0xb) [0x7f41cc680c2b]
+
+ 5: /opt/psi/Compiler/openmpi/4.1.5_slurm/gcc/10.4.0/lib64/libmpi.so.40(mca_io_ompio_file_sync+0x6c) [0x7f41cc6b983c]
+
+ 6: /opt/psi/Compiler/openmpi/4.1.5_slurm/gcc/10.4.0/lib64/libmpi.so.40(MPI_File_sync+0x61) [0x7f41cc5c2681]
+
+ 7: opal() [0x5341f8a]
+
+ 8: opal(H5FD_flush+0x81) [0x5190401]
+
+ 9: opal() [0x517afbe]
+
+10: opal(H5F__flush+0x60) [0x517da80]
+
+11: opal() [0x5182948]
+
+12: opal(H5F_flush_mounts+0x61) [0x5183e81]
+
+13: opal(H5Fflush+0x2bd) [0x5175f5d]
+
+14: /opt/psi/HDF5/H5hut/2.0.0rc6_slurm/hdf5/1.10.8_slurm/openmpi/4.1.5_slurm/gcc/10.4.0/lib64/libH5hut.so.2(+0x11596) [0x7f41cb54e596]
+
+15: /opt/psi/HDF5/H5hut/2.0.0rc6_slurm/hdf5/1.10.8_slurm/openmpi/4.1.5_slurm/gcc/10.4.0/lib64/libH5hut.so.2(h5_close_file+0x180) [0x7f41cb55062a]
+
+16: opal() [0xe6945c]
+
+17: opal() [0xea3573]
+
+18: opal() [0x8a0783]
+
+19: opal() [0x8a2d9c]
+
+20: opal() [0x8a897b]
+
+21: opal() [0x828652]
+
+22: opal() [0x6b0dcb]
+
+23: opal() [0x6b38f3]
+
+24: opal() [0x6b3e39]
+
+25: opal() [0x6b3c54]
+
+26: opal() [0x821bc9]
+
+27: opal() [0x6b0dcb]
+
+28: opal() [0x6b38f3]
+
+29: opal() [0x6b3e39]
+
+30: opal() [0x6b3c54]
+
+31: opal() [0x6b3b97]
+
