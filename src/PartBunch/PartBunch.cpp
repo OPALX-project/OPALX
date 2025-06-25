@@ -59,10 +59,9 @@ PartBunch<T, Dim>::PartBunch(double qi, double mi, size_t totalP, int nt, double
     rmin_m = origin_m;
     rmax_m = origin_m + length;
 
-    this->setFieldContainer( std::make_shared<FieldContainer_t>(hr_m, rmin_m, rmax_m, decomp_m, domain_m, origin_m, isAllPeriodic) );
+    this->setFieldContainer(std::make_shared<FieldContainer_t>(hr_m, rmin_m, rmax_m, decomp_m, domain_m, origin_m, isAllPeriodic) );
 
-    this->setParticleContainer(std::make_shared<ParticleContainer_t>(
-        this->fcontainer_m->getMesh(), this->fcontainer_m->getFL()));
+    this->setParticleContainer(std::make_shared<ParticleContainer_t>(this->fcontainer_m->getMesh(), this->fcontainer_m->getFL()));
 
     IpplTimings::stopTimer(gatherInfoPartBunch);
 
@@ -71,12 +70,16 @@ PartBunch<T, Dim>::PartBunch(double qi, double mi, size_t totalP, int nt, double
     setSolver(OPALFieldSolver_m->getType());
     IpplTimings::stopTimer(setSolverT);
 
-    static IpplTimings::TimerRef prerun = IpplTimings::getTimer("prerun");
+
+    /*    static IpplTimings::TimerRef prerun = IpplTimings::getTimer("prerun");
     IpplTimings::startTimer(prerun);
     pre_run();
     IpplTimings::stopTimer(prerun);
-
+    */
+    
     globalPartPerNode_m = std::make_unique<size_t[]>(ippl::Comm->size());
+
+    *gmsg << "PartBunch Constructor done " << endl;
 }
 
 template <typename T, unsigned Dim>
@@ -119,14 +122,13 @@ void PartBunch<T, Dim>::setSolver(std::string solver) {
 
     this->fcontainer_m->initializeFields(this->solver_m);
     
-    this->setFieldSolver(std::make_shared<FieldSolver_t>(
-                                                         this->solver_m, &this->fcontainer_m->getRho(), &this->fcontainer_m->getE(),
+    this->setFieldSolver(std::make_shared<FieldSolver_t>(this->solver_m, &this->fcontainer_m->getRho(), &this->fcontainer_m->getE(),
                                                          &this->fcontainer_m->getPhi()));
 
     this->fsolver_m->initSolver();
         
     /// ADA we need to be able to set a load balancer when not having a field solver
-    this->setLoadBalancer(std::make_shared<LoadBalancer_t>(this->lbt_m, this->fcontainer_m, this->pcontainer_m, this->fsolver_m));
+    //    this->setLoadBalancer(std::make_shared<LoadBalancer_t>(this->lbt_m, this->fcontainer_m, this->pcontainer_m, this->fsolver_m));
     
     *gmsg << "* Solver and Load Balancer set" << endl;
 }
@@ -416,7 +418,7 @@ void PartBunch<T, Dim>::bunchUpdate() {
     pc->update();
 
     this->isFirstRepartition_m = true;
-    this->loadbalancer_m->initializeORB(FL, mesh);
+    //this->loadbalancer_m->initializeORB(FL, mesh);
     //this->loadbalancer_m->repartition(FL, mesh, this->isFirstRepartition_m);
 
     this->updateMoments();

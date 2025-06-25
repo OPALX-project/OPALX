@@ -124,11 +124,18 @@ public:
     }
 
     void initializeFields(std::string stype_m = "") {
+
+        Inform m ("initializeFields ");
+        m << "mesh spacing = " << mesh_m.getMeshSpacing() << endl;
+        m << "origine      = " << mesh_m.getOrigin() << endl;
+        m << "FL           = " << fl_m <<	endl;
+
         E_m.initialize(mesh_m, fl_m);
         rho_m.initialize(mesh_m, fl_m);
         if (stype_m == "CG") {
             phi_m.initialize(mesh_m, fl_m);
         }
+
     }
 };
 
