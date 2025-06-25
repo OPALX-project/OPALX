@@ -12,6 +12,44 @@
 extern Inform* gmsg;
 
 template <>
+template <typename Solver>
+void  FieldSolver<double,3>::initSolverWithParams(const ippl::ParameterList& sp) {
+    Inform m ("initSolverWithParams ");
+    this->getSolver().template emplace<Solver>();
+    Solver& solver = std::get<Solver>(this->getSolver());
+    solver.mergeParameters(sp);
+    
+    if constexpr (std::is_same_v<Solver, CGSolver_t<T, Dim>>) {
+        // The CG solver computes the potential directly and
+        // uses this to get the electric field
+        m << "CG solver used " << endl;
+        solver.setLhs(*phi_m);
+        solver.setGradient(*E_m);
+    } else if constexpr (std::is_same_v<Solver, OpenSolver_t<T, Dim>>) {
+        // The periodic Poisson solver, Open boundaries solver,
+        // and the P3M solver compute the electric field directly
+        m << "OpenSolver used" << endl;
+        solver.setRhs(*rho_m);
+        solver.setLhs(*E_m);
+        solver.setGradFD();
+    } else if constexpr (std::is_same_v<Solver, FFTSolver_t<T, Dim>>) {
+        // The periodic Poisson solver
+        m << "FFTSolver used" << endl;
+        solver.setRhs(*rho_m);
+        solver.setLhs(*E_m);
+    } else if constexpr (std::is_same_v<Solver, NullSolver_t<T, Dim>>) {
+        m << "NullSolver used" << endl;
+        solver.setRhs(*rho_m);
+        solver.setLhs(*E_m);
+    }
+    
+    call_counter_m = 0;
+}
+
+
+
+
+template <>
 void FieldSolver<double,3>::dumpVectField(std::string what) {
     /*
       what == ef
@@ -245,16 +283,16 @@ void FieldSolver<double,3>::dumpScalField(std::string what) {
 
 template <>
 void FieldSolver<double,3>::initOpenSolver() {
-        ippl::ParameterList sp;
-        sp.add("output_type", OpenSolver_t<double, 3>::SOL_AND_GRAD);
-        sp.add("use_heffte_defaults", false);
-        sp.add("use_pencils", true);
-        sp.add("use_reorder", false);
-        sp.add("use_gpu_aware", true);
-        sp.add("comm", ippl::p2p_pl);
-        sp.add("r2c_direction", 0);
-        sp.add("algorithm", OpenSolver_t<double, 3>::HOCKNEY);
-        initSolverWithParams<OpenSolver_t<double, 3>>(sp);
+    ippl::ParameterList sp;
+    sp.add("output_type", OpenSolver_t<double, 3>::SOL_AND_GRAD);
+    sp.add("use_heffte_defaults", false);
+    sp.add("use_pencils", true);
+    sp.add("use_reorder", false);
+    sp.add("use_gpu_aware", true);
+    sp.add("comm", ippl::p2p_pl);
+    sp.add("r2c_direction", 0);
+    sp.add("algorithm", OpenSolver_t<double, 3>::HOCKNEY);
+    initSolverWithParams<OpenSolver_t<double, 3>>(sp);
 }
 
 template <>

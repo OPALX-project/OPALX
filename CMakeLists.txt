@@ -22,6 +22,8 @@ add_compile_options (-Wunused)
 add_compile_options (-Wextra)
 add_compile_options (-Wno-unused-parameter)
 add_compile_options (-Wno-error=unused-variable)
+add_compile_options (-Wno-overloaded-virtual)
+add_compile_options (-Wno-unused-but-set-variable)
 
 # allow deprecated functions
 add_compile_options (-Wno-deprecated-declarations)
@@ -34,7 +36,7 @@ message (STATUS "Build type is: " ${CMAKE_BUILD_TYPE})
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     message(STATUS "Using GCC")
     add_compile_options(-Wno-overloaded-virtual)
-
+    
 elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     message(STATUS "Using Clang")
     add_compile_options(-Wno-overloaded-virtual)
@@ -63,9 +65,10 @@ endif()
 set (CMAKE_CXX_STANDARD 20)
 set (CMAKE_CUDA_EXTENSIONS OFF)
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
-set (CMAKE_CXX_FLAGS_RELWITHDEBINFO "-g -O3")
-set (CMAKE_CXX_FLAGS_RELEASE "-g -O3 ")
-set (CMAKE_CXX_FLAGS_DEBUG  "-g -O0")
+set (CMAKE_CXX_FLAGS_RELWITHDEBINFO "-g -O1")
+set (CMAKE_CXX_FLAGS_RELEASE "-g -O1 ")
+set (CMAKE_CXX_FLAGS_DEBUG  "-g -O1")
+
 option(OPALX_ENABLE_SANITIZER "Enable sanitizer(s)" OFF)
 
 if ("${IPPL_PLATFORMS}" STREQUAL "CUDA")
