@@ -20,20 +20,32 @@ using Dist_t = ippl::random::NormalDistribution<double, 3>;
  * @class Gaussian Distribution
  * @brief Generating particles following a Gaussian distribution.
  *
- * This function samples particle positions R and momenta P given following normal distributions
- * a normal distribution
- * R ~ N ( [0, 0, 0     ], sdR)
- * P ~ N ( [0, 0, avrgpz], sdP)
- * where sdR = [SigmaR[0] 0         0
-                0         SigmaR[1] 0
-                0         0         SigmaR[2]]
+ * Here, we generate particle positions \\f$ \mathbf{R} \\f$ and momenta \\f$ \mathbf{P} \\f$
+ * that follow a Gaussian distribution of the form
+ * \\f[
+ * \mathbf{R} \sim \mathcal{N}(\begin{bmatrix}0 \\\\ 0 \\\\ 0\end{bmatrix}, \mathbf{\Sigma_R})
+ * \\\\ \text{and} \\\\
+ * \mathbf{P} \sim \mathcal{N}(\begin{bmatrix}0 \\\\ 0 \\\\ \text{avrgpz}\end{bmatrix}, \mathbf{\Sigma_P})
+ * \\f]
+ * where
+ * \\f[
+ * \mathbf{\Sigma_R} =
+ * \begin{bmatrix}
+ * \text{SigmaR}[0] & 0 & 0 \\\\
+ * 0 & \text{SigmaR}[1] & 0 \\\\
+ * 0 & 0 & \text{SigmaR}[2]
+ * \end{bmatrix}
+ * \\\\
+ * \mathbf{\Sigma_P} =
+ * \begin{bmatrix}
+ * \text{SigmaP}[0] & 0 & 0 \\\\
+ * 0 & \text{SigmaP}[1] & 0 \\\\
+ * 0 & 0 & \text{SigmaP}[2]
+ * \end{bmatrix}
+ * \\f]
  *
- * and sdP =    [SigmaP[0] 0         0
-                0          SigmaP[1] 0
-                0          0         SigmaP[2]].
- *
- * Here, R is sampled in a bounded domains R \in [-CutoffR*SigmaR, CutoffR*SigmaR]^3
- * and corrected by translation to ensure mean = [0,0,0].
+ * Here, \\f$ \mathbf{R} \\f$ is sampled in a bounded domains \\f$ R \in [-CutoffR*SigmaR, CutoffR*SigmaR]^3 \\f$
+ * and its mean is corrected by translation to ensure \\f$ E[\mathbf{R}] = [0,0,0]^T \\f$.
  *
  * @param numberOfParticles The total number of particles to generate.
  * @param nr The number of grid points in each dimension (not used here).
