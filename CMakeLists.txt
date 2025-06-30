@@ -69,7 +69,7 @@ set (CMAKE_CXX_FLAGS_DEBUG  "-g -O0")
 option(OPALX_ENABLE_SANITIZER "Enable sanitizer(s)" OFF)
 
 if ("${IPPL_PLATFORMS}" STREQUAL "CUDA")
-    set (CMAKE_CXX_FLAGS_DEBUG  "${CMAKE_CXX_FLAGS_DEBUG} -G -diag-suppress=611")
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wno-deprecated-gpu-targets")
 endif()
 
 message (STATUS "CMAKE_CXX_FLAGS_DEBUG: ${CMAKE_CXX_FLAGS_DEBUG}")
@@ -229,7 +229,7 @@ elseif (${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
     # as bounds checking and null pointer checks when dereferencing smart pointers
 
     if (${CMAKE_BUILD_TYPE} MATCHES "Debug")
-        add_compile_options(-Wp,-D_GLIBCXX_ASSERTIONS)
+        add_compile_options(-D_GLIBCXX_ASSERTIONS)
         if(OPALX_ENABLE_SANITIZER)
             add_compile_options(-fsanitize=address,undefined)
             add_link_options(-fsanitize=address,undefined)
