@@ -329,7 +329,7 @@ void FieldSolver<double,3>::runSolver() {
             }
         } else if (this->getStype() == "P3M") {
             if constexpr (Dim == 3) {
-                std::get<P3MSolver_t<double, 3>>(this->getSolver()).solve();
+                std::get<FFTTruncatedGreenSolver_t<double, 3>>(this->getSolver()).solve();
             }
         } else if (this->getStype() == "FFTOPEN") {
             if constexpr (Dim == 3) {
