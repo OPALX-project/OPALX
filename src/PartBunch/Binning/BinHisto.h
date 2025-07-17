@@ -8,25 +8,52 @@
 
 namespace ParticleBinning {
 
-    // Define a traits class for obtaining the device view type.
+    /**
+     * @brief Traits class to extract host and device view types from a given ViewType.
+     *
+     * This primary template is specialized based on the `UseDualView` boolean flag.
+     *
+     * @tparam UseDualView Flag indicating whether Kokkos::DualView is used.
+     * @tparam ViewType The original view type (e.g., Kokkos::View or Kokkos::DualView).
+     */
     template <bool UseDualView, typename ViewType>
     struct DeviceViewTraits;
 
-    // Specialization when UseDualView is true
+    /**
+     * @brief Specialization of DeviceViewTraits for when DualView is used.
+     */
     template <typename ViewType>
     struct DeviceViewTraits<true, ViewType> {
         using h_type = typename ViewType::t_host;
         using d_type = typename ViewType::t_dev;
     };
 
-    // Specialization when UseDualView is false
+    /**
+     * @brief Specialization of DeviceViewTraits for when DualView is not used.
+     */
     template <typename ViewType>
     struct DeviceViewTraits<false, ViewType> {
         using h_type = ViewType;
         using d_type = ViewType;
     };
 
-
+    /**
+     * @class Histogram
+     * @brief Template class providing adaptive particle histogram binning with support for Kokkos Views and DualViews.
+     *
+     * The Histogram class implements a flexible histogram for particle binning. It manages bin counts, bin widths, 
+     * and post-sums, supporting both uniform and adaptive binning (merging). All operations can be performed on the 
+     * host or device, as required. The class can be initialized as a Kokkos::DualView or a simple Kokkos::View, 
+     * should it be necessary to use the host/device views separately. In that case, one needs to make sure that the
+     * `sync()` and `modify_...` functions are called correctly to ensure that the data is synchronized. The synchronization
+     * is a wrapper around the Kokkos sync functions. More can be found in the `Kokkos::DualView` documentation.
+     *
+     * @tparam size_type Type used for counting (e.g., int, size_t).
+     * @tparam bin_index_type Type used for bin indices.
+     * @tparam value_type Type representing binning parameter.
+     * @tparam UseDualView If true, uses Kokkos::DualView for host/device sync; else, Kokkos::View.
+     * @tparam Properties Additional properties for Kokkos Views/DualViews (e.g. explicit memory spaces).
+     */
     template <typename size_type, typename bin_index_type, typename value_type, 
               bool UseDualView = false, class... Properties>
     class Histogram {
@@ -149,12 +176,25 @@ namespace ParticleBinning {
             }
         }
 
+        /**
+         * @brief Returns the current number of bins in the histogram.
+         */
         size_type getCurrentBinCount() const { return numBins_m; }
 
+        /**
+         * @brief Returns the Kokkos View containing the histogram bin counts.
+         */
         view_type getHistogram() { return histogram_m; }
 
+        /**
+         * @brief Returns the Kokkos View containing the post-sum of bin counts.
+         */
         view_type getPostSum() { return postSum_m; }      
         
+        /**
+         * @brief Returns the Kokkos View of bin widths in the current histogram configuration.
+         *        It will be an array of constant values if the histogram is uniform.
+         */
         width_view_type getBinWidths() const { return binWidths_m; }
 
         /**
