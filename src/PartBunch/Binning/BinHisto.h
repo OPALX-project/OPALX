@@ -136,20 +136,6 @@ namespace ParticleBinning {
         }
 
         /**
-         * @brief Initializes timers for various operations in the binning process.
-         *
-         * Timers initialized:
-         * - bDeviceSyncronizationT: Measures the time taken for device synchronization.
-         * - bHistogramInitT: Measures the time taken to initialize histograms.
-         * - bMergeBinsT: Measures the time taken to merge bins.
-         */
-        void initTimers() {
-            bDeviceSyncronizationT = IpplTimings::getTimer("bDeviceSyncronization");
-            bHistogramInitT        = IpplTimings::getTimer("bHistogramInit");
-            bMergeBinsT            = IpplTimings::getTimer("bMergeBins");
-        }
-
-        /**
          * @brief Retrieves the number of particles in a specified bin.
          *
          * This function returns the number of particles in the bin specified by the given index.
@@ -217,16 +203,6 @@ namespace ParticleBinning {
                 binWidths_m.sync_host();
                 IpplTimings::stopTimer(bDeviceSyncronizationT);
             }
-        }
-
-        
-        /**
-         * @brief Instantiates the histogram, bin widths, and post-sum views (Possibly DualView).
-         */
-        void instantiateHistograms() {
-            histogram_m = view_type("histogram", numBins_m);
-            binWidths_m = width_view_type("binWidths", numBins_m);
-            postSum_m   = view_type("postSum", numBins_m + 1);
         }
 
 
@@ -441,6 +417,7 @@ namespace ParticleBinning {
          */
         hindex_transform_type mergeBins();
 
+    private:
         /**
          * @brief Computes the cost function for adaptive binning in a histogram.
          *
@@ -494,6 +471,42 @@ namespace ParticleBinning {
             const value_type& sumWidth,
             const size_type& totalNumParticles
         );
+ 
+
+        /**
+         * @brief Initializes timers for various operations in the binning process.
+         *
+         * Timers initialized:
+         * - bDeviceSyncronizationT: Measures the time taken for device synchronization.
+         * - bHistogramInitT: Measures the time taken to initialize histograms.
+         * - bMergeBinsT: Measures the time taken to merge bins.
+         */
+        void initTimers() {
+            bDeviceSyncronizationT = IpplTimings::getTimer("bDeviceSyncronization");
+            bHistogramInitT        = IpplTimings::getTimer("bHistogramInit");
+            bMergeBinsT            = IpplTimings::getTimer("bMergeBins");
+        }
+
+        
+        /**
+         * @brief Instantiates the histogram, bin widths, and post-sum views (Possibly DualView).
+         */
+        void instantiateHistograms() {
+            histogram_m = view_type("histogram", numBins_m);
+            binWidths_m = width_view_type("binWidths", numBins_m);
+            postSum_m   = view_type("postSum", numBins_m + 1);
+        }
+
+        
+        /**
+         * @brief Copies the fields from another Histogram object.
+         *
+         * This function copies the internal fields from the provided Histogram object
+         * to the current object. The fields are copied using Kokkos' shallow copy.
+         *
+         * @param other The Histogram object from which to copy the fields.
+         */
+        void copyFields(const Histogram& other);
 
     private:
         std::string debug_name_m;    /// \brief Debug name for identifying the histogram instance.
@@ -511,16 +524,6 @@ namespace ParticleBinning {
         IpplTimings::TimerRef bDeviceSyncronizationT;
         IpplTimings::TimerRef bHistogramInitT;
         IpplTimings::TimerRef bMergeBinsT;
-
-        /**
-         * @brief Copies the fields from another Histogram object.
-         *
-         * This function copies the internal fields from the provided Histogram object
-         * to the current object. The fields are copied using Kokkos' shallow copy.
-         *
-         * @param other The Histogram object from which to copy the fields.
-         */
-        void copyFields(const Histogram& other);
 
 
     /*
