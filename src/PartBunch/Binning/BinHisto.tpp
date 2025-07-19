@@ -53,11 +53,21 @@ namespace ParticleBinning {
         value_type sparse_penalty = (sumCountNorm < desiredWidth_m) 
                                      ? desiredWidth_m / sumCountNorm 
                                      : 0.0;
-
+        
+        // Sanity checks
+        if (sumCountNorm <= 0 || sumCountNorm > 1) {
+            Inform err("mergeBins");
+            err << "Error in adaptiveBinningCostFunction: " 
+                << "sumCountNorm = " << sumCountNorm
+                << ", sumWidth = " << sumWidth
+                << ", totalNumParticles = " << totalNumParticles << endl;
+            ippl::Comm->abort();
+        }
+        
         return sumCountNorm*log(sumCountNorm)*sumWidth // minimize shannon entropy as a basis
                 + wideBinPenalty * pow(sumWidth, 2)    // >0 wants smallest possible bin
                                                        // <0 wants largest possible bin
-                                                       // Use ^3 to make it reasonably sensitive
+                                                       // Use ^2 to make it reasonably sensitive
                 + binSizeBias * pow(penalty, 2)        // bias towards desiredWidth
                 + sparse_penalty;                      // penalty for too few particles (specifically "distribution tails")
     }
