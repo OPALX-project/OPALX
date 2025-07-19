@@ -130,7 +130,14 @@ namespace ParticleBinning {
         // Kokkos::View<value_type*, Kokkos::HostSpace> dpMoment("dpMoment", n+1); // Store cumulative moments --> allow first order moment error estimation
         Kokkos::View<int*,        Kokkos::HostSpace> prevIdx("prevIdx", n+1);
 
-        // Initialize dp with something large
+        // Initialize dp with something large.
+        // Note that it is divided by 2 to prevent and overflow should sumCount==0 and dp(i)!=0 
+        // in the following dp loop (step 3). 
+        // Also: /2 is fine, since dp(i) should never be "largeValue". Since this can only happen
+        // for empty binning configurations. Since the first bin always contains a particle (binning
+        // is done between min/max values) and since the function is short circuited should there be
+        // less than 2 particles, we can assume that dp(i) will never remain "largeValue" (note: i<k
+        // in the dp loop!).
         value_type largeVal = std::numeric_limits<value_type>::max() / value_type(2);
         for (bin_index_type k = 0; k <= n; ++k) {
             dp(k)       = largeVal;
