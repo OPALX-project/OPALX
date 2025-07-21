@@ -48,8 +48,6 @@
 #include "Beamlines/Beamline.h"
 #include "Elements/OpalBeamline.h"
 
-#include "Distribution/SamplingBase.hpp" // TODO: added for binning flattop test
-
 #include <list>
 #include <memory>
 #include <tuple>
@@ -114,8 +112,6 @@ class ParallelTracker : public Tracker {
     std::set<ParticleMatterInteractionHandler*> activeParticleMatterInteractionHandlers_m;
     bool particleMatterStatus_m;
 
-    std::shared_ptr<SamplingBase> sampler_m; // TODO: added for flattop binning test
-
 public:
     typedef std::vector<double> dvector_t;
     typedef std::vector<int> ivector_t;
@@ -140,9 +136,7 @@ public:
     explicit ParallelTracker(
         const Beamline& bl, PartBunch_t* bunch, DataSink& ds, const PartData& data, bool revBeam,
         bool revTrack, const std::vector<unsigned long long>& maxSTEPS, double zstart,
-        const std::vector<double>& zstop, const std::vector<double>& dt,
-        std::shared_ptr<SamplingBase> sampler // TODO: added for flattop binning test
-    );
+        const std::vector<double>& zstop, const std::vector<double>& dt);
 
     virtual ~ParallelTracker();
 
@@ -409,11 +403,7 @@ inline void ParallelTracker::pushParticles(const BorisPusher& pusher) {
 
 
     itsBunch_m->switchOffUnitlessPositions(true);
-    
     itsBunch_m->getParticleContainer()->update();
-    //itsBunch_m->bunchUpdate(); // should call this, since bunchUpdate is more general and also calls update of the container!
-                                 // Does not work yet: bunchUpdate has some stuff that still might not compile...
-
     ippl::Comm->barrier();
 }
 

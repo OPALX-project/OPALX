@@ -79,15 +79,13 @@ ParallelTracker::ParallelTracker(
       fieldEvaluationTimer_m(IpplTimings::getTimer("External field eval")),
       PluginElemTimer_m(IpplTimings::getTimer("PluginElements")),
       BinRepartTimer_m(IpplTimings::getTimer("Binaryrepart")),
-      sampler_m(nullptr), // TODO: added for flattop binning test 
       OrbThreader_m(IpplTimings::getTimer("OrbThreader")) {
 }
 
 ParallelTracker::ParallelTracker(
     const Beamline& beamline, PartBunch_t* bunch, DataSink& ds, const PartData& reference,
     bool revBeam, bool revTrack, const std::vector<unsigned long long>& maxSteps, double zstart,
-    const std::vector<double>& zstop, const std::vector<double>& dt,
-    std::shared_ptr<SamplingBase> sampler // TODO: added for flattop binning test
+    const std::vector<double>& zstop, const std::vector<double>& dt
 )
     : Tracker(beamline, bunch, reference, revBeam, revTrack),
       itsDataSink_m(&ds),
@@ -107,7 +105,6 @@ ParallelTracker::ParallelTracker(
       timeIntegrationTimer2_m(IpplTimings::getTimer("TIntegration2")),
       fieldEvaluationTimer_m(IpplTimings::getTimer("External field eval")),
       BinRepartTimer_m(IpplTimings::getTimer("Binaryrepart")),
-      sampler_m(sampler), // TODO: again, added for flattop binning test
       OrbThreader_m(IpplTimings::getTimer("OrbThreader")) {
     
       for (unsigned int i = 0; i < zstop.size(); ++i) {
