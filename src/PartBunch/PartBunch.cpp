@@ -476,11 +476,11 @@ void PartBunch<T, Dim>::computeSelfFields() {
 
     /*
       particles have moved need to adjust grid
-      \todo does not work yet -- only use container update for testing!
+      \todo might not work -- can use container update for testing!
     */
-    std::shared_ptr<ParticleContainer_t> pc = this->getParticleContainer();
-    pc->update();
-    //this->bunchUpdate();
+    //std::shared_ptr<ParticleContainer_t> pc = this->getParticleContainer();
+    //pc->update();
+    this->bunchUpdate();
 
     /*
 
