@@ -73,7 +73,7 @@ ParallelTracker::ParallelTracker(
       minStepforReBin_m(-1),
       repartFreq_m(0),
       emissionSteps_m(std::numeric_limits<unsigned int>::max()),
-      numParticlesInSimulation_m(0), 
+      numParticlesInSimulation_m(0),
       timeIntegrationTimer1_m(IpplTimings::getTimer("TIntegration1")),
       timeIntegrationTimer2_m(IpplTimings::getTimer("TIntegration2")),
       fieldEvaluationTimer_m(IpplTimings::getTimer("External field eval")),
@@ -313,7 +313,7 @@ void ParallelTracker::execute() {
     OpalData::getInstance()->setGlobalPhaseShift(0.0);
 
     // the time step needs to be positive in the setup
-    itsBunch_m->setdT(itsBunch_m->getdT()); // itsBunch_m->getdT(), std::abs(1e-12)
+    itsBunch_m->setdT(std::abs(itsBunch_m->getdT()));
     dtCurrentTrack_m = itsBunch_m->getdT();
 
     if (OpalData::getInstance()->hasPriorTrack() || OpalData::getInstance()->inRestartRun()) {
@@ -382,7 +382,6 @@ void ParallelTracker::execute() {
     OPALTimer::Timer myt1;
     *gmsg << "* Track start at: " << myt1.time() << ", t= " << Util::getTimeString(time) << "; "
           << "zstart at: " << Util::getLengthString(pathLength_m) << endl;
-
     *gmsg << "* Executing ParallelTracker\n"
           << "* Initial dt = " << Util::getTimeString(itsBunch_m->getdT()) << "\n"
           << "* Max integration steps = " << stepSizes_m.getMaxSteps() << ", next step = " << step
@@ -391,66 +390,7 @@ void ParallelTracker::execute() {
 
     setOptionalVariables();
 
-    /**
-     * My own track function for testing!
-     */
-    {
-        using AdaptBins_t = typename PartBunch_t::AdaptBins_t;
-        using ParticleContainer_t = typename PartBunch_t::ParticleContainer_t;
-        std::shared_ptr<AdaptBins_t> bins = itsBunch_m->getBins();
-        std::shared_ptr<ParticleContainer_t> pc = itsBunch_m->getParticleContainer();
-
-        unsigned long long trackSteps = stepSizes_m.getNumSteps() + step;
-        dtCurrentTrack_m              = stepSizes_m.getdT();
-        changeDT(back_track);
-
-        for (; step < trackSteps; ++step) {
-            *gmsg << "* Step " << step << " of " << trackSteps << endl;
-            sampler_m->emitParticles(this->itsBunch_m->getT(), dtCurrentTrack_m);
-            // pc->P = pc->P + 1.0; // add some value to get some effect for testing.
-            // pc->R = pc->R + 1e-8; 
-            itsBunch_m->setCharge();
-            itsBunch_m->setMass();
-            setTime();
-            // itsBunch_m->bunchUpdate();
-            itsBunch_m->bunchUpdate();
-
-            //pc->P = pc->P - 0.5 * dtCurrentTrack_m * pc->E; // kick 1
-            //pc->R = pc->R + dtCurrentTrack_m * pc->P;       // drift
-            //itsBunch_m->bunchUpdate();
-
-            // do full rebin
-            //bins->doFullRebin(bins->getMaxBinCount());
-            //bins->print();
-            //bins->sortContainerByBin();
-            //bins->genAdaptiveHistogram();
-            //bins->print();
-
-            // Run binned solver
-            itsBunch_m->computeSelfFields();
-
-            // Do relativistic update myself...
-            pc->R = pc->R + dtCurrentTrack_m/2 * pc->P / sqrt(1 + dot(pc->P, pc->P)) * Physics::c;
-            itsBunch_m->bunchUpdate();
-            pc->P = pc->P + dtCurrentTrack_m * (Physics::c / pc->M) * (pc->Q*pc->E); //  + 0.2
-            //*gmsg << "* P = " << pc->P[0] << ", R = " << pc->R[0] << ", E = " << pc->E[0] << ", Q = " << pc->Q[0] << ", M = " << pc->M[0] << endl;
-            pc->R = pc->R + dtCurrentTrack_m/2 * pc->P / sqrt(1 + dot(pc->P, pc->P)) * Physics::c;
-            itsBunch_m->bunchUpdate(); 
-
-            //timeIntegration1(pusher); // use this to respect units...
-            //pc->update();
-            //itsBunch_m->bunchUpdate(); // only pc->update gives an semgentation fault (idk why...)
-            //timeIntegration2(pusher);
-            //itsBunch_m->bunchUpdate();
-
-            // pc->P = pc->P - 0.5 * dtCurrentTrack_m * pc->E;
-
-            itsBunch_m->incrementT();
-            itsBunch_m->incTrackSteps();
-        }
-    }
-
-    /*globalEOL_m        = false;
+    globalEOL_m        = false;
     wakeStatus_m       = false;
     deletedParticles_m = false;
     OpalData::getInstance()->setInPrepState(false);
@@ -464,15 +404,6 @@ void ParallelTracker::execute() {
         changeDT(back_track);
 
         for (; step < trackSteps; ++step) {
-            // At the beginning of a step test if new particles are supposed to be created.
-            // TODO: This might change later and ist just temporary for testing the flattop sampling
-            sampler_m->emitParticles(this->itsBunch_m->getT(), dtCurrentTrack_m);
-            itsBunch_m->getParticleContainer()->Q = itsBunch_m->getChargePerParticle();
-            itsBunch_m->getParticleContainer()->M = itsBunch_m->getMassPerParticle();
-            itsBunch_m->getParticleContainer()->update();
-
-            //std::cout << "R(0) = " << itsBunch_m->getParticleContainer()->R(0) << std::endl;
-
             Vector_t<double, 3> rmin(0.0), rmax(0.0);
             if (itsBunch_m->getTotalNum() > 0) {
                 itsBunch_m->get_bounds(rmin, rmax);
@@ -543,12 +474,11 @@ void ParallelTracker::execute() {
 
     *gmsg << "* Dump phase space of last step" << endl;
 
-    itsOpalBeamline_m.switchElementsOff(); */
+    itsOpalBeamline_m.switchElementsOff();
 
     OPALTimer::Timer myt3;
     *gmsg << endl << "* Done executing ParallelTracker at " << myt3.time() << endl << endl;
 }
-
     /*
     OpalData::getInstance()->setPriorTrack();
     */
@@ -641,16 +571,13 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
         
     itsBunch_m->calcBeamParameters();
 
+    // add some sanity check (for pmean = 0)
     Vector_t<double, 3> pmean = itsBunch_m->get_pmean();
     pmean = (dot(pmean, pmean) == 0) ? Vector_t<double, 3>(0, 0, 1) : pmean; // No rotation for zero momentum (e.g. beginning of simulation, no kick yet)
     Quaternion alignment = getQuaternion(pmean, Vector_t<double, 3>(0, 0, 1));
 
-    //std::cout << "alignment = " << alignment << std::endl;
-
     CoordinateSystemTrafo beamToReferenceCSTrafo(
         Vector_t<double, 3>(0, 0, pathLength_m), alignment.conjugate());
-
-    //std::cout << "org = " << beamToReferenceCSTrafo.getOrigin() << std::endl;
 
     CoordinateSystemTrafo referenceToBeamCSTrafo = beamToReferenceCSTrafo.inverted();
 
@@ -666,8 +593,6 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
     const matrix_t                rot = referenceToBeamCSTrafo.getRotationMatrix();
     const ippl::Vector<double, 3> org = referenceToBeamCSTrafo.getOrigin();
 
-    //std::cout << "org = " << referenceToBeamCSTrafo.getOrigin() << std::endl;
-
 
     typedef Kokkos::View<double**>  ViewMatrixType;
     ViewMatrixType Rot("Rot", 3, 3);
@@ -677,7 +602,6 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
     for ( int i = 0; i < 3; ++i ) {
         for ( int j = 0; j < 3; ++j ) {
             h_Rot( i, j ) = rot(i, j);
-            //std::cout << "rot(" << i << "," << j << ") = " << rot(i, j) << std::endl;
         }
     }
     
@@ -687,23 +611,19 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
     auto Eview  = itsBunch_m->getParticleContainer()->E.getView();
     auto Bview  = itsBunch_m->getParticleContainer()->B.getView();
 
-    //std::cout << "R(0) = " << itsBunch_m->getParticleContainer()->R(0) << std::endl;
-
     Kokkos::parallel_for(
-                         "referenceToBeamCSTrafo", itsBunch_m->getLocalNum(), // ippl::getRangePolicy(Rview)
-                         KOKKOS_LAMBDA(const int k) {
-                             ippl::Vector<double, 3> x = Rview(k); // (copies values anyways) ({Rview(k)[0],Rview(k)[1],Rview(k)[2]});
+                         "referenceToBeamCSTrafo", itsBunch_m->getLocalNum(), // ippl::getRangePolicy(Rview), // <-- cannot use that since view might have over allocation!!!
+                         KOKKOS_LAMBDA(const int k /* avoid using the same index twice! */) {
+                             ippl::Vector<double, 3> x = Rview(k);
                              x = x - org;
                              for ( int j = 0; j < 3; ++j ) {
                                  for ( int i = 0; i < 3; ++i ) {
-                                     Rview[k](j) = Rot(i,j) * x(i);
+                                     Rview(k)(j) = Rot(i,j) * x(i);
                                  }
                              }
                              Eview(k) = ippl::Vector<double, 3>(0.0);   // was done outside of the routine in the past
                              Bview(k) = ippl::Vector<double, 3>(0.0); 
                          });         
-
-    //std::cout << "R(0) = " << itsBunch_m->getParticleContainer()->R(0) << std::endl;
 
     itsBunch_m->boundp();
 
@@ -714,6 +634,7 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
     itsBunch_m->setGlobalMeanR(itsBunch_m->get_centroid());
 
     itsBunch_m->computeSelfFields();
+    std::cout << "Jup self fields done" << std::endl;
 
     /**
        \brief beam to referernce coordinate system transformation and field rotation  
@@ -727,24 +648,24 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
      */
     
     Kokkos::parallel_for(
-                         "CSTrafo:transformTo", ippl::getRangePolicy(Rview),
-                         KOKKOS_LAMBDA(const int i) {                           
-                             ippl::Vector<double, 3> x({Rview(i)[0],Rview(i)[1],Rview(i)[2]});
-                             ippl::Vector<double, 3> e({Eview(i)[0],Eview(i)[1],Eview(i)[2]});
-                             ippl::Vector<double, 3> b({Bview(i)[0],Bview(i)[1],Bview(i)[2]});
+                         "CSTrafo:transformTo", itsBunch_m->getLocalNum(), // ippl::getRangePolicy(Rview),
+                         KOKKOS_LAMBDA(const int k) {                           
+                             ippl::Vector<double, 3> x({Rview(k)[0],Rview(k)[1],Rview(k)[2]});
+                             ippl::Vector<double, 3> e({Eview(k)[0],Eview(k)[1],Eview(k)[2]});
+                             ippl::Vector<double, 3> b({Bview(k)[0],Bview(k)[1],Bview(k)[2]});
                              
                              // beamToReferenceCSTrafo.rotateTo
                              for ( int i = 0; i < 3; ++i ) {
                                  for ( int j = 0; j < 3; ++j ) {
-                                     Eview(i) = Rot(i,j) * e(i);
-                                     Bview(i) = Rot(i,j) * b(i);
+                                     Eview(k)(i) = Rot(i,j) * e(i);
+                                     Bview(k)(i) = Rot(i,j) * b(i);
                                  }
                              }
                              // beamToReferenceCSTrafo.transformTo
                              x = x + org;
                              for ( int j = 0; j < 3; ++j ) {
                                  for ( int i = 0; i < 3; ++i ) {
-                                     Rview(i) = Rot(j,i) * x(i);
+                                     Rview(k)(i) = Rot(j,i) * x(i);
                                  }
                              }
                          });         
