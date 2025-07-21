@@ -85,8 +85,7 @@ ParallelTracker::ParallelTracker(
 ParallelTracker::ParallelTracker(
     const Beamline& beamline, PartBunch_t* bunch, DataSink& ds, const PartData& reference,
     bool revBeam, bool revTrack, const std::vector<unsigned long long>& maxSteps, double zstart,
-    const std::vector<double>& zstop, const std::vector<double>& dt
-)
+    const std::vector<double>& zstop, const std::vector<double>& dt)
     : Tracker(beamline, bunch, reference, revBeam, revTrack),
       itsDataSink_m(&ds),
       itsOpalBeamline_m(beamline.getOrigin3D(), beamline.getInitialDirection()),
@@ -568,10 +567,7 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
         
     itsBunch_m->calcBeamParameters();
 
-    // add some sanity check (for pmean = 0)
-    Vector_t<double, 3> pmean = itsBunch_m->get_pmean();
-    pmean = (dot(pmean, pmean) == 0) ? Vector_t<double, 3>(0, 0, 1) : pmean; // No rotation for zero momentum (e.g. beginning of simulation, no kick yet)
-    Quaternion alignment = getQuaternion(pmean, Vector_t<double, 3>(0, 0, 1));
+    Quaternion alignment = getQuaternion(itsBunch_m->get_pmean(), Vector_t<double, 3>(0, 0, 1));
 
     CoordinateSystemTrafo beamToReferenceCSTrafo(
         Vector_t<double, 3>(0, 0, pathLength_m), alignment.conjugate());
@@ -609,17 +605,17 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
     auto Bview  = itsBunch_m->getParticleContainer()->B.getView();
 
     Kokkos::parallel_for(
-                         "referenceToBeamCSTrafo", itsBunch_m->getLocalNum(), // ippl::getRangePolicy(Rview), // <-- cannot use that since view might have over allocation!!!
-                         KOKKOS_LAMBDA(const int k /* avoid using the same index twice! */) {
-                             ippl::Vector<double, 3> x = Rview(k);
+                         "referenceToBeamCSTrafo", ippl::getRangePolicy(Rview),
+                         KOKKOS_LAMBDA(const int i) {
+                             ippl::Vector<double, 3> x({Rview(i)[0],Rview(i)[1],Rview(i)[2]});
                              x = x - org;
                              for ( int j = 0; j < 3; ++j ) {
                                  for ( int i = 0; i < 3; ++i ) {
-                                     Rview(k)(j) = Rot(i,j) * x(i);
+                                     Rview(j) = Rot(i,j) * x(i);
                                  }
                              }
-                             Eview(k) = ippl::Vector<double, 3>(0.0);   // was done outside of the routine in the past
-                             Bview(k) = ippl::Vector<double, 3>(0.0); 
+                             Eview(i) = ippl::Vector<double, 3>(0.0);   // was done outside of the routine in the past
+                             Bview(i) = ippl::Vector<double, 3>(0.0); 
                          });         
 
     itsBunch_m->boundp();
@@ -631,7 +627,6 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
     itsBunch_m->setGlobalMeanR(itsBunch_m->get_centroid());
 
     itsBunch_m->computeSelfFields();
-    std::cout << "Jup self fields done" << std::endl;
 
     /**
        \brief beam to referernce coordinate system transformation and field rotation  
@@ -645,24 +640,24 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
      */
     
     Kokkos::parallel_for(
-                         "CSTrafo:transformTo", itsBunch_m->getLocalNum(), // ippl::getRangePolicy(Rview),
-                         KOKKOS_LAMBDA(const int k) {                           
-                             ippl::Vector<double, 3> x({Rview(k)[0],Rview(k)[1],Rview(k)[2]});
-                             ippl::Vector<double, 3> e({Eview(k)[0],Eview(k)[1],Eview(k)[2]});
-                             ippl::Vector<double, 3> b({Bview(k)[0],Bview(k)[1],Bview(k)[2]});
+                         "CSTrafo:transformTo", ippl::getRangePolicy(Rview),
+                         KOKKOS_LAMBDA(const int i) {                           
+                             ippl::Vector<double, 3> x({Rview(i)[0],Rview(i)[1],Rview(i)[2]});
+                             ippl::Vector<double, 3> e({Eview(i)[0],Eview(i)[1],Eview(i)[2]});
+                             ippl::Vector<double, 3> b({Bview(i)[0],Bview(i)[1],Bview(i)[2]});
                              
                              // beamToReferenceCSTrafo.rotateTo
                              for ( int i = 0; i < 3; ++i ) {
                                  for ( int j = 0; j < 3; ++j ) {
-                                     Eview(k)(i) = Rot(i,j) * e(i);
-                                     Bview(k)(i) = Rot(i,j) * b(i);
+                                     Eview(i) = Rot(i,j) * e(i);
+                                     Bview(i) = Rot(i,j) * b(i);
                                  }
                              }
                              // beamToReferenceCSTrafo.transformTo
                              x = x + org;
                              for ( int j = 0; j < 3; ++j ) {
                                  for ( int i = 0; i < 3; ++i ) {
-                                     Rview(k)(i) = Rot(j,i) * x(i);
+                                     Rview(i) = Rot(j,i) * x(i);
                                  }
                              }
                          });         
