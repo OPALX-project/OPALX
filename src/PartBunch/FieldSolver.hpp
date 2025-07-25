@@ -53,44 +53,24 @@ public:
     void setPotentialBCs();
 
     void runSolver() override;
-    
+
     template <typename Solver>
-    void initSolverWithParams(const ippl::ParameterList& sp) {
-        this->getSolver().template emplace<Solver>();
-        Solver& solver = std::get<Solver>(this->getSolver());
-
-        solver.mergeParameters(sp);
-
-        solver.setRhs(*rho_m);
-
-        if constexpr (std::is_same_v<Solver, CGSolver_t<T, Dim>>) {
-            // The CG solver computes the potential directly and
-            // uses this to get the electric field
-            solver.setLhs(*phi_m);
-            solver.setGradient(*E_m);
-        } else if constexpr (std::is_same_v<Solver, OpenSolver_t<T, Dim>>) {
-            // The periodic Poisson solver, Open boundaries solver,
-            // and the P3M solver compute the electric field directly
-            solver.setLhs(*E_m);
-            solver.setGradFD();
-        }
-        call_counter_m = 0;
-    }
+    void initSolverWithParams(const ippl::ParameterList& sp);
 
     void initNullSolver();
-    
+
     void initFFTSolver() {
-    ippl::ParameterList sp;
-    sp.add("output_type", FFTSolver_t<double, 3>::GRAD);
-    sp.add("use_heffte_defaults", false);
-    sp.add("use_pencils", true);
-    sp.add("use_reorder", false);
-    sp.add("use_gpu_aware", true);
-    sp.add("comm", ippl::p2p_pl);
-    sp.add("r2c_direction", 0);
-    initSolverWithParams<FFTSolver_t<double, 3>>(sp);
+        ippl::ParameterList sp;
+        sp.add("output_type", FFTSolver_t<double, 3>::GRAD);
+        sp.add("use_heffte_defaults", false);
+        sp.add("use_pencils", true);
+        sp.add("use_reorder", false);
+        sp.add("use_gpu_aware", true);
+        sp.add("comm", ippl::p2p_pl);
+        sp.add("r2c_direction", 0);
+        initSolverWithParams<FFTSolver_t<double, 3>>(sp);
     }
-    
+
     void initCGSolver() { }
 
     void initP3MSolver() { }

@@ -31,7 +31,7 @@ PartBunch<T, Dim>::PartBunch(double qi, double mi, size_t totalP, int nt, double
     static IpplTimings::TimerRef gatherInfoPartBunch = IpplTimings::getTimer("gatherInfoPartBunch");
     IpplTimings::startTimer(gatherInfoPartBunch);
 
-    *gmsg << "PartBunch Constructor" << endl;
+    *gmsg << "* PartBunch Constructor:" << endl;
 
     //  get the needed information from OPAL FieldSolver command
 
@@ -137,9 +137,8 @@ void PartBunch<T, Dim>::setSolver(std::string solver) {
     this->setFieldSolver(std::make_shared<FieldSolver_t>(
                                                          this->solver_m, &this->fcontainer_m->getRho(), &this->fcontainer_m->getE(),
                                                          &this->fcontainer_m->getPhi()));
-
     this->fsolver_m->initSolver();
-        
+
     /// ADA we need to be able to set a load balancer when not having a field solver
     this->setLoadBalancer(std::make_shared<LoadBalancer_t>(this->lbt_m, this->fcontainer_m, this->pcontainer_m, this->fsolver_m));
     

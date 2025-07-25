@@ -39,7 +39,7 @@ FieldSolverCmd::FieldSolverCmd()
         FIELDSOLVER::SIZE, "FIELDSOLVER",
         "The \"FIELDSOLVER\" statement defines data for a the field solver") {
     itsAttr[FIELDSOLVER::TYPE] = Attributes::makePredefinedString(
-        "TYPE", "Name of the attached field solver.", {"NONE", "FFT", "CG ", "OPEN", "P3M"});
+        "TYPE", "Name of the attached field solver.", {"NONE", "FFT", "FFTPERIODIC", "CG ", "OPEN", "P3M"});
 
     itsAttr[FIELDSOLVER::NX] = Attributes::makeReal("NX", "Meshsize in x");
     itsAttr[FIELDSOLVER::NY] = Attributes::makeReal("NY", "Meshsize in y");
@@ -140,6 +140,7 @@ void FieldSolverCmd::setFieldSolverCmdType() {
     static const std::map<std::string, FieldSolverCmdType> stringType_s = {
         {"NONE", FieldSolverCmdType::NONE},
         {"FFT", FieldSolverCmdType::FFT},
+        {"FFTPERIODIC", FieldSolverCmdType::FFTPERIODIC},
     };
 
     fsName_m = getType();

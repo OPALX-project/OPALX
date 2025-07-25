@@ -27,7 +27,7 @@
 
 #include "Ippl.h"
 
-enum class FieldSolverCmdType : short { NONE = -1, FFT = 0 };
+enum class FieldSolverCmdType : short { NONE = -1, FFT = 0, FFTPERIODIC = 1 };
 
 // The attributes of class FieldSolverCmd.
 namespace FIELDSOLVER {
