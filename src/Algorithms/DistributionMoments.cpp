@@ -23,7 +23,7 @@
 
 #include "Utility/Inform.h"
 
-#include "AbstractObjects/OpalParticle.h"
+#include "Algorithms/OpalParticle.h"
 
 #include <gsl/gsl_histogram.h>
 

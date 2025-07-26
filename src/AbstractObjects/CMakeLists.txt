@@ -9,7 +9,7 @@ set (_SRCS
   Element.cpp
   Invalidator.cpp
   OpalData.cpp
-  OpalParticle.cpp
+  #OpalParticle.cpp
   Object.cpp
   ObjectFunction.cpp
   PlaceRep.cpp
@@ -39,7 +39,7 @@ set (HDRS
     ObjectFunction.h
     Object.h
     OpalData.h
-    OpalParticle.h
+    #OpalParticle.h
     PlaceRep.h
     RangeRep.h
     Table.h

@@ -20,6 +20,7 @@
 
 #include <cstddef>
 #include "OPALTypes.h"
+#include "Ippl.h"
 
 class OpalParticle {
 public:
