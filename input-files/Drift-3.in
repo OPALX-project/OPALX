@@ -17,14 +17,23 @@ Value,{OPALVERSION};
 // ----------------------------------------------------------------------------
 // Global Parameters
 REAL N                   = 64;
-REAL rf_freq             = 1.3e9;    // RF frequency. (Hz)
+REAL rf_freq             = 1.3e3;    // RF frequency. (Hz)
 REAL n_particles         = N*N*N;    // Number of particles in simulation.
 REAL beam_bunch_charge   = 1e-9;     // Charge of bunch. (C)
 
 // ----------------------------------------------------------------------------
+// Binning related parameters. 
+
+OPTION, MAXBINS=128;
+OPTION, DESIREDWIDTH=0.1; // A bias towards bin width 0.1
+OPTION, BINNINGALPHA=1.0; // [-1, 1], <0 will favor wider bins, >0 will favor smaller bins (0 is no penalty)
+OPTION, BINNINGBETA=1.5;  // [0, inf] determines how strong the bias towards WIDTH is 
+                          // (pick a very big number if you want to force "constant binning")
+// ----------------------------------------------------------------------------
+
 // Initial Momentum Calculation
 
-REAL Edes    = 0.01; //initial energy in GeV
+REAL Edes    = 1.4e-9; //initial energy in GeV
 REAL gamma   = (Edes+EMASS)/EMASS; 
 REAL beta    = sqrt(1-(1/gamma^2));
 REAL P0      = gamma*beta*EMASS;    //inital z momentum
@@ -43,7 +52,7 @@ FS1: Fieldsolver, NX=N, NY=N, NZ=N, TYPE=FFT, PARFFTX = true, PARFFTY = true, PA
                   BCFFTX=OPEN, BCFFTY=OPEN, BCFFTZ=OPEN,
                   BBOXINCR = 5, GREENSF = STANDARD;
 
-Dist1: DISTRIBUTION, TYPE= GAUSS, SIGMAX=1e-3, SIGMAY=1e-3, SIGMAZ=1e-3, SIGMAPX=1e-6, SIGMAPY=1e-6, SIGMAPZ=1e-6;
+Dist1: DISTRIBUTION, TYPE= GAUSS, SIGMAX=1e-3, SIGMAY=1e-3, SIGMAZ=1e-3, SIGMAPX=1e-6, SIGMAPY=1e-6, SIGMAPZ=0.6;
 
 
 TRACK, LINE = myLine, BEAM = BEAM1, MAXSTEPS = 10, DT = {1e-11}, ZSTOP=0.25; 
