@@ -63,7 +63,7 @@ void Monitor::accept(BeamlineVisitor& visitor) const {
 
 bool Monitor::apply(
     const size_t& i, const double& t, Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/) {
-    const Vector_t<double, 3>& R         = RefPartBunch_m->R[i];
+    /*const Vector_t<double, 3>& R         = RefPartBunch_m->R[i];
     const Vector_t<double, 3>& P         = RefPartBunch_m->P[i];
     const double& dt                     = RefPartBunch_m->dt[i];
     const Vector_t<double, 3> singleStep = Physics::c * dt * Util::getBeta(P);
@@ -76,14 +76,21 @@ bool Monitor::apply(
                 RefPartBunch_m->ID[i], R + frac * singleStep, P, t + frac * dt,
                 RefPartBunch_m->Q[i], RefPartBunch_m->M[i]));
         }
-    }
+    }*/
 
+    return false;
+}
+
+bool Monitor::apply(
+    const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
+    Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
+    // Linker error, also need the second implementation?
     return false;
 }
 
 void Monitor::driftToCorrectPositionAndSave(
     const Vector_t<double, 3>& refR, const Vector_t<double, 3>& refP) {
-    const double cdt                           = Physics::c * RefPartBunch_m->getdT();
+    /*const double cdt                           = Physics::c * RefPartBunch_m->getdT();
     const Vector_t<double, 3> driftPerTimeStep = cdt * Util::getBeta(refP);
     const double tau                           = -refR(2) / driftPerTimeStep(2);
     const CoordinateSystemTrafo update(
@@ -98,13 +105,13 @@ void Monitor::driftToCorrectPositionAndSave(
             * beta;  // the particles are half a step ahead relative to the reference particle
         particle.setR(refToLocalCSTrafo.transformTo(particle.getR()) + dS);
         lossDs_m->addParticle(particle);
-    }
+    }*/
 }
 
 bool Monitor::applyToReferenceParticle(
     const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
     Vector_t<double, 3>&, Vector_t<double, 3>&) {
-    if (!OpalData::getInstance()->isInPrepState()) {
+    /*if (!OpalData::getInstance()->isInPrepState()) {
         const double dt                      = RefPartBunch_m->getdT();
         const double cdt                     = Physics::c * dt;
         const Vector_t<double, 3> singleStep = cdt * Util::getBeta(P);
@@ -136,7 +143,7 @@ bool Monitor::applyToReferenceParticle(
 
             ++numPassages_m;
         }
-    }
+    }*/
     return false;
 }
 
@@ -159,11 +166,11 @@ void Monitor::initialise(PartBunch_t* bunch, double& startField, double& endFiel
 
         fs::path lossFileName = fs::path(filename_m + ".h5");
         if (fs::exists(lossFileName)) {
-            Ippl::Comm->barrier();
+            ippl::Comm->barrier();
             if (ippl::Comm->rank() == 0) {
                 fs::remove(lossFileName);
             }
-            Ippl::Comm->barrier();
+            ippl::Comm->barrier();
         }
     }
 
@@ -199,7 +206,7 @@ void Monitor::getDimensions(double& zBegin, double& zEnd) const {
 }
 
 ElementType Monitor::getType() const {
-    return ElementType::MONITOR;
+    return ElementType::ANY;
 }
 
 void Monitor::writeStatistics() {
