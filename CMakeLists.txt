@@ -127,6 +127,7 @@ FetchContent_Declare(ippl
 )
 
 # Make IPPL available
+set(IPPL_DYL ON CACHE BOOL "Build IPPL as shared library" FORCE)
 FetchContent_MakeAvailable(ippl)
 include_directories("${IPPL_SOURCE_DIR}/src")
 
