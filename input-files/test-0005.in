@@ -9,6 +9,17 @@ OPTION, STATDUMPFREQ    = 1;     // Beam Stats written every time step (stat).
 OPTION, BOUNDPDESTROYFQ = 10;    // Delete lost particles, if any out of 10 \sigma
 OPTION, AUTOPHASE       = 4;     // Autophase is on, and phase of max energy
                                  // gain will be found automatically for cavities.
+
+// ----------------------------------------------------------------------------
+// Binning related parameters. 
+
+OPTION, MAXBINS=128;
+OPTION, DESIREDWIDTH=0.1; // A bias towards bin width 0.1
+OPTION, BINNINGALPHA=1.0; // [-1, 1], <0 will favor wider bins, >0 will favor smaller bins (0 is no penalty)
+OPTION, BINNINGBETA=1.5;  // [0, inf] determines how strong the bias towards WIDTH is 
+                          // (pick a very big number if you want to force "constant binning")
+// ----------------------------------------------------------------------------
+
 OPTION, VERSION=10900;
 OPTION, SEED  = -1;
 
@@ -61,7 +72,7 @@ Dist1: DISTRIBUTION, TYPE= FLATTOP,
 
 myLine: Line = (D1,D2,D3,D4);
 
-TRACK, LINE = myLine, BEAM = BEAM1, MAXSTEPS = 1, DT = {1e-12}, ZSTOP=1.0; 
+TRACK, LINE = myLine, BEAM = BEAM1, MAXSTEPS = 50, DT = {3e-12}, ZSTOP=1.0; 
  RUN, METHOD = "PARALLEL", BEAM = BEAM1, FIELDSOLVER = FS1, DISTRIBUTION = Dist1;
 ENDTRACK;
 QUIT;

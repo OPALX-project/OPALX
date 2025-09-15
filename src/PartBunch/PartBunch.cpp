@@ -66,6 +66,21 @@ PartBunch<T, Dim>::PartBunch(double qi, double mi, size_t totalP, int nt, double
 
     IpplTimings::stopTimer(gatherInfoPartBunch);
 
+    // ---------------- binning setup ----------------
+    using bin_index_type = typename ParticleContainer_t::bin_index_type;
+    bin_index_type maxBins = Options::maxBins;
+    this->setBins(std::make_shared<AdaptBins_t>(
+        this->getParticleContainer(), 
+        BinningSelector_t(2), // TODO: hardcode z axis with coordinate selector at axis index 2
+        static_cast<bin_index_type>(maxBins),
+        Options::binningAlpha, Options::binningBeta, Options::desiredWidth // Cost function parameters
+    ));
+    this->getBins()->debug();
+
+    this->setTempEField(std::make_shared<VField_t<T, Dim>>(this->fcontainer_m->getE())); // user copy constructor
+    this->getTempEField()->initialize(this->fcontainer_m->getMesh(), this->fcontainer_m->getFL());
+    // -----------------------------------------------
+
     static IpplTimings::TimerRef setSolverT = IpplTimings::getTimer("setSolver");
     IpplTimings::startTimer(setSolverT);
     setSolver(OPALFieldSolver_m->getType());
@@ -133,49 +148,49 @@ void PartBunch<T, Dim>::setSolver(std::string solver) {
 
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::spaceChargeEFieldCheck(Vector_t<double, 3> efScale) {
- Inform msg("EParticleStats");
+    Inform msg("EParticleStats");
 
- auto pE_view   = this->pcontainer_m->E.getView();
- auto fphi_view = this->fcontainer_m->getPhi().getView();
+    auto pE_view   = this->pcontainer_m->E.getView();
+    auto fphi_view = this->fcontainer_m->getPhi().getView();
 
 
- 
- double avgphi        = 0.0;
- double avgE          = 0.0;
- double minEComponent = std::numeric_limits<T>::max();
- double maxEComponent = std::numeric_limits<T>::min();
- double minE          = std::numeric_limits<T>::max();
- double maxE          = std::numeric_limits<T>::min();
- double cc            = getCouplingConstant();
- 
- int myRank = ippl::Comm->rank();
+    
+    double avgphi        = 0.0;
+    double avgE          = 0.0;
+    double minEComponent = std::numeric_limits<T>::max();
+    double maxEComponent = std::numeric_limits<T>::min();
+    double minE          = std::numeric_limits<T>::max();
+    double maxE          = std::numeric_limits<T>::min();
+    double cc            = getCouplingConstant();
+    
+    int myRank = ippl::Comm->rank();
 
- Kokkos::parallel_reduce(
-                         "check e-field", this->getLocalNum(),
-                         KOKKOS_LAMBDA(const int i, double& loc_avgE, double& loc_minEComponent,
-                                       double& loc_maxEComponent, double& loc_minE, double& loc_maxE) {
-                             double EX    = pE_view[i][0]*cc;
-                             double EY    = pE_view[i][1]*cc;
-                             double EZ    = pE_view[i][2]*cc;
-
-                             double ENorm = Kokkos::sqrt(EX*EX + EY*EY + EZ*EZ);
+    Kokkos::parallel_reduce(
+                            "check e-field", this->getLocalNum(),
+                            KOKKOS_LAMBDA(const int i, double& loc_avgE, double& loc_minEComponent,
+                                        double& loc_maxEComponent, double& loc_minE, double& loc_maxE) {
+                                double EX    = pE_view[i][0]*cc;
+                                double EY    = pE_view[i][1]*cc;
+                                double EZ    = pE_view[i][2]*cc;
+                            
+                                double ENorm = Kokkos::sqrt(EX*EX + EY*EY + EZ*EZ);
                              
-                             loc_avgE += ENorm;
+                                loc_avgE += ENorm;
+   
+                                loc_minEComponent = EX < loc_minEComponent ? EX : loc_minEComponent;
+                                loc_minEComponent = EY < loc_minEComponent ? EY : loc_minEComponent;
+                                loc_minEComponent = EZ < loc_minEComponent ? EZ : loc_minEComponent;
+                                
+                                loc_maxEComponent = EX > loc_maxEComponent ? EX : loc_maxEComponent;
+                                loc_maxEComponent = EY > loc_maxEComponent ? EY : loc_maxEComponent;
+                                loc_maxEComponent = EZ > loc_maxEComponent ? EZ : loc_maxEComponent;   
 
-                             loc_minEComponent = EX < loc_minEComponent ? EX : loc_minEComponent;
-                             loc_minEComponent = EY < loc_minEComponent ? EY : loc_minEComponent;
-                             loc_minEComponent = EZ < loc_minEComponent ? EZ : loc_minEComponent;
-                             
-                             loc_maxEComponent = EX > loc_maxEComponent ? EX : loc_maxEComponent;
-                             loc_maxEComponent = EY > loc_maxEComponent ? EY : loc_maxEComponent;
-                             loc_maxEComponent = EZ > loc_maxEComponent ? EZ : loc_maxEComponent;
-
-                             loc_minE = ENorm < loc_minE ? ENorm : loc_minE;
-                             loc_maxE = ENorm > loc_maxE ? ENorm : loc_maxE;
-                         },
-                         Kokkos::Sum<T>(avgE), Kokkos::Min<T>(minEComponent),
-                         Kokkos::Max<T>(maxEComponent), Kokkos::Min<T>(minE),
-                         Kokkos::Max<T>(maxE));
+                                loc_minE = ENorm < loc_minE ? ENorm : loc_minE;
+                                loc_maxE = ENorm > loc_maxE ? ENorm : loc_maxE;
+                            },
+                            Kokkos::Sum<T>(avgE), Kokkos::Min<T>(minEComponent),
+                            Kokkos::Max<T>(maxEComponent), Kokkos::Min<T>(minE),
+                            Kokkos::Max<T>(maxE));
 
   if (this->getLocalNum() == 0) {
      minEComponent = maxEComponent = minE = maxE = avgE = 0.0;
@@ -423,6 +438,23 @@ void PartBunch<T, Dim>::bunchUpdate() {
 
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::computeSelfFields() {
+    static IpplTimings::TimerRef completeBinningT = IpplTimings::getTimer("bTotalBinningT");
+
+    // Start binning and sorting by bins
+    std::shared_ptr<AdaptBins_t> bins = this->getBins();
+    VField_t<double, 3>& Etmp = *(this->getTempEField());
+
+    IpplTimings::startTimer(completeBinningT);
+    bins->doFullRebin(bins->getMaxBinCount()); // rebin with 128 bins // bins->getMaxBinCount()
+    bins->print(); // For debugging...
+    bins->sortContainerByBin(); // Sort BEFORE, since it generates less atomics overhead with more bins!
+
+    
+    bins->genAdaptiveHistogram(); // merge bins with width/N_part ratio of 1.0
+    IpplTimings::stopTimer(completeBinningT);
+
+    bins->print(); // For debugging...
+
 
     static IpplTimings::TimerRef SolveTimer = IpplTimings::getTimer("SolveTimer");
     IpplTimings::startTimer(SolveTimer);
@@ -443,15 +475,19 @@ void PartBunch<T, Dim>::computeSelfFields() {
 
     /*
       particles have moved need to adjust grid
+      \todo might not work -- can use container update for testing!
     */
-    
+    //std::shared_ptr<ParticleContainer_t> pc = this->getParticleContainer();
+    //pc->update();
     this->bunchUpdate();
-    
+
     /*
 
      scatterCIC start
 
     */
+
+    /// \todo Add binned field solver here (needs iteration over bins, scatterPerBin calls and Etmp build up)! See https://gitlab.psi.ch/OPAL/opal-x/src/-/blame/binnedFieldSolver/src/PartBunch/PartBunch.cpp?ref_type=heads#L376
 
 
     ippl::ParticleAttrib<T>* Q               = &this->pcontainer_m->Q;
@@ -460,7 +496,7 @@ void PartBunch<T, Dim>::computeSelfFields() {
     this->fcontainer_m->getRho()             = 0.0;
     Field_t<Dim>* rho                        = &this->fcontainer_m->getRho();
 
-    scatter(*Q, *rho, *R);
+    scatter(*Q, *rho, *R); /// \todo replace with scatterCIC? --> later with scatterPerBin!
 
 #ifdef doDEBUG
     const double qtot                        = this->qi_m * this->getTotalNum();
@@ -503,38 +539,54 @@ void PartBunch<T, Dim>::computeSelfFields() {
     spaceChargeEFieldCheck(efScale);
     */
 
-    IpplTimings::stopTimer(SolveTimer);
+    //IpplTimings::stopTimer(SolveTimer);
 }
 
 template <typename T, unsigned Dim>
-void PartBunch<T, Dim>::scatterCIC() {
+void PartBunch<T,Dim>::scatterCICPerBin(PartBunch<T,Dim>::binIndex_t binIndex) {
+    /**
+     * Scatters only particles in bin binIndex. Scatters all particles if binIndex=-1
+     */
+    Inform m("scatterCICPerBin");
+    m << "Scattering binIndex = " << binIndex << " to grid." << endl;
 
-    Inform m("scatterCIC ");
+    this->fcontainer_m->getRho() = 0.0;
 
     ippl::ParticleAttrib<T>* q               = &this->pcontainer_m->Q;
     typename Base::particle_position_type* R = &this->pcontainer_m->R;
-
-    this->fcontainer_m->getRho()             = 0.0;
     Field_t<Dim>* rho                        = &this->fcontainer_m->getRho();
-
-    double Q                                 = this->qi_m * this->getTotalNum();
+    
+    double Q;
     Vector_t<double, 3> rmin                 = rmin_m;
     Vector_t<double, 3> rmax                 = rmax_m;
     Vector_t<double, 3> hr                   = hr_m;
 
-    scatter(*q, *rho, *R);
+    if (binIndex == -1) {
+        // Use original scatterCIC logic for all particles
+        Q = this->qi_m * this->getTotalNum();
+        scatter(*q, *rho, *R);
+    } else {
+        // Use per-bin scattering logic
+        Q = this->qi_m * this->bins_m->getNPartInBin(binIndex, true);
+        scatter(*q, *rho, *R, this->bins_m->getBinIterationPolicy(binIndex), this->bins_m->getHashArray());
+    }
 
+    m << "gammz= " << this->pcontainer_m->getMeanP()[2] << endl;
+    
 #ifdef doDEBUG
     double relError = std::fabs((Q - (*rho).sum()) / Q);
     size_type TotalParticles = 0;
     size_type localParticles = this->pcontainer_m->getLocalNum();
+    size_type totalP_check = (binIndex == -1) ? totalP_m : this->pcontainer_m->getTotalNum();
 
+    m << "computeSelfFields sum rho = " << (*rho).sum() << ", relError = " << relError << endl;
+    
     ippl::Comm->reduce(localParticles, TotalParticles, 1, std::plus<size_type>());
 
     if (ippl::Comm->rank() == 0) {
-        if (TotalParticles != totalP_m || relError > 1e-10) {
+        if (TotalParticles != totalP_check || relError > 1e-10) {
             m << "Time step: " << it_m << endl;
-            m << "Total particles in the sim. " << totalP_m << " "
+            m << "Total particles in the sim. " << totalP_check << " "
               << "after update: " << TotalParticles << endl;
             m << "Rel. error in charge conservation: " << relError << endl;
             ippl::Comm->abort();
@@ -546,9 +598,8 @@ void PartBunch<T, Dim>::scatterCIC() {
         
     m << "cellVolume= " << cellVolume << endl;
 
-    (*rho)            = (*rho) / cellVolume;
+    (*rho) = (*rho) / cellVolume;
 
-    // double rhoNorm = norm(*rho);
     // rho = rho_e - rho_i (only if periodic BCs)
     if (this->fsolver_m->getStype() != "OPEN") {
         double size = 1;
