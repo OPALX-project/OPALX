@@ -63,6 +63,9 @@ diagnostics(): calculate statistics and maybe write tp h5 and stat files
 
 #include "Algorithms/PartData.h"
 
+#include "Utilities/Options.h" // Needed to define binning parameters!
+#include "PartBunch/Binning/AdaptBins.h" // TODO: binning
+
 
 extern Inform* gmsg;
 
@@ -83,6 +86,10 @@ public:
     using FieldSolver_t       = FieldSolver<T, Dim>;
     using LoadBalancer_t      = LoadBalancer<T, Dim>;
     using Base                = ippl::ParticleBase<ippl::ParticleSpatialLayout<T, Dim>>;
+
+    using BinningSelector_t   = typename ParticleBinning::CoordinateSelector<ParticleContainer_t>;
+    using AdaptBins_t         = typename ParticleBinning::AdaptBins<ParticleContainer_t, BinningSelector_t>;
+    using binIndex_t          = typename ParticleContainer_t::bin_index_type;
 
     double time_m;
 
@@ -171,7 +178,8 @@ private:
     // FIXME: this should go into the Bin class!
     //  holds number of emitted particles of the bin
     //  jjyang: opal-cycl use *nBin_m of pbin_m
-    std::unique_ptr<size_t[]> binemitted_m;
+    //std::unique_ptr<size_t[]> binemitted_m; // liemen_a: TODO remove!
+    std::shared_ptr<AdaptBins_t> bins_m; // added by liemen_a for AdaptBins class!
 
     /// steps per turn for OPAL-cycl
     int stepsPerTurn_m;
@@ -221,6 +229,9 @@ private:
     bool dcBeam_m;
     double periodLength_m;
 
+    /// Temporary E field container used to store temporary E field during binned solver
+    std::shared_ptr<VField_t<T, Dim>> Etmp_m;
+
 public:
 
     PartBunch(double qi, double mi, size_t totalP, int nt, double lbt, std::string integration_method,
@@ -243,6 +254,13 @@ public:
     void pre_run() override ;
 
 public:
+    std::shared_ptr<VField_t<T, Dim>> getTempEField() { return this->Etmp_m; }
+    void setTempEField(std::shared_ptr<VField_t<T, Dim>> Etmp) { this->Etmp_m = Etmp; }
+
+    std::shared_ptr<AdaptBins_t> getBins() { return bins_m; } // TODO: Binning
+    
+    void setBins(std::shared_ptr<AdaptBins_t> bins) { bins_m = bins; } // TODO: Binning
+
     void updateMoments(){
         this->pcontainer_m->updateMoments();
     }
@@ -289,7 +307,11 @@ public:
 
     void gatherCIC();
 
-    void scatterCIC();
+    void scatterCIC() {
+        scatterCICPerBin(-1);
+    } 
+
+    void scatterCICPerBin(binIndex_t binIndex);
 
     /*
       Up to here it is like the opaltest

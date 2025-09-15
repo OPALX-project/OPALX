@@ -19,6 +19,10 @@ class ParticleContainer : public ippl::ParticleBase<ippl::ParticleSpatialLayout<
     using Base = ippl::ParticleBase<ippl::ParticleSpatialLayout<T, Dim>>;
 
 public:
+    /// Defines which type to use as a particle bin.
+    using bin_index_type = short int;  // Needed in AdaptBins class
+
+public:
     /// charge in [Cb]
     ippl::ParticleAttrib<double> Q;
 
@@ -32,7 +36,7 @@ public:
     ippl::ParticleAttrib<double> Phi;
 
     /// the energy bin the particle is in
-    ippl::ParticleAttrib<short int> Bin;
+    ippl::ParticleAttrib<bin_index_type> Bin;
 
     /// the particle specis
     ippl::ParticleAttrib<short> Sp;
@@ -44,7 +48,7 @@ public:
     typename Base::particle_position_type E;
 
     /// electric field for gun simulation with bins
-    typename Base::particle_position_type Etmp;
+    //typename Base::particle_position_type Etmp; // TODO: might not need this...
 
     /// magnetic field at particle position
     typename Base::particle_position_type B;
@@ -68,7 +72,7 @@ public:
         this->addAttribute(Sp);
         this->addAttribute(P);
         this->addAttribute(E);
-        this->addAttribute(Etmp);
+        //this->addAttribute(Etmp);
         this->addAttribute(B);
     }
 
@@ -82,6 +86,8 @@ public:
 
     void updateMoments(){
         size_t Np = this->getTotalNum();
+        Np = (Np == 0) ? 1 : Np; // only used for normalization in the moments class --> avoid division by zero
+
         size_t Nlocal = this->getLocalNum();
         distMoments_m.computeMoments(this->R.getView(), this->P.getView(), this->M.getView(), Np, Nlocal);
     }
@@ -177,6 +183,8 @@ public:
 
     double computeDebyeLength(double density){
         size_t Np = this->getTotalNum();
+        Np = (Np == 0) ? 1 : Np; // only used for normalization in the moments class --> avoid division by zero
+
         size_t Nlocal = this->getLocalNum();
         distMoments_m.computeDebyeLength(this->R.getView(), this->P.getView(), Np, Nlocal, density);
         return distMoments_m.getDebyeLength();
