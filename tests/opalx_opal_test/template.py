@@ -183,9 +183,10 @@ def get_slurm_string(executable, filename, threads = "1"):
 #SBATCH --partition=hourly      # Using 'hourly' will grant higher priority
 #SBATCH --nodes=1               # No. of nodes
 #SBATCH --ntasks-per-node=1     # No. of MPI ranks per node. Merlin CPU nodes have 44 cores
+#SBATCH --ntasks=1
 #SBATCH --cpus-per-task={threads}      # No. of OMP threads
 #SBATCH --time=01:00:00         # Define max time job will run (e.g. here 5 mins)
-#SBATCH --hint=nomultithread    # Without hyperthreading
+#SBATCH --hint=multithread    # Without hyperthreading
 ##SBATCH --exclusive            # The allocations will be exclusive if turned on (remove extra hashtag to turn on)
 
 #SBATCH --output={filename}.out  # Name of output file
