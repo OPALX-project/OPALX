@@ -5,7 +5,7 @@ import subprocess
 ROOT_FOLDER = "out"
 SLURM_FILE_NAME = "run.slurm"
 INPUT_FILE = "template.in"
-OPALX_EXECUTABLE_FILE = "/data/user/binder_j/opalx-elements/build/src/opalx"
+OPALX_EXECUTABLE_FILE = "/data/user/binder_j/opalx/build/src/opalx"
 
 # beatiful colors
 def color(r, g, b, background = False):

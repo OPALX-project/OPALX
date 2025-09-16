@@ -1,7 +1,7 @@
 # import opal dataset
 import sys
 sys.path.append('/psi/home/adelmann/git/pyOPALTools')
-from opal import load_dataset
+from opal_load_stat import load_dataset
 
 import numpy as np
 import os
@@ -19,7 +19,7 @@ all_folders = os.listdir(ROOT_FOLDER)
 REFERENCE_FOLDER = "n1t1" # single thread should be the "ref" solution
 all_folders = list(filter(lambda x : x != REFERENCE_FOLDER, all_folders))
 
-REFERENCE_SOLUTION = load_dataset(os.path.join(ROOT_FOLDER, REFERENCE_FOLDER), fname="template.stat").dataframe
+REFERENCE_SOLUTION = load_dataset(os.path.join(ROOT_FOLDER, REFERENCE_FOLDER, "template.stat"))
 
 failed_col = []
 

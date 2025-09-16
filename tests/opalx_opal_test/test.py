@@ -2,8 +2,8 @@ import subprocess
 import time
 
 import sys
-sys.path.append('/psi/home/adelmann/git/pyOPALTools')
-from opal import load_dataset
+
+from opal_load_stat import load_dataset
 
 import numpy as np
 import pandas as pd
@@ -32,15 +32,15 @@ WHITE = "\033[0m"
 BOLD="\033[1m"
 RESET="\033[0m"
 
-OPALX_EXECUTABLE_FILE = "/data/user/binder_j/opalx-elements/build_rel/src/opalx"
+OPALX_EXECUTABLE_FILE = "/data/user/binder_j/opalx/build/src/opalx"
 AMOUNT_THREADS = "16"
 
 # define the parameters
 parameters = {
     "run1" : {
-        "amount" : "1e7",
-        "avg" : 10,
-        "ref" : "ref-33step.stat"
+        "amount" : "1e5",
+        "avg" : 5,
+        "ref" : "ref.stat"
     }
 }
 
@@ -137,11 +137,11 @@ def merge_data(run_name):
 
     # first load in the first data set as a reference for the cols
     filename = f"{key}-{param['amount']}-{0}.stat"
-    data = load_dataset("opalx", fname=filename).dataframe
+    data = load_dataset(f"opalx/{filename}")
     # start from 1 instead of 0
     for i in range(1, number_of_run):
         filename = f"{key}-{param['amount']}-{i}.stat"
-        data += load_dataset("opalx", fname=filename).dataframe
+        data += load_dataset(f"opalx/{filename}")
     print(f"Merged {BLUE}{key}-{param['amount']}-xxx.stat{WHITE}")
 
     # at the end divide by the amount of run
@@ -150,11 +150,11 @@ def merge_data(run_name):
     # now do the same for the multithreaded one
     # first load in the first data set as a reference for the cols
     filename = f"{MULTI_THREAD_PREFIX}{key}-{param['amount']}-{0}.stat"
-    multidata = load_dataset("opalx", fname=filename).dataframe
+    multidata = load_dataset(f"opalx/{filename}")
     # start from 1 instead of 0
     for i in range(1, number_of_run):
         filename = f"{MULTI_THREAD_PREFIX}{key}-{param['amount']}-{i}.stat"
-        multidata += load_dataset("opalx", fname=filename).dataframe
+        multidata += load_dataset(f"opalx/{filename}")
     print(f"Merged {BLUE}{MULTI_THREAD_PREFIX}{key}-{param['amount']}-xxx.stat{WHITE}")
 
     # at the end divide by the amount of run
@@ -166,7 +166,7 @@ def merge_data(run_name):
 def compare_data(run_name):
     data, multi_data = merge_data(run_name)
     # load in reference
-    reference_data = load_dataset("reference", fname=parameters[run_name]["ref"]).dataframe
+    reference_data = load_dataset(f"reference/{parameters[run_name]["ref"]}")
 
     print(f"Comparing single threaded data")
     compare(data, reference_data)
@@ -224,7 +224,7 @@ def watch(filename, steps):
             time.sleep(3)
             continue
 
-        opalxstat = load_dataset('opalx', fname=opalx_filename).dataframe
+        opalxstat = load_dataset(f"opalx/{opalx_filename}")
         if len(opalxstat["t"]) == steps:
             break
         time.sleep(3)
@@ -250,7 +250,7 @@ if __name__ == "__main__":
         for (key, param) in parameters.items():
             # get the amount of steps from the reference
             opal_filename  = param["ref"]
-            opalstat = load_dataset('reference', fname=opal_filename).dataframe
+            opalstat = load_dataset(f'reference/{opal_filename}')
             steps = len(opalstat["t"])
             parameters[key]["steps"] = steps
             
