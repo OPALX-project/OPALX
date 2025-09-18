@@ -180,22 +180,32 @@ Quit;
 
 def get_slurm_string(executable, filename, threads = "1"):
     return f"""#!/bin/bash
+#SBATCH --job-name=opalx-{filename}
+#SBATCH --cluster=merlin7
 #SBATCH --partition=hourly      # Using 'hourly' will grant higher priority
 #SBATCH --nodes=1               # No. of nodes
-#SBATCH --ntasks-per-node=1     # No. of MPI ranks per node. Merlin CPU nodes have 44 cores
-#SBATCH --ntasks=1
-#SBATCH --cpus-per-task={threads}      # No. of OMP threads
+#SBATCH --ntasks={threads}
+#SBATCH --cpus-per-task=1      # No. of OMP threads
 #SBATCH --time=01:00:00         # Define max time job will run (e.g. here 5 mins)
 #SBATCH --hint=multithread    # Without hyperthreading
-##SBATCH --exclusive            # The allocations will be exclusive if turned on (remove extra hashtag to turn on)
 
 #SBATCH --output={filename}.out  # Name of output file
 #SBATCH --error={filename}.err    # Name of error file
 
-export OMP_NUM_THREADS={threads}
-export OMP_PROC_BIND=spread
-export OMP_PLACES=threads
-
-
-srun --cpus-per-task={threads} {executable} {filename} --info 10
+module purge
+module use unstable
+module load cmake/3.25.2
+module load gcc/10.3.0       
+module load openmpi/4.0.5
+module load fftw/3.3.10
+module load hdf5/1.10.7
+module load H5hut/2.0.0rc6
+module load boost/1.76.0
+module load gtest/1.11.0
+module load gnutls/3.7.10
+module load gsl/2.7
+module load cuda/12.9.1
+module load Python/3.9.10
+module load pmix/5.0.8
+srun --mpi=pmix {executable} {filename} --info 10
 """
