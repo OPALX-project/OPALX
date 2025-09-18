@@ -11,7 +11,7 @@ Title, string="Solenoid-1 test";
 //Global Parameters
 
 REAL rf_freq             = 1.3e3;     //RF frequency. (Hz)
-REAL n_particles         = 1e5;      //Number of particles in simulation.
+REAL n_particles         = 1e6;      //Number of particles in simulation.
 REAL beam_bunch_charge   = 1e-9;      //Charge of bunch. (C)
 
 //Initial Momentum Calculation
@@ -56,7 +56,7 @@ Dist: DISTRIBUTION, TYPE = GAUSS,
 // for most efficient space charge calculation.
 
 FS1: Fieldsolver, Type=NONE,
-            NX = 16, NY = 16, NZ = 16, // SC grid size is 32^3
+            NX = 256, NY = 256, NZ = 256, // SC grid size is 32^3
             PARFFTX = false,
             PARFFTY = false,
             PARFFTZ = true,  // parallel in the z direction only
