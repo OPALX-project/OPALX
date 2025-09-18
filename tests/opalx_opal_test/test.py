@@ -32,14 +32,14 @@ WHITE = "\033[0m"
 BOLD="\033[1m"
 RESET="\033[0m"
 
-OPALX_EXECUTABLE_FILE = "/data/user/binder_j/opalx/build/src/opalx"
+OPALX_EXECUTABLE_FILE = "/data/user/binder_j/bin/opalx-elements/build2/src/opalx"
 AMOUNT_THREADS = "16"
 
 # define the parameters
 parameters = {
     "run1" : {
-        "amount" : "1e5",
-        "avg" : 5,
+        "amount" : "1e6",
+        "avg" : 10,
         "ref" : "ref.stat"
     }
 }
@@ -166,7 +166,7 @@ def merge_data(run_name):
 def compare_data(run_name):
     data, multi_data = merge_data(run_name)
     # load in reference
-    reference_data = load_dataset(f"reference/{parameters[run_name]["ref"]}")
+    reference_data = load_dataset(f"reference/{parameters[run_name]['ref']}")
 
     print(f"Comparing single threaded data")
     compare(data, reference_data)
