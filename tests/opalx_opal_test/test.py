@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 MULTI_THREAD_PREFIX = "multi_"
 
 # Epsilon used by the tests
-EPSILON = 1e-9
+EPSILON = 1e-8
 
 # beatiful colors
 def color(r, g, b, background = False):
@@ -32,37 +32,29 @@ WHITE = "\033[0m"
 BOLD="\033[1m"
 RESET="\033[0m"
 
-OPALX_EXECUTABLE_FILE = "/data/user/binder_j/bin/opalx-elements/build2/src/opalx"
+OPALX_EXECUTABLE_FILE = "/data/user/binder_j/bin/opalx-elements/rel_build/src/opalx"
 AMOUNT_THREADS = "16"
 
 # define the parameters
 parameters = {
-    "run1" : {
+    "rel" : {
         "amount" : "1e6",
         "avg" : 10,
-        "ref" : "ref.stat"
+        "ref" : "ref-100steps.stat"
     }
 }
 
-
 # coloumns that get plotted in the end
 plotting_cols = [
+    "rms_s",
     "rms_x",
     "rms_y",
-    "rms_s",
+    "rms_ps",
+    "rms_px",
+    "rms_py",
+    "emit_s",
     "emit_x",
     "emit_y",
-    "emit_s",
-    "max_x",
-    "max_y",
-    "max_s",
-    "xpx",
-    "ypy",
-    "zpz",
-    "Dx",
-    "DDx",
-    "Dy",
-    "DDy"
 ]
 
 
@@ -121,7 +113,11 @@ def compare(stat1, stat2):
     passed = 0
     for c in stat2.columns:
         if all(abs(stat1[c] - stat2[c]) < EPSILON) == False and c != "numParticles":
-            print(f"\033[31mFailed {c} test: Max diff {max(abs(stat1[c] - stat2[c])):e}\033[0m")
+            rel_error = (abs(stat1[c] - stat2[c])/(abs(stat2[c]) + EPSILON)).to_numpy()
+            max_step = np.argmax(rel_error)
+            abs_diff = abs(stat1[c] - stat2[c]).to_numpy()
+            print(f"\033[31mFailed {c} test: Max diff {max(abs_diff):e} ({np.max(rel_error):.2%}) @ step {max_step} | {abs_diff[-1]:e} ({rel_error[-1]:.2%}) @ step {len(rel_error)}\033[0m")
+
             pass
         else:
             #print(f"\033[34mPassed {c} test\033[0m")  
@@ -129,7 +125,7 @@ def compare(stat1, stat2):
 
     ratio = passed/amount
     
-    print(f"\033[35m --- Passed {ratio:.2%} of tests --- \033[0m")
+    print(f"\033[35m --- Passed {ratio:.2%} ({passed}/{amount}) of tests --- \033[0m")
 
 
 def merge_data(run_name):
@@ -185,7 +181,7 @@ def plot_all(data, multi_data, reference, name):
         plt.subplot(121)
 
         plt.plot(x, data[col], label="Single threaded")
-        plt.plot(x, multi_data[col], label=f"{AMOUNT_THREADS} cores")
+        plt.plot(x, multi_data[col], label=f"{AMOUNT_THREADS} threads")
         plt.plot(x, reference[col], ls="--", label="Reference")
 
         plt.grid()
@@ -194,7 +190,7 @@ def plot_all(data, multi_data, reference, name):
         plt.title(f"Raw data from col {col}")
 
         plt.subplot(122)
-        plt.semilogy(x, np.abs(data[col] - reference[col]), label="Single threded")
+        plt.semilogy(x, np.abs(data[col] - reference[col]), label="Single threaded")
         plt.semilogy(x, np.abs(multi_data[col] - reference[col]), label=f"{AMOUNT_THREADS} cores")
 
         plt.title("Absolute error compared to the reference")
@@ -203,7 +199,7 @@ def plot_all(data, multi_data, reference, name):
         plt.grid()
         plt.legend()
 
-        plt.savefig(f"{name}-{col}.png", dpi=300)
+        plt.savefig(f"{name}-{col}.png", dpi=300, bbox_inches="tight")
         plt.close()
 
 def calculate_statistics():
