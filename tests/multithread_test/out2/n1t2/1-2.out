@@ -1,0 +1,720 @@
+OPAL-X{0}> configure done argc= 4
+OPAL-X{0}>               ____  _____        _       __   __
+OPAL-X{0}> 
+OPAL-X{0}> This is OPAL-X (Object Oriented Parallel Accelerator Library) Version 2024.1.00
+OPAL-X{0}>             git rev. 3517a5a2bc9f4d9cc80a651ae0fcc46ccab0c10f
+OPAL-X{0}> 
+OPAL-X{0}> 
+OPAL-X{0}>                      (c) PSI, http://amas.web.psi.ch
+OPAL-X{0}> 
+OPAL-X{0}> 
+OPAL-X{0}> This is the performance portable version of OPAL
+OPAL-X{0}> 
+OPAL-X{0}> Please send cookies, goodies or other motivations (wine and beer ... ) 
+OPAL-X{0}> to the OPAL developers opal@lists.psi.ch
+OPAL-X{0}> 
+OPAL-X{0}> Time: 16:18:08 date: 18/09/2025
+OPAL-X{0}> 
+OPAL-X{0}> * Host:   Serial
+OPAL-X{0}> * Device: Serial execution
+OPAL-X{0}> 
+OPAL-X{0}> * Reading input stream 'template.in'
+OPAL-X{0}> 
+OPAL-X{0}> value: {EDES,P0,OPALVERSION} = {0.001, 0.00142197, 2.02401e+07}
+OPAL-X{0}> 
+OPAL-X{0}> * Number of distributions  1
+OPAL-X{0}> 
+OPAL-X{0}> * ************* D I S T R I B U T I O N ********************************************
+OPAL-X{0}> * 
+OPAL-X{0}> * Distribution type: GAUSS
+OPAL-X{0}> * 
+OPAL-X{0}> * SIGMAX     = 0.001 [m]
+OPAL-X{0}> * SIGMAY     = 0.001 [m]
+OPAL-X{0}> * SIGMAZ     = 0.001 [m]
+OPAL-X{0}> * SIGMAPX    = 0 [Beta Gamma]
+OPAL-X{0}> * SIGMAPY    = 0 [Beta Gamma]
+OPAL-X{0}> * SIGMAPZ    = 0 [Beta Gamma]
+OPAL-X{0}> * 
+OPAL-X{0}> * Distribution is injected.
+OPAL-X{0}> * 
+OPAL-X{0}> * **********************************************************************************
+OPAL-X{0}> 
+OPAL-X{0}> * ************* F I E L D S O L V E R ********************************************** 
+OPAL-X{0}> * FIELDSOLVER  FS1
+OPAL-X{0}> * TYPE         NONE
+OPAL-X{0}> * RANKS       2
+OPAL-X{0}> * NX           256
+OPAL-X{0}> * NY           256
+OPAL-X{0}> * NZ           256
+OPAL-X{0}> * BBOXINCR     1
+OPAL-X{0}> * GREENSF      INTEGRATED
+OPAL-X{0}> * XDIM         serial  
+OPAL-X{0}> * YDIM         serial  
+OPAL-X{0}> * ZDIM      parallel  
+OPAL-X{0}> * ********************************************************************************** 
+OPAL-X{0}> 
+OPAL-X{0}> * ************* B E A M ************************************************************ 
+OPAL-X{0}> * BEAM        BEAM1
+OPAL-X{0}> * PARTICLE    ELECTRON
+OPAL-X{0}> * REST MASS   0.000510999 [GeV]
+OPAL-X{0}> * CHARGE      -e * 1 
+OPAL-X{0}> * MOMENTUM    1.42197e+06 [eV/c]
+OPAL-X{0}> * MOMENTUM    0.00142197 [GeV/c]
+OPAL-X{0}> * CURRENT     1.3 [A]
+OPAL-X{0}> * FREQUENCY   1300 [MHz]
+OPAL-X{0}> * NPART       1e+06
+OPAL-X{0}> * ********************************************************************************** 
+OPAL-X{0}> 
+OPAL-X{0}> PartBunch Constructor
+AdaptBins{0}> AdaptBins initialized with maxBins = 128, alpha = 1, beta = 1.5, desiredWidth = 0.1
+KOKKOS DEBUG{0}> =====================================
+KOKKOS DEBUG{0}>  Kokkos Debug Information (Rank 0)
+KOKKOS DEBUG{0}> =====================================
+KOKKOS DEBUG{0}> CPU Threads: No multi-threaded CPU execution space enabled.
+KOKKOS DEBUG{0}> CUDA: GPU support disabled.
+KOKKOS DEBUG{0}> Default Execution Space Concurrency: 1
+KOKKOS DEBUG{0}> Binning cost function parameters: alpha = 1, beta = 1.5, desiredWidth = 0.1
+KOKKOS DEBUG{0}> =====================================
+OPAL-X{0}> * Solver and Load Balancer set
+OPAL-X{0}> number_of_processors 256
+OPAL-X{0}> MPI_Comm_size 2
+OPAL-X{0}> * About to create particles ...
+OPAL-X{0}> * Particle creation done
+OPAL-X{0}> 
+OPAL-X{0}> * ************** B U N C H ********************************************************* 
+OPAL-X{0}> * PARTICLES       = 1000000
+OPAL-X{0}> * CHARGE          = -1.000000e-09 (Cb) 
+OPAL-X{0}> * INTEGRATOR      = LF2
+OPAL-X{0}> * MIN R (origin)  = (     -3.00028 ,     -2.99951 ,     -2.99927 ) [mm]
+OPAL-X{0}> * MAX R (max ext) = (      2.99971 ,      2.99991 ,      2.99964 ) [mm]
+OPAL-X{0}> * RMS R           = (    986.13583 ,    985.94531 ,    986.18301 ) [um]
+OPAL-X{0}> * RMS P           = ( 0.000000e+00 , 0.000000e+00 , 3.400702e-11 ) [beta gamma]
+OPAL-X{0}> * Mean R: ( 3.552714e-20 , 1.104672e-20 , -9.492851e-18 ) [m]
+OPAL-X{0}> * Mean P: ( 0.000000e+00 , 0.000000e+00 , 2.782725e+00 ) [beta gamma]
+OPAL-X{0}> * MESH SPACING    = (     23.67181 ,     23.66958 ,     23.66759 ) [um]
+OPAL-X{0}> * COMPDOM INCR    = 1.000000e+00 (%) 
+OPAL-X{0}> * FIELD LAYOUT    = Domain = {[0:255:1],[0:255:1],[0:255:1]}
+OPAL-X{0}> Total number of boxes = 2
+OPAL-X{0}>     Box 0 {[0:255:1],[0:255:1],[0:127:1]}
+OPAL-X{0}>     Box 1 {[0:255:1],[0:255:1],[128:255:1]}
+OPAL-X{0}> 
+OPAL-X{0}> * Centroid : 
+OPAL-X{0}> * 3.552714e-14 0.000000e+00 1.104672e-14 0.000000e+00 -9.492851e-12 2.782725e+06 
+OPAL-X{0}> * Cov Matrix : 
+OPAL-X{0}> * 9.724639e-07 0.000000e+00 3.540788e-10 0.000000e+00 4.539568e-10 -8.409131e-31 
+OPAL-X{0}> * 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 
+OPAL-X{0}> * 3.540788e-10 0.000000e+00 9.720882e-07 0.000000e+00 6.076594e-10 -5.299126e-31 
+OPAL-X{0}> * 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 
+OPAL-X{0}> * 4.539568e-10 0.000000e+00 6.076594e-10 0.000000e+00 9.725569e-07 2.200300e-28 
+OPAL-X{0}> * -8.409131e-31 0.000000e+00 -5.299126e-31 0.000000e+00 2.200300e-28 1.156477e-21 
+OPAL-X{0}> * * ********************************************************************************** 
+OPAL-X{0}> * Creating new file for data: 'template.stat'
+OPAL-X{0}> * Creating new file for data: 'template.lbal'
+OPAL-X{0}> * BF gone live
+OPAL-X{0}> ParallelTrack: momentum=  2.78273
+OPAL-X{0}> itsBunch_m->RefPartR_m= ( 3.55271e-20 , 1.10467e-20 , -9.49285e-18 )
+OPAL-X{0}> itsBunch_m->RefPartP_m= ( 0 , 0 , 2.78273 )
+OPAL-X{0}> OrbitThreader dt_m= 1e-11
+OPAL-X{0}> OrbitThreader maxDistance= 1.79769e+308
+OPAL-X{0}> OrbitThreader #elements  = 1
+OPAL-X{0}> 
+OPAL-X{0}> * Size of map 1 sections 
+OPAL-X{0}> * Key: (0.000000 - 0.499367) number of overlapping elements 1
+OPAL-X{0}> *                            BF
+OPAL-X{0}> 
+OPAL-X{0}> * Creating new file for data: 'data/template_ElementPositions.sdds'
+OPAL-X{0}> * Track start at: 16:18:15, t= 0.000 [fs]; zstart at: 0.000 [um]
+OPAL-X{0}> * Executing ParallelTracker
+OPAL-X{0}> * Initial dt = 10.000 [ps]
+OPAL-X{0}> * Max integration steps = 150, next step = 0
+OPAL-X{0}> 
+OPAL-X{0}> * REPARTFREQ 1000
+OPAL-X{0}>                dt [ns]           zStop [m]        num Steps [1]
+OPAL-X{0}> ->         1.000000e-11        1.000000e+06                 150
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:18:25 Step      0 at 2.821 [mm], t= 10.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:18:38 Step      1 at 5.643 [mm], t= 20.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:18:51 Step      2 at 8.464 [mm], t= 30.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:19:04 Step      3 at 11.285 [mm], t= 40.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:19:17 Step      4 at 14.106 [mm], t= 50.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:19:30 Step      5 at 16.928 [mm], t= 60.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:19:43 Step      6 at 19.749 [mm], t= 70.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:19:57 Step      7 at 22.570 [mm], t= 80.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:20:10 Step      8 at 25.392 [mm], t= 90.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:20:23 Step      9 at 28.213 [mm], t= 100.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:20:36 Step     10 at 31.034 [mm], t= 110.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:20:49 Step     11 at 33.855 [mm], t= 120.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:21:02 Step     12 at 36.677 [mm], t= 130.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:21:15 Step     13 at 39.498 [mm], t= 140.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:21:29 Step     14 at 42.319 [mm], t= 150.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:21:42 Step     15 at 45.141 [mm], t= 160.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:21:55 Step     16 at 47.962 [mm], t= 170.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:22:08 Step     17 at 50.783 [mm], t= 180.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:22:21 Step     18 at 53.604 [mm], t= 190.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:22:34 Step     19 at 56.426 [mm], t= 200.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:22:48 Step     20 at 59.247 [mm], t= 210.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:23:01 Step     21 at 62.068 [mm], t= 220.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:23:14 Step     22 at 64.890 [mm], t= 230.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:23:27 Step     23 at 67.711 [mm], t= 240.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:23:40 Step     24 at 70.532 [mm], t= 250.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:23:53 Step     25 at 73.353 [mm], t= 260.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:24:06 Step     26 at 76.175 [mm], t= 270.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:24:19 Step     27 at 78.996 [mm], t= 280.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:24:33 Step     28 at 81.817 [mm], t= 290.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:24:46 Step     29 at 84.639 [mm], t= 300.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:24:59 Step     30 at 87.460 [mm], t= 310.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:25:12 Step     31 at 90.281 [mm], t= 320.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:25:25 Step     32 at 93.102 [mm], t= 330.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:25:38 Step     33 at 95.924 [mm], t= 340.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:25:51 Step     34 at 98.745 [mm], t= 350.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:26:05 Step     35 at 101.566 [mm], t= 360.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:26:18 Step     36 at 104.388 [mm], t= 370.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:26:31 Step     37 at 107.209 [mm], t= 380.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:26:44 Step     38 at 110.030 [mm], t= 390.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:26:57 Step     39 at 112.851 [mm], t= 400.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:27:10 Step     40 at 115.673 [mm], t= 410.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:27:23 Step     41 at 118.494 [mm], t= 420.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:27:37 Step     42 at 121.315 [mm], t= 430.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:27:50 Step     43 at 124.137 [mm], t= 440.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:28:03 Step     44 at 126.958 [mm], t= 450.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:28:16 Step     45 at 129.779 [mm], t= 460.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:28:29 Step     46 at 132.600 [mm], t= 470.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:28:42 Step     47 at 135.422 [mm], t= 480.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:28:56 Step     48 at 138.243 [mm], t= 490.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:29:09 Step     49 at 141.064 [mm], t= 500.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:29:22 Step     50 at 143.886 [mm], t= 510.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:29:35 Step     51 at 146.707 [mm], t= 520.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:29:48 Step     52 at 149.528 [mm], t= 530.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:30:01 Step     53 at 152.349 [mm], t= 540.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:30:15 Step     54 at 155.171 [mm], t= 550.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:30:28 Step     55 at 157.992 [mm], t= 560.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:30:41 Step     56 at 160.813 [mm], t= 570.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:30:54 Step     57 at 163.635 [mm], t= 580.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:31:07 Step     58 at 166.456 [mm], t= 590.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:31:21 Step     59 at 169.277 [mm], t= 600.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:31:34 Step     60 at 172.098 [mm], t= 610.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:31:47 Step     61 at 174.920 [mm], t= 620.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:32:00 Step     62 at 177.741 [mm], t= 630.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:32:13 Step     63 at 180.562 [mm], t= 640.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:32:27 Step     64 at 183.383 [mm], t= 650.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:32:40 Step     65 at 186.205 [mm], t= 660.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:32:53 Step     66 at 189.026 [mm], t= 670.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:33:06 Step     67 at 191.847 [mm], t= 680.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:33:19 Step     68 at 194.669 [mm], t= 690.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:33:32 Step     69 at 197.490 [mm], t= 700.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:33:46 Step     70 at 200.311 [mm], t= 710.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:33:59 Step     71 at 203.132 [mm], t= 720.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:34:12 Step     72 at 205.954 [mm], t= 730.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:34:25 Step     73 at 208.775 [mm], t= 740.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:34:38 Step     74 at 211.596 [mm], t= 750.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:34:52 Step     75 at 214.418 [mm], t= 760.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:35:05 Step     76 at 217.239 [mm], t= 770.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:35:18 Step     77 at 220.060 [mm], t= 780.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:35:31 Step     78 at 222.881 [mm], t= 790.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:35:44 Step     79 at 225.703 [mm], t= 800.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:35:57 Step     80 at 228.524 [mm], t= 810.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:36:11 Step     81 at 231.345 [mm], t= 820.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:36:24 Step     82 at 234.167 [mm], t= 830.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:36:37 Step     83 at 236.988 [mm], t= 840.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:36:50 Step     84 at 239.809 [mm], t= 850.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:37:04 Step     85 at 242.630 [mm], t= 860.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:37:17 Step     86 at 245.452 [mm], t= 870.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:37:30 Step     87 at 248.273 [mm], t= 880.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:37:43 Step     88 at 251.094 [mm], t= 890.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:37:57 Step     89 at 253.916 [mm], t= 900.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:38:10 Step     90 at 256.737 [mm], t= 910.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:38:23 Step     91 at 259.558 [mm], t= 920.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:38:36 Step     92 at 262.379 [mm], t= 930.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:38:49 Step     93 at 265.201 [mm], t= 940.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:39:02 Step     94 at 268.022 [mm], t= 950.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:39:16 Step     95 at 270.843 [mm], t= 960.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:39:29 Step     96 at 273.665 [mm], t= 970.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:39:42 Step     97 at 276.486 [mm], t= 980.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:39:55 Step     98 at 279.307 [mm], t= 990.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:40:09 Step     99 at 282.128 [mm], t= 1000.000 [ps], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:40:22 Step    100 at 284.950 [mm], t= 1.010 [ns], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:40:35 Step    101 at 287.771 [mm], t= 1.020 [ns], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:40:48 Step    102 at 290.592 [mm], t= 1.030 [ns], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:41:01 Step    103 at 293.414 [mm], t= 1.040 [ns], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:41:15 Step    104 at 296.235 [mm], t= 1.050 [ns], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:41:28 Step    105 at 299.056 [mm], t= 1.060 [ns], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:41:41 Step    106 at 301.877 [mm], t= 1.070 [ns], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:41:54 Step    107 at 304.699 [mm], t= 1.080 [ns], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:42:08 Step    108 at 307.520 [mm], t= 1.090 [ns], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:42:21 Step    109 at 310.341 [mm], t= 1.100 [ns], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:42:34 Step    110 at 313.163 [mm], t= 1.110 [ns], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:42:47 Step    111 at 315.984 [mm], t= 1.120 [ns], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:43:00 Step    112 at 318.805 [mm], t= 1.130 [ns], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:43:14 Step    113 at 321.626 [mm], t= 1.140 [ns], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:43:27 Step    114 at 324.448 [mm], t= 1.150 [ns], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:43:40 Step    115 at 327.269 [mm], t= 1.160 [ns], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:43:53 Step    116 at 330.090 [mm], t= 1.170 [ns], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:44:06 Step    117 at 332.912 [mm], t= 1.180 [ns], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:44:20 Step    118 at 335.733 [mm], t= 1.190 [ns], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:44:33 Step    119 at 338.554 [mm], t= 1.200 [ns], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:44:46 Step    120 at 341.375 [mm], t= 1.210 [ns], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:44:59 Step    121 at 344.197 [mm], t= 1.220 [ns], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:45:12 Step    122 at 347.018 [mm], t= 1.230 [ns], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:45:26 Step    123 at 349.839 [mm], t= 1.240 [ns], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:45:39 Step    124 at 352.661 [mm], t= 1.250 [ns], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:45:52 Step    125 at 355.482 [mm], t= 1.260 [ns], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:46:05 Step    126 at 358.303 [mm], t= 1.270 [ns], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:46:18 Step    127 at 361.124 [mm], t= 1.280 [ns], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:46:32 Step    128 at 363.946 [mm], t= 1.290 [ns], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:46:45 Step    129 at 366.767 [mm], t= 1.300 [ns], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:46:58 Step    130 at 369.588 [mm], t= 1.310 [ns], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:47:11 Step    131 at 372.410 [mm], t= 1.320 [ns], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:47:25 Step    132 at 375.231 [mm], t= 1.330 [ns], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:47:38 Step    133 at 378.052 [mm], t= 1.340 [ns], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:47:51 Step    134 at 380.873 [mm], t= 1.350 [ns], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:48:04 Step    135 at 383.695 [mm], t= 1.360 [ns], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:48:17 Step    136 at 386.516 [mm], t= 1.370 [ns], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:48:31 Step    137 at 389.337 [mm], t= 1.380 [ns], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:48:44 Step    138 at 392.159 [mm], t= 1.390 [ns], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:48:57 Step    139 at 394.980 [mm], t= 1.400 [ns], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:49:10 Step    140 at 397.801 [mm], t= 1.410 [ns], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:49:23 Step    141 at 400.622 [mm], t= 1.420 [ns], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:49:37 Step    142 at 403.444 [mm], t= 1.430 [ns], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:49:50 Step    143 at 406.265 [mm], t= 1.440 [ns], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:50:03 Step    144 at 409.086 [mm], t= 1.450 [ns], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:50:16 Step    145 at 411.908 [mm], t= 1.460 [ns], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:50:30 Step    146 at 414.729 [mm], t= 1.470 [ns], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:50:43 Step    147 at 417.550 [mm], t= 1.480 [ns], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:50:56 Step    148 at 420.371 [mm], t= 1.490 [ns], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> no solver avaidable 
+OPAL-X{0}> * 16:51:09 Step    149 at 423.193 [mm], t= 1.500 [ns], E=1.000 [MeV]
+OPAL-X{0}> * Wrote beam statistics.
+OPAL-X{0}> * Dump phase space of last step
+OPAL-X{0}> * BF gone off
+OPAL-X{0}> 
+OPAL-X{0}> * Done executing ParallelTracker at 16:51:13
+OPAL-X{0}> 
+OPAL-X{0}> * Finished time step: 0 time: 0.000000e+00
+OPAL-X{0}> * End of input stream 'template.in'
+Timings{0}> ---------------------------------------------
+Timings{0}>      Timing results for 2 nodes:
+Timings{0}> ---------------------------------------------
+Timings{0}> mainTimer........... Wall tot =    1984.98
+Timings{0}> 
+Timings{0}> gatherInfoPartBunch. Wall max = 0.000850657
+Timings{0}>                      Wall avg = 0.000816141
+Timings{0}>                      Wall min = 0.000781625
+Timings{0}> 
+Timings{0}> findInternal........ Wall max =   2.55e-05
+Timings{0}>                      Wall avg = 2.5349e-05
+Timings{0}>                      Wall min = 2.5198e-05
+Timings{0}> 
+Timings{0}> findPeriodic........ Wall max = 5.7531e-05
+Timings{0}>                      Wall avg = 5.57275e-05
+Timings{0}>                      Wall min = 5.3924e-05
+Timings{0}> 
+Timings{0}> bInitLimits......... Wall max =          0
+Timings{0}>                      Wall avg =          0
+Timings{0}>                      Wall min =          0
+Timings{0}> 
+Timings{0}> bAllReduceLimits.... Wall max =          0
+Timings{0}>                      Wall avg =          0
+Timings{0}>                      Wall min =          0
+Timings{0}> 
+Timings{0}> bAllReduceGlobalHis. Wall max =          0
+Timings{0}>                      Wall avg =          0
+Timings{0}>                      Wall min =          0
+Timings{0}> 
+Timings{0}> bAssignUniformBins.. Wall max =          0
+Timings{0}>                      Wall avg =          0
+Timings{0}>                      Wall min =          0
+Timings{0}> 
+Timings{0}> bExecuteHistoReduct. Wall max =          0
+Timings{0}>                      Wall avg =          0
+Timings{0}>                      Wall min =          0
+Timings{0}> 
+Timings{0}> bSortContainerByBin. Wall max =          0
+Timings{0}>                      Wall avg =          0
+Timings{0}>                      Wall min =          0
+Timings{0}> 
+Timings{0}> bVerifySorting...... Wall max =          0
+Timings{0}>                      Wall avg =          0
+Timings{0}>                      Wall min =          0
+Timings{0}> 
+Timings{0}> setSolver........... Wall max =   0.180588
+Timings{0}>                      Wall avg =    0.18034
+Timings{0}>                      Wall min =   0.180092
+Timings{0}> 
+Timings{0}> prerun.............. Wall max =    1.32475
+Timings{0}>                      Wall avg =    1.32145
+Timings{0}>                      Wall min =    1.31814
+Timings{0}> 
+Timings{0}> samplingTime........ Wall max =    1.98464
+Timings{0}>                      Wall avg =    1.98187
+Timings{0}>                      Wall min =     1.9791
+Timings{0}> 
+Timings{0}> SamplingTimer....... Wall max =    1.98453
+Timings{0}>                      Wall avg =    1.98178
+Timings{0}>                      Wall min =    1.97904
+Timings{0}> 
+Timings{0}> GenParticles........ Wall max =    1.98455
+Timings{0}>                      Wall avg =     1.9818
+Timings{0}>                      Wall min =    1.97906
+Timings{0}> 
+Timings{0}> particleBC.......... Wall max =  0.0362888
+Timings{0}>                      Wall avg =  0.0362873
+Timings{0}>                      Wall min =  0.0362857
+Timings{0}> 
+Timings{0}> updateParticle...... Wall max =    1.94365
+Timings{0}>                      Wall avg =    1.83782
+Timings{0}>                      Wall min =    1.73198
+Timings{0}> 
+Timings{0}> locateParticles..... Wall max =    1.09227
+Timings{0}>                      Wall avg =    1.04266
+Timings{0}>                      Wall min =   0.993051
+Timings{0}> 
+Timings{0}> neighborSearch...... Wall max =    1.07482
+Timings{0}>                      Wall avg =    1.02467
+Timings{0}>                      Wall min =   0.974518
+Timings{0}> 
+Timings{0}> nonNeighboringParti. Wall max =  1.382e-06
+Timings{0}>                      Wall avg = 1.3725e-06
+Timings{0}>                      Wall min =  1.363e-06
+Timings{0}> 
+Timings{0}> sendPreprocess...... Wall max =  0.0993655
+Timings{0}>                      Wall avg =  0.0497554
+Timings{0}>                      Wall min = 0.00014523
+Timings{0}> 
+Timings{0}> particleSend........ Wall max =   0.321657
+Timings{0}>                      Wall avg =   0.313836
+Timings{0}>                      Wall min =   0.306015
+Timings{0}> 
+Timings{0}> particleDestroy..... Wall max =  0.0830013
+Timings{0}>                      Wall avg =  0.0827418
+Timings{0}>                      Wall min =  0.0824823
+Timings{0}> 
+Timings{0}> particleRecv........ Wall max =   0.462158
+Timings{0}>                      Wall avg =   0.348763
+Timings{0}>                      Wall min =   0.235369
+Timings{0}> 
+Timings{0}> Write Stat.......... Wall max =  0.0758652
+Timings{0}>                      Wall avg =  0.0758605
+Timings{0}>                      Wall min =  0.0758557
+Timings{0}> 
+Timings{0}> Write H5-File....... Wall max =    268.878
+Timings{0}>                      Wall avg =    268.876
+Timings{0}>                      Wall min =    268.875
+Timings{0}> 
+Timings{0}> TIntegration1....... Wall max =     24.256
+Timings{0}>                      Wall avg =     24.256
+Timings{0}>                      Wall min =     24.256
+Timings{0}> 
+Timings{0}> TIntegration2....... Wall max =    86.6196
+Timings{0}>                      Wall avg =    80.7479
+Timings{0}>                      Wall min =    74.8761
+Timings{0}> 
+Timings{0}> External field eval. Wall max =    712.318
+Timings{0}>                      Wall avg =    706.474
+Timings{0}>                      Wall min =     700.63
+Timings{0}> 
+Timings{0}> Binaryrepart........ Wall max =          0
+Timings{0}>                      Wall avg =          0
+Timings{0}>                      Wall min =          0
+Timings{0}> 
+Timings{0}> OrbThreader......... Wall max =   0.013547
+Timings{0}>                      Wall avg = 0.00940445
+Timings{0}>                      Wall min = 0.00526192
+Timings{0}> 
+Timings{0}> ---------------------------------------------

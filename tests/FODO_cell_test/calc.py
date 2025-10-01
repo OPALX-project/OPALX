@@ -1,18 +1,17 @@
 import numpy as np
 import scipy.constants as sc
 
-BUNCH_CHARGE  = 1e-9 # C
 N_PARTICLES   = 1e4 # in electrons amount
+BUNCH_CHARGE  = sc.e * N_PARTICLES # C
 INIT_ENERGY   = 1e-3 # in GeV
 
-BEAM_STRENGTH = .1 # T/m 
 
-DT = 1e-11
+BEAM_STRENGTH = 0.00257 # T/m 
+DT = 2e-11
+LENGTH_OF_QUADRUPOLE = 0.25 # in m
+DRIFT_LENGTH = 2.5 # in m
+amount_of_cells = 9
 
-LENGTH_OF_QUADRUPOLE = 0.1 # in m
-DRIFT_LENGTH = 0.3 # in m
-
-amount_of_cells = 10
 
 
 ELECTRON_MASS_GEV = 0.51099895000e-3  # GeV
@@ -26,7 +25,7 @@ beta = np.sqrt(1 - 1/gamma**2)
 p_si = gamma * beta * ELECTRON_MASS_KG * sc.c  
 
 # Beam rigidity Bρ in Tesla·meters
-beam_rigidity = p_si / sc.e  
+beam_rigidity = p_si / (BUNCH_CHARGE / N_PARTICLES)
 
 # Focusing strength k [1/m^2]
 k = BEAM_STRENGTH / beam_rigidity
@@ -35,6 +34,8 @@ k = BEAM_STRENGTH / beam_rigidity
 focal_length = 1 / (k * LENGTH_OF_QUADRUPOLE) 
 
 print(f"Focal length: {focal_length:.3f} m")
+print(f"Beta: {beta} c")
+print(f"K: {k:4f} 1/m²")
 
 print(f"Maximum length of cell: {focal_length * 4:.3f} m")
 
@@ -57,7 +58,7 @@ print(f"Amount of steps needed: {np.ceil(steps):n}")
 
 if (POLE_LENGTH + DRIFT_LENGTH) * 2 > focal_length * 4:
     print(f"Cell may be to big! Cell size: {(POLE_LENGTH + DRIFT_LENGTH) * 2} m")
-    exit(-1)
+    #exit(-1)
 print(f"Cell size: {(POLE_LENGTH + DRIFT_LENGTH) * 2} m")
 
 def opal_template(s):
