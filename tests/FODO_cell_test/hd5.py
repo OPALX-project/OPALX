@@ -1,6 +1,7 @@
 import sys
-sys.path.append('/psi/home/adelmann/git/pyOPALTools')
-from opal import load_dataset
+from opal_load_stat import load_dataset
+
+REFERENCE_STAT = load_dataset("opal/test.stat")
 
 import numpy as np
 import pandas as pd
@@ -28,33 +29,44 @@ BOLD="\033[1m"
 RESET="\033[0m"
 
 px = []
+py = []
 x  = []
-
+y  = []
 z = []
 
-with h5py.File("opalx/multi.h5", "r") as f:
-    for i in range(len(f.keys())):
-        px.append((f[f"Step#{i}"]["px"][50]))
-        x.append ((f[f"Step#{i}"]["x"] [50]))
+print()
 
-        z.append ((f[f"Step#{i}"]["z"] [50]))
+with h5py.File("opal/test.h5", "r") as f:
+    print(len(f.keys()))
+    for i in range(len(f.keys())):
+        px.append(f[f"Step#{i}"]["px"][101])
+        py.append(f[f"Step#{i}"]["py"][101])
+        x.append (f[f"Step#{i}"]["x"] [101])
+        y.append (f[f"Step#{i}"]["y"] [101])
+        z.append (f[f"Step#{i}"]["z"] [101])
 
 plt.plot(x, px, label="x-px")
+plt.plot(y, py, label="y-py")
 plt.legend()
 plt.grid()
 plt.savefig("hd5out.png")
 plt.close()
 
 plt.figure(figsize=(20, 5))
-steps = 1500
-for i in range(5):
-    plt.subplot(250 + i + 1)
-    plt.plot(z[i * steps:(i + 1) * steps], x[i * steps:(i + 1) * steps] , label="z-x")
-    plt.plot(z[i * steps:(i + 1) * steps], px[i * steps:(i + 1) * steps], label="z-px")
-    plt.legend()
-    plt.subplot(2, 5, i + 6)
-    plt.plot(x[i * steps:(i + 1) * steps], px[i * steps:(i + 1) * steps], label="x-px")
-    plt.legend()
+plt.plot(REFERENCE_STAT["s"], x)
+plt.plot(REFERENCE_STAT["s"], px)
+plt.plot(REFERENCE_STAT["s"], y)
+plt.plot(REFERENCE_STAT["s"], py)
+plt.savefig("hd5out2.png")
+# steps = 1500
+# for i in range(5):
+#     plt.subplot(250 + i + 1)
+#     plt.plot(z[i * steps:(i + 1) * steps], x[i * steps:(i + 1) * steps] , label="z-x")
+#     plt.plot(z[i * steps:(i + 1) * steps], px[i * steps:(i + 1) * steps], label="z-px")
+#     plt.legend()
+#     plt.subplot(2, 5, i + 6)
+#     plt.plot(x[i * steps:(i + 1) * steps], px[i * steps:(i + 1) * steps], label="x-px")
+#     plt.legend()
 
 
-plt.savefig("hd5out_allsteps.png", dpi=300)
+# plt.savefig("hd5out_allsteps.png", dpi=300)

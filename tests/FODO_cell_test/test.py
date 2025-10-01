@@ -2,8 +2,7 @@ import subprocess
 import time
 
 import sys
-sys.path.append('/psi/home/adelmann/git/pyOPALTools')
-from opal import load_dataset
+from opal_load_stat import load_dataset
 
 import numpy as np
 import pandas as pd
@@ -30,10 +29,9 @@ BOLD="\033[1m"
 RESET="\033[0m"
 
 OPALX_EXECUTABLE_FILE = "/data/user/binder_j/opalx-test/build/src/opalx"
-MODE = "compare"
 
-opal = load_dataset('./opal', fname='test.stat').dataframe
-opalx = load_dataset('./opalx', fname='multi.stat').dataframe
+opal = load_dataset(f"opal/test.stat")
+#opalx = load_dataset('./opalx', fname='multi.stat')
 
 # coloumns that get plotted in the end
 plotting_cols = [
