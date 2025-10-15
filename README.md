@@ -1,7 +1,7 @@
-# This is OPAL-X
+# This is OPALX
 
 
-# BUILDING OPAL-X on Merlin
+# BUILDING OPALX on Merlin
 
 
 ## Modules needed OPENMP build
@@ -32,7 +32,7 @@ cuda/12.8.1
 
 
 
-## Clone repo and build opal-x with OPENMP 
+## Clone repo and build opalx with OPENMP 
 
 ```
 $ git clone git@gitlab.psi.ch:OPAL/opal-x/src.git opal-x
@@ -83,7 +83,7 @@ $ cmake .. -DCMAKE_BUILD_TYPE=Release -DIPPL_PLATFORMS=CUDA -DKokkos_ARCH_PASCAL
 ```
 
 ### Submitting jobs on Gwendolen and Merlin GPUs
-To execute opal-x on merlin's gpus (compile for PASCAL61), the job script should looks like
+To execute opalx on merlin's gpus (compile for PASCAL61), the job script should looks like
 ```
 #!/bin/bash
 #SBATCH --error=merlin.error
