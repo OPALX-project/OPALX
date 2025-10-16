@@ -717,8 +717,13 @@ void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
     IpplTimings::startTimer(fieldEvaluationTimer_m);
     Inform msg("ParallelTracker ", *gmsg);
 
-    Kokkos::View<bool> locPartOutOfBounds("localoutofbounds");
-    locPartOutOfBounds() = false;
+    Kokkos::View<bool*> locPartOutOfBoundsView("localoutofbounds", 1);
+    Kokkos::parallel_for("locoutofboundsviewinit", 1, KOKKOS_LAMBDA(const int i) {
+        locPartOutOfBoundsView(i) = false;
+    });
+
+
+
     bool globPartOutOfBounds = false;
     Vector_t<double, 3> rmin(0.0), rmax(0.0);
     if (itsBunch_m->getTotalNum() > 0)
@@ -752,8 +757,8 @@ void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
 
         (*it)->setCurrentSCoordinate(pathLength_m + rmin(2));   
 
-        Kokkos::parallel_for("computeExternalField", ippl::getRangePolicy(Rview),
-             [=,this] (const int i) {
+
+        Kokkos::parallel_for("computeExternalField", ippl::getRangePolicy(Rview), KOKKOS_LAMBDA(const int i) {
 
             // Is this still needed?
             // if (itsBunch_m->Bin[i] < 0)
@@ -768,7 +773,7 @@ void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
                 Rview(i)   = localToRefCSTrafo.transformTo(Rview(i));
                 Pview(i)   = localToRefCSTrafo.rotateTo(Pview(i));
                 //itsBunch_m->Bin[i] = -1;
-                locPartOutOfBounds() = true;
+                locPartOutOfBoundsView(0) = true;
                 
                 // this is not the else statement from below
                 //continue;
@@ -783,8 +788,10 @@ void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
 
     IpplTimings::stopTimer(fieldEvaluationTimer_m);
     
+    auto locPartOutOfBounds = Kokkos::create_mirror_view(locPartOutOfBoundsView);
+    Kokkos::deep_copy(locPartOutOfBoundsView, locPartOutOfBounds);
     // \todo reduce(locPartOutOfBounds, globPartOutOfBounds, OpOrAssign());
-    ippl::Comm->reduce(locPartOutOfBounds(), globPartOutOfBounds, 1, std::logical_or<bool>());
+    ippl::Comm->reduce(locPartOutOfBounds(0), globPartOutOfBounds, 1, std::logical_or<bool>());
 
     size_t ne = 0;
     if (globPartOutOfBounds) {

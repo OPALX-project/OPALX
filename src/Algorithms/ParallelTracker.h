@@ -250,9 +250,12 @@ private:
     void timeIntegration1(BorisPusher& pusher);
     void selectDT(bool backTrack = false);
     void emitParticles(long long step);
+public:
     void computeExternalFields(OrbitThreader& oth);
     // Resets both the E-fields and B-fields back to 0
     void resetFields();
+    void transformBunch(const CoordinateSystemTrafo& trafo);
+private:
     void computeWakefield(IndexMap::value_t& elements);
     void computeParticleMatterInteraction(IndexMap::value_t elements, OrbitThreader& oth);
 
@@ -264,7 +267,6 @@ private:
 
     void doBinaryRepartition();
 
-    void transformBunch(const CoordinateSystemTrafo& trafo);
 
     void updateReference(const BorisPusher& pusher);
     void updateRefToLabCSTrafo();
