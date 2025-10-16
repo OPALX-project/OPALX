@@ -193,19 +193,30 @@ def get_slurm_string(executable, filename, threads = "1"):
 #SBATCH --error={filename}.err    # Name of error file
 
 module purge
-module use unstable
-module load cmake/3.25.2
-module load gcc/10.3.0       
-module load openmpi/4.0.5
-module load fftw/3.3.10
-module load hdf5/1.10.7
-module load H5hut/2.0.0rc6
-module load boost/1.76.0
-module load gtest/1.11.0
-module load gnutls/3.7.10
-module load gsl/2.7
-module load cuda/12.9.1
-module load Python/3.9.10
-module load pmix/5.0.8
+module use Spack unstable
+module load gcc/13.2.0 openmpi/5.0.7-dnpr-A100-gpu
+module load boost/1.82.0-lgrt fftw/3.3.10.6-zv2b-omp gnutls/3.8.9-mcdr googletest/1.14.0-msmu gsl/2.7.1-hxwy h5hut/2.0.0rc7-zy7s openblas/0.3.29-zkwb cmake/3.31.6-oe7u
+
 srun --mpi=pmix {executable} {filename} --info 10
+"""
+
+def get_slurm_string_gpu(executable, filename):
+    return f"""#!/bin/bash
+#SBATCH --job-name=opalx-gpu-{filename}
+#SBATCH --cluster=gmerlin7
+#SBATCH --partition=a100-hourly
+#SBATCH --gpus=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-gpu=2 
+#SBATCH --time=01:00:00        
+
+#SBATCH --output={filename}.out  # Name of output file
+#SBATCH --error={filename}.err    # Name of error file
+
+module purge
+module use Spack unstable
+module load gcc/13.2.0 openmpi/5.0.7-dnpr-A100-gpu
+module load boost/1.82.0-lgrt fftw/3.3.10.6-zv2b-omp gnutls/3.8.9-mcdr googletest/1.14.0-msmu gsl/2.7.1-hxwy h5hut/2.0.0rc7-zy7s openblas/0.3.29-zkwb cmake/3.31.6-oe7u
+
+srun {executable} {filename} --info 10
 """

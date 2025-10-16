@@ -14,6 +14,7 @@ from template import *
 import matplotlib.pyplot as plt
 
 MULTI_THREAD_PREFIX = "multi_"
+GPU_PREFIX = "gpu_"
 
 # Epsilon used by the tests
 EPSILON = 1e-8
@@ -32,14 +33,15 @@ WHITE = "\033[0m"
 BOLD="\033[1m"
 RESET="\033[0m"
 
-OPALX_EXECUTABLE_FILE = "/data/user/binder_j/bin/opalx-elements/rel_build/src/opalx"
+OPALX_EXECUTABLE_FILE = "/data/user/binder_j/bin/opalx/build_openmp/src/opalx"
+OPALX_GPU_EXECUTABLE_FILE = "/data/user/binder_j/bin/opalx/build_gpu/src/opalx"
 AMOUNT_THREADS = "16"
 
 # define the parameters
 parameters = {
     "rel" : {
-        "amount" : "1e6",
-        "avg" : 10,
+        "amount" : "1e4",
+        "avg" : 2,
         "ref" : "ref-100steps.stat"
     }
 }
@@ -101,11 +103,19 @@ def create_file(filename, amount, steps, seed):
         f.close()
 
     with open(f"opalx/{MULTI_THREAD_PREFIX}{filename}", "w") as f:
-        f.write(get_opalx_string(amount, steps, str(seed * 100)))
+        f.write(get_opalx_string(amount, steps, str(seed)))
         f.close()
 
     with open(f"opalx/{MULTI_THREAD_PREFIX}{filename.replace('in', 'slurm')}", "w") as f:
         f.write(get_slurm_string(OPALX_EXECUTABLE_FILE, f"{MULTI_THREAD_PREFIX}{filename}", AMOUNT_THREADS))
+        f.close()
+
+    with open(f"opalx/{GPU_PREFIX}{filename}", "w") as f:
+        f.write(get_opalx_string(amount, steps, str(seed)))
+        f.close()
+
+    with open(f"opalx/{GPU_PREFIX}{filename.replace('in', 'slurm')}", "w") as f:
+        f.write(get_slurm_string_gpu(OPALX_GPU_EXECUTABLE_FILE, f"{GPU_PREFIX}{filename}"))
         f.close()
 
 def compare(stat1, stat2):
@@ -156,11 +166,24 @@ def merge_data(run_name):
     # at the end divide by the amount of run
     multidata /= number_of_run
 
-    return (data, multidata)
+    # GPU data
+    # first load in the first data set as a reference for the cols
+    filename = f"{GPU_PREFIX}{key}-{param['amount']}-{0}.stat"
+    gpudata = load_dataset(f"opalx/{filename}")
+    # start from 1 instead of 0
+    for i in range(1, number_of_run):
+        filename = f"{GPU_PREFIX}{key}-{param['amount']}-{i}.stat"
+        gpudata += load_dataset(f"opalx/{filename}")
+    print(f"Merged {BLUE}{GPU_PREFIX}{key}-{param['amount']}-xxx.stat{WHITE}")
+
+    # at the end divide by the amount of run
+    gpudata /= number_of_run
+
+    return (data, multidata, gpudata)
 
 
 def compare_data(run_name):
-    data, multi_data = merge_data(run_name)
+    data, multi_data, gpu_data = merge_data(run_name)
     # load in reference
     reference_data = load_dataset(f"reference/{parameters[run_name]['ref']}")
 
@@ -168,11 +191,13 @@ def compare_data(run_name):
     compare(data, reference_data)
     print(f"Comparing multi threaded data")
     compare(multi_data, reference_data)
+    print(f"Comparing GPU data")
+    compare(gpu_data, reference_data)
 
     print(f"Plotting for run {BLUE}{run_name}{WHITE}")
-    plot_all(data, multi_data, reference_data, run_name)
+    plot_all(data, multi_data, gpu_data, reference_data, run_name)
 
-def plot_all(data, multi_data, reference, name):
+def plot_all(data, multi_data, gpu_data, reference, name):
     for col in plotting_cols:
         x = np.arange(1, len(data["t"]) + 1)
 
@@ -182,6 +207,7 @@ def plot_all(data, multi_data, reference, name):
 
         plt.plot(x, data[col], label="Single threaded")
         plt.plot(x, multi_data[col], label=f"{AMOUNT_THREADS} threads")
+        plt.plot(x, gpu_data[col], label=f"GPU")
         plt.plot(x, reference[col], ls="--", label="Reference")
 
         plt.grid()
@@ -192,6 +218,7 @@ def plot_all(data, multi_data, reference, name):
         plt.subplot(122)
         plt.semilogy(x, np.abs(data[col] - reference[col]), label="Single threaded")
         plt.semilogy(x, np.abs(multi_data[col] - reference[col]), label=f"{AMOUNT_THREADS} cores")
+        plt.semilogy(x, np.abs(gpu_data[col] - reference[col]), label=f"GPU")
 
         plt.title("Absolute error compared to the reference")
         plt.xlabel("Steps")
@@ -257,11 +284,13 @@ if __name__ == "__main__":
                 
                 run_opalx(filename)
                 run_opalx(f"{MULTI_THREAD_PREFIX}{filename}")
-
+                run_opalx(f"{GPU_PREFIX}{filename}")
+            
             for run_number in range(param["avg"]):
                 filename = f"{key}-{param['amount']}-{run_number}.in"
                 watch(filename, steps)
                 watch(f"{MULTI_THREAD_PREFIX}{filename}", steps)
+                watch(f"{GPU_PREFIX}{filename}", steps)
 
     for (key, param) in parameters.items():
         compare_data(key)
