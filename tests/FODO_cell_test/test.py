@@ -28,9 +28,7 @@ WHITE = "\033[0m"
 BOLD="\033[1m"
 RESET="\033[0m"
 
-OPALX_EXECUTABLE_FILE = "/data/user/binder_j/opalx-test/build/src/opalx"
-
-opal = load_dataset(f"opal/test.stat")
+opal = load_dataset(f"opalx/test.stat")
 #opalx = load_dataset('./opalx', fname='multi.stat')
 
 # coloumns that get plotted in the end

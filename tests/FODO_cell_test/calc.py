@@ -6,13 +6,11 @@ BUNCH_CHARGE  = sc.e * N_PARTICLES # C
 INIT_ENERGY   = 1e-3 # in GeV
 
 
-BEAM_STRENGTH = 0.00257 # T/m 
-DT = 2e-11
-LENGTH_OF_QUADRUPOLE = 0.25 # in m
-DRIFT_LENGTH = 2.5 # in m
-amount_of_cells = 9
-
-
+BEAM_STRENGTH = 25 # T/m 
+DT = 7e-13
+LENGTH_OF_QUADRUPOLE = 0.0025 # in m
+DRIFT_LENGTH = 0.025 # in m
+amount_of_cells = 50
 
 ELECTRON_MASS_GEV = 0.51099895000e-3  # GeV
 ELECTRON_MASS_KG = sc.m_e  # kg
@@ -103,14 +101,14 @@ Dist: DISTRIBUTION, TYPE = GAUSS,
 // The mesh sizes should be a factor of 2
 // for most efficient space charge calculation.
 
-FS_SC: Fieldsolver, FSTYPE = NONE,
-            MX = 16, MY = 16, MT = 16, // SC grid size is 32^3
+FS_SC: Fieldsolver, TYPE = NONE,
+            NX = 16, NY = 16, NZ = 16, // SC grid size is 32^3
             PARFFTX = false,
             PARFFTY = false,
-            PARFFTT = true,  // parallel in the z direction only
+            PARFFTZ = true,  // parallel in the z direction only
             BCFFTX = open,
             BCFFTY = open,
-            BCFFTT = open,
+            BCFFTZ = open,
             BBOXINCR = 1,
             GREENSF = INTEGRATED;
 
@@ -127,7 +125,7 @@ BEAM1:  BEAM, PARTICLE = ELECTRON, pc = P0, NPART = n_particles,
 // and 3.0e-12 is used from 0.4 to 5 m.
 
 TRACK, LINE = SOLine, BEAM = BEAM1, MAXSTEPS = {steps:n}, DT = {DT};
-RUN, METHOD = "PARALLEL-T", BEAM = BEAM1,
+RUN, METHOD = "PARALLEL", BEAM = BEAM1,
     FIELDSOLVER = FS_SC, DISTRIBUTION = Dist;
 ENDTRACK;
 Quit;
@@ -149,7 +147,7 @@ for i in range(amount_of_cells - 1):
 out_string += (f"FOCUS_POLE_{amount_of_cells - 1}, FIRST_DRIFT_{amount_of_cells - 1}, DEFOCUS_POLE_{amount_of_cells - 1}, SECOND_DRIFT_{amount_of_cells - 1}\n")
 out_string += (");")
 
-with open("opal/test.in", "w") as file:
+with open("opalx/test.in", "w") as file:
     file.write(opal_template(out_string))
 
 print("Written file to test.in")
