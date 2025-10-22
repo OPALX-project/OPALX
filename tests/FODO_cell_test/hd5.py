@@ -26,56 +26,63 @@ class H5Data:
         self.py = py
 
 def load_h5(filename: str, particle_num = 1):
-    print(f"Loading {filename}")
-    with h5py.File(filename, "r") as f:
-        steps = [f[f"Step#{i}"] for i in range(len(f.keys()))]
-        px = np.array([s["px"][particle_num] for s in steps])
-        py = np.array([s["py"][particle_num] for s in steps])
-        x  = np.array([s["x"] [particle_num] for s in steps])
-        y  = np.array([s["y"] [particle_num] for s in steps])
-        z  = np.array([s["z"] [particle_num] for s in steps])
-
-        print(f"Done loading...")
-        return H5Data(x, y, z, px, py)
+    x =  np.asarray(REFERENCE_STAT["ref_x"])
+    y =  np.asarray(REFERENCE_STAT["ref_y"])
+    z =  np.asarray(REFERENCE_STAT["ref_z"])
+    px = np.asarray(REFERENCE_STAT["ref_px"])
+    py = np.asarray(REFERENCE_STAT["ref_py"])
+    return H5Data(x, y, z, px, py)
 
 def plot_general(data: H5Data):
-    plt.figure(figsize=(20, 5))
-    plt.plot(REFERENCE_STAT["s"], data.x, label="x position", color="blue", ls="--")
-    plt.plot(REFERENCE_STAT["s"], data.px, label="px momentum", color="blue")
-    plt.plot(REFERENCE_STAT["s"], data.y, label="y position", color="red", ls="--")
-    plt.plot(REFERENCE_STAT["s"], data.py, label="py momentum", color="red")
-    plt.legend()
+    # Assuming data.x, data.px, data.y, and data.py are your data arrays
+    fig, ax1 = plt.subplots(figsize=(20, 5))
+
+    # Plot position data on the first y-axis
+    ax1.plot(REFERENCE_STAT["s"], data.x, label="x position", color="blue", ls="--")
+    ax1.plot(REFERENCE_STAT["s"], data.y, label="y position", color="red", ls="--")
+    ax1.set_xlabel("z position in the beam line [m]")
+    ax1.set_ylabel("Position [m]")
+    ax1.tick_params(axis='y')
+    ax1.grid()
+
+    # Create a second y-axis for momentum data
+    ax2 = ax1.twinx()
+    ax2.plot(REFERENCE_STAT["s"], data.px, label="px momentum", color="blue")
+    ax2.plot(REFERENCE_STAT["s"], data.py, label="py momentum", color="red")
+    ax2.set_ylabel("Momentum")
+    ax2.tick_params(axis='y')
+    ax2.grid(ls =":")
+
+    # Add legend
+    handles1, labels1 = ax1.get_legend_handles_labels()
+    handles2, labels2 = ax2.get_legend_handles_labels()
+    ax1.legend(handles1 + handles2, labels1 + labels2, loc="best")
+    ax1.set_title("Reference particle position and momentum vs distance")
+
     plt.savefig("general_h5.png", bbox_inches="tight", dpi=300)
 
-def fit_ellipse(x, px):
-    # your points
-    pts = np.column_stack((x, px))
+def fit_ellipse(x, y):
+    # build design matrix for Ax^2 + Bxy + Cy^2 + 1 = 0
+    D = np.vstack([x**2, x*y, y**2]).T
+    d = -np.ones_like(x)
 
-    # algebraic ellipse fit
-    def ellipse_res(params, x, y):
-        xc, yc, a, b, theta = params
-        ct, st = np.cos(theta), np.sin(theta)
-        xr = ct*(x-xc) + st*(y-yc)
-        yr = -st*(x-xc) + ct*(y-yc)
-        return (xr/a)**2 + (yr/b)**2 - 1
+    # solve least squares
+    A, B, C = np.linalg.lstsq(D, d, rcond=None)[0]
 
-    x0 = np.mean(pts[:,0])
-    y0 = np.mean(pts[:,1])
-    a0 = (pts[:,0].max() - pts[:,0].min())/2
-    b0 = (pts[:,1].max() - pts[:,1].min())/2
-    theta0 = 0
-
-    res = least_squares(ellipse_res, x0=[x0,y0,a0,b0,theta0],
-                        args=(pts[:,0], pts[:,1]))
-    xc, yc, a, b, theta = res.x
+    # extract parameters
+    theta = 0.5 * np.arctan2(B, A - C)
+    ct, st = np.cos(theta), np.sin(theta)
+    Ap = A*ct**2 + B*ct*st + C*st**2
+    Cp = A*st**2 - B*ct*st + C*ct**2
+    a = np.sqrt(-1 / Ap)
+    b = np.sqrt(-1 / Cp)
 
     # draw ellipse
     phi = np.linspace(0, 2*np.pi, 300)
-    ct, st = np.cos(theta), np.sin(theta)
-    ellipse_x = xc + a*np.cos(phi)*ct - b*np.sin(phi)*st
-    ellipse_y = yc + a*np.cos(phi)*st + b*np.sin(phi)*ct
+    ellipse_x = a*np.cos(phi)*ct - b*np.sin(phi)*st
+    ellipse_y = a*np.cos(phi)*st + b*np.sin(phi)*ct
 
-    return (ellipse_x, ellipse_y)
+    return ellipse_x, ellipse_y
 
 
 def plot_ellipse(data: H5Data):
@@ -86,20 +93,46 @@ def plot_ellipse(data: H5Data):
     indecis = np.searchsorted(REFERENCE_STAT["s"], targets, side='right')
 
     plt.figure(figsize=(12,10))
-    plt.scatter(data.x[indecis], data.px[indecis], marker="x", label="x-component")
-    plt.plot(*fit_ellipse(data.x[indecis], data.px[indecis]))
-    plt.scatter(data.y[indecis], data.py[indecis], marker="x")
-    plt.plot(*fit_ellipse(data.y[indecis], data.py[indecis]), label="y-component")
-    plt.xlabel("Position space")
+    plt.scatter(data.x[indecis], data.px[indecis], marker="x", label="x-px-component")
+    plt.plot(*fit_ellipse(data.x[indecis], data.px[indecis]), label="Fitted ellipse for the x component")
+    plt.scatter(data.y[indecis], data.py[indecis], marker="x", label="y-py-component")
+    plt.plot(*fit_ellipse(data.y[indecis], data.py[indecis]), label="Fitted ellipse for the y component")
+    plt.xlabel("Position space [m]")
     plt.ylabel("Momentum space")
+    plt.title("Reference particle position-momentum plot at even distances")
     plt.grid()
     plt.legend()
     plt.savefig("circle.png", bbox_inches="tight", dpi=300)
     plt.close()
 
+def plot_beta(data: H5Data):
+    plt.figure(figsize=(10,10))
+    
+    s =      REFERENCE_STAT["s"]
+    rms_x =  REFERENCE_STAT["rms_x"]
+    rms_y =  REFERENCE_STAT["rms_y"]
+    emit_x = REFERENCE_STAT["emit_x"]
+    emit_y = REFERENCE_STAT["emit_y"]
+
+    # beta functions
+    beta_x = rms_x**2 / emit_x
+    beta_y = rms_y**2 / emit_y
+
+    # plot
+    #plt.plot(s, beta_x, label="βx")
+    #plt.plot(s, beta_y, label="βy")
+    plt.plot(s, emit_x, label="emi_x")
+    plt.xlabel("s [m]")
+    plt.ylabel("β [m]")
+    plt.title("Beta Function along FODO Cell")
+    plt.grid(True)
+    plt.legend()
+    plt.savefig("beta.png", bbox_inches="tight", dpi=300)
+
 def plot_all(data: H5Data):
     plot_general(data)
     plot_ellipse(data)
+    plot_beta(data)
 
 data = load_h5("opalx/test.h5")
 plot_all(data)
