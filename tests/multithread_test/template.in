@@ -73,7 +73,7 @@ BEAM1:  BEAM, PARTICLE = ELECTRON, pc = P0, NPART = n_particles,
 // In the case below, 1.0e-13 is used for 0.0 to 0.4 m,
 // and 3.0e-12 is used from 0.4 to 5 m.
 
-TRACK, LINE = SOLine, BEAM = BEAM1, MAXSTEPS = 500, DT = {1.0e-11};
+TRACK, LINE = SOLine, BEAM = BEAM1, MAXSTEPS = 100, DT = {1.0e-11};
 RUN, METHOD = "PARALLEL", BEAM = BEAM1,
     FIELDSOLVER = FS1, DISTRIBUTION = Dist;
 ENDTRACK;

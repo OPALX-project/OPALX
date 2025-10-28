@@ -88,7 +88,7 @@ def compare_times():
 
     plt.yscale("log", base=10)   # log base 10 on y-axis
     plt.xscale("log", base=2)    # log base 2 on x-axis
-    plt.xlabel("Amount of threads")
+    plt.xlabel("Amount of OpenMP threads")
     plt.ylabel("Time in [s]")
     plt.legend()
     plt.grid()
