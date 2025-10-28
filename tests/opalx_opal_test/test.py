@@ -40,8 +40,8 @@ AMOUNT_THREADS = "16"
 # define the parameters
 parameters = {
     "rel" : {
-        "amount" : "1e4",
-        "avg" : 2,
+        "amount" : "1e6",
+        "avg" : 10,
         "ref" : "ref-100steps.stat"
     }
 }

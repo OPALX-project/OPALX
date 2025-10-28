@@ -184,13 +184,16 @@ def get_slurm_string(executable, filename, threads = "1"):
 #SBATCH --cluster=merlin7
 #SBATCH --partition=hourly      # Using 'hourly' will grant higher priority
 #SBATCH --nodes=1               # No. of nodes
-#SBATCH --ntasks={threads}
-#SBATCH --cpus-per-task=1      # No. of OMP threads
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task={threads}      # No. of OMP threads
 #SBATCH --time=01:00:00         # Define max time job will run (e.g. here 5 mins)
 #SBATCH --hint=multithread    # Without hyperthreading
 
 #SBATCH --output={filename}.out  # Name of output file
 #SBATCH --error={filename}.err    # Name of error file
+
+export OMP_PROC_BIND=spread
+export OMP_PLACES=threads
 
 module purge
 module use Spack unstable
