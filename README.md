@@ -1,6 +1,5 @@
 # This is OPALX
 
-
 # BUILDING OPALX on Merlin
 
 
