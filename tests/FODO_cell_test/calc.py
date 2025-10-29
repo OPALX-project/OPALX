@@ -6,7 +6,7 @@ BUNCH_CHARGE  = sc.e * N_PARTICLES # C
 INIT_ENERGY   = 1e-3 # in GeV
 
 
-BEAM_STRENGTH = 25 # T/m 
+BEAM_STRENGTH =0.0028672547057329097# T/m 
 DT = 7e-13
 LENGTH_OF_QUADRUPOLE = 0.0025 # in m
 DRIFT_LENGTH = 0.025 # in m
@@ -16,14 +16,14 @@ ELECTRON_MASS_GEV = 0.51099895000e-3  # GeV
 ELECTRON_MASS_KG = sc.m_e  # kg
 
 # Lorentz factors
-gamma = (INIT_ENERGY + ELECTRON_MASS_GEV) / ELECTRON_MASS_GEV
+gamma = (INIT_ENERGY) / ELECTRON_MASS_GEV
 beta = np.sqrt(1 - 1/gamma**2)
 
 # Momentum in kg·m/s
 p_si = gamma * beta * ELECTRON_MASS_KG * sc.c  
 
 # Beam rigidity Bρ in Tesla·meters
-beam_rigidity = p_si / (BUNCH_CHARGE / N_PARTICLES)
+beam_rigidity = p_si / sc.e
 
 # Focusing strength k [1/m^2]
 k = BEAM_STRENGTH / beam_rigidity

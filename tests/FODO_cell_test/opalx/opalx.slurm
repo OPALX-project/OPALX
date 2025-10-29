@@ -11,6 +11,9 @@
 #SBATCH --output=fodo_opalx.out  # Name of output file
 #SBATCH --error=fodo_opalx.err    # Name of error file
 
+export OMP_PROC_BIND=spread
+export OMP_PLACES=threads
+
 module purge
 module use Spack unstable
 module load gcc/13.2.0 openmpi/5.0.7-dnpr-A100-gpu
