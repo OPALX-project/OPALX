@@ -1,0 +1,2 @@
+# Optionally mark notebooks as generated to ignore them in language stats
+*.ipynb linguist-generated=true
