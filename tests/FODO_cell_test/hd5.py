@@ -1,10 +1,14 @@
 import sys
+import scipy.constants as sc
 from opal_load_stat import load_dataset
 
 REFERENCE_STAT = load_dataset("opalx/test.stat")
-LENGTH_OF_QUADRUPOLE = 0.005 # in m
-DRIFT_LENGTH = 0.05 # in m
-AMOUNT_OF_CELLS = 50
+
+LENGTH_DRIFT       = 2.5 # in m
+LENGTH_QUADRUPOLE  = 0.5 # in m
+FOCUSING_PARAMETER = 0.54102   # in 1/m^2 (alias k)
+AMOUNT_OF_CELLS    = 100  
+
 
 import numpy as np
 import pandas as pd
@@ -77,6 +81,21 @@ def fit_ellipse(x, y):
     a = np.sqrt(-1 / Ap)
     b = np.sqrt(-1 / Cp)
 
+    # covariance matrix
+    S = np.cov(np.vstack([x, y]))
+    sig_xx, sig_xpx, sig_pxpx = S[0,0], S[0,1], S[1,1]
+
+    # geometric emittance
+    eps = np.sqrt(sig_xx * sig_pxpx - sig_xpx**2)
+
+    # Twiss parameters
+    beta  = sig_xx / eps
+    alpha = -sig_xpx / eps
+    gamma = (1 + alpha**2) / beta
+
+    print(alpha)
+    print(beta)
+    print(gamma)
     # draw ellipse
     phi = np.linspace(0, 2*np.pi, 300)
     ellipse_x = a*np.cos(phi)*ct - b*np.sin(phi)*st
@@ -87,7 +106,7 @@ def fit_ellipse(x, y):
 
 def plot_ellipse(data: H5Data):
     # offsets to search for
-    targets = np.arange(AMOUNT_OF_CELLS) * (DRIFT_LENGTH + LENGTH_OF_QUADRUPOLE) + (LENGTH_OF_QUADRUPOLE + DRIFT_LENGTH/2)
+    targets = np.arange(AMOUNT_OF_CELLS) * 2 * (LENGTH_DRIFT + LENGTH_QUADRUPOLE) + (LENGTH_QUADRUPOLE + LENGTH_DRIFT / 2)
 
     # vectorized search
     indecis = np.searchsorted(REFERENCE_STAT["s"], targets, side='right')
@@ -108,20 +127,30 @@ def plot_ellipse(data: H5Data):
 def plot_beta(data: H5Data):
     plt.figure(figsize=(10,10))
     
-    s =      REFERENCE_STAT["s"]
-    rms_x =  REFERENCE_STAT["rms_x"]
-    rms_y =  REFERENCE_STAT["rms_y"]
-    emit_x = REFERENCE_STAT["emit_x"]
-    emit_y = REFERENCE_STAT["emit_y"]
+    fodo = np.arange(AMOUNT_OF_CELLS) * (LENGTH_DRIFT + LENGTH_QUADRUPOLE) * 2
+    
+    s =      np.asarray(REFERENCE_STAT["s"])
+    rms_x =  np.asarray(REFERENCE_STAT["rms_x"])
+    rms_y =  np.asarray(REFERENCE_STAT["rms_y"])
+    # normalized emittance
+    emit_x = np.asarray(REFERENCE_STAT["emit_x"])
+    emit_y = np.asarray(REFERENCE_STAT["emit_y"])
 
+    energy_joules = np.asarray(REFERENCE_STAT["energy"]) * sc.e * 1e6
+    gamma = energy_joules/(sc.c**2 * sc.m_e)
+    beta = np.sqrt(1 - 1/gamma**2)
+
+    emit_x_geo = emit_x / (gamma * beta) + 1e-9
+    emit_y_geo = emit_y / (gamma * beta) + 1e-9
     # beta functions
-    beta_x = rms_x**2 / emit_x
-    beta_y = rms_y**2 / emit_y
+    beta_x = rms_x**2 / emit_x_geo
+    beta_y = rms_y**2 / emit_y_geo
 
     # plot
-    #plt.plot(s, beta_x, label="βx")
-    #plt.plot(s, beta_y, label="βy")
-    plt.plot(s, emit_x, label="emi_x")
+    plt.plot(s, beta_x, label="βx")
+    plt.plot(s, beta_y, label="βy")
+    plt.xticks(fodo)
+    plt.xlim([0, 12])
     plt.xlabel("s [m]")
     plt.ylabel("β [m]")
     plt.title("Beta Function along FODO Cell")
