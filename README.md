@@ -34,9 +34,9 @@ cuda/12.8.1
 ## Clone repo and build opalx with OPENMP 
 
 ```
-$ git clone git@gitlab.psi.ch:OPAL/opal-x/src.git opal-x
+$ git clone https://github.com/OPALX-project/OPALX.git
 
-$ cd opal-x
+$ cd OPALX
 
 $ ./gen_OPALrevision
 ```
@@ -45,7 +45,7 @@ $ ./gen_OPALrevision
 ### To compile for OPENMP:
 ```
 $ mkdir build_openmp && cd build_openmp
-$ cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_STANDARD=20 -DIPPL_ENABLE_FFT=ON -DIPPL_ENABLE_SOLVERS=ON -DIPPL_ENABLE_ALPINE=OFF -DIPPL_ENABLE_TESTS=OFF     -DIPPL_PLATFORMS=openmp
+$ cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_STANDARD=20 -DIPPL_ENABLE_FFT=ON -DIPPL_ENABLE_SOLVERS=ON -DIPPL_ENABLE_ALPINE=OFF -DIPPL_ENABLE_TESTS=OFF  -DIPPL_PLATFORMS=openmp
 ```
 
 
