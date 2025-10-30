@@ -19,6 +19,7 @@ ENERGY_JOULES  = INIT_ENERGY * sc.e * 1e9 # in J
 MOMENTUM = 1/sc.c * np.sqrt(ENERGY_JOULES**2 - (sc.m_e * sc.c**2)**2) # in kg m/s
 BEAM_GRADIENT = FOCUSING_PARAMETER * (MOMENTUM / sc.e)  # T/m
 
+
 def D(L): 
     return np.array([[1, L],
                      [0, 1]])
@@ -70,25 +71,34 @@ def propagate_twiss(alpha0, beta0, gamma0, s):
 
     return np.array([alpha, beta, gamma])
 
-def plot_beta(alpha0, beta0, gamma0):
-    x = np.linspace(0, (LENGTH_QUADRUPOLE + LENGTH_DRIFT) * 2 * 10, 1000)
+def plot_theoretical_beta(alpha0, beta0, gamma0):
+    x = np.linspace(0, (LENGTH_QUADRUPOLE + LENGTH_DRIFT) * 2 * AMOUNT_OF_CELLS, 1000)
     vals = np.array([propagate_twiss(alpha0, beta0, gamma0, s) for s in x])
     alpha, beta, gamma = vals[:, 0], vals[:, 1], vals[:, 2]
-    plt.plot(x, alpha)
-    plt.plot(x, beta)
-    plt.plot(x, gamma)
+
+    plt.figure(figsize=[20, 10])
+    plt.plot(x, alpha, label="alpha")
+    plt.plot(x, beta,  label="beta")
+    plt.plot(x, gamma,  label="gamma")
+    
+    plt.xticks(np.arange(AMOUNT_OF_CELLS) * (LENGTH_QUADRUPOLE + LENGTH_DRIFT) * 2)
+    plt.legend()
+    plt.grid()
     plt.savefig("theoretical vals")
 
 
-if __name__ == "__main__":
-    M = Q(FOCUSING_PARAMETER, LENGTH_QUADRUPOLE) @ D(LENGTH_DRIFT) @ Q(-FOCUSING_PARAMETER, LENGTH_QUADRUPOLE) @ D(LENGTH_DRIFT) 
-    Tr = np.abs(np.trace(M))
-    phi = np.arccos(1/2 * Tr)
-    beta = M[0,1]/np.sin(phi)
-    alpha = (M[0,0] - np.cos(phi))/np.sin(phi)
-    gamma = (1 + alpha**2)/beta
+M = Q(FOCUSING_PARAMETER, LENGTH_QUADRUPOLE) @ D(LENGTH_DRIFT) @ Q(-FOCUSING_PARAMETER, LENGTH_QUADRUPOLE) @ D(LENGTH_DRIFT) 
+Tr = np.abs(np.trace(M))
+phi = np.arccos(1/2 * Tr)
+beta = M[0,1]/np.sin(phi)
+alpha = (M[0,0] - np.cos(phi))/np.sin(phi)
+gamma = (1 + alpha**2)/beta
 
-    plot_beta(alpha, beta, gamma)
+alpha0 = alpha
+beta0  = beta
+gamma0 = gamma
+if __name__ == "__main__":
+
 
     print("--- Theoretical values ---")
     if Tr < 2:
@@ -103,6 +113,8 @@ if __name__ == "__main__":
     print(f"φ = {phi * 180/np.pi}°")
     print(f"G = {BEAM_GRADIENT} T/m")
     print("")
+    plot_theoretical_beta(alpha, beta, gamma)
+    print("Plotted theoretical values")
 
     LENGTH_OF_ALL_CELLS = AMOUNT_OF_CELLS * 2 * (LENGTH_DRIFT + LENGTH_QUADRUPOLE)
     velocity = MOMENTUM * sc.c**2 / ENERGY_JOULES

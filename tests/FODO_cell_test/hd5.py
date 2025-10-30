@@ -2,13 +2,10 @@ import sys
 import scipy.constants as sc
 from opal_load_stat import load_dataset
 
-REFERENCE_STAT = load_dataset("opalx/test.stat")
+import generate #used to get the parameters
 
-LENGTH_DRIFT       = 2.5 # in m
-LENGTH_QUADRUPOLE  = 0.5 # in m
-FOCUSING_PARAMETER = 0.54102   # in 1/m^2 (alias k)
-AMOUNT_OF_CELLS    = 100  
-
+OPALX_STAT = load_dataset("opalx/test.stat")
+OPAL_STAT = load_dataset("opal/test.stat")
 
 import numpy as np
 import pandas as pd
@@ -21,29 +18,14 @@ import matplotlib.pyplot as plt
 def color(r, g, b, background = False):
     return f"\033[38;2;{r};{g};{b}m"
 
-class H5Data:
-    def __init__(self, x, y, z, px, py):
-        self.x  = x
-        self.y  = y
-        self.z  = z
-        self.px = px
-        self.py = py
 
-def load_h5(filename: str, particle_num = 1):
-    x =  np.asarray(REFERENCE_STAT["ref_x"])
-    y =  np.asarray(REFERENCE_STAT["ref_y"])
-    z =  np.asarray(REFERENCE_STAT["ref_z"])
-    px = np.asarray(REFERENCE_STAT["ref_px"])
-    py = np.asarray(REFERENCE_STAT["ref_py"])
-    return H5Data(x, y, z, px, py)
-
-def plot_general(data: H5Data):
+def plot_general():
     # Assuming data.x, data.px, data.y, and data.py are your data arrays
     fig, ax1 = plt.subplots(figsize=(20, 5))
 
     # Plot position data on the first y-axis
-    ax1.plot(REFERENCE_STAT["s"], data.x, label="x position", color="blue", ls="--")
-    ax1.plot(REFERENCE_STAT["s"], data.y, label="y position", color="red", ls="--")
+    ax1.plot(OPALX_STAT["s"], OPALX_STAT["ref_y"], label="OPALX x position", color="blue", ls="--")
+    ax1.plot(OPALX_STAT["s"], OPALX_STAT["ref_y"], label="OPALX y position", color="red", ls="--")
     ax1.set_xlabel("z position in the beam line [m]")
     ax1.set_ylabel("Position [m]")
     ax1.tick_params(axis='y')
@@ -51,8 +33,8 @@ def plot_general(data: H5Data):
 
     # Create a second y-axis for momentum data
     ax2 = ax1.twinx()
-    ax2.plot(REFERENCE_STAT["s"], data.px, label="px momentum", color="blue")
-    ax2.plot(REFERENCE_STAT["s"], data.py, label="py momentum", color="red")
+    ax2.plot(OPALX_STAT["s"], OPALX_STAT["ref_px"], label="px momentum", color="blue")
+    ax2.plot(OPALX_STAT["s"], OPALX_STAT["ref_py"], label="py momentum", color="red")
     ax2.set_ylabel("Momentum")
     ax2.tick_params(axis='y')
     ax2.grid(ls =":")
@@ -104,64 +86,108 @@ def fit_ellipse(x, y):
     return ellipse_x, ellipse_y
 
 
-def plot_ellipse(data: H5Data):
+def plot_ellipse():
     # offsets to search for
-    targets = np.arange(AMOUNT_OF_CELLS) * 2 * (LENGTH_DRIFT + LENGTH_QUADRUPOLE) + (LENGTH_QUADRUPOLE + LENGTH_DRIFT / 2)
+    targets = np.arange(generate.AMOUNT_OF_CELLS) * 2 * (generate.LENGTH_DRIFT + generate.LENGTH_QUADRUPOLE) + (generate.LENGTH_QUADRUPOLE + generate.LENGTH_DRIFT / 2)
 
     # vectorized search
-    indecis = np.searchsorted(REFERENCE_STAT["s"], targets, side='right')
-
+    indecis = np.searchsorted(OPALX_STAT["s"], targets, side='right')
     plt.figure(figsize=(12,10))
-    plt.scatter(data.x[indecis], data.px[indecis], marker="x", label="x-px-component")
-    plt.plot(*fit_ellipse(data.x[indecis], data.px[indecis]), label="Fitted ellipse for the x component")
-    plt.scatter(data.y[indecis], data.py[indecis], marker="x", label="y-py-component")
-    plt.plot(*fit_ellipse(data.y[indecis], data.py[indecis]), label="Fitted ellipse for the y component")
+
+    with h5py.File("opalx/test.h5", "r") as f:
+        steps = [f[f"Step#{i}"] for i in indecis]
+        px = np.array([s["px"][1000] for s in steps])
+        py = np.array([s["py"][1000] for s in steps])
+        x  = np.array([s["x"] [1000] for s in steps])
+        y  = np.array([s["y"] [1000] for s in steps])
+    plt.scatter(x, px, marker="x", label="OPAL-X x-px-component")
+    plt.plot(*fit_ellipse(x, px), label="Fitted ellipse for the x component")
+    plt.scatter(y, py, marker="x", label="OPAL-X y-py-component")
+    plt.plot(*fit_ellipse(y, py), label="Fitted ellipse for the x component")
+
     plt.xlabel("Position space [m]")
     plt.ylabel("Momentum space")
-    plt.title("Reference particle position-momentum plot at even distances")
+    plt.title("OPAL-X Particle position-momentum plot at even distances")
     plt.grid()
     plt.legend()
     plt.savefig("circle.png", bbox_inches="tight", dpi=300)
     plt.close()
 
-def plot_beta(data: H5Data):
+def plot_beta():
     plt.figure(figsize=(10,10))
     
-    fodo = np.arange(AMOUNT_OF_CELLS) * (LENGTH_DRIFT + LENGTH_QUADRUPOLE) * 2
+    fodo = np.arange(generate.AMOUNT_OF_CELLS) * (generate.LENGTH_DRIFT + generate.LENGTH_QUADRUPOLE) * 2
     
-    s =      np.asarray(REFERENCE_STAT["s"])
-    rms_x =  np.asarray(REFERENCE_STAT["rms_x"])
-    rms_y =  np.asarray(REFERENCE_STAT["rms_y"])
-    # normalized emittance
-    emit_x = np.asarray(REFERENCE_STAT["emit_x"])
-    emit_y = np.asarray(REFERENCE_STAT["emit_y"])
+    def calc_beta(data):
+        s =      np.asarray(data["s"])
+        rms_x =  np.asarray(data["rms_x"])
+        rms_y =  np.asarray(data["rms_y"])
+        # normalized emittance
+        emit_x = np.asarray(data["emit_x"])
+        emit_y = np.asarray(data["emit_y"])
 
-    energy_joules = np.asarray(REFERENCE_STAT["energy"]) * sc.e * 1e6
-    gamma = energy_joules/(sc.c**2 * sc.m_e)
-    beta = np.sqrt(1 - 1/gamma**2)
+        energy_joules = np.asarray(data["energy"]) * sc.e * 1e6
+        gamma = energy_joules/(sc.c**2 * sc.m_e)
+        beta = np.sqrt(1 - 1/gamma**2)
 
-    emit_x_geo = emit_x / (gamma * beta) + 1e-9
-    emit_y_geo = emit_y / (gamma * beta) + 1e-9
-    # beta functions
-    beta_x = rms_x**2 / emit_x_geo
-    beta_y = rms_y**2 / emit_y_geo
+        emit_x_geo = emit_x / (gamma * beta) + 1e-9
+        emit_y_geo = emit_y / (gamma * beta) + 1e-9
+        # beta functions
+        beta_x = rms_x**2 / emit_x_geo
+        beta_y = rms_y**2 / emit_y_geo
+
+        return (beta_x, beta_y)
+        
+
+    #theorey
+    
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(20, 14), sharex=True)
+    # --- Beta function plot ---
+    beta_x, beta_y = calc_beta(OPAL_STAT)
+    opalx_beta_x, opalx_beta_y = calc_beta(OPALX_STAT)
+
+    s = OPAL_STAT["s"]
+    vals = np.array([generate.propagate_twiss(generate.alpha0, generate.beta0, generate.gamma0, x) for x in s])
+    _, beta, _ = vals[:, 0], vals[:, 1], vals[:, 2]
+    ax1.plot(s, beta_x, label="OPAL βx", ls="--", color="red")
+    ax1.plot(s, beta_y, label="OPAL βy", ls="--", color="blue")
+    ax1.plot(OPALX_STAT["s"], opalx_beta_x, label="OPAL-X βx", color="red")
+    ax1.plot(OPALX_STAT["s"], opalx_beta_y, label="OPAL-X βy", color="blue")
+    ax1.plot(s, beta, label="Theoretical β", ls="dashdot", color="orange")
+
+    ax1.set_ylabel("β [m]")
+    ax1.set_title("Beta Function along FODO Cell")
+    ax1.set_ylim([0,120])
+    ax1.grid(True)
+    ax1.legend()
+    
+    # offsets to search for
+    targets = np.arange(generate.AMOUNT_OF_CELLS) * 2 * (generate.LENGTH_DRIFT + generate.LENGTH_QUADRUPOLE) + (generate.LENGTH_QUADRUPOLE + generate.LENGTH_DRIFT / 2)
+
+    # vectorized search
+    indecis = np.searchsorted(OPALX_STAT["s"], targets, side='right')
+
+    # --- Error subplot (difference between OPAL-X and OPAL) ---
+    err_x = np.abs(opalx_beta_x[1:] - beta_x) / beta_x
+    err_y = np.abs(opalx_beta_y[1:] - beta_y) / beta_y
+
+    ax2.plot(s, err_x * 100, label="βx Error", color="red")
+    ax2.plot(s, err_y * 100, label="βy Error", color="blue")
+    ax2.set_ylim([0,100])
+    ax2.set_xlabel("s [m]")
+    ax2.set_ylabel("Relative error Δβ/β [%]")
+    ax2.grid(True)
+    ax2.legend()
 
     # plot
-    plt.plot(s, beta_x, label="βx")
-    plt.plot(s, beta_y, label="βy")
-    plt.xticks(fodo)
-    plt.xlim([0, 12])
-    plt.xlabel("s [m]")
-    plt.ylabel("β [m]")
-    plt.title("Beta Function along FODO Cell")
+    plt.xlim([300,600])
     plt.grid(True)
     plt.legend()
     plt.savefig("beta.png", bbox_inches="tight", dpi=300)
 
-def plot_all(data: H5Data):
-    plot_general(data)
-    plot_ellipse(data)
-    plot_beta(data)
+def plot_all():
+    #plot_ellipse()
+    #plot_general()
+    plot_beta()
 
-data = load_h5("opalx/test.h5")
-plot_all(data)
+plot_all()
