@@ -18,10 +18,11 @@
 #ifndef OPAL_MATRIX_HH
 #define OPAL_MATRIX_HH
 
-#include <boost/numeric/ublas/matrix.hpp>
+//#include <boost/numeric/ublas/matrix.hpp>
 
-typedef boost::numeric::ublas::matrix<double> matrix_t;
+//typedef boost::numeric::ublas::matrix<double> matrix_t;
 
+/*
 template <class T>
 T prod_boost_vector(boost::numeric::ublas::matrix<double> rotation, const T& vect) {
     boost::numeric::ublas::vector<double> boostVector(3);
@@ -40,5 +41,6 @@ T prod_boost_vector(boost::numeric::ublas::matrix<double> rotation, const T& vec
 
     return prodVector;
 }
+*/
 
 #endif
