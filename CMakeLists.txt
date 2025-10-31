@@ -8,7 +8,6 @@ set(CMAKE_C_COMPILER ${MPI_C_COMPILER} CACHE FILEPATH "C compiler" FORCE)
 set(CMAKE_CXX_COMPILER ${MPI_CXX_COMPILER} CACHE FILEPATH "C++ compiler" FORCE)
 set(CMAKE_Fortran_COMPILER ${MPI_Fortran_COMPILER} CACHE FILEPATH "Fortran compiler" FORCE)
 
-
 # ------------------------------------------------------------------------------
 # Project
 # ------------------------------------------------------------------------------
@@ -24,7 +23,6 @@ ProcessorCount(NPROC)
 if(NPROC EQUAL 0)
   set(NPROC 2)
 endif()
-
 
 message (STATUS "The C++ compiler identification is: ${CMAKE_CXX_COMPILER_ID}")
 message (STATUS "The C++ compiler version is: ${CMAKE_CXX_COMPILER_VERSION}")
@@ -112,6 +110,7 @@ set(GSL_LIBRARIES ${GSL_ROOT}/lib/libgsl.a ${GSL_ROOT}/lib/libgslcblas.a)
 # ------------------------------------------------------------------------------
 # H5hut
 # ------------------------------------------------------------------------------
+
 set(H5HUT_VERSION 2.0.0rc6)
 set(H5HUT_TAR "H5hut-${H5HUT_VERSION}.tar.gz")
 set(H5HUT_URL "http://amas.web.psi.ch/Downloads/H5hut/${H5HUT_TAR}")
@@ -143,10 +142,10 @@ set(H5HUT_ROOT ${INSTALL_DIR})
 set(H5HUT_INCLUDE_DIR ${H5HUT_ROOT}/include)
 set(H5HUT_LIBRARIES ${H5HUT_ROOT}/lib/libh5hut.so)  # adjust for .dylib on macOS
 
-
 # ------------------------------------------------------------------------------
 # IPPL library
 # ------------------------------------------------------------------------------
+
 if ("${IPPL_PLATFORMS}" STREQUAL "CUDA")
     set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wno-deprecated-gpu-targets")
 endif()
@@ -181,7 +180,6 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(ippl)
 message(STATUS "IPPL include path: ${ippl_SOURCE_DIR}/src")
 
-
 # ------------------------------------------------------------------------------
 # Boost library
 # ------------------------------------------------------------------------------
@@ -194,7 +192,6 @@ set(BOOST_URL "https://netcologne.dl.sourceforge.net/project/boost/boost/${BOOST
 
 set(BOOST_INSTALL_DIR ${CMAKE_BINARY_DIR}/_deps/boost)
 set(BOOST_SRC_DIR ${CMAKE_BINARY_DIR}/_deps/boost/src)
-
 file(MAKE_DIRECTORY ${BOOST_SRC_DIR})
 
 ExternalProject_Add(boost_external
@@ -234,14 +231,11 @@ set(BOOST_LIBRARIES
     ${BOOST_ROOT}/lib/libboost_filesystem.a
     ${BOOST_ROOT}/lib/libboost_program_options.a
 )
-
 message(STATUS "Boost include dir: ${BOOST_INCLUDE_DIR}")
-
 
 # ------------------------------------------------------------------------------
 # Your OPALX target
 # ------------------------------------------------------------------------------
-# Make IPPL available
 
 add_subdirectory(src)
 
