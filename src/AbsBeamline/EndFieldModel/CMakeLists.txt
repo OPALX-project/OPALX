@@ -5,12 +5,6 @@ set (_SRCS
     AsymmetricEnge.cpp
     )
 
-include_directories (
-    ${CMAKE_CURRENT_SOURCE_DIR}
-    )
-
-add_opal_sources (${_SRCS})
-
 set (HDRS
     EndFieldModel.h
     Enge.h
@@ -18,4 +12,11 @@ set (HDRS
     AsymmetricEnge.h
     )
 
-install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/AbsBeamline/EndFieldModel/")
+# Add local include directory
+target_include_directories(opalx PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
+# Append sources to the main executable target
+target_sources(opalx PRIVATE ${_SRCS})
+
+# Optionally install headers
+install(FILES ${_HDRS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/AbsBeamline/EndFieldModel)
