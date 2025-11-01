@@ -118,7 +118,7 @@ add_subdirectory(src)
 
 include_directories (
     ${CMAKE_SOURCE_DIR}/src
-    ${IPPL_INCLUDE_DIR}    
+    ${OPALX_INCLUDE_DIR}    
 )
 
 if (BUILD_OPAL_UNIT_TESTS)
