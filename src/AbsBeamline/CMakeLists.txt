@@ -1,7 +1,11 @@
+# AbsBeamline/CMakeLists.txt
+
+# Include subdirectories
 add_subdirectory(EndFieldModel)
 add_subdirectory(MultipoleTFunctions)
 
-set (_SRCS
+# List local source and header files
+set(_SRCS
     AttributeSet.cpp
     BeamlineVisitor.cpp
     Component.cpp
@@ -25,7 +29,7 @@ set (_SRCS
     PluginElement.cpp
 )
 
-set (HDRS
+set(_HDRS
     AttributeSet.h
     BeamlineVisitor.h
     Component.h
@@ -50,10 +54,11 @@ set (HDRS
     PluginElement.h
 )
 
-include_directories (
-    ${CMAKE_CURRENT_SOURCE_DIR}
-    )
+# Add local include directory
+target_include_directories(opalx PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
-add_opal_sources (${_SRCS})
+# Append sources to the main executable target
+target_sources(opalx PRIVATE ${_SRCS})
 
-install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/AbsBeamline")
+# Optionally install headers
+install(FILES ${_HDRS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/AbsBeamline)

@@ -77,6 +77,50 @@ function(get_git_tags GIT_REPOSITORY RESULT_VAR)
   set(${RESULT_VAR} "${GIT_TAGS_LIST}" PARENT_SCOPE)
 endfunction()
 
+# ------------------------------------------------------------------------------
+# IPPL library
+# ------------------------------------------------------------------------------
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+if ("${IPPL_PLATFORMS}" STREQUAL "CUDA")
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wno-deprecated-gpu-targets")
+endif()
+
+# Disable compile time assert (used by IPPL)
+add_definitions (-DNOCTAssert)
+
+message(STATUS "Found IPPL_DIR: ${IPPL_DIR}")
+
+if(NOT IPPL_VERSION)
+    set(IPPL_VERSION "3.2.0")
+    message(STATUS "Defaulting to IPPL-${IPPL_VERSION}")
+endif()
+
+# Allow user to specify branch/tag, default to master
+set(IPPL_GIT_TAG "master" CACHE STRING "Branch or tag for IPPL (default: master)")
+message(STATUS "Fetching IPPL branch/tag: ${IPPL_GIT_TAG}")
+
+if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+    set(CMAKE_BUILD_TYPE Debug CACHE STRING "Choose build type" FORCE)
+endif()
+message(STATUS "Build type is: ${CMAKE_BUILD_TYPE}")
+
+FetchContent_Declare(
+    ippl
+    GIT_REPOSITORY https://github.com/IPPL-framework/ippl.git
+    GIT_TAG ${IPPL_GIT_TAG}
+    GIT_SHALLOW TRUE
+    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+)
+
+FetchContent_MakeAvailable(ippl)
+message(STATUS "IPPL include path: ${ippl_SOURCE_DIR}/src")
+
+set(IPPL_INCLUDE_DIR "${ippl_SOURCE_DIR}/src")
+set(IPPL_LIBRARY ippl)
 
 # ------------------------------------------------------------------------------
 # FFTW
@@ -186,46 +230,6 @@ set(H5HUT_ROOT ${INSTALL_DIR})
 set(H5HUT_INCLUDE_DIR ${H5HUT_ROOT}/include)
 set(H5HUT_LIBRARIES ${H5HUT_ROOT}/lib/libh5hut.so)  # adjust for .dylib on macOS
 
-# ------------------------------------------------------------------------------
-# IPPL library
-# ------------------------------------------------------------------------------
-
-if ("${IPPL_PLATFORMS}" STREQUAL "CUDA")
-    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wno-deprecated-gpu-targets")
-endif()
-
-# Disable compile time assert (used by IPPL)
-add_definitions (-DNOCTAssert)
-
-message(STATUS "Found IPPL_DIR: ${IPPL_DIR}")
-
-if(NOT IPPL_VERSION)
-    set(IPPL_VERSION "3.2.0")
-    message(STATUS "Defaulting to IPPL-${IPPL_VERSION}")
-endif()
-
-# Allow user to specify branch/tag, default to master
-set(IPPL_GIT_TAG "master" CACHE STRING "Branch or tag for IPPL (default: master)")
-message(STATUS "Fetching IPPL branch/tag: ${IPPL_GIT_TAG}")
-
-if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
-    set(CMAKE_BUILD_TYPE Debug CACHE STRING "Choose build type" FORCE)
-endif()
-message(STATUS "Build type is: ${CMAKE_BUILD_TYPE}")
-
-FetchContent_Declare(
-    ippl
-    GIT_REPOSITORY https://github.com/IPPL-framework/ippl.git
-    GIT_TAG ${IPPL_GIT_TAG}
-    GIT_SHALLOW TRUE
-    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
-)
-
-FetchContent_MakeAvailable(ippl)
-message(STATUS "IPPL include path: ${ippl_SOURCE_DIR}/src")
-
-set(IPPL_INCLUDE_DIR "${ippl_SOURCE_DIR}/src")
-set(IPPL_LIBRARY ippl)
 
 # ------------------------------------------------------------------------------
 # Boost library
