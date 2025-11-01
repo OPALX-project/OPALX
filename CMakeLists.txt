@@ -1,256 +1,152 @@
 # ------------------------------------------------------------------------------
-# Determine MPI compilers first
+# CMake version requirement
 # ------------------------------------------------------------------------------
-find_package(MPI REQUIRED)
-
-# Use MPI compilers for all projects
-set(CMAKE_C_COMPILER ${MPI_C_COMPILER} CACHE FILEPATH "C compiler" FORCE)
-set(CMAKE_CXX_COMPILER ${MPI_CXX_COMPILER} CACHE FILEPATH "C++ compiler" FORCE)
-set(CMAKE_Fortran_COMPILER ${MPI_Fortran_COMPILER} CACHE FILEPATH "Fortran compiler" FORCE)
-
+cmake_minimum_required(VERSION 3.24)
 
 # ------------------------------------------------------------------------------
-# Project
+# Policies - use the latest of everything
 # ------------------------------------------------------------------------------
-cmake_minimum_required(VERSION 3.20)
-project(opalx LANGUAGES C CXX)
+cmake_policy(VERSION ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION})
 
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+# but disable c++20 module scanning until we have better support for it this seems to cause some
+# problems when using gcc@14
+cmake_policy(SET CMP0155 OLD)
+#set(CMAKE_CXX_STANDARD 17)
 
-# Determine number of cores
-include(ProcessorCount)
-ProcessorCount(NPROC)
-if(NPROC EQUAL 0)
-  set(NPROC 2)
+# ------------------------------------------------------------------------------
+# Project declaration and version
+# ------------------------------------------------------------------------------
+project(OPALX VERSION 1.0 LANGUAGES CXX)
+
+# ------------------------------------------------------------------------------
+# Module path, setup before including any cmake modules
+# ------------------------------------------------------------------------------
+list(PREPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" "${PROJECT_SOURCE_DIR}/CMakeModules")
+
+# ------------------------------------------------------------------------------
+# Project setup
+# ------------------------------------------------------------------------------
+include(ProjectSetup)
+
+# ------------------------------------------------------------------------------
+# Primary OPALX options
+# ------------------------------------------------------------------------------
+set(OPALX_PLATFORMS "SERIAL" CACHE STRING "Platforms to build OPALX for")
+option(BUILD_SHARED_LIBS "Build OPALX as a shared library" OFF)
+option(OPALX_ENABLE_UNIT_TESTS "Enable unit tests using GoogleTest" OFF)
+option(OPALX_ENABLE_FFT "Enable FFT support" OFF)
+option(OPALX_ENABLE_SOLVERS "Enable OPALX solvers" OFF)
+option(OPALX_ENABLE_ALPINE "Enable building the Alpine module" OFF)
+option(OPALX_ENABLE_COSMOLOGY "Enable building the Cosmology module" OFF)
+option(OPALX_ENABLE_EXAMPLES "Enable building the Example module" OFF)
+option(OPALX_ENABLE_TESTS "Build integration tests in test/ directory" OFF)
+option(OPALX_ENABLE_COVERAGE "Enable code coverage" OFF)
+option(OPALX_ENABLE_NSYS_PROFILER "Enable Nvidia Nsys Profiler" OFF)
+option(OPALX_ENABLE_SANITIZER "Enable sanitizer(s)" OFF)
+option(OPALX_USE_ALTERNATIVE_VARIANT
+       "Use modified variant implementation (required for CUDA 12.2 + GCC 12.3.0)" OFF)
+option(OPALX_USE_STANDARD_FOLDERS "Put all generated binaries in bin/lib folders" OFF)
+option(OPALX_SKIP_FAILING_TESTS "Do not build/test tests that are currently marked as failing" OFF)
+option(OPALX_ENABLE_SCRIPTS "Generate job script templates for some benchmarks/tests" OFF)
+
+# "Build OPALX as a shared library (ON) or static library (OFF)" OFF) if(OPALX_DYL)
+# set(BUILD_SHARED_LIBS ON CACHE BOOL "" FORCE) message(WARNING "OPALX_DYL is deprecated; use
+# -DBUILD_SHARED_LIBS=ON instead.") endif()
+
+# ------------------------------------------------------------------------------
+# Setup Output directories
+# ------------------------------------------------------------------------------
+if(OPALX_USE_STANDARD_FOLDERS)
+  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin
+      CACHE PATH "Single Directory for all Executables.")
+  set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib
+      CACHE PATH "Single Directory for all Libraries")
+  set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib
+      CACHE PATH "Single Directory for all static libraries.")
+else()
+  unset(CMAKE_RUNTIME_OUTPUT_DIRECTORY CACHE)
+  unset(CMAKE_LIBRARY_OUTPUT_DIRECTORY CACHE)
+  unset(CMAKE_ARCHIVE_OUTPUT_DIRECTORY CACHE)
 endif()
 
-
-message (STATUS "The C++ compiler identification is: ${CMAKE_CXX_COMPILER_ID}")
-message (STATUS "The C++ compiler version is: ${CMAKE_CXX_COMPILER_VERSION}")
-message (STATUS "The MPI C++ compiler is: ${MPI_CXX_COMPILER}")
-message (STATUS "The underlying C++ compiler is: ${CMAKE_CXX_COMPILER}")
-
 # ------------------------------------------------------------------------------
-# FetchContent module
+# cmake modules
 # ------------------------------------------------------------------------------
+# cmake supplied modules
+include(GNUInstallDirs)
 include(FetchContent)
-
-# ------------------------------------------------------------------------------
-# FFTW
-# ------------------------------------------------------------------------------
-
-# FFTW uses autotools (not CMake), so we need an external project build:
+include(CMakePackageConfigHelpers)
 include(ExternalProject)
-ExternalProject_Add(fftw_external
-  DOWNLOAD_EXTRACT_TIMESTAMP TRUE            # avoids CMP0135 dev warning
-  URL http://www.fftw.org/fftw-3.3.10.tar.gz
-  CONFIGURE_COMMAND ./configure --enable-float --enable-shared --enable-threads --prefix=<INSTALL_DIR>
-  BUILD_COMMAND make -j
-  INSTALL_COMMAND make install
-  BUILD_IN_SOURCE TRUE
-)
-ExternalProject_Get_Property(fftw_external INSTALL_DIR)
-set(FFTW_ROOT ${INSTALL_DIR})
-set(FFTW_LIBRARIES ${FFTW_ROOT}/lib/libfftw3f.so)
-set(FFTW_INCLUDE_DIR ${FFTW_ROOT}/include)
+include(CTest)
+
+# custom modules
+include(Messages)
+include(CompilerOptions)
+include(Platforms)
+include(Dependencies)
+include(FailingTests)
 
 # ------------------------------------------------------------------------------
-# HDF5
+# Deprecated vars
 # ------------------------------------------------------------------------------
-
-set(HDF5_VERSION 1.10.8)
-set(HDF5_PREFIX ${CMAKE_BINARY_DIR}/_deps/hdf5)
-
-ExternalProject_Add(hdf5_external
-  URL https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-1.10/hdf5-${HDF5_VERSION}/src/hdf5-${HDF5_VERSION}.tar.gz
-  PREFIX ${HDF5_PREFIX}
-  CONFIGURE_COMMAND CC=mpicc CXX=mpicxx ./configure --prefix=<INSTALL_DIR> --disable-shared --enable-parallel --disable-cxx --enable-unsupported --with-pic
-  BUILD_COMMAND make -j${NPROC}
-  INSTALL_COMMAND make install
-  BUILD_IN_SOURCE TRUE
-  DOWNLOAD_EXTRACT_TIMESTAMP TRUE
-)
-
-ExternalProject_Get_Property(hdf5_external INSTALL_DIR)
-set(HDF5_ROOT ${INSTALL_DIR})
-set(HDF5_INCLUDE_DIR ${HDF5_ROOT}/include)
-set(HDF5_LIBRARIES ${HDF5_ROOT}/lib/libhdf5.a)
-
-# ------------------------------------------------------------------------------
-# GSL
-# ------------------------------------------------------------------------------
-
-set(GSL_VERSION 2.7)
-set(GSL_TAR "gsl-${GSL_VERSION}.tar.gz")
-set(GSL_URL "http://ftp.gnu.org/gnu/gsl/${GSL_TAR}")
-set(GSL_INSTALL_DIR ${CMAKE_BINARY_DIR}/_deps/gsl)
-set(GSL_SRC_DIR ${CMAKE_BINARY_DIR}/_deps/gsl-src)
-
-include(ExternalProject)
-
-ExternalProject_Add(gsl_external
-    URL ${GSL_URL}
-    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
-    PREFIX ${GSL_INSTALL_DIR}
-    CONFIGURE_COMMAND
-        <SOURCE_DIR>/configure
-            --prefix=<INSTALL_DIR>
-            --disable-shared
-            --enable-static
-            CFLAGS=-fPIC
-    BUILD_COMMAND make -j${NPROC}
-    INSTALL_COMMAND make install
-    BUILD_IN_SOURCE TRUE
-)
-
-ExternalProject_Get_Property(gsl_external INSTALL_DIR)
-set(GSL_ROOT ${INSTALL_DIR})
-set(GSL_INCLUDE_DIR ${GSL_ROOT}/include)
-set(GSL_LIBRARIES ${GSL_ROOT}/lib/libgsl.a ${GSL_ROOT}/lib/libgslcblas.a)
-
-# ------------------------------------------------------------------------------
-# H5hut
-# ------------------------------------------------------------------------------
-set(H5HUT_VERSION 2.0.0rc6)
-set(H5HUT_TAR "H5hut-${H5HUT_VERSION}.tar.gz")
-set(H5HUT_URL "http://amas.web.psi.ch/Downloads/H5hut/${H5HUT_TAR}")
-set(H5HUT_INSTALL_DIR ${CMAKE_BINARY_DIR}/_deps/h5hut)
-set(H5HUT_SRC_DIR ${CMAKE_BINARY_DIR}/_deps/h5hut-src)
-
-ExternalProject_Add(h5hut_external
-  URL ${H5HUT_URL}
-  DOWNLOAD_EXTRACT_TIMESTAMP TRUE
-  PREFIX ${H5HUT_INSTALL_DIR}
-  CONFIGURE_COMMAND
-    <SOURCE_DIR>/autogen.sh &&
-    env CC=mpicc CXX=mpicxx
-    <SOURCE_DIR>/configure
-      --prefix=<INSTALL_DIR>
-      --enable-shared
-      --enable-parallel
-      --with-pic
-      --with-hdf5=${HDF5_ROOT}
-      CPPFLAGS=-I${HDF5_INCLUDE_DIR}
-      LDFLAGS=-L${HDF5_ROOT}/lib
-  BUILD_COMMAND make -j${NPROC}
-  INSTALL_COMMAND make install
-  BUILD_IN_SOURCE TRUE
-)
-
-ExternalProject_Get_Property(h5hut_external INSTALL_DIR)
-set(H5HUT_ROOT ${INSTALL_DIR})
-set(H5HUT_INCLUDE_DIR ${H5HUT_ROOT}/include)
-set(H5HUT_LIBRARIES ${H5HUT_ROOT}/lib/libh5hut.so)  # adjust for .dylib on macOS
-
-
-# ------------------------------------------------------------------------------
-# IPPL library
-# ------------------------------------------------------------------------------
-if ("${IPPL_PLATFORMS}" STREQUAL "CUDA")
-    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wno-deprecated-gpu-targets")
+if(DEFINED USE_ALTERNATIVE_VARIANT)
+  colour_message(
+    WARNING ${Red}
+    "USE_ALTERNATIVE_VARIANT is deprecated. Please set OPALX_USE_ALTERNATIVE_VARIANT instead.")
+  set(OPALX_USE_ALTERNATIVE_VARIANT ${USE_ALTERNATIVE_VARIANT} CACHE BOOL "" FORCE)
 endif()
 
-# Disable compile time assert (used by IPPL)
-add_definitions (-DNOCTAssert)
+# ------------------------------------------------------------------------------
+# Debug: This tells the compiler to replace occurrences of ${<DIR>} with <x> in debug info and error
+# messages.
+# ------------------------------------------------------------------------------
+add_compile_options(
+  $<$<COMPILE_LANG_AND_ID:C,Clang,AppleClang,GNU>:-ffile-prefix-map=${CMAKE_SOURCE_DIR}=.>
+  $<$<COMPILE_LANG_AND_ID:CXX,Clang,AppleClang,GNU>:-ffile-prefix-map=${CMAKE_SOURCE_DIR}=.>)
 
-message(STATUS "Found IPPL_DIR: ${IPPL_DIR}")
-
-if(NOT IPPL_VERSION)
-    set(IPPL_VERSION "3.2.0")
-    message(STATUS "Defaulting to IPPL-${IPPL_VERSION}")
+if(DEFINED FETCHCONTENT_BASE_DIR)
+  add_compile_options(
+    $<$<COMPILE_LANG_AND_ID:C,Clang,AppleClang,GNU>:-ffile-prefix-map=${FETCHCONTENT_BASE_DIR}=.3p>
+    $<$<COMPILE_LANG_AND_ID:CXX,Clang,AppleClang,GNU>:-ffile-prefix-map=${FETCHCONTENT_BASE_DIR}=.3p>
+  )
 endif()
 
-# Allow user to specify branch/tag, default to master
-set(IPPL_GIT_TAG "master" CACHE STRING "Branch or tag for IPPL (default: master)")
-message(STATUS "Fetching IPPL branch/tag: ${IPPL_GIT_TAG}")
-
-if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
-    set(CMAKE_BUILD_TYPE Debug CACHE STRING "Choose build type" FORCE)
-endif()
-message(STATUS "Build type is: ${CMAKE_BUILD_TYPE}")
-
-FetchContent_Declare(
-    ippl
-    GIT_REPOSITORY https://github.com/IPPL-framework/ippl.git
-    GIT_TAG ${IPPL_GIT_TAG}
-    GIT_SHALLOW TRUE
-    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
-)
-
-FetchContent_MakeAvailable(ippl)
-message(STATUS "IPPL include path: ${ippl_SOURCE_DIR}/src")
-
-
 # ------------------------------------------------------------------------------
-# Boost library
+# Define sources for project
 # ------------------------------------------------------------------------------
-include(ExternalProject)
-
-set(BOOST_VERSION "1.82.0")
-string(REPLACE "." "_" BOOST_VERSION_UNDERSCORE "${BOOST_VERSION}")
-set(BOOST_TAR "boost_${BOOST_VERSION_UNDERSCORE}.tar.gz")
-set(BOOST_URL "https://netcologne.dl.sourceforge.net/project/boost/boost/${BOOST_VERSION}/${BOOST_TAR}")
-
-set(BOOST_INSTALL_DIR ${CMAKE_BINARY_DIR}/_deps/boost)
-set(BOOST_SRC_DIR ${CMAKE_BINARY_DIR}/_deps/boost/src)
-
-file(MAKE_DIRECTORY ${BOOST_SRC_DIR})
-
-ExternalProject_Add(boost_external
-    PREFIX ${BOOST_INSTALL_DIR}
-    URL ${BOOST_URL}
-    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
-    DOWNLOAD_DIR ${BOOST_SRC_DIR}
-    SOURCE_DIR ${BOOST_SRC_DIR}/boost_${BOOST_VERSION_UNDERSCORE}
-
-    # Configure (bootstrap)
-    CONFIGURE_COMMAND
-        <SOURCE_DIR>/bootstrap.sh
-        --prefix=<INSTALL_DIR>
-        --with-toolset=gcc
-        --without-libraries=python,mpi,wave,url,context,coroutine,fiber
-    BUILD_COMMAND
-        <SOURCE_DIR>/b2
-        toolset=gcc
-        cxxflags=-fPIC
-        cflags=-fPIC
-        cxxstd=17
-        link=shared,static
-        threading=multi
-        variant=release
-        --prefix=<INSTALL_DIR>
-        install -j1
-    INSTALL_COMMAND <SOURCE_DIR>/b2 install
-    BUILD_IN_SOURCE TRUE
-)
-
-# Expose properties for your targets
-ExternalProject_Get_Property(boost_external INSTALL_DIR)
-set(BOOST_ROOT ${INSTALL_DIR})
-set(BOOST_INCLUDE_DIR ${BOOST_ROOT}/include)
-set(BOOST_LIBRARIES
-    ${BOOST_ROOT}/lib/libboost_system.a
-    ${BOOST_ROOT}/lib/libboost_filesystem.a
-    ${BOOST_ROOT}/lib/libboost_program_options.a
-)
-
-message(STATUS "Boost include dir: ${BOOST_INCLUDE_DIR}")
-
-
-# ------------------------------------------------------------------------------
-# Your OPALX target
-# ------------------------------------------------------------------------------
-# Make IPPL available
-
 add_subdirectory(src)
+
+include_directories (
+    ${CMAKE_SOURCE_DIR}/src
+    ${IPPL_INCLUDE_DIR}    
+)
+
+if (BUILD_OPAL_UNIT_TESTS)
+    add_subdirectory (tests)
+endif ()
+
+# ------------------------------------------------------------------------------
+# Platform-specific options
+# ------------------------------------------------------------------------------
+
+message (STATUS "Project Name ${PROJECT_NAME}")
+# Print relevant paths
+message(STATUS "Ippl_INC: ${IPPL_INCLUDE_DIR}")
+message(STATUS "Ippl_LIB: ${IPPL_LIBRARY}")
+message (STATUS "FFTW lib(s): ${FFTW_LIBRARIES}")  
+message (STATUS "FFTW include dir: ${FFTW_INCLUDE_DIR}")  
+message (STATUS "HDF5 libraries: ${HDF5_LIBRARIES}")
+message (STATUS "HDF5 include dir: ${HDF5_INCLUDE_DIR}")
+message (STATUS "H5HUT libraries: ${H5HUT_LIBRARIES}")
+message (STATUS "H5HUT include dir: ${H5HUT_INCLUDE_DIR}")
+message (STATUS "gsl libraries: ${GSL_LIBRARIES}")
+message (STATUS "gsl include dirs: ${GSL_INCLUDE_DIR}")
+message (STATUS "Boost include dirs: ${BOOST_INCLUDE_DIR}")
+message (STATUS "Boost libraries: ${BOOST_LIBRARIES}")
 
 add_dependencies(opalx fftw_external hdf5_external h5hut_external boost_external gsl_external ippl)
 
-# Optionally, if IPPL has a library target, you can link it like this:
-# target_link_libraries(opalx PRIVATE ippl)
-message(STATUS "IPPL include path: ${ippl_SOURCE_DIR}/src")
-
+#[[
 target_include_directories(opalx PRIVATE
   ${FFTW_INCLUDE_DIR}
   ${HDF5_INCLUDE_DIR}
@@ -266,14 +162,15 @@ target_link_libraries(opalx PRIVATE
   ${HDF5_LIBRARIES}
   ${H5HUT_LIBRARIES}
     ${GSL_LIBRARIES}
-    ippl
     ${BOOST_LIBRARIES}
+    Kokkos::kokkoscore
+    Heffte::Heffte
+    MPI::MPI_CXX
+    Kokkos::Kokkos
   #Boost::filesystem
   #Boost::program_options
   #h5hut
   #gtest
   #gtest_main
 )
-
-
-
+  ]]
