@@ -143,34 +143,3 @@ message (STATUS "gsl libraries: ${GSL_LIBRARIES}")
 message (STATUS "gsl include dirs: ${GSL_INCLUDE_DIR}")
 message (STATUS "Boost include dirs: ${BOOST_INCLUDE_DIR}")
 message (STATUS "Boost libraries: ${BOOST_LIBRARIES}")
-
-add_dependencies(opalx fftw_external hdf5_external h5hut_external boost_external gsl_external ippl)
-
-#[[
-target_include_directories(opalx PRIVATE
-  ${FFTW_INCLUDE_DIR}
-  ${HDF5_INCLUDE_DIR}
-  ${H5HUT_INCLUDE_DIR}
-  ${GSL_INCLUDE_DIR}
-  "${ippl_SOURCE_DIR}/src"
-  ${BOOST_INCLUDE_DIR}
-  ${BOOST_SRC_DIR}/boost_${BOOST_VERSION_UNDERSCORE}  # raw source headers
-)
-
-target_link_libraries(opalx PRIVATE
-  ${FFTW_LIBRARIES}
-  ${HDF5_LIBRARIES}
-  ${H5HUT_LIBRARIES}
-    ${GSL_LIBRARIES}
-    ${BOOST_LIBRARIES}
-    Kokkos::kokkoscore
-    Heffte::Heffte
-    MPI::MPI_CXX
-    Kokkos::Kokkos
-  #Boost::filesystem
-  #Boost::program_options
-  #h5hut
-  #gtest
-  #gtest_main
-)
-  ]]
