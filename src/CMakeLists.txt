@@ -101,20 +101,14 @@ add_executable (opalx Main.cpp)
 target_link_libraries( opalx
     PUBLIC
     libOPAL
-    ${KOKKOS_LIBRARY1}
-    ${KOKKOS_LIBRARY2}
-    ${KOKKOS_LIBRARY3}
-    ${HEFFTE_LIBRARY}
+    ippl
     ${OPAL_FFTW_LIBS}
     ${GSL_LIBRARY}
     ${GSL_CBLAS_LIBRARY}
     ${H5Hut_LIBRARY}
     ${HDF5_LIBRARIES}
     ${Boost_LIBRARIES}
-    ${IPPL_LIBRARY}
     ${OPAL_MPI_LIBS}
-    m
-    z
     ${CMAKE_DL_LIBS}
     ${MPI_CXX_LIBRARIES}
 #    ubsan
@@ -123,7 +117,7 @@ target_link_libraries( opalx
 
 message (STATUS "src/CmakeLists IPPL_LIBRARY : ${IPPL_LIBRARY}")
 message (STATUS "src/CmakeLists GSL_LIBRARY : ${GSL_LIBRARY}")
-message (STATUS "src/CmakeLists Kokkos_LIBRARY : ${KOKKOS_LIBRARY1}")
+message (STATUS "src/CmakeLists Kokkos_LIBRARY : ${KOKKOS_LIBRARY}")
 message (STATUS "src/CmakeLists HEFFTE_LIBRARY : ${HEFFTE_LIBRARY}")
 message (STATUS "src/CmakeLists MPI_CXX : ${MPI_CXX_LIBRARIES}")
 
