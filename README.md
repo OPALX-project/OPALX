@@ -7,29 +7,17 @@
 
 ```
 cmake/3.25.2
-
 openmpi/4.1.5_slurm
-
 fftw/3.3.10_merlin6    
-
 gsl/2.7                
-
 H5hut/2.0.0rc6_slurm
-
 gcc/12.3.0             
-
 boost/1.82.0_slurm     
-
 gtest/1.13.0-1         
-
 hdf5/1.10.8_slurm     
-
 gnutls/3.5.19
-
 cuda/12.8.1
 ```
-
-
 
 ## Clone repo and build opalx with OPENMP 
 
@@ -41,13 +29,18 @@ $ cd OPALX
 $ ./gen_OPALrevision
 ```
 
-
 ### To compile for OPENMP:
 ```
 $ mkdir build_openmp && cd build_openmp
-$ cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_STANDARD=20 -DIPPL_ENABLE_FFT=ON -DIPPL_ENABLE_SOLVERS=ON -DIPPL_ENABLE_ALPINE=OFF -DIPPL_ENABLE_TESTS=OFF  -DIPPL_PLATFORMS=openmp
+$ cmake .. \
+    -DCMAKE_BUILD_TYPE=Debug \
+    -DCMAKE_CXX_STANDARD=20 \
+    -DIPPL_ENABLE_FFT=ON \
+    -DIPPL_ENABLE_SOLVERS=ON \
+    -DIPPL_ENABLE_ALPINE=OFF \
+    -DIPPL_ENABLE_TESTS=OFF  \
+    -DIPPL_PLATFORMS=openmp
 ```
-
 
 ### To compile for GPU, for example Amper80 on Gwendolen
 ```
@@ -57,12 +50,28 @@ $ mkdir build_cuda && cd build_cuda
 in debug mode:
 
 ```
-$ cmake .. -DCMAKE_BUILD_TYPE=Debug -DIPPL_PLATFORMS=CUDA -DKokkos_ARCH_AMPERE80=ON -DCMAKE_CXX_STANDARD=20 -DIPPL_ENABLE_FFT=ON  -DIPPL_ENABLE_SOLVERS=ON -DIPPL_ENABLE_ALPINE=OFF -DIPPL_ENABLE_TESTS=OFF
+$ cmake .. \
+    -DCMAKE_BUILD_TYPE=Debug \
+    -DIPPL_PLATFORMS=CUDA \
+    -DKokkos_ARCH_AMPERE80=ON \
+    -DCMAKE_CXX_STANDARD=20 \
+    -DIPPL_ENABLE_FFT=ON \
+    -DIPPL_ENABLE_SOLVERS=ON \
+    -DIPPL_ENABLE_ALPINE=OFF \
+    -DIPPL_ENABLE_TESTS=OFF
 ```
 
 and release (optimized) mode:
 ```
-$ cmake .. -DCMAKE_BUILD_TYPE=Release -DIPPL_PLATFORMS=CUDA -DKokkos_ARCH_AMPERE80=ON -DCMAKE_CXX_STANDARD=20 -DIPPL_ENABLE_FFT=ON  -DIPPL_ENABLE_SOLVERS=ON -DIPPL_ENABLE_ALPINE=OFF -DIPPL_ENABLE_TESTS=OFF
+$ cmake .. \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DIPPL_PLATFORMS=CUDA \
+    -DKokkos_ARCH_AMPERE80=ON \
+    -DCMAKE_CXX_STANDARD=20 \
+    -DIPPL_ENABLE_FFT=ON \
+    -DIPPL_ENABLE_SOLVERS=ON \
+    -DIPPL_ENABLE_ALPINE=OFF \
+    -DIPPL_ENABLE_TESTS=OFF
 ```
 
 ### To compile for other GPU architecture, like Pascal on the Merlin's login node
@@ -73,12 +82,28 @@ $ mkdir build_cuda_login && cd build_cuda_login
 in debug mode:
 
 ```
-$ cmake .. -DCMAKE_BUILD_TYPE=Debug -DIPPL_PLATFORMS=CUDA -DKokkos_ARCH_PASCAL61=ON -DCMAKE_CXX_STANDARD=20 -DIPPL_ENABLE_FFT=ON  -DIPPL_ENABLE_SOLVERS=ON -DIPPL_ENABLE_ALPINE=OFF -DIPPL_ENABLE_TESTS=OFF
+$ cmake .. \
+    -DCMAKE_BUILD_TYPE=Debug \
+    -DIPPL_PLATFORMS=CUDA \
+    -DKokkos_ARCH_PASCAL61=ON \
+    -DCMAKE_CXX_STANDARD=20 \
+    -DIPPL_ENABLE_FFT=ON \
+    -DIPPL_ENABLE_SOLVERS=ON \
+    -DIPPL_ENABLE_ALPINE=OFF \
+    -DIPPL_ENABLE_TESTS=OFF
 ```
 
 and release (optimized) mode:
 ```
-$ cmake .. -DCMAKE_BUILD_TYPE=Release -DIPPL_PLATFORMS=CUDA -DKokkos_ARCH_PASCAL61=ON -DCMAKE_CXX_STANDARD=20 -DIPPL_ENABLE_FFT=ON  -DIPPL_ENABLE_SOLVERS=ON -DIPPL_ENABLE_ALPINE=OFF -DIPPL_ENABLE_TESTS=OFF
+$ cmake .. \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DIPPL_PLATFORMS=CUDA \
+    -DKokkos_ARCH_PASCAL61=ON \
+    -DCMAKE_CXX_STANDARD=20 \
+    -DIPPL_ENABLE_FFT=ON \
+    -DIPPL_ENABLE_SOLVERS=ON \
+    -DIPPL_ENABLE_ALPINE=OFF \
+    -DIPPL_ENABLE_TESTS=OFF
 ```
 
 ### Submitting jobs on Gwendolen and Merlin GPUs
