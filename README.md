@@ -24,7 +24,23 @@ $ cd OPALX
 $ ./gen_OPALrevision
 ```
 
-### OpenMP build:
+### CPU build
+
+Building OPALX without multi-threading (only MPI):
+```
+$ mkdir build_serial && cd build_serial
+$ cmake .. \
+    -DCMAKE_BUILD_TYPE=Debug \
+    -DCMAKE_CXX_STANDARD=20 \
+    -DIPPL_ENABLE_FFT=ON \
+    -DIPPL_ENABLE_SOLVERS=ON \
+    -DIPPL_ENABLE_ALPINE=OFF \
+    -DIPPL_ENABLE_TESTS=OFF  \
+    -DIPPL_PLATFORMS=serial
+```
+
+and for multi-threading with OpenMP:
+
 ```
 $ mkdir build_openmp && cd build_openmp
 $ cmake .. \
