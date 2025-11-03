@@ -1,7 +1,6 @@
-# This is OPALX
+# OPALX
 
 # BUILDING OPALX on Merlin
-
 
 ## Modules needed OPENMP build
 
@@ -23,9 +22,7 @@ cuda/12.8.1
 
 ```
 $ git clone https://github.com/OPALX-project/OPALX.git
-
 $ cd OPALX
-
 $ ./gen_OPALrevision
 ```
 
