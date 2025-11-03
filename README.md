@@ -1,8 +1,6 @@
 # OPALX
 
-# BUILDING OPALX on Merlin
-
-## Modules needed OPENMP build
+## Dependencies
 
 ```
 cmake/3.25.2
@@ -18,7 +16,7 @@ gnutls/3.5.19
 cuda/12.8.1
 ```
 
-## Clone repo and build opalx with OPENMP 
+## Building OPALX
 
 ```
 $ git clone https://github.com/OPALX-project/OPALX.git
@@ -26,7 +24,7 @@ $ cd OPALX
 $ ./gen_OPALrevision
 ```
 
-### To compile for OPENMP:
+### OpenMP build:
 ```
 $ mkdir build_openmp && cd build_openmp
 $ cmake .. \
@@ -39,7 +37,7 @@ $ cmake .. \
     -DIPPL_PLATFORMS=openmp
 ```
 
-### To compile for GPU, for example Amper80 on Gwendolen
+### GPU build: A100 with Amper80 Architecture (Gwendolen)
 ```
 $ mkdir build_cuda && cd build_cuda
 ```
@@ -71,7 +69,7 @@ $ cmake .. \
     -DIPPL_ENABLE_TESTS=OFF
 ```
 
-### To compile for other GPU architecture, like Pascal on the Merlin's login node
+### GPU build: P100 or GTX 1080 with Pascal61 architecture (merline login node)
 ```
 $ mkdir build_cuda_login && cd build_cuda_login
 ```
@@ -103,7 +101,7 @@ $ cmake .. \
     -DIPPL_ENABLE_TESTS=OFF
 ```
 
-### Submitting jobs on Gwendolen and Merlin GPUs
+## Job scripts
 To execute opalx on merlin's gpus (compile for PASCAL61), the job script should looks like
 ```
 #!/bin/bash
