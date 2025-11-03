@@ -19,17 +19,19 @@ cuda/12.8.1
 ## Building OPALX
 
 ```
-$ git clone https://github.com/OPALX-project/OPALX.git
-$ cd OPALX
-$ ./gen_OPALrevision
+git clone https://github.com/OPALX-project/OPALX.git
+cd OPALX
+./gen_OPALrevision
 ```
 
-### CPU build
+### Setting up cmake
+
+#### cmake command for CPU build
 
 Building OPALX without multi-threading (only MPI):
 ```
-$ mkdir build_serial && cd build_serial
-$ cmake .. \
+mkdir build_serial && cd build_serial
+cmake .. \
     -DCMAKE_BUILD_TYPE=Debug \
     -DCMAKE_CXX_STANDARD=20 \
     -DIPPL_ENABLE_FFT=ON \
@@ -42,8 +44,8 @@ $ cmake .. \
 and for multi-threading with OpenMP:
 
 ```
-$ mkdir build_openmp && cd build_openmp
-$ cmake .. \
+mkdir build_openmp && cd build_openmp
+cmake .. \
     -DCMAKE_BUILD_TYPE=Debug \
     -DCMAKE_CXX_STANDARD=20 \
     -DIPPL_ENABLE_FFT=ON \
@@ -53,15 +55,15 @@ $ cmake .. \
     -DIPPL_PLATFORMS=openmp
 ```
 
-### GPU build: A100 with Amper80 Architecture (Gwendolen)
+#### cmake command for GPU build
 ```
-$ mkdir build_cuda && cd build_cuda
+mkdir build_cuda && cd build_cuda
 ```
 
-in debug mode:
+For example, for A100 with Amper80 Architecture (Gwendolen), and the debug mode, the cmake should be something like:
 
 ```
-$ cmake .. \
+cmake .. \
     -DCMAKE_BUILD_TYPE=Debug \
     -DIPPL_PLATFORMS=CUDA \
     -DKokkos_ARCH_AMPERE80=ON \
@@ -72,50 +74,20 @@ $ cmake .. \
     -DIPPL_ENABLE_TESTS=OFF
 ```
 
-and release (optimized) mode:
-```
-$ cmake .. \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DIPPL_PLATFORMS=CUDA \
-    -DKokkos_ARCH_AMPERE80=ON \
-    -DCMAKE_CXX_STANDARD=20 \
-    -DIPPL_ENABLE_FFT=ON \
-    -DIPPL_ENABLE_SOLVERS=ON \
-    -DIPPL_ENABLE_ALPINE=OFF \
-    -DIPPL_ENABLE_TESTS=OFF
-```
+For the release mode, use `Release` instead of `Debug` as the argument for `-DCMAKE_BUILD_TYPE`. For other GPUs use the correct flag for their corresponding architecture. For example, for P100 or GTX 1080 with Pascal61 architecture on Merlin login node, use `-DKokkos_ARCH_PASCAL61=ON` instead of `-DKokkos_ARCH_AMPERE80=ON`. 
 
-### GPU build: P100 or GTX 1080 with Pascal61 architecture (merline login node)
-```
-$ mkdir build_cuda_login && cd build_cuda_login
-```
+### Compilation
 
-in debug mode:
+Finally, compile OPALX with 
+```
+make
+```
+using single thread, and
+```
+make -j 4
+```
+using `4` threads for example.
 
-```
-$ cmake .. \
-    -DCMAKE_BUILD_TYPE=Debug \
-    -DIPPL_PLATFORMS=CUDA \
-    -DKokkos_ARCH_PASCAL61=ON \
-    -DCMAKE_CXX_STANDARD=20 \
-    -DIPPL_ENABLE_FFT=ON \
-    -DIPPL_ENABLE_SOLVERS=ON \
-    -DIPPL_ENABLE_ALPINE=OFF \
-    -DIPPL_ENABLE_TESTS=OFF
-```
-
-and release (optimized) mode:
-```
-$ cmake .. \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DIPPL_PLATFORMS=CUDA \
-    -DKokkos_ARCH_PASCAL61=ON \
-    -DCMAKE_CXX_STANDARD=20 \
-    -DIPPL_ENABLE_FFT=ON \
-    -DIPPL_ENABLE_SOLVERS=ON \
-    -DIPPL_ENABLE_ALPINE=OFF \
-    -DIPPL_ENABLE_TESTS=OFF
-```
 
 ## Job scripts
 To execute opalx on merlin's gpus (compile for PASCAL61), the job script should looks like
