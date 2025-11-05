@@ -123,25 +123,6 @@ set(IPPL_INCLUDE_DIR "${ippl_SOURCE_DIR}/src")
 set(IPPL_LIBRARY ippl)
 
 # ------------------------------------------------------------------------------
-# FFTW
-# ------------------------------------------------------------------------------
-
-# FFTW uses autotools (not CMake), so we need an external project build:
-include(ExternalProject)
-ExternalProject_Add(fftw_external
-  DOWNLOAD_EXTRACT_TIMESTAMP TRUE            # avoids CMP0135 dev warning
-  URL http://www.fftw.org/fftw-3.3.10.tar.gz
-  CONFIGURE_COMMAND ./configure --enable-float --enable-shared --enable-threads --prefix=<INSTALL_DIR>
-  BUILD_COMMAND make -j
-  INSTALL_COMMAND make install
-  BUILD_IN_SOURCE TRUE
-)
-ExternalProject_Get_Property(fftw_external INSTALL_DIR)
-set(FFTW_ROOT ${INSTALL_DIR})
-set(FFTW_LIBRARIES ${FFTW_ROOT}/lib/libfftw3f.so)
-set(FFTW_INCLUDE_DIR ${FFTW_ROOT}/include)
-
-# ------------------------------------------------------------------------------
 # HDF5
 # ------------------------------------------------------------------------------
 
@@ -162,38 +143,6 @@ ExternalProject_Get_Property(hdf5_external INSTALL_DIR)
 set(HDF5_ROOT ${INSTALL_DIR})
 set(HDF5_INCLUDE_DIR ${HDF5_ROOT}/include)
 set(HDF5_LIBRARIES ${HDF5_ROOT}/lib/libhdf5.a)
-
-# ------------------------------------------------------------------------------
-# GSL
-# ------------------------------------------------------------------------------
-
-set(GSL_VERSION 2.7)
-set(GSL_TAR "gsl-${GSL_VERSION}.tar.gz")
-set(GSL_URL "http://ftp.gnu.org/gnu/gsl/${GSL_TAR}")
-set(GSL_INSTALL_DIR ${CMAKE_BINARY_DIR}/_deps/gsl)
-set(GSL_SRC_DIR ${CMAKE_BINARY_DIR}/_deps/gsl-src)
-
-include(ExternalProject)
-
-ExternalProject_Add(gsl_external
-    URL ${GSL_URL}
-    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
-    PREFIX ${GSL_INSTALL_DIR}
-    CONFIGURE_COMMAND
-        <SOURCE_DIR>/configure
-            --prefix=<INSTALL_DIR>
-            --disable-shared
-            --enable-static
-            CFLAGS=-fPIC
-    BUILD_COMMAND make -j${NPROC}
-    INSTALL_COMMAND make install
-    BUILD_IN_SOURCE TRUE
-)
-
-ExternalProject_Get_Property(gsl_external INSTALL_DIR)
-set(GSL_ROOT ${INSTALL_DIR})
-set(GSL_INCLUDE_DIR ${GSL_ROOT}/include)
-set(GSL_LIBRARIES ${GSL_ROOT}/lib/libgsl.a ${GSL_ROOT}/lib/libgslcblas.a)
 
 # ------------------------------------------------------------------------------
 # H5hut
@@ -229,7 +178,6 @@ ExternalProject_Get_Property(h5hut_external INSTALL_DIR)
 set(H5HUT_ROOT ${INSTALL_DIR})
 set(H5HUT_INCLUDE_DIR ${H5HUT_ROOT}/include)
 set(H5HUT_LIBRARIES ${H5HUT_ROOT}/lib/libh5hut.so)  # adjust for .dylib on macOS
-
 
 # ------------------------------------------------------------------------------
 # Boost library
@@ -284,6 +232,37 @@ set(BOOST_LIBRARIES
 )
 message(STATUS "Boost include dir: ${BOOST_INCLUDE_DIR}")
 
+# ------------------------------------------------------------------------------
+# GSL
+# ------------------------------------------------------------------------------
+
+set(GSL_VERSION 2.7)
+set(GSL_TAR "gsl-${GSL_VERSION}.tar.gz")
+set(GSL_URL "http://ftp.gnu.org/gnu/gsl/${GSL_TAR}")
+set(GSL_INSTALL_DIR ${CMAKE_BINARY_DIR}/_deps/gsl)
+set(GSL_SRC_DIR ${CMAKE_BINARY_DIR}/_deps/gsl-src)
+
+include(ExternalProject)
+
+ExternalProject_Add(gsl_external
+    URL ${GSL_URL}
+    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+    PREFIX ${GSL_INSTALL_DIR}
+    CONFIGURE_COMMAND
+        <SOURCE_DIR>/configure
+            --prefix=<INSTALL_DIR>
+            --disable-shared
+            --enable-static
+            CFLAGS=-fPIC
+    BUILD_COMMAND make -j${NPROC}
+    INSTALL_COMMAND make install
+    BUILD_IN_SOURCE TRUE
+)
+
+ExternalProject_Get_Property(gsl_external INSTALL_DIR)
+set(GSL_ROOT ${INSTALL_DIR})
+set(GSL_INCLUDE_DIR ${GSL_ROOT}/include)
+set(GSL_LIBRARIES ${GSL_ROOT}/lib/libgsl.a ${GSL_ROOT}/lib/libgslcblas.a)
 
 # ------------------------------------------------------------------------------
 # GoogleTest
