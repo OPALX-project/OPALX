@@ -148,16 +148,17 @@ set(HDF5_LIBRARIES ${HDF5_ROOT}/lib/libhdf5.a)
 # H5hut
 # ------------------------------------------------------------------------------
 
-set(H5HUT_VERSION 2.0.0rc6)
-set(H5HUT_TAR "H5hut-${H5HUT_VERSION}.tar.gz")
-set(H5HUT_URL "http://amas.web.psi.ch/Downloads/H5hut/${H5HUT_TAR}")
+set(H5HUT_VERSION H5hut-2.0.0rc6)
+set(H5HUT_GIT https://github.com/eth-cscs/h5hut.git)
 set(H5HUT_INSTALL_DIR ${CMAKE_BINARY_DIR}/_deps/h5hut)
 set(H5HUT_SRC_DIR ${CMAKE_BINARY_DIR}/_deps/h5hut-src)
 
 ExternalProject_Add(h5hut_external
-  URL ${H5HUT_URL}
-  DOWNLOAD_EXTRACT_TIMESTAMP TRUE
-  PREFIX ${H5HUT_INSTALL_DIR}
+  GIT_REPOSITORY ${H5HUT_GIT}
+  GIT_TAG        ${H5HUT_VERSION}
+  PREFIX         ${H5HUT_INSTALL_DIR}
+  SOURCE_DIR     ${H5HUT_SRC_DIR}
+  UPDATE_COMMAND ""
   CONFIGURE_COMMAND
     <SOURCE_DIR>/autogen.sh &&
     env CC=mpicc CXX=mpicxx
