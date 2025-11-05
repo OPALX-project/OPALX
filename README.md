@@ -29,6 +29,7 @@ cd OPALX
 #### cmake command for CPU build
 
 Building OPALX without multi-threading (only MPI):
+
 ```
 mkdir build_serial && cd build_serial
 cmake .. \
