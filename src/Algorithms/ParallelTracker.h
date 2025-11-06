@@ -250,7 +250,12 @@ private:
     void timeIntegration1(BorisPusher& pusher);
     void selectDT(bool backTrack = false);
     void emitParticles(long long step);
+public:
     void computeExternalFields(OrbitThreader& oth);
+    // Resets both the E-fields and B-fields back to 0
+    void resetFields();
+    void transformBunch(const CoordinateSystemTrafo& trafo);
+private:
     void computeWakefield(IndexMap::value_t& elements);
     void computeParticleMatterInteraction(IndexMap::value_t elements, OrbitThreader& oth);
 
@@ -262,7 +267,6 @@ private:
 
     void doBinaryRepartition();
 
-    void transformBunch(const CoordinateSystemTrafo& trafo);
 
     void updateReference(const BorisPusher& pusher);
     void updateRefToLabCSTrafo();
@@ -299,112 +303,6 @@ inline void ParallelTracker::visitSolenoid(const Solenoid& so) {
 
 inline void ParallelTracker::visitTravelingWave(const TravelingWave& as) {
     itsOpalBeamline_m.visit(as, *this, itsBunch_m);
-}
-
-inline void ParallelTracker::kickParticles(const BorisPusher& pusher) {
-    
-    auto Rview  = itsBunch_m->getParticleContainer()->R.getView();
-    auto Pview  = itsBunch_m->getParticleContainer()->P.getView();
-    auto dtview = itsBunch_m->getParticleContainer()->dt.getView();
-    auto Efview = itsBunch_m->getParticleContainer()->E.getView();
-    auto Bfview = itsBunch_m->getParticleContainer()->B.getView();
-
-
-    const double mass = itsReference.getM();
-    const double charge = itsReference.getQ();
-
-    Kokkos::parallel_for(
-                         "kickParticles", ippl::getRangePolicy(Rview),
-                         KOKKOS_LAMBDA(const int i) {
-                             Vector_t<double, 3> p = {Pview(i)[0],Pview(i)[1],Pview(i)[2]};
-
-                             Vector_t<double, 3> e = {Efview(i)[0],Efview(i)[1],Efview(i)[2]};
-                             Vector_t<double, 3> b = {Bfview(i)[0],Bfview(i)[1],Bfview(i)[2]};
-                             double dt = dtview(i);
-
-                             // pusher.kick(x,p,e,b,dt);
-                             // Implementation follows chapter 4-4, p. 61 - 63 from
-                             // Birdsall, C. K. and Langdon, A. B. (1985). Plasma physics
-                             // via computer simulation.
-                             //
-                             // Up to finite precision effects, the new implementation is equivalent to the
-                             // old one, but uses less floating point operations.
-                             //
-                             // Relativistic variant implemented below is described in
-                             // chapter 15-4, p. 356 - 357.
-                             // However, since other units are used here, small
-                             // modifications are required. The relativistic variant can be derived
-                             // from the nonrelativistic one by replacing
-                             //     mass
-                             // by
-                             //     gamma * rest mass
-                             // and transforming the units.
-                             //
-                             // Parameters:
-                             //     R = x / (c * dt): Scaled position x, not used in here
-                             //     P = v / c * gamma: Scaled velocity v
-                             //     Ef: Electric field
-                             //     Bf: Magnetic field
-                             //     dt: Timestep
-                             //     mass = rest energy = rest mass * c * c
-                             //     charge
-                             
-                             // Half step E
-                             p += 0.5 * dt * charge * Physics::c / mass * e;
-
-                             // Full step B
-
-                             const double gamma          = Kokkos::sqrt(1.0 + dot(p, p));
-                             Vector_t<double, 3> const t = 0.5 * dt * charge * Physics::c * Physics::c / (gamma * mass) * b;
-                             Vector_t<double, 3> const w = p + cross(p, t);
-                             Vector_t<double, 3> const s = 2.0 / (1.0 + dot(t, t)) * t;
-                             p += cross(w, s);
-
-
-                             // Half step E
-                             p += 0.5 * dt * charge * Physics::c / mass * e;
-
-                             Pview(i) = p;
-                                 
-                         });
-
-    itsBunch_m->getParticleContainer()->update();
-    ippl::Comm->barrier();
-}
-
-inline void ParallelTracker::pushParticles(const BorisPusher& pusher) {
-
-    itsBunch_m->switchToUnitlessPositions(true);
-
-    auto Rview  = itsBunch_m->getParticleContainer()->R.getView();
-    auto Pview  = itsBunch_m->getParticleContainer()->P.getView();
-    auto dtview = itsBunch_m->getParticleContainer()->dt.getView();
-
-    Kokkos::parallel_for(
-                         "pushParticles", ippl::getRangePolicy(Rview),
-                         KOKKOS_LAMBDA(const int i) {
-                             Vector_t<double, 3> x = {Rview(i)[0],Rview(i)[1],Rview(i)[2]};
-                             Vector_t<double, 3> p = {Pview(i)[0],Pview(i)[1],Pview(i)[2]};
-                             double dt = dtview(i);
-
-                                 /** \f[ \vec{x}_{n+1/2} = \vec{x}_{n} + \frac{1}{2}\vec{v}_{n-1/2}\quad (= \vec{x}_{n} +
-                                  * \frac{\Delta t}{2} \frac{\vec{\beta}_{n-1/2}\gamma_{n-1/2}}{\gamma_{n-1/2}}) \f]
-                                  *
-                                  * \code
-                                  * R[i] += 0.5 * P[i] * recpgamma;
-                                  * \endcode
-                                  */
-                             // \TODO check +-
-                             
-                             // pusher.push(x,p,dt);
-                             x = 0.5 * dt * p / Kokkos::sqrt(1.0 + dot(p));
-                             Rview(i) += x;
-                         });
-
-
-    itsBunch_m->switchOffUnitlessPositions(true);
-    itsBunch_m->getParticleContainer()->update();
-    ippl::Comm->barrier();
 }
 
 #endif  // OPAL_ParallelTracker_HH
