@@ -126,32 +126,48 @@ endif()
 # ------------------------------------------------------------------------------
 # HDF5
 # ------------------------------------------------------------------------------
-set(HDF5_ENABLE_THREADSAFE ON CACHE BOOL “” FORCE)
+set(HDF5_ENABLE_PARALLEL ON)
 set(HDF5_BUILD_HL_LIB OFF CACHE BOOL “” FORCE) # Disable high-level APIs for thread safety
 set(HDF5_BUILD_EXAMPLES OFF CACHE BOOL “” FORCE) # Disable examples
 set(HDF5_BUILD_TOOLS OFF CACHE BOOL “” FORCE) # Disable tools
-set(HDF5_ENABLE_PARALLEL ON)
+set(HDF5_ENABLE_THREADSAFE OFF CACHE BOOL “” FORCE)
 set(HDF5_TEST_PARALLEL OFF)
+set(HDF5_VERSION "1.14.6")
+set(HDF5_VERSION_MAJOR "1.14")
 
 FetchContent_Declare(
-    hdf5
-    URL https://github.com/HDFGroup/hdf5/releases/download/hdf5_1.14.6/hdf5-1.14.6.tar.gz
+    HDF5
+    URL https://github.com/HDFGroup/hdf5/releases/download/hdf5_${HDF5_VERSION}/hdf5-${HDF5_VERSION}.tar.gz
     URL_HASH "SHA256=e4defbac30f50d64e1556374aa49e574417c9e72c6b1de7a4ff88c4b1bea6e9b"
 )
-FetchContent_MakeAvailable(hdf5)
-set (LINK_LIBS ${LINK_LIBS} ${HDF5_LIBRARIES})
-set (HDF5_INCLUDE_DIRS ${hdf5_BINARY_DIR}/src)
+FetchContent_MakeAvailable(HDF5)
+# hdf5 fetchcontent doesn't generate the right hdf5-targets / version .cmake
+# so we need to tweak things slightly
+set(HDF5_FOUND TRUE)
+
+
+if (TARGET hdf5-shared)
+    install(TARGETS hdf5-shared EXPORT ipplTargets DESTINATION lib)
+    add_library(hdf5::hdf5 ALIAS hdf5-shared)
+elseif(TARGET hdf5-static)
+    install(TARGETS hdf5-static EXPORT ipplTargets DESTINATION lib)
+    add_library(hdf5::hdf5 ALIAS hdf5-static)
+endif()
+
+# set(HDF5_INCLUDE_DIRS ${HDF5_BINARY_DIR}/src)
+set(HDF5_LIBRARIES hdf5::hdf5)
+message ("HDF5_FOUND and dir are ${HDF5_FOUND} ${HDF5_BINARY_DIR} and ${HDF5_LIBRARIES} and ${HDF5_VERSION}")
 
 # ------------------------------------------------------------------------------
 # H5hut
 # ------------------------------------------------------------------------------
 
 set(H5hut_VERSION cmake)
-set(H5HUT_GIT https://github.com/eth-cscs/h5hut.git)
+set(H5hut_GIT https://github.com/eth-cscs/h5hut.git)
 set(H5hut_WITH_MPI ON)
 set(fetch_string
   GIT_TAG ${H5hut_VERSION}
-  GIT_REPOSITORY ${H5HUT_GIT})
+  GIT_REPOSITORY ${H5hut_GIT})
 
 # Invoke cmake fetch/find
 FetchContent_Declare(H5hut ${fetch_string})
@@ -170,53 +186,24 @@ endif()
 # ------------------------------------------------------------------------------
 include(ExternalProject)
 
-set(BOOST_VERSION "1.82.0")
-string(REPLACE "." "_" BOOST_VERSION_UNDERSCORE "${BOOST_VERSION}")
-set(BOOST_TAR "boost_${BOOST_VERSION_UNDERSCORE}.tar.gz")
-set(BOOST_URL "https://netcologne.dl.sourceforge.net/project/boost/boost/${BOOST_VERSION}/${BOOST_TAR}")
+set(BOOST_VERSION "1.84.0")
+set(BOOST_INCLUDE_LIBRARIES filesystem system numeric optional regex iostreams)
+set(BOOST_ENABLE_CMAKE ON)
 
-set(BOOST_INSTALL_DIR ${CMAKE_BINARY_DIR}/_deps/boost)
-set(BOOST_SRC_DIR ${CMAKE_BINARY_DIR}/_deps/boost/src)
-file(MAKE_DIRECTORY ${BOOST_SRC_DIR})
-
-ExternalProject_Add(boost_external
-    PREFIX ${BOOST_INSTALL_DIR}
-    URL ${BOOST_URL}
-    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
-    DOWNLOAD_DIR ${BOOST_SRC_DIR}
-    SOURCE_DIR ${BOOST_SRC_DIR}/boost_${BOOST_VERSION_UNDERSCORE}
-
-    # Configure (bootstrap)
-    CONFIGURE_COMMAND
-        <SOURCE_DIR>/bootstrap.sh
-        --prefix=<INSTALL_DIR>
-        --with-toolset=gcc
-        --without-libraries=python,mpi,wave,url,context,coroutine,fiber
-    BUILD_COMMAND
-        <SOURCE_DIR>/b2
-        toolset=gcc
-        cxxflags=-fPIC
-        cflags=-fPIC
-        cxxstd=17
-        link=shared,static
-        threading=multi
-        variant=release
-        --prefix=<INSTALL_DIR>
-        install -j1
-    INSTALL_COMMAND <SOURCE_DIR>/b2 install
-    BUILD_IN_SOURCE TRUE
+message(STATUS "Downloading and extracting boost library sources. This will take some time...")
+include(FetchContent)
+Set(FETCHCONTENT_QUIET FALSE) # Needed to print downloading progress
+FetchContent_Declare(
+    Boost
+    URL https://github.com/boostorg/boost/releases/download/boost-${BOOST_VERSION}/boost-${BOOST_VERSION}.7z # downloading a zip release speeds up the download
+    USES_TERMINAL_DOWNLOAD TRUE
+    GIT_PROGRESS TRUE
+    DOWNLOAD_NO_EXTRACT FALSE
 )
-
-# Expose properties for your targets
-ExternalProject_Get_Property(boost_external INSTALL_DIR)
-set(BOOST_ROOT ${INSTALL_DIR})
-set(BOOST_INCLUDE_DIR ${BOOST_ROOT}/include)
-set(BOOST_LIBRARIES
-    ${BOOST_ROOT}/lib/libboost_system.a
-    ${BOOST_ROOT}/lib/libboost_filesystem.a
-    ${BOOST_ROOT}/lib/libboost_program_options.a
-)
-message(STATUS "Boost include dir: ${BOOST_INCLUDE_DIR}")
+FetchContent_MakeAvailable(Boost)
+set(Boost_LIBRARIES Boost::filesystem Boost::optional Boost::iostreams)
+message(STATUS "Boost include dir: ${Boost_INCLUDE_DIR}")
+message(STATUS "Boost libraries: ${Boost_LIBRARIES}")
 
 # ------------------------------------------------------------------------------
 # GSL
@@ -248,7 +235,16 @@ ExternalProject_Add(gsl_external
 ExternalProject_Get_Property(gsl_external INSTALL_DIR)
 set(GSL_ROOT ${INSTALL_DIR})
 set(GSL_INCLUDE_DIR ${GSL_ROOT}/include)
-set(GSL_LIBRARIES ${GSL_ROOT}/lib/libgsl.a ${GSL_ROOT}/lib/libgslcblas.a)
+set(GSL_LIBRARIES gsl gslcblas)
+# todo fix this
+link_directories(opalx ${GSL_INSTALL_DIR}/lib)
+
+# message("***********************************************")
+# include(PrintVariables)
+# get_all_targets_recursive(_all_targets ".")
+# message("***********************************************")
+# message("${_all_targets}")
+# dump_cmake_variables()
 
 # ------------------------------------------------------------------------------
 # GoogleTest
