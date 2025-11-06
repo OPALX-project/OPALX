@@ -1,0 +1,49 @@
+SDDS1
+&description
+        text="Processor statistics 'input-files/Solenoid-old.in' 09/05/202515:59:48",
+        contents="lbal parameters"
+&end
+&parameter
+        name=processors,
+        type=long,
+        description="Number of Cores used"
+&end
+&parameter
+        name=revision,
+        type=string,
+        description="git revision of opal"
+&end
+&parameter
+        name=flavor,
+        type=string,
+        description="OPAL flavor that wrote file"
+&end
+&column
+        name=t,
+        type=double,
+        units=ns,
+        description="1 Time"
+&end
+&column
+        name="processor-0",
+        type=long,
+        units=1,
+        description="2 Number of particles of processor 0"
+&end
+&data
+        mode=ascii,
+        no_row_counts=1
+&end
+1
+OPALX 2024.1.00 git rev. #65f5962d90e49203931e97b70a2e48808fab5f32
+opal-t
+1.000000000000000e-01         	10         	
+2.000000000000001e-01         	10         	
+3.000000000000001e-01         	10         	
+4.000000000000001e-01         	10         	
+5.000000000000001e-01         	10         	
+6.000000000000002e-01         	10         	
+7.000000000000003e-01         	10         	
+8.000000000000004e-01         	10         	
+9.000000000000004e-01         	10         	
+1.000000000000000e+00         	10         	

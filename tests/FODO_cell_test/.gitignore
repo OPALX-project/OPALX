@@ -1,0 +1,6 @@
+__pycache__
+opal/*
+opalx/*
+!opalx/*.slurm
+!opal/*.slurm
+*.png
