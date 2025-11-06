@@ -110,11 +110,11 @@ include(${PROJECT_SOURCE_DIR}/cmake/PlatformOptions.cmake)
 
 target_link_libraries(opalx PUBLIC
     MPI::MPI_CXX
-    ippl
+    IPPL::ippl
     ${OPAL_FFTW_LIBS}
     ${GSL_LIBRARY}
     ${GSL_CBLAS_LIBRARY}
-    ${H5Hut_LIBRARY}
+    H5hut
     ${HDF5_LIBRARIES}
     ${Boost_LIBRARIES})
 
@@ -123,7 +123,6 @@ target_include_directories(opalx PRIVATE
   ${HDF5_INCLUDE_DIR}
   ${H5HUT_INCLUDE_DIR}
   ${GSL_INCLUDE_DIR}
-  "${ippl_SOURCE_DIR}/src"
   ${BOOST_INCLUDE_DIR}
   ${BOOST_SRC_DIR}/boost_${BOOST_VERSION_UNDERSCORE}  # raw source headers
 )

@@ -131,8 +131,8 @@ endif ()
 
 message (STATUS "Project Name ${PROJECT_NAME}")
 # Print relevant paths
-message(STATUS "Ippl_INC: ${IPPL_INCLUDE_DIR}")
-message(STATUS "Ippl_LIB: ${IPPL_LIBRARY}")
+message(STATUS "IPPL_INC: ${IPPL_INCLUDE_DIR}")
+message(STATUS "IPPL_LIB: ${IPPL_LIBRARY}")
 message (STATUS "FFTW lib(s): ${FFTW_LIBRARIES}")  
 message (STATUS "FFTW include dir: ${FFTW_INCLUDE_DIR}")  
 message (STATUS "HDF5 libraries: ${HDF5_LIBRARIES}")
