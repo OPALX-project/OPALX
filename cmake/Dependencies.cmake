@@ -92,15 +92,8 @@ endif()
 # Disable compile time assert (used by IPPL)
 add_definitions (-DNOCTAssert)
 
-message(STATUS "Found IPPL_DIR: ${IPPL_DIR}")
-
-if(NOT IPPL_VERSION)
-    set(IPPL_VERSION "3.2.0")
-    message(STATUS "Defaulting to IPPL-${IPPL_VERSION}")
-endif()
-
 # Allow user to specify branch/tag, default to master
-set(IPPL_GIT_TAG "master" CACHE STRING "Branch or tag for IPPL (default: master)")
+set(IPPL_GIT_TAG "cmake-alps" CACHE STRING "Branch or tag for IPPL (default: master)")
 message(STATUS "Fetching IPPL branch/tag: ${IPPL_GIT_TAG}")
 
 if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
@@ -109,76 +102,68 @@ endif()
 message(STATUS "Build type is: ${CMAKE_BUILD_TYPE}")
 
 FetchContent_Declare(
-    ippl
+    IPPL
     GIT_REPOSITORY https://github.com/IPPL-framework/ippl.git
     GIT_TAG ${IPPL_GIT_TAG}
     GIT_SHALLOW TRUE
     DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
 
-FetchContent_MakeAvailable(ippl)
-message(STATUS "IPPL include path: ${ippl_SOURCE_DIR}/src")
+FetchContent_MakeAvailable(IPPL)
+message(STATUS "IPPL include path: ${IPPL_SOURCE_DIR}/src")
 
-set(IPPL_INCLUDE_DIR "${ippl_SOURCE_DIR}/src")
+# set(IPPL_INCLUDE_DIR "${IPPL_SOURCE_DIR}/src")
 set(IPPL_LIBRARY ippl)
+
+message(STATUS "Found IPPL_DIR: ${IPPL_DIR}")
+if(NOT IPPL_VERSION)
+    set(IPPL_VERSION "3.2.0")
+    message(STATUS "Defaulting to IPPL-${IPPL_VERSION}")
+endif()
+
+
 
 # ------------------------------------------------------------------------------
 # HDF5
 # ------------------------------------------------------------------------------
+set(HDF5_ENABLE_THREADSAFE ON CACHE BOOL “” FORCE)
+set(HDF5_BUILD_HL_LIB OFF CACHE BOOL “” FORCE) # Disable high-level APIs for thread safety
+set(HDF5_BUILD_EXAMPLES OFF CACHE BOOL “” FORCE) # Disable examples
+set(HDF5_BUILD_TOOLS OFF CACHE BOOL “” FORCE) # Disable tools
+set(HDF5_ENABLE_PARALLEL ON)
+set(HDF5_TEST_PARALLEL OFF)
 
-set(HDF5_VERSION 1.10.8)
-set(HDF5_PREFIX ${CMAKE_BINARY_DIR}/_deps/hdf5)
-
-ExternalProject_Add(hdf5_external
-  URL https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-1.10/hdf5-${HDF5_VERSION}/src/hdf5-${HDF5_VERSION}.tar.gz
-  PREFIX ${HDF5_PREFIX}
-  CONFIGURE_COMMAND CC=mpicc CXX=mpicxx ./configure --prefix=<INSTALL_DIR> --disable-shared --enable-parallel --disable-cxx --enable-unsupported --with-pic
-  BUILD_COMMAND make -j${NPROC}
-  INSTALL_COMMAND make install
-  BUILD_IN_SOURCE TRUE
-  DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+FetchContent_Declare(
+    hdf5
+    URL https://github.com/HDFGroup/hdf5/releases/download/hdf5_1.14.6/hdf5-1.14.6.tar.gz
+    URL_HASH "SHA256=e4defbac30f50d64e1556374aa49e574417c9e72c6b1de7a4ff88c4b1bea6e9b"
 )
-
-ExternalProject_Get_Property(hdf5_external INSTALL_DIR)
-set(HDF5_ROOT ${INSTALL_DIR})
-set(HDF5_INCLUDE_DIR ${HDF5_ROOT}/include)
-set(HDF5_LIBRARIES ${HDF5_ROOT}/lib/libhdf5.a)
+FetchContent_MakeAvailable(hdf5)
+set (LINK_LIBS ${LINK_LIBS} ${HDF5_LIBRARIES})
+set (HDF5_INCLUDE_DIRS ${hdf5_BINARY_DIR}/src)
 
 # ------------------------------------------------------------------------------
 # H5hut
 # ------------------------------------------------------------------------------
 
-set(H5HUT_VERSION H5hut-2.0.0rc6)
+set(H5hut_VERSION cmake)
 set(H5HUT_GIT https://github.com/eth-cscs/h5hut.git)
-set(H5HUT_INSTALL_DIR ${CMAKE_BINARY_DIR}/_deps/h5hut)
-set(H5HUT_SRC_DIR ${CMAKE_BINARY_DIR}/_deps/h5hut-src)
+set(H5hut_WITH_MPI ON)
+set(fetch_string
+  GIT_TAG ${H5hut_VERSION}
+  GIT_REPOSITORY ${H5HUT_GIT})
 
-ExternalProject_Add(h5hut_external
-  GIT_REPOSITORY ${H5HUT_GIT}
-  GIT_TAG        ${H5HUT_VERSION}
-  PREFIX         ${H5HUT_INSTALL_DIR}
-  SOURCE_DIR     ${H5HUT_SRC_DIR}
-  UPDATE_COMMAND ""
-  CONFIGURE_COMMAND
-    <SOURCE_DIR>/autogen.sh &&
-    env CC=mpicc CXX=mpicxx
-    <SOURCE_DIR>/configure
-      --prefix=<INSTALL_DIR>
-      --enable-shared
-      --enable-parallel
-      --with-pic
-      --with-hdf5=${HDF5_ROOT}
-      CPPFLAGS=-I${HDF5_INCLUDE_DIR}
-      LDFLAGS=-L${HDF5_ROOT}/lib
-  BUILD_COMMAND make -j${NPROC}
-  INSTALL_COMMAND make install
-  BUILD_IN_SOURCE TRUE
-)
+# Invoke cmake fetch/find
+FetchContent_Declare(H5hut ${fetch_string})
+FetchContent_MakeAvailable(H5hut)
 
-ExternalProject_Get_Property(h5hut_external INSTALL_DIR)
-set(H5HUT_ROOT ${INSTALL_DIR})
-set(H5HUT_INCLUDE_DIR ${H5HUT_ROOT}/include)
-set(H5HUT_LIBRARIES ${H5HUT_ROOT}/lib/libh5hut.so)  # adjust for .dylib on macOS
+# Check that kokkos actually has the platform backends that we need
+if (H5hut_FOUND)
+  message(STATUS "H5hut ${H5hut_VERSION} found externally")
+else()
+  message(STATUS "H5hut ${H5hut_VERSION} building from source in ${H5hut_SOURCE_DIR}")
+  set(H5hut_FOUND ON)
+endif()
 
 # ------------------------------------------------------------------------------
 # Boost library

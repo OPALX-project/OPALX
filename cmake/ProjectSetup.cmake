@@ -53,8 +53,12 @@ include(Messages)
 # Static/Dynamic build : use cmake's BUILD_SHARED_LIBS but set OPALX_LIB_TYPE for log purposes
 # ------------------------------------------------------------------------------
 
-# the user should use cmake's BUILD_SHARED_LIBS set(OPALX_LIB_TYPE STATIC)
-# mark_as_advanced(OPALX_LIB_TYPE) if(BUILD_SHARED_LIBS) set(OPALX_LIB_TYPE SHARED) endif()
+# the user should use cmake's BUILD_SHARED_LIBS
+set(OPALX_LIB_TYPE STATIC)
+mark_as_advanced(OPALX_LIB_TYPE)
+if(BUILD_SHARED_LIBS)
+  set(OPALX_LIB_TYPE SHARED)
+endif()
 colour_message(STATUS ${Green} "🔧 OPALX will be built as a ${OPALX_LIB_TYPE} library")
 
 # ------------------------------------------------------------------------------
