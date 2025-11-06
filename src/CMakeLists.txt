@@ -112,8 +112,8 @@ target_link_libraries(opalx PUBLIC
     MPI::MPI_CXX
     IPPL::ippl
     ${OPAL_FFTW_LIBS}
-    ${GSL_LIBRARY}
-    ${GSL_CBLAS_LIBRARY}
+    ${GSL_LIBRARIES}
+    # ${GSL_CBLAS_LIBRARY}
     H5hut
     ${HDF5_LIBRARIES}
     ${Boost_LIBRARIES})
