@@ -1,0 +1,4 @@
+opal/*
+opalx/*
+!opalx/*.slurm
+!opal/*.slurm
