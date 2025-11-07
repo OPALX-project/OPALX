@@ -77,7 +77,7 @@ target_include_directories(
   PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 
 
-#add_opal_sources (changes.cpp)
+target_sources(opalx PUBLIC changes.cpp)
 #
 add_subdirectory (AbsBeamline)
 add_subdirectory (AbstractObjects)
