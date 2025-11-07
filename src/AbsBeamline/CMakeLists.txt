@@ -12,6 +12,7 @@ set(_SRCS
     Drift.cpp
     ElementBase.cpp
     Marker.cpp
+    Monitor.cpp
     Multipole.cpp
     MultipoleT.cpp
     MultipoleTBase.cpp
