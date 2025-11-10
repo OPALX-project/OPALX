@@ -25,7 +25,7 @@
 #include "Attributes/Real.h"
 #include "Attributes/RealArray.h"
 #include "Attributes/Reference.h"
-#include "Attributes/String.h"
+#include "Attributes/OpalString.h"
 #include "Attributes/StringArray.h"
 #include "Attributes/PredefinedString.h"
 #include "Attributes/UpperCaseString.h"

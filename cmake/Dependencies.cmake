@@ -81,7 +81,6 @@ endfunction()
 # IPPL library
 # ------------------------------------------------------------------------------
 
-set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -122,10 +121,10 @@ if(NOT IPPL_VERSION)
 endif()
 
 
-
 # ------------------------------------------------------------------------------
 # HDF5
 # ------------------------------------------------------------------------------
+
 set(HDF5_ENABLE_PARALLEL ON)
 set(HDF5_BUILD_HL_LIB OFF CACHE BOOL “” FORCE) # Disable high-level APIs for thread safety
 set(HDF5_BUILD_EXAMPLES OFF CACHE BOOL “” FORCE) # Disable examples
@@ -135,16 +134,17 @@ set(HDF5_TEST_PARALLEL OFF)
 set(HDF5_VERSION "1.14.6")
 set(HDF5_VERSION_MAJOR "1.14")
 
+set(HDF5_VERSION "1.14.6")
+set(HDF5_ENABLE_FLOAT16 OFF CACHE BOOL "Disable half-precision floats" FORCE)
 FetchContent_Declare(
     HDF5
     URL https://github.com/HDFGroup/hdf5/releases/download/hdf5_${HDF5_VERSION}/hdf5-${HDF5_VERSION}.tar.gz
     URL_HASH "SHA256=e4defbac30f50d64e1556374aa49e574417c9e72c6b1de7a4ff88c4b1bea6e9b"
 )
-FetchContent_MakeAvailable(HDF5)
-# hdf5 fetchcontent doesn't generate the right hdf5-targets / version .cmake
-# so we need to tweak things slightly
-set(HDF5_FOUND TRUE)
 
+# Now FetchContent_MakeAvailable will see the option
+FetchContent_MakeAvailable(HDF5)
+set(HDF5_FOUND TRUE)
 
 if (TARGET hdf5-shared)
     install(TARGETS hdf5-shared EXPORT ipplTargets DESTINATION lib)
@@ -184,10 +184,11 @@ endif()
 # ------------------------------------------------------------------------------
 # Boost library
 # ------------------------------------------------------------------------------
+
 include(ExternalProject)
 
 set(BOOST_VERSION "1.84.0")
-set(BOOST_INCLUDE_LIBRARIES filesystem system numeric optional regex iostreams)
+set(BOOST_INCLUDE_LIBRARIES filesystem system optional regex iostreams)
 set(BOOST_ENABLE_CMAKE ON)
 
 message(STATUS "Downloading and extracting boost library sources. This will take some time...")
@@ -204,6 +205,29 @@ FetchContent_MakeAvailable(Boost)
 set(Boost_LIBRARIES Boost::filesystem Boost::optional Boost::iostreams)
 message(STATUS "Boost include dir: ${Boost_INCLUDE_DIR}")
 message(STATUS "Boost libraries: ${Boost_LIBRARIES}")
+
+# Header-only Boost interface for uBLAS and other headers
+add_library(boost_HEADERS INTERFACE)
+target_include_directories(boost_HEADERS INTERFACE
+    ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/numeric/ublas/include
+    ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/serialization/include
+    ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/bimap/include
+    ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/multi_index/include
+    ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/variant/include
+    ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/type_index/include
+    ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/geometry/include
+    ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/assign/include
+    ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/algorithm/include
+    ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/numeric/conversion/include
+    ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/numeric/odeint/include
+    ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/units/include
+    ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/format/include
+    ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/spirit/include
+    ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/phoenix/include
+    ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/proto/include
+    ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/endian/include
+    ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/math/include
+)
 
 # ------------------------------------------------------------------------------
 # GSL
@@ -238,13 +262,6 @@ set(GSL_INCLUDE_DIR ${GSL_ROOT}/include)
 set(GSL_LIBRARIES gsl gslcblas)
 # todo fix this
 link_directories(opalx ${GSL_INSTALL_DIR}/lib)
-
-# message("***********************************************")
-# include(PrintVariables)
-# get_all_targets_recursive(_all_targets ".")
-# message("***********************************************")
-# message("${_all_targets}")
-# dump_cmake_variables()
 
 # ------------------------------------------------------------------------------
 # GoogleTest

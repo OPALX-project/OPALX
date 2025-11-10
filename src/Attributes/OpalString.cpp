@@ -16,7 +16,7 @@
 //
 // ------------------------------------------------------------------------
 
-#include "Attributes/String.h"
+#include "Attributes/OpalString.h"
 #include "AbstractObjects/Expressions.h"
 #include "Expressions/SValue.h"
 #include "Utilities/OpalException.h"
