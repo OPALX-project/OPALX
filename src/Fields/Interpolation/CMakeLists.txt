@@ -13,12 +13,6 @@ set (_SRCS
     TriLinearInterpolator.cpp
     )
 
-include_directories (
-    ${CMAKE_CURRENT_SOURCE_DIR}
-    )
-
-add_opal_sources (${_SRCS})
-
 set (HDRS
     Interpolator3dGridTo1d.h
     Interpolator3dGridTo3d.h
@@ -36,5 +30,8 @@ set (HDRS
     VectorMap.h
     )
 
-install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/Interpolation")
+target_include_directories(opalx PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
+target_sources(opalx PRIVATE ${_SRCS})
+
+install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/Interpolation")

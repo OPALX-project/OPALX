@@ -31,7 +31,6 @@ set (TEST_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/Main.cpp ${TEST_SRCS_LOCAL})
 
 link_directories (${GTEST_LIB_DIR}
     ${CMAKE_CURRENT_BINARY_DIR}
-    ${IPPL_LIBRARY_DIR}
     ${OPAL_SOURCE_DIR}/src
     ${Trilinos_LIBRARY_DIRS}
     ${Trilinos_TPL_LIBRARY_DIRS}
@@ -40,16 +39,12 @@ link_directories (${GTEST_LIB_DIR}
 
 include_directories (${GTEST_INCLUDE_DIRS}
     ${CMAKE_CURRENT_SOURCE_DIR}
-    ${IPPL_INCLUDE_DIR}
-    ${H5Hut_INCLUDE_DIR}
-    ${HDF5_INCLUDE_DIR}
     ${GSL_INCLUDE_DIR}
     ${OPAL_SOURCE_DIR}/src
     ${OPAL_SOURCE_DIR}/src/Classic
     ${OPAL_SOURCE_DIR}/optimizer
     ${Trilinos_INCLUDE_DIRS}
     ${Trilinos_TPL_INCLUDE_DIRS}
-    ${IPPL_SOURCE_DIRS}
     ${AMREX_INCLUDE_DIRS}
     ${GTEST_INCLUDE_DIRS}
 )
@@ -67,7 +62,7 @@ target_link_libraries (
     libOPAL
     ${OPTP_LIBS}
     ${OPTP_LIBRARY}
-    ${IPPL_LIBRARY}
+    IPPL::ippl
     ${GSL_LIBRARY}
     ${GSL_CBLAS_LIBRARY}
     ${H5Hut_LIBRARY}
