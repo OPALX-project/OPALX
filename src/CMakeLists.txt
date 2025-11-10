@@ -114,7 +114,6 @@ add_dependencies(opalx gsl_external)
 target_link_libraries(opalx PUBLIC
     MPI::MPI_CXX
     IPPL::ippl
-    ${OPAL_FFTW_LIBS}
     ${GSL_LIBRARIES}
     H5hut
     ${HDF5_LIBRARIES}
@@ -123,7 +122,6 @@ target_link_libraries(opalx PUBLIC
 )
 
 target_include_directories(opalx PRIVATE
-  ${FFTW_INCLUDE_DIR}
   ${HDF5_INCLUDE_DIR}
   ${H5HUT_INCLUDE_DIR}
   ${GSL_INCLUDE_DIR}
