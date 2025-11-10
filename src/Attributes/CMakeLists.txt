@@ -8,7 +8,7 @@ set (_SRCS
     Real.cpp
     RealArray.cpp
     Reference.cpp
-    String.cpp
+    OpalString.cpp
     StringArray.cpp
     TableRow.cpp
     TokenList.cpp
@@ -27,7 +27,7 @@ set (HDRS
     RealArray.h
     Real.h
     Reference.h
-    String.h
+    OpalString.h
     StringArray.h
     TableRow.h
     TokenListArray.h

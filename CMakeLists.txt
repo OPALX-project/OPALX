@@ -11,7 +11,6 @@ cmake_policy(VERSION ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION})
 # but disable c++20 module scanning until we have better support for it this seems to cause some
 # problems when using gcc@14
 cmake_policy(SET CMP0155 OLD)
-#set(CMAKE_CXX_STANDARD 17)
 
 # ------------------------------------------------------------------------------
 # Project declaration and version
@@ -118,7 +117,7 @@ add_subdirectory(src)
 
 include_directories (
     ${CMAKE_SOURCE_DIR}/src
-    ${OPALX_INCLUDE_DIR}    
+    ${OPALX_INCLUDE_DIR}
 )
 
 if (BUILD_OPAL_UNIT_TESTS)
@@ -141,5 +140,5 @@ message (STATUS "H5HUT libraries: ${H5HUT_LIBRARIES}")
 message (STATUS "H5HUT include dir: ${H5HUT_INCLUDE_DIR}")
 message (STATUS "gsl libraries: ${GSL_LIBRARIES}")
 message (STATUS "gsl include dirs: ${GSL_INCLUDE_DIR}")
-message (STATUS "Boost include dirs: ${BOOST_INCLUDE_DIR}")
+message (STATUS "Boost headers: ${boost_HEADERS}")
 message (STATUS "Boost libraries: ${BOOST_LIBRARIES}")
