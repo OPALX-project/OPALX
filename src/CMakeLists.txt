@@ -124,7 +124,7 @@ target_include_directories(opalx PRIVATE
   ${FFTW_INCLUDE_DIR}
   ${HDF5_INCLUDE_DIR}
   ${H5HUT_INCLUDE_DIR}
-  ${GSL_INCLUDE_DIR}
+  ${GSL_ROOT}/include
   ${BOOST_INCLUDE_DIR}
 )
 
