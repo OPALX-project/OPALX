@@ -21,10 +21,6 @@ set (_SRCS
   PeakFinder.cpp
 )
 
-include_directories (
-  ${CMAKE_CURRENT_SOURCE_DIR}
-)
-
 set (HDRS
     Beam.h
     BoundaryGeometry.h
@@ -54,6 +50,8 @@ if (UNIX AND NOT APPLE)
     list (APPEND HDRS MemoryProfiler.h)
 endif()
 
-add_opal_sources (${_SRCS})
+target_include_directories(opalx PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
+target_sources(opalx PRIVATE ${_SRCS})
 
 install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/Structure")

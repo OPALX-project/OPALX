@@ -39,14 +39,8 @@ set (_SRCS
     SectorField.cpp
     )
 
-include_directories (
-    Interpolation
-    ${CMAKE_CURRENT_SOURCE_DIR}
-    )
-
 add_subdirectory (Interpolation)
 
-add_opal_sources (${_SRCS})
 
 set (HDRS
     AcceleratingField.h
@@ -92,5 +86,9 @@ set (HDRS
     StaticElectricField.h
     StaticMagneticField.h
     )
+
+target_include_directories(opalx PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
+target_sources(opalx PRIVATE ${_SRCS})
 
 install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/Fields")

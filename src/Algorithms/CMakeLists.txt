@@ -19,12 +19,6 @@ set (_SRCS
     Quaternion.cpp
 )
 
-include_directories (
-    ${CMAKE_CURRENT_SOURCE_DIR}
-    )
-
-add_opal_sources(${_SRCS})
-
 set (HDRS
     AbstractTimeDependence.h
     AbstractTracker.h
@@ -48,5 +42,9 @@ set (HDRS
     CoordinateSystemTrafo.h
     Quaternion.hpp
 )
+
+target_include_directories(opalx PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
+target_sources(opalx PRIVATE ${_SRCS})
 
 install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/Algorithms")

@@ -1,42 +1,83 @@
-add_definitions (-DPARALLEL_IO)
+# -----------------------------------------------------------------------------
+# src/CMakeLists.txt
+# cmake-format: off
+#
+# This file builds the main OPALX target. It:
+#   - Generates OPALXVersions.h from current build system info
+#   - Gathers sources and headers
+#   - Adds all component subdirectories
+#   - Links to external libraries
+#   - Installs headers and the library
+#
+# cmake-format: on
+# -----------------------------------------------------------------------------
+message(STATUS "📄 Generating OPALXVersions.h")
 
-get_directory_property (OPAL_COMPILE_OPTION_LIST COMPILE_OPTIONS)
-string (REGEX REPLACE "([^\\]|^);" "\\1 " OPAL_COMPILE_OPTIONS "${OPAL_COMPILE_OPTION_LIST}")
-configure_file(config.h.in ${CMAKE_CURRENT_SOURCE_DIR}/OPALconfig.h)
+# Make embedded metadata optional (reduces rebuild churn).
+option(OPALX_EMBED_BUILD_METADATA "Embed user/machine/date in OPALXVersions.h" OFF)
 
-set (OPAL_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR})
-set (OPAL_SRCS )
-macro (ADD_OPAL_SOURCES)
-    file (RELATIVE_PATH _relPath "${OPAL_SRC_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
-    foreach (_src ${ARGN})
-        if (_relPath)
-            list (APPEND OPAL_SRCS "${_relPath}/${_src}")
-        else()
-            list (APPEND OPAL_SRCS "${_src}")
-        endif()
-    endforeach()
-    if (_relPath)
-        # propagate SRCS to parent directory
-        set (OPAL_SRCS ${OPAL_SRCS} PARENT_SCOPE)
-    endif()
-endmacro()
+if(OPALX_EMBED_BUILD_METADATA)
 
-macro (ADD_OPAL_HEADERS )
-    file (RELATIVE_PATH _relPath "${OPAL_SRC_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
-    foreach (_hdr ${ARGN})
-        if (_relPath)
-            list (APPEND OPAL_HDRS "${_relPath}/${_hdr}")
-        else ()
-            list (APPEND OPAL_HDRS "${_hdr}")
-        endif ()
-    endforeach ()
-    if (_relPath)
-        # propagate HDRS to parent directory
-        set (OPAL_HDRS ${OPAL_HDRS} PARENT_SCOPE)
-    endif ()
-endmacro ()
+  execute_process(COMMAND date OUTPUT_VARIABLE OPALX_COMPILE_DATE OUTPUT_STRIP_TRAILING_WHITESPACE)
 
-add_opal_sources (changes.cpp)
+  execute_process(COMMAND uname -a OUTPUT_VARIABLE OPALX_COMPILE_MACHINE
+                  OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+  execute_process(COMMAND whoami OUTPUT_VARIABLE OPALX_COMPILE_USER OUTPUT_STRIP_TRAILING_WHITESPACE)
+else()
+  set(OPALX_COMPILE_DATE "unknown")
+  set(OPALX_COMPILE_MACHINE "unknown")
+  set(OPALX_COMPILE_USER "unknown")
+endif()
+
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/OPALXVersions.h.in
+               ${CMAKE_CURRENT_BINARY_DIR}/OPALXVersions.h @ONLY)
+
+
+# ------------------------------------------------------------------
+# Build the main executable target: opalx
+# ------------------------------------------------------------------
+
+add_executable(opalx)
+target_sources(opalx PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Main.cpp)
+
+
+target_compile_features(opalx PUBLIC cxx_std_20)
+
+target_compile_options(
+  opalx
+  PUBLIC $<$<COMPILE_LANGUAGE:CXX>:
+         $<$<CONFIG:Debug>:-O0
+         -g>
+         $<$<CONFIG:RelWithDebInfo>:-O3
+         -g>
+         $<$<CONFIG:Release>:-O3>
+         >)
+
+get_target_property(_opalx_type opalx TYPE)
+if(_opalx_type)
+  string(REPLACE "_LIBRARY" "" _opalx_type "${_opalx_type}") # -> STATIC / SHARED / OBJECT / INTERFACE
+else()
+  set(_opalx_type "UNKNOWN")
+endif()
+
+# Query PIC state (may inherit from CMAKE_POSITION_INDEPENDENT_CODE)
+get_target_property(_opalx_pic opalx POSITION_INDEPENDENT_CODE)
+if(NOT DEFINED _opalx_pic)
+  set(_opalx_pic "DEFAULT(${CMAKE_POSITION_INDEPENDENT_CODE})")
+endif()
+
+message(STATUS "🔧 Target 'opalx': type=${_opalx_type}, POSITION_INDEPENDENT_CODE=${_opalx_pic}")
+
+target_sources(opalx PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Main.cpp)
+
+target_include_directories(
+  opalx PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+              $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/opalx>
+  PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+
+
+target_sources(opalx PUBLIC changes.cpp)
 #
 add_subdirectory (AbsBeamline)
 add_subdirectory (AbstractObjects)
@@ -65,78 +106,26 @@ add_subdirectory (Utilities)
 add_subdirectory (ValueDefinitions)
 add_subdirectory (MemoryManagement)
 
-include_directories (BEFORE
-    ${OPAL_SRC_DIR}
-    ${CLASSIC_SRC_DIR}
-    ${IPPL_INCLUDE_DIR}
-    ${H5Hut_INCLUDE_DIR}
-    ${HDF5_INCLUDE_DIR}
-    ${GSL_INCLUDE_DIR}
-    ${IPPL_SOURCE_DIRS}
-    ${GTEST_INCLUDE_DIRS}
-    )
+include(${PROJECT_SOURCE_DIR}/cmake/PlatformOptions.cmake)
 
-link_directories (
-    ${IPPL_LIBRARY_DIR}
-    )
+# make sure gsl is built before opalx
+add_dependencies(opalx gsl_external)
 
-#
-# we cannot use the target name 'OPAL' for 'libOPAL'. On systems with
-# case-insensitive filesystems (like macOS) this conflicts with the
-# target 'opal' for the OPAL binary.
-#
-add_library (libOPAL ${OPAL_SRCS})
-set_target_properties (libOPAL PROPERTIES OUTPUT_NAME OPAL)
-
-target_link_libraries (libOPAL
-    PUBLIC
-    ${MPI_CXX_LIBRARIES}
-    ippl
-    Heffte
+target_link_libraries(opalx PUBLIC
+    MPI::MPI_CXX
+    IPPL::ippl
+    ${GSL_LIBRARIES}
+    H5hut
+    ${HDF5_LIBRARIES}
+    ${Boost_LIBRARIES}    # compiled Boost libs like filesystem, iostreams
+    boost_HEADERS         # header-only parts, including uBLAS
 )
 
-message (STATUS "OPAL_LIBS is: " ${CMAKE_BINARY_DIR})
+target_include_directories(opalx PRIVATE
+  ${HDF5_INCLUDE_DIR}
+  ${H5HUT_INCLUDE_DIR}
+  ${GSL_INCLUDE_DIR}
+  ${BOOST_INCLUDE_DIR}
+)
 
-add_executable (opalx Main.cpp)
-target_link_libraries( opalx
-    PUBLIC
-    libOPAL
-    ${KOKKOS_LIBRARY1}
-    ${KOKKOS_LIBRARY2}
-    ${KOKKOS_LIBRARY3}
-    ${HEFFTE_LIBRARY}
-    ${OPAL_FFTW_LIBS}
-    ${GSL_LIBRARY}
-    ${GSL_CBLAS_LIBRARY}
-    ${H5Hut_LIBRARY}
-    ${HDF5_LIBRARIES}
-    ${Boost_LIBRARIES}
-    ${IPPL_LIBRARY}
-    ${OPAL_MPI_LIBS}
-    m
-    z
-    ${CMAKE_DL_LIBS}
-    ${MPI_CXX_LIBRARIES}
-#    ubsan
-#    asan
-    )
-
-message (STATUS "src/CmakeLists IPPL_LIBRARY : ${IPPL_LIBRARY}")
-message (STATUS "src/CmakeLists GSL_LIBRARY : ${GSL_LIBRARY}")
-message (STATUS "src/CmakeLists Kokkos_LIBRARY : ${KOKKOS_LIBRARY1}")
-message (STATUS "src/CmakeLists HEFFTE_LIBRARY : ${HEFFTE_LIBRARY}")
-message (STATUS "src/CmakeLists MPI_CXX : ${MPI_CXX_LIBRARIES}")
-
-install (TARGETS ${TEST_EXE} RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")
-install (TARGETS opalx RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")
-install (TARGETS libOPAL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib")
-
-set (HDRS
-    OPALtypes.h
-    OPALconfig.h
-    opal.h
-    OPALrevision.h
-    changes.h
-    )
-
-install (FILES ${HDRS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/src")
+include(InstallOPALX)

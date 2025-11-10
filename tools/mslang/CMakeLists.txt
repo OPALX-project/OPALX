@@ -13,7 +13,6 @@ include_directories (
 )
 
 link_directories (
-    ${IPPL_LIBRARY_DIR}
     ${CMAKE_SOURCE_DIR}/src
     ${Boost_LIBRARY_DIRS}
 )
@@ -22,7 +21,7 @@ set (MSLANG_LIBS
     libOPAL
     ${OPTP_LIBS}
     ${OPTP_LIBRARY}
-    ${IPPL_LIBRARY}
+    IPPL::ippl
     ${GSL_LIBRARY}
     ${GSL_CBLAS_LIBRARY}
     ${H5Hut_LIBRARY}
