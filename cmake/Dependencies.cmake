@@ -263,6 +263,8 @@ set(GSL_LIBRARIES
     ${GSL_ROOT}/lib/libgsl.a
     ${GSL_ROOT}/lib/libgslcblas.a
 )
+message(STATUS "GSL include dir: ${GSL_INCLUDE_DIR}")
+message(STATUS "GSL libraries: ${GSL_LIBRARIES}")
 
 # ------------------------------------------------------------------------------
 # GoogleTest

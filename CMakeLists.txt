@@ -30,13 +30,8 @@ include(ProjectSetup)
 # ------------------------------------------------------------------------------
 # Primary OPALX options
 # ------------------------------------------------------------------------------
-set(OPALX_PLATFORMS "SERIAL" CACHE STRING "Platforms to build OPALX for")
 option(BUILD_SHARED_LIBS "Build OPALX as a shared library" OFF)
 option(OPALX_ENABLE_UNIT_TESTS "Enable unit tests using GoogleTest" OFF)
-option(OPALX_ENABLE_FFT "Enable FFT support" OFF)
-option(OPALX_ENABLE_SOLVERS "Enable OPALX solvers" OFF)
-option(OPALX_ENABLE_ALPINE "Enable building the Alpine module" OFF)
-option(OPALX_ENABLE_COSMOLOGY "Enable building the Cosmology module" OFF)
 option(OPALX_ENABLE_EXAMPLES "Enable building the Example module" OFF)
 option(OPALX_ENABLE_TESTS "Build integration tests in test/ directory" OFF)
 option(OPALX_ENABLE_COVERAGE "Enable code coverage" OFF)
