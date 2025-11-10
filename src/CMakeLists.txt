@@ -108,12 +108,14 @@ add_subdirectory (MemoryManagement)
 
 include(${PROJECT_SOURCE_DIR}/cmake/PlatformOptions.cmake)
 
+# make sure gsl is built before opalx
+add_dependencies(opalx gsl_external)
+
 target_link_libraries(opalx PUBLIC
     MPI::MPI_CXX
     IPPL::ippl
     ${OPAL_FFTW_LIBS}
     ${GSL_LIBRARIES}
-    # ${GSL_CBLAS_LIBRARY}
     H5hut
     ${HDF5_LIBRARIES}
     ${Boost_LIBRARIES}    # compiled Boost libs like filesystem, iostreams
@@ -124,7 +126,7 @@ target_include_directories(opalx PRIVATE
   ${FFTW_INCLUDE_DIR}
   ${HDF5_INCLUDE_DIR}
   ${H5HUT_INCLUDE_DIR}
-  ${GSL_ROOT}/include
+  ${GSL_INCLUDE_DIR}
   ${BOOST_INCLUDE_DIR}
 )
 
