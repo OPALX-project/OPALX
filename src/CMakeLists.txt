@@ -116,7 +116,9 @@ target_link_libraries(opalx PUBLIC
     # ${GSL_CBLAS_LIBRARY}
     H5hut
     ${HDF5_LIBRARIES}
-    ${Boost_LIBRARIES})
+    ${Boost_LIBRARIES}    # compiled Boost libs like filesystem, iostreams
+    boost_HEADERS         # header-only parts, including uBLAS
+)
 
 target_include_directories(opalx PRIVATE
   ${FFTW_INCLUDE_DIR}
@@ -124,7 +126,6 @@ target_include_directories(opalx PRIVATE
   ${H5HUT_INCLUDE_DIR}
   ${GSL_INCLUDE_DIR}
   ${BOOST_INCLUDE_DIR}
-  ${BOOST_SRC_DIR}/boost_${BOOST_VERSION_UNDERSCORE}  # raw source headers
 )
 
 include(InstallOPALX)

@@ -20,8 +20,8 @@
 
 #include "MemoryManagement/RCObject.h"
 #include "AbstractObjects/AttributeBase.h"
-#include <memory>
-#include <string>
+#include <memory.h>
+#include <cstring>
 #include <map>
 #include <set>
 
