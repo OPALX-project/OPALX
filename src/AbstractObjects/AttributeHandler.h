@@ -24,6 +24,8 @@
 #include <cstring>
 #include <map>
 #include <set>
+#include <memory>
+#include <string>
 
 class Attribute;
 class Statement;
