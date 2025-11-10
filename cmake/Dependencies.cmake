@@ -259,9 +259,10 @@ ExternalProject_Add(gsl_external
 ExternalProject_Get_Property(gsl_external INSTALL_DIR)
 set(GSL_ROOT ${INSTALL_DIR})
 set(GSL_INCLUDE_DIR ${GSL_ROOT}/include)
-set(GSL_LIBRARIES gsl gslcblas)
-# todo fix this
-link_directories(opalx ${GSL_INSTALL_DIR}/lib)
+set(GSL_LIBRARIES
+    ${GSL_ROOT}/lib/libgsl.a
+    ${GSL_ROOT}/lib/libgslcblas.a
+)
 
 # ------------------------------------------------------------------------------
 # GoogleTest
