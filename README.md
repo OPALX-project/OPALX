@@ -1,87 +1,95 @@
-# This is OPALX
+# OPALX
 
-# BUILDING OPALX on Merlin
-
-
-## Modules needed OPENMP build
+## Dependencies
 
 ```
 cmake/3.25.2
-
 openmpi/4.1.5_slurm
-
 fftw/3.3.10_merlin6    
-
 gsl/2.7                
-
 H5hut/2.0.0rc6_slurm
-
 gcc/12.3.0             
-
 boost/1.82.0_slurm     
-
 gtest/1.13.0-1         
-
 hdf5/1.10.8_slurm     
-
 gnutls/3.5.19
-
 cuda/12.8.1
 ```
 
-
-
-## Clone repo and build opalx with OPENMP 
+## Building OPALX
 
 ```
-$ git clone git@gitlab.psi.ch:OPAL/opal-x/src.git opal-x
-
-$ cd opal-x
-
-$ ./gen_OPALrevision
+git clone https://github.com/OPALX-project/OPALX.git
+cd OPALX
+./gen_OPALrevision
 ```
 
+### Setting up cmake
 
-### To compile for OPENMP:
-```
-$ mkdir build_openmp && cd build_openmp
-$ cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_STANDARD=20 -DIPPL_ENABLE_FFT=ON -DIPPL_ENABLE_SOLVERS=ON -DIPPL_ENABLE_ALPINE=OFF -DIPPL_ENABLE_TESTS=OFF     -DIPPL_PLATFORMS=openmp
-```
+#### cmake command for CPU build
 
-
-### To compile for GPU, for example Amper80 on Gwendolen
+Building OPALX without multi-threading (only MPI):
 ```
-$ mkdir build_cuda && cd build_cuda
-```
-
-in debug mode:
-
-```
-$ cmake .. -DCMAKE_BUILD_TYPE=Debug -DIPPL_PLATFORMS=CUDA -DKokkos_ARCH_AMPERE80=ON -DCMAKE_CXX_STANDARD=20 -DIPPL_ENABLE_FFT=ON  -DIPPL_ENABLE_SOLVERS=ON -DIPPL_ENABLE_ALPINE=OFF -DIPPL_ENABLE_TESTS=OFF
+mkdir build_serial && cd build_serial
+cmake .. \
+    -DCMAKE_BUILD_TYPE=Debug \
+    -DCMAKE_CXX_STANDARD=20 \
+    -DIPPL_ENABLE_FFT=ON \
+    -DIPPL_ENABLE_SOLVERS=ON \
+    -DIPPL_ENABLE_ALPINE=OFF \
+    -DIPPL_ENABLE_TESTS=OFF  \
+    -DIPPL_PLATFORMS=serial
 ```
 
-and release (optimized) mode:
-```
-$ cmake .. -DCMAKE_BUILD_TYPE=Release -DIPPL_PLATFORMS=CUDA -DKokkos_ARCH_AMPERE80=ON -DCMAKE_CXX_STANDARD=20 -DIPPL_ENABLE_FFT=ON  -DIPPL_ENABLE_SOLVERS=ON -DIPPL_ENABLE_ALPINE=OFF -DIPPL_ENABLE_TESTS=OFF
-```
-
-### To compile for other GPU architecture, like Pascal on the Merlin's login node
-```
-$ mkdir build_cuda_login && cd build_cuda_login
-```
-
-in debug mode:
+and for multi-threading with OpenMP:
 
 ```
-$ cmake .. -DCMAKE_BUILD_TYPE=Debug -DIPPL_PLATFORMS=CUDA -DKokkos_ARCH_PASCAL61=ON -DCMAKE_CXX_STANDARD=20 -DIPPL_ENABLE_FFT=ON  -DIPPL_ENABLE_SOLVERS=ON -DIPPL_ENABLE_ALPINE=OFF -DIPPL_ENABLE_TESTS=OFF
+mkdir build_openmp && cd build_openmp
+cmake .. \
+    -DCMAKE_BUILD_TYPE=Debug \
+    -DCMAKE_CXX_STANDARD=20 \
+    -DIPPL_ENABLE_FFT=ON \
+    -DIPPL_ENABLE_SOLVERS=ON \
+    -DIPPL_ENABLE_ALPINE=OFF \
+    -DIPPL_ENABLE_TESTS=OFF  \
+    -DIPPL_PLATFORMS=openmp
 ```
 
-and release (optimized) mode:
+#### cmake command for GPU build
 ```
-$ cmake .. -DCMAKE_BUILD_TYPE=Release -DIPPL_PLATFORMS=CUDA -DKokkos_ARCH_PASCAL61=ON -DCMAKE_CXX_STANDARD=20 -DIPPL_ENABLE_FFT=ON  -DIPPL_ENABLE_SOLVERS=ON -DIPPL_ENABLE_ALPINE=OFF -DIPPL_ENABLE_TESTS=OFF
+mkdir build_cuda && cd build_cuda
 ```
 
-### Submitting jobs on Gwendolen and Merlin GPUs
+For example, for A100 with Amper80 Architecture (Gwendolen), and the debug mode, the cmake should be something like:
+
+```
+cmake .. \
+    -DCMAKE_BUILD_TYPE=Debug \
+    -DIPPL_PLATFORMS=CUDA \
+    -DKokkos_ARCH_AMPERE80=ON \
+    -DCMAKE_CXX_STANDARD=20 \
+    -DIPPL_ENABLE_FFT=ON \
+    -DIPPL_ENABLE_SOLVERS=ON \
+    -DIPPL_ENABLE_ALPINE=OFF \
+    -DIPPL_ENABLE_TESTS=OFF
+```
+
+For the release mode, use `Release` instead of `Debug` as the argument for `-DCMAKE_BUILD_TYPE`. For other GPUs use the correct flag for their corresponding architecture. For example, for P100 or GTX 1080 with Pascal61 architecture on Merlin login node, use `-DKokkos_ARCH_PASCAL61=ON` instead of `-DKokkos_ARCH_AMPERE80=ON`. 
+
+### Compilation
+
+Finally, compile OPALX with 
+```
+make
+```
+using single thread, and
+```
+make -j 4
+```
+using `4` threads for example.
+
+
+## Job scripts
 To execute opalx on merlin's gpus (compile for PASCAL61), the job script should looks like
 ```
 #!/bin/bash
