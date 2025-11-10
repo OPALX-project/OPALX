@@ -15,7 +15,6 @@ CMakeCache.txt
 CMakeFiles
 cmake_install.cmake
 config.h
-src/OPALconfig.h
 Makefile
 revision.h
 src/OPALrevision.h
