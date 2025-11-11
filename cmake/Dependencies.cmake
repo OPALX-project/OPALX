@@ -92,7 +92,7 @@ endif()
 add_definitions (-DNOCTAssert)
 
 # Allow user to specify branch/tag, default to master
-set(IPPL_GIT_TAG "cmake-alps" CACHE STRING "Branch or tag for IPPL (default: master)")
+set(IPPL_GIT_TAG "master" CACHE STRING "Branch or tag for IPPL (default: master)")
 message(STATUS "Fetching IPPL branch/tag: ${IPPL_GIT_TAG}")
 
 if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
