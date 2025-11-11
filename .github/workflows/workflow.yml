@@ -1,0 +1,41 @@
+name: CI workflow
+          
+on:       
+  push:   
+  pull_request:
+    branches: [ "main" ]
+          
+jobs:     
+  build:  
+    runs-on: ubuntu-latest
+          
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+          
+      - name: Install build tools and linter
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake git clang-tidy
+          
+      - name: Configure CMake project
+        run: |
+          mkdir -p build
+          cd build
+          cmake .. \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_CXX_STANDARD=20 \
+            -DIPPL_ENABLE_FFT=ON \
+            -DIPPL_ENABLE_SOLVERS=ON \
+            -DIPPL_ENABLE_ALPINE=OFF \
+            -DIPPL_ENABLE_TESTS=OFF \
+            -DIPPL_PLATFORMS=serial
+          
+      - name: Build project
+        run: |
+          cd build
+          make -j$(nproc)
+          
+      #- name: Run clang-tidy on C++ files
+      #  run: |
+      #    find src -name '*.cpp' | xargs clang-tidy --quiet || true
