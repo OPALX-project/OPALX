@@ -43,9 +43,11 @@ option(OPALX_USE_STANDARD_FOLDERS "Put all generated binaries in bin/lib folders
 option(OPALX_SKIP_FAILING_TESTS "Do not build/test tests that are currently marked as failing" OFF)
 option(OPALX_ENABLE_SCRIPTS "Generate job script templates for some benchmarks/tests" OFF)
 
-# "Build OPALX as a shared library (ON) or static library (OFF)" OFF) if(OPALX_DYL)
-# set(BUILD_SHARED_LIBS ON CACHE BOOL "" FORCE) message(WARNING "OPALX_DYL is deprecated; use
-# -DBUILD_SHARED_LIBS=ON instead.") endif()
+# "Build OPALX as a shared library (ON) or static library (OFF)" OFF) 
+if(OPALX_DYL)
+    set(BUILD_SHARED_LIBS ON CACHE BOOL "" FORCE)
+    message(WARNING "OPALX_DYL is deprecated; use -DBUILD_SHARED_LIBS=ON instead.")
+endif()
 
 # ------------------------------------------------------------------------------
 # Setup Output directories
@@ -127,8 +129,6 @@ message (STATUS "Project Name ${PROJECT_NAME}")
 # Print relevant paths
 message(STATUS "IPPL_INC: ${IPPL_INCLUDE_DIR}")
 message(STATUS "IPPL_LIB: ${IPPL_LIBRARY}")
-message (STATUS "FFTW lib(s): ${FFTW_LIBRARIES}")  
-message (STATUS "FFTW include dir: ${FFTW_INCLUDE_DIR}")  
 message (STATUS "HDF5 libraries: ${HDF5_LIBRARIES}")
 message (STATUS "HDF5 include dir: ${HDF5_INCLUDE_DIR}")
 message (STATUS "H5HUT libraries: ${H5HUT_LIBRARIES}")
@@ -136,4 +136,4 @@ message (STATUS "H5HUT include dir: ${H5HUT_INCLUDE_DIR}")
 message (STATUS "gsl libraries: ${GSL_LIBRARIES}")
 message (STATUS "gsl include dirs: ${GSL_INCLUDE_DIR}")
 message (STATUS "Boost headers: ${boost_HEADERS}")
-message (STATUS "Boost libraries: ${BOOST_LIBRARIES}")
+message (STATUS "Boost include dirs: ${BOOST_INCLUDE_DIR}")
