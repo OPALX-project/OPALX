@@ -30,7 +30,7 @@ include(ProjectSetup)
 # ------------------------------------------------------------------------------
 # Primary OPALX options
 # ------------------------------------------------------------------------------
-option(BUILD_SHARED_LIBS "Build OPALX as a shared library" OFF)
+option(BUILD_SHARED_LIBS "Build OPALX as a shared library" ON)
 option(OPALX_ENABLE_UNIT_TESTS "Enable unit tests using GoogleTest" OFF)
 option(OPALX_ENABLE_EXAMPLES "Enable building the Example module" OFF)
 option(OPALX_ENABLE_TESTS "Build integration tests in test/ directory" OFF)
@@ -43,9 +43,11 @@ option(OPALX_USE_STANDARD_FOLDERS "Put all generated binaries in bin/lib folders
 option(OPALX_SKIP_FAILING_TESTS "Do not build/test tests that are currently marked as failing" OFF)
 option(OPALX_ENABLE_SCRIPTS "Generate job script templates for some benchmarks/tests" OFF)
 
-# "Build OPALX as a shared library (ON) or static library (OFF)" OFF) if(OPALX_DYL)
-# set(BUILD_SHARED_LIBS ON CACHE BOOL "" FORCE) message(WARNING "OPALX_DYL is deprecated; use
-# -DBUILD_SHARED_LIBS=ON instead.") endif()
+# "Build OPALX as a shared library (ON) or static library (OFF)" OFF) 
+if(OPALX_DYL)
+    set(BUILD_SHARED_LIBS ON CACHE BOOL "" FORCE) message(WARNING "OPALX_DYL is deprecated; use
+    -DBUILD_SHARED_LIBS=ON instead.") 
+endif()
 
 # ------------------------------------------------------------------------------
 # Setup Output directories
