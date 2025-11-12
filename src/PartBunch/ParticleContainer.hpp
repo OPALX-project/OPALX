@@ -74,6 +74,18 @@ public:
         this->addAttribute(E);
         //this->addAttribute(Etmp);
         this->addAttribute(B);
+
+
+        Q.set_name("Q");
+        M.set_name("M");
+        dt.set_name("dt");
+        Phi.set_name("Phi");
+        Bin.set_name("Bin");
+        Sp.set_name("Sp");
+        P.set_name("P");
+        E.set_name("E");
+        B.set_name("B");
+        //Etmp.set_name("Etmp");
     }
 
     void setupBCs() {

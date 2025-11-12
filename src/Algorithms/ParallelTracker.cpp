@@ -54,6 +54,14 @@
 #include "AbsBeamline/PluginElement.h"
 #include "AbsBeamline/VerticalFFAMagnet.h"
 
+
+
+const char* TestName   = "OPALX";
+#ifdef IPPL_ENABLE_CATALYST
+#include "Stream/InSitu/CatalystAdaptor.h"
+#endif
+
+
 extern Inform* gmsg;
 
 class PartData;
@@ -303,6 +311,13 @@ void ParallelTracker::execute() {
     OpalData::getInstance()->setInPrepState(true);
     bool back_track = false;
 
+
+    #ifdef IPPL_ENABLE_CATALYST
+    ippl::CatalystAdaptor cat_vis; 
+    #endif
+
+
+
     BorisPusher pusher(itsReference);
     const double globalTimeShift =
         itsBunch_m->weHaveEnergyBins() ? OpalData::getInstance()->getGlobalPhaseShift() : 0.0;
@@ -392,6 +407,18 @@ void ParallelTracker::execute() {
     OpalData::getInstance()->setInPrepState(false);
 
     stepSizes_m.printDirect(*gmsg);
+
+
+    #ifdef IPPL_ENABLE_CATALYST
+            std::shared_ptr<ippl::VisRegistryRuntime>  runtime_steer_registry = ippl::MakeVisRegistryRuntimePtr();
+            
+            std::shared_ptr<ippl::VisRegistryRuntime> runtime_vis_registry   = ippl::MakeVisRegistryRuntimePtr( // );
+            "electrons", *itsBunch_m->getParticleContainer()  );
+
+            // runtime_vis_registry->add( "electrons", * itsBunch_m->getParticleContainer());
+            cat_vis.InitializeRuntime(runtime_vis_registry, runtime_steer_registry);
+    #endif
+
     
     while (!stepSizes_m.reachedEnd()) {
 
@@ -453,12 +480,28 @@ void ParallelTracker::execute() {
             if (std::abs(stepSizes_m.getZStop() - pathLength_m) < 0.5 * driftPerTimeStep) {
                 break;
             }
+
+
+            #ifdef IPPL_ENABLE_CATALYST
+                cat_vis.ExecuteRuntime(step, step);
+            #endif
+
+
+
         }
 
         if (globalEOL_m)
            break;
         ++stepSizes_m;    
-     }
+    }
+
+
+    #ifdef IPPL_ENABLE_CATALYST
+    cat_vis.Finalize();
+    #endif
+
+
+
     itsBunch_m->set_sPos(pathLength_m);
 
     numParticlesInSimulation_m = itsBunch_m->getTotalNum();
