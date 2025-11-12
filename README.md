@@ -132,3 +132,103 @@ srun ./opalx DriftTest-1.in  --info 10 --kokkos-map-device-id-by=mpi_rank
 ```
 
 The documentation has been moved to the [Wiki](https://gitlab.psi.ch/OPAL/src/wikis/home).
+
+
+
+
+## Visualisation
+
+### Building 
+```
+
+# Manual buil for libcatalyst or module needed!
+# name here:
+
+export CATALYST_CMAKE_PATH="/****/catalyst/install-mpich/lib/cmake/catalyst-2.0"
+
+# manual installation or module of paraview:
+# guarantee to use same MPI as ParaView binary is using (mpich)
+#export MPICC= 
+#export MPICXX= 
+#export MPIEXEC=/...ParaView-5.XX.X-MPI-Linux-Python3.10-x86_64/lib/mpiexec
+
+# don't forget
+cd OPALX 
+./gen_OPALrevision
+cd ..
+
+
+cd  build
+
+cmake ../OPALX  \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_CXX_STANDARD=20 \
+    -DIPPL_ENABLE_FFT=ON \
+    -DIPPL_ENABLE_SOLVERS=ON \
+    -DIPPL_ENABLE_ALPINE=OFF \
+    -DIPPL_ENABLE_TESTS=OFF  \
+    -DIPPL_PLATFORMS=serial \
+    -DIPPL_GIT_TAG=catalyst-vis-v0.1 \
+    -DBUILD_SHARED_LIBS=ON \
+    -DIPPL_ENABLE_CATALYST=ON \
+    -DCATALYST_HINT_PATH=${CATALYST_CMAKE_PATH}
+    # -DMPI_C_COMPILER="${MPICC}" \
+    # -DMPI_CXX_COMPILER="${MPICXX}" \
+    # -DMPIEXEC_EXECUTABLE="${MPIEXEC}" \
+
+cd ..
+```
+
+### Compiling
+after running make, test that only one MPI version was linked with the the executable opalx:
+```
+ldd opalx | grep -i mpi
+
+    libmpicxx.so.12 => /opt/mpich/lib/libmpicxx.so.12
+    libmpi.so.12 => /opt/mpich/lib/libmpi.so.12
+
+```
+
+### Runnng
+Small example would be:
+```
+
+# does nothing atm
+# "ON":
+#  any/"OFF": (default)
+export IPPL_CATALYST_VIS=ON
+
+
+# "ON":
+#  any/"OFF": (default)
+export IPPL_CATALYST_STEER=OFF
+
+#  activate/deactivate extractors (frequencies can be overwritten in scripts directly for now)
+
+# "ON":
+#  any/"OFF": (default)
+export IPPL_CATALYST_PNG=OFF
+
+# "ON":
+#  any/"OFF": (default)
+export IPPL_CATALYST_VTK=OFF
+
+# any/"ON":(default)    writes catalyst_scripts/catalyst_proxy.xml and continues simulation
+# "PRODUCE_ONLY":       writes and throws exception
+# "OFF":                doesn't write but (still tries to access old catalyst_scripts/catalyst_proxy.xml 
+#                       if CATALYST_PROXY_PATH is not set) and runs simulation
+export IPPL_CATALYST_PROXY_OPTION=ON
+
+# for the rest of the catalyst option keep with defaults for now.
+
+
+
+PV_PREFIX="/******/ParaView-5.12.0-MPI-Linux-Python3.10-x86_64"
+export CATALYST_IMPLEMENTATION_PATHS="${PV_PREFIX}/lib/catalyst"
+export CATALYST_IMPLEMENTATION_NAME="paraview"
+
+
+export BINDIR=${PWD}/build/src
+
+${BINDIR}/opalx ${BACKDIR}/fodo-test.in --info 5
+```
