@@ -81,13 +81,6 @@ bool Monitor::apply(
     return false;
 }
 
-bool Monitor::apply(
-    const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-    Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
-    throw std::runtime_error("Fix this function please");
-    return false;
-}
-
 void Monitor::driftToCorrectPositionAndSave(
     const Vector_t<double, 3>& refR, const Vector_t<double, 3>& refP) {
     const double cdt                           = Physics::c * RefPartBunch_m->getdT();
