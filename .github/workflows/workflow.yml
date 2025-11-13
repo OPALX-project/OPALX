@@ -51,20 +51,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Install dependencies and newer CMake
+      - name: Install dependencies and modern CMake
         run: |
           apt-get update
-          apt-get install -y build-essential git wget libopenmpi-dev openmpi-bin
-          # Install CMake 3.27.9 (or newer)
-          wget https://github.com/Kitware/CMake/releases/download/v3.27.9/cmake-3.27.9-linux-x86_64.tar.gz
-          tar -xzvf cmake-3.27.9-linux-x86_64.tar.gz
-          ln -s $(pwd)/cmake-3.27.9-linux-x86_64/bin/cmake /usr/local/bin/cmake
-          cmake --version  # verify version
-          
-      - name: Install dependencies
-        run: |
-          apt-get update
-          apt-get install -y build-essential cmake git
+          apt-get install -y build-essential git wget libopenmpi-dev openmpi-bin p7zip-full locales
+          locale-gen en_US.UTF-8
+          export LANG=en_US.UTF-8
+
+          # Install CMake >= 3.30 (for CMP0155)
+          wget https://github.com/Kitware/CMake/releases/download/v3.30.5/cmake-3.30.5-linux-x86_64.tar.gz
+          tar -xzf cmake-3.30.5-linux-x86_64.tar.gz
+          ln -s $(pwd)/cmake-3.30.5-linux-x86_64/bin/cmake /usr/local/bin/cmake
+          cmake --version
 
       - name: Run gen_OPALrevision
         run: |
