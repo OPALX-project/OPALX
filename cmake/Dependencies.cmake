@@ -196,7 +196,8 @@ include(FetchContent)
 Set(FETCHCONTENT_QUIET FALSE) # Needed to print downloading progress
 FetchContent_Declare(
     Boost
-    URL https://github.com/boostorg/boost/releases/download/boost-${BOOST_VERSION}/boost-${BOOST_VERSION}.7z # downloading a zip release speeds up the download
+    #URL https://github.com/boostorg/boost/releases/download/boost-${BOOST_VERSION}/boost-${BOOST_VERSION}.7z # downloading a zip release speeds up the download
+    URL https://boostorg.jfrog.io/artifactory/main/release/${BOOST_VERSION}/source/boost_${BOOST_VERSION//./_}.tar.gz
     USES_TERMINAL_DOWNLOAD TRUE
     GIT_PROGRESS TRUE
     DOWNLOAD_NO_EXTRACT FALSE
