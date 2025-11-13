@@ -26,8 +26,8 @@ jobs:
           
       - name: Configure CMake project
         run: |
-          mkdir -p build
-          cd build
+          mkdir -p build_serial
+          cd build_serial
           cmake .. \
             -DCMAKE_BUILD_TYPE=Debug \
             -DCMAKE_CXX_STANDARD=20 \
@@ -39,7 +39,7 @@ jobs:
           
       - name: Build project
         run: |
-          cd build
+          cd build_serial
           make -j$(nproc)
           
   # ===== GPU CUDA BUILD =====
@@ -54,7 +54,7 @@ jobs:
       - name: Install dependencies
         run: |
           apt-get update
-          apt-get install -y build-essential cmake git libopenmpi-dev openmpi-bin
+          apt-get install -y build-essential cmake git
 
       - name: Run gen_OPALrevision
         run: |
@@ -63,8 +63,8 @@ jobs:
 
       - name: Configure CMake project (CUDA)
         run: |
-          mkdir -p build
-          cd build
+          mkdir -p build_cuda
+          cd build_cuda
           cmake .. \
             -DCMAKE_BUILD_TYPE=Debug \
             -DIPPL_PLATFORMS=CUDA \
@@ -77,5 +77,5 @@ jobs:
           
       - name: Build project
         run: |
-          cd build
+          cd build_cuda
           make -j$(nproc)
