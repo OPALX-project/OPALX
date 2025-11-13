@@ -194,7 +194,15 @@ set(BOOST_ENABLE_CMAKE ON)
 
 message(STATUS "Downloading and extracting Boost library sources. This will take some time...")
 
-set(BOOST_URL "https://github.com/boostorg/boost/releases/download/boost-${BOOST_VERSION}/boost-${BOOST_VERSION}.zip")
+if(APPLE)
+    # macOS: use zip
+    set(BOOST_URL "https://github.com/boostorg/boost/releases/download/boost-${BOOST_VERSION}/boost-${BOOST_VERSION}.zip")
+elseif(UNIX)
+    # Linux: use tar.gz
+    set(BOOST_URL "https://github.com/boostorg/boost/releases/download/boost-${BOOST_VERSION}/boost-${BOOST_VERSION}.tar.gz")
+else()
+    message(FATAL_ERROR "Unsupported OS for automatic Boost download")
+endif()
 
 FetchContent_Declare(
     Boost
