@@ -1,9 +1,11 @@
 name: CI workflow
           
-on:       
-  push:   
+on:
+  ## Trigger CI workflow on push to any branch (commented out to limit runs)
+  #push:
+  ## Trigger CI workflow on pull requests to the master branch   
   pull_request:
-    branches: [ "main" ]
+    branches: [ "master" ]
           
 jobs:     
   # ===== CPU SERIAL BUILD =====
