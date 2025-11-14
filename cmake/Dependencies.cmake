@@ -188,19 +188,30 @@ endif()
 include(ExternalProject)
 
 set(BOOST_VERSION "1.84.0")
+string(REPLACE "." "_" BOOST_VERSION_UNDERSCORE "${BOOST_VERSION}")
 set(BOOST_INCLUDE_LIBRARIES filesystem system optional regex iostreams)
 set(BOOST_ENABLE_CMAKE ON)
 
-message(STATUS "Downloading and extracting boost library sources. This will take some time...")
-include(FetchContent)
-Set(FETCHCONTENT_QUIET FALSE) # Needed to print downloading progress
+message(STATUS "Downloading and extracting Boost library sources. This will take some time...")
+
+if(APPLE)
+    # macOS: use zip
+    set(BOOST_URL "https://github.com/boostorg/boost/releases/download/boost-${BOOST_VERSION}/boost-${BOOST_VERSION}.zip")
+elseif(UNIX)
+    # Linux: use tar.gz
+    set(BOOST_URL "https://github.com/boostorg/boost/releases/download/boost-${BOOST_VERSION}/boost-${BOOST_VERSION}.tar.gz")
+else()
+    message(FATAL_ERROR "Unsupported OS for automatic Boost download")
+endif()
+
 FetchContent_Declare(
     Boost
-    URL https://github.com/boostorg/boost/releases/download/boost-${BOOST_VERSION}/boost-${BOOST_VERSION}.7z # downloading a zip release speeds up the download
+    URL ${BOOST_URL}
     USES_TERMINAL_DOWNLOAD TRUE
     GIT_PROGRESS TRUE
     DOWNLOAD_NO_EXTRACT FALSE
 )
+
 FetchContent_MakeAvailable(Boost)
 set(Boost_LIBRARIES Boost::filesystem Boost::optional Boost::iostreams)
 message(STATUS "Boost include dir: ${Boost_INCLUDE_DIR}")
