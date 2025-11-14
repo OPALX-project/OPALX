@@ -274,11 +274,11 @@ public:
     }
 
     Vector_t<double, Dim> R(size_t i) {
-        return Vector_t<double, Dim>(0.0);
+        return this->pcontainer_m->R(i);
     }
 
     Vector_t<double, Dim> P(size_t i) {
-        return Vector_t<double, Dim>(0.0);
+        return this->pcontainer_m->P(i);
     }
 
     Vector_t<double, Dim> Ef(size_t i) {
