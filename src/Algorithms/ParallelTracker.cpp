@@ -408,9 +408,9 @@ void ParallelTracker::execute() {
 
     stepSizes_m.printDirect(*gmsg);
 
-
+        double steer_value = 1.8046482322261885;
     #ifdef IPPL_ENABLE_CATALYST
-            std::shared_ptr<ippl::VisRegistryRuntime>  runtime_steer_registry = ippl::MakeVisRegistryRuntimePtr();
+            std::shared_ptr<ippl::VisRegistryRuntime>  runtime_steer_registry = ippl::MakeVisRegistryRuntimePtr("KN", steer_value);
             
             std::shared_ptr<ippl::VisRegistryRuntime> runtime_vis_registry   = ippl::MakeVisRegistryRuntimePtr( // );
             "electrons", *itsBunch_m->getParticleContainer()  );
@@ -485,7 +485,34 @@ void ParallelTracker::execute() {
             #ifdef IPPL_ENABLE_CATALYST
                 cat_vis.ExecuteRuntime(step, step);
             #endif
+            msg << "SteerValue KN:  " <<  steer_value << endl;
 
+
+            auto allElements = itsOpalBeamline_m.getElementByType(ElementType::ANY);                                
+
+            FieldList::iterator it        = allElements.begin();                                                    
+            const FieldList::iterator end = allElements.end();                                                      
+
+            for (; it != end; ++it) {                                                                               
+                std::shared_ptr<Component> element = (*it).getElement();                                         
+                if(element->getType()==ElementType::MULTIPOLE){
+                    auto el = std::dynamic_pointer_cast<Multipole>(element);
+                    double norm_comp = el->getNormalComponent(1);
+                    
+                    if(norm_comp >= 0){
+                        el->setNormalComponent(2, steer_value);
+                    }
+                    else{
+                        el->setNormalComponent(2, -steer_value);
+                    }
+                    // msg << "Element:" << el->getName()	<< " | k1 = " << el->getNormalComponent(1)  <<endl;
+
+
+                }
+
+            }
+
+             
 
 
         }
