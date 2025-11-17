@@ -20,6 +20,23 @@
 # -----------------------------------------------------------------------------
 set(OPALX_SUPPORTED_PLATFORMS "SERIAL;OPENMP;CUDA;HIP")
 
+# If IPPL_PLATFORMS is provided, force OPALX_PLATFORMS to match it
+if(DEFINED IPPL_PLATFORMS AND NOT "${IPPL_PLATFORMS}" STREQUAL "")
+  string(TOUPPER "${IPPL_PLATFORMS}" _ippl_plats)
+
+  # Optional sanity-check: warn if user also set OPALX_PLATFORMS manually
+  if(DEFINED OPALX_PLATFORMS AND NOT "${OPALX_PLATFORMS}" STREQUAL "")
+    message(WARNING
+      "OPALX_PLATFORMS was explicitly set, but IPPL_PLATFORMS is also provided. "
+      "Overriding OPALX_PLATFORMS to match IPPL_PLATFORMS='${_ippl_plats}'.")
+  endif()
+
+  set(OPALX_PLATFORMS "${_ippl_plats}" CACHE STRING
+      "Execution platforms for OPALX (matching IPPL)" FORCE)
+
+  message(STATUS "OPALX_PLATFORMS overridden to match IPPL_PLATFORMS: ${OPALX_PLATFORMS}")
+endif()
+
 # === Default to SERIAL if OPALX_PLATFORMS not set ===
 if(NOT OPALX_PLATFORMS)
   set(OPALX_PLATFORMS "SERIAL")
