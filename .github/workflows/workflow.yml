@@ -48,6 +48,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: Disable NVIDIA APT repos to avoid mirror mismatch errors
+        run: |
+          rm -f /etc/apt/sources.list.d/cuda*.list
+          rm -f /etc/apt/sources.list.d/nvidia*.list
+
       - name: Install dependencies
         run: |
           apt-get update
