@@ -31,13 +31,8 @@ jobs:
           mkdir -p build_serial
           cd build_serial
           cmake .. \
-            -DCMAKE_BUILD_TYPE=Debug \
-            -DCMAKE_CXX_STANDARD=20 \
-            -DIPPL_ENABLE_FFT=ON \
-            -DIPPL_ENABLE_SOLVERS=ON \
-            -DIPPL_ENABLE_ALPINE=OFF \
-            -DIPPL_ENABLE_TESTS=OFF \
-            -DIPPL_PLATFORMS=serial
+            -DBUILD_TYPE=Debug \
+            -DPLATFORMS=SERIAL
           
       - name: Build project
         run: |
@@ -77,14 +72,9 @@ jobs:
           mkdir -p build_cuda
           cd build_cuda
           cmake .. \
-            -DCMAKE_BUILD_TYPE=Debug \
-            -DIPPL_PLATFORMS=CUDA \
-            -DKokkos_ARCH_AMPERE80=ON \
-            -DCMAKE_CXX_STANDARD=20 \
-            -DIPPL_ENABLE_FFT=ON \
-            -DIPPL_ENABLE_SOLVERS=ON \
-            -DIPPL_ENABLE_ALPINE=OFF \
-            -DIPPL_ENABLE_TESTS=OFF
+            -DBUILD_TYPE=Debug \
+            -DPLATFORMS=CUDA \
+            -DARCH=AMPERE80
           
       - name: Build project
         run: |
