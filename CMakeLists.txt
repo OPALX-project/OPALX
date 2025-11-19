@@ -42,9 +42,6 @@ option(OPALX_USE_ALTERNATIVE_VARIANT
 option(OPALX_USE_STANDARD_FOLDERS "Put all generated binaries in bin/lib folders" OFF)
 option(OPALX_SKIP_FAILING_TESTS "Do not build/test tests that are currently marked as failing" OFF)
 option(OPALX_ENABLE_SCRIPTS "Generate job script templates for some benchmarks/tests" OFF)
-option(OPALX_USE_INSTALLED_IPPL
-       "Use system IPPL instead of building IPPL with FetchContent"
-       OFF)
 option(OPALX_USE_INSTALLED_HDF5
        "Use system HDF5 instead of building HDF5 with FetchContent"
        OFF)
