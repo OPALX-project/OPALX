@@ -125,177 +125,312 @@ endif()
 # HDF5
 # ------------------------------------------------------------------------------
 
-set(HDF5_ENABLE_PARALLEL ON)
-set(HDF5_BUILD_HL_LIB OFF CACHE BOOL “” FORCE) # Disable high-level APIs for thread safety
-set(HDF5_BUILD_EXAMPLES OFF CACHE BOOL “” FORCE) # Disable examples
-set(HDF5_BUILD_TOOLS OFF CACHE BOOL “” FORCE) # Disable tools
-set(HDF5_ENABLE_THREADSAFE OFF CACHE BOOL “” FORCE)
-set(HDF5_TEST_PARALLEL OFF)
-set(HDF5_VERSION "1.14.6")
-set(HDF5_VERSION_MAJOR "1.14")
+if(OPALX_USE_INSTALLED_HDF5)
 
-set(HDF5_VERSION "1.14.6")
-set(HDF5_ENABLE_FLOAT16 OFF CACHE BOOL "Disable half-precision floats" FORCE)
-FetchContent_Declare(
-    HDF5
-    URL https://github.com/HDFGroup/hdf5/releases/download/hdf5_${HDF5_VERSION}/hdf5-${HDF5_VERSION}.tar.gz
-    URL_HASH "SHA256=e4defbac30f50d64e1556374aa49e574417c9e72c6b1de7a4ff88c4b1bea6e9b"
-)
+    message(STATUS "⚙ Using system-installed HDF5")
 
-# Now FetchContent_MakeAvailable will see the option
-FetchContent_MakeAvailable(HDF5)
-set(HDF5_FOUND TRUE)
+    # Require parallel HDF5 with C++ components disabled (you only use C libs)
+    find_package(HDF5 REQUIRED COMPONENTS C HL)
 
-if (TARGET hdf5-shared)
-    install(TARGETS hdf5-shared EXPORT ipplTargets DESTINATION lib)
-    add_library(hdf5::hdf5 ALIAS hdf5-shared)
-elseif(TARGET hdf5-static)
-    install(TARGETS hdf5-static EXPORT ipplTargets DESTINATION lib)
-    add_library(hdf5::hdf5 ALIAS hdf5-static)
+    if(NOT HDF5_FOUND)
+        message(FATAL_ERROR "System HDF5 requested but not found.")
+    endif()
+
+    if (HDF5_VERSION VERSION_LESS "1.14.6")
+    message(FATAL_ERROR
+        "System HDF5 version ${HDF5_VERSION} is too old. "
+        "Required version is >= 1.14.6.")
+    endif()
+
+    # Normalize your variable names
+    set(HDF5_INCLUDE_DIR ${HDF5_INCLUDE_DIRS})
+    set(HDF5_LIBRARIES   ${HDF5_LIBRARIES})
+
+    message(STATUS "✔ Found system HDF5 version: ${HDF5_VERSION}")
+    message(STATUS "✔ HDF5 include dir: ${HDF5_INCLUDE_DIR}")
+
+else()
+    message(STATUS "⚙ Building HDF5 from source (FetchContent)")
+    set(HDF5_ENABLE_PARALLEL ON)
+    set(HDF5_BUILD_HL_LIB OFF CACHE BOOL “” FORCE) # Disable high-level APIs for thread safety
+    set(HDF5_BUILD_EXAMPLES OFF CACHE BOOL “” FORCE) # Disable examples
+    set(HDF5_BUILD_TOOLS OFF CACHE BOOL “” FORCE) # Disable tools
+    set(HDF5_ENABLE_THREADSAFE OFF CACHE BOOL “” FORCE)
+    set(HDF5_TEST_PARALLEL OFF)
+    set(HDF5_VERSION "1.14.6")
+    set(HDF5_VERSION_MAJOR "1.14")
+
+    set(HDF5_VERSION "1.14.6")
+    set(HDF5_ENABLE_FLOAT16 OFF CACHE BOOL "Disable half-precision floats" FORCE)
+    FetchContent_Declare(
+        HDF5
+        URL https://github.com/HDFGroup/hdf5/releases/download/hdf5_${HDF5_VERSION}/hdf5-${HDF5_VERSION}.tar.gz
+        URL_HASH "SHA256=e4defbac30f50d64e1556374aa49e574417c9e72c6b1de7a4ff88c4b1bea6e9b"
+    )
+
+    # Now FetchContent_MakeAvailable will see the option
+    FetchContent_MakeAvailable(HDF5)
+    set(HDF5_FOUND TRUE)
+
+    if (TARGET hdf5-shared)
+        install(TARGETS hdf5-shared EXPORT ipplTargets DESTINATION lib)
+        add_library(hdf5::hdf5 ALIAS hdf5-shared)
+    elseif(TARGET hdf5-static)
+        install(TARGETS hdf5-static EXPORT ipplTargets DESTINATION lib)
+        add_library(hdf5::hdf5 ALIAS hdf5-static)
+    endif()
+
+    set(HDF5_LIBRARIES hdf5::hdf5)
+    message ("HDF5_FOUND and dir are ${HDF5_FOUND} ${HDF5_BINARY_DIR} and ${HDF5_LIBRARIES} and ${HDF5_VERSION}")
 endif()
 
-# set(HDF5_INCLUDE_DIRS ${HDF5_BINARY_DIR}/src)
-set(HDF5_LIBRARIES hdf5::hdf5)
-message ("HDF5_FOUND and dir are ${HDF5_FOUND} ${HDF5_BINARY_DIR} and ${HDF5_LIBRARIES} and ${HDF5_VERSION}")
+message(STATUS "HDF5 libraries: ${HDF5_LIBRARIES}")
+message(STATUS "HDF5 include dir: ${HDF5_INCLUDE_DIR}")
 
 # ------------------------------------------------------------------------------
 # H5hut
 # ------------------------------------------------------------------------------
 
-set(H5hut_VERSION cmake)
-set(H5hut_GIT https://github.com/eth-cscs/h5hut.git)
-set(H5hut_WITH_MPI ON)
-set(fetch_string
-  GIT_TAG ${H5hut_VERSION}
-  GIT_REPOSITORY ${H5hut_GIT})
+if(OPALX_USE_INSTALLED_H5HUT)
+    message(STATUS "⚙ Using system-installed H5hut")
 
-# Invoke cmake fetch/find
-FetchContent_Declare(H5hut ${fetch_string})
-FetchContent_MakeAvailable(H5hut)
+    # Prefer config mode first
+    find_package(H5hut QUIET CONFIG)
 
-# Check that kokkos actually has the platform backends that we need
-if (H5hut_FOUND)
-  message(STATUS "H5hut ${H5hut_VERSION} found externally")
+    if(NOT H5hut_FOUND)
+        # fallback to module mode if someone uses FindH5hut.cmake
+        find_package(H5hut REQUIRED)
+    endif()
+
+    if(NOT H5hut_FOUND)
+        message(FATAL_ERROR "System H5hut requested, but not found.")
+    endif()
+
+    message(STATUS "✔ Found system H5Hut at: ${H5hut_DIR}")
+
+    # System package should define these:
+    # - target:      H5hut
+    # - variables:   H5HUT_INCLUDE_DIRS / LIBRARIES
+
+    set(H5HUT_INCLUDE_DIR ${H5HUT_INCLUDE_DIRS})
 else()
-  message(STATUS "H5hut ${H5hut_VERSION} building from source in ${H5hut_SOURCE_DIR}")
-  set(H5hut_FOUND ON)
+    message(STATUS "⚙ Building H5Hut from source (FetchContent)")
+    set(H5hut_VERSION cmake)
+    set(H5hut_GIT https://github.com/eth-cscs/h5hut.git)
+    set(H5hut_WITH_MPI ON)
+    set(fetch_string
+      GIT_TAG ${H5hut_VERSION}
+      GIT_REPOSITORY ${H5hut_GIT})
+
+    # Invoke cmake fetch/find
+    FetchContent_Declare(H5hut ${fetch_string})
+    FetchContent_MakeAvailable(H5hut)
+
+    # Check that kokkos actually has the platform backends that we need
+    if (H5hut_FOUND)
+      message(STATUS "H5hut ${H5hut_VERSION} found externally")
+    else()
+      message(STATUS "H5hut ${H5hut_VERSION} building from source in ${H5hut_SOURCE_DIR}")
+      set(H5hut_FOUND ON)
+    endif()
+
+    # The H5Hut CMake project itself creates the target "H5hut"
+    # and sets these variables:
+    #     H5HUT_INCLUDE_DIRS
+    #     H5HUT_LIBRARIES
+    set(H5HUT_INCLUDE_DIR ${H5HUT_INCLUDE_DIRS})
 endif()
+
+# Normalize exported variables used by your project
+message(STATUS "H5HUT include dir: ${H5HUT_INCLUDE_DIR}")
 
 # ------------------------------------------------------------------------------
 # Boost library
 # ------------------------------------------------------------------------------
 
-include(ExternalProject)
+if(OPALX_USE_INSTALLED_BOOST)
+    message(STATUS "⚙ Using system-installed Boost")
 
-set(BOOST_VERSION "1.84.0")
-string(REPLACE "." "_" BOOST_VERSION_UNDERSCORE "${BOOST_VERSION}")
-set(BOOST_INCLUDE_LIBRARIES filesystem system optional regex iostreams)
-set(BOOST_ENABLE_CMAKE ON)
+    find_package(Boost 1.84 REQUIRED
+        COMPONENTS filesystem system optional regex iostreams)
 
-message(STATUS "Downloading and extracting Boost library sources. This will take some time...")
+    set(Boost_LIBRARIES Boost::filesystem Boost::system
+                        Boost::optional Boost::regex Boost::iostreams)
 
-if(APPLE)
-    # macOS: use zip
-    set(BOOST_URL "https://github.com/boostorg/boost/releases/download/boost-${BOOST_VERSION}/boost-${BOOST_VERSION}.zip")
-elseif(UNIX)
-    # Linux: use tar.gz
-    set(BOOST_URL "https://github.com/boostorg/boost/releases/download/boost-${BOOST_VERSION}/boost-${BOOST_VERSION}.tar.gz")
+    # Create interface target for header-only parts if needed
+    add_library(boost_HEADERS INTERFACE)
+    target_include_directories(boost_HEADERS INTERFACE ${Boost_INCLUDE_DIR})
+
 else()
-    message(FATAL_ERROR "Unsupported OS for automatic Boost download")
+    message(STATUS "⚙ Building Boost from source (FetchContent)")
+
+    set(BOOST_VERSION "1.84.0")
+    string(REPLACE "." "_" BOOST_VERSION_UNDERSCORE "${BOOST_VERSION}")
+    set(BOOST_INCLUDE_LIBRARIES filesystem system optional regex iostreams)
+    set(BOOST_ENABLE_CMAKE ON)
+
+    message(STATUS "Downloading and extracting Boost library sources. This will take some time...")
+
+    if(APPLE)
+        # macOS: use zip
+        set(BOOST_URL "https://github.com/boostorg/boost/releases/download/boost-${BOOST_VERSION}/boost-${BOOST_VERSION}.zip")
+    elseif(UNIX)
+        # Linux: use tar.gz
+        set(BOOST_URL "https://github.com/boostorg/boost/releases/download/boost-${BOOST_VERSION}/boost-${BOOST_VERSION}.tar.gz")
+    else()
+        message(FATAL_ERROR "Unsupported OS for automatic Boost download")
+    endif()
+
+    FetchContent_Declare(
+        Boost
+        URL ${BOOST_URL}
+        USES_TERMINAL_DOWNLOAD TRUE
+        GIT_PROGRESS TRUE
+        DOWNLOAD_NO_EXTRACT FALSE
+    )
+
+    FetchContent_MakeAvailable(Boost)
+    set(Boost_LIBRARIES Boost::filesystem Boost::optional Boost::iostreams)
+
+    # Header-only Boost interface for uBLAS and other headers
+    add_library(boost_HEADERS INTERFACE)
+    target_include_directories(boost_HEADERS INTERFACE
+        ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/numeric/ublas/include
+        ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/serialization/include
+        ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/bimap/include
+        ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/multi_index/include
+        ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/variant/include
+        ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/type_index/include
+        ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/geometry/include
+        ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/assign/include
+        ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/algorithm/include
+        ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/numeric/conversion/include
+        ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/numeric/odeint/include
+        ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/units/include
+        ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/format/include
+        ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/spirit/include
+        ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/phoenix/include
+        ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/proto/include
+        ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/endian/include
+        ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/math/include
+    )
 endif()
-
-FetchContent_Declare(
-    Boost
-    URL ${BOOST_URL}
-    USES_TERMINAL_DOWNLOAD TRUE
-    GIT_PROGRESS TRUE
-    DOWNLOAD_NO_EXTRACT FALSE
-)
-
-FetchContent_MakeAvailable(Boost)
-set(Boost_LIBRARIES Boost::filesystem Boost::optional Boost::iostreams)
 message(STATUS "Boost include dir: ${Boost_INCLUDE_DIR}")
 message(STATUS "Boost libraries: ${Boost_LIBRARIES}")
-
-# Header-only Boost interface for uBLAS and other headers
-add_library(boost_HEADERS INTERFACE)
-target_include_directories(boost_HEADERS INTERFACE
-    ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/numeric/ublas/include
-    ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/serialization/include
-    ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/bimap/include
-    ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/multi_index/include
-    ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/variant/include
-    ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/type_index/include
-    ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/geometry/include
-    ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/assign/include
-    ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/algorithm/include
-    ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/numeric/conversion/include
-    ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/numeric/odeint/include
-    ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/units/include
-    ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/format/include
-    ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/spirit/include
-    ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/phoenix/include
-    ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/proto/include
-    ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/endian/include
-    ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/math/include
-)
 
 # ------------------------------------------------------------------------------
 # GSL
 # ------------------------------------------------------------------------------
 
-set(GSL_VERSION 2.7)
-set(GSL_TAR "gsl-${GSL_VERSION}.tar.gz")
-set(GSL_URL "http://ftp.gnu.org/gnu/gsl/${GSL_TAR}")
-set(GSL_INSTALL_DIR ${CMAKE_BINARY_DIR}/_deps/gsl)
-set(GSL_SRC_DIR ${CMAKE_BINARY_DIR}/_deps/gsl-src)
+set(OPALX_MIN_GSL_VERSION "2.7")
 
-include(ExternalProject)
+if(OPALX_USE_INSTALLED_GSL)
 
-ExternalProject_Add(gsl_external
-    URL ${GSL_URL}
-    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
-    PREFIX ${GSL_INSTALL_DIR}
-    CONFIGURE_COMMAND
-        <SOURCE_DIR>/configure
-            --prefix=<INSTALL_DIR>
-            --disable-shared
-            --enable-static
-            CFLAGS=-fPIC
-    BUILD_COMMAND make -j${NPROC}
-    INSTALL_COMMAND make install
-    BUILD_IN_SOURCE TRUE
-)
+    message(STATUS "⚙ Using system-installed GSL")
 
-ExternalProject_Get_Property(gsl_external INSTALL_DIR)
-set(GSL_ROOT ${INSTALL_DIR})
-set(GSL_INCLUDE_DIR ${GSL_ROOT}/include)
-set(GSL_LIBRARIES
-    ${GSL_ROOT}/lib/libgsl.a
-    ${GSL_ROOT}/lib/libgslcblas.a
-)
+    # This find module provides:
+    #   GSL_FOUND
+    #   GSL_VERSION
+    #   GSL_INCLUDE_DIRS
+    #   GSL_LIBRARIES
+    #
+    # It exists on most Linux distros and macOS Homebrew.
+    find_package(GSL REQUIRED)
+
+    if (GSL_VERSION VERSION_LESS OPALX_MIN_GSL_VERSION)
+        message(FATAL_ERROR
+            "Found GSL version ${GSL_VERSION}, but >= ${OPALX_MIN_GSL_VERSION} is required.")
+    endif()
+
+    set(GSL_INCLUDE_DIR ${GSL_INCLUDE_DIRS})
+
+    message(STATUS "✔ Found GSL ${GSL_VERSION} (OK)")
+    message(STATUS "✔ GSL include dir: ${GSL_INCLUDE_DIR}")
+
+else()
+    message(STATUS "⚙ Building GSL from source (ExternalProject)")
+
+    set(GSL_VERSION ${OPALX_MIN_GSL_VERSION})
+    set(GSL_TAR "gsl-${GSL_VERSION}.tar.gz")
+    set(GSL_URL "http://ftp.gnu.org/gnu/gsl/${GSL_TAR}")
+    set(GSL_INSTALL_DIR ${CMAKE_BINARY_DIR}/_deps/gsl)
+    set(GSL_SRC_DIR ${CMAKE_BINARY_DIR}/_deps/gsl-src)
+
+    include(ExternalProject)
+
+    ExternalProject_Add(gsl_external
+        URL ${GSL_URL}
+        DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+        PREFIX ${GSL_INSTALL_DIR}
+        CONFIGURE_COMMAND
+            <SOURCE_DIR>/configure
+                --prefix=<INSTALL_DIR>
+                --disable-shared
+                --enable-static
+                CFLAGS=-fPIC
+        BUILD_COMMAND make -j${NPROC}
+        INSTALL_COMMAND make install
+        BUILD_IN_SOURCE TRUE
+    )
+
+    ExternalProject_Get_Property(gsl_external INSTALL_DIR)
+    set(GSL_ROOT ${INSTALL_DIR})
+    set(GSL_INCLUDE_DIR ${GSL_ROOT}/include)
+    set(GSL_LIBRARIES
+        ${GSL_ROOT}/lib/libgsl.a
+        ${GSL_ROOT}/lib/libgslcblas.a
+    )
+endif()
 message(STATUS "GSL include dir: ${GSL_INCLUDE_DIR}")
 message(STATUS "GSL libraries: ${GSL_LIBRARIES}")
 
 # ------------------------------------------------------------------------------
 # GoogleTest
 # ------------------------------------------------------------------------------
+set(OPALX_MIN_GTEST_VERSION "1.16.0")
+
 if(OPALX_ENABLE_UNIT_TESTS)
-  find_package(GTest)
-  if(NOT GTest_FOUND)
-    FetchContent_Declare(GTest GIT_REPOSITORY "https://github.com/google/googletest"
-                         GIT_TAG "v1.16.0" GIT_SHALLOW ON)
+    if(OPALX_USE_INSTALLED_GTEST)
+        message(STATUS "⚙ Using system-installed GoogleTest")
 
-    # For Windows: force shared crt, ignored on linux
-    set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+        find_package(GTest)
 
-    # Turn off GTest install/tests in the subproject
-    set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
-    set(BUILD_GMOCK OFF CACHE BOOL "" FORCE)
-    set(BUILD_GTEST ON CACHE BOOL "" FORCE)
+        if(NOT GTest_FOUND)
+          message(FATAL_ERROR
+            "OPALX_USE_INSTALLED_GTEST=ON but system GTest not found.")
+        endif()
 
-    FetchContent_MakeAvailable(GTest)
-    message(STATUS "✅ GoogleTest built from source (${GTest_VERSION})")
-  endif()
+        # Extract version if available
+        if(DEFINED GTest_VERSION)
+          if(GTest_VERSION VERSION_LESS OPALX_MIN_GTEST_VERSION)
+            message(FATAL_ERROR
+              "System GTest version ${GTest_VERSION} is too old. "
+              "Required >= ${OPALX_MIN_GTEST_VERSION}.")
+          endif()
+        else()
+          message(WARNING
+            "System GTest found but version not reported; continuing without "
+            "version enforcement.")
+        endif()
+
+        message(STATUS "✔ Found system GTest ${GTest_VERSION}")
+
+      else()
+          message(STATUS "⚙ Building GoogleTest from source (FetchContent)")
+
+          FetchContent_Declare(GTest GIT_REPOSITORY "https://github.com/google/googletest"
+                              GIT_TAG "v1.16.0" GIT_SHALLOW ON)
+
+          # For Windows: force shared crt, ignored on linux
+          set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+
+          # Turn off GTest install/tests in the subproject
+          set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
+          set(BUILD_GMOCK OFF CACHE BOOL "" FORCE)
+          set(BUILD_GTEST ON CACHE BOOL "" FORCE)
+
+          FetchContent_MakeAvailable(GTest)
+          message(STATUS "✅ GoogleTest built from source (${GTest_VERSION})")
+    endif()
 endif()
 # ------------------------------------------------------------------------------
