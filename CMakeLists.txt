@@ -42,6 +42,24 @@ option(OPALX_USE_ALTERNATIVE_VARIANT
 option(OPALX_USE_STANDARD_FOLDERS "Put all generated binaries in bin/lib folders" OFF)
 option(OPALX_SKIP_FAILING_TESTS "Do not build/test tests that are currently marked as failing" OFF)
 option(OPALX_ENABLE_SCRIPTS "Generate job script templates for some benchmarks/tests" OFF)
+option(OPALX_USE_INSTALLED_IPPL
+       "Use system IPPL instead of building IPPL with FetchContent"
+       OFF)
+option(OPALX_USE_INSTALLED_HDF5
+       "Use system HDF5 instead of building HDF5 with FetchContent"
+       OFF)
+option(OPALX_USE_INSTALLED_H5HUT
+       "Use system H5hut instead of building H5hut with FetchContent"
+       OFF)
+option(OPALX_USE_INSTALLED_BOOST
+       "Use system Boost instead of building Boost with FetchContent"
+       OFF)
+option(OPALX_USE_INSTALLED_GSL
+       "Use system GSL instead of building GSL with FetchContent"
+       OFF)
+option(OPALX_USE_INSTALLED_GTEST
+       "Use system GTest instead of building GTest with FetchContent"
+       OFF)
 
 # "Build OPALX as a shared library (ON) or static library (OFF)" OFF) 
 if(OPALX_DYL)
