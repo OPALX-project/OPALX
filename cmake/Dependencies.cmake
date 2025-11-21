@@ -325,7 +325,6 @@ message(STATUS "Boost libraries: ${Boost_LIBRARIES}")
 set(OPALX_MIN_GSL_VERSION "2.7")
 
 if(OPALX_USE_INSTALLED_GSL)
-
     message(STATUS "⚙ Using system-installed GSL")
 
     # This find module provides:
