@@ -9,7 +9,7 @@ on:
           
 jobs:     
   # ===== CPU SERIAL BUILD =====
-  build-cpu-serial:  
+  build-cpu-serial-debug:  
     runs-on: ubuntu-latest
           
     steps:
@@ -38,8 +38,9 @@ jobs:
         run: |
           cd build_serial
           make -j$(nproc)
-  
-  build-cpu-openmp:
+
+  # ===== CPU OPENMP BUILD =====
+  build-cpu-openmp-debug:
     runs-on: ubuntu-latest
 
     steps:
@@ -73,49 +74,49 @@ jobs:
           make -j$(nproc)
 
   # ===== GPU CUDA BUILD =====
-  # build-cuda:
-  #   runs-on: ubuntu-latest
-  #   container:
-  #     image: nvidia/cuda:12.8.1-devel-ubuntu22.04  # CUDA-enabled container for compilation
-  #   steps:
-  #     - name: Checkout code
-  #       uses: actions/checkout@v3
+  build-cuda-debug:
+    runs-on: ubuntu-latest
+    container:
+      image: nvidia/cuda:12.8.1-devel-ubuntu22.04  # CUDA-enabled container for compilation
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-  #     - name: Disable NVIDIA APT repos to avoid mirror mismatch errors
-  #       run: |
-  #         rm -f /etc/apt/sources.list.d/cuda*.list
-  #         rm -f /etc/apt/sources.list.d/nvidia*.list
+      - name: Disable NVIDIA APT repos to avoid mirror mismatch errors
+        run: |
+          rm -f /etc/apt/sources.list.d/cuda*.list
+          rm -f /etc/apt/sources.list.d/nvidia*.list
 
-  #     - name: Install dependencies
-  #       run: |
-  #         apt-get update
-  #         apt-get install -y build-essential git wget p7zip-full unzip locales libopenmpi-dev openmpi-bin
-  #         # Set UTF-8 locale to avoid zip extraction issues
-  #         locale-gen en_US.UTF-8
-  #         update-locale LANG=en_US.UTF-8
-  #         export LANG=en_US.UTF-8
-  #         export LC_ALL=en_US.UTF-8
-  #         # Install CMake 4.1.1
-  #         wget https://cmake.org/files/v4.1/cmake-4.1.1-linux-x86_64.sh
-  #         bash cmake-4.1.1-linux-x86_64.sh --skip-license --prefix=/usr/local
-  #         cmake --version
+      - name: Install dependencies
+        run: |
+          apt-get update
+          apt-get install -y build-essential git wget p7zip-full unzip locales libopenmpi-dev openmpi-bin
+          # Set UTF-8 locale to avoid zip extraction issues
+          locale-gen en_US.UTF-8
+          update-locale LANG=en_US.UTF-8
+          export LANG=en_US.UTF-8
+          export LC_ALL=en_US.UTF-8
+          # Install CMake 4.1.1
+          wget https://cmake.org/files/v4.1/cmake-4.1.1-linux-x86_64.sh
+          bash cmake-4.1.1-linux-x86_64.sh --skip-license --prefix=/usr/local
+          cmake --version
       
-  #     - name: Run gen_OPALrevision
-  #       run: |
-  #         chmod +x ./gen_OPALrevision
-  #         ./gen_OPALrevision
+      - name: Run gen_OPALrevision
+        run: |
+          chmod +x ./gen_OPALrevision
+          ./gen_OPALrevision
 
-  #     - name: Configure CMake project (CUDA)
-  #       run: |
-  #         mkdir -p build_cuda
-  #         cd build_cuda
-  #         cmake .. \
-  #           -DBUILD_TYPE=Debug \
-  #           -DPLATFORMS=CUDA \
-  #           -DARCH=AMPERE80
+      - name: Configure CMake project (CUDA)
+        run: |
+          mkdir -p build_cuda
+          cd build_cuda
+          cmake .. \
+            -DBUILD_TYPE=Debug \
+            -DPLATFORMS=CUDA \
+            -DARCH=AMPERE80
           
-  #     - name: Build project
-  #       run: |
-  #         cd build_cuda
-  #         make -j$(nproc)
+      - name: Build project
+        run: |
+          cd build_cuda
+          make -j$(nproc)
     
