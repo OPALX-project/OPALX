@@ -199,7 +199,7 @@ if(OPALX_USE_INSTALLED_H5HUT)
 
     if(NOT H5hut_FOUND)
         # fallback to module mode if someone uses FindH5hut.cmake
-        find_package(H5hut REQUIRED)
+        find_package(H5hut REQUIRED MODULE)
     endif()
 
     if(NOT H5hut_FOUND)
