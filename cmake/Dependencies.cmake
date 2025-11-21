@@ -356,6 +356,36 @@ else()
     set(GSL_INSTALL_DIR ${CMAKE_BINARY_DIR}/_deps/gsl)
     set(GSL_SRC_DIR ${CMAKE_BINARY_DIR}/_deps/gsl-src)
 
+    set(GSL_MIRRORS
+        "https://mirror.ibcp.fr/pub/gnu/gsl/${GSL_TAR}"
+        "https://mirrors.ocf.berkeley.edu/gnu/gsl/${GSL_TAR}"
+        "https://ftp.gnu.org/gnu/gsl/${GSL_TAR}"   # last resort, often blocked on CI
+    )
+
+    unset(GSL_URL)
+    foreach(url ${GSL_MIRRORS})
+        message(STATUS "  → Testing GSL mirror: ${url}")
+        file(DOWNLOAD
+            "${url}"
+            "${CMAKE_BINARY_DIR}/_gsl_test.tar.gz"
+            TIMEOUT 5
+            STATUS status
+            SHOW_PROGRESS
+        )
+        list(GET status 0 code)
+        if(code EQUAL 0)
+            set(GSL_URL "${url}")
+            message(STATUS "✔ Using GSL source: ${GSL_URL}")
+            break()
+        else()
+            message(STATUS "  ✖ Mirror failed (code ${code})")
+        endif()
+    endforeach()
+
+    if(NOT GSL_URL)
+        message(FATAL_ERROR "No working GSL download mirror found!")
+    endif()
+
     include(ExternalProject)
 
     ExternalProject_Add(gsl_external
