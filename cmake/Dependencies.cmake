@@ -250,10 +250,18 @@ set(GSL_INSTALL_DIR ${CMAKE_BINARY_DIR}/_deps/gsl)
 set(GSL_SRC_DIR ${CMAKE_BINARY_DIR}/_deps/gsl-src)
 
 set(GSL_MIRRORS
-    "https://mirror.ibcp.fr/pub/gnu/gsl/${GSL_TAR}"
-    "https://mirrors.ocf.berkeley.edu/gnu/gsl/${GSL_TAR}"
-    "https://ftp.gnu.org/gnu/gsl/${GSL_TAR}"   # last resort, often blocked on CI
+    "https://ftp.gnu.org/gnu/gsl/${GSL_TAR}" # Official GNU
+    "https://ftp.fau.de/gnu/gsl/${GSL_TAR}" # Germany
+    "https://ftp.halifax.rwth-aachen.de/gnu/gsl/${GSL_TAR}" # Germany
+    "https://sunsite.icm.edu.pl/pub/gnu/gsl/${GSL_TAR}" # Poland
+    "https://ftp.sunet.se/mirror/gnu.org/gnu/gsl/${GSL_TAR}" # Sweden
+    "https://mirror.accum.se/mirror/gnu.org/gnu/gsl/${GSL_TAR}" # Sweden
+    "https://ftp.funet.fi/pub/gnu/gnu/gsl/${GSL_TAR}" # Finland
+    "https://www.mirrorservice.org/sites/ftp.gnu.org/gnu/gsl/${GSL_TAR}" # UK
+    "https://mirror.ibcp.fr/pub/gnu/gsl/${GSL_TAR}" # France
+    "https://mirrors.ocf.berkeley.edu/gnu/gsl/${GSL_TAR}" # Berkeley
 )
+## See the list on https://www.gnu.org/server/mirror.en.html
 
 unset(GSL_URL)
 foreach(url ${GSL_MIRRORS})
