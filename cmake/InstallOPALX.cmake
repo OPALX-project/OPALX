@@ -19,7 +19,16 @@ install(
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/OPALXVersions.h
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/opalx)
 
+# Install the OPALX library
+install(
+  TARGETS opalx
+  EXPORT OPALXTargets
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}      # shared libs
+  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}      # static libs
+  INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}  # include/opalx
+)
+
 # -------------------------------------------------------
 # Install the actual executable
-install(TARGETS opalx
+install(TARGETS opalx_cli
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
