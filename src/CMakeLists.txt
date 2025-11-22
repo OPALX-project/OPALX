@@ -128,4 +128,7 @@ target_include_directories(opalx PRIVATE
   ${BOOST_INCLUDE_DIR}
 )
 
+# this alias should be created after all target properties have been set
+add_library(OPALX::opalx ALIAS opalx)
+
 include(InstallOPALX)
