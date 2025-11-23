@@ -105,13 +105,17 @@ add_subdirectory (MemoryManagement)
 
 include(${PROJECT_SOURCE_DIR}/cmake/PlatformOptions.cmake)
 
-# make sure gsl is built before opalx
-add_dependencies(opalx gsl_external)
+add_library(GSL::gsl STATIC IMPORTED GLOBAL)
+set_target_properties(GSL::gsl PROPERTIES
+    IMPORTED_LOCATION ${GSL_ROOT}/lib/libgsl.a
+    INTERFACE_INCLUDE_DIRECTORIES ${GSL_ROOT}/include
+)
+add_dependencies(GSL::gsl gsl_external)
 
 target_link_libraries(opalx PUBLIC
     MPI::MPI_CXX
     IPPL::ippl
-    ${GSL_LIBRARIES}
+    GSL::gsl
     H5hut
     ${HDF5_LIBRARIES}
     ${Boost_LIBRARIES}    # compiled Boost libs like filesystem, iostreams
@@ -127,7 +131,7 @@ target_include_directories(opalx PRIVATE
 
 # CLI executable
 add_executable(opalx_cli Main.cpp)
-target_link_libraries(opalx_cli PRIVATE opalx)
+target_link_libraries(opalx_cli PUBLIC opalx)
 
 # this alias should be created after all target properties have been set
 add_library(OPALX::opalx ALIAS opalx)

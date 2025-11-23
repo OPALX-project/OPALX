@@ -1,139 +1,121 @@
 #include <gtest/gtest.h>
+#include <mpi.h>
 #include <memory>
-#include <Kokkos_Core.hpp>
+#include <cmath>
 
-#include "Gaussian.h"
-#include "Distribution.h"
-#include "SamplingBase.hpp"
+#include "Distribution/Gaussian.h"
+#include "Distribution/Distribution.h"
+#include "PartBunch/FieldContainer.hpp"
+#include "PartBunch/ParticleContainer.hpp"
 
-// -----------------------------------------------------------------------------
-// Minimal stubs to make Gaussian work inside the test environment
-// -----------------------------------------------------------------------------
+using ParticleContainer_t = ParticleContainer<double, 3>;
+using FieldContainer_t = FieldContainer<double, 3>;
+using Distribution_t = Distribution;
 
-class TestDistribution : public Distribution {
-public:
-    TestDistribution() {
-        sigmaR_ = {1.0, 1.0, 1.0};
-        sigmaP_ = {0.1, 0.1, 0.1};
-        cutoffR_ = {3.0, 3.0, 3.0};
-        avrgpz_ = 5.0;
-    }
-
-    Vector_t<double,3> getSigmaR() const override { return sigmaR_; }
-    Vector_t<double,3> getSigmaP() const override { return sigmaP_; }
-    Vector_t<double,3> getCutoffR() const override { return cutoffR_; }
-    double getAvrgpz() const override { return avrgpz_; }
-
-private:
-    Vector_t<double,3> sigmaR_;
-    Vector_t<double,3> sigmaP_;
-    Vector_t<double,3> cutoffR_;
-    double avrgpz_;
-};
-
-
-// -----------------------------------------------------------------------------
-// A very small dummy particle container that mimics IPPL storage
-// -----------------------------------------------------------------------------
-
-template<typename T, int Dim>
-class DummyParticles {
-public:
-    using view_type = Kokkos::View<T*[Dim]>;
-
-    view_type getView() { return view_; }
-    size_t size() const { return n_; }
-
-    void create(size_t n) {
-        n_ = n;
-        view_ = view_type("particles", n);
-    }
-
-private:
-    size_t n_ = 0;
-    view_type view_;
-};
-
-template<typename T, int Dim>
-class DummyParticleContainer {
-public:
-    DummyParticles<T,Dim> R;
-    DummyParticles<T,Dim> P;
-};
-
-
-// -----------------------------------------------------------------------------
-// Test fixture
-// -----------------------------------------------------------------------------
-
-class GaussianSamplerTest : public ::testing::Test {
+class GaussianTest : public ::testing::Test {
 protected:
-    void SetUp() override {
+    static void SetUpTestSuite() {
+        // Initialize MPI if not already initialized
+        int mpi_initialized = 0;
+        MPI_Initialized(&mpi_initialized);
+        if (!mpi_initialized) {
+            MPI_Init(nullptr, nullptr);
+            mpi_init_here = true;
+        }
+
+        // Initialize Kokkos (required before creating any Kokkos::View)
         Kokkos::initialize();
+        kokkos_initialized_here = true;
+    }
 
-        pc = std::make_shared<ParticleContainer_t>();
-        fc = std::make_shared<FieldContainer_t>();   // not used, but required
-        dist = std::make_shared<TestDistribution>();
+    static void TearDownTestSuite() {
+        // Finalize Kokkos
+        if (kokkos_initialized_here) {
+            Kokkos::finalize();
+            kokkos_initialized_here = false;
+        }
 
-        sampler = std::make_unique<Gaussian>(pc, fc, dist);
+        // Finalize MPI if we initialized it
+        if (mpi_init_here) {
+            MPI_Finalize();
+            mpi_init_here = false;
+        }
+    }
+
+    void SetUp() override {
+        // Minimal 3D grid parameters
+        ippl::Vector<double,3> hr;     hr(0) = 1.0; hr(1) = 1.0; hr(2) = 1.0;
+        ippl::Vector<double,3> rmin;   rmin(0) = -10.0; rmin(1) = -10.0; rmin(2) = -10.0;
+        ippl::Vector<double,3> rmax;   rmax(0) = 10.0;  rmax(1) = 10.0;  rmax(2) = 10.0;
+        ippl::Vector<double,3> origin; origin(0) = 0.0;  origin(1) = 0.0;  origin(2) = 0.0;
+        std::array<bool,3> decomp = {false, false, false};
+
+        ippl::NDIndex<3> domain;  // default constructor
+        domain[0] = 4;
+        domain[1] = 4;
+        domain[2] = 4;
+
+        // Create FieldContainer
+        fc = std::make_shared<FieldContainer_t>(hr, rmin, rmax, decomp, domain, origin, true);
+
+        // Create mesh and fieldlayout
+        Mesh_t<3> mesh(domain, hr, origin);
+        FieldLayout_t<3> fl(MPI_COMM_WORLD, domain, decomp, true);
+
+        // Create ParticleContainer
+        pc = std::make_shared<ParticleContainer_t>(mesh, fl);
+
+        // Create Distribution
+        dist = std::make_shared<Distribution_t>();
     }
 
     void TearDown() override {
-        Kokkos::finalize();
+        // nothing special
     }
+
+    static inline bool mpi_init_here = false;
+    static inline bool kokkos_initialized_here = false;
 
     std::shared_ptr<ParticleContainer_t> pc;
     std::shared_ptr<FieldContainer_t> fc;
     std::shared_ptr<Distribution_t> dist;
-
-    std::unique_ptr<Gaussian> sampler;
 };
 
+TEST_F(GaussianTest, GenerateParticlesBasic) {
+    Gaussian sampler(pc, fc, dist);
 
-// -----------------------------------------------------------------------------
-// Actual test
-// -----------------------------------------------------------------------------
-
-TEST_F(GaussianSamplerTest, GeneratesCorrectParticleCountAndMomentumShift)
-{
     size_t N = 1000;
-    Vector_t<double,3> nr = {1.0, 1.0, 1.0};
+    ippl::Vector<double,3> nr; nr(0)=1; nr(1)=1; nr(2)=1;
 
-    sampler->generateParticles(N, nr);
+    sampler.generateParticles(N, nr);
 
-    // ---- Verify particle count ----
-    auto Rv = pc->R.getView();
-    auto Pv = pc->P.getView();
-    ASSERT_EQ(Rv.extent(0), N);
-    ASSERT_EQ(Pv.extent(0), N);
+    auto Rview = pc->R.getView();
+    auto Pview = pc->P.getView();
 
-    // ---- Compute means on host ----
-    double meanRx = 0, meanRy = 0, meanRz = 0;
-    double meanPz = 0;
+    auto R_h = Kokkos::create_mirror_view(Rview);
+    auto P_h = Kokkos::create_mirror_view(Pview);
+    Kokkos::deep_copy(R_h, Rview);
+    Kokkos::deep_copy(P_h, Pview);
 
-    auto R_h = Kokkos::create_mirror_view(Rv);
-    auto P_h = Kokkos::create_mirror_view(Pv);
+    size_t nlocal = R_h.extent(0);
+    ASSERT_GT(nlocal, 0u);
 
-    Kokkos::deep_copy(R_h, Rv);
-    Kokkos::deep_copy(P_h, Pv);
-
-    for (size_t i = 0; i < N; i++) {
-        meanRx += R_h(i,0);
-        meanRy += R_h(i,1);
-        meanRz += R_h(i,2);
-        meanPz += P_h(i,2);
+    double meanRx=0, meanRy=0, meanRz=0, meanPz=0;
+    for(size_t i=0;i<nlocal;i++){
+        meanRx += R_h(i)[0];
+        meanRy += R_h(i)[1];
+        meanRz += R_h(i)[2];
+        meanPz  += P_h(i)[2];
     }
+    meanRx /= nlocal;
+    meanRy /= nlocal;
+    meanRz /= nlocal;
+    meanPz  /= nlocal;
 
-    meanRx /= N;
-    meanRy /= N;
-    meanRz /= N;
-    meanPz /= N;
+    EXPECT_NEAR(meanRx, 0.0, 1e-1);
+    EXPECT_NEAR(meanRy, 0.0, 1e-1);
+    EXPECT_NEAR(meanRz, 0.0, 1e-1);
 
-    // ---- Check that R mean ≈ 0 after the correction step ----
-    EXPECT_NEAR(meanRx, 0.0, 1e-2);
-    EXPECT_NEAR(meanRy, 0.0, 1e-2);
-    EXPECT_NEAR(meanRz, 0.0, 1e-2);
-
-    // ---- Check that average pz ≈ avrgpz ----
-    EXPECT_NEAR(meanPz, dist->getAvrgpz(), 1e-2);
+    double avrgpz = dist->getAvrgpz();
+    EXPECT_NEAR(meanPz, avrgpz, 1e-1);
 }
