@@ -48,13 +48,13 @@ function(add_opalx_test TEST_NAME)
 
   # Link libraries (opalx exports includes/flags/deps; pick your GTest flavor)
   if(TEST_USE_GTEST_MAIN)
-    target_link_libraries(${TEST_NAME} PRIVATE OPALX::opalx GTest::gtest_main)
+    target_link_libraries(${TEST_NAME} PRIVATE opalx GTest::gtest_main)
   else()
-    target_link_libraries(${TEST_NAME} PRIVATE OPALX::opalx GTest::gtest)
+    target_link_libraries(${TEST_NAME} PRIVATE opalx GTest::gtest)
   endif()
 
   if(TARGET OPALX::test_support)
-    target_link_libraries(${TEST_NAME} PRIVATE OPALX::test_support)
+    target_link_libraries(${TEST_NAME} PRIVATE test_support)
   endif()
 
   target_include_directories(${TEST_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
