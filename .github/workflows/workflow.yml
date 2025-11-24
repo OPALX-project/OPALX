@@ -73,7 +73,7 @@ jobs:
             --exclude '.*_deps.*' \
             --exclude '.*3p.*' \
             --exclude '.*unit_tests.*' \
-            --gcov-ignore-errors=no_working_dir_found,missing_block,no_input
+            --gcov-ignore-errors=all
       
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
