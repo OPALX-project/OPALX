@@ -28,7 +28,10 @@ install(
   INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}  # include/opalx
 )
 
+# executable: keep target name "opalx_exe", but install as "opalx"
+set_target_properties(opalx_exe PROPERTIES OUTPUT_NAME "opalx")
+
 # -------------------------------------------------------
 # Install the actual executable
-install(TARGETS opalx_cli
+install(TARGETS opalx_exe
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
