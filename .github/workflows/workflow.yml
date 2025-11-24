@@ -56,13 +56,13 @@ jobs:
   
       - name: Generate coverage report
         run: |
-          sudo pip install gcovr
+          python3 -m pip install --user gcovr
           gcovr \
             --root "${{ github.workspace }}" \
             --object-directory build_serial \
             --filter "${{ github.workspace }}/src" \
-            --xml-pretty coverage.xml \
-            --html-details coverage.html \
+            --xml-pretty "${{ github.workspace }}/build_serial/coverage.xml" \
+            --html-details "${{ github.workspace }}/build_serial/coverage.html" \
             --exclude '.*_deps.*' \
             --exclude '.*3p.*' \
             --exclude '.*unit_tests.*' \
@@ -72,7 +72,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
-          path: coverage.html
+          path: build_serial/coverage.html
           
   # # ===== GPU CUDA BUILD =====
   # build-cuda:
