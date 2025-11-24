@@ -16,19 +16,29 @@ Gaussian::Gaussian(std::shared_ptr<ParticleContainer_t> &pc,
                    std::shared_ptr<Distribution_t> &opalDist)
     : SamplingBase(pc, fc, opalDist) {
     samperTimer_m = IpplTimings::getTimer("SamplingTimer");
+    initRandomPool();
+    setSigmaP(opalDist->getSigmaP());
+    setSigmaR(opalDist->getSigmaR());
+    setAvrgpz(opalDist->getAvrgpz());
+    setCutoffR(opalDist->getCutoffR());
 }
 
-/**
- * @brief Generates particles following a Gaussian distribution.
- *
- * @param numberOfParticles The total number of particles to generate.
- * @param nr The number of grid points in each dimension (not used here).
- */
-void Gaussian::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> nr) {
+Gaussian::Gaussian(std::shared_ptr<ParticleContainer_t> pc,
+                   const Vector_t<double, 3>& sigmaR,
+                   const Vector_t<double, 3>& sigmaP,
+                   double avrgpz, const Vector_t<double, 3>& cutoffR)
+    : SamplingBase(pc) {
+    setSigmaR(sigmaR);
+    setSigmaP(sigmaP);
+    setAvrgpz(avrgpz);
+    setCutoffR(cutoffR);
+
+    samperTimer_m = IpplTimings::getTimer("SamplingTimer");
+    initRandomPool();
+}
+
+void Gaussian::initRandomPool() {
     extern Inform* gmsg;
-
-    IpplTimings::startTimer(samperTimer_m);
-
     size_t randInit;
 
     if (Options::seed == -1) {
@@ -39,17 +49,32 @@ void Gaussian::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> 
     }
 
     GeneratorPool rand_pool64(randInit);
+    randPool_m = rand_pool64;
+    return;
+}
+
+/**
+ * @brief Generates particles following a Gaussian distribution.
+ *
+ * @param numberOfParticles The total number of particles to generate.
+ * @param nr The number of grid points in each dimension (not used here).
+ */
+void Gaussian::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> nr) {
+    extern Inform* gmsg;
+    auto rand_pool64 = randPool_m;
+
+    IpplTimings::startTimer(samperTimer_m);
 
     double mu[3], sd[3];
 
-    Vector_t<double, 3> rmin = -opalDist_m->getCutoffR();
-    Vector_t<double, 3> rmax = opalDist_m->getCutoffR();
+    Vector_t<double, 3> rmin = -cutoffR_m;
+    Vector_t<double, 3> rmax = cutoffR_m;
 
     for (int i = 0; i < 3; i++) {
         mu[i] = 0.0;
-        sd[i] = opalDist_m->getSigmaR()[i];
-        rmin(i) = (rmin(i) + mu[i]) * opalDist_m->getSigmaR()[i];
-        rmax(i) = (rmax(i) + mu[i]) * opalDist_m->getSigmaR()[i];
+        sd[i] = sigmaR_m[i];
+        rmin(i) = (rmin(i) + mu[i]) * sigmaR_m[i];
+        rmax(i) = (rmax(i) + mu[i]) * sigmaR_m[i];
     }
 
     view_type &Rview = pc_m->R.getView();
@@ -112,7 +137,7 @@ void Gaussian::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> 
 
     for (int i = 0; i < 3; i++) {
         mu[i] = 0.0;
-        sd[i] = opalDist_m->getSigmaP()[i];
+        sd[i] = sigmaP_m[i];
     }
 
     view_type &Pview = pc_m->P.getView();
@@ -122,7 +147,7 @@ void Gaussian::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> 
     );
     Kokkos::fence();
 
-    double avrgpz = opalDist_m->getAvrgpz();
+    double avrgpz = avrgpz_m;
     Kokkos::parallel_for(
         nlocal,
         KOKKOS_LAMBDA(const int k) {
