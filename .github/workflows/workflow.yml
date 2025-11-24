@@ -53,12 +53,19 @@ jobs:
         run: |
           cd build_serial
           ctest --output-on-failure -j $(nproc)
-
-      - name: Generate coverage report (gcovr)
+  
+      - name: Generate coverage report
         run: |
-          cd build_serial
-          gcovr -r .. --xml-pretty --exclude '.*External.*' -o coverage.xml
-          gcovr -r .. --html-details coverage.html
+          sudo pip install gcovr
+          gcovr \
+            --root . \
+            --object-directory build_serial \
+            --filter src \
+            --xml-pretty coverage.xml \
+            --html-details coverage.html \
+            --exclude '.*_deps.*' \
+            --exclude '.*3p.*' \
+            --exclude '.*unit_tests.*'
       
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
