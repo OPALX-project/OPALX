@@ -105,13 +105,6 @@ add_subdirectory (MemoryManagement)
 
 include(${PROJECT_SOURCE_DIR}/cmake/PlatformOptions.cmake)
 
-add_library(GSL::gsl STATIC IMPORTED GLOBAL)
-set_target_properties(GSL::gsl PROPERTIES
-    IMPORTED_LOCATION ${GSL_ROOT}/lib/libgsl.a
-    INTERFACE_INCLUDE_DIRECTORIES ${GSL_ROOT}/include
-)
-add_dependencies(GSL::gsl gsl_external)
-
 target_link_libraries(opalx PUBLIC
     MPI::MPI_CXX
     IPPL::ippl
