@@ -130,8 +130,8 @@ target_include_directories(opalx PRIVATE
 )
 
 # CLI executable
-add_executable(opalx_cli Main.cpp)
-target_link_libraries(opalx_cli PUBLIC opalx)
+add_executable(opalx_exe Main.cpp)
+target_link_libraries(opalx_exe PUBLIC opalx)
 
 # this alias should be created after all target properties have been set
 add_library(OPALX::opalx ALIAS opalx)
