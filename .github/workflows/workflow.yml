@@ -57,12 +57,13 @@ jobs:
       - name: Generate coverage report
         run: |
           python3 -m pip install --user gcovr
+          mkdir -p build_serial
           gcovr \
-            --root "${{ github.workspace }}" \
+            --root . \
             --object-directory build_serial \
-            --filter "${{ github.workspace }}/src" \
-            --xml-pretty "${{ github.workspace }}/build_serial/coverage.xml" \
-            --html-details "${{ github.workspace }}/build_serial/coverage.html" \
+            --filter 'src/' \
+            --xml-pretty build_serial/coverage.xml \
+            --html-details build_serial/coverage.html \
             --exclude '.*_deps.*' \
             --exclude '.*3p.*' \
             --exclude '.*unit_tests.*' \
