@@ -54,22 +54,19 @@ jobs:
           cd build_serial
           ctest --output-on-failure -j $(nproc)
   
-      - name: Debug coverage files
+      - name: List .gcda files
         run: |
           find build_serial -name "*.gcda"
-          find build_serial/unit_tests -name "*.gcda"
-          find . -name "*.gcda"
 
       - name: Generate coverage report
         run: |
-          python3 -m pip install --user gcovr
           mkdir -p build_serial
           gcovr \
-            --root . \
+            --root "${{ github.workspace }}" \
             --object-directory build_serial \
-            --filter 'src/' \
-            --xml-pretty build_serial/coverage.xml \
-            --html-details build_serial/coverage.html \
+            --filter "${{ github.workspace }}/src" \
+            --xml-pretty "${{ github.workspace }}/build_serial/coverage.xml" \
+            --html-details "${{ github.workspace }}/build_serial/coverage.html" \
             --exclude '.*_deps.*' \
             --exclude '.*3p.*' \
             --exclude '.*unit_tests.*' \
