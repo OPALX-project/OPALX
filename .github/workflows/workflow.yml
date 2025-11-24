@@ -58,11 +58,11 @@ jobs:
         run: |
           sudo pip install gcovr
           gcovr \
-            --root . \
+            --root "${{ github.workspace }}" \
             --object-directory build_serial \
-            --filter '.*/src/.*' \
-            --xml-pretty build_serial/coverage.xml \
-            --html-details build_serial/coverage.html \
+            --filter "${{ github.workspace }}/src" \
+            --xml-pretty coverage.xml \
+            --html-details coverage.html \
             --exclude '.*_deps.*' \
             --exclude '.*3p.*' \
             --exclude '.*unit_tests.*' \
@@ -72,7 +72,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
-          path: build_serial/coverage.html
+          path: coverage.html
           
   # # ===== GPU CUDA BUILD =====
   # build-cuda:
