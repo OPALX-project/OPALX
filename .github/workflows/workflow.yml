@@ -58,9 +58,12 @@ jobs:
         run: |
           find build_serial -name "*.gcda"
 
+      - name: List .gcno files
+        run: |
+          find build_serial -name "*.gcno"
+
       - name: Generate coverage report
         run: |
-          mkdir -p build_serial
           gcovr \
             --root "${{ github.workspace }}" \
             --object-directory build_serial \
@@ -70,7 +73,7 @@ jobs:
             --exclude '.*_deps.*' \
             --exclude '.*3p.*' \
             --exclude '.*unit_tests.*' \
-            --gcov-ignore-errors=no_working_dir_found
+            --gcov-ignore-errors=no_working_dir_found,missing_block,no_input
       
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
