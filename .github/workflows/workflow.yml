@@ -19,7 +19,9 @@ jobs:
       - name: Install build tools and linter
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential cmake git libopenmpi-dev openmpi-bin
+          sudo apt-get install -y \
+            build-essential cmake git lcov \
+            libopenmpi-dev openmpi-bin gcovr
 
       - name: Run gen_OPALrevision
         run: |
@@ -38,7 +40,9 @@ jobs:
             -DIPPL_ENABLE_SOLVERS=ON \
             -DIPPL_ENABLE_ALPINE=OFF \
             -DIPPL_ENABLE_TESTS=OFF \
-            -DIPPL_PLATFORMS=serial
+            -DIPPL_PLATFORMS=serial \
+            -DCMAKE_CXX_FLAGS="--coverage" \
+            -DCMAKE_C_FLAGS="--coverage"
           
       - name: Build project
         run: |
@@ -49,6 +53,18 @@ jobs:
         run: |
           cd build_serial
           ctest --output-on-failure -j $(nproc)
+
+      - name: Generate coverage report (gcovr)
+        run: |
+          cd build_serial
+          gcovr -r .. --xml-pretty --exclude '.*External.*' -o coverage.xml
+          gcovr -r .. --html-details coverage.html
+      
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: build_serial/coverage.html
           
   # # ===== GPU CUDA BUILD =====
   # build-cuda:
