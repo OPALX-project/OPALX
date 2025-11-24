@@ -32,7 +32,7 @@ jobs:
           cd build_serial
           cmake .. \
             -DCMAKE_BUILD_TYPE=Debug \
-            -DOPALX_ENABLE_UNIT_TESTS=ON
+            -DOPALX_ENABLE_UNIT_TESTS=ON \
             -DCMAKE_CXX_STANDARD=20 \
             -DIPPL_ENABLE_FFT=ON \
             -DIPPL_ENABLE_SOLVERS=ON \
