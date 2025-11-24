@@ -41,8 +41,8 @@ jobs:
             -DIPPL_ENABLE_ALPINE=OFF \
             -DIPPL_ENABLE_TESTS=OFF \
             -DIPPL_PLATFORMS=serial \
-            -DCMAKE_CXX_FLAGS="--coverage" \
-            -DCMAKE_C_FLAGS="--coverage"
+            -DCMAKE_CXX_FLAGS="--coverage -O0" \
+            -DCMAKE_C_FLAGS="--coverage -O0"
           
       - name: Build project
         run: |
@@ -60,12 +60,13 @@ jobs:
           gcovr \
             --root . \
             --object-directory build_serial \
-            --filter src \
-            --xml-pretty coverage.xml \
-            --html-details coverage.html \
+            --filter '.*/src/.*' \
+            --xml-pretty build_serial/coverage.xml \
+            --html-details build_serial/coverage.html \
             --exclude '.*_deps.*' \
             --exclude '.*3p.*' \
-            --exclude '.*unit_tests.*'
+            --exclude '.*unit_tests.*' \
+            --gcov-ignore-errors=no_working_dir_found
       
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
