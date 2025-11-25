@@ -68,17 +68,17 @@ jobs:
 
       - name: Generate coverage report
         run: |
-          cd build_serial
           gcovr \
-            -r .. \
-            --object-directory . \
-            --filter ../src \
+            -r ${{ github.workspace }} \
+            --object-directory ${{ github.workspace }}/build_serial/ \
+            --filter ${{ github.workspace }}/src \
             --xml-pretty coverage.xml \
             --html-details coverage.html \
             --exclude '.*_deps.*' \
             --exclude '.*3p.*' \
             --exclude '.*unit_tests.*' \
-            --gcov-ignore-errors=all
+            --gcov-ignore-errors=all \
+            --verbose
       
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
