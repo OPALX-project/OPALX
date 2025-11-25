@@ -68,12 +68,14 @@ jobs:
 
       - name: Generate coverage report
         run: |
+          mkdir cov_tmp
+          cd cov_tmp
           gcovr \
             -r ${{ github.workspace }} \
-            --object-directory ${{ github.workspace }}/build_serial/ \
+            --object-directory ${{ github.workspace }}/build_serial \
             --filter ${{ github.workspace }}/src \
-            --xml-pretty coverage.xml \
-            --html-details coverage.html \
+            --xml-pretty ../coverage.xml \
+            --html-details ../coverage.html \
             --exclude '.*_deps.*' \
             --exclude '.*3p.*' \
             --exclude '.*unit_tests.*' \
@@ -85,9 +87,9 @@ jobs:
         with:
           name: coverage-report
           path: |
-            build_serial/coverage.html
-            build_serial/coverage.xml
-          
+            coverage.html
+            coverage.xml
+
   # # ===== GPU CUDA BUILD =====
   # build-cuda:
   #   runs-on: ubuntu-latest
