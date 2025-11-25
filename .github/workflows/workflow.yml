@@ -74,8 +74,8 @@ jobs:
             -r ${{ github.workspace }} \
             --object-directory ${{ github.workspace }}/build_serial \
             --filter ${{ github.workspace }}/src \
-            --xml-pretty ../coverage.xml \
-            --html-details ../coverage.html \
+            --xml-pretty .. \
+            --html-details .. \
             --exclude '.*_deps.*' \
             --exclude '.*3p.*' \
             --exclude '.*unit_tests.*' \
