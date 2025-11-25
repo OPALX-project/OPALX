@@ -62,12 +62,17 @@ jobs:
         run: |
           find build_serial -name "*.gcno"
 
+      - name: Print workspace
+        run: |
+          echo "Workspace: ${{ github.workspace }}"
+
       - name: Generate coverage report
         run: |
+          cd build_serial
           gcovr \
-            -r "${{ github.workspace }}/src" \
+            -r .. \
             --object-directory . \
-            --filter "${{ github.workspace }}/src" \
+            --filter ../src \
             --xml-pretty coverage.xml \
             --html-details coverage.html \
             --exclude '.*_deps.*' \
