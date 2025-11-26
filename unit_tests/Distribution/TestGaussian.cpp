@@ -7,34 +7,6 @@
 #include "Ippl.h"
 #include "Utility/IpplTimings.h"
 
-template <typename T>
-using ParticleAttrib = ippl::ParticleAttrib<T>;
-
-using size_type = ippl::detail::size_type;
-
-/*
-// a minimal ParticleContainer definition for testing
-template <typename T, unsigned Dim>
-class ParticleContainer_min : public ParticleContainer<T, Dim> {
-    using Base = ParticleContainer<T, Dim>;
-public:
-    /// particle momenta [\beta\gamma]
-    typename Base::particle_position_type P;
-
-    ParticleContainer_min(Mesh_t<Dim>& mesh, FieldLayout_t<Dim>& FL)
-        : Base(mesh, FL)  // initialize the base class
-    {
-        registerAttributes();
-    }
-
-    ~ParticleContainer_min() = default;
-
-    void registerAttributes() {
-        this->addAttribute(P);
-    }
-};
-*/
-
 class GaussianTest : public ::testing::Test {
 protected:
     static void SetUpTestSuite() {
