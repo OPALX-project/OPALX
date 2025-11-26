@@ -246,9 +246,54 @@ target_include_directories(boost_HEADERS INTERFACE
 
 include(FetchContent)
 
+set(GSL_VERSION 2.7)
+set(GSL_TAR "gsl-${GSL_VERSION}.tar.gz")
+set(GSL_INSTALL_DIR ${CMAKE_BINARY_DIR}/_deps/gsl)
+set(GSL_SRC_DIR ${CMAKE_BINARY_DIR}/_deps/gsl-src)
+
+set(GSL_MIRRORS
+    "https://ftp.gnu.org/gnu/gsl/${GSL_TAR}" # Official GNU
+    "https://ftp.fau.de/gnu/gsl/${GSL_TAR}" # Germany
+    "https://ftp.halifax.rwth-aachen.de/gnu/gsl/${GSL_TAR}" # Germany
+    "https://sunsite.icm.edu.pl/pub/gnu/gsl/${GSL_TAR}" # Poland
+    "https://ftp.sunet.se/mirror/gnu.org/gnu/gsl/${GSL_TAR}" # Sweden
+    "https://mirror.accum.se/mirror/gnu.org/gnu/gsl/${GSL_TAR}" # Sweden
+    "https://ftp.funet.fi/pub/gnu/gnu/gsl/${GSL_TAR}" # Finland
+    "https://www.mirrorservice.org/sites/ftp.gnu.org/gnu/gsl/${GSL_TAR}" # UK
+    "https://mirror.ibcp.fr/pub/gnu/gsl/${GSL_TAR}" # France
+    "https://mirrors.ocf.berkeley.edu/gnu/gsl/${GSL_TAR}" # Berkeley
+)
+## See the list on https://www.gnu.org/server/mirror.en.html
+
+unset(GSL_URL)
+foreach(url ${GSL_MIRRORS})
+    message(STATUS "  → Testing GSL mirror: ${url}")
+    file(DOWNLOAD
+        "${url}"
+        "${CMAKE_BINARY_DIR}/_gsl_test.tar.gz"
+        TIMEOUT 5
+        STATUS status
+        SHOW_PROGRESS
+    )
+    list(GET status 0 code)
+    if(code EQUAL 0)
+        set(GSL_URL "${url}")
+        message(STATUS "✔ Using GSL source: ${GSL_URL}")
+        break()
+    else()
+        message(STATUS "  ✖ Mirror failed (code ${code})")
+    endif()
+endforeach()
+
+if(NOT GSL_URL)
+    message(FATAL_ERROR "No working GSL download mirror found!")
+endif()
+
+include(FetchContent)
+
 FetchContent_Declare(
     gsl
-    URL http://ftp.gnu.org/gnu/gsl/gsl-2.7.tar.gz
+    URL ${GSL_URL}
 )
 
 FetchContent_MakeAvailable(gsl)
@@ -258,6 +303,7 @@ execute_process(COMMAND ./configure --prefix=${CMAKE_BINARY_DIR}/_deps/gsl
                 WORKING_DIRECTORY ${gsl_SOURCE_DIR})
 execute_process(COMMAND make -j${NPROC} WORKING_DIRECTORY ${gsl_SOURCE_DIR})
 execute_process(COMMAND make install WORKING_DIRECTORY ${gsl_SOURCE_DIR})
+message(STATUS "✅ GSL built from source (${GSL_VERSION})")
 
 # Setup imported target
 add_library(GSL::gsl STATIC IMPORTED GLOBAL)
