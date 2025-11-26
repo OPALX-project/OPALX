@@ -2,7 +2,7 @@ name: CI workflow
           
 on:
   ## Trigger CI workflow on push to any branch (commented out to limit runs)
-  push:
+  #push:
   ## Trigger CI workflow on pull requests to the master branch   
   pull_request:
     branches: [ "master" ]
@@ -54,27 +54,27 @@ jobs:
           cd build_serial
           ctest --output-on-failure -j $(nproc)
 
-      - name: Generate coverage report
-        run: |
-          mkdir cov_tmp
-          cd cov_tmp
-          gcovr \
-            -r ${{ github.workspace }} \
-            --object-directory ${{ github.workspace }}/build_serial \
-            --filter ${{ github.workspace }}/src \
-            --html-details "${{ github.workspace }}/coverage.html" \
-            --exclude '.*_deps.*' \
-            --exclude '.*3p.*' \
-            --exclude '.*unit_tests.*' \
-            --gcov-ignore-errors=all \
-            --verbose
+      ## Coverage report generation is currently disabled (not working properly)
+      #   run: |
+      #     mkdir cov_tmp
+      #     cd cov_tmp
+      #     gcovr \
+      #       -r ${{ github.workspace }} \
+      #       --object-directory ${{ github.workspace }}/build_serial \
+      #       --filter ${{ github.workspace }}/src \
+      #       --html-details "${{ github.workspace }}/coverage.html" \
+      #       --exclude '.*_deps.*' \
+      #       --exclude '.*3p.*' \
+      #       --exclude '.*unit_tests.*' \
+      #       --gcov-ignore-errors=all \
+      #       --verbose
       
-      - name: Upload coverage artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report
-          path: |
-            coverage.html
+      # - name: Upload coverage artifact
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: coverage-report
+      #     path: |
+      #       coverage.html
 
   # ===== GPU CUDA BUILD =====
   build-cuda:
