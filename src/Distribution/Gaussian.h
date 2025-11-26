@@ -63,11 +63,13 @@ public:
      * @param sigmaP Standard deviation for momentum distribution.
      * @param avrgpz Average momentum in the z-direction.
      * @param cutoffR Cutoff multiplier for position distribution.
+     * @param fix_meanR Flag to exactly fix the mean position of particles after sampling.
      */
     Gaussian(std::shared_ptr<ParticleContainer_t> pc,
             const Vector_t<double, 3>& sigmaR,
             const Vector_t<double, 3>& sigmaP,
-            double avrgpz, const Vector_t<double, 3>& cutoffR);
+            double avrgpz, const Vector_t<double, 3>& cutoffR,
+            bool fix_meanR = true);
     /**
      * @brief Generates particles with a Gaussian distribution.
      *
@@ -102,6 +104,14 @@ public:
         cutoffR = cutoffR_m;
     }
 
+    void setFixMeanR(bool fixMeanR) {
+        fixMeanR_m = fixMeanR;
+    }
+
+    void getFixMeanR(bool& fixMeanR) const {
+        fixMeanR = fixMeanR_m;
+    }
+
 private:
     /**
      * @brief Initializes the random number generator pool.
@@ -128,6 +138,11 @@ private:
      * @brief Cutoff multiplier for position distribution.
      */
     Vector_t<double, 3> cutoffR_m;
+
+    /**
+     * @brief Flag to exactly fix the mean position of particles after sampling.
+     */
+    bool fixMeanR_m = true;
 };
 
 #endif // IPPL_GAUSSIAN_H
