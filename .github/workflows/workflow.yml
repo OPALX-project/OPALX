@@ -53,18 +53,6 @@ jobs:
         run: |
           cd build_serial
           ctest --output-on-failure -j $(nproc)
-  
-      - name: List .gcda files
-        run: |
-          find build_serial -name "*.gcda"
-
-      - name: List .gcno files
-        run: |
-          find build_serial -name "*.gcno"
-
-      - name: Print workspace
-        run: |
-          echo "Workspace: ${{ github.workspace }}"
 
       - name: Generate coverage report
         run: |
