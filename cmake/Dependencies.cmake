@@ -244,6 +244,8 @@ target_include_directories(boost_HEADERS INTERFACE
 # GSL
 # ------------------------------------------------------------------------------
 
+include(FetchContent)
+
 set(GSL_VERSION 2.7)
 set(GSL_TAR "gsl-${GSL_VERSION}.tar.gz")
 set(GSL_INSTALL_DIR ${CMAKE_BINARY_DIR}/_deps/gsl)
@@ -287,32 +289,30 @@ if(NOT GSL_URL)
     message(FATAL_ERROR "No working GSL download mirror found!")
 endif()
 
-include(ExternalProject)
+include(FetchContent)
 
-ExternalProject_Add(gsl_external
+FetchContent_Declare(
+    gsl
     URL ${GSL_URL}
-    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
-    PREFIX ${GSL_INSTALL_DIR}
-    CONFIGURE_COMMAND
-        <SOURCE_DIR>/configure
-            --prefix=<INSTALL_DIR>
-            --disable-shared
-            --enable-static
-            CFLAGS=-fPIC
-    BUILD_COMMAND make -j${NPROC}
-    INSTALL_COMMAND make install
-    BUILD_IN_SOURCE TRUE
 )
 
-ExternalProject_Get_Property(gsl_external INSTALL_DIR)
-set(GSL_ROOT ${INSTALL_DIR})
-set(GSL_INCLUDE_DIR ${GSL_ROOT}/include)
-set(GSL_LIBRARIES
-    ${GSL_ROOT}/lib/libgsl.a
-    ${GSL_ROOT}/lib/libgslcblas.a
+FetchContent_MakeAvailable(gsl)
+
+# Manually configure & build GSL (autotools)
+execute_process(COMMAND ./configure --prefix=${CMAKE_BINARY_DIR}/_deps/gsl
+                WORKING_DIRECTORY ${gsl_SOURCE_DIR})
+execute_process(COMMAND make -j${NPROC} WORKING_DIRECTORY ${gsl_SOURCE_DIR})
+execute_process(COMMAND make install WORKING_DIRECTORY ${gsl_SOURCE_DIR})
+message(STATUS "✅ GSL built from source (${GSL_VERSION})")
+
+# Setup imported target
+add_library(GSL::gsl STATIC IMPORTED GLOBAL)
+set_target_properties(GSL::gsl PROPERTIES
+    IMPORTED_LOCATION "${CMAKE_BINARY_DIR}/_deps/gsl/lib/libgsl.a"
+    INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_BINARY_DIR}/_deps/gsl/include"
 )
-message(STATUS "GSL include dir: ${GSL_INCLUDE_DIR}")
-message(STATUS "GSL libraries: ${GSL_LIBRARIES}")
+add_dependencies(GSL::gsl gsl)
+
 
 # ------------------------------------------------------------------------------
 # GoogleTest

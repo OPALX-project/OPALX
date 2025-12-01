@@ -55,8 +55,6 @@ extern "C" {
 #include <iostream>
 #include <set>
 
-Inform* gmsg;
-
 namespace OPALXMAIN {
     void printStdoutHeader() {
         OPALTimer::Timer simtimer;
