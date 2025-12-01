@@ -5,7 +5,6 @@
 # Handles platform/backend selection for OPALX: SERIAL, OPENMP, CUDA, or CUDA + OPENMP.
 #
 # Responsibilities:
-#   - Set OPALX_PLATFORMS to default (SERIAL) if unset
 #   - Normalize and validate the value
 #   - Enable relevant Kokkos/Heffte options
 #
@@ -20,23 +19,12 @@
 # -----------------------------------------------------------------------------
 set(OPALX_SUPPORTED_PLATFORMS "SERIAL;OPENMP;CUDA;HIP")
 
-# === Default to SERIAL if OPALX_PLATFORMS not set ===
-if(NOT OPALX_PLATFORMS)
-  set(OPALX_PLATFORMS "SERIAL")
-  message(STATUS "No OPALX_PLATFORMS specified — defaulting to SERIAL")
-endif()
-
 # === Normalize to uppercase ===
 string(TOUPPER "${OPALX_PLATFORMS}" OPALX_PLATFORMS)
 
 # === Declare a HIP profiler option ===
 if("HIP" IN_LIST OPALX_PLATFORMS)
   option(OPALX_ENABLE_HIP_PROFILER "Enable HIP Systems Profiler" OFF)
-endif()
-
-if(NOT "SERIAL" IN_LIST OPALX_PLATFORMS AND NOT "OPENMP" IN_LIST OPALX_PLATFORMS)
-  list(APPEND OPALX_PLATFORMS "SERIAL")
-  message(STATUS "Appending SERIAL to OPALX_PLATFORMS as no HOST execution space set")
 endif()
 
 # -----------------------------------------------------------------------------
