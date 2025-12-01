@@ -19,7 +19,9 @@ jobs:
       - name: Install build tools and linter
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential cmake git libopenmpi-dev openmpi-bin
+          sudo apt-get install -y \
+            build-essential cmake git lcov \
+            libopenmpi-dev openmpi-bin gcovr
 
       - name: Run gen_OPALrevision
         run: |
@@ -32,18 +34,48 @@ jobs:
           cd build_serial
           cmake .. \
             -DCMAKE_BUILD_TYPE=Debug \
+            -DOPALX_ENABLE_UNIT_TESTS=ON \
             -DCMAKE_CXX_STANDARD=20 \
             -DIPPL_ENABLE_FFT=ON \
             -DIPPL_ENABLE_SOLVERS=ON \
             -DIPPL_ENABLE_ALPINE=OFF \
             -DIPPL_ENABLE_TESTS=OFF \
-            -DIPPL_PLATFORMS=serial
+            -DIPPL_PLATFORMS=serial \
+            -DCMAKE_CXX_FLAGS="--coverage -O0" \
+            -DCMAKE_C_FLAGS="--coverage -O0"
           
       - name: Build project
         run: |
           cd build_serial
           make -j$(nproc)
-          
+      
+      - name: Run all unit tests
+        run: |
+          cd build_serial
+          ctest --output-on-failure -j $(nproc)
+
+      ## Coverage report generation is currently disabled (not working properly)
+      #   run: |
+      #     mkdir cov_tmp
+      #     cd cov_tmp
+      #     gcovr \
+      #       -r ${{ github.workspace }} \
+      #       --object-directory ${{ github.workspace }}/build_serial \
+      #       --filter ${{ github.workspace }}/src \
+      #       --html-details "${{ github.workspace }}/coverage.html" \
+      #       --exclude '.*_deps.*' \
+      #       --exclude '.*3p.*' \
+      #       --exclude '.*unit_tests.*' \
+      #       --gcov-ignore-errors=all \
+      #       --verbose
+      
+      # - name: Upload coverage artifact
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: coverage-report
+      #     path: |
+      #       coverage.html
+
   # ===== GPU CUDA BUILD =====
   build-cuda:
     runs-on: ubuntu-latest
@@ -78,6 +110,7 @@ jobs:
           cd build_cuda
           cmake .. \
             -DCMAKE_BUILD_TYPE=Debug \
+            -DOPALX_ENABLE_UNIT_TESTS=OFF \
             -DIPPL_PLATFORMS=CUDA \
             -DKokkos_ARCH_AMPERE80=ON \
             -DCMAKE_CXX_STANDARD=20 \
