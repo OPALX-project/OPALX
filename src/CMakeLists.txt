@@ -38,9 +38,8 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/OPALXVersions.h.in
 # Build the main executable target: opalx
 # ------------------------------------------------------------------
 
-add_executable(opalx)
-target_sources(opalx PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Main.cpp)
-
+add_library(opalx)
+target_sources(opalx PRIVATE changes.cpp)
 
 target_compile_features(opalx PUBLIC cxx_std_20)
 
@@ -68,8 +67,6 @@ if(NOT DEFINED _opalx_pic)
 endif()
 
 message(STATUS "🔧 Target 'opalx': type=${_opalx_type}, POSITION_INDEPENDENT_CODE=${_opalx_pic}")
-
-target_sources(opalx PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Main.cpp)
 
 target_include_directories(
   opalx PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
@@ -108,13 +105,10 @@ add_subdirectory (MemoryManagement)
 
 include(${PROJECT_SOURCE_DIR}/cmake/PlatformOptions.cmake)
 
-# make sure gsl is built before opalx
-add_dependencies(opalx gsl_external)
-
 target_link_libraries(opalx PUBLIC
     MPI::MPI_CXX
     IPPL::ippl
-    ${GSL_LIBRARIES}
+    GSL::gsl
     H5hut
     ${HDF5_LIBRARIES}
     ${Boost_LIBRARIES}    # compiled Boost libs like filesystem, iostreams
@@ -127,5 +121,12 @@ target_include_directories(opalx PRIVATE
   ${GSL_INCLUDE_DIR}
   ${BOOST_INCLUDE_DIR}
 )
+
+# CLI executable
+add_executable(opalx_exe Main.cpp)
+target_link_libraries(opalx_exe PUBLIC opalx)
+
+# this alias should be created after all target properties have been set
+add_library(OPALX::opalx ALIAS opalx)
 
 include(InstallOPALX)

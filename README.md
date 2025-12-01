@@ -52,6 +52,9 @@ cmake .. \
     -DPLATFORMS=OPENMP
 ```
 
+In order to enable the compilation of unit tests, set `-DOPALX_ENABLE_UNIT_TESTS=ON` in the cmake command. The resulting executables will appear in `unit_tests` directory.
+
+
 #### cmake command for GPU build
 ```
 mkdir build_cuda && cd build_cuda
