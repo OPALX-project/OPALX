@@ -57,12 +57,92 @@ public:
              std::shared_ptr<Distribution_t> &opalDist);
 
     /**
+     * @brief Constructor for the Gaussian sampler without field container and distribution object.
+     * @param pc Shared pointer to the particle container.
+     * @param sigmaR Standard deviation for position distribution.
+     * @param sigmaP Standard deviation for momentum distribution.
+     * @param avrgpz Average momentum in the z-direction.
+     * @param cutoffR Cutoff multiplier for position distribution.
+     * @param fix_meanR Flag to exactly fix the mean position of particles after sampling.
+     */
+    Gaussian(std::shared_ptr<ParticleContainer_t> pc,
+            const Vector_t<double, 3>& sigmaR,
+            const Vector_t<double, 3>& sigmaP,
+            double avrgpz, const Vector_t<double, 3>& cutoffR,
+            bool fix_meanR = true);
+    /**
      * @brief Generates particles with a Gaussian distribution.
      *
      * @param numberOfParticles The total number of particles to generate.
      * @param nr the number of grid cells in R (used in domain decomposition).
      */
     void generateParticles(size_t& numberOfParticles, Vector_t<double, 3> nr) override;
+
+    void setSigmaR(const Vector_t<double, 3>& sigmaR) {
+        sigmaR_m = sigmaR;
+    }
+
+    void setSigmaP(const Vector_t<double, 3>& sigmaP) {
+        sigmaP_m = sigmaP;
+    }
+
+    void setAvrgpz(double avrgpz) {
+        avrgpz_m = avrgpz;
+    }
+
+    void setCutoffR(const Vector_t<double, 3>& cutoffR) {
+        cutoffR_m = cutoffR;
+    }
+
+    void getParameters(Vector_t<double, 3>& sigmaR,
+                       Vector_t<double, 3>& sigmaP,
+                       double& avrgpz,
+                       Vector_t<double, 3>& cutoffR) const {
+        sigmaR = sigmaR_m;
+        sigmaP = sigmaP_m;
+        avrgpz = avrgpz_m;
+        cutoffR = cutoffR_m;
+    }
+
+    void setFixMeanR(bool fixMeanR) {
+        fixMeanR_m = fixMeanR;
+    }
+
+    void getFixMeanR(bool& fixMeanR) const {
+        fixMeanR = fixMeanR_m;
+    }
+
+private:
+    /**
+     * @brief Initializes the random number generator pool.
+     */
+    void initRandomPool();
+
+    /**
+     * @brief Pool of random number generators for parallel sampling.
+     */
+    GeneratorPool randPool_m;
+
+    /**
+     * @brief Standard deviations for position and momentum distributions.
+     */
+    Vector_t<double, 3> sigmaR_m;
+    Vector_t<double, 3> sigmaP_m;
+
+    /**
+     * @brief Average momentum in the z-direction.
+     */
+    double avrgpz_m;
+
+    /**
+     * @brief Cutoff multiplier for position distribution.
+     */
+    Vector_t<double, 3> cutoffR_m;
+
+    /**
+     * @brief Flag to exactly fix the mean position of particles after sampling.
+     */
+    bool fixMeanR_m = true;
 };
 
 #endif // IPPL_GAUSSIAN_H

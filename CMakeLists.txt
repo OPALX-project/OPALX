@@ -102,8 +102,8 @@ include_directories (
     ${OPALX_INCLUDE_DIR}
 )
 
-if (BUILD_OPAL_UNIT_TESTS)
-    add_subdirectory (tests)
+if (OPALX_ENABLE_UNIT_TESTS)
+    add_subdirectory (unit_tests)
 endif ()
 
 # ------------------------------------------------------------------------------
