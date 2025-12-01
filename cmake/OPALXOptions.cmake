@@ -11,11 +11,16 @@ set(CMAKE_BUILD_TYPE "${BUILD_TYPE}" CACHE STRING "" FORCE)
 # ---------------------------------------------------------
 # Platform selection (user-facing → forwarded to OPALX)
 # ---------------------------------------------------------
-set(PLATFORMS "SERIAL" CACHE STRING
+set(PLATFORMS "" CACHE STRING
     "Execution backends: SERIAL, OPENMP, CUDA, HIP")
 set_property(CACHE PLATFORMS PROPERTY STRINGS SERIAL OPENMP CUDA HIP)
 
-# Forward to the internal variable handled by Platforms.cmake
+# Only set default if user didn't specify anything
+if(NOT PLATFORMS)
+    set(PLATFORMS "SERIAL" CACHE STRING "" FORCE)
+endif()
+
+# Forward to OPALX internal variable
 set(OPALX_PLATFORMS "${PLATFORMS}" CACHE STRING "" FORCE)
 
 # ---------------------------------------------------------
