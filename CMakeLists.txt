@@ -25,31 +25,14 @@ project(OPALX VERSION 1.0 LANGUAGES CXX)
 list(PREPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" "${PROJECT_SOURCE_DIR}/CMakeModules")
 
 # ------------------------------------------------------------------------------
-# Project setup
-# ------------------------------------------------------------------------------
-include(ProjectSetup)
-
-# ------------------------------------------------------------------------------
 # Primary OPALX options
 # ------------------------------------------------------------------------------
-option(BUILD_SHARED_LIBS "Build OPALX as a shared library" OFF)
-option(OPALX_ENABLE_UNIT_TESTS "Enable unit tests using GoogleTest" OFF)
-option(OPALX_ENABLE_EXAMPLES "Enable building the Example module" OFF)
-option(OPALX_ENABLE_TESTS "Build integration tests in test/ directory" OFF)
-option(OPALX_ENABLE_COVERAGE "Enable code coverage" OFF)
-option(OPALX_ENABLE_NSYS_PROFILER "Enable Nvidia Nsys Profiler" OFF)
-option(OPALX_ENABLE_SANITIZER "Enable sanitizer(s)" OFF)
-option(OPALX_USE_ALTERNATIVE_VARIANT
-       "Use modified variant implementation (required for CUDA 12.2 + GCC 12.3.0)" OFF)
-option(OPALX_USE_STANDARD_FOLDERS "Put all generated binaries in bin/lib folders" OFF)
-option(OPALX_SKIP_FAILING_TESTS "Do not build/test tests that are currently marked as failing" OFF)
-option(OPALX_ENABLE_SCRIPTS "Generate job script templates for some benchmarks/tests" OFF)
+include(OPALXOptions)
 
-# "Build OPALX as a shared library (ON) or static library (OFF)" OFF) 
-if(OPALX_DYL)
-    set(BUILD_SHARED_LIBS ON CACHE BOOL "" FORCE)
-    message(WARNING "OPALX_DYL is deprecated; use -DBUILD_SHARED_LIBS=ON instead.")
-endif()
+# ------------------------------------------------------------------------------
+# Project setup
+# ------------------------------------------------------------------------------
+#include(ProjectSetup)
 
 # ------------------------------------------------------------------------------
 # Setup Output directories
@@ -80,7 +63,6 @@ include(CTest)
 # custom modules
 include(Messages)
 include(CompilerOptions)
-include(Platforms)
 include(Dependencies)
 include(FailingTests)
 
