@@ -430,8 +430,8 @@ public:
     }
     void swap(unsigned int i, unsigned int j) {
     }
-    double getRho(int x, int y, int z) {
-    }
+    //double getRho(int x, int y, int z) {
+    //}
     void gatherStatistics(unsigned int totalP) {
     }
     void switchToUnitlessPositions(bool use_dt_per_particle = false) {

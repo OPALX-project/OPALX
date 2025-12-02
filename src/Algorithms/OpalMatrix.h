@@ -22,6 +22,16 @@ struct Matrix_t {
         m[2][2] = 1.0;
     }
 
+    // copy constructor
+    KOKKOS_INLINE_FUNCTION
+    Matrix_t(const Matrix_t& right){
+        for (int i = 0; i < 3; ++i) {
+            for (int j = 0; j < 3; ++j) {
+                m[i][j] = right(i,j); 
+            }
+        }
+    }
+
     // Operators 
     KOKKOS_INLINE_FUNCTION
     double& operator()(int r, int c) {
@@ -53,6 +63,8 @@ T prod_vector(const Matrix_t& rotation, const T& vect) {
 }
 
 // Takes the Matrix^T - Vector Product
+template <class T>
+KOKKOS_INLINE_FUNCTION
 T prod_vector_transpose(const Matrix_t& rotation, const T& vect) {
     
     T prodVector(0.0);
@@ -68,28 +80,15 @@ T prod_vector_transpose(const Matrix_t& rotation, const T& vect) {
     return prodVector;
 }
 
-/*
-#include <boost/numeric/ublas/matrix.hpp>
-
-typedef boost::numeric::ublas::matrix<double> matrix_t;
-
-template <class T>
-T prod_boost_vector(boost::numeric::ublas::matrix<double> rotation, const T& vect) {
-    boost::numeric::ublas::vector<double> boostVector(3);
-
-    boostVector(0) = vect[0];
-    boostVector(1) = vect[1];
-    boostVector(2) = vect[2];
-
-    boostVector = boost::numeric::ublas::prod(rotation, boostVector);
-
-    T prodVector(0.0);
-
-    prodVector[0] = boostVector(0);
-    prodVector[1] = boostVector(1);
-    prodVector[2] = boostVector(2);
-
-    return prodVector;
+KOKKOS_INLINE_FUNCTION
+Matrix_t get_transpose(const Matrix_t& rotation){
+    Matrix_t transpose;
+    for (int i = 0; i < 3; ++i) {
+        for (int j = 0; j < 3; ++j) {
+            transpose(j,i) = rotation(i,j);
+        }
+    }
+    return transpose;
 }
-*/
+
 #endif

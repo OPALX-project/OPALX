@@ -583,7 +583,7 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
      */
 
     
-    const matrix_t                rot = referenceToBeamCSTrafo.getRotationMatrix();
+    const Matrix_t                rot = referenceToBeamCSTrafo.getRotationMatrix();
     const ippl::Vector<double, 3> org = referenceToBeamCSTrafo.getOrigin();
 
 

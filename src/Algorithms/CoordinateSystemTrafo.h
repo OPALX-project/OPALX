@@ -89,7 +89,7 @@ inline ippl::Vector<double, 3> CoordinateSystemTrafo::transformTo(
     const ippl::Vector<double, 3>& r) const {
     const ippl::Vector<double, 3> delta = r - origin_m;
     //return prod_boost_vector(rotationMatrix_m, delta);
-    prod_vector(rotationMatrix_m,delta);
+    return prod_vector(rotationMatrix_m,delta);
 }
 
 inline ippl::Vector<double, 3> CoordinateSystemTrafo::transformFrom(
@@ -100,13 +100,13 @@ inline ippl::Vector<double, 3> CoordinateSystemTrafo::transformFrom(
 inline ippl::Vector<double, 3> CoordinateSystemTrafo::rotateTo(
     const ippl::Vector<double, 3>& r) const {
     //return prod_boost_vector(rotationMatrix_m, r);
-    prod_vector(rotationMatrix_m,r);
+    return prod_vector(rotationMatrix_m,r);
 }
 
 inline ippl::Vector<double, 3> CoordinateSystemTrafo::rotateFrom(
     const ippl::Vector<double, 3>& r) const {
     //return prod_boost_vector(boost::numeric::ublas::trans(rotationMatrix_m), r);
-    prod_vector_transpose(rotationMatrix_m,r);
+    return prod_vector_transpose(rotationMatrix_m,r);
 }
 
 #endif
