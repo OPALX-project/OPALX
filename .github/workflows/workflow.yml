@@ -9,7 +9,7 @@ on:
           
 jobs:     
   # ===== CPU SERIAL BUILD =====
-  build-cpu:  
+  build-cpu-serial-debug:  
     runs-on: ubuntu-latest
           
     steps:
@@ -33,16 +33,8 @@ jobs:
           mkdir -p build_serial
           cd build_serial
           cmake .. \
-            -DCMAKE_BUILD_TYPE=Debug \
-            -DOPALX_ENABLE_UNIT_TESTS=ON \
-            -DCMAKE_CXX_STANDARD=20 \
-            -DIPPL_ENABLE_FFT=ON \
-            -DIPPL_ENABLE_SOLVERS=ON \
-            -DIPPL_ENABLE_ALPINE=OFF \
-            -DIPPL_ENABLE_TESTS=OFF \
-            -DIPPL_PLATFORMS=serial \
-            -DCMAKE_CXX_FLAGS="--coverage -O0" \
-            -DCMAKE_C_FLAGS="--coverage -O0"
+            -DBUILD_TYPE=Debug \
+            -DPLATFORMS=SERIAL
           
       - name: Build project
         run: |
@@ -52,6 +44,45 @@ jobs:
       - name: Run all unit tests
         run: |
           cd build_serial
+          ctest --output-on-failure -j $(nproc)
+
+  # ===== CPU OPENMP BUILD =====
+  build-cpu-openmp-debug:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install build tools and OpenMP dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential cmake git \
+            libopenmpi-dev openmpi-bin \
+            libomp-dev
+
+      - name: Run gen_OPALrevision
+        run: |
+          chmod +x ./gen_OPALrevision
+          ./gen_OPALrevision
+
+      - name: Configure CMake project (OpenMP)
+        run: |
+          mkdir -p build_openmp
+          cd build_openmp
+          cmake .. \
+            -DBUILD_TYPE=Debug \
+            -DPLATFORMS=OPENMP
+
+      - name: Build project (OpenMP)
+        run: |
+          cd build_openmp
+          make -j$(nproc)
+      
+      - name: Run all unit tests
+        run: |
+          cd build_openmp
           ctest --output-on-failure -j $(nproc)
 
       ## Coverage report generation is currently disabled (not working properly)
@@ -77,13 +108,18 @@ jobs:
       #       coverage.html
 
   # ===== GPU CUDA BUILD =====
-  build-cuda:
+  build-cuda-debug:
     runs-on: ubuntu-latest
     container:
       image: nvidia/cuda:12.8.1-devel-ubuntu22.04  # CUDA-enabled container for compilation
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+
+      - name: Disable NVIDIA APT repos to avoid mirror mismatch errors
+        run: |
+          rm -f /etc/apt/sources.list.d/cuda*.list
+          rm -f /etc/apt/sources.list.d/nvidia*.list
 
       - name: Install dependencies
         run: |
@@ -109,17 +145,12 @@ jobs:
           mkdir -p build_cuda
           cd build_cuda
           cmake .. \
-            -DCMAKE_BUILD_TYPE=Debug \
-            -DOPALX_ENABLE_UNIT_TESTS=OFF \
-            -DIPPL_PLATFORMS=CUDA \
-            -DKokkos_ARCH_AMPERE80=ON \
-            -DCMAKE_CXX_STANDARD=20 \
-            -DIPPL_ENABLE_FFT=ON \
-            -DIPPL_ENABLE_SOLVERS=ON \
-            -DIPPL_ENABLE_ALPINE=OFF \
-            -DIPPL_ENABLE_TESTS=OFF
+            -DBUILD_TYPE=Debug \
+            -DPLATFORMS=CUDA \
+            -DARCH=AMPERE80
           
       - name: Build project
         run: |
           cd build_cuda
           make -j$(nproc)
+    
