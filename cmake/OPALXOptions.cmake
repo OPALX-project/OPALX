@@ -11,13 +11,19 @@
 #   - Selecting default CMake build type
 # ~~~
 # -----------------------------------------------------------------------------
-
-
+#
 # -----------------------------------------------------------------------------
 # Build type (user-facing)
 # -----------------------------------------------------------------------------
 set(BUILD_TYPE "Release" CACHE STRING "Build type: Debug, Release, RelWithDebInfo, MinSizeRel")
 set(CMAKE_BUILD_TYPE "${BUILD_TYPE}" CACHE STRING "" FORCE)
+
+# -----------------------------------------------------------------------------
+# Unit Test (user-facing)
+# -----------------------------------------------------------------------------
+
+option(OPALX_ENABLE_UNIT_TESTS "Enable unit tests using GoogleTest" OFF)
+message(STATUS "🔧 OPALX unit tests: ${OPALX_ENABLE_UNIT_TESTS}")
 
 # -----------------------------------------------------------------------------
 # Platform selection (user-facing → forwarded to OPALX)
@@ -123,7 +129,6 @@ set(IPPL_PLATFORMS "${OPALX_PLATFORMS}" CACHE STRING "" FORCE)
 # -----------------------------------------------------------------------------
 
 option(BUILD_SHARED_LIBS "Build OPALX as a shared library" OFF)
-option(OPALX_ENABLE_UNIT_TESTS "Enable unit tests using GoogleTest" OFF)
 option(OPALX_ENABLE_EXAMPLES "Enable building the Example module" OFF)
 option(OPALX_ENABLE_TESTS "Build integration tests in test/ directory" OFF)
 option(OPALX_ENABLE_COVERAGE "Enable code coverage" OFF)
