@@ -1,3 +1,5 @@
+// This Class implements transformations between coordinate systems
+
 #ifndef COORDINATESYSTEMTRAFO
 #define COORDINATESYSTEMTRAFO
 
@@ -5,38 +7,46 @@
 
 class CoordinateSystemTrafo {
 public:
+    /* ======== Constructors ======== */
     CoordinateSystemTrafo();
 
     CoordinateSystemTrafo(const CoordinateSystemTrafo& right);
 
     CoordinateSystemTrafo(const ippl::Vector<double, 3>& origin, const Quaternion& orientation);
 
+    void invert();
+    CoordinateSystemTrafo inverted() const;
+    
+    /* ======== Transformation Functions ======== */
     ippl::Vector<double, 3> transformTo(const ippl::Vector<double, 3>& r) const;
     ippl::Vector<double, 3> transformFrom(const ippl::Vector<double, 3>& r) const;
 
     ippl::Vector<double, 3> rotateTo(const ippl::Vector<double, 3>& r) const;
     ippl::Vector<double, 3> rotateFrom(const ippl::Vector<double, 3>& r) const;
 
-    void invert();
-    CoordinateSystemTrafo inverted() const;
-
+    /* ======== Operators ======== */
     CoordinateSystemTrafo& operator=(const CoordinateSystemTrafo& right) = default;
     CoordinateSystemTrafo operator*(const CoordinateSystemTrafo& right) const;
     void operator*=(const CoordinateSystemTrafo& right);
 
+    /* ======== Getters ======== */
     ippl::Vector<double, 3> getOrigin() const;
     Quaternion getRotation() const;
+    Matrix_t getRotationMatrix() const;
 
-    matrix_t getRotationMatrix() const;
-
+    /* ======== Print ======== */
     void print(std::ostream&) const;
 
 private:
+    // Displacement
     ippl::Vector<double, 3> origin_m;
+
+    //Rotation
     Quaternion orientation_m;
-    matrix_t rotationMatrix_m;
+    Matrix_t rotationMatrix_m;
 };
 
+/* ======== Print ======== */
 inline std::ostream& operator<<(std::ostream& os, const CoordinateSystemTrafo& trafo) {
     trafo.print(os);
     return os;
@@ -53,6 +63,7 @@ inline void CoordinateSystemTrafo::print(std::ostream& os) const {
        << "x-axis: " << orientation_m.conjugate().rotate(ippl::Vector<double, 3>(1, 0, 0));
 }
 
+/* ======== Getters ======== */
 inline ippl::Vector<double, 3> CoordinateSystemTrafo::getOrigin() const {
     return origin_m;
 }
@@ -62,7 +73,7 @@ inline Quaternion CoordinateSystemTrafo::getRotation() const {
 }
 
 
-inline matrix_t CoordinateSystemTrafo::getRotationMatrix() const {
+inline Matrix_t CoordinateSystemTrafo::getRotationMatrix() const {
     return rotationMatrix_m;
 }
 
@@ -73,10 +84,12 @@ inline CoordinateSystemTrafo CoordinateSystemTrafo::inverted() const {
     return result;
 }
 
+/* ======== Transformation Functions ======== */
 inline ippl::Vector<double, 3> CoordinateSystemTrafo::transformTo(
     const ippl::Vector<double, 3>& r) const {
     const ippl::Vector<double, 3> delta = r - origin_m;
-    return prod_boost_vector(rotationMatrix_m, delta);
+    //return prod_boost_vector(rotationMatrix_m, delta);
+    prod_vector(rotationMatrix_m,delta);
 }
 
 inline ippl::Vector<double, 3> CoordinateSystemTrafo::transformFrom(
@@ -86,12 +99,14 @@ inline ippl::Vector<double, 3> CoordinateSystemTrafo::transformFrom(
 
 inline ippl::Vector<double, 3> CoordinateSystemTrafo::rotateTo(
     const ippl::Vector<double, 3>& r) const {
-    return prod_boost_vector(rotationMatrix_m, r);
+    //return prod_boost_vector(rotationMatrix_m, r);
+    prod_vector(rotationMatrix_m,r);
 }
 
 inline ippl::Vector<double, 3> CoordinateSystemTrafo::rotateFrom(
     const ippl::Vector<double, 3>& r) const {
-    return prod_boost_vector(boost::numeric::ublas::trans(rotationMatrix_m), r);
+    //return prod_boost_vector(boost::numeric::ublas::trans(rotationMatrix_m), r);
+    prod_vector_transpose(rotationMatrix_m,r);
 }
 
 #endif

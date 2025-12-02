@@ -22,7 +22,8 @@ set (_SRCS
 set (HDRS
     AbstractTimeDependence.h
     AbstractTracker.h
-    BoostMatrix.h
+    //BoostMatrix.h
+    OpalMatrix.h
     CavityAutophaser.h
     DefaultVisitor.h
     DistributionMoments.h

@@ -26,7 +26,8 @@
 
 #include <memory>
 
-#include "Algorithms/BoostMatrix.h"
+//#include "Algorithms/BoostMatrix.h"
+#include <boost/numeric/ublas/matrix.hpp>
 #include "Algorithms/CoordinateSystemTrafo.h"
 #include "Attributes/Attributes.h"
 #include "Distribution/Distribution.h"
