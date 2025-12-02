@@ -32,7 +32,7 @@ include(OPALXOptions)
 # ------------------------------------------------------------------------------
 # Project setup
 # ------------------------------------------------------------------------------
-include(ProjectSetup)
+#include(ProjectSetup)
 
 # ------------------------------------------------------------------------------
 # Setup Output directories
@@ -63,7 +63,6 @@ include(CTest)
 # custom modules
 include(Messages)
 include(CompilerOptions)
-include(Platforms)
 include(Dependencies)
 include(FailingTests)
 
