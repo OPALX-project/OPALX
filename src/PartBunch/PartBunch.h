@@ -77,8 +77,7 @@ KOKKOS_INLINE_FUNCTION typename T::value_type L2Norm(T& x) {
 using view_type = typename ippl::detail::ViewType<ippl::Vector<double, 3>, 1>::view_type;
 
 template <typename T, unsigned Dim>
-class PartBunch
-    : public ippl::PicManager<
+class PartBunch : public ippl::PicManager<
           T, Dim, ParticleContainer<T, Dim>, FieldContainer<T, Dim>, LoadBalancer<T, Dim>> {
 public:
     using ParticleContainer_t = ParticleContainer<T, Dim>;
