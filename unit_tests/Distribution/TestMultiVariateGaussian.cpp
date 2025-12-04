@@ -7,6 +7,7 @@
 #include "Ippl.h"
 #include "Utility/IpplTimings.h"
 
+
 class MultiVariateGaussianTest : public ::testing::Test {
 protected:
     static void SetUpTestSuite() {
@@ -308,117 +309,145 @@ TEST_F(MultiVariateGaussianTest, meanP_and_varP)
     EXPECT_NEAR(varianceP[2], sigmaP_ref[2]*sigmaP_ref[2], 1e-2);
 }
 
-// TEST_F(MultiVariateGaussianTest, FullCovarianceTest)
-// {
-//     // Means
-//     Vector_t<double, 3> meanR = {0.2, -0.1, 0.4};
-//     Vector_t<double, 3> meanP = {-0.3, 0.5, 0.1};
+TEST_F(MultiVariateGaussianTest, FullCovarianceTest)
+{
+    // Means
+    Vector_t<double, 3> meanR = {0.2, -0.1, 0.4};
+    Vector_t<double, 3> meanP = {-0.3, 0.5, 0.1};
 
-//     // Std dev values
-//     Vector_t<double, 3> sigmaR = {0.5, 0.8, 1.2};
-//     Vector_t<double, 3> sigmaP = {1.0, 0.7, 0.4};
+    // Std dev values
+    Vector_t<double, 3> sigmaR = {0.9, 2.0, 1.0};
+    Vector_t<double, 3> sigmaP = {1.5, 1.0, 0.9};
 
-//     // Correlations (ρ)
-//     double rhoRP[3] = {0.3, 0.25, 0.15};   // correlation between R[i] and P[i]
+    // Build L (lower-triangular)
+    Matrix_t L = {0.0};
 
-//     // Build desired full 6×6 covariance matrix:
-//     //   [ cov(R,R)  cov(R,P) ]
-//     //   [ cov(P,R)  cov(P,P) ]
-//     double covExpected[6][6] = {0};
+    // Diagonal entries: sqrt of variances
+    for (int i = 0; i < 3; i++) {
+        L[i*2][i*2]     = sigmaR[i];
+        L[i*2+1][i*2+1] = sigmaP[i];
+    }
 
-//     for (int i = 0; i < 3; i++) {
-//         covExpected[i][i] = sigmaR[i] * sigmaR[i];
-//         covExpected[i+3][i+3] = sigmaP[i] * sigmaP[i];
+    // Fill below-diagonal elements with some pattern
+    for (int i = 0; i < 6; i++) {
+        for (int j = 0; j < i; j++) {
+            L[i][j] = (i + j + 1) * 0.1;  // arbitrary correlation
+        }
+    }
 
-//         // cross-term R[i],P[i]
-//         double c = rhoRP[i] * sigmaR[i] * sigmaP[i];
-//         covExpected[i][i+3] = c;
-//         covExpected[i+3][i] = c;
-//     }
+    // Compute covariance matrix Σ = L * L^T
+    Matrix_t covExpected = {0.0};
 
-//     Vector_t<double, 3> cutoffR = 4.0;
-//     Vector_t<double, 3> cutoffP = 4.0;
+    for (int i = 0; i < 6; i++) {
+        for (int j = 0; j < 6; j++) {
+            double sum = 0.0;
+            for (int k = 0; k < 6; k++)
+                sum += L[i][k] * L[j][k];  // (L * L^T)
+            covExpected[i][j] = sum;
+        }
+    }
 
-//     // Construct sampler
-//     MultiVariateGaussian sampler(pc, meanR, meanP, sigmaR, sigmaP, cutoffR, cutoffP);
+    Vector_t<double, 3> cutoffR = 5.0;
+    Vector_t<double, 3> cutoffP = 5.0;
 
-//     size_t total_nparticles = 1000000;
-//     sampler.generateParticles(total_nparticles, nr);
+    // Construct sampler
+    MultiVariateGaussian sampler(pc, meanR, meanP, covExpected, cutoffR, cutoffP);
 
-//     auto Rview = pc->R.getView();
-//     auto Pview = pc->P.getView();
+    size_t total_nparticles = 1000000;
+    sampler.generateParticles(total_nparticles, nr);
 
-//     // ---------------------------
-//     // Compute sample mean μ_sample
-//     // ---------------------------
-//     double loc_sum[6] = {0};
-//     double global_sum[6] = {0};
+    auto Rview = pc->R.getView();
+    auto Pview = pc->P.getView();
 
-//     Kokkos::parallel_reduce(
-//         "mean", pc->getLocalNum(),
-//         KOKKOS_LAMBDA(const int k, double (&acc)[6]) {
-//             acc[0] += Rview(k)[0];
-//             acc[1] += Rview(k)[1];
-//             acc[2] += Rview(k)[2];
-//             acc[3] += Pview(k)[0];
-//             acc[4] += Pview(k)[1];
-//             acc[5] += Pview(k)[2];
-//         },
-//         Kokkos::Sum<double[6]>(loc_sum)
-//     );
-//     Kokkos::fence();
+    // ---------------------------
+    // Compute sample means
+    // ---------------------------
+    double loc_sum[6] = {0.0};
+    double global_sum[6] = {0.0};
 
-//     MPI_Allreduce(loc_sum, global_sum, 6, MPI_DOUBLE, MPI_SUM,
-//                   ippl::Comm->getCommunicator());
+    Kokkos::parallel_reduce(
+        "mean", pc->getLocalNum(),
+        KOKKOS_LAMBDA(const int k, double& mom0, double& mom1, double& mom2,
+                    double& mom3, double& mom4, double& mom5) {
+            mom0 += Rview(k)[0];
+            mom1 += Pview(k)[0];
+            mom2 += Rview(k)[1];
+            mom3 += Pview(k)[1];
+            mom4 += Rview(k)[2];
+            mom5 += Pview(k)[2];
+        },
+        Kokkos::Sum<double>(loc_sum[0]),
+        Kokkos::Sum<double>(loc_sum[1]),
+        Kokkos::Sum<double>(loc_sum[2]),
+        Kokkos::Sum<double>(loc_sum[3]),
+        Kokkos::Sum<double>(loc_sum[4]),
+        Kokkos::Sum<double>(loc_sum[5])
+    );
+    Kokkos::fence();
 
-//     double meanSample[6];
-//     for (int i = 0; i < 6; i++)
-//         meanSample[i] = global_sum[i] / total_nparticles;
+    MPI_Allreduce(loc_sum, global_sum, 6, MPI_DOUBLE, MPI_SUM,
+                  ippl::Comm->getCommunicator());
 
-//     // Check means
-//     EXPECT_NEAR(meanSample[0], meanR[0], 5e-3);
-//     EXPECT_NEAR(meanSample[1], meanR[1], 5e-3);
-//     EXPECT_NEAR(meanSample[2], meanR[2], 5e-3);
-//     EXPECT_NEAR(meanSample[3], meanP[0], 5e-3);
-//     EXPECT_NEAR(meanSample[4], meanP[1], 5e-3);
-//     EXPECT_NEAR(meanSample[5], meanP[2], 5e-3);
+    double meanSample[6];
+    for (int i = 0; i < 6; i++)
+        meanSample[i] = global_sum[i] / total_nparticles;
 
-//     // ------------------------------
-//     // Compute sample covariance Σ_sample
-//     // ------------------------------
-//     double loc_cov[6][6] = {{0}};
-//     double global_cov[6][6] = {{0}};
+    // Check means
+    EXPECT_NEAR(meanSample[0], meanR[0], 5e-3);
+    EXPECT_NEAR(meanSample[1], meanP[0], 5e-3);
+    EXPECT_NEAR(meanSample[2], meanR[1], 5e-3);
+    EXPECT_NEAR(meanSample[3], meanP[1], 5e-3);
+    EXPECT_NEAR(meanSample[4], meanR[2], 5e-3);
+    EXPECT_NEAR(meanSample[5], meanP[2], 5e-3);
 
-//     Kokkos::parallel_reduce(
-//         "covariance", pc->getLocalNum(),
-//         KOKKOS_LAMBDA(const int k, double (&acc)[36]) {
-//             double v[6] = {
-//                 Rview(k)[0], Rview(k)[1], Rview(k)[2],
-//                 Pview(k)[0], Pview(k)[1], Pview(k)[2]
-//             };
+    // ------------------------------
+    // Compute sample covariance Σ
+    // ------------------------------
+    double loc_moment[6][6] = {};
+    double moment[6][6]  = {};
 
-//             for (int i = 0; i < 6; i++)
-//                 for (int j = 0; j < 6; j++)
-//                     acc[i*6 + j] += v[i] * v[j];
-//         },
-//         Kokkos::Sum<double[36]>(reinterpret_cast<double(&)[36]>(loc_cov))
-//     );
-//     Kokkos::fence();
+    for (unsigned i = 0; i < 6; ++i) {
+            Kokkos::parallel_reduce("calc moments of particle distr.", pc->getLocalNum(),
+                KOKKOS_LAMBDA(
+                    const int k, double& mom0, double& mom1, double& mom2,
+                    double& mom3, double& mom4, double& mom5) {
+                    double part[6];
+                    part[0] = Rview(k)[0]-meanSample[0];
+                    part[1] = Pview(k)[0]-meanSample[1];
+                    part[2] = Rview(k)[1]-meanSample[2];
+                    part[3] = Pview(k)[1]-meanSample[3];
+                    part[4] = Rview(k)[2]-meanSample[4];
+                    part[5] = Pview(k)[2]-meanSample[5];
 
-//     MPI_Allreduce(loc_cov, global_cov, 36,
-//                   MPI_DOUBLE, MPI_SUM,
-//                   ippl::Comm->getCommunicator());
+                    mom0 += part[i] * part[0];
+                    mom1 += part[i] * part[1];
+                    mom2 += part[i] * part[2];
+                    mom3 += part[i] * part[3];
+                    mom4 += part[i] * part[4];
+                    mom5 += part[i] * part[5];
+                },
+                Kokkos::Sum<double>(loc_moment[i][0]),
+                Kokkos::Sum<double>(loc_moment[i][1]), Kokkos::Sum<double>(loc_moment[i][2]),
+                Kokkos::Sum<double>(loc_moment[i][3]), Kokkos::Sum<double>(loc_moment[i][4]),
+                Kokkos::Sum<double>(loc_moment[i][5]));
+            Kokkos::fence();
+     }
 
-//     double covSample[6][6];
-//     for (int i = 0; i < 6; i++)
-//         for (int j = 0; j < 6; j++)
-//             covSample[i][j] = global_cov[i][j] / total_nparticles
-//                               - meanSample[i] * meanSample[j];
+    MPI_Allreduce(
+            loc_moment, moment, 6 * 6, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
 
-//     // -----------------------------------------------------
-//     // Covariance comparison
-//     // -----------------------------------------------------
-//     for (int i = 0; i < 6; i++)
-//         for (int j = 0; j < 6; j++)
-//             EXPECT_NEAR(covSample[i][j], covExpected[i][j], 3e-2);
-// }
+    for (unsigned i = 0; i < 6; i++) {
+            for (unsigned j = 0; j < 6; j++) {
+                moment[i][j] = moment[i][j] / total_nparticles;
+            }
+     }
+
+    // -----------------------------------------------------
+    // Assertions: covariance comparison
+    // -----------------------------------------------------
+    for (int i = 0; i < 6; i++){
+        for (int j = 0; j < 6; j++){
+            EXPECT_NEAR(moment[i][j], covExpected[i][j], 3e-2);
+        }
+    }
+}
