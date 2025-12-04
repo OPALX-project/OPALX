@@ -58,49 +58,49 @@ class PluginElement;
 
 class ParallelTracker : public Tracker {
 
+    // Responsible for writing beam statistics
     DataSink* itsDataSink_m;
 
+    // Beamline Object which holds a list of pointers to beamline components
     OpalBeamline itsOpalBeamline_m;
 
-    /*
-      Ring specifics
-    */
-
-    // we store a pointer explicitly to the Ring
+    // Pointer to OpalRing
     Ring* opalRing_m;
 
+    // Flag indicating if End Of Line has been reached
     bool globalEOL_m;
 
-    bool wakeStatus_m;
-
+    // Flag indicating if particles are lost
     bool deletedParticles_m;
 
-    WakeFunction* wakeFunction_m;
-
+    // Path along beamline
     double pathLength_m;
 
-    /// where to start
+    // Starting position
     double zstart_m;
 
-    /// stores informations where to change the time step and
-    /// where to stop the simulation,
-    /// the time step sizes and
-    /// the number of time steps with each configuration
+    /*  
+     * stores informations where to change the time step and
+     * where to stop the simulation,
+     * the time step sizes and
+     * the number of time steps with each configuration 
+     */
     StepSizeConfig stepSizes_m;
 
+    // The current time stepsize dt (controlled by StepSizeConfig)
     double dtCurrentTrack_m;
 
     // This variable controls the minimal number of steps of emission (using bins)
     // before we can merge the bins
     int minStepforReBin_m;
 
-    // this variable controls the minimal number of steps until we repartition the particles
+    // Controls the frequency of load balancing 
     unsigned long long repartFreq_m;
 
-    unsigned int emissionSteps_m;
-
+    // Total number of particles in the whole simulation
     size_t numParticlesInSimulation_m;
 
+    // Timers
     IpplTimings::TimerRef timeIntegrationTimer1_m;
     IpplTimings::TimerRef timeIntegrationTimer2_m;
     IpplTimings::TimerRef fieldEvaluationTimer_m;
@@ -109,35 +109,59 @@ class ParallelTracker : public Tracker {
     IpplTimings::TimerRef BinRepartTimer_m;
     IpplTimings::TimerRef OrbThreader_m;
     
+    // ======== UNUSED VARIABLES ======== // 
+  
+    // Particle - Matter interaction
     std::set<ParticleMatterInteractionHandler*> activeParticleMatterInteractionHandlers_m;
     bool particleMatterStatus_m;
+   
+    // Does nothing ...
+    unsigned int emissionSteps_m;
+    
+    // Wakefield stuff - Does nothing... 
+    bool wakeStatus_m;
+    WakeFunction* wakeFunction_m;
 
 public:
-    typedef std::vector<double> dvector_t;
-    typedef std::vector<int> ivector_t;
-    typedef std::pair<double[8], Component*> element_pair;
+    /*
+     * Unused typedefs: 
+     * typedef std::vector<double> dvector_t;
+     * typedef std::vector<int> ivector_t;
+     * typedef std::pair<double[8], Component*> element_pair;
+    */
     typedef std::pair<ElementType, element_pair> type_pair;
     typedef std::list<type_pair*> beamline_list;
 
-    /// Constructor.
-    //  The beam line to be tracked is "bl".
-    //  The particle reference data are taken from "data".
-    //  The particle bunch tracked is initially empty.
-    //  If [b]revBeam[/b] is true, the beam runs from s = C to s = 0.
-    //  If [b]revTrack[/b] is true, we track against the beam.
-    explicit ParallelTracker(const Beamline& bl, const PartData& data, bool revBeam, bool revTrack);
+    /*
+     * Constructor for single track
+     * The Beamline object "bl"
+     * The reference data object "data" 
+     * If "revBeam" is true, the beam runs from s = C to s = 0.
+     * If "revTrack" is true, we track against the beam.
+    */ 
+    explicit ParallelTracker(const Beamline& bl, const PartData& data, 
+        bool revBeam, bool revTrack);
 
-    /// Constructor.
-    //  The beam line to be tracked is "bl".
-    //  The particle reference data are taken from "data".
-    //  The particle bunch tracked is taken from [b]bunch[/b].
-    //  If [b]revBeam[/b] is true, the beam runs from s = C to s = 0.
-    //  If [b]revTrack[/b] is true, we track against the beam.
-    explicit ParallelTracker(
-        const Beamline& bl, PartBunch_t* bunch, DataSink& ds, const PartData& data, bool revBeam,
-        bool revTrack, const std::vector<unsigned long long>& maxSTEPS, double zstart,
-        const std::vector<double>& zstop, const std::vector<double>& dt);
+    /*
+     * Constructor for single track
+     * The Beamline object "bl"
+     * The ParticleBunch "bunch"
+     * The DataSink "ds"
+     * The reference data object "data" 
+     * If "revBeam" is true, the beam runs from s = C to s = 0.
+     * If "revTrack" is true, we track against the beam.
+     * Vector of maxSteps per track
+     * Starting position "zstart"
+     * Vector of ends of the individual tracks
+     * Vector of different timesteps for individual tracks
+    */
+    explicit ParallelTracker(const Beamline& bl, PartBunch_t* bunch, 
+        DataSink& ds, const PartData& data, bool revBeam,
+        bool revTrack, const std::vector<unsigned long long>& maxSTEPS, 
+        double zstart, const std::vector<double>& zstop, 
+        const std::vector<double>& dt);
 
+    // Destructor
     virtual ~ParallelTracker();
 
     /// Apply the algorithm to the top-level beamline.
