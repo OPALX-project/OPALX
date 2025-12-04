@@ -1,0 +1,15 @@
+// Configuration and version information
+// generated automatically - do not edit
+
+#ifndef OPALX_VERSIONS_H
+#define OPALX_VERSIONS_H
+
+const char *opalx_version_name = "@OPALX_VERSION_NAME@";
+const char *opalx_compile_arch = "@OPALX_COMPILE_ARCH@";
+const char *opalx_compile_line = "@OPALX_COMPILE_LINE@";
+const char *opalx_compile_date = "@OPALX_COMPILE_DATE@";
+const char *opalx_compile_machine = "@OPALX_COMPILE_MACHINE@";
+const char *opalx_compile_options = "@OPALX_COMPILE_OPTIONS@";
+const char *opalx_compile_user = "@OPALX_COMPILE_USER@";
+
+#endif

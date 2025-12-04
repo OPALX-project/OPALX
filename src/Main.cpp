@@ -15,7 +15,11 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 
-#include "H5hut.h"
+#include <cstring>
+
+extern "C" {
+  #include "H5hut.h"
+}
 
 #include "AbstractObjects/OpalData.h"
 #include "Fields/Fieldmap.h"
@@ -50,8 +54,6 @@
 #include <iomanip>
 #include <iostream>
 #include <set>
-
-Inform* gmsg;
 
 namespace OPALXMAIN {
     void printStdoutHeader() {

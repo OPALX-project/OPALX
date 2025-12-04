@@ -17,8 +17,8 @@
 //
 #include "Algorithms/OpalParticle.h"
 
-OpalParticle::OpalParticle() {
-}
+// OpalParticle::OpalParticle() {
+// }
 
 OpalParticle::OpalParticle(
     std::size_t id, double x, double px, double y, double py, double z, double pz, double t,

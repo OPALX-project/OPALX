@@ -1,0 +1,156 @@
+name: CI workflow
+          
+on:
+  ## Trigger CI workflow on push to any branch (commented out to limit runs)
+  #push:
+  ## Trigger CI workflow on pull requests to the master branch   
+  pull_request:
+    branches: [ "master" ]
+          
+jobs:     
+  # ===== CPU SERIAL BUILD =====
+  build-cpu-serial-debug:  
+    runs-on: ubuntu-latest
+          
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+          
+      - name: Install build tools and linter
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential cmake git lcov \
+            libopenmpi-dev openmpi-bin gcovr
+
+      - name: Run gen_OPALrevision
+        run: |
+          chmod +x ./gen_OPALrevision
+          ./gen_OPALrevision
+          
+      - name: Configure CMake project
+        run: |
+          mkdir -p build_serial
+          cd build_serial
+          cmake .. \
+            -DBUILD_TYPE=Debug \
+            -DPLATFORMS=SERIAL
+          
+      - name: Build project
+        run: |
+          cd build_serial
+          make -j$(nproc)
+      
+      - name: Run all unit tests
+        run: |
+          cd build_serial
+          ctest --output-on-failure -j $(nproc)
+
+  # ===== CPU OPENMP BUILD =====
+  build-cpu-openmp-debug:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install build tools and OpenMP dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential cmake git \
+            libopenmpi-dev openmpi-bin \
+            libomp-dev
+
+      - name: Run gen_OPALrevision
+        run: |
+          chmod +x ./gen_OPALrevision
+          ./gen_OPALrevision
+
+      - name: Configure CMake project (OpenMP)
+        run: |
+          mkdir -p build_openmp
+          cd build_openmp
+          cmake .. \
+            -DBUILD_TYPE=Debug \
+            -DPLATFORMS=OPENMP
+
+      - name: Build project (OpenMP)
+        run: |
+          cd build_openmp
+          make -j$(nproc)
+      
+      - name: Run all unit tests
+        run: |
+          cd build_openmp
+          ctest --output-on-failure -j $(nproc)
+
+      ## Coverage report generation is currently disabled (not working properly)
+      #   run: |
+      #     mkdir cov_tmp
+      #     cd cov_tmp
+      #     gcovr \
+      #       -r ${{ github.workspace }} \
+      #       --object-directory ${{ github.workspace }}/build_serial \
+      #       --filter ${{ github.workspace }}/src \
+      #       --html-details "${{ github.workspace }}/coverage.html" \
+      #       --exclude '.*_deps.*' \
+      #       --exclude '.*3p.*' \
+      #       --exclude '.*unit_tests.*' \
+      #       --gcov-ignore-errors=all \
+      #       --verbose
+      
+      # - name: Upload coverage artifact
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: coverage-report
+      #     path: |
+      #       coverage.html
+
+  # ===== GPU CUDA BUILD =====
+  build-cuda-debug:
+    runs-on: ubuntu-latest
+    container:
+      image: nvidia/cuda:12.8.1-devel-ubuntu22.04  # CUDA-enabled container for compilation
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Disable NVIDIA APT repos to avoid mirror mismatch errors
+        run: |
+          rm -f /etc/apt/sources.list.d/cuda*.list
+          rm -f /etc/apt/sources.list.d/nvidia*.list
+
+      - name: Install dependencies
+        run: |
+          apt-get update
+          apt-get install -y build-essential git wget p7zip-full unzip locales libopenmpi-dev openmpi-bin
+          # Set UTF-8 locale to avoid zip extraction issues
+          locale-gen en_US.UTF-8
+          update-locale LANG=en_US.UTF-8
+          export LANG=en_US.UTF-8
+          export LC_ALL=en_US.UTF-8
+          # Install CMake 4.1.1
+          wget https://cmake.org/files/v4.1/cmake-4.1.1-linux-x86_64.sh
+          bash cmake-4.1.1-linux-x86_64.sh --skip-license --prefix=/usr/local
+          cmake --version
+      
+      - name: Run gen_OPALrevision
+        run: |
+          chmod +x ./gen_OPALrevision
+          ./gen_OPALrevision
+
+      - name: Configure CMake project (CUDA)
+        run: |
+          mkdir -p build_cuda
+          cd build_cuda
+          cmake .. \
+            -DBUILD_TYPE=Debug \
+            -DPLATFORMS=CUDA \
+            -DARCH=AMPERE80
+          
+      - name: Build project
+        run: |
+          cd build_cuda
+          make -j$(nproc)
+    

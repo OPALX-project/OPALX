@@ -1,32 +1,23 @@
-set (${PROJECT_NAME}_CMAKE_CXX_FLAGS "${${PROJECT_NAME}_CXX_FLAGS}")
-set (${PROJECT_NAME}_INCLUDE_DIR "${CMAKE_INSTALL_PREFIX}/include")
-set (${PROJECT_NAME}_LIBRARY_DIR "${CMAKE_INSTALL_PREFIX}/lib")
-set (${PROJECT_NAME}_LIBRARY "${CMAKE_INSTALL_PREFIX}/lib/libOPAL.a")
+@PACKAGE_INIT@
 
-set (${PROJECT_NAME}_LIBRARIES
-    ${KOKKOS_LIBRARY1}
-    ${KOKKOS_LIBRARY2}
-    ${KOKKOS_LIBRARY3}
-    ${HEFFTE_LIBRARY}
-    ${IPPL_LIBRARY}
-    ${GSL_LIBRARY}
-    ${GSL_CBLAS_LIBRARY}
-    ${H5Hut_LIBRARY}
-    ${HDF5_LIBRARIES}
-    ${Boost_LIBRARIES}
-    ${OTHER_CMAKE_EXE_LINKER_FLAGS}
-    ${CMAKE_DL_LIBS}
-    libOPAL.a
-)
+include(CMakeFindDependencyMacro)
 
-set (${PROJECT_NAME}_INCLUDE_DIRS
-    ${IPPL_INCLUDE_DIR}
-    ${H5Hut_INCLUDE_DIR}
-    ${HDF5_INCLUDE_DIR}
-    ${GSL_INCLUDE_DIR}
-    ${IPPL_SOURCE_DIRS}
-    ${GTEST_INCLUDE_DIR}
-    ${Kokkos_INCLUDE_DIR}
-)
+find_dependency(MPI REQUIRED)
 
-message (STATUS "OPALConfig.cmake.in: ${PROJECT_NAME}_LIBRARIES")
+# -----------------------------------------------------------------------------
+# To support FetchContent downloaded kokkos/heffte:
+# Detect if this file is being sourced from build tree or install tree
+# -----------------------------------------------------------------------------
+get_filename_component(_opalxconfig_dir "${CMAKE_CURRENT_LIST_DIR}" REALPATH)
+get_filename_component(_build_dir       "@CMAKE_BINARY_DIR@"       REALPATH)
+get_filename_component(_install_dir     "@CMAKE_INSTALL_PREFIX@"   REALPATH)
+if(_opalxconfig_dir MATCHES "^${_install_dir}")
+    set(_INSTALL_TREE 1)
+elseif(_opalxconfig_dir MATCHES "^${_build_dir}")
+    set(_BUILD_TREE 1)
+endif()
+
+# -----------------------------------------------------------------------------
+# Make sure OPALX targets are setup
+# -----------------------------------------------------------------------------
+include("${CMAKE_CURRENT_LIST_DIR}/OPALXTargets.cmake")
