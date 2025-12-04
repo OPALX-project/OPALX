@@ -34,7 +34,8 @@ jobs:
           cd build_serial
           cmake .. \
             -DBUILD_TYPE=Debug \
-            -DPLATFORMS=SERIAL
+            -DPLATFORMS=SERIAL \
+            -DOPALX_ENABLE_UNIT_TESTS=ON
           
       - name: Build project
         run: |
@@ -73,7 +74,8 @@ jobs:
           cd build_openmp
           cmake .. \
             -DBUILD_TYPE=Debug \
-            -DPLATFORMS=OPENMP
+            -DPLATFORMS=OPENMP \
+            -DOPALX_ENABLE_UNIT_TESTS=ON
 
       - name: Build project (OpenMP)
         run: |
