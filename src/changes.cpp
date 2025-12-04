@@ -3,6 +3,9 @@
 
 #include "changes.h"
 
+#include "Utility/Inform.h"
+Inform* gmsg;
+
 namespace Versions {
     std::map<unsigned int, std::string> changes;
 

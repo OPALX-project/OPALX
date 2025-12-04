@@ -1,89 +1,97 @@
-# This is OPAL-X
+# OPALX
 
+## Dependencies
 
-# BUILDING OPAL-X on Merlin
-
-
-## Modules needed OPENMP build
+In order to compile OPALX, make sure you have the following dependencies installed on your system:
 
 ```
 cmake/3.25.2
-
 openmpi/4.1.5_slurm
-
-fftw/3.3.10_merlin6    
-
-gsl/2.7                
-
-H5hut/2.0.0rc6_slurm
-
 gcc/12.3.0             
-
-boost/1.82.0_slurm     
-
-gtest/1.13.0-1         
-
-hdf5/1.10.8_slurm     
-
 gnutls/3.5.19
-
 cuda/12.8.1
 ```
 
-
-
-## Clone repo and build opal-x with OPENMP 
+Other dependencies are fetched and installed in the opalx installation.
 
 ```
-$ git clone git@gitlab.psi.ch:OPAL/opal-x/src.git opal-x
-
-$ cd opal-x
-
-$ ./gen_OPALrevision
+ippl/3.2.0
+hdf5/1.10.8_slurm  
+H5hut/2.0.0rc6_slurm
+boost/1.82.0_slurm   
+gsl/2.7                
+gtest/1.13.0-1
 ```
 
-
-### To compile for OPENMP:
-```
-$ mkdir build_openmp && cd build_openmp
-$ cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_STANDARD=20 -DIPPL_ENABLE_FFT=ON -DIPPL_ENABLE_SOLVERS=ON -DIPPL_ENABLE_ALPINE=OFF -DIPPL_ENABLE_TESTS=OFF     -DIPPL_PLATFORMS=openmp
-```
-
-
-### To compile for GPU, for example Amper80 on Gwendolen
-```
-$ mkdir build_cuda && cd build_cuda
-```
-
-in debug mode:
+## Building OPALX
 
 ```
-$ cmake .. -DCMAKE_BUILD_TYPE=Debug -DIPPL_PLATFORMS=CUDA -DKokkos_ARCH_AMPERE80=ON -DCMAKE_CXX_STANDARD=20 -DIPPL_ENABLE_FFT=ON  -DIPPL_ENABLE_SOLVERS=ON -DIPPL_ENABLE_ALPINE=OFF -DIPPL_ENABLE_TESTS=OFF
+git clone https://github.com/OPALX-project/OPALX.git
+cd OPALX
+./gen_OPALrevision
 ```
 
-and release (optimized) mode:
+### Setting up cmake
+
+#### cmake command for CPU build
+
+Building OPALX without multi-threading (only MPI):
 ```
-$ cmake .. -DCMAKE_BUILD_TYPE=Release -DIPPL_PLATFORMS=CUDA -DKokkos_ARCH_AMPERE80=ON -DCMAKE_CXX_STANDARD=20 -DIPPL_ENABLE_FFT=ON  -DIPPL_ENABLE_SOLVERS=ON -DIPPL_ENABLE_ALPINE=OFF -DIPPL_ENABLE_TESTS=OFF
+mkdir build_serial && cd build_serial
+cmake .. \
+    -DBUILD_TYPE=Debug \
+    -DPLATFORMS=SERIAL
 ```
 
-### To compile for other GPU architecture, like Pascal on the Merlin's login node
-```
-$ mkdir build_cuda_login && cd build_cuda_login
-```
-
-in debug mode:
+and for multi-threading with OpenMP:
 
 ```
-$ cmake .. -DCMAKE_BUILD_TYPE=Debug -DIPPL_PLATFORMS=CUDA -DKokkos_ARCH_PASCAL61=ON -DCMAKE_CXX_STANDARD=20 -DIPPL_ENABLE_FFT=ON  -DIPPL_ENABLE_SOLVERS=ON -DIPPL_ENABLE_ALPINE=OFF -DIPPL_ENABLE_TESTS=OFF
+mkdir build_openmp && cd build_openmp
+cmake .. \
+    -DBUILD_TYPE=Debug \
+    -DPLATFORMS=OPENMP
 ```
 
-and release (optimized) mode:
+In order to enable the compilation of unit tests, set `-DOPALX_ENABLE_UNIT_TESTS=ON` in the cmake command. The resulting executables will appear in `unit_tests` directory.
+
+
+#### cmake command for GPU build
 ```
-$ cmake .. -DCMAKE_BUILD_TYPE=Release -DIPPL_PLATFORMS=CUDA -DKokkos_ARCH_PASCAL61=ON -DCMAKE_CXX_STANDARD=20 -DIPPL_ENABLE_FFT=ON  -DIPPL_ENABLE_SOLVERS=ON -DIPPL_ENABLE_ALPINE=OFF -DIPPL_ENABLE_TESTS=OFF
+mkdir build_cuda && cd build_cuda
 ```
 
-### Submitting jobs on Gwendolen and Merlin GPUs
-To execute opal-x on merlin's gpus (compile for PASCAL61), the job script should looks like
+For example, for A100 with Amper80 Architecture (Gwendolen), and the debug mode, the cmake should be something like:
+
+```
+cmake .. \
+    -DBUILD_TYPE=Debug \
+    -DPLATFORMS=CUDA \
+    -DARCH=AMPERE80
+```
+
+For the release mode, use `Release` instead of `Debug` as the argument for `-DBUILD_TYPE`. For other GPUs use the correct flag for their corresponding architecture. For example, for P100 or GTX 1080 with Pascal61 architecture on Merlin login node, use `-DARCH=PASCAL61` instead of `-DARCH=AMPERE80`. 
+
+#### Notes:
+
+- Use -DBUILD_TYPE=Release for optimized builds.
+- ARCH is required for CUDA builds so OPALX can configure Kokkos properly.
+- All IPPL/Kokkos flags (FFT, solvers, tests, ALPINE, `Kokkos_ARCH_*`, etc.) are now set automatically.
+
+### Compilation
+
+Finally, compile OPALX with 
+```
+make
+```
+using single thread, and
+```
+make -j 4
+```
+using `4` threads for example.
+
+
+## Job scripts
+To execute opalx on merlin's gpus (compile for PASCAL61), the job script should looks like
 ```
 #!/bin/bash
 #SBATCH --error=merlin.error

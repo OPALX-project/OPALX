@@ -21,7 +21,7 @@
 #include "MemoryManagement/RCObject.h"
 #include "AbstractObjects/Invalidator.h"
 #include <iosfwd>
-#include <string>
+#include <cstring>
 
 // Class AttributeBase
 // ------------------------------------------------------------------------

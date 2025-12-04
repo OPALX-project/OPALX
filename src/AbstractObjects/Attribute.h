@@ -22,7 +22,7 @@
 #include "AbstractObjects/AttributeHandler.h"
 #include <memory>
 #include <iosfwd>
-#include <string>
+#include <cstring>
 
 class Statement;
 
