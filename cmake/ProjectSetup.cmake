@@ -12,7 +12,6 @@
 #
 # Not responsible for:
 #   - Compiler warning/sanitizer flags    → CompilerOptions.cmake
-#   - Platform/backend choices (e.g. CUDA)→ Platforms.cmake
 #   - External dependencies               → Dependencies.cmake
 #
 # cmake-format: on
