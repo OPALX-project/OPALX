@@ -109,7 +109,7 @@ class ParallelTracker : public Tracker {
     IpplTimings::TimerRef BinRepartTimer_m;
     IpplTimings::TimerRef OrbThreader_m;
     
-    // ======== UNUSED VARIABLES ======== // 
+    // ======== UNUSED VARIABLES ======== //
   
     // Particle - Matter interaction
     std::set<ParticleMatterInteractionHandler*> activeParticleMatterInteractionHandlers_m;
@@ -127,8 +127,8 @@ public:
      * Unused typedefs: 
      * typedef std::vector<double> dvector_t;
      * typedef std::vector<int> ivector_t;
-     * typedef std::pair<double[8], Component*> element_pair;
     */
+    typedef std::pair<double[8], Component*> element_pair;
     typedef std::pair<ElementType, element_pair> type_pair;
     typedef std::list<type_pair*> beamline_list;
 
@@ -164,9 +164,10 @@ public:
     // Destructor
     virtual ~ParallelTracker();
 
-    /// Apply the algorithm to the top-level beamline.
-    //  overwrite the execute-methode from DefaultVisitor
+    // Starts the simulation
     virtual void execute();
+
+    // ======== Visit Functions ======== // 
 
     /// Apply the algorithm to a beam line.
     //  overwrite the execute-methode from DefaultVisitor
@@ -205,17 +206,16 @@ public:
     /// Apply the algorithm to a vertical FFA magnet.
     virtual void visitVerticalFFAMagnet(const VerticalFFAMagnet& bend);
 
-    // made following public: __host__ __device__ lambda cannot have private or protected access within its class
+    /* ========= PIC functions ========= */
+    
     void kickParticles(const BorisPusher& pusher);
-
     void pushParticles(const BorisPusher& pusher);
-
+    void timeIntegration1(BorisPusher& pusher);
     void timeIntegration2(BorisPusher& pusher);
+    void computeSpaceChargeFields(unsigned long long step);    
+    void computeExternalFields(OrbitThreader& oth);
 
     void changeDT(bool backTrack = false);
-
-    void computeSpaceChargeFields(unsigned long long step);
-
     void setTime();
 private:
     // Not implemented.
@@ -271,10 +271,9 @@ private:
 
     void prepareSections();
 
-    void timeIntegration1(BorisPusher& pusher);
+        
     void selectDT(bool backTrack = false);
     void emitParticles(long long step);
-    void computeExternalFields(OrbitThreader& oth);
     void computeWakefield(IndexMap::value_t& elements);
     void computeParticleMatterInteraction(IndexMap::value_t elements, OrbitThreader& oth);
 
