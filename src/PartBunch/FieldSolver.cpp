@@ -30,8 +30,11 @@ void  FieldSolver<double,3>::initSolverWithParams(const ippl::ParameterList& sp)
         // and the P3M solver compute the electric field directly
         m << "OpenSolver used" << endl;
         solver.setRhs(*rho_m);
+        m << "Set RHS for OpenSolver" << endl;
         solver.setLhs(*E_m);
+        m << "Set LHS for OpenSolver" << endl;
         solver.setGradFD();
+        m << "Set GradFD for OpenSolver" << endl;
     } else if constexpr (std::is_same_v<Solver, FFTSolver_t<T, Dim>>) {
         // The periodic Poisson solver
         m << "FFTSolver used" << endl;
@@ -296,11 +299,31 @@ void FieldSolver<double,3>::initOpenSolver() {
 }
 
 template <>
+void FieldSolver<double,3>::initFFTSolver() {
+    if constexpr (Dim == 2 || Dim == 3) {
+        ippl::ParameterList sp;
+        sp.add("output_type", FFTSolver_t<double, 3>::GRAD);
+        //sp.add("output_type", OpenSolver_t<double, 3>::SOL_AND_GRAD);
+        sp.add("use_heffte_defaults", false);
+        sp.add("use_pencils", true);
+        sp.add("use_reorder", false);
+        sp.add("use_gpu_aware", true);
+        sp.add("comm", ippl::p2p_pl);
+        sp.add("r2c_direction", 0);
+        initSolverWithParams<FFTSolver_t<double, 3>>(sp);
+    } else {
+        // TODO: add exception here
+        // throw std::runtime_error("Unsupported dimensionality for FFT solver");
+    }
+}
+
+
+template <>
 void FieldSolver<double,3>::initSolver() {
     Inform m;
     if (this->getStype() == "FFT") {
-        initOpenSolver();    
-    } else if (this->getStype() == "FFTOPEN") {
+        initFFTSolver();    
+    } else if (this->getStype() == "OPEN") {
         initOpenSolver();    
     } else if (this->getStype() == "NONE") {
         initNullSolver();
@@ -358,7 +381,7 @@ void FieldSolver<double,3>::runSolver() {
                 call_counter_m++;
 #endif
 
-                std::get<OpenSolver_t<double, 3>>(this->getSolver()).solve();
+                std::get<FFTSolver_t<double, 3>>(this->getSolver()).solve();
 #ifdef OPALX_FIELD_DEBUG
                 this->dumpScalField("phi");
                 this->dumpVectField("ef");

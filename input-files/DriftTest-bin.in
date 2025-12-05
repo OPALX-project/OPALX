@@ -59,7 +59,7 @@ SIGMAPX=0.0,
 SIGMAPY=0.0,
 SIGMAPZ=0.003;     // A little energy spread which is used for binning in z direction
 
-FS1: Fieldsolver, Type=FFT,
+FS1: Fieldsolver, Type=OPEN,
      NX = 128, NY = 128, NZ = 128,
      PARFFTX = TRUE,
      PARFFTY = TRUE,

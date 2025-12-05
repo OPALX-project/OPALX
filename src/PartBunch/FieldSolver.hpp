@@ -64,19 +64,7 @@ public:
 
     void initNullSolver();
     
-    void initFFTSolver() {
-    ippl::ParameterList sp;
-    sp.add("output_type", FFTSolver_t<double, 3>::GRAD);
-    //sp.add("output_type", OpenSolver_t<double, 3>::SOL_AND_GRAD);
-    sp.add("use_heffte_defaults", false);
-    sp.add("use_pencils", true);
-    sp.add("use_reorder", false);
-    sp.add("use_gpu_aware", true);
-    sp.add("comm", ippl::p2p_pl);
-    sp.add("r2c_direction", 0);
-    initSolverWithParams<FFTSolver_t<double, 3>>(sp);
-    //initSolverWithParams<OpenSolver_t<double, 3>>(sp);
-    }
+    void initFFTSolver();
     
     void initCGSolver() { }
 
