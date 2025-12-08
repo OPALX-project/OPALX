@@ -403,6 +403,13 @@ void ParallelTracker::execute() {
             Vector_t<double, 3> rmin(0.0), rmax(0.0);
             if (itsBunch_m->getTotalNum() > 0) {
                 itsBunch_m->get_bounds(rmin, rmax);
+                *gmsg << "* Bunch bounds at step " << step + 1 << ": "
+                      << " x[" << Util::getLengthString(rmin(0)) << ", "
+                      << Util::getLengthString(rmax(0)) << "] "
+                      << " y[" << Util::getLengthString(rmin(1)) << ", "
+                      << Util::getLengthString(rmax(1)) << "] "
+                      << " z[" << Util::getLengthString(rmin(2)) << ", "
+                      << Util::getLengthString(rmax(2)) << "] " << endl;
             }
             // ADA
             timeIntegration1(pusher);
@@ -413,6 +420,54 @@ void ParallelTracker::execute() {
             // computeExternalFields(oth);
 
             timeIntegration2(pusher);
+
+            {
+                // Calculate bunch size: rms in position
+                Vector_t<double, 3> meanR = itsBunch_m->getParticleContainer()->getMeanR();
+                Vector_t<double, 3> sumR2(0.0);
+                unsigned long long numParticles = itsBunch_m->getTotalNum();
+                auto Rview = itsBunch_m->getParticleContainer()->R.getView();
+                Kokkos::parallel_reduce(
+                                     "bunchSizeCalc", numParticles,
+                                     KOKKOS_LAMBDA(const size_t i, Vector_t<double,3>& localSumR2) {
+                                         Vector_t<double, 3> diff = Rview(i) - meanR;
+                                         localSumR2 += diff * diff;
+                                     }, sumR2);
+                ippl::Comm->allreduce(sumR2, 1, std::plus<Vector_t<double, 3>>());
+                Vector_t<double, 3> rmsSize = sqrt( sumR2 / static_cast<double>(numParticles) );
+                *gmsg << "* After step " << step + 1 << ": Bunch RMS size (x,y,z) = ("
+                      << Util::getLengthString(rmsSize(0)) << ", "
+                      << Util::getLengthString(rmsSize(1)) << ", "
+                      << Util::getLengthString(rmsSize(2)) << ") " << endl;
+            }
+
+            {
+                // Output sum of particle charges
+                double localChargeSum = 0.0;
+                unsigned long long numParticles = itsBunch_m->getTotalNum();
+                auto chargeView = itsBunch_m->getParticleContainer()->Q.getView();
+                Kokkos::parallel_reduce(
+                                     "chargeSumCalc", numParticles,
+                                     KOKKOS_LAMBDA(const size_t i, double& localSum) {
+                                         localSum += chargeView(i);
+                                     }, localChargeSum);
+                double globalChargeSum = 0.0;
+                ippl::Comm->allreduce(&localChargeSum, &globalChargeSum, 1, std::plus<double>());
+                *gmsg << "* After step " << step + 1 << ": Total bunch charge = "
+                      << globalChargeSum << endl; // Util::getChargeString(
+            }
+            {
+                // Extract charge of first particle for debugging
+                double firstParticleCharge = 0.0;
+                auto chargeView = itsBunch_m->getParticleContainer()->Q.getView();
+                Kokkos::parallel_reduce(
+                                     "firstParticleCharge", 1,
+                                     KOKKOS_LAMBDA(const size_t i, double& localCharge) {
+                                         localCharge = chargeView(0);
+                                     }, firstParticleCharge);
+                *gmsg << "* After step " << step + 1 << ": First particle charge = "
+                      << firstParticleCharge << endl;
+            }
             
             selectDT(back_track);
             // \todo emitParticles(step);
@@ -446,6 +501,9 @@ void ParallelTracker::execute() {
             ippl::Vector<double,3> pdivg = itsBunch_m->RefPartP_m / Util::getGamma(itsBunch_m->RefPartP_m);
             double beta = euclidean_norm(pdivg);
             double driftPerTimeStep = std::abs(itsBunch_m->getdT()) * Physics::c * beta;
+
+            // Output driftPerTimeStep for debugging
+            *gmsg << "* Drift per time step: " << Util::getLengthString(driftPerTimeStep) << endl;
 
             if (std::abs(stepSizes_m.getZStop() - pathLength_m) < 0.5 * driftPerTimeStep) {
                 break;
