@@ -392,7 +392,7 @@ void FieldSolver<double,3>::runSolver() {
             if constexpr (Dim == 3) {
                 std::get<FFTTruncatedGreenSolver_t<double, 3>>(this->getSolver()).solve();
             }
-        } else if (this->getStype() == "FFTOPEN") {
+        } else if (this->getStype() == "OPEN") {
             if constexpr (Dim == 3) {
 #ifdef OPALX_FIELD_DEBUG
                 this->dumpScalField("rho");
