@@ -180,7 +180,7 @@ double Beam::getFrequency() const {
 }
 
 double Beam::getChargePerParticle() const {
-    return std::copysign(1.0, getCharge()) * getCurrent() / (getFrequency() * Units::MHz2Hz)
+    return std::copysign(1.0, getCharge()) * getCurrent() / getFrequency() // * Units::MHz2Hz // (no conversion needed, if Bfreq is saved AND inputted in MHz!)
            / getNumberOfParticles();
 }
 
