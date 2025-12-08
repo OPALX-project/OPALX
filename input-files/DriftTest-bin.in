@@ -110,7 +110,7 @@ Value,{OPALVERSION};
 // Global Parameters
 
 REAL rf_freq             = 1.3e3;    // RF frequency. (MHz)
-REAL n_particles         = 1E5; // 16777216; // 1E6;      // Number of particles in simulation.
+REAL n_particles         = 16777216 // 1E6; // 16777216; // 1E6;      // Number of particles in simulation.
 REAL beam_bunch_charge   = 1e-9;     // Charge of bunch. (C)
 
 // ----------------------------------------------------------------------------
@@ -129,12 +129,12 @@ DR1: DRIFT, L = 0.25, ELEMEDGE = 0.0;
 DrLine: Line = (DR1);
 
 Dist1: DISTRIBUTION, TYPE=GAUSS,
-SIGMAX=0.00075,
-SIGMAY=0.00075,
-SIGMAZ=0.0005,
+SIGMAX=0.0000006,
+SIGMAY=0.0000075,
+SIGMAZ=0.0007,
 SIGMAPX=0.0,
 SIGMAPY=0.0,
-SIGMAPZ=0.003;     // A little energy spread which is used for binning in z direction
+SIGMAPZ=0.0;     // A little energy spread which is used for binning in z direction
 
 FS1: Fieldsolver, Type=FFT,
      NX = 128, NY = 128, NZ = 128,
