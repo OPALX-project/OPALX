@@ -2,8 +2,6 @@
 	OPAL-X
 	Test simple Gaussian distribution with space charge in a 2 m drift.
     Tests energy binning functionality.
-
-    Copied from the old DriftTest-3 and added binning options.
 */
 
 OPTION, PSDUMPFREQ      = 1;     // 6d data written every 10th time step (h5).
@@ -33,8 +31,8 @@ Value,{OPALVERSION};
 // Global Parameters
 
 REAL rf_freq             = 1.3e3;    // RF frequency. (MHz)
-REAL n_particles         = 1E5; // 16777216; // 1E6;      // Number of particles in simulation.
-REAL beam_bunch_charge   = 1e-9;     // Charge of bunch. (C)
+REAL n_particles         = 16000000; // 1E6;      // Number of particles in simulation.
+REAL beam_bunch_charge   = 1e-4; // n_particles * 1.60217663e-19; // 1e-9;     // Charge of bunch. (C)
 
 // ----------------------------------------------------------------------------
 // Initial Momentum Calculation
@@ -47,110 +45,33 @@ REAL P0      = gamma*beta*EMASS;    //inital z momentum
 //Printing initial energy and momentum to terminal output.
 value, {Edes, P0, OPALVERSION};
 
-DR1: DRIFT, L = 0.25, ELEMEDGE = 0.0;
+DR1: DRIFT, L = 100, ELEMEDGE = 0.0;
 
 DrLine: Line = (DR1);
 
 Dist1: DISTRIBUTION, TYPE=GAUSS,
-SIGMAX=0.00075,
-SIGMAY=0.00075,
-SIGMAZ=0.0005,
-SIGMAPX=0.0,
-SIGMAPY=0.0,
-SIGMAPZ=0.003;     // A little energy spread which is used for binning in z direction
+    SIGMAX=50e-6,
+    SIGMAY=10e-6,
+    SIGMAZ=200e-6,
+    SIGMAPX=0.0,
+    SIGMAPY=0.0,
+    SIGMAPZ=0.0001;     // A little energy spread which is used for binning in z direction
 
 FS1: Fieldsolver, Type=OPEN,
-     NX = 128, NY = 128, NZ = 128,
-     PARFFTX = TRUE,
-     PARFFTY = TRUE,
-     PARFFTZ = TRUE,
-     BCFFTX = OPEN,
-     BCFFTY = OPEN,
-     BCFFTZ = OPEN,
-     BBOXINCR = 1, GREENSF = STANDARD;
+    NX = 128, NY = 128, NZ = 128,
+    PARFFTX = TRUE,
+    PARFFTY = TRUE,
+    PARFFTZ = TRUE,
+    BCFFTX = OPEN,
+    BCFFTY = OPEN,
+    BCFFTZ = OPEN,
+    BBOXINCR = 1, GREENSF = STANDARD;
 
 
 BEAM1:  BEAM, PARTICLE = ELECTRON, pc = P0, NPART = n_particles,
         BFREQ = rf_freq, BCURRENT = beam_bunch_charge * rf_freq, CHARGE = -1;
 
-TRACK, LINE = DrLine, BEAM = BEAM1, MAXSTEPS = 20, DT = {1e-10}, ZSTOP=0.25; 
- RUN, METHOD = "PARALLEL", BEAM = BEAM1, FIELDSOLVER = FS1, DISTRIBUTION = Dist1;
-ENDTRACK;
-QUIT;
-/*      DriftTest-1.in
-	OPAL-X
-	Test simple Gaussian distribution with space charge in a 2 m drift.
-    Tests energy binning functionality.
-*/
-
-OPTION, PSDUMPFREQ      = 1;     // 6d data written every 10th time step (h5).
-OPTION, STATDUMPFREQ    = 1;     // Beam Stats written every time step (stat).
-OPTION, BOUNDPDESTROYFQ = 10;    // Delete lost particles, if any out of 10 \sigma
-OPTION, AUTOPHASE       = 4;     // Autophase is on, and phase of max energy
-                                 // gain will be found automatically for cavities.
-
-// ----------------------------------------------------------------------------
-// Binning related parameters. 
-
-OPTION, MAXBINS=128;
-OPTION, DESIREDWIDTH=0.1; // A bias towards bin width 0.1
-OPTION, BINNINGALPHA=1.0; // [-1, 1], <0 will favor wider bins, >0 will favor smaller bins (0 is no penalty)
-OPTION, BINNINGBETA=1.5;  // [0, inf] determines how strong the bias towards WIDTH is 
-                          // (pick a very big number if you want to force "constant binning")
-
-// ----------------------------------------------------------------------------
-
-OPTION, VERSION=10900;
-
-Title, string="Test simple Gaussian distribution with space charge";
-
-Value,{OPALVERSION};
-
-// ----------------------------------------------------------------------------
-// Global Parameters
-
-REAL rf_freq             = 1.3e3;    // RF frequency. (MHz)
-REAL n_particles         = 16777216 // 1E6; // 16777216; // 1E6;      // Number of particles in simulation.
-REAL beam_bunch_charge   = 1e-9;     // Charge of bunch. (C)
-
-// ----------------------------------------------------------------------------
-// Initial Momentum Calculation
-
-REAL Edes    = 1.4e-9; //initial energy in GeV
-REAL gamma   = (Edes+EMASS)/EMASS; 
-REAL beta    = sqrt(1-(1/gamma^2));
-REAL P0      = gamma*beta*EMASS;    //inital z momentum
-
-//Printing initial energy and momentum to terminal output.
-value, {Edes, P0, OPALVERSION};
-
-DR1: DRIFT, L = 0.25, ELEMEDGE = 0.0;
-
-DrLine: Line = (DR1);
-
-Dist1: DISTRIBUTION, TYPE=GAUSS,
-SIGMAX=0.0000006,
-SIGMAY=0.0000075,
-SIGMAZ=0.0007,
-SIGMAPX=0.0,
-SIGMAPY=0.0,
-SIGMAPZ=0.0;     // A little energy spread which is used for binning in z direction
-
-FS1: Fieldsolver, Type=FFT,
-     NX = 128, NY = 128, NZ = 128,
-     PARFFTX = TRUE,
-     PARFFTY = TRUE,
-     PARFFTZ = TRUE,
-     BCFFTX = OPEN,
-     BCFFTY = OPEN,
-     BCFFTZ = OPEN,
-     BBOXINCR = 1, GREENSF = STANDARD;
-
-
-BEAM1:  BEAM, PARTICLE = ELECTRON, pc = P0, NPART = n_particles,
-        BFREQ = rf_freq, BCURRENT = beam_bunch_charge * rf_freq, CHARGE = -1;
-
-TRACK, LINE = DrLine, BEAM = BEAM1, MAXSTEPS = 20, DT = {1e-10}, ZSTOP=0.25; 
+TRACK, LINE = DrLine, BEAM = BEAM1, MAXSTEPS = 20, DT = {2.5e-9}, ZSTOP=0.25; 
  RUN, METHOD = "PARALLEL", BEAM = BEAM1, FIELDSOLVER = FS1, DISTRIBUTION = Dist1;
 ENDTRACK;
 QUIT;
