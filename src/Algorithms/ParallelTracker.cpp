@@ -406,15 +406,14 @@ void ParallelTracker::execute() {
     // Stop timing for the OrbitThreader section
     IpplTimings::stopTimer(OrbThreader_m);
     
+    // Get bounding box
     BoundingBox globalBoundingBox = oth.getBoundingBox();
 
+    // Total particle number
     numParticlesInSimulation_m = itsBunch_m->getTotalNum();
 
+    // Set the time view of the particle bunch
     setTime();
-
-    //double time = itsBunch_m->getT() - globalTimeShift;
-    double time = itsBunch_m->getT();
-    itsBunch_m->setT(time);
 
     unsigned long long step = itsBunch_m->getGlobalTrackStep();
     OPALTimer::Timer myt1;
