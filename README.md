@@ -77,6 +77,27 @@ For the release mode, use `Release` instead of `Debug` as the argument for `-DBU
 - ARCH is required for CUDA builds so OPALX can configure Kokkos properly.
 - All IPPL/Kokkos flags (FFT, solvers, tests, ALPINE, `Kokkos_ARCH_*`, etc.) are now set automatically.
 
+#### Further Options
+`-DIPPL_ENABLE_ALPINE` default `OFF`
+
+`-DIPPL_ENABLE_TEST` default `OFF`
+
+`-DOPALX_ENABLE_UNIT_TESTS` default `OFF`
+
+`-DOPALX_ENABLE_EXAMPLES` default `OFF`
+
+`-DOPALX_ENABLE_TESTS` default `OFF`
+
+`-DOPALX_ENABLE_COVERAGE` default `OFF`
+
+`-DOPALX_ENABLE_NSYS_PROFILER` default `OFF`
+
+`-DOPALX_ENABLE_SANITIZER` default `OFF`
+
+`-DOPALX_USE_ALTERNATIVE_VARIANT` default `OFF`
+
+`-DOPALX_ENABLE_SCRIPTS` default `OFF`
+
 ### Compilation
 
 Finally, compile OPALX with 
