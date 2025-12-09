@@ -1,24 +1,3 @@
-//
-// Class ParallelTracker
-//   OPAL-T tracker.
-//   The visitor class for tracking particles with time as independent
-//   variable.
-//
-// Copyright (c) 200x - 2014, Christof Kraus, Paul Scherrer Institut, Villigen PSI, Switzerland
-//               2015 - 2016, Christof Metzger-Kraus, Helmholtz-Zentrum Berlin, Germany
-//               2017 - 2020, Christof Metzger-Kraus
-// All rights reserved
-//
-// This file is part of OPAL.
-//
-// OPAL is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// You should have received a copy of the GNU General Public License
-// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
-//
 #ifndef OPAL_ParallelTracker_HH
 #define OPAL_ParallelTracker_HH
 
@@ -56,8 +35,16 @@
 class ParticleMatterInteractionHandler;
 class PluginElement;
 
+/**
+ * @brief Implements the simulation loop
+ * 
+ * ParallelTracker implements the main simulation loop. 
+ * TRACK and RUN commands in the inputfile invoke the creation of the 
+ * ParalleTracker object and the execution of ParallelTracker::execute()
+ */
 class ParallelTracker : public Tracker {
-
+private:
+    /* ============================= Variables ============================= */
     // Responsible for writing beam statistics
     DataSink* itsDataSink_m;
 
@@ -79,7 +66,7 @@ class ParallelTracker : public Tracker {
     // Starting position
     double zstart_m;
 
-    /*  
+    /**   
      * stores informations where to change the time step and
      * where to stop the simulation,
      * the time step sizes and
@@ -90,8 +77,8 @@ class ParallelTracker : public Tracker {
     // The current time stepsize dt (controlled by StepSizeConfig)
     double dtCurrentTrack_m;
 
-    // This variable controls the minimal number of steps of emission (using bins)
-    // before we can merge the bins
+    // This variable controls the minimal number of steps of 
+    // emission (using bins) before we can merge the bins
     int minStepforReBin_m;
 
     // Controls the frequency of load balancing 
@@ -99,8 +86,8 @@ class ParallelTracker : public Tracker {
 
     // Total number of particles in the whole simulation
     size_t numParticlesInSimulation_m;
-
-    // Timers
+    /* ===================================================================== */
+    /* ============================== Timers =============================== */
     IpplTimings::TimerRef timeIntegrationTimer1_m;
     IpplTimings::TimerRef timeIntegrationTimer2_m;
     IpplTimings::TimerRef fieldEvaluationTimer_m;
@@ -108,11 +95,35 @@ class ParallelTracker : public Tracker {
     IpplTimings::TimerRef PluginElemTimer_m;
     IpplTimings::TimerRef BinRepartTimer_m;
     IpplTimings::TimerRef OrbThreader_m;
+    /* ===================================================================== */
+    /* ========================== Ring Variables =========================== */
+    unsigned turnnumber_m;
+
+    std::list<Component*> myElements;
+    beamline_list FieldDimensions;
+
+    double bega;
+    double referenceR;
+    double referenceTheta;
+    double referenceZ = 0.0;
+
+    double referencePr;
+    double referencePt;
+    double referencePz = 0.0;
+    double referencePtot;
+
+    double referencePsi;
+    double referencePhi;
+
+    double sinRefTheta_m;
+    double cosRefTheta_m; 
     
-    // ======== UNUSED VARIABLES ======== //
-  
+    std::vector<PluginElement*> pluginElements_m;
+    /* ===================================================================== */ 
+    /* ========================== NOT IMPLEMENTED ========================== */
     // Particle - Matter interaction
-    std::set<ParticleMatterInteractionHandler*> activeParticleMatterInteractionHandlers_m;
+    std::set<ParticleMatterInteractionHandler*> 
+        activeParticleMatterInteractionHandlers_m;
     bool particleMatterStatus_m;
    
     // Does nothing ...
@@ -121,17 +132,9 @@ class ParallelTracker : public Tracker {
     // Wakefield stuff - Does nothing... 
     bool wakeStatus_m;
     WakeFunction* wakeFunction_m;
-
+    /* ===================================================================== */ 
 public:
-    /*
-     * Unused typedefs: 
-     * typedef std::vector<double> dvector_t;
-     * typedef std::vector<int> ivector_t;
-    */
-    typedef std::pair<double[8], Component*> element_pair;
-    typedef std::pair<ElementType, element_pair> type_pair;
-    typedef std::list<type_pair*> beamline_list;
-
+    /* ============================ Constructors =========================== */
     /*
      * Constructor for single track
      * The Beamline object "bl"
@@ -163,12 +166,8 @@ public:
 
     // Destructor
     virtual ~ParallelTracker();
-
-    // Starts the simulation
-    virtual void execute();
-
-    // ======== Visit Functions ======== // 
-
+    /* ===================================================================== */
+    /* ========================= Visit Functions =========================== */
     /// Apply the algorithm to a beam line.
     //  overwrite the execute-methode from DefaultVisitor
     virtual void visitBeamline(const Beamline&);
@@ -205,95 +204,84 @@ public:
 
     /// Apply the algorithm to a vertical FFA magnet.
     virtual void visitVerticalFFAMagnet(const VerticalFFAMagnet& bend);
-
-    /* ========= PIC functions ========= */
-    
+    /* ===================================================================== */
+    /* ========================= Start Simulation ========================== */
+    virtual void execute();
+    /* ===================================================================== */
+    /* ========================= PIC Functions ============================= */
     void kickParticles(const BorisPusher& pusher);
     void pushParticles(const BorisPusher& pusher);
     void timeIntegration1(BorisPusher& pusher);
     void timeIntegration2(BorisPusher& pusher);
     void computeSpaceChargeFields(unsigned long long step);    
     void computeExternalFields(OrbitThreader& oth);
-
+    /* ===================================================================== */ 
+    /* =========================== Functions =============================== */
+    // Control the dtview of the bunch
     void changeDT(bool backTrack = false);
     void setTime();
+
+    //typedef std::vector<double> dvector_t;
+    // typedef std::vector<int> ivector_t;
+    typedef std::pair<double[8], Component*> element_pair;
+    typedef std::pair<ElementType, element_pair> type_pair;
+    typedef std::list<type_pair*> beamline_list;
+
 private:
-    // Not implemented.
-    ParallelTracker();
-    ParallelTracker(const ParallelTracker&);
-    void operator=(const ParallelTracker&);
-
-    /*
-      Ring specifics
-    */
-
-    unsigned turnnumber_m;
-
-    std::list<Component*> myElements;
-    beamline_list FieldDimensions;
-    /// The reference variables
-    double bega;
-    double referenceR;
-    double referenceTheta;
-    double referenceZ = 0.0;
-
-    double referencePr;
-    double referencePt;
-    double referencePz = 0.0;
-    double referencePtot;
-
-    double referencePsi;
-    double referencePhi;
-
-    double sinRefTheta_m;
-    double cosRefTheta_m;
-
-    void buildupFieldList(double BcParameter[], ElementType elementType, Component* elptr);
-
-    std::vector<PluginElement*> pluginElements_m;
-
-
-
-
-
-    /********************** END VARIABLES ***********************************/
-
+    // Reference Particle 
     void updateReferenceParticle(const BorisPusher& pusher);
+    void updateReference(const BorisPusher& pusher);
+    void updateRefToLabCSTrafo();
 
+    // File writing
     void writePhaseSpace(const long long step, bool psDump, bool statDump);
+    void dumpStats(long long step, bool psDump, bool statDump);
 
-    /********** BEGIN AUTOPHSING STUFF **********/
+    // Visits all elements inside itsBeamline_m
+    // Sorts elements in itsOpalBeamline_m
+    // Sets itsOpalBeamline_m::prepared_m = true
+    void prepareSections();
+
+    // Sets itsBunch_m::dt to dtCurrentTrack_m 
+    void selectDT(bool backTrack = false);
+
+    // void prepareOpalBeamlineSections();
+    void setOptionalVariables();
+
+    // Checks if the reference particle has reached the end of the beamline
+    bool hasEndOfLineReached(const BoundingBox& globalBoundingBox);
+
+    // Load balancing
+    void doBinaryRepartition();
+
+    // Applies a (fractional) step tau
+    void applyFractionalStep(const BorisPusher& pusher, double tau);
+
+    // Finds start for reference particle
+    void findStartPosition(const BorisPusher& pusher);
+    /* ========================== Autophasing ============================== */
+    // Setup for TRAVERLINGWAVE and RFCAVITY
+    void autophaseCavities(const BorisPusher& pusher);
     void updateRFElement(std::string elName, double maxPhi);
     void printRFPhases();
     void saveCavityPhases();
     void restoreCavityPhases();
-    /************ END AUTOPHSING STUFF **********/
-
-    void prepareSections();
-
-        
-    void selectDT(bool backTrack = false);
+    /* ===================================================================== */
+    /* ========================== RING FUNCTIONS =========================== */
+    void buildupFieldList(double BcParameter[], ElementType elementType, 
+        Component* elptr);
+    bool applyPluginElements(const double dt);
+    /* ========================== NOT IMPLEMENTED ========================== */
+    ParallelTracker();
+    ParallelTracker(const ParallelTracker&);
+    void operator=(const ParallelTracker&);
     void emitParticles(long long step);
     void computeWakefield(IndexMap::value_t& elements);
-    void computeParticleMatterInteraction(IndexMap::value_t elements, OrbitThreader& oth);
-
-    // void prepareOpalBeamlineSections();
-    void dumpStats(long long step, bool psDump, bool statDump);
-    void setOptionalVariables();
-    bool hasEndOfLineReached(const BoundingBox& globalBoundingBox);
+    void computeParticleMatterInteraction(IndexMap::value_t elements, 
+        OrbitThreader& oth);
     void handleRestartRun();
-
-    void doBinaryRepartition();
-
     void transformBunch(const CoordinateSystemTrafo& trafo);
-
-    void updateReference(const BorisPusher& pusher);
-    void updateRefToLabCSTrafo();
-    void applyFractionalStep(const BorisPusher& pusher, double tau);
-    void findStartPosition(const BorisPusher& pusher);
-    void autophaseCavities(const BorisPusher& pusher);
-
-    bool applyPluginElements(const double dt);
+    /* ===================================================================== */
 };
 
 inline void ParallelTracker::visitDrift(const Drift& drift) {
@@ -336,60 +324,60 @@ inline void ParallelTracker::kickParticles(const BorisPusher& pusher) {
     const double mass = itsReference.getM();
     const double charge = itsReference.getQ();
 
-    Kokkos::parallel_for(
-                         "kickParticles", ippl::getRangePolicy(Rview),
-                         KOKKOS_LAMBDA(const int i) {
-                             Vector_t<double, 3> p = {Pview(i)[0],Pview(i)[1],Pview(i)[2]};
+    Kokkos::parallel_for("kickParticles", ippl::getRangePolicy(Rview),
+    KOKKOS_LAMBDA(const int i) {
+        Vector_t<double, 3> p = {Pview(i)[0],Pview(i)[1],Pview(i)[2]};
 
-                             Vector_t<double, 3> e = {Efview(i)[0],Efview(i)[1],Efview(i)[2]};
-                             Vector_t<double, 3> b = {Bfview(i)[0],Bfview(i)[1],Bfview(i)[2]};
-                             double dt = dtview(i);
+        Vector_t<double, 3> e = {Efview(i)[0],Efview(i)[1],Efview(i)[2]};
+        Vector_t<double, 3> b = {Bfview(i)[0],Bfview(i)[1],Bfview(i)[2]};
+        double dt = dtview(i);
 
-                             // pusher.kick(x,p,e,b,dt);
-                             // Implementation follows chapter 4-4, p. 61 - 63 from
-                             // Birdsall, C. K. and Langdon, A. B. (1985). Plasma physics
-                             // via computer simulation.
-                             //
-                             // Up to finite precision effects, the new implementation is equivalent to the
-                             // old one, but uses less floating point operations.
-                             //
-                             // Relativistic variant implemented below is described in
-                             // chapter 15-4, p. 356 - 357.
-                             // However, since other units are used here, small
-                             // modifications are required. The relativistic variant can be derived
-                             // from the nonrelativistic one by replacing
-                             //     mass
-                             // by
-                             //     gamma * rest mass
-                             // and transforming the units.
-                             //
-                             // Parameters:
-                             //     R = x / (c * dt): Scaled position x, not used in here
-                             //     P = v / c * gamma: Scaled velocity v
-                             //     Ef: Electric field
-                             //     Bf: Magnetic field
-                             //     dt: Timestep
-                             //     mass = rest energy = rest mass * c * c
-                             //     charge
-                             
-                             // Half step E
-                             p += 0.5 * dt * charge * Physics::c / mass * e;
+        // pusher.kick(x,p,e,b,dt);
+        // Implementation follows chapter 4-4, p. 61 - 63 from
+        // Birdsall, C. K. and Langdon, A. B. (1985). Plasma physics
+        // via computer simulation.
+        //
+        // Up to finite precision effects, the new implementation is equivalent to the
+        // old one, but uses less floating point operations.
+        //
+        // Relativistic variant implemented below is described in
+        // chapter 15-4, p. 356 - 357.
+        // However, since other units are used here, small
+        // modifications are required. The relativistic variant can be derived
+        // from the nonrelativistic one by replacing
+        //     mass
+        // by
+        //     gamma * rest mass
+        // and transforming the units.
+        //
+        // Parameters:
+        //     R = x / (c * dt): Scaled position x, not used in here
+        //     P = v / c * gamma: Scaled velocity v
+        //     Ef: Electric field
+        //     Bf: Magnetic field
+        //     dt: Timestep
+        //     mass = rest energy = rest mass * c * c
+        //     charge
+        
+        // Half step E
+        p += 0.5 * dt * charge * Physics::c / mass * e;
 
-                             // Full step B
+        // Full step B
 
-                             const double gamma          = Kokkos::sqrt(1.0 + dot(p, p));
-                             Vector_t<double, 3> const t = 0.5 * dt * charge * Physics::c * Physics::c / (gamma * mass) * b;
-                             Vector_t<double, 3> const w = p + cross(p, t);
-                             Vector_t<double, 3> const s = 2.0 / (1.0 + dot(t, t)) * t;
-                             p += cross(w, s);
+        const double gamma          = Kokkos::sqrt(1.0 + dot(p, p));
+        Vector_t<double, 3> const t = 0.5 * dt * charge * Physics::c * 
+            Physics::c / (gamma * mass) * b;
+        Vector_t<double, 3> const w = p + cross(p, t);
+        Vector_t<double, 3> const s = 2.0 / (1.0 + dot(t, t)) * t;
+        p += cross(w, s);
 
 
-                             // Half step E
-                             p += 0.5 * dt * charge * Physics::c / mass * e;
+        // Half step E
+        p += 0.5 * dt * charge * Physics::c / mass * e;
 
-                             Pview(i) = p;
-                                 
-                         });
+        Pview(i) = p;
+            
+    });
 
     itsBunch_m->getParticleContainer()->update();
     ippl::Comm->barrier();
@@ -403,26 +391,25 @@ inline void ParallelTracker::pushParticles(const BorisPusher& pusher) {
     auto Pview  = itsBunch_m->getParticleContainer()->P.getView();
     auto dtview = itsBunch_m->getParticleContainer()->dt.getView();
 
-    Kokkos::parallel_for(
-                         "pushParticles", ippl::getRangePolicy(Rview),
-                         KOKKOS_LAMBDA(const int i) {
-                             Vector_t<double, 3> x = {Rview(i)[0],Rview(i)[1],Rview(i)[2]};
-                             Vector_t<double, 3> p = {Pview(i)[0],Pview(i)[1],Pview(i)[2]};
-                             double dt = dtview(i);
+    Kokkos::parallel_for("pushParticles", ippl::getRangePolicy(Rview),
+    KOKKOS_LAMBDA(const int i) {
+        Vector_t<double, 3> x = {Rview(i)[0],Rview(i)[1],Rview(i)[2]};
+        Vector_t<double, 3> p = {Pview(i)[0],Pview(i)[1],Pview(i)[2]};
+        double dt = dtview(i);
 
-                                 /** \f[ \vec{x}_{n+1/2} = \vec{x}_{n} + \frac{1}{2}\vec{v}_{n-1/2}\quad (= \vec{x}_{n} +
-                                  * \frac{\Delta t}{2} \frac{\vec{\beta}_{n-1/2}\gamma_{n-1/2}}{\gamma_{n-1/2}}) \f]
-                                  *
-                                  * \code
-                                  * R[i] += 0.5 * P[i] * recpgamma;
-                                  * \endcode
-                                  */
-                             // \TODO check +-
-                             
-                             // pusher.push(x,p,dt);
-                             x = 0.5 * dt * p / Kokkos::sqrt(1.0 + dot(p));
-                             Rview(i) += x;
-                         });
+            /** \f[ \vec{x}_{n+1/2} = \vec{x}_{n} + \frac{1}{2}\vec{v}_{n-1/2}\quad (= \vec{x}_{n} +
+                * \frac{\Delta t}{2} \frac{\vec{\beta}_{n-1/2}\gamma_{n-1/2}}{\gamma_{n-1/2}}) \f]
+                *
+                * \code
+                * R[i] += 0.5 * P[i] * recpgamma;
+                * \endcode
+                */
+        // \TODO check +-
+        
+        // pusher.push(x,p,dt);
+        x = 0.5 * dt * p / Kokkos::sqrt(1.0 + dot(p));
+        Rview(i) += x;
+    });
 
 
     itsBunch_m->switchOffUnitlessPositions(true);

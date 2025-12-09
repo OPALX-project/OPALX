@@ -218,8 +218,15 @@ void ParallelTracker::visitVerticalFFAMagnet(const VerticalFFAMagnet& mag) {
             "Need to define a RINGDEFINITION to use VerticalFFAMagnet element");
 }
 
+/**
+ * @brief Iterates over the list of elements in TBeamline& bl and calls
+ * the overloaded accept() function for each element.
+ * 
+ * @param bl A reference to a TBeamline object, which holds the list of elements
+ */
 void ParallelTracker::visitBeamline(const Beamline& bl) {
     const FlaggedBeamline* fbl = static_cast<const FlaggedBeamline*>(&bl);
+    /*
     if (fbl->getRelativeFlag()) {
         OpalBeamline stash(fbl->getOrigin3D(), fbl->getInitialDirection());
         stash.swap(itsOpalBeamline_m);
@@ -231,6 +238,8 @@ void ParallelTracker::visitBeamline(const Beamline& bl) {
     } else {
         fbl->iterate(*this, false);
     }
+    */
+    fbl->iterate(*this, false);
 }
 
 /** * * * @param off */
@@ -299,70 +308,102 @@ void ParallelTracker::restoreCavityPhases() {
 }
 
 void ParallelTracker::execute() {
+    // Inform object
     Inform msg("ParallelTracker ", *gmsg);
-    OpalData::getInstance()->setInPrepState(true);
+
+    Inform msg("ParallelTracker ", *gmsg);
+
+    // Flag to indicate forward tracking
     bool back_track = false;
 
+    // Initialize the Boris particle pusher
     BorisPusher pusher(itsReference);
-    const double globalTimeShift =
-        itsBunch_m->weHaveEnergyBins() ? OpalData::getInstance()->getGlobalPhaseShift() : 0.0;
+
+    // Reset the global phase shift
     OpalData::getInstance()->setGlobalPhaseShift(0.0);
 
-    // the time step needs to be positive in the setup
+    // Ensure the time step is positive for the setup phase
     itsBunch_m->setdT(std::abs(itsBunch_m->getdT()));
+
+    // Set the time step for the current track
     dtCurrentTrack_m = itsBunch_m->getdT();
 
-    if (OpalData::getInstance()->hasPriorTrack() || OpalData::getInstance()->inRestartRun()) {
-        OpalData::getInstance()->setOpenMode(OpalData::OpenMode::APPEND);
-    }
-
+    // Populate the OpalBeamline and calculate coordinate transformations 
+    // for non-straight sections
     prepareSections();
 
+    // Select the minimal time step from the configuration
     double minTimeStep = stepSizes_m.getMinTimeStep();
 
+    // Activate all beamline elements (sets Component::online_m = true)
     itsOpalBeamline_m.activateElements();
 
-    CoordinateSystemTrafo beamlineToLab = itsOpalBeamline_m.getCSTrafoLab2Local().inverted();
+    // Calculate the coordinate transformation from the beamline origin to the lab frame
+    CoordinateSystemTrafo beamlineToLab = 
+        itsOpalBeamline_m.getCSTrafoLab2Local().inverted();
 
     itsBunch_m->toLabTrafo_m = beamlineToLab;
 
-    itsBunch_m->RefPartR_m = beamlineToLab.transformTo(itsBunch_m->getParticleContainer()->getMeanR());
-    itsBunch_m->RefPartP_m = beamlineToLab.rotateTo(itsBunch_m->getParticleContainer()->getMeanP());
+    // Transform reference particle coordinates and momentum to the lab frame
+    itsBunch_m->RefPartR_m = 
+        beamlineToLab.transformTo(itsBunch_m->getParticleContainer()->getMeanR());
+    itsBunch_m->RefPartP_m = 
+        beamlineToLab.rotateTo(itsBunch_m->getParticleContainer()->getMeanP());
 
+    // If the bunch contains particles and the desired starting position (zstart_m) 
+    // is ahead of the current path length, integrate the bunch forward to the start position
     if (itsBunch_m->getTotalNum() > 0) {
         if (zstart_m > pathLength_m) {
             findStartPosition(pusher);
         }
-
         itsBunch_m->set_sPos(pathLength_m);
     }
 
+    // Advance through the time step configurations, skipping any that end 
+    // before the start position (zstart_m)
     stepSizes_m.advanceToPos(zstart_m);
 
+    // Retrieve the bunch spatial bounds 
     Vector_t<double, 3> rmin(0.0), rmax(0.0);
     if (itsBunch_m->getTotalNum() > 0) {
         itsBunch_m->get_bounds(rmin, rmax);
     }
 
-    *gmsg << "ParallelTrack: momentum=  " << itsBunch_m->getParticleContainer()->getMeanP()(2) << endl;
-    *gmsg << "itsBunch_m->RefPartR_m= " << itsBunch_m->RefPartR_m << endl;
-    *gmsg << "itsBunch_m->RefPartP_m= " << itsBunch_m->RefPartP_m << endl;
+    *gmsg << "ParallelTrack: momentum=  " 
+        << itsBunch_m->getParticleContainer()->getMeanP()(2) << endl;
+    *gmsg << "itsBunch_m->RefPartR_m= " 
+        << itsBunch_m->RefPartR_m << endl;
+    *gmsg << "itsBunch_m->RefPartP_m= " 
+        << itsBunch_m->RefPartP_m << endl;
 
+    
+    // Start timing for the OrbitThreader section
     IpplTimings::startTimer(OrbThreader_m);
 
+    // Flags to control phase space and statistics dumping for the initial step
     bool const psDump0 = 0;
     bool const statDump0 = 0;
 
+    // Write initial phase space and statistics
     writePhaseSpace(0, psDump0, statDump0);
     msg << level2 << "Dump initial phase space" << endl;
 
-
+    // Create an OrbitThreader object to handle orbit threading and element queries
     OrbitThreader oth(
-        itsReference, itsBunch_m->RefPartR_m, itsBunch_m->RefPartP_m, pathLength_m, -rmin(2),
-        itsBunch_m->getT(), (back_track ? -minTimeStep : minTimeStep), stepSizes_m,
-        itsOpalBeamline_m);
+        itsReference,                               // Reference particle data
+        itsBunch_m->RefPartR_m,                     // Reference particle position
+        itsBunch_m->RefPartP_m,                     // Reference particle momentum
+        pathLength_m,                               // Current path length
+        -rmin(2),                                   // Negative minimum z bound
+        itsBunch_m->getT(),                         // Current bunch time
+        (back_track ? -minTimeStep : minTimeStep),  // Time step direction
+        stepSizes_m,                                // Step size configuration
+        itsOpalBeamline_m);                         // OpalBeamline object
 
+    // Execute the orbit threading (queries elements and updates state)
     oth.execute();
+
+    // Stop timing for the OrbitThreader section
     IpplTimings::stopTimer(OrbThreader_m);
     
     BoundingBox globalBoundingBox = oth.getBoundingBox();
@@ -371,7 +412,8 @@ void ParallelTracker::execute() {
 
     setTime();
 
-    double time = itsBunch_m->getT() - globalTimeShift;
+    //double time = itsBunch_m->getT() - globalTimeShift;
+    double time = itsBunch_m->getT();
     itsBunch_m->setT(time);
 
     unsigned long long step = itsBunch_m->getGlobalTrackStep();
@@ -479,10 +521,26 @@ void ParallelTracker::execute() {
     OpalData::getInstance()->setPriorTrack();
     */
 
+/**
+ * @brief Sets up beamline
+ */
 void ParallelTracker::prepareSections() {
+    // Calls ParallelTracker::visitBeamline() -> TBeamline::iterate() ->
+    // For each element: 
+    // FlaggedElemPtr::accept() -> DefaultVisitor::visitFlaggedElmPtr() ->
+    // ElementBase::accept() -> ParallelTracker::visit[ElemName]() ->
+    // OpalBeamline::visit([ElemName], bunch):
+    // This initialises the FieldList elements_m object of OpalBeamline
+    // with clones of all the elements
     itsBeamline_m.accept(*this);
+    
+    // Sorts the elements in OpalBeamline::elements_m by starting position
     itsOpalBeamline_m.prepareSections();
+
+    // Computes the coordinate transformations for non-straight sections
     itsOpalBeamline_m.compute3DLattice();
+
+    // Write 3D Lattice
     itsOpalBeamline_m.save3DLattice();
     itsOpalBeamline_m.save3DInput();
 }
