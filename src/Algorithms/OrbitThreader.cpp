@@ -188,7 +188,8 @@ void OrbitThreader::execute() {
 
     imap_m.tidyUp(zstop_m);
     *gmsg << level1 << "\n" << imap_m << endl;
-    imap_m.saveSDDS(initialPathLength);
+    // This causes problems on GPU
+    //imap_m.saveSDDS(initialPathLength);
     processElementRegister();
 }
 
@@ -470,8 +471,11 @@ double OrbitThreader::computeDriftLengthToBoundingBox(
         || (elements.size() == 1 && (*elements.begin())->getType() == ElementType::DRIFT)) {
         boost::optional<Vector_t<double, 3>> intersectionPoint =
             globalBoundingBox_m.getIntersectionPoint(position, direction);
-        const Vector_t<double, 3> r = intersectionPoint.get() - position;
-        return intersectionPoint ? euclidean_norm(r) : 10.0;
+        if (intersectionPoint) {
+            const Vector_t<double, 3> r = intersectionPoint.get() - position;
+            return euclidean_norm(r);
+        }
+        return 10; 
     }
 
     return std::numeric_limits<double>::max();
