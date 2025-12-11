@@ -1,20 +1,21 @@
-//
-// Class Multipole
-//   The MULTIPOLE element defines a thick multipole.
-//
-// Copyright (c) 2012-2021, Paul Scherrer Institut, Villigen PSI, Switzerland
-// All rights reserved
-//
-// This file is part of OPAL.
-//
-// OPAL is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// You should have received a copy of the GNU General Public License
-// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
-//
+/**
+ * @class Multipole
+ * @brief Interface for general multipole.
+ *
+ * Class Multipole defines the abstract interface for magnetic multipoles.
+ * The order n of multipole components runs from 1 to N and is dynamically
+ * adjusted. It is connected with the number of poles by the following table:
+ *
+ * | Order (n) | Name                |
+ * |-----------|---------------------|
+ * | 1         | dipole              |
+ * | 2         | quadrupole          |
+ * | 3         | sextupole           |
+ * | 4         | octupole            |
+ * | 5         | decapole            |
+ *
+ * Units for multipole strengths are Teslas / m^(n-1).
+ */
 
 #ifndef CLASSIC_Multipole_HH
 #define CLASSIC_Multipole_HH
@@ -25,100 +26,122 @@
 
 class Fieldmap;
 
-// Class Multipole
-// ------------------------------------------------------------------------
-/// Interface for general multipole.
-//  Class Multipole defines the abstract interface for magnetic multipoles.
-//  The order n of multipole components runs from 1 to N and is dynamically
-//  adjusted. It is connected with the number of poles by the table
-//
-//  [tab 2 b]
-//  [ROW]1[&]dipole[/ROW]
-//  [ROW]2[&]quadrupole[/ROW]
-//  [ROW]3[&]sextupole[/ROW]
-//  [ROW]4[&]octupole[/ROW]
-//  [ROW]5[&]decapole[/ROW]
-//  [ROW]n[&]multipole with 2*n poles[/ROW]
-//  [/TAB]
-//  Units for multipole strengths are Teslas / m**(n-1).
-
 class Multipole : public Component {
 public:
-    /// Constructor with given name.
+/* ============================== Constructors ============================== */
     explicit Multipole(const std::string& name);
-
     Multipole();
     Multipole(const Multipole&);
     virtual ~Multipole();
+/* ========================================================================== */
+/* =========================== Multipole Expansion ========================== */
 
-    /// Apply visitor to Multipole.
+    // @note n=0 corresponds to the dipol, n=1 to the quadrupole, etc...
+
+    // @returns n-th normal component of the multipole expansion 
+    double getNormalComponent(unsigned int n) const;
+    
+    // @brief Sets the n-th normal component
+    void setNormalComponent(unsigned int n, double);
+    
+    // @brief Sets the n-th normal component with an error
+    void setNormalComponent(unsigned int n, double, double);
+
+    // @returns n-th skew component of the multipole expansion 
+    double getSkewComponent(unsigned int n) const;
+
+    // @brief Sets the n-th skew component
+    void setSkewComponent(unsigned int n, double);
+
+    // @brief Sets the n-th skew component with error
+    void setSkewComponent(unsigned int n, double, double);
+
+
+/* ========================================================================== */
+/* ============================== Apply Functions =========================== */
+    /**
+     * @brief Apply to all particles. Kernel launch moved inside the function. 
+     * 
+     * @returns true if particle is out-of-bounds (lost), false otherwise
+     */
+    virtual bool apply() override;
+
+    /**
+     * @brief Apply to particle i
+     * 
+     * @param i Particle index
+     * @param t Time
+     * @param E Electric Field
+     * @param B Magnetic Field
+     * 
+     * @returns true if particle is out-of-bounds (lost), false otherwise
+     */
+    virtual bool apply(
+        const size_t& i, 
+        const double& t, 
+        Vector_t<double, 3>& E, 
+        Vector_t<double, 3>& B) override;
+   
+    /**
+     * @brief Apply to particle with position R and momentum P
+     * 
+     * @param R Position 
+     * @param P Momentum
+     * @param t Time
+     * @param E Electric Field
+     * @param B Magnetic Field
+     * 
+     * @returns true if particle is out-of-bounds (lost), false otherwise
+     */
+    virtual bool apply(
+        const Vector_t<double, 3>& R, 
+        const Vector_t<double, 3>& P, 
+        const double& t,
+        Vector_t<double, 3>& E, 
+        Vector_t<double, 3>& B) override;
+    
+        /**
+     * @brief Apply to reference particle with position R and momemtum P
+     * 
+     * @param R Position 
+     * @param P Momentum
+     * @param t Time
+     * @param E Electric Field
+     * @param B Magnetic Field
+     * 
+     * @returns true if particle is out-of-bounds (lost), false otherwise
+     */
+    virtual bool applyToReferenceParticle(
+        const Vector_t<double, 3>& R, 
+        const Vector_t<double, 3>& P, 
+        const double& t,
+        Vector_t<double, 3>& E, 
+        Vector_t<double, 3>& B) override;
+/* ========================================================================== */
+/* ============================== Functions ================================= */
+    // @brief Apply visitor to Multipole.
     virtual void accept(BeamlineVisitor&) const override;
 
-    /// Get multipole field.
+    // @brief Get multipole field.
     virtual BMultipoleField& getField() override = 0;
 
-    /// Get multipole field. Version for const object.
+    // @breif Get multipole field. Version for const object.
     virtual const BMultipoleField& getField() const override = 0;
+    
+    // @returns Is the n-th component focusing?
+    bool isFocusing(unsigned int n) const;
 
-    /// Get normal component.
-    //  Return the normal component of order [b]n[/b] in T/m**(n-1).
-    //  If [b]n[/b] is larger than the maximum order, the return value is zero.
-    double getNormalComponent(int n) const;
-
-    /// Get skew component.
-    //  Return the skew component of order [b]n[/b] in T/m**(n-1).
-    //  If [b]n[/b] is larger than the maximum order, the return value is zero.
-    double getSkewComponent(int n) const;
-
-    /// Set normal component.
-    //  Set the normal component of order [b]n[/b] in T/m**(n-1).
-    //  If [b]n[/b] is larger than the maximum order, the component is created.
-    void setNormalComponent(int, double);
-
-    /// Set normal component.
-    //  Set the normal component of order [b]n[/b] in T/m**(n-1).
-    //  If [b]n[/b] is larger than the maximum order, the component is created.
-    void setNormalComponent(int, double, double);
-
-    /// Set skew component.
-    //  Set the skew component of order [b]n[/b] in T/m**(n-1).
-    //  If [b]n[/b] is larger than the maximum order, the component is created.
-    void setSkewComponent(int, double);
-
-    /// Set skew component.
-    //  Set the skew component of order [b]n[/b] in T/m**(n-1).
-    //  If [b]n[/b] is larger than the maximum order, the component is created.
-    void setSkewComponent(int, double, double);
-
-    size_t getMaxNormalComponentIndex() const;
-    size_t getMaxSkewComponentIndex() const;
-
-    // set number of slices for map tracking
-    void setNSlices(const std::size_t& nSlices);
-
-    // set number of slices for map tracking
-    std::size_t getNSlices() const;
-
-    bool isFocusing(unsigned int component) const;
-
-    /// Get geometry.
-    virtual StraightGeometry& getGeometry() override = 0;
-
-    /// Get geometry.
-    virtual const StraightGeometry& getGeometry() const override = 0;
-
-    virtual bool apply(
-        const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
-
-    virtual bool apply(
-        const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-        Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
-
-    virtual bool applyToReferenceParticle(
-        const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-        Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
-
-    virtual void initialise(PartBunch_t* bunch, double& startField, double& endField) override;
+    /**
+     * @brief Setup, multipole goes online
+     * 
+     * @param bunch The reference bunch
+     * @param startField Where the fields start along the path
+     * @param endFied Where the fields end along the path
+     */
+    virtual void initialise(
+        PartBunch_t* bunch, 
+        double& startField, 
+        double& endField) override;
 
     virtual void finalise() override;
 
@@ -129,35 +152,65 @@ public:
     virtual void getDimensions(double& zBegin, double& zEnd) const override;
 
     virtual bool isInside(const Vector_t<double, 3>& r) const override;
+/* ========================================================================== */
+/* =========================== Unused Functions ============================= */
+    // @returns StraightGeometry
+    virtual StraightGeometry& getGeometry() override = 0;
 
-private:
-    void computeField(Vector_t<double, 3> R, Vector_t<double, 3>& E, Vector_t<double, 3>& B);
+    // @returns StraightGeometry
+    virtual const StraightGeometry& getGeometry() const override = 0;
 
+    // @brief Set number of slices for map tracking
+    void setNSlices(const std::size_t& nSlices);
+
+    // @breif Get number of slices for map tracking 
+    std::size_t getNSlices() const;
+    
     // Not implemented.
     void operator=(const Multipole&);
-    std::vector<double> NormalComponents;
-    std::vector<double> NormalComponentErrors;
-    std::vector<double> SkewComponents;
-    std::vector<double> SkewComponentErrors;
-    int max_SkewComponent_m;
-    int max_NormalComponent_m;
+
+
+/* ========================================================================== */
+private:
+    /**
+     * @brief Computes the E and B field at position R
+     * 
+     * @note Is called inside the kernel launched by Multipole::apply()
+     * 
+     * @param R Position
+     * @param E Reference to electric field
+     * @param B Reference to magnetic field
+     */
+    KOKKOS_INLINE_FUNCTION
+    void computeField(
+        Vector_t<double, 3> R, 
+        Vector_t<double, 3>& E, 
+        Vector_t<double, 3>& B);
+
+    /**
+     * @brief Computes the E and B field at position R of the reference particle
+     * 
+     * @note Host version for the orbitthreader 
+     * 
+     * @param R Position
+     * @param E Reference to electric field
+     * @param B Reference to magnetic field
+     */
+    void computeFieldHost(
+        Vector_t<double, 3> R, 
+        Vector_t<double, 3>& E, 
+        Vector_t<double, 3>& B);
+/* ========================================================================== */
+/* =========================== Variables ==================================== */ 
+    Kokkos::View<double*> NormalComponents;
+    Kokkos::View<double*> NormalComponentErrors;
+    Kokkos::View<double*> SkewComponents;
+    Kokkos::View<double*> SkewComponentErrors;
+    unsigned int max_SkewComponent_m;
+    unsigned int max_NormalComponent_m;
+/* =========================== Unused Variables ============================= */ 
     std::size_t nSlices_m;
+/* ========================================================================== */
 };
-
-inline void Multipole::setNormalComponent(int n, double v) {
-    setNormalComponent(n, v, 0.0);
-}
-
-inline void Multipole::setSkewComponent(int n, double v) {
-    setSkewComponent(n, v, 0.0);
-}
-
-inline size_t Multipole::getMaxNormalComponentIndex() const {
-    return NormalComponents.size();
-}
-
-inline size_t Multipole::getMaxSkewComponentIndex() const {
-    return SkewComponents.size();
-}
 
 #endif  // CLASSIC_Multipole_HH
