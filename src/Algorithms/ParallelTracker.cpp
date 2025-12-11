@@ -588,62 +588,58 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
 void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
     IpplTimings::startTimer(fieldEvaluationTimer_m);
     Inform msg("ParallelTracker ", *gmsg);
+
+    // local # particles
     const unsigned int localNum = itsBunch_m->getLocalNum();
+
+    // Flag for out-of-bounds particles, locally and globally
     bool locPartOutOfBounds = false, globPartOutOfBounds = false;
+    
+    // Bunch bounds
     Vector_t<double, 3> rmin(0.0), rmax(0.0);
     if (itsBunch_m->getTotalNum() > 0)
         itsBunch_m->get_bounds(rmin, rmax);
-    IndexMap::value_t elements;
 
+    // Get elements at bunch position
+    IndexMap::value_t elements;
     try {
-        elements = oth.query(pathLength_m + 0.5 * (rmax(2) + rmin(2)), rmax(2) - rmin(2));
+        elements = oth.query(pathLength_m + 0.5 * 
+            (rmax(2) + rmin(2)), rmax(2) - rmin(2));
     } catch (IndexMap::OutOfBounds& e) {
         globalEOL_m = true;
         return;
     }
 
+    // Iterator all elements at the current position
     IndexMap::value_t::const_iterator it        = elements.begin();
     const IndexMap::value_t::const_iterator end = elements.end();
 
+    // Iterate over all elements
     for (; it != end; ++it) {
 
-        CoordinateSystemTrafo refToLocalCSTrafo = (itsOpalBeamline_m.getMisalignment((*it)) 
-                                                   * (itsOpalBeamline_m.getCSTrafoLab2Local((*it)) 
-                                                   * itsBunch_m->toLabTrafo_m));
+        // Determine transformation from bunch to element 
+        CoordinateSystemTrafo refToLocalCSTrafo = 
+            (itsOpalBeamline_m.getMisalignment((*it)) * 
+            (itsOpalBeamline_m.getCSTrafoLab2Local((*it)) * 
+            itsBunch_m->toLabTrafo_m));
 
+        // Determine transformation from element to bunch
         CoordinateSystemTrafo localToRefCSTrafo = refToLocalCSTrafo.inverted();
 
-        (*it)->setCurrentSCoordinate(pathLength_m + rmin(2));
+        (*it)->setCurrentSCoordinate(pathLength_m + rmin(2));   
 
-        for (unsigned int i = 0; i < localNum; ++i) {
-            // \todo if (itsBunch_m->Bin[i] < 0)
-            //     continue;
+        // Transform from reference particle to element frame
 
-            // \todo itsBunch_m->R[i] = refToLocalCSTrafo.transformTo(itsBunch_m->R[i]);
-            // \todo itsBunch_m->P[i] = refToLocalCSTrafo.rotateTo(itsBunch_m->P[i]);
-            double dt = 1.0;  // \todo itsBunch_m->dt[i];
+        // Apply element
+        // TODO: out-of-bounds check here 
+        (*it)->apply(); 
 
-            Vector_t<double, 3> localE(0.0), localB(0.0);
+        // Transform from element to reference particle frame
 
-            if ((*it)->apply(i, itsBunch_m->getT() + 0.5 * dt, localE, localB)) {
-                // itsBunch_m->R[i]   = localToRefCSTrafo.transformTo(itsBunch_m->R[i]);
-                // itsBunch_m->P[i]   = localToRefCSTrafo.rotateTo(itsBunch_m->P[i]);
-                // itsBunch_m->Bin[i] = -1;
-                locPartOutOfBounds = true;
-
-                continue;
-            }
-
-            // itsBunch_m->R[i] = localToRefCSTrafo.transformTo(itsBunch_m->R[i]);
-            // itsBunch_m->P[i] = localToRefCSTrafo.rotateTo(itsBunch_m->P[i]);
-            // itsBunch_m->Ef[i] += localToRefCSTrafo.rotateTo(localE);
-            // itsBunch_m->Bf[i] += localToRefCSTrafo.rotateTo(localB);
-        }
     }
 
     IpplTimings::stopTimer(fieldEvaluationTimer_m);
 
-    // \todo reduce(locPartOutOfBounds, globPartOutOfBounds, OpOrAssign());
     ippl::Comm->reduce(locPartOutOfBounds, globPartOutOfBounds, 1, std::logical_or<bool>());
 
     size_t ne = 0;
