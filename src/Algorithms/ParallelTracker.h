@@ -97,6 +97,10 @@ private:
     IpplTimings::TimerRef OrbThreader_m;
     /* ===================================================================== */
     /* ========================== Ring Variables =========================== */
+    typedef std::pair<double[8], Component*> element_pair;
+    typedef std::pair<ElementType, element_pair> type_pair;
+    typedef std::list<type_pair*> beamline_list;
+    
     unsigned turnnumber_m;
 
     std::list<Component*> myElements;
@@ -221,12 +225,6 @@ public:
     // Control the dtview of the bunch
     void changeDT(bool backTrack = false);
     void setTime();
-
-    //typedef std::vector<double> dvector_t;
-    // typedef std::vector<int> ivector_t;
-    typedef std::pair<double[8], Component*> element_pair;
-    typedef std::pair<ElementType, element_pair> type_pair;
-    typedef std::list<type_pair*> beamline_list;
 
 private:
     // Reference Particle 

@@ -26,6 +26,8 @@
 
 class Fieldmap;
 
+constexpr int MAX_MP_ORDER = 20;
+
 class Multipole : public Component {
 public:
 /* ============================== Constructors ============================== */
@@ -39,23 +41,26 @@ public:
     // @note n=0 corresponds to the dipol, n=1 to the quadrupole, etc...
 
     // @returns n-th normal component of the multipole expansion 
-    double getNormalComponent(unsigned int n) const;
+    double getNormalComponent(int n) const;
     
     // @brief Sets the n-th normal component
-    void setNormalComponent(unsigned int n, double);
+    void setNormalComponent(int n, double);
     
     // @brief Sets the n-th normal component with an error
-    void setNormalComponent(unsigned int n, double, double);
+    void setNormalComponent(int n, double, double);
 
     // @returns n-th skew component of the multipole expansion 
-    double getSkewComponent(unsigned int n) const;
+    double getSkewComponent(int n) const;
 
     // @brief Sets the n-th skew component
-    void setSkewComponent(unsigned int n, double);
+    void setSkewComponent(int n, double);
 
     // @brief Sets the n-th skew component with error
-    void setSkewComponent(unsigned int n, double, double);
+    void setSkewComponent(int n, double, double);
 
+    // @brief Get index of maximal components
+    size_t getMaxNormalComponentIndex() const;
+    size_t getMaxSkewComponentIndex() const;
 
 /* ========================================================================== */
 /* ============================== Apply Functions =========================== */
@@ -129,7 +134,7 @@ public:
     virtual const BMultipoleField& getField() const override = 0;
     
     // @returns Is the n-th component focusing?
-    bool isFocusing(unsigned int n) const;
+    bool isFocusing(int n) const;
 
     /**
      * @brief Setup, multipole goes online
@@ -185,7 +190,7 @@ private:
     void computeField(
         Vector_t<double, 3> R, 
         Vector_t<double, 3>& E, 
-        Vector_t<double, 3>& B);
+        Vector_t<double, 3>& B) const;
 
     /**
      * @brief Computes the E and B field at position R of the reference particle
@@ -199,7 +204,7 @@ private:
     void computeFieldHost(
         Vector_t<double, 3> R, 
         Vector_t<double, 3>& E, 
-        Vector_t<double, 3>& B);
+        Vector_t<double, 3>& B) const;
 /* ========================================================================== */
 /* =========================== Variables ==================================== */ 
     Kokkos::View<double*> NormalComponents;
@@ -212,5 +217,21 @@ private:
     std::size_t nSlices_m;
 /* ========================================================================== */
 };
+/* =========================== Inline Functions ============================= */ 
+inline void Multipole::setNormalComponent(int n, double v) {
+    setNormalComponent(n, v, 0.0);
+}
 
+inline void Multipole::setSkewComponent(int n, double v) {
+    setSkewComponent(n, v, 0.0);
+}
+
+inline size_t Multipole::getMaxNormalComponentIndex() const {
+    return NormalComponents.size();
+}
+
+inline size_t Multipole::getMaxSkewComponentIndex() const {
+    return SkewComponents.size();
+}
+/* ========================================================================== */
 #endif  // CLASSIC_Multipole_HH
