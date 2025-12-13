@@ -45,3 +45,58 @@ void CoordinateSystemTrafo::operator*=(const CoordinateSystemTrafo& right) {
     orientation_m.normalize();
     rotationMatrix_m = orientation_m.getRotationMatrix();
 }
+
+/* ====================== Transformation Functions ========================== */
+
+
+void CoordinateSystemTrafo::transformBunchTo(auto Rview)
+{
+    // local copies for the kernel 
+    auto rotationMatrix = rotationMatrix_m;
+    auto origin = origin_m;
+    Kokkos::parallel_for("transformBunchTo()", ippl::getRangePolicy(Rview),
+    KOKKOS_LAMBDA(const int i)
+    {
+        const ippl::Vector<double, 3> delta = Rview(i) - origin;
+        Rview(i) = prod_vector(rotationMatrix,delta);
+    });
+}
+
+void CoordinateSystemTrafo::transformBunchFrom(auto Rview)
+{
+     // local copies for the kernel 
+    auto rotationMatrix = rotationMatrix_m;
+    auto origin = origin_m;
+    Kokkos::parallel_for("transformBunchFrom()", ippl::getRangePolicy(Rview),
+    KOKKOS_LAMBDA(const int i)
+    {
+        Rview(i) = prod_vector_transpose(rotationMatrix, Rview(i)) + origin;
+    });
+}
+
+void CoordinateSystemTrafo::rotateBunchTo(auto Pview)
+{
+    // local copy for the kernel
+    auto rotationMatrix = rotationMatrix_m;
+    Kokkos::parallel_for("rotateBunchTo()", ippl::getRangePolicy(Pview),
+    KOKKOS_LAMBDA(const int i)
+    {
+        Pview(i) = prod_vector(rotationMatrix, Pview(i));
+    });
+} 
+
+void CoordinateSystemTrafo::rotateBunchFrom(auto Pview)
+{
+    // local copy for the kernel
+    auto rotationMatrix = rotationMatrix_m;
+    Kokkos::parallel_for("rotateBunchFrom()", ippl::getRangePolicy(Pview),
+    KOKKOS_LAMBDA(const int i)
+    {
+        Pview(i) = prod_vector_transpose(rotationMatrix, Pview(i));
+    });
+}
+
+/* ========================================================================== */
+/* ============================ Getters ===================================== */
+
+/* ========================================================================== */

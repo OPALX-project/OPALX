@@ -86,7 +86,7 @@ Multipole::~Multipole() {
 // @note n=0 corresponds to the dipol, n=1 to the quadrupole, etc...
 
 // @returns n-th normal component of the multipole expansion 
-double Multipole::getNormalComponent(unsigned int n) const {
+double Multipole::getNormalComponent(int n) const {
     if (n < max_NormalComponent_m) {
         double val;
         Kokkos::deep_copy(val, Kokkos::subview(NormalComponents, n));
@@ -96,7 +96,7 @@ double Multipole::getNormalComponent(unsigned int n) const {
 }
 
 // @returns n-th skew component of the multipole expansion 
-double Multipole::getSkewComponent(unsigned int n) const {
+double Multipole::getSkewComponent(int n) const {
     if (n < max_SkewComponent_m) {
         double val;
         Kokkos::deep_copy(val, Kokkos::subview(SkewComponents, n));
@@ -105,7 +105,7 @@ double Multipole::getSkewComponent(unsigned int n) const {
     return 0.0;
 }
 
-void Multipole::setNormalComponent(unsigned int n, double v, double vError) {
+void Multipole::setNormalComponent(int n, double v, double vError) {
 
     if (n >= max_NormalComponent_m) {
         max_NormalComponent_m = n+1;
@@ -132,7 +132,7 @@ void Multipole::setNormalComponent(unsigned int n, double v, double vError) {
     Kokkos::deep_copy(sub_err, valErr);
 }
 
-void Multipole::setSkewComponent(unsigned int n, double v, double vError) {
+void Multipole::setSkewComponent(int n, double v, double vError) {
 
     if (n >= max_SkewComponent_m) {
         max_SkewComponent_m = n+1;
@@ -158,13 +158,7 @@ void Multipole::setSkewComponent(unsigned int n, double v, double vError) {
     Kokkos::deep_copy(sub_err, valErr);
 }
 
-inline void Multipole::setNormalComponent(unsigned int n, double v) {
-    setNormalComponent(n, v, 0.0);
-}
 
-inline void Multipole::setSkewComponent(unsigned int n, double v) {
-    setSkewComponent(n, v, 0.0);
-}
 /* ========================================================================== */
 /* ============================== Apply Functions =========================== */
 
@@ -186,13 +180,12 @@ bool Multipole::apply(){
 
     // Local variables that are copied into the kernel
     double elemLength = getElementLength();
-    double elemPosition = elemPos;
 
     // Kernel launch over all particles
     Kokkos::parallel_for("Multipole::apply()", ippl::getRangePolicy(Rview), 
     KOKKOS_LAMBDA(const int i)
     {
-        if (Rview(i)(2) > elemPosition && Rview(i)(2) <= elemPosition + elemLength){
+        if (Rview(i)(2) > 0 && Rview(i)(2) <= elemLength){
             Vector_t<double,3> Ef(0.0), Bf(0.0);
             computeField(Rview(i), Ef, Bf);
             for(unsigned d=0; d<3; ++d){
@@ -607,7 +600,7 @@ bool Multipole::isInside(const Vector_t<double, 3>& r) const {
     return false;
 }
 
-bool Multipole::isFocusing(unsigned int component) const {
+bool Multipole::isFocusing(int component) const {
     if (component >= NormalComponents.size())
         throw GeneralClassicException("Multipole::isFocusing", "component too big");
 

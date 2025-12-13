@@ -8,7 +8,7 @@
  * component in a beam line.
  * A component is the basic element in the accelerator model, such as a dipole, 
  * quadrupole, etc.
- */-----------------------------------------------------------------------
+ */
 
 #include "AbsBeamline/Component.h"
 #include "Utilities/LogicalError.h"

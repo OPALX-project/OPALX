@@ -333,6 +333,9 @@ void ParallelTracker::execute() {
     // Set the time view of the particle bunch
     setTime();
 
+    double time = itsBunch_m->getT();
+    itsBunch_m->setT(time);
+
     unsigned long long step = itsBunch_m->getGlobalTrackStep();
     OPALTimer::Timer myt1;
     *gmsg << "* Track start at: " << myt1.time() << ", t= " << Util::getTimeString(time) << "; "
