@@ -63,6 +63,11 @@ Multipole::Multipole(const Multipole& right)
       nSlices_m(right.nSlices_m) {
 }
 
+/**
+ * @brief Constructor with given name.
+ * 
+ * @param name Name of the Multipole element
+ */
 Multipole::Multipole(const std::string& name)
     : Component(name),
       NormalComponents("Multipole::Normal", 1),
@@ -85,8 +90,18 @@ Multipole::~Multipole() {
 
 // @note n=0 corresponds to the dipol, n=1 to the quadrupole, etc...
 
-// @returns n-th normal component of the multipole expansion 
-double Multipole::getNormalComponent(int n) const {
+/**
+ * @brief Gets the n-th normal component of the multipole expansion 
+ * 
+ * Copies the device view NormalComponents n-th entry to a host
+ * variable and returns it. For host-only execution the deepcopy is ignored 
+ * and the n-th entry is returned directly. 
+ * 
+ * @param n Component
+ * @returns n-th normal component of the multipole expansion
+ */
+double Multipole::getNormalComponent(int n) const 
+{
     if (n < max_NormalComponent_m) {
         double val;
         Kokkos::deep_copy(val, Kokkos::subview(NormalComponents, n));
@@ -95,8 +110,18 @@ double Multipole::getNormalComponent(int n) const {
     return 0.0;
 }
 
-// @returns n-th skew component of the multipole expansion 
-double Multipole::getSkewComponent(int n) const {
+/**
+ * @brief Gets the n-th skew component of the multipole expansion 
+ * 
+ * Copies the device view SkewComponents n-th entry to a host
+ * variable and returns it. For host-only execution the deepcopy is ignored 
+ * and the n-th entry is returned directly.
+ * 
+ * @param n Component
+ * @returns n-th skew component of the multipole expansion
+ */
+double Multipole::getSkewComponent(int n) const 
+{
     if (n < max_SkewComponent_m) {
         double val;
         Kokkos::deep_copy(val, Kokkos::subview(SkewComponents, n));
@@ -105,8 +130,19 @@ double Multipole::getSkewComponent(int n) const {
     return 0.0;
 }
 
-void Multipole::setNormalComponent(int n, double v, double vError) {
-
+/**
+ * @brief Sets the normal component of the multipole field.
+ *
+ * If the order is higher than the previous highest order, the view is resized
+ * and the new entries (components) are 0. The value is then copied into the 
+ * NormalComponents view.
+ *
+ * @param n The multipole order 
+ * @param v The nominal value of the normal component.
+ * @param vError The error associated with the normal component.
+ */
+void Multipole::setNormalComponent(int n, double v, double vError) 
+{
     if (n >= max_NormalComponent_m) {
         max_NormalComponent_m = n+1;
         Kokkos::resize(NormalComponents, max_NormalComponent_m);
@@ -115,6 +151,7 @@ void Multipole::setNormalComponent(int n, double v, double vError) {
 
     double valComp, valErr;
     
+    // TODO: Check the physics here (copied from OPAL)
     if (n == DIPOLE) {
         valComp = (v + vError) / 2.0;
         valErr = valComp;
@@ -132,8 +169,19 @@ void Multipole::setNormalComponent(int n, double v, double vError) {
     Kokkos::deep_copy(sub_err, valErr);
 }
 
-void Multipole::setSkewComponent(int n, double v, double vError) {
-
+/**
+ * @brief Sets the skew component of the multipole field.
+ *
+ * If the order is higher than the previous highest order, the view is resized
+ * and the new entries (components) are 0. The value is then copied into the 
+ * SkewComponents view.
+ *
+ * @param n The multipole order 
+ * @param v The nominal value of the skew component.
+ * @param vError The error associated with the skew component.
+ */
+void Multipole::setSkewComponent(int n, double v, double vError) 
+{
     if (n >= max_SkewComponent_m) {
         max_SkewComponent_m = n+1;
         Kokkos::resize(SkewComponents, max_SkewComponent_m);
@@ -141,7 +189,7 @@ void Multipole::setSkewComponent(int n, double v, double vError) {
     }
 
     double valComp, valErr;
-
+    // TODO: Check physics (copied from OPAL)
     if (n == DIPOLE) {
         valComp = (v + vError) / 2.0;
         valErr = valComp;
@@ -163,12 +211,14 @@ void Multipole::setSkewComponent(int n, double v, double vError) {
 /* ============================== Apply Functions =========================== */
 
 /**
- * @brief Apply to all particles. Kernel launch moved inside the function. 
+ * @brief Applies the multipole field to all particles inside the magnet bounds
  * 
+ * @note The kernel launch is moved inside this functions for GPU compatibility
+ *  
  * @returns true if particle is out-of-bounds (lost), false otherwise
  */
-bool Multipole::apply(){
-
+bool Multipole::apply()
+{
     // Get the particle container
     std::shared_ptr<ParticleContainer_t> pc = 
         RefPartBunch_m->getParticleContainer();
@@ -185,8 +235,10 @@ bool Multipole::apply(){
     Kokkos::parallel_for("Multipole::apply()", ippl::getRangePolicy(Rview), 
     KOKKOS_LAMBDA(const int i)
     {
+        // Check bounds
         if (Rview(i)(2) > 0 && Rview(i)(2) <= elemLength){
             Vector_t<double,3> Ef(0.0), Bf(0.0);
+            // Compute field at particle position
             computeField(Rview(i), Ef, Bf);
             for(unsigned d=0; d<3; ++d){
                 Eview(i)(d) += Ef(d);
@@ -198,21 +250,39 @@ bool Multipole::apply(){
     return false;
 }
 
-
+/**
+ * @brief Applies the multipole field at particle i's position to E and B
+ * 
+ * @note Cannot be inside a kernel -> GPU incompatible
+ * 
+ * @param i Particle index
+ * @param E Electric field reference
+ * @param B Magnetic field reference
+ * @returns true if particle is out-of-bounds (lost), false otherwise 
+ */
 bool Multipole::apply(
-    const size_t& i, const double&, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
-    std::shared_ptr<ParticleContainer_t> pc = RefPartBunch_m->getParticleContainer();
-    auto Rview                              = pc->R.getView();
-    const Vector_t<double, 3> R             = Rview(i);
+    const size_t& i, 
+    const double&, 
+    Vector_t<double, 3>& E, 
+    Vector_t<double, 3>& B) 
+{
+    // Get container
+    std::shared_ptr<ParticleContainer_t> pc = 
+    RefPartBunch_m->getParticleContainer();
+    auto Rview = pc->R.getView();
+    const Vector_t<double, 3> R = Rview(i);
 
+    // Check bounds
     if (R(2) < 0.0 || R(2) > getElementLength())
         return false;
     if (!isInsideTransverse(R))
         return getFlagDeleteOnTransverseExit();
 
+    // Compute fields
     Vector_t<double, 3> Ef(0.0), Bf(0.0);
     computeField(R, Ef, Bf);
 
+    // Apply fields
     for (unsigned int d = 0; d < 3; ++d) {
         E[d] += Ef(d);
         B[d] += Bf(d);
@@ -221,22 +291,54 @@ bool Multipole::apply(
     return false;
 }
 
+/**
+ * @brief Applies the multipole field at position R to E and B
+ * 
+ * @note Cannot be inside a kernel -> GPU incompatible
+ * 
+ * @param R Position
+ * @param E Electric field reference
+ * @param B Magnetic field reference
+ * @returns true if particle is out-of-bounds (lost), false otherwise 
+ */
 bool Multipole::apply(
-    const Vector_t<double, 3>& R, const Vector_t<double, 3>&, const double&, Vector_t<double, 3>& E,
-    Vector_t<double, 3>& B) {
+    const Vector_t<double, 3>& R, 
+    const Vector_t<double, 3>&, 
+    const double&, 
+    Vector_t<double, 3>& E,
+    Vector_t<double, 3>& B) 
+{
+    // Check bounds
     if (R(2) < 0.0 || R(2) > getElementLength())
         return false;
     if (!isInsideTransverse(R))
         return getFlagDeleteOnTransverseExit();
 
+    // Compute field
     computeField(R, E, B);
 
     return false;
 }
 
+/**
+ * @brief Applies the multipole field at reference particle 
+ * position R to E and B
+ * 
+ * @note Host-only function for the orbitthreader 
+ * 
+ * @param R Position
+ * @param E Electric field reference
+ * @param B Magnetic field reference
+ * @returns true if particle is out-of-bounds (lost), false otherwise 
+ */
 bool Multipole::applyToReferenceParticle(
-    const Vector_t<double, 3>& R, const Vector_t<double, 3>&, const double&, Vector_t<double, 3>& E,
-    Vector_t<double, 3>& B) {
+    const Vector_t<double, 3>& R, 
+    const Vector_t<double, 3>&, 
+    const double&, 
+    Vector_t<double, 3>& E,
+    Vector_t<double, 3>& B) 
+{
+    // Check bounds
     if (R(2) < 0.0 || R(2) > getElementLength())
         return false;
     if (!isInsideTransverse(R))
@@ -251,6 +353,7 @@ bool Multipole::applyToReferenceParticle(
     }
     */
 
+    // Compute field
     computeFieldHost(R, E, B);
 
     /*
