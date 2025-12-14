@@ -1,3 +1,13 @@
+#ifndef CLASSIC_Multipole_HH
+#define CLASSIC_Multipole_HH
+
+#include "AbsBeamline/Component.h"
+#include "BeamlineGeometry/StraightGeometry.h"
+#include "Fields/BMultipoleField.h"
+
+class Fieldmap;
+constexpr int MAX_MP_ORDER = 20;
+
 /**
  * @class Multipole
  * @brief Interface for general multipole.
@@ -16,17 +26,6 @@
  *
  * Units for multipole strengths are Teslas / m^(n-1).
  */
-
-#ifndef CLASSIC_Multipole_HH
-#define CLASSIC_Multipole_HH
-
-#include "AbsBeamline/Component.h"
-#include "BeamlineGeometry/StraightGeometry.h"
-#include "Fields/BMultipoleField.h"
-
-class Fieldmap;
-
-constexpr int MAX_MP_ORDER = 20;
 
 class Multipole : public Component {
 public:
@@ -218,10 +217,13 @@ private:
 /* ========================================================================== */
 };
 /* =========================== Inline Functions ============================= */ 
+// @note Inlined function bodies need to be in the header for libraries
+
+// @returns n-th normal component of the multipole expansion
 inline void Multipole::setNormalComponent(int n, double v) {
     setNormalComponent(n, v, 0.0);
 }
-
+// @returns n-th skew component of the multipole expansion
 inline void Multipole::setSkewComponent(int n, double v) {
     setSkewComponent(n, v, 0.0);
 }
