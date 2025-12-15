@@ -244,7 +244,7 @@ bool Multipole::apply()
                 Eview(i)(d) += Ef(d);
                 Bview(i)(d) += Bf(d);
             }
-        }
+        }    
     });
 
     return false;

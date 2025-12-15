@@ -142,24 +142,33 @@ BVector BMultipoleField::Bfield(const Point3D &point, double) const {
 
 
 void BMultipoleField::setNormalComponent(int n, double b) {
-    if(n <= 0) {
+    //if(n <= 0) {
+    //    throw LogicalError("BMultipoleField::setNormalComponent()",
+    //                       "Field order should be > 0.");
+    //}
+    if(n < 0) {
         throw LogicalError("BMultipoleField::setNormalComponent()",
                            "Field order should be > 0.");
     }
 
-    if(n > itsOrder) reserve(n);
-    pairs[n-1].B = b;
+    //if(n > itsOrder) reserve(n);
+    //pairs[n-1].B = b;
+    if(n >= itsOrder) reserve(n);
+    pairs[n].B = b;
 }
 
 
 void BMultipoleField::setSkewComponent(int n, double a) {
-    if(n <= 0) {
+    if(n < 0) {
         throw LogicalError("BMultipoleField::setSkewComponent()",
                            "Field order should be > 0.");
     }
 
-    if(n > itsOrder) reserve(n);
-    pairs[n-1].A = a;
+    //if(n > itsOrder) reserve(n);
+    //pairs[n-1].A = a;
+    if(n >= itsOrder) reserve(n);
+    pairs[n].A = a;
+
 }
 
 
@@ -185,7 +194,7 @@ void BMultipoleField::scale(double scalar) {
 
 
 void BMultipoleField::reserve(int n) {
-    if(n > itsOrder) {
+    if(n >= itsOrder) {
         Pair *temp = new Pair[n];
         for(int i = 0; i < itsOrder; i++) temp[i] = pairs[i];
         delete [] pairs;

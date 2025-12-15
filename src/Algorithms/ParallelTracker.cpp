@@ -632,12 +632,16 @@ void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
         (*it)->setCurrentSCoordinate(pathLength_m + rmin(2));   
 
         // Transform from reference particle to element frame
+        refToLocalCSTrafo.transformBunchTo(
+            itsBunch_m->getParticleContainer()->R.getView());
 
         // Apply element
         // TODO: out-of-bounds check here 
         (*it)->apply(); 
 
         // Transform from element to reference particle frame
+        localToRefCSTrafo.transformBunchTo(
+            itsBunch_m->getParticleContainer()->R.getView());
 
     }
 
@@ -690,7 +694,13 @@ void ParallelTracker::pushParticles(const BorisPusher& pusher) {
 
     Kokkos::parallel_for("pushParticles", ippl::getRangePolicy(Rview), 
     KOKKOS_LAMBDA(const int i) {
-        pusher.push(Rview(i), Pview(i), dtview(i));
+        auto x = Rview(i);
+        auto p = Pview(i);
+        auto dt = dtview(i);
+        
+        pusher.push(x, p, dt);
+
+        Rview(i) = x;
     });
 
     itsBunch_m->switchOffUnitlessPositions(true);
