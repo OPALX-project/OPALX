@@ -3,6 +3,7 @@
 
 #include "Algorithms/StepSizeConfig.h"
 #include "Algorithms/Tracker.h"
+#include "Algorithms/CoordinateSystemTrafo.h"
 #include "Steppers/BorisPusher.h"
 #include "Structure/DataSink.h"
 

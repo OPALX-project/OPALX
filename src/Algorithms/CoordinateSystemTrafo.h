@@ -126,4 +126,39 @@ inline CoordinateSystemTrafo CoordinateSystemTrafo::inverted() const {
     return result;
 }
 
+inline void CoordinateSystemTrafo::transformBunchTo(auto Rview) {
+    Matrix_t rot = rotationMatrix_m;
+    ippl::Vector<double, 3> ori = origin_m;
+    Kokkos::parallel_for("transformBunchTo", Rview.extent(0), 
+        KOKKOS_LAMBDA(const size_t i) {
+            ippl::Vector<double, 3> delta = Rview(i) - ori;
+            Rview(i) = prod_vector(rot, delta);
+        });
+}
+
+inline void CoordinateSystemTrafo::transformBunchFrom(auto Rview) {
+    Matrix_t rot = rotationMatrix_m;
+    ippl::Vector<double, 3> ori = origin_m;
+    Kokkos::parallel_for("transformBunchFrom", Rview.extent(0), 
+        KOKKOS_LAMBDA(const size_t i) {
+            Rview(i) = prod_vector_transpose(rot, Rview(i)) + ori;
+        });
+}
+
+inline void CoordinateSystemTrafo::rotateBunchTo(auto Pview) {
+    Matrix_t rot = rotationMatrix_m;
+    Kokkos::parallel_for("rotateBunchTo", Pview.extent(0), 
+        KOKKOS_LAMBDA(const size_t i) {
+            Pview(i) = prod_vector(rot, Pview(i));
+        });
+}
+
+inline void CoordinateSystemTrafo::rotateBunchFrom(auto Pview) {
+    Matrix_t rot = rotationMatrix_m;
+    Kokkos::parallel_for("rotateBunchFrom", Pview.extent(0), 
+        KOKKOS_LAMBDA(const size_t i) {
+            Pview(i) = prod_vector_transpose(rot, Pview(i));
+        });
+}
+
 #endif

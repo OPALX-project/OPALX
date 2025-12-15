@@ -47,8 +47,7 @@ void CoordinateSystemTrafo::operator*=(const CoordinateSystemTrafo& right) {
 }
 
 /* ====================== Transformation Functions ========================== */
-
-
+/*
 void CoordinateSystemTrafo::transformBunchTo(auto Rview)
 {
     // local copies for the kernel 
@@ -95,6 +94,9 @@ void CoordinateSystemTrafo::rotateBunchFrom(auto Pview)
         Pview(i) = prod_vector_transpose(rotationMatrix, Pview(i));
     });
 }
+*/
+
+
 
 /* ========================================================================== */
 /* ============================ Getters ===================================== */
