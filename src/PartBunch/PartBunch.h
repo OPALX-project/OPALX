@@ -96,7 +96,8 @@ public:
 
     size_type totalP_m;
 
-    int nt_m;
+    /// \todo doesn't do anything??? 
+    // int nt_m; 
 
     double lbt_m;
 
@@ -236,7 +237,7 @@ private:
 
 public:
 
-    PartBunch(double qi, double mi, size_t totalP, int nt, double lbt, std::string integration_method,
+    PartBunch(double qi, double mi, size_t totalP/*, int nt*/, double lbt, std::string integration_method,
               std::shared_ptr<Distribution> &OPALdistribution, std::shared_ptr<FieldSolverCmd> &OPALFieldSolver);
 
     void bunchUpdate();

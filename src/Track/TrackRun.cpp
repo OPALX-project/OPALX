@@ -246,8 +246,9 @@ void TrackRun::execute() {
     *gmsg << *beam << endl;
 
     macrocharge_m = beam->getChargePerParticle();
-    macromass_m   = beam->getMassPerParticle();
-
+    macromass_m   = beam->getMassPerParticle(); // returns MACRO mass in GeV
+    *gmsg << "* Macro charge per particle: " << (macrocharge_m) << endl;
+    *gmsg << "* Macro mass per particle: " << (macromass_m) << endl;
     /*
       Here we can allocate the bunch
 
@@ -255,8 +256,11 @@ void TrackRun::execute() {
     
     // There's a change of units for particle mass that seems strange -> gives consistent Kinetic Energy
     bunch_m = std::make_shared<bunch_type>(macrocharge_m,
-                                           beam->getMass()*1e9*Units::eV2MeV,
-                                           beam->getNumberOfParticles(), 10, 1.0, "LF2", dist_m, fs_m);
+                                           macromass_m*Units::GeV2eV / (Physics::c), 
+                                                                      // *Units::eV2MeV <-- not needed, since we want eV/c^2 (to match OPAL mass)
+                                                                      // Note that we can set bunch charge, so sometimes macromass != electron mass!
+                                                                      /// \todo it would be much better to reinstate PartData or itsReference_m?
+                                           beam->getNumberOfParticles()/*, 10*/, 1.0, "LF2", dist_m, fs_m);
     bunch_m->setT(0.0);
     bunch_m->setBeamFrequency(beam->getFrequency() * Units::MHz2Hz);
 
