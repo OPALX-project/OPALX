@@ -231,6 +231,9 @@ void ParallelTracker::execute() {
     // Inform object
     Inform msg("ParallelTracker ", *gmsg);
 
+    // Set preparation state in OpalData
+    OpalData::getInstance()->setInPrepState(true);
+
     // Flag to indicate forward tracking
     bool back_track = false;
 
@@ -245,6 +248,14 @@ void ParallelTracker::execute() {
 
     // Set the time step for the current track
     dtCurrentTrack_m = itsBunch_m->getdT();
+    
+    // If there is prior tracking data or if in a restart run, set the data
+    // sink to append mode
+    if (OpalData::getInstance()->hasPriorTrack() || 
+        OpalData::getInstance()->inRestartRun()) 
+    {
+        OpalData::getInstance()->setOpenMode(OpalData::OpenMode::APPEND);
+    }
 
     // Populate the OpalBeamline and calculate coordinate transformations 
     // for non-straight sections
@@ -367,12 +378,15 @@ void ParallelTracker::execute() {
                 itsBunch_m->calcBeamParameters();
                 itsBunch_m->get_bounds(rmin, rmax);
             }
+            std::cout << "Rmin: " << rmin << " Rmax: " << rmax << std::endl;
+
             timeIntegration1(pusher);
-            
+
             resetFields();
             
             //computeSpaceChargeFields(step);
-            
+           
+            std::cout << "Compute external fields at step " << step << std::endl;
             computeExternalFields(oth);
 
             timeIntegration2(pusher);
@@ -619,6 +633,8 @@ void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
 
     // Iterate over all elements
     for (; it != end; ++it) {
+        std::cout<<"Pathlength: "<< pathLength_m << std::endl;
+        std::cout<<"Iterating element: "<< (*it)->getName() << std::endl;
 
         // Determine transformation from bunch to element 
         CoordinateSystemTrafo refToLocalCSTrafo = 
@@ -632,18 +648,24 @@ void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
         (*it)->setCurrentSCoordinate(pathLength_m + rmin(2));   
 
         // Transform from reference particle to element frame
-        refToLocalCSTrafo.transformBunchTo(
-            itsBunch_m->getParticleContainer()->R.getView());
+        //refToLocalCSTrafo.transformBunchTo(
+        //    itsBunch_m->getParticleContainer()->R.getView());
 
         // Apply element
         // TODO: out-of-bounds check here 
         (*it)->apply(); 
 
         // Transform from element to reference particle frame
-        localToRefCSTrafo.transformBunchTo(
-            itsBunch_m->getParticleContainer()->R.getView());
+        //localToRefCSTrafo.transformBunchTo(
+        //    itsBunch_m->getParticleContainer()->R.getView());
 
     }
+    /*
+    auto Bview = itsBunch_m->getParticleContainer()->B.getView();
+    for(unsigned int i=0; i<itsBunch_m->getTotalNum(); ++i){
+        std::cout<< "Bfield: "<< Bview(i) << std::endl;
+    }    
+    */
 
     IpplTimings::stopTimer(fieldEvaluationTimer_m);
 
@@ -701,6 +723,7 @@ void ParallelTracker::pushParticles(const BorisPusher& pusher) {
         pusher.push(x, p, dt);
 
         Rview(i) = x;
+
     });
 
     itsBunch_m->switchOffUnitlessPositions(true);
@@ -718,6 +741,8 @@ void ParallelTracker::kickParticles(const BorisPusher& pusher) {
     const double mass = itsReference.getM();
     const double charge = itsReference.getQ();
 
+    
+
     Kokkos::parallel_for("kickParticles", ippl::getRangePolicy(Rview), 
     KOKKOS_LAMBDA(const int i) {
         const auto x = Rview(i);
@@ -727,8 +752,10 @@ void ParallelTracker::kickParticles(const BorisPusher& pusher) {
         const auto b = Bview(i);
 
         const auto dt = dtview(i);
-        
+
+        //std::cout << b << std::endl;
         pusher.kick(x, p, e, b, dt, mass, charge);
+        //std::cout << p << std::endl;
         Pview(i) = p;
     });
         

@@ -219,6 +219,7 @@ void Multipole::setSkewComponent(int n, double v, double vError)
  */
 bool Multipole::apply()
 {
+    std::cout << "Multipole::apply() called" <<std::endl;
     // Get the particle container
     std::shared_ptr<ParticleContainer_t> pc = 
         RefPartBunch_m->getParticleContainer();
@@ -237,6 +238,7 @@ bool Multipole::apply()
     {
         // Check bounds
         if (Rview(i)(2) > 0 && Rview(i)(2) <= elemLength){
+        //if (true){
             Vector_t<double,3> Ef(0.0), Bf(0.0);
             // Compute field at particle position
             computeField(Rview(i), Ef, Bf);
@@ -246,7 +248,11 @@ bool Multipole::apply()
             }
         }    
     });
-
+    /*
+    for(unsigned int i=0; i<pc->getTotalNum(); ++i){
+        std::cout<< "Bfield: "<< Bview(i) << std::endl;
+    }
+    */
     return false;
 }
 
