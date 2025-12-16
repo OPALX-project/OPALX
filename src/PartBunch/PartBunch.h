@@ -58,6 +58,7 @@ diagnostics(): calculate statistics and maybe write tp h5 and stat files
 #include "Random/InverseTransformSampling.h"
 #include "Random/NormalDistribution.h"
 #include "Random/Randn.h"
+#include "Utilities/OpalException.h"
 
 #include "Structure/FieldSolverCmd.h"
 
@@ -215,6 +216,7 @@ private:
     
     // unit state of PartBunch
     // UnitState_t unit_state_m;
+    bool isUnitless_m;
     // UnitState_t stateOfLastBoundP_m;
 
     /// holds the actual time of the integration
@@ -435,8 +437,42 @@ public:
     void gatherStatistics(unsigned int totalP) {
     }
     void switchToUnitlessPositions(bool use_dt_per_particle = false) {
+        if (isUnitless_m) {
+            throw OpalException("PartBunch::switchToUnitlessPositions",
+                                "PartBunch is already in unitless positions!");
+        }
+
+        // Divide by c*dt
+        double unitless_factor = 1.0 / (Physics::c * this->getdT());
+        auto Rview  = this->getParticleContainer()->R.getView();
+        auto dtview = this->getParticleContainer()->dt.getView();
+        Kokkos::parallel_for(
+                             "switchToUnitlessPositions", ippl::getRangePolicy(Rview),
+                             KOKKOS_LAMBDA(const size_t i) {
+                                double fac = use_dt_per_particle ? (Physics::c * dtview(i)) 
+                                                                 : unitless_factor;
+                                Rview(i) *= fac;
+                             });
+        isUnitless_m = true;
     }
     void switchOffUnitlessPositions(bool use_dt_per_particle = false) {
+        if (!isUnitless_m) {
+            throw OpalException("PartBunch::switchOffUnitlessPositions",
+                                "PartBunch is already in physical positions!");
+        }
+
+        // Multiply by c*dt
+        double unitless_factor = Physics::c * this->getdT();
+        auto Rview  = this->getParticleContainer()->R.getView();
+        auto dtview = this->getParticleContainer()->dt.getView();
+        Kokkos::parallel_for(
+                             "switchOffUnitlessPositions", ippl::getRangePolicy(Rview),
+                             KOKKOS_LAMBDA(const size_t i) {
+                                double fac = use_dt_per_particle ? (Physics::c * dtview(i)) 
+                                                                 : unitless_factor;
+                                Rview(i) *= fac;
+                             });
+        isUnitless_m = false;
     }
 
     size_t calcNumPartsOutside(Vector_t<double, Dim> x) {
