@@ -33,13 +33,13 @@ public:
     ippl::Vector<double, 3> rotateFrom(
         const ippl::Vector<double, 3>& r) const;
 
-    void transformBunchTo(auto Rview);
+    void transformBunchTo(auto Rview) const;
 
-    void transformBunchFrom(auto Rview);
+    void transformBunchFrom(auto Rview) const;
 
-    void rotateBunchTo(auto Pview);
+    void rotateBunchTo(auto Pview) const;
 
-    void rotateBunchFrom(auto Pview);
+    void rotateBunchFrom(auto Pview) const;
 /* ========================================================================== */
 /* =============================== Operators ================================ */
     CoordinateSystemTrafo& operator=(
@@ -126,7 +126,7 @@ inline CoordinateSystemTrafo CoordinateSystemTrafo::inverted() const {
     return result;
 }
 
-inline void CoordinateSystemTrafo::transformBunchTo(auto Rview) {
+inline void CoordinateSystemTrafo::transformBunchTo(auto Rview) const{
     Matrix_t rot = rotationMatrix_m;
     ippl::Vector<double, 3> ori = origin_m;
     Kokkos::parallel_for("transformBunchTo", Rview.extent(0), 
@@ -136,7 +136,7 @@ inline void CoordinateSystemTrafo::transformBunchTo(auto Rview) {
         });
 }
 
-inline void CoordinateSystemTrafo::transformBunchFrom(auto Rview) {
+inline void CoordinateSystemTrafo::transformBunchFrom(auto Rview) const{
     Matrix_t rot = rotationMatrix_m;
     ippl::Vector<double, 3> ori = origin_m;
     Kokkos::parallel_for("transformBunchFrom", Rview.extent(0), 
@@ -145,7 +145,7 @@ inline void CoordinateSystemTrafo::transformBunchFrom(auto Rview) {
         });
 }
 
-inline void CoordinateSystemTrafo::rotateBunchTo(auto Pview) {
+inline void CoordinateSystemTrafo::rotateBunchTo(auto Pview) const{
     Matrix_t rot = rotationMatrix_m;
     Kokkos::parallel_for("rotateBunchTo", Pview.extent(0), 
         KOKKOS_LAMBDA(const size_t i) {
@@ -153,7 +153,7 @@ inline void CoordinateSystemTrafo::rotateBunchTo(auto Pview) {
         });
 }
 
-inline void CoordinateSystemTrafo::rotateBunchFrom(auto Pview) {
+inline void CoordinateSystemTrafo::rotateBunchFrom(auto Pview) const{
     Matrix_t rot = rotationMatrix_m;
     Kokkos::parallel_for("rotateBunchFrom", Pview.extent(0), 
         KOKKOS_LAMBDA(const size_t i) {
