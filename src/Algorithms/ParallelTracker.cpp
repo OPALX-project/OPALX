@@ -869,15 +869,21 @@ void ParallelTracker::updateReferenceParticle(const BorisPusher& pusher) {
 }
 
 void ParallelTracker::transformBunch(const CoordinateSystemTrafo& trafo) {
+    /*
     const unsigned int localNum = itsBunch_m->getLocalNum();
     for (unsigned int i = 0; i < localNum; ++i) {
-        /* \todo host device .... 
         itsBunch_m->R[i]  = trafo.transformTo(itsBunch_m->R[i]);
         itsBunch_m->P[i]  = trafo.rotateTo(itsBunch_m->P[i]);
         itsBunch_m->Ef[i] = trafo.rotateTo(itsBunch_m->Ef[i]);
         itsBunch_m->Bf[i] = trafo.rotateTo(itsBunch_m->Bf[i]);
-        */
+        
     }
+    */
+    trafo.transformBunchTo(itsBunch_m->getParticleContainer()->R.getView());
+    trafo.rotateBunchTo(itsBunch_m->getParticleContainer()->P.getView());
+    trafo.rotateBunchTo(itsBunch_m->getParticleContainer()->E.getView());
+    trafo.rotateBunchTo(itsBunch_m->getParticleContainer()->B.getView());
+    //.transformBunchTo(itsBunch_m->getParticleContainer()->R.getView());
 }
 
 void ParallelTracker::updateRefToLabCSTrafo() {
@@ -895,6 +901,9 @@ void ParallelTracker::updateRefToLabCSTrafo() {
 
     Vector_t<double, 3> R = itsBunch_m->toLabTrafo_m.transformFrom(itsBunch_m->RefPartR_m);
     Vector_t<double, 3> P = itsBunch_m->toLabTrafo_m.transformFrom(itsBunch_m->RefPartP_m);
+
+    std::cout << "RefPartR before transformFrom: " << itsBunch_m->RefPartR_m << std::endl;
+    std::cout << "Updated RefPartR: " << R << std::endl;
     
     pathLength_m += std::copysign(1, itsBunch_m->getdT()) * euclidean_norm(R);
 
