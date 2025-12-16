@@ -303,9 +303,9 @@ inline void ParallelTracker::visitTravelingWave(const TravelingWave& as) {
 
 inline void ParallelTracker::kickParticles(const BorisPusher& pusher) {
     
-    auto Rview  = itsBunch_m->getParticleContainer()->R.getView();
+    // auto Rview  = itsBunch_m->getParticleContainer()->R.getView();
     auto Pview  = itsBunch_m->getParticleContainer()->P.getView();
-    auto dtview = itsBunch_m->getParticleContainer()->dt.getView();
+    // auto dtview = itsBunch_m->getParticleContainer()->dt.getView();
     auto Efview = itsBunch_m->getParticleContainer()->E.getView();
     auto Bfview = itsBunch_m->getParticleContainer()->B.getView();
 
@@ -314,13 +314,11 @@ inline void ParallelTracker::kickParticles(const BorisPusher& pusher) {
     const double charge = itsReference.getQ();
 
     Kokkos::parallel_for(
-                         "kickParticles", ippl::getRangePolicy(Rview),
-                         KOKKOS_LAMBDA(const int i) {
-                             Vector_t<double, 3> p = {Pview(i)[0],Pview(i)[1],Pview(i)[2]};
-
-                             Vector_t<double, 3> e = {Efview(i)[0],Efview(i)[1],Efview(i)[2]};
-                             Vector_t<double, 3> b = {Bfview(i)[0],Bfview(i)[1],Bfview(i)[2]};
-                             double dt = dtview(i);
+                         "kickParticles", ippl::getRangePolicy(Pview),
+                         KOKKOS_LAMBDA(const size_t i) {
+                             //Vector_t<double, 3> e = Efview(i); // {Efview(i)[0],Efview(i)[1],Efview(i)[2]};
+                             //Vector_t<double, 3> b = Bfview(i); // {Bfview(i)[0],Bfview(i)[1],Bfview(i)[2]};
+                             // double dt = dtview(i);
 
                              // pusher.kick(x,p,e,b,dt);
                              // Implementation follows chapter 4-4, p. 61 - 63 from
@@ -348,7 +346,7 @@ inline void ParallelTracker::kickParticles(const BorisPusher& pusher) {
                              //     dt: Timestep
                              //     mass = rest energy = rest mass * c * c
                              //     charge
-                             
+                             /*
                              // Half step E
                              p += 0.5 * dt * charge * Physics::c / mass * e;
 
@@ -365,27 +363,32 @@ inline void ParallelTracker::kickParticles(const BorisPusher& pusher) {
                              p += 0.5 * dt * charge * Physics::c / mass * e;
 
                              Pview(i) = p;
-                                 
+                             */
+                            //pusher.kick(/*Rview(i),*/ p, e, b, 0)
+                            Vector_t<double, 3> p = Pview(i); // {Pview(i)[0],Pview(i)[1],Pview(i)[2]};
+                            pusher.kick(0, p, Efview(i), Bfview(i), 0, mass, charge);  
+                            Pview(i) = p; 
                          });
 
+    /// \todo unnecessary update? kick does not modify positions
     itsBunch_m->getParticleContainer()->update();
     ippl::Comm->barrier();
 }
 
 inline void ParallelTracker::pushParticles(const BorisPusher& pusher) {
 
-    itsBunch_m->switchToUnitlessPositions(true);
+    itsBunch_m->switchToUnitlessPositions(false);
 
     auto Rview  = itsBunch_m->getParticleContainer()->R.getView();
     auto Pview  = itsBunch_m->getParticleContainer()->P.getView();
-    auto dtview = itsBunch_m->getParticleContainer()->dt.getView();
+    //auto dtview = itsBunch_m->getParticleContainer()->dt.getView();
 
     Kokkos::parallel_for(
                          "pushParticles", ippl::getRangePolicy(Rview),
-                         KOKKOS_LAMBDA(const int i) {
-                             Vector_t<double, 3> x = {Rview(i)[0],Rview(i)[1],Rview(i)[2]};
-                             Vector_t<double, 3> p = {Pview(i)[0],Pview(i)[1],Pview(i)[2]};
-                             double dt = dtview(i);
+                         KOKKOS_LAMBDA(const size_t i) {
+                            Vector_t<double, 3> x = Rview(i); // {Rview(i)[0],Rview(i)[1],Rview(i)[2]};
+                            //Vector_t<double, 3> p = Pview(i); // {Pview(i)[0],Pview(i)[1],Pview(i)[2]};
+                            // double dt = dtview(i);
 
                                  /** \f[ \vec{x}_{n+1/2} = \vec{x}_{n} + \frac{1}{2}\vec{v}_{n-1/2}\quad (= \vec{x}_{n} +
                                   * \frac{\Delta t}{2} \frac{\vec{\beta}_{n-1/2}\gamma_{n-1/2}}{\gamma_{n-1/2}}) \f]
@@ -394,15 +397,16 @@ inline void ParallelTracker::pushParticles(const BorisPusher& pusher) {
                                   * R[i] += 0.5 * P[i] * recpgamma;
                                   * \endcode
                                   */
-                             // \TODO check +-
+                            // \TODO check +-
                              
-                             // pusher.push(x,p,dt);
-                             x = 0.5 * dt * p / Kokkos::sqrt(1.0 + dot(p));
-                             Rview(i) += x;
+                            pusher.push(x, Pview(i), 0); // this 0 is "dt" that is not used with unitless positions!
+                            //x = 0.5 * dt * p / Kokkos::sqrt(1.0 + dot(p));
+                            //Rview(i) += x;
+                            Rview(i) = x;
                          });
 
 
-    itsBunch_m->switchOffUnitlessPositions(true);
+    itsBunch_m->switchOffUnitlessPositions(false);
     itsBunch_m->getParticleContainer()->update();
     ippl::Comm->barrier();
 }

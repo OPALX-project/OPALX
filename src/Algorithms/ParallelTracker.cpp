@@ -403,13 +403,20 @@ void ParallelTracker::execute() {
             Vector_t<double, 3> rmin(0.0), rmax(0.0);
             if (itsBunch_m->getTotalNum() > 0) {
                 itsBunch_m->get_bounds(rmin, rmax);
-                *gmsg << "* Bunch bounds at step " << step + 1 << ": "
-                      << " x[" << Util::getLengthString(rmin(0)) << ", "
-                      << Util::getLengthString(rmax(0)) << "] "
-                      << " y[" << Util::getLengthString(rmin(1)) << ", "
-                      << Util::getLengthString(rmax(1)) << "] "
-                      << " z[" << Util::getLengthString(rmin(2)) << ", "
-                      << Util::getLengthString(rmax(2)) << "] " << endl;
+                {
+                    *gmsg << "* Bunch bounds at step " << step + 1 << ": "
+                        << " x[" << Util::getLengthString(rmin(0)) << ", "
+                        << Util::getLengthString(rmax(0)) << "] "
+                        << " y[" << Util::getLengthString(rmin(1)) << ", "
+                        << Util::getLengthString(rmax(1)) << "] "
+                        << " z[" << Util::getLengthString(rmin(2)) << ", "
+                        << Util::getLengthString(rmax(2)) << "] " << endl;
+                }
+                {
+                    // Print out mass and charge per particle
+                    *gmsg << "* Particle mass at step " << step + 1 << ": " << itsBunch_m->getMassPerParticle() << endl;
+                    *gmsg << "* Charge mass at step " << step + 1 << ": " << itsBunch_m->getChargePerParticle() << endl;
+                }
             }
             // ADA
             timeIntegration1(pusher);
@@ -467,6 +474,23 @@ void ParallelTracker::execute() {
                                      }, firstParticleCharge);
                 *gmsg << "* After step " << step + 1 << ": First particle charge = "
                       << firstParticleCharge << endl;
+            }
+            {
+                // Calculate mean electric field in x/y/z for debugging
+                Vector_t<double, 3> localSumE(0.0);
+                unsigned long long numParticles = itsBunch_m->getTotalNum();
+                auto Eview = itsBunch_m->getParticleContainer()->E.getView();
+                Kokkos::parallel_reduce(
+                                     "meanECalc", numParticles,
+                                     KOKKOS_LAMBDA(const size_t i, Vector_t<double,3>& localSum) {
+                                         localSum += Eview(i);
+                                     }, localSumE);
+                ippl::Comm->allreduce(localSumE, 1, std::plus<Vector_t<double, 3>>());
+                Vector_t<double, 3> meanE = localSumE / static_cast<double>(numParticles);
+                *gmsg << "* After step " << step + 1 << ": Mean electric field (x,y,z) = ("
+                      << meanE(0) << ", "
+                      << meanE(1) << ", "
+                      << meanE(2) << ")" << endl;
             }
             
             selectDT(back_track);
