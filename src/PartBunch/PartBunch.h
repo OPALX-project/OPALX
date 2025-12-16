@@ -18,6 +18,7 @@
 #include "Random/InverseTransformSampling.h"
 #include "Random/NormalDistribution.h"
 #include "Random/Randn.h"
+#include "Utilities/OpalException.h"
 
 #include "Structure/FieldSolverCmd.h"
 
@@ -55,7 +56,8 @@ public:
 
     size_type totalP_m;
 
-    int nt_m;
+    /// \todo doesn't do anything??? 
+    // int nt_m; 
 
     double lbt_m;
 
@@ -175,6 +177,7 @@ private:
     
     // unit state of PartBunch
     // UnitState_t unit_state_m;
+    bool isUnitless_m;
     // UnitState_t stateOfLastBoundP_m;
 
     /// holds the actual time of the integration
@@ -194,7 +197,7 @@ private:
 
 public:
 
-    PartBunch(double qi, double mi, size_t totalP, int nt, double lbt, std::string integration_method,
+    PartBunch(double qi, double mi, size_t totalP/*, int nt*/, double lbt, std::string integration_method,
               std::shared_ptr<Distribution> &OPALdistribution, std::shared_ptr<FieldSolverCmd> &OPALFieldSolver);
 
     void bunchUpdate();
@@ -202,7 +205,7 @@ public:
     void bunchUpdate(ippl::Vector<double, 3> hr);
     
     ~PartBunch() {
-        *gmsg << "* Finished time step: " << this->it_m << " time: " << this->time_m << endl;
+        *gmsg << "* PartBunch Destructor: Finished time step: " << this->it_m << " time: " << this->time_m << endl;
     }
 
     std::shared_ptr<ParticleContainer_t> getParticleContainer() {
@@ -397,11 +400,49 @@ public:
     void gatherStatistics(unsigned int /*totalP*/) {
         *gmsg << "not implemented" << endl;
     }
-    void switchToUnitlessPositions(bool /*use_dt_per_particle = false*/) {
-        *gmsg << "not implemented" << endl;
+    void switchToUnitlessPositions(bool use_dt_per_particle = false) {
+        if (isUnitless_m) {
+            throw OpalException("PartBunch::switchToUnitlessPositions",
+                                "PartBunch is already in unitless positions!");
+        }
+
+        // Divide by c*dt
+        double unitless_factor = 1.0 / (Physics::c * this->getdT());
+        auto Rview  = this->getParticleContainer()->R.getView();
+        auto dtview = this->getParticleContainer()->dt.getView();
+        Kokkos::parallel_for(
+                             "switchToUnitlessPositions", ippl::getRangePolicy(Rview),
+                             KOKKOS_LAMBDA(const size_t i) {
+                                double fac = use_dt_per_particle ? (Physics::c * dtview(i)) 
+                                                                 : unitless_factor;
+                                Rview(i) *= fac;
+                             });
+        isUnitless_m = true;
+
+        /// \todo remove later
+        *gmsg << "* Switched to unitless positions." << endl; 
     }
-    void switchOffUnitlessPositions(bool /*use_dt_per_particle = false*/) {
-        *gmsg << "not implemented" << endl;
+    void switchOffUnitlessPositions(bool use_dt_per_particle = false) {
+        if (!isUnitless_m) {
+            throw OpalException("PartBunch::switchOffUnitlessPositions",
+                                "PartBunch is already in physical positions!");
+        }
+
+        // Multiply by c*dt
+        double unitless_factor = Physics::c * this->getdT();
+        auto Rview  = this->getParticleContainer()->R.getView();
+        auto dtview = this->getParticleContainer()->dt.getView();
+        Kokkos::parallel_for(
+                             "switchOffUnitlessPositions", ippl::getRangePolicy(Rview),
+                             KOKKOS_LAMBDA(const size_t i) {
+                                double fac = use_dt_per_particle ? (Physics::c * dtview(i)) 
+                                                                 : unitless_factor;
+                                Rview(i) *= fac;
+                             });
+        isUnitless_m = false;
+
+        /// \todo remove later
+        *gmsg << "* Switched to physical positions." << endl;
     }
 
     size_t calcNumPartsOutside(Vector_t<double, Dim> /*x*/) {
