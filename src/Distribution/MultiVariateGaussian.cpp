@@ -2,13 +2,122 @@
 #include <Kokkos_Core.hpp>
 #include <mpi.h>
 
+using Matrix_t = ippl::Vector<ippl::Vector<double, 6>, 6>;
+
 /**
  * @brief Constructs the MultiVariateGaussian class.
+ * @param pc Shared pointer to the particle container.
+ * @param fc Shared pointer to the field container.
+ * @param opalDist Shared pointer to the distribution.
  */
 MultiVariateGaussian::MultiVariateGaussian(std::shared_ptr<ParticleContainer_t> &pc, 
                                            std::shared_ptr<FieldContainer_t> &fc, 
                                            std::shared_ptr<Distribution_t> &opalDist)
-    : SamplingBase(pc, fc, opalDist) {}
+    : SamplingBase(pc, fc, opalDist) {
+
+        // Initialize covariance matrix from the distribution.
+        for (unsigned int i = 0; i < 6; i++) {
+            for (unsigned int j = 0; j < 6; j++) {
+                cov_m[i][j] = opalDist_m->correlationMatrix_m[i][j];
+            }
+        }
+
+        setSigmaR(opalDist_m->getSigmaR());
+        setSigmaP(opalDist_m->getSigmaP());
+        setCutoffR(opalDist_m->getCutoffR());
+        setCutoffP(opalDist_m->getCutoffP());
+
+        meanR_m = 0.0;
+        meanP_m = 0.0;
+        meanP_m[2] = opalDist_m->getAvrgpz();
+
+        samplerTimer_m = IpplTimings::getTimer("SamplingTimer");
+        initRandomPool();
+    }
+
+MultiVariateGaussian::MultiVariateGaussian(std::shared_ptr<ParticleContainer_t> pc,
+                   const Vector_t<double, 3>& meanR,
+                   const Vector_t<double, 3>& meanP,
+                   const Vector_t<double, 3>& sigmaR,
+                   const Vector_t<double, 3>& sigmaP,
+                   const Vector_t<double, 3>& cutoffR,
+                   const Vector_t<double, 3>& cutoffP,
+                   bool fixMeanR,
+                   bool fixMeanP)
+    : SamplingBase(pc) {
+    // Initialize covariance matrix from the distribution.
+    for (unsigned int i = 0; i < 6; i++) {
+        for (unsigned int j = 0; j < 6; j++) {
+            cov_m[i][j] = 0.0;
+            if(i==j && i%2==0){
+                cov_m[i][j] = sigmaR[i/2]*sigmaR[i/2];
+            }
+            if(i==j && i%2==1){
+                cov_m[i][j] = sigmaP[i/2]*sigmaP[i/2];
+            }
+        }
+    }
+    setMeanR(meanR);
+    setMeanP(meanP);
+    setSigmaR(sigmaR);
+    setSigmaP(sigmaP);
+    setCutoffR(cutoffR);
+    setCutoffP(cutoffP);
+    setFixMeanR(fixMeanR);
+    setFixMeanP(fixMeanP);
+
+    samplerTimer_m = IpplTimings::getTimer("SamplingTimer");
+    initRandomPool();
+}
+
+
+MultiVariateGaussian::MultiVariateGaussian(std::shared_ptr<ParticleContainer_t> pc,
+                   const Vector_t<double, 3>& meanR,
+                   const Vector_t<double, 3>& meanP,
+                   const Matrix_t &cov,
+                   const Vector_t<double, 3>& cutoffR,
+                   const Vector_t<double, 3>& cutoffP,
+                   bool fixMeanR,
+                   bool fixMeanP)
+    : SamplingBase(pc) {
+
+    cov_m = cov;
+
+    setMeanR(meanR);
+    setMeanP(meanP);
+    setSigmaR(ippl::Vector<double,3>(Kokkos::sqrt(cov_m[0][0]),
+                                     Kokkos::sqrt(cov_m[2][2]),
+                                     Kokkos::sqrt(cov_m[4][4])));
+
+    setSigmaP(ippl::Vector<double,3>(Kokkos::sqrt(cov_m[1][1]),
+                                     Kokkos::sqrt(cov_m[3][3]),
+                                     Kokkos::sqrt(cov_m[5][5])));
+    setCutoffR(cutoffR);
+    setCutoffP(cutoffP);
+    setFixMeanR(fixMeanR);
+
+    samplerTimer_m = IpplTimings::getTimer("SamplingTimer");
+    initRandomPool();
+}
+
+/**
+ * @brief Initializes the random number generator pool.
+ */
+void MultiVariateGaussian::initRandomPool() {
+    extern Inform* gmsg;
+    size_t randInit;
+
+    if (Options::seed == -1) {
+        randInit = 1234567;
+        *gmsg << "* Seed = " << randInit << " on all ranks" << endl;
+    } else {
+        randInit = static_cast<size_t>(Options::seed + 100 * ippl::Comm->rank());
+    }
+
+    GeneratorPool rand_pool64(randInit);
+    randPool_m = rand_pool64;
+    return;
+}
 
 /**
  * @brief Computes the Cholesky decomposition of the covariance matrix.
@@ -39,16 +148,16 @@ void MultiVariateGaussian::ComputeCholeskyFactorization() {
  * @brief Computes normalized boundaries for the multivariate Gaussian sampling.
  */
 void MultiVariateGaussian::ComputeCenteredBounds() {
-    rmin_m = -opalDist_m->getCutoffR();
-    rmax_m =  opalDist_m->getCutoffR();
-    pmin_m = -opalDist_m->getCutoffP();
-    pmax_m =  opalDist_m->getCutoffP();
+    rmin_m = -cutoffR_m;
+    rmax_m =  cutoffR_m;
+    pmin_m = -cutoffP_m;
+    pmax_m =  cutoffP_m;
 
     for (int i = 0; i < 3; i++) {
-        rmin_m(i) *= opalDist_m->getSigmaR()[i];
-        rmax_m(i) *= opalDist_m->getSigmaR()[i];
-        pmin_m(i) *= opalDist_m->getSigmaP()[i];
-        pmax_m(i) *= opalDist_m->getSigmaP()[i];
+        rmin_m(i) *= sigmaR_m(i);
+        rmax_m(i) *= sigmaR_m(i);
+        pmin_m(i) *= sigmaP_m(i);
+        pmax_m(i) *= sigmaP_m(i);
 
         min_m(i * 2) = rmin_m(i);
         max_m(i * 2) = rmax_m(i);
@@ -71,15 +180,15 @@ void MultiVariateGaussian::ComputeCenteredBounds() {
     }
 
     for(int i=0; i<3; i++){
-        normRmin_m(i) = min_m(2*i)/opalDist_m->getSigmaR()[i];
-        normRmax_m(i) = max_m(2*i)/opalDist_m->getSigmaR()[i];
-        normPmin_m(i) = min_m(2*i+1)/opalDist_m->getSigmaP()[i];
-        normPmax_m(i) = max_m(2*i+1)/opalDist_m->getSigmaP()[i];
+        normRmin_m(i) = min_m(2*i)/sigmaR_m(i);
+        normRmax_m(i) = max_m(2*i)/sigmaR_m(i);
+        normPmin_m(i) = min_m(2*i+1)/sigmaP_m(i);
+        normPmax_m(i) = max_m(2*i+1)/sigmaP_m(i);
 
-        rmin_m(i) /= opalDist_m->getSigmaR()[i];
-        rmax_m(i) /= opalDist_m->getSigmaR()[i];
-        pmin_m(i) /= opalDist_m->getSigmaP()[i];
-        pmax_m(i) /= opalDist_m->getSigmaP()[i];
+        rmin_m(i) /= sigmaR_m(i);
+        rmax_m(i) /= sigmaR_m(i);
+        pmin_m(i) /= sigmaP_m(i);
+        pmax_m(i) /= sigmaP_m(i);
     }
 }
 
@@ -87,24 +196,9 @@ void MultiVariateGaussian::ComputeCenteredBounds() {
  * @brief Generates particles following a multivariate Gaussian distribution.
  */
 void MultiVariateGaussian::generateParticles(size_t &numberOfParticles, Vector_t<double, 3> nr) {
-    extern Inform* gmsg;
-    size_t randInit;
-    if (Options::seed == -1) {
-        randInit = 1234567;
-        *gmsg << "* Seed = " << randInit << " on all ranks" << endl;
-    } else {
-        randInit = (size_t)(Options::seed + 100 * ippl::Comm->rank());
-    }
+    IpplTimings::startTimer(samplerTimer_m);
 
-    GeneratorPool rand_pool64(randInit);
-
-    // Initialize covariance matrix from the distribution.
-    for (unsigned int i = 0; i < 6; i++) {
-        for (unsigned int j = 0; j < 6; j++) {
-            cov_m[i][j] = opalDist_m->correlationMatrix_m[i][j];
-        }
-    }
-
+    auto rand_pool64 = randPool_m;
     // compute L using Cholesky factorization cov=L*LT
     ComputeCholeskyFactorization();
 
@@ -165,83 +259,84 @@ void MultiVariateGaussian::generateParticles(size_t &numberOfParticles, Vector_t
 
     Kokkos::fence();
 
-
     // zero mean of R
     double meanR[3], loc_meanR[3];
-    for(int i=0; i<3; i++){
-       meanR[i] = 0.0;
-       loc_meanR[i] = 0.0;
-    }
 
-    Kokkos::parallel_reduce(
-            "calc moments of particle distr.", nlocal,
-            KOKKOS_LAMBDA(
-                    const int k, double& cent0, double& cent1, double& cent2) {
-                    cent0 += Rview(k)[0];
-                    cent1 += Rview(k)[1];
-                    cent2 += Rview(k)[2];
+    if (fixMeanR_m) {    
+        for(int i=0; i<3; i++){
+            meanR[i] = 0.0;
+            loc_meanR[i] = 0.0;
+        }
+
+        Kokkos::parallel_reduce("calc moments of particle distr.", nlocal,
+            KOKKOS_LAMBDA(const int k, double& cent0, double& cent1, double& cent2) {
+                cent0 += Rview(k)[0];
+                cent1 += Rview(k)[1];
+                cent2 += Rview(k)[2];
             },
             Kokkos::Sum<double>(loc_meanR[0]), Kokkos::Sum<double>(loc_meanR[1]), Kokkos::Sum<double>(loc_meanR[2]));
-    Kokkos::fence();
+        Kokkos::fence();
 
-    MPI_Allreduce(loc_meanR, meanR, 3, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
-    ippl::Comm->barrier();
+        MPI_Allreduce(loc_meanR, meanR, 3, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
+        ippl::Comm->barrier();
 
-    for(int i=0; i<3; i++){
-       meanR[i] = meanR[i]/(1.*numberOfParticles);
+        for(int i=0; i<3; i++){
+            meanR[i] = meanR[i]/(1.*numberOfParticles);
+        }
+
+        Kokkos::parallel_for(nlocal, KOKKOS_LAMBDA(const int k) {
+            Rview(k)[0] -= meanR[0];
+            Rview(k)[1] -= meanR[1];
+            Rview(k)[2] -= meanR[2];
+        });
+        Kokkos::fence();
     }
-
-    Kokkos::parallel_for(
-            nlocal, KOKKOS_LAMBDA(
-                    const int k) {
-                    Rview(k)[0] -= meanR[0];
-                    Rview(k)[1] -= meanR[1];
-                    Rview(k)[2] -= meanR[2];
-            }
-    );
-    Kokkos::fence();
 
     // zero mean of P
     double meanP[3], loc_meanP[3];
-    for(int i=0; i<3; i++){
-       meanP[i] = 0.0;
-       loc_meanP[i] = 0.0;
-    }
-    Kokkos::parallel_reduce(
-            "calc moments of particle distr.", nlocal,
-            KOKKOS_LAMBDA(
-                    const int k, double& cent0, double& cent1, double& cent2) {
-                    cent0 += Pview(k)[0];
-                    cent1 += Pview(k)[1];
-                    cent2 += Pview(k)[2];
+    if(fixMeanP_m){
+        
+        for(int i=0; i<3; i++){
+            meanP[i] = 0.0;
+            loc_meanP[i] = 0.0;
+        }
+        Kokkos::parallel_reduce("calc moments of particle distr.", nlocal,
+            KOKKOS_LAMBDA(const int k, double& cent0, double& cent1, double& cent2) {
+                cent0 += Pview(k)[0];
+                cent1 += Pview(k)[1];
+                cent2 += Pview(k)[2];
             },
-	    Kokkos::Sum<double>(loc_meanP[0]), Kokkos::Sum<double>(loc_meanP[1]), Kokkos::Sum<double>(loc_meanP[2]));
-    Kokkos::fence();
+            Kokkos::Sum<double>(loc_meanP[0]), Kokkos::Sum<double>(loc_meanP[1]), Kokkos::Sum<double>(loc_meanP[2]));
+        Kokkos::fence();
 
-    MPI_Allreduce(loc_meanP, meanP, 3, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
-    ippl::Comm->barrier();
+        MPI_Allreduce(loc_meanP, meanP, 3, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
+        ippl::Comm->barrier();
 
-    for(int i=0; i<3; i++){
-       meanP[i] = meanP[i]/(1.*numberOfParticles);
+        for(int i=0; i<3; i++){
+            meanP[i] = meanP[i]/(1.*numberOfParticles);
+        }
+
+        Kokkos::parallel_for(nlocal, KOKKOS_LAMBDA(const int k) {
+            Pview(k)[0] -= meanP[0];
+            Pview(k)[1] -= meanP[1];
+            Pview(k)[2] -= meanP[2];
+        });
+        Kokkos::fence();
     }
 
-    Kokkos::parallel_for(
-            nlocal, KOKKOS_LAMBDA(
-                    const int k) {
-                    Pview(k)[0] -= meanP[0];
-                    Pview(k)[1] -= meanP[1];
-                    Pview(k)[2] -= meanP[2];
-            }
-    );
+    // correct the means of R and P from input
+    for(int i=0; i<3; i++){
+        meanR[i] = meanR_m[i];
+        meanP[i] = meanP_m[i];
+    }
+
+    Kokkos::parallel_for(nlocal, KOKKOS_LAMBDA(const int k) {
+        for(int i=0; i<3; i++){
+            Rview(k)[i] += meanR[i];
+            Pview(k)[i] += meanP[i];
+        }
+    });
     Kokkos::fence();
 
-    // correct the means of R and P
-    double avrgpz = opalDist_m->getAvrgpz();
-    Kokkos::parallel_for(
-            nlocal, KOKKOS_LAMBDA(
-                    const int k) {
-                    Pview(k)[2] += avrgpz;
-            }
-    );
-    Kokkos::fence();
+    IpplTimings::stopTimer(samplerTimer_m);
 }
