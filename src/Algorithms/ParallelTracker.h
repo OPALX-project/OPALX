@@ -309,9 +309,11 @@ inline void ParallelTracker::kickParticles(const BorisPusher& pusher) {
     auto Efview = itsBunch_m->getParticleContainer()->E.getView();
     auto Bfview = itsBunch_m->getParticleContainer()->B.getView();
 
-
-    const double mass = itsReference.getM();
-    const double charge = itsReference.getQ();
+    /// \todo It looks like, itsReference isn't set anywhere. Use get... from the bunch instead!
+    const double mass = itsBunch_m->getMassPerParticle(); // itsReference.getM();
+    const double charge = itsBunch_m->getChargePerParticle(); // itsReference.getQ();
+    //*gmsg << "* BorisPusher::kick mass= " << mass << " charge= " << charge << endl; 
+    //*gmsg << "* BorisPusher::kick mass= " << itsReference.getM() << " charge= " << itsReference.getQ() << endl;
 
     Kokkos::parallel_for(
                          "kickParticles", ippl::getRangePolicy(Pview),
@@ -366,6 +368,8 @@ inline void ParallelTracker::kickParticles(const BorisPusher& pusher) {
                              */
                             //pusher.kick(/*Rview(i),*/ p, e, b, 0)
                             Vector_t<double, 3> p = Pview(i); // {Pview(i)[0],Pview(i)[1],Pview(i)[2]};
+
+                            /// \todo might want to remove dt and R altogether from the kick!
                             pusher.kick(0, p, Efview(i), Bfview(i), 0, mass, charge);  
                             Pview(i) = p; 
                          });
@@ -397,7 +401,7 @@ inline void ParallelTracker::pushParticles(const BorisPusher& pusher) {
                                   * R[i] += 0.5 * P[i] * recpgamma;
                                   * \endcode
                                   */
-                            // \TODO check +-
+                            /// \todo check +-
                              
                             pusher.push(x, Pview(i), 0); // this 0 is "dt" that is not used with unitless positions!
                             //x = 0.5 * dt * p / Kokkos::sqrt(1.0 + dot(p));
