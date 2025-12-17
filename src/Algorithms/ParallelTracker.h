@@ -316,63 +316,63 @@ inline void ParallelTracker::kickParticles(const BorisPusher& pusher) {
     //*gmsg << "* BorisPusher::kick mass= " << itsReference.getM() << " charge= " << itsReference.getQ() << endl;
 
     Kokkos::parallel_for(
-                         "kickParticles", ippl::getRangePolicy(Pview),
-                         KOKKOS_LAMBDA(const size_t i) {
-                             //Vector_t<double, 3> e = Efview(i); // {Efview(i)[0],Efview(i)[1],Efview(i)[2]};
-                             //Vector_t<double, 3> b = Bfview(i); // {Bfview(i)[0],Bfview(i)[1],Bfview(i)[2]};
-                             // double dt = dtview(i);
+        "kickParticles", ippl::getRangePolicy(Pview),
+        KOKKOS_LAMBDA(const size_t i) {
+            //Vector_t<double, 3> e = Efview(i); // {Efview(i)[0],Efview(i)[1],Efview(i)[2]};
+            //Vector_t<double, 3> b = Bfview(i); // {Bfview(i)[0],Bfview(i)[1],Bfview(i)[2]};
+            // double dt = dtview(i);
 
-                             // pusher.kick(x,p,e,b,dt);
-                             // Implementation follows chapter 4-4, p. 61 - 63 from
-                             // Birdsall, C. K. and Langdon, A. B. (1985). Plasma physics
-                             // via computer simulation.
-                             //
-                             // Up to finite precision effects, the new implementation is equivalent to the
-                             // old one, but uses less floating point operations.
-                             //
-                             // Relativistic variant implemented below is described in
-                             // chapter 15-4, p. 356 - 357.
-                             // However, since other units are used here, small
-                             // modifications are required. The relativistic variant can be derived
-                             // from the nonrelativistic one by replacing
-                             //     mass
-                             // by
-                             //     gamma * rest mass
-                             // and transforming the units.
-                             //
-                             // Parameters:
-                             //     R = x / (c * dt): Scaled position x, not used in here
-                             //     P = v / c * gamma: Scaled velocity v
-                             //     Ef: Electric field
-                             //     Bf: Magnetic field
-                             //     dt: Timestep
-                             //     mass = rest energy = rest mass * c * c
-                             //     charge
-                             /*
-                             // Half step E
-                             p += 0.5 * dt * charge * Physics::c / mass * e;
+            // pusher.kick(x,p,e,b,dt);
+            // Implementation follows chapter 4-4, p. 61 - 63 from
+            // Birdsall, C. K. and Langdon, A. B. (1985). Plasma physics
+            // via computer simulation.
+            //
+            // Up to finite precision effects, the new implementation is equivalent to the
+            // old one, but uses less floating point operations.
+            //
+            // Relativistic variant implemented below is described in
+            // chapter 15-4, p. 356 - 357.
+            // However, since other units are used here, small
+            // modifications are required. The relativistic variant can be derived
+            // from the nonrelativistic one by replacing
+            //     mass
+            // by
+            //     gamma * rest mass
+            // and transforming the units.
+            //
+            // Parameters:
+            //     R = x / (c * dt): Scaled position x, not used in here
+            //     P = v / c * gamma: Scaled velocity v
+            //     Ef: Electric field
+            //     Bf: Magnetic field
+            //     dt: Timestep
+            //     mass = rest energy = rest mass * c * c
+            //     charge
+            /*
+            // Half step E
+            p += 0.5 * dt * charge * Physics::c / mass * e;
 
-                             // Full step B
+            // Full step B
 
-                             const double gamma          = Kokkos::sqrt(1.0 + dot(p, p));
-                             Vector_t<double, 3> const t = 0.5 * dt * charge * Physics::c * Physics::c / (gamma * mass) * b;
-                             Vector_t<double, 3> const w = p + cross(p, t);
-                             Vector_t<double, 3> const s = 2.0 / (1.0 + dot(t, t)) * t;
-                             p += cross(w, s);
+            const double gamma          = Kokkos::sqrt(1.0 + dot(p, p));
+            Vector_t<double, 3> const t = 0.5 * dt * charge * Physics::c * Physics::c / (gamma * mass) * b;
+            Vector_t<double, 3> const w = p + cross(p, t);
+            Vector_t<double, 3> const s = 2.0 / (1.0 + dot(t, t)) * t;
+            p += cross(w, s);
 
 
-                             // Half step E
-                             p += 0.5 * dt * charge * Physics::c / mass * e;
+            // Half step E
+            p += 0.5 * dt * charge * Physics::c / mass * e;
 
-                             Pview(i) = p;
-                             */
-                            //pusher.kick(/*Rview(i),*/ p, e, b, 0)
-                            Vector_t<double, 3> p = Pview(i); // {Pview(i)[0],Pview(i)[1],Pview(i)[2]};
+            Pview(i) = p;
+            */
+            //pusher.kick(/*Rview(i),*/ p, e, b, 0)
+            Vector_t<double, 3> p = Pview(i); // {Pview(i)[0],Pview(i)[1],Pview(i)[2]};
 
-                            /// \todo might want to remove dt and R altogether from the kick!
-                            pusher.kick(0, p, Efview(i), Bfview(i), 0, mass, charge);  
-                            Pview(i) = p; 
-                         });
+            /// \todo might want to remove dt and R altogether from the kick!
+            pusher.kick(0, p, Efview(i), Bfview(i), 0, mass, charge);  
+            Pview(i) = p; 
+        });
 
     /// \todo unnecessary update? kick does not modify positions
     itsBunch_m->getParticleContainer()->update();
@@ -388,26 +388,26 @@ inline void ParallelTracker::pushParticles(const BorisPusher& pusher) {
     //auto dtview = itsBunch_m->getParticleContainer()->dt.getView();
 
     Kokkos::parallel_for(
-                         "pushParticles", ippl::getRangePolicy(Rview),
-                         KOKKOS_LAMBDA(const size_t i) {
-                            Vector_t<double, 3> x = Rview(i); // {Rview(i)[0],Rview(i)[1],Rview(i)[2]};
-                            //Vector_t<double, 3> p = Pview(i); // {Pview(i)[0],Pview(i)[1],Pview(i)[2]};
-                            // double dt = dtview(i);
+        "pushParticles", ippl::getRangePolicy(Rview),
+        KOKKOS_LAMBDA(const size_t i) {
+            Vector_t<double, 3> x = Rview(i); // {Rview(i)[0],Rview(i)[1],Rview(i)[2]};
+            //Vector_t<double, 3> p = Pview(i); // {Pview(i)[0],Pview(i)[1],Pview(i)[2]};
+            // double dt = dtview(i);
 
-                                 /** \f[ \vec{x}_{n+1/2} = \vec{x}_{n} + \frac{1}{2}\vec{v}_{n-1/2}\quad (= \vec{x}_{n} +
-                                  * \frac{\Delta t}{2} \frac{\vec{\beta}_{n-1/2}\gamma_{n-1/2}}{\gamma_{n-1/2}}) \f]
-                                  *
-                                  * \code
-                                  * R[i] += 0.5 * P[i] * recpgamma;
-                                  * \endcode
-                                  */
-                            /// \todo check +-
-                             
-                            pusher.push(x, Pview(i), 0); // this 0 is "dt" that is not used with unitless positions!
-                            //x = 0.5 * dt * p / Kokkos::sqrt(1.0 + dot(p));
-                            //Rview(i) += x;
-                            Rview(i) = x;
-                         });
+                /** \f[ \vec{x}_{n+1/2} = \vec{x}_{n} + \frac{1}{2}\vec{v}_{n-1/2}\quad (= \vec{x}_{n} +
+                 * \frac{\Delta t}{2} \frac{\vec{\beta}_{n-1/2}\gamma_{n-1/2}}{\gamma_{n-1/2}}) \f]
+                 *
+                 * \code
+                 * R[i] += 0.5 * P[i] * recpgamma;
+                 * \endcode
+                 */
+            /// \todo check +-
+                
+            pusher.push(x, Pview(i), 0); // this 0 is "dt" that is not used with unitless positions!
+            //x = 0.5 * dt * p / Kokkos::sqrt(1.0 + dot(p));
+            //Rview(i) += x;
+            Rview(i) = x;
+        });
 
 
     itsBunch_m->switchOffUnitlessPositions(false);

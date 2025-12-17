@@ -260,8 +260,9 @@ void TrackRun::execute() {
     
     // There's a change of units for particle mass that seems strange -> gives consistent Kinetic Energy
     bunch_m = std::make_shared<bunch_type>(macrocharge_m, // set the Charge per macro-particle, [C]
-                                           macromass_m,   // set the Mass per macro-particle, [GeV/c^2]
-                                                          /// \todo it would be much better to reinstate PartData or itsReference_m?
+                                           macromass_m*Units::GeV2eV*Physics::c*Physics::c,   // set the Mass per macro-particle, [GeV/c^2 --> kg], for correct particle kick!
+                                                                                              // Otherwise, the field in the kick will not be scaled correctly.
+                                                                                              /// \todo it would be much better to reinstate PartData or itsReference_m?
                                            beam->getNumberOfParticles()/*, 10*/, 1.0, "LF2", dist_m, fs_m);
     bunch_m->setT(0.0);
     bunch_m->setBeamFrequency(beam->getFrequency() * Units::MHz2Hz);
