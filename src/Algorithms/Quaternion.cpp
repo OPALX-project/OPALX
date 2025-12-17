@@ -19,7 +19,7 @@ namespace {
     }
 }  // namespace
 
-Quaternion::Quaternion(const Matrix_t& M) : ippl::Vector<double, 4>(0.0) {
+Quaternion::Quaternion(const OpalMatrix_t& M) : ippl::Vector<double, 4>(0.0) {
     (*this)(0) = std::sqrt(std::max(0.0, 1 + M(0, 0) + M(1, 1) + M(2, 2))) / 2;
     (*this)(1) = std::sqrt(std::max(0.0, 1 + M(0, 0) - M(1, 1) - M(2, 2))) / 2;
     (*this)(2) = std::sqrt(std::max(0.0, 1 - M(0, 0) + M(1, 1) - M(2, 2))) / 2;
@@ -132,11 +132,11 @@ ippl::Vector<double, 3> Quaternion::rotate(const ippl::Vector<double, 3>& vec) c
     return ((*this) * (quat * (*this).conjugate())).imag();
 }
 
-Matrix_t Quaternion::getRotationMatrix() const {
+OpalMatrix_t Quaternion::getRotationMatrix() const {
     Quaternion rot(*this);
     rot.normalize();
 
-    Matrix_t mat;
+    OpalMatrix_t mat;
     mat(0, 0) = 1 - 2 * (rot(2) * rot(2) + rot(3) * rot(3));
     mat(0, 1) = 2 * (-rot(0) * rot(3) + rot(1) * rot(2));
     mat(0, 2) = 2 * (rot(0) * rot(2) + rot(1) * rot(3));

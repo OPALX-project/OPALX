@@ -12,7 +12,7 @@ public:
     Quaternion(const double&, const double&, const double&, const double&);
     Quaternion(const ippl::Vector<double, 3>&);
     Quaternion(const double&, const ippl::Vector<double, 3>&);
-    Quaternion(const Matrix_t&);
+    Quaternion(const OpalMatrix_t&);
     Quaternion inverse() const;
     Quaternion conjugate() const;
 
@@ -35,7 +35,7 @@ public:
     ippl::Vector<double, 3> imag() const;
 
     //matrix_t getRotationMatrix() const;
-    Matrix_t getRotationMatrix() const;
+    OpalMatrix_t getRotationMatrix() const;
     ippl::Vector<double, 3> rotate(const ippl::Vector<double, 3>&) const;
 };
 
