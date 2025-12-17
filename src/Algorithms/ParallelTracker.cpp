@@ -378,15 +378,13 @@ void ParallelTracker::execute() {
                 itsBunch_m->calcBeamParameters();
                 itsBunch_m->get_bounds(rmin, rmax);
             }
-            std::cout << "Rmin: " << rmin << " Rmax: " << rmax << std::endl;
-
+ 
             timeIntegration1(pusher);
 
             resetFields();
             
             //computeSpaceChargeFields(step);
            
-            std::cout << "Compute external fields at step " << step << std::endl;
             computeExternalFields(oth);
 
             timeIntegration2(pusher);
@@ -521,7 +519,7 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
      */
 
     
-    const Matrix_t                rot = referenceToBeamCSTrafo.getRotationMatrix();
+    const OpalMatrix_t                rot = referenceToBeamCSTrafo.getRotationMatrix();
     const ippl::Vector<double, 3> org = referenceToBeamCSTrafo.getOrigin();
 
 
@@ -633,8 +631,6 @@ void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
 
     // Iterate over all elements
     for (; it != end; ++it) {
-        std::cout<<"Pathlength: "<< pathLength_m << std::endl;
-        std::cout<<"Iterating element: "<< (*it)->getName() << std::endl;
 
         // Determine transformation from bunch to element 
         CoordinateSystemTrafo refToLocalCSTrafo = 
@@ -648,24 +644,28 @@ void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
         (*it)->setCurrentSCoordinate(pathLength_m + rmin(2));   
 
         // Transform from reference particle to element frame
-        //refToLocalCSTrafo.transformBunchTo(
-        //    itsBunch_m->getParticleContainer()->R.getView());
+        refToLocalCSTrafo.transformBunchTo(
+            itsBunch_m->getParticleContainer()->R.getView());
+        
+        refToLocalCSTrafo.rotateBunchTo(
+            itsBunch_m->getParticleContainer()->P.getView());
 
         // Apply element
         // TODO: out-of-bounds check here 
         (*it)->apply(); 
 
         // Transform from element to reference particle frame
-        //localToRefCSTrafo.transformBunchTo(
-        //    itsBunch_m->getParticleContainer()->R.getView());
+        localToRefCSTrafo.transformBunchTo(
+            itsBunch_m->getParticleContainer()->R.getView());
+        localToRefCSTrafo.rotateBunchTo(
+            itsBunch_m->getParticleContainer()->P.getView());
+        localToRefCSTrafo.rotateBunchTo(
+            itsBunch_m->getParticleContainer()->E.getView());
+        localToRefCSTrafo.rotateBunchTo(
+            itsBunch_m->getParticleContainer()->B.getView());
 
     }
-    /*
-    auto Bview = itsBunch_m->getParticleContainer()->B.getView();
-    for(unsigned int i=0; i<itsBunch_m->getTotalNum(); ++i){
-        std::cout<< "Bfield: "<< Bview(i) << std::endl;
-    }    
-    */
+
 
     IpplTimings::stopTimer(fieldEvaluationTimer_m);
 
@@ -747,15 +747,12 @@ void ParallelTracker::kickParticles(const BorisPusher& pusher) {
     KOKKOS_LAMBDA(const int i) {
         const auto x = Rview(i);
         auto p = Pview(i); // only p changes
-
         const auto e = Eview(i);
         const auto b = Bview(i);
-
         const auto dt = dtview(i);
 
-        //std::cout << b << std::endl;
         pusher.kick(x, p, e, b, dt, mass, charge);
-        //std::cout << p << std::endl;
+
         Pview(i) = p;
     });
         
@@ -868,22 +865,12 @@ void ParallelTracker::updateReferenceParticle(const BorisPusher& pusher) {
     itsBunch_m->RefPartR_m *= scaleFactor;
 }
 
-void ParallelTracker::transformBunch(const CoordinateSystemTrafo& trafo) {
-    /*
-    const unsigned int localNum = itsBunch_m->getLocalNum();
-    for (unsigned int i = 0; i < localNum; ++i) {
-        itsBunch_m->R[i]  = trafo.transformTo(itsBunch_m->R[i]);
-        itsBunch_m->P[i]  = trafo.rotateTo(itsBunch_m->P[i]);
-        itsBunch_m->Ef[i] = trafo.rotateTo(itsBunch_m->Ef[i]);
-        itsBunch_m->Bf[i] = trafo.rotateTo(itsBunch_m->Bf[i]);
-        
-    }
-    */
+void ParallelTracker::transformBunch(const CoordinateSystemTrafo& trafo) 
+{
     trafo.transformBunchTo(itsBunch_m->getParticleContainer()->R.getView());
     trafo.rotateBunchTo(itsBunch_m->getParticleContainer()->P.getView());
     trafo.rotateBunchTo(itsBunch_m->getParticleContainer()->E.getView());
     trafo.rotateBunchTo(itsBunch_m->getParticleContainer()->B.getView());
-    //.transformBunchTo(itsBunch_m->getParticleContainer()->R.getView());
 }
 
 void ParallelTracker::updateRefToLabCSTrafo() {
@@ -902,9 +889,6 @@ void ParallelTracker::updateRefToLabCSTrafo() {
     Vector_t<double, 3> R = itsBunch_m->toLabTrafo_m.transformFrom(itsBunch_m->RefPartR_m);
     Vector_t<double, 3> P = itsBunch_m->toLabTrafo_m.transformFrom(itsBunch_m->RefPartP_m);
 
-    std::cout << "RefPartR before transformFrom: " << itsBunch_m->RefPartR_m << std::endl;
-    std::cout << "Updated RefPartR: " << R << std::endl;
-    
     pathLength_m += std::copysign(1, itsBunch_m->getdT()) * euclidean_norm(R);
 
     CoordinateSystemTrafo update(R, getQuaternion(P, Vector_t<double, 3>(0, 0, 1)));

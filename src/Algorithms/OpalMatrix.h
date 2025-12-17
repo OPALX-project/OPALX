@@ -6,12 +6,12 @@
 
 #include <Kokkos_Core.hpp>
 
-struct Matrix_t {
+struct OpalMatrix_t {
     double m[3][3];
 
     // Default constructor  
     KOKKOS_INLINE_FUNCTION
-    Matrix_t() {
+    OpalMatrix_t() {
         for (int i = 0; i < 3; ++i) {
             for (int j = 0; j < 3; ++j) {
                 m[i][j] = 0.0;
@@ -24,7 +24,7 @@ struct Matrix_t {
 
     // copy constructor
     KOKKOS_INLINE_FUNCTION
-    Matrix_t(const Matrix_t& right){
+    OpalMatrix_t(const OpalMatrix_t& right){
         for (int i = 0; i < 3; ++i) {
             for (int j = 0; j < 3; ++j) {
                 m[i][j] = right(i,j); 
@@ -47,7 +47,7 @@ struct Matrix_t {
 // Takes the Matrix-Vector Product
 template <class T>
 KOKKOS_INLINE_FUNCTION
-T prod_vector(const Matrix_t& rotation, const T& vect) {
+T prod_vector(const OpalMatrix_t& rotation, const T& vect) {
     
     T prodVector(0.0);
 
@@ -65,7 +65,7 @@ T prod_vector(const Matrix_t& rotation, const T& vect) {
 // Takes the Matrix^T - Vector Product
 template <class T>
 KOKKOS_INLINE_FUNCTION
-T prod_vector_transpose(const Matrix_t& rotation, const T& vect) {
+T prod_vector_transpose(const OpalMatrix_t& rotation, const T& vect) {
     
     T prodVector(0.0);
 
@@ -81,8 +81,8 @@ T prod_vector_transpose(const Matrix_t& rotation, const T& vect) {
 }
 
 KOKKOS_INLINE_FUNCTION
-Matrix_t get_transpose(const Matrix_t& rotation){
-    Matrix_t transpose;
+OpalMatrix_t get_transpose(const OpalMatrix_t& rotation){
+    OpalMatrix_t transpose;
     for (int i = 0; i < 3; ++i) {
         for (int j = 0; j < 3; ++j) {
             transpose(j,i) = rotation(i,j);
