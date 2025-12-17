@@ -455,6 +455,9 @@ public:
                                 Rview(i) *= fac;
                              });
         isUnitless_m = true;
+
+        /// \todo remove later
+        *gmsg << "* Switched to unitless positions." << endl; 
     }
     void switchOffUnitlessPositions(bool use_dt_per_particle = false) {
         if (!isUnitless_m) {
@@ -474,6 +477,9 @@ public:
                                 Rview(i) *= fac;
                              });
         isUnitless_m = false;
+
+        /// \todo remove later
+        *gmsg << "* Switched to physical positions." << endl;
     }
 
     size_t calcNumPartsOutside(Vector_t<double, Dim> x) {
