@@ -499,7 +499,9 @@ void PartBunch<T, Dim>::computeSelfFields() {
     this->fcontainer_m->getRho()             = 0.0;
     Field_t<Dim>* rho                        = &this->fcontainer_m->getRho();
 
-    scatter(*Q, *rho, *R); /// \todo replace with scatterCIC? --> later with scatterPerBin!
+    /// \todo replace with scatterCIC? --> later with scatterPerBin!
+    // Charge "unit" here is "charge per macroparticle" [C]!
+    scatter(*Q, *rho, *R); 
 
 #ifdef doDEBUG
     const double qtot                        = this->qi_m * this->getTotalNum();
