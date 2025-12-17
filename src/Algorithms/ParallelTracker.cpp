@@ -604,10 +604,10 @@ void ParallelTracker::timeIntegration2(BorisPusher& pusher) {
     double newdT = itsBunch_m->getdT();
 
     Kokkos::parallel_for(
-                         "changeDT", ippl::getRangePolicy(dtview),
-                         KOKKOS_LAMBDA(const int i) {
-                             dtview(i) = newdT;
-                         });                     
+        "changeDT", ippl::getRangePolicy(dtview),
+        KOKKOS_LAMBDA(const size_t i) {
+            dtview(i) = newdT;
+        });                     
     
     IpplTimings::stopTimer(timeIntegrationTimer2_m);
 }
@@ -629,10 +629,10 @@ void ParallelTracker::changeDT(bool backTrack) {
     double newdT = itsBunch_m->getdT();
 
     Kokkos::parallel_for(
-                         "changeDT", ippl::getRangePolicy(dtview),
-                         KOKKOS_LAMBDA(const int i) {
-                             dtview(i) = newdT;
-                         });                     
+        "changeDT", ippl::getRangePolicy(dtview),
+        KOKKOS_LAMBDA(const size_t i) {
+            dtview(i) = newdT;
+        });                     
     
 }
 
@@ -687,8 +687,6 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
     itsBunch_m->getParticleContainer()->B = 0;
 
     auto Rview  = itsBunch_m->getParticleContainer()->R.getView();
-    auto Eview  = itsBunch_m->getParticleContainer()->E.getView();
-    auto Bview  = itsBunch_m->getParticleContainer()->B.getView();
 
     Kokkos::parallel_for(
         "referenceToBeamCSTrafo", ippl::getRangePolicy(Rview),
@@ -728,6 +726,8 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
             rid of boost. This should now be fixed.
      */
     
+    auto Eview  = itsBunch_m->getParticleContainer()->E.getView();
+    auto Bview  = itsBunch_m->getParticleContainer()->B.getView();
     Kokkos::parallel_for(
         "beamToReferenceCSTrafo", ippl::getRangePolicy(Rview),
         KOKKOS_LAMBDA(const size_t k) {                           
