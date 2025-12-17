@@ -54,13 +54,21 @@ Multipole::Multipole() : Multipole("") {
 
 Multipole::Multipole(const Multipole& right)
     : Component(right),
-      NormalComponents(right.NormalComponents),
-      NormalComponentErrors(right.NormalComponentErrors),
-      SkewComponents(right.SkewComponents),
-      SkewComponentErrors(right.SkewComponentErrors),
+      // 1. Allocate NEW memory with the same size as the source
+      NormalComponents("Multipole::Normal", right.NormalComponents.extent(0)),
+      NormalComponentErrors("Multipole::NormalErr", right.NormalComponentErrors.extent(0)),
+      SkewComponents("Multipole::Skew", right.SkewComponents.extent(0)),
+      SkewComponentErrors("Multipole::SkewErr", right.SkewComponentErrors.extent(0)),
+      // Copy scalar values
       max_SkewComponent_m(right.max_SkewComponent_m),
       max_NormalComponent_m(right.max_NormalComponent_m),
       nSlices_m(right.nSlices_m) {
+
+    // 2. Deep copy the data from the source views to the new views
+    Kokkos::deep_copy(NormalComponents, right.NormalComponents);
+    Kokkos::deep_copy(NormalComponentErrors, right.NormalComponentErrors);
+    Kokkos::deep_copy(SkewComponents, right.SkewComponents);
+    Kokkos::deep_copy(SkewComponentErrors, right.SkewComponentErrors);
 }
 
 /**
