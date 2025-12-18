@@ -240,6 +240,12 @@ bool Multipole::apply()
     // Local variables that are copied into the kernel
     double elemLength = getElementLength();
 
+    // Capture member variables by value for the kernel
+    auto normalComponents = NormalComponents;
+    auto skewComponents = SkewComponents;
+    int maxNormal = max_NormalComponent_m;
+    int maxSkew = max_SkewComponent_m;
+
     // Kernel launch over all particles
     Kokkos::parallel_for("Multipole::apply()", ippl::getRangePolicy(Rview), 
     KOKKOS_LAMBDA(const int i)
@@ -249,7 +255,7 @@ bool Multipole::apply()
         //if (true){
             Vector_t<double,3> Ef(0.0), Bf(0.0);
             // Compute field at particle position
-            computeField(Rview(i), Ef, Bf);
+            computeField(Rview(i), Ef, Bf, normalComponents, skewComponents,maxNormal, maxSkew);
             for(unsigned d=0; d<3; ++d){
                 Eview(i)(d) += Ef(d);
                 Bview(i)(d) += Bf(d);
@@ -294,7 +300,7 @@ bool Multipole::apply(
 
     // Compute fields
     Vector_t<double, 3> Ef(0.0), Bf(0.0);
-    computeField(R, Ef, Bf);
+    computeFieldHost(R, Ef, Bf);
 
     // Apply fields
     for (unsigned int d = 0; d < 3; ++d) {
@@ -329,7 +335,7 @@ bool Multipole::apply(
         return getFlagDeleteOnTransverseExit();
 
     // Compute field
-    computeField(R, E, B);
+    computeFieldHost(R, E, B);
 
     return false;
 }
@@ -390,7 +396,13 @@ void Multipole::accept(BeamlineVisitor& visitor) const {
 
 KOKKOS_INLINE_FUNCTION
 void Multipole::computeField(
-    const Vector_t<double, 3> R, Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B) const 
+    Vector_t<double, 3> R, 
+    Vector_t<double, 3>& E, 
+    Vector_t<double, 3>& B,
+    const Kokkos::View<double*>& NormalComponents,
+    const Kokkos::View<double*>& SkewComponents,
+    int max_NormalComponent,
+    int max_SkewComponent) 
 {
     // Replaced std::vector with fixed-size stack arrays
     Vector_t<double, 3> Rn[MAX_MP_ORDER + 1];
@@ -402,7 +414,7 @@ void Multipole::computeField(
         fact[0] = 1.0;
         
         // Use local variable for loop bound to help optimizer
-        int count = (max_NormalComponent_m > MAX_MP_ORDER) ? MAX_MP_ORDER : max_NormalComponent_m;
+        int count = (max_NormalComponent > MAX_MP_ORDER) ? MAX_MP_ORDER : max_NormalComponent;
 
         for (int i = 0; i < count; ++i) {
             // Access Kokkos::View directly (device memory)
@@ -468,7 +480,7 @@ void Multipole::computeField(
         Rn[0] = Vector_t<double, 3>(1.0);
         fact[0] = 1.0;
         
-        int count = (max_SkewComponent_m > MAX_MP_ORDER) ? MAX_MP_ORDER : max_SkewComponent_m;
+        int count = (max_SkewComponent > MAX_MP_ORDER) ? MAX_MP_ORDER : max_SkewComponent;
 
         for (int i = 0; i < count; ++i) {
             double skew = SkewComponents(i);
