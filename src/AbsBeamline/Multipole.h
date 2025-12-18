@@ -184,12 +184,20 @@ private:
      * @param R Position
      * @param E Reference to electric field
      * @param B Reference to magnetic field
+     * @param NormalComponents View of normal components
+     * @param SkewComponents View of skew components
+     * @param max_NormalComponent Max order of normal components
+     * @param max_SkewComponent Max order of skew components
      */
     KOKKOS_INLINE_FUNCTION
-    void computeField(
+    static void computeField(
         Vector_t<double, 3> R, 
         Vector_t<double, 3>& E, 
-        Vector_t<double, 3>& B) const;
+        Vector_t<double, 3>& B,
+        const Kokkos::View<double*>& NormalComponents,
+        const Kokkos::View<double*>& SkewComponents,
+        int max_NormalComponent,
+        int max_SkewComponent);
 
     /**
      * @brief Computes the E and B field at position R of the reference particle
