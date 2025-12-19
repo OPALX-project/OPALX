@@ -245,7 +245,7 @@ public:
     void bunchUpdate(ippl::Vector<double, 3> hr);
     
     ~PartBunch() {
-        *gmsg << "* Finished time step: " << this->it_m << " time: " << this->time_m << endl;
+        *gmsg << "* PartBunch Destructor: Finished time step: " << this->it_m << " time: " << this->time_m << endl;
     }
 
     std::shared_ptr<ParticleContainer_t> getParticleContainer() {
