@@ -305,15 +305,19 @@ inline void ParallelTracker::kickParticles(const BorisPusher& pusher) {
     
     // auto Rview  = itsBunch_m->getParticleContainer()->R.getView();
     auto Pview  = itsBunch_m->getParticleContainer()->P.getView();
-    // auto dtview = itsBunch_m->getParticleContainer()->dt.getView();
+    // auto dtview = itsBunch_m->getParticleContainer()->dt.getView(); 
     auto Efview = itsBunch_m->getParticleContainer()->E.getView();
     auto Bfview = itsBunch_m->getParticleContainer()->B.getView();
 
-    /// \todo It looks like, itsReference isn't set anywhere. Use get... from the bunch instead!
-    const double mass = itsBunch_m->getMassPerParticle(); // itsReference.getM();
-    const double charge = itsBunch_m->getChargePerParticle(); // itsReference.getQ();
+    /// \todo Apparently, we want mass in eV and charge in elementary charges here to match OPAL's BorisPusher
+    double mass = itsBunch_m->getMassPerParticle(); // itsReference.getM();
+    double charge = itsBunch_m->getChargePerParticle(); // itsReference.getQ();
     //*gmsg << "* BorisPusher::kick mass= " << mass << " charge= " << charge << endl; 
-    //*gmsg << "* BorisPusher::kick mass= " << itsReference.getM() << " charge= " << itsReference.getQ() << endl;
+    *gmsg << "* BorisPusher::kick mass= " << itsReference.getM() << " charge= " << itsReference.getQ() << endl;
+
+    // This matches what opal does ("500000eV" and "-1" charge for electrons instead of macro particles)
+    //mass   = pusher.itsReference->getM();
+    //charge = pusher.itsReference->getQ();
 
     Kokkos::parallel_for(
         "kickParticles", ippl::getRangePolicy(Pview),
@@ -372,8 +376,16 @@ inline void ParallelTracker::kickParticles(const BorisPusher& pusher) {
             /// \todo might want to remove dt and R altogether from the kick!
             pusher.kick(0, p, Efview(i), Bfview(i), 0, mass, charge);  
             Pview(i) = p; 
-        });
 
+            // Translate std::cout << "Charge: " << charge << ", Mass: " << mass << ", Ef: " << Ef << ", Bf: " << Bf << ", dt: " << dt << std::endl; to Kokkos::printf
+            //Kokkos::printf("Charge: %f, Mass: %f, Ef: (%f, %f, %f), Bf: (%f, %f, %f), dt: %f\n",
+            //               charge, mass,
+            //               Efview(i)[0], Efview(i)[1], Efview(i)[2],
+            //               Bfview(i)[0], Bfview(i)[1], Bfview(i)[2],
+            //               0.0);
+            // Result: E = B = 0 -> no kick applied (hä?)
+        });
+    // ippl::Comm->abort();
     /// \todo unnecessary update? kick does not modify positions
     itsBunch_m->getParticleContainer()->update();
     ippl::Comm->barrier();
@@ -386,6 +398,9 @@ inline void ParallelTracker::pushParticles(const BorisPusher& pusher) {
     auto Rview  = itsBunch_m->getParticleContainer()->R.getView();
     auto Pview  = itsBunch_m->getParticleContainer()->P.getView();
     //auto dtview = itsBunch_m->getParticleContainer()->dt.getView();
+
+    //*gmsg << "* Reference mass = " << pusher.itsReference->getM() << " charge = " << pusher.itsReference->getQ() << endl;
+    //*gmsg << "* Mass used here = " << itsBunch_m->getMassPerParticle() << " charge = " << itsBunch_m->getChargePerParticle() << endl;
 
     Kokkos::parallel_for(
         "pushParticles", ippl::getRangePolicy(Rview),
@@ -406,9 +421,18 @@ inline void ParallelTracker::pushParticles(const BorisPusher& pusher) {
             pusher.push(x, Pview(i), 0); // this 0 is "dt" that is not used with unitless positions!
             //x = 0.5 * dt * p / Kokkos::sqrt(1.0 + dot(p));
             //Rview(i) += x;
+            // Print difference between old and new position
+            //Kokkos::printf("Difference x: (%f, %f, %f). P = (%f, %f, %f)\n",
+            //               x[0] - Rview(i)[0],
+            //               x[1] - Rview(i)[1],
+            //               x[2] - Rview(i)[2],
+            //               Pview(i)[0],
+            //               Pview(i)[1],
+            //               Pview(i)[2]);
+
             Rview(i) = x;
         });
-
+    //ippl::Comm->abort();
 
     itsBunch_m->switchOffUnitlessPositions(false);
     itsBunch_m->getParticleContainer()->update();
