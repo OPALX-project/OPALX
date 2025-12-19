@@ -45,7 +45,7 @@ PartBunch<T, Dim>::PartBunch(double qi, double mi, size_t totalP/*, int nt*/, do
         this->decomp_m[i] = domainDecomposition[i];
     }
 
-    bool isAllPeriodic = true;  // \fixme need to get BCs from OPAL Fieldsolver
+    bool isAllPeriodic = false;  // \fixme need to get BCs from OPAL Fieldsolver
 
     //      set stuff for pre_run i.e. warmup
     //      this will be reset when the correct computational
@@ -501,7 +501,17 @@ void PartBunch<T, Dim>::computeSelfFields() {
 
     /// \todo replace with scatterCIC? --> later with scatterPerBin!
     // Charge "unit" here is "charge per macroparticle" [C]!
+    *Q = (*Q) * this->pcontainer_m->dt; // Scale by time step
     scatter(*Q, *rho, *R); 
+    *Q = (*Q) / this->pcontainer_m->dt; // Rescale back to charge per macroparticle
+
+    /*
+    Now rho is in units of [C * s] -- need to divide by dt to get back to [C].
+    Note By using the global timestep getdT(), we account for the possibility of 
+    "fractional timesteps", meaning the particle was virtually "created in the
+    middle" of a full timestep. As of now, this might not be necessary.
+    */
+    (*rho) = (*rho) / getdT(); 
 
 #ifdef doDEBUG
     const double qtot                        = this->qi_m * this->getTotalNum();
@@ -520,14 +530,35 @@ void PartBunch<T, Dim>::computeSelfFields() {
               << " rel. error in charge conservation: " << relError << endl;
     }
 #endif
+
+    // At this point, the units of rho need to be corrected: rho = rho / cellVolume
+    double cellVolumeInv = 1 / std::reduce(hr_m.begin(), hr_m.end(), 1., std::multiplies<double>());
+    (*rho) = (*rho) * cellVolumeInv;
+
+    // Alpine uses net 0 charge density for periodic BCs, so we need to subtract background charge here (?TODO: check)
+    double totalQ = getCharge();
+    if (this->fsolver_m->getStype() != "OPEN") {
+        double size = 1;
+        for (size_t d = 0; d < 3; d++) {
+            size *= rmax_m[d] - rmin_m[d];
+        }
+        (*rho) = (*rho) - (totalQ / size);
+    }
     
-   /*
+    /*
+    This concludes the scatter step ( \todo perhaps we want to put this in its own function, like scatterCIC)
 
-     scatterCIC end
+    Next is the solver step. The solver computes the E-field from rho directly. However,
+    at the moment, the potential has units of [C/m^3].
 
+    From OPAL:
+    The scalar potential is given back with rho_m in units [C/m] = [F*V/m] and must be divided by
+    4*pi*\epsilon_0 [F/m] resulting in [V].
     */
+    (*rho) = (*rho) / getCouplingConstant(); // now rho_m has units of [V]
 
-    this->fsolver_m->runSolver();    
+    this->fsolver_m->runSolver();
+    // Now, with E=-grad(phi), E has units of [V/m] (note, phi is a scalar potential)    
     
     gather(this->pcontainer_m->E, this->fcontainer_m->getE(), this->pcontainer_m->R);
 
