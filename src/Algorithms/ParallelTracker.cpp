@@ -492,6 +492,36 @@ void ParallelTracker::execute() {
                       << meanE(1) << ", "
                       << meanE(2) << ")" << endl;
             }
+            {
+                // Compute mean z position for debugging
+                double localSumZ = 0.0;
+                unsigned long long numParticles = itsBunch_m->getTotalNum();
+                auto Rview = itsBunch_m->getParticleContainer()->R.getView();
+                Kokkos::parallel_reduce(
+                    "meanZCalc", numParticles,
+                    KOKKOS_LAMBDA(const size_t i, double& localSum) {
+                        localSum += Rview(i)[2];
+                    }, localSumZ);
+                double globalSumZ = 0.0;
+                ippl::Comm->allreduce(&localSumZ, &globalSumZ, 1, std::plus<double>());
+                double meanZ = globalSumZ / static_cast<double>(numParticles);
+                *gmsg << "* Mean z position at step " << step << ": " << Util::getLengthString(meanZ) << endl;
+            }
+            {
+                // Look at the first mass and the first charge in the bunch (deep copy)
+                double firstMass = 0.0;
+                double firstCharge = 0.0;
+                auto massView = itsBunch_m->getParticleContainer()->M.getView();
+                auto chargeView = itsBunch_m->getParticleContainer()->Q.getView();
+                Kokkos::parallel_reduce(
+                                     "firstMassCharge", 1,
+                                     KOKKOS_LAMBDA(const size_t i, double& localMass, double& localCharge) {
+                                         localMass = massView(0);
+                                         localCharge = chargeView(0);
+                                     }, firstMass, firstCharge);
+                *gmsg << "* After step " << step + 1 << ": First particle mass = "
+                      << firstMass << ", charge = " << firstCharge << endl;
+            }
             
             selectDT(back_track);
             // \todo emitParticles(step);
@@ -1116,7 +1146,7 @@ void ParallelTracker::updateRefToLabCSTrafo() {
 
     transformBunch(update);
 
-    itsBunch_m->toLabTrafo_m = itsBunch_m->toLabTrafo_m * update.inverted();
+    itsBunch_m->toLabTrafo_m = itsBunch_m->toLabTrafo_m * update.inverted(); /// \todo this line seems to fail sometimes! Results in Quaternion NaN
 }
 
 void ParallelTracker::applyFractionalStep(const BorisPusher& pusher, double tau) {
