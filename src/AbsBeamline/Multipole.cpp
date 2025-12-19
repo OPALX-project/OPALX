@@ -38,13 +38,6 @@ namespace {
         if (n == 3) return 6.0;
         if (n == 4) return 24.0;
         if (n == 5) return 120.0;
-        if (n == 6) return 720.0;
-        if (n == 7) return 5040.0;
-        if (n == 8) return 40320.0;
-        if (n == 9) return 362880.0;
-        if (n == 10) return 3628800.0;
-        if (n == 11) return 39916800.0;
-        if (n == 12) return 479001600.0;
     }
 }  // namespace
 
@@ -404,13 +397,15 @@ void Multipole::computeField(
     int max_NormalComponent,
     int max_SkewComponent) 
 {
-    // Replaced std::vector with fixed-size stack arrays
-    Vector_t<double, 3> Rn[MAX_MP_ORDER + 1];
+    // Use primitive double arrays instead of Vector_t to avoid constructor/destructor calls on GPU stack
+    double Rn_x[MAX_MP_ORDER + 1];
+    double Rn_y[MAX_MP_ORDER + 1];
     double fact[MAX_MP_ORDER + 1];
 
     // --- NORMAL COMPONENTS ---
     {
-        Rn[0] = Vector_t<double, 3>(1.0);
+        Rn_x[0] = 1.0;
+        Rn_y[0] = 1.0; // Equivalent to Vector_t(1.0)
         fact[0] = 1.0;
         
         // Use local variable for loop bound to help optimizer
@@ -429,55 +424,18 @@ void Multipole::computeField(
                     B(0) += norm * R(1);
                     B(1) += norm * R(0);
                     break;
-
-                case SEXTUPOLE:
-                    B(0) += 2 * norm * R(0) * R(1);
-                    B(1) += norm * (Rn[2](0) - Rn[2](1));
-                    break;
-
-                case OCTUPOLE:
-                    B(0) += norm * (3 * Rn[2](0) * Rn[1](1) - Rn[3](1));
-                    B(1) += norm * (Rn[3](0) - 3 * Rn[1](0) * Rn[2](1));
-                    break;
-
-                case DECAPOLE:
-                    B(0) += 4 * norm * (Rn[3](0) * Rn[1](1) - Rn[1](0) * Rn[3](1));
-                    B(1) += norm * (Rn[4](0) - 6 * Rn[2](0) * Rn[2](1) + Rn[4](1));
-                    break;
-
-                default: {
-                    double powMinusOne = 1.0;
-                    double Bx = 0.0, By = 0.0;
-                    for (int j = 1; j <= (i + 1) / 2; ++j) {
-                        Bx += powMinusOne * norm
-                              * (Rn[i - 2 * j + 1](0) * fact[i - 2 * j + 1] * Rn[2 * j - 1](1)
-                                 * fact[2 * j - 1]);
-                        By += powMinusOne * norm
-                              * (Rn[i - 2 * j + 2](0) * fact[i - 2 * j + 2] * Rn[2 * j - 2](1)
-                                 * fact[2 * j - 2]);
-                        powMinusOne *= -1.0;
-                    }
-
-                    if ((i + 1) / 2 == i / 2) {
-                        int j = (i + 2) / 2;
-                        By += powMinusOne * norm
-                              * (Rn[i - 2 * j + 2](0) * fact[i - 2 * j + 2] * Rn[2 * j - 2](1)
-                                 * fact[2 * j - 2]);
-                    }
-                    B(0) += Bx;
-                    B(1) += By;
-                }
             }
 
-            Rn[i + 1](0) = Rn[i](0) * R(0);
-            Rn[i + 1](1) = Rn[i](1) * R(1);
+            Rn_x[i + 1] = Rn_x[i] * R(0);
+            Rn_y[i + 1] = Rn_y[i] * R(1);
             fact[i + 1]  = fact[i] / (double)(i + 1);
         }
     }
 
     // --- SKEW COMPONENTS ---
     {
-        Rn[0] = Vector_t<double, 3>(1.0);
+        Rn_x[0] = 1.0;
+        Rn_y[0] = 1.0;
         fact[0] = 1.0;
         
         int count = (max_SkewComponent > MAX_MP_ORDER) ? MAX_MP_ORDER : max_SkewComponent;
@@ -494,49 +452,10 @@ void Multipole::computeField(
                     B(0) -= skew * R(0);
                     B(1) += skew * R(1);
                     break;
-
-                case SEXTUPOLE:
-                    B(0) -= skew * (Rn[2](0) - Rn[2](1));
-                    B(1) += 2 * skew * R(0) * R(1);
-                    break;
-
-                case OCTUPOLE:
-                    B(0) -= skew * (Rn[3](0) - 3 * Rn[1](0) * Rn[2](1));
-                    B(1) += skew * (3 * Rn[2](0) * Rn[1](1) - Rn[3](1));
-                    break;
-
-                case DECAPOLE:
-                    B(0) -= skew * (Rn[4](0) - 6 * Rn[2](0) * Rn[2](1) + Rn[4](1));
-                    B(1) += 4 * skew * (Rn[3](0) * Rn[1](1) - Rn[1](0) * Rn[3](1));
-                    break;
-
-                default: {
-                    double powMinusOne = 1.0;
-                    double Bx = 0.0, By = 0.0;
-                    for (int j = 1; j <= (i + 1) / 2; ++j) {
-                        Bx -= powMinusOne * skew
-                              * (Rn[i - 2 * j + 2](0) * fact[i - 2 * j + 2] * Rn[2 * j - 2](1)
-                                 * fact[2 * j - 2]);
-                        By += powMinusOne * skew
-                              * (Rn[i - 2 * j + 1](0) * fact[i - 2 * j + 1] * Rn[2 * j - 1](1)
-                                 * fact[2 * j - 1]);
-                        powMinusOne *= -1.0;
-                    }
-
-                    if ((i + 1) / 2 == i / 2) {
-                        int j = (i + 2) / 2;
-                        Bx -= powMinusOne * skew
-                              * (Rn[i - 2 * j + 2](0) * fact[i - 2 * j + 2] * Rn[2 * j - 2](1)
-                                 * fact[2 * j - 2]);
-                    }
-
-                    B(0) += Bx;
-                    B(1) += By;
-                }
             }
 
-            Rn[i + 1](0) = Rn[i](0) * R(0);
-            Rn[i + 1](1) = Rn[i](1) * R(1);
+            Rn_x[i + 1] = Rn_x[i] * R(0);
+            Rn_y[i + 1] = Rn_y[i] * R(1);
             fact[i + 1]  = fact[i] / (double)(i + 1);
         }
     }
@@ -730,10 +649,11 @@ bool Multipole::isInside(const Vector_t<double, 3>& r) const {
 }
 
 bool Multipole::isFocusing(int component) const {
-    if (component >= NormalComponents.size())
+    if (component >= NormalComponents.extent(0))
         throw GeneralClassicException("Multipole::isFocusing", "component too big");
 
-    return NormalComponents[component] * std::pow(-1, component + 1)
+    // Fix: Use getNormalComponent() to safely retrieve the value from GPU memory
+    return getNormalComponent(component) * std::pow(-1, component + 1)
                * RefPartBunch_m->getChargePerParticle() > 0.0;
 }
 

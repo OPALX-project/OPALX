@@ -6,7 +6,7 @@
 #include "Fields/BMultipoleField.h"
 
 class Fieldmap;
-constexpr int MAX_MP_ORDER = 20;
+constexpr int MAX_MP_ORDER = 2;
 
 /**
  * @class Multipole

@@ -448,6 +448,9 @@ void ParallelTracker::execute() {
 
     itsOpalBeamline_m.switchElementsOff();
 
+    // Ensure all Kokkos operations are complete before deallocation on GPU
+    Kokkos::fence();
+
     OPALTimer::Timer myt3;
     *gmsg << endl << "* Done executing ParallelTracker at " << myt3.time() << endl << endl;
 }
