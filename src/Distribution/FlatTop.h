@@ -45,6 +45,18 @@ public:
         std::shared_ptr<FieldContainer_t> &fc,
         std::shared_ptr<Distribution_t> &opalDist);
     
+    /**
+     * @brief Constructor for FlatTop.
+     *
+     * @param pc Shared pointer to ParticleContainer.
+     * @param fc Shared pointer to FieldContainer.
+     * @param emitting Flag indicating whether the distribution is emitting.
+     * @param sigmaTFall Standard deviation of fall in flat-top profile.
+     * @param sigmaTRise Standard deviation of rise in flat-top profile.
+     * @param cutoff Cutoff multiplier for position distribution R.
+     * @param tPulseLengthFWHM Time length of the pulse in FWHM.
+     * @param sigmaR Standard deviation for position distribution.
+     */
     FlatTop(std::shared_ptr<ParticleContainer_t> &pc,
         std::shared_ptr<FieldContainer_t> &fc,
         bool emitting, 
@@ -55,6 +67,16 @@ public:
         Vector_t<double, 3> sigmaR
     );
 
+    /**
+     * @brief Constructor for FlatTop.
+     * @param pc Shared pointer to ParticleContainer.
+     * @param emitting Flag indicating whether the distribution is emitting.
+     * @param sigmaTFall Standard deviation of fall in flat-top profile.
+     * @param sigmaTRise Standard deviation of rise in flat-top profile.
+     * @param cutoff Cutoff multiplier for position distribution R.
+     * @param tPulseLengthFWHM Time span of the flat-top profile.
+     * @param sigmaR Standard deviation for position distribution R.
+     */
     FlatTop(std::shared_ptr<ParticleContainer_t> &pc,
         bool emitting, 
         double sigmaTFall,
@@ -63,7 +85,6 @@ public:
         double tPulseLengthFWHM,
         Vector_t<double, 3> sigmaR
     );
-
 
     /**
      * @brief Tests the number of emitted particles over a given number of steps.
@@ -85,14 +106,24 @@ public:
      */
     void setWithDomainDecomp(bool withDomainDecomp) override;
 
+    /**
+     * @brief Sets the total area of the distribution.
+     */
     void setDistArea(double distArea){
         distArea_m = distArea;
     }
-
+    
+    /**
+     * @brief Returns the total area of the distribution.
+     *
+     */
     double getDistArea(){
         return distArea_m;
     }
 
+    /**
+     * @brief Returns the total emission time.
+     */
     double getEmissionTime(){
         return emissionTime_m;
     }
