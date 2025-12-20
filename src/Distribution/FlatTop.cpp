@@ -211,7 +211,6 @@ size_t FlatTop::computeNlocalUniformly(size_t nglobal){
     return nlocal;
 }
 
-
 double FlatTop::integrateTrapezoidal(double x1, double x2, double y1, double y2){
     return 0.5 * (y1+y2) * fabs(x2-x1);
 }
