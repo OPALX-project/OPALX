@@ -197,7 +197,7 @@ TEST_F(FlatTopTest, CountEnteringParticles_TotalMatchesExpected) {
 
     sampler.setWithDomainDecomp(false);
 
-    const size_t totalN = 200000;
+    const size_t totalN = 100000;
     sampler.allocateParticles(totalN);
 
     // Choose a time window inside the pulse

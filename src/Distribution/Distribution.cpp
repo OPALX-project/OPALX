@@ -175,13 +175,6 @@ void Distribution::execute() {
     update();
 }
 
-void Distribution::update() {
-}
-
-void Distribution::create(size_t& numberOfParticles, double massIneV, double charge, ippl::ParticleAttrib<ippl::Vector<double, 3>>& R, ippl::ParticleAttrib<ippl::Vector<double, 3>>& P, std::shared_ptr<ParticleContainer_t> &pc, std::shared_ptr<FieldContainer_t> &fc, Vector_t<double, 3> nr) {
-// moved to SamplingBase
-}
-
 Distribution* Distribution::find(const std::string& name) {
     Distribution* dist = dynamic_cast<Distribution*>(OpalData::getInstance()->find(name));
 
@@ -377,81 +370,6 @@ void Distribution::setDistParametersFlatTop() {
         cutoffR_m[2] = std::abs(cutoffR_m[2]);
 
     }
-    /*
-    cutoffR_m = Vector_t(Attributes::getReal(itsAttr[Attrib::Distribution::CUTOFFX]),
-                         Attributes::getReal(itsAttr[Attrib::Distribution::CUTOFFY]),
-                         Attributes::getReal(itsAttr[Attrib::Distribution::CUTOFFLONG]));
-
-    correlationMatrix_m(1, 0) = Attributes::getReal(itsAttr[Attrib::Distribution::CORRX]);
-    correlationMatrix_m(3, 2) = Attributes::getReal(itsAttr[Attrib::Distribution::CORRY]);
-    correlationMatrix_m(5, 4) = Attributes::getReal(itsAttr[Attrib::Distribution::CORRT]);
-
-    // CORRZ overrides CORRT.
-    if (Attributes::getReal(itsAttr[Attrib::Distribution::CORRZ]) != 0.0)
-        correlationMatrix_m(5, 4) = Attributes::getReal(itsAttr[Attrib::Distribution::CORRZ]);
-
-    setSigmaR_m();
-    if (emitting_m) {
-        sigmaR_m[2] = 0.0;
-
-        sigmaTRise_m = std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::SIGMAT]));
-        sigmaTFall_m = std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::SIGMAT]));
-
-        tPulseLengthFWHM_m = std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::TPULSEFWHM]));
-
-        //
-         // If TRISE and TFALL are defined > 0.0 then these attributes
-         // override SIGMAT.
-         //
-        if (std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::TRISE])) > 0.0
-            || std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::TFALL])) > 0.0) {
-
-            double timeRatio = std::sqrt(2.0 * std::log(10.0)) - std::sqrt(2.0 * std::log(10.0 / 9.0));
-
-            if (std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::TRISE])) > 0.0)
-                sigmaTRise_m = std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::TRISE]))
-                    / timeRatio;
-
-            if (std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::TFALL])) > 0.0)
-                sigmaTFall_m = std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::TFALL]))
-                    / timeRatio;
-
-        }
-
-        // For an emitted beam, the longitudinal cutoff >= 0.
-        cutoffR_m[2] = std::abs(cutoffR_m[2]);
-    }
-
-    // Set laser profile/
-    laserProfileFileName_m = Attributes::getString(itsAttr[Attrib::Distribution::LASERPROFFN]);
-    if (!(laserProfileFileName_m == std::string(""))) {
-        laserImageName_m = Attributes::getString(itsAttr[Attrib::Distribution::IMAGENAME]);
-        laserIntensityCut_m = std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::INTENSITYCUT]));
-        short flags = 0;
-        if (Attributes::getBool(itsAttr[Attrib::Distribution::FLIPX])) flags |= LaserProfile::FLIPX;
-        if (Attributes::getBool(itsAttr[Attrib::Distribution::FLIPY])) flags |= LaserProfile::FLIPY;
-        if (Attributes::getBool(itsAttr[Attrib::Distribution::ROTATE90])) flags |= LaserProfile::ROTATE90;
-        if (Attributes::getBool(itsAttr[Attrib::Distribution::ROTATE180])) flags |= LaserProfile::ROTATE180;
-        if (Attributes::getBool(itsAttr[Attrib::Distribution::ROTATE270])) flags |= LaserProfile::ROTATE270;
-
-        laserProfile_m = new LaserProfile(laserProfileFileName_m,
-                                          laserImageName_m,
-                                          laserIntensityCut_m,
-                                          flags);
-    }
-
-    // Legacy for ASTRAFLATTOPTH.
-    if (distrTypeT_m == DistributionType::ASTRAFLATTOPTH)
-        tRise_m = std::abs(Attributes::getReal(itsAttr[Attrib::Distribution::TRISE]));
-*/
-
-}
-
-void Distribution::createDistributionGauss(size_t numberOfParticles, double massIneV, ippl::ParticleAttrib<ippl::Vector<double, 3>>& R, ippl::ParticleAttrib<ippl::Vector<double, 3>>& P, std::shared_ptr<ParticleContainer_t> &pc, std::shared_ptr<FieldContainer_t> &fc, Vector_t<double, 3> nr) {
-    // moved to Gaussian.hpp
-}
-
-void Distribution::printDist(Inform& os, size_t numberOfParticles) const {
 }
 
 void Distribution::printDistGauss(Inform& os) const {
