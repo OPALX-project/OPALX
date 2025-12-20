@@ -17,6 +17,47 @@ FlatTop::FlatTop(std::shared_ptr<ParticleContainer_t> &pc,
     setParameters(opalDist);
 }
 
+FlatTop::FlatTop(
+    std::shared_ptr<ParticleContainer_t> &pc,
+    std::shared_ptr<FieldContainer_t> &fc,
+    bool emitting, 
+    double sigmaTFall,
+    double sigmaTRise,
+    Vector_t<double, 3> cutoff,
+    double tPulseLengthFWHM,
+    Vector_t<double, 3> sigmaR
+)
+    : SamplingBase(pc, fc), rand_pool_m(determineRandInit()) {
+        setInternalVariables(
+            emitting, 
+            sigmaTFall,
+            sigmaTRise,
+            cutoff,
+            tPulseLengthFWHM,
+            sigmaR
+        );
+}
+
+FlatTop::FlatTop(
+    std::shared_ptr<ParticleContainer_t> &pc,
+    bool emitting, 
+    double sigmaTFall,
+    double sigmaTRise,
+    Vector_t<double, 3> cutoff,
+    double tPulseLengthFWHM,
+    Vector_t<double, 3> sigmaR
+)
+    : SamplingBase(pc), rand_pool_m(determineRandInit()) {
+        setInternalVariables(
+            emitting, 
+            sigmaTFall,
+            sigmaTRise,
+            cutoff,
+            tPulseLengthFWHM,
+            sigmaR
+        );
+}
+
 void FlatTop::setWithDomainDecomp(bool withDomainDecomp) {
     withDomainDecomp_m = withDomainDecomp;
 }
@@ -34,14 +75,36 @@ size_t FlatTop::determineRandInit() {
 }
 
 void FlatTop::setParameters(const std::shared_ptr<Distribution_t> &opalDist) {
-    emitting_m = opalDist->emitting_m;
+    setInternalVariables(
+        opalDist->emitting_m,
+        opalDist_m->getSigmaTFall(),
+        opalDist_m->getSigmaTRise(),
+        opalDist_m->getCutoffR(),
+        opalDist->getTPulseLengthFWHM(),
+        opalDist_m->getSigmaR()
+    );
+    
+    opalDist_m->setTEmission(emissionTime_m);
+
+    // make sure only z direction is decomposed
+    fc_m->setDecomp({false, false, true});
+}
+
+void FlatTop::setInternalVariables(bool emitting, 
+                        double sigmaTFall,
+                        double sigmaTRise,
+                        Vector_t<double, 3> cutoff,
+                        double tPulseLengthFWHM,
+                        Vector_t<double, 3> sigmaR
+                        ) {
+    emitting_m = emitting;
     // time span of fall is [0, riseTime, riseTime+flattopTime, fallTime+flattopTime+riseTime ]
-    sigmaTFall_m = opalDist_m->getSigmaTFall();
-    sigmaTRise_m = opalDist_m->getSigmaTRise();
-    cutoffR_m = opalDist_m->getCutoffR();
+    sigmaTFall_m = sigmaTFall;
+    sigmaTRise_m = sigmaTRise;
+    cutoffR_m = cutoff;
 
     fallTime_m = sigmaTFall_m * cutoffR_m[2]; // fall is [0, fallTime]
-    flattopTime_m = opalDist->getTPulseLengthFWHM()
+    flattopTime_m = tPulseLengthFWHM
             - std::sqrt(2.0 * std::log(2.0)) * (sigmaTRise_m + sigmaTFall_m);
     if (flattopTime_m < 0.0) {
         flattopTime_m = 0.0;
@@ -49,17 +112,15 @@ void FlatTop::setParameters(const std::shared_ptr<Distribution_t> &opalDist) {
     riseTime_m = sigmaTRise_m * cutoffR_m[2];
 
     emissionTime_m = fallTime_m + flattopTime_m + riseTime_m;
-    opalDist_m->setTEmission(emissionTime_m);
 
-    // These expression are take from the old OPAL
+    // These expression are taken from the old OPAL
     // I think normalizedFlankArea is int_0^{cutoff} exp(-(x/sigma)^2/2 ) / sigma
     // Instead of int_0^{cutoff} exp(-(x/sigma)^2/2 ) / sqrt(2*pi) / sigma, which is strange!
     // So the distribution of tails are exp(-(x/sigma)^2/2 ) and not Gaussian!
     normalizedFlankArea_m = 0.5 * std::sqrt(Physics::two_pi) * std::erf(cutoffR_m[2] / std::sqrt(2.0));
     distArea_m = flattopTime_m + (sigmaTRise_m + sigmaTFall_m) * normalizedFlankArea_m;
 
-    // make sure only z direction is decomposed
-    fc_m->setDecomp({false, false, true});
+    sigmaR_m = sigmaR;
 }
 
 void FlatTop::generateUniformDisk(size_type nlocal, size_t nNew) {
@@ -73,7 +134,7 @@ void FlatTop::generateUniformDisk(size_type nlocal, size_t nNew) {
     view_type Pview = pc_m->P.getView();
 
     double pi = Physics::pi;
-    Vector_t<double, 3> sigmaR = opalDist_m->getSigmaR();
+    Vector_t<double, 3> sigmaR = sigmaR_m;
     // Sample (Rx,Ry) on a unit ring, then scale with sigmaRx and sigmaRy, set Px=Py=0
     Kokkos::parallel_for(
                "unitDisk", Kokkos::RangePolicy<>(nlocal, nlocal+nNew), KOKKOS_LAMBDA(const size_t j) {
@@ -150,6 +211,7 @@ size_t FlatTop::computeNlocalUniformly(size_t nglobal){
     return nlocal;
 }
 
+
 double FlatTop::integrateTrapezoidal(double x1, double x2, double y1, double y2){
     return 0.5 * (y1+y2) * fabs(x2-x1);
 }
@@ -157,7 +219,7 @@ double FlatTop::integrateTrapezoidal(double x1, double x2, double y1, double y2)
 void FlatTop::initDomainDecomp(double BoxIncr) {
     auto *mesh = &fc_m->getMesh();
     auto *FL   = &fc_m->getFL();
-    Vector_t<double, 3> sigmaR = opalDist_m->getSigmaR();
+    Vector_t<double, 3> sigmaR = sigmaR_m;
     ippl::Vector<double, 3> o;
     ippl::Vector<double, 3> e;
     double tol = 1e-15; // enlarge grid by tol to avoid missing particles on boundaries
@@ -191,7 +253,7 @@ double FlatTop::countEnteringParticlesPerRank(double t0, double tf){
             // select number of particles per rank using estimated domain decomposition at final emission time
             // find min/max of particle positions for [t,t+dt]
             Vector_t<double, 3> prmin, prmax;
-            Vector_t<double, 3> sigmaR = opalDist_m->getSigmaR();
+            Vector_t<double, 3> sigmaR = sigmaR_m;
             prmin[0] = -sigmaR[0];
             prmax[0] =  sigmaR[0];
             prmin[1] = -sigmaR[1];
