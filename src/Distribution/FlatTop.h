@@ -41,7 +41,29 @@ public:
      * @param fc Shared pointer to FieldContainer.
      * @param opalDist Shared pointer to Distribution.
      */
-    FlatTop(std::shared_ptr<ParticleContainer_t> &pc, std::shared_ptr<FieldContainer_t> &fc, std::shared_ptr<Distribution_t> &opalDist);
+    FlatTop(std::shared_ptr<ParticleContainer_t> &pc,
+        std::shared_ptr<FieldContainer_t> &fc,
+        std::shared_ptr<Distribution_t> &opalDist);
+    
+    FlatTop(std::shared_ptr<ParticleContainer_t> &pc,
+        std::shared_ptr<FieldContainer_t> &fc,
+        bool emitting, 
+        double sigmaTFall,
+        double sigmaTRise,
+        Vector_t<double, 3> cutoff,
+        double tPulseLengthFWHM,
+        Vector_t<double, 3> sigmaR
+    );
+
+    FlatTop(std::shared_ptr<ParticleContainer_t> &pc,
+        bool emitting, 
+        double sigmaTFall,
+        double sigmaTRise,
+        Vector_t<double, 3> cutoff,
+        double tPulseLengthFWHM,
+        Vector_t<double, 3> sigmaR
+    );
+
 
     /**
      * @brief Tests the number of emitted particles over a given number of steps.
@@ -74,6 +96,7 @@ private:
     double emissionTime_m; ///< Total emission time.
     Vector_t<double, 3> nr_m; ///< Number of grid points per direction.
     Vector_t<double, 3> hr_m; ///< Grid spacing.
+    Vector_t<double, 3> sigmaR_m;
 
     /**
      * @brief Sets whether to use domain decomposition.
@@ -164,6 +187,14 @@ public:
      * @param dt Time step.
      */
     void emitParticles(double t, double dt) override;
+
+    void setInternalVariables(bool emitting, 
+        double sigmaTFall,
+        double sigmaTRise,
+        Vector_t<double, 3> cutoff,
+        double tPulseLengthFWHM,
+        Vector_t<double, 3> sigmaR
+    );
 };
 
 #endif // IPPL_FLAT_TOP_H
