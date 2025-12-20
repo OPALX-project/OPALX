@@ -236,10 +236,12 @@ inline void Multipole::setSkewComponent(int n, double v) {
     setSkewComponent(n, v, 0.0);
 }
 
+// @returns max index of normal components
 inline size_t Multipole::getMaxNormalComponentIndex() const {
     return NormalComponents.size();
 }
 
+// @returns max index of skew components
 inline size_t Multipole::getMaxSkewComponentIndex() const {
     return SkewComponents.size();
 }
