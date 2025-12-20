@@ -142,7 +142,7 @@ public:
         
     }
 
-    bool balance(size_type totalP, const unsigned int nstep) {
+    bool balance(size_type totalP) {
         if (ippl::Comm->size() < 2) {
             return false;
         } else {
