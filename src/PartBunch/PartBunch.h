@@ -1,46 +1,6 @@
 #ifndef PARTBUNCH_H
 #define PARTBUNCH_H
 
-/*
-  Notes:
-
-
-Additional Functions
---------------------
-
-   setDistribution
-   getDistribution
-
-
-Main loop
----------
-
-
-   for integration
-     if not injectionDome
-       injected = distr_m->create()
-       injectrd = distr_m->inject()
-       update()
-
-     drift()
-     update()
-     kick()
-     drift()
-
-     diagnostics()
-     updateExternalFields()
-     update()
-
-updateExternalFields(): check if bunch has access to the fields of eternal elements. Maybe phase
-out some elements and read in new elements
-
-
-diagnostics(): calculate statistics and maybe write tp h5 and stat files
-
-*/
-
-
-
 #include <memory>
 
 #include "Algorithms/BoostMatrix.h"
@@ -273,27 +233,27 @@ public:
         return this->pcontainer_m->getLocalNum();
     }
 
-    Vector_t<double, Dim> R(size_t i) {
+    Vector_t<double, Dim> R(size_t /*i*/) {
         std::cout << "not implemented" << std::endl;
         return Vector_t<double, Dim>(0.0);
     }
 
-    Vector_t<double, Dim> P(size_t i) {
+    Vector_t<double, Dim> P(size_t /*i*/) {
         std::cout << "not implemented" << std::endl;
         return Vector_t<double, Dim>(0.0);
     }
 
-    Vector_t<double, Dim> Ef(size_t i) {
+    Vector_t<double, Dim> Ef(size_t /*i*/) {
         std::cout << "not implemented" << std::endl;
         return Vector_t<double, Dim>(0.0);
     }
 
-    Vector_t<double, Dim> Bf(size_t i) {
+    Vector_t<double, Dim> Bf(size_t /*i*/) {
         std::cout << "not implemented" << std::endl;
         return Vector_t<double, Dim>(0.0);
     }
 
-    Vector_t<double, Dim> dt(size_t i) {
+    Vector_t<double, Dim> dt(size_t /*i*/) {
         std::cout << "not implemented" << std::endl;
         return Vector_t<double, Dim>(0.0);
     }
@@ -365,11 +325,11 @@ public:
         return this->pcontainer_m->getStdKineticEnergy();
     }
 
-    double getGamma(int i) const {
+    double getGamma(int /*i*/) const {
         std::cout << "not implemented" << std::endl;
         return 0.0;
     }
-    double getBeta(int i) const {
+    double getBeta(int /*i*/) const {
         std::cout << "not implemented" << std::endl;
         return 0.0;
     }
@@ -424,37 +384,37 @@ public:
         std::cout << "not implemented" << std::endl;
     }
 
-    void resetInterpolationCache(bool clearCache = false) {
+    void resetInterpolationCache(bool /*clearCache = false*/) {
         std::cout << "not implemented" << std::endl;
     }
-    void swap(unsigned int i, unsigned int j) {
+    void swap(unsigned int /*i*/, unsigned int /*j*/) {
         std::cout << "not implemented" << std::endl;
     }
-    double getRho(int x, int y, int z) {
+    double getRho(int /*x*/, int /*y*/, int /*z*/) {
         std::cout << "not implemented" << std::endl;
         return 0.0;
     }
-    void gatherStatistics(unsigned int totalP) {
+    void gatherStatistics(unsigned int /*totalP*/) {
         std::cout << "not implemented" << std::endl;
     }
-    void switchToUnitlessPositions(bool use_dt_per_particle = false) {
+    void switchToUnitlessPositions(bool /*use_dt_per_particle = false*/) {
         std::cout << "not implemented" << std::endl;
     }
-    void switchOffUnitlessPositions(bool use_dt_per_particle = false) {
+    void switchOffUnitlessPositions(bool /*use_dt_per_particle = false*/) {
         std::cout << "not implemented" << std::endl;
     }
 
-    size_t calcNumPartsOutside(Vector_t<double, Dim> x) {
+    size_t calcNumPartsOutside(Vector_t<double, Dim> /*x*/) {
         std::cout << "not implemented" << std::endl;
         return 0;
     }
 
     void calcLineDensity(
-        unsigned int nBins, std::vector<double>& lineDensity, std::pair<double, double>& meshInfo) {
+        unsigned int /*nBins*/, std::vector<double>& /*lineDensity*/, std::pair<double, double>& /*meshInfo*/) {
             std::cout << "not implemented" << std::endl;
     }
 
-    void setBeamFrequency(double v) {
+    void setBeamFrequency(double /*v*/) {
         std::cout << "not implemented" << std::endl;
     }
 
@@ -498,14 +458,14 @@ public:
         std::cout << "not implemented" << std::endl;
     }
 
-    void setEnergyBins(int numberOfEnergyBins) {
+    void setEnergyBins(int /*numberOfEnergyBins*/) {
         std::cout << "not implemented" << std::endl;
     }
     bool weHaveEnergyBins() {
         std::cout << "not implemented" << std::endl;
         return false;
     }
-    void setTEmission(double t) {
+    void setTEmission(double /*t*/) {
         std::cout << "not implemented" << std::endl;
     }
     double getTEmission() {
@@ -517,7 +477,7 @@ public:
         return false;
     }
     // void setPBins(PartBins* pbin) {}
-    size_t emitParticles(double eZ) {
+    size_t emitParticles(double /*eZ*/) {
         std::cout << "not implemented" << std::endl;
         return 0;
     }
@@ -531,13 +491,13 @@ public:
         std::cout << "not implemented" << std::endl;
         return 0;
     }
-    void setLocalBinCount(size_t num, int bin) {
+    void setLocalBinCount(size_t /*num*/, int /*bin*/) {
         std::cout << "not implemented" << std::endl;
     }
     void calcGammas() {
         std::cout << "not implemented" << std::endl;
     }
-    double getBinGamma(int bin) {
+    double getBinGamma(int /*bin*/) {
         std::cout << "not implemented" << std::endl;
         return 0.0;
     }
@@ -545,17 +505,17 @@ public:
         std::cout << "not implemented" << std::endl;
         return false;
     }
-    void setBinCharge(int bin, double q) {
+    void setBinCharge(int /*bin*/, double /*q*/) {
         std::cout << "not implemented" << std::endl;
     }
-    void setBinCharge(int bin) {
+    void setBinCharge(int /*bin*/) {
         std::cout << "not implemented" << std::endl;
     }
     double calcMeanPhi() {
         std::cout << "not implemented" << std::endl;
         return 0.0;
     }
-    bool resetPartBinID2(const double eta) {
+    bool resetPartBinID2(const double /*eta*/) {
         std::cout << "not implemented" << std::endl;
         return false;
     }
@@ -563,48 +523,48 @@ public:
         std::cout << "not implemented" << std::endl;
         return false;
     }
-    double getPx(int i) {
+    double getPx(int /*i*/) {
         std::cout << "not implemented" << std::endl;
         return 0.0;
     }
-    double getPy(int i) {
+    double getPy(int /*i*/) {
         std::cout << "not implemented" << std::endl;
         return 0.0;
     }
-    double getPz(int i) {
+    double getPz(int /*i*/) {
         std::cout << "not implemented" << std::endl;
         return 0.0;
     }
-    double getPx0(int i) {
+    double getPx0(int /*i*/) {
         std::cout << "not implemented" << std::endl;
         return 0.0;
     }
-    double getPy0(int i) {
+    double getPy0(int /*i*/) {
         std::cout << "not implemented" << std::endl;
         return 0.0;
     }
-    double getX(int i) {
+    double getX(int /*i*/) {
         std::cout << "not implemented" << std::endl;
         return 0.0;
     }
-    double getY(int i) {
+    double getY(int /*i*/) {
         std::cout << "not implemented" << std::endl;
         return 0.0;
     }
-    double getZ(int i) {
+    double getZ(int /*i*/) {
         std::cout << "not implemented" << std::endl;
         return 0.0;
     }
-    double getX0(int i) {
+    double getX0(int /*i*/) {
         std::cout << "not implemented" << std::endl;
         return 0.0;
     }
-    double getY0(int i) {
+    double getY0(int /*i*/) {
         std::cout << "not implemented" << std::endl;
         return 0.0;
     }
 
-    void setZ(int i, double zcoo) {
+    void setZ(int /*i*/, double /*zcoo*/) {
         std::cout << "not implemented" << std::endl;
     }
 
@@ -613,11 +573,11 @@ public:
         rmax = rmax_m;
     }
 
-    void getLocalBounds(Vector_t<double, Dim>& rmin, Vector_t<double, Dim>& rmax) {
+    void getLocalBounds(Vector_t<double, Dim>& /*rmin*/, Vector_t<double, Dim>& /*rmax*/) {
         std::cout << "not implemented" << std::endl;
     }
 
-    void get_PBounds(Vector_t<double, Dim>& min, Vector_t<double, Dim>& max) {
+    void get_PBounds(Vector_t<double, Dim>& /*min*/, Vector_t<double, Dim>& /*max*/) {
         std::cout << "not implemented" << std::endl;
     }
 
@@ -640,13 +600,6 @@ public:
     double getT() const {
         return t_m;
     }
-
-    /**
-     * get the spos of the primary beam
-     *
-     * @param none
-     *
-     */
 
     void set_sPos(double s) {
         spos_m = s;
@@ -850,7 +803,7 @@ public:
         return SteptoLastInj_m;
     }
 
-    double calculateAngle(double x, double y) {
+    double calculateAngle(double /*x*/, double /*y*/) {
         std::cout << "not implemented" << std::endl;
         return 0.0;
     }
