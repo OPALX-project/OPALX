@@ -153,7 +153,7 @@ void BMultipoleField::setNormalComponent(int n, double b) {
 
     //if(n > itsOrder) reserve(n);
     //pairs[n-1].B = b;
-    if(n >= itsOrder) reserve(n);
+    if(n >= itsOrder) reserve(n+1);
     pairs[n].B = b;
 }
 
@@ -166,7 +166,7 @@ void BMultipoleField::setSkewComponent(int n, double a) {
 
     //if(n > itsOrder) reserve(n);
     //pairs[n-1].A = a;
-    if(n >= itsOrder) reserve(n);
+    if(n >= itsOrder) reserve(n+1);
     pairs[n].A = a;
 
 }
