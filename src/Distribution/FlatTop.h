@@ -79,6 +79,23 @@ public:
      */
     void testEmitParticles(size_type nsteps, double dt) override;
 
+    /**
+     * @brief Sets whether to use domain decomposition.
+     * @param withDomainDecomp Boolean flag for domain decomposition.
+     */
+    void setWithDomainDecomp(bool withDomainDecomp) override;
+
+    void setDistArea(double distArea){
+        distArea_m = distArea;
+    }
+
+    double getDistArea(){
+        return distArea_m;
+    }
+
+    double getEmissionTime(){
+        return emissionTime_m;
+    }
 private:
     using size_type = ippl::detail::size_type;
     GeneratorPool rand_pool_m;  ///< Random number generator pool.
@@ -97,12 +114,6 @@ private:
     Vector_t<double, 3> nr_m; ///< Number of grid points per direction.
     Vector_t<double, 3> hr_m; ///< Grid spacing.
     Vector_t<double, 3> sigmaR_m;
-
-    /**
-     * @brief Sets whether to use domain decomposition.
-     * @param withDomainDecomp Boolean flag for domain decomposition.
-     */
-    void setWithDomainDecomp(bool withDomainDecomp) override;
 
     /**
      * @brief Determines the random seed initialization.

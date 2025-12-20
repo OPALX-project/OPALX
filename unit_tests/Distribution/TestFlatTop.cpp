@@ -127,3 +127,107 @@ TEST_F(FlatTopTest, UniformDiskStatisticsAndBounds) {
     EXPECT_NEAR(varx, sigmaR[0]*sigmaR[0] / 4.0, 1e-2);
     EXPECT_NEAR(vary, sigmaR[1]*sigmaR[1] / 4.0, 1e-2);
 }
+
+
+
+TEST_F(FlatTopTest, CountEnteringParticles_NoDomainDecomp) {
+    const Vector_t<double,3> sigmaR = {1.0, 1.0, 0.0};
+    const Vector_t<double,3> cutoff = {4.0, 4.0, 4.0};
+
+    FlatTop sampler(
+        pc,
+        /*emitting=*/true,
+        /*sigmaTFall=*/1.0,
+        /*sigmaTRise=*/1.0,
+        cutoff,
+        /*tPulseLengthFWHM=*/10.0,
+        sigmaR
+    );
+
+    sampler.setWithDomainDecomp(false);
+
+    // total number of particles to emit over whole pulse
+    const size_t totalN = 100000;
+    sampler.allocateParticles(totalN);
+
+    const double t0 = 2.0;
+    const double tf = 2.1;
+
+    size_t nlocal = sampler.countEnteringParticlesPerRank(t0, tf);
+
+    // --- compute expected result ---
+    double f0 = sampler.FlatTopProfile(t0);
+    double f1 = sampler.FlatTopProfile(tf);
+    double tArea = 0.5 * (f0 + f1) * (tf - t0);
+
+    double expectedTotalNew =
+        std::floor(totalN * tArea / sampler.getDistArea());
+
+    int nranks;
+    MPI_Comm_size(MPI_COMM_WORLD, &nranks);
+
+    size_t expectedLocal =
+        static_cast<size_t>(std::floor(expectedTotalNew / nranks));
+
+    int rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+    // Rank 0 gets remainder
+    size_t remainder = expectedTotalNew - expectedLocal * nranks;
+    if (rank == 0) {
+        expectedLocal += remainder;
+    }
+
+    EXPECT_EQ(nlocal, expectedLocal);
+}
+
+TEST_F(FlatTopTest, CountEnteringParticles_TotalMatchesExpected) {
+    const Vector_t<double,3> sigmaR = {1.0, 2.0, 0.5};
+    const Vector_t<double,3> cutoff = {4.0, 3.0, 2.0};
+
+    FlatTop sampler(
+        pc,
+        /*emitting=*/true,
+        /*sigmaTFall=*/1.0,
+        /*sigmaTRise=*/1.0,
+        cutoff,
+        /*tPulseLengthFWHM=*/10.0,
+        sigmaR
+    );
+
+    sampler.setWithDomainDecomp(false);
+
+    const size_t totalN = 200000;
+    sampler.allocateParticles(totalN);
+
+    // Choose a time window inside the pulse
+    const double t0 = 2.0;
+    const double tf = 2.5;
+
+    // Count local particles
+    size_t nlocal = sampler.countEnteringParticlesPerRank(t0, tf);
+
+    // Reduce across all ranks
+    size_t globalEmitted = 0;
+    MPI_Allreduce(
+        &nlocal,
+        &globalEmitted,
+        1,
+        MPI_UNSIGNED_LONG,
+        MPI_SUM,
+        MPI_COMM_WORLD
+    );
+
+    // --- analytic expectation ---
+    const double f0 = sampler.FlatTopProfile(t0);
+    const double f1 = sampler.FlatTopProfile(tf);
+    const double tArea = 0.5 * (f0 + f1) * (tf - t0);
+
+    const size_t expectedTotal =
+        static_cast<size_t>(
+            std::floor(totalN * tArea / sampler.getDistArea())
+        );
+
+    EXPECT_EQ(globalEmitted, expectedTotal);
+}
+
