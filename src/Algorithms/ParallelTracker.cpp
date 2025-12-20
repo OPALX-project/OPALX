@@ -344,9 +344,11 @@ void ParallelTracker::execute() {
     // Set the time view of the particle bunch
     setTime();
 
+    // Reset the bunch time?
     double time = itsBunch_m->getT();
     itsBunch_m->setT(time);
 
+    // Get the current global tracking step
     unsigned long long step = itsBunch_m->getGlobalTrackStep();
     OPALTimer::Timer myt1;
     *gmsg << "* Track start at: " << myt1.time() << ", t= " << Util::getTimeString(time) << "; "
@@ -366,49 +368,64 @@ void ParallelTracker::execute() {
 
     stepSizes_m.printDirect(*gmsg);
     
+    // Main tracking loop over step size configurations
     while (!stepSizes_m.reachedEnd()) {
 
+        // Set the number of steps for the current track
         unsigned long long trackSteps = stepSizes_m.getNumSteps() + step;
         dtCurrentTrack_m              = stepSizes_m.getdT();
         changeDT(back_track);
 
+        // Inner loop over the number of steps for the current configuration
         for (; step < trackSteps; ++step) {
+
+            // Get the bunch spatial bounds
             Vector_t<double, 3> rmin(0.0), rmax(0.0);
             if (itsBunch_m->getTotalNum() > 0) {
                 itsBunch_m->calcBeamParameters();
                 itsBunch_m->get_bounds(rmin, rmax);
             }
  
+            // First half of the time integration
             timeIntegration1(pusher);
 
+            // Reset E and B fields
             resetFields();
             
+            // Space charge field computation
             //computeSpaceChargeFields(step);
            
+            // External field computation
             computeExternalFields(oth);
 
+            // Second half of the time integration
             timeIntegration2(pusher);
             
+            // \todo emitParticles(step);
+
+            // Backtracking?
             selectDT(back_track);
             
-            // \todo emitParticles(step);
-            //selectDT(back_track);
-
+            // Update the bunch time
             itsBunch_m->incrementT();
 
+            // Update reference particle
             if (itsBunch_m->getT() > 0.0 || itsBunch_m->getdT() < 0.0) {
                 updateReference(pusher);
             }
 
+            // Delete particles?
             if (deletedParticles_m) {
                 // \todo doDelete
                 deletedParticles_m = false;
             }
 
+            // Update the path length
             itsBunch_m->set_sPos(pathLength_m);
 
             // if (hasEndOfLineReached(globalBoundingBox)) break;
   
+            // Dump phase space and statistics at configured intervals
             bool const psDump =
                 ((itsBunch_m->getGlobalTrackStep() % Options::psDumpFreq) + 1
                  == Options::psDumpFreq);
@@ -448,7 +465,7 @@ void ParallelTracker::execute() {
 
     itsOpalBeamline_m.switchElementsOff();
 
-    // Ensure all Kokkos operations are complete before deallocation on GPU
+    // Ensure all Kokkos operations are complete 
     Kokkos::fence();
 
     OPALTimer::Timer myt3;
@@ -654,7 +671,6 @@ void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
             itsBunch_m->getParticleContainer()->P.getView());
 
         // Apply element
-        // TODO: out-of-bounds check here 
         (*it)->apply(); 
 
         // Transform from element to reference particle frame
@@ -710,13 +726,22 @@ void ParallelTracker::resetFields() {
     });
 }
 
+/**
+ * @brief Pushes particles 
+ * 
+ * @param pusher The BorisPusher
+ */
 void ParallelTracker::pushParticles(const BorisPusher& pusher) {
+
+    // Switch to unitless positions for pushing (normalisation by c*dt)
     itsBunch_m->switchToUnitlessPositions(true);
 
+    // Get Views
     auto Rview  = itsBunch_m->getParticleContainer()->R.getView();
     auto Pview  = itsBunch_m->getParticleContainer()->P.getView();
     auto dtview = itsBunch_m->getParticleContainer()->dt.getView();
 
+    // Kokkos parallel for to push particles
     Kokkos::parallel_for("pushParticles", ippl::getRangePolicy(Rview), 
     KOKKOS_LAMBDA(const int i) {
         auto x = Rview(i);
@@ -729,23 +754,34 @@ void ParallelTracker::pushParticles(const BorisPusher& pusher) {
 
     });
 
+    // Switch back to dimensional positions
     itsBunch_m->switchOffUnitlessPositions(true);
+    
     //itsBunch_m->getParticleContainer()->update();
+
+    // Synchronize across all MPI processes
     ippl::Comm->barrier();
 }
 
+/**
+ * @brief Kicks particles
+ * 
+ * @param pusher The BorisPusher
+ */
 void ParallelTracker::kickParticles(const BorisPusher& pusher) {
+
+    // Get Views
     auto Rview  = itsBunch_m->getParticleContainer()->R.getView();
     auto Pview  = itsBunch_m->getParticleContainer()->P.getView();
     auto Eview  = itsBunch_m->getParticleContainer()->E.getView();
     auto Bview  = itsBunch_m->getParticleContainer()->B.getView();
     auto dtview = itsBunch_m->getParticleContainer()->dt.getView();
 
+    // Get reference particle mass and charge
     const double mass = itsReference.getM();
     const double charge = itsReference.getQ();
 
-    
-
+    // Kokkos parallel for to kick particles
     Kokkos::parallel_for("kickParticles", ippl::getRangePolicy(Rview), 
     KOKKOS_LAMBDA(const int i) {
         const auto x = Rview(i);
@@ -759,6 +795,7 @@ void ParallelTracker::kickParticles(const BorisPusher& pusher) {
         Pview(i) = p;
     });
         
+    // Synchronize across all MPI processes
     ippl::Comm->barrier();
 }
 /* ========================================================================== */ 

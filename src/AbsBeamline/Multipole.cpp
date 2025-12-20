@@ -1,27 +1,30 @@
-//
-// Class Multipole
-//   The MULTIPOLE element defines a thick multipole.
-//
-// Copyright (c) 2012-2021, Paul Scherrer Institut, Villigen PSI, Switzerland
-// All rights reserved
-//
-// This file is part of OPAL.
-//
-// OPAL is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// You should have received a copy of the GNU General Public License
-// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
-//
-#include "AbsBeamline/Multipole.h"
+/**
+ * @class Multipole
+ * @brief Interface for general multipole.
+ *
+ * Class Multipole defines the abstract interface for magnetic multipoles.
+ * The order n of multipole components runs from 1 to N and is dynamically
+ * adjusted. It is connected with the number of poles by the following table:
+ *
+ * | Order (n) | Name                |
+ * |-----------|---------------------|
+ * | 1         | dipole              |
+ * | 2         | quadrupole          |
+ * | 3         | sextupole           |
+ * | 4         | octupole            |
+ * | 5         | decapole            |
+ *
+ * Units for multipole strengths are Teslas / m^(n-1).
+ */
 
+#include "AbsBeamline/Multipole.h"
 #include "AbsBeamline/BeamlineVisitor.h"
-#include "Fields/Fieldmap.h"
 #include "PartBunch/PartBunch.h"
-#include "Physics/Physics.h"
 #include "Utilities/GeneralClassicException.h"
+
+// Unused Headers
+#include "Physics/Physics.h"
+#include "Fields/Fieldmap.h"
 
 // orders
 namespace {
@@ -39,25 +42,33 @@ namespace {
         if (n == 4) return 24.0;
         if (n == 5) return 120.0;
     }
-}  // namespace
+}
 
 /* ============================== Constructors ============================== */
 Multipole::Multipole() : Multipole("") {
 }
 
+/**
+ * @brief Copy constructor.
+ * 
+ * @param right Multipole to copy
+ */
 Multipole::Multipole(const Multipole& right)
     : Component(right),
-      // 1. Allocate NEW memory with the same size as the source
-      NormalComponents("Multipole::Normal", right.NormalComponents.extent(0)),
-      NormalComponentErrors("Multipole::NormalErr", right.NormalComponentErrors.extent(0)),
-      SkewComponents("Multipole::Skew", right.SkewComponents.extent(0)),
-      SkewComponentErrors("Multipole::SkewErr", right.SkewComponentErrors.extent(0)),
-      // Copy scalar values
+      NormalComponents("Multipole::Normal", 
+        right.NormalComponents.extent(0)),
+      NormalComponentErrors("Multipole::NormalErr", 
+        right.NormalComponentErrors.extent(0)),
+      SkewComponents("Multipole::Skew", 
+        right.SkewComponents.extent(0)),
+      SkewComponentErrors("Multipole::SkewErr", 
+        right.SkewComponentErrors.extent(0)),
+      
       max_SkewComponent_m(right.max_SkewComponent_m),
       max_NormalComponent_m(right.max_NormalComponent_m),
-      nSlices_m(right.nSlices_m) {
-
-    // 2. Deep copy the data from the source views to the new views
+     
+      nSlices_m(right.nSlices_m) 
+{
     Kokkos::deep_copy(NormalComponents, right.NormalComponents);
     Kokkos::deep_copy(NormalComponentErrors, right.NormalComponentErrors);
     Kokkos::deep_copy(SkewComponents, right.SkewComponents);
@@ -215,6 +226,8 @@ void Multipole::setSkewComponent(int n, double v, double vError)
  * @brief Applies the multipole field to all particles inside the magnet bounds
  * 
  * @note The kernel launch is moved inside this functions for GPU compatibility
+ * 
+ * @note TODO: Out-of-bounds check 
  *  
  * @returns true if particle is out-of-bounds (lost), false otherwise
  */
@@ -245,21 +258,16 @@ bool Multipole::apply()
     {
         // Check bounds
         if (Rview(i)(2) > 0 && Rview(i)(2) <= elemLength){
-        //if (true){
             Vector_t<double,3> Ef(0.0), Bf(0.0);
             // Compute field at particle position
-            computeField(Rview(i), Ef, Bf, normalComponents, skewComponents,maxNormal, maxSkew);
+            computeField(Rview(i), Ef, Bf, 
+                normalComponents, skewComponents,maxNormal, maxSkew);
             for(unsigned d=0; d<3; ++d){
                 Eview(i)(d) += Ef(d);
                 Bview(i)(d) += Bf(d);
             }
         }    
     });
-    /*
-    for(unsigned int i=0; i<pc->getTotalNum(); ++i){
-        std::cout<< "Bfield: "<< Bview(i) << std::endl;
-    }
-    */
     return false;
 }
 
@@ -383,10 +391,31 @@ bool Multipole::applyToReferenceParticle(
 }
 /* ========================================================================== */
 /* ============================== Functions ================================= */
+/**
+ * @brief Accepts a BeamlineVisitor
+ * 
+ * @param visitor BeamlineVisitor reference
+ */
 void Multipole::accept(BeamlineVisitor& visitor) const {
     visitor.visitMultipole(*this);
 }
 
+/**
+ * @brief Computes the multipole field at position R
+ * 
+ * @note NormalComponents and SkewComponents need to be passed in the arguments
+ * because member views are not accessible inside Kokkos kernels.
+ * 
+ * @note Only implements up to quadrupole for now
+ * 
+ * @param R Position
+ * @param E Electric field reference
+ * @param B Magnetic field reference
+ * @param NormalComponents Kokkos::View of normal components
+ * @param SkewComponents Kokkos::View of skew components
+ * @param max_NormalComponent Maximum normal component index
+ * @param max_SkewComponent Maximum skew component index
+ */
 KOKKOS_INLINE_FUNCTION
 void Multipole::computeField(
     Vector_t<double, 3> R, 
@@ -409,7 +438,8 @@ void Multipole::computeField(
         fact[0] = 1.0;
         
         // Use local variable for loop bound to help optimizer
-        int count = (max_NormalComponent > MAX_MP_ORDER) ? MAX_MP_ORDER : max_NormalComponent;
+        int count = (max_NormalComponent > MAX_MP_ORDER) ? 
+            MAX_MP_ORDER : max_NormalComponent;
 
         for (int i = 0; i < count; ++i) {
             // Access Kokkos::View directly (device memory)
@@ -438,7 +468,8 @@ void Multipole::computeField(
         Rn_y[0] = 1.0;
         fact[0] = 1.0;
         
-        int count = (max_SkewComponent > MAX_MP_ORDER) ? MAX_MP_ORDER : max_SkewComponent;
+        int count = (max_SkewComponent > MAX_MP_ORDER) ? 
+            MAX_MP_ORDER : max_SkewComponent;
 
         for (int i = 0; i < count; ++i) {
             double skew = SkewComponents(i);
@@ -461,8 +492,19 @@ void Multipole::computeField(
     }
 }
 
+/**
+ * @brief Computes the multipole field at position R (host version)
+ * 
+ * @note Host-only function for the orbitthreader 
+ * 
+ * @param R Position
+ * @param E Electric field reference
+ * @param B Magnetic field reference
+ */
 void Multipole::computeFieldHost(
-    const Vector_t<double, 3> R, Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B) const 
+    const Vector_t<double, 3> R, 
+    Vector_t<double, 3>& /*E*/, 
+    Vector_t<double, 3>& B) const 
 {
     Vector_t<double, 3> Rn[MAX_MP_ORDER + 1];
     double fact[MAX_MP_ORDER + 1];
@@ -479,7 +521,8 @@ void Multipole::computeFieldHost(
         fact[0] = 1.0;
         
         // Use local variable for loop bound to help optimizer
-        int count = (max_NormalComponent_m > MAX_MP_ORDER) ? MAX_MP_ORDER : max_NormalComponent_m;
+        int count = (max_NormalComponent_m > MAX_MP_ORDER) ? 
+            MAX_MP_ORDER : max_NormalComponent_m;
 
         for (int i = 0; i < count; ++i) {
             // Access Kokkos::View directly (device memory)
@@ -545,7 +588,8 @@ void Multipole::computeFieldHost(
         Rn[0] = Vector_t<double, 3>(1.0);
         fact[0] = 1.0;
         
-        int count = (max_SkewComponent_m > MAX_MP_ORDER) ? MAX_MP_ORDER : max_SkewComponent_m;
+        int count = (max_SkewComponent_m > MAX_MP_ORDER) ? 
+            MAX_MP_ORDER : max_SkewComponent_m;
 
         for (int i = 0; i < count; ++i) {
             double skew = SkewComponents_host(i);
