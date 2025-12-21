@@ -55,6 +55,47 @@ protected:
     bool isAllPeriodic_m = true;
 };
 
+/**
+ * @brief Testing generatiioin of uniform sampples on an elliptical disk.
+ *
+ * This test verifies that `FlatTop::generateUniformDisk` generates particle
+ * positions uniformly over the elliptical region
+ *
+ * @f[
+ * \mathcal{D} = \left\{ (x,y) \in \mathbb{R}^2 :
+ * \frac{R_x^2}{\sigma_x^2} + \frac{R_y^2}{\sigma_y^2} \le 1 \right\}.
+ * @f]
+ *
+ * The test checks the following properties:
+ *
+ * - **Support**:
+ *   All generated particles satisfy
+ *   @f[
+ *   \frac{R_x^2}{\sigma_x^2} + \frac{R_y^2}{\sigma_y^2} \le 1.
+ *   @f]
+ *
+ * - **Zero momentum**:
+ *   @f[
+ *   \mathbf{P}_i = \mathbf{0}.
+ *   @f]
+ *
+ * - **First moments**:
+ *   By symmetry of the uniform disk,
+ *   @f[
+ *   \mathbb{E}[R_x] = \mathbb{E}[R_y] = 0.
+ *   @f]
+ *
+ * - **Second moments**:
+ *   For a uniform distribution over an elliptical disk,
+ *   @f[
+ *   \mathbb{E}[R_x^2] = \frac{\sigma_x^2}{4},
+ *   \qquad
+ *   \mathbb{E}[R_y^2] = \frac{\sigma_y^2}{4}.
+ *   @f]
+ *
+ * The empirical sample moments are compared against these analytic values
+ * using a finite-sample tolerance.
+ */
 TEST_F(FlatTopTest, UniformDiskStatisticsAndBounds) {
     const Vector_t<double,3> sigmaR = {0.5, 1.0, 0.0};
     const Vector_t<double,3> cutoff = 4.0;
@@ -129,7 +170,86 @@ TEST_F(FlatTopTest, UniformDiskStatisticsAndBounds) {
 }
 
 
-
+/**
+ * @brief This test counts the number of particles entering the domain per rank for a FlatTop pulse.
+ *
+ * This test verifies that `FlatTop::countEnteringParticlesPerRank` correctly
+ * counts the number of particles entering the domain within a given time window
+ * when domain decomposition is disabled.
+ *
+ * A total of @f$N_{\mathrm{tot}}@f$ particles are emitted over the full pulse
+ * duration according to a normalized FlatTop temporal profile
+ * @f$f(t)@f$. The expected number of particles entering during a time window
+ * @f$[t_0, t_f]@f$ is computed analytically.
+ *
+ * The number of particles emitted in the interval @f$[t_0, t_f]@f$ is
+ *
+ * @f[
+ * N_{\mathrm{new}}
+ * =
+ * \left\lfloor
+ * N_{\mathrm{tot}}
+ * \frac{
+ * \int_{t_0}^{t_f} f(t)\,dt
+ * }{
+ * \int f(t)\,dt
+ * }
+ * \right\rfloor.
+ * @f]
+ *
+ * The integral over the time window is approximated using a trapezoidal rule:
+ *
+ * @f[
+ * \int_{t_0}^{t_f} f(t)\,dt
+ * \approx
+ * \frac{1}{2}
+ * \left( f(t_0) + f(t_f) \right)
+ * (t_f - t_0).
+ * @f]
+ *
+ * With domain decomposition disabled, particles are distributed evenly across
+ * all MPI ranks. The expected number of particles per rank is therefore
+ *
+ * @f[
+ * N_{\mathrm{new,local}}}
+ * =
+ * \left\lfloor
+ * \frac{N_{\mathrm{new}}}{{\mathrm{\#ranks}}}
+ * \right\rfloor,
+ * @f]
+ *
+ * with the remainder
+ *
+ * @f[
+ * remainder = N_{\mathrm{new}} - \#{\mathrm{rank}} N_{\mathrm{new,local}}
+ * @f]
+ *
+ * assigned to rank 0, leading to
+ *
+ * @f[
+ * N_{\mathrm{new,local}}^{(0)} = N_{\mathrm{new,local}} + remainder.
+ * @f]
+ *
+ * and @f$N_{\mathrm{new,local}}^{(r)} = N_{\mathrm{new,local}}@f$ for @f$r > 0@f$.
+ * 
+ * The total number of particles entering the domain is therefore
+ *
+ * @f[
+ * N_{\mathrm{new,global}}
+ * =
+ * \sum_{r=0}^{N_{\mathrm{ranks}}-1}
+ * N_{\mathrm{new,local}}^{(r)}.
+ * @f]
+ *
+ * The test verifies that
+ *
+ * @f[
+ * N_{\mathrm{new,global}} = N_{\mathrm{expected}},
+ * @f]
+ *
+ * The test verifies that the number of particles counted on each rank matches
+ * this analytic expectation exactly.
+ */
 TEST_F(FlatTopTest, CountEnteringParticles_NoDomainDecomp) {
     const Vector_t<double,3> sigmaR = {1.0, 1.0, 0.0};
     const Vector_t<double,3> cutoff = {4.0, 4.0, 4.0};
@@ -179,35 +299,7 @@ TEST_F(FlatTopTest, CountEnteringParticles_NoDomainDecomp) {
     }
 
     EXPECT_EQ(nlocal, expectedLocal);
-}
 
-TEST_F(FlatTopTest, CountEnteringParticles_TotalMatchesExpected) {
-    const Vector_t<double,3> sigmaR = {1.0, 2.0, 0.5};
-    const Vector_t<double,3> cutoff = {4.0, 3.0, 2.0};
-
-    FlatTop sampler(
-        pc,
-        /*emitting=*/true,
-        /*sigmaTFall=*/1.0,
-        /*sigmaTRise=*/1.0,
-        cutoff,
-        /*tPulseLengthFWHM=*/10.0,
-        sigmaR
-    );
-
-    sampler.setWithDomainDecomp(false);
-
-    const size_t totalN = 100000;
-    sampler.allocateParticles(totalN);
-
-    // Choose a time window inside the pulse
-    const double t0 = 2.0;
-    const double tf = 2.5;
-
-    // Count local particles
-    size_t nlocal = sampler.countEnteringParticlesPerRank(t0, tf);
-
-    // Reduce across all ranks
     size_t globalEmitted = 0;
     MPI_Allreduce(
         &nlocal,
@@ -218,16 +310,5 @@ TEST_F(FlatTopTest, CountEnteringParticles_TotalMatchesExpected) {
         MPI_COMM_WORLD
     );
 
-    // --- analytic expectation ---
-    const double f0 = sampler.FlatTopProfile(t0);
-    const double f1 = sampler.FlatTopProfile(tf);
-    const double tArea = 0.5 * (f0 + f1) * (tf - t0);
-
-    const size_t expectedTotal =
-        static_cast<size_t>(
-            std::floor(totalN * tArea / sampler.getDistArea())
-        );
-
-    EXPECT_EQ(globalEmitted, expectedTotal);
+    EXPECT_EQ(globalEmitted, expectedTotalNew);
 }
-
