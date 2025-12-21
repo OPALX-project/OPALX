@@ -1,46 +1,6 @@
 #ifndef PARTBUNCH_H
 #define PARTBUNCH_H
 
-/*
-  Notes:
-
-
-Additional Functions
---------------------
-
-   setDistribution
-   getDistribution
-
-
-Main loop
----------
-
-
-   for integration
-     if not injectionDome
-       injected = distr_m->create()
-       injectrd = distr_m->inject()
-       update()
-
-     drift()
-     update()
-     kick()
-     drift()
-
-     diagnostics()
-     updateExternalFields()
-     update()
-
-updateExternalFields(): check if bunch has access to the fields of eternal elements. Maybe phase
-out some elements and read in new elements
-
-
-diagnostics(): calculate statistics and maybe write tp h5 and stat files
-
-*/
-
-
-
 #include <memory>
 
 #include "Algorithms/BoostMatrix.h"
@@ -273,28 +233,34 @@ public:
         return this->pcontainer_m->getLocalNum();
     }
 
-    Vector_t<double, Dim> R(size_t i) {
+    Vector_t<double, Dim> R(size_t /*i*/) {
+        *gmsg << "not implemented" << endl;
         return Vector_t<double, Dim>(0.0);
     }
 
-    Vector_t<double, Dim> P(size_t i) {
+    Vector_t<double, Dim> P(size_t /*i*/) {
+        *gmsg << "not implemented" << endl;
         return Vector_t<double, Dim>(0.0);
     }
 
-    Vector_t<double, Dim> Ef(size_t i) {
+    Vector_t<double, Dim> Ef(size_t /*i*/) {
+        *gmsg << "not implemented" << endl;
         return Vector_t<double, Dim>(0.0);
     }
 
-    Vector_t<double, Dim> Bf(size_t i) {
+    Vector_t<double, Dim> Bf(size_t /*i*/) {
+        *gmsg << "not implemented" << endl;
         return Vector_t<double, Dim>(0.0);
     }
 
-    Vector_t<double, Dim> dt(size_t i) {
+    Vector_t<double, Dim> dt(size_t /*i*/) {
+        *gmsg << "not implemented" << endl;
         return Vector_t<double, Dim>(0.0);
     }
 
     void advance() override {
         // \todo needs to go
+        *gmsg << "not implemented" << endl;
     }
 
     void par2grid() override {
@@ -359,14 +325,17 @@ public:
         return this->pcontainer_m->getStdKineticEnergy();
     }
 
-    double getGamma(int i) const {
+    double getGamma(int /*i*/) const {
+        *gmsg << "not implemented" << endl;
         return 0.0;
     }
-    double getBeta(int i) const {
+    double getBeta(int /*i*/) const {
+        *gmsg << "not implemented" << endl;
         return 0.0;
     }
 
     void actT() {
+        *gmsg << "not implemented" << endl;
     }
 
     PartData* getReference() {
@@ -374,6 +343,7 @@ public:
     }
 
     double getEmissionDeltaT() {
+        *gmsg << "not implemented" << endl;
         return 1.0;
     }
 
@@ -384,73 +354,72 @@ public:
     }
 
     void resizeMesh() {
+        *gmsg << "not implemented" << endl;
     }
-
-    /*
-
-    Mesh_t<Dim>& getMesh() {
-    }
-
-    FieldLayout_t<Dim>& getFieldLayout() {
-        return nullptr;
-    }
-    */
-
-
 
     bool isGridFixed() {
+        *gmsg << "not implemented" << endl;
         return false;
     }
 
     void boundp() {
+        *gmsg << "not implemented" << endl;
     }
 
     size_t boundp_destroyT() {
+        *gmsg << "not implemented" << endl;
         return 1;
     }
 
-    /*
-    void setTotalNum(size_t newTotalNum) {
-    }
-
-    void set_meshEnlargement(double dh) {
-    }
-    */
-
     void setBCAllOpen() {
+        *gmsg << "not implemented" << endl;
     }
     void setBCForDCBeam() {
+        *gmsg << "not implemented" << endl;
     }
     void setupBCs() {
+        *gmsg << "not implemented" << endl;
     }
     void setBCAllPeriodic() {
+        *gmsg << "not implemented" << endl;
     }
 
-    void resetInterpolationCache(bool clearCache = false) {
+    void resetInterpolationCache(bool /*clearCache = false*/) {
+        *gmsg << "not implemented" << endl;
     }
-    void swap(unsigned int i, unsigned int j) {
+    void swap(unsigned int /*i*/, unsigned int /*j*/) {
+        *gmsg << "not implemented" << endl;
     }
-    double getRho(int x, int y, int z) {
+    double getRho(int /*x*/, int /*y*/, int /*z*/) {
+        *gmsg << "not implemented" << endl;
+        return 0.0;
     }
-    void gatherStatistics(unsigned int totalP) {
+    void gatherStatistics(unsigned int /*totalP*/) {
+        *gmsg << "not implemented" << endl;
     }
-    void switchToUnitlessPositions(bool use_dt_per_particle = false) {
+    void switchToUnitlessPositions(bool /*use_dt_per_particle = false*/) {
+        *gmsg << "not implemented" << endl;
     }
-    void switchOffUnitlessPositions(bool use_dt_per_particle = false) {
+    void switchOffUnitlessPositions(bool /*use_dt_per_particle = false*/) {
+        *gmsg << "not implemented" << endl;
     }
 
-    size_t calcNumPartsOutside(Vector_t<double, Dim> x) {
+    size_t calcNumPartsOutside(Vector_t<double, Dim> /*x*/) {
+        *gmsg << "not implemented" << endl;
         return 0;
     }
 
     void calcLineDensity(
-        unsigned int nBins, std::vector<double>& lineDensity, std::pair<double, double>& meshInfo) {
+        unsigned int /*nBins*/, std::vector<double>& /*lineDensity*/, std::pair<double, double>& /*meshInfo*/) {
+            *gmsg << "not implemented" << endl;
     }
 
-    void setBeamFrequency(double v) {
+    void setBeamFrequency(double /*v*/) {
+        *gmsg << "not implemented" << endl;
     }
 
     Vector_t<double, Dim> getEExtrema() {
+        *gmsg << "not implemented" << endl;
        return Vector_t<double, Dim>(0);
     }
 
@@ -458,110 +427,145 @@ public:
 
     Inform& print(Inform& os);
 
-
     bool hasFieldSolver() {
+        *gmsg << "not implemented" << endl;
         return true;
     }
 
     bool getFieldSolverType() {
+        *gmsg << "not implemented" << endl;
         return false;
     }
 
     bool getIfBeamEmitting() {
+        *gmsg << "not implemented" << endl;
         return false;
     }
     int getLastEmittedEnergyBin() {
+        *gmsg << "not implemented" << endl;
         return 0;
     }
     size_t getNumberOfEmissionSteps() {
+        *gmsg << "not implemented" << endl;
         return 0;
     }
     int getNumberOfEnergyBins() {
+        *gmsg << "not implemented" << endl;
         return 0;
     }
 
     void Rebin() {
+        *gmsg << "not implemented" << endl;
     }
 
-    void setEnergyBins(int numberOfEnergyBins) {
+    void setEnergyBins(int /*numberOfEnergyBins*/) {
+        *gmsg << "not implemented" << endl;
     }
     bool weHaveEnergyBins() {
+        *gmsg << "not implemented" << endl;
         return false;
     }
-    void setTEmission(double t) {
+    void setTEmission(double /*t*/) {
+        *gmsg << "not implemented" << endl;
     }
     double getTEmission() {
+        *gmsg << "not implemented" << endl;
         return 0.0;
     }
     bool weHaveBins() {
+        *gmsg << "not implemented" << endl;
         return false;
     }
     // void setPBins(PartBins* pbin) {}
-    size_t emitParticles(double eZ) {
+    size_t emitParticles(double /*eZ*/) {
+        *gmsg << "not implemented" << endl;
         return 0;
     }
     void updateNumTotal() {
+        *gmsg << "not implemented" << endl;
     }
     void rebin() {
+        *gmsg << "not implemented" << endl;
     }
     int getLastemittedBin() {
+        *gmsg << "not implemented" << endl;
         return 0;
     }
-    void setLocalBinCount(size_t num, int bin) {
+    void setLocalBinCount(size_t /*num*/, int /*bin*/) {
+        *gmsg << "not implemented" << endl;
     }
     void calcGammas() {
+        *gmsg << "not implemented" << endl;
     }
-    double getBinGamma(int bin) {
+    double getBinGamma(int /*bin*/) {
+        *gmsg << "not implemented" << endl;
         return 0.0;
     }
     bool hasBinning() {
+        *gmsg << "not implemented" << endl;
         return false;
     }
-    void setBinCharge(int bin, double q) {
+    void setBinCharge(int /*bin*/, double /*q*/) {
+        *gmsg << "not implemented" << endl;
     }
-    void setBinCharge(int bin) {
+    void setBinCharge(int /*bin*/) {
+        *gmsg << "not implemented" << endl;
     }
     double calcMeanPhi() {
+        *gmsg << "not implemented" << endl;
         return 0.0;
     }
-    bool resetPartBinID2(const double eta) {
+    bool resetPartBinID2(const double /*eta*/) {
+        *gmsg << "not implemented" << endl;
         return false;
     }
     bool resetPartBinBunch() {
+        *gmsg << "not implemented" << endl;
         return false;
     }
-    double getPx(int i) {
+    double getPx(int /*i*/) {
+        *gmsg << "not implemented" << endl;
         return 0.0;
     }
-    double getPy(int i) {
+    double getPy(int /*i*/) {
+        *gmsg << "not implemented" << endl;
         return 0.0;
     }
-    double getPz(int i) {
+    double getPz(int /*i*/) {
+        *gmsg << "not implemented" << endl;
         return 0.0;
     }
-    double getPx0(int i) {
+    double getPx0(int /*i*/) {
+        *gmsg << "not implemented" << endl;
         return 0.0;
     }
-    double getPy0(int i) {
+    double getPy0(int /*i*/) {
+        *gmsg << "not implemented" << endl;
         return 0.0;
     }
-    double getX(int i) {
+    double getX(int /*i*/) {
+        *gmsg << "not implemented" << endl;
         return 0.0;
     }
-    double getY(int i) {
+    double getY(int /*i*/) {
+        *gmsg << "not implemented" << endl;
         return 0.0;
     }
-    double getZ(int i) {
+    double getZ(int /*i*/) {
+        *gmsg << "not implemented" << endl;
         return 0.0;
     }
-    double getX0(int i) {
+    double getX0(int /*i*/) {
+        *gmsg << "not implemented" << endl;
         return 0.0;
     }
-    double getY0(int i) {
+    double getY0(int /*i*/) {
+        *gmsg << "not implemented" << endl;
         return 0.0;
     }
 
-    void setZ(int i, double zcoo) {
+    void setZ(int /*i*/, double /*zcoo*/) {
+        *gmsg << "not implemented" << endl;
     }
 
     void get_bounds(Vector_t<double, Dim>& rmin, Vector_t<double, Dim>& rmax) {
@@ -569,20 +573,13 @@ public:
         rmax = rmax_m;
     }
 
-    void getLocalBounds(Vector_t<double, Dim>& rmin, Vector_t<double, Dim>& rmax) {
+    void getLocalBounds(Vector_t<double, Dim>& /*rmin*/, Vector_t<double, Dim>& /*rmax*/) {
+        *gmsg << "not implemented" << endl;
     }
 
-    void get_PBounds(Vector_t<double, Dim>& min, Vector_t<double, Dim>& max) {
+    void get_PBounds(Vector_t<double, Dim>& /*min*/, Vector_t<double, Dim>& /*max*/) {
+        *gmsg << "not implemented" << endl;
     }
-
-    /*
-
-      Misc Bunch related quantities
-
-    */
-
-    /// get 2nd order beam matrix
-    // matrix_t getSigmaMatrix() const;
 
     void setdT(double dt) {
         dt_m = dt;
@@ -604,13 +601,6 @@ public:
         return t_m;
     }
 
-    /**
-     * get the spos of the primary beam
-     *
-     * @param none
-     *
-     */
-
     void set_sPos(double s) {
         spos_m = s;
     }
@@ -620,6 +610,7 @@ public:
     }
 
     double get_gamma() const {
+        *gmsg << "not implemented" << endl;
         return 1.00;
     }
 
@@ -659,42 +650,54 @@ public:
         return this->pcontainer_m->getMeanP();
     }
     Vector_t<double, Dim> get_pmean_Distribution() const {
+        *gmsg << "not implemented" << endl;
         return Vector_t<double, Dim>(0.0);
     }
     Vector_t<double, Dim> get_emit() const {
+        *gmsg << "not implemented" << endl;
         return Vector_t<double, Dim>(0.0);
     }
     Vector_t<double, Dim> get_norm_emit() const {
         return this->pcontainer_m->getNormEmit();
     }
     Vector_t<double, Dim> get_halo() const {
+        *gmsg << "not implemented" << endl;
         return Vector_t<double, Dim>(0.0);
     }
     Vector_t<double, Dim> get_68Percentile() const {
+        *gmsg << "not implemented" << endl;
         return Vector_t<double, Dim>(0.0);
     }
     Vector_t<double, Dim> get_95Percentile() const {
+        *gmsg << "not implemented" << endl;
         return Vector_t<double, Dim>(0.0);
     }
     Vector_t<double, Dim> get_99Percentile() const {
+        *gmsg << "not implemented" << endl;
         return Vector_t<double, Dim>(0.0);
     }
     Vector_t<double, Dim> get_99_99Percentile() const {
+        *gmsg << "not implemented" << endl;
         return Vector_t<double, Dim>(0.0);
     }
     Vector_t<double, Dim> get_normalizedEps_68Percentile() const {
+        *gmsg << "not implemented" << endl;
         return Vector_t<double, Dim>(0.0);
     }
     Vector_t<double, Dim> get_normalizedEps_95Percentile() const {
+        *gmsg << "not implemented" << endl;
         return Vector_t<double, Dim>(0.0);
     }
     Vector_t<double, Dim> get_normalizedEps_99Percentile() const {
+        *gmsg << "not implemented" << endl;
         return Vector_t<double, Dim>(0.0);
     }
     Vector_t<double, Dim> get_normalizedEps_99_99Percentile() const {
+        *gmsg << "not implemented" << endl;
         return Vector_t<double, Dim>(0.0);
     }
     Vector_t<double, Dim> get_hr() const {
+        *gmsg << "not implemented" << endl;
         return Vector_t<double, Dim>(0.0);
     }
 
@@ -800,7 +803,8 @@ public:
         return SteptoLastInj_m;
     }
 
-    double calculateAngle(double x, double y) {
+    double calculateAngle(double /*x*/, double /*y*/) {
+        *gmsg << "not implemented" << endl;
         return 0.0;
     }
 
