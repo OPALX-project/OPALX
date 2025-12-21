@@ -234,33 +234,33 @@ public:
     }
 
     Vector_t<double, Dim> R(size_t /*i*/) {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
         return Vector_t<double, Dim>(0.0);
     }
 
     Vector_t<double, Dim> P(size_t /*i*/) {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
         return Vector_t<double, Dim>(0.0);
     }
 
     Vector_t<double, Dim> Ef(size_t /*i*/) {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
         return Vector_t<double, Dim>(0.0);
     }
 
     Vector_t<double, Dim> Bf(size_t /*i*/) {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
         return Vector_t<double, Dim>(0.0);
     }
 
     Vector_t<double, Dim> dt(size_t /*i*/) {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
         return Vector_t<double, Dim>(0.0);
     }
 
     void advance() override {
         // \todo needs to go
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
     }
 
     void par2grid() override {
@@ -326,16 +326,16 @@ public:
     }
 
     double getGamma(int /*i*/) const {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
         return 0.0;
     }
     double getBeta(int /*i*/) const {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
         return 0.0;
     }
 
     void actT() {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
     }
 
     PartData* getReference() {
@@ -343,7 +343,7 @@ public:
     }
 
     double getEmissionDeltaT() {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
         return 1.0;
     }
 
@@ -354,72 +354,72 @@ public:
     }
 
     void resizeMesh() {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
     }
 
     bool isGridFixed() {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
         return false;
     }
 
     void boundp() {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
     }
 
     size_t boundp_destroyT() {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
         return 1;
     }
 
     void setBCAllOpen() {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
     }
     void setBCForDCBeam() {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
     }
     void setupBCs() {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
     }
     void setBCAllPeriodic() {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
     }
 
     void resetInterpolationCache(bool /*clearCache = false*/) {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
     }
     void swap(unsigned int /*i*/, unsigned int /*j*/) {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
     }
     double getRho(int /*x*/, int /*y*/, int /*z*/) {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
         return 0.0;
     }
     void gatherStatistics(unsigned int /*totalP*/) {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
     }
     void switchToUnitlessPositions(bool /*use_dt_per_particle = false*/) {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
     }
     void switchOffUnitlessPositions(bool /*use_dt_per_particle = false*/) {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
     }
 
     size_t calcNumPartsOutside(Vector_t<double, Dim> /*x*/) {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
         return 0;
     }
 
     void calcLineDensity(
         unsigned int /*nBins*/, std::vector<double>& /*lineDensity*/, std::pair<double, double>& /*meshInfo*/) {
-            std::cout << "not implemented" << std::endl;
+            *gmsg << "not implemented" << endl;
     }
 
     void setBeamFrequency(double /*v*/) {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
     }
 
     Vector_t<double, Dim> getEExtrema() {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
        return Vector_t<double, Dim>(0);
     }
 
@@ -428,144 +428,144 @@ public:
     Inform& print(Inform& os);
 
     bool hasFieldSolver() {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
         return true;
     }
 
     bool getFieldSolverType() {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
         return false;
     }
 
     bool getIfBeamEmitting() {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
         return false;
     }
     int getLastEmittedEnergyBin() {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
         return 0;
     }
     size_t getNumberOfEmissionSteps() {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
         return 0;
     }
     int getNumberOfEnergyBins() {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
         return 0;
     }
 
     void Rebin() {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
     }
 
     void setEnergyBins(int /*numberOfEnergyBins*/) {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
     }
     bool weHaveEnergyBins() {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
         return false;
     }
     void setTEmission(double /*t*/) {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
     }
     double getTEmission() {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
         return 0.0;
     }
     bool weHaveBins() {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
         return false;
     }
     // void setPBins(PartBins* pbin) {}
     size_t emitParticles(double /*eZ*/) {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
         return 0;
     }
     void updateNumTotal() {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
     }
     void rebin() {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
     }
     int getLastemittedBin() {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
         return 0;
     }
     void setLocalBinCount(size_t /*num*/, int /*bin*/) {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
     }
     void calcGammas() {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
     }
     double getBinGamma(int /*bin*/) {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
         return 0.0;
     }
     bool hasBinning() {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
         return false;
     }
     void setBinCharge(int /*bin*/, double /*q*/) {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
     }
     void setBinCharge(int /*bin*/) {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
     }
     double calcMeanPhi() {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
         return 0.0;
     }
     bool resetPartBinID2(const double /*eta*/) {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
         return false;
     }
     bool resetPartBinBunch() {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
         return false;
     }
     double getPx(int /*i*/) {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
         return 0.0;
     }
     double getPy(int /*i*/) {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
         return 0.0;
     }
     double getPz(int /*i*/) {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
         return 0.0;
     }
     double getPx0(int /*i*/) {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
         return 0.0;
     }
     double getPy0(int /*i*/) {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
         return 0.0;
     }
     double getX(int /*i*/) {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
         return 0.0;
     }
     double getY(int /*i*/) {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
         return 0.0;
     }
     double getZ(int /*i*/) {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
         return 0.0;
     }
     double getX0(int /*i*/) {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
         return 0.0;
     }
     double getY0(int /*i*/) {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
         return 0.0;
     }
 
     void setZ(int /*i*/, double /*zcoo*/) {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
     }
 
     void get_bounds(Vector_t<double, Dim>& rmin, Vector_t<double, Dim>& rmax) {
@@ -574,11 +574,11 @@ public:
     }
 
     void getLocalBounds(Vector_t<double, Dim>& /*rmin*/, Vector_t<double, Dim>& /*rmax*/) {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
     }
 
     void get_PBounds(Vector_t<double, Dim>& /*min*/, Vector_t<double, Dim>& /*max*/) {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
     }
 
     void setdT(double dt) {
@@ -610,7 +610,7 @@ public:
     }
 
     double get_gamma() const {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
         return 1.00;
     }
 
@@ -650,54 +650,54 @@ public:
         return this->pcontainer_m->getMeanP();
     }
     Vector_t<double, Dim> get_pmean_Distribution() const {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
         return Vector_t<double, Dim>(0.0);
     }
     Vector_t<double, Dim> get_emit() const {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
         return Vector_t<double, Dim>(0.0);
     }
     Vector_t<double, Dim> get_norm_emit() const {
         return this->pcontainer_m->getNormEmit();
     }
     Vector_t<double, Dim> get_halo() const {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
         return Vector_t<double, Dim>(0.0);
     }
     Vector_t<double, Dim> get_68Percentile() const {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
         return Vector_t<double, Dim>(0.0);
     }
     Vector_t<double, Dim> get_95Percentile() const {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
         return Vector_t<double, Dim>(0.0);
     }
     Vector_t<double, Dim> get_99Percentile() const {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
         return Vector_t<double, Dim>(0.0);
     }
     Vector_t<double, Dim> get_99_99Percentile() const {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
         return Vector_t<double, Dim>(0.0);
     }
     Vector_t<double, Dim> get_normalizedEps_68Percentile() const {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
         return Vector_t<double, Dim>(0.0);
     }
     Vector_t<double, Dim> get_normalizedEps_95Percentile() const {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
         return Vector_t<double, Dim>(0.0);
     }
     Vector_t<double, Dim> get_normalizedEps_99Percentile() const {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
         return Vector_t<double, Dim>(0.0);
     }
     Vector_t<double, Dim> get_normalizedEps_99_99Percentile() const {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
         return Vector_t<double, Dim>(0.0);
     }
     Vector_t<double, Dim> get_hr() const {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
         return Vector_t<double, Dim>(0.0);
     }
 
@@ -804,7 +804,7 @@ public:
     }
 
     double calculateAngle(double /*x*/, double /*y*/) {
-        std::cout << "not implemented" << std::endl;
+        *gmsg << "not implemented" << endl;
         return 0.0;
     }
 
