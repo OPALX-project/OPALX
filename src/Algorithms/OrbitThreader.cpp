@@ -60,7 +60,7 @@ OrbitThreader::OrbitThreader(
         std::string fileName = Util::combineFilePath(
             {opal->getAuxiliaryOutputDirectory(), opal->getInputBasename() + "_DesignPath.dat"});
         if (opal->getOpenMode() == OpalData::OpenMode::WRITE
-            || !std::::filesystem::exists(fileName)) {
+            || !std::filesystem::exists(fileName)) {
             logger_m.open(fileName);
             logger_m << "#" << std::setw(17) << "1 - s" << std::setw(18) << "2 - Rx"
                      << std::setw(18) << "3 - Ry" << std::setw(18) << "4 - Rz" << std::setw(18)
