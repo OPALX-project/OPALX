@@ -4,12 +4,9 @@
 // This class determines the design path by tracking the reference particle through
 // the 3D lattice.
 //
-// Copyright (c) 2016,       Christof Metzger-Kraus, Helmholtz-Zentrum Berlin, Germany
-//               2017 - 2022 Christof Metzger-Kraus
-//
 // All rights reserved
 //
-// This file is part of OPAL.
+// This file is part of OPALX.
 //
 // OPAL is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -33,7 +30,7 @@
 #include "Utilities/Options.h"
 #include "Utilities/Util.h"
 
-#include <boost/filesystem.hpp>
+#include <filesystem>
 
 #include <cmath>
 #include <iostream>
@@ -63,7 +60,7 @@ OrbitThreader::OrbitThreader(
         std::string fileName = Util::combineFilePath(
             {opal->getAuxiliaryOutputDirectory(), opal->getInputBasename() + "_DesignPath.dat"});
         if (opal->getOpenMode() == OpalData::OpenMode::WRITE
-            || !boost::filesystem::exists(fileName)) {
+            || !std::::filesystem::exists(fileName)) {
             logger_m.open(fileName);
             logger_m << "#" << std::setw(17) << "1 - s" << std::setw(18) << "2 - Rx"
                      << std::setw(18) << "3 - Ry" << std::setw(18) << "4 - Rz" << std::setw(18)
@@ -463,15 +460,24 @@ void OrbitThreader::updateBoundingBoxWithCurrentPosition() {
 }
 
 double OrbitThreader::computeDriftLengthToBoundingBox(
-    const std::set<std::shared_ptr<Component>>& elements, const Vector_t<double, 3>& position,
-    const Vector_t<double, 3>& direction) const {
-
+    const std::set<std::shared_ptr<Component>>& elements,
+    const Vector_t<double, 3>& position,
+    const Vector_t<double, 3>& direction) const
+{
     if (elements.empty()
-        || (elements.size() == 1 && (*elements.begin())->getType() == ElementType::DRIFT)) {
-        boost::optional<Vector_t<double, 3>> intersectionPoint =
+        || (elements.size() == 1 && (*elements.begin())->getType() == ElementType::DRIFT)) 
+    {
+        std::optional<Vector_t<double, 3>> intersectionPoint =
             globalBoundingBox_m.getIntersectionPoint(position, direction);
-        const Vector_t<double, 3> r = intersectionPoint.get() - position;
-        return intersectionPoint ? euclidean_norm(r) : 10.0;
+
+        if (intersectionPoint) {
+            // Safe: only access when the optional has a value
+            const Vector_t<double, 3>& r = *intersectionPoint - position;
+            return euclidean_norm(r);
+        } else {
+            // fallback if no intersection
+            return 10.0;
+        }
     }
 
     return std::numeric_limits<double>::max();
