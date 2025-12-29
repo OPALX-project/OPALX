@@ -77,13 +77,14 @@ ElementType Component::getType() const {
     return ElementType::ANY;
 }
 
-bool Component::apply(const size_t& i, const double&, Vector_t<double, 3>&, Vector_t<double, 3>&) {
+bool Component::apply(const size_t& /*i*/, const double&, Vector_t<double, 3>&, Vector_t<double, 3>&) {
     /* const Vector_t<double, 3>& R = RefPartBunch_m->R[i];
     if (R(2) >= 0.0 && R(2) < getElementLength()) {
         if (!isInsideTransverse(R))
             return true;
     }
     */
+    *gmsg << "Component::apply not implemented" << endl;
     return false;
 }
 

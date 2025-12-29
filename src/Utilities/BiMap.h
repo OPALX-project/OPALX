@@ -27,11 +27,39 @@ public:
     using left_map = std::map<Left, Right>;
     using right_map = std::map<Right, Left>;
     
+private:
+    // Declare maps first so they're initialized before left/right references
+    left_map left_map_;
+    right_map right_map_;
+    
+public:
     struct relation {
         Left left;
         Right right;
         relation(const Left& l, const Right& r) : left(l), right(r) {}
     };
+    
+    // Access to underlying maps for compatibility (using references)
+    struct left_view {
+        left_map& map_;
+        left_view(left_map& m) : map_(m) {}
+        typename left_map::iterator find(const Left& key) const { return map_.find(key); }
+        typename left_map::iterator end() const { return map_.end(); }
+        const Right& at(const Left& key) const { return map_.at(key); }
+    };
+    
+    struct right_view {
+        right_map& map_;
+        right_view(right_map& m) : map_(m) {}
+        typename right_map::iterator find(const Right& key) const { return map_.find(key); }
+        typename right_map::iterator end() const { return map_.end(); }
+        const Left& at(const Right& key) const { return map_.at(key); }
+    };
+    
+    BiMap() : left_map_(), right_map_(), left(left_map_), right(right_map_) {}
+    
+    left_view left;
+    right_view right;
     
     void insert(const Left& left, const Right& right) {
         left_map_[left] = right;
@@ -64,32 +92,6 @@ public:
         }
         return it->second;
     }
-    
-    // Access to underlying maps for compatibility (using references)
-    struct left_view {
-        left_map& map_;
-        left_view(left_map& m) : map_(m) {}
-        typename left_map::iterator find(const Left& key) const { return map_.find(key); }
-        typename left_map::iterator end() const { return map_.end(); }
-        const Right& at(const Left& key) const { return map_.at(key); }
-    };
-    
-    struct right_view {
-        right_map& map_;
-        right_view(right_map& m) : map_(m) {}
-        typename right_map::iterator find(const Right& key) const { return map_.find(key); }
-        typename right_map::iterator end() const { return map_.end(); }
-        const Left& at(const Right& key) const { return map_.at(key); }
-    };
-    
-    left_view left;
-    right_view right;
-    
-    BiMap() : left(left_map_), right(right_map_) {}
-    
-private:
-    left_map left_map_;
-    right_map right_map_;
 };
 
 // Helper function to create a BiMap from initializer list

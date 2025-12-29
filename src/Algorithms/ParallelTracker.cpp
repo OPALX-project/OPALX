@@ -117,8 +117,9 @@ ParallelTracker::ParallelTracker(
 ParallelTracker::~ParallelTracker() {
 }
 
-void ParallelTracker::visitScalingFFAMagnet(const ScalingFFAMagnet& bend) {
+void ParallelTracker::visitScalingFFAMagnet(const ScalingFFAMagnet& /*bend*/) {
     *gmsg << "Adding ScalingFFAMagnet" << endl;
+    *gmsg << "passed ScalingFFAMagnet argument not used in ParallelTracker::visitScalingFFAMagnet" << endl;
     /*
     if (opalRing_m != nullptr) {
         ScalingFFAMagnet* newBend = bend.clone(); // setup the end field, if required
@@ -554,7 +555,7 @@ void ParallelTracker::changeDT(bool backTrack) {
     
 }
 
-void ParallelTracker::emitParticles(long long step) {
+void ParallelTracker::emitParticles(long long /*step*/) {
 
 }
 
@@ -990,7 +991,7 @@ void ParallelTracker::updateReferenceParticle(const BorisPusher& pusher) {
     itsBunch_m->RefPartR_m *= scaleFactor;
 }
 
-void ParallelTracker::transformBunch(const CoordinateSystemTrafo& trafo) {
+void ParallelTracker::transformBunch(const CoordinateSystemTrafo& /*trafo*/) {
     const unsigned int localNum = itsBunch_m->getLocalNum();
     for (unsigned int i = 0; i < localNum; ++i) {
         /* \todo host device .... 
@@ -1000,6 +1001,8 @@ void ParallelTracker::transformBunch(const CoordinateSystemTrafo& trafo) {
         itsBunch_m->Bf[i] = trafo.rotateTo(itsBunch_m->Bf[i]);
         */
     }
+    *gmsg << "passed CoordinateSystemTrafo argument not used in ParallelTracker::transformBunch" << endl;
+    *gmsg << "TODO host device implementation" << endl;
 }
 
 void ParallelTracker::updateRefToLabCSTrafo() {

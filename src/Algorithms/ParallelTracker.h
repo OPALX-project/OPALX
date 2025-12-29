@@ -301,7 +301,7 @@ inline void ParallelTracker::visitTravelingWave(const TravelingWave& as) {
     itsOpalBeamline_m.visit(as, *this, itsBunch_m);
 }
 
-inline void ParallelTracker::kickParticles(const BorisPusher& pusher) {
+inline void ParallelTracker::kickParticles(const BorisPusher& /*pusher*/) {
     
     auto Rview  = itsBunch_m->getParticleContainer()->R.getView();
     auto Pview  = itsBunch_m->getParticleContainer()->P.getView();
@@ -370,9 +370,10 @@ inline void ParallelTracker::kickParticles(const BorisPusher& pusher) {
 
     itsBunch_m->getParticleContainer()->update();
     ippl::Comm->barrier();
+    *gmsg << "passed BorisPusher argument not used in ParallelTracker::kickParticles" << endl;
 }
 
-inline void ParallelTracker::pushParticles(const BorisPusher& pusher) {
+inline void ParallelTracker::pushParticles(const BorisPusher& /*pusher*/) {
 
     itsBunch_m->switchToUnitlessPositions(true);
 
@@ -405,6 +406,7 @@ inline void ParallelTracker::pushParticles(const BorisPusher& pusher) {
     itsBunch_m->switchOffUnitlessPositions(true);
     itsBunch_m->getParticleContainer()->update();
     ippl::Comm->barrier();
+    *gmsg << "pusher not used" << endl;
 }
 
 #endif  // OPAL_ParallelTracker_HH
