@@ -20,7 +20,6 @@
 #include <fstream>
 
 #include <filesystem>
-#include <format>
 
 #include "Utilities/Util.h"
 #include "AbstractObjects/OpalData.h"

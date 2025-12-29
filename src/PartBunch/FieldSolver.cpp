@@ -2,6 +2,7 @@
 
 #include <iomanip>
 #include <fstream>
+#include <sstream>
 
 #include <filesystem>
 
@@ -62,7 +63,10 @@ void FieldSolver<double,3>::dumpVectField(std::string what) {
 
     std::filesystem::path file(dirname);
     std::string basename = OpalData::getInstance()->getInputBasename();
-    std::string filename = std::format("{}-{}-{:06d}.dat", basename, what + std::string("_") + type, call_counter_m);
+    std::ostringstream oss;
+    oss << basename << "-" << (what + std::string("_") + type) << "-" 
+        << std::setfill('0') << std::setw(6) << call_counter_m << ".dat";
+    std::string filename = oss.str();
     file /= filename;
     std::ofstream fout(file.string(), std::ios::out);
 
@@ -167,7 +171,10 @@ void FieldSolver<double,3>::dumpScalField(std::string what) {
 
     std::filesystem::path file(dirname);
     std::string basename = OpalData::getInstance()->getInputBasename();
-    std::string filename = std::format("{}-{}-{:06d}.dat", basename, what + std::string("_") + type, call_counter_m);
+    std::ostringstream oss;
+    oss << basename << "-" << (what + std::string("_") + type) << "-" 
+        << std::setfill('0') << std::setw(6) << call_counter_m << ".dat";
+    std::string filename = oss.str();
     file /= filename;
     std::ofstream fout(file.string(), std::ios::out);
 
