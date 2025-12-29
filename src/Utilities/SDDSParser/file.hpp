@@ -29,13 +29,7 @@
 #include "array.hpp"
 #include "include.hpp"
 
-#include <boost/config/warning_disable.hpp>
-#include <boost/spirit/include/qi.hpp>
-#include <boost/fusion/include/adapt_struct.hpp>
 #include <optional>
-
-#define BOOST_SPIRIT_NO_PREDEFINED_TERMINALS
-#define BOOST_SPIRIT_QI_DEBUG
 
 namespace SDDS {
     struct file
@@ -79,38 +73,5 @@ namespace SDDS {
     }
 }
 
-BOOST_FUSION_ADAPT_STRUCT(
-    SDDS::file,
-    (SDDS::version, sddsVersion_m)
-    (std::optional<SDDS::description>, sddsDescription_m)
-    (SDDS::parameterList, sddsParameters_m)
-    (SDDS::columnList, sddsColumns_m)
-    (SDDS::data, sddsData_m)
-    (SDDS::associateList, sddsAssociates_m)
-    (SDDS::arrayList, sddsArrays_m)
-    (SDDS::includeList, sddsIncludes_m)
-)
-
-namespace SDDS { namespace parser
-{
-    namespace qi = boost::spirit::qi;
-    namespace ascii = boost::spirit::ascii;
-    namespace phx = boost::phoenix;
-
-    template <typename Iterator>
-    struct file_parser: qi::grammar<Iterator, file(), skipper<Iterator> >
-    {
-        file_parser(error_handler<Iterator> & _error_handler);
-
-        version_parser<Iterator> version_m;
-        description_parser<Iterator> description_m;
-        parameter_parser<Iterator> parameter_m;
-        column_parser<Iterator> column_m;
-        data_parser<Iterator> data_m;
-        associate_parser<Iterator> associate_m;
-        array_parser<Iterator> array_m;
-        include_parser<Iterator> include_m;
-        qi::rule<Iterator, file(), skipper<Iterator> > start;
-    };
-}}
+// File parsing is now handled by SimpleParser
 #endif /* FILE_HPP_ */

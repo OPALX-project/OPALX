@@ -21,13 +21,7 @@
 #include "skipper.hpp"
 #include "error_handler.hpp"
 
-#include <boost/config/warning_disable.hpp>
-#include <boost/spirit/include/qi.hpp>
-#include <boost/fusion/include/adapt_struct.hpp>
 #include <optional>
-
-#define BOOST_SPIRIT_NO_PREDEFINED_TERMINALS
-#define BOOST_SPIRIT_QI_DEBUG
 
 namespace SDDS {
     struct description
@@ -44,26 +38,5 @@ namespace SDDS {
     }
 }
 
-BOOST_FUSION_ADAPT_STRUCT(
-    SDDS::description,
-    (std::optional<std::string>, text_m)
-    (std::optional<std::string>, content_m)
-)
-
-namespace SDDS { namespace parser
-{
-    namespace qi = boost::spirit::qi;
-    namespace ascii = boost::spirit::ascii;
-    namespace phx = boost::phoenix;
-
-    template <typename Iterator>
-    struct description_parser: qi::grammar<Iterator, description(), skipper<Iterator> >
-    {
-        description_parser(error_handler<Iterator> & _error_handler);
-
-        qi::rule<Iterator, description(), skipper<Iterator> > start;
-        qi::rule<Iterator, std::string(), skipper<Iterator> > quoted_string,
-                description_text, description_content;
-    };
-}}
+// Description parsing is now handled by SimpleParser
 #endif /* DESCRIPTION_HPP_ */

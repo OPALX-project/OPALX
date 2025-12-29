@@ -493,7 +493,7 @@ void H5PartWrapper::sendFailureMessage(
 }
 
 void H5PartWrapper::receiveFailureMessage(
-    int sourceNode, const std::string& where, const std::string& what) {
+    int /*sourceNode*/, const std::string& where, const std::string& what) {
     //    int tag = 101;
     bool failed=false;
     /* \todo

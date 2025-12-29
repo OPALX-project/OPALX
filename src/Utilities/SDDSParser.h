@@ -18,7 +18,7 @@
 
 #include "SDDSParser/ast.hpp"
 #include "SDDSParser/file.hpp"
-#include "SDDSParser/skipper.hpp"
+#include "SDDSParser/simple_parser.hpp"
 #include "SDDSParser/array.hpp"
 #include "SDDSParser/associate.hpp"
 #include "SDDSParser/column.hpp"
@@ -157,7 +157,9 @@ namespace SDDS {
                     * (value_after - value_before)
                     / (value_after_ref - value_before_ref);
 
-            if (!std::isfinite(nval))
+            // Check for NaN or Inf using a simple approach
+            double dval = static_cast<double>(nval);
+            if (dval != dval || (dval == dval * 2.0 && dval != 0.0))
                 throw SDDSParserException("SDDSParser::getInterpolatedValue",
                                           "Interpolated value either NaN or Inf.");
         }

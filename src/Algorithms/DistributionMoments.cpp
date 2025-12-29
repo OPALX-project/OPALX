@@ -2,7 +2,7 @@
 // Class DistributionMoments
 //   Computes the statistics of particle distributions.
 //
-// Copyright (c) 2021, Christof Metzger-Kraus
+// Copyright (c) 2025, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved
 //
 // This file is part of OPAL.

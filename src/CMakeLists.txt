@@ -111,15 +111,12 @@ target_link_libraries(opalx PUBLIC
     GSL::gsl
     H5hut
     ${HDF5_LIBRARIES}
-    ${Boost_LIBRARIES}    # compiled Boost libs like filesystem, iostreams
-    boost_HEADERS         # header-only parts, including uBLAS
 )
 
 target_include_directories(opalx PRIVATE
   ${HDF5_INCLUDE_DIR}
   ${H5HUT_INCLUDE_DIR}
   ${GSL_INCLUDE_DIR}
-  ${BOOST_INCLUDE_DIR}
 )
 
 # CLI executable

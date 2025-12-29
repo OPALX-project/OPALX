@@ -15,17 +15,7 @@ include_directories (
 )
 
 set (SRCS
-  ${CMAKE_SOURCE_DIR}/src/Structure/SDDSParser.cpp
-  ${CMAKE_SOURCE_DIR}/src/Structure/SDDSParser/array.cpp
-  ${CMAKE_SOURCE_DIR}/src/Structure/SDDSParser/associate.cpp
-  ${CMAKE_SOURCE_DIR}/src/Structure/SDDSParser/ast.cpp
-  ${CMAKE_SOURCE_DIR}/src/Structure/SDDSParser/column.cpp
-  ${CMAKE_SOURCE_DIR}/src/Structure/SDDSParser/data.cpp
-  ${CMAKE_SOURCE_DIR}/src/Structure/SDDSParser/description.cpp
-  ${CMAKE_SOURCE_DIR}/src/Structure/SDDSParser/file.cpp
-  ${CMAKE_SOURCE_DIR}/src/Structure/SDDSParser/include.cpp
-  ${CMAKE_SOURCE_DIR}/src/Structure/SDDSParser/parameter.cpp
-  ${CMAKE_SOURCE_DIR}/src/Structure/SDDSParser/version.cpp
+  ${CMAKE_SOURCE_DIR}/src/Utilities/SDDSParser.cpp
   ${CMAKE_SOURCE_DIR}/src/Utilities/OpalException.cpp
   ${CMAKE_SOURCE_DIR}/src/Classic/Utilities/ClassicException.cpp
 )

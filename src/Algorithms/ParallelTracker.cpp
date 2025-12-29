@@ -635,7 +635,7 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
             itsBunch_m->Bf[i] = beamToReferenceCSTrafo.rotateTo(itsBunch_m->Bf[i]);
 
             x = M^T(x+o)
-            prod_boost_vector(trans(rotationMatrix_m)
+            prod_vector(trans(rotationMatrix_m)
 
      */
     
