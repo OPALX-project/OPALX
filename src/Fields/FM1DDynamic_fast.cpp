@@ -5,7 +5,7 @@
 #include "Utilities/GeneralClassicException.h"
 #include "Utilities/Util.h"
 
-#include "gsl/gsl_fft_real.h"
+#include "Utilities/FFT.h"
 
 #include <fstream>
 #include <ios>

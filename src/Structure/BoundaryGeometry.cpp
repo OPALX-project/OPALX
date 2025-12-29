@@ -40,7 +40,7 @@
 #include <filesystem>
 #include <chrono>
 
-#include <gsl/gsl_sys.h>
+// gsl_sys.h not needed - was only used for gsl_rng_env_setup which is now a no-op
 
 extern Inform* gmsg;
 

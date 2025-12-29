@@ -25,8 +25,8 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <gsl/gsl_errno.h>
-#include <gsl/gsl_spline.h>
+#include "Utilities/GSLCompat.h"
+#include "Utilities/CubicSpline.h"
 
 #include "Utilities/GeneralClassicException.h"
 #include "Algorithms/SplineTimeDependence.h"

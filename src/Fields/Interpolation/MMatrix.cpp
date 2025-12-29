@@ -25,8 +25,8 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "gsl/gsl_linalg.h"
-#include "gsl/gsl_eigen.h"
+#include "Utilities/GSLLinalg.h"
+#include "Utilities/GSLEigen.h"
 
 #include "Fields/Interpolation/MMatrix.h"
 

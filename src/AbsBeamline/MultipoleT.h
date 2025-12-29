@@ -83,7 +83,7 @@
 #include "AbsBeamline/Component.h"
 #include "AbsBeamline/MultipoleTFunctions/RecursionRelation.h"
 #include "AbsBeamline/MultipoleTFunctions/RecursionRelationTwo.h"
-#include "gsl/gsl_sf.h"
+#include "Utilities/GSLCompat.h"
 
 class MultipoleT : public Component {
 public:

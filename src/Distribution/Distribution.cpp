@@ -33,10 +33,8 @@
 #include "Utilities/Util.h"
 #include "Utility/IpplTimings.h"
 
-#include <gsl/gsl_linalg.h>
-#include <gsl/gsl_randist.h>
-#include <gsl/gsl_rng.h>
-#include <gsl/gsl_sf_erf.h>
+#include "Utilities/Random.h"
+#include "Utilities/GSLCompat.h"
 
 #include <filesystem>
 #include <regex>
