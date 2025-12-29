@@ -91,7 +91,8 @@ const PartBunch_t* Tracker::getBunch() const {
     return itsBunch_m;
 }
 
-void Tracker::addToBunch(const OpalParticle& part) {
+void Tracker::addToBunch(const OpalParticle& /*part*/) {
+    *gmsg << "passed OpalParticle argument not used in Tracker::addToBunch" << endl;
 }
 
 //~ void Tracker::setBunch(const PartBunch &bunch) {

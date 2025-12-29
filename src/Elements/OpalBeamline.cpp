@@ -97,7 +97,7 @@ unsigned long OpalBeamline::getFieldAt(
 }
 
 void OpalBeamline::switchElements(
-    const double& min, const double& max, const double& kineticEnergy, const bool& nomonitors) {
+    const double& min, const double& max, const double& kineticEnergy, const bool& /*nomonitors*/) {
     FieldList::iterator fprev;
     for (FieldList::iterator flit = elements_m.begin(); flit != elements_m.end(); ++flit) {
         // don't set online monitors if the centroid of the bunch is allready inside monitor
