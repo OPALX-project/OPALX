@@ -52,10 +52,10 @@ void BoundingBox::enlargeToContainBoundingBox(const BoundingBox& boundingBox) {
     }
 }
 
-boost::optional<Vector_t<double, 3>> BoundingBox::getIntersectionPoint(
+std::optional<Vector_t<double, 3>> BoundingBox::getIntersectionPoint(
 
     const Vector_t<double, 3>& position, const Vector_t<double, 3>& direction) const {
-    boost::optional<Vector_t<double, 3>> result = boost::none;
+    std::optional<Vector_t<double, 3>> result = std::nullopt;
     double minDistance                          = std::numeric_limits<double>::max();
     const Vector_t<double, 3> dimensions        = upperRightCorner_m - lowerLeftCorner_m;
     Vector_t<double, 3> normal(1, 0, 0);

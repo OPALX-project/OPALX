@@ -65,7 +65,7 @@ namespace mslang {
             b(0, 0) = v(0);
             b(1, 0) = v(1);
             b(2, 0) = 1.0;
-            matrix_t w = boost::numeric::ublas::prod(*this, b);
+            matrix_t w = prod_matrix_vector(*this, b);
             return Vector_t<double, 3>(w(0, 0), w(1, 0), 0.0);
         }
 
@@ -79,7 +79,7 @@ namespace mslang {
             matrix_t &A = *this;
             const matrix_t &BTenz = B;
             matrix_t &C = Ret;
-            C = boost::numeric::ublas::prod(A, BTenz);
+            C = prod(A, BTenz);
             return Ret;
         }
     };

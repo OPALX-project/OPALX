@@ -129,7 +129,7 @@ namespace SDDS {
             size_t num_rows = ref_values.size();
             int datatype = (int)getColumnType(col_name);
             for(this_row = 0; this_row < num_rows; this_row++) {
-                value_after_ref = boost::get<double>(ref_values[this_row]);
+                value_after_ref = std::get<double>(ref_values[this_row]);
 
                 if(ref_val < value_after_ref) {
 
@@ -139,8 +139,8 @@ namespace SDDS {
                     value_before = getBoostVariantValue<T>(col_values[prev_row], datatype);
                     value_after  = getBoostVariantValue<T>(col_values[this_row], datatype);
 
-                    value_before_ref = boost::get<double>(ref_values[prev_row]);
-                    value_after_ref  = boost::get<double>(ref_values[this_row]);
+                    value_before_ref = std::get<double>(ref_values[prev_row]);
+                    value_after_ref  = std::get<double>(ref_values[this_row]);
 
                     break;
                 }
@@ -190,32 +190,31 @@ namespace SDDS {
             if (paramNameToID_m.count(parameter_name) > 0) {
                 size_t id = paramNameToID_m[parameter_name];
                 auto value = sddsData_m.sddsParameters_m[id].value_m;
-                nval = boost::get<T>(value);
+                nval = std::get<T>(value);
             } else {
                 throw SDDSParserException("SDDSParser::getParameterValue",
                                         "unknown parameter name: '" + parameter_name + "'!");
             }
         }
 
-        /// Convert value from boost variant (only numeric types) to a value of type T
-        // use integer instead of ast::datatype enum since otherwise boost has ambigious overloads
-        // as tested on 8-1-2019, boost 1.68, gcc 7.3
+        /// Convert value from std::variant (only numeric types) to a value of type T
+        // use integer instead of ast::datatype enum since otherwise std::variant has ambigious overloads
         template <typename T>
             T getBoostVariantValue(const ast::variant_t& val, int datatype) const {
             T value;
             try {
                 switch (datatype) {
                 case ast::FLOAT:
-                    value = boost::get<float>(val);
+                    value = std::get<float>(val);
                     break;
                 case ast::DOUBLE:
-                    value = boost::get<double>(val);
+                    value = std::get<double>(val);
                     break;
                 case ast::SHORT:
-                    value = boost::get<short>(val);
+                    value = std::get<short>(val);
                     break;
                 case ast::LONG:
-                    value = boost::get<long>(val);
+                    value = std::get<long>(val);
                     break;
                 default:
                     throw SDDSParserException("SDDSParser::getBoostVariantValue",

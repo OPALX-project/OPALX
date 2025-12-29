@@ -29,7 +29,7 @@ CoordinateSystemTrafo::CoordinateSystemTrafo(
 void CoordinateSystemTrafo::invert() {
     origin_m         = -orientation_m.rotate(origin_m);
     orientation_m    = orientation_m.conjugate();
-    rotationMatrix_m = boost::numeric::ublas::trans(rotationMatrix_m);
+    rotationMatrix_m = trans(rotationMatrix_m);
 }
 
 CoordinateSystemTrafo CoordinateSystemTrafo::operator*(const CoordinateSystemTrafo& right) const {

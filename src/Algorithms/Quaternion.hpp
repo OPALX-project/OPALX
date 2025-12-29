@@ -1,6 +1,6 @@
 #ifndef OPAL_QUATERNION_H
 #define OPAL_QUATERNION_H
-#include "Algorithms/BoostMatrix.h"
+#include "Algorithms/Matrix.h"
 #include "Ippl.h"
 
 class Quaternion : public ippl::Vector<double, 4> {

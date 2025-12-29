@@ -25,8 +25,7 @@
 
 #include "OPALTypes.h"
 
-#include "boost/optional.hpp"
-
+#include <optional>
 #include <utility>
 #include <vector>
 
@@ -39,7 +38,7 @@ public:
     void enlargeToContainPosition(const Vector_t<double, 3>& position);
     void enlargeToContainBoundingBox(const BoundingBox& boundingBox);
 
-    boost::optional<Vector_t<double, 3>> getIntersectionPoint(
+    std::optional<Vector_t<double, 3>> getIntersectionPoint(
         const Vector_t<double, 3>& position, const Vector_t<double, 3>& direction) const;
 
     bool isInside(const Vector_t<double, 3>& position) const;

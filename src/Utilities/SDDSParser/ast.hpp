@@ -17,7 +17,7 @@
 #ifndef AST_HPP_
 #define AST_HPP_
 
-#include <boost/variant.hpp>
+#include <variant>
 #include <boost/spirit/include/qi.hpp>
 
 #include <string>
@@ -40,7 +40,7 @@ namespace SDDS {
 
         struct nil {};
 
-        typedef boost::variant<float,
+        typedef std::variant<float,
                                double,
                                short,
                                long,

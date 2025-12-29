@@ -26,7 +26,7 @@
 
 #include "Structure/FieldSolverCmd.h"
 
-#include <boost/bimap.hpp>
+#include "Utilities/BiMap.h"
 
 #include <string>
 #include <vector>
@@ -102,7 +102,7 @@ private:
     static const std::string defaultDistribution_m;
 
     RunMethod method_m;
-    static const boost::bimap<RunMethod, std::string> stringMethod_s;
+    static const BiMap<RunMethod, std::string> stringMethod_s;
 
     // macro mass / charge for simulation particles
     double macromass_m;
