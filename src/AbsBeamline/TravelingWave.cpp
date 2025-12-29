@@ -22,8 +22,7 @@
 #include "Fields/Fieldmap.h"
 #include "Physics/Units.h"
 
-#include "gsl/gsl_interp.h"
-#include "gsl/gsl_spline.h"
+#include "Utilities/CubicSpline.h"
 
 #include <fstream>
 #include <iostream>

@@ -1,7 +1,7 @@
 #include "Fields/Astra1D_fast.h"
 #include "Fields/Fieldmap.hpp"
 #include "Physics/Physics.h"
-#include "gsl/gsl_fft_real.h"
+#include "Utilities/FFT.h"
 
 #include <fstream>
 #include <ios>

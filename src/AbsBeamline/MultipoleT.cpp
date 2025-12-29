@@ -30,7 +30,7 @@
 #include "BeamlineGeometry/StraightGeometry.h"
 #include "Fields/BMultipoleField.h"
 
-#include <gsl/gsl_math.h>
+#include "Utilities/GSLCompat.h"
 #include "MultipoleT.h"
 #include "MultipoleTFunctions/CoordinateTransform.h"
 #include "MultipoleTFunctions/RecursionRelation.h"

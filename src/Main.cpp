@@ -45,7 +45,7 @@ extern "C" {
 #include "Utility/IpplInfo.h"
 #include "Utility/IpplTimings.h"
 
-#include <gsl/gsl_errno.h>
+#include "Utilities/GSLCompat.h"
 
 #include <filesystem>
 #include <system_error>

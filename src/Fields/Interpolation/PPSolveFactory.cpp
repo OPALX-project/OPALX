@@ -30,8 +30,8 @@
 #include <string>
 #include <sstream>
 
-#include <gsl/gsl_sf_pow_int.h>
-#include <gsl/gsl_sf_gamma.h>
+#include "Utilities/GSLCompat.h"
+#include "Utilities/GSLCompat.h"
 
 #include "Utility/Inform.h" // ippl
 

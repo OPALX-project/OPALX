@@ -27,7 +27,7 @@
  */
 
 #include "MultipoleTBase.h"
-#include <gsl/gsl_sf_gamma.h>
+#include "Utilities/GSLCompat.h"
 #include "AbsBeamline/MultipoleTFunctions/tanhDeriv.h"
 #include <cmath>
 

@@ -108,7 +108,6 @@ include(${PROJECT_SOURCE_DIR}/cmake/PlatformOptions.cmake)
 target_link_libraries(opalx PUBLIC
     MPI::MPI_CXX
     IPPL::ippl
-    GSL::gsl
     H5hut
     ${HDF5_LIBRARIES}
 )
@@ -116,7 +115,6 @@ target_link_libraries(opalx PUBLIC
 target_include_directories(opalx PRIVATE
   ${HDF5_INCLUDE_DIR}
   ${H5HUT_INCLUDE_DIR}
-  ${GSL_INCLUDE_DIR}
 )
 
 # CLI executable

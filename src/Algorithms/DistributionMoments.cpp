@@ -25,7 +25,7 @@
 
 #include "AbstractObjects/OpalParticle.h"
 
-#include <gsl/gsl_histogram.h>
+#include "Utilities/Histogram.h"
 
 
 extern Inform* gmsg;
