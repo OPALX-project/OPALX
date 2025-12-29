@@ -30,7 +30,7 @@
 #include <sstream>
 #include <string>
 
-#include <boost/numeric/ublas/io.hpp>
+#include "Algorithms/Matrix.h"
 
 #include "AbstractObjects/OpalData.h"
 #include "Algorithms/CavityAutophaser.h"
@@ -635,7 +635,7 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
             itsBunch_m->Bf[i] = beamToReferenceCSTrafo.rotateTo(itsBunch_m->Bf[i]);
 
             x = M^T(x+o)
-            prod_boost_vector(boost::numeric::ublas::trans(rotationMatrix_m)
+            prod_boost_vector(trans(rotationMatrix_m)
 
      */
     

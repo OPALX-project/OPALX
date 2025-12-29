@@ -31,7 +31,7 @@ using Vector_t = ippl::Vector<T, Dim>;
 
 typedef typename std::pair<Vector_t<double, 3>, Vector_t<double, 3>> VectorPair_t;
 
-typedef boost::numeric::ublas::matrix<double> matrix_t;
+#include "Algorithms/Matrix.h"
 
 class OpalParticle;
 

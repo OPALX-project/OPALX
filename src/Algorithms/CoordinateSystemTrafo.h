@@ -1,6 +1,7 @@
 #ifndef COORDINATESYSTEMTRAFO
 #define COORDINATESYSTEMTRAFO
 
+#include "Algorithms/Matrix.h"
 #include "Algorithms/Quaternion.hpp"
 
 class CoordinateSystemTrafo {
@@ -91,7 +92,7 @@ inline ippl::Vector<double, 3> CoordinateSystemTrafo::rotateTo(
 
 inline ippl::Vector<double, 3> CoordinateSystemTrafo::rotateFrom(
     const ippl::Vector<double, 3>& r) const {
-    return prod_boost_vector(boost::numeric::ublas::trans(rotationMatrix_m), r);
+    return prod_boost_vector(trans(rotationMatrix_m), r);
 }
 
 #endif

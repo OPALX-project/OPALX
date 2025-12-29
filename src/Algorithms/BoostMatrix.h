@@ -1,5 +1,6 @@
 //
-// This header file is made to facilitate boost's matrix and vector_t operations in OPAL.
+// This header file is made to facilitate matrix and vector_t operations in OPAL.
+// Replaces boost::numeric::ublas with custom implementation.
 //
 // Copyright (c) 2023, Paul Scherrer Institute, Villigen PSI, Switzerland
 // All rights reserved
@@ -15,30 +16,9 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 
-#ifndef OPAL_MATRIX_HH
-#define OPAL_MATRIX_HH
+#ifndef OPAL_BOOST_MATRIX_HH
+#define OPAL_BOOST_MATRIX_HH
 
-#include <boost/numeric/ublas/matrix.hpp>
-
-typedef boost::numeric::ublas::matrix<double> matrix_t;
-
-template <class T>
-T prod_boost_vector(boost::numeric::ublas::matrix<double> rotation, const T& vect) {
-    boost::numeric::ublas::vector<double> boostVector(3);
-
-    boostVector(0) = vect[0];
-    boostVector(1) = vect[1];
-    boostVector(2) = vect[2];
-
-    boostVector = boost::numeric::ublas::prod(rotation, boostVector);
-
-    T prodVector(0.0);
-
-    prodVector[0] = boostVector(0);
-    prodVector[1] = boostVector(1);
-    prodVector[2] = boostVector(2);
-
-    return prodVector;
-}
+#include "Algorithms/Matrix.h"
 
 #endif
