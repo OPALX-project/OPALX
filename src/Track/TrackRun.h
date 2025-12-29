@@ -52,6 +52,9 @@ public:
     /// Execute the command.
     virtual void execute();
 
+    // Bring base class print into scope to avoid hiding warning
+    using Object::print;
+    
     Inform& print(Inform& os) const;
 
 private:
