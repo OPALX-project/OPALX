@@ -35,14 +35,14 @@
 
 #include "H5hut.h"
 
-#include <boost/filesystem.hpp>
+#include <filesystem>
 
 #include <cmath>
 #include <fstream>
 #include <ios>
 #include <iostream>
 
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 
 #define REGISTER_PARSE_TYPE(X)            \
     template <>                           \
@@ -696,7 +696,7 @@ void Fieldmap::write3DField(
     if (ippl::Comm->rank() != 0 || (ef.size() != numpoints && bf.size() != numpoints))
         return;
 
-    boost::filesystem::path p(Filename_m);
+    std::filesystem::path p(Filename_m);
     std::string fname = Util::combineFilePath(
         {OpalData::getInstance()->getAuxiliaryOutputDirectory(), p.stem().string() + ".vtk"});
     std::ofstream of;

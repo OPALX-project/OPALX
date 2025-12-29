@@ -23,7 +23,7 @@
 #include "AbstractObjects/Action.h"
 #include "Utilities/Options.h"
 
-#include <boost/bimap.hpp>
+#include "Utilities/BiMap.h"
 
 #include <string>
 
@@ -56,7 +56,7 @@ private:
     // Clone constructor.
     Option(const std::string& name, Option* parent);
 
-    static const boost::bimap<DumpFrame, std::string> bmDumpFrameString_s;
+    static const BiMap<DumpFrame, std::string> bmDumpFrameString_s;
 };
 
 #endif // OPAL_Option_HH

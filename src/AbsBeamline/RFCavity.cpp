@@ -17,8 +17,8 @@
 //
 #include "AbsBeamline/RFCavity.h"
 
-#include <boost/assign.hpp>
-#include <boost/filesystem.hpp>
+#include "Utilities/BiMap.h"
+#include <filesystem>
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Fields/Fieldmap.h"
 #include "PartBunch/PartBunch.h"
@@ -36,9 +36,12 @@
 
 extern Inform* gmsg;
 
-const boost::bimap<CavityType, std::string> RFCavity::bmCavityTypeString_s =
-    boost::assign::list_of<const boost::bimap<CavityType, std::string>::relation>(
-        CavityType::SW, "STANDING")(CavityType::SGSW, "SINGLEGAP");
+const BiMap<CavityType, std::string> RFCavity::bmCavityTypeString_s = []() {
+    BiMap<CavityType, std::string> bimap;
+    bimap.insert(CavityType::SW, "STANDING");
+    bimap.insert(CavityType::SGSW, "SINGLEGAP");
+    return bimap;
+}();
 
 RFCavity::RFCavity() : RFCavity("") {
 }
@@ -334,7 +337,7 @@ std::string RFCavity::getFieldMapFN() const {
             "RFCavity::getFieldMapFN",
             "The attribute \"FMAPFN\" isn't set "
             "for the \"RFCAVITY\" element!");
-    } else if (boost::filesystem::exists(filename_m)) {
+    } else if (std::filesystem::exists(filename_m)) {
         return filename_m;
     } else {
         throw GeneralClassicException(

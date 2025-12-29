@@ -2,7 +2,7 @@
 #include "Utilities/MSLang/ArgumentExtractor.h"
 #include "Utilities/MSLang/matheval.h"
 
-#include <boost/regex.hpp>
+#include <regex>
 
 namespace mslang {
     void Rotation::print(int indentwidth) {
