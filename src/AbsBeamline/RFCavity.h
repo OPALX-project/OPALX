@@ -22,7 +22,7 @@
 #include "Algorithms/AbstractTimeDependence.h"
 #include "Physics/Physics.h"
 
-#include <boost/bimap.hpp>
+#include "Utilities/BiMap.h"
 
 #include <cmath>
 #include <string>
@@ -205,7 +205,7 @@ private:
 
     CavityType type_m;
 
-    static const boost::bimap<CavityType, std::string> bmCavityTypeString_s;
+    static const BiMap<CavityType, std::string> bmCavityTypeString_s;
 
     double rmin_m;
     double rmax_m;

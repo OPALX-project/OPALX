@@ -17,7 +17,7 @@
 #include "Utilities/Util.h"
 #include "Utility/Inform.h"
 
-#include <boost/filesystem.hpp>
+#include <filesystem>
 
 #include <cmath>
 #include <cstdio>
@@ -80,7 +80,7 @@ LaserProfile::~LaserProfile() {
 }
 
 unsigned short* LaserProfile::readFile(const std::string& fileName, const std::string& imageName) {
-    namespace fs = boost::filesystem;
+    namespace fs = std::filesystem;
     if (!fs::exists(fileName)) {
         throw OpalException(
             "LaserProfile::readFile", "given file '" + fileName + "' does not exist");

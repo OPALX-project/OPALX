@@ -37,7 +37,8 @@
 #include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
 
-#include <boost/filesystem.hpp>
+#include <filesystem>
+#include <chrono>
 
 #include <gsl/gsl_sys.h>
 
@@ -1529,12 +1530,13 @@ inline void BoundaryGeometry::computeMeshVoxelization(void) {
             {OpalData::getInstance()->getAuxiliaryOutputDirectory(), "testBBox.vtk"});
         bool writeVTK = false;
 
-        if (!boost::filesystem::exists(vtkFileName)) {
+        if (!std::filesystem::exists(vtkFileName)) {
             writeVTK = true;
         } else {
-            std::time_t t_geom = boost::filesystem::last_write_time(h5FileName_m);
-            std::time_t t_vtk  = boost::filesystem::last_write_time(vtkFileName);
-            if (std::difftime(t_geom, t_vtk) > 0)
+            auto ft_geom = std::filesystem::last_write_time(h5FileName_m);
+            auto ft_vtk  = std::filesystem::last_write_time(vtkFileName);
+            // Compare file_time_type directly - if geometry file is newer, write VTK
+            if (ft_geom > ft_vtk)
                 writeVTK = true;
         }
 
@@ -1925,7 +1927,7 @@ edge_found:
     *gmsg << level2 << "* Initializing Boundary Geometry..." << endl;
     IpplTimings::startTimer(Tinitialize_m);
 
-    if (!boost::filesystem::exists(h5FileName_m)) {
+    if (!std::filesystem::exists(h5FileName_m)) {
         throw OpalException(
             "BoundaryGeometry::initialize",
             "Failed to open file '" + h5FileName_m + "', please check if it exists");

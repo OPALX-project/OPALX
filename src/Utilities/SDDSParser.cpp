@@ -17,7 +17,8 @@
 //
 #include "SDDSParser.h"
 
-#include <boost/algorithm/string.hpp>
+#include <algorithm>
+#include <cctype>
 
 SDDS::SDDSParser::SDDSParser():
     sddsFileName_m("")
@@ -135,5 +136,6 @@ int SDDS::SDDSParser::getColumnIndex(std::string col_name) const {
 //XXX use either all upper, or all lower case chars
 void SDDS::SDDSParser::fixCaseSensitivity(std::string &for_string) {
 
-    boost::to_lower(for_string);
+    std::transform(for_string.begin(), for_string.end(), for_string.begin(),
+                   [](unsigned char c) { return std::tolower(c); });
 }

@@ -26,7 +26,8 @@
 
 #define BOOST_RESULT_OF_USE_DECLTYPE
 #define BOOST_SPIRIT_USE_PHOENIX_V3
-#include <boost/math/constants/constants.hpp>
+#include <cmath>
+#include <numbers>
 #include <boost/phoenix.hpp>
 #include <boost/spirit/include/qi.hpp>
 #include <boost/variant.hpp>
@@ -71,11 +72,11 @@ namespace matheval {
 
             /** @brief Convert radians to degrees */
             template < typename T >
-            T deg(T x) { return x*boost::math::constants::radian<T>(); }
+            T deg(T x) { return x * (M_PI / 180.0); }
 
             /** @brief Convert degrees to radians */
             template < typename T >
-            T rad(T x) { return x*boost::math::constants::degree<T>(); }
+            T rad(T x) { return x * (180.0 / M_PI); }
 
         }
 
@@ -392,10 +393,10 @@ namespace matheval {
                 constant_()
                 {
                     this->add
-                        ("e"      , boost::math::constants::e<real_t>()   )
+                        ("e"      , std::numbers::e_v<real_t>)
                         ("epsilon", std::numeric_limits<real_t>::epsilon())
-                        ("phi"    , boost::math::constants::phi<real_t>() )
-                        ("pi"     , boost::math::constants::pi<real_t>()  )
+                        ("phi"    , (1.0 + std::sqrt(5.0)) / 2.0)  // Golden ratio
+                        ("pi"     , std::numbers::pi_v<real_t>)
                         ;
                 }
             } constant;

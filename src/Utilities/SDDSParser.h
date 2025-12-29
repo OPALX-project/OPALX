@@ -30,7 +30,6 @@
 #include "SDDSParser/SDDSParserException.h"
 
 
-#include "boost/optional/optional_io.hpp"
 
 #include <iostream>
 #include <fstream>

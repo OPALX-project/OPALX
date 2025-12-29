@@ -47,8 +47,8 @@ extern "C" {
 
 #include <gsl/gsl_errno.h>
 
-#include <boost/filesystem.hpp>
-#include <boost/system/error_code.hpp>
+#include <filesystem>
+#include <system_error>
 
 #include <cstring>
 #include <iomanip>
@@ -131,7 +131,7 @@ int main(int argc, char* argv[]) {
     ippl::initialize(argc, argv);
     {
         gmsg         = new Inform("OPAL-X");
-        namespace fs = boost::filesystem;
+        namespace fs = std::filesystem;
         
         H5SetVerbosityLevel(1);  // 65535);
 
@@ -154,7 +154,7 @@ int main(int argc, char* argv[]) {
 
         if (ippl::Comm->rank() == 0) {
             if (!fs::exists(opal->getAuxiliaryOutputDirectory())) {
-                boost::system::error_code error_code;
+                std::error_code error_code;
                 if (!fs::create_directory(opal->getAuxiliaryOutputDirectory(), error_code)) {
                     std::cerr << error_code.message() << std::endl;
                     //  use error code to prevent create_directory from throwing an exception
@@ -177,8 +177,8 @@ int main(int argc, char* argv[]) {
             FileStream::setEcho(Options::echo);
 
             char* startup             = getenv("HOME");
-            boost::filesystem::path p = strncat(startup, "/init.opal", 20);
-            if (startup != nullptr && is_regular_file(p)) {
+            std::filesystem::path p = strncat(startup, "/init.opal", 20);
+            if (startup != nullptr && fs::is_regular_file(p)) {
                 FileStream::setEcho(false);
                 FileStream* is;
 

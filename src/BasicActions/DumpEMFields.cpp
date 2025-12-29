@@ -26,7 +26,7 @@
 #include "Utilities/OpalException.h"
 #include "Utilities/Util.h"
 
-#include <boost/filesystem.hpp>
+#include <filesystem>
 
 #include <cmath>
 #include <fstream>
@@ -305,7 +305,7 @@ void DumpEMFields::writeFieldThis(Component* field) {
     *gmsg << *this << endl;
 
     std::string fname;
-    if (boost::filesystem::path(filename_m).is_absolute() == true) {
+    if (std::filesystem::path(filename_m).is_absolute() == true) {
         fname = filename_m;
     } else {
         fname = Util::combineFilePath({
