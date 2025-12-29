@@ -1939,10 +1939,7 @@ edge_found:
     double xyzscale = Attributes::getReal(itsAttr[XYZSCALE]);
     double zshift   = (double)(Attributes::getReal(itsAttr[ZSHIFT]));
 
-    h5_int64_t rc;
-#if defined(NDEBUG)
-    (void)rc;
-#endif
+    h5_int64_t rc [[maybe_unused]];
     rc = H5SetErrorHandler(H5AbortErrorhandler);
     PAssert(rc != H5_ERR);
     H5SetVerbosityLevel(1);
