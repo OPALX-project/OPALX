@@ -3,7 +3,7 @@
 
 #include <memory>
 
-#include "Algorithms/BoostMatrix.h"
+#include "Algorithms/Matrix.h"
 #include "Algorithms/CoordinateSystemTrafo.h"
 #include "Attributes/Attributes.h"
 #include "Distribution/Distribution.h"

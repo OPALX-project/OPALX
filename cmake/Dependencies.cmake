@@ -181,64 +181,6 @@ else()
   set(H5hut_FOUND ON)
 endif()
 
-# ------------------------------------------------------------------------------
-# Boost library
-# ------------------------------------------------------------------------------
-
-include(ExternalProject)
-
-set(BOOST_VERSION "1.84.0")
-string(REPLACE "." "_" BOOST_VERSION_UNDERSCORE "${BOOST_VERSION}")
-set(BOOST_INCLUDE_LIBRARIES filesystem system optional regex iostreams)
-set(BOOST_ENABLE_CMAKE ON)
-
-message(STATUS "Downloading and extracting Boost library sources. This will take some time...")
-
-if(APPLE)
-    # macOS: use zip
-    set(BOOST_URL "https://github.com/boostorg/boost/releases/download/boost-${BOOST_VERSION}/boost-${BOOST_VERSION}.zip")
-elseif(UNIX)
-    # Linux: use tar.gz
-    set(BOOST_URL "https://github.com/boostorg/boost/releases/download/boost-${BOOST_VERSION}/boost-${BOOST_VERSION}.tar.gz")
-else()
-    message(FATAL_ERROR "Unsupported OS for automatic Boost download")
-endif()
-
-FetchContent_Declare(
-    Boost
-    URL ${BOOST_URL}
-    USES_TERMINAL_DOWNLOAD TRUE
-    GIT_PROGRESS TRUE
-    DOWNLOAD_NO_EXTRACT FALSE
-)
-
-FetchContent_MakeAvailable(Boost)
-set(Boost_LIBRARIES Boost::filesystem Boost::optional Boost::iostreams)
-message(STATUS "Boost include dir: ${Boost_INCLUDE_DIR}")
-message(STATUS "Boost libraries: ${Boost_LIBRARIES}")
-
-# Header-only Boost interface for uBLAS and other headers
-add_library(boost_HEADERS INTERFACE)
-target_include_directories(boost_HEADERS INTERFACE
-    ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/numeric/ublas/include
-    ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/serialization/include
-    ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/bimap/include
-    ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/multi_index/include
-    ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/variant/include
-    ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/type_index/include
-    ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/geometry/include
-    ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/assign/include
-    ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/algorithm/include
-    ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/numeric/conversion/include
-    ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/numeric/odeint/include
-    ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/units/include
-    ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/format/include
-    ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/spirit/include
-    ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/phoenix/include
-    ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/proto/include
-    ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/endian/include
-    ${CMAKE_BINARY_DIR}/_deps/boost-src/libs/math/include
-)
 
 # ------------------------------------------------------------------------------
 # GSL

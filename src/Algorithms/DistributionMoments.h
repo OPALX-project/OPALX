@@ -2,7 +2,7 @@
 // Class DistributionMoments
 //   Computes the statistics of particle distributions.
 //
-// Copyright (c) 2021, Christof Metzger-Kraus
+// Copyright (c) 2025, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved
 //
 // This file is part of OPAL.
@@ -20,7 +20,7 @@
 
 #include "Ippl.h"
 #include <Kokkos_Core.hpp>
-#include "Algorithms/BoostMatrix.h"
+#include "Algorithms/Matrix.h"
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
 
