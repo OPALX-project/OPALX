@@ -326,5 +326,81 @@ inline void gsl_vector_complex_add(gsl_vector_complex* a, const gsl_vector_compl
     }
 }
 
+// Matrix set/get functions
+inline void gsl_matrix_set(gsl_matrix* m, size_t i, size_t j, double x) {
+    *gsl_matrix_ptr(m, i, j) = x;
+}
+
+inline double gsl_matrix_get(const gsl_matrix* m, size_t i, size_t j) {
+    return *gsl_matrix_ptr(m, i, j);
+}
+
+inline void gsl_matrix_set_all(gsl_matrix* m, double x) {
+    for (size_t i = 0; i < m->size1 * m->size2; ++i) {
+        m->data[i] = x;
+    }
+}
+
+inline void gsl_matrix_set_zero(gsl_matrix* m) {
+    gsl_matrix_set_all(m, 0.0);
+}
+
+inline void gsl_matrix_set_identity(gsl_matrix* m) {
+    gsl_matrix_set_zero(m);
+    size_t n = (m->size1 < m->size2) ? m->size1 : m->size2;
+    for (size_t i = 0; i < n; ++i) {
+        gsl_matrix_set(m, i, i, 1.0);
+    }
+}
+
+// Complex matrix set/get functions
+inline void gsl_matrix_complex_set(gsl_matrix_complex* m, size_t i, size_t j, gsl_complex x) {
+    *gsl_matrix_complex_ptr(m, i, j) = x;
+}
+
+inline gsl_complex gsl_matrix_complex_get(const gsl_matrix_complex* m, size_t i, size_t j) {
+    return *gsl_matrix_complex_ptr(m, i, j);
+}
+
+inline void gsl_matrix_complex_set_zero(gsl_matrix_complex* m) {
+    for (size_t i = 0; i < m->size1 * m->size2; ++i) {
+        m->data[i] = gsl_complex(0.0, 0.0);
+    }
+}
+
+// Vector set/get functions
+inline void gsl_vector_set(gsl_vector* v, size_t i, double x) {
+    *gsl_vector_ptr(v, i) = x;
+}
+
+inline double gsl_vector_get(const gsl_vector* v, size_t i) {
+    return *gsl_vector_ptr(v, i);
+}
+
+inline void gsl_vector_set_all(gsl_vector* v, double x) {
+    for (size_t i = 0; i < v->size; ++i) {
+        *gsl_vector_ptr(v, i) = x;
+    }
+}
+
+inline void gsl_vector_set_zero(gsl_vector* v) {
+    gsl_vector_set_all(v, 0.0);
+}
+
+// Complex vector set/get functions
+inline void gsl_vector_complex_set(gsl_vector_complex* v, size_t i, gsl_complex x) {
+    *gsl_vector_complex_ptr(v, i) = x;
+}
+
+inline gsl_complex gsl_vector_complex_get(const gsl_vector_complex* v, size_t i) {
+    return *gsl_vector_complex_ptr(v, i);
+}
+
+inline void gsl_vector_complex_set_zero(gsl_vector_complex* v) {
+    for (size_t i = 0; i < v->size; ++i) {
+        *gsl_vector_complex_ptr(v, i) = gsl_complex(0.0, 0.0);
+    }
+}
+
 #endif // OPAL_GSL_MATRIX_HH
 

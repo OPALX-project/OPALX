@@ -179,12 +179,14 @@ inline void gsl_fft_halfcomplex_transform(double* data, size_t stride, size_t n,
         complex_data[half] = std::complex<double>(data[n - 1], 0.0);
     }
     
-    // Inverse FFT
+    // Inverse FFT (GSL convention: scale by n)
+    // Our ifft scales by 1/n, so we multiply by n to get n scaling
     ifft(complex_data);
+    double scale = static_cast<double>(n);
     
     // Convert back to real
     for (size_t i = 0; i < n; ++i) {
-        data[i * stride] = complex_data[i].real();
+        data[i * stride] = complex_data[i].real() * scale;
     }
 }
 
@@ -258,10 +260,13 @@ inline void gsl_fft_complex_inverse(double* data, size_t stride, size_t n,
     for (size_t i = 0; i < n; ++i) {
         complex_data[i] = std::complex<double>(data[2 * i * stride], data[(2 * i + 1) * stride]);
     }
+    // GSL convention: inverse FFT scales by n (not 1/n like standard FFT)
+    // Our ifft scales by 1/n, so we multiply by n to get n scaling
     ifft(complex_data);
+    double scale = static_cast<double>(n);
     for (size_t i = 0; i < n; ++i) {
-        data[2 * i * stride] = complex_data[i].real();
-        data[(2 * i + 1) * stride] = complex_data[i].imag();
+        data[2 * i * stride] = complex_data[i].real() * scale;
+        data[(2 * i + 1) * stride] = complex_data[i].imag() * scale;
     }
 }
 
