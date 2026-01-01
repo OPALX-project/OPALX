@@ -37,6 +37,10 @@ struct gsl_complex {
     double imag() const { return dat[1]; }
 };
 
+// GSL macros for accessing real and imaginary parts
+#define GSL_REAL(z) ((z).dat[0])
+#define GSL_IMAG(z) ((z).dat[1])
+
 // GSL complex math functions
 inline gsl_complex gsl_complex_rect(double x, double y) {
     return gsl_complex(x, y);

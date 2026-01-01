@@ -120,26 +120,27 @@ inline int gsl_linalg_LU_invert(const gsl_matrix* LU, const gsl_permutation* p, 
         return -1;
     }
     
-    // Initialize inverse as identity
-    for (size_t i = 0; i < n; ++i) {
-        for (size_t j = 0; j < n; ++j) {
-            *gsl_matrix_ptr(inverse, i, j) = (i == j) ? 1.0 : 0.0;
+    // Initialize inverse as permuted identity: P*I
+    for (size_t j = 0; j < n; ++j) {
+        for (size_t i = 0; i < n; ++i) {
+            *gsl_matrix_ptr(inverse, i, j) = (p->data[i] == j) ? 1.0 : 0.0;
         }
     }
     
-    // Forward substitution: L*y = P*b
-    for (size_t i = 0; i < n; ++i) {
-        size_t pi = p->data[i];
-        for (size_t j = 0; j < i; ++j) {
+    // Forward substitution: L*y = P*I (solve for y)
+    // L is unit lower triangular stored in LU below diagonal
+    for (size_t j = 0; j < n; ++j) {
+        for (size_t i = 0; i < n; ++i) {
             double sum = 0.0;
-            for (size_t k = 0; k < j; ++k) {
-                sum += *gsl_matrix_ptr(LU, i, k) * *gsl_matrix_ptr(inverse, k, pi);
+            for (size_t k = 0; k < i; ++k) {
+                sum += *gsl_matrix_ptr(LU, i, k) * *gsl_matrix_ptr(inverse, k, j);
             }
-            *gsl_matrix_ptr(inverse, i, pi) -= sum;
+            *gsl_matrix_ptr(inverse, i, j) -= sum;
         }
     }
     
-    // Back substitution: U*x = y
+    // Back substitution: U*x = y (solve for x, which is the inverse)
+    // U is upper triangular stored in LU on and above diagonal
     for (int i = static_cast<int>(n) - 1; i >= 0; --i) {
         for (size_t j = 0; j < n; ++j) {
             double sum = 0.0;
@@ -226,27 +227,28 @@ inline int gsl_linalg_complex_LU_invert(const gsl_matrix_complex* LU, const gsl_
         return -1;
     }
     
-    // Initialize inverse as identity
-    for (size_t i = 0; i < n; ++i) {
-        for (size_t j = 0; j < n; ++j) {
-            *gsl_matrix_complex_ptr(inverse, i, j) = (i == j) ? gsl_complex(1.0, 0.0) : gsl_complex(0.0, 0.0);
+    // Initialize inverse as permuted identity: P*I
+    for (size_t j = 0; j < n; ++j) {
+        for (size_t i = 0; i < n; ++i) {
+            *gsl_matrix_complex_ptr(inverse, i, j) = (p->data[i] == j) ? gsl_complex(1.0, 0.0) : gsl_complex(0.0, 0.0);
         }
     }
     
-    // Forward substitution: L*y = P*b
-    for (size_t i = 0; i < n; ++i) {
-        size_t pi = p->data[i];
-        for (size_t j = 0; j < i; ++j) {
+    // Forward substitution: L*y = P*I (solve for y)
+    // L is unit lower triangular stored in LU below diagonal
+    for (size_t j = 0; j < n; ++j) {
+        for (size_t i = 0; i < n; ++i) {
             gsl_complex sum = gsl_complex(0.0, 0.0);
-            for (size_t k = 0; k < j; ++k) {
+            for (size_t k = 0; k < i; ++k) {
                 sum = gsl_complex_add(sum, gsl_complex_mul(*gsl_matrix_complex_ptr(LU, i, k), 
-                                                           *gsl_matrix_complex_ptr(inverse, k, pi)));
+                                                           *gsl_matrix_complex_ptr(inverse, k, j)));
             }
-            *gsl_matrix_complex_ptr(inverse, i, pi) = gsl_complex_sub(*gsl_matrix_complex_ptr(inverse, i, pi), sum);
+            *gsl_matrix_complex_ptr(inverse, i, j) = gsl_complex_sub(*gsl_matrix_complex_ptr(inverse, i, j), sum);
         }
     }
     
-    // Back substitution: U*x = y
+    // Back substitution: U*x = y (solve for x, which is the inverse)
+    // U is upper triangular stored in LU on and above diagonal
     for (int i = static_cast<int>(n) - 1; i >= 0; --i) {
         for (size_t j = 0; j < n; ++j) {
             gsl_complex sum = gsl_complex(0.0, 0.0);
@@ -260,6 +262,19 @@ inline int gsl_linalg_complex_LU_invert(const gsl_matrix_complex* LU, const gsl_
     }
     
     return 0;
+}
+
+// GSL-compatible aliases (with _complex suffix instead of complex_ prefix)
+inline int gsl_linalg_LU_decomp_complex(gsl_matrix_complex* A, gsl_permutation* p, int* signum) {
+    return gsl_linalg_complex_LU_decomp(A, p, signum);
+}
+
+inline gsl_complex gsl_linalg_LU_det_complex(const gsl_matrix_complex* LU, int signum) {
+    return gsl_linalg_complex_LU_det(LU, signum);
+}
+
+inline int gsl_linalg_LU_invert_complex(const gsl_matrix_complex* LU, const gsl_permutation* p, gsl_matrix_complex* inverse) {
+    return gsl_linalg_complex_LU_invert(LU, p, inverse);
 }
 
 #endif // OPAL_GSL_LINALG_HH

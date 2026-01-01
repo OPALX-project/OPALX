@@ -112,6 +112,23 @@ inline size_t gsl_histogram_bins(const gsl_histogram* h) {
     return h->n();
 }
 
+inline int gsl_histogram_get_range(const gsl_histogram* h, size_t i, double* lower, double* upper) {
+    if (i >= h->n()) {
+        return -1;  // Error: bin index out of range
+    }
+    if (h->range().empty() || i >= h->range().size() - 1) {
+        return -1;
+    }
+    *lower = h->range()[i];
+    *upper = h->range()[i + 1];
+    return 0;
+}
+
+inline int gsl_histogram_set_ranges(gsl_histogram* h, const double* range, size_t n) {
+    h->set_ranges(range, n);
+    return 0;
+}
+
 // 2D Histogram
 class gsl_histogram2d {
 public:
@@ -139,6 +156,25 @@ public:
         if (i < nx_ && j < ny_) {
             bin_[i * ny_ + j] += weight;
         }
+    }
+    
+    void increment(double x, double y) {
+        accumulate(x, y, 1.0);
+    }
+    
+    void set_ranges(const double* xrange, size_t nx, const double* yrange, size_t ny) {
+        if (nx != nx_ + 1 || ny != ny_ + 1) {
+            throw std::invalid_argument("gsl_histogram2d: range size mismatch");
+        }
+        xrange_.assign(xrange, xrange + nx);
+        yrange_.assign(yrange, yrange + ny);
+    }
+    
+    double get(size_t i, size_t j) const {
+        if (i >= nx_ || j >= ny_) {
+            throw std::out_of_range("gsl_histogram2d: bin index out of range");
+        }
+        return bin_[i * ny_ + j];
     }
     
     size_t nx() const { return nx_; }
@@ -252,6 +288,29 @@ inline void gsl_histogram2d_set_ranges_uniform(gsl_histogram2d* h,
                                                  double xmin, double xmax,
                                                  double ymin, double ymax) {
     h->set_ranges_uniform(xmin, xmax, ymin, ymax);
+}
+
+inline int gsl_histogram2d_set_ranges(gsl_histogram2d* h, 
+                                       const double* xrange, size_t nx,
+                                       const double* yrange, size_t ny) {
+    h->set_ranges(xrange, nx, yrange, ny);
+    return 0;
+}
+
+inline size_t gsl_histogram2d_nx(const gsl_histogram2d* h) {
+    return h->nx();
+}
+
+inline size_t gsl_histogram2d_ny(const gsl_histogram2d* h) {
+    return h->ny();
+}
+
+inline void gsl_histogram2d_increment(gsl_histogram2d* h, double x, double y) {
+    h->increment(x, y);
+}
+
+inline double gsl_histogram2d_get(const gsl_histogram2d* h, size_t i, size_t j) {
+    return h->get(i, j);
 }
 
 inline void gsl_histogram2d_accumulate(gsl_histogram2d* h, double x, double y, double weight) {
