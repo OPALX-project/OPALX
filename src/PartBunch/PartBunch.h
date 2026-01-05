@@ -447,6 +447,29 @@ public:
         /// \todo remove later
         *gmsg << "* Switched to unitless positions." << endl; 
     }
+    /**
+     * @brief Convert particle positions from unitless back to physical coordinates.
+     *
+     * This function undoes the transformation applied by switchToUnitlessPositions()
+     * by converting positions R' in unitless coordinates back to physical positions R
+     * using the relation
+     *
+     *   R = R' * c * dt ,
+     *
+     * where c is the speed of light and dt is the time step.
+     *
+     * If @p use_dt_per_particle is false (default), the global time step returned by
+     * getdT() is used for all particles. If it is true, the conversion uses the
+     * per-particle time step stored in the particle container's dt field, i.e.
+     * R_i = R'_i * c * dt_i for each particle i.
+     *
+     * @param use_dt_per_particle Select whether to use the per-particle dt (true) or
+     *                            the global dt from getdT() (false) for the scaling.
+     *
+     * @pre The PartBunch must currently be in unitless coordinates. If the bunch is
+     *      already in physical coordinates (isUnitless_m is false), this function
+     *      throws an OpalException.
+     */
     void switchOffUnitlessPositions(bool use_dt_per_particle = false) {
         if (!isUnitless_m) {
             throw OpalException("PartBunch::switchOffUnitlessPositions",
