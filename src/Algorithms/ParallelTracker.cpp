@@ -1113,15 +1113,15 @@ void ParallelTracker::updateReferenceParticle(const BorisPusher& pusher) {
 }
 
 void ParallelTracker::transformBunch(const CoordinateSystemTrafo& trafo) {
-    const unsigned int localNum = itsBunch_m->getLocalNum();
-    for (unsigned int i = 0; i < localNum; ++i) {
+    //const unsigned int localNum = itsBunch_m->getLocalNum();
+    //for (unsigned int i = 0; i < localNum; ++i) {
         /* \todo host device .... 
         itsBunch_m->R[i]  = trafo.transformTo(itsBunch_m->R[i]);
         itsBunch_m->P[i]  = trafo.rotateTo(itsBunch_m->P[i]);
         itsBunch_m->Ef[i] = trafo.rotateTo(itsBunch_m->Ef[i]);
         itsBunch_m->Bf[i] = trafo.rotateTo(itsBunch_m->Bf[i]);
         */
-    }
+    //}
 }
 
 void ParallelTracker::updateRefToLabCSTrafo() {
@@ -1137,16 +1137,51 @@ void ParallelTracker::updateRefToLabCSTrafo() {
     m << " dt= " << itsBunch_m->getdT() << " R=" << R << endl;
     */
 
+    // std::cout << "Before updateRefToLabCSTrafo(): RefPartP_m: " << itsBunch_m->RefPartP_m << std::endl;
+    //std::cout << "Rotation matrix = " << itsBunch_m->toLabTrafo_m.getRotationMatrix() << std::endl;
+
     Vector_t<double, 3> R = itsBunch_m->toLabTrafo_m.transformFrom(itsBunch_m->RefPartR_m);
+    
+    /// \todo This function makes P a NaN for some reason sometimes
+    //*gmsg << "* updateRefToLabCSTrafo(): P before transformFrom: " << itsBunch_m->RefPartP_m << endl;
     Vector_t<double, 3> P = itsBunch_m->toLabTrafo_m.transformFrom(itsBunch_m->RefPartP_m);
+    //*gmsg << "* updateRefToLabCSTrafo(): P after transformFrom: " << P << endl;
     
     pathLength_m += std::copysign(1, itsBunch_m->getdT()) * euclidean_norm(R);
 
-    CoordinateSystemTrafo update(R, getQuaternion(P, Vector_t<double, 3>(0, 0, 1)));
+    /*
+    This will produce a NaN Quaternion if P is parallel to the z axis because the cross product
+    of two parallel vectors is zero, leading to a zero norm when normalizing the axis of rotation.
+    The fix is to check if P is parallel to the z axis and not rotate in that case.
+    */
 
+    // First normalize P
+    double normP = euclidean_norm(P);
+    if (normP < 1e-12) {
+        pathLength_m += 0.0;
+        return;
+    }
+    P /= normP;
+
+    // After normalizing, we can check alignment with z-axis
+    Vector_t<double, 3> target(0, 0, 1);
+    double dot = P.dot(target);
+    bool aligned = std::abs(std::abs(dot) - 1.0) < 1e-6;
+    Quaternion Q = aligned ? Quaternion(0, 0, 0, 1.0) : getQuaternion(P, target);
+
+    if (aligned) {
+        *gmsg << "* Warning: Reference particle momentum is aligned with z-axis; no quaternion rotation applied." << endl;
+    }
+
+    CoordinateSystemTrafo update(R, Q);
+
+    // std::cout << "get Quaternion P: " << P << " Q: " << Q << std::endl;
+
+    /// \todo this function is empty at the moment.
     transformBunch(update);
 
-    itsBunch_m->toLabTrafo_m = itsBunch_m->toLabTrafo_m * update.inverted(); /// \todo this line seems to fail sometimes! Results in Quaternion NaN
+    /// \todo this line seems to fail sometimes! Results in Quaternion NaN
+    itsBunch_m->toLabTrafo_m = itsBunch_m->toLabTrafo_m * update.inverted(); 
 }
 
 void ParallelTracker::applyFractionalStep(const BorisPusher& pusher, double tau) {
