@@ -400,6 +400,31 @@ public:
     void gatherStatistics(unsigned int /*totalP*/) {
         *gmsg << "not implemented" << endl;
     }
+    /**
+     * @brief Transform particle positions to a unitless coordinate system.
+     *
+     * This converts the stored particle positions \f$ R \f$ to unitless positions
+     * \f$ R' \f$ according to
+     * \f[
+     *   R' = \frac{R}{c \, \Delta t},
+     * \f]
+     * where \f$ c \f$ is the speed of light and \f$ \Delta t \f$ is a time step.
+     * The resulting coordinates are dimensionless and are used by algorithms
+     * that operate in this normalized coordinate system.
+     *
+     * By default, a single global time step \f$ \Delta t = \text{getdT()} \f$ is
+     * used for all particles. If @p use_dt_per_particle is set to @c true,
+     * each particle's individual time step @c dt is used instead, i.e.
+     * \f$ R'_i = R_i / (c \, dt_i) \f$.
+     *
+     * @param use_dt_per_particle If @c true, use each particle's own @c dt
+     *        value in the normalization; if @c false (default), use the
+     *        global time step returned by getdT().
+     *
+     * @pre The bunch must not already be in unitless positions. If the internal
+     *      state flag indicates that positions are already unitless,
+     *      this function throws an OpalException.
+     */
     void switchToUnitlessPositions(bool use_dt_per_particle = false) {
         if (isUnitless_m) {
             throw OpalException("PartBunch::switchToUnitlessPositions",
