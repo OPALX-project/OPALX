@@ -175,9 +175,9 @@ private:
 
     std::shared_ptr<FieldSolverCmd> OPALFieldSolver_m;
     
-    // unit state of PartBunch
+    // unit state of PartBunch --> always false after initialization, so use this as standard flag
     // UnitState_t unit_state_m;
-    bool isUnitless_m;
+    bool isUnitless_m = false;
     // UnitState_t stateOfLastBoundP_m;
 
     /// holds the actual time of the integration
