@@ -5,13 +5,13 @@
 #undef doDEBUG
 
 template <typename T, unsigned Dim>
-PartBunch<T, Dim>::PartBunch(double qi, double mi, size_t totalP, int nt, double lbt,
+PartBunch<T, Dim>::PartBunch(double qi, double mi, size_t totalP/*, int nt*/, double lbt,
                              std::string integration_method, std::shared_ptr<Distribution> &OPALdistribution,
                              std::shared_ptr<FieldSolverCmd> &OPALFieldSolver)
     : ippl::PicManager<T, Dim, ParticleContainer<T, Dim>, FieldContainer<T, Dim>, LoadBalancer<T, Dim>>(),
       time_m(0.0),
       totalP_m(totalP),
-      nt_m(nt),
+      //nt_m(nt),
       lbt_m(lbt),
       dt_m(0),
       it_m(0),
