@@ -438,7 +438,7 @@ public:
         Kokkos::parallel_for(
                              "switchToUnitlessPositions", ippl::getRangePolicy(Rview),
                              KOKKOS_LAMBDA(const size_t i) {
-                                double fac = use_dt_per_particle ? (Physics::c * dtview(i)) 
+                                double fac = use_dt_per_particle ? (1.0 / (Physics::c * dtview(i))) 
                                                                  : unitless_factor;
                                 Rview(i) *= fac;
                              });
