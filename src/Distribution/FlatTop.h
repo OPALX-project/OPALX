@@ -41,7 +41,50 @@ public:
      * @param fc Shared pointer to FieldContainer.
      * @param opalDist Shared pointer to Distribution.
      */
-    FlatTop(std::shared_ptr<ParticleContainer_t> &pc, std::shared_ptr<FieldContainer_t> &fc, std::shared_ptr<Distribution_t> &opalDist);
+    FlatTop(std::shared_ptr<ParticleContainer_t> &pc,
+        std::shared_ptr<FieldContainer_t> &fc,
+        std::shared_ptr<Distribution_t> &opalDist);
+    
+    /**
+     * @brief Constructor for FlatTop.
+     *
+     * @param pc Shared pointer to ParticleContainer.
+     * @param fc Shared pointer to FieldContainer.
+     * @param emitting Flag indicating whether the distribution is emitting.
+     * @param sigmaTFall Standard deviation of fall in flat-top profile.
+     * @param sigmaTRise Standard deviation of rise in flat-top profile.
+     * @param cutoff Cutoff multiplier for position distribution R.
+     * @param tPulseLengthFWHM Time length of the pulse in FWHM.
+     * @param sigmaR Standard deviation for position distribution.
+     */
+    FlatTop(std::shared_ptr<ParticleContainer_t> &pc,
+        std::shared_ptr<FieldContainer_t> &fc,
+        bool emitting, 
+        double sigmaTFall,
+        double sigmaTRise,
+        Vector_t<double, 3> cutoff,
+        double tPulseLengthFWHM,
+        Vector_t<double, 3> sigmaR
+    );
+
+    /**
+     * @brief Constructor for FlatTop.
+     * @param pc Shared pointer to ParticleContainer.
+     * @param emitting Flag indicating whether the distribution is emitting.
+     * @param sigmaTFall Standard deviation of fall in flat-top profile.
+     * @param sigmaTRise Standard deviation of rise in flat-top profile.
+     * @param cutoff Cutoff multiplier for position distribution R.
+     * @param tPulseLengthFWHM Time span of the flat-top profile.
+     * @param sigmaR Standard deviation for position distribution R.
+     */
+    FlatTop(std::shared_ptr<ParticleContainer_t> &pc,
+        bool emitting, 
+        double sigmaTFall,
+        double sigmaTRise,
+        Vector_t<double, 3> cutoff,
+        double tPulseLengthFWHM,
+        Vector_t<double, 3> sigmaR
+    );
 
     /**
      * @brief Tests the number of emitted particles over a given number of steps.
@@ -57,6 +100,33 @@ public:
      */
     void testEmitParticles(size_type nsteps, double dt) override;
 
+    /**
+     * @brief Sets whether to use domain decomposition.
+     * @param withDomainDecomp Boolean flag for domain decomposition.
+     */
+    void setWithDomainDecomp(bool withDomainDecomp) override;
+
+    /**
+     * @brief Sets the total area of the distribution.
+     */
+    void setDistArea(double distArea){
+        distArea_m = distArea;
+    }
+    
+    /**
+     * @brief Returns the total area of the distribution.
+     *
+     */
+    double getDistArea(){
+        return distArea_m;
+    }
+
+    /**
+     * @brief Returns the total emission time.
+     */
+    double getEmissionTime(){
+        return emissionTime_m;
+    }
 private:
     using size_type = ippl::detail::size_type;
     GeneratorPool rand_pool_m;  ///< Random number generator pool.
@@ -74,12 +144,7 @@ private:
     double emissionTime_m; ///< Total emission time.
     Vector_t<double, 3> nr_m; ///< Number of grid points per direction.
     Vector_t<double, 3> hr_m; ///< Grid spacing.
-
-    /**
-     * @brief Sets whether to use domain decomposition.
-     * @param withDomainDecomp Boolean flag for domain decomposition.
-     */
-    void setWithDomainDecomp(bool withDomainDecomp) override;
+    Vector_t<double, 3> sigmaR_m;
 
     /**
      * @brief Determines the random seed initialization.
@@ -164,6 +229,14 @@ public:
      * @param dt Time step.
      */
     void emitParticles(double t, double dt) override;
+
+    void setInternalVariables(bool emitting, 
+        double sigmaTFall,
+        double sigmaTRise,
+        Vector_t<double, 3> cutoff,
+        double tPulseLengthFWHM,
+        Vector_t<double, 3> sigmaR
+    );
 };
 
 #endif // IPPL_FLAT_TOP_H
