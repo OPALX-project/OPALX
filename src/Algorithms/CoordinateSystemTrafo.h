@@ -60,7 +60,7 @@ public:
 /* =============================== Getters ================================== */
     ippl::Vector<double, 3> getOrigin() const;
     Quaternion getRotation() const;
-    OpalMatrix3x3_t getRotationMatrix() const;
+    matrix3x3_t getRotationMatrix() const;
 /* ========================================================================== */
 /* =============================== Print ==================================== */
     void print(std::ostream&) const;
@@ -71,7 +71,7 @@ private:
 
     //Rotation
     Quaternion orientation_m;
-    OpalMatrix3x3_t rotationMatrix_m;
+    matrix3x3_t rotationMatrix_m;
 };
 
 /* ======== Print ======== */
@@ -120,7 +120,7 @@ inline Quaternion CoordinateSystemTrafo::getRotation() const {
     return orientation_m;
 }
 
-inline OpalMatrix3x3_t CoordinateSystemTrafo::getRotationMatrix() const {
+inline matrix3x3_t CoordinateSystemTrafo::getRotationMatrix() const {
     return rotationMatrix_m;
 }
 
@@ -133,7 +133,7 @@ inline CoordinateSystemTrafo CoordinateSystemTrafo::inverted() const {
 
 template <typename ViewType>
 inline void CoordinateSystemTrafo::transformBunchTo(ViewType Rview) const {
-    OpalMatrix3x3_t rot = rotationMatrix_m;
+    matrix3x3_t rot = rotationMatrix_m;
     ippl::Vector<double, 3> ori = origin_m;
     Kokkos::parallel_for("transformBunchTo", Rview.extent(0), 
         KOKKOS_LAMBDA(const size_t i) {
@@ -144,7 +144,7 @@ inline void CoordinateSystemTrafo::transformBunchTo(ViewType Rview) const {
 
 template <typename ViewType>
 inline void CoordinateSystemTrafo::transformBunchFrom(ViewType Rview) const {
-    OpalMatrix3x3_t rot = rotationMatrix_m;
+    matrix3x3_t rot = rotationMatrix_m;
     ippl::Vector<double, 3> ori = origin_m;
     Kokkos::parallel_for("transformBunchFrom", Rview.extent(0), 
         KOKKOS_LAMBDA(const size_t i) {
@@ -154,7 +154,7 @@ inline void CoordinateSystemTrafo::transformBunchFrom(ViewType Rview) const {
 
 template <typename ViewType>
 inline void CoordinateSystemTrafo::rotateBunchTo(ViewType Pview) const {
-    OpalMatrix3x3_t rot = rotationMatrix_m;
+    matrix3x3_t rot = rotationMatrix_m;
     Kokkos::parallel_for("rotateBunchTo", Pview.extent(0), 
         KOKKOS_LAMBDA(const size_t i) {
             Pview(i) = prod_vector(rot, Pview(i));
@@ -163,7 +163,7 @@ inline void CoordinateSystemTrafo::rotateBunchTo(ViewType Pview) const {
 
 template <typename ViewType>
 inline void CoordinateSystemTrafo::rotateBunchFrom(ViewType Pview) const {
-    OpalMatrix3x3_t rot = rotationMatrix_m;
+    matrix3x3_t rot = rotationMatrix_m;
     Kokkos::parallel_for("rotateBunchFrom", Pview.extent(0), 
         KOKKOS_LAMBDA(const size_t i) {
             Pview(i) = prod_vector_transpose(rot, Pview(i));

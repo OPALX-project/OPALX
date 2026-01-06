@@ -125,7 +125,7 @@ public:
          return distMoments_m.getMaxPosition();
     }
 
-    matrix_t getCovMatrix() const {
+    matrix6x6_t getCovMatrix() const {
          return distMoments_m.getMoments6x6();
     }
 

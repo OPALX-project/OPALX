@@ -10,7 +10,7 @@ public:
     Quaternion(const double&, const double&, const double&, const double&);
     Quaternion(const ippl::Vector<double, 3>&);
     Quaternion(const double&, const ippl::Vector<double, 3>&);
-    Quaternion(const matrix_t&);
+    Quaternion(const matrix3x3_t&);
 
     Quaternion operator*(const double&) const;
     Quaternion operator*(const Quaternion&) const;
@@ -34,7 +34,7 @@ public:
 
     ippl::Vector<double, 3> rotate(const ippl::Vector<double, 3>&) const;
 
-    matrix_t getRotationMatrix() const;
+    matrix3x3_t getRotationMatrix() const;
 };
 
 typedef Quaternion Quaternion_t;

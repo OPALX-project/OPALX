@@ -39,8 +39,9 @@ DistributionMoments::DistributionMoments() {
     reset();
     resetPlasmaParameters();
 
-    moments_m.resize(6, 6, false);
-    notCentMoments_m.resize(6, 6, false);
+    // matrix6x6_t is fixed-size, initialize to zero
+    moments_m = matrix6x6_t(0.0);
+    notCentMoments_m = matrix6x6_t(0.0);
 }
 
 void DistributionMoments::computeMeans(ippl::ParticleAttrib<Vector_t<double,3>>::view_type&  Rview,
@@ -581,7 +582,7 @@ void DistributionMoments::fillMembers(std::vector<double>& /*localMoments*/) {
         stdP_m(l / 2) = std::sqrt(localMoments[l + 1] / totalNumParticles_m);
     }
 
-    for (unsigned i = 0; i < moments_m.size1(); ++i) {
+    for (unsigned i = 0; i < 6; ++i) {
         for (unsigned j = 0; j <= i; ++j, ++l) {
             moments_m(i, j) = localMoments[l] * perParticle;
             moments_m(j, i) = moments_m(i, j);
