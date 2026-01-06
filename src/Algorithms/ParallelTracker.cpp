@@ -601,23 +601,28 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
     
     Kokkos::deep_copy( Rot, h_Rot );
 
+    // Reset fields to zero
+    itsBunch_m->getParticleContainer()->E = 0;
+    itsBunch_m->getParticleContainer()->B = 0;
+
     auto Rview  = itsBunch_m->getParticleContainer()->R.getView();
     auto Eview  = itsBunch_m->getParticleContainer()->E.getView();
     auto Bview  = itsBunch_m->getParticleContainer()->B.getView();
 
     Kokkos::parallel_for(
-                         "referenceToBeamCSTrafo", ippl::getRangePolicy(Rview),
-                         KOKKOS_LAMBDA(const int i) {
-                             ippl::Vector<double, 3> x({Rview(i)[0],Rview(i)[1],Rview(i)[2]});
-                             x = x - org;
-                             for ( int j = 0; j < 3; ++j ) {
-                                 for ( int i = 0; i < 3; ++i ) {
-                                     Rview(j) = Rot(i,j) * x(i);
-                                 }
-                             }
-                             Eview(i) = ippl::Vector<double, 3>(0.0);   // was done outside of the routine in the past
-                             Bview(i) = ippl::Vector<double, 3>(0.0); 
-                         });         
+        "referenceToBeamCSTrafo", ippl::getRangePolicy(Rview),
+        KOKKOS_LAMBDA(const size_t k) {
+            ippl::Vector<double, 3> x = Rview(k); // x({Rview(i)[0],Rview(i)[1],Rview(i)[2]});
+                x = x - org;
+                for (size_t i = 0; i < 3; ++i ) {
+                    Rview(k)[i] = 0.0;
+                    for (size_t j = 0; j < 3; ++j ) {
+                        Rview(k)[i] += Rot(i, j) * x(j);
+                    }
+                }
+                // Eview(k) = 0; // ippl::Vector<double, 3>(0.0);   // was done outside of the routine in the past
+                // Bview(k) = 0; // ippl::Vector<double, 3>(0.0); 
+        });         
 
     itsBunch_m->boundp();
 
@@ -630,38 +635,43 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
     itsBunch_m->computeSelfFields();
 
     /**
-       \brief beam to referernce coordinate system transformation and field rotation  
-       old: itsBunch_m->R[i]  = beamToReferenceCSTrafo.transformTo(itsBunch_m->R[i]);
+        \brief beam to referernce coordinate system transformation and field rotation  
+        old: itsBunch_m->R[i]  = beamToReferenceCSTrafo.transformTo(itsBunch_m->R[i]);
             itsBunch_m->Ef[i] = beamToReferenceCSTrafo.rotateTo(itsBunch_m->Ef[i]);
             itsBunch_m->Bf[i] = beamToReferenceCSTrafo.rotateTo(itsBunch_m->Bf[i]);
 
             x = M^T(x+o)
             prod_vector(trans(rotationMatrix_m)
 
+            Update 17.12.2025: It looks like, there were a few errors with this transformation after trying to get
+            rid of boost. This should now be fixed.
      */
     
     Kokkos::parallel_for(
-                         "CSTrafo:transformTo", ippl::getRangePolicy(Rview),
-                         KOKKOS_LAMBDA(const int i) {                           
-                             ippl::Vector<double, 3> x({Rview(i)[0],Rview(i)[1],Rview(i)[2]});
-                             ippl::Vector<double, 3> e({Eview(i)[0],Eview(i)[1],Eview(i)[2]});
-                             ippl::Vector<double, 3> b({Bview(i)[0],Bview(i)[1],Bview(i)[2]});
-                             
-                             // beamToReferenceCSTrafo.rotateTo
-                             for ( int i = 0; i < 3; ++i ) {
-                                 for ( int j = 0; j < 3; ++j ) {
-                                     Eview(i) = Rot(i,j) * e(i);
-                                     Bview(i) = Rot(i,j) * b(i);
-                                 }
-                             }
-                             // beamToReferenceCSTrafo.transformTo
-                             x = x + org;
-                             for ( int j = 0; j < 3; ++j ) {
-                                 for ( int i = 0; i < 3; ++i ) {
-                                     Rview(i) = Rot(j,i) * x(i);
-                                 }
-                             }
-                         });         
+        "beamToReferenceCSTrafo", ippl::getRangePolicy(Rview),
+        KOKKOS_LAMBDA(const size_t k) {                           
+            ippl::Vector<double, 3> x = Rview(k); // ({Rview(k)[0],Rview(k)[1],Rview(k)[2]});
+            ippl::Vector<double, 3> e = Eview(k); // ({Eview(k)[0],Eview(k)[1],Eview(k)[2]});
+            ippl::Vector<double, 3> b = Bview(k); // ({Bview(k)[0],Bview(k)[1],Bview(k)[2]});
+            
+            // beamToReferenceCSTrafo.rotateTo
+            for (size_t i = 0; i < 3; ++i ) {
+                Eview(k)[i] = 0.0;
+                Bview(k)[i] = 0.0;
+                for (size_t j = 0; j < 3; ++j ) {
+                    Eview(k)[i] += Rot(j,i) * e(j);
+                    Bview(k)[i] += Rot(j,i) * b(j);
+                }
+            }
+            // beamToReferenceCSTrafo.transformTo
+            x = x + org;
+            for (size_t i = 0; i < 3; ++i ) {
+                Rview(k)[i] = 0.0;
+                for (size_t j = 0; j < 3; ++j ) {
+                    Rview(k)[i] += Rot(j,i) * x(j);
+                }
+            }
+        });         
 
 }
 
