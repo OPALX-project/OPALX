@@ -1,7 +1,9 @@
 #include "Algorithms/CoordinateSystemTrafo.h"
 
 CoordinateSystemTrafo::CoordinateSystemTrafo()
-    : origin_m(0.0), orientation_m(1.0, 0.0, 0.0, 0.0), rotationMatrix_m(3, 3) {
+    : origin_m(0.0), orientation_m(1.0, 0.0, 0.0, 0.0), rotationMatrix_m() {
+    // Default constructor of OpalMatrix3x3_t already initializes to identity
+    // But we can explicitly set it if needed (redundant but clear)
     rotationMatrix_m(0, 0) = 1.0;
     rotationMatrix_m(0, 1) = 0.0;
     rotationMatrix_m(0, 2) = 0.0;
@@ -29,7 +31,7 @@ CoordinateSystemTrafo::CoordinateSystemTrafo(
 void CoordinateSystemTrafo::invert() {
     origin_m         = -orientation_m.rotate(origin_m);
     orientation_m    = orientation_m.conjugate();
-    rotationMatrix_m = trans(rotationMatrix_m);
+    rotationMatrix_m = get_transpose(rotationMatrix_m);
 }
 
 CoordinateSystemTrafo CoordinateSystemTrafo::operator*(const CoordinateSystemTrafo& right) const {
