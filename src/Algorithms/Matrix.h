@@ -1,5 +1,6 @@
 //
 // This header file provides matrix and vector operations to replace boost::numeric::ublas.
+// Kokkos-friendly implementation with fixed-size matrices for GPU/CPU portability.
 //
 // Copyright (c) 2023, Paul Scherrer Institute, Villigen PSI, Switzerland
 // All rights reserved
@@ -18,10 +19,99 @@
 #ifndef OPAL_MATRIX_HH
 #define OPAL_MATRIX_HH
 
-#include <vector>
+#include <Kokkos_Core.hpp>
 #include <cassert>
+#include <vector>
 
-// Simple matrix class to replace boost::numeric::ublas::matrix
+// Kokkos-friendly fixed-size matrix structure
+template <int Rows, int Cols>
+struct OpalMatrix_t {
+    double m[Rows][Cols];
+
+    // Default constructor - initializes to identity if square, zero otherwise
+    KOKKOS_INLINE_FUNCTION
+    OpalMatrix_t() {
+        for (int i = 0; i < Rows; ++i) {
+            for (int j = 0; j < Cols; ++j) {
+                m[i][j] = 0.0;
+            }
+        }
+        // Set identity for square matrices
+        if (Rows == Cols) {
+            for (int i = 0; i < Rows; ++i) {
+                m[i][i] = 1.0;
+            }
+        }
+    }
+
+    // Constructor with initial value
+    KOKKOS_INLINE_FUNCTION
+    OpalMatrix_t(double init_value) {
+        for (int i = 0; i < Rows; ++i) {
+            for (int j = 0; j < Cols; ++j) {
+                m[i][j] = init_value;
+            }
+        }
+    }
+
+    // Copy constructor
+    KOKKOS_INLINE_FUNCTION
+    OpalMatrix_t(const OpalMatrix_t& right) {
+        for (int i = 0; i < Rows; ++i) {
+            for (int j = 0; j < Cols; ++j) {
+                m[i][j] = right(i, j);
+            }
+        }
+    }
+
+    // Assignment operator
+    KOKKOS_INLINE_FUNCTION
+    OpalMatrix_t& operator=(const OpalMatrix_t& right) {
+        if (this != &right) {
+            for (int i = 0; i < Rows; ++i) {
+                for (int j = 0; j < Cols; ++j) {
+                    m[i][j] = right(i, j);
+                }
+            }
+        }
+        return *this;
+    }
+
+    // Conversion constructor from matrix_t (non-Kokkos, host-only)
+    // This will be defined after matrix_t is fully defined
+    // Forward declaration of matrix_t is needed
+    OpalMatrix_t(const class matrix_t& m);
+    
+    // Assignment from matrix_t (non-Kokkos, host-only)
+    OpalMatrix_t& operator=(const class matrix_t& m);
+
+    // Operators
+    KOKKOS_INLINE_FUNCTION
+    double& operator()(int r, int c) {
+        return m[r][c];
+    }
+
+    KOKKOS_INLINE_FUNCTION
+    double operator()(int r, int c) const {
+        return m[r][c];
+    }
+
+    KOKKOS_INLINE_FUNCTION
+    int size1() const { return Rows; }
+
+    KOKKOS_INLINE_FUNCTION
+    int size2() const { return Cols; }
+};
+
+// Type aliases for common matrix sizes
+using OpalMatrix3x3_t = OpalMatrix_t<3, 3>;
+using OpalMatrix6x6_t = OpalMatrix_t<6, 6>;
+
+// Forward declaration
+class matrix_t;
+
+// Legacy matrix_t class for backward compatibility
+// Uses dynamic allocation for variable sizes
 class matrix_t {
 public:
     matrix_t() : rows_(0), cols_(0) {}
@@ -47,12 +137,64 @@ public:
         cols_ = cols;
         data_.resize(rows * cols, init_value);
     }
+
+    // Conversion from OpalMatrix3x3_t
+    matrix_t(const OpalMatrix3x3_t& m) : rows_(3), cols_(3), data_(9) {
+        for (int i = 0; i < 3; ++i) {
+            for (int j = 0; j < 3; ++j) {
+                data_[i * 3 + j] = m(i, j);
+            }
+        }
+    }
+
+    // Conversion from OpalMatrix6x6_t
+    matrix_t(const OpalMatrix6x6_t& m) : rows_(6), cols_(6), data_(36) {
+        for (int i = 0; i < 6; ++i) {
+            for (int j = 0; j < 6; ++j) {
+                data_[i * 6 + j] = m(i, j);
+            }
+        }
+    }
     
 private:
     size_t rows_;
     size_t cols_;
     std::vector<double> data_;
 };
+
+// Define the conversion constructor and assignment operator for OpalMatrix_t from matrix_t
+// These are defined after matrix_t is fully defined
+template <int Rows, int Cols>
+OpalMatrix_t<Rows, Cols>::OpalMatrix_t(const matrix_t& m) {
+    // Only allow conversion if sizes match
+    if (m.size1() == Rows && m.size2() == Cols) {
+        for (int i = 0; i < Rows; ++i) {
+            for (int j = 0; j < Cols; ++j) {
+                this->m[i][j] = m(i, j);
+            }
+        }
+    } else {
+        // Initialize to zero if sizes don't match
+        for (int i = 0; i < Rows; ++i) {
+            for (int j = 0; j < Cols; ++j) {
+                this->m[i][j] = 0.0;
+            }
+        }
+    }
+}
+
+template <int Rows, int Cols>
+OpalMatrix_t<Rows, Cols>& OpalMatrix_t<Rows, Cols>::operator=(const matrix_t& m) {
+    // Only allow assignment if sizes match
+    if (m.size1() == Rows && m.size2() == Cols) {
+        for (int i = 0; i < Rows; ++i) {
+            for (int j = 0; j < Cols; ++j) {
+                this->m[i][j] = m(i, j);
+            }
+        }
+    }
+    return *this;
+}
 
 // Simple vector class to replace boost::numeric::ublas::vector
 class vector_t {
@@ -84,7 +226,54 @@ private:
     std::vector<double> data_;
 };
 
-// Matrix-vector multiplication
+// Kokkos-friendly matrix-vector product for fixed-size matrices
+template <int Rows, int Cols, class T>
+KOKKOS_INLINE_FUNCTION
+T prod_vector(const OpalMatrix_t<Rows, Cols>& rotation, const T& vect) {
+    T prodVector(0.0);
+    
+    for (int i = 0; i < Rows; ++i) {
+        double val = 0.0;
+        for (int j = 0; j < Cols; ++j) {
+            val += rotation(i, j) * vect[j];
+        }
+        prodVector[i] = val;
+    }
+    
+    return prodVector;
+}
+
+// Kokkos-friendly matrix^T-vector product for fixed-size matrices
+template <int Rows, int Cols, class T>
+KOKKOS_INLINE_FUNCTION
+T prod_vector_transpose(const OpalMatrix_t<Rows, Cols>& rotation, const T& vect) {
+    T prodVector(0.0);
+    
+    for (int i = 0; i < Cols; ++i) {
+        double val = 0.0;
+        for (int j = 0; j < Rows; ++j) {
+            val += rotation(j, i) * vect[j];
+        }
+        prodVector[i] = val;
+    }
+    
+    return prodVector;
+}
+
+// Kokkos-friendly matrix transpose for fixed-size matrices
+template <int Rows, int Cols>
+KOKKOS_INLINE_FUNCTION
+OpalMatrix_t<Cols, Rows> get_transpose(const OpalMatrix_t<Rows, Cols>& rotation) {
+    OpalMatrix_t<Cols, Rows> transpose;
+    for (int i = 0; i < Rows; ++i) {
+        for (int j = 0; j < Cols; ++j) {
+            transpose(j, i) = rotation(i, j);
+        }
+    }
+    return transpose;
+}
+
+// Matrix-vector multiplication (legacy)
 inline vector_t prod(const matrix_t& m, const vector_t& v) {
     assert(m.size2() == v.size());
     vector_t result(m.size1());
@@ -112,7 +301,7 @@ inline matrix_t prod_matrix_vector(const matrix_t& m, const matrix_t& v) {
     return result;
 }
 
-// Matrix transpose
+// Matrix transpose (legacy)
 inline matrix_t trans(const matrix_t& m) {
     matrix_t result(m.size2(), m.size1());
     for (size_t i = 0; i < m.size1(); ++i) {
@@ -123,7 +312,7 @@ inline matrix_t trans(const matrix_t& m) {
     return result;
 }
 
-// Matrix-matrix multiplication
+// Matrix-matrix multiplication (legacy)
 inline matrix_t prod(const matrix_t& a, const matrix_t& b) {
     assert(a.size2() == b.size1());
     matrix_t result(a.size1(), b.size2());
@@ -139,22 +328,30 @@ inline matrix_t prod(const matrix_t& a, const matrix_t& b) {
     return result;
 }
 
+// Kokkos-friendly version for 3D vectors (commonly used)
+template <class T>
+KOKKOS_INLINE_FUNCTION
+T prod_boost_vector(const OpalMatrix3x3_t& rotation, const T& vect) {
+    return prod_vector(rotation, vect);
+}
+
+// Legacy version for backward compatibility
 template <class T>
 T prod_boost_vector(const matrix_t& rotation, const T& vect) {
     vector_t boostVector(3);
-
+    
     boostVector(0) = vect[0];
     boostVector(1) = vect[1];
     boostVector(2) = vect[2];
-
+    
     boostVector = prod(rotation, boostVector);
-
+    
     T prodVector(0.0);
-
+    
     prodVector[0] = boostVector(0);
     prodVector[1] = boostVector(1);
     prodVector[2] = boostVector(2);
-
+    
     return prodVector;
 }
 
