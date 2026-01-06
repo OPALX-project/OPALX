@@ -16,8 +16,17 @@ protected:
     std::string samplingMethod_m;
 public:
     
-    SamplingBase(std::shared_ptr<ParticleContainer_t> &pc, std::shared_ptr<FieldContainer_t> &fc, std::shared_ptr<Distribution_t> &dist)
+    SamplingBase(std::shared_ptr<ParticleContainer_t> &pc,
+        std::shared_ptr<FieldContainer_t> &fc,
+        std::shared_ptr<Distribution_t> &dist
+    )
         : pc_m(pc), fc_m(fc), opalDist_m(dist) {
+    }
+
+    SamplingBase(std::shared_ptr<ParticleContainer_t> &pc,
+        std::shared_ptr<FieldContainer_t> &fc
+    )
+        : pc_m(pc), fc_m(fc) {
     }
 
     SamplingBase(std::shared_ptr<ParticleContainer_t> &pc)
@@ -26,19 +35,19 @@ public:
     
     virtual ~SamplingBase() {}
 
-    virtual void generateParticles(size_t& numberOfParticles, Vector_t<double, 3> nr) {}
+    virtual void generateParticles(size_t& /*numberOfParticles*/, Vector_t<double, 3> /*nr*/) {}
 
-    virtual void emitParticles(double t, double dt) {}
+    virtual void emitParticles(double /*t*/, double /*dt*/) {}
 
     // testNumEmitParticles is purely made for testing and should be removed
-    virtual void testNumEmitParticles(size_t nsteps, double dt) {}
+    virtual void testNumEmitParticles(size_t /*nsteps*/, double /*dt*/) {}
 
     // testEmitParticles is purely made for testing and should be removed
-    virtual void testEmitParticles(size_t nsteps, double dt) {}
+    virtual void testEmitParticles(size_t /*nsteps*/, double /*dt*/) {}
 
-    virtual void initDomainDecomp(double BoxIncr) {}
+    virtual void initDomainDecomp(double /*BoxIncr*/) {}
 
-    virtual void setWithDomainDecomp(bool withDomainDecomp) {}
+    virtual void setWithDomainDecomp(bool /*withDomainDecomp*/) {}
 };
 #endif
 

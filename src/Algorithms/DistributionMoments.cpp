@@ -341,121 +341,11 @@ void DistributionMoments::computeMinMaxPosition(ippl::ParticleAttrib<Vector_t<do
 }
 
 void DistributionMoments::compute(
-    const std::vector<OpalParticle>::const_iterator& first,
-    const std::vector<OpalParticle>::const_iterator& last) {
-    // computeStatistics(first, last);
+    const std::vector<OpalParticle>::const_iterator& /*first*/,
+    const std::vector<OpalParticle>::const_iterator& /*last*/) {
+    *gmsg << "not implemented" << endl;
 }
 
-/*
-template <class InputIt>
-void DistributionMoments::computeMeans(const InputIt& first, const InputIt& last) {
-    unsigned int localNum = last - first;
-    std::vector<double> localStatistics(10);
-    std::vector<double> maxima(6, std::numeric_limits<double>::lowest());
-    for (InputIt it = first; it != last; ++it) {
-        OpalParticle const& particle = *it;
-        if (isParticleExcluded(particle)) {
-            --localNum;
-            continue;
-        }
-        for (unsigned int i = 0; i < 3; ++i) {
-            maxima[2 * i] = std::max(maxima[2 * i], particle[2 * i]);
-            maxima[2 * i + 1] =
-                std::max(maxima[2 * i + 1], -particle[2 * i]);  // calculates the minimum
-        }
-
-        unsigned int l = 0;
-        for (unsigned int i = 0; i < 6; ++i, ++l) {
-            localStatistics[l] += particle[i];
-        }
-
-        // l = 6
-        localStatistics[l++] += particle.getTime();
-
-        double gamma = Util::getGamma(particle.getP());
-        double eKin  = (gamma - 1.0) * particle.getMass();
-        localStatistics[l++] += eKin;
-        localStatistics[l++] += gamma;
-    }
-    localStatistics.back() = localNum;
-
-    ippl::Comm->allreduce(localStatistics.data(), localStatistics.size(), std::plus<double>());
-    ippl::Comm->allreduce(maxima.data(), 6, std::greater<double>());
-
-    totalNumParticles_m = localStatistics.back();
-
-    double perParticle = 1.0 / totalNumParticles_m;
-    unsigned int l     = 0;
-
-    for (; l < 6; ++l) {
-        centroid_m[l] = localStatistics[l];
-    }
-    for (unsigned int i = 0; i < 3; ++i) {
-        meanR_m(i) = centroid_m[2 * i] * perParticle;
-        meanP_m(i) = centroid_m[2 * i + 1] * perParticle;
-        maxR_m(i)  = maxima[2 * i];
-        minR_m(i)  = -maxima[2 * i + 1];
-    }
-
-    meanTime_m = localStatistics[l++] * perParticle;
-
-    meanKineticEnergy_m = localStatistics[l++] * perParticle;
-    meanGamma_m         = localStatistics[l++] * perParticle;
-}
-*/
-
-/* 2 * Dim centroids + Dim * ( 2 * Dim + 1 ) 2nd moments + 2 * Dim (3rd and 4th order moments)
- * --> 1st order moments: 0, ..., 2 * Dim - 1
- * --> 2nd order moments: 2 * Dim, ..., Dim * ( 2 * Dim + 1 )
- * --> 3rd order moments: Dim * ( 2 * Dim + 1 ) + 1, ..., Dim * ( 2 * Dim + 1 ) + Dim
- * (only, <x^3>, <y^3> and <z^3>)
- * --> 4th order moments: Dim * ( 2 * Dim + 1 ) + Dim + 1, ..., Dim * ( 2 * Dim + 1 ) + 2 * Dim
- *
- * For a 6x6 matrix we have each 2nd order moment (except diagonal
- * entries) twice. We only store the upper half of the matrix.
-
-template <class InputIt>
-void DistributionMoments::computeStatistics(const InputIt& first, const InputIt& last) {
-    reset();
-
-    computeMeans(first, last);
-
-    double perParticle = 1.0 / totalNumParticles_m;
-    std::vector<double> localStatistics(37);
-    for (InputIt it = first; it != last; ++it) {
-        OpalParticle const& particle = *it;
-        if (isParticleExcluded(particle)) {
-            continue;
-        }
-        unsigned int l = 6;
-        for (unsigned int i = 0; i < 6; ++i) {
-            localStatistics[i] += std::pow(particle[i] - centroid_m[i] * perParticle, 2);
-            for (unsigned int j = 0; j <= i; ++j, ++l) {
-                localStatistics[l] += particle[i] * particle[j];
-            }
-        }
-
-        localStatistics[l++] += std::pow(particle.getTime() - meanTime_m, 2);
-
-        for (unsigned int i = 0; i < 3; ++i, l += 2) {
-            double r2 = std::pow(particle[i], 2);
-            localStatistics[l] += r2 * particle[i];
-            localStatistics[l + 1] += r2 * r2;
-        }
-
-        double eKin = Util::getKineticEnergy(particle.getP(), particle.getMass());
-        localStatistics[l++] += std::pow(eKin - meanKineticEnergy_m, 2);
-        localStatistics[l++] += particle.getCharge();
-        localStatistics[l++] += particle.getMass();
-    }
-
-    ippl::Comm->allreduce(localStatistics.data(), localStatistics.size(), std::plus<double>());
-
-    fillMembers(localStatistics);
-
-    computePercentiles(first, last);
-}
-*/
 
 template <class InputIt>
 void DistributionMoments::computePercentiles(const InputIt& first, const InputIt& last) {
@@ -680,7 +570,8 @@ double DistributionMoments::computeNormalizedEmittance(
     return normalizedEps;
 }
 
-void DistributionMoments::fillMembers(std::vector<double>& localMoments) {
+void DistributionMoments::fillMembers(std::vector<double>& /*localMoments*/) {
+    *gmsg << "not implemented" << endl;
     /*
     Vector_t<double, 3> squaredEps, fac, sumRP;
     double perParticle = 1.0 / totalNumParticles_m;
@@ -741,8 +632,7 @@ void DistributionMoments::computeMeanKineticEnergy() {
 */
 }
 
-void DistributionMoments::computeDebyeLength(ippl::ParticleAttrib<Vector_t<double,3>>::view_type&  Rview,
-                                         ippl::ParticleAttrib<Vector_t<double,3>>::view_type&  Pview,
+void DistributionMoments::computeDebyeLength(ippl::ParticleAttrib<Vector_t<double,3>>::view_type&  Pview,
                                          size_t Np,
                                          size_t Nlocal,
                                          double density){
@@ -867,7 +757,8 @@ void DistributionMoments::resetPlasmaParameters() {
 }
 
 /// \todo this needs to go
-bool DistributionMoments::isParticleExcluded(const OpalParticle& particle) const {
+bool DistributionMoments::isParticleExcluded(const OpalParticle& /*particle*/) const {
     // FIXME After issue 287 is resolved this shouldn't be necessary anymore
+    *gmsg << "not implemented" << endl;
     return true;
 }

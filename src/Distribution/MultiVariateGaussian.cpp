@@ -95,6 +95,7 @@ MultiVariateGaussian::MultiVariateGaussian(std::shared_ptr<ParticleContainer_t> 
     setCutoffR(cutoffR);
     setCutoffP(cutoffP);
     setFixMeanR(fixMeanR);
+    setFixMeanP(fixMeanP);
 
     samplerTimer_m = IpplTimings::getTimer("SamplingTimer");
     initRandomPool();
@@ -195,7 +196,7 @@ void MultiVariateGaussian::ComputeCenteredBounds() {
 /**
  * @brief Generates particles following a multivariate Gaussian distribution.
  */
-void MultiVariateGaussian::generateParticles(size_t &numberOfParticles, Vector_t<double, 3> nr) {
+void MultiVariateGaussian::generateParticles(size_t &numberOfParticles, Vector_t<double, 3> /*nr*/) {
     IpplTimings::startTimer(samplerTimer_m);
 
     auto rand_pool64 = randPool_m;

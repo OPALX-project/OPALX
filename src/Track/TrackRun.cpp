@@ -245,18 +245,31 @@ void TrackRun::execute() {
     Beam* beam = Beam::find(Attributes::getString(itsAttr[TRACKRUN::BEAM]));
     *gmsg << *beam << endl;
 
-    macrocharge_m = beam->getChargePerParticle();
-    macromass_m   = beam->getMassPerParticle();
-
+    macrocharge_m = beam->getChargePerParticle(); // Returns macro charge in [C]
+    macromass_m   = beam->getMassPerParticle(); // returns MACRO mass in GeV (mass per simulation particle)
+    
+    /// \todo debugging output, can potentially be removed later
+    double part_per_macro_ratio = macrocharge_m / (beam->getCharge() * Physics::q_e);
+    *gmsg << "* Macro charge per particle [eV]: " << (macrocharge_m) << endl;
+    *gmsg << "* Macro mass per particle: [GeV/c^2] " << (macromass_m) << endl;
+    *gmsg << "* Particles per macro particle: " << part_per_macro_ratio << endl;
     /*
       Here we can allocate the bunch
 
      */
     
     // There's a change of units for particle mass that seems strange -> gives consistent Kinetic Energy
-    bunch_m = std::make_shared<bunch_type>(macrocharge_m,
-                                           beam->getMass()*1e9*Units::eV2MeV,
-                                           beam->getNumberOfParticles(), 10, 1.0, "LF2", dist_m, fs_m);
+    /*
+    Need the following units for mass and charge:
+    - Charge per macro particle in [C], this should be macrocharge_m or q_m in the bunch. This will be used for the field calculations.
+    - The pusher needs consistent units: eV for mass and elementary charges for charge. This will (hopefully) be handled inside the pusher routines!
+    */
+    bunch_m = std::make_shared<bunch_type>(macrocharge_m, // set the Charge per macro-particle 
+                                           macromass_m,   // set the Mass per macro-particle, [GeV], for correct particle kick!
+                                                                                      // (see "3.1. Physical Units", where mass generally is in MeV/c^2)
+                                                                                      // However, OPAL seems to use eV for the pusher!
+                                                                                     /// \todo it would be much better to reinstate PartData or itsReference_m?
+                                           beam->getNumberOfParticles()/*, 10*/, 1.0, "LF2", dist_m, fs_m);
     bunch_m->setT(0.0);
     bunch_m->setBeamFrequency(beam->getFrequency() * Units::MHz2Hz);
 

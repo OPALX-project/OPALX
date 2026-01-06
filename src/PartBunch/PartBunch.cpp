@@ -5,13 +5,13 @@
 #undef doDEBUG
 
 template <typename T, unsigned Dim>
-PartBunch<T, Dim>::PartBunch(double qi, double mi, size_t totalP, int nt, double lbt,
+PartBunch<T, Dim>::PartBunch(double qi, double mi, size_t totalP/*, int nt*/, double lbt,
                              std::string integration_method, std::shared_ptr<Distribution> &OPALdistribution,
                              std::shared_ptr<FieldSolverCmd> &OPALFieldSolver)
     : ippl::PicManager<T, Dim, ParticleContainer<T, Dim>, FieldContainer<T, Dim>, LoadBalancer<T, Dim>>(),
       time_m(0.0),
       totalP_m(totalP),
-      nt_m(nt),
+      //nt_m(nt),
       lbt_m(lbt),
       dt_m(0),
       it_m(0),
@@ -109,9 +109,8 @@ void PartBunch<T, Dim>::do_binaryRepart() {
     std::shared_ptr<FieldContainer_t> fc = this->fcontainer_m;
 
     size_type totalP = this->getTotalNum();
-    int it = this->it_m;
 
-    if (this->loadbalancer_m->balance(totalP, it + 1)) {
+    if (this->loadbalancer_m->balance(totalP)) {
         auto* mesh = &fc->getRho().get_mesh();
         auto* FL = &fc->getFL();
         this->loadbalancer_m->repartition(FL, mesh, isFirstRepartition_m);
@@ -147,7 +146,7 @@ void PartBunch<T, Dim>::setSolver(std::string solver) {
 }
 
 template <typename T, unsigned Dim>
-void PartBunch<T, Dim>::spaceChargeEFieldCheck(Vector_t<double, 3> efScale) {
+void PartBunch<T, Dim>::spaceChargeEFieldCheck(Vector_t<double, 3> /*efScale*/) {
     Inform msg("EParticleStats");
 
     auto pE_view   = this->pcontainer_m->E.getView();
@@ -444,7 +443,7 @@ void PartBunch<T, Dim>::computeSelfFields() {
 
     // Start binning and sorting by bins
     std::shared_ptr<AdaptBins_t> bins = this->getBins();
-    VField_t<double, 3>& Etmp = *(this->getTempEField());
+    //VField_t<double, 3>& Etmp = *(this->getTempEField());
 
     IpplTimings::startTimer(completeBinningT);
     bins->doFullRebin(bins->getMaxBinCount()); // rebin with 128 bins // bins->getMaxBinCount()

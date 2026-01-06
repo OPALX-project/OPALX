@@ -66,9 +66,6 @@ public:
     virtual bool canReplaceBy(Object* object);
     virtual Distribution* clone(const std::string& name);
     virtual void execute();
-    virtual void update();
-
-    void create(size_t &numberOfParticles, double massIneV, double charge, ippl::ParticleAttrib<ippl::Vector<double, 3>>& R, ippl::ParticleAttrib<ippl::Vector<double, 3>>& P, std::shared_ptr<ParticleContainer<double, 3>> &pc, std::shared_ptr<FieldContainer_t> &fc, Vector_t<double, 3> nr);
 
     size_t getNumOfLocalParticlesToCreate(size_t n);
 
@@ -176,8 +173,6 @@ private:
     public:
         virtual double get(double rand);
     };
-
-    void createDistributionGauss(size_t numberOfParticles, double massIneV, ippl::ParticleAttrib<ippl::Vector<double, 3>>& R, ippl::ParticleAttrib<ippl::Vector<double, 3>>& P, std::shared_ptr<ParticleContainer<double, 3>> &pc, std::shared_ptr<FieldContainer_t> &fc, Vector_t<double, 3> nr);
 
     //
     //
