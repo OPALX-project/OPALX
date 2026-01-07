@@ -312,80 +312,42 @@ inline void ParallelTracker::kickParticles(const BorisPusher& pusher) {
     /// \todo Apparently, we want mass in eV and charge in elementary charges here to match OPAL's BorisPusher
     double mass = itsBunch_m->getMassPerParticle(); // itsReference.getM();
     double charge = itsBunch_m->getChargePerParticle(); // itsReference.getQ();
-    //*gmsg << "* BorisPusher::kick mass= " << mass << " charge= " << charge << endl; 
-    *gmsg << "* BorisPusher::kick mass= " << itsReference.getM() << " charge= " << itsReference.getQ() << endl;
-
-    // This matches what opal does ("500000eV" and "-1" charge for electrons instead of macro particles)
-    //mass   = pusher.itsReference->getM();
-    //charge = pusher.itsReference->getQ();
 
     Kokkos::parallel_for(
         "kickParticles", ippl::getRangePolicy(Pview),
         KOKKOS_LAMBDA(const size_t i) {
-            //Vector_t<double, 3> e = Efview(i); // {Efview(i)[0],Efview(i)[1],Efview(i)[2]};
-            //Vector_t<double, 3> b = Bfview(i); // {Bfview(i)[0],Bfview(i)[1],Bfview(i)[2]};
-            // double dt = dtview(i);
-
-            // pusher.kick(x,p,e,b,dt);
-            // Implementation follows chapter 4-4, p. 61 - 63 from
-            // Birdsall, C. K. and Langdon, A. B. (1985). Plasma physics
-            // via computer simulation.
-            //
-            // Up to finite precision effects, the new implementation is equivalent to the
-            // old one, but uses less floating point operations.
-            //
-            // Relativistic variant implemented below is described in
-            // chapter 15-4, p. 356 - 357.
-            // However, since other units are used here, small
-            // modifications are required. The relativistic variant can be derived
-            // from the nonrelativistic one by replacing
-            //     mass
-            // by
-            //     gamma * rest mass
-            // and transforming the units.
-            //
-            // Parameters:
-            //     R = x / (c * dt): Scaled position x, not used in here
-            //     P = v / c * gamma: Scaled velocity v
-            //     Ef: Electric field
-            //     Bf: Magnetic field
-            //     dt: Timestep
-            //     mass = rest energy = rest mass * c * c
-            //     charge
-            /*
-            // Half step E
-            p += 0.5 * dt * charge * Physics::c / mass * e;
-
-            // Full step B
-
-            const double gamma          = Kokkos::sqrt(1.0 + dot(p, p));
-            Vector_t<double, 3> const t = 0.5 * dt * charge * Physics::c * Physics::c / (gamma * mass) * b;
-            Vector_t<double, 3> const w = p + cross(p, t);
-            Vector_t<double, 3> const s = 2.0 / (1.0 + dot(t, t)) * t;
-            p += cross(w, s);
-
-
-            // Half step E
-            p += 0.5 * dt * charge * Physics::c / mass * e;
-
-            Pview(i) = p;
-            */
-            //pusher.kick(/*Rview(i),*/ p, e, b, 0)
-            Vector_t<double, 3> p = Pview(i); // {Pview(i)[0],Pview(i)[1],Pview(i)[2]};
-
-            /// \todo might want to remove dt and R altogether from the kick!
-            pusher.kick(0, p, Efview(i), Bfview(i), 0, mass, charge);  
+            /**
+             *
+             * Implementation follows chapter 4-4, pp. 61–63, from:
+             * Birdsall, C. K. and Langdon, A. B. (1985). Plasma Physics via Computer Simulation.
+             *
+             * Up to finite-precision effects, the new implementation is equivalent to the old one,
+             * but uses fewer floating-point operations.
+             *
+             * The relativistic variant implemented below is described in chapter 15-4, pp. 356–357.
+             * However, since different units are used here, small modifications are required.
+             * The relativistic variant can be derived from the nonrelativistic one by replacing:
+             *   mass
+             * with:
+             *   gamma * rest mass
+             * and transforming the units accordingly.
+             *
+             * Parameters:
+             *   R      Scaled position, R = x / (c * dt). Not used here.
+             *   P      Scaled velocity, P = (v / c) * gamma.
+             *   Ef     Electric field.
+             *   Bf     Magnetic field.
+             *   dt     Timestep.
+             *   mass   Rest energy, i.e., rest mass * c^2.
+             *   charge Particle charge.
+             *
+             */
+           
+            Vector_t<double, 3> p = Pview(i); 
+            pusher.kick(0, p, Efview(i), Bfview(i), 0, mass, charge); /// \todo might want to remove dt and R altogether from the kick!
             Pview(i) = p; 
-
-            // Translate std::cout << "Charge: " << charge << ", Mass: " << mass << ", Ef: " << Ef << ", Bf: " << Bf << ", dt: " << dt << std::endl; to Kokkos::printf
-            //Kokkos::printf("Charge: %f, Mass: %f, Ef: (%f, %f, %f), Bf: (%f, %f, %f), dt: %f\n",
-            //               charge, mass,
-            //               Efview(i)[0], Efview(i)[1], Efview(i)[2],
-            //               Bfview(i)[0], Bfview(i)[1], Bfview(i)[2],
-            //               0.0);
-            // Result: E = B = 0 -> no kick applied (hä?)
         });
-    // ippl::Comm->abort();
+        
     /// \todo unnecessary update? kick does not modify positions
     itsBunch_m->getParticleContainer()->update();
     ippl::Comm->barrier();
@@ -400,40 +362,23 @@ inline void ParallelTracker::pushParticles(const BorisPusher& pusher) {
     auto Pview  = itsBunch_m->getParticleContainer()->P.getView();
     //auto dtview = itsBunch_m->getParticleContainer()->dt.getView();
 
-    //*gmsg << "* Reference mass = " << pusher.itsReference->getM() << " charge = " << pusher.itsReference->getQ() << endl;
-    //*gmsg << "* Mass used here = " << itsBunch_m->getMassPerParticle() << " charge = " << itsBunch_m->getChargePerParticle() << endl;
-
     Kokkos::parallel_for(
         "pushParticles", ippl::getRangePolicy(Rview),
         KOKKOS_LAMBDA(const size_t i) {
-            Vector_t<double, 3> x = Rview(i); // {Rview(i)[0],Rview(i)[1],Rview(i)[2]};
-            //Vector_t<double, 3> p = Pview(i); // {Pview(i)[0],Pview(i)[1],Pview(i)[2]};
-            // double dt = dtview(i);
-
-                /** \f[ \vec{x}_{n+1/2} = \vec{x}_{n} + \frac{1}{2}\vec{v}_{n-1/2}\quad (= \vec{x}_{n} +
-                 * \frac{\Delta t}{2} \frac{\vec{\beta}_{n-1/2}\gamma_{n-1/2}}{\gamma_{n-1/2}}) \f]
-                 *
-                 * \code
-                 * R[i] += 0.5 * P[i] * recpgamma;
-                 * \endcode
-                 */
+            /** 
+             * \f[ \vec{x}_{n+1/2} = \vec{x}_{n} + \frac{1}{2}\vec{v}_{n-1/2}\quad (= \vec{x}_{n} +
+             * \frac{\Delta t}{2} \frac{\vec{\beta}_{n-1/2}\gamma_{n-1/2}}{\gamma_{n-1/2}}) \f]
+             *
+             * \code
+             * R[i] += 0.5 * P[i] * recpgamma;
+             * \endcode
+             */
             /// \todo check +-
-                
+            
+            Vector_t<double, 3> x = Rview(i); 
             pusher.push(x, Pview(i), 0); // this 0 is "dt" that is not used with unitless positions!
-            //x = 0.5 * dt * p / Kokkos::sqrt(1.0 + dot(p));
-            //Rview(i) += x;
-            // Print difference between old and new position
-            //Kokkos::printf("Difference x: (%f, %f, %f). P = (%f, %f, %f)\n",
-            //               x[0] - Rview(i)[0],
-            //               x[1] - Rview(i)[1],
-            //               x[2] - Rview(i)[2],
-            //               Pview(i)[0],
-            //               Pview(i)[1],
-            //               Pview(i)[2]);
-
             Rview(i) = x;
         });
-    //ippl::Comm->abort();
 
     itsBunch_m->switchOffUnitlessPositions(false);
     itsBunch_m->getParticleContainer()->update();
