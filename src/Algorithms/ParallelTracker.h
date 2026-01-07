@@ -393,6 +393,7 @@ inline void ParallelTracker::kickParticles(const BorisPusher& pusher) {
 
 inline void ParallelTracker::pushParticles(const BorisPusher& pusher) {
 
+    /// \todo use false for now, since I am not sure how well integrated "dt_per_particle" is (needs to be consistent with particle emission later!).
     itsBunch_m->switchToUnitlessPositions(false);
 
     auto Rview  = itsBunch_m->getParticleContainer()->R.getView();
