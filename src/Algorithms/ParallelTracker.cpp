@@ -428,6 +428,12 @@ void ParallelTracker::execute() {
 
             timeIntegration2(pusher);
 
+            /*
+            The following lines contain debugging output that was needed to fix units.
+            \todo I (Github @aliemen) will remove it once everything is correct.
+            At the moment, some units are better, but the self fields still seem off.
+            */
+            /*
             {
                 // Calculate bunch size: rms in position
                 Vector_t<double, 3> meanR = itsBunch_m->getParticleContainer()->getMeanR();
@@ -522,6 +528,7 @@ void ParallelTracker::execute() {
                 *gmsg << "* After step " << step + 1 << ": First particle mass = "
                       << firstMass << ", charge = " << firstCharge << endl;
             }
+            */
             
             selectDT(back_track);
             // \todo emitParticles(step);
@@ -710,7 +717,7 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
         }
     }
     
-    Kokkos::deep_copy( Rot, h_Rot );
+    Kokkos::deep_copy(Rot, h_Rot);
 
     // Reset fields to zero
     itsBunch_m->getParticleContainer()->E = 0;
@@ -729,8 +736,6 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
                         Rview(k)[i] += Rot(i, j) * x(j);
                     }
                 }
-                // Eview(k) = 0; // ippl::Vector<double, 3>(0.0);   // was done outside of the routine in the past
-                // Bview(k) = 0; // ippl::Vector<double, 3>(0.0); 
         });         
 
     itsBunch_m->boundp();
@@ -1122,6 +1127,7 @@ void ParallelTracker::transformBunch(const CoordinateSystemTrafo& trafo) {
         itsBunch_m->Bf[i] = trafo.rotateTo(itsBunch_m->Bf[i]);
         */
     //}
+    *gmsg << "* ParallelTracker::transformBunch() is not implemented." << endl;
 }
 
 void ParallelTracker::updateRefToLabCSTrafo() {
@@ -1174,8 +1180,6 @@ void ParallelTracker::updateRefToLabCSTrafo() {
     }
 
     CoordinateSystemTrafo update(R, Q);
-
-    // std::cout << "get Quaternion P: " << P << " Q: " << Q << std::endl;
 
     /// \todo this function is empty at the moment.
     transformBunch(update);

@@ -127,7 +127,7 @@ public:
 
         Inform m ("initializeFields ");
         m << "mesh spacing = " << mesh_m.getMeshSpacing() << endl;
-        m << "origine      = " << mesh_m.getOrigin() << endl;
+        m << "origin       = " << mesh_m.getOrigin() << endl;
         m << "FL           = " << fl_m <<	endl;
 
         E_m.initialize(mesh_m, fl_m);

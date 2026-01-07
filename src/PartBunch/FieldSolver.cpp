@@ -22,6 +22,9 @@ void  FieldSolver<double,3>::initSolverWithParams(const ippl::ParameterList& sp)
     if constexpr (std::is_same_v<Solver, CGSolver_t<T, Dim>>) {
         // The CG solver computes the potential directly and
         // uses this to get the electric field
+        throw OpalException("FieldSolver<double,3>::initSolverWithParams", "Cannot use CGSolver yet, not implemented.");
+
+        /// \todo implement properly
         m << "CG solver used " << endl;
         solver.setLhs(*phi_m);
         solver.setGradient(*E_m);

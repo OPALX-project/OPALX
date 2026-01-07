@@ -45,7 +45,8 @@ PartBunch<T, Dim>::PartBunch(double qi, double mi, size_t totalP/*, int nt*/, do
         this->decomp_m[i] = domainDecomposition[i];
     }
 
-    bool isAllPeriodic = false;  // \fixme need to get BCs from OPAL Fieldsolver
+    /// \todo \fixme need to get BCs from OPAL Fieldsolver
+    bool isAllPeriodic = true;  
 
     //      set stuff for pre_run i.e. warmup
     //      this will be reset when the correct computational
@@ -94,7 +95,7 @@ PartBunch<T, Dim>::PartBunch(double qi, double mi, size_t totalP/*, int nt*/, do
     
     globalPartPerNode_m = std::make_unique<size_t[]>(ippl::Comm->size());
 
-    *gmsg << "PartBunch Constructor done " << endl;
+    *gmsg << "* PartBunch constructor done." << endl;
 }
 
 template <typename T, unsigned Dim>
