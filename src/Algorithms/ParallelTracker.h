@@ -301,7 +301,7 @@ inline void ParallelTracker::visitTravelingWave(const TravelingWave& as) {
     itsOpalBeamline_m.visit(as, *this, itsBunch_m);
 }
 
-inline void ParallelTracker::kickParticles(const BorisPusher& /*pusher*/) {
+inline void ParallelTracker::kickParticles(const BorisPusher& pusher) {
     
     // auto Rview  = itsBunch_m->getParticleContainer()->R.getView();
     auto Pview  = itsBunch_m->getParticleContainer()->P.getView();
@@ -354,7 +354,7 @@ inline void ParallelTracker::kickParticles(const BorisPusher& /*pusher*/) {
     *gmsg << "passed BorisPusher argument not used in ParallelTracker::kickParticles" << endl;
 }
 
-inline void ParallelTracker::pushParticles(const BorisPusher& /*pusher*/) {
+inline void ParallelTracker::pushParticles(const BorisPusher& pusher) {
 
     /// \todo use false for now, since I am not sure how well integrated "dt_per_particle" is (needs to be consistent with particle emission later!).
     itsBunch_m->switchToUnitlessPositions(false);
