@@ -19,6 +19,7 @@
 #include "Random/NormalDistribution.h"
 #include "Random/Randn.h"
 #include "Utilities/OpalException.h"
+#include "BCHandler.hpp"
 
 #include "Structure/FieldSolverCmd.h"
 
@@ -52,6 +53,8 @@ public:
     using AdaptBins_t         = typename ParticleBinning::AdaptBins<ParticleContainer_t, BinningSelector_t>;
     using binIndex_t          = typename ParticleContainer_t::bin_index_type;
 
+    using BCHandler_t         = BCHandler<Dim>;
+
     double time_m;
 
     size_type totalP_m;
@@ -78,6 +81,7 @@ private:
 
     double rmsDensity_m;
 
+    std::shared_ptr<BCHandler_t> bcHandler_m;
 
 public:
     Vector_t<int, Dim> nr_m;
@@ -197,8 +201,15 @@ private:
 
 public:
 
-    PartBunch(double qi, double mi, size_t totalP/*, int nt*/, double lbt, std::string integration_method,
-              std::shared_ptr<Distribution> &OPALdistribution, std::shared_ptr<FieldSolverCmd> &OPALFieldSolver);
+    PartBunch(double qi, 
+              double mi, 
+              size_t totalP, 
+              /*int nt,*/ 
+              double lbt, 
+              std::string integration_method,
+              std::shared_ptr<Distribution> &OPALdistribution, 
+              std::shared_ptr<FieldSolverCmd> &OPALFieldSolver,
+              std::shared_ptr<BCHandler_t> bcHandler);
 
     void bunchUpdate();
 
