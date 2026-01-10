@@ -1118,7 +1118,7 @@ void ParallelTracker::updateReferenceParticle(const BorisPusher& pusher) {
     itsBunch_m->RefPartR_m *= scaleFactor;
 }
 
-void ParallelTracker::transformBunch(const CoordinateSystemTrafo& trafo) {
+void ParallelTracker::transformBunch(const CoordinateSystemTrafo& /*trafo*/) {
     //const unsigned int localNum = itsBunch_m->getLocalNum();
     //for (unsigned int i = 0; i < localNum; ++i) {
         /* \todo host device .... 
