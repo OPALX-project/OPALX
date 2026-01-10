@@ -53,11 +53,11 @@ PartBunch<T, Dim>::PartBunch(double qi,
     }
 
     /// \todo so far, we only use true for all periodic and false for all open.
-    bool isAllPeriodic = bcHandler_m->isAll(BCHandler_t::PERIODIC);
+    bool isAllPeriodic = this->getBCHandler()->isAll(BCHandler_t::PERIODIC);
 
     /// \todo fix this should at some point different boundary conditions be implemented
     // Additionally check if all BCs are equal and give user feedback. 
-    if (!bcHandler_m->isAllEqual()) {
+    if (!this->getBCHandler()->isAllEqual()) {
         throw OpalException("PartBunch::PartBunch", 
                             "Currently only uniform boundary conditions in all dimensions are supported! " +
                             "Please set all dimensions to either OPEN or PERIODIC.");
@@ -75,7 +75,7 @@ PartBunch<T, Dim>::PartBunch(double qi,
     rmin_m = origin_m;
     rmax_m = origin_m + length;
 
-    this->setFieldContainer(std::make_shared<FieldContainer_t>(hr_m, rmin_m, rmax_m, decomp_m, domain_m, origin_m, isAllPeriodic) );
+    this->setFieldContainer(std::make_shared<FieldContainer_t>(hr_m, rmin_m, rmax_m, decomp_m, domain_m, origin_m, isAllPeriodic));
 
     this->setParticleContainer(std::make_shared<ParticleContainer_t>(this->fcontainer_m->getMesh(), this->fcontainer_m->getFL()));
 

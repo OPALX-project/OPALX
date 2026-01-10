@@ -42,7 +42,7 @@ public:
     }
 
     friend std::ostream& operator<<(std::ostream& os, const BCHandler& h) {
-        os << "BCHandler<" << Dim << ">: [";
+        os << "* BCHandler<" << Dim << ">: [";
         for (unsigned int d = 0; d < Dim; ++d) {
             switch (h.bcs_m[d]) {
                 case OPEN: os << "OPEN"; break;
