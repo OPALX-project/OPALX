@@ -94,7 +94,8 @@ private:
       this is the ippl bunch
     */
 
-    using bunch_type = PartBunch_t;
+    using bunch_type  = PartBunch_t;
+    using BCHandler_t = typename bunch_type::BCHandler_t;
     std::shared_ptr<bunch_type> bunch_m;
 
     bool isFollowupTrack_m;

@@ -235,6 +235,9 @@ public:
     
     void setBins(std::shared_ptr<AdaptBins_t> bins) { bins_m = bins; } // TODO: Binning
 
+    void setBCHandler(std::shared_ptr<BCHandler_t> bcHandler) { bcHandler_m = bcHandler; }
+    std::shared_ptr<BCHandler_t> getBCHandler() { return bcHandler_m; }
+
     void updateMoments(){
         this->pcontainer_m->updateMoments();
     }
