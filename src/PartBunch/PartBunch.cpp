@@ -5,9 +5,15 @@
 #undef doDEBUG
 
 template <typename T, unsigned Dim>
-PartBunch<T, Dim>::PartBunch(double qi, double mi, size_t totalP/*, int nt*/, double lbt,
-                             std::string integration_method, std::shared_ptr<Distribution> &OPALdistribution,
-                             std::shared_ptr<FieldSolverCmd> &OPALFieldSolver)
+PartBunch<T, Dim>::PartBunch(double qi, 
+                             double mi, 
+                             size_t totalP,
+                             /*int nt,*/ 
+                             double lbt,
+                             std::string integration_method, 
+                             std::shared_ptr<Distribution> &OPALdistribution,
+                             std::shared_ptr<FieldSolverCmd> &OPALFieldSolver,
+                             std::shared_ptr<BCHandler_t> bcHandler)
     : ippl::PicManager<T, Dim, ParticleContainer<T, Dim>, FieldContainer<T, Dim>, LoadBalancer<T, Dim>>(),
       time_m(0.0),
       totalP_m(totalP),
@@ -26,7 +32,8 @@ PartBunch<T, Dim>::PartBunch(double qi, double mi, size_t totalP/*, int nt*/, do
       localTrackStep_m(0),
       globalTrackStep_m(0),
       OPALdist_m(OPALdistribution),
-      OPALFieldSolver_m(OPALFieldSolver) {
+      OPALFieldSolver_m(OPALFieldSolver),
+      bcHandler_m(bcHandler) {
 
     static IpplTimings::TimerRef gatherInfoPartBunch = IpplTimings::getTimer("gatherInfoPartBunch");
     IpplTimings::startTimer(gatherInfoPartBunch);
@@ -45,8 +52,16 @@ PartBunch<T, Dim>::PartBunch(double qi, double mi, size_t totalP/*, int nt*/, do
         this->decomp_m[i] = domainDecomposition[i];
     }
 
-    /// \todo \fixme need to get BCs from OPAL Fieldsolver
-    bool isAllPeriodic = true;  
+    /// \todo so far, we only use true for all periodic and false for all open.
+    bool isAllPeriodic = bcHandler_m->isAll(BCHandler_t::PERIODIC);
+
+    /// \todo fix this should at some point different boundary conditions be implemented
+    // Additionally check if all BCs are equal and give user feedback. 
+    if (!bcHandler_m->isAllEqual()) {
+        throw OpalException("PartBunch::PartBunch", 
+                            "Currently only uniform boundary conditions in all dimensions are supported! " +
+                            "Please set all dimensions to either OPEN or PERIODIC.");
+    }
 
     //      set stuff for pre_run i.e. warmup
     //      this will be reset when the correct computational
