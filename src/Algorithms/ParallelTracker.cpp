@@ -403,6 +403,20 @@ void ParallelTracker::execute() {
             Vector_t<double, 3> rmin(0.0), rmax(0.0);
             if (itsBunch_m->getTotalNum() > 0) {
                 itsBunch_m->get_bounds(rmin, rmax);
+                {
+                    *gmsg << "* Bunch bounds at step " << step + 1 << ": "
+                        << " x[" << Util::getLengthString(rmin(0)) << ", "
+                        << Util::getLengthString(rmax(0)) << "] "
+                        << " y[" << Util::getLengthString(rmin(1)) << ", "
+                        << Util::getLengthString(rmax(1)) << "] "
+                        << " z[" << Util::getLengthString(rmin(2)) << ", "
+                        << Util::getLengthString(rmax(2)) << "] " << endl;
+                }
+                {
+                    // Print out mass and charge per particle
+                    *gmsg << "* Particle mass at step " << step + 1 << ": " << itsBunch_m->getMassPerParticle() << endl;
+                    *gmsg << "* Charge mass at step " << step + 1 << ": " << itsBunch_m->getChargePerParticle() << endl;
+                }
             }
             // ADA
             timeIntegration1(pusher);
@@ -413,6 +427,108 @@ void ParallelTracker::execute() {
             // computeExternalFields(oth);
 
             timeIntegration2(pusher);
+
+            /*
+            The following lines contain debugging output that was needed to fix units.
+            \todo I (Github @aliemen) will remove it once everything is correct.
+            At the moment, some units are better, but the self fields still seem off.
+            */
+            /*
+            {
+                // Calculate bunch size: rms in position
+                Vector_t<double, 3> meanR = itsBunch_m->getParticleContainer()->getMeanR();
+                Vector_t<double, 3> sumR2(0.0);
+                unsigned long long numParticles = itsBunch_m->getTotalNum();
+                auto Rview = itsBunch_m->getParticleContainer()->R.getView();
+                Kokkos::parallel_reduce(
+                                     "bunchSizeCalc", numParticles,
+                                     KOKKOS_LAMBDA(const size_t i, Vector_t<double,3>& localSumR2) {
+                                         Vector_t<double, 3> diff = Rview(i) - meanR;
+                                         localSumR2 += diff * diff;
+                                     }, sumR2);
+                ippl::Comm->allreduce(sumR2, 1, std::plus<Vector_t<double, 3>>());
+                Vector_t<double, 3> rmsSize = sqrt( sumR2 / static_cast<double>(numParticles) );
+                *gmsg << "* After step " << step + 1 << ": Bunch RMS size (x,y,z) = ("
+                      << Util::getLengthString(rmsSize(0)) << ", "
+                      << Util::getLengthString(rmsSize(1)) << ", "
+                      << Util::getLengthString(rmsSize(2)) << ") " << endl;
+            }
+
+            {
+                // Output sum of particle charges
+                double localChargeSum = 0.0;
+                unsigned long long numParticles = itsBunch_m->getTotalNum();
+                auto chargeView = itsBunch_m->getParticleContainer()->Q.getView();
+                Kokkos::parallel_reduce(
+                                     "chargeSumCalc", numParticles,
+                                     KOKKOS_LAMBDA(const size_t i, double& localSum) {
+                                         localSum += chargeView(i);
+                                     }, localChargeSum);
+                double globalChargeSum = 0.0;
+                ippl::Comm->allreduce(&localChargeSum, &globalChargeSum, 1, std::plus<double>());
+                *gmsg << "* After step " << step + 1 << ": Total bunch charge = "
+                      << globalChargeSum << endl; // Util::getChargeString(
+            }
+            {
+                // Extract charge of first particle for debugging
+                double firstParticleCharge = 0.0;
+                auto chargeView = itsBunch_m->getParticleContainer()->Q.getView();
+                Kokkos::parallel_reduce(
+                                     "firstParticleCharge", 1,
+                                     KOKKOS_LAMBDA(const size_t i, double& localCharge) {
+                                         localCharge = chargeView(0);
+                                     }, firstParticleCharge);
+                *gmsg << "* After step " << step + 1 << ": First particle charge = "
+                      << firstParticleCharge << endl;
+            }
+            {
+                // Calculate mean electric field in x/y/z for debugging
+                Vector_t<double, 3> localSumE(0.0);
+                unsigned long long numParticles = itsBunch_m->getTotalNum();
+                auto Eview = itsBunch_m->getParticleContainer()->E.getView();
+                Kokkos::parallel_reduce(
+                                     "meanECalc", numParticles,
+                                     KOKKOS_LAMBDA(const size_t i, Vector_t<double,3>& localSum) {
+                                         localSum += Eview(i);
+                                     }, localSumE);
+                ippl::Comm->allreduce(localSumE, 1, std::plus<Vector_t<double, 3>>());
+                Vector_t<double, 3> meanE = localSumE / static_cast<double>(numParticles);
+                *gmsg << "* After step " << step + 1 << ": Mean electric field (x,y,z) = ("
+                      << meanE(0) << ", "
+                      << meanE(1) << ", "
+                      << meanE(2) << ")" << endl;
+            }
+            {
+                // Compute mean z position for debugging
+                double localSumZ = 0.0;
+                unsigned long long numParticles = itsBunch_m->getTotalNum();
+                auto Rview = itsBunch_m->getParticleContainer()->R.getView();
+                Kokkos::parallel_reduce(
+                    "meanZCalc", numParticles,
+                    KOKKOS_LAMBDA(const size_t i, double& localSum) {
+                        localSum += Rview(i)[2];
+                    }, localSumZ);
+                double globalSumZ = 0.0;
+                ippl::Comm->allreduce(&localSumZ, &globalSumZ, 1, std::plus<double>());
+                double meanZ = globalSumZ / static_cast<double>(numParticles);
+                *gmsg << "* Mean z position at step " << step << ": " << Util::getLengthString(meanZ) << endl;
+            }
+            {
+                // Look at the first mass and the first charge in the bunch (deep copy)
+                double firstMass = 0.0;
+                double firstCharge = 0.0;
+                auto massView = itsBunch_m->getParticleContainer()->M.getView();
+                auto chargeView = itsBunch_m->getParticleContainer()->Q.getView();
+                Kokkos::parallel_reduce(
+                                     "firstMassCharge", 1,
+                                     KOKKOS_LAMBDA(const size_t i, double& localMass, double& localCharge) {
+                                         localMass = massView(0);
+                                         localCharge = chargeView(0);
+                                     }, firstMass, firstCharge);
+                *gmsg << "* After step " << step + 1 << ": First particle mass = "
+                      << firstMass << ", charge = " << firstCharge << endl;
+            }
+            */
             
             selectDT(back_track);
             // \todo emitParticles(step);
@@ -446,6 +562,9 @@ void ParallelTracker::execute() {
             ippl::Vector<double,3> pdivg = itsBunch_m->RefPartP_m / Util::getGamma(itsBunch_m->RefPartP_m);
             double beta = euclidean_norm(pdivg);
             double driftPerTimeStep = std::abs(itsBunch_m->getdT()) * Physics::c * beta;
+
+            // Output driftPerTimeStep for debugging
+            *gmsg << "* Drift per time step: " << Util::getLengthString(driftPerTimeStep) << endl;
 
             if (std::abs(stepSizes_m.getZStop() - pathLength_m) < 0.5 * driftPerTimeStep) {
                 break;
@@ -522,10 +641,10 @@ void ParallelTracker::timeIntegration2(BorisPusher& pusher) {
     double newdT = itsBunch_m->getdT();
 
     Kokkos::parallel_for(
-                         "changeDT", ippl::getRangePolicy(dtview),
-                         KOKKOS_LAMBDA(const int i) {
-                             dtview(i) = newdT;
-                         });                     
+        "changeDT", ippl::getRangePolicy(dtview),
+        KOKKOS_LAMBDA(const size_t i) {
+            dtview(i) = newdT;
+        });                     
     
     IpplTimings::stopTimer(timeIntegrationTimer2_m);
 }
@@ -547,10 +666,10 @@ void ParallelTracker::changeDT(bool backTrack) {
     double newdT = itsBunch_m->getdT();
 
     Kokkos::parallel_for(
-                         "changeDT", ippl::getRangePolicy(dtview),
-                         KOKKOS_LAMBDA(const int i) {
-                             dtview(i) = newdT;
-                         });                     
+        "changeDT", ippl::getRangePolicy(dtview),
+        KOKKOS_LAMBDA(const size_t i) {
+            dtview(i) = newdT;
+        });                     
     
 }
 
@@ -598,15 +717,13 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
         }
     }
     
-    Kokkos::deep_copy( Rot, h_Rot );
+    Kokkos::deep_copy(Rot, h_Rot);
 
     // Reset fields to zero
     itsBunch_m->getParticleContainer()->E = 0;
     itsBunch_m->getParticleContainer()->B = 0;
 
     auto Rview  = itsBunch_m->getParticleContainer()->R.getView();
-    auto Eview  = itsBunch_m->getParticleContainer()->E.getView();
-    auto Bview  = itsBunch_m->getParticleContainer()->B.getView();
 
     Kokkos::parallel_for(
         "referenceToBeamCSTrafo", ippl::getRangePolicy(Rview),
@@ -619,8 +736,6 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
                         Rview(k)[i] += Rot(i, j) * x(j);
                     }
                 }
-                // Eview(k) = 0; // ippl::Vector<double, 3>(0.0);   // was done outside of the routine in the past
-                // Bview(k) = 0; // ippl::Vector<double, 3>(0.0); 
         });         
 
     itsBunch_m->boundp();
@@ -646,6 +761,8 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
             rid of boost. This should now be fixed.
      */
     
+    auto Eview  = itsBunch_m->getParticleContainer()->E.getView();
+    auto Bview  = itsBunch_m->getParticleContainer()->B.getView();
     Kokkos::parallel_for(
         "beamToReferenceCSTrafo", ippl::getRangePolicy(Rview),
         KOKKOS_LAMBDA(const size_t k) {                           
@@ -1001,15 +1118,16 @@ void ParallelTracker::updateReferenceParticle(const BorisPusher& pusher) {
 }
 
 void ParallelTracker::transformBunch(const CoordinateSystemTrafo& trafo) {
-    const unsigned int localNum = itsBunch_m->getLocalNum();
-    for (unsigned int i = 0; i < localNum; ++i) {
+    //const unsigned int localNum = itsBunch_m->getLocalNum();
+    //for (unsigned int i = 0; i < localNum; ++i) {
         /* \todo host device .... 
         itsBunch_m->R[i]  = trafo.transformTo(itsBunch_m->R[i]);
         itsBunch_m->P[i]  = trafo.rotateTo(itsBunch_m->P[i]);
         itsBunch_m->Ef[i] = trafo.rotateTo(itsBunch_m->Ef[i]);
         itsBunch_m->Bf[i] = trafo.rotateTo(itsBunch_m->Bf[i]);
         */
-    }
+    //}
+    *gmsg << "* ParallelTracker::transformBunch() is not implemented." << endl;
 }
 
 void ParallelTracker::updateRefToLabCSTrafo() {
@@ -1025,16 +1143,49 @@ void ParallelTracker::updateRefToLabCSTrafo() {
     m << " dt= " << itsBunch_m->getdT() << " R=" << R << endl;
     */
 
+    // std::cout << "Before updateRefToLabCSTrafo(): RefPartP_m: " << itsBunch_m->RefPartP_m << std::endl;
+    //std::cout << "Rotation matrix = " << itsBunch_m->toLabTrafo_m.getRotationMatrix() << std::endl;
+
     Vector_t<double, 3> R = itsBunch_m->toLabTrafo_m.transformFrom(itsBunch_m->RefPartR_m);
+    
+    /// \todo This function makes P a NaN for some reason sometimes
+    //*gmsg << "* updateRefToLabCSTrafo(): P before transformFrom: " << itsBunch_m->RefPartP_m << endl;
     Vector_t<double, 3> P = itsBunch_m->toLabTrafo_m.transformFrom(itsBunch_m->RefPartP_m);
+    //*gmsg << "* updateRefToLabCSTrafo(): P after transformFrom: " << P << endl;
     
     pathLength_m += std::copysign(1, itsBunch_m->getdT()) * euclidean_norm(R);
 
-    CoordinateSystemTrafo update(R, getQuaternion(P, Vector_t<double, 3>(0, 0, 1)));
+    /*
+    This will produce a NaN Quaternion if P is parallel to the z axis because the cross product
+    of two parallel vectors is zero, leading to a zero norm when normalizing the axis of rotation.
+    The fix is to check if P is parallel to the z axis and not rotate in that case.
+    */
 
+    // First normalize P
+    double normP = euclidean_norm(P);
+    if (normP < 1e-12) {
+        pathLength_m += 0.0;
+        return;
+    }
+    P /= normP;
+
+    // After normalizing, we can check alignment with z-axis
+    Vector_t<double, 3> target(0, 0, 1);
+    double dot = P.dot(target);
+    bool aligned = std::abs(std::abs(dot) - 1.0) < 1e-6;
+    Quaternion Q = aligned ? Quaternion(0, 0, 0, 1.0) : getQuaternion(P, target);
+
+    if (aligned) {
+        *gmsg << "* Warning: Reference particle momentum is aligned with z-axis; no quaternion rotation applied." << endl;
+    }
+
+    CoordinateSystemTrafo update(R, Q);
+
+    /// \todo this function is empty at the moment.
     transformBunch(update);
 
-    itsBunch_m->toLabTrafo_m = itsBunch_m->toLabTrafo_m * update.inverted();
+    /// \todo this line seems to fail sometimes! Results in Quaternion NaN
+    itsBunch_m->toLabTrafo_m = itsBunch_m->toLabTrafo_m * update.inverted(); 
 }
 
 void ParallelTracker::applyFractionalStep(const BorisPusher& pusher, double tau) {
