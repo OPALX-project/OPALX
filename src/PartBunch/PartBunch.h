@@ -208,8 +208,7 @@ public:
               double lbt, 
               std::string integration_method,
               std::shared_ptr<Distribution> &OPALdistribution, 
-              std::shared_ptr<FieldSolverCmd> &OPALFieldSolver,
-              std::shared_ptr<BCHandler_t> bcHandler);
+              std::shared_ptr<FieldSolverCmd> &OPALFieldSolver);
 
     void bunchUpdate();
 
@@ -227,6 +226,8 @@ public:
 
     void pre_run() override ;
 
+    void performBunchSanityChecks() const;
+
 public:
     std::shared_ptr<VField_t<T, Dim>> getTempEField() { return this->Etmp_m; }
     void setTempEField(std::shared_ptr<VField_t<T, Dim>> Etmp) { this->Etmp_m = Etmp; }
@@ -236,7 +237,7 @@ public:
     void setBins(std::shared_ptr<AdaptBins_t> bins) { bins_m = bins; } // TODO: Binning
 
     void setBCHandler(std::shared_ptr<BCHandler_t> bcHandler) { bcHandler_m = bcHandler; }
-    std::shared_ptr<BCHandler_t> getBCHandler() { return bcHandler_m; }
+    std::shared_ptr<BCHandler_t> getBCHandler() const { return bcHandler_m; }
 
     void updateMoments(){
         this->pcontainer_m->updateMoments();

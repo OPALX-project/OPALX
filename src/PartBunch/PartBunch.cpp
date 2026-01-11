@@ -12,8 +12,7 @@ PartBunch<T, Dim>::PartBunch(double qi,
                              double lbt,
                              std::string integration_method, 
                              std::shared_ptr<Distribution> &OPALdistribution,
-                             std::shared_ptr<FieldSolverCmd> &OPALFieldSolver,
-                             std::shared_ptr<BCHandler_t> bcHandler)
+                             std::shared_ptr<FieldSolverCmd> &OPALFieldSolver)
     : ippl::PicManager<T, Dim, ParticleContainer<T, Dim>, FieldContainer<T, Dim>, LoadBalancer<T, Dim>>(),
       time_m(0.0),
       totalP_m(totalP),
@@ -32,8 +31,7 @@ PartBunch<T, Dim>::PartBunch(double qi,
       localTrackStep_m(0),
       globalTrackStep_m(0),
       OPALdist_m(OPALdistribution),
-      OPALFieldSolver_m(OPALFieldSolver),
-      bcHandler_m(bcHandler) {
+      OPALFieldSolver_m(OPALFieldSolver) {
 
     static IpplTimings::TimerRef gatherInfoPartBunch = IpplTimings::getTimer("gatherInfoPartBunch");
     IpplTimings::startTimer(gatherInfoPartBunch);
@@ -52,17 +50,13 @@ PartBunch<T, Dim>::PartBunch(double qi,
         this->decomp_m[i] = domainDecomposition[i];
     }
 
+    this->setBCHandler(std::make_shared<BCHandler_t>(
+        OPALFieldSolver_m->constructBCHandler()
+    ));
+
     /// \todo so far, we only use true for all periodic and false for all open.
     bool isAllPeriodic = this->getBCHandler()->isAll(BCHandler_t::PERIODIC);
-
-    /// \todo fix this should at some point different boundary conditions be implemented
-    // Additionally check if all BCs are equal and give user feedback. 
-    if (!this->getBCHandler()->isAllEqual()) {
-        throw OpalException("PartBunch::PartBunch",
-                            "Currently only uniform boundary conditions in all "
-                            "dimensions are supported! Please set all "
-                            "dimensions to either OPEN or PERIODIC.");
-    }
+    *gmsg << "* FieldContainer set to isAllPeriodic = " << isAllPeriodic << endl;
 
     //      set stuff for pre_run i.e. warmup
     //      this will be reset when the correct computational
@@ -669,6 +663,19 @@ void PartBunch<T,Dim>::scatterCICPerBin(PartBunch<T,Dim>::binIndex_t binIndex) {
         }
         *rho = *rho - (Q / size);
     }
+}
+
+template <typename T, unsigned Dim>
+void PartBunch<T,Dim>::performBunchSanityChecks() const {
+    Inform ms("PartBunch::performBunchSanityChecks");
+    /// \todo always try to add more checks here! Best practice: throw explanatory exceptions and give output when passed.
+
+    // Check if bc handler was initialized properly
+    if (!this->getBCHandler()) {
+        throw OpalException("PartBunch::performBunchSanityChecks", 
+                            "BC Handler not initialized properly.");
+    }
+    ms << "BC Handler initialized properly." << endl;
 }
 
 
