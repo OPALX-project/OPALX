@@ -58,9 +58,10 @@ PartBunch<T, Dim>::PartBunch(double qi,
     /// \todo fix this should at some point different boundary conditions be implemented
     // Additionally check if all BCs are equal and give user feedback. 
     if (!this->getBCHandler()->isAllEqual()) {
-        throw OpalException("PartBunch::PartBunch", 
-                            "Currently only uniform boundary conditions in all dimensions are supported! " +
-                            "Please set all dimensions to either OPEN or PERIODIC.");
+        throw OpalException("PartBunch::PartBunch",
+                            "Currently only uniform boundary conditions in all "
+                            "dimensions are supported! Please set all "
+                            "dimensions to either OPEN or PERIODIC.");
     }
 
     //      set stuff for pre_run i.e. warmup
@@ -75,9 +76,13 @@ PartBunch<T, Dim>::PartBunch(double qi,
     rmin_m = origin_m;
     rmax_m = origin_m + length;
 
-    this->setFieldContainer(std::make_shared<FieldContainer_t>(hr_m, rmin_m, rmax_m, decomp_m, domain_m, origin_m, isAllPeriodic));
+    this->setFieldContainer(std::make_shared<FieldContainer_t>(
+        hr_m, rmin_m, rmax_m, decomp_m, domain_m, origin_m, isAllPeriodic
+    ));
 
-    this->setParticleContainer(std::make_shared<ParticleContainer_t>(this->fcontainer_m->getMesh(), this->fcontainer_m->getFL()));
+    this->setParticleContainer(std::make_shared<ParticleContainer_t>(
+        this->fcontainer_m->getMesh(), this->fcontainer_m->getFL()
+    ));
 
     IpplTimings::stopTimer(gatherInfoPartBunch);
 
@@ -92,8 +97,11 @@ PartBunch<T, Dim>::PartBunch(double qi,
     ));
     this->getBins()->debug();
 
-    this->setTempEField(std::make_shared<VField_t<T, Dim>>(this->fcontainer_m->getE())); // user copy constructor
-    this->getTempEField()->initialize(this->fcontainer_m->getMesh(), this->fcontainer_m->getFL());
+    this->setTempEField(std::make_shared<VField_t<T, Dim>>(
+        this->fcontainer_m->getE()
+    )); // user copy constructor
+    this->getTempEField()->initialize(this->fcontainer_m->getMesh(), 
+                                      this->fcontainer_m->getFL());
     // -----------------------------------------------
 
     static IpplTimings::TimerRef setSolverT = IpplTimings::getTimer("setSolver");
@@ -140,7 +148,9 @@ template <typename T, unsigned Dim>
 void  PartBunch<T, Dim>::gatherLoadBalanceStatistics() {
         std::fill_n(globalPartPerNode_m.get(), ippl::Comm->size(), 0);  // Fill the array with zeros
         globalPartPerNode_m[ippl::Comm->rank()] = getLocalNum();
-        ippl::Comm->allreduce(globalPartPerNode_m.get(), ippl::Comm->size(), std::plus<size_t>());
+        ippl::Comm->allreduce(globalPartPerNode_m.get(), 
+                              ippl::Comm->size(), 
+                              std::plus<size_t>());
 }
 
 template <typename T, unsigned Dim>

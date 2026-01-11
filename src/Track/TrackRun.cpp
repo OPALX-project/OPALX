@@ -271,7 +271,9 @@ void TrackRun::execute() {
                                            beam->getNumberOfParticles()/*, 10*/, 1.0, "LF2", dist_m, fs_m);
     bunch_m->setT(0.0);
     bunch_m->setBeamFrequency(beam->getFrequency() * Units::MHz2Hz);
-    bunch_m->setBCHandler(std::make_shared<BCHandler_t>(true, true, true));
+    bunch_m->setBCHandler(std::make_shared<BCHandler_t>(
+        true, true, true
+    ));
 
     std::cout << *(bunch_m->getBCHandler()) << std::endl;
 
