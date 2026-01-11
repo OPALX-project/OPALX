@@ -4,7 +4,7 @@
 #include <array>
 #include <ostream>
 
-#include "OpalException.h"
+#include "Utilities/OpalException.h"
 
 template <unsigned Dim>
 class BCHandler {
@@ -13,6 +13,17 @@ public:
         OPEN, 
         PERIODIC 
     };
+
+    static BCType strToBCType(const std::string& str) {
+        if (str == "OPEN") {
+            return OPEN;
+        } else if (str == "PERIODIC") {
+            return PERIODIC;
+        } else {
+            throw OpalException("BCHandler::strToBCType", 
+                                "Unknown boundary condition type: " + str);
+        }
+    }
 
     // Copy constructor
     BCHandler(const BCHandler& other) = default;

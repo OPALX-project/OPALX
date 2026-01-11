@@ -24,6 +24,7 @@
 #include "AbstractObjects/Definition.h"
 #include "Algorithms/PartData.h"
 #include "Attributes/Attributes.h"
+#include "PartBunch/BCHandler.hpp"
 
 #include "Ippl.h"
 
@@ -62,6 +63,9 @@ public:
     static FieldSolverCmd* find(const std::string& name);
 
     std::string getType();
+
+    /// Returns solver boundary conditions handler object.
+    BCHandler<3> constructBCHandler() const;
 
     /// Return meshsize
     double getNX() const;
