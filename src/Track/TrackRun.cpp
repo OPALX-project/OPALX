@@ -254,7 +254,7 @@ void TrackRun::execute() {
     *gmsg << "* Macro mass per particle: [GeV/c^2] " << (macromass_m) << endl;
     *gmsg << "* Particles per macro particle: " << part_per_macro_ratio << endl;
     /*
-      Here we can allocate the bunch and set the boundary conditions.
+      Here we can allocate the bunch.
      */
     
     // There's a change of units for particle mass that seems strange -> gives consistent Kinetic Energy
