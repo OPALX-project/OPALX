@@ -5,8 +5,13 @@
 #undef doDEBUG
 
 template <typename T, unsigned Dim>
-PartBunch<T, Dim>::PartBunch(double qi, double mi, size_t totalP/*, int nt*/, double lbt,
-                             std::string integration_method, std::shared_ptr<Distribution> &OPALdistribution,
+PartBunch<T, Dim>::PartBunch(double qi, 
+                             double mi, 
+                             size_t totalP,
+                             /*int nt,*/ 
+                             double lbt,
+                             std::string integration_method, 
+                             std::shared_ptr<Distribution> &OPALdistribution,
                              std::shared_ptr<FieldSolverCmd> &OPALFieldSolver)
     : ippl::PicManager<T, Dim, ParticleContainer<T, Dim>, FieldContainer<T, Dim>, LoadBalancer<T, Dim>>(),
       time_m(0.0),
@@ -45,8 +50,13 @@ PartBunch<T, Dim>::PartBunch(double qi, double mi, size_t totalP/*, int nt*/, do
         this->decomp_m[i] = domainDecomposition[i];
     }
 
-    /// \todo \fixme need to get BCs from OPAL Fieldsolver
-    bool isAllPeriodic = true;  
+    this->setBCHandler(std::make_shared<BCHandler_t>(
+        OPALFieldSolver_m->constructBCHandler()
+    ));
+
+    /// \todo so far, we only use true for all periodic and false for all open.
+    bool isAllPeriodic = this->getBCHandler()->isAll(BCHandler_t::PERIODIC);
+    *gmsg << "* FieldContainer set to isAllPeriodic = " << isAllPeriodic << endl;
 
     //      set stuff for pre_run i.e. warmup
     //      this will be reset when the correct computational
@@ -60,9 +70,13 @@ PartBunch<T, Dim>::PartBunch(double qi, double mi, size_t totalP/*, int nt*/, do
     rmin_m = origin_m;
     rmax_m = origin_m + length;
 
-    this->setFieldContainer(std::make_shared<FieldContainer_t>(hr_m, rmin_m, rmax_m, decomp_m, domain_m, origin_m, isAllPeriodic) );
+    this->setFieldContainer(std::make_shared<FieldContainer_t>(
+        hr_m, rmin_m, rmax_m, decomp_m, domain_m, origin_m, isAllPeriodic
+    ));
 
-    this->setParticleContainer(std::make_shared<ParticleContainer_t>(this->fcontainer_m->getMesh(), this->fcontainer_m->getFL()));
+    this->setParticleContainer(std::make_shared<ParticleContainer_t>(
+        this->fcontainer_m->getMesh(), this->fcontainer_m->getFL()
+    ));
 
     IpplTimings::stopTimer(gatherInfoPartBunch);
 
@@ -77,8 +91,11 @@ PartBunch<T, Dim>::PartBunch(double qi, double mi, size_t totalP/*, int nt*/, do
     ));
     this->getBins()->debug();
 
-    this->setTempEField(std::make_shared<VField_t<T, Dim>>(this->fcontainer_m->getE())); // user copy constructor
-    this->getTempEField()->initialize(this->fcontainer_m->getMesh(), this->fcontainer_m->getFL());
+    this->setTempEField(std::make_shared<VField_t<T, Dim>>(
+        this->fcontainer_m->getE()
+    )); // user copy constructor
+    this->getTempEField()->initialize(this->fcontainer_m->getMesh(), 
+                                      this->fcontainer_m->getFL());
     // -----------------------------------------------
 
     static IpplTimings::TimerRef setSolverT = IpplTimings::getTimer("setSolver");
@@ -125,7 +142,9 @@ template <typename T, unsigned Dim>
 void  PartBunch<T, Dim>::gatherLoadBalanceStatistics() {
         std::fill_n(globalPartPerNode_m.get(), ippl::Comm->size(), 0);  // Fill the array with zeros
         globalPartPerNode_m[ippl::Comm->rank()] = getLocalNum();
-        ippl::Comm->allreduce(globalPartPerNode_m.get(), ippl::Comm->size(), std::plus<size_t>());
+        ippl::Comm->allreduce(globalPartPerNode_m.get(), 
+                              ippl::Comm->size(), 
+                              std::plus<size_t>());
 }
 
 template <typename T, unsigned Dim>
@@ -644,6 +663,19 @@ void PartBunch<T,Dim>::scatterCICPerBin(PartBunch<T,Dim>::binIndex_t binIndex) {
         }
         *rho = *rho - (Q / size);
     }
+}
+
+template <typename T, unsigned Dim>
+void PartBunch<T,Dim>::performBunchSanityChecks() const {
+    Inform ms("PartBunch::performBunchSanityChecks");
+    /// \todo always try to add more checks here! Best practice: throw explanatory exceptions and give output when passed.
+
+    // Check if bc handler was initialized properly
+    if (!this->getBCHandler()) {
+        throw OpalException("PartBunch::performBunchSanityChecks", 
+                            "BC Handler not initialized properly.");
+    }
+    ms << "BC Handler initialized properly." << endl;
 }
 
 

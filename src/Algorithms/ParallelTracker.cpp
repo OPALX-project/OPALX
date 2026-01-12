@@ -393,6 +393,9 @@ void ParallelTracker::execute() {
 
     stepSizes_m.printDirect(*gmsg);
     
+    /// Directly before the tracker loop, perform bunch sanity checks
+    this->itsBunch_m->performBunchSanityChecks();
+    
     while (!stepSizes_m.reachedEnd()) {
 
         unsigned long long trackSteps = stepSizes_m.getNumSteps() + step;
