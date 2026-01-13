@@ -425,6 +425,12 @@ void ParallelTracker::execute() {
             timeIntegration1(pusher);
             
             computeSpaceChargeFields(step);
+
+            ippl::Comm->barrier();
+            *gmsg << "* Dumping scalar field after space charge computation at step " << step << endl;
+            auto fs = std::dynamic_pointer_cast<FieldSolver<double, 3>>(this->itsBunch_m->getFieldSolver());
+            fs->dumpScalField("PHI");
+            ippl::Comm->barrier();
             
             // \todo for a drift we can neglect that 
             // computeExternalFields(oth);
