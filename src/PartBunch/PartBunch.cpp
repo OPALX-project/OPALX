@@ -5,8 +5,13 @@
 #undef doDEBUG
 
 template <typename T, unsigned Dim>
-PartBunch<T, Dim>::PartBunch(double qi, double mi, size_t totalP/*, int nt*/, double lbt,
-                             std::string integration_method, std::shared_ptr<Distribution> &OPALdistribution,
+PartBunch<T, Dim>::PartBunch(double qi, 
+                             double mi, 
+                             size_t totalP,
+                             /*int nt,*/ 
+                             double lbt,
+                             std::string integration_method, 
+                             std::shared_ptr<Distribution> &OPALdistribution,
                              std::shared_ptr<FieldSolverCmd> &OPALFieldSolver)
     : ippl::PicManager<T, Dim, ParticleContainer<T, Dim>, FieldContainer<T, Dim>, LoadBalancer<T, Dim>>(),
       time_m(0.0),
@@ -45,7 +50,13 @@ PartBunch<T, Dim>::PartBunch(double qi, double mi, size_t totalP/*, int nt*/, do
         this->decomp_m[i] = domainDecomposition[i];
     }
 
-    bool isAllPeriodic = true;  // \fixme need to get BCs from OPAL Fieldsolver
+    this->setBCHandler(std::make_shared<BCHandler_t>(
+        OPALFieldSolver_m->constructBCHandler()
+    ));
+
+    /// \todo so far, we only use true for all periodic and false for all open.
+    bool isAllPeriodic = this->getBCHandler()->isAll(BCHandler_t::PERIODIC);
+    *gmsg << "* FieldContainer set to isAllPeriodic = " << isAllPeriodic << endl;
 
     //      set stuff for pre_run i.e. warmup
     //      this will be reset when the correct computational
@@ -59,10 +70,13 @@ PartBunch<T, Dim>::PartBunch(double qi, double mi, size_t totalP/*, int nt*/, do
     rmin_m = origin_m;
     rmax_m = origin_m + length;
 
-    this->setFieldContainer( std::make_shared<FieldContainer_t>(hr_m, rmin_m, rmax_m, decomp_m, domain_m, origin_m, isAllPeriodic) );
+    this->setFieldContainer(std::make_shared<FieldContainer_t>(
+        hr_m, rmin_m, rmax_m, decomp_m, domain_m, origin_m, isAllPeriodic
+    ));
 
     this->setParticleContainer(std::make_shared<ParticleContainer_t>(
-        this->fcontainer_m->getMesh(), this->fcontainer_m->getFL()));
+        this->fcontainer_m->getMesh(), this->fcontainer_m->getFL()
+    ));
 
     IpplTimings::stopTimer(gatherInfoPartBunch);
 
@@ -77,8 +91,11 @@ PartBunch<T, Dim>::PartBunch(double qi, double mi, size_t totalP/*, int nt*/, do
     ));
     this->getBins()->debug();
 
-    this->setTempEField(std::make_shared<VField_t<T, Dim>>(this->fcontainer_m->getE())); // user copy constructor
-    this->getTempEField()->initialize(this->fcontainer_m->getMesh(), this->fcontainer_m->getFL());
+    this->setTempEField(std::make_shared<VField_t<T, Dim>>(
+        this->fcontainer_m->getE()
+    )); // user copy constructor
+    this->getTempEField()->initialize(this->fcontainer_m->getMesh(), 
+                                      this->fcontainer_m->getFL());
     // -----------------------------------------------
 
     static IpplTimings::TimerRef setSolverT = IpplTimings::getTimer("setSolver");
@@ -86,12 +103,16 @@ PartBunch<T, Dim>::PartBunch(double qi, double mi, size_t totalP/*, int nt*/, do
     setSolver(OPALFieldSolver_m->getType());
     IpplTimings::stopTimer(setSolverT);
 
+
     static IpplTimings::TimerRef prerun = IpplTimings::getTimer("prerun");
     IpplTimings::startTimer(prerun);
     pre_run();
     IpplTimings::stopTimer(prerun);
-
+    
+    
     globalPartPerNode_m = std::make_unique<size_t[]>(ippl::Comm->size());
+
+    *gmsg << "* PartBunch constructor done." << endl;
 }
 
 template <typename T, unsigned Dim>
@@ -121,7 +142,9 @@ template <typename T, unsigned Dim>
 void  PartBunch<T, Dim>::gatherLoadBalanceStatistics() {
         std::fill_n(globalPartPerNode_m.get(), ippl::Comm->size(), 0);  // Fill the array with zeros
         globalPartPerNode_m[ippl::Comm->rank()] = getLocalNum();
-        ippl::Comm->allreduce(globalPartPerNode_m.get(), ippl::Comm->size(), std::plus<size_t>());
+        ippl::Comm->allreduce(globalPartPerNode_m.get(), 
+                              ippl::Comm->size(), 
+                              std::plus<size_t>());
 }
 
 template <typename T, unsigned Dim>
@@ -133,8 +156,7 @@ void PartBunch<T, Dim>::setSolver(std::string solver) {
 
     this->fcontainer_m->initializeFields(this->solver_m);
     
-    this->setFieldSolver(std::make_shared<FieldSolver_t>(
-                                                         this->solver_m, &this->fcontainer_m->getRho(), &this->fcontainer_m->getE(),
+    this->setFieldSolver(std::make_shared<FieldSolver_t>(this->solver_m, &this->fcontainer_m->getRho(), &this->fcontainer_m->getE(),
                                                          &this->fcontainer_m->getPhi()));
 
     this->fsolver_m->initSolver();
@@ -431,7 +453,7 @@ void PartBunch<T, Dim>::bunchUpdate() {
     pc->update();
 
     this->isFirstRepartition_m = true;
-    this->loadbalancer_m->initializeORB(FL, mesh);
+    //this->loadbalancer_m->initializeORB(FL, mesh);
     //this->loadbalancer_m->repartition(FL, mesh, this->isFirstRepartition_m);
 
     this->updateMoments();
@@ -497,7 +519,19 @@ void PartBunch<T, Dim>::computeSelfFields() {
     this->fcontainer_m->getRho()             = 0.0;
     Field_t<Dim>* rho                        = &this->fcontainer_m->getRho();
 
-    scatter(*Q, *rho, *R); /// \todo replace with scatterCIC? --> later with scatterPerBin!
+    /// \todo replace with scatterCIC? --> later with scatterPerBin!
+    // Charge "unit" here is "charge per macroparticle" [C]!
+    *Q = (*Q) * this->pcontainer_m->dt; // Scale by time step
+    scatter(*Q, *rho, *R); 
+    *Q = (*Q) / this->pcontainer_m->dt; // Rescale back to charge per macroparticle
+
+    /*
+    Now rho is in units of [C * s] -- need to divide by dt to get back to [C].
+    Note By using the global timestep getdT(), we account for the possibility of 
+    "fractional timesteps", meaning the particle was virtually "created in the
+    middle" of a full timestep. As of now, this might not be necessary.
+    */
+    (*rho) = (*rho) / getdT(); 
 
 #ifdef doDEBUG
     const double qtot                        = this->qi_m * this->getTotalNum();
@@ -516,14 +550,35 @@ void PartBunch<T, Dim>::computeSelfFields() {
               << " rel. error in charge conservation: " << relError << endl;
     }
 #endif
+
+    // At this point, the units of rho need to be corrected: rho = rho / cellVolume
+    double cellVolumeInv = 1 / std::reduce(hr_m.begin(), hr_m.end(), 1., std::multiplies<double>());
+    (*rho) = (*rho) * cellVolumeInv;
+
+    // Alpine uses net 0 charge density for periodic BCs, so we need to subtract background charge here (?TODO: check)
+    double totalQ = getCharge();
+    if (this->fsolver_m->getStype() != "OPEN") {
+        double size = 1;
+        for (size_t d = 0; d < 3; d++) {
+            size *= rmax_m[d] - rmin_m[d];
+        }
+        (*rho) = (*rho) - (totalQ / size);
+    }
     
-   /*
+    /*
+    This concludes the scatter step ( \todo perhaps we want to put this in its own function, like scatterCIC)
 
-     scatterCIC end
+    Next is the solver step. The solver computes the E-field from rho directly. However,
+    at the moment, the potential has units of [C/m^3].
 
+    From OPAL:
+    The scalar potential is given back with rho_m in units [C/m] = [F*V/m] and must be divided by
+    4*pi*\epsilon_0 [F/m] resulting in [V].
     */
+    (*rho) = (*rho) / getCouplingConstant(); // now rho_m has units of [V]
 
-    this->fsolver_m->runSolver();    
+    this->fsolver_m->runSolver();
+    // Now, with E=-grad(phi), E has units of [V/m] (note, phi is a scalar potential)    
     
     gather(this->pcontainer_m->E, this->fcontainer_m->getE(), this->pcontainer_m->R);
 
@@ -609,6 +664,19 @@ void PartBunch<T,Dim>::scatterCICPerBin(PartBunch<T,Dim>::binIndex_t binIndex) {
         }
         *rho = *rho - (Q / size);
     }
+}
+
+template <typename T, unsigned Dim>
+void PartBunch<T,Dim>::performBunchSanityChecks() const {
+    Inform ms("PartBunch::performBunchSanityChecks");
+    /// \todo always try to add more checks here! Best practice: throw explanatory exceptions and give output when passed.
+
+    // Check if bc handler was initialized properly
+    if (!this->getBCHandler()) {
+        throw OpalException("PartBunch::performBunchSanityChecks", 
+                            "BC Handler not initialized properly.");
+    }
+    ms << "BC Handler initialized properly." << endl;
 }
 
 

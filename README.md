@@ -1,5 +1,9 @@
 # OPALX
 
+## Manual and Documentation
+
+ [OPALX documentation](https://opalx-project.github.io/Manual/)
+
 ## Dependencies
 
 In order to compile OPALX, make sure you have the following dependencies installed on your system:
