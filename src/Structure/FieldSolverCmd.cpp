@@ -39,7 +39,7 @@ FieldSolverCmd::FieldSolverCmd()
         FIELDSOLVER::SIZE, "FIELDSOLVER",
         "The \"FIELDSOLVER\" statement defines data for a the field solver") {
     itsAttr[FIELDSOLVER::TYPE] = Attributes::makePredefinedString(
-        "TYPE", "Name of the attached field solver.", {"NONE", "FFT", "CG ", "OPEN", "P3M"});
+        "TYPE", "Name of the attached field solver.", {"NONE", "FFT", "OPEN"}); // removed, since not implemented: "CG ", "P3M"
 
     itsAttr[FIELDSOLVER::NX] = Attributes::makeReal("NX", "Meshsize in x");
     itsAttr[FIELDSOLVER::NY] = Attributes::makeReal("NY", "Meshsize in y");
@@ -101,6 +101,30 @@ std::string FieldSolverCmd::getType() {
     return Attributes::getString(itsAttr[FIELDSOLVER::TYPE]);
 }
 
+BCHandler<3> FieldSolverCmd::constructBCHandler() const {
+    using BCH_t = BCHandler<3>;
+
+    BCH_t boundary_conditions(
+        BCH_t::strToBCType(Attributes::getString(itsAttr[FIELDSOLVER::BCFFTX])),
+        BCH_t::strToBCType(Attributes::getString(itsAttr[FIELDSOLVER::BCFFTY])),
+        BCH_t::strToBCType(Attributes::getString(itsAttr[FIELDSOLVER::BCFFTZ]))
+    );
+
+    /// \todo remove this restriction when more BC configurations are implemented
+    /**
+     * Add an additional check weather the boundary conditions are valid, which 
+     * currently means either OPEN or PERIODIC in all dimensions.
+     */
+    if (!boundary_conditions.isAllEqual()) {
+        throw OpalException("PartBunch::PartBunch",
+                            "Currently only uniform boundary conditions in all "
+                            "dimensions are supported! Please set all "
+                            "dimensions to either OPEN or PERIODIC.");
+    }
+    
+    return boundary_conditions;
+}
+
 double FieldSolverCmd::getNX() const {
     return Attributes::getReal(itsAttr[FIELDSOLVER::NX]);
 }
@@ -140,6 +164,7 @@ void FieldSolverCmd::setFieldSolverCmdType() {
     static const std::map<std::string, FieldSolverCmdType> stringType_s = {
         {"NONE", FieldSolverCmdType::NONE},
         {"FFT", FieldSolverCmdType::FFT},
+        {"OPEN", FieldSolverCmdType::OPEN},
     };
 
     fsName_m = getType();

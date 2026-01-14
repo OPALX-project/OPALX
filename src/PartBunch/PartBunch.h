@@ -19,6 +19,7 @@
 #include "Random/NormalDistribution.h"
 #include "Random/Randn.h"
 #include "Utilities/OpalException.h"
+#include "BCHandler.hpp"
 
 #include "Structure/FieldSolverCmd.h"
 
@@ -51,6 +52,8 @@ public:
     using AdaptBins_t         = typename ParticleBinning::AdaptBins<ParticleContainer_t, BinningSelector_t>;
     using binIndex_t          = typename ParticleContainer_t::bin_index_type;
 
+    using BCHandler_t         = BCHandler<Dim>;
+
     double time_m;
 
     size_type totalP_m;
@@ -77,6 +80,7 @@ private:
 
     double rmsDensity_m;
 
+    std::shared_ptr<BCHandler_t> bcHandler_m;
 
 public:
     Vector_t<int, Dim> nr_m;
@@ -196,8 +200,14 @@ private:
 
 public:
 
-    PartBunch(double qi, double mi, size_t totalP/*, int nt*/, double lbt, std::string integration_method,
-              std::shared_ptr<Distribution> &OPALdistribution, std::shared_ptr<FieldSolverCmd> &OPALFieldSolver);
+    PartBunch(double qi, 
+              double mi, 
+              size_t totalP, 
+              /*int nt,*/ 
+              double lbt, 
+              std::string integration_method,
+              std::shared_ptr<Distribution> &OPALdistribution, 
+              std::shared_ptr<FieldSolverCmd> &OPALFieldSolver);
 
     void bunchUpdate();
 
@@ -215,6 +225,8 @@ public:
 
     void pre_run() override ;
 
+    void performBunchSanityChecks() const;
+
 public:
     std::shared_ptr<VField_t<T, Dim>> getTempEField() { return this->Etmp_m; }
     void setTempEField(std::shared_ptr<VField_t<T, Dim>> Etmp) { this->Etmp_m = Etmp; }
@@ -222,6 +234,9 @@ public:
     std::shared_ptr<AdaptBins_t> getBins() { return bins_m; } // TODO: Binning
     
     void setBins(std::shared_ptr<AdaptBins_t> bins) { bins_m = bins; } // TODO: Binning
+
+    void setBCHandler(std::shared_ptr<BCHandler_t> bcHandler) { bcHandler_m = bcHandler; }
+    std::shared_ptr<BCHandler_t> getBCHandler() const { return bcHandler_m; }
 
     void updateMoments(){
         this->pcontainer_m->updateMoments();
