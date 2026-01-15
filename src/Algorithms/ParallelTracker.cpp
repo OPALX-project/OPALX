@@ -367,6 +367,9 @@ void ParallelTracker::execute() {
     OpalData::getInstance()->setInPrepState(false);
 
     stepSizes_m.printDirect(*gmsg);
+
+    /// Directly before the tracker loop, perform bunch sanity checks
+    this->itsBunch_m->performBunchSanityChecks();
     
     // Main tracking loop over step size configurations
     while (!stepSizes_m.reachedEnd()) {
@@ -556,10 +559,6 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
     
     Kokkos::deep_copy( Rot, h_Rot );
 
-    // Reset fields to zero
-    itsBunch_m->getParticleContainer()->E = 0;
-    itsBunch_m->getParticleContainer()->B = 0;
-
     auto Rview  = itsBunch_m->getParticleContainer()->R.getView();
     auto Eview  = itsBunch_m->getParticleContainer()->E.getView();
     auto Bview  = itsBunch_m->getParticleContainer()->B.getView();
@@ -680,6 +679,12 @@ void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
         refToLocalCSTrafo.rotateBunchTo(
             itsBunch_m->getParticleContainer()->P.getView());
 
+        refToLocalCSTrafo.rotateBunchTo(
+            itsBunch_m->getParticleContainer()->E.getView());
+
+        refToLocalCSTrafo.rotateBunchTo(
+            itsBunch_m->getParticleContainer()->B.getView());
+
         // Apply element
         (*it)->apply(); 
 
@@ -726,14 +731,8 @@ void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
  * @brief Resets the E and B field views to 0
  */
 void ParallelTracker::resetFields() {    
-    auto Eview  = itsBunch_m->getParticleContainer()->E.getView();
-    auto Bview  = itsBunch_m->getParticleContainer()->B.getView();
-
-    Kokkos::parallel_for("resetField", ippl::getRangePolicy(Eview), 
-    KOKKOS_LAMBDA(const int i) {
-        Eview(i) = 0;
-        Bview(i) = 0;
-    });
+    itsBunch_m->getParticleContainer()->E = 0;
+    itsBunch_m->getParticleContainer()->B = 0;
 }
 
 /**
@@ -743,33 +742,34 @@ void ParallelTracker::resetFields() {
  */
 void ParallelTracker::pushParticles(const BorisPusher& pusher) {
 
-    // Switch to unitless positions for pushing (normalisation by c*dt)
+    /// \todo use false for now, since I am not sure how well integrated "dt_per_particle" is (needs to be consistent with particle emission later!).
     itsBunch_m->switchToUnitlessPositions(true);
 
-    // Get Views
     auto Rview  = itsBunch_m->getParticleContainer()->R.getView();
     auto Pview  = itsBunch_m->getParticleContainer()->P.getView();
-    auto dtview = itsBunch_m->getParticleContainer()->dt.getView();
+    //auto dtview = itsBunch_m->getParticleContainer()->dt.getView();
 
-    // Kokkos parallel for to push particles
-    Kokkos::parallel_for("pushParticles", ippl::getRangePolicy(Rview), 
-    KOKKOS_LAMBDA(const int i) {
-        auto x = Rview(i);
-        auto p = Pview(i);
-        auto dt = dtview(i);
-        
-        pusher.push(x, p, dt);
+    Kokkos::parallel_for(
+        "pushParticles", ippl::getRangePolicy(Rview),
+        KOKKOS_LAMBDA(const size_t i) {
+            /** 
+             * \f[ \vec{x}_{n+1/2} = \vec{x}_{n} + \frac{1}{2}\vec{v}_{n-1/2}\quad (= \vec{x}_{n} +
+             * \frac{\Delta t}{2} \frac{\vec{\beta}_{n-1/2}\gamma_{n-1/2}}{\gamma_{n-1/2}}) \f]
+             *
+             * \code
+             * R[i] += 0.5 * P[i] * recpgamma;
+             * \endcode
+             */
+            /// \todo check +-
+            
+            Vector_t<double, 3> x = Rview(i); 
+            pusher.push(x, Pview(i), 0); // this 0 is "dt" that is not used with unitless positions!
+            Rview(i) = x;
+        });
 
-        Rview(i) = x;
-
-    });
-
-    // Switch back to dimensional positions
     itsBunch_m->switchOffUnitlessPositions(true);
-    
+    /// \todo update gives different results on one rank?
     //itsBunch_m->getParticleContainer()->update();
-
-    // Synchronize across all MPI processes
     ippl::Comm->barrier();
 }
 
@@ -780,32 +780,59 @@ void ParallelTracker::pushParticles(const BorisPusher& pusher) {
  */
 void ParallelTracker::kickParticles(const BorisPusher& pusher) {
 
-    // Get Views
-    auto Rview  = itsBunch_m->getParticleContainer()->R.getView();
+    // auto Rview  = itsBunch_m->getParticleContainer()->R.getView();
     auto Pview  = itsBunch_m->getParticleContainer()->P.getView();
-    auto Eview  = itsBunch_m->getParticleContainer()->E.getView();
-    auto Bview  = itsBunch_m->getParticleContainer()->B.getView();
-    auto dtview = itsBunch_m->getParticleContainer()->dt.getView();
+    auto dtview = itsBunch_m->getParticleContainer()->dt.getView(); 
+    auto Efview = itsBunch_m->getParticleContainer()->E.getView();
+    auto Bfview = itsBunch_m->getParticleContainer()->B.getView();
 
-    // Get reference particle mass and charge
+    /// \todo Apparently, we want mass in eV and charge in elementary charges here to match OPAL's BorisPusher
+    //double mass = itsBunch_m->getMassPerParticle(); // itsReference.getM();
+    //double charge = itsBunch_m->getChargePerParticle();  // itsReference.getQ();
+        // Get reference particle mass and charge
     const double mass = itsReference.getM();
     const double charge = itsReference.getQ();
 
-    // Kokkos parallel for to kick particles
-    Kokkos::parallel_for("kickParticles", ippl::getRangePolicy(Rview), 
-    KOKKOS_LAMBDA(const int i) {
-        const auto x = Rview(i);
-        auto p = Pview(i); // only p changes
-        const auto e = Eview(i);
-        const auto b = Bview(i);
-        const auto dt = dtview(i);
 
-        pusher.kick(x, p, e, b, dt, mass, charge);
+    std::cout << charge << " " << mass << std::endl;
 
-        Pview(i) = p;
-    });
+    Kokkos::parallel_for(
+        "kickParticles", ippl::getRangePolicy(Pview),
+        KOKKOS_LAMBDA(const size_t i) {
+            /**
+             *
+             * Implementation follows chapter 4-4, pp. 61–63, from:
+             * Birdsall, C. K. and Langdon, A. B. (1985). Plasma Physics via Computer Simulation.
+             *
+             * Up to finite-precision effects, the new implementation is equivalent to the old one,
+             * but uses fewer floating-point operations.
+             *
+             * The relativistic variant implemented below is described in chapter 15-4, pp. 356–357.
+             * However, since different units are used here, small modifications are required.
+             * The relativistic variant can be derived from the nonrelativistic one by replacing:
+             *   mass
+             * with:
+             *   gamma * rest mass
+             * and transforming the units accordingly.
+             *
+             * Parameters:
+             *   R      Scaled position, R = x / (c * dt). Not used here.
+             *   P      Scaled velocity, P = (v / c) * gamma.
+             *   Ef     Electric field.
+             *   Bf     Magnetic field.
+             *   dt     Timestep.
+             *   mass   Rest energy, i.e., rest mass * c^2.
+             *   charge Particle charge.
+             *
+             */
+           
+            Vector_t<double, 3> p = Pview(i); 
+            pusher.kick(0, p, Efview(i), Bfview(i), dtview(i), mass, charge); /// \todo might want to remove dt and R altogether from the kick!
+            Pview(i) = p; 
+        });
         
-    // Synchronize across all MPI processes
+    /// \todo unnecessary update? kick does not modify positions
+    //itsBunch_m->getParticleContainer()->update();
     ippl::Comm->barrier();
 }
 /* ========================================================================== */ 
