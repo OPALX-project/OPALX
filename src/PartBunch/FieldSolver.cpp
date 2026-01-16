@@ -427,6 +427,25 @@ void FieldSolver<double,3>::initNullSolver() {
     }
 }
 
+// Implement getCouplingConstant
+template<>
+double FieldSolver<double, 3>::getCouplingConstant() const {
+    /*
+    In SI units, the coupling constant for the electric field is 
+    1/(4*pi*epsilon_0). However, some solvers seem to use different conventions
+    (likely due to different Green's function conventions or FFT normalizations). 
+    */
+    /// \todo Verify this before activating a new solver!
+    const std::string stype = this->getStype();
+    if (stype == "OPEN") {
+        // from: 1.0/(4.0*Physics::pi*Physics::epsilon_0)*(Physics::epsilon_0*8);
+        return Physics::pi / 2.0; 
+    } 
+
+    // Standard coupling constant 
+    return 1.0 / (4.0 * Physics::pi * Physics::epsilon_0);
+}  
+
 /*
 template <>
 void FieldSolver<double,3>::initCGSolver() {

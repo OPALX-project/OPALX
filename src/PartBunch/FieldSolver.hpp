@@ -51,6 +51,9 @@ public:
         phi_m = phi;
     }
 
+    /// \todo cannot be const, since getStype in FieldSolverBase is not const!
+    T getCouplingConstant() const;
+
     void initOpenSolver();
 
     void initSolver() override ;
