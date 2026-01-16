@@ -1,3 +1,26 @@
+//
+// Class ParallelTracker
+//   OPAL-T tracker.
+//   The visitor class for tracking particles with time as independent
+//   variable.
+//
+// Copyright (c) 200x - 2014, Christof Kraus, Paul Scherrer Institut, Villigen PSI, Switzerland
+//               2015 - 2016, Christof Metzger-Kraus, Helmholtz-Zentrum Berlin, Germany
+//               2017 - 2020, Christof Metzger-Kraus
+//               2025 - present, Ryan Ammann, Paul Scherrer Institut, Villigen PSI, Switzerland
+// All rights reserved
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
+
 #ifndef OPAL_ParallelTracker_HH
 #define OPAL_ParallelTracker_HH
 
@@ -39,7 +62,7 @@ class PluginElement;
 /**
  * @brief Implements the simulation loop
  * 
- * ParallelTracker implements the main simulation loop. 
+ * @note ParallelTracker implements the main simulation loop. 
  * TRACK and RUN commands in the inputfile invoke the creation of the 
  * ParalleTracker object and the execution of ParallelTracker::execute()
  */
