@@ -274,8 +274,17 @@ void TrackRun::execute() {
 
     *gmsg << *(bunch_m->getBCHandler()) << endl;
 
-    double cc = 1.0 / (4 * Physics::pi * Physics::epsilon_0);  
-    bunch_m->setCouplingConstant(cc);
+    /*
+    Before we had:
+        double cc = 1.0 / (4 * Physics::pi * Physics::epsilon_0);  
+        rho /= cc;
+    However, this produced wrong results https://github.com/OPALX-project/OPALX/issues/162
+    ...there was exactly a factor 1/(8*epsilon_0). Both together results in overall 1/2pi!
+    The coupling constant is not set in the FieldSolver object that is saved
+    inside PartBunch. Now, we calculate "rho * cc", where cc = pi/2 for OPEN.
+    */
+    //double cc = 2.0 / np.pi; // 1.0 / (4 * Physics::pi * Physics::epsilon_0) * (Physics::epsilon_0 * 8);
+    //bunch_m->setCouplingConstant(cc);
     
     setupBoundaryGeometry();
 
