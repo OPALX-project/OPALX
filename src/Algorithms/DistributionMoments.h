@@ -20,7 +20,6 @@
 
 #include "Ippl.h"
 #include <Kokkos_Core.hpp>
-//#include "Algorithms/BoostMatrix.h"
 #include <boost/numeric/ublas/matrix.hpp>
 #include "Physics/Physics.h"
 #include "Physics/Units.h"

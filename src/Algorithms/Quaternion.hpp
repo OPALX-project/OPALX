@@ -1,6 +1,5 @@
 #ifndef OPAL_QUATERNION_H
 #define OPAL_QUATERNION_H
-//#include "Algorithms/BoostMatrix.h"
 #include "Algorithms/OpalMatrix.h"
 #include "Ippl.h"
 

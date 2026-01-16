@@ -34,13 +34,14 @@ namespace {
 // GPU factorial
 namespace {
     KOKKOS_INLINE_FUNCTION
-    double factorial(int n) {
+    double factorial(unsigned int n) {
         if (n == 0) return 1.0;
         if (n == 1) return 1.0;
         if (n == 2) return 2.0;
         if (n == 3) return 6.0;
         if (n == 4) return 24.0;
         if (n == 5) return 120.0;
+        if (n > 5) Kokkos::abort("factorial out of bounds");
     }
 }
 
@@ -114,12 +115,18 @@ Multipole::~Multipole() {
  */
 double Multipole::getNormalComponent(int n) const 
 {
-    if (n < max_NormalComponent_m) {
+    if (n < 0) {
+        throw GeneralClassicException("Multipole::getNormalComponent", 
+            "component index " + std::to_string(n) + " out of bounds");
+    }
+    else if (n < max_NormalComponent_m) {
         double val;
         Kokkos::deep_copy(val, Kokkos::subview(NormalComponents, n));
         return val;
     }
-    return 0.0;
+    else {
+        return 0.0;
+    }
 }
 
 /**
@@ -132,14 +139,20 @@ double Multipole::getNormalComponent(int n) const
  * @param n Component
  * @returns n-th skew component of the multipole expansion
  */
-double Multipole::getSkewComponent(int n) const 
+double Multipole::getSkewComponent( int n) const 
 {
-    if (n < max_SkewComponent_m) {
+    if (n < 0) {
+        throw GeneralClassicException("Multipole::getSkewComponent", 
+            "component index " + std::to_string(n) + " out of bounds");
+    }
+    else if (n < max_SkewComponent_m) {
         double val;
         Kokkos::deep_copy(val, Kokkos::subview(SkewComponents, n));
         return val;
     }
-    return 0.0;
+    else{
+        return 0.0;
+    }
 }
 
 /**
@@ -155,6 +168,11 @@ double Multipole::getSkewComponent(int n) const
  */
 void Multipole::setNormalComponent(int n, double v, double vError) 
 {
+    if (n < 0) {
+        throw GeneralClassicException("Multipole::setNormalComponent", 
+            "component index " + std::to_string(n) + " out of bounds");
+    }
+
     if (n >= max_NormalComponent_m) {
         max_NormalComponent_m = n+1;
         Kokkos::resize(NormalComponents, max_NormalComponent_m);
@@ -194,6 +212,11 @@ void Multipole::setNormalComponent(int n, double v, double vError)
  */
 void Multipole::setSkewComponent(int n, double v, double vError) 
 {
+    if (n < 0) {
+        throw GeneralClassicException("Multipole::setSkewComponent", 
+            "component index " + std::to_string(n) + " out of bounds");
+    }
+
     if (n >= max_SkewComponent_m) {
         max_SkewComponent_m = n+1;
         Kokkos::resize(SkewComponents, max_SkewComponent_m);
@@ -281,6 +304,7 @@ bool Multipole::apply()
  * @param B Magnetic field reference
  * @returns true if particle is out-of-bounds (lost), false otherwise 
  */
+/*
 bool Multipole::apply(
     const size_t& i, 
     const double&, 
@@ -311,6 +335,7 @@ bool Multipole::apply(
 
     return false;
 }
+*/
 
 /**
  * @brief Applies the multipole field at position R to E and B
@@ -322,6 +347,8 @@ bool Multipole::apply(
  * @param B Magnetic field reference
  * @returns true if particle is out-of-bounds (lost), false otherwise 
  */
+
+/*
 bool Multipole::apply(
     const Vector_t<double, 3>& R, 
     const Vector_t<double, 3>&, 
@@ -340,6 +367,8 @@ bool Multipole::apply(
 
     return false;
 }
+*/
+
 
 /**
  * @brief Applies the multipole field at reference particle 
@@ -693,7 +722,9 @@ bool Multipole::isInside(const Vector_t<double, 3>& r) const {
 }
 
 bool Multipole::isFocusing(int component) const {
-    if (component >= NormalComponents.extent(0))
+    if (component < 0)
+        throw GeneralClassicException("Multipole::isFocusing", "component negative");
+    else if (component >= NormalComponents.extent(0))
         throw GeneralClassicException("Multipole::isFocusing", "component too big");
 
     // Fix: Use getNormalComponent() to safely retrieve the value from GPU memory
