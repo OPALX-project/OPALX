@@ -65,21 +65,21 @@ ParallelTracker::ParallelTracker(
       itsOpalBeamline_m(beamline.getOrigin3D(), beamline.getInitialDirection()),
       opalRing_m(nullptr),
       globalEOL_m(false),
-      wakeStatus_m(false),
-      wakeFunction_m(nullptr),
       pathLength_m(0.0),
       zstart_m(0.0),
       dtCurrentTrack_m(0.0),
       minStepforReBin_m(-1),
       repartFreq_m(0),
-      emissionSteps_m(std::numeric_limits<unsigned int>::max()),
       numParticlesInSimulation_m(0),
       timeIntegrationTimer1_m(IpplTimings::getTimer("TIntegration1")),
       timeIntegrationTimer2_m(IpplTimings::getTimer("TIntegration2")),
       fieldEvaluationTimer_m(IpplTimings::getTimer("External field eval")),
       PluginElemTimer_m(IpplTimings::getTimer("PluginElements")),
       BinRepartTimer_m(IpplTimings::getTimer("Binaryrepart")),
-      OrbThreader_m(IpplTimings::getTimer("OrbThreader")) {
+      OrbThreader_m(IpplTimings::getTimer("OrbThreader")),
+      emissionSteps_m(std::numeric_limits<unsigned int>::max()),
+      wakeStatus_m(false),
+      wakeFunction_m(nullptr) {
 }
 
 ParallelTracker::ParallelTracker(
@@ -91,20 +91,20 @@ ParallelTracker::ParallelTracker(
       itsOpalBeamline_m(beamline.getOrigin3D(), beamline.getInitialDirection()),
       opalRing_m(nullptr),
       globalEOL_m(false),
-      wakeStatus_m(false),
-      wakeFunction_m(nullptr),
       pathLength_m(0.0),
       zstart_m(zstart),
       dtCurrentTrack_m(0.0),
       minStepforReBin_m(-1),
       repartFreq_m(0),
-      emissionSteps_m(std::numeric_limits<unsigned int>::max()),
       numParticlesInSimulation_m(0),
       timeIntegrationTimer1_m(IpplTimings::getTimer("TIntegration1")),
       timeIntegrationTimer2_m(IpplTimings::getTimer("TIntegration2")),
       fieldEvaluationTimer_m(IpplTimings::getTimer("External field eval")),
       BinRepartTimer_m(IpplTimings::getTimer("Binaryrepart")),
-      OrbThreader_m(IpplTimings::getTimer("OrbThreader")) {
+      OrbThreader_m(IpplTimings::getTimer("OrbThreader")),
+      emissionSteps_m(std::numeric_limits<unsigned int>::max()),
+      wakeStatus_m(false),
+      wakeFunction_m(nullptr) {
     
       for (unsigned int i = 0; i < zstop.size(); ++i) {
           stepSizes_m.push_back(dt[i], zstop[i], maxSteps[i]);
@@ -633,9 +633,6 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
 void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
     IpplTimings::startTimer(fieldEvaluationTimer_m);
     Inform msg("ParallelTracker ", *gmsg);
-
-    // local # particles
-    const unsigned int localNum = itsBunch_m->getLocalNum();
 
     // Flag for out-of-bounds particles, locally and globally
     bool locPartOutOfBounds = false, globPartOutOfBounds = false;
