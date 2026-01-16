@@ -187,7 +187,7 @@ void FieldSolver<double,3>::dumpScalField(std::string what) {
     
 
     // Needs to be empty...?
-    std::string dirname = "";
+    std::string dirname = "data/";
 
     std::string type;
     std::string unit;
@@ -435,6 +435,8 @@ double FieldSolver<double, 3>::getCouplingConstant() const {
     1/(4*pi*epsilon_0). However, some solvers seem to use different conventions
     (likely due to different Green's function conventions or FFT normalizations). 
     */
+    *gmsg << "FieldSolver<double,3>::getCouplingConstant() called. stype= " << this->getStype() << endl;
+
     /// \todo Verify this before activating a new solver!
     const std::string stype = this->getStype();
     if (stype == "OPEN") {
