@@ -305,13 +305,13 @@ inline void ParallelTracker::kickParticles(const BorisPusher& pusher) {
     
     // auto Rview  = itsBunch_m->getParticleContainer()->R.getView();
     auto Pview  = itsBunch_m->getParticleContainer()->P.getView();
-    // auto dtview = itsBunch_m->getParticleContainer()->dt.getView(); 
+    auto dtview = itsBunch_m->getParticleContainer()->dt.getView(); 
     auto Efview = itsBunch_m->getParticleContainer()->E.getView();
     auto Bfview = itsBunch_m->getParticleContainer()->B.getView();
 
     /// \todo Apparently, we want mass in eV and charge in elementary charges here to match OPAL's BorisPusher
-    double mass = itsBunch_m->getMassPerParticle(); // itsReference.getM();
-    double charge = itsBunch_m->getChargePerParticle(); // itsReference.getQ();
+    double mass = itsReference.getM(); // itsBunch_m->getMassPerParticle(); 
+    double charge = itsReference.getQ(); // itsBunch_m->getChargePerParticle();
 
     Kokkos::parallel_for(
         "kickParticles", ippl::getRangePolicy(Pview),
@@ -344,12 +344,12 @@ inline void ParallelTracker::kickParticles(const BorisPusher& pusher) {
              */
            
             Vector_t<double, 3> p = Pview(i); 
-            pusher.kick(0, p, Efview(i), Bfview(i), 0, mass, charge); /// \todo might want to remove dt and R altogether from the kick!
+            pusher.kick(0, p, Efview(i), Bfview(i), dtview(i), mass, charge); /// \todo might want to remove dt and R altogether from the kick!
             Pview(i) = p; 
         });
         
     /// \todo unnecessary update? kick does not modify positions
-    itsBunch_m->getParticleContainer()->update();
+    // itsBunch_m->getParticleContainer()->update();
     ippl::Comm->barrier();
 }
 
@@ -381,7 +381,9 @@ inline void ParallelTracker::pushParticles(const BorisPusher& pusher) {
         });
 
     itsBunch_m->switchOffUnitlessPositions(false);
-    itsBunch_m->getParticleContainer()->update();
+
+    /// \todo with this update, there seems to be some problem (Ryan should've created an issue on github)!
+    // itsBunch_m->getParticleContainer()->update();
     ippl::Comm->barrier();
 }
 
