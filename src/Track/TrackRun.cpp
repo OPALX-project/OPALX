@@ -256,8 +256,7 @@ void TrackRun::execute() {
     *gmsg << "* Macro mass per particle: [GeV/c^2] " << (macromass_m) << endl;
     *gmsg << "* Particles per macro particle: " << part_per_macro_ratio << endl;
     /*
-      Here we can allocate the bunch
-
+      Here we can allocate the bunch.
      */
     
     // There's a change of units for particle mass that seems strange -> gives consistent Kinetic Energy
@@ -274,6 +273,8 @@ void TrackRun::execute() {
                                            beam->getNumberOfParticles()/*, 10*/, 1.0, "LF2", dist_m, fs_m);
     bunch_m->setT(0.0);
     bunch_m->setBeamFrequency(beam->getFrequency() * Units::MHz2Hz);
+
+    *gmsg << *(bunch_m->getBCHandler()) << endl;
 
     double cc = 1.0 / (4 * Physics::pi * Physics::epsilon_0);  
     bunch_m->setCouplingConstant(cc);

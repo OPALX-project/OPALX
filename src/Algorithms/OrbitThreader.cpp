@@ -474,7 +474,7 @@ double OrbitThreader::computeDriftLengthToBoundingBox(
             const Vector_t<double, 3> r = intersectionPoint.value() - position;
             return euclidean_norm(r);
         }
-        return 10.0;
+        return 10; 
     }
 
     return std::numeric_limits<double>::max();
