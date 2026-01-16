@@ -41,7 +41,10 @@ PartBunch<T, Dim>::PartBunch(double qi,
     //  get the needed information from OPAL FieldSolver command
 
     nr_m = Vector_t<int, Dim>(
-            OPALFieldSolver_m->getNX(), OPALFieldSolver_m->getNY(), OPALFieldSolver_m->getNZ());
+            OPALFieldSolver_m->getNX(), 
+            OPALFieldSolver_m->getNY(), 
+            OPALFieldSolver_m->getNZ()
+    );
 
     const Vector_t<bool, 3> domainDecomposition = OPALFieldSolver_m->getDomDec();
 
@@ -116,6 +119,23 @@ PartBunch<T, Dim>::PartBunch(double qi,
 }
 
 template <typename T, unsigned Dim>
+T PartBunch<T, Dim>::getCouplingConstant() const {
+    /*
+    This function needs to be here, since FieldSoler_t is only fully defined
+    at instanciation of PartBunch, so not yet in the header file.
+    */
+    //FieldSolver_t *fs = dynamic_cast<FieldSolver_t*>(this->fsolver_m);
+    if (!hasFieldSolver()) {
+        throw OpalException("PartBunch::getCouplingConstant",
+                            "Cannot return coupling if fsolver_m is not a "
+                            "FieldSolver instance");
+    }
+    //return static_cast<FieldSolver_t*>(this->fsolver_m.get())->getCouplingConstant();
+    auto fs = std::dynamic_pointer_cast<FieldSolver_t>(this->fsolver_m);
+    return fs->getCouplingConstant();
+}
+
+template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::gatherCIC() {
     using Base = ippl::ParticleBase<ippl::ParticleSpatialLayout<T, Dim>>;
     typename Base::particle_position_type* Ep = &this->pcontainer_m->E;
@@ -156,13 +176,22 @@ void PartBunch<T, Dim>::setSolver(std::string solver) {
 
     this->fcontainer_m->initializeFields(this->solver_m);
     
-    this->setFieldSolver(std::make_shared<FieldSolver_t>(this->solver_m, &this->fcontainer_m->getRho(), &this->fcontainer_m->getE(),
-                                                         &this->fcontainer_m->getPhi()));
+    this->setFieldSolver(std::make_shared<FieldSolver_t>(
+        this->solver_m, 
+        &this->fcontainer_m->getRho(), 
+        &this->fcontainer_m->getE(),
+        &this->fcontainer_m->getPhi()
+    ));
 
     this->fsolver_m->initSolver();
         
     /// ADA we need to be able to set a load balancer when not having a field solver
-    this->setLoadBalancer(std::make_shared<LoadBalancer_t>(this->lbt_m, this->fcontainer_m, this->pcontainer_m, this->fsolver_m));
+    this->setLoadBalancer(std::make_shared<LoadBalancer_t>(
+        this->lbt_m, 
+        this->fcontainer_m, 
+        this->pcontainer_m, 
+        this->fsolver_m
+    ));
     
     *gmsg << "* Solver and Load Balancer set" << endl;
 }
@@ -574,7 +603,7 @@ void PartBunch<T, Dim>::computeSelfFields() {
     The scalar potential is given back with rho_m in units [C/m] = [F*V/m] and must be divided by
     4*pi*\epsilon_0 [F/m] resulting in [V].
     */
-    (*rho) = (*rho) / getCouplingConstant(); // now rho_m has units of [V]
+    (*rho) = (*rho) * this->getCouplingConstant(); // now rho_m has units of [V]
 
     this->fsolver_m->runSolver();
     // Now, with E=-grad(phi), E has units of [V/m] (note, phi is a scalar potential)    
@@ -676,6 +705,12 @@ void PartBunch<T,Dim>::performBunchSanityChecks() const {
                             "BC Handler not initialized properly.");
     }
     ms << "BC Handler initialized properly." << endl;
+
+    if (!hasFieldSolver()) {
+        throw OpalException("PartBunch::performBunchSanityChecks", 
+                            "Field Solver was not initialized.");
+    }
+    ms << "Field Solver object was initialized." << endl;
 }
 
 
