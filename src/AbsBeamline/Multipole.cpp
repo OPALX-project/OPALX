@@ -304,7 +304,6 @@ bool Multipole::apply()
  * @param B Magnetic field reference
  * @returns true if particle is out-of-bounds (lost), false otherwise 
  */
-/*
 bool Multipole::apply(
     const size_t& i, 
     const double&, 
@@ -335,7 +334,6 @@ bool Multipole::apply(
 
     return false;
 }
-*/
 
 /**
  * @brief Applies the multipole field at position R to E and B
@@ -348,7 +346,6 @@ bool Multipole::apply(
  * @returns true if particle is out-of-bounds (lost), false otherwise 
  */
 
-/*
 bool Multipole::apply(
     const Vector_t<double, 3>& R, 
     const Vector_t<double, 3>&, 
@@ -367,7 +364,6 @@ bool Multipole::apply(
 
     return false;
 }
-*/
 
 
 /**
