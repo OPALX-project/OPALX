@@ -42,6 +42,7 @@ namespace {
         if (n == 4) return 24.0;
         if (n == 5) return 120.0;
         if (n > 5) Kokkos::abort("factorial out of bounds");
+        return 0;
     }
 }
 

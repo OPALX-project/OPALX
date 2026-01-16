@@ -218,8 +218,8 @@ private:
     Kokkos::View<double*> NormalComponentErrors;
     Kokkos::View<double*> SkewComponents;
     Kokkos::View<double*> SkewComponentErrors;
-    unsigned int max_SkewComponent_m;
-    unsigned int max_NormalComponent_m;
+    int max_SkewComponent_m;
+    int max_NormalComponent_m;
 /* =========================== Unused Variables ============================= */ 
     std::size_t nSlices_m;
 /* ========================================================================== */
