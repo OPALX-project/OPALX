@@ -188,8 +188,7 @@ void OrbitThreader::execute() {
 
     imap_m.tidyUp(zstop_m);
     *gmsg << level1 << "\n" << imap_m << endl;
-    // This causes problems on GPU
-    //imap_m.saveSDDS(initialPathLength);
+    imap_m.saveSDDS(initialPathLength);
     processElementRegister();
 }
 

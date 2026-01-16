@@ -1,7 +1,6 @@
 #ifndef MSLANG_AFFINETRANSFORMATION_H
 #define MSLANG_AFFINETRANSFORMATION_H
 
-//#include "Algorithms/BoostMatrix.h"
 #include <boost/numeric/ublas/matrix.hpp>
  
 
