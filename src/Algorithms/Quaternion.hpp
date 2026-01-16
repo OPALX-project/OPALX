@@ -5,13 +5,17 @@
 
 class Quaternion : public ippl::Vector<double, 4> {
 public:
+    /* ======== Constructors ======== */
     Quaternion();
     Quaternion(const Quaternion&);
     Quaternion(const double&, const double&, const double&, const double&);
     Quaternion(const ippl::Vector<double, 3>&);
     Quaternion(const double&, const ippl::Vector<double, 3>&);
     Quaternion(const matrix3x3_t&);
+    Quaternion inverse() const;
+    Quaternion conjugate() const;
 
+    /* ======== Operators ======== */
     Quaternion operator*(const double&) const;
     Quaternion operator*(const Quaternion&) const;
     Quaternion& operator=(const Quaternion&) = default;
@@ -25,9 +29,6 @@ public:
     bool isUnit() const;
     bool isPure() const;
     bool isPureUnit() const;
-
-    Quaternion inverse() const;
-    Quaternion conjugate() const;
 
     double real() const;
     ippl::Vector<double, 3> imag() const;

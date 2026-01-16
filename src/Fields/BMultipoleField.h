@@ -1,37 +1,17 @@
 #ifndef CLASSIC_BMultipoleField_HH
 #define CLASSIC_BMultipoleField_HH
 
-// ------------------------------------------------------------------------
-// $RCSfile: BMultipoleField.h,v $
-// ------------------------------------------------------------------------
-// $Revision: 1.1.1.1 $
-// ------------------------------------------------------------------------
-// Copyright: see Copyright.readme
-// ------------------------------------------------------------------------
-//
-// Class: BMultipoleField
-//
-// ------------------------------------------------------------------------
-// Class category: Fields
-// ------------------------------------------------------------------------
-//
-// $Date: 2000/03/27 09:32:35 $
-// $Author: fci $
-//
-// ------------------------------------------------------------------------
-
 #include "Fields/StaticMagneticField.h"
 
-// Class BMultipoleField
-// ------------------------------------------------------------------------
-/// The magnetic field of a multipole.
-//  The static components are defined by the equation
-//  {center}
-//  By + i * Bx = sum (Bn + i * An) (x + i * y) ** (n - 1)
-//  {/center}
-//  where the index  n  runs from  1  (dipole) to  N  (2N-pole).
-//  The field component n is stored in the pairs[n-1],
-//  The array  pairs  has the dimension N.
+/**
+ * @class BMultipoleField
+ * @brief The magnetic field of a multipole.  
+ * 
+ * The static components are defined by the equation
+ * By + i * Bx = sum (Bn + i * An) (x + i * y) ** (n - 1)
+ * 
+ * where the index n runs from 0 (dipole) to N-1 (2(N+1)-pole)
+ */
 
 class BMultipoleField: public StaticMagneticField {
 
@@ -146,6 +126,7 @@ private:
     Pair *pairs;
 
     // The highest order N.
+    // Means pairs is filled up to itsOrder-1.
     int itsOrder;
 };
 
@@ -153,23 +134,30 @@ private:
 // Inline functions
 // ------------------------------------------------------------------------
 
+/**
+ * @brief Return the order of the multipole field
+ */
 inline int BMultipoleField::order() const {
     return itsOrder;
 }
 
-
+/**
+ * @brief Get normal component
+ */
 inline double BMultipoleField::getNormalComponent(int n) const {
-    if(n > 0 && n <= itsOrder) {
-        return pairs[n-1].B;
+    if(n >= 0 && n < itsOrder) {
+        return pairs[n].B;
     } else {
         return 0.0;
     }
 }
 
-
+/**
+ * @brief Get skew component
+ */
 inline double BMultipoleField::getSkewComponent(int n) const {
-    if(n > 0 && n <= itsOrder) {
-        return pairs[n-1].A;
+    if(n >= 0 && n < itsOrder) {
+        return pairs[n].A;
     } else {
         return 0.0;
     }
@@ -177,18 +165,18 @@ inline double BMultipoleField::getSkewComponent(int n) const {
 
 
 inline double &BMultipoleField::normal(int n)
-{ return pairs[n-1].B; }
+{ return pairs[n].B; }
 
 
 inline double &BMultipoleField::skew(int n)
-{ return pairs[n-1].A; }
+{ return pairs[n].A; }
 
 
 inline double BMultipoleField::normal(int n) const
-{ return pairs[n-1].B; }
+{ return pairs[n].B; }
 
 
 inline double BMultipoleField::skew(int n) const
-{ return pairs[n-1].A; }
+{ return pairs[n].A; }
 
 #endif // CLASSIC_BMultipoleField_HH

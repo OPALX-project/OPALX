@@ -72,17 +72,22 @@
 // Class Tracker
 // ------------------------------------------------------------------------
 
-Tracker::Tracker(const Beamline& beamline, const PartData& reference, bool backBeam, bool backTrack)
-    : Tracker(beamline, nullptr, reference, backBeam, backTrack) {
-}
+Tracker::Tracker(
+    const Beamline& beamline, 
+    const PartData& reference, 
+    bool backBeam, 
+    bool backTrack): 
+    Tracker(beamline, nullptr, reference, backBeam, backTrack){}
 
 Tracker::Tracker(
-    const Beamline& beamline, PartBunch_t* bunch, const PartData& reference, bool backBeam,
+    const Beamline& beamline, 
+    PartBunch_t* bunch, 
+    const PartData& reference, 
+    bool backBeam,
     bool backTrack)
     : AbstractTracker(beamline, reference, backBeam, backTrack),
       itsBeamline_m(beamline),
-      itsBunch_m(bunch) {
-}
+      itsBunch_m(bunch) {}
 
 Tracker::~Tracker() {
 }
