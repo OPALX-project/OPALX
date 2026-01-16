@@ -166,7 +166,7 @@ private:
 
     PartData* reference_m;
 
-    double couplingConstant_m;
+    // double couplingConstant_m; // now handled inside FieldSolver object
 
     /// step in a TRACK command
     long long localTrackStep_m;
@@ -301,13 +301,7 @@ public:
       Up to here it is like the opaltest
     */
 
-    double getCouplingConstant() const {
-        return couplingConstant_m;
-    }
-    
-    void setCouplingConstant(double c) {
-        couplingConstant_m = c;
-    }
+    T getCouplingConstant() const;
 
     void calcBeamParameters();
 
@@ -531,9 +525,8 @@ public:
 
     Inform& print(Inform& os);
 
-    bool hasFieldSolver() {
-        *gmsg << "not implemented" << endl;
-        return true;
+    bool hasFieldSolver() const {
+        return this->fsolver_m != nullptr;
     }
 
     bool getFieldSolverType() {
