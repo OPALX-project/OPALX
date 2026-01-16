@@ -74,35 +74,39 @@ void OpalMultipole::print(std::ostream &os) const {
 void OpalMultipole::update() {
     OpalElement::update();
 
-    // Magnet length.
-    MultipoleRep *mult =
-        dynamic_cast<MultipoleRep *>(getElement());
+    // Get pointer to MultipoleRep object to set length
+    MultipoleRep *mult = dynamic_cast<MultipoleRep *>(getElement());
     double length = getLength();
     mult->setElementLength(length);
 
-    // Field components.
+    // Multipole field for MultipoleRep
     BMultipoleField field;
 
+    // Get the vector with the multipole expansion components
     const std::vector<double> norm = Attributes::getRealArray(itsAttr[KN]);
     std::vector<double> normErrors = Attributes::getRealArray(itsAttr[DKN]);
     const std::vector<double> skew = Attributes::getRealArray(itsAttr[KS]);
     std::vector<double> skewErrors = Attributes::getRealArray(itsAttr[DKS]);
+
+    // Resize error arrays
     int normSize = norm.size();
     int skewSize = skew.size();
     normErrors.resize(normSize, 0.0);
     skewErrors.resize(skewSize, 0.0);
+
     double factor = OpalData::getInstance()->getP0() / Physics::c;
     int top = (normSize > skewSize) ? normSize : skewSize;
 
-    for(int comp = 1; comp <= top; comp++) {
-        factor /= double(comp);
-        if(comp <= normSize) {
-            field.setNormalComponent(comp, norm[comp-1] * factor);
-            mult->setNormalComponent(comp, norm[comp-1], normErrors[comp-1]);
+    // Loop over components (0=Dipole, 1=Quadrupole, ...)
+    for(unsigned int comp = 0; comp < top; ++comp) {
+        factor /= double(comp+1);
+        if(comp < normSize) {
+            field.setNormalComponent(comp, norm[comp] * factor);
+            mult->setNormalComponent(comp, norm[comp], normErrors[comp]);
         }
-        if(comp <= skewSize) {
-            field.setSkewComponent(comp, skew[comp-1] * factor);
-            mult->setSkewComponent(comp, skew[comp-1], skewErrors[comp-1]);
+        if(comp < skewSize) {
+            field.setSkewComponent(comp, skew[comp] * factor);
+            mult->setSkewComponent(comp, skew[comp], skewErrors[comp]);
         }
     }
 

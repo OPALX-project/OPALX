@@ -250,6 +250,7 @@ void PartBunch<T, Dim>::calcBeamParameters() {
     
     auto Rview = pc->R.getView();
     auto Pview = pc->P.getView();
+    this->updateMoments();
 
     ////////////////////////////////////
     //// Calculate Moments of R and P //
