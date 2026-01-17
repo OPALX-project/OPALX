@@ -1,17 +1,21 @@
 #ifndef OPAL_QUATERNION_H
 #define OPAL_QUATERNION_H
-#include "Algorithms/BoostMatrix.h"
+#include "Algorithms/OpalMatrix.h"
 #include "Ippl.h"
 
 class Quaternion : public ippl::Vector<double, 4> {
 public:
+    /* ======== Constructors ======== */
     Quaternion();
     Quaternion(const Quaternion&);
     Quaternion(const double&, const double&, const double&, const double&);
     Quaternion(const ippl::Vector<double, 3>&);
     Quaternion(const double&, const ippl::Vector<double, 3>&);
-    Quaternion(const matrix_t&);
+    Quaternion(const OpalMatrix_t&);
+    Quaternion inverse() const;
+    Quaternion conjugate() const;
 
+    /* ======== Operators ======== */
     Quaternion operator*(const double&) const;
     Quaternion operator*(const Quaternion&) const;
     Quaternion& operator=(const Quaternion&) = default;
@@ -26,15 +30,12 @@ public:
     bool isPure() const;
     bool isPureUnit() const;
 
-    Quaternion inverse() const;
-    Quaternion conjugate() const;
-
     double real() const;
     ippl::Vector<double, 3> imag() const;
 
+    //matrix_t getRotationMatrix() const;
+    OpalMatrix_t getRotationMatrix() const;
     ippl::Vector<double, 3> rotate(const ippl::Vector<double, 3>&) const;
-
-    matrix_t getRotationMatrix() const;
 };
 
 typedef Quaternion Quaternion_t;
