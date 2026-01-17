@@ -48,6 +48,8 @@ public:
      *  \param B calculated magnetic field
      *  \returns true if particle is outside the field map
      */
+    inline bool apply();
+
     inline bool apply(
         const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B);
 
@@ -243,6 +245,10 @@ void VerticalFFAMagnet::setNegativeVerticalExtent(double negativeExtent) {
 
 void VerticalFFAMagnet::setPositiveVerticalExtent(double positiveExtent) {
     zPosExtent_m = positiveExtent * mm;
+}
+
+bool VerticalFFAMagnet::apply() {
+    return false;
 }
 
 bool VerticalFFAMagnet::apply(

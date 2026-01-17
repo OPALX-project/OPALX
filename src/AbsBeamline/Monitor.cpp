@@ -61,6 +61,10 @@ void Monitor::accept(BeamlineVisitor& visitor) const {
     visitor.visitMonitor(*this);
 }
 
+bool Monitor::apply() {
+    return false;
+}
+
 bool Monitor::apply(
     const size_t& /*i*/, const double& /*t*/, Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/) {
     // const Vector_t<double, 3>& R         = RefPartBunch_m->R(i);

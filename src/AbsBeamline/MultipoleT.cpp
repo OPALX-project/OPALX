@@ -93,6 +93,10 @@ void MultipoleT::finalise() {
     RefPartBunch_m = nullptr;
 }
 
+bool MultipoleT::apply() {
+    return false;
+}
+
 bool MultipoleT::apply(
     const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
     Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B) {

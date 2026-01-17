@@ -67,6 +67,8 @@ class ScalingFFAMagnet : public Component {
      *  \param B calculated magnetic field
      *  \returns true if particle is outside the field map
      */
+    bool apply() override;
+
     bool apply(const size_t &i, const double &t, Vector_t<double, 3> &E, Vector_t<double, 3> &B) override;
 
     /** Calculate the field at some arbitrary position

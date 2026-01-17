@@ -106,6 +106,10 @@ Ring::~Ring() {
         delete section_list_m[i];
 }
 
+bool Ring::apply() {
+    return false;
+}
+
 bool Ring::apply(
     const size_t& id, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
     std::shared_ptr<ParticleContainer_t> pc = RefPartBunch_m->getParticleContainer();
