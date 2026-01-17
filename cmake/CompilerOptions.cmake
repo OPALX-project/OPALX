@@ -21,9 +21,19 @@
 # === Basic warnings (apply to all builds) ===
 add_compile_options(-Wall -Wextra -Wno-deprecated-declarations)
 
+
+
 # === Use modified variant implementation ===
 if(OPALX_USE_ALTERNATIVE_VARIANT)
   add_definitions(-DOPALX_USE_ALTERNATIVE_VARIANT)
+endif()
+
+# === Field-dump debug switch ===
+# Compile-time switch to enable extra field dumps in FieldSolver
+option(OPALX_FIELD_DEBUG "Enable FieldSolver field-dump debug code" OFF)
+if(OPALX_FIELD_DEBUG)
+  message(STATUS "⚠️  OPALX_FIELD_DEBUG enabled — field dumps will be emitted during simulation")
+  add_definitions(-DOPALX_FIELD_DEBUG)
 endif()
 
 # === Code coverage options ===
