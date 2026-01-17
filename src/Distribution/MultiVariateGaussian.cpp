@@ -35,7 +35,7 @@ MultiVariateGaussian::MultiVariateGaussian(std::shared_ptr<ParticleContainer_t> 
         initRandomPool();
     }
 
-MultiVariateGaussian::MultiVariateGaussian(std::shared_ptr<ParticleContainer_t> pc,
+MultiVariateGaussian::MultiVariateGaussian(std::shared_ptr<ParticleContainer_t>& pc,
                    const Vector_t<double, 3>& meanR,
                    const Vector_t<double, 3>& meanP,
                    const Vector_t<double, 3>& sigmaR,
@@ -71,7 +71,7 @@ MultiVariateGaussian::MultiVariateGaussian(std::shared_ptr<ParticleContainer_t> 
 }
 
 
-MultiVariateGaussian::MultiVariateGaussian(std::shared_ptr<ParticleContainer_t> pc,
+MultiVariateGaussian::MultiVariateGaussian(std::shared_ptr<ParticleContainer_t>& pc,
                    const Vector_t<double, 3>& meanR,
                    const Vector_t<double, 3>& meanP,
                    const Matrix_t &cov,
