@@ -3,7 +3,6 @@
 
 #include <memory>
 
-#include "Algorithms/BoostMatrix.h"
 #include "Algorithms/CoordinateSystemTrafo.h"
 #include "Attributes/Attributes.h"
 #include "Distribution/Distribution.h"
@@ -18,6 +17,8 @@
 #include "Random/InverseTransformSampling.h"
 #include "Random/NormalDistribution.h"
 #include "Random/Randn.h"
+#include "Utilities/OpalException.h"
+#include "BCHandler.hpp"
 
 #include "Structure/FieldSolverCmd.h"
 
@@ -37,8 +38,7 @@ KOKKOS_INLINE_FUNCTION typename T::value_type L2Norm(T& x) {
 using view_type = typename ippl::detail::ViewType<ippl::Vector<double, 3>, 1>::view_type;
 
 template <typename T, unsigned Dim>
-class PartBunch
-    : public ippl::PicManager<
+class PartBunch : public ippl::PicManager<
           T, Dim, ParticleContainer<T, Dim>, FieldContainer<T, Dim>, LoadBalancer<T, Dim>> {
 public:
     using ParticleContainer_t = ParticleContainer<T, Dim>;
@@ -51,11 +51,14 @@ public:
     using AdaptBins_t         = typename ParticleBinning::AdaptBins<ParticleContainer_t, BinningSelector_t>;
     using binIndex_t          = typename ParticleContainer_t::bin_index_type;
 
+    using BCHandler_t         = BCHandler<Dim>;
+
     double time_m;
 
     size_type totalP_m;
 
-    int nt_m;
+    /// \todo doesn't do anything??? 
+    // int nt_m; 
 
     double lbt_m;
 
@@ -76,6 +79,7 @@ private:
 
     double rmsDensity_m;
 
+    std::shared_ptr<BCHandler_t> bcHandler_m;
 
 public:
     Vector_t<int, Dim> nr_m;
@@ -173,8 +177,9 @@ private:
 
     std::shared_ptr<FieldSolverCmd> OPALFieldSolver_m;
     
-    // unit state of PartBunch
+    // unit state of PartBunch --> always false after initialization, so use this as standard flag
     // UnitState_t unit_state_m;
+    bool isUnitless_m = false;
     // UnitState_t stateOfLastBoundP_m;
 
     /// holds the actual time of the integration
@@ -194,15 +199,21 @@ private:
 
 public:
 
-    PartBunch(double qi, double mi, size_t totalP, int nt, double lbt, std::string integration_method,
-              std::shared_ptr<Distribution> &OPALdistribution, std::shared_ptr<FieldSolverCmd> &OPALFieldSolver);
+    PartBunch(double qi, 
+              double mi, 
+              size_t totalP, 
+              /*int nt,*/ 
+              double lbt, 
+              std::string integration_method,
+              std::shared_ptr<Distribution> &OPALdistribution, 
+              std::shared_ptr<FieldSolverCmd> &OPALFieldSolver);
 
     void bunchUpdate();
 
     void bunchUpdate(ippl::Vector<double, 3> hr);
     
     ~PartBunch() {
-        *gmsg << "* Finished time step: " << this->it_m << " time: " << this->time_m << endl;
+        *gmsg << "* PartBunch Destructor: Finished time step: " << this->it_m << " time: " << this->time_m << endl;
     }
 
     std::shared_ptr<ParticleContainer_t> getParticleContainer() {
@@ -213,6 +224,8 @@ public:
 
     void pre_run() override ;
 
+    void performBunchSanityChecks() const;
+
 public:
     std::shared_ptr<VField_t<T, Dim>> getTempEField() { return this->Etmp_m; }
     void setTempEField(std::shared_ptr<VField_t<T, Dim>> Etmp) { this->Etmp_m = Etmp; }
@@ -220,6 +233,9 @@ public:
     std::shared_ptr<AdaptBins_t> getBins() { return bins_m; } // TODO: Binning
     
     void setBins(std::shared_ptr<AdaptBins_t> bins) { bins_m = bins; } // TODO: Binning
+
+    void setBCHandler(std::shared_ptr<BCHandler_t> bcHandler) { bcHandler_m = bcHandler; }
+    std::shared_ptr<BCHandler_t> getBCHandler() const { return bcHandler_m; }
 
     void updateMoments(){
         this->pcontainer_m->updateMoments();
@@ -397,11 +413,97 @@ public:
     void gatherStatistics(unsigned int /*totalP*/) {
         *gmsg << "not implemented" << endl;
     }
-    void switchToUnitlessPositions(bool /*use_dt_per_particle = false*/) {
-        *gmsg << "not implemented" << endl;
+    /**
+     * @brief Transform particle positions to a unitless coordinate system.
+     *
+     * This converts the stored particle positions \f$ R \f$ to unitless positions
+     * \f$ R' \f$ according to
+     * \f[
+     *   R' = \frac{R}{c \, \Delta t},
+     * \f]
+     * where \f$ c \f$ is the speed of light and \f$ \Delta t \f$ is a time step.
+     * The resulting coordinates are dimensionless and are used by algorithms
+     * that operate in this normalized coordinate system.
+     *
+     * By default, a single global time step \f$ \Delta t = \text{getdT()} \f$ is
+     * used for all particles. If @p use_dt_per_particle is set to @c true,
+     * each particle's individual time step @c dt is used instead, i.e.
+     * \f$ R'_i = R_i / (c \, dt_i) \f$.
+     *
+     * @param use_dt_per_particle If @c true, use each particle's own @c dt
+     *        value in the normalization; if @c false (default), use the
+     *        global time step returned by getdT().
+     *
+     * @pre The bunch must not already be in unitless positions. If the internal
+     *      state flag indicates that positions are already unitless,
+     *      this function throws an OpalException.
+     */
+    void switchToUnitlessPositions(bool use_dt_per_particle = false) {
+        if (isUnitless_m) {
+            throw OpalException("PartBunch::switchToUnitlessPositions",
+                                "PartBunch is already in unitless positions!");
+        }
+
+        // Divide by c*dt
+        double unitless_factor = 1.0 / (Physics::c * this->getdT());
+        auto Rview  = this->getParticleContainer()->R.getView();
+        auto dtview = this->getParticleContainer()->dt.getView();
+        Kokkos::parallel_for(
+                             "switchToUnitlessPositions", ippl::getRangePolicy(Rview),
+                             KOKKOS_LAMBDA(const size_t i) {
+                                double fac = use_dt_per_particle ? (1.0 / (Physics::c * dtview(i))) 
+                                                                 : unitless_factor;
+                                Rview(i) *= fac;
+                             });
+        isUnitless_m = true;
+
+        /// \todo remove later
+        *gmsg << "* Switched to unitless positions." << endl; 
     }
-    void switchOffUnitlessPositions(bool /*use_dt_per_particle = false*/) {
-        *gmsg << "not implemented" << endl;
+    /**
+     * @brief Convert particle positions from unitless back to physical coordinates.
+     *
+     * This function undoes the transformation applied by switchToUnitlessPositions()
+     * by converting positions R' in unitless coordinates back to physical positions R
+     * using the relation
+     *
+     *   R = R' * c * dt ,
+     *
+     * where c is the speed of light and dt is the time step.
+     *
+     * If @p use_dt_per_particle is false (default), the global time step returned by
+     * getdT() is used for all particles. If it is true, the conversion uses the
+     * per-particle time step stored in the particle container's dt field, i.e.
+     * R_i = R'_i * c * dt_i for each particle i.
+     *
+     * @param use_dt_per_particle Select whether to use the per-particle dt (true) or
+     *                            the global dt from getdT() (false) for the scaling.
+     *
+     * @pre The PartBunch must currently be in unitless coordinates. If the bunch is
+     *      already in physical coordinates (isUnitless_m is false), this function
+     *      throws an OpalException.
+     */
+    void switchOffUnitlessPositions(bool use_dt_per_particle = false) {
+        if (!isUnitless_m) {
+            throw OpalException("PartBunch::switchOffUnitlessPositions",
+                                "PartBunch is already in physical positions!");
+        }
+
+        // Multiply by c*dt
+        double unitless_factor = Physics::c * this->getdT();
+        auto Rview  = this->getParticleContainer()->R.getView();
+        auto dtview = this->getParticleContainer()->dt.getView();
+        Kokkos::parallel_for(
+                             "switchOffUnitlessPositions", ippl::getRangePolicy(Rview),
+                             KOKKOS_LAMBDA(const size_t i) {
+                                double fac = use_dt_per_particle ? (Physics::c * dtview(i)) 
+                                                                 : unitless_factor;
+                                Rview(i) *= fac;
+                             });
+        isUnitless_m = false;
+
+        /// \todo remove later
+        *gmsg << "* Switched to physical positions." << endl;
     }
 
     size_t calcNumPartsOutside(Vector_t<double, Dim> /*x*/) {

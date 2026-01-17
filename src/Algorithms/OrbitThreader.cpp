@@ -469,15 +469,11 @@ double OrbitThreader::computeDriftLengthToBoundingBox(
     {
         std::optional<Vector_t<double, 3>> intersectionPoint =
             globalBoundingBox_m.getIntersectionPoint(position, direction);
-
         if (intersectionPoint) {
-            // Safe: only access when the optional has a value
-            const Vector_t<double, 3>& r = *intersectionPoint - position;
+            const Vector_t<double, 3> r = intersectionPoint.value() - position;
             return euclidean_norm(r);
-        } else {
-            // fallback if no intersection
-            return 10.0;
         }
+        return 10; 
     }
 
     return std::numeric_limits<double>::max();
