@@ -300,6 +300,15 @@ void computeCovariance6x6(const std::shared_ptr<ParticleContainer<double,3>>& pc
     auto Rview = pc->R.getView();
     auto Pview = pc->P.getView();
 
+    Kokkos::Array<double, 6> mean = {
+        meanSample[0],
+        meanSample[1],
+        meanSample[2],
+        meanSample[3],
+        meanSample[4],
+        meanSample[5]
+    };
+
     double loc_moment[6][6] = {0.0};
 
     for (unsigned i = 0; i < 6; ++i) {
@@ -310,12 +319,12 @@ void computeCovariance6x6(const std::shared_ptr<ParticleContainer<double,3>>& pc
                         double& s0, double& s1, double& s2,
                         double& s3, double& s4, double& s5) {
                 double part[6] = {
-                    Rview(k)[0] - meanSample[0],
-                    Pview(k)[0] - meanSample[1],
-                    Rview(k)[1] - meanSample[2],
-                    Pview(k)[1] - meanSample[3],
-                    Rview(k)[2] - meanSample[4],
-                    Pview(k)[2] - meanSample[5]
+                    Rview(k)[0] - mean[0],
+                    Pview(k)[0] - mean[1],
+                    Rview(k)[1] - mean[2],
+                    Pview(k)[1] - mean[3],
+                    Rview(k)[2] - mean[4],
+                    Pview(k)[2] - mean[5]
                 };
                 s0 += part[row] * part[0];
                 s1 += part[row] * part[1];
@@ -333,7 +342,6 @@ void computeCovariance6x6(const std::shared_ptr<ParticleContainer<double,3>>& pc
         );
         Kokkos::fence();
     }
-    printf("loop done\n");
 
     // MPI reduction across all ranks
     MPI_Allreduce(loc_moment, moment, 6 * 6, MPI_DOUBLE, MPI_SUM,
@@ -415,7 +423,6 @@ TEST_F(MultiVariateGaussianTest, FullCovarianceTest)
     EXPECT_NEAR(meanSample[4], meanR[2], 5e-3);
     EXPECT_NEAR(meanSample[5], meanP[2], 5e-3);
 
-    printf("meanSample: %f %f %f %f %f %f\n", meanSample[0], meanSample[1], meanSample[2], meanSample[3], meanSample[4], meanSample[5]);
     // ------------------------------
     // Compute sample covariance Σ
     // ------------------------------
