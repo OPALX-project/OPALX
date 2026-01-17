@@ -65,7 +65,7 @@ public:
      * @param cutoffR Cutoff multiplier for position distribution.
      * @param fix_meanR Flag to exactly fix the mean position of particles after sampling.
      */
-    Gaussian(std::shared_ptr<ParticleContainer_t> pc,
+    Gaussian(std::shared_ptr<ParticleContainer_t>& pc,
             const Vector_t<double, 3>& sigmaR,
             const Vector_t<double, 3>& sigmaP,
             double avrgpz, const Vector_t<double, 3>& cutoffR,
