@@ -698,6 +698,7 @@ void PartBunch<T,Dim>::scatterCICPerBin(PartBunch<T,Dim>::binIndex_t binIndex) {
 template <typename T, unsigned Dim>
 void PartBunch<T,Dim>::performBunchSanityChecks() const {
     Inform ms("PartBunch::performBunchSanityChecks");
+    ms << "========== Performing sanity checks on PartBunch... ==========" << endl;
     /// \todo always try to add more checks here! Best practice: throw explanatory exceptions and give output when passed.
 
     // Check if bc handler was initialized properly
@@ -712,6 +713,56 @@ void PartBunch<T,Dim>::performBunchSanityChecks() const {
                             "Field Solver was not initialized.");
     }
     ms << "Field Solver object was initialized." << endl;
+
+    // Verify we can access the concrete FieldSolver and its internals
+    auto fs = std::dynamic_pointer_cast<FieldSolver_t>(this->fsolver_m);
+
+    // cannot use getFieldContainer, since this getter cannot be const!
+    const std::shared_ptr<FieldContainer<T, Dim>> fctr = this->fcontainer_m;
+    if (!fctr) {
+        throw OpalException("PartBunch::performBunchSanityChecks",
+                            "FieldContainer isn't initialized correctly.");
+    }
+
+    // Check internal field pointers are set
+    if (fs->getRho() == nullptr || 
+        fs->getE()   == nullptr || 
+        fs->getPhi() == nullptr) {
+        throw OpalException("PartBunch::performBunchSanityChecks",
+                            "FieldSolver internal fields (rho/E/phi) not assigned.");
+    }
+    ms << "FieldSolver internal field pointers are set." << endl;
+
+    // Ensure FieldSolver fields point to our FieldContainer's fields
+    if (fs->getRho() != &fctr->getRho() ||
+        fs->getE()   != &fctr->getE()   ||
+        fs->getPhi() != &fctr->getPhi()) {
+        throw OpalException("PartBunch::performBunchSanityChecks",
+                            "FieldSolver fields do not match FieldContainer.");
+    }
+    ms << "FieldSolver fields match FieldContainer." << endl;
+
+    // Check solver type string and that a backend was emplaced
+    const std::string stype = fs->getStype();
+    if (stype.empty()) {
+        throw OpalException("PartBunch::performBunchSanityChecks",
+                            "FieldSolver type string is empty.");
+    }
+    if (stype != "FFT" && stype != "OPEN" && stype != "NONE") {
+        throw OpalException("PartBunch::performBunchSanityChecks",
+                            "Unsupported FieldSolver type: " + stype);
+    }
+    ms << "FieldSolver type: " << stype << endl;
+
+    // Basic check that the E-field layout has non-zero extent
+    auto Eview = fctr->getE().getView();
+    if (Eview.extent(0) == 0 || Eview.extent(1) == 0 || Eview.extent(2) == 0) {
+        throw OpalException("PartBunch::performBunchSanityChecks",
+                            "E-field layout not initialized (zero extent). ");
+    }
+    ms << "E-field layout initialized." << endl;
+
+    ms << "========= Done performing PartBunch sanity checks... =========" << endl;
 }
 
 
