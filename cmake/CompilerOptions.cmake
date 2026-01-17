@@ -21,8 +21,6 @@
 # === Basic warnings (apply to all builds) ===
 add_compile_options(-Wall -Wextra -Wno-deprecated-declarations)
 
-
-
 # === Use modified variant implementation ===
 if(OPALX_USE_ALTERNATIVE_VARIANT)
   add_definitions(-DOPALX_USE_ALTERNATIVE_VARIANT)
