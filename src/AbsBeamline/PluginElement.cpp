@@ -72,6 +72,10 @@ bool PluginElement::bends() const {
     return false;
 }
 
+bool PluginElement::apply() {
+    return false;
+}
+
 bool PluginElement::apply(
     const size_t& /*i*/, const double&, Vector_t<double, 3>&, Vector_t<double, 3>&) {
     return false;

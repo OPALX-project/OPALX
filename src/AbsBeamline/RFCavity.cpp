@@ -119,6 +119,10 @@ void RFCavity::accept(BeamlineVisitor& visitor) const {
     visitor.visitRFCavity(*this);
 }
 
+bool RFCavity::apply() {
+    return false;
+}
+
 bool RFCavity::apply(
     const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
     std::shared_ptr<ParticleContainer_t> pc = RefPartBunch_m->getParticleContainer();

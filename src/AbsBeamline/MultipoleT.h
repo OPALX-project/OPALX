@@ -103,6 +103,8 @@ public:
     const EMField& getField() const override;
     /** Not implemented */
     void getDimensions(double& zBegin, double& zEnd) const override;
+    /** Apply to all particles */
+    bool apply() override;
     /** Calculate the field at some arbitrary position
      *  If particle is outside field map true is returned,
      *  otherwise false is returned

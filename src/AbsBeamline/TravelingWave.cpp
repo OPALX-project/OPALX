@@ -71,6 +71,10 @@ void TravelingWave::accept(BeamlineVisitor& visitor) const {
     visitor.visitTravelingWave(*this);
 }
 
+bool TravelingWave::apply() {
+    return false;
+}
+
 bool TravelingWave::apply(
     const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
     return apply(RefPartBunch_m->R(i), RefPartBunch_m->P(i), t, E, B);

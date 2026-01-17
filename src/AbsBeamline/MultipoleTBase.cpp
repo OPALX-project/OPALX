@@ -71,6 +71,10 @@ MultipoleTBase::MultipoleTBase(const MultipoleTBase &right):
 MultipoleTBase::~MultipoleTBase() {
 }
 
+bool MultipoleTBase::apply() {
+    return false;
+}
+
 bool MultipoleTBase::apply(const Vector_t<double, 3> &R, const Vector_t<double, 3> &/*P*/,
                            const double &/*t*/,Vector_t<double, 3> &/*E*/, Vector_t<double, 3> &B) {
     /** Rotate coordinates around the central axis of the magnet */
