@@ -22,6 +22,7 @@
 #include "AbsBeamline/ElementBase.h"
 #include "AbstractObjects/OpalData.h"
 #include "AbstractObjects/OpalParticle.h"
+#include "Ippl.h"
  
 
 #include <boost/optional.hpp>
@@ -31,8 +32,10 @@
 #include <set>
 #include <string>
 #include <vector>
+#include <cstdint>
 
 #include "H5hut.h"
+#include <Kokkos_Core.hpp>
 
 struct SetStatistics {
     SetStatistics();
@@ -77,6 +80,40 @@ enum class CollectionType : unsigned short { SPATIAL = 0, TEMPORAL };
  */
 class LossDataSink {
 public:
+    struct DeviceData {
+        using RView_t = ippl::ParticleAttrib<Vector_t<double, 3>>::view_type;
+        using ScalarView_t = ippl::ParticleAttrib<double>::view_type;
+        using IdView_t = Kokkos::View<int64_t*>;
+        using IndexView_t = Kokkos::View<size_t*>;
+        using TimeView_t = Kokkos::View<double*>;
+        using TurnView_t = Kokkos::View<int*>;
+        using BunchView_t = Kokkos::View<short int*>;
+
+        RView_t R;
+        RView_t P;
+        ScalarView_t Q;
+        ScalarView_t M;
+        TimeView_t Time;
+        IdView_t ID;
+
+        IndexView_t lossIndex;
+        size_t localCount = 0;
+        size_t lossCount = 0;
+
+        TurnView_t turn;
+        BunchView_t bunch;
+
+        bool hasLossIndex() const {
+            return lossCount > 0 || lossIndex.extent(0) > 0;
+        }
+        bool hasTurnBunch() const {
+            return turn.extent(0) > 0 && bunch.extent(0) > 0;
+        }
+        bool hasTime() const {
+            return Time.extent(0) > 0;
+        }
+    };
+
     LossDataSink() = default;
 
     LossDataSink(std::string outfn, bool hdf5Save, CollectionType = CollectionType::TEMPORAL);
@@ -98,6 +135,12 @@ public:
     void addParticle(
         const OpalParticle&,
         const boost::optional<std::pair<int, short int>>& turnBunchNumPair = boost::none);
+
+    void bindDeviceData(const DeviceData& data);
+    void clearDeviceData();
+    bool hasDeviceData() const {
+        return deviceData_m.is_initialized();
+    }
 
     size_t size() const;
 
@@ -136,6 +179,7 @@ private:
 
     void splitSets(unsigned int numSets);
     SetStatistics computeSetStatistics(unsigned int setIdx);
+    std::set<SetStatistics> computeStatisticsFromHost(unsigned int numSets);
 
     // filename without extension
     std::string fileName_m;
@@ -167,25 +211,24 @@ private:
     std::vector<unsigned long> startSet_m;
 
     CollectionType collectionType_m;
+
+    boost::optional<DeviceData> deviceData_m;
 };
 
 inline size_t LossDataSink::size() const {
+    if (!particles_m.empty()) {
     return particles_m.size();
 }
-
-inline std::set<SetStatistics> LossDataSink::computeStatistics(unsigned int numStatistics) {
-    std::set<SetStatistics> stats;
-
-    splitSets(numStatistics);
-
-    for (unsigned int i = 0; i < numStatistics; ++i) {
-        auto setStats = computeSetStatistics(i);
-        if (setStats.nTotal_m > 0) {
-            stats.insert(setStats);
+    if (deviceData_m) {
+        if (deviceData_m->lossCount > 0) {
+            return deviceData_m->lossCount;
         }
-    }
-
-    return stats;
+        if (deviceData_m->localCount > 0) {
+            return deviceData_m->localCount;
+        }
+        return deviceData_m->R.extent(0);
+        }
+    return particles_m.size();
 }
 
 #endif

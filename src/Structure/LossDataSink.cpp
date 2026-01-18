@@ -148,6 +148,156 @@ namespace {
             max = val;
         }
     }
+
+    struct DeviceHostBuffers {
+        std::vector<Vector_t<double, 3>> R;
+        std::vector<Vector_t<double, 3>> P;
+        std::vector<double> Q;
+        std::vector<double> M;
+        std::vector<double> Time;
+        std::vector<h5_int64_t> ID;
+        std::vector<int> turn;
+        std::vector<short int> bunch;
+    };
+
+    size_t resolveDeviceLocalCount(const LossDataSink::DeviceData& data) {
+        if (data.localCount > 0) {
+            return data.localCount;
+        }
+        return data.R.extent(0);
+    }
+
+    size_t resolveDeviceActiveCount(const LossDataSink::DeviceData& data) {
+        if (data.lossCount > 0) {
+            return data.lossCount;
+        }
+        if (data.lossIndex.extent(0) > 0) {
+            return data.lossIndex.extent(0);
+        }
+        return resolveDeviceLocalCount(data);
+    }
+
+    void fillHostBuffers(
+        const LossDataSink::DeviceData& data, size_t startIdx, size_t count,
+        DeviceHostBuffers& buffers) {
+        buffers.R.assign(count, Vector_t<double, 3>(0.0));
+        buffers.P.assign(count, Vector_t<double, 3>(0.0));
+        buffers.Q.assign(count, 0.0);
+        buffers.M.assign(count, 0.0);
+        buffers.Time.assign(count, 0.0);
+        buffers.ID.assign(count, 0);
+        buffers.turn.assign(count, 0);
+        buffers.bunch.assign(count, 0);
+
+        std::vector<size_t> lossIndexHost;
+        if (data.hasLossIndex()) {
+            auto lossIndexDevice = data.lossIndex;
+            auto lossIndexMirror = Kokkos::create_mirror_view(lossIndexDevice);
+            Kokkos::deep_copy(lossIndexMirror, lossIndexDevice);
+            lossIndexHost.resize(lossIndexDevice.extent(0));
+            for (size_t i = 0; i < lossIndexHost.size(); ++i) {
+                lossIndexHost[i] = lossIndexMirror(i);
+            }
+        }
+
+        auto rDevice = data.R;
+        auto rHost   = Kokkos::create_mirror_view(rDevice);
+        Kokkos::deep_copy(rHost, rDevice);
+
+        auto pDevice = data.P;
+        auto pHost   = Kokkos::create_mirror_view(pDevice);
+        Kokkos::deep_copy(pHost, pDevice);
+
+        std::vector<double> qHost;
+        if (data.Q.extent(0) > 0) {
+            auto qDevice = data.Q;
+            auto qMirror = Kokkos::create_mirror_view(qDevice);
+            Kokkos::deep_copy(qMirror, qDevice);
+            qHost.resize(qDevice.extent(0));
+            for (size_t i = 0; i < qHost.size(); ++i) {
+                qHost[i] = qMirror(i);
+            }
+        }
+
+        std::vector<double> mHost;
+        if (data.M.extent(0) > 0) {
+            auto mDevice = data.M;
+            auto mMirror = Kokkos::create_mirror_view(mDevice);
+            Kokkos::deep_copy(mMirror, mDevice);
+            mHost.resize(mDevice.extent(0));
+            for (size_t i = 0; i < mHost.size(); ++i) {
+                mHost[i] = mMirror(i);
+            }
+        }
+
+        std::vector<double> timeHost;
+        if (data.hasTime()) {
+            auto timeDevice = data.Time;
+            auto timeMirror = Kokkos::create_mirror_view(timeDevice);
+            Kokkos::deep_copy(timeMirror, timeDevice);
+            timeHost.resize(timeDevice.extent(0));
+            for (size_t i = 0; i < timeHost.size(); ++i) {
+                timeHost[i] = timeMirror(i);
+            }
+        }
+
+        std::vector<h5_int64_t> idHost;
+        if (data.ID.extent(0) > 0) {
+            auto idDevice = data.ID;
+            auto idMirror = Kokkos::create_mirror_view(idDevice);
+            Kokkos::deep_copy(idMirror, idDevice);
+            idHost.resize(idDevice.extent(0));
+            for (size_t i = 0; i < idHost.size(); ++i) {
+                idHost[i] = static_cast<h5_int64_t>(idMirror(i));
+            }
+        }
+
+        std::vector<int> turnHost;
+        std::vector<short int> bunchHost;
+        if (data.hasTurnBunch()) {
+            auto turnDevice = data.turn;
+            auto turnMirror = Kokkos::create_mirror_view(turnDevice);
+            Kokkos::deep_copy(turnMirror, turnDevice);
+            turnHost.resize(turnDevice.extent(0));
+            for (size_t i = 0; i < turnHost.size(); ++i) {
+                turnHost[i] = turnMirror(i);
+            }
+
+            auto bunchDevice = data.bunch;
+            auto bunchMirror = Kokkos::create_mirror_view(bunchDevice);
+            Kokkos::deep_copy(bunchMirror, bunchDevice);
+            bunchHost.resize(bunchDevice.extent(0));
+            for (size_t i = 0; i < bunchHost.size(); ++i) {
+                bunchHost[i] = bunchMirror(i);
+            }
+        }
+
+        for (size_t i = 0; i < count; ++i) {
+            const size_t rawIdx = data.hasLossIndex() ? lossIndexHost[startIdx + i] : startIdx + i;
+            buffers.R[i]        = rHost(rawIdx);
+            buffers.P[i]        = pHost(rawIdx);
+            if (!qHost.empty()) {
+                buffers.Q[i] = qHost[rawIdx];
+            }
+            if (!mHost.empty()) {
+                buffers.M[i] = mHost[rawIdx];
+            }
+            if (!timeHost.empty()) {
+                buffers.Time[i] = timeHost[rawIdx];
+            }
+            if (!idHost.empty()) {
+                buffers.ID[i] = idHost[rawIdx];
+            } else {
+                buffers.ID[i] = static_cast<h5_int64_t>(rawIdx);
+            }
+            if (!turnHost.empty() && rawIdx < turnHost.size()) {
+                buffers.turn[i] = turnHost[rawIdx];
+            }
+            if (!bunchHost.empty() && rawIdx < bunchHost.size()) {
+                buffers.bunch[i] = bunchHost[rawIdx];
+            }
+        }
+    }
 }  // namespace
 
 SetStatistics::SetStatistics()
@@ -326,6 +476,14 @@ void LossDataSink::addParticle(
     particles_m.push_back(particle);
 }
 
+void LossDataSink::bindDeviceData(const DeviceData& data) {
+    deviceData_m = data;
+}
+
+void LossDataSink::clearDeviceData() {
+    deviceData_m = boost::none;
+}
+
 void LossDataSink::save(unsigned int numSets, OpalData::OpenMode openMode) {
     if (outputName_m.empty())
         return;
@@ -386,19 +544,279 @@ void LossDataSink::save(unsigned int numSets, OpalData::OpenMode openMode) {
 // the nodes that didn't enter the saveH5 function. -DW
 bool LossDataSink::hasNoParticlesToDump() const {
     size_t nLoc = particles_m.size();
+    if (nLoc == 0 && deviceData_m && deviceData_m->hasLossIndex()) {
+        nLoc = resolveDeviceActiveCount(*deviceData_m);
+    }
     ippl::Comm->reduce(nLoc, nLoc, 1, std::plus<size_t>());
     return nLoc == 0;
 }
 
 bool LossDataSink::hasTurnInformations() const {
     bool hasTurnInformation = !turnNumber_m.empty();
+    if (deviceData_m && deviceData_m->hasTurnBunch()) {
+        hasTurnInformation = true;
+    }
 
     ippl::Comm->allreduce(hasTurnInformation, 1, std::logical_or<bool>());
 
     return hasTurnInformation > 0;
 }
 
+std::set<SetStatistics> LossDataSink::computeStatistics(unsigned int numSets) {
+    if (!particles_m.empty() || !deviceData_m || !deviceData_m->hasLossIndex()) {
+        return computeStatisticsFromHost(numSets);
+    }
+
+    const size_t activeCount = resolveDeviceActiveCount(*deviceData_m);
+    if (activeCount == 0) {
+        return {};
+    }
+
+    DeviceHostBuffers buffers;
+    fillHostBuffers(*deviceData_m, 0, activeCount, buffers);
+
+    std::vector<OpalParticle> tempParticles;
+    tempParticles.reserve(activeCount);
+    for (size_t i = 0; i < activeCount; ++i) {
+        tempParticles.emplace_back(
+            buffers.ID[i], buffers.R[i], buffers.P[i], buffers.Time[i], buffers.Q[i], buffers.M[i]);
+    }
+
+    std::vector<size_t> tempTurn;
+    std::vector<size_t> tempBunch;
+    if (deviceData_m->hasTurnBunch()) {
+        tempTurn.assign(buffers.turn.begin(), buffers.turn.end());
+        tempBunch.assign(buffers.bunch.begin(), buffers.bunch.end());
+    }
+
+    auto savedParticles  = std::move(particles_m);
+    auto savedTurnNumber = std::move(turnNumber_m);
+    auto savedBunchNum   = std::move(bunchNumber_m);
+    auto savedStartSet   = std::move(startSet_m);
+
+    particles_m   = std::move(tempParticles);
+    turnNumber_m  = std::move(tempTurn);
+    bunchNumber_m = std::move(tempBunch);
+    startSet_m.clear();
+
+    auto stats = computeStatisticsFromHost(numSets);
+
+    particles_m   = std::move(savedParticles);
+    turnNumber_m  = std::move(savedTurnNumber);
+    bunchNumber_m = std::move(savedBunchNum);
+    startSet_m    = std::move(savedStartSet);
+
+    return stats;
+}
+
+std::set<SetStatistics> LossDataSink::computeStatisticsFromHost(unsigned int numSets) {
+    std::set<SetStatistics> stats;
+
+    splitSets(numSets);
+
+    for (unsigned int i = 0; i < numSets; ++i) {
+        auto setStats = computeSetStatistics(i);
+        if (setStats.nTotal_m > 0) {
+            stats.insert(setStats);
+        }
+    }
+
+    return stats;
+}
+
 void LossDataSink::saveH5(unsigned int setIdx) {
+    if (deviceData_m && particles_m.empty() && deviceData_m->hasLossIndex()) {
+        const auto& deviceData  = *deviceData_m;
+        const size_t totalCount = resolveDeviceActiveCount(deviceData);
+
+        size_t startIdx = 0, endIdx = totalCount;
+        if (setIdx + 1 < startSet_m.size()) {
+            startIdx = startSet_m[setIdx];
+            endIdx   = startSet_m[setIdx + 1];
+        }
+        size_t nLoc = endIdx - startIdx;
+
+        std::unique_ptr<size_t[]> locN(new size_t[ippl::Comm->size()]);
+        std::unique_ptr<size_t[]> globN(new size_t[ippl::Comm->size()]);
+
+        for (int i = 0; i < ippl::Comm->size(); i++) {
+            globN[i] = locN[i] = 0;
+        }
+
+        locN[ippl::Comm->rank()] = nLoc;
+
+        reduce(locN.get(), globN.get(), ippl::Comm->size(), std::plus<size_t>());
+
+        DistributionMoments engine;
+        const bool hasContiguousData =
+            !deviceData.hasLossIndex() && deviceData.R.extent(0) >= endIdx
+            && deviceData.P.extent(0) >= endIdx && deviceData.M.extent(0) >= endIdx;
+
+        if (hasContiguousData && nLoc > 0) {
+            LossDataSink::DeviceData::RView_t rSub =
+                Kokkos::subview(deviceData.R, std::make_pair(startIdx, endIdx));
+            LossDataSink::DeviceData::RView_t pSub =
+                Kokkos::subview(deviceData.P, std::make_pair(startIdx, endIdx));
+            LossDataSink::DeviceData::ScalarView_t mSub =
+                Kokkos::subview(deviceData.M, std::make_pair(startIdx, endIdx));
+
+            size_t totalParticles = nLoc;
+            ippl::Comm->reduce(totalParticles, totalParticles, 1, std::plus<size_t>());
+            engine.computeMoments(rSub, pSub, mSub, totalParticles, nLoc);
+            engine.computeMinMaxPosition(rSub, nLoc);
+        }
+
+        DeviceHostBuffers buffers;
+        fillHostBuffers(deviceData, startIdx, nLoc, buffers);
+
+        double meanTime = 0.0;
+        double rmsTime  = 0.0;
+        if (!buffers.Time.empty()) {
+            double localSum   = 0.0;
+            double localSumSq = 0.0;
+            for (double val : buffers.Time) {
+                localSum += val;
+                localSumSq += val * val;
+            }
+            double stats[3] = {localSum, localSumSq, static_cast<double>(nLoc)};
+            ippl::Comm->allreduce(stats, 3, std::plus<double>());
+            if (stats[2] > 0.0) {
+                meanTime = stats[0] / stats[2];
+                rmsTime  = std::sqrt(std::max(0.0, stats[1] / stats[2] - meanTime * meanTime));
+            }
+        }
+
+        /// Set current record/time step.
+        SET_STEP();
+        SET_NUM_PARTICLES(nLoc);
+
+        if (setIdx < spos_m.size()) {
+            WRITE_STEPATTRIB_FLOAT64("SPOS", &(spos_m[setIdx]), 1);
+            WRITE_STEPATTRIB_FLOAT64("TIME", &(refTime_m[setIdx]), 1);
+            WRITE_STEPATTRIB_FLOAT64("RefPartR", (h5_float64_t*)&(RefPartR_m[setIdx]), 3);
+            WRITE_STEPATTRIB_FLOAT64("RefPartP", (h5_float64_t*)&(RefPartP_m[setIdx]), 3);
+            WRITE_STEPATTRIB_INT64("GlobalTrackStep", &(globalTrackStep_m[setIdx]), 1);
+        }
+
+        Vector_t<double, 3> tmpVector;
+        double tmpDouble;
+        WRITE_STEPATTRIB_FLOAT64(
+            "centroid", (tmpVector = engine.getMeanPosition(), &tmpVector[0]), 3);
+        WRITE_STEPATTRIB_FLOAT64(
+            "RMSX", (tmpVector = engine.getStandardDeviationPosition(), &tmpVector[0]), 3);
+        WRITE_STEPATTRIB_FLOAT64(
+            "MEANP", (tmpVector = engine.getMeanMomentum(), &tmpVector[0]), 3);
+        WRITE_STEPATTRIB_FLOAT64(
+            "RMSP", (tmpVector = engine.getStandardDeviationMomentum(), &tmpVector[0]), 3);
+        WRITE_STEPATTRIB_FLOAT64(
+            "#varepsilon", (tmpVector = engine.getNormalizedEmittance(), &tmpVector[0]), 3);
+        WRITE_STEPATTRIB_FLOAT64(
+            "#varepsilon-geom", (tmpVector = engine.getGeometricEmittance(), &tmpVector[0]), 3);
+        WRITE_STEPATTRIB_FLOAT64(
+            "ENERGY", (tmpDouble = engine.getMeanKineticEnergy(), &tmpDouble), 1);
+        WRITE_STEPATTRIB_FLOAT64("dE", (tmpDouble = engine.getStdKineticEnergy(), &tmpDouble), 1);
+        WRITE_STEPATTRIB_FLOAT64(
+            "TotalCharge", (tmpDouble = engine.getTotalCharge(), &tmpDouble), 1);
+        WRITE_STEPATTRIB_FLOAT64("TotalMass", (tmpDouble = engine.getTotalMass(), &tmpDouble), 1);
+        WRITE_STEPATTRIB_FLOAT64("meanTime", (tmpDouble = meanTime, &tmpDouble), 1);
+        WRITE_STEPATTRIB_FLOAT64("rmsTime", (tmpDouble = rmsTime, &tmpDouble), 1);
+        if (Options::computePercentiles) {
+            WRITE_STEPATTRIB_FLOAT64(
+                "68-percentile", (tmpVector = engine.get68Percentile(), &tmpVector[0]), 3);
+            WRITE_STEPATTRIB_FLOAT64(
+                "95-percentile", (tmpVector = engine.get95Percentile(), &tmpVector[0]), 3);
+            WRITE_STEPATTRIB_FLOAT64(
+                "99-percentile", (tmpVector = engine.get99Percentile(), &tmpVector[0]), 3);
+            WRITE_STEPATTRIB_FLOAT64(
+                "99_99-percentile", (tmpVector = engine.get99_99Percentile(), &tmpVector[0]), 3);
+
+            WRITE_STEPATTRIB_FLOAT64(
+                "normalizedEps68Percentile",
+                (tmpVector = engine.getNormalizedEmittance68Percentile(), &tmpVector[0]), 3);
+            WRITE_STEPATTRIB_FLOAT64(
+                "normalizedEps95Percentile",
+                (tmpVector = engine.getNormalizedEmittance95Percentile(), &tmpVector[0]), 3);
+            WRITE_STEPATTRIB_FLOAT64(
+                "normalizedEps99Percentile",
+                (tmpVector = engine.getNormalizedEmittance99Percentile(), &tmpVector[0]), 3);
+            WRITE_STEPATTRIB_FLOAT64(
+                "normalizedEps99_99Percentile",
+                (tmpVector = engine.getNormalizedEmittance99_99Percentile(), &tmpVector[0]), 3);
+        }
+
+        WRITE_STEPATTRIB_FLOAT64("maxR", (tmpVector = engine.getMaxR(), &tmpVector[0]), 3);
+
+        // Write all data
+        std::vector<char> buffer(nLoc * sizeof(h5_float64_t));
+        h5_float64_t* f64buffer = nLoc > 0 ? reinterpret_cast<h5_float64_t*>(&buffer[0]) : nullptr;
+        h5_int64_t* i64buffer   = nLoc > 0 ? reinterpret_cast<h5_int64_t*>(&buffer[0]) : nullptr;
+
+        for (size_t i = 0; i < nLoc; ++i) {
+            i64buffer[i] = buffers.ID[i];
+        }
+        WRITE_DATA_INT64("id", i64buffer);
+
+        for (size_t i = 0; i < nLoc; ++i) {
+            f64buffer[i] = buffers.R[i](0);
+        }
+        WRITE_DATA_FLOAT64("x", f64buffer);
+
+        for (size_t i = 0; i < nLoc; ++i) {
+            f64buffer[i] = buffers.R[i](1);
+        }
+        WRITE_DATA_FLOAT64("y", f64buffer);
+
+        for (size_t i = 0; i < nLoc; ++i) {
+            f64buffer[i] = buffers.R[i](2);
+        }
+        WRITE_DATA_FLOAT64("z", f64buffer);
+
+        for (size_t i = 0; i < nLoc; ++i) {
+            f64buffer[i] = buffers.P[i](0);
+        }
+        WRITE_DATA_FLOAT64("px", f64buffer);
+
+        for (size_t i = 0; i < nLoc; ++i) {
+            f64buffer[i] = buffers.P[i](1);
+        }
+        WRITE_DATA_FLOAT64("py", f64buffer);
+
+        for (size_t i = 0; i < nLoc; ++i) {
+            f64buffer[i] = buffers.P[i](2);
+        }
+        WRITE_DATA_FLOAT64("pz", f64buffer);
+
+        for (size_t i = 0; i < nLoc; ++i) {
+            f64buffer[i] = buffers.Q[i];
+        }
+        WRITE_DATA_FLOAT64("q", f64buffer);
+
+        for (size_t i = 0; i < nLoc; ++i) {
+            f64buffer[i] = buffers.M[i];
+        }
+        WRITE_DATA_FLOAT64("m", f64buffer);
+
+        if (hasTurnInformations()) {
+            for (size_t i = 0; i < nLoc; ++i) {
+                i64buffer[i] = buffers.turn[i];
+            }
+            WRITE_DATA_INT64("turn", i64buffer);
+
+            for (size_t i = 0; i < nLoc; ++i) {
+                i64buffer[i] = buffers.bunch[i];
+            }
+            WRITE_DATA_INT64("bunchNumber", i64buffer);
+        }
+
+        for (size_t i = 0; i < nLoc; ++i) {
+            f64buffer[i] = buffers.Time[i];
+        }
+        WRITE_DATA_FLOAT64("time", f64buffer);
+
+        ++H5call_m;
+        return;
+    }
+
     size_t nLoc     = particles_m.size();
     size_t startIdx = 0, endIdx = nLoc;
     if (setIdx + 1 < startSet_m.size()) {

@@ -181,6 +181,16 @@ void Ring::initialise(PartBunch_t* bunch) {
     online_m = true;
     setRefPartBunch(bunch);
     setLossDataSink(new LossDataSink(getName(), false));
+    if (lossDS_m) {
+        auto pc = RefPartBunch_m->getParticleContainer();
+        LossDataSink::DeviceData deviceData;
+        deviceData.R          = pc->R.getView();
+        deviceData.P          = pc->P.getView();
+        deviceData.Q          = pc->Q.getView();
+        deviceData.M          = pc->M.getView();
+        deviceData.localCount = RefPartBunch_m->getLocalNum();
+        lossDS_m->bindDeviceData(deviceData);
+    }
 }
 
 void Ring::initialise(PartBunch_t* bunch, double& /*startField*/, double& /*endField*/) {
