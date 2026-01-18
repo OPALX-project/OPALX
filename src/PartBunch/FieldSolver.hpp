@@ -12,6 +12,8 @@ private:
     Field_t<Dim>* rho_m;
     VField_t<T, Dim>* E_m;
     Field_t<Dim>* phi_m;
+
+    /// Counts number of times the solver has been called
     unsigned int call_counter_m;
 public:
     FieldSolver(std::string solver,
