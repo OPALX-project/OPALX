@@ -53,7 +53,7 @@ public:
      * @param fixMeanR Boolean flag to fix mean position.
      * @param fixMeanP Boolean flag to fix mean momentum.
      */
-    MultiVariateGaussian(std::shared_ptr<ParticleContainer_t> pc,
+    MultiVariateGaussian(std::shared_ptr<ParticleContainer_t>& pc,
                    const Vector_t<double, 3>& meanR,
                    const Vector_t<double, 3>& meanP,
                    const Vector_t<double, 3>& sigmaR,
@@ -74,7 +74,7 @@ public:
      * @param fixMeanR Boolean flag to fix mean position.
      * @param fixMeanP Boolean flag to fix mean momentum.
      */
-    MultiVariateGaussian(std::shared_ptr<ParticleContainer_t> pc,
+    MultiVariateGaussian(std::shared_ptr<ParticleContainer_t>& pc,
                    const Vector_t<double, 3>& meanR,
                    const Vector_t<double, 3>& meanP,
                    const Matrix_t &cov,
