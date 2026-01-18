@@ -23,6 +23,7 @@
 #include "BeamlineGeometry/StraightGeometry.h"
 #include "Structure/LossDataSink.h"
 
+#include <Kokkos_Core.hpp>
 #include <map>
 #include <string>
 
@@ -63,6 +64,8 @@ public:
 
     virtual bool apply(
         const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
+
+    virtual bool apply() override;
 
     virtual bool apply(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
@@ -108,6 +111,12 @@ private:
 
     static std::map<double, SetStatistics> statFileEntries_sm;
     static const double halfLength_s;
+
+    LossDataSink::DeviceData deviceData_m;
+    LossDataSink::DeviceData::IndexView_t lossIndex_m;
+    LossDataSink::DeviceData::TimeView_t lossTime_m;
+    Kokkos::View<size_t> lossCount_m;
+    size_t lossCapacity_m = 0;
 };
 
 inline void Monitor::setCollectionType(CollectionType type) {

@@ -78,14 +78,88 @@ bool Monitor::apply(
     //     }
     // }
 
-    throw std::runtime_error("Fix this function please");
+    return false;
+}
+
+bool Monitor::apply() {
+    if (!online_m || type_m != CollectionType::SPATIAL || !lossDs_m || !RefPartBunch_m) {
+        return false;
+    }
+
+    auto pc = RefPartBunch_m->getParticleContainer();
+    const size_t localNum = RefPartBunch_m->getLocalNum();
+    if (localNum == 0) {
+        deviceData_m.lossCount = 0;
+        lossDs_m->bindDeviceData(deviceData_m);
+        return false;
+    }
+
+    if (lossCapacity_m != localNum) {
+        lossCapacity_m = localNum;
+        lossIndex_m    = LossDataSink::DeviceData::IndexView_t("MonitorLossIndex", lossCapacity_m);
+        lossTime_m     = LossDataSink::DeviceData::TimeView_t("MonitorLossTime", lossCapacity_m);
+        lossCount_m    = Kokkos::View<size_t>("MonitorLossCount");
+        Kokkos::deep_copy(lossCount_m, size_t(0));
+
+        deviceData_m.lossIndex  = lossIndex_m;
+        deviceData_m.Time       = lossTime_m;
+        deviceData_m.localCount = localNum;
+        deviceData_m.lossCount  = 0;
+        lossDs_m->bindDeviceData(deviceData_m);
+    }
+
+    auto Rview  = pc->R.getView();
+    auto Pview  = pc->P.getView();
+    auto dtview = pc->dt.getView();
+    auto lossIndex = lossIndex_m;
+    auto lossTime  = lossTime_m;
+    auto lossCount = lossCount_m;
+    const double t0 = RefPartBunch_m->getT();
+    const double c  = Physics::c;
+
+    Kokkos::deep_copy(lossCount_m, size_t(0));
+
+    Kokkos::parallel_for(
+        "Monitor::applyLossIndex", ippl::getRangePolicy(Rview), KOKKOS_LAMBDA(const int idx) {
+            const double Rz = Rview(idx)(2);
+            const double dt = dtview(idx);
+            if (dt == 0.0) {
+                return;
+            }
+
+            const double px = Pview(idx)(0);
+            const double py = Pview(idx)(1);
+            const double pz = Pview(idx)(2);
+            const double gamma = Kokkos::sqrt(1.0 + px * px + py * py + pz * pz);
+            const double betaZ = pz / gamma;
+            const double singleStepZ = c * dt * betaZ;
+            if (singleStepZ == 0.0) {
+                return;
+            }
+
+            if (dt * Rz < 0.0 && dt * (Rz + singleStepZ) > 0.0) {
+                const double frac = -Rz / singleStepZ;
+                const double time = t0 + frac * dt;
+                const size_t slot = Kokkos::atomic_fetch_add(&lossCount(), size_t(1));
+                if (slot < lossIndex.extent(0)) {
+                    lossIndex(slot) = static_cast<size_t>(idx);
+                    lossTime(idx)   = time;
+                }
+            }
+        });
+    Kokkos::fence();
+
+    size_t hostCount = 0;
+    Kokkos::deep_copy(hostCount, lossCount_m);
+    deviceData_m.lossCount = hostCount;
+    lossDs_m->bindDeviceData(deviceData_m);
+
     return false;
 }
 
 bool Monitor::apply(
     const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
     Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
-    throw std::runtime_error("Fix this function please");
     return false;
 }
 
@@ -107,7 +181,6 @@ void Monitor::driftToCorrectPositionAndSave(
     //     particle.setR(refToLocalCSTrafo.transformTo(particle.getR()) + dS);
     //     lossDs_m->addParticle(particle);
     // }
-    throw std::runtime_error("Fix this function please");
 }
 
 bool Monitor::applyToReferenceParticle(
@@ -146,7 +219,6 @@ bool Monitor::applyToReferenceParticle(
     //         ++numPassages_m;
     //     }
     // }
-    throw std::runtime_error("Fix this function please");
     return false;
 }
 
@@ -177,9 +249,26 @@ void Monitor::initialise(PartBunch_t* bunch, double& startField, double& endFiel
     //     }
     // }
 
-    // lossDs_m =
-    //     std::unique_ptr<LossDataSink>(new LossDataSink(filename_m, !Options::asciidump, type_m));
-    throw std::runtime_error("Fix this function please");
+    lossDs_m =
+        std::unique_ptr<LossDataSink>(new LossDataSink(filename_m, !Options::asciidump, type_m));
+
+    auto pc = RefPartBunch_m->getParticleContainer();
+    deviceData_m.R = pc->R.getView();
+    deviceData_m.P = pc->P.getView();
+    deviceData_m.Q = pc->Q.getView();
+    deviceData_m.M = pc->M.getView();
+    deviceData_m.localCount = RefPartBunch_m->getLocalNum();
+    deviceData_m.lossCount  = 0;
+
+    lossCapacity_m = deviceData_m.localCount;
+    lossIndex_m    = LossDataSink::DeviceData::IndexView_t("MonitorLossIndex", lossCapacity_m);
+    lossTime_m     = LossDataSink::DeviceData::TimeView_t("MonitorLossTime", lossCapacity_m);
+    lossCount_m    = Kokkos::View<size_t>("MonitorLossCount");
+    Kokkos::deep_copy(lossCount_m, size_t(0));
+
+    deviceData_m.lossIndex = lossIndex_m;
+    deviceData_m.Time      = lossTime_m;
+    lossDs_m->bindDeviceData(deviceData_m);
 }
 
 void Monitor::finalise() {
