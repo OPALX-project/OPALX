@@ -250,11 +250,11 @@ public:
     }
 
     Vector_t<double, Dim> R(size_t i) {
-        return this->pcontainer_m->R(i);
+        return this->pcontainer_m->R.getView()(i);
     }
 
     Vector_t<double, Dim> P(size_t i) {
-        return this->pcontainer_m->P(i);
+        return this->pcontainer_m->P.getView()(i);
     }
 
     Vector_t<double, Dim> Ef(size_t /*i*/) {
