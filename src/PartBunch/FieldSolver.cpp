@@ -224,7 +224,8 @@ void FieldSolver<double,3>::dumpScalField(std::string what) {
 
     fout << "# " << Util::toUpper(what) << " " << type << " data on grid" << std::endl
          << "# origin= " << std::fixed << origin << " h= " << std::fixed << spacing << std::endl 
-         << std::setw(5)  << "i"
+         << "#"
+         << std::setw(4)  << "i"
          << std::setw(5)  << "j"
          << std::setw(5)  << "k"
          << std::setw(17) << "x [m]"
