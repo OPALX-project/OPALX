@@ -23,7 +23,7 @@ Gaussian::Gaussian(std::shared_ptr<ParticleContainer_t> &pc,
     setCutoffR(opalDist->getCutoffR());
 }
 
-Gaussian::Gaussian(std::shared_ptr<ParticleContainer_t> pc,
+Gaussian::Gaussian(std::shared_ptr<ParticleContainer_t>& pc,
                    const Vector_t<double, 3>& sigmaR,
                    const Vector_t<double, 3>& sigmaP,
                    double avrgpz, const Vector_t<double, 3>& cutoffR,
