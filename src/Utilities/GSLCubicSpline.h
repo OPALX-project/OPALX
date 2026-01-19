@@ -22,15 +22,26 @@
 #include <algorithm>
 #include <stdexcept>
 
+/// \see https://www.gnu.org/software/gsl/doc/html/interp.html
+/// \see https://www.gnu.org/software/gsl/
 // Simple cubic spline interpolation class to replace GSL spline
+/// \brief Natural cubic spline interpolator.
 class CubicSpline {
 public:
     CubicSpline() : x_(), y_(), b_(), c_(), d_() {}
     
+    /// \brief Construct and initialize from tabulated data.
+    /// \param x Input: strictly increasing x-coordinates.
+    /// \param y Input: y-values corresponding to \p x.
+    /// \param n Input: number of samples (>= 2).
     CubicSpline(const double* x, const double* y, size_t n) {
         init(x, y, n);
     }
     
+    /// \brief Initialize from tabulated data (natural spline).
+    /// \param x Input: strictly increasing x-coordinates.
+    /// \param y Input: y-values corresponding to \p x.
+    /// \param n Input: number of samples (>= 2).
     void init(const double* x, const double* y, size_t n) {
         if (n < 2) {
             throw std::invalid_argument("CubicSpline: need at least 2 points");
@@ -50,6 +61,9 @@ public:
         computeCoefficients();
     }
     
+    /// \brief Evaluate the spline at \p x.
+    /// \param x Input: x-coordinate.
+    /// \return Output: interpolated value (with linear extrapolation).
     double eval(double x) const {
         if (x_.empty()) {
             throw std::runtime_error("CubicSpline: not initialized");
@@ -76,12 +90,17 @@ public:
     }
     
     // Accelerator for repeated evaluations (compatible with GSL interface)
+    /// \brief Accelerator caching last interval index.
     class Accelerator {
     public:
         Accelerator() : last_index_(0) {}
         size_t last_index_;
     };
     
+    /// \brief Evaluate the spline at \p x using an accelerator.
+    /// \param x Input: x-coordinate.
+    /// \param accel Input/Output: cached interval index.
+    /// \return Output: interpolated value.
     double eval(double x, Accelerator& accel) const {
         // Use cached index if possible
         if (accel.last_index_ < x_.size() - 1 && 
@@ -103,6 +122,7 @@ public:
     }
     
 private:
+    /// \brief Compute natural spline coefficients.
     void computeCoefficients() {
         size_t n = x_.size();
         b_.resize(n);
@@ -143,11 +163,17 @@ private:
         d_[n - 1] = 0.0;
     }
     
+    /// \brief Linear extrapolation to the left of the data range.
+    /// \param x Input: x-coordinate.
+    /// \return Output: extrapolated value.
     double extrapolateLeft(double x) const {
         double dx = x - x_[0];
         return y_[0] + b_[0] * dx;
     }
     
+    /// \brief Linear extrapolation to the right of the data range.
+    /// \param x Input: x-coordinate.
+    /// \return Output: extrapolated value.
     double extrapolateRight(double x) const {
         size_t n = x_.size();
         double dx = x - x_[n - 1];
@@ -162,33 +188,57 @@ private:
 };
 
 // Compatibility aliases for GSL-like interface
+/// \brief GSL-compatible spline type alias.
 using gsl_spline = CubicSpline;
+/// \brief GSL-compatible accelerator type alias.
 using gsl_interp_accel = CubicSpline::Accelerator;
 
+/// \brief Allocate a spline instance (type/size ignored).
+/// \param type Input: interpolation type (unused).
+/// \param size Input: number of points (unused).
+/// \return Output: spline pointer.
 inline CubicSpline* gsl_spline_alloc(int /* type */, size_t /* size */) {
     return new CubicSpline();
 }
 
+/// \brief Allocate an interpolation accelerator.
+/// \return Output: accelerator pointer.
 inline CubicSpline::Accelerator* gsl_interp_accel_alloc() {
     return new CubicSpline::Accelerator();
 }
 
+/// \brief Initialize a spline with tabulated data.
+/// \param spline Input/Output: spline to initialize.
+/// \param x Input: strictly increasing x-coordinates.
+/// \param y Input: y-values corresponding to \p x.
+/// \param n Input: number of samples.
 inline void gsl_spline_init(CubicSpline* spline, const double* x, const double* y, size_t n) {
     spline->init(x, y, n);
 }
 
+/// \brief Evaluate a spline at \p x using an accelerator.
+/// \param spline Input: spline to evaluate.
+/// \param x Input: x-coordinate.
+/// \param accel Input/Output: accelerator cache.
+/// \return Output: interpolated value.
 inline double gsl_spline_eval(const CubicSpline* spline, double x, CubicSpline::Accelerator* accel) {
     return spline->eval(x, *accel);
 }
 
+/// \brief Free a spline instance.
+/// \param spline Input: spline to release (can be null).
 inline void gsl_spline_free(CubicSpline* spline) {
     delete spline;
 }
 
+/// \brief Free an accelerator instance.
+/// \param accel Input: accelerator to release (can be null).
 inline void gsl_interp_accel_free(CubicSpline::Accelerator* accel) {
     delete accel;
 }
 
+/// \brief Reset an accelerator to the initial state.
+/// \param accel Input/Output: accelerator to reset.
 inline void gsl_interp_accel_reset(CubicSpline::Accelerator* accel) {
     if (accel) {
         accel->last_index_ = 0;
@@ -196,6 +246,7 @@ inline void gsl_interp_accel_reset(CubicSpline::Accelerator* accel) {
 }
 
 // GSL interpolation type constants (not used in our implementation, but kept for compatibility)
+/// \brief GSL linear interpolation type identifier.
 constexpr int gsl_interp_linear = 1;
 constexpr int gsl_interp_cspline = 0;
 

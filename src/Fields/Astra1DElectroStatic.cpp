@@ -6,8 +6,7 @@
 #include "Utilities/Util.h"
 
 #include "Utilities/GSLFFT.h"
-#include "Utilities/CubicSpline.h"
-#include "Utilities/CubicSpline.h"
+#include "Utilities/GSLCubicSpline.h"
 
 #include <fstream>
 #include <ios>

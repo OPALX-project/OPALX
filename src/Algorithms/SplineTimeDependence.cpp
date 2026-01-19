@@ -26,7 +26,7 @@
  */
 
 #include "Utilities/GSLCompat.h"
-#include "Utilities/CubicSpline.h"
+#include "Utilities/GSLCubicSpline.h"
 
 #include "Utilities/GeneralClassicException.h"
 #include "Algorithms/SplineTimeDependence.h"
