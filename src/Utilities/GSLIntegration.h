@@ -22,7 +22,8 @@
 #include <cmath>
 #include <functional>
 
-/// \see https://www.gnu.org/software/gsl/doc/html/integration.html
+/// \see Documentation on https://www.gnu.org/software/gsl/doc/html/integration.html
+/// \see Implementation on https://www.gnu.org/software/gsl/
 /// \brief Workspace for adaptive integration routines.
 struct gsl_integration_workspace {
     size_t limit;

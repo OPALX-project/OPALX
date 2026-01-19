@@ -21,7 +21,8 @@
 #include <complex>
 #include <cmath>
 
-/// \see https://www.gnu.org/software/gsl/doc/html/complex.htm
+/// \see Documentation on https://www.gnu.org/software/gsl/doc/html/complex.htm
+/// \see Implementation on https://www.gnu.org/software/gsl/
 /// \brief Complex number stored as \f$(\Re, \Im)\f$.
 struct gsl_complex {
     double dat[2];  // [real, imag]

@@ -22,7 +22,8 @@
 #include "Utilities/GSLComplex.h"
 #include <cstring>
 
-/// \see https://www.gnu.org/software/gsl/doc/html/blas.html
+/// \see Documentation on https://www.gnu.org/software/gsl/doc/html/blas.html
+/// \see Implementation on https://www.gnu.org/software/gsl/
 /// \brief Transpose operation selector for BLAS routines.
 /// \details
 /// - \c CblasNoTrans: \f$\mathrm{op}(A) = A\f$

@@ -24,7 +24,8 @@
 #include <cmath>
 #include <complex>
 
-/// \see https://www.gnu.org/software/gsl/doc/html/eigen.html
+/// \see Documentation on https://www.gnu.org/software/gsl/doc/html/eigen.html
+/// \see Implementation on https://www.gnu.org/software/gsl/
 /// \brief Workspace for nonsymmetric eigenvalue computation.
 struct gsl_eigen_nonsymm_workspace {
     size_t n;

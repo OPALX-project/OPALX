@@ -23,7 +23,8 @@
 #include <cmath>
 #include <algorithm>
 
-/// \see https://www.gnu.org/software/gsl/doc/html/fft.html
+/// \see Documentation on https://www.gnu.org/software/gsl/doc/html/fft.html
+/// \see Implementation on https://www.gnu.org/software/gsl/
 // Helper functions for FFT
 namespace {
     // Cooley-Tukey FFT
