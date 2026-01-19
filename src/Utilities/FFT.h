@@ -23,6 +23,7 @@
 #include <cmath>
 #include <algorithm>
 
+/// \see https://www.gnu.org/software/gsl/doc/html/fft.html
 // Helper functions for FFT
 namespace {
     // Cooley-Tukey FFT
@@ -70,10 +71,16 @@ namespace {
     }
 }
 
-// Simple FFT implementation using Cooley-Tukey algorithm
+/// \brief Simple FFT implementation using Cooley-Tukey algorithm.
+/// \see https://www.gnu.org/software/gsl/doc/html/fft.html
 namespace FFT {
     
-    // Forward FFT for real data
+    /// \brief Forward FFT for real data (packed output).
+    /// \details Computes the discrete Fourier transform of a real sequence and
+    /// stores it in GSL halfcomplex packed format.
+    /// \param data Input/Output: real input sequence overwritten with packed spectrum.
+    /// \param stride Input: element stride in \p data.
+    /// \param n Input: number of samples.
     inline void fft_real_transform(double* data, size_t stride, size_t n) {
         if (n == 0) return;
         
@@ -102,22 +109,31 @@ namespace FFT {
     }
 }
 
-// GSL-compatible interface
+/// \brief GSL-compatible interface for FFT routines.
+/// \see https://www.gnu.org/software/gsl/doc/html/fft.html
 struct gsl_fft_real_wavetable {
     size_t n;
 };
 
+/// \brief Workspace for real FFT routines.
+/// \see https://www.gnu.org/software/gsl/doc/html/fft.html
 struct gsl_fft_real_workspace {
     size_t n;
     std::vector<double> work;
 };
 
+/// \brief Allocate a real FFT wavetable of size \f$n\f$.
+/// \param n Input: transform size.
+/// \return Output: wavetable pointer.
 inline gsl_fft_real_wavetable* gsl_fft_real_wavetable_alloc(size_t n) {
     gsl_fft_real_wavetable* w = new gsl_fft_real_wavetable;
     w->n = n;
     return w;
 }
 
+/// \brief Allocate a real FFT workspace of size \f$n\f$.
+/// \param n Input: transform size.
+/// \return Output: workspace pointer.
 inline gsl_fft_real_workspace* gsl_fft_real_workspace_alloc(size_t n) {
     gsl_fft_real_workspace* w = new gsl_fft_real_workspace;
     w->n = n;
@@ -125,36 +141,55 @@ inline gsl_fft_real_workspace* gsl_fft_real_workspace_alloc(size_t n) {
     return w;
 }
 
+/// \brief Forward real FFT with GSL-compatible packed output.
+/// \param data Input/Output: real input sequence overwritten with packed spectrum.
+/// \param stride Input: element stride in \p data.
+/// \param n Input: number of samples.
+/// \param wavetable Input: wavetable (unused).
+/// \param workspace Input: workspace (unused).
 inline void gsl_fft_real_transform(double* data, size_t stride, size_t n,
                                     gsl_fft_real_wavetable* /* wavetable */,
                                     gsl_fft_real_workspace* /* workspace */) {
     FFT::fft_real_transform(data, stride, n);
 }
 
+/// \brief Free a real FFT wavetable.
+/// \param w Input: wavetable to release (can be null).
 inline void gsl_fft_real_wavetable_free(gsl_fft_real_wavetable* w) {
     delete w;
 }
 
+/// \brief Free a real FFT workspace.
+/// \param w Input: workspace to release (can be null).
 inline void gsl_fft_real_workspace_free(gsl_fft_real_workspace* w) {
     delete w;
 }
 
-// Halfcomplex FFT (for inverse transforms)
+/// \brief Halfcomplex FFT types for inverse transforms.
+/// \see https://www.gnu.org/software/gsl/doc/html/fft.html
 struct gsl_fft_halfcomplex_wavetable {
     size_t n;
 };
 
+/// \brief Workspace for halfcomplex FFT routines.
+/// \see https://www.gnu.org/software/gsl/doc/html/fft.html
 struct gsl_fft_halfcomplex_workspace {
     size_t n;
     std::vector<double> work;
 };
 
+/// \brief Allocate a halfcomplex FFT wavetable of size \f$n\f$.
+/// \param n Input: transform size.
+/// \return Output: wavetable pointer.
 inline gsl_fft_halfcomplex_wavetable* gsl_fft_halfcomplex_wavetable_alloc(size_t n) {
     gsl_fft_halfcomplex_wavetable* w = new gsl_fft_halfcomplex_wavetable;
     w->n = n;
     return w;
 }
 
+/// \brief Allocate a halfcomplex FFT workspace of size \f$n\f$.
+/// \param n Input: transform size.
+/// \return Output: workspace pointer.
 inline gsl_fft_halfcomplex_workspace* gsl_fft_halfcomplex_workspace_alloc(size_t n) {
     gsl_fft_halfcomplex_workspace* w = new gsl_fft_halfcomplex_workspace;
     w->n = n;
@@ -162,6 +197,12 @@ inline gsl_fft_halfcomplex_workspace* gsl_fft_halfcomplex_workspace_alloc(size_t
     return w;
 }
 
+/// \brief Inverse transform from halfcomplex packed data.
+/// \param data Input/Output: packed spectrum overwritten with real sequence.
+/// \param stride Input: element stride in \p data.
+/// \param n Input: number of samples.
+/// \param wavetable Input: wavetable (unused).
+/// \param workspace Input: workspace (unused).
 inline void gsl_fft_halfcomplex_transform(double* data, size_t stride, size_t n,
                                           gsl_fft_halfcomplex_wavetable* /* wavetable */,
                                           gsl_fft_halfcomplex_workspace* /* workspace */) {
@@ -190,22 +231,36 @@ inline void gsl_fft_halfcomplex_transform(double* data, size_t stride, size_t n,
     }
 }
 
+/// \brief Free a halfcomplex FFT wavetable.
+/// \param w Input: wavetable to release (can be null).
 inline void gsl_fft_halfcomplex_wavetable_free(gsl_fft_halfcomplex_wavetable* w) {
     delete w;
 }
 
+/// \brief Free a halfcomplex FFT workspace.
+/// \param w Input: workspace to release (can be null).
 inline void gsl_fft_halfcomplex_workspace_free(gsl_fft_halfcomplex_workspace* w) {
     delete w;
 }
 
-// Alias for inverse transform
+/// \brief Alias for halfcomplex inverse transform.
+/// \param data Input/Output: packed spectrum overwritten with real sequence.
+/// \param stride Input: element stride in \p data.
+/// \param n Input: number of samples.
+/// \param wavetable Input: wavetable (unused).
+/// \param workspace Input: workspace (unused).
 inline void gsl_fft_halfcomplex_inverse(double* data, size_t stride, size_t n,
                                          gsl_fft_halfcomplex_wavetable* wavetable,
                                          gsl_fft_halfcomplex_workspace* workspace) {
     gsl_fft_halfcomplex_transform(data, stride, n, wavetable, workspace);
 }
 
-// Allow real workspace to be used with halfcomplex (they're compatible)
+/// \brief Allow real workspace to be used with halfcomplex (compat helper).
+/// \param data Input/Output: packed spectrum overwritten with real sequence.
+/// \param stride Input: element stride in \p data.
+/// \param n Input: number of samples.
+/// \param wavetable Input: wavetable (unused).
+/// \param workspace Input: workspace (unused).
 inline void gsl_fft_halfcomplex_inverse(double* data, size_t stride, size_t n,
                                          gsl_fft_halfcomplex_wavetable* /* wavetable */,
                                          gsl_fft_real_workspace* /* workspace */) {
@@ -216,22 +271,31 @@ inline void gsl_fft_halfcomplex_inverse(double* data, size_t stride, size_t n,
     gsl_fft_halfcomplex_workspace_free(hc_ws);
 }
 
-// Complex FFT
+/// \brief Complex FFT types.
+/// \see https://www.gnu.org/software/gsl/doc/html/fft.html
 struct gsl_fft_complex_wavetable {
     size_t n;
 };
 
+/// \brief Workspace for complex FFT routines.
+/// \see https://www.gnu.org/software/gsl/doc/html/fft.html
 struct gsl_fft_complex_workspace {
     size_t n;
     std::vector<std::complex<double>> work;
 };
 
+/// \brief Allocate a complex FFT wavetable of size \f$n\f$.
+/// \param n Input: transform size.
+/// \return Output: wavetable pointer.
 inline gsl_fft_complex_wavetable* gsl_fft_complex_wavetable_alloc(size_t n) {
     gsl_fft_complex_wavetable* w = new gsl_fft_complex_wavetable();
     w->n = n;
     return w;
 }
 
+/// \brief Allocate a complex FFT workspace of size \f$n\f$.
+/// \param n Input: transform size.
+/// \return Output: workspace pointer.
 inline gsl_fft_complex_workspace* gsl_fft_complex_workspace_alloc(size_t n) {
     gsl_fft_complex_workspace* w = new gsl_fft_complex_workspace();
     w->n = n;
@@ -239,6 +303,13 @@ inline gsl_fft_complex_workspace* gsl_fft_complex_workspace_alloc(size_t n) {
     return w;
 }
 
+/// \brief Forward complex FFT.
+/// \details Input/output layout is interleaved: \f$[Re_0, Im_0, Re_1, Im_1, ...]\f$.
+/// \param data Input/Output: interleaved complex data overwritten with spectrum.
+/// \param stride Input: complex element stride.
+/// \param n Input: number of complex samples.
+/// \param wavetable Input: wavetable (unused).
+/// \param workspace Input: workspace (unused).
 inline void gsl_fft_complex_forward(double* data, size_t stride, size_t n,
                                    gsl_fft_complex_wavetable* /* wavetable */,
                                    gsl_fft_complex_workspace* /* workspace */) {
@@ -253,6 +324,13 @@ inline void gsl_fft_complex_forward(double* data, size_t stride, size_t n,
     }
 }
 
+/// \brief Inverse complex FFT (GSL scaling: multiplies by \f$n\f$).
+/// \details Input/output layout is interleaved: \f$[Re_0, Im_0, Re_1, Im_1, ...]\f$.
+/// \param data Input/Output: interleaved complex spectrum overwritten with signal.
+/// \param stride Input: complex element stride.
+/// \param n Input: number of complex samples.
+/// \param wavetable Input: wavetable (unused).
+/// \param workspace Input: workspace (unused).
 inline void gsl_fft_complex_inverse(double* data, size_t stride, size_t n,
                                     gsl_fft_complex_wavetable* /* wavetable */,
                                     gsl_fft_complex_workspace* /* workspace */) {
@@ -270,15 +348,22 @@ inline void gsl_fft_complex_inverse(double* data, size_t stride, size_t n,
     }
 }
 
+/// \brief Free a complex FFT wavetable.
+/// \param w Input: wavetable to release (can be null).
 inline void gsl_fft_complex_wavetable_free(gsl_fft_complex_wavetable* w) {
     delete w;
 }
 
+/// \brief Free a complex FFT workspace.
+/// \param w Input: workspace to release (can be null).
 inline void gsl_fft_complex_workspace_free(gsl_fft_complex_workspace* w) {
     delete w;
 }
 
-// Radix-2 FFT (simplified version without wavetable/workspace)
+/// \brief Radix-2 forward complex FFT (allocates temporary wavetable/workspace).
+/// \param data Input/Output: interleaved complex data overwritten with spectrum.
+/// \param stride Input: complex element stride.
+/// \param n Input: number of complex samples.
 inline void gsl_fft_complex_radix2_forward(double* data, size_t stride, size_t n) {
     gsl_fft_complex_wavetable* w = gsl_fft_complex_wavetable_alloc(n);
     gsl_fft_complex_workspace* ws = gsl_fft_complex_workspace_alloc(n);
@@ -287,6 +372,10 @@ inline void gsl_fft_complex_radix2_forward(double* data, size_t stride, size_t n
     gsl_fft_complex_workspace_free(ws);
 }
 
+/// \brief Radix-2 inverse complex FFT (GSL scaling, allocates temporaries).
+/// \param data Input/Output: interleaved complex spectrum overwritten with signal.
+/// \param stride Input: complex element stride.
+/// \param n Input: number of complex samples.
 inline void gsl_fft_complex_radix2_inverse(double* data, size_t stride, size_t n) {
     gsl_fft_complex_wavetable* w = gsl_fft_complex_wavetable_alloc(n);
     gsl_fft_complex_workspace* ws = gsl_fft_complex_workspace_alloc(n);

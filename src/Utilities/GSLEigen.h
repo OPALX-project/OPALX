@@ -24,7 +24,8 @@
 #include <cmath>
 #include <complex>
 
-// Eigenvalue workspace
+/// \see https://www.gnu.org/software/gsl/doc/html/eigen.html
+/// \brief Workspace for nonsymmetric eigenvalue computation.
 struct gsl_eigen_nonsymm_workspace {
     size_t n;
     std::vector<double> work;
@@ -32,6 +33,7 @@ struct gsl_eigen_nonsymm_workspace {
     gsl_eigen_nonsymm_workspace() : n(0) {}
 };
 
+/// \brief Workspace for nonsymmetric eigenvalues/eigenvectors.
 struct gsl_eigen_nonsymmv_workspace {
     size_t n;
     std::vector<double> work;
@@ -39,6 +41,10 @@ struct gsl_eigen_nonsymmv_workspace {
     gsl_eigen_nonsymmv_workspace() : n(0) {}
 };
 
+/// \see https://www.gnu.org/software/gsl/doc/html/eigen.html
+/// \brief Allocate a nonsymmetric eigenvalue workspace for \f$n \times n\f$ matrices.
+/// \param n Input: matrix dimension.
+/// \return Output: workspace pointer.
 inline gsl_eigen_nonsymm_workspace* gsl_eigen_nonsymm_alloc(size_t n) {
     gsl_eigen_nonsymm_workspace* w = new gsl_eigen_nonsymm_workspace();
     w->n = n;
@@ -46,14 +52,26 @@ inline gsl_eigen_nonsymm_workspace* gsl_eigen_nonsymm_alloc(size_t n) {
     return w;
 }
 
+/// \see https://www.gnu.org/software/gsl/doc/html/eigen.html
+/// \brief Accept GSL-style parameters (no-op in this implementation).
+/// \param balance Input: balancing flag (unused).
+/// \param compute_shur Input: Schur computation flag (unused).
+/// \param w Input: workspace (unused).
 inline void gsl_eigen_nonsymm_params(int /* balance */, int /* compute_shur */, gsl_eigen_nonsymm_workspace* /* w */) {
     // Parameters not used in simple implementation
 }
 
+/// \see https://www.gnu.org/software/gsl/doc/html/eigen.html
+/// \brief Free a workspace allocated by \c gsl_eigen_nonsymm_alloc.
+/// \param w Input: workspace to release (can be null).
 inline void gsl_eigen_nonsymm_free(gsl_eigen_nonsymm_workspace* w) {
     delete w;
 }
 
+/// \see https://www.gnu.org/software/gsl/doc/html/eigen.html
+/// \brief Allocate a nonsymmetric eigenvalue/vector workspace for \f$n \times n\f$ matrices.
+/// \param n Input: matrix dimension.
+/// \return Output: workspace pointer.
 inline gsl_eigen_nonsymmv_workspace* gsl_eigen_nonsymmv_alloc(size_t n) {
     gsl_eigen_nonsymmv_workspace* w = new gsl_eigen_nonsymmv_workspace();
     w->n = n;
@@ -61,12 +79,20 @@ inline gsl_eigen_nonsymmv_workspace* gsl_eigen_nonsymmv_alloc(size_t n) {
     return w;
 }
 
+/// \see https://www.gnu.org/software/gsl/doc/html/eigen.html
+/// \brief Free a workspace allocated by \c gsl_eigen_nonsymmv_alloc.
+/// \param w Input: workspace to release (can be null).
 inline void gsl_eigen_nonsymmv_free(gsl_eigen_nonsymmv_workspace* w) {
     delete w;
 }
 
-// Simple eigenvalue computation using QR algorithm (for small matrices)
-// For larger matrices, a more sophisticated algorithm would be needed
+/// \see https://www.gnu.org/software/gsl/doc/html/eigen.html
+/// \brief Compute eigenvalues of a real nonsymmetric matrix.
+/// \details Uses a basic QR iteration to approximate eigenvalues for small matrices.
+/// \param A Input: matrix (read-only; may be modified by algorithm).
+/// \param eval Output: vector of eigenvalues (complex).
+/// \param w Input: workspace (unused).
+/// \return Output: 0 on success, -1 on size mismatch.
 inline int gsl_eigen_nonsymm(gsl_matrix* A, gsl_vector_complex* eval, gsl_eigen_nonsymm_workspace* /* w */) {
     size_t n = A->size1;
     if (A->size2 != n || eval->size != n) {
@@ -158,7 +184,14 @@ inline int gsl_eigen_nonsymm(gsl_matrix* A, gsl_vector_complex* eval, gsl_eigen_
     return 0;
 }
 
-// Eigenvalues and eigenvectors
+/// \see https://www.gnu.org/software/gsl/doc/html/eigen.html
+/// \brief Compute eigenvalues and a simplified set of eigenvectors.
+/// \details Eigenvectors are approximated with a basic heuristic per eigenvalue.
+/// \param A Input: matrix (read-only; may be modified by algorithm).
+/// \param eval Output: vector of eigenvalues (complex).
+/// \param evec Output: matrix of eigenvectors in columns.
+/// \param w Input: workspace (unused aside from type).
+/// \return Output: 0 on success, -1 on size mismatch.
 inline int gsl_eigen_nonsymmv(gsl_matrix* A, gsl_vector_complex* eval, gsl_matrix_complex* evec, gsl_eigen_nonsymmv_workspace* w) {
     // First compute eigenvalues
     int err = gsl_eigen_nonsymm(A, eval, reinterpret_cast<gsl_eigen_nonsymm_workspace*>(w));

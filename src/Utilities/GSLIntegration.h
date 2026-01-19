@@ -22,7 +22,8 @@
 #include <cmath>
 #include <functional>
 
-// Integration workspace
+/// \see https://www.gnu.org/software/gsl/doc/html/integration.html
+/// \brief Workspace for adaptive integration routines.
 struct gsl_integration_workspace {
     size_t limit;
     std::vector<double> alist;
@@ -38,6 +39,10 @@ struct gsl_integration_workspace {
     gsl_integration_workspace() : limit(0), size(0), nrmax(0), i(0), maximum_level(0) {}
 };
 
+/// \see https://www.gnu.org/software/gsl/doc/html/integration.html
+/// \brief Allocate integration workspace with limit \f$n\f$.
+/// \param n Input: maximum number of subintervals.
+/// \return Output: pointer to newly allocated workspace.
 inline gsl_integration_workspace* gsl_integration_workspace_alloc(size_t n) {
     gsl_integration_workspace* w = new gsl_integration_workspace();
     w->limit = n;
@@ -49,17 +54,23 @@ inline gsl_integration_workspace* gsl_integration_workspace_alloc(size_t n) {
     return w;
 }
 
+/// \see https://www.gnu.org/software/gsl/doc/html/integration.html
+/// \brief Free a workspace allocated by \c gsl_integration_workspace_alloc.
+/// \param w Input: workspace to release (can be null).
 inline void gsl_integration_workspace_free(gsl_integration_workspace* w) {
     delete w;
 }
 
-// Function structure
+/// \see https://www.gnu.org/software/gsl/doc/html/roots.html
+/// \brief Function wrapper used by integration routines.
+/// \param function Input: callback \f$f(x,\mathrm{params})\f$.
+/// \param params Input: opaque parameters passed to \p function.
 struct gsl_function {
     double (*function)(double x, void* params);
     void* params;
 };
 
-// Helper function for adaptive integration
+// Helper function for adaptive integration.
 namespace {
     std::pair<double, double> adaptive_integrate(
         const std::function<double(double)>& func,
@@ -94,7 +105,21 @@ namespace {
     }
 }
 
-// Adaptive Gauss-Kronrod integration (simplified)
+/// \see https://www.gnu.org/software/gsl/doc/html/integration.html
+/// \brief Adaptive integration on \f$[a,b]\f$ using Simpson refinement.
+/// \details Computes an approximation of \f$\int_a^b f(x)\,dx\f$ with absolute
+/// tolerance \p epsabs and relative tolerance \p epsrel.
+/// \param f Input: integrand.
+/// \param a Input: lower limit.
+/// \param b Input: upper limit.
+/// \param epsabs Input: absolute error tolerance.
+/// \param epsrel Input: relative error tolerance.
+/// \param limit Input: maximum subintervals (unused).
+/// \param key Input: quadrature rule selector (unused).
+/// \param workspace Input: workspace (unused).
+/// \param result Output: estimated integral value.
+/// \param abserr Output: estimated absolute error.
+/// \return Output: 0 on success.
 inline int gsl_integration_qag(const gsl_function* f, double a, double b,
                                double epsabs, double epsrel, size_t /* limit */,
                                int /* key */, gsl_integration_workspace* /* workspace */,
@@ -114,7 +139,7 @@ inline int gsl_integration_qag(const gsl_function* f, double a, double b,
     return 0;  // Success
 }
 
-// GSL integration constants
+/// \brief Integration rule identifiers (accepted but not used in this implementation).
 constexpr int GSL_INTEG_GAUSS15 = 1;
 constexpr int GSL_INTEG_GAUSS21 = 2;
 constexpr int GSL_INTEG_GAUSS31 = 3;
