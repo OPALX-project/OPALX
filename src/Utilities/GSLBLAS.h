@@ -22,14 +22,28 @@
 #include "Utilities/GSLComplex.h"
 #include <cstring>
 
-// CBLAS transpose constants
+/// \see https://www.gnu.org/software/gsl/doc/html/blas.html
+/// \brief Transpose operation selector for BLAS routines.
+/// \details
+/// - \c CblasNoTrans: \f$\mathrm{op}(A) = A\f$
+/// - \c CblasTrans: \f$\mathrm{op}(A) = A^T\f$
+/// - \c CblasConjTrans: \f$\mathrm{op}(A) = A^H\f$ (conjugate transpose)
 enum CBLAS_TRANSPOSE {
     CblasNoTrans = 111,
     CblasTrans = 112,
     CblasConjTrans = 113
 };
 
-// Matrix-matrix multiplication: C = alpha*A*B + beta*C
+/// \brief Real matrix-matrix multiply and accumulate.
+/// \details Computes \f$C \leftarrow \alpha \,\mathrm{op}(A)\,\mathrm{op}(B) + \beta\, C\f$
+/// where \f$\mathrm{op}(X)\f$ is chosen by \p TransA and \p TransB.
+/// \param TransA Input: operation applied to \p A.
+/// \param TransB Input: operation applied to \p B.
+/// \param alpha Input: scalar multiplier for \f$\mathrm{op}(A)\mathrm{op}(B)\f$.
+/// \param A Input: left matrix operand.
+/// \param B Input: right matrix operand.
+/// \param beta Input: scalar multiplier for existing \p C.
+/// \param C Input/Output: accumulation target updated in-place.
 inline void gsl_blas_dgemm(CBLAS_TRANSPOSE TransA, CBLAS_TRANSPOSE TransB,
                             double alpha, const gsl_matrix* A, const gsl_matrix* B,
                             double beta, gsl_matrix* C) {
@@ -66,7 +80,16 @@ inline void gsl_blas_dgemm(CBLAS_TRANSPOSE TransA, CBLAS_TRANSPOSE TransB,
     }
 }
 
-// Complex matrix-matrix multiplication
+/// \brief Complex matrix-matrix multiply and accumulate.
+/// \details Computes \f$C \leftarrow \alpha \,\mathrm{op}(A)\,\mathrm{op}(B) + \beta\, C\f$
+/// with \f$\mathrm{op}(X)\f$ defined by \p TransA/\p TransB (including conjugate transpose).
+/// \param TransA Input: operation applied to \p A.
+/// \param TransB Input: operation applied to \p B.
+/// \param alpha Input: scalar multiplier for \f$\mathrm{op}(A)\mathrm{op}(B)\f$.
+/// \param A Input: left matrix operand.
+/// \param B Input: right matrix operand.
+/// \param beta Input: scalar multiplier for existing \p C.
+/// \param C Input/Output: accumulation target updated in-place.
 inline void gsl_blas_zgemm(CBLAS_TRANSPOSE TransA, CBLAS_TRANSPOSE TransB,
                             gsl_complex alpha, const gsl_matrix_complex* A, const gsl_matrix_complex* B,
                             gsl_complex beta, gsl_matrix_complex* C) {
@@ -110,7 +133,15 @@ inline void gsl_blas_zgemm(CBLAS_TRANSPOSE TransA, CBLAS_TRANSPOSE TransB,
     }
 }
 
-// Matrix-vector multiplication: y = alpha*A*x + beta*y
+/// \brief Real matrix-vector multiply and accumulate.
+/// \details Computes \f$y \leftarrow \alpha\,\mathrm{op}(A)\,x + \beta\,y\f$
+/// with \f$\mathrm{op}(A) = A\f$ or \f$A^T\f$.
+/// \param TransA Input: operation applied to \p A.
+/// \param alpha Input: scalar multiplier for \f$\mathrm{op}(A)x\f$.
+/// \param A Input: matrix operand.
+/// \param x Input: vector operand.
+/// \param beta Input: scalar multiplier for existing \p y.
+/// \param y Input/Output: result vector updated in-place.
 inline void gsl_blas_dgemv(CBLAS_TRANSPOSE TransA,
                             double alpha, const gsl_matrix* A, const gsl_vector* x,
                             double beta, gsl_vector* y) {
@@ -152,7 +183,15 @@ inline void gsl_blas_dgemv(CBLAS_TRANSPOSE TransA,
     }
 }
 
-// Complex matrix-vector multiplication
+/// \brief Complex matrix-vector multiply and accumulate.
+/// \details Computes \f$y \leftarrow \alpha\,\mathrm{op}(A)\,x + \beta\,y\f$
+/// with \f$\mathrm{op}(A) = A, A^T,\f$ or \f$A^H\f$.
+/// \param TransA Input: operation applied to \p A.
+/// \param alpha Input: scalar multiplier for \f$\mathrm{op}(A)x\f$.
+/// \param A Input: matrix operand.
+/// \param x Input: vector operand.
+/// \param beta Input: scalar multiplier for existing \p y.
+/// \param y Input/Output: result vector updated in-place.
 inline void gsl_blas_zgemv(CBLAS_TRANSPOSE TransA,
                             gsl_complex alpha, const gsl_matrix_complex* A, const gsl_vector_complex* x,
                             gsl_complex beta, gsl_vector_complex* y) {

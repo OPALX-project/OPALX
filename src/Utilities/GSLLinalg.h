@@ -24,7 +24,8 @@
 #include <algorithm>
 #include <cmath>
 
-// Permutation structure
+/// \see https://www.gnu.org/software/gsl/doc/html/linalg.htm
+/// \brief Permutation vector for LU decomposition.
 struct gsl_permutation {
     size_t size;
     size_t* data;
@@ -32,6 +33,9 @@ struct gsl_permutation {
     gsl_permutation() : size(0), data(nullptr) {}
 };
 
+/// \brief Allocate an identity permutation of size \f$n\f$.
+/// \param n Input: permutation size.
+/// \return Output: pointer to newly allocated permutation.
 inline gsl_permutation* gsl_permutation_alloc(size_t n) {
     gsl_permutation* p = new gsl_permutation();
     p->size = n;
@@ -42,6 +46,8 @@ inline gsl_permutation* gsl_permutation_alloc(size_t n) {
     return p;
 }
 
+/// \brief Free a permutation allocated by \c gsl_permutation_alloc.
+/// \param p Input: permutation to release (can be null).
 inline void gsl_permutation_free(gsl_permutation* p) {
     if (p) {
         delete[] p->data;
@@ -49,7 +55,13 @@ inline void gsl_permutation_free(gsl_permutation* p) {
     }
 }
 
-// LU decomposition for real matrices
+/// \brief In-place LU decomposition with partial pivoting (real).
+/// \details Computes \f$P A = L U\f$, storing \f$L\f$ (unit lower) and \f$U\f$
+/// in \p A. The permutation \p p encodes \f$P\f$.
+/// \param A Input/Output: matrix overwritten with LU factors.
+/// \param p Output: permutation encoding row swaps.
+/// \param signum Output: sign of the permutation (\f$\pm 1\f$).
+/// \return Output: 0 on success, -1 on failure (e.g. non-square or singular).
 inline int gsl_linalg_LU_decomp(gsl_matrix* A, gsl_permutation* p, int* signum) {
     if (A->size1 != A->size2) {
         return -1;  // Error: not square
@@ -103,7 +115,11 @@ inline int gsl_linalg_LU_decomp(gsl_matrix* A, gsl_permutation* p, int* signum) 
     return 0;  // Success
 }
 
-// LU determinant for real matrices
+/// \brief Determinant from LU decomposition (real).
+/// \details Computes \f$\det(A) = \mathrm{signum} \prod_i U_{ii}\f$.
+/// \param LU Input: LU-decomposed matrix.
+/// \param signum Input: sign from \c gsl_linalg_LU_decomp.
+/// \return Output: determinant value.
 inline double gsl_linalg_LU_det(const gsl_matrix* LU, int signum) {
     size_t n = LU->size1;
     double det = static_cast<double>(signum);
@@ -113,7 +129,12 @@ inline double gsl_linalg_LU_det(const gsl_matrix* LU, int signum) {
     return det;
 }
 
-// LU inversion for real matrices
+/// \brief Invert a matrix from its LU decomposition (real).
+/// \details Computes \f$A^{-1}\f$ using the stored \f$L,U\f$ factors and permutation.
+/// \param LU Input: LU-decomposed matrix.
+/// \param p Input: permutation from \c gsl_linalg_LU_decomp.
+/// \param inverse Output: matrix to receive \f$A^{-1}\f$.
+/// \return Output: 0 on success, -1 on size mismatch.
 inline int gsl_linalg_LU_invert(const gsl_matrix* LU, const gsl_permutation* p, gsl_matrix* inverse) {
     size_t n = LU->size1;
     if (inverse->size1 != n || inverse->size2 != n) {
@@ -154,7 +175,12 @@ inline int gsl_linalg_LU_invert(const gsl_matrix* LU, const gsl_permutation* p, 
     return 0;
 }
 
-// Complex LU decomposition
+/// \brief In-place LU decomposition with partial pivoting (complex).
+/// \details Computes \f$P A = L U\f$, storing \f$L\f$ and \f$U\f$ in \p A.
+/// \param A Input/Output: matrix overwritten with LU factors.
+/// \param p Output: permutation encoding row swaps.
+/// \param signum Output: sign of the permutation (\f$\pm 1\f$).
+/// \return Output: 0 on success, -1 on failure (e.g. non-square or singular).
 inline int gsl_linalg_complex_LU_decomp(gsl_matrix_complex* A, gsl_permutation* p, int* signum) {
     if (A->size1 != A->size2) {
         return -1;
@@ -210,7 +236,11 @@ inline int gsl_linalg_complex_LU_decomp(gsl_matrix_complex* A, gsl_permutation* 
     return 0;
 }
 
-// Complex LU determinant
+/// \brief Determinant from LU decomposition (complex).
+/// \details Computes \f$\det(A) = \mathrm{signum} \prod_i U_{ii}\f$.
+/// \param LU Input: LU-decomposed matrix.
+/// \param signum Input: sign from \c gsl_linalg_complex_LU_decomp.
+/// \return Output: determinant value.
 inline gsl_complex gsl_linalg_complex_LU_det(const gsl_matrix_complex* LU, int signum) {
     size_t n = LU->size1;
     gsl_complex det = gsl_complex(static_cast<double>(signum), 0.0);
@@ -220,7 +250,12 @@ inline gsl_complex gsl_linalg_complex_LU_det(const gsl_matrix_complex* LU, int s
     return det;
 }
 
-// Complex LU inversion
+/// \brief Invert a matrix from its LU decomposition (complex).
+/// \details Computes \f$A^{-1}\f$ using the stored \f$L,U\f$ factors and permutation.
+/// \param LU Input: LU-decomposed matrix.
+/// \param p Input: permutation from \c gsl_linalg_complex_LU_decomp.
+/// \param inverse Output: matrix to receive \f$A^{-1}\f$.
+/// \return Output: 0 on success, -1 on size mismatch.
 inline int gsl_linalg_complex_LU_invert(const gsl_matrix_complex* LU, const gsl_permutation* p, gsl_matrix_complex* inverse) {
     size_t n = LU->size1;
     if (inverse->size1 != n || inverse->size2 != n) {
@@ -264,15 +299,28 @@ inline int gsl_linalg_complex_LU_invert(const gsl_matrix_complex* LU, const gsl_
     return 0;
 }
 
-// GSL-compatible aliases (with _complex suffix instead of complex_ prefix)
+/// \brief Alias for \c gsl_linalg_complex_LU_decomp.
+/// \param A Input/Output: matrix overwritten with LU factors.
+/// \param p Output: permutation encoding row swaps.
+/// \param signum Output: sign of the permutation (\f$\pm 1\f$).
+/// \return Output: 0 on success, -1 on failure.
 inline int gsl_linalg_LU_decomp_complex(gsl_matrix_complex* A, gsl_permutation* p, int* signum) {
     return gsl_linalg_complex_LU_decomp(A, p, signum);
 }
 
+/// \brief Alias for \c gsl_linalg_complex_LU_det.
+/// \param LU Input: LU-decomposed matrix.
+/// \param signum Input: sign from decomposition.
+/// \return Output: determinant value.
 inline gsl_complex gsl_linalg_LU_det_complex(const gsl_matrix_complex* LU, int signum) {
     return gsl_linalg_complex_LU_det(LU, signum);
 }
 
+/// \brief Alias for \c gsl_linalg_complex_LU_invert.
+/// \param LU Input: LU-decomposed matrix.
+/// \param p Input: permutation from decomposition.
+/// \param inverse Output: matrix to receive \f$A^{-1}\f$.
+/// \return Output: 0 on success, -1 on size mismatch.
 inline int gsl_linalg_LU_invert_complex(const gsl_matrix_complex* LU, const gsl_permutation* p, gsl_matrix_complex* inverse) {
     return gsl_linalg_complex_LU_invert(LU, p, inverse);
 }
