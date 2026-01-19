@@ -38,6 +38,7 @@
 #include "Utilities/QuasiRandom.h"
 #include <vector>
 #include <cmath>
+#include <algorithm>
 
 class QuasiRandomTest : public ::testing::Test {
 protected:
