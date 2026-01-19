@@ -370,7 +370,15 @@ void PartBunch<T, Dim>::calcBeamParameters() {
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::pre_run() {
     this->fcontainer_m->getRho() = 0.0;
-    this->fsolver_m->runSolver();
+
+    /*
+    Force skip field dump during pre_run/warmup!
+    In order to call runSolver without field dump, we need to dynamic cast 
+    fsolver_m to FieldSolver_t, since this addition is not possible in the base
+    class (without changing ippl).
+    */
+    auto fs = std::dynamic_pointer_cast<FieldSolver_t>(this->fsolver_m);
+    fs->runSolver(true);
 }
 
 template <typename T, unsigned Dim>
@@ -548,6 +556,11 @@ void PartBunch<T, Dim>::computeSelfFields() {
     this->fcontainer_m->getRho()             = 0.0;
     Field_t<Dim>* rho                        = &this->fcontainer_m->getRho();
 
+    /// \todo remove mass and charge output
+    *gmsg << "Debug: First charge value before scatterCIC: " << (*Q)(0) << endl;
+    *gmsg << "Debug: First mass value before scatterCIC: " << this->pcontainer_m->M(0) << endl;
+    *gmsg << "Debug: First dt value before scatterCIC: " << this->pcontainer_m->dt(0) << endl;
+
     /// \todo replace with scatterCIC? --> later with scatterPerBin!
     // Charge "unit" here is "charge per macroparticle" [C]!
     *Q = (*Q) * this->pcontainer_m->dt; // Scale by time step
@@ -603,11 +616,19 @@ void PartBunch<T, Dim>::computeSelfFields() {
     From OPAL:
     The scalar potential is given back with rho_m in units [C/m] = [F*V/m] and must be divided by
     4*pi*\epsilon_0 [F/m] resulting in [V].
+
+    @note rho is overloaded and becomse phi when runSolver is called!
     */
     (*rho) = (*rho) * this->getCouplingConstant(); // now rho_m has units of [V]
 
+    *gmsg << "Debug: First phi value before solve: " << (*rho)(1, 1, 1) << endl;
+
     this->fsolver_m->runSolver();
     // Now, with E=-grad(phi), E has units of [V/m] (note, phi is a scalar potential)    
+
+    // Output first phi value for debugging
+    *gmsg << "Debug: First phi value after solve: " << (*rho)(1, 1, 1) << endl;
+    *gmsg << "Debug: First E value after solve: " << this->fcontainer_m->getE()(1, 1, 1) << endl;
     
     gather(this->pcontainer_m->E, this->fcontainer_m->getE(), this->pcontainer_m->R);
 
