@@ -53,26 +53,30 @@ void BoundingBox::enlargeToContainBoundingBox(const BoundingBox& boundingBox) {
 }
 
 std::optional<Vector_t<double, 3>> BoundingBox::getIntersectionPoint(
-
-    const Vector_t<double, 3>& position, const Vector_t<double, 3>& direction) const {
+    const Vector_t<double, 3>& position,
+    const Vector_t<double, 3>& direction) const
+{
     std::optional<Vector_t<double, 3>> result = std::nullopt;
-    double minDistance                          = std::numeric_limits<double>::max();
-    const Vector_t<double, 3> dimensions        = upperRightCorner_m - lowerLeftCorner_m;
+    double minDistance = std::numeric_limits<double>::max();
+    const Vector_t<double, 3> dimensions = upperRightCorner_m - lowerLeftCorner_m;
     Vector_t<double, 3> normal(1, 0, 0);
+
     for (unsigned int d = 0; d < 3; ++d) {
         double sign = -1;
-        Vector_t<double, 3> upperCorner =
-            lowerLeftCorner_m + dot(normal, upperRightCorner_m) * normal;
+
+        Vector_t<double, 3> upperCorner = lowerLeftCorner_m + dot(normal, upperRightCorner_m) * normal;
+
         for (const Vector_t<double, 3>& p0 : {lowerLeftCorner_m, upperCorner}) {
             normal *= sign;
+
             const Vector_t<double, 3> dp = p0 - position;
             double tau = dot(dp, Vector_t<double, 3>(sign)) / dot(direction, normal);
-            if (tau < 0.0) {
-                continue;
-            }
+            if (tau < 0.0) continue;
+
             Vector_t<double, 3> pointOnPlane = position + tau * direction;
-            Vector_t<double, 3> relativeP    = pointOnPlane - p0;
-            bool isOnFace                    = true;
+            Vector_t<double, 3> relativeP = pointOnPlane - p0;
+
+            bool isOnFace = true;
             for (unsigned int i = 1; i < 3; ++i) {
                 unsigned int idx = (d + i) % 3;
                 if (relativeP[idx] < 0 || relativeP[idx] > dimensions[idx]) {
@@ -80,20 +84,21 @@ std::optional<Vector_t<double, 3>> BoundingBox::getIntersectionPoint(
                     break;
                 }
             }
+
             if (isOnFace) {
-                Vector<double, 3> d = pointOnPlane - position;
-                double distance     = euclidean_norm(d);
+                Vector_t<double,3> delta = pointOnPlane - position;
+                double distance = euclidean_norm(delta);
                 if (distance < minDistance) {
                     minDistance = distance;
-                    result      = pointOnPlane;
+                    result = pointOnPlane;
                 }
             }
+
             sign *= -1;
         }
 
         normal = Vector_t<double, 3>(normal[2], normal[0], normal[1]);
     }
-
     return result;
 }
 

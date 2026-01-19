@@ -4,12 +4,9 @@
 // This class determines the design path by tracking the reference particle through
 // the 3D lattice.
 //
-// Copyright (c) 2016,       Christof Metzger-Kraus, Helmholtz-Zentrum Berlin, Germany
-//               2017 - 2022 Christof Metzger-Kraus
-//
 // All rights reserved
 //
-// This file is part of OPAL.
+// This file is part of OPALX.
 //
 // OPAL is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -463,11 +460,13 @@ void OrbitThreader::updateBoundingBoxWithCurrentPosition() {
 }
 
 double OrbitThreader::computeDriftLengthToBoundingBox(
-    const std::set<std::shared_ptr<Component>>& elements, const Vector_t<double, 3>& position,
-    const Vector_t<double, 3>& direction) const {
-
+    const std::set<std::shared_ptr<Component>>& elements,
+    const Vector_t<double, 3>& position,
+    const Vector_t<double, 3>& direction) const
+{
     if (elements.empty()
-        || (elements.size() == 1 && (*elements.begin())->getType() == ElementType::DRIFT)) {
+        || (elements.size() == 1 && (*elements.begin())->getType() == ElementType::DRIFT)) 
+    {
         std::optional<Vector_t<double, 3>> intersectionPoint =
             globalBoundingBox_m.getIntersectionPoint(position, direction);
         if (intersectionPoint) {
