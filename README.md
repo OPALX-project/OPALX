@@ -82,25 +82,21 @@ For the release mode, use `Release` instead of `Debug` as the argument for `-DBU
 - All IPPL/Kokkos flags (FFT, solvers, tests, ALPINE, `Kokkos_ARCH_*`, etc.) are now set automatically.
 
 #### Further Options
-`-DIPPL_ENABLE_ALPINE` default `OFF`
+| Flag | Default | Description |
+|------|---------|-------------|
+| `IPPL_ENABLE_ALPINE` | OFF | Disables Alpine features in IPPL by default; set IPPL_ENABLE_ALPINE to ON to enable. |
+| `IPPL_ENABLE_TEST` | OFF | Disables IPPL tests; corresponds to IPPL_ENABLE_TESTS OFF in IPPL default features. |
+| `OPALX_ENABLE_UNIT_TESTS` | OFF | Disables building unit tests using GoogleTest. |
+| `OPALX_ENABLE_EXAMPLES` | OFF | Disables building the Example module. |
+| `OPALX_ENABLE_TESTS` | OFF | Disables building integration tests in the test/ directory. |
+| `OPALX_ENABLE_COVERAGE` | OFF | Disables code coverage instrumentation. |
+| `OPALX_ENABLE_NSYS_PROFILER` | OFF | Disables Nvidia Nsight Systems Profiler; requires CUDA platform and adds compile definition -DOPALX_ENABLE_NSYS_PROFILER. |
+| `OPALX_ENABLE_SANITIZER` | OFF | Disables sanitizer tools (e.g., AddressSanitizer). |
+| `OPALX_USE_ALTERNATIVE_VARIANT` | OFF | Disables modified variant implementation; required for CUDA 12.2 + GCC 12.3.0 compatibility. |
+| `OPALX_ENABLE_SCRIPTS` | OFF | Disables generation of job script templates for benchmarks/tests. |
+| `OPALX_FIELD_DEBUG` | OFF | Disables FieldSolver field-dump debug code; emits field dumps during simulation when enabled. |
 
-`-DIPPL_ENABLE_TEST` default `OFF`
-
-`-DOPALX_ENABLE_UNIT_TESTS` default `OFF`
-
-`-DOPALX_ENABLE_EXAMPLES` default `OFF`
-
-`-DOPALX_ENABLE_TESTS` default `OFF`
-
-`-DOPALX_ENABLE_COVERAGE` default `OFF`
-
-`-DOPALX_ENABLE_NSYS_PROFILER` default `OFF`
-
-`-DOPALX_ENABLE_SANITIZER` default `OFF`
-
-`-DOPALX_USE_ALTERNATIVE_VARIANT` default `OFF`
-
-`-DOPALX_ENABLE_SCRIPTS` default `OFF`
+Enable flags with `-D<FLAG>=ON` during CMake configuration.
 
 ### Compilation
 
