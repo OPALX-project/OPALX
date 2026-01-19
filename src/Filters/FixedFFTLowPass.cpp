@@ -1,6 +1,6 @@
 #include "Filters/FixedFFTLowPass.h"
 #include "Physics/Physics.h"
-#include "Utilities/FFT.h"
+#include "Utilities/GSLFFT.h"
 
 
 FixedFFTLowPassFilter::FixedFFTLowPassFilter(const int &N):
