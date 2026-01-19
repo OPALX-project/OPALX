@@ -385,14 +385,12 @@ void FieldSolver<double,3>::runSolver() {
             if constexpr (Dim == 2 || Dim == 3) {
 #ifdef OPALX_FIELD_DEBUG
                 this->dumpScalField("rho");
-                call_counter_m++;
 #endif
 
                 std::get<FFTSolver_t<double, 3>>(this->getSolver()).solve();
 #ifdef OPALX_FIELD_DEBUG
                 this->dumpScalField("phi");
                 this->dumpVectField("ef");
-                call_counter_m++;
 #endif
             }
         } else if (this->getStype() == "P3M") {
@@ -403,13 +401,11 @@ void FieldSolver<double,3>::runSolver() {
             if constexpr (Dim == 3) {
 #ifdef OPALX_FIELD_DEBUG
                 this->dumpScalField("rho");
-                call_counter_m++;
 #endif
                 std::get<OpenSolver_t<double, 3>>(this->getSolver()).solve();
 #ifdef OPALX_FIELD_DEBUG
                 this->dumpScalField("phi");
                 this->dumpVectField("ef");
-                call_counter_m++;
 #endif
             }
     } else if (this->getStype() == "NONE") {
@@ -417,6 +413,8 @@ void FieldSolver<double,3>::runSolver() {
     } else {
         throw std::runtime_error("Unknown solver type");
     }
+
+    call_counter_m++;
 }
 
 template<>
