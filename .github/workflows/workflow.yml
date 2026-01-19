@@ -113,7 +113,7 @@ jobs:
   build-cuda-debug:
     runs-on: ubuntu-latest
     container:
-      image: nvidia/cuda:13.1.0-devel-ubuntu24.04 #nvidia/cuda:12.8.1-devel-ubuntu22.04  # CUDA-enabled container for compilation
+      image: nvidia/cuda:13.1.0-devel-ubuntu24.04
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
