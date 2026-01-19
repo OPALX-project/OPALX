@@ -395,17 +395,24 @@ void ParallelTracker::execute() {
             // Reset E and B fields
             resetFields();
 
+            // Space charge field computation
+            computeSpaceChargeFields(step);
+            
+            // transformation in spaceCharge computation fails, for now only compute self fields in lab frame
+            //itsBunch_m->computeSelfFields(); 
+            *gmsg << "* Space charge field computation done at step " << step << endl;
+            
+            /*
             ippl::Comm->barrier();
             *gmsg << "* Dumping scalar field after space charge computation at step " << step << endl;
             auto fs = std::dynamic_pointer_cast<FieldSolver<double, 3>>(this->itsBunch_m->getFieldSolver());
             fs->dumpScalField("PHI");
             ippl::Comm->barrier();
-            
-            // Space charge field computation
-            //computeSpaceChargeFields(step);
+            */
            
             // External field computation
             computeExternalFields(oth);
+            *gmsg << "* External field computation done at step " << step << endl;
 
             // Second half of the time integration
             timeIntegration2(pusher);
@@ -796,11 +803,11 @@ void ParallelTracker::kickParticles(const BorisPusher& pusher) {
     //double mass = itsBunch_m->getMassPerParticle(); // itsReference.getM();
     //double charge = itsBunch_m->getChargePerParticle();  // itsReference.getQ();
         // Get reference particle mass and charge
-    const double mass = itsReference.getM();
-    const double charge = itsReference.getQ();
+    //const double mass = itsReference.getM();
+    //const double charge = itsReference.getQ();
 
 
-    std::cout << charge << " " << mass << std::endl;
+    // std::cout << charge << " " << mass << std::endl;
 
     Kokkos::parallel_for(
         "kickParticles", ippl::getRangePolicy(Pview),
@@ -833,7 +840,7 @@ void ParallelTracker::kickParticles(const BorisPusher& pusher) {
              */
            
             Vector_t<double, 3> p = Pview(i); 
-            pusher.kick(0, p, Efview(i), Bfview(i), dtview(i), mass, charge); /// \todo might want to remove dt and R altogether from the kick!
+            pusher.kick(0, p, Efview(i), Bfview(i), dtview(i)/*, mass, charge*/); /// \todo might want to remove dt and R altogether from the kick!
             Pview(i) = p; 
         });
         
