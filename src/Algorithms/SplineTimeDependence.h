@@ -30,7 +30,7 @@
 
 #include <vector>
 
-#include "Utilities/CubicSpline.h"
+#include "Utilities/GSLCubicSpline.h"
 
 #include "Utilities/GeneralClassicException.h"
 #include "Algorithms/AbstractTimeDependence.h"

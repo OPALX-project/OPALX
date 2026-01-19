@@ -40,7 +40,7 @@
  */
 
 #include <gtest/gtest.h>
-#include "Utilities/CubicSpline.h"
+#include "Utilities/GSLCubicSpline.h"
 #include <cmath>
 #include <vector>
 

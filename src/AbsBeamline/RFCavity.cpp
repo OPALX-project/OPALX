@@ -28,7 +28,7 @@
 #include "Utilities/Util.h"
 #include "Utility/IpplInfo.h"
 
-#include "Utilities/CubicSpline.h"
+#include "Utilities/GSLCubicSpline.h"
 
 #include <fstream>
 #include <iostream>
