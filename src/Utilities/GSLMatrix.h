@@ -23,7 +23,8 @@
 #include <stdexcept>
 #include "Utilities/GSLComplex.h"
 
-/// \see https://www.gnu.org/software/gsl/doc/html/vectors.html
+/// \see Documentation on https://www.gnu.org/software/gsl/doc/html/vectors.html
+/// \see Implementation on https://www.gnu.org/software/gsl/
 /// \brief Dense real matrix in row-major storage.
 struct gsl_matrix {
     size_t size1;

@@ -21,7 +21,8 @@
 #include <cmath>
 #include <limits>
 
-/// \see https://www.gnu.org/software/gsl/doc/html/err.html
+/// \see Documentation on https://www.gnu.org/software/gsl/doc/html/err.html
+/// \see Implementation on https://www.gnu.org/software/gsl/
 /// \brief Signature of a GSL-style error handler callback.
 typedef void (*gsl_error_handler_t)(const char* reason, const char* file, int line, int gsl_errno);
 

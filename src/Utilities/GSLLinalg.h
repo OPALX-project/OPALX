@@ -24,7 +24,8 @@
 #include <algorithm>
 #include <cmath>
 
-/// \see https://www.gnu.org/software/gsl/doc/html/linalg.htm
+/// \see Documentation on https://www.gnu.org/software/gsl/doc/html/linalg.htm
+/// \see Implementation on https://www.gnu.org/software/gsl/
 /// \brief Permutation vector for LU decomposition.
 struct gsl_permutation {
     size_t size;
