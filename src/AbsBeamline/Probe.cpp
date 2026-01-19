@@ -79,7 +79,8 @@ bool Probe::doPreCheck(PartBunch_t* bunch) {
     return false;
 }
 
-bool Probe::doCheck(PartBunch_t* bunch, const int turnnumber, const double t, const double tstep) {
+bool Probe::doCheck(PartBunch_t* bunch, const int turnnumber, const double /*t*/, const double tstep) {
+    *gmsg << "passed t argument not used in Probe::doCheck" << endl;
     Vector_t<double, 3> probepoint;
     size_t tempnum = bunch->getLocalNum();
 

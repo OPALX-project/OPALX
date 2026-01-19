@@ -2,7 +2,7 @@
 // Class DistributionMoments
 //   Computes the statistics of particle distributions.
 //
-// Copyright (c) 2021, Christof Metzger-Kraus
+// Copyright (c) 2025, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved
 //
 // This file is part of OPAL.
@@ -20,7 +20,7 @@
 
 #include "Ippl.h"
 #include <Kokkos_Core.hpp>
-#include <boost/numeric/ublas/matrix.hpp>
+#include "Algorithms/Matrix.h"
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
 
@@ -31,7 +31,7 @@ using Vector_t = ippl::Vector<T, Dim>;
 
 typedef typename std::pair<Vector_t<double, 3>, Vector_t<double, 3>> VectorPair_t;
 
-typedef boost::numeric::ublas::matrix<double> matrix_t;
+#include "Algorithms/Matrix.h"
 
 class OpalParticle;
 
@@ -91,7 +91,7 @@ public:
     double getDDy() const;
     Vector_t<double, 6> getMeans() const;
     Vector_t<double, 6> getCentroid() const;
-    matrix_t getMoments6x6() const;
+    matrix6x6_t getMoments6x6() const;
     double getTotalCharge() const;
     double getTotalMass() const;
     double getTotalNumParticles() const;
@@ -155,8 +155,8 @@ private:
 
     Vector_t<double, 6> centroid_m;
     Vector_t<double, 6> means_m;
-    matrix_t moments_m;
-    matrix_t notCentMoments_m;
+    matrix6x6_t moments_m;
+    matrix6x6_t notCentMoments_m;
 
     double totalCharge_m;
     double totalMass_m;
@@ -267,7 +267,7 @@ inline Vector_t<double, 6> DistributionMoments::getMeans() const {
     return means_m;
 }
 
-inline matrix_t DistributionMoments::getMoments6x6() const {
+inline matrix6x6_t DistributionMoments::getMoments6x6() const {
     return moments_m;
 }
 

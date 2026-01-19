@@ -14,8 +14,8 @@
 
 #include "OPALTypes.h"
 
-#include <gsl/gsl_histogram2d.h>
-#include <gsl/gsl_rng.h>
+#include "Utilities/GSLHistogram.h"
+#include "Utilities/Random.h"
 #include <string>
 #include "hdf5.h"
 

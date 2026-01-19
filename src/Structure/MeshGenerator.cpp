@@ -6,6 +6,8 @@
 
 #include <fstream>
 #include <iostream>
+#include <vector>
+#include <vector>
 
 extern Inform* gmsg;
 
@@ -87,9 +89,8 @@ void MeshGenerator::add(const ElementBase& element) {
     elements_m.push_back(mesh);
 }
 
-#include <boost/iostreams/copy.hpp>
-#include <boost/iostreams/filter/zlib.hpp>
-#include <boost/iostreams/filtering_streambuf.hpp>
+#include <zlib.h>
+#include <sstream>
 
 void MeshGenerator::write(const std::string& fname) {
     std::string filename = Util::combineFilePath(
@@ -120,10 +121,14 @@ void MeshGenerator::write(const std::string& fname) {
     out << "]\n";
 
     {
-        boost::iostreams::filtering_streambuf<boost::iostreams::input> in;
-        in.push(boost::iostreams::zlib_compressor());
-        in.push(vertices_ascii);
-        boost::iostreams::copy(in, vertices_compressed);
+        std::string data = vertices_ascii.str();
+        uLongf compressed_size = compressBound(data.size());
+        std::vector<Bytef> compressed_data(compressed_size);
+        int result = compress(compressed_data.data(), &compressed_size,
+                             reinterpret_cast<const Bytef*>(data.data()), data.size());
+        if (result == Z_OK) {
+            vertices_compressed.write(reinterpret_cast<const char*>(compressed_data.data()), compressed_size);
+        }
     }
 
     std::string vertices_base64 = Util::base64_encode(vertices_compressed.str());
@@ -250,10 +255,14 @@ void MeshGenerator::write(const std::string& fname) {
         << "</body>\n"
         << "</html>";
     {
-        boost::iostreams::filtering_streambuf<boost::iostreams::input> in;
-        in.push(boost::iostreams::zlib_compressor());
-        in.push(index_ascii);
-        boost::iostreams::copy(in, index_compressed);
+        std::string data = index_ascii.str();
+        uLongf compressed_size = compressBound(data.size());
+        std::vector<Bytef> compressed_data(compressed_size);
+        int result = compress(compressed_data.data(), &compressed_size,
+                             reinterpret_cast<const Bytef*>(data.data()), data.size());
+        if (result == Z_OK) {
+            index_compressed.write(reinterpret_cast<const char*>(compressed_data.data()), compressed_size);
+        }
     }
 
     out << "index_base64 = '" << Util::base64_encode(index_compressed.str()) << "'\n\n";

@@ -49,6 +49,8 @@ public:
     void setKS(double ks);
     void setDKS(double ks);
 
+    virtual bool apply() override;
+
     virtual bool apply(
         const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 

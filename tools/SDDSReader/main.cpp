@@ -58,8 +58,8 @@ int main(int argc, char **argv) {
     double mins = 0.0, maxs = 0.0;
     try {
         auto sdata = parser.getColumnData("s");
-        mins = boost::get<double>(sdata.front());
-        maxs = boost::get<double>(sdata.back());
+        mins = std::get<double>(sdata.front());
+        maxs = std::get<double>(sdata.back());
     } catch (OpalException ex) {
         std::cerr << ex.where() << "\n"
                   << ex.what() << std::endl;

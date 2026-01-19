@@ -31,7 +31,7 @@
 #include "Utilities/OpalException.h"
 #include "Utilities/Timer.h"
 
-#include <boost/filesystem.hpp>
+#include <filesystem>
 
 #include "Ippl.h"
 
@@ -131,7 +131,7 @@ void MemoryProfiler::update() {
     static pid_t pid  = getpid();
     std::string fname = "/proc/" + std::to_string(pid) + "/status";
 
-    if (!boost::filesystem::exists(fname)) {
+    if (!std::filesystem::exists(fname)) {
         throw OpalException("MemoryProfiler::update()", "File '" + fname + "' doesn't exist.");
     }
 
@@ -200,7 +200,7 @@ void MemoryProfiler::write(const PartBunch_t* beam) {
     columns_m.addColumnValue("t", beam->getT() * Units::s2ns);  // 1
     columns_m.addColumnValue("s", pathLength);                  // 2
 
-    // boost::variant can't overload double and long double. By using a
+    // std::variant can't overload double and long double. By using a
     // string this shortcoming can be bypassed.
     columns_m.addColumnValue("VmPeak-Min", toString(vmMin[VMPEAK]));
     columns_m.addColumnValue("VmPeak-Max", toString(vmMax[VMPEAK]));

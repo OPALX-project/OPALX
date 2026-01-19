@@ -29,7 +29,6 @@
 #include "OpalParser/IfStatement.h"
 #include "OpalParser/WhileStatement.h"
 
-#include <boost/algorithm/string.hpp>
 #include <cmath>
 #include <ctime>
 #include <exception>
@@ -567,7 +566,11 @@ Statement* OpalParser::readStatement(TokenStream* is) const {
         /// \todo check this /stat->printWhere(*IpplInfo::Error, true);
 
         std::string what = ex.what();
-        boost::replace_all(what, "\n", "\n    ");
+        std::string::size_type pos = 0;
+        while ((pos = what.find("\n", pos)) != std::string::npos) {
+            what.replace(pos, 1, "\n    ");
+            pos += 5; // length of "\n    "
+        }
 
         *ippl::Error << "     " << *stat << "    a" << what << '\n' << endl;
 

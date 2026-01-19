@@ -18,7 +18,7 @@
 #include "Utilities/Mesher.h"
 #include "Utilities/PortableBitmapReader.h"
 
-#include <boost/regex.hpp>
+#include <regex>
 
 #include <cmath>
 #include <cstdlib>
@@ -45,11 +45,11 @@ namespace mslang {
     }
 
     bool Function::parse(iterator& it, const iterator& end, Function*& fun) {
-        boost::regex functionCall(Function::FCall);
-        boost::smatch what;
+        std::regex functionCall(Function::FCall);
+        std::smatch what;
 
         std::string str(it, end);
-        if (!boost::regex_match(str, what, functionCall))
+        if (!std::regex_match(str, what, functionCall))
             return false;
 
         std::string identifier = what[1];

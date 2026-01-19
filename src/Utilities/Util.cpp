@@ -19,8 +19,8 @@
 #include "OPALrevision.h"
 #include "Physics/Physics.h"
 
-#include <boost/filesystem.hpp>
-#include <boost/regex.hpp>
+#include <filesystem>
+#include <regex>
 
 #include <cctype>
 #include <fstream>
@@ -195,7 +195,7 @@ namespace Util {
     }
 
     std::string combineFilePath(std::initializer_list<std::string> ilist) {
-        boost::filesystem::path path;
+        std::filesystem::path path;
         for (auto entry : ilist) {
             path /= entry;
         }
@@ -233,12 +233,12 @@ namespace Util {
         double spos, time = 0.0;
         double lastTime = -1.0;
 
-        boost::regex parameters("&parameter");
-        boost::regex column("&column");
-        boost::regex data("&data");
-        boost::regex end("&end");
-        boost::regex name("name=([a-zA-Z0-9\\$_]+)");
-        boost::smatch match;
+        std::regex parameters("&parameter");
+        std::regex column("&column");
+        std::regex data("&data");
+        std::regex end("&end");
+        std::regex name("name=([a-zA-Z0-9\\$_]+)");
+        std::smatch match;
 
         std::istringstream linestream;
 
@@ -256,16 +256,16 @@ namespace Util {
             line = allLines.front();
             allLines.pop();
             fs << line << "\n";
-            if (boost::regex_search(line, match, parameters)) {
+            if (std::regex_search(line, match, parameters)) {
                 ++numParameters;
-                while (!boost::regex_search(line, match, end)) {
+                while (!std::regex_search(line, match, end)) {
                     line = allLines.front();
                     allLines.pop();
                     fs << line << "\n";
                 }
-            } else if (boost::regex_search(line, match, column)) {
+            } else if (std::regex_search(line, match, column)) {
                 ++numColumns;
-                while (!boost::regex_search(line, match, name)) {
+                while (!std::regex_search(line, match, name)) {
                     line = allLines.front();
                     allLines.pop();
                     fs << line << "\n";
@@ -276,15 +276,15 @@ namespace Util {
                 if (match[1] == "t") {
                     timeColumnNr = numColumns;
                 }
-                while (!boost::regex_search(line, match, end)) {
+                while (!std::regex_search(line, match, end)) {
                     line = allLines.front();
                     allLines.pop();
                     fs << line << "\n";
                 }
             }
-        } while (!boost::regex_search(line, match, data));
+        } while (!std::regex_search(line, match, data));
 
-        while (!boost::regex_search(line, match, end)) {
+        while (!std::regex_search(line, match, end)) {
             line = allLines.front();
             allLines.pop();
             fs << line << "\n";

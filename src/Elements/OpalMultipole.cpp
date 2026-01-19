@@ -89,13 +89,13 @@ void OpalMultipole::update() {
     std::vector<double> skewErrors = Attributes::getRealArray(itsAttr[DKS]);
 
     // Resize error arrays
-    int normSize = norm.size();
-    int skewSize = skew.size();
+    unsigned int normSize = norm.size();
+    unsigned int skewSize = skew.size();
     normErrors.resize(normSize, 0.0);
     skewErrors.resize(skewSize, 0.0);
 
     double factor = OpalData::getInstance()->getP0() / Physics::c;
-    int top = (normSize > skewSize) ? normSize : skewSize;
+    unsigned int top = (normSize > skewSize) ? normSize : skewSize;
 
     // Loop over components (0=Dipole, 1=Quadrupole, ...)
     for(unsigned int comp = 0; comp < top; ++comp) {

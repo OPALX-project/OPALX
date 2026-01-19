@@ -27,9 +27,9 @@
 
 #include <cmath>
 #include <vector>
-#include "gsl/gsl_errno.h"
-#include "gsl/gsl_integration.h"
-#include "gsl/gsl_sf_pow_int.h"
+#include "Utilities/GSLCompat.h"
+#include "Utilities/GSLIntegration.h"
+#include "Utilities/GSLCompat.h"
 #include "Utility/Inform.h" // ippl/src/
 
 #include "CoordinateTransform.h"
@@ -114,7 +114,7 @@ std::vector<double> CoordinateTransform::calcReferenceTrajectory(
     FY.params = &params;
     gsl_integration_workspace *w = gsl_integration_workspace_alloc(workspaceSize);
     double resultX, resultY, absErrX, absErrY;
-    gsl_error_handler_t* err_default = gsl_set_error_handler_off();
+    gsl_error_handler_t err_default = gsl_set_error_handler_off();
     int errX = gsl_integration_qag(&FX, 0, s, error, error, workspaceSize,
                                    algorithm, w, &resultX, &absErrX);
     int errY = gsl_integration_qag(&FY, 0, s, error, error, workspaceSize,

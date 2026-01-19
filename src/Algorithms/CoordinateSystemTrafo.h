@@ -3,7 +3,9 @@
 #ifndef COORDINATESYSTEMTRAFO
 #define COORDINATESYSTEMTRAFO
 
+#include "Algorithms/Matrix.h"
 #include "Algorithms/Quaternion.hpp"
+#include <Kokkos_Core.hpp>
 
 class CoordinateSystemTrafo {
 public:
@@ -58,9 +60,9 @@ public:
 /* =============================== Getters ================================== */
     ippl::Vector<double, 3> getOrigin() const;
     Quaternion getRotation() const;
-    OpalMatrix_t getRotationMatrix() const;
+    matrix3x3_t getRotationMatrix() const;
 /* ========================================================================== */
-/* =============================== Getters ================================== */
+/* =============================== Print ==================================== */
     void print(std::ostream&) const;
 
 private:
@@ -69,7 +71,7 @@ private:
 
     //Rotation
     Quaternion orientation_m;
-    OpalMatrix_t rotationMatrix_m;
+    matrix3x3_t rotationMatrix_m;
 };
 
 /* ======== Print ======== */
@@ -92,7 +94,7 @@ inline void CoordinateSystemTrafo::print(std::ostream& os) const {
 inline ippl::Vector<double, 3> CoordinateSystemTrafo::transformTo(
     const ippl::Vector<double, 3>& r) const {
     const ippl::Vector<double, 3> delta = r - origin_m;
-    return prod_vector(rotationMatrix_m,delta);
+    return prod_vector(rotationMatrix_m, delta);
 }
 
 inline ippl::Vector<double, 3> CoordinateSystemTrafo::transformFrom(
@@ -102,12 +104,12 @@ inline ippl::Vector<double, 3> CoordinateSystemTrafo::transformFrom(
 
 inline ippl::Vector<double, 3> CoordinateSystemTrafo::rotateTo(
     const ippl::Vector<double, 3>& r) const {
-    return prod_vector(rotationMatrix_m,r);
+    return prod_vector(rotationMatrix_m, r);
 }
 
 inline ippl::Vector<double, 3> CoordinateSystemTrafo::rotateFrom(
     const ippl::Vector<double, 3>& r) const {
-    return prod_vector_transpose(rotationMatrix_m,r);
+    return prod_vector_transpose(rotationMatrix_m, r);
 }
 
 inline ippl::Vector<double, 3> CoordinateSystemTrafo::getOrigin() const {
@@ -118,8 +120,7 @@ inline Quaternion CoordinateSystemTrafo::getRotation() const {
     return orientation_m;
 }
 
-
-inline OpalMatrix_t CoordinateSystemTrafo::getRotationMatrix() const {
+inline matrix3x3_t CoordinateSystemTrafo::getRotationMatrix() const {
     return rotationMatrix_m;
 }
 
@@ -132,7 +133,7 @@ inline CoordinateSystemTrafo CoordinateSystemTrafo::inverted() const {
 
 template <typename ViewType>
 inline void CoordinateSystemTrafo::transformBunchTo(ViewType Rview) const {
-    OpalMatrix_t rot = rotationMatrix_m;
+    matrix3x3_t rot = rotationMatrix_m;
     ippl::Vector<double, 3> ori = origin_m;
     Kokkos::parallel_for("transformBunchTo", Rview.extent(0), 
         KOKKOS_LAMBDA(const size_t i) {
@@ -143,7 +144,7 @@ inline void CoordinateSystemTrafo::transformBunchTo(ViewType Rview) const {
 
 template <typename ViewType>
 inline void CoordinateSystemTrafo::transformBunchFrom(ViewType Rview) const {
-    OpalMatrix_t rot = rotationMatrix_m;
+    matrix3x3_t rot = rotationMatrix_m;
     ippl::Vector<double, 3> ori = origin_m;
     Kokkos::parallel_for("transformBunchFrom", Rview.extent(0), 
         KOKKOS_LAMBDA(const size_t i) {
@@ -153,7 +154,7 @@ inline void CoordinateSystemTrafo::transformBunchFrom(ViewType Rview) const {
 
 template <typename ViewType>
 inline void CoordinateSystemTrafo::rotateBunchTo(ViewType Pview) const {
-    OpalMatrix_t rot = rotationMatrix_m;
+    matrix3x3_t rot = rotationMatrix_m;
     Kokkos::parallel_for("rotateBunchTo", Pview.extent(0), 
         KOKKOS_LAMBDA(const size_t i) {
             Pview(i) = prod_vector(rot, Pview(i));
@@ -162,7 +163,7 @@ inline void CoordinateSystemTrafo::rotateBunchTo(ViewType Pview) const {
 
 template <typename ViewType>
 inline void CoordinateSystemTrafo::rotateBunchFrom(ViewType Pview) const {
-    OpalMatrix_t rot = rotationMatrix_m;
+    matrix3x3_t rot = rotationMatrix_m;
     Kokkos::parallel_for("rotateBunchFrom", Pview.extent(0), 
         KOKKOS_LAMBDA(const size_t i) {
             Pview(i) = prod_vector_transpose(rot, Pview(i));

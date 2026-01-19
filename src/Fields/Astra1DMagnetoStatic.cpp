@@ -3,10 +3,8 @@
 #include "Physics/Physics.h"
 #include "Utilities/GeneralClassicException.h"
 #include "Utilities/Util.h"
-
-#include "gsl/gsl_fft_real.h"
-#include "gsl/gsl_interp.h"
-#include "gsl/gsl_spline.h"
+#include "Utilities/GSLFFT.h"
+#include "Utilities/GSLCubicSpline.h"
 
 #include <fstream>
 #include <ios>
