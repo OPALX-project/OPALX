@@ -15,8 +15,8 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 
-#ifndef OPAL_FFT_HH
-#define OPAL_FFT_HH
+#ifndef OPAL_GSL_FFT_HH
+#define OPAL_GSL_FFT_HH
 
 #include <vector>
 #include <complex>
@@ -384,5 +384,5 @@ inline void gsl_fft_complex_radix2_inverse(double* data, size_t stride, size_t n
     gsl_fft_complex_workspace_free(ws);
 }
 
-#endif // OPAL_FFT_HH
+#endif // OPAL_GSL_FFT_HH
 

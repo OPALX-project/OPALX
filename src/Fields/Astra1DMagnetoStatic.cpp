@@ -3,8 +3,7 @@
 #include "Physics/Physics.h"
 #include "Utilities/GeneralClassicException.h"
 #include "Utilities/Util.h"
-
-#include "Utilities/FFT.h"
+#include "Utilities/GSLFFT.h"
 #include "Utilities/CubicSpline.h"
 #include "Utilities/CubicSpline.h"
 

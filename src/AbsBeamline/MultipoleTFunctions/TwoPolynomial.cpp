@@ -28,7 +28,7 @@
 #include <cmath>
 #include <iostream>
 #include <stdexcept>
-#include "Utilities/FFT.h"
+#include "Utilities/GSLFFT.h"
 #include "TwoPolynomial.h"
 
 namespace polynomial {

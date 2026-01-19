@@ -44,7 +44,7 @@
  */
 
 #include <gtest/gtest.h>
-#include "Utilities/FFT.h"
+#include "Utilities/GSLFFT.h"
 #include <vector>
 #include <complex>
 #include <cmath>
