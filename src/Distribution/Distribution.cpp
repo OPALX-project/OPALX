@@ -33,14 +33,11 @@
 #include "Utilities/Util.h"
 #include "Utility/IpplTimings.h"
 
-#include <gsl/gsl_linalg.h>
-#include <gsl/gsl_randist.h>
-#include <gsl/gsl_rng.h>
-#include <gsl/gsl_sf_erf.h>
+#include "Utilities/Random.h"
+#include "Utilities/GSLCompat.h"
 
-#include <boost/filesystem.hpp>
-#include <boost/numeric/odeint/stepper/runge_kutta4.hpp>
-#include <boost/regex.hpp>
+#include <filesystem>
+#include <regex>
 
 #include <sys/time.h>
 
@@ -67,8 +64,8 @@ namespace DISTRIBUTION {
 
 /*
 namespace {
-    matrix_t getUnit6x6() {
-        matrix_t unit6x6(6, 6, 0.0);  // Initialize a 6x6 matrix with all elements as 0.0
+    matrix6x6_t getUnit6x6() {
+        matrix6x6_t unit6x6(0.0);  // Initialize a 6x6 matrix with all elements as 0.0
         for (unsigned int i = 0; i < 6u; ++i) {
             unit6x6(i, i) = 1.0;  // Set diagonal elements to 1.0
         }

@@ -1,6 +1,6 @@
 #ifndef OPAL_QUATERNION_H
 #define OPAL_QUATERNION_H
-#include "Algorithms/OpalMatrix.h"
+#include "Algorithms/Matrix.h"
 #include "Ippl.h"
 
 class Quaternion : public ippl::Vector<double, 4> {
@@ -11,7 +11,7 @@ public:
     Quaternion(const double&, const double&, const double&, const double&);
     Quaternion(const ippl::Vector<double, 3>&);
     Quaternion(const double&, const ippl::Vector<double, 3>&);
-    Quaternion(const OpalMatrix_t&);
+    Quaternion(const matrix3x3_t&);
     Quaternion inverse() const;
     Quaternion conjugate() const;
 
@@ -33,9 +33,9 @@ public:
     double real() const;
     ippl::Vector<double, 3> imag() const;
 
-    //matrix_t getRotationMatrix() const;
-    OpalMatrix_t getRotationMatrix() const;
     ippl::Vector<double, 3> rotate(const ippl::Vector<double, 3>&) const;
+
+    matrix3x3_t getRotationMatrix() const;
 };
 
 typedef Quaternion Quaternion_t;

@@ -24,8 +24,7 @@
 #include "AbstractObjects/OpalParticle.h"
  
 
-#include <boost/optional.hpp>
-
+#include <optional>
 #include <fstream>
 #include <functional>
 #include <set>
@@ -97,7 +96,7 @@ public:
 
     void addParticle(
         const OpalParticle&,
-        const boost::optional<std::pair<int, short int>>& turnBunchNumPair = boost::none);
+        const std::optional<std::pair<int, short int>>& turnBunchNumPair = std::nullopt);
 
     size_t size() const;
 

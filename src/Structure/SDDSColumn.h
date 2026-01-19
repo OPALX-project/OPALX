@@ -18,8 +18,7 @@
 #ifndef SDDSWRITERCOLUMN_H
 #define SDDSWRITERCOLUMN_H
 
-#include <boost/variant.hpp>
-
+#include <variant>
 #include <ostream>
 #include <tuple>
 #include <string>
@@ -53,7 +52,7 @@ private:
                        std::string,
                        std::string> desc_t;
 
-    typedef boost::variant<float,
+    typedef std::variant<float,
                            double,
                            long unsigned int,
                            char,

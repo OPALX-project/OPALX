@@ -18,7 +18,7 @@
 #include "Physics/ParticleProperties.h"
 #include "Physics/Physics.h"
 
-#include <boost/assign.hpp>
+#include "Utilities/BiMap.h"
 
 
 ParticleType ParticleProperties::getParticleType(const std::string& str) {
@@ -46,23 +46,25 @@ double ParticleProperties::getParticleChargeInCoulomb(const ParticleType& type) 
     return getParticleCharge(type) * Physics::q_e;
 }
 
-const boost::bimap<ParticleType, std::string> ParticleProperties::bmParticleType_s =
-    boost::assign::list_of<const boost::bimap<ParticleType, std::string>::relation>
-        (ParticleType::UNNAMED,    "UNNAMED")
-        (ParticleType::ELECTRON,   "ELECTRON")
-        (ParticleType::POSITRON,   "POSITRON")
-        (ParticleType::MUON,       "MUON")
-        (ParticleType::PROTON,     "PROTON")
-        (ParticleType::ANTIPROTON, "ANTIPROTON")
-        (ParticleType::DEUTERON,   "DEUTERON")
-        (ParticleType::HMINUS,     "HMINUS")
-        (ParticleType::HYDROGEN,   "HYDROGEN")
-        (ParticleType::H2P,        "H2P")
-        (ParticleType::H3P,        "H3P")
-        (ParticleType::ALPHA,      "ALPHA")
-        (ParticleType::CARBON,     "CARBON")
-        (ParticleType::XENON,      "XENON")
-        (ParticleType::URANIUM,    "URANIUM");
+const BiMap<ParticleType, std::string> ParticleProperties::bmParticleType_s = []() {
+    BiMap<ParticleType, std::string> bimap;
+    bimap.insert(ParticleType::UNNAMED,    "UNNAMED");
+    bimap.insert(ParticleType::ELECTRON,   "ELECTRON");
+    bimap.insert(ParticleType::POSITRON,   "POSITRON");
+    bimap.insert(ParticleType::MUON,       "MUON");
+    bimap.insert(ParticleType::PROTON,     "PROTON");
+    bimap.insert(ParticleType::ANTIPROTON, "ANTIPROTON");
+    bimap.insert(ParticleType::DEUTERON,   "DEUTERON");
+    bimap.insert(ParticleType::HMINUS,     "HMINUS");
+    bimap.insert(ParticleType::HYDROGEN,   "HYDROGEN");
+    bimap.insert(ParticleType::H2P,        "H2P");
+    bimap.insert(ParticleType::H3P,        "H3P");
+    bimap.insert(ParticleType::ALPHA,      "ALPHA");
+    bimap.insert(ParticleType::CARBON,     "CARBON");
+    bimap.insert(ParticleType::XENON,      "XENON");
+    bimap.insert(ParticleType::URANIUM,    "URANIUM");
+    return bimap;
+}();
 
 const std::map<ParticleType, double> ParticleProperties::particleMass_m = {
     {ParticleType::ELECTRON,   Physics::m_e},

@@ -31,8 +31,8 @@
 #include <iostream>
 #include <vector>
 
-#include "gsl/gsl_matrix.h"
-#include "gsl/gsl_blas.h"
+#include "Utilities/GSLMatrix.h"
+#include "Utilities/GSLBLAS.h"
 
 #include "Utilities/GeneralClassicException.h"
 

@@ -3,8 +3,8 @@
 #include "Utilities/MSLang/matheval.h"
 #include "Utilities/PortableBitmapReader.h"
 
-#include <boost/regex.hpp>
-#include <boost/filesystem.hpp>
+#include <regex>
+#include <filesystem>
 
 namespace mslang {
     void Mask::updateCache(const std::vector<bool> &pixels, std::vector<unsigned int> &cache, unsigned int y) const {
@@ -126,7 +126,7 @@ namespace mslang {
             filename = filename.substr(1, filename.length() - 2);
         }
 
-        if (!boost::filesystem::exists(filename)) {
+        if (!std::filesystem::exists(filename)) {
             *ippl::Error << "file '" << filename << "' doesn't exists" << endl;
             return false;
         }

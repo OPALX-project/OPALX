@@ -18,13 +18,8 @@
 #define COLUMN_HPP_
 
 #include "ast.hpp"
-#include "skipper.hpp"
-#include "error_handler.hpp"
-
-#include <boost/config/warning_disable.hpp>
-#include <boost/spirit/include/qi.hpp>
-#include <boost/fusion/include/adapt_struct.hpp>
-#include <boost/optional.hpp>
+#include "value_parser.hpp"
+#include <optional>
 
 #include <vector>
 
@@ -44,10 +39,10 @@ namespace SDDS {
         };
 
         unsigned int order_m;
-        boost::optional<std::string> name_m;
-        boost::optional<std::string> units_m;
-        boost::optional<std::string> description_m;
-        boost::optional<ast::datatype> type_m;
+        std::optional<std::string> name_m;
+        std::optional<std::string> units_m;
+        std::optional<std::string> description_m;
+        std::optional<ast::datatype> type_m;
         ast::columnData_t values_m;
         static unsigned int count_m;
 
@@ -81,19 +76,16 @@ namespace SDDS {
             }
         };
 
-        template <typename Iterator, typename Skipper>
-        bool parse(
-            Iterator& first
-          , Iterator last
-          , Skipper const& skipper)
+        bool parse(const std::string& input, size_t& pos)
         {
+            parser::ValueParser parser(input, pos);
             switch(*this->type_m) {
             case ast::FLOAT:
             {
-                float f = 0.0;
-                boost::spirit::qi::float_type float_;
-                if (phrase_parse(first, last, float_, skipper, f)) {
+                float f = 0.0f;
+                if (parser.parseFloat(f)) {
                     this->values_m.push_back(f);
+                    pos = parser.getPosition();
                     return true;
                 }
                 break;
@@ -101,9 +93,9 @@ namespace SDDS {
             case ast::DOUBLE:
             {
                 double d = 0.0;
-                boost::spirit::qi::double_type double_;
-                if (phrase_parse(first, last, double_, skipper, d)) {
+                if (parser.parseDouble(d)) {
                     this->values_m.push_back(d);
+                    pos = parser.getPosition();
                     return true;
                 }
                 break;
@@ -111,9 +103,9 @@ namespace SDDS {
             case ast::SHORT:
             {
                 short s = 0;
-                boost::spirit::qi::short_type short_;
-                if (phrase_parse(first, last, short_, skipper, s)) {
+                if (parser.parseShort(s)) {
                     this->values_m.push_back(s);
+                    pos = parser.getPosition();
                     return true;
                 }
                 break;
@@ -121,9 +113,9 @@ namespace SDDS {
             case ast::LONG:
             {
                 long l = 0;
-                boost::spirit::qi::long_type long_;
-                if (phrase_parse(first, last, long_, skipper, l)) {
+                if (parser.parseLong(l)) {
                     this->values_m.push_back(l);
+                    pos = parser.getPosition();
                     return true;
                 }
                 break;
@@ -131,19 +123,19 @@ namespace SDDS {
             case ast::CHARACTER:
             {
                 char c = '\0';
-                boost::spirit::qi::char_type char_;
-                if (phrase_parse(first, last, char_, skipper, c)) {
+                if (parser.parseChar(c)) {
                     this->values_m.push_back(c);
+                    pos = parser.getPosition();
                     return true;
                 }
                 break;
             }
             case ast::STRING:
             {
-                std::string s("");
-                parser::qstring<Iterator, Skipper> qstring;
-                if (phrase_parse(first, last, qstring, skipper, s)) {
+                std::string s;
+                if (parser.parseQuotedString(s)) {
                     this->values_m.push_back(s);
+                    pos = parser.getPosition();
                     return true;
                 }
                 break;
@@ -178,38 +170,4 @@ namespace SDDS {
     }
 }
 
-BOOST_FUSION_ADAPT_STRUCT(
-    SDDS::column,
-    (boost::optional<std::string>, name_m)
-    (boost::optional<SDDS::ast::datatype>, type_m)
-    (boost::optional<std::string>, units_m)
-    (boost::optional<std::string>, description_m)
-    (SDDS::ast::variant_t, value_m)
-)
-
-namespace SDDS { namespace parser
-{
-    namespace qi = boost::spirit::qi;
-    namespace ascii = boost::spirit::ascii;
-    namespace phx = boost::phoenix;
-
-    ///////////////////////////////////////////////////////////////////////////////
-    //  The expression grammar
-    ///////////////////////////////////////////////////////////////////////////////
-    template <typename Iterator>
-    struct column_parser: qi::grammar<Iterator, column(), skipper<Iterator> >
-    {
-        column_parser(error_handler<Iterator> & _error_handler);
-
-        qi::rule<Iterator, std::string(), skipper<Iterator> > string, quoted_string, units;
-        qi::rule<Iterator, std::string(), skipper<Iterator> > column_name, column_units,
-                column_description, column_symbol, column_format;
-        qi::rule<Iterator, ast::datatype(), skipper<Iterator> > column_type;
-        qi::rule<Iterator, column(), skipper<Iterator> > start;
-        qi::rule<Iterator, long(), skipper<Iterator> > column_field;
-        qi::rule<Iterator, ast::nil(), skipper<Iterator> > column_unsupported_pre,
-                column_unsupported_post;
-        qi::symbols<char, ast::datatype> datatype;
-    };
-}}
 #endif /* COLUMN_HPP_ */

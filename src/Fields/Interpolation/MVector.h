@@ -31,9 +31,8 @@
 #include <iostream>
 #include <vector>
 
-#include "gsl/gsl_complex_math.h"
-#include "gsl/gsl_vector.h"
-#include "gsl/gsl_vector_complex_double.h"
+#include "Utilities/GSLComplex.h"
+#include "Utilities/GSLMatrix.h"
 
 #include "Utilities/GeneralClassicException.h"
 

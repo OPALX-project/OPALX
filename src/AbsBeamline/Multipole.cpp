@@ -445,7 +445,7 @@ void Multipole::accept(BeamlineVisitor& visitor) const {
 KOKKOS_INLINE_FUNCTION
 void Multipole::computeField(
     Vector_t<double, 3> R, 
-    Vector_t<double, 3>& E, 
+    Vector_t<double, 3>& /*E*/, 
     Vector_t<double, 3>& B,
     const Kokkos::View<double*>& NormalComponents,
     const Kokkos::View<double*>& SkewComponents,
@@ -721,7 +721,7 @@ bool Multipole::isInside(const Vector_t<double, 3>& r) const {
 bool Multipole::isFocusing(int component) const {
     if (component < 0)
         throw GeneralClassicException("Multipole::isFocusing", "component negative");
-    else if (component >= NormalComponents.extent(0))
+    else if (static_cast<unsigned long>(component) >= NormalComponents.extent(0))
         throw GeneralClassicException("Multipole::isFocusing", "component too big");
 
     // Fix: Use getNormalComponent() to safely retrieve the value from GPU memory

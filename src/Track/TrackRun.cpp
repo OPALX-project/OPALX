@@ -52,7 +52,7 @@
 #include "OPALconfig.h"
 #include "changes.h"
 
-#include <boost/assign.hpp>
+#include "Utilities/BiMap.h"
 
 #include <cmath>
 #include <fstream>
@@ -76,9 +76,11 @@ namespace TRACKRUN {
     };
 }  // namespace TRACKRUN
 
-const boost::bimap<TrackRun::RunMethod, std::string> TrackRun::stringMethod_s =
-    boost::assign::list_of<const boost::bimap<TrackRun::RunMethod, std::string>::relation>(
-        RunMethod::PARALLEL, "PARALLEL");
+const BiMap<TrackRun::RunMethod, std::string> TrackRun::stringMethod_s = []() {
+    BiMap<TrackRun::RunMethod, std::string> bimap;
+    bimap.insert(TrackRun::RunMethod::PARALLEL, "PARALLEL");
+    return bimap;
+}();
 
 TrackRun::TrackRun()
     : Action(
