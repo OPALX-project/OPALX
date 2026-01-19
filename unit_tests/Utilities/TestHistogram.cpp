@@ -42,7 +42,7 @@
  */
 
 #include <gtest/gtest.h>
-#include "Utilities/Histogram.h"
+#include "Utilities/GSLHistogram.h"
 #include <vector>
 #include <cmath>
 
