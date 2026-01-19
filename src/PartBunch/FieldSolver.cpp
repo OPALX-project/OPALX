@@ -355,7 +355,7 @@ void FieldSolver<double,3>::setPotentialBCs() {
     }
 
 template<>
-void FieldSolver<double,3>::runSolver() {
+void FieldSolver<double,3>::runSolver(bool force_skip_field_dump) {
     constexpr int Dim = 3;
 
     if (this->getStype() == "CG") {
@@ -380,40 +380,40 @@ void FieldSolver<double,3>::runSolver() {
                 }
             }
             ippl::Comm->barrier();
-        } else if (this->getStype() == "FFT") {
-            if constexpr (Dim == 2 || Dim == 3) {
+    } else if (this->getStype() == "FFT") {
+        if constexpr (Dim == 2 || Dim == 3) {
 #ifdef OPALX_FIELD_DEBUG
-                this->dumpScalField("rho");
+            if (!force_skip_field_dump) this->dumpScalField("rho");
 #endif
 
-                std::get<FFTSolver_t<double, 3>>(this->getSolver()).solve();
+            std::get<FFTSolver_t<double, 3>>(this->getSolver()).solve();
 #ifdef OPALX_FIELD_DEBUG
-                this->dumpScalField("phi");
-                this->dumpVectField("ef");
+            if (!force_skip_field_dump) this->dumpScalField("phi");
+            if (!force_skip_field_dump) this->dumpVectField("ef");
 #endif
-            }
-        } else if (this->getStype() == "P3M") {
-            if constexpr (Dim == 3) {
-                std::get<FFTTruncatedGreenSolver_t<double, 3>>(this->getSolver()).solve();
-            }
-        } else if (this->getStype() == "OPEN") {
-            if constexpr (Dim == 3) {
+        }
+    } else if (this->getStype() == "P3M") {
+        if constexpr (Dim == 3) {
+            std::get<FFTTruncatedGreenSolver_t<double, 3>>(this->getSolver()).solve();
+        }
+    } else if (this->getStype() == "OPEN") {
+        if constexpr (Dim == 3) {
 #ifdef OPALX_FIELD_DEBUG
-                this->dumpScalField("rho");
+            if (!force_skip_field_dump) this->dumpScalField("rho");
 #endif
-                std::get<OpenSolver_t<double, 3>>(this->getSolver()).solve();
+            std::get<OpenSolver_t<double, 3>>(this->getSolver()).solve();
 #ifdef OPALX_FIELD_DEBUG
-                this->dumpScalField("phi");
-                this->dumpVectField("ef");
+            if (!force_skip_field_dump) this->dumpScalField("phi");
+            if (!force_skip_field_dump) this->dumpVectField("ef");
 #endif
-            }
+        }
     } else if (this->getStype() == "NONE") {
         std::get<NullSolver_t<T, Dim>>(this->getSolver()).solve();
     } else {
         throw std::runtime_error("Unknown solver type");
     }
 
-    call_counter_m++;
+    if (!force_skip_field_dump) call_counter_m++;
 }
 
 template<>
@@ -440,7 +440,7 @@ double FieldSolver<double, 3>::getCouplingConstant() const {
     const std::string stype = this->getStype();
     if (stype == "OPEN") {
         // from: 1.0/(4.0*Physics::pi*Physics::epsilon_0)*(Physics::epsilon_0*8);
-        return Physics::pi / 2.0; 
+        return 1.0 / (Physics::epsilon_0); // 4.0 * Physics::pi // Physics::pi / 2.0;  // 5.0 / 4.0 / Physics::epsilon_0; // Physics::pi / 2.0; 
     } 
 
     // Standard coupling constant 

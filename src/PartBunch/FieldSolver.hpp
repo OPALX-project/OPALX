@@ -62,7 +62,12 @@ public:
 
     void setPotentialBCs();
 
-    void runSolver() override;
+    void runSolver() override {
+        runSolver(false);
+    }
+
+    // Want to exclude field dump when solver warmup is called!
+    void runSolver(bool force_skip_field_dump);
 
     template <typename Solver>
     void initSolverWithParams(const ippl::ParameterList& sp);
