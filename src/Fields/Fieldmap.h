@@ -53,32 +53,120 @@ enum SwapType {
 
 enum DiffDirection { DX = 0, DY, DZ };
 
+/**
+ * @class Fieldmap
+ * @brief Abstract base class for all field maps. It acts as a factory for creating
+ * specific field map types based on the file content and manages a cache of loaded field maps.
+ */
 class Fieldmap {
 public:
+    /**
+     * @brief Get a field map instance.
+     * Use this factory method to obtain a field map. It checks the cache first.
+     * @param Filename The path to the field map file.
+     * @param fast If true, load a "fast" version if available (implementation dependent).
+     * @return Pointer to the Fieldmap instance.
+     */
     static Fieldmap* getFieldmap(std::string Filename, bool fast = false);
+
+    /**
+     * @brief Get a list of all loaded field map names.
+     * @return Vector of filenames.
+     */
     static std::vector<std::string> getListFieldmapNames();
+
+    /**
+     * @brief Delete a specific field map from the cache and memory.
+     * @param Filename The filename of the map to delete.
+     */
     static void deleteFieldmap(std::string Filename);
+
+    /**
+     * @brief Clear the entire field map cache.
+     */
     static void clearDictionary();
+
+    /**
+     * @brief Read the header of a field map file to determine its type.
+     * @param Filename The file to check.
+     * @return The MapType determined from the file header.
+     */
     static MapType readHeader(std::string Filename);
+
+    /**
+     * @brief Trigger the actual reading of the field map data.
+     * @param Filename The file to read.
+     */
     static void readMap(std::string Filename);
+
+    /**
+     * @brief Decrease reference count or delete field map if unused.
+     * @param Filename The file to free.
+     */
     static void freeMap(std::string Filename);
 
     static std::string typeset_msg(const std::string& msg, const std::string& title);
 
-    // Note: getFieldstrength() returns true if R is outside of the field!
+    /**
+     * @brief Get the field strength at a given point.
+     * 
+     * @param R Position [m] relative to the field map origin.
+     * @param E Output Electric field [MV/m].
+     * @param B Output Magnetic field [T].
+     * @return true if R is outside of the field map, false otherwise.
+     */
     virtual bool getFieldstrength(
         const Vector_t<double, 3>& R, Vector_t<double, 3>& E, Vector_t<double, 3>& B) const = 0;
+
+    /**
+     * @brief Get the field derivative with respect to a direction.
+     * 
+     * @param R Position [m].
+     * @param E Output derivative of Electric field.
+     * @param B Output derivative of Magnetic field.
+     * @param dir Direction of derivative (DX, DY, DZ).
+     * @return true if R is outside, false otherwise.
+     */
     virtual bool getFieldDerivative(
         const Vector_t<double, 3>& R, Vector_t<double, 3>& E, Vector_t<double, 3>& B,
         const DiffDirection& dir) const                                 = 0;
+    
+    /**
+     * @brief Get the longitudinal dimensions of the field.
+     * @param zBegin Output start of field [m].
+     * @param zEnd Output end of field [m].
+     */
     virtual void getFieldDimensions(double& zBegin, double& zEnd) const = 0;
+
+    /**
+     * @brief Get the full 3D bounding box of the field.
+     */
     virtual void getFieldDimensions(
         double& xIni, double& xFinal, double& yIni, double& yFinal, double& zIni,
         double& zFinal) const              = 0;
+        
+    /**
+     * @brief Swap coordinates (implementation dependent).
+     */
     virtual void swap()                    = 0;
+    
+    /**
+     * @brief Print info about the field map.
+     */
     virtual void getInfo(Inform* msg)      = 0;
+    
+    /**
+     * @brief Get the frequency.
+     * @return Frequency [MHz].
+     */
     virtual double getFrequency() const    = 0;
+    
+    /**
+     * @brief Set the frequency.
+     * @param freq Frequency [MHz].
+     */
     virtual void setFrequency(double freq) = 0;
+
     virtual void setEdgeConstants(
         const double& bendAngle, const double& entranceAngle, const double& exitAngle);
     virtual void setFieldLength(const double&);
@@ -98,11 +186,22 @@ public:
 
     virtual void getOnaxisEz(std::vector<std::pair<double, double>>& onaxis);
 
+    /**
+     * @brief Check if a point is inside the field map.
+     */
     virtual bool isInside(const Vector_t<double, 3>& /*r*/) const {
         return true;
     }
 
+    /**
+     * @brief Pure virtual method to read the map data.
+     * Called by the public static readMap().
+     */
     virtual void readMap() = 0;
+    
+    /**
+     * @brief Pure virtual method to free the map data.
+     */
     virtual void freeMap() = 0;
 
 protected:
