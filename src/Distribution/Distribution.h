@@ -26,7 +26,7 @@
 
 #include <memory>
 
-#include <boost/numeric/ublas/matrix.hpp>
+#include "Algorithms/Matrix.h"
 #include "Algorithms/CoordinateSystemTrafo.h"
 #include "Attributes/Attributes.h"
 #include "Distribution/Distribution.h"
@@ -308,9 +308,9 @@ inline std::string Distribution::getTypeofDistribution() {
 
 #include "Attributes/Attributes.h"
 
-#include <gsl/gsl_histogram.h>
-#include <gsl/gsl_qrng.h>
-#include <gsl/gsl_rng.h>
+#include "Utilities/Histogram.h"
+#include "Utilities/QuasiRandom.h"
+#include "Utilities/Random.h"
 
 #ifdef WITH_UNIT_TESTS
 #include <gtest/gtest_prod.h>

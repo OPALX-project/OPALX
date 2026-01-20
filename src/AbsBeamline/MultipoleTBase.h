@@ -97,6 +97,8 @@ public:
     EMField& getField();
     /** Return a dummy field value */
     const EMField& getField() const;
+    /** Apply to all particles */
+    bool apply();
     /** Calculate the field at some arbitrary position \n
      *  If particle is outside field map true is returned,
      *  otherwise false is returned

@@ -72,7 +72,7 @@
 #include "Structure/BoundingBox.h"
 #include "Utilities/GeneralClassicException.h"
 
-#include <boost/optional.hpp>
+#include <optional>
 
 #include <map>
 #include <queue>

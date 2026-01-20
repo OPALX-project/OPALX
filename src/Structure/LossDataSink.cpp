@@ -24,7 +24,7 @@
 #include "Utilities/Util.h"
 #include "Utility/IpplInfo.h"
 
-#include <boost/filesystem.hpp>
+#include <filesystem>
 
 #include <cmath>
 
@@ -312,15 +312,15 @@ void LossDataSink::addReferenceParticle(
 }
 
 void LossDataSink::addParticle(
-    const OpalParticle& particle, const boost::optional<std::pair<int, short>>& turnBunchNumPair) {
+    const OpalParticle& particle, const std::optional<std::pair<int, short>>& turnBunchNumPair) {
     if (turnBunchNumPair) {
         if (!particles_m.empty() && turnNumber_m.empty()) {
             throw GeneralClassicException(
                 "LossDataSink::addParticle",
                 "Either no particle or all have turn number and bunch number");
         }
-        turnNumber_m.push_back(turnBunchNumPair.get().first);
-        bunchNumber_m.push_back(turnBunchNumPair.get().second);
+        turnNumber_m.push_back(turnBunchNumPair.value().first);
+        bunchNumber_m.push_back(turnBunchNumPair.value().second);
     }
 
     particles_m.push_back(particle);
@@ -336,7 +336,7 @@ void LossDataSink::save(unsigned int numSets, OpalData::OpenMode openMode) {
         openMode = OpalData::getInstance()->getOpenMode();
     }
 
-    namespace fs = boost::filesystem;
+    namespace fs = std::filesystem;
     if (h5hut_mode_m) {
         fileName_m = outputName_m + std::string(".h5");
         if (openMode == OpalData::OpenMode::WRITE || !fs::exists(fileName_m)) {

@@ -3,7 +3,7 @@
 #include "Utilities/MSLang/matheval.h"
 #include "Physics/Physics.h"
 
-#include <boost/regex.hpp>
+#include <regex>
 #include <string>
 
 namespace mslang {

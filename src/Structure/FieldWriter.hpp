@@ -19,8 +19,7 @@
 #include <iomanip>
 #include <fstream>
 
-#include <boost/filesystem.hpp>
-#include <boost/format.hpp>
+#include <filesystem>
 
 #include "Utilities/Util.h"
 #include "AbstractObjects/OpalData.h"
@@ -56,8 +55,8 @@ void FieldWriter::dumpField(FieldType& field, std::string name,
      */
     /*
     std::string dirname = ""; 
-    boost::filesystem::path file(dirname);
-    boost::format filename("%1%-%2%-%|3$06|.dat");
+    std::filesystem::path file(dirname);
+    std::string filename = std::format("{}-{}-{:06d}.dat", basename, name + std::string("_") + type, step);
     std::string basename = OpalData::getInstance()->getInputBasename();
     filename % basename % (name + std::string("_") + type) % step;
     file /= filename.str();

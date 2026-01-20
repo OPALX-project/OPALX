@@ -77,6 +77,10 @@ const EMField& ScalingFFAMagnet::getField() const {
     return dummy;
 }
 
+bool ScalingFFAMagnet::apply() {
+    return false;
+}
+
 bool ScalingFFAMagnet::apply(
     const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
     std::shared_ptr<ParticleContainer_t> pc = RefPartBunch_m->getParticleContainer();

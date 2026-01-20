@@ -2,6 +2,8 @@
 
 CoordinateSystemTrafo::CoordinateSystemTrafo()
     : origin_m(0.0), orientation_m(1.0, 0.0, 0.0, 0.0), rotationMatrix_m() {
+    // Default constructor of matrix3x3_t already initializes to identity
+    // But we can explicitly set it if needed (redundant but clear)
     rotationMatrix_m(0, 0) = 1.0;
     rotationMatrix_m(0, 1) = 0.0;
     rotationMatrix_m(0, 2) = 0.0;

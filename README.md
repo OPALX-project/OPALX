@@ -21,9 +21,7 @@ Other dependencies are fetched and installed in the opalx installation.
 ```
 ippl/3.2.0
 hdf5/1.10.8_slurm  
-H5hut/2.0.0rc6_slurm
-boost/1.82.0_slurm   
-gsl/2.7                
+H5hut/2.0.0rc6_slurm  
 gtest/1.13.0-1
 ```
 

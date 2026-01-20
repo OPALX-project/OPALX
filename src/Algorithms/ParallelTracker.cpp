@@ -30,7 +30,7 @@
 #include <sstream>
 #include <string>
 
-#include <boost/numeric/ublas/io.hpp>
+#include "Algorithms/Matrix.h"
 
 #include "AbstractObjects/OpalData.h"
 #include "Algorithms/CavityAutophaser.h"
@@ -65,21 +65,21 @@ ParallelTracker::ParallelTracker(
       itsOpalBeamline_m(beamline.getOrigin3D(), beamline.getInitialDirection()),
       opalRing_m(nullptr),
       globalEOL_m(false),
-      wakeStatus_m(false),
-      wakeFunction_m(nullptr),
       pathLength_m(0.0),
       zstart_m(0.0),
       dtCurrentTrack_m(0.0),
       minStepforReBin_m(-1),
       repartFreq_m(0),
-      emissionSteps_m(std::numeric_limits<unsigned int>::max()),
       numParticlesInSimulation_m(0),
       timeIntegrationTimer1_m(IpplTimings::getTimer("TIntegration1")),
       timeIntegrationTimer2_m(IpplTimings::getTimer("TIntegration2")),
       fieldEvaluationTimer_m(IpplTimings::getTimer("External field eval")),
       PluginElemTimer_m(IpplTimings::getTimer("PluginElements")),
       BinRepartTimer_m(IpplTimings::getTimer("Binaryrepart")),
-      OrbThreader_m(IpplTimings::getTimer("OrbThreader")) {
+      OrbThreader_m(IpplTimings::getTimer("OrbThreader")),
+      emissionSteps_m(std::numeric_limits<unsigned int>::max()),
+      wakeStatus_m(false),
+      wakeFunction_m(nullptr) {
 }
 
 ParallelTracker::ParallelTracker(
@@ -91,20 +91,20 @@ ParallelTracker::ParallelTracker(
       itsOpalBeamline_m(beamline.getOrigin3D(), beamline.getInitialDirection()),
       opalRing_m(nullptr),
       globalEOL_m(false),
-      wakeStatus_m(false),
-      wakeFunction_m(nullptr),
       pathLength_m(0.0),
       zstart_m(zstart),
       dtCurrentTrack_m(0.0),
       minStepforReBin_m(-1),
       repartFreq_m(0),
-      emissionSteps_m(std::numeric_limits<unsigned int>::max()),
       numParticlesInSimulation_m(0),
       timeIntegrationTimer1_m(IpplTimings::getTimer("TIntegration1")),
       timeIntegrationTimer2_m(IpplTimings::getTimer("TIntegration2")),
       fieldEvaluationTimer_m(IpplTimings::getTimer("External field eval")),
       BinRepartTimer_m(IpplTimings::getTimer("Binaryrepart")),
-      OrbThreader_m(IpplTimings::getTimer("OrbThreader")) {
+      OrbThreader_m(IpplTimings::getTimer("OrbThreader")),
+      emissionSteps_m(std::numeric_limits<unsigned int>::max()),
+      wakeStatus_m(false),
+      wakeFunction_m(nullptr) {
     
       for (unsigned int i = 0; i < zstop.size(); ++i) {
           stepSizes_m.push_back(dt[i], zstop[i], maxSteps[i]);
@@ -142,8 +142,9 @@ void ParallelTracker::visitBeamline(const Beamline& bl) {
     fbl->iterate(*this, false);
 }
 
-void ParallelTracker::visitScalingFFAMagnet(const ScalingFFAMagnet& bend) {
+void ParallelTracker::visitScalingFFAMagnet(const ScalingFFAMagnet& /*bend*/) {
     *gmsg << "Adding ScalingFFAMagnet" << endl;
+    *gmsg << "passed ScalingFFAMagnet argument not used in ParallelTracker::visitScalingFFAMagnet" << endl;
     /*
     if (opalRing_m != nullptr) {
         ScalingFFAMagnet* newBend = bend.clone(); // setup the end field, if required
@@ -555,7 +556,7 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
      */
 
     
-    const OpalMatrix_t                rot = referenceToBeamCSTrafo.getRotationMatrix();
+    const matrix3x3_t                rot = referenceToBeamCSTrafo.getRotationMatrix();
     const ippl::Vector<double, 3> org = referenceToBeamCSTrafo.getOrigin();
 
 
@@ -608,7 +609,7 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
             itsBunch_m->Bf[i] = beamToReferenceCSTrafo.rotateTo(itsBunch_m->Bf[i]);
 
             x = M^T(x+o)
-            prod_boost_vector(boost::numeric::ublas::trans(rotationMatrix_m)
+            prod_vector(trans(rotationMatrix_m)
 
             Update 17.12.2025: It looks like, there were a few errors with this transformation after trying to get
             rid of boost. This should now be fixed.
@@ -645,9 +646,6 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
 void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
     IpplTimings::startTimer(fieldEvaluationTimer_m);
     Inform msg("ParallelTracker ", *gmsg);
-
-    // local # particles
-    const unsigned int localNum = itsBunch_m->getLocalNum();
 
     // Flag for out-of-bounds particles, locally and globally
     bool locPartOutOfBounds = false, globPartOutOfBounds = false;

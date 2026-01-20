@@ -28,7 +28,7 @@
 
 #include <source_location>
 #include <vector>
-#include "gsl/gsl_sf_pow_int.h"
+#include "Utilities/GSLCompat.h"
 #include "MultipoleTCurvedVarRadius.h"
 #include "AbsBeamline/MultipoleTFunctions/CoordinateTransform.h"
 

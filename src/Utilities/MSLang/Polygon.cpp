@@ -4,7 +4,7 @@
 #include "Utilities/Mesher.h"
 #include "Physics/Physics.h"
 
-#include <boost/regex.hpp>
+#include <regex>
 
 namespace mslang {
     void Polygon::triangulize(std::vector<Vector_t<double, 3>> &nodes) {

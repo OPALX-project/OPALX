@@ -1,8 +1,7 @@
 #ifndef CLASSIC_FIELDMAP2DDYNAMIC_HH
 #define CLASSIC_FIELDMAP2DDYNAMIC_HH
 
-#include "gsl/gsl_interp.h"
-#include "gsl/gsl_spline.h"
+#include "Utilities/GSLCubicSpline.h"
 #include "Fields/Fieldmap.h"
 
 class FM2DDynamic: public Fieldmap {
