@@ -397,7 +397,7 @@ void ParallelTracker::execute() {
             resetFields();
             
             // Space charge field computation
-            computeSpaceChargeFields(step);
+            //computeSpaceChargeFields(step);
            
             // External field computation
             computeExternalFields(oth);
