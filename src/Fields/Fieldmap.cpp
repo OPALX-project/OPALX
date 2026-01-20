@@ -51,6 +51,17 @@ namespace fs = std::filesystem;
     };                                    \
     const char* Fieldmap::TypeParseTraits<X>::name = #X
 
+/**
+ * @brief Factory method to obtain a Fieldmap instance.
+ * 
+ * Checks the FieldmapDictionary cache to see if the file is already loaded.
+ * If not, it calls readHeader() to determine the map type, instantiates the 
+ * corresponding subclass, and adds it to the dictionary.
+ * 
+ * @param Filename Absolute path to the fieldmap file.
+ * @param fast If true, attempts to load a "fast" version (implementation specific).
+ * @return Fieldmap* Pointer to the managed fieldmap instance.
+ */
 Fieldmap* Fieldmap::getFieldmap(std::string Filename, bool fast) {
     std::map<std::string, FieldmapDescription>::iterator position =
         FieldmapDictionary.find(Filename);
