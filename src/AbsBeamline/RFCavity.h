@@ -22,7 +22,7 @@
 #include "Algorithms/AbstractTimeDependence.h"
 #include "Physics/Physics.h"
 
-#include <boost/bimap.hpp>
+#include "Utilities/BiMap.h"
 
 #include <cmath>
 #include <string>
@@ -92,6 +92,8 @@ public:
     virtual std::pair<double, double> trackOnAxisParticle(
         const double& p0, const double& t0, const double& dt, const double& q, const double& mass,
         std::ofstream* out = nullptr);
+
+    virtual bool apply() override;
 
     virtual bool apply(
         const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
@@ -205,7 +207,7 @@ private:
 
     CavityType type_m;
 
-    static const boost::bimap<CavityType, std::string> bmCavityTypeString_s;
+    static const BiMap<CavityType, std::string> bmCavityTypeString_s;
 
     double rmin_m;
     double rmax_m;

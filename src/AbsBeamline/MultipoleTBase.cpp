@@ -27,7 +27,7 @@
  */
 
 #include "MultipoleTBase.h"
-#include <gsl/gsl_sf_gamma.h>
+#include "Utilities/GSLCompat.h"
 #include "AbsBeamline/MultipoleTFunctions/tanhDeriv.h"
 #include <cmath>
 
@@ -69,6 +69,10 @@ MultipoleTBase::MultipoleTBase(const MultipoleTBase &right):
 }
 
 MultipoleTBase::~MultipoleTBase() {
+}
+
+bool MultipoleTBase::apply() {
+    return false;
 }
 
 bool MultipoleTBase::apply(const Vector_t<double, 3> &R, const Vector_t<double, 3> &/*P*/,

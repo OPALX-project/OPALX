@@ -30,7 +30,7 @@
 #include "Utility/Inform.h"
 #include "Utility/IpplInfo.h"
 
-#include <boost/assign.hpp>
+#include "Utilities/BiMap.h"
 
 #include <cstddef>
 #include <ctime>
@@ -41,10 +41,13 @@ extern Inform* gmsg;
 
 using namespace Options;
 
-const boost::bimap<DumpFrame, std::string> Option::bmDumpFrameString_s =
-    boost::assign::list_of<const boost::bimap<DumpFrame, std::string>::relation>(
-        DumpFrame::GLOBAL, "GLOBAL")(DumpFrame::BUNCH_MEAN, "BUNCH_MEAN")(
-        DumpFrame::REFERENCE, "REFERENCE");
+const BiMap<DumpFrame, std::string> Option::bmDumpFrameString_s = []() {
+    BiMap<DumpFrame, std::string> bimap;
+    bimap.insert(DumpFrame::GLOBAL, "GLOBAL");
+    bimap.insert(DumpFrame::BUNCH_MEAN, "BUNCH_MEAN");
+    bimap.insert(DumpFrame::REFERENCE, "REFERENCE");
+    return bimap;
+}();
 
 namespace {
     // The attributes of class Option.

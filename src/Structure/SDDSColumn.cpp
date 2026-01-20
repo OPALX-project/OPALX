@@ -20,6 +20,7 @@
 
 #include <iomanip>
 #include <list>
+#include <variant>
 
 SDDSColumn::SDDSColumn(const std::string& name,
                        const std::string& type,
@@ -88,7 +89,8 @@ void SDDSColumn::writeValue(std::ostream& os) const {
 
     os.flags(writeFlags_m);
     os.precision(writePrecision_m);
-    os << value_m << std::setw(10) << "\t";
+    std::visit([&os](const auto& val) { os << val; }, value_m);
+    os << std::setw(10) << "\t";
     set_m = false;
 }
 

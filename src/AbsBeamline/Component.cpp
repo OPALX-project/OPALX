@@ -95,7 +95,7 @@ bool Component::apply(){
  * @returns true if particle is out-of-bounds (lost), false otherwise
  */
 bool Component::apply(
-    const size_t& i, 
+    const size_t& /*i*/, 
     const double&, 
     Vector_t<double, 3>&, 
     Vector_t<double, 3>&) {
@@ -106,6 +106,7 @@ bool Component::apply(
             return true;
     }
     */
+    *gmsg << "Component::apply not implemented" << endl;
     return false;
 }
 

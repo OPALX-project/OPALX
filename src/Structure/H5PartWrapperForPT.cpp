@@ -145,7 +145,7 @@ void H5PartWrapperForPT::readStepHeader(PartBunch_t* bunch) {
 }
 
 void H5PartWrapperForPT::readStepData(
-    PartBunch_t* bunch, h5_ssize_t firstParticle, h5_ssize_t lastParticle) {
+    PartBunch_t* /*bunch*/, h5_ssize_t firstParticle, h5_ssize_t lastParticle) {
     h5_ssize_t numParticles = getNumParticles();
     if (lastParticle >= numParticles || firstParticle > lastParticle) {
         throw OpalException(
@@ -204,6 +204,7 @@ void H5PartWrapperForPT::readStepData(
     }
 
     REPORTONERROR(H5PartSetView(file_m, -1, -1));
+    *gmsg << "H5PartWrapperForPT::readStepData not implemented" << endl;
 }
 
 void H5PartWrapperForPT::writeHeader() {

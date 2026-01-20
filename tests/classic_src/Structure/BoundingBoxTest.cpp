@@ -18,7 +18,7 @@ TEST(BoundingBoxTest, IntersectionTest) {
     OpalTestUtilities::SilenceTest silencer;
 
     BoundingBox boundingBox = BoundingBox::getBoundingBox({Vector_t(0.0), Vector_t(1.0)});
-    boost::optional<Vector_t> intersectionPoint = boundingBox.getIntersectionPoint(Vector_t(1.1, 0.5, 0.5), Vector_t(-1, 0, 0));
+    std::optional<Vector_t> intersectionPoint = boundingBox.getIntersectionPoint(Vector_t(1.1, 0.5, 0.5), Vector_t(-1, 0, 0));
     EXPECT_TRUE(intersectionPoint.operator bool());
     EXPECT_NEAR(euclidean_norm(Vector_t(1.0, 0.5, 0.5) - intersectionPoint.value()), 0.0, 1e-8);
 

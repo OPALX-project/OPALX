@@ -25,8 +25,7 @@
 
 #include "OPALTypes.h"
 
-//#include "boost/optional.hpp"
-
+#include <optional>
 #include <utility>
 #include <vector>
 

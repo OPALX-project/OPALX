@@ -28,7 +28,7 @@
 
 
 #include "MultipoleTCurvedConstRadius.h"
-#include "gsl/gsl_sf_pow_int.h"
+#include "Utilities/GSLCompat.h"
 
 using namespace endfieldmodel;
 

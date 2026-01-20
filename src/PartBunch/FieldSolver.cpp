@@ -2,9 +2,9 @@
 
 #include <iomanip>
 #include <fstream>
+#include <sstream>
 
-#include <boost/filesystem.hpp>
-#include <boost/format.hpp>
+#include <filesystem>
 
 #include "Utilities/Util.h"
 #include "AbstractObjects/OpalData.h"
@@ -105,11 +105,13 @@ void FieldSolver<double,3>::dumpVectField(std::string what) {
     auto field_hostV = field->getHostMirror();
     Kokkos::deep_copy(field_hostV, fieldV);     
 
-    boost::filesystem::path file(dirname);
-    boost::format filename("%1%-%2%-%|3$06|.dat");
+    std::filesystem::path file(dirname);
     std::string basename = OpalData::getInstance()->getInputBasename();
-    filename % basename % (what + std::string("_") + type) % call_counter_m;
-    file /= filename.str();
+    std::ostringstream oss;
+    oss << basename << "-" << (what + std::string("_") + type) << "-" 
+        << std::setfill('0') << std::setw(6) << call_counter_m << ".dat";
+    std::string filename = oss.str();
+    file /= filename;
     std::ofstream fout(file.string(), std::ios::out);
 
     fout << std::setprecision(9);
@@ -213,11 +215,13 @@ void FieldSolver<double,3>::dumpScalField(std::string what) {
     auto field_hostV = field->getHostMirror();
     Kokkos::deep_copy(field_hostV, fieldV);     
 
-    boost::filesystem::path file(dirname);
-    boost::format filename("%1%-%2%-%|3$06|.dat");
+    std::filesystem::path file(dirname);
     std::string basename = OpalData::getInstance()->getInputBasename();
-    filename % basename % (what + std::string("_") + type) % call_counter_m;
-    file /= filename.str();
+    std::ostringstream oss;
+    oss << basename << "-" << (what + std::string("_") + type) << "-" 
+        << std::setfill('0') << std::setw(6) << call_counter_m << ".dat";
+    std::string filename = oss.str();
+    file /= filename;
     std::ofstream fout(file.string(), std::ios::out);
 
     fout << std::setprecision(9);

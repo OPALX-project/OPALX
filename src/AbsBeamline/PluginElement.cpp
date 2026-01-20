@@ -72,14 +72,19 @@ bool PluginElement::bends() const {
     return false;
 }
 
+bool PluginElement::apply() {
+    return false;
+}
+
 bool PluginElement::apply(
     const size_t& /*i*/, const double&, Vector_t<double, 3>&, Vector_t<double, 3>&) {
     return false;
 }
 
 bool PluginElement::apply(
-        const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-        Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
+        const Vector_t<double, 3>& /*R*/, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
+        Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/) {
+    *gmsg << "passed R, P, t, E, B arguments not used in PluginElement::apply" << endl;
     return false;
 }
 

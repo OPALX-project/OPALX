@@ -17,8 +17,8 @@
 //
 #include "AbsBeamline/RFCavity.h"
 
-#include <boost/assign.hpp>
-#include <boost/filesystem.hpp>
+#include "Utilities/BiMap.h"
+#include <filesystem>
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Fields/Fieldmap.h"
 #include "PartBunch/PartBunch.h"
@@ -28,17 +28,19 @@
 #include "Utilities/Util.h"
 #include "Utility/IpplInfo.h"
 
-#include "gsl/gsl_interp.h"
-#include "gsl/gsl_spline.h"
+#include "Utilities/GSLCubicSpline.h"
 
 #include <fstream>
 #include <iostream>
 
 extern Inform* gmsg;
 
-const boost::bimap<CavityType, std::string> RFCavity::bmCavityTypeString_s =
-    boost::assign::list_of<const boost::bimap<CavityType, std::string>::relation>(
-        CavityType::SW, "STANDING")(CavityType::SGSW, "SINGLEGAP");
+const BiMap<CavityType, std::string> RFCavity::bmCavityTypeString_s = []() {
+    BiMap<CavityType, std::string> bimap;
+    bimap.insert(CavityType::SW, "STANDING");
+    bimap.insert(CavityType::SGSW, "SINGLEGAP");
+    return bimap;
+}();
 
 RFCavity::RFCavity() : RFCavity("") {
 }
@@ -115,6 +117,10 @@ RFCavity::~RFCavity() {
 
 void RFCavity::accept(BeamlineVisitor& visitor) const {
     visitor.visitRFCavity(*this);
+}
+
+bool RFCavity::apply() {
+    return false;
 }
 
 bool RFCavity::apply(
@@ -334,7 +340,7 @@ std::string RFCavity::getFieldMapFN() const {
             "RFCavity::getFieldMapFN",
             "The attribute \"FMAPFN\" isn't set "
             "for the \"RFCAVITY\" element!");
-    } else if (boost::filesystem::exists(filename_m)) {
+    } else if (std::filesystem::exists(filename_m)) {
         return filename_m;
     } else {
         throw GeneralClassicException(
