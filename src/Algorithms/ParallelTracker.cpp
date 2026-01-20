@@ -533,51 +533,10 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
         Vector_t<double, 3>(0, 0, pathLength_m), alignment.conjugate());
 
     CoordinateSystemTrafo referenceToBeamCSTrafo = beamToReferenceCSTrafo.inverted();
-
-    /**
-       \brief referernce to beam coordinate system transformation 
-       old: referenceToBeamCSTrafo.transformTo
-
-       x = Rot * (x-o)
-
-     */
-
-    
-    const matrix3x3_t                rot = referenceToBeamCSTrafo.getRotationMatrix();
-    const ippl::Vector<double, 3> org = referenceToBeamCSTrafo.getOrigin();
-
-
-    typedef Kokkos::View<double**>  ViewMatrixType;
-    ViewMatrixType Rot("Rot", 3, 3);
-    ViewMatrixType::HostMirror h_Rot = Kokkos::create_mirror_view(Rot);
-
-    // Initialize M matrix on host.
-    for ( int i = 0; i < 3; ++i ) {
-        for ( int j = 0; j < 3; ++j ) {
-            h_Rot( i, j ) = rot(i, j);
-        }
-    }
-    
-    Kokkos::deep_copy( Rot, h_Rot );
-
-    auto Rview  = itsBunch_m->getParticleContainer()->R.getView();
-    auto Eview  = itsBunch_m->getParticleContainer()->E.getView();
-    auto Bview  = itsBunch_m->getParticleContainer()->B.getView();
-
-    Kokkos::parallel_for(
-        "referenceToBeamCSTrafo", ippl::getRangePolicy(Rview),
-        KOKKOS_LAMBDA(const size_t k) {
-            ippl::Vector<double, 3> x = Rview(k); // x({Rview(i)[0],Rview(i)[1],Rview(i)[2]});
-                x = x - org;
-                for (size_t i = 0; i < 3; ++i ) {
-                    Rview(k)[i] = 0.0;
-                    for (size_t j = 0; j < 3; ++j ) {
-                        Rview(k)[i] += Rot(i, j) * x(j);
-                    }
-                }
-                // Eview(k) = 0; // ippl::Vector<double, 3>(0.0);   // was done outside of the routine in the past
-                // Bview(k) = 0; // ippl::Vector<double, 3>(0.0); 
-        });         
+   
+    /// @brief Transform particle positions to the beam coordinate system
+    referenceToBeamCSTrafo.transformBunchTo(
+        itsBunch_m->getParticleContainer()->R.getView());
 
     itsBunch_m->boundp();
 
@@ -588,46 +547,16 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
     itsBunch_m->setGlobalMeanR(itsBunch_m->get_centroid());
 
     itsBunch_m->computeSelfFields();
-
-    /**
-        \brief beam to referernce coordinate system transformation and field rotation  
-        old: itsBunch_m->R[i]  = beamToReferenceCSTrafo.transformTo(itsBunch_m->R[i]);
-            itsBunch_m->Ef[i] = beamToReferenceCSTrafo.rotateTo(itsBunch_m->Ef[i]);
-            itsBunch_m->Bf[i] = beamToReferenceCSTrafo.rotateTo(itsBunch_m->Bf[i]);
-
-            x = M^T(x+o)
-            prod_vector(trans(rotationMatrix_m)
-
-            Update 17.12.2025: It looks like, there were a few errors with this transformation after trying to get
-            rid of boost. This should now be fixed.
-     */
     
-    Kokkos::parallel_for(
-        "beamToReferenceCSTrafo", ippl::getRangePolicy(Rview),
-        KOKKOS_LAMBDA(const size_t k) {                           
-            ippl::Vector<double, 3> x = Rview(k); // ({Rview(k)[0],Rview(k)[1],Rview(k)[2]});
-            ippl::Vector<double, 3> e = Eview(k); // ({Eview(k)[0],Eview(k)[1],Eview(k)[2]});
-            ippl::Vector<double, 3> b = Bview(k); // ({Bview(k)[0],Bview(k)[1],Bview(k)[2]});
-            
-            // beamToReferenceCSTrafo.rotateTo
-            for (size_t i = 0; i < 3; ++i ) {
-                Eview(k)[i] = 0.0;
-                Bview(k)[i] = 0.0;
-                for (size_t j = 0; j < 3; ++j ) {
-                    Eview(k)[i] += Rot(j,i) * e(j);
-                    Bview(k)[i] += Rot(j,i) * b(j);
-                }
-            }
-            // beamToReferenceCSTrafo.transformTo
-            x = x + org;
-            for (size_t i = 0; i < 3; ++i ) {
-                Rview(k)[i] = 0.0;
-                for (size_t j = 0; j < 3; ++j ) {
-                    Rview(k)[i] += Rot(j,i) * x(j);
-                }
-            }
-        });         
-
+    /// @brief Transform particle positions back to the reference coordinate system 
+    beamToReferenceCSTrafo.transformBunchTo(
+        itsBunch_m->getParticleContainer()->R.getView());
+    /// @brief Rotate E and B fields back to the reference coordinate system
+    beamToReferenceCSTrafo.rotateBunchTo(
+        itsBunch_m->getParticleContainer()->E.getView());
+    beamToReferenceCSTrafo.rotateBunchTo(
+        itsBunch_m->getParticleContainer()->B.getView());
+    
 }
 
 void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
