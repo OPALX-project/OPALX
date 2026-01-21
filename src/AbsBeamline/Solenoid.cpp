@@ -64,6 +64,34 @@ Solenoid::~Solenoid() {
  * @returns true if at least one particle is lost, false otherwise
  */
 bool Solenoid::apply() {
+    std::cout<< "Solenoid::apply() called"<<std::endl;
+
+    // Get the particle container
+    std::shared_ptr<ParticleContainer_t> pc = 
+        RefPartBunch_m->getParticleContainer();
+
+    // Get the views
+    auto Rview = pc->R.getView();
+    auto Eview = pc->E.getView();
+    auto Bview = pc->B.getView();
+
+    // Local variables for the kernel
+    //double elemLength = 
+    double elemLength = 
+
+    // Kernel launch over all particles
+    Kokkos::parallel_for("Multipole::apply()", ippl::getRangePolicy(Rview), 
+    KOKKOS_LAMBDA(const int i)
+    {
+        // Check Bounds
+
+        // Compute Field
+        // fieldmap_m->getFieldstrength()
+        
+        
+        
+    });
+    
     return false;
 }
 
