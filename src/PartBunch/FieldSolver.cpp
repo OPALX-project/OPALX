@@ -100,6 +100,7 @@ void FieldSolver<double,3>::dumpVectField(std::string what) {
     auto mesh_mp  = &(field->get_mesh());
     auto spacing  = mesh_mp->getMeshSpacing();
     auto origin   = mesh_mp->getOrigin();
+    int nghost    = field->getNghost(); // ghosts are excluded in getLocalNDIndex()
 
     auto fieldV      = field->getView();
     auto field_hostV = field->getHostMirror();
@@ -118,7 +119,8 @@ void FieldSolver<double,3>::dumpVectField(std::string what) {
 
     fout << "# " << Util::toUpper(what) << " " << type << " data on grid" << std::endl
          << "# origin= " << std::fixed << origin << " h= " << std::fixed << spacing << std::endl 
-         << std::setw(5)  << "i"
+         << "#"
+         << std::setw(4)  << "i"
          << std::setw(5)  << "j"
          << std::setw(5)  << "k"
          << std::setw(17) << "x [m]"
@@ -131,18 +133,18 @@ void FieldSolver<double,3>::dumpVectField(std::string what) {
 
     fout << std::endl;
 
-    for (int i = localIdx[0].first() + 1; i <= localIdx[0].last() +1 ; i++) {
-            for (int j = localIdx[1].first() + 1 ; j <= localIdx[1].last() +1  ; j++) {
-                for (int k = localIdx[2].first() + 1 ; k <= localIdx[2].last() +1 ; k++) {
+    for (int i = localIdx[0].first() + nghost; i <= localIdx[0].last() + nghost; i++) {
+            for (int j = localIdx[1].first() + nghost; j <= localIdx[1].last() + nghost ; j++) {
+                for (int k = localIdx[2].first() + nghost; k <= localIdx[2].last() + nghost; k++) {
                     
                     // define the physical points (cell-centered)
-                    double x = i * spacing[0] + origin[0];        
-                    double y = j * spacing[1] + origin[1];        
-                    double z = k * spacing[2] + origin[2];     
+                    double x = (i - nghost) * spacing[0] + origin[0];        
+                    double y = (j - nghost) * spacing[1] + origin[1];        
+                    double z = (k - nghost) * spacing[2] + origin[2];     
                 
-                    fout << std::setw(5) << i-1 
-                         << std::setw(5) << j-1
-                         << std::setw(5) << k-1
+                    fout << std::setw(5) << i 
+                         << std::setw(5) << j
+                         << std::setw(5) << k
                          << std::setw(17) << x
                          << std::setw(17) << y
                          << std::setw(17) << z
@@ -172,20 +174,20 @@ void FieldSolver<double,3>::dumpScalField(std::string what) {
         return;
     }*/
 
-/* Save the files in the output directory of the simulation. The file
- * name of vector fields is
- *
- * 'basename'-'name'_field-'******'.dat
- *
- * and of scalar fields
- *
- * 'basename'-'name'_scalar-'******'.dat
- *
- * with
- *   'basename': OPAL input file name (*.in)
- *   'name':     field name (input argument of function)
- *   '******':   call_counter_m padded with zeros to 6 digits
- */
+    /* Save the files in the output directory of the simulation. The file
+    * name of vector fields is
+    *
+    * 'basename'-'name'_field-'******'.dat
+    *
+    * and of scalar fields
+    *
+    * 'basename'-'name'_scalar-'******'.dat
+    *
+    * with
+    *   'basename': OPAL input file name (*.in)
+    *   'name':     field name (input argument of function)
+    *   '******':   call_counter_m padded with zeros to 6 digits
+    */
     
 
     // Needs to be empty...?
@@ -206,13 +208,15 @@ void FieldSolver<double,3>::dumpScalField(std::string what) {
     
     Field_t<3>* field = this->getRho();   // both rho and phi are in the same variable (in place computation)
     
-    auto localIdx = field->getOwned();
+    // auto localIdx = field->getOwned();
+    ippl::NDIndex<3> localIdx = field->getLayout().getLocalNDIndex();
+    int nghost    = field->getNghost(); // ghosts are excluded in getLocalNDIndex(), but we still need to shift indices
     auto mesh_mp  = &(field->get_mesh());
     auto spacing  = mesh_mp->getMeshSpacing();
     auto origin   = mesh_mp->getOrigin();
 
-    auto fieldV      = field->getView();
-    auto field_hostV = field->getHostMirror();
+    Field_t<3>::view_type fieldV       = field->getView();
+    Field_t<3>::HostMirror field_hostV = field->getHostMirror();
     Kokkos::deep_copy(field_hostV, fieldV);     
 
     std::filesystem::path file(dirname);
@@ -227,7 +231,9 @@ void FieldSolver<double,3>::dumpScalField(std::string what) {
     fout << std::setprecision(9);
 
     fout << "# " << Util::toUpper(what) << " " << type << " data on grid" << std::endl
-         << "# origin= " << std::fixed << origin << " h= " << std::fixed << spacing << std::endl 
+         << "# origin= " << std::fixed << origin 
+         << " h= " << std::fixed << spacing 
+         << " nghosts=" << nghost << std::endl 
          << "#"
          << std::setw(4)  << "i"
          << std::setw(5)  << "j"
@@ -247,14 +253,14 @@ void FieldSolver<double,3>::dumpScalField(std::string what) {
     fout << std::endl;
 
     if (Util::toUpper(what) == "RHO") {
-        for (int i = localIdx[0].first(); i <= localIdx[0].last(); i++) {
-            for (int j = localIdx[1].first(); j <= localIdx[1].last(); j++) {
-                for (int k = localIdx[2].first(); k <= localIdx[2].last(); k++) {
+        for (int i = localIdx[0].first() + nghost; i <= localIdx[0].last() + nghost; i++) {
+            for (int j = localIdx[1].first() + nghost; j <= localIdx[1].last() + nghost; j++) {
+                for (int k = localIdx[2].first() + nghost; k <= localIdx[2].last() + nghost; k++) {
                     
                     // define the physical points (cell-centered)
-                    double x = i * spacing[0] + origin[0];        
-                    double y = j * spacing[1] + origin[1];        
-                    double z = k * spacing[2] + origin[2];     
+                    double x = (i-nghost) * spacing[0] + origin[0];        
+                    double y = (j-nghost) * spacing[1] + origin[1];        
+                    double z = (k-nghost) * spacing[2] + origin[2];     
                 
                     fout << std::setw(5) << i
                          << std::setw(5) << j
@@ -267,20 +273,19 @@ void FieldSolver<double,3>::dumpScalField(std::string what) {
                 }
             }
         }
-    }
-    else {
-        for (int i = localIdx[0].first() + 1; i <= localIdx[0].last() +1 ; i++) {
-            for (int j = localIdx[1].first() + 1 ; j <= localIdx[1].last() +1  ; j++) {
-                for (int k = localIdx[2].first() + 1 ; k <= localIdx[2].last() +1 ; k++) {
-                    
+    } else {
+        for (int i = localIdx[0].first() + nghost; i <= localIdx[0].last() + nghost; i++) {
+            for (int j = localIdx[1].first() + nghost; j <= localIdx[1].last() + nghost; j++) {
+                for (int k = localIdx[2].first() + nghost; k <= localIdx[2].last() + nghost; k++) {
                     // define the physical points (cell-centered)
-                    double x = i * spacing[0] + origin[0];        
-                    double y = j * spacing[1] + origin[1];        
-                    double z = k * spacing[2] + origin[2];     
-                
-                    fout << std::setw(5) << i-1 
-                         << std::setw(5) << j-1
-                         << std::setw(5) << k-1
+                    double x = (i - nghost) * spacing[0] + origin[0];        
+                    double y = (j - nghost) * spacing[1] + origin[1];        
+                    double z = (k - nghost) * spacing[2] + origin[2];     
+
+                    // "+ 1" matches OPAL indexing in the output
+                    fout << std::setw(5) << i
+                         << std::setw(5) << j
+                         << std::setw(5) << k
                          << std::setw(17) << x
                          << std::setw(17) << y
                          << std::setw(17) << z
@@ -444,7 +449,8 @@ double FieldSolver<double, 3>::getCouplingConstant() const {
     const std::string stype = this->getStype();
     if (stype == "OPEN") {
         // from: 1.0/(4.0*Physics::pi*Physics::epsilon_0)*(Physics::epsilon_0*8);
-        return 1.0 / (Physics::epsilon_0); // 4.0 * Physics::pi // Physics::pi / 2.0;  // 5.0 / 4.0 / Physics::epsilon_0; // Physics::pi / 2.0; 
+        return 1.0 / Physics::epsilon_0; // 1.0 / 9.27282866000e-12;
+        // 1.0; // 1.0 / (Physics::epsilon_0); // 4.0 * Physics::pi // Physics::pi / 2.0;  // 5.0 / 4.0 / Physics::epsilon_0; // Physics::pi / 2.0; 
     } 
 
     // Standard coupling constant 
