@@ -14,7 +14,7 @@ private:
     Field_t<Dim>* phi_m;
 
     /// Counts number of times the solver has been called
-    unsigned int call_counter_m;
+    size_t call_counter_m;
 public:
     FieldSolver(std::string solver,
                 Field_t<Dim>* rho,
@@ -53,7 +53,16 @@ public:
         phi_m = phi;
     }
 
-    /// \todo cannot be const, since getStype in FieldSolverBase is not const!
+    /**
+     * @brief Get the solver's coupling constant.
+     *
+     * Returns the scalar coupling constant used by the field solver to scale
+     * interactions between particles and the field. This value is applied 
+     * during `ParBunch::computeSpaceCharge`. Its physical meaning and units 
+     * potentially depend on the specific solver type used.
+     *
+     * @return The coupling constant of type T (usually double).
+     */
     T getCouplingConstant() const;
 
     void initOpenSolver();
@@ -63,10 +72,38 @@ public:
     void setPotentialBCs();
 
     void runSolver() override {
+        // The default runSolver should always count towards the call counter!
         runSolver(false);
     }
 
-    // Want to exclude field dump when solver warmup is called!
+    /**
+     * @brief Reset the solver call counter to zero.
+     *
+     * Sets the internal call counter (`call_counter_m`) back to 0 so that
+     * subsequent calls will be counted from a clean state.
+     * 
+     * @note This function is necessary to exclude potential solver warm-up
+     * calls from being counted towards output or logging that depends on the
+     * number of solver executions. 
+     */
+    void resetCallCounter() { call_counter_m = 0; }
+
+    /**
+     * @brief Execute the field solver for the current simulation state.
+     *
+     * Performs a single solve cycle using the solver's current configuration,
+     * boundary conditions and particle/mesh data. The solver updates the
+     * internal field representations.
+     *
+     * @param force_skip_field_dump
+     *     If true, suppress any field-dump output that would otherwise be
+     *     produced by this call. If false, field output behavior follows the
+     *     configured/normal schedule. 
+     * 
+     * @note This second implementation is necessary since the pure 
+     * `runSolver()` routine is defined in the base class as not taking any 
+     * arguments. 
+     */
     void runSolver(bool force_skip_field_dump);
 
     template <typename Solver>

@@ -165,8 +165,6 @@ private:
 
     PartData* reference_m;
 
-    // double couplingConstant_m; // now handled inside FieldSolver object
-
     /// step in a TRACK command
     long long localTrackStep_m;
 

@@ -170,9 +170,9 @@ void FieldSolver<double,3>::dumpScalField(std::string what) {
     Inform m("FS::dumpScalField() ");
     m << "Dumping scalar field: " << what << endl;
 
-    /*if (ippl::Comm->size() > 1 || call_counter_m<2) {
+    if (ippl::Comm->size() > 1 || call_counter_m<2) {
         return;
-    }*/
+    }
 
     /* Save the files in the output directory of the simulation. The file
     * name of vector fields is
@@ -422,7 +422,7 @@ void FieldSolver<double,3>::runSolver(bool force_skip_field_dump) {
         throw std::runtime_error("Unknown solver type");
     }
 
-    if (!force_skip_field_dump) call_counter_m++;
+    call_counter_m++; // maybe want "if (!force_skip_field_dump)" here?
 }
 
 template<>
@@ -443,17 +443,14 @@ double FieldSolver<double, 3>::getCouplingConstant() const {
     1/(4*pi*epsilon_0). However, some solvers seem to use different conventions
     (likely due to different Green's function conventions or FFT normalizations). 
     */
-    *gmsg << "FieldSolver<double,3>::getCouplingConstant() called. stype= " << this->getStype() << endl;
 
     /// \todo Verify this before activating a new solver!
     const std::string stype = this->getStype();
     if (stype == "OPEN") {
-        // from: 1.0/(4.0*Physics::pi*Physics::epsilon_0)*(Physics::epsilon_0*8);
-        return 1.0 / Physics::epsilon_0; // 1.0 / 9.27282866000e-12;
-        // 1.0; // 1.0 / (Physics::epsilon_0); // 4.0 * Physics::pi // Physics::pi / 2.0;  // 5.0 / 4.0 / Physics::epsilon_0; // Physics::pi / 2.0; 
+        return 1.0 / Physics::epsilon_0; 
     } 
 
-    // Standard coupling constant 
+    // Standard coupling constant (from before)
     return 1.0 / (4.0 * Physics::pi * Physics::epsilon_0);
 }  
 

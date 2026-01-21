@@ -124,13 +124,13 @@ T PartBunch<T, Dim>::getCouplingConstant() const {
     This function needs to be here, since FieldSoler_t is only fully defined
     at instanciation of PartBunch, so not yet in the header file.
     */
-    //FieldSolver_t *fs = dynamic_cast<FieldSolver_t*>(this->fsolver_m);
+    
     if (!hasFieldSolver()) {
         throw OpalException("PartBunch::getCouplingConstant",
                             "Cannot return coupling if fsolver_m is not a "
                             "FieldSolver instance");
     }
-    //return static_cast<FieldSolver_t*>(this->fsolver_m.get())->getCouplingConstant();
+    
     auto fs = std::dynamic_pointer_cast<FieldSolver_t>(this->fsolver_m);
     return fs->getCouplingConstant();
 }
@@ -508,13 +508,11 @@ void PartBunch<T, Dim>::computeSelfFields() {
     bins->doFullRebin(bins->getMaxBinCount()); // rebin with 128 bins // bins->getMaxBinCount()
     bins->print(); // For debugging...
     bins->sortContainerByBin(); // Sort BEFORE, since it generates less atomics overhead with more bins!
-
     
     bins->genAdaptiveHistogram(); // merge bins with width/N_part ratio of 1.0
     IpplTimings::stopTimer(completeBinningT);
 
     bins->print(); // For debugging...
-
 
     static IpplTimings::TimerRef SolveTimer = IpplTimings::getTimer("SolveTimer");
     IpplTimings::startTimer(SolveTimer);
@@ -555,11 +553,6 @@ void PartBunch<T, Dim>::computeSelfFields() {
 
     this->fcontainer_m->getRho()             = 0.0;
     Field_t<Dim>* rho                        = &this->fcontainer_m->getRho();
-
-    /// \todo remove mass and charge output
-    *gmsg << "Debug: First charge value before scatterCIC: " << (*Q)(0) << endl;
-    *gmsg << "Debug: First mass value before scatterCIC: " << this->pcontainer_m->M(0) << endl;
-    *gmsg << "Debug: First dt value before scatterCIC: " << this->pcontainer_m->dt(0) << endl;
 
     /// \todo replace with scatterCIC? --> later with scatterPerBin!
     // Charge "unit" here is "charge per macroparticle" [C]!
@@ -621,14 +614,8 @@ void PartBunch<T, Dim>::computeSelfFields() {
     */
     (*rho) = (*rho) * this->getCouplingConstant(); // now rho_m has units of [V]
 
-    *gmsg << "Debug: First phi value before solve: " << (*rho)(1, 1, 1) << endl;
-
     this->fsolver_m->runSolver();
     // Now, with E=-grad(phi), E has units of [V/m] (note, phi is a scalar potential)    
-
-    // Output first phi value for debugging
-    *gmsg << "Debug: First phi value after solve: " << (*rho)(1, 1, 1) << endl;
-    *gmsg << "Debug: First E value after solve: " << this->fcontainer_m->getE()(1, 1, 1) << endl;
     
     gather(this->pcontainer_m->E, this->fcontainer_m->getE(), this->pcontainer_m->R);
 
@@ -645,7 +632,7 @@ void PartBunch<T, Dim>::computeSelfFields() {
     spaceChargeEFieldCheck(efScale);
     */
 
-    //IpplTimings::stopTimer(SolveTimer);
+    IpplTimings::stopTimer(SolveTimer);
 }
 
 template <typename T, unsigned Dim>

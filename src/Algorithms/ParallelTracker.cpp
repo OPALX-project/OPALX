@@ -398,19 +398,8 @@ void ParallelTracker::execute() {
 
             // Space charge field computation
             computeSpaceChargeFields(step);
-            
-            // transformation in spaceCharge computation fails, for now only compute self fields in lab frame
-            //itsBunch_m->computeSelfFields(); 
             *gmsg << "* Space charge field computation done at step " << step << endl;
             
-            /*
-            ippl::Comm->barrier();
-            *gmsg << "* Dumping scalar field after space charge computation at step " << step << endl;
-            auto fs = std::dynamic_pointer_cast<FieldSolver<double, 3>>(this->itsBunch_m->getFieldSolver());
-            fs->dumpScalField("PHI");
-            ippl::Comm->barrier();
-            */
-           
             // External field computation
             computeExternalFields(oth);
             *gmsg << "* External field computation done at step " << step << endl;
@@ -418,7 +407,8 @@ void ParallelTracker::execute() {
             // Second half of the time integration
             timeIntegration2(pusher);
             
-            // \todo emitParticles(step);
+            /// \todo needs to be implemented  
+            // emitParticles(step);
 
             // Backtracking?
             selectDT(back_track);
@@ -488,8 +478,11 @@ void ParallelTracker::execute() {
     OPALTimer::Timer myt3;
     *gmsg << endl << "* Done executing ParallelTracker at " << myt3.time() << endl << endl;
 }
+
+
 /* ========================================================================== */
 /* =========================== PIC Functions ================================ */
+
 void ParallelTracker::timeIntegration1(BorisPusher& pusher) {
     IpplTimings::startTimer(timeIntegrationTimer1_m);
     pushParticles(pusher);
@@ -531,6 +524,7 @@ void ParallelTracker::timeIntegration2(BorisPusher& pusher) {
     
     IpplTimings::stopTimer(timeIntegrationTimer2_m);
 }
+
 void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
 
     if (!itsBunch_m->hasFieldSolver()) {
@@ -667,6 +661,7 @@ void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
             << "remaining " << numParticlesInSimulation_m << " particles" << endl;
     }
 }
+
 /**
  * @brief Resets the E and B field views to 0
  */
@@ -775,8 +770,11 @@ void ParallelTracker::kickParticles(const BorisPusher& pusher) {
     //itsBunch_m->getParticleContainer()->update();
     ippl::Comm->barrier();
 }
+
+
 /* ========================================================================== */ 
 /* ============================= Functions ================================== */
+
 /**
  * @brief Sets up beamline
  */
@@ -882,8 +880,7 @@ void ParallelTracker::updateReferenceParticle(const BorisPusher& pusher) {
     itsBunch_m->RefPartR_m *= scaleFactor;
 }
 
-void ParallelTracker::transformBunch(const CoordinateSystemTrafo& trafo) 
-{
+void ParallelTracker::transformBunch(const CoordinateSystemTrafo& trafo) {
     trafo.transformBunchTo(itsBunch_m->getParticleContainer()->R.getView());
     trafo.rotateBunchTo(itsBunch_m->getParticleContainer()->P.getView());
     trafo.rotateBunchTo(itsBunch_m->getParticleContainer()->E.getView());
@@ -989,6 +986,7 @@ void ParallelTracker::findStartPosition(const BorisPusher& pusher) {
 
     changeDT();
 }
+
 void ParallelTracker::dumpStats(long long step, bool psDump, bool statDump) {
     OPALTimer::Timer myt2;
 
@@ -1172,8 +1170,11 @@ void ParallelTracker::writePhaseSpace(const long long /*step*/, bool psDump, boo
         *gmsg << level2 << "* Wrote beam phase space." << endl;
     }
 }
+
+
 /* ========================================================================== */
 /* ============================ Autophasing ================================= */
+
 void ParallelTracker::updateRFElement(std::string elName, double maxPhase) {
     FieldList cavities       = 
         itsOpalBeamline_m.getElementByType(ElementType::RFCAVITY);
@@ -1194,6 +1195,7 @@ void ParallelTracker::updateRFElement(std::string elName, double maxPhase) {
         }
     }
 }
+
 void ParallelTracker::saveCavityPhases() {
     itsDataSink_m->storeCavityInformation();
 }
@@ -1241,8 +1243,10 @@ void ParallelTracker::autophaseCavities(const BorisPusher& pusher) {
     }
 }
 
+
 /* ========================================================================== */
 /* ============================ RING FUNCTIONS ============================== */
+
 void ParallelTracker::buildupFieldList(
     double BcParameter[], ElementType elementType, Component* elptr) {
     beamline_list::iterator sindex;
@@ -1263,6 +1267,7 @@ void ParallelTracker::buildupFieldList(
     }
     FieldDimensions.insert(sindex, localpair);
 }
+
 bool ParallelTracker::applyPluginElements(const double dt) {
     IpplTimings::startTimer(PluginElemTimer_m);
 
@@ -1281,7 +1286,9 @@ bool ParallelTracker::applyPluginElements(const double dt) {
     IpplTimings::stopTimer(PluginElemTimer_m);
     return flag;
 }
+
 /* ========================================================================== */
+
 
 struct DistributionInfo {
     unsigned int who;
