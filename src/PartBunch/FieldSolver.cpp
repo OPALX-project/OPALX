@@ -14,11 +14,20 @@ extern Inform* gmsg;
 template <>
 template <typename Solver>
 void  FieldSolver<double,3>::initSolverWithParams(const ippl::ParameterList& sp) {
-    Inform m ("initSolverWithParams ");
+    Inform m ("initSolverWithParams");
     this->getSolver().template emplace<Solver>();
     Solver& solver = std::get<Solver>(this->getSolver());
     solver.mergeParameters(sp);
+
+    // test if rho_m exists (just in case)
+    if (!rho_m) {
+        throw OpalException("FieldSolver<double,3>::initSolverWithParams", "rho_m is null pointer.");
+    }
+
+    solver.setRhs(*rho_m);
+    m << "Set solver RHS" << endl;
     
+    /// \todo This can potentially be implemented much easier, see https://github.com/IPPL-framework/ippl/blob/f4c4102a3cb76dd2cd911eef7314adb77aacd676/alpine/FieldSolver.hpp#L148
     if constexpr (std::is_same_v<Solver, CGSolver_t<T, Dim>>) {
         // The CG solver computes the potential directly and
         // uses this to get the electric field
@@ -32,20 +41,17 @@ void  FieldSolver<double,3>::initSolverWithParams(const ippl::ParameterList& sp)
         // The periodic Poisson solver, Open boundaries solver,
         // and the P3M solver compute the electric field directly
         m << "OpenSolver used" << endl;
-        solver.setRhs(*rho_m);
-        m << "Set RHS for OpenSolver" << endl;
+
         solver.setLhs(*E_m);
         m << "Set LHS for OpenSolver" << endl;
-        solver.setGradFD();
-        m << "Set GradFD for OpenSolver" << endl;
     } else if constexpr (std::is_same_v<Solver, FFTSolver_t<T, Dim>>) {
         // The periodic Poisson solver
         m << "FFTSolver used" << endl;
-        solver.setRhs(*rho_m);
+        
         solver.setLhs(*E_m);
+        m << "Set LHS for FFTSolver" << endl;
     } else if constexpr (std::is_same_v<Solver, NullSolver_t<T, Dim>>) {
         m << "NullSolver used" << endl;
-        solver.setRhs(*rho_m);
         solver.setLhs(*E_m);
     }
     
@@ -69,20 +75,20 @@ void FieldSolver<double,3>::dumpVectField(std::string what) {
         return;
     }
 
-/* Save the files in the output directory of the simulation. The file
- * name of vector fields is
- *
- * 'basename'-'name'_field-'******'.dat
- *
- * and of scalar fields
- *
- * 'basename'-'name'_scalar-'******'.dat
- *
- * with
- *   'basename': OPAL input file name (*.in)
- *   'name':     field name (input argument of function)
- *   '******':   call_counter_m padded with zeros to 6 digits
- */
+    /* Save the files in the output directory of the simulation. The file
+    * name of vector fields is
+    *
+    * 'basename'-'name'_field-'******'.dat
+    *
+    * and of scalar fields
+    *
+    * 'basename'-'name'_scalar-'******'.dat
+    *
+    * with
+    *   'basename': OPAL input file name (*.in)
+    *   'name':     field name (input argument of function)
+    *   '******':   call_counter_m padded with zeros to 6 digits
+    */
 
     std::string dirname = "data/";
 
@@ -302,7 +308,7 @@ void FieldSolver<double,3>::dumpScalField(std::string what) {
 template <>
 void FieldSolver<double,3>::initOpenSolver() {
     ippl::ParameterList sp;
-    sp.add("output_type", OpenSolver_t<double, 3>::SOL_AND_GRAD);
+    sp.add("output_type", OpenSolver_t<double, 3>::SOL_AND_GRAD); // see https://github.com/IPPL-framework/ippl/blob/f4c4102a3cb76dd2cd911eef7314adb77aacd676/alpine/FieldSolver.hpp#L319
     sp.add("use_heffte_defaults", false);
     sp.add("use_pencils", true);
     sp.add("use_reorder", false);
