@@ -76,18 +76,20 @@ bool Solenoid::apply() {
     auto Bview = pc->B.getView();
 
     // Local variables for the kernel
-    //double elemLength = 
-    double elemLength = 
-
+    double fieldStart, fieldEnd;
+    fieldmap_m->getFieldDimensions(fieldStart, fieldEnd);
+    
     // Kernel launch over all particles
     Kokkos::parallel_for("Multipole::apply()", ippl::getRangePolicy(Rview), 
     KOKKOS_LAMBDA(const int i)
     {
         // Check Bounds
-
-        // Compute Field
-        // fieldmap_m->getFieldstrength()
+        if(Rview(i)(2) > fieldStart && Rview(i)(2) <= fieldEnd){
+            // Compute Field
         
+            // fieldmap_m->getFieldstrength()
+        
+        }
         
         
     });
@@ -195,7 +197,8 @@ void Solenoid::setDKS(double ks) {
 }
 
 /**
- * @brief initialise the solenoid element
+ * @brief Initialises the solenoid elements by reading the header of the 
+ * fieldmap, saving the start and endpoints of the fieldmaps.
  * 
  * @param bunch Particle bunch
  * @param startField Starting position of the field 

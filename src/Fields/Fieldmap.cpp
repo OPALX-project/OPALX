@@ -65,13 +65,23 @@ namespace fs = std::filesystem;
 Fieldmap* Fieldmap::getFieldmap(std::string Filename, bool fast) {
     std::map<std::string, FieldmapDescription>::iterator position =
         FieldmapDictionary.find(Filename);
+    /// Found matching entry?
     if (position != FieldmapDictionary.end()) {
         (*position).second.RefCounter++;
+        /// Return fieldmap pointer
         return (*position).second.Map;
     } else {
         MapType type;
         std::pair<std::map<std::string, FieldmapDescription>::iterator, bool> position;
+        /// Determine fieldmap type
         type = readHeader(Filename);
+        /**
+         * @brief Based on type:
+         * - Create new fieldmap object by parsing the fieldmap file
+         * - Create new FieldmapDescription object for this fieldmap
+         * - Insert FieldmapDescription into FieldmapDictionary
+         * - Return pointer to the fieldmap
+         */
         switch (type) {
             case T1DDynamic:
                 if (fast) {
