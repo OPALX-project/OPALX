@@ -8,6 +8,15 @@
 #include <fstream>
 #include <ios>
 
+/**
+ * @brief Constructor for 2D magnetostatic field map.
+ * Parses the file header to read grid parameters:
+ * - Orientation (XZ or ZX)
+ * - Grid boundaries and number of points (zbegin_m, zend_m, rbegin_m, rend_m)
+ * - Unit conversion from cm to m
+ * - Grid spacing (hz_m, hr_m)
+ * - Number of gridpoints (num_gridpz_m, num_gridpr_m)
+ */
 FM2DMagnetoStatic::FM2DMagnetoStatic(std::string aFilename)
     : Fieldmap(aFilename) {
     std::ifstream file;
@@ -38,17 +47,21 @@ FM2DMagnetoStatic::FM2DMagnetoStatic(std::string aFilename)
 
         if (tmpString == "ZX") {
             swap_m = true;
+            /// Parse rbegin_m, rend_m and num_gridpr_m(-1)
             parsing_passed =
                 parsing_passed
                 && interpretLine<double, double, int>(file, rbegin_m, rend_m, num_gridpr_m);
+            /// Parse rbegin_m, zend_m and num_gridpz_m(-1)
             parsing_passed =
                 parsing_passed
                 && interpretLine<double, double, int>(file, zbegin_m, zend_m, num_gridpz_m);
         } else if (tmpString == "XZ") {
             swap_m = false;
+            /// Parse rbegin_m, zend_m and num_gridpz_m(-1)
             parsing_passed =
                 parsing_passed
                 && interpretLine<double, double, int>(file, zbegin_m, zend_m, num_gridpz_m);
+            /// Parse rbegin_m, rend_m and num_gridpr_m(-1)
             parsing_passed =
                 parsing_passed
                 && interpretLine<double, double, int>(file, rbegin_m, rend_m, num_gridpr_m);
