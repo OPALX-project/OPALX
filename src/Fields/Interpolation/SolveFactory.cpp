@@ -27,7 +27,7 @@
 
 #include <sstream>
 
-#include <gsl/gsl_sf_pow_int.h>
+#include "Utilities/GSLCompat.h"
 
 #include "Utilities/GeneralClassicException.h"
 

@@ -19,7 +19,7 @@
 #ifndef OPAL_Bins_HH
 #define OPAL_Bins_HH
 
-#include <gsl/gsl_histogram.h>
+#include "Utilities/GSLHistogram.h"
 
 #include <functional>
 #include <memory>

@@ -17,7 +17,8 @@
 //
 #include "SDDSParser.h"
 
-#include <boost/algorithm/string.hpp>
+#include <algorithm>
+#include <cctype>
 
 SDDS::SDDSParser::SDDSParser():
     sddsFileName_m("")
@@ -32,43 +33,50 @@ void SDDS::SDDSParser::setInput(const std::string &input) {
 }
 
 SDDS::file SDDS::SDDSParser::run() {
-    typedef std::string::const_iterator iterator_t;
-    typedef SDDS::parser::file_parser<iterator_t> file_parser_t;
-    typedef SDDS::parser::skipper<iterator_t> skipper_t;
-    typedef SDDS::error_handler<iterator_t> error_handler_t;
-
     sddsData_m.clear();
     paramNameToID_m.clear();
     columnNameToID_m.clear();
 
-    skipper_t skipper;
     std::string contents = readFile();
-    iterator_t contentsIter = contents.begin();
-    iterator_t contentsEnd = contents.end();
-    error_handler_t error_handler(contentsIter, contentsEnd);
-    file_parser_t parser(error_handler);
+    
+    // Use simple parser instead of boost::spirit
+    parser::SimpleParser parser(contents);
+    try {
+        sddsData_m = parser.parse();
+    } catch (const std::exception& e) {
+        throw SDDSParserException("SDDSParser::run",
+                                  std::string("could not parse SDDS file: ") + e.what());
+    }
 
-    bool success = phrase_parse(contentsIter, contentsEnd, parser, skipper, sddsData_m);
-    {
-        SDDS::parameterList::iterator piter = sddsData_m.sddsParameters_m.begin();
-        SDDS::parameterList::iterator pend = sddsData_m.sddsParameters_m.end();
-        for (; piter != pend && success; ++ piter) {
-            success = piter->parse(contentsIter, contentsEnd, skipper);
+    // Parse parameter values
+    size_t pos = 0;
+    for (auto& param : sddsData_m.sddsParameters_m) {
+        if (!param.parse(contents, pos)) {
+            throw SDDSParserException("SDDSParser::run",
+                                      "could not parse parameter value");
         }
-        while (success && contentsIter != contentsEnd) {
-            SDDS::columnList::iterator citer = sddsData_m.sddsColumns_m.begin();
-            SDDS::columnList::iterator cend = sddsData_m.sddsColumns_m.end();
-            for (; citer != cend && success; ++ citer) {
-                success = citer->parse(contentsIter, contentsEnd, skipper);
-            }
+        // Skip comma or whitespace
+        while (pos < contents.length() && (std::isspace(static_cast<unsigned char>(contents[pos])) || contents[pos] == ',')) {
+            pos++;
         }
     }
 
-    if (!success || contentsIter != contentsEnd)
-        {
-            throw SDDSParserException("SDDSParser::parseSDDSFile",
-                                      "could not parse SDDS file");
+    // Parse column values (rows)
+    while (pos < contents.length()) {
+        bool found_value = false;
+        for (auto& col : sddsData_m.sddsColumns_m) {
+            if (col.parse(contents, pos)) {
+                found_value = true;
+                // Skip comma or whitespace
+                while (pos < contents.length() && (std::isspace(static_cast<unsigned char>(contents[pos])) || contents[pos] == ',')) {
+                    pos++;
+                }
+            }
         }
+        if (!found_value) {
+            break;
+        }
+    }
 
     unsigned int param_order = 0;
     for (const SDDS::parameter &param: sddsData_m.sddsParameters_m) {
@@ -135,5 +143,6 @@ int SDDS::SDDSParser::getColumnIndex(std::string col_name) const {
 //XXX use either all upper, or all lower case chars
 void SDDS::SDDSParser::fixCaseSensitivity(std::string &for_string) {
 
-    boost::to_lower(for_string);
+    std::transform(for_string.begin(), for_string.end(), for_string.begin(),
+                   [](unsigned char c) { return std::tolower(c); });
 }

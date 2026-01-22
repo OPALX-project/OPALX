@@ -17,7 +17,7 @@
 #include "Utilities/Util.h"
 #include "Utility/Inform.h"
 
-#include <boost/filesystem.hpp>
+#include <filesystem>
 
 #include <cmath>
 #include <cstdio>
@@ -80,7 +80,7 @@ LaserProfile::~LaserProfile() {
 }
 
 unsigned short* LaserProfile::readFile(const std::string& fileName, const std::string& imageName) {
-    namespace fs = boost::filesystem;
+    namespace fs = std::filesystem;
     if (!fs::exists(fileName)) {
         throw OpalException(
             "LaserProfile::readFile", "given file '" + fileName + "' does not exist");
@@ -304,14 +304,12 @@ void LaserProfile::fillHistrogram(unsigned short* image) {
 }
 
 void LaserProfile::setupRNG() {
-    unsigned int histSizeX = hist2d_m->nx, histSizeY = hist2d_m->ny;
-
     gsl_rng_env_setup();
 
     const gsl_rng_type* T = gsl_rng_default;
     rng_m                 = gsl_rng_alloc(T);
 
-    pdf_m = gsl_histogram2d_pdf_alloc(histSizeX, histSizeY);
+    pdf_m = gsl_histogram2d_pdf_alloc(static_cast<unsigned int>(hist2d_m->nx()), static_cast<unsigned int>(hist2d_m->ny()));
     gsl_histogram2d_pdf_init(pdf_m, hist2d_m);
 }
 

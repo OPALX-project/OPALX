@@ -75,6 +75,10 @@ bool Solenoid::getFast() const {
     return fast_m;
 }
 
+bool Solenoid::apply() {
+    return false;
+}
+
 bool Solenoid::apply(
     const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
     std::shared_ptr<ParticleContainer_t> pc = RefPartBunch_m->getParticleContainer();

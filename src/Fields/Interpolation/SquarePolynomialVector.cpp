@@ -31,7 +31,7 @@
 #include <iomanip>
 #include <sstream>
 
-#include "gsl/gsl_sf_gamma.h"
+#include "Utilities/GSLCompat.h"
 
 #include "Utilities/GeneralClassicException.h"
 

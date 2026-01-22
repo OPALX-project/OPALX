@@ -18,7 +18,7 @@
 #ifndef PARTICLEPROPERTIES_H
 #define PARTICLEPROPERTIES_H
 
-#include <boost/bimap.hpp>
+#include "Utilities/BiMap.h"
 
 #include <map>
 #include <string>
@@ -60,7 +60,7 @@ public:
     static double getParticleChargeInCoulomb(const ParticleType& type);
 
 private:
-    static const boost::bimap<ParticleType, std::string> bmParticleType_s;
+    static const BiMap<ParticleType, std::string> bmParticleType_s;
 
     static const std::map<ParticleType, double> particleMass_m;
     static const std::map<ParticleType, double> particleCharge_m;

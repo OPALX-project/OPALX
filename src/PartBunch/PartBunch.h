@@ -1,49 +1,9 @@
 #ifndef PARTBUNCH_H
 #define PARTBUNCH_H
 
-/*
-  Notes:
-
-
-Additional Functions
---------------------
-
-   setDistribution
-   getDistribution
-
-
-Main loop
----------
-
-
-   for integration
-     if not injectionDome
-       injected = distr_m->create()
-       injectrd = distr_m->inject()
-       update()
-
-     drift()
-     update()
-     kick()
-     drift()
-
-     diagnostics()
-     updateExternalFields()
-     update()
-
-updateExternalFields(): check if bunch has access to the fields of eternal elements. Maybe phase
-out some elements and read in new elements
-
-
-diagnostics(): calculate statistics and maybe write tp h5 and stat files
-
-*/
-
-
-
 #include <memory>
 
-#include "Algorithms/BoostMatrix.h"
+#include "Algorithms/Matrix.h"
 #include "Algorithms/CoordinateSystemTrafo.h"
 #include "Attributes/Attributes.h"
 #include "Distribution/Distribution.h"
@@ -58,6 +18,8 @@ diagnostics(): calculate statistics and maybe write tp h5 and stat files
 #include "Random/InverseTransformSampling.h"
 #include "Random/NormalDistribution.h"
 #include "Random/Randn.h"
+#include "Utilities/OpalException.h"
+#include "BCHandler.hpp"
 
 #include "Structure/FieldSolverCmd.h"
 
@@ -77,8 +39,7 @@ KOKKOS_INLINE_FUNCTION typename T::value_type L2Norm(T& x) {
 using view_type = typename ippl::detail::ViewType<ippl::Vector<double, 3>, 1>::view_type;
 
 template <typename T, unsigned Dim>
-class PartBunch
-    : public ippl::PicManager<
+class PartBunch : public ippl::PicManager<
           T, Dim, ParticleContainer<T, Dim>, FieldContainer<T, Dim>, LoadBalancer<T, Dim>> {
 public:
     using ParticleContainer_t = ParticleContainer<T, Dim>;
@@ -91,11 +52,14 @@ public:
     using AdaptBins_t         = typename ParticleBinning::AdaptBins<ParticleContainer_t, BinningSelector_t>;
     using binIndex_t          = typename ParticleContainer_t::bin_index_type;
 
+    using BCHandler_t         = BCHandler<Dim>;
+
     double time_m;
 
     size_type totalP_m;
 
-    int nt_m;
+    /// \todo doesn't do anything??? 
+    // int nt_m; 
 
     double lbt_m;
 
@@ -116,6 +80,7 @@ private:
 
     double rmsDensity_m;
 
+    std::shared_ptr<BCHandler_t> bcHandler_m;
 
 public:
     Vector_t<int, Dim> nr_m;
@@ -213,8 +178,9 @@ private:
 
     std::shared_ptr<FieldSolverCmd> OPALFieldSolver_m;
     
-    // unit state of PartBunch
+    // unit state of PartBunch --> always false after initialization, so use this as standard flag
     // UnitState_t unit_state_m;
+    bool isUnitless_m = false;
     // UnitState_t stateOfLastBoundP_m;
 
     /// holds the actual time of the integration
@@ -234,15 +200,21 @@ private:
 
 public:
 
-    PartBunch(double qi, double mi, size_t totalP, int nt, double lbt, std::string integration_method,
-              std::shared_ptr<Distribution> &OPALdistribution, std::shared_ptr<FieldSolverCmd> &OPALFieldSolver);
+    PartBunch(double qi, 
+              double mi, 
+              size_t totalP, 
+              /*int nt,*/ 
+              double lbt, 
+              std::string integration_method,
+              std::shared_ptr<Distribution> &OPALdistribution, 
+              std::shared_ptr<FieldSolverCmd> &OPALFieldSolver);
 
     void bunchUpdate();
 
     void bunchUpdate(ippl::Vector<double, 3> hr);
     
     ~PartBunch() {
-        *gmsg << "* Finished time step: " << this->it_m << " time: " << this->time_m << endl;
+        *gmsg << "* PartBunch Destructor: Finished time step: " << this->it_m << " time: " << this->time_m << endl;
     }
 
     std::shared_ptr<ParticleContainer_t> getParticleContainer() {
@@ -253,6 +225,8 @@ public:
 
     void pre_run() override ;
 
+    void performBunchSanityChecks() const;
+
 public:
     std::shared_ptr<VField_t<T, Dim>> getTempEField() { return this->Etmp_m; }
     void setTempEField(std::shared_ptr<VField_t<T, Dim>> Etmp) { this->Etmp_m = Etmp; }
@@ -260,6 +234,9 @@ public:
     std::shared_ptr<AdaptBins_t> getBins() { return bins_m; } // TODO: Binning
     
     void setBins(std::shared_ptr<AdaptBins_t> bins) { bins_m = bins; } // TODO: Binning
+
+    void setBCHandler(std::shared_ptr<BCHandler_t> bcHandler) { bcHandler_m = bcHandler; }
+    std::shared_ptr<BCHandler_t> getBCHandler() const { return bcHandler_m; }
 
     void updateMoments(){
         this->pcontainer_m->updateMoments();
@@ -273,28 +250,34 @@ public:
         return this->pcontainer_m->getLocalNum();
     }
 
-    Vector_t<double, Dim> R(size_t i) {
+    Vector_t<double, Dim> R(size_t /*i*/) {
+        *gmsg << "not implemented" << endl;
         return Vector_t<double, Dim>(0.0);
     }
 
-    Vector_t<double, Dim> P(size_t i) {
+    Vector_t<double, Dim> P(size_t /*i*/) {
+        *gmsg << "not implemented" << endl;
         return Vector_t<double, Dim>(0.0);
     }
 
-    Vector_t<double, Dim> Ef(size_t i) {
+    Vector_t<double, Dim> Ef(size_t /*i*/) {
+        *gmsg << "not implemented" << endl;
         return Vector_t<double, Dim>(0.0);
     }
 
-    Vector_t<double, Dim> Bf(size_t i) {
+    Vector_t<double, Dim> Bf(size_t /*i*/) {
+        *gmsg << "not implemented" << endl;
         return Vector_t<double, Dim>(0.0);
     }
 
-    Vector_t<double, Dim> dt(size_t i) {
+    Vector_t<double, Dim> dt(size_t /*i*/) {
+        *gmsg << "not implemented" << endl;
         return Vector_t<double, Dim>(0.0);
     }
 
     void advance() override {
         // \todo needs to go
+        *gmsg << "not implemented" << endl;
     }
 
     void par2grid() override {
@@ -359,14 +342,17 @@ public:
         return this->pcontainer_m->getStdKineticEnergy();
     }
 
-    double getGamma(int i) const {
+    double getGamma(int /*i*/) const {
+        *gmsg << "not implemented" << endl;
         return 0.0;
     }
-    double getBeta(int i) const {
+    double getBeta(int /*i*/) const {
+        *gmsg << "not implemented" << endl;
         return 0.0;
     }
 
     void actT() {
+        *gmsg << "not implemented" << endl;
     }
 
     PartData* getReference() {
@@ -374,6 +360,7 @@ public:
     }
 
     double getEmissionDeltaT() {
+        *gmsg << "not implemented" << endl;
         return 1.0;
     }
 
@@ -384,73 +371,158 @@ public:
     }
 
     void resizeMesh() {
+        *gmsg << "not implemented" << endl;
     }
-
-    /*
-
-    Mesh_t<Dim>& getMesh() {
-    }
-
-    FieldLayout_t<Dim>& getFieldLayout() {
-        return nullptr;
-    }
-    */
-
-
 
     bool isGridFixed() {
+        *gmsg << "not implemented" << endl;
         return false;
     }
 
     void boundp() {
+        *gmsg << "not implemented" << endl;
     }
 
     size_t boundp_destroyT() {
+        *gmsg << "not implemented" << endl;
         return 1;
     }
 
-    /*
-    void setTotalNum(size_t newTotalNum) {
-    }
-
-    void set_meshEnlargement(double dh) {
-    }
-    */
-
     void setBCAllOpen() {
+        *gmsg << "not implemented" << endl;
     }
     void setBCForDCBeam() {
+        *gmsg << "not implemented" << endl;
     }
     void setupBCs() {
+        *gmsg << "not implemented" << endl;
     }
     void setBCAllPeriodic() {
+        *gmsg << "not implemented" << endl;
     }
 
-    void resetInterpolationCache(bool clearCache = false) {
+    void resetInterpolationCache(bool /*clearCache = false*/) {
+        *gmsg << "not implemented" << endl;
     }
-    void swap(unsigned int i, unsigned int j) {
+    void swap(unsigned int /*i*/, unsigned int /*j*/) {
+        *gmsg << "not implemented" << endl;
     }
-    double getRho(int x, int y, int z) {
+    double getRho(int /*x*/, int /*y*/, int /*z*/) {
+        *gmsg << "not implemented" << endl;
+        return 0.0;
     }
-    void gatherStatistics(unsigned int totalP) {
+    void gatherStatistics(unsigned int /*totalP*/) {
+        *gmsg << "not implemented" << endl;
     }
+    /**
+     * @brief Transform particle positions to a unitless coordinate system.
+     *
+     * This converts the stored particle positions \f$ R \f$ to unitless positions
+     * \f$ R' \f$ according to
+     * \f[
+     *   R' = \frac{R}{c \, \Delta t},
+     * \f]
+     * where \f$ c \f$ is the speed of light and \f$ \Delta t \f$ is a time step.
+     * The resulting coordinates are dimensionless and are used by algorithms
+     * that operate in this normalized coordinate system.
+     *
+     * By default, a single global time step \f$ \Delta t = \text{getdT()} \f$ is
+     * used for all particles. If @p use_dt_per_particle is set to @c true,
+     * each particle's individual time step @c dt is used instead, i.e.
+     * \f$ R'_i = R_i / (c \, dt_i) \f$.
+     *
+     * @param use_dt_per_particle If @c true, use each particle's own @c dt
+     *        value in the normalization; if @c false (default), use the
+     *        global time step returned by getdT().
+     *
+     * @pre The bunch must not already be in unitless positions. If the internal
+     *      state flag indicates that positions are already unitless,
+     *      this function throws an OpalException.
+     */
     void switchToUnitlessPositions(bool use_dt_per_particle = false) {
+        if (isUnitless_m) {
+            throw OpalException("PartBunch::switchToUnitlessPositions",
+                                "PartBunch is already in unitless positions!");
+        }
+
+        // Divide by c*dt
+        double unitless_factor = 1.0 / (Physics::c * this->getdT());
+        auto Rview  = this->getParticleContainer()->R.getView();
+        auto dtview = this->getParticleContainer()->dt.getView();
+        Kokkos::parallel_for(
+                             "switchToUnitlessPositions", ippl::getRangePolicy(Rview),
+                             KOKKOS_LAMBDA(const size_t i) {
+                                double fac = use_dt_per_particle ? (1.0 / (Physics::c * dtview(i))) 
+                                                                 : unitless_factor;
+                                Rview(i) *= fac;
+                             });
+        isUnitless_m = true;
+
+        /// \todo remove later
+        *gmsg << "* Switched to unitless positions." << endl; 
     }
+    /**
+     * @brief Convert particle positions from unitless back to physical coordinates.
+     *
+     * This function undoes the transformation applied by switchToUnitlessPositions()
+     * by converting positions R' in unitless coordinates back to physical positions R
+     * using the relation
+     *
+     *   R = R' * c * dt ,
+     *
+     * where c is the speed of light and dt is the time step.
+     *
+     * If @p use_dt_per_particle is false (default), the global time step returned by
+     * getdT() is used for all particles. If it is true, the conversion uses the
+     * per-particle time step stored in the particle container's dt field, i.e.
+     * R_i = R'_i * c * dt_i for each particle i.
+     *
+     * @param use_dt_per_particle Select whether to use the per-particle dt (true) or
+     *                            the global dt from getdT() (false) for the scaling.
+     *
+     * @pre The PartBunch must currently be in unitless coordinates. If the bunch is
+     *      already in physical coordinates (isUnitless_m is false), this function
+     *      throws an OpalException.
+     */
     void switchOffUnitlessPositions(bool use_dt_per_particle = false) {
+        if (!isUnitless_m) {
+            throw OpalException("PartBunch::switchOffUnitlessPositions",
+                                "PartBunch is already in physical positions!");
+        }
+
+        // Multiply by c*dt
+        double unitless_factor = Physics::c * this->getdT();
+        auto Rview  = this->getParticleContainer()->R.getView();
+        auto dtview = this->getParticleContainer()->dt.getView();
+        Kokkos::parallel_for(
+                             "switchOffUnitlessPositions", ippl::getRangePolicy(Rview),
+                             KOKKOS_LAMBDA(const size_t i) {
+                                double fac = use_dt_per_particle ? (Physics::c * dtview(i)) 
+                                                                 : unitless_factor;
+                                Rview(i) *= fac;
+                             });
+        isUnitless_m = false;
+
+        /// \todo remove later
+        *gmsg << "* Switched to physical positions." << endl;
     }
 
-    size_t calcNumPartsOutside(Vector_t<double, Dim> x) {
+    size_t calcNumPartsOutside(Vector_t<double, Dim> /*x*/) {
+        *gmsg << "not implemented" << endl;
         return 0;
     }
 
     void calcLineDensity(
-        unsigned int nBins, std::vector<double>& lineDensity, std::pair<double, double>& meshInfo) {
+        unsigned int /*nBins*/, std::vector<double>& /*lineDensity*/, std::pair<double, double>& /*meshInfo*/) {
+            *gmsg << "not implemented" << endl;
     }
 
-    void setBeamFrequency(double v) {
+    void setBeamFrequency(double /*v*/) {
+        *gmsg << "not implemented" << endl;
     }
 
     Vector_t<double, Dim> getEExtrema() {
+        *gmsg << "not implemented" << endl;
        return Vector_t<double, Dim>(0);
     }
 
@@ -458,110 +530,145 @@ public:
 
     Inform& print(Inform& os);
 
-
     bool hasFieldSolver() {
+        *gmsg << "not implemented" << endl;
         return true;
     }
 
     bool getFieldSolverType() {
+        *gmsg << "not implemented" << endl;
         return false;
     }
 
     bool getIfBeamEmitting() {
+        *gmsg << "not implemented" << endl;
         return false;
     }
     int getLastEmittedEnergyBin() {
+        *gmsg << "not implemented" << endl;
         return 0;
     }
     size_t getNumberOfEmissionSteps() {
+        *gmsg << "not implemented" << endl;
         return 0;
     }
     int getNumberOfEnergyBins() {
+        *gmsg << "not implemented" << endl;
         return 0;
     }
 
     void Rebin() {
+        *gmsg << "not implemented" << endl;
     }
 
-    void setEnergyBins(int numberOfEnergyBins) {
+    void setEnergyBins(int /*numberOfEnergyBins*/) {
+        *gmsg << "not implemented" << endl;
     }
     bool weHaveEnergyBins() {
+        *gmsg << "not implemented" << endl;
         return false;
     }
-    void setTEmission(double t) {
+    void setTEmission(double /*t*/) {
+        *gmsg << "not implemented" << endl;
     }
     double getTEmission() {
+        *gmsg << "not implemented" << endl;
         return 0.0;
     }
     bool weHaveBins() {
+        *gmsg << "not implemented" << endl;
         return false;
     }
     // void setPBins(PartBins* pbin) {}
-    size_t emitParticles(double eZ) {
+    size_t emitParticles(double /*eZ*/) {
+        *gmsg << "not implemented" << endl;
         return 0;
     }
     void updateNumTotal() {
+        *gmsg << "not implemented" << endl;
     }
     void rebin() {
+        *gmsg << "not implemented" << endl;
     }
     int getLastemittedBin() {
+        *gmsg << "not implemented" << endl;
         return 0;
     }
-    void setLocalBinCount(size_t num, int bin) {
+    void setLocalBinCount(size_t /*num*/, int /*bin*/) {
+        *gmsg << "not implemented" << endl;
     }
     void calcGammas() {
+        *gmsg << "not implemented" << endl;
     }
-    double getBinGamma(int bin) {
+    double getBinGamma(int /*bin*/) {
+        *gmsg << "not implemented" << endl;
         return 0.0;
     }
     bool hasBinning() {
+        *gmsg << "not implemented" << endl;
         return false;
     }
-    void setBinCharge(int bin, double q) {
+    void setBinCharge(int /*bin*/, double /*q*/) {
+        *gmsg << "not implemented" << endl;
     }
-    void setBinCharge(int bin) {
+    void setBinCharge(int /*bin*/) {
+        *gmsg << "not implemented" << endl;
     }
     double calcMeanPhi() {
+        *gmsg << "not implemented" << endl;
         return 0.0;
     }
-    bool resetPartBinID2(const double eta) {
+    bool resetPartBinID2(const double /*eta*/) {
+        *gmsg << "not implemented" << endl;
         return false;
     }
     bool resetPartBinBunch() {
+        *gmsg << "not implemented" << endl;
         return false;
     }
-    double getPx(int i) {
+    double getPx(int /*i*/) {
+        *gmsg << "not implemented" << endl;
         return 0.0;
     }
-    double getPy(int i) {
+    double getPy(int /*i*/) {
+        *gmsg << "not implemented" << endl;
         return 0.0;
     }
-    double getPz(int i) {
+    double getPz(int /*i*/) {
+        *gmsg << "not implemented" << endl;
         return 0.0;
     }
-    double getPx0(int i) {
+    double getPx0(int /*i*/) {
+        *gmsg << "not implemented" << endl;
         return 0.0;
     }
-    double getPy0(int i) {
+    double getPy0(int /*i*/) {
+        *gmsg << "not implemented" << endl;
         return 0.0;
     }
-    double getX(int i) {
+    double getX(int /*i*/) {
+        *gmsg << "not implemented" << endl;
         return 0.0;
     }
-    double getY(int i) {
+    double getY(int /*i*/) {
+        *gmsg << "not implemented" << endl;
         return 0.0;
     }
-    double getZ(int i) {
+    double getZ(int /*i*/) {
+        *gmsg << "not implemented" << endl;
         return 0.0;
     }
-    double getX0(int i) {
+    double getX0(int /*i*/) {
+        *gmsg << "not implemented" << endl;
         return 0.0;
     }
-    double getY0(int i) {
+    double getY0(int /*i*/) {
+        *gmsg << "not implemented" << endl;
         return 0.0;
     }
 
-    void setZ(int i, double zcoo) {
+    void setZ(int /*i*/, double /*zcoo*/) {
+        *gmsg << "not implemented" << endl;
     }
 
     void get_bounds(Vector_t<double, Dim>& rmin, Vector_t<double, Dim>& rmax) {
@@ -569,20 +676,13 @@ public:
         rmax = rmax_m;
     }
 
-    void getLocalBounds(Vector_t<double, Dim>& rmin, Vector_t<double, Dim>& rmax) {
+    void getLocalBounds(Vector_t<double, Dim>& /*rmin*/, Vector_t<double, Dim>& /*rmax*/) {
+        *gmsg << "not implemented" << endl;
     }
 
-    void get_PBounds(Vector_t<double, Dim>& min, Vector_t<double, Dim>& max) {
+    void get_PBounds(Vector_t<double, Dim>& /*min*/, Vector_t<double, Dim>& /*max*/) {
+        *gmsg << "not implemented" << endl;
     }
-
-    /*
-
-      Misc Bunch related quantities
-
-    */
-
-    /// get 2nd order beam matrix
-    // matrix_t getSigmaMatrix() const;
 
     void setdT(double dt) {
         dt_m = dt;
@@ -604,13 +704,6 @@ public:
         return t_m;
     }
 
-    /**
-     * get the spos of the primary beam
-     *
-     * @param none
-     *
-     */
-
     void set_sPos(double s) {
         spos_m = s;
     }
@@ -620,6 +713,7 @@ public:
     }
 
     double get_gamma() const {
+        *gmsg << "not implemented" << endl;
         return 1.00;
     }
 
@@ -659,42 +753,54 @@ public:
         return this->pcontainer_m->getMeanP();
     }
     Vector_t<double, Dim> get_pmean_Distribution() const {
+        *gmsg << "not implemented" << endl;
         return Vector_t<double, Dim>(0.0);
     }
     Vector_t<double, Dim> get_emit() const {
+        *gmsg << "not implemented" << endl;
         return Vector_t<double, Dim>(0.0);
     }
     Vector_t<double, Dim> get_norm_emit() const {
         return this->pcontainer_m->getNormEmit();
     }
     Vector_t<double, Dim> get_halo() const {
+        *gmsg << "not implemented" << endl;
         return Vector_t<double, Dim>(0.0);
     }
     Vector_t<double, Dim> get_68Percentile() const {
+        *gmsg << "not implemented" << endl;
         return Vector_t<double, Dim>(0.0);
     }
     Vector_t<double, Dim> get_95Percentile() const {
+        *gmsg << "not implemented" << endl;
         return Vector_t<double, Dim>(0.0);
     }
     Vector_t<double, Dim> get_99Percentile() const {
+        *gmsg << "not implemented" << endl;
         return Vector_t<double, Dim>(0.0);
     }
     Vector_t<double, Dim> get_99_99Percentile() const {
+        *gmsg << "not implemented" << endl;
         return Vector_t<double, Dim>(0.0);
     }
     Vector_t<double, Dim> get_normalizedEps_68Percentile() const {
+        *gmsg << "not implemented" << endl;
         return Vector_t<double, Dim>(0.0);
     }
     Vector_t<double, Dim> get_normalizedEps_95Percentile() const {
+        *gmsg << "not implemented" << endl;
         return Vector_t<double, Dim>(0.0);
     }
     Vector_t<double, Dim> get_normalizedEps_99Percentile() const {
+        *gmsg << "not implemented" << endl;
         return Vector_t<double, Dim>(0.0);
     }
     Vector_t<double, Dim> get_normalizedEps_99_99Percentile() const {
+        *gmsg << "not implemented" << endl;
         return Vector_t<double, Dim>(0.0);
     }
     Vector_t<double, Dim> get_hr() const {
+        *gmsg << "not implemented" << endl;
         return Vector_t<double, Dim>(0.0);
     }
 
@@ -800,7 +906,8 @@ public:
         return SteptoLastInj_m;
     }
 
-    double calculateAngle(double x, double y) {
+    double calculateAngle(double /*x*/, double /*y*/) {
+        *gmsg << "not implemented" << endl;
         return 0.0;
     }
 

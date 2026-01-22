@@ -1,6 +1,5 @@
 #include "Filters/SavitzkyGolay.h"
-#include "gsl/gsl_fft_real.h"
-#include "gsl/gsl_fft_halfcomplex.h"
+#include "Utilities/GSLFFT.h"
 #include <iostream>
 
 #include <cmath>

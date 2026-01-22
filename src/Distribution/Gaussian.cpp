@@ -23,7 +23,7 @@ Gaussian::Gaussian(std::shared_ptr<ParticleContainer_t> &pc,
     setCutoffR(opalDist->getCutoffR());
 }
 
-Gaussian::Gaussian(std::shared_ptr<ParticleContainer_t> pc,
+Gaussian::Gaussian(std::shared_ptr<ParticleContainer_t>& pc,
                    const Vector_t<double, 3>& sigmaR,
                    const Vector_t<double, 3>& sigmaP,
                    double avrgpz, const Vector_t<double, 3>& cutoffR,
@@ -61,8 +61,7 @@ void Gaussian::initRandomPool() {
  * @param numberOfParticles The total number of particles to generate.
  * @param nr The number of grid points in each dimension (not used here).
  */
-void Gaussian::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> nr) {
-    extern Inform* gmsg;
+void Gaussian::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> /*nr*/) {
     auto rand_pool64 = randPool_m;
 
     IpplTimings::startTimer(samperTimer_m);

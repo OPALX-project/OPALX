@@ -3,11 +3,12 @@
 //
 
 #include "Structure/IpplInfoWrapper.h"
-
+#include "Utility/Inform.h"
 #include <cstring>
 
+extern Inform* gmsg;
 IpplInfoWrapper::IpplInfoWrapper(
-    const std::string& inputFileName, int infoLevel, int warnLevel, MPI_Comm comm) {
+    const std::string& inputFileName, int infoLevel, int warnLevel, MPI_Comm /*comm*/) {
     std::string infoLevelStr = std::to_string(infoLevel);
     std::string warnLevelStr = std::to_string(warnLevel);
 
@@ -41,6 +42,7 @@ IpplInfoWrapper::IpplInfoWrapper(
 
     // int narg = 5;
     // instance_m = new Ippl(narg, arg_m, Ippl::KEEP, comm);
+    *gmsg << "passed MPI_Comm argument not used in IpplInfoWrapper constructor" << endl;
 }
 
 IpplInfoWrapper::~IpplInfoWrapper() {

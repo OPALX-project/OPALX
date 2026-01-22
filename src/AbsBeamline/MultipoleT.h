@@ -83,7 +83,7 @@
 #include "AbsBeamline/Component.h"
 #include "AbsBeamline/MultipoleTFunctions/RecursionRelation.h"
 #include "AbsBeamline/MultipoleTFunctions/RecursionRelationTwo.h"
-#include "gsl/gsl_sf.h"
+#include "Utilities/GSLCompat.h"
 
 class MultipoleT : public Component {
 public:
@@ -103,6 +103,8 @@ public:
     const EMField& getField() const override;
     /** Not implemented */
     void getDimensions(double& zBegin, double& zEnd) const override;
+    /** Apply to all particles */
+    bool apply() override;
     /** Calculate the field at some arbitrary position
      *  If particle is outside field map true is returned,
      *  otherwise false is returned

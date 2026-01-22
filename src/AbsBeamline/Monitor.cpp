@@ -27,7 +27,7 @@
 #include "Utilities/Options.h"
 #include "Utilities/Util.h"
 
-#include <boost/filesystem.hpp>
+#include <filesystem>
 
 #include <fstream>
 #include <memory>
@@ -61,8 +61,12 @@ void Monitor::accept(BeamlineVisitor& visitor) const {
     visitor.visitMonitor(*this);
 }
 
+bool Monitor::apply() {
+    return false;
+}
+
 bool Monitor::apply(
-    const size_t& i, const double& t, Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/) {
+    const size_t& /*i*/, const double& /*t*/, Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/) {
     // const Vector_t<double, 3>& R         = RefPartBunch_m->R(i);
     // const Vector_t<double, 3>& P         = RefPartBunch_m->P(i);
     // const double& dt                     = RefPartBunch_m->dt(i);
@@ -83,14 +87,14 @@ bool Monitor::apply(
 }
 
 bool Monitor::apply(
-    const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-    Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
+    const Vector_t<double, 3>& /*R*/, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
+    Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/) {
     throw std::runtime_error("Fix this function please");
     return false;
 }
 
 void Monitor::driftToCorrectPositionAndSave(
-    const Vector_t<double, 3>& refR, const Vector_t<double, 3>& refP) {
+    const Vector_t<double, 3>& /*refR*/, const Vector_t<double, 3>& /*refP*/) {
     // const double cdt                           = Physics::c * RefPartBunch_m->getdT();
     // const Vector_t<double, 3> driftPerTimeStep = cdt * Util::getBeta(refP);
     // const double tau                           = -refR(2) / driftPerTimeStep(2);
@@ -111,8 +115,8 @@ void Monitor::driftToCorrectPositionAndSave(
 }
 
 bool Monitor::applyToReferenceParticle(
-    const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-    Vector_t<double, 3>&, Vector_t<double, 3>&) {
+    const Vector_t<double, 3>& /*R*/, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
+    Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/) {
     // if (!OpalData::getInstance()->isInPrepState()) {
     //     const double dt                      = RefPartBunch_m->getdT();
     //     const double cdt                     = Physics::c * dt;
@@ -155,17 +159,17 @@ void Monitor::initialise(PartBunch_t* bunch, double& startField, double& endFiel
     endField       = startField + halfLength_s;
     startField -= halfLength_s;
 
-    const size_t totalNum  = bunch->getTotalNum();
-    double currentPosition = endField;
-    if (totalNum > 0) {
-        currentPosition = bunch->get_sPos();
-    }
+    //const size_t totalNum  = bunch->getTotalNum();
+    //double currentPosition = endField;
+    //if (totalNum > 0) {
+    //    currentPosition = bunch->get_sPos();
+    //}
 
     filename_m = getOutputFN();
 
     // if (OpalData::getInstance()->getOpenMode() == OpalData::OpenMode::WRITE
     //     || currentPosition < startField) {
-    //     namespace fs = boost::filesystem;
+    //     namespace fs = std::filesystem;
 
     //     fs::path lossFileName = fs::path(filename_m + ".h5");
     //     if (fs::exists(lossFileName)) {

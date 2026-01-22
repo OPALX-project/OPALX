@@ -27,7 +27,7 @@
 
 #include <iostream>
 #include <algorithm>
-#include <gsl/gsl_sf_pow_int.h>
+#include "Utilities/GSLCompat.h"
 #include "PolynomialSum.h"
 #include "TwoPolynomial.h"
 
