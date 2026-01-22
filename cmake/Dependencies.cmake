@@ -255,7 +255,7 @@ if(OPALX_ENABLE_UNIT_TESTS)
 
         find_package(GTest QUIET)
 
-        # Fallback if GTest_FOUND not set, but library/include dirs are defined
+        # fallback if GTest_FOUND not set, but dirs exist
         if(NOT GTest_FOUND AND DEFINED GTEST_LIBRARIES AND DEFINED GTEST_INCLUDE_DIRS)
             set(GTest_FOUND TRUE)
         endif()
@@ -270,39 +270,34 @@ if(OPALX_ENABLE_UNIT_TESTS)
 
         message(STATUS "✔ Found system GTest: ${GTest_LIBRARIES}")
 
-        # Create proper imported targets (if not already created by FindGTest)
+        # Create imported target for gtest framework
         if(NOT TARGET GTest::gtest)
             add_library(GTest::gtest STATIC IMPORTED GLOBAL)
             set_target_properties(GTest::gtest PROPERTIES
-                IMPORTED_LOCATION "${GTEST_LIBRARIES}"        # libgtest.a
+                IMPORTED_LOCATION "${GTEST_LIBRARIES}"
                 INTERFACE_INCLUDE_DIRECTORIES "${GTEST_INCLUDE_DIRS}"
             )
         endif()
 
-        if(NOT TARGET GTest::gtest_main)
-            # Determine path to libgtest_main.a
-            get_filename_component(GTEST_LIB_DIR "${GTEST_LIBRARIES}" DIRECTORY)
-            set(GTEST_MAIN_LIB "${GTEST_LIB_DIR}/libgtest_main.a")
+        # Imported target for gtest_main (depends on gtest!)
+        get_filename_component(GTEST_LIB_DIR "${GTEST_LIBRARIES}" DIRECTORY)
+        set(GTEST_MAIN_LIB "${GTEST_LIB_DIR}/libgtest_main.a")
 
-            if(EXISTS "${GTEST_MAIN_LIB}")
+        if(EXISTS "${GTEST_MAIN_LIB}")
+            if(NOT TARGET GTest::gtest_main)
                 add_library(GTest::gtest_main STATIC IMPORTED GLOBAL)
                 set_target_properties(GTest::gtest_main PROPERTIES
                     IMPORTED_LOCATION "${GTEST_MAIN_LIB}"
-                    INTERFACE_INCLUDE_DIRECTORIES "${GTEST_INCLUDE_DIRS}"
-                )
-            else()
-                message(WARNING "libgtest_main.a not found; using libgtest.a as fallback")
-                add_library(GTest::gtest_main STATIC IMPORTED GLOBAL)
-                set_target_properties(GTest::gtest_main PROPERTIES
-                    IMPORTED_LOCATION "${GTEST_LIBRARIES}"
+                    INTERFACE_LINK_LIBRARIES "GTest::gtest"   # crucial!
                     INTERFACE_INCLUDE_DIRECTORIES "${GTEST_INCLUDE_DIRS}"
                 )
             endif()
+            message(STATUS "✔ Found libgtest_main.a: ${GTEST_MAIN_LIB}")
+        else()
+            message(STATUS "⚠ libgtest_main.a not found; tests will need their own main()")
         endif()
 
-        message(STATUS "✅ System GoogleTest found")
-        message(STATUS "GTest include dir: ${GTest_INCLUDE_DIRS}")
-        message(STATUS "GTest libraries: ${GTest_LIBRARIES}")
+
 
     else()
           message(STATUS "⚙ Building GoogleTest from source (FetchContent)")
