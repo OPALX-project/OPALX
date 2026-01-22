@@ -210,7 +210,7 @@ if(OPALX_USE_INSTALLED_H5HUT)
         message(FATAL_ERROR "System H5hut requested, but not found.")
     endif()
 
-    message(STATUS "✔ Found system H5Hut at: ${H5hut_DIR}")
+    message(STATUS "✔ Found system H5Hut")
 
     # Normalize variables for downstream use
     set(H5HUT_INCLUDE_DIR ${H5HUT_INCLUDE_DIRS} CACHE PATH "H5hut include dir")
