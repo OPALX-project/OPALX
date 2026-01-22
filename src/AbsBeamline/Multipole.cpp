@@ -447,8 +447,8 @@ void Multipole::computeField(
     Vector_t<double, 3> R, 
     Vector_t<double, 3>& /*E*/, 
     Vector_t<double, 3>& B,
-    const Kokkos::View<double*>& NormalComponents,
-    const Kokkos::View<double*>& SkewComponents,
+    const Kokkos::View<double*> NormalComponents,
+    const Kokkos::View<double*> SkewComponents,
     int max_NormalComponent,
     int max_SkewComponent) 
 {
