@@ -30,6 +30,9 @@
 #include "BeamlineGeometry/VarRadiusGeometry.h"
 #include "BeamlineGeometry/Euclid3D.h"
 #include "AbsBeamline/MultipoleTFunctions/CoordinateTransform.h"
+#include "Utility/Inform.h"
+
+extern Inform* gmsg;
 
 Euclid3D VarRadiusGeometry::getTransform(double fromS, double toS) const {
     Euclid3D v;
@@ -46,7 +49,8 @@ Euclid3D VarRadiusGeometry::getTransform(double fromS, double toS) const {
     return v;
 }
 
-Euclid3D VarRadiusGeometry::getTransform(double fromS) const {
+Euclid3D VarRadiusGeometry::getTransform(double /*fromS*/) const {
+    *gmsg << "passed fromS argumentnot not used in  VarRadiusGeometry::getTransform" << endl;
     throw GeneralClassicException("Euclid3DGeometry::getTransform", "Not implemented");
 }
 

@@ -26,7 +26,7 @@
 
 #include "Structure/FieldSolverCmd.h"
 
-#include <boost/bimap.hpp>
+#include "Utilities/BiMap.h"
 
 #include <string>
 #include <vector>
@@ -52,6 +52,9 @@ public:
     /// Execute the command.
     virtual void execute();
 
+    // Bring base class print into scope to avoid hiding warning
+    using Object::print;
+    
     Inform& print(Inform& os) const;
 
 private:
@@ -102,7 +105,7 @@ private:
     static const std::string defaultDistribution_m;
 
     RunMethod method_m;
-    static const boost::bimap<RunMethod, std::string> stringMethod_s;
+    static const BiMap<RunMethod, std::string> stringMethod_s;
 
     // macro mass / charge for simulation particles
     double macromass_m;

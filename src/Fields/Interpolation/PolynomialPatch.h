@@ -94,6 +94,11 @@ class PolynomialPatch : public VectorMap {
      */
     virtual void function(const double* point, double* value) const;
 
+    /** Get the value at a point on the mesh (delegates to the double* version) */
+    inline virtual void function(const Mesh::Iterator& point, double* value) const {
+        VectorMap::function(point, value);
+    }
+
     /** Get the point dimension (length of the ordinate) */
     inline unsigned int getPointDimension() const {return point_dimension_;}
 

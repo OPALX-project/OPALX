@@ -19,7 +19,7 @@
 #include "AbstractObjects/AttributeHandler.h"
 #include "Utilities/OpalException.h"
 
-#include <boost/algorithm/string/join.hpp>
+#include <sstream>
 
 // Class AttributeHandler
 // ------------------------------------------------------------------------
@@ -97,7 +97,12 @@ void AttributeHandler::setReadOnly(bool flag) {
 void AttributeHandler::setPredefinedValues(const std::set<std::string>& predefinedValues,
                                            const std::string& defaultValue)
 {
-    std::string validValues = " Valid values are " + boost::algorithm::join(predefinedValues, ", ") + ".";
+    std::ostringstream oss;
+    for (auto it = predefinedValues.begin(); it != predefinedValues.end(); ++it) {
+        if (it != predefinedValues.begin()) oss << ", ";
+        oss << *it;
+    }
+    std::string validValues = " Valid values are " + oss.str() + ".";
     if (defaultValue != "_HAS_NO_DEFAULT_") {
         validValues += " Its default is " + defaultValue + ".";
     }

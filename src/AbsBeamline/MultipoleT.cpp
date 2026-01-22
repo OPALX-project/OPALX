@@ -30,7 +30,7 @@
 #include "BeamlineGeometry/StraightGeometry.h"
 #include "Fields/BMultipoleField.h"
 
-#include <gsl/gsl_math.h>
+#include "Utilities/GSLCompat.h"
 #include "MultipoleT.h"
 #include "MultipoleTFunctions/CoordinateTransform.h"
 #include "MultipoleTFunctions/RecursionRelation.h"
@@ -91,6 +91,10 @@ ElementBase* MultipoleT::clone() const {
 
 void MultipoleT::finalise() {
     RefPartBunch_m = nullptr;
+}
+
+bool MultipoleT::apply() {
+    return false;
 }
 
 bool MultipoleT::apply(

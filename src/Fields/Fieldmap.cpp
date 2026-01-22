@@ -35,14 +35,14 @@
 
 #include "H5hut.h"
 
-#include <boost/filesystem.hpp>
+#include <filesystem>
 
 #include <cmath>
 #include <fstream>
 #include <ios>
 #include <iostream>
 
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 
 #define REGISTER_PARSE_TYPE(X)            \
     template <>                           \
@@ -323,11 +323,7 @@ MapType Fieldmap::readHeader(std::string Filename) {
         return T1DElectroStatic;
 
     if (std::strcmp(magicnumber, "\211HDF") == 0) {
-        h5_err_t h5err = 0;
-#if defined(NDEBUG)
-        // mark variable as unused
-        (void)h5err;
-#endif
+        h5_err_t h5err [[maybe_unused]] = 0;
         char name[20];
         h5_size_t len_name = sizeof(name);
         h5_prop_t props    = H5CreateFileProp();
@@ -696,7 +692,7 @@ void Fieldmap::write3DField(
     if (ippl::Comm->rank() != 0 || (ef.size() != numpoints && bf.size() != numpoints))
         return;
 
-    boost::filesystem::path p(Filename_m);
+    std::filesystem::path p(Filename_m);
     std::string fname = Util::combineFilePath(
         {OpalData::getInstance()->getAuxiliaryOutputDirectory(), p.stem().string() + ".vtk"});
     std::ofstream of;

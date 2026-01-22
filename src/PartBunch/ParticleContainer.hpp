@@ -125,7 +125,7 @@ public:
          return distMoments_m.getMaxPosition();
     }
 
-    matrix_t getCovMatrix() const {
+    matrix6x6_t getCovMatrix() const {
          return distMoments_m.getMoments6x6();
     }
 
@@ -186,7 +186,7 @@ public:
         Np = (Np == 0) ? 1 : Np; // only used for normalization in the moments class --> avoid division by zero
 
         size_t Nlocal = this->getLocalNum();
-        distMoments_m.computeDebyeLength(this->R.getView(), this->P.getView(), Np, Nlocal, density);
+        distMoments_m.computeDebyeLength(this->P.getView(), Np, Nlocal, density);
         return distMoments_m.getDebyeLength();
     }
 

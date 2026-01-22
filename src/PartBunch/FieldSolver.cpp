@@ -2,14 +2,58 @@
 
 #include <iomanip>
 #include <fstream>
+#include <sstream>
 
-#include <boost/filesystem.hpp>
-#include <boost/format.hpp>
+#include <filesystem>
 
 #include "Utilities/Util.h"
 #include "AbstractObjects/OpalData.h"
 
 extern Inform* gmsg;
+
+template <>
+template <typename Solver>
+void  FieldSolver<double,3>::initSolverWithParams(const ippl::ParameterList& sp) {
+    Inform m ("initSolverWithParams ");
+    this->getSolver().template emplace<Solver>();
+    Solver& solver = std::get<Solver>(this->getSolver());
+    solver.mergeParameters(sp);
+    
+    if constexpr (std::is_same_v<Solver, CGSolver_t<T, Dim>>) {
+        // The CG solver computes the potential directly and
+        // uses this to get the electric field
+        throw OpalException("FieldSolver<double,3>::initSolverWithParams", "Cannot use CGSolver yet, not implemented.");
+
+        /// \todo implement properly
+        m << "CG solver used " << endl;
+        solver.setLhs(*phi_m);
+        solver.setGradient(*E_m);
+    } else if constexpr (std::is_same_v<Solver, OpenSolver_t<T, Dim>>) {
+        // The periodic Poisson solver, Open boundaries solver,
+        // and the P3M solver compute the electric field directly
+        m << "OpenSolver used" << endl;
+        solver.setRhs(*rho_m);
+        m << "Set RHS for OpenSolver" << endl;
+        solver.setLhs(*E_m);
+        m << "Set LHS for OpenSolver" << endl;
+        solver.setGradFD();
+        m << "Set GradFD for OpenSolver" << endl;
+    } else if constexpr (std::is_same_v<Solver, FFTSolver_t<T, Dim>>) {
+        // The periodic Poisson solver
+        m << "FFTSolver used" << endl;
+        solver.setRhs(*rho_m);
+        solver.setLhs(*E_m);
+    } else if constexpr (std::is_same_v<Solver, NullSolver_t<T, Dim>>) {
+        m << "NullSolver used" << endl;
+        solver.setRhs(*rho_m);
+        solver.setLhs(*E_m);
+    }
+    
+    call_counter_m = 0;
+}
+
+
+
 
 template <>
 void FieldSolver<double,3>::dumpVectField(std::string what) {
@@ -61,11 +105,13 @@ void FieldSolver<double,3>::dumpVectField(std::string what) {
     auto field_hostV = field->getHostMirror();
     Kokkos::deep_copy(field_hostV, fieldV);     
 
-    boost::filesystem::path file(dirname);
-    boost::format filename("%1%-%2%-%|3$06|.dat");
+    std::filesystem::path file(dirname);
     std::string basename = OpalData::getInstance()->getInputBasename();
-    filename % basename % (what + std::string("_") + type) % call_counter_m;
-    file /= filename.str();
+    std::ostringstream oss;
+    oss << basename << "-" << (what + std::string("_") + type) << "-" 
+        << std::setfill('0') << std::setw(6) << call_counter_m << ".dat";
+    std::string filename = oss.str();
+    file /= filename;
     std::ofstream fout(file.string(), std::ios::out);
 
     fout << std::setprecision(9);
@@ -167,11 +213,13 @@ void FieldSolver<double,3>::dumpScalField(std::string what) {
     auto field_hostV = field->getHostMirror();
     Kokkos::deep_copy(field_hostV, fieldV);     
 
-    boost::filesystem::path file(dirname);
-    boost::format filename("%1%-%2%-%|3$06|.dat");
+    std::filesystem::path file(dirname);
     std::string basename = OpalData::getInstance()->getInputBasename();
-    filename % basename % (what + std::string("_") + type) % call_counter_m;
-    file /= filename.str();
+    std::ostringstream oss;
+    oss << basename << "-" << (what + std::string("_") + type) << "-" 
+        << std::setfill('0') << std::setw(6) << call_counter_m << ".dat";
+    std::string filename = oss.str();
+    file /= filename;
     std::ofstream fout(file.string(), std::ios::out);
 
     fout << std::setprecision(9);
@@ -245,24 +293,44 @@ void FieldSolver<double,3>::dumpScalField(std::string what) {
 
 template <>
 void FieldSolver<double,3>::initOpenSolver() {
+    ippl::ParameterList sp;
+    sp.add("output_type", OpenSolver_t<double, 3>::SOL_AND_GRAD);
+    sp.add("use_heffte_defaults", false);
+    sp.add("use_pencils", true);
+    sp.add("use_reorder", false);
+    sp.add("use_gpu_aware", true);
+    sp.add("comm", ippl::p2p_pl);
+    sp.add("r2c_direction", 0);
+    sp.add("algorithm", OpenSolver_t<double, 3>::HOCKNEY);
+    initSolverWithParams<OpenSolver_t<double, 3>>(sp);
+}
+
+template <>
+void FieldSolver<double,3>::initFFTSolver() {
+    if constexpr (Dim == 2 || Dim == 3) {
         ippl::ParameterList sp;
-        sp.add("output_type", OpenSolver_t<double, 3>::SOL_AND_GRAD);
+        sp.add("output_type", FFTSolver_t<double, 3>::GRAD);
+        //sp.add("output_type", OpenSolver_t<double, 3>::SOL_AND_GRAD);
         sp.add("use_heffte_defaults", false);
         sp.add("use_pencils", true);
         sp.add("use_reorder", false);
         sp.add("use_gpu_aware", true);
         sp.add("comm", ippl::p2p_pl);
         sp.add("r2c_direction", 0);
-        sp.add("algorithm", OpenSolver_t<double, 3>::HOCKNEY);
-        initSolverWithParams<OpenSolver_t<double, 3>>(sp);
+        initSolverWithParams<FFTSolver_t<double, 3>>(sp);
+    } else {
+        // TODO: add exception here
+        // throw std::runtime_error("Unsupported dimensionality for FFT solver");
+    }
 }
+
 
 template <>
 void FieldSolver<double,3>::initSolver() {
     Inform m;
     if (this->getStype() == "FFT") {
-        initOpenSolver();    
-    } else if (this->getStype() == "FFTOPEN") {
+        initFFTSolver();    
+    } else if (this->getStype() == "OPEN") {
         initOpenSolver();    
     } else if (this->getStype() == "NONE") {
         initNullSolver();
@@ -317,31 +385,27 @@ void FieldSolver<double,3>::runSolver() {
             if constexpr (Dim == 2 || Dim == 3) {
 #ifdef OPALX_FIELD_DEBUG
                 this->dumpScalField("rho");
-                call_counter_m++;
 #endif
 
-                std::get<OpenSolver_t<double, 3>>(this->getSolver()).solve();
+                std::get<FFTSolver_t<double, 3>>(this->getSolver()).solve();
 #ifdef OPALX_FIELD_DEBUG
                 this->dumpScalField("phi");
                 this->dumpVectField("ef");
-                call_counter_m++;
 #endif
             }
         } else if (this->getStype() == "P3M") {
             if constexpr (Dim == 3) {
                 std::get<FFTTruncatedGreenSolver_t<double, 3>>(this->getSolver()).solve();
             }
-        } else if (this->getStype() == "FFTOPEN") {
+        } else if (this->getStype() == "OPEN") {
             if constexpr (Dim == 3) {
 #ifdef OPALX_FIELD_DEBUG
                 this->dumpScalField("rho");
-                call_counter_m++;
 #endif
                 std::get<OpenSolver_t<double, 3>>(this->getSolver()).solve();
 #ifdef OPALX_FIELD_DEBUG
                 this->dumpScalField("phi");
                 this->dumpVectField("ef");
-                call_counter_m++;
 #endif
             }
     } else if (this->getStype() == "NONE") {
@@ -349,6 +413,8 @@ void FieldSolver<double,3>::runSolver() {
     } else {
         throw std::runtime_error("Unknown solver type");
     }
+
+    call_counter_m++;
 }
 
 template<>

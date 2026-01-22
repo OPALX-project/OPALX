@@ -4,8 +4,7 @@
 #include "Physics/Units.h"
 #include "Utilities/GeneralClassicException.h"
 #include "Utilities/Util.h"
-
-#include "gsl/gsl_fft_real.h"
+#include "Utilities/GSLFFT.h"
 
 #include <fstream>
 #include <ios>

@@ -42,7 +42,7 @@ class ElementBase;
 #include "Utility/IpplTimings.h"
 #include "Utility/PAssert.h"
 
-#include <gsl/gsl_rng.h>
+#include "Utilities/Random.h"
 
 #include <array>
 #include <unordered_map>
