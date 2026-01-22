@@ -80,7 +80,6 @@ endfunction()
 # ------------------------------------------------------------------------------
 # IPPL library
 # ------------------------------------------------------------------------------
-
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -120,11 +119,9 @@ if(NOT IPPL_VERSION)
     message(STATUS "Defaulting to IPPL-${IPPL_VERSION}")
 endif()
 
-
 # ------------------------------------------------------------------------------
 # HDF5
 # ------------------------------------------------------------------------------
-
 if(OPALX_USE_INSTALLED_HDF5)
 
     message(STATUS "⚙ Using system-installed HDF5")
@@ -136,10 +133,10 @@ if(OPALX_USE_INSTALLED_HDF5)
         message(FATAL_ERROR "System HDF5 requested but not found.")
     endif()
 
-    if (HDF5_VERSION VERSION_LESS "1.14.6")
+    if (HDF5_VERSION VERSION_LESS "1.10.0")
     message(FATAL_ERROR
         "System HDF5 version ${HDF5_VERSION} is too old. "
-        "Required version is >= 1.14.6.")
+        "Required version is >= 1.10.0")
     endif()
 
     # Normalize your variable names
@@ -190,9 +187,16 @@ message(STATUS "HDF5 include dir: ${HDF5_INCLUDE_DIR}")
 # ------------------------------------------------------------------------------
 # H5hut
 # ------------------------------------------------------------------------------
-
 if(OPALX_USE_INSTALLED_H5HUT)
     message(STATUS "⚙ Using system-installed H5hut")
+
+    # If you know the module set these env variables
+    if(DEFINED ENV{H5HUT_INCLUDE_DIR} AND DEFINED ENV{H5HUT_LIBRARY_DIR})
+        set(H5HUT_INCLUDE_DIRS $ENV{H5HUT_INCLUDE_DIR})
+        set(H5HUT_LIBRARIES    $ENV{H5HUT_LIBRARY_DIR}/libh5hut.so)
+        message(STATUS "✔ Using H5hut include: ${H5HUT_INCLUDE_DIRS}")
+        message(STATUS "✔ Using H5hut library: ${H5HUT_LIBRARIES}")
+    endif()
 
     # Prefer config mode first
     find_package(H5hut QUIET CONFIG)
@@ -208,11 +212,9 @@ if(OPALX_USE_INSTALLED_H5HUT)
 
     message(STATUS "✔ Found system H5Hut at: ${H5hut_DIR}")
 
-    # System package should define these:
-    # - target:      H5hut
-    # - variables:   H5HUT_INCLUDE_DIRS / LIBRARIES
-
-    set(H5HUT_INCLUDE_DIR ${H5HUT_INCLUDE_DIRS})
+    # Normalize variables for downstream use
+    set(H5HUT_INCLUDE_DIR ${H5HUT_INCLUDE_DIRS} CACHE PATH "H5hut include dir")
+    set(H5HUT_LIBRARY     ${H5HUT_LIBRARIES}    CACHE FILEPATH "H5hut library")
 else()
     message(STATUS "⚙ Building H5Hut from source (FetchContent)")
     set(H5hut_VERSION cmake)
@@ -247,35 +249,62 @@ message(STATUS "H5HUT include dir: ${H5HUT_INCLUDE_DIR}")
 # ------------------------------------------------------------------------------
 # GoogleTest
 # ------------------------------------------------------------------------------
-set(OPALX_MIN_GTEST_VERSION "1.16.0")
-
 if(OPALX_ENABLE_UNIT_TESTS)
     if(OPALX_USE_INSTALLED_GTEST)
         message(STATUS "⚙ Using system-installed GoogleTest")
 
-        find_package(GTest)
+        find_package(GTest QUIET)
+
+        # Fallback if GTest_FOUND not set, but library/include dirs are defined
+        if(NOT GTest_FOUND AND DEFINED GTEST_LIBRARIES AND DEFINED GTEST_INCLUDE_DIRS)
+            set(GTest_FOUND TRUE)
+        endif()
 
         if(NOT GTest_FOUND)
-          message(FATAL_ERROR
-            "OPALX_USE_INSTALLED_GTEST=ON but system GTest not found.")
+            message(FATAL_ERROR "OPALX_USE_INSTALLED_GTEST=ON but system GTest not found.")
         endif()
 
-        # Extract version if available
-        if(DEFINED GTest_VERSION)
-          if(GTest_VERSION VERSION_LESS OPALX_MIN_GTEST_VERSION)
-            message(FATAL_ERROR
-              "System GTest version ${GTest_VERSION} is too old. "
-              "Required >= ${OPALX_MIN_GTEST_VERSION}.")
-          endif()
-        else()
-          message(WARNING
-            "System GTest found but version not reported; continuing without "
-            "version enforcement.")
+        # Normalize variables
+        set(GTest_INCLUDE_DIRS ${GTEST_INCLUDE_DIRS})
+        set(GTest_LIBRARIES   ${GTEST_LIBRARIES})
+
+        message(STATUS "✔ Found system GTest: ${GTest_LIBRARIES}")
+
+        # Create proper imported targets (if not already created by FindGTest)
+        if(NOT TARGET GTest::gtest)
+            add_library(GTest::gtest STATIC IMPORTED GLOBAL)
+            set_target_properties(GTest::gtest PROPERTIES
+                IMPORTED_LOCATION "${GTEST_LIBRARIES}"        # libgtest.a
+                INTERFACE_INCLUDE_DIRECTORIES "${GTEST_INCLUDE_DIRS}"
+            )
         endif()
 
-        message(STATUS "✔ Found system GTest ${GTest_VERSION}")
+        if(NOT TARGET GTest::gtest_main)
+            # Determine path to libgtest_main.a
+            get_filename_component(GTEST_LIB_DIR "${GTEST_LIBRARIES}" DIRECTORY)
+            set(GTEST_MAIN_LIB "${GTEST_LIB_DIR}/libgtest_main.a")
 
-      else()
+            if(EXISTS "${GTEST_MAIN_LIB}")
+                add_library(GTest::gtest_main STATIC IMPORTED GLOBAL)
+                set_target_properties(GTest::gtest_main PROPERTIES
+                    IMPORTED_LOCATION "${GTEST_MAIN_LIB}"
+                    INTERFACE_INCLUDE_DIRECTORIES "${GTEST_INCLUDE_DIRS}"
+                )
+            else()
+                message(WARNING "libgtest_main.a not found; using libgtest.a as fallback")
+                add_library(GTest::gtest_main STATIC IMPORTED GLOBAL)
+                set_target_properties(GTest::gtest_main PROPERTIES
+                    IMPORTED_LOCATION "${GTEST_LIBRARIES}"
+                    INTERFACE_INCLUDE_DIRECTORIES "${GTEST_INCLUDE_DIRS}"
+                )
+            endif()
+        endif()
+
+        message(STATUS "✅ System GoogleTest found")
+        message(STATUS "GTest include dir: ${GTest_INCLUDE_DIRS}")
+        message(STATUS "GTest libraries: ${GTest_LIBRARIES}")
+
+    else()
           message(STATUS "⚙ Building GoogleTest from source (FetchContent)")
 
           FetchContent_Declare(GTest GIT_REPOSITORY "https://github.com/google/googletest"
