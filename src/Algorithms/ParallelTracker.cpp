@@ -528,8 +528,16 @@ void ParallelTracker::timeIntegration2(BorisPusher& pusher) {
 void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
 
     if (!itsBunch_m->hasFieldSolver()) {
-        *gmsg << "no solver avaidable " << endl;
-        return;
+        /*
+        This should not happen, so when we do not have a field solve, we can
+        throw an exception. If we have "no solver" and want to run it, we would
+        choose the null solver.
+        */
+        *gmsg << "no solver available!" << endl;
+        throw OpalException(
+            "ParallelTracker::computeSpaceChargeFields",
+            "Bunch has no field solver assigned! If you want to run without "
+            "space charge effects, please use TYPE=NONE for the field solver.");
     }
         
     itsBunch_m->calcBeamParameters();
@@ -798,6 +806,7 @@ void ParallelTracker::prepareSections() {
     itsOpalBeamline_m.save3DLattice();
     itsOpalBeamline_m.save3DInput();
 }
+
 void ParallelTracker::selectDT(bool backTrack) {
     double dt = dtCurrentTrack_m;
     itsBunch_m->setdT(dt);
