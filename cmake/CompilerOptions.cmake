@@ -26,7 +26,14 @@ if(OPALX_USE_ALTERNATIVE_VARIANT)
   add_definitions(-DOPALX_USE_ALTERNATIVE_VARIANT)
 endif()
 
-# === Code coverage options ===
+# === Field solver debug flag (enables field dumps at runtime when compiled in) ===
+# This defines the preprocessor symbol used in the sources (#ifdef OPALX_FIELD_DEBUG)
+if(OPALX_FIELD_DEBUG)
+  message(STATUS "⚠️  OPALX_FIELD_DEBUG enabled — field dumps will be emitted during simulation")
+  add_compile_definitions(-DOPALX_FIELD_DEBUG)
+endif()
+
+# === Code coverage options ===m
 if(OPALX_ENABLE_COVERAGE AND (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang"))
   message(STATUS "${ColorYellow}Code coverage enabled.${ColorReset}")
   add_compile_options(-fprofile-arcs -ftest-coverage -g)
