@@ -141,11 +141,6 @@ option(OPALX_SKIP_FAILING_TESTS "Do not build/test tests that are currently mark
 option(OPALX_ENABLE_SCRIPTS "Generate job script templates for some benchmarks/tests" OFF)
 option(OPALX_FIELD_DEBUG "Enable FieldSolver field-dump debug code" OFF)
 
-
-if(OPALX_FIELD_DEBUG)
-  message(STATUS "⚠️  OPALX_FIELD_DEBUG enabled — field dumps will be emitted during simulation")
-endif()
-
 # "Build OPALX as a shared library (ON) or static library (OFF)" OFF) 
 if(OPALX_DYL)
     set(BUILD_SHARED_LIBS ON CACHE BOOL "" FORCE)
