@@ -25,3 +25,9 @@ endif()
 
 # Define macro for use in source code
 target_compile_definitions(opalx PUBLIC OPALX_ENABLE_TIMER_FENCES=${TimerFences})
+
+# Field debug option - apply compile definition to target
+if(OPALX_FIELD_DEBUG)
+  message(STATUS "⚠️  OPALX_FIELD_DEBUG enabled — field dumps will be emitted during simulation")
+  target_compile_definitions(opalx PUBLIC OPALX_FIELD_DEBUG)
+endif()
