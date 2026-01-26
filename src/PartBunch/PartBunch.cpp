@@ -379,6 +379,7 @@ void PartBunch<T, Dim>::pre_run() {
     */
     auto fs = std::dynamic_pointer_cast<FieldSolver_t>(this->fsolver_m);
     fs->runSolver(true);
+    fs->resetCallCounter();
 }
 
 template <typename T, unsigned Dim>

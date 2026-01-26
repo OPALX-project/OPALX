@@ -176,7 +176,7 @@ void FieldSolver<double,3>::dumpScalField(std::string what) {
     Inform m("FS::dumpScalField() ");
     m << "Dumping scalar field: " << what << endl;
 
-    if (ippl::Comm->size() > 1 || call_counter_m<2) {
+    if (ippl::Comm->size() > 1 /*|| call_counter_m<2*/) {
         return;
     }
 
