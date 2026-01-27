@@ -24,11 +24,27 @@ void  FieldSolver<double,3>::initSolverWithParams(const ippl::ParameterList& sp)
         throw OpalException("FieldSolver<double,3>::initSolverWithParams", "rho_m is null pointer.");
     }
 
+    m << "Init solver with params: " << solver.getStype() << endl;
     solver.setRhs(*rho_m);
     m << "Set solver RHS" << endl;
+
+    if constexpr ((std::is_same_v<Solver, CGSolver_t<T, Dim>>) || 
+                  (std::is_same_v<Solver, FEMSolver_t<T, Dim>>) || 
+                  (std::is_same_v<Solver, FEMPreconSolver_t<T, Dim>>)) {
+        // The CG solver and FEMPoissonSolver compute the potential 
+        // directly and use this to get the electric field
+        solver.setLhs(*phi_m);
+        solver.setGradient(*E_m);
+        m << "Set gradient for CG/FEM solver" << endl;
+    } else {
+        // The periodic Poisson solver, Open boundaries solver,
+        // and the TG solver compute the electric field directly
+        solver.setLhs(*E_m);
+    }
+    m << "Set solver LHS" << endl;
     
     /// \todo This can potentially be implemented much easier, see https://github.com/IPPL-framework/ippl/blob/f4c4102a3cb76dd2cd911eef7314adb77aacd676/alpine/FieldSolver.hpp#L148
-    if constexpr (std::is_same_v<Solver, CGSolver_t<T, Dim>>) {
+    /*if constexpr (std::is_same_v<Solver, CGSolver_t<T, Dim>>) {
         // The CG solver computes the potential directly and
         // uses this to get the electric field
         throw OpalException("FieldSolver<double,3>::initSolverWithParams", "Cannot use CGSolver yet, not implemented.");
@@ -53,12 +69,10 @@ void  FieldSolver<double,3>::initSolverWithParams(const ippl::ParameterList& sp)
     } else if constexpr (std::is_same_v<Solver, NullSolver_t<T, Dim>>) {
         m << "NullSolver used" << endl;
         solver.setLhs(*E_m);
-    }
+    }*/
     
     call_counter_m = 0;
 }
-
-
 
 
 template <>
@@ -338,6 +352,25 @@ void FieldSolver<double,3>::initFFTSolver() {
     }
 }
 
+template <>
+void FieldSolver<double,3>::initCGSolver() {
+    ippl::ParameterList sp;
+    sp.add("output_type", CGSolver_t<double, 3>::GRAD);
+    // Increase tolerance in the 1D case
+    sp.add("tolerance", 1e-4);
+    
+    initSolverWithParams<CGSolver_t<double, 3>>(sp);
+}
+
+template<>
+void FieldSolver<double,3>::initNullSolver() {
+    ippl::ParameterList sp;
+    if constexpr (Dim == 2 || Dim == 3) {
+        initSolverWithParams<NullSolver_t<T, Dim>>(sp);
+    } else {
+        throw std::runtime_error("Unsupported dimensionality for Null solver");
+    }
+}
 
 template <>
 void FieldSolver<double,3>::initSolver() {
@@ -346,6 +379,8 @@ void FieldSolver<double,3>::initSolver() {
         initFFTSolver();    
     } else if (this->getStype() == "OPEN") {
         initOpenSolver();    
+    } else if (this->getStype() == "CG") {
+        initCGSolver();
     } else if (this->getStype() == "NONE") {
         initNullSolver();
     }
@@ -374,9 +409,13 @@ void FieldSolver<double,3>::runSolver(bool force_skip_field_dump) {
     constexpr int Dim = 3;
 
     if (this->getStype() == "CG") {
-            CGSolver_t<double, 3>& solver = std::get<CGSolver_t<double, 3>>(this->getSolver());
-            solver.solve();
-
+            // CGSolver_t<double, 3>& solver = std::get<CGSolver_t<double, 3>>(this->getSolver());
+            // solver.solve();
+            std::get<CGSolver_t<double, 3>>(this->getSolver()).solve();
+#ifdef OPALX_FIELD_DEBUG
+            if (!force_skip_field_dump) this->dumpScalField("phi");
+#endif
+            /*
             if (ippl::Comm->rank() == 0) {
                 std::stringstream fname;
                 fname << "data/CG_";
@@ -394,7 +433,7 @@ void FieldSolver<double,3>::runSolver(bool force_skip_field_dump) {
                     log << solver.getResidue() << "," << iterations << endl;
                 }
             }
-            ippl::Comm->barrier();
+            ippl::Comm->barrier();*/
     } else if (this->getStype() == "FFT") {
         if constexpr (Dim == 2 || Dim == 3) {
 #ifdef OPALX_FIELD_DEBUG
@@ -431,16 +470,6 @@ void FieldSolver<double,3>::runSolver(bool force_skip_field_dump) {
     call_counter_m++; // maybe want "if (!force_skip_field_dump)" here?
 }
 
-template<>
-void FieldSolver<double,3>::initNullSolver() {
-    ippl::ParameterList sp;
-    if constexpr (Dim == 2 || Dim == 3) {
-        initSolverWithParams<NullSolver_t<T, Dim>>(sp);
-    } else {
-        throw std::runtime_error("Unsupported dimensionality for Null solver");
-    }
-}
-
 // Implement getCouplingConstant
 template<>
 double FieldSolver<double, 3>::getCouplingConstant() const {
@@ -461,16 +490,6 @@ double FieldSolver<double, 3>::getCouplingConstant() const {
 }  
 
 /*
-template <>
-void FieldSolver<double,3>::initCGSolver() {
-    ippl::ParameterList sp;
-    sp.add("output_type", CGSolver_t<double, 3>::GRAD);
-    // Increase tolerance in the 1D case
-    sp.add("tolerance", 1e-10);
-    
-    initSolverWithParams<CGSolver_t<double, 3>>(sp);
-}
-
 template<>
 void FieldSolver<double,3>::initP3MSolver() {
     //        if constexpr (Dim == 3) {
