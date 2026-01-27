@@ -39,7 +39,7 @@ FieldSolverCmd::FieldSolverCmd()
         FIELDSOLVER::SIZE, "FIELDSOLVER",
         "The \"FIELDSOLVER\" statement defines data for a the field solver") {
     itsAttr[FIELDSOLVER::TYPE] = Attributes::makePredefinedString(
-        "TYPE", "Name of the attached field solver.", {"NONE", "FFT", "OPEN"}); // removed, since not implemented: "CG ", "P3M"
+        "TYPE", "Name of the attached field solver.", {"NONE", "FFT", "OPEN", "CG"}); // removed, since not implemented: "P3M"
 
     itsAttr[FIELDSOLVER::NX] = Attributes::makeReal("NX", "Meshsize in x");
     itsAttr[FIELDSOLVER::NY] = Attributes::makeReal("NY", "Meshsize in y");
@@ -165,6 +165,7 @@ void FieldSolverCmd::setFieldSolverCmdType() {
         {"NONE", FieldSolverCmdType::NONE},
         {"FFT", FieldSolverCmdType::FFT},
         {"OPEN", FieldSolverCmdType::OPEN},
+        {"CG", FieldSolverCmdType::CG}
     };
 
     fsName_m = getType();
