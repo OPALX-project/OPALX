@@ -4,6 +4,7 @@
 #include <array>
 #include <ostream>
 
+#include "Ippl.h"
 #include "Utilities/OpalException.h"
 
 /**
@@ -174,8 +175,8 @@ public:
             
             if (bcs_m[d] == PERIODIC) {
                 bc_container[face] = std::make_shared<ippl::PeriodicFace<Field>>(face);
-            } else if (bcs_m[d] == OPEN) {
-                bc_container[face] = std::make_shared<ippl::NoBcFace<Field>>(face);
+            } else if (bcs_m[d] == DIRICHLET) {
+                bc_container[face] = std::make_shared<ippl::ZeroFace<Field>>(face);
             } else {
                 throw OpalException("BCHandler::toIPPLBConds", 
                                     "Unsupported BCType encountered.");
