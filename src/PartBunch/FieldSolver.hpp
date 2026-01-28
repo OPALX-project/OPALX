@@ -26,8 +26,7 @@ public:
         setPotentialBCs();
     }
 
-    ~FieldSolver() {
-    }
+    ~FieldSolver() override = default;
 
     void dumpScalField(std::string what);
     void dumpVectField(std::string what);
