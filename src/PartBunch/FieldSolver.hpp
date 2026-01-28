@@ -23,11 +23,14 @@ public:
     FieldSolver(std::string solver,
                 Field_t<Dim>* rho,
                 VField_t<T, Dim>* E,
-                Field<T, Dim>* phi,
+                Field_t<Dim>* phi,
                 std::shared_ptr<BCHandler_t> bcHandler)
         : ippl::FieldSolverBase<T, Dim>(solver),
-          rho_m(rho), E_m(E), phi_m(phi), call_counter_m(0),
-          bcHandler_m(bcHandler) {
+          rho_m(rho), 
+          E_m(E), 
+          phi_m(phi), 
+          bcHandler_m(bcHandler),
+          call_counter_m(0) {
         setPotentialBCs();
     }
 
