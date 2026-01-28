@@ -216,60 +216,62 @@ void PartBunch<T, Dim>::spaceChargeEFieldCheck(Vector_t<double, 3> /*efScale*/) 
     int myRank = ippl::Comm->rank();
 
     Kokkos::parallel_reduce(
-                            "check e-field", this->getLocalNum(),
-                            KOKKOS_LAMBDA(const int i, double& loc_avgE, double& loc_minEComponent,
-                                        double& loc_maxEComponent, double& loc_minE, double& loc_maxE) {
-                                double EX    = pE_view[i][0]*cc;
-                                double EY    = pE_view[i][1]*cc;
-                                double EZ    = pE_view[i][2]*cc;
-                            
-                                double ENorm = Kokkos::sqrt(EX*EX + EY*EY + EZ*EZ);
-                             
-                                loc_avgE += ENorm;
-   
-                                loc_minEComponent = EX < loc_minEComponent ? EX : loc_minEComponent;
-                                loc_minEComponent = EY < loc_minEComponent ? EY : loc_minEComponent;
-                                loc_minEComponent = EZ < loc_minEComponent ? EZ : loc_minEComponent;
-                                
-                                loc_maxEComponent = EX > loc_maxEComponent ? EX : loc_maxEComponent;
-                                loc_maxEComponent = EY > loc_maxEComponent ? EY : loc_maxEComponent;
-                                loc_maxEComponent = EZ > loc_maxEComponent ? EZ : loc_maxEComponent;   
+        "check e-field", this->getLocalNum(),
+        KOKKOS_LAMBDA(const int i, double& loc_avgE, double& loc_minEComponent,
+                    double& loc_maxEComponent, double& loc_minE, double& loc_maxE) {
+            double EX    = pE_view[i][0]*cc;
+            double EY    = pE_view[i][1]*cc;
+            double EZ    = pE_view[i][2]*cc;
+        
+            double ENorm = Kokkos::sqrt(EX*EX + EY*EY + EZ*EZ);
+            
+            loc_avgE += ENorm;
 
-                                loc_minE = ENorm < loc_minE ? ENorm : loc_minE;
-                                loc_maxE = ENorm > loc_maxE ? ENorm : loc_maxE;
-                            },
-                            Kokkos::Sum<T>(avgE), Kokkos::Min<T>(minEComponent),
-                            Kokkos::Max<T>(maxEComponent), Kokkos::Min<T>(minE),
-                            Kokkos::Max<T>(maxE));
+            loc_minEComponent = EX < loc_minEComponent ? EX : loc_minEComponent;
+            loc_minEComponent = EY < loc_minEComponent ? EY : loc_minEComponent;
+            loc_minEComponent = EZ < loc_minEComponent ? EZ : loc_minEComponent;
+            
+            loc_maxEComponent = EX > loc_maxEComponent ? EX : loc_maxEComponent;
+            loc_maxEComponent = EY > loc_maxEComponent ? EY : loc_maxEComponent;
+            loc_maxEComponent = EZ > loc_maxEComponent ? EZ : loc_maxEComponent;   
 
-  if (this->getLocalNum() == 0) {
-     minEComponent = maxEComponent = minE = maxE = avgE = 0.0;
- }
+            loc_minE = ENorm < loc_minE ? ENorm : loc_minE;
+            loc_maxE = ENorm > loc_maxE ? ENorm : loc_maxE;
+        },
+        Kokkos::Sum<T>(avgE), Kokkos::Min<T>(minEComponent),
+        Kokkos::Max<T>(maxEComponent), Kokkos::Min<T>(minE),
+        Kokkos::Max<T>(maxE)
+    );
 
- MPI_Reduce(myRank == 0 ? MPI_IN_PLACE : &avgE, &avgE, 1, MPI_DOUBLE, MPI_SUM, 0, ippl::Comm->getCommunicator());
- MPI_Reduce(myRank == 0 ? MPI_IN_PLACE : &minEComponent, &minEComponent, 1, MPI_DOUBLE, MPI_MIN, 0, ippl::Comm->getCommunicator());
- MPI_Reduce(myRank == 0 ? MPI_IN_PLACE : &maxEComponent, &maxEComponent, 1, MPI_DOUBLE, MPI_MAX, 0, ippl::Comm->getCommunicator());
- MPI_Reduce(myRank == 0 ? MPI_IN_PLACE : &minE, &minE, 1, MPI_DOUBLE, MPI_MIN, 0, ippl::Comm->getCommunicator());
- MPI_Reduce(myRank == 0 ? MPI_IN_PLACE : &maxE, &maxE, 1, MPI_DOUBLE, MPI_MAX, 0, ippl::Comm->getCommunicator());
+    if (this->getLocalNum() == 0) {
+        minEComponent = maxEComponent = minE = maxE = avgE = 0.0;
+    }
+
+    MPI_Reduce(myRank == 0 ? MPI_IN_PLACE : &avgE, &avgE, 1, MPI_DOUBLE, MPI_SUM, 0, ippl::Comm->getCommunicator());
+    MPI_Reduce(myRank == 0 ? MPI_IN_PLACE : &minEComponent, &minEComponent, 1, MPI_DOUBLE, MPI_MIN, 0, ippl::Comm->getCommunicator());
+    MPI_Reduce(myRank == 0 ? MPI_IN_PLACE : &maxEComponent, &maxEComponent, 1, MPI_DOUBLE, MPI_MAX, 0, ippl::Comm->getCommunicator());
+    MPI_Reduce(myRank == 0 ? MPI_IN_PLACE : &minE, &minE, 1, MPI_DOUBLE, MPI_MIN, 0, ippl::Comm->getCommunicator());
+    MPI_Reduce(myRank == 0 ? MPI_IN_PLACE : &maxE, &maxE, 1, MPI_DOUBLE, MPI_MAX, 0, ippl::Comm->getCommunicator());
  
- size_t Np = this->getTotalNum();
- avgE /= (Np == 0) ? 1 : Np; // avoid division by zero for empty simulations (see also DistributionMoments::computeMeans implementation) 
+    size_t Np = this->getTotalNum();
+    avgE /= (Np == 0) ? 1 : Np; // avoid division by zero for empty simulations (see also DistributionMoments::computeMeans implementation) 
 
- msg << "avgENorm = " << avgE << endl;
- 
- using mdrange_type             = Kokkos::MDRangePolicy<Kokkos::Rank<3>>;
+    msg << "avgENorm = " << avgE << endl;
+    
+    using mdrange_type             = Kokkos::MDRangePolicy<Kokkos::Rank<3>>;
 
- Kokkos::parallel_reduce(
-                         "check phi", mdrange_type({0,0,0}, {fphi_view.extent(0),fphi_view.extent(1),fphi_view.extent(2)}),
-                         KOKKOS_LAMBDA(const int i, const int j, const int k, double& loc_avgphi) {
-                             double phi = fphi_view(i,j,k);
-                             loc_avgphi += phi;
-                         },
-                         Kokkos::Sum<T>(avgphi));
+    Kokkos::parallel_reduce(
+        "check phi", mdrange_type({0,0,0}, {fphi_view.extent(0),fphi_view.extent(1),fphi_view.extent(2)}),
+        KOKKOS_LAMBDA(const int i, const int j, const int k, double& loc_avgphi) {
+            double phi = fphi_view(i,j,k);
+            loc_avgphi += phi;
+        },
+        Kokkos::Sum<T>(avgphi)
+    );
 
- MPI_Reduce(myRank == 0 ? MPI_IN_PLACE : &avgphi, &avgphi, 1, MPI_DOUBLE, MPI_SUM, 0, ippl::Comm->getCommunicator());
- avgphi /= this->getTotalNum(); 
- msg << "avgphi = " << avgphi << endl;
+    MPI_Reduce(myRank == 0 ? MPI_IN_PLACE : &avgphi, &avgphi, 1, MPI_DOUBLE, MPI_SUM, 0, ippl::Comm->getCommunicator());
+    avgphi /= this->getTotalNum(); 
+    msg << "avgphi = " << avgphi << endl;
 
 }
 
