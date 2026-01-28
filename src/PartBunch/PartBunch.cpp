@@ -369,7 +369,9 @@ void PartBunch<T, Dim>::calcBeamParameters() {
 
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::pre_run() {
+    *gmsg << "* PartBunch pre_run started." << endl;
     this->fcontainer_m->getRho() = 0.0;
+    *gmsg << "* Rho initialized to zero." << endl;
 
     /*
     Force skip field dump during pre_run/warmup!

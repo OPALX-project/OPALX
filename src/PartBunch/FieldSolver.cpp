@@ -24,7 +24,7 @@ void  FieldSolver<double,3>::initSolverWithParams(const ippl::ParameterList& sp)
         throw OpalException("FieldSolver<double,3>::initSolverWithParams", "rho_m is null pointer.");
     }
 
-    m << "Init solver with params: " << solver.getStype() << endl;
+    m << "Init solver with params: " << this->getStype() << endl;
     solver.setRhs(*rho_m);
     m << "Set solver RHS" << endl;
 
@@ -35,7 +35,7 @@ void  FieldSolver<double,3>::initSolverWithParams(const ippl::ParameterList& sp)
         // directly and use this to get the electric field
         solver.setLhs(*phi_m);
         solver.setGradient(*E_m);
-        m << "Set gradient for CG/FEM solver" << endl;
+        m << "Set gradient for CG" << endl;
     } else {
         // The periodic Poisson solver, Open boundaries solver,
         // and the TG solver compute the electric field directly
