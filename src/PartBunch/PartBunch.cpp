@@ -180,7 +180,8 @@ void PartBunch<T, Dim>::setSolver(std::string solver) {
         this->solver_m, 
         &this->fcontainer_m->getRho(), 
         &this->fcontainer_m->getE(),
-        &this->fcontainer_m->getPhi()
+        &this->fcontainer_m->getPhi(),
+        this->getBCHandler()
     ));
 
     this->fsolver_m->initSolver();

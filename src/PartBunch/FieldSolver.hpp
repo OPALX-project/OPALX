@@ -4,6 +4,7 @@
 #include <memory>
 #include "Manager/BaseManager.h"
 #include "Manager/FieldSolverBase.h"
+#include "BCHandler.hpp"
 
 // Define the FieldSolver class
 template <typename T, unsigned Dim>
@@ -13,16 +14,23 @@ private:
     VField_t<T, Dim>* E_m;
     Field_t<Dim>* phi_m;
 
+    using BCHandler_t = BCHandler<Dim>;
+    std::shared_ptr<BCHandler_t> bcHandler_m;
+
     /// Counts number of times the solver has been called
     size_t call_counter_m;
 public:
     FieldSolver(std::string solver,
                 Field_t<Dim>* rho,
                 VField_t<T, Dim>* E,
-                Field<T, Dim>* phi)
+                Field_t<Dim>* phi,
+                std::shared_ptr<BCHandler_t> bcHandler)
         : ippl::FieldSolverBase<T, Dim>(solver),
-          rho_m(rho), E_m(E), phi_m(phi), call_counter_m(0) {
-
+          rho_m(rho), 
+          E_m(E), 
+          phi_m(phi), 
+          bcHandler_m(bcHandler),
+          call_counter_m(0) {
         setPotentialBCs();
     }
 
@@ -52,6 +60,14 @@ public:
         phi_m = phi;
     }
 
+    std::shared_ptr<BCHandler_t> getBCHandler() const {
+        return bcHandler_m;
+    }
+    void setBCHandler(std::shared_ptr<BCHandler_t> bcHandler) {
+        bcHandler_m = bcHandler;
+        setPotentialBCs();
+    }
+
     /**
      * @brief Get the solver's coupling constant.
      *
@@ -68,7 +84,22 @@ public:
 
     void initSolver() override ;
 
+
+    /**
+     * @brief Set boundary conditions for the electrostatic potential field.
+     *
+     * Converts the boundary-condition specification provided by the BC handler
+     * into the IPPL boundary-condition format for Field_t<Dim> and applies the
+     * resulting conditions to the internal potential field (phi_m) by calling
+     * its setFieldBC method.
+     * 
+     * @throws OpalException if the BC handler is not set or invalid.
+     */
     void setPotentialBCs();
+
+    bool hasValidBCHandler() const {
+        return (bcHandler_m != nullptr);
+    }
 
     void runSolver() override {
         // The default runSolver should always count towards the call counter!
