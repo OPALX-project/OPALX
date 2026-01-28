@@ -14,7 +14,7 @@ extern Inform* gmsg;
 template <>
 template <typename Solver>
 void  FieldSolver<double,3>::initSolverWithParams(const ippl::ParameterList& sp) {
-    Inform m ("initSolverWithParams");
+    Inform m ("FieldSolver::initSolverWithParams");
     this->getSolver().template emplace<Solver>();
     Solver& solver = std::get<Solver>(this->getSolver());
     solver.mergeParameters(sp);
@@ -390,7 +390,8 @@ void FieldSolver<double,3>::initSolver() {
     }
 }
 
-template <>
+
+/*template <>
 void FieldSolver<double,3>::setPotentialBCs() {
         // CG requires explicit periodic boundary conditions while the periodic Poisson solver
         // simply assumes them
@@ -402,7 +403,7 @@ void FieldSolver<double,3>::setPotentialBCs() {
             }
             phi_m->setFieldBC(allPeriodic);
         }
-    }
+    }*/
 
 template<>
 void FieldSolver<double,3>::runSolver(bool force_skip_field_dump) {
@@ -488,6 +489,21 @@ double FieldSolver<double, 3>::getCouplingConstant() const {
     // Standard coupling constant (from before)
     return 1.0 / (4.0 * Physics::pi * Physics::epsilon_0);
 }  
+
+template<>
+void FieldSolver<double,3>::setPotentialBCs() {
+    Inform m ("FieldSolver::setPotentialBCs");
+    // Check if BC handler is set
+    if (!hasValidBCHandler()) {
+        throw OpalException("FieldSolver::setPotentialBCs",
+                            "BC Handler not set or invalid.");
+    }
+
+    phi_m->setFieldBC(
+        getBCHandler()->toIPPLBConds<Field_t<Dim>>()
+    );
+    m << "Potential BCs in FieldSolver updated using BCHandler." << endl;
+}
 
 /*
 template<>
