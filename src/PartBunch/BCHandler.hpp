@@ -37,7 +37,8 @@ public:
      */
     enum BCType { 
         OPEN, 
-        PERIODIC 
+        PERIODIC,
+        DIRICHLET
     };
 
     /**
@@ -57,6 +58,8 @@ public:
             return OPEN;
         } else if (str == "PERIODIC") {
             return PERIODIC;
+        } else if (str == "DIRICHLET") {
+            return DIRICHLET;
         } else {
             throw OpalException("BCHandler::strToBCType", 
                                 "Unknown boundary condition type: " + str);
@@ -130,6 +133,7 @@ public:
             switch (h.bcs_m[d]) {
                 case OPEN: os << "OPEN"; break;
                 case PERIODIC: os << "PERIODIC"; break;
+                case DIRICHLET: os << "DIRICHLET"; break;
                 default: os << "UNKNOWN"; break;
             }
             if (d + 1 < Dim) os << ", ";
