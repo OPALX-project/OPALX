@@ -28,9 +28,9 @@ void  FieldSolver<double,3>::initSolverWithParams(const ippl::ParameterList& sp)
     solver.setRhs(*rho_m);
     m << "Set solver RHS" << endl;
 
-    if constexpr ((std::is_same_v<Solver, CGSolver_t<T, Dim>>) || 
+    if constexpr ((std::is_same_v<Solver, CGSolver_t<T, Dim>>) /*|| 
                   (std::is_same_v<Solver, FEMSolver_t<T, Dim>>) || 
-                  (std::is_same_v<Solver, FEMPreconSolver_t<T, Dim>>)) {
+                  (std::is_same_v<Solver, FEMPreconSolver_t<T, Dim>>)*/) {
         // The CG solver and FEMPoissonSolver compute the potential 
         // directly and use this to get the electric field
         solver.setLhs(*phi_m);
@@ -337,7 +337,8 @@ template <>
 void FieldSolver<double,3>::initFFTSolver() {
     if constexpr (Dim == 2 || Dim == 3) {
         ippl::ParameterList sp;
-        sp.add("output_type", FFTSolver_t<double, 3>::GRAD);
+        // Needs sol, otherwise we don't have the phi_m field! (only E_m)
+        sp.add("output_type", FFTSolver_t<double, 3>::SOL);
         //sp.add("output_type", OpenSolver_t<double, 3>::SOL_AND_GRAD);
         sp.add("use_heffte_defaults", false);
         sp.add("use_pencils", true);
@@ -357,7 +358,7 @@ void FieldSolver<double,3>::initCGSolver() {
     ippl::ParameterList sp;
     sp.add("output_type", CGSolver_t<double, 3>::GRAD);
     // Increase tolerance in the 1D case
-    sp.add("tolerance", 1e-4);
+    sp.add("tolerance", 1e-9);
     
     initSolverWithParams<CGSolver_t<double, 3>>(sp);
 }
@@ -484,7 +485,11 @@ double FieldSolver<double, 3>::getCouplingConstant() const {
     const std::string stype = this->getStype();
     if (stype == "OPEN") {
         return 1.0 / Physics::epsilon_0; 
-    } 
+    } else if (stype == "FFT") {
+        return 1.0 / Physics::epsilon_0;
+    } else if (stype == "CG") {
+        return 1.0 / Physics::epsilon_0;
+    }
 
     // Standard coupling constant (from before)
     return 1.0 / (4.0 * Physics::pi * Physics::epsilon_0);
@@ -499,9 +504,17 @@ void FieldSolver<double,3>::setPotentialBCs() {
                             "BC Handler not set or invalid.");
     }
 
-    phi_m->setFieldBC(
-        getBCHandler()->toIPPLBConds<Field_t<Dim>>()
-    );
+    if (this->getStype() != "CG") {
+        m << "Potential BCs only need to be set for CG solver. Current solver type: " 
+          << this->getStype() << endl;
+        return;
+    }
+
+    // Need to do it like that, because for some reason IPPL wants a reference,
+    // therefore cannot simply say "setFieldBC(...toIPPLBConds())". 
+    typedef ippl::BConds<Field_t<Dim>, Dim> bc_type;
+    bc_type bc_container = getBCHandler()->toIPPLBConds<Field_t<Dim>>();
+    phi_m->setFieldBC(bc_container);
     m << "Potential BCs in FieldSolver updated using BCHandler." << endl;
 }
 
