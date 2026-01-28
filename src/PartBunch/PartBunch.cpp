@@ -759,7 +759,10 @@ void PartBunch<T,Dim>::performBunchSanityChecks() const {
         throw OpalException("PartBunch::performBunchSanityChecks",
                             "FieldSolver type string is empty.");
     }
-    if (stype != "FFT" && stype != "OPEN" && stype != "NONE") {
+    if (stype != "FFT" && 
+        stype != "OPEN" && 
+        stype != "CG" && 
+        stype != "NONE") {
         throw OpalException("PartBunch::performBunchSanityChecks",
                             "Unsupported FieldSolver type: " + stype);
     }
