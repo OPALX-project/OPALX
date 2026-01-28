@@ -226,7 +226,7 @@ void FieldSolver<double,3>::dumpScalField(std::string what) {
     }
 
     
-    Field_t<3>* field = this->getRho();   // both rho and phi are in the same variable (in place computation)
+    Field_t<3>* field = (this->getStype() == "CG" && Util::toUpper(what) == "PHI") ? this->getPhi() : this->getRho();   // both rho and phi are in the same variable (in place computation)
     
     // auto localIdx = field->getOwned();
     ippl::NDIndex<3> localIdx = field->getLayout().getLocalNDIndex();
@@ -356,9 +356,9 @@ void FieldSolver<double,3>::initFFTSolver() {
 template <>
 void FieldSolver<double,3>::initCGSolver() {
     ippl::ParameterList sp;
-    sp.add("output_type", CGSolver_t<double, 3>::GRAD);
+    sp.add("output_type", CGSolver_t<double, 3>::SOL);
     // Increase tolerance in the 1D case
-    sp.add("tolerance", 1e-9);
+    sp.add("tolerance", 1e-12);
     
     initSolverWithParams<CGSolver_t<double, 3>>(sp);
 }
@@ -409,11 +409,15 @@ void FieldSolver<double,3>::setPotentialBCs() {
 template<>
 void FieldSolver<double,3>::runSolver(bool force_skip_field_dump) {
     constexpr int Dim = 3;
+    Inform m ("FieldSolver::runSolver");
 
     if (this->getStype() == "CG") {
-            // CGSolver_t<double, 3>& solver = std::get<CGSolver_t<double, 3>>(this->getSolver());
-            // solver.solve();
-            std::get<CGSolver_t<double, 3>>(this->getSolver()).solve();
+            CGSolver_t<double, 3>& solver = std::get<CGSolver_t<double, 3>>(this->getSolver());
+#ifdef OPALX_FIELD_DEBUG
+            if (!force_skip_field_dump) this->dumpScalField("rho");
+#endif
+            // std::get<CGSolver_t<double, 3>>(this->getSolver()).solve();
+            solver.solve();
 #ifdef OPALX_FIELD_DEBUG
             if (!force_skip_field_dump) this->dumpScalField("phi");
 #endif
@@ -436,6 +440,9 @@ void FieldSolver<double,3>::runSolver(bool force_skip_field_dump) {
                 }
             }
             ippl::Comm->barrier();*/
+            int iterations = solver.getIterationCount();
+            int residue    = solver.getResidue();
+            m << "CG solver finished. Iterations: " << iterations << ", Residue: " << residue << endl;
     } else if (this->getStype() == "FFT") {
         if constexpr (Dim == 2 || Dim == 3) {
 #ifdef OPALX_FIELD_DEBUG
@@ -515,6 +522,7 @@ void FieldSolver<double,3>::setPotentialBCs() {
     typedef ippl::BConds<Field_t<Dim>, Dim> bc_type;
     bc_type bc_container = getBCHandler()->toIPPLBConds<Field_t<Dim>>();
     phi_m->setFieldBC(bc_container);
+    // rho_m->setFieldBC(bc_container);
     m << "Potential BCs in FieldSolver updated using BCHandler." << endl;
 }
 
