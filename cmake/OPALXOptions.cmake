@@ -115,11 +115,39 @@ if(ARCH)
 endif()
 
 # -----------------------------------------------------------------------------
-# Auto-configure CMAKE_CUDA_ARCHITECTURES from selected ARCH
+# Auto-configure CMAKE_CUDA_ARCHITECTURES from selected ARCH.
+# For now, this only works with CUDAs architecture naming convention (which
+# is "microarchitecture + compute capability"). At some point, we may want to
+# extend this to all architectures that are supported by Kokkos.
+# See https://kokkos.org/kokkos-core-wiki/get-started/configuration-guide.html#gpu-architectures
+# Note: For non-CUDA backends (HIP, SYCL), the auto-configuration does not apply.
+# Users must explicitly specify CMAKE_HIP_ARCHITECTURES or equivalent via command-line.
 # -----------------------------------------------------------------------------
+
 if("CUDA" IN_LIST OPALX_PLATFORMS)
     include(ArchitectureMapping)
     configure_cuda_architectures_from_kokkos_arch()
+endif()
+
+# Validate architecture configuration for non-CUDA backends
+if("HIP" IN_LIST OPALX_PLATFORMS)
+    if(NOT DEFINED CMAKE_HIP_ARCHITECTURES OR CMAKE_HIP_ARCHITECTURES STREQUAL "")
+        message(FATAL_ERROR 
+            "HIP backend selected but CMAKE_HIP_ARCHITECTURES is not set. "
+            "Please explicitly specify the target HIP GPU architecture(s) via:\n"
+            " -DCMAKE_HIP_ARCHITECTURES=<arch>.\n")
+    endif()
+    colour_message(STATUS ${Green} "✅ HIP backend: CMAKE_HIP_ARCHITECTURES=${CMAKE_HIP_ARCHITECTURES}")
+endif()
+
+if("SYCL" IN_LIST OPALX_PLATFORMS)
+    # SYCL architecture configuration is a bit different and varies by compiler
+    # (Intel DPC++, ComputeCpp, hipSYCL). The user needs to ensure that the
+    # correct flags are set: just print out a warning message here for now. 
+    # Note that we currently do not allow SYCL for OPALX, so this is just
+    # a precaution for now. 
+    colour_message(STATUS ${Yellow} "⚠️  SYCL backend: Architecture configuration is compiler-dependent.")
+    colour_message(STATUS ${Yellow} "   Ensure your SYCL compiler has GPU support enabled via environment or compiler flags.")
 endif()
 
 # -----------------------------------------------------------------------------
