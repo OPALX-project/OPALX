@@ -21,7 +21,8 @@ void  FieldSolver<double,3>::initSolverWithParams(const ippl::ParameterList& sp)
 
     // test if rho_m exists (just in case)
     if (!rho_m) {
-        throw OpalException("FieldSolver<double,3>::initSolverWithParams", "rho_m is null pointer.");
+        throw OpalException("FieldSolver::initSolverWithParams", 
+                            "rho_m is not initialized.");
     }
 
     m << "Init solver with params: " << this->getStype() << endl;
@@ -32,48 +33,20 @@ void  FieldSolver<double,3>::initSolverWithParams(const ippl::ParameterList& sp)
                   (std::is_same_v<Solver, FEMSolver_t<T, Dim>>) || 
                   (std::is_same_v<Solver, FEMPreconSolver_t<T, Dim>>)*/) {
         /// \todo for now, don't use the CG solver yet!
-        throw OpalException("FieldSolver<double,3>::initSolverWithParams", 
+        throw OpalException("FieldSolver::initSolverWithParams", 
                             "Cannot use CGSolver yet, not fully implemented.");
         // The CG solver and FEMPoissonSolver compute the potential 
         // directly and use this to get the electric field
         solver.setLhs(*phi_m);
         solver.setGradient(*E_m);
-        m << "Set gradient for CG" << endl;
+        m << "Set gradient for CG." << endl;
     } else {
         // The periodic Poisson solver, Open boundaries solver,
         // and the TG solver compute the electric field directly
         solver.setLhs(*E_m);
     }
-    m << "Set solver LHS" << endl;
-    
-    /// \todo This can potentially be implemented much easier, see https://github.com/IPPL-framework/ippl/blob/f4c4102a3cb76dd2cd911eef7314adb77aacd676/alpine/FieldSolver.hpp#L148
-    /*if constexpr (std::is_same_v<Solver, CGSolver_t<T, Dim>>) {
-        // The CG solver computes the potential directly and
-        // uses this to get the electric field
-        throw OpalException("FieldSolver<double,3>::initSolverWithParams", "Cannot use CGSolver yet, not implemented.");
 
-        /// \todo implement properly
-        m << "CG solver used " << endl;
-        solver.setLhs(*phi_m);
-        solver.setGradient(*E_m);
-    } else if constexpr (std::is_same_v<Solver, OpenSolver_t<T, Dim>>) {
-        // The periodic Poisson solver, Open boundaries solver,
-        // and the P3M solver compute the electric field directly
-        m << "OpenSolver used" << endl;
-
-        solver.setLhs(*E_m);
-        m << "Set LHS for OpenSolver" << endl;
-    } else if constexpr (std::is_same_v<Solver, FFTSolver_t<T, Dim>>) {
-        // The periodic Poisson solver
-        m << "FFTSolver used" << endl;
-        
-        solver.setLhs(*E_m);
-        m << "Set LHS for FFTSolver" << endl;
-    } else if constexpr (std::is_same_v<Solver, NullSolver_t<T, Dim>>) {
-        m << "NullSolver used" << endl;
-        solver.setLhs(*E_m);
-    }*/
-    
+    m << "Set solver LHS." << endl;
     call_counter_m = 0;
 }
 
@@ -84,7 +57,7 @@ void FieldSolver<double,3>::dumpVectField(std::string what) {
       what == ef
      */
 
-    Inform m("FS::dumpVectorField() ");
+    Inform m("FieldSolver::dumpVectorField");
 
     //    std::variant<Field_t<3>*, VField_t<double, 3>* > field;
 
@@ -340,8 +313,9 @@ template <>
 void FieldSolver<double,3>::initFFTSolver() {
     if constexpr (Dim == 2 || Dim == 3) {
         ippl::ParameterList sp;
-        // Needs sol, otherwise we don't have the phi_m field! (only E_m)
-        sp.add("output_type", FFTSolver_t<double, 3>::SOL);
+        // Needs sol for phi_m testing/output and GRAD for E_m computation
+        /// \todo don't print phi_m to file if FFT and GRAD is selected!
+        sp.add("output_type", FFTSolver_t<double, 3>::GRAD);
         //sp.add("output_type", OpenSolver_t<double, 3>::SOL_AND_GRAD);
         sp.add("use_heffte_defaults", false);
         sp.add("use_pencils", true);
@@ -351,15 +325,15 @@ void FieldSolver<double,3>::initFFTSolver() {
         sp.add("r2c_direction", 0);
         initSolverWithParams<FFTSolver_t<double, 3>>(sp);
     } else {
-        // TODO: add exception here
-        // throw std::runtime_error("Unsupported dimensionality for FFT solver");
+        throw OpalException("FieldSolver<double,3>::initFFTSolver",
+                            "FFTSolver_t is only implemented for 2D and 3D fields.");
     }
 }
 
 template <>
 void FieldSolver<double,3>::initCGSolver() {
     ippl::ParameterList sp;
-    sp.add("output_type", CGSolver_t<double, 3>::SOL);
+    sp.add("output_type", CGSolver_t<double, 3>::GRAD);
     // Increase tolerance in the 1D case
     sp.add("tolerance", 1e-12);
     
@@ -372,7 +346,8 @@ void FieldSolver<double,3>::initNullSolver() {
     if constexpr (Dim == 2 || Dim == 3) {
         initSolverWithParams<NullSolver_t<T, Dim>>(sp);
     } else {
-        throw std::runtime_error("Unsupported dimensionality for Null solver");
+        throw OpalException("FieldSolver<double,3>::initNullSolver",
+                            "NullSolver_t is only implemented for 2D and 3D fields.");
     }
 }
 
@@ -387,10 +362,9 @@ void FieldSolver<double,3>::initSolver() {
         initCGSolver();
     } else if (this->getStype() == "NONE") {
         initNullSolver();
-    }
-    else {
-        m << "No solver matches the argument: " << this->getStype() << endl;
-        throw std::runtime_error("No solver match");
+    } else {
+        throw OpalException("FieldSolver::initSolver", 
+                            "No known solver matches the argument: " + this->getStype());
     }
 }
 
@@ -476,7 +450,8 @@ void FieldSolver<double,3>::runSolver(bool force_skip_field_dump) {
     } else if (this->getStype() == "NONE") {
         std::get<NullSolver_t<T, Dim>>(this->getSolver()).solve();
     } else {
-        throw std::runtime_error("Unknown solver type");
+        throw OpalException("FieldSolver::runSolver", 
+                            "No known solver matches the argument: " + this->getStype());
     }
 
     call_counter_m++; // maybe want "if (!force_skip_field_dump)" here?
