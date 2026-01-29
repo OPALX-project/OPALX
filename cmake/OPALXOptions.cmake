@@ -101,17 +101,25 @@ endif()
 # -----------------------------------------------------------------------------
 
 set(ARCH "" CACHE STRING
-    "Kokkos architecture: AMPERE80, PASCAL61, VOLTA70, BDW, SKX")
-set_property(CACHE ARCH PROPERTY STRINGS AMPERE80 PASCAL61 VOLTA70 BDW SKX)
+    "Kokkos architecture (CMAKE_CUDA_ARCHITECTURES is auto-configured from this): HOPPER90, AMPERE80, AMPERE86, AMPERE87, VOLTA70, VOLTA72, PASCAL61, PASCAL60, ADA102, BDW, SKX, CNL, ZEN, ZEN2, ZEN3, ARM80, ARM81")
+set_property(CACHE ARCH PROPERTY STRINGS "" HOPPER90 AMPERE80 AMPERE86 AMPERE87 VOLTA70 VOLTA72 PASCAL61 PASCAL60 ADA102 BDW SKX CNL ZEN ZEN2 ZEN3 ARM80 ARM81)
 
-# Clear all architecture flags
-foreach(a AMPERE80 PASCAL61 VOLTA70 BDW SKX)
+# Clear all architecture flags (include new ones for future-proofing)
+foreach(a HOPPER90 AMPERE80 AMPERE86 AMPERE87 VOLTA70 VOLTA72 PASCAL61 PASCAL60 ADA102 BDW SKX CNL ZEN ZEN2 ZEN3 ARM80 ARM81)
     set(Kokkos_ARCH_${a} OFF CACHE BOOL "" FORCE)
 endforeach()
 
 # Enable selected arch (if provided)
 if(ARCH)
     set(Kokkos_ARCH_${ARCH} ON CACHE BOOL "" FORCE)
+endif()
+
+# -----------------------------------------------------------------------------
+# Auto-configure CMAKE_CUDA_ARCHITECTURES from selected ARCH
+# -----------------------------------------------------------------------------
+if("CUDA" IN_LIST OPALX_PLATFORMS)
+    include(ArchitectureMapping)
+    configure_cuda_architectures_from_kokkos_arch()
 endif()
 
 # -----------------------------------------------------------------------------
