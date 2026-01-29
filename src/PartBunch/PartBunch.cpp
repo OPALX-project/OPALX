@@ -180,7 +180,8 @@ void PartBunch<T, Dim>::setSolver(std::string solver) {
         this->solver_m, 
         &this->fcontainer_m->getRho(), 
         &this->fcontainer_m->getE(),
-        &this->fcontainer_m->getPhi()
+        &this->fcontainer_m->getPhi(),
+        this->getBCHandler()
     ));
 
     this->fsolver_m->initSolver();
@@ -216,60 +217,62 @@ void PartBunch<T, Dim>::spaceChargeEFieldCheck(Vector_t<double, 3> /*efScale*/) 
     int myRank = ippl::Comm->rank();
 
     Kokkos::parallel_reduce(
-                            "check e-field", this->getLocalNum(),
-                            KOKKOS_LAMBDA(const int i, double& loc_avgE, double& loc_minEComponent,
-                                        double& loc_maxEComponent, double& loc_minE, double& loc_maxE) {
-                                double EX    = pE_view[i][0]*cc;
-                                double EY    = pE_view[i][1]*cc;
-                                double EZ    = pE_view[i][2]*cc;
-                            
-                                double ENorm = Kokkos::sqrt(EX*EX + EY*EY + EZ*EZ);
-                             
-                                loc_avgE += ENorm;
-   
-                                loc_minEComponent = EX < loc_minEComponent ? EX : loc_minEComponent;
-                                loc_minEComponent = EY < loc_minEComponent ? EY : loc_minEComponent;
-                                loc_minEComponent = EZ < loc_minEComponent ? EZ : loc_minEComponent;
-                                
-                                loc_maxEComponent = EX > loc_maxEComponent ? EX : loc_maxEComponent;
-                                loc_maxEComponent = EY > loc_maxEComponent ? EY : loc_maxEComponent;
-                                loc_maxEComponent = EZ > loc_maxEComponent ? EZ : loc_maxEComponent;   
+        "check e-field", this->getLocalNum(),
+        KOKKOS_LAMBDA(const int i, double& loc_avgE, double& loc_minEComponent,
+                    double& loc_maxEComponent, double& loc_minE, double& loc_maxE) {
+            double EX    = pE_view[i][0]*cc;
+            double EY    = pE_view[i][1]*cc;
+            double EZ    = pE_view[i][2]*cc;
+        
+            double ENorm = Kokkos::sqrt(EX*EX + EY*EY + EZ*EZ);
+            
+            loc_avgE += ENorm;
 
-                                loc_minE = ENorm < loc_minE ? ENorm : loc_minE;
-                                loc_maxE = ENorm > loc_maxE ? ENorm : loc_maxE;
-                            },
-                            Kokkos::Sum<T>(avgE), Kokkos::Min<T>(minEComponent),
-                            Kokkos::Max<T>(maxEComponent), Kokkos::Min<T>(minE),
-                            Kokkos::Max<T>(maxE));
+            loc_minEComponent = EX < loc_minEComponent ? EX : loc_minEComponent;
+            loc_minEComponent = EY < loc_minEComponent ? EY : loc_minEComponent;
+            loc_minEComponent = EZ < loc_minEComponent ? EZ : loc_minEComponent;
+            
+            loc_maxEComponent = EX > loc_maxEComponent ? EX : loc_maxEComponent;
+            loc_maxEComponent = EY > loc_maxEComponent ? EY : loc_maxEComponent;
+            loc_maxEComponent = EZ > loc_maxEComponent ? EZ : loc_maxEComponent;   
 
-  if (this->getLocalNum() == 0) {
-     minEComponent = maxEComponent = minE = maxE = avgE = 0.0;
- }
+            loc_minE = ENorm < loc_minE ? ENorm : loc_minE;
+            loc_maxE = ENorm > loc_maxE ? ENorm : loc_maxE;
+        },
+        Kokkos::Sum<T>(avgE), Kokkos::Min<T>(minEComponent),
+        Kokkos::Max<T>(maxEComponent), Kokkos::Min<T>(minE),
+        Kokkos::Max<T>(maxE)
+    );
 
- MPI_Reduce(myRank == 0 ? MPI_IN_PLACE : &avgE, &avgE, 1, MPI_DOUBLE, MPI_SUM, 0, ippl::Comm->getCommunicator());
- MPI_Reduce(myRank == 0 ? MPI_IN_PLACE : &minEComponent, &minEComponent, 1, MPI_DOUBLE, MPI_MIN, 0, ippl::Comm->getCommunicator());
- MPI_Reduce(myRank == 0 ? MPI_IN_PLACE : &maxEComponent, &maxEComponent, 1, MPI_DOUBLE, MPI_MAX, 0, ippl::Comm->getCommunicator());
- MPI_Reduce(myRank == 0 ? MPI_IN_PLACE : &minE, &minE, 1, MPI_DOUBLE, MPI_MIN, 0, ippl::Comm->getCommunicator());
- MPI_Reduce(myRank == 0 ? MPI_IN_PLACE : &maxE, &maxE, 1, MPI_DOUBLE, MPI_MAX, 0, ippl::Comm->getCommunicator());
+    if (this->getLocalNum() == 0) {
+        minEComponent = maxEComponent = minE = maxE = avgE = 0.0;
+    }
+
+    MPI_Reduce(myRank == 0 ? MPI_IN_PLACE : &avgE, &avgE, 1, MPI_DOUBLE, MPI_SUM, 0, ippl::Comm->getCommunicator());
+    MPI_Reduce(myRank == 0 ? MPI_IN_PLACE : &minEComponent, &minEComponent, 1, MPI_DOUBLE, MPI_MIN, 0, ippl::Comm->getCommunicator());
+    MPI_Reduce(myRank == 0 ? MPI_IN_PLACE : &maxEComponent, &maxEComponent, 1, MPI_DOUBLE, MPI_MAX, 0, ippl::Comm->getCommunicator());
+    MPI_Reduce(myRank == 0 ? MPI_IN_PLACE : &minE, &minE, 1, MPI_DOUBLE, MPI_MIN, 0, ippl::Comm->getCommunicator());
+    MPI_Reduce(myRank == 0 ? MPI_IN_PLACE : &maxE, &maxE, 1, MPI_DOUBLE, MPI_MAX, 0, ippl::Comm->getCommunicator());
  
- size_t Np = this->getTotalNum();
- avgE /= (Np == 0) ? 1 : Np; // avoid division by zero for empty simulations (see also DistributionMoments::computeMeans implementation) 
+    size_t Np = this->getTotalNum();
+    avgE /= (Np == 0) ? 1 : Np; // avoid division by zero for empty simulations (see also DistributionMoments::computeMeans implementation) 
 
- msg << "avgENorm = " << avgE << endl;
- 
- using mdrange_type             = Kokkos::MDRangePolicy<Kokkos::Rank<3>>;
+    msg << "avgENorm = " << avgE << endl;
+    
+    using mdrange_type             = Kokkos::MDRangePolicy<Kokkos::Rank<3>>;
 
- Kokkos::parallel_reduce(
-                         "check phi", mdrange_type({0,0,0}, {fphi_view.extent(0),fphi_view.extent(1),fphi_view.extent(2)}),
-                         KOKKOS_LAMBDA(const int i, const int j, const int k, double& loc_avgphi) {
-                             double phi = fphi_view(i,j,k);
-                             loc_avgphi += phi;
-                         },
-                         Kokkos::Sum<T>(avgphi));
+    Kokkos::parallel_reduce(
+        "check phi", mdrange_type({0,0,0}, {fphi_view.extent(0),fphi_view.extent(1),fphi_view.extent(2)}),
+        KOKKOS_LAMBDA(const int i, const int j, const int k, double& loc_avgphi) {
+            double phi = fphi_view(i,j,k);
+            loc_avgphi += phi;
+        },
+        Kokkos::Sum<T>(avgphi)
+    );
 
- MPI_Reduce(myRank == 0 ? MPI_IN_PLACE : &avgphi, &avgphi, 1, MPI_DOUBLE, MPI_SUM, 0, ippl::Comm->getCommunicator());
- avgphi /= this->getTotalNum(); 
- msg << "avgphi = " << avgphi << endl;
+    MPI_Reduce(myRank == 0 ? MPI_IN_PLACE : &avgphi, &avgphi, 1, MPI_DOUBLE, MPI_SUM, 0, ippl::Comm->getCommunicator());
+    avgphi /= this->getTotalNum(); 
+    msg << "avgphi = " << avgphi << endl;
 
 }
 
@@ -369,7 +372,9 @@ void PartBunch<T, Dim>::calcBeamParameters() {
 
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::pre_run() {
+    *gmsg << "* PartBunch pre_run started." << endl;
     this->fcontainer_m->getRho() = 0.0;
+    *gmsg << "* Rho initialized to zero." << endl;
 
     /*
     Force skip field dump during pre_run/warmup!
@@ -588,19 +593,26 @@ void PartBunch<T, Dim>::computeSelfFields() {
 #endif
 
     // At this point, the units of rho need to be corrected: rho = rho / cellVolume
-    double cellVolumeInv = 1 / std::reduce(hr_m.begin(), hr_m.end(), 1., std::multiplies<double>());
-    (*rho) = (*rho) * cellVolumeInv;
+    if (this->fsolver_m->getStype() != "FEM" && this->fsolver_m->getStype() != "FEM_PRECON") {
+        // CG solver already accounts for cell volume internally in FD,
+        // other solvers need explicit normalization here
+        double cellVolume = std::reduce(hr_m.begin(), hr_m.end(), 1., std::multiplies<double>());
+        (*rho)            = (*rho) / cellVolume;
+    }
 
     // Alpine uses net 0 charge density for periodic BCs, so we need to subtract background charge here (?TODO: check)
+    // Note: otherwise solvers like the CG solver will "explode" and give unnormalized potentials?
     double totalQ = getCharge();
     if (this->fsolver_m->getStype() != "OPEN") {
         double size = 1;
         for (size_t d = 0; d < 3; d++) {
             size *= rmax_m[d] - rmin_m[d];
         }
+
+        std::cout << "Generating net-0 charge with factor: " << (totalQ / size) << std::endl;
         (*rho) = (*rho) - (totalQ / size);
     }
-    
+
     /*
     This concludes the scatter step ( \todo perhaps we want to put this in its own function, like scatterCIC)
 
@@ -616,7 +628,19 @@ void PartBunch<T, Dim>::computeSelfFields() {
     (*rho) = (*rho) * this->getCouplingConstant(); // now rho_m has units of [V]
 
     this->fsolver_m->runSolver();
-    // Now, with E=-grad(phi), E has units of [V/m] (note, phi is a scalar potential)    
+
+    /*
+    Now, with E=-grad(phi), E has units of [V/m] (note, phi is a scalar potential).
+
+    Note that we do this step separately, even though the solvers can provide
+    it firectlt, since some field solver then don't produce phi, which might
+    be necessary elsewhere or for debugging.
+    
+    This can be optimized later by changing the output type of the solvers and 
+    removing this line! As it is implemented now, it will always provide both 
+    (phi and the E field that is actually used for kicking the particles).
+    */   
+    // (*E) = -ippl::grad(this->fcontainer_m->getPhi());
     
     gather(this->pcontainer_m->E, this->fcontainer_m->getE(), this->pcontainer_m->R);
 
@@ -757,7 +781,10 @@ void PartBunch<T,Dim>::performBunchSanityChecks() const {
         throw OpalException("PartBunch::performBunchSanityChecks",
                             "FieldSolver type string is empty.");
     }
-    if (stype != "FFT" && stype != "OPEN" && stype != "NONE") {
+    if (stype != "FFT" && 
+        stype != "OPEN" && 
+        stype != "CG" && 
+        stype != "NONE") {
         throw OpalException("PartBunch::performBunchSanityChecks",
                             "Unsupported FieldSolver type: " + stype);
     }
