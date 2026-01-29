@@ -114,7 +114,7 @@ public:
      * element.
      */
     bool isAllEqual() const {
-        bool base_case = bcs_m[0];
+        int base_case = bcs_m[0];
         for (unsigned int d = 1; d < Dim; ++d) {
             if (bcs_m[d] != base_case) return false;
         }
