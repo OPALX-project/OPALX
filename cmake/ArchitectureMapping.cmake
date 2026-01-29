@@ -57,12 +57,12 @@ function(configure_cuda_architectures_from_kokkos_arch)
 
     if(CUDA_CAPABILITY)
         set(CMAKE_CUDA_ARCHITECTURES "${CUDA_CAPABILITY}" CACHE STRING
-            "CUDA architectures (auto-extracted from ARCH=${ARCH})" FORCE)
-        message(STATUS "✅ Extracted CUDA architecture from ARCH=${ARCH} -> CMAKE_CUDA_ARCHITECTURES=${CUDA_CAPABILITY}")
+            "CUDA compute capability (auto-extracted from ARCH=${ARCH})" FORCE)
+        message(STATUS "✅ Extracted CUDA compute capability from ARCH=${ARCH} -> CMAKE_CUDA_ARCHITECTURES=${CUDA_CAPABILITY}")
     else()
         message(FATAL_ERROR 
-            "❌ CUDA is enabled in OPALX_PLATFORMS, but ARCH=${ARCH} has no numeric suffix (not a GPU architecture).\n"
-            "   When CUDA is enabled, you must specify a GPU architecture like HOPPER90, AMPERE80, VOLTA70, etc.\n"
-            "   Alternatively, disable CUDA with e.g. -DPLATFORMS=OPENMP.")
+            "❌ CUDA is enabled in OPALX_PLATFORMS, but ARCH=${ARCH} has no numeric suffix to indicate compute capability.\n"
+            "   When CUDA is enabled, you must specify a GPU architecture with compute capability like HOPPER90, AMPERE80, VOLTA70, etc.\n"
+            "   If you don't want CUDA, use e.g. -DPLATFORMS=OPENMP.")
     endif()
 endfunction()
