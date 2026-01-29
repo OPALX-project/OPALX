@@ -593,19 +593,26 @@ void PartBunch<T, Dim>::computeSelfFields() {
 #endif
 
     // At this point, the units of rho need to be corrected: rho = rho / cellVolume
-    double cellVolumeInv = 1 / std::reduce(hr_m.begin(), hr_m.end(), 1., std::multiplies<double>());
-    (*rho) = (*rho) * cellVolumeInv;
+    if (this->fsolver_m->getStype() != "FEM" && this->fsolver_m->getStype() != "FEM_PRECON") {
+        // CG solver already accounts for cell volume internally in FD,
+        // other solvers need explicit normalization here
+        double cellVolume = std::reduce(hr_m.begin(), hr_m.end(), 1., std::multiplies<double>());
+        (*rho)            = (*rho) / cellVolume;
+    }
 
     // Alpine uses net 0 charge density for periodic BCs, so we need to subtract background charge here (?TODO: check)
+    // Note: otherwise solvers like the CG solver will "explode" and give unnormalized potentials?
     double totalQ = getCharge();
     if (this->fsolver_m->getStype() != "OPEN") {
         double size = 1;
         for (size_t d = 0; d < 3; d++) {
             size *= rmax_m[d] - rmin_m[d];
         }
+
+        std::cout << "Generating net-0 charge with factor: " << (totalQ / size) << std::endl;
         (*rho) = (*rho) - (totalQ / size);
     }
-    
+
     /*
     This concludes the scatter step ( \todo perhaps we want to put this in its own function, like scatterCIC)
 
@@ -621,7 +628,19 @@ void PartBunch<T, Dim>::computeSelfFields() {
     (*rho) = (*rho) * this->getCouplingConstant(); // now rho_m has units of [V]
 
     this->fsolver_m->runSolver();
-    // Now, with E=-grad(phi), E has units of [V/m] (note, phi is a scalar potential)    
+
+    /*
+    Now, with E=-grad(phi), E has units of [V/m] (note, phi is a scalar potential).
+
+    Note that we do this step separately, even though the solvers can provide
+    it firectlt, since some field solver then don't produce phi, which might
+    be necessary elsewhere or for debugging.
+    
+    This can be optimized later by changing the output type of the solvers and 
+    removing this line! As it is implemented now, it will always provide both 
+    (phi and the E field that is actually used for kicking the particles).
+    */   
+    // (*E) = -ippl::grad(this->fcontainer_m->getPhi());
     
     gather(this->pcontainer_m->E, this->fcontainer_m->getE(), this->pcontainer_m->R);
 
