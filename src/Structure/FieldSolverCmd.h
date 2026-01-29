@@ -28,15 +28,15 @@
 
 #include "Ippl.h"
 
-enum class FieldSolverCmdType : short { NONE = -1, FFT = 0, OPEN = 1 };
+enum class FieldSolverCmdType : short { NONE = -1, FFT = 0, OPEN = 1, CG = 2 };
 
 // The attributes of class FieldSolverCmd.
 namespace FIELDSOLVER {
     enum {
         TYPE,      // The field solver name
-        NX,        // mesh sixe in x
-        NY,        // mesh sixe in y
-        NZ,        // mesh sixe in z
+        NX,        // mesh size in x
+        NY,        // mesh size in y
+        NZ,        // mesh size in z
         PARFFTX,   // parallelized grid in x
         PARFFTY,   // parallelized grid in y
         PARFFTZ,   // parallelized grid in z
