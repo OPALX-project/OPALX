@@ -467,11 +467,11 @@ void PartBunch<T, Dim>::bunchUpdate(ippl::Vector<double, 3> hr) {
 
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::bunchUpdate() {
+
     /* \brief
        1. calculates and set hr
        2. do repartitioning
     */
-    Inform m ("PartBunch::bunchUpdate");
 
     auto *mesh = &this->fcontainer_m->getMesh();
     auto *FL   = &this->fcontainer_m->getFL();
@@ -491,21 +491,15 @@ void PartBunch<T, Dim>::bunchUpdate() {
     this->getFieldContainer()->setRMin(o);
     this->getFieldContainer()->setRMax(e);
     this->getFieldContainer()->setHr(hr_m);
-    m << "New hr: " << hr_m 
-      << ", origin: " << mesh->getOrigin() 
-      << ", rmin: " << this->getFieldContainer()->getRMin() 
-      << ", rmax: " << this->getFieldContainer()->getRMax() << endl;
 
     pc->getLayout().updateLayout(*FL, *mesh);
     pc->update();
-    m << "ParticleContainer and layout updated." << endl;
-
 
     this->isFirstRepartition_m = true;
     //this->loadbalancer_m->initializeORB(FL, mesh);
     //this->loadbalancer_m->repartition(FL, mesh, this->isFirstRepartition_m);
 
-    //this->updateMoments();
+    this->updateMoments();
 }
 
 template <typename T, unsigned Dim>

@@ -520,8 +520,7 @@ void ParallelTracker::timeIntegration2(BorisPusher& pusher) {
     Kokkos::parallel_for("changeDT", ippl::getRangePolicy(dtview),
     KOKKOS_LAMBDA(const int i) {
         dtview(i) = newdT;
-    });             
-    std::cout << "Changed dt of all particles to " << newdT << std::endl;        
+    });                     
     
     IpplTimings::stopTimer(timeIntegrationTimer2_m);
 }
@@ -713,8 +712,8 @@ void ParallelTracker::pushParticles(const BorisPusher& pusher) {
 
     itsBunch_m->switchOffUnitlessPositions(true);
     /// \todo update gives different results on one rank?
-    itsBunch_m->bunchUpdate(); //->getParticleContainer()->update();
-    // ippl::Comm->barrier();
+    //itsBunch_m->getParticleContainer()->update();
+    ippl::Comm->barrier();
 }
 
 /**
@@ -777,7 +776,7 @@ void ParallelTracker::kickParticles(const BorisPusher& pusher) {
         
     /// \todo unnecessary update? kick does not modify positions
     //itsBunch_m->getParticleContainer()->update();
-    // ippl::Comm->barrier();
+    ippl::Comm->barrier();
 }
 
 
