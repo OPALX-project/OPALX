@@ -260,51 +260,130 @@ if(OPALX_ENABLE_UNIT_TESTS)
         if(NOT TARGET GTest::gtest_main)
             message(STATUS "⚙ Creating GTest targets manually from variables...")
             
-            # Ensure we have the base gtest target
+            # fallback if GTest_FOUND not set, but dirs exist
+            if(NOT GTest_FOUND AND DEFINED GTEST_LIBRARIES AND DEFINED GTEST_INCLUDE_DIRS)
+                set(GTest_FOUND TRUE)
+            endif()
+
+            if(NOT GTest_FOUND)
+                message(FATAL_ERROR "OPALX_USE_INSTALLED_GTEST=ON but system GTest not found.")
+            endif()
+
+            # Normalize variables - handle both single path and list
+            if(DEFINED GTEST_INCLUDE_DIRS)
+                set(GTest_INCLUDE_DIRS ${GTEST_INCLUDE_DIRS})
+            elseif(DEFINED GTEST_INCLUDE_DIR)
+                set(GTest_INCLUDE_DIRS ${GTEST_INCLUDE_DIR})
+            endif()
+
+            # Extract gtest library (might be a list, take first)
+            if(DEFINED GTEST_LIBRARIES)
+                list(GET GTEST_LIBRARIES 0 GTEST_LIB_SINGLE)
+                set(GTest_LIBRARIES ${GTEST_LIBRARIES})
+            elseif(DEFINED GTEST_LIBRARY)
+                set(GTEST_LIB_SINGLE ${GTEST_LIBRARY})
+                set(GTest_LIBRARIES ${GTEST_LIBRARY})
+            else()
+                message(FATAL_ERROR "GTest libraries not found in GTEST_LIBRARIES or GTEST_LIBRARY")
+            endif()
+
+            message(STATUS "✔ Found system GTest: ${GTest_LIBRARIES}")
+
+            # Create imported target for gtest framework
             if(NOT TARGET GTest::gtest)
-                add_library(GTest::gtest STATIC IMPORTED GLOBAL)
+                add_library(GTest::gtest UNKNOWN IMPORTED GLOBAL)
                 set_target_properties(GTest::gtest PROPERTIES
-                    IMPORTED_LOCATION "${GTEST_LIBRARIES}"
-                    INTERFACE_INCLUDE_DIRECTORIES "${GTEST_INCLUDE_DIRS}"
+                    IMPORTED_LOCATION "${GTEST_LIB_SINGLE}"
+                    INTERFACE_INCLUDE_DIRECTORIES "${GTest_INCLUDE_DIRS}"
                 )
             endif()
 
-            # Find gtest_main relative to gtest
-            find_library(GTEST_MAIN_LIB NAMES gtest_main HINTS ${GTEST_LIB_DIR})
+            # Find gtest_main library - try multiple approaches
+            set(GTEST_MAIN_LIB "")
             
-            if(GTEST_MAIN_LIB)
-                add_library(GTest::gtest_main STATIC IMPORTED GLOBAL)
-                set_target_properties(GTest::gtest_main PROPERTIES
-                    IMPORTED_LOCATION "${GTEST_MAIN_LIB}"
-                    INTERFACE_LINK_LIBRARIES "GTest::gtest"
-                    INTERFACE_INCLUDE_DIRECTORIES "${GTEST_INCLUDE_DIRS}"
-                )
-                message(STATUS "✔ Created GTest::gtest_main from: ${GTEST_MAIN_LIB}")
-            else()
-                message(FATAL_ERROR "❌ GTest found, but libgtest_main was not. Install gtest development headers/libs.")
+            # Approach 1: Check if GTEST_MAIN_LIBRARIES is set
+            if(DEFINED GTEST_MAIN_LIBRARIES)
+                list(GET GTEST_MAIN_LIBRARIES 0 GTEST_MAIN_LIB)
+            elseif(DEFINED GTEST_MAIN_LIBRARY)
+                set(GTEST_MAIN_LIB ${GTEST_MAIN_LIBRARY})
             endif()
+            
+            # Approach 2: Try to find it in the same directory as gtest
+            if(NOT GTEST_MAIN_LIB)
+                get_filename_component(GTEST_LIB_DIR "${GTEST_LIB_SINGLE}" DIRECTORY)
+                get_filename_component(GTEST_LIB_EXT "${GTEST_LIB_SINGLE}" EXT)
+                
+                # Only search if we have a valid directory
+                if(GTEST_LIB_DIR AND EXISTS "${GTEST_LIB_DIR}")
+                    # Try common naming patterns
+                    set(_possible_names
+                        "${GTEST_LIB_DIR}/libgtest_main${GTEST_LIB_EXT}"
+                        "${GTEST_LIB_DIR}/libgtest_main.a"
+                        "${GTEST_LIB_DIR}/libgtest_main.so"
+                        "${GTEST_LIB_DIR}/gtest_main${GTEST_LIB_EXT}"
+                        "${GTEST_LIB_DIR}/gtest_main.a"
+                        "${GTEST_LIB_DIR}/gtest_main.so"
+                    )
+                    
+                    foreach(_name IN LISTS _possible_names)
+                        if(EXISTS "${_name}")
+                            set(GTEST_MAIN_LIB "${_name}")
+                            break()
+                        endif()
+                    endforeach()
+                endif()
+            endif()
+            
+            # Approach 3: Use find_library as last resort (in same directory)
+            if(NOT GTEST_MAIN_LIB AND GTEST_LIB_DIR AND EXISTS "${GTEST_LIB_DIR}")
+                find_library(GTEST_MAIN_LIB_FOUND
+                    NAMES gtest_main libgtest_main
+                    PATHS ${GTEST_LIB_DIR}
+                    NO_DEFAULT_PATH
+                )
+                if(GTEST_MAIN_LIB_FOUND)
+                    set(GTEST_MAIN_LIB ${GTEST_MAIN_LIB_FOUND})
+                endif()
+            endif()
+
+            # Create gtest_main target if found
+            if(GTEST_MAIN_LIB AND EXISTS "${GTEST_MAIN_LIB}")
+                if(NOT TARGET GTest::gtest_main)
+                    add_library(GTest::gtest_main UNKNOWN IMPORTED GLOBAL)
+                    set_target_properties(GTest::gtest_main PROPERTIES
+                        IMPORTED_LOCATION "${GTEST_MAIN_LIB}"
+                        INTERFACE_LINK_LIBRARIES "GTest::gtest"   # crucial!
+                        INTERFACE_INCLUDE_DIRECTORIES "${GTest_INCLUDE_DIRS}"
+                    )
+                endif()
+                message(STATUS "✔ Found gtest_main library: ${GTEST_MAIN_LIB}")
+            else()
+                message(FATAL_ERROR 
+                    "GTest::gtest_main target not found and could not locate gtest_main library.\n"
+                    "Searched in: ${GTEST_LIB_DIR}\n"
+                    "Please ensure gtest_main is installed or set GTEST_MAIN_LIBRARIES manually.")
+            endif()
+
         endif()
 
         message(STATUS "✅ System GTest targets ready.")
 
-
-
     else()
-          message(STATUS "⚙ Building GoogleTest from source (FetchContent)")
+        message(STATUS "⚙ Building GoogleTest from source (FetchContent)")
 
-          FetchContent_Declare(GTest GIT_REPOSITORY "https://github.com/google/googletest"
-                              GIT_TAG "v1.16.0" GIT_SHALLOW ON)
+        FetchContent_Declare(GTest GIT_REPOSITORY "https://github.com/google/googletest"
+                            GIT_TAG "v1.16.0" GIT_SHALLOW ON)
 
-          # For Windows: force shared crt, ignored on linux
-          set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+        # For Windows: force shared crt, ignored on linux
+        set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 
-          # Turn off GTest install/tests in the subproject
-          set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
-          set(BUILD_GMOCK OFF CACHE BOOL "" FORCE)
-          set(BUILD_GTEST ON CACHE BOOL "" FORCE)
+        # Turn off GTest install/tests in the subproject
+        set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
+        set(BUILD_GMOCK OFF CACHE BOOL "" FORCE)
+        set(BUILD_GTEST ON CACHE BOOL "" FORCE)
 
-          FetchContent_MakeAvailable(GTest)
-          message(STATUS "✅ GoogleTest built from source (${GTest_VERSION})")
+        FetchContent_MakeAvailable(GTest)
+        message(STATUS "✅ GoogleTest built from source (${GTest_VERSION})")
     endif()
 endif()
 # ------------------------------------------------------------------------------
