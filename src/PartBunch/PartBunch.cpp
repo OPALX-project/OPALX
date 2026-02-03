@@ -372,9 +372,12 @@ void PartBunch<T, Dim>::calcBeamParameters() {
 
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::pre_run() {
-    *gmsg << "* PartBunch pre_run started." << endl;
+    Inform m("PartBunch::pre_run");
+    m << "PartBunch pre_run started." << endl;
     this->fcontainer_m->getRho() = 0.0;
-    *gmsg << "* Rho initialized to zero." << endl;
+    //Kokkos::fence();
+    //ippl::Comm->barrier();
+    m << "Rho initialized to zero." << endl;
 
     /*
     Force skip field dump during pre_run/warmup!
@@ -382,9 +385,12 @@ void PartBunch<T, Dim>::pre_run() {
     fsolver_m to FieldSolver_t, since this addition is not possible in the base
     class (without changing ippl).
     */
-    auto fs = std::dynamic_pointer_cast<FieldSolver_t>(this->fsolver_m);
-    fs->runSolver(true);
-    fs->resetCallCounter();
+    // auto fs = std::dynamic_pointer_cast<FieldSolver_t>(this->fsolver_m);
+    // this->getFieldSolver()->resetCallCounter();
+    m << "Call counter reset." << endl;
+    this->getFieldSolver()->runSolver(true);
+    m << "Field solver ran during pre_run." << endl;
+    this->getFieldSolver()->resetCallCounter();
 }
 
 template <typename T, unsigned Dim>
