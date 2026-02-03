@@ -110,11 +110,13 @@ target_link_libraries(opalx PUBLIC
     IPPL::ippl
     H5hut
     ${HDF5_LIBRARIES}
+    ZLIB::ZLIB
 )
 
 target_include_directories(opalx PRIVATE
   ${HDF5_INCLUDE_DIR}
   ${H5HUT_INCLUDE_DIR}
+  ZLIB::ZLIB
 )
 
 # CLI executable
