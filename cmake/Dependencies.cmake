@@ -127,7 +127,7 @@ if(OPALX_USE_INSTALLED_HDF5)
     message(STATUS "⚙ Using system-installed HDF5")
 
     # Require parallel HDF5 with C++ components disabled (you only use C libs)
-    find_package(HDF5 REQUIRED COMPONENTS C HL)
+    find_package(HDF5 REQUIRED COMPONENTS C)
 
     if(NOT HDF5_FOUND)
         message(FATAL_ERROR "System HDF5 requested but not found.")
