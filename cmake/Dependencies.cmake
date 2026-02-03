@@ -126,7 +126,7 @@ if(OPALX_USE_INSTALLED_HDF5)
 
     message(STATUS "⚙ Using system-installed HDF5")
 
-    # Require parallel HDF5 with C++ components disabled (you only use C libs)
+    # Require parallel HDF5 with C++ components disabled (we only use C libs)
     find_package(HDF5 REQUIRED COMPONENTS C)
 
     if(NOT HDF5_FOUND)
@@ -253,49 +253,39 @@ if(OPALX_ENABLE_UNIT_TESTS)
     if(OPALX_USE_INSTALLED_GTEST)
         message(STATUS "⚙ Using system-installed GoogleTest")
 
-        find_package(GTest QUIET)
+        # 1. Try to find the package (modern CMake creates GTest::gtest_main automatically)
+        find_package(GTest REQUIRED)
 
-        # fallback if GTest_FOUND not set, but dirs exist
-        if(NOT GTest_FOUND AND DEFINED GTEST_LIBRARIES AND DEFINED GTEST_INCLUDE_DIRS)
-            set(GTest_FOUND TRUE)
-        endif()
-
-        if(NOT GTest_FOUND)
-            message(FATAL_ERROR "OPALX_USE_INSTALLED_GTEST=ON but system GTest not found.")
-        endif()
-
-        # Normalize variables
-        set(GTest_INCLUDE_DIRS ${GTEST_INCLUDE_DIRS})
-        set(GTest_LIBRARIES   ${GTEST_LIBRARIES})
-
-        message(STATUS "✔ Found system GTest: ${GTest_LIBRARIES}")
-
-        # Create imported target for gtest framework
-        if(NOT TARGET GTest::gtest)
-            add_library(GTest::gtest STATIC IMPORTED GLOBAL)
-            set_target_properties(GTest::gtest PROPERTIES
-                IMPORTED_LOCATION "${GTEST_LIBRARIES}"
-                INTERFACE_INCLUDE_DIRECTORIES "${GTEST_INCLUDE_DIRS}"
-            )
-        endif()
-
-        # Imported target for gtest_main (depends on gtest!)
-        get_filename_component(GTEST_LIB_DIR "${GTEST_LIBRARIES}" DIRECTORY)
-        set(GTEST_MAIN_LIB "${GTEST_LIB_DIR}/libgtest_main.a")
-
-        if(EXISTS "${GTEST_MAIN_LIB}")
-            if(NOT TARGET GTest::gtest_main)
-                add_library(GTest::gtest_main STATIC IMPORTED GLOBAL)
-                set_target_properties(GTest::gtest_main PROPERTIES
-                    IMPORTED_LOCATION "${GTEST_MAIN_LIB}"
-                    INTERFACE_LINK_LIBRARIES "GTest::gtest"   # crucial!
+        # 2. Fallback: If the package was found but targets weren't created (older CMake)
+        if(NOT TARGET GTest::gtest_main)
+            message(STATUS "⚙ Creating GTest targets manually from variables...")
+            
+            # Ensure we have the base gtest target
+            if(NOT TARGET GTest::gtest)
+                add_library(GTest::gtest STATIC IMPORTED GLOBAL)
+                set_target_properties(GTest::gtest PROPERTIES
+                    IMPORTED_LOCATION "${GTEST_LIBRARIES}"
                     INTERFACE_INCLUDE_DIRECTORIES "${GTEST_INCLUDE_DIRS}"
                 )
             endif()
-            message(STATUS "✔ Found libgtest_main.a: ${GTEST_MAIN_LIB}")
-        else()
-            message(STATUS "⚠ libgtest_main.a not found; tests will need their own main()")
+
+            # Find gtest_main relative to gtest
+            find_library(GTEST_MAIN_LIB NAMES gtest_main HINTS ${GTEST_LIB_DIR})
+            
+            if(GTEST_MAIN_LIB)
+                add_library(GTest::gtest_main STATIC IMPORTED GLOBAL)
+                set_target_properties(GTest::gtest_main PROPERTIES
+                    IMPORTED_LOCATION "${GTEST_MAIN_LIB}"
+                    INTERFACE_LINK_LIBRARIES "GTest::gtest"
+                    INTERFACE_INCLUDE_DIRECTORIES "${GTEST_INCLUDE_DIRS}"
+                )
+                message(STATUS "✔ Created GTest::gtest_main from: ${GTEST_MAIN_LIB}")
+            else()
+                message(FATAL_ERROR "❌ GTest found, but libgtest_main was not. Install gtest development headers/libs.")
+            endif()
         endif()
+
+        message(STATUS "✅ System GTest targets ready.")
 
 
 
