@@ -308,3 +308,23 @@ if(OPALX_ENABLE_UNIT_TESTS)
     endif()
 endif()
 # ------------------------------------------------------------------------------
+
+# ------------------------------------------------------------------------------
+# ZLIB
+# ------------------------------------------------------------------------------
+find_package(ZLIB REQUIRED)
+
+if(TARGET ZLIB::ZLIB)
+    # Get the actual library path from the target
+    get_target_property(ZLIB_PATH ZLIB::ZLIB IMPORTED_LOCATION)
+    
+    # If IMPORTED_LOCATION is empty (common for shared system libs), 
+    # fall back to the variable find_package usually sets
+    if(NOT ZLIB_PATH)
+        set(ZLIB_PATH ${ZLIB_LIBRARIES})
+    endif()
+
+    message(STATUS "✅ ZLIB linked via target ZLIB::ZLIB (${ZLIB_PATH})")
+else()
+    message(WARNING "⚠️ ZLIB::ZLIB target was not created!")
+endif()
