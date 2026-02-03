@@ -526,6 +526,15 @@ public:
         return this->fsolver_m != nullptr;
     }
 
+    FieldSolver_t* getFieldSolver() {
+        /*
+        \todo this needs to change, best would be to use a smart pointer!
+        However, the parent class FieldSolverBase from IPPL uses raw pointers,
+        so changing this would require some changes in IPPL...
+        */
+        return static_cast<FieldSolver_t*>(this->fsolver_m.get());
+    }
+
     bool getFieldSolverType() {
         *gmsg << "not implemented" << endl;
         return false;
