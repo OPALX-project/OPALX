@@ -264,6 +264,11 @@ void Fieldmap::clearDictionary() {
     FieldmapDictionary.clear();
 }
 
+/**
+ * @brief Determines the fieldmap type
+ * 
+ * @return MapType
+ */
 MapType Fieldmap::readHeader(std::string Filename) {
     char magicnumber[5] = "    ";
     std::string buffer;

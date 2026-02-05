@@ -116,7 +116,9 @@ public:
      * @return true if R is outside of the field map, false otherwise.
      */
     virtual bool getFieldstrength(
-        const Vector_t<double, 3>& R, Vector_t<double, 3>& E, Vector_t<double, 3>& B) const = 0;
+        const Vector_t<double, 3>& R, 
+        Vector_t<double, 3>& E, 
+        Vector_t<double, 3>& B) const = 0;
 
     /**
      * @brief Get the field derivative with respect to a direction.

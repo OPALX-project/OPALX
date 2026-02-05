@@ -121,8 +121,8 @@ void FM2DMagnetoStatic::readMap() {
         FieldstrengthBz_m = Kokkos::DualView<double*>("FieldstrengthBz", size);
         FieldstrengthBr_m = Kokkos::DualView<double*>("FieldstrengthBr", size);
 
-        auto Bz = FieldstrengthBz_m.h_view;
-        auto Br = FieldstrengthBr_m.h_view;
+        auto Bz = FieldstrengthBz_m.view_host();
+        auto Br = FieldstrengthBr_m.view_host();
 
         // read in and parse field map
         in.open(Filename_m.c_str());
@@ -133,28 +133,46 @@ void FM2DMagnetoStatic::readMap() {
         if (swap_m) {
             for (int i = 0; i < num_gridpz_m; i++) {
                 for (int j = 0; j < num_gridpr_m; j++) {
-                    interpretLine<double, double>(
-                        in, Br(i + j * num_gridpz_m),
-                        Bz(i + j * num_gridpz_m));
+                    interpretLine<double,double>(
+                        in,                         // input stream
+                        Br(i * num_gridpr_m + j),   // radial component
+                        Bz(i * num_gridpr_m + j)    // longitudinal component
+                    );
                 }
             }
         } else {
             for (int j = 0; j < num_gridpr_m; j++) {
                 for (int i = 0; i < num_gridpz_m; i++) {
-                    interpretLine<double, double>(
-                        in, Bz(i + j * num_gridpz_m),
-                        Br(i + j * num_gridpz_m));
+                    interpretLine<double,double>(
+                        in,                         // input stream
+                        Bz(i * num_gridpr_m + j),   // longitudinal component
+                        Br(i * num_gridpr_m + j)    // radial component
+                    );
+
                 }
             }
         }
         in.close();
 
+        /*
+        std::cout<<"Read-in FM values before normlization"<<std::endl;
+        for (int j = 0; j < num_gridpr_m; j++) {
+            for (int i = 0; i < num_gridpz_m; i++) {
+                std::cout<<Br(i+j*num_gridpz_m)
+                        << "    " 
+                        << Bz(i+j*num_gridpz_m)
+                        << std::endl;
+            }
+        }
+        */
+        
+         
         if (normalize_m) {
             double Bzmax = 0.0;
             // find maximum field
             for (int i = 0; i < num_gridpz_m; ++i) {
-                if (std::abs(Bz(i)) > Bzmax) {
-                    Bzmax = std::abs(Bz(i));
+                if (std::abs(Bz(i * num_gridpr_m)) > Bzmax) {
+                    Bzmax = std::abs(Bz(i * num_gridpr_m));
                 }
             }
 
@@ -165,6 +183,19 @@ void FM2DMagnetoStatic::readMap() {
             }
         }
 
+        /*
+        std::cout<<"Read-in FM values after normlization"<<std::endl;
+        for (int j = 0; j < num_gridpr_m; j++) {
+            for (int i = 0; i < num_gridpz_m; i++) {
+                std::cout<<Br(i+j*num_gridpz_m)
+                        << "    " 
+                        << Bz(i+j*num_gridpz_m)
+                        << std::endl;
+            }
+        }
+        */
+        
+ 
         FieldstrengthBz_m.modify<Kokkos::HostSpace>();
         FieldstrengthBz_m.sync<Kokkos::DefaultExecutionSpace>();
         FieldstrengthBr_m.modify<Kokkos::HostSpace>();
@@ -185,8 +216,17 @@ void FM2DMagnetoStatic::freeMap() {
     }
 }
 
+/**
+ * @brief Get the fieldstrength at position R
+ * 
+ * @param R Position
+ * @param E Electric Field (unused)
+ * @param B Magnetic Field
+ */
 bool FM2DMagnetoStatic::getFieldstrength(
-    const Vector_t<double, 3>& R, Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B) const {
+    const Vector_t<double, 3>& R, 
+    Vector_t<double, 3>& /*E*/, 
+    Vector_t<double, 3>& B) const {
     
     return computeField(R, B, 
                         FieldstrengthBz_m.h_view, 
@@ -195,16 +235,31 @@ bool FM2DMagnetoStatic::getFieldstrength(
                         num_gridpr_m, num_gridpz_m);
 }
 
+/**
+ * @brief Get the derivative of the field at position R
+ * 
+ * @param R Position
+ * @param E Electric Field (unused)
+ * @param B Derivate of the magnetic field
+ * 
+ */
 bool FM2DMagnetoStatic::getFieldDerivative(
-    const Vector_t<double, 3>& R, Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B,
+    const Vector_t<double, 3>& R, 
+    Vector_t<double, 3>& /*E*/, 
+    Vector_t<double, 3>& B,
     const DiffDirection& dir) const {
     
-    return computeFieldDerivative(R, B,
-                                  FieldstrengthBz_m.h_view,
-                                  FieldstrengthBr_m.h_view,
-                                  hr_m, hz_m, zbegin_m,
-                                  num_gridpr_m, num_gridpz_m,
-                                  dir);
+    return computeFieldDerivative(
+        R, 
+        B,
+        FieldstrengthBz_m.h_view,
+        FieldstrengthBr_m.h_view,
+        hr_m, 
+        hz_m, 
+        zbegin_m,
+        num_gridpr_m, 
+        num_gridpz_m,
+        dir);
 }
 
 void FM2DMagnetoStatic::getFieldDimensions(double& zBegin, double& zEnd) const {
