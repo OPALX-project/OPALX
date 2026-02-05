@@ -62,13 +62,19 @@ public:
     }
 
     template <class ViewType>
-    KOKKOS_INLINE_FUNCTION static bool computeFieldDerivative(const Vector_t<double, 3>& R, Vector_t<double, 3>& B,
-                             const ViewType& Bz, const ViewType& Br,
-                             double hr, double hz, double zbegin, 
-                             int num_gridpr, int num_gridpz,
-                             const DiffDirection& dir) 
+    KOKKOS_INLINE_FUNCTION static bool computeFieldDerivative(
+        const Vector_t<double, 3>& R,   // Position
+        Vector_t<double, 3>& B,         // Derivative of B
+        const ViewType& Bz,             // Longitudinal Value of FM 
+        const ViewType& Br,             // Radial Value of FM
+        double hr,                      // Radial Grid Spacing 
+        double hz,                      // Longitudinal Grid Spacing 
+        double /* zbegin */,                  // Start Relative to Element Edge 
+        int num_gridpr,                 // # Radial Gridpoints 
+        int num_gridpz,                 // # Longitudinal Gridpoints
+        const DiffDirection& dir)       // Direction of Derivative 
     {
-        double BfieldR, BfieldZ;
+        double BfieldR, BfieldZ = 0;
 
         double RR = sqrt(R(0) * R(0) + R(1) * R(1));
 
@@ -76,7 +82,9 @@ public:
         double leverr = (RR / hr) - indexr;
 
         int indexz    = (int)floor((R(2)) / hz);
-        double leverz = (R(2) / hz) - indexz;
+        
+        // Unused:
+        //double leverz = (R(2) / hz) - indexz;
 
         if ((indexz < 0) || (indexz + 2 > num_gridpz))
             return false;
