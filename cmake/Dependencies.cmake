@@ -80,7 +80,6 @@ endfunction()
 # ------------------------------------------------------------------------------
 # IPPL library
 # ------------------------------------------------------------------------------
-
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -120,86 +119,291 @@ if(NOT IPPL_VERSION)
     message(STATUS "Defaulting to IPPL-${IPPL_VERSION}")
 endif()
 
-
 # ------------------------------------------------------------------------------
 # HDF5
 # ------------------------------------------------------------------------------
+if(OPALX_USE_INSTALLED_HDF5)
 
-set(HDF5_ENABLE_PARALLEL ON)
-set(HDF5_BUILD_HL_LIB OFF CACHE BOOL “” FORCE) # Disable high-level APIs for thread safety
-set(HDF5_BUILD_EXAMPLES OFF CACHE BOOL “” FORCE) # Disable examples
-set(HDF5_BUILD_TOOLS OFF CACHE BOOL “” FORCE) # Disable tools
-set(HDF5_ENABLE_THREADSAFE OFF CACHE BOOL “” FORCE)
-set(HDF5_TEST_PARALLEL OFF)
-set(HDF5_VERSION "1.14.6")
-set(HDF5_VERSION_MAJOR "1.14")
+    message(STATUS "⚙ Using system-installed HDF5")
 
-set(HDF5_VERSION "1.14.6")
-set(HDF5_ENABLE_FLOAT16 OFF CACHE BOOL "Disable half-precision floats" FORCE)
-FetchContent_Declare(
-    HDF5
-    URL https://github.com/HDFGroup/hdf5/releases/download/hdf5_${HDF5_VERSION}/hdf5-${HDF5_VERSION}.tar.gz
-    URL_HASH "SHA256=e4defbac30f50d64e1556374aa49e574417c9e72c6b1de7a4ff88c4b1bea6e9b"
-)
+    # Require parallel HDF5 with C++ components disabled (we only use C libs)
+    find_package(HDF5 REQUIRED COMPONENTS C)
 
-# Now FetchContent_MakeAvailable will see the option
-FetchContent_MakeAvailable(HDF5)
-set(HDF5_FOUND TRUE)
+    if(NOT HDF5_FOUND)
+        message(FATAL_ERROR "System HDF5 requested but not found.")
+    endif()
 
-if (TARGET hdf5-shared)
-    install(TARGETS hdf5-shared EXPORT ipplTargets DESTINATION lib)
-    add_library(hdf5::hdf5 ALIAS hdf5-shared)
-elseif(TARGET hdf5-static)
-    install(TARGETS hdf5-static EXPORT ipplTargets DESTINATION lib)
-    add_library(hdf5::hdf5 ALIAS hdf5-static)
+    if (HDF5_VERSION VERSION_LESS "1.10.0")
+    message(FATAL_ERROR
+        "System HDF5 version ${HDF5_VERSION} is too old. "
+        "Required version is >= 1.10.0")
+    endif()
+
+    # Normalize your variable names
+    set(HDF5_INCLUDE_DIR ${HDF5_INCLUDE_DIRS})
+    set(HDF5_LIBRARIES   ${HDF5_LIBRARIES})
+
+    message(STATUS "✔ Found system HDF5 version: ${HDF5_VERSION}")
+    message(STATUS "✔ HDF5 include dir: ${HDF5_INCLUDE_DIR}")
+
+else()
+    message(STATUS "⚙ Building HDF5 from source (FetchContent)")
+    set(HDF5_ENABLE_PARALLEL ON)
+    set(HDF5_BUILD_HL_LIB OFF CACHE BOOL “” FORCE) # Disable high-level APIs for thread safety
+    set(HDF5_BUILD_EXAMPLES OFF CACHE BOOL “” FORCE) # Disable examples
+    set(HDF5_BUILD_TOOLS OFF CACHE BOOL “” FORCE) # Disable tools
+    set(HDF5_ENABLE_THREADSAFE OFF CACHE BOOL “” FORCE)
+    set(HDF5_TEST_PARALLEL OFF)
+    set(HDF5_VERSION "1.14.6")
+    set(HDF5_VERSION_MAJOR "1.14")
+
+    set(HDF5_VERSION "1.14.6")
+    set(HDF5_ENABLE_FLOAT16 OFF CACHE BOOL "Disable half-precision floats" FORCE)
+    FetchContent_Declare(
+        HDF5
+        URL https://github.com/HDFGroup/hdf5/releases/download/hdf5_${HDF5_VERSION}/hdf5-${HDF5_VERSION}.tar.gz
+        URL_HASH "SHA256=e4defbac30f50d64e1556374aa49e574417c9e72c6b1de7a4ff88c4b1bea6e9b"
+    )
+
+    # Now FetchContent_MakeAvailable will see the option
+    FetchContent_MakeAvailable(HDF5)
+    set(HDF5_FOUND TRUE)
+
+    if (TARGET hdf5-shared)
+        install(TARGETS hdf5-shared EXPORT ipplTargets DESTINATION lib)
+        add_library(hdf5::hdf5 ALIAS hdf5-shared)
+    elseif(TARGET hdf5-static)
+        install(TARGETS hdf5-static EXPORT ipplTargets DESTINATION lib)
+        add_library(hdf5::hdf5 ALIAS hdf5-static)
+    endif()
+
+    set(HDF5_LIBRARIES hdf5::hdf5)
+    message ("HDF5_FOUND and dir are ${HDF5_FOUND} ${HDF5_BINARY_DIR} and ${HDF5_LIBRARIES} and ${HDF5_VERSION}")
 endif()
 
-# set(HDF5_INCLUDE_DIRS ${HDF5_BINARY_DIR}/src)
-set(HDF5_LIBRARIES hdf5::hdf5)
-message ("HDF5_FOUND and dir are ${HDF5_FOUND} ${HDF5_BINARY_DIR} and ${HDF5_LIBRARIES} and ${HDF5_VERSION}")
+message(STATUS "HDF5 libraries: ${HDF5_LIBRARIES}")
+message(STATUS "HDF5 include dir: ${HDF5_INCLUDE_DIR}")
 
 # ------------------------------------------------------------------------------
 # H5hut
 # ------------------------------------------------------------------------------
+if(OPALX_USE_INSTALLED_H5HUT)
+    message(STATUS "⚙ Using system-installed H5hut")
 
-set(H5hut_VERSION cmake)
-set(H5hut_GIT https://github.com/eth-cscs/h5hut.git)
-set(H5hut_WITH_MPI ON)
-set(fetch_string
-  GIT_TAG ${H5hut_VERSION}
-  GIT_REPOSITORY ${H5hut_GIT})
+    # If you know the module set these env variables
+    if(DEFINED ENV{H5HUT_INCLUDE_DIR} AND DEFINED ENV{H5HUT_LIBRARY_DIR})
+        set(H5HUT_INCLUDE_DIRS $ENV{H5HUT_INCLUDE_DIR})
+        set(H5HUT_LIBRARIES    $ENV{H5HUT_LIBRARY_DIR}/libh5hut.so)
+        message(STATUS "✔ Using H5hut include: ${H5HUT_INCLUDE_DIRS}")
+        message(STATUS "✔ Using H5hut library: ${H5HUT_LIBRARIES}")
+    endif()
 
-# Invoke cmake fetch/find
-FetchContent_Declare(H5hut ${fetch_string})
-FetchContent_MakeAvailable(H5hut)
+    # Prefer config mode first
+    find_package(H5hut QUIET CONFIG)
 
-# Check that kokkos actually has the platform backends that we need
-if (H5hut_FOUND)
-  message(STATUS "H5hut ${H5hut_VERSION} found externally")
+    if(NOT H5hut_FOUND)
+        # fallback to module mode if someone uses FindH5hut.cmake
+        find_package(H5hut REQUIRED MODULE)
+    endif()
+
+    if(NOT H5hut_FOUND)
+        message(FATAL_ERROR "System H5hut requested, but not found.")
+    endif()
+
+    message(STATUS "✔ Found system H5Hut")
+
+    # Normalize variables for downstream use
+    set(H5HUT_INCLUDE_DIR ${H5HUT_INCLUDE_DIRS} CACHE PATH "H5hut include dir")
+    set(H5HUT_LIBRARY     ${H5HUT_LIBRARIES}    CACHE FILEPATH "H5hut library")
 else()
-  message(STATUS "H5hut ${H5hut_VERSION} building from source in ${H5hut_SOURCE_DIR}")
-  set(H5hut_FOUND ON)
+    message(STATUS "⚙ Building H5Hut from source (FetchContent)")
+    set(H5hut_VERSION cmake)
+    set(H5hut_GIT https://github.com/eth-cscs/h5hut.git)
+    set(H5hut_WITH_MPI ON)
+    set(fetch_string
+      GIT_TAG ${H5hut_VERSION}
+      GIT_REPOSITORY ${H5hut_GIT})
+
+    # Invoke cmake fetch/find
+    FetchContent_Declare(H5hut ${fetch_string})
+    FetchContent_MakeAvailable(H5hut)
+
+    # Check that kokkos actually has the platform backends that we need
+    if (H5hut_FOUND)
+      message(STATUS "H5hut ${H5hut_VERSION} found externally")
+    else()
+      message(STATUS "H5hut ${H5hut_VERSION} building from source in ${H5hut_SOURCE_DIR}")
+      set(H5hut_FOUND ON)
+    endif()
+
+    # The H5Hut CMake project itself creates the target "H5hut"
+    # and sets these variables:
+    #     H5HUT_INCLUDE_DIRS
+    #     H5HUT_LIBRARIES
+    set(H5HUT_INCLUDE_DIR ${H5HUT_INCLUDE_DIRS})
 endif()
+
+# Normalize exported variables used by your project
+message(STATUS "H5HUT include dir: ${H5HUT_INCLUDE_DIR}")
 
 # ------------------------------------------------------------------------------
 # GoogleTest
 # ------------------------------------------------------------------------------
 if(OPALX_ENABLE_UNIT_TESTS)
-  find_package(GTest)
-  if(NOT GTest_FOUND)
-    FetchContent_Declare(GTest GIT_REPOSITORY "https://github.com/google/googletest"
-                         GIT_TAG "v1.16.0" GIT_SHALLOW ON)
+    if(OPALX_USE_INSTALLED_GTEST)
+        message(STATUS "⚙ Using system-installed GoogleTest")
 
-    # For Windows: force shared crt, ignored on linux
-    set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+        # 1. Try to find the package (modern CMake creates GTest::gtest_main automatically)
+        find_package(GTest REQUIRED)
 
-    # Turn off GTest install/tests in the subproject
-    set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
-    set(BUILD_GMOCK OFF CACHE BOOL "" FORCE)
-    set(BUILD_GTEST ON CACHE BOOL "" FORCE)
+        # 2. Fallback: If the package was found but targets weren't created (older CMake)
+        if(NOT TARGET GTest::gtest_main)
+            message(STATUS "⚙ Creating GTest targets manually from variables...")
+            
+            # fallback if GTest_FOUND not set, but dirs exist
+            if(NOT GTest_FOUND AND DEFINED GTEST_LIBRARIES AND DEFINED GTEST_INCLUDE_DIRS)
+                set(GTest_FOUND TRUE)
+            endif()
 
-    FetchContent_MakeAvailable(GTest)
-    message(STATUS "✅ GoogleTest built from source (${GTest_VERSION})")
-  endif()
+            if(NOT GTest_FOUND)
+                message(FATAL_ERROR "OPALX_USE_INSTALLED_GTEST=ON but system GTest not found.")
+            endif()
+
+            # Normalize variables - handle both single path and list
+            if(DEFINED GTEST_INCLUDE_DIRS)
+                set(GTest_INCLUDE_DIRS ${GTEST_INCLUDE_DIRS})
+            elseif(DEFINED GTEST_INCLUDE_DIR)
+                set(GTest_INCLUDE_DIRS ${GTEST_INCLUDE_DIR})
+            endif()
+
+            # Extract gtest library (might be a list, take first)
+            if(DEFINED GTEST_LIBRARIES)
+                list(GET GTEST_LIBRARIES 0 GTEST_LIB_SINGLE)
+                set(GTest_LIBRARIES ${GTEST_LIBRARIES})
+            elseif(DEFINED GTEST_LIBRARY)
+                set(GTEST_LIB_SINGLE ${GTEST_LIBRARY})
+                set(GTest_LIBRARIES ${GTEST_LIBRARY})
+            else()
+                message(FATAL_ERROR "GTest libraries not found in GTEST_LIBRARIES or GTEST_LIBRARY")
+            endif()
+
+            message(STATUS "✔ Found system GTest: ${GTest_LIBRARIES}")
+
+            # Create imported target for gtest framework
+            if(NOT TARGET GTest::gtest)
+                add_library(GTest::gtest UNKNOWN IMPORTED GLOBAL)
+                set_target_properties(GTest::gtest PROPERTIES
+                    IMPORTED_LOCATION "${GTEST_LIB_SINGLE}"
+                    INTERFACE_INCLUDE_DIRECTORIES "${GTest_INCLUDE_DIRS}"
+                )
+            endif()
+
+            # Find gtest_main library - try multiple approaches
+            set(GTEST_MAIN_LIB "")
+            
+            # Approach 1: Check if GTEST_MAIN_LIBRARIES is set
+            if(DEFINED GTEST_MAIN_LIBRARIES)
+                list(GET GTEST_MAIN_LIBRARIES 0 GTEST_MAIN_LIB)
+            elseif(DEFINED GTEST_MAIN_LIBRARY)
+                set(GTEST_MAIN_LIB ${GTEST_MAIN_LIBRARY})
+            endif()
+            
+            # Approach 2: Try to find it in the same directory as gtest
+            if(NOT GTEST_MAIN_LIB)
+                get_filename_component(GTEST_LIB_DIR "${GTEST_LIB_SINGLE}" DIRECTORY)
+                get_filename_component(GTEST_LIB_EXT "${GTEST_LIB_SINGLE}" EXT)
+                
+                # Only search if we have a valid directory
+                if(GTEST_LIB_DIR AND EXISTS "${GTEST_LIB_DIR}")
+                    # Try common naming patterns
+                    set(_possible_names
+                        "${GTEST_LIB_DIR}/libgtest_main${GTEST_LIB_EXT}"
+                        "${GTEST_LIB_DIR}/libgtest_main.a"
+                        "${GTEST_LIB_DIR}/libgtest_main.so"
+                        "${GTEST_LIB_DIR}/gtest_main${GTEST_LIB_EXT}"
+                        "${GTEST_LIB_DIR}/gtest_main.a"
+                        "${GTEST_LIB_DIR}/gtest_main.so"
+                    )
+                    
+                    foreach(_name IN LISTS _possible_names)
+                        if(EXISTS "${_name}")
+                            set(GTEST_MAIN_LIB "${_name}")
+                            break()
+                        endif()
+                    endforeach()
+                endif()
+            endif()
+            
+            # Approach 3: Use find_library as last resort (in same directory)
+            if(NOT GTEST_MAIN_LIB AND GTEST_LIB_DIR AND EXISTS "${GTEST_LIB_DIR}")
+                find_library(GTEST_MAIN_LIB_FOUND
+                    NAMES gtest_main libgtest_main
+                    PATHS ${GTEST_LIB_DIR}
+                    NO_DEFAULT_PATH
+                )
+                if(GTEST_MAIN_LIB_FOUND)
+                    set(GTEST_MAIN_LIB ${GTEST_MAIN_LIB_FOUND})
+                endif()
+            endif()
+
+            # Create gtest_main target if found
+            if(GTEST_MAIN_LIB AND EXISTS "${GTEST_MAIN_LIB}")
+                if(NOT TARGET GTest::gtest_main)
+                    add_library(GTest::gtest_main UNKNOWN IMPORTED GLOBAL)
+                    set_target_properties(GTest::gtest_main PROPERTIES
+                        IMPORTED_LOCATION "${GTEST_MAIN_LIB}"
+                        INTERFACE_LINK_LIBRARIES "GTest::gtest"   # crucial!
+                        INTERFACE_INCLUDE_DIRECTORIES "${GTest_INCLUDE_DIRS}"
+                    )
+                endif()
+                message(STATUS "✔ Found gtest_main library: ${GTEST_MAIN_LIB}")
+            else()
+                message(FATAL_ERROR 
+                    "GTest::gtest_main target not found and could not locate gtest_main library.\n"
+                    "Searched in: ${GTEST_LIB_DIR}\n"
+                    "Please ensure gtest_main is installed or set GTEST_MAIN_LIBRARIES manually.")
+            endif()
+
+        endif()
+
+        message(STATUS "✅ System GTest targets ready.")
+
+    else()
+        message(STATUS "⚙ Building GoogleTest from source (FetchContent)")
+
+        FetchContent_Declare(GTest GIT_REPOSITORY "https://github.com/google/googletest"
+                            GIT_TAG "v1.16.0" GIT_SHALLOW ON)
+
+        # For Windows: force shared crt, ignored on linux
+        set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+
+        # Turn off GTest install/tests in the subproject
+        set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
+        set(BUILD_GMOCK OFF CACHE BOOL "" FORCE)
+        set(BUILD_GTEST ON CACHE BOOL "" FORCE)
+
+        FetchContent_MakeAvailable(GTest)
+        message(STATUS "✅ GoogleTest built from source (${GTest_VERSION})")
+    endif()
 endif()
 # ------------------------------------------------------------------------------
+
+# ------------------------------------------------------------------------------
+# ZLIB
+# ------------------------------------------------------------------------------
+find_package(ZLIB REQUIRED)
+
+if(TARGET ZLIB::ZLIB)
+    # Get the actual library path from the target
+    get_target_property(ZLIB_PATH ZLIB::ZLIB IMPORTED_LOCATION)
+    
+    # If IMPORTED_LOCATION is empty (common for shared system libs), 
+    # fall back to the variable find_package usually sets
+    if(NOT ZLIB_PATH)
+        set(ZLIB_PATH ${ZLIB_LIBRARIES})
+    endif()
+
+    message(STATUS "✅ ZLIB linked via target ZLIB::ZLIB (${ZLIB_PATH})")
+else()
+    message(WARNING "⚠️ ZLIB::ZLIB target was not created!")
+endif()
