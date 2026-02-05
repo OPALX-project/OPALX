@@ -22,10 +22,16 @@ public:
     virtual bool isInside(const Vector_t<double, 3> &r) const;
 
     template <class ViewType>
-    KOKKOS_INLINE_FUNCTION static bool computeField(const Vector_t<double, 3>& R, Vector_t<double, 3>& B,
-                             const ViewType& Bz, const ViewType& Br,
-                             double hr, double hz, double zbegin, 
-                             int num_gridpr, int num_gridpz) {
+    KOKKOS_INLINE_FUNCTION static bool computeField(
+        const Vector_t<double, 3>& R, 
+        Vector_t<double, 3>& B,
+        const ViewType& Bz, 
+        const ViewType& Br,
+        double hr, 
+        double hz, 
+        double zbegin, 
+        int num_gridpr, 
+        int num_gridpz) {
         
         double RR = sqrt(R(0) * R(0) + R(1) * R(1));
 
@@ -69,12 +75,13 @@ public:
         const ViewType& Br,             // Radial Value of FM
         double hr,                      // Radial Grid Spacing 
         double hz,                      // Longitudinal Grid Spacing 
-        double /* zbegin */,                  // Start Relative to Element Edge 
+        double /* zbegin */,            // Start Relative to Element Edge 
         int num_gridpr,                 // # Radial Gridpoints 
         int num_gridpz,                 // # Longitudinal Gridpoints
         const DiffDirection& dir)       // Direction of Derivative 
     {
-        double BfieldR, BfieldZ = 0;
+        double BfieldR = 0;
+        double BfieldZ = 0;
 
         double RR = sqrt(R(0) * R(0) + R(1) * R(1));
 
@@ -85,6 +92,8 @@ public:
         
         // Unused:
         //double leverz = (R(2) / hz) - indexz;
+
+        // test
 
         if ((indexz < 0) || (indexz + 2 > num_gridpz))
             return false;
@@ -206,6 +215,50 @@ public:
         return false;
     }
 
+    /**
+     * @brief Apply the FM to all the particles
+     * 
+     * @param Rview View of particle positions
+     * @param Eview View of E-field at particle positions
+     * @param Bview View of B-field at particle positions
+     */
+    void applyField(std::shared_ptr<ParticleContainer_t> pc)
+    {
+        // local variables to copy to the kernel
+        double zbegin = zbegin_m;
+        double zend = zend_m;
+        double rend = rend_m;
+        double hr = hr_m;
+        double hz = hz_m;
+        int num_gridpr = num_gridpr_m;
+        int num_gridpz = num_gridpz_m;
+
+        // capture device views
+        auto Bz_device = FieldstrengthBz_m.view_device();
+        auto Br_device = FieldstrengthBr_m.view_device();
+
+        // capture views
+        auto Rview = pc->R.getView();
+        auto Bview = pc->B.getView();
+
+        Kokkos::parallel_for("FM2DMagnetoStatic::applyField",
+        ippl::getRangePolicy(Rview),
+        KOKKOS_LAMBDA(const int i)
+        {
+            // Check bounds
+            if(Rview(i)(2) >= zbegin &&
+                Rview(i)(2) < zend &&
+                sqrt(Rview(i)(0)*Rview(i)(0) + Rview(i)(1)*Rview(i)(1)) < rend) 
+            {
+                computeField(Rview(i), 
+                    Bview(i), 
+                    Bz_device,           // Use device view
+                    Br_device,           // Use device view
+                    hr, hz, zbegin, num_gridpr, num_gridpz);
+            }
+        });
+    }
+
 private:
     FM2DMagnetoStatic(std::string aFilename);
     ~FM2DMagnetoStatic();
@@ -229,6 +282,12 @@ private:
     friend class Fieldmap;
 };
 
+/**
+ * @brief Checks if position r is inside the bounds
+ * 
+ * @todo This does not work on gpu since zbegin_m, zend_m and rend_m is
+ * not accessible on GPU
+ */
 KOKKOS_INLINE_FUNCTION
 bool FM2DMagnetoStatic::isInside(const Vector_t<double, 3> &r) const
 {
