@@ -121,6 +121,13 @@ public:
         Vector_t<double, 3>& B) const = 0;
 
     /**
+     * @brief Apply the FM to all the particles
+     * 
+     * @param pc Particle container
+     */
+    virtual void applyField(std::shared_ptr<ParticleContainer_t> pc);
+
+    /**
      * @brief Get the field derivative with respect to a direction.
      * 
      * @param R Position [m].

@@ -66,34 +66,10 @@ Solenoid::~Solenoid() {
 bool Solenoid::apply() {
     std::cout<< "Solenoid::apply() called"<<std::endl;
 
-    // Get the particle container
     std::shared_ptr<ParticleContainer_t> pc = 
         RefPartBunch_m->getParticleContainer();
-
-    // Get the views
-    auto Rview = pc->R.getView();
-    auto Eview = pc->E.getView();
-    auto Bview = pc->B.getView();
-
-    // Local variables for the kernel
-    double fieldStart, fieldEnd;
-    fieldmap_m->getFieldDimensions(fieldStart, fieldEnd);
-    
-    // Kernel launch over all particles
-    Kokkos::parallel_for("Multipole::apply()", ippl::getRangePolicy(Rview), 
-    KOKKOS_LAMBDA(const int i)
-    {
-        // Check Bounds
-        if(Rview(i)(2) > fieldStart && Rview(i)(2) <= fieldEnd){
-            // Compute Field
+    fieldmap_m->applyField(pc);
         
-            // fieldmap_m->getFieldstrength()
-        
-        }
-        
-        
-    });
-    
     return false;
 }
 

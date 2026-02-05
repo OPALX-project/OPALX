@@ -201,8 +201,9 @@ void FM2DMagnetoStatic::readMap() {
         FieldstrengthBr_m.modify<Kokkos::HostSpace>();
         FieldstrengthBr_m.sync<Kokkos::DefaultExecutionSpace>();
 
-        *ippl::Info << level3 << typeset_msg("read in fieldmap '" + Filename_m + "'", "info")
-                    << endl;
+        *ippl::Info << level3 
+            << typeset_msg("read in fieldmap '" + Filename_m + "'", "info")
+            << endl;
     }
 }
 
@@ -212,7 +213,9 @@ void FM2DMagnetoStatic::freeMap() {
         FieldstrengthBz_m = Kokkos::DualView<double*>();
         FieldstrengthBr_m = Kokkos::DualView<double*>();
 
-        *ippl::Info << level3 << typeset_msg("freed fieldmap '" + Filename_m + "'", "info") << endl;
+        *ippl::Info << level3 
+            << typeset_msg("freed fieldmap '" + Filename_m + "'", "info") 
+            << endl;
     }
 }
 
@@ -231,8 +234,11 @@ bool FM2DMagnetoStatic::getFieldstrength(
     return computeField(R, B, 
                         FieldstrengthBz_m.h_view, 
                         FieldstrengthBr_m.h_view, 
-                        hr_m, hz_m, zbegin_m, 
-                        num_gridpr_m, num_gridpz_m);
+                        hr_m, 
+                        hz_m, 
+                        zbegin_m, 
+                        num_gridpr_m, 
+                        num_gridpz_m);
 }
 
 /**
