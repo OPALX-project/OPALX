@@ -131,6 +131,37 @@ TEST_F(CubicSplineTest, InvalidInput) {
     EXPECT_THROW(CubicSpline spline(x.data(), y.data(), 4), std::invalid_argument);
 }
 
+TEST_F(CubicSplineTest, Integration) {
+    const CubicSpline spline(x_data.data(), y_data.data(), x_data.size());
+    CubicSpline::Accelerator accel;
+
+    // Whole pre-computed intervals
+    EXPECT_NEAR( spline.evalIntegral(0, 1, accel), 0.39285714285714285, 1e-10);
+    EXPECT_NEAR( spline.evalIntegral(1, 2, accel), 2.3214285714285712, 1e-10);
+    EXPECT_NEAR( spline.evalIntegral(2, 3, accel), 6.3214285714285712, 1e-10);
+    EXPECT_NEAR( spline.evalIntegral(3, 4, accel), 12.392857142857142, 1e-10);
+    EXPECT_NEAR( spline.evalIntegral(0, 4, accel), 21.428571428571427, 1e-10);
+
+    // Partial first and last intervals
+    EXPECT_NEAR( spline.evalIntegral(0.6, 3.2, accel), 10.845085714285716, 1e-10);
+
+    // Asking again should use the cache
+    EXPECT_NEAR( spline.evalIntegral(0.6, 3.2, accel), 10.845085714285716, 1e-10);
+
+    // Extrapolation below the first interval
+    EXPECT_NEAR( spline.evalIntegral(-1, 1.5, accel), 0.890625, 1e-10);
+
+    // Extrapolation above the last interval
+    EXPECT_NEAR( spline.evalIntegral(3, 4.5, accel), 21.160714285714285, 1e-10);
+
+    // Swapping integral bounds
+    EXPECT_NEAR( spline.evalIntegral(2, 1, accel), 2.3214285714285712, 1e-10);
+
+    // Uninitialised spline
+    CubicSpline spline_uninit;
+    EXPECT_THROW(spline_uninit.evalIntegral(2, 1, accel), std::runtime_error);
+}
+
 TEST_F(CubicSplineTest, GSLCompatibleInterface) {
     gsl_spline* spline = gsl_spline_alloc(gsl_interp_cspline, x_data.size());
     gsl_interp_accel* accel = gsl_interp_accel_alloc();
@@ -151,6 +182,10 @@ TEST_F(CubicSplineTest, GSLCompatibleInterface) {
     val = gsl_spline_eval(spline, 2.0, accel);
     EXPECT_NEAR(val, 4.0, 1e-10);
     
+    // Integration
+    EXPECT_NEAR(gsl_spline_eval_integ(spline, 0.6, 3.2, accel), 10.845085714285716, 1e-10);
+
+    // Clean up
     gsl_spline_free(spline);
     gsl_interp_accel_free(accel);
 }
