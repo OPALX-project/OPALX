@@ -46,7 +46,7 @@ class AbstractTimeDependence {
   // Unit tests for this class are in with PolynomialTimeDependence
   public:
     /** Destructor does nothing */
-    virtual ~AbstractTimeDependence() {}
+    virtual ~AbstractTimeDependence() = default;
     /** Inheritable copy constructor
      *
      *  @returns new AbstractTimeDependence that is a copy of this. User owns
@@ -60,6 +60,11 @@ class AbstractTimeDependence {
      *  etc
      */
     virtual double getValue(double time) = 0;
+
+    /** getIntegral(time) returns the integral from 0 to time of the function.
+     *
+     */
+    virtual double getIntegral(double time) = 0;
 
     /** Look up the time dependence that has a given name
      *  

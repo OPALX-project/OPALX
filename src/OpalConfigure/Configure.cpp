@@ -70,6 +70,10 @@
 #include "Elements/OpalRingDefinition.h"
 #include "Elements/OpalSolenoid.h"
 #include "Elements/OpalVerticalFFAMagnet.h"
+#include "Elements/OpalPolynomialTimeDependence.h"
+#include "Elements/OpalSinusoidalTimeDependence.h"
+#include "Elements/OpalSplineTimeDependence.h"
+#include "Elements/OpalMultipoleT.h"
 
 // Structure-related commands.
 #include "Lines/Line.h"
@@ -127,6 +131,10 @@ namespace {
         opal->create(new Line());
         opal->create(new OpalOffset::OpalLocalCartesianOffset());
         opal->create(new OpalVerticalFFAMagnet());
+        opal->create(new OpalPolynomialTimeDependence());
+        opal->create(new OpalSinusoidalTimeDependence());
+        opal->create(new OpalSplineTimeDependence());
+        opal->create(new OpalMultipoleT());
     }
 };  // namespace
 
