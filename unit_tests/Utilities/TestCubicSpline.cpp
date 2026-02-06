@@ -132,7 +132,7 @@ TEST_F(CubicSplineTest, InvalidInput) {
 }
 
 TEST_F(CubicSplineTest, Integration) {
-    const CubicSpline spline(x_data.data(), y_data.data(), x_data.size());
+    CubicSpline spline(x_data.data(), y_data.data(), x_data.size());
     CubicSpline::Accelerator accel;
 
     // Whole pre-computed intervals
@@ -160,6 +160,12 @@ TEST_F(CubicSplineTest, Integration) {
     // Uninitialised spline
     CubicSpline spline_uninit;
     EXPECT_THROW(spline_uninit.evalIntegral(2, 1, accel), std::runtime_error);
+
+    // Re-initialise the spline to something different
+    std::vector x_data = {0.0, 1.0, 2.0, 3.0, 4.0};
+    std::vector y_data = {0.0, 2.0, 4.0, 6.0, 8.0};
+    spline.init(x_data.data(), y_data.data(), x_data.size());
+    EXPECT_NEAR( spline.evalIntegral(0, 4, accel), 16.0, 1e-10);
 }
 
 TEST_F(CubicSplineTest, GSLCompatibleInterface) {
