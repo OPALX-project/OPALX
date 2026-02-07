@@ -26,6 +26,7 @@
 #include <string>
 #include <variant>
 #include <cctype>
+#include <numbers>
 
 namespace matheval {
 
