@@ -218,8 +218,9 @@ private:
 
     /// \brief Compute the integrals of the intervals.
     void computeIntegrals() {
+        integrals_.resize(x_.size() - 1);
         for (size_t i = 0; i < x_.size() - 1; ++i) {
-            integrals_.push_back(integral(i, x_[i + 1] - x_[i]));
+            integrals_[i] = integral(i, x_[i + 1] - x_[i]);
         }
     }
 
