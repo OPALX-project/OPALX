@@ -29,7 +29,7 @@ public:
         PHASE_OFFSETS,
         AMPLITUDES,
         DC_OFFSETS,
-        SIZE // size of the enum
+        SIZE  // size of the enum
     };
 
     /** Define mapping from enum variables to string UI parameter names */
@@ -39,21 +39,21 @@ public:
     ~OpalSinusoidalTimeDependence() override = default;
 
     /** Inherited copy constructor */
-    OpalSinusoidalTimeDependence *clone(const std::string &name) override;
+    OpalSinusoidalTimeDependence* clone(const std::string& name) override;
 
     /** Receive parameters from the parser and hand them off to the OpalSinusoidalTimeDependence*/
     void update() override;
 
     /** Calls print on the OpalElement */
-    void print(std::ostream &) const override;
+    void print(std::ostream&) const override;
 
 private:
     // Not implemented.
-    OpalSinusoidalTimeDependence(const OpalSinusoidalTimeDependence&) = delete;
-    OpalSinusoidalTimeDependence& operator=(const OpalSinusoidalTimeDependence &) = delete;
+    OpalSinusoidalTimeDependence(const OpalSinusoidalTimeDependence&)            = delete;
+    OpalSinusoidalTimeDependence& operator=(const OpalSinusoidalTimeDependence&) = delete;
 
     // Clone constructor.
-    OpalSinusoidalTimeDependence(const std::string &name, OpalSinusoidalTimeDependence *parent);
+    OpalSinusoidalTimeDependence(const std::string& name, OpalSinusoidalTimeDependence* parent);
 
     static const std::string doc_string;
 };

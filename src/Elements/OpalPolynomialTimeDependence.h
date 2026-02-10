@@ -35,7 +35,7 @@
  */
 
 class OpalPolynomialTimeDependence : public OpalElement {
-  public:
+public:
     /** Enumeration maps to UI parameters */
     enum {
         P0 = COMMON,
@@ -43,35 +43,35 @@ class OpalPolynomialTimeDependence : public OpalElement {
         P2,
         P3,
         COEFFICIENTS,
-        SIZE // size of the enum
+        SIZE  // size of the enum
     };
 
     /** Define mapping from enum variables to string UI parameter names */
     OpalPolynomialTimeDependence();
 
     /** No memory allocated so does nothing */
-    virtual ~OpalPolynomialTimeDependence();
+    ~OpalPolynomialTimeDependence() override;
 
     /** Inherited copy constructor */
-    virtual OpalPolynomialTimeDependence *clone(const std::string &name);
+    OpalPolynomialTimeDependence* clone(const std::string& name) override;
 
     /** Receive parameters from the parser and hand them off to the
      *  PolynomialTimeDependence
      */
-    void update();
+    void update() override;
 
     /** Calls print on the OpalElement */
-    virtual void print(std::ostream &) const;
-  private:
+    void print(std::ostream&) const override;
+
+private:
     // Not implemented.
-    OpalPolynomialTimeDependence(const OpalPolynomialTimeDependence &);
-    void operator=(const OpalPolynomialTimeDependence &);
+    OpalPolynomialTimeDependence(const OpalPolynomialTimeDependence&) = delete;
+    void operator=(const OpalPolynomialTimeDependence&)               = delete;
 
     // Clone constructor.
-    OpalPolynomialTimeDependence(const std::string &name,
-                                 OpalPolynomialTimeDependence *parent);
+    OpalPolynomialTimeDependence(const std::string& name, OpalPolynomialTimeDependence* parent);
 
     static const std::string doc_string;
 };
 
-#endif // OPAL_OpalPolynomialTimeDependence_HH
+#endif  // OPAL_OpalPolynomialTimeDependence_HH

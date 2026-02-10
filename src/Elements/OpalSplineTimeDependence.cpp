@@ -29,7 +29,6 @@
 #include "Attributes/Attributes.h"
 #include "Utilities/OpalException.h"
 #include "Elements/OpalSplineTimeDependence.h"
-
 #include "Algorithms/SplineTimeDependence.h"
 
 const std::string OpalSplineTimeDependence::doc_string =
@@ -94,6 +93,6 @@ void OpalSplineTimeDependence::update() {
         values = {0.0, 0.0}; // A default value array
     }
     const auto spline = std::make_shared<SplineTimeDependence>(static_cast<size_t>(order),
-            times,values);
+            times, values);
     AbstractTimeDependence::setTimeDependence(getOpalName(), spline);
 }
