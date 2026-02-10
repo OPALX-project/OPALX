@@ -82,6 +82,9 @@ For the release mode, use `Release` instead of `Debug` as the argument for `-DBU
 #### Further Options
 | Flag | Default | Description |
 |------|---------|-------------|
+| `OPALX_USE_INSTALLED_HDF5` | OFF | Disables the use of system-built HDF5 dependency. |
+| `OPALX_USE_INSTALLED_H5HUT` | OFF |  Disables the use of system-built H5hut dependency. |
+| `OPALX_USE_INSTALLED_GTEST` | OFF |  Disables the use of system-built GoogleTest dependency. |
 | `IPPL_ENABLE_ALPINE` | OFF | Disables Alpine features in IPPL by default; set IPPL_ENABLE_ALPINE to ON to enable. |
 | `IPPL_ENABLE_TEST` | OFF | Disables IPPL tests; corresponds to IPPL_ENABLE_TESTS OFF in IPPL default features. |
 | `OPALX_ENABLE_UNIT_TESTS` | OFF | Disables building unit tests using GoogleTest. |
