@@ -59,6 +59,8 @@ public:
         
         // Natural cubic spline: second derivatives at endpoints are zero
         computeCoefficients();
+        // And the integrals over each interval
+        computeIntegrals();
     }
     
     /// \brief Evaluate the spline at \p x.
@@ -93,8 +95,9 @@ public:
     /// \brief Accelerator caching last interval index.
     class Accelerator {
     public:
-        Accelerator() : last_index_(0) {}
-        size_t last_index_;
+        Accelerator() = default;
+        size_t last_index_{};
+        size_t last_upper_index_{};
     };
     
     /// \brief Evaluate the spline at \p x using an accelerator.
@@ -120,7 +123,57 @@ public:
         double dx = x - x_[i];
         return y_[i] + b_[i] * dx + c_[i] * dx * dx + d_[i] * dx * dx * dx;
     }
-    
+
+    /// \brief Evaluate the integral of the spline at \p x.
+    /// \param xa Input: x-coordinate lower bound.
+    /// \param xb Input: x-coordinate upper bound.
+    /// \param accel Input/output: accelerator for interval caching.
+    /// \return Output: interpolated integral value (with linear extrapolation).
+    double evalIntegral(double xa, double xb, Accelerator& accel) const {
+        if (x_.empty()) {
+            throw std::runtime_error("CubicSpline: not initialized");
+        }
+        if (xb < xa) {
+            std::swap(xa, xb);
+        }
+
+        double result = 0.0;
+
+        // Linear extrapolation below the defined intervals
+        if (xa < x_.front()) {
+            const auto y = extrapolateLeft(xa);
+            const auto dx = x_.front() - xa;
+            const auto dy = y_.front() - y;
+            result += dx * y_.front() - dx * dy / 2.0;
+            xa = x_.front();
+        }
+
+        // Linear extrapolation above the defined intervals
+        if (xb > x_.back()) {
+            const auto y = extrapolateRight(xb);
+            const auto dx = xb - x_.back();
+            const auto dy = y - y_.back();
+            result += dx * y_.back() + dx * dy / 2.0;
+            xb = x_.back();
+        }
+
+        // Find the intervals
+        const size_t ia = findInterval(xa, accel.last_index_);
+        const size_t ib = findInterval(xb, accel.last_upper_index_);
+
+        // The first partial interval
+        result -= integral(ia, xa - x_[ia]);
+
+        // All the full interval integrals
+        for (size_t m = ia; m < ib; ++m) {
+            result += integrals_[m];
+        }
+
+        // The last partial interval
+        result += integral(ib, xb - x_[ib]);
+        return result;
+    }
+
 private:
     /// \brief Compute natural spline coefficients.
     void computeCoefficients() {
@@ -162,7 +215,42 @@ private:
         b_[n - 1] = 0.0;
         d_[n - 1] = 0.0;
     }
-    
+
+    /// \brief Compute the integrals of the intervals.
+    void computeIntegrals() {
+        integrals_.resize(x_.size() - 1);
+        for (size_t i = 0; i < x_.size() - 1; ++i) {
+            integrals_[i] = integral(i, x_[i + 1] - x_[i]);
+        }
+    }
+
+    /// \brief  Return the interval index for the given x-coordinate, using the
+    /// accelerator if possible
+    /// \param x Input: x-coordinate.
+    /// \param intervalCache Input/output: The cached interval index.
+    /// \return Output: The index of the interval containing x.
+    size_t findInterval(const double x, size_t& intervalCache) const {
+        if (intervalCache < x_.size() - 1 && x >= x_[intervalCache] && x < x_[intervalCache + 1]) {
+            // x is in the cached interval
+        } else {
+            // Find the new interval
+            const auto it = std::ranges::lower_bound(x_, x);
+            intervalCache = it == x_.begin() ? 0 : std::distance(x_.begin(), it) - 1;
+        }
+        return intervalCache;
+    }
+
+    /// \brief Calculate the integral from x_[i] to x_[i]+dx
+    /// \param i Input: the interval index
+    /// \param dx Input: the distance in the interval over which to calculate
+    /// \return Output: The integral.
+    double integral(const size_t i, const double dx) const {
+        return y_[i] * dx
+             + b_[i] * dx * dx / 2.0
+             + c_[i] * dx * dx * dx / 3.0
+             + d_[i] * dx * dx * dx * dx / 4.0;
+    }
+
     /// \brief Linear extrapolation to the left of the data range.
     /// \param x Input: x-coordinate.
     /// \return Output: extrapolated value.
@@ -179,12 +267,13 @@ private:
         double dx = x - x_[n - 1];
         return y_[n - 1] + b_[n - 2] * dx;
     }
-    
+
     std::vector<double> x_;
     std::vector<double> y_;
     std::vector<double> b_;  // Linear coefficients
     std::vector<double> c_;  // Quadratic coefficients
     std::vector<double> d_;  // Cubic coefficients
+    std::vector<double> integrals_;
 };
 
 // Compatibility aliases for GSL-like interface
@@ -223,6 +312,17 @@ inline void gsl_spline_init(CubicSpline* spline, const double* x, const double* 
 /// \return Output: interpolated value.
 inline double gsl_spline_eval(const CubicSpline* spline, double x, CubicSpline::Accelerator* accel) {
     return spline->eval(x, *accel);
+}
+
+/// \brief Evaluate the integral of a spline at \p x using an accelerator.
+/// \param spline Input: spline to evaluate.
+/// \param xa Input: lower bound x-coordinate.
+/// \param xb Input: upper bound x-coordinate.
+/// \param accel Input/Output: accelerator cache.
+/// \return Output: integrated value.
+inline double gsl_spline_eval_integ(const CubicSpline* spline, const double xa, const double xb,
+        CubicSpline::Accelerator* accel) {
+    return spline->evalIntegral(xa, xb, *accel);
 }
 
 /// \brief Free a spline instance.

@@ -17,7 +17,7 @@ endif()
 # ------------------------------------------------------------------------------
 # Project declaration and version
 # ------------------------------------------------------------------------------
-project(OPALX VERSION 1.0 LANGUAGES CXX)
+project(OPALX VERSION 1.0 LANGUAGES C CXX)
 
 # ------------------------------------------------------------------------------
 # Module path, setup before including any cmake modules
