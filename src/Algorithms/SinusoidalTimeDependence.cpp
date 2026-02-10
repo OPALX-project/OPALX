@@ -19,6 +19,7 @@
 #include <Physics/Physics.h>
 #include "PolynomialTimeDependence.h"
 #include "Utility/Inform.h"
+#include <cmath>
 
 SinusoidalTimeDependence::SinusoidalTimeDependence(
     const std::vector<double>& f, const std::vector<double>& p, const std::vector<double>& a,
