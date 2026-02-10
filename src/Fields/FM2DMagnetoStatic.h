@@ -9,18 +9,105 @@
 class FM2DMagnetoStatic: public Fieldmap {
 
 public:
-    virtual bool getFieldstrength(const Vector_t<double, 3> &R, Vector_t<double, 3> &E, Vector_t<double, 3> &B) const;
-    virtual bool getFieldDerivative(const Vector_t<double, 3> &R, Vector_t<double, 3> &E, Vector_t<double, 3> &B, const DiffDirection &dir) const;
-    virtual void getFieldDimensions(double &zBegin, double &zEnd) const;
-    virtual void getFieldDimensions(double &xIni, double &xFinal, double &yIni, double &yFinal, double &zIni, double &zFinal) const;
-    virtual void swap();
-    virtual void getInfo(Inform *msg);
-    virtual double getFrequency() const;
-    virtual void setFrequency(double freq);
+    /**
+     * @brief Get the field strength at a given point.
+     * 
+     * @param R Position [m] relative to the field map origin.
+     * @param E Output Electric field [MV/m].
+     * @param B Output Magnetic field [T].
+     * @return true if R is outside of the field map, false otherwise.
+     */
+    virtual bool getFieldstrength(
+        const Vector_t<double, 3> &R, 
+        Vector_t<double, 3> &E, 
+        Vector_t<double, 3> &B) const override;
+    
+    /**
+     * @brief Get the field derivative with respect to a direction.
+     * 
+     * @param R Position [m].
+     * @param E Output derivative of Electric field.
+     * @param B Output derivative of Magnetic field.
+     * @param dir Direction of derivative (DX, DY, DZ).
+     * @return true if R is outside, false otherwise.
+     */
+    virtual bool getFieldDerivative(
+        const Vector_t<double, 3> &R, 
+        Vector_t<double, 3> &E, 
+        Vector_t<double, 3> &B, 
+        const DiffDirection &dir) const override;
 
-    KOKKOS_INLINE_FUNCTION
-    virtual bool isInside(const Vector_t<double, 3> &r) const;
+    /**
+     * @brief Get the longitudinal dimensions of the field.
+     * @param zBegin Output start of field [m].
+     * @param zEnd Output end of field [m].
+     */
+    virtual void getFieldDimensions(double &zBegin, double &zEnd) const override;
 
+    /**
+     * @brief Get the full 3D bounding box of the field.
+     * 
+     * @param xIni Output minimum x [m].
+     * @param xFinal Output maximum x [m].
+     * @param yIni Output minimum y [m].
+     * @param yFinal Output maximum y [m].
+     * @param zIni Output minimum z [m].
+     * @param zFinal Output maximum z [m].
+     */
+    virtual void getFieldDimensions(
+        double &xIni, double &xFinal, 
+        double &yIni, double &yFinal, 
+        double &zIni, double &zFinal) const override;
+
+    /// @brief Swap coordinates
+    virtual void swap() override;
+
+    /// @brief Print info about the field map.
+    virtual void getInfo(Inform *msg) override;
+
+    /**
+     * @brief Get the frequency.
+     * @return Frequency [MHz].
+     */
+    virtual double getFrequency() const override;
+
+    /**
+     * @brief Set the frequency.
+     * @param freq Frequency [MHz].
+     */
+    virtual void setFrequency(double freq) override;
+
+    /**
+     * @brief Checks if the given coordinate is inside the volume covered by the
+     * fieldmap
+     * @param r Coordinate
+     * @note This cannot be called inside a GPU kernel (implicit capture of the
+     * 'this' pointer not allowed on device)
+     */
+    bool isInside(const Vector_t<double, 3> &r)const{
+        return r(2) >= zbegin_m && r(2) < zend_m && 
+        sqrt(r(0)*r(0) + r(1)*r(1)) < rend_m;
+    }
+
+    /**
+     * @brief Computes the magnetic field B at the position R by interpolating
+     * from the fieldmap specified by Bz, Br, hr, hz, zbegin, num_gridpr, and
+     * num_gridpz.
+     *
+     * @param R Position [m] relative to the element edge
+     * @param B Output magnetic field [T]
+     * @param Bz Longitudinal value of the fieldmap [T]
+     * @param Br Radial value of the fieldmap [T]
+     * @param hr Radial grid spacing [m]
+     * @param hz Longitudinal grid spacing [m]
+     * @param zbegin Start of the fieldmap relative to the element edge [m]
+     * @param num_gridpr Number of radial grid points in the fieldmap
+     * @param num_gridpz Number of longitudinal grid points in the fieldmap
+     * 
+     * @note We need to pass the fieldmap data as arguments to this function 
+     * because the 'this' pointer cannot be captured in a GPU kernel, 
+     * and thus we cannot access member variables directly.
+     */
     template <class ViewType>
     KOKKOS_INLINE_FUNCTION static bool computeField(
         const Vector_t<double, 3>& R, 
@@ -67,18 +154,36 @@ public:
         return false;
     }
 
+    /**
+     * @brief Compute the derivative of the magnetic field B at the position R.
+     * 
+     * @param R Position [m].
+     * @param B Output derivative of the magnetic field.
+     * @param Bz Longitudinal value of the fieldmap [T].
+     * @param Br Radial value of the fieldmap [T].
+     * @param hr Radial grid spacing [m].
+     * @param hz Longitudinal grid spacing [m].
+     * @param zbegin Start of the fieldmap relative to the element edge [m].
+     * @param num_gridpr Number of radial grid points in the fieldmap.
+     * @param num_gridpz Number of longitudinal grid points in the fieldmap.
+     * @param dir Direction of the derivative (DX, DY, DZ).
+     * 
+     * @note We need to pass the fieldmap data as arguments to this function 
+     * because the 'this' pointer cannot be captured in a GPU kernel, 
+     * and thus we cannot access member variables directly.
+     */
     template <class ViewType>
     KOKKOS_INLINE_FUNCTION static bool computeFieldDerivative(
-        const Vector_t<double, 3>& R,   // Position
-        Vector_t<double, 3>& B,         // Derivative of B
-        const ViewType& Bz,             // Longitudinal Value of FM 
-        const ViewType& Br,             // Radial Value of FM
-        double hr,                      // Radial Grid Spacing 
-        double hz,                      // Longitudinal Grid Spacing 
-        double /* zbegin */,            // Start Relative to Element Edge 
-        int num_gridpr,                 // # Radial Gridpoints 
-        int num_gridpz,                 // # Longitudinal Gridpoints
-        const DiffDirection& dir)       // Direction of Derivative 
+        const Vector_t<double, 3>& R,
+        Vector_t<double, 3>& B,
+        const ViewType& Bz,
+        const ViewType& Br,
+        double hr,
+        double hz,
+        double /* zbegin */,
+        int num_gridpr,
+        int num_gridpz,
+        const DiffDirection& dir)
     {
         double BfieldR = 0;
         double BfieldZ = 0;
@@ -218,46 +323,9 @@ public:
     /**
      * @brief Apply the FM to all the particles
      * 
-     * @param Rview View of particle positions
-     * @param Eview View of E-field at particle positions
-     * @param Bview View of B-field at particle positions
+     * @param pc Particle container
      */
-    void applyField(std::shared_ptr<ParticleContainer_t> pc)
-    {
-        // local variables to copy to the kernel
-        double zbegin = zbegin_m;
-        double zend = zend_m;
-        double rend = rend_m;
-        double hr = hr_m;
-        double hz = hz_m;
-        int num_gridpr = num_gridpr_m;
-        int num_gridpz = num_gridpz_m;
-
-        // capture device views
-        auto Bz_device = FieldstrengthBz_m.view_device();
-        auto Br_device = FieldstrengthBr_m.view_device();
-
-        // capture views
-        auto Rview = pc->R.getView();
-        auto Bview = pc->B.getView();
-
-        Kokkos::parallel_for("FM2DMagnetoStatic::applyField",
-        ippl::getRangePolicy(Rview),
-        KOKKOS_LAMBDA(const int i)
-        {
-            // Check bounds
-            if(Rview(i)(2) >= zbegin &&
-                Rview(i)(2) < zend &&
-                sqrt(Rview(i)(0)*Rview(i)(0) + Rview(i)(1)*Rview(i)(1)) < rend) 
-            {
-                computeField(Rview(i), 
-                    Bview(i), 
-                    Bz_device,           // Use device view
-                    Br_device,           // Use device view
-                    hr, hz, zbegin, num_gridpr, num_gridpz);
-            }
-        });
-    }
+    void applyField(std::shared_ptr<ParticleContainer_t> pc);
 
 private:
     FM2DMagnetoStatic(std::string aFilename);
@@ -266,32 +334,27 @@ private:
     virtual void readMap();
     virtual void freeMap();
 
-    Kokkos::DualView<double*> FieldstrengthBz_m;    /**< 2D array with Ez, read in first along z0 - r0 to rN then z1 - r0 to rN until zN - r0 to rN  */
-    Kokkos::DualView<double*> FieldstrengthBr_m;    /**< 2D array with Er, read in like Ez*/
+    /// @brief Fieldstrengths 
+    Kokkos::DualView<double*> FieldstrengthBz_m;    
+    Kokkos::DualView<double*> FieldstrengthBr_m;    
 
-    double rbegin_m;
+    /// @brief Radius Bounds
+    double rbegin_m;   
     double rend_m;
+
+    /// @brief Z Bounds relative to element edge
     double zbegin_m;
     double zend_m;
-    double hz_m;                   /**< length between points in grid, z-direction, m*/
-    double hr_m;                   /**< length between points in grid, r-direction, m*/
-    int num_gridpr_m;              /**< Read in number of points after 0(not counted here) in grid, r-direction*/
-    int num_gridpz_m;              /**< Read in number of points after 0(not counted here) in grid, z-direction*/
+
+    /// @brief Grid 
+    double hz_m;                   
+    double hr_m;                   
+    int num_gridpr_m;              
+    int num_gridpz_m;              
 
     bool swap_m;
     friend class Fieldmap;
 };
 
-/**
- * @brief Checks if position r is inside the bounds
- * 
- * @todo This does not work on gpu since zbegin_m, zend_m and rend_m is
- * not accessible on GPU
- */
-KOKKOS_INLINE_FUNCTION
-bool FM2DMagnetoStatic::isInside(const Vector_t<double, 3> &r) const
-{
-    return r(2) >= zbegin_m && r(2) < zend_m && sqrt(r(0)*r(0) + r(1)*r(1)) < rend_m;
-}
 
 #endif

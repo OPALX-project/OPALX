@@ -153,19 +153,6 @@ void FM2DMagnetoStatic::readMap() {
             }
         }
         in.close();
-
-        /*
-        std::cout<<"Read-in FM values before normlization"<<std::endl;
-        for (int j = 0; j < num_gridpr_m; j++) {
-            for (int i = 0; i < num_gridpz_m; i++) {
-                std::cout<<Br(i+j*num_gridpz_m)
-                        << "    " 
-                        << Bz(i+j*num_gridpz_m)
-                        << std::endl;
-            }
-        }
-        */
-        
          
         if (normalize_m) {
             double Bzmax = 0.0;
@@ -183,19 +170,6 @@ void FM2DMagnetoStatic::readMap() {
             }
         }
 
-        /*
-        std::cout<<"Read-in FM values after normlization"<<std::endl;
-        for (int j = 0; j < num_gridpr_m; j++) {
-            for (int i = 0; i < num_gridpz_m; i++) {
-                std::cout<<Br(i+j*num_gridpz_m)
-                        << "    " 
-                        << Bz(i+j*num_gridpz_m)
-                        << std::endl;
-            }
-        }
-        */
-        
- 
         FieldstrengthBz_m.modify<Kokkos::HostSpace>();
         FieldstrengthBz_m.sync<Kokkos::DefaultExecutionSpace>();
         FieldstrengthBr_m.modify<Kokkos::HostSpace>();
@@ -217,6 +191,45 @@ void FM2DMagnetoStatic::freeMap() {
             << typeset_msg("freed fieldmap '" + Filename_m + "'", "info") 
             << endl;
     }
+}
+
+/**
+ * @brief Apply the FM to all the particles.
+ * 
+ * @param pc Particle container
+ */
+void FM2DMagnetoStatic::applyField(std::shared_ptr<ParticleContainer_t> pc)
+{
+    // Local copies of member variables for use in the lambda function
+    double zbegin = zbegin_m;
+    double zend = zend_m;
+    double rend = rend_m;
+    double hr = hr_m;
+    double hz = hz_m;
+    int num_gridpr = num_gridpr_m;
+    int num_gridpz = num_gridpz_m;
+
+    // Device accessible views 
+    auto Bz_device = FieldstrengthBz_m.view_device();
+    auto Br_device = FieldstrengthBr_m.view_device();
+    auto Rview = pc->R.getView();
+    auto Bview = pc->B.getView();
+
+    Kokkos::parallel_for("FM2DMagnetoStatic::applyField",
+    ippl::getRangePolicy(Rview),
+    KOKKOS_LAMBDA(const int i)
+    {
+        // Check bounds
+        if(Rview(i)(2) >= zbegin &&Rview(i)(2) < zend &&
+            sqrt(Rview(i)(0)*Rview(i)(0) + Rview(i)(1)*Rview(i)(1)) < rend) 
+        {
+            computeField(Rview(i),
+                Bview(i),
+                Bz_device,
+                Br_device,
+                hr, hz, zbegin, num_gridpr, num_gridpz);
+        }
+    });
 }
 
 /**
@@ -295,5 +308,5 @@ double FM2DMagnetoStatic::getFrequency() const {
 }
 
 void FM2DMagnetoStatic::setFrequency(double /*freq*/) {
-    ;
+    return;
 }
