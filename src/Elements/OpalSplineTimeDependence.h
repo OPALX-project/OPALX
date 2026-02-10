@@ -35,13 +35,13 @@
  */
 
 class OpalSplineTimeDependence : public OpalElement {
-  public:
+public:
     /** Enumeration maps to UI parameters */
     enum {
         ORDER = COMMON,
         TIMES,
         VALUES,
-        SIZE // size of the enum
+        SIZE  // size of the enum
     };
 
     /** Define mapping from enum variables to string UI parameter names */
@@ -51,7 +51,7 @@ class OpalSplineTimeDependence : public OpalElement {
     ~OpalSplineTimeDependence() override = default;
 
     /** Inherited copy constructor */
-    OpalSplineTimeDependence *clone(const std::string &name) override;
+    OpalSplineTimeDependence* clone(const std::string& name) override;
 
     /** Receive parameters from the parser and hand them off to the
      *  SplineTimeDependence
@@ -59,17 +59,17 @@ class OpalSplineTimeDependence : public OpalElement {
     void update() override;
 
     /** Calls print on the OpalElement */
-    void print(std::ostream &) const override;
+    void print(std::ostream&) const override;
 
     // Not implemented.
-    OpalSplineTimeDependence(const OpalSplineTimeDependence &) = delete;
-    void operator=(const OpalSplineTimeDependence &) = delete;
+    OpalSplineTimeDependence(const OpalSplineTimeDependence&) = delete;
+    void operator=(const OpalSplineTimeDependence&)           = delete;
 
-  private:
+private:
     // Clone constructor.
-    OpalSplineTimeDependence(const std::string &name, OpalSplineTimeDependence *parent);
+    OpalSplineTimeDependence(const std::string& name, OpalSplineTimeDependence* parent);
 
     static const std::string doc_string;
 };
 
-#endif // OPAL_OpalSplineTimeDependence_HH
+#endif  // OPAL_OpalSplineTimeDependence_HH

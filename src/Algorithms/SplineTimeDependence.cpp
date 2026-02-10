@@ -25,15 +25,13 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "Utilities/GSLCompat.h"
-#include "Utilities/GSLCubicSpline.h"
-
-#include "Utilities/GeneralClassicException.h"
 #include "Algorithms/SplineTimeDependence.h"
+#include "Utilities/GSLCubicSpline.h"
+#include "Utilities/GeneralClassicException.h"
 #include "Utility/Inform.h"
 
-SplineTimeDependence::SplineTimeDependence(const size_t splineOrder,
-        const std::vector<double>& times, const std::vector<double>& values) {
+SplineTimeDependence::SplineTimeDependence(
+    const size_t splineOrder, const std::vector<double>& times, const std::vector<double>& values) {
     setSpline(splineOrder, times, values);
 }
 
@@ -56,50 +54,51 @@ SplineTimeDependence* SplineTimeDependence::clone() {
     return timeDep;
 }
 
-Inform& SplineTimeDependence::print(Inform &os) const {
+Inform& SplineTimeDependence::print(Inform& os) const {
     if (spline_m == nullptr) {
         os << "Uninitialised SplineTimeDependence" << endl;
     } else {
-        os << "SplineTimeDependence of order " << splineOrder_m
-           << " with " << times_m.size() << " entries" << endl;
+        os << "SplineTimeDependence of order " << splineOrder_m << " with " << times_m.size()
+           << " entries" << endl;
     }
     return os;
 }
 
-void SplineTimeDependence::setSpline(const size_t splineOrder, const std::vector<double>& times,
-        const std::vector<double>& values) {
+void SplineTimeDependence::setSpline(
+    const size_t splineOrder, const std::vector<double>& times, const std::vector<double>& values) {
     if (times.size() != values.size()) {
         throw GeneralClassicException(
-                            "SplineTimeDependence::SplineTimeDependence",
-                            "Times and values should be of equal length");
+            "SplineTimeDependence::SplineTimeDependence",
+            "Times and values should be of equal length");
     }
     if (times.size() <= splineOrder) {
         throw GeneralClassicException(
-                        "SplineTimeDependence::SplineTimeDependence",
-                        "Times and values should be of length > splineOrder");
+            "SplineTimeDependence::SplineTimeDependence",
+            "Times and values should be of length > splineOrder");
     }
     if (splineOrder != 1 and splineOrder != 3) {
         throw GeneralClassicException(
-                            "SplineTimeDependence::SplineTimeDependence",
-                            "Only linear or cubic interpolation is supported");
+            "SplineTimeDependence::SplineTimeDependence",
+            "Only linear or cubic interpolation is supported");
     }
     for (size_t i = 0; i < times.size() - 1; ++i) {
         if (times[i] >= times[i + 1]) {
             throw GeneralClassicException(
-                                "SplineTimeDependence::SplineTimeDependence",
-                                "Times should increase monotonically");
+                "SplineTimeDependence::SplineTimeDependence",
+                "Times should increase monotonically");
         }
     }
+    splineOrder_m = splineOrder;
     if (spline_m != nullptr) {
         gsl_spline_free(spline_m);
         spline_m = nullptr;
     }
-    if (splineOrder == 1) {
-        spline_m = gsl_spline_alloc (gsl_interp_linear, times.size());
+    if (splineOrder_m == 1) {
+        spline_m = gsl_spline_alloc(gsl_interp_linear, times.size());
     } else {
-        spline_m = gsl_spline_alloc (gsl_interp_cspline, times.size());
+        spline_m = gsl_spline_alloc(gsl_interp_cspline, times.size());
     }
-    times_m = times;
+    times_m  = times;
     values_m = values;
     gsl_spline_init(spline_m, &times[0], &values[0], times.size());
     if (acc_m == nullptr) {
@@ -113,17 +112,14 @@ double SplineTimeDependence::getValue(const double time) {
     if (time < times_m[0] or time > times_m.back()) {
         std::stringstream ss;
         ss << "time out of spline range: " << time;
-        throw GeneralClassicException("SplineTimeDependence::getValue",
-                            ss.str());
+        throw GeneralClassicException("SplineTimeDependence::getValue", ss.str());
     }
-    return gsl_spline_eval (spline_m, time, acc_m);
+    return gsl_spline_eval(spline_m, time, acc_m);
 }
 
 double SplineTimeDependence::getIntegral(const double time) {
     if (time < times_m[0] or time > times_m.back()) {
-        throw GeneralClassicException("SplineTimeDependence::getValue",
-                            "time out of spline range");
+        throw GeneralClassicException("SplineTimeDependence::getValue", "time out of spline range");
     }
-    return gsl_spline_eval_integ (spline_m, 0, time, acc_m);
+    return gsl_spline_eval_integ(spline_m, 0, time, acc_m);
 }
-

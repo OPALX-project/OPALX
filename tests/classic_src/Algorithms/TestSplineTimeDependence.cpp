@@ -30,9 +30,9 @@
 #include "Utilities/GeneralClassicException.h"
 #include "Algorithms/SplineTimeDependence.h"
 
-class SplineTimeDependenceTest : public ::testing::Test { 
+class TestSplineTimeDependence : public ::testing::Test { 
 public:
-    SplineTimeDependenceTest() : times_m(10), values_m(10) {
+    TestSplineTimeDependence() : times_m(10), values_m(10) {
         for (size_t i = 0; i < 10; ++i) {
             times_m[i] = i*i+i;
             values_m[i] = times_m[i]; // x^2
@@ -44,7 +44,7 @@ public:
 };
 
 
-TEST_F(SplineTimeDependenceTest, ConstructorTest) {
+TEST_F(TestSplineTimeDependence, ConstructorTest) {
     try {
         SplineTimeDependence timeDep(1, times_m, values_m);
 
@@ -83,7 +83,7 @@ TEST_F(SplineTimeDependenceTest, ConstructorTest) {
     }
 }
 
-TEST_F(SplineTimeDependenceTest, LinearLookupTest) {
+TEST_F(TestSplineTimeDependence, LinearLookupTest) {
     SplineTimeDependence timeDep(1, times_m, values_m);
     double test_x = (times_m[2]+times_m[3])/2.;
     double ref_y = (values_m[2]+values_m[3])/2.;
@@ -93,7 +93,7 @@ TEST_F(SplineTimeDependenceTest, LinearLookupTest) {
                  GeneralClassicException);
 }
 
-TEST_F(SplineTimeDependenceTest, CubicLookupTest) {
+TEST_F(TestSplineTimeDependence, CubicLookupTest) {
     // if I give it a quadratic or cubic, it gets the wrong answer!!
     // I am sure that it is doing the right thing though... ahem
     SplineTimeDependence timeDep(1, times_m, values_m);

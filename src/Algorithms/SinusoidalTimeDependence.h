@@ -19,8 +19,6 @@
 #define OPAL_SINUSOIDALTIMEDEPENDENCE_H
 
 #include <vector>
-#include <cmath>
-
 #include "Algorithms/AbstractTimeDependence.h"
 class Inform;
 
@@ -70,6 +68,12 @@ public:
      *  @param os "Inform" stream to which the sinusoidals are printed.
      */
     Inform& print(Inform& os) const;
+
+    /* Getters only for test cases */
+    const std::vector<double>& getFrequencies() const { return f_m; }
+    const std::vector<double>& getAmplitudes() const { return a_m; }
+    const std::vector<double>& getOffsets() const { return o_m; }
+    const std::vector<double>& getPhases() const { return p_m; }
 
 private:
     std::vector<double> f_m;
