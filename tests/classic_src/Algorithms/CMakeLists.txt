@@ -3,6 +3,7 @@ set (_SRCS
     SplineTimeDependenceTest.cpp
     DistributionMomentsTest.cpp
     DistributionMomentsTestFixture.cpp
+    QuaternionTest.cpp
 )
 
 include_directories (
