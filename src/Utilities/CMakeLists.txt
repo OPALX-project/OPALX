@@ -91,6 +91,8 @@ set (HDRS
     OpalFilter.h
     RegularExpression.h
     Timer.h
+    GSLLinearSpline.h
+    GSLCubicSpline.h
     )
 
 target_include_directories(opalx PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

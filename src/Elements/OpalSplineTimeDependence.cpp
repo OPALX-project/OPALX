@@ -75,7 +75,8 @@ OpalSplineTimeDependence::OpalSplineTimeDependence(const std::string &name,
 
 void OpalSplineTimeDependence::update() {
     const double order = Attributes::getReal(itsAttr[ORDER]);
-    if (order != 1.0 && order != 3.0) {
+    if (order != SplineTimeDependence::LinearInterpolation &&
+            order != SplineTimeDependence::CubicInterpolation) {
         throw OpalException("OpalSplineTimeDependence::update",
                             "SPLINE_TIME_DEPENDENCE \"ORDER\" should be 1 or 3.");
     }
