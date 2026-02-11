@@ -275,9 +275,6 @@ void TrackRun::execute() {
     bunch_m->setBeamFrequency(beam->getFrequency() * Units::MHz2Hz);
 
     *gmsg << *(bunch_m->getBCHandler()) << endl;
-
-    double cc = 1.0 / (4 * Physics::pi * Physics::epsilon_0);  
-    bunch_m->setCouplingConstant(cc);
     
     setupBoundaryGeometry();
 

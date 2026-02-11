@@ -165,8 +165,6 @@ private:
 
     PartData* reference_m;
 
-    double couplingConstant_m;
-
     /// step in a TRACK command
     long long localTrackStep_m;
 
@@ -300,13 +298,7 @@ public:
       Up to here it is like the opaltest
     */
 
-    double getCouplingConstant() const {
-        return couplingConstant_m;
-    }
-    
-    void setCouplingConstant(double c) {
-        couplingConstant_m = c;
-    }
+    T getCouplingConstant() const;
 
     void calcBeamParameters();
 
@@ -530,9 +522,22 @@ public:
 
     Inform& print(Inform& os);
 
-    bool hasFieldSolver() {
-        *gmsg << "not implemented" << endl;
-        return true;
+    bool hasFieldSolver() const {
+        return this->fsolver_m != nullptr;
+    }
+
+    FieldSolver_t* getFieldSolver() {
+        /*
+        \todo this needs to change, best would be to use a smart pointer!
+        However, the parent class FieldSolverBase from IPPL uses raw pointers,
+        so changing this would require some changes in IPPL...
+        */
+        return static_cast<FieldSolver_t*>(this->fsolver_m.get());
+    }
+
+    /// Const overload for better const correctness.
+    const FieldSolver_t* getFieldSolver() const {
+        return static_cast<const FieldSolver_t*>(this->fsolver_m.get());
     }
 
     bool getFieldSolverType() {
