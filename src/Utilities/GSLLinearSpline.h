@@ -19,6 +19,7 @@
 #define OPALX_LINEAR_SPLINE_H
 
 #include <vector>
+#include <algorithm>
 
 // \brief Linear spline interpolation class that implements an equivelent of
 // the gsl_interp_linear mode of the GSL spline class
