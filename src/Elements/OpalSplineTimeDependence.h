@@ -63,7 +63,7 @@ public:
 
     // Not implemented.
     OpalSplineTimeDependence(const OpalSplineTimeDependence&) = delete;
-    void operator=(const OpalSplineTimeDependence&)           = delete;
+    void operator=(const OpalSplineTimeDependence&) = delete;
 
 private:
     // Clone constructor.

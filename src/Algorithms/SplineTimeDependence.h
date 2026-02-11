@@ -31,6 +31,7 @@
 #include <vector>
 
 #include "Algorithms/AbstractTimeDependence.h"
+#include "Utilities/GSLLinearSpline.h"
 #include "Utilities/GSLCubicSpline.h"
 
 class Inform;
@@ -69,7 +70,7 @@ public:
     SplineTimeDependence() = default;
 
     /** Destructor cleans up the GSL spline stuff */
-    ~SplineTimeDependence() override;
+    ~SplineTimeDependence() override = default;
 
     /** Return the value of the spline at a given time
      *
@@ -113,10 +114,16 @@ public:
     const std::vector<double>& getValues() const { return values_m; }
     size_t getSplineOrder() const { return splineOrder_m; }
 
+    // Spline order constants
+    static constexpr size_t LinearInterpolation = 1;
+    static constexpr size_t CubicInterpolation = 3;
+
 private:
-    gsl_spline* spline_m{};
-    gsl_interp_accel* acc_m{};
-    size_t splineOrder_m{1};
+    std::unique_ptr<CubicSpline> cubicSpline_m;
+    std::unique_ptr<CubicSpline::Accelerator> cubicAcc_m;
+    std::unique_ptr<LinearSpline> linearSpline_m;
+    std::unique_ptr<LinearSpline::Accelerator> linearAcc_m;
+    size_t splineOrder_m{LinearInterpolation};
     std::vector<double> times_m;
     std::vector<double> values_m;
 };

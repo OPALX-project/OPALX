@@ -39,15 +39,6 @@ SplineTimeDependence::SplineTimeDependence(const SplineTimeDependence& rhs) {
     setSpline(rhs.splineOrder_m, rhs.times_m, rhs.values_m);
 }
 
-SplineTimeDependence::~SplineTimeDependence() {
-    if (spline_m != nullptr) {
-        gsl_spline_free(spline_m);
-    }
-    if (acc_m != nullptr) {
-        gsl_interp_accel_free(acc_m);
-    }
-}
-
 SplineTimeDependence* SplineTimeDependence::clone() {
     auto* timeDep = new SplineTimeDependence();
     timeDep->setSpline(splineOrder_m, times_m, values_m);
@@ -55,7 +46,7 @@ SplineTimeDependence* SplineTimeDependence::clone() {
 }
 
 Inform& SplineTimeDependence::print(Inform& os) const {
-    if (spline_m == nullptr) {
+    if (!cubicSpline_m && !linearSpline_m) {
         os << "Uninitialised SplineTimeDependence" << endl;
     } else {
         os << "SplineTimeDependence of order " << splineOrder_m << " with " << times_m.size()
@@ -76,7 +67,7 @@ void SplineTimeDependence::setSpline(
             "SplineTimeDependence::SplineTimeDependence",
             "Times and values should be of length > splineOrder");
     }
-    if (splineOrder != 1 and splineOrder != 3) {
+    if (splineOrder != LinearInterpolation and splineOrder != CubicInterpolation) {
         throw GeneralClassicException(
             "SplineTimeDependence::SplineTimeDependence",
             "Only linear or cubic interpolation is supported");
@@ -89,37 +80,46 @@ void SplineTimeDependence::setSpline(
         }
     }
     splineOrder_m = splineOrder;
-    if (spline_m != nullptr) {
-        gsl_spline_free(spline_m);
-        spline_m = nullptr;
-    }
-    if (splineOrder_m == 1) {
-        spline_m = gsl_spline_alloc(gsl_interp_linear, times.size());
-    } else {
-        spline_m = gsl_spline_alloc(gsl_interp_cspline, times.size());
-    }
     times_m  = times;
     values_m = values;
-    gsl_spline_init(spline_m, &times[0], &values[0], times.size());
-    if (acc_m == nullptr) {
-        acc_m = gsl_interp_accel_alloc();
+    if (splineOrder_m == LinearInterpolation) {
+        linearSpline_m = std::make_unique<LinearSpline>(times_m, values_m);
+        linearAcc_m = std::make_unique<LinearSpline::Accelerator>();
+        cubicSpline_m.reset();
+        cubicAcc_m.reset();
     } else {
-        gsl_interp_accel_reset(acc_m);
+        linearSpline_m.reset();
+        linearAcc_m.reset();
+        cubicSpline_m = std::make_unique<CubicSpline>(times_m.data(), values_m.data(),
+                times_m.size());
+        cubicAcc_m = std::make_unique<CubicSpline::Accelerator>();
     }
 }
 
 double SplineTimeDependence::getValue(const double time) {
+    double result{};
     if (time < times_m[0] or time > times_m.back()) {
         std::stringstream ss;
         ss << "time out of spline range: " << time;
         throw GeneralClassicException("SplineTimeDependence::getValue", ss.str());
     }
-    return gsl_spline_eval(spline_m, time, acc_m);
+    if (splineOrder_m == LinearInterpolation) {
+        result = linearSpline_m->eval(time, *linearAcc_m);
+    } else {
+        result = cubicSpline_m->eval(time, *cubicAcc_m);
+    }
+    return result;
 }
 
 double SplineTimeDependence::getIntegral(const double time) {
+    double result{};
     if (time < times_m[0] or time > times_m.back()) {
         throw GeneralClassicException("SplineTimeDependence::getValue", "time out of spline range");
     }
-    return gsl_spline_eval_integ(spline_m, 0, time, acc_m);
+    if (splineOrder_m == LinearInterpolation) {
+        result = linearSpline_m->evalIntegral(0, time, *linearAcc_m);
+    } else {
+        result = cubicSpline_m->evalIntegral(0, time, *cubicAcc_m);
+    }
+    return result;
 }

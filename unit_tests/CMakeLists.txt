@@ -11,7 +11,8 @@ endif()
 include(GoogleTest)
 
 if(NOT TARGET opalx_test_support)
-  add_library(opalx_test_support INTERFACE)
+  add_library(opalx_test_support INTERFACE
+          Utilities/TestLinearSpline.cpp)
   target_include_directories(opalx_test_support
                              INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
   add_library(opalx::test_support ALIAS opalx_test_support)
