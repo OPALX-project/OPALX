@@ -130,8 +130,6 @@ T PartBunch<T, Dim>::getCouplingConstant() const {
                             "Cannot return coupling if fsolver_m is not a "
                             "FieldSolver instance");
     }
-    
-    // auto fs = std::dynamic_pointer_cast<FieldSolver_t>(this->fsolver_m);
     return this->getFieldSolver()->getCouplingConstant();
 }
 

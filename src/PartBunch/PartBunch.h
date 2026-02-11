@@ -535,6 +535,11 @@ public:
         return static_cast<FieldSolver_t*>(this->fsolver_m.get());
     }
 
+    /// Const overload for better const correctness.
+    const FieldSolver_t* getFieldSolver() const {
+        return static_cast<const FieldSolver_t*>(this->fsolver_m.get());
+    }
+
     bool getFieldSolverType() {
         *gmsg << "not implemented" << endl;
         return false;
