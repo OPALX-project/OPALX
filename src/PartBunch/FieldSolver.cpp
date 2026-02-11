@@ -14,45 +14,41 @@ extern Inform* gmsg;
 template <>
 template <typename Solver>
 void  FieldSolver<double,3>::initSolverWithParams(const ippl::ParameterList& sp) {
-    Inform m ("initSolverWithParams ");
+    Inform m ("FieldSolver::initSolverWithParams");
     this->getSolver().template emplace<Solver>();
     Solver& solver = std::get<Solver>(this->getSolver());
     solver.mergeParameters(sp);
-    
-    if constexpr (std::is_same_v<Solver, CGSolver_t<T, Dim>>) {
-        // The CG solver computes the potential directly and
-        // uses this to get the electric field
-        throw OpalException("FieldSolver<double,3>::initSolverWithParams", "Cannot use CGSolver yet, not implemented.");
+    m << "Initialized solver with params: " << this->getStype() << endl;
 
-        /// \todo implement properly
-        m << "CG solver used " << endl;
+    // test if rho_m exists (just in case)
+    if (!rho_m) {
+        throw OpalException("FieldSolver::initSolverWithParams", 
+                            "rho_m is not initialized.");
+    }
+
+    solver.setRhs(*rho_m);
+    m << "Set solver RHS." << endl;
+
+    if constexpr ((std::is_same_v<Solver, CGSolver_t<T, Dim>>) /*|| 
+                  (std::is_same_v<Solver, FEMSolver_t<T, Dim>>) || 
+                  (std::is_same_v<Solver, FEMPreconSolver_t<T, Dim>>)*/) {
+        /// \todo for now, don't use the CG solver!
+        throw OpalException("FieldSolver::initSolverWithParams", 
+                            "Cannot use CGSolver yet, not fully implemented.");
+        // The CG solver and FEMPoissonSolver compute the potential 
+        // directly and use this to get the electric field
         solver.setLhs(*phi_m);
         solver.setGradient(*E_m);
-    } else if constexpr (std::is_same_v<Solver, OpenSolver_t<T, Dim>>) {
+        m << "Set gradient for CG." << endl;
+    } else {
         // The periodic Poisson solver, Open boundaries solver,
-        // and the P3M solver compute the electric field directly
-        m << "OpenSolver used" << endl;
-        solver.setRhs(*rho_m);
-        m << "Set RHS for OpenSolver" << endl;
-        solver.setLhs(*E_m);
-        m << "Set LHS for OpenSolver" << endl;
-        solver.setGradFD();
-        m << "Set GradFD for OpenSolver" << endl;
-    } else if constexpr (std::is_same_v<Solver, FFTSolver_t<T, Dim>>) {
-        // The periodic Poisson solver
-        m << "FFTSolver used" << endl;
-        solver.setRhs(*rho_m);
-        solver.setLhs(*E_m);
-    } else if constexpr (std::is_same_v<Solver, NullSolver_t<T, Dim>>) {
-        m << "NullSolver used" << endl;
-        solver.setRhs(*rho_m);
+        // and the TG solver compute the electric field directly
         solver.setLhs(*E_m);
     }
-    
+
+    m << "Set solver LHS." << endl;
     call_counter_m = 0;
 }
-
-
 
 
 template <>
@@ -61,7 +57,7 @@ void FieldSolver<double,3>::dumpVectField(std::string what) {
       what == ef
      */
 
-    Inform m("FS::dumpVectorField() ");
+    Inform m("FieldSolver::dumpVectorField");
 
     //    std::variant<Field_t<3>*, VField_t<double, 3>* > field;
 
@@ -69,20 +65,20 @@ void FieldSolver<double,3>::dumpVectField(std::string what) {
         return;
     }
 
-/* Save the files in the output directory of the simulation. The file
- * name of vector fields is
- *
- * 'basename'-'name'_field-'******'.dat
- *
- * and of scalar fields
- *
- * 'basename'-'name'_scalar-'******'.dat
- *
- * with
- *   'basename': OPAL input file name (*.in)
- *   'name':     field name (input argument of function)
- *   '******':   call_counter_m padded with zeros to 6 digits
- */
+    /* Save the files in the output directory of the simulation. The file
+    * name of vector fields is
+    *
+    * 'basename'-'name'_field-'******'.dat
+    *
+    * and of scalar fields
+    *
+    * 'basename'-'name'_scalar-'******'.dat
+    *
+    * with
+    *   'basename': OPAL input file name (*.in)
+    *   'name':     field name (input argument of function)
+    *   '******':   call_counter_m padded with zeros to 6 digits
+    */
 
     std::string dirname = "data/";
 
@@ -100,6 +96,7 @@ void FieldSolver<double,3>::dumpVectField(std::string what) {
     auto mesh_mp  = &(field->get_mesh());
     auto spacing  = mesh_mp->getMeshSpacing();
     auto origin   = mesh_mp->getOrigin();
+    int nghost    = field->getNghost(); // ghosts are excluded in getLocalNDIndex()
 
     auto fieldV      = field->getView();
     auto field_hostV = field->getHostMirror();
@@ -118,7 +115,8 @@ void FieldSolver<double,3>::dumpVectField(std::string what) {
 
     fout << "# " << Util::toUpper(what) << " " << type << " data on grid" << std::endl
          << "# origin= " << std::fixed << origin << " h= " << std::fixed << spacing << std::endl 
-         << std::setw(5)  << "i"
+         << "#"
+         << std::setw(4)  << "i"
          << std::setw(5)  << "j"
          << std::setw(5)  << "k"
          << std::setw(17) << "x [m]"
@@ -131,18 +129,18 @@ void FieldSolver<double,3>::dumpVectField(std::string what) {
 
     fout << std::endl;
 
-    for (int i = localIdx[0].first() + 1; i <= localIdx[0].last() +1 ; i++) {
-            for (int j = localIdx[1].first() + 1 ; j <= localIdx[1].last() +1  ; j++) {
-                for (int k = localIdx[2].first() + 1 ; k <= localIdx[2].last() +1 ; k++) {
+    for (int i = localIdx[0].first() + nghost; i <= localIdx[0].last() + nghost; i++) {
+            for (int j = localIdx[1].first() + nghost; j <= localIdx[1].last() + nghost ; j++) {
+                for (int k = localIdx[2].first() + nghost; k <= localIdx[2].last() + nghost; k++) {
                     
                     // define the physical points (cell-centered)
-                    double x = i * spacing[0] + origin[0];        
-                    double y = j * spacing[1] + origin[1];        
-                    double z = k * spacing[2] + origin[2];     
+                    double x = (i - nghost) * spacing[0] + origin[0];        
+                    double y = (j - nghost) * spacing[1] + origin[1];        
+                    double z = (k - nghost) * spacing[2] + origin[2];     
                 
-                    fout << std::setw(5) << i-1 
-                         << std::setw(5) << j-1
-                         << std::setw(5) << k-1
+                    fout << std::setw(5) << i 
+                         << std::setw(5) << j
+                         << std::setw(5) << k
                          << std::setw(17) << x
                          << std::setw(17) << y
                          << std::setw(17) << z
@@ -166,27 +164,29 @@ void FieldSolver<double,3>::dumpScalField(std::string what) {
      */
 
     Inform m("FS::dumpScalField() ");
+    m << "Dumping scalar field: " << what << endl;
 
-    if (ippl::Comm->size() > 1 || call_counter_m<2) {
+    if (ippl::Comm->size() > 1 /*|| call_counter_m<2*/) {
         return;
     }
 
-/* Save the files in the output directory of the simulation. The file
- * name of vector fields is
- *
- * 'basename'-'name'_field-'******'.dat
- *
- * and of scalar fields
- *
- * 'basename'-'name'_scalar-'******'.dat
- *
- * with
- *   'basename': OPAL input file name (*.in)
- *   'name':     field name (input argument of function)
- *   '******':   call_counter_m padded with zeros to 6 digits
- */
+    /* Save the files in the output directory of the simulation. The file
+    * name of vector fields is
+    *
+    * 'basename'-'name'_field-'******'.dat
+    *
+    * and of scalar fields
+    *
+    * 'basename'-'name'_scalar-'******'.dat
+    *
+    * with
+    *   'basename': OPAL input file name (*.in)
+    *   'name':     field name (input argument of function)
+    *   '******':   call_counter_m padded with zeros to 6 digits
+    */
     
 
+    // Needs to be empty...?
     std::string dirname = "data/";
 
     std::string type;
@@ -202,15 +202,17 @@ void FieldSolver<double,3>::dumpScalField(std::string what) {
     }
 
     
-    Field_t<3>* field = this->getRho();   // both rho and phi are in the same variable (in place computation)
+    Field_t<3>* field = (this->getStype() == "CG" && Util::toUpper(what) == "PHI") ? this->getPhi() : this->getRho();   // both rho and phi are in the same variable (in place computation)
     
-    auto localIdx = field->getOwned();
+    // auto localIdx = field->getOwned();
+    ippl::NDIndex<3> localIdx = field->getLayout().getLocalNDIndex();
+    int nghost    = field->getNghost(); // ghosts are excluded in getLocalNDIndex(), but we still need to shift indices
     auto mesh_mp  = &(field->get_mesh());
     auto spacing  = mesh_mp->getMeshSpacing();
     auto origin   = mesh_mp->getOrigin();
 
-    auto fieldV      = field->getView();
-    auto field_hostV = field->getHostMirror();
+    Field_t<3>::view_type fieldV       = field->getView();
+    Field_t<3>::HostMirror field_hostV = field->getHostMirror();
     Kokkos::deep_copy(field_hostV, fieldV);     
 
     std::filesystem::path file(dirname);
@@ -225,8 +227,11 @@ void FieldSolver<double,3>::dumpScalField(std::string what) {
     fout << std::setprecision(9);
 
     fout << "# " << Util::toUpper(what) << " " << type << " data on grid" << std::endl
-         << "# origin= " << std::fixed << origin << " h= " << std::fixed << spacing << std::endl 
-         << std::setw(5)  << "i"
+         << "# origin= " << std::fixed << origin 
+         << " h= " << std::fixed << spacing 
+         << " nghosts=" << nghost << std::endl 
+         << "#"
+         << std::setw(4)  << "i"
          << std::setw(5)  << "j"
          << std::setw(5)  << "k"
          << std::setw(17) << "x [m]"
@@ -244,14 +249,14 @@ void FieldSolver<double,3>::dumpScalField(std::string what) {
     fout << std::endl;
 
     if (Util::toUpper(what) == "RHO") {
-        for (int i = localIdx[0].first(); i <= localIdx[0].last(); i++) {
-            for (int j = localIdx[1].first(); j <= localIdx[1].last(); j++) {
-                for (int k = localIdx[2].first(); k <= localIdx[2].last(); k++) {
+        for (int i = localIdx[0].first() + nghost; i <= localIdx[0].last() + nghost; i++) {
+            for (int j = localIdx[1].first() + nghost; j <= localIdx[1].last() + nghost; j++) {
+                for (int k = localIdx[2].first() + nghost; k <= localIdx[2].last() + nghost; k++) {
                     
                     // define the physical points (cell-centered)
-                    double x = i * spacing[0] + origin[0];        
-                    double y = j * spacing[1] + origin[1];        
-                    double z = k * spacing[2] + origin[2];     
+                    double x = (i-nghost) * spacing[0] + origin[0];        
+                    double y = (j-nghost) * spacing[1] + origin[1];        
+                    double z = (k-nghost) * spacing[2] + origin[2];     
                 
                     fout << std::setw(5) << i
                          << std::setw(5) << j
@@ -264,20 +269,19 @@ void FieldSolver<double,3>::dumpScalField(std::string what) {
                 }
             }
         }
-    }
-    else {
-        for (int i = localIdx[0].first() + 1; i <= localIdx[0].last() +1 ; i++) {
-            for (int j = localIdx[1].first() + 1 ; j <= localIdx[1].last() +1  ; j++) {
-                for (int k = localIdx[2].first() + 1 ; k <= localIdx[2].last() +1 ; k++) {
-                    
+    } else {
+        for (int i = localIdx[0].first() + nghost; i <= localIdx[0].last() + nghost; i++) {
+            for (int j = localIdx[1].first() + nghost; j <= localIdx[1].last() + nghost; j++) {
+                for (int k = localIdx[2].first() + nghost; k <= localIdx[2].last() + nghost; k++) {
                     // define the physical points (cell-centered)
-                    double x = i * spacing[0] + origin[0];        
-                    double y = j * spacing[1] + origin[1];        
-                    double z = k * spacing[2] + origin[2];     
-                
-                    fout << std::setw(5) << i-1 
-                         << std::setw(5) << j-1
-                         << std::setw(5) << k-1
+                    double x = (i - nghost) * spacing[0] + origin[0];        
+                    double y = (j - nghost) * spacing[1] + origin[1];        
+                    double z = (k - nghost) * spacing[2] + origin[2];     
+
+                    // "+ 1" matches OPAL indexing in the output
+                    fout << std::setw(5) << i
+                         << std::setw(5) << j
+                         << std::setw(5) << k
                          << std::setw(17) << x
                          << std::setw(17) << y
                          << std::setw(17) << z
@@ -309,6 +313,8 @@ template <>
 void FieldSolver<double,3>::initFFTSolver() {
     if constexpr (Dim == 2 || Dim == 3) {
         ippl::ParameterList sp;
+        // Needs sol for phi_m testing/output and GRAD for E_m computation
+        /// \todo don't print phi_m to file if FFT and GRAD is selected!
         sp.add("output_type", FFTSolver_t<double, 3>::GRAD);
         //sp.add("output_type", OpenSolver_t<double, 3>::SOL_AND_GRAD);
         sp.add("use_heffte_defaults", false);
@@ -319,11 +325,31 @@ void FieldSolver<double,3>::initFFTSolver() {
         sp.add("r2c_direction", 0);
         initSolverWithParams<FFTSolver_t<double, 3>>(sp);
     } else {
-        // TODO: add exception here
-        // throw std::runtime_error("Unsupported dimensionality for FFT solver");
+        throw OpalException("FieldSolver<double,3>::initFFTSolver",
+                            "FFTSolver_t is only implemented for 2D and 3D fields.");
     }
 }
 
+template <>
+void FieldSolver<double,3>::initCGSolver() {
+    ippl::ParameterList sp;
+    sp.add("output_type", CGSolver_t<double, 3>::GRAD);
+    /// \todo should probably at some point be passed from the input file
+    sp.add("tolerance", 1e-12);
+    
+    initSolverWithParams<CGSolver_t<double, 3>>(sp);
+}
+
+template<>
+void FieldSolver<double,3>::initNullSolver() {
+    ippl::ParameterList sp;
+    if constexpr (Dim == 2 || Dim == 3) {
+        initSolverWithParams<NullSolver_t<T, Dim>>(sp);
+    } else {
+        throw OpalException("FieldSolver<double,3>::initNullSolver",
+                            "NullSolver_t is only implemented for 2D and 3D fields.");
+    }
+}
 
 template <>
 void FieldSolver<double,3>::initSolver() {
@@ -332,16 +358,18 @@ void FieldSolver<double,3>::initSolver() {
         initFFTSolver();    
     } else if (this->getStype() == "OPEN") {
         initOpenSolver();    
+    } else if (this->getStype() == "CG") {
+        initCGSolver();
     } else if (this->getStype() == "NONE") {
         initNullSolver();
-    }
-    else {
-        m << "No solver matches the argument: " << this->getStype() << endl;
-        throw std::runtime_error("No solver match");
+    } else {
+        throw OpalException("FieldSolver::initSolver", 
+                            "No known solver matches the argument: " + this->getStype());
     }
 }
 
-template <>
+
+/*template <>
 void FieldSolver<double,3>::setPotentialBCs() {
         // CG requires explicit periodic boundary conditions while the periodic Poisson solver
         // simply assumes them
@@ -353,16 +381,30 @@ void FieldSolver<double,3>::setPotentialBCs() {
             }
             phi_m->setFieldBC(allPeriodic);
         }
-    }
+    }*/
 
 template<>
-void FieldSolver<double,3>::runSolver() {
+void FieldSolver<double,3>::runSolver(bool force_skip_field_dump) {
     constexpr int Dim = 3;
+    Inform m ("FieldSolver::runSolver");
+    /*
+    Add this output such that there is no possible unused variable warning for
+    force_skip_field_dump, which is only used in the debug output functions 
+    for now.
+    */
+    m << "Running solver with type: " << this->getStype() << ". Force skip field dump: " << force_skip_field_dump << endl;
 
     if (this->getStype() == "CG") {
             CGSolver_t<double, 3>& solver = std::get<CGSolver_t<double, 3>>(this->getSolver());
+#ifdef OPALX_FIELD_DEBUG
+            if (!force_skip_field_dump) this->dumpScalField("rho");
+#endif
+            // std::get<CGSolver_t<double, 3>>(this->getSolver()).solve();
             solver.solve();
-
+#ifdef OPALX_FIELD_DEBUG
+            if (!force_skip_field_dump) this->dumpScalField("phi");
+#endif
+            /*
             if (ippl::Comm->rank() == 0) {
                 std::stringstream fname;
                 fname << "data/CG_";
@@ -380,64 +422,102 @@ void FieldSolver<double,3>::runSolver() {
                     log << solver.getResidue() << "," << iterations << endl;
                 }
             }
-            ippl::Comm->barrier();
-        } else if (this->getStype() == "FFT") {
-            if constexpr (Dim == 2 || Dim == 3) {
+            ippl::Comm->barrier();*/
+            int iterations = solver.getIterationCount();
+            int residue    = solver.getResidue();
+            m << "CG solver finished. Iterations: " << iterations 
+              << ", Residue: " << residue << endl;
+    } else if (this->getStype() == "FFT") {
+        if constexpr (Dim == 2 || Dim == 3) {
 #ifdef OPALX_FIELD_DEBUG
-                this->dumpScalField("rho");
+            if (!force_skip_field_dump) this->dumpScalField("rho");
 #endif
 
-                std::get<FFTSolver_t<double, 3>>(this->getSolver()).solve();
+            std::get<FFTSolver_t<double, 3>>(this->getSolver()).solve();
 #ifdef OPALX_FIELD_DEBUG
-                this->dumpScalField("phi");
-                this->dumpVectField("ef");
+            /// \todo do to not print phi/E depenging on output_type!
+            if (!force_skip_field_dump) this->dumpScalField("phi");
+            if (!force_skip_field_dump) this->dumpVectField("ef");
 #endif
-            }
-        } else if (this->getStype() == "P3M") {
-            if constexpr (Dim == 3) {
-                std::get<FFTTruncatedGreenSolver_t<double, 3>>(this->getSolver()).solve();
-            }
-        } else if (this->getStype() == "OPEN") {
-            if constexpr (Dim == 3) {
+        }
+    } else if (this->getStype() == "P3M") {
+        if constexpr (Dim == 3) {
+            std::get<FFTTruncatedGreenSolver_t<double, 3>>(this->getSolver()).solve();
+        }
+    } else if (this->getStype() == "OPEN") {
+        if constexpr (Dim == 3) {
 #ifdef OPALX_FIELD_DEBUG
-                this->dumpScalField("rho");
+            if (!force_skip_field_dump) this->dumpScalField("rho");
 #endif
-                std::get<OpenSolver_t<double, 3>>(this->getSolver()).solve();
+            std::get<OpenSolver_t<double, 3>>(this->getSolver()).solve();
 #ifdef OPALX_FIELD_DEBUG
-                this->dumpScalField("phi");
-                this->dumpVectField("ef");
+            if (!force_skip_field_dump) this->dumpScalField("phi");
+            if (!force_skip_field_dump) this->dumpVectField("ef");
 #endif
-            }
+        }
     } else if (this->getStype() == "NONE") {
         std::get<NullSolver_t<T, Dim>>(this->getSolver()).solve();
     } else {
-        throw std::runtime_error("Unknown solver type");
+        throw OpalException("FieldSolver::runSolver", 
+                            "No known solver matches the argument: " + this->getStype());
     }
 
     call_counter_m++;
 }
 
+// Implement getCouplingConstant
 template<>
-void FieldSolver<double,3>::initNullSolver() {
-    ippl::ParameterList sp;
-    if constexpr (Dim == 2 || Dim == 3) {
-        initSolverWithParams<NullSolver_t<T, Dim>>(sp);
-    } else {
-        throw std::runtime_error("Unsupported dimensionality for Null solver");
+double FieldSolver<double, 3>::getCouplingConstant() const {
+    /*
+    In SI units, the coupling constant for the electric field is 
+    1/(4*pi*epsilon_0). However, some solvers seem to use different conventions
+    (likely due to different Green's function conventions or FFT normalizations). 
+
+    As I can tell, the IPPL solvers all need 1/eps0. However, just in case,
+    leave it like this for now. Perhaps later this can be changed to simply 
+    something like `return 1.0 / Physics::epsilon_0;`. 
+    */
+
+    /// \todo Verify this before activating a new solver!
+    const std::string stype = this->getStype();
+    if (stype == "OPEN") {
+        return 1.0 / Physics::epsilon_0; 
+    } else if (stype == "FFT") {
+        return 1.0 / Physics::epsilon_0;
+    } else if (stype == "CG") {
+        return 1.0 / Physics::epsilon_0;
     }
+
+    // Standard coupling constant (from before)
+    return 1.0 / (4.0 * Physics::pi * Physics::epsilon_0);
+}  
+
+template<>
+void FieldSolver<double,3>::setPotentialBCs() {
+    Inform m ("FieldSolver::setPotentialBCs");
+    // Check if BC handler is set
+    if (!hasValidBCHandler()) {
+        throw OpalException("FieldSolver::setPotentialBCs",
+                            "BC Handler not set or invalid.");
+    }
+
+    if (this->getStype() != "CG") {
+        m << "Potential BCs only need to be set for CG solver. Current solver type: " 
+          << this->getStype() << endl;
+        return;
+    }
+
+    // Need to do it like that, because for some reason IPPL wants a reference,
+    // therefore cannot simply say "setFieldBC(...toIPPLBConds())". 
+    typedef ippl::BConds<Field_t<Dim>, Dim> bc_type;
+    bc_type bc_container = getBCHandler()->toIPPLBConds<Field_t<Dim>>();
+    phi_m->setFieldBC(bc_container);
+    // rho_m->setFieldBC(bc_container);
+    m << "Potential BCs in FieldSolver updated using BCHandler." << endl;
 }
 
 /*
-template <>
-void FieldSolver<double,3>::initCGSolver() {
-    ippl::ParameterList sp;
-    sp.add("output_type", CGSolver_t<double, 3>::GRAD);
-    // Increase tolerance in the 1D case
-    sp.add("tolerance", 1e-10);
-    
-    initSolverWithParams<CGSolver_t<double, 3>>(sp);
-}
-
+/// \todo to be implemented...
 template<>
 void FieldSolver<double,3>::initP3MSolver() {
     //        if constexpr (Dim == 3) {

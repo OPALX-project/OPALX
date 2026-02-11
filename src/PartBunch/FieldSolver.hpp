@@ -4,6 +4,7 @@
 #include <memory>
 #include "Manager/BaseManager.h"
 #include "Manager/FieldSolverBase.h"
+#include "BCHandler.hpp"
 
 // Define the FieldSolver class
 template <typename T, unsigned Dim>
@@ -13,21 +14,27 @@ private:
     VField_t<T, Dim>* E_m;
     Field_t<Dim>* phi_m;
 
+    using BCHandler_t = BCHandler<Dim>;
+    std::shared_ptr<BCHandler_t> bcHandler_m;
+
     /// Counts number of times the solver has been called
-    unsigned int call_counter_m;
+    size_t call_counter_m;
 public:
     FieldSolver(std::string solver,
                 Field_t<Dim>* rho,
                 VField_t<T, Dim>* E,
-                Field<T, Dim>* phi)
+                Field_t<Dim>* phi,
+                std::shared_ptr<BCHandler_t> bcHandler)
         : ippl::FieldSolverBase<T, Dim>(solver),
-          rho_m(rho), E_m(E), phi_m(phi), call_counter_m(0) {
-
+          rho_m(rho), 
+          E_m(E), 
+          phi_m(phi), 
+          bcHandler_m(bcHandler),
+          call_counter_m(0) {
         setPotentialBCs();
     }
 
-    ~FieldSolver() {
-    }
+    ~FieldSolver() override = default;
 
     void dumpScalField(std::string what);
     void dumpVectField(std::string what);
@@ -53,13 +60,81 @@ public:
         phi_m = phi;
     }
 
+    std::shared_ptr<BCHandler_t> getBCHandler() const {
+        return bcHandler_m;
+    }
+    void setBCHandler(std::shared_ptr<BCHandler_t> bcHandler) {
+        bcHandler_m = bcHandler;
+        setPotentialBCs();
+    }
+
+    /**
+     * @brief Get the solver's coupling constant.
+     *
+     * Returns the scalar coupling constant used by the field solver to scale
+     * interactions between particles and the field. This value is applied 
+     * during `ParBunch::computeSpaceCharge`. Its physical meaning and units 
+     * potentially depend on the specific solver type used.
+     *
+     * @return The coupling constant of type T (usually double).
+     */
+    T getCouplingConstant() const;
+
     void initOpenSolver();
 
     void initSolver() override ;
 
+
+    /**
+     * @brief Set boundary conditions for the electrostatic potential field.
+     *
+     * Converts the boundary-condition specification provided by the BC handler
+     * into the IPPL boundary-condition format for Field_t<Dim> and applies the
+     * resulting conditions to the internal potential field (phi_m) by calling
+     * its setFieldBC method.
+     * 
+     * @throws OpalException if the BC handler is not set or invalid.
+     */
     void setPotentialBCs();
 
-    void runSolver() override;
+    bool hasValidBCHandler() const {
+        return (bcHandler_m != nullptr);
+    }
+
+    void runSolver() override {
+        // The default runSolver should always count towards the call counter!
+        runSolver(false);
+    }
+
+    /**
+     * @brief Reset the solver call counter to zero.
+     *
+     * Sets the internal call counter (`call_counter_m`) back to 0 so that
+     * subsequent calls will be counted from a clean state.
+     * 
+     * @note This function is necessary to exclude potential solver warm-up
+     * calls from being counted towards output or logging that depends on the
+     * number of solver executions. 
+     */
+    void resetCallCounter() { call_counter_m = 0; }
+
+    /**
+     * @brief Execute the field solver for the current simulation state.
+     *
+     * Performs a single solve cycle using the solver's current configuration,
+     * boundary conditions and particle/mesh data. The solver updates the
+     * internal field representations.
+     *
+     * @param force_skip_field_dump
+     *     If true, suppress any field-dump output that would otherwise be
+     *     produced by this call. If false, field output behavior follows the
+     *     configured/normal schedule. 
+     * 
+     * @note This second implementation is necessary since the pure 
+     * `runSolver()` routine is defined in the base class as not taking any 
+     * arguments. 
+     */
+    void runSolver(bool force_skip_field_dump);
 
     template <typename Solver>
     void initSolverWithParams(const ippl::ParameterList& sp);
