@@ -22,6 +22,8 @@
  *   `BCH_t::strToBCType(Attributes::getString(itsAttr[FIELDSOLVER::BCFFTX]))`
  *
  * @tparam Dim Number of spatial dimensions.
+ * 
+ * @note This class is currently not designed to be used on device.
  */
 template <unsigned Dim>
 class BCHandler {
@@ -31,6 +33,7 @@ public:
      *
      * - `OPEN`: non-periodic/open boundary.
      * - `PERIODIC`: periodic boundary across the corresponding dimension.
+     * - `DIRICHLET`: fixed potential (zero for now) at the boundary. 
      * 
      * @note This enum needs to be updated should there be other supported BC
      * types in the future (`DIRICHLET`!).
@@ -44,10 +47,10 @@ public:
     /**
      * @brief Convert a textual boundary-condition name to `BCType` enum.
      *
-     * Currently recognised strings are `"OPEN"` and `"PERIODIC"`. The strings
-     * come from the pre-defined strings in the `FieldSolverCmd` class. If these
-     * don't match, you might get an exception during current `FieldSolver`
-     * construction.
+     * Currently recognised strings are `"OPEN"`, `"PERIODIC"`, and 
+     * `"DIRICHLET"`. The strings come from the pre-defined strings in the 
+     * `FieldSolverCmd` class. If these don't match, you might get an exception 
+     * during current `FieldSolver` construction.
      *
      * @param str Input string representing the boundary condition.
      * @return Corresponding `BCType` value.

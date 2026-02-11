@@ -127,14 +127,14 @@ public:
         Inform m ("FieldContainer::initializeFields");
         m << "Mesh spacing = " << mesh_m.getMeshSpacing() << endl;
         m << "Origin       = " << mesh_m.getOrigin() << endl;
-        m << "FL           = " << fl_m <<	endl;
+        m << "FL           = " << fl_m << endl;
 
         E_m.initialize(mesh_m, fl_m);
         rho_m.initialize(mesh_m, fl_m);
         m << "E_m, rho_m field initialized." << endl;
         if (stype_m == "CG") {
             phi_m.initialize(mesh_m, fl_m);
-            m << "Phi field initialized." << endl;
+            m << "Phi field initialized for " << stype_m << endl;
         }
     }
 };

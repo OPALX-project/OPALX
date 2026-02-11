@@ -18,6 +18,7 @@ void  FieldSolver<double,3>::initSolverWithParams(const ippl::ParameterList& sp)
     this->getSolver().template emplace<Solver>();
     Solver& solver = std::get<Solver>(this->getSolver());
     solver.mergeParameters(sp);
+    m << "Initialized solver with params: " << this->getStype() << endl;
 
     // test if rho_m exists (just in case)
     if (!rho_m) {
@@ -25,14 +26,13 @@ void  FieldSolver<double,3>::initSolverWithParams(const ippl::ParameterList& sp)
                             "rho_m is not initialized.");
     }
 
-    m << "Init solver with params: " << this->getStype() << endl;
     solver.setRhs(*rho_m);
-    m << "Set solver RHS" << endl;
+    m << "Set solver RHS." << endl;
 
     if constexpr ((std::is_same_v<Solver, CGSolver_t<T, Dim>>) /*|| 
                   (std::is_same_v<Solver, FEMSolver_t<T, Dim>>) || 
                   (std::is_same_v<Solver, FEMPreconSolver_t<T, Dim>>)*/) {
-        /// \todo for now, don't use the CG solver yet!
+        /// \todo for now, don't use the CG solver!
         throw OpalException("FieldSolver::initSolverWithParams", 
                             "Cannot use CGSolver yet, not fully implemented.");
         // The CG solver and FEMPoissonSolver compute the potential 
@@ -298,7 +298,7 @@ void FieldSolver<double,3>::dumpScalField(std::string what) {
 template <>
 void FieldSolver<double,3>::initOpenSolver() {
     ippl::ParameterList sp;
-    sp.add("output_type", OpenSolver_t<double, 3>::SOL_AND_GRAD); // see https://github.com/IPPL-framework/ippl/blob/f4c4102a3cb76dd2cd911eef7314adb77aacd676/alpine/FieldSolver.hpp#L319
+    sp.add("output_type", OpenSolver_t<double, 3>::SOL_AND_GRAD);
     sp.add("use_heffte_defaults", false);
     sp.add("use_pencils", true);
     sp.add("use_reorder", false);
@@ -334,7 +334,7 @@ template <>
 void FieldSolver<double,3>::initCGSolver() {
     ippl::ParameterList sp;
     sp.add("output_type", CGSolver_t<double, 3>::GRAD);
-    // Increase tolerance in the 1D case
+    /// \todo should probably at some point be passed from the input file
     sp.add("tolerance", 1e-12);
     
     initSolverWithParams<CGSolver_t<double, 3>>(sp);
@@ -387,6 +387,12 @@ template<>
 void FieldSolver<double,3>::runSolver(bool force_skip_field_dump) {
     constexpr int Dim = 3;
     Inform m ("FieldSolver::runSolver");
+    /*
+    Add this output such that there is no possible unused variable warning for
+    force_skip_field_dump, which is only used in the debug output functions 
+    for now.
+    */
+    m << "Running solver with type: " << this->getStype() << ". Force skip field dump: " << force_skip_field_dump << endl;
 
     if (this->getStype() == "CG") {
             CGSolver_t<double, 3>& solver = std::get<CGSolver_t<double, 3>>(this->getSolver());
@@ -419,7 +425,8 @@ void FieldSolver<double,3>::runSolver(bool force_skip_field_dump) {
             ippl::Comm->barrier();*/
             int iterations = solver.getIterationCount();
             int residue    = solver.getResidue();
-            m << "CG solver finished. Iterations: " << iterations << ", Residue: " << residue << endl;
+            m << "CG solver finished. Iterations: " << iterations 
+              << ", Residue: " << residue << endl;
     } else if (this->getStype() == "FFT") {
         if constexpr (Dim == 2 || Dim == 3) {
 #ifdef OPALX_FIELD_DEBUG
@@ -428,6 +435,7 @@ void FieldSolver<double,3>::runSolver(bool force_skip_field_dump) {
 
             std::get<FFTSolver_t<double, 3>>(this->getSolver()).solve();
 #ifdef OPALX_FIELD_DEBUG
+            /// \todo do to not print phi/E depenging on output_type!
             if (!force_skip_field_dump) this->dumpScalField("phi");
             if (!force_skip_field_dump) this->dumpVectField("ef");
 #endif
@@ -454,7 +462,7 @@ void FieldSolver<double,3>::runSolver(bool force_skip_field_dump) {
                             "No known solver matches the argument: " + this->getStype());
     }
 
-    call_counter_m++; // maybe want "if (!force_skip_field_dump)" here?
+    call_counter_m++;
 }
 
 // Implement getCouplingConstant
@@ -464,6 +472,10 @@ double FieldSolver<double, 3>::getCouplingConstant() const {
     In SI units, the coupling constant for the electric field is 
     1/(4*pi*epsilon_0). However, some solvers seem to use different conventions
     (likely due to different Green's function conventions or FFT normalizations). 
+
+    As I can tell, the IPPL solvers all need 1/eps0. However, just in case,
+    leave it like this for now. Perhaps later this can be changed to simply 
+    something like `return 1.0 / Physics::epsilon_0;`. 
     */
 
     /// \todo Verify this before activating a new solver!
@@ -505,6 +517,7 @@ void FieldSolver<double,3>::setPotentialBCs() {
 }
 
 /*
+/// \todo to be implemented...
 template<>
 void FieldSolver<double,3>::initP3MSolver() {
     //        if constexpr (Dim == 3) {

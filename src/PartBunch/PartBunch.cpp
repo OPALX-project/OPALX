@@ -131,8 +131,8 @@ T PartBunch<T, Dim>::getCouplingConstant() const {
                             "FieldSolver instance");
     }
     
-    auto fs = std::dynamic_pointer_cast<FieldSolver_t>(this->fsolver_m);
-    return fs->getCouplingConstant();
+    // auto fs = std::dynamic_pointer_cast<FieldSolver_t>(this->fsolver_m);
+    return this->getFieldSolver()->getCouplingConstant();
 }
 
 template <typename T, unsigned Dim>
@@ -199,7 +199,7 @@ void PartBunch<T, Dim>::setSolver(std::string solver) {
 
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::spaceChargeEFieldCheck(Vector_t<double, 3> /*efScale*/) {
-    Inform msg("EParticleStats");
+    Inform msg("PartBunch::spaceChargeEFieldCheck");
 
     auto pE_view   = this->pcontainer_m->E.getView();
     auto fphi_view = this->fcontainer_m->getPhi().getView();
@@ -219,7 +219,8 @@ void PartBunch<T, Dim>::spaceChargeEFieldCheck(Vector_t<double, 3> /*efScale*/) 
     Kokkos::parallel_reduce(
         "check e-field", this->getLocalNum(),
         KOKKOS_LAMBDA(const int i, double& loc_avgE, double& loc_minEComponent,
-                    double& loc_maxEComponent, double& loc_minE, double& loc_maxE) {
+                      double& loc_maxEComponent, double& loc_minE, 
+                      double& loc_maxE) {
             double EX    = pE_view[i][0]*cc;
             double EY    = pE_view[i][1]*cc;
             double EZ    = pE_view[i][2]*cc;
@@ -259,7 +260,7 @@ void PartBunch<T, Dim>::spaceChargeEFieldCheck(Vector_t<double, 3> /*efScale*/) 
 
     msg << "avgENorm = " << avgE << endl;
     
-    using mdrange_type             = Kokkos::MDRangePolicy<Kokkos::Rank<3>>;
+    using mdrange_type = Kokkos::MDRangePolicy<Kokkos::Rank<3>>;
 
     Kokkos::parallel_reduce(
         "check phi", mdrange_type({0,0,0}, {fphi_view.extent(0),fphi_view.extent(1),fphi_view.extent(2)}),
@@ -305,30 +306,30 @@ void PartBunch<T, Dim>::calcBeamParameters() {
 
     for (unsigned i = 0; i < 2 * Dim; ++i) {
         Kokkos::parallel_reduce(
-                                "calc moments of particle distr.", ippl::getRangePolicy(Rview),
-                                KOKKOS_LAMBDA(
-                                              const int k, double& cent, double& mom0, double& mom1, double& mom2,
-                                              double& mom3, double& mom4, double& mom5) {
-                                    double part[2 * Dim];
-                                    part[0] = Rview(k)[0];
-                                    part[1] = Pview(k)[0];
-                                    part[2] = Rview(k)[1];
-                                    part[3] = Pview(k)[1];
-                                    part[4] = Rview(k)[2];
-                                    part[5] = Pview(k)[2];
-                                    
-                                    cent += part[i];
-                                    mom0 += part[i] * part[0];
-                                    mom1 += part[i] * part[1];
-                                    mom2 += part[i] * part[2];
-                                    mom3 += part[i] * part[3];
-                                    mom4 += part[i] * part[4];
-                                    mom5 += part[i] * part[5];
-                                },
-                                Kokkos::Sum<T>(loc_centroid[i]), Kokkos::Sum<T>(loc_moment[i][0]),
-                                Kokkos::Sum<T>(loc_moment[i][1]), Kokkos::Sum<T>(loc_moment[i][2]),
-                                Kokkos::Sum<T>(loc_moment[i][3]), Kokkos::Sum<T>(loc_moment[i][4]),
-                                Kokkos::Sum<T>(loc_moment[i][5]));
+            "calc moments of particle distr.", ippl::getRangePolicy(Rview),
+            KOKKOS_LAMBDA(const int k, double& cent, double& mom0, double& mom1, 
+                          double& mom2, double& mom3, double& mom4, 
+                          double& mom5) {
+                double part[2 * Dim];
+                part[0] = Rview(k)[0];
+                part[1] = Pview(k)[0];
+                part[2] = Rview(k)[1];
+                part[3] = Pview(k)[1];
+                part[4] = Rview(k)[2];
+                part[5] = Pview(k)[2];
+                
+                cent += part[i];
+                mom0 += part[i] * part[0];
+                mom1 += part[i] * part[1];
+                mom2 += part[i] * part[2];
+                mom3 += part[i] * part[3];
+                mom4 += part[i] * part[4];
+                mom5 += part[i] * part[5];
+            },
+            Kokkos::Sum<T>(loc_centroid[i]), Kokkos::Sum<T>(loc_moment[i][0]),
+            Kokkos::Sum<T>(loc_moment[i][1]), Kokkos::Sum<T>(loc_moment[i][2]),
+            Kokkos::Sum<T>(loc_moment[i][3]), Kokkos::Sum<T>(loc_moment[i][4]),
+            Kokkos::Sum<T>(loc_moment[i][5]));
         Kokkos::fence();
     }
 
@@ -342,28 +343,24 @@ void PartBunch<T, Dim>::calcBeamParameters() {
     double rmin[Dim];
 
     for (unsigned d = 0; d < Dim; ++d) {
-        Kokkos::parallel_reduce(
-                                "rel max", this->getLocalNum(),
-                                KOKKOS_LAMBDA(const int i, double& mm) {
-                                    double tmp_vel = Rview(i)[d];
-                                    mm             = tmp_vel > mm ? tmp_vel : mm;
-                                },
-                                Kokkos::Max<T>(rmax_loc[d]));
+        Kokkos::parallel_reduce("rel max", this->getLocalNum(),
+            KOKKOS_LAMBDA(const int i, double& mm) {
+                double tmp_vel = Rview(i)[d];
+                mm             = tmp_vel > mm ? tmp_vel : mm;
+            }, Kokkos::Max<T>(rmax_loc[d]));
         
-        Kokkos::parallel_reduce(
-                                "rel min", this->getLocalNum(),
-                                KOKKOS_LAMBDA(const int i, double& mm) {
-                                    double tmp_vel = Rview(i)[d];
-                                    mm             = tmp_vel < mm ? tmp_vel : mm;
-                                },
-                                Kokkos::Min<T>(rmin_loc[d]));
+        Kokkos::parallel_reduce("rel min", this->getLocalNum(),
+            KOKKOS_LAMBDA(const int i, double& mm) {
+                double tmp_vel = Rview(i)[d];
+                mm             = tmp_vel < mm ? tmp_vel : mm;
+            }, Kokkos::Min<T>(rmin_loc[d]));
     }
     Kokkos::fence();
     MPI_Allreduce(rmax_loc, rmax, Dim, MPI_DOUBLE, MPI_MAX, ippl::Comm->getCommunicator());
     MPI_Allreduce(rmin_loc, rmin, Dim, MPI_DOUBLE, MPI_MIN, ippl::Comm->getCommunicator());
     ippl::Comm->barrier();
 
-    // \todo can we do this nicer? 
+    /// \todo can we do this nicer? Yes: use IPPL vectors, they work in reductions
     for (unsigned int i=0; i<Dim; i++) {
         rmax_m(i) = rmax[i];
         rmin_m(i) = rmin[i];
@@ -375,8 +372,6 @@ void PartBunch<T, Dim>::pre_run() {
     Inform m("PartBunch::pre_run");
     m << "PartBunch pre_run started." << endl;
     this->fcontainer_m->getRho() = 0.0;
-    //Kokkos::fence();
-    //ippl::Comm->barrier();
     m << "Rho initialized to zero." << endl;
 
     /*
@@ -385,12 +380,10 @@ void PartBunch<T, Dim>::pre_run() {
     fsolver_m to FieldSolver_t, since this addition is not possible in the base
     class (without changing ippl).
     */
-    // auto fs = std::dynamic_pointer_cast<FieldSolver_t>(this->fsolver_m);
-    // this->getFieldSolver()->resetCallCounter();
-    m << "Call counter reset." << endl;
     this->getFieldSolver()->runSolver(true);
     m << "Field solver ran during pre_run." << endl;
     this->getFieldSolver()->resetCallCounter();
+    m << "Call counter reset. pre_run done." << endl;
 }
 
 template <typename T, unsigned Dim>
