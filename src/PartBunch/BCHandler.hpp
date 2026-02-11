@@ -4,6 +4,7 @@
 #include <array>
 #include <ostream>
 
+#include "Ippl.h"
 #include "Utilities/OpalException.h"
 
 /**
@@ -21,6 +22,8 @@
  *   `BCH_t::strToBCType(Attributes::getString(itsAttr[FIELDSOLVER::BCFFTX]))`
  *
  * @tparam Dim Number of spatial dimensions.
+ * 
+ * @note This class is currently not designed to be used on device.
  */
 template <unsigned Dim>
 class BCHandler {
@@ -30,22 +33,24 @@ public:
      *
      * - `OPEN`: non-periodic/open boundary.
      * - `PERIODIC`: periodic boundary across the corresponding dimension.
+     * - `DIRICHLET`: fixed potential (zero for now) at the boundary. 
      * 
      * @note This enum needs to be updated should there be other supported BC
      * types in the future (`DIRICHLET`!).
      */
     enum BCType { 
         OPEN, 
-        PERIODIC 
+        PERIODIC,
+        DIRICHLET
     };
 
     /**
      * @brief Convert a textual boundary-condition name to `BCType` enum.
      *
-     * Currently recognised strings are `"OPEN"` and `"PERIODIC"`. The strings
-     * come from the pre-defined strings in the `FieldSolverCmd` class. If these
-     * don't match, you might get an exception during current `FieldSolver`
-     * construction.
+     * Currently recognised strings are `"OPEN"`, `"PERIODIC"`, and 
+     * `"DIRICHLET"`. The strings come from the pre-defined strings in the 
+     * `FieldSolverCmd` class. If these don't match, you might get an exception 
+     * during current `FieldSolver` construction.
      *
      * @param str Input string representing the boundary condition.
      * @return Corresponding `BCType` value.
@@ -56,6 +61,8 @@ public:
             return OPEN;
         } else if (str == "PERIODIC") {
             return PERIODIC;
+        } else if (str == "DIRICHLET") {
+            return DIRICHLET;
         } else {
             throw OpalException("BCHandler::strToBCType", 
                                 "Unknown boundary condition type: " + str);
@@ -110,7 +117,7 @@ public:
      * element.
      */
     bool isAllEqual() const {
-        bool base_case = bcs_m[0];
+        int base_case = bcs_m[0];
         for (unsigned int d = 1; d < Dim; ++d) {
             if (bcs_m[d] != base_case) return false;
         }
@@ -129,12 +136,64 @@ public:
             switch (h.bcs_m[d]) {
                 case OPEN: os << "OPEN"; break;
                 case PERIODIC: os << "PERIODIC"; break;
+                case DIRICHLET: os << "DIRICHLET"; break;
                 default: os << "UNKNOWN"; break;
             }
             if (d + 1 < Dim) os << ", ";
         }
         os << "]";
         return os;
+    }
+
+    /**
+     * @brief Create an IPPL BConds container from the stored boundary conditions.
+     *
+     * This function constructs an `ippl::BConds<Field, Dim>` container and 
+     * populates it with appropriate face boundary condition objects based on the 
+     * boundary conditions stored in this handler. For each of the `2 * Dim` faces:
+     * - If the corresponding dimension has `PERIODIC` BC, a `PeriodicFace` is created.
+     * - If the corresponding dimension has `OPEN` BC, a `NoBcFace` is created.
+     *
+     * The resulting container can be directly used with IPPL field solvers via
+     * the field's `setFieldBC()` method.
+     *
+     * @tparam Field The IPPL field type to which boundary conditions will be applied.
+     * @return An `ippl::BConds<Field, Dim>` container populated with appropriate 
+     *         face boundary condition objects.
+     *
+     * @throws OpalException if an unsupported BC type is encountered.
+     * 
+     * @example
+     * ```cpp
+     * BCHandler<3> handler(BCHandler<3>::PERIODIC, 
+     *                       BCHandler<3>::OPEN, 
+     *                       BCHandler<3>::PERIODIC);
+     * auto bc_container = handler.toIPPLBConds<Field<double, 3>>();
+     * field_ptr->setFieldBC(bc_container);
+     * ```
+     */
+    template <typename Field>
+    ippl::BConds<Field, Dim> toIPPLBConds() const {
+        typedef ippl::BConds<Field, Dim> bc_type;
+        bc_type bc_container;
+        
+        for (unsigned int face = 0; face < 2 * Dim; ++face) {
+            unsigned int d = face / 2;  // Dimension associated with this face
+            
+            if (bcs_m[d] == PERIODIC) {
+                bc_container[face] = std::make_shared<ippl::PeriodicFace<Field>>(face);
+            } else if (bcs_m[d] == DIRICHLET) {
+                bc_container[face] = std::make_shared<ippl::ZeroFace<Field>>(face);
+            } else if (bcs_m[d] == OPEN) {
+                bc_container[face] = std::make_shared<ippl::NoBcFace<Field>>(face);
+            }
+            else {
+                throw OpalException("BCHandler::toIPPLBConds", 
+                                    "Unsupported BCType encountered.");
+            }
+        }
+        
+        return bc_container;
     }
 
 
