@@ -3,10 +3,33 @@
 #include "Algorithms/Quaternion.hpp"
 #include "Algorithms/Matrix.h"
 #include "opal_test_utilities/SilenceTest.h"
+#include "Ippl.h"
 
 #include <cmath>
 
-TEST(QuaternionTest, DefaultConstructor) {
+class QuaternionTest : public ::testing::Test {
+protected:
+    static void SetUpTestSuite() {
+        int argc = 0;
+        char** argv = nullptr;
+
+        ippl::initialize(argc, argv);
+    }
+
+    static void TearDownTestSuite() {
+        ippl::finalize();
+    }
+
+    void SetUp() override {
+        // nothing special
+    }
+
+    void TearDown() override {
+        // nothing special
+    }
+};
+
+TEST_F(QuaternionTest, DefaultConstructor) {
     OpalTestUtilities::SilenceTest silencer;
 
     Quaternion q;
@@ -17,7 +40,7 @@ TEST(QuaternionTest, DefaultConstructor) {
     EXPECT_DOUBLE_EQ(q(3), 0.0);
 }
 
-TEST(QuaternionTest, ComponentConstructor) {
+TEST_F(QuaternionTest, ComponentConstructor) {
     OpalTestUtilities::SilenceTest silencer;
 
     Quaternion q(1.0, 2.0, 3.0, 4.0);
@@ -28,7 +51,7 @@ TEST(QuaternionTest, ComponentConstructor) {
     EXPECT_DOUBLE_EQ(q(3), 4.0);
 }
 
-TEST(QuaternionTest, VectorConstructor) {
+TEST_F(QuaternionTest, VectorConstructor) {
     OpalTestUtilities::SilenceTest silencer;
 
     ippl::Vector<double, 3> vec(1.0, 2.0, 3.0);
@@ -40,7 +63,7 @@ TEST(QuaternionTest, VectorConstructor) {
     EXPECT_TRUE(q.isPure());
 }
 
-TEST(QuaternionTest, RealPlusVectorConstructor) {
+TEST_F(QuaternionTest, RealPlusVectorConstructor) {
     OpalTestUtilities::SilenceTest silencer;
 
     ippl::Vector<double, 3> vec(1.0, 2.0, 3.0);
@@ -51,7 +74,7 @@ TEST(QuaternionTest, RealPlusVectorConstructor) {
     EXPECT_DOUBLE_EQ(q(3), 3.0);
 }
 
-TEST(QuaternionTest, CopyConstructor) {
+TEST_F(QuaternionTest, CopyConstructor) {
     OpalTestUtilities::SilenceTest silencer;
 
     Quaternion q1(1.0, 2.0, 3.0, 4.0);
@@ -62,7 +85,7 @@ TEST(QuaternionTest, CopyConstructor) {
     EXPECT_DOUBLE_EQ(q2(3), 4.0);
 }
 
-TEST(QuaternionTest, RealAndImagParts) {
+TEST_F(QuaternionTest, RealAndImagParts) {
     OpalTestUtilities::SilenceTest silencer;
 
     Quaternion q(1.0, 2.0, 3.0, 4.0);
@@ -74,7 +97,7 @@ TEST(QuaternionTest, RealAndImagParts) {
     EXPECT_DOUBLE_EQ(imag(2), 4.0);
 }
 
-TEST(QuaternionTest, NormAndLength) {
+TEST_F(QuaternionTest, NormAndLength) {
     OpalTestUtilities::SilenceTest silencer;
 
     Quaternion q(1.0, 2.0, 3.0, 4.0);
@@ -83,7 +106,7 @@ TEST(QuaternionTest, NormAndLength) {
     EXPECT_DOUBLE_EQ(q.length(), std::sqrt(30.0));
 }
 
-TEST(QuaternionTest, IsUnit) {
+TEST_F(QuaternionTest, IsUnit) {
     OpalTestUtilities::SilenceTest silencer;
 
     Quaternion q1(1.0, 0.0, 0.0, 0.0);
@@ -96,7 +119,7 @@ TEST(QuaternionTest, IsUnit) {
     EXPECT_FALSE(q3.isUnit());
 }
 
-TEST(QuaternionTest, IsPure) {
+TEST_F(QuaternionTest, IsPure) {
     OpalTestUtilities::SilenceTest silencer;
 
     Quaternion q1(0.0, 1.0, 2.0, 3.0);
@@ -106,7 +129,7 @@ TEST(QuaternionTest, IsPure) {
     EXPECT_FALSE(q2.isPure());
 }
 
-TEST(QuaternionTest, IsPureUnit) {
+TEST_F(QuaternionTest, IsPureUnit) {
     OpalTestUtilities::SilenceTest silencer;
 
     Quaternion q1(0.0, 1.0, 0.0, 0.0);
@@ -119,7 +142,7 @@ TEST(QuaternionTest, IsPureUnit) {
     EXPECT_FALSE(q3.isPureUnit());
 }
 
-TEST(QuaternionTest, Conjugate) {
+TEST_F(QuaternionTest, Conjugate) {
     OpalTestUtilities::SilenceTest silencer;
 
     Quaternion q(1.0, 2.0, 3.0, 4.0);
@@ -131,7 +154,7 @@ TEST(QuaternionTest, Conjugate) {
     EXPECT_DOUBLE_EQ(qConj(3), -4.0);
 }
 
-TEST(QuaternionTest, Normalize) {
+TEST_F(QuaternionTest, Normalize) {
     OpalTestUtilities::SilenceTest silencer;
 
     Quaternion q(1.0, 2.0, 3.0, 4.0);
@@ -141,7 +164,7 @@ TEST(QuaternionTest, Normalize) {
     EXPECT_NEAR(q.Norm(), 1.0, 1e-12);
 }
 
-TEST(QuaternionTest, Inverse) {
+TEST_F(QuaternionTest, Inverse) {
     OpalTestUtilities::SilenceTest silencer;
 
     Quaternion q(1.0, 2.0, 3.0, 4.0);
@@ -156,7 +179,7 @@ TEST(QuaternionTest, Inverse) {
     EXPECT_NEAR(identity(3), 0.0, 1e-12);
 }
 
-TEST(QuaternionTest, ScalarMultiplication) {
+TEST_F(QuaternionTest, ScalarMultiplication) {
     OpalTestUtilities::SilenceTest silencer;
 
     Quaternion q(1.0, 2.0, 3.0, 4.0);
@@ -168,7 +191,7 @@ TEST(QuaternionTest, ScalarMultiplication) {
     EXPECT_DOUBLE_EQ(q2(3), 8.0);
 }
 
-TEST(QuaternionTest, ScalarDivision) {
+TEST_F(QuaternionTest, ScalarDivision) {
     OpalTestUtilities::SilenceTest silencer;
 
     Quaternion q(2.0, 4.0, 6.0, 8.0);
@@ -180,7 +203,7 @@ TEST(QuaternionTest, ScalarDivision) {
     EXPECT_DOUBLE_EQ(q2(3), 4.0);
 }
 
-TEST(QuaternionTest, QuaternionMultiplication) {
+TEST_F(QuaternionTest, QuaternionMultiplication) {
     OpalTestUtilities::SilenceTest silencer;
 
     // Test with simple unit quaternions
@@ -194,7 +217,7 @@ TEST(QuaternionTest, QuaternionMultiplication) {
     EXPECT_DOUBLE_EQ(result(3), 0.0);
 }
 
-TEST(QuaternionTest, QuaternionMultiplicationAssociativity) {
+TEST_F(QuaternionTest, QuaternionMultiplicationAssociativity) {
     OpalTestUtilities::SilenceTest silencer;
 
     Quaternion q1(1.0, 2.0, 3.0, 4.0);
@@ -210,7 +233,7 @@ TEST(QuaternionTest, QuaternionMultiplicationAssociativity) {
     EXPECT_NEAR(result1(3), result2(3), 1e-10);
 }
 
-TEST(QuaternionTest, RotateVector90DegreesAroundZ) {
+TEST_F(QuaternionTest, RotateVector90DegreesAroundZ) {
     OpalTestUtilities::SilenceTest silencer;
 
     // 90 degree rotation around z-axis
@@ -226,7 +249,7 @@ TEST(QuaternionTest, RotateVector90DegreesAroundZ) {
     EXPECT_NEAR(rotated(2), 0.0, 1e-12);
 }
 
-TEST(QuaternionTest, RotateVector180DegreesAroundX) {
+TEST_F(QuaternionTest, RotateVector180DegreesAroundX) {
     OpalTestUtilities::SilenceTest silencer;
 
     // 180 degree rotation around x-axis
@@ -242,7 +265,7 @@ TEST(QuaternionTest, RotateVector180DegreesAroundX) {
     EXPECT_NEAR(rotated(2), 0.0, 1e-12);
 }
 
-TEST(QuaternionTest, RotateVectorIdentity) {
+TEST_F(QuaternionTest, RotateVectorIdentity) {
     OpalTestUtilities::SilenceTest silencer;
 
     // Identity quaternion (no rotation)
@@ -256,7 +279,7 @@ TEST(QuaternionTest, RotateVectorIdentity) {
     EXPECT_NEAR(rotated(2), vec(2), 1e-12);
 }
 
-TEST(QuaternionTest, GetRotationMatrix90DegreesZ) {
+TEST_F(QuaternionTest, GetRotationMatrix90DegreesZ) {
     OpalTestUtilities::SilenceTest silencer;
 
     // 90 degree rotation around z-axis
@@ -281,7 +304,7 @@ TEST(QuaternionTest, GetRotationMatrix90DegreesZ) {
     EXPECT_NEAR(R(2, 2), 1.0, 1e-12);
 }
 
-TEST(QuaternionTest, GetRotationMatrixIdentity) {
+TEST_F(QuaternionTest, GetRotationMatrixIdentity) {
     OpalTestUtilities::SilenceTest silencer;
 
     Quaternion q(1.0, 0.0, 0.0, 0.0);
@@ -299,7 +322,7 @@ TEST(QuaternionTest, GetRotationMatrixIdentity) {
     EXPECT_NEAR(R(2, 2), 1.0, 1e-12);
 }
 
-TEST(QuaternionTest, MatrixConstructorRoundTrip) {
+TEST_F(QuaternionTest, MatrixConstructorRoundTrip) {
     OpalTestUtilities::SilenceTest silencer;
 
     // Create a rotation matrix for 45 degrees around x-axis
@@ -324,7 +347,7 @@ TEST(QuaternionTest, MatrixConstructorRoundTrip) {
     }
 }
 
-TEST(QuaternionTest, GetQuaternionSameVectors) {
+TEST_F(QuaternionTest, GetQuaternionSameVectors) {
     OpalTestUtilities::SilenceTest silencer;
 
     ippl::Vector<double, 3> u(1.0, 0.0, 0.0);
@@ -337,7 +360,7 @@ TEST(QuaternionTest, GetQuaternionSameVectors) {
     EXPECT_TRUE(q.isUnit());
 }
 
-TEST(QuaternionTest, GetQuaternionOrthogonalVectors) {
+TEST_F(QuaternionTest, GetQuaternionOrthogonalVectors) {
     OpalTestUtilities::SilenceTest silencer;
 
     ippl::Vector<double, 3> u(1.0, 0.0, 0.0);
@@ -355,7 +378,7 @@ TEST(QuaternionTest, GetQuaternionOrthogonalVectors) {
     EXPECT_NEAR(rotated(2), ref(2), 1e-12);
 }
 
-TEST(QuaternionTest, GetQuaternionOppositeVectors) {
+TEST_F(QuaternionTest, GetQuaternionOppositeVectors) {
     OpalTestUtilities::SilenceTest silencer;
 
     ippl::Vector<double, 3> u(1.0, 0.0, 0.0);
@@ -374,7 +397,7 @@ TEST(QuaternionTest, GetQuaternionOppositeVectors) {
     EXPECT_NEAR(rotated(2), ref(2), 1e-10);
 }
 
-TEST(QuaternionTest, ConjugatePreservesNorm) {
+TEST_F(QuaternionTest, ConjugatePreservesNorm) {
     OpalTestUtilities::SilenceTest silencer;
 
     Quaternion q(1.0, 2.0, 3.0, 4.0);
@@ -383,7 +406,7 @@ TEST(QuaternionTest, ConjugatePreservesNorm) {
     EXPECT_DOUBLE_EQ(q.Norm(), qConj.Norm());
 }
 
-TEST(QuaternionTest, MultiplicationByConjugateGivesNorm) {
+TEST_F(QuaternionTest, MultiplicationByConjugateGivesNorm) {
     OpalTestUtilities::SilenceTest silencer;
 
     Quaternion q(1.0, 2.0, 3.0, 4.0);
