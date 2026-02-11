@@ -112,7 +112,15 @@ Quaternion& Quaternion::normalize() {
 Quaternion Quaternion::inverse() const {
     Quaternion returnValue = conjugate();
 
-    return returnValue.normalize();
+    #ifndef NOPAssert
+    if (this->Norm() < 1e-12)
+        throw GeneralClassicException(
+            "Quaternion::inverse()", "length of quaternion less than 1e-12");
+    #endif
+
+    returnValue /= returnValue.Norm();
+
+    return returnValue;
 }
 
 ippl::Vector<double, 3> Quaternion::rotate(const ippl::Vector<double, 3>& vec) const {
