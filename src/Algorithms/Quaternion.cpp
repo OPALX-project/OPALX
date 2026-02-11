@@ -83,14 +83,10 @@ Quaternion& Quaternion::operator*=(const Quaternion& other) {
     ippl::Vector<double, 3> imagThis  = this->imag();
     ippl::Vector<double, 3> imagOther = other.imag();
 
-    /// \todo there is a scope issue w.r.t dot and ippl::Vector
-    double res = 0.0;
-    for (unsigned i = 0; i < 3; i++)
-        res += imagThis(i) * imagOther(i);
-    double dp = std::sqrt(res);
+    double res = imagThis.dot(imagOther);
 
     *this = Quaternion(
-        (*this)(0) * other(0) - dp,
+        (*this)(0) * other(0) - res,
         (*this)(0) * imagOther + other(0) * imagThis + cross(imagThis, imagOther));
     return *this;
 }
@@ -116,7 +112,15 @@ Quaternion& Quaternion::normalize() {
 Quaternion Quaternion::inverse() const {
     Quaternion returnValue = conjugate();
 
-    return returnValue.normalize();
+    #ifndef NOPAssert
+    if (this->Norm() < 1e-12)
+        throw GeneralClassicException(
+            "Quaternion::inverse()", "length of quaternion less than 1e-12");
+    #endif
+
+    returnValue /= returnValue.Norm();
+
+    return returnValue;
 }
 
 ippl::Vector<double, 3> Quaternion::rotate(const ippl::Vector<double, 3>& vec) const {
