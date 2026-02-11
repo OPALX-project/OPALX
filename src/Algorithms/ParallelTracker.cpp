@@ -729,16 +729,11 @@ void ParallelTracker::kickParticles(const BorisPusher& pusher) {
     auto Efview = itsBunch_m->getParticleContainer()->E.getView();
     auto Bfview = itsBunch_m->getParticleContainer()->B.getView();
 
-    /// \todo Apparently, we want mass in eV and charge in elementary charges here to match OPAL's BorisPusher
-    //double mass = itsBunch_m->getMassPerParticle(); // itsReference.getM();
-    //double charge = itsBunch_m->getChargePerParticle();  // itsReference.getQ();
-        // Get reference particle mass and charge
-    //const double mass = itsReference.getM();
-    //const double charge = itsReference.getQ();
-
-
-    // std::cout << charge << " " << mass << std::endl;
-
+    /*
+    We want mass in eV and charge in elementary charges here to match OPAL's 
+    BorisPusher. Note that mass/charge are extracted from the reference particle
+    in the BorisPusher.push call. 
+    */
     Kokkos::parallel_for(
         "kickParticles", ippl::getRangePolicy(Pview),
         KOKKOS_LAMBDA(const size_t i) {
@@ -770,12 +765,16 @@ void ParallelTracker::kickParticles(const BorisPusher& pusher) {
              */
            
             Vector_t<double, 3> p = Pview(i); 
-            pusher.kick(0, p, Efview(i), Bfview(i), dtview(i)/*, mass, charge*/); /// \todo might want to remove dt and R altogether from the kick!
+            /// \todo might want to remove dt and R altogether from the kick!
+            pusher.kick(0, p, Efview(i), Bfview(i), dtview(i)/*, mass, charge*/); 
             Pview(i) = p; 
         });
-        
-    /// \todo unnecessary update? kick does not modify positions
-    //itsBunch_m->getParticleContainer()->update();
+    /*
+    Wait until everyone completed the kick operation before proceeding. For now,
+    this is just a precaution and could be removed for a small performance gain
+    (technically, these shouldn't be necessary!).
+    */
+    Kokkos::fence();
     ippl::Comm->barrier();
 }
 
