@@ -1,0 +1,32 @@
+
+// Initialize simple drift
+D1: DRIFT, L = 1.25, ELEMEDGE = 0.0;
+myLine: Line = (D1);
+
+// Create beam that holds the particles
+BEAM1:  BEAM, pc = 0.1, NPART = 100000,
+        BFREQ = 1.3e9, BCURRENT = 1.0, CHARGE = -1, MASS=1;
+
+FS1: Fieldsolver, TYPE=OPEN,
+    NX=32, 
+    NY=32, 
+    NZ=32,  
+    PARFFTX = true, 
+    PARFFTY = true, 
+    PARFFTZ = false,
+    BCFFTX=OPEN, 
+    BCFFTY=OPEN, 
+    BCFFTZ=OPEN, BBOXINCR = 5, GREENSF = STANDARD;
+
+Dist1: DISTRIBUTION, TYPE=GAUSS, 
+    SIGMAX=1e-3, 
+    SIGMAY=1e-3, 
+    SIGMAZ=1e-3, 
+    SIGMAPX=1e-9, 
+    SIGMAPY=1e-9, 
+    SIGMAPZ=1e-9;
+
+// Create track, start simulation, end after 0 steps, only solver preStep is executed
+TRACK, LINE = myLine, BEAM = BEAM1, MAXSTEPS = 0, DT = 5e-11, ZSTOP=1.25; 
+ RUN, METHOD = "PARALLEL", BEAM = BEAM1, FIELDSOLVER = FS1, DISTRIBUTION = Dist1;ENDTRACK;
+QUIT;
