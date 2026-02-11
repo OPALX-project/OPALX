@@ -131,7 +131,9 @@ StringConstant::StringConstant()
 
     // FieldSolver / FSTYPE
     CREATE_STRINGCONSTANT("FFT");
-    CREATE_STRINGCONSTANT("FFTPERIODIC");
+    /// \todo find a better way to say open solver! (Issue #158)
+    // CREATE_STRINGCONSTANT("OPEN"); // already exists as BC!
+    CREATE_STRINGCONSTANT("CG");
     // additionally: NONE
 
     // FieldSolver / BCFFT

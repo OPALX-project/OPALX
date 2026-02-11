@@ -124,18 +124,18 @@ public:
     }
 
     void initializeFields(std::string stype_m = "") {
-
-        Inform m ("initializeFields ");
-        m << "mesh spacing = " << mesh_m.getMeshSpacing() << endl;
-        m << "origin       = " << mesh_m.getOrigin() << endl;
-        m << "FL           = " << fl_m <<	endl;
+        Inform m ("FieldContainer::initializeFields");
+        m << "Mesh spacing = " << mesh_m.getMeshSpacing() << endl;
+        m << "Origin       = " << mesh_m.getOrigin() << endl;
+        m << "FL           = " << fl_m << endl;
 
         E_m.initialize(mesh_m, fl_m);
         rho_m.initialize(mesh_m, fl_m);
+        m << "E_m, rho_m field initialized." << endl;
         if (stype_m == "CG") {
             phi_m.initialize(mesh_m, fl_m);
+            m << "Phi field initialized for " << stype_m << endl;
         }
-
     }
 };
 
