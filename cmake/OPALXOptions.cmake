@@ -176,6 +176,9 @@ option(OPALX_USE_STANDARD_FOLDERS "Put all generated binaries in bin/lib folders
 option(OPALX_SKIP_FAILING_TESTS "Do not build/test tests that are currently marked as failing" OFF)
 option(OPALX_ENABLE_SCRIPTS "Generate job script templates for some benchmarks/tests" OFF)
 option(OPALX_FIELD_DEBUG "Enable FieldSolver field-dump debug code" OFF)
+option(OPALX_USE_INSTALLED_HDF5 "Use system-installed HDF5 instead of building from source" OFF)
+option(OPALX_USE_INSTALLED_H5HUT "Use system-installed H5HUT instead of building from source" OFF)
+option(OPALX_USE_INSTALLED_GTEST "Use system-installed GoogleTest instead of building from source" OFF)
 
 # "Build OPALX as a shared library (ON) or static library (OFF)" OFF) 
 if(OPALX_DYL)
