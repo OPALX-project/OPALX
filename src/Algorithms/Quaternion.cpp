@@ -87,10 +87,9 @@ Quaternion& Quaternion::operator*=(const Quaternion& other) {
     double res = 0.0;
     for (unsigned i = 0; i < 3; i++)
         res += imagThis(i) * imagOther(i);
-    double dp = std::sqrt(res);
 
     *this = Quaternion(
-        (*this)(0) * other(0) - dp,
+        (*this)(0) * other(0) - res,
         (*this)(0) * imagOther + other(0) * imagThis + cross(imagThis, imagOther));
     return *this;
 }
