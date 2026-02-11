@@ -395,17 +395,20 @@ void ParallelTracker::execute() {
 
             // Reset E and B fields
             resetFields();
-            
+
             // Space charge field computation
-            //computeSpaceChargeFields(step);
-           
+            computeSpaceChargeFields(step);
+            *gmsg << "* Space charge field computation done at step " << step << endl;
+            
             // External field computation
             computeExternalFields(oth);
+            *gmsg << "* External field computation done at step " << step << endl;
 
             // Second half of the time integration
             timeIntegration2(pusher);
             
-            // \todo emitParticles(step);
+            /// \todo needs to be implemented  
+            // emitParticles(step);
 
             // Backtracking?
             selectDT(back_track);
@@ -475,8 +478,11 @@ void ParallelTracker::execute() {
     OPALTimer::Timer myt3;
     *gmsg << endl << "* Done executing ParallelTracker at " << myt3.time() << endl << endl;
 }
+
+
 /* ========================================================================== */
 /* =========================== PIC Functions ================================ */
+
 void ParallelTracker::timeIntegration1(BorisPusher& pusher) {
     IpplTimings::startTimer(timeIntegrationTimer1_m);
     pushParticles(pusher);
@@ -518,11 +524,20 @@ void ParallelTracker::timeIntegration2(BorisPusher& pusher) {
     
     IpplTimings::stopTimer(timeIntegrationTimer2_m);
 }
+
 void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
 
     if (!itsBunch_m->hasFieldSolver()) {
-        *gmsg << "no solver avaidable " << endl;
-        return;
+        /*
+        This should not happen, so when we do not have a field solve, we can
+        throw an exception. If we have "no solver" and want to run it, we would
+        choose the null solver.
+        */
+        *gmsg << "no solver available!" << endl;
+        throw OpalException(
+            "ParallelTracker::computeSpaceChargeFields",
+            "Bunch has no field solver assigned! If you want to run without "
+            "space charge effects, please use TYPE=NONE for the field solver.");
     }
         
     itsBunch_m->calcBeamParameters();
@@ -654,6 +669,7 @@ void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
             << "remaining " << numParticlesInSimulation_m << " particles" << endl;
     }
 }
+
 /**
  * @brief Resets the E and B field views to 0
  */
@@ -713,16 +729,11 @@ void ParallelTracker::kickParticles(const BorisPusher& pusher) {
     auto Efview = itsBunch_m->getParticleContainer()->E.getView();
     auto Bfview = itsBunch_m->getParticleContainer()->B.getView();
 
-    /// \todo Apparently, we want mass in eV and charge in elementary charges here to match OPAL's BorisPusher
-    //double mass = itsBunch_m->getMassPerParticle(); // itsReference.getM();
-    //double charge = itsBunch_m->getChargePerParticle();  // itsReference.getQ();
-        // Get reference particle mass and charge
-    const double mass = itsReference.getM();
-    const double charge = itsReference.getQ();
-
-
-    std::cout << charge << " " << mass << std::endl;
-
+    /*
+    We want mass in eV and charge in elementary charges here to match OPAL's 
+    BorisPusher. Note that mass/charge are extracted from the reference particle
+    in the BorisPusher.push call. 
+    */
     Kokkos::parallel_for(
         "kickParticles", ippl::getRangePolicy(Pview),
         KOKKOS_LAMBDA(const size_t i) {
@@ -754,16 +765,23 @@ void ParallelTracker::kickParticles(const BorisPusher& pusher) {
              */
            
             Vector_t<double, 3> p = Pview(i); 
-            pusher.kick(0, p, Efview(i), Bfview(i), dtview(i), mass, charge); /// \todo might want to remove dt and R altogether from the kick!
+            /// \todo might want to remove dt and R altogether from the kick!
+            pusher.kick(0, p, Efview(i), Bfview(i), dtview(i)/*, mass, charge*/); 
             Pview(i) = p; 
         });
-        
-    /// \todo unnecessary update? kick does not modify positions
-    //itsBunch_m->getParticleContainer()->update();
+    /*
+    Wait until everyone completed the kick operation before proceeding. For now,
+    this is just a precaution and could be removed for a small performance gain
+    (technically, these shouldn't be necessary!).
+    */
+    Kokkos::fence();
     ippl::Comm->barrier();
 }
+
+
 /* ========================================================================== */ 
 /* ============================= Functions ================================== */
+
 /**
  * @brief Sets up beamline
  */
@@ -787,6 +805,7 @@ void ParallelTracker::prepareSections() {
     itsOpalBeamline_m.save3DLattice();
     itsOpalBeamline_m.save3DInput();
 }
+
 void ParallelTracker::selectDT(bool backTrack) {
     double dt = dtCurrentTrack_m;
     itsBunch_m->setdT(dt);
@@ -869,8 +888,7 @@ void ParallelTracker::updateReferenceParticle(const BorisPusher& pusher) {
     itsBunch_m->RefPartR_m *= scaleFactor;
 }
 
-void ParallelTracker::transformBunch(const CoordinateSystemTrafo& trafo) 
-{
+void ParallelTracker::transformBunch(const CoordinateSystemTrafo& trafo) {
     trafo.transformBunchTo(itsBunch_m->getParticleContainer()->R.getView());
     trafo.rotateBunchTo(itsBunch_m->getParticleContainer()->P.getView());
     trafo.rotateBunchTo(itsBunch_m->getParticleContainer()->E.getView());
@@ -976,6 +994,7 @@ void ParallelTracker::findStartPosition(const BorisPusher& pusher) {
 
     changeDT();
 }
+
 void ParallelTracker::dumpStats(long long step, bool psDump, bool statDump) {
     OPALTimer::Timer myt2;
 
@@ -1159,8 +1178,11 @@ void ParallelTracker::writePhaseSpace(const long long /*step*/, bool psDump, boo
         *gmsg << level2 << "* Wrote beam phase space." << endl;
     }
 }
+
+
 /* ========================================================================== */
 /* ============================ Autophasing ================================= */
+
 void ParallelTracker::updateRFElement(std::string elName, double maxPhase) {
     FieldList cavities       = 
         itsOpalBeamline_m.getElementByType(ElementType::RFCAVITY);
@@ -1181,6 +1203,7 @@ void ParallelTracker::updateRFElement(std::string elName, double maxPhase) {
         }
     }
 }
+
 void ParallelTracker::saveCavityPhases() {
     itsDataSink_m->storeCavityInformation();
 }
@@ -1228,8 +1251,10 @@ void ParallelTracker::autophaseCavities(const BorisPusher& pusher) {
     }
 }
 
+
 /* ========================================================================== */
 /* ============================ RING FUNCTIONS ============================== */
+
 void ParallelTracker::buildupFieldList(
     double BcParameter[], ElementType elementType, Component* elptr) {
     beamline_list::iterator sindex;
@@ -1250,6 +1275,7 @@ void ParallelTracker::buildupFieldList(
     }
     FieldDimensions.insert(sindex, localpair);
 }
+
 bool ParallelTracker::applyPluginElements(const double dt) {
     IpplTimings::startTimer(PluginElemTimer_m);
 
@@ -1268,7 +1294,9 @@ bool ParallelTracker::applyPluginElements(const double dt) {
     IpplTimings::stopTimer(PluginElemTimer_m);
     return flag;
 }
+
 /* ========================================================================== */
+
 
 struct DistributionInfo {
     unsigned int who;
