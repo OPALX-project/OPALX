@@ -776,7 +776,8 @@ void ParallelTracker::kickParticles(const BorisPusher& pusher) {
     double mass = itsReference.getM();
     double charge = itsReference.getQ();
     Kokkos::parallel_for(
-        "kickParticles", Pview.extent(0), // ippl::getRangePolicy(Pview),
+        /// \todo might want to change getRangePolicy to not include overallocation!
+        "kickParticles", ippl::getRangePolicy(Pview),
         KOKKOS_LAMBDA(const size_t i) {
             /**
              *
