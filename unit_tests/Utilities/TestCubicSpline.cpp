@@ -43,6 +43,7 @@
 #include "Utilities/CubicSpline.h"
 #include "Utilities/GSLSpline.h"
 #include <vector>
+#include <cmath>
 
 class CubicSplineTest : public testing::Test {
 protected:
