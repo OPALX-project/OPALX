@@ -501,12 +501,12 @@ void PartBunch<T, Dim>::bunchUpdate() {
     Note that there is still a mismatch: OPAL only resizes in z direction and
     keeps x/y the same. But this doesn't make too much sense in my opinion...
     */
-    hr_m = (1.0+2*this->OPALFieldSolver_m->getBoxIncr()/100.)*(l / this->nr_m);
-
     // Update origin and extent for the FieldContainer (not for the particles!)
     o = o - l*this->OPALFieldSolver_m->getBoxIncr()/100.;
     e = e + l*this->OPALFieldSolver_m->getBoxIncr()/100.;
     l = e - o;
+
+    hr_m = l / this->nr_m;
 
     mesh->setMeshSpacing(hr_m);
     mesh->setOrigin(o);
@@ -577,23 +577,16 @@ void PartBunch<T, Dim>::computeSelfFields() {
     */
 
     /*
-      particles have moved need to adjust grid
-      \todo might not work -- can use container update for testing!
+    I would guess that ths bunchUpdate is only necessary after a push (where we
+    need it anyways, since positions have changed). However, when removing it,
+    the total energy of the FODO example quickly diverges to "-inf". I don't
+    know why this is, but particle positions shouldn't have changed. I would
+    therefore assume that we could separate bunchUpdate from pc->update() in 
+    order to save some computation. 
     */
-    //std::shared_ptr<ParticleContainer_t> pc = this->getParticleContainer();
-    //pc->update();
-
-    // Do this only after the push!
-    // this->bunchUpdate();
-
-    /*
-
-     scatterCIC start
-
-    */
+    this->bunchUpdate();
 
     /// \todo Add binned field solver here (needs iteration over bins, scatterPerBin calls and Etmp build up)! See https://gitlab.psi.ch/OPAL/opal-x/src/-/blame/binnedFieldSolver/src/PartBunch/PartBunch.cpp?ref_type=heads#L376
-
 
     ippl::ParticleAttrib<T>* Q               = &this->pcontainer_m->Q;
     typename Base::particle_position_type* R = &this->pcontainer_m->R;
