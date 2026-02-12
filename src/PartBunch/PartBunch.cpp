@@ -280,30 +280,26 @@ void PartBunch<T, Dim>::spaceChargeEFieldCheck(Vector_t<double, 3> /*efScale*/) 
 
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::calcBeamParameters() {
+    Inform m("PartBunch::calcBeamParameters");
     std::shared_ptr<ParticleContainer_t> pc = this->pcontainer_m;
     
     auto Rview = pc->R.getView();
     auto Pview = pc->P.getView();
     this->updateMoments();
+    m << "Moments updated." << endl;
 
     ////////////////////////////////////
     //// Calculate Moments of R and P //
     ////////////////////////////////////
 
-    /// \todo use IPPL vectors for this!
-    double loc_centroid[2 * Dim]        = {};
-    double loc_moment[2 * Dim][2 * Dim] = {};
-        
-    double centroid[2 * Dim]         = {};
-    double moment[2 * Dim][2 * Dim]  = {};
+    using MomentsVec = ippl::Vector<double, 2 * Dim>;
+    using MomentsMat = ippl::Vector<MomentsVec, 2 * Dim>;
 
-    for (unsigned i = 0; i < 2 * Dim; i++) {
-        loc_centroid[i] = 0.0;
-        for (unsigned j = 0; j <= i; j++) {
-            loc_moment[i][j] = 0.0;
-            loc_moment[j][i] = 0.0;
-        }
-    }
+    MomentsVec loc_centroid(0.0);
+    MomentsMat loc_moment(MomentsVec(0.0));
+
+    MomentsVec centroid(0.0);
+    MomentsMat moment(MomentsVec(0.0));
 
     for (unsigned i = 0; i < 2 * Dim; ++i) {
         Kokkos::parallel_reduce(
@@ -333,16 +329,21 @@ void PartBunch<T, Dim>::calcBeamParameters() {
             Kokkos::Sum<T>(loc_moment[i][5]));
         Kokkos::fence();
     }
+    m << "Local moments calculated." << endl;
 
-    MPI_Allreduce(loc_moment, moment, 2 * Dim * 2 * Dim, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
-    MPI_Allreduce(loc_centroid, centroid, 2 * Dim, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
+    moment   = loc_moment;
+    centroid = loc_centroid;
+    ippl::Comm->allreduce(moment, 1, std::plus<MomentsMat>());
+    ippl::Comm->allreduce(centroid, 1, std::plus<MomentsVec>());
     ippl::Comm->barrier();
+    m << "Global moments calculated." << endl;
 
-    double rmax_loc[Dim];
-    double rmin_loc[Dim];
-    double rmax[Dim];
-    double rmin[Dim];
+    ippl::Vector<double, Dim> rmax_loc(0.0);
+    ippl::Vector<double, Dim> rmin_loc(0.0);
+    ippl::Vector<double, Dim> rmax(0.0);
+    ippl::Vector<double, Dim> rmin(0.0);
 
+    /// \todo do this in one step much nicer with ippl::Vector...
     for (unsigned d = 0; d < Dim; ++d) {
         Kokkos::parallel_reduce("rel max", this->getLocalNum(),
             KOKKOS_LAMBDA(const int i, double& mm) {
@@ -356,16 +357,17 @@ void PartBunch<T, Dim>::calcBeamParameters() {
                 mm             = tmp_vel < mm ? tmp_vel : mm;
             }, Kokkos::Min<T>(rmin_loc[d]));
     }
+    m << "Local min/max calculated." << endl;
     Kokkos::fence();
-    MPI_Allreduce(rmax_loc, rmax, Dim, MPI_DOUBLE, MPI_MAX, ippl::Comm->getCommunicator());
-    MPI_Allreduce(rmin_loc, rmin, Dim, MPI_DOUBLE, MPI_MIN, ippl::Comm->getCommunicator());
+    rmax = rmax_loc;
+    rmin = rmin_loc;
+    ippl::Comm->allreduce(rmax, 1, std::greater<ippl::Vector<double, Dim>>());
+    ippl::Comm->allreduce(rmin, 1, std::less<ippl::Vector<double, Dim>>());
     ippl::Comm->barrier();
+    m << "Global min/max calculated." << endl;
 
-    /// \todo can we do this nicer? Yes: use IPPL vectors, they work in reductions
-    for (unsigned int i=0; i<Dim; i++) {
-        rmax_m(i) = rmax[i];
-        rmin_m(i) = rmin[i];
-    }
+    rmax_m = rmax;
+    rmin_m = rmin;
 }
 
 template <typename T, unsigned Dim>
