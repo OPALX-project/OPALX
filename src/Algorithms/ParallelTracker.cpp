@@ -430,8 +430,7 @@ void ParallelTracker::execute() {
 
             // Select new time step size for the next iteration based on the current track configuration
             selectDT(back_track);
-            m << "Selected new time step for next iteration, back_track = " << back_track << "." << endl;
-            
+            m << "Selected new time step for next iteration, back_track = " << back_track << "." << endl;            
             
             // Update the bunch time
             itsBunch_m->incrementT();
