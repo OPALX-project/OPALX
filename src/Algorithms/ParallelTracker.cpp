@@ -403,47 +403,55 @@ void ParallelTracker::execute() {
  
             // First half of the time integration
             timeIntegration1(pusher);
+            m << "timeIntegration1 done at step " << step << "." << endl;
 
             // Reset E and B fields
             resetFields();
+            m << "E and B fields reset at step " << step << "." << endl;
 
             // Space charge field computation
             computeSpaceChargeFields(step);
-            *gmsg << "* Space charge field computation done at step " << step << endl;
+            m << "Space charge field computation done at step " << step << "." << endl;
             
             // External field computation
             computeExternalFields(oth);
-            *gmsg << "* External field computation done at step " << step << endl;
+            m << "External field computation done at step " << step << "." << endl;
 
             // Second half of the time integration
             timeIntegration2(pusher);
+            m << "timeIntegration2 done at step " << step << "." << endl;
 
             // Reset particle time step size to the current track time step (pulled out of timeIntegration2)
             setTime();
+            m << "Set time view of particle bunch to dt = " << Util::getTimeString(itsBunch_m->getdT()) << "." << endl;
             
             /// \todo needs to be implemented  
             // emitParticles(step);
 
             // Select new time step size for the next iteration based on the current track configuration
             selectDT(back_track);
+            m << "Selected new time step for next iteration, back_track = " << back_track << "." << endl;
             
             
             // Update the bunch time
             itsBunch_m->incrementT();
+            m << "Incremented bunch time to " << Util::getTimeString(itsBunch_m->getT()) << "." << endl;
 
             // Update reference particle
             if (itsBunch_m->getT() > 0.0 || itsBunch_m->getdT() < 0.0) {
                 updateReference(pusher);
+                m << "Updated reference particle at step " << step << "." << endl;
             }
 
             // Delete particles?
             if (deletedParticles_m) {
-                // \todo doDelete
+                /// \todo doDelete
                 deletedParticles_m = false;
             }
 
             // Update the path length
             itsBunch_m->set_sPos(pathLength_m);
+            m << "Updated path length to " << pathLength_m << "." << endl;
 
             // if (hasEndOfLineReached(globalBoundingBox)) break;
   
@@ -457,12 +465,16 @@ void ParallelTracker::execute() {
             dumpStats(step, psDump, statDump);
 
             itsBunch_m->incTrackSteps();
+            m << "Track steps incremented." << endl;
 
             ippl::Vector<double,3> pdivg = itsBunch_m->RefPartP_m / Util::getGamma(itsBunch_m->RefPartP_m);
             double beta = euclidean_norm(pdivg);
             double driftPerTimeStep = std::abs(itsBunch_m->getdT()) * Physics::c * beta;
+            m << "Calculated drift per time step: " << Util::getLengthString(driftPerTimeStep) << "." << endl;
 
             if (std::abs(stepSizes_m.getZStop() - pathLength_m) < 0.5 * driftPerTimeStep) {
+                m << "Approaching end of current step size configuration (zstop = " << Util::getLengthString(stepSizes_m.getZStop()) 
+                  << ", path length = " << Util::getLengthString(pathLength_m) << "). Preparing to switch to next configuration." << endl;
                 break;
             }
         }
