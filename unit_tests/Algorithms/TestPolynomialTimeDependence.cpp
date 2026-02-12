@@ -141,5 +141,5 @@ TEST(TestPolynomialTimeDependence, UserInterfaceBoth) {
     Attributes::setReal(ui.itsAttr[OpalPolynomialTimeDependence::P2], 4);
     Attributes::setReal(ui.itsAttr[OpalPolynomialTimeDependence::P3], 5);
     // Update the object
-    EXPECT_THROW(ui.update(), OpalException);
+    EXPECT_THROW(ui.update(), std::invalid_argument);
 }

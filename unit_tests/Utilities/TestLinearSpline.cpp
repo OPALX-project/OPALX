@@ -28,7 +28,7 @@
 
 #include <gtest/gtest.h>
 #include <vector>
-#include "Utilities/GSLLinearSpline.h"
+#include "Utilities/LinearSpline.h"
 
 class LinearSplineTest : public testing::Test {
 protected:

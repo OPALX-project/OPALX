@@ -31,8 +31,8 @@
 #include <vector>
 
 #include "Algorithms/AbstractTimeDependence.h"
-#include "Utilities/GSLLinearSpline.h"
-#include "Utilities/GSLCubicSpline.h"
+#include "Utilities/LinearSpline.h"
+#include "Utilities/CubicSpline.h"
 
 class Inform;
 
@@ -109,20 +109,18 @@ public:
     void setSpline(
         size_t splineOrder, const std::vector<double>& times, const std::vector<double>& values);
 
-    /* Getters for the test cases only */
-    const std::vector<double>& getTimes() const { return times_m; }
-    const std::vector<double>& getValues() const { return values_m; }
-    size_t getSplineOrder() const { return splineOrder_m; }
+    /* Getters for the test case use */
+    [[nodiscard]] const std::vector<double>& getTimes() const { return times_m; }
+    [[nodiscard]] const std::vector<double>& getValues() const { return values_m; }
+    [[nodiscard]] size_t getSplineOrder() const { return splineOrder_m; }
 
     // Spline order constants
     static constexpr size_t LinearInterpolation = 1;
     static constexpr size_t CubicInterpolation = 3;
 
 private:
-    std::unique_ptr<CubicSpline> cubicSpline_m;
-    std::unique_ptr<CubicSpline::Accelerator> cubicAcc_m;
-    std::unique_ptr<LinearSpline> linearSpline_m;
-    std::unique_ptr<LinearSpline::Accelerator> linearAcc_m;
+    std::unique_ptr<AbstractSpline> spline_m;
+    std::unique_ptr<AbstractSpline::Accelerator> splineAcc_m;
     size_t splineOrder_m{LinearInterpolation};
     std::vector<double> times_m;
     std::vector<double> values_m;

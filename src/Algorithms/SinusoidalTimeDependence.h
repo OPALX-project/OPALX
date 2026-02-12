@@ -69,11 +69,11 @@ public:
      */
     Inform& print(Inform& os) const;
 
-    /* Getters only for test cases */
-    const std::vector<double>& getFrequencies() const { return f_m; }
-    const std::vector<double>& getAmplitudes() const { return a_m; }
-    const std::vector<double>& getOffsets() const { return o_m; }
-    const std::vector<double>& getPhases() const { return p_m; }
+    /* Getters for the test case use */
+    [[nodiscard]] const std::vector<double>& getFrequencies() const { return f_m; }
+    [[nodiscard]] const std::vector<double>& getAmplitudes() const { return a_m; }
+    [[nodiscard]] const std::vector<double>& getOffsets() const { return o_m; }
+    [[nodiscard]] const std::vector<double>& getPhases() const { return p_m; }
 
 private:
     std::vector<double> f_m;
