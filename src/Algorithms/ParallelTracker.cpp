@@ -713,7 +713,9 @@ void ParallelTracker::pushParticles(const BorisPusher& pusher) {
     itsBunch_m->switchOffUnitlessPositions(true);
     /// \todo update gives different results on one rank?
     //itsBunch_m->getParticleContainer()->update();
+    Kokkos::fence();
     ippl::Comm->barrier();
+    itsBunch_m->bunchUpdate();
 }
 
 /**

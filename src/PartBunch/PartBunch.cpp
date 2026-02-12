@@ -167,8 +167,10 @@ void  PartBunch<T, Dim>::gatherLoadBalanceStatistics() {
 
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::setSolver(std::string solver) {
+    Inform m("PartBunch::setSolver");
+    m << "Initializing solver: " << solver << endl;
     if (this->solver_m != "")
-        *gmsg << "* Warning solver already initiated but overwrite ..." << endl;
+        m << "Warning solver already initiated but overwrite ..." << endl;
 
     this->solver_m = solver;
 
@@ -181,8 +183,10 @@ void PartBunch<T, Dim>::setSolver(std::string solver) {
         &this->fcontainer_m->getPhi(),
         this->getBCHandler()
     ));
+    m << "Field solver set." << endl;
 
     this->fsolver_m->initSolver();
+    m << "Field solver initialized." << endl;
         
     /// ADA we need to be able to set a load balancer when not having a field solver
     this->setLoadBalancer(std::make_shared<LoadBalancer_t>(
@@ -191,8 +195,7 @@ void PartBunch<T, Dim>::setSolver(std::string solver) {
         this->pcontainer_m, 
         this->fsolver_m
     ));
-    
-    *gmsg << "* Solver and Load Balancer set" << endl;
+    m << "Solver and Load Balancer set." << endl;
 }
 
 template <typename T, unsigned Dim>
@@ -287,7 +290,7 @@ void PartBunch<T, Dim>::calcBeamParameters() {
     //// Calculate Moments of R and P //
     ////////////////////////////////////
 
-
+    /// \todo use IPPL vectors for this!
     double loc_centroid[2 * Dim]        = {};
     double loc_moment[2 * Dim][2 * Dim] = {};
         
@@ -430,8 +433,12 @@ void PartBunch<T, Dim>::bunchUpdate(ippl::Vector<double, 3> hr) {
        1. calculates and set hr
        2. do repartitioning
     */
-    Inform m ("bunchUpdate ");
-    
+    throw OpalException("PartBunch::bunchUpdate(hr)", 
+        "Please don't call this, just call the other one!");
+    /*
+    Inform m ("PartBunch::bunchUpdate");
+    m << "Updating bunch and doing repartitioning if needed." << endl;
+
     auto *mesh = &this->fcontainer_m->getMesh();
     auto *FL   = &this->fcontainer_m->getFL();
 
@@ -447,7 +454,12 @@ void PartBunch<T, Dim>::bunchUpdate(ippl::Vector<double, 3> hr) {
 
     hr_m = (1.0+this->OPALFieldSolver_m->getBoxIncr()/100.)*(l / this->nr_m);
     mesh->setMeshSpacing(hr);
-    mesh->setOrigin(o-0.5*hr_m*this->OPALFieldSolver_m->getBoxIncr()/100.);
+    mesh->setOrigin(o-0.5*l*this->OPALFieldSolver_m->getBoxIncr()/100.);
+    // pretty print mesh spacing, origin and box increment for debugging
+    m << "\tMesh origin:  " << mesh->getOrigin() << endl;
+    m << "\tMesh spacing: " << hr_m << endl;
+    m << "\tBox increment: " << this->OPALFieldSolver_m->getBoxIncr() << " (%)" << endl;
+
     
     pc->getLayout().updateLayout(*FL, *mesh);
     pc->update();
@@ -459,12 +471,13 @@ void PartBunch<T, Dim>::bunchUpdate(ippl::Vector<double, 3> hr) {
     this->isFirstRepartition_m = true;
     this->loadbalancer_m->initializeORB(FL, mesh);
     this->loadbalancer_m->repartition(FL, mesh, this->isFirstRepartition_m);
-    this->updateMoments();
+    this->updateMoments();*/
 }
 
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::bunchUpdate() {
-
+    Inform m ("PartBunch::bunchUpdate");
+    m << "Updating bunch and doing repartitioning if needed." << endl;
     /* \brief
        1. calculates and set hr
        2. do repartitioning
@@ -481,22 +494,45 @@ void PartBunch<T, Dim>::bunchUpdate() {
     ippl::Vector<double, 3> e = pc->getMaxR();
     ippl::Vector<double, 3> l = e - o;
 
-    hr_m = (1.0+this->OPALFieldSolver_m->getBoxIncr()/100.)*(l / this->nr_m);
-    mesh->setMeshSpacing(hr_m);
-    mesh->setOrigin(o-0.5*hr_m*this->OPALFieldSolver_m->getBoxIncr()/100.);
+    /*
+    Now matches OPAL: domain + incr% on each side.
+    Note that there is still a mismatch: OPAL only resizes in z direction and
+    keeps x/y the same. But this doesn't make too much sense in my opinion...
+    */
+    hr_m = (1.0+2*this->OPALFieldSolver_m->getBoxIncr()/100.)*(l / this->nr_m);
 
+    // Update origin and extent for the FieldContainer (not for the particles!)
+    o = o - l*this->OPALFieldSolver_m->getBoxIncr()/100.;
+    e = e + l*this->OPALFieldSolver_m->getBoxIncr()/100.;
+    l = e - o;
+
+    mesh->setMeshSpacing(hr_m);
+    mesh->setOrigin(o);
+
+    /*
+    I think these in the field container should reflect mesh boundaries, not 
+    particle boundaries, since the field solver needs to know the mesh and solve
+    */
     this->getFieldContainer()->setRMin(o);
     this->getFieldContainer()->setRMax(e);
     this->getFieldContainer()->setHr(hr_m);
 
+    m << "Field Container updated with new mesh boundaries and spacing." << endl;
+    m << "\tMesh origin:  " << mesh->getOrigin() << endl;
+    m << "\tMesh spacing: " << hr_m << endl;
+    m << "\tBox increment: " << this->OPALFieldSolver_m->getBoxIncr() << " (%)" << endl;
+
     pc->getLayout().updateLayout(*FL, *mesh);
     pc->update();
+    m << "Particle container updated with new layout." << endl;
 
     this->isFirstRepartition_m = true;
     //this->loadbalancer_m->initializeORB(FL, mesh);
     //this->loadbalancer_m->repartition(FL, mesh, this->isFirstRepartition_m);
+    m << "Load balancer repartitioning done." << endl;
 
     this->updateMoments();
+    m << "Moments updated." << endl;
 }
 
 template <typename T, unsigned Dim>
@@ -540,7 +576,9 @@ void PartBunch<T, Dim>::computeSelfFields() {
     */
     //std::shared_ptr<ParticleContainer_t> pc = this->getParticleContainer();
     //pc->update();
-    this->bunchUpdate();
+
+    // Do this only after the push!
+    // this->bunchUpdate();
 
     /*
 
