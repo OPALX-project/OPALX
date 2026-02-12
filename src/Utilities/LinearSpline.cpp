@@ -16,6 +16,7 @@
 //
 
 #include "LinearSpline.h"
+#include <stdexcept>
 
 LinearSpline::LinearSpline(const std::vector<double>& x, const std::vector<double>& y) {
     LinearSpline::init(x, y);
