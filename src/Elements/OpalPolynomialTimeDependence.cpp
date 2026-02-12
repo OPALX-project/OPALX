@@ -72,8 +72,8 @@ void OpalPolynomialTimeDependence::update() {
     // getOpalName() comes from AbstractObjects/Object.h
     if (itsAttr[COEFFICIENTS] && (itsAttr[P0] || itsAttr[P1] || itsAttr[P2] || itsAttr[P3])) {
         // Only use P0..P3 or COEFFICIENTS, not both
-        throw OpalException(
-            "OpalPolynomialTimeDependence::Update",
+        throw std::invalid_argument(
+            "OpalPolynomialTimeDependence::Update: "
             "Use P0..P3 or COEFFICIENTS to specify the coefficients, not both.");
     }
     std::vector<double> polynomial_coefficients = Attributes::getRealArray(itsAttr[COEFFICIENTS]);
