@@ -517,10 +517,10 @@ void PartBunch<T, Dim>::bunchUpdate() {
     this->getFieldContainer()->setRMax(e);
     this->getFieldContainer()->setHr(hr_m);
 
-    m << "Field Container updated with new mesh boundaries and spacing." << endl;
-    m << "\tMesh origin:  " << mesh->getOrigin() << endl;
-    m << "\tMesh spacing: " << hr_m << endl;
-    m << "\tBox increment: " << this->OPALFieldSolver_m->getBoxIncr() << " (%)" << endl;
+    m << "Field Container updated with new mesh boundaries and spacing:" << endl;
+    m << "\t\t> Mesh origin:   " << mesh->getOrigin() << endl;
+    m << "\t\t> Mesh spacing:  " << hr_m << endl;
+    m << "\t\t> Box increment: " << this->OPALFieldSolver_m->getBoxIncr() << "%" << endl;
 
     pc->getLayout().updateLayout(*FL, *mesh);
     pc->update();
@@ -537,6 +537,7 @@ void PartBunch<T, Dim>::bunchUpdate() {
 
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::computeSelfFields() {
+    Inform m("PartBunch::computeSelfFields");
     static IpplTimings::TimerRef completeBinningT = IpplTimings::getTimer("bTotalBinningT");
 
     // Start binning and sorting by bins
@@ -545,10 +546,13 @@ void PartBunch<T, Dim>::computeSelfFields() {
 
     IpplTimings::startTimer(completeBinningT);
     bins->doFullRebin(bins->getMaxBinCount()); // rebin with 128 bins // bins->getMaxBinCount()
+    m << "Full rebin done." << endl;
     bins->print(); // For debugging...
     bins->sortContainerByBin(); // Sort BEFORE, since it generates less atomics overhead with more bins!
+    m << "Create sorted index by bins done." << endl;
     
     bins->genAdaptiveHistogram(); // merge bins with width/N_part ratio of 1.0
+    m << "Adaptive histogram generation done." << endl;
     IpplTimings::stopTimer(completeBinningT);
 
     bins->print(); // For debugging...
@@ -600,6 +604,7 @@ void PartBunch<T, Dim>::computeSelfFields() {
     *Q = (*Q) * this->pcontainer_m->dt; // Scale by time step
     scatter(*Q, *rho, *R); 
     *Q = (*Q) / this->pcontainer_m->dt; // Rescale back to charge per macroparticle
+    m << "Scatter done." << endl;
 
     /*
     Now rho is in units of [C * s] -- need to divide by dt to get back to [C].
@@ -608,6 +613,7 @@ void PartBunch<T, Dim>::computeSelfFields() {
     middle" of a full timestep. As of now, this might not be necessary.
     */
     (*rho) = (*rho) / getdT(); 
+    m << "Rho scale by dt done." << endl;
 
 #ifdef doDEBUG
     const double qtot                        = this->qi_m * this->getTotalNum();
@@ -619,11 +625,11 @@ void PartBunch<T, Dim>::computeSelfFields() {
     ippl::Comm->reduce(localParticles, TotalParticles, 1, std::plus<size_type>());
     
     if ((ippl::Comm->rank() == 0) && (relError > 1.0E-13)) {
-            Inform m("computeSelfFields w CICScatter ", INFORM_ALL_NODES);
-            m << "Time step: " << it_m
-              << " total particles in the sim. " << totalP_m 
-              << " missing : " << totalP_m-TotalParticles 
-              << " rel. error in charge conservation: " << relError << endl;
+            Inform m2("PartBunch::computeSelfFields2", INFORM_ALL_NODES);
+            m2 << "Time step: " << it_m
+               << " total particles in the sim. " << totalP_m 
+               << " missing : " << totalP_m-TotalParticles 
+               << " rel. error in charge conservation: " << relError << endl;
     }
 #endif
 
@@ -633,6 +639,7 @@ void PartBunch<T, Dim>::computeSelfFields() {
         // other solvers need explicit normalization here
         double cellVolume = std::reduce(hr_m.begin(), hr_m.end(), 1., std::multiplies<double>());
         (*rho)            = (*rho) / cellVolume;
+        m << "Rho normalized by cell volume: " << cellVolume << "." << endl;
     }
 
     // Alpine uses net 0 charge density for periodic BCs, so we need to subtract background charge here (?TODO: check)
@@ -644,8 +651,8 @@ void PartBunch<T, Dim>::computeSelfFields() {
             size *= rmax_m[d] - rmin_m[d];
         }
 
-        std::cout << "Generating net-0 charge with factor: " << (totalQ / size) << std::endl;
         (*rho) = (*rho) - (totalQ / size);
+        m << "Net-0 charge generation with factor " << (totalQ / size) << " done." << endl;
     }
 
     /*
@@ -661,8 +668,10 @@ void PartBunch<T, Dim>::computeSelfFields() {
     @note rho is overloaded and becomse phi when runSolver is called!
     */
     (*rho) = (*rho) * this->getCouplingConstant(); // now rho_m has units of [V]
+    m << "Rho coupling applied." << endl;
 
     this->fsolver_m->runSolver();
+    m << "Field solver run." << endl;
 
     /*
     Now, with E=-grad(phi), E has units of [V/m] (note, phi is a scalar potential).
@@ -678,13 +687,14 @@ void PartBunch<T, Dim>::computeSelfFields() {
     // (*E) = -ippl::grad(this->fcontainer_m->getPhi());
     
     gather(this->pcontainer_m->E, this->fcontainer_m->getE(), this->pcontainer_m->R);
+    m << "Gather done." << endl;
 
-#ifdef doDEBUG
-    Inform m("computeSelfFields w CICScatter ", INFORM_ALL_NODES);
-    double cellVolume = std::reduce(hr_m.begin(), hr_m.end(), 1., std::multiplies<double>());
-    m << "cellVolume= " << cellVolume << endl;
-    m << "Sum over E-field after gather = " << this->fcontainer_m->getE().sum() << endl;
-#endif
+    // #ifdef doDEBUG
+    //Inform m2("PartBunch::computeSelfFields2", INFORM_ALL_NODES);
+    // double cellVolume = std::reduce(hr_m.begin(), hr_m.end(), 1., std::multiplies<double>());
+    // m2 << "cellVolume: " << cellVolume << endl;
+    // m << "Sum over E-field after gather: " << this->fcontainer_m->getE().sum() << endl;
+    // #endif
 
     /*
     Vector_t<double, 3> efScale = Vector_t<double,3>(gammaz*cc/hr_scaled[0], gammaz*cc/hr_scaled[1], cc / gammaz / hr_scaled[2]);
@@ -700,7 +710,11 @@ void PartBunch<T,Dim>::scatterCICPerBin(PartBunch<T,Dim>::binIndex_t binIndex) {
     /**
      * Scatters only particles in bin binIndex. Scatters all particles if binIndex=-1
      */
-    Inform m("scatterCICPerBin");
+
+    throw OpalException("PartBunch::scatterCICPerBin", 
+        "This function is not implemented yet! Please use scatterCIC for now.");
+
+    Inform m("PartBunch::scatterCICPerBin");
     m << "Scattering binIndex = " << binIndex << " to grid." << endl;
 
     this->fcontainer_m->getRho() = 0.0;
@@ -809,6 +823,20 @@ void PartBunch<T,Dim>::performBunchSanityChecks() const {
                             "FieldSolver fields do not match FieldContainer.");
     }
     ms << "FieldSolver fields match FieldContainer." << endl;
+
+    /*
+    // Check if all three fields (rho, E, phi) have the same mesh and layout
+    auto rhoMesh = fs->getRho()->get_mesh();
+    auto EMesh   = fs->getE()->get_mesh();
+    auto phiMesh = fs->getPhi()->get_mesh();
+    if (rhoMesh->getOrigin() != EMesh->getOrigin() ||
+        rhoMesh->getOrigin() != phiMesh->getOrigin() ||
+        rhoMesh->getMeshSpacing() != EMesh->getMeshSpacing() ||
+        rhoMesh->getMeshSpacing() != phiMesh->getMeshSpacing()) {
+        throw OpalException("PartBunch::performBunchSanityChecks",
+                            "FieldSolver fields do not share the same mesh.");
+    }
+    ms << "FieldSolver fields share the same mesh." << endl;*/
 
     // Check solver type string and that a backend was emplaced
     const std::string stype = fs->getStype();
