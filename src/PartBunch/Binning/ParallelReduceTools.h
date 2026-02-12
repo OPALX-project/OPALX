@@ -229,7 +229,20 @@ namespace ParticleBinning {
          */
         static IndexType binCountStatic;
 
-#ifndef KOKKOS_ENABLE_CUDA
+
+#if defined(KOKKOS_ENABLE_CUDA) || defined(KOKKOS_ENABLE_HIP)
+        /**
+         * @brief CUDA-disabled version of the addition operator that throws an error.
+         * 
+         * @note This constructor is not intended to be used on CUDA, as `HostArrayReduction` is not supported there.
+         *       Instead, it throws an error to indicate that this functionality is not available.
+         */
+        KOKKOS_INLINE_FUNCTION
+        HostArrayReduction& operator+=(const HostArrayReduction& /* src */) {
+            Kokkos::abort("Error: HostArrayReduction is not supported on CUDA!\n       Note: It exists only for compilation compatibility.");
+            return *this;
+        }
+#else
         /**
          * @brief Default constructor that allocates and zero-initializes the array.
          */
@@ -277,18 +290,7 @@ namespace ParticleBinning {
             for (IndexType i = 0; i < binCountStatic; i++ ) { the_array[i] += src.the_array[i]; }
             return *this;
         }
-#else
-        /**
-         * @brief CUDA-disabled version of the addition operator that throws an error.
-         * 
-         * @note This constructor is not intended to be used on CUDA, as `HostArrayReduction` is not supported there.
-         *       Instead, it throws an error to indicate that this functionality is not available.
-         */
-        KOKKOS_INLINE_FUNCTION
-        HostArrayReduction& operator+=(const HostArrayReduction& src) {
-            Kokkos::abort("Error: HostArrayReduction is not supported on CUDA!\n       Note: It exists only for compilation compatibility.");
-            return *this;
-        }
+
 #endif
     };
 
