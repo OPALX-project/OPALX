@@ -545,6 +545,7 @@ void ParallelTracker::timeIntegration2(BorisPusher& pusher) {
     pushParticles(pusher);
     m << "Push particles done." << endl;
 
+    // Put the update directly into pushParticles instead!...
     // double newdT = itsBunch_m->getdT();
     // itsBunch_m->getParticleContainer()->dt = newdT;
     // m << "Update particle time step done." << endl;
@@ -758,20 +759,24 @@ void ParallelTracker::pushParticles(const BorisPusher& pusher) {
  * @param pusher The BorisPusher
  */
 void ParallelTracker::kickParticles(const BorisPusher& pusher) {
+    Inform m("ParallelTracker::kickParticles");
 
     // auto Rview  = itsBunch_m->getParticleContainer()->R.getView();
     auto Pview  = itsBunch_m->getParticleContainer()->P.getView();
     auto dtview = itsBunch_m->getParticleContainer()->dt.getView(); 
     auto Efview = itsBunch_m->getParticleContainer()->E.getView();
     auto Bfview = itsBunch_m->getParticleContainer()->B.getView();
-
+    m << "Got particle views for kick operation." << endl;
     /*
     We want mass in eV and charge in elementary charges here to match OPAL's 
     BorisPusher. Note that mass/charge are extracted from the reference particle
     in the BorisPusher.push call. 
     */
+
+    double mass = itsReference.getM();
+    double charge = itsReference.getQ();
     Kokkos::parallel_for(
-        "kickParticles", ippl::getRangePolicy(Pview),
+        "kickParticles", Pview.extent(0), // ippl::getRangePolicy(Pview),
         KOKKOS_LAMBDA(const size_t i) {
             /**
              *
@@ -799,10 +804,17 @@ void ParallelTracker::kickParticles(const BorisPusher& pusher) {
              *   charge Particle charge.
              *
              */
-           
             Vector_t<double, 3> p = Pview(i); 
             /// \todo might want to remove dt and R altogether from the kick!
-            pusher.kick(0, p, Efview(i), Bfview(i), dtview(i)/*, mass, charge*/); 
+            /*
+            Also: we need to use mass and charge explicitly, otherwise the 
+            Kokkos inline inside BorisPusher tries to access a host pointer
+            (itsReference_m) to get mass/charge. On CPU this works fine, but
+            and sometimes it works on GH200(?), but usually a bad idea. 
+            Therefore, just use the other function that passes mass/charge
+            explicitly.
+            */
+            pusher.kick(0, p, Efview(i), Bfview(i), dtview(i), mass, charge); 
             Pview(i) = p; 
         });
     /*
@@ -812,6 +824,8 @@ void ParallelTracker::kickParticles(const BorisPusher& pusher) {
     */
     Kokkos::fence();
     ippl::Comm->barrier();
+
+    m << "Completed parallel kick operation." << endl;
 }
 
 
