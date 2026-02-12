@@ -75,6 +75,26 @@ if("HIP" IN_LIST OPALX_PLATFORMS AND "CUDA" IN_LIST OPALX_PLATFORMS)
 endif()
 
 # -----------------------------------------------------------------------------
+# Device compilation flag (for non-host backends)
+# -----------------------------------------------------------------------------
+# Set a general flag to indicate device compilation (CUDA, HIP, SYCL)
+# This is used in code to distinguish device-specific implementations from host-only code
+set(OPALX_HAS_DEVICE_BACKEND FALSE)
+foreach(platform ${OPALX_PLATFORMS})
+  if(NOT platform STREQUAL "SERIAL" AND NOT platform STREQUAL "OPENMP")
+    set(OPALX_HAS_DEVICE_BACKEND TRUE)
+    break()
+  endif()
+endforeach()
+
+if(OPALX_HAS_DEVICE_BACKEND)
+  add_compile_definitions(OPALX_DEVICE_COMPILATION)
+  colour_message(STATUS ${Green} "✅ Device backend detected - defining OPALX_DEVICE_COMPILATION")
+else()
+  colour_message(STATUS ${Cyan} "ℹ️  Host-only backend (SERIAL/OPENMP) - OPALX_DEVICE_COMPILATION not defined")
+endif()
+
+# -----------------------------------------------------------------------------
 # Profiler section
 # -----------------------------------------------------------------------------
 
