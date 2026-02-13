@@ -4,7 +4,7 @@
 #include "Utilities/GeneralClassicException.h"
 #include "Utilities/Util.h"
 #include "Utilities/GSLFFT.h"
-#include "Utilities/GSLSpline.h"
+#include "Utilities/GSLCubicSpline.h"
 
 #include <fstream>
 #include <ios>

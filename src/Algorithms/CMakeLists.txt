@@ -13,7 +13,6 @@ set (_SRCS
     PartData.cpp
     PolynomialTimeDependence.cpp
     SplineTimeDependence.cpp
-    SinusoidalTimeDependence.cpp
     StepSizeConfig.cpp
     Tracker.cpp
     CoordinateSystemTrafo.cpp
@@ -36,7 +35,6 @@ set (HDRS
     PartData.h
     PolynomialTimeDependence.h
     SplineTimeDependence.h
-    SinusoidalTimeDependence.h
     StepSizeConfig.h
     Tracker.h
     Matrix.h
