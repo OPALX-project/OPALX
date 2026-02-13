@@ -173,7 +173,7 @@ jobs:
           apt-get update
           apt-get install -y build-essential git wget p7zip-full unzip locales libopenmpi-dev openmpi-bin
           # Install ROCm development libraries
-          apt-get install -y rocm-dev rocm-libs
+          # apt-get install -y rocm-dev rocm-libs
           # Set UTF-8 locale to avoid zip extraction issues
           locale-gen en_US.UTF-8
           update-locale LANG=en_US.UTF-8
