@@ -171,9 +171,13 @@ jobs:
       - name: Install dependencies
         run: |
           apt-get update
+          # List available rocthrust packages for debugging
+          apt-cache search rocthrust || true
+          # Install build tools
           apt-get install -y build-essential git wget p7zip-full unzip locales libopenmpi-dev openmpi-bin
-          # Install ROCm development libraries needed by Kokkos
-          apt-get install -y rocthrust-dev rocprim-dev rocsparse-dev rocrand-dev rocblas-dev hipblas-dev hipsparse-dev
+          # Try to install ROCm development libraries
+          apt-get install -y rocm-dev rocm-libs || true
+          apt-get install -y rocthrust-dev rocprim-dev rocsparse-dev rocrand-dev rocblas-dev hipblas-dev hipsparse-dev || true
           # Set UTF-8 locale to avoid zip extraction issues
           locale-gen en_US.UTF-8
           update-locale LANG=en_US.UTF-8
@@ -183,6 +187,8 @@ jobs:
           wget https://cmake.org/files/v4.1/cmake-4.1.1-linux-x86_64.sh
           bash cmake-4.1.1-linux-x86_64.sh --skip-license --prefix=/usr/local
           cmake --version
+          # Check what ROCm packages are installed
+          dpkg -l | grep -i roc || true
       
       - name: Run gen_OPALrevision
         run: |
