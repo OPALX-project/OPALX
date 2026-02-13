@@ -193,6 +193,8 @@ jobs:
           cd build_hip
           cmake .. \
             -DBUILD_TYPE=Debug \
+            -DCMAKE_CXX_STANDARD=20 \
+            -DCMAKE_CXX_COMPILER=hipcc \
             -DPLATFORMS=HIP \
             -DARCH=GFX90A \
             -DAMDGPU_TARGETS=GFX90A \
