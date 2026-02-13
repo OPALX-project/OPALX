@@ -36,10 +36,10 @@ using gsl_interp_accel = AbstractSpline::Accelerator;
 /// \param size Input: number of points (unused).
 /// \return Output: spline pointer.
 inline gsl_spline* gsl_spline_alloc(const int type , size_t /*size*/) {
-    gsl_spline* result;
+    gsl_spline* result{};
     if(type == gsl_interp_cspline) {
         result = new CubicSpline();
-    } else {
+    } else if(type == gsl_interp_linear) {
         result = new LinearSpline();
     }
     return result;
