@@ -4,6 +4,7 @@ message(STATUS "Adding unit tests found in ${_relPath}")
 # Tests for Boost/GSL replacement utilities
 add_opalx_test(TestBiMap USE_GTEST_MAIN)
 add_opalx_test(TestCubicSpline USE_GTEST_MAIN)
+add_opalx_test(TestLinearSpline USE_GTEST_MAIN)
 add_opalx_test(TestFFT USE_GTEST_MAIN)
 add_opalx_test(TestRandom USE_GTEST_MAIN)
 add_opalx_test(TestHistogram USE_GTEST_MAIN)
