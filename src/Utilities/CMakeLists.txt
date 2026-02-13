@@ -43,6 +43,9 @@ set (_SRCS
     OpalFilter.cpp
     RegularExpression.cpp
     Timer.cpp
+    AbstractSpline.cpp
+    LinearSpline.cpp
+    CubicSpline.cpp
     )
 
 set (HDRS
@@ -91,6 +94,10 @@ set (HDRS
     OpalFilter.h
     RegularExpression.h
     Timer.h
+    AbstractSpline.h
+    LinearSpline.h
+    CubicSpline.h
+    GSLSpline.h
     )
 
 target_include_directories(opalx PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

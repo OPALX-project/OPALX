@@ -9,7 +9,7 @@
 
 #include "OPALTypes.h"
 
-#include "Utilities/GSLCubicSpline.h"
+#include "Utilities/GSLSpline.h"
 
 enum MapType {
     UNKNOWN = 0,
