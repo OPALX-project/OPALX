@@ -198,10 +198,9 @@ jobs:
             -DCMAKE_PREFIX_PATH=/opt/rocm \
             -DCMAKE_CXX_COMPILER=hipcc \
             -DPLATFORMS=HIP \
-            -DARCH=GFX90A \
-            -DAMDGPU_TARGETS=GFX90A \
-            -DCMAKE_HIP_ARCHITECTURES=GFX90A \
-            -DKokkos_ARCH_AMD_GFX90A=ON 
+            -DARCH=gfx90a \
+            -DAMDGPU_TARGETS=gfx90a \
+            -DCMAKE_HIP_ARCHITECTURES=gfx90a 
           
       - name: Build project
         run: |
