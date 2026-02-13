@@ -287,6 +287,7 @@ namespace ParticleBinning {
          */
         KOKKOS_INLINE_FUNCTION
         HostArrayReduction& operator+=(const HostArrayReduction& src) {
+            (void)src;  // Silence unused parameter warning on Clang
             Kokkos::abort("Error: HostArrayReduction is not supported on device backends (CUDA/HIP/SYCL)!\n       Note: It exists only for compilation compatibility.");
             return *this;
         }
