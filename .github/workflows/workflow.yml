@@ -9,7 +9,7 @@ on:
           
 jobs:     
   # ===== CPU SERIAL BUILD =====
-  build-cpu-serial-debug:  
+  build-cpu-serial-debug:
     runs-on: ubuntu-latest
           
     steps:
@@ -155,4 +155,53 @@ jobs:
         run: |
           cd build_cuda
           make -j$(nproc)
-    
+
+  # ===== GPU HIP BUILD =====
+  build-hip-debug:
+    runs-on: ubuntu-latest
+    container:
+      image: rocm/dev-ubuntu-22.04:latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: |
+          apt-get update
+          apt-get install -y build-essential git wget p7zip-full unzip locales libopenmpi-dev openmpi-bin
+          # Install minimal ROCm packages needed for Kokkos and HeFFTe
+          apt-get install -y rocthrust-dev rocprim-dev rocfft-dev
+          # Set UTF-8 locale to avoid zip extraction issues
+          locale-gen en_US.UTF-8
+          update-locale LANG=en_US.UTF-8
+          export LANG=en_US.UTF-8
+          export LC_ALL=en_US.UTF-8
+          # Install CMake 4.1.1
+          wget https://cmake.org/files/v4.1/cmake-4.1.1-linux-x86_64.sh
+          bash cmake-4.1.1-linux-x86_64.sh --skip-license --prefix=/usr/local
+          cmake --version
+      
+      - name: Run gen_OPALrevision
+        run: |
+          chmod +x ./gen_OPALrevision
+          ./gen_OPALrevision
+
+      - name: Configure CMake project (HIP)
+        run: |
+          mkdir -p build_hip
+          cd build_hip
+          cmake .. \
+            -DBUILD_TYPE=Debug \
+            -DCMAKE_PREFIX_PATH=/opt/rocm \
+            -DCMAKE_CXX_COMPILER=hipcc \
+            -DPLATFORMS=HIP \
+            -DARCH=gfx90a \
+            -DAMDGPU_TARGETS=gfx90a \
+            -DCMAKE_HIP_ARCHITECTURES=gfx90a \
+            -DCMAKE_HIP_FLAGS=--offload-arch=gfx90a \
+            -DKokkos_ARCH_AMD_GFX90A=ON 
+          
+      - name: Build project
+        run: |
+          cd build_hip
+          make -j$(nproc)
