@@ -200,7 +200,8 @@ jobs:
             -DPLATFORMS=HIP \
             -DARCH=gfx90a \
             -DAMDGPU_TARGETS=gfx90a \
-            -DCMAKE_HIP_ARCHITECTURES=gfx90a 
+            -DCMAKE_HIP_ARCHITECTURES=gfx90a \
+            -DCMAKE_HIP_FLAGS=--offload-arch=gfx90a 
           
       - name: Build project
         run: |
