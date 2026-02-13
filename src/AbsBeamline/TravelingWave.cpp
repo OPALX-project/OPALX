@@ -21,7 +21,8 @@
 #include "PartBunch/PartBunch.h"
 #include "Fields/Fieldmap.h"
 #include "Physics/Units.h"
-#include "Utilities/GSLSpline.h"
+
+#include "Utilities/GSLCubicSpline.h"
 
 #include <fstream>
 #include <iostream>
