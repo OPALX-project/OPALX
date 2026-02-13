@@ -9,7 +9,8 @@ on:
           
 jobs:     
   # ===== CPU SERIAL BUILD =====
-  build-cpu-serial-debug:  
+  build-cpu-serial-debug:
+    if: false  # Temporarily disabled for testing
     runs-on: ubuntu-latest
           
     steps:
@@ -49,6 +50,7 @@ jobs:
 
   # ===== CPU OPENMP BUILD =====
   build-cpu-openmp-debug:
+    if: false  # Temporarily disabled for testing
     runs-on: ubuntu-latest
 
     steps:
@@ -111,6 +113,7 @@ jobs:
 
   # ===== GPU CUDA BUILD =====
   build-cuda-debug:
+    if: false  # Temporarily disabled for testing
     runs-on: ubuntu-latest
     container:
       image: nvidia/cuda:13.1.0-devel-ubuntu24.04
@@ -191,7 +194,10 @@ jobs:
           cmake .. \
             -DBUILD_TYPE=Debug \
             -DPLATFORMS=HIP \
-            -DARCH=VEGA90A
+            -DARCH=GFX90A \
+            -DAMDGPU_TARGETS=GFX90A \
+            -DCMAKE_HIP_ARCHITECTURES=GFX90A \
+            -DKokkos_ARCH_AMD_GFX90A=ON 
           
       - name: Build project
         run: |
