@@ -172,8 +172,8 @@ jobs:
         run: |
           apt-get update
           apt-get install -y build-essential git wget p7zip-full unzip locales libopenmpi-dev openmpi-bin
-          # Install minimal ROCm packages needed for Kokkos
-          apt-get install -y rocthrust-dev rocprim-dev
+          # Install minimal ROCm packages needed for Kokkos and HeFFTe
+          apt-get install -y rocthrust-dev rocprim-dev rocfft-dev
           # Set UTF-8 locale to avoid zip extraction issues
           locale-gen en_US.UTF-8
           update-locale LANG=en_US.UTF-8
