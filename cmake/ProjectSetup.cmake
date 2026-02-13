@@ -44,11 +44,6 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CUDA_EXTENSIONS OFF)
 
 # ------------------------------------------------------------------------------
-# load message macros
-# ------------------------------------------------------------------------------
-include(Messages)
-
-# ------------------------------------------------------------------------------
 # Static/Dynamic build : use cmake's BUILD_SHARED_LIBS but set OPALX_LIB_TYPE for log purposes
 # ------------------------------------------------------------------------------
 
