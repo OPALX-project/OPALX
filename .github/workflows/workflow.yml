@@ -10,7 +10,6 @@ on:
 jobs:     
   # ===== CPU SERIAL BUILD =====
   build-cpu-serial-debug:
-    if: false  # Temporarily disabled for testing
     runs-on: ubuntu-latest
           
     steps:
@@ -50,7 +49,6 @@ jobs:
 
   # ===== CPU OPENMP BUILD =====
   build-cpu-openmp-debug:
-    if: false  # Temporarily disabled for testing
     runs-on: ubuntu-latest
 
     steps:
@@ -113,7 +111,6 @@ jobs:
 
   # ===== GPU CUDA BUILD =====
   build-cuda-debug:
-    if: false  # Temporarily disabled for testing
     runs-on: ubuntu-latest
     container:
       image: nvidia/cuda:13.1.0-devel-ubuntu24.04
