@@ -79,9 +79,10 @@ endif()
 # -----------------------------------------------------------------------------
 # Set a general flag to indicate device compilation (CUDA, HIP, SYCL)
 # This is used in code to distinguish device-specific implementations from host-only code
+set(HOST_ONLY_PLATFORMS "SERIAL;OPENMP;THREADS;HPX")
 set(OPALX_HAS_DEVICE_BACKEND FALSE)
 foreach(platform ${OPALX_PLATFORMS})
-  if(NOT platform STREQUAL "SERIAL" AND NOT platform STREQUAL "OPENMP")
+  if(NOT platform IN_LIST HOST_ONLY_PLATFORMS)
     set(OPALX_HAS_DEVICE_BACKEND TRUE)
     break()
   endif()
