@@ -35,7 +35,7 @@ include(Messages)
 include(OPALXOptions)
 
 # ------------------------------------------------------------------------------
-# Project setup (call first)
+# Project setup
 # ------------------------------------------------------------------------------
 include(ProjectSetup)
 
