@@ -5,6 +5,7 @@ on:
   #push:
   ## Trigger CI workflow on pull requests to the master branch   
   pull_request:
+    types: [opened, synchronize, reopened, labeled, ready_for_review]
     branches: [ "master" ]
           
 jobs:     
