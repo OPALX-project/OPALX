@@ -1,5 +1,5 @@
 name: CI workflow
-         
+
 on:
   ## Trigger CI workflow on push to any branch (commented out to limit runs)
   #push:
@@ -7,8 +7,8 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, labeled, ready_for_review]
     branches: [ "master" ]
-          
-jobs:     
+
+jobs:
   # ===== CPU SERIAL BUILD =====
   build-cpu-serial-debug:
     runs-on: ubuntu-latest
@@ -101,7 +101,7 @@ jobs:
       #       --exclude '.*_deps.*' \
       #       --exclude '.*3p.*' \
       #       --exclude '.*unit_tests.*' \
-      #       --gcov-ignore-errors=all \  
+      #       --gcov-ignore-errors=all \
       #       --verbose
       
       # - name: Upload coverage artifact
@@ -203,7 +203,7 @@ jobs:
             -DAMDGPU_TARGETS=gfx90a \
             -DCMAKE_HIP_ARCHITECTURES=gfx90a \
             -DCMAKE_HIP_FLAGS=--offload-arch=gfx90a \
-            -DKokkos_ARCH_AMD_GFX90A=ON 
+            -DKokkos_ARCH_AMD_GFX90A=ON
           
       - name: Build project
         run: |
