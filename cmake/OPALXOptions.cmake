@@ -38,11 +38,11 @@ if(NOT PLATFORMS)
     set(PLATFORMS "SERIAL" CACHE STRING "" FORCE)
 endif()
 
-# Forward to OPALX internal variable
+# Forward to OPALX internal variable (internal, derived from user's PLATFORMS)
 set(OPALX_PLATFORMS "${PLATFORMS}" CACHE STRING "" FORCE)
 
 # -----------------------------------------------------------------------------
-# platforms we do support
+# platforms we do support (internal, set based on user selections)
 # -----------------------------------------------------------------------------
 
 set(OPALX_SUPPORTED_PLATFORMS "SERIAL;OPENMP;CUDA;HIP")
@@ -75,12 +75,17 @@ if("HIP" IN_LIST OPALX_PLATFORMS AND "CUDA" IN_LIST OPALX_PLATFORMS)
 endif()
 
 # -----------------------------------------------------------------------------
-# Device compilation flag (for non-host backends)
+# Internal: Device compilation flag detection (auto-derived from PLATFORMS)
+# 
+# Automatically detects if the user selected a device backend (CUDA, HIP, SYCL)
+# and sets OPALX_DEVICE_COMPILATION compile definition accordingly.
+# This allows code to distinguish device-specific implementations from 
+# host-only code. Users do NOT set this directly; it is derived from their 
+# PLATFORMS selection.
 # -----------------------------------------------------------------------------
-# Set a general flag to indicate device compilation (CUDA, HIP, SYCL)
-# This is used in code to distinguish device-specific implementations from host-only code
+
 set(HOST_ONLY_PLATFORMS "SERIAL;OPENMP;THREADS;HPX")
-set(OPALX_HAS_DEVICE_BACKEND FALSE)
+set(OPALX_HAS_DEVICE_BACKEND FALSE)  # internal: derived variable
 foreach(platform ${OPALX_PLATFORMS})
   if(NOT platform IN_LIST HOST_ONLY_PLATFORMS)
     set(OPALX_HAS_DEVICE_BACKEND TRUE)
