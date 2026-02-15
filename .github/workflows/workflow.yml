@@ -11,6 +11,7 @@ jobs:
   # ===== CPU SERIAL BUILD =====
   build-cpu-serial-debug:
     runs-on: ubuntu-latest
+    if: contains(github.event.pull_request.labels.*.name, 'compile-ci') || github.event.pull_request.draft == false
           
     steps:
       - name: Checkout code
@@ -112,6 +113,7 @@ jobs:
   # ===== GPU CUDA BUILD =====
   build-cuda-debug:
     runs-on: ubuntu-latest
+    if: contains(github.event.pull_request.labels.*.name, 'compile-ci') || github.event.pull_request.draft == false
     container:
       image: nvidia/cuda:13.1.0-devel-ubuntu24.04
     steps:
@@ -159,6 +161,7 @@ jobs:
   # ===== GPU HIP BUILD =====
   build-hip-debug:
     runs-on: ubuntu-latest
+    if: contains(github.event.pull_request.labels.*.name, 'compile-ci') || github.event.pull_request.draft == false
     container:
       image: rocm/dev-ubuntu-22.04:latest
     steps:
