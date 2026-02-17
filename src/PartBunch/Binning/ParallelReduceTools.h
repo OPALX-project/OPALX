@@ -200,7 +200,7 @@ namespace ParticleBinning {
      * @tparam SizeType The type used for the elements of the array.
      * @tparam IndexType The type used for indexing and array size specification.
      * 
-     * @note This structure is conditionally compiled and only available when KOKKOS_ENABLE_CUDA is not defined.
+     * @note This structure is conditionally compiled and only available when OPALX_DEVICE_COMPILATION is not defined.
      * @note All instances of this class share the same array size through the static binCountStatic member.
      * 
      * Usage Example (`ReducerType` is a specialization of `HostArrayReduction`):
@@ -229,7 +229,7 @@ namespace ParticleBinning {
          */
         static IndexType binCountStatic;
 
-#ifndef KOKKOS_ENABLE_CUDA
+#ifndef OPALX_DEVICE_COMPILATION
         /**
          * @brief Default constructor that allocates and zero-initializes the array.
          */
@@ -279,14 +279,16 @@ namespace ParticleBinning {
         }
 #else
         /**
-         * @brief CUDA-disabled version of the addition operator that throws an error.
+         * @brief Device-disabled version of the addition operator that throws an error.
          * 
-         * @note This constructor is not intended to be used on CUDA, as `HostArrayReduction` is not supported there.
-         *       Instead, it throws an error to indicate that this functionality is not available.
+         * @note This constructor is not intended to be used on device backends (CUDA/HIP/SYCL),
+         *       as `HostArrayReduction` is not supported there. Instead, it throws an error
+         *       to indicate that this functionality is not available.
          */
         KOKKOS_INLINE_FUNCTION
         HostArrayReduction& operator+=(const HostArrayReduction& src) {
-            Kokkos::abort("Error: HostArrayReduction is not supported on CUDA!\n       Note: It exists only for compilation compatibility.");
+            (void)src;  // Silence unused parameter warning on Clang
+            Kokkos::abort("Error: HostArrayReduction is not supported on device backends (CUDA/HIP/SYCL)!\n       Note: It exists only for compilation compatibility.");
             return *this;
         }
 #endif

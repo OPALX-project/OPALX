@@ -25,6 +25,11 @@ project(OPALX VERSION 1.0 LANGUAGES C CXX)
 list(PREPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" "${PROJECT_SOURCE_DIR}/CMakeModules")
 
 # ------------------------------------------------------------------------------
+# load message macros (for colors), needs to be done here to get the order right
+# ------------------------------------------------------------------------------
+include(Messages)
+
+# ------------------------------------------------------------------------------
 # Primary OPALX options
 # ------------------------------------------------------------------------------
 include(OPALXOptions)
