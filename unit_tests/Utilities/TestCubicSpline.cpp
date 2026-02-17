@@ -40,12 +40,11 @@
  */
 
 #include <gtest/gtest.h>
-#include "Utilities/CubicSpline.h"
-#include "Utilities/GSLSpline.h"
-#include <vector>
+#include "Utilities/GSLCubicSpline.h"
 #include <cmath>
+#include <vector>
 
-class CubicSplineTest : public testing::Test {
+class CubicSplineTest : public ::testing::Test {
 protected:
     void SetUp() override {
         // Test data: y = x^2
@@ -58,50 +57,48 @@ protected:
 };
 
 TEST_F(CubicSplineTest, BasicInterpolation) {
-    const CubicSpline spline(x_data, y_data);
-    CubicSpline::Accelerator accel;
+    CubicSpline spline(x_data.data(), y_data.data(), x_data.size());
     
     // Test interpolation at data points
-    EXPECT_NEAR(spline.eval(0.0, accel), 0.0, 1e-10);
-    EXPECT_NEAR(spline.eval(1.0, accel), 1.0, 1e-10);
-    EXPECT_NEAR(spline.eval(2.0, accel), 4.0, 1e-10);
-    EXPECT_NEAR(spline.eval(3.0, accel), 9.0, 1e-10);
-    EXPECT_NEAR(spline.eval(4.0, accel), 16.0, 1e-10);
+    EXPECT_NEAR(spline.eval(0.0), 0.0, 1e-10);
+    EXPECT_NEAR(spline.eval(1.0), 1.0, 1e-10);
+    EXPECT_NEAR(spline.eval(2.0), 4.0, 1e-10);
+    EXPECT_NEAR(spline.eval(3.0), 9.0, 1e-10);
+    EXPECT_NEAR(spline.eval(4.0), 16.0, 1e-10);
     
     // Test interpolation between points
-    const double val = spline.eval(1.5, accel);
+    double val = spline.eval(1.5);
     EXPECT_GT(val, 1.0);
     EXPECT_LT(val, 4.0);
 }
 
 TEST_F(CubicSplineTest, Extrapolation) {
-    const CubicSpline spline(x_data, y_data);
-    CubicSpline::Accelerator accel;
-
+    CubicSpline spline(x_data.data(), y_data.data(), x_data.size());
+    
     // Test left extrapolation
-    const double val_left = spline.eval(-1.0, accel);
+    double val_left = spline.eval(-1.0);
     EXPECT_LT(val_left, 0.0);
     
     // Test right extrapolation
-    const double val_right = spline.eval(5.0, accel);
+    double val_right = spline.eval(5.0);
     EXPECT_GT(val_right, 16.0);
 }
 
 TEST_F(CubicSplineTest, Accelerator) {
-    const CubicSpline spline(x_data, y_data);
+    CubicSpline spline(x_data.data(), y_data.data(), x_data.size());
     CubicSpline::Accelerator accel;
     
     // First evaluation
-    const double val1 = spline.eval(1.5, accel);
+    double val1 = spline.eval(1.5, accel);
     EXPECT_GT(val1, 1.0);
     EXPECT_LT(val1, 4.0);
     
     // Second evaluation in same interval (should use cached index)
-    const double val2 = spline.eval(1.6, accel);
+    double val2 = spline.eval(1.6, accel);
     EXPECT_GT(val2, val1);
     
     // Evaluation in different interval
-    const double val3 = spline.eval(2.5, accel);
+    double val3 = spline.eval(2.5, accel);
     EXPECT_GT(val3, 4.0);
     EXPECT_LT(val3, 9.0);
 }
@@ -110,33 +107,32 @@ TEST_F(CubicSplineTest, SinFunction) {
     std::vector<double> x(10);
     std::vector<double> y(10);
     for (size_t i = 0; i < 10; ++i) {
-        x[i] = static_cast<double>(i) * 0.5;
+        x[i] = i * 0.5;
         y[i] = std::sin(x[i]);
     }
     
-    const CubicSpline spline(x, y);
-    CubicSpline::Accelerator accel;
-
+    CubicSpline spline(x.data(), y.data(), x.size());
+    
     // Test interpolation
-    const double val = spline.eval(1.25, accel);
-    const double expected = std::sin(1.25);
+    double val = spline.eval(1.25);
+    double expected = std::sin(1.25);
     EXPECT_NEAR(val, expected, 0.01);
 }
 
 TEST_F(CubicSplineTest, InvalidInput) {
     // Too few points
-    std::vector x = {0.0};
-    std::vector y = {0.0};
-    EXPECT_THROW(CubicSpline spline(x, y), std::invalid_argument);
+    std::vector<double> x = {0.0};
+    std::vector<double> y = {0.0};
+    EXPECT_THROW(CubicSpline spline(x.data(), y.data(), 1), std::invalid_argument);
     
     // Non-increasing x
     x = {0.0, 1.0, 0.5, 2.0};
     y = {0.0, 1.0, 2.0, 3.0};
-    EXPECT_THROW(CubicSpline spline(x, y), std::invalid_argument);
+    EXPECT_THROW(CubicSpline spline(x.data(), y.data(), 4), std::invalid_argument);
 }
 
 TEST_F(CubicSplineTest, Integration) {
-    CubicSpline spline(x_data, y_data);
+    CubicSpline spline(x_data.data(), y_data.data(), x_data.size());
     CubicSpline::Accelerator accel;
 
     // Whole pre-computed intervals
@@ -168,13 +164,14 @@ TEST_F(CubicSplineTest, Integration) {
     // Re-initialise the spline to something different
     std::vector x_data = {0.0, 1.0, 2.0, 3.0, 4.0};
     std::vector y_data = {0.0, 2.0, 4.0, 6.0, 8.0};
-    spline.init(x_data, y_data);
+    spline.init(x_data.data(), y_data.data(), x_data.size());
     EXPECT_NEAR( spline.evalIntegral(0, 4, accel), 16.0, 1e-10);
 }
 
 TEST_F(CubicSplineTest, GSLCompatibleInterface) {
     gsl_spline* spline = gsl_spline_alloc(gsl_interp_cspline, x_data.size());
     gsl_interp_accel* accel = gsl_interp_accel_alloc();
+    
     gsl_spline_init(spline, x_data.data(), y_data.data(), x_data.size());
     
     // Test evaluation
