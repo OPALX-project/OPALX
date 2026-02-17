@@ -1,4 +1,6 @@
 set (_SRCS
+    PolynomialTimeDependenceTest.cpp
+    SplineTimeDependenceTest.cpp
     DistributionMomentsTest.cpp
     DistributionMomentsTestFixture.cpp
 )
