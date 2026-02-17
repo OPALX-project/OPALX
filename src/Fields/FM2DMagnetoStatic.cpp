@@ -135,8 +135,8 @@ void FM2DMagnetoStatic::readMap() {
                 for (int j = 0; j < num_gridpr_m; j++) {
                     interpretLine<double,double>(
                         in,                         // input stream
-                        Br(i * num_gridpr_m + j),   // radial component
-                        Bz(i * num_gridpr_m + j)    // longitudinal component
+                        Br(j * num_gridpr_m + i),   // radial component
+                        Bz(j * num_gridpr_m + i)    // longitudinal component
                     );
                 }
             }
@@ -145,8 +145,8 @@ void FM2DMagnetoStatic::readMap() {
                 for (int i = 0; i < num_gridpz_m; i++) {
                     interpretLine<double,double>(
                         in,                         // input stream
-                        Bz(i * num_gridpr_m + j),   // longitudinal component
-                        Br(i * num_gridpr_m + j)    // radial component
+                        Bz(j * num_gridpr_m + i),   // longitudinal component
+                        Br(j * num_gridpr_m + i)    // radial component
                     );
 
                 }
@@ -158,8 +158,8 @@ void FM2DMagnetoStatic::readMap() {
             double Bzmax = 0.0;
             // find maximum field
             for (int i = 0; i < num_gridpz_m; ++i) {
-                if (std::abs(Bz(i * num_gridpr_m)) > Bzmax) {
-                    Bzmax = std::abs(Bz(i * num_gridpr_m));
+                if (std::abs(Bz(i)) > Bzmax) {
+                    Bzmax = std::abs(Bz(i));
                 }
             }
 

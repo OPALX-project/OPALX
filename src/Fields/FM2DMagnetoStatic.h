@@ -92,7 +92,8 @@ public:
     /**
      * @brief Computes the magnetic field B at the position R by interpolating
      * from the fieldmap specified by Bz, Br, hr, hz, zbegin, num_gridpr, and
-     * num_gridpz.
+     * num_gridpz. This is done via bilinear interpolation on the grid defined 
+     * by hr and hz.
      *
      * @param R Position [m] relative to the element edge
      * @param B Output magnetic field [T]
@@ -120,13 +121,13 @@ public:
         int num_gridpr, 
         int num_gridpz) {
         
-        double RR = sqrt(R(0) * R(0) + R(1) * R(1));
+        const double RR = sqrt(R(0) * R(0) + R(1) * R(1));
 
-        int indexr    = (int)floor(RR / hr);
-        double leverr = (RR / hr) - indexr;
+        const int indexr    = (int)floor(RR / hr);
+        const double leverr = (RR / hr) - indexr;
 
-        int indexz    = (int)floor((R(2) - zbegin) / hz);
-        double leverz = (R(2) - zbegin) / hz - indexz;
+        const int indexz    = (int)floor((R(2) - zbegin) / hz);
+        const double leverz = (R(2) - zbegin) / hz - indexz;
 
         if ((indexz < 0) || (indexz + 2 > num_gridpz))
             return false;
@@ -136,15 +137,16 @@ public:
 
         int index1     = indexz + indexr * num_gridpz;
         int index2     = index1 + num_gridpz;
-        double BfieldR = (1.0 - leverz) * (1.0 - leverr) * Br(index1)
-                               + leverz * (1.0 - leverr) * Br(index1 + 1)
-                               + (1.0 - leverz) * leverr * Br(index2)
-                               + leverz * leverr * Br(index2 + 1);
 
-        double BfieldZ = (1.0 - leverz) * (1.0 - leverr) * Bz(index1)
-                               + leverz * (1.0 - leverr) * Bz(index1 + 1)
-                               + (1.0 - leverz) * leverr * Bz(index2)
-                               + leverz * leverr * Bz(index2 + 1);
+        double BfieldR =  (1.0 - leverz)    * (1.0 - leverr) * Br(index1)
+                        + leverz            * (1.0 - leverr) * Br(index1 + 1)
+                        + (1.0 - leverz)    * leverr         * Br(index2)
+                        + leverz            * leverr         * Br(index2 + 1);
+
+        double BfieldZ =  (1.0 - leverz)    * (1.0 - leverr) * Bz(index1)
+                        + leverz            * (1.0 - leverr) * Bz(index1 + 1)
+                        + (1.0 - leverz)    * leverr         * Bz(index2)
+                        + leverz            * leverr         * Bz(index2 + 1);
 
         if (RR != 0) {
             B(0) += BfieldR * R(0) / RR;
