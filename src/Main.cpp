@@ -128,6 +128,7 @@ namespace OPALXMAIN {
 }  // namespace
 
 int main(int argc, char* argv[]) {
+    raise(SIGTRAP);
     ippl::initialize(argc, argv);
     {
         gmsg         = new Inform("OPAL-X");
