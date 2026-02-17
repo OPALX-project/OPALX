@@ -432,7 +432,7 @@ void H5PartWrapperForPT::writeStepData(PartBunch_t* bunch) {
     WRITEDATA(Float64, file_m, "y", f64buffer);
 
     for (size_t i = 0; i < numLocalParticles; ++i)
-        f64buffer[i] = rView(i)(1);
+        f64buffer[i] = rView(i)(2);
     WRITEDATA(Float64, file_m, "z", f64buffer);
 
     auto pViewDevice  = bunch->getParticleContainer()->P.getView();
