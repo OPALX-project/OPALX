@@ -25,70 +25,63 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _CLASSIC_SRC_ALGORITHMS_POLYNOMIALTIMEDEPENDENCE_H_
-#define _CLASSIC_SRC_ALGORITHMS_POLYNOMIALTIMEDEPENDENCE_H_
+#ifndef CLASSIC_SRC_ALGORITHMS_POLYNOMIALTIMEDEPENDENCE_H_
+#define CLASSIC_SRC_ALGORITHMS_POLYNOMIALTIMEDEPENDENCE_H_
 
 #include <vector>
-#include <iostream>
 #include "Algorithms/AbstractTimeDependence.h"
 
 class Inform;
 
 /** @class PolynomialTimeDependence
- * 
- *  Time dependence that follows a polynomial, like 
+ *
+ *  Time dependence that follows a polynomial, like
  *      p_0 + p_1*t + p_2*t^2 + ... + p_i*t^i + ...
  */
 class PolynomialTimeDependence : public AbstractTimeDependence {
-  public:
+public:
     /** Constructor
-     * 
+     *
      *  @param ptd the polynomial coefficients p_i; can be of arbitrary length
      *  (user is responsible for issues like floating point precision).
      */
-    PolynomialTimeDependence(std::vector<double> ptd) : coeffs(ptd) {}
+    explicit PolynomialTimeDependence(const std::vector<double>& ptd) : coeffs(ptd) {
+    }
 
     /** Default Constructor makes a 0 length polynomial */
-    PolynomialTimeDependence() {}
+    PolynomialTimeDependence() = default;
+
     /** Destructor does nothing */
-    ~PolynomialTimeDependence() {}
+    ~PolynomialTimeDependence() override = default;
+
     /** Return the polynomial Sum_i p_i t^i; returns 0 if p is of 0 length */
-    inline double getValue(double time);
+    double getValue(double time) override;
+
+    /** Return the integral of the polynomial from 0 to time */
+    double getIntegral(double time) override;
+
     /** Inheritable copy constructor
      *
      *  @returns new PolynomialTimeDependence that is a copy of this. User owns
      *  returned memory.
      */
-    PolynomialTimeDependence* clone() {
-      std::vector<double> temp(coeffs);
-      PolynomialTimeDependence* d = new PolynomialTimeDependence(temp);
-      return d;
-    }
+    PolynomialTimeDependence* clone() override;
 
     /** Print the polynomials
-     *  
+     *
      *  @param os "Inform" stream to which the polynomials are printed.
      */
-    Inform &print(Inform &os);
+    Inform& print(Inform& os) const;
 
-  private:
+    /** Return the polynomial coefficients */
+    const std::vector<double>& getCoefficients() const { return coeffs; }
+
+private:
     std::vector<double> coeffs;
 };
 
-double PolynomialTimeDependence::getValue(double time) {
-    double x = 0.;
-    double t_power = 1.;
-    for (std::size_t i = 0; i < coeffs.size() ; ++i) {
-        x += coeffs[i]*t_power;
-        t_power *= time;
-    }
-    return x;
-}
-
-
-inline
-Inform &operator<<(Inform &os, PolynomialTimeDependence &p) {
-  return p.print(os);
+inline Inform& operator<<(Inform& os, const PolynomialTimeDependence& p) {
+    return p.print(os);
 }
 
 #endif
