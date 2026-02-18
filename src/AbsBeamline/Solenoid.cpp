@@ -61,16 +61,18 @@ Solenoid::~Solenoid() {
 /**
  * @brief apply the solenoid field to all particles in the bunch
  * @note currently not implemented
- * @returns true if at least one particle is lost, false otherwise
+ * @returns true if at least one particle is lost, false otherwise 
+ * (not implemented, always returns false)
  */
 bool Solenoid::apply() {
     std::cout<< "Solenoid::apply() called"<<std::endl;
-
+    
     std::shared_ptr<ParticleContainer_t> pc = 
         RefPartBunch_m->getParticleContainer();
+   
     fieldmap_m->applyField(pc);
-        
-    return false;
+
+    return false; 
 }
 
 /**

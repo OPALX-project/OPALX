@@ -232,6 +232,8 @@ void FM2DMagnetoStatic::applyField(std::shared_ptr<ParticleContainer_t> pc)
                 hr, hz, zbegin, num_gridpr, num_gridpz);
         }
     });
+
+    return;
 }
 
 /**
@@ -240,20 +242,29 @@ void FM2DMagnetoStatic::applyField(std::shared_ptr<ParticleContainer_t> pc)
  * @param R Position
  * @param E Electric Field (unused)
  * @param B Magnetic Field
+ * 
+ * @return true if R is outside of the field map, false otherwise.
  */
 bool FM2DMagnetoStatic::getFieldstrength(
     const Vector_t<double, 3>& R, 
     Vector_t<double, 3>& /*E*/, 
     Vector_t<double, 3>& B) const {
     
-    return computeField(R, B, 
-                        FieldstrengthBz_m.h_view, 
-                        FieldstrengthBr_m.h_view, 
-                        hr_m, 
-                        hz_m, 
-                        zbegin_m, 
-                        num_gridpr_m, 
-                        num_gridpz_m);
+    if (isInside(R)) {
+        computeField(
+            R, B, 
+            FieldstrengthBz_m.h_view, 
+            FieldstrengthBr_m.h_view, 
+            hr_m, 
+            hz_m, 
+            zbegin_m, 
+            num_gridpr_m, 
+            num_gridpz_m);
+        return false;
+    }
+    else {
+        return true;
+    }
 }
 
 /**
