@@ -208,8 +208,6 @@ public:
               std::shared_ptr<FieldSolverCmd> &OPALFieldSolver);
 
     void bunchUpdate();
-
-    void bunchUpdate(ippl::Vector<double, 3> hr);
     
     ~PartBunch() {
         *gmsg << "* PartBunch Destructor: Finished time step: " << this->it_m << " time: " << this->time_m << endl;
