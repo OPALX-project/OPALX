@@ -30,9 +30,11 @@ FM2DMagnetoStatic::FM2DMagnetoStatic(std::string aFilename)
     if (file.good()) {
         bool parsing_passed = true;
         try {
-            parsing_passed = interpretLine<std::string, std::string>(file, tmpString, tmpString);
+            parsing_passed = 
+            interpretLine<std::string, std::string>(file, tmpString, tmpString);
         } catch (GeneralClassicException& e) {
-            parsing_passed = interpretLine<std::string, std::string, std::string>(
+            parsing_passed = 
+            interpretLine<std::string, std::string, std::string>(
                 file, tmpString, tmpString, tmpString);
 
             tmpString = Util::toUpper(tmpString);
@@ -261,24 +263,16 @@ bool FM2DMagnetoStatic::getFieldstrength(
  * @param E Electric Field (unused)
  * @param B Derivate of the magnetic field
  * 
+ * @note Not implemented yet
+ * 
  */
 bool FM2DMagnetoStatic::getFieldDerivative(
-    const Vector_t<double, 3>& R, 
+    const Vector_t<double, 3>& /*R*/, 
     Vector_t<double, 3>& /*E*/, 
-    Vector_t<double, 3>& B,
-    const DiffDirection& dir) const {
-    
-    return computeFieldDerivative(
-        R, 
-        B,
-        FieldstrengthBz_m.h_view,
-        FieldstrengthBr_m.h_view,
-        hr_m, 
-        hz_m, 
-        zbegin_m,
-        num_gridpr_m, 
-        num_gridpz_m,
-        dir);
+    Vector_t<double, 3>& /*B*/,
+    const DiffDirection& /*dir*/) const {
+        throw GeneralClassicException(
+            "FM2DMagnetoStatic::getFieldDerivative","not implemented");
 }
 
 void FM2DMagnetoStatic::getFieldDimensions(double& zBegin, double& zEnd) const {
@@ -289,6 +283,8 @@ void FM2DMagnetoStatic::getFieldDimensions(double& zBegin, double& zEnd) const {
 void FM2DMagnetoStatic::getFieldDimensions(
     double& /*xIni*/, double& /*xFinal*/, double& /*yIni*/, double& /*yFinal*/, double& /*zIni*/,
     double& /*zFinal*/) const {
+        throw GeneralClassicException(
+            "FM2DMagnetoStatic::getFieldDimensions","not implemented");
 }
 
 void FM2DMagnetoStatic::swap() {
@@ -299,14 +295,19 @@ void FM2DMagnetoStatic::swap() {
 }
 
 void FM2DMagnetoStatic::getInfo(Inform* msg) {
-    (*msg) << Filename_m << " (2D magnetostatic); zini= " << zbegin_m << " m; zfinal= " << zend_m
-           << " m;" << endl;
+    (*msg)  << Filename_m << " (2D magnetostatic); zini= " 
+            << zbegin_m << " m; zfinal= " << zend_m
+            << " m;" << endl;
 }
 
 double FM2DMagnetoStatic::getFrequency() const {
+    throw GeneralClassicException(
+        "FM2DMagnetoStatic::getFrequency","not implemented");
     return 0.0;
 }
 
 void FM2DMagnetoStatic::setFrequency(double /*freq*/) {
+    throw GeneralClassicException(
+        "FM2DMagnetoStatic::setFrequency","not implemented");
     return;
 }
