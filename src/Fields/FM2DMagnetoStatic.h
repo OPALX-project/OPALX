@@ -112,7 +112,7 @@ public:
      * and thus we cannot access member variables directly.
      */
     template <class ViewType>
-    KOKKOS_INLINE_FUNCTION static bool computeField(
+    KOKKOS_INLINE_FUNCTION static void computeField(
         const Vector_t<double, 3>& R, 
         Vector_t<double, 3>& B,
         const ViewType& Bz, 
@@ -132,10 +132,10 @@ public:
         const double leverz = (R(2) - zbegin) / hz - indexz;
 
         if ((indexz < 0) || (indexz + 2 > num_gridpz))
-            return false;
+            return;
 
         if (indexr + 2 > num_gridpr)
-            return true;
+            return;
 
         int index1     = indexz + indexr * num_gridpz;
         int index2     = index1 + num_gridpz;
@@ -155,7 +155,7 @@ public:
             B(1) += BfieldR * R(1) / RR;
         }
         B(2) += BfieldZ;
-        return false;
+        return;
     }
 
     /**
