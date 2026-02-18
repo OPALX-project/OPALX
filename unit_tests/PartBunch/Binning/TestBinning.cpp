@@ -904,12 +904,13 @@ TEST_F(BinningTest, AdaptBinsUniformDistributionEvenBins) {
     size_type localN = bunch->getLocalNum();
     if (localN < 5) return;  // skip if too few particles on this rank
 
-    size_type expected = localN / 5;
     for (bin_index_type b = 0; b < 5; ++b) {
         size_type count = adaptBins->getNPartInBin(b);
-        // Allow ±50% tolerance for the uniform distribution.
-        EXPECT_GT(count, 0u)
-            << "Bin " << b << " is empty for uniform distribution";
+        // Verify bins are not empty for uniform distribution.
+        EXPECT_GT(count, 100u)
+            << "Bin " << b << " is too small for uniform distribution.";
+        EXPECT_LT(count, 300u)
+            << "Bin " << b << " is too big for uniform distribution";
     }
 }
 
@@ -955,13 +956,16 @@ TEST_F(BinningTest, AdaptBinsFullWorkflow) {
 }
 
 
+
+
+// Use gtest_main provided by the framework, so no need to define main() here.
 // ############################################################################
 // main: initialize/finalize handled by the test fixture
 // ############################################################################
-
+/*
 int main(int argc, char* argv[]) {
     int result = 1;
     ::testing::InitGoogleTest(&argc, argv);
     result = RUN_ALL_TESTS();
     return result;
-}
+}*/
