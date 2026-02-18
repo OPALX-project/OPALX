@@ -123,7 +123,7 @@ public:
         const Vector_t<double, 3>& P, 
         const double& t,
         Vector_t<double, 3>& E, 
-        Vector_t<double, 3>& B) override;
+        Vector_t<double, 3>& B);
     
     /**
      * @brief Apply to reference particle with position R and momemtum P

@@ -430,53 +430,6 @@ Inform& PartBunch<T, Dim>::print(Inform& os) {
 }
 
 template <typename T, unsigned Dim>
-void PartBunch<T, Dim>::bunchUpdate(ippl::Vector<double, 3> hr) {
-    /* \brief
-       1. calculates and set hr
-       2. do repartitioning
-    */
-    throw OpalException("PartBunch::bunchUpdate(hr)", 
-        "Please don't call this, just call the other one!");
-    /*
-    Inform m ("PartBunch::bunchUpdate");
-    m << "Updating bunch and doing repartitioning if needed." << endl;
-
-    auto *mesh = &this->fcontainer_m->getMesh();
-    auto *FL   = &this->fcontainer_m->getFL();
-
-    std::shared_ptr<ParticleContainer_t> pc = this->getParticleContainer();
-
-    pc->computeMinMaxR();
-
-    /// \brief assume o < 0.0?
-
-    ippl::Vector<double, 3> o = pc->getMinR() - std::numeric_limits<T>::lowest();
-    ippl::Vector<double, 3> e = pc->getMaxR() + std::numeric_limits<T>::lowest();
-    ippl::Vector<double, 3> l = e - o;
-
-    hr_m = (1.0+this->OPALFieldSolver_m->getBoxIncr()/100.)*(l / this->nr_m);
-    mesh->setMeshSpacing(hr);
-    mesh->setOrigin(o-0.5*l*this->OPALFieldSolver_m->getBoxIncr()/100.);
-    // pretty print mesh spacing, origin and box increment for debugging
-    m << "\tMesh origin:  " << mesh->getOrigin() << endl;
-    m << "\tMesh spacing: " << hr_m << endl;
-    m << "\tBox increment: " << this->OPALFieldSolver_m->getBoxIncr() << " (%)" << endl;
-
-    
-    pc->getLayout().updateLayout(*FL, *mesh);
-    pc->update();
-    
-    this->getFieldContainer()->setRMin(o);
-    this->getFieldContainer()->setRMax(e);
-    this->getFieldContainer()->setHr(hr);
-    
-    this->isFirstRepartition_m = true;
-    this->loadbalancer_m->initializeORB(FL, mesh);
-    this->loadbalancer_m->repartition(FL, mesh, this->isFirstRepartition_m);
-    this->updateMoments();*/
-}
-
-template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::bunchUpdate() {
     Inform m ("PartBunch::bunchUpdate");
     m << "Updating bunch and doing repartitioning if needed." << endl;
@@ -665,13 +618,14 @@ void PartBunch<T, Dim>::computeSelfFields() {
     gather(this->pcontainer_m->E, this->fcontainer_m->getE(), this->pcontainer_m->R);
     m << "Gather done." << endl;
 
-    Vector_t<double, 3> efScale = Vector_t<double,3>(
+    /// \todo put back in
+    /*Vector_t<double, 3> efScale = Vector_t<double,3>(
         gammaz*cc/hr_scaled[0], 
         gammaz*cc/hr_scaled[1], 
         cc / gammaz / hr_scaled[2]
     );
     m << "E-field scale = " << efScale << endl;    
-    // spaceChargeEFieldCheck(efScale); /// \todo put back in
+    spaceChargeEFieldCheck(efScale);*/
 
     IpplTimings::stopTimer(SolveTimer);
 }
