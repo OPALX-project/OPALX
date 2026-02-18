@@ -548,33 +548,15 @@ void PartBunch<T, Dim>::computeSelfFields() {
 
     IpplTimings::startTimer(completeBinningT);
     bins->doFullRebin(bins->getMaxBinCount()); // rebin with 128 bins // bins->getMaxBinCount()
-    m << "Full rebin done." << endl;
-    bins->print(); // For debugging...
+    // bins->print(); // For debugging...
     bins->sortContainerByBin(); // Sort BEFORE, since it generates less atomics overhead with more bins!
-    m << "Create sorted index by bins done." << endl;
-    
     bins->genAdaptiveHistogram(); // merge bins with width/N_part ratio of 1.0
-    m << "Adaptive histogram generation done." << endl;
     IpplTimings::stopTimer(completeBinningT);
-
-    bins->print(); // For debugging...
+    // bins->print(); // For debugging...
+    m << "Binning routine done." << endl;
 
     static IpplTimings::TimerRef SolveTimer = IpplTimings::getTimer("SolveTimer");
     IpplTimings::startTimer(SolveTimer);
-
-    /*
-      \todo check if Lorentz transform is needed
-
-    double gammaz = this->pcontainer_m->getMeanGammaZ();
-    gammaz *= gammaz;
-    gammaz = std::sqrt(gammaz + 1.0);
-
-    Vector_t<double, 3> hr_scaled = hr_m;
-    //    hr_scaled[2] *= gammaz;
-
-    hr_m = hr_scaled;    
-
-    */
 
     /*
     I would guess that ths bunchUpdate is only necessary after a push (where we
@@ -678,24 +660,18 @@ void PartBunch<T, Dim>::computeSelfFields() {
     This can be optimized later by changing the output type of the solvers and 
     removing this line! As it is implemented now, it will always provide both 
     (phi and the E field that is actually used for kicking the particles).
-    */   
-    // (*E) = -ippl::grad(this->fcontainer_m->getPhi());
+    */
     
     gather(this->pcontainer_m->E, this->fcontainer_m->getE(), this->pcontainer_m->R);
     m << "Gather done." << endl;
 
-    // #ifdef doDEBUG
-    //Inform m2("PartBunch::computeSelfFields2", INFORM_ALL_NODES);
-    // double cellVolume = std::reduce(hr_m.begin(), hr_m.end(), 1., std::multiplies<double>());
-    // m2 << "cellVolume: " << cellVolume << endl;
-    // m << "Sum over E-field after gather: " << this->fcontainer_m->getE().sum() << endl;
-    // #endif
-
-    /*
-    Vector_t<double, 3> efScale = Vector_t<double,3>(gammaz*cc/hr_scaled[0], gammaz*cc/hr_scaled[1], cc / gammaz / hr_scaled[2]);
-    m << "efScale = " << efScale << endl;    
-    spaceChargeEFieldCheck(efScale);
-    */
+    Vector_t<double, 3> efScale = Vector_t<double,3>(
+        gammaz*cc/hr_scaled[0], 
+        gammaz*cc/hr_scaled[1], 
+        cc / gammaz / hr_scaled[2]
+    );
+    m << "E-field scale = " << efScale << endl;    
+    // spaceChargeEFieldCheck(efScale); /// \todo put back in
 
     IpplTimings::stopTimer(SolveTimer);
 }
