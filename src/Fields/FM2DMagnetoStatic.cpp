@@ -135,8 +135,8 @@ void FM2DMagnetoStatic::readMap() {
                 for (int j = 0; j < num_gridpr_m; j++) {
                     interpretLine<double,double>(
                         in,                         // input stream
-                        Br(j * num_gridpr_m + i),   // radial component
-                        Bz(j * num_gridpr_m + i)    // longitudinal component
+                        Br(j * num_gridpz_m + i),   // radial component
+                        Bz(j * num_gridpz_m + i)    // longitudinal component
                     );
                 }
             }
@@ -145,8 +145,8 @@ void FM2DMagnetoStatic::readMap() {
                 for (int i = 0; i < num_gridpz_m; i++) {
                     interpretLine<double,double>(
                         in,                         // input stream
-                        Bz(j * num_gridpr_m + i),   // longitudinal component
-                        Br(j * num_gridpr_m + i)    // radial component
+                        Bz(j * num_gridpz_m + i),   // longitudinal component
+                        Br(j * num_gridpz_m + i)    // radial component
                     );
 
                 }
