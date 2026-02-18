@@ -3,3 +3,5 @@ message(STATUS "Adding unit tests found in ${_relPath}")
 
 add_opalx_test(TestBCHandler USE_GTEST_MAIN)
 
+add_subdirectory(Binning)
+
