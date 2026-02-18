@@ -70,6 +70,10 @@
 #include "Elements/OpalRingDefinition.h"
 #include "Elements/OpalSolenoid.h"
 #include "Elements/OpalVerticalFFAMagnet.h"
+#include "Elements/OpalPolynomialTimeDependence.h"
+#include "Elements/OpalSinusoidalTimeDependence.h"
+#include "Elements/OpalSplineTimeDependence.h"
+#include "Elements/OpalMultipoleT.h"
 
 // Structure-related commands.
 #include "Lines/Line.h"
