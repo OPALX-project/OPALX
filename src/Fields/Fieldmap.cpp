@@ -3,6 +3,7 @@
 #include "Utility/PAssert.h"
 
 #include "AbstractObjects/OpalData.h"
+/* To be ported from OPAL
 #include "Fields/Astra1DDynamic.h"
 #include "Fields/Astra1DDynamic_fast.h"
 #include "Fields/Astra1DElectroStatic.h"
@@ -19,7 +20,6 @@
 #include "Fields/FM1DProfile2.h"
 #include "Fields/FM2DDynamic.h"
 #include "Fields/FM2DElectroStatic.h"
-#include "Fields/FM2DMagnetoStatic.h"
 #include "Fields/FM3DDynamic.h"
 #include "Fields/FM3DH5Block.h"
 #include "Fields/FM3DH5BlockBase.h"
@@ -28,6 +28,10 @@
 #include "Fields/FM3DMagnetoStaticExtended.h"
 #include "Fields/FM3DMagnetoStaticH5Block.h"
 #include "Fields/FMDummy.h"
+*/
+
+#include "Fields/FM2DMagnetoStatic.h"
+
 #include "Physics/Physics.h"
 #include "Utilities/GeneralClassicException.h"
 #include "Utilities/Options.h"
