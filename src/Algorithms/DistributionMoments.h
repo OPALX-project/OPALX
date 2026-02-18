@@ -42,14 +42,14 @@ public:
     void compute(
         const std::vector<OpalParticle>::const_iterator&,
         const std::vector<OpalParticle>::const_iterator&);
-    void computeMoments(ippl::ParticleAttrib<Vector_t<double,3>>::view_type& Rview,
-                        ippl::ParticleAttrib<Vector_t<double,3>>::view_type& Pview,
-                        ippl::ParticleAttrib<double>::view_type& Mview,
+    void computeMoments(ippl::ParticleAttrib<Vector_t<double,3>>::view_type  Rview,
+                        ippl::ParticleAttrib<Vector_t<double,3>>::view_type  Pview,
+                        ippl::ParticleAttrib<double>::view_type  Mview,
                         size_t Np,
                         size_t Nlocal);
-    void computeMinMaxPosition(ippl::ParticleAttrib<Vector_t<double,3>>::view_type& Rview, size_t Nlcoal);
+    void computeMinMaxPosition(ippl::ParticleAttrib<Vector_t<double,3>>::view_type  Rview, size_t Nlcoal);
     void computeMeanKineticEnergy();
-    void computeDebyeLength(ippl::ParticleAttrib<Vector_t<double,3>>::view_type& Pview,
+    void computeDebyeLength(ippl::ParticleAttrib<Vector_t<double,3>>::view_type  Pview,
                         size_t Np,
                         size_t Nlocal,
                         double density);
@@ -96,9 +96,9 @@ public:
     double getTotalMass() const;
     double getTotalNumParticles() const;
 
-    void computeMeans(ippl::ParticleAttrib<Vector_t<double,3>>::view_type&  Rview,
-                                         ippl::ParticleAttrib<Vector_t<double,3>>::view_type&  Pview,
-                                         ippl::ParticleAttrib<double>::view_type&  Mview,
+    void computeMeans(ippl::ParticleAttrib<Vector_t<double,3>>::view_type  Rview,
+                                         ippl::ParticleAttrib<Vector_t<double,3>>::view_type  Pview,
+                                         ippl::ParticleAttrib<double>::view_type  Mview,
                                          size_t Np,
                                          size_t Nlocal);
 private:

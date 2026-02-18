@@ -44,9 +44,9 @@ DistributionMoments::DistributionMoments() {
     notCentMoments_m = matrix6x6_t(0.0);
 }
 
-void DistributionMoments::computeMeans(ippl::ParticleAttrib<Vector_t<double,3>>::view_type&  Rview,
-                                         ippl::ParticleAttrib<Vector_t<double,3>>::view_type&  Pview,
-                                         ippl::ParticleAttrib<double>::view_type&  Mview,
+void DistributionMoments::computeMeans(ippl::ParticleAttrib<Vector_t<double,3>>::view_type  Rview,
+                                         ippl::ParticleAttrib<Vector_t<double,3>>::view_type  Pview,
+                                         ippl::ParticleAttrib<double>::view_type  Mview,
                                          size_t Np,
                                          size_t Nlocal) {
     /*
@@ -106,14 +106,14 @@ void DistributionMoments::computeMeans(ippl::ParticleAttrib<Vector_t<double,3>>:
     }
     ippl::Comm->barrier();
 
-    MPI_Allreduce(
-            loc_centroid, centroid, 2 * Dim, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
-    MPI_Allreduce(
-            &loc_Ekin, &meanKineticEnergy_m, 1, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
-    MPI_Allreduce(
-            &loc_gamma, &meanGamma_m, 1, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
-    MPI_Allreduce(
-            &loc_gammaz, &gammaz, 1, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
+    ippl::Comm->allreduce(
+            &loc_centroid[0], &centroid[0], 2 * Dim, std::plus<double>());
+    ippl::Comm->allreduce(
+            &loc_Ekin, &meanKineticEnergy_m, 1, std::plus<double>());
+    ippl::Comm->allreduce(
+            &loc_gamma, &meanGamma_m, 1, std::plus<double>());
+    ippl::Comm->allreduce(
+            &loc_gammaz, &gammaz, 1, std::plus<double>());
 
     for (unsigned i = 0; i < 2 * Dim; i++) {
         centroid_m(i) = centroid[i];
@@ -133,9 +133,9 @@ void DistributionMoments::computeMeans(ippl::ParticleAttrib<Vector_t<double,3>>:
         meanP_m(i) = means_m[2*i+1];
     }
 }
-void DistributionMoments::computeMoments(ippl::ParticleAttrib<Vector_t<double,3>>::view_type&  Rview,
-                                         ippl::ParticleAttrib<Vector_t<double,3>>::view_type&  Pview,
-                                         ippl::ParticleAttrib<double>::view_type&  Mview,
+void DistributionMoments::computeMoments(ippl::ParticleAttrib<Vector_t<double,3>>::view_type  Rview,
+                                         ippl::ParticleAttrib<Vector_t<double,3>>::view_type  Pview,
+                                         ippl::ParticleAttrib<double>::view_type  Mview,
                                          size_t Np,
                                          size_t Nlocal) {
     Np = (Np == 0) ? 1 : Np; // Explanation: see DistributionMoments::computeMeans implementation
@@ -185,8 +185,8 @@ void DistributionMoments::computeMoments(ippl::ParticleAttrib<Vector_t<double,3>
             Kokkos::fence();
      }
 
-    MPI_Allreduce(
-            loc_moment, moment, 2 * Dim * 2 * Dim, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
+    ippl::Comm->allreduce(
+            &loc_moment[0][0], &moment[0][0], 2 * Dim * 2 * Dim, std::plus<double>());
 
     for (unsigned i = 0; i < 2 * Dim; i++) {
             for (unsigned j = 0; j < 2 * Dim; j++) {
@@ -249,11 +249,11 @@ void DistributionMoments::computeMoments(ippl::ParticleAttrib<Vector_t<double,3>
                 }, Kokkos::Sum<double>(loc_std_mekin) );
     Kokkos::fence();
 
-    MPI_Allreduce(
-            loc_moment_ncent, moment_ncent, 2 * Dim * 2 * Dim, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
+    ippl::Comm->allreduce(
+            &loc_moment_ncent[0][0], &moment_ncent[0][0], 2 * Dim * 2 * Dim, std::plus<double>());
 
-    MPI_Allreduce(
-            &loc_std_mekin, &stdKineticEnergy_m, 1, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
+    ippl::Comm->allreduce(
+            &loc_std_mekin, &stdKineticEnergy_m, 1, std::plus<double>());
 
     stdKineticEnergy_m = std::sqrt(stdKineticEnergy_m);
 
@@ -295,7 +295,7 @@ void DistributionMoments::computeMoments(ippl::ParticleAttrib<Vector_t<double,3>
 
 }
 
-void DistributionMoments::computeMinMaxPosition(ippl::ParticleAttrib<Vector_t<double,3>>::view_type& Rview, size_t Nlocal)
+void DistributionMoments::computeMinMaxPosition(ippl::ParticleAttrib<Vector_t<double,3>>::view_type Rview, size_t Nlocal)
 {
     const int Dim = 3;
 
@@ -329,8 +329,8 @@ void DistributionMoments::computeMinMaxPosition(ippl::ParticleAttrib<Vector_t<do
          }
      }
      Kokkos::fence();
-     MPI_Allreduce(rmax_loc, rmax, Dim, MPI_DOUBLE, MPI_MAX, ippl::Comm->getCommunicator());
-     MPI_Allreduce(rmin_loc, rmin, Dim, MPI_DOUBLE, MPI_MIN, ippl::Comm->getCommunicator());
+     ippl::Comm->allreduce(&rmax_loc[0], &rmax[0], Dim, std::greater<double>());
+     ippl::Comm->allreduce(&rmin_loc[0], &rmin[0], Dim, std::less<double>());
      ippl::Comm->barrier();
 
     // store min and max R in class member variables
@@ -632,7 +632,7 @@ void DistributionMoments::computeMeanKineticEnergy() {
 */
 }
 
-void DistributionMoments::computeDebyeLength(ippl::ParticleAttrib<Vector_t<double,3>>::view_type&  Pview,
+void DistributionMoments::computeDebyeLength(ippl::ParticleAttrib<Vector_t<double,3>>::view_type Pview,
                                          size_t Np,
                                          size_t Nlocal,
                                          double density){
@@ -665,8 +665,8 @@ void DistributionMoments::computeDebyeLength(ippl::ParticleAttrib<Vector_t<doubl
     Kokkos::fence();
     ippl::Comm->barrier();
 
-    MPI_Allreduce(
-            loc_avgVel, avgVel, Dim, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
+    ippl::Comm->allreduce(
+            &loc_avgVel[0], &avgVel[0], Dim, std::plus<double>());
 
     for (unsigned i = 0; i < 3; i++) {
         avgVel[i] = avgVel[i] / Np;
@@ -704,8 +704,8 @@ void DistributionMoments::computeDebyeLength(ippl::ParticleAttrib<Vector_t<doubl
     Kokkos::fence();
     ippl::Comm->barrier();
 
-    MPI_Allreduce(
-            &loc_tempAvg, &tempAvg, 1, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
+    ippl::Comm->allreduce(
+            &loc_tempAvg, &tempAvg, 1, std::plus<double>());
 
     // Compute the average temperature k_B T in units of kg m^2/s^2, where k_B is
     // Boltzmann constant
