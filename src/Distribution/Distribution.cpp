@@ -440,6 +440,10 @@ void Distribution::printDistFromFile(Inform& os) const {
     }
 }
 
+std::string Distribution::getFilename() const {
+    return Attributes::getString(itsAttr[DISTRIBUTION::FNAME]);
+}
+
 void Distribution::setAttributes() {
     setDist();
 }

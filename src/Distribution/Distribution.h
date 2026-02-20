@@ -283,10 +283,6 @@ inline std::string Distribution::getTypeofDistribution() {
     return distT_m;
 }
 
-inline std::string Distribution::getFilename() const {
-    return Attributes::getString(itsAttr[DISTRIBUTION::FNAME]);
-}
-
 #endif  
 /*
 // OPAL_Distribution_HH
