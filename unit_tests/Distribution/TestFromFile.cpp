@@ -97,8 +97,14 @@ TEST_F(FromFileTest, GeneratesParticlesFromAsciiFile) {
 
     EXPECT_EQ(globalN, 5u);
 
-    auto Rview = pc->R.getView();
-    auto Pview = pc->P.getView();
+    // Copy views to host space for GPU compatibility
+    auto Rview_d = pc->R.getView();
+    auto Pview_d = pc->P.getView();
+
+    auto Rview = Kokkos::create_mirror_view(Rview_d);
+    auto Pview = Kokkos::create_mirror_view(Pview_d);
+    Kokkos::deep_copy(Rview, Rview_d);
+    Kokkos::deep_copy(Pview, Pview_d);
 
     if (localN > 0) {
         // Just check that first local particle has finite values
