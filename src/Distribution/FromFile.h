@@ -47,6 +47,17 @@ public:
              std::shared_ptr<Distribution_t> &opalDist);
 
     /**
+     * @brief Convenience constructor that takes the filename directly.
+     *
+     * This is primarily intended for unit tests, where constructing a full
+     * OPALX Distribution object is unnecessary. It behaves like the main
+     * constructor but skips querying the Distribution for the filename.
+     */
+    FromFile(std::shared_ptr<ParticleContainer_t> &pc,
+             std::shared_ptr<FieldContainer_t> &fc,
+             const std::string& filename);
+
+    /**
      * @brief Generates particles by reading from file.
      * @param numberOfParticles Number of particles to generate (may be overridden by file).
      * @param nr Number of grid points per direction (not used here).

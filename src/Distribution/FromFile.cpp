@@ -2,8 +2,8 @@
 #include "SamplingBase.hpp"
 #include "FromFile.h"
 #include "Utilities/OpalException.h"
-#include "Utilities/Util.h"
 #include "AbstractObjects/OpalData.h"
+#include "Utility/Inform.h"
 #include <Kokkos_Core.hpp>
 #include <memory>
 #include <fstream>
@@ -22,7 +22,7 @@ FromFile::FromFile(std::shared_ptr<ParticleContainer_t> &pc,
                    std::shared_ptr<FieldContainer_t> &fc,
                    std::shared_ptr<Distribution_t> &opalDist)
     : SamplingBase(pc, fc, opalDist), numParticles_m(0) {
-    
+
     // Get filename from distribution
     filename_m = opalDist->getFilename();
     
@@ -49,6 +49,22 @@ FromFile::FromFile(std::shared_ptr<ParticleContainer_t> &pc,
     readFile(filename_m);
 }
 
+FromFile::FromFile(std::shared_ptr<ParticleContainer_t> &pc,
+                   std::shared_ptr<FieldContainer_t> &fc,
+                   const std::string& filename)
+    : SamplingBase(pc, fc), numParticles_m(0) {
+
+    filename_m = filename;
+
+    if (filename_m.empty()) {
+        throw OpalException("FromFile::FromFile",
+                            "Filename must not be empty.");
+    }
+
+    // Read and parse the file
+    readFile(filename_m);
+}
+
 void FromFile::readFile(const std::string& filename) {
     std::ifstream file(filename);
     if (!file.is_open()) {
@@ -69,7 +85,7 @@ void FromFile::readFile(const std::string& filename) {
         return (iss >> v) && iss.eof();
     };
 
-    // Read first non-empty line
+    // Read first non-empty, non-comment line
     while (std::getline(file, line)) {
         // Trim whitespace
         auto first = line.find_first_not_of(" \t\r\n");
@@ -77,8 +93,12 @@ void FromFile::readFile(const std::string& filename) {
             continue;
         auto last = line.find_last_not_of(" \t\r\n");
         line = line.substr(first, last - first + 1);
-        if (!line.empty())
-            break;
+        if (line.empty())
+            continue;
+        // Skip comment lines starting with '#'
+        if (line[0] == '#')
+            continue;
+        break;
     }
 
     if (!file) {
@@ -102,10 +122,21 @@ void FromFile::readFile(const std::string& filename) {
     size_t lineNumber = 2; // Start counting after the first line we already processed
     
     while (std::getline(file, line)) {
-        line.erase(0, line.find_first_not_of(" \t\r\n"));
-        line.erase(line.find_last_not_of(" \t\r\n") + 1);
-        
+        auto first = line.find_first_not_of(" \t\r\n");
+        if (first == std::string::npos) {
+            ++lineNumber;
+            continue;
+        }
+        auto last = line.find_last_not_of(" \t\r\n");
+        line = line.substr(first, last - first + 1);
+
         if (line.empty()) {
+            ++lineNumber;
+            continue;
+        }
+
+        // Skip comment lines starting with '#'
+        if (line[0] == '#') {
             ++lineNumber;
             continue;
         }
@@ -215,16 +246,16 @@ std::string FromFile::normalizeColumnName(const std::string& name) {
 }
 
 void FromFile::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> /*nr*/) {
-    extern Inform* gmsg;
-    
+    Inform m("FromFile::generateParticles");
+
     // Use number of particles from file if available, otherwise use requested number
     size_t totalParticles = (numParticles_m > 0) ? numParticles_m : numberOfParticles;
     
     // If file has fewer particles than requested, use file count
     if (numParticles_m > 0 && numParticles_m < numberOfParticles) {
-        *gmsg << "* Warning: File contains " << numParticles_m 
-              << " particles, but " << numberOfParticles << " were requested." << endl;
-        *gmsg << "* Using " << numParticles_m << " particles from file." << endl;
+        m << "* Warning: File contains " << numParticles_m 
+          << " particles, but " << numberOfParticles << " were requested." << endl;
+        m << "* Using " << numParticles_m << " particles from file." << endl;
         totalParticles = numParticles_m;
     }
     
@@ -294,8 +325,9 @@ void FromFile::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> 
         }
     );
     Kokkos::fence();
-    
-    *gmsg << "* FromFile: Loaded " << totalParticles << " particles from file '" 
-          << filename_m << "'" << endl;
-    *gmsg << "* Rank " << rank << ": " << nlocal << " local particles" << endl;
+
+    Inform mALL("FromFile::generateParticles", INFORM_ALL_NODES);
+    mALL << "* FromFile: Loaded " << totalParticles << " particles from file '" 
+            << filename_m << "'" << endl;
+    mALL << "* Rank " << rank << ": " << nlocal << " local particles" << endl;
 }
