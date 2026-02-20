@@ -55,107 +55,51 @@ void FromFile::readFile(const std::string& filename) {
         throw OpalException("FromFile::readFile",
                             "Couldn't open file '" + filename + "'.");
     }
-    
+
     std::string line;
-    std::vector<std::string> headerTokens;
-    bool headerFound = false;
     bool firstLineIsNumber = false;
     size_t expectedNumParticles = 0;
-    
+
+    // Helper to test if a string is a single number token
+    auto isNumberOnly = [](const std::string& s) -> bool {
+        if (s.empty())
+            return false;
+        std::istringstream iss(s);
+        double v;
+        return (iss >> v) && iss.eof();
+    };
+
     // Read first non-empty line
     while (std::getline(file, line)) {
         // Trim whitespace
-        line.erase(0, line.find_first_not_of(" \t\r\n"));
-        line.erase(line.find_last_not_of(" \t\r\n") + 1);
-        
-        if (line.empty()) {
+        auto first = line.find_first_not_of(" \t\r\n");
+        if (first == std::string::npos)
             continue;
-        }
-        
-        // Check if first line is a number (alternative format)
-        std::istringstream firstLineStream(line);
-        double firstValue;
-        if (firstLineStream >> firstValue && firstLineStream.eof()) {
-            // First line is a number - this is the number of particles
-            expectedNumParticles = static_cast<size_t>(firstValue);
-            firstLineIsNumber = true;
-            continue; // Skip to next line for header/data
-        }
-        
-        // Parse as header line
-        std::istringstream headerStream(line);
-        std::string token;
-        while (headerStream >> token) {
-            headerTokens.push_back(token);
-        }
-        
-        if (!headerTokens.empty()) {
-            headerFound = true;
-            columnIndices_m = parseHeader(line);
+        auto last = line.find_last_not_of(" \t\r\n");
+        line = line.substr(first, last - first + 1);
+        if (!line.empty())
             break;
-        }
     }
-    
-    if (!headerFound && !firstLineIsNumber) {
+
+    if (!file) {
         throw OpalException("FromFile::readFile",
-                            "Could not find header line in file '" + filename + "'.");
+                            "Empty file or no non-empty lines in '" + filename + "'.");
     }
-    
-    // If first line was a number, try to read header from next line
-    if (firstLineIsNumber) {
-        while (std::getline(file, line)) {
-            line.erase(0, line.find_first_not_of(" \t\r\n"));
-            line.erase(line.find_last_not_of(" \t\r\n") + 1);
-            
-            if (line.empty()) {
-                continue;
-            }
-            
-            // Try to parse as header
-            std::istringstream headerStream(line);
-            std::string token;
-            std::vector<std::string> tokens;
-            while (headerStream >> token) {
-                tokens.push_back(token);
-            }
-            
-            // Check if this looks like a header (contains text) or data (all numbers)
-            bool looksLikeHeader = false;
-            for (const auto& t : tokens) {
-                bool isNumber = true;
-                for (char c : t) {
-                    if (!std::isdigit(c) && c != '.' && c != '-' && c != '+' && c != 'e' && c != 'E') {
-                        isNumber = false;
-                        break;
-                    }
-                }
-                if (!isNumber) {
-                    looksLikeHeader = true;
-                    break;
-                }
-            }
-            
-            if (looksLikeHeader) {
-                columnIndices_m = parseHeader(line);
-                headerFound = true;
-                break;
-            } else {
-                // This is data, rewind and parse as data
-                file.seekg(-static_cast<std::streamoff>(line.length() + 1), std::ios::cur);
-                break;
-            }
-        }
-    }
-    
-    // If no header found but first line was number, assume standard column order
-    if (!headerFound && firstLineIsNumber) {
-        // Assume standard order: x y z px py pz
+
+    if (isNumberOnly(line)) {
+        // First line is the number of particles; data starts on the next line
+        expectedNumParticles = static_cast<size_t>(std::stoll(line));
+        firstLineIsNumber = true;
+        // For pure count+data format, assume fixed column order
         columnIndices_m = {0, 1, 2, 3, 4, 5};
+    } else {
+        // First line is a header with column names
+        columnIndices_m = parseHeader(line);
     }
-    
+
     // Read data lines
     particleData_m.clear();
-    size_t lineNumber = (firstLineIsNumber ? 2 : 2); // Account for header line
+    size_t lineNumber = 2; // Start counting after the first line we already processed
     
     while (std::getline(file, line)) {
         line.erase(0, line.find_first_not_of(" \t\r\n"));

@@ -3,8 +3,8 @@
  * @brief Defines the FromFile class used for reading particle phase space from ASCII files.
  */
 
-#ifndef IPPL_FROM_FILE_H
-#define IPPL_FROM_FILE_H
+#ifndef OPALX_FROM_FILE_H
+#define OPALX_FROM_FILE_H
 
 #include "Distribution.h"
 #include "SamplingBase.hpp"
@@ -87,4 +87,4 @@ private:
     std::vector<size_t> columnIndices_m;
 };
 
-#endif // IPPL_FROM_FILE_H
+#endif // OPALX_FROM_FILE_H
