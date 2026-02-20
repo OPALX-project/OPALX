@@ -6,6 +6,7 @@ set (_SRCS
     OpalMarker.cpp
     OpalMultipole.cpp
     OpalMultipoleT.cpp
+    OpalQuadrupole.cpp
     OpalSolenoid.cpp
     OpalBeamline.cpp
     OpalRingDefinition.cpp      
@@ -28,6 +29,7 @@ set (HDRS
     OpalMarker.h
     OpalMultipole.h
     OpalMultipoleT.h
+    OpalQuadrupole.h
     OpalSource.h
     OpalSolenoid.h
     OpalTravelingWave.h
