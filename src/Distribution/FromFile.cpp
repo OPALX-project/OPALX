@@ -327,7 +327,9 @@ void FromFile::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> 
     Kokkos::fence();
 
     Inform mALL("FromFile::generateParticles", INFORM_ALL_NODES);
-    mALL << "* FromFile: Loaded " << totalParticles << " particles from file '" 
-            << filename_m << "'" << endl;
-    mALL << "* Rank " << rank << ": " << nlocal << " local particles" << endl;
+    mALL << "FromFile: Loaded " << totalParticles << " particles from file '" 
+         << filename_m << "'" << endl;
+    ippl::Comm->barrier();
+    mALL << "Rank " << rank << ": " << nlocal << " local particles" << endl;
+    ippl::Comm->barrier();
 }
