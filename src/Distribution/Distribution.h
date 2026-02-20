@@ -113,6 +113,8 @@ public:
     double getTEmission() const;
     void setTEmission(double tEmission);
 
+    std::string getFilename() const;
+
 private:
     enum class EmissionModel : unsigned short { NONE, ASTRA, NONEQUIL };
 
@@ -180,6 +182,7 @@ private:
     void printDistGauss(Inform& os) const;
     void printDistMultiVariateGauss(Inform& os) const;
     void printDistFlatTop(Inform& os) const;
+    void printDistFromFile(Inform& os) const;
 
     void setAttributes();
 
@@ -278,6 +281,10 @@ inline double Distribution::getAvrgpz() const {
 
 inline std::string Distribution::getTypeofDistribution() {
     return distT_m;
+}
+
+inline std::string Distribution::getFilename() const {
+    return Attributes::getString(itsAttr[DISTRIBUTION::FNAME]);
 }
 
 #endif  

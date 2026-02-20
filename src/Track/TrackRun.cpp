@@ -36,6 +36,8 @@
 
 #include "Distribution/FlatTop.h"
 
+#include "Distribution/FromFile.h"
+
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
 
@@ -344,6 +346,9 @@ void TrackRun::execute() {
             break;
         case DistributionType::FLATTOP:
             sampler_m = std::make_shared<FlatTop>(pc, fc, opalDist);
+            break;
+        case DistributionType::FROMFILE:
+            sampler_m = std::make_shared<FromFile>(pc, fc, opalDist);
             break;
         default:
             throw OpalException("Distribution::create", "Unknown \"TYPE\" of \"DISTRIBUTION\"");
