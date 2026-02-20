@@ -42,9 +42,9 @@ public:
      * @param fc Shared pointer to FieldContainer.
      * @param opalDist Shared pointer to Distribution.
      */
-    FromFile(std::shared_ptr<ParticleContainer_t> &pc,
-             std::shared_ptr<FieldContainer_t> &fc,
-             std::shared_ptr<Distribution_t> &opalDist);
+    FromFile(std::shared_ptr<ParticleContainer_t> pc,
+             std::shared_ptr<FieldContainer_t> fc,
+             std::shared_ptr<Distribution_t> opalDist);
 
     /**
      * @brief Convenience constructor that takes the filename directly.
@@ -53,8 +53,8 @@ public:
      * OPALX Distribution object is unnecessary. It behaves like the main
      * constructor but skips querying the Distribution for the filename.
      */
-    FromFile(std::shared_ptr<ParticleContainer_t> &pc,
-             std::shared_ptr<FieldContainer_t> &fc,
+    FromFile(std::shared_ptr<ParticleContainer_t> pc,
+             std::shared_ptr<FieldContainer_t> fc,
              const std::string& filename);
 
     /**

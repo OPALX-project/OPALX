@@ -18,9 +18,9 @@ using Distribution_t = Distribution;
 
 using view_type = typename ippl::detail::ViewType<ippl::Vector<double, 3>, 1>::view_type;
 
-FromFile::FromFile(std::shared_ptr<ParticleContainer_t> &pc,
-                   std::shared_ptr<FieldContainer_t> &fc,
-                   std::shared_ptr<Distribution_t> &opalDist)
+FromFile::FromFile(std::shared_ptr<ParticleContainer_t> pc,
+                   std::shared_ptr<FieldContainer_t> fc,
+                   std::shared_ptr<Distribution_t> opalDist)
     : SamplingBase(pc, fc, opalDist), numParticles_m(0) {
 
     // Get filename from distribution
@@ -49,8 +49,8 @@ FromFile::FromFile(std::shared_ptr<ParticleContainer_t> &pc,
     readFile(filename_m);
 }
 
-FromFile::FromFile(std::shared_ptr<ParticleContainer_t> &pc,
-                   std::shared_ptr<FieldContainer_t> &fc,
+FromFile::FromFile(std::shared_ptr<ParticleContainer_t> pc,
+                   std::shared_ptr<FieldContainer_t> fc,
                    const std::string& filename)
     : SamplingBase(pc, fc), numParticles_m(0) {
 
@@ -253,9 +253,9 @@ void FromFile::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> 
     
     // If file has fewer particles than requested, use file count
     if (numParticles_m > 0 && numParticles_m < numberOfParticles) {
-        m << "* Warning: File contains " << numParticles_m 
+        m << "Warning: File contains " << numParticles_m 
           << " particles, but " << numberOfParticles << " were requested." << endl;
-        m << "* Using " << numParticles_m << " particles from file." << endl;
+        m << "Using " << numParticles_m << " particles from file." << endl;
         totalParticles = numParticles_m;
     }
     
@@ -290,8 +290,8 @@ void FromFile::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> 
     pc_m->create(nlocal);
     
     // Get Kokkos views
-    view_type &Rview = pc_m->R.getView();
-    view_type &Pview = pc_m->P.getView();
+    view_type Rview = pc_m->R.getView();
+    view_type Pview = pc_m->P.getView();
     
     // Create Kokkos view for particle data (host accessible)
     using HostView = Kokkos::View<double**, Kokkos::HostSpace>;
