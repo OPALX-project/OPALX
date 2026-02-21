@@ -41,9 +41,9 @@ public:
      * @param fc Shared pointer to FieldContainer.
      * @param opalDist Shared pointer to Distribution.
      */
-    FlatTop(std::shared_ptr<ParticleContainer_t> &pc,
-        std::shared_ptr<FieldContainer_t> &fc,
-        std::shared_ptr<Distribution_t> &opalDist);
+    FlatTop(std::shared_ptr<ParticleContainer_t> pc,
+        std::shared_ptr<FieldContainer_t> fc,
+        std::shared_ptr<Distribution_t> opalDist);
     
     /**
      * @brief Constructor for FlatTop.
@@ -57,8 +57,8 @@ public:
      * @param tPulseLengthFWHM Time length of the pulse in FWHM.
      * @param sigmaR Standard deviation for position distribution.
      */
-    FlatTop(std::shared_ptr<ParticleContainer_t> &pc,
-        std::shared_ptr<FieldContainer_t> &fc,
+    FlatTop(std::shared_ptr<ParticleContainer_t> pc,
+        std::shared_ptr<FieldContainer_t> fc,
         bool emitting, 
         double sigmaTFall,
         double sigmaTRise,
@@ -77,7 +77,7 @@ public:
      * @param tPulseLengthFWHM Time span of the flat-top profile.
      * @param sigmaR Standard deviation for position distribution R.
      */
-    FlatTop(std::shared_ptr<ParticleContainer_t> &pc,
+    FlatTop(std::shared_ptr<ParticleContainer_t> pc,
         bool emitting, 
         double sigmaTFall,
         double sigmaTRise,
