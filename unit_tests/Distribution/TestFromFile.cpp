@@ -51,14 +51,14 @@ protected:
     }
 
     void writeSampleFile() {
-        // Small sample copied from tests/Drift-1-fromfile/inputdistr.dat
+        // Strict format: N, then header, then data (comments/blanks skipped in data section)
         std::ofstream out(tempFilename);
         ASSERT_TRUE(out.is_open());
 
-        // First line: number of particles
         out << "5\n";
+        out << "x y z px py pz\n";
 
-        // Comment and blank lines that should be ignored
+        // Comment and blank lines in data section are skipped
         out << "# This is a comment and must be skipped\n";
         out << "\n";
 
@@ -69,6 +69,16 @@ protected:
         out << "-8.5549718574e-04 -3.0244620065e-02 2.5710406506e-04 1.1943422591e-02 2.5710406506e-04 -3.1888283063e-02\n";
         out << "-4.0851931221e-04 -1.3879415332e-02 2.2037752464e-03 4.9513250233e-02 2.2037752464e-03 1.4595333192e-02\n";
 
+        out.close();
+    }
+
+    void writeFileWithHeader(const std::string& headerLine, const std::string& dataLine,
+                             size_t numParticles = 1) {
+        std::ofstream out(tempFilename);
+        ASSERT_TRUE(out.is_open());
+        out << numParticles << "\n";
+        out << headerLine << "\n";
+        out << dataLine << "\n";
         out.close();
     }
 
@@ -117,3 +127,58 @@ TEST_F(FromFileTest, GeneratesParticlesFromAsciiFile) {
     }
 }
 
+TEST_F(FromFileTest, ParseHeader_ReorderedColumns) {
+    // Test parseHeader: header "py px pz y x z" => col0=py, col1=px, col2=pz, col3=y, col4=x, col5=z.
+    // Data "10 20 30 40 50 60" => x=50, y=40, z=60, px=20, py=10, pz=30.
+    writeFileWithHeader("py px pz y x z", "10 20 30 40 50 60");
+
+    auto fc = std::shared_ptr<FieldContainer_t>();
+    FromFile sampler(pc, fc, tempFilename);
+
+    size_t requested = 1;
+    sampler.generateParticles(requested, nr);
+
+    size_t localN = pc->getLocalNum();
+    if (localN > 0) {
+        auto Rview_d = pc->R.getView();
+        auto Pview_d = pc->P.getView();
+        auto Rview   = Kokkos::create_mirror_view(Rview_d);
+        auto Pview   = Kokkos::create_mirror_view(Pview_d);
+        Kokkos::deep_copy(Rview, Rview_d);
+        Kokkos::deep_copy(Pview, Pview_d);
+
+        EXPECT_DOUBLE_EQ(Rview(0)[0], 50.0);  // x
+        EXPECT_DOUBLE_EQ(Rview(0)[1], 40.0);  // y
+        EXPECT_DOUBLE_EQ(Rview(0)[2], 60.0);  // z
+        EXPECT_DOUBLE_EQ(Pview(0)[0], 20.0);  // px
+        EXPECT_DOUBLE_EQ(Pview(0)[1], 10.0);  // py
+        EXPECT_DOUBLE_EQ(Pview(0)[2], 30.0);  // pz
+    }
+}
+
+TEST_F(FromFileTest, ParseHeader_StandardOrderAndAlternateNames) {
+    writeFileWithHeader("x y z px/momentumx py/momentumy pz/momentumz", "1.0 2.0 3.0 4.0 5.0 6.0");
+
+    auto fc = std::shared_ptr<FieldContainer_t>();
+    FromFile sampler(pc, fc, tempFilename);
+
+    size_t requested = 1;
+    sampler.generateParticles(requested, nr);
+
+    size_t localN = pc->getLocalNum();
+    if (localN > 0) {
+        auto Rview_d = pc->R.getView();
+        auto Pview_d = pc->P.getView();
+        auto Rview   = Kokkos::create_mirror_view(Rview_d);
+        auto Pview   = Kokkos::create_mirror_view(Pview_d);
+        Kokkos::deep_copy(Rview, Rview_d);
+        Kokkos::deep_copy(Pview, Pview_d);
+
+        EXPECT_DOUBLE_EQ(Rview(0)[0], 1.0);
+        EXPECT_DOUBLE_EQ(Rview(0)[1], 2.0);
+        EXPECT_DOUBLE_EQ(Rview(0)[2], 3.0);
+        EXPECT_DOUBLE_EQ(Pview(0)[0], 4.0);
+        EXPECT_DOUBLE_EQ(Pview(0)[1], 5.0);
+        EXPECT_DOUBLE_EQ(Pview(0)[2], 6.0);
+    }
+}
