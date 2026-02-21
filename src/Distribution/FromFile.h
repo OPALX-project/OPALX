@@ -25,12 +25,12 @@ using Distribution_t = Distribution;
  * @class FromFile
  * @brief Implements the sampling method for reading particle phase space from ASCII files.
  *
- * This class reads particle phase space data from a simple ASCII formatted file.
- * The file format consists of:
- * - A header line with column names (e.g., "x y z px py pz")
- * - Data lines with 6 space-separated values per line
- *
- * Alternatively, the first line may be the number of particles, followed by data lines.
+ * The file must follow this structure (no variations allowed):
+ * - Line 1: number of particles (single integer N).
+ * - Line 2: column names (space-separated), e.g. "x px y py z pz".
+ * - Remaining lines: one data row per particle (6+ columns). Blank lines and
+ *   lines starting with '#' are skipped. There must be exactly N data lines.
+ * If the file does not follow this structure, an error is thrown.
  */
 class FromFile : public SamplingBase {
 public:
@@ -66,13 +66,16 @@ public:
 
 private:
     /**
-     * @brief Reads and parses the particle data file.
+     * @brief Reads and parses the particle file. Format must be: N (particle count),
+     *        then header line (column names), then data lines. Comments ('#') and
+     *        blank lines are skipped. Throws if format is invalid.
      * @param filename Path to the file to read.
      */
     void readFile(const std::string& filename);
 
     /**
-     * @brief Parses a header line to identify column indices.
+     * @brief Parses the header line to get column indices. Header must contain
+     *        all of x, y, z, px, py, pz (or aliases). Throws if any are missing.
      * @param headerLine The header line string.
      * @return Vector of column indices: [x_idx, y_idx, z_idx, px_idx, py_idx, pz_idx]
      */

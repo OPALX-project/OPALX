@@ -72,55 +72,55 @@ void FromFile::readFile(const std::string& filename) {
                             "Couldn't open file '" + filename + "'.");
     }
 
-    std::string line;
-    bool firstLineIsNumber = false;
-    size_t expectedNumParticles = 0;
-
-    // Helper to test if a string is a single number token
-    auto isNumberOnly = [](const std::string& s) -> bool {
-        if (s.empty())
-            return false;
-        std::istringstream iss(s);
-        double v;
-        return (iss >> v) && iss.eof();
+    // Helper to read next non-empty, non-comment line; returns false if none left
+    auto nextLine = [&file](std::string& out) -> bool {
+        std::string line;
+        while (std::getline(file, line)) {
+            auto first = line.find_first_not_of(" \t\r\n");
+            if (first == std::string::npos)
+                continue;
+            auto last = line.find_last_not_of(" \t\r\n");
+            line = line.substr(first, last - first + 1);
+            if (line.empty() || line[0] == '#')
+                continue;
+            out = line;
+            return true;
+        }
+        return false;
     };
 
-    // Read first non-empty, non-comment line
-    while (std::getline(file, line)) {
-        // Trim whitespace
-        auto first = line.find_first_not_of(" \t\r\n");
-        if (first == std::string::npos)
-            continue;
-        auto last = line.find_last_not_of(" \t\r\n");
-        line = line.substr(first, last - first + 1);
-        if (line.empty())
-            continue;
-        // Skip comment lines starting with '#'
-        if (line[0] == '#')
-            continue;
-        break;
-    }
-
-    if (!file) {
+    // Required format: line 1 = particle count, line 2 = column names, then data lines
+    std::string line1;
+    if (!nextLine(line1)) {
         throw OpalException("FromFile::readFile",
-                            "Empty file or no non-empty lines in '" + filename + "'.");
+                            "File '" + filename + "' is empty or has no valid lines. "
+                            "Expected format: first line = number of particles, second line = column names.");
     }
 
-    if (isNumberOnly(line)) {
-        // First line is the number of particles; data starts on the next line
-        expectedNumParticles = static_cast<size_t>(std::stoll(line));
-        firstLineIsNumber = true;
-        // For pure count+data format, assume fixed column order
-        columnIndices_m = {0, 1, 2, 3, 4, 5};
-    } else {
-        // First line is a header with column names
-        columnIndices_m = parseHeader(line);
+    // First line must be a single integer (particle count)
+    std::istringstream iss1(line1);
+    long long npart = 0;
+    if (!(iss1 >> npart) || npart < 0 || !iss1.eof()) {
+        throw OpalException("FromFile::readFile",
+                            "First non-empty line in '" + filename + "' must be the number of particles (single integer). "
+                            "Got: '" + line1 + "'. Expected format: N\\n column_names\\n data...");
+    }
+    size_t expectedNumParticles = static_cast<size_t>(npart);
+
+    std::string headerLine;
+    if (!nextLine(headerLine)) {
+        throw OpalException("FromFile::readFile",
+                            "Missing header line in '" + filename + "'. "
+                            "Expected format: N\\n column_names\\n data... (e.g. x px y py z pz).");
     }
 
-    // Read data lines
+    columnIndices_m = parseHeader(headerLine);
+
+    // Read data lines (comments and blank lines are skipped)
     particleData_m.clear();
-    size_t lineNumber = 2; // Start counting after the first line we already processed
-    
+    size_t lineNumber = 3;
+
+    std::string line;
     while (std::getline(file, line)) {
         auto first = line.find_first_not_of(" \t\r\n");
         if (first == std::string::npos) {
@@ -129,62 +129,48 @@ void FromFile::readFile(const std::string& filename) {
         }
         auto last = line.find_last_not_of(" \t\r\n");
         line = line.substr(first, last - first + 1);
-
-        if (line.empty()) {
+        if (line.empty() || line[0] == '#') {
             ++lineNumber;
             continue;
         }
 
-        // Skip comment lines starting with '#'
-        if (line[0] == '#') {
-            ++lineNumber;
-            continue;
-        }
-        
         std::istringstream lineStream(line);
         std::vector<double> values;
         double value;
-        
-        while (lineStream >> value) {
+        while (lineStream >> value)
             values.push_back(value);
-        }
-        
-        // Check if we have enough columns
+
         size_t maxColIdx = *std::max_element(columnIndices_m.begin(), columnIndices_m.end());
         if (values.size() <= maxColIdx) {
             throw OpalException("FromFile::readFile",
-                                "Line " + std::to_string(lineNumber) + " in file '" + filename +
+                                "Line " + std::to_string(lineNumber) + " in '" + filename +
                                 "' has fewer columns (" + std::to_string(values.size()) +
                                 ") than required (index " + std::to_string(maxColIdx) + ").");
         }
-        
-        // Extract phase space coordinates
+
         std::vector<double> phaseSpace(6);
-        phaseSpace[0] = values[columnIndices_m[0]]; // x
-        phaseSpace[1] = values[columnIndices_m[1]]; // y
-        phaseSpace[2] = values[columnIndices_m[2]]; // z
-        phaseSpace[3] = values[columnIndices_m[3]]; // px
-        phaseSpace[4] = values[columnIndices_m[4]]; // py
-        phaseSpace[5] = values[columnIndices_m[5]]; // pz
-        
+        phaseSpace[0] = values[columnIndices_m[0]];
+        phaseSpace[1] = values[columnIndices_m[1]];
+        phaseSpace[2] = values[columnIndices_m[2]];
+        phaseSpace[3] = values[columnIndices_m[3]];
+        phaseSpace[4] = values[columnIndices_m[4]];
+        phaseSpace[5] = values[columnIndices_m[5]];
         particleData_m.push_back(phaseSpace);
         ++lineNumber;
     }
-    
+
     file.close();
-    
     numParticles_m = particleData_m.size();
-    
+
     if (numParticles_m == 0) {
         throw OpalException("FromFile::readFile",
-                            "No valid particle data found in file '" + filename + "'.");
+                            "No valid particle data found in '" + filename + "'.");
     }
-    
-    // If first line specified number of particles, verify
-    if (firstLineIsNumber && expectedNumParticles > 0 && numParticles_m != expectedNumParticles) {
+
+    if (numParticles_m != expectedNumParticles) {
         throw OpalException("FromFile::readFile",
-                            "Number of particles in file (" + std::to_string(numParticles_m) +
-                            ") does not match expected number (" + std::to_string(expectedNumParticles) + ").");
+                            "Number of data lines (" + std::to_string(numParticles_m) +
+                            ") does not match declared count (" + std::to_string(expectedNumParticles) + ") in '" + filename + "'.");
     }
 }
 
@@ -218,15 +204,16 @@ std::vector<size_t> FromFile::parseHeader(const std::string& headerLine) {
         }
     }
     
-    // Check if all required columns were found
+    // Require all six phase-space columns in the header
     for (size_t i = 0; i < 6; ++i) {
         if (indices[i] == SIZE_MAX) {
-            // If not found, assume sequential order starting from 0
-            // This handles cases where header might be missing or use different names
-            indices[i] = i;
+            const char* names[] = {"x", "y", "z", "px", "py", "pz"};
+            throw OpalException("FromFile::parseHeader",
+                                "Header must contain all column names (x, y, z, px, py, pz). "
+                                "Missing or unrecognized: '" + std::string(names[i]) + "'.");
         }
     }
-    
+
     return indices;
 }
 
@@ -304,9 +291,10 @@ void FromFile::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> 
         }
     }
     
-    // Create device view and copy from host
-    using DeviceView = Kokkos::View<double**, Kokkos::DefaultExecutionSpace::memory_space>;
-    DeviceView deviceParticleData("deviceParticleData", totalParticles, 6);
+    // Create device mirror with layout compatible for Host->Device deep_copy
+    // (required when no common execution space, e.g. Host vs Cuda)
+    auto deviceParticleData =
+        Kokkos::create_mirror(Kokkos::DefaultExecutionSpace::memory_space(), hostParticleData);
     Kokkos::deep_copy(deviceParticleData, hostParticleData);
     
     // Copy particle data into Kokkos views
