@@ -200,6 +200,9 @@ Inform& Distribution::printInfo(Inform& os) const {
             case DistributionType::FLATTOP:
                 printDistFlatTop(os);
                 break;
+            case DistributionType::FROMFILE:
+                printDistFromFile(os);
+                break;
             default:
                 throw OpalException("Distribution Param", "Unknown \"TYPE\" of \"DISTRIBUTION\"");
          }
@@ -426,6 +429,21 @@ void Distribution::printDistFlatTop(Inform& os)  const {
     }
 }
 
+void Distribution::printDistFromFile(Inform& os) const {
+    os << "* Distribution type: FROMFILE" << endl;
+    os << "* " << endl;
+    std::string fname = getFilename();
+    if (!fname.empty()) {
+        os << "* Filename: " << fname << endl;
+    } else {
+        os << "* Filename: (not set)" << endl;
+    }
+}
+
+std::string Distribution::getFilename() const {
+    return Attributes::getString(itsAttr[DISTRIBUTION::FNAME]);
+}
+
 void Distribution::setAttributes() {
     setDist();
 }
@@ -444,6 +462,10 @@ void Distribution::setDist() {
         case DistributionType::FLATTOP:
             setDistParametersFlatTop();
             break;
+        case DistributionType::FROMFILE:
+            // FROMFILE doesn't need special parameter setting
+            // File will be read by FromFile class
+            break;
         default:
             throw OpalException("Distribution Param", "Unknown \"TYPE\" of \"DISTRIBUTION\"");
     }
@@ -454,7 +476,8 @@ void Distribution::setDistType() {
         {"NODIST", DistributionType::NODIST},
         {"GAUSS", DistributionType::GAUSS},
         {"MULTIVARIATEGAUSS", DistributionType::MULTIVARIATEGAUSS},
-        {"FLATTOP", DistributionType::FLATTOP}
+        {"FLATTOP", DistributionType::FLATTOP},
+        {"FROMFILE", DistributionType::FROMFILE}
     };
 
     distT_m = Attributes::getString(itsAttr[DISTRIBUTION::TYPE]);

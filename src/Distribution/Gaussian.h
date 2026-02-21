@@ -52,9 +52,9 @@ public:
      * @param fc Shared pointer to the field container.
      * @param opalDist Shared pointer to the distribution object.
      */
-    Gaussian(std::shared_ptr<ParticleContainer_t> &pc, 
-             std::shared_ptr<FieldContainer_t> &fc, 
-             std::shared_ptr<Distribution_t> &opalDist);
+    Gaussian(std::shared_ptr<ParticleContainer_t> pc, 
+             std::shared_ptr<FieldContainer_t> fc, 
+             std::shared_ptr<Distribution_t> opalDist);
 
     /**
      * @brief Constructor for the Gaussian sampler without field container and distribution object.
@@ -65,7 +65,7 @@ public:
      * @param cutoffR Cutoff multiplier for position distribution.
      * @param fix_meanR Flag to exactly fix the mean position of particles after sampling.
      */
-    Gaussian(std::shared_ptr<ParticleContainer_t>& pc,
+    Gaussian(std::shared_ptr<ParticleContainer_t> pc,
             const Vector_t<double, 3>& sigmaR,
             const Vector_t<double, 3>& sigmaP,
             double avrgpz, const Vector_t<double, 3>& cutoffR,
