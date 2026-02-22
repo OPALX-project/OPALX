@@ -1,6 +1,7 @@
 set (_SRCS
     Distribution.cpp
     FlatTop.cpp
+    FromFile.cpp
     Gaussian.cpp
     LaserProfile.cpp
     MultiVariateGaussian.cpp
@@ -9,6 +10,7 @@ set (_SRCS
 set (HDRS
     Distribution.h
     FlatTop.h
+    FromFile.h
     Gaussian.h
     LaserProfile.h
     MapGenerator.h
