@@ -25,21 +25,20 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _CLASSIC_SRC_ALGORITHMS_SPLINETIMEDEPENDENCE_H_
-#define _CLASSIC_SRC_ALGORITHMS_SPLINETIMEDEPENDENCE_H_
+#ifndef CLASSIC_SRC_ALGORITHMS_SPLINETIMEDEPENDENCE_H_
+#define CLASSIC_SRC_ALGORITHMS_SPLINETIMEDEPENDENCE_H_
 
 #include <vector>
 
-#include "Utilities/GSLCubicSpline.h"
-
-#include "Utilities/GeneralClassicException.h"
 #include "Algorithms/AbstractTimeDependence.h"
+#include "Utilities/LinearSpline.h"
+#include "Utilities/CubicSpline.h"
 
 class Inform;
 
 /** @class SplineTimeDependence
- * 
- *  Time dependence that follows a spline. Interpolation is supported at 
+ *
+ *  Time dependence that follows a spline. Interpolation is supported at
  *  linear or cubic order..
  *
  *  Interpolation is done using gsl_spline routines (1st or 3rd order).
@@ -48,12 +47,12 @@ class Inform;
  *  but it turns out that only works for regular grids.
  */
 class SplineTimeDependence : public AbstractTimeDependence {
-  public:
+public:
     /** Constructor
-     * 
-     *  @param splineOrder the order of the spline used to fit the time 
+     *
+     *  @param splineOrder the order of the spline used to fit the time
      *         dependence; either 1 (linear interpolation) or 3 (cubic spline
-     *         with quadratic smoothing) 
+     *         with quadratic smoothing)
      *  @param times the times of successive elements in the time dependence
      *  @param values the values at each time step.
      *
@@ -61,69 +60,74 @@ class SplineTimeDependence : public AbstractTimeDependence {
      *  values length < splineOrder + 1, or times do not increase strictly
      *  monotonically.
      */
-    SplineTimeDependence(size_t splineOrder,
-                         std::vector<double> times,
-                         std::vector<double> values);
+    SplineTimeDependence(
+        size_t splineOrder, const std::vector<double>& times, const std::vector<double>& values);
 
     /** Copy Constructor */
     SplineTimeDependence(const SplineTimeDependence& rhs);
 
     /** Default Constructor makes a dependence of length 2 with values 0*/
-    SplineTimeDependence();
-    /** Destructor does nothing */
-    ~SplineTimeDependence();
+    SplineTimeDependence() = default;
+
+    /** Destructor cleans up the GSL spline stuff */
+    ~SplineTimeDependence() override = default;
 
     /** Return the value of the spline at a given time
-     *  
-     *  @param time: time at which the spline is referenced. If time is off 
-     *         either end of the spline, the last few values are used to 
+     *
+     *  @param time: time at which the spline is referenced. If time is off
+     *         either end of the spline, the last few values are used to
      *         extrapolate past the end of the spline.
      *
      */
-    inline double getValue(double time);
+    double getValue(double time) override;
+
+    /** Return the integral of the spline from 0 to the given time
+     *
+     *  @param time: time at which the spline is referenced.
+     *
+     */
+    double getIntegral(double time) override;
 
     /** Inheritable copy constructor
      *
      *  @returns new SplineTimeDependence.
      */
-    SplineTimeDependence* clone();
+    SplineTimeDependence* clone() override;
 
     /** Print summary information about the time dependence
-     *  
+     *
      *  @param os "Inform" stream to which the information is printed.
      */
-    Inform &print(Inform &os);
-    
+    Inform& print(Inform& os) const;
+
     /** Set the spline, deleting any existing spline data
-     * 
-     * 
+     *
+     * @param splineOrder 1 for linear, 3 for cubic, all other values invalid
+     * @param times a list of times in seconds
+     * @param values a list of values corresponding to the times
      */
-    void setSpline(size_t splineOrder,
-                   std::vector<double> times,
-                   std::vector<double> values);
-  private:
-    gsl_spline* spline_m;
-    gsl_interp_accel* acc_m;
-    size_t splineOrder_m;
+    void setSpline(
+        size_t splineOrder, const std::vector<double>& times, const std::vector<double>& values);
+
+    /* Getters for the test case use */
+    [[nodiscard]] const std::vector<double>& getTimes() const { return times_m; }
+    [[nodiscard]] const std::vector<double>& getValues() const { return values_m; }
+    [[nodiscard]] size_t getSplineOrder() const { return splineOrder_m; }
+
+    // Spline order constants
+    static constexpr size_t LinearInterpolation = 1;
+    static constexpr size_t CubicInterpolation = 3;
+
+private:
+    std::unique_ptr<AbstractSpline> spline_m;
+    std::unique_ptr<AbstractSpline::Accelerator> splineAcc_m;
+    size_t splineOrder_m{LinearInterpolation};
     std::vector<double> times_m;
     std::vector<double> values_m;
-  
 };
 
-inline
-Inform &operator<<(Inform &os, SplineTimeDependence &p) {
-  return p.print(os);
-}
-
-inline
-double SplineTimeDependence::getValue(double time) {
-    if (time < times_m[0] or time > times_m.back()) {
-        throw GeneralClassicException(
-                            "SplineTimeDependence::getValue",
-                            "time out of spline range");
-    }
-    return gsl_spline_eval (spline_m, time, acc_m);
+inline Inform& operator<<(Inform& os, const SplineTimeDependence& p) {
+    return p.print(os);
 }
 
 #endif
-
