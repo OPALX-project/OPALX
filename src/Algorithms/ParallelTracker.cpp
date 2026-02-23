@@ -279,8 +279,10 @@ void ParallelTracker::execute() {
     itsBunch_m->toLabTrafo_m = beamlineToLab;
 
     // Transform reference particle coordinates and momentum to the lab frame
+    //itsBunch_m->RefPartR_m = 
+    //    beamlineToLab.transformTo(itsBunch_m->getParticleContainer()->getMeanR());
     itsBunch_m->RefPartR_m = 
-        beamlineToLab.transformTo(itsBunch_m->getParticleContainer()->getMeanR());
+        beamlineToLab.transformTo(Vector_t<double, 3>(0, 0, 0));
     itsBunch_m->RefPartP_m = 
         beamlineToLab.rotateTo(itsBunch_m->getParticleContainer()->getMeanP());
     m << "Transformed reference particle position and momentum to lab frame." << endl;
