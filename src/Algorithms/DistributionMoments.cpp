@@ -77,7 +77,7 @@ void DistributionMoments::computeMeans(ippl::ParticleAttrib<Vector_t<double,3>>:
                         gamma0 += Pview(k)[j]*Pview(k)[j];
                     }
                     gamma0 = Kokkos::sqrt(gamma0+1.0);
-                    ekin0  = (gamma0-1.0) * Mview(k);
+                    ekin0  = (gamma0-1.0) * Mview(k) * Units::GeV2MeV; // output in MeV
                     gamma += gamma0;
                     ekin += ekin0;
 
@@ -243,7 +243,7 @@ void DistributionMoments::computeMoments(ippl::ParticleAttrib<Vector_t<double,3>
                         gamma0 += Pview(k)[j]*Pview(k)[j];
                     }
                     gamma0 = Kokkos::sqrt(gamma0+1.0);
-                    ekin0  = (gamma0-1.0) * Mview(k);
+                    ekin0  = (gamma0-1.0) * Mview(k) * Units::GeV2MeV; // output in MeV
 
                     ekin += (ekin0-mekin)*(ekin0-mekin);
                 }, Kokkos::Sum<double>(loc_std_mekin) );
