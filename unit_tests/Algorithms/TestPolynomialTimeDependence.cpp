@@ -25,16 +25,12 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "gtest/gtest.h"
-#include "Utilities/GeneralClassicException.h"
-#include "Algorithms/AbstractTimeDependence.h"
 #include "Algorithms/PolynomialTimeDependence.h"
+#include "Elements/OpalPolynomialTimeDependence.h"
+#include "Utilities/GeneralClassicException.h"
+#include "gtest/gtest.h"
 
-#include "opal_test_utilities/SilenceTest.h"
-
-TEST(PolynomialTimeDependenceTest, PolynomialTimeDependenceTest) {
-    OpalTestUtilities::SilenceTest silencer;
-
+TEST(TestPolynomialTimeDependence, PolynomialTimeDependenceTest) {
     // Check empty polynomial coefficients always returns 0.
     std::vector<double> test;
     PolynomialTimeDependence time_dependence_1(test);
@@ -57,35 +53,28 @@ TEST(PolynomialTimeDependenceTest, PolynomialTimeDependenceTest) {
     delete time_dependence_clone;
 }
 
-TEST(PolynomialTimeDependenceTest, TDMapTest) {
-    OpalTestUtilities::SilenceTest silencer;
-
+TEST(TestPolynomialTimeDependence, TDMapTest) {
     // throw on empty value
-    EXPECT_THROW(AbstractTimeDependence::getTimeDependence("name"),
-                 GeneralClassicException);
-    std::vector<double> test;
-
+    EXPECT_THROW(AbstractTimeDependence::getTimeDependence("name"), GeneralClassicException);
+    const std::vector<double> test;
     // set/get time dependence
     PolynomialTimeDependence time_dep(test);
-    std::shared_ptr<PolynomialTimeDependence> td1(time_dep.clone());
+    const std::shared_ptr<PolynomialTimeDependence> td1(time_dep.clone());
     AbstractTimeDependence::setTimeDependence("td1", td1);
     EXPECT_EQ(AbstractTimeDependence::getTimeDependence("td1"), td1);
-    std::shared_ptr<PolynomialTimeDependence> td2(time_dep.clone());
+    const std::shared_ptr<PolynomialTimeDependence> td2(time_dep.clone());
     AbstractTimeDependence::setTimeDependence("td2", td2);
     EXPECT_EQ(AbstractTimeDependence::getTimeDependence("td2"), td2);
     EXPECT_EQ(AbstractTimeDependence::getTimeDependence("td1"), td1);
     // set time dependence overwriting existing time dependence
     // should overwrite, without memory leak
-    std::shared_ptr<PolynomialTimeDependence> td3(time_dep.clone());
+    const std::shared_ptr<PolynomialTimeDependence> td3(time_dep.clone());
     AbstractTimeDependence::setTimeDependence("td1", td3);
     EXPECT_EQ(AbstractTimeDependence::getTimeDependence("td1"), td3);
 }
 
-TEST(PolynomialTimeDependenceTest, TDMapNameLookupTest) {
-    OpalTestUtilities::SilenceTest silencer;
-
-    EXPECT_THROW(AbstractTimeDependence::getName(nullptr),
-                 GeneralClassicException);
+TEST(TestPolynomialTimeDependence, TDMapNameLookupTest) {
+    EXPECT_THROW(AbstractTimeDependence::getName(nullptr), GeneralClassicException);
     PolynomialTimeDependence time_dep(std::vector<double>(1, 1));
     std::shared_ptr<PolynomialTimeDependence> td1(time_dep.clone());
     std::shared_ptr<PolynomialTimeDependence> td2(time_dep.clone());
@@ -97,7 +86,60 @@ TEST(PolynomialTimeDependenceTest, TDMapNameLookupTest) {
     EXPECT_EQ(name1, "td1");
     std::string name2 = AbstractTimeDependence::getName(td2);
     EXPECT_TRUE(name2 == "td2" || name2 == "td3");
-    EXPECT_THROW(AbstractTimeDependence::getName(td3),
-                 GeneralClassicException);
+    EXPECT_THROW(AbstractTimeDependence::getName(td3), GeneralClassicException);
+}
 
+TEST(TestPolynomialTimeDependence, UserInterfacePN) {
+    // Make the UI
+    OpalPolynomialTimeDependence ui;
+    // Set the attributes
+    Attributes::setReal(ui.itsAttr[OpalPolynomialTimeDependence::P0], 2);
+    Attributes::setReal(ui.itsAttr[OpalPolynomialTimeDependence::P1], 3);
+    Attributes::setReal(ui.itsAttr[OpalPolynomialTimeDependence::P2], 4);
+    Attributes::setReal(ui.itsAttr[OpalPolynomialTimeDependence::P3], 5);
+    // Update the object
+    EXPECT_NO_THROW(ui.update());
+    // Check the values
+    auto* myDependency = dynamic_cast<PolynomialTimeDependence*>(
+        AbstractTimeDependence::getTimeDependence("POLYNOMIAL_TIME_DEPENDENCE").get());
+    EXPECT_TRUE(myDependency);
+    EXPECT_NEAR(myDependency->getCoefficients()[0], 2, 1e-10);
+    EXPECT_NEAR(myDependency->getCoefficients()[1], 3, 1e-10);
+    EXPECT_NEAR(myDependency->getCoefficients()[2], 4, 1e-10);
+    EXPECT_NEAR(myDependency->getCoefficients()[3], 5, 1e-10);
+    EXPECT_EQ(myDependency->getCoefficients().size(), 4);
+}
+
+TEST(TestPolynomialTimeDependence, UserInterfaceCoeffs) {
+    // Make the UI
+    OpalPolynomialTimeDependence ui;
+    // Set the attributes
+    Attributes::setRealArray(
+        ui.itsAttr[OpalPolynomialTimeDependence::COEFFICIENTS], {2, 3, 4, 5, 6});
+    // Update the object
+    EXPECT_NO_THROW(ui.update());
+    // Check the values
+    auto* myDependency = dynamic_cast<PolynomialTimeDependence*>(
+        AbstractTimeDependence::getTimeDependence("POLYNOMIAL_TIME_DEPENDENCE").get());
+    EXPECT_TRUE(myDependency);
+    EXPECT_NEAR(myDependency->getCoefficients()[0], 2, 1e-10);
+    EXPECT_NEAR(myDependency->getCoefficients()[1], 3, 1e-10);
+    EXPECT_NEAR(myDependency->getCoefficients()[2], 4, 1e-10);
+    EXPECT_NEAR(myDependency->getCoefficients()[3], 5, 1e-10);
+    EXPECT_NEAR(myDependency->getCoefficients()[4], 6, 1e-10);
+    EXPECT_EQ(myDependency->getCoefficients().size(), 5);
+}
+
+TEST(TestPolynomialTimeDependence, UserInterfaceBoth) {
+    // Make the UI
+    OpalPolynomialTimeDependence ui;
+    // Set the attributes
+    Attributes::setRealArray(
+        ui.itsAttr[OpalPolynomialTimeDependence::COEFFICIENTS], {2, 3, 4, 5, 6});
+    Attributes::setReal(ui.itsAttr[OpalPolynomialTimeDependence::P0], 2);
+    Attributes::setReal(ui.itsAttr[OpalPolynomialTimeDependence::P1], 3);
+    Attributes::setReal(ui.itsAttr[OpalPolynomialTimeDependence::P2], 4);
+    Attributes::setReal(ui.itsAttr[OpalPolynomialTimeDependence::P3], 5);
+    // Update the object
+    EXPECT_THROW(ui.update(), std::invalid_argument);
 }
