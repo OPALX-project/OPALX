@@ -113,6 +113,8 @@ public:
     double getTEmission() const;
     void setTEmission(double tEmission);
 
+    std::string getFilename() const;
+
 private:
     enum class EmissionModel : unsigned short { NONE, ASTRA, NONEQUIL };
 
@@ -180,6 +182,7 @@ private:
     void printDistGauss(Inform& os) const;
     void printDistMultiVariateGauss(Inform& os) const;
     void printDistFlatTop(Inform& os) const;
+    void printDistFromFile(Inform& os) const;
 
     void setAttributes();
 
