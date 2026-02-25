@@ -21,7 +21,6 @@
 // ------------------------------------------------------------------------
 
 
-#include "MemoryManagement/RCObject.h"
 #include "OpalParser/Token.h"
 #include <string>
 
@@ -30,7 +29,7 @@
 /// Abstract interface for a stream of input tokens.
 
 
-class TokenStream: public RCObject {
+class TokenStream {
 
 public:
 
