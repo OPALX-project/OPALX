@@ -228,9 +228,9 @@ Inform& FieldSolverCmd::printInfo(Inform& os) const {
     }
 
     if (Attributes::getBool(itsAttr[FIELDSOLVER::PARFFTZ])) {
-        os << "* ZDIM      parallel  " << endl;
+        os << "* ZDIM         parallel  " << endl;
     } else {
-        os << "* ZDIM      serial  " << endl;
+        os << "* ZDIM         serial  " << endl;
     }
 
     os << "* ********************************************************************************** "
