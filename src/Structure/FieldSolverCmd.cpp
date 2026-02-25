@@ -21,6 +21,7 @@
 #include "Structure/FieldSolverCmd.h"
 
 #include <map>
+
 #include "AbstractObjects/Element.h"
 #include "AbstractObjects/Expressions.h"
 #include "AbstractObjects/OpalData.h"
@@ -29,6 +30,7 @@
 #include "Expressions/SRefExpr.h"
 #include "Physics/Physics.h"
 #include "Utilities/OpalException.h"
+#include "Structure/BinningCmd.h"
 
 using namespace Expressions;
 
@@ -40,6 +42,11 @@ FieldSolverCmd::FieldSolverCmd()
         "The \"FIELDSOLVER\" statement defines data for a the field solver") {
     itsAttr[FIELDSOLVER::TYPE] = Attributes::makePredefinedString(
         "TYPE", "Name of the attached field solver.", {"NONE", "FFT", "OPEN", "CG"}); // removed, since not implemented: "P3M"
+
+    itsAttr[FIELDSOLVER::BINS] = Attributes::makeString(
+        "BINS",
+        "Name of BINNING definition to be used, or NONE for no binning.",
+        "NONE");
 
     itsAttr[FIELDSOLVER::NX] = Attributes::makeReal("NX", "Meshsize in x");
     itsAttr[FIELDSOLVER::NY] = Attributes::makeReal("NY", "Meshsize in y");
@@ -99,6 +106,10 @@ FieldSolverCmd* FieldSolverCmd::find(const std::string& name) {
 
 std::string FieldSolverCmd::getType() {
     return Attributes::getString(itsAttr[FIELDSOLVER::TYPE]);
+}
+
+std::string FieldSolverCmd::getBinsName() const {
+    return Attributes::getString(itsAttr[FIELDSOLVER::BINS]);
 }
 
 BCHandler<3> FieldSolverCmd::constructBCHandler() const {
@@ -183,12 +194,21 @@ bool FieldSolverCmd::hasValidSolver() {
     return false;
 }
 
+BinningCmd* FieldSolverCmd::getBinningCmd() const {
+    const std::string binsName = getBinsName();
+    if (binsName == "NONE" || binsName.empty()) {
+        return nullptr;
+    }
+    return BinningCmd::find(binsName);
+}
+
 Inform& FieldSolverCmd::printInfo(Inform& os) const {
     os << "* ************* F I E L D S O L V E R ********************************************** "
        << endl;
     os << "* FIELDSOLVER  " << getOpalName() << '\n'
+       << "* BINS         " << getBinsName() << '\n'
        << "* TYPE         " << fsName_m << '\n'
-       << "* RANKS       " << ippl::Comm->size() << '\n'
+       << "* RANKS        " << ippl::Comm->size() << '\n'
        << "* NX           " << Attributes::getReal(itsAttr[FIELDSOLVER::NX]) << '\n'
        << "* NY           " << Attributes::getReal(itsAttr[FIELDSOLVER::NY]) << '\n'
        << "* NZ           " << Attributes::getReal(itsAttr[FIELDSOLVER::NZ]) << '\n'
