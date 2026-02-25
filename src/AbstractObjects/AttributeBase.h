@@ -18,7 +18,6 @@
 //
 // ------------------------------------------------------------------------
 
-#include "MemoryManagement/RCObject.h"
 #include "AbstractObjects/Invalidator.h"
 #include <iosfwd>
 #include <cstring>
@@ -29,7 +28,7 @@
 //  The various derived classes contain the actual values, notably the
 //  template classes SValue<T> for scalars and AValue<T> for arrays.
 
-class AttributeBase: public RCObject, public Invalidator {
+class AttributeBase: public Invalidator {
 
 public:
 
