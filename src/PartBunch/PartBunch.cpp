@@ -514,20 +514,25 @@ void PartBunch<T, Dim>::bunchUpdate() {
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::computeSelfFields() {
     Inform m("PartBunch::computeSelfFields");
-    static IpplTimings::TimerRef completeBinningT = IpplTimings::getTimer("bTotalBinningT");
 
-    // Start binning and sorting by bins
-    std::shared_ptr<AdaptBins_t> bins = this->getBins();
-    //VField_t<double, 3>& Etmp = *(this->getTempEField());
+    if (this->hasBinning()) {
+        static IpplTimings::TimerRef completeBinningT = IpplTimings::getTimer("bTotalBinningT");
 
-    IpplTimings::startTimer(completeBinningT);
-    bins->doFullRebin(bins->getMaxBinCount()); // rebin with 128 bins // bins->getMaxBinCount()
-    // bins->print(); // For debugging...
-    bins->sortContainerByBin(); // Sort BEFORE, since it generates less atomics overhead with more bins!
-    bins->genAdaptiveHistogram(); // merge bins with width/N_part ratio of 1.0
-    IpplTimings::stopTimer(completeBinningT);
-    // bins->print(); // For debugging...
-    m << "Binning routine done." << endl;
+        // Start binning and sorting by bins
+        std::shared_ptr<AdaptBins_t> bins = this->getBins();
+        //VField_t<double, 3>& Etmp = *(this->getTempEField());
+
+        IpplTimings::startTimer(completeBinningT);
+        bins->doFullRebin(bins->getMaxBinCount()); // rebin with 128 bins // bins->getMaxBinCount()
+        // bins->print(); // For debugging...
+        bins->sortContainerByBin(); // Sort BEFORE, since it generates less atomics overhead with more bins!
+        bins->genAdaptiveHistogram(); // merge bins with width/N_part ratio of 1.0
+        IpplTimings::stopTimer(completeBinningT);
+        // bins->print(); // For debugging...
+        m << "Binning routine done." << endl;
+    } else {
+        m << "No AdaptBins object present, not using binning." << endl;
+    }
 
     static IpplTimings::TimerRef SolveTimer = IpplTimings::getTimer("SolveTimer");
     IpplTimings::startTimer(SolveTimer);
