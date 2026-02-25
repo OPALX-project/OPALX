@@ -32,12 +32,12 @@
 //   intended for processes that require algorithm-specific data in the
 //   accelerator model.
 //   [P]
-//   The class ElementBase has as base class the abstract class RCObject.
+//   The class ElementBase is a base class.
 //   Virtual derivation is used to make multiple inheritance possible for
 //   derived concrete classes. ElementBase implements three copy modes:
 //   [OL]
 //   [LI]
-//   Copy by reference: Call RCObject::addReference() and use [b]this[/b].
+//   Copy by reference: Use std::shared_ptr to share ownership.
 //   [LI]
 //   Copy structure: use ElementBase::copyStructure().
 //   During copying of the structure, all sharable items are re-used, while
@@ -87,12 +87,12 @@ ElementBase::ElementBase() : ElementBase("") {
 }
 
 ElementBase::ElementBase(const ElementBase& right)
-    : RCObject(),
-      shareFlag(true),
-      csTrafoGlobal2Local_m(right.csTrafoGlobal2Local_m),
-      misalignment_m(right.misalignment_m),
-      aperture_m(right.aperture_m),
-      elementEdge_m(right.elementEdge_m),
+        : std::enable_shared_from_this<ElementBase>(),
+            shareFlag(true),
+            csTrafoGlobal2Local_m(right.csTrafoGlobal2Local_m),
+            misalignment_m(right.misalignment_m),
+            aperture_m(right.aperture_m),
+            elementEdge_m(right.elementEdge_m),
       rotationZAxis_m(right.rotationZAxis_m),
       elementID(right.elementID),
       userAttribs(right.userAttribs),
@@ -107,8 +107,7 @@ ElementBase::ElementBase(const ElementBase& right)
 }
 
 ElementBase::ElementBase(const std::string& name)
-    : RCObject(),
-      shareFlag(true),
+    : shareFlag(true),
       csTrafoGlobal2Local_m(),
       misalignment_m(),
       elementEdge_m(0),

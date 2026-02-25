@@ -21,7 +21,8 @@
 // ------------------------------------------------------------------------
 
 #include "AbsBeamline/ElementBase.h"
-#include "MemoryManagement/Pointer.h"
+#include <memory>
+#include <utility>
 
 
 // Class ElmPtr.
@@ -35,7 +36,8 @@ public:
 
     ElmPtr();
     ElmPtr(const ElmPtr &);
-    ElmPtr(ElementBase *);
+    ElmPtr(ElementBase *elem);
+    explicit ElmPtr(std::shared_ptr<ElementBase> elem);
     virtual ~ElmPtr();
 
     /// Apply visitor.
@@ -47,21 +49,39 @@ public:
 
     /// Set the element pointer.
     inline void setElement(ElementBase *);
+    inline void setElement(std::shared_ptr<ElementBase> elem);
 
 protected:
 
     // The pointer to the element.
-    Pointer<ElementBase> itsElement;
+    std::shared_ptr<ElementBase> itsElement;
 };
 
 
 inline ElementBase *ElmPtr::getElement() const {
-    return &*itsElement;
+    return itsElement.get();
 }
 
 
 inline void ElmPtr::setElement(ElementBase *elem) {
-    itsElement = elem;
+    if (elem == itsElement.get()) {
+        return;
+    }
+    if (!elem) {
+        itsElement.reset();
+        return;
+    }
+    auto shared = elem->weak_from_this();
+    if (!shared.expired()) {
+        itsElement = shared.lock();
+        return;
+    }
+    itsElement.reset(elem);
+}
+
+
+inline void ElmPtr::setElement(std::shared_ptr<ElementBase> elem) {
+    itsElement = std::move(elem);
 }
 
 #endif // CLASSIC_ElmPtr_HH
