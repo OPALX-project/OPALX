@@ -295,7 +295,7 @@ namespace Expressions {
 
     // Internal variables.
     const Table* currentTable = 0;
-    OwnPtr<ATable> currentArray;
+    std::unique_ptr<ATable> currentArray;
 
     // FORWARD DECLARATIONS FOR LOCAL FUNCTIONS.
     // ------------------------------------------------------------------------
@@ -869,7 +869,7 @@ namespace Expressions {
         } else if (stat.real(value)) {
             // Litteral constant.
             result = new SConstant<double>(value);
-        } else if (currentArray.isValid() && stat.delimiter('#')) {
+        } else if (currentArray && stat.delimiter('#')) {
             // "#" hash expression
             result = new SHash(*currentArray);
         } else {
@@ -1085,7 +1085,7 @@ namespace Expressions {
         }
 
         // Construct the expression generator.
-        currentArray = new ATable(frst, last, step);
+        currentArray = std::make_unique<ATable>(frst, last, step);
         currentArray->defineExpression(parseReal(stat));
         parseDelimiter(stat, ')');
 

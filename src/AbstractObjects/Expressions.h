@@ -44,10 +44,10 @@
 #ifndef OPAL_Expressions_HH
 #define OPAL_Expressions_HH 1
 
-#include "MemoryManagement/OwnPtr.h"
 #include "OpalParser/Token.h"
 #include <list>
 #include <iosfwd>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -105,8 +105,7 @@ namespace Expressions {
     // ----------------------------------------------------------------------
     /// A pointer to a scalar expression.
 
-    template <class T> class PtrToScalar:
-        public OwnPtr<Scalar<T> > {
+    template <class T> class PtrToScalar {
 
     public:
 
@@ -115,8 +114,22 @@ namespace Expressions {
 
         PtrToScalar();
         PtrToScalar(const PtrToScalar &rhs);
+        PtrToScalar(PtrToScalar &&rhs) noexcept = default;
         ~PtrToScalar();
-        PtrToScalar& operator=(const PtrToScalar&) = default;
+        PtrToScalar& operator=(const PtrToScalar&);
+        PtrToScalar& operator=(PtrToScalar&&) noexcept = default;
+        PtrToScalar& operator=(Scalar<T> *rhs);
+
+        Scalar<T> *operator->() const { return ptr_m.get(); }
+        Scalar<T> &operator*() const { return *ptr_m; }
+        explicit operator bool() const { return ptr_m != nullptr; }
+        bool isValid() const { return ptr_m != nullptr; }
+        Scalar<T> *release() { return ptr_m.release(); }
+        Scalar<T> *get() const { return ptr_m.get(); }
+
+    private:
+        // Mutable to preserve transfer-on-copy semantics from OwnPtr.
+        mutable std::unique_ptr<Scalar<T>> ptr_m;
     };
 
 
@@ -176,8 +189,7 @@ namespace Expressions {
     // ----------------------------------------------------------------------
     /// A pointer to an array expression.
 
-    template <class T> class PtrToArray:
-        public OwnPtr<OArray<T> > {
+    template <class T> class PtrToArray {
 
     public:
 
@@ -186,8 +198,22 @@ namespace Expressions {
 
         PtrToArray();
         PtrToArray(const PtrToArray &rhs);
+        PtrToArray(PtrToArray &&rhs) noexcept = default;
         ~PtrToArray();
-        PtrToArray& operator=(const PtrToArray<T>&) = default;
+        PtrToArray& operator=(const PtrToArray<T>&);
+        PtrToArray& operator=(PtrToArray&&) noexcept = default;
+        PtrToArray& operator=(OArray<T> *rhs);
+
+        OArray<T> *operator->() const { return ptr_m.get(); }
+        OArray<T> &operator*() const { return *ptr_m; }
+        explicit operator bool() const { return ptr_m != nullptr; }
+        bool isValid() const { return ptr_m != nullptr; }
+        OArray<T> *release() { return ptr_m.release(); }
+        OArray<T> *get() const { return ptr_m.get(); }
+
+    private:
+        // Mutable to preserve transfer-on-copy semantics from OwnPtr.
+        mutable std::unique_ptr<OArray<T>> ptr_m;
     };
 
 
@@ -314,25 +340,41 @@ namespace Expressions {
 
     template <class T> inline
     PtrToScalar<T>::PtrToScalar():
-        OwnPtr<Scalar<T> >()
+        ptr_m()
     {}
 
 
     template <class T> inline
     PtrToScalar<T>::PtrToScalar(const PtrToScalar &rhs):
-        OwnPtr<Scalar<T> >(rhs)
+        ptr_m(std::move(rhs.ptr_m))
     {}
 
 
     template <class T> inline
     PtrToScalar<T>::PtrToScalar(Scalar<T> *rhs):
-        OwnPtr<Scalar<T> >(rhs)
+        ptr_m(rhs)
     {}
 
 
     template <class T> inline
     PtrToScalar<T>::~PtrToScalar()
     {}
+
+
+    template <class T> inline
+    PtrToScalar<T>& PtrToScalar<T>::operator=(const PtrToScalar &rhs) {
+        if (this != &rhs) {
+            ptr_m = std::move(rhs.ptr_m);
+        }
+        return *this;
+    }
+
+
+    template <class T> inline
+    PtrToScalar<T>& PtrToScalar<T>::operator=(Scalar<T> *rhs) {
+        ptr_m.reset(rhs);
+        return *this;
+    }
 
 
     // Implementation of class Expression::ArrayOfPtrs<T>.
@@ -367,25 +409,41 @@ namespace Expressions {
 
     template <class T> inline
     PtrToArray<T>::PtrToArray():
-        OwnPtr<OArray<T> >()
+        ptr_m()
     {}
 
 
     template <class T> inline
     PtrToArray<T>::PtrToArray(const PtrToArray &rhs):
-        OwnPtr<OArray<T> >(rhs)
+        ptr_m(std::move(rhs.ptr_m))
     {}
 
 
     template <class T> inline
     PtrToArray<T>::PtrToArray(OArray<T> *rhs):
-        OwnPtr<OArray<T> >(rhs)
+        ptr_m(rhs)
     {}
 
 
     template <class T> inline
     PtrToArray<T>::~PtrToArray()
     {}
+
+
+    template <class T> inline
+    PtrToArray<T>& PtrToArray<T>::operator=(const PtrToArray &rhs) {
+        if (this != &rhs) {
+            ptr_m = std::move(rhs.ptr_m);
+        }
+        return *this;
+    }
+
+
+    template <class T> inline
+    PtrToArray<T>& PtrToArray<T>::operator=(OArray<T> *rhs) {
+        ptr_m.reset(rhs);
+        return *this;
+    }
 
 
     // End of namespace Expressions.
