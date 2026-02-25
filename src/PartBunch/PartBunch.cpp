@@ -85,12 +85,18 @@ PartBunch<T, Dim>::PartBunch(double qi,
 
     // ---------------- binning setup ----------------
     using bin_index_type = typename ParticleContainer_t::bin_index_type;
-    bin_index_type maxBins = Options::maxBins;
+    constexpr bin_index_type defaultMaxBins = static_cast<bin_index_type>(128);
+    constexpr double defaultAlpha = 1.0;
+    constexpr double defaultBeta  = 1.5;
+    constexpr double defaultWidth = 0.1;
+
     this->setBins(std::make_shared<AdaptBins_t>(
-        this->getParticleContainer(), 
+        this->getParticleContainer(),
         BinningSelector_t(2), // TODO: hardcode z axis with coordinate selector at axis index 2
-        static_cast<bin_index_type>(maxBins),
-        Options::binningAlpha, Options::binningBeta, Options::desiredWidth // Cost function parameters
+        defaultMaxBins,
+        defaultAlpha,
+        defaultBeta,
+        defaultWidth // Cost function parameters
     ));
     this->getBins()->debug();
 
