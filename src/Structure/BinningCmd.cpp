@@ -101,7 +101,7 @@ void BinningCmd::setParameterType() {
 }
 
 Inform& BinningCmd::printInfo(Inform& os) const {
-    os << "* ************* B I N N I N G ********************************************** "
+    os << "* ************* B I N N I N G ****************************************************** "
        << endl;
     os << "* BINNING      " << getOpalName() << '\n'
        << "* MAXBINS      " << getMaxBins() << '\n'
@@ -109,7 +109,7 @@ Inform& BinningCmd::printInfo(Inform& os) const {
        << "* BINNINGALPHA " << getBinningAlpha() << '\n'
        << "* BINNINGBETA  " << getBinningBeta() << '\n'
        << "* PARAMETER    " << parameterName_m << endl;
-    os << "* ************************************************************************ "
+    os << "* ********************************************************************************** "
        << endl;
 
     return os;

@@ -245,6 +245,9 @@ void TrackRun::execute() {
     fs_m = std::shared_ptr<FieldSolverCmd>(FieldSolverCmd::find(Attributes::getString(itsAttr[TRACKRUN::FIELDSOLVER])));
     *gmsg << *fs_m << endl;
 
+    if (fs_m->hasBinningCmd()) {
+        *gmsg << *fs_m->getBinningCmd() << endl;
+    }
 
     Beam* beam = Beam::find(Attributes::getString(itsAttr[TRACKRUN::BEAM]));
     *gmsg << *beam << endl;

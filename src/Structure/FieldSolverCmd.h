@@ -26,10 +26,9 @@
 #include "Algorithms/PartData.h"
 #include "Attributes/Attributes.h"
 #include "PartBunch/BCHandler.hpp"
+#include "Structure/BinningCmd.h"
 
 #include "Ippl.h"
-
-class BinningCmd;
 
 enum class FieldSolverCmdType : short { NONE = -1, FFT = 0, OPEN = 1, CG = 2 };
 
@@ -97,6 +96,8 @@ public:
     virtual void execute();
 
     bool hasValidSolver();
+
+    bool hasBinningCmd() const { return getBinningCmd() != nullptr; }
 
     void setFieldSolverCmdType();
     FieldSolverCmdType getFieldSolverCmdType() const;

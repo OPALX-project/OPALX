@@ -217,7 +217,9 @@ public:
         return this->pcontainer_m;
     }
 
-    void setSolver(std::string solver);
+    void setSolver();
+
+    void setBins();
 
     void pre_run() override ;
 
@@ -608,26 +610,11 @@ public:
         return 0.0;
     }
     bool hasBinning() {
-        *gmsg << "not implemented" << endl;
-        return false;
-    }
-    void setBinCharge(int /*bin*/, double /*q*/) {
-        *gmsg << "not implemented" << endl;
-    }
-    void setBinCharge(int /*bin*/) {
-        *gmsg << "not implemented" << endl;
+        return this->bins_m != nullptr;
     }
     double calcMeanPhi() {
         *gmsg << "not implemented" << endl;
         return 0.0;
-    }
-    bool resetPartBinID2(const double /*eta*/) {
-        *gmsg << "not implemented" << endl;
-        return false;
-    }
-    bool resetPartBinBunch() {
-        *gmsg << "not implemented" << endl;
-        return false;
     }
     double getPx(int /*i*/) {
         *gmsg << "not implemented" << endl;
