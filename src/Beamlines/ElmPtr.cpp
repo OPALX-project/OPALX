@@ -38,6 +38,11 @@ ElmPtr::ElmPtr(ElementBase *elem):
 {}
 
 
+ElmPtr::ElmPtr(std::shared_ptr<ElementBase> elem):
+    itsElement(std::move(elem))
+{}
+
+
 ElmPtr::~ElmPtr()
 {}
 

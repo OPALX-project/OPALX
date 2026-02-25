@@ -19,7 +19,6 @@
 #define OPAL_OpalElement_HH
 
 #include "AbstractObjects/Element.h"
-#include "MemoryManagement/OwnPtr.h"
 #include <map>
 #include <string>
 
