@@ -20,12 +20,13 @@ jobs:
         with:
           fetch-depth: 0 # IMPORTANT: required for git diff
 
-      - name: Install clang-format 20
+      - name: Install clang-format 20.1.8 (static)
         run: |
-          sudo apt-get update
-          sudo apt-get install -y clang-format-20
-          sudo update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-20 100
-
+          sudo curl -L \
+            https://github.com/cpp-linter/clang-tools-static-binaries/releases/download/v20.1.8/clang-format-20.1.8_linux-amd64 \
+            -o /usr/local/bin/clang-format
+          sudo chmod +x /usr/local/bin/clang-format
+          
       - name: Get list of modified source files
         id: files
         env:
