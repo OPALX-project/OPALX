@@ -66,7 +66,7 @@ namespace fs = std::filesystem;
  * @param fast If true, attempts to load a "fast" version (implementation specific).
  * @return Fieldmap* Pointer to the managed fieldmap instance.
  */
-Fieldmap* Fieldmap::getFieldmap(std::string Filename, bool fast) {
+Fieldmap* Fieldmap::getFieldmap(std::string Filename, bool /*fast*/) {
     std::map<std::string, FieldmapDescription>::iterator position =
         FieldmapDictionary.find(Filename);
     /// Found matching entry?
