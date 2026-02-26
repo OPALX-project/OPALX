@@ -1,6 +1,7 @@
 #ifndef MSLANG_H
 #define MSLANG_H
 
+#include "OPALTypes.h"
 #include "Utilities/MSLang/AffineTransformation.h"
 #include "Utilities/MSLang/BoundingBox2D.h"
 
