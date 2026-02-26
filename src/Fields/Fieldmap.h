@@ -130,7 +130,8 @@ public:
      * @return true if R is outside of the field map, false otherwise.
      */
     virtual bool getFieldstrength(
-        const Vector_t<double, 3>& R, Vector_t<double, 3>& E, Vector_t<double, 3>& B) const = 0;
+        const Vector_t<double, 3>& R, Vector_t<double, 3>& E, Vector_t<double, 3>& B
+    ) const = 0;
 
     /**
      * @brief Get the field derivative with respect to a direction.
@@ -143,7 +144,8 @@ public:
      */
     virtual bool getFieldDerivative(
         const Vector_t<double, 3>& R, Vector_t<double, 3>& E, Vector_t<double, 3>& B,
-        const DiffDirection& dir) const = 0;
+        const DiffDirection& dir
+    ) const = 0;
 
     /**
      * @brief Get the longitudinal dimensions of the field.
@@ -163,8 +165,8 @@ public:
      * @param zFinal Output maximum z [m].
      */
     virtual void getFieldDimensions(
-        double& xIni, double& xFinal, double& yIni, double& yFinal, double& zIni,
-        double& zFinal) const = 0;
+        double& xIni, double& xFinal, double& yIni, double& yFinal, double& zIni, double& zFinal
+    ) const = 0;
 
     /// @brief Swap coordinates (implementation dependent).
     virtual void swap() = 0;
@@ -185,18 +187,22 @@ public:
     virtual void setFrequency(double freq) = 0;
 
     virtual void setEdgeConstants(
-        const double& bendAngle, const double& entranceAngle, const double& exitAngle);
+        const double& bendAngle, const double& entranceAngle, const double& exitAngle
+    );
 
     virtual void setFieldLength(const double&);
 
     virtual void get1DProfile1EngeCoeffs(
-        std::vector<double>& engeCoeffsEntry, std::vector<double>& engeCoeffsExit);
+        std::vector<double>& engeCoeffsEntry, std::vector<double>& engeCoeffsExit
+    );
 
     virtual void get1DProfile1EntranceParam(
-        double& entranceParameter1, double& entranceParameter2, double& entranceParameter3);
+        double& entranceParameter1, double& entranceParameter2, double& entranceParameter3
+    );
 
     virtual void get1DProfile1ExitParam(
-        double& exitParameter1, double& exitParameter2, double& exitParameter3);
+        double& exitParameter1, double& exitParameter2, double& exitParameter3
+    );
 
     virtual double getFieldGap();
 
@@ -242,27 +248,32 @@ protected:
 
     template <class S, class T>
     bool interpretLine(
-        std::ifstream& in, S& value1, T& value2, const bool& file_length_known = true);
+        std::ifstream& in, S& value1, T& value2, const bool& file_length_known = true
+    );
 
     template <class S, class T, class U>
     bool interpretLine(
-        std::ifstream& in, S& value1, T& value2, U& value3, const bool& file_length_known = true);
+        std::ifstream& in, S& value1, T& value2, U& value3, const bool& file_length_known = true
+    );
 
     template <class S, class T, class U, class V>
     bool interpretLine(
         std::ifstream& in, S& value1, T& value2, U& value3, V& value4,
-        const bool& file_length_known = true);
+        const bool& file_length_known = true
+    );
 
     template <class S>
     bool interpretLine(
         std::ifstream& in, S& value1, S& value2, S& value3, S& value4, S& value5, S& value6,
-        const bool& file_length_known = true);
+        const bool& file_length_known = true
+    );
 
     bool interpreteEOF(std::ifstream& in);
 
     void interpretWarning(
         const std::ios_base::iostate& state, const bool& read_all, const std::string& error_msg,
-        const std::string& found);
+        const std::string& found
+    );
 
     void missingValuesWarning();
 
@@ -277,17 +288,20 @@ protected:
     void checkMap(
         unsigned int accuracy, std::pair<double, double> fieldDimensions, double deltaZ,
         const std::vector<double>& fourierCoefficients, gsl_spline* splineCoefficients,
-        gsl_interp_accel* splineAccelerator);
+        gsl_interp_accel* splineAccelerator
+    );
 
     void checkMap(
         unsigned int accuracy, double length, const std::vector<double>& zSampling,
         const std::vector<double>& fourierCoefficients, gsl_spline* splineCoefficients,
-        gsl_interp_accel* splineAccelerator);
+        gsl_interp_accel* splineAccelerator
+    );
 
     void write3DField(
         unsigned int nx, unsigned int ny, unsigned int nz, const std::pair<double, double>& xrange,
         const std::pair<double, double>& yrange, const std::pair<double, double>& zrange,
-        const std::vector<Vector_t<double, 3>>& ef, const std::vector<Vector_t<double, 3>>& bf);
+        const std::vector<Vector_t<double, 3>>& ef, const std::vector<Vector_t<double, 3>>& bf
+    );
 
 private:
     template <typename T>

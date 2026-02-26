@@ -153,7 +153,8 @@ inline gsl_fft_real_workspace* gsl_fft_real_workspace_alloc(size_t n) {
 /// \param workspace Input: workspace (unused).
 inline void gsl_fft_real_transform(
     double* data, size_t stride, size_t n, gsl_fft_real_wavetable* /* wavetable */,
-    gsl_fft_real_workspace* /* workspace */) {
+    gsl_fft_real_workspace* /* workspace */
+) {
     FFT::fft_real_transform(data, stride, n);
 }
 
@@ -205,7 +206,8 @@ inline gsl_fft_halfcomplex_workspace* gsl_fft_halfcomplex_workspace_alloc(size_t
 /// \param workspace Input: workspace (unused).
 inline void gsl_fft_halfcomplex_transform(
     double* data, size_t stride, size_t n, gsl_fft_halfcomplex_wavetable* /* wavetable */,
-    gsl_fft_halfcomplex_workspace* /* workspace */) {
+    gsl_fft_halfcomplex_workspace* /* workspace */
+) {
     // Inverse FFT for halfcomplex data (packed format)
     // Convert halfcomplex to complex, perform inverse FFT, convert back
     std::vector<std::complex<double>> complex_data(n);
@@ -247,7 +249,8 @@ inline void gsl_fft_halfcomplex_workspace_free(gsl_fft_halfcomplex_workspace* w)
 /// \param workspace Input: workspace (unused).
 inline void gsl_fft_halfcomplex_inverse(
     double* data, size_t stride, size_t n, gsl_fft_halfcomplex_wavetable* wavetable,
-    gsl_fft_halfcomplex_workspace* workspace) {
+    gsl_fft_halfcomplex_workspace* workspace
+) {
     gsl_fft_halfcomplex_transform(data, stride, n, wavetable, workspace);
 }
 
@@ -259,7 +262,8 @@ inline void gsl_fft_halfcomplex_inverse(
 /// \param workspace Input: workspace (unused).
 inline void gsl_fft_halfcomplex_inverse(
     double* data, size_t stride, size_t n, gsl_fft_halfcomplex_wavetable* /* wavetable */,
-    gsl_fft_real_workspace* /* workspace */) {
+    gsl_fft_real_workspace* /* workspace */
+) {
     gsl_fft_halfcomplex_wavetable* hc_w  = gsl_fft_halfcomplex_wavetable_alloc(n);
     gsl_fft_halfcomplex_workspace* hc_ws = gsl_fft_halfcomplex_workspace_alloc(n);
     gsl_fft_halfcomplex_transform(data, stride, n, hc_w, hc_ws);
@@ -308,7 +312,8 @@ inline gsl_fft_complex_workspace* gsl_fft_complex_workspace_alloc(size_t n) {
 /// \param workspace Input: workspace (unused).
 inline void gsl_fft_complex_forward(
     double* data, size_t stride, size_t n, gsl_fft_complex_wavetable* /* wavetable */,
-    gsl_fft_complex_workspace* /* workspace */) {
+    gsl_fft_complex_workspace* /* workspace */
+) {
     std::vector<std::complex<double>> complex_data(n);
     for (size_t i = 0; i < n; ++i) {
         complex_data[i] = std::complex<double>(data[2 * i * stride], data[(2 * i + 1) * stride]);
@@ -329,7 +334,8 @@ inline void gsl_fft_complex_forward(
 /// \param workspace Input: workspace (unused).
 inline void gsl_fft_complex_inverse(
     double* data, size_t stride, size_t n, gsl_fft_complex_wavetable* /* wavetable */,
-    gsl_fft_complex_workspace* /* workspace */) {
+    gsl_fft_complex_workspace* /* workspace */
+) {
     std::vector<std::complex<double>> complex_data(n);
     for (size_t i = 0; i < n; ++i) {
         complex_data[i] = std::complex<double>(data[2 * i * stride], data[(2 * i + 1) * stride]);

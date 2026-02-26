@@ -39,7 +39,8 @@ private:
 
     static MeshData getCylinder(
         double length, double minor, double major, double formFactor,
-        const unsigned int numSegments = 36);
+        const unsigned int numSegments = 36
+    );
 
     static MeshData getBox(double length, double width, double height, double formFactor);
 

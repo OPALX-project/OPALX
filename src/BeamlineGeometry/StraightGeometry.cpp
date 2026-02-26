@@ -37,7 +37,8 @@ double StraightGeometry::getElementLength() const { return len; }
 void StraightGeometry::setElementLength(double l) {
     if (l < 0.0) {
         throw GeneralClassicException(
-            "StraightGeometry::setElementLength", "The length of an element has to be positive");
+            "StraightGeometry::setElementLength", "The length of an element has to be positive"
+        );
     }
     len = std::max(0.0, l);
 }

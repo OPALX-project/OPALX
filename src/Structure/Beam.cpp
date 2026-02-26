@@ -54,12 +54,14 @@ Beam::Beam()
     : Definition(
           SIZE, "BEAM",
           "The \"BEAM\" statement defines data for the particles "
-          "in a beam."),
+          "in a beam."
+      ),
       reference(1.0, Physics::m_p * Units::GeV2eV, 1.0 * Units::GeV2eV) {
     itsAttr[PARTICLE] = Attributes::makePredefinedString(
         "PARTICLE", "Name of particle to be used",
         {"ELECTRON", "POSITRON", "MUON", "PROTON", "ANTIPROTON", "DEUTERON", "HMINUS", "H2P",
-         "ALPHA", "CARBON", "XENON", "URANIUM"});
+         "ALPHA", "CARBON", "XENON", "URANIUM"}
+    );
 
     itsAttr[MASS] = Attributes::makeReal("MASS", "Particle rest mass [GeV]");
 
@@ -110,14 +112,16 @@ void Beam::execute() {
         throw OpalException(
             "Beam::execute()",
             "The energy hasn't been set. "
-            "Set either \"GAMMA\", \"ENERGY\" or \"PC\".");
+            "Set either \"GAMMA\", \"ENERGY\" or \"PC\"."
+        );
     }
 
     if (!(itsAttr[PARTICLE]) && (!itsAttr[MASS] || !(itsAttr[CHARGE]))) {
         throw OpalException(
             "Beam::execute()",
             "The beam particle hasn't been set. "
-            "Set either \"PARTICLE\" or \"MASS\" and \"CHARGE\".");
+            "Set either \"PARTICLE\" or \"MASS\" and \"CHARGE\"."
+        );
     }
 
     if (!(itsAttr[NPART])) {
@@ -141,7 +145,8 @@ size_t Beam::getNumberOfParticles() const {
     } else {
         throw OpalException(
             "Beam::getNumberOfParticles()",
-            "Wrong number of particles in beam!. \"NPART\" must be positive");
+            "Wrong number of particles in beam!. \"NPART\" must be positive"
+        );
     }
 }
 

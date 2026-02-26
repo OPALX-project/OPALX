@@ -122,7 +122,8 @@ namespace Attributes {
     /// Make string attribute.
     //  Initial value is defined.
     extern Attribute makeString(
-        const std::string& name, const std::string& help, const std::string& initial);
+        const std::string& name, const std::string& help, const std::string& initial
+    );
 
     /// Get string value.
     extern std::string getString(const Attribute& attr);
@@ -134,13 +135,15 @@ namespace Attributes {
     //  Initial value undefined.
     extern Attribute makePredefinedString(
         const std::string& name, const std::string& help,
-        const std::initializer_list<std::string>& predefinedStrings);
+        const std::initializer_list<std::string>& predefinedStrings
+    );
 
     /// Make predefined string attribute.
     //  Initial value is defined.
     extern Attribute makePredefinedString(
         const std::string& name, const std::string& help,
-        const std::initializer_list<std::string>& predefinedStrings, const std::string& initial);
+        const std::initializer_list<std::string>& predefinedStrings, const std::string& initial
+    );
 
     /// Set predefined string value.
     extern void setPredefinedString(Attribute& attr, const std::string& val);
@@ -152,7 +155,8 @@ namespace Attributes {
     /// Make uppercase string attribute.
     //  Initial value is defined.
     extern Attribute makeUpperCaseString(
-        const std::string& name, const std::string& help, const std::string& initial);
+        const std::string& name, const std::string& help, const std::string& initial
+    );
 
     /// Set uppercase string value.
     extern void setUpperCaseString(Attribute& attr, const std::string& val);

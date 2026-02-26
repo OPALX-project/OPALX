@@ -72,12 +72,14 @@ const Attribute* Object::findAttribute(const std::string& name) const {
 
 Object* Object::makeTemplate(const std::string& name, TokenStream&, Statement&) {
     throw ParseError(
-        "Object::makeTemplate()", "Object \"" + name + "\" cannot be used to define a macro.");
+        "Object::makeTemplate()", "Object \"" + name + "\" cannot be used to define a macro."
+    );
 }
 
 Object* Object::makeInstance(const std::string& /*name*/, Statement&, const Parser*) {
     throw ParseError(
-        "Object::makeInstance()", "Object \"" + getOpalName() + "\" cannot be called as a macro.");
+        "Object::makeInstance()", "Object \"" + getOpalName() + "\" cannot be called as a macro."
+    );
 }
 
 void Object::parse(Statement& stat) {
@@ -106,7 +108,8 @@ void Object::parse(Statement& stat) {
         } else {
             throw ParseError(
                 "Object::parse()",
-                "Object \"" + getOpalName() + "\" has no attribute \"" + name + "\".");
+                "Object \"" + getOpalName() + "\" has no attribute \"" + name + "\"."
+            );
         }
     }
 }
@@ -125,7 +128,8 @@ void Object::parseShortcut(Statement& stat, bool eval) {
                 } else {
                     throw ParseError(
                         "Object::parseShortcut()",
-                        "Object \"" + getOpalName() + "\" has no attribute \"" + name + "\".");
+                        "Object \"" + getOpalName() + "\" has no attribute \"" + name + "\"."
+                    );
                 }
             } else if (stat.delimiter(":=")) {
                 if (Attribute* attr = findAttribute(name)) {
@@ -134,7 +138,8 @@ void Object::parseShortcut(Statement& stat, bool eval) {
                 } else {
                     throw ParseError(
                         "Object::parseShortcut()",
-                        "Object \"" + getOpalName() + "\" has no attribute \"" + name + "\".");
+                        "Object \"" + getOpalName() + "\" has no attribute \"" + name + "\"."
+                    );
                 }
             }
         }
@@ -203,7 +208,8 @@ void Object::printHelp(std::ostream& /*os*/) const {
             std::vector<std::string> words;
             std::copy(
                 std::istream_iterator<std::string>(help), std::istream_iterator<std::string>(),
-                std::back_inserter(words));
+                std::back_inserter(words)
+            );
             unsigned int columnWidth = 40;
             if (maxNameLength + maxTypeLength < 40u) {
                 columnWidth = 80 - maxNameLength - maxTypeLength;

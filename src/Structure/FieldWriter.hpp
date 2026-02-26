@@ -27,7 +27,8 @@
 
 template <typename FieldType>
 void FieldWriter::dumpField(
-    FieldType& field, std::string name, std::string unit, long long step, FieldType* image) {
+    FieldType& field, std::string name, std::string unit, long long step, FieldType* image
+) {
     if (ippl::Comm->size() > 1) {
         return;
     }

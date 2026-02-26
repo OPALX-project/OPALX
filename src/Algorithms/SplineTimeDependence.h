@@ -61,7 +61,8 @@ public:
      *  monotonically.
      */
     SplineTimeDependence(
-        size_t splineOrder, const std::vector<double>& times, const std::vector<double>& values);
+        size_t splineOrder, const std::vector<double>& times, const std::vector<double>& values
+    );
 
     /** Copy Constructor */
     SplineTimeDependence(const SplineTimeDependence& rhs);
@@ -107,7 +108,8 @@ public:
      * @param values a list of values corresponding to the times
      */
     void setSpline(
-        size_t splineOrder, const std::vector<double>& times, const std::vector<double>& values);
+        size_t splineOrder, const std::vector<double>& times, const std::vector<double>& values
+    );
 
     /* Getters for the test case use */
     [[nodiscard]] const std::vector<double>& getTimes() const { return times_m; }

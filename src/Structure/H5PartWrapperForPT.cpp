@@ -36,7 +36,8 @@ H5PartWrapperForPT::H5PartWrapperForPT(const std::string& fileName, h5_int32_t f
     : H5PartWrapper(fileName, flags) {}
 
 H5PartWrapperForPT::H5PartWrapperForPT(
-    const std::string& fileName, int restartStep, std::string sourceFile, h5_int32_t flags)
+    const std::string& fileName, int restartStep, std::string sourceFile, h5_int32_t flags
+)
     : H5PartWrapper(fileName, restartStep, sourceFile, flags) {
     if (restartStep == -1) {
         restartStep = H5GetNumSteps(file_m) - 1;
@@ -57,7 +58,8 @@ void H5PartWrapperForPT::readHeader() {
 
     for (h5_int64_t i = 0; i < numFileAttributes; ++i) {
         REPORTONERROR(H5GetFileAttribInfo(
-            file_m, i, attributeName, lengthAttributeName, &attributeType, &numAttributeElements));
+            file_m, i, attributeName, lengthAttributeName, &attributeType, &numAttributeElements
+        ));
 
         attributeNames.insert(attributeName);
     }
@@ -98,7 +100,8 @@ void H5PartWrapperForPT::readHeader() {
 }
 
 void H5PartWrapperForPT::readStep(
-    PartBunch_t* bunch, h5_ssize_t firstParticle, h5_ssize_t lastParticle) {
+    PartBunch_t* bunch, h5_ssize_t firstParticle, h5_ssize_t lastParticle
+) {
     h5_ssize_t numStepsInSource = H5GetNumSteps(file_m);
     h5_ssize_t readStep         = numStepsInSource - 1;
     REPORTONERROR(H5SetStep(file_m, readStep));
@@ -143,12 +146,14 @@ void H5PartWrapperForPT::readStepHeader(PartBunch_t* bunch) {
 }
 
 void H5PartWrapperForPT::readStepData(
-    PartBunch_t* /*bunch*/, h5_ssize_t firstParticle, h5_ssize_t lastParticle) {
+    PartBunch_t* /*bunch*/, h5_ssize_t firstParticle, h5_ssize_t lastParticle
+) {
     h5_ssize_t numParticles = getNumParticles();
     if (lastParticle >= numParticles || firstParticle > lastParticle) {
         throw OpalException(
             "H5PartWrapperForPT::readStepData",
-            "the provided particle numbers don't match the number of particles in the file");
+            "the provided particle numbers don't match the number of particles in the file"
+        );
     }
 
     REPORTONERROR(H5PartSetView(file_m, firstParticle, lastParticle));
@@ -289,7 +294,8 @@ void H5PartWrapperForPT::writeHeader() {
 }
 
 void H5PartWrapperForPT::writeStep(
-    PartBunch_t* bunch, const std::map<std::string, double>& additionalStepAttributes) {
+    PartBunch_t* bunch, const std::map<std::string, double>& additionalStepAttributes
+) {
     if (bunch->getTotalNum() == 0)
         return;
 
@@ -301,7 +307,8 @@ void H5PartWrapperForPT::writeStep(
 }
 
 void H5PartWrapperForPT::writeStepHeader(
-    PartBunch_t* bunch, const std::map<std::string, double>& additionalStepAttributes) {
+    PartBunch_t* bunch, const std::map<std::string, double>& additionalStepAttributes
+) {
     double actPos                = bunch->get_sPos();
     double t                     = bunch->getT();
     Vector_t<double, 3> rmin     = bunch->get_origin();
@@ -388,10 +395,12 @@ void H5PartWrapperForPT::writeStepHeader(
     try {
         Vector_t<double, 3> referenceB(
             additionalStepAttributes.at("B-ref_x"), additionalStepAttributes.at("B-ref_z"),
-            additionalStepAttributes.at("B-ref_y"));
+            additionalStepAttributes.at("B-ref_y")
+        );
         Vector_t<double, 3> referenceE(
             additionalStepAttributes.at("E-ref_x"), additionalStepAttributes.at("E-ref_z"),
-            additionalStepAttributes.at("E-ref_y"));
+            additionalStepAttributes.at("E-ref_y")
+        );
 
         WRITESTEPATTRIB(Float64, file_m, "B-ref", (h5_float64_t*)&referenceB, 3);
         WRITESTEPATTRIB(Float64, file_m, "E-ref", (h5_float64_t*)&referenceE, 3);
@@ -399,7 +408,8 @@ void H5PartWrapperForPT::writeStepHeader(
         *ippl::Error << m.what() << endl;
 
         throw OpalException(
-            "H5PartWrapperForPC::writeStepHeader", "some additional step attribute not found");
+            "H5PartWrapperForPC::writeStepHeader", "some additional step attribute not found"
+        );
     }
 
     ++numSteps_m;

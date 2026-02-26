@@ -61,7 +61,8 @@ public:
             return DIRICHLET;
         } else {
             throw OpalException(
-                "BCHandler::strToBCType", "Unknown boundary condition type: " + str);
+                "BCHandler::strToBCType", "Unknown boundary condition type: " + str
+            );
         }
     }
 
@@ -85,7 +86,8 @@ public:
     BCHandler(Bcs... bcs) : bcs_m{{static_cast<BCType>(bcs)...}} {
         if (sizeof...(bcs) != Dim) {
             throw OpalException(
-                "BCHandler::BCHandler", "Number of passed BCs does not match dimensionality!");
+                "BCHandler::BCHandler", "Number of passed BCs does not match dimensionality!"
+            );
         }
     }
 

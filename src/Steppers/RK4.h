@@ -30,8 +30,8 @@ public:
 
 private:
     bool doAdvance_m(
-        PartBunch_t* bunch, const size_t& i, const double& t, const double dt,
-        Arguments&... args) const;
+        PartBunch_t* bunch, const size_t& i, const double& t, const double dt, Arguments&... args
+    ) const;
 
     /**
      *
@@ -45,7 +45,8 @@ private:
      */
     bool derivate_m(
         PartBunch_t* bunch, double* y, const double& t, double* yp, const size_t& i,
-        Arguments&... args) const;
+        Arguments&... args
+    ) const;
 
     void copyTo(const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, double* x) const;
 

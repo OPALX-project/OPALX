@@ -34,7 +34,8 @@ protected:
 
         // Create FieldContainer
         auto fc = std::make_shared<FieldContainer_t>(
-            hr, rmin, rmax, decomp, domain, origin, this->isAllPeriodic_m);
+            hr, rmin, rmax, decomp, domain, origin, this->isAllPeriodic_m
+        );
 
         // Create mesh and fieldlayout
         Mesh_t<3> mesh(domain, hr, origin);
@@ -64,7 +65,8 @@ void computeMean(ViewType& view, size_t nlocal, size_t total_nparticles, double 
             cent1 += view(k)[1];
             cent2 += view(k)[2];
         },
-        Kokkos::Sum<double>(sumR[0]), Kokkos::Sum<double>(sumR[1]), Kokkos::Sum<double>(sumR[2]));
+        Kokkos::Sum<double>(sumR[0]), Kokkos::Sum<double>(sumR[1]), Kokkos::Sum<double>(sumR[2])
+    );
     Kokkos::fence();
 
     MPI_Allreduce(sumR, meanR, 3, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
@@ -76,8 +78,8 @@ void computeMean(ViewType& view, size_t nlocal, size_t total_nparticles, double 
 
 template <typename ViewType>
 void computeStdDev(
-    ViewType& view, size_t nlocal, size_t total_nparticles, const double meanR[3],
-    double stddevR[3]) {
+    ViewType& view, size_t nlocal, size_t total_nparticles, const double meanR[3], double stddevR[3]
+) {
     double sumR2[3] = {0.0, 0.0, 0.0};
 
     // Compute sum of squares locally
@@ -88,8 +90,8 @@ void computeStdDev(
             s1 += view(k)[1] * view(k)[1];
             s2 += view(k)[2] * view(k)[2];
         },
-        Kokkos::Sum<double>(sumR2[0]), Kokkos::Sum<double>(sumR2[1]),
-        Kokkos::Sum<double>(sumR2[2]));
+        Kokkos::Sum<double>(sumR2[0]), Kokkos::Sum<double>(sumR2[1]), Kokkos::Sum<double>(sumR2[2])
+    );
     Kokkos::fence();
 
     // MPI reduce to get global sums
@@ -107,7 +109,8 @@ void computeStdDev(
 
 template <typename ViewType>
 void computeMaxAbsR(
-    ViewType& view, size_t nlocal, double global_maxAbsR[3], double& global_maxRadius) {
+    ViewType& view, size_t nlocal, double global_maxAbsR[3], double& global_maxRadius
+) {
     // Local maxima initialized
     double local_maxAbsR[3] = {0.0, 0.0, 0.0};
     double local_maxRadius  = 0.0;
@@ -135,14 +138,17 @@ void computeMaxAbsR(
                 maxr = r;
         },
         Kokkos::Max<double>(local_maxAbsR[0]), Kokkos::Max<double>(local_maxAbsR[1]),
-        Kokkos::Max<double>(local_maxAbsR[2]), Kokkos::Max<double>(local_maxRadius));
+        Kokkos::Max<double>(local_maxAbsR[2]), Kokkos::Max<double>(local_maxRadius)
+    );
     Kokkos::fence();
 
     // MPI reduction to get global maxima
     MPI_Allreduce(
-        local_maxAbsR, global_maxAbsR, 3, MPI_DOUBLE, MPI_MAX, ippl::Comm->getCommunicator());
+        local_maxAbsR, global_maxAbsR, 3, MPI_DOUBLE, MPI_MAX, ippl::Comm->getCommunicator()
+    );
     MPI_Allreduce(
-        &local_maxRadius, &global_maxRadius, 1, MPI_DOUBLE, MPI_MAX, ippl::Comm->getCommunicator());
+        &local_maxRadius, &global_maxRadius, 1, MPI_DOUBLE, MPI_MAX, ippl::Comm->getCommunicator()
+    );
 
     ippl::Comm->barrier();
 }

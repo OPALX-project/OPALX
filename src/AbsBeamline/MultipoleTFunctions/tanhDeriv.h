@@ -57,7 +57,8 @@ namespace tanhderiv {
      */
     double integrate(
         const double& a, const double& s0, const double& lambdaleft, const double& lambdaright,
-        const int& n);
+        const int& n
+    );
 
 }  // namespace tanhderiv
 

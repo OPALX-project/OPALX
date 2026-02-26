@@ -57,7 +57,8 @@ namespace Expressions {
         //  If all component of the argument are constant, then evaluate
         //  and store the result as a constant.
         static PtrToScalar<T> make(
-            const TFunction1<T, const std::vector<T>&>& function, PtrToArray<T>& oper);
+            const TFunction1<T, const std::vector<T>&>& function, PtrToArray<T>& oper
+        );
 
         /// Print expression.
         virtual void print(std::ostream&, int precedence = 99) const;
@@ -83,7 +84,8 @@ namespace Expressions {
 
     template <class T>
     inline ASUnary<T>::ASUnary(
-        const TFunction1<T, const std::vector<T>&>& function, PtrToArray<T>& oper)
+        const TFunction1<T, const std::vector<T>&>& function, PtrToArray<T>& oper
+    )
         : fun(function), opr(oper) {}
 
     template <class T>
@@ -119,7 +121,8 @@ namespace Expressions {
 
     template <class T>
     inline PtrToScalar<T> ASUnary<T>::make(
-        const TFunction1<T, const std::vector<T>&>& function, PtrToArray<T>& oper) {
+        const TFunction1<T, const std::vector<T>&>& function, PtrToArray<T>& oper
+    ) {
         // We must pick up the constant flag before the ownership of "oper"
         // is transferred to "result".
         bool isConst          = oper->isConstant();

@@ -28,7 +28,8 @@ RealVector::RealVector()
           1, "REAL_VECTOR",
           "The \"REAL VECTOR\" statement defines a global "
           "real vector.\n"
-          "\tREAL VECTOR<name>=<real-vector-expression>;\n") {
+          "\tREAL VECTOR<name>=<real-vector-expression>;\n"
+      ) {
     itsAttr[0] = Attributes::makeRealArray("VALUE", "The vector value");
 
     registerOwnership(AttributeHandler::STATEMENT);

@@ -28,8 +28,8 @@ namespace Attributes {
 
     PredefinedString::PredefinedString(
         const std::string& name, const std::string& help,
-        const std::initializer_list<std::string>& predefinedStrings,
-        const std::string& defaultValue)
+        const std::initializer_list<std::string>& predefinedStrings, const std::string& defaultValue
+    )
         : AttributeHandler(name, help, 0) {
         for (const std::string& value : predefinedStrings) {
             predefinedStrings_m.insert(Util::toUpper(value));

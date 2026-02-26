@@ -70,20 +70,23 @@ bool PluginElement::bends() const { return false; }
 bool PluginElement::apply() { return false; }
 
 bool PluginElement::apply(
-    const size_t& /*i*/, const double&, Vector_t<double, 3>&, Vector_t<double, 3>&) {
+    const size_t& /*i*/, const double&, Vector_t<double, 3>&, Vector_t<double, 3>&
+) {
     return false;
 }
 
 bool PluginElement::apply(
     const Vector_t<double, 3>& /*R*/, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
-    Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/) {
+    Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/
+) {
     *gmsg << "passed R, P, t, E, B arguments not used in PluginElement::apply" << endl;
     return false;
 }
 
 bool PluginElement::applyToReferenceParticle(
     const Vector_t<double, 3>&, const Vector_t<double, 3>&, const double&, Vector_t<double, 3>&,
-    Vector_t<double, 3>&) {
+    Vector_t<double, 3>&
+) {
     return false;
 }
 
@@ -146,7 +149,8 @@ void PluginElement::setGeom(const double dist) {
 }
 
 void PluginElement::changeWidth(
-    PartBunch_t* bunch, int i, const double tstep, const double tangle) {
+    PartBunch_t* bunch, int i, const double tstep, const double tangle
+) {
     constexpr double c_mtns = Physics::c / Units::s2ns;  // m/s --> m/ns
 
     const double tmp = std::sqrt(dot(bunch->P(i), bunch->P(i)));
@@ -189,7 +193,8 @@ double PluginElement::getYStart() const { return ystart_m; }
 double PluginElement::getYEnd() const { return yend_m; }
 
 bool PluginElement::check(
-    PartBunch_t* bunch, const int turnnumber, const double t, const double tstep) {
+    PartBunch_t* bunch, const int turnnumber, const double t, const double tstep
+) {
     bool flag = false;
     // check if bunch close
     bool bunchClose = preCheck(bunch);

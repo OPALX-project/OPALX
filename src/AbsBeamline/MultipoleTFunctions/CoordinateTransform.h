@@ -72,7 +72,8 @@ namespace coordinatetransform {
          */
         CoordinateTransform(
             const double& xlab, const double& ylab, const double& zlab, const double& s_0,
-            const double& lambdaleft, const double& lambdaright, const double& rho);
+            const double& lambdaleft, const double& lambdaright, const double& rho
+        );
         /** Copy constructor */
         CoordinateTransform(const CoordinateTransform& transform);
         /** Destructor, does nothing */
@@ -109,7 +110,8 @@ namespace coordinatetransform {
          *  entrance to the middle of the magnet
          */
         void transformFromEntranceCoordinates(
-            std::vector<double>& coordinates, const double& boundingBoxLength);
+            std::vector<double>& coordinates, const double& boundingBoxLength
+        );
         double s_0_m;
         double lambdaleft_m;
         double lambdaright_m;

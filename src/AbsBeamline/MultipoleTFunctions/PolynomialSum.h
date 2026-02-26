@@ -101,8 +101,8 @@ namespace polynomial {
          *  empty vector of vectors into this function
          */
         void putSumTogether(
-            const std::vector<double>& dSvalues,
-            std::vector<std::vector<double>>& finalPolynomial) const;
+            const std::vector<double>& dSvalues, std::vector<std::vector<double>>& finalPolynomial
+        ) const;
         /** Evaluate polynomial after putting the sum together into one polynomial
          *  \param x -> Point x where polynomial is evaluated
          *  \param s -> Point s where polynomial is evaluated
@@ -110,7 +110,8 @@ namespace polynomial {
          *  with zeroth (no) derivative
          */
         double evaluatePolynomial2(
-            const double& x, const double& s, const std::vector<double>& dSvalues) const;
+            const double& x, const double& s, const std::vector<double>& dSvalues
+        ) const;
         /** Add poly to the sum by concatenating the lists
          *  \param poly -> Polynomial that is added to the list
          */
@@ -133,7 +134,8 @@ namespace polynomial {
 
     inline std::size_t PolynomialSum::numberOfTerms() const { return polynomialSum_m.size(); }
     inline double PolynomialSum::evaluatePolynomial(
-        const std::size_t& p, const double& x, const double& s) const {
+        const std::size_t& p, const double& x, const double& s
+    ) const {
         if (p >= polynomialSum_m.size()) {
             return 0.0;
         }

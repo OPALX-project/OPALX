@@ -11,7 +11,8 @@ namespace ParticleBinning {
         typename size_type, typename bin_index_type, typename value_type, bool UseDualView,
         class... Properties>
     void Histogram<size_type, bin_index_type, value_type, UseDualView, Properties...>::copyFields(
-        const Histogram& other) {
+        const Histogram& other
+    ) {
         debug_name_m    = other.debug_name_m;
         numBins_m       = other.numBins_m;
         totalBinWidth_m = other.totalBinWidth_m;
@@ -33,7 +34,8 @@ namespace ParticleBinning {
     value_type Histogram<size_type, bin_index_type, value_type, UseDualView, Properties...>::
         adaptiveBinningCostFunction(
             const size_type& sumCount, const value_type& sumWidth,
-            const size_type& totalNumParticles) {
+            const size_type& totalNumParticles
+        ) {
 #ifdef DEBUG
         if (sumCount == 0) {
             Inform err("mergeBins");

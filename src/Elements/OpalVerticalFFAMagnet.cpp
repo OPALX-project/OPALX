@@ -35,27 +35,33 @@ OpalVerticalFFAMagnet::OpalVerticalFFAMagnet()
     itsAttr[WIDTH] = Attributes::makeReal(
         "WIDTH",
         "The full width of the magnet. Particles moving more than WIDTH/2 horizontally, in either "
-        "direction, are out of the aperture.");
+        "direction, are out of the aperture."
+    );
     itsAttr[MAX_HORIZONTAL_POWER] = Attributes::makeReal(
         "MAX_HORIZONTAL_POWER",
         "The maximum power in horizontal coordinate that will be considered in the field "
-        "expansion.");
+        "expansion."
+    );
     itsAttr[END_LENGTH] =
         Attributes::makeReal("END_LENGTH", "The end length of the FFA fringe field [m].");
     itsAttr[CENTRE_LENGTH] = Attributes::makeReal(
-        "CENTRE_LENGTH", "The centre length of the FFA (i.e. length of the flat top) [m].");
+        "CENTRE_LENGTH", "The centre length of the FFA (i.e. length of the flat top) [m]."
+    );
     itsAttr[BB_LENGTH] = Attributes::makeReal(
         "BB_LENGTH",
         "Determines the length of the bounding box. Magnet is situated symmetrically in the "
-        "bounding box. [m]");
+        "bounding box. [m]"
+    );
     itsAttr[HEIGHT_POS_EXTENT] = Attributes::makeReal(
         "HEIGHT_POS_EXTENT",
         "Height of the magnet above z=0. Particles moving upwards more than HEIGHT_POS_EXTENT are "
-        "out of the aperture [m].");
+        "out of the aperture [m]."
+    );
     itsAttr[HEIGHT_NEG_EXTENT] = Attributes::makeReal(
         "HEIGHT_NEG_EXTENT",
         "Height of the magnet below z=0. Particles moving downwards more than HEIGHT_NEG_EXTENT "
-        "are out of the aperture [m].");
+        "are out of the aperture [m]."
+    );
 
     registerOwnership();
 

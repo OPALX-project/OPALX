@@ -91,8 +91,8 @@ Ring::Ring(const Ring& ring)
     setRefPartBunch(ring.refPartBunch_m);
     if (ring.lossDS_m != nullptr)
         throw GeneralClassicException(
-            "Ring::Ring(const Ring&)",
-            "Can't copy construct LossDataSink so copy constructor fails");
+            "Ring::Ring(const Ring&)", "Can't copy construct LossDataSink so copy constructor fails"
+        );
     for (size_t i = 0; i < section_list_m.size(); ++i) {
         section_list_m[i] = new RingSection(*ring.section_list_m[i]);
     }
@@ -107,7 +107,8 @@ Ring::~Ring() {
 bool Ring::apply() { return false; }
 
 bool Ring::apply(
-    const size_t& id, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
+    const size_t& id, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B
+) {
     std::shared_ptr<ParticleContainer_t> pc = RefPartBunch_m->getParticleContainer();
     auto Rview                              = pc->R.getView();
     auto Pview                              = pc->P.getView();
@@ -139,7 +140,8 @@ bool Ring::apply(
 
 bool Ring::apply(
     const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& t,
-    Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
+    Vector_t<double, 3>& E, Vector_t<double, 3>& B
+) {
     B = Vector_t<double, 3>({0.0, 0.0, 0.0});
     E = Vector_t<double, 3>({0.0, 0.0, 0.0});
 
@@ -161,7 +163,8 @@ bool Ring::apply(
         // old field limits -DW
         outOfBounds &= sections[i]->getFieldValue(
             R * Vector_t<double, 3>(1000.0),
-            refPartBunch_m->get_centroid() * Vector_t<double, 3>(1000.0), t, E_temp, B_temp);
+            refPartBunch_m->get_centroid() * Vector_t<double, 3>(1000.0), t, E_temp, B_temp
+        );
         B += (scale_m * B_temp);
         E += (scale_m * E_temp);
     }
@@ -219,7 +222,8 @@ void Ring::checkMidplane(Euclid3D delta) const {
         || std::abs(delta.getRotation().getAxis()(1)) > angleTolerance_m) {
         throw GeneralClassicException(
             "Ring::checkMidplane",
-            std::string("Placement of elements out of the ") + "midplane is not supported by Ring");
+            std::string("Placement of elements out of the ") + "midplane is not supported by Ring"
+        );
     }
 }
 
@@ -237,7 +241,8 @@ Vector_t<double, 3> Ring::getNextPosition() const {
     }
     return Vector_t<double, 3>(
         {latticeRInit_m * std::sin(latticePhiInit_m), latticeRInit_m * std::cos(latticePhiInit_m),
-         0.});
+         0.}
+    );
 }
 
 Vector_t<double, 3> Ring::getNextNormal() const {
@@ -246,14 +251,16 @@ Vector_t<double, 3> Ring::getNextNormal() const {
     }
     return Vector_t<double, 3>(
         {std::cos(latticePhiInit_m + latticeThetaInit_m),
-         -std::sin(latticePhiInit_m + latticeThetaInit_m), 0.});
+         -std::sin(latticePhiInit_m + latticeThetaInit_m), 0.}
+    );
 }
 
 void Ring::appendElement(const Component& element) {
     if (isLocked_m) {
         throw GeneralClassicException(
             "Ring::appendElement",
-            "Attempt to append element " + element.getName() + " when ring is locked");
+            "Attempt to append element " + element.getName() + " when ring is locked"
+        );
     }
     // delta is transform from start of bend to end with x, z as horizontal
     // I failed to get Rotation3D to work so use rotations written by hand.
@@ -274,7 +281,8 @@ void Ring::appendElement(const Component& element) {
     Vector_t<double, 3> endPos =
         Vector_t<double, 3>(
             {+delta.getVector()(0) * std::cos(startF) - delta.getVector()(1) * std::sin(startF),
-             +delta.getVector()(0) * std::sin(startF) + delta.getVector()(1) * std::cos(startF), 0})
+             +delta.getVector()(0) * std::sin(startF) + delta.getVector()(1) * std::cos(startF), 0}
+        )
         + startPos;
     section->setEndPosition(endPos);
 
@@ -282,7 +290,8 @@ void Ring::appendElement(const Component& element) {
     // atan2(delta.getVector()(1), delta.getVector()(0));
     Vector_t<double, 3> endNorm = Vector_t<double, 3>(
         {+startNorm(0) * std::cos(endF) + startNorm(1) * std::sin(endF),
-         -startNorm(0) * std::sin(endF) + startNorm(1) * std::cos(endF), 0});
+         -startNorm(0) * std::sin(endF) + startNorm(1) * std::cos(endF), 0}
+    );
     section->setEndNormal(endNorm);
 
     section->setComponentPosition(startPos);
@@ -307,7 +316,8 @@ void Ring::lockRing() {
     Inform msg("OPAL ");
     if (isLocked_m) {
         throw GeneralClassicException(
-            "Ring::lockRing", "Attempt to lock ring when it is already locked");
+            "Ring::lockRing", "Attempt to lock ring when it is already locked"
+        );
     }
     // check for any elements at all
     size_t sectionListSize = section_list_m.size();
@@ -390,7 +400,8 @@ bool Ring::sectionCompare(RingSection const* const sec1, RingSection const* cons
 void Ring::setRingAperture(double minR, double maxR) {
     if (minR < 0 || maxR < 0) {
         throw GeneralClassicException(
-            "Ring::setRingAperture", "Could not parse negative or undefined aperture limit");
+            "Ring::setRingAperture", "Could not parse negative or undefined aperture limit"
+        );
     }
 
     willDoAperture_m = true;

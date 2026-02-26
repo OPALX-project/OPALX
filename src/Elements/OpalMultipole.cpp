@@ -36,7 +36,8 @@ OpalMultipole::OpalMultipole()
           "* If the length is non-zero, the strengths are per unit "
           "length.\n* If the length is zero, the strengths are the "
           "values integrated over the length.\n"
-          "* With zero length no synchrotron radiation can be calculated.") {
+          "* With zero length no synchrotron radiation can be calculated."
+      ) {
     itsAttr[KN] =
         Attributes::makeRealArray("KN", "Normalised multipole strengths (normal) in m^(-k)");
     itsAttr[DKN] =

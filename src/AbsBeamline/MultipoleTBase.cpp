@@ -71,7 +71,8 @@ bool MultipoleTBase::apply() { return false; }
 
 bool MultipoleTBase::apply(
     const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
-    Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B) {
+    Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B
+) {
     /** Rotate coordinates around the central axis of the magnet */
     Vector_t<double, 3> R_prime = rotateFrame(R);
     /** Go to local Frenet-Serret coordinates */
@@ -124,7 +125,8 @@ Vector_t<double, 3> MultipoleTBase::rotateFrameInverse(Vector_t<double, 3>& B) {
 }
 
 bool MultipoleTBase::setFringeField(
-    const double& s0, const double& lambda_l, const double& lambda_r) {
+    const double& s0, const double& lambda_l, const double& lambda_r
+) {
     fringeField_l.Tanh::setLambda(lambda_l);
     fringeField_l.Tanh::setX0(s0);
     fringeField_l.Tanh::setTanhDiffIndices(2 * maxOrder_m + 1);
@@ -181,7 +183,8 @@ double MultipoleTBase::getFringeDeriv(const std::size_t& n, const double& s) {
     } else {
         return tanhderiv::integrate(
             s, fringeField_l.Tanh::getX0(), fringeField_l.Tanh::getLambda(),
-            fringeField_r.Tanh::getLambda(), n);
+            fringeField_r.Tanh::getLambda(), n
+        );
     }
 }
 

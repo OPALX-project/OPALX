@@ -27,7 +27,8 @@ class SDDSColumn {
 public:
     SDDSColumn(
         const std::string& name, const std::string& type, const std::string& unit,
-        const std::string& desc, std::ios_base::fmtflags flags, unsigned short precision);
+        const std::string& desc, std::ios_base::fmtflags flags, unsigned short precision
+    );
 
     template <typename T>
     void addValue(const T& val);

@@ -151,7 +151,8 @@ namespace polynomial {
     }
 
     void TwoPolynomial::convert2Dto1Darray(
-        double* vec1, double* vec2, const vectorLengths& nn, const TwoPolynomial& poly) const {
+        double* vec1, double* vec2, const vectorLengths& nn, const TwoPolynomial& poly
+    ) const {
         for (std::size_t i = 0; i < nn.nx; i++) {
             for (std::size_t j = 0; j < nn.ny; j++) {
                 if (i < nn.nx1 && j < nn.ny1) {
@@ -173,7 +174,8 @@ namespace polynomial {
     }
 
     void TwoPolynomial::convolution(
-        double* vec1, double* vec2, const std::size_t& nx, const std::size_t& ny) const {
+        double* vec1, double* vec2, const std::size_t& nx, const std::size_t& ny
+    ) const {
         /** Do 2D FFT, 1D FFT on each row and column */
         for (std::size_t i = 0; i < nx; i++) {
             double* p1 = &vec1[0] + 2 * i * ny;
@@ -288,7 +290,8 @@ namespace polynomial {
     }
 
     void TwoPolynomial::setCoefficient(
-        const int& coefficient, const std::size_t& Xorder, const std::size_t& Sorder) {
+        const int& coefficient, const std::size_t& Xorder, const std::size_t& Sorder
+    ) {
         if (Xorder > maxXorder_m) {
             coefficients_m.resize(Xorder + 1);
             for (std::size_t i = (maxXorder_m + 1); i <= Xorder; i++) {

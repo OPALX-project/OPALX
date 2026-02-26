@@ -294,13 +294,15 @@ void SpecificElementVisitor<ELEM>::visitMultipoleTStraight(const MultipoleTStrai
 
 template <class ELEM>
 void SpecificElementVisitor<ELEM>::visitMultipoleTCurvedConstRadius(
-    const MultipoleTCurvedConstRadius& element) {
+    const MultipoleTCurvedConstRadius& element
+) {
     CastsTrait<ELEM, MultipoleTCurvedConstRadius>::apply(allElementsOfTypeE, element);
 }
 
 template <class ELEM>
 void SpecificElementVisitor<ELEM>::visitMultipoleTCurvedVarRadius(
-    const MultipoleTCurvedVarRadius& element) {
+    const MultipoleTCurvedVarRadius& element
+) {
     CastsTrait<ELEM, MultipoleTCurvedVarRadius>::apply(allElementsOfTypeE, element);
 }
 
@@ -393,7 +395,8 @@ void SpecificElementVisitor<ELEM>::visitVariableRFCavity(const VariableRFCavity&
 
 template <class ELEM>
 void SpecificElementVisitor<ELEM>::visitVariableRFCavityFringeField(
-    const VariableRFCavityFringeField& element) {
+    const VariableRFCavityFringeField& element
+) {
     CastsTrait<ELEM, VariableRFCavityFringeField>::apply(allElementsOfTypeE, element);
 }
 
@@ -413,8 +416,8 @@ typename SpecificElementVisitor<ELEM>::iterator_t SpecificElementVisitor<ELEM>::
 }
 
 template <class ELEM>
-typename SpecificElementVisitor<ELEM>::const_iterator_t SpecificElementVisitor<ELEM>::begin()
-    const {
+typename SpecificElementVisitor<ELEM>::const_iterator_t
+SpecificElementVisitor<ELEM>::begin() const {
     return allElementsOfTypeE.begin();
 }
 
@@ -434,8 +437,8 @@ typename SpecificElementVisitor<ELEM>::reference_t SpecificElementVisitor<ELEM>:
 }
 
 template <class ELEM>
-typename SpecificElementVisitor<ELEM>::const_reference_t SpecificElementVisitor<ELEM>::front()
-    const {
+typename SpecificElementVisitor<ELEM>::const_reference_t
+SpecificElementVisitor<ELEM>::front() const {
     return allElementsOfTypeE.front();
 }
 

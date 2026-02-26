@@ -26,7 +26,8 @@ private:
 public:
     LoadBalancer(
         double lbs, std::shared_ptr<FieldContainer<T, Dim>>& fc,
-        std::shared_ptr<ParticleContainer<T, Dim>>& pc, std::shared_ptr<FieldSolver_t>& fs)
+        std::shared_ptr<ParticleContainer<T, Dim>>& pc, std::shared_ptr<FieldSolver_t>& fs
+    )
         : loadbalancethreshold_m(lbs),
           rho_m(&fc->getRho()),
           E_m(&fc->getE()),
@@ -55,8 +56,8 @@ public:
     void setFieldSolver(std::shared_ptr<FieldSolver_t> fs) { fs_m = fs; }
 
     void updateLayout(
-        ippl::FieldLayout<Dim>* fl, ippl::UniformCartesian<T, Dim>* mesh,
-        bool& isFirstRepartition) {
+        ippl::FieldLayout<Dim>* fl, ippl::UniformCartesian<T, Dim>* mesh, bool& isFirstRepartition
+    ) {
         // Update local fields
 
         static IpplTimings::TimerRef tupdateLayout = IpplTimings::getTimer("updateLayout");
@@ -86,8 +87,8 @@ public:
     }
 
     void repartition(
-        ippl::FieldLayout<Dim>* fl, ippl::UniformCartesian<T, Dim>* mesh,
-        bool& isFirstRepartition) {
+        ippl::FieldLayout<Dim>* fl, ippl::UniformCartesian<T, Dim>* mesh, bool& isFirstRepartition
+    ) {
         // Repartition the domains
 
         using Base = ippl::ParticleBase<ippl::ParticleSpatialLayout<T, Dim>>;
@@ -126,7 +127,8 @@ public:
                 local = 1;
             }
             MPI_Allgather(
-                &local, 1, MPI_INT, res.data(), 1, MPI_INT, ippl::Comm->getCommunicator());
+                &local, 1, MPI_INT, res.data(), 1, MPI_INT, ippl::Comm->getCommunicator()
+            );
 
             for (unsigned int i = 0; i < res.size(); i++) {
                 if (res[i] == 1) {

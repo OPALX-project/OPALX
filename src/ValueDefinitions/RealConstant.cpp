@@ -33,7 +33,8 @@ RealConstant::RealConstant()
           1, "REAL_CONSTANT",
           "The \"REAL CONSTANT\" statement defines a global "
           "real constant:\n"
-          "\tREAL CONSTANT <name> = <real-expression>;\n") {
+          "\tREAL CONSTANT <name> = <real-expression>;\n"
+      ) {
     itsAttr[0] = Attributes::makeReal("VALUE", "The constant value", 0.0);
 
     registerOwnership(AttributeHandler::STATEMENT);
@@ -62,7 +63,8 @@ RealConstant::RealConstant()
 
     opal->create(new RealConstant(
         "OPALVERSION", this,
-        OPAL_VERSION_MAJOR * 10000 + OPAL_VERSION_MINOR * 100 + OPAL_VERSION_PATCH));
+        OPAL_VERSION_MAJOR * 10000 + OPAL_VERSION_MINOR * 100 + OPAL_VERSION_PATCH
+    ));
     opal->create(new RealConstant("RANK", this, ippl::Comm->rank()));
 }
 

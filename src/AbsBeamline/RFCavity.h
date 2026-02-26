@@ -86,32 +86,38 @@ public:
     virtual bool getAutophaseVeto() const;
 
     virtual double getAutoPhaseEstimate(
-        const double& E0, const double& t0, const double& q, const double& m);
+        const double& E0, const double& t0, const double& q, const double& m
+    );
     virtual double getAutoPhaseEstimateFallback(double E0, double t0, double q, double m);
 
     virtual std::pair<double, double> trackOnAxisParticle(
         const double& p0, const double& t0, const double& dt, const double& q, const double& mass,
-        std::ofstream* out = nullptr);
+        std::ofstream* out = nullptr
+    );
 
     virtual bool apply() override;
 
     virtual bool apply(
-        const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
+        const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B
+    ) override;
 
     virtual bool apply(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-        Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
+        Vector_t<double, 3>& E, Vector_t<double, 3>& B
+    ) override;
 
     virtual bool applyToReferenceParticle(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-        Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
+        Vector_t<double, 3>& E, Vector_t<double, 3>& B
+    ) override;
 
     virtual void initialise(PartBunch_t* bunch, double& startField, double& endField) override;
 
     virtual void initialise(
         PartBunch_t* bunch, std::shared_ptr<AbstractTimeDependence> freq_atd,
         std::shared_ptr<AbstractTimeDependence> ampl_atd,
-        std::shared_ptr<AbstractTimeDependence> phase_atd);
+        std::shared_ptr<AbstractTimeDependence> phase_atd
+    );
 
     virtual void finalise() override;
 
@@ -150,7 +156,8 @@ public:
 
     void getMomentaKick(
         const double normalRadius, double momentum[], const double t, const double dtCorrt,
-        const int PID, const double restMass, const int chargenumber);
+        const int PID, const double restMass, const int chargenumber
+    );
 
     double spline(double z, double* za);
 
@@ -225,18 +232,22 @@ private:
 
     double getdE(
         const int& i, const std::vector<double>& t, const double& dz, const double& phi,
-        const double& frequency, const std::vector<double>& F) const;
+        const double& frequency, const std::vector<double>& F
+    ) const;
 
     double getdT(
-        const int& i, const std::vector<double>& E, const double& dz, const double mass) const;
+        const int& i, const std::vector<double>& E, const double& dz, const double mass
+    ) const;
 
     double getdA(
         const int& i, const std::vector<double>& t, const double& dz, const double& frequency,
-        const std::vector<double>& F) const;
+        const std::vector<double>& F
+    ) const;
 
     double getdB(
         const int& i, const std::vector<double>& t, const double& dz, const double& frequency,
-        const std::vector<double>& F) const;
+        const std::vector<double>& F
+    ) const;
 
     // Not implemented.
     void operator=(const RFCavity&);
@@ -244,7 +255,8 @@ private:
 
 inline double RFCavity::getdE(
     const int& i, const std::vector<double>& t, const double& dz, const double& phi,
-    const double& frequency, const std::vector<double>& F) const {
+    const double& frequency, const std::vector<double>& F
+) const {
     return dz / (frequency * frequency * (t[i] - t[i - 1]) * (t[i] - t[i - 1]))
            * (frequency * (t[i] - t[i - 1])
                   * (F[i] * std::sin(frequency * t[i] + phi)
@@ -254,7 +266,8 @@ inline double RFCavity::getdE(
 }
 
 inline double RFCavity::getdT(
-    const int& i, const std::vector<double>& E, const double& dz, const double mass) const {
+    const int& i, const std::vector<double>& E, const double& dz, const double mass
+) const {
     double gamma1  = 1. + (19. * E[i - 1] + 1. * E[i]) / (20. * mass);
     double gamma2  = 1. + (17. * E[i - 1] + 3. * E[i]) / (20. * mass);
     double gamma3  = 1. + (15. * E[i - 1] + 5. * E[i]) / (20. * mass);
@@ -281,7 +294,8 @@ inline double RFCavity::getdT(
 
 inline double RFCavity::getdA(
     const int& i, const std::vector<double>& t, const double& dz, const double& frequency,
-    const std::vector<double>& F) const {
+    const std::vector<double>& F
+) const {
     double dt = t[i] - t[i - 1];
     return dz / (frequency * frequency * dt * dt)
            * (frequency * dt
@@ -291,7 +305,8 @@ inline double RFCavity::getdA(
 
 inline double RFCavity::getdB(
     const int& i, const std::vector<double>& t, const double& dz, const double& frequency,
-    const std::vector<double>& F) const {
+    const std::vector<double>& F
+) const {
     double dt = t[i] - t[i - 1];
     return dz / (frequency * frequency * dt * dt)
            * (frequency * dt
@@ -372,7 +387,8 @@ inline CoordinateSystemTrafo RFCavity::getEdgeToBegin() const {
 
 inline CoordinateSystemTrafo RFCavity::getEdgeToEnd() const {
     CoordinateSystemTrafo ret(
-        Vector_t<double, 3>({0, 0, startField_m + getElementLength()}), Quaternion(1, 0, 0, 0));
+        Vector_t<double, 3>({0, 0, startField_m + getElementLength()}), Quaternion(1, 0, 0, 0)
+    );
     return ret;
 }
 

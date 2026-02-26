@@ -203,7 +203,8 @@ Token AbsFileStream::readNumber() {
 
     if (eflag) {
         return Token(
-            stream_name, curr_line, Token::IS_ERROR, "Invalid numeric token \"" + lexeme + "\".");
+            stream_name, curr_line, Token::IS_ERROR, "Invalid numeric token \"" + lexeme + "\"."
+        );
     } else {
         int power = expsig * expval - places;
 
@@ -230,7 +231,8 @@ Token AbsFileStream::readString() {
             if (line[curr_char] == '\n') {
                 return Token(
                     stream_name, curr_line, Token::IS_ERROR,
-                    "String \"" + lexeme + "\" not terminated at end of line.");
+                    "String \"" + lexeme + "\" not terminated at end of line."
+                );
             }
 
             if (line[curr_char] == quote) {

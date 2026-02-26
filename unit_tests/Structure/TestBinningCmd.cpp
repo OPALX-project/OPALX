@@ -93,7 +93,8 @@ TEST_F(BinningCmdTest, ExecuteMapsKnownParameters) {
         {"VELOCITYZ", BinningParameter::VELOCITYZ},
         {"POSITIONZ", BinningParameter::POSITIONZ},
         {"PZ", BinningParameter::PZ},
-        {"GAMMAZ", BinningParameter::GAMMAZ}};
+        {"GAMMAZ", BinningParameter::GAMMAZ}
+    };
 
     for (const auto& c : cases) {
         TestableBinningCmd cmd;

@@ -61,9 +61,8 @@ void OpalParser::parse(Statement& stat) const {
     if (stat.keyword("SHARED")) {
         // "SHARED ...": Shared object definition.
         parseDefine(stat);
-    } else if (
-        stat.keyword("CONSTANT") || stat.keyword("CONST") || stat.keyword("BOOL")
-        || stat.keyword("REAL") || stat.keyword("STRING") || stat.keyword("VECTOR")) {
+    } else if (stat.keyword("CONSTANT") || stat.keyword("CONST") || stat.keyword("BOOL")
+               || stat.keyword("REAL") || stat.keyword("STRING") || stat.keyword("VECTOR")) {
         // Keywords introducing variable definitions.
         parseAssign(stat);
     } else {
@@ -101,11 +100,13 @@ void OpalParser::parse(Statement& stat) const {
                     throw ParseError(
                         "OpalParser::parse()",
                         statStr.str() + positionIndicator
-                            + "Syntax error, either the keyword REAL is missing or\n" + hint);
+                            + "Syntax error, either the keyword REAL is missing or\n" + hint
+                    );
                 } else {
                     throw ParseError(
                         "OpalParser::parse()", statStr.str() + positionIndicator
-                                                   + "Syntax error, the keyword REAL is missing\n");
+                                                   + "Syntax error, the keyword REAL is missing\n"
+                    );
                 }
             }
             parseAssign(stat);
@@ -218,10 +219,12 @@ void OpalParser::parseAssign(Statement& stat) const {
 
         if (code != 0) {
             throw ParseError(
-                "OpalParser::parseAssign()", "Invalid type specification for this value.");
+                "OpalParser::parseAssign()", "Invalid type specification for this value."
+            );
         } else if ((object = OpalData::getInstance()->find(objName)) == 0) {
             throw ParseError(
-                "OpalParser::parseAssign()", "The object \"" + objName + "\" is unknown.");
+                "OpalParser::parseAssign()", "The object \"" + objName + "\" is unknown."
+            );
         }
     } else {
         // Assignment to variable-like object.
@@ -262,8 +265,8 @@ void OpalParser::parseAssign(Statement& stat) const {
             }
         } else if (object->isTreeMember(realConstant)) {
             throw ParseError(
-                "OpalParser::parseAssign()",
-                "You cannot redefine the constant \"" + objName + "\".");
+                "OpalParser::parseAssign()", "You cannot redefine the constant \"" + objName + "\"."
+            );
         }
 
         attrName = "VALUE";
@@ -299,7 +302,8 @@ void OpalParser::parseAssign(Statement& stat) const {
         } else {
             throw ParseError(
                 "OpalParser::parseAssign()",
-                "Object \"" + objName + "\" has no attribute \"" + attrName + "\".");
+                "Object \"" + objName + "\" has no attribute \"" + attrName + "\"."
+            );
         }
 
         parseEnd(stat);
@@ -320,10 +324,12 @@ void OpalParser::parseDefine(Statement& stat) const {
             if (clsName == "SURFACEPHYSICS")
                 throw ParseError(
                     "OpalParser::parseDefine()",
-                    "The object \"" + clsName + "\" is changed to \"PARTICLEMATTERINTERACTION\".");
+                    "The object \"" + clsName + "\" is changed to \"PARTICLEMATTERINTERACTION\"."
+                );
             else
                 throw ParseError(
-                    "OpalParser::parseDefine()", "The object \"" + clsName + "\" is unknown.");
+                    "OpalParser::parseDefine()", "The object \"" + clsName + "\" is unknown."
+                );
         }
 
         Object* copy = 0;
@@ -362,8 +368,9 @@ void OpalParser::parseEnd(Statement& stat) const {
         stat.print(statStr);
 
         throw ParseError(
-            "OpalParser::parseEnd()", statStr.str() + positionIndicator
-                                          + "Syntax error (maybe missing comma or semicolon ? )");
+            "OpalParser::parseEnd()",
+            statStr.str() + positionIndicator + "Syntax error (maybe missing comma or semicolon ? )"
+        );
     }
 }
 
@@ -397,11 +404,13 @@ void OpalParser::parseMacro(const std::string& macName, Statement& stat) const {
             } else {
                 throw ParseError(
                     "OpalParser::parseMacro()",
-                    "Command \"" + macName + "\" cannot be defined with arguments.");
+                    "Command \"" + macName + "\" cannot be defined with arguments."
+                );
             }
         } else {
             throw ParseError(
-                "OpalParser::parseMacro()", "Object \"" + className + "\" is unknown.");
+                "OpalParser::parseMacro()", "Object \"" + className + "\" is unknown."
+            );
         }
     } else {
         // Macro call.
@@ -527,7 +536,8 @@ Statement* OpalParser::readStatement(TokenStream* is) const {
                                 } else {
                                     throw ParseError(
                                         "OpalParser::readStatement()",
-                                        "MACRO definition lacks \"{...}\".");
+                                        "MACRO definition lacks \"{...}\"."
+                                    );
                                 }
                             } else {
                                 parseTokenList(*stat);
@@ -535,7 +545,8 @@ Statement* OpalParser::readStatement(TokenStream* is) const {
                         }
                     } else if (!token.isDel(';')) {
                         throw ParseError(
-                            "OpalParser::readStatement()", "MACRO call is not terminated by ';'.");
+                            "OpalParser::readStatement()", "MACRO call is not terminated by ';'."
+                        );
                     }
                 } else if (!token.isDel(';')) {
                     stat->append(token);

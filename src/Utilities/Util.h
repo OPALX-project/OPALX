@@ -184,7 +184,8 @@ namespace Util {
     }
 
     ippl::Vector<double, 3> getTaitBryantAngles(
-        Quaternion rotation, const std::string& elementName = "");
+        Quaternion rotation, const std::string& elementName = ""
+    );
 
     std::string toUpper(const std::string& str);
 
@@ -211,10 +212,12 @@ namespace Util {
     };
 
     unsigned int rewindLinesSDDS(
-        const std::string& fileName, double maxSPos, bool checkForTime = true);
+        const std::string& fileName, double maxSPos, bool checkForTime = true
+    );
 
     std::string base64_encode(
-        const std::string& string_to_encode);  // unsigned char const* , unsigned int len);
+        const std::string& string_to_encode
+    );  // unsigned char const* , unsigned int len);
     std::string base64_decode(std::string const& s);
 
     template <typename T, typename A>
@@ -231,7 +234,8 @@ namespace Util {
 template <typename T>
 std::string Util::toStringWithThousandSep(T value, char sep) {
     static_assert(
-        std::is_integral<T>::value, "Util::toStringWithThousandSep: T must be of integer type");
+        std::is_integral<T>::value, "Util::toStringWithThousandSep: T must be of integer type"
+    );
 
     unsigned int powers =
         std::floor(std::max(0.0, std::log(std::abs((double)value)) / std::log(10.0)));

@@ -38,7 +38,8 @@ Matrix3D::Matrix3D(const Vector3D& a, const Vector3D& b, const Vector3D& c) {
 
 Matrix3D::Matrix3D(
     double x11, double x12, double x13, double x21, double x22, double x23, double x31, double x32,
-    double x33) {
+    double x33
+) {
     m[0][0] = x11;
     m[0][1] = x12;
     m[0][2] = x13;
@@ -126,8 +127,8 @@ Matrix3D Matrix3D::inverse() const {
         (m[0][2] * m[1][0] - m[0][0] * m[1][2]) / det,
 
         (m[1][0] * m[2][1] - m[1][1] * m[2][0]) / det,
-        (m[2][0] * m[0][1] - m[2][1] * m[0][0]) / det,
-        (m[0][0] * m[1][1] - m[0][1] * m[1][0]) / det);
+        (m[2][0] * m[0][1] - m[2][1] * m[0][0]) / det, (m[0][0] * m[1][1] - m[0][1] * m[1][0]) / det
+    );
 }
 
 Matrix3D Matrix3D::transpose() const {
@@ -164,12 +165,14 @@ Matrix3D operator*(const Matrix3D& lhs, const Matrix3D& rhs) {
 
         lhs(2, 0) * rhs(0, 0) + lhs(2, 1) * rhs(1, 0) + lhs(2, 2) * rhs(2, 0),
         lhs(2, 0) * rhs(0, 1) + lhs(2, 1) * rhs(1, 1) + lhs(2, 2) * rhs(2, 1),
-        lhs(2, 0) * rhs(0, 2) + lhs(2, 1) * rhs(1, 2) + lhs(2, 2) * rhs(2, 2));
+        lhs(2, 0) * rhs(0, 2) + lhs(2, 1) * rhs(1, 2) + lhs(2, 2) * rhs(2, 2)
+    );
 }
 
 Vector3D operator*(const Matrix3D& lhs, const Vector3D& rhs) {
     return Vector3D(
         lhs(0, 0) * rhs(0) + lhs(0, 1) * rhs(1) + lhs(0, 2) * rhs(2),
         lhs(1, 0) * rhs(0) + lhs(1, 1) * rhs(1) + lhs(1, 2) * rhs(2),
-        lhs(2, 0) * rhs(0) + lhs(2, 1) * rhs(1) + lhs(2, 2) * rhs(2));
+        lhs(2, 0) * rhs(0) + lhs(2, 1) * rhs(1) + lhs(2, 2) * rhs(2)
+    );
 }

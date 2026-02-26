@@ -148,8 +148,8 @@ private:
 inline void MultipoleTStraight::accept(BeamlineVisitor& visitor) const {
     visitor.visitMultipoleTStraight(*this);
 }
-inline void MultipoleTStraight::transformBField(
-    Vector_t<double, 3>& /*B*/, const Vector_t<double, 3>& /*R*/) {}
+inline void
+MultipoleTStraight::transformBField(Vector_t<double, 3>& /*B*/, const Vector_t<double, 3>& /*R*/) {}
 inline double MultipoleTStraight::getRadius(const double& /*s*/) { return 1e300; }
 inline double MultipoleTStraight::getScaleFactor(const double& /*x*/, const double& /*s*/) {
     return 1.0;
@@ -158,8 +158,8 @@ inline StraightGeometry& MultipoleTStraight::getGeometry() { return straightGeom
 inline const StraightGeometry& MultipoleTStraight::getGeometry() const {
     return straightGeometry_m;
 }
-inline void MultipoleTStraight::initialise(
-    PartBunch_t* bunch, double& /*startField*/, double& /*endField*/) {
+inline void
+MultipoleTStraight::initialise(PartBunch_t* bunch, double& /*startField*/, double& /*endField*/) {
     RefPartBunch_m = bunch;
     straightGeometry_m.setElementLength(2 * getBoundingBoxLength());
 }

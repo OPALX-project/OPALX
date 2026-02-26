@@ -199,7 +199,8 @@ public:
         double qi, double mi, size_t totalP,
         /*int nt,*/
         double lbt, std::string integration_method, std::shared_ptr<Distribution>& OPALdistribution,
-        std::shared_ptr<FieldSolverCmd>& OPALFieldSolver);
+        std::shared_ptr<FieldSolverCmd>& OPALFieldSolver
+    );
 
     void bunchUpdate();
 
@@ -378,7 +379,8 @@ public:
         if (isUnitless_m) {
             throw OpalException(
                 "PartBunch::switchToUnitlessPositions",
-                "PartBunch is already in unitless positions!");
+                "PartBunch is already in unitless positions!"
+            );
         }
 
         // Divide by c*dt
@@ -391,7 +393,8 @@ public:
                 double fac =
                     use_dt_per_particle ? (1.0 / (Physics::c * dtview(i))) : unitless_factor;
                 Rview(i) *= fac;
-            });
+            }
+        );
         isUnitless_m = true;
 
         /// \todo remove later
@@ -424,7 +427,8 @@ public:
         if (!isUnitless_m) {
             throw OpalException(
                 "PartBunch::switchOffUnitlessPositions",
-                "PartBunch is already in physical positions!");
+                "PartBunch is already in physical positions!"
+            );
         }
 
         // Multiply by c*dt
@@ -436,7 +440,8 @@ public:
             KOKKOS_LAMBDA(const size_t i) {
                 double fac = use_dt_per_particle ? (Physics::c * dtview(i)) : unitless_factor;
                 Rview(i) *= fac;
-            });
+            }
+        );
         isUnitless_m = false;
 
         /// \todo remove later
@@ -450,7 +455,8 @@ public:
 
     void calcLineDensity(
         unsigned int /*nBins*/, std::vector<double>& /*lineDensity*/,
-        std::pair<double, double>& /*meshInfo*/) {
+        std::pair<double, double>& /*meshInfo*/
+    ) {
         *gmsg << "not implemented" << endl;
     }
 

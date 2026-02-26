@@ -22,8 +22,8 @@
 class LaserProfile {
 public:
     LaserProfile(
-        const std::string& fileName, const std::string& imageName, double intensityCut,
-        short flags);
+        const std::string& fileName, const std::string& imageName, double intensityCut, short flags
+    );
 
     ~LaserProfile();
 

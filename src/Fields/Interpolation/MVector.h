@@ -175,8 +175,9 @@ namespace interpolation {
         const Tmplt& operator()(size_t i) const;
 
         MVector<Tmplt> sub(
-            size_t n1, size_t n2) const;  // return a vector running from n1 to n2 (inclusive)
-        MMatrix<Tmplt> T() const;         // return a matrix that is the transpose of the vector
+            size_t n1, size_t n2
+        ) const;                   // return a vector running from n1 to n2 (inclusive)
+        MMatrix<Tmplt> T() const;  // return a matrix that is the transpose of the vector
         MVector<Tmplt>& operator=(const MVector<Tmplt>& mv);  // set *this to be equal to mv
 
         friend MVector<m_complex>& operator*=(MVector<m_complex>& v, m_complex c);
@@ -195,7 +196,8 @@ namespace interpolation {
         void build_vector(size_t size);  // copy from data and put it in the vector
         void build_vector(
             const Tmplt* data_start,
-            const Tmplt* data_end);  // copy from data and put it in the vector
+            const Tmplt* data_end
+        );  // copy from data and put it in the vector
 
         void delete_vector();
 
@@ -338,7 +340,8 @@ namespace interpolation {
     gsl_vector inline* MVector<Tmplt>::get_vector(const MVector<double>& m) {
         if (m._vector == nullptr)
             throw(GeneralClassicException(
-                "MVector::get_vector", "Attempt to access uninitialised matrix"));
+                "MVector::get_vector", "Attempt to access uninitialised matrix"
+            ));
         return (gsl_vector*)m._vector;
     }
 
@@ -346,7 +349,8 @@ namespace interpolation {
     gsl_vector_complex inline* MVector<Tmplt>::get_vector(const MVector<m_complex>& m) {
         if (m._vector == nullptr)
             throw(GeneralClassicException(
-                "MVector::get_vector", "Attempt to access uninitialised vector"));
+                "MVector::get_vector", "Attempt to access uninitialised vector"
+            ));
         return (gsl_vector_complex*)m._vector;
     }
 

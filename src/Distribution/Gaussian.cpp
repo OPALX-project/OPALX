@@ -13,7 +13,8 @@
  */
 Gaussian::Gaussian(
     std::shared_ptr<ParticleContainer_t> pc, std::shared_ptr<FieldContainer_t> fc,
-    std::shared_ptr<Distribution_t> opalDist)
+    std::shared_ptr<Distribution_t> opalDist
+)
     : SamplingBase(pc, fc, opalDist) {
     samperTimer_m = IpplTimings::getTimer("SamplingTimer");
     initRandomPool();
@@ -26,7 +27,8 @@ Gaussian::Gaussian(
 Gaussian::Gaussian(
     std::shared_ptr<ParticleContainer_t> pc, const Vector_t<double, 3>& sigmaR,
     const Vector_t<double, 3>& sigmaP, double avrgpz, const Vector_t<double, 3>& cutoffR,
-    bool fixMeanR)
+    bool fixMeanR
+)
     : SamplingBase(pc) {
     setSigmaR(sigmaR);
     setSigmaP(sigmaP);
@@ -117,7 +119,8 @@ void Gaussian::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> 
                 cent2 += Rview(k)[2];
             },
             Kokkos::Sum<double>(loc_meanR[0]), Kokkos::Sum<double>(loc_meanR[1]),
-            Kokkos::Sum<double>(loc_meanR[2]));
+            Kokkos::Sum<double>(loc_meanR[2])
+        );
         Kokkos::fence();
 
         MPI_Allreduce(loc_meanR, meanR, 3, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
@@ -132,7 +135,8 @@ void Gaussian::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> 
                 Rview(k)[0] -= meanR[0];
                 Rview(k)[1] -= meanR[1];
                 Rview(k)[2] -= meanR[2];
-            });
+            }
+        );
         Kokkos::fence();
     }
 

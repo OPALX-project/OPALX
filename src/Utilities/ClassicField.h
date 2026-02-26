@@ -25,7 +25,8 @@ public:
         return (
             fle1.start_m < fle2.start_m
             || (fle1.start_m == fle2.start_m
-                && fle1.element_m->getName() < fle2.element_m->getName()));
+                && fle1.element_m->getName() < fle2.element_m->getName())
+        );
     }
 
     static bool ZeroLength(const ClassicField& fle) { return (fle.getLength() < 1.e-6); }

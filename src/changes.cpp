@@ -20,7 +20,8 @@ namespace Versions {
              "  component Opal now uses the maximum value on axis.\n"
              "\n"
              "* The parser has been modified to check the type of all variables. All real \n"
-             "  variables have to be prefixed with the keyword REAL.\n"});
+             "  variables have to be prefixed with the keyword REAL.\n"}
+        );
 
         changes.insert(
             {109,
@@ -48,6 +49,7 @@ namespace Versions {
              "  position z > 0.\n"
              "\n"
              "* The string indicating the orientation (sofar always XYZ) of 3D fieldmaps has\n"
-             "  been dropped.\n"});
+             "  been dropped.\n"}
+        );
     }
 }  // namespace Versions

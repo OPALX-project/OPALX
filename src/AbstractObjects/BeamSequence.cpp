@@ -32,7 +32,8 @@ BeamSequence* BeamSequence::find(const std::string& name) {
     BeamSequence* bs = dynamic_cast<BeamSequence*>(opal->find(name));
     if (bs == 0) {
         throw OpalException(
-            "BeamSequence::find()", "Beam line or sequence \"" + name + "\" not found.");
+            "BeamSequence::find()", "Beam line or sequence \"" + name + "\" not found."
+        );
     }
     return bs;
 }

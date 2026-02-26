@@ -34,23 +34,27 @@ std::map<std::string, std::shared_ptr<AbstractTimeDependence> > AbstractTimeDepe
     std::map<std::string, std::shared_ptr<AbstractTimeDependence> >();
 
 std::shared_ptr<AbstractTimeDependence> AbstractTimeDependence::getTimeDependence(
-    const std::string& name) {
+    const std::string& name
+) {
     const auto pos = td_map.find(name);
     if (pos == td_map.end()) {
         throw GeneralClassicException(
             "AbstractTimeDependence::getTimeDependence",
-            "Could not find TimeDependence called " + name);
+            "Could not find TimeDependence called " + name
+        );
     }
     return pos->second;
 }
 
 void AbstractTimeDependence::setTimeDependence(
-    const std::string& name, std::shared_ptr<AbstractTimeDependence> time_dep) {
+    const std::string& name, std::shared_ptr<AbstractTimeDependence> time_dep
+) {
     td_map[name] = std::move(time_dep);
 }
 
 std::string AbstractTimeDependence::getName(
-    const std::shared_ptr<AbstractTimeDependence>& time_dep) {
+    const std::shared_ptr<AbstractTimeDependence>& time_dep
+) {
     for (auto& [name, dep] : td_map) {
         if (dep == time_dep) {
             return name;
@@ -60,5 +64,6 @@ std::string AbstractTimeDependence::getName(
     ss << time_dep;
     throw GeneralClassicException(
         "AbstractTimeDependence::getTimeDependence",
-        "Could not find TimeDependence with address " + ss.str());
+        "Could not find TimeDependence with address " + ss.str()
+    );
 }

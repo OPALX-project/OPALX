@@ -38,7 +38,8 @@ void Probe::accept(BeamlineVisitor& visitor) const { visitor.visitProbe(*this); 
 void Probe::doInitialise(PartBunch_t* bunch) {
     bool singlemode = (bunch->getTotalNum() == 1) ? true : false;
     peakfinder_m    = std::unique_ptr<PeakFinder>(
-        new PeakFinder(getOutputFN(), rmin_m, rend_m, step_m, singlemode));
+        new PeakFinder(getOutputFN(), rmin_m, rend_m, step_m, singlemode)
+    );
 }
 
 void Probe::doGoOffline() {
@@ -70,7 +71,8 @@ bool Probe::doPreCheck(PartBunch_t* bunch) {
 }
 
 bool Probe::doCheck(
-    PartBunch_t* bunch, const int turnnumber, const double /*t*/, const double tstep) {
+    PartBunch_t* bunch, const int turnnumber, const double /*t*/, const double tstep
+) {
     *gmsg << "passed t argument not used in Probe::doCheck" << endl;
     Vector_t<double, 3> probepoint;
     size_t tempnum = bunch->getLocalNum();

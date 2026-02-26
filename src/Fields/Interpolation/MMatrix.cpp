@@ -44,7 +44,8 @@ namespace interpolation {
 
     template MMatrix<double> MMatrix<double>::Diagonal(size_t i, double diag, double off_diag);
     template MMatrix<m_complex> MMatrix<m_complex>::Diagonal(
-        size_t i, m_complex diag, m_complex off_diag);
+        size_t i, m_complex diag, m_complex off_diag
+    );
 
     template std::istream& operator>>(std::istream& in, MMatrix<double>& mat);
     template std::istream& operator>>(std::istream& in, MMatrix<m_complex>& mat);
@@ -98,7 +99,8 @@ namespace interpolation {
         }
         _matrix = gsl_matrix_complex_alloc(mm.num_row(), mm.num_col());
         gsl_matrix_complex_memcpy(
-            (gsl_matrix_complex*)_matrix, (const gsl_matrix_complex*)mm._matrix);
+            (gsl_matrix_complex*)_matrix, (const gsl_matrix_complex*)mm._matrix
+        );
         return *this;
     }
 
@@ -115,7 +117,8 @@ namespace interpolation {
         if (mm._matrix) {
             _matrix = gsl_matrix_complex_alloc(mm.num_row(), mm.num_col());
             gsl_matrix_complex_memcpy(
-                (gsl_matrix_complex*)_matrix, (gsl_matrix_complex*)mm._matrix);
+                (gsl_matrix_complex*)_matrix, (gsl_matrix_complex*)mm._matrix
+            );
         }
     }
 
@@ -191,7 +194,8 @@ namespace interpolation {
 
         if (num_row() != num_col())
             throw(GeneralClassicException(
-                "MMatrix::determinant()", "Attempt to get determinant of non-square matrix"));
+                "MMatrix::determinant()", "Attempt to get determinant of non-square matrix"
+            ));
         gsl_permutation* p = gsl_permutation_alloc(num_row());
         MMatrix<m_complex> copy(*this);
         gsl_linalg_complex_LU_decomp((gsl_matrix_complex*)copy._matrix, p, &signum);
@@ -204,7 +208,8 @@ namespace interpolation {
         int signum = 1;
         if (num_row() != num_col())
             throw(GeneralClassicException(
-                "MMatrix::determinant()", "Attempt to get determinant of non-square matrix"));
+                "MMatrix::determinant()", "Attempt to get determinant of non-square matrix"
+            ));
         gsl_permutation* p = gsl_permutation_alloc(num_row());
         MMatrix<double> copy(*this);
         gsl_linalg_LU_decomp((gsl_matrix*)copy._matrix, p, &signum);
@@ -224,26 +229,30 @@ namespace interpolation {
     void MMatrix<m_complex>::invert() {
         if (num_row() != num_col())
             throw(GeneralClassicException(
-                "MMatrix::invert()", "Attempt to get inverse of non-square matrix"));
+                "MMatrix::invert()", "Attempt to get inverse of non-square matrix"
+            ));
         gsl_permutation* perm = gsl_permutation_alloc(num_row());
         MMatrix<m_complex> lu(*this);  // hold LU decomposition
         int s = 0;
         gsl_linalg_complex_LU_decomp((gsl_matrix_complex*)lu._matrix, perm, &s);
         gsl_linalg_complex_LU_invert(
-            (gsl_matrix_complex*)lu._matrix, perm, (gsl_matrix_complex*)_matrix);
+            (gsl_matrix_complex*)lu._matrix, perm, (gsl_matrix_complex*)_matrix
+        );
         gsl_permutation_free(perm);
         for (size_t i = 1; i <= num_row(); i++)
             for (size_t j = 1; j <= num_row(); j++)
                 if (operator()(i, j) != operator()(i, j))
                     throw(GeneralClassicException(
-                        "MMatrix::invert()", "Failed to invert matrix - singular?"));
+                        "MMatrix::invert()", "Failed to invert matrix - singular?"
+                    ));
     }
 
     template <>
     void MMatrix<double>::invert() {
         if (num_row() != num_col())
             throw(GeneralClassicException(
-                "MMatrix::invert()", "Attempt to get inverse of non-square matrix"));
+                "MMatrix::invert()", "Attempt to get inverse of non-square matrix"
+            ));
         gsl_permutation* perm = gsl_permutation_alloc(num_row());
         MMatrix<double> lu(*this);  // hold LU decomposition
         int s = 0;
@@ -254,7 +263,8 @@ namespace interpolation {
             for (size_t j = 1; j <= num_row(); j++)
                 if (operator()(i, j) != operator()(i, j))
                     throw(GeneralClassicException(
-                        "MMatrix::invert()", "Failed to invert matrix - singular?"));
+                        "MMatrix::invert()", "Failed to invert matrix - singular?"
+                    ));
     }
 
     template <>
@@ -268,13 +278,15 @@ namespace interpolation {
     MMatrix<m_complex> MMatrix<m_complex>::T() const {
         MMatrix<m_complex> in(num_col(), num_row());
         gsl_matrix_complex_transpose_memcpy(
-            (gsl_matrix_complex*)in._matrix, (gsl_matrix_complex*)_matrix);
+            (gsl_matrix_complex*)in._matrix, (gsl_matrix_complex*)_matrix
+        );
         return in;
     }
 
     template <class Tmplt>
     MMatrix<Tmplt> MMatrix<Tmplt>::sub(
-        size_t min_row, size_t max_row, size_t min_col, size_t max_col) const {
+        size_t min_row, size_t max_row, size_t min_col, size_t max_col
+    ) const {
         MMatrix<Tmplt> sub_matrix(max_row - min_row + 1, max_col - min_col + 1);
         for (size_t i = min_row; i <= max_row; i++)
             for (size_t j = min_col; j <= max_col; j++)
@@ -282,9 +294,11 @@ namespace interpolation {
         return sub_matrix;
     }
     template MMatrix<double> MMatrix<double>::sub(
-        size_t min_row, size_t max_row, size_t min_col, size_t max_col) const;
+        size_t min_row, size_t max_row, size_t min_col, size_t max_col
+    ) const;
     template MMatrix<m_complex> MMatrix<m_complex>::sub(
-        size_t min_row, size_t max_row, size_t min_col, size_t max_col) const;
+        size_t min_row, size_t max_row, size_t min_col, size_t max_col
+    ) const;
 
     template <class Tmplt>
     Tmplt MMatrix<Tmplt>::trace() const {
@@ -300,8 +314,8 @@ namespace interpolation {
     MVector<m_complex> MMatrix<Tmplt>::eigenvalues() const {
         if (num_row() != num_col())
             throw(GeneralClassicException(
-                "MMatrix<double>::eigenvalues",
-                "Attempt to get eigenvectors of non-square matrix"));
+                "MMatrix<double>::eigenvalues", "Attempt to get eigenvectors of non-square matrix"
+            ));
         MMatrix<Tmplt> temp = *this;
         MVector<m_complex> evals(num_row(), m_complex_build(2., -1.));
         gsl_eigen_nonsymm_workspace* w = gsl_eigen_nonsymm_alloc(num_row());
@@ -310,7 +324,8 @@ namespace interpolation {
         gsl_eigen_nonsymm_free(w);
         if (ierr != 0)
             throw(GeneralClassicException(
-                "MMatrix<Tmplt>::eigenvalues", "Failed to calculate eigenvalue"));
+                "MMatrix<Tmplt>::eigenvalues", "Failed to calculate eigenvalue"
+            ));
         return evals;
     }
     template MVector<m_complex> MMatrix<double>::eigenvalues() const;
@@ -319,8 +334,8 @@ namespace interpolation {
     std::pair<MVector<m_complex>, MMatrix<m_complex> > MMatrix<Tmplt>::eigenvectors() const {
         if (num_row() != num_col())
             throw(GeneralClassicException(
-                "MMatrix<double>::eigenvectors",
-                "Attempt to get eigenvectors of non-square matrix"));
+                "MMatrix<double>::eigenvectors", "Attempt to get eigenvectors of non-square matrix"
+            ));
         MMatrix<Tmplt> temp = *this;
         MVector<m_complex> evals(num_row());
         MMatrix<m_complex> evecs(num_row(), num_row());
@@ -330,11 +345,12 @@ namespace interpolation {
         gsl_eigen_nonsymmv_free(w);
         if (ierr != 0)
             throw(GeneralClassicException(
-                "MMatrix<Tmplt>::eigenvectors", "Failed to calculate eigenvalue"));
+                "MMatrix<Tmplt>::eigenvectors", "Failed to calculate eigenvalue"
+            ));
         return std::pair<MVector<m_complex>, MMatrix<m_complex> >(evals, evecs);
     }
-    template std::pair<MVector<m_complex>, MMatrix<m_complex> > MMatrix<double>::eigenvectors()
-        const;
+    template std::pair<MVector<m_complex>, MMatrix<m_complex> >
+    MMatrix<double>::eigenvectors() const;
 
     ///////////// OPERATORS
 
@@ -342,7 +358,8 @@ namespace interpolation {
         MMatrix<double> out(m1.num_row(), m2.num_col());
         gsl_blas_dgemm(
             CblasNoTrans, CblasNoTrans, 1., (gsl_matrix*)m1._matrix, (gsl_matrix*)m2._matrix, 0.,
-            (gsl_matrix*)out._matrix);
+            (gsl_matrix*)out._matrix
+        );
         m1 = out;
         return m1;
     }
@@ -351,7 +368,8 @@ namespace interpolation {
         MMatrix<m_complex> out(m1.num_row(), m2.num_col());
         gsl_blas_zgemm(
             CblasNoTrans, CblasNoTrans, m_complex_build(1.), (gsl_matrix_complex*)m1._matrix,
-            (gsl_matrix_complex*)m2._matrix, m_complex_build(0.), (gsl_matrix_complex*)out._matrix);
+            (gsl_matrix_complex*)m2._matrix, m_complex_build(0.), (gsl_matrix_complex*)out._matrix
+        );
         m1 = out;
         return m1;
     }
@@ -412,7 +430,8 @@ namespace interpolation {
             throw(GeneralClassicException(
                 "MMatrix<m_complex>::complex",
                 "Attempt to build complex matrix when real and imaginary matrix don't have the "
-                "same size"));
+                "same size"
+            ));
         MMatrix<m_complex> mc(real.num_row(), real.num_col());
         for (size_t i = 1; i <= mc.num_row(); i++)
             for (size_t j = 1; j <= mc.num_col(); j++)

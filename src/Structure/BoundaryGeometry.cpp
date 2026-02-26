@@ -137,7 +137,8 @@ namespace cmp_diff {
       https://randomascii.wordpress.com/2012/02/25/comparing-floating-point-numbers-2012-edition/
     */
     inline bool almost_eq(
-        double A, double B, double maxDiff = 1e-15, double maxRelDiff = DBL_EPSILON) {
+        double A, double B, double maxDiff = 1e-15, double maxRelDiff = DBL_EPSILON
+    ) {
         // Check if the numbers are really close -- needed
         // when comparing numbers near zero.
         const double diff = std::abs(A - B);
@@ -335,7 +336,8 @@ namespace {
     static void write_voxel_mesh(
         std::string fname, const std::unordered_map<int, std::unordered_set<int>>& ids,
         const Vector_t<double, 3>& hr_m, const Vector_t<int, 3>& nr,
-        const Vector_t<double, 3>& origin) {
+        const Vector_t<double, 3>& origin
+    ) {
         /*----------------------------------------------------------------------*/
         const size_t numpoints = 8 * ids.size();
         std::ofstream of;
@@ -421,8 +423,8 @@ class Triangle {
 public:
     Triangle() {}
     Triangle(
-        const Vector_t<double, 3>& v1, const Vector_t<double, 3>& v2,
-        const Vector_t<double, 3>& v3) {
+        const Vector_t<double, 3>& v1, const Vector_t<double, 3>& v2, const Vector_t<double, 3>& v3
+    ) {
         pts[0] = v1;
         pts[1] = v2;
         pts[2] = v3;
@@ -546,8 +548,8 @@ static inline int bevel_3d(const Vector_t<double, 3>& p) {
 */
 
 static inline int check_point(
-    const Vector_t<double, 3>& p1, const Vector_t<double, 3>& p2, const double alpha,
-    const int mask) {
+    const Vector_t<double, 3>& p1, const Vector_t<double, 3>& p2, const double alpha, const int mask
+) {
     Vector_t<double, 3> plane_point;
 
 #define LERP(a, b, t) (a + t * (b - a))
@@ -567,7 +569,8 @@ static inline int check_point(
   Note: Zero bits in "outcode_diff" means face line is outside of
 */
 static inline int check_line(
-    const Vector_t<double, 3>& p1, const Vector_t<double, 3>& p2, const int outcode_diff) {
+    const Vector_t<double, 3>& p1, const Vector_t<double, 3>& p2, const int outcode_diff
+) {
     if ((0x01 & outcode_diff) != 0)
         if (check_point(p1, p2, (.5 - p1[0]) / (p2[0] - p1[0]), 0x3e) == INSIDE)
             return (INSIDE);
@@ -597,7 +600,8 @@ constexpr double EPS = 10e-15;
 static inline int SIGN3(Vector_t<double, 3> A) {
     return (
         ((A[0] < EPS) ? 4 : 0) | ((A[0] > -EPS) ? 32 : 0) | ((A[1] < EPS) ? 2 : 0)
-        | ((A[1] > -EPS) ? 16 : 0) | ((A[2] < EPS) ? 1 : 0) | ((A[2] > -EPS) ? 8 : 0));
+        | ((A[1] > -EPS) ? 16 : 0) | ((A[2] < EPS) ? 1 : 0) | ((A[2] > -EPS) ? 8 : 0)
+    );
 }
 
 static int point_triangle_intersection(const Vector_t<double, 3>& p, const Triangle& t) {
@@ -900,14 +904,16 @@ public:
     inline bool isInside(const Vector_t<double, 3>& P) const {
         return (
             cmp::ge(P[0], pts[0][0]) && cmp::ge(P[1], pts[0][1]) && cmp::ge(P[2], pts[0][2])
-            && cmp::le(P[0], pts[1][0]) && cmp::le(P[1], pts[1][1]) && cmp::le(P[2], pts[1][2]));
+            && cmp::le(P[0], pts[1][0]) && cmp::le(P[1], pts[1][1]) && cmp::le(P[2], pts[1][2])
+        );
     }
 
     Vector_t<double, 3> pts[2];
 };
 
 static inline Vector_t<double, 3> normalVector(
-    const Vector_t<double, 3>& A, const Vector_t<double, 3>& B, const Vector_t<double, 3>& C) {
+    const Vector_t<double, 3>& A, const Vector_t<double, 3>& B, const Vector_t<double, 3>& C
+) {
     const Vector_t<double, 3> N = cross(B - A, C - A);
     const double magnitude      = std::sqrt(SQR(N(0)) + SQR(N(1)) + SQR(N(2)));
     PAssert(cmp::gt_zero(magnitude));  // in case we have degenerated triangles
@@ -916,7 +922,8 @@ static inline Vector_t<double, 3> normalVector(
 
 // Calculate the area of triangle given by id.
 static inline double computeArea(
-    const Vector_t<double, 3>& A, const Vector_t<double, 3>& B, const Vector_t<double, 3>& C) {
+    const Vector_t<double, 3>& A, const Vector_t<double, 3>& B, const Vector_t<double, 3>& C
+) {
     const Vector_t<double, 3> AB = A - B;
     const Vector_t<double, 3> AC = C - A;
     return (0.5 * std::sqrt(dot(AB, AB) * dot(AC, AC) - dot(AB, AC) * dot(AB, AC)));
@@ -937,25 +944,32 @@ BoundaryGeometry::BoundaryGeometry()
 
     itsAttr[TOPO] = Attributes::makePredefinedString(
         "TOPO", "If FGEOM is selected topo is over-written. ",
-        {"RECTANGULAR", "BOXCORNER", "ELLIPTIC"}, "ELLIPTIC");
+        {"RECTANGULAR", "BOXCORNER", "ELLIPTIC"}, "ELLIPTIC"
+    );
 
     itsAttr[LENGTH] = Attributes::makeReal(
-        "LENGTH", "Specifies the length of a tube shaped elliptic beam pipe [m]", 1.0);
+        "LENGTH", "Specifies the length of a tube shaped elliptic beam pipe [m]", 1.0
+    );
 
     itsAttr[S] = Attributes::makeReal(
-        "S", "Specifies the start of a tube shaped elliptic beam pipe [m]", 0.0);
+        "S", "Specifies the start of a tube shaped elliptic beam pipe [m]", 0.0
+    );
 
     itsAttr[A] = Attributes::makeReal(
-        "A", "Specifies the major semi-axis of a tube shaped elliptic beam pipe [m]", 0.025);
+        "A", "Specifies the major semi-axis of a tube shaped elliptic beam pipe [m]", 0.025
+    );
 
     itsAttr[B] = Attributes::makeReal(
-        "B", "Specifies the major semi-axis of a tube shaped elliptic beam pipe [m]", 0.025);
+        "B", "Specifies the major semi-axis of a tube shaped elliptic beam pipe [m]", 0.025
+    );
 
     itsAttr[L1] = Attributes::makeReal(
-        "L1", "In case of BOXCORNER Specifies first part with height == B [m]", 0.5);
+        "L1", "In case of BOXCORNER Specifies first part with height == B [m]", 0.5
+    );
 
     itsAttr[L2] = Attributes::makeReal(
-        "L2", "In case of BOXCORNER Specifies first second with height == B-C [m]", 0.2);
+        "L2", "In case of BOXCORNER Specifies first second with height == B-C [m]", 0.2
+    );
 
     itsAttr[C] =
         Attributes::makeReal("C", "In case of BOXCORNER Specifies height of corner C [m]", 0.01);
@@ -1054,13 +1068,15 @@ BoundaryGeometry* BoundaryGeometry::find(const std::string& name) {
 void BoundaryGeometry::updateElement(ElementBase* /*element*/) {}
 
 int BoundaryGeometry::intersectTriangleVoxel(
-    const int triangle_id, const int i, const int j, const int k) {
+    const int triangle_id, const int i, const int j, const int k
+) {
     const Triangle t(getPoint(triangle_id, 1), getPoint(triangle_id, 2), getPoint(triangle_id, 3));
 
     const Vector_t<double, 3> P(
         i * voxelMesh_m.sizeOfVoxel[0] + voxelMesh_m.minExtent[0],
         j * voxelMesh_m.sizeOfVoxel[1] + voxelMesh_m.minExtent[1],
-        k * voxelMesh_m.sizeOfVoxel[2] + voxelMesh_m.minExtent[2]);
+        k * voxelMesh_m.sizeOfVoxel[2] + voxelMesh_m.minExtent[2]
+    );
 
     Voxel v(P, P + voxelMesh_m.sizeOfVoxel);
 
@@ -1108,7 +1124,8 @@ int BoundaryGeometry::intersectTriangleVoxel(
 
 int BoundaryGeometry::intersectLineTriangle(
     const enum INTERSECTION_TESTS kind, const Vector_t<double, 3>& P0,
-    const Vector_t<double, 3>& P1, const int triangle_id, Vector_t<double, 3>& I) {
+    const Vector_t<double, 3>& P1, const int triangle_id, Vector_t<double, 3>& I
+) {
     const Vector_t<double, 3> V0 = getPoint(triangle_id, 1);
     const Vector_t<double, 3> V1 = getPoint(triangle_id, 2);
     const Vector_t<double, 3> V2 = getPoint(triangle_id, 3);
@@ -1294,7 +1311,8 @@ bool BoundaryGeometry::findInsidePoint(void) {
     std::vector<Vector_t<double, 3>> P_outs{
         {minExtent_m[0] - 0.01, Q[1], Q[2]}, {maxExtent_m[0] + 0.01, Q[1], Q[2]},
         {Q[0], minExtent_m[1] - 0.01, Q[2]}, {Q[0], maxExtent_m[1] + 0.01, Q[2]},
-        {Q[0], Q[1], minExtent_m[2] - 0.01}, {Q[0], Q[1], maxExtent_m[2] + 0.01}};
+        {Q[0], Q[1], minExtent_m[2] - 0.01}, {Q[0], Q[1], maxExtent_m[2] + 0.01}
+    };
     int n_i = 0;
     Vector_t<double, 3> P_out;
     for (const auto& P : P_outs) {
@@ -1362,7 +1380,9 @@ int BoundaryGeometry::fastIsInside(
     const int N                 = std::ceil(
         magnitude(v)
         / std::min(
-            {voxelMesh_m.sizeOfVoxel[0], voxelMesh_m.sizeOfVoxel[1], voxelMesh_m.sizeOfVoxel[2]}));
+            {voxelMesh_m.sizeOfVoxel[0], voxelMesh_m.sizeOfVoxel[1], voxelMesh_m.sizeOfVoxel[2]}
+        )
+    );
     const Vector_t<double, 3> v_ = v / N;
     Vector_t<double, 3> P0       = P;
     Vector_t<double, 3> P1       = P + v_;
@@ -1394,7 +1414,8 @@ int BoundaryGeometry::fastIsInside(
         ray direction
  */
 int BoundaryGeometry::intersectRayBoundary(
-    const Vector_t<double, 3>& P, const Vector_t<double, 3>& v, Vector_t<double, 3>& I) {
+    const Vector_t<double, 3>& P, const Vector_t<double, 3>& v, Vector_t<double, 3>& I
+) {
     IpplTimings::startTimer(TRayTrace_m);
 #ifdef ENABLE_DEBUG
     int saved_flags = debugFlags_m;
@@ -1412,7 +1433,8 @@ int BoundaryGeometry::intersectRayBoundary(
     Ray r   = Ray(P, v);
     Voxel c = Voxel(
         voxelMesh_m.minExtent + 0.25 * voxelMesh_m.sizeOfVoxel,
-        voxelMesh_m.maxExtent - 0.25 * voxelMesh_m.sizeOfVoxel);
+        voxelMesh_m.maxExtent - 0.25 * voxelMesh_m.sizeOfVoxel
+    );
     double tmin = 0.0;
     double tmax = 0.0;
     c.intersect(r, tmin, tmax);
@@ -1458,11 +1480,13 @@ inline int BoundaryGeometry::mapVoxelIndices2ID(const int i, const int j, const 
     }
 
 inline Vector_t<double, 3> BoundaryGeometry::mapIndices2Voxel(
-    const int i, const int j, const int k) {
+    const int i, const int j, const int k
+) {
     return Vector_t<double, 3>(
         i * voxelMesh_m.sizeOfVoxel[0] + voxelMesh_m.minExtent[0],
         j * voxelMesh_m.sizeOfVoxel[1] + voxelMesh_m.minExtent[1],
-        k * voxelMesh_m.sizeOfVoxel[2] + voxelMesh_m.minExtent[2]);
+        k * voxelMesh_m.sizeOfVoxel[2] + voxelMesh_m.minExtent[2]
+    );
 }
 
 inline Vector_t<double, 3> BoundaryGeometry::mapPoint2Voxel(const Vector_t<double, 3>& pt) {
@@ -1480,10 +1504,12 @@ inline void BoundaryGeometry::computeMeshVoxelization(void) {
         Vector_t<double, 3> v3       = getPoint(triangle_id, 3);
         Vector_t<double, 3> bbox_min = {
             std::min({v1[0], v2[0], v3[0]}), std::min({v1[1], v2[1], v3[1]}),
-            std::min({v1[2], v2[2], v3[2]})};
+            std::min({v1[2], v2[2], v3[2]})
+        };
         Vector_t<double, 3> bbox_max = {
             std::max({v1[0], v2[0], v3[0]}), std::max({v1[1], v2[1], v3[1]}),
-            std::max({v1[2], v2[2], v3[2]})};
+            std::max({v1[2], v2[2], v3[2]})
+        };
         int i_min, j_min, k_min;
         int i_max, j_max, k_max;
         mapPoint2VoxelIndices(bbox_min, i_min, j_min, k_min);
@@ -1506,7 +1532,8 @@ inline void BoundaryGeometry::computeMeshVoxelization(void) {
     // write voxel mesh into VTK file
     if (ippl::Comm->rank() == 0 && Options::enableVTK) {
         std::string vtkFileName = Util::combineFilePath(
-            {OpalData::getInstance()->getAuxiliaryOutputDirectory(), "testBBox.vtk"});
+            {OpalData::getInstance()->getAuxiliaryOutputDirectory(), "testBBox.vtk"}
+        );
         bool writeVTK = false;
 
         if (!std::filesystem::exists(vtkFileName)) {
@@ -1522,7 +1549,8 @@ inline void BoundaryGeometry::computeMeshVoxelization(void) {
         if (writeVTK) {
             write_voxel_mesh(
                 vtkFileName, voxelMesh_m.ids, voxelMesh_m.sizeOfVoxel, voxelMesh_m.nr_m,
-                voxelMesh_m.minExtent);
+                voxelMesh_m.minExtent
+            );
         }
     }
 }
@@ -1717,7 +1745,8 @@ Change orientation if diff is:
         */
 
         static void computeTriangleNeighbors(
-            BoundaryGeometry* bg, std::vector<std::set<unsigned int>>& neighbors) {
+            BoundaryGeometry* bg, std::vector<std::set<unsigned int>>& neighbors
+        ) {
             std::vector<std::set<unsigned int>> adjacencies_to_pt(bg->Points_m.size());
 
             // for each triangles find adjacent triangles for each vertex
@@ -1739,13 +1768,16 @@ Change orientation if diff is:
                 std::set<unsigned int> intersect;
                 std::set_intersection(
                     to_A.begin(), to_A.end(), to_B.begin(), to_B.end(),
-                    std::inserter(intersect, intersect.begin()));
+                    std::inserter(intersect, intersect.begin())
+                );
                 std::set_intersection(
                     to_B.begin(), to_B.end(), to_C.begin(), to_C.end(),
-                    std::inserter(intersect, intersect.begin()));
+                    std::inserter(intersect, intersect.begin())
+                );
                 std::set_intersection(
                     to_C.begin(), to_C.end(), to_A.begin(), to_A.end(),
-                    std::inserter(intersect, intersect.begin()));
+                    std::inserter(intersect, intersect.begin())
+                );
                 intersect.erase(triangle_id);
 
                 neighbors[triangle_id] = intersect;
@@ -1778,7 +1810,8 @@ Change orientation if diff is:
             Vector_t<double, 3> y = Vector_t<double, 3>(
                 bg->maxExtent_m[0] * (1.1 + gsl_rng_uniform(bg->randGen_m)),
                 bg->maxExtent_m[1] * (1.1 + gsl_rng_uniform(bg->randGen_m)),
-                bg->maxExtent_m[2] * (1.1 + gsl_rng_uniform(bg->randGen_m)));
+                bg->maxExtent_m[2] * (1.1 + gsl_rng_uniform(bg->randGen_m))
+            );
 
             std::vector<Vector_t<double, 3>> intersection_points;
             // int num_intersections = 0;
@@ -1909,7 +1942,8 @@ edge_found:
     if (!std::filesystem::exists(h5FileName_m)) {
         throw OpalException(
             "BoundaryGeometry::initialize",
-            "Failed to open file '" + h5FileName_m + "', please check if it exists");
+            "Failed to open file '" + h5FileName_m + "', please check if it exists"
+        );
     }
 
     double xscale   = Attributes::getReal(itsAttr[XSCALE]);
@@ -1960,7 +1994,9 @@ edge_found:
         Points_m.push_back(
             Vector_t<double, 3>(
                 P[0] * xyzscale * xscale, P[1] * xyzscale * yscale,
-                P[2] * xyzscale * zscale + zshift));
+                P[2] * xyzscale * zscale + zshift
+            )
+        );
     }
     H5FedCloseMesh(m);
     H5CloseFile(f);
@@ -1973,14 +2009,16 @@ edge_found:
     if (!pt.empty()) {
         if (pt.size() != 3) {
             throw OpalException(
-                "BoundaryGeometry::initialize()", "Dimension of INSIDEPOINT must be 3");
+                "BoundaryGeometry::initialize()", "Dimension of INSIDEPOINT must be 3"
+            );
         }
         /* test whether this point is inside */
         insidePoint_m  = {pt[0], pt[1], pt[2]};
         bool is_inside = isInside(insidePoint_m);
         if (is_inside == false) {
             throw OpalException(
-                "BoundaryGeometry::initialize()", "INSIDEPOINT is not inside the geometry");
+                "BoundaryGeometry::initialize()", "INSIDEPOINT is not inside the geometry"
+            );
         }
         haveInsidePoint_m = true;
     } else {
@@ -2041,9 +2079,11 @@ int BoundaryGeometry::intersectTinyLineSegmentBoundary(
     const Vector_t<double, 3> v_       = Q - P;
     const Ray r                        = Ray(P, v_);
     const Vector_t<double, 3> bbox_min = {
-        std::min(P[0], Q[0]), std::min(P[1], Q[1]), std::min(P[2], Q[2])};
+        std::min(P[0], Q[0]), std::min(P[1], Q[1]), std::min(P[2], Q[2])
+    };
     const Vector_t<double, 3> bbox_max = {
-        std::max(P[0], Q[0]), std::max(P[1], Q[1]), std::max(P[2], Q[2])};
+        std::max(P[0], Q[0]), std::max(P[1], Q[1]), std::max(P[2], Q[2])
+    };
     int i_min, i_max;
     int j_min, j_max;
     int k_min, k_max;
@@ -2095,7 +2135,8 @@ int BoundaryGeometry::intersectTinyLineSegmentBoundary(
                 if (triangles_intersecting_voxel != voxelMesh_m.ids.end()) {
                     triangle_ids.insert(
                         triangles_intersecting_voxel->second.begin(),
-                        triangles_intersecting_voxel->second.end());
+                        triangles_intersecting_voxel->second.end()
+                    );
                 }
             }
         }
@@ -2182,9 +2223,11 @@ int BoundaryGeometry::intersectLineSegmentBoundary(
         n++;
         Vector_t<double, 3> Q        = P0 + v / n;
         Vector_t<double, 3> bbox_min = {
-            std::min(P0[0], Q[0]), std::min(P0[1], Q[1]), std::min(P0[2], Q[2])};
+            std::min(P0[0], Q[0]), std::min(P0[1], Q[1]), std::min(P0[2], Q[2])
+        };
         Vector_t<double, 3> bbox_max = {
-            std::max(P0[0], Q[0]), std::max(P0[1], Q[1]), std::max(P0[2], Q[2])};
+            std::max(P0[0], Q[0]), std::max(P0[1], Q[1]), std::max(P0[2], Q[2])
+        };
         mapPoint2VoxelIndices(bbox_min, i_min, j_min, k_min);
         mapPoint2VoxelIndices(bbox_max, i_max, j_max, k_max);
     } while (((i_max - i_min + 1) * (j_max - j_min + 1) * (k_max - k_min + 1)) > 27);

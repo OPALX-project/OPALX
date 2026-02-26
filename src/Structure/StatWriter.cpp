@@ -90,7 +90,8 @@ void StatWriter::fillHeader(const losses_t& losses) {
     columns_m.addColumn("DebyeLength", "double", "m", "Debye length in the boosted frame");
     columns_m.addColumn(
         "plasmaParameter", "double", "1",
-        "Plasma parameter that gives no. of particles in a Debye sphere");
+        "Plasma parameter that gives no. of particles in a Debye sphere"
+    );
     columns_m.addColumn("temperature", "double", "K", "Temperature of the beam");
     columns_m.addColumn("rmsDensity", "double", "1", "RMS number density of the beam");
 
@@ -196,7 +197,8 @@ void StatWriter::fillHeader(const losses_t& losses) {
 
 void StatWriter::write(
     PartBunch_t* beam, Vector_t<double, 3> FDext[], const losses_t& losses, const double& azimuth,
-    const size_t npOutside) {
+    const size_t npOutside
+) {
     using ParticleContainer_t               = ParticleContainer<T, Dim>;
     std::shared_ptr<ParticleContainer_t> pc = beam->getParticleContainer();
     double Ekin                             = pc->getMeanKineticEnergy();
@@ -277,9 +279,11 @@ void StatWriter::write(
     columns_m.addColumnValue("partsOutside", npOutside);  // 42 number of particles outside n*sigma
 
     columns_m.addColumnValue(
-        "DebyeLength", beam->get_debyeLength());  // 43 Debye length in the boosted frame
+        "DebyeLength", beam->get_debyeLength()
+    );  // 43 Debye length in the boosted frame
     columns_m.addColumnValue(
-        "plasmaParameter", beam->get_plasmaParameter());               // 43 plasma parameter
+        "plasmaParameter", beam->get_plasmaParameter()
+    );                                                                 // 43 plasma parameter
     columns_m.addColumnValue("temperature", beam->get_temperature());  // 44 Temperature
     columns_m.addColumnValue("rmsDensity", beam->get_rmsDensity());    // 45 RMS number density
 

@@ -63,7 +63,8 @@ namespace interpolation {
          */
         inline virtual void functionAppend(
             const std::vector<std::vector<double> >& point_vec,
-            std::vector<std::vector<double> >& value_vec) const;
+            std::vector<std::vector<double> >& value_vec
+        ) const;
 
         /** Return true if point.size() is the same as this->PointDimension() */
         inline virtual bool checkPoint(const std::vector<double>& point) const;
@@ -107,7 +108,8 @@ namespace interpolation {
 
     void VectorMap::functionAppend(
         const std::vector<std::vector<double> >& point_vec,
-        std::vector<std::vector<double> >& value_vec) const {
+        std::vector<std::vector<double> >& value_vec
+    ) const {
         for (size_t i = value_vec.size(); i < point_vec.size(); i++) {
             value_vec.push_back(std::vector<double>(getValueDimension()));
             function(&point_vec[i][0], &value_vec[i][0]);

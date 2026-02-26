@@ -118,7 +118,8 @@ const Euclid3DGeometry& Offset::getGeometry() const { return *geometry_m; }
 double Offset::getTheta(Vector_t<double, 3> vec1, Vector_t<double, 3> vec2) {
     if (std::abs(vec1(2)) > 1e-9 || std::abs(vec2(2)) > 1e-9)
         throw GeneralClassicException(
-            "Offset::getTheta(...)", "Rotations out of midplane are not implemented");
+            "Offset::getTheta(...)", "Rotations out of midplane are not implemented"
+        );
     // probably not the most efficient, but only called at set up
     double theta = std::atan2(vec2(1), vec2(0)) - std::atan2(vec1(1), vec1(0));
     if (theta < -Physics::pi)
@@ -135,22 +136,26 @@ Vector_t<double, 3> Offset::rotate(Vector_t<double, 3> vec, double theta) {
 void Offset::updateGeometry() {
     if (!_is_local)
         throw GeneralClassicException(
-            "Offset::updateGeometry(...)", "Global offset needs a local coordinate system");
+            "Offset::updateGeometry(...)", "Global offset needs a local coordinate system"
+        );
     Vector_t<double, 3> translation = getEndPosition();
     double length                   = std::sqrt(
         translation(0) * translation(0) + translation(1) * translation(1)
-        + translation(2) * translation(2));
+        + translation(2) * translation(2)
+    );
     double theta_in  = getTheta(Vector_t<double, 3>({1., 0., 0.}), translation);
     double theta_out = getTheta(Vector_t<double, 3>({1., 0., 0.}), getEndDirection());
     Euclid3D euclid3D(
-        -std::sin(theta_in) * length, 0., std::cos(theta_in) * length, 0., -theta_out, 0.);
+        -std::sin(theta_in) * length, 0., std::cos(theta_in) * length, 0., -theta_out, 0.
+    );
     if (geometry_m != nullptr)
         delete geometry_m;
     geometry_m = new Euclid3DGeometry(euclid3D);
 }
 
 void Offset::updateGeometry(
-    Vector_t<double, 3> /*startPosition*/, Vector_t<double, 3> startDirection) {
+    Vector_t<double, 3> /*startPosition*/, Vector_t<double, 3> startDirection
+) {
     if (!_is_local) {
         Vector_t<double, 3> translationGlobal = _end_position;
         double theta_g2l = getTheta(startDirection, Vector_t<double, 3>({1, 0, 0}));
@@ -198,7 +203,8 @@ std::ostream& operator<<(std::ostream& out, const Offset& off) {
 bool Offset::bends() const {
     if (geometry_m == nullptr) {
         throw GeneralClassicException(
-            "Offset::bends", "Try to determine if Offset bends when geometry_m not allocated");
+            "Offset::bends", "Try to determine if Offset bends when geometry_m not allocated"
+        );
     }
     Rotation3D rotation = geometry_m->getTotalTransform().getRotation();
     for (size_t i = 0; i < 3; ++i)
@@ -213,33 +219,39 @@ bool Offset::bends() const {
 }
 
 Offset Offset::localCylindricalOffset(
-    std::string name, double phi_in, double phi_out, double displacement) {
+    std::string name, double phi_in, double phi_out, double displacement
+) {
     Offset off(name);
     displacement *= lengthUnits_m;
     off.setEndPosition(
-        Vector_t<double, 3>(
-            {std::cos(phi_in) * displacement, std::sin(phi_in) * displacement, 0.}));
+        Vector_t<double, 3>({std::cos(phi_in) * displacement, std::sin(phi_in) * displacement, 0.})
+    );
     off.setEndDirection(
-        Vector_t<double, 3>({std::cos(phi_in + phi_out), std::sin(phi_in + phi_out), 0.}));
+        Vector_t<double, 3>({std::cos(phi_in + phi_out), std::sin(phi_in + phi_out), 0.})
+    );
     off.setIsLocal(true);
     off.updateGeometry();
     return off;
 }
 
 Offset Offset::globalCylindricalOffset(
-    std::string name, double radius_out, double phi_out, double theta_out) {
+    std::string name, double radius_out, double phi_out, double theta_out
+) {
     Offset off(name);
     radius_out *= lengthUnits_m;
     off.setEndPosition(
-        Vector_t<double, 3>({std::cos(phi_out) * radius_out, std::sin(phi_out) * radius_out, 0.}));
+        Vector_t<double, 3>({std::cos(phi_out) * radius_out, std::sin(phi_out) * radius_out, 0.})
+    );
     off.setEndDirection(
-        Vector_t<double, 3>({std::sin(phi_out + theta_out), std::cos(phi_out + theta_out), 0.}));
+        Vector_t<double, 3>({std::sin(phi_out + theta_out), std::cos(phi_out + theta_out), 0.})
+    );
     off.setIsLocal(false);
     return off;
 }
 
 Offset Offset::localCartesianOffset(
-    std::string name, Vector_t<double, 3> end_position, Vector_t<double, 3> end_direction) {
+    std::string name, Vector_t<double, 3> end_position, Vector_t<double, 3> end_direction
+) {
     Offset off(name);
     end_position = end_position * lengthUnits_m;
     off.setEndPosition(end_position);
@@ -250,7 +262,8 @@ Offset Offset::localCartesianOffset(
 }
 
 Offset Offset::globalCartesianOffset(
-    std::string name, Vector_t<double, 3> end_position, Vector_t<double, 3> end_direction) {
+    std::string name, Vector_t<double, 3> end_position, Vector_t<double, 3> end_direction
+) {
     Offset off(name);
     end_position = end_position * lengthUnits_m;
     off.setEndPosition(end_position);

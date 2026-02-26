@@ -43,7 +43,8 @@ namespace polynomial {
     }
 
     DifferentialOperatorTwo::DifferentialOperatorTwo(
-        const std::size_t& xDerivatives, const std::size_t& sDerivatives)
+        const std::size_t& xDerivatives, const std::size_t& sDerivatives
+    )
         : xDerivatives_m(xDerivatives), sDerivatives_m(sDerivatives) {
         polynomials_m.resize(xDerivatives_m + 1);
         for (std::size_t i = 0; i <= xDerivatives_m; i++) {
@@ -59,7 +60,8 @@ namespace polynomial {
     DifferentialOperatorTwo::~DifferentialOperatorTwo() {}
 
     DifferentialOperatorTwo& DifferentialOperatorTwo::operator=(
-        const DifferentialOperatorTwo& doperator) {
+        const DifferentialOperatorTwo& doperator
+    ) {
         polynomials_m  = doperator.polynomials_m;
         xDerivatives_m = doperator.xDerivatives_m;
         sDerivatives_m = doperator.sDerivatives_m;
@@ -117,7 +119,8 @@ namespace polynomial {
     }
 
     void DifferentialOperatorTwo::setPolynomial(
-        const TwoPolynomial& poly, const std::size_t& x, const std::size_t& s) {
+        const TwoPolynomial& poly, const std::size_t& x, const std::size_t& s
+    ) {
         if (x > xDerivatives_m) {
             resizeX(x);
         }
@@ -160,7 +163,8 @@ namespace polynomial {
     }
 
     bool DifferentialOperatorTwo::isPolynomialZero(
-        const std::size_t& x, const std::size_t& s, const std::size_t& term) const {
+        const std::size_t& x, const std::size_t& s, const std::size_t& term
+    ) const {
         if (x > xDerivatives_m || s > sDerivatives_m) {
             return true;
         }
@@ -177,7 +181,8 @@ namespace polynomial {
 
     double DifferentialOperatorTwo::evaluatePolynomial(
         const double& x, const double& s, const std::size_t& xDerivative,
-        const std::size_t& sDerivative, const std::vector<double>& dSvalues) const {
+        const std::size_t& sDerivative, const std::vector<double>& dSvalues
+    ) const {
         if (xDerivative > xDerivatives_m || sDerivative > sDerivatives_m) {
             return 0.0;
         }
@@ -185,7 +190,8 @@ namespace polynomial {
     }
 
     std::size_t DifferentialOperatorTwo::numberOfTerms(
-        const std::size_t& xDerivatives, const std::size_t& sDerivatives) const {
+        const std::size_t& xDerivatives, const std::size_t& sDerivatives
+    ) const {
         if (xDerivatives > xDerivatives_m || sDerivatives > sDerivatives_m) {
             return 0;
         }
@@ -193,8 +199,8 @@ namespace polynomial {
     }
 
     std::vector<std::size_t> DifferentialOperatorTwo::getdSFactors(
-        const std::size_t& xDerivatives, const std::size_t& sDerivatives,
-        const std::size_t& p) const {
+        const std::size_t& xDerivatives, const std::size_t& sDerivatives, const std::size_t& p
+    ) const {
         if (xDerivatives > xDerivatives_m || sDerivatives > sDerivatives_m) {
             std::vector<std::size_t> dummy;
             return dummy;

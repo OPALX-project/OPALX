@@ -58,8 +58,8 @@ void Monitor::accept(BeamlineVisitor& visitor) const { visitor.visitMonitor(*thi
 bool Monitor::apply() { return false; }
 
 bool Monitor::apply(
-    const size_t& /*i*/, const double& /*t*/, Vector_t<double, 3>& /*E*/,
-    Vector_t<double, 3>& /*B*/) {
+    const size_t& /*i*/, const double& /*t*/, Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/
+) {
     // const Vector_t<double, 3>& R         = RefPartBunch_m->R(i);
     // const Vector_t<double, 3>& P         = RefPartBunch_m->P(i);
     // const double& dt                     = RefPartBunch_m->dt(i);
@@ -81,13 +81,15 @@ bool Monitor::apply(
 
 bool Monitor::apply(
     const Vector_t<double, 3>& /*R*/, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
-    Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/) {
+    Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/
+) {
     throw std::runtime_error("Fix this function please");
     return false;
 }
 
 void Monitor::driftToCorrectPositionAndSave(
-    const Vector_t<double, 3>& /*refR*/, const Vector_t<double, 3>& /*refP*/) {
+    const Vector_t<double, 3>& /*refR*/, const Vector_t<double, 3>& /*refP*/
+) {
     // const double cdt                           = Physics::c * RefPartBunch_m->getdT();
     // const Vector_t<double, 3> driftPerTimeStep = cdt * Util::getBeta(refP);
     // const double tau                           = -refR(2) / driftPerTimeStep(2);
@@ -109,7 +111,8 @@ void Monitor::driftToCorrectPositionAndSave(
 
 bool Monitor::applyToReferenceParticle(
     const Vector_t<double, 3>& /*R*/, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
-    Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/) {
+    Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/
+) {
     // if (!OpalData::getInstance()->isInPrepState()) {
     //     const double dt                      = RefPartBunch_m->getdT();
     //     const double cdt                     = Physics::c * dt;

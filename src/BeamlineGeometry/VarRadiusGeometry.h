@@ -65,7 +65,8 @@ public:
      *  \param lambda_right -> Length of right end fringe field
      */
     VarRadiusGeometry(
-        double length, double rho, double s_0, double lambda_left, double lambda_right);
+        double length, double rho, double s_0, double lambda_left, double lambda_right
+    );
     /** Copy constructor */
     VarRadiusGeometry(const VarRadiusGeometry& right);
     /** Destructor */
@@ -138,7 +139,8 @@ private:
 // inlined (trivial) member functions
 
 inline VarRadiusGeometry::VarRadiusGeometry(
-    double length, double rho, double s_0, double lambda_left, double lambda_right)
+    double length, double rho, double s_0, double lambda_left, double lambda_right
+)
     : length_m(length),
       rho_m(rho),
       s_0_m(s_0),
@@ -167,7 +169,8 @@ inline double VarRadiusGeometry::getElementLength() const { return length_m; }
 inline void VarRadiusGeometry::setElementLength(double length) {
     if (length < 0.0) {
         throw GeneralClassicException(
-            "VarRadiusGeometry::setElementLength", "The length of an element has to be positive");
+            "VarRadiusGeometry::setElementLength", "The length of an element has to be positive"
+        );
     }
     length_m = std::max(0.0, length);
 }

@@ -50,7 +50,8 @@ private:
     virtual void doInitialise(PartBunch_t* bunch) override;
     /// Record probe hits when bunch particles pass
     virtual bool doCheck(
-        PartBunch_t* bunch, const int turnnumber, const double t, const double tstep) override;
+        PartBunch_t* bunch, const int turnnumber, const double t, const double tstep
+    ) override;
     /// Hook for goOffline
     virtual void doGoOffline() override;
     /// Virtual hook for preCheck

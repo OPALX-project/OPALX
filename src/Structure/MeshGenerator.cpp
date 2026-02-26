@@ -92,7 +92,8 @@ void MeshGenerator::add(const ElementBase& element) {
 
 void MeshGenerator::write(const std::string& fname) {
     std::string filename = Util::combineFilePath(
-        {OpalData::getInstance()->getAuxiliaryOutputDirectory(), fname + "_ElementPositions.py"});
+        {OpalData::getInstance()->getAuxiliaryOutputDirectory(), fname + "_ElementPositions.py"}
+    );
     std::ofstream out(filename);
     const char* buffer;
     const std::string indent("    ");
@@ -124,10 +125,12 @@ void MeshGenerator::write(const std::string& fname) {
         std::vector<Bytef> compressed_data(compressed_size);
         int result = compress(
             compressed_data.data(), &compressed_size, reinterpret_cast<const Bytef*>(data.data()),
-            data.size());
+            data.size()
+        );
         if (result == Z_OK) {
             vertices_compressed.write(
-                reinterpret_cast<const char*>(compressed_data.data()), compressed_size);
+                reinterpret_cast<const char*>(compressed_data.data()), compressed_size
+            );
         }
     }
 
@@ -260,10 +263,12 @@ void MeshGenerator::write(const std::string& fname) {
         std::vector<Bytef> compressed_data(compressed_size);
         int result = compress(
             compressed_data.data(), &compressed_size, reinterpret_cast<const Bytef*>(data.data()),
-            data.size());
+            data.size()
+        );
         if (result == Z_OK) {
             index_compressed.write(
-                reinterpret_cast<const char*>(compressed_data.data()), compressed_size);
+                reinterpret_cast<const char*>(compressed_data.data()), compressed_size
+            );
         }
     }
 
@@ -974,7 +979,8 @@ void MeshGenerator::write(const std::string& fname) {
 }
 
 MeshData MeshGenerator::getCylinder(
-    double length, double minor, double major, double formFactor, const unsigned int numSegments) {
+    double length, double minor, double major, double formFactor, const unsigned int numSegments
+) {
     double angle  = 0;
     double dAngle = Physics::two_pi / numSegments;
 
@@ -992,24 +998,28 @@ MeshData MeshGenerator::getCylinder(
         mesh.triangles_m.push_back(sideTriangle1);
 
         Vector_t<unsigned int, 3> sideTriangle2(
-            next + 1, next + numSegments + 2, i + numSegments + 2);
+            next + 1, next + numSegments + 2, i + numSegments + 2
+        );
         mesh.triangles_m.push_back(sideTriangle2);
     }
 
     mesh.vertices_m.push_back(Vector_t<double, 3>(0.0, 0.0, length));
     for (unsigned int i = 0; i < numSegments; ++i, angle += dAngle) {
         Vector_t<double, 3> node(
-            formFactor * major * cos(angle), formFactor * minor * sin(angle), length);
+            formFactor * major * cos(angle), formFactor * minor * sin(angle), length
+        );
         mesh.vertices_m.push_back(node);
 
         unsigned int next = (i + 1) % numSegments;
         Vector_t<unsigned int, 3> topTriangle(
-            numSegments + 1, i + numSegments + 2, next + numSegments + 2);
+            numSegments + 1, i + numSegments + 2, next + numSegments + 2
+        );
         mesh.triangles_m.push_back(topTriangle);
     }
 
     mesh.decorations_m.push_back(
-        std::make_pair(Vector_t<double, 3>(0.0), Vector_t<double, 3>(0, 0, length)));
+        std::make_pair(Vector_t<double, 3>(0.0), Vector_t<double, 3>(0, 0, length))
+    );
 
     return mesh;
 }
@@ -1023,11 +1033,14 @@ MeshData MeshGenerator::getBox(double length, double width, double height, doubl
 
     mesh.vertices_m.push_back(Vector_t<double, 3>(formFactor * width, formFactor * height, length));
     mesh.vertices_m.push_back(
-        Vector_t<double, 3>(-formFactor * width, formFactor * height, length));
+        Vector_t<double, 3>(-formFactor * width, formFactor * height, length)
+    );
     mesh.vertices_m.push_back(
-        Vector_t<double, 3>(-formFactor * width, -formFactor * height, length));
+        Vector_t<double, 3>(-formFactor * width, -formFactor * height, length)
+    );
     mesh.vertices_m.push_back(
-        Vector_t<double, 3>(formFactor * width, -formFactor * height, length));
+        Vector_t<double, 3>(formFactor * width, -formFactor * height, length)
+    );
 
     mesh.triangles_m.push_back(Vector_t<unsigned int, 3>(0, 2, 1));
     mesh.triangles_m.push_back(Vector_t<unsigned int, 3>(0, 3, 2));
@@ -1045,7 +1058,8 @@ MeshData MeshGenerator::getBox(double length, double width, double height, doubl
     mesh.triangles_m.push_back(Vector_t<unsigned int, 3>(4, 6, 7));
 
     mesh.decorations_m.push_back(
-        std::make_pair(Vector_t<double, 3>(0.0), Vector_t<double, 3>(0, 0, length)));
+        std::make_pair(Vector_t<double, 3>(0.0), Vector_t<double, 3>(0, 0, length))
+    );
 
     return mesh;
 }

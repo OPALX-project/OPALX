@@ -28,7 +28,8 @@
 
 Selector::Selector(
     const Beamline& bl, const RangeRep& range, const std::string& clsName,
-    const std::string& typName, const std::string& pattern)
+    const std::string& typName, const std::string& pattern
+)
     : RangeSelector(bl, range), itsClass(0), itsType(typName), itsPattern(0), itsCount(0) {
     if (!clsName.empty() && (itsClass = Element::find(clsName)) == 0) {
         if (Options::warn) {

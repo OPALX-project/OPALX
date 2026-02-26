@@ -13,8 +13,8 @@ SavitzkyGolayFilter::SavitzkyGolayFilter(int np, int nl, int nr, int m)
       CoefsDeriv_m(np, 0.0) {
     savgol(Coefs_m, NumberPoints_m, NumberPointsLeft_m, NumberPointsRight_m, 0, PolynomialOrder_m);
     savgol(
-        CoefsDeriv_m, NumberPoints_m, NumberPointsLeft_m, NumberPointsRight_m, 1,
-        PolynomialOrder_m);
+        CoefsDeriv_m, NumberPoints_m, NumberPointsLeft_m, NumberPointsRight_m, 1, PolynomialOrder_m
+    );
 }
 
 void SavitzkyGolayFilter::apply(std::vector<double>& LineDensity) {
@@ -30,8 +30,8 @@ void SavitzkyGolayFilter::calc_derivative(std::vector<double>& LineDensity, cons
 }
 
 void savgol(
-    std::vector<double>& c, const int& np, const int& nl, const int& nr, const int& ld,
-    const int& m) {
+    std::vector<double>& c, const int& np, const int& nl, const int& nr, const int& ld, const int& m
+) {
     int j, k, imj, ipj, kk, mm;
     double d, sum;
 
@@ -74,7 +74,8 @@ void savgol(
 
 void convlv(
     const std::vector<double>& data, const std::vector<double>& respns, const int& isign,
-    std::vector<double>& ans) {
+    std::vector<double>& ans
+) {
     int n = data.size();
     int m = respns.size();
 

@@ -51,7 +51,8 @@ public:
     inline bool apply();
 
     inline bool apply(
-        const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B);
+        const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B
+    );
 
     /** Calculate the field at some arbitrary position
      *
@@ -64,7 +65,8 @@ public:
      */
     inline bool apply(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-        Vector_t<double, 3>& E, Vector_t<double, 3>& B);
+        Vector_t<double, 3>& E, Vector_t<double, 3>& B
+    );
 
     /** Calculate the field at some arbitrary position in cartesian coordinates
      *
@@ -223,7 +225,8 @@ void VerticalFFAMagnet::setPositiveVerticalExtent(double positiveExtent) {
 bool VerticalFFAMagnet::apply() { return false; }
 
 bool VerticalFFAMagnet::apply(
-    const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
+    const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B
+) {
     std::shared_ptr<ParticleContainer_t> pc = RefPartBunch_m->getParticleContainer();
     auto Rview                              = pc->R.getView();
     auto Pview                              = pc->P.getView();
@@ -234,7 +237,8 @@ bool VerticalFFAMagnet::apply(
 
 bool VerticalFFAMagnet::apply(
     const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double&,
-    Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B) {
+    Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B
+) {
     return getFieldValue(R, B);
 }
 

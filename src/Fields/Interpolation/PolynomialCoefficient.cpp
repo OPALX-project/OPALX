@@ -10,7 +10,8 @@ namespace interpolation {
     }
 
     void PolynomialCoefficient::SpaceTransform(
-        std::vector<int> space_in, std::vector<int> space_out) {
+        std::vector<int> space_in, std::vector<int> space_out
+    ) {
         std::map<int, int> mapping;  // probably optimise this
         for (unsigned int i = 0; i < space_out.size(); i++)
             for (unsigned int j = 0; j < space_in.size(); j++)
@@ -24,7 +25,8 @@ namespace interpolation {
             else
                 throw(GeneralClassicException(
                     "PolynomialVector::PolynomialCoefficient::SpaceTransform",
-                    "Input variable not found in space transform"));
+                    "Input variable not found in space transform"
+                ));
         }
 
         if (mapping.find(_outVar) != mapping.end())
@@ -32,7 +34,8 @@ namespace interpolation {
         else
             throw(GeneralClassicException(
                 "PolynomialVector::PolynomialCoefficient::SpaceTransform",
-                "Output variable not found in space transform"));
+                "Output variable not found in space transform"
+            ));
         _inVarByVec = in_variables;
     }
 }  // namespace interpolation

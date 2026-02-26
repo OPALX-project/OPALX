@@ -108,7 +108,8 @@ namespace SDDS {
          */
         template <typename T>
         void getInterpolatedValue(
-            std::string ref_name, double ref_val, std::string col_name, T& nval) {
+            std::string ref_name, double ref_val, std::string col_name, T& nval
+        ) {
             T value_before          = 0;
             T value_after           = 0;
             double value_before_ref = 0;
@@ -142,7 +143,8 @@ namespace SDDS {
 
             if (this_row == num_rows)
                 throw SDDSParserException(
-                    "SDDSParser::getInterpolatedValue", "all values < specified reference value");
+                    "SDDSParser::getInterpolatedValue", "all values < specified reference value"
+                );
 
             // simple linear interpolation
             if (ref_val - value_before_ref < 1e-8)
@@ -156,7 +158,8 @@ namespace SDDS {
             double dval = static_cast<double>(nval);
             if (dval != dval || (dval == dval * 2.0 && dval != 0.0))
                 throw SDDSParserException(
-                    "SDDSParser::getInterpolatedValue", "Interpolated value either NaN or Inf.");
+                    "SDDSParser::getInterpolatedValue", "Interpolated value either NaN or Inf."
+                );
         }
 
         /**
@@ -190,7 +193,8 @@ namespace SDDS {
             } else {
                 throw SDDSParserException(
                     "SDDSParser::getParameterValue",
-                    "unknown parameter name: '" + parameter_name + "'!");
+                    "unknown parameter name: '" + parameter_name + "'!"
+                );
             }
         }
 
@@ -216,11 +220,13 @@ namespace SDDS {
                         break;
                     default:
                         throw SDDSParserException(
-                            "SDDSParser::getBoostVariantValue", "can't convert value to type T");
+                            "SDDSParser::getBoostVariantValue", "can't convert value to type T"
+                        );
                 }
             } catch (...) {
                 throw SDDSParserException(
-                    "SDDSParser::getBoostVariantValue", "can't convert value");
+                    "SDDSParser::getBoostVariantValue", "can't convert value"
+                );
             }
             return value;
         }

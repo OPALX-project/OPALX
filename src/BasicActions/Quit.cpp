@@ -21,7 +21,8 @@ Quit::Quit()
     : Action(
           0, "QUIT",
           "The \"QUIT\" statement terminates program execution "
-          "or reading of a called file.") {}
+          "or reading of a called file."
+      ) {}
 
 Quit::Quit(const std::string& name, Quit* parent) : Action(name, parent) {}
 

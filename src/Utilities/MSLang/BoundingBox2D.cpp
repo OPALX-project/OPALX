@@ -26,7 +26,8 @@ namespace mslang {
             (center_m[0] - 0.5 * width_m <= bb.center_m[0] + 0.5 * bb.width_m)
             && (center_m[0] + 0.5 * width_m >= bb.center_m[0] - 0.5 * bb.width_m)
             && (center_m[1] - 0.5 * height_m <= bb.center_m[1] + 0.5 * bb.height_m)
-            && (center_m[1] + 0.5 * height_m >= bb.center_m[1] - 0.5 * bb.height_m));
+            && (center_m[1] + 0.5 * height_m >= bb.center_m[1] - 0.5 * bb.height_m)
+        );
     }
 
     bool BoundingBox2D::isInside(const Vector_t<double, 3>& X) const {
@@ -42,7 +43,8 @@ namespace mslang {
             isInside(b.center_m + 0.5 * Vector_t<double, 3>(b.width_m, b.height_m, 0.0))
             && isInside(b.center_m + 0.5 * Vector_t<double, 3>(-b.width_m, b.height_m, 0.0))
             && isInside(b.center_m + 0.5 * Vector_t<double, 3>(-b.width_m, -b.height_m, 0.0))
-            && isInside(b.center_m + 0.5 * Vector_t<double, 3>(b.width_m, -b.height_m, 0.0)));
+            && isInside(b.center_m + 0.5 * Vector_t<double, 3>(b.width_m, -b.height_m, 0.0))
+        );
     }
 
     void BoundingBox2D::writeGnuplot(std::ostream& out) const {
@@ -50,7 +52,8 @@ namespace mslang {
             {Vector_t<double, 3>(center_m[0] + 0.5 * width_m, center_m[1] + 0.5 * height_m, 0),
              Vector_t<double, 3>(center_m[0] - 0.5 * width_m, center_m[1] + 0.5 * height_m, 0),
              Vector_t<double, 3>(center_m[0] - 0.5 * width_m, center_m[1] - 0.5 * height_m, 0),
-             Vector_t<double, 3>(center_m[0] + 0.5 * width_m, center_m[1] - 0.5 * height_m, 0)});
+             Vector_t<double, 3>(center_m[0] + 0.5 * width_m, center_m[1] - 0.5 * height_m, 0)}
+        );
         unsigned int width = out.precision() + 8;
         for (unsigned int i = 0; i < 5; ++i) {
             Vector_t<double, 3>& pt = pts[i % 4];

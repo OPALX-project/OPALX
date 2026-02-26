@@ -53,27 +53,32 @@ public:
     void setMode(double mode);
 
     virtual double getAutoPhaseEstimate(
-        const double& E0, const double& t0, const double& q, const double& m) override;
+        const double& E0, const double& t0, const double& q, const double& m
+    ) override;
 
     virtual bool apply() override;
 
     virtual bool apply(
-        const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
+        const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B
+    ) override;
 
     virtual bool apply(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-        Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
+        Vector_t<double, 3>& E, Vector_t<double, 3>& B
+    ) override;
 
     virtual bool applyToReferenceParticle(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-        Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
+        Vector_t<double, 3>& E, Vector_t<double, 3>& B
+    ) override;
 
     virtual void initialise(PartBunch_t* bunch, double& startField, double& endField) override;
 
     virtual void initialise(
         PartBunch_t* bunch, std::shared_ptr<AbstractTimeDependence> freq_atd,
         std::shared_ptr<AbstractTimeDependence> ampl_atd,
-        std::shared_ptr<AbstractTimeDependence> phase_atd) override;
+        std::shared_ptr<AbstractTimeDependence> phase_atd
+    ) override;
 
     virtual void finalise() override;
 
@@ -113,26 +118,31 @@ private:
 
     inline double getdE(
         const int& i, const int& I, const std::vector<double>& t, const double& phi,
-        const std::vector<std::pair<double, double> >& F) const;
+        const std::vector<std::pair<double, double> >& F
+    ) const;
 
     inline double getdT(
         const int& i, const int& I, const std::vector<double>& E,
-        const std::vector<std::pair<double, double> >& F, const double mass) const;
+        const std::vector<std::pair<double, double> >& F, const double mass
+    ) const;
 
     inline double getdA(
         const int& i, const int& I, const std::vector<double>& t, const double& phi,
-        const std::vector<std::pair<double, double> >& F) const;
+        const std::vector<std::pair<double, double> >& F
+    ) const;
 
     inline double getdB(
         const int& i, const int& I, const std::vector<double>& t, const double& phi,
-        const std::vector<std::pair<double, double> >& F) const;
+        const std::vector<std::pair<double, double> >& F
+    ) const;
     // Not implemented.
     void operator=(const TravelingWave&);
 };
 
 double TravelingWave::getdE(
     const int& i, const int& I, const std::vector<double>& t, const double& phi,
-    const std::vector<std::pair<double, double> >& F) const {
+    const std::vector<std::pair<double, double> >& F
+) const {
     return (F[I].first - F[I - 1].first)
            / (frequency_m * frequency_m * (t[i] - t[i - 1]) * (t[i] - t[i - 1]))
            * (frequency_m * (t[i] - t[i - 1])
@@ -145,7 +155,8 @@ double TravelingWave::getdE(
 
 double TravelingWave::getdT(
     const int& i, const int& I, const std::vector<double>& E,
-    const std::vector<std::pair<double, double> >& F, const double mass) const {
+    const std::vector<std::pair<double, double> >& F, const double mass
+) const {
     double gamma1  = 1. + (19. * E[i - 1] + 1. * E[i]) / (20. * mass);
     double gamma2  = 1. + (17. * E[i - 1] + 3. * E[i]) / (20. * mass);
     double gamma3  = 1. + (15. * E[i - 1] + 5. * E[i]) / (20. * mass);
@@ -172,7 +183,8 @@ double TravelingWave::getdT(
 
 double TravelingWave::getdA(
     const int& i, const int& I, const std::vector<double>& t, const double& phi,
-    const std::vector<std::pair<double, double> >& F) const {
+    const std::vector<std::pair<double, double> >& F
+) const {
     double dt = t[i] - t[i - 1];
     return (F[I].first - F[I - 1].first) / (frequency_m * frequency_m * dt * dt)
            * (frequency_m * dt
@@ -185,7 +197,8 @@ double TravelingWave::getdA(
 
 double TravelingWave::getdB(
     const int& i, const int& I, const std::vector<double>& t, const double& phi,
-    const std::vector<std::pair<double, double> >& F) const {
+    const std::vector<std::pair<double, double> >& F
+) const {
     double dt = t[i] - t[i - 1];
     return (F[I].first - F[I - 1].first) / (frequency_m * frequency_m * dt * dt)
            * (frequency_m * dt
@@ -211,14 +224,16 @@ inline void TravelingWave::setMode(double mode) { mode_m = mode; }
 
 inline CoordinateSystemTrafo TravelingWave::getEdgeToBegin() const {
     CoordinateSystemTrafo ret(
-        Vector_t<double, 3>({0, 0, -0.5 * periodLength_m}), Quaternion(1, 0, 0, 0));
+        Vector_t<double, 3>({0, 0, -0.5 * periodLength_m}), Quaternion(1, 0, 0, 0)
+    );
     return ret;
 }
 
 inline CoordinateSystemTrafo TravelingWave::getEdgeToEnd() const {
     CoordinateSystemTrafo ret(
         Vector_t<double, 3>({0, 0, -0.5 * periodLength_m + getElementLength()}),
-        Quaternion(1, 0, 0, 0));
+        Quaternion(1, 0, 0, 0)
+    );
     return ret;
 }
 
