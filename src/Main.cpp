@@ -18,7 +18,7 @@
 #include <cstring>
 
 extern "C" {
-  #include "H5hut.h"
+#include "H5hut.h"
 }
 
 #include "AbstractObjects/OpalData.h"
@@ -95,7 +95,8 @@ namespace OPALXMAIN {
         // Check which host device is being used
         *gmsg << "* Host:   " << Kokkos::HostSpace::execution_space::name() << endl;
 
-    // Check which device is being used (this works for CUDA, HIP, or any device-enabled execution space)
+        // Check which device is being used (this works for CUDA, HIP, or any device-enabled
+        // execution space)
 #ifdef KOKKOS_ENABLE_CUDA
         *gmsg << "* Device: " << Kokkos::Cuda::name() << endl << endl;
 #elif defined(KOKKOS_ENABLE_HIP)
@@ -125,14 +126,14 @@ namespace OPALXMAIN {
         *ippl::Info << "   --help                   : Display this command-line summary.\n";
         *ippl::Info << endl;
     }
-}  // namespace
+}  // namespace OPALXMAIN
 
 int main(int argc, char* argv[]) {
     ippl::initialize(argc, argv);
     {
         gmsg         = new Inform("OPAL-X");
         namespace fs = std::filesystem;
-        
+
         H5SetVerbosityLevel(1);  // 65535);
 
         gsl_set_error_handler(&handleGSLErrors);
@@ -176,7 +177,7 @@ int main(int argc, char* argv[]) {
             // Read startup file.
             FileStream::setEcho(Options::echo);
 
-            char* startup             = getenv("HOME");
+            char* startup           = getenv("HOME");
             std::filesystem::path p = strncat(startup, "/init.opal", 20);
             if (startup != nullptr && fs::is_regular_file(p)) {
                 FileStream::setEcho(false);
@@ -192,8 +193,7 @@ int main(int argc, char* argv[]) {
 
                 if (is) {
                     *gmsg << "Reading startup file '" << startup << "'" << endl;
-                    parser.
-                        run(is);
+                    parser.run(is);
                     *gmsg << "Finished reading startup file." << endl;
                 }
                 FileStream::setEcho(Options::echo);
@@ -511,7 +511,6 @@ int main(int argc, char* argv[]) {
         IpplTimings::print(
             std::string("timing.dat"), OpalData::getInstance()->getProblemCharacteristicValues());
 
-        
         ippl::Comm->barrier();
         Fieldmap::clearDictionary();
 

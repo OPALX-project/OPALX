@@ -20,20 +20,11 @@
 
 #include "Utilities/OverflowError.h"
 
-
 // Class OverflowError
 // ------------------------------------------------------------------------
 
+OverflowError::OverflowError(const std::string& meth) : ArithmeticError(meth, "Overflow error.") {}
 
-OverflowError::OverflowError(const std::string &meth):
-    ArithmeticError(meth, "Overflow error.")
-{}
+OverflowError::OverflowError(const OverflowError& rhs) : ArithmeticError(rhs) {}
 
-
-OverflowError::OverflowError(const OverflowError &rhs):
-    ArithmeticError(rhs)
-{}
-
-
-OverflowError::~OverflowError()
-{}
+OverflowError::~OverflowError() {}

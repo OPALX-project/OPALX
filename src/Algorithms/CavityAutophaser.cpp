@@ -45,8 +45,7 @@ CavityAutophaser::CavityAutophaser(const PartData& ref, std::shared_ptr<Componen
     initialR_m = Vector_t<double, 3>(0, 0, zbegin);
 }
 
-CavityAutophaser::~CavityAutophaser() {
-}
+CavityAutophaser::~CavityAutophaser() {}
 
 double CavityAutophaser::getPhaseAtMaxEnergy(
     const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, double t, double dt) {

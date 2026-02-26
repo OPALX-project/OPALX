@@ -22,13 +22,9 @@
 // Class AttributeBase
 // ------------------------------------------------------------------------
 
-AttributeBase::AttributeBase()
-{}
+AttributeBase::AttributeBase() {}
 
-
-AttributeBase::~AttributeBase()
-{}
-
+AttributeBase::~AttributeBase() {}
 
 std::string AttributeBase::getImage() const {
     std::ostringstream os;
@@ -37,7 +33,4 @@ std::string AttributeBase::getImage() const {
     return os.str();
 }
 
-
-bool AttributeBase::isExpression() const {
-    return false;
-}
+bool AttributeBase::isExpression() const { return false; }

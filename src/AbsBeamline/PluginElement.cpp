@@ -26,8 +26,7 @@
 #include "Utilities/Options.h"
 #include "Utilities/Util.h"
 
-PluginElement::PluginElement() : PluginElement("") {
-}
+PluginElement::PluginElement() : PluginElement("") {}
 
 PluginElement::PluginElement(const std::string& name) : Component(name) {
     setDimensions(0.0, 0.0, 0.0, 0.0);
@@ -42,9 +41,7 @@ PluginElement::~PluginElement() {
         goOffline();
 }
 
-void PluginElement::initialise(PartBunch_t* bunch, double&, double&) {
-    initialise(bunch);
-}
+void PluginElement::initialise(PartBunch_t* bunch, double&, double&) { initialise(bunch); }
 
 void PluginElement::initialise(PartBunch_t* bunch) {
     RefPartBunch_m = bunch;
@@ -68,13 +65,9 @@ void PluginElement::goOffline() {
     online_m = false;
 }
 
-bool PluginElement::bends() const {
-    return false;
-}
+bool PluginElement::bends() const { return false; }
 
-bool PluginElement::apply() {
-    return false;
-}
+bool PluginElement::apply() { return false; }
 
 bool PluginElement::apply(
     const size_t& /*i*/, const double&, Vector_t<double, 3>&, Vector_t<double, 3>&) {
@@ -82,13 +75,11 @@ bool PluginElement::apply(
 }
 
 bool PluginElement::apply(
-        const Vector_t<double, 3>& /*R*/, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
-        Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/) {
+    const Vector_t<double, 3>& /*R*/, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
+    Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/) {
     *gmsg << "passed R, P, t, E, B arguments not used in PluginElement::apply" << endl;
     return false;
 }
-
-
 
 bool PluginElement::applyToReferenceParticle(
     const Vector_t<double, 3>&, const Vector_t<double, 3>&, const double&, Vector_t<double, 3>&,
@@ -189,21 +180,13 @@ double PluginElement::calculateIncidentAngle(double xp, double yp) const {
     return tangle;
 }
 
-double PluginElement::getXStart() const {
-    return xstart_m;
-}
+double PluginElement::getXStart() const { return xstart_m; }
 
-double PluginElement::getXEnd() const {
-    return xend_m;
-}
+double PluginElement::getXEnd() const { return xend_m; }
 
-double PluginElement::getYStart() const {
-    return ystart_m;
-}
+double PluginElement::getYStart() const { return ystart_m; }
 
-double PluginElement::getYEnd() const {
-    return yend_m;
-}
+double PluginElement::getYEnd() const { return yend_m; }
 
 bool PluginElement::check(
     PartBunch_t* bunch, const int turnnumber, const double t, const double tstep) {

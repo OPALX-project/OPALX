@@ -79,8 +79,7 @@ ParallelTracker::ParallelTracker(
       OrbThreader_m(IpplTimings::getTimer("OrbThreader")),
       emissionSteps_m(std::numeric_limits<unsigned int>::max()),
       wakeStatus_m(false),
-      wakeFunction_m(nullptr) {
-}
+      wakeFunction_m(nullptr) {}
 
 ParallelTracker::ParallelTracker(
     const Beamline& beamline, PartBunch_t* bunch, DataSink& ds, const PartData& reference,
@@ -105,17 +104,15 @@ ParallelTracker::ParallelTracker(
       emissionSteps_m(std::numeric_limits<unsigned int>::max()),
       wakeStatus_m(false),
       wakeFunction_m(nullptr) {
-    
-      for (unsigned int i = 0; i < zstop.size(); ++i) {
-          stepSizes_m.push_back(dt[i], zstop[i], maxSteps[i]);
-      }
+    for (unsigned int i = 0; i < zstop.size(); ++i) {
+        stepSizes_m.push_back(dt[i], zstop[i], maxSteps[i]);
+    }
 
-      stepSizes_m.sortAscendingZStop();
-      stepSizes_m.resetIterator();
+    stepSizes_m.sortAscendingZStop();
+    stepSizes_m.resetIterator();
 }
 
-ParallelTracker::~ParallelTracker() {
-}
+ParallelTracker::~ParallelTracker() {}
 /* ========================================================================== */
 /* =========================== Visit Functions ============================== */
 /**
@@ -144,7 +141,8 @@ void ParallelTracker::visitBeamline(const Beamline& bl) {
 
 void ParallelTracker::visitScalingFFAMagnet(const ScalingFFAMagnet& /*bend*/) {
     *gmsg << "Adding ScalingFFAMagnet" << endl;
-    *gmsg << "passed ScalingFFAMagnet argument not used in ParallelTracker::visitScalingFFAMagnet" << endl;
+    *gmsg << "passed ScalingFFAMagnet argument not used in ParallelTracker::visitScalingFFAMagnet"
+          << endl;
     /*
     if (opalRing_m != nullptr) {
         ScalingFFAMagnet* newBend = bend.clone(); // setup the end field, if required
@@ -225,7 +223,6 @@ void ParallelTracker::visitOffset(const Offset& off) {
     opalRing_m->appendElement(off);
 }
 
-
 /* ========================================================================== */
 /* =========================== Start Simulation ============================= */
 void ParallelTracker::execute() {
@@ -251,16 +248,14 @@ void ParallelTracker::execute() {
 
     // Set the time step for the current track
     dtCurrentTrack_m = itsBunch_m->getdT();
-    
+
     // If there is prior tracking data or if in a restart run, set the data
     // sink to append mode
-    if (OpalData::getInstance()->hasPriorTrack() || 
-        OpalData::getInstance()->inRestartRun()) 
-    {
+    if (OpalData::getInstance()->hasPriorTrack() || OpalData::getInstance()->inRestartRun()) {
         OpalData::getInstance()->setOpenMode(OpalData::OpenMode::APPEND);
     }
 
-    // Populate the OpalBeamline and calculate coordinate transformations 
+    // Populate the OpalBeamline and calculate coordinate transformations
     // for non-straight sections
     prepareSections();
 
@@ -273,21 +268,18 @@ void ParallelTracker::execute() {
     m << "Activated all beamline elements." << endl;
 
     // Calculate the coordinate transformation from the beamline origin to the lab frame
-    CoordinateSystemTrafo beamlineToLab = 
-        itsOpalBeamline_m.getCSTrafoLab2Local().inverted();
+    CoordinateSystemTrafo beamlineToLab = itsOpalBeamline_m.getCSTrafoLab2Local().inverted();
 
     itsBunch_m->toLabTrafo_m = beamlineToLab;
 
     // Transform reference particle coordinates and momentum to the lab frame
-    //itsBunch_m->RefPartR_m = 
+    // itsBunch_m->RefPartR_m =
     //    beamlineToLab.transformTo(itsBunch_m->getParticleContainer()->getMeanR());
-    itsBunch_m->RefPartR_m = 
-        beamlineToLab.transformTo(Vector_t<double, 3>(0, 0, 0));
-    itsBunch_m->RefPartP_m = 
-        beamlineToLab.rotateTo(itsBunch_m->getParticleContainer()->getMeanP());
+    itsBunch_m->RefPartR_m = beamlineToLab.transformTo(Vector_t<double, 3>(0, 0, 0));
+    itsBunch_m->RefPartP_m = beamlineToLab.rotateTo(itsBunch_m->getParticleContainer()->getMeanP());
     m << "Transformed reference particle position and momentum to lab frame." << endl;
 
-    // If the bunch contains particles and the desired starting position (zstart_m) 
+    // If the bunch contains particles and the desired starting position (zstart_m)
     // is ahead of the current path length, integrate the bunch forward to the start position
     if (itsBunch_m->getTotalNum() > 0) {
         if (zstart_m > pathLength_m) {
@@ -296,11 +288,11 @@ void ParallelTracker::execute() {
         itsBunch_m->set_sPos(pathLength_m);
     }
 
-    // Advance through the time step configurations, skipping any that end 
+    // Advance through the time step configurations, skipping any that end
     // before the start position (zstart_m)
     stepSizes_m.advanceToPos(zstart_m);
 
-    // Retrieve the bunch spatial bounds 
+    // Retrieve the bunch spatial bounds
     Vector_t<double, 3> rmin(0.0), rmax(0.0);
     if (itsBunch_m->getTotalNum() > 0) {
         itsBunch_m->get_bounds(rmin, rmax);
@@ -313,12 +305,11 @@ void ParallelTracker::execute() {
       << "itsBunch_m->RefPartR_m = " << itsBunch_m->RefPartR_m << endl
       << "itsBunch_m->RefPartP_m = " << itsBunch_m->RefPartP_m << endl;
 
-    
     // Start timing for the OrbitThreader section
     IpplTimings::startTimer(OrbThreader_m);
 
     // Flags to control phase space and statistics dumping for the initial step
-    bool const psDump0 = 0;
+    bool const psDump0   = 0;
     bool const statDump0 = 0;
 
     // Write initial phase space and statistics
@@ -343,7 +334,7 @@ void ParallelTracker::execute() {
 
     // Stop timing for the OrbitThreader section
     IpplTimings::stopTimer(OrbThreader_m);
-    
+
     // Get bounding box
     BoundingBox globalBoundingBox = oth.getBoundingBox();
 
@@ -362,13 +353,13 @@ void ParallelTracker::execute() {
     // Get the current global tracking step
     unsigned long long step = itsBunch_m->getGlobalTrackStep();
     OPALTimer::Timer myt1;
-    m << "* Track start at: " << myt1.time() 
-      << ", t= " << Util::getTimeString(time) << "; "
+    m << "* Track start at: " << myt1.time() << ", t= " << Util::getTimeString(time) << "; "
       << "zstart at: " << Util::getLengthString(pathLength_m) << endl
       << "* Executing ParallelTracker\n"
       << "* Initial dt = " << Util::getTimeString(itsBunch_m->getdT()) << endl
-      << "* Max integration steps = " << stepSizes_m.getMaxSteps() 
-      << ", next step = " << step << endl << endl;
+      << "* Max integration steps = " << stepSizes_m.getMaxSteps() << ", next step = " << step
+      << endl
+      << endl;
 
     setOptionalVariables();
 
@@ -381,28 +372,26 @@ void ParallelTracker::execute() {
 
     /// Directly before the tracker loop, perform bunch sanity checks
     this->itsBunch_m->performBunchSanityChecks();
-    
+
     // Main tracking loop over step size configurations
     m << ">>>>>>>>>>>>>>>>>> Starting Tracking Loop >>>>>>>>>>>>>>>>>>" << endl;
     while (!stepSizes_m.reachedEnd()) {
-
         // Set the number of steps for the current track
         unsigned long long trackSteps = stepSizes_m.getNumSteps() + step;
         dtCurrentTrack_m              = stepSizes_m.getdT();
         changeDT(back_track);
 
         // Inner loop over the number of steps for the current configuration
-        m << "Starting track with dt = " << Util::getTimeString(dtCurrentTrack_m) 
+        m << "Starting track with dt = " << Util::getTimeString(dtCurrentTrack_m)
           << ", track steps = " << step << " to " << trackSteps << "." << endl;
         for (; step < trackSteps; ++step) {
-
             // Get the bunch spatial bounds
             Vector_t<double, 3> rmin(0.0), rmax(0.0);
             if (itsBunch_m->getTotalNum() > 0) {
                 itsBunch_m->calcBeamParameters();
                 itsBunch_m->get_bounds(rmin, rmax);
             }
- 
+
             // First half of the time integration
             timeIntegration1(pusher);
             m << "timeIntegration1 done at step " << step << "." << endl;
@@ -414,7 +403,7 @@ void ParallelTracker::execute() {
             // Space charge field computation
             computeSpaceChargeFields(step);
             m << "Space charge field computation done at step " << step << "." << endl;
-            
+
             // External field computation
             computeExternalFields(oth);
             m << "External field computation done at step " << step << "." << endl;
@@ -423,20 +412,25 @@ void ParallelTracker::execute() {
             timeIntegration2(pusher);
             m << "timeIntegration2 done at step " << step << "." << endl;
 
-            // Reset particle time step size to the current track time step (pulled out of timeIntegration2)
+            // Reset particle time step size to the current track time step (pulled out of
+            // timeIntegration2)
             setTime();
-            m << "Set time view of particle bunch to dt = " << Util::getTimeString(itsBunch_m->getdT()) << "." << endl;
-            
-            /// \todo needs to be implemented  
+            m << "Set time view of particle bunch to dt = "
+              << Util::getTimeString(itsBunch_m->getdT()) << "." << endl;
+
+            /// \todo needs to be implemented
             // emitParticles(step);
 
-            // Select new time step size for the next iteration based on the current track configuration
+            // Select new time step size for the next iteration based on the current track
+            // configuration
             selectDT(back_track);
-            m << "Selected new time step for next iteration, back_track = " << back_track << "." << endl;            
-            
+            m << "Selected new time step for next iteration, back_track = " << back_track << "."
+              << endl;
+
             // Update the bunch time
             itsBunch_m->incrementT();
-            m << "Incremented bunch time to " << Util::getTimeString(itsBunch_m->getT()) << "." << endl;
+            m << "Incremented bunch time to " << Util::getTimeString(itsBunch_m->getT()) << "."
+              << endl;
 
             // Update reference particle
             if (itsBunch_m->getT() > 0.0 || itsBunch_m->getdT() < 0.0) {
@@ -455,7 +449,7 @@ void ParallelTracker::execute() {
             m << "Updated path length to " << pathLength_m << "." << endl;
 
             // if (hasEndOfLineReached(globalBoundingBox)) break;
-  
+
             // Dump phase space and statistics at configured intervals
             bool const psDump =
                 ((itsBunch_m->getGlobalTrackStep() % Options::psDumpFreq) + 1
@@ -468,22 +462,26 @@ void ParallelTracker::execute() {
             itsBunch_m->incTrackSteps();
             m << "Track steps incremented." << endl;
 
-            ippl::Vector<double,3> pdivg = itsBunch_m->RefPartP_m / Util::getGamma(itsBunch_m->RefPartP_m);
-            double beta = euclidean_norm(pdivg);
+            ippl::Vector<double, 3> pdivg =
+                itsBunch_m->RefPartP_m / Util::getGamma(itsBunch_m->RefPartP_m);
+            double beta             = euclidean_norm(pdivg);
             double driftPerTimeStep = std::abs(itsBunch_m->getdT()) * Physics::c * beta;
-            m << "Calculated drift per time step: " << Util::getLengthString(driftPerTimeStep) << "." << endl;
+            m << "Calculated drift per time step: " << Util::getLengthString(driftPerTimeStep)
+              << "." << endl;
 
             if (std::abs(stepSizes_m.getZStop() - pathLength_m) < 0.5 * driftPerTimeStep) {
-                m << "Approaching end of current step size configuration (zstop = " << Util::getLengthString(stepSizes_m.getZStop()) 
-                  << ", path length = " << Util::getLengthString(pathLength_m) << "). Preparing to switch to next configuration." << endl;
+                m << "Approaching end of current step size configuration (zstop = "
+                  << Util::getLengthString(stepSizes_m.getZStop())
+                  << ", path length = " << Util::getLengthString(pathLength_m)
+                  << "). Preparing to switch to next configuration." << endl;
                 break;
             }
         }
 
         if (globalEOL_m)
             break;
-        ++stepSizes_m;    
-     }
+        ++stepSizes_m;
+    }
     itsBunch_m->set_sPos(pathLength_m);
 
     numParticlesInSimulation_m = itsBunch_m->getTotalNum();
@@ -500,13 +498,12 @@ void ParallelTracker::execute() {
 
     itsOpalBeamline_m.switchElementsOff();
 
-    // Ensure all Kokkos operations are complete 
+    // Ensure all Kokkos operations are complete
     Kokkos::fence();
 
     OPALTimer::Timer myt3;
     *gmsg << endl << "* Done executing ParallelTracker at " << myt3.time() << endl << endl;
 }
-
 
 /* ========================================================================== */
 /* =========================== PIC Functions ================================ */
@@ -550,7 +547,7 @@ void ParallelTracker::timeIntegration2(BorisPusher& pusher) {
     // double newdT = itsBunch_m->getdT();
     // itsBunch_m->getParticleContainer()->dt = newdT;
     // m << "Update particle time step done." << endl;
-    
+
     IpplTimings::stopTimer(timeIntegrationTimer2_m);
 }
 
@@ -568,7 +565,7 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
             "Bunch has no field solver assigned! If you want to run without "
             "space charge effects, please use TYPE=NONE for the field solver.");
     }
-        
+
     itsBunch_m->calcBeamParameters();
     m << "Calculate beam parameters done." << endl;
 
@@ -578,10 +575,9 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
         Vector_t<double, 3>(0, 0, pathLength_m), alignment.conjugate());
 
     CoordinateSystemTrafo referenceToBeamCSTrafo = beamToReferenceCSTrafo.inverted();
-   
+
     /// @brief Transform particle positions to the beam coordinate system
-    referenceToBeamCSTrafo.transformBunchTo(
-        itsBunch_m->getParticleContainer()->R.getView());
+    referenceToBeamCSTrafo.transformBunchTo(itsBunch_m->getParticleContainer()->R.getView());
     m << "Transform particle positions to beam coordinate system done." << endl;
 
     /// \todo this function is not implemented (yet)
@@ -596,18 +592,16 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
 
     itsBunch_m->computeSelfFields();
     m << "Compute self fields done." << endl;
-    
-    /// @brief Transform particle positions back to the reference coordinate system 
-    beamToReferenceCSTrafo.transformBunchTo(
-        itsBunch_m->getParticleContainer()->R.getView());
+
+    /// @brief Transform particle positions back to the reference coordinate system
+    beamToReferenceCSTrafo.transformBunchTo(itsBunch_m->getParticleContainer()->R.getView());
     m << "Transform particle positions back to reference coordinate system done." << endl;
     /// @brief Rotate E and B fields back to the reference coordinate system
-    beamToReferenceCSTrafo.rotateBunchTo(
-        itsBunch_m->getParticleContainer()->E.getView());
+    beamToReferenceCSTrafo.rotateBunchTo(itsBunch_m->getParticleContainer()->E.getView());
     m << "Rotate E fields back to reference coordinate system done." << endl;
-    beamToReferenceCSTrafo.rotateBunchTo(
-        itsBunch_m->getParticleContainer()->B.getView());
-    m << "Rotate B fields back to reference coordinate system done. ComputeSelfFields done." << endl;
+    beamToReferenceCSTrafo.rotateBunchTo(itsBunch_m->getParticleContainer()->B.getView());
+    m << "Rotate B fields back to reference coordinate system done. ComputeSelfFields done."
+      << endl;
 }
 
 void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
@@ -616,7 +610,7 @@ void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
 
     // Flag for out-of-bounds particles, locally and globally
     bool locPartOutOfBounds = false, globPartOutOfBounds = false;
-    
+
     // Bunch bounds
     Vector_t<double, 3> rmin(0.0), rmax(0.0);
     if (itsBunch_m->getTotalNum() > 0)
@@ -625,8 +619,7 @@ void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
     // Get elements at bunch position
     IndexMap::value_t elements;
     try {
-        elements = oth.query(pathLength_m + 0.5 * 
-            (rmax(2) + rmin(2)), rmax(2) - rmin(2));
+        elements = oth.query(pathLength_m + 0.5 * (rmax(2) + rmin(2)), rmax(2) - rmin(2));
     } catch (IndexMap::OutOfBounds& e) {
         globalEOL_m = true;
         return;
@@ -638,46 +631,34 @@ void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
 
     // Iterate over all elements
     for (; it != end; ++it) {
-
-        // Determine transformation from bunch to element 
-        CoordinateSystemTrafo refToLocalCSTrafo = 
-            (itsOpalBeamline_m.getMisalignment((*it)) * 
-            (itsOpalBeamline_m.getCSTrafoLab2Local((*it)) * 
-            itsBunch_m->toLabTrafo_m));
+        // Determine transformation from bunch to element
+        CoordinateSystemTrafo refToLocalCSTrafo =
+            (itsOpalBeamline_m.getMisalignment((*it))
+             * (itsOpalBeamline_m.getCSTrafoLab2Local((*it)) * itsBunch_m->toLabTrafo_m));
 
         // Determine transformation from element to bunch
         CoordinateSystemTrafo localToRefCSTrafo = refToLocalCSTrafo.inverted();
 
-        (*it)->setCurrentSCoordinate(pathLength_m + rmin(2));   
+        (*it)->setCurrentSCoordinate(pathLength_m + rmin(2));
 
         // Transform from reference particle to element frame
-        refToLocalCSTrafo.transformBunchTo(
-            itsBunch_m->getParticleContainer()->R.getView());
-        
-        refToLocalCSTrafo.rotateBunchTo(
-            itsBunch_m->getParticleContainer()->P.getView());
+        refToLocalCSTrafo.transformBunchTo(itsBunch_m->getParticleContainer()->R.getView());
 
-        refToLocalCSTrafo.rotateBunchTo(
-            itsBunch_m->getParticleContainer()->E.getView());
+        refToLocalCSTrafo.rotateBunchTo(itsBunch_m->getParticleContainer()->P.getView());
 
-        refToLocalCSTrafo.rotateBunchTo(
-            itsBunch_m->getParticleContainer()->B.getView());
+        refToLocalCSTrafo.rotateBunchTo(itsBunch_m->getParticleContainer()->E.getView());
+
+        refToLocalCSTrafo.rotateBunchTo(itsBunch_m->getParticleContainer()->B.getView());
 
         // Apply element
-        (*it)->apply(); 
+        (*it)->apply();
 
         // Transform from element to reference particle frame
-        localToRefCSTrafo.transformBunchTo(
-            itsBunch_m->getParticleContainer()->R.getView());
-        localToRefCSTrafo.rotateBunchTo(
-            itsBunch_m->getParticleContainer()->P.getView());
-        localToRefCSTrafo.rotateBunchTo(
-            itsBunch_m->getParticleContainer()->E.getView());
-        localToRefCSTrafo.rotateBunchTo(
-            itsBunch_m->getParticleContainer()->B.getView());
-
+        localToRefCSTrafo.transformBunchTo(itsBunch_m->getParticleContainer()->R.getView());
+        localToRefCSTrafo.rotateBunchTo(itsBunch_m->getParticleContainer()->P.getView());
+        localToRefCSTrafo.rotateBunchTo(itsBunch_m->getParticleContainer()->E.getView());
+        localToRefCSTrafo.rotateBunchTo(itsBunch_m->getParticleContainer()->B.getView());
     }
-
 
     IpplTimings::stopTimer(fieldEvaluationTimer_m);
 
@@ -694,7 +675,7 @@ void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
         //    ne = itsBunch_m->destroyT();
         // }
         numParticlesInSimulation_m = itsBunch_m->getTotalNum();
-        deletedParticles_m = true;
+        deletedParticles_m         = true;
     }
 
     size_t totalNum            = itsBunch_m->getTotalNum();
@@ -709,29 +690,28 @@ void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
 /**
  * @brief Resets the E and B field views to 0
  */
-void ParallelTracker::resetFields() {    
+void ParallelTracker::resetFields() {
     itsBunch_m->getParticleContainer()->E = 0;
     itsBunch_m->getParticleContainer()->B = 0;
 }
 
 /**
- * @brief Pushes particles 
- * 
+ * @brief Pushes particles
+ *
  * @param pusher The BorisPusher
  */
 void ParallelTracker::pushParticles(const BorisPusher& pusher) {
-
-    /// \todo use false for now, since I am not sure how well integrated "dt_per_particle" is (needs to be consistent with particle emission later!).
+    /// \todo use false for now, since I am not sure how well integrated "dt_per_particle" is (needs
+    /// to be consistent with particle emission later!).
     itsBunch_m->switchToUnitlessPositions(true);
 
-    auto Rview  = itsBunch_m->getParticleContainer()->R.getView();
-    auto Pview  = itsBunch_m->getParticleContainer()->P.getView();
-    //auto dtview = itsBunch_m->getParticleContainer()->dt.getView();
+    auto Rview = itsBunch_m->getParticleContainer()->R.getView();
+    auto Pview = itsBunch_m->getParticleContainer()->P.getView();
+    // auto dtview = itsBunch_m->getParticleContainer()->dt.getView();
 
     Kokkos::parallel_for(
-        "pushParticles", ippl::getRangePolicy(Rview),
-        KOKKOS_LAMBDA(const size_t i) {
-            /** 
+        "pushParticles", ippl::getRangePolicy(Rview), KOKKOS_LAMBDA(const size_t i) {
+            /**
              * \f[ \vec{x}_{n+1/2} = \vec{x}_{n} + \frac{1}{2}\vec{v}_{n-1/2}\quad (= \vec{x}_{n} +
              * \frac{\Delta t}{2} \frac{\vec{\beta}_{n-1/2}\gamma_{n-1/2}}{\gamma_{n-1/2}}) \f]
              *
@@ -740,15 +720,16 @@ void ParallelTracker::pushParticles(const BorisPusher& pusher) {
              * \endcode
              */
             /// \todo check +-
-            
-            Vector_t<double, 3> x = Rview(i); 
-            pusher.push(x, Pview(i), 0); // this 0 is "dt" that is not used with unitless positions!
+
+            Vector_t<double, 3> x = Rview(i);
+            pusher.push(
+                x, Pview(i), 0);  // this 0 is "dt" that is not used with unitless positions!
             Rview(i) = x;
         });
 
     itsBunch_m->switchOffUnitlessPositions(true);
     /// \todo update gives different results on one rank?
-    //itsBunch_m->getParticleContainer()->update();
+    // itsBunch_m->getParticleContainer()->update();
     Kokkos::fence();
     ippl::Comm->barrier();
     itsBunch_m->bunchUpdate();
@@ -756,7 +737,7 @@ void ParallelTracker::pushParticles(const BorisPusher& pusher) {
 
 /**
  * @brief Kicks particles
- * 
+ *
  * @param pusher The BorisPusher
  */
 void ParallelTracker::kickParticles(const BorisPusher& pusher) {
@@ -764,22 +745,21 @@ void ParallelTracker::kickParticles(const BorisPusher& pusher) {
 
     // auto Rview  = itsBunch_m->getParticleContainer()->R.getView();
     auto Pview  = itsBunch_m->getParticleContainer()->P.getView();
-    auto dtview = itsBunch_m->getParticleContainer()->dt.getView(); 
+    auto dtview = itsBunch_m->getParticleContainer()->dt.getView();
     auto Efview = itsBunch_m->getParticleContainer()->E.getView();
     auto Bfview = itsBunch_m->getParticleContainer()->B.getView();
     m << "Got particle views for kick operation." << endl;
     /*
-    We want mass in eV and charge in elementary charges here to match OPAL's 
+    We want mass in eV and charge in elementary charges here to match OPAL's
     BorisPusher. Note that mass/charge are extracted from the reference particle
-    in the BorisPusher.push call. 
+    in the BorisPusher.push call.
     */
 
-    const double mass = itsReference.getM();
+    const double mass   = itsReference.getM();
     const double charge = itsReference.getQ();
     Kokkos::parallel_for(
         /// \todo might want to change getRangePolicy to not include overallocation!
-        "kickParticles", ippl::getRangePolicy(Pview),
-        KOKKOS_LAMBDA(const size_t i) {
+        "kickParticles", ippl::getRangePolicy(Pview), KOKKOS_LAMBDA(const size_t i) {
             /**
              *
              * Implementation follows chapter 4-4, pp. 61–63, from:
@@ -806,18 +786,18 @@ void ParallelTracker::kickParticles(const BorisPusher& pusher) {
              *   charge Particle charge.
              *
              */
-            Vector_t<double, 3> p = Pview(i); 
+            Vector_t<double, 3> p = Pview(i);
             /// \todo might want to remove dt and R altogether from the kick!
             /*
-            Also: we need to use mass and charge explicitly, otherwise the 
+            Also: we need to use mass and charge explicitly, otherwise the
             Kokkos inline inside BorisPusher tries to access a host pointer
             (itsReference_m) to get mass/charge. On CPU this works fine, but
-            and sometimes it works on GH200(?), but usually a bad idea. 
+            and sometimes it works on GH200(?), but usually a bad idea.
             Therefore, just use the other function that passes mass/charge
             explicitly.
             */
-            pusher.kick(0, p, Efview(i), Bfview(i), dtview(i), mass, charge); 
-            Pview(i) = p; 
+            pusher.kick(0, p, Efview(i), Bfview(i), dtview(i), mass, charge);
+            Pview(i) = p;
         });
     /*
     Wait until everyone completed the kick operation before proceeding. For now,
@@ -830,8 +810,7 @@ void ParallelTracker::kickParticles(const BorisPusher& pusher) {
     m << "Completed parallel kick operation." << endl;
 }
 
-
-/* ========================================================================== */ 
+/* ========================================================================== */
 /* ============================= Functions ================================== */
 
 /**
@@ -839,14 +818,14 @@ void ParallelTracker::kickParticles(const BorisPusher& pusher) {
  */
 void ParallelTracker::prepareSections() {
     // Calls ParallelTracker::visitBeamline() -> TBeamline::iterate() ->
-    // For each element: 
+    // For each element:
     // FlaggedElemPtr::accept() -> DefaultVisitor::visitFlaggedElmPtr() ->
     // ElementBase::accept() -> ParallelTracker::visit[ElemName]() ->
     // OpalBeamline::visit([ElemName], bunch):
     // This initialises the FieldList elements_m object of OpalBeamline
     // with clones of all the elements
     itsBeamline_m.accept(*this);
-    
+
     // Sorts the elements in OpalBeamline::elements_m by starting position
     itsOpalBeamline_m.prepareSections();
 
@@ -868,18 +847,14 @@ void ParallelTracker::selectDT(bool backTrack) {
 }
 
 void ParallelTracker::changeDT(bool backTrack) {
-
     selectDT(backTrack);
 
     auto dtview  = itsBunch_m->getParticleContainer()->dt.getView();
     double newdT = itsBunch_m->getdT();
 
     Kokkos::parallel_for(
-                         "changeDT", ippl::getRangePolicy(dtview),
-                         KOKKOS_LAMBDA(const int i) {
-                             dtview(i) = newdT;
-                         });                     
-    
+        "changeDT", ippl::getRangePolicy(dtview),
+        KOKKOS_LAMBDA(const int i) { dtview(i) = newdT; });
 }
 
 void ParallelTracker::doBinaryRepartition() {
@@ -1017,9 +992,8 @@ void ParallelTracker::findStartPosition(const BorisPusher& pusher) {
         Vector_t<double, 3> tmp = itsBunch_m->RefPartR_m - oldR;
         pathLength_m += euclidean_norm(tmp);
 
-        tmp = itsBunch_m->RefPartP_m * Physics::c / Util::getGamma(itsBunch_m->RefPartP_m);
+        tmp          = itsBunch_m->RefPartP_m * Physics::c / Util::getGamma(itsBunch_m->RefPartP_m);
         double speed = euclidean_norm(tmp);
-                                      
 
         if (pathLength_m > stepSizesCopy.getZStop()) {
             ++stepSizesCopy;
@@ -1059,12 +1033,12 @@ void ParallelTracker::dumpStats(long long step, bool psDump, bool statDump) {
         *gmsg << level3;
     }
     */
-    
+
     if (numParticlesInSimulation_m == 0) {
         *gmsg << "* " << myt2.time() << " "
-            << "Step " << std::setw(6) << itsBunch_m->getGlobalTrackStep() << "; "
-            << "   -- no emission yet --     "
-            << "t= " << Util::getTimeString(itsBunch_m->getT()) << endl;
+              << "Step " << std::setw(6) << itsBunch_m->getGlobalTrackStep() << "; "
+              << "   -- no emission yet --     "
+              << "t= " << Util::getTimeString(itsBunch_m->getT()) << endl;
         return;
     }
 
@@ -1076,17 +1050,16 @@ void ParallelTracker::dumpStats(long long step, bool psDump, bool statDump) {
             "there seems to be something wrong with the position of the bunch!");
     } else {
         *gmsg << "* " << myt2.time() << " "
-            << "Step " << std::setw(6) << itsBunch_m->getGlobalTrackStep() << " "
-            << "at " << Util::getLengthString(pathLength_m) << ", "
-            << "t= " << Util::getTimeString(itsBunch_m->getT()) << ", "
-            << "E=" << Util::getEnergyString(itsBunch_m->get_meanKineticEnergy()) << endl;
+              << "Step " << std::setw(6) << itsBunch_m->getGlobalTrackStep() << " "
+              << "at " << Util::getLengthString(pathLength_m) << ", "
+              << "t= " << Util::getTimeString(itsBunch_m->getT()) << ", "
+              << "E=" << Util::getEnergyString(itsBunch_m->get_meanKineticEnergy()) << endl;
 
         writePhaseSpace(step, psDump, statDump);
     }
 }
 
 void ParallelTracker::setOptionalVariables() {
-
     /*
     minStepforReBin_m = Options::minStepForRebin;
     RealVariable* br =
@@ -1112,13 +1085,13 @@ void ParallelTracker::setOptionalVariables() {
 
 bool ParallelTracker::hasEndOfLineReached(const BoundingBox& globalBoundingBox) {
     // \todo check in IPPL 1.0 it was OpBitwiseAndAssign()
-    ippl::Comm->reduce(globalEOL_m,  globalEOL_m, 1, std::logical_and<bool>());
+    ippl::Comm->reduce(globalEOL_m, globalEOL_m, 1, std::logical_and<bool>());
     globalEOL_m = globalEOL_m || globalBoundingBox.isOutside(itsBunch_m->RefPartR_m);
     return globalEOL_m;
 }
 
 void ParallelTracker::setTime() {
-    double newdT = itsBunch_m->getdT();
+    double newdT                           = itsBunch_m->getdT();
     itsBunch_m->getParticleContainer()->dt = newdT;
 }
 
@@ -1201,12 +1174,12 @@ void ParallelTracker::writePhaseSpace(const long long /*step*/, bool psDump, boo
             itsBunch_m->calcBeamParameters();
 
             msg << *itsBunch_m << endl;
-        
+
         itsDataSink_m->dumpH5(itsBunch_m, FDext);
         */
-        
+
         /*
-        
+
         if (driftToCorrectPosition) {
             if (localNum > 0) {
                 itsBunch_m->R = stashedR;
@@ -1220,20 +1193,17 @@ void ParallelTracker::writePhaseSpace(const long long /*step*/, bool psDump, boo
         }
 
         */
-        
+
         *gmsg << level2 << "* Wrote beam phase space." << endl;
     }
 }
-
 
 /* ========================================================================== */
 /* ============================ Autophasing ================================= */
 
 void ParallelTracker::updateRFElement(std::string elName, double maxPhase) {
-    FieldList cavities       = 
-        itsOpalBeamline_m.getElementByType(ElementType::RFCAVITY);
-    FieldList travelingwaves = 
-        itsOpalBeamline_m.getElementByType(ElementType::TRAVELINGWAVE);
+    FieldList cavities       = itsOpalBeamline_m.getElementByType(ElementType::RFCAVITY);
+    FieldList travelingwaves = itsOpalBeamline_m.getElementByType(ElementType::TRAVELINGWAVE);
     cavities.insert(cavities.end(), travelingwaves.begin(), travelingwaves.end());
 
     for (FieldList::iterator fit = cavities.begin(); fit != cavities.end(); ++fit) {
@@ -1243,16 +1213,14 @@ void ParallelTracker::updateRFElement(std::string elName, double maxPhase) {
             element->setPhasem(maxPhase);
             element->setAutophaseVeto();
 
-            *ippl::Info << "Restored cavity phase from the h5 file. Name: " << 
-                element->getName() << ", phase: " << maxPhase << " rad" << endl;
+            *ippl::Info << "Restored cavity phase from the h5 file. Name: " << element->getName()
+                        << ", phase: " << maxPhase << " rad" << endl;
             return;
         }
     }
 }
 
-void ParallelTracker::saveCavityPhases() {
-    itsDataSink_m->storeCavityInformation();
-}
+void ParallelTracker::saveCavityPhases() { itsDataSink_m->storeCavityInformation(); }
 
 void ParallelTracker::restoreCavityPhases() {
     typedef std::vector<MaxPhasesT>::iterator iterator_t;
@@ -1296,7 +1264,6 @@ void ParallelTracker::autophaseCavities(const BorisPusher& pusher) {
         }
     }
 }
-
 
 /* ========================================================================== */
 /* ============================ RING FUNCTIONS ============================== */
@@ -1342,7 +1309,6 @@ bool ParallelTracker::applyPluginElements(const double dt) {
 }
 
 /* ========================================================================== */
-
 
 struct DistributionInfo {
     unsigned int who;

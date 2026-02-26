@@ -20,15 +20,12 @@
 
 #include "Utilities/ClassicException.h"
 
-
 // Class OpalException
 // ------------------------------------------------------------------------
 /// The base class for all OPAL exceptions.
 
-class OpalException: public ClassicException {
-
+class OpalException : public ClassicException {
 public:
-
     /// The usual constructor.
     // Arguments:
     // [DL]
@@ -37,9 +34,9 @@ public:
     // [DT][b]msg [/b]
     // [DD]the message string identifying the exception
     // [/DL]
-    explicit OpalException(const std::string &meth, const std::string &msg);
+    explicit OpalException(const std::string& meth, const std::string& msg);
 
-    OpalException(const OpalException &);
+    OpalException(const OpalException&);
     virtual ~OpalException();
 
     /// Return the message string for the exception.
@@ -49,9 +46,8 @@ public:
     using ClassicException::where;
 
 private:
-
     // Not implemented.
     OpalException();
 };
 
-#endif // OPAL_OpalException_HH
+#endif  // OPAL_OpalException_HH

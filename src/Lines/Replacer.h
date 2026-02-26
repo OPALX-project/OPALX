@@ -18,42 +18,38 @@
 //
 // ------------------------------------------------------------------------
 
-#include "Algorithms/DefaultVisitor.h"
 #include <string>
+#include "Algorithms/DefaultVisitor.h"
 
 class Beamline;
 class ElementBase;
-
 
 // Class Replacer
 // ------------------------------------------------------------------------
 /// Replace all references to named element by a new version.
 
-class Replacer: public DefaultVisitor {
-
+class Replacer : public DefaultVisitor {
 public:
-
     /// Constructor.
     //  Attach visitor to a beamline, remember the range.
-    Replacer(const Beamline &, const std::string &name, ElementBase *elm);
+    Replacer(const Beamline&, const std::string& name, ElementBase* elm);
 
     virtual ~Replacer();
 
     /// Apply the visitor to an FlaggedElmPtr.
-    virtual void visitFlaggedElmPtr(const FlaggedElmPtr &);
+    virtual void visitFlaggedElmPtr(const FlaggedElmPtr&);
 
 private:
-
     // Not implemented.
     Replacer();
-    Replacer(const Replacer &);
-    void operator=(const Replacer &);
+    Replacer(const Replacer&);
+    void operator=(const Replacer&);
 
     // The name to be replaced.
     const std::string itsName;
 
     // The new element replacing the old one.
-    ElementBase *newBase;
+    ElementBase* newBase;
 };
 
-#endif // OPAL_Replacer_HH
+#endif  // OPAL_Replacer_HH

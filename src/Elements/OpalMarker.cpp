@@ -18,56 +18,43 @@
 
 #include "Elements/OpalMarker.h"
 #include "AbstractObjects/OpalData.h"
-#include "Utilities/Options.h"
 #include "BeamlineCore/MarkerRep.h"
+#include "Utilities/Options.h"
 
 #include <iostream>
-
 
 // Class OpalMarker
 // ------------------------------------------------------------------------
 
-OpalMarker::OpalMarker():
-    OpalElement(COMMON, "MARKER",
-                "The \"MARKER\" element defines a marker.") {
+OpalMarker::OpalMarker()
+    : OpalElement(COMMON, "MARKER", "The \"MARKER\" element defines a marker.") {
     setElement(new MarkerRep("MARKER"));
 
     // Construct the begin marker for beam lines.
-    OpalMarker *S = new OpalMarker("#S", this);
+    OpalMarker* S = new OpalMarker("#S", this);
     S->getElement()->makeSharable();
     S->builtin = true;
     OpalData::getInstance()->create(S);
 
     // Construct the end marker for beam lines.
-    OpalMarker *E = new OpalMarker("#E", this);
+    OpalMarker* E = new OpalMarker("#E", this);
     E->getElement()->makeSharable();
     E->builtin = true;
     OpalData::getInstance()->create(E);
 }
 
-
-OpalMarker::OpalMarker(const std::string &name, OpalMarker *parent):
-    OpalElement(name, parent) {
+OpalMarker::OpalMarker(const std::string& name, OpalMarker* parent) : OpalElement(name, parent) {
     setElement(new MarkerRep(name));
 }
 
+OpalMarker::~OpalMarker() {}
 
-OpalMarker::~OpalMarker()
-{}
+OpalMarker* OpalMarker::clone(const std::string& name) { return new OpalMarker(name, this); }
 
-
-OpalMarker *OpalMarker::clone(const std::string &name) {
-    return new OpalMarker(name, this);
-}
-
-
-void OpalMarker::print(std::ostream &os) const {
-    OpalElement::print(os);
-}
-
+void OpalMarker::print(std::ostream& os) const { OpalElement::print(os); }
 
 void OpalMarker::update() {
     // Transmit "unknown" attributes.
-    MarkerRep *mark = static_cast<MarkerRep *>(getElement());
+    MarkerRep* mark = static_cast<MarkerRep*>(getElement());
     OpalElement::updateUnknown(mark);
 }

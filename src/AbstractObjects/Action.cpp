@@ -18,39 +18,19 @@
 
 #include "AbstractObjects/Action.h"
 
-
 // Class Action
 // ------------------------------------------------------------------------
 
-Action::~Action()
-{}
+Action::~Action() {}
 
+bool Action::canReplaceBy(Object*) { return true; }
 
-bool Action::canReplaceBy(Object *) {
-    return true;
-}
+const std::string Action::getCategory() const { return "ACTION"; }
 
+bool Action::shouldTrace() const { return true; }
 
-const std::string Action::getCategory() const {
-    return "ACTION";
-}
+bool Action::shouldUpdate() const { return true; }
 
+Action::Action(const std::string& name, Action* parent) : Object(name, parent) {}
 
-bool Action::shouldTrace() const {
-    return true;
-
-}
-
-bool Action::shouldUpdate() const {
-    return true;
-}
-
-
-Action::Action(const std::string &name, Action *parent):
-    Object(name, parent)
-{}
-
-
-Action::Action(int size, const char *name, const char *help):
-    Object(size, name, help)
-{}
+Action::Action(int size, const char* name, const char* help) : Object(size, name, help) {}

@@ -41,9 +41,7 @@
 
 #include <sstream>
 
-DataSink::DataSink() {
-    this->init();
-}
+DataSink::DataSink() { this->init(); }
 
 DataSink::DataSink(H5PartWrapper* h5wrapper, bool restart) {
     if (restart && !Options::enableHDF5) {
@@ -56,8 +54,7 @@ DataSink::DataSink(H5PartWrapper* h5wrapper, bool restart) {
         rewindLines();
 }
 
-DataSink::DataSink(H5PartWrapper* h5wrapper) : DataSink(h5wrapper, false) {
-}
+DataSink::DataSink(H5PartWrapper* h5wrapper) : DataSink(h5wrapper, false) {}
 
 void DataSink::dumpH5(PartBunch_t* beam, Vector_t<double, 3> FDext[]) const {
     if (!Options::enableHDF5)
@@ -98,8 +95,8 @@ void DataSink::dumpSDDS(
 
     beam->gatherLoadBalanceStatistics();
 
-    //for (size_t i = 0; i < sddsWriter_m.size(); ++i)
-    //    sddsWriter_m[i]->write(beam);
+    // for (size_t i = 0; i < sddsWriter_m.size(); ++i)
+    //     sddsWriter_m[i]->write(beam);
 
     IpplTimings::stopTimer(StatMarkerTimer_m);
 }

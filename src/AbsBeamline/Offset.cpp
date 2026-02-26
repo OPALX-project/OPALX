@@ -41,8 +41,7 @@ Offset::Offset(const std::string& name) : Component(name), _is_local(false), geo
     geometry_m = new Euclid3DGeometry(Euclid3D());
 }
 
-Offset::Offset() : Offset("") {
-}
+Offset::Offset() : Offset("") {}
 
 Offset::Offset(std::string name, const Offset& rhs)
     : Component(name), _is_local(false), geometry_m(nullptr) {
@@ -55,9 +54,7 @@ Offset::Offset(const Offset& rhs)
     *this = rhs;
 }
 
-Offset::~Offset() {
-    delete geometry_m;
-}
+Offset::~Offset() { delete geometry_m; }
 
 Offset& Offset::operator=(const Offset& rhs) {
     if (&rhs == this) {
@@ -79,9 +76,7 @@ Offset& Offset::operator=(const Offset& rhs) {
     return *this;
 }
 
-void Offset::accept(BeamlineVisitor& visitor) const {
-    visitor.visitOffset(*this);
-}
+void Offset::accept(BeamlineVisitor& visitor) const { visitor.visitOffset(*this); }
 
 EMField& Offset::getField() {
     throw GeneralClassicException("Offset::getField()", "No field defined for Offset");
@@ -95,45 +90,25 @@ void Offset::initialise(PartBunch_t* bunch, double& /*startField*/, double& /*en
     RefPartBunch_m = bunch;
 }
 
-void Offset::finalise() {
-    RefPartBunch_m = nullptr;
-}
+void Offset::finalise() { RefPartBunch_m = nullptr; }
 
-ElementBase* Offset::clone() const {
-    return new Offset(*this);
-}
+ElementBase* Offset::clone() const { return new Offset(*this); }
 
-void Offset::setEndPosition(Vector_t<double, 3> position) {
-    _end_position = position;
-}
+void Offset::setEndPosition(Vector_t<double, 3> position) { _end_position = position; }
 
-Vector_t<double, 3> Offset::getEndPosition() const {
-    return _end_position;
-}
+Vector_t<double, 3> Offset::getEndPosition() const { return _end_position; }
 
-void Offset::setEndDirection(Vector_t<double, 3> direction) {
-    _end_direction = direction;
-}
+void Offset::setEndDirection(Vector_t<double, 3> direction) { _end_direction = direction; }
 
-Vector_t<double, 3> Offset::getEndDirection() const {
-    return _end_direction;
-}
+Vector_t<double, 3> Offset::getEndDirection() const { return _end_direction; }
 
-void Offset::setIsLocal(bool isLocal) {
-    _is_local = isLocal;
-}
+void Offset::setIsLocal(bool isLocal) { _is_local = isLocal; }
 
-bool Offset::getIsLocal() const {
-    return _is_local;
-}
+bool Offset::getIsLocal() const { return _is_local; }
 
-Euclid3DGeometry& Offset::getGeometry() {
-    return *geometry_m;
-}
+Euclid3DGeometry& Offset::getGeometry() { return *geometry_m; }
 
-const Euclid3DGeometry& Offset::getGeometry() const {
-    return *geometry_m;
-}
+const Euclid3DGeometry& Offset::getGeometry() const { return *geometry_m; }
 
 // std::ostream& operator<<(std::ostream& out, const Vector_t<double, 3>& vec) {
 //     out << "(" << vec(0) << ", " << vec(1) << ", " << vec(2) << ")";
@@ -186,9 +161,7 @@ void Offset::updateGeometry(
     updateGeometry();
 }
 
-bool Offset::isGeometryAllocated() const {
-    return geometry_m != nullptr;
-}
+bool Offset::isGeometryAllocated() const { return geometry_m != nullptr; }
 
 bool operator==(const Offset& off1, const Offset& off2) {
     const double tol = Offset::float_tolerance;
@@ -213,9 +186,7 @@ bool operator==(const Offset& off1, const Offset& off2) {
     return true;
 }
 
-bool operator!=(const Offset& off1, const Offset& off2) {
-    return !(off1 == off2);
-}
+bool operator!=(const Offset& off1, const Offset& off2) { return !(off1 == off2); }
 
 std::ostream& operator<<(std::ostream& out, const Offset& off) {
     out << "Offset " << off.getName() << " local " << off.getIsLocal()

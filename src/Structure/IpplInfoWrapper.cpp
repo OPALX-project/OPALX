@@ -3,8 +3,8 @@
 //
 
 #include "Structure/IpplInfoWrapper.h"
-#include "Utility/Inform.h"
 #include <cstring>
+#include "Utility/Inform.h"
 
 extern Inform* gmsg;
 IpplInfoWrapper::IpplInfoWrapper(

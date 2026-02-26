@@ -36,7 +36,10 @@ public:
         Accelerator() = default;
         size_t last_index_{};
         size_t last_upper_index_{};
-        void reset() { last_index_ = 0; last_upper_index_ = 0; }
+        void reset() {
+            last_index_       = 0;
+            last_upper_index_ = 0;
+        }
     };
 
     /// \brief Initialize from tabulated data (natural spline).
@@ -58,7 +61,6 @@ public:
     virtual double evalIntegral(double xa, double xb, Accelerator& accel) const = 0;
 
 protected:
-
     /// \brief  Return the interval index for the given x-coordinate, using the
     /// supplied cached value if possible
     /// \param x Input: x-coordinate.
@@ -71,5 +73,4 @@ protected:
     std::vector<double> y_{};
 };
 
-
-#endif //OPALX_ABSTRACTSPLINE_H
+#endif  // OPALX_ABSTRACTSPLINE_H

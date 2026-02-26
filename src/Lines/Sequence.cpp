@@ -51,15 +51,15 @@ namespace {
 
 Sequence::Sequence()
     : BeamSequence(
-        SIZE, "SEQUENCE",
-        "The \"SEQUENCE\" statement initiates parsing of an "
-        "element sequence.\n"
-        "\t<label>: SEQUENCE,L=<length>,REFER=<reference>\n"
-        "\t\t...\n"
-        "\t\t<object>: <class>,AT=<real>{,<attribute>=<value>}\n"
-        "\t\t<object>: <class>,DRIFT=<real>{,<attribute>=<value>}\n"
-        "\t\t...\n"
-        "\tEND;") {
+          SIZE, "SEQUENCE",
+          "The \"SEQUENCE\" statement initiates parsing of an "
+          "element sequence.\n"
+          "\t<label>: SEQUENCE,L=<length>,REFER=<reference>\n"
+          "\t\t...\n"
+          "\t\t<object>: <class>,AT=<real>{,<attribute>=<value>}\n"
+          "\t\t<object>: <class>,DRIFT=<real>{,<attribute>=<value>}\n"
+          "\t\t...\n"
+          "\tEND;") {
     itsAttr[TYPE]   = Attributes::makeString("TYPE", "The design type");
     itsAttr[LENGTH] = Attributes::makeReal("L", "Total length of sequence in m");
 
@@ -88,12 +88,9 @@ Sequence::Sequence(const std::string& name, Sequence* parent)
     setElement(new TLine(name));
 }
 
-Sequence::~Sequence() {
-}
+Sequence::~Sequence() {}
 
-Sequence* Sequence::clone(const std::string& name) {
-    return new Sequence(name, this);
-}
+Sequence* Sequence::clone(const std::string& name) { return new Sequence(name, this); }
 
 Sequence* Sequence::copy(const std::string& name) {
     TLine* oldLine = fetchLine();
@@ -142,9 +139,7 @@ Sequence::TLine::iterator Sequence::findNamedPosition(TLine& line, const std::st
         "Sequence::findNamedPosition()", "Element \"" + name + "\" not found in sequence.");
 }
 
-double Sequence::getLength() const {
-    return Attributes::getReal(itsAttr[LENGTH]);
-}
+double Sequence::getLength() const { return Attributes::getReal(itsAttr[LENGTH]); }
 
 double Sequence::getEntrance(ReferenceType ref) const {
     if (itsRefPoint.empty()) {
@@ -259,9 +254,7 @@ void Sequence::update() {
         updateList(this, line);
 }
 
-Sequence::TLine* Sequence::fetchLine() const {
-    return dynamic_cast<TLine*>(getElement());
-}
+Sequence::TLine* Sequence::fetchLine() const { return dynamic_cast<TLine*>(getElement()); }
 
 void Sequence::storeLine(TLine& newLine) {
     // Remove any old line and assign new one.

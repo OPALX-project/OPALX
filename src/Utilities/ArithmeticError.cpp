@@ -20,21 +20,12 @@
 
 #include "Utilities/ArithmeticError.h"
 
-
 // Class ArithmeticError
 // ------------------------------------------------------------------------
 
+ArithmeticError::ArithmeticError(const std::string& meth, const std::string& msg)
+    : ClassicException(meth, msg) {}
 
-ArithmeticError::ArithmeticError
-(const std::string &meth, const std::string &msg):
-    ClassicException(meth, msg)
-{}
+ArithmeticError::ArithmeticError(const ArithmeticError& rhs) : ClassicException(rhs) {}
 
-
-ArithmeticError::ArithmeticError(const ArithmeticError &rhs):
-    ClassicException(rhs)
-{}
-
-
-ArithmeticError::~ArithmeticError()
-{}
+ArithmeticError::~ArithmeticError() {}

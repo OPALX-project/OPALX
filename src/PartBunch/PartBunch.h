@@ -3,9 +3,10 @@
 
 #include <memory>
 
-#include "Algorithms/Matrix.h"
 #include "Algorithms/CoordinateSystemTrafo.h"
+#include "Algorithms/Matrix.h"
 #include "Attributes/Attributes.h"
+#include "BCHandler.hpp"
 #include "Distribution/Distribution.h"
 #include "Manager/BaseManager.h"
 #include "Manager/PicManager.h"
@@ -19,15 +20,13 @@
 #include "Random/NormalDistribution.h"
 #include "Random/Randn.h"
 #include "Utilities/OpalException.h"
-#include "BCHandler.hpp"
 
 #include "Structure/FieldSolverCmd.h"
 
 #include "Algorithms/PartData.h"
 
-#include "Utilities/Options.h" // Needed to define binning parameters!
-#include "PartBunch/Binning/AdaptBins.h" // TODO: binning
-
+#include "PartBunch/Binning/AdaptBins.h"  // TODO: binning
+#include "Utilities/Options.h"            // Needed to define binning parameters!
 
 extern Inform* gmsg;
 
@@ -39,7 +38,8 @@ KOKKOS_INLINE_FUNCTION typename T::value_type L2Norm(T& x) {
 using view_type = typename ippl::detail::ViewType<ippl::Vector<double, 3>, 1>::view_type;
 
 template <typename T, unsigned Dim>
-class PartBunch : public ippl::PicManager<
+class PartBunch
+    : public ippl::PicManager<
           T, Dim, ParticleContainer<T, Dim>, FieldContainer<T, Dim>, LoadBalancer<T, Dim>> {
 public:
     using ParticleContainer_t = ParticleContainer<T, Dim>;
@@ -48,18 +48,18 @@ public:
     using LoadBalancer_t      = LoadBalancer<T, Dim>;
     using Base                = ippl::ParticleBase<ippl::ParticleSpatialLayout<T, Dim>>;
 
-    using BinningSelector_t   = typename ParticleBinning::CoordinateSelector<ParticleContainer_t>;
-    using AdaptBins_t         = typename ParticleBinning::AdaptBins<ParticleContainer_t, BinningSelector_t>;
-    using binIndex_t          = typename ParticleContainer_t::bin_index_type;
+    using BinningSelector_t = typename ParticleBinning::CoordinateSelector<ParticleContainer_t>;
+    using AdaptBins_t = typename ParticleBinning::AdaptBins<ParticleContainer_t, BinningSelector_t>;
+    using binIndex_t  = typename ParticleContainer_t::bin_index_type;
 
-    using BCHandler_t         = BCHandler<Dim>;
+    using BCHandler_t = BCHandler<Dim>;
 
     double time_m;
 
     size_type totalP_m;
 
-    /// \todo doesn't do anything??? 
-    // int nt_m; 
+    /// \todo doesn't do anything???
+    // int nt_m;
 
     double lbt_m;
 
@@ -114,7 +114,6 @@ public:
     CoordinateSystemTrafo toLabTrafo_m;
 
 private:
-
     std::unique_ptr<size_t[]> globalPartPerNode_m;
 
     // ParticleOrigin refPOrigin_m;
@@ -143,8 +142,8 @@ private:
     // FIXME: this should go into the Bin class!
     //  holds number of emitted particles of the bin
     //  jjyang: opal-cycl use *nBin_m of pbin_m
-    //std::unique_ptr<size_t[]> binemitted_m; // liemen_a: TODO remove!
-    std::shared_ptr<AdaptBins_t> bins_m; // added by liemen_a for AdaptBins class!
+    // std::unique_ptr<size_t[]> binemitted_m; // liemen_a: TODO remove!
+    std::shared_ptr<AdaptBins_t> bins_m;  // added by liemen_a for AdaptBins class!
 
     /// steps per turn for OPAL-cycl
     int stepsPerTurn_m;
@@ -171,11 +170,10 @@ private:
     /// if multiple TRACK commands
     long long globalTrackStep_m;
 
-
     std::shared_ptr<Distribution> OPALdist_m;
 
     std::shared_ptr<FieldSolverCmd> OPALFieldSolver_m;
-    
+
     // unit state of PartBunch --> always false after initialization, so use this as standard flag
     // UnitState_t unit_state_m;
     bool isUnitless_m = false;
@@ -197,31 +195,26 @@ private:
     std::shared_ptr<VField_t<T, Dim>> Etmp_m;
 
 public:
-
-    PartBunch(double qi, 
-              double mi, 
-              size_t totalP, 
-              /*int nt,*/ 
-              double lbt, 
-              std::string integration_method,
-              std::shared_ptr<Distribution> &OPALdistribution, 
-              std::shared_ptr<FieldSolverCmd> &OPALFieldSolver);
+    PartBunch(
+        double qi, double mi, size_t totalP,
+        /*int nt,*/
+        double lbt, std::string integration_method, std::shared_ptr<Distribution>& OPALdistribution,
+        std::shared_ptr<FieldSolverCmd>& OPALFieldSolver);
 
     void bunchUpdate();
-    
+
     ~PartBunch() {
-        *gmsg << "* PartBunch Destructor: Finished time step: " << this->it_m << " time: " << this->time_m << endl;
+        *gmsg << "* PartBunch Destructor: Finished time step: " << this->it_m
+              << " time: " << this->time_m << endl;
     }
 
-    std::shared_ptr<ParticleContainer_t> getParticleContainer() {
-        return this->pcontainer_m;
-    }
+    std::shared_ptr<ParticleContainer_t> getParticleContainer() { return this->pcontainer_m; }
 
     void setSolver();
 
     void setBins();
 
-    void pre_run() override ;
+    void pre_run() override;
 
     void performBunchSanityChecks() const;
 
@@ -229,24 +222,18 @@ public:
     std::shared_ptr<VField_t<T, Dim>> getTempEField() { return this->Etmp_m; }
     void setTempEField(std::shared_ptr<VField_t<T, Dim>> Etmp) { this->Etmp_m = Etmp; }
 
-    std::shared_ptr<AdaptBins_t> getBins() { return bins_m; } // TODO: Binning
-    
-    void setBins(std::shared_ptr<AdaptBins_t> bins) { bins_m = bins; } // TODO: Binning
+    std::shared_ptr<AdaptBins_t> getBins() { return bins_m; }  // TODO: Binning
+
+    void setBins(std::shared_ptr<AdaptBins_t> bins) { bins_m = bins; }  // TODO: Binning
 
     void setBCHandler(std::shared_ptr<BCHandler_t> bcHandler) { bcHandler_m = bcHandler; }
     std::shared_ptr<BCHandler_t> getBCHandler() const { return bcHandler_m; }
 
-    void updateMoments(){
-        this->pcontainer_m->updateMoments();
-    }
+    void updateMoments() { this->pcontainer_m->updateMoments(); }
 
-    size_t getTotalNum() const {
-        return this->pcontainer_m->getTotalNum();
-    }
+    size_t getTotalNum() const { return this->pcontainer_m->getTotalNum(); }
 
-    size_t getLocalNum() const {
-        return this->pcontainer_m->getLocalNum();
-    }
+    size_t getLocalNum() const { return this->pcontainer_m->getLocalNum(); }
 
     Vector_t<double, Dim> R(size_t /*i*/) {
         *gmsg << "not implemented" << endl;
@@ -278,19 +265,13 @@ public:
         *gmsg << "not implemented" << endl;
     }
 
-    void par2grid() override {
-        scatterCIC();
-    }
+    void par2grid() override { scatterCIC(); }
 
-    void grid2par() override {
-        gatherCIC();
-    }
+    void grid2par() override { gatherCIC(); }
 
     void gatherCIC();
 
-    void scatterCIC() {
-        scatterCICPerBin(-1);
-    } 
+    void scatterCIC() { scatterCICPerBin(-1); }
 
     void scatterCICPerBin(binIndex_t binIndex);
 
@@ -304,35 +285,19 @@ public:
 
     void do_binaryRepart();
 
-    void setCharge() {
-        this->getParticleContainer()->Q = qi_m;
-    }
-    
-    void setMass() {
-        this->getParticleContainer()->M = mi_m;
-    }
+    void setCharge() { this->getParticleContainer()->Q = qi_m; }
 
-    double getCharge() const {
-        return qi_m*this->getTotalNum();
-    }
+    void setMass() { this->getParticleContainer()->M = mi_m; }
 
-    double getChargePerParticle() const {
-        return qi_m;
-    }
-    double getMassPerParticle() const {
-        return mi_m;
-    }
+    double getCharge() const { return qi_m * this->getTotalNum(); }
 
-    double getQ() const {
-        return this->getCharge();
-    }
-    double getM() const {
-        return  mi_m*this->getTotalNum();
-    }
+    double getChargePerParticle() const { return qi_m; }
+    double getMassPerParticle() const { return mi_m; }
 
-    double getdE() const {
-        return this->pcontainer_m->getStdKineticEnergy();
-    }
+    double getQ() const { return this->getCharge(); }
+    double getM() const { return mi_m * this->getTotalNum(); }
+
+    double getdE() const { return this->pcontainer_m->getStdKineticEnergy(); }
 
     double getGamma(int /*i*/) const {
         *gmsg << "not implemented" << endl;
@@ -343,13 +308,9 @@ public:
         return 0.0;
     }
 
-    void actT() {
-        *gmsg << "not implemented" << endl;
-    }
+    void actT() { *gmsg << "not implemented" << endl; }
 
-    PartData* getReference() {
-        return reference_m;
-    }
+    PartData* getReference() { return reference_m; }
 
     double getEmissionDeltaT() {
         *gmsg << "not implemented" << endl;
@@ -358,54 +319,36 @@ public:
 
     void gatherLoadBalanceStatistics();
 
-    size_t getLoadBalance(int p) {
-        return globalPartPerNode_m[p];
-    }
+    size_t getLoadBalance(int p) { return globalPartPerNode_m[p]; }
 
-    void resizeMesh() {
-        *gmsg << "not implemented" << endl;
-    }
+    void resizeMesh() { *gmsg << "not implemented" << endl; }
 
     bool isGridFixed() {
         *gmsg << "not implemented" << endl;
         return false;
     }
 
-    void boundp() {
-        *gmsg << "not implemented" << endl;
-    }
+    void boundp() { *gmsg << "not implemented" << endl; }
 
     size_t boundp_destroyT() {
         *gmsg << "not implemented" << endl;
         return 1;
     }
 
-    void setBCAllOpen() {
-        *gmsg << "not implemented" << endl;
-    }
-    void setBCForDCBeam() {
-        *gmsg << "not implemented" << endl;
-    }
-    void setupBCs() {
-        *gmsg << "not implemented" << endl;
-    }
-    void setBCAllPeriodic() {
-        *gmsg << "not implemented" << endl;
-    }
+    void setBCAllOpen() { *gmsg << "not implemented" << endl; }
+    void setBCForDCBeam() { *gmsg << "not implemented" << endl; }
+    void setupBCs() { *gmsg << "not implemented" << endl; }
+    void setBCAllPeriodic() { *gmsg << "not implemented" << endl; }
 
     void resetInterpolationCache(bool /*clearCache = false*/) {
         *gmsg << "not implemented" << endl;
     }
-    void swap(unsigned int /*i*/, unsigned int /*j*/) {
-        *gmsg << "not implemented" << endl;
-    }
+    void swap(unsigned int /*i*/, unsigned int /*j*/) { *gmsg << "not implemented" << endl; }
     double getRho(int /*x*/, int /*y*/, int /*z*/) {
         *gmsg << "not implemented" << endl;
         return 0.0;
     }
-    void gatherStatistics(unsigned int /*totalP*/) {
-        *gmsg << "not implemented" << endl;
-    }
+    void gatherStatistics(unsigned int /*totalP*/) { *gmsg << "not implemented" << endl; }
     /**
      * @brief Transform particle positions to a unitless coordinate system.
      *
@@ -433,25 +376,26 @@ public:
      */
     void switchToUnitlessPositions(bool use_dt_per_particle = false) {
         if (isUnitless_m) {
-            throw OpalException("PartBunch::switchToUnitlessPositions",
-                                "PartBunch is already in unitless positions!");
+            throw OpalException(
+                "PartBunch::switchToUnitlessPositions",
+                "PartBunch is already in unitless positions!");
         }
 
         // Divide by c*dt
         double unitless_factor = 1.0 / (Physics::c * this->getdT());
-        auto Rview  = this->getParticleContainer()->R.getView();
-        auto dtview = this->getParticleContainer()->dt.getView();
+        auto Rview             = this->getParticleContainer()->R.getView();
+        auto dtview            = this->getParticleContainer()->dt.getView();
         Kokkos::parallel_for(
-                             "switchToUnitlessPositions", ippl::getRangePolicy(Rview),
-                             KOKKOS_LAMBDA(const size_t i) {
-                                double fac = use_dt_per_particle ? (1.0 / (Physics::c * dtview(i))) 
-                                                                 : unitless_factor;
-                                Rview(i) *= fac;
-                             });
+            "switchToUnitlessPositions", ippl::getRangePolicy(Rview),
+            KOKKOS_LAMBDA(const size_t i) {
+                double fac =
+                    use_dt_per_particle ? (1.0 / (Physics::c * dtview(i))) : unitless_factor;
+                Rview(i) *= fac;
+            });
         isUnitless_m = true;
 
         /// \todo remove later
-        *gmsg << "* Switched to unitless positions." << endl; 
+        *gmsg << "* Switched to unitless positions." << endl;
     }
     /**
      * @brief Convert particle positions from unitless back to physical coordinates.
@@ -478,21 +422,21 @@ public:
      */
     void switchOffUnitlessPositions(bool use_dt_per_particle = false) {
         if (!isUnitless_m) {
-            throw OpalException("PartBunch::switchOffUnitlessPositions",
-                                "PartBunch is already in physical positions!");
+            throw OpalException(
+                "PartBunch::switchOffUnitlessPositions",
+                "PartBunch is already in physical positions!");
         }
 
         // Multiply by c*dt
         double unitless_factor = Physics::c * this->getdT();
-        auto Rview  = this->getParticleContainer()->R.getView();
-        auto dtview = this->getParticleContainer()->dt.getView();
+        auto Rview             = this->getParticleContainer()->R.getView();
+        auto dtview            = this->getParticleContainer()->dt.getView();
         Kokkos::parallel_for(
-                             "switchOffUnitlessPositions", ippl::getRangePolicy(Rview),
-                             KOKKOS_LAMBDA(const size_t i) {
-                                double fac = use_dt_per_particle ? (Physics::c * dtview(i)) 
-                                                                 : unitless_factor;
-                                Rview(i) *= fac;
-                             });
+            "switchOffUnitlessPositions", ippl::getRangePolicy(Rview),
+            KOKKOS_LAMBDA(const size_t i) {
+                double fac = use_dt_per_particle ? (Physics::c * dtview(i)) : unitless_factor;
+                Rview(i) *= fac;
+            });
         isUnitless_m = false;
 
         /// \todo remove later
@@ -505,26 +449,23 @@ public:
     }
 
     void calcLineDensity(
-        unsigned int /*nBins*/, std::vector<double>& /*lineDensity*/, std::pair<double, double>& /*meshInfo*/) {
-            *gmsg << "not implemented" << endl;
-    }
-
-    void setBeamFrequency(double /*v*/) {
+        unsigned int /*nBins*/, std::vector<double>& /*lineDensity*/,
+        std::pair<double, double>& /*meshInfo*/) {
         *gmsg << "not implemented" << endl;
     }
+
+    void setBeamFrequency(double /*v*/) { *gmsg << "not implemented" << endl; }
 
     Vector_t<double, Dim> getEExtrema() {
         *gmsg << "not implemented" << endl;
-       return Vector_t<double, Dim>(0);
+        return Vector_t<double, Dim>(0);
     }
 
     void computeSelfFields();
 
     Inform& print(Inform& os);
 
-    bool hasFieldSolver() const {
-        return this->fsolver_m != nullptr;
-    }
+    bool hasFieldSolver() const { return this->fsolver_m != nullptr; }
 
     FieldSolver_t* getFieldSolver() {
         /*
@@ -562,20 +503,14 @@ public:
         return 0;
     }
 
-    void Rebin() {
-        *gmsg << "not implemented" << endl;
-    }
+    void Rebin() { *gmsg << "not implemented" << endl; }
 
-    void setEnergyBins(int /*numberOfEnergyBins*/) {
-        *gmsg << "not implemented" << endl;
-    }
+    void setEnergyBins(int /*numberOfEnergyBins*/) { *gmsg << "not implemented" << endl; }
     bool weHaveEnergyBins() {
         *gmsg << "not implemented" << endl;
         return false;
     }
-    void setTEmission(double /*t*/) {
-        *gmsg << "not implemented" << endl;
-    }
+    void setTEmission(double /*t*/) { *gmsg << "not implemented" << endl; }
     double getTEmission() {
         *gmsg << "not implemented" << endl;
         return 0.0;
@@ -589,29 +524,19 @@ public:
         *gmsg << "not implemented" << endl;
         return 0;
     }
-    void updateNumTotal() {
-        *gmsg << "not implemented" << endl;
-    }
-    void rebin() {
-        *gmsg << "not implemented" << endl;
-    }
+    void updateNumTotal() { *gmsg << "not implemented" << endl; }
+    void rebin() { *gmsg << "not implemented" << endl; }
     int getLastemittedBin() {
         *gmsg << "not implemented" << endl;
         return 0;
     }
-    void setLocalBinCount(size_t /*num*/, int /*bin*/) {
-        *gmsg << "not implemented" << endl;
-    }
-    void calcGammas() {
-        *gmsg << "not implemented" << endl;
-    }
+    void setLocalBinCount(size_t /*num*/, int /*bin*/) { *gmsg << "not implemented" << endl; }
+    void calcGammas() { *gmsg << "not implemented" << endl; }
     double getBinGamma(int /*bin*/) {
         *gmsg << "not implemented" << endl;
         return 0.0;
     }
-    bool hasBinning() {
-        return this->bins_m != nullptr;
-    }
+    bool hasBinning() { return this->bins_m != nullptr; }
     double calcMeanPhi() {
         *gmsg << "not implemented" << endl;
         return 0.0;
@@ -657,9 +582,7 @@ public:
         return 0.0;
     }
 
-    void setZ(int /*i*/, double /*zcoo*/) {
-        *gmsg << "not implemented" << endl;
-    }
+    void setZ(int /*i*/, double /*zcoo*/) { *gmsg << "not implemented" << endl; }
 
     void get_bounds(Vector_t<double, Dim>& rmin, Vector_t<double, Dim>& rmax) {
         rmin = rmin_m;
@@ -674,74 +597,43 @@ public:
         *gmsg << "not implemented" << endl;
     }
 
-    void setdT(double dt) {
-        dt_m = dt;
-    }
+    void setdT(double dt) { dt_m = dt; }
 
-    double getdT() const {
-        return dt_m;
-    }
+    double getdT() const { return dt_m; }
 
-    void setT(double t) {
-        t_m = t;
-    }
+    void setT(double t) { t_m = t; }
 
-    void incrementT() {
-        t_m += dt_m;
-    }
+    void incrementT() { t_m += dt_m; }
 
-    double getT() const {
-        return t_m;
-    }
+    double getT() const { return t_m; }
 
-    void set_sPos(double s) {
-        spos_m = s;
-    }
+    void set_sPos(double s) { spos_m = s; }
 
-    double get_sPos() const {
-        return spos_m;
-    }
+    double get_sPos() const { return spos_m; }
 
     double get_gamma() const {
         *gmsg << "not implemented" << endl;
         return 1.00;
     }
 
-    double get_meanKineticEnergy() {
-        return this->pcontainer_m->getMeanKineticEnergy();
-    }
+    double get_meanKineticEnergy() { return this->pcontainer_m->getMeanKineticEnergy(); }
 
-    Vector_t<double, Dim> get_origin() const {
-        return rmin_m;
-    }
-    Vector_t<double, Dim> get_maxExtent() const {
-        return rmax_m;
-    }
+    Vector_t<double, Dim> get_origin() const { return rmin_m; }
+    Vector_t<double, Dim> get_maxExtent() const { return rmax_m; }
 
-    // in opal, MeanPosition is return for get_centroid, which I think is wrong. We already have get_rmean()
-    Vector_t<double, 2*Dim> get_centroid() const {
-        return this->pcontainer_m->getCentroid();
-    }
+    // in opal, MeanPosition is return for get_centroid, which I think is wrong. We already have
+    // get_rmean()
+    Vector_t<double, 2 * Dim> get_centroid() const { return this->pcontainer_m->getCentroid(); }
 
-    Vector_t<double, Dim> get_rrms() const {
-        return this->pcontainer_m->getRmsR();
-    }
+    Vector_t<double, Dim> get_rrms() const { return this->pcontainer_m->getRmsR(); }
 
-    Vector_t<double, Dim> get_rprms() const {
-        return this->pcontainer_m->getRmsRP();
-    }
+    Vector_t<double, Dim> get_rprms() const { return this->pcontainer_m->getRmsRP(); }
 
-    Vector_t<double, Dim> get_prms() const {
-        return this->pcontainer_m->getRmsP();
-    }
+    Vector_t<double, Dim> get_prms() const { return this->pcontainer_m->getRmsP(); }
 
-    Vector_t<double, Dim> get_rmean() const {
-        return this->pcontainer_m->getMeanR();
-    }
+    Vector_t<double, Dim> get_rmean() const { return this->pcontainer_m->getMeanR(); }
 
-    Vector_t<double, Dim> get_pmean() const {
-        return this->pcontainer_m->getMeanP();
-    }
+    Vector_t<double, Dim> get_pmean() const { return this->pcontainer_m->getMeanP(); }
     Vector_t<double, Dim> get_pmean_Distribution() const {
         *gmsg << "not implemented" << endl;
         return Vector_t<double, Dim>(0.0);
@@ -750,9 +642,7 @@ public:
         *gmsg << "not implemented" << endl;
         return Vector_t<double, Dim>(0.0);
     }
-    Vector_t<double, Dim> get_norm_emit() const {
-        return this->pcontainer_m->getNormEmit();
-    }
+    Vector_t<double, Dim> get_norm_emit() const { return this->pcontainer_m->getNormEmit(); }
     Vector_t<double, Dim> get_halo() const {
         *gmsg << "not implemented" << endl;
         return Vector_t<double, Dim>(0.0);
@@ -794,73 +684,43 @@ public:
         return Vector_t<double, Dim>(0.0);
     }
 
-    double get_Dx() const {
-        return this->pcontainer_m->getDx();
-    }
-    double get_Dy() const {
-        return this->pcontainer_m->getDy();
-    }
-    double get_DDx() const {
-        return this->pcontainer_m->getDDx();
-    }
-    double get_DDy() const {
-        return this->pcontainer_m->getDDy();
-    }
+    double get_Dx() const { return this->pcontainer_m->getDx(); }
+    double get_Dy() const { return this->pcontainer_m->getDy(); }
+    double get_DDx() const { return this->pcontainer_m->getDDx(); }
+    double get_DDy() const { return this->pcontainer_m->getDDy(); }
 
-    double get_temperature() const {
-        return this->pcontainer_m->getTemperature();
-    }
+    double get_temperature() const { return this->pcontainer_m->getTemperature(); }
 
-    void calcDebyeLength() {
-         this->pcontainer_m->computeDebyeLength(rmsDensity_m);
-    }
+    void calcDebyeLength() { this->pcontainer_m->computeDebyeLength(rmsDensity_m); }
 
-    double get_debyeLength() const {
-        return this->pcontainer_m->getDebyeLength();
-    }
+    double get_debyeLength() const { return this->pcontainer_m->getDebyeLength(); }
 
-    double get_plasmaParameter() const {
-        return this->pcontainer_m->getPlasmaParameter();
-    }
+    double get_plasmaParameter() const { return this->pcontainer_m->getPlasmaParameter(); }
 
-    double get_rmsDensity() const {
-        return rmsDensity_m;
-    }
+    double get_rmsDensity() const { return rmsDensity_m; }
 
     /*
       Some quantities related to integrations/tracking
      */
 
-    void setStepsPerTurn(int n) {
-        stepsPerTurn_m = n;
-    }
+    void setStepsPerTurn(int n) { stepsPerTurn_m = n; }
 
-    int getStepsPerTurn() const {
-        return stepsPerTurn_m;
-    }
+    int getStepsPerTurn() const { return stepsPerTurn_m; }
 
     /// step in multiple TRACK commands
-    void setGlobalTrackStep(long long n) {
-        globalTrackStep_m = n;
-    }
+    void setGlobalTrackStep(long long n) { globalTrackStep_m = n; }
 
-    long long getGlobalTrackStep() const {
-        return globalTrackStep_m;
-    }
+    long long getGlobalTrackStep() const { return globalTrackStep_m; }
 
     /// step in a TRACK command
-    void setLocalTrackStep(long long n) {
-        localTrackStep_m = n;
-    }
+    void setLocalTrackStep(long long n) { localTrackStep_m = n; }
 
     void incTrackSteps() {
         globalTrackStep_m++;
         localTrackStep_m++;
     }
 
-    long long getLocalTrackStep() const {
-        return localTrackStep_m;
-    }
+    long long getLocalTrackStep() const { return localTrackStep_m; }
 
     void setNumBunch(short n) {
         numBunch_m = n;
@@ -868,33 +728,21 @@ public:
         bunchLocalNum_m.resize(n);
     }
 
-    short getNumBunch() const {
-        return numBunch_m;
-    }
+    short getNumBunch() const { return numBunch_m; }
 
-    void setGlobalMeanR(Vector_t<double, Dim> globalMeanR) {
-        globalMeanR_m = globalMeanR;
-    }
+    void setGlobalMeanR(Vector_t<double, Dim> globalMeanR) { globalMeanR_m = globalMeanR; }
 
-    Vector_t<double, Dim> getGlobalMeanR() {
-        return globalMeanR_m;
-    }
+    Vector_t<double, Dim> getGlobalMeanR() { return globalMeanR_m; }
 
     void setGlobalToLocalQuaternion(Quaternion_t globalToLocalQuaternion) {
         globalToLocalQuaternion_m = globalToLocalQuaternion;
     }
 
-    Quaternion_t getGlobalToLocalQuaternion() {
-        return globalToLocalQuaternion_m;
-    }
+    Quaternion_t getGlobalToLocalQuaternion() { return globalToLocalQuaternion_m; }
 
-    void setSteptoLastInj(int n) {
-        SteptoLastInj_m = n;
-    }
+    void setSteptoLastInj(int n) { SteptoLastInj_m = n; }
 
-    int getSteptoLastInj() const {
-        return SteptoLastInj_m;
-    }
+    int getSteptoLastInj() const { return SteptoLastInj_m; }
 
     double calculateAngle(double /*x*/, double /*y*/) {
         *gmsg << "not implemented" << endl;
@@ -903,7 +751,6 @@ public:
 
     // Sanity check functions
     void spaceChargeEFieldCheck(Vector_t<double, 3> efScale);
-
 };
 
 // Explicit instantiations

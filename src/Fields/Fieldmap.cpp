@@ -57,11 +57,11 @@ namespace fs = std::filesystem;
 
 /**
  * @brief Factory method to obtain a Fieldmap instance.
- * 
+ *
  * Checks the FieldmapDictionary cache to see if the file is already loaded.
- * If not, it calls readHeader() to determine the map type, instantiates the 
+ * If not, it calls readHeader() to determine the map type, instantiates the
  * corresponding subclass, and adds it to the dictionary.
- * 
+ *
  * @param Filename Absolute path to the fieldmap file.
  * @param fast If true, attempts to load a "fast" version (implementation specific).
  * @return Fieldmap* Pointer to the managed fieldmap instance.
@@ -93,7 +93,7 @@ Fieldmap* Fieldmap::getFieldmap(std::string Filename, bool fast) {
                     FieldmapDescription(T2DMagnetoStatic, new FM2DMagnetoStatic(Filename))));
                 return (*position.first).second.Map;
                 break;
- 
+
             default:
                 throw GeneralClassicException(
                     "Fieldmap::getFieldmap()",
@@ -111,9 +111,7 @@ std::vector<std::string> Fieldmap::getListFieldmapNames() {
     return name_list;
 }
 
-void Fieldmap::deleteFieldmap(std::string Filename) {
-    freeMap(Filename);
-}
+void Fieldmap::deleteFieldmap(std::string Filename) { freeMap(Filename); }
 
 void Fieldmap::clearDictionary() {
     std::map<std::string, FieldmapDescription>::iterator it = FieldmapDictionary.begin();
@@ -126,7 +124,7 @@ void Fieldmap::clearDictionary() {
 
 /**
  * @brief Determines the fieldmap type
- * 
+ *
  * @return MapType
  */
 MapType Fieldmap::readHeader(std::string Filename) {
@@ -369,9 +367,9 @@ void Fieldmap::checkMap(
 }
 
 void Fieldmap::setEdgeConstants(
-    const double& /*bendAngle*/, const double& /*entranceAngle*/, const double& /*exitAngle*/){};
+    const double& /*bendAngle*/, const double& /*entranceAngle*/, const double& /*exitAngle*/) {};
 
-void Fieldmap::setFieldLength(const double&){};
+void Fieldmap::setFieldLength(const double&) {};
 
 void Fieldmap::getLine(std::ifstream& in, int& lines_read, std::string& buffer) {
     size_t firstof = 0;
@@ -547,28 +545,21 @@ std::string Fieldmap::typeset_msg(const std::string& msg, const std::string& tit
     return return_string;
 }
 
-void Fieldmap::getOnaxisEz(std::vector<std::pair<double, double>>& /*onaxis*/) {
-}
+void Fieldmap::getOnaxisEz(std::vector<std::pair<double, double>>& /*onaxis*/) {}
 
 void Fieldmap::get1DProfile1EngeCoeffs(
-    std::vector<double>& /*engeCoeffsEntry*/, std::vector<double>& /*engeCoeffsExit*/) {
-}
+    std::vector<double>& /*engeCoeffsEntry*/, std::vector<double>& /*engeCoeffsExit*/) {}
 
 void Fieldmap::get1DProfile1EntranceParam(
     double& /*entranceParameter1*/, double& /*entranceParameter2*/,
-    double& /*entranceParameter3*/) {
-}
+    double& /*entranceParameter3*/) {}
 
 void Fieldmap::get1DProfile1ExitParam(
-    double& /*exitParameter1*/, double& /*exitParameter2*/, double& /*exitParameter3*/) {
-}
+    double& /*exitParameter1*/, double& /*exitParameter2*/, double& /*exitParameter3*/) {}
 
-double Fieldmap::getFieldGap() {
-    return 0.0;
-}
+double Fieldmap::getFieldGap() { return 0.0; }
 
-void Fieldmap::setFieldGap(double /*gap*/) {
-}
+void Fieldmap::setFieldGap(double /*gap*/) {}
 
 void Fieldmap::write3DField(
     unsigned int nx, unsigned int ny, unsigned int nz, const std::pair<double, double>& xrange,

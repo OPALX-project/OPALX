@@ -82,8 +82,6 @@ private:
     std::vector<double> o_m;
 };
 
-inline Inform& operator<<(Inform& os, const SinusoidalTimeDependence& p) {
-    return p.print(os);
-}
+inline Inform& operator<<(Inform& os, const SinusoidalTimeDependence& p) { return p.print(os); }
 
 #endif  // OPAL_SINUSOIDALTIMEDEPENDENCE_H

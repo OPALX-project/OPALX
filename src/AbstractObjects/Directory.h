@@ -18,27 +18,23 @@
 //
 // ------------------------------------------------------------------------
 
-#include <memory>
 #include <functional>
 #include <map>
+#include <memory>
 #include <string>
 
 class Object;
 
-
 // Class Directory
 // ------------------------------------------------------------------------
 
-typedef std::map<std::string, std::shared_ptr<Object>, std::less<std::string> >
-ObjectDir;
+typedef std::map<std::string, std::shared_ptr<Object>, std::less<std::string> > ObjectDir;
 
 /// A map of string versus pointer to Object.
 //  Used as the directory for OPAL objects.
 
 class Directory {
-
 public:
-
     /// Constructor.
     //  Build empty directory.
     Directory();
@@ -66,22 +62,21 @@ public:
 
     /// Remove existing entry.
     //  The entry is identified by [b]name[/b].
-    void erase(const std::string &name);
+    void erase(const std::string& name);
 
     /// Find entry.
     //  The entry is identified by [b]name[/b].
     //  If the entry [b]name[/b] does not exist, return [b]nullptr[/b].
-    Object *find(const std::string &name) const;
+    Object* find(const std::string& name) const;
 
     /// Define new object.
     //  Insert new object in directory.
     //  If the entry [b]name[/b] exists already, it is removed.
-    void insert(const std::string &name, Object *newObject);
+    void insert(const std::string& name, Object* newObject);
 
 private:
-
     // The directory of objects.
     ObjectDir dir;
 };
 
-#endif // OPAL_Directory_HH
+#endif  // OPAL_Directory_HH

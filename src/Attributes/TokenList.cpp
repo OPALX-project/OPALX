@@ -23,29 +23,23 @@
 
 using namespace Expressions;
 
-
 // Class TokenList
 // ------------------------------------------------------------------------
 
 namespace Attributes {
 
-    TokenList::TokenList(const std::string &name, const std::string &help):
-        AttributeHandler(name, help, 0)
-    {}
+    TokenList::TokenList(const std::string& name, const std::string& help)
+        : AttributeHandler(name, help, 0) {}
 
+    TokenList::~TokenList() {}
 
-    TokenList::~TokenList()
-    {}
-
-
-    const std::string &TokenList::getType() const {
+    const std::string& TokenList::getType() const {
         static const std::string type("token list");
         return type;
     }
 
-
-    void TokenList::parse(Attribute &attr, Statement &stat, bool) const {
+    void TokenList::parse(Attribute& attr, Statement& stat, bool) const {
         attr.set(new SValue<std::list<Token> >(parseTokenList(stat)));
     }
 
-};
+};  // namespace Attributes

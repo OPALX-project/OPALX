@@ -21,30 +21,25 @@
 #ifndef OPAL_TrackParser_HH
 #define OPAL_TrackParser_HH
 
-#include "OpalParser/OpalParser.h"
 #include "AbstractObjects/Directory.h"
+#include "OpalParser/OpalParser.h"
 
-
-class TrackParser: public OpalParser {
-
+class TrackParser : public OpalParser {
 public:
-
     TrackParser();
     virtual ~TrackParser();
 
 protected:
-
     /// Find object by name in the track command directory.
-    virtual Object *find(const std::string &) const;
+    virtual Object* find(const std::string&) const;
 
 private:
-
     // Not implemented.
-    TrackParser(const TrackParser &);
-    void operator=(const TrackParser &);
+    TrackParser(const TrackParser&);
+    void operator=(const TrackParser&);
 
     // The sub-command directory.
     Directory trackDirectory;
 };
 
-#endif // OPAL_TrackParser_HH
+#endif  // OPAL_TrackParser_HH

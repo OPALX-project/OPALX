@@ -19,47 +19,29 @@
 #include "AbstractObjects/TableRowRep.h"
 #include <iostream>
 
-
 // Class TableRowRep
 // ------------------------------------------------------------------------
 
-TableRowRep::TableRowRep():
-    tabName(), position()
-{}
+TableRowRep::TableRowRep() : tabName(), position() {}
 
+TableRowRep::TableRowRep(const TableRowRep& rhs) : tabName(rhs.tabName), position(rhs.position) {}
 
-TableRowRep::TableRowRep(const TableRowRep &rhs):
-    tabName(rhs.tabName), position(rhs.position)
-{}
+TableRowRep::TableRowRep(const std::string& tab, const PlaceRep& row)
+    : tabName(tab), position(row) {}
 
+TableRowRep::~TableRowRep() {}
 
-TableRowRep::TableRowRep(const std::string &tab, const PlaceRep &row):
-    tabName(tab), position(row)
-{}
-
-
-TableRowRep::~TableRowRep()
-{}
-
-
-const TableRowRep &TableRowRep::operator=(const TableRowRep &rhs) {
-    tabName = rhs.tabName;
+const TableRowRep& TableRowRep::operator=(const TableRowRep& rhs) {
+    tabName  = rhs.tabName;
     position = rhs.position;
     return *this;
 }
 
+const std::string& TableRowRep::getTabName() const { return tabName; }
 
-const std::string &TableRowRep::getTabName() const {
-    return tabName;
-}
+PlaceRep TableRowRep::getPosition() const { return position; }
 
-
-PlaceRep TableRowRep::getPosition() const {
-    return position;
-}
-
-
-void TableRowRep::print(std::ostream &os) const {
+void TableRowRep::print(std::ostream& os) const {
     os << tabName << "->" << position;
     return;
 }

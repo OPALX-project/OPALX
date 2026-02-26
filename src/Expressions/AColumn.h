@@ -18,12 +18,11 @@
 //
 // ------------------------------------------------------------------------
 
+#include <iosfwd>
 #include "AbstractObjects/Expressions.h"
 #include "AbstractObjects/RangeRep.h"
-#include <iosfwd>
 
 class Table;
-
 
 namespace Expressions {
 
@@ -33,33 +32,29 @@ namespace Expressions {
     //  The result is defined as the values contained in that column,
     //  delimited by a range.
 
-    class AColumn: public OArray<double> {
-
+    class AColumn : public OArray<double> {
     public:
-
         /// Constructor.
         //  Use table name [b]tName[/b], column name [b]cName[/b], and range
         //  representation [b]rng[/b].
-        AColumn(const std::string &tName, const std::string &cName,
-                const RangeRep &rng);
+        AColumn(const std::string& tName, const std::string& cName, const RangeRep& rng);
 
-        AColumn(const AColumn &);
+        AColumn(const AColumn&);
         ~AColumn();
 
         /// Make clone.
-        virtual OArray<double> *clone() const;
+        virtual OArray<double>* clone() const;
 
         /// Evaluate.
         virtual std::vector<double> evaluate() const;
 
         /// Print expression.
-        virtual void print(std::ostream &os, int precedence = 99) const;
+        virtual void print(std::ostream& os, int precedence = 99) const;
 
     private:
-
         // Not implemented.
         AColumn();
-        const AColumn &operator=(const AColumn &);
+        const AColumn& operator=(const AColumn&);
 
         // Table and column name.
         const std::string tab_name;
@@ -69,6 +64,6 @@ namespace Expressions {
         RangeRep itsRange;
     };
 
-}
+}  // namespace Expressions
 
-#endif // OPAL_AColumn_HH
+#endif  // OPAL_AColumn_HH

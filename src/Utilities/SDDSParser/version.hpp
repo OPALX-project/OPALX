@@ -18,13 +18,11 @@
 #define VERSION_HPP_
 
 #include "ast.hpp"
-#include "skipper.hpp"
 #include "error_handler.hpp"
-
+#include "skipper.hpp"
 
 namespace SDDS {
-    struct version
-    {
+    struct version {
         short layoutVersion_m;
     };
 
@@ -32,7 +30,7 @@ namespace SDDS {
         out << "layout version is " << head.layoutVersion_m;
         return out;
     }
-}
+}  // namespace SDDS
 
 // Version parsing is now handled by SimpleParser
 #endif /* VERSION_HPP_ */

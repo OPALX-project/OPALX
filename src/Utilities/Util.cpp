@@ -29,9 +29,7 @@
 #include <queue>
 
 namespace Util {
-    std::string getGitRevision() {
-        return std::string(GIT_VERSION);
-    }
+    std::string getGitRevision() { return std::string(GIT_VERSION); }
 
 #define erfinv_a3 -0.140543331
 #define erfinv_a2 0.914624893
@@ -202,8 +200,7 @@ namespace Util {
         return path.string();
     }
 
-    KahanAccumulation::KahanAccumulation() : sum(0.0), correction(0.0) {
-    }
+    KahanAccumulation::KahanAccumulation() : sum(0.0), correction(0.0) {}
 
     KahanAccumulation& KahanAccumulation::operator+=(double value) {
         long double y    = value - this->correction;

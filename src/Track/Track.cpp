@@ -59,5 +59,4 @@ Track::Track(
     // bunch = OpalData::getInstance()->getPartBunch();
 }
 
-Track::~Track() {
-}
+Track::~Track() {}
