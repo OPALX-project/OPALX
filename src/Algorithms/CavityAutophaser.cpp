@@ -168,8 +168,7 @@ double CavityAutophaser::getPhaseAtMaxEnergy(
                     << "corresp. in Astra = " << AstraPhase * Units::rad2deg << " [deg],\n"
                     << "E = " << finalEnergy << " [MeV], "
                     << "phi_nom = " << originalPhase * Units::rad2deg << " [deg]\n"
-                    << "Ez_0 = " << amplitude << " [MV/m]"
-                    << "\n"
+                    << "Ez_0 = " << amplitude << " [MV/m]\n"
                     << "time = " << (t + tErr) * Units::s2ns << " [ns], dt = " << dt * Units::s2ps
                     << " [ps]" << endl;
 
@@ -190,8 +189,7 @@ double CavityAutophaser::getPhaseAtMaxEnergy(
                     << "corresp. in Astra = " << AstraPhase * Units::rad2deg << " [deg],\n"
                     << "E = " << finalEnergy << " [MeV], "
                     << "phi_nom = " << originalPhase * Units::rad2deg << " [deg]\n"
-                    << "Ez_0 = " << amplitude << " [MV/m]"
-                    << "\n"
+                    << "Ez_0 = " << amplitude << " [MV/m]\n"
                     << "time = " << (t + tErr) * Units::s2ns << " [ns], dt = " << dt * Units::s2ps
                     << " [ps]" << endl;
         if (!isDCGun) {
