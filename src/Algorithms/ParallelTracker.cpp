@@ -682,8 +682,8 @@ void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
     numParticlesInSimulation_m = totalNum;
 
     if (ne > 0) {
-        msg << level1 << "* Deleted " << ne << " particles, "
-            << "remaining " << numParticlesInSimulation_m << " particles" << endl;
+        msg << level1 << "* Deleted " << ne << " particles, remaining "
+            << numParticlesInSimulation_m << " particles" << endl;
     }
 }
 
@@ -1035,10 +1035,10 @@ void ParallelTracker::dumpStats(long long step, bool psDump, bool statDump) {
     */
 
     if (numParticlesInSimulation_m == 0) {
-        *gmsg << "* " << myt2.time() << " "
-              << "Step " << std::setw(6) << itsBunch_m->getGlobalTrackStep() << "; "
-              << "   -- no emission yet --     "
-              << "t= " << Util::getTimeString(itsBunch_m->getT()) << endl;
+        *gmsg << "* " << myt2.time() << " Step "
+              << std::setw(6) << itsBunch_m->getGlobalTrackStep()
+              << ";   -- no emission yet --     t= "
+              << Util::getTimeString(itsBunch_m->getT()) << endl;
         return;
     }
 
@@ -1049,11 +1049,11 @@ void ParallelTracker::dumpStats(long long step, bool psDump, bool statDump) {
             "ParallelTracker::dumpStats()",
             "there seems to be something wrong with the position of the bunch!");
     } else {
-        *gmsg << "* " << myt2.time() << " "
-              << "Step " << std::setw(6) << itsBunch_m->getGlobalTrackStep() << " "
-              << "at " << Util::getLengthString(pathLength_m) << ", "
-              << "t= " << Util::getTimeString(itsBunch_m->getT()) << ", "
-              << "E=" << Util::getEnergyString(itsBunch_m->get_meanKineticEnergy()) << endl;
+        *gmsg << "* " << myt2.time() << " Step "
+              << std::setw(6) << itsBunch_m->getGlobalTrackStep()
+              << " at " << Util::getLengthString(pathLength_m)
+              << ", t= " << Util::getTimeString(itsBunch_m->getT())
+              << ", E=" << Util::getEnergyString(itsBunch_m->get_meanKineticEnergy()) << endl;
 
         writePhaseSpace(step, psDump, statDump);
     }
