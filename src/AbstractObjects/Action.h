@@ -20,22 +20,19 @@
 
 #include "AbstractObjects/Object.h"
 
-
 // Class Action
 // ------------------------------------------------------------------------
 /// The base class for all OPAL actions.
 //  It implements the common behavior of actions, it can also be used via
 //  dynamic casting to determine whether an object represents an action.
 
-class Action: public Object {
-
+class Action : public Object {
 public:
-
     virtual ~Action();
 
     /// Test if replacement is allowed.
     //  Always return [b]true[/b].
-    virtual bool canReplaceBy(Object *object);
+    virtual bool canReplaceBy(Object* object);
 
     /// Return the object category as a string.
     //  Return the string "ACTION".
@@ -52,19 +49,17 @@ public:
     virtual bool shouldUpdate() const;
 
 protected:
-
     /// Constructor for exemplars.
-    Action(int size, const char *name, const char *help);
+    Action(int size, const char* name, const char* help);
 
     /// Constructor for cloning.
-    Action(const std::string &name, Action *parent);
+    Action(const std::string& name, Action* parent);
 
 private:
-
     // Not implemented.
     Action();
-    Action(const Action &);
-    void operator=(const Action &);
+    Action(const Action&);
+    void operator=(const Action&);
 };
 
-#endif // OPAL_Action_HH
+#endif  // OPAL_Action_HH

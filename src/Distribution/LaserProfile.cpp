@@ -309,7 +309,8 @@ void LaserProfile::setupRNG() {
     const gsl_rng_type* T = gsl_rng_default;
     rng_m                 = gsl_rng_alloc(T);
 
-    pdf_m = gsl_histogram2d_pdf_alloc(static_cast<unsigned int>(hist2d_m->nx()), static_cast<unsigned int>(hist2d_m->ny()));
+    pdf_m = gsl_histogram2d_pdf_alloc(
+        static_cast<unsigned int>(hist2d_m->nx()), static_cast<unsigned int>(hist2d_m->ny()));
     gsl_histogram2d_pdf_init(pdf_m, hist2d_m);
 }
 

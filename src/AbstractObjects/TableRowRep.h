@@ -18,11 +18,10 @@
 //
 // ------------------------------------------------------------------------
 
-#include "AbstractObjects/PlaceRep.h"
 #include <string>
+#include "AbstractObjects/PlaceRep.h"
 
 class Table;
-
 
 // Class TableRowRep
 // ------------------------------------------------------------------------
@@ -34,9 +33,7 @@ class Table;
 //  [/ol]
 
 class TableRowRep {
-
 public:
-
     /// Default constructor.
     //  Constructs undefined reference.
     TableRowRep();
@@ -44,32 +41,30 @@ public:
     /// Constructor.
     //  Construct reference to the row identified by [b]row[/b] of the
     //  table with name [b]name[/b].
-    TableRowRep(const std::string &tab, const PlaceRep &row);
+    TableRowRep(const std::string& tab, const PlaceRep& row);
 
-    TableRowRep(const TableRowRep &);
+    TableRowRep(const TableRowRep&);
     ~TableRowRep();
-    const TableRowRep &operator=(const TableRowRep &);
+    const TableRowRep& operator=(const TableRowRep&);
 
     /// Return the table name.
-    const std::string &getTabName() const;
+    const std::string& getTabName() const;
 
     /// Return the row position representation.
     PlaceRep getPosition() const;
 
     /// Print in input format.
-    void print(std::ostream &os) const;
+    void print(std::ostream& os) const;
 
 private:
-
     // Table row structure.
-    std::string tabName;      // Table name.
-    PlaceRep position;   // Position reference.
+    std::string tabName;  // Table name.
+    PlaceRep position;    // Position reference.
 };
 
-
-inline std::ostream &operator<<(std::ostream &os, const TableRowRep &row) {
+inline std::ostream& operator<<(std::ostream& os, const TableRowRep& row) {
     row.print(os);
     return os;
 }
 
-#endif // OPAL_TableRowRep_HH
+#endif  // OPAL_TableRowRep_HH

@@ -51,9 +51,9 @@ public:
 
     SDDSWriter(const std::string& fname, bool restart);
 
-    virtual ~SDDSWriter(){};
+    virtual ~SDDSWriter() {};
 
-    virtual void write(const PartBunch_t* /*beam*/){};
+    virtual void write(const PartBunch_t* /*beam*/) {};
 
     /** \brief
      *  delete the last 'numberOfLines' lines of the file 'fileName'
@@ -135,9 +135,7 @@ private:
     static constexpr unsigned int precision_m = 15;
 };
 
-inline bool SDDSWriter::exists() const {
-    return std::filesystem::exists(fname_m);
-}
+inline bool SDDSWriter::exists() const { return std::filesystem::exists(fname_m); }
 
 inline void SDDSWriter::addDescription(const std::string& text, const std::string& content) {
     desc_m = std::make_pair(text, content);
@@ -156,9 +154,7 @@ inline void SDDSWriter::addInfo(const std::string& mode, const size_t& no_row_co
     info_m = std::make_pair(mode, no_row_counts);
 }
 
-inline void SDDSWriter::writeRow() {
-    columns_m.writeRow(os_m);
-}
+inline void SDDSWriter::writeRow() { columns_m.writeRow(os_m); }
 
 template <typename T>
 std::string SDDSWriter::toString(const T& val) {
@@ -168,8 +164,6 @@ std::string SDDSWriter::toString(const T& val) {
     return ss.str();
 }
 
-inline bool SDDSWriter::hasColumns() const {
-    return columns_m.hasColumns();
-}
+inline bool SDDSWriter::hasColumns() const { return columns_m.hasColumns(); }
 
 #endif

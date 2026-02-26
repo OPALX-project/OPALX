@@ -18,10 +18,9 @@
 //
 // ------------------------------------------------------------------------
 
-#include "AbstractObjects/Expressions.h"
 #include <iosfwd>
 #include <vector>
-
+#include "AbstractObjects/Expressions.h"
 
 namespace Expressions {
 
@@ -35,20 +34,18 @@ namespace Expressions {
     //  turn, evaluating the scalar expression for this value, and storing
     //  it in the proper place.
 
-    class ATable: public OArray<double> {
-
+    class ATable : public OArray<double> {
     public:
-
         /// Constructor.
         //  Use the three index arguments from the TABLE() function.
         //  The expression is assigned later by [tt]defineExpression()[/tt].
         ATable(int n1, int n2, int n3);
 
-        ATable(const ATable &);
+        ATable(const ATable&);
         ~ATable();
 
         /// Make clone.
-        virtual OArray<double> *clone() const;
+        virtual OArray<double>* clone() const;
 
         /// Store the generating expression.
         //  A representation of the expression read in the TABLE() function.
@@ -61,13 +58,12 @@ namespace Expressions {
         double getHash() const;
 
         /// Print expression.
-        virtual void print(std::ostream &os, int precedence = 99) const;
+        virtual void print(std::ostream& os, int precedence = 99) const;
 
     private:
-
         // Not implemented.
         ATable();
-        const ATable &operator=(const ATable &);
+        const ATable& operator=(const ATable&);
 
         // Column name.
         PtrToScalar<double> itsExpr;
@@ -79,6 +75,6 @@ namespace Expressions {
         mutable int itsHash;
     };
 
-}
+}  // namespace Expressions
 
-#endif // OPAL_ATable_HH
+#endif  // OPAL_ATable_HH

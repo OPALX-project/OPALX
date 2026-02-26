@@ -28,8 +28,7 @@
 // Class Corrector
 // ------------------------------------------------------------------------
 
-Corrector::Corrector() : Corrector("") {
-}
+Corrector::Corrector() : Corrector("") {}
 
 Corrector::Corrector(const Corrector& right)
     : Component(right),
@@ -38,8 +37,7 @@ Corrector::Corrector(const Corrector& right)
       designEnergy_m(right.designEnergy_m),
       designEnergyChangeable_m(right.designEnergyChangeable_m),
       kickFieldSet_m(right.kickFieldSet_m),
-      kickField_m(right.kickField_m) {
-}
+      kickField_m(right.kickField_m) {}
 
 Corrector::Corrector(const std::string& name)
     : Component(name),
@@ -48,15 +46,11 @@ Corrector::Corrector(const std::string& name)
       designEnergy_m(0.0),
       designEnergyChangeable_m(true),
       kickFieldSet_m(false),
-      kickField_m(0.0) {
-}
+      kickField_m(0.0) {}
 
-Corrector::~Corrector() {
-}
+Corrector::~Corrector() {}
 
-void Corrector::accept(BeamlineVisitor& visitor) const {
-    visitor.visitCorrector(*this);
-}
+void Corrector::accept(BeamlineVisitor& visitor) const { visitor.visitCorrector(*this); }
 
 bool Corrector::apply(
     const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
@@ -95,8 +89,7 @@ void Corrector::initialise(PartBunch_t* bunch, double& startField, double& endFi
     RefPartBunch_m = bunch;
 }
 
-void Corrector::finalise() {
-}
+void Corrector::finalise() {}
 
 void Corrector::goOnline(const double&) {
     const double pathLength = getGeometry().getElementLength();
@@ -137,15 +130,11 @@ void Corrector::setDesignEnergy(const double& ekin, bool changeable) {
     }
 }
 
-bool Corrector::bends() const {
-    return false;
-}
+bool Corrector::bends() const { return false; }
 
 void Corrector::getDimensions(double& zBegin, double& zEnd) const {
     zBegin = 0.0;
     zEnd   = getElementLength();
 }
 
-ElementType Corrector::getType() const {
-    return ElementType::CORRECTOR;
-}
+ElementType Corrector::getType() const { return ElementType::CORRECTOR; }

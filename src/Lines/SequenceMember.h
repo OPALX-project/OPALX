@@ -18,25 +18,18 @@
 //
 // ------------------------------------------------------------------------
 
-#include "Beamlines/FlaggedElmPtr.h"
 #include <memory>
 #include "AbstractObjects/Element.h"
+#include "Beamlines/FlaggedElmPtr.h"
 
 // Class SequenceMember
 // ------------------------------------------------------------------------
 /// A member of a SEQUENCE.
 
-class SequenceMember: public FlaggedElmPtr {
-
+class SequenceMember : public FlaggedElmPtr {
 public:
-
     // The code for different SequenceMember types.
-    enum MemberType {
-        UNKNOWN   = 0,
-        GLOBAL    = 1,
-        LOCAL     = 2,
-        GENERATED = 3
-    };
+    enum MemberType { UNKNOWN = 0, GLOBAL = 1, LOCAL = 2, GENERATED = 3 };
 
     // The code for different position types.
     enum PositionType {
@@ -51,12 +44,11 @@ public:
     };
 
     SequenceMember();
-    SequenceMember(const SequenceMember &);
+    SequenceMember(const SequenceMember&);
     ~SequenceMember();
 
     /// Store the drift length for a generated drift.
     void setLength(double drift);
-
 
     /// The position attribute ("AT" or "DRIFT").
     double itsPosition;
@@ -74,11 +66,9 @@ public:
     // opal elements in order to avoid searching the opal elements
     std::shared_ptr<Element> OpalElement;
 
-
 private:
-
     // Not implemented.
-    void operator=(const SequenceMember &);
+    void operator=(const SequenceMember&);
 };
 
-#endif // OPAL_SequenceMember_HH
+#endif  // OPAL_SequenceMember_HH

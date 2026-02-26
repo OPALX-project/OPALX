@@ -50,8 +50,8 @@
 
 // Table-related commands.
 #include "Structure/Beam.h"
-#include "Structure/FieldSolverCmd.h"
 #include "Structure/BinningCmd.h"
+#include "Structure/FieldSolverCmd.h"
 // #include "Tables/List.h"
 
 // Value definitions commands.
@@ -65,17 +65,17 @@
 #include "Elements/OpalCavity.h"
 #include "Elements/OpalDrift.h"
 #include "Elements/OpalMarker.h"
-#include "Elements/OpalOffset/OpalLocalCartesianOffset.h"
-#include "Elements/OpalProbe.h"
 #include "Elements/OpalMultipole.h"
+#include "Elements/OpalMultipoleT.h"
+#include "Elements/OpalOffset/OpalLocalCartesianOffset.h"
+#include "Elements/OpalPolynomialTimeDependence.h"
+#include "Elements/OpalProbe.h"
 #include "Elements/OpalQuadrupole.h"
 #include "Elements/OpalRingDefinition.h"
-#include "Elements/OpalSolenoid.h"
-#include "Elements/OpalVerticalFFAMagnet.h"
-#include "Elements/OpalPolynomialTimeDependence.h"
 #include "Elements/OpalSinusoidalTimeDependence.h"
+#include "Elements/OpalSolenoid.h"
 #include "Elements/OpalSplineTimeDependence.h"
-#include "Elements/OpalMultipoleT.h"
+#include "Elements/OpalVerticalFFAMagnet.h"
 
 // Structure-related commands.
 #include "Lines/Line.h"
@@ -138,7 +138,7 @@ namespace {
         opal->create(new OpalPolynomialTimeDependence());
         opal->create(new OpalSinusoidalTimeDependence());
         opal->create(new OpalSplineTimeDependence());
-        //opal->create(new OpalMultipoleT());
+        // opal->create(new OpalMultipoleT());
     }
 };  // namespace
 

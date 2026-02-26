@@ -23,14 +23,9 @@ namespace OPALTimer {
     // Class Timer
     // ------------------------------------------------------------------------
 
-    Timer::Timer() {
-        ::time(&timer);
-    }
+    Timer::Timer() { ::time(&timer); }
 
-
-    Timer::~Timer()
-    {}
-
+    Timer::~Timer() {}
 
     std::string Timer::date() const {
         char buffer[12];
@@ -38,10 +33,9 @@ namespace OPALTimer {
         return std::string(buffer, 10);
     }
 
-
     std::string Timer::time() const {
         char buffer[12];
         strftime(buffer, 12, "%H:%M:%S", localtime(&timer));
         return std::string(buffer, 8);
     }
-}
+}  // namespace OPALTimer

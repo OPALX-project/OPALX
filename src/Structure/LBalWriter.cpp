@@ -25,9 +25,7 @@
 #include "Utilities/Timer.h"
 #include "Utilities/Util.h"
 
-LBalWriter::LBalWriter(const std::string& fname, bool restart) : SDDSWriter(fname, restart) {
-
-}
+LBalWriter::LBalWriter(const std::string& fname, bool restart) : SDDSWriter(fname, restart) {}
 
 void LBalWriter::fillHeader() {
     if (this->hasColumns()) {
@@ -78,11 +76,11 @@ void LBalWriter::write(const PartBunch_t* beam) {
     columns_m.addColumnValue("t", beam->getT() * Units::s2ns);  // 1
 
     size_t nProcs = ippl::Comm->size();
-    
+
     for (size_t p = 0; p < nProcs; ++p) {
         std::stringstream ss;
         ss << "\"processor-" << p << "\"";
-        size_t a = 10; // beam->getLoadBalance(p);
+        size_t a = 10;  // beam->getLoadBalance(p);
         columns_m.addColumnValue(ss.str(), a);
     }
 

@@ -18,11 +18,11 @@
 //
 // ------------------------------------------------------------------------
 
+#include <cstring>
+#include <iosfwd>
+#include <memory>
 #include "AbstractObjects/AttributeBase.h"
 #include "AbstractObjects/AttributeHandler.h"
-#include <memory>
-#include <iosfwd>
-#include <cstring>
 
 class Statement;
 
@@ -50,9 +50,7 @@ class Statement;
 //  OPAL parser with the values given by the user.
 
 class Attribute {
-
 public:
-
     /// Default constructor.
     //  Leaves both pointers [b]nullptr[/b].
     //  An object constructed by the default constructor must be initialized
@@ -62,21 +60,21 @@ public:
 
     /// Copy constructor.
     //  Both value and parser are shared with [b]rhs[/b].
-    Attribute(const Attribute &rhs);
+    Attribute(const Attribute& rhs);
 
     /// Constructor defining a parser and an optional value.
     //  The default value is ``undefined''.
-    Attribute(AttributeHandler *h, AttributeBase *b = nullptr);
+    Attribute(AttributeHandler* h, AttributeBase* b = nullptr);
 
     ~Attribute();
-    const Attribute &operator=(const Attribute &);
+    const Attribute& operator=(const Attribute&);
 
     /// Test for valid pointer.
     //  Returns true, when the value is defined (non-null pointer).
     operator bool() const;
 
     /// Return reference to polymorphic value.
-    AttributeBase &getBase() const;
+    AttributeBase& getBase() const;
 
     bool isBaseAllocated() const;
 
@@ -85,19 +83,19 @@ public:
     std::string getImage() const;
 
     /// Return a reference to the parser.
-    AttributeHandler &getHandler() const;
+    AttributeHandler& getHandler() const;
 
     /// Return the help string.
     //  This string is stored in the parser object.
-    const std::string &getHelp() const;
+    const std::string& getHelp() const;
 
     /// Return the attribute name.
     //  This string is stored in the parser object.
-    const std::string &getName() const;
+    const std::string& getName() const;
 
     /// Return the attribute type.
     //  This string ("real", "logical", etc.) is stored in the parser object.
-    const std::string &getType() const;
+    const std::string& getType() const;
 
     /// Return [b]deferred[/b] flag.
     //  If this flag is set, any expression is re-evaluated each time the
@@ -128,18 +126,18 @@ public:
 
     /// Parse attribute.
     //  Use the contained parser to parse a new value for the attribute.
-    void parse(Statement &stat, bool eval);
+    void parse(Statement& stat, bool eval);
 
     /// Parse array component.
     //  Use the contained parser to parse a new value for an existing
     //  vector component.  If the attribute is a scalar value, or if the
     //  component does not exist, this method throws [b]OpalException[/b].
-    void parseComponent(Statement &stat, bool eval, int index);
+    void parseComponent(Statement& stat, bool eval, int index);
 
     /// Define new value.
     //  Assign a new value.  The value must be compatible with the parser
     //  type, otherwise a [b]OpalException[/b] is thrown.
-    void set(AttributeBase *newBase);
+    void set(AttributeBase* newBase);
 
     /// Assign default value.
     //  Set the attribute value to the default value stored in the parser.
@@ -148,11 +146,11 @@ public:
 
     /// Print attribute.
     //  Print the attribute name, followed by an equals sign and its value.
-    void print(int &len) const;
+    void print(int& len) const;
 
     bool defaultUsed() const;
-private:
 
+private:
     // Pointer to the value.  The value can be shared for several objects.
     std::shared_ptr<AttributeBase> base;
 
@@ -162,18 +160,13 @@ private:
     bool isDefault;
 };
 
-
 // Class Attribute
 // ------------------------------------------------------------------------
 
-inline Attribute::operator bool() const {
-    return base != nullptr;
-}
+inline Attribute::operator bool() const { return base != nullptr; }
 
-inline bool Attribute::defaultUsed() const {
-    return isDefault;
-}
+inline bool Attribute::defaultUsed() const { return isDefault; }
 
-extern std::ostream &operator<<(std::ostream &os, const Attribute &attr);
+extern std::ostream& operator<<(std::ostream& os, const Attribute& attr);
 
-#endif // OPAL_Attribute_HH
+#endif  // OPAL_Attribute_HH

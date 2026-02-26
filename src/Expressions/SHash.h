@@ -18,9 +18,8 @@
 //
 // ------------------------------------------------------------------------
 
-#include "AbstractObjects/Expressions.h"
 #include <iosfwd>
-
+#include "AbstractObjects/Expressions.h"
 
 namespace Expressions {
 
@@ -30,42 +29,38 @@ namespace Expressions {
     // Forward declaration.
     class ATable;
 
-
     /// A scalar expression.
     //  Represents a ``#'' value in a TABLE() expression.
 
-    class SHash: public Scalar<double> {
-
+    class SHash : public Scalar<double> {
     public:
-
         /// Constructor.
         //  Store the TABLE() expression which will return the value of ``#''.
-        explicit SHash(const ATable &);
+        explicit SHash(const ATable&);
 
-        SHash(const SHash &);
+        SHash(const SHash&);
         virtual ~SHash();
 
         /// Make clone.
-        virtual Scalar<double> *clone() const;
+        virtual Scalar<double>* clone() const;
 
         /// Evaluate.
         virtual double evaluate() const;
 
         /// Print expression.
-        virtual void print(std::ostream &str, int precedence = 99) const;
+        virtual void print(std::ostream& str, int precedence = 99) const;
 
     private:
-
         // Not implemented.
         SHash();
-        void operator=(const SHash &);
+        void operator=(const SHash&);
 
         // The ATable object to which this SHash belongs.
         // When  evaluate()  is called, the value for  #  is obtained from
         // "itsTable".
-        const ATable &itsTable;
+        const ATable& itsTable;
     };
 
-}
+}  // namespace Expressions
 
-#endif // OPAL_SHash_HH
+#endif  // OPAL_SHash_HH

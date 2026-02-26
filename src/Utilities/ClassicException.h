@@ -27,17 +27,14 @@
 /// The abstract base class for all exceptions in CLASSIC.
 
 class ClassicException {
-
 public:
-
     /// Return the message string for the exception.
-    virtual const std::string &what() const;
+    virtual const std::string& what() const;
 
     /// Return the name of the method or function which detected the exception.
-    virtual const std::string &where() const;
+    virtual const std::string& where() const;
 
 protected:
-
     /// The usual constructor.
     // Arguments:
     // [DL]
@@ -46,13 +43,12 @@ protected:
     // [DT][b]msg [/b]
     // [DD]the message string identifying the exception
     // [/DL]
-    ClassicException(const std::string &meth, const std::string &msg);
+    ClassicException(const std::string& meth, const std::string& msg);
 
-    ClassicException(const ClassicException &);
+    ClassicException(const ClassicException&);
     virtual ~ClassicException();
 
 protected:
-
     // Not implemented.
     ClassicException();
 
@@ -61,4 +57,4 @@ protected:
     const std::string method;
 };
 
-#endif // CLASSIC_ClassicException_HH
+#endif  // CLASSIC_ClassicException_HH

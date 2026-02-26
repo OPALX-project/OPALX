@@ -21,20 +21,12 @@
 
 #include "Utilities/FormatError.h"
 
-
 // Class FormatError
 // ------------------------------------------------------------------------
 
+FormatError::FormatError(const std::string& meth, const std::string& msg)
+    : ClassicException(meth, msg) {}
 
-FormatError::FormatError(const std::string &meth, const std::string &msg):
-    ClassicException(meth, msg)
-{}
+FormatError::FormatError(const FormatError& rhs) : ClassicException(rhs) {}
 
-
-FormatError::FormatError(const FormatError &rhs):
-    ClassicException(rhs)
-{}
-
-
-FormatError::~FormatError()
-{}
+FormatError::~FormatError() {}

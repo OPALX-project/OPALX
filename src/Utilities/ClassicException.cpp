@@ -20,30 +20,17 @@
 
 #include "Utilities/ClassicException.h"
 
-
 // Class ClassicException
 // ------------------------------------------------------------------------
 
-ClassicException::ClassicException
-(const std::string &meth, const std::string &msg):
-    message(msg), method(meth)
-{}
+ClassicException::ClassicException(const std::string& meth, const std::string& msg)
+    : message(msg), method(meth) {}
 
+ClassicException::ClassicException(const ClassicException& rhs)
+    : message(rhs.message), method(rhs.method) {}
 
-ClassicException::ClassicException(const ClassicException &rhs):
-    message(rhs.message), method(rhs.method)
-{}
+ClassicException::~ClassicException() {}
 
+const std::string& ClassicException::what() const { return message; }
 
-ClassicException::~ClassicException()
-{}
-
-
-const std::string &ClassicException::what() const {
-    return message;
-}
-
-
-const std::string &ClassicException::where() const {
-    return method;
-}
+const std::string& ClassicException::where() const { return method; }

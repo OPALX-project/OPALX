@@ -19,20 +19,15 @@
 #include "Algorithms/Flagger.h"
 #include "Beamlines/FlaggedElmPtr.h"
 
-
 // Class Flagger
 // ------------------------------------------------------------------------
 
-Flagger::Flagger(const Beamline &beamline, bool set):
-    DefaultVisitor(beamline, false, false), flag(set)
-{}
+Flagger::Flagger(const Beamline& beamline, bool set)
+    : DefaultVisitor(beamline, false, false), flag(set) {}
 
+Flagger::~Flagger() {}
 
-Flagger::~Flagger()
-{}
-
-
-void Flagger::visitFlaggedElmPtr(const FlaggedElmPtr &fep) {
+void Flagger::visitFlaggedElmPtr(const FlaggedElmPtr& fep) {
     fep.setSelectionFlag(flag);
     DefaultVisitor::visitFlaggedElmPtr(fep);
 }

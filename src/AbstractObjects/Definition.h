@@ -20,17 +20,14 @@
 
 #include "AbstractObjects/Object.h"
 
-
 // Class Definition
 // ------------------------------------------------------------------------
 /// The base class for all OPAL definitions.
 //  It implements the common behaviour of definitions, it can also be used
 //  via dynamic casting to determine whether an object represents a definition.
 
-class Definition: public Object {
-
+class Definition : public Object {
 public:
-
     virtual ~Definition();
 
     /// Return the object category as a string.
@@ -48,19 +45,17 @@ public:
     virtual bool shouldUpdate() const;
 
 protected:
-
     /// Constructor for exemplars.
-    Definition(int size, const char *name, const char *help);
+    Definition(int size, const char* name, const char* help);
 
     /// Constructor for clones.
-    Definition(const std::string &name, Definition *parent);
+    Definition(const std::string& name, Definition* parent);
 
 private:
-
     // Not implemented.
     Definition();
-    Definition(const Definition &);
-    void operator=(const Definition &);
+    Definition(const Definition&);
+    void operator=(const Definition&);
 };
 
-#endif // OPAL_Definition_HH
+#endif  // OPAL_Definition_HH

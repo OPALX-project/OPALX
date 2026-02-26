@@ -57,14 +57,11 @@ OpalPolynomialTimeDependence* OpalPolynomialTimeDependence::clone(const std::str
     return new OpalPolynomialTimeDependence(name, this);
 }
 
-void OpalPolynomialTimeDependence::print(std::ostream& out) const {
-    OpalElement::print(out);
-}
+void OpalPolynomialTimeDependence::print(std::ostream& out) const { OpalElement::print(out); }
 
 OpalPolynomialTimeDependence::OpalPolynomialTimeDependence(
     const std::string& name, OpalPolynomialTimeDependence* parent)
-    : OpalElement(name, parent) {
-}
+    : OpalElement(name, parent) {}
 
 OpalPolynomialTimeDependence::~OpalPolynomialTimeDependence() = default;
 

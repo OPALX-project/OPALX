@@ -30,15 +30,15 @@
 #include "H5hut.h"
 
 #include "AbstractObjects/OpalData.h"
-#include "PartBunch/PartBunch.h"
 #include "Elements/OpalBeamline.h"
 #include "Expressions/SRefExpr.h"
+#include "PartBunch/PartBunch.h"
 #include "Physics/Physics.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
 
-#include <filesystem>
 #include <chrono>
+#include <filesystem>
 
 // gsl_sys.h not needed - was only used for gsl_rng_env_setup which is now a no-op
 
@@ -419,8 +419,7 @@ namespace {
 
 class Triangle {
 public:
-    Triangle() {
-    }
+    Triangle() {}
     Triangle(
         const Vector_t<double, 3>& v1, const Vector_t<double, 3>& v2,
         const Vector_t<double, 3>& v3) {
@@ -429,24 +428,12 @@ public:
         pts[2] = v3;
     }
 
-    inline const Vector_t<double, 3>& v1() const {
-        return pts[0];
-    }
-    inline double v1(int i) const {
-        return pts[0][i];
-    }
-    inline const Vector_t<double, 3>& v2() const {
-        return pts[1];
-    }
-    inline double v2(int i) const {
-        return pts[1][i];
-    }
-    inline const Vector_t<double, 3>& v3() const {
-        return pts[2];
-    }
-    inline double v3(int i) const {
-        return pts[2][i];
-    }
+    inline const Vector_t<double, 3>& v1() const { return pts[0]; }
+    inline double v1(int i) const { return pts[0][i]; }
+    inline const Vector_t<double, 3>& v2() const { return pts[1]; }
+    inline double v2(int i) const { return pts[1][i]; }
+    inline const Vector_t<double, 3>& v3() const { return pts[2]; }
+    inline double v3(int i) const { return pts[2][i]; }
 
     inline void scale(const Vector_t<double, 3>& scaleby, const Vector_t<double, 3>& shiftby) {
         pts[0][0] *= scaleby[0];
@@ -813,8 +800,7 @@ static int triangle_intersects_cube(const Triangle& t) {
 
 class Ray {
 public:
-    Ray() {
-    }
+    Ray() {}
     Ray(Vector_t<double, 3> o, Vector_t<double, 3> d) {
         origin        = o;
         direction     = d;
@@ -851,8 +837,7 @@ public:
 
 class Voxel {
 public:
-    Voxel() {
-    }
+    Voxel() {}
     Voxel(const Vector_t<double, 3>& min, const Vector_t<double, 3>& max) {
         pts[0] = min;
         pts[1] = max;
@@ -910,9 +895,7 @@ public:
         return triangle_intersects_cube(t_);
     }
 
-    inline Vector_t<double, 3> extent() const {
-        return (pts[1] - pts[0]);
-    }
+    inline Vector_t<double, 3> extent() const { return (pts[1] - pts[0]); }
 
     inline bool isInside(const Vector_t<double, 3>& P) const {
         return (
@@ -1035,9 +1018,7 @@ BoundaryGeometry::BoundaryGeometry(const std::string& name, BoundaryGeometry* pa
         initialize();
 }
 
-BoundaryGeometry::~BoundaryGeometry() {
-    gsl_rng_free(randGen_m);
-}
+BoundaryGeometry::~BoundaryGeometry() { gsl_rng_free(randGen_m); }
 
 bool BoundaryGeometry::canReplaceBy(Object* object) {
     // Can replace only by another GEOMETRY.
@@ -1070,8 +1051,7 @@ BoundaryGeometry* BoundaryGeometry::find(const std::string& name) {
     return geom;
 }
 
-void BoundaryGeometry::updateElement(ElementBase* /*element*/) {
-}
+void BoundaryGeometry::updateElement(ElementBase* /*element*/) {}
 
 int BoundaryGeometry::intersectTriangleVoxel(
     const int triangle_id, const int i, const int j, const int k) {
@@ -1199,9 +1179,7 @@ int BoundaryGeometry::intersectLineTriangle(
     }
 }
 
-static inline double magnitude(const Vector_t<double, 3>& v) {
-    return std::sqrt(dot(v, v));
-}
+static inline double magnitude(const Vector_t<double, 3>& v) { return std::sqrt(dot(v, v)); }
 
 bool BoundaryGeometry::isInside(const Vector_t<double, 3>& P  // [in] pt to test
 ) {

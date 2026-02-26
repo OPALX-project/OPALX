@@ -18,13 +18,13 @@
 //
 // ------------------------------------------------------------------------
 
+#include <list>
 #include "AbstractObjects/Attribute.h"
 #include "AbstractObjects/AttributeHandler.h"
 #include "OpalParser/Token.h"
-#include <list>
 
-template <class T> class TValue;
-
+template <class T>
+class TValue;
 
 // Class TokenList
 // ------------------------------------------------------------------------
@@ -33,30 +33,27 @@ namespace Attributes {
 
     /// Parser for an attribute of type token list.
     //  Such an attribute can encode e.g. an expression in a LIST command.
-    class TokenList: public AttributeHandler {
-
+    class TokenList : public AttributeHandler {
     public:
-
         /// Constructor.
         //  Assign attribute name and help string.
-        TokenList(const std::string &name, const std::string &help);
+        TokenList(const std::string& name, const std::string& help);
 
         virtual ~TokenList();
 
         /// Return attribute type string ``token list''.
-        virtual const std::string &getType() const;
+        virtual const std::string& getType() const;
 
         /// Parse the attribute.
-        virtual void parse(Attribute &, Statement &, bool) const;
+        virtual void parse(Attribute&, Statement&, bool) const;
 
     private:
-
         // Not implemented.
         TokenList();
-        TokenList(const TokenList &);
-        void operator=(const TokenList &);
+        TokenList(const TokenList&);
+        void operator=(const TokenList&);
     };
 
-};
+};  // namespace Attributes
 
-#endif // OPAL_TokenList_HH
+#endif  // OPAL_TokenList_HH

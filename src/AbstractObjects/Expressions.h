@@ -44,12 +44,12 @@
 #ifndef OPAL_Expressions_HH
 #define OPAL_Expressions_HH 1
 
-#include "OpalParser/Token.h"
-#include <list>
 #include <iosfwd>
+#include <list>
 #include <memory>
 #include <string>
 #include <vector>
+#include "OpalParser/Token.h"
 
 class PlaceRep;
 class RangeRep;
@@ -63,22 +63,20 @@ class TableRowRep;
 
 namespace Expressions {
 
-
     // Template class Expression::Scalar<T>.
     // ----------------------------------------------------------------------
     /// A scalar expression.
 
-    template <class T> class Scalar {
-
+    template <class T>
+    class Scalar {
     public:
-
         Scalar();
-        Scalar(const Scalar &);
+        Scalar(const Scalar&);
         virtual ~Scalar();
 
         /// Copy scalar expression.
         //  Deep copy of the expression.
-        virtual Scalar<T> *clone() const = 0;
+        virtual Scalar<T>* clone() const = 0;
 
         /// Evaluate.
         //  Recursively evaluate the expression and return the result.
@@ -92,77 +90,70 @@ namespace Expressions {
         /// Print expression.
         //  Print the expression on the specified stream.
         //  The [b]precedence[/b] parameter controls printing of parentheses.
-        virtual void print(std::ostream &, int precedence = 99) const = 0;
+        virtual void print(std::ostream&, int precedence = 99) const = 0;
 
     private:
-
         // Not implemented.
-        void operator=(const Scalar &);
+        void operator=(const Scalar&);
     };
-
 
     // Template class Expression::PtrToScalar<T>.
     // ----------------------------------------------------------------------
     /// A pointer to a scalar expression.
 
-    template <class T> class PtrToScalar {
-
+    template <class T>
+    class PtrToScalar {
     public:
-
         /// Constructor from an object just created.
-        PtrToScalar(Scalar<T> *rhs);
+        PtrToScalar(Scalar<T>* rhs);
 
         PtrToScalar();
-        PtrToScalar(const PtrToScalar &rhs);
-        PtrToScalar(PtrToScalar &&rhs) noexcept = default;
+        PtrToScalar(const PtrToScalar& rhs);
+        PtrToScalar(PtrToScalar&& rhs) noexcept = default;
         ~PtrToScalar();
         PtrToScalar& operator=(const PtrToScalar&);
         PtrToScalar& operator=(PtrToScalar&&) noexcept = default;
-        PtrToScalar& operator=(Scalar<T> *rhs);
+        PtrToScalar& operator=(Scalar<T>* rhs);
 
-        Scalar<T> *operator->() const { return ptr_m.get(); }
-        Scalar<T> &operator*() const { return *ptr_m; }
+        Scalar<T>* operator->() const { return ptr_m.get(); }
+        Scalar<T>& operator*() const { return *ptr_m; }
         explicit operator bool() const { return ptr_m != nullptr; }
         bool isValid() const { return ptr_m != nullptr; }
-        Scalar<T> *release() { return ptr_m.release(); }
-        Scalar<T> *get() const { return ptr_m.get(); }
+        Scalar<T>* release() { return ptr_m.release(); }
+        Scalar<T>* get() const { return ptr_m.get(); }
 
     private:
         // Mutable to preserve transfer-on-copy semantics from OwnPtr.
         mutable std::unique_ptr<Scalar<T>> ptr_m;
     };
 
-
     // Template class Expression::ArrayOfPtrs<T>.
     // ------------------------------------------------------------------------
     /// An array of pointers to scalar expressions.
 
-    template <class T> class ArrayOfPtrs: public std::vector<PtrToScalar<T> > {
-
+    template <class T>
+    class ArrayOfPtrs : public std::vector<PtrToScalar<T>> {
     public:
-
         ArrayOfPtrs();
         ArrayOfPtrs(int);
-        ArrayOfPtrs(const std::vector<PtrToScalar<T> > &rhs);
+        ArrayOfPtrs(const std::vector<PtrToScalar<T>>& rhs);
         ~ArrayOfPtrs();
     };
-
 
     // Template class Expression::Array<T>.
     // ----------------------------------------------------------------------
     /// An array expression.
 
-    template <class T> class OArray {
-
+    template <class T>
+    class OArray {
     public:
-
         OArray();
-        OArray(const OArray &);
+        OArray(const OArray&);
         virtual ~OArray();
 
         /// Copy expression.
         //  Deep copy.
-        virtual OArray<T> *clone() const = 0;
+        virtual OArray<T>* clone() const = 0;
 
         /// Evaluate.
         //  Recursively evaluate the expression and return the result.
@@ -176,278 +167,220 @@ namespace Expressions {
         /// Print expression.
         //  Print the expression on the specified stream.
         //  The [b]precedence[/b] parameter controls printing of parentheses.
-        virtual void print(std::ostream &, int precedence = 99) const = 0;
+        virtual void print(std::ostream&, int precedence = 99) const = 0;
 
     private:
-
         // Not implemented.
-        void operator=(const OArray &);
+        void operator=(const OArray&);
     };
-
 
     // Template class Expression::PtrToArray<T>.
     // ----------------------------------------------------------------------
     /// A pointer to an array expression.
 
-    template <class T> class PtrToArray {
-
+    template <class T>
+    class PtrToArray {
     public:
-
         /// Constructor from object just created.
-        PtrToArray(OArray<T> *rhs);
+        PtrToArray(OArray<T>* rhs);
 
         PtrToArray();
-        PtrToArray(const PtrToArray &rhs);
-        PtrToArray(PtrToArray &&rhs) noexcept = default;
+        PtrToArray(const PtrToArray& rhs);
+        PtrToArray(PtrToArray&& rhs) noexcept = default;
         ~PtrToArray();
         PtrToArray& operator=(const PtrToArray<T>&);
         PtrToArray& operator=(PtrToArray&&) noexcept = default;
-        PtrToArray& operator=(OArray<T> *rhs);
+        PtrToArray& operator=(OArray<T>* rhs);
 
-        OArray<T> *operator->() const { return ptr_m.get(); }
-        OArray<T> &operator*() const { return *ptr_m; }
+        OArray<T>* operator->() const { return ptr_m.get(); }
+        OArray<T>& operator*() const { return *ptr_m; }
         explicit operator bool() const { return ptr_m != nullptr; }
         bool isValid() const { return ptr_m != nullptr; }
-        OArray<T> *release() { return ptr_m.release(); }
-        OArray<T> *get() const { return ptr_m.get(); }
+        OArray<T>* release() { return ptr_m.release(); }
+        OArray<T>* get() const { return ptr_m.get(); }
 
     private:
         // Mutable to preserve transfer-on-copy semantics from OwnPtr.
         mutable std::unique_ptr<OArray<T>> ptr_m;
     };
 
-
     // ----------------------------------------------------------------------
     // SCALAR EXPRESSION PARSERS.
 
     /// Parse boolean expression.
-    extern PtrToScalar<bool> parseBool(Statement &);
+    extern PtrToScalar<bool> parseBool(Statement&);
 
     /// Parse real expression.
-    extern PtrToScalar<double> parseReal(Statement &);
+    extern PtrToScalar<double> parseReal(Statement&);
 
     /// Parse real constant.
-    extern double parseRealConst(Statement &);
+    extern double parseRealConst(Statement&);
 
     /// Parse string value.
     //  When no string is seen, a ParseError is thrown with the message
     //  given as the second argument.
-    extern std::string parseString(Statement &, const char msg[]);
-    extern std::string parseStringValue(Statement &, const char msg[]);
+    extern std::string parseString(Statement&, const char msg[]);
+    extern std::string parseStringValue(Statement&, const char msg[]);
 
     // ARRAY EXPRESSION PARSERS.
 
     /// Parse boolean array expression.
-    extern PtrToArray<bool> parseBoolArray(Statement &);
+    extern PtrToArray<bool> parseBoolArray(Statement&);
 
     /// Parse real array expression.
-    extern PtrToArray<double> parseRealArray(Statement &);
+    extern PtrToArray<double> parseRealArray(Statement&);
 
     /// Parse real array constant.
-    extern PtrToArray<double> parseRealConstArray(Statement &);
+    extern PtrToArray<double> parseRealConstArray(Statement&);
 
     /// Parse string array.
-    extern std::vector<std::string> parseStringArray(Statement &);
-
+    extern std::vector<std::string> parseStringArray(Statement&);
 
     // SPECIAL VALUE PARSERS.
 
     /// Test for one-character delimiter.
-    extern void parseDelimiter(Statement &stat, char delim);
+    extern void parseDelimiter(Statement& stat, char delim);
 
     /// Test for two-character delimiter.
-    extern void parseDelimiter(Statement &stat, const char delim[2]);
+    extern void parseDelimiter(Statement& stat, const char delim[2]);
 
     /// Parse place specification.
-    extern PlaceRep parsePlace(Statement &);
+    extern PlaceRep parsePlace(Statement&);
 
     /// Parse range specification.
-    extern RangeRep parseRange(Statement &);
+    extern RangeRep parseRange(Statement&);
 
     // Forward declaration.
-    template <class T> class SRefAttr;
+    template <class T>
+    class SRefAttr;
 
     /// Parse variable reference.
-    extern SRefAttr<double> *parseReference(Statement &);
+    extern SRefAttr<double>* parseReference(Statement&);
 
     /// Parse a token list (for macro argument and the like).
-    extern TableRowRep parseTableRow(Statement &);
+    extern TableRowRep parseTableRow(Statement&);
 
     /// Parse a token list (for macro argument and the like).
-    extern std::list<Token> parseTokenList(Statement &);
+    extern std::list<Token> parseTokenList(Statement&);
 
     /// Parse a token list array (for LIST commands).
-    extern std::vector<std::list<Token> > parseTokenListArray(Statement &);
-
+    extern std::vector<std::list<Token>> parseTokenListArray(Statement&);
 
     // SPECIAL PARSER.
 
     /// Parse table expression (depends on a table's rows).
-    extern PtrToScalar<double> parseTableExpression(Statement &, const Table *);
-
+    extern PtrToScalar<double> parseTableExpression(Statement&, const Table*);
 
     // Implementation of class Expression::Scalar<T>.
     // ----------------------------------------------------------------------
 
-    template <class T> inline
-    Scalar<T>::Scalar()
-    {}
+    template <class T>
+    inline Scalar<T>::Scalar() {}
 
+    template <class T>
+    inline Scalar<T>::Scalar(const Scalar<T>&) {}
 
-    template <class T> inline
-    Scalar<T>::Scalar(const Scalar<T> &)
-    {}
+    template <class T>
+    inline Scalar<T>::~Scalar() {}
 
-
-    template <class T> inline
-    Scalar<T>::~Scalar()
-    {}
-
-
-    template <class T> inline
-    bool Scalar<T>::isConstant() const {
+    template <class T>
+    inline bool Scalar<T>::isConstant() const {
         return false;
     }
-
 
     // Implementation of class Expression::OArray<T>.
     // ----------------------------------------------------------------------
 
-    template <class T> inline
-    OArray<T>::OArray()
-    {}
+    template <class T>
+    inline OArray<T>::OArray() {}
 
+    template <class T>
+    inline OArray<T>::OArray(const OArray<T>&) {}
 
-    template <class T> inline
-    OArray<T>::OArray(const OArray<T> &)
-    {}
+    template <class T>
+    inline OArray<T>::~OArray() {}
 
-
-    template <class T> inline
-    OArray<T>::~OArray()
-    {}
-
-
-    template <class T> inline
-    bool OArray<T>::isConstant() const {
+    template <class T>
+    inline bool OArray<T>::isConstant() const {
         return false;
     }
-
 
     // Implementation of class Expression::PtrToScalar<T>.
     // ----------------------------------------------------------------------
 
+    template <class T>
+    inline PtrToScalar<T>::PtrToScalar() : ptr_m() {}
 
-    template <class T> inline
-    PtrToScalar<T>::PtrToScalar():
-        ptr_m()
-    {}
+    template <class T>
+    inline PtrToScalar<T>::PtrToScalar(const PtrToScalar& rhs) : ptr_m(std::move(rhs.ptr_m)) {}
 
+    template <class T>
+    inline PtrToScalar<T>::PtrToScalar(Scalar<T>* rhs) : ptr_m(rhs) {}
 
-    template <class T> inline
-    PtrToScalar<T>::PtrToScalar(const PtrToScalar &rhs):
-        ptr_m(std::move(rhs.ptr_m))
-    {}
+    template <class T>
+    inline PtrToScalar<T>::~PtrToScalar() {}
 
-
-    template <class T> inline
-    PtrToScalar<T>::PtrToScalar(Scalar<T> *rhs):
-        ptr_m(rhs)
-    {}
-
-
-    template <class T> inline
-    PtrToScalar<T>::~PtrToScalar()
-    {}
-
-
-    template <class T> inline
-    PtrToScalar<T>& PtrToScalar<T>::operator=(const PtrToScalar &rhs) {
+    template <class T>
+    inline PtrToScalar<T>& PtrToScalar<T>::operator=(const PtrToScalar& rhs) {
         if (this != &rhs) {
             ptr_m = std::move(rhs.ptr_m);
         }
         return *this;
     }
 
-
-    template <class T> inline
-    PtrToScalar<T>& PtrToScalar<T>::operator=(Scalar<T> *rhs) {
+    template <class T>
+    inline PtrToScalar<T>& PtrToScalar<T>::operator=(Scalar<T>* rhs) {
         ptr_m.reset(rhs);
         return *this;
     }
-
 
     // Implementation of class Expression::ArrayOfPtrs<T>.
     // ----------------------------------------------------------------------
 
-    template <class T> inline
-    ArrayOfPtrs<T>::ArrayOfPtrs():
-        std::vector<PtrToScalar<T> >()
-    {}
+    template <class T>
+    inline ArrayOfPtrs<T>::ArrayOfPtrs() : std::vector<PtrToScalar<T>>() {}
 
+    template <class T>
+    inline ArrayOfPtrs<T>::ArrayOfPtrs(int n) : std::vector<PtrToScalar<T>>(n, PtrToScalar<T>()) {}
 
-    template <class T> inline
-    ArrayOfPtrs<T>::ArrayOfPtrs(int n):
-        std::vector<PtrToScalar<T> >(n, PtrToScalar<T>())
-    {}
+    template <class T>
+    inline ArrayOfPtrs<T>::ArrayOfPtrs(const std::vector<PtrToScalar<T>>& rhs)
+        : std::vector<PtrToScalar<T>>(rhs) {}
 
-
-    template <class T> inline
-    ArrayOfPtrs<T>::ArrayOfPtrs(const std::vector<PtrToScalar<T> > &rhs):
-        std::vector<PtrToScalar<T> >(rhs)
-    {}
-
-
-    template <class T> inline
-    ArrayOfPtrs<T>::~ArrayOfPtrs()
-    {}
-
+    template <class T>
+    inline ArrayOfPtrs<T>::~ArrayOfPtrs() {}
 
     // Implementation of class Expression::PtrToArray<T>.
     // ----------------------------------------------------------------------
 
+    template <class T>
+    inline PtrToArray<T>::PtrToArray() : ptr_m() {}
 
-    template <class T> inline
-    PtrToArray<T>::PtrToArray():
-        ptr_m()
-    {}
+    template <class T>
+    inline PtrToArray<T>::PtrToArray(const PtrToArray& rhs) : ptr_m(std::move(rhs.ptr_m)) {}
 
+    template <class T>
+    inline PtrToArray<T>::PtrToArray(OArray<T>* rhs) : ptr_m(rhs) {}
 
-    template <class T> inline
-    PtrToArray<T>::PtrToArray(const PtrToArray &rhs):
-        ptr_m(std::move(rhs.ptr_m))
-    {}
+    template <class T>
+    inline PtrToArray<T>::~PtrToArray() {}
 
-
-    template <class T> inline
-    PtrToArray<T>::PtrToArray(OArray<T> *rhs):
-        ptr_m(rhs)
-    {}
-
-
-    template <class T> inline
-    PtrToArray<T>::~PtrToArray()
-    {}
-
-
-    template <class T> inline
-    PtrToArray<T>& PtrToArray<T>::operator=(const PtrToArray &rhs) {
+    template <class T>
+    inline PtrToArray<T>& PtrToArray<T>::operator=(const PtrToArray& rhs) {
         if (this != &rhs) {
             ptr_m = std::move(rhs.ptr_m);
         }
         return *this;
     }
 
-
-    template <class T> inline
-    PtrToArray<T>& PtrToArray<T>::operator=(OArray<T> *rhs) {
+    template <class T>
+    inline PtrToArray<T>& PtrToArray<T>::operator=(OArray<T>* rhs) {
         ptr_m.reset(rhs);
         return *this;
     }
 
-
     // End of namespace Expressions.
     // ======================================================================
-};
+};  // namespace Expressions
 
-#endif // OPAL_Expressions_HH
+#endif  // OPAL_Expressions_HH

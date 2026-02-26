@@ -20,11 +20,8 @@
 
 #include "Elements/OpalElement.h"
 
-
-class OpalSource: public OpalElement {
-
+class OpalSource : public OpalElement {
 public:
-
     /// The attributes of class OpalSource.
     enum {
         DISTRIBUTION = COMMON,  // The longitudinal magnetic field.
@@ -44,7 +41,6 @@ public:
     virtual void update();
 
 private:
-
     // Not implemented.
     OpalSource(const OpalSource&);
     void operator=(const OpalSource&);
@@ -53,4 +49,4 @@ private:
     OpalSource(const std::string& name, OpalSource* parent);
 };
 
-#endif // OPAL_OPALSOURCE_HH
+#endif  // OPAL_OPALSOURCE_HH
