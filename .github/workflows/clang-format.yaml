@@ -23,7 +23,7 @@ jobs:
       - name: Install clang-format 18.1.8
         run: |
           mkdir -p "$HOME/llvm-18"
-          curl -L https://github.com/llvm/llvm-project/releases/download/llvmorg-18.1.8/clang+llvm-18.1.8-x86_64-linux-gnu-ubuntu-22.04.tar.xz \
+          curl -L https://github.com/llvm/llvm-project/releases/download/llvmorg-18.1.8/clang+llvm-18.1.8-x86_64-linux-gnu-ubuntu-18.04.tar.xz \
             -o llvm.tar.xz
           tar -xf llvm.tar.xz --strip-components=1 -C "$HOME/llvm-18"
           echo "$HOME/llvm-18/bin" >> "$GITHUB_PATH"
