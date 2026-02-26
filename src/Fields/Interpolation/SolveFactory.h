@@ -75,8 +75,7 @@ namespace interpolation {
             int smoothing_order, int point_dim, int value_dim,
             std::vector<std::vector<double> > positions,
             std::vector<std::vector<double> > deriv_positions,
-            std::vector<std::vector<int> >& deriv_indices
-        );
+            std::vector<std::vector<int> >& deriv_indices);
 
         /** Destructor; does nothing */
         ~SolveFactory() {}
@@ -91,8 +90,7 @@ namespace interpolation {
          */
         SquarePolynomialVector* PolynomialSolve(
             const std::vector<std::vector<double> >& values,
-            const std::vector<std::vector<double> >& deriv_values
-        );
+            const std::vector<std::vector<double> >& deriv_values);
 
         /** Convert a position vector to a set of polynomial products
          *
@@ -111,15 +109,13 @@ namespace interpolation {
          *  \f$ p_j!/(p_j-q_j)! x_{b_j}^{p_j-q_j} \f$
          */
         std::vector<double> MakeSquareDerivVector(
-            std::vector<double> position, std::vector<int> derivIndices
-        );
+            std::vector<double> position, std::vector<int> derivIndices);
 
     private:
         void BuildHInvMatrix(
             std::vector<std::vector<double> > positions,
             std::vector<std::vector<double> > deriv_positions,
-            std::vector<std::vector<int> >& deriv_indices
-        );
+            std::vector<std::vector<int> >& deriv_indices);
         int n_poly_coeffs_;
         std::vector<std::vector<int> > square_points_;
         std::vector<std::vector<int> > square_deriv_nearby_points_;

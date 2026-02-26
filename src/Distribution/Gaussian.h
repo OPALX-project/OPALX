@@ -54,8 +54,7 @@ public:
      */
     Gaussian(
         std::shared_ptr<ParticleContainer_t> pc, std::shared_ptr<FieldContainer_t> fc,
-        std::shared_ptr<Distribution_t> opalDist
-    );
+        std::shared_ptr<Distribution_t> opalDist);
 
     /**
      * @brief Constructor for the Gaussian sampler without field container and distribution object.
@@ -69,8 +68,7 @@ public:
     Gaussian(
         std::shared_ptr<ParticleContainer_t> pc, const Vector_t<double, 3>& sigmaR,
         const Vector_t<double, 3>& sigmaP, double avrgpz, const Vector_t<double, 3>& cutoffR,
-        bool fix_meanR = true
-    );
+        bool fix_meanR = true);
     /**
      * @brief Generates particles with a Gaussian distribution.
      *
@@ -89,8 +87,7 @@ public:
 
     void getParameters(
         Vector_t<double, 3>& sigmaR, Vector_t<double, 3>& sigmaP, double& avrgpz,
-        Vector_t<double, 3>& cutoffR
-    ) const {
+        Vector_t<double, 3>& cutoffR) const {
         sigmaR  = sigmaR_m;
         sigmaP  = sigmaP_m;
         avrgpz  = avrgpz_m;

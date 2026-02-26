@@ -54,8 +54,7 @@ namespace endfieldmodel {
         /** Constructor taking enge parameters */
         AsymmetricEnge(
             const std::vector<double> aStart, double x0Start, double lambdaStart,
-            const std::vector<double> aEnd, double x0End, double lambdaEnd
-        );
+            const std::vector<double> aEnd, double x0End, double lambdaEnd);
 
         /** Inheritable copy constructor. We take a deep copy of the engeStart
          *  and engeEnd

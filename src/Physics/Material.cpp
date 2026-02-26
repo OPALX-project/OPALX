@@ -40,8 +40,7 @@ using namespace Physics;
 std::map<std::string, std::shared_ptr<Material> > Material::protoTable_sm;
 
 std::shared_ptr<Material> Material::addMaterial(
-    const std::string& name, std::shared_ptr<Material> mat_ptr
-) {
+    const std::string& name, std::shared_ptr<Material> mat_ptr) {
     std::string nameUp = Util::toUpper(name);
     if (protoTable_sm.find(nameUp) != protoTable_sm.end())
         return protoTable_sm[nameUp];

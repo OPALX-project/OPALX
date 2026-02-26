@@ -42,13 +42,11 @@ namespace interpolation {
         : coord_m(), maps_m(), constantSpacing_m(false) {
         for (unsigned int i = 0; i < size.size(); i++) {
             if (size[i] < 1) {
-                throw(
-                    OpalException("NDGrid::NDGrid(...)", "ND Grid must be at least 1x1x...x1 grid")
-                );
+                throw(OpalException(
+                    "NDGrid::NDGrid(...)", "ND Grid must be at least 1x1x...x1 grid"));
             }
             coord_m.push_back(
-                std::vector<double>(gridCoordinates[i], gridCoordinates[i] + size[i])
-            );
+                std::vector<double>(gridCoordinates[i], gridCoordinates[i] + size[i]));
         }
         setConstantSpacing();
     }
@@ -57,9 +55,8 @@ namespace interpolation {
         : coord_m(nDimensions), maps_m(), constantSpacing_m(true) {
         for (int i = 0; i < nDimensions; i++) {
             if (size[i] < 1) {
-                throw(
-                    OpalException("NDGrid::NDGrid(...)", "ND Grid must be at least 1x1x...x1 grid")
-                );
+                throw(OpalException(
+                    "NDGrid::NDGrid(...)", "ND Grid must be at least 1x1x...x1 grid"));
             }
             coord_m[i] = std::vector<double>(size[i]);
             for (unsigned int j = 0; j < coord_m[i].size(); j++) {
@@ -72,9 +69,8 @@ namespace interpolation {
         : coord_m(gridCoordinates), maps_m(), constantSpacing_m(false) {
         for (unsigned int i = 0; i < gridCoordinates.size(); i++) {
             if (gridCoordinates[i].size() < 1) {
-                throw(
-                    OpalException("NDGrid::NDGrid(...)", "ND Grid must be at least 1x1x...x1 grid")
-                );
+                throw(OpalException(
+                    "NDGrid::NDGrid(...)", "ND Grid must be at least 1x1x...x1 grid"));
             }
         }
         setConstantSpacing();
@@ -240,8 +236,7 @@ namespace interpolation {
         for (size_t i = 0; i < coord.size(); ++i) {
             if (coord_m[i].size() <= 1) {
                 throw(
-                    OpalException("NDGrid::dual(...)", "ND Grid must be at least 2x2x...x2 grid")
-                );
+                    OpalException("NDGrid::dual(...)", "ND Grid must be at least 2x2x...x2 grid"));
             }
             coord[i] = std::vector<double>(coord_m[i].size() - 1);
             for (size_t j = 0; j < coord[i].size(); ++j) {

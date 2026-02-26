@@ -29,17 +29,14 @@ const std::string OpalSinusoidalTimeDependence::doc_string =
 OpalSinusoidalTimeDependence::OpalSinusoidalTimeDependence()
     : OpalElement(static_cast<int>(SIZE), "SINUSOIDAL_TIME_DEPENDENCE", doc_string.c_str()) {
     itsAttr[FREQUENCIES] = Attributes::makeRealArray(
-        "FREQUENCIES", "Sine wave frequencies, length determines the number of sine waves included."
-    );
+        "FREQUENCIES",
+        "Sine wave frequencies, length determines the number of sine waves included.");
     itsAttr[PHASE_OFFSETS] = Attributes::makeRealArray(
-        "PHASE_OFFSETS", "Phase offset for each sine wave.  If undefined, defaults to 0.0."
-    );
+        "PHASE_OFFSETS", "Phase offset for each sine wave.  If undefined, defaults to 0.0.");
     itsAttr[AMPLITUDES] = Attributes::makeRealArray(
-        "AMPLITUDES", "Peak-to-peak amplitude for each sine wave.  If undefined, defaults to 1.0."
-    );
+        "AMPLITUDES", "Peak-to-peak amplitude for each sine wave.  If undefined, defaults to 1.0.");
     itsAttr[DC_OFFSETS] = Attributes::makeRealArray(
-        "DC_OFFSETS", "DC offset for each sine wave.  If undefined, defaults to 0.0."
-    );
+        "DC_OFFSETS", "DC offset for each sine wave.  If undefined, defaults to 0.0.");
     registerOwnership();
 }
 
@@ -50,8 +47,7 @@ OpalSinusoidalTimeDependence* OpalSinusoidalTimeDependence::clone(const std::str
 void OpalSinusoidalTimeDependence::print(std::ostream& out) const { OpalElement::print(out); }
 
 OpalSinusoidalTimeDependence::OpalSinusoidalTimeDependence(
-    const std::string& name, OpalSinusoidalTimeDependence* parent
-)
+    const std::string& name, OpalSinusoidalTimeDependence* parent)
     : OpalElement(name, parent) {}
 
 void OpalSinusoidalTimeDependence::update() {
@@ -60,7 +56,5 @@ void OpalSinusoidalTimeDependence::update() {
                            Attributes::getRealArray(itsAttr[FREQUENCIES]),
                            Attributes::getRealArray(itsAttr[PHASE_OFFSETS]),
                            Attributes::getRealArray(itsAttr[AMPLITUDES]),
-                           Attributes::getRealArray(itsAttr[DC_OFFSETS])
-                       )
-    );
+                           Attributes::getRealArray(itsAttr[DC_OFFSETS])));
 }

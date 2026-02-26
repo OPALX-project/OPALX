@@ -43,8 +43,7 @@ namespace coordinatetransform {
 
     CoordinateTransform::CoordinateTransform(
         const double& xlab, const double& ylab, const double& zlab, const double& s_0,
-        const double& lambdaleft, const double& lambdaright, const double& rho
-    )
+        const double& lambdaleft, const double& lambdaright, const double& rho)
         : s_0_m(s_0), lambdaleft_m(lambdaleft), lambdaright_m(lambdaright), rho_m(rho) {
         std::vector<double> coordinates;
         coordinates.push_back(xlab);
@@ -92,15 +91,12 @@ namespace coordinatetransform {
         result.push_back(-std::sin(
             (lambdaleft_m * std::log(std::cosh((s + s_0_m) / lambdaleft_m))
              - lambdaright_m * std::log(std::cosh((s - s_0_m) / lambdaright_m)))
-            / prefactor
-        ));
+            / prefactor));
         result.push_back(
             std::cos(
                 (lambdaleft_m * std::log(std::cosh((s + s_0_m) / lambdaleft_m))
                  - lambdaright_m * std::log(std::cosh((s - s_0_m) / lambdaright_m)))
-                / prefactor
-            )
-        );
+                / prefactor));
         return result;
     }
 
@@ -115,11 +111,9 @@ namespace coordinatetransform {
         double resultX, resultY, absErrX, absErrY;
         gsl_error_handler_t err_default = gsl_set_error_handler_off();
         int errX                        = gsl_integration_qag(
-            &FX, 0, s, error, error, workspaceSize, algorithm, w, &resultX, &absErrX
-        );
+            &FX, 0, s, error, error, workspaceSize, algorithm, w, &resultX, &absErrX);
         int errY = gsl_integration_qag(
-            &FY, 0, s, error, error, workspaceSize, algorithm, w, &resultY, &absErrY
-        );
+            &FY, 0, s, error, error, workspaceSize, algorithm, w, &resultY, &absErrY);
         if (errX || errY) {
             *gmsg << "Warning - failed to reach specified error " << error
                   << " in multipoleT coordinateTransform" << endl;
@@ -179,8 +173,7 @@ namespace coordinatetransform {
     }
 
     void CoordinateTransform::transformFromEntranceCoordinates(
-        std::vector<double>& coordinates, const double& boundingBoxLength
-    ) {
+        std::vector<double>& coordinates, const double& boundingBoxLength) {
         std::vector<double> r_entrance = calcReferenceTrajectory(-boundingBoxLength);
         std::vector<double> shat       = getUnitTangentVector(-boundingBoxLength);
         double x = coordinates[0], z = coordinates[1];
@@ -196,8 +189,7 @@ namespace coordinatetransform {
         return -std::sin(
             (params->lambdaleft * std::log(std::cosh((s + params->s_0) / params->lambdaleft))
              - params->lambdaright * std::log(std::cosh((s - params->s_0) / params->lambdaright)))
-            / prefactor
-        );
+            / prefactor);
     }
 
     double getUnitTangentVectorY(double s, void* p) {
@@ -208,8 +200,7 @@ namespace coordinatetransform {
         return std::cos(
             (params->lambdaleft * std::log(std::cosh((s + params->s_0) / params->lambdaleft))
              - params->lambdaright * std::log(std::cosh((s - params->s_0) / params->lambdaright)))
-            / prefactor
-        );
+            / prefactor);
     }
 
 }  // namespace coordinatetransform

@@ -155,25 +155,21 @@ namespace Expressions {
             } catch (OpalException& ex) {
                 in_evaluation = false;
                 throw LogicalError(
-                    ex.where(), "Evaluating expression \"" + this->getImage() + "\": " + ex.what()
-                );
+                    ex.where(), "Evaluating expression \"" + this->getImage() + "\": " + ex.what());
             } catch (ClassicException& ex) {
                 in_evaluation = false;
                 throw LogicalError(
-                    ex.where(), "Evaluating expression \"" + this->getImage() + "\": " + ex.what()
-                );
+                    ex.where(), "Evaluating expression \"" + this->getImage() + "\": " + ex.what());
             } catch (std::exception& ex) {
                 in_evaluation = false;
                 throw LogicalError(
                     "ADeferred::evaluate()", "Standard C++ exception while evaluating \""
-                                                 + this->getImage() + "\": " + ex.what()
-                );
+                                                 + this->getImage() + "\": " + ex.what());
             } catch (...) {
                 in_evaluation = false;
                 throw LogicalError(
                     "ADeferred::evaluate()",
-                    "Unknown exception while evaluating \"" + this->getImage() + "\": "
-                );
+                    "Unknown exception while evaluating \"" + this->getImage() + "\": ");
             }
         }
 

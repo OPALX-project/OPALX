@@ -17,8 +17,8 @@ public:
      * @return true if R is outside of the field map, false otherwise.
      */
     virtual bool getFieldstrength(
-        const Vector_t<double, 3>& R, Vector_t<double, 3>& E, Vector_t<double, 3>& B
-    ) const override;
+        const Vector_t<double, 3>& R, Vector_t<double, 3>& E,
+        Vector_t<double, 3>& B) const override;
 
     /**
      * @brief Get the field derivative with respect to a direction.
@@ -31,8 +31,7 @@ public:
      */
     virtual bool getFieldDerivative(
         const Vector_t<double, 3>& R, Vector_t<double, 3>& E, Vector_t<double, 3>& B,
-        const DiffDirection& dir
-    ) const override;
+        const DiffDirection& dir) const override;
 
     /**
      * @brief Get the longitudinal dimensions of the field.
@@ -52,8 +51,8 @@ public:
      * @param zFinal Output maximum z [m].
      */
     virtual void getFieldDimensions(
-        double& xIni, double& xFinal, double& yIni, double& yFinal, double& zIni, double& zFinal
-    ) const override;
+        double& xIni, double& xFinal, double& yIni, double& yFinal, double& zIni,
+        double& zFinal) const override;
 
     /// @brief Swap coordinates
     virtual void swap() override;
@@ -109,8 +108,7 @@ public:
     template <class ViewType>
     KOKKOS_INLINE_FUNCTION static void computeField(
         const Vector_t<double, 3>& R, Vector_t<double, 3>& B, const ViewType& Bz,
-        const ViewType& Br, double hr, double hz, double zbegin, int num_gridpr, int num_gridpz
-    ) {
+        const ViewType& Br, double hr, double hz, double zbegin, int num_gridpr, int num_gridpz) {
         const double RR = sqrt(R(0) * R(0) + R(1) * R(1));
 
         const int indexr    = (int)floor(RR / hr);

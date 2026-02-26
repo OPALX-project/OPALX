@@ -114,8 +114,7 @@ namespace Expressions {
                 return std::vector<T>(1, value->evaluate());
             } else {
                 throw OpalException(
-                    "ARefExpr::evaluate()", "Reference \"" + getImage() + "\" is not an array."
-                );
+                    "ARefExpr::evaluate()", "Reference \"" + getImage() + "\" is not an array.");
             }
         } else {
             return std::vector<T>();
@@ -154,16 +153,14 @@ namespace Expressions {
                 if (itsAttr == 0) {
                     throw OpalException(
                         "ARefExpr::fill()",
-                        "Object \"" + obj_name + "\" is not a variable, constant or vector."
-                    );
+                        "Object \"" + obj_name + "\" is not a variable, constant or vector.");
                 }
             } else {
                 itsAttr = itsObject->findAttribute(att_name);
                 if (itsAttr == 0) {
                     throw OpalException(
                         "ARefExpr::fill()",
-                        "Attribute \"" + obj_name + "->" + att_name + "\" is unknown."
-                    );
+                        "Attribute \"" + obj_name + "->" + att_name + "\" is unknown.");
                 }
             }
         }

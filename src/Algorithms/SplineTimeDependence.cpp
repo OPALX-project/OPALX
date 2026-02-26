@@ -30,8 +30,7 @@
 #include "Utility/Inform.h"
 
 SplineTimeDependence::SplineTimeDependence(
-    const size_t splineOrder, const std::vector<double>& times, const std::vector<double>& values
-) {
+    const size_t splineOrder, const std::vector<double>& times, const std::vector<double>& values) {
     setSpline(splineOrder, times, values);
 }
 
@@ -56,32 +55,27 @@ Inform& SplineTimeDependence::print(Inform& os) const {
 }
 
 void SplineTimeDependence::setSpline(
-    const size_t splineOrder, const std::vector<double>& times, const std::vector<double>& values
-) {
+    const size_t splineOrder, const std::vector<double>& times, const std::vector<double>& values) {
     if (times.size() != values.size()) {
         throw std::invalid_argument(
             "SplineTimeDependence::SplineTimeDependence: "
-            "Times and values should be of equal length"
-        );
+            "Times and values should be of equal length");
     }
     if (times.size() <= splineOrder) {
         throw std::invalid_argument(
             "SplineTimeDependence::SplineTimeDependence: "
-            "Times and values should be of length > splineOrder"
-        );
+            "Times and values should be of length > splineOrder");
     }
     if (splineOrder != LinearInterpolation and splineOrder != CubicInterpolation) {
         throw std::invalid_argument(
             "SplineTimeDependence::SplineTimeDependence: "
-            "Only linear or cubic interpolation is supported"
-        );
+            "Only linear or cubic interpolation is supported");
     }
     for (size_t i = 0; i < times.size() - 1; ++i) {
         if (times[i] >= times[i + 1]) {
             throw std::invalid_argument(
                 "SplineTimeDependence::SplineTimeDependence: "
-                "Times should increase monotonically"
-            );
+                "Times should increase monotonically");
         }
     }
     splineOrder_m = splineOrder;

@@ -50,8 +50,7 @@ StepSizeConfig& StepSizeConfig::advanceToPos(double spos) {
 StepSizeConfig& StepSizeConfig::operator++() {
     if (reachedEnd()) {
         throw OpalException(
-            "StepSizeConfig::operator++", "iterator is at end of list of configurations"
-        );
+            "StepSizeConfig::operator++", "iterator is at end of list of configurations");
     }
 
     ++it_m;
@@ -62,8 +61,7 @@ StepSizeConfig& StepSizeConfig::operator++() {
 StepSizeConfig& StepSizeConfig::operator--() {
     if (reachedStart()) {
         throw OpalException(
-            "StepSizeConfig::operator--", "iterator is at begin of list of configurations"
-        );
+            "StepSizeConfig::operator--", "iterator is at begin of list of configurations");
     }
 
     --it_m;
@@ -106,8 +104,7 @@ void StepSizeConfig::shiftZStopLeft(double back) {
 double StepSizeConfig::getdT() const {
     if (reachedEnd()) {
         throw OpalException(
-            "StepSizeConfig::getdT", "iterator is at end of list of configurations"
-        );
+            "StepSizeConfig::getdT", "iterator is at end of list of configurations");
     }
 
     return std::get<0>(*it_m);
@@ -116,8 +113,7 @@ double StepSizeConfig::getdT() const {
 double StepSizeConfig::getZStop() const {
     if (reachedEnd()) {
         throw OpalException(
-            "StepSizeConfig::getZStop", "iterator is at end of list of configurations"
-        );
+            "StepSizeConfig::getZStop", "iterator is at end of list of configurations");
     }
 
     return std::get<1>(*it_m);
@@ -126,8 +122,7 @@ double StepSizeConfig::getZStop() const {
 unsigned long StepSizeConfig::getNumSteps() const {
     if (reachedEnd()) {
         throw OpalException(
-            "StepSizeConfig::getNumSteps", "iterator is at end of list of configurations"
-        );
+            "StepSizeConfig::getNumSteps", "iterator is at end of list of configurations");
     }
 
     return std::get<2>(*it_m);

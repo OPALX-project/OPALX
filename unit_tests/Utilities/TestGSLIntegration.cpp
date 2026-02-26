@@ -68,8 +68,7 @@ TEST_F(GSLIntegrationTest, LinearFunction) {
 
     double result, error;
     int status = gsl_integration_qag(
-        &F, 0.0, 1.0, 1e-10, 1e-10, 1000, GSL_INTEG_GAUSS15, w, &result, &error
-    );
+        &F, 0.0, 1.0, 1e-10, 1e-10, 1000, GSL_INTEG_GAUSS15, w, &result, &error);
 
     EXPECT_EQ(status, 0);
     EXPECT_NEAR(result, 0.5, 1e-6);  // ∫x dx from 0 to 1 = 0.5
@@ -86,8 +85,7 @@ TEST_F(GSLIntegrationTest, QuadraticFunction) {
 
     double result, error;
     int status = gsl_integration_qag(
-        &F, 0.0, 2.0, 1e-10, 1e-10, 1000, GSL_INTEG_GAUSS15, w, &result, &error
-    );
+        &F, 0.0, 2.0, 1e-10, 1e-10, 1000, GSL_INTEG_GAUSS15, w, &result, &error);
 
     EXPECT_EQ(status, 0);
     EXPECT_NEAR(result, 8.0 / 3.0, 1e-6);  // ∫x^2 dx from 0 to 2 = 8/3
@@ -104,8 +102,7 @@ TEST_F(GSLIntegrationTest, SinFunction) {
 
     double result, error;
     int status = gsl_integration_qag(
-        &F, 0.0, M_PI, 1e-10, 1e-10, 1000, GSL_INTEG_GAUSS15, w, &result, &error
-    );
+        &F, 0.0, M_PI, 1e-10, 1e-10, 1000, GSL_INTEG_GAUSS15, w, &result, &error);
 
     EXPECT_EQ(status, 0);
     EXPECT_NEAR(result, 2.0, 1e-6);  // ∫sin(x) dx from 0 to π = 2
@@ -122,8 +119,7 @@ TEST_F(GSLIntegrationTest, ExpFunction) {
 
     double result, error;
     int status = gsl_integration_qag(
-        &F, 0.0, 1.0, 1e-10, 1e-10, 1000, GSL_INTEG_GAUSS15, w, &result, &error
-    );
+        &F, 0.0, 1.0, 1e-10, 1e-10, 1000, GSL_INTEG_GAUSS15, w, &result, &error);
 
     EXPECT_EQ(status, 0);
     EXPECT_NEAR(result, std::exp(1.0) - 1.0, 1e-6);  // ∫e^x dx from 0 to 1 = e - 1
@@ -140,8 +136,7 @@ TEST_F(GSLIntegrationTest, NegativeRange) {
 
     double result, error;
     int status = gsl_integration_qag(
-        &F, -1.0, 1.0, 1e-10, 1e-10, 1000, GSL_INTEG_GAUSS15, w, &result, &error
-    );
+        &F, -1.0, 1.0, 1e-10, 1e-10, 1000, GSL_INTEG_GAUSS15, w, &result, &error);
 
     EXPECT_EQ(status, 0);
     EXPECT_NEAR(result, 0.0, 1e-6);  // ∫x dx from -1 to 1 = 0
@@ -158,8 +153,7 @@ TEST_F(GSLIntegrationTest, SmallRange) {
 
     double result, error;
     int status = gsl_integration_qag(
-        &F, 0.0, 0.1, 1e-10, 1e-10, 1000, GSL_INTEG_GAUSS15, w, &result, &error
-    );
+        &F, 0.0, 0.1, 1e-10, 1e-10, 1000, GSL_INTEG_GAUSS15, w, &result, &error);
 
     EXPECT_EQ(status, 0);
     EXPECT_NEAR(result, 0.1 * 0.1 * 0.1 / 3.0, 1e-6);

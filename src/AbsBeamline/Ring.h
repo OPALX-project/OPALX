@@ -92,8 +92,7 @@ public:
     virtual bool apply() override;
 
     virtual bool apply(
-        const size_t& id, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B
-    ) override;
+        const size_t& id, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 
     /** Overwrite data in vector E and B with electromagnetic field at point R
      *
@@ -113,8 +112,7 @@ public:
      */
     virtual bool apply(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-        Vector_t<double, 3>& E, Vector_t<double, 3>& B
-    ) override;
+        Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 
     /** Initialise the Ring
      *

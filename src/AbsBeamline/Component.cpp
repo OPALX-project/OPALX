@@ -64,8 +64,7 @@ bool Component::apply() { return false; }
  * @returns true if particle is out-of-bounds (lost), false otherwise
  */
 bool Component::apply(
-    const size_t& /*i*/, const double&, Vector_t<double, 3>&, Vector_t<double, 3>&
-) {
+    const size_t& /*i*/, const double&, Vector_t<double, 3>&, Vector_t<double, 3>&) {
     /*
     const Vector_t<double, 3>& R = RefPartBunch_m->R[i];
     if (R(2) >= 0.0 && R(2) < getElementLength()) {

@@ -31,8 +31,7 @@ namespace {
     };
 
     const Entry entries[] = {
-        {"L", &MultipoleRep::getElementLength, &MultipoleRep::setElementLength}, {0, 0, 0}
-    };
+        {"L", &MultipoleRep::getElementLength, &MultipoleRep::setElementLength}, {0, 0, 0}};
 }  // namespace
 
 MultipoleRep::MultipoleRep() : Multipole(), geometry(), field() {}
@@ -60,12 +59,10 @@ Channel* MultipoleRep::getChannel(const std::string& aKey, bool create) {
 
         if (aKey[0] == 'B') {
             return new IndexedChannel<MultipoleRep>(
-                *this, &MultipoleRep::getNormalComponent, &MultipoleRep::setNormalComponent, n
-            );
+                *this, &MultipoleRep::getNormalComponent, &MultipoleRep::setNormalComponent, n);
         } else {
             return new IndexedChannel<MultipoleRep>(
-                *this, &MultipoleRep::getSkewComponent, &MultipoleRep::setSkewComponent, n
-            );
+                *this, &MultipoleRep::getSkewComponent, &MultipoleRep::setSkewComponent, n);
         }
     } else {
         for (const Entry* entry = entries; entry->name != 0; ++entry) {

@@ -49,10 +49,10 @@ namespace endfieldmodel {
         std::sort(vec.begin(), vec.end(), GreaterThan);
         // now look for n = n+1
         for (size_t j = 0; j < vec.size() - 1; ++j) {
-            while (j < vec.size() - 1
-                   && IterableEquality(
-                       vec[j].begin() + 1, vec[j].end(), vec[j + 1].begin() + 1, vec[j + 1].end()
-                   )) {
+            while (
+                j < vec.size() - 1
+                && IterableEquality(
+                    vec[j].begin() + 1, vec[j].end(), vec[j + 1].begin() + 1, vec[j + 1].end())) {
                 vec[j][0] += vec[j + 1][0];
                 vec.erase(vec.begin() + j + 1);
             }
@@ -68,8 +68,7 @@ namespace endfieldmodel {
         } catch (std::exception& exc) {
             throw GeneralClassicException(
                 "EndFieldModel::getEndFieldModel",
-                "Could not find EndFieldModel with name '" + name + "'"
-            );
+                "Could not find EndFieldModel with name '" + name + "'");
         }
     }
 
@@ -87,8 +86,7 @@ namespace endfieldmodel {
         std::stringstream ss;
         ss << efm;
         throw GeneralClassicException(
-            "EndFieldModel::getName", "Could not find EndFieldModel with address " + ss.str()
-        );
+            "EndFieldModel::getName", "Could not find EndFieldModel with address " + ss.str());
     }
 
 }  // namespace endfieldmodel

@@ -117,8 +117,7 @@ TEST(TestSinusoidalTimeDependence, UserInterface) {
     EXPECT_NO_THROW(ui.update());
     // Check the values
     auto* myDependency = dynamic_cast<SinusoidalTimeDependence*>(
-        AbstractTimeDependence::getTimeDependence("SINUSOIDAL_TIME_DEPENDENCE").get()
-    );
+        AbstractTimeDependence::getTimeDependence("SINUSOIDAL_TIME_DEPENDENCE").get());
     EXPECT_TRUE(myDependency);
     EXPECT_TRUE((myDependency->getFrequencies() == std::vector{1.0, 2.0}));
     EXPECT_TRUE((myDependency->getPhases() == std::vector{3.0, 4.0}));

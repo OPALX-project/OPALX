@@ -30,8 +30,7 @@ Value::Value()
     : Action(
           1, "VALUE",
           "The \"VALUE\" statement prints a list of expressions and "
-          "their values."
-      ) {
+          "their values.") {
     itsAttr[0] = Attributes::makeRealArray("VALUE", "The values to be evaluated");
 
     registerOwnership(AttributeHandler::STATEMENT);

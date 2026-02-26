@@ -65,8 +65,7 @@ Line::Line()
     : BeamSequence(
           SIZE, "LINE",
           "The \"LINE\" statement defines a beamline list.\n"
-          "\t<name> : line = (<list>)"
-      ) {
+          "\t<name> : line = (<list>)") {
     itsAttr[TYPE] = Attributes::makeString("TYPE", "Design type");
 
     itsAttr[LENGTH] = Attributes::makeReal("L", "Total length of line in m");
@@ -75,8 +74,7 @@ Line::Line()
     itsAttr[ORIGIN] = Attributes::makeRealArray("ORIGIN", "The location of the particle source");
 
     itsAttr[ORIENTATION] = Attributes::makeRealArray(
-        "ORIENTATION", "The Tait-Bryan angles for the orientation of the particle source"
-    );
+        "ORIENTATION", "The Tait-Bryan angles for the orientation of the particle source");
 
     itsAttr[X] =
         Attributes::makeReal("X", "The x-coordinate of the location of the particle source", 0);
@@ -202,8 +200,7 @@ void Line::parse(Statement& stat) {
             if (itsAttr[ORIGIN]) {
                 throw OpalException(
                     "Line::parse", "Parameter origin is array of 3 values (x, y, z);\n"
-                                       + std::to_string(origin.size()) + " values provided"
-                );
+                                       + std::to_string(origin.size()) + " values provided");
             }
         }
 
@@ -222,8 +219,7 @@ void Line::parse(Statement& stat) {
             if (itsAttr[ORIENTATION]) {
                 throw OpalException(
                     "Line::parse", "Parameter orientation is array of 3 values (theta, phi, psi);\n"
-                                       + std::to_string(direction.size()) + " values provided"
-                );
+                                       + std::to_string(direction.size()) + " values provided");
             }
         }
 
@@ -231,8 +227,7 @@ void Line::parse(Statement& stat) {
     } else {
         const Vector_t<double, 3> origin(
             Attributes::getReal(itsAttr[X]), Attributes::getReal(itsAttr[Y]),
-            Attributes::getReal(itsAttr[Z])
-        );
+            Attributes::getReal(itsAttr[Z]));
 
         const double theta = Attributes::getReal(itsAttr[THETA]);
         const double phi   = Attributes::getReal(itsAttr[PHI]);
@@ -248,8 +243,7 @@ void Line::parse(Statement& stat) {
         line->setRelativeFlag(
             !itsAttr[X].defaultUsed() || !itsAttr[Y].defaultUsed() || !itsAttr[Z].defaultUsed()
             || !itsAttr[THETA].defaultUsed() || !itsAttr[PHI].defaultUsed()
-            || !itsAttr[PSI].defaultUsed()
-        );
+            || !itsAttr[PSI].defaultUsed());
     }
 }
 
@@ -315,8 +309,7 @@ void Line::parseList(Statement& stat) {
             // Identifier.
             std::string name = parseString(stat, "Line member expected.");
             auto obj         = OpalData::getInstance()->find(
-                name
-            );  // std::shared_ptr<Object>(OpalData::getInstance()->find(name));
+                name);  // std::shared_ptr<Object>(OpalData::getInstance()->find(name));
 
             if (!obj) {
                 throw ParseError("Line::parseList()", "Element \"" + name + "\" is undefined.");
@@ -326,8 +319,7 @@ void Line::parseList(Statement& stat) {
                 // Line or sequence macro.
                 // This instance will always be an anonymous object.
                 obj = obj->makeInstance(
-                    name, stat, 0
-                );  // std::shared_ptr<Object>(obj->makeInstance(name, stat, 0));
+                    name, stat, 0);  // std::shared_ptr<Object>(obj->makeInstance(name, stat, 0));
             }
 
             if (Element* elem = dynamic_cast<Element*>(obj)) {
@@ -339,8 +331,7 @@ void Line::parseList(Statement& stat) {
 
             } else {
                 throw ParseError(
-                    "Line::parseList()", "Object \"" + name + "\" cannot be a line member."
-                );
+                    "Line::parseList()", "Object \"" + name + "\" cannot be a line member.");
             }
         }
     } while (stat.delimiter(','));

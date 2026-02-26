@@ -51,11 +51,9 @@ OpalCavity::OpalCavity()
     itsAttr[PHASE_MODEL] =
         Attributes::makeString("PHASE_MODEL", "The name of the phase time dependence model.");
     itsAttr[AMPLITUDE_MODEL] = Attributes::makeString(
-        "AMPLITUDE_MODEL", "The name of the amplitude time dependence model."
-    );
+        "AMPLITUDE_MODEL", "The name of the amplitude time dependence model.");
     itsAttr[FREQUENCY_MODEL] = Attributes::makeString(
-        "FREQUENCY_MODEL", "The name of the frequency time dependence model."
-    );
+        "FREQUENCY_MODEL", "The name of the frequency time dependence model.");
 
     registerOwnership();
 

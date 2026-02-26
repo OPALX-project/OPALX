@@ -32,8 +32,7 @@
 // ------------------------------------------------------------------------
 
 AbstractTracker::AbstractTracker(
-    const Beamline& beamline, const PartData& reference, bool backBeam, bool backTrack
-)
+    const Beamline& beamline, const PartData& reference, bool backBeam, bool backTrack)
     : DefaultVisitor(beamline, backBeam, backTrack), itsReference(reference) {}
 
 AbstractTracker::~AbstractTracker() {}

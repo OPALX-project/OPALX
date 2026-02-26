@@ -39,8 +39,7 @@ SDDS::file SDDS::SDDSParser::run() {
         sddsData_m = parser.parse();
     } catch (const std::exception& e) {
         throw SDDSParserException(
-            "SDDSParser::run", std::string("could not parse SDDS file: ") + e.what()
-        );
+            "SDDSParser::run", std::string("could not parse SDDS file: ") + e.what());
     }
 
     // Parse parameter values
@@ -50,9 +49,9 @@ SDDS::file SDDS::SDDSParser::run() {
             throw SDDSParserException("SDDSParser::run", "could not parse parameter value");
         }
         // Skip comma or whitespace
-        while (pos < contents.length()
-               && (std::isspace(static_cast<unsigned char>(contents[pos]))
-                   || contents[pos] == ',')) {
+        while (
+            pos < contents.length()
+            && (std::isspace(static_cast<unsigned char>(contents[pos])) || contents[pos] == ',')) {
             pos++;
         }
     }
@@ -112,8 +111,7 @@ std::string SDDS::SDDSParser::readFile() {
     }
 
     throw SDDSParserException(
-        "SDDSParser::readSDDSFile", "could not open file '" + sddsFileName_m + "'"
-    );
+        "SDDSParser::readSDDSFile", "could not open file '" + sddsFileName_m + "'");
 
     return std::string("");
 }
@@ -132,8 +130,7 @@ int SDDS::SDDSParser::getColumnIndex(std::string col_name) const {
     }
 
     throw SDDSParserException(
-        "SDDSParser::getColumnIndex", "could not find column '" + col_name + "'"
-    );
+        "SDDSParser::getColumnIndex", "could not find column '" + col_name + "'");
 }
 
 // XXX use either all upper, or all lower case chars

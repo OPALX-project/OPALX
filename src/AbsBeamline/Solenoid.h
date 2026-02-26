@@ -57,8 +57,7 @@ public:
      * @returns true if particle is lost, false otherwise
      */
     virtual bool apply(
-        const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B
-    ) override;
+        const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 
     /**
      * @brief Apply to particle with position R and momentum P
@@ -73,8 +72,7 @@ public:
      */
     virtual bool apply(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-        Vector_t<double, 3>& E, Vector_t<double, 3>& B
-    ) override;
+        Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 
     /**
      * @brief Apply to reference particle with position R and momemtum P
@@ -89,8 +87,7 @@ public:
      */
     virtual bool applyToReferenceParticle(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-        Vector_t<double, 3>& E, Vector_t<double, 3>& B
-    ) override;
+        Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
     /* ========================================================================== */
     /* ============================== Functions ================================= */
     /// @brief Apply visitor to Solenoid
@@ -192,8 +189,7 @@ inline CoordinateSystemTrafo Solenoid::getEdgeToBegin() const {
  */
 inline CoordinateSystemTrafo Solenoid::getEdgeToEnd() const {
     CoordinateSystemTrafo ret(
-        Vector_t<double, 3>(0, 0, startField_m + getElementLength()), Quaternion(1, 0, 0, 0)
-    );
+        Vector_t<double, 3>(0, 0, startField_m + getElementLength()), Quaternion(1, 0, 0, 0));
     return ret;
 }
 #endif  // CLASSIC_Solenoid_HH

@@ -89,8 +89,7 @@ TEST_F(LinearSplineTest, InvalidInput) {
     EXPECT_THROW(LinearSpline spline({0.0}, {0.0, 1.0}), std::invalid_argument);
     // Non-increasing x
     EXPECT_THROW(
-        LinearSpline spline({0.0, 1.0, 0.5, 2.0}, {0.0, 1.0, 2.0, 3.0}), std::invalid_argument
-    );
+        LinearSpline spline({0.0, 1.0, 0.5, 2.0}, {0.0, 1.0, 2.0, 3.0}), std::invalid_argument);
 }
 
 TEST_F(LinearSplineTest, Integration) {

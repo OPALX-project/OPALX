@@ -36,8 +36,7 @@ public:
         BeamSequence*, const PartData&, const std::vector<double>& dt,
         const std::vector<unsigned long long>& maxtsteps, int stepsperturn, double zStart,
         const std::vector<double>& zStop, Steppers::TimeIntegrator timeintegrator, double t0,
-        double dtScInit, double deltaTau
-    );
+        double dtScInit, double deltaTau);
     ~Track();
 
     /// The particle bunch to be tracked.

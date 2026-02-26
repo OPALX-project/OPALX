@@ -141,23 +141,21 @@ namespace Expressions {
                     if (itsIndex > int(array.size())) {
                         throw ParseError(
                             "SRefAttr::evaluate()",
-                            "Reference \"" + getImage() + "\" has index out of range."
-                        );
+                            "Reference \"" + getImage() + "\" has index out of range.");
                     } else {
                         return array[itsIndex - 1];
                     }
                 } else {
                     throw ParseError(
-                        "SRefAttr::evaluate()", "Reference \"" + getImage() + "\" is not an array."
-                    );
+                        "SRefAttr::evaluate()",
+                        "Reference \"" + getImage() + "\" is not an array.");
                 }
             } else {
                 if (SValue<T>* value = dynamic_cast<SValue<T>*>(base)) {
                     return value->evaluate();
                 } else {
                     throw ParseError(
-                        "SRefAttr::evaluate()", getImage() + "\" is of the wrong type."
-                    );
+                        "SRefAttr::evaluate()", getImage() + "\" is of the wrong type.");
                 }
             }
         }
@@ -200,8 +198,8 @@ namespace Expressions {
                 return itsAttr->set(new SValue<T>(value));
             } else {
                 throw ParseError(
-                    "Real::get()", "Attribute \"" + itsAttr->getName() + "\" is of the wrong type."
-                );
+                    "Real::get()",
+                    "Attribute \"" + itsAttr->getName() + "\" is of the wrong type.");
             }
         }
     }
@@ -213,8 +211,7 @@ namespace Expressions {
             if (itsObject == 0) {
                 if (att_name.empty() && itsIndex <= 0) {
                     throw ParseError(
-                        "SRefAttr::fill()", "\nThe <variable> \"" + obj_name + "\" is unknown.\n"
-                    );
+                        "SRefAttr::fill()", "\nThe <variable> \"" + obj_name + "\" is unknown.\n");
                 } else {
                     throw ParseError("SRefAttr::fill()", "Object \"" + obj_name + "\" is unknown.");
                 }
@@ -229,16 +226,14 @@ namespace Expressions {
                 if (itsAttr == 0) {
                     throw ParseError(
                         "SRefAttr::fill()",
-                        "Object \"" + obj_name + "\" is not a variable, constant or vector."
-                    );
+                        "Object \"" + obj_name + "\" is not a variable, constant or vector.");
                 }
             } else {
                 itsAttr = itsObject->findAttribute(att_name);
                 if (itsAttr == 0) {
                     throw ParseError(
                         "SRefAttr::fill()",
-                        "Attribute \"" + obj_name + "->" + att_name + "\" is unknown."
-                    );
+                        "Attribute \"" + obj_name + "->" + att_name + "\" is unknown.");
                 }
             }
         }

@@ -67,15 +67,13 @@ void TravelingWave::accept(BeamlineVisitor& visitor) const { visitor.visitTravel
 bool TravelingWave::apply() { return false; }
 
 bool TravelingWave::apply(
-    const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B
-) {
+    const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
     return apply(RefPartBunch_m->R(i), RefPartBunch_m->P(i), t, E, B);
 }
 
 bool TravelingWave::apply(
     const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& t,
-    Vector_t<double, 3>& E, Vector_t<double, 3>& B
-) {
+    Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
     if (R(2) < -0.5 * periodLength_m || R(2) + 0.5 * periodLength_m >= getElementLength())
         return false;
 
@@ -137,8 +135,7 @@ bool TravelingWave::apply(
 
 bool TravelingWave::applyToReferenceParticle(
     const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& t,
-    Vector_t<double, 3>& E, Vector_t<double, 3>& B
-) {
+    Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
     if (R(2) < -0.5 * periodLength_m || R(2) + 0.5 * periodLength_m >= getElementLength())
         return false;
 
@@ -208,8 +205,7 @@ void TravelingWave::initialise(PartBunch_t* bunch, double& startField, double& e
     if (std::abs(startField_m) > 0.0) {
         throw GeneralClassicException(
             "TravelingWave::initialise",
-            "The field map of a traveling wave structure has to begin at 0.0"
-        );
+            "The field map of a traveling wave structure has to begin at 0.0");
     }
 
     periodLength_m = (zEnd - zBegin) / 2.0;
@@ -265,8 +261,7 @@ void TravelingWave::getElementDimensions(double& begin, double& end) const {
 ElementType TravelingWave::getType() const { return ElementType::TRAVELINGWAVE; }
 
 double TravelingWave::getAutoPhaseEstimate(
-    const double& E0, const double& t0, const double& q, const double& mass
-) {
+    const double& E0, const double& t0, const double& q, const double& mass) {
     std::vector<double> t, E, t2, E2;
     std::vector<std::pair<double, double> > F;
     double phi = 0.0, tmp_phi, dphi = 0.5 * Units::deg2rad;

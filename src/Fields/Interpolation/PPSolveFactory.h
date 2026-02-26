@@ -84,8 +84,7 @@ namespace interpolation {
          */
         PPSolveFactory(
             Mesh* points, std::vector<std::vector<double> > values, int polyPatchOrder,
-            int smoothingOrder
-        );
+            int smoothingOrder);
 
         /** Destructor deletes points_ */
         ~PPSolveFactory() {}
@@ -112,8 +111,7 @@ namespace interpolation {
          *  ...
          */
         static std::vector<std::vector<int> > getNearbyPointsSquares(
-            int pointDim, int polyOrderLower, int polyOrderUpper
-        );
+            int pointDim, int polyOrderLower, int polyOrderUpper);
 
     private:
         void getPoints();
@@ -126,12 +124,10 @@ namespace interpolation {
         std::vector<double> outOfBoundsPosition(Mesh::Iterator outOfBoundsIt);
         static void nearbyPointsRecursive(
             std::vector<int> check, size_t checkIndex, size_t polyPower,
-            std::vector<std::vector<int> >& nearbyPoints
-        );
+            std::vector<std::vector<int> >& nearbyPoints);
 
         PolynomialCoefficient getDeltaIterator(
-            Mesh::Iterator it1, Mesh::Iterator it2, int valueIndex
-        );
+            Mesh::Iterator it1, Mesh::Iterator it2, int valueIndex);
 
         int polyPatchOrder_m;
         int smoothingOrder_m;

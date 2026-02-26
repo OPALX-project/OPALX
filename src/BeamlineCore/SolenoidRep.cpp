@@ -28,8 +28,7 @@ namespace {
     const Entry entries[] = {
         {"L", &SolenoidRep::getElementLength, &SolenoidRep::setElementLength},
         {"BZ", &SolenoidRep::getBz, &SolenoidRep::setBz},
-        {0, 0, 0}
-    };
+        {0, 0, 0}};
 }  // namespace
 
 SolenoidRep::SolenoidRep() : Solenoid(), geometry(), field() {}

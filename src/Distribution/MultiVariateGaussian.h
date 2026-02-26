@@ -40,8 +40,7 @@ public:
      */
     MultiVariateGaussian(
         std::shared_ptr<ParticleContainer_t> pc, std::shared_ptr<FieldContainer_t> fc,
-        std::shared_ptr<Distribution_t> opalDist
-    );
+        std::shared_ptr<Distribution_t> opalDist);
 
     /**
      * @brief Constructor for MultiVariateGaussian with specified parameters.
@@ -58,8 +57,7 @@ public:
         std::shared_ptr<ParticleContainer_t> pc, const Vector_t<double, 3>& meanR,
         const Vector_t<double, 3>& meanP, const Vector_t<double, 3>& sigmaR,
         const Vector_t<double, 3>& sigmaP, const Vector_t<double, 3>& cutoffR,
-        const Vector_t<double, 3>& cutoffP, bool fixMeanR = true, bool fixMeanP = true
-    );
+        const Vector_t<double, 3>& cutoffP, bool fixMeanR = true, bool fixMeanP = true);
 
     /**
      * @brief Constructs the MultiVariateGaussian class.
@@ -75,8 +73,7 @@ public:
     MultiVariateGaussian(
         std::shared_ptr<ParticleContainer_t> pc, const Vector_t<double, 3>& meanR,
         const Vector_t<double, 3>& meanP, const Matrix_t& cov, const Vector_t<double, 3>& cutoffR,
-        const Vector_t<double, 3>& cutoffP, bool fixMeanR = true, bool fixMeanP = true
-    );
+        const Vector_t<double, 3>& cutoffP, bool fixMeanR = true, bool fixMeanP = true);
     /**
      * @brief Computes the Cholesky factorization of the covariance matrix.
      */

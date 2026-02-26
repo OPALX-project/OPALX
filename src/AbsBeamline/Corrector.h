@@ -74,13 +74,11 @@ public:
     virtual Plane getPlane() const = 0;
 
     virtual bool apply(
-        const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B
-    );
+        const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B);
 
     virtual bool apply(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-        Vector_t<double, 3>& E, Vector_t<double, 3>& B
-    );
+        Vector_t<double, 3>& E, Vector_t<double, 3>& B);
 
     virtual void initialise(PartBunch_t* bunch, double& startField, double& endField);
 

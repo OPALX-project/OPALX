@@ -137,8 +137,7 @@ inline double gsl_linalg_LU_det(const gsl_matrix* LU, int signum) {
 /// \param inverse Output: matrix to receive \f$A^{-1}\f$.
 /// \return Output: 0 on success, -1 on size mismatch.
 inline int gsl_linalg_LU_invert(
-    const gsl_matrix* LU, const gsl_permutation* p, gsl_matrix* inverse
-) {
+    const gsl_matrix* LU, const gsl_permutation* p, gsl_matrix* inverse) {
     size_t n = LU->size1;
     if (inverse->size1 != n || inverse->size2 != n) {
         return -1;
@@ -233,8 +232,7 @@ inline int gsl_linalg_complex_LU_decomp(gsl_matrix_complex* A, gsl_permutation* 
             for (size_t j = k + 1; j < n; ++j) {
                 *gsl_matrix_complex_ptr(A, i, j) = gsl_complex_sub(
                     *gsl_matrix_complex_ptr(A, i, j),
-                    gsl_complex_mul(factor, *gsl_matrix_complex_ptr(A, k, j))
-                );
+                    gsl_complex_mul(factor, *gsl_matrix_complex_ptr(A, k, j)));
             }
         }
     }
@@ -263,8 +261,7 @@ inline gsl_complex gsl_linalg_complex_LU_det(const gsl_matrix_complex* LU, int s
 /// \param inverse Output: matrix to receive \f$A^{-1}\f$.
 /// \return Output: 0 on success, -1 on size mismatch.
 inline int gsl_linalg_complex_LU_invert(
-    const gsl_matrix_complex* LU, const gsl_permutation* p, gsl_matrix_complex* inverse
-) {
+    const gsl_matrix_complex* LU, const gsl_permutation* p, gsl_matrix_complex* inverse) {
     size_t n = LU->size1;
     if (inverse->size1 != n || inverse->size2 != n) {
         return -1;
@@ -287,9 +284,7 @@ inline int gsl_linalg_complex_LU_invert(
                 sum = gsl_complex_add(
                     sum,
                     gsl_complex_mul(
-                        *gsl_matrix_complex_ptr(LU, i, k), *gsl_matrix_complex_ptr(inverse, k, j)
-                    )
-                );
+                        *gsl_matrix_complex_ptr(LU, i, k), *gsl_matrix_complex_ptr(inverse, k, j)));
             }
             *gsl_matrix_complex_ptr(inverse, i, j) =
                 gsl_complex_sub(*gsl_matrix_complex_ptr(inverse, i, j), sum);
@@ -305,14 +300,11 @@ inline int gsl_linalg_complex_LU_invert(
                 sum = gsl_complex_add(
                     sum,
                     gsl_complex_mul(
-                        *gsl_matrix_complex_ptr(LU, i, k), *gsl_matrix_complex_ptr(inverse, k, j)
-                    )
-                );
+                        *gsl_matrix_complex_ptr(LU, i, k), *gsl_matrix_complex_ptr(inverse, k, j)));
             }
             *gsl_matrix_complex_ptr(inverse, i, j) = gsl_complex_div(
                 gsl_complex_sub(*gsl_matrix_complex_ptr(inverse, i, j), sum),
-                *gsl_matrix_complex_ptr(LU, i, i)
-            );
+                *gsl_matrix_complex_ptr(LU, i, i));
         }
     }
 
@@ -342,8 +334,7 @@ inline gsl_complex gsl_linalg_LU_det_complex(const gsl_matrix_complex* LU, int s
 /// \param inverse Output: matrix to receive \f$A^{-1}\f$.
 /// \return Output: 0 on success, -1 on size mismatch.
 inline int gsl_linalg_LU_invert_complex(
-    const gsl_matrix_complex* LU, const gsl_permutation* p, gsl_matrix_complex* inverse
-) {
+    const gsl_matrix_complex* LU, const gsl_permutation* p, gsl_matrix_complex* inverse) {
     return gsl_linalg_complex_LU_invert(LU, p, inverse);
 }
 

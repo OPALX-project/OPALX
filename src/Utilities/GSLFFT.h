@@ -249,8 +249,7 @@ inline void gsl_fft_halfcomplex_workspace_free(gsl_fft_halfcomplex_workspace* w)
 /// \param workspace Input: workspace (unused).
 inline void gsl_fft_halfcomplex_inverse(
     double* data, size_t stride, size_t n, gsl_fft_halfcomplex_wavetable* wavetable,
-    gsl_fft_halfcomplex_workspace* workspace
-) {
+    gsl_fft_halfcomplex_workspace* workspace) {
     gsl_fft_halfcomplex_transform(data, stride, n, wavetable, workspace);
 }
 

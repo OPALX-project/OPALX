@@ -50,8 +50,7 @@ namespace {
     // ---------------------------------------------------------------------------
     std::string writeXZFieldmap(
         const std::string& path, double zbegin_cm, double zend_cm, int nz, double rbegin_cm,
-        double rend_cm, int nr, double uniformBz = 1.0, double uniformBr = 0.0
-    ) {
+        double rend_cm, int nr, double uniformBz = 1.0, double uniformBr = 0.0) {
         std::ofstream f(path);
         f << "2DMagnetoStatic XZ\n";
         f << zbegin_cm << " " << zend_cm << " " << nz << "\n";
@@ -71,8 +70,7 @@ namespace {
     // ---------------------------------------------------------------------------
     std::string writeZXFieldmap(
         const std::string& path, double zbegin_cm, double zend_cm, int nz, double rbegin_cm,
-        double rend_cm, int nr, double uniformBz = 1.0, double uniformBr = 0.0
-    ) {
+        double rend_cm, int nr, double uniformBz = 1.0, double uniformBr = 0.0) {
         std::ofstream f(path);
         f << "2DMagnetoStatic ZX\n";
         f << rbegin_cm << " " << rend_cm << " " << nr << "\n";
@@ -94,8 +92,7 @@ namespace {
     // ---------------------------------------------------------------------------
     std::string writeVaryingXZFieldmap(
         const std::string& path, double zbegin_cm, double zend_cm, int nz, double rbegin_cm,
-        double rend_cm, int nr
-    ) {
+        double rend_cm, int nr) {
         const double hz_cm = (zend_cm - zbegin_cm) / nz;
         const double hr_cm = (rend_cm - rbegin_cm) / nr;
 
@@ -656,8 +653,7 @@ TEST_F(FM2DMagnetoStaticTest, RadialFieldProjection) {
 
     std::string fname = writeXZFieldmap(
         tmpFile("proj.map"), zb, ze, nz, rb, re, nr,
-        /*Bz=*/1.0, /*Br=*/1.0
-    );
+        /*Bz=*/1.0, /*Br=*/1.0);
     Fieldmap* fm = Fieldmap::getFieldmap(fname);
     Fieldmap::readMap(fname);
 

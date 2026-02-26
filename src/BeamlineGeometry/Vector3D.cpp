@@ -89,8 +89,7 @@ bool Vector3D::isZero() const { return v[0] == 0.0 && v[1] == 0.0 && v[2] == 0.0
 Vector3D cross(const Vector3D& lhs, const Vector3D& rhs) {
     return Vector3D(
         lhs(1) * rhs(2) - lhs(2) * rhs(1), lhs(2) * rhs(0) - lhs(0) * rhs(2),
-        lhs(0) * rhs(1) - lhs(1) * rhs(0)
-    );
+        lhs(0) * rhs(1) - lhs(1) * rhs(0));
 }
 
 double dot(const Vector3D& lhs, const Vector3D& rhs) {

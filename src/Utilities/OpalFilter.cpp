@@ -56,38 +56,31 @@ OpalFilter::OpalFilter()
     : Definition(
           SIZE, "FILTER",
           "The \"FILTER\" statement defines a 1 dimensional filter to be "
-          "applied on histogram."
-      ),
+          "applied on histogram."),
       filter_m(0) {
     itsAttr[TYPE] = Attributes::makePredefinedString(
         "TYPE", "Specifies the type of filter.",
-        {"SAVITZKY-GOLAY", "FIXEDFFTLOWPASS", "RELATIVEFFTLOWPASS", "STENCIL"}
-    );
+        {"SAVITZKY-GOLAY", "FIXEDFFTLOWPASS", "RELATIVEFFTLOWPASS", "STENCIL"});
 
     itsAttr[NFREQ] =
         Attributes::makeReal("NFREQ", "Number of frequencies to use in fixedFFTLowPass filter", 9.);
 
     itsAttr[THRESHOLD] = Attributes::makeReal(
         "THRESHOLD", "Relative threshold for amplitude of frequencies in relativeFFTLowPass filter",
-        1.e-6
-    );
+        1.e-6);
 
     itsAttr[NPOINTS] = Attributes::makeReal(
-        "NPOINTS", "Number of points in Savitzky-Golay filter", NPOINTS_DEFAULT
-    );
+        "NPOINTS", "Number of points in Savitzky-Golay filter", NPOINTS_DEFAULT);
 
     itsAttr[NLEFT] = Attributes::makeReal(
-        "NLEFT", "Number of points to the left in Savitzky-Golay filter", NLEFT_DEFAULT
-    );
+        "NLEFT", "Number of points to the left in Savitzky-Golay filter", NLEFT_DEFAULT);
 
     itsAttr[NRIGHT] = Attributes::makeReal(
-        "NRIGHT", "Number of points to the right in Savitzky-Golay filter", NRIGHT_DEFAULT
-    );
+        "NRIGHT", "Number of points to the right in Savitzky-Golay filter", NRIGHT_DEFAULT);
 
     itsAttr[POLYORDER] = Attributes::makeReal(
         "POLYORDER", "Polynomial order for local fit-function in Savitzky-Golay filter",
-        POLYORDER_DEFAULT
-    );
+        POLYORDER_DEFAULT);
 
     registerOwnership(AttributeHandler::STATEMENT);
 
@@ -149,8 +142,7 @@ void OpalFilter::initOpalFilter() {
             {"SAVITZKY-GOLAY", FilterType::SAVITZKYGOLAY},
             {"FIXEDFFTLOWPASS", FilterType::FIXEDFFTLOWPASS},
             {"RELATIVEFFTLOWPASS", FilterType::RELATIVEFFTLOWPASS},
-            {"STENCIL", FilterType::STENCIL}
-        };
+            {"STENCIL", FilterType::STENCIL}};
 
         FilterType type = stringFilterType_s.at(Attributes::getString(itsAttr[TYPE]));
         switch (type) {
@@ -185,8 +177,7 @@ void OpalFilter::initOpalFilter() {
                 }
 
                 filter_m = new SavitzkyGolayFilter(
-                    num_points, num_points_left, num_points_right, polynomial_order
-                );
+                    num_points, num_points_left, num_points_right, polynomial_order);
                 break;
             }
             case FilterType::FIXEDFFTLOWPASS: {

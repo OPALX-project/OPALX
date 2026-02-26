@@ -30,8 +30,7 @@ StringConstant::StringConstant()
           1, "STRING_CONSTANT",
           "The \"STRING CONSTANT\" statement defines a global "
           "string constant:\n"
-          "\tSTRING CONSTANT <name> = <String-expression>;\n"
-      ) {
+          "\tSTRING CONSTANT <name> = <String-expression>;\n") {
     itsAttr[0] = Attributes::makeString("VALUE", "The constant value");
 
     registerOwnership(AttributeHandler::STATEMENT);
@@ -223,8 +222,7 @@ StringConstant::StringConstant(const std::string& name, StringConstant* parent)
     : ValueDefinition(name, parent) {}
 
 StringConstant::StringConstant(
-    const std::string& name, StringConstant* parent, const std::string& value
-)
+    const std::string& name, StringConstant* parent, const std::string& value)
     : ValueDefinition(name, parent) {
     Attributes::setString(itsAttr[0], value);
     itsAttr[0].setReadOnly(true);

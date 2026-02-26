@@ -148,8 +148,8 @@ namespace polynomial {
     }
 
     void PolynomialSum::putSumTogether(
-        const std::vector<double>& dSvalues, std::vector<std::vector<double>>& finalPolynomial
-    ) const {
+        const std::vector<double>& dSvalues,
+        std::vector<std::vector<double>>& finalPolynomial) const {
         finalPolynomial.resize(1);
         finalPolynomial[0].resize(1, 0.0);
         std::size_t nx = 0, ns = 0;
@@ -183,8 +183,7 @@ namespace polynomial {
     }
 
     double PolynomialSum::evaluatePolynomial2(
-        const double& x, const double& s, const std::vector<double>& dSvalues
-    ) const {
+        const double& x, const double& s, const std::vector<double>& dSvalues) const {
         std::vector<std::vector<double>> coefficients;
         putSumTogether(dSvalues, coefficients);
         double result = 0.0;

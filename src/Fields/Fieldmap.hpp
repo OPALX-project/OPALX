@@ -41,12 +41,11 @@ bool Fieldmap::interpretLine(std::ifstream& in, T& value, const bool& file_lengt
         }
         std::string expecting(std::string(typeid(T).name()));
         interpretWarning(
-            (interpreter.rdstate() ^ std::ios_base::eofbit), read_all, expecting, buffer
-        );
+            (interpreter.rdstate() ^ std::ios_base::eofbit), read_all, expecting, buffer);
     }
     return (
-        !(interpreter.rdstate() ^ std::ios_base::eofbit) && read_all
-    );  // eof should not be an error but if not eof
+        !(interpreter.rdstate() ^ std::ios_base::eofbit)
+        && read_all);  // eof should not be an error but if not eof
 }
 
 /**
@@ -55,8 +54,7 @@ bool Fieldmap::interpretLine(std::ifstream& in, T& value, const bool& file_lengt
  */
 template <class S, class T>
 bool Fieldmap::interpretLine(
-    std::ifstream& in, S& value1, T& value2, const bool& file_length_known
-) {
+    std::ifstream& in, S& value1, T& value2, const bool& file_length_known) {
     bool read_all = true;
     std::string buffer;
     std::streampos start = in.tellg();
@@ -82,12 +80,11 @@ bool Fieldmap::interpretLine(
         std::string expecting(std::string(typeid(S).name()));
         expecting += std::string(" ") + std::string(typeid(T).name());
         interpretWarning(
-            (interpreter.rdstate() ^ std::ios_base::eofbit), read_all, expecting, buffer
-        );
+            (interpreter.rdstate() ^ std::ios_base::eofbit), read_all, expecting, buffer);
     }
     return (
-        !(interpreter.rdstate() ^ std::ios_base::eofbit) && read_all
-    );  // eof should not be an error but if not eof
+        !(interpreter.rdstate() ^ std::ios_base::eofbit)
+        && read_all);  // eof should not be an error but if not eof
 }
 
 /**
@@ -96,8 +93,7 @@ bool Fieldmap::interpretLine(
  */
 template <class S, class T, class U>
 bool Fieldmap::interpretLine(
-    std::ifstream& in, S& value1, T& value2, U& value3, const bool& file_length_known
-) {
+    std::ifstream& in, S& value1, T& value2, U& value3, const bool& file_length_known) {
     bool read_all = true;
     std::string buffer;
     std::streampos start = in.tellg();
@@ -124,15 +120,13 @@ bool Fieldmap::interpretLine(
         }
         std::string expecting(
             std::string(typeid(S).name()) + std::string(" ") + std::string(typeid(T).name())
-            + std::string(" ") + std::string(typeid(U).name())
-        );
+            + std::string(" ") + std::string(typeid(U).name()));
         interpretWarning(
-            (interpreter.rdstate() ^ std::ios_base::eofbit), read_all, expecting, buffer
-        );
+            (interpreter.rdstate() ^ std::ios_base::eofbit), read_all, expecting, buffer);
     }
     return (
-        !(interpreter.rdstate() ^ std::ios_base::eofbit) && read_all
-    );  // eof should not be an error but if not eof
+        !(interpreter.rdstate() ^ std::ios_base::eofbit)
+        && read_all);  // eof should not be an error but if not eof
 }
 
 /**
@@ -141,8 +135,7 @@ bool Fieldmap::interpretLine(
  */
 template <class S, class T, class U, class V>
 bool Fieldmap::interpretLine(
-    std::ifstream& in, S& value1, T& value2, U& value3, V& value4, const bool& file_length_known
-) {
+    std::ifstream& in, S& value1, T& value2, U& value3, V& value4, const bool& file_length_known) {
     bool read_all = true;
     std::string buffer;
     std::streampos start = in.tellg();
@@ -172,15 +165,13 @@ bool Fieldmap::interpretLine(
         std::string expecting(
             std::string(typeid(S).name()) + std::string(" ") + std::string(typeid(T).name())
             + std::string(" ") + std::string(typeid(U).name()) + std::string(" ")
-            + std::string(typeid(V).name())
-        );
+            + std::string(typeid(V).name()));
         interpretWarning(
-            (interpreter.rdstate() ^ std::ios_base::eofbit), read_all, expecting, buffer
-        );
+            (interpreter.rdstate() ^ std::ios_base::eofbit), read_all, expecting, buffer);
     }
     return (
-        !(interpreter.rdstate() ^ std::ios_base::eofbit) && read_all
-    );  // eof should not be an error but if not eof
+        !(interpreter.rdstate() ^ std::ios_base::eofbit)
+        && read_all);  // eof should not be an error but if not eof
 }
 
 /**
@@ -190,8 +181,7 @@ bool Fieldmap::interpretLine(
 template <class S>
 bool Fieldmap::interpretLine(
     std::ifstream& in, S& value1, S& value2, S& value3, S& value4, S& value5, S& value6,
-    const bool& file_length_known
-) {
+    const bool& file_length_known) {
     bool read_all = true;
     std::string buffer;
     std::streampos start = in.tellg();
@@ -226,15 +216,13 @@ bool Fieldmap::interpretLine(
             std::string(typeid(S).name()) + std::string(" ") + std::string(typeid(S).name())
             + std::string(" ") + std::string(typeid(S).name()) + std::string(" ")
             + std::string(typeid(S).name()) + std::string(" ") + std::string(typeid(S).name())
-            + std::string(" ") + std::string(typeid(S).name())
-        );
+            + std::string(" ") + std::string(typeid(S).name()));
         interpretWarning(
-            (interpreter.rdstate() ^ std::ios_base::eofbit), read_all, expecting, buffer
-        );
+            (interpreter.rdstate() ^ std::ios_base::eofbit), read_all, expecting, buffer);
     }
     return (
-        !(interpreter.rdstate() ^ std::ios_base::eofbit) && read_all
-    );  // eof should not be an error but if not eof
+        !(interpreter.rdstate() ^ std::ios_base::eofbit)
+        && read_all);  // eof should not be an error but if not eof
 }
 
 #endif

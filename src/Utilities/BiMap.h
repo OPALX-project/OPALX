@@ -146,8 +146,7 @@ public:
 /// \return Output: initialized bimap instance.
 template <typename Left, typename Right>
 BiMap<Left, Right> make_bimap(
-    std::initializer_list<typename BiMap<Left, Right>::relation> relations
-) {
+    std::initializer_list<typename BiMap<Left, Right>::relation> relations) {
     BiMap<Left, Right> bimap;
     for (const auto& rel : relations) {
         bimap.insert(rel.left, rel.right);

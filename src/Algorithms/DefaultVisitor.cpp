@@ -74,8 +74,7 @@ void DefaultVisitor::visitMultipoleTStraight(const MultipoleTStraight& multTstra
 }
 
 void DefaultVisitor::visitMultipoleTCurvedConstRadius(
-    const MultipoleTCurvedConstRadius& multTccurv
-) {
+    const MultipoleTCurvedConstRadius& multTccurv) {
     applyDefault(multTccurv);
 }
 

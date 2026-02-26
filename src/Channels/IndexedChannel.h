@@ -40,12 +40,10 @@ public:
     //  Values set are transmitted via [tt] object.*setF(index,value)[/tt]
     //  and read via [tt]value = object.*getF(index)[/tt].
     IndexedChannel(
-        T& object, double (T::*getF)(int) const, void (T::*setF)(int, double), int index
-    );
+        T& object, double (T::*getF)(int) const, void (T::*setF)(int, double), int index);
 
     IndexedChannel(
-        T& object, double (T::*getF)(int) const, void (T::*setF)(unsigned int, double), int index
-    );
+        T& object, double (T::*getF)(int) const, void (T::*setF)(unsigned int, double), int index);
 
     IndexedChannel(const IndexedChannel&);
     virtual ~IndexedChannel();
@@ -86,14 +84,12 @@ private:
 
 template <class T>
 IndexedChannel<T>::IndexedChannel(
-    T& object, double (T::*get)(int) const, void (T::*set)(int, double), int index
-)
+    T& object, double (T::*get)(int) const, void (T::*set)(int, double), int index)
     : itsObject(object), getF(get), setF(set), bias(index) {}
 
 template <class T>
 IndexedChannel<T>::IndexedChannel(
-    T& object, double (T::*get)(int) const, void (T::*set)(unsigned int, double), int index
-)
+    T& object, double (T::*get)(int) const, void (T::*set)(unsigned int, double), int index)
     : itsObject(object), getF(get), setF(set), bias(index) {}
 
 template <class T>

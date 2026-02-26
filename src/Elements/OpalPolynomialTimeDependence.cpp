@@ -48,8 +48,7 @@ OpalPolynomialTimeDependence::OpalPolynomialTimeDependence()
     itsAttr[P3] =
         Attributes::makeReal("P3", "Third order (cubic) term in the polynomial expansion.");
     itsAttr[COEFFICIENTS] = Attributes::makeRealArray(
-        "COEFFICIENTS", "Polynomial coefficients as an array with arbitrary length."
-    );
+        "COEFFICIENTS", "Polynomial coefficients as an array with arbitrary length.");
 
     registerOwnership();
 }
@@ -61,8 +60,7 @@ OpalPolynomialTimeDependence* OpalPolynomialTimeDependence::clone(const std::str
 void OpalPolynomialTimeDependence::print(std::ostream& out) const { OpalElement::print(out); }
 
 OpalPolynomialTimeDependence::OpalPolynomialTimeDependence(
-    const std::string& name, OpalPolynomialTimeDependence* parent
-)
+    const std::string& name, OpalPolynomialTimeDependence* parent)
     : OpalElement(name, parent) {}
 
 OpalPolynomialTimeDependence::~OpalPolynomialTimeDependence() = default;
@@ -73,8 +71,7 @@ void OpalPolynomialTimeDependence::update() {
         // Only use P0..P3 or COEFFICIENTS, not both
         throw std::invalid_argument(
             "OpalPolynomialTimeDependence::Update: "
-            "Use P0..P3 or COEFFICIENTS to specify the coefficients, not both."
-        );
+            "Use P0..P3 or COEFFICIENTS to specify the coefficients, not both.");
     }
     std::vector<double> polynomial_coefficients = Attributes::getRealArray(itsAttr[COEFFICIENTS]);
     if (polynomial_coefficients.empty()) {
@@ -84,6 +81,5 @@ void OpalPolynomialTimeDependence::update() {
         polynomial_coefficients.push_back(Attributes::getReal(itsAttr[P3]));
     }
     AbstractTimeDependence::setTimeDependence(
-        getOpalName(), std::make_shared<PolynomialTimeDependence>(polynomial_coefficients)
-    );
+        getOpalName(), std::make_shared<PolynomialTimeDependence>(polynomial_coefficients));
 }

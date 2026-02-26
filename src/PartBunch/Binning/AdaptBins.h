@@ -77,8 +77,7 @@ namespace ParticleBinning {
          */
         AdaptBins(
             std::shared_ptr<BunchType> bunch, BinningSelector var_selector, bin_index_type maxBins,
-            value_type binningAlpha, value_type binningBeta, value_type desiredWidth
-        )
+            value_type binningAlpha, value_type binningBeta, value_type desiredWidth)
             : bunch_m(bunch),
               var_selector_m(var_selector),
               maxBins_m(maxBins),
@@ -177,8 +176,7 @@ namespace ParticleBinning {
         KOKKOS_INLINE_FUNCTION
         static bin_index_type getBin(
             value_type x, value_type xMin, value_type xMax, value_type binWidthInv,
-            bin_index_type numBins
-        );
+            bin_index_type numBins);
 
         /**
          * @brief Initializes the limits for binning based on the particle data.
@@ -312,8 +310,7 @@ namespace ParticleBinning {
          */
         void doFullRebin(
             bin_index_type nBins, bool recalculateLimits = true,
-            HistoReductionMode modePreference = HistoReductionMode::Standard
-        ) {
+            HistoReductionMode modePreference = HistoReductionMode::Standard) {
             if (recalculateLimits)
                 initLimits();
             setCurrentBinCount(nBins);
@@ -514,8 +511,8 @@ namespace ParticleBinning {
         template <typename T, unsigned Dim>
         VField_t<T, Dim>& LTrans(
             VField_t<T, Dim>& field,
-            const bin_index_type& currentBin
-        );  // TODO: may want to add usage of c constant when it exists...
+            const bin_index_type&
+                currentBin);  // TODO: may want to add usage of c constant when it exists...
 
     private:
         std::shared_ptr<BunchType> bunch_m;  ///< Shared pointer to the particle container.

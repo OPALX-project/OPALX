@@ -40,8 +40,7 @@ public:
      */
     SinusoidalTimeDependence(
         const std::vector<double>& f, const std::vector<double>& p, const std::vector<double>& a,
-        const std::vector<double>& o
-    );
+        const std::vector<double>& o);
 
     /** Default Constructor makes a 0 length polynomial */
     SinusoidalTimeDependence() = default;

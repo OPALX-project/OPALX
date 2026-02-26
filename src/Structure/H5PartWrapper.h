@@ -58,8 +58,7 @@ protected:
     H5PartWrapper(const std::string& fileName, h5_int32_t flags = H5_O_WRONLY);
     H5PartWrapper(
         const std::string& fileName, int restartStep, std::string sourceFile,
-        h5_int32_t flags = H5_O_RDWR
-    );
+        h5_int32_t flags = H5_O_RDWR);
 
     void open(h5_int32_t flags);
 

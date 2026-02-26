@@ -24,8 +24,7 @@ OpalDrift::OpalDrift()
     itsAttr[GEOMETRY] = Attributes::makeString("GEOMETRY", "BoundaryGeometry for Drifts");
 
     itsAttr[NSLICES] = Attributes::makeReal(
-        "NSLICES", "The number of slices/ steps for this element in Map Tracking", 1
-    );
+        "NSLICES", "The number of slices/ steps for this element in Map Tracking", 1);
 
     registerOwnership();
 

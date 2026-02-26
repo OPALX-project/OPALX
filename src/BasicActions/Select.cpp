@@ -46,24 +46,19 @@ Select::Select()
     : Action(
           SIZE, "SELECT",
           "The \"SELECT\" sub-command selects the positions to be affected "
-          "by subsequent error sub-commands."
-      ) {
+          "by subsequent error sub-commands.") {
     itsAttr[LINE] = Attributes::makeString(
-        "LINE", "Name of the lattice to be affected by selections", "UNNAMED_USE"
-    );
+        "LINE", "Name of the lattice to be affected by selections", "UNNAMED_USE");
     itsAttr[FULL]  = Attributes::makeBool("FULL", "If true, all elements are selected");
     itsAttr[CLEAR] = Attributes::makeBool("CLEAR", "If true, all selections are cleared");
     itsAttr[RANGE] = Attributes::makeRange(
-        "RANGE", "Range to be considered for selection (default: full range)"
-    );
+        "RANGE", "Range to be considered for selection (default: full range)");
     itsAttr[CLASS] =
         Attributes::makeString("CLASS", "Name of class to be selected (default: all classes)");
     itsAttr[TYPE] = Attributes::makeString(
-        "TYPE", "The type name of elements to be selected (default: all types)"
-    );
+        "TYPE", "The type name of elements to be selected (default: all types)");
     itsAttr[PATTERN] = Attributes::makeString(
-        "PATTERN", "Regular expression for matching names (default: all names)"
-    );
+        "PATTERN", "Regular expression for matching names (default: all names)");
 
     registerOwnership(AttributeHandler::SUB_COMMAND);
 }
@@ -85,9 +80,8 @@ void Select::execute() {
             select(*table->getLine());
         } else {
             throw OpalException(
-                "Select::execute()",
-                "You cannot do a \"SELECT\" on \"" + name + "\", it is neither a line nor a table."
-            );
+                "Select::execute()", "You cannot do a \"SELECT\" on \"" + name
+                                         + "\", it is neither a line nor a table.");
         }
     } else {
         throw OpalException("Select::execute()", "Object \"" + name + "\" not found.");
@@ -112,8 +106,7 @@ void Select::select(const Beamline& bl) {
     } else {
         Selector sel(
             bl, Attributes::getRange(itsAttr[RANGE]), Attributes::getString(itsAttr[CLASS]),
-            Attributes::getString(itsAttr[TYPE]), Attributes::getString(itsAttr[PATTERN])
-        );
+            Attributes::getString(itsAttr[TYPE]), Attributes::getString(itsAttr[PATTERN]));
         sel.execute();
 
         if (Options::info) {

@@ -117,8 +117,7 @@ double Multipole::getNormalComponent(int n) const {
     if (n < 0) {
         throw GeneralClassicException(
             "Multipole::getNormalComponent",
-            "component index " + std::to_string(n) + " out of bounds"
-        );
+            "component index " + std::to_string(n) + " out of bounds");
     } else if (n < max_NormalComponent_m) {
         double val;
         Kokkos::deep_copy(val, Kokkos::subview(NormalComponents, n));
@@ -141,8 +140,8 @@ double Multipole::getNormalComponent(int n) const {
 double Multipole::getSkewComponent(int n) const {
     if (n < 0) {
         throw GeneralClassicException(
-            "Multipole::getSkewComponent", "component index " + std::to_string(n) + " out of bounds"
-        );
+            "Multipole::getSkewComponent",
+            "component index " + std::to_string(n) + " out of bounds");
     } else if (n < max_SkewComponent_m) {
         double val;
         Kokkos::deep_copy(val, Kokkos::subview(SkewComponents, n));
@@ -167,8 +166,7 @@ void Multipole::setNormalComponent(int n, double v, double vError) {
     if (n < 0) {
         throw GeneralClassicException(
             "Multipole::setNormalComponent",
-            "component index " + std::to_string(n) + " out of bounds"
-        );
+            "component index " + std::to_string(n) + " out of bounds");
     }
 
     if (n >= max_NormalComponent_m) {
@@ -211,8 +209,8 @@ void Multipole::setNormalComponent(int n, double v, double vError) {
 void Multipole::setSkewComponent(int n, double v, double vError) {
     if (n < 0) {
         throw GeneralClassicException(
-            "Multipole::setSkewComponent", "component index " + std::to_string(n) + " out of bounds"
-        );
+            "Multipole::setSkewComponent",
+            "component index " + std::to_string(n) + " out of bounds");
     }
 
     if (n >= max_SkewComponent_m) {
@@ -278,15 +276,13 @@ bool Multipole::apply() {
                 Vector_t<double, 3> Ef(0.0), Bf(0.0);
                 // Compute field at particle position
                 computeField(
-                    Rview(i), Ef, Bf, normalComponents, skewComponents, maxNormal, maxSkew
-                );
+                    Rview(i), Ef, Bf, normalComponents, skewComponents, maxNormal, maxSkew);
                 for (unsigned d = 0; d < 3; ++d) {
                     Eview(i)(d) += Ef(d);
                     Bview(i)(d) += Bf(d);
                 }
             }
-        }
-    );
+        });
     return false;
 }
 
@@ -301,8 +297,7 @@ bool Multipole::apply() {
  * @returns true if particle is out-of-bounds (lost), false otherwise
  */
 bool Multipole::apply(
-    const size_t& i, const double&, Vector_t<double, 3>& E, Vector_t<double, 3>& B
-) {
+    const size_t& i, const double&, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
     // Get container
     std::shared_ptr<ParticleContainer_t> pc = RefPartBunch_m->getParticleContainer();
     auto Rview                              = pc->R.getView();
@@ -340,8 +335,7 @@ bool Multipole::apply(
 
 bool Multipole::apply(
     const Vector_t<double, 3>& R, const Vector_t<double, 3>&, const double&, Vector_t<double, 3>& E,
-    Vector_t<double, 3>& B
-) {
+    Vector_t<double, 3>& B) {
     // Check bounds
     if (R(2) < 0.0 || R(2) > getElementLength())
         return false;
@@ -367,8 +361,7 @@ bool Multipole::apply(
  */
 bool Multipole::applyToReferenceParticle(
     const Vector_t<double, 3>& R, const Vector_t<double, 3>&, const double&, Vector_t<double, 3>& E,
-    Vector_t<double, 3>& B
-) {
+    Vector_t<double, 3>& B) {
     // Check bounds
     if (R(2) < 0.0 || R(2) > getElementLength())
         return false;
@@ -427,8 +420,7 @@ KOKKOS_INLINE_FUNCTION
 void Multipole::computeField(
     Vector_t<double, 3> R, Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B,
     const Kokkos::View<double*> NormalComponents, const Kokkos::View<double*> SkewComponents,
-    int max_NormalComponent, int max_SkewComponent
-) {
+    int max_NormalComponent, int max_SkewComponent) {
     // Use primitive double arrays instead of Vector_t to avoid constructor/destructor calls on GPU
     // stack
     double Rn_x[MAX_MP_ORDER + 1];
@@ -504,8 +496,7 @@ void Multipole::computeField(
  * @param B Magnetic field reference
  */
 void Multipole::computeFieldHost(
-    const Vector_t<double, 3> R, Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B
-) const {
+    const Vector_t<double, 3> R, Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B) const {
     Vector_t<double, 3> Rn[MAX_MP_ORDER + 1];
     double fact[MAX_MP_ORDER + 1];
 

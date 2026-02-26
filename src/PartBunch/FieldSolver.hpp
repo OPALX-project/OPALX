@@ -23,8 +23,7 @@ private:
 public:
     FieldSolver(
         std::string solver, Field_t<Dim>* rho, VField_t<T, Dim>* E, Field_t<Dim>* phi,
-        std::shared_ptr<BCHandler_t> bcHandler
-    )
+        std::shared_ptr<BCHandler_t> bcHandler)
         : ippl::FieldSolverBase<T, Dim>(solver),
           rho_m(rho),
           E_m(E),

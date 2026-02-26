@@ -59,8 +59,7 @@ Sequence::Sequence()
           "\t\t<object>: <class>,AT=<real>{,<attribute>=<value>}\n"
           "\t\t<object>: <class>,DRIFT=<real>{,<attribute>=<value>}\n"
           "\t\t...\n"
-          "\tEND;"
-      ) {
+          "\tEND;") {
     itsAttr[TYPE]   = Attributes::makeString("TYPE", "The design type");
     itsAttr[LENGTH] = Attributes::makeReal("L", "Total length of sequence in m");
 
@@ -68,14 +67,12 @@ Sequence::Sequence()
         "REFER",
         "Reference position for members:\n"
         "\tENTRY | EXIT | CENTRE (default is CENTRE)",
-        "CENTRE"
-    );
+        "CENTRE");
     itsAttr[REFPOS] = Attributes::makeString(
         "REFPOS",
         "Element giving reference position for this sequence"
         "\t(if given, this position is used instead of the centre, when the"
-        "\tsequence is nested in another sequence with \"REFER=CENTRE\")"
-    );
+        "\tsequence is nested in another sequence with \"REFER=CENTRE\")");
 
     setElement(new TLine("SEQUENCE"));
 
@@ -129,8 +126,7 @@ Sequence::TLine::iterator Sequence::findNamedPosition(TLine& line, const std::st
                     if (test->getElement()->getName() == name) {
                         throw OpalException(
                             "Sequence::findNamedPosition()",
-                            "Element \"" + name + "\" is not unique in sequence."
-                        );
+                            "Element \"" + name + "\" is not unique in sequence.");
                     }
                 }
 
@@ -140,8 +136,7 @@ Sequence::TLine::iterator Sequence::findNamedPosition(TLine& line, const std::st
     }
 
     throw OpalException(
-        "Sequence::findNamedPosition()", "Element \"" + name + "\" not found in sequence."
-    );
+        "Sequence::findNamedPosition()", "Element \"" + name + "\" not found in sequence.");
 }
 
 double Sequence::getLength() const { return Attributes::getReal(itsAttr[LENGTH]); }

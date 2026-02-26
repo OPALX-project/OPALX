@@ -107,8 +107,7 @@ TEST_F(TestSplineTimeDependence, UserInterface) {
     EXPECT_NO_THROW(ui.update());
     // Check the values
     auto* myDependency = dynamic_cast<SplineTimeDependence*>(
-        AbstractTimeDependence::getTimeDependence("SPLINE_TIME_DEPENDENCE").get()
-    );
+        AbstractTimeDependence::getTimeDependence("SPLINE_TIME_DEPENDENCE").get());
     EXPECT_TRUE(myDependency);
     EXPECT_EQ(myDependency->getSplineOrder(), 3);
     EXPECT_EQ(myDependency->getTimes(), (std::vector{1.0, 2.0, 3.0, 4.0}));

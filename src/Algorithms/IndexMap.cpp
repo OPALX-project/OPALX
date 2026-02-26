@@ -292,8 +292,7 @@ void IndexMap::saveSDDS(double initialPathLength) const {
 
     std::string fileName = Util::combineFilePath(
         {OpalData::getInstance()->getAuxiliaryOutputDirectory(),
-         OpalData::getInstance()->getInputBasename() + "_ElementPositions.sdds"}
-    );
+         OpalData::getInstance()->getInputBasename() + "_ElementPositions.sdds"});
     ElementPositionWriter writer(fileName);
 
     for (auto sector : sectors) {
@@ -343,21 +342,18 @@ namespace {
 }  // namespace
 
 IndexMap::key_t IndexMap::getRange(
-    const IndexMap::value_t::value_type& element, double position
-) const {
+    const IndexMap::value_t::value_type& element, double position) const {
     double minDistance = std::numeric_limits<double>::max();
     key_t range{0.0, 0.0};
     const std::pair<invertedMap_t::const_iterator, invertedMap_t::const_iterator> its =
         mapElement2Range_m.equal_range(element);
     if (std::distance(its.first, its.second) == 0)
         throw OpalException(
-            "IndexMap::getRange()", "Element \"" + element->getName() + "\" not registered"
-        );
+            "IndexMap::getRange()", "Element \"" + element->getName() + "\" not registered");
 
     for (invertedMap_t::const_iterator it = its.first; it != its.second; ++it) {
         double distance = std::min(
-            std::abs((*it).second.begin - position), std::abs((*it).second.end - position)
-        );
+            std::abs((*it).second.begin - position), std::abs((*it).second.end - position));
         if (distance < minDistance) {
             minDistance = distance;
             range       = (*it).second;
@@ -383,6 +379,5 @@ IndexMap::value_t IndexMap::getTouchingElements(const IndexMap::key_t& range) co
 bool IndexMap::almostEqual(double x, double y) {
     return (
         std::abs(x - y) < std::numeric_limits<double>::epsilon() * std::abs(x + y) * 2
-        || std::abs(x - y) < std::numeric_limits<double>::min()
-    );
+        || std::abs(x - y) < std::numeric_limits<double>::min());
 }

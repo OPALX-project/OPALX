@@ -305,8 +305,7 @@ inline void gsl_matrix_transpose_memcpy(gsl_matrix* dest, const gsl_matrix* src)
 /// \param dest Output: destination matrix of size \f$n_2 \times n_1\f$.
 /// \param src Input: source matrix.
 inline void gsl_matrix_complex_transpose_memcpy(
-    gsl_matrix_complex* dest, const gsl_matrix_complex* src
-) {
+    gsl_matrix_complex* dest, const gsl_matrix_complex* src) {
     if (dest->size1 != src->size2 || dest->size2 != src->size1) {
         throw std::runtime_error("gsl_matrix_complex_transpose_memcpy: size mismatch");
     }

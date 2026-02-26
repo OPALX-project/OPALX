@@ -89,8 +89,7 @@ namespace polynomial {
          *  \param s -> Number of s-derivatives
          */
         void setPolynomial(
-            const std::vector<int>& poly, const std::size_t& x, const std::size_t& s
-        );
+            const std::vector<int>& poly, const std::size_t& x, const std::size_t& s);
         /** Print operator, for internal debugging */
         void printOperator() const;
         /** Add the operator to Operator, term by term
@@ -124,8 +123,7 @@ namespace polynomial {
          *  \param sDerivative -> Number of s-derivatives
          */
         double evaluatePolynomial(
-            const double& x, const std::size_t& xDerivative, const std::size_t& sDerivative
-        ) const;
+            const double& x, const std::size_t& xDerivative, const std::size_t& sDerivative) const;
 
     private:
         std::vector<std::vector<Polynomial>> polynomials_m;

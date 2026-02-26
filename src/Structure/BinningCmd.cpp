@@ -8,42 +8,37 @@
 
 BinningCmd::BinningCmd()
     : Definition(
-          BINNING::SIZE, "BINNING", "The \"BINNING\" statement defines adaptive binning parameters."
-      ),
+          BINNING::SIZE, "BINNING",
+          "The \"BINNING\" statement defines adaptive binning parameters."),
       parameterName_m("VELOCITYZ"),
       parameterType_m(BinningParameter::VELOCITYZ) {
     itsAttr[BINNING::MAXBINS] = Attributes::makeReal(
         "MAXBINS",
         "The maximum number of bins used for adaptive binning. "
         "Default: 128.",
-        128
-    );
+        128);
 
     itsAttr[BINNING::DESIREDWIDTH] = Attributes::makeReal(
         "DESIREDWIDTH",
         "A bias [0, 1] that tries to steer the bin size to the given variable. "
         "Default: 0.1.",
-        0.1
-    );
+        0.1);
 
     itsAttr[BINNING::BINNINGALPHA] = Attributes::makeReal(
         "BINNINGALPHA",
         "A value [0, 1] that determines how aggressive the algorithm tries to "
         "reduce the number of bins. Default: 1.0.",
-        1.0
-    );
+        1.0);
 
     itsAttr[BINNING::BINNINGBETA] = Attributes::makeReal(
         "BINNINGBETA",
         "A value [0, 1] that determines how aggressive the algorithm tries to "
         "use wider bins. Default: 1.5.",
-        1.5
-    );
+        1.5);
 
     itsAttr[BINNING::PARAMETER] = Attributes::makePredefinedString(
         "PARAMETER", "The bunch attribute used for binning.",
-        {"VELOCITYZ", "POSITIONZ", "PZ", "GAMMAZ"}, "VELOCITYZ"
-    );
+        {"VELOCITYZ", "POSITIONZ", "PZ", "GAMMAZ"}, "VELOCITYZ");
 }
 
 BinningCmd::BinningCmd(const std::string& name, BinningCmd* parent)
@@ -85,14 +80,13 @@ void BinningCmd::setParameterType() {
         {"VELOCITYZ", BinningParameter::VELOCITYZ},
         {"POSITIONZ", BinningParameter::POSITIONZ},
         {"PZ", BinningParameter::PZ},
-        {"GAMMAZ", BinningParameter::GAMMAZ}
-    };
+        {"GAMMAZ", BinningParameter::GAMMAZ}};
 
     auto it = stringToParam.find(parameterName_m);
     if (it == stringToParam.end()) {
         throw OpalException(
-            "BinningCmd::setParameterType", "Unknown binning PARAMETER \"" + parameterName_m + "\""
-        );
+            "BinningCmd::setParameterType",
+            "Unknown binning PARAMETER \"" + parameterName_m + "\"");
     }
 
     parameterType_m = it->second;

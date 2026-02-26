@@ -24,8 +24,8 @@
 
 OpalTravelingWave::OpalTravelingWave()
     : OpalElement(
-          SIZE, "TRAVELINGWAVE", "The \"TRAVELINGWAVE\" element defines a traveling wave structure."
-      ) {
+          SIZE, "TRAVELINGWAVE",
+          "The \"TRAVELINGWAVE\" element defines a traveling wave structure.") {
     itsAttr[VOLT]   = Attributes::makeReal("VOLT", "RF voltage in MV/m");
     itsAttr[DVOLT]  = Attributes::makeReal("DVOLT", "RF voltage error in MV/m");
     itsAttr[FREQ]   = Attributes::makeReal("FREQ", "RF frequency in MHz");
@@ -39,8 +39,7 @@ OpalTravelingWave::OpalTravelingWave()
     itsAttr[DESIGNENERGY] =
         Attributes::makeReal("DESIGNENERGY", "the mean energy of the particles at exit", -1.0);
     itsAttr[MODE] = Attributes::makeReal(
-        "MODE", "The phase shift between neighboring cells in 2*pi", 1.0 / 3.0
-    );
+        "MODE", "The phase shift between neighboring cells in 2*pi", 1.0 / 3.0);
 
     registerOwnership();
 

@@ -32,8 +32,7 @@ public:
     ~CavityAutophaser();
 
     double getPhaseAtMaxEnergy(
-        const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, double t, double dt
-    );
+        const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, double t, double dt);
 
 private:
     double guessCavityPhase(double t);

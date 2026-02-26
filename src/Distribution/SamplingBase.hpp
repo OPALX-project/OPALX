@@ -18,8 +18,7 @@ protected:
 public:
     SamplingBase(
         std::shared_ptr<ParticleContainer_t> pc, std::shared_ptr<FieldContainer_t> fc,
-        std::shared_ptr<Distribution_t> dist
-    )
+        std::shared_ptr<Distribution_t> dist)
         : pc_m(pc), fc_m(fc), opalDist_m(dist) {}
 
     SamplingBase(std::shared_ptr<ParticleContainer_t> pc, std::shared_ptr<FieldContainer_t> fc)

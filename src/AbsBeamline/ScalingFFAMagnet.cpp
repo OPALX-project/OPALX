@@ -73,8 +73,7 @@ const EMField& ScalingFFAMagnet::getField() const { return dummy; }
 bool ScalingFFAMagnet::apply() { return false; }
 
 bool ScalingFFAMagnet::apply(
-    const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B
-) {
+    const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
     std::shared_ptr<ParticleContainer_t> pc = RefPartBunch_m->getParticleContainer();
     auto Rview                              = pc->R.getView();
     auto Pview                              = pc->P.getView();
@@ -86,8 +85,8 @@ bool ScalingFFAMagnet::apply(
 
 void ScalingFFAMagnet::initialise() { calculateDfCoefficients(); }
 
-void ScalingFFAMagnet::
-    initialise(PartBunch_t* bunch, double& /*startField*/, double& /*endField*/) {
+void ScalingFFAMagnet::initialise(
+    PartBunch_t* bunch, double& /*startField*/, double& /*endField*/) {
     RefPartBunch_m = bunch;
     initialise();
 }
@@ -108,8 +107,7 @@ bool ScalingFFAMagnet::getFieldValue(const Vector_t<double, 3>& R, Vector_t<doub
     Vector_t<double, 3> pos = R - centre_m;
     double r                = std::sqrt(pos[0] * pos[0] + pos[2] * pos[2]);
     double phi              = std::atan2(
-        pos[2], pos[0]
-    );  // angle between y-axis and position vector in anticlockwise direction
+        pos[2], pos[0]);  // angle between y-axis and position vector in anticlockwise direction
     Vector_t<double, 3> posCyl({r, pos[1], phi});
     Vector_t<double, 3> bCyl({0., 0., 0.});  // br bz bphi
     bool outOfBounds = getFieldValueCylindrical(posCyl, bCyl);
@@ -121,8 +119,7 @@ bool ScalingFFAMagnet::getFieldValue(const Vector_t<double, 3>& R, Vector_t<doub
 }
 
 bool ScalingFFAMagnet::getFieldValueCylindrical(
-    const Vector_t<double, 3>& pos, Vector_t<double, 3>& B
-) const {
+    const Vector_t<double, 3>& pos, Vector_t<double, 3>& B) const {
     double r   = pos[0];
     double z   = pos[1];
     double phi = pos[2];
@@ -172,8 +169,7 @@ bool ScalingFFAMagnet::getFieldValueCylindrical(
 
 bool ScalingFFAMagnet::apply(
     const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
-    Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B
-) {
+    Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B) {
     return getFieldValue(R, B);
 }
 

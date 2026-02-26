@@ -29,8 +29,7 @@ namespace mslang {
             {Vector_t<double, 3>(0.5 * width_m, 0.5 * height_m, 0),
              Vector_t<double, 3>(-0.5 * width_m, 0.5 * height_m, 0),
              Vector_t<double, 3>(-0.5 * width_m, -0.5 * height_m, 0),
-             Vector_t<double, 3>(0.5 * width_m, -0.5 * height_m, 0)}
-        );
+             Vector_t<double, 3>(0.5 * width_m, -0.5 * height_m, 0)});
 
         for (Vector_t<double, 3>& v : corners) {
             v = trafo_m.transformFrom(v);
@@ -77,8 +76,7 @@ namespace mslang {
             {Vector_t<double, 3>(0.5 * width_m, 0.5 * height_m, 0),
              Vector_t<double, 3>(-0.5 * width_m, 0.5 * height_m, 0),
              Vector_t<double, 3>(-0.5 * width_m, -0.5 * height_m, 0),
-             Vector_t<double, 3>(0.5 * width_m, -0.5 * height_m, 0)}
-        );
+             Vector_t<double, 3>(0.5 * width_m, -0.5 * height_m, 0)});
         unsigned int width = out.precision() + 8;
         for (unsigned int i = 0; i < 5; ++i) {
             Vector_t<double, 3> pt = pts[i % 4];

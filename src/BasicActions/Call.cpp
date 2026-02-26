@@ -33,8 +33,7 @@ Call::Call()
     : Action(
           1, "CALL",
           "The \"CALL\" statement switches input temporarily to the "
-          "named file."
-      ) {
+          "named file.") {
     itsAttr[0] = Attributes::makeString("FILE", "Name of file to be read", "CALL");
 
     registerOwnership(AttributeHandler::STATEMENT);

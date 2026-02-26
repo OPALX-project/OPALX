@@ -28,8 +28,7 @@ std::multimap<std::string, std::pair<AttributeHandler::OwnerType, std::string> >
     AttributeHandler::attributeOwnerDictionary_s;
 
 AttributeHandler::AttributeHandler(
-    const std::string& name, const std::string& help, AttributeBase* def
-)
+    const std::string& name, const std::string& help, AttributeBase* def)
     : itsName(name),
       itsHelp(help),
       itsDefault(std::shared_ptr<AttributeBase>(def)),
@@ -43,8 +42,8 @@ AttributeBase* AttributeHandler::getDefault() const {
         return &*itsDefault;
     } else {
         throw OpalException(
-            "AttributeHandler::getDefault()", "Attribute \"" + itsName + "\" has no default value."
-        );
+            "AttributeHandler::getDefault()",
+            "Attribute \"" + itsName + "\" has no default value.");
     }
 }
 
@@ -56,8 +55,7 @@ void AttributeHandler::parseComponent(Attribute&, Statement&, bool, int) const {
     // Default behaviour.
     throw OpalException(
         "AttributeHandler::parseComponent()",
-        "You cannot assign to a component of \"" + itsName + "\" which is not a vector value."
-    );
+        "You cannot assign to a component of \"" + itsName + "\" which is not a vector value.");
 }
 
 bool AttributeHandler::isDeferred() const { return is_deferred; }
@@ -69,8 +67,7 @@ bool AttributeHandler::isReadOnly() const { return is_readonly; }
 void AttributeHandler::setReadOnly(bool flag) { is_readonly = flag; }
 
 void AttributeHandler::setPredefinedValues(
-    const std::set<std::string>& predefinedValues, const std::string& defaultValue
-) {
+    const std::set<std::string>& predefinedValues, const std::string& defaultValue) {
     std::ostringstream oss;
     for (auto it = predefinedValues.begin(); it != predefinedValues.end(); ++it) {
         if (it != predefinedValues.begin())
@@ -86,8 +83,7 @@ void AttributeHandler::setPredefinedValues(
 }
 
 std::multimap<AttributeHandler::OwnerType, std::string> AttributeHandler::getOwner(
-    const std::string& att
-) {
+    const std::string& att) {
     std::multimap<OwnerType, std::string> possibleOwners;
 
     if (attributeOwnerDictionary_s.find(att) != attributeOwnerDictionary_s.end()) {
@@ -104,7 +100,6 @@ std::multimap<AttributeHandler::OwnerType, std::string> AttributeHandler::getOwn
 }
 
 void AttributeHandler::addAttributeOwner(
-    const std::string& owner, const AttributeHandler::OwnerType& type, const std::string& name
-) {
+    const std::string& owner, const AttributeHandler::OwnerType& type, const std::string& name) {
     attributeOwnerDictionary_s.insert(std::make_pair(name, std::make_pair(type, owner)));
 }

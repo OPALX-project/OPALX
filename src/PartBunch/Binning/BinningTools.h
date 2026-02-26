@@ -32,8 +32,7 @@ namespace ParticleBinning {
      */
     template <typename bin_index_type>
     HistoReductionMode determineHistoReductionMode(
-        HistoReductionMode modePreference, bin_index_type binCount
-    ) {
+        HistoReductionMode modePreference, bin_index_type binCount) {
         // Overwrite standard mode if compiled with default host execution space!
         if (std::is_same<Kokkos::DefaultExecutionSpace, Kokkos::DefaultHostExecutionSpace>::value)
             return HistoReductionMode::HostOnly;
@@ -160,8 +159,7 @@ namespace ParticleBinning {
         // Initialize the first element to 0
         Kokkos::parallel_for(
             "InitPostSum", Kokkos::RangePolicy<execution_space>(0, 1),
-            KOKKOS_LAMBDA(const size_type) { post_sum_view(0) = 0; }
-        );
+            KOKKOS_LAMBDA(const size_type) { post_sum_view(0) = 0; });
 
         // Compute the fix sum
         Kokkos::parallel_scan(
@@ -171,8 +169,7 @@ namespace ParticleBinning {
                 if (final) {
                     post_sum_view(i + 1) = partial_sum;
                 }
-            }
-        );
+            });
     }
 
     /**
@@ -196,8 +193,7 @@ namespace ParticleBinning {
                 if (view(indices(i)) > view(indices(i + 1)))
                     update = false;
             },
-            Kokkos::LAnd<bool>(sorted)
-        );
+            Kokkos::LAnd<bool>(sorted));
         return sorted;
     }
 

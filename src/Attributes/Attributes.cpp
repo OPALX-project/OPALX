@@ -75,8 +75,7 @@ namespace {
 
         throw OpalException(
             "Attributes::stringifyVariable",
-            "The variable '" + obj->getOpalName() + "' isn't of type REAL, STRING or BOOL"
-        );
+            "The variable '" + obj->getOpalName() + "' isn't of type REAL, STRING or BOOL");
         return "";
     }
 }  // namespace
@@ -102,14 +101,14 @@ namespace Attributes {
             AttributeBase* base = &attr.getBase();
             if (dynamic_cast<Bool*>(&attr.getHandler())) {
                 return dynamic_cast<SValue<bool>*>(base)->evaluate();
-            } else if (SValue<SRefAttr<bool> >* ref =
-                           dynamic_cast<SValue<SRefAttr<bool> >*>(base)) {
+            } else if (
+                SValue<SRefAttr<bool> >* ref = dynamic_cast<SValue<SRefAttr<bool> >*>(base)) {
                 const SRefAttr<bool>& value = ref->evaluate();
                 return value.evaluate();
             } else {
                 throw OpalException(
-                    "Attributes::getBool()", "Attribute \"" + attr.getName() + "\" is not logical."
-                );
+                    "Attributes::getBool()",
+                    "Attribute \"" + attr.getName() + "\" is not logical.");
             }
         } else {
             return false;
@@ -120,14 +119,14 @@ namespace Attributes {
         SValue<SRefAttr<bool> >* ref;
         if (dynamic_cast<const Bool*>(&attr.getHandler())) {
             attr.set(new SValue<bool>(val));
-        } else if ((attr.isBaseAllocated() == true)
-                   && (ref = dynamic_cast<SValue<SRefAttr<bool> >*>(&attr.getBase()))) {
+        } else if (
+            (attr.isBaseAllocated() == true)
+            && (ref = dynamic_cast<SValue<SRefAttr<bool> >*>(&attr.getBase()))) {
             const SRefAttr<bool>& value = ref->evaluate();
             value.set(val);
         } else {
             throw OpalException(
-                "Attributes::setBool()", "Attribute \"" + attr.getName() + "\" is not logical."
-            );
+                "Attributes::setBool()", "Attribute \"" + attr.getName() + "\" is not logical.");
         }
     }
 
@@ -145,8 +144,7 @@ namespace Attributes {
             } else {
                 throw OpalException(
                     "Attributes::getBoolArray()",
-                    "Attribute \"" + attr.getName() + "\" is not a logical array."
-                );
+                    "Attribute \"" + attr.getName() + "\" is not a logical array.");
             }
         } else {
             return std::vector<bool>();
@@ -161,8 +159,7 @@ namespace Attributes {
         } else {
             throw OpalException(
                 "Attributes::setBoolArray()",
-                "Attribute \"" + attr.getName() + "\" is not a logical array"
-            );
+                "Attribute \"" + attr.getName() + "\" is not a logical array");
         }
     }
 
@@ -180,8 +177,7 @@ namespace Attributes {
             } else {
                 throw OpalException(
                     "Attributes::getPlace()",
-                    "Attribute \"" + attr.getName() + "\" is not a place reference."
-                );
+                    "Attribute \"" + attr.getName() + "\" is not a place reference.");
             }
         } else {
             return PlaceRep();
@@ -194,8 +190,7 @@ namespace Attributes {
         } else {
             throw OpalException(
                 "Attributes::setPlace()",
-                "Attribute \"" + attr.getName() + "\" is not a place reference."
-            );
+                "Attribute \"" + attr.getName() + "\" is not a place reference.");
         }
     }
 
@@ -213,8 +208,7 @@ namespace Attributes {
             } else {
                 throw OpalException(
                     "Attributes::getRange()",
-                    "Attribute \"" + attr.getName() + "\" is not a range reference."
-                );
+                    "Attribute \"" + attr.getName() + "\" is not a range reference.");
             }
         } else {
             return RangeRep();
@@ -227,8 +221,7 @@ namespace Attributes {
         } else {
             throw OpalException(
                 "Attributes::setRange()",
-                "Attribute \"" + attr.getName() + "\" is not a range reference."
-            );
+                "Attribute \"" + attr.getName() + "\" is not a range reference.");
         }
     }
 
@@ -248,14 +241,13 @@ namespace Attributes {
             AttributeBase* base = &attr.getBase();
             if (dynamic_cast<Real*>(&attr.getHandler())) {
                 return dynamic_cast<SValue<double>*>(base)->evaluate();
-            } else if (SValue<SRefAttr<double> >* ref =
-                           dynamic_cast<SValue<SRefAttr<double> >*>(base)) {
+            } else if (
+                SValue<SRefAttr<double> >* ref = dynamic_cast<SValue<SRefAttr<double> >*>(base)) {
                 const SRefAttr<double>& value = ref->evaluate();
                 return value.evaluate();
             } else {
                 throw OpalException(
-                    "Attributes::getReal()", "Attribute \"" + attr.getName() + "\" is not real."
-                );
+                    "Attributes::getReal()", "Attribute \"" + attr.getName() + "\" is not real.");
             }
         } else {
             return 0.0;
@@ -266,14 +258,14 @@ namespace Attributes {
         SValue<SRefAttr<double> >* ref;
         if (dynamic_cast<const Real*>(&attr.getHandler())) {
             attr.set(new SValue<double>(val));
-        } else if ((attr.isBaseAllocated() == true)
-                   && (ref = dynamic_cast<SValue<SRefAttr<double> >*>(&attr.getBase()))) {
+        } else if (
+            (attr.isBaseAllocated() == true)
+            && (ref = dynamic_cast<SValue<SRefAttr<double> >*>(&attr.getBase()))) {
             const SRefAttr<double>& value = ref->evaluate();
             value.set(val);
         } else {
             throw OpalException(
-                "Attributes::setReal()", "Attribute \"" + attr.getName() + "\" is not real."
-            );
+                "Attributes::setReal()", "Attribute \"" + attr.getName() + "\" is not real.");
         }
     }
 
@@ -292,8 +284,7 @@ namespace Attributes {
             } else {
                 throw OpalException(
                     "Attributes::getRealArray()",
-                    "Attribute \"" + attr.getName() + "\" is not a real array."
-                );
+                    "Attribute \"" + attr.getName() + "\" is not a real array.");
             }
         } else {
             return std::vector<double>();
@@ -308,8 +299,7 @@ namespace Attributes {
         } else {
             throw OpalException(
                 "Attributes::setRealArray()",
-                "Attribute \"" + attr.getName() + "\" is not a real array."
-            );
+                "Attribute \"" + attr.getName() + "\" is not a real array.");
         }
     }
 
@@ -328,8 +318,7 @@ namespace Attributes {
     }
 
     Attribute makeString(
-        const std::string& name, const std::string& help, const std::string& initial
-    ) {
+        const std::string& name, const std::string& help, const std::string& initial) {
         return Attribute(new String(name, help), new SValue<std::string>(initial));
     }
 
@@ -341,14 +330,15 @@ namespace Attributes {
                 || dynamic_cast<UpperCaseString*>(&attr.getHandler())
                 || dynamic_cast<PredefinedString*>(&attr.getHandler())) {
                 expr = dynamic_cast<SValue<std::string>*>(base)->evaluate();
-            } else if (SValue<SRefAttr<std::string> >* ref =
-                           dynamic_cast<SValue<SRefAttr<std::string> >*>(base)) {
+            } else if (
+                SValue<SRefAttr<std::string> >* ref =
+                    dynamic_cast<SValue<SRefAttr<std::string> >*>(base)) {
                 const SRefAttr<std::string>& value = ref->evaluate();
                 expr                               = value.evaluate();
             } else {
                 throw OpalException(
-                    "Attributes::getString()", "Attribute \"" + attr.getName() + "\" is not string."
-                );
+                    "Attributes::getString()",
+                    "Attribute \"" + attr.getName() + "\" is not string.");
             }
 
             auto opal = OpalData::getInstance();
@@ -360,9 +350,8 @@ namespace Attributes {
             std::string::const_iterator start = expr.begin();
             std::string::const_iterator end   = expr.end();
 
-            while (
-                std::regex_search(start, end, what, variableRE, std::regex_constants::match_default)
-            ) {
+            while (std::regex_search(
+                start, end, what, variableRE, std::regex_constants::match_default)) {
                 exprDeref += std::string(start, what[0].first);
                 std::string variable = Util::toUpper(std::string(what[1].first, what[1].second));
 
@@ -371,8 +360,7 @@ namespace Attributes {
                 } else {
                     throw OpalException(
                         "Attributes::getString",
-                        "Can't find variable '" + variable + "' in string \"" + expr + "\""
-                    );
+                        "Can't find variable '" + variable + "' in string \"" + expr + "\"");
                 }
 
                 start = what[0].second;
@@ -389,14 +377,14 @@ namespace Attributes {
         SValue<SRefAttr<std::string> >* ref;
         if (dynamic_cast<const String*>(&attr.getHandler())) {
             attr.set(new SValue<std::string>(val));
-        } else if ((attr.isBaseAllocated() == true)
-                   && (ref = dynamic_cast<SValue<SRefAttr<std::string> >*>(&attr.getBase()))) {
+        } else if (
+            (attr.isBaseAllocated() == true)
+            && (ref = dynamic_cast<SValue<SRefAttr<std::string> >*>(&attr.getBase()))) {
             const SRefAttr<std::string>& value = ref->evaluate();
             value.set(val);
         } else {
             throw OpalException(
-                "Attributes::setString()", "Attribute \"" + attr.getName() + "\" is not a string."
-            );
+                "Attributes::setString()", "Attribute \"" + attr.getName() + "\" is not a string.");
         }
     }
 
@@ -405,19 +393,16 @@ namespace Attributes {
 
     Attribute makePredefinedString(
         const std::string& name, const std::string& help,
-        const std::initializer_list<std::string>& predefinedStrings
-    ) {
+        const std::initializer_list<std::string>& predefinedStrings) {
         return Attribute(new PredefinedString(name, help, predefinedStrings), nullptr);
     }
 
     Attribute makePredefinedString(
         const std::string& name, const std::string& help,
-        const std::initializer_list<std::string>& predefinedStrings, const std::string& initial
-    ) {
+        const std::initializer_list<std::string>& predefinedStrings, const std::string& initial) {
         return Attribute(
             new PredefinedString(name, help, predefinedStrings, initial),
-            new SValue<std::string>(Util::toUpper(initial))
-        );
+            new SValue<std::string>(Util::toUpper(initial)));
     }
 
     void setPredefinedString(Attribute& attr, const std::string& val) {
@@ -425,15 +410,15 @@ namespace Attributes {
         std::string upperCaseVal = Util::toUpper(val);
         if (dynamic_cast<const PredefinedString*>(&attr.getHandler())) {
             attr.set(new SValue<std::string>(upperCaseVal));
-        } else if ((attr.isBaseAllocated() == true)
-                   && (ref = dynamic_cast<SValue<SRefAttr<std::string> >*>(&attr.getBase()))) {
+        } else if (
+            (attr.isBaseAllocated() == true)
+            && (ref = dynamic_cast<SValue<SRefAttr<std::string> >*>(&attr.getBase()))) {
             const SRefAttr<std::string>& value = ref->evaluate();
             value.set(upperCaseVal);
         } else {
             throw OpalException(
                 "Attributes::setPredefinedString()",
-                "Attribute \"" + attr.getName() + "\" is not a supported string."
-            );
+                "Attribute \"" + attr.getName() + "\" is not a supported string.");
         }
     }
 
@@ -445,26 +430,24 @@ namespace Attributes {
     }
 
     Attribute makeUpperCaseString(
-        const std::string& name, const std::string& help, const std::string& initial
-    ) {
+        const std::string& name, const std::string& help, const std::string& initial) {
         return Attribute(
-            new UpperCaseString(name, help), new SValue<std::string>(Util::toUpper(initial))
-        );
+            new UpperCaseString(name, help), new SValue<std::string>(Util::toUpper(initial)));
     }
 
     void setUpperCaseString(Attribute& attr, const std::string& val) {
         SValue<SRefAttr<std::string> >* ref;
         if (dynamic_cast<const UpperCaseString*>(&attr.getHandler())) {
             attr.set(new SValue<std::string>(Util::toUpper(val)));
-        } else if ((attr.isBaseAllocated() == true)
-                   && (ref = dynamic_cast<SValue<SRefAttr<std::string> >*>(&attr.getBase()))) {
+        } else if (
+            (attr.isBaseAllocated() == true)
+            && (ref = dynamic_cast<SValue<SRefAttr<std::string> >*>(&attr.getBase()))) {
             const SRefAttr<std::string>& value = ref->evaluate();
             value.set(Util::toUpper(val));
         } else {
             throw OpalException(
                 "Attributes::setUpperCaseString()",
-                "Attribute \"" + attr.getName() + "\" is not an upper case string."
-            );
+                "Attribute \"" + attr.getName() + "\" is not an upper case string.");
         }
     }
 
@@ -492,8 +475,7 @@ namespace Attributes {
                     std::string::const_iterator end   = expr.end();
 
                     while (std::regex_search(
-                        start, end, what, variableRE, std::regex_constants::match_default
-                    )) {
+                        start, end, what, variableRE, std::regex_constants::match_default)) {
                         exprDeref += std::string(start, what[0].first);
                         std::string variable =
                             Util::toUpper(std::string(what[1].first, what[1].second));
@@ -517,8 +499,7 @@ namespace Attributes {
             } else {
                 throw OpalException(
                     "Attributes::getStringArray()",
-                    "Attribute \"" + attr.getName() + "\" is not a string array."
-                );
+                    "Attribute \"" + attr.getName() + "\" is not a string array.");
             }
         } else {
             return std::vector<std::string>();
@@ -532,8 +513,7 @@ namespace Attributes {
         } else {
             throw OpalException(
                 "Attributes::setStringArray()",
-                "Attribute \"" + attr.getName() + "\" is not a string array."
-            );
+                "Attribute \"" + attr.getName() + "\" is not a string array.");
         }
     }
 
@@ -550,14 +530,12 @@ namespace Attributes {
             std::transform(
                 value.begin(), value.end(), uppercase.begin(), [](std::string val) -> std::string {
                     return Util::toUpper(val);
-                }
-            );
+                });
             attr.set(new AValue<std::string>(uppercase));
         } else {
             throw OpalException(
                 "Attributes::setUpperCaseStringArray()",
-                "Attribute \"" + attr.getName() + "\" is not an upper case string array."
-            );
+                "Attribute \"" + attr.getName() + "\" is not an upper case string array.");
         }
     }
 
@@ -575,8 +553,7 @@ namespace Attributes {
             } else {
                 throw OpalException(
                     "Attributes::getTableRow()",
-                    "Attribute \"" + attr.getName() + "\" is not a table row reference."
-                );
+                    "Attribute \"" + attr.getName() + "\" is not a table row reference.");
             }
         } else {
             return TableRowRep();
@@ -589,8 +566,7 @@ namespace Attributes {
         } else {
             throw OpalException(
                 "Attributes::setTableRow()",
-                "Attribute \"" + attr.getName() + "\" is not a table row reference."
-            );
+                "Attribute \"" + attr.getName() + "\" is not a table row reference.");
         }
     }
 
@@ -609,8 +585,7 @@ namespace Attributes {
             } else {
                 throw OpalException(
                     "Attributes::getTokenList()",
-                    "Attribute \"" + attr.getName() + "\" is not a token list."
-                );
+                    "Attribute \"" + attr.getName() + "\" is not a token list.");
             }
         } else {
             return std::list<Token>();
@@ -623,8 +598,7 @@ namespace Attributes {
         } else {
             throw OpalException(
                 "Attributes::setTokenList()",
-                "Attribute \"" + attr.getName() + "\" is not a token list."
-            );
+                "Attribute \"" + attr.getName() + "\" is not a token list.");
         }
     }
 
@@ -643,8 +617,7 @@ namespace Attributes {
             } else {
                 throw OpalException(
                     "Attributes::getTokenListArray()",
-                    "Attribute \"" + attr.getName() + "\" is not a token list array."
-                );
+                    "Attribute \"" + attr.getName() + "\" is not a token list array.");
             }
         } else {
             return std::vector<std::list<Token> >();

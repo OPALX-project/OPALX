@@ -99,8 +99,7 @@ public:
      *     direction
      */
     static Offset localCylindricalOffset(
-        std::string name, double theta_in, double theta_out, double displacement
-    );
+        std::string name, double theta_in, double theta_out, double displacement);
 
     /** Factory method to make an offset in global cylindrical polar coordinates
      *   - name name of the offset
@@ -112,8 +111,7 @@ public:
      *  system.
      */
     static Offset globalCylindricalOffset(
-        std::string name, double radius_out, double phi_out, double theta_out
-    );
+        std::string name, double radius_out, double phi_out, double theta_out);
 
     /** Factory method to make an offset in cartesian coordinates local to the
      *  end of the previous element
@@ -122,8 +120,7 @@ public:
      *   - end_direction direction of the end of the offset
      */
     static Offset localCartesianOffset(
-        std::string name, Vector_t<double, 3> end_position, Vector_t<double, 3> end_direction
-    );
+        std::string name, Vector_t<double, 3> end_position, Vector_t<double, 3> end_direction);
 
     /** Factory method to make an offset in global cartesian coordinates
      *   - name name of the offset
@@ -134,8 +131,7 @@ public:
      *  system.
      */
     static Offset globalCartesianOffset(
-        std::string name, Vector_t<double, 3> end_position, Vector_t<double, 3> end_direction
-    );
+        std::string name, Vector_t<double, 3> end_position, Vector_t<double, 3> end_direction);
 
     /** deletes geometry and wrappedGeometry */
     ~Offset();
