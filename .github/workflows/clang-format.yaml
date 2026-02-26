@@ -4,9 +4,6 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, labeled, ready_for_review]
     branches: ["master"]
-  merge_group:
-    types: [checks_requested]
-    branches: ["master"]
 
 jobs:
   clang-format:
