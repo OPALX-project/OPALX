@@ -8,6 +8,8 @@ on:
 jobs:
   clang-format:
     runs-on: ubuntu-latest
+    container:
+      image: debian:testing
     if: |
       github.event_name == 'merge_group' ||
       (github.event_name == 'pull_request' &&
@@ -20,13 +22,10 @@ jobs:
         with:
           fetch-depth: 0 # IMPORTANT: required for git diff
 
-      - name: Install clang-format 20.1.8 (static)
+      - name: Install clang-format
         run: |
-          sudo curl -L \
-            https://github.com/cpp-linter/clang-tools-static-binaries/releases/download/v20.1.8/clang-format-20.1.8_linux-amd64 \
-            -o /usr/local/bin/clang-format
-          sudo chmod +x /usr/local/bin/clang-format
-          
+          apt-get update
+          apt-get install -y clang-format-20
       - name: Get list of modified source files
         id: files
         env:
