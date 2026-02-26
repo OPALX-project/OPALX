@@ -20,11 +20,13 @@ jobs:
         with:
           fetch-depth: 0 # IMPORTANT: required for git diff
 
-      - name: Install clang-format 18
+      - name: Install clang-format 18.1.8
         run: |
-          sudo apt-get update
-          sudo apt-get install -y clang-format-18
-          sudo update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-18 100
+          mkdir -p "$HOME/llvm-18"
+          curl -L https://github.com/llvm/llvm-project/releases/download/llvmorg-18.1.8/clang+llvm-18.1.8-x86_64-linux-gnu-ubuntu-22.04.tar.xz \
+            -o llvm.tar.xz
+          tar -xf llvm.tar.xz --strip-components=1 -C "$HOME/llvm-18"
+          echo "$HOME/llvm-18/bin" >> "$GITHUB_PATH"
 
       - name: Get list of modified source files
         id: files
