@@ -30,7 +30,7 @@ gtest/1.13.0-1
 ```
 git clone https://github.com/OPALX-project/OPALX.git
 cd OPALX
-./gen_OPALrevision
+./gen_OPALXrevision
 ```
 
 ### Setting up cmake
