@@ -37,8 +37,7 @@ DumpFields::DumpFields()
           SIZE, "DUMPFIELDS",
           "The \"DUMPFIELDS\" statement dumps a field map to a user-defined "
           "field file, for checking that fields are read in correctly "
-          "from disk. The fields are written out on a Cartesian grid."
-      ) {
+          "from disk. The fields are written out on a Cartesian grid.") {
     // would be nice if "steps" could be integer
     itsAttr[FILE_NAME] =
         Attributes::makeString("FILE_NAME", "Name of the file to which field data is dumped");
@@ -126,8 +125,7 @@ void DumpFields::checkInt(double real, std::string name, double tolerance) {
     if (std::abs(std::floor(real) - real) > tolerance) {
         throw OpalException(
             "DumpFields::checkInt",
-            "Value for " + name + " should be an integer but a real value was found"
-        );
+            "Value for " + name + " should be an integer but a real value was found");
     }
     if (std::floor(real) < 0.5) {
         throw OpalException("DumpFields::checkInt", "Value for " + name + " should be 1 or more");
@@ -138,8 +136,7 @@ void DumpFields::writeFieldThis(Component* field) {
     if (grid_m == nullptr) {
         throw OpalException(
             "DumpFields::writeFieldThis",
-            "The grid was nullptr; there was a problem with the DumpFields initialisation."
-        );
+            "The grid was nullptr; there was a problem with the DumpFields initialisation.");
     }
     if (field == nullptr) {
         throw OpalException("DumpFields::writeFieldThis", "The field to be written was nullptr.");
@@ -152,8 +149,7 @@ void DumpFields::writeFieldThis(Component* field) {
         fname = filename_m;
     } else {
         fname = Util::combineFilePath(
-            {OpalData::getInstance()->getAuxiliaryOutputDirectory(), filename_m}
-        );
+            {OpalData::getInstance()->getAuxiliaryOutputDirectory(), filename_m});
     }
 
     double time = 0.;
@@ -162,8 +158,7 @@ void DumpFields::writeFieldThis(Component* field) {
     std::ofstream fout(fname.c_str(), std::ofstream::out);
     if (!fout.good()) {
         throw OpalException(
-            "DumpFields::writeFieldThis", "Failed to open DumpFields file " + filename_m
-        );
+            "DumpFields::writeFieldThis", "Failed to open DumpFields file " + filename_m);
     }
     // set precision
     fout << grid_m->end().toInteger() << "\n";
@@ -184,8 +179,7 @@ void DumpFields::writeFieldThis(Component* field) {
     }
     if (!fout.good()) {
         throw OpalException(
-            "DumpFields::writeFieldThis", "Something went wrong during writing " + filename_m
-        );
+            "DumpFields::writeFieldThis", "Something went wrong during writing " + filename_m);
     }
     fout.close();
 }

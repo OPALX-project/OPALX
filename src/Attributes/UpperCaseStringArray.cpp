@@ -45,8 +45,7 @@ namespace Attributes {
     }
 
     void UpperCaseStringArray::parseComponent(
-        Attribute& attr, Statement& statement, bool, int index
-    ) const {
+        Attribute& attr, Statement& statement, bool, int index) const {
         std::vector<std::string> array = Attributes::getStringArray(attr);
 
         if (AttributeBase* base = &attr.getBase()) {

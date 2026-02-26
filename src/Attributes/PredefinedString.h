@@ -34,8 +34,7 @@ namespace Attributes {
         PredefinedString(
             const std::string& name, const std::string& help,
             const std::initializer_list<std::string>& predefinedStrings,
-            const std::string& defaultValue = "_HAS_NO_DEFAULT_"
-        );
+            const std::string& defaultValue = "_HAS_NO_DEFAULT_");
 
         virtual ~PredefinedString();
 

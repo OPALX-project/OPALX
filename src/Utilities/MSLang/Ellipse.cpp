@@ -36,10 +36,8 @@ namespace mslang {
             pt[0] = std::copysign(
                 sqrt(
                     std::pow(height_m * width_m * 0.25, 2)
-                    / (std::pow(height_m * 0.5, 2) + std::pow(width_m * 0.5 * tan(phi), 2))
-                ),
-                cos(phi)
-            );
+                    / (std::pow(height_m * 0.5, 2) + std::pow(width_m * 0.5 * tan(phi), 2))),
+                cos(phi));
             pt[1] = pt[0] * tan(phi);
             pt    = trafo_m.transformFrom(pt);
 

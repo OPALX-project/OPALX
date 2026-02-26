@@ -66,8 +66,7 @@ namespace interpolation {
          */
         PolynomialPatch(
             Mesh* grid_points_, Mesh* validity_region,
-            std::vector<SquarePolynomialVector*> polynomials_
-        );
+            std::vector<SquarePolynomialVector*> polynomials_);
 
         /** Default constructor leaves validity_region_ and grid_points_ as nullptr
          *

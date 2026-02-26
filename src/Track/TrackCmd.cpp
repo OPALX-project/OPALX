@@ -55,8 +55,7 @@ const std::map<std::string, Steppers::TimeIntegrator> TrackCmd::stringTimeIntegr
     {"RK4", Steppers::TimeIntegrator::RK4},
     {"LF-2", Steppers::TimeIntegrator::LF2},
     {"LF2", Steppers::TimeIntegrator::LF2},
-    {"MTS", Steppers::TimeIntegrator::MTS}
-};
+    {"MTS", Steppers::TimeIntegrator::MTS}};
 
 TrackCmd::TrackCmd() : Action(SIZE, "TRACK", "The \"TRACK\" command initiates tracking.") {
     itsAttr[LINE] = Attributes::makeString("LINE", "Name of lattice to be tracked.");
@@ -67,43 +66,36 @@ TrackCmd::TrackCmd() : Action(SIZE, "TRACK", "The \"TRACK\" command initiates tr
 
     itsAttr[DTSCINIT] = Attributes::makeReal(
         "DTSCINIT", "Only for adaptive integrator: Initial time step for space charge integration.",
-        1e-12
-    );
+        1e-12);
 
     itsAttr[DTAU] = Attributes::makeReal(
         "DTAU",
-        "Only for adaptive integrator: Alternative way to set accuracy of space integration.", -1.0
-    );
+        "Only for adaptive integrator: Alternative way to set accuracy of space integration.",
+        -1.0);
 
     itsAttr[T0] = Attributes::makeReal("T0", "The elapsed time of the bunch in seconds", 0.0);
 
     itsAttr[MAXSTEPS] = Attributes::makeRealArray(
         "MAXSTEPS",
-        "The maximum number of integration steps dt, should be larger ZSTOP/(beta*c average)."
-    );
+        "The maximum number of integration steps dt, should be larger ZSTOP/(beta*c average).");
 
     itsAttr[ZSTART] = Attributes::makeReal(
-        "ZSTART", "Defines a z-location [m] where the reference particle starts.", 0.0
-    );
+        "ZSTART", "Defines a z-location [m] where the reference particle starts.", 0.0);
 
     itsAttr[ZSTOP] = Attributes::makeRealArray(
         "ZSTOP",
         "Defines a z-location [m], after which the simulation stops when the last particles "
-        "passes."
-    );
+        "passes.");
 
     itsAttr[STEPSPERTURN] = Attributes::makeReal(
-        "STEPSPERTURN", "The time steps per revolution period, only for opal-cycl.", 720
-    );
+        "STEPSPERTURN", "The time steps per revolution period, only for opal-cycl.", 720);
 
     itsAttr[TIMEINTEGRATOR] = Attributes::makePredefinedString(
         "TIMEINTEGRATOR", "Name of time integrator to be used.",
-        {"RK-4", "RK4", "LF-2", "LF2", "MTS"}, "RK4"
-    );
+        {"RK-4", "RK4", "LF-2", "LF2", "MTS"}, "RK4");
 
     itsAttr[MAP_ORDER] = Attributes::makeReal(
-        "MAP_ORDER", "Truncation order of maps for ThickTracker (default: 1, i.e. linear).", 1
-    );
+        "MAP_ORDER", "Truncation order of maps for ThickTracker (default: 1, i.e. linear).", 1);
 
     registerOwnership(AttributeHandler::COMMAND);
     AttributeHandler::addAttributeOwner("TRACK", AttributeHandler::COMMAND, "RUN");
@@ -124,8 +116,7 @@ std::vector<double> TrackCmd::getDT() const {
     for (double dt : dTs) {
         if (dt < 0.0) {
             throw OpalException(
-                "TrackCmd::getDT", "The time steps provided with DT have to be positive"
-            );
+                "TrackCmd::getDT", "The time steps provided with DT have to be positive");
         }
     }
     return dTs;
@@ -157,8 +148,7 @@ std::vector<unsigned long long> TrackCmd::getMaxSteps() const {
         if (numSteps < 0) {
             throw OpalException(
                 "TrackCmd::getMAXSTEPS",
-                "The number of steps provided with MAXSTEPS has to be positive"
-            );
+                "The number of steps provided with MAXSTEPS has to be positive");
         } else {
             unsigned long long value = numSteps;
             maxsteps_i.push_back(value);
@@ -214,8 +204,7 @@ void TrackCmd::execute() {
 
     Track::block = new Track(
         theLineToTrack, beam->getReference(), dt, maxsteps, stepsperturn, zstart, zstop,
-        timeintegrator, t0, dtScInit, deltaTau
-    );
+        timeintegrator, t0, dtScInit, deltaTau);
 
     Track::block->truncOrder = (int)Attributes::getReal(itsAttr[MAP_ORDER]);
 

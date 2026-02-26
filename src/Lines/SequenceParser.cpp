@@ -112,8 +112,7 @@ void SequenceParser::findFromPositions() const {
             i->fromPosition = &(*pos);
         } else {
             throw OpalException(
-                "SequenceParser::findFromPositions()", "Not all FROM clauses resolved."
-            );
+                "SequenceParser::findFromPositions()", "Not all FROM clauses resolved.");
         }
     }
 }
@@ -133,8 +132,7 @@ void SequenceParser::findNeighbourPositions() const {
         throw OpalException(
             "SequenceParser::findNeighbourPositions()", "Unknown reference flag \"" + ref
                                                             + "\" in <sequence> \""
-                                                            + itsSequence->getOpalName() + "\"."
-        );
+                                                            + itsSequence->getOpalName() + "\".");
     }
 
     for (TLine::iterator i = itsLine.begin(); i != itsLine.end(); ++i) {
@@ -251,19 +249,16 @@ void SequenceParser::parseMember(Statement& stat) const {
                     throw ParseError(
                         "SequenceParser::parseMember()",
                         "You cannot redefine \"" + objName
-                            + "\" within the sequence of the same name."
-                    );
+                            + "\" within the sequence of the same name.");
                 } else if (clsName == itsSequence->getOpalName()) {
                     throw ParseError(
                         "SequenceParser::parseMember()",
                         "You cannot refer to \"" + objName
-                            + "\" within the sequence of the same name."
-                    );
+                            + "\" within the sequence of the same name.");
                 } else if (OpalData::getInstance()->find(objName)) {
                     throw ParseError(
                         "SequenceParser::parseMember()",
-                        "You cannot redefine \"" + objName + "\" within a sequence."
-                    );
+                        "You cannot redefine \"" + objName + "\" within a sequence.");
                 }
 
                 if (stat.delimiter('(')) {
@@ -299,13 +294,11 @@ void SequenceParser::parseMember(Statement& stat) const {
                 OpalData::getInstance()->define(&*copy);
         } else {
             throw ParseError(
-                "SequenceParser::parseMember()", "Object \"" + objName + "\" is not an element."
-            );
+                "SequenceParser::parseMember()", "Object \"" + objName + "\" is not an element.");
         }
     } else {
         throw ParseError(
-            "SequenceParser::parseMember()", "Element class name \"" + clsName + "\" is unknown."
-        );
+            "SequenceParser::parseMember()", "Element class name \"" + clsName + "\" is unknown.");
     }
 }
 
@@ -349,19 +342,16 @@ void SequenceParser::parsePosition(Statement& stat, Object& elem, bool defined) 
                     attr->parse(stat, false);
                 } else {
                     throw ParseError(
-                        "SequenceParser::parsePosition()", "Delimiter \"=\" or \":=\" expected."
-                    );
+                        "SequenceParser::parsePosition()", "Delimiter \"=\" or \":=\" expected.");
                 }
             } else {
                 throw ParseError(
                     "SequenceParser::parsePosition()",
-                    "Element \"" + elem.getOpalName() + "\" has no attribute \"" + name + "\"."
-                );
+                    "Element \"" + elem.getOpalName() + "\" has no attribute \"" + name + "\".");
             }
         } else {
             throw ParseError(
-                "SequenceParser::parsePosition()", "Overriding attributes not permitted here."
-            );
+                "SequenceParser::parsePosition()", "Overriding attributes not permitted here.");
         }
     }
 

@@ -102,8 +102,7 @@ public:
      * @returns true if particle is out-of-bounds (lost), false otherwise
      */
     virtual bool apply(
-        const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B
-    );
+        const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B);
 
     /**
      * @brief Apply to particle with position R and momentum P
@@ -118,8 +117,7 @@ public:
      */
     virtual bool apply(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-        Vector_t<double, 3>& E, Vector_t<double, 3>& B
-    );
+        Vector_t<double, 3>& E, Vector_t<double, 3>& B);
 
     /**
      * @brief Apply to reference particle with position R and momemtum P
@@ -134,8 +132,7 @@ public:
      */
     virtual bool applyToReferenceParticle(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-        Vector_t<double, 3>& E, Vector_t<double, 3>& B
-    );
+        Vector_t<double, 3>& E, Vector_t<double, 3>& B);
 
     /* ========================================================================== */
     /* ============================== Functions ================================= */

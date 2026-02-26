@@ -451,8 +451,7 @@ inline CoordinateSystemTrafo ElementBase::getEdgeToBegin() const {
 
 inline CoordinateSystemTrafo ElementBase::getEdgeToEnd() const {
     CoordinateSystemTrafo ret(
-        Vector_t<double, 3>({0, 0, getElementLength()}), Quaternion(1, 0, 0, 0)
-    );
+        Vector_t<double, 3>({0, 0, getElementLength()}), Quaternion(1, 0, 0, 0));
 
     return ret;
 }
@@ -505,8 +504,7 @@ inline double ElementBase::getElementPosition() const {
 
     throw GeneralClassicException(
         "ElementBase::getElementPosition()",
-        std::string("ELEMEDGE for \"") + getName() + "\" not set"
-    );
+        std::string("ELEMEDGE for \"") + getName() + "\" not set");
 }
 
 inline bool ElementBase::isElementPositionSet() const { return elemedgeSet_m; }

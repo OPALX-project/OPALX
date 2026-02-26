@@ -27,8 +27,7 @@ RealVariable::RealVariable()
           1, "REAL_VARIABLE",
           "The \"REAL VARIABLE\" statement defines a global "
           "real variable:\n"
-          "\tREAL VARIABLE <name>=<real-expression>;\n"
-      ) {
+          "\tREAL VARIABLE <name>=<real-expression>;\n") {
     itsAttr[0] = Attributes::makeReal("VALUE", "The variable value", 0.0);
 
     registerOwnership(AttributeHandler::STATEMENT);

@@ -30,8 +30,7 @@ void H5Writer::writePhaseSpace(PartBunch_t* beam, Vector_t<double, 3> FDext[]) {
     std::map<std::string, double> additionalAttributes = {
         std::make_pair("B-ref_x", FDext[0](0)), std::make_pair("B-ref_z", FDext[0](1)),
         std::make_pair("B-ref_y", FDext[0](2)), std::make_pair("E-ref_x", FDext[1](0)),
-        std::make_pair("E-ref_z", FDext[1](1)), std::make_pair("E-ref_y", FDext[1](2))
-    };
+        std::make_pair("E-ref_z", FDext[1](1)), std::make_pair("E-ref_y", FDext[1](2))};
 
     h5wrapper_m->writeStep(beam, additionalAttributes);
     IpplTimings::stopTimer(H5PartTimer_m);
@@ -60,8 +59,7 @@ int H5Writer::writePhaseSpace(
         std::make_pair("E-ref_z", FDext[3](1)),  std::make_pair("E-ref_y", FDext[3](2)),
         std::make_pair("B-tail_x", FDext[4](0)), std::make_pair("B-tail_z", FDext[4](1)),
         std::make_pair("B-tail_y", FDext[4](2)), std::make_pair("E-tail_x", FDext[5](0)),
-        std::make_pair("E-tail_z", FDext[5](1)), std::make_pair("E-tail_y", FDext[5](2))
-    };
+        std::make_pair("E-tail_z", FDext[5](1)), std::make_pair("E-tail_y", FDext[5](2))};
 
     h5wrapper_m->writeStep(beam, additionalAttributes);
     IpplTimings::stopTimer(H5PartTimer_m);

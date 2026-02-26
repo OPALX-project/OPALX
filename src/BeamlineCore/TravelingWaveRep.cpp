@@ -32,8 +32,7 @@ namespace {
         {"AMPLITUDE", &TravelingWaveRep::getAmplitude, &TravelingWaveRep::setAmplitude},
         {"FREQUENCY", &TravelingWaveRep::getFrequency, &TravelingWaveRep::setFrequency},
         {"PHASE", &TravelingWaveRep::getPhase, &TravelingWaveRep::setPhase},
-        {0, 0, 0}
-    };
+        {0, 0, 0}};
 }  // namespace
 
 TravelingWaveRep::TravelingWaveRep() : TravelingWave() {}

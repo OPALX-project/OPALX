@@ -41,8 +41,7 @@ double SFunction::arcIn() {
         throw OpalException(
             "arcIn()",
             "The use of function \"SI()\" "
-            "is not valid in this context."
-        );
+            "is not valid in this context.");
     }
 }
 
@@ -53,8 +52,7 @@ double SFunction::arcCtr() {
         throw OpalException(
             "arcCtr()",
             "The use of function \"SC()\" "
-            "is not valid in this context."
-        );
+            "is not valid in this context.");
     }
 }
 
@@ -65,8 +63,7 @@ double SFunction::arcOut() {
         throw OpalException(
             "arcOut()",
             "The use of function \"SO()\" "
-            "is not valid in this context."
-        );
+            "is not valid in this context.");
     }
 }
 

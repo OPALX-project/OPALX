@@ -40,8 +40,7 @@ OpalElement::OpalElement(int size, const char* name, const char* help)
     itsAttr[TYPE] = Attributes::makePredefinedString(
         "TYPE", "The element design type.",
         {"RING", "CARBONCYCL", "CYCIAE", "AVFEQ", "FFA", "BANDRF", "SYNCHROCYCLOTRON", "SINGLEGAP",
-         "STANDING", "TEMPORAL", "SPATIAL"}
-    );
+         "STANDING", "TEMPORAL", "SPATIAL"});
 
     itsAttr[LENGTH] = Attributes::makeReal("L", "The element length in m");
 
@@ -53,14 +52,12 @@ OpalElement::OpalElement(int size, const char* name, const char* help)
     itsAttr[WAKEF] = Attributes::makeString("WAKEF", "Defines the wake function");
 
     itsAttr[PARTICLEMATTERINTERACTION] = Attributes::makeString(
-        "PARTICLEMATTERINTERACTION", "Defines the particle mater interaction handler"
-    );
+        "PARTICLEMATTERINTERACTION", "Defines the particle mater interaction handler");
 
     itsAttr[ORIGIN] = Attributes::makeRealArray("ORIGIN", "The location of the element");
 
     itsAttr[ORIENTATION] = Attributes::makeRealArray(
-        "ORIENTATION", "The Tait-Bryan angles for the orientation of the element"
-    );
+        "ORIENTATION", "The Tait-Bryan angles for the orientation of the element");
 
     itsAttr[X] = Attributes::makeReal("X", "The x-coordinate of the location of the element", 0);
 
@@ -94,8 +91,7 @@ OpalElement::OpalElement(int size, const char* name, const char* help)
         "DELETEONTRANSVERSEEXIT",
         "Flag controlling if particles should be deleted if they exit "
         "the element transversally",
-        true
-    );
+        true);
 
     const unsigned int end = COMMON;
     for (unsigned int i = 0; i < end; ++i) {
@@ -110,8 +106,7 @@ OpalElement::~OpalElement() {}
 
 std::pair<ApertureType, std::vector<double> > OpalElement::getApert() const {
     std::pair<ApertureType, std::vector<double> > retvalue(
-        ApertureType::ELLIPTICAL, std::vector<double>({0.5, 0.5, 1.0})
-    );
+        ApertureType::ELLIPTICAL, std::vector<double>({0.5, 0.5, 1.0}));
     if (!itsAttr[APERT])
         return retvalue;
 
@@ -139,8 +134,7 @@ std::pair<ApertureType, std::vector<double> > OpalElement::getApert() const {
                 retvalue.second[1] = retvalue.second[0];
             } catch (const std::exception& ex) {
                 throw OpalException(
-                    "OpalElement::getApert()", "could not convert '" + arguments + "' to double"
-                );
+                    "OpalElement::getApert()", "could not convert '" + arguments + "' to double");
             }
 
         } else {
@@ -152,8 +146,7 @@ std::pair<ApertureType, std::vector<double> > OpalElement::getApert() const {
                 retvalue.second[2] = std::stod(match[2]);
             } catch (const std::exception& ex) {
                 throw OpalException(
-                    "OpalElement::getApert()", "could not convert '" + arguments + "' to doubles"
-                );
+                    "OpalElement::getApert()", "could not convert '" + arguments + "' to doubles");
             }
         }
 
@@ -175,8 +168,7 @@ std::pair<ApertureType, std::vector<double> > OpalElement::getApert() const {
 
             } catch (const std::exception& ex) {
                 throw OpalException(
-                    "OpalElement::getApert()", "could not convert '" + arguments + "' to doubles"
-                );
+                    "OpalElement::getApert()", "could not convert '" + arguments + "' to doubles");
             }
 
         } else {
@@ -188,8 +180,7 @@ std::pair<ApertureType, std::vector<double> > OpalElement::getApert() const {
                 retvalue.second[2] = std::stod(match[3]);
             } catch (const std::exception& ex) {
                 throw OpalException(
-                    "OpalElement::getApert()", "could not convert '" + arguments + "' to doubles"
-                );
+                    "OpalElement::getApert()", "could not convert '" + arguments + "' to doubles");
             }
         }
 
@@ -206,8 +197,7 @@ std::pair<ApertureType, std::vector<double> > OpalElement::getApert() const {
                 retvalue.second[1] = retvalue.second[0];
             } catch (const std::exception& ex) {
                 throw OpalException(
-                    "OpalElement::getApert()", "could not convert '" + arguments + "' to double"
-                );
+                    "OpalElement::getApert()", "could not convert '" + arguments + "' to double");
             }
 
         } else {
@@ -219,8 +209,7 @@ std::pair<ApertureType, std::vector<double> > OpalElement::getApert() const {
                 retvalue.second[2] = std::stod(match[2]);
             } catch (const std::exception& ex) {
                 throw OpalException(
-                    "OpalElement::getApert()", "could not convert '" + arguments + "' to doubles"
-                );
+                    "OpalElement::getApert()", "could not convert '" + arguments + "' to doubles");
             }
         }
 
@@ -242,8 +231,7 @@ std::pair<ApertureType, std::vector<double> > OpalElement::getApert() const {
 
             } catch (const std::exception& ex) {
                 throw OpalException(
-                    "OpalElement::getApert()", "could not convert '" + arguments + "' to doubles"
-                );
+                    "OpalElement::getApert()", "could not convert '" + arguments + "' to doubles");
             }
 
         } else {
@@ -255,8 +243,7 @@ std::pair<ApertureType, std::vector<double> > OpalElement::getApert() const {
                 retvalue.second[2] = std::stod(match[3]);
             } catch (const std::exception& ex) {
                 throw OpalException(
-                    "OpalElement::getApert()", "could not convert '" + arguments + "' to doubles"
-                );
+                    "OpalElement::getApert()", "could not convert '" + arguments + "' to doubles");
             }
         }
 
@@ -339,8 +326,7 @@ void OpalElement::print(std::ostream& os) const {
 
 void OpalElement::printMultipoleStrength(
     std::ostream& os, int order, int& len, const std::string& sName, const std::string& tName,
-    const Attribute& length, const Attribute& sNorm, const Attribute& sSkew
-) {
+    const Attribute& length, const Attribute& sNorm, const Attribute& sSkew) {
     // Find out which type of output is required.
     int flag = 0;
     if (sNorm) {
@@ -464,8 +450,7 @@ void OpalElement::update() {
                 throw OpalException(
                     "OpalElement::update",
                     "Parameter orientation is array of 3 values (theta, phi, psi);\n"
-                        + std::to_string(dir.size()) + " values provided"
-                );
+                        + std::to_string(dir.size()) + " values provided");
             }
         }
 
@@ -475,8 +460,7 @@ void OpalElement::update() {
             if (itsAttr[ORIGIN]) {
                 throw OpalException(
                     "OpalElement::update", "Parameter origin is array of 3 values (x, y, z);\n"
-                                               + std::to_string(ori.size()) + " values provided"
-                );
+                                               + std::to_string(ori.size()) + " values provided");
             }
         }
 
@@ -484,17 +468,17 @@ void OpalElement::update() {
         base->setCSTrafoGlobal2Local(global2local);
         base->fixPosition();
 
-    } else if (!itsAttr[PSI].defaultUsed() && itsAttr[X].defaultUsed() && itsAttr[Y].defaultUsed()
-               && itsAttr[Z].defaultUsed() && itsAttr[THETA].defaultUsed()
-               && itsAttr[PHI].defaultUsed()) {
+    } else if (
+        !itsAttr[PSI].defaultUsed() && itsAttr[X].defaultUsed() && itsAttr[Y].defaultUsed()
+        && itsAttr[Z].defaultUsed() && itsAttr[THETA].defaultUsed() && itsAttr[PHI].defaultUsed()) {
         base->setRotationAboutZ(Attributes::getReal(itsAttr[PSI]));
-    } else if (!itsAttr[X].defaultUsed() || !itsAttr[Y].defaultUsed() || !itsAttr[Z].defaultUsed()
-               || !itsAttr[THETA].defaultUsed() || !itsAttr[PHI].defaultUsed()
-               || !itsAttr[PSI].defaultUsed()) {
+    } else if (
+        !itsAttr[X].defaultUsed() || !itsAttr[Y].defaultUsed() || !itsAttr[Z].defaultUsed()
+        || !itsAttr[THETA].defaultUsed() || !itsAttr[PHI].defaultUsed()
+        || !itsAttr[PSI].defaultUsed()) {
         const Vector_t<double, 3> origin(
             Attributes::getReal(itsAttr[X]), Attributes::getReal(itsAttr[Y]),
-            Attributes::getReal(itsAttr[Z])
-        );
+            Attributes::getReal(itsAttr[Z]));
 
         const double theta = Attributes::getReal(itsAttr[THETA]);
         const double phi   = Attributes::getReal(itsAttr[PHI]);
@@ -513,8 +497,7 @@ void OpalElement::update() {
 
     Vector_t<double, 3> misalignmentShift(
         Attributes::getReal(itsAttr[DX]), Attributes::getReal(itsAttr[DY]),
-        Attributes::getReal(itsAttr[DZ])
-    );
+        Attributes::getReal(itsAttr[DZ]));
     double dtheta = Attributes::getReal(itsAttr[DTHETA]);
     double dphi   = Attributes::getReal(itsAttr[DPHI]);
     double dpsi   = Attributes::getReal(itsAttr[DPSI]);
@@ -540,8 +523,7 @@ void OpalElement::updateUnknown(ElementBase* base) {
 }
 
 void OpalElement::printAttribute(
-    std::ostream& os, const std::string& name, const std::string& image, int& len
-) {
+    std::ostream& os, const std::string& name, const std::string& image, int& len) {
     len += name.length() + image.length() + 2;
     if (len > 74) {
         os << ",&\n  ";
@@ -553,8 +535,7 @@ void OpalElement::printAttribute(
 }
 
 void OpalElement::printAttribute(
-    std::ostream& os, const std::string& name, double value, int& len
-) {
+    std::ostream& os, const std::string& name, double value, int& len) {
     std::ostringstream ss;
     ss << value << std::ends;
     printAttribute(os, name, ss.str(), len);

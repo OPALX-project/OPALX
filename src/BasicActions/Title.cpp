@@ -24,8 +24,7 @@ Title::Title()
     : Action(
           1, "TITLE",
           "The \"TITLE\" statement defines a new page title for subsequent "
-          "output."
-      ) {
+          "output.") {
     itsAttr[0] = Attributes::makeString("STRING", "The title string");
 
     registerOwnership(AttributeHandler::STATEMENT);

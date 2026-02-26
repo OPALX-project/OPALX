@@ -30,8 +30,7 @@ namespace ParticleBinning {
                 Kokkos::View<value_type> tmp_dvalue("tmp_dvalue");
                 Kokkos::parallel_for(
                     "tmp_dvalue", 1,
-                    KOKKOS_LAMBDA(const size_type) { tmp_dvalue() = var_selector(0); }
-                );
+                    KOKKOS_LAMBDA(const size_type) { tmp_dvalue() = var_selector(0); });
                 Kokkos::deep_copy(host_scalar, tmp_dvalue);
                 localMinMax.max_val = localMinMax.min_val = host_scalar();
             } else {
@@ -42,8 +41,7 @@ namespace ParticleBinning {
                         update.min_val = Kokkos::min(update.min_val, val);
                         update.max_val = Kokkos::max(update.max_val, val);
                     },
-                    Kokkos::MinMax<value_type>(localMinMax)
-                );
+                    Kokkos::MinMax<value_type>(localMinMax));
             }
             xMin_m = localMinMax.min_val;
             xMax_m = localMinMax.max_val;
@@ -67,8 +65,7 @@ namespace ParticleBinning {
         const bin_index_type numBins = getCurrentBinCount();
         localBinHisto_m              = d_histo_type(
             "localBinHisto_m", numBins, xMax_m - xMin_m, binningAlpha_m, binningBeta_m,
-            desiredWidth_m
-        );
+            desiredWidth_m);
 
         // Optionally, initialize the histogram to zero
         if (setToZero) {
@@ -87,8 +84,7 @@ namespace ParticleBinning {
     KOKKOS_INLINE_FUNCTION typename AdaptBins<BunchType, BinningSelector>::bin_index_type
     AdaptBins<BunchType, BinningSelector>::getBin(
         value_type x, value_type xMin, value_type xMax, value_type binWidthInv,
-        bin_index_type numBins
-    ) {
+        bin_index_type numBins) {
         // Explanation: Don't access xMin, binWidth, ... through the members to avoid implicit
         // variable capture by Kokkos and potential copying overhead. Instead, pass them as an
         // argument, s.t. Kokkos can capture them explicitly!
@@ -131,8 +127,7 @@ namespace ParticleBinning {
 
                 bin_index_type bin = getBin(v, xMin, xMax, binWidthInv, numBins);
                 binIndex(i)        = bin;
-            }
-        );
+            });
         IpplTimings::stopTimer(bAssignUniformBinsT);
 
         msg << "All bins assigned." << endl;
@@ -141,8 +136,7 @@ namespace ParticleBinning {
     template <typename BunchType, typename BinningSelector>
     template <typename ReducerType>
     void AdaptBins<BunchType, BinningSelector>::executeInitLocalHistoReduction(
-        ReducerType& to_reduce
-    ) {
+        ReducerType& to_reduce) {
         bin_view_type binIndex = getBinView();
         dview_type device_histo =
             localBinHisto_m.template getDeviceView<dview_type>(localBinHisto_m.getHistogram());
@@ -157,14 +151,12 @@ namespace ParticleBinning {
                 update.the_array[ndx]++;  // Increment the corresponding bin count in the reduction
                                           // array
             },
-            Kokkos::Sum<ReducerType>(to_reduce)
-        );
+            Kokkos::Sum<ReducerType>(to_reduce));
 
         // Copy the reduced results to the final histogram (into the BinHisto class instance)
         Kokkos::parallel_for(
             "finalize_histogram", binCount,
-            KOKKOS_LAMBDA(const bin_index_type& i) { device_histo(i) = to_reduce.the_array[i]; }
-        );
+            KOKKOS_LAMBDA(const bin_index_type& i) { device_histo(i) = to_reduce.the_array[i]; });
 
         // Note, sync is called inside initLocalHiso, not here
         localBinHisto_m.modify_device();
@@ -208,8 +200,7 @@ namespace ParticleBinning {
                 Kokkos::parallel_for(
                     Kokkos::TeamThreadRange(teamMember, binCount), [&](const bin_index_type b) {
                         team_local_hist(b) = 0;
-                    }
-                );
+                    });
                 teamMember.team_barrier();
 
                 const size_type start_i = teamMember.league_rank() * block_size;
@@ -220,20 +211,16 @@ namespace ParticleBinning {
                         bin_index_type ndx = binIndex(i);  // Get bin index for the particle
                         if (ndx < binCount)
                             Kokkos::atomic_increment(
-                                &team_local_hist(ndx)
-                            );  // Atomic within shared memory
-                    }
-                );
+                                &team_local_hist(ndx));  // Atomic within shared memory
+                    });
                 teamMember.team_barrier();
 
                 // Reduce the team-local histogram into global memory
                 Kokkos::parallel_for(
                     Kokkos::TeamThreadRange(teamMember, binCount), [&](const bin_index_type i) {
                         Kokkos::atomic_add(&device_histo(i), team_local_hist(i));
-                    }
-                );
-            }
-        );
+                    });
+            });
 
         localBinHisto_m.modify_device();
     }
@@ -264,8 +251,7 @@ namespace ParticleBinning {
                         << sizeof(reducer_arr.the_array) / sizeof(reducer_arr.the_array[0]) << endl;
                     executeInitLocalHistoReduction(reducer_arr);
                 },
-                to_reduce
-            );
+                to_reduce);
         } else {
             msg << "No valid execution method defined to initialize local histogram for energy "
                    "binning."
@@ -291,8 +277,7 @@ namespace ParticleBinning {
         // Create a view to hold the global histogram on all ranks
         globalBinHisto_m = h_histo_type_g(
             "globalBinHisto_m", numBins, xMax_m - xMin_m, binningAlpha_m, binningBeta_m,
-            desiredWidth_m
-        );
+            desiredWidth_m);
 
         // Get host ("mirror" <-- depends on mode of BinHisto class) view of histograms --> reduce
         // on host!
@@ -306,8 +291,7 @@ namespace ParticleBinning {
         //       faster.
         IpplTimings::startTimer(bAllReduceGlobalHistoT);
         ippl::Comm->allreduce(
-            localBinHistoHost.data(), globalBinHistoHost.data(), numBins, std::plus<size_type>()
-        );
+            localBinHistoHost.data(), globalBinHistoHost.data(), numBins, std::plus<size_type>());
         IpplTimings::stopTimer(bAllReduceGlobalHistoT);
 
         // The global histogram is currently on host --> sync to device if used as DualView.
@@ -340,8 +324,7 @@ namespace ParticleBinning {
             "RebinParticles", bunch_m->getLocalNum(), KOKKOS_LAMBDA(const size_type& i) {
                 bin_index_type oldBin = binIndex(i);
                 binIndex(i)           = adaptLookupDevice(oldBin);
-            }
-        );
+            });
 
         // Update local histogram with new indices
         instantiateHistogram(true);
@@ -350,15 +333,13 @@ namespace ParticleBinning {
         localBinHisto_m
             .initPostSum();  // Only init postsum, since the widths are not constant anymore.
         localBinHisto_m.copyBinWidths(
-            globalBinHisto_m
-        );  // Manually copy non-constant widths from global histogram.
+            globalBinHisto_m);  // Manually copy non-constant widths from global histogram.
     }
 
     template <typename BunchType, typename BinningSelector>
     template <typename T, unsigned Dim>
     VField_t<T, Dim>& AdaptBins<BunchType, BinningSelector>::LTrans(
-        VField_t<T, Dim>& field, const bin_index_type& currentBin
-    ) {
+        VField_t<T, Dim>& field, const bin_index_type& currentBin) {
         Inform m("AdaptBins");
 
         position_view_type P = bunch_m->P.getView();
@@ -373,8 +354,7 @@ namespace ParticleBinning {
                 Vector<double, 3> v_comp = P(indices(i));
                 v += v_comp;
             },
-            Kokkos::Sum<Vector<T, Dim>>(gamma_bin2)
-        );
+            Kokkos::Sum<Vector<T, Dim>>(gamma_bin2));
         bin_index_type npart_bin = getNPartInBin(currentBin);
 
         /**
@@ -386,11 +366,11 @@ namespace ParticleBinning {
         gamma_bin2 = (npart_bin == 0) ? Vector<double, 3>(0.0)
                                       : gamma_bin2 / npart_bin;  // Now we have <P> for this bin
         gamma_bin2 = -sqrt(
-            1.0 + gamma_bin2 * gamma_bin2
-        );  // in these units: gamma=sqrt(1 + <P>^2), assuming <P^2>~0
-            // (since bunch per bin should be "considered constant") //
-            // -1.0 / sqrt(1.0 - gamma_bin2 / c2); // negative sign,
-            // since we want the inverse transformation
+            1.0
+            + gamma_bin2 * gamma_bin2);  // in these units: gamma=sqrt(1 + <P>^2), assuming <P^2>~0
+                                         // (since bunch per bin should be "considered constant") //
+                                         // -1.0 / sqrt(1.0 - gamma_bin2 / c2); // negative sign,
+                                         // since we want the inverse transformation
 
         m << "Gamma(binIndex = " << currentBin << ") = -" << gamma_bin2 << endl;
 
@@ -400,8 +380,7 @@ namespace ParticleBinning {
             "TransformFieldWithVelocity", field.getFieldRangePolicy(),
             KOKKOS_LAMBDA(const ippl::RangePolicy<Dim>::index_array_type& idx) {
                 apply(field, idx) *= gamma_bin2;
-            }
-        );
+            });
 
         return field;
     }
@@ -426,8 +405,7 @@ namespace ParticleBinning {
         Kokkos::View<size_type*> bin_offsets("bin_offsets", numBins + 1);
         Kokkos::deep_copy(
             bin_offsets,
-            localBinHisto_m.template getDeviceView<dview_type>(localBinHisto_m.getPostSum())
-        );
+            localBinHisto_m.template getDeviceView<dview_type>(localBinHisto_m.getPostSum()));
 
         // Initialize index array, use local shallow copy of the view
         sortedIndexArr_m  = hash_type("indices", localNumParticles);
@@ -442,8 +420,7 @@ namespace ParticleBinning {
 
                 // Place the current particle directly into its target position
                 indices(target_pos) = i;
-            }
-        );
+            });
         IpplTimings::stopTimer(bSortContainerByBinT);
 
 // Test is sorting was successful (only in debug mode)

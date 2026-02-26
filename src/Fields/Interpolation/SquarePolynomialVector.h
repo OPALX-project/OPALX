@@ -170,8 +170,7 @@ namespace interpolation {
          *  _polyKey).
          */
         MVector<double>& MakePolyVector(
-            const MVector<double>& point, MVector<double>& polyVector
-        ) const;
+            const MVector<double>& point, MVector<double>& polyVector) const;
 
         /** Make a vector like \f$(c, x, x^2, x^3...)\f$.
          *
@@ -218,8 +217,7 @@ namespace interpolation {
         /** Write out the header (PolynomialByPower index for each element). */
         void PrintHeader(
             std::ostream& out, char int_separator = '.', char str_separator = ' ', int length = 14,
-            bool pad_at_start = true
-        ) const;
+            bool pad_at_start = true) const;
 
         /** Print a sequence: with some string that separates elements of index and
          *  some character that pads
@@ -232,14 +230,12 @@ namespace interpolation {
         template <class Container>
         static void PrintContainer(
             std::ostream& out, const Container& container, char T_separator, char str_separator,
-            int length, bool pad_at_start
-        );
+            int length, bool pad_at_start);
 
     private:
         static void IndexByPowerRecursive(
             std::vector<int> check, size_t check_index, size_t poly_power,
-            std::vector<std::vector<int> >& nearby_points
-        );
+            std::vector<std::vector<int> >& nearby_points);
 
         int _pointDim;
         MMatrix<double> _polyCoeffs;

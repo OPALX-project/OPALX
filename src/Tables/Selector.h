@@ -33,8 +33,7 @@ public:
     //  string [b]pString[/b].
     Selector(
         const Beamline&, const RangeRep& range, const std::string& cName, const std::string& tName,
-        const std::string& pString
-    );
+        const std::string& pString);
 
     virtual ~Selector();
 

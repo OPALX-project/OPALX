@@ -41,8 +41,7 @@ DumpEMFields::DumpEMFields()
           SIZE, "DUMPEMFIELDS",
           "The \"DUMPEMFIELDS\" statement dumps a field map to a user-defined "
           "field file, for checking that fields are generated correctly. "
-          "The fields are written out on a grid in space and time."
-      ),
+          "The fields are written out on a grid in space and time."),
       grid_m(nullptr),
       filename_m("") {
     // would be nice if "steps" could be integer
@@ -51,8 +50,7 @@ DumpEMFields::DumpEMFields()
 
     itsAttr[COORDINATE_SYSTEM] = Attributes::makePredefinedString(
         "COORDINATE_SYSTEM", "Choose to use CARTESIAN or CYLINDRICAL coordinates",
-        {"CARTESIAN", "CYLINDRICAL"}, "CARTESIAN"
-    );
+        {"CARTESIAN", "CYLINDRICAL"}, "CARTESIAN");
 
     itsAttr[X_START] =
         Attributes::makeReal("X_START", "(Cartesian) Start point in the grid in x [m]");
@@ -120,8 +118,7 @@ DumpEMFields* DumpEMFields::clone(const std::string& name) {
 
 void DumpEMFields::parseCoordinateSystem() {
     static const std::map<std::string, CoordinateSystem> stringCoordinateSystem_s = {
-        {"CARTESIAN", CoordinateSystem::CARTESIAN}, {"CYLINDRICAL", CoordinateSystem::CYLINDRICAL}
-    };
+        {"CARTESIAN", CoordinateSystem::CARTESIAN}, {"CYLINDRICAL", CoordinateSystem::CYLINDRICAL}};
     coordinates_m = stringCoordinateSystem_s.at(Attributes::getString(itsAttr[COORDINATE_SYSTEM]));
 }
 
@@ -206,8 +203,7 @@ void DumpEMFields::checkInt(double real, std::string name, double tolerance) {
     if (std::abs(std::floor(real) - real) > 2 * tolerance) {
         throw OpalException(
             "DumpEMFields::checkInt",
-            "Value for " + name + " should be an integer but a real value was found"
-        );
+            "Value for " + name + " should be an integer but a real value was found");
     }
     if (std::floor(real) < 0.5) {
         throw OpalException("DumpEMFields::checkInt", "Value for " + name + " should be 1 or more");
@@ -248,8 +244,8 @@ void DumpEMFields::writeHeader(std::ofstream& fout) const {
 }
 
 void DumpEMFields::writeFieldLine(
-    Component* field, const Vector_t<double, 3>& pointIn, const double& time, std::ofstream& fout
-) const {
+    Component* field, const Vector_t<double, 3>& pointIn, const double& time,
+    std::ofstream& fout) const {
     Vector_t<double, 3> centroid(0., 0., 0.);
     Vector_t<double, 3> E(0., 0., 0.);
     Vector_t<double, 3> B(0., 0., 0.);
@@ -283,8 +279,7 @@ void DumpEMFields::writeFieldThis(Component* field) {
     if (grid_m == nullptr) {
         throw OpalException(
             "DumpEMFields::writeFieldThis",
-            "The grid was nullptr; there was a problem with the DumpEMFields initialisation."
-        );
+            "The grid was nullptr; there was a problem with the DumpEMFields initialisation.");
     }
     if (field == nullptr) {
         throw OpalException("DumpEMFields::writeFieldThis", "The field to be written was nullptr.");
@@ -297,8 +292,7 @@ void DumpEMFields::writeFieldThis(Component* field) {
         fname = filename_m;
     } else {
         fname = Util::combineFilePath(
-            {OpalData::getInstance()->getAuxiliaryOutputDirectory(), filename_m}
-        );
+            {OpalData::getInstance()->getAuxiliaryOutputDirectory(), filename_m});
     }
 
     std::vector<double> point_std(4);
@@ -308,13 +302,11 @@ void DumpEMFields::writeFieldThis(Component* field) {
         fout.open(fname.c_str(), std::ofstream::out);
     } catch (std::exception& exc) {
         throw OpalException(
-            "DumpEMFields::writeFieldThis", "Failed to open DumpEMFields file " + filename_m
-        );
+            "DumpEMFields::writeFieldThis", "Failed to open DumpEMFields file " + filename_m);
     }
     if (!fout.good()) {
         throw OpalException(
-            "DumpEMFields::writeFieldThis", "Failed to open DumpEMFields file " + filename_m
-        );
+            "DumpEMFields::writeFieldThis", "Failed to open DumpEMFields file " + filename_m);
     }
     // set precision
     writeHeader(fout);
@@ -328,8 +320,7 @@ void DumpEMFields::writeFieldThis(Component* field) {
     }
     if (!fout.good()) {
         throw OpalException(
-            "DumpEMFields::writeFieldThis", "Something went wrong during writing " + filename_m
-        );
+            "DumpEMFields::writeFieldThis", "Something went wrong during writing " + filename_m);
     }
     fout.close();
 }

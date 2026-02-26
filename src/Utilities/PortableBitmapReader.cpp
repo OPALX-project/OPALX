@@ -45,8 +45,7 @@ void PortableBitmapReader::readHeader(std::istream& in) {
         type_m = BINARY;
     } else {
         throw OpalException(
-            "PortableBitmapReader::readHeader", "Unknown magic value: '" + magicValue + "'"
-        );
+            "PortableBitmapReader::readHeader", "Unknown magic value: '" + magicValue + "'");
     }
 
     {

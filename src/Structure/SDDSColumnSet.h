@@ -33,8 +33,7 @@ public:
     void addColumn(
         const std::string& name, const std::string& type, const std::string& unit,
         const std::string& desc, std::ios_base::fmtflags flags = std::ios_base::scientific,
-        unsigned short precision = 15
-    );
+        unsigned short precision = 15);
 
     template <typename T>
     void addColumnValue(const std::string& name, const T& val);
@@ -57,8 +56,7 @@ void SDDSColumnSet::addColumnValue(const std::string& name, const T& val) {
     auto it = name2idx_m.find(name);
     if (it == name2idx_m.end()) {
         throw OpalException(
-            "SDDSColumnSet::addColumnValue", "column name '" + name + "' doesn't exists"
-        );
+            "SDDSColumnSet::addColumnValue", "column name '" + name + "' doesn't exists");
     }
 
     auto& col = columns_m[it->second];

@@ -54,8 +54,7 @@ namespace interpolation {
 
     template void MVector<double>::build_vector(const double* data_begin, const double* data_end);
     template void MVector<m_complex>::build_vector(
-        const m_complex* data_begin, const m_complex* data_end
-    );
+        const m_complex* data_begin, const m_complex* data_end);
 
     template std::ostream& operator<<(std::ostream& out, MVector<double> v);
     template std::ostream& operator<<(std::ostream& out, MVector<m_complex> v);
@@ -176,8 +175,7 @@ namespace interpolation {
         }
         _vector = gsl_vector_complex_alloc(mv.num_row());
         gsl_vector_complex_memcpy(
-            (gsl_vector_complex*)_vector, (const gsl_vector_complex*)mv._vector
-        );
+            (gsl_vector_complex*)_vector, (const gsl_vector_complex*)mv._vector);
         return *this;
     }
 

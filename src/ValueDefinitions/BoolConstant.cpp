@@ -27,8 +27,7 @@ BoolConstant::BoolConstant()
           1, "BOOL_CONSTANT",
           "The \"BOOL CONSTANT\" statement defines a global "
           "logical constant:\n"
-          "\tBOOL CONSTANT <name> = <Bool-expression>;\n"
-      ) {
+          "\tBOOL CONSTANT <name> = <Bool-expression>;\n") {
     itsAttr[0] = Attributes::makeBool("VALUE", "The constant value");
 
     registerOwnership(AttributeHandler::STATEMENT);

@@ -30,13 +30,11 @@ public:
     //  Construct particle with the given coordinates.
     OpalParticle(
         std::size_t id, double x, double px, double y, double py, double z, double pz, double time,
-        double q, double m
-    );
+        double q, double m);
 
     OpalParticle(
         std::size_t id, Vector_t<double, 3> const& R, Vector_t<double, 3> const& P, double time,
-        double q, double m
-    );
+        double q, double m);
 
     OpalParticle();
 

@@ -36,8 +36,7 @@ public:
 
     ///@{ Pure virtual implementation of Component
     virtual void initialise(
-        PartBunch_t* bunch, double& startField, double& endField
-    ) override;                           // not used?
+        PartBunch_t* bunch, double& startField, double& endField) override;  // not used?
     void initialise(PartBunch_t* bunch);  // replacement for virtual initialise
     virtual void finalise() final;        // final since virtual hook doFinalise
     virtual void goOffline() final;       // final since virtual hook doGoOffline
@@ -48,18 +47,15 @@ public:
     virtual bool apply() override;
 
     virtual bool apply(
-        const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B
-    ) override;
+        const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 
     virtual bool apply(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-        Vector_t<double, 3>& E, Vector_t<double, 3>& B
-    ) override;
+        Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 
     virtual bool applyToReferenceParticle(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-        Vector_t<double, 3>& E, Vector_t<double, 3>& B
-    ) override;
+        Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
     ///@}
 
     /// Set dimensions and consistency checks
@@ -97,8 +93,7 @@ private:
     virtual void doInitialise(PartBunch_t* /*bunch*/) {}
     /// Pure virtual hook for check
     virtual bool doCheck(
-        PartBunch_t* bunch, const int turnnumber, const double t, const double tstep
-    ) = 0;
+        PartBunch_t* bunch, const int turnnumber, const double t, const double tstep) = 0;
     /// Virtual hook for setGeom
     virtual void doSetGeom() {};
     /// Virtual hook for preCheck

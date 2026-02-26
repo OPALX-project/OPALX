@@ -45,8 +45,7 @@ namespace Attributes {
     }
 
     void TokenListArray::parseComponent(
-        Attribute& attr, Statement& statement, bool, int index
-    ) const {
+        Attribute& attr, Statement& statement, bool, int index) const {
         std::vector<std::list<Token> > array;
 
         if (AttributeBase* base = &attr.getBase()) {

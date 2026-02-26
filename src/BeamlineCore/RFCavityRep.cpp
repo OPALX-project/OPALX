@@ -32,8 +32,7 @@ namespace {
         {"AMPLITUDE", &RFCavityRep::getAmplitude, &RFCavityRep::setAmplitude},
         {"FREQUENCY", &RFCavityRep::getFrequency, &RFCavityRep::setFrequency},
         {"PHASE", &RFCavityRep::getPhase, &RFCavityRep::setPhase},
-        {0, 0, 0}
-    };
+        {0, 0, 0}};
 }  // namespace
 
 RFCavityRep::RFCavityRep() : RFCavity() {}

@@ -168,8 +168,8 @@ inline const VarRadiusGeometry& MultipoleTCurvedVarRadius::getGeometry() const {
 }
 inline void MultipoleTCurvedVarRadius::setBendAngle(const double& angle) { angle_m = angle; }
 inline double MultipoleTCurvedVarRadius::getBendAngle() const { return angle_m; }
-inline void MultipoleTCurvedVarRadius::
-    initialise(PartBunch_t* bunch, double& /*startField*/, double& /*endField*/) {
+inline void MultipoleTCurvedVarRadius::initialise(
+    PartBunch_t* bunch, double& /*startField*/, double& /*endField*/) {
     RefPartBunch_m = bunch;
     double length  = getLength();
     varRadiusGeometry_m.setElementLength(2 * getBoundingBoxLength());

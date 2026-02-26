@@ -41,8 +41,7 @@ SequenceTemplate::SequenceTemplate()
     : Macro(
           0, "SEQUENCE",
           "This object defines a beamsequence list with arguments.\n"
-          "\t<name>(<args>);"
-      ),
+          "\t<name>(<args>);"),
       body("SEQUENCE") {}
 
 SequenceTemplate::SequenceTemplate(const std::string& name, Object* parent)
@@ -55,8 +54,7 @@ SequenceTemplate* SequenceTemplate::clone(const std::string& /*name*/) {
 }
 
 Object* SequenceTemplate::makeInstance(
-    const std::string& name, Statement& statement, const Parser*
-) {
+    const std::string& name, Statement& statement, const Parser*) {
     MacroStream* expansion = 0;
     Sequence* instance     = 0;
 

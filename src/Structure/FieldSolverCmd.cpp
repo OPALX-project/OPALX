@@ -39,15 +39,13 @@ using namespace Expressions;
 FieldSolverCmd::FieldSolverCmd()
     : Definition(
           FIELDSOLVER::SIZE, "FIELDSOLVER",
-          "The \"FIELDSOLVER\" statement defines data for a the field solver"
-      ) {
+          "The \"FIELDSOLVER\" statement defines data for a the field solver") {
     itsAttr[FIELDSOLVER::TYPE] = Attributes::makePredefinedString(
-        "TYPE", "Name of the attached field solver.", {"NONE", "FFT", "OPEN", "CG"}
-    );  // removed, since not implemented: "P3M"
+        "TYPE", "Name of the attached field solver.",
+        {"NONE", "FFT", "OPEN", "CG"});  // removed, since not implemented: "P3M"
 
     itsAttr[FIELDSOLVER::BINS] = Attributes::makeString(
-        "BINS", "Name of BINNING definition to be used, or NONE for no binning.", "NONE"
-    );
+        "BINS", "Name of BINNING definition to be used, or NONE for no binning.", "NONE");
 
     itsAttr[FIELDSOLVER::NX] = Attributes::makeReal("NX", "Meshsize in x");
     itsAttr[FIELDSOLVER::NY] = Attributes::makeReal("NY", "Meshsize in y");
@@ -63,20 +61,16 @@ FieldSolverCmd::FieldSolverCmd()
         Attributes::makeBool("PARFFTZ", "True, dimension 2 i.e z is parallelized", true);
 
     itsAttr[FIELDSOLVER::BCFFTX] = Attributes::makePredefinedString(
-        "BCFFTX", "Boundary conditions in x.", {"OPEN", "DIRICHLET", "PERIODIC"}, "OPEN"
-    );
+        "BCFFTX", "Boundary conditions in x.", {"OPEN", "DIRICHLET", "PERIODIC"}, "OPEN");
 
     itsAttr[FIELDSOLVER::BCFFTY] = Attributes::makePredefinedString(
-        "BCFFTY", "Boundary conditions in y.", {"OPEN", "DIRICHLET", "PERIODIC"}, "OPEN"
-    );
+        "BCFFTY", "Boundary conditions in y.", {"OPEN", "DIRICHLET", "PERIODIC"}, "OPEN");
 
     itsAttr[FIELDSOLVER::BCFFTZ] = Attributes::makePredefinedString(
-        "BCFFTZ", "Boundary conditions in z.", {"OPEN", "DIRICHLET", "PERIODIC"}, "OPEN"
-    );
+        "BCFFTZ", "Boundary conditions in z.", {"OPEN", "DIRICHLET", "PERIODIC"}, "OPEN");
 
     itsAttr[FIELDSOLVER::GREENSF] = Attributes::makePredefinedString(
-        "GREENSF", "Which Greensfunction to be used.", {"STANDARD", "INTEGRATED"}, "INTEGRATED"
-    );
+        "GREENSF", "Which Greensfunction to be used.", {"STANDARD", "INTEGRATED"}, "INTEGRATED");
 
     itsAttr[FIELDSOLVER::BBOXINCR] =
         Attributes::makeReal("BBOXINCR", "Increase of bounding box in % ", 2.0);
@@ -119,8 +113,7 @@ BCHandler<3> FieldSolverCmd::constructBCHandler() const {
     BCH_t boundary_conditions(
         BCH_t::strToBCType(Attributes::getString(itsAttr[FIELDSOLVER::BCFFTX])),
         BCH_t::strToBCType(Attributes::getString(itsAttr[FIELDSOLVER::BCFFTY])),
-        BCH_t::strToBCType(Attributes::getString(itsAttr[FIELDSOLVER::BCFFTZ]))
-    );
+        BCH_t::strToBCType(Attributes::getString(itsAttr[FIELDSOLVER::BCFFTZ])));
 
     /// \todo remove this restriction when more BC configurations are implemented
     /**
@@ -132,8 +125,7 @@ BCHandler<3> FieldSolverCmd::constructBCHandler() const {
             "PartBunch::PartBunch",
             "Currently only uniform boundary conditions in all "
             "dimensions are supported! Please set all "
-            "dimensions to either OPEN or PERIODIC."
-        );
+            "dimensions to either OPEN or PERIODIC.");
     }
 
     return boundary_conditions;
@@ -166,16 +158,14 @@ void FieldSolverCmd::setFieldSolverCmdType() {
         {"NONE", FieldSolverCmdType::NONE},
         {"FFT", FieldSolverCmdType::FFT},
         {"OPEN", FieldSolverCmdType::OPEN},
-        {"CG", FieldSolverCmdType::CG}
-    };
+        {"CG", FieldSolverCmdType::CG}};
 
     fsName_m = getType();
 
     if (fsName_m.empty()) {
         throw OpalException(
             "FieldSolverCmd::setFieldSolverCmdType",
-            "The attribute \"TYPE\" isn't set for \"FIELDSOLVER\"!"
-        );
+            "The attribute \"TYPE\" isn't set for \"FIELDSOLVER\"!");
     } else {
         fsType_m = stringType_s.at(fsName_m);
     }

@@ -20,8 +20,8 @@
 
 template <typename FieldFunction, typename... Arguments>
 bool LF2<FieldFunction, Arguments...>::doAdvance_m(
-    PartBunch_t* bunch, const size_t& i, const double& t, const double dt, Arguments&... args
-) const {
+    PartBunch_t* bunch, const size_t& i, const double& t, const double dt,
+    Arguments&... args) const {
     bool flagNoDeletion = true;
 
     // push for first LF2 half step
@@ -37,8 +37,7 @@ bool LF2<FieldFunction, Arguments...>::doAdvance_m(
 
 template <typename FieldFunction, typename... Arguments>
 void LF2<FieldFunction, Arguments...>::push_m(
-    Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& h
-) const {
+    Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& h) const {
     double const gamma          = sqrt(1.0 + dot(P, P));
     double const c_gamma        = Physics::c / gamma;
     Vector_t<double, 3> const v = P * c_gamma;
@@ -47,8 +46,8 @@ void LF2<FieldFunction, Arguments...>::push_m(
 
 template <typename FieldFunction, typename... Arguments>
 bool LF2<FieldFunction, Arguments...>::kick_m(
-    PartBunch_t* bunch, const size_t& i, const double& t, const double& h, Arguments&... args
-) const {
+    PartBunch_t* bunch, const size_t& i, const double& t, const double& h,
+    Arguments&... args) const {
     Vector_t<double, 3> externalE = Vector_t<double, 3>(0.0, 0.0, 0.0);
     Vector_t<double, 3> externalB = Vector_t<double, 3>(0.0, 0.0, 0.0);
 

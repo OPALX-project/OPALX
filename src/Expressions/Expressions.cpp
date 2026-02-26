@@ -166,8 +166,7 @@ namespace Expressions {
         {"SI", -2, SFunction::arcIn},
         {"SC", -2, SFunction::arcCtr},
         {"SO", -2, SFunction::arcOut},
-        {0, -1, 0}
-    };
+        {0, -1, 0}};
 
     // Real functions with two arguments.
     // ----------------------------------------------------------------------
@@ -178,8 +177,7 @@ namespace Expressions {
         {"LOG", -1, std::log},     {"EXP", -1, std::exp},     {"SIN", -1, std::sin},
         {"COS", -1, std::cos},     {"ABS", -1, std::abs},     {"TAN", -1, std::tan},
         {"ASIN", -1, std::asin},   {"ACOS", -1, std::acos},   {"ATAN", -1, std::atan},
-        {"TGAUSS", -2, Tgauss},    {"ERF", -1, std::erf},     {0, -1, 0}
-    };
+        {"TGAUSS", -2, Tgauss},    {"ERF", -1, std::erf},     {0, -1, 0}};
 
     // Real functions with two arguments.
     // ----------------------------------------------------------------------
@@ -261,8 +259,7 @@ namespace Expressions {
         {"VMAX", -1, Maxa},
         {"VRMS", -1, Rmsa},
         {"VABSMAX", -1, AbsMax},
-        {0, -1, 0}
-    };
+        {0, -1, 0}};
 
     // Internal variables.
     const Table* currentTable = 0;
@@ -520,16 +517,16 @@ namespace Expressions {
     void parseDelimiter(Statement& stat, char delim) {
         if (!stat.delimiter(delim)) {
             throw ParseError(
-                "Expressions::parseDelimiter()", std::string("Delimiter '") + delim + "' expected."
-            );
+                "Expressions::parseDelimiter()",
+                std::string("Delimiter '") + delim + "' expected.");
         }
     }
 
     void parseDelimiter(Statement& stat, const char delim[2]) {
         if (!stat.delimiter(delim)) {
             throw ParseError(
-                "Expressions::parseDelimiter()", std::string("Delimiter '") + delim + "' expected."
-            );
+                "Expressions::parseDelimiter()",
+                std::string("Delimiter '") + delim + "' expected.");
         }
     }
 
@@ -559,8 +556,8 @@ namespace Expressions {
 
                         if (occurrence <= 0) {
                             throw ParseError(
-                                "Expressions::parsePlace()", "Occurrence counter must be positive."
-                            );
+                                "Expressions::parsePlace()",
+                                "Occurrence counter must be positive.");
                         }
                     }
                     pos.append(name, occurrence);
@@ -750,8 +747,7 @@ namespace Expressions {
                     result = new AList<double>(array);
                 } else {
                     throw ParseError(
-                        "parseArrayPrimary()", "Invalid array function name \"" + frstName + "\"."
-                    );
+                        "parseArrayPrimary()", "Invalid array function name \"" + frstName + "\".");
                 }
                 parseDelimiter(stat, ')');
             } else if (stat.delimiter("->")) {
@@ -798,8 +794,7 @@ namespace Expressions {
             if (stat.atEnd() || stat.delimiter(';')) {
                 throw ParseError(
                     "Expressions::parseBracketList()",
-                    "Parentheses, brackets or braces do not nest."
-                );
+                    "Parentheses, brackets or braces do not nest.");
             }
 
             Token token = stat.getCurrent();
@@ -868,8 +863,7 @@ namespace Expressions {
                     result                  = new ASUnary<double>(*fun, arg1);
                 } else {
                     throw ParseError(
-                        "parsePrimary()", "Unknown function name \"" + frstName + "\"."
-                    );
+                        "parsePrimary()", "Unknown function name \"" + frstName + "\".");
                 }
                 parseDelimiter(stat, ')');
             } else if (stat.delimiter("->")) {
@@ -1050,8 +1044,7 @@ namespace Expressions {
             parseDelimiter(stat, ',');
         } else {
             throw ParseError(
-                "Expressions::parseTableGenerator()", "Index set incorrect or missing."
-            );
+                "Expressions::parseTableGenerator()", "Index set incorrect or missing.");
         }
 
         // Check the array index set.

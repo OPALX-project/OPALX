@@ -29,14 +29,14 @@ public:
 
 private:
     bool doAdvance_m(
-        PartBunch_t* bunch, const size_t& i, const double& t, const double dt, Arguments&... args
-    ) const;
+        PartBunch_t* bunch, const size_t& i, const double& t, const double dt,
+        Arguments&... args) const;
 
     void push_m(Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& h) const;
 
     bool kick_m(
-        PartBunch_t* bunch, const size_t& i, const double& t, const double& h, Arguments&... args
-    ) const;
+        PartBunch_t* bunch, const size_t& i, const double& t, const double& h,
+        Arguments&... args) const;
 };
 
 #include "LF2.hpp"

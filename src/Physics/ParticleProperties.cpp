@@ -72,13 +72,11 @@ const std::map<ParticleType, double> ParticleProperties::particleMass_m = {
     {ParticleType::HMINUS, Physics::m_hm},    {ParticleType::HYDROGEN, Physics::m_h},
     {ParticleType::H2P, Physics::m_h2p},      {ParticleType::H3P, Physics::m_h3p},
     {ParticleType::ALPHA, Physics::m_alpha},  {ParticleType::CARBON, Physics::m_c},
-    {ParticleType::XENON, Physics::m_xe},     {ParticleType::URANIUM, Physics::m_u}
-};
+    {ParticleType::XENON, Physics::m_xe},     {ParticleType::URANIUM, Physics::m_u}};
 
 const std::map<ParticleType, double> ParticleProperties::particleCharge_m = {
     {ParticleType::ELECTRON, -1.0}, {ParticleType::POSITRON, 1.0},    {ParticleType::MUON, -1.0},
     {ParticleType::PROTON, 1.0},    {ParticleType::ANTIPROTON, -1.0}, {ParticleType::DEUTERON, 1.0},
     {ParticleType::HMINUS, -1.0},   {ParticleType::HYDROGEN, 0.0},    {ParticleType::H2P, 1.0},
     {ParticleType::H3P, 1.0},       {ParticleType::ALPHA, 2.0},       {ParticleType::CARBON, 6.0},
-    {ParticleType::XENON, 54.0},    {ParticleType::URANIUM, 92.0}
-};
+    {ParticleType::XENON, 54.0},    {ParticleType::URANIUM, 92.0}};

@@ -108,8 +108,7 @@ namespace ParticleBinning {
          */
         Histogram(
             std::string debug_name, bin_index_type numBins, value_type totalBinWidth,
-            value_type binningAlpha, value_type binningBeta, value_type desiredWidth
-        )
+            value_type binningAlpha, value_type binningBeta, value_type desiredWidth)
             : debug_name_m(debug_name),
               numBins_m(numBins),
               totalBinWidth_m(totalBinWidth),
@@ -215,8 +214,7 @@ namespace ParticleBinning {
             using other_dwidth_view_type = typename Histogram_t::dwidth_view_type;
             Kokkos::deep_copy(
                 getDeviceView<dwidth_view_type>(binWidths_m),
-                other.template getDeviceView<other_dwidth_view_type>(other.getBinWidths())
-            );
+                other.template getDeviceView<other_dwidth_view_type>(other.getBinWidths()));
             if constexpr (UseDualView) {
                 binWidths_m.modify_device();
 
@@ -257,8 +255,7 @@ namespace ParticleBinning {
             // / numBins_m);" would work too!
             Kokkos::parallel_for(
                 "InitConstBinWidths", Kokkos::RangePolicy<execution_space>(0, numBins_m),
-                KOKKOS_LAMBDA(const size_t i) { dWidthView(i) = binWidth; }
-            );
+                KOKKOS_LAMBDA(const size_t i) { dWidthView(i) = binWidth; });
             IpplTimings::stopTimer(bHistogramInitT);
 
             if constexpr (UseDualView) {
@@ -279,8 +276,7 @@ namespace ParticleBinning {
         void initPostSum() {
             IpplTimings::startTimer(bHistogramInitT);
             computeFixSum<dview_type>(
-                getDeviceView<dview_type>(histogram_m), getDeviceView<dview_type>(postSum_m)
-            );
+                getDeviceView<dview_type>(histogram_m), getDeviceView<dview_type>(postSum_m));
             IpplTimings::stopTimer(bHistogramInitT);
 
             if constexpr (UseDualView) {
@@ -308,12 +304,10 @@ namespace ParticleBinning {
          * available on device, then there will be some values copied from device to host.
          */
         Kokkos::RangePolicy<> getBinIterationPolicy(
-            const bin_index_type& binIndex1, const bin_index_type numBins = 1
-        ) {
+            const bin_index_type& binIndex1, const bin_index_type numBins = 1) {
             if constexpr (UseDualView) {
                 return Kokkos::RangePolicy<>(
-                    postSum_m.h_view(binIndex1), postSum_m.h_view(binIndex1 + numBins)
-                );
+                    postSum_m.h_view(binIndex1), postSum_m.h_view(binIndex1 + numBins));
             } else {
                 std::cerr << "Warning: Accessing BinHisto.getBinIterationPolicy without DualView "
                              "might be inefficient!"
@@ -321,8 +315,7 @@ namespace ParticleBinning {
                 Kokkos::View<bin_index_type[2], Kokkos::HostSpace> host_ranges("host_scalar");
                 Kokkos::deep_copy(
                     host_ranges,
-                    Kokkos::subview(postSum_m, std::make_pair(binIndex1, binIndex1 + numBins))
-                );
+                    Kokkos::subview(postSum_m, std::make_pair(binIndex1, binIndex1 + numBins)));
                 return Kokkos::RangePolicy<>(host_ranges(0), host_ranges(1));
             }
         }
@@ -513,8 +506,7 @@ namespace ParticleBinning {
          */
         value_type adaptiveBinningCostFunction(
             const size_type& sumCount, const value_type& sumWidth,
-            const size_type& totalNumParticles
-        );
+            const size_type& totalNumParticles);
 
         /**
          * @brief Initializes timers for various operations in the binning process.

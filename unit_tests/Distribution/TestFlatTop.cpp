@@ -34,8 +34,7 @@ protected:
 
         // Create FieldContainer
         fc = std::make_shared<FieldContainer_t>(
-            hr, rmin, rmax, decomp, domain, origin, this->isAllPeriodic_m
-        );
+            hr, rmin, rmax, decomp, domain, origin, this->isAllPeriodic_m);
 
         // Create mesh and fieldlayout
         Mesh_t<3> mesh(domain, hr, origin);
@@ -106,8 +105,7 @@ TEST_F(FlatTopTest, UniformDiskStatisticsAndBounds) {
         /*emitting=*/false,
         /*sigmaTFall=*/1.0,
         /*sigmaTRise=*/1.0, cutoff,
-        /*tPulseLengthFWHM=*/1.0, sigmaR
-    );
+        /*tPulseLengthFWHM=*/1.0, sigmaR);
 
     const size_t nlocal = 0;
     const size_t nNew   = 100000;
@@ -254,8 +252,7 @@ TEST_F(FlatTopTest, CountEnteringParticles_NoDomainDecomp) {
         /*emitting=*/true,
         /*sigmaTFall=*/1.0,
         /*sigmaTRise=*/1.0, cutoff,
-        /*tPulseLengthFWHM=*/10.0, sigmaR
-    );
+        /*tPulseLengthFWHM=*/10.0, sigmaR);
 
     sampler.setWithDomainDecomp(false);
 

@@ -46,8 +46,7 @@ void PortableGraymapReader::readHeader(std::istream& in) {
         type_m = BINARY;
     } else {
         throw OpalException(
-            "PortableGraymapReader::readHeader", "Unknown magic value: '" + magicValue + "'"
-        );
+            "PortableGraymapReader::readHeader", "Unknown magic value: '" + magicValue + "'");
     }
 
     {

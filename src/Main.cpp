@@ -282,13 +282,13 @@ int main(int argc, char* argv[]) {
                     ++ii;
                     inputFileArgument = ii;
                     continue;
-                } else if (argStr == std::string("-restart")
-                           || argStr == std::string("--restart")) {
+                } else if (
+                    argStr == std::string("-restart") || argStr == std::string("--restart")) {
                     opal->setRestartRun();
                     opal->setRestartStep(atoi(argv[++ii]));
                     continue;
-                } else if (argStr == std::string("-restartfn")
-                           || argStr == std::string("--restartfn")) {
+                } else if (
+                    argStr == std::string("-restartfn") || argStr == std::string("--restartfn")) {
                     restartFileName = std::string(argv[++ii]);
                     continue;
                 } else if (argStr == std::string("--info")) {
@@ -358,8 +358,7 @@ int main(int argc, char* argv[]) {
                     std::string closure(
                         "                                                                          "
                         "    "
-                        "   *\n"
-                    );
+                        "   *\n");
                     *ippl::Error
                         << "\n"
                         << "* "
@@ -510,8 +509,7 @@ int main(int argc, char* argv[]) {
         IpplTimings::print();
 
         IpplTimings::print(
-            std::string("timing.dat"), OpalData::getInstance()->getProblemCharacteristicValues()
-        );
+            std::string("timing.dat"), OpalData::getInstance()->getProblemCharacteristicValues());
 
         ippl::Comm->barrier();
         Fieldmap::clearDictionary();

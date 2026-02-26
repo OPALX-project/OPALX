@@ -83,8 +83,7 @@ namespace interpolation {
          */
         ThreeDGrid(
             double dX, double dY, double dZ, double minX, double minY, double minZ,
-            int numberOfXCoords, int numberOfYCoords, int numberOfZCoords
-        );
+            int numberOfXCoords, int numberOfYCoords, int numberOfZCoords);
 
         /** Make a irregular rectangular ThreeDGrid
          *
@@ -99,8 +98,7 @@ namespace interpolation {
          *  take ownership of these arrays).
          */
         ThreeDGrid(
-            int xSize, const double* x, int ySize, const double* y, int zSize, const double* z
-        );
+            int xSize, const double* x, int ySize, const double* y, int zSize, const double* z);
 
         /** Make a irregular rectangular ThreeDGrid
          *
@@ -204,8 +202,8 @@ namespace interpolation {
          *  the case of an irregular grid we always return an element in the grid
          */
         inline void lowerBound(
-            const double& x, int& xIndex, const double& y, int& yIndex, const double& z, int& zIndex
-        ) const;
+            const double& x, int& xIndex, const double& y, int& yIndex, const double& z,
+            int& zIndex) const;
 
         /** Find the iterator of the nearest point on the grid less than x, y, z
          *
@@ -213,8 +211,7 @@ namespace interpolation {
          *  the case of an irregular grid we always return an element in the grid
          */
         inline void lowerBound(
-            const double& x, const double& y, const double& z, Mesh::Iterator& it
-        ) const;
+            const double& x, const double& y, const double& z, Mesh::Iterator& it) const;
 
         /** Return the smallest value of x in the grid */
         inline double minX() const;
@@ -362,16 +359,15 @@ namespace interpolation {
     }
 
     void ThreeDGrid::lowerBound(
-        const double& x, int& xIndex, const double& y, int& yIndex, const double& z, int& zIndex
-    ) const {
+        const double& x, int& xIndex, const double& y, int& yIndex, const double& z,
+        int& zIndex) const {
         xLowerBound(x, xIndex);
         yLowerBound(y, yIndex);
         zLowerBound(z, zIndex);
     }
 
     void ThreeDGrid::lowerBound(
-        const double& x, const double& y, const double& z, Mesh::Iterator& it
-    ) const {
+        const double& x, const double& y, const double& z, Mesh::Iterator& it) const {
         xLowerBound(x, it[0]);
         yLowerBound(y, it[1]);
         zLowerBound(z, it[2]);

@@ -37,8 +37,7 @@ H5PartWrapper::H5PartWrapper(const std::string& fileName, h5_int32_t flags)
 }
 
 H5PartWrapper::H5PartWrapper(
-    const std::string& fileName, int restartStep, std::string sourceFile, h5_int32_t flags
-)
+    const std::string& fileName, int restartStep, std::string sourceFile, h5_int32_t flags)
     : file_m(0),
       fileName_m(fileName),
       predecessorOPALFlavour_m("NOT SET"),
@@ -129,8 +128,7 @@ void H5PartWrapper::copyFile(const std::string& sourceFile, int lastStep, h5_int
     namespace fs = std::filesystem;
     if (!fs::exists(sourceFile)) {
         throw OpalException(
-            "H5PartWrapper::copyFile", "source file '" + sourceFile + "' does not exist"
-        );
+            "H5PartWrapper::copyFile", "source file '" + sourceFile + "' does not exist");
     }
 
     if (sourceFile == fileName_m) {
@@ -276,13 +274,12 @@ void H5PartWrapper::copyFileSystem(const std::string& sourceFile) {
         source.close();
 
         sendFailureMessage(
-            dest.bad(), "H5PartWrapper::copyFile", "could not copy file " + sourceFile
-        );
+            dest.bad(), "H5PartWrapper::copyFile", "could not copy file " + sourceFile);
         dest.close();
     } else {
         receiveFailureMessage(
-            sourceNode, "H5PartWrapper::copyFile", "received message to throw exception from node 0"
-        );
+            sourceNode, "H5PartWrapper::copyFile",
+            "received message to throw exception from node 0");
     }
 }
 
@@ -301,8 +298,7 @@ void H5PartWrapper::copyHeader(h5_file_t source) {
 
     for (h5_int64_t i = 0; i < numFileAttributes; ++i) {
         REPORTONERROR(H5GetFileAttribInfo(
-            source, i, attributeName, lengthAttributeName, &attributeType, &numAttributeElements
-        ));
+            source, i, attributeName, lengthAttributeName, &attributeType, &numAttributeElements));
 
         if (attributeType == H5_STRING_T) {
             if (buffer.size() < numAttributeElements) {
@@ -346,8 +342,7 @@ void H5PartWrapper::copyHeader(h5_file_t source) {
 
         } else {
             throw OpalException(
-                "H5PartWrapper::copyHeader", "unknown data type: " + std::to_string(attributeType)
-            );
+                "H5PartWrapper::copyHeader", "unknown data type: " + std::to_string(attributeType));
         }
     }
 }
@@ -379,8 +374,7 @@ void H5PartWrapper::copyStepHeader(h5_file_t source) {
 
     for (h5_int64_t i = 0; i < numStepAttributes; ++i) {
         REPORTONERROR(H5GetStepAttribInfo(
-            source, i, attributeName, lengthAttributeName, &attributeType, &numAttributeElements
-        ));
+            source, i, attributeName, lengthAttributeName, &attributeType, &numAttributeElements));
 
         if (attributeType == H5TypesCHAR) {
             if (buffer.size() < numAttributeElements) {
@@ -425,8 +419,7 @@ void H5PartWrapper::copyStepHeader(h5_file_t source) {
         } else {
             throw OpalException(
                 "H5PartWrapper::copyStepHeader",
-                "unknown data type: " + std::to_string(attributeType)
-            );
+                "unknown data type: " + std::to_string(attributeType));
         }
     }
 }
@@ -461,8 +454,7 @@ void H5PartWrapper::copyStepData(h5_file_t source) {
 
     for (h5_ssize_t i = 0; i < numDatasets; ++i) {
         REPORTONERROR(
-            H5PartGetDatasetInfo(source, i, setName, lengthSetName, &setType, &numSetElements)
-        );
+            H5PartGetDatasetInfo(source, i, setName, lengthSetName, &setType, &numSetElements));
 
         if (setType == H5TypesFLOAT) {
             READDATA(Float32, source, setName, f32buffer);
@@ -478,8 +470,7 @@ void H5PartWrapper::copyStepData(h5_file_t source) {
             WRITEDATA(Int64, file_m, setName, i64buffer);
         } else {
             throw OpalException(
-                "H5PartWrapper::copyStepData", "unknown data type: " + std::to_string(setType)
-            );
+                "H5PartWrapper::copyStepData", "unknown data type: " + std::to_string(setType));
         }
     }
 
@@ -488,8 +479,7 @@ void H5PartWrapper::copyStepData(h5_file_t source) {
 }
 
 void H5PartWrapper::sendFailureMessage(
-    bool failed, const std::string& where, const std::string& what
-) {
+    bool failed, const std::string& where, const std::string& what) {
     // int tag = 101;
     /* \todo  Message* mess = new Message();
     putMessage(*mess, failed);
@@ -501,8 +491,7 @@ void H5PartWrapper::sendFailureMessage(
 }
 
 void H5PartWrapper::receiveFailureMessage(
-    int /*sourceNode*/, const std::string& where, const std::string& what
-) {
+    int /*sourceNode*/, const std::string& where, const std::string& what) {
     //    int tag = 101;
     bool failed = false;
     /* \todo

@@ -20,16 +20,14 @@ using view_type = typename ippl::detail::ViewType<ippl::Vector<double, 3>, 1>::v
 
 FromFile::FromFile(
     std::shared_ptr<ParticleContainer_t> pc, std::shared_ptr<FieldContainer_t> fc,
-    std::shared_ptr<Distribution_t> opalDist
-)
+    std::shared_ptr<Distribution_t> opalDist)
     : SamplingBase(pc, fc, opalDist), numParticles_m(0) {
     // Get filename from distribution
     filename_m = opalDist->getFilename();
 
     if (filename_m.empty()) {
         throw OpalException(
-            "FromFile::FromFile", "FNAME attribute must be set for FROMFILE distribution type."
-        );
+            "FromFile::FromFile", "FNAME attribute must be set for FROMFILE distribution type.");
     }
 
     // Resolve file path (check relative to input file directory)
@@ -52,8 +50,7 @@ FromFile::FromFile(
 
 FromFile::FromFile(
     std::shared_ptr<ParticleContainer_t> pc, std::shared_ptr<FieldContainer_t> fc,
-    const std::string& filename
-)
+    const std::string& filename)
     : SamplingBase(pc, fc), numParticles_m(0) {
     filename_m = filename;
 
@@ -145,8 +142,7 @@ void FromFile::readFile(const std::string& filename) {
                 "FromFile::readFile", "Line " + std::to_string(lineNumber) + " in '" + filename
                                           + "' has fewer columns (" + std::to_string(values.size())
                                           + ") than required (index " + std::to_string(maxColIdx)
-                                          + ")."
-            );
+                                          + ").");
         }
 
         std::vector<double> phaseSpace(6);
@@ -165,8 +161,7 @@ void FromFile::readFile(const std::string& filename) {
 
     if (numParticles_m == 0) {
         throw OpalException(
-            "FromFile::readFile", "No valid particle data found in '" + filename + "'."
-        );
+            "FromFile::readFile", "No valid particle data found in '" + filename + "'.");
     }
 
     if (numParticles_m != expectedNumParticles) {
@@ -174,8 +169,7 @@ void FromFile::readFile(const std::string& filename) {
             "FromFile::readFile", "Number of data lines (" + std::to_string(numParticles_m)
                                       + ") does not match declared count ("
                                       + std::to_string(expectedNumParticles) + ") in '" + filename
-                                      + "'."
-        );
+                                      + "'.");
     }
 }
 
@@ -217,8 +211,7 @@ std::vector<size_t> FromFile::parseHeader(const std::string& headerLine) {
                 "FromFile::parseHeader",
                 "Header must contain all column names (x, y, z, px, py, pz). "
                 "Missing or unrecognized: '"
-                    + std::string(names[i]) + "'."
-            );
+                    + std::string(names[i]) + "'.");
         }
     }
 
@@ -239,10 +232,8 @@ std::string FromFile::normalizeColumnName(const std::string& name) {
             normalized.begin(), normalized.end(),
             [](unsigned char c) {
                 return std::isspace(c);
-            }
-        ),
-        normalized.end()
-    );
+            }),
+        normalized.end());
 
     return normalized;
 }
@@ -324,8 +315,7 @@ void FromFile::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> 
                 Pview(k)[1] = deviceParticleData(dataIdx, 4);  // py
                 Pview(k)[2] = deviceParticleData(dataIdx, 5);  // pz
             }
-        }
-    );
+        });
     Kokkos::fence();
 
     Inform mALL("FromFile::generateParticles", INFORM_ALL_NODES);

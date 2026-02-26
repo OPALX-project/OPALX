@@ -65,8 +65,7 @@ public:
     int writePhaseSpace(
         PartBunch_t* beam, Vector_t<double, 3> FDext[], double E, double refPr, double refPt,
         double refPz, double refR, double refTheta, double refZ, double azimuth, double elevation,
-        bool local
-    );
+        bool local);
 
 private:
     /// Timer to track particle data/H5 file write time.

@@ -33,8 +33,7 @@ void FieldSolver<double, 3>::initSolverWithParams(const ippl::ParameterList& sp)
                   (std::is_same_v<Solver, FEMPreconSolver_t<T, Dim>>)*/) {
         /// \todo for now, don't use the CG solver!
         throw OpalException(
-            "FieldSolver::initSolverWithParams", "Cannot use CGSolver yet, not fully implemented."
-        );
+            "FieldSolver::initSolverWithParams", "Cannot use CGSolver yet, not fully implemented.");
         // The CG solver and FEMPoissonSolver compute the potential
         // directly and use this to get the electric field
         solver.setLhs(*phi_m);
@@ -295,8 +294,7 @@ void FieldSolver<double, 3>::initFFTSolver() {
     } else {
         throw OpalException(
             "FieldSolver<double,3>::initFFTSolver",
-            "FFTSolver_t is only implemented for 2D and 3D fields."
-        );
+            "FFTSolver_t is only implemented for 2D and 3D fields.");
     }
 }
 
@@ -318,8 +316,7 @@ void FieldSolver<double, 3>::initNullSolver() {
     } else {
         throw OpalException(
             "FieldSolver<double,3>::initNullSolver",
-            "NullSolver_t is only implemented for 2D and 3D fields."
-        );
+            "NullSolver_t is only implemented for 2D and 3D fields.");
     }
 }
 
@@ -336,8 +333,7 @@ void FieldSolver<double, 3>::initSolver() {
         initNullSolver();
     } else {
         throw OpalException(
-            "FieldSolver::initSolver", "No known solver matches the argument: " + this->getStype()
-        );
+            "FieldSolver::initSolver", "No known solver matches the argument: " + this->getStype());
     }
 }
 
@@ -439,8 +435,7 @@ void FieldSolver<double, 3>::runSolver(bool force_skip_field_dump) {
         std::get<NullSolver_t<T, Dim>>(this->getSolver()).solve();
     } else {
         throw OpalException(
-            "FieldSolver::runSolver", "No known solver matches the argument: " + this->getStype()
-        );
+            "FieldSolver::runSolver", "No known solver matches the argument: " + this->getStype());
     }
 
     call_counter_m++;

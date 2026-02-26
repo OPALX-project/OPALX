@@ -109,8 +109,7 @@ namespace polynomial {
          */
         double evaluatePolynomial(
             const double& x, const double& s, const std::size_t& xDerivative,
-            const std::size_t& sDerivative, const std::vector<double>& dSvalues
-        ) const;
+            const std::size_t& sDerivative, const std::vector<double>& dSvalues) const;
         /** Check if polynomial term p with x x-derivatives
          *  and s s-derivatives is zero \n
          *  If x, s or term are negative true is returned
@@ -119,8 +118,7 @@ namespace polynomial {
          *  \param term -> Term index
          */
         bool isPolynomialZero(
-            const std::size_t& x, const std::size_t& s, const std::size_t& term
-        ) const;
+            const std::size_t& x, const std::size_t& s, const std::size_t& term) const;
         /** Change number of x-derivatives to xDerivatives
          *  \param xDerivatives -> Number of x-derivatives after resize
          */
@@ -136,8 +134,7 @@ namespace polynomial {
          *  \param s -> Number of s-derivatives
          */
         std::size_t numberOfTerms(
-            const std::size_t& xDerivative, const std::size_t& sDerivative
-        ) const;
+            const std::size_t& xDerivative, const std::size_t& sDerivative) const;
         /** Returns list of S(s)-derivatives in term p with xDerivative
          *  x-derivatives and sDerivative s-derivatives \n
          *  If xDerivative or sDerivative are out of range
@@ -147,8 +144,8 @@ namespace polynomial {
          *  \param term -> Term index
          */
         std::vector<std::size_t> getdSfactors(
-            const std::size_t& xDerivative, const std::size_t& sDerivative, const std::size_t& p
-        ) const;
+            const std::size_t& xDerivative, const std::size_t& sDerivative,
+            const std::size_t& p) const;
         /** Sort the terms in each sum, with fewest S(s)-derivatives first,
          *  then in increasing powers
          */
@@ -178,13 +175,11 @@ namespace polynomial {
     }
     inline double RecursionRelationTwo::evaluatePolynomial(
         const double& x, const double& s, const std::size_t& xDerivative,
-        const std::size_t& sDerivative, const std::vector<double>& dSvalues
-    ) const {
+        const std::size_t& sDerivative, const std::vector<double>& dSvalues) const {
         return operator_m.evaluatePolynomial(x, s, xDerivative, sDerivative, dSvalues);
     }
     inline bool RecursionRelationTwo::isPolynomialZero(
-        const std::size_t& x, const std::size_t& s, const std::size_t& term
-    ) const {
+        const std::size_t& x, const std::size_t& s, const std::size_t& term) const {
         return operator_m.isPolynomialZero(x, s, term);
     }
     inline void RecursionRelationTwo::resizeX(const std::size_t& xDerivatives) {
@@ -194,13 +189,12 @@ namespace polynomial {
         operator_m.resizeS(sDerivatives);
     }
     inline std::size_t RecursionRelationTwo::numberOfTerms(
-        const std::size_t& xDerivative, const std::size_t& sDerivative
-    ) const {
+        const std::size_t& xDerivative, const std::size_t& sDerivative) const {
         return operator_m.numberOfTerms(xDerivative, sDerivative);
     }
     inline std::vector<std::size_t> RecursionRelationTwo::getdSfactors(
-        const std::size_t& xDerivative, const std::size_t& sDerivative, const std::size_t& p
-    ) const {
+        const std::size_t& xDerivative, const std::size_t& sDerivative,
+        const std::size_t& p) const {
         return operator_m.getdSFactors(xDerivative, sDerivative, p);
     }
     inline void RecursionRelationTwo::sortTerms() { operator_m.sortTerms(); }

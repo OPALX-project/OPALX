@@ -81,8 +81,7 @@ namespace Expressions {
 
     template <class T, class U>
     inline SBinary<T, U>::SBinary(
-        const TFunction2<T, U>& function, PtrToScalar<U> left, PtrToScalar<U> right
-    )
+        const TFunction2<T, U>& function, PtrToScalar<U> left, PtrToScalar<U> right)
         : fun(function), lft(left), rgt(right) {}
 
     template <class T, class U>
@@ -118,8 +117,7 @@ namespace Expressions {
 
     template <class T, class U>
     inline Scalar<T>* SBinary<T, U>::make(
-        const TFunction2<T, U>& function, PtrToScalar<U> left, PtrToScalar<U> right
-    ) {
+        const TFunction2<T, U>& function, PtrToScalar<U> left, PtrToScalar<U> right) {
         // We must pick up the constant flag before the ownerships of "left" and
         // "right" are transferred to "result".
         bool isConst          = left->isConstant() && right->isConstant();

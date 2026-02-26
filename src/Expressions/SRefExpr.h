@@ -115,8 +115,7 @@ namespace Expressions {
                 return value->evaluate();
             } else {
                 throw ParseError(
-                    "SRefExpr::evaluate()", "Reference \"" + getImage() + "\" is not a variable."
-                );
+                    "SRefExpr::evaluate()", "Reference \"" + getImage() + "\" is not a variable.");
             }
         }
 
@@ -152,8 +151,7 @@ namespace Expressions {
             if (itsObject == 0) {
                 if (att_name.empty()) {
                     throw ParseError(
-                        "SRefExpr::fill()", "\nThe <variable> \"" + obj_name + "\" is unknown.\n"
-                    );
+                        "SRefExpr::fill()", "\nThe <variable> \"" + obj_name + "\" is unknown.\n");
                 } else {
                     throw ParseError("SRefExpr::fill()", "Object \"" + obj_name + "\" is unknown.");
                 }
@@ -168,16 +166,14 @@ namespace Expressions {
                 if (itsAttr == 0) {
                     throw ParseError(
                         "SRefExpr::fill()",
-                        "Object \"" + obj_name + "\" is not a variable, constant or vector."
-                    );
+                        "Object \"" + obj_name + "\" is not a variable, constant or vector.");
                 }
             } else {
                 itsAttr = itsObject->findAttribute(att_name);
                 if (itsAttr == 0) {
                     throw ParseError(
                         "SRefExpr::fill()",
-                        "Attribute \"" + obj_name + "->" + att_name + "\" is unknown."
-                    );
+                        "Attribute \"" + obj_name + "->" + att_name + "\" is unknown.");
                 }
             }
         }

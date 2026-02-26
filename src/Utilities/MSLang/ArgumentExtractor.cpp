@@ -31,8 +31,7 @@ namespace mslang {
     std::string ArgumentExtractor::get(unsigned int i) const {
         if (i >= argumentBoundaries_m.size())
             throw std::out_of_range(
-                "function only has " + std::to_string(argumentBoundaries_m.size()) + " arguments"
-            );
+                "function only has " + std::to_string(argumentBoundaries_m.size()) + " arguments");
 
         auto boundaries = argumentBoundaries_m[i];
 

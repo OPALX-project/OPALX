@@ -68,8 +68,7 @@ namespace interpolation {
          */
         inline Interpolator3dGridTo3d(
             ThreeDGrid* grid, double*** Bx, double*** By, double*** Bz,
-            interpolationAlgorithm algo = TRILINEAR
-        );
+            interpolationAlgorithm algo = TRILINEAR);
 
         /** Copy constructor deep copies 1d interpolators and mesh
          *
@@ -149,8 +148,7 @@ namespace interpolation {
          */
         void setAll(
             ThreeDGrid* grid, double*** Bx, double*** By, double*** Bz,
-            interpolationAlgorithm algo = TRILINEAR
-        );
+            interpolationAlgorithm algo = TRILINEAR);
 
         /** Clear all private data */
         inline void clear();
@@ -196,7 +194,7 @@ namespace interpolation {
 
     inline Interpolator3dGridTo3d::Interpolator3dGridTo3d(
         ThreeDGrid* grid, double*** Bx, double*** By, double*** Bz, interpolationAlgorithm /*algo*/
-    )
+        )
         : coordinates_m(nullptr) {
         for (int i = 0; i < 3; i++)
             interpolator_m[i] = nullptr;

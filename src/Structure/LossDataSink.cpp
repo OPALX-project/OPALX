@@ -127,22 +127,18 @@ namespace {
     void f64transform(
         const std::vector<OpalParticle>& particles, unsigned int startIdx,
         unsigned int numParticles, h5_float64_t* buffer,
-        std::function<h5_float64_t(const OpalParticle&)> select
-    ) {
+        std::function<h5_float64_t(const OpalParticle&)> select) {
         std::transform(
             particles.begin() + startIdx, particles.begin() + startIdx + numParticles, buffer,
-            select
-        );
+            select);
     }
     void i64transform(
         const std::vector<OpalParticle>& particles, unsigned int startIdx,
         unsigned int numParticles, h5_int64_t* buffer,
-        std::function<h5_int64_t(const OpalParticle&)> select
-    ) {
+        std::function<h5_int64_t(const OpalParticle&)> select) {
         std::transform(
             particles.begin() + startIdx, particles.begin() + startIdx + numParticles, buffer,
-            select
-        );
+            select);
     }
 
     void cminmax(double& min, double& max, double val) {
@@ -192,8 +188,7 @@ LossDataSink::LossDataSink(std::string outfn, bool hdf5Save, CollectionType coll
         throw GeneralClassicException(
             "LossDataSink::LossDataSink",
             "You must select an OPTION to save Loss data files\n"
-            "Please, choose 'ENABLEHDF5=TRUE' or 'ASCIIDUMP=TRUE'"
-        );
+            "Please, choose 'ENABLEHDF5=TRUE' or 'ASCIIDUMP=TRUE'");
     }
 
     OpalData::getInstance()->checkAndAddOutputFileName(outputName_m);
@@ -307,8 +302,7 @@ void LossDataSink::writeHeaderASCII() {
 
 void LossDataSink::addReferenceParticle(
     const Vector_t<double, 3>& x, const Vector_t<double, 3>& p, double time, double spos,
-    long long globalTrackStep
-) {
+    long long globalTrackStep) {
     RefPartR_m.push_back(x);
     RefPartP_m.push_back(p);
     globalTrackStep_m.push_back((h5_int64_t)globalTrackStep);
@@ -317,14 +311,12 @@ void LossDataSink::addReferenceParticle(
 }
 
 void LossDataSink::addParticle(
-    const OpalParticle& particle, const std::optional<std::pair<int, short>>& turnBunchNumPair
-) {
+    const OpalParticle& particle, const std::optional<std::pair<int, short>>& turnBunchNumPair) {
     if (turnBunchNumPair) {
         if (!particles_m.empty() && turnNumber_m.empty()) {
             throw GeneralClassicException(
                 "LossDataSink::addParticle",
-                "Either no particle or all have turn number and bunch number"
-            );
+                "Either no particle or all have turn number and bunch number");
         }
         turnNumber_m.push_back(turnBunchNumPair.value().first);
         bunchNumber_m.push_back(turnBunchNumPair.value().second);
@@ -444,18 +436,14 @@ void LossDataSink::saveH5(unsigned int setIdx) {
     double tmpDouble;
     WRITE_STEPATTRIB_FLOAT64("centroid", (tmpVector = engine.getMeanPosition(), &tmpVector[0]), 3);
     WRITE_STEPATTRIB_FLOAT64(
-        "RMSX", (tmpVector = engine.getStandardDeviationPosition(), &tmpVector[0]), 3
-    );
+        "RMSX", (tmpVector = engine.getStandardDeviationPosition(), &tmpVector[0]), 3);
     WRITE_STEPATTRIB_FLOAT64("MEANP", (tmpVector = engine.getMeanMomentum(), &tmpVector[0]), 3);
     WRITE_STEPATTRIB_FLOAT64(
-        "RMSP", (tmpVector = engine.getStandardDeviationMomentum(), &tmpVector[0]), 3
-    );
+        "RMSP", (tmpVector = engine.getStandardDeviationMomentum(), &tmpVector[0]), 3);
     WRITE_STEPATTRIB_FLOAT64(
-        "#varepsilon", (tmpVector = engine.getNormalizedEmittance(), &tmpVector[0]), 3
-    );
+        "#varepsilon", (tmpVector = engine.getNormalizedEmittance(), &tmpVector[0]), 3);
     WRITE_STEPATTRIB_FLOAT64(
-        "#varepsilon-geom", (tmpVector = engine.getGeometricEmittance(), &tmpVector[0]), 3
-    );
+        "#varepsilon-geom", (tmpVector = engine.getGeometricEmittance(), &tmpVector[0]), 3);
     WRITE_STEPATTRIB_FLOAT64("ENERGY", (tmpDouble = engine.getMeanKineticEnergy(), &tmpDouble), 1);
     WRITE_STEPATTRIB_FLOAT64("dE", (tmpDouble = engine.getStdKineticEnergy(), &tmpDouble), 1);
     WRITE_STEPATTRIB_FLOAT64("TotalCharge", (tmpDouble = engine.getTotalCharge(), &tmpDouble), 1);
@@ -464,34 +452,26 @@ void LossDataSink::saveH5(unsigned int setIdx) {
     WRITE_STEPATTRIB_FLOAT64("rmsTime", (tmpDouble = engine.getStdTime(), &tmpDouble), 1);
     if (Options::computePercentiles) {
         WRITE_STEPATTRIB_FLOAT64(
-            "68-percentile", (tmpVector = engine.get68Percentile(), &tmpVector[0]), 3
-        );
+            "68-percentile", (tmpVector = engine.get68Percentile(), &tmpVector[0]), 3);
         WRITE_STEPATTRIB_FLOAT64(
-            "95-percentile", (tmpVector = engine.get95Percentile(), &tmpVector[0]), 3
-        );
+            "95-percentile", (tmpVector = engine.get95Percentile(), &tmpVector[0]), 3);
         WRITE_STEPATTRIB_FLOAT64(
-            "99-percentile", (tmpVector = engine.get99Percentile(), &tmpVector[0]), 3
-        );
+            "99-percentile", (tmpVector = engine.get99Percentile(), &tmpVector[0]), 3);
         WRITE_STEPATTRIB_FLOAT64(
-            "99_99-percentile", (tmpVector = engine.get99_99Percentile(), &tmpVector[0]), 3
-        );
+            "99_99-percentile", (tmpVector = engine.get99_99Percentile(), &tmpVector[0]), 3);
 
         WRITE_STEPATTRIB_FLOAT64(
             "normalizedEps68Percentile",
-            (tmpVector = engine.getNormalizedEmittance68Percentile(), &tmpVector[0]), 3
-        );
+            (tmpVector = engine.getNormalizedEmittance68Percentile(), &tmpVector[0]), 3);
         WRITE_STEPATTRIB_FLOAT64(
             "normalizedEps95Percentile",
-            (tmpVector = engine.getNormalizedEmittance95Percentile(), &tmpVector[0]), 3
-        );
+            (tmpVector = engine.getNormalizedEmittance95Percentile(), &tmpVector[0]), 3);
         WRITE_STEPATTRIB_FLOAT64(
             "normalizedEps99Percentile",
-            (tmpVector = engine.getNormalizedEmittance99Percentile(), &tmpVector[0]), 3
-        );
+            (tmpVector = engine.getNormalizedEmittance99Percentile(), &tmpVector[0]), 3);
         WRITE_STEPATTRIB_FLOAT64(
             "normalizedEps99_99Percentile",
-            (tmpVector = engine.getNormalizedEmittance99_99Percentile(), &tmpVector[0]), 3
-        );
+            (tmpVector = engine.getNormalizedEmittance99_99Percentile(), &tmpVector[0]), 3);
     }
 
     WRITE_STEPATTRIB_FLOAT64("maxR", (tmpVector = engine.getMaxR(), &tmpVector[0]), 3);
@@ -540,13 +520,11 @@ void LossDataSink::saveH5(unsigned int setIdx) {
 
     if (hasTurnInformations()) {
         std::copy(
-            turnNumber_m.begin() + startIdx, turnNumber_m.begin() + startIdx + nLoc, i64buffer
-        );
+            turnNumber_m.begin() + startIdx, turnNumber_m.begin() + startIdx + nLoc, i64buffer);
         WRITE_DATA_INT64("turn", i64buffer);
 
         std::copy(
-            bunchNumber_m.begin() + startIdx, bunchNumber_m.begin() + startIdx + nLoc, i64buffer
-        );
+            bunchNumber_m.begin() + startIdx, bunchNumber_m.begin() + startIdx + nLoc, i64buffer);
         WRITE_DATA_INT64("bunchNumber", i64buffer);
     }
 
@@ -801,8 +779,7 @@ SetStatistics LossDataSink::computeSetStatistics(unsigned int setIdx) {
             (moments[2 * i * 6 + 2 * i] - stat.nTotal_m * std::pow(stat.rmean_m(i), 2));
         stat.psqsum_m(i) = std::max(
             0.0,
-            moments[(2 * i + 1) * 6 + (2 * i) + 1] - stat.nTotal_m * std::pow(stat.pmean_m(i), 2)
-        );
+            moments[(2 * i + 1) * 6 + (2 * i) + 1] - stat.nTotal_m * std::pow(stat.pmean_m(i), 2));
         stat.rpsum_m(i) =
             (moments[(2 * i) * 6 + (2 * i) + 1]
              - stat.nTotal_m * stat.rmean_m(i) * stat.pmean_m(i));

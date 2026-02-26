@@ -87,8 +87,7 @@ Quaternion& Quaternion::operator*=(const Quaternion& other) {
 
     *this = Quaternion(
         (*this)(0) * other(0) - res,
-        (*this)(0) * imagOther + other(0) * imagThis + cross(imagThis, imagOther)
-    );
+        (*this)(0) * imagOther + other(0) * imagThis + cross(imagThis, imagOther));
     return *this;
 }
 
@@ -102,8 +101,7 @@ Quaternion& Quaternion::normalize() {
 #ifndef NOPAssert
     if (this->Norm() < 1e-12)
         throw GeneralClassicException(
-            "Quaternion::normalize()", "length of quaternion less than 1e-12"
-        );
+            "Quaternion::normalize()", "length of quaternion less than 1e-12");
 #endif
 
     (*this) /= this->length();
@@ -117,8 +115,7 @@ Quaternion Quaternion::inverse() const {
 #ifndef NOPAssert
     if (this->Norm() < 1e-12)
         throw GeneralClassicException(
-            "Quaternion::inverse()", "length of quaternion less than 1e-12"
-        );
+            "Quaternion::inverse()", "length of quaternion less than 1e-12");
 #endif
 
     returnValue /= returnValue.Norm();
@@ -131,8 +128,7 @@ ippl::Vector<double, 3> Quaternion::rotate(const ippl::Vector<double, 3>& vec) c
     if (!this->isUnit())
         throw GeneralClassicException(
             "Quaternion::rotate()",
-            "quaternion isn't unit quaternion. Norm: " + std::to_string(this->Norm())
-        );
+            "quaternion isn't unit quaternion. Norm: " + std::to_string(this->Norm()));
 #endif
 
     Quaternion quat(vec);

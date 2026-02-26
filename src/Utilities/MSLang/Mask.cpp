@@ -8,8 +8,7 @@
 
 namespace mslang {
     void Mask::updateCache(
-        const std::vector<bool>& pixels, std::vector<unsigned int>& cache, unsigned int y
-    ) const {
+        const std::vector<bool>& pixels, std::vector<unsigned int>& cache, unsigned int y) const {
         const unsigned int M = cache.size();
         unsigned int idx     = y * M;
         for (unsigned int x = 0; x < M; ++x, ++idx) {
@@ -178,8 +177,7 @@ namespace mslang {
             double midY  = 0.5 * (ur.y_m + ll.y_m);
             rect.trafo_m = AffineTransformation(
                 Vector_t<double, 3>(1, 0, (0.5 * width - midX) * pixel_width),
-                Vector_t<double, 3>(0, 1, (midY - 0.5 * height) * pixel_height)
-            );
+                Vector_t<double, 3>(0, 1, (midY - 0.5 * height) * pixel_height));
 
             pixmap->pixels_m.push_back(rect);
             pixmap->pixels_m.back().computeBoundingBox();

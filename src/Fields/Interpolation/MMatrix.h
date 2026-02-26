@@ -143,9 +143,9 @@ namespace interpolation {
          *         singular matrix or whatever).
          */
         MVector<m_complex> eigenvalues() const;  // return vector of eigenvalues
-        std::pair<MVector<m_complex>, MMatrix<m_complex> >
-        eigenvectors() const;  // return pair of eigenvalues, eigenvectors (access using
-                               // my_pair.first or my_pair.second)
+        std::pair<MVector<m_complex>, MMatrix<m_complex> > eigenvectors()
+            const;  // return pair of eigenvalues, eigenvectors (access using
+                    // my_pair.first or my_pair.second)
 
         // return a submatrix, with data from min_row to max_row and min_row to max_row inclusive;
         // indexing starts at 1
@@ -196,11 +196,9 @@ namespace interpolation {
     MMatrix<m_complex>& operator*=(MMatrix<m_complex>& m, m_complex c);
     MMatrix<double>& operator*=(MMatrix<double>& m, double d);
     MMatrix<m_complex>& operator*=(
-        MMatrix<m_complex>& m1, MMatrix<m_complex> m2
-    );  // M1 *= M2 returns M1 = M1*M2
+        MMatrix<m_complex>& m1, MMatrix<m_complex> m2);  // M1 *= M2 returns M1 = M1*M2
     MMatrix<double>& operator*=(
-        MMatrix<double>& m1, MMatrix<double> m2
-    );  // M1 *= M2 returns M1 = M1*M2
+        MMatrix<double>& m1, MMatrix<double> m2);  // M1 *= M2 returns M1 = M1*M2
     MVector<m_complex> operator*(MMatrix<m_complex> m, MVector<m_complex> v);
     MVector<double> operator*(MMatrix<double> m, MVector<double> v);
     MMatrix<m_complex>& operator+=(MMatrix<m_complex>& m1, const MMatrix<m_complex>& m2);
@@ -291,8 +289,7 @@ namespace interpolation {
         MVector<m_complex> v0(m.num_row());
         gsl_blas_zgemv(
             CblasNoTrans, m_complex_build(1.), (gsl_matrix_complex*)m._matrix,
-            (gsl_vector_complex*)v._vector, m_complex_build(0.), (gsl_vector_complex*)v0._vector
-        );
+            (gsl_vector_complex*)v._vector, m_complex_build(0.), (gsl_vector_complex*)v0._vector);
         return v0;
     }
 
@@ -300,8 +297,7 @@ namespace interpolation {
         MVector<double> v0(m.num_row());
         gsl_blas_dgemv(
             CblasNoTrans, 1., (gsl_matrix*)m._matrix, (gsl_vector*)v._vector, 0.,
-            (gsl_vector*)v0._vector
-        );
+            (gsl_vector*)v0._vector);
         return v0;
     }
 
@@ -405,8 +401,7 @@ namespace interpolation {
     gsl_matrix inline* MMatrix<Tmplt>::get_matrix(const MMatrix<double>& m) {
         if (m._matrix == nullptr)
             throw(GeneralClassicException(
-                "MMatrix::get_matrix", "Attempt to access uninitialised matrix"
-            ));
+                "MMatrix::get_matrix", "Attempt to access uninitialised matrix"));
         return (gsl_matrix*)m._matrix;
     }
 
@@ -414,8 +409,7 @@ namespace interpolation {
     gsl_matrix_complex inline* MMatrix<Tmplt>::get_matrix(const MMatrix<m_complex>& m) {
         if (m._matrix == nullptr)
             throw(GeneralClassicException(
-                "MMatrix::get_matrix", "Attempt to access uninitialised matrix"
-            ));
+                "MMatrix::get_matrix", "Attempt to access uninitialised matrix"));
         return (gsl_matrix_complex*)m._matrix;
     }
 

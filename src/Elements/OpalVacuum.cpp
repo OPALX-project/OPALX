@@ -28,8 +28,7 @@ OpalVacuum::OpalVacuum()
     : OpalElement(
           SIZE, "VACUUM",
           "The \"VACUUM\" element defines the vacuum conditions "
-          "for beam stripping interactions."
-      ),
+          "for beam stripping interactions."),
       parmatint_m(nullptr) {
     itsAttr[GAS] =
         Attributes::makePredefinedString("GAS", "The composition of residual gas", {"AIR", "H2"});
@@ -44,8 +43,7 @@ OpalVacuum::OpalVacuum()
         Attributes::makeReal("TEMPERATURE", " Temperature of the accelerator, [K]");
 
     itsAttr[STOP] = Attributes::makeBool(
-        "STOP", "Option whether stop tracking after beam stripping. Default: true", true
-    );
+        "STOP", "Option whether stop tracking after beam stripping. Default: true", true);
 
     registerOwnership();
 

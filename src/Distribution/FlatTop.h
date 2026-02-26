@@ -43,8 +43,7 @@ public:
      */
     FlatTop(
         std::shared_ptr<ParticleContainer_t> pc, std::shared_ptr<FieldContainer_t> fc,
-        std::shared_ptr<Distribution_t> opalDist
-    );
+        std::shared_ptr<Distribution_t> opalDist);
 
     /**
      * @brief Constructor for FlatTop.
@@ -61,8 +60,7 @@ public:
     FlatTop(
         std::shared_ptr<ParticleContainer_t> pc, std::shared_ptr<FieldContainer_t> fc,
         bool emitting, double sigmaTFall, double sigmaTRise, Vector_t<double, 3> cutoff,
-        double tPulseLengthFWHM, Vector_t<double, 3> sigmaR
-    );
+        double tPulseLengthFWHM, Vector_t<double, 3> sigmaR);
 
     /**
      * @brief Constructor for FlatTop.
@@ -77,8 +75,7 @@ public:
     FlatTop(
         std::shared_ptr<ParticleContainer_t> pc, bool emitting, double sigmaTFall,
         double sigmaTRise, Vector_t<double, 3> cutoff, double tPulseLengthFWHM,
-        Vector_t<double, 3> sigmaR
-    );
+        Vector_t<double, 3> sigmaR);
 
     /**
      * @brief Tests the number of emitted particles over a given number of steps.
@@ -221,8 +218,7 @@ public:
 
     void setInternalVariables(
         bool emitting, double sigmaTFall, double sigmaTRise, Vector_t<double, 3> cutoff,
-        double tPulseLengthFWHM, Vector_t<double, 3> sigmaR
-    );
+        double tPulseLengthFWHM, Vector_t<double, 3> sigmaR);
 };
 
 #endif  // IPPL_FLAT_TOP_H

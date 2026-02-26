@@ -53,8 +53,7 @@ namespace interpolation {
     }
 
     SquarePolynomialVector::SquarePolynomialVector(
-        int numberOfInputVariables, MMatrix<double> polynomialCoefficients
-    )
+        int numberOfInputVariables, MMatrix<double> polynomialCoefficients)
         : _pointDim(numberOfInputVariables), _polyCoeffs(polynomialCoefficients) {
         SetCoefficients(numberOfInputVariables, polynomialCoefficients);
     }
@@ -89,13 +88,11 @@ namespace interpolation {
         }
         _pointDim++;  // PointDim indexes from 0
         _polyCoeffs = MMatrix<double>(
-            valueDim + 1, NumberOfPolynomialCoefficients(_pointDim, maxPolyOrder + 1), 0.
-        );
+            valueDim + 1, NumberOfPolynomialCoefficients(_pointDim, maxPolyOrder + 1), 0.);
         if (int(_polyKeyByVector.size()) < _pointDim
             || _polyKeyByVector[_pointDim - 1].size() < _polyCoeffs.num_col())
             IndexByVector(
-                _polyCoeffs.num_col(), _pointDim
-            );  // sets _polyKeyByVector and _polyKeyByPower
+                _polyCoeffs.num_col(), _pointDim);  // sets _polyKeyByVector and _polyKeyByPower
 
         for (size_t i = 0; i < _polyCoeffs.num_col(); i++) {
             for (unsigned int j = 0; j < coeff.size(); j++)
@@ -130,8 +127,7 @@ namespace interpolation {
     }
 
     MVector<double>& SquarePolynomialVector::MakePolyVector(
-        const MVector<double>& point, MVector<double>& polyVector
-    ) const {
+        const MVector<double>& point, MVector<double>& polyVector) const {
         for (unsigned int i = 0; i < _polyCoeffs.num_col(); i++) {
             polyVector(i + 1) = 1.;
             for (unsigned int j = 0; j < _polyKeyByVector[_pointDim - 1][i].size(); j++)
@@ -151,8 +147,7 @@ namespace interpolation {
 
     void SquarePolynomialVector::IndexByPowerRecursive(
         std::vector<int> check, size_t check_index, size_t poly_power,
-        std::vector<std::vector<int> >& nearby_points
-    ) {
+        std::vector<std::vector<int> >& nearby_points) {
         check[check_index] = poly_power;
         nearby_points.push_back(check);
         if (check_index + 1 == check.size())
@@ -168,8 +163,7 @@ namespace interpolation {
     std::vector<int> SquarePolynomialVector::IndexByPower(int index, int point_dim) {
         if (point_dim < 1)
             throw(GeneralClassicException(
-                "SquarePolynomialVector::IndexByPower", "Point dimension must be > 0"
-            ));
+                "SquarePolynomialVector::IndexByPower", "Point dimension must be > 0"));
         while (int(_polyKeyByPower.size()) < point_dim)
             _polyKeyByPower.push_back(std::vector<std::vector<int> >());
         if (index < int(_polyKeyByPower[point_dim - 1].size()))
@@ -208,8 +202,7 @@ namespace interpolation {
     }
 
     unsigned int SquarePolynomialVector::NumberOfPolynomialCoefficients(
-        int pointDimension, int order
-    ) {
+        int pointDimension, int order) {
         int number = 1;
         for (int i = 0; i < pointDimension; ++i)
             number *= order + 1;
@@ -224,25 +217,22 @@ namespace interpolation {
     }
 
     void SquarePolynomialVector::PrintHeader(
-        std::ostream& out, char int_separator, char str_separator, int length, bool pad_at_start
-    ) const {
+        std::ostream& out, char int_separator, char str_separator, int length,
+        bool pad_at_start) const {
         if (!_polyKeyByPower[_pointDim - 1].empty())
             PrintContainer<std::vector<int> >(
                 out, _polyKeyByPower[_pointDim - 1][0], int_separator, str_separator, length - 1,
-                pad_at_start
-            );
+                pad_at_start);
         for (unsigned int i = 1; i < _polyCoeffs.num_col(); ++i)
             PrintContainer<std::vector<int> >(
                 out, _polyKeyByPower[_pointDim - 1][i], int_separator, str_separator, length,
-                pad_at_start
-            );
+                pad_at_start);
     }
 
     template <class Container>
     void SquarePolynomialVector::PrintContainer(
         std::ostream& out, const Container& container, char T_separator, char str_separator,
-        int length, bool pad_at_start
-    ) {
+        int length, bool pad_at_start) {
         //  class Container::iterator it;
         std::stringstream strstr1("");
         std::stringstream strstr2("");
@@ -279,8 +269,7 @@ namespace interpolation {
     SquarePolynomialVector SquarePolynomialVector::Deriv(const int* derivPower) const {
         if (derivPower == nullptr) {
             throw(GeneralClassicException(
-                "SquarePolynomialVector::Deriv", "Derivative points to nullptr"
-            ));
+                "SquarePolynomialVector::Deriv", "Derivative points to nullptr"));
         }
         MMatrix<double> newPolyCoeffs(_polyCoeffs.num_row(), _polyCoeffs.num_col(), 0.);
         std::vector<std::vector<int> > powerKey = _polyKeyByPower[_pointDim - 1];

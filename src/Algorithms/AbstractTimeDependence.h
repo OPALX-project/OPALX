@@ -83,8 +83,7 @@ public:
      *  @param time_dep shared_ptr to the time dependence.
      */
     static void setTimeDependence(
-        const std::string& name, std::shared_ptr<AbstractTimeDependence> time_dep
-    );
+        const std::string& name, std::shared_ptr<AbstractTimeDependence> time_dep);
 
     /** Get the name corresponding to a given time_dep
      *

@@ -11,8 +11,7 @@ void Mesher::orientVerticesCCW() {
         unsigned int iPlusOne = (i + 1) % size;
         Vector_t<double, 3> edge(
             vertices_m[iPlusOne][0] - vertices_m[i][0], vertices_m[iPlusOne][1] + vertices_m[i][1],
-            0.0
-        );
+            0.0);
         sum += edge[0] * edge[1];
     }
     if (sum <= 0.0)
@@ -51,8 +50,7 @@ bool Mesher::isPointOnLine(unsigned int i, unsigned int j, const Vector_t<double
 }
 
 bool Mesher::isPointRightOfLine(
-    unsigned int i, unsigned int j, const Vector_t<double, 3>& pt
-) const {
+    unsigned int i, unsigned int j, const Vector_t<double, 3>& pt) const {
     Vector_t<double, 3> aTmp = vertices_m[j] - vertices_m[i];
     Vector_t<double, 3> bTmp = pt - vertices_m[i];
 
@@ -60,12 +58,10 @@ bool Mesher::isPointRightOfLine(
 }
 
 bool Mesher::lineSegmentTouchesOrCrossesLine(
-    unsigned int i, unsigned int j, unsigned int k, unsigned int l
-) const {
+    unsigned int i, unsigned int j, unsigned int k, unsigned int l) const {
     return (
         isPointOnLine(i, j, vertices_m[k]) || isPointOnLine(i, j, vertices_m[l])
-        || (isPointRightOfLine(i, j, vertices_m[k]) ^ isPointRightOfLine(i, j, vertices_m[l]))
-    );
+        || (isPointRightOfLine(i, j, vertices_m[k]) ^ isPointRightOfLine(i, j, vertices_m[l])));
 }
 
 bool Mesher::isPotentialEdgeIntersected(unsigned int i) const {
@@ -123,14 +119,12 @@ double dotProduct(const Vector_t<double, 3>& a, const Vector_t<double, 3>& b) {
 }
 
 bool Mesher::isPointInsideCone(
-    unsigned int i, unsigned int j, unsigned int jPlusOne, unsigned int jMinusOne
-) const {
+    unsigned int i, unsigned int j, unsigned int jPlusOne, unsigned int jMinusOne) const {
     const Vector_t<double, 3>& pt = vertices_m[i];
 
     return !(
         (isPointRightOfLine(jMinusOne, j, pt) && dotProduct(jMinusOne, j, pt) > 0.0)
-        || (isPointRightOfLine(j, jPlusOne, pt) && dotProduct(jPlusOne, j, pt) < 0.0)
-    );
+        || (isPointRightOfLine(j, jPlusOne, pt) && dotProduct(jPlusOne, j, pt) < 0.0));
 }
 
 bool Mesher::isEar(unsigned int i) const {

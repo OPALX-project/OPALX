@@ -73,8 +73,7 @@ struct gsl_function {
 namespace {
     std::pair<double, double> adaptive_integrate(
         const std::function<double(double)>& func, double a, double b, double tol, size_t max_depth,
-        size_t depth
-    ) {
+        size_t depth) {
         if (depth > max_depth) {
             return {0.0, tol};
         }
@@ -121,8 +120,7 @@ namespace {
 /// \return Output: 0 on success.
 inline int gsl_integration_qag(
     const gsl_function* f, double a, double b, double epsabs, double epsrel, size_t /* limit */,
-    int /* key */, gsl_integration_workspace* /* workspace */, double* result, double* abserr
-) {
+    int /* key */, gsl_integration_workspace* /* workspace */, double* result, double* abserr) {
     // Simple adaptive Simpson's rule
     const size_t max_depth = 20;
     double tolerance       = std::max(epsabs, epsrel * std::abs(b - a));

@@ -109,8 +109,7 @@ public:
      */
     bool getFieldValue(
         const Vector_t<double, 3>& pos, const Vector_t<double, 3>& centroid, const double& t,
-        Vector_t<double, 3>& E, Vector_t<double, 3>& B
-    ) const;
+        Vector_t<double, 3>& E, Vector_t<double, 3>& B) const;
 
     /** Get the "Virtual" bounding box for the RingSection
      *
@@ -219,8 +218,7 @@ inline void RingSection::setEndNormal(Vector_t<double, 3> orientation) {
 inline Vector_t<double, 3>& RingSection::normalise(Vector_t<double, 3>& orientation) const {
     double magnitude = sqrt(
         orientation(0) * orientation(0) + orientation(1) * orientation(1)
-        + orientation(2) * orientation(2)
-    );
+        + orientation(2) * orientation(2));
     if (magnitude > 0.)
         orientation = orientation / magnitude;
     return orientation;

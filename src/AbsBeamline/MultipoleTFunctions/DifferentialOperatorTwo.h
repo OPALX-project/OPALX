@@ -107,8 +107,7 @@ namespace polynomial {
          *  \param term -> Term index
          */
         bool isPolynomialZero(
-            const std::size_t& x, const std::size_t& s, const std::size_t& term
-        ) const;
+            const std::size_t& x, const std::size_t& s, const std::size_t& term) const;
         /** Truncate all polynomials to truncateOrder
          *  \param truncateOrder -> Highest order of x after truncation
          */
@@ -122,8 +121,7 @@ namespace polynomial {
          */
         double evaluatePolynomial(
             const double& x, const double& s, const std::size_t& xDerivative,
-            const std::size_t& sDerivative, const std::vector<double>& dSvalues
-        ) const;
+            const std::size_t& sDerivative, const std::vector<double>& dSvalues) const;
         /** Returns number of terms in the sum with xDerivatives
          *  x-derivatives and sDerivatives s-derivatives \n
          *  If xDerivative or sDerivative are out of
@@ -132,8 +130,7 @@ namespace polynomial {
          *  \param sDerivatives -> Number of s-derivatives
          */
         std::size_t numberOfTerms(
-            const std::size_t& xDerivatives, const std::size_t& sDerivatives
-        ) const;
+            const std::size_t& xDerivatives, const std::size_t& sDerivatives) const;
         /** Returns list of S(s)-derivatives from term p in polynomial with
          *  xDerivatives x-derivatives and sDerivatives s-derivatives \n
          *  If xDerivatives or sDerivatives are out of range
@@ -143,8 +140,8 @@ namespace polynomial {
          * \param p -> Term index, starting with term 0
          */
         std::vector<std::size_t> getdSFactors(
-            const std::size_t& xDerivatives, const std::size_t& sDerivatives, const std::size_t& p
-        ) const;
+            const std::size_t& xDerivatives, const std::size_t& sDerivatives,
+            const std::size_t& p) const;
         /** Sort the terms in each sum, with fewest S(s)-derivatives first,
          *  then in increasing powers
          */

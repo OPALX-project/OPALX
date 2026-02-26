@@ -39,8 +39,7 @@ namespace polynomial {
     }
 
     DifferentialOperator::DifferentialOperator(
-        const std::size_t& xDerivatives, const std::size_t& sDerivatives
-    )
+        const std::size_t& xDerivatives, const std::size_t& sDerivatives)
         : xDerivatives_m(xDerivatives), sDerivatives_m(sDerivatives) {
         polynomials_m.resize(xDerivatives_m + 1);
         for (std::size_t i = 0; i <= xDerivatives_m; i++) {
@@ -113,8 +112,7 @@ namespace polynomial {
     }
 
     void DifferentialOperator::setPolynomial(
-        const std::vector<int>& poly, const std::size_t& x, const std::size_t& s
-    ) {
+        const std::vector<int>& poly, const std::size_t& x, const std::size_t& s) {
         if (x > xDerivatives_m) {
             resizeX(x);
         }
@@ -159,8 +157,7 @@ namespace polynomial {
             return true;
         }
         return (
-            polynomials_m[x][s].getCoefficient(0) == 0 && polynomials_m[x][s].getMaxXorder() == 0
-        );
+            polynomials_m[x][s].getCoefficient(0) == 0 && polynomials_m[x][s].getMaxXorder() == 0);
     }
 
     void DifferentialOperator::truncate(const std::size_t& truncateOrder) {
@@ -172,8 +169,7 @@ namespace polynomial {
     }
 
     double DifferentialOperator::evaluatePolynomial(
-        const double& x, const std::size_t& xDerivative, const std::size_t& sDerivative
-    ) const {
+        const double& x, const std::size_t& xDerivative, const std::size_t& sDerivative) const {
         if (xDerivative > xDerivatives_m || sDerivative > sDerivatives_m) {
             return 0.0;
         }

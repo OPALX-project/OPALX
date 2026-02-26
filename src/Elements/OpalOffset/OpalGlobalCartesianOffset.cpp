@@ -46,23 +46,19 @@ namespace OpalOffset {
         itsAttr[END_POSITION_X] = Attributes::makeReal(
             "END_POSITION_X",
             "x component of position of end of the offset in coordinate system of the end of the "
-            "upstream element."
-        );
+            "upstream element.");
         itsAttr[END_POSITION_Y] = Attributes::makeReal(
             "END_POSITION_Y",
             "y component of position of end of the offset in coordinate system of the end of the "
-            "upstream element."
-        );
+            "upstream element.");
         itsAttr[END_NORMAL_X] = Attributes::makeReal(
             "END_NORMAL_X",
             "x component of normal of end of the offset in coordinate system of the end of the "
-            "upstream element."
-        );
+            "upstream element.");
         itsAttr[END_NORMAL_Y] = Attributes::makeReal(
             "END_NORMAL_Y",
             "y component of normal of end of the offset in coordinate system of the end of the "
-            "upstream element."
-        );
+            "upstream element.");
 
         registerOwnership();
     }
@@ -74,8 +70,7 @@ namespace OpalOffset {
     void OpalGlobalCartesianOffset::print(std::ostream& out) const { OpalElement::print(out); }
 
     OpalGlobalCartesianOffset::OpalGlobalCartesianOffset(
-        const std::string& name, OpalGlobalCartesianOffset* parent
-    )
+        const std::string& name, OpalGlobalCartesianOffset* parent)
         : OpalElement(name, parent) {}
 
     OpalGlobalCartesianOffset::~OpalGlobalCartesianOffset() {}
@@ -85,12 +80,10 @@ namespace OpalOffset {
         std::string name = getOpalName();
         Vector_t<double, 3> pos(
             Attributes::getReal(itsAttr[END_POSITION_X]),
-            Attributes::getReal(itsAttr[END_POSITION_Y]), 0.
-        );
+            Attributes::getReal(itsAttr[END_POSITION_Y]), 0.);
         Vector_t<double, 3> norm(
             Attributes::getReal(itsAttr[END_NORMAL_X]), Attributes::getReal(itsAttr[END_NORMAL_Y]),
-            0.
-        );
+            0.);
         Offset* off = new Offset(Offset::globalCartesianOffset(name, pos, norm));
         // is this a memory leak?
         setElement(off);

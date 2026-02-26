@@ -60,8 +60,7 @@ unsigned long OpalBeamline::getFieldAt(
 
 unsigned long OpalBeamline::getFieldAt(
     const Vector_t<double, 3>& position, const Vector_t<double, 3>& momentum, const double& t,
-    Vector_t<double, 3>& Ef, Vector_t<double, 3>& Bf
-) {
+    Vector_t<double, 3>& Ef, Vector_t<double, 3>& Bf) {
     unsigned long rtv = 0x00;
 
     std::set<std::shared_ptr<Component>> elements = getElements(position);
@@ -197,22 +196,18 @@ void OpalBeamline::compute3DLattice() {
             double rotationAngleAboutZ = 0.0;  // bendElement->getRotationAboutZ();
             Quaternion_t rotationAboutZ(
                 cos(0.5 * rotationAngleAboutZ),
-                sin(-0.5 * rotationAngleAboutZ) * Vector_t<double, 3>(0, 0, 1)
-            );
+                sin(-0.5 * rotationAngleAboutZ) * Vector_t<double, 3>(0, 0, 1));
 
             Vector_t<double, 3> effectiveRotationAxis =
                 rotationAboutZ.rotate(Vector_t<double, 3>(0, -1, 0));
             effectiveRotationAxis = effectiveRotationAxis / euclidean_norm(effectiveRotationAxis);
 
             Quaternion_t rotationAboutAxis(
-                cos(0.5 * bendAngle), sin(0.5 * bendAngle) * effectiveRotationAxis
-            );
+                cos(0.5 * bendAngle), sin(0.5 * bendAngle) * effectiveRotationAxis);
             Quaternion_t halfRotationAboutAxis(
-                cos(0.25 * bendAngle), sin(0.25 * bendAngle) * effectiveRotationAxis
-            );
+                cos(0.25 * bendAngle), sin(0.25 * bendAngle) * effectiveRotationAxis);
             Quaternion_t entryFaceRotation(
-                cos(0.5 * entranceAngle), sin(0.5 * entranceAngle) * effectiveRotationAxis
-            );
+                cos(0.5 * entranceAngle), sin(0.5 * entranceAngle) * effectiveRotationAxis);
 
             if (!Options::idealized) {
                 /*
@@ -234,8 +229,7 @@ void OpalBeamline::compute3DLattice() {
             double endThisPathLength      = beginThisPathLength + arcLength;
 
             CoordinateSystemTrafo fromEndLastToBeginThis(
-                beginThis3D, (entryFaceRotation * rotationAboutZ).conjugate()
-            );
+                beginThis3D, (entryFaceRotation * rotationAboutZ).conjugate());
             CoordinateSystemTrafo fromEndLastToEndThis(endThis3D, rotationAboutAxis.conjugate());
 
             element->setCSTrafoGlobal2Local(fromEndLastToBeginThis * currentCoordTrafo);
@@ -275,19 +269,16 @@ void OpalBeamline::compute3DLattice() {
             double rotationAngleAboutZ = 0.0;  // bendElement->getRotationAboutZ();
             Quaternion_t rotationAboutZ(
                 cos(0.5 * rotationAngleAboutZ),
-                sin(-0.5 * rotationAngleAboutZ) * Vector_t<double, 3>(0, 0, 1)
-            );
+                sin(-0.5 * rotationAngleAboutZ) * Vector_t<double, 3>(0, 0, 1));
 
             Vector_t<double, 3> effectiveRotationAxis =
                 rotationAboutZ.rotate(Vector_t<double, 3>(0, -1, 0));
             effectiveRotationAxis = effectiveRotationAxis / euclidean_norm(effectiveRotationAxis);
 
             Quaternion_t rotationAboutAxis(
-                cos(0.5 * bendAngle), sin(0.5 * bendAngle) * effectiveRotationAxis
-            );
+                cos(0.5 * bendAngle), sin(0.5 * bendAngle) * effectiveRotationAxis);
             Quaternion halfRotationAboutAxis(
-                cos(0.25 * bendAngle), sin(0.25 * bendAngle) * effectiveRotationAxis
-            );
+                cos(0.25 * bendAngle), sin(0.25 * bendAngle) * effectiveRotationAxis);
 
             double arcLength = (thisLength * std::abs(bendAngle) / (2 * sin(bendAngle / 2)));
             if (!Options::idealized) {
@@ -315,8 +306,7 @@ void OpalBeamline::compute3DLattice() {
             double rotationAngleAboutZ = (*it).getElement()->getRotationAboutZ();
             Quaternion_t rotationAboutZ(
                 cos(0.5 * rotationAngleAboutZ),
-                sin(-0.5 * rotationAngleAboutZ) * Vector_t<double, 3>(0, 0, 1)
-            );
+                sin(-0.5 * rotationAngleAboutZ) * Vector_t<double, 3>(0, 0, 1));
 
             CoordinateSystemTrafo fromLastToThis(beginThis3D, rotationAboutZ);
 
@@ -341,8 +331,7 @@ void OpalBeamline::save3DLattice() {
     std::ofstream pos;
     std::string fileName = Util::combineFilePath(
         {OpalData::getInstance()->getAuxiliaryOutputDirectory(),
-         OpalData::getInstance()->getInputBasename() + "_ElementPositions.txt"}
-    );
+         OpalData::getInstance()->getInputBasename() + "_ElementPositions.txt"});
     if (OpalData::getInstance()->getOpenMode() == OpalData::OpenMode::APPEND
         && std::filesystem::exists(fileName)) {
         pos.open(fileName, std::ios_base::app);
@@ -439,8 +428,7 @@ namespace {
         const std::string lineEndFormat(";\n");
         const std::regex cppCommentExpr("//.*");
         const std::regex cCommentExpr(
-            "/\\*.*?\\*/"
-        );  // "/\\*(?>[^*/]+|\\*[^/]|/[^*])*(?>(?R)(?>[^*/]+|\\*[^/]|/[^*])*)*\\*/"
+            "/\\*.*?\\*/");  // "/\\*(?>[^*/]+|\\*[^/]|/[^*])*(?>(?R)(?>[^*/]+|\\*[^/]|/[^*])*)*\\*/"
         bool priorEmpty = true;
 
         in.get(testBit);
@@ -449,8 +437,7 @@ namespace {
 
             std::getline(in, str);
             str = std::regex_replace(
-                str, cppCommentExpr, commentFormat, std::regex_constants::format_default
-            );
+                str, cppCommentExpr, commentFormat, std::regex_constants::format_default);
             str =
                 std::regex_replace(str, empty, commentFormat, std::regex_constants::format_default);
             if (!str.empty()) {
@@ -467,16 +454,14 @@ namespace {
         source = std::regex_replace(source, cCommentExpr, commentFormat);
         source = std::regex_replace(
             source, lineEnd, lineEndFormat,
-            std::regex_constants::match_default | std::regex_constants::format_default
-        );
+            std::regex_constants::match_default | std::regex_constants::format_default);
 
         // Since the positions of the elements are absolute in the laboratory coordinate system we
         // have to make sure that the line command doesn't provide an origin and orientation.
         // Everything after the sequence of elements can be deleted and only "LINE = (...);", the
         // first sub-expression (denoted by '\1'), should be kept.
         const std::regex lineCommand(
-            "(LINE[ \t]*=[ \t]*\\([^\\)]*\\))[ \t]*,[^;]*;", std::regex::icase
-        );
+            "(LINE[ \t]*=[ \t]*\\([^\\)]*\\))[ \t]*,[^;]*;", std::regex::icase);
         const std::string firstSubExpression("\\1;");
         source = std::regex_replace(source, lineCommand, firstSubExpression);
 
@@ -518,21 +503,18 @@ void OpalBeamline::save3DInput() {
     std::string input = parseInput();
     std::string fname = Util::combineFilePath(
         {OpalData::getInstance()->getAuxiliaryOutputDirectory(),
-         OpalData::getInstance()->getInputBasename() + "_3D.opal"}
-    );
+         OpalData::getInstance()->getInputBasename() + "_3D.opal"});
     std::ofstream pos(fname);
 
     for (; it != end; ++it) {
         std::shared_ptr<Component> element = (*it).getElement();
         std::string elementName            = element->getName();
         const std::regex replacePSI(
-            "(" + elementName + "\\s*:[^\\n]*)PSI\\s*=[^,;]*,?", std::regex::icase
-        );
+            "(" + elementName + "\\s*:[^\\n]*)PSI\\s*=[^,;]*,?", std::regex::icase);
         input = std::regex_replace(input, replacePSI, "\\1\\2");
 
         const std::regex replaceELEMEDGE(
-            "(" + elementName + "\\s*:[^\\n]*)ELEMEDGE\\s*=[^,;]*(.)", std::regex::icase
-        );
+            "(" + elementName + "\\s*:[^\\n]*)ELEMEDGE\\s*=[^,;]*(.)", std::regex::icase);
 
         CoordinateSystemTrafo cst  = element->getCSTrafoGlobal2Local();
         Vector_t<double, 3> origin = cst.getOrigin();

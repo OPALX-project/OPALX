@@ -96,8 +96,7 @@ bool RingSection::isPastEndPlane(const Vector_t<double, 3>& pos) const {
 
 bool RingSection::getFieldValue(
     const Vector_t<double, 3>& pos, const Vector_t<double, 3>& /*centroid*/, const double& t,
-    Vector_t<double, 3>& E, Vector_t<double, 3>& B
-) const {
+    Vector_t<double, 3>& E, Vector_t<double, 3>& B) const {
     // transform position into local coordinate system
     Vector_t<double, 3> pos_local = pos - componentPosition_m;
     rotate(pos_local);
@@ -127,13 +126,11 @@ std::vector<Vector_t<double, 3>> RingSection::getVirtualBoundingBox() const {
     double startRadius = 0.99
                          * sqrt(
                              getStartPosition()(0) * getStartPosition()(0)
-                             + getStartPosition()(1) * getStartPosition()(1)
-                         );
+                             + getStartPosition()(1) * getStartPosition()(1));
     double endRadius =
         0.99
         * sqrt(
-            getEndPosition()(0) * getEndPosition()(0) + getEndPosition()(1) * getEndPosition()(1)
-        );
+            getEndPosition()(0) * getEndPosition()(0) + getEndPosition()(1) * getEndPosition()(1));
     std::vector<Vector_t<double, 3>> bb;
     bb.push_back(getStartPosition() - startParallel * startRadius);
     bb.push_back(getStartPosition() + startParallel * startRadius);

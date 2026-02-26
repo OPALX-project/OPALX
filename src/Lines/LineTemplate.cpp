@@ -35,8 +35,7 @@ LineTemplate::LineTemplate()
     : Macro(
           0, "LINE",
           "This object defines a beamline list with arguments.\n"
-          "\t<name>(<args>);"
-      ),
+          "\t<name>(<args>);"),
       body("LINE") {}
 
 LineTemplate::LineTemplate(const std::string& name, Object* parent)
@@ -56,8 +55,7 @@ Object* LineTemplate::makeInstance(const std::string& name, Statement& statement
         parseActuals(statement);
         if (formals.size() != actuals.size()) {
             throw ParseError(
-                "LineTemplate::makeInstance()", "Inconsistent number of macro arguments."
-            );
+                "LineTemplate::makeInstance()", "Inconsistent number of macro arguments.");
         }
 
         // Expand the LINE macro in token form.

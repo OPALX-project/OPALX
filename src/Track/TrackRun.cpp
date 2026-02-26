@@ -88,8 +88,7 @@ TrackRun::TrackRun()
     : Action(
           TRACKRUN::SIZE, "RUN",
           "The \"RUN\" sub-command tracks the defined particles through "
-          "the given lattice."
-      ),
+          "the given lattice."),
       itsTracker_m(nullptr),
       dist_m(nullptr),
       fs_m(nullptr),
@@ -100,14 +99,12 @@ TrackRun::TrackRun()
       macromass_m(0.0),
       macrocharge_m(0.0) {
     itsAttr[TRACKRUN::METHOD] = Attributes::makePredefinedString(
-        "METHOD", "Name of tracking algorithm to use.", {"PARALLEL"}
-    );
+        "METHOD", "Name of tracking algorithm to use.", {"PARALLEL"});
 
     itsAttr[TRACKRUN::TURNS] = Attributes::makeReal(
         "TURNS",
         "Number of turns to be tracked; Number of neighboring bunches to be tracked in cyclotron.",
-        1.0
-    );
+        1.0);
 
     itsAttr[TRACKRUN::BEAM] = Attributes::makeString("BEAM", "Name of beam.");
 
@@ -115,8 +112,7 @@ TrackRun::TrackRun()
         Attributes::makeString("FIELDSOLVER", "Field solver to be used.");
 
     itsAttr[TRACKRUN::BOUNDARYGEOMETRY] = Attributes::makeString(
-        "BOUNDARYGEOMETRY", "Boundary geometry to be used NONE (default).", "NONE"
-    );
+        "BOUNDARYGEOMETRY", "Boundary geometry to be used NONE (default).", "NONE");
 
     itsAttr[TRACKRUN::DISTRIBUTION] =
         Attributes::makeStringArray("DISTRIBUTION", "List of particle distributions to be used.");
@@ -200,8 +196,7 @@ void TrackRun::execute() {
     isFollowupTrack_m = opal_m->hasBunchAllocated();
     if (!itsAttr[TRACKRUN::DISTRIBUTION] && !isFollowupTrack_m) {
         throw OpalException(
-            "TrackRun::execute", "\"DISTRIBUTION\" must be set in \"RUN\" command."
-        );
+            "TrackRun::execute", "\"DISTRIBUTION\" must be set in \"RUN\" command.");
     }
     if (!itsAttr[TRACKRUN::FIELDSOLVER]) {
         throw OpalException("TrackRun::execute", "\"FIELDSOLVER\" must be set in \"RUN\" command.");
@@ -241,8 +236,7 @@ void TrackRun::execute() {
     *gmsg << *dist_m << endl;
 
     fs_m = std::shared_ptr<FieldSolverCmd>(
-        FieldSolverCmd::find(Attributes::getString(itsAttr[TRACKRUN::FIELDSOLVER]))
-    );
+        FieldSolverCmd::find(Attributes::getString(itsAttr[TRACKRUN::FIELDSOLVER])));
     *gmsg << *fs_m << endl;
 
     if (fs_m->hasBinningCmd()) {
@@ -280,8 +274,7 @@ void TrackRun::execute() {
                         // (see "3.1. Physical Units", where mass generally is in MeV/c^2)
                         // However, OPAL seems to use eV for the pusher!
                         /// \todo it would be much better to reinstate PartData or itsReference_m?
-        beam->getNumberOfParticles() /*, 10*/, 1.0, "LF2", dist_m, fs_m
-    );
+        beam->getNumberOfParticles() /*, 10*/, 1.0, "LF2", dist_m, fs_m);
     bunch_m->setT(0.0);
     bunch_m->setBeamFrequency(beam->getFrequency() * Units::MHz2Hz);
 
@@ -419,8 +412,7 @@ void TrackRun::execute() {
     itsTracker_m = new ParallelTracker(
         *Track::block->use->fetchLine(), bunch_m.get(), *ds_m, Track::block->reference, false,
         Attributes::getBool(itsAttr[TRACKRUN::TRACKBACK]), Track::block->localTimeSteps,
-        Track::block->zstart, Track::block->zstop, Track::block->dT
-    );
+        Track::block->zstart, Track::block->zstop, Track::block->dT);
 
     itsTracker_m->execute();
 
@@ -436,8 +428,7 @@ void TrackRun::execute() {
 void TrackRun::setRunMethod() {
     if (!itsAttr[TRACKRUN::METHOD]) {
         throw OpalException(
-            "TrackRun::setRunMethod", "The attribute \"METHOD\" isn't set for the \"RUN\" command"
-        );
+            "TrackRun::setRunMethod", "The attribute \"METHOD\" isn't set for the \"RUN\" command");
     } else {
         auto it = stringMethod_s.right.find(Attributes::getString(itsAttr[TRACKRUN::METHOD]));
         if (it != stringMethod_s.right.end()) {
@@ -486,13 +477,11 @@ void TrackRun::initDataSink() {
     if (opal_m->inRestartRun()) {
         phaseSpaceSink_m = new H5PartWrapperForPT(
             opal_m->getInputBasename() + std::string(".h5"), opal_m->getRestartStep(),
-            OpalData::getInstance()->getRestartFileName(), H5_O_WRONLY
-        );
+            OpalData::getInstance()->getRestartFileName(), H5_O_WRONLY);
     } else if (isFollowupTrack_m) {
         phaseSpaceSink_m = new H5PartWrapperForPT(
             opal_m->getInputBasename() + std::string(".h5"), -1,
-            opal_m->getInputBasename() + std::string(".h5"), H5_O_WRONLY
-        );
+            opal_m->getInputBasename() + std::string(".h5"), H5_O_WRONLY);
     } else {
         phaseSpaceSink_m =
             new H5PartWrapperForPT(opal_m->getInputBasename() + std::string(".h5"), H5_O_WRONLY);

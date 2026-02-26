@@ -28,8 +28,7 @@ public:
     H5PartWrapperForPT(const std::string& fileName, h5_int32_t flags = H5_O_WRONLY);
     H5PartWrapperForPT(
         const std::string& fileName, int restartStep, std::string sourceFile,
-        h5_int32_t flags = H5_O_RDWR
-    );
+        h5_int32_t flags = H5_O_RDWR);
     virtual ~H5PartWrapperForPT();
 
     virtual void readHeader();
@@ -37,8 +36,7 @@ public:
 
     virtual void writeHeader();
     virtual void writeStep(
-        PartBunch_t*, const std::map<std::string, double>& additionalStepAttributes
-    );
+        PartBunch_t*, const std::map<std::string, double>& additionalStepAttributes);
 
     virtual bool predecessorIsSameFlavour() const;
 

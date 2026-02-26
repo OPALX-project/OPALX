@@ -40,8 +40,7 @@ namespace interpolation {
         int smoothing_order, int point_dim, int value_dim,
         std::vector<std::vector<double> > positions,
         std::vector<std::vector<double> > deriv_positions,
-        std::vector<std::vector<int> >& deriv_indices
-    ) {
+        std::vector<std::vector<int> >& deriv_indices) {
         n_poly_coeffs_ =
             SquarePolynomialVector::NumberOfPolynomialCoefficients(point_dim, smoothing_order);
         square_points_ = PPSolveFactory::getNearbyPointsSquares(point_dim, -1, smoothing_order);
@@ -59,8 +58,7 @@ namespace interpolation {
     void SolveFactory::BuildHInvMatrix(
         std::vector<std::vector<double> > positions,
         std::vector<std::vector<double> > deriv_positions,
-        std::vector<std::vector<int> >& deriv_indices
-    ) {
+        std::vector<std::vector<int> >& deriv_indices) {
         int nCoeffs = positions.size();
         h_inv_      = MMatrix<double>(n_poly_coeffs_, n_poly_coeffs_, 0.);
         for (int i = 0; i < nCoeffs; ++i) {
@@ -91,8 +89,7 @@ namespace interpolation {
     }
 
     std::vector<double> SolveFactory::MakeSquareDerivVector(
-        std::vector<double> x, std::vector<int> deriv_indices
-    ) {
+        std::vector<double> x, std::vector<int> deriv_indices) {
         // vector like Product_i [x_i^{a_i - m_i}*m_i!/(a_i-m_i)]
         // where:
         //       m_i is given by deriv_indices
@@ -123,8 +120,7 @@ namespace interpolation {
 
     SquarePolynomialVector* SolveFactory::PolynomialSolve(
         const std::vector<std::vector<double> >& values,
-        const std::vector<std::vector<double> >& deriv_values
-    ) {
+        const std::vector<std::vector<double> >& deriv_values) {
         // Algorithm:
         // define G_i = vector of F_i and d^pF/dF^p with values taken from coeffs
         // and derivs respectively
@@ -146,21 +142,20 @@ namespace interpolation {
         int nDerivs = deriv_values.size();
         if (values.size() + deriv_values.size() != size_t(n_poly_coeffs_)) {
             throw GeneralClassicException(
-                "SolveFactory::PolynomialSolve", "Values and derivatives over or under constrained"
-            );
+                "SolveFactory::PolynomialSolve",
+                "Values and derivatives over or under constrained");
         }
         for (int i = 1; i < nCoeffs && i < n_poly_coeffs_; ++i) {
             if (values[i].size() < values[0].size()) {
                 throw GeneralClassicException(
-                    "SolveFactory::PolynomialSolve", "The vector of values is too short"
-                );
+                    "SolveFactory::PolynomialSolve", "The vector of values is too short");
             }
         }
         for (int i = 0; i < nDerivs; ++i) {
             if (deriv_values[i].size() < values[0].size()) {
                 throw GeneralClassicException(
-                    "SolveFactory::PolynomialSolve", "The vector of derivative values is too short"
-                );
+                    "SolveFactory::PolynomialSolve",
+                    "The vector of derivative values is too short");
             }
         }
 

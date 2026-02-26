@@ -44,11 +44,9 @@ namespace OpalOffset {
     OpalLocalCylindricalOffset::OpalLocalCylindricalOffset()
         : OpalElement(int(SIZE), "LOCAL_CYLINDRICAL_OFFSET", doc_string.c_str()) {
         itsAttr[THETA_IN] = Attributes::makeReal(
-            "THETA_IN", "Angle between the previous element and the displacement vector [rad]."
-        );
+            "THETA_IN", "Angle between the previous element and the displacement vector [rad].");
         itsAttr[THETA_OUT] = Attributes::makeReal(
-            "THETA_OUT", "Angle between the displacement vector and the next element [rad]."
-        );
+            "THETA_OUT", "Angle between the displacement vector and the next element [rad].");
         itsAttr[LENGTH] = Attributes::makeReal("LENGTH", "Length of the offset [m].");
 
         registerOwnership();
@@ -61,8 +59,7 @@ namespace OpalOffset {
     void OpalLocalCylindricalOffset::print(std::ostream& out) const { OpalElement::print(out); }
 
     OpalLocalCylindricalOffset::OpalLocalCylindricalOffset(
-        const std::string& name, OpalLocalCylindricalOffset* parent
-    )
+        const std::string& name, OpalLocalCylindricalOffset* parent)
         : OpalElement(name, parent) {}
 
     OpalLocalCylindricalOffset::~OpalLocalCylindricalOffset() {}

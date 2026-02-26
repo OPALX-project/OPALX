@@ -57,12 +57,10 @@ namespace mslang {
     void QuadTree::buildUp() {
         double X[] = {
             bb_m.center_m[0] - 0.5 * bb_m.width_m, bb_m.center_m[0],
-            bb_m.center_m[0] + 0.5 * bb_m.width_m
-        };
+            bb_m.center_m[0] + 0.5 * bb_m.width_m};
         double Y[] = {
             bb_m.center_m[1] - 0.5 * bb_m.height_m, bb_m.center_m[1],
-            bb_m.center_m[1] + 0.5 * bb_m.height_m
-        };
+            bb_m.center_m[1] + 0.5 * bb_m.height_m};
 
         bool allEmpty = true;
 
@@ -71,9 +69,7 @@ namespace mslang {
             nodes_m.emplace_back(new QuadTree(
                 level_m + 1, BoundingBox2D(
                                  Vector_t<double, 3>(X[i / 2], Y[i % 2], 0.0),
-                                 Vector_t<double, 3>(X[i / 2 + 1], Y[i % 2 + 1], 0.0)
-                             )
-            ));
+                                 Vector_t<double, 3>(X[i / 2 + 1], Y[i % 2 + 1], 0.0))));
 
             nodes_m.back()->transferIfInside(objects_m);
 

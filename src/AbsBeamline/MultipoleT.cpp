@@ -93,8 +93,7 @@ bool MultipoleT::apply() { return false; }
 
 bool MultipoleT::apply(
     const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
-    Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B
-) {
+    Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B) {
     /** Rotate coordinates around the central axis of the magnet */
     Vector_t<double, 3> R_prime = rotateFrame(R);
     /** If magnet is not straight go to local Frenet-Serret coordinates */
@@ -135,8 +134,7 @@ bool MultipoleT::apply(
 }
 
 bool MultipoleT::apply(
-    const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B
-) {
+    const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
     std::shared_ptr<ParticleContainer_t> pc = RefPartBunch_m->getParticleContainer();
     auto Rview                              = pc->R.getView();
     auto Pview                              = pc->P.getView();
@@ -204,8 +202,7 @@ Vector_t<double, 3> MultipoleT::transformCoords(const Vector_t<double, 3>& R) {
         // If radius is variable
         coordinatetransform::CoordinateTransform t(
             R[0], R[1], R[2], fringeField_l.getX0(), fringeField_l.getLambda(),
-            fringeField_r.getLambda(), (length_m / angle_m)
-        );
+            fringeField_r.getLambda(), (length_m / angle_m));
         std::vector<double> r = t.getTransformation();
         X[0]                  = r[0];
         X[1]                  = r[1];
@@ -357,8 +354,7 @@ double MultipoleT::getFringeDeriv(int n, double s) {
     } else {
         return tanhderiv::integrate(
             s, fringeField_l.Tanh::getX0(), fringeField_l.Tanh::getLambda(),
-            fringeField_r.Tanh::getLambda(), n
-        );
+            fringeField_r.Tanh::getLambda(), n);
     }
 }
 

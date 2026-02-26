@@ -110,8 +110,7 @@ public:
      */
     bool apply(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-        Vector_t<double, 3>& E, Vector_t<double, 3>& B
-    );
+        Vector_t<double, 3>& E, Vector_t<double, 3>& B);
     /** Calculate the field at the position of the ith particle
      *  \param i -> Index of the particle event; field is calculated at this
      *  position
@@ -323,8 +322,7 @@ private:
 
 inline void MultipoleTBase::finalise() { RefPartBunch_m = nullptr; }
 inline bool MultipoleTBase::apply(
-    const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B
-) {
+    const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
     std::shared_ptr<ParticleContainer_t> pc = RefPartBunch_m->getParticleContainer();
     auto Rview                              = pc->R.getView();
     auto Pview                              = pc->P.getView();
@@ -341,8 +339,7 @@ inline void MultipoleTBase::setEntranceAngle(const double& entranceAngle) {
 }
 inline bool MultipoleTBase::insideAperture(const Vector_t<double, 3>& R) {
     return (
-        std::abs(R[1]) <= (verticalApert_m / 2.0) && std::abs(R[0]) <= (horizontalApert_m / 2.0)
-    );
+        std::abs(R[1]) <= (verticalApert_m / 2.0) && std::abs(R[0]) <= (horizontalApert_m / 2.0));
 }
 inline double MultipoleTBase::getEntranceAngle() const { return entranceAngle_m; }
 inline double MultipoleTBase::getTransProfile(const std::size_t& n) const {
@@ -394,8 +391,8 @@ inline std::vector<double> MultipoleTBase::getFringeLength() const {
     temp[1] = fringeField_r.getLambda();
     return temp;
 }
-inline void
-MultipoleTBase::initialise(PartBunch_t* /*bunch*/, double& /*startField*/, double& /*endField*/) {}
+inline void MultipoleTBase::initialise(
+    PartBunch_t* /*bunch*/, double& /*startField*/, double& /*endField*/) {}
 inline bool MultipoleTBase::bends() const { return transProfile_m[0] != 0; }
 inline EMField& MultipoleTBase::getField() { return dummy; }
 inline const EMField& MultipoleTBase::getField() const { return dummy; }

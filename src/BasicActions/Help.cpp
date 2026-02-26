@@ -28,8 +28,7 @@ Help::Help()
     : Action(
           1, "HELP",
           "The \"HELP\" statement displays the purpose and attribute "
-          "types of an object."
-      ) {
+          "types of an object.") {
     itsAttr[0] = Attributes::makeString("NAME", "Name of object for which help is wanted");
 
     registerOwnership(AttributeHandler::STATEMENT);

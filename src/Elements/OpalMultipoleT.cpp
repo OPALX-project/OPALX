@@ -41,8 +41,7 @@
 
 OpalMultipoleT::OpalMultipoleT()
     : OpalElement(
-          SIZE, "MULTIPOLET", "The \"MULTIPOLET\" element defines a combined function multipole."
-      ) {
+          SIZE, "MULTIPOLET", "The \"MULTIPOLET\" element defines a combined function multipole.") {
     itsAttr[TP] = Attributes::makeRealArray("TP", "Transverse Profile derivatives in T m^(-k)");
     itsAttr[LFRINGE] = Attributes::makeReal("LFRINGE", "The length of the left end field [m]");
     itsAttr[RFRINGE] = Attributes::makeReal("RFRINGE", "The length of the right end field [m]");
@@ -92,13 +91,11 @@ void OpalMultipoleT::update() {
     multT->setBendAngle(angle);
     multT->setAperture(
         Attributes::getReal(itsAttr[VAPERT]) * Units::m2mm,
-        Attributes::getReal(itsAttr[HAPERT]) * Units::m2mm
-    );
+        Attributes::getReal(itsAttr[HAPERT]) * Units::m2mm);
     multT->setFringeField(
         Attributes::getReal(itsAttr[LENGTH]) * Units::m2mm / 2,
         Attributes::getReal(itsAttr[LFRINGE]) * Units::m2mm,
-        Attributes::getReal(itsAttr[RFRINGE]) * Units::m2mm
-    );
+        Attributes::getReal(itsAttr[RFRINGE]) * Units::m2mm);
     if (Attributes::getBool(itsAttr[VARRADIUS])) {
         multT->setVarRadius();
     }

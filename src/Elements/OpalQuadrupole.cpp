@@ -34,8 +34,7 @@ OpalQuadrupole::OpalQuadrupole()
           "It is a convenience wrapper around MULTIPOLE with a single\n"
           "quadrupole strength K1.\n"
           "* If the length is non-zero, K1 is per unit length.\n"
-          "* If the length is zero, K1 is the integrated strength."
-      ) {
+          "* If the length is zero, K1 is the integrated strength.") {
     itsAttr[K1] = Attributes::makeReal("K1", "Normalised quadrupole strength in m^(-2)", 0.0);
     itsAttr[DK1] =
         Attributes::makeReal("DK1", "Normalised quadrupole strength error in m^(-2)", 0.0);
