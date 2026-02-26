@@ -19,10 +19,12 @@
 
 void SDDSColumnSet::addColumn(
     const std::string& name, const std::string& type, const std::string& unit,
-    const std::string& desc, std::ios_base::fmtflags flags, unsigned short prec) {
+    const std::string& desc, std::ios_base::fmtflags flags, unsigned short prec
+) {
     if (name2idx_m.find(name) != name2idx_m.end()) {
         throw OpalException(
-            "SDDSColumnSet::addColumn", "column name '" + name + "' already exists");
+            "SDDSColumnSet::addColumn", "column name '" + name + "' already exists"
+        );
     }
 
     name2idx_m.insert(std::make_pair(name, columns_m.size()));

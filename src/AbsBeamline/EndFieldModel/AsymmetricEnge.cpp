@@ -9,7 +9,8 @@ namespace endfieldmodel {
 
     AsymmetricEnge::AsymmetricEnge(
         const std::vector<double> aStart, double x0Start, double lambdaStart,
-        const std::vector<double> aEnd, double x0End, double lambdaEnd)
+        const std::vector<double> aEnd, double x0End, double lambdaEnd
+    )
         : engeStart_m(new Enge()), engeEnd_m(new Enge()) {
         engeStart_m->setCoefficients(aStart);
         engeStart_m->setX0(x0Start);

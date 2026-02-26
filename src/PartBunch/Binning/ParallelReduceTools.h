@@ -320,7 +320,8 @@ namespace ParticleBinning {
             (void)src;  // Silence unused parameter warning on Clang
             Kokkos::abort(
                 "Error: HostArrayReduction is not supported on device backends (CUDA/HIP/SYCL)!\n  "
-                "     Note: It exists only for compilation compatibility.");
+                "     Note: It exists only for compilation compatibility."
+            );
             return *this;
         }
 #endif
@@ -362,7 +363,8 @@ namespace ParticleBinning {
                 ippl::Vector<T, Dim> e = apply(field, idx);
                 loc_sum += std::pow(e.dot(e), p / 2.0);
             },
-            Kokkos::Sum<T>(sum));
+            Kokkos::Sum<T>(sum)
+        );
         return std::pow(sum, 1.0 / p);
     }
 

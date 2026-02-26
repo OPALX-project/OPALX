@@ -27,7 +27,8 @@
 // #define TESTLASEREMISSION
 
 LaserProfile::LaserProfile(
-    const std::string& fileName, const std::string& imageName, double intensityCut, short flags)
+    const std::string& fileName, const std::string& imageName, double intensityCut, short flags
+)
     : sizeX_m(0),
       sizeY_m(0),
       hist2d_m(nullptr),
@@ -83,7 +84,8 @@ unsigned short* LaserProfile::readFile(const std::string& fileName, const std::s
     namespace fs = std::filesystem;
     if (!fs::exists(fileName)) {
         throw OpalException(
-            "LaserProfile::readFile", "given file '" + fileName + "' does not exist");
+            "LaserProfile::readFile", "given file '" + fileName + "' does not exist"
+        );
     }
 
     size_t npos     = fileName.find_last_of('.');
@@ -117,13 +119,15 @@ unsigned short* LaserProfile::readPGMFile(const std::string& fileName) {
 }
 
 unsigned short* LaserProfile::readHDF5File(
-    const std::string& fileName, const std::string& imageName) {
+    const std::string& fileName, const std::string& imageName
+) {
     hid_t h5    = H5Fopen(fileName.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
     hid_t group = H5Gopen2(h5, imageName.c_str(), H5P_DEFAULT);
 
     if (group < 0) {
         throw OpalException(
-            "LaserProfile::readFile", "given image name '" + imageName + "' does not exist");
+            "LaserProfile::readFile", "given image name '" + imageName + "' does not exist"
+        );
     }
 
     hsize_t dim[2];
@@ -310,7 +314,8 @@ void LaserProfile::setupRNG() {
     rng_m                 = gsl_rng_alloc(T);
 
     pdf_m = gsl_histogram2d_pdf_alloc(
-        static_cast<unsigned int>(hist2d_m->nx()), static_cast<unsigned int>(hist2d_m->ny()));
+        static_cast<unsigned int>(hist2d_m->nx()), static_cast<unsigned int>(hist2d_m->ny())
+    );
     gsl_histogram2d_pdf_init(pdf_m, hist2d_m);
 }
 
@@ -334,7 +339,9 @@ void LaserProfile::printInfo() {
 void LaserProfile::saveData(const std::string& fname, unsigned short* image) {
     std::ofstream out(
         Util::combineFilePath(
-            {OpalData::getInstance()->getAuxiliaryOutputDirectory(), fname + ".pgm"}));
+            {OpalData::getInstance()->getAuxiliaryOutputDirectory(), fname + ".pgm"}
+        )
+    );
 
     out << "P2" << std::endl;
     out << sizeX_m << " " << sizeY_m << std::endl;
@@ -350,7 +357,8 @@ void LaserProfile::saveData(const std::string& fname, unsigned short* image) {
 
 void LaserProfile::saveHistogram() {
     std::string fname = Util::combineFilePath(
-        {OpalData::getInstance()->getAuxiliaryOutputDirectory(), "LaserHistogram.dat"});
+        {OpalData::getInstance()->getAuxiliaryOutputDirectory(), "LaserHistogram.dat"}
+    );
     FILE* fh = std::fopen(fname.c_str(), "w");
     gsl_histogram2d_fprintf(fh, hist2d_m, "%g", "%g");
     std::fclose(fh);
@@ -358,7 +366,8 @@ void LaserProfile::saveHistogram() {
 
 void LaserProfile::sampleDist() {
     std::string fname = Util::combineFilePath(
-        {OpalData::getInstance()->getAuxiliaryOutputDirectory(), "LaserEmissionSampled.dat"});
+        {OpalData::getInstance()->getAuxiliaryOutputDirectory(), "LaserEmissionSampled.dat"}
+    );
 
     std::ofstream fh(fname);
     double x, y;

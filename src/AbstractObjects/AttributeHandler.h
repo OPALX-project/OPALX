@@ -110,7 +110,8 @@ public:
 
     static std::multimap<OwnerType, std::string> getOwner(const std::string& att);
     static void addAttributeOwner(
-        const std::string& owner, const OwnerType& type, const std::string& name);
+        const std::string& owner, const OwnerType& type, const std::string& name
+    );
 
 protected:
     /// Attribute name.

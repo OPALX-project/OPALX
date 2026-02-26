@@ -9,7 +9,8 @@ PartBunch<T, Dim>::PartBunch(
     double qi, double mi, size_t totalP,
     /*int nt,*/
     double lbt, std::string integration_method, std::shared_ptr<Distribution>& OPALdistribution,
-    std::shared_ptr<FieldSolverCmd>& OPALFieldSolver)
+    std::shared_ptr<FieldSolverCmd>& OPALFieldSolver
+)
     : ippl::PicManager<
           T, Dim, ParticleContainer<T, Dim>, FieldContainer<T, Dim>, LoadBalancer<T, Dim>>(),
       time_m(0.0),
@@ -38,7 +39,8 @@ PartBunch<T, Dim>::PartBunch(
     //  get the needed information from OPAL FieldSolver command
 
     nr_m = Vector_t<int, Dim>(
-        OPALFieldSolver_m->getNX(), OPALFieldSolver_m->getNY(), OPALFieldSolver_m->getNZ());
+        OPALFieldSolver_m->getNX(), OPALFieldSolver_m->getNY(), OPALFieldSolver_m->getNZ()
+    );
 
     const Vector_t<bool, 3> domainDecomposition = OPALFieldSolver_m->getDomDec();
 
@@ -67,16 +69,21 @@ PartBunch<T, Dim>::PartBunch(
 
     this->setFieldContainer(
         std::make_shared<FieldContainer_t>(
-            hr_m, rmin_m, rmax_m, decomp_m, domain_m, origin_m, isAllPeriodic));
+            hr_m, rmin_m, rmax_m, decomp_m, domain_m, origin_m, isAllPeriodic
+        )
+    );
 
     this->setParticleContainer(
         std::make_shared<ParticleContainer_t>(
-            this->fcontainer_m->getMesh(), this->fcontainer_m->getFL()));
+            this->fcontainer_m->getMesh(), this->fcontainer_m->getFL()
+        )
+    );
 
     IpplTimings::stopTimer(gatherInfoPartBunch);
 
     this->setTempEField(
-        std::make_shared<VField_t<T, Dim>>(this->fcontainer_m->getE()));  // user copy constructor
+        std::make_shared<VField_t<T, Dim>>(this->fcontainer_m->getE())
+    );  // user copy constructor
     this->getTempEField()->initialize(this->fcontainer_m->getMesh(), this->fcontainer_m->getFL());
     // -----------------------------------------------
 
@@ -106,7 +113,8 @@ T PartBunch<T, Dim>::getCouplingConstant() const {
         throw OpalException(
             "PartBunch::getCouplingConstant",
             "Cannot return coupling if fsolver_m is not a "
-            "FieldSolver instance");
+            "FieldSolver instance"
+        );
     }
     return this->getFieldSolver()->getCouplingConstant();
 }
@@ -155,7 +163,9 @@ void PartBunch<T, Dim>::setSolver() {
     this->setFieldSolver(
         std::make_shared<FieldSolver_t>(
             this->solver_m, &this->fcontainer_m->getRho(), &this->fcontainer_m->getE(),
-            &this->fcontainer_m->getPhi(), this->getBCHandler()));
+            &this->fcontainer_m->getPhi(), this->getBCHandler()
+        )
+    );
     m << "Field solver set." << endl;
 
     this->fsolver_m->initSolver();
@@ -164,7 +174,9 @@ void PartBunch<T, Dim>::setSolver() {
     /// ADA we need to be able to set a load balancer when not having a field solver
     this->setLoadBalancer(
         std::make_shared<LoadBalancer_t>(
-            this->lbt_m, this->fcontainer_m, this->pcontainer_m, this->fsolver_m));
+            this->lbt_m, this->fcontainer_m, this->pcontainer_m, this->fsolver_m
+        )
+    );
     m << "Solver and Load Balancer set." << endl;
 
     setBins();
@@ -188,7 +200,8 @@ void PartBunch<T, Dim>::setBins() {
     if (parameterName != "VELOCITYZ") {
         throw OpalException(
             "PartBunch::setBins",
-            "Binning parameter " + parameterName + " not supported yet! Only VELOCITYZ.");
+            "Binning parameter " + parameterName + " not supported yet! Only VELOCITYZ."
+        );
     }
 
     this->setBins(
@@ -197,7 +210,8 @@ void PartBunch<T, Dim>::setBins() {
             BinningSelector_t(2),  // TODO: hardcode z axis with coordinate selector at axis index 2
             binningCmd->getMaxBins(), binningCmd->getBinningAlpha(), binningCmd->getBinningBeta(),
             binningCmd->getDesiredWidth()  // Cost function parameters
-            ));
+        )
+    );
     m << "Bins set." << endl;
     this->getBins()->debug();
 }
@@ -223,7 +237,8 @@ void PartBunch<T, Dim>::spaceChargeEFieldCheck(Vector_t<double, 3> /*efScale*/) 
         "check e-field", this->getLocalNum(),
         KOKKOS_LAMBDA(
             const int i, double& loc_avgE, double& loc_minEComponent, double& loc_maxEComponent,
-            double& loc_minE, double& loc_maxE) {
+            double& loc_minE, double& loc_maxE
+        ) {
             double EX = pE_view[i][0] * cc;
             double EY = pE_view[i][1] * cc;
             double EZ = pE_view[i][2] * cc;
@@ -244,7 +259,8 @@ void PartBunch<T, Dim>::spaceChargeEFieldCheck(Vector_t<double, 3> /*efScale*/) 
             loc_maxE = ENorm > loc_maxE ? ENorm : loc_maxE;
         },
         Kokkos::Sum<T>(avgE), Kokkos::Min<T>(minEComponent), Kokkos::Max<T>(maxEComponent),
-        Kokkos::Min<T>(minE), Kokkos::Max<T>(maxE));
+        Kokkos::Min<T>(minE), Kokkos::Max<T>(maxE)
+    );
 
     if (this->getLocalNum() == 0) {
         minEComponent = maxEComponent = minE = maxE = avgE = 0.0;
@@ -252,19 +268,24 @@ void PartBunch<T, Dim>::spaceChargeEFieldCheck(Vector_t<double, 3> /*efScale*/) 
 
     MPI_Reduce(
         myRank == 0 ? MPI_IN_PLACE : &avgE, &avgE, 1, MPI_DOUBLE, MPI_SUM, 0,
-        ippl::Comm->getCommunicator());
+        ippl::Comm->getCommunicator()
+    );
     MPI_Reduce(
         myRank == 0 ? MPI_IN_PLACE : &minEComponent, &minEComponent, 1, MPI_DOUBLE, MPI_MIN, 0,
-        ippl::Comm->getCommunicator());
+        ippl::Comm->getCommunicator()
+    );
     MPI_Reduce(
         myRank == 0 ? MPI_IN_PLACE : &maxEComponent, &maxEComponent, 1, MPI_DOUBLE, MPI_MAX, 0,
-        ippl::Comm->getCommunicator());
+        ippl::Comm->getCommunicator()
+    );
     MPI_Reduce(
         myRank == 0 ? MPI_IN_PLACE : &minE, &minE, 1, MPI_DOUBLE, MPI_MIN, 0,
-        ippl::Comm->getCommunicator());
+        ippl::Comm->getCommunicator()
+    );
     MPI_Reduce(
         myRank == 0 ? MPI_IN_PLACE : &maxE, &maxE, 1, MPI_DOUBLE, MPI_MAX, 0,
-        ippl::Comm->getCommunicator());
+        ippl::Comm->getCommunicator()
+    );
 
     size_t Np = this->getTotalNum();
     avgE /= (Np == 0) ? 1 : Np;  // avoid division by zero for empty simulations (see also
@@ -281,11 +302,13 @@ void PartBunch<T, Dim>::spaceChargeEFieldCheck(Vector_t<double, 3> /*efScale*/) 
             double phi = fphi_view(i, j, k);
             loc_avgphi += phi;
         },
-        Kokkos::Sum<T>(avgphi));
+        Kokkos::Sum<T>(avgphi)
+    );
 
     MPI_Reduce(
         myRank == 0 ? MPI_IN_PLACE : &avgphi, &avgphi, 1, MPI_DOUBLE, MPI_SUM, 0,
-        ippl::Comm->getCommunicator());
+        ippl::Comm->getCommunicator()
+    );
     avgphi /= this->getTotalNum();
     msg << "avgphi = " << avgphi << endl;
 }
@@ -318,7 +341,8 @@ void PartBunch<T, Dim>::calcBeamParameters() {
             "calc moments of particle distr.", ippl::getRangePolicy(Rview),
             KOKKOS_LAMBDA(
                 const int k, double& cent, double& mom0, double& mom1, double& mom2, double& mom3,
-                double& mom4, double& mom5) {
+                double& mom4, double& mom5
+            ) {
                 double part[2 * Dim];
                 part[0] = Rview(k)[0];
                 part[1] = Pview(k)[0];
@@ -338,7 +362,8 @@ void PartBunch<T, Dim>::calcBeamParameters() {
             Kokkos::Sum<T>(loc_centroid[i]), Kokkos::Sum<T>(loc_moment[i][0]),
             Kokkos::Sum<T>(loc_moment[i][1]), Kokkos::Sum<T>(loc_moment[i][2]),
             Kokkos::Sum<T>(loc_moment[i][3]), Kokkos::Sum<T>(loc_moment[i][4]),
-            Kokkos::Sum<T>(loc_moment[i][5]));
+            Kokkos::Sum<T>(loc_moment[i][5])
+        );
         Kokkos::fence();
     }
     m << "Local moments calculated." << endl;
@@ -363,7 +388,8 @@ void PartBunch<T, Dim>::calcBeamParameters() {
                 double tmp_vel = Rview(i)[d];
                 mm             = tmp_vel > mm ? tmp_vel : mm;
             },
-            Kokkos::Max<T>(rmax_loc[d]));
+            Kokkos::Max<T>(rmax_loc[d])
+        );
 
         Kokkos::parallel_reduce(
             "rel min", this->getLocalNum(),
@@ -371,7 +397,8 @@ void PartBunch<T, Dim>::calcBeamParameters() {
                 double tmp_vel = Rview(i)[d];
                 mm             = tmp_vel < mm ? tmp_vel : mm;
             },
-            Kokkos::Min<T>(rmin_loc[d]));
+            Kokkos::Min<T>(rmin_loc[d])
+        );
     }
     m << "Local min/max calculated." << endl;
     Kokkos::fence();
@@ -664,7 +691,8 @@ void PartBunch<T, Dim>::scatterCICPerBin(PartBunch<T, Dim>::binIndex_t binIndex)
 
     throw OpalException(
         "PartBunch::scatterCICPerBin",
-        "This function is not implemented yet! Please use scatterCIC for now.");
+        "This function is not implemented yet! Please use scatterCIC for now."
+    );
 
     Inform m("PartBunch::scatterCICPerBin");
     m << "Scattering binIndex = " << binIndex << " to grid." << endl;
@@ -689,7 +717,8 @@ void PartBunch<T, Dim>::scatterCICPerBin(PartBunch<T, Dim>::binIndex_t binIndex)
         Q = this->qi_m * this->bins_m->getNPartInBin(binIndex, true);
         scatter(
             *q, *rho, *R, this->bins_m->getBinIterationPolicy(binIndex),
-            this->bins_m->getHashArray());
+            this->bins_m->getHashArray()
+        );
     }
 
     m << "gammz= " << this->pcontainer_m->getMeanP()[2] << endl;
@@ -741,13 +770,15 @@ void PartBunch<T, Dim>::performBunchSanityChecks() const {
     // Check if bc handler was initialized properly
     if (!this->getBCHandler()) {
         throw OpalException(
-            "PartBunch::performBunchSanityChecks", "BC Handler not initialized properly.");
+            "PartBunch::performBunchSanityChecks", "BC Handler not initialized properly."
+        );
     }
     ms << "BC Handler initialized properly." << endl;
 
     if (!hasFieldSolver()) {
         throw OpalException(
-            "PartBunch::performBunchSanityChecks", "Field Solver was not initialized.");
+            "PartBunch::performBunchSanityChecks", "Field Solver was not initialized."
+        );
     }
     ms << "Field Solver object was initialized." << endl;
 
@@ -758,14 +789,16 @@ void PartBunch<T, Dim>::performBunchSanityChecks() const {
     const std::shared_ptr<FieldContainer<T, Dim>> fctr = this->fcontainer_m;
     if (!fctr) {
         throw OpalException(
-            "PartBunch::performBunchSanityChecks", "FieldContainer isn't initialized correctly.");
+            "PartBunch::performBunchSanityChecks", "FieldContainer isn't initialized correctly."
+        );
     }
 
     // Check internal field pointers are set
     if (fs->getRho() == nullptr || fs->getE() == nullptr || fs->getPhi() == nullptr) {
         throw OpalException(
             "PartBunch::performBunchSanityChecks",
-            "FieldSolver internal fields (rho/E/phi) not assigned.");
+            "FieldSolver internal fields (rho/E/phi) not assigned."
+        );
     }
     ms << "FieldSolver internal field pointers are set." << endl;
 
@@ -773,8 +806,8 @@ void PartBunch<T, Dim>::performBunchSanityChecks() const {
     if (fs->getRho() != &fctr->getRho() || fs->getE() != &fctr->getE()
         || fs->getPhi() != &fctr->getPhi()) {
         throw OpalException(
-            "PartBunch::performBunchSanityChecks",
-            "FieldSolver fields do not match FieldContainer.");
+            "PartBunch::performBunchSanityChecks", "FieldSolver fields do not match FieldContainer."
+        );
     }
     ms << "FieldSolver fields match FieldContainer." << endl;
 
@@ -796,11 +829,13 @@ void PartBunch<T, Dim>::performBunchSanityChecks() const {
     const std::string stype = fs->getStype();
     if (stype.empty()) {
         throw OpalException(
-            "PartBunch::performBunchSanityChecks", "FieldSolver type string is empty.");
+            "PartBunch::performBunchSanityChecks", "FieldSolver type string is empty."
+        );
     }
     if (stype != "FFT" && stype != "OPEN" && stype != "CG" && stype != "NONE") {
         throw OpalException(
-            "PartBunch::performBunchSanityChecks", "Unsupported FieldSolver type: " + stype);
+            "PartBunch::performBunchSanityChecks", "Unsupported FieldSolver type: " + stype
+        );
     }
     ms << "FieldSolver type: " << stype << endl;
 
@@ -808,8 +843,8 @@ void PartBunch<T, Dim>::performBunchSanityChecks() const {
     auto Eview = fctr->getE().getView();
     if (Eview.extent(0) == 0 || Eview.extent(1) == 0 || Eview.extent(2) == 0) {
         throw OpalException(
-            "PartBunch::performBunchSanityChecks",
-            "E-field layout not initialized (zero extent). ");
+            "PartBunch::performBunchSanityChecks", "E-field layout not initialized (zero extent). "
+        );
     }
     ms << "E-field layout initialized." << endl;
 

@@ -12,7 +12,8 @@ using Dist_t              = ippl::random::NormalDistribution<double, 3>;
 
 FlatTop::FlatTop(
     std::shared_ptr<ParticleContainer_t> pc, std::shared_ptr<FieldContainer_t> fc,
-    std::shared_ptr<Distribution_t> opalDist)
+    std::shared_ptr<Distribution_t> opalDist
+)
     : SamplingBase(pc, fc, opalDist), rand_pool_m(determineRandInit()) {
     setParameters(opalDist);
 }
@@ -20,14 +21,16 @@ FlatTop::FlatTop(
 FlatTop::FlatTop(
     std::shared_ptr<ParticleContainer_t> pc, std::shared_ptr<FieldContainer_t> fc, bool emitting,
     double sigmaTFall, double sigmaTRise, Vector_t<double, 3> cutoff, double tPulseLengthFWHM,
-    Vector_t<double, 3> sigmaR)
+    Vector_t<double, 3> sigmaR
+)
     : SamplingBase(pc, fc), rand_pool_m(determineRandInit()) {
     setInternalVariables(emitting, sigmaTFall, sigmaTRise, cutoff, tPulseLengthFWHM, sigmaR);
 }
 
 FlatTop::FlatTop(
     std::shared_ptr<ParticleContainer_t> pc, bool emitting, double sigmaTFall, double sigmaTRise,
-    Vector_t<double, 3> cutoff, double tPulseLengthFWHM, Vector_t<double, 3> sigmaR)
+    Vector_t<double, 3> cutoff, double tPulseLengthFWHM, Vector_t<double, 3> sigmaR
+)
     : SamplingBase(pc), rand_pool_m(determineRandInit()) {
     setInternalVariables(emitting, sigmaTFall, sigmaTRise, cutoff, tPulseLengthFWHM, sigmaR);
 }
@@ -49,7 +52,8 @@ size_t FlatTop::determineRandInit() {
 void FlatTop::setParameters(const std::shared_ptr<Distribution_t>& opalDist) {
     setInternalVariables(
         opalDist->emitting_m, opalDist_m->getSigmaTFall(), opalDist_m->getSigmaTRise(),
-        opalDist_m->getCutoffR(), opalDist->getTPulseLengthFWHM(), opalDist_m->getSigmaR());
+        opalDist_m->getCutoffR(), opalDist->getTPulseLengthFWHM(), opalDist_m->getSigmaR()
+    );
 
     opalDist_m->setTEmission(emissionTime_m);
 
@@ -59,7 +63,8 @@ void FlatTop::setParameters(const std::shared_ptr<Distribution_t>& opalDist) {
 
 void FlatTop::setInternalVariables(
     bool emitting, double sigmaTFall, double sigmaTRise, Vector_t<double, 3> cutoff,
-    double tPulseLengthFWHM, Vector_t<double, 3> sigmaR) {
+    double tPulseLengthFWHM, Vector_t<double, 3> sigmaR
+) {
     emitting_m = emitting;
     // time span of fall is [0, riseTime, riseTime+flattopTime, fallTime+flattopTime+riseTime ]
     sigmaTFall_m = sigmaTFall;
@@ -112,7 +117,8 @@ void FlatTop::generateUniformDisk(size_type nlocal, size_t nNew) {
             Pview(j)[0] = 0.0;
             Pview(j)[1] = 0.0;
             Pview(j)[2] = 0.0;
-        });
+        }
+    );
     Kokkos::fence();
 }
 
@@ -225,7 +231,8 @@ double FlatTop::countEnteringParticlesPerRank(double t0, double tf) {
 
             if (dx <= 0 || dy <= 0 || dz <= 0) {
                 throw std::runtime_error(
-                    "Invalid global particle volume: prmax must be greater than prmin.");
+                    "Invalid global particle volume: prmax must be greater than prmin."
+                );
             }
 
             double globalpvolume = dx * dy * dz;

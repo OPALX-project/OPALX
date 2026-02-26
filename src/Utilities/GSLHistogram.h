@@ -377,7 +377,8 @@ inline gsl_histogram2d* gsl_histogram2d_alloc(size_t nx, size_t ny) {
 /// \param ymin Input: y lower bound (inclusive).
 /// \param ymax Input: y upper bound (exclusive).
 inline void gsl_histogram2d_set_ranges_uniform(
-    gsl_histogram2d* h, double xmin, double xmax, double ymin, double ymax) {
+    gsl_histogram2d* h, double xmin, double xmax, double ymin, double ymax
+) {
     h->set_ranges_uniform(xmin, xmax, ymin, ymax);
 }
 
@@ -389,7 +390,8 @@ inline void gsl_histogram2d_set_ranges_uniform(
 /// \param ny Input: number of y edges.
 /// \return Output: 0 on success, -1 on error.
 inline int gsl_histogram2d_set_ranges(
-    gsl_histogram2d* h, const double* xrange, size_t nx, const double* yrange, size_t ny) {
+    gsl_histogram2d* h, const double* xrange, size_t nx, const double* yrange, size_t ny
+) {
     h->set_ranges(xrange, nx, yrange, ny);
     return 0;
 }
@@ -436,7 +438,8 @@ inline void gsl_histogram2d_accumulate(gsl_histogram2d* h, double x, double y, d
 /// \param xformat Input: printf-style format string for x values.
 /// \param yformat Input: printf-style format string for y values.
 inline void gsl_histogram2d_fprintf(
-    FILE* fh, const gsl_histogram2d* h, const char* xformat, const char* yformat) {
+    FILE* fh, const gsl_histogram2d* h, const char* xformat, const char* yformat
+) {
     fprintf(fh, "# xrange: %zu bins from %g to %g\n", h->nx(), h->xrange()[0], h->xrange().back());
     fprintf(fh, "# yrange: %zu bins from %g to %g\n", h->ny(), h->yrange()[0], h->yrange().back());
     const auto& bin = h->bin();
@@ -476,7 +479,8 @@ inline void gsl_histogram2d_pdf_init(gsl_histogram2d_pdf* p, const gsl_histogram
 /// \param x Output: sampled x value.
 /// \param y Output: sampled y value.
 inline void gsl_histogram2d_pdf_sample(
-    const gsl_histogram2d_pdf* p, double u, double v, double* x, double* y) {
+    const gsl_histogram2d_pdf* p, double u, double v, double* x, double* y
+) {
     const_cast<gsl_histogram2d_pdf*>(p)->sample(u, v, x, y);
 }
 

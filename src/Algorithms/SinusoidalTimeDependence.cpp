@@ -23,7 +23,8 @@
 
 SinusoidalTimeDependence::SinusoidalTimeDependence(
     const std::vector<double>& f, const std::vector<double>& p, const std::vector<double>& a,
-    const std::vector<double>& o)
+    const std::vector<double>& o
+)
     : f_m(f), p_m(p), a_m(a), o_m(o) {}
 
 double SinusoidalTimeDependence::getValue(const double time) {

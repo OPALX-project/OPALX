@@ -64,7 +64,8 @@ bool Component::apply() { return false; }
  * @returns true if particle is out-of-bounds (lost), false otherwise
  */
 bool Component::apply(
-    const size_t& /*i*/, const double&, Vector_t<double, 3>&, Vector_t<double, 3>&) {
+    const size_t& /*i*/, const double&, Vector_t<double, 3>&, Vector_t<double, 3>&
+) {
     /*
     const Vector_t<double, 3>& R = RefPartBunch_m->R[i];
     if (R(2) >= 0.0 && R(2) < getElementLength()) {
@@ -89,7 +90,8 @@ bool Component::apply(
  */
 bool Component::apply(
     const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
-    Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/) {
+    Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/
+) {
     if (R(2) >= 0.0 && R(2) < getElementLength()) {
         if (!isInsideTransverse(R))
             return true;
@@ -110,7 +112,8 @@ bool Component::apply(
  */
 bool Component::applyToReferenceParticle(
     const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
-    Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/) {
+    Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/
+) {
     if (R(2) >= 0.0 && R(2) < getElementLength()) {
         if (!isInsideTransverse(R))
             return true;

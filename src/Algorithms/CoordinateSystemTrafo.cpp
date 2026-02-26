@@ -21,7 +21,8 @@ CoordinateSystemTrafo::CoordinateSystemTrafo(const CoordinateSystemTrafo& right)
       rotationMatrix_m(right.rotationMatrix_m) {}
 
 CoordinateSystemTrafo::CoordinateSystemTrafo(
-    const ippl::Vector<double, 3>& origin, const Quaternion& orientation)
+    const ippl::Vector<double, 3>& origin, const Quaternion& orientation
+)
     : origin_m(origin),
       orientation_m(orientation),
       rotationMatrix_m(orientation_m.getRotationMatrix()) {}

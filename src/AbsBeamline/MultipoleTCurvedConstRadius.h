@@ -165,8 +165,8 @@ inline const PlanarArcGeometry& MultipoleTCurvedConstRadius::getGeometry() const
 }
 inline void MultipoleTCurvedConstRadius::setBendAngle(const double& angle) { angle_m = angle; }
 inline double MultipoleTCurvedConstRadius::getBendAngle() const { return angle_m; }
-inline void MultipoleTCurvedConstRadius::initialise(
-    PartBunch_t* bunch, double& /*startField*/, double& /*endField*/) {
+inline void MultipoleTCurvedConstRadius::
+    initialise(PartBunch_t* bunch, double& /*startField*/, double& /*endField*/) {
     RefPartBunch_m = bunch;
     planarArcGeometry_m.setElementLength(2 * getBoundingBoxLength());
     planarArcGeometry_m.setCurvature(angle_m / getLength());

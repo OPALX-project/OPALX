@@ -116,7 +116,8 @@ void RFCavity::accept(BeamlineVisitor& visitor) const { visitor.visitRFCavity(*t
 bool RFCavity::apply() { return false; }
 
 bool RFCavity::apply(
-    const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
+    const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B
+) {
     std::shared_ptr<ParticleContainer_t> pc = RefPartBunch_m->getParticleContainer();
     auto Rview                              = pc->R.getView();
     auto Pview                              = pc->P.getView();
@@ -129,7 +130,8 @@ bool RFCavity::apply(
 
 bool RFCavity::apply(
     const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& t,
-    Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
+    Vector_t<double, 3>& E, Vector_t<double, 3>& B
+) {
     if (R(2) >= startField_m && R(2) < startField_m + getElementLength()) {
         Vector_t<double, 3> tmpE({0.0, 0.0, 0.0}), tmpB({0.0, 0.0, 0.0});
 
@@ -145,7 +147,8 @@ bool RFCavity::apply(
 
 bool RFCavity::applyToReferenceParticle(
     const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& t,
-    Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
+    Vector_t<double, 3>& E, Vector_t<double, 3>& B
+) {
     if (R(2) >= startField_m && R(2) < startField_m + getElementLength()) {
         Vector_t<double, 3> tmpE({0.0, 0.0, 0.0}), tmpB({0.0, 0.0, 0.0});
 
@@ -176,7 +179,8 @@ void RFCavity::initialise(PartBunch_t* bunch, double& startField, double& endFie
     if (endField <= startField_m) {
         throw GeneralClassicException(
             "RFCavity::initialise",
-            "The length of the field map '" + filename_m + "' is zero or negative");
+            "The length of the field map '" + filename_m + "' is zero or negative"
+        );
     }
 
     msg << level2 << getName() << " using file ";
@@ -202,7 +206,8 @@ void RFCavity::initialise(PartBunch_t* bunch, double& startField, double& endFie
 void RFCavity::initialise(
     PartBunch_t* bunch, std::shared_ptr<AbstractTimeDependence> freq_atd,
     std::shared_ptr<AbstractTimeDependence> ampl_atd,
-    std::shared_ptr<AbstractTimeDependence> phase_atd) {
+    std::shared_ptr<AbstractTimeDependence> phase_atd
+) {
     RefPartBunch_m = bunch;
 
     /// set the time dependent models
@@ -221,7 +226,8 @@ void RFCavity::initialise(
         if (in.eof()) {
             throw GeneralClassicException(
                 "RFCavity::initialise",
-                "Not enough data in file '" + filename_m + "', please check the data format");
+                "Not enough data in file '" + filename_m + "', please check the data format"
+            );
         }
         in >> RNormal_m[i] >> VrNormal_m[i] >> DvDr_m[i];
 
@@ -298,13 +304,15 @@ std::string RFCavity::getFieldMapFN() const {
         throw GeneralClassicException(
             "RFCavity::getFieldMapFN",
             "The attribute \"FMAPFN\" isn't set "
-            "for the \"RFCAVITY\" element!");
+            "for the \"RFCAVITY\" element!"
+        );
     } else if (std::filesystem::exists(filename_m)) {
         return filename_m;
     } else {
         throw GeneralClassicException(
             "RFCavity::getFieldMapFN",
-            "Failed to open file '" + filename_m + "', please check if it exists");
+            "Failed to open file '" + filename_m + "', please check if it exists"
+        );
     }
 }
 
@@ -322,7 +330,8 @@ double RFCavity::getCycFrequency() const { return frequency_m; }
  */
 void RFCavity::getMomentaKick(
     const double normalRadius, double momentum[], const double t, const double dtCorrt,
-    const int PID, const double restMass, const int chargenumber) {
+    const int PID, const double restMass, const int chargenumber
+) {
     double derivate;
 
     double momentum2 =
@@ -489,7 +498,8 @@ double RFCavity::getAutoPhaseEstimateFallback(double E0, double t0, double q, do
 }
 
 double RFCavity::getAutoPhaseEstimate(
-    const double& E0, const double& t0, const double& q, const double& mass) {
+    const double& E0, const double& t0, const double& q, const double& mass
+) {
     std::vector<double> t, E, t2, E2;
     std::vector<double> F;
     std::vector<std::pair<double, double> > G;
@@ -625,7 +635,8 @@ double RFCavity::getAutoPhaseEstimate(
 
 std::pair<double, double> RFCavity::trackOnAxisParticle(
     const double& p0, const double& t0, const double& dt, const double& /*q*/, const double& mass,
-    std::ofstream* out) {
+    std::ofstream* out
+) {
     Vector_t<double, 3> p({0, 0, p0});
     double t = t0;
 

@@ -32,50 +32,58 @@
 
 namespace interpolation {
     PolynomialPatch::PolynomialPatch(
-        Mesh* grid_points, Mesh* validity_region,
-        std::vector<SquarePolynomialVector*> polynomials) {
+        Mesh* grid_points, Mesh* validity_region, std::vector<SquarePolynomialVector*> polynomials
+    ) {
         grid_points_     = grid_points;
         validity_region_ = validity_region;
         points_          = polynomials;
         // validate input data
         if (grid_points_ == nullptr)
             throw GeneralClassicException(
-                "PolynomialPatch::PolynomialPatch", "PolynomialPatch grid_points_ was nullptr");
+                "PolynomialPatch::PolynomialPatch", "PolynomialPatch grid_points_ was nullptr"
+            );
         if (validity_region_ == nullptr)
             throw GeneralClassicException(
-                "PolynomialPatch::PolynomialPatch", "PolynomialPatch validity_region_ was nullptr");
+                "PolynomialPatch::PolynomialPatch", "PolynomialPatch validity_region_ was nullptr"
+            );
         if (points_.size() == 0) {
             throw GeneralClassicException(
                 "PolynomialPatch::PolynomialPatch",
-                "Could not make PolynomialPatch with 0 length polynomials vector");
+                "Could not make PolynomialPatch with 0 length polynomials vector"
+            );
         }
         Mesh::Iterator end = grid_points_->end();
         if (int(points_.size()) != end.toInteger()) {
             throw GeneralClassicException(
                 "PolynomialPatch::PolynomialPatch",
-                "Could not make PolynomialPatch with bad length polynomials vector");
+                "Could not make PolynomialPatch with bad length polynomials vector"
+            );
         }
         point_dimension_ = grid_points_->getPositionDimension();
         if (validity_region_->getPositionDimension() != int(point_dimension_)) {
             throw GeneralClassicException(
                 "PolynomialPatch::PolynomialPatch",
-                "PolynomialPatch validity_region_ has bad dimension");
+                "PolynomialPatch validity_region_ has bad dimension"
+            );
         }
         value_dimension_ = points_[0]->ValueDimension();
         for (size_t i = 0; i < points_.size(); ++i) {
             if (points_[i] == nullptr)
                 throw GeneralClassicException(
                     "PolynomialPatch::PolynomialPatch",
-                    "PolynomialPatch points_ element was nullptr");
+                    "PolynomialPatch points_ element was nullptr"
+                );
             if (points_[i]->PointDimension() != point_dimension_) {
                 throw GeneralClassicException(
                     "PolynomialPatch::PolynomialPatch",
-                    "Polynomial with mismatched PointDimension in PolynomialPatch");
+                    "Polynomial with mismatched PointDimension in PolynomialPatch"
+                );
             }
             if (points_[i]->ValueDimension() != value_dimension_)
                 throw GeneralClassicException(
                     "PolynomialPatch::PolynomialPatch",
-                    "Polynomial with mismatched ValueDimension in PolynomialPatch");
+                    "Polynomial with mismatched ValueDimension in PolynomialPatch"
+                );
         }
     }
 

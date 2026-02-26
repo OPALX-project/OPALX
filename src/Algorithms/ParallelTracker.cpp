@@ -59,7 +59,8 @@ extern Inform* gmsg;
 class PartData;
 /* ============================== Constructors ============================== */
 ParallelTracker::ParallelTracker(
-    const Beamline& beamline, const PartData& reference, bool revBeam, bool revTrack)
+    const Beamline& beamline, const PartData& reference, bool revBeam, bool revTrack
+)
     : Tracker(beamline, reference, revBeam, revTrack),
       itsDataSink_m(nullptr),
       itsOpalBeamline_m(beamline.getOrigin3D(), beamline.getInitialDirection()),
@@ -84,7 +85,8 @@ ParallelTracker::ParallelTracker(
 ParallelTracker::ParallelTracker(
     const Beamline& beamline, PartBunch_t* bunch, DataSink& ds, const PartData& reference,
     bool revBeam, bool revTrack, const std::vector<unsigned long long>& maxSteps, double zstart,
-    const std::vector<double>& zstop, const std::vector<double>& dt)
+    const std::vector<double>& zstop, const std::vector<double>& dt
+)
     : Tracker(beamline, bunch, reference, revBeam, revTrack),
       itsDataSink_m(&ds),
       itsOpalBeamline_m(beamline.getOrigin3D(), beamline.getInitialDirection()),
@@ -172,7 +174,8 @@ void ParallelTracker::visitRing(const Ring& ring) {
 
     if (referenceTheta <= -180.0 || referenceTheta > 180.0) {
         throw OpalException(
-            "Error in ParallelTracker::visitRing", "PHIINIT is out of [-180, 180)!");
+            "Error in ParallelTracker::visitRing", "PHIINIT is out of [-180, 180)!"
+        );
     }
 
     referenceZ  = 0.0;
@@ -209,7 +212,8 @@ void ParallelTracker::visitVerticalFFAMagnet(const VerticalFFAMagnet& mag) {
     else
         throw OpalException(
             "ParallelCyclotronTracker::visitVerticalFFAMagnet",
-            "Need to define a RINGDEFINITION to use VerticalFFAMagnet element");
+            "Need to define a RINGDEFINITION to use VerticalFFAMagnet element"
+        );
 }
 
 /** * * * @param off */
@@ -217,7 +221,8 @@ void ParallelTracker::visitOffset(const Offset& off) {
     if (opalRing_m == nullptr)
         throw OpalException(
             "ParallelCylcotronTracker::visitOffset",
-            "Attempt to place an offset when Ring not defined");
+            "Attempt to place an offset when Ring not defined"
+        );
     Offset* offNonConst = const_cast<Offset*>(&off);
     offNonConst->updateGeometry(opalRing_m->getNextPosition(), opalRing_m->getNextNormal());
     opalRing_m->appendElement(off);
@@ -326,7 +331,8 @@ void ParallelTracker::execute() {
         itsBunch_m->getT(),                         // Current bunch time
         (back_track ? -minTimeStep : minTimeStep),  // Time step direction
         stepSizes_m,                                // Step size configuration
-        itsOpalBeamline_m);                         // OpalBeamline object
+        itsOpalBeamline_m
+    );  // OpalBeamline object
 
     // Execute the orbit threading (queries elements and updates state)
     oth.execute();
@@ -563,7 +569,8 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
         throw OpalException(
             "ParallelTracker::computeSpaceChargeFields",
             "Bunch has no field solver assigned! If you want to run without "
-            "space charge effects, please use TYPE=NONE for the field solver.");
+            "space charge effects, please use TYPE=NONE for the field solver."
+        );
     }
 
     itsBunch_m->calcBeamParameters();
@@ -572,7 +579,8 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
     Quaternion alignment = getQuaternion(itsBunch_m->get_pmean(), Vector_t<double, 3>(0, 0, 1));
 
     CoordinateSystemTrafo beamToReferenceCSTrafo(
-        Vector_t<double, 3>(0, 0, pathLength_m), alignment.conjugate());
+        Vector_t<double, 3>(0, 0, pathLength_m), alignment.conjugate()
+    );
 
     CoordinateSystemTrafo referenceToBeamCSTrafo = beamToReferenceCSTrafo.inverted();
 
@@ -723,9 +731,11 @@ void ParallelTracker::pushParticles(const BorisPusher& pusher) {
 
             Vector_t<double, 3> x = Rview(i);
             pusher.push(
-                x, Pview(i), 0);  // this 0 is "dt" that is not used with unitless positions!
+                x, Pview(i), 0
+            );  // this 0 is "dt" that is not used with unitless positions!
             Rview(i) = x;
-        });
+        }
+    );
 
     itsBunch_m->switchOffUnitlessPositions(true);
     /// \todo update gives different results on one rank?
@@ -798,7 +808,8 @@ void ParallelTracker::kickParticles(const BorisPusher& pusher) {
             */
             pusher.kick(0, p, Efview(i), Bfview(i), dtview(i), mass, charge);
             Pview(i) = p;
-        });
+        }
+    );
     /*
     Wait until everyone completed the kick operation before proceeding. For now,
     this is just a precaution and could be removed for a small performance gain
@@ -853,8 +864,8 @@ void ParallelTracker::changeDT(bool backTrack) {
     double newdT = itsBunch_m->getdT();
 
     Kokkos::parallel_for(
-        "changeDT", ippl::getRangePolicy(dtview),
-        KOKKOS_LAMBDA(const int i) { dtview(i) = newdT; });
+        "changeDT", ippl::getRangePolicy(dtview), KOKKOS_LAMBDA(const int i) { dtview(i) = newdT; }
+    );
 }
 
 void ParallelTracker::doBinaryRepartition() {
@@ -899,7 +910,8 @@ void ParallelTracker::updateReferenceParticle(const BorisPusher& pusher) {
         Vector_t<double, 3> localE(0.0), localB(0.0);
 
         if ((*it)->applyToReferenceParticle(
-                localR, localP, itsBunch_m->getT() - 0.5 * dt, localE, localB)) {
+                localR, localP, itsBunch_m->getT() - 0.5 * dt, localE, localB
+            )) {
             *gmsg << level1 << "The reference particle hit an element" << endl;
             globalEOL_m = true;
         }
@@ -1046,7 +1058,8 @@ void ParallelTracker::dumpStats(long long step, bool psDump, bool statDump) {
     if (std::isnan(pathLength_m) || std::isinf(pathLength_m)) {
         throw OpalException(
             "ParallelTracker::dumpStats()",
-            "there seems to be something wrong with the position of the bunch!");
+            "there seems to be something wrong with the position of the bunch!"
+        );
     } else {
         *gmsg << "* " << myt2.time() << " Step " << std::setw(6) << itsBunch_m->getGlobalTrackStep()
               << " at " << Util::getLengthString(pathLength_m)
@@ -1108,7 +1121,8 @@ void ParallelTracker::writePhaseSpace(const long long /*step*/, bool psDump, boo
         externalE = Vector_t<double, 3>(0.0);
         itsOpalBeamline_m.getFieldAt(
             itsBunch_m->RefPartR_m, itsBunch_m->RefPartP_m,
-            itsBunch_m->getT() - 0.5 * itsBunch_m->getdT(), externalE, externalB);
+            itsBunch_m->getT() - 0.5 * itsBunch_m->getdT(), externalE, externalB
+        );
         FDext[0] = externalB;  // \todo itsBunch_m->toLabTrafo_m.rotateFrom(externalB);
         FDext[1] =
             (externalE * Units::Vpm2MVpm);  // \todo itsBunch_m->toLabTrafo_m.rotateFrom(externalE *
@@ -1247,7 +1261,8 @@ void ParallelTracker::autophaseCavities(const BorisPusher& pusher) {
                 ap.getPhaseAtMaxEnergy(
                     itsOpalBeamline_m.transformToLocalCS(element, itsBunch_m->RefPartR_m),
                     itsOpalBeamline_m.rotateToLocalCS(element, itsBunch_m->RefPartP_m), t,
-                    itsBunch_m->getdT());
+                    itsBunch_m->getdT()
+                );
             }
 
         } else if (element->getType() == ElementType::RFCAVITY) {
@@ -1257,7 +1272,8 @@ void ParallelTracker::autophaseCavities(const BorisPusher& pusher) {
                 ap.getPhaseAtMaxEnergy(
                     itsOpalBeamline_m.transformToLocalCS(element, itsBunch_m->RefPartR_m),
                     itsOpalBeamline_m.rotateToLocalCS(element, itsBunch_m->RefPartP_m), t,
-                    itsBunch_m->getdT());
+                    itsBunch_m->getdT()
+                );
             }
         }
     }
@@ -1267,7 +1283,8 @@ void ParallelTracker::autophaseCavities(const BorisPusher& pusher) {
 /* ============================ RING FUNCTIONS ============================== */
 
 void ParallelTracker::buildupFieldList(
-    double BcParameter[], ElementType elementType, Component* elptr) {
+    double BcParameter[], ElementType elementType, Component* elptr
+) {
     beamline_list::iterator sindex;
 
     type_pair* localpair = new type_pair();

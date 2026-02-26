@@ -47,7 +47,8 @@ inline Quaternion::Quaternion() : Vector<double, 4>(1.0, 0.0, 0.0, 0.0) { srand(
 inline Quaternion::Quaternion(const Quaternion& quat) : Vector<double, 4>(quat) { srand(time(0)); }
 
 inline Quaternion::Quaternion(
-    const double& x0, const double& x1, const double& x2, const double& x3)
+    const double& x0, const double& x1, const double& x2, const double& x3
+)
     : Vector<double, 4>(x0, x1, x2, x3) {
     srand(time(0));
 }

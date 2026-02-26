@@ -41,17 +41,21 @@ public:
     void foo();
     void compute(
         const std::vector<OpalParticle>::const_iterator&,
-        const std::vector<OpalParticle>::const_iterator&);
+        const std::vector<OpalParticle>::const_iterator&
+    );
     void computeMoments(
         ippl::ParticleAttrib<Vector_t<double, 3>>::view_type Rview,
         ippl::ParticleAttrib<Vector_t<double, 3>>::view_type Pview,
-        ippl::ParticleAttrib<double>::view_type Mview, size_t Np, size_t Nlocal);
+        ippl::ParticleAttrib<double>::view_type Mview, size_t Np, size_t Nlocal
+    );
     void computeMinMaxPosition(
-        ippl::ParticleAttrib<Vector_t<double, 3>>::view_type Rview, size_t Nlcoal);
+        ippl::ParticleAttrib<Vector_t<double, 3>>::view_type Rview, size_t Nlcoal
+    );
     void computeMeanKineticEnergy();
     void computeDebyeLength(
         ippl::ParticleAttrib<Vector_t<double, 3>>::view_type Pview, size_t Np, size_t Nlocal,
-        double density);
+        double density
+    );
     void computePlasmaParameter(double);
 
     Vector_t<double, 3> getMeanPosition() const;
@@ -98,7 +102,8 @@ public:
     void computeMeans(
         ippl::ParticleAttrib<Vector_t<double, 3>>::view_type Rview,
         ippl::ParticleAttrib<Vector_t<double, 3>>::view_type Pview,
-        ippl::ParticleAttrib<double>::view_type Mview, size_t Np, size_t Nlocal);
+        ippl::ParticleAttrib<double>::view_type Mview, size_t Np, size_t Nlocal
+    );
 
 private:
     bool isParticleExcluded(const OpalParticle&) const;
@@ -114,7 +119,8 @@ private:
         const iterator_t& begin, const iterator_t& end,
         const std::vector<int>& globalAccumulatedHistogram,
         const std::vector<int>& localAccumulatedHistogram, unsigned int dimension,
-        int numRequiredParticles) const;
+        int numRequiredParticles
+    ) const;
     double computeNormalizedEmittance(const iterator_t& begin, const iterator_t& end) const;
 
     void fillMembers(std::vector<double>&);

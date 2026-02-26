@@ -43,7 +43,8 @@ public:
     //  Use the elements as matrix elements by rows.
     Matrix3D(
         double x11, double x12, double x13, double x21, double x22, double x23, double x31,
-        double x32, double x33);
+        double x32, double x33
+    );
 
     bool operator==(const Matrix3D&) const;
     bool operator!=(const Matrix3D&) const;

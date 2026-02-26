@@ -34,7 +34,8 @@ public:
     template <typename FieldType>
     void dumpField(
         FieldType& field, std::string name, std::string unit, long long step,
-        FieldType* image = nullptr);
+        FieldType* image = nullptr
+    );
 };
 
 #include "FieldWriter.hpp"

@@ -33,7 +33,8 @@ protected:
         }
 
         auto fc = std::make_shared<FieldContainer_t>(
-            hr, rmin, rmax, decomp, domain, origin, this->isAllPeriodic_m);
+            hr, rmin, rmax, decomp, domain, origin, this->isAllPeriodic_m
+        );
 
         Mesh_t<3> mesh(domain, hr, origin);
         FieldLayout_t<3> fl(MPI_COMM_WORLD, domain, decomp, this->isAllPeriodic_m);
@@ -77,7 +78,8 @@ protected:
     }
 
     void writeFileWithHeader(
-        const std::string& headerLine, const std::string& dataLine, size_t numParticles = 1) {
+        const std::string& headerLine, const std::string& dataLine, size_t numParticles = 1
+    ) {
         std::ofstream out(tempFilename);
         ASSERT_TRUE(out.is_open());
         out << numParticles << "\n";

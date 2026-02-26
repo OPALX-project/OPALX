@@ -36,7 +36,8 @@ public:
     FieldContainer(
         Vector_t<T, Dim>& hr, Vector_t<T, Dim>& rmin, Vector_t<T, Dim>& rmax,
         std::array<bool, Dim> decomp, ippl::NDIndex<Dim> domain, Vector_t<T, Dim> origin,
-        bool isAllPeriodic)
+        bool isAllPeriodic
+    )
         : hr_m(hr),
           rmin_m(rmin),
           rmax_m(rmax),

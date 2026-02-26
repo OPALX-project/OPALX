@@ -47,12 +47,15 @@ namespace tanhderiv {
             gsl_complex_add(gsl_complex_rect(params->a, 0), gsl_complex_polar(params->r, x));
         gsl_complex z1 = gsl_complex_div(
             gsl_complex_add(z, gsl_complex_rect(params->s0, 0)),
-            gsl_complex_rect(params->lambdaleft, 0));
+            gsl_complex_rect(params->lambdaleft, 0)
+        );
         gsl_complex z2 = gsl_complex_div(
             gsl_complex_sub(z, gsl_complex_rect(params->s0, 0)),
-            gsl_complex_rect(params->lambdaright, 0));
+            gsl_complex_rect(params->lambdaright, 0)
+        );
         gsl_complex func = gsl_complex_div(
-            gsl_complex_sub(gsl_complex_tanh(z1), gsl_complex_tanh(z2)), gsl_complex_rect(2, 0));
+            gsl_complex_sub(gsl_complex_tanh(z1), gsl_complex_tanh(z2)), gsl_complex_rect(2, 0)
+        );
         func = gsl_complex_mul(func, gsl_complex_polar(1, -params->n * x));
         return gsl_sf_fact(params->n) * GSL_REAL(func)
                / (2 * M_PI * gsl_sf_pow_int(params->r, params->n));
@@ -60,7 +63,8 @@ namespace tanhderiv {
 
     double integrate(
         const double& a, const double& s0, const double& lambdaleft, const double& lambdaright,
-        const int& n) {
+        const int& n
+    ) {
         gsl_function F;
         double radius  = gsl_hypot(a - 2, lambdaright * M_PI / 2) - 0.01;
         double radius2 = gsl_hypot(a + 2, lambdaleft * M_PI / 2) - 0.01;

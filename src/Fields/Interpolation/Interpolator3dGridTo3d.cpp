@@ -52,7 +52,8 @@ namespace interpolation {
     }
 
     void Interpolator3dGridTo3d::setAll(
-        ThreeDGrid* grid, double*** Bx, double*** By, double*** Bz, interpolationAlgorithm algo) {
+        ThreeDGrid* grid, double*** Bx, double*** By, double*** Bz, interpolationAlgorithm algo
+    ) {
         if (coordinates_m != nullptr)
             coordinates_m->remove(this);
         grid->add(this);
@@ -70,7 +71,8 @@ namespace interpolation {
                 break;
             default:
                 throw(LogicalError(
-                    "Interpolator3dGridTo3d::setAll", "Did not recognise interpolation algorithm"));
+                    "Interpolator3dGridTo3d::setAll", "Did not recognise interpolation algorithm"
+                ));
         }
     }
 }  // namespace interpolation

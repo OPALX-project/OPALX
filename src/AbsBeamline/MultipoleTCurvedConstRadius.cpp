@@ -61,7 +61,8 @@ void MultipoleTCurvedConstRadius::transformCoords(Vector_t<double, 3>& R) {
 }
 
 void MultipoleTCurvedConstRadius::transformBField(
-    Vector_t<double, 3>& B, const Vector_t<double, 3>& R) {
+    Vector_t<double, 3>& B, const Vector_t<double, 3>& R
+) {
     double theta = R[2] * angle_m / getLength();
     double Bx    = B[0];
     double Bs    = B[2];

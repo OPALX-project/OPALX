@@ -17,7 +17,8 @@ namespace mslang {
     void Repeat::apply(std::vector<std::shared_ptr<Base> >& bfuncs) {
         AffineTransformation trafo(
             Vector_t<double, 3>(cos(rot_m), sin(rot_m), -shiftx_m),
-            Vector_t<double, 3>(-sin(rot_m), cos(rot_m), -shifty_m));
+            Vector_t<double, 3>(-sin(rot_m), cos(rot_m), -shifty_m)
+        );
 
         func_m->apply(bfuncs);
         const unsigned int size = bfuncs.size();

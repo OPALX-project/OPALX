@@ -21,10 +21,12 @@ OpalParticle::OpalParticle() {}
 
 OpalParticle::OpalParticle(
     int64_t id, double x, double px, double y, double py, double z, double pz, double t, double q,
-    double m)
+    double m
+)
     : id_m(id), R_m(x, y, z), P_m(px, py, pz), time_m(t), charge_m(q), mass_m(m) {}
 
 OpalParticle::OpalParticle(
     int64_t id, Vector_t<double, 3> const& R, Vector_t<double, 3> const& P, double t, double q,
-    double m)
+    double m
+)
     : id_m(id), R_m(R), P_m(P), time_m(t), charge_m(q), mass_m(m) {}

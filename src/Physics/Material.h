@@ -31,7 +31,8 @@ namespace Physics {
 
         Material(
             double atomicNumber, double atomicMass, double massDensity, double radiationLength,
-            double meanExcitationEnergy, std::array<double, 10> fitCoefficients)
+            double meanExcitationEnergy, std::array<double, 10> fitCoefficients
+        )
             : atomicNumber_m(atomicNumber),
               atomicMass_m(atomicMass),
               massDensity_m(massDensity),
@@ -48,7 +49,8 @@ namespace Physics {
 
         static std::shared_ptr<Material> getMaterial(const std::string& name);
         static std::shared_ptr<Material> addMaterial(
-            const std::string& name, std::shared_ptr<Material> mat_ptr);
+            const std::string& name, std::shared_ptr<Material> mat_ptr
+        );
 
     private:
         static std::map<std::string, std::shared_ptr<Material> > protoTable_sm;

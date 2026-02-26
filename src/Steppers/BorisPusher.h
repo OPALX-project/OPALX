@@ -40,15 +40,17 @@ public:
 
     KOKKOS_INLINE_FUNCTION void kick(
         const Vector_t<double, 3>& R, Vector_t<double, 3>& P, const Vector_t<double, 3>& Ef,
-        const Vector_t<double, 3>& Bf, const double& dt) const;
+        const Vector_t<double, 3>& Bf, const double& dt
+    ) const;
 
     KOKKOS_INLINE_FUNCTION void kick(
         const Vector_t<double, 3>& R, Vector_t<double, 3>& P, const Vector_t<double, 3>& Ef,
-        const Vector_t<double, 3>& Bf, const double& dt, const double& mass,
-        const double& charge) const;
+        const Vector_t<double, 3>& Bf, const double& dt, const double& mass, const double& charge
+    ) const;
 
     KOKKOS_INLINE_FUNCTION void push(
-        Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& dt) const;
+        Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& dt
+    ) const;
 
 private:
     const PartData* itsReference;
@@ -62,14 +64,15 @@ KOKKOS_INLINE_FUNCTION void BorisPusher::initialise(const PartData* ref) { itsRe
 
 KOKKOS_INLINE_FUNCTION void BorisPusher::kick(
     const Vector_t<double, 3>& R, Vector_t<double, 3>& P, const Vector_t<double, 3>& Ef,
-    const Vector_t<double, 3>& Bf, const double& dt) const {
+    const Vector_t<double, 3>& Bf, const double& dt
+) const {
     kick(R, P, Ef, Bf, dt, itsReference->getM(), itsReference->getQ());
 }
 
 KOKKOS_INLINE_FUNCTION void BorisPusher::kick(
     const Vector_t<double, 3>& /*R*/, Vector_t<double, 3>& P, const Vector_t<double, 3>& Ef,
-    const Vector_t<double, 3>& Bf, const double& dt, const double& mass,
-    const double& charge) const {
+    const Vector_t<double, 3>& Bf, const double& dt, const double& mass, const double& charge
+) const {
     // Implementation follows chapter 4-4, p. 61 - 63 from
     // Birdsall, C. K. and Langdon, A. B. (1985). Plasma physics
     // via computer simulation.
@@ -122,8 +125,8 @@ KOKKOS_INLINE_FUNCTION void BorisPusher::kick(
     P += 0.5 * dt * charge * Physics::c / mass * Ef;
 }
 
-KOKKOS_INLINE_FUNCTION void BorisPusher::push(
-    Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& /* dt */) const {
+KOKKOS_INLINE_FUNCTION void BorisPusher::
+    push(Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& /* dt */) const {
     /** \f[ \vec{x}_{n+1/2} = \vec{x}_{n} + \frac{1}{2}\vec{v}_{n-1/2}\quad (= \vec{x}_{n} +
      * \frac{\Delta t}{2} \frac{\vec{\beta}_{n-1/2}\gamma_{n-1/2}}{\gamma_{n-1/2}}) \f]
      *

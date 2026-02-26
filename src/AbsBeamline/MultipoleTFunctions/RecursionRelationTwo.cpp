@@ -43,7 +43,8 @@ namespace polynomial {
     }
 
     RecursionRelationTwo::RecursionRelationTwo(
-        const std::size_t& power, const std::size_t& highestXorder)
+        const std::size_t& power, const std::size_t& highestXorder
+    )
         : power_m(power), highestXorder_m(highestXorder) {
         std::vector<int> poly2(1, 1);
         std::vector<std::vector<int>> poly1;

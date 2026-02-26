@@ -85,15 +85,18 @@ public:
     bool inH5Mode() { return h5hut_mode_m; }
 
     void save(
-        unsigned int numSets = 1, OpalData::OpenMode openMode = OpalData::OpenMode::UNDEFINED);
+        unsigned int numSets = 1, OpalData::OpenMode openMode = OpalData::OpenMode::UNDEFINED
+    );
 
     void addReferenceParticle(
         const Vector_t<double, 3>& x, const Vector_t<double, 3>& p, double time, double spos,
-        long long globalTrackStep);
+        long long globalTrackStep
+    );
 
     void addParticle(
         const OpalParticle&,
-        const std::optional<std::pair<int, short int>>& turnBunchNumPair = std::nullopt);
+        const std::optional<std::pair<int, short int>>& turnBunchNumPair = std::nullopt
+    );
 
     size_t size() const;
 

@@ -74,7 +74,8 @@ inline double gsl_spline_eval(const gsl_spline* spline, const double x, gsl_inte
 /// \param accel Input/Output: accelerator cache.
 /// \return Output: integrated value.
 inline double gsl_spline_eval_integ(
-    const gsl_spline* spline, const double xa, const double xb, gsl_interp_accel* accel) {
+    const gsl_spline* spline, const double xa, const double xb, gsl_interp_accel* accel
+) {
     return spline->evalIntegral(xa, xb, *accel);
 }
 

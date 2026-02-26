@@ -44,9 +44,11 @@ namespace OpalOffset {
     OpalGlobalCylindricalOffset::OpalGlobalCylindricalOffset()
         : OpalElement(int(SIZE), "GLOBAL_CYLINDRICAL_OFFSET", doc_string.c_str()) {
         itsAttr[RADIUS] = Attributes::makeReal(
-            "RADIUS", "Angle between the previous element and the displacement vector.");
+            "RADIUS", "Angle between the previous element and the displacement vector."
+        );
         itsAttr[AZIMUTHAL_ANGLE] = Attributes::makeReal(
-            "AZIMUTHAL_ANGLE", "Angle between the displacement vector and the next element.");
+            "AZIMUTHAL_ANGLE", "Angle between the displacement vector and the next element."
+        );
         itsAttr[TANGENTIAL_OFFSET] =
             Attributes::makeReal("TANGENTIAL_OFFSET", "Length of the offset.");
 
@@ -60,7 +62,8 @@ namespace OpalOffset {
     void OpalGlobalCylindricalOffset::print(std::ostream& out) const { OpalElement::print(out); }
 
     OpalGlobalCylindricalOffset::OpalGlobalCylindricalOffset(
-        const std::string& name, OpalGlobalCylindricalOffset* parent)
+        const std::string& name, OpalGlobalCylindricalOffset* parent
+    )
         : OpalElement(name, parent) {}
 
     OpalGlobalCylindricalOffset::~OpalGlobalCylindricalOffset() {}

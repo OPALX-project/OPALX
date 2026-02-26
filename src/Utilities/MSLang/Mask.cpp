@@ -8,7 +8,8 @@
 
 namespace mslang {
     void Mask::updateCache(
-        const std::vector<bool>& pixels, std::vector<unsigned int>& cache, unsigned int y) const {
+        const std::vector<bool>& pixels, std::vector<unsigned int>& cache, unsigned int y
+    ) const {
         const unsigned int M = cache.size();
         unsigned int idx     = y * M;
         for (unsigned int x = 0; x < M; ++x, ++idx) {
@@ -29,7 +30,8 @@ namespace mslang {
 
     std::pair<Mask::IntPoint, Mask::IntPoint> Mask::findMaximalRectangle(
         const std::vector<bool>& pixels, unsigned int N, /* height */
-        unsigned int M /* width */) const {
+        unsigned int M                                   /* width */
+    ) const {
         // This algorithm was presented in
         // http://www.drdobbs.com/database/the-maximal-rectangle-problem/184410529
         // by David Vandevoorde, April 01, 1998
@@ -84,7 +86,8 @@ namespace mslang {
 
     std::vector<Mask::IntPixel_t> Mask::minimizeNumberOfRectangles(
         std::vector<bool> pixels, unsigned int N, /* height */
-        unsigned int M /* width */) {
+        unsigned int M                            /* width */
+    ) {
         std::vector<IntPixel_t> rectangles;
 
         unsigned int maxArea = 0;
@@ -175,7 +178,8 @@ namespace mslang {
             double midY  = 0.5 * (ur.y_m + ll.y_m);
             rect.trafo_m = AffineTransformation(
                 Vector_t<double, 3>(1, 0, (0.5 * width - midX) * pixel_width),
-                Vector_t<double, 3>(0, 1, (midY - 0.5 * height) * pixel_height));
+                Vector_t<double, 3>(0, 1, (midY - 0.5 * height) * pixel_height)
+            );
 
             pixmap->pixels_m.push_back(rect);
             pixmap->pixels_m.back().computeBoundingBox();

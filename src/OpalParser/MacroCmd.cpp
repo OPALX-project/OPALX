@@ -35,7 +35,8 @@ MacroCmd::MacroCmd()
     : Macro(
           0u, "MACRO",
           "A \"MACRO\" command defines a subroutine:\n"
-          "\t<name>(<arguments>):MACRO{<body>}"),
+          "\t<name>(<arguments>):MACRO{<body>}"
+      ),
       body(0) {}
 
 MacroCmd::MacroCmd(const std::string& name, MacroCmd* parent) : Macro(name, parent), body() {
@@ -50,7 +51,8 @@ void MacroCmd::execute() {
 }
 
 Object* MacroCmd::makeInstance(
-    const std::string& name, Statement& statement, const Parser* parser) {
+    const std::string& name, Statement& statement, const Parser* parser
+) {
     parseActuals(statement);
 
     // Check for consistency in argument number.

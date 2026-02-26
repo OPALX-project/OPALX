@@ -21,11 +21,12 @@ private:
 };
 
 void savgol(
-    std::vector<double>& c, const int& np, const int& nl, const int& nr, const int& ld,
-    const int& m);
+    std::vector<double>& c, const int& np, const int& nl, const int& nr, const int& ld, const int& m
+);
 void convlv(
     const std::vector<double>& data, const std::vector<double>& respns, const int& isign,
-    std::vector<double>& ans);
+    std::vector<double>& ans
+);
 void ludcmp(std::vector<double>& a, std::vector<int>& indx, double& d);
 void lubksb(std::vector<double>& a, std::vector<int>& indx, std::vector<double>& b);
 

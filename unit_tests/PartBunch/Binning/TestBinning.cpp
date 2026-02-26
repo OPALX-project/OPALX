@@ -196,7 +196,8 @@ protected:
     /// Build an AdaptBins with given parameters.
     void buildAdaptBins(
         bin_index_type maxBins = 5, value_type alpha = 1.0, value_type beta = 1.0,
-        value_type desW = 0.1) {
+        value_type desW = 0.1
+    ) {
         Selector_t selector(2);  // bin along axis 2 (z-component of P)
         adaptBins = std::make_shared<AdaptBins_t>(bunch, selector, maxBins, alpha, beta, desW);
     }
@@ -251,10 +252,11 @@ TEST_F(BinningTest, CreateReductionObjectValid) {
         std::visit(
             [&](auto& reducer) {
                 EXPECT_EQ(
-                    sizeof(reducer.the_array) / sizeof(reducer.the_array[0]),
-                    static_cast<size_t>(n));
+                    sizeof(reducer.the_array) / sizeof(reducer.the_array[0]), static_cast<size_t>(n)
+                );
             },
-            var);
+            var
+        );
     }
 }
 
@@ -264,7 +266,8 @@ TEST_F(BinningTest, CreateReductionObjectInvalid) {
     // Wrap in a lambda to avoid macro comma issue with template args.
     EXPECT_THROW(
         (ParticleBinning::createReductionObject<size_type, bin_index_type>(tooBig)),
-        std::out_of_range);
+        std::out_of_range
+    );
 }
 
 TEST_F(BinningTest, HostArrayReductionBasics) {
@@ -315,9 +318,11 @@ TEST_F(BinningTest, KokkosReductionIdentityHostArrayReduction) {
 TEST_F(BinningTest, DetermineHistoReductionModeStandard) {
     // Standard mode should auto-select based on bin count.
     auto modeSmall = ParticleBinning::determineHistoReductionMode<bin_index_type>(
-        ParticleBinning::HistoReductionMode::Standard, 3);
+        ParticleBinning::HistoReductionMode::Standard, 3
+    );
     auto modeLarge = ParticleBinning::determineHistoReductionMode<bin_index_type>(
-        ParticleBinning::HistoReductionMode::Standard, 100);
+        ParticleBinning::HistoReductionMode::Standard, 100
+    );
 
     bool isHostSpace =
         std::is_same<Kokkos::DefaultExecutionSpace, Kokkos::DefaultHostExecutionSpace>::value;
@@ -338,7 +343,8 @@ TEST_F(BinningTest, DetermineHistoReductionModeForced) {
         std::is_same<Kokkos::DefaultExecutionSpace, Kokkos::DefaultHostExecutionSpace>::value;
     if (!isHostSpace) {
         auto mode = ParticleBinning::determineHistoReductionMode<bin_index_type>(
-            ParticleBinning::HistoReductionMode::TeamBased, 2);
+            ParticleBinning::HistoReductionMode::TeamBased, 2
+        );
         EXPECT_EQ(mode, ParticleBinning::HistoReductionMode::TeamBased);
     }
 }
@@ -517,7 +523,8 @@ TEST_F(BinningTest, HistogramGetBinIterationPolicy) {
             dView(0) = 5;
             dView(1) = 10;
             dView(2) = 15;
-        });
+        }
+    );
     histo.modify_device();
     histo.sync();
     histo.init();
@@ -599,7 +606,8 @@ TEST_F(BinningTest, HistogramDualViewConstruction) {
     // Set counts on device, sync to host
     auto dView = histo.getHistogram().view_device();
     Kokkos::parallel_for(
-        "fillDualHisto", 4, KOKKOS_LAMBDA(const int i) { dView(i) = (i + 1) * 10; });
+        "fillDualHisto", 4, KOKKOS_LAMBDA(const int i) { dView(i) = (i + 1) * 10; }
+    );
     histo.modify_device();
     histo.sync();
     histo.init();

@@ -71,13 +71,15 @@ protected:
 
     template <typename T>
     void addParameter(
-        const std::string& name, const std::string& type, const std::string& desc, const T& value);
+        const std::string& name, const std::string& type, const std::string& desc, const T& value
+    );
 
     void addDefaultParameters();
 
     void addColumn(
         const std::string& name, const std::string& type, const std::string& unit,
-        const std::string& desc);
+        const std::string& desc
+    );
 
     void addInfo(const std::string& mode, const size_t& no_row_counts);
 
@@ -143,7 +145,8 @@ inline void SDDSWriter::addDescription(const std::string& text, const std::strin
 
 template <typename T>
 void SDDSWriter::addParameter(
-    const std::string& name, const std::string& type, const std::string& desc, const T& value) {
+    const std::string& name, const std::string& type, const std::string& desc, const T& value
+) {
     params_m.push(std::make_tuple(name, type, desc));
     std::stringstream ss;
     ss << value;

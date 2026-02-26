@@ -32,14 +32,16 @@ FM2DMagnetoStatic::FM2DMagnetoStatic(std::string aFilename) : Fieldmap(aFilename
             parsing_passed = interpretLine<std::string, std::string>(file, tmpString, tmpString);
         } catch (GeneralClassicException& e) {
             parsing_passed = interpretLine<std::string, std::string, std::string>(
-                file, tmpString, tmpString, tmpString);
+                file, tmpString, tmpString, tmpString
+            );
 
             tmpString = Util::toUpper(tmpString);
             if (tmpString != "TRUE" && tmpString != "FALSE")
                 throw GeneralClassicException(
                     "FM2DMagnetoStatic::FM2DMagnetoStatic",
                     "The third string on the first line of 2D field "
-                    "maps has to be either TRUE or FALSE");
+                    "maps has to be either TRUE or FALSE"
+                );
 
             normalize_m = (tmpString == "TRUE");
         }
@@ -84,7 +86,8 @@ FM2DMagnetoStatic::FM2DMagnetoStatic(std::string aFilename) : Fieldmap(aFilename
             zend_m = zbegin_m - 1e-3;
             throw GeneralClassicException(
                 "FM2DMagnetoStatic::FM2DMagnetoStatic",
-                "An error occured when reading the fieldmap '" + Filename_m + "'");
+                "An error occured when reading the fieldmap '" + Filename_m + "'"
+            );
         } else {
             // conversion from cm to m
             rbegin_m *= Units::cm2m;
@@ -212,10 +215,11 @@ void FM2DMagnetoStatic::applyField(std::shared_ptr<ParticleContainer_t> pc) {
             if (Rview(i)(2) >= zbegin && Rview(i)(2) < zend
                 && sqrt(Rview(i)(0) * Rview(i)(0) + Rview(i)(1) * Rview(i)(1)) < rend) {
                 computeField(
-                    Rview(i), Bview(i), Bz_device, Br_device, hr, hz, zbegin, num_gridpr,
-                    num_gridpz);
+                    Rview(i), Bview(i), Bz_device, Br_device, hr, hz, zbegin, num_gridpr, num_gridpz
+                );
             }
-        });
+        }
+    );
 
     return;
 }
@@ -230,11 +234,13 @@ void FM2DMagnetoStatic::applyField(std::shared_ptr<ParticleContainer_t> pc) {
  * @return true if R is outside of the field map, false otherwise.
  */
 bool FM2DMagnetoStatic::getFieldstrength(
-    const Vector_t<double, 3>& R, Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B) const {
+    const Vector_t<double, 3>& R, Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B
+) const {
     if (isInside(R)) {
         computeField(
             R, B, FieldstrengthBz_m.h_view, FieldstrengthBr_m.h_view, hr_m, hz_m, zbegin_m,
-            num_gridpr_m, num_gridpz_m);
+            num_gridpr_m, num_gridpz_m
+        );
         return false;
     } else {
         return true;
@@ -253,7 +259,8 @@ bool FM2DMagnetoStatic::getFieldstrength(
  */
 bool FM2DMagnetoStatic::getFieldDerivative(
     const Vector_t<double, 3>& /*R*/, Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/,
-    const DiffDirection& /*dir*/) const {
+    const DiffDirection& /*dir*/
+) const {
     throw GeneralClassicException("FM2DMagnetoStatic::getFieldDerivative", "not implemented");
 }
 
@@ -264,7 +271,8 @@ void FM2DMagnetoStatic::getFieldDimensions(double& zBegin, double& zEnd) const {
 
 void FM2DMagnetoStatic::getFieldDimensions(
     double& /*xIni*/, double& /*xFinal*/, double& /*yIni*/, double& /*yFinal*/, double& /*zIni*/,
-    double& /*zFinal*/) const {
+    double& /*zFinal*/
+) const {
     throw GeneralClassicException("FM2DMagnetoStatic::getFieldDimensions", "not implemented");
 }
 

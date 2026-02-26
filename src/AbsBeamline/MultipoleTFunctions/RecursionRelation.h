@@ -97,7 +97,8 @@ namespace polynomial {
          *  \param sDerivative -> Number of s-derivatives
          */
         double evaluatePolynomial(
-            const double& x, const std::size_t& xDerivative, const std::size_t& sDerivative) const;
+            const double& x, const std::size_t& xDerivative, const std::size_t& sDerivative
+        ) const;
         /** Check if polynomial with x x-derivatives and s s-derivatives is zero
          *  \param xDerivative -> Number of x-derivatives
          *  \param sDerivative -> Number of s-derivatives
@@ -127,11 +128,13 @@ namespace polynomial {
         return operator_m.getSDerivatives();
     }
     inline double RecursionRelation::evaluatePolynomial(
-        const double& x, const std::size_t& xDerivative, const std::size_t& sDerivative) const {
+        const double& x, const std::size_t& xDerivative, const std::size_t& sDerivative
+    ) const {
         return operator_m.evaluatePolynomial(x, xDerivative, sDerivative);
     }
     inline bool RecursionRelation::isPolynomialZero(
-        const std::size_t& x, const std::size_t& s) const {
+        const std::size_t& x, const std::size_t& s
+    ) const {
         return operator_m.isPolynomialZero(x, s);
     }
     inline void RecursionRelation::resizeX(const std::size_t& xDerivatives) {

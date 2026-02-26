@@ -303,7 +303,8 @@ namespace matheval {
             /** @brief Evaluate a binary operator and optionally recurse its operands */
             result_type operator()(binary_op<real_t> const& tree) const {
                 return tree.op(
-                    std::visit(*this, tree.lhs->tree), std::visit(*this, tree.rhs->tree));
+                    std::visit(*this, tree.lhs->tree), std::visit(*this, tree.rhs->tree)
+                );
             }
 
             /** @brief Evaluate a unary operator and optionally recurse its operand */
@@ -477,7 +478,8 @@ namespace matheval {
                         result *= parseFactor();
                     } else if (match('/')) {
                         result = expr_ast<real_t>(
-                            binary_op<real_t>(std::divides<real_t>{}, result, parseFactor()));
+                            binary_op<real_t>(std::divides<real_t>{}, result, parseFactor())
+                        );
                     } else if (match('%')) {
                         auto fmod = static_cast<real_t (*)(real_t, real_t)>(&std::fmod);
                         result = expr_ast<real_t>(binary_op<real_t>(fmod, result, parseFactor()));
@@ -516,7 +518,8 @@ namespace matheval {
                 // Unary operators
                 if (match('-')) {
                     return expr_ast<real_t>(
-                        unary_op<real_t>(std::negate<real_t>{}, parsePrimary()));
+                        unary_op<real_t>(std::negate<real_t>{}, parsePrimary())
+                    );
                 }
                 if (match('+')) {
                     return parsePrimary();
@@ -621,7 +624,8 @@ namespace matheval {
                     {"e", std::numbers::e_v<real_t>},
                     {"epsilon", std::numeric_limits<real_t>::epsilon()},
                     {"phi", (1.0 + std::sqrt(5.0)) / 2.0},  // Golden ratio
-                    {"pi", std::numbers::pi_v<real_t>}};
+                    {"pi", std::numbers::pi_v<real_t>}
+                };
                 return constants;
             }
 
@@ -658,7 +662,8 @@ namespace matheval {
                     {"sqrt", static_cast<real_t (*)(real_t)>(&std::sqrt)},
                     {"tan", static_cast<real_t (*)(real_t)>(&std::tan)},
                     {"tanh", static_cast<real_t (*)(real_t)>(&std::tanh)},
-                    {"tgamma", static_cast<real_t (*)(real_t)>(&std::tgamma)}};
+                    {"tgamma", static_cast<real_t (*)(real_t)>(&std::tgamma)}
+                };
                 return funcs;
             }
 
@@ -668,7 +673,8 @@ namespace matheval {
                     {"atan2", static_cast<real_t (*)(real_t, real_t)>(&std::atan2)},
                     {"max", static_cast<real_t (*)(real_t, real_t)>(&std::fmax)},
                     {"min", static_cast<real_t (*)(real_t, real_t)>(&std::fmin)},
-                    {"pow", static_cast<real_t (*)(real_t, real_t)>(&std::pow)}};
+                    {"pow", static_cast<real_t (*)(real_t, real_t)>(&std::pow)}
+                };
                 return funcs;
             }
         };
@@ -741,8 +747,8 @@ namespace matheval {
      */
     template <typename real_t, typename Iterator>
     real_t parse(
-        Iterator first, Iterator last,
-        typename detail::eval_ast<real_t>::symbol_table_t const& st) {
+        Iterator first, Iterator last, typename detail::eval_ast<real_t>::symbol_table_t const& st
+    ) {
         Parser<real_t> parser;
         parser.parse(first, last);
         return parser.evaluate(st);
@@ -752,7 +758,8 @@ namespace matheval {
      * detail::eval_ast<real_t>::symbol_table_t const &st) */
     template <typename real_t>
     real_t parse(
-        std::string const& str, typename detail::eval_ast<real_t>::symbol_table_t const& st) {
+        std::string const& str, typename detail::eval_ast<real_t>::symbol_table_t const& st
+    ) {
         return parse<real_t>(str.begin(), str.end(), st);
     }
 

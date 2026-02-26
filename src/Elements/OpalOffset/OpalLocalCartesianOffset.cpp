@@ -47,19 +47,23 @@ namespace OpalOffset {
         itsAttr[END_POSITION_X] = Attributes::makeReal(
             "END_POSITION_X",
             "x component of position of end of the offset in coordinate system of the end of the "
-            "upstream element [m].");
+            "upstream element [m]."
+        );
         itsAttr[END_POSITION_Y] = Attributes::makeReal(
             "END_POSITION_Y",
             "y component of position of end of the offset in coordinate system of the end of the "
-            "upstream element [m].");
+            "upstream element [m]."
+        );
         itsAttr[END_NORMAL_X] = Attributes::makeReal(
             "END_NORMAL_X",
             "x component of normal of end of the offset in coordinate system of the end of the "
-            "upstream element [m].");
+            "upstream element [m]."
+        );
         itsAttr[END_NORMAL_Y] = Attributes::makeReal(
             "END_NORMAL_Y",
             "y component of normal of end of the offset in coordinate system of the end of the "
-            "upstream element [m].");
+            "upstream element [m]."
+        );
 
         registerOwnership();
 
@@ -77,7 +81,8 @@ namespace OpalOffset {
     void OpalLocalCartesianOffset::print(std::ostream& out) const { OpalElement::print(out); }
 
     OpalLocalCartesianOffset::OpalLocalCartesianOffset(
-        const std::string& name, OpalLocalCartesianOffset* parent)
+        const std::string& name, OpalLocalCartesianOffset* parent
+    )
         : OpalElement(name, parent) {
         setElement(new Offset(name));
     }
@@ -90,10 +95,12 @@ namespace OpalOffset {
         std::string name = getOpalName();
         Vector_t<double, 3> pos(
             Attributes::getReal(itsAttr[END_POSITION_X]),
-            Attributes::getReal(itsAttr[END_POSITION_Y]), 0.);
+            Attributes::getReal(itsAttr[END_POSITION_Y]), 0.
+        );
         Vector_t<double, 3> norm(
             Attributes::getReal(itsAttr[END_NORMAL_X]), Attributes::getReal(itsAttr[END_NORMAL_Y]),
-            0.);
+            0.
+        );
         *offset = Offset(Offset::localCartesianOffset(name, pos, norm));
         //    setElement(offset);
     }

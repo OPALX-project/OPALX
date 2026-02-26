@@ -49,13 +49,17 @@ public:
     Vector_t<double, 3> rotateFrom(const Vector_t<double, 3>& r) const;
 
     Vector_t<double, 3> transformToLocalCS(
-        const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r) const;
+        const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r
+    ) const;
     Vector_t<double, 3> transformFromLocalCS(
-        const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r) const;
+        const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r
+    ) const;
     Vector_t<double, 3> rotateToLocalCS(
-        const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r) const;
+        const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r
+    ) const;
     Vector_t<double, 3> rotateFromLocalCS(
-        const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r) const;
+        const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r
+    ) const;
     CoordinateSystemTrafo getCSTrafoLab2Local(const std::shared_ptr<Component>& comp) const;
     CoordinateSystemTrafo getCSTrafoLab2Local() const;
     CoordinateSystemTrafo getMisalignment(const std::shared_ptr<Component>& comp) const;
@@ -64,7 +68,8 @@ public:
     double getEnd(const Vector_t<double, 3>&) const;
 
     void switchElements(
-        const double&, const double&, const double& kineticEnergy, const bool& nomonitors = false);
+        const double&, const double&, const double& kineticEnergy, const bool& nomonitors = false
+    );
     void switchElementsOff();
 
     ParticleMatterInteractionHandler* getParticleMatterInteractionHandler(const unsigned int&);
@@ -73,10 +78,12 @@ public:
 
     unsigned long getFieldAt(
         const unsigned int&, const Vector_t<double, 3>&, const long&, const double&,
-        Vector_t<double, 3>&, Vector_t<double, 3>&);
+        Vector_t<double, 3>&, Vector_t<double, 3>&
+    );
     unsigned long getFieldAt(
         const Vector_t<double, 3>&, const Vector_t<double, 3>&, const double&, Vector_t<double, 3>&,
-        Vector_t<double, 3>&);
+        Vector_t<double, 3>&
+    );
 
     template <class T>
     void visit(const T&, BeamlineVisitor&, PartBunch_t*);
@@ -137,27 +144,32 @@ inline Vector_t<double, 3> OpalBeamline::rotateFrom(const Vector_t<double, 3>& r
 }
 
 inline Vector_t<double, 3> OpalBeamline::transformToLocalCS(
-    const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r) const {
+    const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r
+) const {
     return comp->getCSTrafoGlobal2Local().transformTo(r);
 }
 
 inline Vector_t<double, 3> OpalBeamline::transformFromLocalCS(
-    const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r) const {
+    const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r
+) const {
     return comp->getCSTrafoGlobal2Local().transformFrom(r);
 }
 
 inline Vector_t<double, 3> OpalBeamline::rotateToLocalCS(
-    const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r) const {
+    const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r
+) const {
     return comp->getCSTrafoGlobal2Local().rotateTo(r);
 }
 
 inline Vector_t<double, 3> OpalBeamline::rotateFromLocalCS(
-    const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r) const {
+    const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r
+) const {
     return comp->getCSTrafoGlobal2Local().rotateFrom(r);
 }
 
 inline CoordinateSystemTrafo OpalBeamline::getCSTrafoLab2Local(
-    const std::shared_ptr<Component>& comp) const {
+    const std::shared_ptr<Component>& comp
+) const {
     return comp->getCSTrafoGlobal2Local();
 }
 
@@ -166,7 +178,8 @@ inline CoordinateSystemTrafo OpalBeamline::getCSTrafoLab2Local() const {
 }
 
 inline CoordinateSystemTrafo OpalBeamline::getMisalignment(
-    const std::shared_ptr<Component>& comp) const {
+    const std::shared_ptr<Component>& comp
+) const {
     return comp->getMisalignment();
 }
 

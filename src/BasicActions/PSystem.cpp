@@ -27,7 +27,8 @@ PSystem::PSystem()
     : Action(
           1, "PSYSTEM",
           "The \"PSYSTEM\" statement sends a command string to the "
-          "operating system from all nodes.") {
+          "operating system from all nodes."
+      ) {
     itsAttr[0] = Attributes::makeString("CMD", "A system command to be executed");
 
     registerOwnership(AttributeHandler::COMMAND);

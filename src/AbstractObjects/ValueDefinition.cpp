@@ -35,37 +35,42 @@ bool ValueDefinition::shouldUpdate() const { return false; }
 bool ValueDefinition::getBool() const {
     throw OpalException(
         "ValueDefinition::getBool()",
-        "You cannot get a logical value from \"" + getOpalName() + "\".");
+        "You cannot get a logical value from \"" + getOpalName() + "\"."
+    );
 }
 
 bool ValueDefinition::getBoolComponent(int) const {
     throw OpalException(
         "ValueDefinition::getBoolComponent()",
-        "You cannot get an indexed logical value from \"" + getOpalName() + "\".");
+        "You cannot get an indexed logical value from \"" + getOpalName() + "\"."
+    );
 }
 
 double ValueDefinition::getReal() const {
     throw OpalException(
-        "ValueDefinition::getReal()",
-        "You cannot get a real value from \"" + getOpalName() + "\".");
+        "ValueDefinition::getReal()", "You cannot get a real value from \"" + getOpalName() + "\"."
+    );
 }
 
 double ValueDefinition::getRealComponent(int) const {
     throw OpalException(
         "ValueDefinition::getReal()",
-        "You cannot get an indexed real value from \"" + getOpalName() + "\".");
+        "You cannot get an indexed real value from \"" + getOpalName() + "\"."
+    );
 }
 
 std::string ValueDefinition::getString() const {
     throw OpalException(
         "ValueDefinition::getString()",
-        "You cannot get a string value from \"" + getOpalName() + "\".");
+        "You cannot get a string value from \"" + getOpalName() + "\"."
+    );
 }
 
 std::string ValueDefinition::getStringComponent(int) const {
     throw OpalException(
         "ValueDefinition::getString()",
-        "You cannot get an indexed string value from \"" + getOpalName() + "\".");
+        "You cannot get an indexed string value from \"" + getOpalName() + "\"."
+    );
 }
 
 Attribute& ValueDefinition::value() { return itsAttr[0]; }

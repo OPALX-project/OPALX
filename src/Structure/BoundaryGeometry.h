@@ -75,7 +75,8 @@ public:
 
     int partInside(
         const Vector_t<double, 3>& r, const Vector_t<double, 3>& v, const double dt,
-        Vector_t<double, 3>& intecoords, int& triId);
+        Vector_t<double, 3>& intecoords, int& triId
+    );
 
     Inform& printInfo(Inform& os) const;
 
@@ -87,7 +88,8 @@ public:
         static const std::unordered_map<std::string, Topology> stringTopology_s = {
             {"RECTANGULAR", Topology::RECTANGULAR},
             {"BOXCORNER", Topology::BOXCORNER},
-            {"ELLIPTIC", Topology::ELLIPTIC}};
+            {"ELLIPTIC", Topology::ELLIPTIC}
+        };
         Topology topo = stringTopology_s.at(Attributes::getString(itsAttr[TOPO]));
         return topo;
     }
@@ -140,7 +142,8 @@ public:
     bool findInsidePoint(void);
 
     int intersectRayBoundary(
-        const Vector_t<double, 3>& P, const Vector_t<double, 3>& v, Vector_t<double, 3>& I);
+        const Vector_t<double, 3>& P, const Vector_t<double, 3>& v, Vector_t<double, 3>& I
+    );
 
     int fastIsInside(
         const Vector_t<double, 3>& reference_pt,  // [in] a reference point
@@ -168,11 +171,13 @@ private:
     int intersectTriangleVoxel(const int triangle_id, const int i, const int j, const int k);
 
     int intersectTinyLineSegmentBoundary(
-        const Vector_t<double, 3>&, const Vector_t<double, 3>&, Vector_t<double, 3>&, int&);
+        const Vector_t<double, 3>&, const Vector_t<double, 3>&, Vector_t<double, 3>&, int&
+    );
 
     int intersectLineSegmentBoundary(
         const Vector_t<double, 3>& P0, const Vector_t<double, 3>& P1,
-        Vector_t<double, 3>& intersection_pt, int& triangle_id);
+        Vector_t<double, 3>& intersection_pt, int& triangle_id
+    );
 
     std::string h5FileName_m;  // H5hut filename
 
@@ -227,7 +232,8 @@ private:
 
     int intersectLineTriangle(
         const enum INTERSECTION_TESTS kind, const Vector_t<double, 3>& P0,
-        const Vector_t<double, 3>& P1, const int triangle_id, Vector_t<double, 3>& I);
+        const Vector_t<double, 3>& P1, const int triangle_id, Vector_t<double, 3>& I
+    );
 
     inline int mapVoxelIndices2ID(const int i, const int j, const int k);
     inline Vector_t<double, 3> mapIndices2Voxel(const int, const int, const int);

@@ -59,7 +59,8 @@ inline gsl_eigen_nonsymm_workspace* gsl_eigen_nonsymm_alloc(size_t n) {
 /// \param compute_shur Input: Schur computation flag (unused).
 /// \param w Input: workspace (unused).
 inline void gsl_eigen_nonsymm_params(
-    int /* balance */, int /* compute_shur */, gsl_eigen_nonsymm_workspace* /* w */) {
+    int /* balance */, int /* compute_shur */, gsl_eigen_nonsymm_workspace* /* w */
+) {
     // Parameters not used in simple implementation
 }
 
@@ -91,8 +92,8 @@ inline void gsl_eigen_nonsymmv_free(gsl_eigen_nonsymmv_workspace* w) { delete w;
 /// \param eval Output: vector of eigenvalues (complex).
 /// \param w Input: workspace (unused).
 /// \return Output: 0 on success, -1 on size mismatch.
-inline int gsl_eigen_nonsymm(
-    gsl_matrix* A, gsl_vector_complex* eval, gsl_eigen_nonsymm_workspace* /* w */) {
+inline int
+gsl_eigen_nonsymm(gsl_matrix* A, gsl_vector_complex* eval, gsl_eigen_nonsymm_workspace* /* w */) {
     size_t n = A->size1;
     if (A->size2 != n || eval->size != n) {
         return -1;
@@ -195,7 +196,8 @@ inline int gsl_eigen_nonsymm(
 /// \return Output: 0 on success, -1 on size mismatch.
 inline int gsl_eigen_nonsymmv(
     gsl_matrix* A, gsl_vector_complex* eval, gsl_matrix_complex* evec,
-    gsl_eigen_nonsymmv_workspace* w) {
+    gsl_eigen_nonsymmv_workspace* w
+) {
     // First compute eigenvalues
     int err = gsl_eigen_nonsymm(A, eval, reinterpret_cast<gsl_eigen_nonsymm_workspace*>(w));
     if (err != 0)

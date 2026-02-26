@@ -8,7 +8,8 @@
 
 extern Inform* gmsg;
 IpplInfoWrapper::IpplInfoWrapper(
-    const std::string& inputFileName, int infoLevel, int warnLevel, MPI_Comm /*comm*/) {
+    const std::string& inputFileName, int infoLevel, int warnLevel, MPI_Comm /*comm*/
+) {
     std::string infoLevelStr = std::to_string(infoLevel);
     std::string warnLevelStr = std::to_string(warnLevel);
 

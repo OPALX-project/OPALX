@@ -46,18 +46,21 @@ OpalSplineTimeDependence::OpalSplineTimeDependence()
         "Order of the lookup - either 1 for linear interpolation, "
         "or 3 for cubic interpolation with quadratic smoothing. "
         "Other values make an error.",
-        1);
+        1
+    );
 
     itsAttr[TIMES] = Attributes::makeRealArray(
         "TIMES",
         "Array of real times in ns. There must be at least \"ORDER\"+1 "
         "elements in the array and they must be strictly monotically "
-        "increasing");
+        "increasing"
+    );
 
     itsAttr[VALUES] = Attributes::makeRealArray(
         "VALUES",
         "Array of real values. The length of \"VALUES\" must be the "
-        "same as the length of \"TIMES\".");
+        "same as the length of \"TIMES\"."
+    );
 
     registerOwnership();
 }
@@ -69,7 +72,8 @@ OpalSplineTimeDependence* OpalSplineTimeDependence::clone(const std::string& nam
 void OpalSplineTimeDependence::print(std::ostream& out) const { OpalElement::print(out); }
 
 OpalSplineTimeDependence::OpalSplineTimeDependence(
-    const std::string& name, OpalSplineTimeDependence* parent)
+    const std::string& name, OpalSplineTimeDependence* parent
+)
     : OpalElement(name, parent) {}
 
 void OpalSplineTimeDependence::update() {
@@ -77,8 +81,8 @@ void OpalSplineTimeDependence::update() {
     if (order != SplineTimeDependence::LinearInterpolation
         && order != SplineTimeDependence::CubicInterpolation) {
         throw OpalException(
-            "OpalSplineTimeDependence::update",
-            "SPLINE_TIME_DEPENDENCE \"ORDER\" should be 1 or 3.");
+            "OpalSplineTimeDependence::update", "SPLINE_TIME_DEPENDENCE \"ORDER\" should be 1 or 3."
+        );
     }
     // Note we set array defaults as it seems that the default object must be valid
     std::vector<double> times;

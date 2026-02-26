@@ -104,11 +104,13 @@ protected:
     //  (RBend, SBend, Quadrupole, Sextupole, Octupole, Multipole).
     static void printMultipoleStrength(
         std::ostream& os, int order, int& len, const std::string& sName, const std::string& tName,
-        const Attribute& length, const Attribute& vNorm, const Attribute& vSkew);
+        const Attribute& length, const Attribute& vNorm, const Attribute& vSkew
+    );
 
     /// Print an attribute with a OPAL-8 name (as an expression).
     static void printAttribute(
-        std::ostream& os, const std::string& name, const std::string& image, int& len);
+        std::ostream& os, const std::string& name, const std::string& image, int& len
+    );
 
     /// Print an attribute with a OPAL-8 name (as a constant).
     static void printAttribute(std::ostream& os, const std::string& name, double value, int& len);

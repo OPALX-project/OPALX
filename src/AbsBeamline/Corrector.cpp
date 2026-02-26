@@ -53,7 +53,8 @@ Corrector::~Corrector() {}
 void Corrector::accept(BeamlineVisitor& visitor) const { visitor.visitCorrector(*this); }
 
 bool Corrector::apply(
-    const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
+    const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B
+) {
     Vector_t<double, 3>& R = RefPartBunch_m->R[i];
     Vector_t<double, 3>& P = RefPartBunch_m->P[i];
 
@@ -62,7 +63,8 @@ bool Corrector::apply(
 
 bool Corrector::apply(
     const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& /*t*/,
-    Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B) {
+    Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B
+) {
     if (R(2) >= 0.0 && R(2) < getElementLength()) {
         if (!isInsideTransverse(R))
             return getFlagDeleteOnTransverseExit();
@@ -99,12 +101,14 @@ void Corrector::goOnline(const double&) {
             "Corrector::goOnline",
             "length of corrector, L= " + std::to_string(pathLength)
                 + ", shorter than distance covered during one time step, dS= "
-                + std::to_string(minLength));
+                + std::to_string(minLength)
+        );
     }
 
     if (!kickFieldSet_m) {
         const double momentum = std::sqrt(
-            std::pow(designEnergy_m, 2.0) + 2.0 * designEnergy_m * RefPartBunch_m->getM());
+            std::pow(designEnergy_m, 2.0) + 2.0 * designEnergy_m * RefPartBunch_m->getM()
+        );
         const double magnitude = momentum / (Physics::c * pathLength);
         kickField_m =
             magnitude * RefPartBunch_m->getQ() * Vector_t<double, 3>(kickY_m, -kickX_m, 0.0);
@@ -122,7 +126,8 @@ void Corrector::setDesignEnergy(const double& ekin, bool changeable) {
         if (!kickFieldSet_m) {
             const double pathLength = getGeometry().getElementLength();
             const double momentum   = std::sqrt(
-                std::pow(designEnergy_m, 2.0) + 2.0 * designEnergy_m * RefPartBunch_m->getM());
+                std::pow(designEnergy_m, 2.0) + 2.0 * designEnergy_m * RefPartBunch_m->getM()
+            );
             const double magnitude = momentum / (Physics::c * pathLength);
             kickField_m =
                 magnitude * RefPartBunch_m->getQ() * Vector_t<double, 3>(kickY_m, -kickX_m, 0.0);

@@ -16,11 +16,13 @@ private:
     bool isPointOnLine(unsigned int i, unsigned int j, const Vector_t<double, 3>& pt) const;
     bool isPointRightOfLine(unsigned int i, unsigned int j, const Vector_t<double, 3>& pt) const;
     bool lineSegmentTouchesOrCrossesLine(
-        unsigned int i, unsigned int j, unsigned int k, unsigned int l) const;
+        unsigned int i, unsigned int j, unsigned int k, unsigned int l
+    ) const;
     bool isPotentialEdgeIntersected(unsigned int i) const;
     double dotProduct(unsigned int i, unsigned int j, const Vector_t<double, 3>& pt) const;
     bool isPointInsideCone(
-        unsigned int i, unsigned int j, unsigned int jPlusOne, unsigned int jMinusOne) const;
+        unsigned int i, unsigned int j, unsigned int jPlusOne, unsigned int jMinusOne
+    ) const;
     bool isEar(unsigned int i) const;
     std::vector<unsigned int> findAllEars() const;
     double computeMinimumAngle(unsigned int i) const;

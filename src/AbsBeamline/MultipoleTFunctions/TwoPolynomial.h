@@ -110,7 +110,8 @@ namespace polynomial {
          *  \param poly -> Polynomial to be multiplied with current polynomial
          */
         void convert2Dto1Darray(
-            double* vec1, double* vec2, const vectorLengths& nn, const TwoPolynomial& poly) const;
+            double* vec1, double* vec2, const vectorLengths& nn, const TwoPolynomial& poly
+        ) const;
         /** Perform a 2D convolution on two 1D indexed arrays using FFT \n
          *  First a 2D FFT is done by doing 1D FFT on each row and and column \n
          *  Convolution in Fourier space is a simple product \n
@@ -121,7 +122,8 @@ namespace polynomial {
          *  \param ny -> Size of second dimension of resulting array
          */
         void convolution(
-            double* vec1, double* vec2, const std::size_t& nx, const std::size_t& ny) const;
+            double* vec1, double* vec2, const std::size_t& nx, const std::size_t& ny
+        ) const;
         /** Convert 1D double indexed C-array to 2D vector<int> array by rounding
          *  \param vec1 -> Pointer to resulting 1D array
          *  \param nn -> Vector sizes
@@ -144,7 +146,8 @@ namespace polynomial {
          *  \param Sorder -> Power of s
          */
         void setCoefficient(
-            const int& coefficient, const std::size_t& Xorder, const std::size_t& Sorder);
+            const int& coefficient, const std::size_t& Xorder, const std::size_t& Sorder
+        );
         /** Returns highest power of x */
         std::size_t getMaxXorder() const;
         /** Returns highest power of s */

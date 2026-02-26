@@ -66,23 +66,26 @@ void DataSink::dumpH5(PartBunch_t* beam, Vector_t<double, 3> FDext[]) const {
 int DataSink::dumpH5(
     PartBunch_t* beam, Vector_t<double, 3> FDext[], double meanEnergy, double refPr, double refPt,
     double refPz, double refR, double refTheta, double refZ, double azimuth, double elevation,
-    bool local) const {
+    bool local
+) const {
     if (!Options::enableHDF5)
         return -1;
 
     return h5Writer_m->writePhaseSpace(
         beam, FDext, meanEnergy, refPr, refPt, refPz, refR, refTheta, refZ, azimuth, elevation,
-        local);
+        local
+    );
 }
 
 void DataSink::dumpSDDS(
-    PartBunch_t* beam, Vector_t<double, 3> FDext[], const double& azimuth) const {
+    PartBunch_t* beam, Vector_t<double, 3> FDext[], const double& azimuth
+) const {
     this->dumpSDDS(beam, FDext, losses_t(), azimuth);
 }
 
 void DataSink::dumpSDDS(
-    PartBunch_t* beam, Vector_t<double, 3> FDext[], const losses_t& losses,
-    const double& azimuth) const {
+    PartBunch_t* beam, Vector_t<double, 3> FDext[], const losses_t& losses, const double& azimuth
+) const {
     beam->calcBeamParameters();
 
     size_t npOutside = 0;
@@ -123,7 +126,8 @@ void DataSink::writeGeomToVtk(BoundaryGeometry& bg, std::string fn) {
 
 void DataSink::writeImpactStatistics(
     const PartBunch_t* beam, long long& step, size_t& impact, double& sey_num,
-    size_t numberOfFieldEmittedParticles, bool nEmissionMode, std::string fn) {
+    size_t numberOfFieldEmittedParticles, bool nEmissionMode, std::string fn
+) {
     double charge  = 0.0;
     size_t Npart   = 0;
     double Npart_d = 0.0;

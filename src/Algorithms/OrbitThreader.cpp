@@ -43,7 +43,8 @@ extern Inform* gmsg;
 
 OrbitThreader::OrbitThreader(
     const PartData& ref, const Vector_t<double, 3>& r, const Vector_t<double, 3>& p, double s,
-    double maxDiffZBunch, double t, double dt, StepSizeConfig stepSizes, OpalBeamline& bl)
+    double maxDiffZBunch, double t, double dt, StepSizeConfig stepSizes, OpalBeamline& bl
+)
     : r_m(r),
       p_m(p),
       pathLength_m(s),
@@ -58,7 +59,8 @@ OrbitThreader::OrbitThreader(
     auto opal = OpalData::getInstance();
     if (ippl::Comm->rank() == 0 && !opal->isOptimizerRun()) {
         std::string fileName = Util::combineFilePath(
-            {opal->getAuxiliaryOutputDirectory(), opal->getInputBasename() + "_DesignPath.dat"});
+            {opal->getAuxiliaryOutputDirectory(), opal->getInputBasename() + "_DesignPath.dat"}
+        );
         if (opal->getOpenMode() == OpalData::OpenMode::WRITE
             || !std::filesystem::exists(fileName)) {
             logger_m.open(fileName);
@@ -177,11 +179,13 @@ void OrbitThreader::execute() {
         intersection.clear();
         std::set_intersection(
             currentSet.begin(), currentSet.end(), elementSet.begin(), elementSet.end(),
-            std::inserter(intersection, intersection.begin()));
+            std::inserter(intersection, intersection.begin())
+        );
     } while (errorFlag_m != EOL && stepRange_m.isInside(currentStep_m)
              && !(
                  pathLengthRange_m.isOutside(pathLength_m) && intersection.empty()
-                 && !(elementSet.empty() || currentSet.empty())));
+                 && !(elementSet.empty() || currentSet.empty())
+             ));
 
     imap_m.tidyUp(zstop_m);
     *gmsg << level1 << "\n" << imap_m << endl;
@@ -211,7 +215,8 @@ void OrbitThreader::integrate(const IndexMap::value_t& activeSet, double /*maxDr
             Vector_t<double, 3> localE(0.0), localB(0.0);
 
             if ((*it)->applyToReferenceParticle(
-                    localR, localP, time_m + 0.5 * dt_m, localE, localB)) {
+                    localR, localP, time_m + 0.5 * dt_m, localE, localB
+                )) {
                 errorFlag_m = HITMATERIAL;
                 return;
             }
@@ -284,7 +289,8 @@ bool OrbitThreader::containsCavity(const IndexMap::value_t& activeSet) {
 }
 
 void OrbitThreader::autophaseCavities(
-    const IndexMap::value_t& activeSet, const std::set<std::string>& visitedElements) {
+    const IndexMap::value_t& activeSet, const std::set<std::string>& visitedElements
+) {
     if (Options::autoPhase == 0)
         return;
 
@@ -350,7 +356,8 @@ void OrbitThreader::trackBack() {
 
 void OrbitThreader::registerElement(
     const IndexMap::value_t& elementSet, double start, const Vector_t<double, 3>& R,
-    const Vector_t<double, 3>& P) {
+    const Vector_t<double, 3>& P
+) {
     IndexMap::value_t::const_iterator it        = elementSet.begin();
     const IndexMap::value_t::const_iterator end = elementSet.end();
 
@@ -419,7 +426,8 @@ void OrbitThreader::processElementRegister() {
 }
 
 void OrbitThreader::setDesignEnergy(
-    FieldList& allElements, const std::set<std::string>& visitedElements) {
+    FieldList& allElements, const std::set<std::string>& visitedElements
+) {
     double kineticEnergyeV = reference_m.getM() * (sqrt(dot(p_m, p_m) + 1.0) - 1.0);
 
     FieldList::iterator it        = allElements.begin();
@@ -429,7 +437,8 @@ void OrbitThreader::setDesignEnergy(
         if (visitedElements.find(element->getName()) == visitedElements.end()
             && !(
                 element->getType() == ElementType::RFCAVITY
-                || element->getType() == ElementType::TRAVELINGWAVE)) {
+                || element->getType() == ElementType::TRAVELINGWAVE
+            )) {
             element->setDesignEnergy(kineticEnergyeV);
         }
     }
@@ -460,7 +469,8 @@ void OrbitThreader::updateBoundingBoxWithCurrentPosition() {
 
 double OrbitThreader::computeDriftLengthToBoundingBox(
     const std::set<std::shared_ptr<Component>>& elements, const Vector_t<double, 3>& position,
-    const Vector_t<double, 3>& direction) const {
+    const Vector_t<double, 3>& direction
+) const {
     if (elements.empty()
         || (elements.size() == 1 && (*elements.begin())->getType() == ElementType::DRIFT)) {
         std::optional<Vector_t<double, 3>> intersectionPoint =

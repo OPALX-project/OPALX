@@ -44,7 +44,8 @@ namespace interpolation {
     }
 
     ThreeDGrid::ThreeDGrid(
-        int xSize, const double* x, int ySize, const double* y, int zSize, const double* z)
+        int xSize, const double* x, int ySize, const double* y, int zSize, const double* z
+    )
         : x_m(x, x + xSize),
           y_m(y, y + ySize),
           z_m(z, z + zSize),
@@ -56,7 +57,8 @@ namespace interpolation {
         setConstantSpacing();
         if (xSize_m < 2 || ySize_m < 2 || zSize_m < 2)
             throw(
-                LogicalError("ThreeDGrid::ThreeDGrid(...)", "3D Grid must be at least 2x2x2 grid"));
+                LogicalError("ThreeDGrid::ThreeDGrid(...)", "3D Grid must be at least 2x2x2 grid")
+            );
     }
 
     ThreeDGrid::ThreeDGrid(std::vector<double> x, std::vector<double> y, std::vector<double> z)
@@ -71,12 +73,14 @@ namespace interpolation {
         setConstantSpacing();
         if (xSize_m < 2 || ySize_m < 2 || zSize_m < 2)
             throw(
-                LogicalError("ThreeDGrid::ThreeDGrid(...)", "3D Grid must be at least 2x2x2 grid"));
+                LogicalError("ThreeDGrid::ThreeDGrid(...)", "3D Grid must be at least 2x2x2 grid")
+            );
     }
 
     ThreeDGrid::ThreeDGrid(
         double dX, double dY, double dZ, double minX, double minY, double minZ, int numberOfXCoords,
-        int numberOfYCoords, int numberOfZCoords)
+        int numberOfYCoords, int numberOfZCoords
+    )
         : x_m(numberOfXCoords),
           y_m(numberOfYCoords),
           z_m(numberOfZCoords),
@@ -235,9 +239,8 @@ namespace interpolation {
             return true;
         else if (lhs.state_m[0] == rhs.state_m[0] && lhs.state_m[1] > rhs.state_m[1])
             return true;
-        else if (
-            lhs.state_m[0] == rhs.state_m[0] && lhs.state_m[1] == rhs.state_m[1]
-            && lhs.state_m[2] > rhs.state_m[2])
+        else if (lhs.state_m[0] == rhs.state_m[0] && lhs.state_m[1] == rhs.state_m[1]
+                 && lhs.state_m[2] > rhs.state_m[2])
             return true;
         return false;
     }

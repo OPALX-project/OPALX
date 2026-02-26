@@ -48,7 +48,8 @@ namespace interpolation {
          *  \param coefficient value of the coefficient
          */
         PolynomialCoefficient(
-            std::vector<int> inVariablesByVector, int outVariable, double coefficient)
+            std::vector<int> inVariablesByVector, int outVariable, double coefficient
+        )
             : _inVarByVec(inVariablesByVector), _outVar(outVariable), _coefficient(coefficient) {}
 
         /** Copy constructor */

@@ -82,7 +82,8 @@ bool Solenoid::apply() {
  * @returns true if particle is lost, false otherwise
  */
 bool Solenoid::apply(
-    const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
+    const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B
+) {
     std::shared_ptr<ParticleContainer_t> pc = RefPartBunch_m->getParticleContainer();
     auto Rview                              = pc->R.getView();
     auto Pview                              = pc->P.getView();
@@ -105,7 +106,8 @@ bool Solenoid::apply(
  */
 bool Solenoid::apply(
     const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
-    Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B) {
+    Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B
+) {
     if (R(2) >= startField_m && R(2) < startField_m + getElementLength()) {
         Vector_t<double, 3> tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
 
@@ -133,7 +135,8 @@ bool Solenoid::apply(
  */
 bool Solenoid::applyToReferenceParticle(
     const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
-    Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B) {
+    Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B
+) {
     if (R(2) >= startField_m && R(2) < startField_m + getElementLength()) {
         Vector_t<double, 3> tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
 

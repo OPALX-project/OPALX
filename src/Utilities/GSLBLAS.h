@@ -43,7 +43,8 @@ enum CBLAS_TRANSPOSE { CblasNoTrans = 111, CblasTrans = 112, CblasConjTrans = 11
 /// \param C Input/Output: accumulation target updated in-place.
 inline void gsl_blas_dgemm(
     CBLAS_TRANSPOSE TransA, CBLAS_TRANSPOSE TransB, double alpha, const gsl_matrix* A,
-    const gsl_matrix* B, double beta, gsl_matrix* C) {
+    const gsl_matrix* B, double beta, gsl_matrix* C
+) {
     size_t m = (TransA == CblasNoTrans) ? A->size1 : A->size2;
     size_t n = (TransB == CblasNoTrans) ? B->size2 : B->size1;
     size_t k = (TransA == CblasNoTrans) ? A->size2 : A->size1;
@@ -89,7 +90,8 @@ inline void gsl_blas_dgemm(
 /// \param C Input/Output: accumulation target updated in-place.
 inline void gsl_blas_zgemm(
     CBLAS_TRANSPOSE TransA, CBLAS_TRANSPOSE TransB, gsl_complex alpha, const gsl_matrix_complex* A,
-    const gsl_matrix_complex* B, gsl_complex beta, gsl_matrix_complex* C) {
+    const gsl_matrix_complex* B, gsl_complex beta, gsl_matrix_complex* C
+) {
     size_t m = (TransA == CblasNoTrans) ? A->size1 : A->size2;
     size_t n = (TransB == CblasNoTrans) ? B->size2 : B->size1;
     size_t k = (TransA == CblasNoTrans) ? A->size2 : A->size1;
@@ -142,7 +144,8 @@ inline void gsl_blas_zgemm(
 /// \param y Input/Output: result vector updated in-place.
 inline void gsl_blas_dgemv(
     CBLAS_TRANSPOSE TransA, double alpha, const gsl_matrix* A, const gsl_vector* x, double beta,
-    gsl_vector* y) {
+    gsl_vector* y
+) {
     size_t m = A->size1;
     size_t n = A->size2;
 
@@ -192,7 +195,8 @@ inline void gsl_blas_dgemv(
 /// \param y Input/Output: result vector updated in-place.
 inline void gsl_blas_zgemv(
     CBLAS_TRANSPOSE TransA, gsl_complex alpha, const gsl_matrix_complex* A,
-    const gsl_vector_complex* x, gsl_complex beta, gsl_vector_complex* y) {
+    const gsl_vector_complex* x, gsl_complex beta, gsl_vector_complex* y
+) {
     size_t m = A->size1;
     size_t n = A->size2;
 
@@ -209,8 +213,9 @@ inline void gsl_blas_zgemv(
             gsl_complex sum = gsl_complex(0.0, 0.0);
             for (size_t j = 0; j < n; ++j) {
                 sum = gsl_complex_add(
-                    sum, gsl_complex_mul(
-                             *gsl_matrix_complex_ptr(A, i, j), *gsl_vector_complex_ptr(x, j)));
+                    sum,
+                    gsl_complex_mul(*gsl_matrix_complex_ptr(A, i, j), *gsl_vector_complex_ptr(x, j))
+                );
             }
             *gsl_vector_complex_ptr(y, i) =
                 gsl_complex_add(*gsl_vector_complex_ptr(y, i), gsl_complex_mul(alpha, sum));

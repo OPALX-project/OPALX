@@ -101,7 +101,8 @@ TEST(TestPolynomialTimeDependence, UserInterfacePN) {
     EXPECT_NO_THROW(ui.update());
     // Check the values
     auto* myDependency = dynamic_cast<PolynomialTimeDependence*>(
-        AbstractTimeDependence::getTimeDependence("POLYNOMIAL_TIME_DEPENDENCE").get());
+        AbstractTimeDependence::getTimeDependence("POLYNOMIAL_TIME_DEPENDENCE").get()
+    );
     EXPECT_TRUE(myDependency);
     EXPECT_NEAR(myDependency->getCoefficients()[0], 2, 1e-10);
     EXPECT_NEAR(myDependency->getCoefficients()[1], 3, 1e-10);
@@ -115,12 +116,14 @@ TEST(TestPolynomialTimeDependence, UserInterfaceCoeffs) {
     OpalPolynomialTimeDependence ui;
     // Set the attributes
     Attributes::setRealArray(
-        ui.itsAttr[OpalPolynomialTimeDependence::COEFFICIENTS], {2, 3, 4, 5, 6});
+        ui.itsAttr[OpalPolynomialTimeDependence::COEFFICIENTS], {2, 3, 4, 5, 6}
+    );
     // Update the object
     EXPECT_NO_THROW(ui.update());
     // Check the values
     auto* myDependency = dynamic_cast<PolynomialTimeDependence*>(
-        AbstractTimeDependence::getTimeDependence("POLYNOMIAL_TIME_DEPENDENCE").get());
+        AbstractTimeDependence::getTimeDependence("POLYNOMIAL_TIME_DEPENDENCE").get()
+    );
     EXPECT_TRUE(myDependency);
     EXPECT_NEAR(myDependency->getCoefficients()[0], 2, 1e-10);
     EXPECT_NEAR(myDependency->getCoefficients()[1], 3, 1e-10);
@@ -135,7 +138,8 @@ TEST(TestPolynomialTimeDependence, UserInterfaceBoth) {
     OpalPolynomialTimeDependence ui;
     // Set the attributes
     Attributes::setRealArray(
-        ui.itsAttr[OpalPolynomialTimeDependence::COEFFICIENTS], {2, 3, 4, 5, 6});
+        ui.itsAttr[OpalPolynomialTimeDependence::COEFFICIENTS], {2, 3, 4, 5, 6}
+    );
     Attributes::setReal(ui.itsAttr[OpalPolynomialTimeDependence::P0], 2);
     Attributes::setReal(ui.itsAttr[OpalPolynomialTimeDependence::P1], 3);
     Attributes::setReal(ui.itsAttr[OpalPolynomialTimeDependence::P2], 4);

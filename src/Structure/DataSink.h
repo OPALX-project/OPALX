@@ -62,13 +62,15 @@ public:
     int dumpH5(
         PartBunch_t* beam, Vector_t<double, 3> FDext[], double meanEnergy, double refPr,
         double refPt, double refPz, double refR, double refTheta, double refZ, double azimuth,
-        double elevation, bool local) const;
+        double elevation, bool local
+    ) const;
 
     void dumpSDDS(PartBunch_t* beam, Vector_t<double, 3> FDext[], const double& azimuth = -1) const;
 
     void dumpSDDS(
         PartBunch_t* beam, Vector_t<double, 3> FDext[], const losses_t& losses = losses_t(),
-        const double& azimuth = -1) const;
+        const double& azimuth = -1
+    ) const;
 
     /** \brief Write cavity information from  H5 file
      */
@@ -93,7 +95,8 @@ public:
      */
     void writeImpactStatistics(
         const PartBunch_t* beam, long long int& step, size_t& impact, double& sey_num,
-        size_t numberOfFieldEmittedParticles, bool nEmissionMode, std::string fn);
+        size_t numberOfFieldEmittedParticles, bool nEmissionMode, std::string fn
+    );
 
 private:
     DataSink(const DataSink& ds)         = delete;

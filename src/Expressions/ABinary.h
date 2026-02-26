@@ -77,7 +77,8 @@ namespace Expressions {
 
     template <class T, class U>
     inline ABinary<T, U>::ABinary(
-        const TFunction2<T, U>& function, PtrToArray<U> left, PtrToArray<U> right)
+        const TFunction2<T, U>& function, PtrToArray<U> left, PtrToArray<U> right
+    )
         : AList<T>(), fun(function), lft(left), rgt(right) {}
 
     template <class T, class U>

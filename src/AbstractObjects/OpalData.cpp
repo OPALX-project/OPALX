@@ -393,7 +393,8 @@ void OpalData::create(Object* newObject) {
 
     if (oldObject != nullptr) {
         throw OpalException(
-            "OpalData::create()", "You cannot replace the object \"" + name + "\".");
+            "OpalData::create()", "You cannot replace the object \"" + name + "\"."
+        );
     } else {
         p->mainDirectory.insert(name, newObject);
     }
@@ -408,7 +409,8 @@ void OpalData::define(Object* newObject) {
         // Attempt to replace an object.
         if (oldObject->isBuiltin() || !oldObject->canReplaceBy(newObject)) {
             throw OpalException(
-                "OpalData::define()", "You cannot replace the object \"" + name + "\".");
+                "OpalData::define()", "You cannot replace the object \"" + name + "\"."
+            );
         } else {
             if (Options::info) {
                 *ippl::Info << "Replacing the object \"" << name << "\"." << endl;
@@ -586,7 +588,8 @@ void OpalData::checkAndAddOutputFileName(const std::string& outfn) {
     } else if (!hasBunchAllocated()) {
         throw OpalException(
             "OpalData::checkAndAddOutputFileName",
-            "Duplicate file name for output, '" + outfn + "', detected");
+            "Duplicate file name for output, '" + outfn + "', detected"
+        );
     }
 }
 

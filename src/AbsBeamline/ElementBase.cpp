@@ -81,7 +81,8 @@ const std::map<ElementType, std::string> ElementBase::elementTypeToString_s = {
     {ElementType::SOURCE, "SOURCE"},
     {ElementType::SOLENOID, "SOLENOID"},
     {ElementType::PROBE, "Probe"},
-    {ElementType::VACUUM, "Vacuum"}};
+    {ElementType::VACUUM, "Vacuum"}
+};
 
 ElementBase::ElementBase() : ElementBase("") {}
 
@@ -245,8 +246,8 @@ bool ElementBase::isInsideTransverse(const Vector_t<double, 3>& r) const {
             return (std::abs(r[0]) < factor * xLimit && std::abs(r[1]) < factor * yLimit);
         case ApertureType::CONIC_ELLIPTICAL:
             return (
-                std::pow(r[0] / (factor * xLimit), 2) + std::pow(r[1] / (factor * yLimit), 2)
-                < 1.0);
+                std::pow(r[0] / (factor * xLimit), 2) + std::pow(r[1] / (factor * yLimit), 2) < 1.0
+            );
         default:
             return false;
     }

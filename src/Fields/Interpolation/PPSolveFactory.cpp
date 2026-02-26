@@ -61,7 +61,8 @@ namespace interpolation {
 
     PPSolveFactory::PPSolveFactory(
         Mesh* points, std::vector<std::vector<double> > values, int polyPatchOrder,
-        int smoothingOrder)
+        int smoothingOrder
+    )
         : polyPatchOrder_m(polyPatchOrder),
           smoothingOrder_m(smoothingOrder),
           polyDim_m(0),
@@ -87,7 +88,8 @@ namespace interpolation {
         }
         if (smoothingOrder < polyPatchOrder) {
             throw GeneralClassicException(
-                "PPSolveFactory::Solve", "Polynomial order must be <= smoothing order in Solve");
+                "PPSolveFactory::Solve", "Polynomial order must be <= smoothing order in Solve"
+            );
         }
         polyMesh_m = points->dual();
         if (polyMesh_m == nullptr)
@@ -295,7 +297,8 @@ namespace interpolation {
         getDerivPoints();
         SolveFactory solver(
             smoothingOrder_m, polyMesh_m->getPositionDimension(), polyDim_m, thisPoints_m,
-            derivPoints_m, derivIndices_m);
+            derivPoints_m, derivIndices_m
+        );
         int total            = (polyMesh_m->end() - 1).toInteger();
         double oldPercentage = 0.;
         for (Mesh::Iterator it = polyMesh_m->end() - 1; it >= polyMesh_m->begin(); --it) {
@@ -315,7 +318,8 @@ namespace interpolation {
 
     void PPSolveFactory::nearbyPointsRecursive(
         std::vector<int> check, size_t checkIndex, size_t polyPower,
-        std::vector<std::vector<int> >& nearbyPoints) {
+        std::vector<std::vector<int> >& nearbyPoints
+    ) {
         check[checkIndex] = polyPower;
         nearbyPoints.push_back(check);
         if (checkIndex + 1 == check.size())
@@ -329,14 +333,17 @@ namespace interpolation {
     }
 
     std::vector<std::vector<int> > PPSolveFactory::getNearbyPointsSquares(
-        int pointDim, int polyOrderLower, int polyOrderUpper) {
+        int pointDim, int polyOrderLower, int polyOrderUpper
+    ) {
         if (pointDim < 1)
             throw(GeneralClassicException(
-                "PPSolveFactory::getNearbyPointsSquares", "Point dimension must be > 0"));
+                "PPSolveFactory::getNearbyPointsSquares", "Point dimension must be > 0"
+            ));
         if (polyOrderLower > polyOrderUpper)
             throw(GeneralClassicException(
                 "PPSolveFactory::getNearbyPointsSquares",
-                "Polynomial lower bound must be <= polynomial upper bound"));
+                "Polynomial lower bound must be <= polynomial upper bound"
+            ));
         // polyOrder -1 (or less) means no terms
         if (polyOrderUpper == polyOrderLower || polyOrderUpper < 0)
             return std::vector<std::vector<int> >();
