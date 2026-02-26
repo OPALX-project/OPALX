@@ -161,7 +161,8 @@ public:
     inline void disableDebug(enum DebugFlags flags) { debugFlags_m &= ~flags; }
 
 private:
-    bool isInside(const Vector_t<double, 3>& P  // [in] point to test
+    bool isInside(
+        const Vector_t<double, 3>& P  // [in] point to test
     );
 
     int intersectTriangleVoxel(const int triangle_id, const int i, const int j, const int k);

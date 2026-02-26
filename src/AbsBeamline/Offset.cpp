@@ -216,8 +216,9 @@ Offset Offset::localCylindricalOffset(
     std::string name, double phi_in, double phi_out, double displacement) {
     Offset off(name);
     displacement *= lengthUnits_m;
-    off.setEndPosition(Vector_t<double, 3>(
-        {std::cos(phi_in) * displacement, std::sin(phi_in) * displacement, 0.}));
+    off.setEndPosition(
+        Vector_t<double, 3>(
+            {std::cos(phi_in) * displacement, std::sin(phi_in) * displacement, 0.}));
     off.setEndDirection(
         Vector_t<double, 3>({std::cos(phi_in + phi_out), std::sin(phi_in + phi_out), 0.}));
     off.setIsLocal(true);

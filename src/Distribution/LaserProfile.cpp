@@ -332,8 +332,9 @@ void LaserProfile::printInfo() {
 }
 
 void LaserProfile::saveData(const std::string& fname, unsigned short* image) {
-    std::ofstream out(Util::combineFilePath(
-        {OpalData::getInstance()->getAuxiliaryOutputDirectory(), fname + ".pgm"}));
+    std::ofstream out(
+        Util::combineFilePath(
+            {OpalData::getInstance()->getAuxiliaryOutputDirectory(), fname + ".pgm"}));
 
     out << "P2" << std::endl;
     out << sizeX_m << " " << sizeY_m << std::endl;

@@ -1181,7 +1181,8 @@ int BoundaryGeometry::intersectLineTriangle(
 
 static inline double magnitude(const Vector_t<double, 3>& v) { return std::sqrt(dot(v, v)); }
 
-bool BoundaryGeometry::isInside(const Vector_t<double, 3>& P  // [in] pt to test
+bool BoundaryGeometry::isInside(
+    const Vector_t<double, 3>& P  // [in] pt to test
 ) {
     /*
       select a "close" reference pt outside the bounding box
@@ -1956,8 +1957,10 @@ edge_found:
     for (i = 0; i < num_points; i++) {
         h5_float64_t P[3];
         H5FedGetVertexCoordsByIndex(m, i, P);
-        Points_m.push_back(Vector_t<double, 3>(
-            P[0] * xyzscale * xscale, P[1] * xyzscale * yscale, P[2] * xyzscale * zscale + zshift));
+        Points_m.push_back(
+            Vector_t<double, 3>(
+                P[0] * xyzscale * xscale, P[1] * xyzscale * yscale,
+                P[2] * xyzscale * zscale + zshift));
     }
     H5FedCloseMesh(m);
     H5CloseFile(f);

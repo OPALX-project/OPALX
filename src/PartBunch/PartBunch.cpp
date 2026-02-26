@@ -65,11 +65,13 @@ PartBunch<T, Dim>::PartBunch(
     rmin_m = origin_m;
     rmax_m = origin_m + length;
 
-    this->setFieldContainer(std::make_shared<FieldContainer_t>(
-        hr_m, rmin_m, rmax_m, decomp_m, domain_m, origin_m, isAllPeriodic));
+    this->setFieldContainer(
+        std::make_shared<FieldContainer_t>(
+            hr_m, rmin_m, rmax_m, decomp_m, domain_m, origin_m, isAllPeriodic));
 
-    this->setParticleContainer(std::make_shared<ParticleContainer_t>(
-        this->fcontainer_m->getMesh(), this->fcontainer_m->getFL()));
+    this->setParticleContainer(
+        std::make_shared<ParticleContainer_t>(
+            this->fcontainer_m->getMesh(), this->fcontainer_m->getFL()));
 
     IpplTimings::stopTimer(gatherInfoPartBunch);
 
@@ -150,17 +152,19 @@ void PartBunch<T, Dim>::setSolver() {
 
     this->fcontainer_m->initializeFields(this->solver_m);
 
-    this->setFieldSolver(std::make_shared<FieldSolver_t>(
-        this->solver_m, &this->fcontainer_m->getRho(), &this->fcontainer_m->getE(),
-        &this->fcontainer_m->getPhi(), this->getBCHandler()));
+    this->setFieldSolver(
+        std::make_shared<FieldSolver_t>(
+            this->solver_m, &this->fcontainer_m->getRho(), &this->fcontainer_m->getE(),
+            &this->fcontainer_m->getPhi(), this->getBCHandler()));
     m << "Field solver set." << endl;
 
     this->fsolver_m->initSolver();
     m << "Field solver initialized." << endl;
 
     /// ADA we need to be able to set a load balancer when not having a field solver
-    this->setLoadBalancer(std::make_shared<LoadBalancer_t>(
-        this->lbt_m, this->fcontainer_m, this->pcontainer_m, this->fsolver_m));
+    this->setLoadBalancer(
+        std::make_shared<LoadBalancer_t>(
+            this->lbt_m, this->fcontainer_m, this->pcontainer_m, this->fsolver_m));
     m << "Solver and Load Balancer set." << endl;
 
     setBins();
@@ -187,12 +191,13 @@ void PartBunch<T, Dim>::setBins() {
             "Binning parameter " + parameterName + " not supported yet! Only VELOCITYZ.");
     }
 
-    this->setBins(std::make_shared<AdaptBins_t>(
-        this->getParticleContainer(),
-        BinningSelector_t(2),  // TODO: hardcode z axis with coordinate selector at axis index 2
-        binningCmd->getMaxBins(), binningCmd->getBinningAlpha(), binningCmd->getBinningBeta(),
-        binningCmd->getDesiredWidth()  // Cost function parameters
-        ));
+    this->setBins(
+        std::make_shared<AdaptBins_t>(
+            this->getParticleContainer(),
+            BinningSelector_t(2),  // TODO: hardcode z axis with coordinate selector at axis index 2
+            binningCmd->getMaxBins(), binningCmd->getBinningAlpha(), binningCmd->getBinningBeta(),
+            binningCmd->getDesiredWidth()  // Cost function parameters
+            ));
     m << "Bins set." << endl;
     this->getBins()->debug();
 }
