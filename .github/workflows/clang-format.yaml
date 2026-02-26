@@ -53,7 +53,9 @@ jobs:
 
           while IFS= read -r file; do
             [ -z "$file" ] && continue
-            clang-format --dry-run --Werror "$file"
+            clang-format --dry-run --Werror \
+              -style="file:${{ github.workspace }}/.clang-format" \
+              "$file"
           done <<'EOF'
           ${{ steps.files.outputs.files }}
           EOF
