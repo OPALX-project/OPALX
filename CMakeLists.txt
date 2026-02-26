@@ -55,6 +55,20 @@ else()
   unset(CMAKE_ARCHIVE_OUTPUT_DIRECTORY CACHE)
 endif()
 
+# ------------------------------------------------------------------------------                                                                                                                                    
+# Make OPAL revision
+# Run gen_OPALrevision script at configure time
+# ------------------------------------------------------------------------------
+execute_process(
+    COMMAND ${CMAKE_SOURCE_DIR}/tools/gen_OPALrevision
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    RESULT_VARIABLE REVISION_RESULT
+)
+
+if(NOT REVISION_RESULT EQUAL 0)
+    message(FATAL_ERROR "gen_OPALrevision failed with exit code ${REVISION_RESULT}")
+endif()
+
 # ------------------------------------------------------------------------------
 # cmake modules
 # ------------------------------------------------------------------------------
