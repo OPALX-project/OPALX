@@ -92,10 +92,11 @@ namespace coordinatetransform {
             (lambdaleft_m * std::log(std::cosh((s + s_0_m) / lambdaleft_m))
              - lambdaright_m * std::log(std::cosh((s - s_0_m) / lambdaright_m)))
             / prefactor));
-        result.push_back(std::cos(
-            (lambdaleft_m * std::log(std::cosh((s + s_0_m) / lambdaleft_m))
-             - lambdaright_m * std::log(std::cosh((s - s_0_m) / lambdaright_m)))
-            / prefactor));
+        result.push_back(
+            std::cos(
+                (lambdaleft_m * std::log(std::cosh((s + s_0_m) / lambdaleft_m))
+                 - lambdaright_m * std::log(std::cosh((s - s_0_m) / lambdaright_m)))
+                / prefactor));
         return result;
     }
 
