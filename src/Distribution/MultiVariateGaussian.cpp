@@ -74,11 +74,13 @@ MultiVariateGaussian::MultiVariateGaussian(
 
     setMeanR(meanR);
     setMeanP(meanP);
-    setSigmaR(ippl::Vector<double, 3>(
-        Kokkos::sqrt(cov_m[0][0]), Kokkos::sqrt(cov_m[2][2]), Kokkos::sqrt(cov_m[4][4])));
+    setSigmaR(
+        ippl::Vector<double, 3>(
+            Kokkos::sqrt(cov_m[0][0]), Kokkos::sqrt(cov_m[2][2]), Kokkos::sqrt(cov_m[4][4])));
 
-    setSigmaP(ippl::Vector<double, 3>(
-        Kokkos::sqrt(cov_m[1][1]), Kokkos::sqrt(cov_m[3][3]), Kokkos::sqrt(cov_m[5][5])));
+    setSigmaP(
+        ippl::Vector<double, 3>(
+            Kokkos::sqrt(cov_m[1][1]), Kokkos::sqrt(cov_m[3][3]), Kokkos::sqrt(cov_m[5][5])));
     setCutoffR(cutoffR);
     setCutoffP(cutoffP);
     setFixMeanR(fixMeanR);

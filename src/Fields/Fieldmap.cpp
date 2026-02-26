@@ -88,9 +88,10 @@ Fieldmap* Fieldmap::getFieldmap(std::string Filename, bool fast) {
          */
         switch (type) {
             case T2DMagnetoStatic:
-                position = FieldmapDictionary.insert(std::make_pair(
-                    Filename,
-                    FieldmapDescription(T2DMagnetoStatic, new FM2DMagnetoStatic(Filename))));
+                position = FieldmapDictionary.insert(
+                    std::make_pair(
+                        Filename,
+                        FieldmapDescription(T2DMagnetoStatic, new FM2DMagnetoStatic(Filename))));
                 return (*position.first).second.Map;
                 break;
 
