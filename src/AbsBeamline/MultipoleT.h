@@ -1,6 +1,7 @@
 /*
  *  Copyright (c) 2017, Titus Dascalu
  *  Copyright (c) 2018, Martin Duy Tat
+*  Copyright (c) 2025, Jon Thompson
  *  All rights reserved.
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
@@ -73,39 +74,36 @@
  *
  * ---------------------------------------------------------------------
  */
+#include <vector>
 #include "AbsBeamline/Component.h"
 #include "AbsBeamline/EndFieldModel/Tanh.h"
-#include "BeamlineGeometry/PlanarArcGeometry.h"
+#include "Algorithms/AbstractTimeDependence.h"
 #include "Fields/BMultipoleField.h"
-//  
-#include <vector>
-#include "AbsBeamline/BeamlineVisitor.h"
-#include "AbsBeamline/Component.h"
-#include "AbsBeamline/MultipoleTFunctions/RecursionRelation.h"
-#include "AbsBeamline/MultipoleTFunctions/RecursionRelationTwo.h"
-#include "Utilities/GSLCompat.h"
+#include "MultipoleTBase.h"
 
 class MultipoleT : public Component {
 public:
     /** Constructor
      *  \param name -> User-defined name
      */
-    explicit MultipoleT(const std::string& name);
+    explicit MultipoleT(const std::string &name);
     /** Copy constructor */
-    MultipoleT(const MultipoleT& right);
+    MultipoleT(const MultipoleT &right);
     /** Destructor */
-    ~MultipoleT();
+    ~MultipoleT() override = default;
     /** Inheritable copy constructor */
     ElementBase* clone() const override;
+    /** Accept a beamline visitor */
+    void accept(BeamlineVisitor &visitor) const override;
+    /** Return the cell geometry */
+    BGeometryBase& getGeometry() override;
+    /** Return the cell geometry */
+    const BGeometryBase& getGeometry() const override;
     /** Return a dummy field value */
-    EMField& getField() override;
+    EMField &getField() override { return dummy; }
     /** Return a dummy field value */
-    const EMField& getField() const override;
-    /** Not implemented */
-    void getDimensions(double& zBegin, double& zEnd) const override;
-    /** Apply to all particles */
-    bool apply() override;
-    /** Calculate the field at some arbitrary position
+    const EMField &getField() const override { return dummy; }
+    /** Calculate the field at some arbitrary position \n
      *  If particle is outside field map true is returned,
      *  otherwise false is returned
      *  \param R -> Position in the lab coordinate system of the multipole
@@ -114,11 +112,10 @@ public:
      *  \param E -> Calculated electric field - always 0 (no E-field)
      *  \param B -> Calculated magnetic field
      */
-    bool apply(
-        const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-        Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
+    bool apply(const Vector_t<double> &R, const Vector_t<double> &P, const double &t,
+               Vector_t<double> &E, Vector_t<double> &B) override;
     /** Calculate the field at the position of the ith particle
-     *  \param i -> Index of the particle event override; field is calculated at this
+     *  \param i -> Index of the particle event; field is calculated at this
      *  position
      *  If particle is outside field map true is returned,
      *  otherwise false is returned
@@ -126,294 +123,177 @@ public:
      *  \param E -> Calculated electric field - always 0 (no E-field)
      *  \param B -> Calculated magnetic field
      */
-    bool apply(
-        const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
+    bool apply(const size_t &i, const double &t, Vector_t<double> &E, Vector_t<double> &B) override;
     /** Initialise the MultipoleT
      *  \param bunch -> Bunch the global bunch object
      *  \param startField -> Not used
      *  \param endField -> Not used
      */
-    void initialise(PartBunch_t*, double& startField, double& endField) override;
-    /** Initialises the geometry */
-    void initialise();
-
+    void initialise(PartBunch_t* bunch, double& startField, double& endField) override;
     /** Finalise the MultipoleT - sets bunch to nullptr */
     void finalise() override;
     /** Return true if dipole component not zero */
     bool bends() const override;
-    /** Return the cell geometry */
-    PlanarArcGeometry& getGeometry() override;
-    /** Return the cell geometry */
-    const PlanarArcGeometry& getGeometry() const override;
-    /** Accept a beamline visitor */
-    void accept(BeamlineVisitor& visitor) const override;
-    /** Get the dipole constant B_0 */
-    double getDipoleConstant() const;
-    /** Set the dipole constant B_0 */
-    void setDipoleConstant(double B0);
     /** Get the number of terms used in calculation of field components */
-    std::size_t getMaxOrder() const;
+    size_t getMaxFOrder() const { return maxFOrder_m; }
+    size_t getMaxXOrder() const { return maxXOrder_m; }
     /** Set the number of terms used in calculation of field components \n
-     *  Maximum power of z in Bz is 2 * maxOrder_m \n
-     *  \param maxOrder -> Number of terms in expansion in z
+     *  \param orderZ -> Number of terms in expansion in z
+     *  \param orderX -> Number of terms in expansion in x
      */
-    void setMaxOrder(std::size_t maxOrder);
-    /** Get highest power of x in polynomial expansions */
-    std::size_t getMaxXOrder() const;
-    /** Set the number of terms used in polynomial expansions
-     *  \param maxXOrder -> Number of terms in expansion in z
-     */
-    void setMaxXOrder(std::size_t maxXOrder);
+    void setMaxOrder(size_t orderZ, size_t orderX);
     /** Get the maximum order in the given transverse profile */
-    std::size_t getTransMaxOrder() const;
-    /** Set the maximum order in the given transverse profile
-     *  \param transMaxOrder -> Highest power of x in field expansion
+    std::size_t getTransMaxOrder() const { return transMaxOrder_m; }
+    /** Set the the transverse profile
+     *  \param profile -> Multipole field profile
      */
-    void setTransMaxOrder(std::size_t transMaxOrder);
-    /** Set transverse profile T(x)
-     * T(x) = B_0 + B1 x + B2 x^2 + B3 x^3 + ...
-     * \param n -> Order of the term (d^n/dx^n) to be set
-     * \param Bn -> Value of transverse profile coefficient
-     */
-    void setTransProfile(std::size_t n, double Bn);
-    /** Get transverse profile
-     *  \param n -> Power of x
-     */
-    double getTransProfile(int n) const;
+    void setTransProfile(const std::vector<double>& profile);
     /** Get all terms of transverse profile */
-    std::vector<double> getTransProfile() const;
+    const std::vector<double>& getTransProfile() const { return transProfile_m; }
     /** Set fringe field model \n
      *  Tanh model used here \n
      *  @f[ 1/2 * \left [tanh \left( \frac{s + s_0}{\lambda_{left}} \right)
      *  - tanh \left( \frac{s - s_0}{\lambda_{right}} \right) \right] @f]
-     *  \param s0 -> Centre field length
-     *  \param \lambda_{left} -> Left end field length
-     *  \param \lambda_{right} -> Right end field length
+     *  \param s0 -> Centre field length and
+     *  \param lambda_left -> Left end field length
+     *  \param lambda_right -> Right end field length
      */
-    bool setFringeField(double s0, double lambda_left, double lambda_right);
-    /** Return vector of 2 doubles
-     * [left fringe length, right fringelength]
+    void setFringeField(const double& s0, const double& lambda_left,
+                        const double& lambda_right);
+    /** Get the fringe field model
+     * @return {s0, leftFringe, rightFringe}
      */
-    std::vector<double> getFringeLength() const;
-    /** Set the bending angle of the magnet */
-    void setBendAngle(double angle);
-    /** Get the bending angle of the magnet */
-    double getBendAngle() const;
+    std::tuple<double, double, double> getFringeField() const;
     /** Set the entrance angle
      *  \param entranceAngle -> Entrance angle
      */
     void setEntranceAngle(double entranceAngle);
+    /** Set the offset of the entry point from the standard position
+     * @param offset positive for further away from the center
+     */
+    void setEntryOffset(double offset);
+    /** Get the offset of the entry point from the standard position */
+    double getEntryOffset() const { return entryOffset_m; }
+    /** Get the variable radius of the magnet */
+    bool getVariableRadius() const { return variableRadius_m; }
+    /** Set the bending angle of the magnet */
+    void setBendAngle(double angle, bool variableRadius);
+    /** Get the bending angle of the magnet */
+    double getBendAngle() const { return bendAngle_m; }
     /** Get the entrance angle */
-    double getEntranceAngle() const;
-    /** Get the bending radius \n
-     * Not used, when needed radius is found from length_m / angle_m
+    double getEntranceAngle() const { return entranceAngle_m; }
+    /** Set the length of the magnet
+      * If straight-> Actual length
+      * If curved -> Arc length
      */
-    double getBendRadius() const;
-    /** Set the length of the magnet \n
-     * If straight-> Actual length \n
-     * If curved -> Arc length \n
-     */
-    void setLength(double length);
+    void setElementLength(double length) override;
     /** Get the length of the magnet */
-    double getLength() const;
-    /** Not used */
-    double getChordLength() const;
-    /** Set the aperture dimensions
-     * This element only supports a rectangular aperture
-     * \param vertAp -> Vertical aperture length
-     * \param horizAp -> Horisontal aperture length
+    double getLength() const { return length_m; }
+    /** Set the aperture dimensions \n
+      * This element only supports a rectangular aperture
+      * \param vertAp -> Vertical aperture length
+      * \param horizAp -> Horisontal aperture length
      */
-    void setAperture(double vertAp, double horizAp);
+    void setAperture(const double& vertAp, const double& horizAp);
     /** Get the aperture dimensions
-     * Returns a vector of 2 doubles
+     * @return {verticalApert, horizontalApert}
      */
-    std::vector<double> getAperture() const;
+    std::tuple<double, double> getAperture() { return {verticalApert_m, horizontalApert_m}; }
     /** Set the angle of rotation of the magnet around its axis \n
      *  To make skew components
      *  \param rot -> Angle of rotation
      */
     void setRotation(double rot);
     /** Get the angle of rotation of the magnet around its axis */
-    double getRotation() const;
-    /** Set variable radius flag to true */
-    void setVarRadius();
-    /** Get the value of variableRadius_m */
-    bool getVarRadius() const;
-    /** Get distance between centre of magnet and entrance */
-    double getBoundingBoxLength() const;
-    /** Set distance between centre of magnet and enctrance
+    double getRotation() const { return rotation_m; }
+    /** Get the bounding box size */
+    double getBoundingBoxLength() const { return boundingBoxLength_m; }
+    /** Set the bounding box size.  This controls the region for
      *  \param boundingBoxLength -> Distance between centre and entrance
      */
-    void setBoundingBoxLength(const double& boundingBoxLength);
-
-private:
-    MultipoleT operator=(const MultipoleT& rhs);
-    // End fields
-    endfieldmodel::Tanh fringeField_l;  // Left
-    endfieldmodel::Tanh fringeField_r;  // Right
-    /** Field expansion parameters \n
-     *  Number of terms in z expansion used in calculating field components
-     */
-    std::size_t maxOrder_m = 0;
-    /** Highest order of polynomial expansions in x */
-    std::size_t maxOrderX_m = 0;
-    /** Objects for storing differential operator acting on Fn */
-    std::vector<polynomial::RecursionRelationTwo> recursion_VarRadius_m;
-    std::vector<polynomial::RecursionRelation> recursion_ConstRadius_m;
-    /** Highest power in given mid-plane field */
-    std::size_t transMaxOrder_m = 0;
-    /** List of transverse profile coefficients */
-    std::vector<double> transProfile_m;
-    /** Geometry */
-    PlanarArcGeometry planarArcGeometry_m;
-    /** Rotate frame for skew elements
-     *  Consecutive rotations:
-     *  1st -> about central axis
-     *  2nd -> azimuthal rotation
-     *  \param R -> Vector to be rotated
-     */
-    Vector_t<double, 3> rotateFrame(const Vector_t<double, 3>& R);
-    /** Inverse of the 1st rotation in rotateFrame() method \n
-     *  Used to rotate B field back to global coordinate system
-     */
-    Vector_t<double, 3> rotateFrameInverse(Vector_t<double, 3>& B);
-    /** Transform to Frenet-Serret coordinates for sector magnets */
-    Vector_t<double, 3> transformCoords(const Vector_t<double, 3>& R);
-    /** Magnet parameters */
-    double length_m;
-    double angle_m;
-    double entranceAngle_m;
-    double rotation_m;
-    /** Variable radius flag */
-    bool variableRadius_m;
-    /** Distance between centre of magnet and entrance */
-    double boundingBoxLength_m;
-    /** Get field component methods
-     */
-    double getBx(const Vector_t<double, 3>& R);
-    double getBz(const Vector_t<double, 3>& R);
-    double getBs(const Vector_t<double, 3>& R);
-    /** Assume rectangular aperture with these dimensions */
-    double verticalApert_m;
-    double horizApert_m;
+    void setBoundingBoxLength(double boundingBoxLength);
     /** Not implemented */
-    BMultipoleField dummy;
+    void getDimensions(double &/*zBegin*/, double &/*zEnd*/) const override {}
     /** Returns the value of the fringe field n-th derivative at s
      *  \param n -> nth derivative
      *  \param s -> Coordinate s
      */
-    double getFringeDeriv(int n, double s);
-    /** Returns the value of the transverse field n-th derivative at x
-     *  \param n -> nth derivative
-     *  \param x -> Coordinate x
-     */
-    double getTransDeriv(std::size_t n, double x);
-    /** Tests if inside the magnet
-     *  \param R -> Coordinate vector
-     */
-    bool insideAperture(const Vector_t<double, 3>& R);
-    /** Radius of curvature \n
-     *  If radius of curvature is infinite, -1 is returned \n
-     *  If radius is constant, then \n
-     *  @f$ \rho(s) = length_m / angle_m @f$ \n
-     *  If radius is variable, then
-     *  @f$ \rho(s) = rho(0) * S(0) / S(s) @f$
-     *  where S(s) is the fringe field
-     *  \param s -> Coordinate s
-     */
-    double getRadius(double s);
-    /** Returns the scale factor @f$ h_s = 1 + x / \rho(s) @f$
-     *  \param x -> Coordinate x
-     *  \param s -> Coordinate s
-     */
-    double getScaleFactor(double x, double s);
+    double getFringeDeriv(const std::size_t& n, const double& s);
     /** Calculate partial derivative of fn wrt x using a 5-point
-     *  finite difference formula \n
+     *  finite difference formula
      *  Error of order stepSize^4
      *  \param n -> nth derivative
      *  \param x -> Coordinate x
      *  \param s -> Coordinate s
      */
-    double getFnDerivX(std::size_t n, double x, double s);
+    double getFnDerivX(const std::size_t& n,
+                       const double& x,
+                       const double& s);
     /** Calculate partial derivative of fn wrt s using a 5-point
-     *  finite difference formuln
+     *  finite difference formula
      *  Error of order stepSize^4
      *  \param n -> nth derivative
      *  \param x -> Coordinate x
      *  \param s -> Coordinate s
      */
-    double getFnDerivS(std::size_t n, double x, double s);
-    /** Calculate fn(x, s) by expanding the differential operator
-     *  (from Laplacian and scalar potential) in terms of polynomials
+    double getFnDerivS(const std::size_t& n,
+                       const double& x,
+                       const double& s);
+    /** Returns the value of the transverse field n-th derivative at x \n
+     *  Transverse field is a polynomial in x, differentiation follows
+     *  usual polynomial rules of differentiation
      *  \param n -> nth derivative
      *  \param x -> Coordinate x
-     *  \param s -> Coordinate s
      */
-    double getFn(std::size_t n, double x, double s);
+    double getTransDeriv(const std::size_t& n, const double& x) const;
+
+    Vector_t<double> toMagnetCoords(const Vector_t<double>& R);
+    Vector_t<double> getField(const Vector_t<double>& magnetCoords);
+    Vector_t<double> localCartesianToOpalCartesian(const Vector_t<double>& r);
+    double localCartesianRotation();
+
+    void setScalingName(const std::string& name);
+    void setScalingModel(const std::shared_ptr<AbstractTimeDependence>& td) {scalingTD_m = td; }
+    std::string getScalingName() const { return scalingName_m; }
+    void initialiseTimeDepencencies() const;
+
+protected:
+    /** Rotate the frame to account for the rotation and entry angles.
+     * @param R -> coordinate to rotate
+     * @return -> rotated coordinate
+     */
+    Vector_t<double> rotateFrame(const Vector_t<double>& R) const;
+    bool insideAperture(const Vector_t<double>& R) const;
+    bool insideBoundingBox(const Vector_t<double>& R) const;
+    void chooseImplementation();
+
+    // End fields
+    endfieldmodel::Tanh fringeField_l{endfieldmodel::Tanh()}; // Left
+    endfieldmodel::Tanh fringeField_r{endfieldmodel::Tanh()}; // Right
+    /** Number of terms in z expansion used in calculating field components */
+    std::size_t maxFOrder_m{3};
+    /** Highest order of polynomial expansions in x */
+    std::size_t maxXOrder_m{20};
+    /** List of transverse profile coefficients */
+    std::vector<double> transProfile_m{0.0};
+    size_t transMaxOrder_m{1};
+    /** Magnet parameters */
+    double length_m{1.0};
+    double entranceAngle_m{0.0};
+    double rotation_m{0.0};
+    double bendAngle_m{0.0};
+    bool variableRadius_m{false};
+    double boundingBoxLength_m{0.0};
+    double entryOffset_m{0.0};
+    /** Assume rectangular aperture with these dimensions */
+    double verticalApert_m{0.5};
+    double horizontalApert_m{0.5};
+    /** Not implemented */
+    BMultipoleField dummy;
+    // Time dependence
+    std::string scalingName_m;
+    mutable std::shared_ptr<AbstractTimeDependence> scalingTD_m;
+    // The object that does the work
+    std::unique_ptr<MultipoleTBase> implementation_{};
 };
-
-inline void MultipoleT::setVarRadius() {
-    variableRadius_m = true;
-}
-inline bool MultipoleT::getVarRadius() const {
-    return variableRadius_m;
-}
-inline void MultipoleT::setEntranceAngle(double entranceAngle) {
-    entranceAngle_m = entranceAngle;
-}
-inline double MultipoleT::getEntranceAngle() const {
-    return entranceAngle_m;
-}
-inline double MultipoleT::getTransProfile(int n) const {
-    return transProfile_m[n];
-}
-inline std::vector<double> MultipoleT::getTransProfile() const {
-    return transProfile_m;
-}
-inline double MultipoleT::getDipoleConstant() const {
-    return transProfile_m[0];
-}
-inline std::size_t MultipoleT::getMaxOrder() const {
-    return maxOrder_m;
-}
-
-inline std::size_t MultipoleT::getMaxXOrder() const {
-    return maxOrderX_m;
-}
-
-inline void MultipoleT::setMaxXOrder(std::size_t maxOrderX) {
-    maxOrderX_m = maxOrderX;
-}
-inline std::size_t MultipoleT::getTransMaxOrder() const {
-    return transMaxOrder_m;
-}
-inline void MultipoleT::setTransMaxOrder(std::size_t transMaxOrder) {
-    transMaxOrder_m = transMaxOrder;
-    transProfile_m.resize(transMaxOrder + 1, 0.);
-}
-inline double MultipoleT::getRotation() const {
-    return rotation_m;
-}
-inline void MultipoleT::setRotation(double rot) {
-    rotation_m = rot;
-}
-inline void MultipoleT::setBendAngle(double angle) {
-    angle_m = angle;
-}
-inline double MultipoleT::getBendAngle() const {
-    return angle_m;
-}
-inline void MultipoleT::setLength(double length) {
-    length_m = std::abs(length);
-}
-inline double MultipoleT::getLength() const {
-    return length_m;
-}
-inline double MultipoleT::getBoundingBoxLength() const {
-    return boundingBoxLength_m;
-}
-inline void MultipoleT::setBoundingBoxLength(const double& boundingBoxLength) {
-    boundingBoxLength_m = boundingBoxLength;
-}
-
 #endif

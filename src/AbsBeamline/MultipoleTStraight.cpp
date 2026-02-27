@@ -26,79 +26,63 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "Utilities/GSLCompat.h"
-#include "Utilities/GSLCompat.h"
 #include "MultipoleTStraight.h"
+#include "MultipoleT.h"
 
-using namespace endfieldmodel;
-
-MultipoleTStraight::MultipoleTStraight(const std::string &name):
-    MultipoleTBase(name),
-    straightGeometry_m(getLength()) {
+MultipoleTStraight::MultipoleTStraight(MultipoleT* element) :
+        MultipoleTBase(element){
 }
 
-MultipoleTStraight::MultipoleTStraight(const MultipoleTStraight &right):
-    MultipoleTBase(right),
-    straightGeometry_m(right.straightGeometry_m) {
-    RefPartBunch_m = right.RefPartBunch_m;
+void MultipoleTStraight::initialise() {
+    straightGeometry_m.setElementLength(element_m->getLength());
 }
 
-
-MultipoleTStraight::~MultipoleTStraight() {
-}
-
-ElementBase* MultipoleTStraight::clone() const {
-    return new MultipoleTStraight(*this);
-}
-
-void MultipoleTStraight::transformCoords(Vector_t<double, 3> &/*R*/) {
-    //R[2] += getBoundingBoxLength();
-}
-
-void MultipoleTStraight::setMaxOrder(const std::size_t &maxOrder) {
-    MultipoleTBase::setMaxOrder(maxOrder);
-}
-
-double MultipoleTStraight::getBx(const Vector_t<double, 3> &R) {
+double MultipoleTStraight::getBx(const Vector_t<double>& R) {
     double Bx = 0.0;
-    for(std::size_t n = 0; n <= getMaxOrder(); n++) {
+    for(unsigned int n = 0; n <= element_m->getMaxFOrder(); n++) {
         double f_n = 0.0;
-        for(std::size_t i = 0; i <= n; i++) {
-            f_n += gsl_sf_choose(n, i) * getTransDeriv(2 * i + 1, R[0]) *
-                   getFringeDeriv(2 * n - 2 * i, R[2]);
+        for(unsigned int i = 0; i <= n; i++) {
+            f_n += choose(n, i) * element_m->getTransDeriv(2 * i + 1, R[0]) *
+                   element_m->getFringeDeriv(2 * n - 2 * i, R[2]);
         }
-        f_n *= gsl_sf_pow_int(-1.0, n);
-        Bx += f_n * gsl_sf_pow_int(R[1], 2 * n + 1) / gsl_sf_fact(2 * n + 1);
+        f_n *= powerInteger(-1.0, n);
+        Bx += f_n * powerInteger(R[1], 2 * n + 1) / factorial(2 * n + 1);
     }
     return Bx;
 }
 
-double MultipoleTStraight::getBs(const Vector_t<double, 3> &R) {
+double MultipoleTStraight::getBs(const Vector_t<double>& R) {
     double Bs = 0.0;
-    for(std::size_t n = 0; n <= getMaxOrder(); n++) {
+    for(unsigned int n = 0; n <= element_m->getMaxFOrder(); n++) {
         double f_n = 0.0;
-        for(std::size_t i = 0; i <= n; i++) {
-            f_n += gsl_sf_choose(n, i) * getTransDeriv(2 * i, R[0]) *
-                   getFringeDeriv(2 * n - 2 * i + 1, R[2]);
+        for(unsigned int i = 0; i <= n; i++) {
+            f_n += choose(n, i) * element_m->getTransDeriv(2 * i, R[0]) *
+                   element_m->getFringeDeriv(2 * n - 2 * i + 1, R[2]);
         }
-        f_n *= gsl_sf_pow_int(-1.0, n);
-        Bs += f_n * gsl_sf_pow_int(R[1], 2 * n + 1) / gsl_sf_fact(2 * n + 1);
+        f_n *= powerInteger(-1.0, n);
+        Bs += f_n * powerInteger(R[1], 2 * n + 1) / factorial(2 * n + 1);
     }
     return Bs;
 }
 
-double MultipoleTStraight::getFn(const std::size_t &n,
-                                 const double &x, 
-                                 const double &s) {
+double MultipoleTStraight::getFn(const unsigned int n, const double x, const double s) {
     if (n == 0) {
-        return getTransDeriv(0, x) * getFringeDeriv(0, s);
+        return element_m->getTransDeriv(0, x) * element_m->getFringeDeriv(0, s);
     }
     double f_n = 0.0;
-    for (std::size_t i = 0; i <= n; i++) {
-        f_n += gsl_sf_choose(n, i) * getTransDeriv(2 * i, x) *
-               getFringeDeriv(2 * n - 2 * i, s);
+    for (unsigned int i = 0; i <= n; i++) {
+        f_n += choose(n, i) * element_m->getTransDeriv(2 * i, x) *
+               element_m->getFringeDeriv(2 * n - 2 * i, s);
     }
-    f_n *= gsl_sf_pow_int(-1.0, n);
+    f_n *= powerInteger(-1.0, n);
     return f_n;
 }
- 
+
+Vector_t<double> MultipoleTStraight::localCartesianToOpalCartesian(const Vector_t<double>& r) {
+    return {r[0], r[1], r[2] + element_m->getLength() / 2.0};
+}
+
+void MultipoleTStraight::transformCoords(Vector_t<double>& R) {
+    // Magnet origin at the center rather than entry
+    R[2] += element_m->getLength() / 2.0;
+}

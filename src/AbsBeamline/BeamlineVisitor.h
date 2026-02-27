@@ -46,9 +46,6 @@ class Marker;
 class Monitor;
 class Multipole;
 class MultipoleT;
-class MultipoleTStraight;
-class MultipoleTCurvedConstRadius;
-class MultipoleTCurvedVarRadius;
 class RFCavity;
 class TravelingWave;
 class Ring;
@@ -89,15 +86,6 @@ public:
 
     /// Apply the algorithm to an arbitrary multipole.
     virtual void visitMultipoleT(const MultipoleT&) = 0;
-
-    /// Apply the algorithm to an arbitrary straight multipole.
-    virtual void visitMultipoleTStraight(const MultipoleTStraight&) = 0;
-
-    /// Apply the algorithm to an arbitrary curved multipole of constant radius.
-    virtual void visitMultipoleTCurvedConstRadius(const MultipoleTCurvedConstRadius&) = 0;
-
-    /// Apply the algorithm to an arbitrary curved multipole of variable radius.
-    virtual void visitMultipoleTCurvedVarRadius(const MultipoleTCurvedVarRadius&) = 0;
 
     /// Apply the algorithm to an offset (placement).
     virtual void visitOffset(const Offset&) = 0;
