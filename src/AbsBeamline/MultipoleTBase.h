@@ -140,7 +140,32 @@ public:
 protected:
     /** Helper function that returns factorial of n for n<=20 on both host and GPU */
     static constexpr size_t MaxFactorial = 20;
-    static constexpr double factorialTable_m[MaxFactorial + 1] = {
+    KOKKOS_INLINE_FUNCTION
+    static double factorial(unsigned int n);
+    /** Helper function that returns x^n for 0<=n<=20 on both host and GPU */
+    static constexpr size_t MaxPowerInteger = 20;
+    KOKKOS_INLINE_FUNCTION
+    static double powerInteger(double x, unsigned int n);
+    /** Helper function that returns the combinatorial factor n choose m = n!/(m!(n-m)! */
+    KOKKOS_INLINE_FUNCTION
+    static double choose(unsigned int n, unsigned int m);
+    /** Helper function that calculates transverse derivatives for multipole fields */
+    static constexpr unsigned int MaxDerivatives = 20;
+    static constexpr unsigned int NumPoles = 6;
+    KOKKOS_INLINE_FUNCTION
+    static void calcTransverseDerivatives(const Kokkos::Array<double, NumPoles>& poles,
+            unsigned int numDerivatives, double x,
+            Kokkos::Array<double, MaxDerivatives>& derivatives);
+    KOKKOS_INLINE_FUNCTION
+    static void calcFringeDerivatives(const double& s0, const double& lambdaLeft,
+            const double& lambdaRight, double s, Kokkos::View<double**> tanhCoefficients,
+            Kokkos::Array<double, MaxDerivatives>& derivatives);
+    void generateTanhCoefficients(unsigned int numDerivatives);
+};
+
+KOKKOS_INLINE_FUNCTION
+double MultipoleTBase::factorial(const unsigned int n) {
+    static constexpr double factorialTable[MaxFactorial + 1] = {
             1.0,
             1.0,
             2.0,
@@ -163,34 +188,10 @@ protected:
             121645100408832000.0,
             2432902008176640000.0
     };
-    KOKKOS_INLINE_FUNCTION
-    static double factorial(unsigned int n);
-    /** Helper function that returns x^n for 0<=n<=20 on both host and GPU */
-    static constexpr size_t MaxPowerInteger = 20;
-    KOKKOS_INLINE_FUNCTION
-    static double powerInteger(double x, unsigned int n);
-    /** Helper function that returns the combinatorial factor n choose m = n!/(m!(n-m)! */
-    KOKKOS_INLINE_FUNCTION
-    static double choose(unsigned int n, unsigned int m);
-    /** Helper function that calculates transverse derivatives for multipole fields */
-    static constexpr unsigned int MaxDerivatives = 20;
-    static constexpr unsigned int NumPoles = 6;
-    KOKKOS_INLINE_FUNCTION
-    static void calcTransverseDerivatives(const Kokkos::Array<double, NumPoles>& poles,
-            unsigned int numDerivatives, double x, Kokkos::Array<double, MaxDerivatives>& derivatives);
-    KOKKOS_INLINE_FUNCTION
-    static void calcFringeDerivatives(const double& s0, const double& lambdaLeft,
-            const double& lambdaRight, double s, Kokkos::View<double**> tanhCoefficients,
-            Kokkos::Array<double, MaxDerivatives>& derivatives);
-    void generateTanhCoefficients(unsigned int numDerivatives);
-};
-
-KOKKOS_INLINE_FUNCTION
-double MultipoleTBase::factorial(const unsigned int n) {
     if(n > MaxFactorial) {
         Kokkos::abort("factorial out of bounds");
     }
-    return factorialTable_m[n];
+    return factorialTable[n];
 }
 
 KOKKOS_INLINE_FUNCTION
@@ -231,8 +232,8 @@ void MultipoleTBase::calcTransverseDerivatives(const Kokkos::Array<double, NumPo
 
 KOKKOS_INLINE_FUNCTION
 void MultipoleTBase::calcFringeDerivatives(const double& s0, const double& lambdaLeft,
-            const double& lambdaRight, const double s, Kokkos::View<double**> tanhCoefficients,
-            Kokkos::Array<double, MaxDerivatives>& derivatives) {
+        const double& lambdaRight, const double s, Kokkos::View<double**> tanhCoefficients,
+        Kokkos::Array<double, MaxDerivatives>& derivatives) {
     const double tLeft = std::tanh((s + s0) / lambdaLeft);
     const double tRight = std::tanh((s - s0) / lambdaRight);
     double lambdaLeftN = 1.0;
