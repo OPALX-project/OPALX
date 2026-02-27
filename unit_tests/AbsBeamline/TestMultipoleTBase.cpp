@@ -63,8 +63,8 @@ protected:
 };
 
 TEST_F(MultipoleTBaseTest, TransverseDerivatives) {
-    constexpr std::array poles = {0.0, 1.0, 2.0, 3.0, 4.0, 5.0};
-    std::array<double, MaxDerivatives> derivatives;
+    constexpr Kokkos::Array poles = {0.0, 1.0, 2.0, 3.0, 4.0, 5.0};
+    Kokkos::Array<double, MaxDerivatives> derivatives;
     calcTransverseDerivatives(poles, 6, 1.0, derivatives);
     EXPECT_DOUBLE_EQ(derivatives[0], 55.0);
     EXPECT_DOUBLE_EQ(derivatives[1], 170.0);
@@ -85,8 +85,8 @@ TEST_F(MultipoleTBaseTest, FringeDerivativeConstants) {
 }
 
 TEST_F(MultipoleTBaseTest, FringeDerivatives) {
-    std::array<double, MaxDerivatives> derivativesNeg;
-    std::array<double, MaxDerivatives> derivativesPos;
+    Kokkos::Array<double, MaxDerivatives> derivativesNeg;
+    Kokkos::Array<double, MaxDerivatives> derivativesPos;
     generateTanhCoefficients(6);
     calcFringeDerivatives(2.0, 1.0, 1.0, -2.0, tanhCoefficients_m, derivativesNeg);
     calcFringeDerivatives(2.0, 1.0, 1.0, 2.0, tanhCoefficients_m, derivativesPos);
