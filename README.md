@@ -27,10 +27,10 @@ gtest/1.13.0-1
 
 ## Building OPALX
 
-```
+```bash
 git clone https://github.com/OPALX-project/OPALX.git
-cd OPALX
-./gen_OPALXrevision
+cd OPALX/tools
+./gen_OPALXrevision # Note that this step is (now) optional
 ```
 
 ### Setting up cmake
@@ -38,7 +38,7 @@ cd OPALX
 #### cmake command for CPU build
 
 Building OPALX without multi-threading (only MPI):
-```
+```bash
 mkdir build_serial && cd build_serial
 cmake .. \
     -DBUILD_TYPE=Debug \
@@ -47,7 +47,7 @@ cmake .. \
 
 and for multi-threading with OpenMP:
 
-```
+```bash
 mkdir build_openmp && cd build_openmp
 cmake .. \
     -DBUILD_TYPE=Debug \
@@ -58,13 +58,13 @@ In order to enable the compilation of unit tests, set `-DOPALX_ENABLE_UNIT_TESTS
 
 
 #### cmake command for GPU build
-```
+```bash
 mkdir build_cuda && cd build_cuda
 ```
 
 For example, for A100 with Amper80 Architecture (Gwendolen), and the debug mode, the cmake should be something like:
 
-```
+```bash
 cmake .. \
     -DBUILD_TYPE=Debug \
     -DPLATFORMS=CUDA \
@@ -102,11 +102,11 @@ Enable flags with `-D<FLAG>=ON` during CMake configuration.
 ### Compilation
 
 Finally, compile OPALX with 
-```
+```bash
 make
 ```
 using single thread, and
-```
+```bash
 make -j 4
 ```
 using `4` threads for example.
@@ -114,7 +114,7 @@ using `4` threads for example.
 
 ## Job scripts
 To execute opalx on merlin's gpus (compile for PASCAL61), the job script should looks like
-```
+```bash
 #!/bin/bash
 #SBATCH --error=merlin.error
 #SBATCH --output=merlin.out
@@ -135,7 +135,7 @@ srun ./opalx DriftTest-1.in  --info 10 --kokkos-map-device-id-by=mpi_rank
 ```
 
 and for Gwendolen (compile for AMPERE80)
-```
+```bash
 #!/bin/bash
 #SBATCH --error=gwendolen.error
 #SBATCH --output=gwendolen.out
@@ -154,4 +154,4 @@ ulimit -c unlimited
 srun ./opalx DriftTest-1.in  --info 10 --kokkos-map-device-id-by=mpi_rank
 ```
 
-The documentation has been moved to the [Wiki](https://gitlab.psi.ch/OPAL/src/wikis/home).
+The documentation has been moved to the [OPAL Landing Page](https://amas.pages.psi.ch/opal/).
