@@ -176,12 +176,12 @@ protected:
     static constexpr unsigned int MaxDerivatives = 20;
     static constexpr unsigned int NumPoles = 6;
     KOKKOS_INLINE_FUNCTION
-    static void calcTransverseDerivatives(const std::array<double, NumPoles>& poles,
-            unsigned int numDerivatives, double x, std::array<double, MaxDerivatives>& derivatives);
+    static void calcTransverseDerivatives(const Kokkos::Array<double, NumPoles>& poles,
+            unsigned int numDerivatives, double x, Kokkos::Array<double, MaxDerivatives>& derivatives);
     KOKKOS_INLINE_FUNCTION
     static void calcFringeDerivatives(const double& s0, const double& lambdaLeft,
             const double& lambdaRight, double s, Kokkos::View<double**> tanhCoefficients,
-            std::array<double, MaxDerivatives>& derivatives);
+            Kokkos::Array<double, MaxDerivatives>& derivatives);
     void generateTanhCoefficients(unsigned int numDerivatives);
 };
 
@@ -215,10 +215,10 @@ double MultipoleTBase::choose(const unsigned int n, const unsigned int m) {
 }
 
 KOKKOS_INLINE_FUNCTION
-void MultipoleTBase::calcTransverseDerivatives(const std::array<double, NumPoles>& poles,
+void MultipoleTBase::calcTransverseDerivatives(const Kokkos::Array<double, NumPoles>& poles,
         const unsigned int numDerivatives, const double x,
-        std::array<double, MaxDerivatives>& derivatives) {
-    std::array<double, NumPoles> coefficients = poles;
+        Kokkos::Array<double, MaxDerivatives>& derivatives) {
+    Kokkos::Array<double, NumPoles> coefficients = poles;
     for(unsigned int i = 0; i < numDerivatives; i++) {
         derivatives[i] = 0;
         for(unsigned int j = 0; j < NumPoles - 1 - i; j++) {
@@ -231,14 +231,14 @@ void MultipoleTBase::calcTransverseDerivatives(const std::array<double, NumPoles
 
 KOKKOS_INLINE_FUNCTION
 void MultipoleTBase::calcFringeDerivatives(const double& s0, const double& lambdaLeft,
-            const double& lambdaRight, double s, Kokkos::View<double**> tanhCoefficients,
-            std::array<double, MaxDerivatives>& derivatives) {
+            const double& lambdaRight, const double s, Kokkos::View<double**> tanhCoefficients,
+            Kokkos::Array<double, MaxDerivatives>& derivatives) {
     const double tLeft = std::tanh((s + s0) / lambdaLeft);
     const double tRight = std::tanh((s - s0) / lambdaRight);
     double lambdaLeftN = 1.0;
     double lambdaRightN = 1.0;
-    unsigned int numDerivatives = tanhCoefficients.extent(0);
-    unsigned int numCoefficients = tanhCoefficients.extent(1);
+    const unsigned int numDerivatives = tanhCoefficients.extent(0);
+    const unsigned int numCoefficients = tanhCoefficients.extent(1);
     for(unsigned int i = 0; i < numDerivatives; ++i) {
         // Evaluate the polynomial for both left and right
         double tLeftN = 1.0;
