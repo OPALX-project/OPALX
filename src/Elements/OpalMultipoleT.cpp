@@ -25,123 +25,133 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 #include "Elements/OpalMultipoleT.h"
-#include "AbstractObjects/AttributeHandler.h"
-#include "AbstractObjects/Expressions.h"
-#include "AbstractObjects/OpalData.h"
-#include "Attributes/Attributes.h"
-#include "Expressions/SValue.h"
-#include "Expressions/SRefExpr.h"
-#include "Physics/Physics.h"
-#include "Physics/Units.h"
-#include "Utilities/Options.h"
 #include <iostream>
-#include <sstream>
 #include <vector>
+#include "AbsBeamline/MultipoleT.h"
+#include "Attributes/Attributes.h"
 
+OpalMultipoleT::OpalMultipoleT()
+    : OpalElement(
+          SIZE, "MULTIPOLET", "The \"MULTIPOLET\" element defines a combined function multipole.") {
+    // Attributes for a straight multipole
+    itsAttr[TP] = Attributes::makeRealArray(
+        "TP",
+        "Array of multipolar field strengths b_k. The field generated in the "
+        "flat top is B = b_k x^k [T m^(-k)]");
+    itsAttr[LFRINGE] = Attributes::makeReal("LFRINGE", "The length of the left end field [m]");
+    itsAttr[RFRINGE] = Attributes::makeReal("RFRINGE", "The length of the right end field [m]");
+    itsAttr[HAPERT]  = Attributes::makeReal("HAPERT", "The aperture width [m]");
+    itsAttr[VAPERT]  = Attributes::makeReal("VAPERT", "The aperture height [m]");
+    itsAttr[MAXFORDER] = Attributes::makeReal(
+        "MAXFORDER", "Number of terms used in each fringe component", DefaultMAXFORDER);
+    itsAttr[ROTATION] = Attributes::makeReal(
+        "ROTATION", "Rotation angle about its axis for skew elements [rad]");
+    itsAttr[EANGLE] = Attributes::makeReal("EANGLE", "The entrance angle [rad]");
+    itsAttr[BBLENGTH] = Attributes::makeReal(
+        "BBLENGTH", "Distance between centre of magnet and entrance [m]");
 
-OpalMultipoleT::OpalMultipoleT():
-    OpalElement(SIZE, "MULTIPOLET",
-    "The \"MULTIPOLET\" element defines a combined function multipole.") {
-    itsAttr[TP] = Attributes::makeRealArray
-                  ("TP", "Transverse Profile derivatives in T m^(-k)");
-    itsAttr[LFRINGE] = Attributes::makeReal
-                  ("LFRINGE", "The length of the left end field [m]");
-    itsAttr[RFRINGE] = Attributes::makeReal
-                  ("RFRINGE", "The length of the right end field [m]");
-    itsAttr[HAPERT] = Attributes::makeReal
-                  ("HAPERT", "The aperture width [m]");
-    itsAttr[VAPERT] = Attributes::makeReal
-                  ("VAPERT", "The aperture height [m]");
-    itsAttr[ANGLE] = Attributes::makeReal
-                  ("ANGLE", "The azimuthal angle of the magnet in ring [rad]");
-    itsAttr[EANGLE] = Attributes::makeReal
-                  ("EANGLE", "The entrance angle [rad]");
-    itsAttr[MAXFORDER] = Attributes::makeReal
-                  ("MAXFORDER", 
-                   "Number of terms used in each field component");
-    itsAttr[MAXXORDER] = Attributes::makeReal
-                  ("MAXXORDER", 
-                   "Number of terms used in polynomial expansions");
-    itsAttr[ROTATION] = Attributes::makeReal
-                  ("ROTATION", 
-                   "Rotation angle about its axis for skew elements [rad]");
-    itsAttr[VARRADIUS] = Attributes::makeBool
-                  ("VARRADIUS",
-                   "Set true if radius of magnet is variable");
-    itsAttr[BBLENGTH] = Attributes::makeReal
-                  ("BBLENGTH",
-                   "Distance between centre of magnet and entrance [m]");
+    // Further attributes for a constant radius curved multipole
+    itsAttr[ANGLE] = Attributes::makeReal(
+        "ANGLE", "The azimuthal angle of the magnet in ring [rad]", 0.0);
+    itsAttr[MAXXORDER] = Attributes::makeReal(
+        "MAXXORDER", "Number of terms used in polynomial expansions", DefaultMAXXORDER);
+
+    // Further attributes for a variable radius multipole
+    itsAttr[VARRADIUS] = Attributes::makeBool(
+        "VARRADIUS", "Set true if radius of magnet is variable", false);
+    itsAttr[ENTRYOFFSET] = Attributes::makeReal(
+        "ENTRYOFFSET", "Longitudinal offset from standard entrance point [m]", 0.0);
+
+    // Time dependence attributes
+    itsAttr[SCALING_MODEL] = Attributes::makeString
+        ("SCALING_MODEL",
+         "The name of the time dependence model, which should give a scaling factor.");
+
+    // Misalignment attributes
+    itsAttr[MISALIGN_H] = Attributes::makeReal(
+        "MISALIGN_H", "Horizontal misalignment [m]", 0.0);
+    itsAttr[MISALIGN_V] = Attributes::makeReal(
+        "MISALIGN_V", "Vertical misalignment [m]", 0.0);
+    itsAttr[MISALIGN_S] = Attributes::makeReal(
+        "MISALIGN_S", "Longitudinal misalignment [m]", 0.0);
+    itsAttr[MISALIGN_ROLL] = Attributes::makeReal(
+        "MISALIGN_ROLL", "Roll misalignment [rad] about the longitudinal axis", 0.0);
+    itsAttr[MISALIGN_PITCH] = Attributes::makeReal(
+        "MISALIGN_PITCH", "Pitch misalignment [rad] about the horizontal axis", 0.0);
+    itsAttr[MISALIGN_YAW] = Attributes::makeReal(
+        "MISALIGN_YAW", "Yaw misalignment [rad] about the vertical axis", 0.0);
+    itsAttr[MISALIGN_AXISOFFSET] = Attributes::makeReal(
+        "MISALIGN_AXISOFFSET", "Vertical offset of roll axis [m]", 0.0);
 
     registerOwnership();
-
     setElement(new MultipoleT("MULTIPOLET"));
 }
 
-
-OpalMultipoleT::OpalMultipoleT(const std::string &name, 
-                               OpalMultipoleT *parent):
-    OpalElement(name, parent) {
+OpalMultipoleT::OpalMultipoleT(const std::string& name, OpalMultipoleT* parent)
+    : OpalElement(name, parent) {
     setElement(new MultipoleT(name));
 }
 
-
-OpalMultipoleT::~OpalMultipoleT()
-{}
-
-
-OpalMultipoleT *OpalMultipoleT::clone(const std::string &name) {
+OpalMultipoleT* OpalMultipoleT::clone(const std::string& name) {
     return new OpalMultipoleT(name, this);
 }
 
-
-void OpalMultipoleT::print(std::ostream &os) const {
+void OpalMultipoleT::print(std::ostream& os) const {
     OpalElement::print(os);
 }
 
-
 void OpalMultipoleT::update() {
+    // Base class first
     OpalElement::update();
-
-    // Magnet length.
-    MultipoleT *multT =
-    dynamic_cast<MultipoleT*>(getElement());
-    double length = Attributes::getReal(itsAttr[LENGTH])*Units::m2mm;
-    double angle = Attributes::getReal(itsAttr[ANGLE]);
+    // Make some sanity checks
+    const auto maxFOrder = Attributes::getReal(itsAttr[MAXFORDER]);
+    if(maxFOrder < MinimumMAXFORDER) {
+        throw OpalException("OpalMultipoleT::Update",
+                            "Attribute MAXFORDER must be >= 1.0");
+    }
+    if(maxFOrder > MaximumMAXFORDER) {
+        *gmsg << "OpalMultipoleT::Update, a value of "
+                << maxFOrder << " for MAXFORDER may lead to excessive run time";
+    }
+    const double rotation = Attributes::getReal(itsAttr[ROTATION]);
+    const double bendAngle = Attributes::getReal(itsAttr[ANGLE]);
+    if(bendAngle != 0.0 && rotation != 0.0) {
+        throw OpalException("OpalMultipoleT::Update",
+                            "Non-zero ROTATION (a skew multipole) is only "
+                            "supported for straight magnets");
+    }
+    const bool varRadius = Attributes::getBool(itsAttr[VARRADIUS]);
+    if(varRadius && bendAngle != 0.0) {
+        *gmsg << "OpalMultipoleT::Update, the variable radius "
+                 "multipole magnet implementation is very slow";
+    }
+    const double entryOffset = Attributes::getReal(itsAttr[ENTRYOFFSET]);
+    if((!varRadius || bendAngle == 0.0) && entryOffset != 0.0) {
+        throw OpalException("OpalMultipoleT::Update",
+                            "The ENTRYOFFSET is only supported for variable radius curved magnets");
+    }
+    // Convert pole strengths from Tesla to internal units which are kGauss
+    auto tp = Attributes::getRealArray(itsAttr[TP]);
+    for(auto& i : tp) {
+        i *= Units::T2kG;
+    }
+    // Set the attributes
+    const auto length = Attributes::getReal(itsAttr[LENGTH]);
+    auto* multT = dynamic_cast<MultipoleT*>(getElement());
     multT->setElementLength(length);
-    multT->setLength(length);
-    multT->setBendAngle(angle);
-    multT->setAperture(Attributes::getReal(itsAttr[VAPERT])*Units::m2mm, 
-                       Attributes::getReal(itsAttr[HAPERT])*Units::m2mm);
-    multT->setFringeField(Attributes::getReal(itsAttr[LENGTH])*Units::m2mm/2,
-                          Attributes::getReal(itsAttr[LFRINGE])*Units::m2mm,
-                          Attributes::getReal(itsAttr[RFRINGE])*Units::m2mm); 
-    if (Attributes::getBool(itsAttr[VARRADIUS])) {
-        multT->setVarRadius();
-    }
-    multT->setBoundingBoxLength(Attributes::getReal(itsAttr[BBLENGTH])*Units::m2mm);
-    const std::vector<double> transProfile = 
-                              Attributes::getRealArray(itsAttr[TP]);
-    int transSize = transProfile.size();
-
-    if (transSize == 0) {
-        multT->setTransMaxOrder(0);
-    } else {
-        multT->setTransMaxOrder(transSize - 1);
-    }
-    multT->setMaxOrder(Attributes::getReal(itsAttr[MAXFORDER]));
-    multT->setMaxXOrder(Attributes::getReal(itsAttr[MAXXORDER]));
-    multT->setRotation(Attributes::getReal(itsAttr[ROTATION]));
+    multT->setBendAngle(bendAngle, varRadius);
+    multT->setAperture(Attributes::getReal(itsAttr[VAPERT]), Attributes::getReal(itsAttr[HAPERT]));
+    multT->setFringeField(
+        length * 0.5, Attributes::getReal(itsAttr[LFRINGE]), Attributes::getReal(itsAttr[RFRINGE]));
+    multT->setBoundingBoxLength(Attributes::getReal(itsAttr[BBLENGTH]));
+    multT->setTransProfile(tp);
+    multT->setMaxOrder(static_cast<size_t>(maxFOrder),
+        static_cast<size_t>(Attributes::getReal(itsAttr[MAXXORDER])));
+    multT->setRotation(rotation);
     multT->setEntranceAngle(Attributes::getReal(itsAttr[EANGLE]));
-
-    for(int comp = 0; comp < transSize; comp++) {
-        double units = Units::T2kG*gsl_sf_pow_int(Units::mm2m, comp); // T m^-comp -> kG mm^-comp
-        multT->setTransProfile(comp, transProfile[comp]*units);
-    }
+    multT->setEntryOffset(entryOffset);
+    multT->setScalingName(Attributes::getString(itsAttr[SCALING_MODEL]));
     // Transmit "unknown" attributes.
     OpalElement::updateUnknown(multT);
-    multT->initialise();
-
-    setElement(multT);
 }

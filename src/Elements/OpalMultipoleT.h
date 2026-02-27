@@ -30,54 +30,65 @@
 #define OPAL_OPALMULTIPOLET_HH
 
 #include "Elements/OpalElement.h"
-#include "AbsBeamline/MultipoleT.h"
 
-/** OpalMultipoleT provides user interface information for the MultipoleT object
- *
- *  Defines input parameters
- */
-class OpalMultipoleT: public OpalElement {
+class OpalMultipoleT final: public OpalElement {
 
 public:
-
     // The attributes of class OpalMultipoleT
     enum {
         TP = COMMON,     // Transverse field components
+        // Attributes for a straight multipole
         RFRINGE,         // Length of right fringe field
         LFRINGE,         // Length of left fringe field
         HAPERT,          // Aperture horizontal dimension
         VAPERT,          // Aperture vertical dimension
         MAXFORDER,       // Maximum order in the field expansion
-        MAXXORDER,       // Maximum order in x in polynomial expansions
-        ANGLE,           // Bending angle of a sector magnet
         ROTATION,        // Rotation angle about central axis for skew elements
         EANGLE,          // Entrance angle
+        BBLENGTH,        // Length within which field is calculated
+        // Further attributes for a constant radius curved multipole
+        ANGLE,           // Bending angle of a sector magnet
+        MAXXORDER,       // Maximum order in x in polynomial expansions
+        // Further attributes for a variable radius multipole
         VARRADIUS,       // Variable radius flag
-        BBLENGTH,        // Distance between centre of magnet and entrance
+        ENTRYOFFSET,     // Longitudinal offset from standard entrance point
+        // Time dependence
+        SCALING_MODEL,   // Name of a time dependence object
+        // Misalignments
+        MISALIGN_H,      // Horizontal misalignment [m]
+        MISALIGN_V,      // Vertical misalignment [m]
+        MISALIGN_S,      // Longitudinal misalignment [m]
+        MISALIGN_ROLL,   // Roll misalignment [rad] about the longitudinal axis
+        MISALIGN_PITCH,  // Pitch misalignment [rad] about the horizontal axis
+        MISALIGN_YAW,    // Yaw misalignment [rad] about the vertical axis
+        MISALIGN_AXISOFFSET, // Vertical offset of rotation axes [m]
         SIZE             // size of the enum
     };
 
     /** Default constructor initialises UI parameters. */
     OpalMultipoleT();
 
-    /** Destructor does nothing */
-    virtual ~OpalMultipoleT();
-
     /** Inherited copy constructor */
-    virtual OpalMultipoleT *clone(const std::string &name);
+    OpalMultipoleT* clone(const std::string& name) override;
 
     /** Update the MultipoleT with new parameters from UI parser */
-    virtual void update();
+    void update() override;
 
-    void print(std::ostream &os) const;
+    void print(std::ostream& os) const override;
 
-  private:
+private:
     // Not implemented.
-    OpalMultipoleT(const OpalMultipoleT &);
-    void operator=(const OpalMultipoleT &);
+    OpalMultipoleT(const OpalMultipoleT&) = delete;
+    void operator=(const OpalMultipoleT&) = delete;
+
+    /** Default value for maximum series expansion order */
+    static constexpr double DefaultMAXFORDER = 3.0;
+    static constexpr double MinimumMAXFORDER = 1.0;
+    static constexpr double MaximumMAXFORDER = 20.0;
+    static constexpr double DefaultMAXXORDER = 20.0;
 
     // Clone constructor.
-    OpalMultipoleT(const std::string &name, OpalMultipoleT *parent);
+    OpalMultipoleT(const std::string& name, OpalMultipoleT* parent);
 };
 
 #endif // OPAL_OpalMultipoleT_HH
