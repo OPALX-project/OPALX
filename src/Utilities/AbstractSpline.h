@@ -18,6 +18,7 @@
 #ifndef OPALX_ABSTRACTSPLINE_H
 #define OPALX_ABSTRACTSPLINE_H
 
+#include <vector>
 #include "OPALTypes.h"
 
 /// \brief Base class for the linear and cubic interpolation spline classes
