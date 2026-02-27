@@ -63,7 +63,7 @@ namespace fs = std::filesystem;
  * corresponding subclass, and adds it to the dictionary.
  * 
  * @param Filename Absolute path to the fieldmap file.
- * @param fast If true, attempts to load a "fast" version (implementation specific).
+ * @param fast Not implemented. Previously attempted to load a "fast" version.
  * @return Fieldmap* Pointer to the managed fieldmap instance.
  */
 Fieldmap* Fieldmap::getFieldmap(std::string Filename, bool /*fast*/) {
