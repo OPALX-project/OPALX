@@ -69,7 +69,6 @@ void MonitorStatisticsWriter::fillHeader() {
     columns_m.addColumn("xpx", "double", "1", "Correlation xpx");
     columns_m.addColumn("ypy", "double", "1", "Correlation ypy");
     columns_m.addColumn("zpz", "double", "1", "Correlation zpz");
-    columns_m.addColumn("nBins", "int", "1", "Number of field solver bins, potentially after adaptive binning.");
 
     this->addInfo("ascii", 1);
 }
@@ -120,7 +119,6 @@ void MonitorStatisticsWriter::addRow(const SetStatistics& set) {
     columns_m.addColumnValue("xpx", set.rprms_m(0));
     columns_m.addColumnValue("ypy", set.rprms_m(1));
     columns_m.addColumnValue("zpz", set.rprms_m(2));
-    columns_m.addColumnValue("nBins", set.nBins_m);
 
     this->writeRow();
 
