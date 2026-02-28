@@ -58,7 +58,6 @@ struct SetStatistics {
     Vector_t<double, 3> eps2_m;
     Vector_t<double, 3> eps_norm_m;
     Vector_t<double, 3> fac_m;
-    int nBins_m;  ///< Number of field solver bins, potentially after adaptive binning (1 when unknown).
 };
 
 namespace std {
