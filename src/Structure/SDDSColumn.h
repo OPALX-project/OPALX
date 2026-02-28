@@ -54,6 +54,7 @@ private:
 
     typedef std::variant<float,
                            double,
+                           int,
                            long unsigned int,
                            char,
                            std::string> variant_t;
