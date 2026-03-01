@@ -528,7 +528,7 @@ void PartBunch<T, Dim>::computeSelfFields() {
         bins->sortContainerByBin(); // Sort BEFORE, since it generates less atomics overhead with more bins!
         bins->genAdaptiveHistogram(); // merge bins with width/N_part ratio of 1.0
         IpplTimings::stopTimer(completeBinningT);
-        // bins->print(); // For debugging...
+        bins->print(); // For debugging...
         m << "Binning routine done." << endl;
     } else {
         m << "No AdaptBins object present, not using binning." << endl;
