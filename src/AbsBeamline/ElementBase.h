@@ -101,7 +101,8 @@ enum class ElementType : unsigned short {
     PROBE,
     VACUUM,
     SOLENOID,
-    SOURCE
+    SOURCE,
+    CONSTANTEZ
 };
 
 enum class ApertureType : unsigned short {

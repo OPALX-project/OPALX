@@ -38,6 +38,7 @@
 #include "Algorithms/IndexMap.h"
 #include "Algorithms/OrbitThreader.h"
 
+#include "AbsBeamline/ConstantEz.h"
 #include "AbsBeamline/Drift.h"
 #include "AbsBeamline/ElementBase.h"
 #include "AbsBeamline/Marker.h"
@@ -200,6 +201,9 @@ public:
     //  overwrite the execute-methode from DefaultVisitor
     virtual void visitBeamline(const Beamline&);
 
+    /// Apply the algorithm to a constant Ez element.
+    virtual void visitConstantEz(const ConstantEz&);
+
     /// Apply the algorithm to a drift space.
     virtual void visitDrift(const Drift&);
 
@@ -308,6 +312,10 @@ private:
     void transformBunch(const CoordinateSystemTrafo& trafo);
     /* ===================================================================== */
 };
+
+inline void ParallelTracker::visitConstantEz(const ConstantEz& ce) {
+    itsOpalBeamline_m.visit(ce, *this, itsBunch_m);
+}
 
 inline void ParallelTracker::visitDrift(const Drift& drift) {
     itsOpalBeamline_m.visit(drift, *this, itsBunch_m);
