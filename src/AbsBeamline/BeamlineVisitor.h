@@ -35,6 +35,7 @@
 
 // Generic element classes interacting with a BeamlineVisitor.
 class Component;
+class ConstantEz;
 
 // Beam line structure classes.
 class Beamline;
@@ -71,6 +72,9 @@ public:
 
     /// Apply the algorithm to an arbitrary component.
     virtual void visitComponent(const Component&) = 0;
+
+    /// Apply the algorithm to a constant Ez element.
+    virtual void visitConstantEz(const ConstantEz&) = 0;
 
     /// Apply the algorithm to a drift space.
     virtual void visitDrift(const Drift&) = 0;

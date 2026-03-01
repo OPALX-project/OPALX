@@ -63,6 +63,7 @@
 
 // Element commands.
 #include "Elements/OpalCavity.h"
+#include "Elements/OpalConstantEz.h"
 #include "Elements/OpalDrift.h"
 #include "Elements/OpalMarker.h"
 #include "Elements/OpalOffset/OpalLocalCartesianOffset.h"
@@ -125,6 +126,7 @@ namespace {
     void makeElements() {
         OpalData* opal = OpalData::getInstance();
         opal->create(new OpalCavity());
+        opal->create(new OpalConstantEz());
         opal->create(new OpalDrift());
         opal->create(new OpalMarker());
         opal->create(new OpalProbe());

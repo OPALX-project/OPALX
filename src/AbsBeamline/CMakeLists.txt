@@ -9,6 +9,7 @@ set(_SRCS
     AttributeSet.cpp
     BeamlineVisitor.cpp
     Component.cpp
+    ConstantEz.cpp
     Drift.cpp
     ElementBase.cpp
     Marker.cpp
@@ -34,6 +35,7 @@ set(_HDRS
     AttributeSet.h
     BeamlineVisitor.h
     Component.h
+    ConstantEz.h
     Drift.h
     ElementBase.h
     Marker.h
