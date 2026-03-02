@@ -166,9 +166,9 @@ TrackRun* TrackRun::clone(const std::string& name) {
 
 void TrackRun::execute() {
    
-   const int currentVersion = ((OPAL_VERSION_MAJOR * 100) + OPAL_VERSION_MINOR) * 100;
+    const int currentVersion = ((OPAL_VERSION_MAJOR * 100) + OPAL_VERSION_MINOR) * 100;
 
-   if (Options::version < currentVersion) {
+    if (Options::version < currentVersion) {
         unsigned int fileVersion = Options::version / 100;
         bool newerChanges        = false;
         for (auto it = Versions::changes.begin(); it != Versions::changes.end(); ++it) {
@@ -243,23 +243,23 @@ void TrackRun::execute() {
     *gmsg << *dist_m << endl;
 
     fs_m = std::shared_ptr<FieldSolverCmd>(FieldSolverCmd::find(Attributes::getString(itsAttr[TRACKRUN::FIELDSOLVER])));
-    *gmsg << *fs_m << endl;
+    *gmsg << level1 << *fs_m << endl;
 
     if (fs_m->hasBinningCmd()) {
-        *gmsg << *fs_m->getBinningCmd() << endl;
+        *gmsg << level1 << *fs_m->getBinningCmd() << endl;
     }
 
     Beam* beam = Beam::find(Attributes::getString(itsAttr[TRACKRUN::BEAM]));
-    *gmsg << *beam << endl;
+    *gmsg << level1 << *beam << endl;
 
     macrocharge_m = beam->getChargePerParticle(); // Returns macro charge in [C]
     macromass_m   = beam->getMassPerParticle(); // returns MACRO mass in GeV (mass per simulation particle)
     
     /// \todo debugging output, can potentially be removed later
     double part_per_macro_ratio = macrocharge_m / (beam->getCharge() * Physics::q_e);
-    *gmsg << "* Macro charge per particle [eV]: " << (macrocharge_m) << endl;
-    *gmsg << "* Macro mass per particle: [GeV/c^2] " << (macromass_m) << endl;
-    *gmsg << "* Particles per macro particle: " << part_per_macro_ratio << endl;
+    *gmsg << level2 << "* Macro charge per particle [eV]: " << (macrocharge_m) << endl;
+    *gmsg << level2 << "* Macro mass per particle: [GeV/c^2] " << (macromass_m) << endl;
+    *gmsg << level2 << "* Particles per macro particle: " << part_per_macro_ratio << endl;
     /*
       Here we can allocate the bunch.
      */
@@ -279,7 +279,7 @@ void TrackRun::execute() {
     bunch_m->setT(0.0);
     bunch_m->setBeamFrequency(beam->getFrequency() * Units::MHz2Hz);
 
-    *gmsg << *(bunch_m->getBCHandler()) << endl;
+    *gmsg << level2 << *(bunch_m->getBCHandler()) << endl;
     
     setupBoundaryGeometry();
 
@@ -316,13 +316,13 @@ void TrackRun::execute() {
 
     if (ippl::Comm->rank() == 0) {
         long number_of_processors = sysconf(_SC_NPROCESSORS_ONLN);
-        *gmsg << "number_of_processors " << number_of_processors << endl;
+        *gmsg << level1 << "number_of_processors " << number_of_processors << endl;
 
-//        *gmsg << "omp_get_max_threads() " << omp_get_max_threads() << endl;
+        // *gmsg << "omp_get_max_threads() " << omp_get_max_threads() << endl;
 
         int world_size;
         MPI_Comm_size( MPI_COMM_WORLD, &world_size );
-        *gmsg << "MPI_Comm_size " << world_size << endl;
+        *gmsg << level1 << "MPI_Comm_size " << world_size << endl;
     }
 
     static IpplTimings::TimerRef samplingTime = IpplTimings::getTimer("samplingTime");
@@ -357,7 +357,7 @@ void TrackRun::execute() {
             throw OpalException("Distribution::create", "Unknown \"TYPE\" of \"DISTRIBUTION\"");
     }
 
-    *gmsg << "* About to create particles ..." << endl;
+    *gmsg << level2 << "* About to create particles ..." << endl;
     
     static IpplTimings::TimerRef GenParticlesTimer  = IpplTimings::getTimer("GenParticles");
     IpplTimings::startTimer(GenParticlesTimer);
@@ -366,7 +366,7 @@ void TrackRun::execute() {
 
     IpplTimings::stopTimer(GenParticlesTimer);
 
-    *gmsg << "* Particle creation done" << endl;
+    *gmsg << level2 << "* Particle creation done" << endl;
     
     IpplTimings::stopTimer(samplingTime);
 
