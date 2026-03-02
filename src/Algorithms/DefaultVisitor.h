@@ -48,8 +48,8 @@ public:
     /// Apply the algorithm to a beam line.
     virtual void visitBeamline(const Beamline&);
 
-    /// Apply the algorithm to a constant Ez element.
-    virtual void visitConstantEz(const ConstantEz&);
+    /// Apply the algorithm to a constant E-field cavity element.
+    virtual void visitConstantEFieldCavity(const ConstantEFieldCavity&);
 
     /// Apply the algorithm to a drift space.
     virtual void visitDrift(const Drift&);

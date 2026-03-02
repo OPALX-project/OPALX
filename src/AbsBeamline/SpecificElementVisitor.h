@@ -22,7 +22,7 @@
 
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "AbsBeamline/CCollimator.h"
-#include "AbsBeamline/ConstantEz.h"
+#include "AbsBeamline/ConstantEFieldCavity.h"
 #include "AbsBeamline/Corrector.h"
 #include "AbsBeamline/Cyclotron.h"
 #include "AbsBeamline/Drift.h"
@@ -104,8 +104,8 @@ public:
     /// Apply the algorithm to a degrader.
     virtual void visitDegrader(const Degrader &);
 
-    /// Apply the algorithm to a constant Ez element.
-    virtual void visitConstantEz(const ConstantEz &);
+    /// Apply the algorithm to a constant E-field cavity element.
+    virtual void visitConstantEFieldCavity(const ConstantEFieldCavity &);
 
     /// Apply the algorithm to a drift.
     virtual void visitDrift(const Drift &);
@@ -263,8 +263,8 @@ void SpecificElementVisitor<ELEM>::visitDegrader(const Degrader &element) {
 }
 
 template<class ELEM>
-void SpecificElementVisitor<ELEM>::visitConstantEz(const ConstantEz &element) {
-    CastsTrait<ELEM, ConstantEz>::apply(allElementsOfTypeE, element);
+void SpecificElementVisitor<ELEM>::visitConstantEFieldCavity(const ConstantEFieldCavity &element) {
+    CastsTrait<ELEM, ConstantEFieldCavity>::apply(allElementsOfTypeE, element);
 }
 
 template<class ELEM>
