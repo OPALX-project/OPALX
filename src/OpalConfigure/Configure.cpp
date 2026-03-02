@@ -51,6 +51,7 @@
 // Table-related commands.
 #include "Structure/Beam.h"
 #include "Structure/FieldSolverCmd.h"
+#include "Structure/BinningCmd.h"
 // #include "Tables/List.h"
 
 // Value definitions commands.
@@ -118,6 +119,7 @@ namespace {
         opal->create(new Beam());
         opal->create(new FieldSolverCmd());
         opal->create(new Distribution());
+        opal->create(new BinningCmd());
     }
 
     void makeElements() {
