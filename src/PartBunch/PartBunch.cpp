@@ -209,7 +209,7 @@ void PartBunch<T, Dim>::setBins() {
 
     this->setBins(std::make_shared<AdaptBins_t>(
         this->getParticleContainer(),
-        BinningSelector_t(2), // TODO: hardcode z axis with coordinate selector at axis index 2
+        BinningSelector_t(2),
         binningCmd->getMaxBins(),
         binningCmd->getBinningAlpha(),
         binningCmd->getBinningBeta(),
