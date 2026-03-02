@@ -1,13 +1,13 @@
 /**
- * \file TestConstantEzRep.cpp
- * \brief Unit tests for ConstantEzRep (BeamlineCore layer).
+ * \file TestConstantEFieldCavityRep.cpp
+ * \brief Unit tests for ConstantEFieldCavityRep (BeamlineCore layer).
  *
  * Tests: geometry, field, setElementLength/setEz, clone, getChannel("L")/"EZ").
  */
 
 #include <gtest/gtest.h>
 
-#include "BeamlineCore/ConstantEzRep.h"
+#include "BeamlineCore/ConstantEFieldCavityRep.h"
 #include "Channels/IndirectChannel.h"
 
 #include <cmath>
@@ -15,35 +15,35 @@
 
 namespace {
 
-class ConstantEzRepTest : public ::testing::Test {
+class ConstantEFieldCavityRepTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        rep_ = std::make_unique<ConstantEzRep>("TestRep");
+        rep_ = std::make_unique<ConstantEFieldCavityRep>("TestRep");
         rep_->setElementLength(2.0);
         rep_->setEz(5.0);
     }
 
-    std::unique_ptr<ConstantEzRep> rep_;
+    std::unique_ptr<ConstantEFieldCavityRep> rep_;
 };
 
 // ---------------------------------------------------------------------------
 // Geometry and field
 // ---------------------------------------------------------------------------
-TEST_F(ConstantEzRepTest, GeometryLength) {
+TEST_F(ConstantEFieldCavityRepTest, GeometryLength) {
     EXPECT_DOUBLE_EQ(rep_->getGeometry().getElementLength(), 2.0);
     rep_->setElementLength(3.5);
     EXPECT_DOUBLE_EQ(rep_->getGeometry().getElementLength(), 3.5);
     EXPECT_DOUBLE_EQ(rep_->getElementLength(), 3.5);
 }
 
-TEST_F(ConstantEzRepTest, FieldEz) {
+TEST_F(ConstantEFieldCavityRepTest, FieldEz) {
     EXPECT_DOUBLE_EQ(rep_->getField().getEz(), 5.0);
     rep_->setEz(-1.5);
     EXPECT_DOUBLE_EQ(rep_->getField().getEz(), -1.5);
     EXPECT_DOUBLE_EQ(rep_->getEz(), -1.5);
 }
 
-TEST_F(ConstantEzRepTest, SetEzSyncsBaseAndField) {
+TEST_F(ConstantEFieldCavityRepTest, SetEzSyncsBaseAndField) {
     rep_->setEz(100.0);
     EXPECT_DOUBLE_EQ(rep_->getEz(), 100.0);
     EXPECT_DOUBLE_EQ(rep_->getField().getEz(), 100.0);
@@ -52,10 +52,10 @@ TEST_F(ConstantEzRepTest, SetEzSyncsBaseAndField) {
 // ---------------------------------------------------------------------------
 // Clone
 // ---------------------------------------------------------------------------
-TEST_F(ConstantEzRepTest, Clone) {
+TEST_F(ConstantEFieldCavityRepTest, Clone) {
     std::unique_ptr<ElementBase> copy(rep_->clone());
     ASSERT_NE(copy.get(), nullptr);
-    ConstantEzRep* repCopy = dynamic_cast<ConstantEzRep*>(copy.get());
+    ConstantEFieldCavityRep* repCopy = dynamic_cast<ConstantEFieldCavityRep*>(copy.get());
     ASSERT_NE(repCopy, nullptr);
     EXPECT_DOUBLE_EQ(repCopy->getElementLength(), 2.0);
     EXPECT_DOUBLE_EQ(repCopy->getEz(), 5.0);
@@ -65,7 +65,7 @@ TEST_F(ConstantEzRepTest, Clone) {
 // ---------------------------------------------------------------------------
 // Channels L and EZ
 // ---------------------------------------------------------------------------
-TEST_F(ConstantEzRepTest, ChannelL) {
+TEST_F(ConstantEFieldCavityRepTest, ChannelL) {
     Channel* ch = rep_->getChannel("L", false);
     ASSERT_NE(ch, nullptr);
     EXPECT_TRUE(ch->set(1.5));
@@ -77,7 +77,7 @@ TEST_F(ConstantEzRepTest, ChannelL) {
     delete ch;
 }
 
-TEST_F(ConstantEzRepTest, ChannelEZ) {
+TEST_F(ConstantEFieldCavityRepTest, ChannelEZ) {
     Channel* ch = rep_->getChannel("EZ", false);
     ASSERT_NE(ch, nullptr);
     EXPECT_TRUE(ch->set(7.0));
@@ -89,7 +89,7 @@ TEST_F(ConstantEzRepTest, ChannelEZ) {
     delete ch;
 }
 
-TEST_F(ConstantEzRepTest, ChannelUnknownReturnsNull) {
+TEST_F(ConstantEFieldCavityRepTest, ChannelUnknownReturnsNull) {
     Channel* ch = rep_->getChannel("UNKNOWN", false);
     EXPECT_EQ(ch, nullptr);
 }
