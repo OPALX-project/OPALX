@@ -83,17 +83,6 @@ PartBunch<T, Dim>::PartBunch(double qi,
 
     IpplTimings::stopTimer(gatherInfoPartBunch);
 
-    // ---------------- binning setup ----------------
-    using bin_index_type = typename ParticleContainer_t::bin_index_type;
-    bin_index_type maxBins = Options::maxBins;
-    this->setBins(std::make_shared<AdaptBins_t>(
-        this->getParticleContainer(), 
-        BinningSelector_t(2), // TODO: hardcode z axis with coordinate selector at axis index 2
-        static_cast<bin_index_type>(maxBins),
-        Options::binningAlpha, Options::binningBeta, Options::desiredWidth // Cost function parameters
-    ));
-    this->getBins()->debug();
-
     this->setTempEField(std::make_shared<VField_t<T, Dim>>(
         this->fcontainer_m->getE()
     )); // user copy constructor
@@ -103,7 +92,7 @@ PartBunch<T, Dim>::PartBunch(double qi,
 
     static IpplTimings::TimerRef setSolverT = IpplTimings::getTimer("setSolver");
     IpplTimings::startTimer(setSolverT);
-    setSolver(OPALFieldSolver_m->getType());
+    setSolver();
     IpplTimings::stopTimer(setSolverT);
 
 
@@ -111,7 +100,6 @@ PartBunch<T, Dim>::PartBunch(double qi,
     IpplTimings::startTimer(prerun);
     pre_run();
     IpplTimings::stopTimer(prerun);
-    
     
     globalPartPerNode_m = std::make_unique<size_t[]>(ippl::Comm->size());
 
@@ -166,13 +154,13 @@ void  PartBunch<T, Dim>::gatherLoadBalanceStatistics() {
 }
 
 template <typename T, unsigned Dim>
-void PartBunch<T, Dim>::setSolver(std::string solver) {
+void PartBunch<T, Dim>::setSolver() {
     Inform m("PartBunch::setSolver");
-    m << "Initializing solver: " << solver << endl;
+    m << "Initializing solver: " << OPALFieldSolver_m->getType() << endl;
     if (this->solver_m != "")
         m << "Warning solver already initiated but overwrite ..." << endl;
 
-    this->solver_m = solver;
+    this->solver_m = OPALFieldSolver_m->getType();
 
     this->fcontainer_m->initializeFields(this->solver_m);
     
@@ -196,6 +184,39 @@ void PartBunch<T, Dim>::setSolver(std::string solver) {
         this->fsolver_m
     ));
     m << "Solver and Load Balancer set." << endl;
+
+    setBins();
+}
+
+template <typename T, unsigned Dim>
+void PartBunch<T, Dim>::setBins() {
+    Inform m("PartBunch::setBins");
+
+    BinningCmd* binningCmd = OPALFieldSolver_m->getBinningCmd();
+
+    if (!OPALFieldSolver_m->hasBinningCmd()) {
+        m << "Solver " << OPALFieldSolver_m->getOpalName() << " has no binning command attached, not using binning." << endl;
+        return;
+    }
+
+    m << "Using binning command: " << binningCmd->getOpalName() << endl;
+
+    std::string parameterName = binningCmd->getParameter();
+    if (parameterName != "VELOCITYZ") {
+        throw OpalException("PartBunch::setBins",
+                            "Binning parameter " + parameterName + " not supported yet! Only VELOCITYZ.");
+    }
+
+    this->setBins(std::make_shared<AdaptBins_t>(
+        this->getParticleContainer(),
+        BinningSelector_t(2),
+        binningCmd->getMaxBins(),
+        binningCmd->getBinningAlpha(),
+        binningCmd->getBinningBeta(),
+        binningCmd->getDesiredWidth() // Cost function parameters
+    ));
+    m << "Bins set." << endl;
+    this->getBins()->debug();
 }
 
 template <typename T, unsigned Dim>
@@ -493,20 +514,25 @@ void PartBunch<T, Dim>::bunchUpdate() {
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::computeSelfFields() {
     Inform m("PartBunch::computeSelfFields");
-    static IpplTimings::TimerRef completeBinningT = IpplTimings::getTimer("bTotalBinningT");
 
-    // Start binning and sorting by bins
-    std::shared_ptr<AdaptBins_t> bins = this->getBins();
-    //VField_t<double, 3>& Etmp = *(this->getTempEField());
+    if (this->hasBinning()) {
+        static IpplTimings::TimerRef completeBinningT = IpplTimings::getTimer("bTotalBinningT");
 
-    IpplTimings::startTimer(completeBinningT);
-    bins->doFullRebin(bins->getMaxBinCount()); // rebin with 128 bins // bins->getMaxBinCount()
-    // bins->print(); // For debugging...
-    bins->sortContainerByBin(); // Sort BEFORE, since it generates less atomics overhead with more bins!
-    bins->genAdaptiveHistogram(); // merge bins with width/N_part ratio of 1.0
-    IpplTimings::stopTimer(completeBinningT);
-    // bins->print(); // For debugging...
-    m << "Binning routine done." << endl;
+        // Start binning and sorting by bins
+        std::shared_ptr<AdaptBins_t> bins = this->getBins();
+        //VField_t<double, 3>& Etmp = *(this->getTempEField());
+
+        IpplTimings::startTimer(completeBinningT);
+        bins->doFullRebin(bins->getMaxBinCount()); // rebin with 128 bins // bins->getMaxBinCount()
+        // bins->print(); // For debugging...
+        bins->sortContainerByBin(); // Sort BEFORE, since it generates less atomics overhead with more bins!
+        bins->genAdaptiveHistogram(); // merge bins with width/N_part ratio of 1.0
+        IpplTimings::stopTimer(completeBinningT);
+        // bins->print(); // For debugging...
+        m << "Binning routine done." << endl;
+    } else {
+        m << "No AdaptBins object present, not using binning." << endl;
+    }
 
     static IpplTimings::TimerRef SolveTimer = IpplTimings::getTimer("SolveTimer");
     IpplTimings::startTimer(SolveTimer);

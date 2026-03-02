@@ -5,6 +5,7 @@ set (_SRCS
   DataSink.cpp
   ElementPositionWriter.cpp
   FieldSolverCmd.cpp
+  BinningCmd.cpp
   H5PartWrapper.cpp
   H5PartWrapperForPT.cpp
   MonitorStatisticsWriter.cpp
@@ -28,6 +29,7 @@ set (HDRS
     DataSink.h
     ElementPositionWriter.h
     FieldSolverCmd.h
+    BinningCmd.h
     H5PartWrapperForPT.h
     H5PartWrapper.h
     IpplInfoWrapper.h
