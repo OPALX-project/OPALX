@@ -82,7 +82,7 @@ const std::map<ElementType, std::string> ElementBase::elementTypeToString_s = {
     {ElementType::SOLENOID, "SOLENOID"},
     {ElementType::PROBE, "Probe"},
     {ElementType::VACUUM, "Vacuum"},
-    {ElementType::CONSTANTEZ, "ConstantEz"}};
+    {ElementType::CONSTANTEFIELDCAVITY, "ConstantEFieldCavity"}};
 
 ElementBase::ElementBase() : ElementBase("") {
 }

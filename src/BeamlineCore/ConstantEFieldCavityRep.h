@@ -1,16 +1,16 @@
-#ifndef CLASSIC_ConstantEzRep_HH
-#define CLASSIC_ConstantEzRep_HH
+#ifndef CLASSIC_ConstantEFieldCavityRep_HH
+#define CLASSIC_ConstantEFieldCavityRep_HH
 
-#include "AbsBeamline/ConstantEz.h"
+#include "AbsBeamline/ConstantEFieldCavity.h"
 #include "BeamlineGeometry/StraightGeometry.h"
 #include "Fields/ConstEzField.h"
 
-class ConstantEzRep : public ConstantEz {
+class ConstantEFieldCavityRep : public ConstantEFieldCavity {
 public:
-    explicit ConstantEzRep(const std::string& name);
-    ConstantEzRep();
-    ConstantEzRep(const ConstantEzRep&);
-    virtual ~ConstantEzRep();
+    explicit ConstantEFieldCavityRep(const std::string& name);
+    ConstantEFieldCavityRep();
+    ConstantEFieldCavityRep(const ConstantEFieldCavityRep&);
+    virtual ~ConstantEFieldCavityRep();
 
     virtual ElementBase* clone() const;
 
@@ -26,10 +26,11 @@ public:
     void setEz(double ez) override;
 
 private:
-    void operator=(const ConstantEzRep&);
+    void operator=(const ConstantEFieldCavityRep&);
 
     StraightGeometry geometry;
     ConstEzField field;
 };
 
-#endif  // CLASSIC_ConstantEzRep_HH
+#endif  // CLASSIC_ConstantEFieldCavityRep_HH
+

@@ -1,6 +1,6 @@
 set (_SRCS
     OpalCavity.cpp
-    OpalConstantEz.cpp
+    OpalConstantEFieldCavity.cpp
     OpalTravelingWave.cpp
     OpalDrift.cpp
     OpalElement.cpp
@@ -25,7 +25,7 @@ set (_SRCS
 set (HDRS
     OpalBeamline.h
     OpalCavity.h
-    OpalConstantEz.h
+    OpalConstantEFieldCavity.h
     OpalDrift.h
     OpalElement.h
     OpalMarker.h

@@ -1,21 +1,21 @@
-#ifndef CLASSIC_ConstantEz_HH
-#define CLASSIC_ConstantEz_HH
+#ifndef CLASSIC_ConstantEFieldCavity_HH
+#define CLASSIC_ConstantEFieldCavity_HH
 
 #include "AbsBeamline/Component.h"
 
 /**
- * @class ConstantEz
- * @brief Component applying a constant accelerating electric field in z.
+ * @class ConstantEFieldCavity
+ * @brief Component applying a constant accelerating electric field (Ex,Ey,Ez).
  *
- * Homogeneous electrostatic field E = (0, 0, Ez) over the element length.
+ * Homogeneous electrostatic field E = (Ex, Ey, Ez) over the element length.
  * GPU-compatible apply() via Kokkos parallel_for.
  */
-class ConstantEz : public Component {
+class ConstantEFieldCavity : public Component {
 public:
-    explicit ConstantEz(const std::string& name);
-    ConstantEz();
-    ConstantEz(const ConstantEz& right);
-    virtual ~ConstantEz();
+    explicit ConstantEFieldCavity(const std::string& name);
+    ConstantEFieldCavity();
+    ConstantEFieldCavity(const ConstantEFieldCavity& right);
+    virtual ~ConstantEFieldCavity();
 
     virtual void accept(BeamlineVisitor& visitor) const override;
 
@@ -37,15 +37,23 @@ public:
                                           Vector_t<double, 3>& E,
                                           Vector_t<double, 3>& B) override;
 
+    double getEx() const;
+    double getEy() const;
     double getEz() const;
+
+    virtual void setEx(double ex);
+    virtual void setEy(double ey);
     virtual void setEz(double ez);
 
 protected:
+    double Ex_m;
+    double Ey_m;
     double Ez_m;
     double startField_m;
 
 private:
-    void operator=(const ConstantEz&);
+    void operator=(const ConstantEFieldCavity&);
 };
 
-#endif  // CLASSIC_ConstantEz_HH
+#endif  // CLASSIC_ConstantEFieldCavity_HH
+

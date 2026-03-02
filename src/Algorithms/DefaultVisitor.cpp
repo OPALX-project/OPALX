@@ -22,7 +22,7 @@
 //
 #include "Algorithms/DefaultVisitor.h"
 
-#include "AbsBeamline/ConstantEz.h"
+#include "AbsBeamline/ConstantEFieldCavity.h"
 #include "AbsBeamline/Drift.h"
 #include "AbsBeamline/ElementBase.h"
 #include "AbsBeamline/Marker.h"
@@ -63,8 +63,8 @@ void DefaultVisitor::visitComponent(const Component& comp) {
     applyDefault(comp);
 }
 
-void DefaultVisitor::visitConstantEz(const ConstantEz& ce) {
-    applyDefault(ce);
+void DefaultVisitor::visitConstantEFieldCavity(const ConstantEFieldCavity& cav) {
+    applyDefault(cav);
 }
 
 void DefaultVisitor::visitDrift(const Drift& drf) {
