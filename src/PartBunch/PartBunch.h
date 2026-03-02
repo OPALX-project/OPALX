@@ -210,7 +210,7 @@ public:
     void bunchUpdate();
     
     ~PartBunch() {
-        *gmsg << "* PartBunch Destructor: Finished time step: " << this->it_m << " time: " << this->time_m << endl;
+        *gmsg << level2 << "* PartBunch Destructor: Finished time step: " << this->it_m << " time: " << this->time_m << endl;
     }
 
     std::shared_ptr<ParticleContainer_t> getParticleContainer() {
@@ -451,7 +451,7 @@ public:
         isUnitless_m = true;
 
         /// \todo remove later
-        *gmsg << "* Switched to unitless positions." << endl; 
+        *gmsg << level4 << "* Switched to unitless positions." << endl; 
     }
     /**
      * @brief Convert particle positions from unitless back to physical coordinates.
@@ -496,7 +496,7 @@ public:
         isUnitless_m = false;
 
         /// \todo remove later
-        *gmsg << "* Switched to physical positions." << endl;
+        *gmsg << level4 << "* Switched to physical positions." << endl;
     }
 
     size_t calcNumPartsOutside(Vector_t<double, Dim> /*x*/) {

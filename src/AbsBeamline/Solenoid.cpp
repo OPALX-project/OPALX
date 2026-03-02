@@ -65,7 +65,8 @@ Solenoid::~Solenoid() {
  * (not implemented, always returns false)
  */
 bool Solenoid::apply() {
-    std::cout<< "Solenoid::apply() called"<<std::endl;
+    Inform m("Solenoid::apply");
+    m << level5 << "Solenoid::apply() called." << endl;
     
     std::shared_ptr<ParticleContainer_t> pc = 
         RefPartBunch_m->getParticleContainer();
