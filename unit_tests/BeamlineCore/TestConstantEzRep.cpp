@@ -43,6 +43,17 @@ TEST_F(ConstantEFieldCavityRepTest, FieldEz) {
     EXPECT_DOUBLE_EQ(rep_->getEz(), -1.5);
 }
 
+TEST_F(ConstantEFieldCavityRepTest, ExEySetters) {
+    EXPECT_DOUBLE_EQ(rep_->getEx(), 0.0);
+    EXPECT_DOUBLE_EQ(rep_->getEy(), 0.0);
+
+    rep_->setEx(1.0);
+    rep_->setEy(-2.0);
+
+    EXPECT_DOUBLE_EQ(rep_->getEx(), 1.0);
+    EXPECT_DOUBLE_EQ(rep_->getEy(), -2.0);
+}
+
 TEST_F(ConstantEFieldCavityRepTest, SetEzSyncsBaseAndField) {
     rep_->setEz(100.0);
     EXPECT_DOUBLE_EQ(rep_->getEz(), 100.0);
