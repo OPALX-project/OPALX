@@ -609,8 +609,13 @@ public:
         *gmsg << "not implemented" << endl;
         return 0.0;
     }
-    bool hasBinning() {
+    bool hasBinning() const {
         return this->bins_m != nullptr;
+    }
+
+    /** Number of field solver bins (1 if no binning, else getBins()->getCurrentBinCount()). */
+    int getCurrentNBins() const {
+        return hasBinning() ? static_cast<int>(bins_m->getCurrentBinCount()) : 1;
     }
     double calcMeanPhi() {
         *gmsg << "not implemented" << endl;
