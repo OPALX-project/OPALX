@@ -86,7 +86,7 @@ namespace ParticleBinning {
             initTimers();
 
             Inform msg("AdaptBins");
-            msg << "AdaptBins initialized with maxBins = " << maxBins_m 
+            msg << level3 << "AdaptBins initialized with maxBins = " << maxBins_m 
                 << ", alpha = " << binningAlpha_m
                 << ", beta = " << binningBeta_m
                 << ", desiredWidth = " << desiredWidth_m << endl;
@@ -417,39 +417,39 @@ namespace ParticleBinning {
             Inform msg("KOKKOS DEBUG"); // , INFORM_ALL_NODES
 
             int rank = ippl::Comm->rank();
-            msg << "=====================================" << endl;
-            msg << " Kokkos Debug Information (Rank " << rank << ")" << endl;
-            msg << "=====================================" << endl;
+            msg << level2 << "=====================================" << endl;
+            msg << level2 << " Kokkos Debug Information (Rank " << rank << ")" << endl;
+            msg << level2 << "=====================================" << endl;
 
             // Check number of CPU threads (OpenMP or other CPU execution spaces)
             #ifdef KOKKOS_ENABLE_OPENMP
             int num_threads = Kokkos::OpenMP::concurrency();
-            msg << "CPU Threads (OpenMP): " << num_threads << endl;
+            msg << level2 << "CPU Threads (OpenMP): " << num_threads << endl;
             #elif defined(KOKKOS_ENABLE_THREADS)
             int num_threads = Kokkos::Threads::concurrency();
-            msg << "CPU Threads (Kokkos::Threads): " << num_threads << endl;
+            msg << level2 << "CPU Threads (Kokkos::Threads): " << num_threads << endl;
             #else
-            msg << "CPU Threads: No multi-threaded CPU execution space enabled." << endl;
+            msg << level2 << "CPU Threads: No multi-threaded CPU execution space enabled." << endl;
             #endif
 
             // Check number of GPUs (CUDA devices)
             #ifdef KOKKOS_ENABLE_CUDA
             int num_gpus = Kokkos::Cuda::detect_device_count();
-            msg << "CUDA Enabled: Rank " << rank << " sees " << num_gpus << " GPU(s) available." << endl;
+            msg << level2 << "CUDA Enabled: Rank " << rank << " sees " << num_gpus << " GPU(s) available." << endl;
             Kokkos::Cuda cuda_instance;  
             std::stringstream ss;
             cuda_instance.print_configuration(ss);
-            msg << ss.str();
+            msg << level2 << ss.str();
             #else
-            msg << "CUDA: GPU support disabled.\n";
+            msg << level2 << "CUDA: GPU support disabled.\n";
             #endif
 
             // Additional information on concurrency in the default execution space
             int default_concurrency = Kokkos::DefaultExecutionSpace::concurrency();
-            msg << "Default Execution Space Concurrency: " << default_concurrency << endl;
-            msg << "Binning cost function parameters: alpha = " << binningAlpha_m << ", beta = " << binningBeta_m << ", desiredWidth = " << desiredWidth_m << endl;
+            msg << level2 << "Default Execution Space Concurrency: " << default_concurrency << endl;
+            msg << level2 << "Binning cost function parameters: alpha = " << binningAlpha_m << ", beta = " << binningBeta_m << ", desiredWidth = " << desiredWidth_m << endl;
 
-            msg << "=====================================" << endl;
+            msg << level2 << "=====================================" << endl;
         }
 
         /**

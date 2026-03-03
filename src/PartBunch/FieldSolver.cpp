@@ -18,7 +18,7 @@ void  FieldSolver<double,3>::initSolverWithParams(const ippl::ParameterList& sp)
     this->getSolver().template emplace<Solver>();
     Solver& solver = std::get<Solver>(this->getSolver());
     solver.mergeParameters(sp);
-    m << "Initialized solver with params: " << this->getStype() << endl;
+    m << level3 << "Initialized solver with params: " << this->getStype() << endl;
 
     // test if rho_m exists (just in case)
     if (!rho_m) {
@@ -27,7 +27,7 @@ void  FieldSolver<double,3>::initSolverWithParams(const ippl::ParameterList& sp)
     }
 
     solver.setRhs(*rho_m);
-    m << "Set solver RHS." << endl;
+    m << level5 << "Set solver RHS." << endl;
 
     if constexpr ((std::is_same_v<Solver, CGSolver_t<T, Dim>>) /*|| 
                   (std::is_same_v<Solver, FEMSolver_t<T, Dim>>) || 
@@ -39,14 +39,14 @@ void  FieldSolver<double,3>::initSolverWithParams(const ippl::ParameterList& sp)
         // directly and use this to get the electric field
         solver.setLhs(*phi_m);
         solver.setGradient(*E_m);
-        m << "Set gradient for CG." << endl;
+        m << level5 << "Set gradient for CG." << endl;
     } else {
         // The periodic Poisson solver, Open boundaries solver,
         // and the TG solver compute the electric field directly
         solver.setLhs(*E_m);
     }
 
-    m << "Set solver LHS." << endl;
+    m << level4 << "Set solver RHS+LHS." << endl;
     call_counter_m = 0;
 }
 
@@ -62,6 +62,7 @@ void FieldSolver<double,3>::dumpVectField(std::string what) {
     //    std::variant<Field_t<3>*, VField_t<double, 3>* > field;
 
     if (ippl::Comm->size() > 1 || call_counter_m<2) {
+        m << level5 << "Skipping vector field dump for multiple ranks or first call." << endl;
         return;
     }
 
@@ -153,7 +154,7 @@ void FieldSolver<double,3>::dumpVectField(std::string what) {
             }
         }
     fout.close();
-    m << "*** FINISHED DUMPING " + Util::toUpper(what) + " FIELD *** to " << file.string() << endl;
+    m << level5 << "*** FINISHED DUMPING " + Util::toUpper(what) + " FIELD *** to " << file.string() << endl;
 }
 
 template <>
@@ -164,9 +165,10 @@ void FieldSolver<double,3>::dumpScalField(std::string what) {
      */
 
     Inform m("FS::dumpScalField() ");
-    m << "Dumping scalar field: " << what << endl;
+    m << level5 << "Dumping scalar field: " << what << endl;
 
     if (ippl::Comm->size() > 1 /*|| call_counter_m<2*/) {
+        m << level5 << "Skipping scalar field dump for multiple ranks or first call." << endl;
         return;
     }
 
@@ -292,7 +294,7 @@ void FieldSolver<double,3>::dumpScalField(std::string what) {
         }
     }
     fout.close();
-    m << "*** FINISHED DUMPING " + Util::toUpper(what) + " FIELD *** to " << file.string() << endl;
+    m << level5 << "*** FINISHED DUMPING " + Util::toUpper(what) + " FIELD *** to " << file.string() << endl;
 }
 
 template <>
@@ -392,7 +394,7 @@ void FieldSolver<double,3>::runSolver(bool force_skip_field_dump) {
     force_skip_field_dump, which is only used in the debug output functions 
     for now.
     */
-    m << "Running solver with type: " << this->getStype() << ". Force skip field dump: " << force_skip_field_dump << endl;
+    m << level3 << "Running solver with type: " << this->getStype() << ". Force skip field dump: " << force_skip_field_dump << endl;
 
     if (this->getStype() == "CG") {
             CGSolver_t<double, 3>& solver = std::get<CGSolver_t<double, 3>>(this->getSolver());
@@ -425,7 +427,7 @@ void FieldSolver<double,3>::runSolver(bool force_skip_field_dump) {
             ippl::Comm->barrier();*/
             int iterations = solver.getIterationCount();
             int residue    = solver.getResidue();
-            m << "CG solver finished. Iterations: " << iterations 
+            m << level4 << "CG solver finished. Iterations: " << iterations 
               << ", Residue: " << residue << endl;
     } else if (this->getStype() == "FFT") {
         if constexpr (Dim == 2 || Dim == 3) {
@@ -494,7 +496,7 @@ double FieldSolver<double, 3>::getCouplingConstant() const {
 
 template<>
 void FieldSolver<double,3>::setPotentialBCs() {
-    Inform m ("FieldSolver::setPotentialBCs");
+    Inform m("FieldSolver::setPotentialBCs");
     // Check if BC handler is set
     if (!hasValidBCHandler()) {
         throw OpalException("FieldSolver::setPotentialBCs",
@@ -502,7 +504,7 @@ void FieldSolver<double,3>::setPotentialBCs() {
     }
 
     if (this->getStype() != "CG") {
-        m << "Potential BCs only need to be set for CG solver. Current solver type: " 
+        m << level3 << "Potential BCs only need to be set for CG solver. Current solver type: " 
           << this->getStype() << endl;
         return;
     }
@@ -513,7 +515,7 @@ void FieldSolver<double,3>::setPotentialBCs() {
     bc_type bc_container = getBCHandler()->toIPPLBConds<Field_t<Dim>>();
     phi_m->setFieldBC(bc_container);
     // rho_m->setFieldBC(bc_container);
-    m << "Potential BCs in FieldSolver updated using BCHandler." << endl;
+    m << level4 << "Potential BCs in FieldSolver updated using BCHandler." << endl;
 }
 
 /*
