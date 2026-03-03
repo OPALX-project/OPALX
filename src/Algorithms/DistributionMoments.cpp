@@ -343,7 +343,7 @@ void DistributionMoments::computeMinMaxPosition(ippl::ParticleAttrib<Vector_t<do
 void DistributionMoments::compute(
     const std::vector<OpalParticle>::const_iterator& /*first*/,
     const std::vector<OpalParticle>::const_iterator& /*last*/) {
-    *gmsg << "not implemented" << endl;
+    *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
 }
 
 
@@ -571,7 +571,7 @@ double DistributionMoments::computeNormalizedEmittance(
 }
 
 void DistributionMoments::fillMembers(std::vector<double>& /*localMoments*/) {
-    *gmsg << "not implemented" << endl;
+    *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl; 
     /*
     Vector_t<double, 3> squaredEps, fac, sumRP;
     double perParticle = 1.0 / totalNumParticles_m;
@@ -759,6 +759,6 @@ void DistributionMoments::resetPlasmaParameters() {
 /// \todo this needs to go
 bool DistributionMoments::isParticleExcluded(const OpalParticle& /*particle*/) const {
     // FIXME After issue 287 is resolved this shouldn't be necessary anymore
-    *gmsg << "not implemented" << endl;
+    *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl; 
     return true;
 }
