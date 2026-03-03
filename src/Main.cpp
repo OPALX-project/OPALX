@@ -63,27 +63,27 @@ namespace OPALXMAIN {
         std::string mySpace("            ");
 
         *gmsg << mySpace << "  ____  _____        _       __   __" << endl;
+*gmsg << "\033[1;32m";
+*gmsg << R"(
 
-        /* \todo fix OPAL
-        *gmsg << mySpace << " // __ \|  __ \ /\   | |      \ \ // // " << endl;
+  ██████  ██████   █████  ██      ██   ██
+ ██    ██ ██   ██ ██   ██ ██       ██ ██
+ ██    ██ ██████  ███████ ██        ███
+ ██    ██ ██      ██   ██ ██       ██ ██
+  ██████  ██      ██   ██ ███████ ██   ██
 
-        *gmsg << mySpace << "| |  | | |__) /  \  | |  _____\ V /" << endl;
-        *gmsg << mySpace << "| |  | |  ___/ /\ \ | | |______> <" << endl;
+         This is OPALX (Object Oriented Parallel Accelerator Library for Exascale)
 
-        *gmsg << mySpace << "| |__| | |  / ____ \| |____   / . \\" << endl;
-        *gmsg << mySpace << "\_____/|_| /_/    \_\______| /_/ \_\\" << endl;
+)" << "\033[0m" << endl;
 
-        */
         std::string gitRevision = "git rev. " + Util::getGitRevision();
-        std::string copyRight   = "(c) PSI, http://amas.web.psi.ch";
+        std::string copyRight   = "(c) PSI, https://github.com/OPALX-project/OPALX";
         *gmsg << endl
-              << "This is OPAL-X (Object Oriented Parallel Accelerator Library) Version "
+              << "OPALX is the performance portable version of OPAL :: Version "
               << OPAL_PROJECT_VERSION << "\n"
               << std::setw(37 + gitRevision.length() / 2) << std::right << gitRevision << "\n\n"
               << endl
               << std::setw(37 + copyRight.length() / 2) << std::right << copyRight << "\n\n"
-              << endl
-              << "This is the performance portable version of OPAL" << endl
               << endl;
 
         *gmsg << "Please send cookies, goodies or other motivations (wine and beer ... ) \nto the "
@@ -171,7 +171,6 @@ int main(int argc, char* argv[]) {
 
         try {
             Configure::configure();
-            *gmsg << "configure done argc= " << argc << endl;
 
             // Read startup file.
             FileStream::setEcho(Options::echo);
