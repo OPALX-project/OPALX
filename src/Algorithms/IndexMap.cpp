@@ -345,6 +345,9 @@ namespace {
         case ElementType::TRAVELINGWAVE:
             flags[RFCAVITY] = 1;
             break;
+        case ElementType::CONSTANTEFIELDCAVITY:
+            flags[OTHER] = 1;
+            break;
         default:
             flags[OTHER] = 1;
             break;
