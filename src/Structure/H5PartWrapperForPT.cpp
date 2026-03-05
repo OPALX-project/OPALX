@@ -204,7 +204,7 @@ void H5PartWrapperForPT::readStepData(
     }
 
     REPORTONERROR(H5PartSetView(file_m, -1, -1));
-    *gmsg << "H5PartWrapperForPT::readStepData not implemented" << endl;
+    *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
 }
 
 void H5PartWrapperForPT::writeHeader() {
