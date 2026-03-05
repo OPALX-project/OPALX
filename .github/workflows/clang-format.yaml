@@ -60,7 +60,7 @@ jobs:
           while IFS= read -r file; do
             [ -z "$file" ] && continue
             .venv/bin/clang-format --dry-run --Werror \
-              -style="file:${{ github.workspace }}/.clang-format" \
+              -style=file \
               "$file"
           done <<'EOF'
           ${{ steps.files.outputs.files }}
