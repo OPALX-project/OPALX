@@ -35,6 +35,7 @@
 
 // Generic element classes interacting with a BeamlineVisitor.
 class Component;
+class ConstantEFieldCavity;
 
 // Beam line structure classes.
 class Beamline;
@@ -71,6 +72,9 @@ public:
 
     /// Apply the algorithm to an arbitrary component.
     virtual void visitComponent(const Component&) = 0;
+
+    /// Apply the algorithm to a constant E-field cavity element.
+    virtual void visitConstantEFieldCavity(const ConstantEFieldCavity&) = 0;
 
     /// Apply the algorithm to a drift space.
     virtual void visitDrift(const Drift&) = 0;
