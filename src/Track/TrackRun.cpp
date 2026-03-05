@@ -316,13 +316,13 @@ void TrackRun::execute() {
 
     if (ippl::Comm->rank() == 0) {
         long number_of_processors = sysconf(_SC_NPROCESSORS_ONLN);
-        *gmsg << level1 << "number_of_processors " << number_of_processors << endl;
+        *gmsg << level5 << "sysconf(_SC_NPROCESSORS_ONLN)= " << number_of_processors << endl;
 
         // *gmsg << "omp_get_max_threads() " << omp_get_max_threads() << endl;
 
         int world_size;
         MPI_Comm_size( MPI_COMM_WORLD, &world_size );
-        *gmsg << level1 << "MPI_Comm_size " << world_size << endl;
+        *gmsg << level5 << "MPI_Comm_size= " << world_size << endl;
     }
 
     static IpplTimings::TimerRef samplingTime = IpplTimings::getTimer("samplingTime");

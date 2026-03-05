@@ -130,7 +130,7 @@ void OrbitThreader::execute() {
     std::set<std::shared_ptr<Component>> intersection, currentSet;
     errorFlag_m = EVERYTHINGFINE;
 
-    *gmsg << "OrbitThreader dt_m= " << dt_m << endl;
+    *gmsg << "* OrbitThreader dt_m= " << dt_m << endl;
     
     do {
         checkElementLengths(elementSet);
@@ -145,8 +145,8 @@ void OrbitThreader::execute() {
 
         integrate(elementSet, maxDistance);
 
-        *gmsg << "OrbitThreader maxDistance= " << maxDistance << endl;
-        *gmsg << "OrbitThreader #elements  = " << elementSet.size() << endl;
+        *gmsg << "* OrbitThreader maxDistance= " << maxDistance << endl;
+        *gmsg << "* OrbitThreader #elements  = " << elementSet.size() << endl;
         
         registerElement(elementSet, initialS, initialR, initialP);
 

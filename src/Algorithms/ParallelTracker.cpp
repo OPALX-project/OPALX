@@ -362,13 +362,12 @@ void ParallelTracker::execute() {
     // Get the current global tracking step
     unsigned long long step = itsBunch_m->getGlobalTrackStep();
     OPALTimer::Timer myt1;
-    m << level1 << "* Track start at: " << myt1.time() 
+    *gmsg << level1 << "* Track start at: " << myt1.time() 
       << ", t= " << Util::getTimeString(time) << "; "
       << "zstart at: " << Util::getLengthString(pathLength_m) << endl
-      << "* Executing ParallelTracker\n"
       << "* Initial dt = " << Util::getTimeString(itsBunch_m->getdT()) << endl
       << "* Max integration steps = " << stepSizes_m.getMaxSteps() 
-      << ", next step = " << step << endl << endl;
+      << ", next step = " << step << endl;
 
     setOptionalVariables();
 
