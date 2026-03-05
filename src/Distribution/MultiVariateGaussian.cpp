@@ -10,9 +10,9 @@ using Matrix_t = ippl::Vector<ippl::Vector<double, 6>, 6>;
  * @param fc Shared pointer to the field container.
  * @param opalDist Shared pointer to the distribution.
  */
-MultiVariateGaussian::MultiVariateGaussian(std::shared_ptr<ParticleContainer_t> &pc, 
-                                           std::shared_ptr<FieldContainer_t> &fc, 
-                                           std::shared_ptr<Distribution_t> &opalDist)
+MultiVariateGaussian::MultiVariateGaussian(std::shared_ptr<ParticleContainer_t> pc, 
+                                           std::shared_ptr<FieldContainer_t> fc, 
+                                           std::shared_ptr<Distribution_t> opalDist)
     : SamplingBase(pc, fc, opalDist) {
 
         // Initialize covariance matrix from the distribution.
@@ -35,7 +35,7 @@ MultiVariateGaussian::MultiVariateGaussian(std::shared_ptr<ParticleContainer_t> 
         initRandomPool();
     }
 
-MultiVariateGaussian::MultiVariateGaussian(std::shared_ptr<ParticleContainer_t>& pc,
+MultiVariateGaussian::MultiVariateGaussian(std::shared_ptr<ParticleContainer_t> pc,
                    const Vector_t<double, 3>& meanR,
                    const Vector_t<double, 3>& meanP,
                    const Vector_t<double, 3>& sigmaR,
@@ -71,7 +71,7 @@ MultiVariateGaussian::MultiVariateGaussian(std::shared_ptr<ParticleContainer_t>&
 }
 
 
-MultiVariateGaussian::MultiVariateGaussian(std::shared_ptr<ParticleContainer_t>& pc,
+MultiVariateGaussian::MultiVariateGaussian(std::shared_ptr<ParticleContainer_t> pc,
                    const Vector_t<double, 3>& meanR,
                    const Vector_t<double, 3>& meanP,
                    const Matrix_t &cov,

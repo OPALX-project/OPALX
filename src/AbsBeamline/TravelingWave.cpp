@@ -21,8 +21,7 @@
 #include "PartBunch/PartBunch.h"
 #include "Fields/Fieldmap.h"
 #include "Physics/Units.h"
-
-#include "Utilities/GSLCubicSpline.h"
+#include "Utilities/GSLSpline.h"
 
 #include <fstream>
 #include <iostream>
@@ -241,8 +240,7 @@ void TravelingWave::initialise(PartBunch_t* bunch, double& startField, double& e
 void TravelingWave::initialise(PartBunch_t* /*bunch*/, std::shared_ptr<AbstractTimeDependence> /*freq_atd*/,
                                std::shared_ptr<AbstractTimeDependence> /*ampl_atd*/,
                                std::shared_ptr<AbstractTimeDependence> /*phase_atd*/) {
-    *gmsg << "TravelingWave::initialise not implemented" << endl;
-    
+  *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
 }
 
 

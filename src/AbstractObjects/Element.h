@@ -34,6 +34,7 @@
 #include "AbsBeamline/ElementBase.h"
 
 #include <memory>
+#include <utility>
 
 
 class Element: public Object {
@@ -92,8 +93,12 @@ public:
     //  Return a pointer to the embedded CLASSIC ElementBase
     inline ElementBase *getElement() const;
 
+    /// Return the embedded CLASSIC element as shared_ptr.
+    inline std::shared_ptr<ElementBase> getElementPtr() const;
+
     /// Assign new CLASSIC element.
     inline void setElement(ElementBase *);
+    inline void setElement(std::shared_ptr<ElementBase> base);
 
 protected:
 
@@ -123,8 +128,21 @@ inline ElementBase *Element::getElement() const {
 }
 
 
+inline std::shared_ptr<ElementBase> Element::getElementPtr() const {
+    return itsClassicElement;
+}
+
+
 inline void Element::setElement(ElementBase *base) {
-    itsClassicElement = std::shared_ptr<ElementBase>(base);
+    if (base == itsClassicElement.get()) {
+        return;
+    }
+    itsClassicElement.reset(base);
+}
+
+
+inline void Element::setElement(std::shared_ptr<ElementBase> base) {
+    itsClassicElement = std::move(base);
 }
 
 #endif // OPAL_Element_HH

@@ -10,16 +10,16 @@ using Distribution_t = Distribution;
 using GeneratorPool = typename Kokkos::Random_XorShift64_Pool<>;
 using Dist_t = ippl::random::NormalDistribution<double, 3>;
 
-FlatTop::FlatTop(std::shared_ptr<ParticleContainer_t> &pc,
-                 std::shared_ptr<FieldContainer_t> &fc,
-                 std::shared_ptr<Distribution_t> &opalDist)
+FlatTop::FlatTop(std::shared_ptr<ParticleContainer_t> pc,
+                 std::shared_ptr<FieldContainer_t> fc,
+                 std::shared_ptr<Distribution_t> opalDist)
     : SamplingBase(pc, fc, opalDist), rand_pool_m(determineRandInit()) {
     setParameters(opalDist);
 }
 
 FlatTop::FlatTop(
-    std::shared_ptr<ParticleContainer_t> &pc,
-    std::shared_ptr<FieldContainer_t> &fc,
+    std::shared_ptr<ParticleContainer_t> pc,
+    std::shared_ptr<FieldContainer_t> fc,
     bool emitting, 
     double sigmaTFall,
     double sigmaTRise,
@@ -39,7 +39,7 @@ FlatTop::FlatTop(
 }
 
 FlatTop::FlatTop(
-    std::shared_ptr<ParticleContainer_t> &pc,
+    std::shared_ptr<ParticleContainer_t> pc,
     bool emitting, 
     double sigmaTFall,
     double sigmaTRise,

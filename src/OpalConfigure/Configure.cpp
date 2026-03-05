@@ -51,6 +51,7 @@
 // Table-related commands.
 #include "Structure/Beam.h"
 #include "Structure/FieldSolverCmd.h"
+#include "Structure/BinningCmd.h"
 // #include "Tables/List.h"
 
 // Value definitions commands.
@@ -62,14 +63,20 @@
 
 // Element commands.
 #include "Elements/OpalCavity.h"
+#include "Elements/OpalConstantEFieldCavity.h"
 #include "Elements/OpalDrift.h"
 #include "Elements/OpalMarker.h"
 #include "Elements/OpalOffset/OpalLocalCartesianOffset.h"
 #include "Elements/OpalProbe.h"
 #include "Elements/OpalMultipole.h"
+#include "Elements/OpalQuadrupole.h"
 #include "Elements/OpalRingDefinition.h"
 #include "Elements/OpalSolenoid.h"
 #include "Elements/OpalVerticalFFAMagnet.h"
+#include "Elements/OpalPolynomialTimeDependence.h"
+#include "Elements/OpalSinusoidalTimeDependence.h"
+#include "Elements/OpalSplineTimeDependence.h"
+#include "Elements/OpalMultipoleT.h"
 
 // Structure-related commands.
 #include "Lines/Line.h"
@@ -113,20 +120,27 @@ namespace {
         opal->create(new Beam());
         opal->create(new FieldSolverCmd());
         opal->create(new Distribution());
+        opal->create(new BinningCmd());
     }
 
     void makeElements() {
         OpalData* opal = OpalData::getInstance();
         opal->create(new OpalCavity());
+        opal->create(new OpalConstantEFieldCavity());
         opal->create(new OpalDrift());
         opal->create(new OpalMarker());
         opal->create(new OpalProbe());
         opal->create(new OpalMultipole());
+        opal->create(new OpalQuadrupole());
         opal->create(new OpalSolenoid());
         opal->create(new OpalRingDefinition());
         opal->create(new Line());
         opal->create(new OpalOffset::OpalLocalCartesianOffset());
         opal->create(new OpalVerticalFFAMagnet());
+        opal->create(new OpalPolynomialTimeDependence());
+        opal->create(new OpalSinusoidalTimeDependence());
+        opal->create(new OpalSplineTimeDependence());
+        //opal->create(new OpalMultipoleT());
     }
 };  // namespace
 

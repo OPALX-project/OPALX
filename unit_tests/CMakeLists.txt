@@ -19,6 +19,11 @@ endif()
 
 include("${CMAKE_CURRENT_LIST_DIR}/cmake/AddOPALXTest.cmake")
 
+add_subdirectory(AbsBeamline)
+add_subdirectory(BeamlineCore)
 add_subdirectory(Distribution)
+add_subdirectory(Fields)
 add_subdirectory(Utilities)
+add_subdirectory(Structure)
 add_subdirectory(Algorithms)
+add_subdirectory(PartBunch)
