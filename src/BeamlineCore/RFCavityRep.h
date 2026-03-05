@@ -22,42 +22,45 @@
 #include "BeamlineGeometry/StraightGeometry.h"
 #include "Fields/AcceleratingField.h"
 
-class RFCavityRep : public RFCavity {
+
+class RFCavityRep: public RFCavity {
+
 public:
+
     /// Constructor with given name.
-    explicit RFCavityRep(const std::string& name);
+    explicit RFCavityRep(const std::string &name);
 
     RFCavityRep();
-    RFCavityRep(const RFCavityRep&);
+    RFCavityRep(const RFCavityRep &);
     virtual ~RFCavityRep();
 
     /// Return clone.
     //  Return an identical deep copy of the element.
-    virtual ElementBase* clone() const;
+    virtual ElementBase *clone() const;
 
     /// Construct a read/write channel.
     //  This method constructs a Channel permitting read/write access to
     //  the attribute [b]aKey[/b] and returns it.
     //  If the attribute does not exist, it returns nullptr.
-    virtual Channel* getChannel(const std::string& aKey, bool = false);
+    virtual Channel *getChannel(const std::string &aKey, bool = false);
 
     /// Get field.
     //  Version for non-constant object.
-    virtual AcceleratingField& getField();
+    virtual AcceleratingField &getField();
 
     /// Get field.
     //  Version for constant object.
-    virtual const AcceleratingField& getField() const;
+    virtual const AcceleratingField &getField() const;
 
     /// Get geometry.
     //  Return the element geometry.
     //  Version for non-constant object.
-    virtual StraightGeometry& getGeometry();
+    virtual StraightGeometry &getGeometry();
 
     /// Get geometry.
     //  Return the element geometry
     //  Version for constant object.
-    virtual const StraightGeometry& getGeometry() const;
+    virtual const StraightGeometry &getGeometry() const;
 
     /// Get amplitude.
     //  Return the RF amplitude in Volts.
@@ -88,8 +91,9 @@ public:
     static void setIgnore(bool ignore = false);
 
 private:
+
     // Not implemented.
-    void operator=(const RFCavityRep&);
+    void operator=(const RFCavityRep &);
 
     /// The cavity's geometry.
     StraightGeometry geometry;
@@ -101,4 +105,4 @@ private:
     static bool ignoreCavities;
 };
 
-#endif  // CLASSIC_RFCavityRep_HH
+#endif // CLASSIC_RFCavityRep_HH

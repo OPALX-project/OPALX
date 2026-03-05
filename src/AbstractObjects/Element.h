@@ -30,33 +30,36 @@
 #ifndef OPAL_Element_HH
 #define OPAL_Element_HH
 
-#include "AbsBeamline/ElementBase.h"
 #include "AbstractObjects/Object.h"
+#include "AbsBeamline/ElementBase.h"
 
 #include <memory>
 #include <utility>
 
-class Element : public Object {
+
+class Element: public Object {
+
 public:
+
     /// Reference for element positioning.
     //  Used in the SEQUENCE command.
     enum ReferenceType {
-        IS_ENTRY,   // Reference point is at element entrance.
-        IS_CENTRE,  // Reference point is at element centre
-        IS_EXIT     // Reference point is at element exit.
+        IS_ENTRY,         // Reference point is at element entrance.
+        IS_CENTRE,        // Reference point is at element centre
+        IS_EXIT           // Reference point is at element exit.
     };
 
     virtual ~Element();
 
     /// Test if replacement is allowed.
     //  Return true, if the replacement is also an Element.
-    virtual bool canReplaceBy(Object* object);
+    virtual bool canReplaceBy(Object *object);
 
     /// Find named Element.
     //  If an element with the name [b]name[/b] exists,
     //  return a pointer to that element.
     //  If no such element exists, throw [b]OpalException[/b].
-    static Element* find(const std::string& name);
+    static Element *find(const std::string &name);
 
     /// Return the object category as a string.
     //  Return the string "ELEMENT".
@@ -71,6 +74,7 @@ public:
     //  If true, the data structure should be updated before calling execute().
     //  Always false for elements.
     virtual bool shouldUpdate() const;
+
 
     /// Return element length.
     virtual double getLength() const = 0;
@@ -87,48 +91,58 @@ public:
 
     /// Return the embedded CLASSIC element.
     //  Return a pointer to the embedded CLASSIC ElementBase
-    inline ElementBase* getElement() const;
+    inline ElementBase *getElement() const;
 
     /// Return the embedded CLASSIC element as shared_ptr.
     inline std::shared_ptr<ElementBase> getElementPtr() const;
 
     /// Assign new CLASSIC element.
-    inline void setElement(ElementBase*);
+    inline void setElement(ElementBase *);
     inline void setElement(std::shared_ptr<ElementBase> base);
 
 protected:
+
     /// Constructor for exemplars.
-    Element(int size, const char* name, const char* help);
+    Element(int size, const char *name, const char *help);
 
     /// Constructor for clones.
-    Element(const std::string& name, Element* parent);
+    Element(const std::string &name, Element *parent);
 
 private:
+
     // Not implemented.
     Element();
-    Element(const Element&);
-    void operator=(const Element&);
+    Element(const Element &);
+    void operator=(const Element &);
 
     // The embedded CLASSIC element.
     std::shared_ptr<ElementBase> itsClassicElement;
 };
 
+
 // Inline functions.
 // ------------------------------------------------------------------------
 
-inline ElementBase* Element::getElement() const { return &*itsClassicElement; }
+inline ElementBase *Element::getElement() const {
+    return &*itsClassicElement;
+}
 
-inline std::shared_ptr<ElementBase> Element::getElementPtr() const { return itsClassicElement; }
 
-inline void Element::setElement(ElementBase* base) {
+inline std::shared_ptr<ElementBase> Element::getElementPtr() const {
+    return itsClassicElement;
+}
+
+
+inline void Element::setElement(ElementBase *base) {
     if (base == itsClassicElement.get()) {
         return;
     }
     itsClassicElement.reset(base);
 }
 
+
 inline void Element::setElement(std::shared_ptr<ElementBase> base) {
     itsClassicElement = std::move(base);
 }
 
-#endif  // OPAL_Element_HH
+#endif // OPAL_Element_HH

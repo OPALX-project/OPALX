@@ -10,27 +10,28 @@ namespace mslang {
         std::cout << indent << "union, " << std::endl;
         std::cout << indent2 << "funcs: {\n";
         funcs_m.front()->print(indentwidth + 16);
-        for (unsigned int i = 1; i < funcs_m.size(); ++i) {
-            std::cout << "\n" << indent3 << "," << std::endl;
+        for (unsigned int i = 1; i < funcs_m.size(); ++ i) {
+            std::cout << "\n"
+                      << indent3 << "," << std::endl;
             funcs_m[i]->print(indentwidth + 16);
         }
-        std::cout << "\n" << indent2 << "} ";
+        std::cout << "\n"
+                  << indent2 << "} ";
     }
 
-    void Union::apply(std::vector<std::shared_ptr<Base> >& bfuncs) {
-        for (unsigned int i = 0; i < funcs_m.size(); ++i) {
+    void Union::apply(std::vector<std::shared_ptr<Base> > &bfuncs) {
+        for (unsigned int i = 0; i < funcs_m.size(); ++ i) {
             std::vector<std::shared_ptr<Base> > children;
-            Function* func = funcs_m[i];
+            Function *func = funcs_m[i];
             func->apply(children);
             bfuncs.insert(bfuncs.end(), children.begin(), children.end());
         }
     }
 
-    bool Union::parse_detail(iterator& it, const iterator& end, Function*& fun) {
-        Union* unin = static_cast<Union*>(fun);
+    bool Union::parse_detail(iterator &it, const iterator &end, Function* &fun) {
+        Union *unin = static_cast<Union*>(fun);
         unin->funcs_m.push_back(nullptr);
-        if (!parse(it, end, unin->funcs_m.back()))
-            return false;
+        if (!parse(it, end, unin->funcs_m.back())) return false;
 
         std::regex argumentList("(,[a-z]+\\(.*)");
         std::regex endParenthesis("\\)(.*)");
@@ -41,22 +42,20 @@ namespace mslang {
             iterator it2 = it + 1;
             unin->funcs_m.push_back(nullptr);
 
-            if (!parse(it2, end, unin->funcs_m.back()))
-                return false;
+            if (!parse(it2, end, unin->funcs_m.back())) return false;
 
-            it  = it2;
+            it = it2;
             str = std::string(it, end);
         }
 
         str = std::string(it, end);
-        if (!std::regex_match(str, what, endParenthesis))
-            return false;
+        if (!std::regex_match(str, what, endParenthesis)) return false;
 
         std::string fullMatch = what[0];
-        std::string rest      = what[1];
+        std::string rest = what[1];
 
         it += (fullMatch.size() - rest.size());
 
         return true;
     }
-}  // namespace mslang
+}

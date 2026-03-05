@@ -2,12 +2,12 @@
 #define MSLANG_ARGUMENTEXTRACTOR_H
 
 #include <string>
-#include <utility>
 #include <vector>
+#include <utility>
 
 namespace mslang {
     struct ArgumentExtractor {
-        ArgumentExtractor(const std::string& input);
+        ArgumentExtractor(const std::string &input);
 
         std::string get(unsigned int i) const;
         unsigned int getLengthConsumed() const;
@@ -17,5 +17,5 @@ namespace mslang {
         std::string inputArguments_m;
         unsigned int lengthConsumed_m;
     };
-}  // namespace mslang
+}
 #endif

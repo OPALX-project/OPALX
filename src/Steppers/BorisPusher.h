@@ -33,6 +33,7 @@ extern Inform* gmsg;
 
 class BorisPusher {
 public:
+
     KOKKOS_INLINE_FUNCTION BorisPusher(const PartData& ref);
     KOKKOS_INLINE_FUNCTION BorisPusher();
 
@@ -47,18 +48,21 @@ public:
         const Vector_t<double, 3>& Bf, const double& dt, const double& mass,
         const double& charge) const;
 
-    KOKKOS_INLINE_FUNCTION void push(
-        Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& dt) const;
+    KOKKOS_INLINE_FUNCTION void push(Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& dt) const;
 
 private:
     const PartData* itsReference;
 };
 
-KOKKOS_INLINE_FUNCTION BorisPusher::BorisPusher(const PartData& ref) : itsReference(&ref) {}
+KOKKOS_INLINE_FUNCTION BorisPusher::BorisPusher(const PartData& ref) : itsReference(&ref) {
+}
 
-KOKKOS_INLINE_FUNCTION BorisPusher::BorisPusher() : itsReference(nullptr) {}
+KOKKOS_INLINE_FUNCTION BorisPusher::BorisPusher() : itsReference(nullptr) {
+}
 
-KOKKOS_INLINE_FUNCTION void BorisPusher::initialise(const PartData* ref) { itsReference = ref; }
+KOKKOS_INLINE_FUNCTION void BorisPusher::initialise(const PartData* ref) {
+    itsReference = ref;
+}
 
 KOKKOS_INLINE_FUNCTION void BorisPusher::kick(
     const Vector_t<double, 3>& R, Vector_t<double, 3>& P, const Vector_t<double, 3>& Ef,

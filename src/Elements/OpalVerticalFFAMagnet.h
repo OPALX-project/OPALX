@@ -21,7 +21,7 @@
 #include "Elements/OpalElement.h"
 
 class OpalVerticalFFAMagnet : public OpalElement {
-public:
+  public:
     /** enum maps string to integer value for UI definitions */
     enum {
         B0 = COMMON,
@@ -33,7 +33,7 @@ public:
         BB_LENGTH,
         HEIGHT_NEG_EXTENT,
         HEIGHT_POS_EXTENT,
-        SIZE  // size of the enum
+        SIZE // size of the enum
     };
 
     /** Default constructor initialises UI parameters. */
@@ -43,20 +43,21 @@ public:
     virtual ~OpalVerticalFFAMagnet();
 
     /** Inherited copy constructor */
-    virtual OpalVerticalFFAMagnet* clone(const std::string& name);
+    virtual OpalVerticalFFAMagnet *clone(const std::string &name);
 
     /** Update the VerticalFFA with new parameters from UI parser */
     virtual void update();
 
-private:
+  private:
     // Not implemented.
-    OpalVerticalFFAMagnet(const OpalVerticalFFAMagnet&);
-    void operator=(const OpalVerticalFFAMagnet&);
+    OpalVerticalFFAMagnet(const OpalVerticalFFAMagnet &);
+    void operator=(const OpalVerticalFFAMagnet &);
 
     // Clone constructor.
-    OpalVerticalFFAMagnet(const std::string& name, OpalVerticalFFAMagnet* parent);
+    OpalVerticalFFAMagnet(const std::string &name, OpalVerticalFFAMagnet *parent);
 
     static std::string docstring_m;
 };
 
-#endif  // OPAL_OPALVERTICALFFAMAGNET_H
+#endif // OPAL_OPALVERTICALFFAMAGNET_H
+

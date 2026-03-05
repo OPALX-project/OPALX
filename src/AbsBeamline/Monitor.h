@@ -19,8 +19,8 @@
 #define CLASSIC_Monitor_HH
 
 #include "AbsBeamline/Component.h"
-#include "BeamlineGeometry/StraightGeometry.h"
 #include "PartBunch/PartBunch.h"
+#include "BeamlineGeometry/StraightGeometry.h"
 #include "Structure/LossDataSink.h"
 
 #include <map>
@@ -68,7 +68,7 @@ public:
 
     virtual bool apply(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-        Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
+	Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 
     virtual bool applyToReferenceParticle(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
@@ -112,9 +112,13 @@ private:
     static const double halfLength_s;
 };
 
-inline void Monitor::setCollectionType(CollectionType type) { type_m = type; }
+inline void Monitor::setCollectionType(CollectionType type) {
+    type_m = type;
+}
 
-inline int Monitor::getRequiredNumberOfTimeSteps() const { return 1; }
+inline int Monitor::getRequiredNumberOfTimeSteps() const {
+    return 1;
+}
 
 inline bool Monitor::isInside(const Vector_t<double, 3>& r) const {
     const double length = getElementLength();

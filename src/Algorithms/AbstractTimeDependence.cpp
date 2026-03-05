@@ -26,15 +26,15 @@
  */
 
 #include "Algorithms/AbstractTimeDependence.h"
+#include "Utilities/GeneralClassicException.h"
 #include <sstream>
 #include <utility>
-#include "Utilities/GeneralClassicException.h"
 
 std::map<std::string, std::shared_ptr<AbstractTimeDependence> > AbstractTimeDependence::td_map =
     std::map<std::string, std::shared_ptr<AbstractTimeDependence> >();
 
 std::shared_ptr<AbstractTimeDependence> AbstractTimeDependence::getTimeDependence(
-    const std::string& name) {
+        const std::string& name) {
     const auto pos = td_map.find(name);
     if (pos == td_map.end()) {
         throw GeneralClassicException(

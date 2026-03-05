@@ -22,14 +22,17 @@
 
 #include "Fields/EMField.h"
 
+
 // Class StaticElectricField
 // ------------------------------------------------------------------------
 /// Abstract base class for static electric fields.
 
-class StaticElectricField : public EMField {
+class StaticElectricField: public EMField {
+
 public:
+
     StaticElectricField();
     virtual ~StaticElectricField();
 };
 
-#endif  // CLASSIC_StaticElectricField_HH
+#endif // CLASSIC_StaticElectricField_HH

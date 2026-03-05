@@ -28,6 +28,7 @@
 class Inform;
 
 class PartBins {
+
     /**
 
     Definition of a bin:  low <= x < hi
@@ -36,13 +37,17 @@ class PartBins {
 
     */
 
+
 public:
+
+
     PartBins(int bins, int sbins);
 
     virtual ~PartBins();
 
+
     /** \brief Add a particle to the temporary container */
-    void fill(std::vector<double>& p) {
+    void fill(std::vector<double> &p) {
         tmppart_m.push_back(p);
         isEmitted_m.push_back(false);
     }
@@ -56,41 +61,41 @@ public:
     }
 
     /** set particles number in given bin */
-    void setPartNum(int bin, long long num) { nBin_m[bin] = num; }
+    void setPartNum(int bin, long long num) {nBin_m[bin] = num;}
 
     /** \brief Is true if we still have particles to emit */
-    bool doEmission() { return getNp() > 0; }
+    bool doEmission() {return getNp() > 0;}
 
     bool isEmitted(int n, int /*bin*/) {
-        return isEmitted_m[n];  //(isEmitted_m[n][0]==1) && (isEmitted_m[n][1] == bin);
+        return isEmitted_m[n]; //(isEmitted_m[n][0]==1) && (isEmitted_m[n][1] == bin);
     }
 
     /** assigns the proper position of particle n if it belongs to bin 'bin' */
-    bool getPart(size_t n, int bin, std::vector<double>& p);
+    bool getPart(size_t n, int bin, std::vector<double> &p);
 
-    /** sort the vector of particles such that positions of the particles decrease with increasing
-       index. Then push the particles back by xmax_m + jifactor * bunch_length. In order that the
-       method getBin(double x) works xmin_m has to be lowered a bit more.
+    /** sort the vector of particles such that positions of the particles decrease with increasing index.
+        Then push the particles back by xmax_m + jifactor * bunch_length. In order that the method getBin(double x) works xmin_m has to be lowered a bit more.
     */
     void sortArray();
 
-private:
+ private:
     /** assigns the particles to the bins */
     void calcHBins();
     void calcExtrema();
     /** assume we emit in monotonic increasing order */
-    void setBinEmitted(int bin) { binsEmitted_m[bin] = true; }
+    void setBinEmitted(int bin) {binsEmitted_m[bin] = true;}
 
-public:
+ public:
     /** update local particles number in bin after reset Bin ID of PartBunch  */
     void resetPartInBin_cyc(size_t newPartNum[], int binID);
     /** update local particles number in bin after particle deletion */
     void updatePartInBin_cyc(size_t countLost[]);
 
-    void setGamma(double gamma) { gamma_m = gamma; }
-    double getGamma() { return gamma_m; }
+    void setGamma(double gamma) { gamma_m = gamma;}
+    double getGamma() {return gamma_m;}
 
 protected:
+
     double gamma_m;
     /**
        returns the index of the bin to which the particle with z = 'x' belongs.
@@ -113,26 +118,31 @@ protected:
     double hBin_m;
 
     /** holds the particles not yet in the bunch */
-    std::vector<std::vector<double> > tmppart_m;
-    std::vector<bool> isEmitted_m;
+    std::vector< std::vector<double> > tmppart_m;
+    std::vector< bool > isEmitted_m;
     /** holds information whether all particles of a bin are emitted */
     std::unique_ptr<bool[]> binsEmitted_m;
 
 public:
-    Inform& print(Inform& os);
+
+    Inform &print(Inform &os);
 
     int getSBins() { return sBins_m; };
 
     /** get the number of used bin */
-    virtual int getNBins() { return gsl_histogram_bins(h_m.get()) / sBins_m; }
+    virtual int getNBins() {return gsl_histogram_bins(h_m.get()) / sBins_m; }
 
     /** the last emitted bin is always smaller or equal getNbins */
-    int getLastemittedBin() { return nemittedBins_m; }
+    int getLastemittedBin() {return nemittedBins_m; }
 
     /** \brief If the bunch object rebins we need to call resetBins() */
-    void resetBins() { h_m.reset(nullptr); }
+    void resetBins() {
+        h_m.reset(nullptr);
+    }
 
-    virtual bool weHaveBins() { return h_m != nullptr; }
+    virtual bool weHaveBins() {
+        return h_m != nullptr;
+    }
 
     /** \brief How many particles are in all the bins */
     size_t getTotalNum();
@@ -140,7 +150,9 @@ public:
     /** \brief How many particles are in the bin b */
     size_t getTotalNumPerBin(int b);
 
+
 protected:
+
     /** number of emitted bins */
     int nemittedBins_m;
 
@@ -151,32 +163,36 @@ protected:
     std::unique_ptr<size_t[]> nDelBin_m;
 
     std::unique_ptr<gsl_histogram> h_m;
+
 };
 
-inline Inform& operator<<(Inform& os, PartBins& p) { return p.print(os); }
+inline Inform &operator<<(Inform &os, PartBins &p) {
+    return p.print(os);
+}
+
 
 class AscendingLocationSort {
 public:
-    AscendingLocationSort(int direction = 0) : direction_m(direction) { ; }
+    AscendingLocationSort(int direction = 0): direction_m(direction)
+    {;}
 
     bool operator()(const std::vector<double>& first_part, const std::vector<double>& second_part) {
         return first_part[direction_m] < second_part[direction_m];
     }
-
 private:
     int direction_m;
 };
 
 class DescendingLocationSort {
 public:
-    DescendingLocationSort(int direction = 0) : direction_m(direction) { ; }
+    DescendingLocationSort(int direction = 0): direction_m(direction)
+    {;}
 
     bool operator()(const std::vector<double>& first_part, const std::vector<double>& second_part) {
         return first_part[direction_m] > second_part[direction_m];
     }
-
 private:
     int direction_m;
 };
 
-#endif  // OPAL_Bins_HH
+#endif // OPAL_Bins_HH

@@ -21,27 +21,58 @@
 #include "BeamlineGeometry/Geometry.h"
 #include "BeamlineGeometry/Euclid3D.h"
 
+
 // Class BGeometryBase.
 // ------------------------------------------------------------------------
 
-BGeometryBase::~BGeometryBase() {}
+BGeometryBase::~BGeometryBase()
+{}
 
-void BGeometryBase::setElementLength(double) {}
 
-double BGeometryBase::getOrigin() const { return getArcLength() / 2.0; }
+void BGeometryBase::setElementLength(double)
+{}
 
-double BGeometryBase::getEntrance() const { return -getOrigin(); }
 
-double BGeometryBase::getExit() const { return getArcLength() - getOrigin(); }
+double BGeometryBase::getOrigin() const {
+    return getArcLength() / 2.0;
+}
 
-Euclid3D BGeometryBase::getTotalTransform() const { return getTransform(getExit(), getEntrance()); }
 
-Euclid3D BGeometryBase::getTransform(double s) const { return getTransform(0.0, s); }
+double BGeometryBase::getEntrance() const {
+    return - getOrigin();
+}
 
-Euclid3D BGeometryBase::getEntranceFrame() const { return getTransform(0.0, getEntrance()); }
 
-Euclid3D BGeometryBase::getExitFrame() const { return getTransform(0.0, getExit()); }
+double BGeometryBase::getExit() const {
+    return getArcLength() - getOrigin();
+}
 
-Euclid3D BGeometryBase::getEntrancePatch() const { return Euclid3D::identity(); }
 
-Euclid3D BGeometryBase::getExitPatch() const { return Euclid3D::identity(); }
+Euclid3D BGeometryBase::getTotalTransform() const {
+    return getTransform(getExit(), getEntrance());
+}
+
+
+Euclid3D BGeometryBase::getTransform(double s) const {
+    return getTransform(0.0, s);
+}
+
+
+Euclid3D BGeometryBase::getEntranceFrame() const {
+    return getTransform(0.0, getEntrance());
+}
+
+
+Euclid3D BGeometryBase::getExitFrame() const {
+    return getTransform(0.0, getExit());
+}
+
+
+Euclid3D BGeometryBase::getEntrancePatch() const {
+    return Euclid3D::identity();
+}
+
+
+Euclid3D BGeometryBase::getExitPatch() const {
+    return Euclid3D::identity();
+}

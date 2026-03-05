@@ -14,9 +14,9 @@
 
 #include "OPALTypes.h"
 
-#include <string>
 #include "Utilities/GSLHistogram.h"
 #include "Utilities/Random.h"
+#include <string>
 #include "hdf5.h"
 
 class LaserProfile {

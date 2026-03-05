@@ -24,34 +24,43 @@
 #include <string>
 #include <vector>
 
+
 extern Inform* gmsg;
 
-Value::Value()
-    : Action(
-          1, "VALUE",
-          "The \"VALUE\" statement prints a list of expressions and "
-          "their values.") {
-    itsAttr[0] = Attributes::makeRealArray("VALUE", "The values to be evaluated");
+Value::Value():
+    Action(1, "VALUE",
+           "The \"VALUE\" statement prints a list of expressions and "
+           "their values.") {
+    itsAttr[0] = Attributes::makeRealArray
+                 ("VALUE", "The values to be evaluated");
 
     registerOwnership(AttributeHandler::STATEMENT);
 }
 
-Value::Value(const std::string& name, Value* parent) : Action(name, parent) {}
 
-Value::~Value() {}
+Value::Value(const std::string& name, Value* parent):
+    Action(name, parent)
+{}
 
-Value* Value::clone(const std::string& name) { return new Value(name, this); }
+
+Value::~Value()
+{}
+
+
+Value* Value::clone(const std::string& name) {
+    return new Value(name, this);
+}
+
 
 void Value::execute() {
     *gmsg << "\nvalue: " << itsAttr[0] << " = {";
     //  std::streamsize old_prec = *gmsg.precision(12);
-    const std::vector<double> array       = Attributes::getRealArray(itsAttr[0]);
+    const std::vector<double> array = Attributes::getRealArray(itsAttr[0]);
     std::vector<double>::const_iterator i = array.begin();
 
     while (i != array.end()) {
         *gmsg << *i++;
-        if (i == array.end())
-            break;
+        if (i == array.end()) break;
         *gmsg << ", ";
     }
 

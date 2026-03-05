@@ -7,6 +7,6 @@ namespace Versions {
     extern std::map<unsigned int, std::string> changes;
 
     void fillChanges();
-}  // namespace Versions
+}
 
 #endif

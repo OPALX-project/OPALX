@@ -29,36 +29,38 @@
 #define TANH_INTEGRAL
 
 /** ---------------------------------------------------------------------
- *
- * Integrate performs a contour integral to find the nth derivative of the \n
- * Tanh model fringe function. It uses Cauchy's integral formula to do so. \n
- *
- * ---------------------------------------------------------------------
- *
- * Class category: AbsBeamline \n
- * Author: Martin Duy Tat\n
- *
- * ---------------------------------------------------------------------
- */
+  *
+  * Integrate performs a contour integral to find the nth derivative of the \n
+  * Tanh model fringe function. It uses Cauchy's integral formula to do so. \n
+  *
+  * ---------------------------------------------------------------------
+  *
+  * Class category: AbsBeamline \n
+  * Author: Martin Duy Tat\n
+  *
+  * ---------------------------------------------------------------------
+  */
 
 namespace tanhderiv {
 
-    /** Integrand
-     *  \param x -> Independent parameter to be integrated
-     *  \param p -> Pointer to struct of parameters
-     */
-    double my_f(double x, void* p);
-    /** Perform Cauchy's integral to find derivative
-     *  \param a -> Point of differentiation
-     *  \param s0 -> Centre fringe length
-     *  \param lambdaleft -> Left fringe field length
-     *  \param lambdaright -> Left fringe field length
-     *  \param n -> nth derivative
-     */
-    double integrate(
-        const double& a, const double& s0, const double& lambdaleft, const double& lambdaright,
-        const int& n);
+/** Integrand
+ *  \param x -> Independent parameter to be integrated
+ *  \param p -> Pointer to struct of parameters
+ */
+double my_f (double x, void *p);
+/** Perform Cauchy's integral to find derivative
+ *  \param a -> Point of differentiation
+ *  \param s0 -> Centre fringe length
+ *  \param lambdaleft -> Left fringe field length
+ *  \param lambdaright -> Left fringe field length
+ *  \param n -> nth derivative
+ */
+double integrate(const double &a,
+                 const double &s0,
+                 const double &lambdaleft,
+                 const double &lambdaright,
+                 const int &n);
 
-}  // namespace tanhderiv
+}
 
 #endif

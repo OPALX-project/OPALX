@@ -16,35 +16,40 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
+#include "Attributes/Attributes.h"
 #include "Attributes/PredefinedString.h"
 #include "AbstractObjects/Expressions.h"
-#include "Attributes/Attributes.h"
 #include "Utilities/ParseError.h"
 #include "Utilities/Util.h"
 
 using namespace Expressions;
 
+
 namespace Attributes {
 
-    PredefinedString::PredefinedString(
-        const std::string& name, const std::string& help,
-        const std::initializer_list<std::string>& predefinedStrings,
-        const std::string& defaultValue)
-        : AttributeHandler(name, help, 0) {
-        for (const std::string& value : predefinedStrings) {
+    PredefinedString::PredefinedString(const std::string &name,
+                                       const std::string &help,
+                                       const std::initializer_list<std::string>& predefinedStrings,
+                                       const std::string& defaultValue):
+        AttributeHandler(name, help, 0)
+    {
+        for (const std::string& value: predefinedStrings) {
             predefinedStrings_m.insert(Util::toUpper(value));
         }
         setPredefinedValues(predefinedStrings_m, defaultValue);
     }
 
-    PredefinedString::~PredefinedString() {}
 
-    const std::string& PredefinedString::getType() const {
+    PredefinedString::~PredefinedString()
+    {}
+
+
+    const std::string &PredefinedString::getType() const {
         static const std::string type("string");
         return type;
     }
 
-    void PredefinedString::parse(Attribute& attr, Statement& stat, bool) const {
+    void PredefinedString::parse(Attribute &attr, Statement &stat, bool) const {
         std::string value = Util::toUpper(parseStringValue(stat, "String value expected"));
         if (predefinedStrings_m.count(value) == 0) {
             throw ParseError("PredefinedString::parse", "Unsupported value '" + value + "'");
@@ -52,4 +57,4 @@ namespace Attributes {
         Attributes::setPredefinedString(attr, value);
     }
 
-};  // namespace Attributes
+};

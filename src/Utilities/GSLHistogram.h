@@ -18,11 +18,11 @@
 #ifndef OPAL_GSL_HISTOGRAM_HH
 #define OPAL_GSL_HISTOGRAM_HH
 
+#include <vector>
 #include <algorithm>
+#include <stdexcept>
 #include <cmath>
 #include <cstdio>
-#include <stdexcept>
-#include <vector>
 
 /// \see Documentation on https://www.gnu.org/software/gsl/doc/html/histogram.html
 /// \see Implementation on https://www.gnu.org/software/gsl/
@@ -31,7 +31,7 @@
 class gsl_histogram {
 public:
     gsl_histogram() : n_(0), range_(), bin_(0) {}
-
+    
     /// \brief Set uniform bin edges over \f$[x_{\min}, x_{\max}]\f$.
     /// \param xmin Input: lower bound (inclusive).
     /// \param xmax Input: upper bound (exclusive).
@@ -45,7 +45,7 @@ public:
             range_[i] = xmin + i * bin_width;
         }
     }
-
+    
     /// \brief Set bin edges from an explicit array.
     /// \param range Input: array of \f$n+1\f$ bin edges.
     /// \param n Input: number of edges (must be \f$n_+1\f$).
@@ -55,7 +55,7 @@ public:
         }
         range_.assign(range, range + n);
     }
-
+    
     /// \brief Increment the bin containing \p x by 1.
     /// \param x Input: sample value.
     void increment(double x) {
@@ -64,7 +64,7 @@ public:
             bin_[bin]++;
         }
     }
-
+    
     /// \brief Get the bin count for index \p i.
     /// \param i Input: bin index.
     /// \return Output: bin count.
@@ -74,7 +74,7 @@ public:
         }
         return bin_[i];
     }
-
+    
     /// \brief Number of bins.
     /// \return Output: bin count.
     size_t n() const { return n_; }
@@ -84,23 +84,20 @@ public:
     /// \brief Bin count array.
     /// \return Output: reference to counts of size \f$n\f$.
     const std::vector<double>& bin() const { return bin_; }
-
+    
     // Make members accessible for GSL compatibility functions
     size_t n_;
     std::vector<double> range_;
     std::vector<double> bin_;
-
+    
 private:
     size_t find_bin(double x) const {
-        if (range_.empty())
-            return bin_.size();
-
+        if (range_.empty()) return bin_.size();
+        
         // Handle out-of-range values
-        if (x < range_[0])
-            return bin_.size();
-        if (x >= range_.back())
-            return bin_.size();
-
+        if (x < range_[0]) return bin_.size();
+        if (x >= range_.back()) return bin_.size();
+        
         // Binary search for the bin
         auto it = std::upper_bound(range_.begin(), range_.end(), x);
         return std::distance(range_.begin(), it) - 1;
@@ -113,7 +110,7 @@ private:
 /// \return Output: histogram pointer.
 inline gsl_histogram* gsl_histogram_alloc(size_t n) {
     gsl_histogram* h = new gsl_histogram();
-    h->n_            = n;
+    h->n_ = n;
     h->bin_.resize(n, 0.0);
     return h;
 }
@@ -129,22 +126,30 @@ inline void gsl_histogram_set_ranges_uniform(gsl_histogram* h, double xmin, doub
 /// \brief Increment the bin containing \p x by 1.
 /// \param h Input/Output: histogram to update.
 /// \param x Input: sample value.
-inline void gsl_histogram_increment(gsl_histogram* h, double x) { h->increment(x); }
+inline void gsl_histogram_increment(gsl_histogram* h, double x) {
+    h->increment(x);
+}
 
 /// \brief Get the bin count for index \p i.
 /// \param h Input: histogram.
 /// \param i Input: bin index.
 /// \return Output: bin count.
-inline double gsl_histogram_get(const gsl_histogram* h, size_t i) { return h->get(i); }
+inline double gsl_histogram_get(const gsl_histogram* h, size_t i) {
+    return h->get(i);
+}
 
 /// \brief Free a histogram allocated by \c gsl_histogram_alloc.
 /// \param h Input: histogram to release (can be null).
-inline void gsl_histogram_free(gsl_histogram* h) { delete h; }
+inline void gsl_histogram_free(gsl_histogram* h) {
+    delete h;
+}
 
 /// \brief Number of bins in the histogram.
 /// \param h Input: histogram.
 /// \return Output: bin count.
-inline size_t gsl_histogram_bins(const gsl_histogram* h) { return h->n(); }
+inline size_t gsl_histogram_bins(const gsl_histogram* h) {
+    return h->n();
+}
 
 /// \brief Get the \f$[x_i, x_{i+1})\f$ range for a bin.
 /// \param h Input: histogram.
@@ -179,11 +184,12 @@ inline int gsl_histogram_set_ranges(gsl_histogram* h, const double* range, size_
 class gsl_histogram2d {
 public:
     gsl_histogram2d() : nx_(0), ny_(0), xrange_(), yrange_(), bin_() {}
-
-    /// \brief Set uniform x/y bin edges over \f$[x_{\min},x_{\max}]\f$ and
-    /// \f$[y_{\min},y_{\max}]\f$. \param xmin Input: x lower bound (inclusive). \param xmax Input:
-    /// x upper bound (exclusive). \param ymin Input: y lower bound (inclusive). \param ymax Input:
-    /// y upper bound (exclusive).
+    
+    /// \brief Set uniform x/y bin edges over \f$[x_{\min},x_{\max}]\f$ and \f$[y_{\min},y_{\max}]\f$.
+    /// \param xmin Input: x lower bound (inclusive).
+    /// \param xmax Input: x upper bound (exclusive).
+    /// \param ymin Input: y lower bound (inclusive).
+    /// \param ymax Input: y upper bound (exclusive).
     void set_ranges_uniform(double xmin, double xmax, double ymin, double ymax) {
         if (xmin >= xmax || ymin >= ymax) {
             throw std::invalid_argument("gsl_histogram2d: invalid range");
@@ -199,7 +205,7 @@ public:
             yrange_[i] = ymin + i * ybin_width;
         }
     }
-
+    
     /// \brief Accumulate a weighted sample into the 2D histogram.
     /// \param x Input: x sample value.
     /// \param y Input: y sample value.
@@ -211,12 +217,14 @@ public:
             bin_[i * ny_ + j] += weight;
         }
     }
-
+    
     /// \brief Increment the bin containing \p x,\p y by 1.
     /// \param x Input: x sample value.
     /// \param y Input: y sample value.
-    void increment(double x, double y) { accumulate(x, y, 1.0); }
-
+    void increment(double x, double y) {
+        accumulate(x, y, 1.0);
+    }
+    
     /// \brief Set explicit x/y bin edges.
     /// \param xrange Input: x edges array (\f$n_x+1\f$).
     /// \param nx Input: number of x edges.
@@ -229,7 +237,7 @@ public:
         xrange_.assign(xrange, xrange + nx);
         yrange_.assign(yrange, yrange + ny);
     }
-
+    
     /// \brief Get the bin count for index \f$(i,j)\f$.
     /// \param i Input: x bin index.
     /// \param j Input: y bin index.
@@ -240,7 +248,7 @@ public:
         }
         return bin_[i * ny_ + j];
     }
-
+    
     /// \brief Number of x bins.
     /// \return Output: x bin count.
     size_t nx() const { return nx_; }
@@ -256,13 +264,13 @@ public:
     /// \brief Bin count array.
     /// \return Output: reference to counts of size \f$n_x n_y\f$.
     const std::vector<double>& bin() const { return bin_; }
-
+    
     // Make members accessible for GSL compatibility functions
     size_t nx_, ny_;
     std::vector<double> xrange_;
     std::vector<double> yrange_;
     std::vector<double> bin_;
-
+    
 private:
     size_t find_x_bin(double x) const {
         if (xrange_.empty() || x < xrange_[0] || x >= xrange_.back()) {
@@ -271,7 +279,7 @@ private:
         auto it = std::upper_bound(xrange_.begin(), xrange_.end(), x);
         return std::distance(xrange_.begin(), it) - 1;
     }
-
+    
     size_t find_y_bin(double y) const {
         if (yrange_.empty() || y < yrange_[0] || y >= yrange_.back()) {
             return ny_;
@@ -286,28 +294,28 @@ private:
 class gsl_histogram2d_pdf {
 public:
     gsl_histogram2d_pdf() : nx_(0), ny_(0), xrange_(), yrange_(), pdf_(), cumsum_() {}
-
+    
     /// \brief Initialize a PDF from a 2D histogram.
     /// \param h Input: histogram providing bin weights.
     void init(const gsl_histogram2d* h) {
-        nx_     = h->nx();
-        ny_     = h->ny();
+        nx_ = h->nx();
+        ny_ = h->ny();
         xrange_ = h->xrange();
         yrange_ = h->yrange();
-
+        
         const auto& bin = h->bin();
-        double total    = 0.0;
+        double total = 0.0;
         for (double val : bin) {
             total += val;
         }
-
+        
         pdf_.resize(bin.size());
         if (total > 0) {
             for (size_t i = 0; i < bin.size(); ++i) {
                 pdf_[i] = bin[i] / total;
             }
         }
-
+        
         // Compute cumulative distribution for sampling
         cumsum_.resize(pdf_.size());
         double cum = 0.0;
@@ -316,7 +324,7 @@ public:
             cumsum_[i] = cum;
         }
     }
-
+    
     /// \brief Sample \f$(x,y)\f$ given two uniform variates.
     /// \param u Input: uniform variate in \f$[0,1]\f$ for x-bin selection.
     /// \param v Input: uniform variate in \f$[0,1]\f$ for y position within the x-bin.
@@ -325,30 +333,30 @@ public:
     void sample(double u, double v, double* x, double* y) {
         // Find bin using u (for x) and v (for y within that x slice)
         size_t bin_idx = 0;
-        double target  = u * cumsum_.back();
+        double target = u * cumsum_.back();
         for (size_t i = 0; i < cumsum_.size(); ++i) {
             if (cumsum_[i] >= target) {
                 bin_idx = i;
                 break;
             }
         }
-
+        
         size_t i = bin_idx / ny_;
         size_t j = bin_idx % ny_;
-
+        
         if (i < nx_ && j < ny_) {
             double xmin = xrange_[i];
             double xmax = xrange_[i + 1];
             double ymin = yrange_[j];
             double ymax = yrange_[j + 1];
-            *x          = xmin + (xmax - xmin) * v;
-            *y          = ymin + (ymax - ymin) * u;
+            *x = xmin + (xmax - xmin) * v;
+            *y = ymin + (ymax - ymin) * u;
         } else {
             *x = 0.0;
             *y = 0.0;
         }
     }
-
+    
 private:
     size_t nx_, ny_;
     std::vector<double> xrange_;
@@ -364,8 +372,8 @@ private:
 /// \return Output: histogram pointer.
 inline gsl_histogram2d* gsl_histogram2d_alloc(size_t nx, size_t ny) {
     gsl_histogram2d* h = new gsl_histogram2d();
-    h->nx_             = nx;
-    h->ny_             = ny;
+    h->nx_ = nx;
+    h->ny_ = ny;
     h->bin_.resize(nx * ny, 0.0);
     return h;
 }
@@ -376,8 +384,9 @@ inline gsl_histogram2d* gsl_histogram2d_alloc(size_t nx, size_t ny) {
 /// \param xmax Input: x upper bound (exclusive).
 /// \param ymin Input: y lower bound (inclusive).
 /// \param ymax Input: y upper bound (exclusive).
-inline void gsl_histogram2d_set_ranges_uniform(
-    gsl_histogram2d* h, double xmin, double xmax, double ymin, double ymax) {
+inline void gsl_histogram2d_set_ranges_uniform(gsl_histogram2d* h, 
+                                                 double xmin, double xmax,
+                                                 double ymin, double ymax) {
     h->set_ranges_uniform(xmin, xmax, ymin, ymax);
 }
 
@@ -388,8 +397,9 @@ inline void gsl_histogram2d_set_ranges_uniform(
 /// \param yrange Input: y edges array (\f$n_y+1\f$).
 /// \param ny Input: number of y edges.
 /// \return Output: 0 on success, -1 on error.
-inline int gsl_histogram2d_set_ranges(
-    gsl_histogram2d* h, const double* xrange, size_t nx, const double* yrange, size_t ny) {
+inline int gsl_histogram2d_set_ranges(gsl_histogram2d* h, 
+                                       const double* xrange, size_t nx,
+                                       const double* yrange, size_t ny) {
     h->set_ranges(xrange, nx, yrange, ny);
     return 0;
 }
@@ -397,12 +407,16 @@ inline int gsl_histogram2d_set_ranges(
 /// \brief Number of x bins.
 /// \param h Input: histogram.
 /// \return Output: x bin count.
-inline size_t gsl_histogram2d_nx(const gsl_histogram2d* h) { return h->nx(); }
+inline size_t gsl_histogram2d_nx(const gsl_histogram2d* h) {
+    return h->nx();
+}
 
 /// \brief Number of y bins.
 /// \param h Input: histogram.
 /// \return Output: y bin count.
-inline size_t gsl_histogram2d_ny(const gsl_histogram2d* h) { return h->ny(); }
+inline size_t gsl_histogram2d_ny(const gsl_histogram2d* h) {
+    return h->ny();
+}
 
 /// \brief Increment the bin containing \p x,\p y by 1.
 /// \param h Input/Output: histogram to update.
@@ -435,8 +449,8 @@ inline void gsl_histogram2d_accumulate(gsl_histogram2d* h, double x, double y, d
 /// \param h Input: histogram.
 /// \param xformat Input: printf-style format string for x values.
 /// \param yformat Input: printf-style format string for y values.
-inline void gsl_histogram2d_fprintf(
-    FILE* fh, const gsl_histogram2d* h, const char* xformat, const char* yformat) {
+inline void gsl_histogram2d_fprintf(FILE* fh, const gsl_histogram2d* h, 
+                                     const char* xformat, const char* yformat) {
     fprintf(fh, "# xrange: %zu bins from %g to %g\n", h->nx(), h->xrange()[0], h->xrange().back());
     fprintf(fh, "# yrange: %zu bins from %g to %g\n", h->ny(), h->yrange()[0], h->yrange().back());
     const auto& bin = h->bin();
@@ -452,7 +466,9 @@ inline void gsl_histogram2d_fprintf(
 
 /// \brief Free a 2D histogram.
 /// \param h Input: histogram to release (can be null).
-inline void gsl_histogram2d_free(gsl_histogram2d* h) { delete h; }
+inline void gsl_histogram2d_free(gsl_histogram2d* h) {
+    delete h;
+}
 
 /// \brief Allocate a 2D histogram PDF.
 /// \param nx Input: number of x bins (unused).
@@ -475,13 +491,16 @@ inline void gsl_histogram2d_pdf_init(gsl_histogram2d_pdf* p, const gsl_histogram
 /// \param v Input: uniform variate in \f$[0,1]\f$.
 /// \param x Output: sampled x value.
 /// \param y Output: sampled y value.
-inline void gsl_histogram2d_pdf_sample(
-    const gsl_histogram2d_pdf* p, double u, double v, double* x, double* y) {
+inline void gsl_histogram2d_pdf_sample(const gsl_histogram2d_pdf* p, double u, double v, 
+                                       double* x, double* y) {
     const_cast<gsl_histogram2d_pdf*>(p)->sample(u, v, x, y);
 }
 
 /// \brief Free a 2D histogram PDF.
 /// \param p Input: PDF to release (can be null).
-inline void gsl_histogram2d_pdf_free(gsl_histogram2d_pdf* p) { delete p; }
+inline void gsl_histogram2d_pdf_free(gsl_histogram2d_pdf* p) {
+    delete p;
+}
 
-#endif  // OPAL_GSL_HISTOGRAM_HH
+#endif // OPAL_GSL_HISTOGRAM_HH
+

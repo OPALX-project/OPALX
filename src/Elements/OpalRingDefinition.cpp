@@ -35,7 +35,7 @@
 
 OpalRingDefinition::OpalRingDefinition()
     : OpalElement(
-          SIZE, "RINGDEFINITION", "The \"RINGDEFINITION\" element defines basic ring parameters.") {
+        SIZE, "RINGDEFINITION", "The \"RINGDEFINITION\" element defines basic ring parameters.") {
     itsAttr[HARMONIC_NUMBER] = Attributes::makeReal(
         "HARMONIC_NUMBER",
         "The assumed harmonic number of the ring (i.e. number of bunches in the ring on a given "
@@ -80,14 +80,17 @@ OpalRingDefinition* OpalRingDefinition::clone(const std::string& name) {
     return new OpalRingDefinition(name, this);
 }
 
-void OpalRingDefinition::print(std::ostream& out) const { OpalElement::print(out); }
+void OpalRingDefinition::print(std::ostream& out) const {
+    OpalElement::print(out);
+}
 
 OpalRingDefinition::OpalRingDefinition(const std::string& name, OpalRingDefinition* parent)
     : OpalElement(name, parent) {
     setElement(new Ring(name));
 }
 
-OpalRingDefinition::~OpalRingDefinition() {}
+OpalRingDefinition::~OpalRingDefinition() {
+}
 
 void OpalRingDefinition::update() {
     OpalElement::update();

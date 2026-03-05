@@ -20,9 +20,13 @@
 
 #include "Fields/StaticElectricField.h"
 
+
 // Class StaticElectricField
 // ------------------------------------------------------------------------
 
-StaticElectricField::StaticElectricField() {}
+StaticElectricField::StaticElectricField()
+{}
 
-StaticElectricField::~StaticElectricField() {}
+
+StaticElectricField::~StaticElectricField()
+{}

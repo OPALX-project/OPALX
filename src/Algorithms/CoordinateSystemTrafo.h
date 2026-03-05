@@ -3,30 +3,37 @@
 #ifndef COORDINATESYSTEMTRAFO
 #define COORDINATESYSTEMTRAFO
 
-#include <Kokkos_Core.hpp>
 #include "Algorithms/Matrix.h"
 #include "Algorithms/Quaternion.hpp"
+#include <Kokkos_Core.hpp>
 
 class CoordinateSystemTrafo {
 public:
-    /* ============================== Constructors ============================== */
+/* ============================== Constructors ============================== */
     CoordinateSystemTrafo();
 
-    CoordinateSystemTrafo(const CoordinateSystemTrafo& right);
+    CoordinateSystemTrafo(
+        const CoordinateSystemTrafo& right);
 
-    CoordinateSystemTrafo(const ippl::Vector<double, 3>& origin, const Quaternion& orientation);
+    CoordinateSystemTrafo(
+        const ippl::Vector<double, 3>& origin, 
+        const Quaternion& orientation);
 
     void invert();
     CoordinateSystemTrafo inverted() const;
-    /* ========================================================================== */
-    /* ======================== Transformation Functions ======================== */
-    ippl::Vector<double, 3> transformTo(const ippl::Vector<double, 3>& r) const;
+/* ========================================================================== */    
+/* ======================== Transformation Functions ======================== */
+    ippl::Vector<double, 3> transformTo(
+        const ippl::Vector<double, 3>& r) const;
 
-    ippl::Vector<double, 3> transformFrom(const ippl::Vector<double, 3>& r) const;
+    ippl::Vector<double, 3> transformFrom(
+        const ippl::Vector<double, 3>& r) const;
 
-    ippl::Vector<double, 3> rotateTo(const ippl::Vector<double, 3>& r) const;
+    ippl::Vector<double, 3> rotateTo(
+        const ippl::Vector<double, 3>& r) const;
 
-    ippl::Vector<double, 3> rotateFrom(const ippl::Vector<double, 3>& r) const;
+    ippl::Vector<double, 3> rotateFrom(
+        const ippl::Vector<double, 3>& r) const;
 
     template <typename ViewType>
     void transformBunchTo(ViewType Rview) const;
@@ -39,27 +46,30 @@ public:
 
     template <typename ViewType>
     void rotateBunchFrom(ViewType Pview) const;
-    /* ========================================================================== */
-    /* =============================== Operators ================================ */
-    CoordinateSystemTrafo& operator=(const CoordinateSystemTrafo& right) = default;
+/* ========================================================================== */
+/* =============================== Operators ================================ */
+    CoordinateSystemTrafo& operator=(
+        const CoordinateSystemTrafo& right) = default;
 
-    CoordinateSystemTrafo operator*(const CoordinateSystemTrafo& right) const;
+    CoordinateSystemTrafo operator*(
+        const CoordinateSystemTrafo& right) const;
 
-    void operator*=(const CoordinateSystemTrafo& right);
-    /* ========================================================================== */
-    /* =============================== Getters ================================== */
+    void operator*=(
+        const CoordinateSystemTrafo& right);
+/* ========================================================================== */
+/* =============================== Getters ================================== */
     ippl::Vector<double, 3> getOrigin() const;
     Quaternion getRotation() const;
     matrix3x3_t getRotationMatrix() const;
-    /* ========================================================================== */
-    /* =============================== Print ==================================== */
+/* ========================================================================== */
+/* =============================== Print ==================================== */
     void print(std::ostream&) const;
 
 private:
     // Displacement
     ippl::Vector<double, 3> origin_m;
 
-    // Rotation
+    //Rotation
     Quaternion orientation_m;
     matrix3x3_t rotationMatrix_m;
 };
@@ -102,11 +112,17 @@ inline ippl::Vector<double, 3> CoordinateSystemTrafo::rotateFrom(
     return prod_vector_transpose(rotationMatrix_m, r);
 }
 
-inline ippl::Vector<double, 3> CoordinateSystemTrafo::getOrigin() const { return origin_m; }
+inline ippl::Vector<double, 3> CoordinateSystemTrafo::getOrigin() const {
+    return origin_m;
+}
 
-inline Quaternion CoordinateSystemTrafo::getRotation() const { return orientation_m; }
+inline Quaternion CoordinateSystemTrafo::getRotation() const {
+    return orientation_m;
+}
 
-inline matrix3x3_t CoordinateSystemTrafo::getRotationMatrix() const { return rotationMatrix_m; }
+inline matrix3x3_t CoordinateSystemTrafo::getRotationMatrix() const {
+    return rotationMatrix_m;
+}
 
 inline CoordinateSystemTrafo CoordinateSystemTrafo::inverted() const {
     CoordinateSystemTrafo result(*this);
@@ -117,38 +133,41 @@ inline CoordinateSystemTrafo CoordinateSystemTrafo::inverted() const {
 
 template <typename ViewType>
 inline void CoordinateSystemTrafo::transformBunchTo(ViewType Rview) const {
-    matrix3x3_t rot             = rotationMatrix_m;
+    matrix3x3_t rot = rotationMatrix_m;
     ippl::Vector<double, 3> ori = origin_m;
-    Kokkos::parallel_for(
-        "transformBunchTo", Rview.extent(0), KOKKOS_LAMBDA(const size_t i) {
+    Kokkos::parallel_for("transformBunchTo", Rview.extent(0), 
+        KOKKOS_LAMBDA(const size_t i) {
             ippl::Vector<double, 3> delta = Rview(i) - ori;
-            Rview(i)                      = prod_vector(rot, delta);
+            Rview(i) = prod_vector(rot, delta);
         });
 }
 
 template <typename ViewType>
 inline void CoordinateSystemTrafo::transformBunchFrom(ViewType Rview) const {
-    matrix3x3_t rot             = rotationMatrix_m;
+    matrix3x3_t rot = rotationMatrix_m;
     ippl::Vector<double, 3> ori = origin_m;
-    Kokkos::parallel_for(
-        "transformBunchFrom", Rview.extent(0),
-        KOKKOS_LAMBDA(const size_t i) { Rview(i) = prod_vector_transpose(rot, Rview(i)) + ori; });
+    Kokkos::parallel_for("transformBunchFrom", Rview.extent(0), 
+        KOKKOS_LAMBDA(const size_t i) {
+            Rview(i) = prod_vector_transpose(rot, Rview(i)) + ori;
+        });
 }
 
 template <typename ViewType>
 inline void CoordinateSystemTrafo::rotateBunchTo(ViewType Pview) const {
     matrix3x3_t rot = rotationMatrix_m;
-    Kokkos::parallel_for(
-        "rotateBunchTo", Pview.extent(0),
-        KOKKOS_LAMBDA(const size_t i) { Pview(i) = prod_vector(rot, Pview(i)); });
+    Kokkos::parallel_for("rotateBunchTo", Pview.extent(0), 
+        KOKKOS_LAMBDA(const size_t i) {
+            Pview(i) = prod_vector(rot, Pview(i));
+        });
 }
 
 template <typename ViewType>
 inline void CoordinateSystemTrafo::rotateBunchFrom(ViewType Pview) const {
     matrix3x3_t rot = rotationMatrix_m;
-    Kokkos::parallel_for(
-        "rotateBunchFrom", Pview.extent(0),
-        KOKKOS_LAMBDA(const size_t i) { Pview(i) = prod_vector_transpose(rot, Pview(i)); });
+    Kokkos::parallel_for("rotateBunchFrom", Pview.extent(0), 
+        KOKKOS_LAMBDA(const size_t i) {
+            Pview(i) = prod_vector_transpose(rot, Pview(i));
+        });
 }
 
 #endif

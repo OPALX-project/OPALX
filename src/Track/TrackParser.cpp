@@ -22,11 +22,17 @@
 #include "Track/TrackEnd.h"
 #include "Track/TrackRun.h"
 
-TrackParser::TrackParser() : trackDirectory() {
+TrackParser::TrackParser():
+    trackDirectory() {
     trackDirectory.insert("ENDTRACK", new TrackEnd());
-    trackDirectory.insert("RUN", new TrackRun());
+    trackDirectory.insert("RUN",      new TrackRun());
 }
 
-TrackParser::~TrackParser() {}
 
-Object* TrackParser::find(const std::string& name) const { return trackDirectory.find(name); }
+TrackParser::~TrackParser()
+{}
+
+
+Object *TrackParser::find(const std::string &name) const {
+    return trackDirectory.find(name);
+}

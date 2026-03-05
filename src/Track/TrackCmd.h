@@ -23,7 +23,9 @@
 
 #include <map>
 
-class TrackCmd : public Action {
+
+class TrackCmd: public Action {
+
 public:
     TrackCmd();
 
@@ -70,4 +72,4 @@ private:
     static const std::map<std::string, Steppers::TimeIntegrator> stringTimeIntegrator_s;
 };
 
-#endif  // OPAL_TrackCmd_HH
+#endif // OPAL_TrackCmd_HH

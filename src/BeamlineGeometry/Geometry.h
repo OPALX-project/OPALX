@@ -23,6 +23,7 @@
 // Euclid3D represents an aribitrary 3-d rotation and displacement.
 #include "BeamlineGeometry/Euclid3D.h"
 
+
 // Class BGeometryBase
 // ------------------------------------------------------------------------
 /// Abstract base class for accelerator geometry classes.
@@ -41,10 +42,11 @@
 
 class BGeometryBase {
 public:
+
     BGeometryBase();
-    BGeometryBase(const BGeometryBase& right);
+    BGeometryBase(const BGeometryBase &right);
     virtual ~BGeometryBase();
-    const BGeometryBase& operator=(const BGeometryBase& right);
+    const BGeometryBase &operator=(const BGeometryBase &right);
 
     /// Get arc length.
     //  Return the length of the geometry, measured along the design arc.
@@ -120,14 +122,17 @@ public:
     //  at its exit. The default behaviour returns identity transformation.
     //  This function should be overidden by derived concrete classes which
     //  model complex geometries.
-    virtual Euclid3D getExitPatch() const;
+    virtual Euclid3D getExitPatch()     const;
 };
 
 // inlined (trivial) member functions
-inline BGeometryBase::BGeometryBase() {}
+inline BGeometryBase::BGeometryBase()
+{ }
 
-inline BGeometryBase::BGeometryBase(const BGeometryBase&) {}
+inline BGeometryBase::BGeometryBase(const BGeometryBase &)
+{ }
 
-inline const BGeometryBase& BGeometryBase::operator=(const BGeometryBase&) { return *this; }
+inline const BGeometryBase &BGeometryBase::operator=(const BGeometryBase &)
+{ return *this; }
 
-#endif  // CLASSIC_BGeometryBase_HH
+#endif // CLASSIC_BGeometryBase_HH

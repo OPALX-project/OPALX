@@ -26,8 +26,8 @@
  */
 
 #include "Algorithms/SplineTimeDependence.h"
-#include <stdexcept>
 #include "Utility/Inform.h"
+#include <stdexcept>
 
 SplineTimeDependence::SplineTimeDependence(
     const size_t splineOrder, const std::vector<double>& times, const std::vector<double>& values) {
@@ -73,15 +73,15 @@ void SplineTimeDependence::setSpline(
     }
     for (size_t i = 0; i < times.size() - 1; ++i) {
         if (times[i] >= times[i + 1]) {
-            throw std::invalid_argument(
+        throw std::invalid_argument(
                 "SplineTimeDependence::SplineTimeDependence: "
                 "Times should increase monotonically");
         }
     }
     splineOrder_m = splineOrder;
-    times_m       = times;
-    values_m      = values;
-    splineAcc_m   = std::make_unique<AbstractSpline::Accelerator>();
+    times_m  = times;
+    values_m = values;
+    splineAcc_m = std::make_unique<AbstractSpline::Accelerator>();
     if (splineOrder_m == LinearInterpolation) {
         spline_m = std::make_unique<LinearSpline>(times_m, values_m);
     } else {

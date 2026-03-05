@@ -77,7 +77,7 @@
 #include "AbsBeamline/EndFieldModel/Tanh.h"
 #include "BeamlineGeometry/PlanarArcGeometry.h"
 #include "Fields/BMultipoleField.h"
-//
+//  
 #include <vector>
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "AbsBeamline/Component.h"
@@ -352,30 +352,66 @@ private:
     double getFn(std::size_t n, double x, double s);
 };
 
-inline void MultipoleT::setVarRadius() { variableRadius_m = true; }
-inline bool MultipoleT::getVarRadius() const { return variableRadius_m; }
-inline void MultipoleT::setEntranceAngle(double entranceAngle) { entranceAngle_m = entranceAngle; }
-inline double MultipoleT::getEntranceAngle() const { return entranceAngle_m; }
-inline double MultipoleT::getTransProfile(int n) const { return transProfile_m[n]; }
-inline std::vector<double> MultipoleT::getTransProfile() const { return transProfile_m; }
-inline double MultipoleT::getDipoleConstant() const { return transProfile_m[0]; }
-inline std::size_t MultipoleT::getMaxOrder() const { return maxOrder_m; }
+inline void MultipoleT::setVarRadius() {
+    variableRadius_m = true;
+}
+inline bool MultipoleT::getVarRadius() const {
+    return variableRadius_m;
+}
+inline void MultipoleT::setEntranceAngle(double entranceAngle) {
+    entranceAngle_m = entranceAngle;
+}
+inline double MultipoleT::getEntranceAngle() const {
+    return entranceAngle_m;
+}
+inline double MultipoleT::getTransProfile(int n) const {
+    return transProfile_m[n];
+}
+inline std::vector<double> MultipoleT::getTransProfile() const {
+    return transProfile_m;
+}
+inline double MultipoleT::getDipoleConstant() const {
+    return transProfile_m[0];
+}
+inline std::size_t MultipoleT::getMaxOrder() const {
+    return maxOrder_m;
+}
 
-inline std::size_t MultipoleT::getMaxXOrder() const { return maxOrderX_m; }
+inline std::size_t MultipoleT::getMaxXOrder() const {
+    return maxOrderX_m;
+}
 
-inline void MultipoleT::setMaxXOrder(std::size_t maxOrderX) { maxOrderX_m = maxOrderX; }
-inline std::size_t MultipoleT::getTransMaxOrder() const { return transMaxOrder_m; }
+inline void MultipoleT::setMaxXOrder(std::size_t maxOrderX) {
+    maxOrderX_m = maxOrderX;
+}
+inline std::size_t MultipoleT::getTransMaxOrder() const {
+    return transMaxOrder_m;
+}
 inline void MultipoleT::setTransMaxOrder(std::size_t transMaxOrder) {
     transMaxOrder_m = transMaxOrder;
     transProfile_m.resize(transMaxOrder + 1, 0.);
 }
-inline double MultipoleT::getRotation() const { return rotation_m; }
-inline void MultipoleT::setRotation(double rot) { rotation_m = rot; }
-inline void MultipoleT::setBendAngle(double angle) { angle_m = angle; }
-inline double MultipoleT::getBendAngle() const { return angle_m; }
-inline void MultipoleT::setLength(double length) { length_m = std::abs(length); }
-inline double MultipoleT::getLength() const { return length_m; }
-inline double MultipoleT::getBoundingBoxLength() const { return boundingBoxLength_m; }
+inline double MultipoleT::getRotation() const {
+    return rotation_m;
+}
+inline void MultipoleT::setRotation(double rot) {
+    rotation_m = rot;
+}
+inline void MultipoleT::setBendAngle(double angle) {
+    angle_m = angle;
+}
+inline double MultipoleT::getBendAngle() const {
+    return angle_m;
+}
+inline void MultipoleT::setLength(double length) {
+    length_m = std::abs(length);
+}
+inline double MultipoleT::getLength() const {
+    return length_m;
+}
+inline double MultipoleT::getBoundingBoxLength() const {
+    return boundingBoxLength_m;
+}
 inline void MultipoleT::setBoundingBoxLength(const double& boundingBoxLength) {
     boundingBoxLength_m = boundingBoxLength;
 }

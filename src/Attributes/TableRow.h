@@ -24,32 +24,36 @@
 
 class TableRowRep;
 
+
 // Class TableRow
 // ------------------------------------------------------------------------
 
 namespace Attributes {
 
     /// Parser for an attribute of type table row reference.
-    class TableRow : public AttributeHandler {
+    class TableRow: public AttributeHandler {
+
     public:
+
         /// Constructor.
         //  Assign attribute name and help string.
-        TableRow(const std::string& name, const std::string& help);
+        TableRow(const std::string &name, const std::string &help);
 
         virtual ~TableRow();
 
         /// Return attribute type string ``table line''.
-        virtual const std::string& getType() const;
+        virtual const std::string &getType() const;
 
         /// Parse the attribute.
-        virtual void parse(Attribute&, Statement&, bool) const;
+        virtual void parse(Attribute &, Statement &, bool) const;
 
     private:
+
         // Not implemented.
-        TableRow(const TableRow&);
-        void operator=(const TableRow&);
+        TableRow(const TableRow &);
+        void operator=(const TableRow &);
     };
 
-};  // namespace Attributes
+};
 
-#endif  // OPAL_TableRow_HH
+#endif // OPAL_TableRow_HH

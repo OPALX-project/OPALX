@@ -130,14 +130,14 @@ void OrbitThreader::execute() {
     std::set<std::shared_ptr<Component>> intersection, currentSet;
     errorFlag_m = EVERYTHINGFINE;
 
-    *gmsg << "OrbitThreader dt_m= " << dt_m << endl;
-
+    *gmsg << "* OrbitThreader dt_m= " << dt_m << endl;
+    
     do {
         checkElementLengths(elementSet);
         if (containsCavity(elementSet)) {
             autophaseCavities(elementSet, visitedElements);
         }
-
+        
         double initialS              = pathLength_m;
         Vector_t<double, 3> initialR = r_m;
         Vector_t<double, 3> initialP = p_m;
@@ -145,9 +145,9 @@ void OrbitThreader::execute() {
 
         integrate(elementSet, maxDistance);
 
-        *gmsg << "OrbitThreader maxDistance= " << maxDistance << endl;
-        *gmsg << "OrbitThreader #elements  = " << elementSet.size() << endl;
-
+        *gmsg << "* OrbitThreader maxDistance= " << maxDistance << endl;
+        *gmsg << "* OrbitThreader #elements  = " << elementSet.size() << endl;
+        
         registerElement(elementSet, initialS, initialR, initialP);
 
         if (errorFlag_m == HITMATERIAL) {
@@ -450,26 +450,30 @@ void OrbitThreader::computeBoundingBox() {
 }
 
 void OrbitThreader::updateBoundingBoxWithCurrentPosition() {
-    Vector_t<double, 3> dR                       = Physics::c * dt_m * p_m / Util::getGamma(p_m);
+    Vector_t<double, 3> dR = Physics::c * dt_m * p_m / Util::getGamma(p_m);
     std::array<Vector_t<double, 3>, 2> positions = {r_m - 10 * dR, r_m + 10 * dR};
-
+   
     for (const Vector_t<double, 3>& pos : positions) {
         globalBoundingBox_m.enlargeToContainPosition(pos);
     }
+    
 }
 
 double OrbitThreader::computeDriftLengthToBoundingBox(
-    const std::set<std::shared_ptr<Component>>& elements, const Vector_t<double, 3>& position,
-    const Vector_t<double, 3>& direction) const {
+    const std::set<std::shared_ptr<Component>>& elements,
+    const Vector_t<double, 3>& position,
+    const Vector_t<double, 3>& direction) const
+{
     if (elements.empty()
-        || (elements.size() == 1 && (*elements.begin())->getType() == ElementType::DRIFT)) {
+        || (elements.size() == 1 && (*elements.begin())->getType() == ElementType::DRIFT)) 
+    {
         std::optional<Vector_t<double, 3>> intersectionPoint =
             globalBoundingBox_m.getIntersectionPoint(position, direction);
         if (intersectionPoint) {
             const Vector_t<double, 3> r = intersectionPoint.value() - position;
             return euclidean_norm(r);
         }
-        return 10;
+        return 10; 
     }
 
     return std::numeric_limits<double>::max();

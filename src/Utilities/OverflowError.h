@@ -29,8 +29,10 @@
 /// Overflow exception.
 //  This exception is thrown, when a function detects an arithmetic overflow.
 
-class OverflowError : public ArithmeticError {
+class OverflowError: public ArithmeticError {
+
 public:
+
     /// The usual constructor.
     // Arguments:
     // [DL]
@@ -38,14 +40,15 @@ public:
     // [DD]the name of the method or function detecting the exception
     // [/DL]
     // Construction/destruction.
-    OverflowError(const std::string& meth);
+    OverflowError(const std::string &meth);
 
-    OverflowError(const OverflowError&);
+    OverflowError(const OverflowError &);
     virtual ~OverflowError();
 
 private:
+
     // Not implemented.
     OverflowError();
 };
 
-#endif  // CLASSIC_OverflowError_HH
+#endif // CLASSIC_OverflowError_HH

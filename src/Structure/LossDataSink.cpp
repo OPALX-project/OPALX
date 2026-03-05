@@ -172,7 +172,8 @@ SetStatistics::SetStatistics()
       rpsum_m(0.0),
       eps2_m(0.0),
       eps_norm_m(0.0),
-      fac_m(0.0) {}
+      fac_m(0.0) {
+}
 
 LossDataSink::LossDataSink(std::string outfn, bool hdf5Save, CollectionType collectionType)
     : h5hut_mode_m(hdf5Save),

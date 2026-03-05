@@ -27,8 +27,10 @@
 
 #include <string>
 
-class Option : public Action {
+class Option: public Action {
+
 public:
+
     Option();
     virtual ~Option();
 
@@ -39,6 +41,7 @@ public:
     virtual void execute();
 
 private:
+
     void handlePsDumpFrame(const std::string& dumpFrame);
 
     static std::string getDumpFrameString(const DumpFrame& df);
@@ -56,4 +59,4 @@ private:
     static const BiMap<DumpFrame, std::string> bmDumpFrameString_s;
 };
 
-#endif  // OPAL_Option_HH
+#endif // OPAL_Option_HH

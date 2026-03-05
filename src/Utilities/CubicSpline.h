@@ -29,7 +29,7 @@ class CubicSpline final : public AbstractSpline {
 public:
     /// \brief Default constructor.
     CubicSpline() = default;
-
+    
     /// \brief Construct and initialize from tabulated data.
     /// \param x Input: strictly increasing x-coordinates.
     /// \param y Input: y-values corresponding to \p x.
@@ -82,4 +82,5 @@ private:
     std::vector<double> integrals_;
 };
 
-#endif  // OPAL_CUBIC_SPLINE_HH
+#endif // OPAL_CUBIC_SPLINE_HH
+

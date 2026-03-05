@@ -42,9 +42,13 @@ typedef Quaternion Quaternion_t;
 
 Quaternion getQuaternion(ippl::Vector<double, 3> vec, ippl::Vector<double, 3> reference);
 
-inline Quaternion::Quaternion() : Vector<double, 4>(1.0, 0.0, 0.0, 0.0) { srand(time(0)); }
+inline Quaternion::Quaternion() : Vector<double, 4>(1.0, 0.0, 0.0, 0.0) {
+    srand(time(0));
+}
 
-inline Quaternion::Quaternion(const Quaternion& quat) : Vector<double, 4>(quat) { srand(time(0)); }
+inline Quaternion::Quaternion(const Quaternion& quat) : Vector<double, 4>(quat) {
+    srand(time(0));
+}
 
 inline Quaternion::Quaternion(
     const double& x0, const double& x1, const double& x2, const double& x3)
@@ -62,15 +66,25 @@ inline Quaternion::Quaternion(const double& realPart, const ippl::Vector<double,
     srand(time(0));
 }
 
-inline double Quaternion::Norm() const { return dot(*this); }
+inline double Quaternion::Norm() const {
+    return dot(*this);
+}
 
-inline double Quaternion::length() const { return std::sqrt(this->Norm()); }
+inline double Quaternion::length() const {
+    return std::sqrt(this->Norm());
+}
 
-inline bool Quaternion::isUnit() const { return (std::abs(this->Norm() - 1.0) < 1e-12); }
+inline bool Quaternion::isUnit() const {
+    return (std::abs(this->Norm() - 1.0) < 1e-12);
+}
 
-inline bool Quaternion::isPure() const { return (std::abs((*this)(0)) < 1e-12); }
+inline bool Quaternion::isPure() const {
+    return (std::abs((*this)(0)) < 1e-12);
+}
 
-inline bool Quaternion::isPureUnit() const { return (this->isPure() && this->isUnit()); }
+inline bool Quaternion::isPureUnit() const {
+    return (this->isPure() && this->isUnit());
+}
 
 inline Quaternion Quaternion::conjugate() const {
     Quaternion quat(this->real(), -this->imag());
@@ -78,7 +92,9 @@ inline Quaternion Quaternion::conjugate() const {
     return quat;
 }
 
-inline double Quaternion::real() const { return (*this)(0); }
+inline double Quaternion::real() const {
+    return (*this)(0);
+}
 
 inline ippl::Vector<double, 3> Quaternion::imag() const {
     ippl::Vector<double, 3> vec((*this)(1), (*this)(2), (*this)(3));

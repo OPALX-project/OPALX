@@ -112,11 +112,11 @@ Quaternion& Quaternion::normalize() {
 Quaternion Quaternion::inverse() const {
     Quaternion returnValue = conjugate();
 
-#ifndef NOPAssert
+    #ifndef NOPAssert
     if (this->Norm() < 1e-12)
         throw GeneralClassicException(
             "Quaternion::inverse()", "length of quaternion less than 1e-12");
-#endif
+    #endif
 
     returnValue /= returnValue.Norm();
 

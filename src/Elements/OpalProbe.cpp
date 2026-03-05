@@ -39,9 +39,12 @@ OpalProbe::OpalProbe(const std::string& name, OpalProbe* parent) : OpalElement(n
     setElement(new ProbeRep(name));
 }
 
-OpalProbe::~OpalProbe() {}
+OpalProbe::~OpalProbe() {
+}
 
-OpalProbe* OpalProbe::clone(const std::string& name) { return new OpalProbe(name, this); }
+OpalProbe* OpalProbe::clone(const std::string& name) {
+    return new OpalProbe(name, this);
+}
 
 void OpalProbe::update() {
     OpalElement::update();

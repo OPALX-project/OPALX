@@ -18,25 +18,25 @@
 #define DESCRIPTION_HPP_
 
 #include "ast.hpp"
-#include "error_handler.hpp"
 #include "skipper.hpp"
+#include "error_handler.hpp"
 
 #include <optional>
 
 namespace SDDS {
-    struct description {
+    struct description
+    {
         std::optional<std::string> text_m;
         std::optional<std::string> content_m;
+
     };
 
     inline std::ostream& operator<<(std::ostream& out, const description& desc) {
-        if (desc.text_m)
-            out << "text = " << *desc.text_m << ", ";
-        if (desc.content_m)
-            out << "content = " << *desc.content_m;
+        if (desc.text_m) out << "text = " << *desc.text_m << ", ";
+        if (desc.content_m) out << "content = " << *desc.content_m;
         return out;
     }
-}  // namespace SDDS
+}
 
 // Description parsing is now handled by SimpleParser
 #endif /* DESCRIPTION_HPP_ */

@@ -23,18 +23,25 @@
 #include "OpalParser/Token.h"
 #include "OpalParser/TokenStream.h"
 
+
 // class SimpleStatement
 // ------------------------------------------------------------------------
 
-SimpleStatement::SimpleStatement(const std::string& name, int line) : Statement(name, line) {}
+SimpleStatement::SimpleStatement(const std::string &name, int line):
+    Statement(name, line)
+{}
 
-SimpleStatement::SimpleStatement(const std::string& name, TokenList& list)
-    : Statement(name, list) {}
 
-SimpleStatement::~SimpleStatement() {}
+SimpleStatement::SimpleStatement(const std::string &name, TokenList &list):
+    Statement(name, list)
+{}
 
-void SimpleStatement::execute(const Parser& parser) {
+
+SimpleStatement::~SimpleStatement()
+{}
+
+
+void SimpleStatement::execute(const Parser &parser) {
     curr = keep = tokens.begin();
-    if (curr != tokens.end())
-        parser.parse(*this);
+    if(curr != tokens.end()) parser.parse(*this);
 }

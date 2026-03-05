@@ -21,8 +21,8 @@
 #include "OPALTypes.h"
 
 #include "AbstractObjects/Action.h"
-#include "Distribution/SamplingBase.hpp"
 #include "PartBunch/PartBunch.h"
+#include "Distribution/SamplingBase.hpp"
 
 #include "Structure/FieldSolverCmd.h"
 
@@ -54,7 +54,7 @@ public:
 
     // Bring base class print into scope to avoid hiding warning
     using Object::print;
-
+    
     Inform& print(Inform& os) const;
 
 private:
@@ -110,8 +110,12 @@ private:
     // macro mass / charge for simulation particles
     double macromass_m;
     double macrocharge_m;
+
+    
 };
 
-inline Inform& operator<<(Inform& os, const TrackRun& b) { return b.print(os); }
+inline Inform& operator<<(Inform& os, const TrackRun& b) {
+    return b.print(os);
+}
 
 #endif  // OPAL_TrackRun_HH

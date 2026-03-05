@@ -18,8 +18,8 @@
 #include "AbsBeamline/TravelingWave.h"
 
 #include "AbsBeamline/BeamlineVisitor.h"
-#include "Fields/Fieldmap.h"
 #include "PartBunch/PartBunch.h"
+#include "Fields/Fieldmap.h"
 #include "Physics/Units.h"
 #include "Utilities/GSLSpline.h"
 
@@ -28,7 +28,8 @@
 
 extern Inform* gmsg;
 
-TravelingWave::TravelingWave() : TravelingWave("") {}
+TravelingWave::TravelingWave() : TravelingWave("") {
+}
 
 TravelingWave::TravelingWave(const TravelingWave& right)
     : RFCavity(right),
@@ -43,7 +44,8 @@ TravelingWave::TravelingWave(const TravelingWave& right)
       periodLength_m(right.periodLength_m),
       numCells_m(right.numCells_m),
       cellLength_m(right.cellLength_m),
-      mode_m(right.mode_m) {}
+      mode_m(right.mode_m) {
+}
 
 TravelingWave::TravelingWave(const std::string& name)
     : RFCavity(name),
@@ -58,13 +60,19 @@ TravelingWave::TravelingWave(const std::string& name)
       periodLength_m(0.0),
       numCells_m(1),
       cellLength_m(0.0),
-      mode_m(1) {}
+      mode_m(1) {
+}
 
-TravelingWave::~TravelingWave() {}
+TravelingWave::~TravelingWave() {
+}
 
-void TravelingWave::accept(BeamlineVisitor& visitor) const { visitor.visitTravelingWave(*this); }
+void TravelingWave::accept(BeamlineVisitor& visitor) const {
+    visitor.visitTravelingWave(*this);
+}
 
-bool TravelingWave::apply() { return false; }
+bool TravelingWave::apply() {
+    return false;
+}
 
 bool TravelingWave::apply(
     const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
@@ -229,24 +237,28 @@ void TravelingWave::initialise(PartBunch_t* bunch, double& startField, double& e
         - Physics::two_pi * ((numCells_m - 1) * mode_m - std::floor((numCells_m - 1) * mode_m));
 }
 
-void TravelingWave::initialise(
-    PartBunch_t* /*bunch*/, std::shared_ptr<AbstractTimeDependence> /*freq_atd*/,
-    std::shared_ptr<AbstractTimeDependence> /*ampl_atd*/,
-    std::shared_ptr<AbstractTimeDependence> /*phase_atd*/
-) {
-    *gmsg << "TravelingWave::initialise not implemented" << endl;
+void TravelingWave::initialise(PartBunch_t* /*bunch*/, std::shared_ptr<AbstractTimeDependence> /*freq_atd*/,
+                               std::shared_ptr<AbstractTimeDependence> /*ampl_atd*/,
+                               std::shared_ptr<AbstractTimeDependence> /*phase_atd*/) {
+  *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
 }
 
-void TravelingWave::finalise() {}
 
-bool TravelingWave::bends() const { return false; }
+void TravelingWave::finalise() {
+}
+
+bool TravelingWave::bends() const {
+    return false;
+}
 
 void TravelingWave::goOnline(const double&) {
     Fieldmap::readMap(filename_m);
     online_m = true;
 }
 
-void TravelingWave::goOffline() { Fieldmap::freeMap(filename_m); }
+void TravelingWave::goOffline() {
+    Fieldmap::freeMap(filename_m);
+}
 
 void TravelingWave::getDimensions(double& zBegin, double& zEnd) const {
     zBegin = -0.5 * periodLength_m;
@@ -258,7 +270,9 @@ void TravelingWave::getElementDimensions(double& begin, double& end) const {
     end   = begin + getElementLength();
 }
 
-ElementType TravelingWave::getType() const { return ElementType::TRAVELINGWAVE; }
+ElementType TravelingWave::getType() const {
+    return ElementType::TRAVELINGWAVE;
+}
 
 double TravelingWave::getAutoPhaseEstimate(
     const double& E0, const double& t0, const double& q, const double& mass) {

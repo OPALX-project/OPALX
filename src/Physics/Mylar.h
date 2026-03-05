@@ -2,7 +2,7 @@
 // Class Mylar
 //   Defines Mylar as a material for particle-matter interactions
 //
-//   Data taken from Standard Atomic Weight 2019 (https://www.qmul.ac.uk/sbcs/iupac/AtWt/),
+//   Data taken from Standard Atomic Weight 2019 (https://www.qmul.ac.uk/sbcs/iupac/AtWt/), 
 //   atomic properties from PDG database (https://pdg.lbl.gov/2020/AtomicNuclearProperties)
 //   and fit coefficients from ICRU Report 49.
 //
@@ -25,13 +25,17 @@
 #include "Physics/Material.h"
 
 namespace Physics {
-    class Mylar : public Material {
+    class Mylar: public Material {
     public:
-        Mylar()
-            : Material(
-                  6.702, 12.88, 1.400, 39.95, 78.7,
-                  {{2.954, 3.350, 1683, 1900, 2.513e-02, 1.9259, 0.5550, 27.15125, 26.0665,
-                    6.2768}}) {}
+        Mylar():
+            Material(6.702,
+                     12.88,
+                     1.400,
+                     39.95,
+                     78.7,
+                     {{2.954, 3.350, 1683, 1900, 2.513e-02,
+                       1.9259, 0.5550, 27.15125, 26.0665, 6.2768}})
+        { }
     };
-}  // namespace Physics
+}
 #endif

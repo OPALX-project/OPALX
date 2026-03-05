@@ -21,47 +21,50 @@
 #include "AbsBeamline/Multipole.h"
 #include "BeamlineGeometry/StraightGeometry.h"
 
-class MultipoleRep : public Multipole {
+class MultipoleRep: public Multipole {
+
 public:
+
     /// Constructor with given name.
-    explicit MultipoleRep(const std::string& name);
+    explicit MultipoleRep(const std::string &name);
 
     MultipoleRep();
-    MultipoleRep(const MultipoleRep&);
+    MultipoleRep(const MultipoleRep &);
     virtual ~MultipoleRep();
 
     /// Return clone.
     //  Return an identical deep copy of the element.
-    virtual ElementBase* clone() const;
+    virtual ElementBase *clone() const;
 
     /// Construct a read/write channel.
     //  This method constructs a Channel permitting read/write access to
     //  the attribute [b]aKey[/b]r and returns it.
     //  If the attribute does not exist, it returns nullptr.
-    virtual Channel* getChannel(const std::string& aKey, bool = false);
+    virtual Channel *getChannel(const std::string &aKey, bool = false);
 
     /// Get field.
     //  Version for non-constant object.
-    virtual BMultipoleField& getField();
+    virtual BMultipoleField &getField();
 
     /// Get field.
     //  Version for constant object.
-    virtual const BMultipoleField& getField() const;
+    virtual const BMultipoleField &getField() const;
 
     /// Get geometry.
     //  Return the element geometry.
     //  Version for non-constant object.
-    virtual StraightGeometry& getGeometry();
+    virtual StraightGeometry &getGeometry();
 
     /// Get geometry.
     //  Return the element geometry
     //  Version for constant object.
-    virtual const StraightGeometry& getGeometry() const;
+    virtual const StraightGeometry &getGeometry() const;
 
     /// Set mulitpole field.
-    virtual void setField(const BMultipoleField& field);
+    virtual void setField(const BMultipoleField &field);
 
 private:
+
     /// Multipole geometry.
     StraightGeometry geometry;
 
@@ -69,7 +72,7 @@ private:
     BMultipoleField field;
 
     // Not implemented.
-    void operator=(const MultipoleRep&);
+    void operator=(const MultipoleRep &);
 };
 
-#endif  // CLASSIC_MultipoleRep_HH
+#endif // CLASSIC_MultipoleRep_HH

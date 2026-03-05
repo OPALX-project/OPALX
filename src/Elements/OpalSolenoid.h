@@ -20,8 +20,11 @@
 
 #include "Elements/OpalElement.h"
 
-class OpalSolenoid : public OpalElement {
+
+class OpalSolenoid: public OpalElement {
+
 public:
+
     /// The attributes of class OpalSolenoid.
     enum {
         KS = COMMON,  // The longitudinal magnetic field.
@@ -37,18 +40,19 @@ public:
     virtual ~OpalSolenoid();
 
     /// Make clone.
-    virtual OpalSolenoid* clone(const std::string& name);
+    virtual OpalSolenoid *clone(const std::string &name);
 
     /// Update the embedded CLASSIC solenoid.
     virtual void update();
 
 private:
+
     // Not implemented.
-    OpalSolenoid(const OpalSolenoid&);
-    void operator=(const OpalSolenoid&);
+    OpalSolenoid(const OpalSolenoid &);
+    void operator=(const OpalSolenoid &);
 
     // Clone constructor.
-    OpalSolenoid(const std::string& name, OpalSolenoid* parent);
+    OpalSolenoid(const std::string &name, OpalSolenoid *parent);
 };
 
-#endif  // OPAL_OpalSolenoid_HH
+#endif // OPAL_OpalSolenoid_HH

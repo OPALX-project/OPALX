@@ -20,8 +20,11 @@
 
 #include "AbstractObjects/Action.h"
 
-class Stop : public Action {
+
+class Stop: public Action {
+
 public:
+
     /// Exemplar constructor.
     Stop();
 
@@ -34,6 +37,7 @@ public:
     virtual void execute();
 
 private:
+
     // Not implemented.
     Stop(const Stop&);
     void operator=(const Stop&);
@@ -42,4 +46,4 @@ private:
     Stop(const std::string& name, Stop* parent);
 };
 
-#endif  // OPAL_Stop_HH
+#endif // OPAL_Stop_HH

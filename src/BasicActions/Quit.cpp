@@ -17,16 +17,26 @@
 //
 #include "BasicActions/Quit.h"
 
-Quit::Quit()
-    : Action(
-          0, "QUIT",
-          "The \"QUIT\" statement terminates program execution "
-          "or reading of a called file.") {}
 
-Quit::Quit(const std::string& name, Quit* parent) : Action(name, parent) {}
+Quit::Quit(): Action(0, "QUIT",
+                         "The \"QUIT\" statement terminates program execution "
+                         "or reading of a called file.")
+{}
 
-Quit::~Quit() {}
 
-Quit* Quit::clone(const std::string& name) { return new Quit(name, this); }
+Quit::Quit(const std::string& name, Quit* parent):
+    Action(name, parent)
+{}
 
-void Quit::execute() {}
+
+Quit::~Quit()
+{}
+
+
+Quit* Quit::clone(const std::string& name) {
+    return new Quit(name, this);
+}
+
+
+void Quit::execute()
+{}

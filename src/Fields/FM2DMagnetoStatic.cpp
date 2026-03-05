@@ -17,7 +17,8 @@
  * - Grid spacing (hz_m, hr_m)
  * - Number of gridpoints (num_gridpz_m, num_gridpr_m)
  */
-FM2DMagnetoStatic::FM2DMagnetoStatic(std::string aFilename) : Fieldmap(aFilename) {
+FM2DMagnetoStatic::FM2DMagnetoStatic(std::string aFilename)
+    : Fieldmap(aFilename) {
     std::ifstream file;
     std::string tmpString;
     double tmpDouble;
@@ -29,9 +30,11 @@ FM2DMagnetoStatic::FM2DMagnetoStatic(std::string aFilename) : Fieldmap(aFilename
     if (file.good()) {
         bool parsing_passed = true;
         try {
-            parsing_passed = interpretLine<std::string, std::string>(file, tmpString, tmpString);
+            parsing_passed = 
+            interpretLine<std::string, std::string>(file, tmpString, tmpString);
         } catch (GeneralClassicException& e) {
-            parsing_passed = interpretLine<std::string, std::string, std::string>(
+            parsing_passed = 
+            interpretLine<std::string, std::string, std::string>(
                 file, tmpString, tmpString, tmpString);
 
             tmpString = Util::toUpper(tmpString);
@@ -106,7 +109,9 @@ FM2DMagnetoStatic::FM2DMagnetoStatic(std::string aFilename) : Fieldmap(aFilename
     }
 }
 
-FM2DMagnetoStatic::~FM2DMagnetoStatic() { freeMap(); }
+FM2DMagnetoStatic::~FM2DMagnetoStatic() {
+    freeMap();
+}
 
 void FM2DMagnetoStatic::readMap() {
     if (FieldstrengthBz_m.h_view.data() == nullptr) {
@@ -130,26 +135,27 @@ void FM2DMagnetoStatic::readMap() {
         if (swap_m) {
             for (int i = 0; i < num_gridpz_m; i++) {
                 for (int j = 0; j < num_gridpr_m; j++) {
-                    interpretLine<double, double>(
-                        in,                        // input stream
-                        Br(j * num_gridpz_m + i),  // radial component
-                        Bz(j * num_gridpz_m + i)   // longitudinal component
+                    interpretLine<double,double>(
+                        in,                         // input stream
+                        Br(j * num_gridpz_m + i),   // radial component
+                        Bz(j * num_gridpz_m + i)    // longitudinal component
                     );
                 }
             }
         } else {
             for (int j = 0; j < num_gridpr_m; j++) {
                 for (int i = 0; i < num_gridpz_m; i++) {
-                    interpretLine<double, double>(
-                        in,                        // input stream
-                        Bz(j * num_gridpz_m + i),  // longitudinal component
-                        Br(j * num_gridpz_m + i)   // radial component
+                    interpretLine<double,double>(
+                        in,                         // input stream
+                        Bz(j * num_gridpz_m + i),   // longitudinal component
+                        Br(j * num_gridpz_m + i)    // radial component
                     );
+
                 }
             }
         }
         in.close();
-
+         
         if (normalize_m) {
             double Bzmax = 0.0;
             // find maximum field
@@ -171,91 +177,113 @@ void FM2DMagnetoStatic::readMap() {
         FieldstrengthBr_m.modify<Kokkos::HostSpace>();
         FieldstrengthBr_m.sync<Kokkos::DefaultExecutionSpace>();
 
-        *ippl::Info << level3 << typeset_msg("read in fieldmap '" + Filename_m + "'", "info")
-                    << endl;
+        *ippl::Info << level3 
+            << typeset_msg("read in fieldmap '" + Filename_m + "'", "info")
+            << endl;
     }
 }
 
 void FM2DMagnetoStatic::freeMap() {
     if (FieldstrengthBz_m.h_view.data() != nullptr) {
+        
         FieldstrengthBz_m = Kokkos::DualView<double*>();
         FieldstrengthBr_m = Kokkos::DualView<double*>();
 
-        *ippl::Info << level3 << typeset_msg("freed fieldmap '" + Filename_m + "'", "info") << endl;
+        *ippl::Info << level3 
+            << typeset_msg("freed fieldmap '" + Filename_m + "'", "info") 
+            << endl;
     }
 }
 
 /**
  * @brief Apply the FM to all the particles.
- *
+ * 
  * @param pc Particle container
  */
-void FM2DMagnetoStatic::applyField(std::shared_ptr<ParticleContainer_t> pc) {
+void FM2DMagnetoStatic::applyField(std::shared_ptr<ParticleContainer_t> pc)
+{
     // Local copies of member variables for use in the lambda function
-    double zbegin  = zbegin_m;
-    double zend    = zend_m;
-    double rend    = rend_m;
-    double hr      = hr_m;
-    double hz      = hz_m;
+    double zbegin = zbegin_m;
+    double zend = zend_m;
+    double rend = rend_m;
+    double hr = hr_m;
+    double hz = hz_m;
     int num_gridpr = num_gridpr_m;
     int num_gridpz = num_gridpz_m;
 
-    // Device accessible views
+    // Device accessible views 
     auto Bz_device = FieldstrengthBz_m.view_device();
     auto Br_device = FieldstrengthBr_m.view_device();
-    auto Rview     = pc->R.getView();
-    auto Bview     = pc->B.getView();
+    auto Rview = pc->R.getView();
+    auto Bview = pc->B.getView();
 
-    Kokkos::parallel_for(
-        "FM2DMagnetoStatic::applyField", ippl::getRangePolicy(Rview), KOKKOS_LAMBDA(const int i) {
-            // Check bounds
-            if (Rview(i)(2) >= zbegin && Rview(i)(2) < zend
-                && sqrt(Rview(i)(0) * Rview(i)(0) + Rview(i)(1) * Rview(i)(1)) < rend) {
-                computeField(
-                    Rview(i), Bview(i), Bz_device, Br_device, hr, hz, zbegin, num_gridpr,
-                    num_gridpz);
-            }
-        });
+    Kokkos::parallel_for("FM2DMagnetoStatic::applyField",
+    ippl::getRangePolicy(Rview),
+    KOKKOS_LAMBDA(const int i)
+    {
+        // Check bounds
+        if(Rview(i)(2) >= zbegin &&Rview(i)(2) < zend &&
+            sqrt(Rview(i)(0)*Rview(i)(0) + Rview(i)(1)*Rview(i)(1)) < rend) 
+        {
+            computeField(Rview(i),
+                Bview(i),
+                Bz_device,
+                Br_device,
+                hr, hz, zbegin, num_gridpr, num_gridpz);
+        }
+    });
 
     return;
 }
 
 /**
  * @brief Get the fieldstrength at position R
- *
+ * 
  * @param R Position
  * @param E Electric Field (unused)
  * @param B Magnetic Field
- *
+ * 
  * @return true if R is outside of the field map, false otherwise.
  */
 bool FM2DMagnetoStatic::getFieldstrength(
-    const Vector_t<double, 3>& R, Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B) const {
+    const Vector_t<double, 3>& R, 
+    Vector_t<double, 3>& /*E*/, 
+    Vector_t<double, 3>& B) const {
+    
     if (isInside(R)) {
         computeField(
-            R, B, FieldstrengthBz_m.h_view, FieldstrengthBr_m.h_view, hr_m, hz_m, zbegin_m,
-            num_gridpr_m, num_gridpz_m);
+            R, B, 
+            FieldstrengthBz_m.h_view, 
+            FieldstrengthBr_m.h_view, 
+            hr_m, 
+            hz_m, 
+            zbegin_m, 
+            num_gridpr_m, 
+            num_gridpz_m);
         return false;
-    } else {
+    }
+    else {
         return true;
     }
 }
 
 /**
  * @brief Get the derivative of the field at position R
- *
+ * 
  * @param R Position
  * @param E Electric Field (unused)
  * @param B Derivate of the magnetic field
- *
+ * 
  * @note Not implemented yet
- *
+ * 
  */
 bool FM2DMagnetoStatic::getFieldDerivative(
-    const Vector_t<double, 3>& /*R*/, Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/,
-    const DiffDirection& /*dir*/
-) const {
-    throw GeneralClassicException("FM2DMagnetoStatic::getFieldDerivative", "not implemented");
+    const Vector_t<double, 3>& /*R*/, 
+    Vector_t<double, 3>& /*E*/, 
+    Vector_t<double, 3>& /*B*/,
+    const DiffDirection& /*dir*/) const {
+        throw GeneralClassicException(
+            "FM2DMagnetoStatic::getFieldDerivative","not implemented");
 }
 
 void FM2DMagnetoStatic::getFieldDimensions(double& zBegin, double& zEnd) const {
@@ -265,9 +293,9 @@ void FM2DMagnetoStatic::getFieldDimensions(double& zBegin, double& zEnd) const {
 
 void FM2DMagnetoStatic::getFieldDimensions(
     double& /*xIni*/, double& /*xFinal*/, double& /*yIni*/, double& /*yFinal*/, double& /*zIni*/,
-    double& /*zFinal*/
-) const {
-    throw GeneralClassicException("FM2DMagnetoStatic::getFieldDimensions", "not implemented");
+    double& /*zFinal*/) const {
+        throw GeneralClassicException(
+            "FM2DMagnetoStatic::getFieldDimensions","not implemented");
 }
 
 void FM2DMagnetoStatic::swap() {
@@ -278,16 +306,19 @@ void FM2DMagnetoStatic::swap() {
 }
 
 void FM2DMagnetoStatic::getInfo(Inform* msg) {
-    (*msg) << Filename_m << " (2D magnetostatic); zini= " << zbegin_m << " m; zfinal= " << zend_m
-           << " m;" << endl;
+    (*msg)  << Filename_m << " (2D magnetostatic); zini= " 
+            << zbegin_m << " m; zfinal= " << zend_m
+            << " m;" << endl;
 }
 
 double FM2DMagnetoStatic::getFrequency() const {
-    throw GeneralClassicException("FM2DMagnetoStatic::getFrequency", "not implemented");
+    throw GeneralClassicException(
+        "FM2DMagnetoStatic::getFrequency","not implemented");
     return 0.0;
 }
 
 void FM2DMagnetoStatic::setFrequency(double /*freq*/) {
-    throw GeneralClassicException("FM2DMagnetoStatic::setFrequency", "not implemented");
+    throw GeneralClassicException(
+        "FM2DMagnetoStatic::setFrequency","not implemented");
     return;
 }

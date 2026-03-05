@@ -53,6 +53,7 @@ public:
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
         Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 
+    
     virtual bool applyToReferenceParticle(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
         Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
@@ -84,26 +85,33 @@ protected:
 
 private:
     /// Check if bunch is close to element
-    bool preCheck(PartBunch_t* bunch) { return doPreCheck(bunch); }
+    bool preCheck(PartBunch_t* bunch) {
+        return doPreCheck(bunch);
+    }
     /// Finalise call after check
     bool finaliseCheck(PartBunch_t* bunch, bool flagNeedUpdate) {
         return doFinaliseCheck(bunch, flagNeedUpdate);
     }
     /// Pure virtual hook for initialise
-    virtual void doInitialise(PartBunch_t* /*bunch*/) {}
+    virtual void doInitialise(PartBunch_t* /*bunch*/) {
+    }
     /// Pure virtual hook for check
     virtual bool doCheck(
         PartBunch_t* bunch, const int turnnumber, const double t, const double tstep) = 0;
     /// Virtual hook for setGeom
-    virtual void doSetGeom() {};
+    virtual void doSetGeom(){};
     /// Virtual hook for preCheck
-    virtual bool doPreCheck(PartBunch_t*) { return true; }
+    virtual bool doPreCheck(PartBunch_t*) {
+        return true;
+    }
     /// Virtual hook for finaliseCheck
-    virtual bool doFinaliseCheck(PartBunch_t*, bool flagNeedUpdate) { return flagNeedUpdate; }
+    virtual bool doFinaliseCheck(PartBunch_t*, bool flagNeedUpdate) {
+        return flagNeedUpdate;
+    }
     /// Virtual hook for finalise
-    virtual void doFinalise() {};
+    virtual void doFinalise(){};
     /// Virtual hook for goOffline
-    virtual void doGoOffline() {};
+    virtual void doGoOffline(){};
 
 protected:
     /* Members */

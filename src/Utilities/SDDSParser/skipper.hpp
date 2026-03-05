@@ -20,10 +20,11 @@
 // Skipper functionality is now handled by SimpleParser::skipWhitespace()
 // This file kept for compatibility but no longer needed
 /// \todo Remove this compatibility header once all downstream users migrate.
-namespace SDDS {
-    namespace parser {
-        // Skipper is now integrated into SimpleParser
-    }
-}  // namespace SDDS
+namespace SDDS { namespace parser
+{
+    // Skipper is now integrated into SimpleParser
+}}
 
 #endif
+
+

@@ -102,11 +102,15 @@ TrackCmd::TrackCmd() : Action(SIZE, "TRACK", "The \"TRACK\" command initiates tr
     AttributeHandler::addAttributeOwner("TRACK", AttributeHandler::COMMAND, "ENDTRACK");
 }
 
-TrackCmd::TrackCmd(const std::string& name, TrackCmd* parent) : Action(name, parent) {}
+TrackCmd::TrackCmd(const std::string& name, TrackCmd* parent) : Action(name, parent) {
+}
 
-TrackCmd::~TrackCmd() {}
+TrackCmd::~TrackCmd() {
+}
 
-TrackCmd* TrackCmd::clone(const std::string& name) { return new TrackCmd(name, this); }
+TrackCmd* TrackCmd::clone(const std::string& name) {
+    return new TrackCmd(name, this);
+}
 
 std::vector<double> TrackCmd::getDT() const {
     std::vector<double> dTs = Attributes::getRealArray(itsAttr[DT]);
@@ -122,13 +126,21 @@ std::vector<double> TrackCmd::getDT() const {
     return dTs;
 }
 
-double TrackCmd::getDTSCINIT() const { return Attributes::getReal(itsAttr[DTSCINIT]); }
+double TrackCmd::getDTSCINIT() const {
+    return Attributes::getReal(itsAttr[DTSCINIT]);
+}
 
-double TrackCmd::getDTAU() const { return Attributes::getReal(itsAttr[DTAU]); }
+double TrackCmd::getDTAU() const {
+    return Attributes::getReal(itsAttr[DTAU]);
+}
 
-double TrackCmd::getT0() const { return Attributes::getReal(itsAttr[T0]); }
+double TrackCmd::getT0() const {
+    return Attributes::getReal(itsAttr[T0]);
+}
 
-double TrackCmd::getZStart() const { return Attributes::getReal(itsAttr[ZSTART]); }
+double TrackCmd::getZStart() const {
+    return Attributes::getReal(itsAttr[ZSTART]);
+}
 
 std::vector<double> TrackCmd::getZStop() const {
     std::vector<double> zstop = Attributes::getRealArray(itsAttr[ZSTOP]);
@@ -158,7 +170,9 @@ std::vector<unsigned long long> TrackCmd::getMaxSteps() const {
     return maxsteps_i;
 }
 
-int TrackCmd::getStepsPerTurn() const { return (int)Attributes::getReal(itsAttr[STEPSPERTURN]); }
+int TrackCmd::getStepsPerTurn() const {
+    return (int)Attributes::getReal(itsAttr[STEPSPERTURN]);
+}
 
 Steppers::TimeIntegrator TrackCmd::getTimeIntegrator() {
     std::string name = Attributes::getString(itsAttr[TIMEINTEGRATOR]);

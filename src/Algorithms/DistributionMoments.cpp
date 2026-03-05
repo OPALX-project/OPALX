@@ -27,6 +27,7 @@
 
 #include "Utilities/GSLHistogram.h"
 
+
 extern Inform* gmsg;
 
 const double DistributionMoments::percentileOneSigmaNormalDist_m    = std::erf(1 / sqrt(2));
@@ -39,109 +40,116 @@ DistributionMoments::DistributionMoments() {
     resetPlasmaParameters();
 
     // matrix6x6_t is fixed-size, initialize to zero
-    moments_m        = matrix6x6_t(0.0);
+    moments_m = matrix6x6_t(0.0);
     notCentMoments_m = matrix6x6_t(0.0);
 }
 
-void DistributionMoments::computeMeans(
-    ippl::ParticleAttrib<Vector_t<double, 3>>::view_type Rview,
-    ippl::ParticleAttrib<Vector_t<double, 3>>::view_type Pview,
-    ippl::ParticleAttrib<double>::view_type Mview, size_t Np, size_t Nlocal) {
+void DistributionMoments::computeMeans(ippl::ParticleAttrib<Vector_t<double,3>>::view_type  Rview,
+                                         ippl::ParticleAttrib<Vector_t<double,3>>::view_type  Pview,
+                                         ippl::ParticleAttrib<double>::view_type  Mview,
+                                         size_t Np,
+                                         size_t Nlocal) {
     /*
-     Np is the total number of particles (reduced over ranks). In this function, it is only used to
+     Np is the total number of particles (reduced over ranks). In this function, it is only used to 
      average over the number of total particles. For an empty simulation, this leads to divisions by
      0. Since, however, some of the computed moments might be needed regardless, we compute them but
-     need to make sure that we do not divide by 0.
+     need to make sure that we do not divide by 0. 
      Solution: Set Np to 1 if it is 0.
      */
     Np = (Np == 0) ? 1 : Np;
 
-    const int Dim                = 3;
-    double loc_centroid[2 * Dim] = {};
-    double centroid[2 * Dim]     = {};
+    const int Dim = 3;
+    double loc_centroid[2 * Dim]        = {};
+    double centroid[2 * Dim]        = {};
     double loc_Ekin, loc_gamma, loc_gammaz, gammaz;
 
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
     Kokkos::parallel_reduce(
-        "calc moments of particle distr.", Nlocal,
-        KOKKOS_LAMBDA(const int k, double& ekin, double& gamma, double& gammaz) {
-            double gamma0 = 0.0;
-            double ekin0  = 0.0;
+                                    "calc moments of particle distr.", Nlocal,
+                KOKKOS_LAMBDA(
+                    const int k, double& ekin, double& gamma, double& gammaz) {
+                    double gamma0 = 0.0;
+                    double ekin0 = 0.0;
 
-            for (unsigned j = 0; j < Dim; j++) {
-                gamma0 += Pview(k)[j] * Pview(k)[j];
-            }
-            gamma0 = Kokkos::sqrt(gamma0 + 1.0);
-            ekin0  = (gamma0 - 1.0) * Mview(k) * Units::GeV2MeV;  // output in MeV
-            gamma += gamma0;
-            ekin += ekin0;
+                    for(unsigned j=0; j<Dim; j++){
+                        gamma0 += Pview(k)[j]*Pview(k)[j];
+                    }
+                    gamma0 = Kokkos::sqrt(gamma0+1.0);
+                    ekin0  = (gamma0-1.0) * Mview(k) * Units::GeV2MeV; // output in MeV
+                    gamma += gamma0;
+                    ekin += ekin0;
 
-            gammaz += Pview(k)[2];
-        },
-        Kokkos::Sum<double>(loc_Ekin), Kokkos::Sum<double>(loc_gamma),
-        Kokkos::Sum<double>(loc_gammaz));
+                    gammaz += Pview(k)[2];
+                },
+                Kokkos::Sum<double>(loc_Ekin), Kokkos::Sum<double>(loc_gamma), Kokkos::Sum<double>(loc_gammaz));
     Kokkos::fence();
 
     for (unsigned i = 0; i < 2 * Dim; ++i) {
-        Kokkos::parallel_reduce(
-            "calc moments of particle distr.", Nlocal,
-            KOKKOS_LAMBDA(const int k, double& cent) {
-                double part[2 * Dim];
-                part[0] = Rview(k)[0];
-                part[1] = Pview(k)[0];
-                part[2] = Rview(k)[1];
-                part[3] = Pview(k)[1];
-                part[4] = Rview(k)[2];
-                part[5] = Pview(k)[2];
+            Kokkos::parallel_reduce(
+                                    "calc moments of particle distr.", Nlocal,
+                KOKKOS_LAMBDA(
+                    const int k, double& cent) {
+                    double part[2 * Dim];
+                    part[0] = Rview(k)[0];
+                    part[1] = Pview(k)[0];
+                    part[2] = Rview(k)[1];
+                    part[3] = Pview(k)[1];
+                    part[4] = Rview(k)[2];
+                    part[5] = Pview(k)[2];
 
-                cent += part[i];
-            },
-            Kokkos::Sum<double>(loc_centroid[i]));
-        Kokkos::fence();
+                    cent += part[i];
+                },
+                Kokkos::Sum<double>(loc_centroid[i]));
+            Kokkos::fence();
     }
     ippl::Comm->barrier();
 
-    ippl::Comm->allreduce(&loc_centroid[0], &centroid[0], 2 * Dim, std::plus<double>());
-    ippl::Comm->allreduce(&loc_Ekin, &meanKineticEnergy_m, 1, std::plus<double>());
-    ippl::Comm->allreduce(&loc_gamma, &meanGamma_m, 1, std::plus<double>());
-    ippl::Comm->allreduce(&loc_gammaz, &gammaz, 1, std::plus<double>());
+    ippl::Comm->allreduce(
+            &loc_centroid[0], &centroid[0], 2 * Dim, std::plus<double>());
+    ippl::Comm->allreduce(
+            &loc_Ekin, &meanKineticEnergy_m, 1, std::plus<double>());
+    ippl::Comm->allreduce(
+            &loc_gamma, &meanGamma_m, 1, std::plus<double>());
+    ippl::Comm->allreduce(
+            &loc_gammaz, &gammaz, 1, std::plus<double>());
 
     for (unsigned i = 0; i < 2 * Dim; i++) {
         centroid_m(i) = centroid[i];
-        means_m(i)    = centroid_m[i] / Np;
-    }
+        means_m(i) = centroid_m[i]/Np;
+     }
 
-    meanKineticEnergy_m = meanKineticEnergy_m / (1. * Np);
-    meanGamma_m         = meanGamma_m / (1. * Np);
-    gammaz              = gammaz / (1. * Np);
-    gammaz *= gammaz;
-    gammaz       = std::sqrt(gammaz + 1.0);
-    meanGammaZ_m = gammaz;
+     meanKineticEnergy_m = meanKineticEnergy_m / (1.*Np);
+     meanGamma_m         = meanGamma_m / (1.*Np);
+     gammaz = gammaz / (1.*Np);
+     gammaz *= gammaz;
+     gammaz = std::sqrt(gammaz + 1.0);
+     meanGammaZ_m = gammaz;
 
     // store mean R, mean P, std R, std P in class member variables
     for (unsigned i = 0; i < Dim; i++) {
-        meanR_m(i) = means_m[2 * i];
-        meanP_m(i) = means_m[2 * i + 1];
+        meanR_m(i) = means_m[2*i];
+        meanP_m(i) = means_m[2*i+1];
     }
 }
-void DistributionMoments::computeMoments(
-    ippl::ParticleAttrib<Vector_t<double, 3>>::view_type Rview,
-    ippl::ParticleAttrib<Vector_t<double, 3>>::view_type Pview,
-    ippl::ParticleAttrib<double>::view_type Mview, size_t Np, size_t Nlocal) {
-    Np = (Np == 0) ? 1 : Np;  // Explanation: see DistributionMoments::computeMeans implementation
+void DistributionMoments::computeMoments(ippl::ParticleAttrib<Vector_t<double,3>>::view_type  Rview,
+                                         ippl::ParticleAttrib<Vector_t<double,3>>::view_type  Pview,
+                                         ippl::ParticleAttrib<double>::view_type  Mview,
+                                         size_t Np,
+                                         size_t Nlocal) {
+    Np = (Np == 0) ? 1 : Np; // Explanation: see DistributionMoments::computeMeans implementation
 
     reset();
     computeMeans(Rview, Pview, Mview, Np, Nlocal);
 
-    double meanR_loc[Dim]               = {};
-    double meanP_loc[Dim]               = {};
+    double meanR_loc[Dim]       = {};
+    double meanP_loc[Dim]       = {};
     double loc_moment[2 * Dim][2 * Dim] = {};
-    double moment[2 * Dim][2 * Dim]     = {};
+    double moment[2 * Dim][2 * Dim]  = {};
 
     double loc_moment_ncent[2 * Dim][2 * Dim] = {};
-    double moment_ncent[2 * Dim][2 * Dim]     = {};
+    double moment_ncent[2 * Dim][2 * Dim]  = {};
 
     // compute central moments
     for (unsigned i = 0; i < Dim; i++) {
@@ -150,143 +158,145 @@ void DistributionMoments::computeMoments(
     }
 
     for (unsigned i = 0; i < 2 * Dim; ++i) {
-        Kokkos::parallel_reduce(
-            "calc moments of particle distr.", Nlocal,
-            KOKKOS_LAMBDA(
-                const int k, double& mom0, double& mom1, double& mom2, double& mom3, double& mom4,
-                double& mom5) {
-                double part[2 * Dim];
-                part[0] = Rview(k)[0] - meanR_loc[0];
-                part[1] = Pview(k)[0] - meanP_loc[0];
-                part[2] = Rview(k)[1] - meanR_loc[1];
-                part[3] = Pview(k)[1] - meanP_loc[1];
-                part[4] = Rview(k)[2] - meanR_loc[2];
-                part[5] = Pview(k)[2] - meanP_loc[2];
+            Kokkos::parallel_reduce(
+                                    "calc moments of particle distr.", Nlocal,
+                KOKKOS_LAMBDA(
+                    const int k, double& mom0, double& mom1, double& mom2,
+                    double& mom3, double& mom4, double& mom5) {
+                    double part[2 * Dim];
+                    part[0] = Rview(k)[0]-meanR_loc[0];
+                    part[1] = Pview(k)[0]-meanP_loc[0];
+                    part[2] = Rview(k)[1]-meanR_loc[1];
+                    part[3] = Pview(k)[1]-meanP_loc[1];
+                    part[4] = Rview(k)[2]-meanR_loc[2];
+                    part[5] = Pview(k)[2]-meanP_loc[2];
 
-                mom0 += part[i] * part[0];
-                mom1 += part[i] * part[1];
-                mom2 += part[i] * part[2];
-                mom3 += part[i] * part[3];
-                mom4 += part[i] * part[4];
-                mom5 += part[i] * part[5];
-            },
-            Kokkos::Sum<double>(loc_moment[i][0]), Kokkos::Sum<double>(loc_moment[i][1]),
-            Kokkos::Sum<double>(loc_moment[i][2]), Kokkos::Sum<double>(loc_moment[i][3]),
-            Kokkos::Sum<double>(loc_moment[i][4]), Kokkos::Sum<double>(loc_moment[i][5]));
-        Kokkos::fence();
-    }
+                    mom0 += part[i] * part[0];
+                    mom1 += part[i] * part[1];
+                    mom2 += part[i] * part[2];
+                    mom3 += part[i] * part[3];
+                    mom4 += part[i] * part[4];
+                    mom5 += part[i] * part[5];
+                },
+                Kokkos::Sum<double>(loc_moment[i][0]),
+                Kokkos::Sum<double>(loc_moment[i][1]), Kokkos::Sum<double>(loc_moment[i][2]),
+                Kokkos::Sum<double>(loc_moment[i][3]), Kokkos::Sum<double>(loc_moment[i][4]),
+                Kokkos::Sum<double>(loc_moment[i][5]));
+            Kokkos::fence();
+     }
 
-    ippl::Comm->allreduce(&loc_moment[0][0], &moment[0][0], 2 * Dim * 2 * Dim, std::plus<double>());
+    ippl::Comm->allreduce(
+            &loc_moment[0][0], &moment[0][0], 2 * Dim * 2 * Dim, std::plus<double>());
 
     for (unsigned i = 0; i < 2 * Dim; i++) {
-        for (unsigned j = 0; j < 2 * Dim; j++) {
-            moments_m(i, j) = moment[i][j] / Np;
-        }
-    }
+            for (unsigned j = 0; j < 2 * Dim; j++) {
+                moments_m(i,j) = moment[i][j] / Np;
+            }
+     }
 
     for (unsigned i = 0; i < Dim; i++) {
-        stdR_m(i) = std::sqrt(moments_m(2 * i, 2 * i));
-        stdP_m(i) = std::sqrt(moments_m(2 * i + 1, 2 * i + 1));
+        stdR_m(i) = std::sqrt( moments_m(2*i, 2*i) );
+        stdP_m(i) = std::sqrt( moments_m(2*i+1, 2*i+1) );
     }
 
     double mekin = meanKineticEnergy_m;
     double loc_std_mekin;
 
-    // compute non-central moments
-    for (unsigned i = 0; i < 2 * Dim; ++i) {
-        Kokkos::parallel_reduce(
-            "calc moments of particle distr.", Nlocal,
-            KOKKOS_LAMBDA(
-                const int k, double& mom0, double& mom1, double& mom2, double& mom3, double& mom4,
-                double& mom5) {
-                double part[2 * Dim];
-                part[0] = Rview(k)[0];
-                part[1] = Pview(k)[0];
-                part[2] = Rview(k)[1];
-                part[3] = Pview(k)[1];
-                part[4] = Rview(k)[2];
-                part[5] = Pview(k)[2];
+   // compute non-central moments
+   for (unsigned i = 0; i < 2 * Dim; ++i) {
+            Kokkos::parallel_reduce(
+                                    "calc moments of particle distr.", Nlocal,
+                KOKKOS_LAMBDA(
+                    const int k, double& mom0, double& mom1, double& mom2,
+                    double& mom3, double& mom4, double& mom5) {
+                    double part[2 * Dim];
+                    part[0] = Rview(k)[0];
+                    part[1] = Pview(k)[0];
+                    part[2] = Rview(k)[1];
+                    part[3] = Pview(k)[1];
+                    part[4] = Rview(k)[2];
+                    part[5] = Pview(k)[2];
 
-                mom0 += part[i] * part[0];
-                mom1 += part[i] * part[1];
-                mom2 += part[i] * part[2];
-                mom3 += part[i] * part[3];
-                mom4 += part[i] * part[4];
-                mom5 += part[i] * part[5];
-            },
-            Kokkos::Sum<double>(loc_moment_ncent[i][0]),
-            Kokkos::Sum<double>(loc_moment_ncent[i][1]),
-            Kokkos::Sum<double>(loc_moment_ncent[i][2]),
-            Kokkos::Sum<double>(loc_moment_ncent[i][3]),
-            Kokkos::Sum<double>(loc_moment_ncent[i][4]),
-            Kokkos::Sum<double>(loc_moment_ncent[i][5]));
-        Kokkos::fence();
-    }
+                    mom0 += part[i] * part[0];
+                    mom1 += part[i] * part[1];
+                    mom2 += part[i] * part[2];
+                    mom3 += part[i] * part[3];
+                    mom4 += part[i] * part[4];
+                    mom5 += part[i] * part[5];
+                },
+                Kokkos::Sum<double>(loc_moment_ncent[i][0]),
+                Kokkos::Sum<double>(loc_moment_ncent[i][1]), Kokkos::Sum<double>(loc_moment_ncent[i][2]),
+                Kokkos::Sum<double>(loc_moment_ncent[i][3]), Kokkos::Sum<double>(loc_moment_ncent[i][4]),
+                Kokkos::Sum<double>(loc_moment_ncent[i][5]));
+            Kokkos::fence();
+     }
     ippl::Comm->barrier();
 
     Kokkos::parallel_reduce(
-        "calc moments of particle distr.", Nlocal,
-        KOKKOS_LAMBDA(const int k, double& ekin) {
-            double gamma0 = 0;
-            double ekin0  = 0.0;
+                "calc moments of particle distr.", Nlocal,
+                KOKKOS_LAMBDA(
+                    const int k, double& ekin) {
+                    double gamma0 = 0;
+                    double ekin0 = 0.0;
 
-            for (unsigned j = 0; j < Dim; j++) {
-                gamma0 += Pview(k)[j] * Pview(k)[j];
-            }
-            gamma0 = Kokkos::sqrt(gamma0 + 1.0);
-            ekin0  = (gamma0 - 1.0) * Mview(k) * Units::GeV2MeV;  // output in MeV
+                    for(unsigned j=0; j<Dim; j++){
+                        gamma0 += Pview(k)[j]*Pview(k)[j];
+                    }
+                    gamma0 = Kokkos::sqrt(gamma0+1.0);
+                    ekin0  = (gamma0-1.0) * Mview(k) * Units::GeV2MeV; // output in MeV
 
-            ekin += (ekin0 - mekin) * (ekin0 - mekin);
-        },
-        Kokkos::Sum<double>(loc_std_mekin));
+                    ekin += (ekin0-mekin)*(ekin0-mekin);
+                }, Kokkos::Sum<double>(loc_std_mekin) );
     Kokkos::fence();
 
     ippl::Comm->allreduce(
-        &loc_moment_ncent[0][0], &moment_ncent[0][0], 2 * Dim * 2 * Dim, std::plus<double>());
+            &loc_moment_ncent[0][0], &moment_ncent[0][0], 2 * Dim * 2 * Dim, std::plus<double>());
 
-    ippl::Comm->allreduce(&loc_std_mekin, &stdKineticEnergy_m, 1, std::plus<double>());
+    ippl::Comm->allreduce(
+            &loc_std_mekin, &stdKineticEnergy_m, 1, std::plus<double>());
 
     stdKineticEnergy_m = std::sqrt(stdKineticEnergy_m);
 
     for (unsigned i = 0; i < 2 * Dim; i++) {
-        for (unsigned j = 0; j < 2 * Dim; j++) {
-            notCentMoments_m(i, j) = moment_ncent[i][j];
-        }
-    }
+            for (unsigned j = 0; j < 2 * Dim; j++) {
+                notCentMoments_m(i,j) = moment_ncent[i][j];
+            }
+     }
 
     // compute emmitance, halo, ...
-    double perParticle = 1. / (1. * Np);
+    double perParticle = 1./(1.*Np);
     Vector_t<double, 3> squaredEps, fac, sumRP;
     unsigned int l = 0;
-    for (unsigned int i = 0; i < 3; ++i, l += 2) {
+    for (unsigned int i = 0; i < 3; ++ i, l += 2) {
         double w1 = centroid_m[2 * i] * perParticle;
-        double w2 = moments_m(2 * i, 2 * i);
-        // not clear which components of non-central moments are computed, needs to be checked
-        double w3  = notCentMoments_m(l, l) * perParticle;
-        double w4  = notCentMoments_m(l + 1, l + 1) * perParticle;
+        double w2 = moments_m(2 * i , 2 * i);
+        //not clear which components of non-central moments are computed, needs to be checked
+        double w3 = notCentMoments_m(l, l) * perParticle;
+        double w4 = notCentMoments_m(l + 1, l + 1) * perParticle;
         double tmp = w2 - std::pow(w1, 2);
 
         halo_m(i) = (w4 + w1 * (-4 * w3 + 3 * w1 * (tmp + w2))) / tmp;
         halo_m(i) -= Options::haloShift;
     }
 
-    // stdKineticEnergy_m = std::sqrt(localMoments[l++] * perParticle);
-    // totalCharge_m = localMoments[l++];
-    // totalMass_m = localMoments[l++];
+    //stdKineticEnergy_m = std::sqrt(localMoments[l++] * perParticle);
+    //totalCharge_m = localMoments[l++];
+    //totalMass_m = localMoments[l++];
 
-    for (unsigned int i = 0; i < 3; ++i) {
-        sumRP(i)      = notCentMoments_m(2 * i, 2 * i + 1) * perParticle - meanR_m(i) * meanP_m(i);
-        stdRP_m(i)    = sumRP(i) / (stdR_m(i) * stdP_m(i));
+    for (unsigned int i = 0; i < 3; ++ i) {
+        sumRP(i) = notCentMoments_m(2 * i, 2 * i + 1) * perParticle - meanR_m(i) * meanP_m(i);
+        stdRP_m(i) = sumRP(i) / (stdR_m(i) * stdP_m(i));
         squaredEps(i) = std::pow(stdR_m(i) * stdP_m(i), 2) - std::pow(sumRP(i), 2);
         normalizedEps_m(i) = std::sqrt(std::max(squaredEps(i), 0.0));
     }
 
     double betaGamma = std::sqrt(std::pow(meanGamma_m, 2) - 1.0);
-    geometricEps_m   = normalizedEps_m / Vector_t<double, 3>(betaGamma);
+    geometricEps_m = normalizedEps_m / Vector_t<double,3>(betaGamma);
+
 }
 
-void DistributionMoments::computeMinMaxPosition(
-    ippl::ParticleAttrib<Vector_t<double, 3>>::view_type Rview, size_t Nlocal) {
+void DistributionMoments::computeMinMaxPosition(ippl::ParticleAttrib<Vector_t<double,3>>::view_type Rview, size_t Nlocal)
+{
     const int Dim = 3;
 
     double rmax_loc[Dim];
@@ -294,7 +304,7 @@ void DistributionMoments::computeMinMaxPosition(
     double rmax[Dim];
     double rmin[Dim];
 
-    for (int i = 0; i < Dim; i++) {
+    for(int i=0; i<Dim; i++){
         rmin_loc[i] = 0.;
         rmax_loc[i] = 0.;
     }
@@ -316,26 +326,26 @@ void DistributionMoments::computeMinMaxPosition(
                     mm             = tmp_vel < mm ? tmp_vel : mm;
                 },
                 Kokkos::Min<double>(rmin_loc[d]));
-        }
-    }
-    Kokkos::fence();
-    ippl::Comm->allreduce(&rmax_loc[0], &rmax[0], Dim, std::greater<double>());
-    ippl::Comm->allreduce(&rmin_loc[0], &rmin[0], Dim, std::less<double>());
-    ippl::Comm->barrier();
+         }
+     }
+     Kokkos::fence();
+     ippl::Comm->allreduce(&rmax_loc[0], &rmax[0], Dim, std::greater<double>());
+     ippl::Comm->allreduce(&rmin_loc[0], &rmin[0], Dim, std::less<double>());
+     ippl::Comm->barrier();
 
     // store min and max R in class member variables
-    for (unsigned int i = 0; i < Dim; i++) {
-        minR_m(i) = rmin[i];
-        maxR_m(i) = rmax[i];
-    }
+     for (unsigned int i=0; i<Dim; i++) {
+            minR_m(i) = rmin[i];
+            maxR_m(i) = rmax[i];
+     }
 }
 
 void DistributionMoments::compute(
     const std::vector<OpalParticle>::const_iterator& /*first*/,
-    const std::vector<OpalParticle>::const_iterator& /*last*/
-) {
-    *gmsg << "not implemented" << endl;
+    const std::vector<OpalParticle>::const_iterator& /*last*/) {
+    *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
 }
+
 
 template <class InputIt>
 void DistributionMoments::computePercentiles(const InputIt& first, const InputIt& last) {
@@ -382,14 +392,14 @@ void DistributionMoments::computePercentiles(const InputIt& first, const InputIt
         localHistogramValues.data(), globalHistogramValues.data(), 3 * (numBins + 1),
         std::plus<int>());
 
-    int numParticles68 =
-        static_cast<int>(std::floor(totalNumParticles_m * percentileOneSigmaNormalDist_m + 0.5));
-    int numParticles95 =
-        static_cast<int>(std::floor(totalNumParticles_m * percentileTwoSigmasNormalDist_m + 0.5));
-    int numParticles99 =
-        static_cast<int>(std::floor(totalNumParticles_m * percentileThreeSigmasNormalDist_m + 0.5));
-    int numParticles99_99 =
-        static_cast<int>(std::floor(totalNumParticles_m * percentileFourSigmasNormalDist_m + 0.5));
+    int numParticles68 = static_cast<int>(
+        std::floor(totalNumParticles_m * percentileOneSigmaNormalDist_m + 0.5));
+    int numParticles95 = static_cast<int>(
+        std::floor(totalNumParticles_m * percentileTwoSigmasNormalDist_m + 0.5));
+    int numParticles99 = static_cast<int>(
+        std::floor(totalNumParticles_m * percentileThreeSigmasNormalDist_m + 0.5));
+    int numParticles99_99 = static_cast<int>(
+        std::floor(totalNumParticles_m * percentileFourSigmasNormalDist_m + 0.5));
 
     for (int d = 0; d < 3; ++d) {
         unsigned int localNum = last - first, current = 0;
@@ -561,7 +571,7 @@ double DistributionMoments::computeNormalizedEmittance(
 }
 
 void DistributionMoments::fillMembers(std::vector<double>& /*localMoments*/) {
-    *gmsg << "not implemented" << endl;
+    *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl; 
     /*
     Vector_t<double, 3> squaredEps, fac, sumRP;
     double perParticle = 1.0 / totalNumParticles_m;
@@ -610,54 +620,59 @@ void DistributionMoments::fillMembers(std::vector<double>& /*localMoments*/) {
 }
 
 void DistributionMoments::computeMeanKineticEnergy() {
-    /*
-        double data[] = {0.0, 0.0};
-        // ada    for (OpalParticle const& particle : bunch) {
-        //    data[0] += Util::getKineticEnergy(particle.getP(), particle.getMass());
-        // }
-        data[1] = bunch.getLocalNum();
-        ippl::Comm->allreduce(data, 2, std::plus<double>());
+/*
+    double data[] = {0.0, 0.0};
+    // ada    for (OpalParticle const& particle : bunch) {
+    //    data[0] += Util::getKineticEnergy(particle.getP(), particle.getMass());
+    // }
+    data[1] = bunch.getLocalNum();
+    ippl::Comm->allreduce(data, 2, std::plus<double>());
 
-        meanKineticEnergy_m = data[0] / data[1];
-    */
+    meanKineticEnergy_m = data[0] / data[1];
+*/
 }
 
-void DistributionMoments::computeDebyeLength(
-    ippl::ParticleAttrib<Vector_t<double, 3>>::view_type Pview, size_t Np, size_t Nlocal,
-    double density) {
-    Np = (Np == 0) ? 1 : Np;  // Explanation: see DistributionMoments::computeMeans implementation
+void DistributionMoments::computeDebyeLength(ippl::ParticleAttrib<Vector_t<double,3>>::view_type Pview,
+                                         size_t Np,
+                                         size_t Nlocal,
+                                         double density){
+    Np = (Np == 0) ? 1 : Np; // Explanation: see DistributionMoments::computeMeans implementation
 
     resetPlasmaParameters();
     double loc_avgVel[3] = {};
-    double avgVel[3]     = {};
-    double c             = Physics::c;
+    double avgVel[3] = {};
+    double c = Physics::c;
 
     // From P in \beta\gamma to get v in m/s: v = (P*c)/\gamma
     Kokkos::parallel_reduce(
-        "calc moments of particle distr.", Nlocal,
-        KOKKOS_LAMBDA(const int k, double& mom0, double& mom1, double& mom2) {
-            double gamma0 = 0.0;
-            for (unsigned j = 0; j < 3; j++) {
-                gamma0 += Pview(k)[j] * Pview(k)[j];
-            }
-            gamma0 = Kokkos::sqrt(gamma0 + 1.0);
+                "calc moments of particle distr.", Nlocal,
+                KOKKOS_LAMBDA(
+                    const int k, double& mom0, double& mom1, double& mom2){
 
-            mom0 += Pview(k)[0] * c / gamma0;
-            mom1 += Pview(k)[1] * c / gamma0;
-            mom2 += Pview(k)[2] * c / gamma0;
-        },
-        Kokkos::Sum<double>(loc_avgVel[0]), Kokkos::Sum<double>(loc_avgVel[1]),
-        Kokkos::Sum<double>(loc_avgVel[2]));
+                    double gamma0 = 0.0;
+                    for(unsigned j=0; j<3; j++){
+                        gamma0 += Pview(k)[j]*Pview(k)[j];
+                    }
+                    gamma0 = Kokkos::sqrt(gamma0+1.0);
+
+                    mom0 += Pview(k)[0] * c / gamma0;
+                    mom1 += Pview(k)[1] * c / gamma0;
+                    mom2 += Pview(k)[2] * c / gamma0;
+                },
+                Kokkos::Sum<double>(loc_avgVel[0]),
+                Kokkos::Sum<double>(loc_avgVel[1]),
+                Kokkos::Sum<double>(loc_avgVel[2]));
     Kokkos::fence();
     ippl::Comm->barrier();
 
-    ippl::Comm->allreduce(&loc_avgVel[0], &avgVel[0], Dim, std::plus<double>());
+    ippl::Comm->allreduce(
+            &loc_avgVel[0], &avgVel[0], Dim, std::plus<double>());
 
     for (unsigned i = 0; i < 3; i++) {
         avgVel[i] = avgVel[i] / Np;
     }
 
-    double tempAvg     = 0;
+    double tempAvg=0;
     double loc_tempAvg = 0.0;
     /// \todo check with opal
     /*
@@ -671,23 +686,26 @@ void DistributionMoments::computeDebyeLength(
     }*/
 
     Kokkos::parallel_reduce(
-        "calc moments of particle distr.", Nlocal,
-        KOKKOS_LAMBDA(const int k, double& mom0) {
-            double gamma0 = 0.0;
-            for (unsigned j = 0; j < 3; j++) {
-                gamma0 += Pview(k)[j] * Pview(k)[j];
-            }
-            gamma0 = Kokkos::sqrt(gamma0 + 1.0);
+                "calc moments of particle distr.", Nlocal,
+                KOKKOS_LAMBDA(
+                    const int k, double& mom0){
 
-            mom0 += Kokkos::pow(Pview(k)[0] * c / gamma0 - avgVel[0], 2);
-            mom0 += Kokkos::pow(Pview(k)[1] * c / gamma0 - avgVel[1], 2);
-            mom0 += Kokkos::pow(Pview(k)[2] * c / gamma0 - avgVel[2], 2);
-        },
-        Kokkos::Sum<double>(loc_tempAvg));
+                    double gamma0 = 0.0;
+                    for(unsigned j=0; j<3; j++){
+                        gamma0 += Pview(k)[j]*Pview(k)[j];
+                    }
+                    gamma0 = Kokkos::sqrt(gamma0+1.0);
+
+                    mom0 += Kokkos::pow( Pview(k)[0] * c / gamma0 - avgVel[0], 2);
+                    mom0 += Kokkos::pow( Pview(k)[1] * c / gamma0 - avgVel[1], 2);
+                    mom0 += Kokkos::pow( Pview(k)[2] * c / gamma0 - avgVel[2], 2);
+                },
+                Kokkos::Sum<double>(loc_tempAvg));
     Kokkos::fence();
     ippl::Comm->barrier();
 
-    ippl::Comm->allreduce(&loc_tempAvg, &tempAvg, 1, std::plus<double>());
+    ippl::Comm->allreduce(
+            &loc_tempAvg, &tempAvg, 1, std::plus<double>());
 
     // Compute the average temperature k_B T in units of kg m^2/s^2, where k_B is
     // Boltzmann constant
@@ -741,6 +759,6 @@ void DistributionMoments::resetPlasmaParameters() {
 /// \todo this needs to go
 bool DistributionMoments::isParticleExcluded(const OpalParticle& /*particle*/) const {
     // FIXME After issue 287 is resolved this shouldn't be necessary anymore
-    *gmsg << "not implemented" << endl;
+    *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl; 
     return true;
 }

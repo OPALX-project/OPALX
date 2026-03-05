@@ -29,27 +29,30 @@ class Attribute;
 namespace Attributes {
 
     /// Parser for an attribute of type range definition.
-    class Range : public AttributeHandler {
+    class Range: public AttributeHandler {
+
     public:
+
         /// Constructor.
         //  Assign attribute name and help string.
-        Range(const std::string& name, const std::string& help);
+        Range(const std::string &name, const std::string &help);
 
         virtual ~Range();
 
         /// Return attribute type ``range''.
-        virtual const std::string& getType() const;
+        virtual const std::string &getType() const;
 
         /// Parse the attribute.
-        virtual void parse(Attribute&, Statement&, bool) const;
+        virtual void parse(Attribute &, Statement &, bool) const;
 
     private:
+
         // Not implemented.
         Range();
-        Range(const Range&);
-        void operator=(const Range&);
+        Range(const Range &);
+        void operator=(const Range &);
     };
 
-};  // namespace Attributes
+};
 
-#endif  // OPAL_Range_HH
+#endif // OPAL_Range_HH

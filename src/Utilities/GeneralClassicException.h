@@ -3,14 +3,16 @@
 
 #include "Utilities/ClassicException.h"
 
-class GeneralClassicException : public ClassicException {
+class GeneralClassicException:public ClassicException
+{
 public:
-    GeneralClassicException(const std::string& meth, const std::string& msg);
+    GeneralClassicException(const std::string &meth, const std::string &msg);
 
-    GeneralClassicException(const GeneralClassicException&);
+    GeneralClassicException(const GeneralClassicException &);
     virtual ~GeneralClassicException();
 
 private:
+
     // Not implemented.
     GeneralClassicException();
 };

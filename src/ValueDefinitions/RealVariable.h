@@ -20,39 +20,43 @@
 
 #include "AbstractObjects/ValueDefinition.h"
 
-class RealVariable : public ValueDefinition {
+
+class RealVariable: public ValueDefinition {
+
 public:
+
     /// Exemplar constructor.
     RealVariable();
 
     /// Constructor for built-in variables.
-    RealVariable(const std::string& name, RealVariable* parent, double value);
+    RealVariable(const std::string &name, RealVariable *parent, double value);
 
     virtual ~RealVariable();
 
     /// Test for allowed replacement.
     //  True, if [b]rhs[/b] is a real variable.
-    virtual bool canReplaceBy(Object* rhs);
+    virtual bool canReplaceBy(Object *rhs);
 
     /// Make clone.
-    virtual RealVariable* clone(const std::string& name);
+    virtual RealVariable *clone(const std::string &name);
 
     /// Print the variable.
-    virtual void print(std::ostream&) const;
+    virtual void print(std::ostream &) const;
 
     /// Print its value
-    virtual void printValue(std::ostream& os) const;
+    virtual void printValue(std::ostream &os) const;
 
     /// Return value.
     virtual double getReal() const;
 
 private:
+
     // Not implemented.
-    RealVariable(const RealVariable&);
-    void operator=(const RealVariable&);
+    RealVariable(const RealVariable &);
+    void operator=(const RealVariable &);
 
     // Clone constructor.
-    RealVariable(const std::string& name, RealVariable* parent);
+    RealVariable(const std::string &name, RealVariable *parent);
 };
 
-#endif  // OPAL_RealVariable_HH
+#endif // OPAL_RealVariable_HH

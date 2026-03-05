@@ -20,12 +20,20 @@
 
 #include "Utilities/LogicalError.h"
 
+
 // Class LogicalError
 // ------------------------------------------------------------------------
 
-LogicalError::LogicalError(const std::string& meth, const std::string& msg)
-    : ClassicException(meth, msg) {}
 
-LogicalError::LogicalError(const LogicalError& rhs) : ClassicException(rhs) {}
+LogicalError::LogicalError(const std::string &meth, const std::string &msg):
+    ClassicException(meth, msg)
+{}
 
-LogicalError::~LogicalError() {}
+
+LogicalError::LogicalError(const LogicalError &rhs):
+    ClassicException(rhs)
+{}
+
+
+LogicalError::~LogicalError()
+{}

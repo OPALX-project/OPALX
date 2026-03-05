@@ -20,12 +20,20 @@
 
 #include "Utilities/CLRangeError.h"
 
+
 // Class CLRangeError
 // ------------------------------------------------------------------------
 
-CLRangeError::CLRangeError(const std::string& meth, const std::string& msg)
-    : ArithmeticError(meth, msg) {}
 
-CLRangeError::CLRangeError(const CLRangeError& rhs) : ArithmeticError(rhs) {}
+CLRangeError::CLRangeError(const std::string &meth, const std::string &msg):
+    ArithmeticError(meth, msg)
+{}
 
-CLRangeError::~CLRangeError() {}
+
+CLRangeError::CLRangeError(const CLRangeError &rhs):
+    ArithmeticError(rhs)
+{}
+
+
+CLRangeError::~CLRangeError()
+{}

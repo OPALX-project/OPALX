@@ -25,33 +25,36 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
+
 #ifndef OPAL_OPALMULTIPOLET_HH
 #define OPAL_OPALMULTIPOLET_HH
 
-#include "AbsBeamline/MultipoleT.h"
 #include "Elements/OpalElement.h"
+#include "AbsBeamline/MultipoleT.h"
 
 /** OpalMultipoleT provides user interface information for the MultipoleT object
  *
  *  Defines input parameters
  */
-class OpalMultipoleT : public OpalElement {
+class OpalMultipoleT: public OpalElement {
+
 public:
+
     // The attributes of class OpalMultipoleT
     enum {
-        TP = COMMON,  // Transverse field components
-        RFRINGE,      // Length of right fringe field
-        LFRINGE,      // Length of left fringe field
-        HAPERT,       // Aperture horizontal dimension
-        VAPERT,       // Aperture vertical dimension
-        MAXFORDER,    // Maximum order in the field expansion
-        MAXXORDER,    // Maximum order in x in polynomial expansions
-        ANGLE,        // Bending angle of a sector magnet
-        ROTATION,     // Rotation angle about central axis for skew elements
-        EANGLE,       // Entrance angle
-        VARRADIUS,    // Variable radius flag
-        BBLENGTH,     // Distance between centre of magnet and entrance
-        SIZE          // size of the enum
+        TP = COMMON,     // Transverse field components
+        RFRINGE,         // Length of right fringe field
+        LFRINGE,         // Length of left fringe field
+        HAPERT,          // Aperture horizontal dimension
+        VAPERT,          // Aperture vertical dimension
+        MAXFORDER,       // Maximum order in the field expansion
+        MAXXORDER,       // Maximum order in x in polynomial expansions
+        ANGLE,           // Bending angle of a sector magnet
+        ROTATION,        // Rotation angle about central axis for skew elements
+        EANGLE,          // Entrance angle
+        VARRADIUS,       // Variable radius flag
+        BBLENGTH,        // Distance between centre of magnet and entrance
+        SIZE             // size of the enum
     };
 
     /** Default constructor initialises UI parameters. */
@@ -61,20 +64,20 @@ public:
     virtual ~OpalMultipoleT();
 
     /** Inherited copy constructor */
-    virtual OpalMultipoleT* clone(const std::string& name);
+    virtual OpalMultipoleT *clone(const std::string &name);
 
     /** Update the MultipoleT with new parameters from UI parser */
     virtual void update();
 
-    void print(std::ostream& os) const;
+    void print(std::ostream &os) const;
 
-private:
+  private:
     // Not implemented.
-    OpalMultipoleT(const OpalMultipoleT&);
-    void operator=(const OpalMultipoleT&);
+    OpalMultipoleT(const OpalMultipoleT &);
+    void operator=(const OpalMultipoleT &);
 
     // Clone constructor.
-    OpalMultipoleT(const std::string& name, OpalMultipoleT* parent);
+    OpalMultipoleT(const std::string &name, OpalMultipoleT *parent);
 };
 
-#endif  // OPAL_OpalMultipoleT_HH
+#endif // OPAL_OpalMultipoleT_HH

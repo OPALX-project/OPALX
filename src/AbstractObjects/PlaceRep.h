@@ -18,11 +18,12 @@
 //
 // ------------------------------------------------------------------------
 
-#include <iosfwd>  //tream>
 #include <string>
 #include <vector>
+#include <iosfwd>//tream>
 
 class FlaggedElmPtr;
+
 
 // Class PlaceRep
 // ------------------------------------------------------------------------
@@ -38,21 +39,23 @@ class FlaggedElmPtr;
 //  [/ul]
 
 class PlaceRep {
+
 public:
+
     /// Default constructor.
     //  Constructs undefined place.
     PlaceRep();
 
     /// Construct default place.
     //  Used for places like "#S", "#E", "SELECTED".
-    explicit PlaceRep(const std::string&);
+    explicit PlaceRep(const std::string &);
 
-    PlaceRep(const PlaceRep&);
+    PlaceRep(const PlaceRep &);
     ~PlaceRep();
-    const PlaceRep& operator=(const PlaceRep&);
+    const PlaceRep &operator=(const PlaceRep &);
 
     /// Add a name/occurrence pair.
-    void append(const std::string&, int occur);
+    void append(const std::string &, int occur);
 
     /// Initialise data for search.
     //  Sets the internal state to the beginning of the line.
@@ -61,12 +64,12 @@ public:
     /// Enter an element or line.
     //  Sets the internal state to active, when the specified place is
     //  entered.
-    void enter(const FlaggedElmPtr&) const;
+    void enter(const FlaggedElmPtr &) const;
 
     /// Leave an element or line.
     //  Sets the internal state to inactive, when the specified place is
     //  left.
-    void leave(const FlaggedElmPtr&) const;
+    void leave(const FlaggedElmPtr &) const;
 
     /// Return status.
     //  Returns true, if we are at the specified place.
@@ -77,9 +80,10 @@ public:
     bool isSelected() const;
 
     /// Print in input format.
-    void print(std::ostream& os) const;
+    void print(std::ostream &os) const;
 
 private:
+
     typedef std::vector<std::pair<std::string, int> > Data;
     Data data;
 
@@ -93,9 +97,10 @@ private:
     mutable Data::size_type seen;
 };
 
-inline std::ostream& operator<<(std::ostream& os, const PlaceRep& data) {
+
+inline std::ostream &operator<<(std::ostream &os, const PlaceRep &data) {
     data.print(os);
     return os;
 }
 
-#endif  // OPAL_PlaceRep_HH
+#endif // OPAL_PlaceRep_HH

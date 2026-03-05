@@ -31,31 +31,35 @@ using namespace Expressions;
 using std::cerr;
 using std::endl;
 
+
 // Class Attributes::Bool
 // ------------------------------------------------------------------------
 
 namespace Attributes {
 
-    Bool::Bool(const std::string& name, const std::string& help)
-        : AttributeHandler(name, help, new SValue<bool>(true)) {}
+    Bool::Bool(const std::string &name, const std::string &help):
+        AttributeHandler(name, help, new SValue<bool>(true))
+    {}
 
-    Bool::~Bool() {}
 
-    const std::string& Bool::getType() const {
+    Bool::~Bool()
+    {}
+
+    const std::string &Bool::getType() const {
         static const std::string type("logical");
         return type;
     }
 
-    void Bool::parse(Attribute& attr, Statement& stat, bool eval) const {
+    void Bool::parse(Attribute &attr, Statement &stat, bool eval) const {
         PtrToScalar<bool> expr = parseBool(stat);
 
-        if (eval || expr->isConstant()) {
+        if(eval || expr->isConstant()) {
             attr.set(new SValue<bool>(expr->evaluate()));
-        } else if (is_deferred) {
+        } else if(is_deferred) {
             attr.set(new SDeferred<bool>(expr));
         } else {
             attr.set(new SAutomatic<bool>(expr));
         }
     }
 
-};  // namespace Attributes
+};

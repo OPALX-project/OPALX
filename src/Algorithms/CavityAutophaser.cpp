@@ -45,7 +45,8 @@ CavityAutophaser::CavityAutophaser(const PartData& ref, std::shared_ptr<Componen
     initialR_m = Vector_t<double, 3>(0, 0, zbegin);
 }
 
-CavityAutophaser::~CavityAutophaser() {}
+CavityAutophaser::~CavityAutophaser() {
+}
 
 double CavityAutophaser::getPhaseAtMaxEnergy(
     const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, double t, double dt) {
@@ -168,7 +169,8 @@ double CavityAutophaser::getPhaseAtMaxEnergy(
                     << "corresp. in Astra = " << AstraPhase * Units::rad2deg << " [deg],\n"
                     << "E = " << finalEnergy << " [MeV], "
                     << "phi_nom = " << originalPhase * Units::rad2deg << " [deg]\n"
-                    << "Ez_0 = " << amplitude << " [MV/m]\n"
+                    << "Ez_0 = " << amplitude << " [MV/m]"
+                    << "\n"
                     << "time = " << (t + tErr) * Units::s2ns << " [ns], dt = " << dt * Units::s2ps
                     << " [ps]" << endl;
 
@@ -189,7 +191,8 @@ double CavityAutophaser::getPhaseAtMaxEnergy(
                     << "corresp. in Astra = " << AstraPhase * Units::rad2deg << " [deg],\n"
                     << "E = " << finalEnergy << " [MeV], "
                     << "phi_nom = " << originalPhase * Units::rad2deg << " [deg]\n"
-                    << "Ez_0 = " << amplitude << " [MV/m]\n"
+                    << "Ez_0 = " << amplitude << " [MV/m]"
+                    << "\n"
                     << "time = " << (t + tErr) * Units::s2ns << " [ns], dt = " << dt * Units::s2ps
                     << " [ps]" << endl;
         if (!isDCGun) {

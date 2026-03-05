@@ -18,9 +18,9 @@
 #ifndef OPAL_GSL_MATRIX_HH
 #define OPAL_GSL_MATRIX_HH
 
+#include <vector>
 #include <cstring>
 #include <stdexcept>
-#include <vector>
 #include "Utilities/GSLComplex.h"
 
 /// \see Documentation on https://www.gnu.org/software/gsl/doc/html/vectors.html
@@ -32,12 +32,16 @@ struct gsl_matrix {
     size_t tda;  // physical row dimension
     double* data;
     size_t owner;  // ownership flag
-
+    
     gsl_matrix() : size1(0), size2(0), tda(0), data(nullptr), owner(0) {}
-
-    double* ptr(size_t i, size_t j) { return data + i * tda + j; }
-
-    const double* ptr(size_t i, size_t j) const { return data + i * tda + j; }
+    
+    double* ptr(size_t i, size_t j) {
+        return data + i * tda + j;
+    }
+    
+    const double* ptr(size_t i, size_t j) const {
+        return data + i * tda + j;
+    }
 };
 
 /// \see https://www.gnu.org/software/gsl/doc/html/vectors.html
@@ -48,13 +52,18 @@ struct gsl_matrix_complex {
     size_t tda;
     gsl_complex* data;
     size_t owner;
-
+    
     gsl_matrix_complex() : size1(0), size2(0), tda(0), data(nullptr), owner(0) {}
-
-    gsl_complex* ptr(size_t i, size_t j) { return data + i * tda + j; }
-
-    const gsl_complex* ptr(size_t i, size_t j) const { return data + i * tda + j; }
+    
+    gsl_complex* ptr(size_t i, size_t j) {
+        return data + i * tda + j;
+    }
+    
+    const gsl_complex* ptr(size_t i, size_t j) const {
+        return data + i * tda + j;
+    }
 };
+
 
 /// \see https://www.gnu.org/software/gsl/doc/html/vectors.html
 /// \brief Dense real vector with stride.
@@ -63,12 +72,16 @@ struct gsl_vector {
     size_t stride;
     double* data;
     size_t owner;
-
+    
     gsl_vector() : size(0), stride(0), data(nullptr), owner(0) {}
-
-    double* ptr(size_t i) { return data + i * stride; }
-
-    const double* ptr(size_t i) const { return data + i * stride; }
+    
+    double* ptr(size_t i) {
+        return data + i * stride;
+    }
+    
+    const double* ptr(size_t i) const {
+        return data + i * stride;
+    }
 };
 
 /// \see https://www.gnu.org/software/gsl/doc/html/vectors.html
@@ -78,12 +91,16 @@ struct gsl_vector_complex {
     size_t stride;
     gsl_complex* data;
     size_t owner;
-
+    
     gsl_vector_complex() : size(0), stride(0), data(nullptr), owner(0) {}
-
-    gsl_complex* ptr(size_t i) { return data + i * stride; }
-
-    const gsl_complex* ptr(size_t i) const { return data + i * stride; }
+    
+    gsl_complex* ptr(size_t i) {
+        return data + i * stride;
+    }
+    
+    const gsl_complex* ptr(size_t i) const {
+        return data + i * stride;
+    }
 };
 
 /// \see https://www.gnu.org/software/gsl/doc/html/vectors.html
@@ -93,11 +110,11 @@ struct gsl_vector_complex {
 /// \return Output: pointer to newly allocated matrix (owned by caller).
 inline gsl_matrix* gsl_matrix_alloc(size_t n1, size_t n2) {
     gsl_matrix* m = new gsl_matrix();
-    m->size1      = n1;
-    m->size2      = n2;
-    m->tda        = n2;
-    m->data       = new double[n1 * n2];
-    m->owner      = 1;
+    m->size1 = n1;
+    m->size2 = n2;
+    m->tda = n2;
+    m->data = new double[n1 * n2];
+    m->owner = 1;
     std::fill(m->data, m->data + n1 * n2, 0.0);
     return m;
 }
@@ -119,11 +136,11 @@ inline void gsl_matrix_free(gsl_matrix* m) {
 /// \return Output: pointer to newly allocated matrix (owned by caller).
 inline gsl_matrix_complex* gsl_matrix_complex_alloc(size_t n1, size_t n2) {
     gsl_matrix_complex* m = new gsl_matrix_complex();
-    m->size1              = n1;
-    m->size2              = n2;
-    m->tda                = n2;
-    m->data               = new gsl_complex[n1 * n2];
-    m->owner              = 1;
+    m->size1 = n1;
+    m->size2 = n2;
+    m->tda = n2;
+    m->data = new gsl_complex[n1 * n2];
+    m->owner = 1;
     for (size_t i = 0; i < n1 * n2; ++i) {
         m->data[i] = gsl_complex(0.0, 0.0);
     }
@@ -140,16 +157,17 @@ inline void gsl_matrix_complex_free(gsl_matrix_complex* m) {
     delete m;
 }
 
+
 /// \see https://www.gnu.org/software/gsl/doc/html/vectors.html
 /// \brief Allocate a zero-initialized real vector of length \f$n\f$.
 /// \param n Input: vector length.
 /// \return Output: pointer to newly allocated vector (owned by caller).
 inline gsl_vector* gsl_vector_alloc(size_t n) {
     gsl_vector* v = new gsl_vector();
-    v->size       = n;
-    v->stride     = 1;
-    v->data       = new double[n];
-    v->owner      = 1;
+    v->size = n;
+    v->stride = 1;
+    v->data = new double[n];
+    v->owner = 1;
     std::fill(v->data, v->data + n, 0.0);
     return v;
 }
@@ -170,10 +188,10 @@ inline void gsl_vector_free(gsl_vector* v) {
 /// \return Output: pointer to newly allocated vector (owned by caller).
 inline gsl_vector_complex* gsl_vector_complex_alloc(size_t n) {
     gsl_vector_complex* v = new gsl_vector_complex();
-    v->size               = n;
-    v->stride             = 1;
-    v->data               = new gsl_complex[n];
-    v->owner              = 1;
+    v->size = n;
+    v->stride = 1;
+    v->data = new gsl_complex[n];
+    v->owner = 1;
     for (size_t i = 0; i < n; ++i) {
         v->data[i] = gsl_complex(0.0, 0.0);
     }
@@ -190,13 +208,16 @@ inline void gsl_vector_complex_free(gsl_vector_complex* v) {
     delete v;
 }
 
+
 /// \see https://www.gnu.org/software/gsl/doc/html/vectors.html
 /// \brief Return pointer to element \f$(i,j)\f$ in a real matrix.
 /// \param m Input: matrix.
 /// \param i Input: row index.
 /// \param j Input: column index.
 /// \return Output: pointer to element \f$(i,j)\f$.
-inline double* gsl_matrix_ptr(gsl_matrix* m, size_t i, size_t j) { return m->ptr(i, j); }
+inline double* gsl_matrix_ptr(gsl_matrix* m, size_t i, size_t j) {
+    return m->ptr(i, j);
+}
 
 /// \see https://www.gnu.org/software/gsl/doc/html/vectors.html
 /// \brief Return const pointer to element \f$(i,j)\f$ in a real matrix.
@@ -233,7 +254,9 @@ inline const gsl_complex* gsl_matrix_complex_ptr(const gsl_matrix_complex* m, si
 /// \param v Input: vector.
 /// \param i Input: element index.
 /// \return Output: pointer to element \f$i\f$.
-inline double* gsl_vector_ptr(gsl_vector* v, size_t i) { return v->ptr(i); }
+inline double* gsl_vector_ptr(gsl_vector* v, size_t i) {
+    return v->ptr(i);
+}
 
 /// \see https://www.gnu.org/software/gsl/doc/html/vectors.html
 /// \brief Return const pointer to element \f$i\f$ in a real vector.
@@ -249,7 +272,9 @@ inline const double* gsl_vector_ptr(const gsl_vector* v, size_t i) {
 /// \param v Input: vector.
 /// \param i Input: element index.
 /// \return Output: pointer to element \f$i\f$.
-inline gsl_complex* gsl_vector_complex_ptr(gsl_vector_complex* v, size_t i) { return v->ptr(i); }
+inline gsl_complex* gsl_vector_complex_ptr(gsl_vector_complex* v, size_t i) {
+    return v->ptr(i);
+}
 
 /// \see https://www.gnu.org/software/gsl/doc/html/vectors.html
 /// \brief Return const pointer to element \f$i\f$ in a complex vector.
@@ -259,6 +284,7 @@ inline gsl_complex* gsl_vector_complex_ptr(gsl_vector_complex* v, size_t i) { re
 inline const gsl_complex* gsl_vector_complex_ptr(const gsl_vector_complex* v, size_t i) {
     return const_cast<gsl_vector_complex*>(v)->ptr(i);
 }
+
 
 /// \see https://www.gnu.org/software/gsl/doc/html/vectors.html
 /// \brief Copy \p src into \p dest (real matrices).
@@ -304,8 +330,7 @@ inline void gsl_matrix_transpose_memcpy(gsl_matrix* dest, const gsl_matrix* src)
 /// \details Computes \f$\mathrm{dest} = \mathrm{src}^T\f$ (no conjugation).
 /// \param dest Output: destination matrix of size \f$n_2 \times n_1\f$.
 /// \param src Input: source matrix.
-inline void gsl_matrix_complex_transpose_memcpy(
-    gsl_matrix_complex* dest, const gsl_matrix_complex* src) {
+inline void gsl_matrix_complex_transpose_memcpy(gsl_matrix_complex* dest, const gsl_matrix_complex* src) {
     if (dest->size1 != src->size2 || dest->size2 != src->size1) {
         throw std::runtime_error("gsl_matrix_complex_transpose_memcpy: size mismatch");
     }
@@ -380,6 +405,7 @@ inline void gsl_vector_memcpy(gsl_vector* dest, const gsl_vector* src) {
     }
 }
 
+
 /// \see https://www.gnu.org/software/gsl/doc/html/vectors.html
 /// \brief Copy \p src into \p dest (complex vectors).
 /// \param dest Output: destination vector (must match size).
@@ -392,6 +418,7 @@ inline void gsl_vector_complex_memcpy(gsl_vector_complex* dest, const gsl_vector
         *gsl_vector_complex_ptr(dest, i) = *gsl_vector_complex_ptr(src, i);
     }
 }
+
 
 /// \see https://www.gnu.org/software/gsl/doc/html/vectors.html
 /// \brief Scale a vector in-place.
@@ -439,8 +466,8 @@ inline void gsl_vector_complex_add(gsl_vector_complex* a, const gsl_vector_compl
         throw std::runtime_error("gsl_vector_complex_add: size mismatch");
     }
     for (size_t i = 0; i < a->size; ++i) {
-        *gsl_vector_complex_ptr(a, i) =
-            gsl_complex_add(*gsl_vector_complex_ptr(a, i), *gsl_vector_complex_ptr(b, i));
+        *gsl_vector_complex_ptr(a, i) = gsl_complex_add(*gsl_vector_complex_ptr(a, i), 
+                                                         *gsl_vector_complex_ptr(b, i));
     }
 }
 
@@ -477,7 +504,9 @@ inline void gsl_matrix_set_all(gsl_matrix* m, double x) {
 /// \see https://www.gnu.org/software/gsl/doc/html/vectors.html
 /// \brief Set all entries to zero.
 /// \param m Input/Output: matrix to clear.
-inline void gsl_matrix_set_zero(gsl_matrix* m) { gsl_matrix_set_all(m, 0.0); }
+inline void gsl_matrix_set_zero(gsl_matrix* m) {
+    gsl_matrix_set_all(m, 0.0);
+}
 
 /// \see https://www.gnu.org/software/gsl/doc/html/vectors.html
 /// \brief Set to identity on the main diagonal.
@@ -525,14 +554,18 @@ inline void gsl_matrix_complex_set_zero(gsl_matrix_complex* m) {
 /// \param v Input/Output: vector to update.
 /// \param i Input: element index.
 /// \param x Input: value to assign.
-inline void gsl_vector_set(gsl_vector* v, size_t i, double x) { *gsl_vector_ptr(v, i) = x; }
+inline void gsl_vector_set(gsl_vector* v, size_t i, double x) {
+    *gsl_vector_ptr(v, i) = x;
+}
 
 /// \see https://www.gnu.org/software/gsl/doc/html/vectors.html
 /// \brief Get \f$v_i\f$.
 /// \param v Input: vector.
 /// \param i Input: element index.
 /// \return Output: value at \f$i\f$.
-inline double gsl_vector_get(const gsl_vector* v, size_t i) { return *gsl_vector_ptr(v, i); }
+inline double gsl_vector_get(const gsl_vector* v, size_t i) {
+    return *gsl_vector_ptr(v, i);
+}
 
 /// \see https://www.gnu.org/software/gsl/doc/html/vectors.html
 /// \brief Set all entries to \p x.
@@ -547,7 +580,9 @@ inline void gsl_vector_set_all(gsl_vector* v, double x) {
 /// \see https://www.gnu.org/software/gsl/doc/html/vectors.html
 /// \brief Set all entries to zero.
 /// \param v Input/Output: vector to clear.
-inline void gsl_vector_set_zero(gsl_vector* v) { gsl_vector_set_all(v, 0.0); }
+inline void gsl_vector_set_zero(gsl_vector* v) {
+    gsl_vector_set_all(v, 0.0);
+}
 
 /// \see https://www.gnu.org/software/gsl/doc/html/vectors.html
 /// \brief Set complex entry \f$v_i = x\f$.
@@ -576,4 +611,5 @@ inline void gsl_vector_complex_set_zero(gsl_vector_complex* v) {
     }
 }
 
-#endif  // OPAL_GSL_MATRIX_HH
+#endif // OPAL_GSL_MATRIX_HH
+

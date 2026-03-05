@@ -81,17 +81,19 @@ const std::map<ElementType, std::string> ElementBase::elementTypeToString_s = {
     {ElementType::SOURCE, "SOURCE"},
     {ElementType::SOLENOID, "SOLENOID"},
     {ElementType::PROBE, "Probe"},
-    {ElementType::VACUUM, "Vacuum"}};
+    {ElementType::VACUUM, "Vacuum"},
+    {ElementType::CONSTANTEFIELDCAVITY, "ConstantEFieldCavity"}};
 
-ElementBase::ElementBase() : ElementBase("") {}
+ElementBase::ElementBase() : ElementBase("") {
+}
 
 ElementBase::ElementBase(const ElementBase& right)
-    : std::enable_shared_from_this<ElementBase>(),
-      shareFlag(true),
-      csTrafoGlobal2Local_m(right.csTrafoGlobal2Local_m),
-      misalignment_m(right.misalignment_m),
-      aperture_m(right.aperture_m),
-      elementEdge_m(right.elementEdge_m),
+        : std::enable_shared_from_this<ElementBase>(),
+            shareFlag(true),
+            csTrafoGlobal2Local_m(right.csTrafoGlobal2Local_m),
+            misalignment_m(right.misalignment_m),
+            aperture_m(right.aperture_m),
+            elementEdge_m(right.elementEdge_m),
       rotationZAxis_m(right.rotationZAxis_m),
       elementID(right.elementID),
       userAttribs(right.userAttribs),
@@ -102,7 +104,8 @@ ElementBase::ElementBase(const ElementBase& right)
       elementPosition_m(right.elementPosition_m),
       elemedgeSet_m(right.elemedgeSet_m),
       outputfn_m(right.outputfn_m),
-      deleteOnTransverseExit_m(right.deleteOnTransverseExit_m) {}
+      deleteOnTransverseExit_m(right.deleteOnTransverseExit_m) {
+}
 
 ElementBase::ElementBase(const std::string& name)
     : shareFlag(true),
@@ -118,17 +121,25 @@ ElementBase::ElementBase(const std::string& name)
       positionIsFixed(false),
       elementPosition_m(0.0),
       elemedgeSet_m(false),
-      outputfn_m("") {}
+      outputfn_m("") {
+}
 
 ElementBase::~ElementBase()
 
-{}
+{
+}
 
-const std::string& ElementBase::getName() const { return elementID; }
+const std::string& ElementBase::getName() const {
+    return elementID;
+}
 
-void ElementBase::setName(const std::string& name) { elementID = name; }
+void ElementBase::setName(const std::string& name) {
+    elementID = name;
+}
 
-void ElementBase::setOutputFN(const std::string fn) { outputfn_m = fn; }
+void ElementBase::setOutputFN(const std::string fn) {
+    outputfn_m = fn;
+}
 
 std::string ElementBase::getOutputFN() const {
     if (outputfn_m.empty()) {
@@ -162,7 +173,9 @@ bool ElementBase::hasAttribute(const std::string& aKey) const {
     }
 }
 
-void ElementBase::removeAttribute(const std::string& aKey) { userAttribs.removeAttribute(aKey); }
+void ElementBase::removeAttribute(const std::string& aKey) {
+    userAttribs.removeAttribute(aKey);
+}
 
 void ElementBase::setAttribute(const std::string& aKey, double val) {
     Channel* aChannel = getChannel(aKey, true);
@@ -184,7 +197,9 @@ const ConstChannel* ElementBase::getConstChannel(const std::string& aKey) const 
     return const_cast<ElementBase*>(this)->getChannel(aKey);
 }
 
-std::string ElementBase::getTypeString(ElementType type) { return elementTypeToString_s.at(type); }
+std::string ElementBase::getTypeString(ElementType type) {
+    return elementTypeToString_s.at(type);
+}
 
 ElementBase* ElementBase::copyStructure() {
     if (isSharable()) {
@@ -194,7 +209,9 @@ ElementBase* ElementBase::copyStructure() {
     }
 }
 
-void ElementBase::makeSharable() { shareFlag = true; }
+void ElementBase::makeSharable() {
+    shareFlag = true;
+}
 
 bool ElementBase::update(const AttributeSet& set) {
     for (AttributeSet::const_iterator i = set.begin(); i != set.end(); ++i) {

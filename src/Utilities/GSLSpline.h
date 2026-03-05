@@ -22,7 +22,7 @@
 // Compatibility layer for GSL-like interface
 
 /// \brief GSL linear interpolation type identifiers.
-constexpr int gsl_interp_linear  = 1;
+constexpr int gsl_interp_linear = 1;
 constexpr int gsl_interp_cspline = 0;
 
 /// \brief GSL-compatible spline type alias.
@@ -35,11 +35,11 @@ using gsl_interp_accel = AbstractSpline::Accelerator;
 /// \param type Input: interpolation type
 /// \param size Input: number of points (unused).
 /// \return Output: spline pointer.
-inline gsl_spline* gsl_spline_alloc(const int type, size_t /*size*/) {
+inline gsl_spline* gsl_spline_alloc(const int type , size_t /*size*/) {
     gsl_spline* result{};
-    if (type == gsl_interp_cspline) {
+    if(type == gsl_interp_cspline) {
         result = new CubicSpline();
-    } else if (type == gsl_interp_linear) {
+    } else if(type == gsl_interp_linear) {
         result = new LinearSpline();
     }
     return result;
@@ -47,7 +47,9 @@ inline gsl_spline* gsl_spline_alloc(const int type, size_t /*size*/) {
 
 /// \brief Allocate an interpolation accelerator.
 /// \return Output: accelerator pointer.
-inline gsl_interp_accel* gsl_interp_accel_alloc() { return new AbstractSpline::Accelerator(); }
+inline gsl_interp_accel* gsl_interp_accel_alloc() {
+    return new AbstractSpline::Accelerator();
+}
 
 /// \brief Initialize a spline with tabulated data.
 /// \param spline Input/Output: spline to initialize.
@@ -73,18 +75,22 @@ inline double gsl_spline_eval(const gsl_spline* spline, const double x, gsl_inte
 /// \param xb Input: upper bound x-coordinate.
 /// \param accel Input/Output: accelerator cache.
 /// \return Output: integrated value.
-inline double gsl_spline_eval_integ(
-    const gsl_spline* spline, const double xa, const double xb, gsl_interp_accel* accel) {
+inline double gsl_spline_eval_integ(const gsl_spline* spline, const double xa, const double xb,
+        gsl_interp_accel* accel) {
     return spline->evalIntegral(xa, xb, *accel);
 }
 
 /// \brief Free a spline instance.
 /// \param spline Input: spline to release (can be null).
-inline void gsl_spline_free(const gsl_spline* spline) { delete spline; }
+inline void gsl_spline_free(const gsl_spline* spline) {
+    delete spline;
+}
 
 /// \brief Free an accelerator instance.
 /// \param accel Input: accelerator to release (can be null).
-inline void gsl_interp_accel_free(const gsl_interp_accel* accel) { delete accel; }
+inline void gsl_interp_accel_free(const gsl_interp_accel* accel) {
+    delete accel;
+}
 
 /// \brief Reset an accelerator to the initial state.
 /// \param accel Input/Output: accelerator to reset.
@@ -94,4 +100,4 @@ inline void gsl_interp_accel_reset(gsl_interp_accel* accel) {
     }
 }
 
-#endif  // OPALX_GSL_SPLINE_H
+#endif //OPALX_GSL_SPLINE_H

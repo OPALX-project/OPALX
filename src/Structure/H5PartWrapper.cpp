@@ -52,7 +52,9 @@ H5PartWrapper::H5PartWrapper(
     open(H5_O_RDWR);
 }
 
-H5PartWrapper::~H5PartWrapper() { close(); }
+H5PartWrapper::~H5PartWrapper() {
+    close();
+}
 
 void H5PartWrapper::close() {
     if (file_m) {
@@ -493,7 +495,7 @@ void H5PartWrapper::sendFailureMessage(
 void H5PartWrapper::receiveFailureMessage(
     int /*sourceNode*/, const std::string& where, const std::string& what) {
     //    int tag = 101;
-    bool failed = false;
+    bool failed=false;
     /* \todo
     Message* mess = Ippl::Comm->receive_block(sourceNode, tag);
     getMessage(*mess, failed);

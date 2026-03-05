@@ -81,7 +81,9 @@ public:
 
     void writeGeomToVtk(std::string fn);
 
-    inline std::string getFilename() const { return Attributes::getString(itsAttr[FGEOM]); }
+    inline std::string getFilename() const {
+        return Attributes::getString(itsAttr[FGEOM]);
+    }
 
     inline Topology getTopology() const {
         static const std::unordered_map<std::string, Topology> stringTopology_s = {
@@ -92,42 +94,66 @@ public:
         return topo;
     }
 
-    inline double getA() { return (double)Attributes::getReal(itsAttr[A]); }
+    inline double getA() {
+        return (double)Attributes::getReal(itsAttr[A]);
+    }
 
-    inline double getB() { return (double)Attributes::getReal(itsAttr[B]); }
+    inline double getB() {
+        return (double)Attributes::getReal(itsAttr[B]);
+    }
 
-    inline double getC() { return (double)Attributes::getReal(itsAttr[C]); }
+    inline double getC() {
+        return (double)Attributes::getReal(itsAttr[C]);
+    }
 
-    inline double getS() { return (double)Attributes::getReal(itsAttr[S]); }
+    inline double getS() {
+        return (double)Attributes::getReal(itsAttr[S]);
+    }
 
-    inline double getLength() { return (double)Attributes::getReal(itsAttr[LENGTH]); }
+    inline double getLength() {
+        return (double)Attributes::getReal(itsAttr[LENGTH]);
+    }
 
-    inline double getL1() { return (double)Attributes::getReal(itsAttr[L1]); }
+    inline double getL1() {
+        return (double)Attributes::getReal(itsAttr[L1]);
+    }
 
-    inline double getL2() { return (double)Attributes::getReal(itsAttr[L2]); }
+    inline double getL2() {
+        return (double)Attributes::getReal(itsAttr[L2]);
+    }
 
     /**
        Return number of boundary faces.
     */
-    inline size_t getNumBFaces() { return Triangles_m.size(); }
+    inline size_t getNumBFaces() {
+        return Triangles_m.size();
+    }
 
     /**
        Return the hr_m.
     */
-    inline Vector_t<double, 3> gethr() { return voxelMesh_m.sizeOfVoxel; }
+    inline Vector_t<double, 3> gethr() {
+        return voxelMesh_m.sizeOfVoxel;
+    }
     /**
        Return the nr_m.
      */
-    inline Vector_t<int, 3> getnr() { return voxelMesh_m.nr_m; }
+    inline Vector_t<int, 3> getnr() {
+        return voxelMesh_m.nr_m;
+    }
 
     /**
        Return the mincoords_m.
      */
-    inline Vector_t<double, 3> getmincoords() { return minExtent_m; }
+    inline Vector_t<double, 3> getmincoords() {
+        return minExtent_m;
+    }
     /**
        Return the maxcoords_m.
     */
-    inline Vector_t<double, 3> getmaxcoords() { return maxExtent_m; }
+    inline Vector_t<double, 3> getmaxcoords() {
+        return maxExtent_m;
+    }
 
     inline bool getInsidePoint(Vector_t<double, 3>& pt) {
         if (haveInsidePoint_m == false) {
@@ -156,13 +182,16 @@ public:
         debug_PartInside                       = 0x0020,
     };
 
-    inline void enableDebug(enum DebugFlags flags) { debugFlags_m |= flags; }
+    inline void enableDebug(enum DebugFlags flags) {
+        debugFlags_m |= flags;
+    }
 
-    inline void disableDebug(enum DebugFlags flags) { debugFlags_m &= ~flags; }
+    inline void disableDebug(enum DebugFlags flags) {
+        debugFlags_m &= ~flags;
+    }
 
 private:
-    bool isInside(
-        const Vector_t<double, 3>& P  // [in] point to test
+    bool isInside(const Vector_t<double, 3>& P  // [in] point to test
     );
 
     int intersectTriangleVoxel(const int triangle_id, const int i, const int j, const int k);
@@ -254,5 +283,7 @@ private:
     };
 };
 
-inline Inform& operator<<(Inform& os, const BoundaryGeometry& b) { return b.printInfo(os); }
+inline Inform& operator<<(Inform& os, const BoundaryGeometry& b) {
+    return b.printInfo(os);
+}
 #endif

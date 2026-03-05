@@ -30,71 +30,65 @@
 #include <string>
 
 #include "AbsBeamline/Offset.h"
-#include "Elements/OpalElement.h"
 #include "Utilities/OpalException.h"
+#include "Elements/OpalElement.h"
 
 #include "Attributes/Attributes.h"
 
 namespace OpalOffset {
 
-    const std::string OpalLocalCartesianOffset::doc_string =
-        std::string("The \"LOCAL_CARTESIAN_OFFSET\" element defines an offset")
-        + std::string("in cartesian coordinates, relative to the last placed ")
-        + std::string("element.");
+const std::string OpalLocalCartesianOffset::doc_string =
+    std::string("The \"LOCAL_CARTESIAN_OFFSET\" element defines an offset")+
+    std::string("in cartesian coordinates, relative to the last placed ")+
+    std::string("element.");
 
-    OpalLocalCartesianOffset::OpalLocalCartesianOffset()
-        : OpalElement(int(SIZE), "LOCAL_CARTESIAN_OFFSET", doc_string.c_str()) {
-        itsAttr[END_POSITION_X] = Attributes::makeReal(
-            "END_POSITION_X",
-            "x component of position of end of the offset in coordinate system of the end of the "
-            "upstream element [m].");
-        itsAttr[END_POSITION_Y] = Attributes::makeReal(
-            "END_POSITION_Y",
-            "y component of position of end of the offset in coordinate system of the end of the "
-            "upstream element [m].");
-        itsAttr[END_NORMAL_X] = Attributes::makeReal(
-            "END_NORMAL_X",
-            "x component of normal of end of the offset in coordinate system of the end of the "
-            "upstream element [m].");
-        itsAttr[END_NORMAL_Y] = Attributes::makeReal(
-            "END_NORMAL_Y",
-            "y component of normal of end of the offset in coordinate system of the end of the "
-            "upstream element [m].");
+OpalLocalCartesianOffset::OpalLocalCartesianOffset()
+       : OpalElement(int(SIZE),
+                     "LOCAL_CARTESIAN_OFFSET",
+                     doc_string.c_str()) {
+    itsAttr[END_POSITION_X] = Attributes::makeReal("END_POSITION_X",
+             "x component of position of end of the offset in coordinate system of the end of the upstream element [m].");
+    itsAttr[END_POSITION_Y] = Attributes::makeReal("END_POSITION_Y",
+             "y component of position of end of the offset in coordinate system of the end of the upstream element [m].");
+    itsAttr[END_NORMAL_X] = Attributes::makeReal("END_NORMAL_X",
+             "x component of normal of end of the offset in coordinate system of the end of the upstream element [m].");
+    itsAttr[END_NORMAL_Y] = Attributes::makeReal("END_NORMAL_Y",
+             "y component of normal of end of the offset in coordinate system of the end of the upstream element [m].");
 
-        registerOwnership();
+    registerOwnership();
 
-        setElement(new Offset("LOCAL_CARTESIAN_OFFSET"));
-    }
+    setElement(new Offset("LOCAL_CARTESIAN_OFFSET"));
+}
 
-    OpalLocalCartesianOffset* OpalLocalCartesianOffset::clone() {
-        return new OpalLocalCartesianOffset(this->getOpalName(), this);
-    }
+OpalLocalCartesianOffset* OpalLocalCartesianOffset::clone() {
+    return new OpalLocalCartesianOffset(this->getOpalName(), this);
+}
 
-    OpalLocalCartesianOffset* OpalLocalCartesianOffset::clone(const std::string& name) {
-        return new OpalLocalCartesianOffset(name, this);
-    }
 
-    void OpalLocalCartesianOffset::print(std::ostream& out) const { OpalElement::print(out); }
+OpalLocalCartesianOffset* OpalLocalCartesianOffset::clone(const std::string &name) {
+    return new OpalLocalCartesianOffset(name, this);
+}
 
-    OpalLocalCartesianOffset::OpalLocalCartesianOffset(
-        const std::string& name, OpalLocalCartesianOffset* parent)
-        : OpalElement(name, parent) {
-        setElement(new Offset(name));
-    }
+void OpalLocalCartesianOffset::print(std::ostream& out) const {
+    OpalElement::print(out);
+}
 
-    OpalLocalCartesianOffset::~OpalLocalCartesianOffset() {}
+OpalLocalCartesianOffset::OpalLocalCartesianOffset(const std::string &name, OpalLocalCartesianOffset *parent):
+    OpalElement(name, parent) {
+    setElement(new Offset(name));
+}
 
-    void OpalLocalCartesianOffset::update() {
-        // getOpalName() comes from AbstractObjects/Object.h
-        Offset* offset   = dynamic_cast<Offset*>(getElement());
-        std::string name = getOpalName();
-        Vector_t<double, 3> pos(
-            Attributes::getReal(itsAttr[END_POSITION_X]),
-            Attributes::getReal(itsAttr[END_POSITION_Y]), 0.);
-        Vector_t<double, 3> norm(
-            Attributes::getReal(itsAttr[END_NORMAL_X]), Attributes::getReal(itsAttr[END_NORMAL_Y]),
-            0.);
-        *offset = Offset(Offset::localCartesianOffset(name, pos, norm));
-        //    setElement(offset);
-    }
-}  // namespace OpalOffset
+OpalLocalCartesianOffset::~OpalLocalCartesianOffset() {}
+
+void OpalLocalCartesianOffset::update() {
+    // getOpalName() comes from AbstractObjects/Object.h
+    Offset *offset = dynamic_cast<Offset*>(getElement());
+    std::string name = getOpalName();
+    Vector_t<double, 3> pos(Attributes::getReal(itsAttr[END_POSITION_X]),
+                 Attributes::getReal(itsAttr[END_POSITION_Y]), 0.);
+    Vector_t<double, 3> norm(Attributes::getReal(itsAttr[END_NORMAL_X]),
+                  Attributes::getReal(itsAttr[END_NORMAL_Y]), 0.);
+    *offset = Offset(Offset::localCartesianOffset(name, pos, norm));
+    //    setElement(offset);
+}
+}

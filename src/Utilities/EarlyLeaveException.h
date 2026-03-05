@@ -18,15 +18,17 @@
 /*!
   This exception class is used to inentionally exit OPAL when no error occurred.
  */
-class EarlyLeaveException : public ClassicException {
+class EarlyLeaveException: public ClassicException {
+
 public:
+
     /** The usual constructor.
      * @param[in] meth the name of the method or function detecting the exception
      * @param[in] msg the message string identifying the exception
-     */
-    explicit EarlyLeaveException(const std::string& meth, const std::string& msg);
+    */
+    explicit EarlyLeaveException(const std::string &meth, const std::string &msg);
 
-    EarlyLeaveException(const EarlyLeaveException&);
+    EarlyLeaveException(const EarlyLeaveException &);
     virtual ~EarlyLeaveException();
 
     /// Return the message string for the exception.
@@ -36,6 +38,7 @@ public:
     using ClassicException::where;
 
 private:
+
     // Not implemented.
     EarlyLeaveException() = delete;
 };

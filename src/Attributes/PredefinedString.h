@@ -27,32 +27,35 @@
 namespace Attributes {
 
     /// Parser for an attribute of type string.
-    class PredefinedString : public AttributeHandler {
+    class PredefinedString: public AttributeHandler {
+
     public:
+
         /// Constructor.
         //  Assign attribute name and help string.
-        PredefinedString(
-            const std::string& name, const std::string& help,
-            const std::initializer_list<std::string>& predefinedStrings,
-            const std::string& defaultValue = "_HAS_NO_DEFAULT_");
+        PredefinedString(const std::string& name,
+                         const std::string& help,
+                         const std::initializer_list<std::string>& predefinedStrings,
+                         const std::string& defaultValue = "_HAS_NO_DEFAULT_");
 
         virtual ~PredefinedString();
 
         /// Return attribute type string ``string''.
-        virtual const std::string& getType() const;
+        virtual const std::string &getType() const;
 
         /// Parse the attribute.
-        virtual void parse(Attribute&, Statement&, bool) const;
+        virtual void parse(Attribute &, Statement &, bool) const;
 
     private:
+
         // Not implemented.
         PredefinedString();
-        PredefinedString(const PredefinedString&);
-        void operator=(const PredefinedString&);
+        PredefinedString(const PredefinedString &);
+        void operator=(const PredefinedString &);
 
         std::set<std::string> predefinedStrings_m;
     };
 
-};  // namespace Attributes
+};
 
 #endif

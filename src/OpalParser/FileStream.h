@@ -20,19 +20,22 @@
 //
 // ------------------------------------------------------------------------
 
-#include <fstream>
 #include "OpalParser/AbsFileStream.h"
+#include <fstream>
+
 
 // Class FileStream
 // ------------------------------------------------------------------------
 /// A stream of input tokens.
 //  The source of tokens is a named disk file.
 
-class FileStream : public AbsFileStream {
+class FileStream: public AbsFileStream {
+
 public:
+
     /// Constructor.
     //  Open associated file.
-    explicit FileStream(const std::string& name);
+    explicit FileStream(const std::string &name);
 
     /// Destructor.
     //  Close associated file.
@@ -50,10 +53,11 @@ public:
     static bool getEcho();
 
 private:
+
     // Not implemented.
     FileStream();
-    FileStream(const FileStream&);
-    void operator=(const FileStream&);
+    FileStream(const FileStream &);
+    void operator=(const FileStream &);
 
     // Current file stream.
     std::ifstream is;
@@ -62,4 +66,4 @@ private:
     static bool echoFlag;
 };
 
-#endif  // CLASSIC_FileStream_HH
+#endif // CLASSIC_FileStream_HH

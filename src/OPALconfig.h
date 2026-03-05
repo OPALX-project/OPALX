@@ -3,9 +3,9 @@
 
 /* Define OPAL version */
 #define OPAL_PROJECT_VERSION "1.0"
-#define OPAL_VERSION_MAJOR 1
-#define OPAL_VERSION_MINOR 0
-#define OPAL_VERSION_PATCH 0
+#define OPAL_VERSION_MAJOR   1
+#define OPAL_VERSION_MINOR   0
+#define OPAL_VERSION_PATCH   0
 
 /* Define string with the options used to compile OPAL */
 #define OPAL_COMPILE_OPTIONS "-Wall"

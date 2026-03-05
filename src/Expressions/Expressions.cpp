@@ -31,6 +31,7 @@
 #include "AbstractObjects/RangeRep.h"
 #include "AbstractObjects/Table.h"
 #include "AbstractObjects/TableRowRep.h"
+#include "PartBunch/PartBunch.h"
 #include "Expressions/ABinary.h"
 #include "Expressions/AColumn.h"
 #include "Expressions/AList.h"
@@ -54,7 +55,6 @@
 #include "Expressions/TFunction1.h"
 #include "Expressions/TFunction2.h"
 #include "OpalParser/Statement.h"
-#include "PartBunch/PartBunch.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
 #include "Utilities/ParseError.h"
@@ -69,38 +69,58 @@ namespace Expressions {
     // Boolean operators.
     // ----------------------------------------------------------------------
 
-    bool Or(bool a, bool b) { return a || b; }
+    bool Or(bool a, bool b) {
+        return a || b;
+    }
     static const TFunction2<bool, bool> logOr = {"||", 1, Or};
 
-    bool And(bool a, bool b) { return a && b; }
+    bool And(bool a, bool b) {
+        return a && b;
+    }
     static const TFunction2<bool, bool> logAnd = {"&&", 2, And};
 
-    bool Le(double a, double b) { return a <= b; }
+    bool Le(double a, double b) {
+        return a <= b;
+    }
     static const TFunction2<bool, double> lessEqual = {"<=", 3, Le};
 
-    bool Lt(double a, double b) { return a < b; }
+    bool Lt(double a, double b) {
+        return a < b;
+    }
     static const TFunction2<bool, double> less = {"<", 3, Lt};
 
-    bool Ge(double a, double b) { return a >= b; }
+    bool Ge(double a, double b) {
+        return a >= b;
+    }
     static const TFunction2<bool, double> greaterEqual = {">=", 3, Ge};
 
-    bool Gt(double a, double b) { return a > b; }
+    bool Gt(double a, double b) {
+        return a > b;
+    }
     static const TFunction2<bool, double> greater = {">", 3, Gt};
 
-    bool Eq(double a, double b) { return a == b; }
+    bool Eq(double a, double b) {
+        return a == b;
+    }
     static const TFunction2<bool, double> equal = {"==", 3, Eq};
 
-    bool Ne(double a, double b) { return a != b; }
+    bool Ne(double a, double b) {
+        return a != b;
+    }
     static const TFunction2<bool, double> notEqual = {"!=", 3, Ne};
 
     // Real operators with one or two operands.
     // ----------------------------------------------------------------------
 
-    double Neg(double a) { return -a; }
+    double Neg(double a) {
+        return -a;
+    }
 
     static const TFunction1<double, double> negate = {"-", 5, Neg};
 
-    double Sign(double a) { return (a > 0.) ? 1. : (a < 0.) ? -1. : 0.; }
+    double Sign(double a) {
+        return (a > 0.) ? 1. : (a < 0.) ? -1. : 0.;
+    }
 
     double Tgauss(double a) {
         double x, y;
@@ -110,15 +130,21 @@ namespace Expressions {
         return x;
     }
 
-    double Add(double a, double b) { return a + b; }
+    double Add(double a, double b) {
+        return a + b;
+    }
 
     static const TFunction2<double, double> plus = {"+", 4, Add};
 
-    double Sub(double a, double b) { return a - b; }
+    double Sub(double a, double b) {
+        return a - b;
+    }
 
     static const TFunction2<double, double> minus = {"-", 4, Sub};
 
-    double Mpy(double a, double b) { return a * b; }
+    double Mpy(double a, double b) {
+        return a * b;
+    }
 
     static TFunction2<double, double> times = {"*", 5, Mpy};
 
@@ -151,7 +177,9 @@ namespace Expressions {
             return -1.0;
     }
 
-    double ranf() { return Options::rangen.uniform(); }
+    double ranf() {
+        return Options::rangen.uniform();
+    }
 
     double gauss() {
         double x, y;
@@ -182,9 +210,13 @@ namespace Expressions {
     // Real functions with two arguments.
     // ----------------------------------------------------------------------
 
-    double Max(double a, double b) { return std::max(a, b); }
+    double Max(double a, double b) {
+        return std::max(a, b);
+    }
 
-    double Min(double a, double b) { return std::min(a, b); }
+    double Min(double a, double b) {
+        return std::min(a, b);
+    }
 
     double Mod(double a, double b) {
         if (b <= 0.0)

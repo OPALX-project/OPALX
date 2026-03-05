@@ -29,8 +29,10 @@
 /// Convergence error exception.
 //  This exception is thrown, when an iterative algorithm fails to converge.
 
-class ConvergenceError : public ArithmeticError {
+class ConvergenceError: public ArithmeticError {
+
 public:
+
     /// The usual constructor.
     // Arguments:
     // [DL]
@@ -39,14 +41,15 @@ public:
     // [DT][b]msg [/b]
     // [DD]the message string identifying the exception
     // [/DL]
-    ConvergenceError(const std::string& method, const std::string& message);
+    ConvergenceError(const std::string &method, const std::string &message);
 
-    ConvergenceError(const ConvergenceError&);
+    ConvergenceError(const ConvergenceError &);
     virtual ~ConvergenceError();
 
 private:
+
     // Not implemented.
     ConvergenceError();
 };
 
-#endif  // CLASSIC_ConvergenceError_HH
+#endif // CLASSIC_ConvergenceError_HH

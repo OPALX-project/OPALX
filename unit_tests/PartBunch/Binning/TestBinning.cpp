@@ -39,12 +39,12 @@ using Vector = ippl::Vector<T, Dim>;
 
 using size_type = ippl::detail::size_type;
 
+#include <random>
+#include <vector>
+#include <numeric>
 #include <algorithm>
 #include <cmath>
 #include <iostream>
-#include <numeric>
-#include <random>
-#include <vector>
 
 // ============================================================================
 // Minimal bunch type for testing (mirrors ParticleContainer's relevant parts)
@@ -52,9 +52,9 @@ using size_type = ippl::detail::size_type;
 constexpr unsigned TestDim = 3;
 using TestT                = double;
 
-using TestMesh_t    = ippl::UniformCartesian<TestT, TestDim>;
-using TestPLayout_t = ippl::ParticleSpatialLayout<TestT, TestDim, TestMesh_t>;
-using TestFL_t      = ippl::FieldLayout<TestDim>;
+using TestMesh_t     = ippl::UniformCartesian<TestT, TestDim>;
+using TestPLayout_t  = ippl::ParticleSpatialLayout<TestT, TestDim, TestMesh_t>;
+using TestFL_t       = ippl::FieldLayout<TestDim>;
 
 /**
  * @brief Minimal particle bunch for binning unit tests.
@@ -63,8 +63,8 @@ using TestFL_t      = ippl::FieldLayout<TestDim>;
  * R (positions, inherited), P (momenta), and Bin (bin index).
  */
 struct TestBunch : public ippl::ParticleBase<TestPLayout_t> {
-    using Base           = ippl::ParticleBase<TestPLayout_t>;
-    using bin_index_type = short int;  // same as ParticleContainer
+    using Base             = ippl::ParticleBase<TestPLayout_t>;
+    using bin_index_type   = short int;  // same as ParticleContainer
 
     /// Particle momenta (used by CoordinateSelector)
     typename Base::particle_position_type P;
@@ -72,7 +72,8 @@ struct TestBunch : public ippl::ParticleBase<TestPLayout_t> {
     /// Bin index attribute (used by AdaptBins)
     ippl::ParticleAttrib<bin_index_type> Bin;
 
-    TestBunch(TestPLayout_t& pl) : Base(pl) {
+    TestBunch(TestPLayout_t& pl)
+        : Base(pl) {
         this->addAttribute(P);
         this->addAttribute(Bin);
     }
@@ -99,18 +100,20 @@ protected:
         ippl::initialize(argc, argv);
     }
 
-    static void TearDownTestSuite() { ippl::finalize(); }
+    static void TearDownTestSuite() {
+        ippl::finalize();
+    }
 
     // Members kept alive for the duration of each test
-    std::unique_ptr<TestMesh_t> mesh;
-    std::unique_ptr<TestFL_t> fl;
+    std::unique_ptr<TestMesh_t>   mesh;
+    std::unique_ptr<TestFL_t>     fl;
     std::unique_ptr<TestPLayout_t> playout;
-    std::shared_ptr<Container_t> bunch;
-    std::shared_ptr<AdaptBins_t> adaptBins;
+    std::shared_ptr<Container_t>  bunch;
+    std::shared_ptr<AdaptBins_t>  adaptBins;
 
     // Parameters
     static constexpr size_t gridPoints = 32;
-    static constexpr TestT domainLen   = 1.0;
+    static constexpr TestT  domainLen  = 1.0;
 
     void SetUp() override {
         // Build mesh + field layout (similar to GatherScatterTest)
@@ -121,9 +124,9 @@ protected:
         decomp.fill(true);
 
         for (unsigned d = 0; d < TestDim; ++d) {
-            domain[d] = ippl::Index(gridPoints);
-            hr[d]     = domainLen / gridPoints;
-            origin[d] = 0.0;
+            domain[d]  = ippl::Index(gridPoints);
+            hr[d]      = domainLen / gridPoints;
+            origin[d]  = 0.0;
         }
 
         mesh    = std::make_unique<TestMesh_t>(domain, hr, origin);
@@ -182,7 +185,7 @@ protected:
                 p[d] = 0.0;
             }
             // Uniform spacing along the chosen axis
-            p[axis]   = pMin + (pMax - pMin) * (static_cast<TestT>(i) + 0.5) / n;
+            p[axis] = pMin + (pMax - pMin) * (static_cast<TestT>(i) + 0.5) / n;
             R_host(i) = r;
             P_host(i) = p;
         }
@@ -194,13 +197,15 @@ protected:
     }
 
     /// Build an AdaptBins with given parameters.
-    void buildAdaptBins(
-        bin_index_type maxBins = 5, value_type alpha = 1.0, value_type beta = 1.0,
-        value_type desW = 0.1) {
+    void buildAdaptBins(bin_index_type maxBins = 5,
+                        value_type alpha = 1.0,
+                        value_type beta  = 1.0,
+                        value_type desW  = 0.1) {
         Selector_t selector(2);  // bin along axis 2 (z-component of P)
         adaptBins = std::make_shared<AdaptBins_t>(bunch, selector, maxBins, alpha, beta, desW);
     }
 };
+
 
 // ############################################################################
 // 1. ParallelReduceTools tests
@@ -231,12 +236,8 @@ TEST_F(BinningTest, ArrayReductionCopy) {
 TEST_F(BinningTest, ArrayReductionPlusEquals) {
     constexpr bin_index_type N = 3;
     ParticleBinning::ArrayReduction<size_type, bin_index_type, N> a, b;
-    a.the_array[0] = 1;
-    a.the_array[1] = 2;
-    a.the_array[2] = 3;
-    b.the_array[0] = 4;
-    b.the_array[1] = 5;
-    b.the_array[2] = 6;
+    a.the_array[0] = 1; a.the_array[1] = 2; a.the_array[2] = 3;
+    b.the_array[0] = 4; b.the_array[1] = 5; b.the_array[2] = 6;
     a += b;
     EXPECT_EQ(a.the_array[0], 5u);
     EXPECT_EQ(a.the_array[1], 7u);
@@ -248,13 +249,10 @@ TEST_F(BinningTest, CreateReductionObjectValid) {
     for (bin_index_type n = 1; n <= ParticleBinning::maxArrSize<bin_index_type>; ++n) {
         auto var = ParticleBinning::createReductionObject<size_type, bin_index_type>(n);
         // Just verify no exception and variant is valid.
-        std::visit(
-            [&](auto& reducer) {
-                EXPECT_EQ(
-                    sizeof(reducer.the_array) / sizeof(reducer.the_array[0]),
-                    static_cast<size_t>(n));
-            },
-            var);
+        std::visit([&](auto& reducer) {
+            EXPECT_EQ(sizeof(reducer.the_array) / sizeof(reducer.the_array[0]),
+                      static_cast<size_t>(n));
+        }, var);
     }
 }
 
@@ -264,12 +262,13 @@ TEST_F(BinningTest, CreateReductionObjectInvalid) {
     // Wrap in a lambda to avoid macro comma issue with template args.
     EXPECT_THROW(
         (ParticleBinning::createReductionObject<size_type, bin_index_type>(tooBig)),
-        std::out_of_range);
+        std::out_of_range
+    );
 }
 
 TEST_F(BinningTest, HostArrayReductionBasics) {
     // HostArrayReduction: dynamic allocation, zero init, +=
-    constexpr bin_index_type N                                                     = 4;
+    constexpr bin_index_type N = 4;
     ParticleBinning::HostArrayReduction<size_type, bin_index_type>::binCountStatic = N;
 
     ParticleBinning::HostArrayReduction<size_type, bin_index_type> a;
@@ -291,15 +290,15 @@ TEST_F(BinningTest, HostArrayReductionBasics) {
 TEST_F(BinningTest, KokkosReductionIdentityArrayReduction) {
     // The Kokkos reduction_identity should return a zero-initialized ArrayReduction.
     constexpr bin_index_type N = 3;
-    auto identity              = Kokkos::reduction_identity<
-                     ParticleBinning::ArrayReduction<size_type, bin_index_type, N>>::sum();
+    auto identity = Kokkos::reduction_identity<
+        ParticleBinning::ArrayReduction<size_type, bin_index_type, N>>::sum();
     for (bin_index_type i = 0; i < N; ++i) {
         EXPECT_EQ(identity.the_array[i], 0u);
     }
 }
 
 TEST_F(BinningTest, KokkosReductionIdentityHostArrayReduction) {
-    constexpr bin_index_type N                                                     = 4;
+    constexpr bin_index_type N = 4;
     ParticleBinning::HostArrayReduction<size_type, bin_index_type>::binCountStatic = N;
     auto identity = Kokkos::reduction_identity<
         ParticleBinning::HostArrayReduction<size_type, bin_index_type>>::sum();
@@ -307,6 +306,7 @@ TEST_F(BinningTest, KokkosReductionIdentityHostArrayReduction) {
         EXPECT_EQ(identity.the_array[i], 0u);
     }
 }
+
 
 // ############################################################################
 // 2. BinningTools tests
@@ -319,8 +319,8 @@ TEST_F(BinningTest, DetermineHistoReductionModeStandard) {
     auto modeLarge = ParticleBinning::determineHistoReductionMode<bin_index_type>(
         ParticleBinning::HistoReductionMode::Standard, 100);
 
-    bool isHostSpace =
-        std::is_same<Kokkos::DefaultExecutionSpace, Kokkos::DefaultHostExecutionSpace>::value;
+    bool isHostSpace = std::is_same<Kokkos::DefaultExecutionSpace,
+                                    Kokkos::DefaultHostExecutionSpace>::value;
     if (isHostSpace) {
         // On host spaces, always HostOnly.
         EXPECT_EQ(modeSmall, ParticleBinning::HistoReductionMode::HostOnly);
@@ -334,8 +334,8 @@ TEST_F(BinningTest, DetermineHistoReductionModeStandard) {
 
 TEST_F(BinningTest, DetermineHistoReductionModeForced) {
     // If a specific mode is forced, it should be respected (unless host-only execution space).
-    bool isHostSpace =
-        std::is_same<Kokkos::DefaultExecutionSpace, Kokkos::DefaultHostExecutionSpace>::value;
+    bool isHostSpace = std::is_same<Kokkos::DefaultExecutionSpace,
+                                    Kokkos::DefaultHostExecutionSpace>::value;
     if (!isHostSpace) {
         auto mode = ParticleBinning::determineHistoReductionMode<bin_index_type>(
             ParticleBinning::HistoReductionMode::TeamBased, 2);
@@ -351,8 +351,7 @@ TEST_F(BinningTest, ComputeFixSum) {
 
     // Fill input = {1,2,3,4,5}
     auto h_in = Kokkos::create_mirror_view(input);
-    for (size_t i = 0; i < N; ++i)
-        h_in(i) = i + 1;
+    for (size_t i = 0; i < N; ++i) h_in(i) = i + 1;
     Kokkos::deep_copy(input, h_in);
 
     ParticleBinning::computeFixSum<Kokkos::View<size_type*>>(input, postsum);
@@ -373,16 +372,14 @@ TEST_F(BinningTest, ViewIsSortedTrue) {
     constexpr size_t N = 5;
     Kokkos::View<bin_index_type*> view("sortedView", N);
     auto h_view = Kokkos::create_mirror_view(view);
-    for (size_t i = 0; i < N; ++i)
-        h_view(i) = static_cast<bin_index_type>(i);
+    for (size_t i = 0; i < N; ++i) h_view(i) = static_cast<bin_index_type>(i);
     Kokkos::deep_copy(view, h_view);
 
     // Identity hash: indices = {0,1,2,3,4}
     using hash_type = ippl::detail::hash_type<Kokkos::DefaultExecutionSpace::memory_space>;
     hash_type idx("idx", N);
     auto h_idx = Kokkos::create_mirror_view(idx);
-    for (size_t i = 0; i < N; ++i)
-        h_idx(i) = static_cast<int>(i);
+    for (size_t i = 0; i < N; ++i) h_idx(i) = static_cast<int>(i);
     Kokkos::deep_copy(idx, h_idx);
 
     bool sorted = ParticleBinning::viewIsSorted<bin_index_type, size_type>(view, idx, N);
@@ -393,23 +390,19 @@ TEST_F(BinningTest, ViewIsSortedFalse) {
     constexpr size_t N = 5;
     Kokkos::View<bin_index_type*> view("unsortedView", N);
     auto h_view = Kokkos::create_mirror_view(view);
-    h_view(0)   = 0;
-    h_view(1)   = 3;
-    h_view(2)   = 1;
-    h_view(3)   = 2;
-    h_view(4)   = 4;
+    h_view(0) = 0; h_view(1) = 3; h_view(2) = 1; h_view(3) = 2; h_view(4) = 4;
     Kokkos::deep_copy(view, h_view);
 
     using hash_type = ippl::detail::hash_type<Kokkos::DefaultExecutionSpace::memory_space>;
     hash_type idx("idx", N);
     auto h_idx = Kokkos::create_mirror_view(idx);
-    for (size_t i = 0; i < N; ++i)
-        h_idx(i) = static_cast<int>(i);
+    for (size_t i = 0; i < N; ++i) h_idx(i) = static_cast<int>(i);
     Kokkos::deep_copy(idx, h_idx);
 
     bool sorted = ParticleBinning::viewIsSorted<bin_index_type, size_type>(view, idx, N);
     EXPECT_FALSE(sorted);
 }
+
 
 // ############################################################################
 // 3. BinHisto (Histogram) tests
@@ -417,8 +410,7 @@ TEST_F(BinningTest, ViewIsSortedFalse) {
 
 TEST_F(BinningTest, HistogramConstruction) {
     // Construct a Histogram with DualView=false on host space.
-    using Histo_t =
-        ParticleBinning::Histogram<size_type, bin_index_type, value_type, false, Kokkos::HostSpace>;
+    using Histo_t = ParticleBinning::Histogram<size_type, bin_index_type, value_type, false, Kokkos::HostSpace>;
     Histo_t histo("testHisto", 4, 2.0, 1.0, 1.0, 0.5);
 
     EXPECT_EQ(histo.getCurrentBinCount(), 4);
@@ -426,19 +418,15 @@ TEST_F(BinningTest, HistogramConstruction) {
 
 TEST_F(BinningTest, HistogramInitSetsWidthsAndPostSum) {
     // After init(), widths should be uniform and postSum should be a prefix sum.
-    using Histo_t =
-        ParticleBinning::Histogram<size_type, bin_index_type, value_type, false, Kokkos::HostSpace>;
-    constexpr bin_index_type nBins  = 4;
+    using Histo_t = ParticleBinning::Histogram<size_type, bin_index_type, value_type, false, Kokkos::HostSpace>;
+    constexpr bin_index_type nBins = 4;
     constexpr value_type totalWidth = 2.0;
 
     Histo_t histo("testInit", nBins, totalWidth, 1.0, 1.0, 0.5);
 
     // Manually set histogram counts on host: {10, 20, 30, 40}
     auto histView = histo.getHistogram();
-    histView(0)   = 10;
-    histView(1)   = 20;
-    histView(2)   = 30;
-    histView(3)   = 40;
+    histView(0) = 10; histView(1) = 20; histView(2) = 30; histView(3) = 40;
 
     histo.init();
 
@@ -458,13 +446,10 @@ TEST_F(BinningTest, HistogramInitSetsWidthsAndPostSum) {
 }
 
 TEST_F(BinningTest, HistogramGetNPartInBin) {
-    using Histo_t =
-        ParticleBinning::Histogram<size_type, bin_index_type, value_type, false, Kokkos::HostSpace>;
+    using Histo_t = ParticleBinning::Histogram<size_type, bin_index_type, value_type, false, Kokkos::HostSpace>;
     Histo_t histo("testNPart", 3, 1.0, 1.0, 1.0, 0.3);
     auto histView = histo.getHistogram();
-    histView(0)   = 5;
-    histView(1)   = 15;
-    histView(2)   = 25;
+    histView(0) = 5; histView(1) = 15; histView(2) = 25;
     histo.init();
 
     EXPECT_EQ(histo.getNPartInBin(0), 5u);
@@ -473,13 +458,10 @@ TEST_F(BinningTest, HistogramGetNPartInBin) {
 }
 
 TEST_F(BinningTest, HistogramCopyConstructor) {
-    using Histo_t =
-        ParticleBinning::Histogram<size_type, bin_index_type, value_type, false, Kokkos::HostSpace>;
+    using Histo_t = ParticleBinning::Histogram<size_type, bin_index_type, value_type, false, Kokkos::HostSpace>;
     Histo_t original("origHisto", 3, 1.5, 1.0, 1.0, 0.5);
     auto histView = original.getHistogram();
-    histView(0)   = 10;
-    histView(1)   = 20;
-    histView(2)   = 30;
+    histView(0) = 10; histView(1) = 20; histView(2) = 30;
     original.init();
 
     Histo_t copy(original);
@@ -490,12 +472,10 @@ TEST_F(BinningTest, HistogramCopyConstructor) {
 }
 
 TEST_F(BinningTest, HistogramAssignmentOperator) {
-    using Histo_t =
-        ParticleBinning::Histogram<size_type, bin_index_type, value_type, false, Kokkos::HostSpace>;
+    using Histo_t = ParticleBinning::Histogram<size_type, bin_index_type, value_type, false, Kokkos::HostSpace>;
     Histo_t original("assignOrig", 2, 1.0, 1.0, 1.0, 0.5);
     auto histView = original.getHistogram();
-    histView(0)   = 7;
-    histView(1)   = 13;
+    histView(0) = 7; histView(1) = 13;
     original.init();
 
     Histo_t assigned("dummy", 1, 0.5, 1.0, 1.0, 0.5);
@@ -512,12 +492,9 @@ TEST_F(BinningTest, HistogramGetBinIterationPolicy) {
 
     // Set counts on device then sync
     auto dView = histo.getHistogram().view_device();
-    Kokkos::parallel_for(
-        "fillPolicyHisto", 1, KOKKOS_LAMBDA(const int) {
-            dView(0) = 5;
-            dView(1) = 10;
-            dView(2) = 15;
-        });
+    Kokkos::parallel_for("fillPolicyHisto", 1, KOKKOS_LAMBDA(const int) {
+        dView(0) = 5; dView(1) = 10; dView(2) = 15;
+    });
     histo.modify_device();
     histo.sync();
     histo.init();
@@ -538,9 +515,8 @@ TEST_F(BinningTest, HistogramGetBinIterationPolicy) {
 
 TEST_F(BinningTest, HistogramMergeBins) {
     // Create a histogram with many bins and verify that mergeBins reduces them.
-    using Histo_t =
-        ParticleBinning::Histogram<size_type, bin_index_type, value_type, false, Kokkos::HostSpace>;
-    constexpr bin_index_type nBins  = 10;
+    using Histo_t = ParticleBinning::Histogram<size_type, bin_index_type, value_type, false, Kokkos::HostSpace>;
+    constexpr bin_index_type nBins = 10;
     constexpr value_type totalWidth = 1.0;
     Histo_t histo("mergeTest", nBins, totalWidth, 1.0, 1.0, 0.2);
 
@@ -549,16 +525,9 @@ TEST_F(BinningTest, HistogramMergeBins) {
     // Bins 3-6: 100 particles each (dense center)
     // Bins 7-9: 1 particle each (sparse tails)
     auto histView = histo.getHistogram();
-    histView(0)   = 1;
-    histView(1)   = 1;
-    histView(2)   = 1;
-    histView(3)   = 100;
-    histView(4)   = 100;
-    histView(5)   = 100;
-    histView(6)   = 100;
-    histView(7)   = 1;
-    histView(8)   = 1;
-    histView(9)   = 1;
+    histView(0) = 1;  histView(1) = 1;  histView(2) = 1;
+    histView(3) = 100; histView(4) = 100; histView(5) = 100; histView(6) = 100;
+    histView(7) = 1;  histView(8) = 1;  histView(9) = 1;
     histo.init();
 
     auto lookupTable = histo.mergeBins();
@@ -598,8 +567,9 @@ TEST_F(BinningTest, HistogramDualViewConstruction) {
 
     // Set counts on device, sync to host
     auto dView = histo.getHistogram().view_device();
-    Kokkos::parallel_for(
-        "fillDualHisto", 4, KOKKOS_LAMBDA(const int i) { dView(i) = (i + 1) * 10; });
+    Kokkos::parallel_for("fillDualHisto", 4, KOKKOS_LAMBDA(const int i) {
+        dView(i) = (i + 1) * 10;
+    });
     histo.modify_device();
     histo.sync();
     histo.init();
@@ -609,6 +579,7 @@ TEST_F(BinningTest, HistogramDualViewConstruction) {
     EXPECT_EQ(histo.getNPartInBin(2), 30u);
     EXPECT_EQ(histo.getNPartInBin(3), 40u);
 }
+
 
 // ############################################################################
 // 4. CoordinateSelector tests
@@ -628,7 +599,7 @@ TEST_F(BinningTest, CoordinateSelectorReturnsNormalizedValues) {
 
     size_t localN = bunch->getLocalNum();
     for (size_t i = 0; i < localN; ++i) {
-        value_type p_z      = std::fabs(P_host(i)[2]);
+        value_type p_z   = std::fabs(P_host(i)[2]);
         value_type expected = p_z / std::sqrt(1.0 + p_z * p_z);
 
         // Evaluate on host through a host mirror of viewdata
@@ -637,6 +608,7 @@ TEST_F(BinningTest, CoordinateSelectorReturnsNormalizedValues) {
         EXPECT_LT(expected, 1.0);
     }
 }
+
 
 // ############################################################################
 // 5. AdaptBins: getBin static function tests
@@ -650,7 +622,7 @@ TEST_F(BinningTest, GetBinBasic) {
 
     // Midpoint of each bin should map to its index.
     for (bin_index_type b = 0; b < numBins; ++b) {
-        value_type midpoint   = xMin + (b + 0.5) / numBins * (xMax - xMin);
+        value_type midpoint = xMin + (b + 0.5) / numBins * (xMax - xMin);
         bin_index_type result = AdaptBins_t::getBin(midpoint, xMin, xMax, binWidthInv, numBins);
         EXPECT_EQ(result, b);
     }
@@ -681,6 +653,7 @@ TEST_F(BinningTest, GetBinOnBoundary) {
     // xMax should be clamped to numBins-1
     EXPECT_EQ(AdaptBins_t::getBin(1.0, xMin, xMax, binWidthInv, numBins), numBins - 1);
 }
+
 
 // ############################################################################
 // 6. AdaptBins: integration tests with particles
@@ -778,8 +751,7 @@ TEST_F(BinningTest, AdaptBinsSortContainerByBin) {
     auto binView = bunch->Bin.getView();
 
     size_t localN = bunch->getLocalNum();
-    if (localN <= 1)
-        return;
+    if (localN <= 1) return;
 
     // Copy to host for checking
     auto h_hash = Kokkos::create_mirror_view(hashArr);
@@ -788,7 +760,8 @@ TEST_F(BinningTest, AdaptBinsSortContainerByBin) {
     Kokkos::deep_copy(h_bin, binView);
 
     for (size_t i = 1; i < localN; ++i) {
-        EXPECT_GE(h_bin(h_hash(i)), h_bin(h_hash(i - 1))) << "Sort violated at index " << i;
+        EXPECT_GE(h_bin(h_hash(i)), h_bin(h_hash(i - 1)))
+            << "Sort violated at index " << i;
     }
 }
 
@@ -852,7 +825,8 @@ TEST_F(BinningTest, AdaptBinsRebinWithDifferentBinCounts) {
         for (bin_index_type b = 0; b < adaptBins->getCurrentBinCount(); ++b) {
             totalInBins += adaptBins->getNPartInBin(b);
         }
-        EXPECT_EQ(totalInBins, bunch->getLocalNum()) << "Mismatch with nBins=" << nBins;
+        EXPECT_EQ(totalInBins, bunch->getLocalNum())
+            << "Mismatch with nBins=" << nBins;
     }
 }
 
@@ -869,7 +843,8 @@ TEST_F(BinningTest, AdaptBinsRepeatedDoFullRebin) {
         for (bin_index_type b = 0; b < adaptBins->getCurrentBinCount(); ++b) {
             total += adaptBins->getNPartInBin(b);
         }
-        EXPECT_EQ(total, bunch->getLocalNum()) << "Failed at iteration " << iter;
+        EXPECT_EQ(total, bunch->getLocalNum())
+            << "Failed at iteration " << iter;
     }
 }
 
@@ -892,8 +867,9 @@ TEST_F(BinningTest, AdaptBinsSortAndPoliciesConsistent) {
     for (bin_index_type b = 0; b < adaptBins->getCurrentBinCount(); ++b) {
         auto policy = adaptBins->getBinIterationPolicy(b);
         for (auto idx = policy.begin(); idx < policy.end(); ++idx) {
-            EXPECT_EQ(h_bin(h_hash(idx)), b) << "Particle at sorted index " << idx << " has bin "
-                                             << h_bin(h_hash(idx)) << " but expected " << b;
+            EXPECT_EQ(h_bin(h_hash(idx)), b)
+                << "Particle at sorted index " << idx << " has bin " << h_bin(h_hash(idx))
+                << " but expected " << b;
         }
     }
 }
@@ -927,20 +903,21 @@ TEST_F(BinningTest, AdaptBinsUniformDistributionEvenBins) {
     is no guarantee that it passes. In that case, you might need to adapt the required
     number of particles below. This is because the distribution is not "uniform" after
     CoordinateSelector is applied.
-    */
+    */    
 
     adaptBins->doFullRebin(5);
 
     // Check local histogram - should be roughly uniform within each rank's portion.
     size_type localN = bunch->getLocalNum();
-    if (localN < 5)
-        return;  // skip if too few particles on this rank
+    if (localN < 5) return;  // skip if too few particles on this rank
 
     for (bin_index_type b = 0; b < 5; ++b) {
         size_type count = adaptBins->getNPartInBin(b);
         // Verify bins are not empty for uniform distribution.
-        EXPECT_GT(count, 50) << "Bin " << b << " is too small for \"uniform\" distribution.";
-        EXPECT_LT(count, 350) << "Bin " << b << " is too big for \"uniform\" distribution";
+        EXPECT_GT(count, 50)
+            << "Bin " << b << " is too small for \"uniform\" distribution.";
+        EXPECT_LT(count, 350)
+            << "Bin " << b << " is too big for \"uniform\" distribution";
     }
 }
 
@@ -973,7 +950,7 @@ TEST_F(BinningTest, AdaptBinsFullWorkflow) {
 
     size_type totalCovered = 0;
     for (bin_index_type b = 0; b < adaptiveBins; ++b) {
-        auto policy         = adaptBins->getBinIterationPolicy(b);
+        auto policy = adaptBins->getBinIterationPolicy(b);
         size_type rangeSize = policy.end() - policy.begin();
         totalCovered += rangeSize;
 
@@ -984,6 +961,9 @@ TEST_F(BinningTest, AdaptBinsFullWorkflow) {
     }
     EXPECT_EQ(totalCovered, bunch->getLocalNum());
 }
+
+
+
 
 // Use gtest_main provided by the framework, so no need to define main() here.
 // ############################################################################

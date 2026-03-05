@@ -25,155 +25,164 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "DifferentialOperator.h"
 #include <iostream>
 #include <vector>
+#include "DifferentialOperator.h"
 
 namespace polynomial {
 
-    DifferentialOperator::DifferentialOperator() : xDerivatives_m(0), sDerivatives_m(0) {
-        std::vector<int> temp;
-        temp.push_back(1);
-        polynomials_m.resize(1);
-        polynomials_m[0].push_back(Polynomial(temp));
-    }
+DifferentialOperator::DifferentialOperator():
+    xDerivatives_m(0), sDerivatives_m(0){
+    std::vector<int> temp;
+    temp.push_back(1);
+    polynomials_m.resize(1);
+    polynomials_m[0].push_back(Polynomial(temp));
+}
 
-    DifferentialOperator::DifferentialOperator(
-        const std::size_t& xDerivatives, const std::size_t& sDerivatives)
-        : xDerivatives_m(xDerivatives), sDerivatives_m(sDerivatives) {
-        polynomials_m.resize(xDerivatives_m + 1);
-        for (std::size_t i = 0; i <= xDerivatives_m; i++) {
+DifferentialOperator::DifferentialOperator(const std::size_t &xDerivatives,
+                                           const std::size_t &sDerivatives):
+    xDerivatives_m(xDerivatives), sDerivatives_m(sDerivatives) {
+    polynomials_m.resize(xDerivatives_m + 1);
+    for (std::size_t i = 0; i <= xDerivatives_m; i++) {
+        polynomials_m[i].resize(sDerivatives_m + 1);
+    }
+}
+
+DifferentialOperator::DifferentialOperator(
+                      const DifferentialOperator &doperator):
+    polynomials_m(doperator.polynomials_m),
+    xDerivatives_m(doperator.xDerivatives_m),
+    sDerivatives_m(doperator.sDerivatives_m) {
+}
+
+DifferentialOperator::~DifferentialOperator() {
+}
+
+DifferentialOperator& DifferentialOperator::operator= (
+                      const DifferentialOperator &doperator) {
+    polynomials_m = doperator.polynomials_m;
+    xDerivatives_m = doperator.xDerivatives_m;
+    sDerivatives_m = doperator.sDerivatives_m;
+    return *this;
+}
+
+void DifferentialOperator::resizeX(const std::size_t &xDerivatives) {
+    std::size_t oldxDerivatives = xDerivatives_m;
+    xDerivatives_m = xDerivatives;
+    polynomials_m.resize(xDerivatives_m + 1);
+    if (xDerivatives_m > oldxDerivatives) {
+        for (std::size_t i = oldxDerivatives + 1; i <= xDerivatives_m; i++) {
             polynomials_m[i].resize(sDerivatives_m + 1);
         }
     }
+}
 
-    DifferentialOperator::DifferentialOperator(const DifferentialOperator& doperator)
-        : polynomials_m(doperator.polynomials_m),
-          xDerivatives_m(doperator.xDerivatives_m),
-          sDerivatives_m(doperator.sDerivatives_m) {}
-
-    DifferentialOperator::~DifferentialOperator() {}
-
-    DifferentialOperator& DifferentialOperator::operator=(const DifferentialOperator& doperator) {
-        polynomials_m  = doperator.polynomials_m;
-        xDerivatives_m = doperator.xDerivatives_m;
-        sDerivatives_m = doperator.sDerivatives_m;
-        return *this;
+void DifferentialOperator::resizeS(const std::size_t &sDerivatives) {
+    sDerivatives_m = sDerivatives;
+    for (std::size_t i = 0; i <= xDerivatives_m; i++) {
+        polynomials_m[i].resize(sDerivatives_m + 1);
     }
+}
 
-    void DifferentialOperator::resizeX(const std::size_t& xDerivatives) {
-        std::size_t oldxDerivatives = xDerivatives_m;
-        xDerivatives_m              = xDerivatives;
-        polynomials_m.resize(xDerivatives_m + 1);
-        if (xDerivatives_m > oldxDerivatives) {
-            for (std::size_t i = oldxDerivatives + 1; i <= xDerivatives_m; i++) {
-                polynomials_m[i].resize(sDerivatives_m + 1);
-            }
+void DifferentialOperator::differentiateX() {
+    resizeX(xDerivatives_m + 1);
+    for (std::size_t j = 0; j <= sDerivatives_m; j++) {
+        std::size_t i = xDerivatives_m;
+        while (i != 0) {
+            i--;
+            polynomials_m[i + 1][j].addPolynomial(polynomials_m[i][j]);
+            polynomials_m[i][j].differentiatePolynomial();
         }
     }
+}
 
-    void DifferentialOperator::resizeS(const std::size_t& sDerivatives) {
-        sDerivatives_m = sDerivatives;
-        for (std::size_t i = 0; i <= xDerivatives_m; i++) {
-            polynomials_m[i].resize(sDerivatives_m + 1);
+void DifferentialOperator::doubleDifferentiateS() {
+    resizeS(sDerivatives_m + 1);
+    for (std::size_t i = 0; i <= xDerivatives_m; i++) {
+        std::size_t j = sDerivatives_m;
+        while (j != 0) {
+            j--;
+            polynomials_m[i][j + 1].addPolynomial(polynomials_m[i][j]);
+            polynomials_m[i][j].setZero();
         }
     }
+}
 
-    void DifferentialOperator::differentiateX() {
-        resizeX(xDerivatives_m + 1);
+void DifferentialOperator::multiplyPolynomial(const Polynomial &poly) {
+    for (std::size_t i = 0; i <= xDerivatives_m; i++) {
         for (std::size_t j = 0; j <= sDerivatives_m; j++) {
-            std::size_t i = xDerivatives_m;
-            while (i != 0) {
-                i--;
-                polynomials_m[i + 1][j].addPolynomial(polynomials_m[i][j]);
-                polynomials_m[i][j].differentiatePolynomial();
+            polynomials_m[i][j].multiplyPolynomial(poly);
+        }
+    }
+}
+
+void DifferentialOperator::setPolynomial(const std::vector<int> &poly,
+                                         const std::size_t &x,
+                                         const std::size_t &s) {
+    if (x > xDerivatives_m) {
+        resizeX(x);
+    }
+    if (s > sDerivatives_m) {
+        resizeS(s);
+    }
+    polynomials_m[x][s] = Polynomial(poly);
+}
+
+void DifferentialOperator::printOperator() const {
+    polynomials_m[0][0].printPolynomial();
+    for (std::size_t i = 0; i <= xDerivatives_m; i++) {
+        for (std::size_t j = 0; j <= sDerivatives_m; j++) {
+            if ((i != 0 || j != 0) &&
+                (polynomials_m[i][j].getMaxXorder() != 0 ||
+                 polynomials_m[i][j].getCoefficient(0) != 0)) {
+                std::cout << " + (";
+                polynomials_m[i][j].printPolynomial();
+                std::cout << ")" << "(d/dx)^" << i << "(d/ds)^" << j;
             }
         }
     }
+    std::cout << std::endl;
+}
 
-    void DifferentialOperator::doubleDifferentiateS() {
-        resizeS(sDerivatives_m + 1);
-        for (std::size_t i = 0; i <= xDerivatives_m; i++) {
-            std::size_t j = sDerivatives_m;
-            while (j != 0) {
-                j--;
-                polynomials_m[i][j + 1].addPolynomial(polynomials_m[i][j]);
-                polynomials_m[i][j].setZero();
-            }
+void DifferentialOperator::addOperator(const DifferentialOperator &doperator) {
+    if (xDerivatives_m < doperator.xDerivatives_m) {
+        resizeX(doperator.xDerivatives_m);
+    }
+    if (sDerivatives_m < doperator.sDerivatives_m) {
+        resizeS(doperator.sDerivatives_m);
+    }
+    for (std::size_t i = 0; i <= doperator.xDerivatives_m; i++) {
+        for (std::size_t j = 0; j <= doperator.sDerivatives_m; j++) {
+            polynomials_m[i][j].addPolynomial(doperator.polynomials_m[i][j]);
         }
     }
+}
 
-    void DifferentialOperator::multiplyPolynomial(const Polynomial& poly) {
-        for (std::size_t i = 0; i <= xDerivatives_m; i++) {
-            for (std::size_t j = 0; j <= sDerivatives_m; j++) {
-                polynomials_m[i][j].multiplyPolynomial(poly);
-            }
+bool DifferentialOperator::isPolynomialZero(const std::size_t &x,
+                                            const std::size_t &s) const {
+    if (x > xDerivatives_m || s > sDerivatives_m) {
+        return true;
+    }
+    return (polynomials_m[x][s].getCoefficient(0) == 0 &&
+            polynomials_m[x][s].getMaxXorder() == 0);
+}
+
+void DifferentialOperator::truncate(const std::size_t &truncateOrder) {
+    for (std::size_t i = 0; i <= xDerivatives_m; i++) {
+        for (std::size_t j = 0; j <= sDerivatives_m; j++) {
+            polynomials_m[i][j].truncate(truncateOrder);
         }
     }
+}
 
-    void DifferentialOperator::setPolynomial(
-        const std::vector<int>& poly, const std::size_t& x, const std::size_t& s) {
-        if (x > xDerivatives_m) {
-            resizeX(x);
-        }
-        if (s > sDerivatives_m) {
-            resizeS(s);
-        }
-        polynomials_m[x][s] = Polynomial(poly);
+double DifferentialOperator::evaluatePolynomial(
+                             const double &x,
+                             const std::size_t &xDerivative,
+                             const std::size_t &sDerivative) const {
+    if (xDerivative > xDerivatives_m || sDerivative > sDerivatives_m) {
+        return 0.0;
     }
+    return polynomials_m[xDerivative][sDerivative].evaluatePolynomial(x);
+}
 
-    void DifferentialOperator::printOperator() const {
-        polynomials_m[0][0].printPolynomial();
-        for (std::size_t i = 0; i <= xDerivatives_m; i++) {
-            for (std::size_t j = 0; j <= sDerivatives_m; j++) {
-                if ((i != 0 || j != 0)
-                    && (polynomials_m[i][j].getMaxXorder() != 0
-                        || polynomials_m[i][j].getCoefficient(0) != 0)) {
-                    std::cout << " + (";
-                    polynomials_m[i][j].printPolynomial();
-                    std::cout << ")" << "(d/dx)^" << i << "(d/ds)^" << j;
-                }
-            }
-        }
-        std::cout << std::endl;
-    }
-
-    void DifferentialOperator::addOperator(const DifferentialOperator& doperator) {
-        if (xDerivatives_m < doperator.xDerivatives_m) {
-            resizeX(doperator.xDerivatives_m);
-        }
-        if (sDerivatives_m < doperator.sDerivatives_m) {
-            resizeS(doperator.sDerivatives_m);
-        }
-        for (std::size_t i = 0; i <= doperator.xDerivatives_m; i++) {
-            for (std::size_t j = 0; j <= doperator.sDerivatives_m; j++) {
-                polynomials_m[i][j].addPolynomial(doperator.polynomials_m[i][j]);
-            }
-        }
-    }
-
-    bool DifferentialOperator::isPolynomialZero(const std::size_t& x, const std::size_t& s) const {
-        if (x > xDerivatives_m || s > sDerivatives_m) {
-            return true;
-        }
-        return (
-            polynomials_m[x][s].getCoefficient(0) == 0 && polynomials_m[x][s].getMaxXorder() == 0);
-    }
-
-    void DifferentialOperator::truncate(const std::size_t& truncateOrder) {
-        for (std::size_t i = 0; i <= xDerivatives_m; i++) {
-            for (std::size_t j = 0; j <= sDerivatives_m; j++) {
-                polynomials_m[i][j].truncate(truncateOrder);
-            }
-        }
-    }
-
-    double DifferentialOperator::evaluatePolynomial(
-        const double& x, const std::size_t& xDerivative, const std::size_t& sDerivative) const {
-        if (xDerivative > xDerivatives_m || sDerivative > sDerivatives_m) {
-            return 0.0;
-        }
-        return polynomials_m[xDerivative][sDerivative].evaluatePolynomial(x);
-    }
-
-}  // namespace polynomial
+}

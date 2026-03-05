@@ -18,6 +18,7 @@
 //
 // ------------------------------------------------------------------------
 
+
 namespace Expressions {
 
     // Class TFunction0
@@ -27,10 +28,10 @@ namespace Expressions {
     //  (e.g. a random generator), namely its name, its precedence, and a
     //  pointer to the function to evaluate it.
 
-    template <class T>
-    struct TFunction0 {
+    template <class T> struct TFunction0 {
+
         /// The function name or operator representation.
-        const char* name;
+        const char *name;
 
         /// The operator precedence.
         //  May be one of the following:
@@ -42,9 +43,9 @@ namespace Expressions {
 
         /// The actual operation.
         //  A pointer to function returning a T.
-        T (*function)();
+        T(*function)();
     };
 
-}  // namespace Expressions
+}
 
-#endif  // OPAL_TFunction0_HH
+#endif // OPAL_TFunction0_HH

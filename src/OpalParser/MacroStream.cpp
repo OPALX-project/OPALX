@@ -20,28 +20,37 @@
 #include "OpalParser/MacroStream.h"
 #include "OpalParser/Token.h"
 
+
 // Class MacroStream
 // ------------------------------------------------------------------------
 
-MacroStream::MacroStream(const std::string& macName)
-    : TokenStream(macName), body(), curr(body.begin()) {}
+MacroStream::MacroStream(const std::string &macName):
+    TokenStream(macName), body(), curr(body.begin())
+{}
 
-MacroStream::~MacroStream() {}
 
-void MacroStream::append(Token& token) { body.push_back(token); }
+MacroStream::~MacroStream()
+{}
+
+
+void MacroStream::append(Token &token) {
+    body.push_back(token);
+}
+
 
 Token MacroStream::readToken() {
-    if (put_back_flag) {
+    if(put_back_flag) {
         put_back_flag = false;
         return put_back;
-    } else if (curr == body.end()) {
+    } else if(curr == body.end()) {
         return Token(stream_name, 1, Token::IS_EOF, "End of macro");
     } else {
         return *curr++;
     }
 }
 
+
 void MacroStream::start() {
-    curr          = body.begin();
+    curr = body.begin();
     put_back_flag = false;
 }

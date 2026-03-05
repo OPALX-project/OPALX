@@ -18,11 +18,12 @@
 //
 // ------------------------------------------------------------------------
 
-#include <iosfwd>
 #include "OpalParser/Statement.h"
+#include <iosfwd>
 
 class Parser;
 class TokenStream;
+
 
 // class "WhileStatement":
 // ------------------------------------------------------------------------
@@ -31,25 +32,28 @@ class TokenStream;
 //  The condition is stored in the Token list inherited from Statement,
 //  the block to be executed repeatedly in a Statement.
 
-class WhileStatement : public Statement {
+class WhileStatement: public Statement {
+
 public:
+
     /// Constructor.
     //  Parse the statement on the given token stream, using the given parser.
-    WhileStatement(const Parser&, TokenStream&);
+    WhileStatement(const Parser &, TokenStream &);
 
     virtual ~WhileStatement();
 
     /// Execute.
     //  Use the given parser to execute the controlled statements.
-    virtual void execute(const Parser&);
+    virtual void execute(const Parser &);
 
 private:
+
     // Not implemented.
     WhileStatement();
-    WhileStatement(const WhileStatement&);
-    void operator=(const WhileStatement&);
+    WhileStatement(const WhileStatement &);
+    void operator=(const WhileStatement &);
 
-    Statement* while_block;
+    Statement *while_block;
 };
 
-#endif  // OPAL_WhileStatement_HH
+#endif // OPAL_WhileStatement_HH

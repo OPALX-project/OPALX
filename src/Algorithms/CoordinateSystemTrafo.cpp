@@ -18,13 +18,15 @@ CoordinateSystemTrafo::CoordinateSystemTrafo()
 CoordinateSystemTrafo::CoordinateSystemTrafo(const CoordinateSystemTrafo& right)
     : origin_m(right.origin_m),
       orientation_m(right.orientation_m),
-      rotationMatrix_m(right.rotationMatrix_m) {}
+      rotationMatrix_m(right.rotationMatrix_m) {
+}
 
 CoordinateSystemTrafo::CoordinateSystemTrafo(
     const ippl::Vector<double, 3>& origin, const Quaternion& orientation)
     : origin_m(origin),
       orientation_m(orientation),
-      rotationMatrix_m(orientation_m.getRotationMatrix()) {}
+      rotationMatrix_m(orientation_m.getRotationMatrix()) {
+}
 
 void CoordinateSystemTrafo::invert() {
     origin_m         = -orientation_m.rotate(origin_m);
@@ -50,7 +52,7 @@ void CoordinateSystemTrafo::operator*=(const CoordinateSystemTrafo& right) {
 /*
 void CoordinateSystemTrafo::transformBunchTo(auto Rview)
 {
-    // local copies for the kernel
+    // local copies for the kernel 
     auto rotationMatrix = rotationMatrix_m;
     auto origin = origin_m;
     Kokkos::parallel_for("transformBunchTo()", ippl::getRangePolicy(Rview),
@@ -63,7 +65,7 @@ void CoordinateSystemTrafo::transformBunchTo(auto Rview)
 
 void CoordinateSystemTrafo::transformBunchFrom(auto Rview)
 {
-     // local copies for the kernel
+     // local copies for the kernel 
     auto rotationMatrix = rotationMatrix_m;
     auto origin = origin_m;
     Kokkos::parallel_for("transformBunchFrom()", ippl::getRangePolicy(Rview),
@@ -82,7 +84,7 @@ void CoordinateSystemTrafo::rotateBunchTo(auto Pview)
     {
         Pview(i) = prod_vector(rotationMatrix, Pview(i));
     });
-}
+} 
 
 void CoordinateSystemTrafo::rotateBunchFrom(auto Pview)
 {
@@ -95,6 +97,8 @@ void CoordinateSystemTrafo::rotateBunchFrom(auto Pview)
     });
 }
 */
+
+
 
 /* ========================================================================== */
 /* ============================ Getters ===================================== */

@@ -38,8 +38,8 @@ class Ring;
  *  Ring. Enables definition of lattice and beam centroid parameters.
  */
 
-class OpalRingDefinition : public OpalElement {
-public:
+class OpalRingDefinition: public OpalElement {
+  public:
     /** Enumeration maps to UI parameters */
     enum {
         LAT_RINIT = COMMON,
@@ -55,7 +55,7 @@ public:
         IS_CLOSED,
         MIN_R,
         MAX_R,
-        SIZE  // size of the enum
+        SIZE // size of the enum
     };
 
     /** Define mapping from enum variables to string UI parameter names */
@@ -65,21 +65,20 @@ public:
     virtual ~OpalRingDefinition();
 
     /** Inherited copy constructor */
-    virtual OpalRingDefinition* clone(const std::string& name);
+    virtual OpalRingDefinition *clone(const std::string &name);
 
     /** Receive parameters from the parser and hand them off to the Ring */
     void update();
 
     /** Calls print on the OpalElement */
-    virtual void print(std::ostream&) const;
-
-private:
+    virtual void print(std::ostream &) const;
+  private:
     // Not implemented.
-    OpalRingDefinition(const OpalRingDefinition&);
-    void operator=(const OpalRingDefinition&);
+    OpalRingDefinition(const OpalRingDefinition &);
+    void operator=(const OpalRingDefinition &);
 
     // Clone constructor.
-    OpalRingDefinition(const std::string& name, OpalRingDefinition* parent);
+    OpalRingDefinition(const std::string &name, OpalRingDefinition *parent);
 };
 
-#endif  // OPAL_OpalRingDefinition_HH
+#endif // OPAL_OpalRingDefinition_HH

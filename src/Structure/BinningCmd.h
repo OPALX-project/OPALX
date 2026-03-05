@@ -32,16 +32,21 @@
 class Inform;
 
 /// The parameter that is used for binning.
-enum class BinningParameter : short { VELOCITYZ = 0, POSITIONZ = 1, PZ = 2, GAMMAZ = 3 };
+enum class BinningParameter : short {
+    VELOCITYZ = 0,
+    POSITIONZ = 1,
+    PZ        = 2,
+    GAMMAZ    = 3
+};
 
 // The attributes of class BinningCmd.
 namespace BINNING {
     enum {
-        MAXBINS,       // Maximum number of bins for adaptive binning
-        DESIREDWIDTH,  // Target / bias for bin width
-        BINNINGALPHA,  // Aggressiveness of bin-number reduction
-        BINNINGBETA,   // Aggressiveness of using wider bins
-        PARAMETER,     // Which bunch attribute is used for binning
+        MAXBINS,      // Maximum number of bins for adaptive binning
+        DESIREDWIDTH, // Target / bias for bin width
+        BINNINGALPHA, // Aggressiveness of bin-number reduction
+        BINNINGBETA,  // Aggressiveness of using wider bins
+        PARAMETER,    // Which bunch attribute is used for binning
         SIZE
     };
 }
@@ -90,6 +95,9 @@ private:
     BinningParameter parameterType_m;
 };
 
-inline Inform& operator<<(Inform& os, const BinningCmd& bc) { return bc.printInfo(os); }
+inline Inform& operator<<(Inform& os, const BinningCmd& bc) {
+    return bc.printInfo(os);
+}
 
 #endif  // OPALX_BinningCmd_HH
+

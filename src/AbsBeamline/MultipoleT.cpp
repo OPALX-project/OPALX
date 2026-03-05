@@ -30,12 +30,12 @@
 #include "BeamlineGeometry/StraightGeometry.h"
 #include "Fields/BMultipoleField.h"
 
+#include "Utilities/GSLCompat.h"
 #include "MultipoleT.h"
 #include "MultipoleTFunctions/CoordinateTransform.h"
 #include "MultipoleTFunctions/RecursionRelation.h"
 #include "MultipoleTFunctions/RecursionRelationTwo.h"
 #include "MultipoleTFunctions/tanhDeriv.h"
-#include "Utilities/GSLCompat.h"
 
 using namespace endfieldmodel;
 
@@ -54,7 +54,8 @@ MultipoleT::MultipoleT(const std::string& name)
       variableRadius_m(false),
       boundingBoxLength_m(0.0),
       verticalApert_m(0.5),
-      horizApert_m(0.5) {}
+      horizApert_m(0.5) {
+}
 
 MultipoleT::MultipoleT(const MultipoleT& right)
     : Component(right),
@@ -79,7 +80,8 @@ MultipoleT::MultipoleT(const MultipoleT& right)
     RefPartBunch_m = right.RefPartBunch_m;
 }
 
-MultipoleT::~MultipoleT() {}
+MultipoleT::~MultipoleT() {
+}
 
 ElementBase* MultipoleT::clone() const {
     MultipoleT* newMultipole = new MultipoleT(*this);
@@ -87,9 +89,13 @@ ElementBase* MultipoleT::clone() const {
     return newMultipole;
 }
 
-void MultipoleT::finalise() { RefPartBunch_m = nullptr; }
+void MultipoleT::finalise() {
+    RefPartBunch_m = nullptr;
+}
 
-bool MultipoleT::apply() { return false; }
+bool MultipoleT::apply() {
+    return false;
+}
 
 bool MultipoleT::apply(
     const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
@@ -395,9 +401,12 @@ void MultipoleT::setDipoleConstant(double B0) {
     transProfile_m[0] = B0;
 }
 
-void MultipoleT::accept(BeamlineVisitor& visitor) const { visitor.visitMultipoleT(*this); }
+void MultipoleT::accept(BeamlineVisitor& visitor) const {
+    visitor.visitMultipoleT(*this);
+}
 
-void MultipoleT::getDimensions(double& /*zBegin*/, double& /*zEnd*/) const {}
+void MultipoleT::getDimensions(double& /*zBegin*/, double& /*zEnd*/) const {
+}
 
 void MultipoleT::setAperture(double vertAp, double horizAp) {
     verticalApert_m = vertAp;
@@ -520,12 +529,22 @@ void MultipoleT::initialise(PartBunch_t* bunch, double& /*startField*/, double& 
     initialise();
 }
 
-bool MultipoleT::bends() const { return (transProfile_m[0] != 0); }
+bool MultipoleT::bends() const {
+    return (transProfile_m[0] != 0);
+}
 
-PlanarArcGeometry& MultipoleT::getGeometry() { return planarArcGeometry_m; }
+PlanarArcGeometry& MultipoleT::getGeometry() {
+    return planarArcGeometry_m;
+}
 
-const PlanarArcGeometry& MultipoleT::getGeometry() const { return planarArcGeometry_m; }
+const PlanarArcGeometry& MultipoleT::getGeometry() const {
+    return planarArcGeometry_m;
+}
 
-EMField& MultipoleT::getField() { return dummy; }
+EMField& MultipoleT::getField() {
+    return dummy;
+}
 
-const EMField& MultipoleT::getField() const { return dummy; }
+const EMField& MultipoleT::getField() const {
+    return dummy;
+}

@@ -24,48 +24,52 @@
 #ifndef OPAL_SequenceTemplate_HH
 #define OPAL_SequenceTemplate_HH
 
-#include <list>
 #include "OpalParser/Macro.h"
-#include "OpalParser/MacroStream.h"
 #include "OpalParser/SimpleStatement.h"
+#include "OpalParser/MacroStream.h"
+#include <list>
 
 class Sequence;
 class Statement;
 class TokenStream;
 
-class SequenceTemplate : public Macro {
+class SequenceTemplate: public Macro {
+
     friend class Sequence;
 
 public:
+
     SequenceTemplate();
     virtual ~SequenceTemplate();
 
     /// Make clone.
     //  Throw OpalException, since the template cannot be cloned.
-    virtual SequenceTemplate* clone(const std::string& name);
+    virtual SequenceTemplate *clone(const std::string &name);
 
     /// Make line instance.
     //  The instance gets the name [b]name[/b], and its actual arguments
     //  are read from [b]stat[/b].  The parser is ignored.
-    virtual Object* makeInstance(const std::string& name, Statement&, const Parser*);
+    virtual Object *makeInstance
+    (const std::string &name, Statement &, const Parser *);
 
     /// Make a sequence template.
     //  Return nullptr, since one cannot make a template from a template.
-    virtual Object* makeTemplate(const std::string& name, TokenStream&, Statement&);
+    virtual Object *makeTemplate(const std::string &name, TokenStream &, Statement &);
 
     /// Parse the sequence template.
-    void parseTemplate(TokenStream&, Statement&);
+    void parseTemplate(TokenStream &, Statement &);
 
 private:
+
     // Not implemented.
-    SequenceTemplate(const SequenceTemplate&);
-    void operator=(const SequenceTemplate&);
+    SequenceTemplate(const SequenceTemplate &);
+    void operator=(const SequenceTemplate &);
 
     // Clone constructor.
-    SequenceTemplate(const std::string& name, Object* parent);
+    SequenceTemplate(const std::string &name, Object *parent);
 
     // The contained beam sequence element list.
     MacroStream body;
 };
 
-#endif  // OPAL_SequenceTemplate_HH
+#endif // OPAL_SequenceTemplate_HH

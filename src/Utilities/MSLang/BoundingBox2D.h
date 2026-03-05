@@ -32,13 +32,16 @@ namespace mslang {
         double width_m;
         double height_m;
 
-        BoundingBox2D() : center_m(0.0), width_m(0.0), height_m(0.0) {}
+        BoundingBox2D() : center_m(0.0), width_m(0.0), height_m(0.0) {
+        }
 
         BoundingBox2D(const BoundingBox2D& right)
-            : center_m(right.center_m), width_m(right.width_m), height_m(right.height_m) {}
+            : center_m(right.center_m), width_m(right.width_m), height_m(right.height_m) {
+        }
 
         BoundingBox2D(const Vector_t<double, 3>& llc, const Vector_t<double, 3>& urc)
-            : center_m(0.5 * (llc + urc)), width_m(urc[0] - llc[0]), height_m(urc[1] - llc[1]) {}
+            : center_m(0.5 * (llc + urc)), width_m(urc[0] - llc[0]), height_m(urc[1] - llc[1]) {
+        }
 
         BoundingBox2D& operator=(const BoundingBox2D&) = default;
         bool doesIntersect(const BoundingBox2D& bb) const;

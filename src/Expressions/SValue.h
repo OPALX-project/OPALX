@@ -18,11 +18,12 @@
 //
 // ------------------------------------------------------------------------
 
+#include "AbstractObjects/AttributeBase.h"
+#include "OpalParser/Token.h"
 #include <iosfwd>
 #include <iostream>
 #include <list>
-#include "AbstractObjects/AttributeBase.h"
-#include "OpalParser/Token.h"
+
 
 namespace Expressions {
 
@@ -30,94 +31,115 @@ namespace Expressions {
     // ----------------------------------------------------------------------
     /// Object attribute with a constant scalar value.
 
-    template <class T>
-    class SValue : public AttributeBase {
+    template <class T> class SValue: public AttributeBase {
+
     public:
+
         /// Default constructor.
         //  Construct zero value.
         SValue();
 
         /// Constructor.
         //  Use constant value.
-        explicit SValue(const T& val);
+        explicit SValue(const T &val);
 
-        SValue(const SValue<T>&);
+        SValue(const SValue<T> &);
         virtual ~SValue();
 
         /// Make clone.
-        virtual SValue<T>* clone() const;
+        virtual SValue<T> *clone() const;
 
         /// Evaluate.
         //  Return the (already known) value.
         virtual T evaluate();
 
         /// Print the attribute value.
-        virtual void print(std::ostream&) const;
+        virtual void print(std::ostream &) const;
 
     protected:
+
         /// The value of the attribute.
         mutable T value;
 
     private:
+
         // Not implemented.
-        void operator=(const SValue<T>&);
+        void operator=(const SValue<T> &);
     };
+
 
     // Implementation
     // ------------------------------------------------------------------------
 
     template <class T>
-    SValue<T>::SValue() : value(T(0)) {}
+    SValue<T>::SValue():
+        value(T(0))
+    {}
+
 
     template <class T>
-    SValue<T>::SValue(const SValue<T>& rhs) : value(rhs.value) {}
+    SValue<T>::SValue(const SValue<T> &rhs):
+        value(rhs.value)
+    {}
+
 
     template <class T>
-    SValue<T>::SValue(const T& val) : value(val) {}
+    SValue<T>::SValue(const T &val):
+        value(val)
+    {}
+
 
     template <class T>
-    SValue<T>::~SValue() {}
+    SValue<T>::~SValue()
+    {}
+
 
     template <class T>
-    SValue<T>* SValue<T>::clone() const {
+    SValue<T> *SValue<T>::clone() const {
         return new SValue<T>(value);
     }
+
 
     template <class T>
     T SValue<T>::evaluate() {
         return value;
     }
 
+
     // Print methods are specialised.
     // ------------------------------------------------------------------------
 
     template <class T>
-    void SValue<T>::print(std::ostream& os) const {
+    void SValue<T>::print(std::ostream &os) const {
         os << value;
         return;
     }
 
-    template <>
-    inline void SValue<std::list<Token> >::print(std::ostream& os) const {
-        for (std::list<Token>::iterator token = value.begin(); token != value.end(); ++token) {
+
+    template<> inline
+    void SValue<std::list<Token> >::print(std::ostream &os) const {
+        for(std::list<Token>::iterator token = value.begin();
+            token != value.end(); ++token) {
             os << *token;
         }
 
         return;
     }
 
-    template <>
-    inline void SValue<bool>::print(std::ostream& os) const {
+
+    template<> inline
+    void SValue<bool>::print(std::ostream &os) const {
         os << (value ? "TRUE" : "FALSE");
         return;
     }
 
-    template <>
-    inline void SValue<std::string>::print(std::ostream& os) const {
+
+    template<> inline
+    void SValue<std::string>::print(std::ostream &os) const {
         os << '"' << value << '"';
         return;
     }
 
-}  // namespace Expressions
+}
 
-#endif  // OPAL_SValue_HH
+#endif // OPAL_SValue_HH

@@ -28,7 +28,8 @@
 
 class Inform;
 
-class Beam : public Definition {
+class Beam: public Definition {
+
 public:
     /// Exemplar constructor.
     Beam();
@@ -98,9 +99,9 @@ private:
     static const double energy_scale;
 };
 
-inline std::ostream& operator<<(std::ostream& os, const Beam& b) {
+inline std::ostream &operator<<(std::ostream& os, const Beam& b) {
     b.print(os);
     return os;
 }
 
-#endif  // OPAL_Beam_HH
+#endif // OPAL_Beam_HH

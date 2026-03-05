@@ -299,71 +299,125 @@ inline double RFCavity::getdB(
               + (F[i] - F[i - 1]) * (std::cos(frequency * t[i]) - std::cos(frequency * t[i - 1])));
 }
 
-inline void RFCavity::setDesignEnergy(const double& ekin, bool) { designEnergy_m = ekin; }
+inline void RFCavity::setDesignEnergy(const double& ekin, bool) {
+    designEnergy_m = ekin;
+}
 
-inline double RFCavity::getDesignEnergy() const { return designEnergy_m; }
+inline double RFCavity::getDesignEnergy() const {
+    return designEnergy_m;
+}
 
-inline void RFCavity::dropFieldmaps() { fieldmap_m = nullptr; }
+inline void RFCavity::dropFieldmaps() {
+    fieldmap_m = nullptr;
+}
 
-inline void RFCavity::setFieldMapFN(const std::string& fn) { filename_m = fn; }
+inline void RFCavity::setFieldMapFN(const std::string& fn) {
+    filename_m = fn;
+}
 
-inline void RFCavity::setAmplitudem(double vPeak) { scale_m = vPeak; }
+inline void RFCavity::setAmplitudem(double vPeak) {
+    scale_m = vPeak;
+}
 
-inline double RFCavity::getAmplitudem() const { return scale_m; }
+inline double RFCavity::getAmplitudem() const {
+    return scale_m;
+}
 
-inline void RFCavity::setAmplitudeError(double vPeakError) { scaleError_m = vPeakError; }
+inline void RFCavity::setAmplitudeError(double vPeakError) {
+    scaleError_m = vPeakError;
+}
 
-inline double RFCavity::getAmplitudeError() const { return scaleError_m; }
+inline double RFCavity::getAmplitudeError() const {
+    return scaleError_m;
+}
 
-inline void RFCavity::setFrequency(double freq) { frequency_m = freq; }
+inline void RFCavity::setFrequency(double freq) {
+    frequency_m = freq;
+}
 
-inline void RFCavity::setFrequencym(double freq) { frequency_m = freq; }
+inline void RFCavity::setFrequencym(double freq) {
+    frequency_m = freq;
+}
 
-inline double RFCavity::getFrequencym() const { return frequency_m; }
+inline double RFCavity::getFrequencym() const {
+    return frequency_m;
+}
 
-inline void RFCavity::setPhasem(double phase) { phase_m = phase; }
+inline void RFCavity::setPhasem(double phase) {
+    phase_m = phase;
+}
 
-inline double RFCavity::getPhasem() const { return phase_m; }
+inline double RFCavity::getPhasem() const {
+    return phase_m;
+}
 
-inline double RFCavity::getPhasem(double t) const { return phase_m + t * frequency_m; }
+inline double RFCavity::getPhasem(double t) const {
+    return phase_m + t * frequency_m;
+}
 
-inline void RFCavity::setPhaseError(double phaseError) { phaseError_m = phaseError; }
+inline void RFCavity::setPhaseError(double phaseError) {
+    phaseError_m = phaseError;
+}
 
-inline double RFCavity::getPhaseError() const { return phaseError_m; }
+inline double RFCavity::getPhaseError() const {
+    return phaseError_m;
+}
 
-inline CavityType RFCavity::getCavityType() const { return type_m; }
+inline CavityType RFCavity::getCavityType() const {
+    return type_m;
+}
 
-inline void RFCavity::setFast(bool fast) { fast_m = fast; }
+inline void RFCavity::setFast(bool fast) {
+    fast_m = fast;
+}
 
-inline bool RFCavity::getFast() const { return fast_m; }
+inline bool RFCavity::getFast() const {
+    return fast_m;
+}
 
-inline void RFCavity::setAutophaseVeto(bool veto) { autophaseVeto_m = veto; }
+inline void RFCavity::setAutophaseVeto(bool veto) {
+    autophaseVeto_m = veto;
+}
 
-inline bool RFCavity::getAutophaseVeto() const { return autophaseVeto_m; }
+inline bool RFCavity::getAutophaseVeto() const {
+    return autophaseVeto_m;
+}
 
 inline void RFCavity::setAmplitudeModel(std::shared_ptr<AbstractTimeDependence> amplitudeTD) {
     amplitudeTD_m = amplitudeTD;
 }
 
-inline void RFCavity::setAmplitudeModelName(std::string name) { amplitudeName_m = name; }
+inline void RFCavity::setAmplitudeModelName(std::string name) {
+    amplitudeName_m = name;
+}
 
-inline std::string RFCavity::getAmplitudeModelName() { return amplitudeName_m; }
+inline std::string RFCavity::getAmplitudeModelName() {
+    return amplitudeName_m;
+}
 
 inline void RFCavity::setPhaseModel(std::shared_ptr<AbstractTimeDependence> phaseTD) {
     phaseTD_m = phaseTD;
 }
 
-inline void RFCavity::setPhaseModelName(std::string name) { phaseName_m = name; }
+inline void RFCavity::setPhaseModelName(std::string name) {
+    phaseName_m = name;
+}
 
-inline std::string RFCavity::getPhaseModelName() { return phaseName_m; }
+inline std::string RFCavity::getPhaseModelName() {
+    return phaseName_m;
+}
 
 inline void RFCavity::setFrequencyModel(std::shared_ptr<AbstractTimeDependence> frequencyTD) {
     frequencyTD_m = frequencyTD;
 }
 
-inline void RFCavity::setFrequencyModelName(std::string name) { frequencyName_m = name; }
+inline void RFCavity::setFrequencyModelName(std::string name) {
+    frequencyName_m = name;
+}
 
-inline std::string RFCavity::getFrequencyModelName() { return frequencyName_m; }
+inline std::string RFCavity::getFrequencyModelName() {
+    return frequencyName_m;
+}
 
 inline CoordinateSystemTrafo RFCavity::getEdgeToBegin() const {
     CoordinateSystemTrafo ret(Vector_t<double, 3>({0, 0, startField_m}), Quaternion(1, 0, 0, 0));

@@ -30,10 +30,10 @@
 
 RealConstant::RealConstant()
     : ValueDefinition(
-          1, "REAL_CONSTANT",
-          "The \"REAL CONSTANT\" statement defines a global "
-          "real constant:\n"
-          "\tREAL CONSTANT <name> = <real-expression>;\n") {
+        1, "REAL_CONSTANT",
+        "The \"REAL CONSTANT\" statement defines a global "
+        "real constant:\n"
+        "\tREAL CONSTANT <name> = <real-expression>;\n") {
     itsAttr[0] = Attributes::makeReal("VALUE", "The constant value", 0.0);
 
     registerOwnership(AttributeHandler::STATEMENT);
@@ -67,7 +67,8 @@ RealConstant::RealConstant()
 }
 
 RealConstant::RealConstant(const std::string& name, RealConstant* parent)
-    : ValueDefinition(name, parent) {}
+    : ValueDefinition(name, parent) {
+}
 
 RealConstant::RealConstant(const std::string& name, RealConstant* parent, double value)
     : ValueDefinition(name, parent) {
@@ -76,17 +77,26 @@ RealConstant::RealConstant(const std::string& name, RealConstant* parent, double
     builtin = true;
 }
 
-RealConstant::~RealConstant() {}
+RealConstant::~RealConstant() {
+}
 
-bool RealConstant::canReplaceBy(Object*) { return false; }
+bool RealConstant::canReplaceBy(Object*) {
+    return false;
+}
 
-RealConstant* RealConstant::clone(const std::string& name) { return new RealConstant(name, this); }
+RealConstant* RealConstant::clone(const std::string& name) {
+    return new RealConstant(name, this);
+}
 
-double RealConstant::getReal() const { return Attributes::getReal(itsAttr[0]); }
+double RealConstant::getReal() const {
+    return Attributes::getReal(itsAttr[0]);
+}
 
 void RealConstant::print(std::ostream& os) const {
     os << "REAL CONST " << getOpalName() << '=' << itsAttr[0] << ';';
     os << std::endl;
 }
 
-void RealConstant::printValue(std::ostream& os) const { os << itsAttr[0]; }
+void RealConstant::printValue(std::ostream& os) const {
+    os << itsAttr[0];
+}

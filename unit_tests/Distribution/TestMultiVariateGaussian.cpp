@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include <mpi.h>
-#include <cmath>
 #include <memory>
+#include <cmath>
 
 #include "Distribution/MultiVariateGaussian.h"
 #include "Ippl.h"
@@ -10,22 +10,24 @@
 class MultiVariateGaussianTest : public ::testing::Test {
 protected:
     static void SetUpTestSuite() {
-        int argc    = 0;
+        int argc = 0;
         char** argv = nullptr;
 
         ippl::initialize(argc, argv);
     }
 
-    static void TearDownTestSuite() { ippl::finalize(); }
+    static void TearDownTestSuite() {
+        ippl::finalize();
+    }
 
     void SetUp() override {
         // Minimal 3D grid parameters
-        nr                             = 64;
-        ippl::Vector<double, 3> rmin   = -4.0;
-        ippl::Vector<double, 3> rmax   = 4.0;
-        ippl::Vector<double, 3> origin = rmin;
-        ippl::Vector<double, 3> hr     = (rmax - rmin) / ippl::Vector<double, 3>(nr);
-        std::array<bool, 3> decomp     = {true, true, true};
+        nr = 64;
+        ippl::Vector<double,3> rmin = -4.0;
+        ippl::Vector<double,3> rmax = 4.0;
+        ippl::Vector<double,3> origin = rmin;
+        ippl::Vector<double,3> hr = (rmax - rmin) / ippl::Vector<double,3>(nr);
+        std::array<bool,3> decomp = {true, true, true};
 
         ippl::NDIndex<3> domain;
         for (unsigned i = 0; i < 3; i++) {
@@ -33,8 +35,7 @@ protected:
         }
 
         // Create FieldContainer
-        auto fc = std::make_shared<FieldContainer_t>(
-            hr, rmin, rmax, decomp, domain, origin, this->isAllPeriodic_m);
+        auto fc = std::make_shared<FieldContainer_t>(hr, rmin, rmax, decomp, domain, origin, this->isAllPeriodic_m);
 
         // Create mesh and fieldlayout
         Mesh_t<3> mesh(domain, hr, origin);
@@ -49,72 +50,80 @@ protected:
     }
 
     std::shared_ptr<ParticleContainer<double, 3>> pc;
-    ippl::Vector<int, 3> nr;
+    ippl::Vector<int,3> nr;
     bool isAllPeriodic_m = true;
 };
 
 template <typename ViewType>
-void computeMean(ViewType& view, size_t nlocal, size_t total_nparticles, double meanR[3]) {
+void computeMean(ViewType& view,
+                  size_t nlocal,
+                  size_t total_nparticles,
+                  double meanR[3])
+{
     double sumR[3] = {0.0, 0.0, 0.0};
 
-    Kokkos::parallel_reduce(
-        nlocal,
+    Kokkos::parallel_reduce(nlocal,
         KOKKOS_LAMBDA(const int k, double& cent0, double& cent1, double& cent2) {
-            cent0 += view(k)[0];
-            cent1 += view(k)[1];
-            cent2 += view(k)[2];
+                cent0 += view(k)[0];
+                cent1 += view(k)[1];
+                cent2 += view(k)[2];
         },
-        Kokkos::Sum<double>(sumR[0]), Kokkos::Sum<double>(sumR[1]), Kokkos::Sum<double>(sumR[2]));
+        Kokkos::Sum<double>(sumR[0]), Kokkos::Sum<double>(sumR[1]), Kokkos::Sum<double>(sumR[2])
+    );
     Kokkos::fence();
 
     MPI_Allreduce(sumR, meanR, 3, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
     ippl::Comm->barrier();
 
-    for (int i = 0; i < 3; i++)
+    for (int i=0; i<3; i++)
         meanR[i] /= total_nparticles;
 }
 
 template <typename ViewType>
-void computeStdDev(
-    ViewType& view, size_t nlocal, size_t total_nparticles, const double meanR[3],
-    double stddevR[3]) {
+void computeStdDev(ViewType &view,
+                    size_t nlocal,
+                    size_t total_nparticles,
+                    const double meanR[3],
+                    double stddevR[3])
+{
     double sumR2[3] = {0.0, 0.0, 0.0};
 
     // Compute sum of squares locally
-    Kokkos::parallel_reduce(
-        nlocal,
+    Kokkos::parallel_reduce(nlocal,
         KOKKOS_LAMBDA(const int k, double& s0, double& s1, double& s2) {
             s0 += view(k)[0] * view(k)[0];
             s1 += view(k)[1] * view(k)[1];
             s2 += view(k)[2] * view(k)[2];
         },
-        Kokkos::Sum<double>(sumR2[0]), Kokkos::Sum<double>(sumR2[1]),
-        Kokkos::Sum<double>(sumR2[2]));
+        Kokkos::Sum<double>(sumR2[0]),
+        Kokkos::Sum<double>(sumR2[1]),
+        Kokkos::Sum<double>(sumR2[2])
+    );
     Kokkos::fence();
 
     // MPI reduce to get global sums
     double global_sumR2[3] = {0.0, 0.0, 0.0};
-    MPI_Allreduce(sumR2, global_sumR2, 3, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
+    MPI_Allreduce(sumR2, global_sumR2, 3, MPI_DOUBLE, MPI_SUM,
+                  ippl::Comm->getCommunicator());
     ippl::Comm->barrier();
 
     // Compute variance and stddev
     for (int i = 0; i < 3; i++) {
         double mean_square = global_sumR2[i] / static_cast<double>(total_nparticles);
-        double variance    = mean_square - meanR[i] * meanR[i];
-        stddevR[i]         = std::sqrt(variance);
+        double variance = mean_square - meanR[i] * meanR[i];
+        stddevR[i] = std::sqrt(variance);
     }
 }
 
 TEST_F(MultiVariateGaussianTest, meanR_varR) {
-    const Vector_t<double, 3> sigmaR_ref  = 0.5;
-    const Vector_t<double, 3> sigmaP_ref  = 1.0;
-    const Vector_t<double, 3> meanR_ref   = 0.0;
-    const Vector_t<double, 3> meanP_ref   = 0.0;
+    const Vector_t<double, 3> sigmaR_ref = 0.5;
+    const Vector_t<double, 3> sigmaP_ref = 1.0;
+    const Vector_t<double, 3> meanR_ref = 0.0;
+    const Vector_t<double, 3> meanP_ref = 0.0;
     const Vector_t<double, 3> cutoffR_ref = 4.0;
     const Vector_t<double, 3> cutoffP_ref = 4.0;
 
-    MultiVariateGaussian sampler(
-        pc, meanR_ref, meanP_ref, sigmaR_ref, sigmaP_ref, cutoffR_ref, cutoffP_ref);
+    MultiVariateGaussian sampler(pc, meanR_ref, meanP_ref, sigmaR_ref, sigmaP_ref, cutoffR_ref, cutoffP_ref);
 
     size_t total_nparticles = 1000000;
 
@@ -137,16 +146,20 @@ TEST_F(MultiVariateGaussianTest, meanR_varR) {
 }
 
 template <typename ViewType>
-void computeMaxAbsR(
-    ViewType& view, size_t nlocal, double global_maxAbsR[3], double& global_maxRadius) {
+void computeMaxAbsR(ViewType &view,
+                    size_t nlocal,
+                    double global_maxAbsR[3],
+                    double& global_maxRadius)
+{
     // Local maxima initialized
     double local_maxAbsR[3] = {0.0, 0.0, 0.0};
-    double local_maxRadius  = 0.0;
+    double local_maxRadius = 0.0;
 
     // Compute local maxima using Kokkos
     Kokkos::parallel_reduce(
         nlocal,
-        KOKKOS_LAMBDA(const int k, double& max0, double& max1, double& max2, double& maxr) {
+        KOKKOS_LAMBDA(const int k,
+                    double& max0, double& max1, double& max2, double& maxr) {
             double x = view(k)[0];
             double y = view(k)[1];
             double z = view(k)[2];
@@ -154,48 +167,47 @@ void computeMaxAbsR(
             double ax = Kokkos::fabs(x);
             double ay = Kokkos::fabs(y);
             double az = Kokkos::fabs(z);
-            double r  = Kokkos::sqrt(x * x + y * y + z * z);
+            double r  = Kokkos::sqrt(x*x + y*y + z*z);
 
-            if (ax > max0)
-                max0 = ax;
-            if (ay > max1)
-                max1 = ay;
-            if (az > max2)
-                max2 = az;
-            if (r > maxr)
-                maxr = r;
+            if (ax > max0) max0 = ax;
+            if (ay > max1) max1 = ay;
+            if (az > max2) max2 = az;
+            if (r  > maxr) maxr  = r;
         },
-        Kokkos::Max<double>(local_maxAbsR[0]), Kokkos::Max<double>(local_maxAbsR[1]),
-        Kokkos::Max<double>(local_maxAbsR[2]), Kokkos::Max<double>(local_maxRadius));
+        Kokkos::Max<double>(local_maxAbsR[0]),
+        Kokkos::Max<double>(local_maxAbsR[1]),
+        Kokkos::Max<double>(local_maxAbsR[2]),
+        Kokkos::Max<double>(local_maxRadius)
+    );
     Kokkos::fence();
 
+
     // MPI reduction to get global maxima
-    MPI_Allreduce(
-        local_maxAbsR, global_maxAbsR, 3, MPI_DOUBLE, MPI_MAX, ippl::Comm->getCommunicator());
-    MPI_Allreduce(
-        &local_maxRadius, &global_maxRadius, 1, MPI_DOUBLE, MPI_MAX, ippl::Comm->getCommunicator());
+    MPI_Allreduce(local_maxAbsR, global_maxAbsR, 3, MPI_DOUBLE, MPI_MAX,
+                  ippl::Comm->getCommunicator());
+    MPI_Allreduce(&local_maxRadius, &global_maxRadius, 1, MPI_DOUBLE, MPI_MAX,
+                  ippl::Comm->getCommunicator());
 
     ippl::Comm->barrier();
 }
 
-TEST_F(MultiVariateGaussianTest, cutoffR) {
-    const Vector_t<double, 3> sigmaR_ref  = 0.5;
-    const Vector_t<double, 3> sigmaP_ref  = 1.0;
-    const Vector_t<double, 3> meanR_ref   = 0.0;
-    const Vector_t<double, 3> meanP_ref   = 0.0;
+TEST_F(MultiVariateGaussianTest, cutoffR)
+{
+    const Vector_t<double, 3> sigmaR_ref = 0.5;
+    const Vector_t<double, 3> sigmaP_ref = 1.0;
+    const Vector_t<double, 3> meanR_ref = 0.0;
+    const Vector_t<double, 3> meanP_ref = 0.0;
     const Vector_t<double, 3> cutoffR_ref = 4.0;
     const Vector_t<double, 3> cutoffP_ref = 4.0;
 
     bool fixMeanR = false;
     bool fixMeanP = false;
-    MultiVariateGaussian sampler(
-        pc, meanR_ref, meanP_ref, sigmaR_ref, sigmaP_ref, cutoffR_ref, cutoffP_ref, fixMeanR,
-        fixMeanP);
+    MultiVariateGaussian sampler(pc, meanR_ref, meanP_ref, sigmaR_ref, sigmaP_ref, cutoffR_ref, cutoffP_ref, fixMeanR, fixMeanP);
 
     size_t total_nparticles = 1000000;
 
     sampler.generateParticles(total_nparticles, nr);
-
+    
     double global_maxAbsR[3];
     double global_maxRadius;
     computeMaxAbsR(pc->R.getView(), pc->getLocalNum(), global_maxAbsR, global_maxRadius);
@@ -206,19 +218,18 @@ TEST_F(MultiVariateGaussianTest, cutoffR) {
     EXPECT_LE(global_maxAbsR[2], cutoffR_ref[2]);
 }
 
-TEST_F(MultiVariateGaussianTest, meanP_and_varP) {
-    const Vector_t<double, 3> sigmaR_ref  = 0.5;
-    const Vector_t<double, 3> sigmaP_ref  = 1.0;
-    const Vector_t<double, 3> meanR_ref   = 0.0;
-    const Vector_t<double, 3> meanP_ref   = 0.0;
+TEST_F(MultiVariateGaussianTest, meanP_and_varP)
+{
+    const Vector_t<double, 3> sigmaR_ref = 0.5;
+    const Vector_t<double, 3> sigmaP_ref = 1.0;
+    const Vector_t<double, 3> meanR_ref = 0.0;
+    const Vector_t<double, 3> meanP_ref = 0.0;
     const Vector_t<double, 3> cutoffR_ref = 4.0;
     const Vector_t<double, 3> cutoffP_ref = 4.0;
-    bool fixMeanR                         = true;
-    bool fixMeanP                         = true;
+    bool fixMeanR = true;
+    bool fixMeanP = true;
 
-    MultiVariateGaussian sampler(
-        pc, meanR_ref, meanP_ref, sigmaR_ref, sigmaP_ref, cutoffR_ref, cutoffP_ref, fixMeanR,
-        fixMeanP);
+    MultiVariateGaussian sampler(pc, meanR_ref, meanP_ref, sigmaR_ref, sigmaP_ref, cutoffR_ref, cutoffP_ref, fixMeanR, fixMeanP);
 
     size_t total_nparticles = 1000000;
     sampler.generateParticles(total_nparticles, nr);
@@ -227,7 +238,7 @@ TEST_F(MultiVariateGaussianTest, meanP_and_varP) {
     computeMean(pc->P.getView(), pc->getLocalNum(), total_nparticles, meanP);
 
     double sigmaP[3] = {0.0, 0.0, 0.0};
-    computeStdDev(pc->P.getView(), pc->getLocalNum(), total_nparticles, meanP, sigmaP);
+    computeStdDev(pc->P.getView(), pc->getLocalNum(), total_nparticles, meanP,  sigmaP);
 
     EXPECT_NEAR(meanP[0], meanP_ref[0], 1e-2);
     EXPECT_NEAR(meanP[1], meanP_ref[1], 1e-2);
@@ -238,9 +249,10 @@ TEST_F(MultiVariateGaussianTest, meanP_and_varP) {
     EXPECT_NEAR(sigmaP[2], sigmaP_ref[2], 1e-2);
 }
 
-void computeMeanRAndP(
-    const std::shared_ptr<ParticleContainer<double, 3>>& pc, size_t total_nparticles,
-    double meanSample[6]) {
+void computeMeanRAndP(const std::shared_ptr<ParticleContainer<double,3>>& pc,
+                      size_t total_nparticles,
+                      double meanSample[6])
+{
     auto Rview = pc->R.getView();
     auto Pview = pc->P.getView();
 
@@ -250,8 +262,9 @@ void computeMeanRAndP(
 
     Kokkos::parallel_reduce(
         pc->getLocalNum(),
-        KOKKOS_LAMBDA(
-            const int k, double& s0, double& s1, double& s2, double& s3, double& s4, double& s5) {
+        KOKKOS_LAMBDA(const int k,
+                    double& s0, double& s1, double& s2,
+                    double& s3, double& s4, double& s5) {
             s0 += Rview(k)[0];
             s1 += Pview(k)[0];
             s2 += Rview(k)[1];
@@ -259,14 +272,19 @@ void computeMeanRAndP(
             s4 += Rview(k)[2];
             s5 += Pview(k)[2];
         },
-        Kokkos::Sum<double>(loc_sum[0]), Kokkos::Sum<double>(loc_sum[1]),
-        Kokkos::Sum<double>(loc_sum[2]), Kokkos::Sum<double>(loc_sum[3]),
-        Kokkos::Sum<double>(loc_sum[4]), Kokkos::Sum<double>(loc_sum[5]));
+        Kokkos::Sum<double>(loc_sum[0]),
+        Kokkos::Sum<double>(loc_sum[1]),
+        Kokkos::Sum<double>(loc_sum[2]),
+        Kokkos::Sum<double>(loc_sum[3]),
+        Kokkos::Sum<double>(loc_sum[4]),
+        Kokkos::Sum<double>(loc_sum[5])
+    );
     Kokkos::fence();
 
     // MPI reduction to global sum
     double global_sum[6] = {0.0};
-    MPI_Allreduce(loc_sum, global_sum, 6, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
+    MPI_Allreduce(loc_sum, global_sum, 6, MPI_DOUBLE, MPI_SUM,
+                  ippl::Comm->getCommunicator());
     ippl::Comm->barrier();
 
     // Normalize to get mean
@@ -274,14 +292,22 @@ void computeMeanRAndP(
         meanSample[i] = global_sum[i] / static_cast<double>(total_nparticles);
 }
 
-void computeCovariance6x6(
-    const std::shared_ptr<ParticleContainer<double, 3>>& pc, const double meanSample[6],
-    size_t total_nparticles, double moment[6][6]) {
+void computeCovariance6x6(const std::shared_ptr<ParticleContainer<double,3>>& pc,
+                          const double meanSample[6],
+                          size_t total_nparticles,
+                          double moment[6][6])
+{    
     auto Rview = pc->R.getView();
     auto Pview = pc->P.getView();
 
-    Kokkos::Array<double, 6> mean = {meanSample[0], meanSample[1], meanSample[2],
-                                     meanSample[3], meanSample[4], meanSample[5]};
+    Kokkos::Array<double, 6> mean = {
+        meanSample[0],
+        meanSample[1],
+        meanSample[2],
+        meanSample[3],
+        meanSample[4],
+        meanSample[5]
+    };
 
     double loc_moment[6][6] = {0.0};
 
@@ -289,12 +315,17 @@ void computeCovariance6x6(
         const unsigned row = i;
         Kokkos::parallel_reduce(
             pc->getLocalNum(),
-            KOKKOS_LAMBDA(
-                const int k, double& s0, double& s1, double& s2, double& s3, double& s4,
-                double& s5) {
-                double part[6] = {Rview(k)[0] - mean[0], Pview(k)[0] - mean[1],
-                                  Rview(k)[1] - mean[2], Pview(k)[1] - mean[3],
-                                  Rview(k)[2] - mean[4], Pview(k)[2] - mean[5]};
+            KOKKOS_LAMBDA(const int k,
+                        double& s0, double& s1, double& s2,
+                        double& s3, double& s4, double& s5) {
+                double part[6] = {
+                    Rview(k)[0] - mean[0],
+                    Pview(k)[0] - mean[1],
+                    Rview(k)[1] - mean[2],
+                    Pview(k)[1] - mean[3],
+                    Rview(k)[2] - mean[4],
+                    Pview(k)[2] - mean[5]
+                };
                 s0 += part[row] * part[0];
                 s1 += part[row] * part[1];
                 s2 += part[row] * part[2];
@@ -302,14 +333,19 @@ void computeCovariance6x6(
                 s4 += part[row] * part[4];
                 s5 += part[row] * part[5];
             },
-            Kokkos::Sum<double>(loc_moment[row][0]), Kokkos::Sum<double>(loc_moment[row][1]),
-            Kokkos::Sum<double>(loc_moment[row][2]), Kokkos::Sum<double>(loc_moment[row][3]),
-            Kokkos::Sum<double>(loc_moment[row][4]), Kokkos::Sum<double>(loc_moment[row][5]));
+            Kokkos::Sum<double>(loc_moment[row][0]),
+            Kokkos::Sum<double>(loc_moment[row][1]),
+            Kokkos::Sum<double>(loc_moment[row][2]),
+            Kokkos::Sum<double>(loc_moment[row][3]),
+            Kokkos::Sum<double>(loc_moment[row][4]),
+            Kokkos::Sum<double>(loc_moment[row][5])
+        );
         Kokkos::fence();
     }
 
     // MPI reduction across all ranks
-    MPI_Allreduce(loc_moment, moment, 6 * 6, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
+    MPI_Allreduce(loc_moment, moment, 6 * 6, MPI_DOUBLE, MPI_SUM,
+                  ippl::Comm->getCommunicator());
     ippl::Comm->barrier();
 
     // Normalize to get average covariance/moments
@@ -320,7 +356,8 @@ void computeCovariance6x6(
     }
 }
 
-TEST_F(MultiVariateGaussianTest, FullCovarianceTest) {
+TEST_F(MultiVariateGaussianTest, FullCovarianceTest)
+{
     // Means
     Vector_t<double, 3> meanR = {0.2, -0.1, 0.4};
     Vector_t<double, 3> meanP = {-0.3, 0.5, 0.1};
@@ -333,18 +370,19 @@ TEST_F(MultiVariateGaussianTest, FullCovarianceTest) {
     using matrix_t = ippl::Vector<ippl::Vector<double, 6>, 6>;
     matrix_t L;
     matrix_t covExpected;
-
-    for (int i = 0; i < 6; i++) {
-        for (int j = 0; j < 6; j++) {
-            L[i][j]           = 0.0;
+    
+    for (int i=0;i<6;i++){
+        for (int j=0;j<6;j++){
+            L[i][j] = 0.0;
             covExpected[i][j] = 0.0;
         }
     }
 
+
     // Diagonal entries: sqrt of variances
     for (int i = 0; i < 3; i++) {
-        L[i * 2][i * 2]         = sigmaR[i];
-        L[i * 2 + 1][i * 2 + 1] = sigmaP[i];
+        L[i*2][i*2]     = sigmaR[i];
+        L[i*2+1][i*2+1] = sigmaP[i];
     }
 
     // Fill below-diagonal elements with some pattern
@@ -355,7 +393,7 @@ TEST_F(MultiVariateGaussianTest, FullCovarianceTest) {
     }
 
     // Compute covariance matrix Σ = L * L^T
-
+    
     for (int i = 0; i < 6; i++) {
         for (int j = 0; j < 6; j++) {
             double sum = 0.0;
@@ -394,8 +432,8 @@ TEST_F(MultiVariateGaussianTest, FullCovarianceTest) {
     // -----------------------------------------------------
     // Assertions: covariance comparison
     // -----------------------------------------------------
-    for (int i = 0; i < 6; i++) {
-        for (int j = 0; j < 6; j++) {
+    for (int i = 0; i < 6; i++){
+        for (int j = 0; j < 6; j++){
             EXPECT_NEAR(moment[i][j], covExpected[i][j], 3e-2);
         }
     }

@@ -18,7 +18,9 @@
 
 #include "AbstractObjects/ObjectFunction.h"
 
+
 // Class ObjectFunction
 // ------------------------------------------------------------------------
 
-ObjectFunction::~ObjectFunction() {}
+ObjectFunction::~ObjectFunction()
+{}

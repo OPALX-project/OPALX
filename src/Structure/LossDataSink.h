@@ -22,10 +22,11 @@
 #include "AbsBeamline/ElementBase.h"
 #include "AbstractObjects/OpalData.h"
 #include "AbstractObjects/OpalParticle.h"
+ 
 
+#include <optional>
 #include <fstream>
 #include <functional>
-#include <optional>
 #include <set>
 #include <string>
 #include <vector>
@@ -82,7 +83,9 @@ public:
     LossDataSink(const LossDataSink& rsh);
     ~LossDataSink() noexcept(false);
 
-    bool inH5Mode() { return h5hut_mode_m; }
+    bool inH5Mode() {
+        return h5hut_mode_m;
+    }
 
     void save(
         unsigned int numSets = 1, OpalData::OpenMode openMode = OpalData::OpenMode::UNDEFINED);
@@ -165,7 +168,9 @@ private:
     CollectionType collectionType_m;
 };
 
-inline size_t LossDataSink::size() const { return particles_m.size(); }
+inline size_t LossDataSink::size() const {
+    return particles_m.size();
+}
 
 inline std::set<SetStatistics> LossDataSink::computeStatistics(unsigned int numStatistics) {
     std::set<SetStatistics> stats;

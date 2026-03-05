@@ -17,38 +17,49 @@
 // ------------------------------------------------------------------------
 
 #include "Expressions/AColumn.h"
-#include <iostream>
-#include <vector>
 #include "AbstractObjects/PlaceRep.h"
 #include "AbstractObjects/Table.h"
 #include "Expressions/SCell.h"
+#include <iostream>
+#include <vector>
+
 
 // Class AColumn
 // ------------------------------------------------------------------------
 
 namespace Expressions {
 
-    AColumn::AColumn(const AColumn& rhs)
-        : OArray<double>(rhs),
-          tab_name(rhs.tab_name),
-          col_name(rhs.col_name),
-          itsRange(rhs.itsRange) {}
+    AColumn::AColumn(const AColumn &rhs):
+        OArray<double>(rhs), tab_name(rhs.tab_name),
+        col_name(rhs.col_name), itsRange(rhs.itsRange)
+    {}
 
-    AColumn::AColumn(const std::string& tName, const std::string& cName, const RangeRep& rng)
-        : OArray<double>(), tab_name(tName), col_name(cName), itsRange(rng) {}
 
-    AColumn::~AColumn() {}
+    AColumn::AColumn
+    (const std::string &tName, const std::string &cName, const RangeRep &rng):
+        OArray<double>(), tab_name(tName), col_name(cName), itsRange(rng)
+    {}
 
-    OArray<double>* AColumn::clone() const { return new AColumn(*this); }
+
+    AColumn::~AColumn()
+    {}
+
+
+    OArray<double> *AColumn::clone() const {
+        return new AColumn(*this);
+    }
+
 
     std::vector<double> AColumn::evaluate() const {
-        Table* table = Table::find(tab_name);
+        Table *table = Table::find(tab_name);
         table->fill();
         return table->getColumn(itsRange, col_name);
     }
 
-    void AColumn::print(std::ostream& os, int) const {
-        os << "COLUMN(" << tab_name << ',' << col_name << ',' << itsRange << ')';
+
+    void AColumn::print(std::ostream &os, int) const {
+        os << "COLUMN(" << tab_name << ',' << col_name << ','
+           << itsRange << ')';
     }
 
-}  // namespace Expressions
+}

@@ -18,8 +18,8 @@
 #ifndef OPAL_H5_WRITER_H
 #define OPAL_H5_WRITER_H
 
-#include "H5hut.h"
 #include "PartBunch/PartBunch.h"
+#include "H5hut.h"
 #include "Structure/H5PartWrapper.h"
 
 class H5Writer {
@@ -77,12 +77,20 @@ private:
     int H5call_m;
 };
 
-inline void H5Writer::close() { h5wrapper_m->close(); }
+inline void H5Writer::close() {
+    h5wrapper_m->close();
+}
 
-inline void H5Writer::changeH5Wrapper(H5PartWrapper* h5wrapper) { h5wrapper_m = h5wrapper; }
+inline void H5Writer::changeH5Wrapper(H5PartWrapper* h5wrapper) {
+    h5wrapper_m = h5wrapper;
+}
 
-inline void H5Writer::storeCavityInformation() { h5wrapper_m->storeCavityInformation(); }
+inline void H5Writer::storeCavityInformation() {
+    h5wrapper_m->storeCavityInformation();
+}
 
-inline double H5Writer::getLastPosition() { return h5wrapper_m->getLastPosition(); }
+inline double H5Writer::getLastPosition() {
+    return h5wrapper_m->getLastPosition();
+}
 
 #endif

@@ -1,5 +1,5 @@
 // some typedefs
-// /todo this needs to go
+// /todo this needs to go 
 
 const double pi = Kokkos::numbers::pi_v<double>;
 

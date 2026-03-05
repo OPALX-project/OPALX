@@ -66,7 +66,9 @@ Ring::Ring(std::string ring)
     setRefPartBunch(nullptr);
 }
 
-void Ring::accept(BeamlineVisitor& visitor) const { visitor.visitRing(*this); }
+void Ring::accept(BeamlineVisitor& visitor) const {
+    visitor.visitRing(*this);
+}
 
 Ring::Ring(const Ring& ring)
     : Component(ring.getName()),
@@ -104,7 +106,9 @@ Ring::~Ring() {
         delete section_list_m[i];
 }
 
-bool Ring::apply() { return false; }
+bool Ring::apply() {
+    return false;
+}
 
 bool Ring::apply(
     const size_t& id, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
@@ -123,8 +127,8 @@ bool Ring::apply(
         auto Mview   = pc->M.getView();
         auto Binview = pc->Bin.getView();
 
-        const double Q = Qview(id);
-        const double M = Mview(id);
+        const double Q      = Qview(id);
+        const double M      = Mview(id);
         //        const short int Bin = Binview(id);
 
         gmsgALL << getName() << ": particle " << id << " at " << R

@@ -20,8 +20,11 @@
 
 #include "AbstractObjects/Action.h"
 
-class Value : public Action {
+
+class Value: public Action {
+
 public:
+
     /// Exemplar constructor.
     Value();
 
@@ -37,6 +40,7 @@ public:
     virtual void parse(Statement&);
 
 private:
+
     // Not implemented.
     Value(const Value&);
     void operator=(const Value&);
@@ -45,4 +49,4 @@ private:
     Value(const std::string& name, Value* parent);
 };
 
-#endif  // OPAL_Value_HH
+#endif // OPAL_Value_HH

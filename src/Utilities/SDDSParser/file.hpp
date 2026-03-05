@@ -17,30 +17,31 @@
 #ifndef FILE_HPP_
 #define FILE_HPP_
 
-#include "array.hpp"
-#include "associate.hpp"
 #include "ast.hpp"
+#include "skipper.hpp"
+#include "error_handler.hpp"
+#include "version.hpp"
+#include "description.hpp"
+#include "parameter.hpp"
 #include "column.hpp"
 #include "data.hpp"
-#include "description.hpp"
-#include "error_handler.hpp"
+#include "associate.hpp"
+#include "array.hpp"
 #include "include.hpp"
-#include "parameter.hpp"
-#include "skipper.hpp"
-#include "version.hpp"
 
 #include <optional>
 
 namespace SDDS {
-    struct file {
-        version sddsVersion_m;                         // 0
-        std::optional<description> sddsDescription_m;  // 1
-        parameterList sddsParameters_m;                // 2
-        columnList sddsColumns_m;                      // 3
-        data sddsData_m;                               // 4
-        associateList sddsAssociates_m;                // 5
-        arrayList sddsArrays_m;                        // 6
-        includeList sddsIncludes_m;                    // 7
+    struct file
+    {
+        version sddsVersion_m;                              // 0
+        std::optional<description> sddsDescription_m;     // 1
+        parameterList sddsParameters_m;                     // 2
+        columnList sddsColumns_m;                           // 3
+        data sddsData_m;                                    // 4
+        associateList sddsAssociates_m;                     // 5
+        arrayList sddsArrays_m;                             // 6
+        includeList sddsIncludes_m;                         // 7
 
         void clear() {
             sddsParameters_m.clear();
@@ -53,25 +54,24 @@ namespace SDDS {
 
     inline std::ostream& operator<<(std::ostream& out, const file& fh) {
         out << fh.sddsVersion_m << "\n";
-        if (fh.sddsDescription_m)
-            out << *fh.sddsDescription_m << "\n";
-        for (const parameter& param : fh.sddsParameters_m) {
+        if (fh.sddsDescription_m) out << *fh.sddsDescription_m << "\n";
+        for (const parameter& param: fh.sddsParameters_m) {
             out << param << "\n";
         }
-        for (const column& col : fh.sddsColumns_m) {
+        for (const column& col: fh.sddsColumns_m) {
             out << col << "\n";
         }
         out << fh.sddsData_m << "\n";
 
-        //        if (fh.sddsAssociates_m) out << *fh.sddsAssociates_m << "\n";
-        //        if (fh.sddsArrays_m) out << *fh.sddsArrays_m << "\n";
-        //        if (fh.sddsIncludes_m) out << *fh.sddsIncludes_m << "\n";
+//        if (fh.sddsAssociates_m) out << *fh.sddsAssociates_m << "\n";
+//        if (fh.sddsArrays_m) out << *fh.sddsArrays_m << "\n";
+//        if (fh.sddsIncludes_m) out << *fh.sddsIncludes_m << "\n";
 
         out << std::endl;
 
         return out;
     }
-}  // namespace SDDS
+}
 
 // File parsing is now handled by SimpleParser
 #endif /* FILE_HPP_ */

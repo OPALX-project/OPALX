@@ -25,6 +25,7 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
+
 #ifndef OPAL_ELEMENTS_OpalOffset_OpalGlobalCylindricalOffset_HH
 #define OPAL_ELEMENTS_OpalOffset_OpalGlobalCylindricalOffset_HH
 
@@ -32,48 +33,48 @@
 #include "Elements/OpalElement.h"
 
 namespace OpalOffset {
-    /** OpalGlobalCylindricalOffset provides classes for making global offsets
-     *  in a ring geometry using polar coordinates; only condition is that they must
-     *  be in the midplane
-     */
-    class OpalGlobalCylindricalOffset : public OpalElement {
-    public:
-        /** Enumeration maps to UI parameters */
-        enum {
-            RADIUS = COMMON,
-            AZIMUTHAL_ANGLE,
-            TANGENTIAL_OFFSET,
-            SIZE  // size of the enum
-        };
-
-        /** Define mapping from enum variables to string UI parameter names */
-        OpalGlobalCylindricalOffset();
-
-        /** No memory allocated so does nothing */
-        virtual ~OpalGlobalCylindricalOffset();
-
-        /** Inherited copy constructor */
-        virtual OpalGlobalCylindricalOffset* clone(const std::string& name);
-
-        /** Receive parameters from the parser and hand them off to the
-         *  OpalCylindricalOffset
-         */
-        void update();
-
-        /** Calls print on the OpalElement */
-        virtual void print(std::ostream&) const;
-
-    private:
-        // Not implemented.
-        OpalGlobalCylindricalOffset(const OpalGlobalCylindricalOffset&);
-        void operator=(const OpalGlobalCylindricalOffset&);
-
-        // Clone constructor.
-        OpalGlobalCylindricalOffset(const std::string& name, OpalGlobalCylindricalOffset* parent);
-
-        static const std::string doc_string;
+/** OpalGlobalCylindricalOffset provides classes for making global offsets
+ *  in a ring geometry using polar coordinates; only condition is that they must
+ *  be in the midplane
+ */
+class OpalGlobalCylindricalOffset : public OpalElement {
+  public:
+    /** Enumeration maps to UI parameters */
+    enum {
+        RADIUS = COMMON,
+        AZIMUTHAL_ANGLE,
+        TANGENTIAL_OFFSET,
+        SIZE // size of the enum
     };
 
-}  // namespace OpalOffset
+    /** Define mapping from enum variables to string UI parameter names */
+    OpalGlobalCylindricalOffset();
 
-#endif  // #define OPAL_ELEMENTS_OpalOffset_OpalGlobalCylindricalOffset_HH
+    /** No memory allocated so does nothing */
+    virtual ~OpalGlobalCylindricalOffset();
+
+    /** Inherited copy constructor */
+    virtual OpalGlobalCylindricalOffset *clone(const std::string &name);
+
+    /** Receive parameters from the parser and hand them off to the
+     *  OpalCylindricalOffset
+     */
+    void update();
+
+    /** Calls print on the OpalElement */
+    virtual void print(std::ostream &) const;
+  private:
+    // Not implemented.
+    OpalGlobalCylindricalOffset(const OpalGlobalCylindricalOffset &);
+    void operator=(const OpalGlobalCylindricalOffset &);
+
+    // Clone constructor.
+    OpalGlobalCylindricalOffset(const std::string &name,
+                                 OpalGlobalCylindricalOffset *parent);
+
+    static const std::string doc_string;
+};
+
+}
+
+#endif // #define OPAL_ELEMENTS_OpalOffset_OpalGlobalCylindricalOffset_HH

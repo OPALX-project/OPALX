@@ -18,31 +18,52 @@
 #include "BeamlineCore/ProbeRep.h"
 #include "Channels/IndirectChannel.h"
 
+
 namespace {
     struct Entry {
-        const char* name;
-        double (ProbeRep::*get)() const;
+        const char *name;
+        double(ProbeRep::*get)() const;
         void (ProbeRep::*set)(double);
     };
 
     static const Entry entries[] = {
-        {"L", &ProbeRep::getElementLength, &ProbeRep::setElementLength}, {0, 0, 0}};
-}  // namespace
+        {
+            "L",
+            &ProbeRep::getElementLength,
+            &ProbeRep::setElementLength
+        },
+        { 0, 0, 0 }
+    };
+}
 
-ProbeRep::ProbeRep() : Probe(), field(), geometry(), active(true) {}
 
-ProbeRep::ProbeRep(const ProbeRep& right)
-    : Probe(right), field(), geometry(right.geometry), active(true) {}
+ProbeRep::ProbeRep():
+    Probe(), field(), geometry(), active(true)
+{}
 
-ProbeRep::ProbeRep(const std::string& name) : Probe(name), field(), geometry(), active(true) {}
 
-ProbeRep::~ProbeRep() {}
+ProbeRep::ProbeRep(const ProbeRep &right):
+    Probe(right), field(), geometry(right.geometry), active(true)
+{}
 
-ElementBase* ProbeRep::clone() const { return new ProbeRep(*this); }
 
-Channel* ProbeRep::getChannel(const std::string& aKey, bool create) {
-    for (const Entry* entry = entries; entry->name != 0; ++entry) {
-        if (aKey == entry->name) {
+ProbeRep::ProbeRep(const std::string &name):
+    Probe(name), field(), geometry(), active(true)
+{}
+
+
+ProbeRep::~ProbeRep()
+{}
+
+
+ElementBase *ProbeRep::clone() const {
+    return new ProbeRep(*this);
+}
+
+
+Channel *ProbeRep::getChannel(const std::string &aKey, bool create) {
+    for(const Entry *entry = entries; entry->name != 0; ++entry) {
+        if(aKey == entry->name) {
             return new IndirectChannel<ProbeRep>(*this, entry->get, entry->set);
         }
     }
@@ -50,12 +71,23 @@ Channel* ProbeRep::getChannel(const std::string& aKey, bool create) {
     return ElementBase::getChannel(aKey, create);
 }
 
-NullField& ProbeRep::getField() { return field; }
+NullField &ProbeRep::getField() {
+    return field;
+}
 
-const NullField& ProbeRep::getField() const { return field; }
+const NullField &ProbeRep::getField() const {
+    return field;
+}
 
-StraightGeometry& ProbeRep::getGeometry() { return geometry; }
+StraightGeometry &ProbeRep::getGeometry() {
+    return geometry;
+}
 
-const StraightGeometry& ProbeRep::getGeometry() const { return geometry; }
+const StraightGeometry &ProbeRep::getGeometry() const {
+    return geometry;
+}
 
-void ProbeRep::setActive(bool flag) { active = flag; }
+
+void ProbeRep::setActive(bool flag) {
+    active = flag;
+}

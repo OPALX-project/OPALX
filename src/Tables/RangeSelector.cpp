@@ -20,31 +20,37 @@
 #include "Tables/RangeSelector.h"
 #include "AbsBeamline/ElementBase.h"
 #include "AbstractObjects/Element.h"
-#include "AbstractObjects/Object.h"
 #include "AbstractObjects/OpalData.h"
+#include "AbstractObjects/Object.h"
 #include "Beamlines/Beamline.h"
 #include "Beamlines/FlaggedElmPtr.h"
 
 class Element;
 
-RangeSelector::RangeSelector(const Beamline& beamline, const RangeRep& range)
-    : DefaultVisitor(beamline, false, false), itsRange(range) {}
 
-RangeSelector::~RangeSelector() {}
+RangeSelector::RangeSelector(const Beamline &beamline, const RangeRep &range):
+    DefaultVisitor(beamline, false, false), itsRange(range)
+{}
+
+
+RangeSelector::~RangeSelector()
+{}
+
 
 void RangeSelector::execute() {
     itsRange.initialize();
     DefaultVisitor::execute();
 }
 
-void RangeSelector::visitFlaggedElmPtr(const FlaggedElmPtr& fep) {
+
+void RangeSelector::visitFlaggedElmPtr(const FlaggedElmPtr &fep) {
     // Are we past the beginning of the range ?
     itsRange.enter(fep);
 
     // Do the required operations on the beamline or element.
-    ElementBase* base = fep.getElement();
+    ElementBase *base = fep.getElement();
 
-    if (dynamic_cast<Beamline*>(base)) {
+    if(dynamic_cast<Beamline *>(base)) {
         handleBeamline(fep);
     } else {
         handleElement(fep);
@@ -54,13 +60,15 @@ void RangeSelector::visitFlaggedElmPtr(const FlaggedElmPtr& fep) {
     itsRange.leave(fep);
 }
 
-void RangeSelector::handleBeamline(const FlaggedElmPtr& fep) {
+
+void RangeSelector::handleBeamline(const FlaggedElmPtr &fep) {
     DefaultVisitor::visitFlaggedElmPtr(fep);
 }
 
-void RangeSelector::handleElement(const FlaggedElmPtr& fep) {
+
+void RangeSelector::handleElement(const FlaggedElmPtr &fep) {
     // Default: delegate algorithm to the element, if in range.
-    if (itsRange.isActive()) {
+    if(itsRange.isActive()) {
         DefaultVisitor::visitFlaggedElmPtr(fep);
     }
 }

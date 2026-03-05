@@ -22,55 +22,69 @@
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
 
-OpalTravelingWave::OpalTravelingWave()
-    : OpalElement(
-          SIZE, "TRAVELINGWAVE",
-          "The \"TRAVELINGWAVE\" element defines a traveling wave structure.") {
-    itsAttr[VOLT]   = Attributes::makeReal("VOLT", "RF voltage in MV/m");
-    itsAttr[DVOLT]  = Attributes::makeReal("DVOLT", "RF voltage error in MV/m");
-    itsAttr[FREQ]   = Attributes::makeReal("FREQ", "RF frequency in MHz");
-    itsAttr[LAG]    = Attributes::makeReal("LAG", "Phase lag in rad");
-    itsAttr[DLAG]   = Attributes::makeReal("DLAG", "Phase lag error in rad");
-    itsAttr[FMAPFN] = Attributes::makeString("FMAPFN", "Filename for the fieldmap");
-    itsAttr[FAST]   = Attributes::makeBool("FAST", "Faster but less accurate", true);
-    itsAttr[APVETO] =
-        Attributes::makeBool("APVETO", "Do not use this cavity in the Autophase procedure", false);
-    itsAttr[NUMCELLS] = Attributes::makeReal("NUMCELLS", "Number of cells in a TW structure");
-    itsAttr[DESIGNENERGY] =
-        Attributes::makeReal("DESIGNENERGY", "the mean energy of the particles at exit", -1.0);
-    itsAttr[MODE] = Attributes::makeReal(
-        "MODE", "The phase shift between neighboring cells in 2*pi", 1.0 / 3.0);
+OpalTravelingWave::OpalTravelingWave():
+    OpalElement(SIZE, "TRAVELINGWAVE",
+                "The \"TRAVELINGWAVE\" element defines a traveling wave structure.")
+    {
+    itsAttr[VOLT] = Attributes::makeReal
+                    ("VOLT", "RF voltage in MV/m");
+    itsAttr[DVOLT] = Attributes::makeReal
+                     ("DVOLT", "RF voltage error in MV/m");
+    itsAttr[FREQ] = Attributes::makeReal
+                    ("FREQ", "RF frequency in MHz");
+    itsAttr[LAG] = Attributes::makeReal
+                   ("LAG", "Phase lag in rad");
+    itsAttr[DLAG] = Attributes::makeReal
+                    ("DLAG", "Phase lag error in rad");
+    itsAttr[FMAPFN] = Attributes::makeString
+                      ("FMAPFN", "Filename for the fieldmap");
+    itsAttr[FAST] = Attributes::makeBool
+                    ("FAST", "Faster but less accurate", true);
+    itsAttr[APVETO] = Attributes::makeBool
+                    ("APVETO", "Do not use this cavity in the Autophase procedure", false);
+    itsAttr[NUMCELLS] = Attributes::makeReal
+                        ("NUMCELLS", "Number of cells in a TW structure");
+    itsAttr[DESIGNENERGY] = Attributes::makeReal
+                            ("DESIGNENERGY", "the mean energy of the particles at exit", -1.0);
+    itsAttr[MODE] = Attributes::makeReal
+                     ("MODE", "The phase shift between neighboring cells in 2*pi", 1.0/3.0);
 
     registerOwnership();
 
     setElement(new TravelingWaveRep("TRAVELINGWAVE"));
 }
 
-OpalTravelingWave::OpalTravelingWave(const std::string& name, OpalTravelingWave* parent)
-    : OpalElement(name, parent) {
+
+OpalTravelingWave::OpalTravelingWave(const std::string &name, OpalTravelingWave *parent):
+    OpalElement(name, parent) {
     setElement(new TravelingWaveRep(name));
 }
 
-OpalTravelingWave::~OpalTravelingWave() {}
 
-OpalTravelingWave* OpalTravelingWave::clone(const std::string& name) {
+OpalTravelingWave::~OpalTravelingWave() {
+}
+
+
+OpalTravelingWave *OpalTravelingWave::clone(const std::string &name) {
     return new OpalTravelingWave(name, this);
 }
+
 
 void OpalTravelingWave::update() {
     OpalElement::update();
 
-    TravelingWaveRep* rfc = dynamic_cast<TravelingWaveRep*>(getElement());
+    TravelingWaveRep *rfc =
+        dynamic_cast<TravelingWaveRep *>(getElement());
 
-    double length      = Attributes::getReal(itsAttr[LENGTH]);
-    double vPeak       = Attributes::getReal(itsAttr[VOLT]);
+    double length = Attributes::getReal(itsAttr[LENGTH]);
+    double vPeak  = Attributes::getReal(itsAttr[VOLT]);
     double vPeakError  = Attributes::getReal(itsAttr[DVOLT]);
-    double phase       = Attributes::getReal(itsAttr[LAG]);
+    double phase  = Attributes::getReal(itsAttr[LAG]);
     double phaseError  = Attributes::getReal(itsAttr[DLAG]);
-    double freq        = Physics::two_pi * Attributes::getReal(itsAttr[FREQ]) * Units::MHz2Hz;
+    double freq   = Physics::two_pi * Attributes::getReal(itsAttr[FREQ]) * Units::MHz2Hz;
     std::string fmapfm = Attributes::getString(itsAttr[FMAPFN]);
-    bool fast          = Attributes::getBool(itsAttr[FAST]);
-    bool apVeto        = Attributes::getBool(itsAttr[APVETO]);
+    bool fast = Attributes::getBool(itsAttr[FAST]);
+    bool apVeto = Attributes::getBool(itsAttr[APVETO]);
 
     //    std::string type = Attributes::getString(itsAttr[TYPE]);
     double kineticEnergy = Attributes::getReal(itsAttr[DESIGNENERGY]);

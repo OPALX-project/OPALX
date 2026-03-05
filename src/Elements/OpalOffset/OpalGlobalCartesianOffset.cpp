@@ -36,56 +36,50 @@
 
 namespace OpalOffset {
 
-    const std::string OpalGlobalCartesianOffset::doc_string =
-        std::string("The \"GLOBAL_CARTESIAN_OFFSET\" element defines an offset")
-        + std::string("in cartesian coordinates, relative to the last placed ")
-        + std::string("element.");
+const std::string OpalGlobalCartesianOffset::doc_string =
+    std::string("The \"GLOBAL_CARTESIAN_OFFSET\" element defines an offset")+
+    std::string("in cartesian coordinates, relative to the last placed ")+
+    std::string("element.");
 
-    OpalGlobalCartesianOffset::OpalGlobalCartesianOffset()
-        : OpalElement(int(SIZE), "GLOBAL_CARTESIAN_OFFSET", doc_string.c_str()) {
-        itsAttr[END_POSITION_X] = Attributes::makeReal(
-            "END_POSITION_X",
-            "x component of position of end of the offset in coordinate system of the end of the "
-            "upstream element.");
-        itsAttr[END_POSITION_Y] = Attributes::makeReal(
-            "END_POSITION_Y",
-            "y component of position of end of the offset in coordinate system of the end of the "
-            "upstream element.");
-        itsAttr[END_NORMAL_X] = Attributes::makeReal(
-            "END_NORMAL_X",
-            "x component of normal of end of the offset in coordinate system of the end of the "
-            "upstream element.");
-        itsAttr[END_NORMAL_Y] = Attributes::makeReal(
-            "END_NORMAL_Y",
-            "y component of normal of end of the offset in coordinate system of the end of the "
-            "upstream element.");
+OpalGlobalCartesianOffset::OpalGlobalCartesianOffset()
+       : OpalElement(int(SIZE),
+                     "GLOBAL_CARTESIAN_OFFSET",
+                     doc_string.c_str()) {
+    itsAttr[END_POSITION_X] = Attributes::makeReal("END_POSITION_X",
+             "x component of position of end of the offset in coordinate system of the end of the upstream element.");
+    itsAttr[END_POSITION_Y] = Attributes::makeReal("END_POSITION_Y",
+             "y component of position of end of the offset in coordinate system of the end of the upstream element.");
+    itsAttr[END_NORMAL_X] = Attributes::makeReal("END_NORMAL_X",
+             "x component of normal of end of the offset in coordinate system of the end of the upstream element.");
+    itsAttr[END_NORMAL_Y] = Attributes::makeReal("END_NORMAL_Y",
+             "y component of normal of end of the offset in coordinate system of the end of the upstream element.");
 
-        registerOwnership();
-    }
+    registerOwnership();
+}
 
-    OpalGlobalCartesianOffset* OpalGlobalCartesianOffset::clone(const std::string& name) {
-        return new OpalGlobalCartesianOffset(name, this);
-    }
+OpalGlobalCartesianOffset* OpalGlobalCartesianOffset::clone(const std::string &name) {
+    return new OpalGlobalCartesianOffset(name, this);
+}
 
-    void OpalGlobalCartesianOffset::print(std::ostream& out) const { OpalElement::print(out); }
+void OpalGlobalCartesianOffset::print(std::ostream& out) const {
+    OpalElement::print(out);
+}
 
-    OpalGlobalCartesianOffset::OpalGlobalCartesianOffset(
-        const std::string& name, OpalGlobalCartesianOffset* parent)
-        : OpalElement(name, parent) {}
+OpalGlobalCartesianOffset::OpalGlobalCartesianOffset(const std::string &name, OpalGlobalCartesianOffset *parent):
+    OpalElement(name, parent) {
+}
 
-    OpalGlobalCartesianOffset::~OpalGlobalCartesianOffset() {}
+OpalGlobalCartesianOffset::~OpalGlobalCartesianOffset() {}
 
-    void OpalGlobalCartesianOffset::update() {
-        // getOpalName() comes from AbstractObjects/Object.h
-        std::string name = getOpalName();
-        Vector_t<double, 3> pos(
-            Attributes::getReal(itsAttr[END_POSITION_X]),
-            Attributes::getReal(itsAttr[END_POSITION_Y]), 0.);
-        Vector_t<double, 3> norm(
-            Attributes::getReal(itsAttr[END_NORMAL_X]), Attributes::getReal(itsAttr[END_NORMAL_Y]),
-            0.);
-        Offset* off = new Offset(Offset::globalCartesianOffset(name, pos, norm));
-        // is this a memory leak?
-        setElement(off);
-    }
-}  // namespace OpalOffset
+void OpalGlobalCartesianOffset::update() {
+    // getOpalName() comes from AbstractObjects/Object.h
+    std::string name = getOpalName();
+    Vector_t<double, 3> pos(Attributes::getReal(itsAttr[END_POSITION_X]),
+                 Attributes::getReal(itsAttr[END_POSITION_Y]), 0.);
+    Vector_t<double, 3> norm(Attributes::getReal(itsAttr[END_NORMAL_X]),
+                  Attributes::getReal(itsAttr[END_NORMAL_Y]), 0.);
+    Offset* off = new Offset(Offset::globalCartesianOffset(name, pos, norm));
+    // is this a memory leak?
+    setElement(off);
+}
+}

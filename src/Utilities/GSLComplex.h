@@ -18,21 +18,23 @@
 #ifndef OPAL_GSL_COMPLEX_HH
 #define OPAL_GSL_COMPLEX_HH
 
-#include <cmath>
 #include <complex>
+#include <cmath>
 
 /// \see Documentation on https://www.gnu.org/software/gsl/doc/html/complex.htm
 /// \see Implementation on https://www.gnu.org/software/gsl/
 /// \brief Complex number stored as \f$(\Re, \Im)\f$.
 struct gsl_complex {
     double dat[2];  // [real, imag]
-
+    
     gsl_complex() : dat{0.0, 0.0} {}
     gsl_complex(double r, double i) : dat{r, i} {}
     gsl_complex(const std::complex<double>& c) : dat{c.real(), c.imag()} {}
-
-    operator std::complex<double>() const { return std::complex<double>(dat[0], dat[1]); }
-
+    
+    operator std::complex<double>() const {
+        return std::complex<double>(dat[0], dat[1]);
+    }
+    
     double real() const { return dat[0]; }
     double imag() const { return dat[1]; }
 };
@@ -46,7 +48,9 @@ struct gsl_complex {
 /// \param x Input: real part.
 /// \param y Input: imaginary part.
 /// \return Output: complex value \f$x + i y\f$.
-inline gsl_complex gsl_complex_rect(double x, double y) { return gsl_complex(x, y); }
+inline gsl_complex gsl_complex_rect(double x, double y) {
+    return gsl_complex(x, y);
+}
 
 /// \brief Construct \f$z = r e^{i\theta}\f$.
 /// \param r Input: magnitude.
@@ -59,17 +63,23 @@ inline gsl_complex gsl_complex_polar(double r, double theta) {
 /// \brief Argument (phase) \f$\arg(z)\f$.
 /// \param z Input: complex value.
 /// \return Output: phase angle.
-inline double gsl_complex_arg(gsl_complex z) { return std::arg(std::complex<double>(z)); }
+inline double gsl_complex_arg(gsl_complex z) {
+    return std::arg(std::complex<double>(z));
+}
 
 /// \brief Magnitude \f$|z|\f$.
 /// \param z Input: complex value.
 /// \return Output: \f$|z|\f$.
-inline double gsl_complex_abs(gsl_complex z) { return std::abs(std::complex<double>(z)); }
+inline double gsl_complex_abs(gsl_complex z) {
+    return std::abs(std::complex<double>(z));
+}
 
 /// \brief Squared magnitude \f$|z|^2\f$.
 /// \param z Input: complex value.
 /// \return Output: \f$|z|^2\f$.
-inline double gsl_complex_abs2(gsl_complex z) { return z.dat[0] * z.dat[0] + z.dat[1] * z.dat[1]; }
+inline double gsl_complex_abs2(gsl_complex z) {
+    return z.dat[0] * z.dat[0] + z.dat[1] * z.dat[1];
+}
 
 /// \see https://www.gnu.org/software/gsl/doc/html/complex.html
 /// \brief Sum \f$a + b\f$.
@@ -148,7 +158,9 @@ inline gsl_complex gsl_complex_div_real(gsl_complex a, double x) {
 /// \brief Complex conjugate \f$\overline{a}\f$.
 /// \param a Input: complex operand.
 /// \return Output: \f$\overline{a}\f$.
-inline gsl_complex gsl_complex_conjugate(gsl_complex a) { return gsl_complex(a.dat[0], -a.dat[1]); }
+inline gsl_complex gsl_complex_conjugate(gsl_complex a) {
+    return gsl_complex(a.dat[0], -a.dat[1]);
+}
 
 /// \see https://www.gnu.org/software/gsl/doc/html/complex.html
 /// \brief Multiplicative inverse \f$1/a\f$.
@@ -163,7 +175,9 @@ inline gsl_complex gsl_complex_inverse(gsl_complex a) {
 /// \brief Negation \f$-a\f$.
 /// \param a Input: complex operand.
 /// \return Output: \f$-a\f$.
-inline gsl_complex gsl_complex_negative(gsl_complex a) { return gsl_complex(-a.dat[0], -a.dat[1]); }
+inline gsl_complex gsl_complex_negative(gsl_complex a) {
+    return gsl_complex(-a.dat[0], -a.dat[1]);
+}
 
 /// \see https://www.gnu.org/software/gsl/doc/html/complex.html
 /// \brief Complex square root \f$\sqrt{a}\f$.
@@ -229,4 +243,5 @@ inline gsl_complex gsl_complex_tanh(gsl_complex a) {
     return gsl_complex(std::tanh(ca));
 }
 
-#endif  // OPAL_GSL_COMPLEX_HH
+#endif // OPAL_GSL_COMPLEX_HH
+

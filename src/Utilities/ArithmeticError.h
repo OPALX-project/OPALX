@@ -30,8 +30,10 @@
 //  An object derived from this class is thrown when an arithmetic error
 //  occurs.
 
-class ArithmeticError : public ClassicException {
+class ArithmeticError: public ClassicException {
+
 protected:
+
     /// The usual constructor.
     // Arguments:
     // [DL]
@@ -40,14 +42,15 @@ protected:
     // [DT][b]msg [/b]
     // [DD]the message string identifying the exception
     // [/DL]
-    ArithmeticError(const std::string& meth, const std::string& msg);
+    ArithmeticError(const std::string &meth, const std::string &msg);
 
-    ArithmeticError(const ArithmeticError&);
+    ArithmeticError(const ArithmeticError &);
     virtual ~ArithmeticError();
 
 private:
+
     // Not implemented.
     ArithmeticError();
 };
 
-#endif  // CLASSIC_ArithmeticError_HH
+#endif // CLASSIC_ArithmeticError_HH

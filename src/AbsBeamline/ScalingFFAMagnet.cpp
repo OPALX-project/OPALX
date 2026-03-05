@@ -25,13 +25,14 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "AbsBeamline/ScalingFFAMagnet.h"
 #include <cmath>
 #include "AbsBeamline/BeamlineVisitor.h"
+#include "AbsBeamline/ScalingFFAMagnet.h"
 #include "PartBunch/PartBunch.h"
 #include "Physics/Units.h"
 ScalingFFAMagnet::ScalingFFAMagnet(const std::string& name)
-    : Component(name), planarArcGeometry_m(1., 1.), dummy(), endField_m(nullptr) {}
+    : Component(name), planarArcGeometry_m(1., 1.), dummy(), endField_m(nullptr) {
+}
 
 ScalingFFAMagnet::ScalingFFAMagnet(const ScalingFFAMagnet& right)
     : Component(right),
@@ -58,7 +59,9 @@ ScalingFFAMagnet::ScalingFFAMagnet(const ScalingFFAMagnet& right)
     r0_m           = right.r0_m;
 }
 
-ScalingFFAMagnet::~ScalingFFAMagnet() { delete endField_m; }
+ScalingFFAMagnet::~ScalingFFAMagnet() {
+    delete endField_m;
+}
 
 ScalingFFAMagnet* ScalingFFAMagnet::clone() const {
     ScalingFFAMagnet* magnet = new ScalingFFAMagnet(*this);
@@ -66,11 +69,17 @@ ScalingFFAMagnet* ScalingFFAMagnet::clone() const {
     return magnet;
 }
 
-EMField& ScalingFFAMagnet::getField() { return dummy; }
+EMField& ScalingFFAMagnet::getField() {
+    return dummy;
+}
 
-const EMField& ScalingFFAMagnet::getField() const { return dummy; }
+const EMField& ScalingFFAMagnet::getField() const {
+    return dummy;
+}
 
-bool ScalingFFAMagnet::apply() { return false; }
+bool ScalingFFAMagnet::apply() {
+    return false;
+}
 
 bool ScalingFFAMagnet::apply(
     const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
@@ -83,7 +92,9 @@ bool ScalingFFAMagnet::apply(
     return apply(R, P, t, E, B);
 }
 
-void ScalingFFAMagnet::initialise() { calculateDfCoefficients(); }
+void ScalingFFAMagnet::initialise() {
+    calculateDfCoefficients();
+}
 
 void ScalingFFAMagnet::initialise(
     PartBunch_t* bunch, double& /*startField*/, double& /*endField*/) {
@@ -91,13 +102,21 @@ void ScalingFFAMagnet::initialise(
     initialise();
 }
 
-void ScalingFFAMagnet::finalise() { RefPartBunch_m = nullptr; }
+void ScalingFFAMagnet::finalise() {
+    RefPartBunch_m = nullptr;
+}
 
-bool ScalingFFAMagnet::bends() const { return true; }
+bool ScalingFFAMagnet::bends() const {
+    return true;
+}
 
-BGeometryBase& ScalingFFAMagnet::getGeometry() { return planarArcGeometry_m; }
+BGeometryBase& ScalingFFAMagnet::getGeometry() {
+    return planarArcGeometry_m;
+}
 
-const BGeometryBase& ScalingFFAMagnet::getGeometry() const { return planarArcGeometry_m; }
+const BGeometryBase& ScalingFFAMagnet::getGeometry() const {
+    return planarArcGeometry_m;
+}
 
 void ScalingFFAMagnet::accept(BeamlineVisitor& visitor) const {
     visitor.visitScalingFFAMagnet(*this);

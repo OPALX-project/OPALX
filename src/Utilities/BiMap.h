@@ -24,17 +24,17 @@
 /// \brief Simple bidirectional map with lookup in both directions.
 /// \tparam Left Key type for the left map.
 /// \tparam Right Key type for the right map.
-template <typename Left, typename Right>
+template<typename Left, typename Right>
 class BiMap {
 public:
-    using left_map  = std::map<Left, Right>;
+    using left_map = std::map<Left, Right>;
     using right_map = std::map<Right, Left>;
-
+    
 private:
     // Declare maps first so they're initialized before left/right references
     left_map left_map_;
     right_map right_map_;
-
+    
 public:
     /// \brief Pair relation used for initialization.
     struct relation {
@@ -45,7 +45,7 @@ public:
         /// \param r Input: right value.
         relation(const Left& l, const Right& r) : left(l), right(r) {}
     };
-
+    
     // Access to underlying maps for compatibility (using references)
     /// \brief Left-map view with find/at helpers.
     struct left_view {
@@ -65,7 +65,7 @@ public:
         /// \return Output: mapped right value.
         const Right& at(const Left& key) const { return map_.at(key); }
     };
-
+    
     /// \brief Right-map view with find/at helpers.
     struct right_view {
         right_map& map_;
@@ -84,40 +84,44 @@ public:
         /// \return Output: mapped left value.
         const Left& at(const Right& key) const { return map_.at(key); }
     };
-
+    
     /// \brief Construct an empty bimap.
     BiMap() : left_map_(), right_map_(), left(left_map_), right(right_map_) {}
-
+    
     /// \brief Left view accessor.
     left_view left;
     /// \brief Right view accessor.
     right_view right;
-
+    
     /// \brief Insert or overwrite a left/right association.
     /// \param left Input: left key.
     /// \param right Input: right key.
     void insert(const Left& left, const Right& right) {
-        left_map_[left]   = right;
+        left_map_[left] = right;
         right_map_[right] = left;
     }
-
+    
     /// \brief Find an entry by left key.
     /// \param key Input: left key.
     /// \return Output: iterator to entry or \c end().
-    typename left_map::iterator left_find(const Left& key) { return left_map_.find(key); }
-
+    typename left_map::iterator left_find(const Left& key) {
+        return left_map_.find(key);
+    }
+    
     /// \brief Find an entry by right key.
     /// \param key Input: right key.
     /// \return Output: iterator to entry or \c end().
-    typename right_map::iterator right_find(const Right& key) { return right_map_.find(key); }
-
+    typename right_map::iterator right_find(const Right& key) {
+        return right_map_.find(key);
+    }
+    
     /// \brief End iterator for left map.
     /// \return Output: end iterator.
     typename left_map::iterator left_end() { return left_map_.end(); }
     /// \brief End iterator for right map.
     /// \return Output: end iterator.
     typename right_map::iterator right_end() { return right_map_.end(); }
-
+    
     /// \brief Get mapped right value by left key (throws if missing).
     /// \param key Input: left key.
     /// \return Output: mapped right value.
@@ -128,7 +132,7 @@ public:
         }
         return it->second;
     }
-
+    
     /// \brief Get mapped left value by right key (throws if missing).
     /// \param key Input: right key.
     /// \return Output: mapped left value.
@@ -144,9 +148,8 @@ public:
 /// \brief Helper function to create a BiMap from an initializer list.
 /// \param relations Input: list of left/right relations.
 /// \return Output: initialized bimap instance.
-template <typename Left, typename Right>
-BiMap<Left, Right> make_bimap(
-    std::initializer_list<typename BiMap<Left, Right>::relation> relations) {
+template<typename Left, typename Right>
+BiMap<Left, Right> make_bimap(std::initializer_list<typename BiMap<Left, Right>::relation> relations) {
     BiMap<Left, Right> bimap;
     for (const auto& rel : relations) {
         bimap.insert(rel.left, rel.right);
@@ -155,3 +158,4 @@ BiMap<Left, Right> make_bimap(
 }
 
 #endif
+

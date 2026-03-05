@@ -320,7 +320,9 @@ private:
     virtual double getFn(const std::size_t& n, const double& x, const double& s) = 0;
 };
 
-inline void MultipoleTBase::finalise() { RefPartBunch_m = nullptr; }
+inline void MultipoleTBase::finalise() {
+    RefPartBunch_m = nullptr;
+}
 inline bool MultipoleTBase::apply(
     const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
     std::shared_ptr<ParticleContainer_t> pc = RefPartBunch_m->getParticleContainer();
@@ -332,8 +334,11 @@ inline bool MultipoleTBase::apply(
 
     return apply(R(i), P(i), t, E, B);
 }
-inline void MultipoleTBase::setBendAngle(const double& /*angle*/) {}
-inline double MultipoleTBase::getBendAngle() const { return 0.0; }
+inline void MultipoleTBase::setBendAngle(const double& /*angle*/) {
+}
+inline double MultipoleTBase::getBendAngle() const {
+    return 0.0;
+}
 inline void MultipoleTBase::setEntranceAngle(const double& entranceAngle) {
     entranceAngle_m = entranceAngle;
 }
@@ -341,24 +346,46 @@ inline bool MultipoleTBase::insideAperture(const Vector_t<double, 3>& R) {
     return (
         std::abs(R[1]) <= (verticalApert_m / 2.0) && std::abs(R[0]) <= (horizontalApert_m / 2.0));
 }
-inline double MultipoleTBase::getEntranceAngle() const { return entranceAngle_m; }
+inline double MultipoleTBase::getEntranceAngle() const {
+    return entranceAngle_m;
+}
 inline double MultipoleTBase::getTransProfile(const std::size_t& n) const {
     return transProfile_m[n];
 }
-inline std::vector<double> MultipoleTBase::getTransProfile() const { return transProfile_m; }
-inline double MultipoleTBase::getDipoleConstant() const { return transProfile_m[0]; }
-inline void MultipoleTBase::setMaxOrder(const std::size_t& maxOrder) { maxOrder_m = maxOrder; }
-inline std::size_t MultipoleTBase::getMaxOrder() const { return maxOrder_m; }
-inline std::size_t MultipoleTBase::getTransMaxOrder() const { return transMaxOrder_m; }
+inline std::vector<double> MultipoleTBase::getTransProfile() const {
+    return transProfile_m;
+}
+inline double MultipoleTBase::getDipoleConstant() const {
+    return transProfile_m[0];
+}
+inline void MultipoleTBase::setMaxOrder(const std::size_t& maxOrder) {
+    maxOrder_m = maxOrder;
+}
+inline std::size_t MultipoleTBase::getMaxOrder() const {
+    return maxOrder_m;
+}
+inline std::size_t MultipoleTBase::getTransMaxOrder() const {
+    return transMaxOrder_m;
+}
 inline void MultipoleTBase::setTransMaxOrder(const std::size_t& transMaxOrder) {
     transMaxOrder_m = transMaxOrder;
     transProfile_m.resize(transMaxOrder + 1, 0.);
 }
-inline double MultipoleTBase::getRotation() const { return rotation_m; }
-inline void MultipoleTBase::setRotation(const double& rot) { rotation_m = rot; }
-inline void MultipoleTBase::setLength(const double& length) { length_m = std::abs(length); }
-inline double MultipoleTBase::getLength() const { return length_m; }
-inline double MultipoleTBase::getBoundingBoxLength() const { return boundingBoxLength_m; }
+inline double MultipoleTBase::getRotation() const {
+    return rotation_m;
+}
+inline void MultipoleTBase::setRotation(const double& rot) {
+    rotation_m = rot;
+}
+inline void MultipoleTBase::setLength(const double& length) {
+    length_m = std::abs(length);
+}
+inline double MultipoleTBase::getLength() const {
+    return length_m;
+}
+inline double MultipoleTBase::getBoundingBoxLength() const {
+    return boundingBoxLength_m;
+}
 inline void MultipoleTBase::setBoundingBoxLength(const double& boundingBoxLength) {
     boundingBoxLength_m = boundingBoxLength;
 }
@@ -392,10 +419,18 @@ inline std::vector<double> MultipoleTBase::getFringeLength() const {
     return temp;
 }
 inline void MultipoleTBase::initialise(
-    PartBunch_t* /*bunch*/, double& /*startField*/, double& /*endField*/) {}
-inline bool MultipoleTBase::bends() const { return transProfile_m[0] != 0; }
-inline EMField& MultipoleTBase::getField() { return dummy; }
-inline const EMField& MultipoleTBase::getField() const { return dummy; }
-inline void MultipoleTBase::getDimensions(double& /*zBegin*/, double& /*zEnd*/) const {}
+    PartBunch_t* /*bunch*/, double& /*startField*/, double& /*endField*/) {
+}
+inline bool MultipoleTBase::bends() const {
+    return transProfile_m[0] != 0;
+}
+inline EMField& MultipoleTBase::getField() {
+    return dummy;
+}
+inline const EMField& MultipoleTBase::getField() const {
+    return dummy;
+}
+inline void MultipoleTBase::getDimensions(double& /*zBegin*/, double& /*zEnd*/) const {
+}
 
 #endif

@@ -34,84 +34,85 @@
 
 namespace interpolation {
 
-    /** VectorMap is an abstract class that defines mapping from one vector to
-     *  another.
-     *
-     *  VectorMap is base class primarily envisaged for mesh interpolation that
-     *  defines interfaces to get interpolated data at a given point, access the
-     *  mesh, etc.
-     *
-     *  Input and output dimensions (vector lengths) are arbitrary.
+/** VectorMap is an abstract class that defines mapping from one vector to
+ *  another.
+ *
+ *  VectorMap is base class primarily envisaged for mesh interpolation that
+ *  defines interfaces to get interpolated data at a given point, access the
+ *  mesh, etc.
+ *
+ *  Input and output dimensions (vector lengths) are arbitrary.
+ */
+class VectorMap {
+ public:
+    /** Pure virtual function to fill the array value with data evaluated at
+     *  point.
      */
-    class VectorMap {
-    public:
-        /** Pure virtual function to fill the array value with data evaluated at
-         *  point.
-         */
-        virtual void function(const double* point, double* value) const = 0;
+    virtual void function(const double* point, double* value) const = 0;
 
-        /** Fill the array value with function data at a point on the mesh.
-         *
-         *  Implemented for default case where Mesh point dimension is the same as
-         *  this point dimension (usual case). No default checking for array sizes.
-         */
-        inline virtual void function(const Mesh::Iterator& point, double* value) const;
+    /** Fill the array value with function data at a point on the mesh.
+     *
+     *  Implemented for default case where Mesh point dimension is the same as
+     *  this point dimension (usual case). No default checking for array sizes.
+     */
+    inline virtual void function
+                             (const Mesh::Iterator& point, double* value) const;
 
-        /** Calculate F, appending output values to value_vec.
-         *
-         *  For each item in point_vec not in value_vec, calculate value_vec (urgh)
-         */
-        inline virtual void functionAppend(
-            const std::vector<std::vector<double> >& point_vec,
-            std::vector<std::vector<double> >& value_vec) const;
+    /** Calculate F, appending output values to value_vec.
+     *
+     *  For each item in point_vec not in value_vec, calculate value_vec (urgh)
+     */
+    inline virtual void functionAppend(
+                           const std::vector< std::vector<double> >& point_vec,
+                           std::vector< std::vector<double> >& value_vec
+                      ) const;
 
-        /** Return true if point.size() is the same as this->PointDimension() */
-        inline virtual bool checkPoint(const std::vector<double>& point) const;
+    /** Return true if point.size() is the same as this->PointDimension() */
+    inline virtual bool  checkPoint(const std::vector<double>& point) const;
 
-        /** Return true if value.size() is the same as this->ValueDimension() */
-        inline virtual bool checkValue(const std::vector<double>& value) const;
+    /** Return true if value.size() is the same as this->ValueDimension() */
+    inline virtual bool  checkValue(const std::vector<double>& value) const;
 
-        /** Return the dimension of the point (input) */
-        virtual unsigned int getPointDimension() const = 0;
-        // would like to make static - but can't inherit static functions
+    /** Return the dimension of the point (input) */
+    virtual unsigned int getPointDimension() const = 0;
+    // would like to make static - but can't inherit static functions
 
-        /** Return the dimension of the value (output) */
-        virtual unsigned int getValueDimension() const = 0;
-        // would like to make static - but can't inherit static functions
+    /** Return the dimension of the value (output) */
+    virtual unsigned int getValueDimension() const = 0;
+    // would like to make static - but can't inherit static functions
 
-        /** Clone() is like a copy constructor - but copies the child class */
-        virtual VectorMap* clone() const = 0;
+    /** Clone() is like a copy constructor - but copies the child class */
+    virtual              VectorMap* clone() const = 0;
 
-        /** Destructor */
-        virtual ~VectorMap() { ; }
+    /** Destructor */
+    virtual             ~VectorMap() {;}
 
-        /** Return the mesh used by the vector map or nullptr if no mesh */
-        virtual Mesh* getMesh() const { return nullptr; }
+    /** Return the mesh used by the vector map or nullptr if no mesh */
+    virtual Mesh* getMesh() const {return nullptr;}
+  private:
+};
 
-    private:
-    };
+bool VectorMap::checkPoint(const std::vector<double>& point) const {
+  return (point.size() == this->getPointDimension());
+}
 
-    bool VectorMap::checkPoint(const std::vector<double>& point) const {
-        return (point.size() == this->getPointDimension());
-    }
+bool VectorMap::checkValue(const std::vector<double>& value) const {
+  return (value.size() == this->getValueDimension());
+}
 
-    bool VectorMap::checkValue(const std::vector<double>& value) const {
-        return (value.size() == this->getValueDimension());
-    }
+void VectorMap::function(const Mesh::Iterator& point, double* value) const {
+    double PointA[this->getPointDimension()];
+    point.getPosition(PointA);
+    function(PointA, value);
+}
 
-    void VectorMap::function(const Mesh::Iterator& point, double* value) const {
-        double PointA[this->getPointDimension()];
-        point.getPosition(PointA);
-        function(PointA, value);
-    }
-
-    void VectorMap::functionAppend(
-        const std::vector<std::vector<double> >& point_vec,
-        std::vector<std::vector<double> >& value_vec) const {
-        for (size_t i = value_vec.size(); i < point_vec.size(); i++) {
-            value_vec.push_back(std::vector<double>(getValueDimension()));
-            function(&point_vec[i][0], &value_vec[i][0]);
-        }
-    }
-}  // namespace interpolation
+void VectorMap::functionAppend
+                       (const std::vector< std::vector<double> >& point_vec,
+                        std::vector< std::vector<double> >& value_vec) const {
+  for (size_t i = value_vec.size(); i < point_vec.size(); i++) {
+    value_vec.push_back(std::vector<double>(getValueDimension()));
+    function(&point_vec[i][0], &value_vec[i][0]);
+  }
+}
+}
 #endif  // _CLASSIC_FIELDS_VECTORMAP_HH_

@@ -18,7 +18,7 @@
 #include <cstring>
 
 extern "C" {
-#include "H5hut.h"
+  #include "H5hut.h"
 }
 
 #include "AbstractObjects/OpalData.h"
@@ -63,27 +63,27 @@ namespace OPALXMAIN {
         std::string mySpace("            ");
 
         *gmsg << mySpace << "  ____  _____        _       __   __" << endl;
+*gmsg << "\033[1;32m";
+*gmsg << R"(
 
-        /* \todo fix OPAL
-        *gmsg << mySpace << " // __ \|  __ \ /\   | |      \ \ // // " << endl;
+  ██████  ██████   █████  ██      ██   ██
+ ██    ██ ██   ██ ██   ██ ██       ██ ██
+ ██    ██ ██████  ███████ ██        ███
+ ██    ██ ██      ██   ██ ██       ██ ██
+  ██████  ██      ██   ██ ███████ ██   ██
 
-        *gmsg << mySpace << "| |  | | |__) /  \  | |  _____\ V /" << endl;
-        *gmsg << mySpace << "| |  | |  ___/ /\ \ | | |______> <" << endl;
+         This is OPALX (Object Oriented Parallel Accelerator Library for Exascale)
 
-        *gmsg << mySpace << "| |__| | |  / ____ \| |____   / . \\" << endl;
-        *gmsg << mySpace << "\_____/|_| /_/    \_\______| /_/ \_\\" << endl;
+)" << "\033[0m" << endl;
 
-        */
         std::string gitRevision = "git rev. " + Util::getGitRevision();
-        std::string copyRight   = "(c) PSI, http://amas.web.psi.ch";
+        std::string copyRight   = "(c) PSI, https://github.com/OPALX-project/OPALX";
         *gmsg << endl
-              << "This is OPAL-X (Object Oriented Parallel Accelerator Library) Version "
+              << "OPALX is the performance portable version of OPAL :: Version "
               << OPAL_PROJECT_VERSION << "\n"
               << std::setw(37 + gitRevision.length() / 2) << std::right << gitRevision << "\n\n"
               << endl
               << std::setw(37 + copyRight.length() / 2) << std::right << copyRight << "\n\n"
-              << endl
-              << "This is the performance portable version of OPAL" << endl
               << endl;
 
         *gmsg << "Please send cookies, goodies or other motivations (wine and beer ... ) \nto the "
@@ -95,8 +95,7 @@ namespace OPALXMAIN {
         // Check which host device is being used
         *gmsg << "* Host:   " << Kokkos::HostSpace::execution_space::name() << endl;
 
-        // Check which device is being used (this works for CUDA, HIP, or any device-enabled
-        // execution space)
+    // Check which device is being used (this works for CUDA, HIP, or any device-enabled execution space)
 #ifdef KOKKOS_ENABLE_CUDA
         *gmsg << "* Device: " << Kokkos::Cuda::name() << endl << endl;
 #elif defined(KOKKOS_ENABLE_HIP)
@@ -126,14 +125,14 @@ namespace OPALXMAIN {
         *ippl::Info << "   --help                   : Display this command-line summary.\n";
         *ippl::Info << endl;
     }
-}  // namespace OPALXMAIN
+}  // namespace
 
 int main(int argc, char* argv[]) {
     ippl::initialize(argc, argv);
     {
         gmsg         = new Inform("OPAL-X");
         namespace fs = std::filesystem;
-
+        
         H5SetVerbosityLevel(1);  // 65535);
 
         gsl_set_error_handler(&handleGSLErrors);
@@ -172,12 +171,11 @@ int main(int argc, char* argv[]) {
 
         try {
             Configure::configure();
-            *gmsg << "configure done argc= " << argc << endl;
 
             // Read startup file.
             FileStream::setEcho(Options::echo);
 
-            char* startup           = getenv("HOME");
+            char* startup             = getenv("HOME");
             std::filesystem::path p = strncat(startup, "/init.opal", 20);
             if (startup != nullptr && fs::is_regular_file(p)) {
                 FileStream::setEcho(false);
@@ -193,7 +191,8 @@ int main(int argc, char* argv[]) {
 
                 if (is) {
                     *gmsg << "Reading startup file '" << startup << "'" << endl;
-                    parser.run(is);
+                    parser.
+                        run(is);
                     *gmsg << "Finished reading startup file." << endl;
                 }
                 FileStream::setEcho(Options::echo);
@@ -511,6 +510,7 @@ int main(int argc, char* argv[]) {
         IpplTimings::print(
             std::string("timing.dat"), OpalData::getInstance()->getProblemCharacteristicValues());
 
+        
         ippl::Comm->barrier();
         Fieldmap::clearDictionary();
 

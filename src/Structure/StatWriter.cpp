@@ -25,7 +25,8 @@
 
 #include <sstream>
 
-StatWriter::StatWriter(const std::string& fname, bool restart) : StatBaseWriter(fname, restart) {}
+StatWriter::StatWriter(const std::string& fname, bool restart) : StatBaseWriter(fname, restart) {
+}
 
 void StatWriter::fillHeader(const losses_t& losses) {
     if (this->hasColumns()) {
@@ -87,12 +88,12 @@ void StatWriter::fillHeader(const losses_t& losses) {
     columns_m.addColumn("dt", "double", "ns", "time step size");
     columns_m.addColumn("partsOutside", "double", "1", "outside n*sigma of the beam");
 
-    columns_m.addColumn("DebyeLength", "double", "m", "Debye length in the boosted frame");
-    columns_m.addColumn(
-        "plasmaParameter", "double", "1",
-        "Plasma parameter that gives no. of particles in a Debye sphere");
-    columns_m.addColumn("temperature", "double", "K", "Temperature of the beam");
-    columns_m.addColumn("rmsDensity", "double", "1", "RMS number density of the beam");
+    columns_m.addColumn("DebyeLength", "double",  "m", "Debye length in the boosted frame");
+    columns_m.addColumn("plasmaParameter", "double",  "1", "Plasma parameter that gives no. of particles in a Debye sphere");
+    columns_m.addColumn("temperature", "double",  "K", "Temperature of the beam");
+    columns_m.addColumn("rmsDensity", "double",  "1", "RMS number density of the beam");
+
+    columns_m.addColumn("nBins", "int", "1", "Number of field solver bins, potentially after adaptive binning.");
 
     /// \todo Options::computePercentiles needs to be brought back
     /*
@@ -197,9 +198,9 @@ void StatWriter::fillHeader(const losses_t& losses) {
 void StatWriter::write(
     PartBunch_t* beam, Vector_t<double, 3> FDext[], const losses_t& losses, const double& azimuth,
     const size_t npOutside) {
-    using ParticleContainer_t               = ParticleContainer<T, Dim>;
+    using ParticleContainer_t = ParticleContainer<T, Dim>;
     std::shared_ptr<ParticleContainer_t> pc = beam->getParticleContainer();
-    double Ekin                             = pc->getMeanKineticEnergy();
+    double Ekin = pc->getMeanKineticEnergy();
 
     double pathLength = beam->get_sPos();
 
@@ -276,12 +277,11 @@ void StatWriter::write(
     columns_m.addColumnValue("dt", beam->getdT() * Units::s2ns);  // 41 dt time step size
     columns_m.addColumnValue("partsOutside", npOutside);  // 42 number of particles outside n*sigma
 
-    columns_m.addColumnValue(
-        "DebyeLength", beam->get_debyeLength());  // 43 Debye length in the boosted frame
-    columns_m.addColumnValue(
-        "plasmaParameter", beam->get_plasmaParameter());               // 43 plasma parameter
-    columns_m.addColumnValue("temperature", beam->get_temperature());  // 44 Temperature
-    columns_m.addColumnValue("rmsDensity", beam->get_rmsDensity());    // 45 RMS number density
+    columns_m.addColumnValue("DebyeLength", beam->get_debyeLength()); // 43 Debye length in the boosted frame
+    columns_m.addColumnValue("plasmaParameter", beam->get_plasmaParameter()); // 43 plasma parameter
+    columns_m.addColumnValue("temperature", beam->get_temperature()); // 44 Temperature 
+    columns_m.addColumnValue("rmsDensity", beam->get_rmsDensity()); // 45 RMS number density
+    columns_m.addColumnValue("nBins", beam->getCurrentNBins());
 
     /*
     if (Options::computePercentiles) {

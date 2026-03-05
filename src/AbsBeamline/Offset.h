@@ -25,12 +25,13 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
+
 #ifndef CLASSIC_ABSBEAMLINE_Offset_HH
 #define CLASSIC_ABSBEAMLINE_Offset_HH
 
-#include "AbsBeamline/Component.h"
-#include "BeamlineGeometry/Euclid3DGeometry.h"
 #include "Fields/EMField.h"
+#include "BeamlineGeometry/Euclid3DGeometry.h"
+#include "AbsBeamline/Component.h"
 
 #include <string>
 
@@ -63,11 +64,11 @@
  *  any calculation based on aperture (e.g. wakefields etc)
  */
 class Offset : public Component {
-public:
+  public:
     /** Constructor sets everything to 0., makes a default geometry with
      *  everything set to 0.
      */
-    explicit Offset(const std::string& name);
+    explicit Offset(const std::string &name);
 
     /** Default constructor sets everything to 0., makes a default geometry
      *  with everything set to 0.
@@ -77,17 +78,17 @@ public:
     /** Copy constructor; deep copies geometry_m; all other
      *  stuff is copied as well
      */
-    Offset(std::string name, const Offset&);
+    Offset(std::string name, const Offset &);
 
     /** Copy constructor; deep copies geometry_m; all other
      *  stuff is copied as well
      */
-    Offset(const Offset&);
+    Offset(const Offset &);
 
     /** Assignment operator deep copies geometry and wrappedGeometry; all other
      *  stuff is copied as well
      */
-    Offset& operator=(const Offset&);
+    Offset& operator=(const Offset &);
 
     /** Factory method to make an offset in Cylindrical coordinates local to the
      *  end of the previous element
@@ -95,11 +96,13 @@ public:
      *   - theta_in angle between the previous element and the displacement
      *     vector
      *   - theta_out angle between the displacement vector and the next element
-     *   - displacement length of the displacement vector in the theta_in
+     *   - displacement length of the displacement vector in the theta_in 
      *     direction
      */
-    static Offset localCylindricalOffset(
-        std::string name, double theta_in, double theta_out, double displacement);
+    static Offset localCylindricalOffset(std::string name,
+                                         double theta_in,
+                                         double theta_out,
+                                         double displacement);
 
     /** Factory method to make an offset in global cylindrical polar coordinates
      *   - name name of the offset
@@ -110,8 +113,10 @@ public:
      *  element before placement; Offset will convert to the local coordinate
      *  system.
      */
-    static Offset globalCylindricalOffset(
-        std::string name, double radius_out, double phi_out, double theta_out);
+    static Offset globalCylindricalOffset(std::string name,
+                                          double radius_out,
+                                          double phi_out,
+                                          double theta_out);
 
     /** Factory method to make an offset in cartesian coordinates local to the
      *  end of the previous element
@@ -119,8 +124,9 @@ public:
      *   - end_position position of the end of the offset
      *   - end_direction direction of the end of the offset
      */
-    static Offset localCartesianOffset(
-        std::string name, Vector_t<double, 3> end_position, Vector_t<double, 3> end_direction);
+    static Offset localCartesianOffset(std::string name,
+                                       Vector_t<double, 3> end_position,
+                                       Vector_t<double, 3> end_direction);
 
     /** Factory method to make an offset in global cartesian coordinates
      *   - name name of the offset
@@ -130,8 +136,9 @@ public:
      *  element before placement; Offset will convert to the local coordinate
      *  system.
      */
-    static Offset globalCartesianOffset(
-        std::string name, Vector_t<double, 3> end_position, Vector_t<double, 3> end_direction);
+    static Offset globalCartesianOffset(std::string name,
+                                        Vector_t<double, 3> end_position,
+                                        Vector_t<double, 3> end_direction);
 
     /** deletes geometry and wrappedGeometry */
     ~Offset();
@@ -140,7 +147,7 @@ public:
      *
      *  Sets ring radius
      */
-    void accept(BeamlineVisitor&) const override;
+    void accept(BeamlineVisitor &) const override;
 
     /** Just calls the copy constructor on *this */
     ElementBase* clone() const override;
@@ -150,9 +157,10 @@ public:
      */
     bool bends() const override;
 
-    void initialise(PartBunch_t* bunch, double& startField, double& endField) override;
+    void initialise(PartBunch_t *bunch, double &startField,
+                            double &endField) override;
     void finalise() override;
-    void getDimensions(double& /*zBegin*/, double& /*zEnd*/) const override {}
+    void getDimensions(double &/*zBegin*/, double &/*zEnd*/) const override {}
 
     void setEndPosition(Vector_t<double, 3> position);
     Vector_t<double, 3> getEndPosition() const;
@@ -177,9 +185,9 @@ public:
     bool isGeometryAllocated() const;
 
     /// Not implemented - throws GeneralClassicException
-    EMField& getField() override;
+    EMField &getField() override;
     /// Not implemented - throws GeneralClassicException
-    const EMField& getField() const override;
+    const EMField &getField() const override;
     /** Calculate the angle between vectors on the midplane
      *
      *  Returns theta in domain -pi, pi. A positive angle means a rotation
@@ -196,11 +204,10 @@ public:
     static Vector_t<double, 3> rotate(Vector_t<double, 3> vec, double theta);
 
     static double float_tolerance;
-
-private:
+  private:
     Vector_t<double, 3> _end_position;
     Vector_t<double, 3> _end_direction;
-    bool _is_local;
+    bool     _is_local;
     // The offset's geometry.
     Euclid3DGeometry* geometry_m = nullptr;
     static const double lengthUnits_m;

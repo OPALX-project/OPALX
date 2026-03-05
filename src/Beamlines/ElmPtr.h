@@ -20,9 +20,10 @@
 //
 // ------------------------------------------------------------------------
 
+#include "AbsBeamline/ElementBase.h"
 #include <memory>
 #include <utility>
-#include "AbsBeamline/ElementBase.h"
+
 
 // Class ElmPtr.
 // ------------------------------------------------------------------------
@@ -30,32 +31,39 @@
 //  A beam line is built as a list of ElmPtr.
 
 class ElmPtr {
+
 public:
+
     ElmPtr();
-    ElmPtr(const ElmPtr&);
-    ElmPtr(ElementBase* elem);
+    ElmPtr(const ElmPtr &);
+    ElmPtr(ElementBase *elem);
     explicit ElmPtr(std::shared_ptr<ElementBase> elem);
     virtual ~ElmPtr();
 
     /// Apply visitor.
     //  If any error occurs, this method throws an exception.
-    virtual void accept(BeamlineVisitor&) const;
+    virtual void accept(BeamlineVisitor &) const;
 
     /// Get the element pointer.
-    inline ElementBase* getElement() const;
+    inline ElementBase *getElement() const;
 
     /// Set the element pointer.
-    inline void setElement(ElementBase*);
+    inline void setElement(ElementBase *);
     inline void setElement(std::shared_ptr<ElementBase> elem);
 
 protected:
+
     // The pointer to the element.
     std::shared_ptr<ElementBase> itsElement;
 };
 
-inline ElementBase* ElmPtr::getElement() const { return itsElement.get(); }
 
-inline void ElmPtr::setElement(ElementBase* elem) {
+inline ElementBase *ElmPtr::getElement() const {
+    return itsElement.get();
+}
+
+
+inline void ElmPtr::setElement(ElementBase *elem) {
     if (elem == itsElement.get()) {
         return;
     }
@@ -71,6 +79,9 @@ inline void ElmPtr::setElement(ElementBase* elem) {
     itsElement.reset(elem);
 }
 
-inline void ElmPtr::setElement(std::shared_ptr<ElementBase> elem) { itsElement = std::move(elem); }
 
-#endif  // CLASSIC_ElmPtr_HH
+inline void ElmPtr::setElement(std::shared_ptr<ElementBase> elem) {
+    itsElement = std::move(elem);
+}
+
+#endif // CLASSIC_ElmPtr_HH
