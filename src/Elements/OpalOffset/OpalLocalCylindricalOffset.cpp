@@ -36,43 +36,50 @@
 
 namespace OpalOffset {
 
-    const std::string OpalLocalCylindricalOffset::doc_string =
-        std::string("The \"LOCAL_CYLINDRICAL_OFFSET\" element defines an offset")
-        + std::string("in cylindrical coordinates, relative to the last placed ")
-        + std::string("element. All angles are defined in the midplane.");
+const std::string OpalLocalCylindricalOffset::doc_string =
+    std::string("The \"LOCAL_CYLINDRICAL_OFFSET\" element defines an offset")+
+    std::string("in cylindrical coordinates, relative to the last placed ")+
+    std::string("element. All angles are defined in the midplane.");
 
-    OpalLocalCylindricalOffset::OpalLocalCylindricalOffset()
-        : OpalElement(int(SIZE), "LOCAL_CYLINDRICAL_OFFSET", doc_string.c_str()) {
-        itsAttr[THETA_IN] = Attributes::makeReal(
-            "THETA_IN", "Angle between the previous element and the displacement vector [rad].");
-        itsAttr[THETA_OUT] = Attributes::makeReal(
-            "THETA_OUT", "Angle between the displacement vector and the next element [rad].");
-        itsAttr[LENGTH] = Attributes::makeReal("LENGTH", "Length of the offset [m].");
+OpalLocalCylindricalOffset::OpalLocalCylindricalOffset()
+       : OpalElement(int(SIZE),
+                     "LOCAL_CYLINDRICAL_OFFSET",
+                     doc_string.c_str()) {
+    itsAttr[THETA_IN] = Attributes::makeReal("THETA_IN",
+             "Angle between the previous element and the displacement vector [rad].");
+    itsAttr[THETA_OUT] = Attributes::makeReal("THETA_OUT",
+             "Angle between the displacement vector and the next element [rad].");
+    itsAttr[LENGTH] = Attributes::makeReal("LENGTH", "Length of the offset [m].");
 
-        registerOwnership();
-    }
+    registerOwnership();
+}
 
-    OpalLocalCylindricalOffset* OpalLocalCylindricalOffset::clone(const std::string& name) {
-        return new OpalLocalCylindricalOffset(name, this);
-    }
+OpalLocalCylindricalOffset* OpalLocalCylindricalOffset::clone(const std::string &name) {
+    return new OpalLocalCylindricalOffset(name, this);
+}
 
-    void OpalLocalCylindricalOffset::print(std::ostream& out) const { OpalElement::print(out); }
+void OpalLocalCylindricalOffset::print(std::ostream& out) const {
+    OpalElement::print(out);
+}
 
-    OpalLocalCylindricalOffset::OpalLocalCylindricalOffset(
-        const std::string& name, OpalLocalCylindricalOffset* parent)
-        : OpalElement(name, parent) {}
+OpalLocalCylindricalOffset::OpalLocalCylindricalOffset(const std::string &name, OpalLocalCylindricalOffset *parent):
+    OpalElement(name, parent) {
+}
 
-    OpalLocalCylindricalOffset::~OpalLocalCylindricalOffset() {}
+OpalLocalCylindricalOffset::~OpalLocalCylindricalOffset() {}
 
-    void OpalLocalCylindricalOffset::update() {
-        // getOpalName() comes from AbstractObjects/Object.h
-        std::string name = getOpalName();
-        double length    = Attributes::getReal(itsAttr[LENGTH]);
-        double theta_in  = Attributes::getReal(itsAttr[THETA_IN]);
-        double theta_out = Attributes::getReal(itsAttr[THETA_OUT]);
-        Offset* off = new Offset(Offset::localCylindricalOffset(name, theta_in, theta_out, length));
-        // is this a memory leak?
-        setElement(off);
-    }
+void OpalLocalCylindricalOffset::update() {
+    // getOpalName() comes from AbstractObjects/Object.h
+    std::string name = getOpalName();
+    double length = Attributes::getReal(itsAttr[LENGTH]);
+    double theta_in = Attributes::getReal(itsAttr[THETA_IN]);
+    double theta_out = Attributes::getReal(itsAttr[THETA_OUT]);
+    Offset* off = new Offset(Offset::localCylindricalOffset(name,
+                                                            theta_in,
+                                                            theta_out,
+                                                            length));
+    // is this a memory leak?
+    setElement(off);
+}
 
-}  // namespace OpalOffset
+}

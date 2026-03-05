@@ -22,24 +22,25 @@
 
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "AbsBeamline/CCollimator.h"
+#include "AbsBeamline/ConstantEFieldCavity.h"
 #include "AbsBeamline/Corrector.h"
 #include "AbsBeamline/Cyclotron.h"
-#include "AbsBeamline/Degrader.h"
 #include "AbsBeamline/Drift.h"
+#include "AbsBeamline/Degrader.h"
 #include "AbsBeamline/ElementBase.h"
 #include "AbsBeamline/FlexibleCollimator.h"
+#include "AbsBeamline/Offset.h"
 #include "AbsBeamline/Marker.h"
 #include "AbsBeamline/Monitor.h"
 #include "AbsBeamline/Multipole.h"
 #include "AbsBeamline/MultipoleT.h"
+#include "AbsBeamline/MultipoleTStraight.h"
 #include "AbsBeamline/MultipoleTCurvedConstRadius.h"
 #include "AbsBeamline/MultipoleTCurvedVarRadius.h"
-#include "AbsBeamline/MultipoleTStraight.h"
-#include "AbsBeamline/Offset.h"
 #include "AbsBeamline/Probe.h"
 #include "AbsBeamline/RBend.h"
-#include "AbsBeamline/RFCavity.h"
 #include "AbsBeamline/Ring.h"
+#include "AbsBeamline/RFCavity.h"
 #include "AbsBeamline/SBend.h"
 #include "AbsBeamline/SBend3D.h"
 #include "AbsBeamline/ScalingFFAMagnet.h"
@@ -64,131 +65,138 @@ template <class ELEM1, class ELEM2>
 struct CastsTrait {
     typedef std::list<const ELEM1*> ElementList_t;
 
-    static void apply(ElementList_t&, const ELEM2&) {}
+    static void apply(ElementList_t &, const ELEM2 &)
+    { }
 };
 
 template <class ELEM>
-struct CastsTrait<ELEM, ELEM> {
+struct CastsTrait<ELEM,ELEM> {
     typedef std::list<const ELEM*> ElementList_t;
 
-    static void apply(ElementList_t& allElements, const ELEM& element) {
+    static void apply(ElementList_t &allElements, const ELEM &element)
+    {
         allElements.push_back(dynamic_cast<const ELEM*>(&element));
     }
 };
 
 template <class ELEM>
-class SpecificElementVisitor : public BeamlineVisitor {
+class SpecificElementVisitor: public BeamlineVisitor {
 public:
-    SpecificElementVisitor(const Beamline& beamline);
+    SpecificElementVisitor(const Beamline &beamline);
 
     virtual void execute();
 
     /// Apply the algorithm to a beam line.
-    virtual void visitBeamline(const Beamline&);
-
+    virtual void visitBeamline(const Beamline &);
+    
     /// Apply the algorithm to a collimator.
-    virtual void visitCCollimator(const CCollimator&);
+    virtual void visitCCollimator(const CCollimator &);
 
     /// Apply the algorithm to an arbitrary component.
-    virtual void visitComponent(const Component&);
+    virtual void visitComponent(const Component &);
 
     /// Apply the algorithm to a closed orbit corrector.
-    virtual void visitCorrector(const Corrector&);
+    virtual void visitCorrector(const Corrector &);
 
     /// Apply the algorithm to an cyclotron
-    virtual void visitCyclotron(const Cyclotron&);
+    virtual void visitCyclotron(const Cyclotron &);
 
     /// Apply the algorithm to a degrader.
-    virtual void visitDegrader(const Degrader&);
+    virtual void visitDegrader(const Degrader &);
+
+    /// Apply the algorithm to a constant E-field cavity element.
+    virtual void visitConstantEFieldCavity(const ConstantEFieldCavity &);
 
     /// Apply the algorithm to a drift.
-    virtual void visitDrift(const Drift&);
+    virtual void visitDrift(const Drift &);
 
     /// Apply the algorithm to a FlaggedElmPtr.
-    virtual void visitFlaggedElmPtr(const FlaggedElmPtr&);
+    virtual void visitFlaggedElmPtr(const FlaggedElmPtr &);
 
     /// Apply the algorithm to a flexible collimator
-    virtual void visitFlexibleCollimator(const FlexibleCollimator&);
+    virtual void visitFlexibleCollimator(const FlexibleCollimator &);
 
     /// Apply the algorithm to a marker.
-    virtual void visitMarker(const Marker&);
+    virtual void visitMarker(const Marker &);
 
     /// Apply the algorithm to a beam position monitor.
-    virtual void visitMonitor(const Monitor&);
+    virtual void visitMonitor(const Monitor &);
 
     /// Apply the algorithm to a multipole.
-    virtual void visitMultipole(const Multipole&);
+    virtual void visitMultipole(const Multipole &);
 
     /// Apply the algorithm to an arbitrary multipole.
-    virtual void visitMultipoleT(const MultipoleT&);
+    virtual void visitMultipoleT(const MultipoleT &);
 
     /// Apply the algorithm to an arbitrary straight multipole.
-    virtual void visitMultipoleTStraight(const MultipoleTStraight&);
+    virtual void visitMultipoleTStraight(const MultipoleTStraight &);
 
     /// Apply the algorithm to an arbitrary curved multipole of constant radius.
-    virtual void visitMultipoleTCurvedConstRadius(const MultipoleTCurvedConstRadius&);
+    virtual void visitMultipoleTCurvedConstRadius(const MultipoleTCurvedConstRadius &);
 
     /// Apply the algorithm to an arbitrary curved multipole of variable radius.
-    virtual void visitMultipoleTCurvedVarRadius(const MultipoleTCurvedVarRadius&);
+    virtual void visitMultipoleTCurvedVarRadius(const MultipoleTCurvedVarRadius &);
 
     /// Apply the algorithm to an offset (placement).
-    virtual void visitOffset(const Offset&);
+    virtual void visitOffset(const Offset &);
 
     /// Apply the algorithm to a probe.
-    virtual void visitProbe(const Probe& prob);
+    virtual void visitProbe(const Probe &prob);
 
     /// Apply the algorithm to a rectangular bend.
-    virtual void visitRBend(const RBend&);
+    virtual void visitRBend(const RBend &);
 
     /// Apply the algorithm to a rectangular bend.
-    virtual void visitRBend3D(const RBend3D&);
+    virtual void visitRBend3D(const RBend3D &);
 
     /// Apply the algorithm to a RF cavity.
-    virtual void visitRFCavity(const RFCavity&);
+    virtual void visitRFCavity(const RFCavity &);
 
     /// Apply the algorithm to a ring.
-    virtual void visitRing(const Ring&);
+    virtual void visitRing(const Ring &);
 
     /// Apply the algorithm to a sector bend.
-    virtual void visitSBend(const SBend&);
+    virtual void visitSBend(const SBend &);
 
     /// Apply the algorithm to a sector bend with 3D field map.
-    virtual void visitSBend3D(const SBend3D&);
+    virtual void visitSBend3D(const SBend3D &);
 
     /// Apply the algorithm to a scaling FFA magnet.
-    virtual void visitScalingFFAMagnet(const ScalingFFAMagnet&);
+    virtual void visitScalingFFAMagnet(const ScalingFFAMagnet &);
 
     /// Apply the algorithm to a septum.
-    virtual void visitSeptum(const Septum&);
+    virtual void visitSeptum(const Septum &);
 
     /// Apply the algorithm to a solenoid.
-    virtual void visitSolenoid(const Solenoid&);
+    virtual void visitSolenoid(const Solenoid &);
 
     /// Apply the algorithm to a source.
-    virtual void visitSource(const Source&);
+    virtual void visitSource(const Source &);
 
-    /// Apply the algorithm to a particle stripper.
-    virtual void visitStripper(const Stripper&);
+   /// Apply the algorithm to a particle stripper.
+    virtual void visitStripper(const Stripper &);
 
     /// Apply the algorithm to a traveling wave
-    virtual void visitTravelingWave(const TravelingWave&);
+    virtual void visitTravelingWave(const TravelingWave &);
 
 #ifdef ENABLE_OPAL_FEL
     /// Apply the algorithm to an undulator.
-    virtual void visitUndulator(const Undulator&);
+    virtual void visitUndulator(const Undulator &);
 #endif
 
     /// Apply the algorithm to a vacuum space.
-    virtual void visitVacuum(const Vacuum&);
+    virtual void visitVacuum(const Vacuum &);
 
     /// Apply the algorithm to a variable RF cavity.
-    virtual void visitVariableRFCavity(const VariableRFCavity& vcav);
+    virtual void visitVariableRFCavity(const VariableRFCavity &vcav);
 
     /// Apply the algorithm to a variable RF cavity with Fringe Field..
-    virtual void visitVariableRFCavityFringeField(const VariableRFCavityFringeField& vcav);
+    virtual void visitVariableRFCavityFringeField
+                                      (const VariableRFCavityFringeField &vcav);
 
     /// Apply the algorithm to a vertical FFA magnet.
-    virtual void visitVerticalFFAMagnet(const VerticalFFAMagnet&);
+    virtual void visitVerticalFFAMagnet(const VerticalFFAMagnet &);
+
 
     size_t size() const;
 
@@ -212,230 +220,236 @@ private:
     ElementList_t allElementsOfTypeE;
 };
 
-template <class ELEM>
-SpecificElementVisitor<ELEM>::SpecificElementVisitor(const Beamline& beamline)
-    : BeamlineVisitor(), allElementsOfTypeE() {
+template<class ELEM>
+SpecificElementVisitor<ELEM>::SpecificElementVisitor(const Beamline &beamline):
+    BeamlineVisitor(),
+    allElementsOfTypeE()
+{
     beamline.iterate(*this, false);
 }
 
-template <class ELEM>
-void SpecificElementVisitor<ELEM>::execute() {}
+template<class ELEM>
+void SpecificElementVisitor<ELEM>::execute()
+{ }
 
-template <class ELEM>
-void SpecificElementVisitor<ELEM>::visitBeamline(const Beamline& element) {
+template<class ELEM>
+void SpecificElementVisitor<ELEM>::visitBeamline(const Beamline &element) {
     element.iterate(*this, false);
 }
 
-template <class ELEM>
-void SpecificElementVisitor<ELEM>::visitCCollimator(const CCollimator& element) {
+template<class ELEM>
+void SpecificElementVisitor<ELEM>::visitCCollimator(const CCollimator &element) {
     CastsTrait<ELEM, CCollimator>::apply(allElementsOfTypeE, element);
 }
 
-template <class ELEM>
-void SpecificElementVisitor<ELEM>::visitComponent(const Component& element) {
+template<class ELEM>
+void SpecificElementVisitor<ELEM>::visitComponent(const Component &element) {
     CastsTrait<ELEM, Component>::apply(allElementsOfTypeE, element);
 }
 
-template <class ELEM>
-void SpecificElementVisitor<ELEM>::visitCorrector(const Corrector& element) {
+template<class ELEM>
+void SpecificElementVisitor<ELEM>::visitCorrector(const Corrector &element) {
     CastsTrait<ELEM, Corrector>::apply(allElementsOfTypeE, element);
 }
 
-template <class ELEM>
-void SpecificElementVisitor<ELEM>::visitCyclotron(const Cyclotron& element) {
+template<class ELEM>
+void SpecificElementVisitor<ELEM>::visitCyclotron(const Cyclotron &element) {
     CastsTrait<ELEM, Cyclotron>::apply(allElementsOfTypeE, element);
 }
 
-template <class ELEM>
-void SpecificElementVisitor<ELEM>::visitDegrader(const Degrader& element) {
+template<class ELEM>
+void SpecificElementVisitor<ELEM>::visitDegrader(const Degrader &element) {
     CastsTrait<ELEM, Degrader>::apply(allElementsOfTypeE, element);
 }
 
-template <class ELEM>
-void SpecificElementVisitor<ELEM>::visitDrift(const Drift& element) {
+template<class ELEM>
+void SpecificElementVisitor<ELEM>::visitConstantEFieldCavity(const ConstantEFieldCavity &element) {
+    CastsTrait<ELEM, ConstantEFieldCavity>::apply(allElementsOfTypeE, element);
+}
+
+template<class ELEM>
+void SpecificElementVisitor<ELEM>::visitDrift(const Drift &element) {
     CastsTrait<ELEM, Drift>::apply(allElementsOfTypeE, element);
 }
 
-template <class ELEM>
-void SpecificElementVisitor<ELEM>::visitFlaggedElmPtr(const FlaggedElmPtr& element) {
+template<class ELEM>
+void SpecificElementVisitor<ELEM>::visitFlaggedElmPtr(const FlaggedElmPtr &element) {
     const ElementBase* wrappedElement = element.getElement();
     wrappedElement->accept(*this);
 }
 
-template <class ELEM>
-void SpecificElementVisitor<ELEM>::visitFlexibleCollimator(const FlexibleCollimator& element) {
+template<class ELEM>
+void SpecificElementVisitor<ELEM>::visitFlexibleCollimator(const FlexibleCollimator &element) {
     CastsTrait<ELEM, FlexibleCollimator>::apply(allElementsOfTypeE, element);
 }
 
-template <class ELEM>
-void SpecificElementVisitor<ELEM>::visitMarker(const Marker& element) {
+template<class ELEM>
+void SpecificElementVisitor<ELEM>::visitMarker(const Marker &element) {
     CastsTrait<ELEM, Marker>::apply(allElementsOfTypeE, element);
 }
 
-template <class ELEM>
-void SpecificElementVisitor<ELEM>::visitMonitor(const Monitor& element) {
+template<class ELEM>
+void SpecificElementVisitor<ELEM>::visitMonitor(const Monitor &element) {
     CastsTrait<ELEM, Monitor>::apply(allElementsOfTypeE, element);
 }
 
-template <class ELEM>
-void SpecificElementVisitor<ELEM>::visitMultipole(const Multipole& element) {
+template<class ELEM>
+void SpecificElementVisitor<ELEM>::visitMultipole(const Multipole &element) {
     CastsTrait<ELEM, Multipole>::apply(allElementsOfTypeE, element);
 }
 
-template <class ELEM>
-void SpecificElementVisitor<ELEM>::visitMultipoleT(const MultipoleT& element) {
+template<class ELEM>
+void SpecificElementVisitor<ELEM>::visitMultipoleT(const MultipoleT &element) {
     CastsTrait<ELEM, MultipoleT>::apply(allElementsOfTypeE, element);
 }
 
-template <class ELEM>
-void SpecificElementVisitor<ELEM>::visitMultipoleTStraight(const MultipoleTStraight& element) {
+template<class ELEM>
+void SpecificElementVisitor<ELEM>::visitMultipoleTStraight(const MultipoleTStraight &element) {
     CastsTrait<ELEM, MultipoleTStraight>::apply(allElementsOfTypeE, element);
 }
 
-template <class ELEM>
-void SpecificElementVisitor<ELEM>::visitMultipoleTCurvedConstRadius(
-    const MultipoleTCurvedConstRadius& element) {
+template<class ELEM>
+void SpecificElementVisitor<ELEM>::visitMultipoleTCurvedConstRadius(const MultipoleTCurvedConstRadius &element) {
     CastsTrait<ELEM, MultipoleTCurvedConstRadius>::apply(allElementsOfTypeE, element);
 }
 
-template <class ELEM>
-void SpecificElementVisitor<ELEM>::visitMultipoleTCurvedVarRadius(
-    const MultipoleTCurvedVarRadius& element) {
+template<class ELEM>
+void SpecificElementVisitor<ELEM>::visitMultipoleTCurvedVarRadius(const MultipoleTCurvedVarRadius &element) {
     CastsTrait<ELEM, MultipoleTCurvedVarRadius>::apply(allElementsOfTypeE, element);
 }
 
-template <class ELEM>
-void SpecificElementVisitor<ELEM>::visitOffset(const Offset& element) {
+template<class ELEM>
+void SpecificElementVisitor<ELEM>::visitOffset(const Offset &element) {
     CastsTrait<ELEM, Offset>::apply(allElementsOfTypeE, element);
 }
 
-template <class ELEM>
-void SpecificElementVisitor<ELEM>::visitProbe(const Probe& element) {
+template<class ELEM>
+void SpecificElementVisitor<ELEM>::visitProbe(const Probe &element) {
     CastsTrait<ELEM, Probe>::apply(allElementsOfTypeE, element);
 }
 
-template <class ELEM>
-void SpecificElementVisitor<ELEM>::visitRBend(const RBend& element) {
+template<class ELEM>
+void SpecificElementVisitor<ELEM>::visitRBend(const RBend &element) {
     CastsTrait<ELEM, RBend>::apply(allElementsOfTypeE, element);
 }
 
-template <class ELEM>
-void SpecificElementVisitor<ELEM>::visitRBend3D(const RBend3D& element) {
+template<class ELEM>
+void SpecificElementVisitor<ELEM>::visitRBend3D(const RBend3D &element) {
     CastsTrait<ELEM, RBend3D>::apply(allElementsOfTypeE, element);
 }
 
-template <class ELEM>
-void SpecificElementVisitor<ELEM>::visitRFCavity(const RFCavity& element) {
+template<class ELEM>
+void SpecificElementVisitor<ELEM>::visitRFCavity(const RFCavity &element) {
     CastsTrait<ELEM, RFCavity>::apply(allElementsOfTypeE, element);
 }
 
-template <class ELEM>
-void SpecificElementVisitor<ELEM>::visitRing(const Ring& element) {
+template<class ELEM>
+void SpecificElementVisitor<ELEM>::visitRing(const Ring &element) {
     CastsTrait<ELEM, Ring>::apply(allElementsOfTypeE, element);
 }
 
-template <class ELEM>
-void SpecificElementVisitor<ELEM>::visitSBend(const SBend& element) {
+template<class ELEM>
+void SpecificElementVisitor<ELEM>::visitSBend(const SBend &element) {
     CastsTrait<ELEM, SBend>::apply(allElementsOfTypeE, element);
 }
 
-template <class ELEM>
-void SpecificElementVisitor<ELEM>::visitSBend3D(const SBend3D& element) {
+template<class ELEM>
+void SpecificElementVisitor<ELEM>::visitSBend3D(const SBend3D &element) {
     CastsTrait<ELEM, SBend3D>::apply(allElementsOfTypeE, element);
 }
 
-template <class ELEM>
-void SpecificElementVisitor<ELEM>::visitScalingFFAMagnet(const ScalingFFAMagnet& element) {
+template<class ELEM>
+void SpecificElementVisitor<ELEM>::visitScalingFFAMagnet(const ScalingFFAMagnet &element) {
     CastsTrait<ELEM, ScalingFFAMagnet>::apply(allElementsOfTypeE, element);
 }
 
-template <class ELEM>
-void SpecificElementVisitor<ELEM>::visitSeptum(const Septum& element) {
+template<class ELEM>
+void SpecificElementVisitor<ELEM>::visitSeptum(const Septum &element) {
     CastsTrait<ELEM, Septum>::apply(allElementsOfTypeE, element);
 }
 
-template <class ELEM>
-void SpecificElementVisitor<ELEM>::visitSolenoid(const Solenoid& element) {
+template<class ELEM>
+void SpecificElementVisitor<ELEM>::visitSolenoid(const Solenoid &element) {
     CastsTrait<ELEM, Solenoid>::apply(allElementsOfTypeE, element);
 }
 
-template <class ELEM>
-void SpecificElementVisitor<ELEM>::visitSource(const Source& element) {
+template<class ELEM>
+void SpecificElementVisitor<ELEM>::visitSource(const Source &element) {
     CastsTrait<ELEM, Source>::apply(allElementsOfTypeE, element);
 }
 
-template <class ELEM>
-void SpecificElementVisitor<ELEM>::visitStripper(const Stripper& element) {
+template<class ELEM>
+void SpecificElementVisitor<ELEM>::visitStripper(const Stripper &element) {
     CastsTrait<ELEM, Stripper>::apply(allElementsOfTypeE, element);
 }
 
-template <class ELEM>
-void SpecificElementVisitor<ELEM>::visitTravelingWave(const TravelingWave& element) {
+template<class ELEM>
+void SpecificElementVisitor<ELEM>::visitTravelingWave(const TravelingWave &element) {
     CastsTrait<ELEM, TravelingWave>::apply(allElementsOfTypeE, element);
 }
 
 #ifdef ENABLE_OPAL_FEL
-template <class ELEM>
-void SpecificElementVisitor<ELEM>::visitUndulator(const Undulator& element) {
+template<class ELEM>
+void SpecificElementVisitor<ELEM>::visitUndulator(const Undulator &element) {
     CastsTrait<ELEM, Undulator>::apply(allElementsOfTypeE, element);
 }
 #endif
 
-template <class ELEM>
-void SpecificElementVisitor<ELEM>::visitVacuum(const Vacuum& element) {
+template<class ELEM>
+void SpecificElementVisitor<ELEM>::visitVacuum(const Vacuum &element) {
     CastsTrait<ELEM, Vacuum>::apply(allElementsOfTypeE, element);
 }
 
-template <class ELEM>
-void SpecificElementVisitor<ELEM>::visitVariableRFCavity(const VariableRFCavity& element) {
+template<class ELEM>
+void SpecificElementVisitor<ELEM>::visitVariableRFCavity
+                                             (const VariableRFCavity &element) {
     CastsTrait<ELEM, VariableRFCavity>::apply(allElementsOfTypeE, element);
 }
 
-template <class ELEM>
-void SpecificElementVisitor<ELEM>::visitVariableRFCavityFringeField(
-    const VariableRFCavityFringeField& element) {
-    CastsTrait<ELEM, VariableRFCavityFringeField>::apply(allElementsOfTypeE, element);
+template<class ELEM>
+void SpecificElementVisitor<ELEM>::visitVariableRFCavityFringeField
+                                  (const VariableRFCavityFringeField &element) {
+    CastsTrait<ELEM, VariableRFCavityFringeField>::apply(allElementsOfTypeE,
+                                                         element);
 }
 
-template <class ELEM>
-void SpecificElementVisitor<ELEM>::visitVerticalFFAMagnet(const VerticalFFAMagnet& element) {
+template<class ELEM>
+void SpecificElementVisitor<ELEM>::visitVerticalFFAMagnet(const VerticalFFAMagnet &element) {
     CastsTrait<ELEM, VerticalFFAMagnet>::apply(allElementsOfTypeE, element);
 }
 
-template <class ELEM>
-size_t SpecificElementVisitor<ELEM>::size() const {
+template<class ELEM>
+size_t SpecificElementVisitor<ELEM>::size() const{
     return allElementsOfTypeE.size();
 }
 
-template <class ELEM>
-typename SpecificElementVisitor<ELEM>::iterator_t SpecificElementVisitor<ELEM>::begin() {
+template<class ELEM>
+typename SpecificElementVisitor<ELEM>::iterator_t SpecificElementVisitor<ELEM>::begin(){
     return allElementsOfTypeE.begin();
 }
 
-template <class ELEM>
-typename SpecificElementVisitor<ELEM>::const_iterator_t SpecificElementVisitor<ELEM>::begin()
-    const {
+template<class ELEM>
+typename SpecificElementVisitor<ELEM>::const_iterator_t SpecificElementVisitor<ELEM>::begin() const{
     return allElementsOfTypeE.begin();
 }
 
-template <class ELEM>
-typename SpecificElementVisitor<ELEM>::iterator_t SpecificElementVisitor<ELEM>::end() {
+template<class ELEM>
+typename SpecificElementVisitor<ELEM>::iterator_t SpecificElementVisitor<ELEM>::end(){
     return allElementsOfTypeE.end();
 }
 
-template <class ELEM>
-typename SpecificElementVisitor<ELEM>::const_iterator_t SpecificElementVisitor<ELEM>::end() const {
+template<class ELEM>
+typename SpecificElementVisitor<ELEM>::const_iterator_t SpecificElementVisitor<ELEM>::end() const{
     return allElementsOfTypeE.end();
 }
 
-template <class ELEM>
+template<class ELEM>
 typename SpecificElementVisitor<ELEM>::reference_t SpecificElementVisitor<ELEM>::front() {
     return allElementsOfTypeE.front();
 }
 
-template <class ELEM>
-typename SpecificElementVisitor<ELEM>::const_reference_t SpecificElementVisitor<ELEM>::front()
-    const {
+template<class ELEM>
+typename SpecificElementVisitor<ELEM>::const_reference_t SpecificElementVisitor<ELEM>::front() const{
     return allElementsOfTypeE.front();
 }
 

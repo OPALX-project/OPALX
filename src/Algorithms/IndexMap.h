@@ -23,8 +23,8 @@
 #ifndef OPAL_INDEXMAP_H
 #define OPAL_INDEXMAP_H
 
-#include <map>
 #include <ostream>
+#include <map>
 
 #include "AbsBeamline/Component.h"
 #include "Utilities/OpalException.h"
@@ -32,9 +32,12 @@
 #include <set>
 #include <utility>
 
-class IndexMap {
+
+class IndexMap
+{
 public:
-    struct Range {
+    struct Range
+    {
         typedef double first_type;
         typedef double second_type;
         first_type begin;
@@ -45,7 +48,7 @@ public:
 
     IndexMap();
 
-    void add(key_t::first_type initialStep, key_t::second_type finalStep, const value_t& val);
+    void add(key_t::first_type initialStep, key_t::second_type finalStep, const value_t &val);
 
     value_t query(key_t::first_type s, key_t::second_type ds);
 
@@ -56,16 +59,18 @@ public:
     size_t size() const;
 
     size_t numElements() const;
-    key_t getRange(const IndexMap::value_t::value_type& element, double position) const;
-    value_t getTouchingElements(const key_t& range) const;
+    key_t getRange(const IndexMap::value_t::value_type &element, double position) const;
+    value_t getTouchingElements(const key_t &range) const;
 
-    class OutOfBounds : public OpalException {
+    class OutOfBounds: public OpalException {
     public:
-        OutOfBounds(const std::string& meth, const std::string& msg) : OpalException(meth, msg) {}
+        OutOfBounds(const std::string &meth, const std::string &msg):
+            OpalException(meth, msg) { }
 
-        OutOfBounds(const OutOfBounds& rhs) : OpalException(rhs) {}
+        OutOfBounds(const OutOfBounds &rhs):
+            OpalException(rhs) { }
 
-        virtual ~OutOfBounds() {}
+        virtual ~OutOfBounds() { }
 
     private:
         OutOfBounds();
@@ -74,13 +79,12 @@ public:
 private:
     class myCompare {
     public:
-        bool operator()(const key_t x, const key_t y) const {
-            if (x.begin < y.begin)
-                return true;
+        bool operator()(const key_t x , const key_t y) const
+        {
+            if (x.begin < y.begin) return true;
 
             if (x.begin == y.begin) {
-                if (x.end < y.end)
-                    return true;
+                if (x.end < y.end) return true;
             }
 
             return false;
@@ -98,14 +102,20 @@ private:
     static const double oneMinusEpsilon_m;
 };
 
-inline size_t IndexMap::size() const { return mapRange2Element_m.size(); }
+inline
+size_t IndexMap::size() const {
+    return mapRange2Element_m.size();
+}
 
-inline std::ostream& operator<<(std::ostream& out, const IndexMap& im) {
+inline
+std::ostream& operator<< (std::ostream &out, const IndexMap &im)
+{
     im.print(out);
     return out;
 }
 
-inline Inform& operator<<(Inform& out, const IndexMap& im) {
+inline
+Inform& operator<< (Inform &out, const IndexMap &im) {
     im.print(out.getStream());
     return out;
 }

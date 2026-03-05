@@ -367,9 +367,12 @@ Option::Option(const std::string& name, Option* parent) : Action(name, parent) {
     Attributes::setBool(itsAttr[COMPUTEPERCENTILES], computePercentiles);
 }
 
-Option::~Option() {}
+Option::~Option() {
+}
 
-Option* Option::clone(const std::string& name) { return new Option(name, this); }
+Option* Option::clone(const std::string& name) {
+    return new Option(name, this);
+}
 
 void Option::execute() {
     // Store the option flags.

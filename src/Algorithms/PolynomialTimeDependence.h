@@ -45,7 +45,8 @@ public:
      *  @param ptd the polynomial coefficients p_i; can be of arbitrary length
      *  (user is responsible for issues like floating point precision).
      */
-    explicit PolynomialTimeDependence(const std::vector<double>& ptd) : coeffs(ptd) {}
+    explicit PolynomialTimeDependence(const std::vector<double>& ptd) : coeffs(ptd) {
+    }
 
     /** Default Constructor makes a 0 length polynomial */
     PolynomialTimeDependence() = default;
@@ -79,6 +80,8 @@ private:
     std::vector<double> coeffs;
 };
 
-inline Inform& operator<<(Inform& os, const PolynomialTimeDependence& p) { return p.print(os); }
+inline Inform& operator<<(Inform& os, const PolynomialTimeDependence& p) {
+    return p.print(os);
+}
 
 #endif

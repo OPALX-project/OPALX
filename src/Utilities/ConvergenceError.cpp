@@ -20,12 +20,20 @@
 
 #include "Utilities/ConvergenceError.h"
 
+
 // Class ConvergenceError
 // ------------------------------------------------------------------------
 
-ConvergenceError::ConvergenceError(const std::string& meth, const std::string& msg)
-    : ArithmeticError(meth, msg) {}
 
-ConvergenceError::ConvergenceError(const ConvergenceError& rhs) : ArithmeticError(rhs) {}
+ConvergenceError::ConvergenceError(const std::string &meth, const std::string &msg):
+    ArithmeticError(meth, msg)
+{}
 
-ConvergenceError::~ConvergenceError() {}
+
+ConvergenceError::ConvergenceError(const ConvergenceError &rhs):
+    ArithmeticError(rhs)
+{}
+
+
+ConvergenceError::~ConvergenceError()
+{}

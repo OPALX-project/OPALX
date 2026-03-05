@@ -21,6 +21,7 @@
 #include <ctime>
 #include <string>
 
+
 // Class Timer
 // ------------------------------------------------------------------------
 /// Timer class.
@@ -30,7 +31,9 @@
 namespace OPALTimer {
 
     class Timer {
+
     public:
+
         /// Constructor.
         //  Store the system clock time.
         Timer();
@@ -44,12 +47,13 @@ namespace OPALTimer {
         std::string time() const;
 
     private:
+
         // Not implemented.
-        Timer(const Timer&);
-        void operator=(const Timer&);
+        Timer(const Timer &);
+        void operator=(const Timer &);
 
         time_t timer;
     };
 
-}  // namespace OPALTimer
-#endif  // OPAL_Timer_HH
+}
+#endif // OPAL_Timer_HH

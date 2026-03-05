@@ -19,8 +19,8 @@
 #include "Structure/SDDSWriter.h"
 
 #include "AbstractObjects/OpalData.h"
-#include "OPALconfig.h"
 #include "PartBunch/PartBunch.h"
+#include "OPALconfig.h"
 #include "Utilities/SDDSParser.h"
 #include "Utilities/Util.h"
 
@@ -36,7 +36,7 @@ SDDSWriter::SDDSWriter(const std::string& fname, bool restart)
 
     if (fs::exists(fname_m) && restart) {
         mode_m = std::ios::app;
-        *gmsg << "* Appending data to existing data file: '" << fname_m << "'" << endl;
+        *gmsg<< "* Appending data to existing data file: '" << fname_m << "'" << endl;
     } else {
         *gmsg << "* Creating new file for data: '" << fname_m << "'" << endl;
     }
@@ -177,7 +177,9 @@ void SDDSWriter::writeParameters() {
     }
 }
 
-void SDDSWriter::writeColumns() { columns_m.writeHeader(os_m, indent_m); }
+void SDDSWriter::writeColumns() {
+    columns_m.writeHeader(os_m, indent_m);
+}
 
 void SDDSWriter::writeInfo() {
     os_m << "&data\n"

@@ -19,8 +19,8 @@
 
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
-#include "OpalParser/FileStream.h"
 #include "OpalParser/OpalParser.h"
+#include "OpalParser/FileStream.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
 #include "Utility/IpplInfo.h"
@@ -29,30 +29,43 @@
 
 extern Inform* gmsg;
 
-Call::Call()
-    : Action(
-          1, "CALL",
-          "The \"CALL\" statement switches input temporarily to the "
-          "named file.") {
-    itsAttr[0] = Attributes::makeString("FILE", "Name of file to be read", "CALL");
+Call::Call():
+    Action(1, "CALL",
+           "The \"CALL\" statement switches input temporarily to the "
+           "named file.") {
+    itsAttr[0] = Attributes::makeString
+                 ("FILE", "Name of file to be read", "CALL");
 
     registerOwnership(AttributeHandler::STATEMENT);
 }
 
-Call::Call(const std::string& name, Call* parent) : Action(name, parent) {}
 
-Call::~Call() {}
+Call::Call(const std::string& name, Call* parent):
+    Action(name, parent)
+{}
 
-Call* Call::clone(const std::string& name) { return new Call(name, this); }
+
+Call::~Call()
+{}
+
+
+Call* Call::clone(const std::string& name) {
+    return new Call(name, this);
+}
+
 
 void Call::execute() {
     std::string file = Attributes::getString(itsAttr[0]);
 
     if (Options::info && ippl::Comm->rank() == 0) {
-        *gmsg << "* Reading input stream '" << file << "' from \"CALL\" command.\n" << endl;
+        *gmsg << "* Reading input stream '" << file
+              << "' from \"CALL\" command.\n" << endl;
     }
 
     OpalParser().run(new FileStream(file));
 }
 
-void Call::parse(Statement& statement) { parseShortcut(statement); }
+
+void Call::parse(Statement& statement) {
+    parseShortcut(statement);
+}

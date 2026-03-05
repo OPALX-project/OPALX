@@ -20,11 +20,20 @@
 
 #include "Utilities/DivideError.h"
 
+
 // Class DivideError
 // ------------------------------------------------------------------------
 
-DivideError::DivideError(const std::string& method) : ArithmeticError(method, "Divide error.") {}
 
-DivideError::DivideError(const DivideError& rhs) : ArithmeticError(rhs) {}
+DivideError::DivideError(const std::string &method):
+    ArithmeticError(method, "Divide error.")
+{}
 
-DivideError::~DivideError() {}
+
+DivideError::DivideError(const DivideError &rhs):
+    ArithmeticError(rhs)
+{}
+
+
+DivideError::~DivideError()
+{}

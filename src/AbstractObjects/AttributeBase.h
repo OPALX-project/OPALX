@@ -18,9 +18,9 @@
 //
 // ------------------------------------------------------------------------
 
-#include <cstring>
-#include <iosfwd>
 #include "AbstractObjects/Invalidator.h"
+#include <iosfwd>
+#include <cstring>
 
 // Class AttributeBase
 // ------------------------------------------------------------------------
@@ -28,14 +28,16 @@
 //  The various derived classes contain the actual values, notably the
 //  template classes SValue<T> for scalars and AValue<T> for arrays.
 
-class AttributeBase : public Invalidator {
+class AttributeBase: public Invalidator {
+
 public:
+
     AttributeBase();
     virtual ~AttributeBase();
 
     /// Make clone.
     //  Construct an exact copy of the value.
-    virtual AttributeBase* clone() const = 0;
+    virtual AttributeBase *clone() const = 0;
 
     /// Convert to string.
     //  Uses [b]print()[/b] to convert the input expression for the attribute
@@ -49,12 +51,13 @@ public:
     /// Print value.
     //  Print the value on the given output stream.
     //  The result allows reconstruction of any expression.
-    virtual void print(std::ostream&) const = 0;
+    virtual void print(std::ostream &) const = 0;
 
 private:
+
     // Not implemented.
-    AttributeBase(AttributeBase&);
-    void operator=(AttributeBase&);
+    AttributeBase(AttributeBase &);
+    void operator=(AttributeBase &);
 };
 
-#endif  // OPAL_AttributeBase_HH
+#endif // OPAL_AttributeBase_HH

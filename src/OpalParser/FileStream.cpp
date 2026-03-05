@@ -36,11 +36,16 @@ FileStream::FileStream(const std::string& name) : AbsFileStream(name), is(name.c
     }
 }
 
-FileStream::~FileStream() {}
+FileStream::~FileStream() {
+}
 
-void FileStream::setEcho(bool flag) { echoFlag = flag; }
+void FileStream::setEcho(bool flag) {
+    echoFlag = flag;
+}
 
-bool FileStream::getEcho() { return echoFlag; }
+bool FileStream::getEcho() {
+    return echoFlag;
+}
 
 bool FileStream::fillLine() {
     if (is.eof()) {

@@ -7,18 +7,19 @@
 #include <Kokkos_MathematicalConstants.hpp>
 #include <Kokkos_MathematicalFunctions.hpp>
 #include <Kokkos_Random.hpp>
-#include <chrono>
 #include <csignal>
-#include <iostream>
 #include <random>
 #include <set>
 #include <string>
 #include <thread>
 #include <vector>
+#include <chrono>
+#include <iostream>
+#include <string>
 
+#include "PartBunch/datatypes.h"
 #include "Manager/PicManager.h"
 #include "PartBunch/PartBunch.h"
-#include "PartBunch/datatypes.h"
 
 using PartBunch_t = PartBunch<double, 3>;
 

@@ -21,24 +21,28 @@
 #include "Structure/SDDSColumn.h"
 #include "Utilities/OpalException.h"
 
-#include <map>
-#include <ostream>
 #include <string>
+#include <ostream>
 #include <vector>
+#include <map>
 
 class SDDSColumnSet {
 public:
     SDDSColumnSet();
 
-    void addColumn(
-        const std::string& name, const std::string& type, const std::string& unit,
-        const std::string& desc, std::ios_base::fmtflags flags = std::ios_base::scientific,
-        unsigned short precision = 15);
+    void addColumn(const std::string& name,
+                   const std::string& type,
+                   const std::string& unit,
+                   const std::string& desc,
+                   std::ios_base::fmtflags flags = std::ios_base::scientific,
+                   unsigned short precision = 15);
 
-    template <typename T>
-    void addColumnValue(const std::string& name, const T& val);
+    template<typename T>
+    void addColumnValue(const std::string& name,
+                        const T& val);
 
-    void writeHeader(std::ostream& os, const std::string& indent) const;
+    void writeHeader(std::ostream& os,
+                     const std::string& indent) const;
 
     void writeRow(std::ostream& os) const;
 
@@ -49,20 +53,31 @@ private:
     std::map<std::string, size_t> name2idx_m;
 };
 
-inline SDDSColumnSet::SDDSColumnSet() {}
 
-template <typename T>
-void SDDSColumnSet::addColumnValue(const std::string& name, const T& val) {
+inline
+SDDSColumnSet::SDDSColumnSet()
+{ }
+
+
+template<typename T>
+void SDDSColumnSet::addColumnValue(const std::string& name,
+                                   const T& val) {
+
     auto it = name2idx_m.find(name);
     if (it == name2idx_m.end()) {
-        throw OpalException(
-            "SDDSColumnSet::addColumnValue", "column name '" + name + "' doesn't exists");
+        throw OpalException("SDDSColumnSet::addColumnValue",
+                            "column name '" + name + "' doesn't exists");
     }
 
-    auto& col = columns_m[it->second];
+    auto & col = columns_m[it->second];
     col.addValue(val);
 }
 
-inline bool SDDSColumnSet::hasColumns() const { return !name2idx_m.empty(); }
+
+inline
+bool SDDSColumnSet::hasColumns() const {
+    return !name2idx_m.empty();
+}
+
 
 #endif

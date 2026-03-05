@@ -25,12 +25,15 @@
 //
 // ------------------------------------------------------------------------
 
+
 // Class Point3D
 // ------------------------------------------------------------------------
 /// A point in 3 dimensions.
 
 class Point3D {
+
 public:
+
     /// Constructor.
     //  Construct the point from its coordinates (x,y,z) in m.
     Point3D(double x, double y, double z);
@@ -48,15 +51,19 @@ public:
     double getZ() const;
 
 private:
+
     double x, y, z;
 };
+
 
 // Class EVector
 // ------------------------------------------------------------------------
 /// An electric field vector.
 
 class EVector {
+
 public:
+
     /// Constructor.
     //  Construct the field vector from is components (Ex,Ey,Ez) in A/m.
     EVector(double, double, double);
@@ -78,15 +85,19 @@ public:
     double getEz() const;
 
 private:
+
     double Ex, Ey, Ez;
 };
+
 
 // Class BVector
 // ------------------------------------------------------------------------
 /// A magnetic field vector.
 
 class BVector {
+
 public:
+
     /// Constructor.
     //  Construct the field vector from its components (Bx,By,Bz) in T.
     BVector(double, double, double);
@@ -108,8 +119,10 @@ public:
     double getBz() const;
 
 private:
+
     double Bx, By, Bz;
 };
+
 
 // Class EBVectors
 // ------------------------------------------------------------------------
@@ -118,11 +131,13 @@ private:
 //  These represent the instantaneous electromagnetic field in a given point.
 
 class EBVectors {
+
 public:
+
     /// Constructor.
     //  Construct the field from the two field vectors [b]E[/b] (in A/m)
     //  and [b]B[/b] (in T).
-    EBVectors(const EVector& E, const BVector& B);
+    EBVectors(const EVector &E, const BVector &B);
 
     /// Get component.
     //  Return the electric field vector in A/m.
@@ -157,9 +172,11 @@ public:
     double getBz() const;
 
 private:
+
     EVector E;
     BVector B;
 };
+
 
 // Class EMField
 // ------------------------------------------------------------------------
@@ -169,44 +186,46 @@ private:
 //  spatially homogeneous fields.
 
 class EMField {
+
 public:
+
     /// Default constructor.
     //  Construct zero field.
     EMField();
 
-    EMField(const EMField& right);
+    EMField(const EMField &right);
     virtual ~EMField();
-    const EMField& operator=(const EMField& right);
+    const EMField &operator=(const EMField &right);
 
     /// Get field.
     //  Return the time-independent part of the electric field in point [b]P[/b].
     //  This default action returns a zero field.
-    virtual EVector Efield(const Point3D& P) const;
+    virtual EVector Efield(const Point3D &P) const;
 
     /// Get field.
     //  Return the time-independent part of the magnetic field in point [b]P[/b].
     //  This default action returns a zero field.
-    virtual BVector Bfield(const Point3D& P) const;
+    virtual BVector Bfield(const Point3D &P) const;
 
     /// Get field.
     //  Return the electric field at time [b]t[/b] in point [b]P[/b].
     //  This default action returns the static part  EField(P).
-    virtual EVector Efield(const Point3D& P, double t) const;
+    virtual EVector Efield(const Point3D &P, double t) const;
 
     /// Get field.
     //  Return the magnetic field at time [b]t[/b] in point [b]P[/b].
     //  This default action returns the static part  BField(P).
-    virtual BVector Bfield(const Point3D& P, double t) const;
+    virtual BVector Bfield(const Point3D &P, double t) const;
 
     /// Get field.
     //  Return the static part of the field pair (E,B) in point [b]P[/b].
     //  This default action returns  EBVectors(EField(P), BField(P)).
-    virtual EBVectors EBfield(const Point3D& P) const;
+    virtual EBVectors EBfield(const Point3D &P) const;
 
     /// Get field.
     //  Return the field pair (E,B) at time [b]t[/b] in point [b]P[/b].
     //  This default action returns the static part  EBfield(P).
-    virtual EBVectors EBfield(const Point3D& P, double t) const;
+    virtual EBVectors EBfield(const Point3D &P, double t) const;
 
     /// Scale the field.
     //  Multiply the field by [b]scalar[/b].
@@ -223,4 +242,4 @@ public:
     static const EBVectors ZeroEBfield;
 };
 
-#endif  // CLASSIC_EMField_HH
+#endif // CLASSIC_EMField_HH

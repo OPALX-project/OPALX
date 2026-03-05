@@ -8,10 +8,12 @@
 
 BinningCmd::BinningCmd()
     : Definition(
-          BINNING::SIZE, "BINNING",
-          "The \"BINNING\" statement defines adaptive binning parameters."),
-      parameterName_m("VELOCITYZ"),
-      parameterType_m(BinningParameter::VELOCITYZ) {
+          BINNING::SIZE,
+          "BINNING",
+          "The \"BINNING\" statement defines adaptive binning parameters.")
+    , parameterName_m("VELOCITYZ")
+    , parameterType_m(BinningParameter::VELOCITYZ) {
+
     itsAttr[BINNING::MAXBINS] = Attributes::makeReal(
         "MAXBINS",
         "The maximum number of bins used for adaptive binning. "
@@ -37,18 +39,24 @@ BinningCmd::BinningCmd()
         1.5);
 
     itsAttr[BINNING::PARAMETER] = Attributes::makePredefinedString(
-        "PARAMETER", "The bunch attribute used for binning.",
-        {"VELOCITYZ", "POSITIONZ", "PZ", "GAMMAZ"}, "VELOCITYZ");
+        "PARAMETER",
+        "The bunch attribute used for binning.",
+        {"VELOCITYZ", "POSITIONZ", "PZ", "GAMMAZ"},
+        "VELOCITYZ");
 }
 
 BinningCmd::BinningCmd(const std::string& name, BinningCmd* parent)
-    : Definition(name, parent),
-      parameterName_m(parent->parameterName_m),
-      parameterType_m(parent->parameterType_m) {}
+    : Definition(name, parent)
+    , parameterName_m(parent->parameterName_m)
+    , parameterType_m(parent->parameterType_m) {
+}
 
-BinningCmd::~BinningCmd() {}
+BinningCmd::~BinningCmd() {
+}
 
-BinningCmd* BinningCmd::clone(const std::string& name) { return new BinningCmd(name, this); }
+BinningCmd* BinningCmd::clone(const std::string& name) {
+    return new BinningCmd(name, this);
+}
 
 BinningCmd* BinningCmd::find(const std::string& name) {
     BinningCmd* bc = dynamic_cast<BinningCmd*>(OpalData::getInstance()->find(name));
@@ -79,14 +87,14 @@ void BinningCmd::setParameterType() {
     static const std::map<std::string, BinningParameter> stringToParam = {
         {"VELOCITYZ", BinningParameter::VELOCITYZ},
         {"POSITIONZ", BinningParameter::POSITIONZ},
-        {"PZ", BinningParameter::PZ},
-        {"GAMMAZ", BinningParameter::GAMMAZ}};
+        {"PZ",        BinningParameter::PZ},
+        {"GAMMAZ",    BinningParameter::GAMMAZ}
+    };
 
     auto it = stringToParam.find(parameterName_m);
     if (it == stringToParam.end()) {
-        throw OpalException(
-            "BinningCmd::setParameterType",
-            "Unknown binning PARAMETER \"" + parameterName_m + "\"");
+        throw OpalException("BinningCmd::setParameterType",
+                            "Unknown binning PARAMETER \"" + parameterName_m + "\"");
     }
 
     parameterType_m = it->second;
@@ -127,4 +135,7 @@ std::string BinningCmd::getParameter() {
     return Attributes::getString(itsAttr[BINNING::PARAMETER]);
 }
 
-BinningParameter BinningCmd::getParameterType() const { return parameterType_m; }
+BinningParameter BinningCmd::getParameterType() const {
+    return parameterType_m;
+}
+

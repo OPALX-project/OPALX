@@ -52,9 +52,9 @@ namespace {
 
 Beam::Beam()
     : Definition(
-          SIZE, "BEAM",
-          "The \"BEAM\" statement defines data for the particles "
-          "in a beam."),
+        SIZE, "BEAM",
+        "The \"BEAM\" statement defines data for the particles "
+        "in a beam."),
       reference(1.0, Physics::m_p * Units::GeV2eV, 1.0 * Units::GeV2eV) {
     itsAttr[PARTICLE] = Attributes::makePredefinedString(
         "PARTICLE", "Name of particle to be used",
@@ -92,16 +92,20 @@ Beam::Beam()
 }
 
 Beam::Beam(const std::string& name, Beam* parent)
-    : Definition(name, parent), reference(parent->reference) {}
+    : Definition(name, parent), reference(parent->reference) {
+}
 
-Beam::~Beam() {}
+Beam::~Beam() {
+}
 
 bool Beam::canReplaceBy(Object* object) {
     // Can replace only by another BEAM.
     return dynamic_cast<Beam*>(object) != 0;
 }
 
-Beam* Beam::clone(const std::string& name) { return new Beam(name, this); }
+Beam* Beam::clone(const std::string& name) {
+    return new Beam(name, this);
+}
 
 void Beam::execute() {
     update();
@@ -151,20 +155,32 @@ const PartData& Beam::getReference() const {
     return reference;
 }
 
-double Beam::getCurrent() const { return Attributes::getReal(itsAttr[BCURRENT]); }
+double Beam::getCurrent() const {
+    return Attributes::getReal(itsAttr[BCURRENT]);
+}
 
-double Beam::getCharge() const { return Attributes::getReal(itsAttr[CHARGE]); }
+double Beam::getCharge() const {
+    return Attributes::getReal(itsAttr[CHARGE]);
+}
 
-double Beam::getMass() const { return Attributes::getReal(itsAttr[MASS]); }
+double Beam::getMass() const {
+    return Attributes::getReal(itsAttr[MASS]);
+}
 
-double Beam::getMomentum() const { return reference.getP() / 1.e9; }
+double Beam::getMomentum() const {
+    return reference.getP()/1.e9;
+}
 
-std::string Beam::getParticleName() const { return Attributes::getString(itsAttr[PARTICLE]); }
+std::string Beam::getParticleName() const {
+    return Attributes::getString(itsAttr[PARTICLE]);
+}
 
-double Beam::getFrequency() const { return Attributes::getReal(itsAttr[BFREQ]); }
+double Beam::getFrequency() const {
+    return Attributes::getReal(itsAttr[BFREQ]);
+}
 
 double Beam::getChargePerParticle() const {
-    return std::copysign(1.0, getCharge()) * getCurrent() / (getFrequency() * Units::MHz2Hz)
+    return std::copysign(1.0, getCharge()) * getCurrent() / (getFrequency() * Units::MHz2Hz) 
            / getNumberOfParticles();
 }
 

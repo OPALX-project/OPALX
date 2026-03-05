@@ -18,11 +18,16 @@
 #ifndef STEPPERS_H
 #define STEPPERS_H
 
-#include "Steppers/LF2.h"
 #include "Steppers/RK4.h"
+#include "Steppers/LF2.h"
 
 namespace Steppers {
-    enum TimeIntegrator : short { UNDEFINED = -1, RK4 = 0, LF2 = 1, MTS = 2 };
+    enum TimeIntegrator: short {
+        UNDEFINED   = -1,
+        RK4         = 0,
+        LF2         = 1,
+        MTS         = 2
+    };
 };
 
 #endif

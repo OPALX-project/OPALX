@@ -25,6 +25,7 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
+
 #ifndef OPAL_ELEMENTS_OpalOffset_OpalGlobalCartesianOffset_HH
 #define OPAL_ELEMENTS_OpalOffset_OpalGlobalCartesianOffset_HH
 
@@ -36,49 +37,49 @@
  */
 namespace OpalOffset {
 
-    /** OpalGlobalCartesianOffset provides classes for making offsets between
-     *  elements in a ring geometry; only condition is that they must be in the
-     *  midplane
-     */
-    class OpalGlobalCartesianOffset : public OpalElement {
-    public:
-        /** Enumeration maps to UI parameters */
-        enum {
-            END_POSITION_X = COMMON,
-            END_POSITION_Y,
-            END_NORMAL_X,
-            END_NORMAL_Y,
-            SIZE  // size of the enum
-        };
-
-        /** Define mapping from enum variables to string UI parameter names */
-        OpalGlobalCartesianOffset();
-
-        /** No memory allocated so does nothing */
-        virtual ~OpalGlobalCartesianOffset();
-
-        /** Inherited copy constructor */
-        virtual OpalGlobalCartesianOffset* clone(const std::string& name);
-
-        /** Receive parameters from the parser and hand them off to the
-         *  OpalCylindricalOffset
-         */
-        void update();
-
-        /** Calls print on the OpalElement */
-        virtual void print(std::ostream&) const;
-
-    private:
-        // Not implemented.
-        OpalGlobalCartesianOffset(const OpalGlobalCartesianOffset&);
-        void operator=(const OpalGlobalCartesianOffset&);
-
-        // Clone constructor.
-        OpalGlobalCartesianOffset(const std::string& name, OpalGlobalCartesianOffset* parent);
-
-        static const std::string doc_string;
+/** OpalGlobalCartesianOffset provides classes for making offsets between
+ *  elements in a ring geometry; only condition is that they must be in the
+ *  midplane
+ */
+class OpalGlobalCartesianOffset : public OpalElement {
+  public:
+    /** Enumeration maps to UI parameters */
+    enum {
+        END_POSITION_X = COMMON,
+        END_POSITION_Y,
+        END_NORMAL_X,
+        END_NORMAL_Y,
+        SIZE // size of the enum
     };
 
-}  // namespace OpalOffset
+    /** Define mapping from enum variables to string UI parameter names */
+    OpalGlobalCartesianOffset();
 
-#endif  // #define OPAL_ELEMENTS_OpalOffset_OpalGlobalCartesianOffset_HH
+    /** No memory allocated so does nothing */
+    virtual ~OpalGlobalCartesianOffset();
+
+    /** Inherited copy constructor */
+    virtual OpalGlobalCartesianOffset *clone(const std::string &name);
+
+    /** Receive parameters from the parser and hand them off to the
+     *  OpalCylindricalOffset
+     */
+    void update();
+
+    /** Calls print on the OpalElement */
+    virtual void print(std::ostream &) const;
+  private:
+    // Not implemented.
+    OpalGlobalCartesianOffset(const OpalGlobalCartesianOffset &);
+    void operator=(const OpalGlobalCartesianOffset &);
+
+    // Clone constructor.
+    OpalGlobalCartesianOffset(const std::string &name,
+                                 OpalGlobalCartesianOffset *parent);
+
+    static const std::string doc_string;
+};
+
+}
+
+#endif // #define OPAL_ELEMENTS_OpalOffset_OpalGlobalCartesianOffset_HH

@@ -25,23 +25,29 @@
 
 using namespace Expressions;
 
+
 // Class Reference
 // ------------------------------------------------------------------------
 
 namespace Attributes {
 
-    Reference::Reference(const std::string& name, const std::string& help)
-        : AttributeHandler(name, help, 0) {}
+    Reference::Reference(const std::string &name, const std::string &help):
+        AttributeHandler(name, help, 0)
+    {}
 
-    Reference::~Reference() {}
 
-    const std::string& Reference::getType() const {
+    Reference::~Reference()
+    {}
+
+
+    const std::string &Reference::getType() const {
         static const std::string type("reference");
         return type;
     }
 
-    void Reference::parse(Attribute& attr, Statement& stat, bool) const {
-        attr.set(new SValue<SRefAttr<double> >(*parseReference(stat)));
+
+    void Reference::parse(Attribute &attr, Statement &stat, bool) const {
+        attr.set(new SValue < SRefAttr<double> > (*parseReference(stat)));
     }
 
-};  // namespace Attributes
+};

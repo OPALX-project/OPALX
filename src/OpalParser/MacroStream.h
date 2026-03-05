@@ -18,25 +18,28 @@
 //
 // ------------------------------------------------------------------------
 
-#include <list>
-#include "OpalParser/Token.h"
 #include "OpalParser/TokenStream.h"
+#include "OpalParser/Token.h"
+#include <list>
+
 
 // Class MacroStream
 // ------------------------------------------------------------------------
 /// An input buffer for macro commands.
 //  This list of tokens stores a macro template or instantiation.
 
-class MacroStream : public TokenStream {
+class MacroStream: public TokenStream {
+
 public:
+
     /// Constructor.
     //  Assign the macro name as a buffer name.
-    MacroStream(const std::string&);
+    MacroStream(const std::string &);
 
     virtual ~MacroStream();
 
     /// Append a token to the stream.
-    void append(Token&);
+    void append(Token &);
 
     /// Read a token from the stream.
     virtual Token readToken();
@@ -45,10 +48,11 @@ public:
     void start();
 
 private:
+
     // Not implemented.
     MacroStream();
-    MacroStream(const MacroStream&);
-    void operator=(const MacroStream&);
+    MacroStream(const MacroStream &);
+    void operator=(const MacroStream &);
 
     // The list of tokens.
     typedef std::list<Token> TokenList;
@@ -56,4 +60,4 @@ private:
     TokenList::iterator curr;
 };
 
-#endif  // CLASSIC_MacroStream_HH
+#endif // CLASSIC_MacroStream_HH

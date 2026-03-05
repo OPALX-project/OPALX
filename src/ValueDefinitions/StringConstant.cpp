@@ -27,10 +27,10 @@
 
 StringConstant::StringConstant()
     : ValueDefinition(
-          1, "STRING_CONSTANT",
-          "The \"STRING CONSTANT\" statement defines a global "
-          "string constant:\n"
-          "\tSTRING CONSTANT <name> = <String-expression>;\n") {
+        1, "STRING_CONSTANT",
+        "The \"STRING CONSTANT\" statement defines a global "
+        "string constant:\n"
+        "\tSTRING CONSTANT <name> = <String-expression>;\n") {
     itsAttr[0] = Attributes::makeString("VALUE", "The constant value");
 
     registerOwnership(AttributeHandler::STATEMENT);
@@ -219,7 +219,8 @@ StringConstant::StringConstant()
 }
 
 StringConstant::StringConstant(const std::string& name, StringConstant* parent)
-    : ValueDefinition(name, parent) {}
+    : ValueDefinition(name, parent) {
+}
 
 StringConstant::StringConstant(
     const std::string& name, StringConstant* parent, const std::string& value)
@@ -229,19 +230,26 @@ StringConstant::StringConstant(
     builtin = true;
 }
 
-StringConstant::~StringConstant() {}
+StringConstant::~StringConstant() {
+}
 
-bool StringConstant::canReplaceBy(Object*) { return false; }
+bool StringConstant::canReplaceBy(Object*) {
+    return false;
+}
 
 StringConstant* StringConstant::clone(const std::string& name) {
     return new StringConstant(name, this);
 }
 
-std::string StringConstant::getString() const { return Attributes::getString(itsAttr[0]); }
+std::string StringConstant::getString() const {
+    return Attributes::getString(itsAttr[0]);
+}
 
 void StringConstant::print(std::ostream& os) const {
     os << "STRING " << getOpalName() << '=' << itsAttr[0] << ';';
     os << std::endl;
 }
 
-void StringConstant::printValue(std::ostream& os) const { os << itsAttr[0]; }
+void StringConstant::printValue(std::ostream& os) const {
+    os << itsAttr[0];
+}

@@ -48,7 +48,9 @@ namespace Util {
         return std::sqrt(dotP + 1.0);
     }
 
-    inline ippl::Vector<double, 3> getBeta(ippl::Vector<double, 3> p) { return p / getGamma(p); }
+    inline ippl::Vector<double, 3> getBeta(ippl::Vector<double, 3> p) {
+        return p / getGamma(p);
+    }
 
     inline double getKineticEnergy(ippl::Vector<double, 3> p, double mass) {
         return (getGamma(p) - 1.0) * mass;
@@ -61,7 +63,9 @@ namespace Util {
         return value;
     }
 
-    inline double convertMomentumEVoverCToBetaGamma(double p, double mass) { return p / mass; }
+    inline double convertMomentumEVoverCToBetaGamma(double p, double mass) {
+        return p / mass;
+    }
 
     inline std::string getTimeString(double time, unsigned int precision = 3) {
         std::string timeUnit(" [ps]");

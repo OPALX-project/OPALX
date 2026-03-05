@@ -44,11 +44,14 @@ OpalSinusoidalTimeDependence* OpalSinusoidalTimeDependence::clone(const std::str
     return new OpalSinusoidalTimeDependence(name, this);
 }
 
-void OpalSinusoidalTimeDependence::print(std::ostream& out) const { OpalElement::print(out); }
+void OpalSinusoidalTimeDependence::print(std::ostream& out) const {
+    OpalElement::print(out);
+}
 
 OpalSinusoidalTimeDependence::OpalSinusoidalTimeDependence(
     const std::string& name, OpalSinusoidalTimeDependence* parent)
-    : OpalElement(name, parent) {}
+    : OpalElement(name, parent) {
+}
 
 void OpalSinusoidalTimeDependence::update() {
     AbstractTimeDependence::setTimeDependence(

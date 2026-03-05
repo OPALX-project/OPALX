@@ -27,7 +27,7 @@
 #include <vector>
 
 namespace interpolation {
-    class NDGrid;
+  class NDGrid;
 }
 class Component;
 
@@ -51,7 +51,8 @@ class Component;
  *  and looking up the field/writing it out on each grid point.
  *
  */
-class DumpEMFields : public Action {
+class DumpEMFields: public Action {
+
 public:
     /// The common attributes of DumpEMFields.
     enum {
@@ -123,16 +124,21 @@ public:
     void print(std::ostream& os) const;
 
 private:
-    enum class CoordinateSystem : unsigned short { CARTESIAN, CYLINDRICAL };
+
+    enum class CoordinateSystem: unsigned short {
+        CARTESIAN,
+        CYLINDRICAL
+    };
 
     virtual void writeFieldThis(Component* field);
     virtual void buildGrid();
     void parseCoordinateSystem();
     static void checkInt(double value, std::string name, double tolerance = 1e-9);
     void writeHeader(std::ofstream& fout) const;
-    void writeFieldLine(
-        Component* field, const Vector_t<double, 3>& point, const double& time,
-        std::ofstream& fout) const;
+    void writeFieldLine(Component* field,
+                        const Vector_t<double, 3>& point,
+                        const double& time,
+                        std::ofstream& fout) const;
 
     interpolation::NDGrid* grid_m;
     std::string filename_m;
@@ -141,7 +147,7 @@ private:
 
     static std::unordered_set<DumpEMFields*> dumpsSet_m;
 
-    DumpEMFields(const DumpEMFields& dump);             // disabled
+    DumpEMFields(const DumpEMFields& dump);  // disabled
     DumpEMFields& operator=(const DumpEMFields& dump);  // disabled
 };
 
@@ -150,4 +156,4 @@ inline std::ostream& operator<<(std::ostream& os, const DumpEMFields& b) {
     return os;
 }
 
-#endif  // ifdef OPAL_DUMPFIELDS_HH
+#endif // ifdef OPAL_DUMPFIELDS_HH

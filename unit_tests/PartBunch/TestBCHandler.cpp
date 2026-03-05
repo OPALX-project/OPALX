@@ -3,18 +3,20 @@
 #include <memory>
 #include <sstream>
 
-#include "Ippl.h"
 #include "PartBunch/BCHandler.hpp"
+#include "Ippl.h"
 
 class BCHandlerTest : public ::testing::Test {
 protected:
     static void SetUpTestSuite() {
-        int argc    = 0;
+        int argc = 0;
         char** argv = nullptr;
         ippl::initialize(argc, argv);
     }
 
-    static void TearDownTestSuite() { ippl::finalize(); }
+    static void TearDownTestSuite() {
+        ippl::finalize();
+    }
 
     void SetUp() override {
         // Nothing special needed for BCHandler tests
@@ -62,22 +64,28 @@ TEST_F(BCHandlerTest, strToBCTypeInvalid) {
 // ============================================================================
 
 TEST_F(BCHandlerTest, VariadicConstructor3D_AllOPEN) {
-    BCHandler<3> handler(BCHandler<3>::OPEN, BCHandler<3>::OPEN, BCHandler<3>::OPEN);
-
+    BCHandler<3> handler(BCHandler<3>::OPEN, 
+                        BCHandler<3>::OPEN, 
+                        BCHandler<3>::OPEN);
+    
     EXPECT_TRUE(handler.isAll(BCHandler<3>::OPEN));
     EXPECT_FALSE(handler.isAll(BCHandler<3>::PERIODIC));
 }
 
 TEST_F(BCHandlerTest, VariadicConstructor3D_AllPERIODIC) {
-    BCHandler<3> handler(BCHandler<3>::PERIODIC, BCHandler<3>::PERIODIC, BCHandler<3>::PERIODIC);
-
+    BCHandler<3> handler(BCHandler<3>::PERIODIC, 
+                        BCHandler<3>::PERIODIC, 
+                        BCHandler<3>::PERIODIC);
+    
     EXPECT_TRUE(handler.isAll(BCHandler<3>::PERIODIC));
     EXPECT_FALSE(handler.isAll(BCHandler<3>::OPEN));
 }
 
 TEST_F(BCHandlerTest, VariadicConstructor3D_Mixed) {
-    BCHandler<3> handler(BCHandler<3>::OPEN, BCHandler<3>::PERIODIC, BCHandler<3>::DIRICHLET);
-
+    BCHandler<3> handler(BCHandler<3>::OPEN, 
+                        BCHandler<3>::PERIODIC, 
+                        BCHandler<3>::DIRICHLET);
+    
     EXPECT_FALSE(handler.isAll(BCHandler<3>::OPEN));
     EXPECT_FALSE(handler.isAll(BCHandler<3>::PERIODIC));
     EXPECT_FALSE(handler.isAll(BCHandler<3>::DIRICHLET));
@@ -102,10 +110,12 @@ TEST_F(BCHandlerTest, VariadicConstructorWrongNumberOfArgs) {
 }
 
 TEST_F(BCHandlerTest, CopyConstructor) {
-    BCHandler<3> handler1(BCHandler<3>::OPEN, BCHandler<3>::PERIODIC, BCHandler<3>::DIRICHLET);
-
+    BCHandler<3> handler1(BCHandler<3>::OPEN, 
+                         BCHandler<3>::PERIODIC, 
+                         BCHandler<3>::DIRICHLET);
+    
     BCHandler<3> handler2 = handler1;
-
+    
     EXPECT_TRUE(handler2.isAll(BCHandler<3>::OPEN) == false);
     EXPECT_TRUE(handler1.isAll(BCHandler<3>::OPEN) == handler2.isAll(BCHandler<3>::OPEN));
 }
@@ -115,14 +125,18 @@ TEST_F(BCHandlerTest, CopyConstructor) {
 // ============================================================================
 
 TEST_F(BCHandlerTest, isAllReturnsTrueWhenAllMatch) {
-    BCHandler<3> handler(BCHandler<3>::OPEN, BCHandler<3>::OPEN, BCHandler<3>::OPEN);
-
+    BCHandler<3> handler(BCHandler<3>::OPEN, 
+                        BCHandler<3>::OPEN, 
+                        BCHandler<3>::OPEN);
+    
     EXPECT_TRUE(handler.isAll(BCHandler<3>::OPEN));
 }
 
 TEST_F(BCHandlerTest, isAllReturnsFalseWhenNotAllMatch) {
-    BCHandler<3> handler(BCHandler<3>::OPEN, BCHandler<3>::PERIODIC, BCHandler<3>::OPEN);
-
+    BCHandler<3> handler(BCHandler<3>::OPEN, 
+                        BCHandler<3>::PERIODIC, 
+                        BCHandler<3>::OPEN);
+    
     EXPECT_FALSE(handler.isAll(BCHandler<3>::OPEN));
     EXPECT_FALSE(handler.isAll(BCHandler<3>::PERIODIC));
     EXPECT_FALSE(handler.isAll(BCHandler<3>::DIRICHLET));
@@ -131,11 +145,13 @@ TEST_F(BCHandlerTest, isAllReturnsFalseWhenNotAllMatch) {
 TEST_F(BCHandlerTest, isAllForMultipleDimensions) {
     BCHandler<1> handler1(BCHandler<1>::PERIODIC);
     EXPECT_TRUE(handler1.isAll(BCHandler<1>::PERIODIC));
-
+    
     BCHandler<2> handler2(BCHandler<2>::PERIODIC, BCHandler<2>::PERIODIC);
     EXPECT_TRUE(handler2.isAll(BCHandler<2>::PERIODIC));
-
-    BCHandler<3> handler3(BCHandler<3>::PERIODIC, BCHandler<3>::PERIODIC, BCHandler<3>::PERIODIC);
+    
+    BCHandler<3> handler3(BCHandler<3>::PERIODIC, 
+                         BCHandler<3>::PERIODIC, 
+                         BCHandler<3>::PERIODIC);
     EXPECT_TRUE(handler3.isAll(BCHandler<3>::PERIODIC));
 }
 
@@ -144,36 +160,44 @@ TEST_F(BCHandlerTest, isAllForMultipleDimensions) {
 // ============================================================================
 
 TEST_F(BCHandlerTest, isAllEqualReturnsTrueWhenAllEqual) {
-    BCHandler<3> handler(BCHandler<3>::OPEN, BCHandler<3>::OPEN, BCHandler<3>::OPEN);
-
+    BCHandler<3> handler(BCHandler<3>::OPEN, 
+                        BCHandler<3>::OPEN, 
+                        BCHandler<3>::OPEN);
+    
     EXPECT_TRUE(handler.isAllEqual());
 }
 
 TEST_F(BCHandlerTest, isAllEqualReturnsFalseWhenNotAllEqual) {
-    BCHandler<3> handler(BCHandler<3>::OPEN, BCHandler<3>::PERIODIC, BCHandler<3>::OPEN);
-
+    BCHandler<3> handler(BCHandler<3>::OPEN, 
+                        BCHandler<3>::PERIODIC, 
+                        BCHandler<3>::OPEN);
+    
     EXPECT_FALSE(handler.isAllEqual());
 }
 
 TEST_F(BCHandlerTest, isAllEqualWithDifferentFirstElement) {
-    BCHandler<3> handler(BCHandler<3>::DIRICHLET, BCHandler<3>::PERIODIC, BCHandler<3>::PERIODIC);
-
+    BCHandler<3> handler(BCHandler<3>::DIRICHLET, 
+                        BCHandler<3>::PERIODIC, 
+                        BCHandler<3>::PERIODIC);
+    
     EXPECT_FALSE(handler.isAllEqual());
 }
 
 TEST_F(BCHandlerTest, isAllEqualWithDifferentLastElement) {
-    BCHandler<3> handler(BCHandler<3>::OPEN, BCHandler<3>::OPEN, BCHandler<3>::PERIODIC);
-
+    BCHandler<3> handler(BCHandler<3>::OPEN, 
+                        BCHandler<3>::OPEN, 
+                        BCHandler<3>::PERIODIC);
+    
     EXPECT_FALSE(handler.isAllEqual());
 }
 
 TEST_F(BCHandlerTest, isAllEqualForDifferentDimensions) {
     BCHandler<1> handler1(BCHandler<1>::PERIODIC);
     EXPECT_TRUE(handler1.isAllEqual());
-
+    
     BCHandler<2> handler2(BCHandler<2>::OPEN, BCHandler<2>::OPEN);
     EXPECT_TRUE(handler2.isAllEqual());
-
+    
     BCHandler<2> handler3(BCHandler<2>::OPEN, BCHandler<2>::PERIODIC);
     EXPECT_FALSE(handler3.isAllEqual());
 }
@@ -183,23 +207,27 @@ TEST_F(BCHandlerTest, isAllEqualForDifferentDimensions) {
 // ============================================================================
 
 TEST_F(BCHandlerTest, StreamOutputAllOPEN) {
-    BCHandler<3> handler(BCHandler<3>::OPEN, BCHandler<3>::OPEN, BCHandler<3>::OPEN);
-
+    BCHandler<3> handler(BCHandler<3>::OPEN, 
+                        BCHandler<3>::OPEN, 
+                        BCHandler<3>::OPEN);
+    
     std::ostringstream oss;
     oss << handler;
     std::string output = oss.str();
-
+    
     EXPECT_NE(output.find("BCHandler<3>"), std::string::npos);
     EXPECT_NE(output.find("OPEN"), std::string::npos);
 }
 
 TEST_F(BCHandlerTest, StreamOutputMixed) {
-    BCHandler<3> handler(BCHandler<3>::OPEN, BCHandler<3>::PERIODIC, BCHandler<3>::DIRICHLET);
-
+    BCHandler<3> handler(BCHandler<3>::OPEN, 
+                        BCHandler<3>::PERIODIC, 
+                        BCHandler<3>::DIRICHLET);
+    
     std::ostringstream oss;
     oss << handler;
     std::string output = oss.str();
-
+    
     EXPECT_NE(output.find("BCHandler<3>"), std::string::npos);
     EXPECT_NE(output.find("OPEN"), std::string::npos);
     EXPECT_NE(output.find("PERIODIC"), std::string::npos);
@@ -208,32 +236,32 @@ TEST_F(BCHandlerTest, StreamOutputMixed) {
 
 TEST_F(BCHandlerTest, StreamOutputFormat) {
     BCHandler<1> handler(BCHandler<1>::PERIODIC);
-
+    
     std::ostringstream oss;
     oss << handler;
     std::string output = oss.str();
-
+    
     EXPECT_NE(output.find("["), std::string::npos);
     EXPECT_NE(output.find("]"), std::string::npos);
 }
 
 TEST_F(BCHandlerTest, StreamOutput1D) {
     BCHandler<1> handler(BCHandler<1>::PERIODIC);
-
+    
     std::ostringstream oss;
     oss << handler;
     std::string output = oss.str();
-
+    
     EXPECT_NE(output.find("BCHandler<1>"), std::string::npos);
 }
 
 TEST_F(BCHandlerTest, StreamOutput2D) {
     BCHandler<2> handler(BCHandler<2>::OPEN, BCHandler<2>::PERIODIC);
-
+    
     std::ostringstream oss;
     oss << handler;
     std::string output = oss.str();
-
+    
     EXPECT_NE(output.find("BCHandler<2>"), std::string::npos);
 }
 
@@ -258,21 +286,23 @@ TEST_F(BCHandlerTest, ToIPPLBCondsIntegrationNote) {
 TEST_F(BCHandlerTest, ConsistencyCheckFromString) {
     auto bc = BCHandler<3>::strToBCType("PERIODIC");
     BCHandler<3> handler(bc, bc, bc);
-
+    
     EXPECT_TRUE(handler.isAll(BCHandler<3>::PERIODIC));
     EXPECT_TRUE(handler.isAllEqual());
 }
 
 TEST_F(BCHandlerTest, CopyConstructorPreservesState) {
-    BCHandler<3> original(BCHandler<3>::OPEN, BCHandler<3>::PERIODIC, BCHandler<3>::DIRICHLET);
-
+    BCHandler<3> original(BCHandler<3>::OPEN, 
+                         BCHandler<3>::PERIODIC, 
+                         BCHandler<3>::DIRICHLET);
+    
     BCHandler<3> copied = original;
-
+    
     // Both should have the same string representation
     std::ostringstream oss1, oss2;
     oss1 << original;
     oss2 << copied;
-
+    
     EXPECT_EQ(oss1.str(), oss2.str());
 }
 
@@ -280,11 +310,13 @@ TEST_F(BCHandlerTest, MultiDimensionalConstructors) {
     // Test 1D, 2D, 3D all work correctly
     BCHandler<1> h1(BCHandler<1>::OPEN);
     EXPECT_TRUE(h1.isAllEqual());
-
+    
     BCHandler<2> h2(BCHandler<2>::PERIODIC, BCHandler<2>::PERIODIC);
     EXPECT_TRUE(h2.isAllEqual());
-
-    BCHandler<3> h3(BCHandler<3>::OPEN, BCHandler<3>::OPEN, BCHandler<3>::OPEN);
+    
+    BCHandler<3> h3(BCHandler<3>::OPEN, 
+                   BCHandler<3>::OPEN, 
+                   BCHandler<3>::OPEN);
     EXPECT_TRUE(h3.isAllEqual());
 }
 

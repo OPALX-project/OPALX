@@ -22,14 +22,17 @@
 
 #include "Utilities/ClassicException.h"
 
+
 // Class ParseError
 // ------------------------------------------------------------------------
 /// Parse exception.
 //  This exception is thrown by the CLASSIC parser whein it detects an
 //  input format error.
 
-class ParseError : public ClassicException {
+class ParseError: public ClassicException {
+
 public:
+
     /// The usual constructor.
     // Arguments:
     // [DL]
@@ -39,14 +42,15 @@ public:
     // [DD]the message string identifying the exception
     // [/DL]
     // Construction/destruction.
-    ParseError(const std::string& meth, const std::string& msg);
+    ParseError(const std::string &meth, const std::string &msg);
 
-    ParseError(const ParseError&);
+    ParseError(const ParseError &);
     virtual ~ParseError();
 
 private:
+
     // Not implemented.
     ParseError();
 };
 
-#endif  // CLASSIC_ParseError_HH
+#endif // CLASSIC_ParseError_HH

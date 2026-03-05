@@ -17,13 +17,13 @@
 //
 #include "AbsBeamline/RFCavity.h"
 
+#include "Utilities/BiMap.h"
 #include <filesystem>
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Fields/Fieldmap.h"
 #include "PartBunch/PartBunch.h"
 #include "Physics/Units.h"
 #include "Steppers/BorisPusher.h"
-#include "Utilities/BiMap.h"
 #include "Utilities/GeneralClassicException.h"
 #include "Utilities/Util.h"
 #include "Utility/IpplInfo.h"
@@ -42,7 +42,8 @@ const BiMap<CavityType, std::string> RFCavity::bmCavityTypeString_s = []() {
     return bimap;
 }();
 
-RFCavity::RFCavity() : RFCavity("") {}
+RFCavity::RFCavity() : RFCavity("") {
+}
 
 RFCavity::RFCavity(const RFCavity& right)
     : Component(right),
@@ -76,7 +77,8 @@ RFCavity::RFCavity(const RFCavity& right)
       RNormal_m(nullptr),
       VrNormal_m(nullptr),
       DvDr_m(nullptr),
-      num_points_m(right.num_points_m) {}
+      num_points_m(right.num_points_m) {
+}
 
 RFCavity::RFCavity(const std::string& name)
     : Component(name),
@@ -107,13 +109,19 @@ RFCavity::RFCavity(const std::string& name)
       RNormal_m(nullptr),
       VrNormal_m(nullptr),
       DvDr_m(nullptr),
-      num_points_m(0) {}
+      num_points_m(0) {
+}
 
-RFCavity::~RFCavity() {}
+RFCavity::~RFCavity() {
+}
 
-void RFCavity::accept(BeamlineVisitor& visitor) const { visitor.visitRFCavity(*this); }
+void RFCavity::accept(BeamlineVisitor& visitor) const {
+    visitor.visitRFCavity(*this);
+}
 
-bool RFCavity::apply() { return false; }
+bool RFCavity::apply() {
+    return false;
+}
 
 bool RFCavity::apply(
     const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
@@ -238,9 +246,12 @@ void RFCavity::initialise(
     *gmsg << "* Cavity voltage data read successfully!" << endl;
 }
 
-void RFCavity::finalise() {}
+void RFCavity::finalise() {
+}
 
-bool RFCavity::bends() const { return false; }
+bool RFCavity::bends() const {
+    return false;
+}
 
 void RFCavity::goOnline(const double&) {
     Fieldmap::readMap(filename_m);
@@ -254,33 +265,61 @@ void RFCavity::goOffline() {
     online_m = false;
 }
 
-void RFCavity::setRmin(double rmin) { rmin_m = rmin; }
+void RFCavity::setRmin(double rmin) {
+    rmin_m = rmin;
+}
 
-void RFCavity::setRmax(double rmax) { rmax_m = rmax; }
+void RFCavity::setRmax(double rmax) {
+    rmax_m = rmax;
+}
 
-void RFCavity::setAzimuth(double angle) { angle_m = angle; }
+void RFCavity::setAzimuth(double angle) {
+    angle_m = angle;
+}
 
-void RFCavity::setPerpenDistance(double pdis) { pdis_m = pdis; }
+void RFCavity::setPerpenDistance(double pdis) {
+    pdis_m = pdis;
+}
 
-void RFCavity::setGapWidth(double gapwidth) { gapwidth_m = gapwidth; }
+void RFCavity::setGapWidth(double gapwidth) {
+    gapwidth_m = gapwidth;
+}
 
-void RFCavity::setPhi0(double phi0) { phi0_m = phi0; }
+void RFCavity::setPhi0(double phi0) {
+    phi0_m = phi0;
+}
 
-double RFCavity::getRmin() const { return rmin_m; }
+double RFCavity::getRmin() const {
+    return rmin_m;
+}
 
-double RFCavity::getRmax() const { return rmax_m; }
+double RFCavity::getRmax() const {
+    return rmax_m;
+}
 
-double RFCavity::getAzimuth() const { return angle_m; }
+double RFCavity::getAzimuth() const {
+    return angle_m;
+}
 
-double RFCavity::getSinAzimuth() const { return sinAngle_m; }
+double RFCavity::getSinAzimuth() const {
+    return sinAngle_m;
+}
 
-double RFCavity::getCosAzimuth() const { return cosAngle_m; }
+double RFCavity::getCosAzimuth() const {
+    return cosAngle_m;
+}
 
-double RFCavity::getPerpenDistance() const { return pdis_m; }
+double RFCavity::getPerpenDistance() const {
+    return pdis_m;
+}
 
-double RFCavity::getGapWidth() const { return gapwidth_m; }
+double RFCavity::getGapWidth() const {
+    return gapwidth_m;
+}
 
-double RFCavity::getPhi0() const { return phi0_m; }
+double RFCavity::getPhi0() const {
+    return phi0_m;
+}
 
 void RFCavity::setCavityType(const std::string& name) {
     auto it = bmCavityTypeString_s.right.find(name);
@@ -291,7 +330,9 @@ void RFCavity::setCavityType(const std::string& name) {
     }
 }
 
-std::string RFCavity::getCavityTypeString() const { return bmCavityTypeString_s.left.at(type_m); }
+std::string RFCavity::getCavityTypeString() const {
+    return bmCavityTypeString_s.left.at(type_m);
+}
 
 std::string RFCavity::getFieldMapFN() const {
     if (filename_m.empty()) {
@@ -308,7 +349,9 @@ std::string RFCavity::getFieldMapFN() const {
     }
 }
 
-double RFCavity::getCycFrequency() const { return frequency_m; }
+double RFCavity::getCycFrequency() const {
+    return frequency_m;
+}
 
 /**
    \brief used in OPAL-cycl
@@ -445,7 +488,9 @@ void RFCavity::getDimensions(double& zBegin, double& zEnd) const {
     zEnd   = endField_m;
 }
 
-ElementType RFCavity::getType() const { return ElementType::RFCAVITY; }
+ElementType RFCavity::getType() const {
+    return ElementType::RFCAVITY;
+}
 
 double RFCavity::getAutoPhaseEstimateFallback(double E0, double t0, double q, double mass) {
     const double dt        = 1e-13;

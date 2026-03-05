@@ -72,19 +72,29 @@
 // Class Tracker
 // ------------------------------------------------------------------------
 
-Tracker::Tracker(const Beamline& beamline, const PartData& reference, bool backBeam, bool backTrack)
-    : Tracker(beamline, nullptr, reference, backBeam, backTrack) {}
+Tracker::Tracker(
+    const Beamline& beamline, 
+    const PartData& reference, 
+    bool backBeam, 
+    bool backTrack): 
+    Tracker(beamline, nullptr, reference, backBeam, backTrack){}
 
 Tracker::Tracker(
-    const Beamline& beamline, PartBunch_t* bunch, const PartData& reference, bool backBeam,
+    const Beamline& beamline, 
+    PartBunch_t* bunch, 
+    const PartData& reference, 
+    bool backBeam,
     bool backTrack)
     : AbstractTracker(beamline, reference, backBeam, backTrack),
       itsBeamline_m(beamline),
       itsBunch_m(bunch) {}
 
-Tracker::~Tracker() {}
+Tracker::~Tracker() {
+}
 
-const PartBunch_t* Tracker::getBunch() const { return itsBunch_m; }
+const PartBunch_t* Tracker::getBunch() const {
+    return itsBunch_m;
+}
 
 void Tracker::addToBunch(const OpalParticle& /*part*/) {
     *gmsg << "passed OpalParticle argument not used in Tracker::addToBunch" << endl;

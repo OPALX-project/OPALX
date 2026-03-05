@@ -18,12 +18,19 @@
 
 #include "Utilities/OpalException.h"
 
+
 // Class OpalException
 // ------------------------------------------------------------------------
 
-OpalException::OpalException(const std::string& meth, const std::string& msg)
-    : ClassicException(meth, msg) {}
+OpalException::OpalException(const std::string &meth, const std::string &msg):
+    ClassicException(meth, msg)
+{}
 
-OpalException::OpalException(const OpalException& rhs) : ClassicException(rhs) {}
 
-OpalException::~OpalException() {}
+OpalException::OpalException(const OpalException &rhs):
+    ClassicException(rhs)
+{}
+
+
+OpalException::~OpalException()
+{}

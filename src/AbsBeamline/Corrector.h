@@ -21,8 +21,8 @@
 //
 // ------------------------------------------------------------------------
 
-#include "AbsBeamline/BeamlineVisitor.h"
 #include "AbsBeamline/Component.h"
+#include "AbsBeamline/BeamlineVisitor.h"
 #include "BeamlineGeometry/StraightGeometry.h"
 #include "Fields/BDipoleField.h"
 
@@ -32,8 +32,10 @@
 //  Class Corrector defines the abstract interface for closed orbit
 //  correctors.
 
-class Corrector : public Component {
+class Corrector: public Component {
+
 public:
+
     /// Plane selection.
     enum Plane {
         /// Corrector is off (inactive).
@@ -47,42 +49,47 @@ public:
     };
 
     /// Constructor with given name.
-    explicit Corrector(const std::string& name);
+    explicit Corrector(const std::string &name);
 
     Corrector();
-    Corrector(const Corrector& right);
+    Corrector(const Corrector &right);
     virtual ~Corrector();
 
     /// Apply a visitor to Corrector.
-    virtual void accept(BeamlineVisitor&) const;
+    virtual void accept(BeamlineVisitor &) const;
+
 
     /// Return the corrector field.
     //  Version for non-constant object.
-    virtual BDipoleField& getField() = 0;
+    virtual BDipoleField &getField() = 0;
 
     /// Return the corrector field.
     //  Version for constant object.
-    virtual const BDipoleField& getField() const = 0;
+    virtual const BDipoleField &getField() const = 0;
 
     /// Return the corrector geometry.
-    virtual StraightGeometry& getGeometry() = 0;
+    virtual StraightGeometry &getGeometry() = 0;
 
     /// Return the corrector geometry. Version for const object.
-    virtual const StraightGeometry& getGeometry() const = 0;
+    virtual const StraightGeometry &getGeometry() const = 0;
 
     /// Return the plane on which the corrector acts.
     virtual Plane getPlane() const = 0;
 
-    virtual bool apply(
-        const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B);
+    virtual bool apply(const size_t &i,
+                       const double &t,
+                       Vector_t<double, 3> &E,
+                       Vector_t<double, 3> &B);
 
-    virtual bool apply(
-        const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-        Vector_t<double, 3>& E, Vector_t<double, 3>& B);
+    virtual bool apply(const Vector_t<double, 3> &R,
+                       const Vector_t<double, 3> &P,
+                       const double &t,
+                       Vector_t<double, 3> &E,
+                       Vector_t<double, 3> &B);
 
-    virtual void initialise(PartBunch_t* bunch, double& startField, double& endField);
+    virtual void initialise(PartBunch_t *bunch, double &startField, double &endField);
 
-    virtual void goOnline(const double& kineticEnergy);
+    virtual void goOnline(const double &kineticEnergy);
 
     virtual void finalise();
 
@@ -90,7 +97,7 @@ public:
 
     virtual ElementType getType() const;
 
-    virtual void getDimensions(double& zBegin, double& zEnd) const;
+    virtual void getDimensions(double &zBegin, double &zEnd) const;
 
     void setKickX(double k);
 
@@ -102,7 +109,7 @@ public:
 
     double getKickY() const;
 
-    void setKickField(const Vector_t<double, 3>& k0);
+    void setKickField(const Vector_t<double, 3> &k0);
 
 private:
     double kickX_m;
@@ -114,22 +121,36 @@ private:
     Vector_t<double, 3> kickField_m;
 
 protected:
+
     // Not implemented.
-    void operator=(const Corrector&);
+    void operator=(const Corrector &);
 
     Plane plane_m;
 };
 
-inline void Corrector::setKickX(double k) { kickX_m = k; }
+inline
+void Corrector::setKickX(double k) {
+    kickX_m = k;
+}
 
-inline void Corrector::setKickY(double k) { kickY_m = k; }
+inline
+void Corrector::setKickY(double k) {
+    kickY_m = k;
+}
 
-inline double Corrector::getKickX() const { return kickX_m; }
+inline
+double Corrector::getKickX() const {
+    return kickX_m;
+}
 
-inline double Corrector::getKickY() const { return kickY_m; }
+inline
+double Corrector::getKickY() const {
+    return kickY_m;
+}
 
-inline void Corrector::setKickField(const Vector_t<double, 3>& k0) {
-    kickField_m    = k0;
+inline
+void Corrector::setKickField(const Vector_t<double, 3> &k0) {
+    kickField_m = k0;
     kickFieldSet_m = true;
 }
-#endif  // CLASSIC_Corrector_HH
+#endif // CLASSIC_Corrector_HH

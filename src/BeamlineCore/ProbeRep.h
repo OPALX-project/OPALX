@@ -22,32 +22,34 @@
 #include "BeamlineGeometry/StraightGeometry.h"
 #include "Fields/NullField.h"
 
-class ProbeRep : public Probe {
+class ProbeRep: public Probe {
+
 public:
+
     /// Constructor with given name.
-    explicit ProbeRep(const std::string& name);
+    explicit ProbeRep(const std::string &name);
 
     ProbeRep();
-    ProbeRep(const ProbeRep&);
+    ProbeRep(const ProbeRep &);
     virtual ~ProbeRep();
 
     /// Return clone.
     //  Return an identical deep copy of the element.
-    virtual ElementBase* clone() const;
+    virtual ElementBase *clone() const;
 
     /// Construct a read/write channel.
     //  This method constructs a Channel permitting read/write access to
     //  the attribute [b]aKey[/b] and returns it.
     //  If the attribute does not exist, it returns nullptr.
-    virtual Channel* getChannel(const std::string& aKey, bool = false);
+    virtual Channel *getChannel(const std::string &aKey, bool = false);
 
     /// Get field.
     //  Version for non-constant object.
-    virtual NullField& getField();
+    virtual NullField &getField();
 
     /// Get field.
     //  Version for constant object.
-    virtual const NullField& getField() const;
+    virtual const NullField &getField() const;
 
     /// Get geometry.
     //  Return the element geometry.
@@ -55,17 +57,18 @@ public:
     /// Get geometry.
     //  Return the element geometry.
     //  Version for non-constant object.
-    virtual StraightGeometry& getGeometry();
+    virtual StraightGeometry &getGeometry();
 
     /// Get geometry.
     //  Return the element geometry
     //  Version for constant object.
-    virtual const StraightGeometry& getGeometry() const;
+    virtual const StraightGeometry &getGeometry() const;
 
     /// Set active flag.
     virtual void setActive(bool = true);
 
 protected:
+
     /// The zero magnetic field.
     NullField field;
 
@@ -76,8 +79,12 @@ protected:
     bool active;
 
 private:
+
     // Not implemented.
-    void operator=(const ProbeRep&);
+    void operator=(const ProbeRep &);
+
+
+
 };
 
-#endif  // CLASSIC_ProbeRep_HH
+#endif // CLASSIC_ProbeRep_HH

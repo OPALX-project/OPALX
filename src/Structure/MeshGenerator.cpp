@@ -7,10 +7,12 @@
 #include <fstream>
 #include <iostream>
 #include <vector>
+#include <vector>
 
 extern Inform* gmsg;
 
-MeshGenerator::MeshGenerator() : elements_m() {}
+MeshGenerator::MeshGenerator() : elements_m() {
+}
 
 void MeshGenerator::add(const ElementBase& element) {
     double start = 0.0;
@@ -119,15 +121,13 @@ void MeshGenerator::write(const std::string& fname) {
     out << "]\n";
 
     {
-        std::string data       = vertices_ascii.str();
+        std::string data = vertices_ascii.str();
         uLongf compressed_size = compressBound(data.size());
         std::vector<Bytef> compressed_data(compressed_size);
-        int result = compress(
-            compressed_data.data(), &compressed_size, reinterpret_cast<const Bytef*>(data.data()),
-            data.size());
+        int result = compress(compressed_data.data(), &compressed_size,
+                             reinterpret_cast<const Bytef*>(data.data()), data.size());
         if (result == Z_OK) {
-            vertices_compressed.write(
-                reinterpret_cast<const char*>(compressed_data.data()), compressed_size);
+            vertices_compressed.write(reinterpret_cast<const char*>(compressed_data.data()), compressed_size);
         }
     }
 
@@ -255,15 +255,13 @@ void MeshGenerator::write(const std::string& fname) {
         << "</body>\n"
         << "</html>";
     {
-        std::string data       = index_ascii.str();
+        std::string data = index_ascii.str();
         uLongf compressed_size = compressBound(data.size());
         std::vector<Bytef> compressed_data(compressed_size);
-        int result = compress(
-            compressed_data.data(), &compressed_size, reinterpret_cast<const Bytef*>(data.data()),
-            data.size());
+        int result = compress(compressed_data.data(), &compressed_size,
+                             reinterpret_cast<const Bytef*>(data.data()), data.size());
         if (result == Z_OK) {
-            index_compressed.write(
-                reinterpret_cast<const char*>(compressed_data.data()), compressed_size);
+            index_compressed.write(reinterpret_cast<const char*>(compressed_data.data()), compressed_size);
         }
     }
 

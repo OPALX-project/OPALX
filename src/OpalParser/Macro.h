@@ -18,32 +18,35 @@
 //
 // ------------------------------------------------------------------------
 
-#include <vector>
 #include "AbstractObjects/Object.h"
 #include "OpalParser/Token.h"
+#include <vector>
 
 class Statement;
 class TokenStream;
+
 
 // Class Macro
 // ------------------------------------------------------------------------
 /// Abstract base class for macros.
 //  The base class for storing the ``archetype'' for all macro-like commands.
 
-class Macro : public Object {
+class Macro: public Object {
+
 public:
+
     /// Exemplar constructor.
-    Macro(int size, const char* name, const char* help);
+    Macro(int size, const char *name, const char *help);
 
     /// Clone constructor.
-    Macro(const std::string& name, Object* parent);
+    Macro(const std::string &name, Object *parent);
 
     virtual ~Macro();
 
     /// Make clone.
     //  Throw ParseError, since for macro we must make a template and not
     //  a clone.
-    virtual Macro* clone(const std::string& name);
+    virtual Macro *clone(const std::string &name);
 
     /// Return the object category as a string.
     //  Return the string "MACRO".
@@ -59,28 +62,31 @@ public:
     //  Always false for macros.
     virtual bool shouldUpdate() const;
 
+
     /// Parse actual arguments.
     //  Expects parse pointer in the statement to be set on the first argument.
-    virtual void parseActuals(Statement&);
+    virtual void parseActuals(Statement &);
 
     /// Parse formal arguments.
     //  Expects parse pointer in the statement to be set on the first argument.
-    virtual void parseFormals(Statement&);
+    virtual void parseFormals(Statement &);
 
 protected:
+
     /// The formal argument list.
     //  Each formal argument is represented as a name and stored as a string.
     std::vector<std::string> formals;
 
     /// The actual argument list.
     //  Each actual argument is stored as a vector of tokens.
-    std::vector<std::vector<Token> > actuals;
+    std::vector<std::vector < Token > > actuals;
 
 private:
+
     // Not implemented.
     Macro();
-    Macro(const Macro&);
-    void operator=(const Macro&);
+    Macro(const Macro &);
+    void operator=(const Macro &);
 };
 
-#endif  // CLASSIC_Macro_HH
+#endif // CLASSIC_Macro_HH

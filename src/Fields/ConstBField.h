@@ -22,13 +22,16 @@
 
 #include "Fields/StaticMagneticField.h"
 
+
 // Class ConstBField
 // ------------------------------------------------------------------------
 /// A homogenous magnetostatic field.
 //  A static magnetic field independent of (x,y,z).
 
-class ConstBField : public StaticMagneticField {
+class ConstBField: public StaticMagneticField {
+
 public:
+
     /// Default constructor.
     //  Constructs null field.
     ConstBField();
@@ -60,4 +63,4 @@ public:
     virtual void setBz(double);
 };
 
-#endif  // CLASSIC_ConstBField_HH
+#endif // CLASSIC_ConstBField_HH

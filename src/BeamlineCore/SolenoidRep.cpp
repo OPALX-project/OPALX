@@ -20,31 +20,58 @@
 
 namespace {
     struct Entry {
-        const char* name;
-        double (SolenoidRep::*get)() const;
+        const char *name;
+        double(SolenoidRep::*get)() const;
         void (SolenoidRep::*set)(double);
     };
 
     const Entry entries[] = {
-        {"L", &SolenoidRep::getElementLength, &SolenoidRep::setElementLength},
-        {"BZ", &SolenoidRep::getBz, &SolenoidRep::setBz},
-        {0, 0, 0}};
-}  // namespace
+        {
+            "L",
+            &SolenoidRep::getElementLength,
+            &SolenoidRep::setElementLength
+        },
+        {
+            "BZ",
+            &SolenoidRep::getBz,
+            &SolenoidRep::setBz
+        },
+        { 0, 0, 0 }
+    };
+}
 
-SolenoidRep::SolenoidRep() : Solenoid(), geometry(), field() {}
 
-SolenoidRep::SolenoidRep(const SolenoidRep& right)
-    : Solenoid(right), geometry(right.geometry), field(right.field) {}
+SolenoidRep::SolenoidRep():
+    Solenoid(),
+    geometry(),
+    field()
+{}
 
-SolenoidRep::SolenoidRep(const std::string& name) : Solenoid(name), geometry(), field() {}
 
-SolenoidRep::~SolenoidRep() {}
+SolenoidRep::SolenoidRep(const SolenoidRep &right):
+    Solenoid(right),
+    geometry(right.geometry),
+    field(right.field)
+{}
 
-ElementBase* SolenoidRep::clone() const { return new SolenoidRep(*this); }
 
-Channel* SolenoidRep::getChannel(const std::string& aKey, bool create) {
-    for (const Entry* entry = entries; entry->name != 0; ++entry) {
-        if (aKey == entry->name) {
+SolenoidRep::SolenoidRep(const std::string &name):
+    Solenoid(name), geometry(), field()
+{}
+
+
+SolenoidRep::~SolenoidRep()
+{}
+
+
+ElementBase *SolenoidRep::clone() const {
+    return new SolenoidRep(*this);
+}
+
+
+Channel *SolenoidRep::getChannel(const std::string &aKey, bool create) {
+    for(const Entry *entry = entries; entry->name != 0; ++entry) {
+        if(aKey == entry->name) {
             return new IndirectChannel<SolenoidRep>(*this, entry->get, entry->set);
         }
     }
@@ -52,14 +79,30 @@ Channel* SolenoidRep::getChannel(const std::string& aKey, bool create) {
     return ElementBase::getChannel(aKey, create);
 }
 
-ConstBzField& SolenoidRep::getField() { return field; }
 
-const ConstBzField& SolenoidRep::getField() const { return field; }
+ConstBzField &SolenoidRep::getField() {
+    return field;
+}
 
-StraightGeometry& SolenoidRep::getGeometry() { return geometry; }
+const ConstBzField &SolenoidRep::getField() const {
+    return field;
+}
 
-const StraightGeometry& SolenoidRep::getGeometry() const { return geometry; }
 
-double SolenoidRep::getBz() const { return field.getBz(); }
+StraightGeometry &SolenoidRep::getGeometry() {
+    return geometry;
+}
 
-void SolenoidRep::setBz(double Bz) { field.setBz(Bz); }
+const StraightGeometry &SolenoidRep::getGeometry() const {
+    return geometry;
+}
+
+
+double SolenoidRep::getBz() const {
+    return field.getBz();
+}
+
+
+void SolenoidRep::setBz(double Bz) {
+    field.setBz(Bz);
+}

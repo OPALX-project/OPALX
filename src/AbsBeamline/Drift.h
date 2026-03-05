@@ -66,6 +66,8 @@ private:
     void operator=(const Drift&);
 };
 
-inline int Drift::getRequiredNumberOfTimeSteps() const { return 1; }
+inline int Drift::getRequiredNumberOfTimeSteps() const {
+    return 1;
+}
 
 #endif  // CLASSIC_Drift_HH

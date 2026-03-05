@@ -55,6 +55,7 @@
 
 class PlanarArcGeometry : public BGeometryBase {
 public:
+
     /// Constructor.
     //  Build PlanarArcGeometry from length [b]l[/b] and curvature [b]h[/b].
     PlanarArcGeometry(double l, double h);
@@ -63,9 +64,9 @@ public:
     //  Build PlanarArcGeometry from length zero and angle [b]phi[/b].
     PlanarArcGeometry(double phi);
 
-    PlanarArcGeometry(const PlanarArcGeometry&);
+    PlanarArcGeometry(const PlanarArcGeometry &);
     virtual ~PlanarArcGeometry();
-    const PlanarArcGeometry& operator=(const PlanarArcGeometry&);
+    const PlanarArcGeometry &operator=(const PlanarArcGeometry &);
 
     /// Get arc length.
     //  Return arc length along the design arc.
@@ -133,9 +134,10 @@ public:
     //  Equivalent to getTransform(0.0, getExit()).
     //  Return the transform of the local coordinate system from the
     //  origin to the exit of the element.
-    Euclid3D getExitFrame() const;
+    Euclid3D getExitFrame()     const;
 
 private:
+
     double len;
     double h;
     double angle;
@@ -143,18 +145,28 @@ private:
 
 // inlined (trivial) member functions
 
-inline PlanarArcGeometry::PlanarArcGeometry(double l, double hh) : len(l), h(hh), angle(hh * l) {}
+inline PlanarArcGeometry::PlanarArcGeometry(double l, double hh):
+    len(l), h(hh), angle(hh *l)
+{}
 
-inline PlanarArcGeometry::PlanarArcGeometry(double phi) : len(0.0), h(0.0), angle(phi) {}
 
-inline PlanarArcGeometry::PlanarArcGeometry(const PlanarArcGeometry& rhs)
-    : BGeometryBase(rhs), len(rhs.len), h(rhs.h), angle(rhs.angle) {}
+inline PlanarArcGeometry::PlanarArcGeometry(double phi):
+    len(0.0), h(0.0), angle(phi)
+{}
 
-inline const PlanarArcGeometry& PlanarArcGeometry::operator=(const PlanarArcGeometry& rhs) {
-    len   = rhs.len;
-    h     = rhs.h;
+
+inline PlanarArcGeometry::PlanarArcGeometry(const PlanarArcGeometry &rhs):
+    BGeometryBase(rhs),len(rhs.len), h(rhs.h), angle(rhs.angle)
+{}
+
+
+inline const PlanarArcGeometry &PlanarArcGeometry::operator=
+(const PlanarArcGeometry &rhs) {
+    len = rhs.len;
+    h = rhs.h;
     angle = rhs.angle;
     return *this;
 }
 
-#endif  // CLASSIC_PlanarArcGeometry_HH
+#endif // CLASSIC_PlanarArcGeometry_HH
+

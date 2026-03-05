@@ -48,7 +48,7 @@ public:
     typename Base::particle_position_type E;
 
     /// electric field for gun simulation with bins
-    // typename Base::particle_position_type Etmp; // TODO: might not need this...
+    //typename Base::particle_position_type Etmp; // TODO: might not need this...
 
     /// magnetic field at particle position
     typename Base::particle_position_type B;
@@ -59,7 +59,8 @@ public:
         setupBCs();
     }
 
-    ~ParticleContainer() {}
+    ~ParticleContainer() {
+    }
 
     void registerAttributes() {
         // register the particle attributes
@@ -71,75 +72,118 @@ public:
         this->addAttribute(Sp);
         this->addAttribute(P);
         this->addAttribute(E);
-        // this->addAttribute(Etmp);
+        //this->addAttribute(Etmp);
         this->addAttribute(B);
     }
 
-    void setupBCs() { setBCAllPeriodic(); }
-
-    PLayout_t<T, Dim>& getPL() { return pl_m; }
-
-    void updateMoments() {
-        size_t Np = this->getTotalNum();
-        Np = (Np == 0) ? 1 : Np;  // only used for normalization in the moments class --> avoid
-                                  // division by zero
-
-        size_t Nlocal = this->getLocalNum();
-        distMoments_m.computeMoments(
-            this->R.getView(), this->P.getView(), this->M.getView(), Np, Nlocal);
+    void setupBCs() {
+        setBCAllPeriodic();
     }
 
-    Vector_t<double, 3> getMeanP() const { return distMoments_m.getMeanMomentum(); }
+    PLayout_t<T, Dim>& getPL() {
+        return pl_m;
+    }
 
-    Vector_t<double, 3> getRmsP() const { return distMoments_m.getStandardDeviationMomentum(); }
+    void updateMoments(){
+        size_t Np = this->getTotalNum();
+        Np = (Np == 0) ? 1 : Np; // only used for normalization in the moments class --> avoid division by zero
 
-    Vector_t<double, 3> getMeanR() const { return distMoments_m.getMeanPosition(); }
+        size_t Nlocal = this->getLocalNum();
+        distMoments_m.computeMoments(this->R.getView(), this->P.getView(), this->M.getView(), Np, Nlocal);
+    }
 
-    Vector_t<double, 3> getRmsR() const { return distMoments_m.getStandardDeviationPosition(); }
+    Vector_t<double, 3> getMeanP() const{
+         return distMoments_m.getMeanMomentum();
+    }
 
-    Vector_t<double, 3> getRmsRP() const { return distMoments_m.getStandardDeviationRP(); }
+    Vector_t<double, 3> getRmsP() const{
+         return distMoments_m.getStandardDeviationMomentum();
+    }
 
-    void computeMinMaxR() {
+    Vector_t<double, 3> getMeanR() const{
+         return distMoments_m.getMeanPosition();
+    }
+
+    Vector_t<double, 3> getRmsR() const{
+         return distMoments_m.getStandardDeviationPosition();
+    }
+
+    Vector_t<double, 3> getRmsRP() const{
+         return distMoments_m.getStandardDeviationRP();
+    }
+
+    void computeMinMaxR(){
         size_t Nlocal = this->getLocalNum();
         distMoments_m.computeMinMaxPosition(this->R.getView(), Nlocal);
     }
 
-    Vector_t<double, 3> getMinR() const { return distMoments_m.getMinPosition(); }
+    Vector_t<double, 3> getMinR() const {
+         return distMoments_m.getMinPosition();
+    }
 
-    Vector_t<double, 3> getMaxR() const { return distMoments_m.getMaxPosition(); }
+    Vector_t<double, 3> getMaxR() const {
+         return distMoments_m.getMaxPosition();
+    }
 
-    matrix6x6_t getCovMatrix() const { return distMoments_m.getMoments6x6(); }
+    matrix6x6_t getCovMatrix() const {
+         return distMoments_m.getMoments6x6();
+    }
 
-    double getMeanKineticEnergy() const { return distMoments_m.getMeanKineticEnergy(); }
+    double getMeanKineticEnergy() const {
+          return distMoments_m.getMeanKineticEnergy();
+    }
 
-    double getStdKineticEnergy() const { return distMoments_m.getStdKineticEnergy(); }
+    double getStdKineticEnergy() const {
+          return distMoments_m.getStdKineticEnergy();
+    }
 
-    Vector_t<double, 6> getMeans() const { return distMoments_m.getMeans(); }
+    Vector_t<double, 6> getMeans() const {
+        return distMoments_m.getMeans();
+    }
 
-    Vector_t<double, 6> getCentroid() const { return distMoments_m.getCentroid(); }
+    Vector_t<double, 6> getCentroid() const {
+        return distMoments_m.getCentroid();
+    }
 
-    Vector_t<double, 3> getNormEmit() const { return distMoments_m.getNormalizedEmittance(); }
+    Vector_t<double, 3> getNormEmit() const {
+        return distMoments_m.getNormalizedEmittance();
+    }
 
-    double getDx() const { return distMoments_m.getDx(); }
+   double getDx() const {
+       return distMoments_m.getDx();
+   }
 
-    double getDDx() const { return distMoments_m.getDDx(); }
+   double getDDx() const {
+       return distMoments_m.getDDx();
+   }
 
-    double getDy() const { return distMoments_m.getDy(); }
+   double getDy() const {
+       return distMoments_m.getDy();
+   }
 
-    double getDDy() const { return distMoments_m.getDDy(); }
+   double getDDy() const {
+       return distMoments_m.getDDy();
+   }
 
-    double getDebyeLength() const { return distMoments_m.getDebyeLength(); }
+   double getDebyeLength() const {
+       return distMoments_m.getDebyeLength();
+   }
 
-    double getMeanGammaZ() const { return distMoments_m.getMeanGammaZ(); }
+   double getMeanGammaZ() const {
+       return distMoments_m.getMeanGammaZ();
+   }
 
-    double getTemperature() const { return distMoments_m.getTemperature(); }
+    double getTemperature() const {
+        return distMoments_m.getTemperature();
+    }
 
-    double getPlasmaParameter() const { return distMoments_m.getPlasmaParameter(); }
+    double getPlasmaParameter() const {
+        return distMoments_m.getPlasmaParameter();
+    }
 
-    double computeDebyeLength(double density) {
+    double computeDebyeLength(double density){
         size_t Np = this->getTotalNum();
-        Np = (Np == 0) ? 1 : Np;  // only used for normalization in the moments class --> avoid
-                                  // division by zero
+        Np = (Np == 0) ? 1 : Np; // only used for normalization in the moments class --> avoid division by zero
 
         size_t Nlocal = this->getLocalNum();
         distMoments_m.computeDebyeLength(this->P.getView(), Np, Nlocal, density);
@@ -147,7 +191,9 @@ public:
     }
 
 private:
-    void setBCAllPeriodic() { this->setParticleBC(ippl::BC::PERIODIC); }
+    void setBCAllPeriodic() {
+        this->setParticleBC(ippl::BC::PERIODIC);
+    }
 
     PLayout_t<T, Dim> pl_m;
 

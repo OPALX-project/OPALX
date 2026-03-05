@@ -20,6 +20,7 @@
 
 #include "Utilities/BiMap.h"
 
+
 ParticleType ParticleProperties::getParticleType(const std::string& str) {
     auto it = bmParticleType_s.right.find(str);
     if (it != bmParticleType_s.right.end()) {
@@ -47,36 +48,54 @@ double ParticleProperties::getParticleChargeInCoulomb(const ParticleType& type) 
 
 const BiMap<ParticleType, std::string> ParticleProperties::bmParticleType_s = []() {
     BiMap<ParticleType, std::string> bimap;
-    bimap.insert(ParticleType::UNNAMED, "UNNAMED");
-    bimap.insert(ParticleType::ELECTRON, "ELECTRON");
-    bimap.insert(ParticleType::POSITRON, "POSITRON");
-    bimap.insert(ParticleType::MUON, "MUON");
-    bimap.insert(ParticleType::PROTON, "PROTON");
+    bimap.insert(ParticleType::UNNAMED,    "UNNAMED");
+    bimap.insert(ParticleType::ELECTRON,   "ELECTRON");
+    bimap.insert(ParticleType::POSITRON,   "POSITRON");
+    bimap.insert(ParticleType::MUON,       "MUON");
+    bimap.insert(ParticleType::PROTON,     "PROTON");
     bimap.insert(ParticleType::ANTIPROTON, "ANTIPROTON");
-    bimap.insert(ParticleType::DEUTERON, "DEUTERON");
-    bimap.insert(ParticleType::HMINUS, "HMINUS");
-    bimap.insert(ParticleType::HYDROGEN, "HYDROGEN");
-    bimap.insert(ParticleType::H2P, "H2P");
-    bimap.insert(ParticleType::H3P, "H3P");
-    bimap.insert(ParticleType::ALPHA, "ALPHA");
-    bimap.insert(ParticleType::CARBON, "CARBON");
-    bimap.insert(ParticleType::XENON, "XENON");
-    bimap.insert(ParticleType::URANIUM, "URANIUM");
+    bimap.insert(ParticleType::DEUTERON,   "DEUTERON");
+    bimap.insert(ParticleType::HMINUS,     "HMINUS");
+    bimap.insert(ParticleType::HYDROGEN,   "HYDROGEN");
+    bimap.insert(ParticleType::H2P,        "H2P");
+    bimap.insert(ParticleType::H3P,        "H3P");
+    bimap.insert(ParticleType::ALPHA,      "ALPHA");
+    bimap.insert(ParticleType::CARBON,     "CARBON");
+    bimap.insert(ParticleType::XENON,      "XENON");
+    bimap.insert(ParticleType::URANIUM,    "URANIUM");
     return bimap;
 }();
 
 const std::map<ParticleType, double> ParticleProperties::particleMass_m = {
-    {ParticleType::ELECTRON, Physics::m_e},   {ParticleType::POSITRON, Physics::m_e},
-    {ParticleType::MUON, Physics::m_mu},      {ParticleType::PROTON, Physics::m_p},
-    {ParticleType::ANTIPROTON, Physics::m_p}, {ParticleType::DEUTERON, Physics::m_d},
-    {ParticleType::HMINUS, Physics::m_hm},    {ParticleType::HYDROGEN, Physics::m_h},
-    {ParticleType::H2P, Physics::m_h2p},      {ParticleType::H3P, Physics::m_h3p},
-    {ParticleType::ALPHA, Physics::m_alpha},  {ParticleType::CARBON, Physics::m_c},
-    {ParticleType::XENON, Physics::m_xe},     {ParticleType::URANIUM, Physics::m_u}};
+    {ParticleType::ELECTRON,   Physics::m_e},
+    {ParticleType::POSITRON,   Physics::m_e},
+    {ParticleType::MUON,       Physics::m_mu},
+    {ParticleType::PROTON,     Physics::m_p},
+    {ParticleType::ANTIPROTON, Physics::m_p},
+    {ParticleType::DEUTERON,   Physics::m_d},
+    {ParticleType::HMINUS,     Physics::m_hm},
+    {ParticleType::HYDROGEN,   Physics::m_h},
+    {ParticleType::H2P,        Physics::m_h2p},
+    {ParticleType::H3P,        Physics::m_h3p},
+    {ParticleType::ALPHA,      Physics::m_alpha},
+    {ParticleType::CARBON,     Physics::m_c},
+    {ParticleType::XENON,      Physics::m_xe},
+    {ParticleType::URANIUM,    Physics::m_u}
+};
 
 const std::map<ParticleType, double> ParticleProperties::particleCharge_m = {
-    {ParticleType::ELECTRON, -1.0}, {ParticleType::POSITRON, 1.0},    {ParticleType::MUON, -1.0},
-    {ParticleType::PROTON, 1.0},    {ParticleType::ANTIPROTON, -1.0}, {ParticleType::DEUTERON, 1.0},
-    {ParticleType::HMINUS, -1.0},   {ParticleType::HYDROGEN, 0.0},    {ParticleType::H2P, 1.0},
-    {ParticleType::H3P, 1.0},       {ParticleType::ALPHA, 2.0},       {ParticleType::CARBON, 6.0},
-    {ParticleType::XENON, 54.0},    {ParticleType::URANIUM, 92.0}};
+    {ParticleType::ELECTRON,   -1.0},
+    {ParticleType::POSITRON,    1.0},
+    {ParticleType::MUON,       -1.0},
+    {ParticleType::PROTON,      1.0},
+    {ParticleType::ANTIPROTON, -1.0},
+    {ParticleType::DEUTERON,    1.0},
+    {ParticleType::HMINUS,     -1.0},
+    {ParticleType::HYDROGEN,    0.0},
+    {ParticleType::H2P,         1.0},
+    {ParticleType::H3P,         1.0},
+    {ParticleType::ALPHA,       2.0},
+    {ParticleType::CARBON,      6.0},
+    {ParticleType::XENON,      54.0},
+    {ParticleType::URANIUM,    92.0}
+};

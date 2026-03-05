@@ -16,23 +16,25 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 
+#include "SDDSParser/ast.hpp"
+#include "SDDSParser/file.hpp"
+#include "SDDSParser/simple_parser.hpp"
 #include "SDDSParser/array.hpp"
 #include "SDDSParser/associate.hpp"
-#include "SDDSParser/ast.hpp"
 #include "SDDSParser/column.hpp"
 #include "SDDSParser/data.hpp"
 #include "SDDSParser/description.hpp"
-#include "SDDSParser/file.hpp"
 #include "SDDSParser/include.hpp"
 #include "SDDSParser/parameter.hpp"
-#include "SDDSParser/simple_parser.hpp"
 
 #include "SDDSParser/SDDSParserException.h"
 
-#include <fstream>
+
+
 #include <iostream>
-#include <map>
+#include <fstream>
 #include <string>
+#include <map>
 
 #ifndef __SDDSPARSER_H__
 #define __SDDSPARSER_H__
@@ -42,8 +44,8 @@ namespace SDDS {
     class SDDSParser {
     private:
         std::string readFile();
-        static void fixCaseSensitivity(std::string& for_string);
-        static std::string fixCaseSensitivity(const std::string& for_string) {
+        static void fixCaseSensitivity(std::string &for_string);
+        static std::string fixCaseSensitivity(const std::string &for_string) {
             std::string retval(for_string);
             fixCaseSensitivity(retval);
             return retval;
@@ -59,14 +61,14 @@ namespace SDDS {
 
     public:
         SDDSParser();
-        SDDSParser(const std::string& input);
-        void setInput(const std::string& input);
+        SDDSParser(const std::string &input);
+        void setInput(const std::string &input);
         file run();
 
         file getData();
-        ast::columnData_t getColumnData(const std::string& columnName);
+        ast::columnData_t getColumnData(const std::string &columnName);
 
-        ast::datatype getColumnType(const std::string& col_name) {
+        ast::datatype getColumnType(const std::string &col_name) {
             int index = getColumnIndex(col_name);
             return *sddsData_m.sddsColumns_m[index].type_m;
         }
@@ -81,21 +83,23 @@ namespace SDDS {
          */
         template <typename T>
         void getValue(int t, std::string column_name, T& nval) {
+
             fixCaseSensitivity(column_name);
 
             int col_idx = getColumnIndex(column_name);
 
             // round timestep to last if not in range
-            size_t row_idx  = 0;
+            size_t row_idx = 0;
             size_t num_rows = sddsData_m.sddsColumns_m[col_idx].values_m.size();
-            if (t <= 0 || static_cast<size_t>(t) > num_rows)
+            if(t <= 0 || static_cast<size_t>(t) > num_rows)
                 row_idx = num_rows - 1;
             else
                 row_idx = static_cast<size_t>(t) - 1;
 
             ast::variant_t val = sddsData_m.sddsColumns_m[col_idx].values_m[row_idx];
-            nval               = getBoostVariantValue<T>(val, (int)getColumnType(column_name));
+            nval = getBoostVariantValue<T>(val, (int)getColumnType(column_name));
         }
+
 
         /**
          *  Converts the string value of a parameter to a value
@@ -107,28 +111,29 @@ namespace SDDS {
          *  @param nval store result of type T in nval
          */
         template <typename T>
-        void getInterpolatedValue(
-            std::string ref_name, double ref_val, std::string col_name, T& nval) {
-            T value_before          = 0;
-            T value_after           = 0;
+        void getInterpolatedValue(std::string ref_name, double ref_val,
+                                  std::string col_name, T& nval) {
+            T value_before = 0;
+            T value_after  = 0;
             double value_before_ref = 0;
             double value_after_ref  = 0;
 
-            size_t col_idx_ref            = getColumnIndex(ref_name);
-            ast::columnData_t& ref_values = sddsData_m.sddsColumns_m[col_idx_ref].values_m;
-            int index                     = getColumnIndex(col_name);
-            ast::columnData_t& col_values = sddsData_m.sddsColumns_m[index].values_m;
+
+            size_t col_idx_ref = getColumnIndex(ref_name);
+            ast::columnData_t &ref_values = sddsData_m.sddsColumns_m[col_idx_ref].values_m;
+            int index = getColumnIndex(col_name);
+            ast::columnData_t &col_values = sddsData_m.sddsColumns_m[index].values_m;
 
             size_t this_row = 0;
             size_t num_rows = ref_values.size();
-            int datatype    = (int)getColumnType(col_name);
-            for (this_row = 0; this_row < num_rows; this_row++) {
+            int datatype = (int)getColumnType(col_name);
+            for(this_row = 0; this_row < num_rows; this_row++) {
                 value_after_ref = std::get<double>(ref_values[this_row]);
 
-                if (ref_val < value_after_ref) {
+                if(ref_val < value_after_ref) {
+
                     size_t prev_row = 0;
-                    if (this_row > 0)
-                        prev_row = this_row - 1;
+                    if(this_row > 0) prev_row = this_row - 1;
 
                     value_before = getBoostVariantValue<T>(col_values[prev_row], datatype);
                     value_after  = getBoostVariantValue<T>(col_values[this_row], datatype);
@@ -140,23 +145,23 @@ namespace SDDS {
                 }
             }
 
-            if (this_row == num_rows)
-                throw SDDSParserException(
-                    "SDDSParser::getInterpolatedValue", "all values < specified reference value");
+            if(this_row == num_rows)
+                throw SDDSParserException("SDDSParser::getInterpolatedValue",
+                                          "all values < specified reference value");
 
             // simple linear interpolation
-            if (ref_val - value_before_ref < 1e-8)
+            if(ref_val - value_before_ref < 1e-8)
                 nval = value_before;
             else
-                nval = value_before
-                       + (ref_val - value_before_ref) * (value_after - value_before)
-                             / (value_after_ref - value_before_ref);
+                nval = value_before + (ref_val - value_before_ref)
+                    * (value_after - value_before)
+                    / (value_after_ref - value_before_ref);
 
             // Check for NaN or Inf using a simple approach
             double dval = static_cast<double>(nval);
             if (dval != dval || (dval == dval * 2.0 && dval != 0.0))
-                throw SDDSParserException(
-                    "SDDSParser::getInterpolatedValue", "Interpolated value either NaN or Inf.");
+                throw SDDSParserException("SDDSParser::getInterpolatedValue",
+                                          "Interpolated value either NaN or Inf.");
         }
 
         /**
@@ -184,52 +189,55 @@ namespace SDDS {
             fixCaseSensitivity(parameter_name);
 
             if (paramNameToID_m.count(parameter_name) > 0) {
-                size_t id  = paramNameToID_m[parameter_name];
+                size_t id = paramNameToID_m[parameter_name];
                 auto value = sddsData_m.sddsParameters_m[id].value_m;
-                nval       = std::get<T>(value);
+                nval = std::get<T>(value);
             } else {
-                throw SDDSParserException(
-                    "SDDSParser::getParameterValue",
-                    "unknown parameter name: '" + parameter_name + "'!");
+                throw SDDSParserException("SDDSParser::getParameterValue",
+                                        "unknown parameter name: '" + parameter_name + "'!");
             }
         }
 
         /// Convert value from std::variant (only numeric types) to a value of type T
-        // use integer instead of ast::datatype enum since otherwise std::variant has ambigious
-        // overloads
+        // use integer instead of ast::datatype enum since otherwise std::variant has ambigious overloads
         template <typename T>
-        T getBoostVariantValue(const ast::variant_t& val, int datatype) const {
+            T getBoostVariantValue(const ast::variant_t& val, int datatype) const {
             T value;
             try {
                 switch (datatype) {
-                    case ast::FLOAT:
-                        value = std::get<float>(val);
-                        break;
-                    case ast::DOUBLE:
-                        value = std::get<double>(val);
-                        break;
-                    case ast::SHORT:
-                        value = std::get<short>(val);
-                        break;
-                    case ast::LONG:
-                        value = std::get<long>(val);
-                        break;
-                    default:
-                        throw SDDSParserException(
-                            "SDDSParser::getBoostVariantValue", "can't convert value to type T");
+                case ast::FLOAT:
+                    value = std::get<float>(val);
+                    break;
+                case ast::DOUBLE:
+                    value = std::get<double>(val);
+                    break;
+                case ast::SHORT:
+                    value = std::get<short>(val);
+                    break;
+                case ast::LONG:
+                    value = std::get<long>(val);
+                    break;
+                default:
+                    throw SDDSParserException("SDDSParser::getBoostVariantValue",
+                                              "can't convert value to type T");
                 }
-            } catch (...) {
-                throw SDDSParserException(
-                    "SDDSParser::getBoostVariantValue", "can't convert value");
+            }
+            catch (...) {
+                throw SDDSParserException("SDDSParser::getBoostVariantValue",
+                                          "can't convert value");
             }
             return value;
         }
 
     private:
+
         int getColumnIndex(std::string col_name) const;
     };
 
-    inline file SDDSParser::getData() { return sddsData_m; }
-}  // namespace SDDS
+    inline
+    file SDDSParser::getData() {
+        return sddsData_m;
+    }
+}
 
 #endif

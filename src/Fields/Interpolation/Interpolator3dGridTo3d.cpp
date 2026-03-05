@@ -30,47 +30,53 @@
 
 namespace interpolation {
 
-    Interpolator3dGridTo3d::Interpolator3dGridTo3d(const Interpolator3dGridTo3d& rhs) {
-        coordinates_m = new ThreeDGrid(*rhs.coordinates_m);
-        for (int i = 0; i < 3; i++)
-            interpolator_m[i] = rhs.interpolator_m[i]->clone();
+Interpolator3dGridTo3d::Interpolator3dGridTo3d
+                                           (const Interpolator3dGridTo3d& rhs) {
+    coordinates_m = new ThreeDGrid(*rhs.coordinates_m);
+    for (int i = 0; i < 3; i++)
+        interpolator_m[i] = rhs.interpolator_m[i]->clone();
+}
+
+void Interpolator3dGridTo3d::function
+                                (const double Point[3], double Value[3]) const {
+    if (Point[0] > coordinates_m->maxX() || Point[0] < coordinates_m->minX() ||
+        Point[1] > coordinates_m->maxY() || Point[1] < coordinates_m->minY() ||
+        Point[2] > coordinates_m->maxZ() || Point[2] < coordinates_m->minZ() ) {
+        Value[0] = 0;
+        Value[1] = 0;
+        Value[2] = 0;
+        return;
     }
 
-    void Interpolator3dGridTo3d::function(const double Point[3], double Value[3]) const {
-        if (Point[0] > coordinates_m->maxX() || Point[0] < coordinates_m->minX()
-            || Point[1] > coordinates_m->maxY() || Point[1] < coordinates_m->minY()
-            || Point[2] > coordinates_m->maxZ() || Point[2] < coordinates_m->minZ()) {
-            Value[0] = 0;
-            Value[1] = 0;
-            Value[2] = 0;
-            return;
-        }
+    interpolator_m[0]->function(Point, &Value[0]);
+    interpolator_m[1]->function(Point, &Value[1]);
+    interpolator_m[2]->function(Point, &Value[2]);
+}
 
-        interpolator_m[0]->function(Point, &Value[0]);
-        interpolator_m[1]->function(Point, &Value[1]);
-        interpolator_m[2]->function(Point, &Value[2]);
+void Interpolator3dGridTo3d::setAll(ThreeDGrid* grid,
+                                 double *** Bx, double *** By, double *** Bz,
+                                 interpolationAlgorithm algo) {
+    if (coordinates_m != nullptr)
+      coordinates_m->remove(this);
+    grid->add(this);
+    coordinates_m = grid;
+
+    for (int i = 0; i < 3; i++)
+        if (interpolator_m[i] != nullptr)
+        delete interpolator_m[i];
+
+    switch (algo) {
+        case TRILINEAR:
+            interpolator_m[0] = new TriLinearInterpolator(grid, Bx);
+            interpolator_m[1] = new TriLinearInterpolator(grid, By);
+            interpolator_m[2] = new TriLinearInterpolator(grid, Bz);
+            break;
+        default:
+            throw(LogicalError(
+                    "Interpolator3dGridTo3d::setAll",
+                    "Did not recognise interpolation algorithm"
+                   )
+      );
     }
-
-    void Interpolator3dGridTo3d::setAll(
-        ThreeDGrid* grid, double*** Bx, double*** By, double*** Bz, interpolationAlgorithm algo) {
-        if (coordinates_m != nullptr)
-            coordinates_m->remove(this);
-        grid->add(this);
-        coordinates_m = grid;
-
-        for (int i = 0; i < 3; i++)
-            if (interpolator_m[i] != nullptr)
-                delete interpolator_m[i];
-
-        switch (algo) {
-            case TRILINEAR:
-                interpolator_m[0] = new TriLinearInterpolator(grid, Bx);
-                interpolator_m[1] = new TriLinearInterpolator(grid, By);
-                interpolator_m[2] = new TriLinearInterpolator(grid, Bz);
-                break;
-            default:
-                throw(LogicalError(
-                    "Interpolator3dGridTo3d::setAll", "Did not recognise interpolation algorithm"));
-        }
-    }
-}  // namespace interpolation
+}
+}

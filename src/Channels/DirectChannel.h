@@ -22,24 +22,27 @@
 
 #include "Channels/Channel.h"
 
+
 // Class DirectChannel
 // ------------------------------------------------------------------------
 /// Direct access to a [b]double[/b] variable.
 //  Class DirectChannel allows direct access to a [b]double[/b] variable.
 
-class DirectChannel : public Channel {
+class DirectChannel: public Channel {
+
 public:
+
     /// Constructor.
     //  The constructed channel gives read/write access to the variable
     //  [b]value[/b].  The variable [b]value[/b] must not be destroyed as
     //  long as this channel is active.
-    explicit DirectChannel(double& value);
+    explicit DirectChannel(double &value);
 
-    DirectChannel(const DirectChannel&);
+    DirectChannel(const DirectChannel &);
     virtual ~DirectChannel();
 
     /// Duplicate the channel.
-    virtual DirectChannel* clone() const;
+    virtual DirectChannel *clone() const;
 
     /// Store into channel.
     //  If the channel can be written,
@@ -50,34 +53,49 @@ public:
     /// Fetch from channel.
     //  If the channel can be read, set [b]value[/b] and return true,
     //  otherwise return false.
-    virtual bool get(double&) const;
+    virtual bool get(double &) const;
 
 private:
+
     // Not implemented.
     DirectChannel();
-    const DirectChannel& operator=(const DirectChannel&);
+    const DirectChannel &operator=(const DirectChannel &);
 
     // The address of the variable to be read or written.
-    double& reference;
+    double &reference;
 };
 
-inline DirectChannel::DirectChannel(double& value) : reference(value) {}
 
-inline DirectChannel::DirectChannel(const DirectChannel& rhs)
-    : Channel(), reference(rhs.reference) {}
+inline DirectChannel::DirectChannel(double &value):
+    reference(value)
+{}
 
-inline DirectChannel::~DirectChannel() {}
 
-inline DirectChannel* DirectChannel::clone() const { return new DirectChannel(*this); }
+inline DirectChannel::DirectChannel(const DirectChannel &rhs):
+    Channel(),
+    reference(rhs.reference)
+{}
+
+
+inline DirectChannel::~DirectChannel()
+{}
+
+
+inline DirectChannel *DirectChannel::clone() const {
+    return new DirectChannel(*this);
+}
+
 
 inline bool DirectChannel::set(double value) {
     reference = value;
     return true;
 }
 
-inline bool DirectChannel::get(double& value) const {
+
+inline bool DirectChannel::get(double &value) const {
     value = reference;
     return true;
 }
 
-#endif  // CLASSIC_DirectChannel_HH
+
+#endif // CLASSIC_DirectChannel_HH

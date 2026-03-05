@@ -25,52 +25,61 @@
 
 #include "Utility/PAssert.h"
 
-#include <vector>
 #include "AbstractObjects/OpalData.h"
 #include "Lines/Line.h"
 #include "OpalParser/SimpleStatement.h"
 #include "Utilities/ParseError.h"
+#include <vector>
 
-LineTemplate::LineTemplate()
-    : Macro(
-          0, "LINE",
+LineTemplate::LineTemplate():
+    Macro(0, "LINE",
           "This object defines a beamline list with arguments.\n"
           "\t<name>(<args>);"),
-      body("LINE") {}
+    body("LINE")
+{}
 
-LineTemplate::LineTemplate(const std::string& name, Object* parent)
-    : Macro(name, parent), body(name) {}
 
-LineTemplate::~LineTemplate() {}
+LineTemplate::LineTemplate(const std::string &name, Object *parent):
+    Macro(name, parent), body(name)
+{}
 
-LineTemplate* LineTemplate::clone(const std::string& /*name*/) {
-    throw ParseError("LineTemplate::clone()", "You cannot use this object without attributes.");
+
+LineTemplate::~LineTemplate()
+{}
+
+
+LineTemplate *LineTemplate::clone(const std::string &/*name*/) {
+    throw ParseError("LineTemplate::clone()",
+                     "You cannot use this object without attributes.");
 }
 
-Object* LineTemplate::makeInstance(const std::string& name, Statement& statement, const Parser*) {
-    Line* instance = 0;
+
+Object *LineTemplate::makeInstance
+(const std::string &name, Statement &statement, const Parser *) {
+    Line *instance = 0;
 
     try {
         // Parse actuals and check their number.
         parseActuals(statement);
-        if (formals.size() != actuals.size()) {
-            throw ParseError(
-                "LineTemplate::makeInstance()", "Inconsistent number of macro arguments.");
+        if(formals.size() != actuals.size()) {
+            throw ParseError("LineTemplate::makeInstance()",
+                             "Inconsistent number of macro arguments.");
         }
 
         // Expand the LINE macro in token form.
         body.start();
         Token token = body.readToken();
         SimpleStatement expansion(getOpalName(), 1);
-        while (!token.isEOF()) {
+        while(! token.isEOF()) {
             bool found = false;
-            if (token.isWord()) {
+            if(token.isWord()) {
                 std::string word = token.getWord();
 
-                for (std::vector<std::string>::size_type i = 0; i < formals.size(); i++) {
-                    if (word == formals[i]) {
+                for(std::vector<std::string>::size_type i = 0;
+                    i < formals.size(); i++) {
+                    if(word == formals[i]) {
                         std::vector<Token> act = actuals[i];
-                        for (Token t : act) {
+                        for(Token t : act) {
                             expansion.append(t);
                         }
                         found = true;
@@ -78,18 +87,17 @@ Object* LineTemplate::makeInstance(const std::string& name, Statement& statement
                     }
                 }
             }
-            if (!found)
-                expansion.append(token);
+            if(! found) expansion.append(token);
             token = body.readToken();
         }
 
         // Parse the modified line.
-        Line* model = dynamic_cast<Line*>(OpalData::getInstance()->find("LINE"));
-        instance    = model->clone(name);
+        Line *model = dynamic_cast<Line *>(OpalData::getInstance()->find("LINE"));
+        instance = model->clone(name);
         instance->copyAttributes(*this);
         expansion.start();
         instance->parse(expansion);
-    } catch (...) {
+    } catch(...) {
         delete instance;
         throw;
     }
@@ -97,33 +105,35 @@ Object* LineTemplate::makeInstance(const std::string& name, Statement& statement
     return instance;
 }
 
-Object* LineTemplate::makeTemplate(const std::string&, TokenStream&, Statement&) {
+
+Object *LineTemplate::makeTemplate(const std::string &, TokenStream &, Statement &) {
     // Should not be called.
     return 0;
 }
 
-void LineTemplate::parseTemplate(TokenStream&, Statement& statement) {
+
+void LineTemplate::parseTemplate(TokenStream &, Statement &statement) {
     parseFormals(statement);
     bool isLine = statement.keyword("LINE");
     PAssert(isLine);
 
     // Store the template list.
     Token token = statement.getCurrent();
-    if (token.isDel('=')) {
+    if(token.isDel('=')) {
         body.append(token);
         int level = 0;
-        while (!statement.atEnd()) {
+        while(! statement.atEnd()) {
             token = statement.getCurrent();
-            if (token.isDel('(')) {
+            if(token.isDel('(')) {
                 level++;
-            } else if (token.isDel(')')) {
+            } else if(token.isDel(')')) {
                 body.append(token);
-                if (--level == 0)
-                    break;
+                if(--level == 0) break;
             }
             body.append(token);
         }
     } else {
-        throw ParseError("LineTemplate::parseTemplate()", "Equals sign '=' expected.");
+        throw ParseError("LineTemplate::parseTemplate()",
+                         "Equals sign '=' expected.");
     }
 }

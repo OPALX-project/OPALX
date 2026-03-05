@@ -17,25 +17,43 @@
 // ------------------------------------------------------------------------
 
 #include "Expressions/SHash.h"
-#include <iostream>
 #include "Expressions/ATable.h"
 #include "Expressions/SConstant.h"
+#include <iostream>
+
 
 // Class SHash
 // ------------------------------------------------------------------------
 
 namespace Expressions {
 
-    SHash::SHash(const SHash& rhs) : Scalar<double>(rhs), itsTable(rhs.itsTable) {}
+    SHash::SHash(const SHash &rhs):
+        Scalar<double>(rhs),
+        itsTable(rhs.itsTable)
+    {}
 
-    SHash::SHash(const ATable& table) : itsTable(table) {}
 
-    SHash::~SHash() {}
+    SHash::SHash(const ATable &table):
+        itsTable(table)
+    {}
 
-    Scalar<double>* SHash::clone() const { return new SConstant<double>(itsTable.getHash()); }
 
-    double SHash::evaluate() const { return itsTable.getHash(); }
+    SHash::~SHash()
+    {}
 
-    void SHash::print(std::ostream& os, int /*precedence*/) const { os << '#'; }
 
-}  // namespace Expressions
+    Scalar<double> *SHash::clone() const {
+        return new SConstant<double>(itsTable.getHash());
+    }
+
+
+    double SHash::evaluate() const {
+        return itsTable.getHash();
+    }
+
+
+    void SHash::print(std::ostream &os, int /*precedence*/) const {
+        os << '#';
+    }
+
+}

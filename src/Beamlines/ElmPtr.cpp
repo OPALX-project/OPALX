@@ -19,17 +19,34 @@
 
 #include "Beamlines/ElmPtr.h"
 
+
 // Typedef ElmPtr
 // ------------------------------------------------------------------------
 
-ElmPtr::ElmPtr() : itsElement() {}
+ElmPtr::ElmPtr():
+    itsElement()
+{}
 
-ElmPtr::ElmPtr(const ElmPtr& rhs) : itsElement(rhs.itsElement) {}
 
-ElmPtr::ElmPtr(ElementBase* elem) : itsElement(elem) {}
+ElmPtr::ElmPtr(const ElmPtr &rhs):
+    itsElement(rhs.itsElement)
+{}
 
-ElmPtr::ElmPtr(std::shared_ptr<ElementBase> elem) : itsElement(std::move(elem)) {}
 
-ElmPtr::~ElmPtr() {}
+ElmPtr::ElmPtr(ElementBase *elem):
+    itsElement(elem)
+{}
 
-void ElmPtr::accept(BeamlineVisitor& visitor) const { itsElement->accept(visitor); }
+
+ElmPtr::ElmPtr(std::shared_ptr<ElementBase> elem):
+    itsElement(std::move(elem))
+{}
+
+
+ElmPtr::~ElmPtr()
+{}
+
+
+void ElmPtr::accept(BeamlineVisitor &visitor) const {
+    itsElement->accept(visitor);
+}

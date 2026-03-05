@@ -25,19 +25,23 @@
 
 System::System()
     : Action(
-          1, "SYSTEM",
-          "The \"SYSTEM\" statement sends a command string to the "
-          "operating system.") {
+        1, "SYSTEM",
+        "The \"SYSTEM\" statement sends a command string to the "
+        "operating system.") {
     itsAttr[0] = Attributes::makeString("CMD", "A system command to be executed");
 
     registerOwnership(AttributeHandler::COMMAND);
 }
 
-System::System(const std::string& name, System* parent) : Action(name, parent) {}
+System::System(const std::string& name, System* parent) : Action(name, parent) {
+}
 
-System::~System() {}
+System::~System() {
+}
 
-System* System::clone(const std::string& name) { return new System(name, this); }
+System* System::clone(const std::string& name) {
+    return new System(name, this);
+}
 
 void System::execute() {
     if (ippl::Comm->rank() == 0) {
@@ -49,4 +53,6 @@ void System::execute() {
     }
 }
 
-void System::parse(Statement& statement) { parseShortcut(statement); }
+void System::parse(Statement& statement) {
+    parseShortcut(statement);
+}

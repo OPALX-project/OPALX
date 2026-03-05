@@ -1,37 +1,34 @@
 #include "Filters/SavitzkyGolay.h"
-#include <iostream>
 #include "Utilities/GSLFFT.h"
+#include <iostream>
 
 #include <cmath>
 
-SavitzkyGolayFilter::SavitzkyGolayFilter(int np, int nl, int nr, int m)
-    : NumberPoints_m(np),
-      NumberPointsLeft_m(nl),
-      NumberPointsRight_m(nr),
-      PolynomialOrder_m(m),
-      Coefs_m(np, 0.0),
-      CoefsDeriv_m(np, 0.0) {
+SavitzkyGolayFilter::SavitzkyGolayFilter(int np, int nl, int nr, int m):
+    NumberPoints_m(np),
+    NumberPointsLeft_m(nl),
+    NumberPointsRight_m(nr),
+    PolynomialOrder_m(m),
+    Coefs_m(np, 0.0),
+    CoefsDeriv_m(np, 0.0) {
     savgol(Coefs_m, NumberPoints_m, NumberPointsLeft_m, NumberPointsRight_m, 0, PolynomialOrder_m);
-    savgol(
-        CoefsDeriv_m, NumberPoints_m, NumberPointsLeft_m, NumberPointsRight_m, 1,
-        PolynomialOrder_m);
+    savgol(CoefsDeriv_m, NumberPoints_m, NumberPointsLeft_m, NumberPointsRight_m, 1, PolynomialOrder_m);
 }
 
-void SavitzkyGolayFilter::apply(std::vector<double>& LineDensity) {
+void SavitzkyGolayFilter::apply(std::vector<double> &LineDensity) {
     std::vector<double> temp(LineDensity.size(), 0.0);
     convlv(LineDensity, Coefs_m, 1, temp);
     LineDensity.assign(temp.begin(), temp.end());
 }
 
-void SavitzkyGolayFilter::calc_derivative(std::vector<double>& LineDensity, const double& /*h*/) {
+void SavitzkyGolayFilter::calc_derivative(std::vector<double> &LineDensity, const double &/*h*/) {
     std::vector<double> temp(LineDensity.size(), 0.0);
     convlv(LineDensity, CoefsDeriv_m, 1, temp);
     LineDensity.assign(temp.begin(), temp.end());
 }
 
-void savgol(
-    std::vector<double>& c, const int& np, const int& nl, const int& nr, const int& ld,
-    const int& m) {
+
+void savgol(std::vector<double> &c, const int &np, const int &nl, const int &nr, const int &ld, const int &m) {
     int j, k, imj, ipj, kk, mm;
     double d, sum;
 
@@ -48,7 +45,7 @@ void savgol(
         for (k = 1; k <= nr; ++k)
             sum += (int)pow((double)k, (double)ipj);
         for (k = 1; k <= nl; ++k)
-            sum += (int)pow((double)-k, (double)ipj);
+            sum += (int)pow((double) - k, (double)ipj);
         mm = (ipj < 2 * m - ipj ? ipj : 2 * m - ipj);
         for (imj = -mm; imj <= mm; imj += 2)
             a[(ipj + imj) / 2 * (m + 1) + (ipj - imj) / 2] = sum;
@@ -63,36 +60,36 @@ void savgol(
     for (kk = 0; kk < np; ++kk)
         c[kk] = 0.0;
     for (k = -nl; k <= nr; ++k) {
-        sum        = b[0];
+        sum = b[0];
         double fac = 1.0;
         for (mm = 1; mm <= m; ++mm)
             sum += b[mm] * (fac *= k);
-        kk    = (np - k) % np;
+        kk = (np - k) % np;
         c[kk] = sum;
     }
+
 }
 
-void convlv(
-    const std::vector<double>& data, const std::vector<double>& respns, const int& isign,
-    std::vector<double>& ans) {
+void convlv(const std::vector<double> &data, const std::vector<double> &respns, const int &isign, std::vector<double> &ans) {
     int n = data.size();
     int m = respns.size();
 
-    double* tempfd1 = new double[n];
-    double* tempfd2 = new double[n];
+    double *tempfd1 = new double[n];
+    double *tempfd2 = new double[n];
 
-    gsl_fft_halfcomplex_wavetable* hc;
-    gsl_fft_real_wavetable* real = gsl_fft_real_wavetable_alloc(n);
-    gsl_fft_real_workspace* work = gsl_fft_real_workspace_alloc(n);
+    gsl_fft_halfcomplex_wavetable *hc;
+    gsl_fft_real_wavetable *real = gsl_fft_real_wavetable_alloc(n);
+    gsl_fft_real_workspace *work = gsl_fft_real_workspace_alloc(n);
 
-    for (int i = 0; i < n; ++i) {
+
+    for (int i = 0; i < n; ++ i) {
         tempfd1[i] = 0.0;
         tempfd2[i] = data[i];
     }
 
     tempfd1[0] = respns[0];
     for (int i = 1; i < (m + 1) / 2; ++i) {
-        tempfd1[i]     = respns[i];
+        tempfd1[i] = respns[i];
         tempfd1[n - i] = respns[m - i];
     }
 
@@ -104,8 +101,8 @@ void convlv(
 
     if (isign == 1) {
         for (int i = 1; i < n - 1; i += 2) {
-            double tmp     = tempfd1[i];
-            tempfd1[i]     = (tempfd1[i] * tempfd2[i] - tempfd1[i + 1] * tempfd2[i + 1]);
+            double tmp = tempfd1[i];
+            tempfd1[i] = (tempfd1[i] * tempfd2[i] - tempfd1[i + 1] * tempfd2[i + 1]);
             tempfd1[i + 1] = (tempfd1[i + 1] * tempfd2[i] + tmp * tempfd2[i + 1]);
         }
         tempfd1[0] *= tempfd2[0];
@@ -125,7 +122,7 @@ void convlv(
     delete[] tempfd2;
 }
 
-void ludcmp(std::vector<double>& a, std::vector<int>& indx, double& d) {
+void ludcmp(std::vector<double> &a, std::vector<int> &indx,  double &d) {
     const double TINY = 1.0e-20;
     int i, imax = -1, j, k;
     double big, dum, sum, temp;
@@ -137,8 +134,7 @@ void ludcmp(std::vector<double>& a, std::vector<int>& indx, double& d) {
     for (i = 0; i < n; ++i) {
         big = 0.0;
         for (j = 0; j < n; ++j)
-            if ((temp = std::abs(a[i * n + j])) > big)
-                big = temp;
+            if ((temp = std::abs(a[i * n + j])) > big) big = temp;
 
         if (big == 0.0) {
             std::cerr << "Singular matrix in routine ludcmp" << std::endl;
@@ -161,23 +157,22 @@ void ludcmp(std::vector<double>& a, std::vector<int>& indx, double& d) {
                 sum -= a[i * n + k] * a[k * n + j];
             a[i * n + j] = sum;
             if ((dum = vv[i] * std::abs(sum)) >= big) {
-                big  = dum;
+                big = dum;
                 imax = i;
             }
         }
 
         if (j != imax) {
             for (k = 0; k < n; ++k) {
-                dum             = a[imax * n + k];
+                dum = a[imax * n + k];
                 a[imax * n + k] = a[j * n + k];
-                a[j * n + k]    = dum;
+                a[j * n + k] = dum;
             }
-            d        = -d;
+            d = -d;
             vv[imax] = vv[j];
         }
         indx[j] = imax;
-        if (a[j * n + j] == 0.0)
-            a[j * n + j] = TINY;
+        if (a[j * n + j] == 0.0) a[j * n + j] = TINY;
         if (j != n - 1) {
             dum = 1. / a[j * n + j];
             for (i = j + 1; i < n; ++i)
@@ -186,14 +181,14 @@ void ludcmp(std::vector<double>& a, std::vector<int>& indx, double& d) {
     }
 }
 
-void lubksb(std::vector<double>& a, std::vector<int>& indx, std::vector<double>& b) {
+void lubksb(std::vector<double> &a, std::vector<int> &indx, std::vector<double> &b) {
     int i, ii = 0, ip, j;
     double sum;
     int n = indx.size();
 
     for (i = 0; i < n; ++i) {
-        ip    = indx[i];
-        sum   = b[ip];
+        ip = indx[i];
+        sum = b[ip];
         b[ip] = b[i];
         if (ii != 0)
             for (j = ii - 1; j < i; ++j)
@@ -208,4 +203,5 @@ void lubksb(std::vector<double>& a, std::vector<int>& indx, std::vector<double>&
             sum -= a[i * n + j] * b[j];
         b[i] = sum / a[i * n + i];
     }
+
 }

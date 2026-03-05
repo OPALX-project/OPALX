@@ -23,19 +23,21 @@
 #ifndef CLASSIC_MacroCmd_HH
 #define CLASSIC_MacroCmd_HH
 
-#include <iosfwd>
-#include <memory>
-#include <string>
 #include "OpalParser/Macro.h"
 #include "OpalParser/MacroStream.h"
+#include <memory>
+#include <iosfwd>
+#include <string>
 
 // Class MacroCmd
 // ------------------------------------------------------------------------
 
-class MacroCmd : public Macro {
+class MacroCmd: public Macro {
+
 public:
+
     MacroCmd();
-    MacroCmd(const std::string& name, MacroCmd* parent);
+    MacroCmd(const std::string &name, MacroCmd *parent);
     virtual ~MacroCmd();
 
     /// Execute the macro command.
@@ -45,22 +47,24 @@ public:
     //  Expects parse pointer in the statement to be set on the first argument.
     //  The parser is used to determine the parse mode
     //  (normal, error, match, edit, track).
-    virtual Object* makeInstance(const std::string& name, Statement&, const Parser*);
+    virtual Object *makeInstance
+    (const std::string &name, Statement &, const Parser *);
 
     /// Make a macro template.
     //  Expects parse pointer in the statement to be set on the first argument.
-    virtual Object* makeTemplate(const std::string&, TokenStream&, Statement&);
+    virtual Object *makeTemplate(const std::string &, TokenStream &, Statement &);
 
 private:
+
     // Not implemented.
-    MacroCmd(const MacroCmd&);
-    void operator=(const MacroCmd&);
+    MacroCmd(const MacroCmd &);
+    void operator=(const MacroCmd &);
 
     // The stream of tokens representing the macro command.
     std::shared_ptr<MacroStream> body;
 
     // Pointer to the parser to be used in execution.
-    const Parser* itsParser;
+    const Parser *itsParser;
 };
 
-#endif  // CLASSIC_MacroCmd_HH
+#endif // CLASSIC_MacroCmd_HH

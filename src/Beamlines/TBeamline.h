@@ -161,7 +161,8 @@ TBeamline<T>::TBeamline()
       itsGeometry(*this),
       itsOrigin_m(0),
       itsCoordTrafoTo_m(1.0, 0.0, 0.0, 0.0),
-      relativePositions_m(false) {}
+      relativePositions_m(false) {
+}
 
 template <class T>
 TBeamline<T>::TBeamline(const std::string& name)
@@ -170,7 +171,8 @@ TBeamline<T>::TBeamline(const std::string& name)
       itsGeometry(*this),
       itsOrigin_m(0),
       itsCoordTrafoTo_m(1.0, 0.0, 0.0, 0.0),
-      relativePositions_m(false) {}
+      relativePositions_m(false) {
+}
 
 template <class T>
 TBeamline<T>::TBeamline(const TBeamline<T>& rhs)
@@ -179,10 +181,12 @@ TBeamline<T>::TBeamline(const TBeamline<T>& rhs)
       itsGeometry(*this),
       itsOrigin_m(rhs.itsOrigin_m),
       itsCoordTrafoTo_m(rhs.itsCoordTrafoTo_m),
-      relativePositions_m(rhs.relativePositions_m) {}
+      relativePositions_m(rhs.relativePositions_m) {
+}
 
 template <class T>
-TBeamline<T>::~TBeamline() {}
+TBeamline<T>::~TBeamline() {
+}
 
 template <class T>
 void TBeamline<T>::accept(BeamlineVisitor& visitor) const {

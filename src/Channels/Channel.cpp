@@ -20,12 +20,18 @@
 
 #include "Channels/Channel.h"
 
+
 // Class Channel
 // ------------------------------------------------------------------------
 
-Channel::Channel() : ConstChannel() {}
+Channel::Channel():
+    ConstChannel()
+{}
 
-Channel::~Channel() {}
+
+Channel::~Channel()
+{}
+
 
 bool Channel::isSettable() const {
     // Default: Channel is always settable.

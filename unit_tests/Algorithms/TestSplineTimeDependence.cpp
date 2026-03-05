@@ -33,9 +33,9 @@
 class TestSplineTimeDependence : public testing::Test {
 public:
     TestSplineTimeDependence() : times_m(10), values_m(10) {
-        for (size_t i = 0; i < 10; ++i) {
-            times_m[i]  = static_cast<double>(i * i + i);
-            values_m[i] = times_m[i];  // x^2
+        for(size_t i = 0; i < 10; ++i) {
+            times_m[i] = static_cast<double>(i * i + i);
+            values_m[i] = times_m[i]; // x^2
         }
     }
 
@@ -46,7 +46,7 @@ public:
 TEST_F(TestSplineTimeDependence, ConstructorTest) {
     try {
         SplineTimeDependence timeDep(1, times_m, values_m);
-        for (size_t i = 0; i < values_m.size(); ++i) {
+        for(size_t i = 0; i < values_m.size(); ++i) {
             double test = timeDep.getValue(times_m[i]);
             EXPECT_NEAR(test, values_m[i], 1e-9) << "Index " << i;
         }
@@ -54,22 +54,22 @@ TEST_F(TestSplineTimeDependence, ConstructorTest) {
         EXPECT_THROW(SplineTimeDependence(2, times_m, values_m), std::invalid_argument);
         times_m.push_back(1.);
         EXPECT_THROW(SplineTimeDependence(1, times_m, values_m), std::invalid_argument);
-        times_m  = std::vector(1, 0.);
+        times_m = std::vector(1, 0.);
         values_m = std::vector(1, 0.);
         EXPECT_THROW(SplineTimeDependence(1, times_m, values_m), std::invalid_argument);
-        times_m  = {0., 1.};
+        times_m = {0., 1.};
         values_m = std::vector(2, 0.);
         EXPECT_NO_THROW(SplineTimeDependence(1, times_m, values_m));
-        times_m  = {0., 1., 2.};
+        times_m = {0., 1., 2.};
         values_m = std::vector(3, 0.);
         EXPECT_THROW(SplineTimeDependence(3, times_m, values_m), std::invalid_argument);
-        times_m  = {0., 1., 2., 3.};
+        times_m = {0., 1., 2., 3.};
         values_m = std::vector(4, 0.);
         EXPECT_NO_THROW(SplineTimeDependence(3, times_m, values_m));
-        times_m  = {0., 0., 2., 3.};
+        times_m = {0., 0., 2., 3.};
         values_m = std::vector(4, 0.);
         EXPECT_THROW(SplineTimeDependence(3, times_m, values_m), std::invalid_argument);
-    } catch (GeneralClassicException& exc) {
+    } catch(GeneralClassicException& exc) {
         EXPECT_TRUE(false) << "Should not have thrown an exception:\n    " << exc.what() << "\n    "
                            << exc.where();
     }
@@ -77,7 +77,7 @@ TEST_F(TestSplineTimeDependence, ConstructorTest) {
 
 TEST_F(TestSplineTimeDependence, LinearLookupTest) {
     SplineTimeDependence timeDep(1, times_m, values_m);
-    double test_x      = (times_m[2] + times_m[3]) / 2.;
+    double test_x = (times_m[2] + times_m[3]) / 2.;
     const double ref_y = (values_m[2] + values_m[3]) / 2.;
     EXPECT_NEAR(timeDep.getValue(test_x), ref_y, 1e-9);
     test_x = times_m[0] - (times_m[1] - times_m[0]) / 2.;
@@ -88,9 +88,9 @@ TEST_F(TestSplineTimeDependence, CubicLookupTest) {
     // if I give it a quadratic or cubic, it gets the wrong answer!!
     // I am sure that it is doing the right thing though... ahem
     SplineTimeDependence timeDep(1, times_m, values_m);
-    for (size_t i = 0; i < times_m.size() - 1; ++i) {
+    for(size_t i = 0; i < times_m.size() - 1; ++i) {
         const double test_x = (times_m[i] + times_m[i + 1]) / 2.;
-        const double ref_y  = test_x;
+        const double ref_y = test_x;
         const double test_y = timeDep.getValue(test_x);
         EXPECT_NEAR(test_y, ref_y, 1e-9);
     }

@@ -20,13 +20,14 @@
 
 #include "Elements/OpalElement.h"
 
-class OpalDrift : public OpalElement {
+class OpalDrift: public OpalElement {
+
 public:
+
     enum {
-        GEOMETRY = COMMON,  // geometry of boundary, one more enum member besides the common ones in
-                            // OpalElement.
-        NSLICES,            // The number of slices / steps per element for map tracking
-        SIZE
+         GEOMETRY = COMMON,  // geometry of boundary, one more enum member besides the common ones in OpalElement.
+         NSLICES,            // The number of slices / steps per element for map tracking
+         SIZE
     };
 
     /// Exemplar constructor.
@@ -45,12 +46,14 @@ public:
     virtual void update();
 
 private:
+
     // Not implemented.
     OpalDrift(const OpalDrift&);
     void operator=(const OpalDrift&);
 
     // Clone constructor.
     OpalDrift(const std::string& name, OpalDrift* parent);
+
 };
 
-#endif  // OPAL_OpalDrift_HH
+#endif // OPAL_OpalDrift_HH

@@ -21,8 +21,10 @@
 
 #include <string>
 
-class FieldWriter {
+class FieldWriter
+{
 public:
+
     /// Dump a scalar or vector field to a file.
     /*
      * @param[in] field is the scalar or vector field on the grid
@@ -31,10 +33,10 @@ public:
      * @param[in] step of the output
      * @param[in] image of the potential (optional)
      */
-    template <typename FieldType>
-    void dumpField(
-        FieldType& field, std::string name, std::string unit, long long step,
-        FieldType* image = nullptr);
+    template<typename FieldType>
+    void dumpField(FieldType& field, std::string name,
+                   std::string unit, long long step,
+                   FieldType* image = nullptr);
 };
 
 #include "FieldWriter.hpp"

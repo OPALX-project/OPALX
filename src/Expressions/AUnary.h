@@ -18,13 +18,14 @@
 //
 // ------------------------------------------------------------------------
 
-#include <cerrno>
-#include <iostream>
-#include <vector>
 #include "Expressions/AList.h"
 #include "Expressions/TFunction1.h"
 #include "Utilities/DomainError.h"
 #include "Utilities/OverflowError.h"
+#include <cerrno>
+#include <iostream>
+#include <vector>
+
 
 namespace Expressions {
 
@@ -36,88 +37,100 @@ namespace Expressions {
     //  result vector.
 
     template <class T, class U>
-    class AUnary : public AList<T> {
+    class AUnary: public AList<T> {
+
     public:
+
         /// Constructor.
         //  Use scalar function of one operand and an array.
-        AUnary(const TFunction1<T, U>& function, PtrToArray<U> operand);
+        AUnary(const TFunction1<T, U> &function, PtrToArray<U> operand);
 
-        AUnary(const AUnary<T, U>&);
+        AUnary(const AUnary<T, U> &);
         virtual ~AUnary();
 
         /// Make clone.
-        virtual OArray<T>* clone() const;
+        virtual OArray<T> *clone() const;
 
         /// Evaluate.
         virtual std::vector<T> evaluate() const;
 
         /// Print expression.
-        virtual void print(std::ostream&, int precedence = 99) const;
+        virtual void print(std::ostream &, int precedence = 99) const;
 
     private:
+
         // Not implemented.
         AUnary();
-        void operator=(const AUnary&);
+        void operator=(const AUnary &);
 
         // The operation object.
-        const TFunction1<T, U>& fun;
+        const TFunction1<T, U> &fun;
 
         // The operand.
         PtrToArray<U> opr;
     };
 
+
     // Implementation
     // ----------------------------------------------------------------------
 
-    template <class T, class U>
-    inline AUnary<T, U>::AUnary(const AUnary<T, U>& rhs)
-        : AList<T>(), fun(rhs.fun), opr(rhs.opr->clone()) {}
+    template <class T, class U> inline
+    AUnary<T, U>::AUnary(const AUnary<T, U> &rhs):
+        AList<T>(), fun(rhs.fun), opr(rhs.opr->clone())
+    {}
 
-    template <class T, class U>
-    inline AUnary<T, U>::AUnary(const TFunction1<T, U>& function, PtrToArray<U> oper)
-        : AList<T>(), fun(function), opr(oper) {}
 
-    template <class T, class U>
-    inline AUnary<T, U>::~AUnary() {}
+    template <class T, class U> inline
+    AUnary<T, U>::AUnary(const TFunction1<T, U> &function, PtrToArray<U> oper):
+        AList<T>(), fun(function), opr(oper)
+    {}
 
-    template <class T, class U>
-    inline OArray<T>* AUnary<T, U>::clone() const {
+
+    template <class T, class U> inline
+    AUnary<T, U>::~AUnary()
+    {}
+
+
+    template <class T, class U> inline
+    OArray<T> *AUnary<T, U>::clone() const {
         return new AUnary<T, U>(*this);
     }
 
-    template <class T, class U>
-    inline std::vector<T> AUnary<T, U>::evaluate() const {
-        errno              = 0;
+
+    template <class T, class U> inline
+    std::vector<T> AUnary<T, U>::evaluate() const {
+        errno = 0;
         std::vector<U> arg = opr->evaluate();
         std::vector<T> result;
 
-        for (typename std::vector<U>::size_type i = 0; i < arg.size(); ++i) {
+        for(typename std::vector<U>::size_type i = 0; i < arg.size(); ++i) {
             result.push_back((*fun.function)(arg[i]));
         }
 
         // Test for run-time evaluation errors.
-        switch (errno) {
+        switch(errno) {
+
             case EDOM:
                 throw DomainError("AUnary::evaluate()");
 
             case ERANGE:
                 throw OverflowError("AUnary::evaluate()");
 
-            default:;
+            default:
+                ;
         }
 
         return result;
     }
 
-    template <class T, class U>
-    inline void AUnary<T, U>::print(std::ostream& os, int precedence) const {
-        if (fun.precedence >= 0) {
-            if (fun.precedence <= precedence)
-                os << "(";
+
+    template <class T, class U> inline
+    void AUnary<T, U>::print(std::ostream &os, int precedence) const {
+        if(fun.precedence >= 0) {
+            if(fun.precedence <= precedence) os << "(";
             os << fun.name;
             opr->print(os, fun.precedence);
-            if (fun.precedence <= precedence)
-                os << ")";
+            if(fun.precedence <= precedence) os << ")";
         } else {
             os << fun.name << "(";
             opr->print(os, 0);
@@ -125,6 +138,6 @@ namespace Expressions {
         }
     }
 
-}  // namespace Expressions
+}
 
-#endif  // OPAL_AUnary_HH
+#endif // OPAL_AUnary_HH

@@ -16,25 +16,27 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
-#include <fstream>
 #include <iomanip>
+#include <fstream>
 
 #include <filesystem>
 
-#include "AbstractObjects/OpalData.h"
 #include "Utilities/Util.h"
+#include "AbstractObjects/OpalData.h"
 // #include "Algorithms/PBunchDefs.h"
 
-template <typename FieldType>
-void FieldWriter::dumpField(
-    FieldType& field, std::string name, std::string unit, long long step, FieldType* image) {
+template<typename FieldType>
+void FieldWriter::dumpField(FieldType& field, std::string name,
+                            std::string unit, long long step,
+                            FieldType* image)
+{
     if (ippl::Comm->size() > 1) {
         return;
     }
     /*
     constexpr bool isVectorField = std::is_same<VField_t, FieldType>::value;
     std::string type = (isVectorField) ? "field" : "scalar";
-
+    
     INFOMSG("*** START DUMPING " + Util::toUpper(name) + " FIELD ***" << endl);
 */
     /* Save the files in the output directory of the simulation. The file
@@ -52,12 +54,15 @@ void FieldWriter::dumpField(
      *   '******':   step padded with zeros to 6 digits
      */
     /*
-    std::string dirname = "";
+    std::string dirname = ""; 
     std::filesystem::path file(dirname);
-    std::string filename = std::format("{}-{}-{:06d}.dat", basename, name + std::string("_") + type,
-    step); std::string basename = OpalData::getInstance()->getInputBasename(); filename % basename %
-    (name + std::string("_") + type) % step; file /= filename.str(); INFOMSG("*** FILE NAME " +
-    file.string() << endl); std::ofstream fout(file.string(), std::ios::out); fout.precision(9);
+    std::string filename = std::format("{}-{}-{:06d}.dat", basename, name + std::string("_") + type, step);
+    std::string basename = OpalData::getInstance()->getInputBasename();
+    filename % basename % (name + std::string("_") + type) % step;
+    file /= filename.str();
+    INFOMSG("*** FILE NAME " + file.string() << endl);
+    std::ofstream fout(file.string(), std::ios::out);
+    fout.precision(9);
 
     fout << "# " << name << " " << type << " data on grid" << std::endl
          << "#"
@@ -116,4 +121,4 @@ void FieldWriter::dumpField(
     fout.close();
     INFOMSG("*** FINISHED DUMPING " + Util::toUpper(name) + " FIELD ***" << endl);
     */
-}
+    }

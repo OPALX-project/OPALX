@@ -29,6 +29,6 @@ namespace Configure {
 
     /// Configure all commands.
     extern void configure();
-};  // namespace Configure
+};
 
-#endif  // OPAL_Configure_HH
+#endif // OPAL_Configure_HH

@@ -20,6 +20,7 @@
 //
 // ------------------------------------------------------------------------
 
+
 // Class Vector3D
 // ------------------------------------------------------------------------
 /// A 3-dimension vector.
@@ -28,7 +29,9 @@
 //  are not implemented.
 
 class Vector3D {
+
 public:
+
     /// Default constructor.
     //  Construct null vector.
     Vector3D();
@@ -37,32 +40,32 @@ public:
     //  Use components (x,y,z).
     Vector3D(double x, double y, double z);
 
-    bool operator==(const Vector3D&) const;
-    bool operator!=(const Vector3D&) const;
+    bool operator==(const Vector3D &) const;
+    bool operator!=(const Vector3D &) const;
 
     /// Add and assign.
-    Vector3D& operator+=(const Vector3D& vector);
+    Vector3D &operator+=(const Vector3D &vector);
 
     /// Subtract and assign.
-    Vector3D& operator-=(const Vector3D& vector);
+    Vector3D &operator-=(const Vector3D &vector);
 
     /// Scale and assign.
-    Vector3D& operator*=(double factor);
+    Vector3D &operator*=(double factor);
 
     /// Negative vector.
     Vector3D operator-() const;
 
     /// Get component.
     //  Return a reference to component [b]i[/b].
-    double& operator()(int i);
+    double &operator()(int i);
 
     /// Get component.
     //  Return the value of component [b]i[/b].
-    double operator()(int i) const;
+    double  operator()(int i) const;
 
     /// Get components.
     //  Return the components (x,y,z).
-    void getComponents(double& x, double& y, double& z) const;
+    void getComponents(double &x, double &y, double &z) const;
 
     /// Get component.
     //  Return the component [b]x[/b].
@@ -95,50 +98,70 @@ public:
     void setZ(double);
 
 protected:
+
     // Vector components.
     double v[3];
 };
+
 
 // External functions.
 // ------------------------------------------------------------------------
 
 /// Add.
-extern Vector3D operator+(const Vector3D& a, const Vector3D& b);
+extern Vector3D operator+(const Vector3D &a, const Vector3D &b);
 
 /// Subtract.
-extern Vector3D operator-(const Vector3D& a, const Vector3D& b);
+extern Vector3D operator-(const Vector3D &a, const Vector3D &b);
 
 /// Multiply.
-extern Vector3D operator*(const Vector3D& a, double factor);
+extern Vector3D operator*(const Vector3D &a, double factor);
 
 /// Multiply.
-extern Vector3D operator*(double factor, const Vector3D& a);
+extern Vector3D operator*(double factor, const Vector3D &a);
 
 /// Vector cross product.
-extern Vector3D cross(const Vector3D& a, const Vector3D& b);
+extern Vector3D cross(const Vector3D &a, const Vector3D &b);
 
 /// Vector dot product.
-extern double dot(const Vector3D& a, const Vector3D& b);
+extern double dot(const Vector3D &a, const Vector3D &b);
+
 
 // Inline functions.
 // ------------------------------------------------------------------------
 
-inline Vector3D::Vector3D() { v[0] = v[1] = v[2] = 0.0; }
+inline Vector3D::Vector3D()
+{ v[0] = v[1] = v[2] = 0.0; }
 
-inline double& Vector3D::operator()(int i) { return v[i]; }
 
-inline double Vector3D::operator()(int i) const { return v[i]; }
+inline double &Vector3D::operator()(int i)
+{ return v[i]; }
 
-inline double Vector3D::getX() const { return v[0]; }
 
-inline double Vector3D::getY() const { return v[1]; }
+inline double Vector3D::operator()(int i) const
+{ return v[i]; }
 
-inline double Vector3D::getZ() const { return v[2]; }
 
-inline void Vector3D::setX(double x) { v[0] = x; }
+inline double Vector3D::getX() const
+{ return v[0]; }
 
-inline void Vector3D::setY(double y) { v[1] = y; }
 
-inline void Vector3D::setZ(double z) { v[2] = z; }
+inline double Vector3D::getY() const
+{ return v[1]; }
 
-#endif  // CLASSIC_Vector3D_HH
+
+inline double Vector3D::getZ() const
+{ return v[2]; }
+
+
+inline void Vector3D::setX(double x)
+{ v[0] = x; }
+
+
+inline void Vector3D::setY(double y)
+{ v[1] = y; }
+
+
+inline void Vector3D::setZ(double z)
+{ v[2] = z; }
+
+#endif // CLASSIC_Vector3D_HH

@@ -22,12 +22,15 @@
 
 #include "Fields/ConstBField.h"
 
+
 // Class ConstBzField
 // ------------------------------------------------------------------------
 /// A homogeneous magnetostatic field in z-direction.
 
-class ConstBzField : public ConstBField {
+class ConstBzField: public ConstBField {
+
 public:
+
     /// Default constructor.
     //  Constructs a null field.
     ConstBzField();
@@ -37,12 +40,12 @@ public:
     /// Get field.
     //  Return the time-independent part of the magnetic field in point [b]P[/b].
     //  This override forces implementation in derived classes.
-    virtual BVector Bfield(const Point3D& P) const;
+    virtual BVector Bfield(const Point3D &P) const;
 
     /// Get field.
     //  Return the magnetic field at time [b]t[/b] in point [b]P[/b].
     //  This override forces implementation in derived classes.
-    virtual BVector Bfield(const Point3D& P, double t) const;
+    virtual BVector Bfield(const Point3D &P, double t) const;
 
     /// Get component.
     //  Return the z-component of the magnetic field in T.
@@ -57,8 +60,9 @@ public:
     virtual void scale(double scalar);
 
 private:
+
     // The field component.
     double Bz;
 };
 
-#endif  // CLASSIC_ConstBzField_HH
+#endif // CLASSIC_ConstBzField_HH

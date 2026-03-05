@@ -18,14 +18,15 @@
 //
 // ------------------------------------------------------------------------
 
-#include <vector>
-#include "AbstractObjects/Expressions.h"
 #include "AbstractObjects/Object.h"
+#include "AbstractObjects/Expressions.h"
+#include <vector>
 
 class Attribute;
 class Beamline;
 class PlaceRep;
 class RangeRep;
+
 
 // Class Table
 // ------------------------------------------------------------------------
@@ -38,13 +39,15 @@ class RangeRep;
 //  creating the table.  In this case OPAL assumes that the table never
 //  changes.
 
-class Table : public Object {
+class Table: public Object {
+
 public:
+
     /// Descriptor for printing a table cell.
     struct Cell {
         /// Constructor.
-        Cell(Expressions::PtrToScalar<double> expr, int width, int prec)
-            : itsExpr(expr), printWidth(width), printPrecision(prec) {}
+        Cell(Expressions::PtrToScalar<double> expr, int width, int prec):
+            itsExpr(expr), printWidth(width), printPrecision(prec) {}
 
         /// The expression generating the values for this Cell.
         Expressions::PtrToScalar<double> itsExpr;
@@ -63,7 +66,7 @@ public:
 
     /// Test if object can be replaced.
     //  A table cannot be replaced, thus this method never returns true.
-    virtual bool canReplaceBy(Object* newObject);
+    virtual bool canReplaceBy(Object *newObject);
 
     /// Refill the buffer.
     //  If [b]refill[/b] is true, call the table algorithm to fill the buffer.
@@ -72,7 +75,7 @@ public:
     /// Find named Table.
     //  If a table with name [b]name[/b] exists, return a pointer to that table.
     //  If no such table exists, throw OpalException.
-    static Table* find(const std::string& name);
+    static Table *find(const std::string &name);
 
     /// Return the object category as a string.
     //  Return the string "TABLE".
@@ -88,13 +91,15 @@ public:
     //  Always true for tables.
     virtual bool shouldUpdate() const;
 
+
     /// Return value in selected table cell.
     //  Return the value stored in the table cell identified by the row
     //  at [b]row[/b] and the column name [b]col[/b].
-    virtual double getCell(const PlaceRep& row, const std::string& col) = 0;
+    virtual double getCell(const PlaceRep &row, const std::string &col) = 0;
 
     /// Return column [b]col[/b] of this table, limited by [b]range[/b].
-    virtual std::vector<double> getColumn(const RangeRep& range, const std::string& col) = 0;
+    virtual std::vector<double> getColumn
+    (const RangeRep &range, const std::string &col) = 0;
 
     /// Return the default print columns.
     //  Returns an array of column descriptors, which, when applied to a
@@ -108,34 +113,39 @@ public:
     /// Return embedded CLASSIC beamline.
     //  Returns the CLASSIC beamline representing the table.
     //  The data of the table are attached to each position in the line.
-    virtual const Beamline* getLine() const = 0;
+    virtual const Beamline *getLine() const = 0;
 
     /// Return a table row.
     //  Returns the values stored in the row specified by the first argument,
     //  with columns selected by the names stored in the second argument.
-    virtual std::vector<double> getRow(const PlaceRep&, const std::vector<std::string>&) = 0;
+    virtual std::vector<double>
+    getRow(const PlaceRep &, const std::vector<std::string> &) = 0;
 
     /// Mark this table as invalid, if it is dynamic.
     virtual void invalidate();
 
     /// Find out if table depends on the object identified by [b]name[/b].
     //  Must be overridden in derived classes.
-    virtual bool isDependent(const std::string& name) const = 0;
+    virtual bool isDependent(const std::string &name) const = 0;
 
-    virtual Expressions::PtrToScalar<double> makeColumnExpression(const std::string&) const = 0;
+    virtual Expressions::PtrToScalar<double>
+    makeColumnExpression(const std::string &) const = 0;
 
     /// Check that [b]rhs[/b] is of same type as [b]this[/b].
-    virtual bool matches(Table* rhs) const = 0;
+    virtual bool matches(Table *rhs) const = 0;
 
     /// Print list for the table.
-    virtual void printTable(std::ostream&, const CellArray&) const = 0;
+    virtual void printTable(std::ostream &, const CellArray &) const = 0;
+
 
 protected:
+
     /// Constructor for exemplars.
-    Table(int size, const char* name, const char* help);
+    Table(int size, const char *name, const char *help);
 
     /// Constructor for clones.
-    Table(const std::string& name, Table* parent);
+    Table(const std::string &name, Table *parent);
+
 
     /// Flag dynamic table.
     //  If true, the table is dynamic.  If it is also invalidated,
@@ -148,10 +158,11 @@ protected:
     bool refill;
 
 private:
+
     // Not implemented.
     Table();
-    Table(const Table&);
-    void operator=(const Table&);
+    Table(const Table &);
+    void operator=(const Table &);
 };
 
-#endif  // OPAL_Table_HH
+#endif // OPAL_Table_HH

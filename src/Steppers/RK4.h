@@ -18,23 +18,27 @@
 #ifndef RK4_H
 #define RK4_H
 
+#include "Stepper.h"
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
-#include "Stepper.h"
 
 /// 4-th order Runnge-Kutta stepper
-template <typename FieldFunction, typename... Arguments>
+template <typename FieldFunction, typename ... Arguments>
 class RK4 : public Stepper<FieldFunction, Arguments...> {
+    
 public:
-    RK4(const FieldFunction& fieldfunc) : Stepper<FieldFunction, Arguments...>(fieldfunc) {}
+    
+    RK4(const FieldFunction& fieldfunc) : Stepper<FieldFunction, Arguments ...>(fieldfunc) { }
 
 private:
-    bool doAdvance_m(
-        PartBunch_t* bunch, const size_t& i, const double& t, const double dt,
-        Arguments&... args) const;
-
+    bool doAdvance_m(PartBunch_t* bunch,
+                     const size_t& i,
+                     const double& t,
+                     const double dt,
+                     Arguments& ... args) const;
+    
     /**
-     *
+     * 
      *
      * @param y
      * @param t
@@ -43,19 +47,21 @@ private:
      *
      * @return
      */
-    bool derivate_m(
-        PartBunch_t* bunch, double* y, const double& t, double* yp, const size_t& i,
-        Arguments&... args) const;
-
+    bool derivate_m(PartBunch_t* bunch,
+                    double *y,
+                    const double& t,
+                    double* yp,
+                    const size_t& i,
+                    Arguments& ... args) const;
+    
+    
     void copyTo(const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, double* x) const;
-
+    
     void copyFrom(Vector_t<double, 3>& R, Vector_t<double, 3>& P, double* x) const;
-
-    const double mass_coeff =
-        1.0e9 * Units::GeV2kg;  // from GeV/c^2 to basic unit: GV*C*s^2/m^2, (1.0e9 converts
-                                // V*C*s^2/m^2 to GV*C*s^2/m^2)
+    
+    const double mass_coeff = 1.0e9 * Units::GeV2kg; // from GeV/c^2 to basic unit: GV*C*s^2/m^2, (1.0e9 converts V*C*s^2/m^2 to GV*C*s^2/m^2)
     const double c_mmtns = Physics::c * Units::m2mm / Units::s2ns;
-    const double c_mtns  = Physics::c / Units::s2ns;
+    const double c_mtns = Physics::c / Units::s2ns;
 };
 
 #include "RK4.hpp"

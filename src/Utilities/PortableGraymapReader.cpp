@@ -1,12 +1,13 @@
 #include "Utilities/PortableGraymapReader.h"
 
-#include <cstdint>
+#include <iostream>
 #include <fstream>
 #include <iomanip>
-#include <iostream>
 #include <sstream>
+#include <cstdint>
 
-PortableGraymapReader::PortableGraymapReader(const std::string& input) {
+PortableGraymapReader::PortableGraymapReader(const std::string &input) {
+
     std::ifstream in(input);
     readHeader(in);
     pixels_m.resize(width_m * height_m);
@@ -18,14 +19,17 @@ PortableGraymapReader::PortableGraymapReader(const std::string& input) {
     }
 }
 
-std::string PortableGraymapReader::getNextPart(std::istream& in) {
+std::string PortableGraymapReader::getNextPart(std::istream &in) {
     do {
         char c = in.get();
         if (c == '#') {
             do {
                 c = in.get();
             } while (c != '\n');
-        } else if (!(c == ' ' || c == '\t' || c == '\n' || c == '\r')) {
+        } else if (!(c == ' ' ||
+                     c == '\t' ||
+                     c == '\n' ||
+                     c == '\r')) {
             in.putback(c);
             break;
         }
@@ -37,7 +41,7 @@ std::string PortableGraymapReader::getNextPart(std::istream& in) {
     return nextPart;
 }
 
-void PortableGraymapReader::readHeader(std::istream& in) {
+void PortableGraymapReader::readHeader(std::istream &in) {
     std::string magicValue = getNextPart(in);
 
     if (magicValue == "P2") {
@@ -45,8 +49,8 @@ void PortableGraymapReader::readHeader(std::istream& in) {
     } else if (magicValue == "P5") {
         type_m = BINARY;
     } else {
-        throw OpalException(
-            "PortableGraymapReader::readHeader", "Unknown magic value: '" + magicValue + "'");
+        throw OpalException("PortableGraymapReader::readHeader",
+                            "Unknown magic value: '" + magicValue + "'");
     }
 
     {
@@ -74,43 +78,44 @@ void PortableGraymapReader::readHeader(std::istream& in) {
     in.read(&tmp, 1);
 }
 
-void PortableGraymapReader::readImageAscii(std::istream& in) {
+void PortableGraymapReader::readImageAscii(std::istream &in) {
     unsigned int size = height_m * width_m;
-    unsigned int i    = 0;
+    unsigned int i = 0;
     while (i < size) {
         unsigned int c;
         in >> c;
 
         pixels_m[i] = c;
-        ++i;
+        ++ i;
     }
 }
 
-void PortableGraymapReader::readImageBinary(std::istream& in) {
+void PortableGraymapReader::readImageBinary(std::istream &in) {
+
     unsigned int numPixels = 0;
-    char c[]               = {0, 0};
+    char c[] = {0, 0};
     unsigned char uc;
-    for (unsigned int row = 0; row < height_m; ++row) {
-        for (unsigned int col = 0; col < width_m; ++col) {
-            if (depth_m > 255) {
+    for (unsigned int row = 0; row < height_m; ++ row) {
+        for (unsigned int col = 0; col < width_m; ++ col) {
+            if ( depth_m > 255) {
                 in.read(&c[1], 1);
                 in.read(&c[0], 1);
-                const uint16_t* val = reinterpret_cast<const uint16_t*>(&c[0]);
+                const uint16_t *val = reinterpret_cast<const uint16_t*>(&c[0]);
                 pixels_m[numPixels] = val[0];
             } else {
                 in.read(&c[0], 1);
-                uc                  = c[0];
+                uc = c[0];
                 pixels_m[numPixels] = uc;
             }
-            ++numPixels;
+            ++ numPixels;
         }
     }
 }
 
-void PortableGraymapReader::print(std::ostream& /*out*/) const {
+void PortableGraymapReader::print(std::ostream &/*out*/) const {
     const unsigned int printWidth = 5;
-    for (unsigned int i = 0; i < height_m; ++i) {
-        for (unsigned int j = 0; j < width_m; ++j) {
+    for (unsigned int i = 0; i < height_m; ++ i) {
+        for (unsigned int j = 0; j < width_m; ++ j) {
             unsigned int idx = getIdx(i, j);
             std::cout << "  " << std::setw(printWidth) << pixels_m[idx];
         }

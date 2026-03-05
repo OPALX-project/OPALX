@@ -86,9 +86,9 @@ const BiMap<TrackRun::RunMethod, std::string> TrackRun::stringMethod_s = []() {
 
 TrackRun::TrackRun()
     : Action(
-          TRACKRUN::SIZE, "RUN",
-          "The \"RUN\" sub-command tracks the defined particles through "
-          "the given lattice."),
+        TRACKRUN::SIZE, "RUN",
+        "The \"RUN\" sub-command tracks the defined particles through "
+        "the given lattice."),
       itsTracker_m(nullptr),
       dist_m(nullptr),
       fs_m(nullptr),
@@ -97,7 +97,8 @@ TrackRun::TrackRun()
       isFollowupTrack_m(false),
       method_m(RunMethod::NONE),
       macromass_m(0.0),
-      macrocharge_m(0.0) {
+      macrocharge_m(0.0){
+
     itsAttr[TRACKRUN::METHOD] = Attributes::makePredefinedString(
         "METHOD", "Name of tracking algorithm to use.", {"PARALLEL"});
 
@@ -134,7 +135,7 @@ TrackRun::TrackRun(const std::string& name, TrackRun* parent)
       isFollowupTrack_m(false),
       method_m(RunMethod::NONE),
       macromass_m(0.0),
-      macrocharge_m(0.0) {
+      macrocharge_m(0.0){
     /*
       the opal dictionary
     */
@@ -155,11 +156,16 @@ TrackRun::TrackRun(const std::string& name, TrackRun* parent)
     }
 }
 
-TrackRun::~TrackRun() { delete phaseSpaceSink_m; }
+TrackRun::~TrackRun() {
+    delete phaseSpaceSink_m;
+}
 
-TrackRun* TrackRun::clone(const std::string& name) { return new TrackRun(name, this); }
+TrackRun* TrackRun::clone(const std::string& name) {
+    return new TrackRun(name, this);
+}
 
 void TrackRun::execute() {
+   
     const int currentVersion = ((OPAL_VERSION_MAJOR * 100) + OPAL_VERSION_MINOR) * 100;
 
     if (Options::version < currentVersion) {
@@ -192,7 +198,7 @@ void TrackRun::execute() {
             throw OpalException("TrackRun::execute", "Version mismatch");
         }
     }
-
+   
     isFollowupTrack_m = opal_m->hasBunchAllocated();
     if (!itsAttr[TRACKRUN::DISTRIBUTION] && !isFollowupTrack_m) {
         throw OpalException(
@@ -229,57 +235,52 @@ void TrackRun::execute() {
 
     *gmsg << "* Number of distributions  " << numberOfDistributions << endl;
 
+
     // \todo here we can loop over several distributions
 
     dist_m = std::shared_ptr<Distribution>(Distribution::find(distributionArray[0]));
     dist_m->setDistType();
     *gmsg << *dist_m << endl;
 
-    fs_m = std::shared_ptr<FieldSolverCmd>(
-        FieldSolverCmd::find(Attributes::getString(itsAttr[TRACKRUN::FIELDSOLVER])));
-    *gmsg << *fs_m << endl;
+    fs_m = std::shared_ptr<FieldSolverCmd>(FieldSolverCmd::find(Attributes::getString(itsAttr[TRACKRUN::FIELDSOLVER])));
+    *gmsg << level1 << *fs_m << endl;
 
     if (fs_m->hasBinningCmd()) {
-        *gmsg << *fs_m->getBinningCmd() << endl;
+        *gmsg << level1 << *fs_m->getBinningCmd() << endl;
     }
 
     Beam* beam = Beam::find(Attributes::getString(itsAttr[TRACKRUN::BEAM]));
-    *gmsg << *beam << endl;
+    *gmsg << level1 << *beam << endl;
 
-    macrocharge_m = beam->getChargePerParticle();  // Returns macro charge in [C]
-    macromass_m =
-        beam->getMassPerParticle();  // returns MACRO mass in GeV (mass per simulation particle)
-
+    macrocharge_m = beam->getChargePerParticle(); // Returns macro charge in [C]
+    macromass_m   = beam->getMassPerParticle(); // returns MACRO mass in GeV (mass per simulation particle)
+    
     /// \todo debugging output, can potentially be removed later
     double part_per_macro_ratio = macrocharge_m / (beam->getCharge() * Physics::q_e);
-    *gmsg << "* Macro charge per particle [eV]: " << (macrocharge_m) << endl;
-    *gmsg << "* Macro mass per particle: [GeV/c^2] " << (macromass_m) << endl;
-    *gmsg << "* Particles per macro particle: " << part_per_macro_ratio << endl;
+    *gmsg << level2 << "* Macro charge per particle [eV]: " << (macrocharge_m) << endl;
+    *gmsg << level2 << "* Macro mass per particle: [GeV/c^2] " << (macromass_m) << endl;
+    *gmsg << level2 << "* Particles per macro particle: " << part_per_macro_ratio << endl;
     /*
       Here we can allocate the bunch.
      */
-
-    // There's a change of units for particle mass that seems strange -> gives consistent Kinetic
-    // Energy
+    
+    // There's a change of units for particle mass that seems strange -> gives consistent Kinetic Energy
     /*
     Need the following units for mass and charge:
-    - Charge per macro particle in [C], this should be macrocharge_m or q_m in the bunch. This will
-    be used for the field calculations.
-    - The pusher needs consistent units: eV for mass and elementary charges for charge. This will
-    (hopefully) be handled inside the pusher routines!
+    - Charge per macro particle in [C], this should be macrocharge_m or q_m in the bunch. This will be used for the field calculations.
+    - The pusher needs consistent units: eV for mass and elementary charges for charge. This will (hopefully) be handled inside the pusher routines!
     */
-    bunch_m = std::make_shared<bunch_type>(
-        macrocharge_m,  // set the Charge per macro-particle
-        macromass_m,    // set the Mass per macro-particle, [GeV], for correct particle kick!
-                        // (see "3.1. Physical Units", where mass generally is in MeV/c^2)
-                        // However, OPAL seems to use eV for the pusher!
-                        /// \todo it would be much better to reinstate PartData or itsReference_m?
-        beam->getNumberOfParticles() /*, 10*/, 1.0, "LF2", dist_m, fs_m);
+    bunch_m = std::make_shared<bunch_type>(macrocharge_m, // set the Charge per macro-particle 
+                                           macromass_m,   // set the Mass per macro-particle, [GeV], for correct particle kick!
+                                                                                      // (see "3.1. Physical Units", where mass generally is in MeV/c^2)
+                                                                                      // However, OPAL seems to use eV for the pusher!
+                                                                                     /// \todo it would be much better to reinstate PartData or itsReference_m?
+                                           beam->getNumberOfParticles()/*, 10*/, 1.0, "LF2", dist_m, fs_m);
     bunch_m->setT(0.0);
     bunch_m->setBeamFrequency(beam->getFrequency() * Units::MHz2Hz);
 
-    *gmsg << *(bunch_m->getBCHandler()) << endl;
-
+    *gmsg << level2 << *(bunch_m->getBCHandler()) << endl;
+    
     setupBoundaryGeometry();
 
     // Get algorithm to use.
@@ -294,33 +295,34 @@ void TrackRun::execute() {
         }
     }
 
+
     /*
       \todo Mohsen here we need to create the particles based on dist_m
-
+      
 
       We have 3 main modes: emit particles, inject particles or get particles from a restart run
 
       Lets start with the inject particles.
 
-
+      
       Note: in the pre_run (bunch_m) I disables the particle generation.
 
      */
 
-    // double deltaP = Attributes::getReal(itsAttr[Distribution::OFFSETP]);
-    // if (inputMoUnits_m == InputMomentumUnits::EVOVERC) {
-    //     deltaP = Util::convertMomentumEVoverCToBetaGamma(deltaP, beam->getM());
-    // }
+    //double deltaP = Attributes::getReal(itsAttr[Distribution::OFFSETP]);
+    //if (inputMoUnits_m == InputMomentumUnits::EVOVERC) {
+    //    deltaP = Util::convertMomentumEVoverCToBetaGamma(deltaP, beam->getM());
+    //}
 
     if (ippl::Comm->rank() == 0) {
         long number_of_processors = sysconf(_SC_NPROCESSORS_ONLN);
-        *gmsg << "number_of_processors " << number_of_processors << endl;
+        *gmsg << level5 << "sysconf(_SC_NPROCESSORS_ONLN)= " << number_of_processors << endl;
 
-        //        *gmsg << "omp_get_max_threads() " << omp_get_max_threads() << endl;
+        // *gmsg << "omp_get_max_threads() " << omp_get_max_threads() << endl;
 
         int world_size;
-        MPI_Comm_size(MPI_COMM_WORLD, &world_size);
-        *gmsg << "MPI_Comm_size " << world_size << endl;
+        MPI_Comm_size( MPI_COMM_WORLD, &world_size );
+        *gmsg << level5 << "MPI_Comm_size= " << world_size << endl;
     }
 
     static IpplTimings::TimerRef samplingTime = IpplTimings::getTimer("samplingTime");
@@ -328,17 +330,17 @@ void TrackRun::execute() {
 
     // set distribution type
     dist_m->setDist();
-    dist_m->setAvrgPz(beam->getMomentum() / beam->getMass());
+    dist_m->setAvrgPz( beam->getMomentum()/beam->getMass() );
 
     // sample particles
-    auto pc               = bunch_m->getParticleContainer();
-    auto fc               = bunch_m->getFieldContainer();
-    size_type Np          = beam->getNumberOfParticles();
+    auto pc = bunch_m->getParticleContainer();
+    auto fc = bunch_m->getFieldContainer();
+    size_type Np = beam->getNumberOfParticles();
     Vector_t<int, Dim> nr = bunch_m->nr_m;
 
     std::shared_ptr<Distribution> opalDist(dist_m);
 
-    switch (opalDist->getType()) {
+    switch (opalDist->getType()){
         case DistributionType::GAUSS:
             sampler_m = std::make_shared<Gaussian>(pc, fc, opalDist);
             break;
@@ -355,20 +357,20 @@ void TrackRun::execute() {
             throw OpalException("Distribution::create", "Unknown \"TYPE\" of \"DISTRIBUTION\"");
     }
 
-    *gmsg << "* About to create particles ..." << endl;
-
-    static IpplTimings::TimerRef GenParticlesTimer = IpplTimings::getTimer("GenParticles");
+    *gmsg << level2 << "* About to create particles ..." << endl;
+    
+    static IpplTimings::TimerRef GenParticlesTimer  = IpplTimings::getTimer("GenParticles");
     IpplTimings::startTimer(GenParticlesTimer);
 
     sampler_m->generateParticles(Np, nr);
 
     IpplTimings::stopTimer(GenParticlesTimer);
 
-    *gmsg << "* Particle creation done" << endl;
-
+    *gmsg << level2 << "* Particle creation done" << endl;
+    
     IpplTimings::stopTimer(samplingTime);
 
-    /*
+    /* 
        reset the fieldsolver with correct hr_m
        based on the distribution
     */
@@ -437,7 +439,9 @@ void TrackRun::setRunMethod() {
     }
 }
 
-std::string TrackRun::getRunMethodName() const { return stringMethod_s.left.at(method_m); }
+std::string TrackRun::getRunMethodName() const {
+    return stringMethod_s.left.at(method_m);
+}
 
 /*
 
@@ -533,12 +537,8 @@ Inform& TrackRun::print(Inform& os) const {
        << '\n'
        << "* DT                            = " << Track::block->dT.front() << " [s]\n"
        << "* MAXSTEPS                      = " << Track::block->localTimeSteps.front() << '\n'
-       << "* Mass of simulation particle   = "
-       << Beam::find(Attributes::getString(itsAttr[TRACKRUN::BEAM]))->getChargePerParticle()
-       << " [GeV/c^2]" << '\n'
-       << "* Charge of simulation particle = "
-       << Beam::find(Attributes::getString(itsAttr[TRACKRUN::BEAM]))->getMassPerParticle() << " [C]"
-       << '\n';
+       << "* Mass of simulation particle   = " << Beam::find(Attributes::getString(itsAttr[TRACKRUN::BEAM]))->getChargePerParticle() << " [GeV/c^2]" << '\n'
+       << "* Charge of simulation particle = " << Beam::find(Attributes::getString(itsAttr[TRACKRUN::BEAM]))->getMassPerParticle() << " [C]" << '\n';
     os << "* ********************************************************************************** ";
     return os;
 }

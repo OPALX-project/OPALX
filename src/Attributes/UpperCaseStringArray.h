@@ -23,34 +23,38 @@
 #include "AbstractObjects/AttributeHandler.h"
 #include "AbstractObjects/Expressions.h"
 
+
 namespace Attributes {
 
     /// Parser for an attribute of type string array.
-    class UpperCaseStringArray : public AttributeHandler {
+    class UpperCaseStringArray: public AttributeHandler {
+
     public:
+
         /// Constructor.
         //  Assign attribute name and help string.
-        UpperCaseStringArray(const std::string& name, const std::string& help);
+        UpperCaseStringArray(const std::string &name, const std::string &help);
 
         virtual ~UpperCaseStringArray();
 
         /// Return attribute type string ``string array''.
-        virtual const std::string& getType() const;
+        virtual const std::string &getType() const;
 
         /// Parse the attribute.
-        virtual void parse(Attribute&, Statement&, bool) const;
+        virtual void parse(Attribute &, Statement &, bool) const;
 
         /// Parse a component of the array.
         //  Identified by its index.
-        virtual void parseComponent(Attribute&, Statement&, bool, int) const;
+        virtual void parseComponent(Attribute &, Statement &, bool, int) const;
 
     private:
+
         // Not implemented.
         UpperCaseStringArray();
-        UpperCaseStringArray(const UpperCaseStringArray&);
-        void operator=(const UpperCaseStringArray&);
+        UpperCaseStringArray(const UpperCaseStringArray &);
+        void operator=(const UpperCaseStringArray &);
     };
 
-};  // namespace Attributes
+};
 
 #endif

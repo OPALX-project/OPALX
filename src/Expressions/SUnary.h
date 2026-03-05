@@ -18,13 +18,14 @@
 //
 // ------------------------------------------------------------------------
 
-#include <cerrno>
-#include <iostream>
 #include "AbstractObjects/Expressions.h"
 #include "Expressions/SConstant.h"
 #include "Expressions/TFunction1.h"
 #include "Utilities/DomainError.h"
 #include "Utilities/OverflowError.h"
+#include <cerrno>
+#include <iostream>
+
 
 namespace Expressions {
 
@@ -35,17 +36,19 @@ namespace Expressions {
     //  result of applying a scalar function to the result.
 
     template <class T, class U>
-    class SUnary : public Scalar<T> {
+    class SUnary: public Scalar<T> {
+
     public:
+
         /// Constructor.
         //  Use scalar function of one operand and a scalar operand.
-        SUnary(const TFunction1<T, U>& function, PtrToScalar<U> operand);
+        SUnary(const TFunction1<T, U> &function, PtrToScalar<U> operand);
 
-        SUnary(const SUnary<T, U>&);
+        SUnary(const SUnary<T, U> &);
         virtual ~SUnary();
 
         /// Make clone.
-        virtual Scalar<T>* clone() const;
+        virtual Scalar<T> *clone() const;
 
         /// Evaluate.
         virtual T evaluate() const;
@@ -54,78 +57,92 @@ namespace Expressions {
         //  If the operand is constant and the function is not a random
         //  generator, evaluate the expression and  store the result as a
         //  constant.
-        static Scalar<T>* make(const TFunction1<T, U>& function, PtrToScalar<U> operand);
+        static Scalar<T> *make(const TFunction1<T, U> &function,
+                               PtrToScalar<U> operand);
 
         /// Print expression.
-        virtual void print(std::ostream&, int precedence = 99) const;
+        virtual void print(std::ostream &, int precedence = 99) const;
 
     private:
+
         // Not implemented.
         SUnary();
-        void operator=(const SUnary&);
+        void operator=(const SUnary &);
 
         // The operation object.
-        const TFunction1<T, U>& fun;
+        const TFunction1<T, U> &fun;
 
         // The two operands.
         PtrToScalar<U> opr;
     };
 
+
     // Implementation
     // ------------------------------------------------------------------------
 
-    template <class T, class U>
-    inline SUnary<T, U>::SUnary(const SUnary<T, U>& rhs)
-        : Scalar<T>(rhs), fun(rhs.fun), opr(rhs.opr->clone()) {}
+    template <class T, class U> inline
+    SUnary<T, U>::SUnary(const SUnary<T, U> &rhs):
+        Scalar<T>(rhs),
+        fun(rhs.fun), opr(rhs.opr->clone())
+    {}
 
-    template <class T, class U>
-    inline SUnary<T, U>::SUnary(const TFunction1<T, U>& function, PtrToScalar<U> oper)
-        : fun(function), opr(oper) {}
 
-    template <class T, class U>
-    inline SUnary<T, U>::~SUnary() {}
+    template <class T, class U> inline
+    SUnary<T, U>::SUnary(const TFunction1<T, U> &function,
+                         PtrToScalar<U> oper):
+        fun(function), opr(oper)
+    {}
 
-    template <class T, class U>
-    inline Scalar<T>* SUnary<T, U>::clone() const {
+
+    template <class T, class U> inline
+    SUnary<T, U>::~SUnary()
+    {}
+
+
+    template <class T, class U> inline
+    Scalar<T> *SUnary<T, U>::clone() const {
         return new SUnary<T, U>(*this);
     }
 
-    template <class T, class U>
-    inline T SUnary<T, U>::evaluate() const {
-        errno    = 0;
-        U arg    = opr->evaluate();
+
+    template <class T, class U> inline
+    T SUnary<T, U>::evaluate() const {
+        errno = 0;
+        U arg = opr->evaluate();
         T result = (*fun.function)(arg);
 
         // Test for run-time evaluation errors.
-        switch (errno) {
+        switch(errno) {
+
             case EDOM:
                 throw DomainError("SUnary::evaluate()");
 
             case ERANGE:
                 // Ignore underflow.
-                if (result == T(0))
-                    return result;
+                if(result == T(0)) return result;
                 throw OverflowError("SUnary::evaluate()");
 
-            default:;
+            default:
+                ;
         }
 
         return result;
     }
 
-    template <class T, class U>
-    inline Scalar<T>* SUnary<T, U>::make(const TFunction1<T, U>& function, PtrToScalar<U> operand) {
+
+    template <class T, class U> inline
+    Scalar<T> *SUnary<T, U>::make
+    (const TFunction1<T, U> &function, PtrToScalar<U> operand) {
         // We must pick up the constant flag before the ownership of "operand"
         // is transferred to "result".
-        bool isConst          = operand->isConstant();
-        PtrToScalar<T> result = new SUnary<T, U>(function, operand);
-        ;
+        bool isConst = operand->isConstant();
+        PtrToScalar<T> result = new SUnary<T, U>(function, operand);;
 
-        if (function.precedence != -2) {
-            if (isConst) {
+        if(function.precedence != -2) {
+            if(isConst) {
                 // Constant expression.
                 double value = result->evaluate();
-                result       = new SConstant<T>(value);
+                result = new SConstant<T>(value);
             }
         }
 
@@ -133,15 +150,14 @@ namespace Expressions {
         return result.release();
     }
 
-    template <class T, class U>
-    inline void SUnary<T, U>::print(std::ostream& os, int precedence) const {
-        if (fun.precedence >= 0) {
-            if (fun.precedence <= precedence)
-                os << "(";
+
+    template <class T, class U> inline
+    void SUnary<T, U>::print(std::ostream &os, int precedence) const {
+        if(fun.precedence >= 0) {
+            if(fun.precedence <= precedence) os << "(";
             os << fun.name;
             opr->print(os, fun.precedence);
-            if (fun.precedence <= precedence)
-                os << ")";
+            if(fun.precedence <= precedence) os << ")";
         } else {
             os << fun.name << "(";
             opr->print(os, 0);
@@ -149,6 +165,6 @@ namespace Expressions {
         }
     }
 
-}  // namespace Expressions
+}
 
-#endif  // OPAL_SUnary_HH
+#endif // OPAL_SUnary_HH

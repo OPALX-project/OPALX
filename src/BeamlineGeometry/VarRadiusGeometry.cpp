@@ -25,24 +25,25 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "BeamlineGeometry/VarRadiusGeometry.h"
 #include <cmath>
 #include <vector>
-#include "AbsBeamline/MultipoleTFunctions/CoordinateTransform.h"
+#include "BeamlineGeometry/VarRadiusGeometry.h"
 #include "BeamlineGeometry/Euclid3D.h"
+#include "AbsBeamline/MultipoleTFunctions/CoordinateTransform.h"
 #include "Utility/Inform.h"
 
 extern Inform* gmsg;
 
 Euclid3D VarRadiusGeometry::getTransform(double fromS, double toS) const {
     Euclid3D v;
-    coordinatetransform::CoordinateTransform t(
-        0.0, 0.0, 0.0, s_0_m, lambda_left_m, lambda_right_m, rho_m);
-    double phifrom               = acos(t.getUnitTangentVector(fromS)[1]);
-    double phito                 = acos(t.getUnitTangentVector(toS)[1]);
+    coordinatetransform::CoordinateTransform t(0.0, 0.0, 0.0,
+                                               s_0_m, lambda_left_m,
+                                               lambda_right_m, rho_m);
+    double phifrom = acos(t.getUnitTangentVector(fromS)[1]);
+    double phito = acos(t.getUnitTangentVector(toS)[1]);
     std::vector<double> ref_from = t.calcReferenceTrajectory(fromS);
-    std::vector<double> ref_to   = t.calcReferenceTrajectory(toS);
-    v                            = Euclid3D::YRotation(-(phifrom + phito));
+    std::vector<double> ref_to = t.calcReferenceTrajectory(toS);
+    v = Euclid3D::YRotation(-(phifrom + phito));
     v.setX(ref_to[0] - ref_from[0]);
     v.setZ(ref_to[1] - ref_from[1]);
     return v;
@@ -52,3 +53,6 @@ Euclid3D VarRadiusGeometry::getTransform(double /*fromS*/) const {
     *gmsg << "passed fromS argumentnot not used in  VarRadiusGeometry::getTransform" << endl;
     throw GeneralClassicException("Euclid3DGeometry::getTransform", "Not implemented");
 }
+
+
+

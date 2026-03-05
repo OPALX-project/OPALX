@@ -30,14 +30,15 @@
 #include <iomanip>
 
 namespace interpolation {
-    std::ostream& operator<<(std::ostream& out, const Mesh::Iterator& it) {
-        out << std::setw(5) << it.toInteger() << " ** ";
-        for (unsigned int i = 0; i < it.getState().size(); i++)
-            out << std::setw(5) << it[i] << " ";
-        out << "** ";
-        for (unsigned int i = 0; i < it.getPosition().size(); i++)
-            out << std::scientific << std::setprecision(3) << std::setw(12) << it.getPosition()[i]
-                << " ";
-        return out;
-    }
-}  // namespace interpolation
+std::ostream& operator<<(std::ostream& out, const Mesh::Iterator& it) {
+    out << std::setw(5) << it.toInteger() << " ** ";
+    for (unsigned int i = 0; i < it.getState().size(); i++)
+        out << std::setw(5) << it[i] << " ";
+    out << "** ";
+    for (unsigned int i = 0; i < it.getPosition().size(); i++)
+        out << std::scientific << std::setprecision(3) << std::setw(12)
+            << it.getPosition()[i] << " ";
+    return out;
+}
+}
+

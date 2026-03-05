@@ -18,11 +18,11 @@
 //
 // ------------------------------------------------------------------------
 
+#include "AbstractObjects/Attribute.h"
 #include <iosfwd>
 #include <set>
 #include <string>
 #include <vector>
-#include "AbstractObjects/Attribute.h"
 
 class Invalidator;
 class Parser;
@@ -43,20 +43,22 @@ class TokenStream;
 //  easily whether an Object belongs to a given class (see isTreeMember()).
 
 class Object {
+
 public:
+
     virtual ~Object();
 
     /// Test if replacement is allowed.
     //  By default redefinition of an existing Object is not allowed.
-    virtual bool canReplaceBy(Object* object);
+    virtual bool canReplaceBy(Object *object);
 
     /// Return a clone.
     //  Call the [b]clone[/b] constructor to generate a copy of [b]this[/b]
     //  with a new name [b]name[/b].
-    virtual Object* clone(const std::string& name) = 0;
+    virtual Object *clone(const std::string &name) = 0;
 
     /// Copy attributes from another object.
-    void copyAttributes(const Object&);
+    void copyAttributes(const Object &);
 
     /// Execute the command.
     //  For definitions check validity, for actions execute the action.
@@ -65,12 +67,12 @@ public:
     /// Find an attribute by name.
     //  Find the Object's attribute identified by [b]name[/b]
     //  (version for non-constant object).
-    virtual Attribute* findAttribute(const std::string& name);
+    virtual Attribute *findAttribute(const std::string &name);
 
     /// Find an attribute by name.
     //  Find the Object's attribute identified by [b]name[/b]
     //  (version for constant object).
-    virtual const Attribute* findAttribute(const std::string& name) const;
+    virtual const Attribute *findAttribute(const std::string &name) const;
 
     /// Return the object category as a string.
     //  Is overridden by the (still abstract) sub-classes of Object.
@@ -91,33 +93,34 @@ public:
     /// Macro handler function.
     //  Construct an ``archetype'' object for a MACRO commands.
     //  The default version throws OpalException.
-    virtual Object* makeTemplate(const std::string&, TokenStream&, Statement&);
+    virtual Object *makeTemplate(const std::string &, TokenStream &, Statement &);
 
     /// Macro handler function.
     //  Construct an instance object from an ``archetype'' object.
     //  The default version throws OpalException.
-    virtual Object* makeInstance(const std::string& name, Statement&, const Parser*);
+    virtual Object *makeInstance
+    (const std::string &name, Statement &, const Parser *);
 
     /// Parse the object.
     //  Parse the statement and fill in the Object's attributes.
-    virtual void parse(Statement&);
+    virtual void parse(Statement &);
 
     /// Parser for single-attribute commands.
     //  This parser allows to use unnamed attributes for command which
     //  have only one attribute.
     //  If [b]eval[/b] is false, then the attribute is not evaluated immediately
     //  even if the delimiter is ``=''.
-    virtual void parseShortcut(Statement&, bool eval = true);
+    virtual void parseShortcut(Statement &, bool eval = true);
 
     /// Print the object.
     //  Print a OPAL-readable image of [b]this[/b] on the given output stream.
-    virtual void print(std::ostream&) const;
+    virtual void print(std::ostream  &) const;
 
-    virtual void printValue(std::ostream&) const;
+    virtual void printValue(std::ostream &) const;
 
     /// Print help.
     //  Print help information for [b]this[/b] on the default output stream (argument not used).
-    virtual void printHelp(std::ostream&) const;
+    virtual void printHelp(std::ostream &) const;
 
     /// Replace references.
     //  Called for all defined objects, when an object [b]oldObject[/b] is
@@ -125,7 +128,7 @@ public:
     //  This default version does nothing.
     //  Some derived classes may react to the redefinition by invalidating
     //  themselves or by replacing reference inside their data.
-    virtual void replace(Object* oldObject, Object* newObject);
+    virtual void replace(Object *oldObject, Object *newObject);
 
     /// Update this object.
     //  Called for all defined objects, before an action command is executed.
@@ -165,25 +168,25 @@ public:
     /// Return the object's base type object.
     //  Return the top-most ancestor of this object, i. e. the built-in
     //  object from which [b]this[/b] is ultimately derived.
-    const Object* getBaseObject() const;
+    const Object *getBaseObject() const;
 
     /// Return object name.
-    const std::string& getOpalName() const;
+    const std::string &getOpalName() const;
 
     /// Return parent pointer.
-    Object* getParent() const;
+    Object *getParent() const;
 
     /// Test for tree membership.
     //  Return true, if [b]this[/b] has been directly or indirectly derived
     //  from [b]subTree[/b].
-    bool isTreeMember(const Object* subTree) const;
+    bool isTreeMember(const Object *subTree) const;
 
     /// Set object name.
-    void setOpalName(const std::string& name);
+    void setOpalName(const std::string &name);
 
     /// Set parent object.
     //  This method should normally be called only from Directory.
-    void setParent(Object*);
+    void setParent(Object *);
 
     /// Clear the occurrence counter.
     void clear();
@@ -197,28 +200,29 @@ public:
     /// Register a reference to this object.
     //  Place [b]a[/b] in the list of references.  Whenever [b]this[/b]
     //  is erased or modified, [b]a[/b] will be notified of the change.
-    void registerReference(Invalidator* a);
+    void registerReference(Invalidator *a);
 
     /// Unegister a reference to this object.
     //  Remove [b]a[/b] from the list of references.  The object [b]a[/b]
     //  will no longer be notified of any change to [b]this[/b].
-    void unregisterReference(Invalidator* a);
+    void unregisterReference(Invalidator *a);
 
-    void registerOwnership(const AttributeHandler::OwnerType& itsClass) const;
+    void registerOwnership(const AttributeHandler::OwnerType &itsClass) const;
 
     /// The object attributes.
     std::vector<Attribute> itsAttr;
 
 protected:
+
     /// Constructor for exemplars.
     //  The exemplar object will have the name [b]name[/b], and the help
     //  text [b]help[/b]; it initially reserves [b]size[/b] attributes.
-    Object(int size, const char* name, const char* help);
+    Object(int size, const char *name, const char *help);
 
     /// Constructor for clones.
     //  The clone object will have the name [b]name[/b]; it inherits its
     //  attributes (shared) from the object [b]*parent[/b].
-    Object(const std::string& name, Object* parent);
+    Object(const std::string &name, Object *parent);
 
     /// Built-in flag.
     //  True, if the object is built-in to OPAL-9, i. e. if it is an exemplar
@@ -235,13 +239,14 @@ protected:
     bool flagged;
 
 private:
+
     // Not implemented.
     Object();
-    Object(const Object& object);
-    void operator=(const Object&);
+    Object(const Object &object);
+    void operator=(const Object &);
 
     // Pointer to the parent object.
-    Object* itsParent;
+    Object *itsParent;
 
     // The object name.
     std::string itsName;
@@ -257,16 +262,20 @@ private:
 
     // The set of all references to this object.
     // This allows to invalidate the references when [b]this[/b] is deleted.
-    std::set<Invalidator*> references;
+    std::set <Invalidator *> references;
 
     // If true, the object is shared.
     bool sharedFlag;
 };
 
+
 // Implementation.
 // ------------------------------------------------------------------------
-extern std::ostream& operator<<(std::ostream& os, const Object& object);
+extern std::ostream &operator<<(std::ostream &os, const Object &object);
 
-inline void Object::printValue(std::ostream& os) const { print(os); }
+inline
+void Object::printValue(std::ostream &os) const {
+    print(os);
+}
 
-#endif  // OPAL_Object_HH
+#endif // OPAL_Object_HH

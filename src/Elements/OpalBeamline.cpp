@@ -23,15 +23,19 @@
 #include "Utilities/Util.h"
 
 #include <filesystem>
-#include <fstream>
 #include <regex>
+#include <fstream>
 
-OpalBeamline::OpalBeamline() : elements_m(), prepared_m(false) {}
+OpalBeamline::OpalBeamline() : elements_m(), prepared_m(false) {
+}
 
 OpalBeamline::OpalBeamline(const Vector_t<double, 3>& origin, const Quaternion& rotation)
-    : elements_m(), prepared_m(false), coordTransformationTo_m(origin, rotation) {}
+    : elements_m(), prepared_m(false), coordTransformationTo_m(origin, rotation) {
+}
 
-OpalBeamline::~OpalBeamline() { elements_m.clear(); }
+OpalBeamline::~OpalBeamline() {
+    elements_m.clear();
+}
 
 std::set<std::shared_ptr<Component>> OpalBeamline::getElements(const Vector_t<double, 3>& x) {
     std::set<std::shared_ptr<Component>> elementSet;
@@ -51,8 +55,7 @@ std::set<std::shared_ptr<Component>> OpalBeamline::getElements(const Vector_t<do
 
 unsigned long OpalBeamline::getFieldAt(
     const unsigned int& /*index*/, const Vector_t<double, 3>& /*pos*/, const long& /*sindex*/,
-    const double& /*t*/, Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/
-) {
+    const double& /*t*/, Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/) {
     unsigned long rtv = 0x00;
 
     return rtv;
@@ -94,8 +97,7 @@ unsigned long OpalBeamline::getFieldAt(
 }
 
 void OpalBeamline::switchElements(
-    const double& min, const double& max, const double& kineticEnergy, const bool& /*nomonitors*/
-) {
+    const double& min, const double& max, const double& kineticEnergy, const bool& /*nomonitors*/) {
     FieldList::iterator fprev;
     for (FieldList::iterator flit = elements_m.begin(); flit != elements_m.end(); ++flit) {
         // don't set online monitors if the centroid of the bunch is allready inside monitor
@@ -122,7 +124,8 @@ void OpalBeamline::prepareSections() {
     prepared_m = true;
 }
 
-void OpalBeamline::print(Inform& /*msg*/) const {}
+void OpalBeamline::print(Inform& /*msg*/) const {
+}
 
 void OpalBeamline::swap(OpalBeamline& rhs) {
     std::swap(elements_m, rhs.elements_m);
@@ -436,10 +439,8 @@ namespace {
             in.putback(testBit);
 
             std::getline(in, str);
-            str = std::regex_replace(
-                str, cppCommentExpr, commentFormat, std::regex_constants::format_default);
-            str =
-                std::regex_replace(str, empty, commentFormat, std::regex_constants::format_default);
+            str = std::regex_replace(str, cppCommentExpr, commentFormat, std::regex_constants::format_default);
+            str = std::regex_replace(str, empty, commentFormat, std::regex_constants::format_default);
             if (!str.empty()) {
                 source += str;  // + '\n';
                 priorEmpty = false;
@@ -453,8 +454,7 @@ namespace {
 
         source = std::regex_replace(source, cCommentExpr, commentFormat);
         source = std::regex_replace(
-            source, lineEnd, lineEndFormat,
-            std::regex_constants::match_default | std::regex_constants::format_default);
+            source, lineEnd, lineEndFormat, std::regex_constants::match_default | std::regex_constants::format_default);
 
         // Since the positions of the elements are absolute in the laboratory coordinate system we
         // have to make sure that the line command doesn't provide an origin and orientation.

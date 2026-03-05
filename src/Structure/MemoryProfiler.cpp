@@ -170,8 +170,8 @@ void MemoryProfiler::compute(vm_t& vmMin, vm_t& vmMax, vm_t& vmAvg) {
         vm *= inodes;
     }
 
-    // new_reduce(vmem_m.data(), vmMin.data(), vmem_m.size(), std::less<double>());
-    // new_reduce(vmem_m.data(), vmMax.data(), vmem_m.size(), std::greater<double>());
+    //new_reduce(vmem_m.data(), vmMin.data(), vmem_m.size(), std::less<double>());
+    //new_reduce(vmem_m.data(), vmMax.data(), vmem_m.size(), std::greater<double>());
     reduce(vmem_m.data(), vmMin.data(), vmem_m.size(), std::less<double>());
     reduce(vmem_m.data(), vmMax.data(), vmem_m.size(), std::greater<double>());
 }

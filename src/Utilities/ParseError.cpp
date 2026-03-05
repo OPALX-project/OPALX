@@ -20,12 +20,20 @@
 
 #include "Utilities/ParseError.h"
 
+
 // Class ParseError
 // ------------------------------------------------------------------------
 
-ParseError::ParseError(const std::string& meth, const std::string& msg)
-    : ClassicException(meth, msg) {}
 
-ParseError::ParseError(const ParseError& rhs) : ClassicException(rhs) {}
+ParseError::ParseError(const std::string &meth, const std::string &msg):
+    ClassicException(meth, msg) {
+}
 
-ParseError::~ParseError() {}
+
+ParseError::ParseError(const ParseError &rhs):
+    ClassicException(rhs)
+{}
+
+
+ParseError::~ParseError()
+{}

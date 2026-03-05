@@ -20,8 +20,11 @@
 
 #include "AbstractObjects/ValueDefinition.h"
 
-class BoolConstant : public ValueDefinition {
+
+class BoolConstant: public ValueDefinition {
+
 public:
+
     /// Exemplar constructor.
     BoolConstant();
 
@@ -29,27 +32,28 @@ public:
 
     /// Test if object can be replaced.
     //  Always false for constants.
-    virtual bool canReplaceBy(Object* object);
+    virtual bool canReplaceBy(Object *object);
 
     /// Make clone.
-    virtual BoolConstant* clone(const std::string& name);
+    virtual BoolConstant *clone(const std::string &name);
 
     /// Print the constant.
-    virtual void print(std::ostream&) const;
+    virtual void print(std::ostream &) const;
 
     /// Print its value
-    virtual void printValue(std::ostream& os) const;
+    virtual void printValue(std::ostream &os) const;
 
     /// Return value.
     virtual bool getBool() const;
 
 private:
+
     // Not implemented.
-    BoolConstant(const BoolConstant&);
-    void operator=(const BoolConstant&);
+    BoolConstant(const BoolConstant &);
+    void operator=(const BoolConstant &);
 
     // Clone constructor.
-    BoolConstant(const std::string& name, BoolConstant* parent);
+    BoolConstant(const std::string &name, BoolConstant *parent);
 };
 
-#endif  // OPAL_BoolConstant_HH
+#endif // OPAL_BoolConstant_HH

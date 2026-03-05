@@ -18,22 +18,23 @@
 #ifndef OPAL_Selector_HH
 #define OPAL_Selector_HH
 
-#include <string>
 #include "Tables/RangeSelector.h"
+#include <string>
 
 class Element;
 class RangeRep;
 class RegularExpression;
 
-class Selector : public RangeSelector {
+class Selector: public RangeSelector {
+
 public:
+
     /// Constructor.
     //  Attach visitor to [b]bl[/b].  Remember range [b]range[/b],
     //  class name [b]cName[/b], type name [b]tName[/b], and pattern
     //  string [b]pString[/b].
-    Selector(
-        const Beamline&, const RangeRep& range, const std::string& cName, const std::string& tName,
-        const std::string& pString);
+    Selector(const Beamline &, const RangeRep &range, const std::string &cName,
+             const std::string &tName, const std::string &pString);
 
     virtual ~Selector();
 
@@ -44,26 +45,28 @@ public:
     int getCount() const;
 
 protected:
+
     /// The operation to be done for elements.
-    virtual void handleElement(const FlaggedElmPtr&);
+    virtual void handleElement(const FlaggedElmPtr &);
 
 private:
+
     // Not implemented.
     Selector();
-    Selector(const Selector&);
-    void operator=(const Selector&);
+    Selector(const Selector &);
+    void operator=(const Selector &);
 
     // Class of "SELECT", or zero.
-    const Element* itsClass;
+    const Element *itsClass;
 
     // Type name of "SELECT".
     const std::string itsType;
 
     // Pattern of "SELECT", or zero.
-    const RegularExpression* itsPattern;
+    const RegularExpression *itsPattern;
 
     // The count of selected elements.
     int itsCount;
 };
 
-#endif  // OPAL_Selector_HH
+#endif // OPAL_Selector_HH

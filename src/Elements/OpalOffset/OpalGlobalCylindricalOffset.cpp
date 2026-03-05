@@ -36,43 +36,50 @@
 
 namespace OpalOffset {
 
-    const std::string OpalGlobalCylindricalOffset::doc_string =
-        std::string("The \"LOCAL_CYLINDRICAL_OFFSET\" element defines an offset")
-        + std::string("in cylindrical coordinates, relative to the last placed ")
-        + std::string("element. All angles are defined in the midplane.");
+const std::string OpalGlobalCylindricalOffset::doc_string =
+    std::string("The \"LOCAL_CYLINDRICAL_OFFSET\" element defines an offset")+
+    std::string("in cylindrical coordinates, relative to the last placed ")+
+    std::string("element. All angles are defined in the midplane.");
 
-    OpalGlobalCylindricalOffset::OpalGlobalCylindricalOffset()
-        : OpalElement(int(SIZE), "GLOBAL_CYLINDRICAL_OFFSET", doc_string.c_str()) {
-        itsAttr[RADIUS] = Attributes::makeReal(
-            "RADIUS", "Angle between the previous element and the displacement vector.");
-        itsAttr[AZIMUTHAL_ANGLE] = Attributes::makeReal(
-            "AZIMUTHAL_ANGLE", "Angle between the displacement vector and the next element.");
-        itsAttr[TANGENTIAL_OFFSET] =
-            Attributes::makeReal("TANGENTIAL_OFFSET", "Length of the offset.");
+OpalGlobalCylindricalOffset::OpalGlobalCylindricalOffset()
+       : OpalElement(int(SIZE),
+                     "GLOBAL_CYLINDRICAL_OFFSET",
+                     doc_string.c_str()) {
+    itsAttr[RADIUS] = Attributes::makeReal("RADIUS",
+             "Angle between the previous element and the displacement vector.");
+    itsAttr[AZIMUTHAL_ANGLE] = Attributes::makeReal("AZIMUTHAL_ANGLE",
+             "Angle between the displacement vector and the next element.");
+    itsAttr[TANGENTIAL_OFFSET] = Attributes::makeReal("TANGENTIAL_OFFSET",
+             "Length of the offset.");
 
-        registerOwnership();
-    }
+    registerOwnership();
+}
 
-    OpalGlobalCylindricalOffset* OpalGlobalCylindricalOffset::clone(const std::string& name) {
-        return new OpalGlobalCylindricalOffset(name, this);
-    }
+OpalGlobalCylindricalOffset* OpalGlobalCylindricalOffset::clone(const std::string &name) {
+    return new OpalGlobalCylindricalOffset(name, this);
+}
 
-    void OpalGlobalCylindricalOffset::print(std::ostream& out) const { OpalElement::print(out); }
+void OpalGlobalCylindricalOffset::print(std::ostream& out) const {
+    OpalElement::print(out);
+}
 
-    OpalGlobalCylindricalOffset::OpalGlobalCylindricalOffset(
-        const std::string& name, OpalGlobalCylindricalOffset* parent)
-        : OpalElement(name, parent) {}
+OpalGlobalCylindricalOffset::OpalGlobalCylindricalOffset(const std::string &name, OpalGlobalCylindricalOffset *parent):
+    OpalElement(name, parent) {
+}
 
-    OpalGlobalCylindricalOffset::~OpalGlobalCylindricalOffset() {}
+OpalGlobalCylindricalOffset::~OpalGlobalCylindricalOffset() {}
 
-    void OpalGlobalCylindricalOffset::update() {
-        // getOpalName() comes from AbstractObjects/Object.h
-        std::string name = getOpalName();
-        double radius    = Attributes::getReal(itsAttr[RADIUS]);
-        double phi       = Attributes::getReal(itsAttr[AZIMUTHAL_ANGLE]);
-        double theta     = Attributes::getReal(itsAttr[TANGENTIAL_OFFSET]);
-        Offset* off      = new Offset(Offset::globalCylindricalOffset(name, radius, phi, theta));
-        // is this a memory leak?
-        setElement(off);
-    }
-}  // namespace OpalOffset
+void OpalGlobalCylindricalOffset::update() {
+    // getOpalName() comes from AbstractObjects/Object.h
+    std::string name = getOpalName();
+    double radius = Attributes::getReal(itsAttr[RADIUS]);
+    double phi = Attributes::getReal(itsAttr[AZIMUTHAL_ANGLE]);
+    double theta = Attributes::getReal(itsAttr[TANGENTIAL_OFFSET]);
+    Offset* off = new Offset(Offset::globalCylindricalOffset(name,
+                                                            radius,
+                                                            phi,
+                                                            theta));
+    // is this a memory leak?
+    setElement(off);
+}
+}

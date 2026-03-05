@@ -70,11 +70,10 @@ public:
 
     virtual void initialise(PartBunch_t* bunch, double& startField, double& endField) override;
 
-    virtual void initialise(
-        PartBunch_t* bunch, std::shared_ptr<AbstractTimeDependence> freq_atd,
+    virtual void initialise(PartBunch_t* bunch, std::shared_ptr<AbstractTimeDependence> freq_atd,
         std::shared_ptr<AbstractTimeDependence> ampl_atd,
         std::shared_ptr<AbstractTimeDependence> phase_atd) override;
-
+    
     virtual void finalise() override;
 
     virtual bool bends() const override;
@@ -205,9 +204,13 @@ inline void TravelingWave::setPhasem(double phase) {
         - Physics::two_pi * ((numCells_m - 1) * mode_m - std::floor((numCells_m - 1) * mode_m));
 }
 
-inline void TravelingWave::setNumCells(int NumCells) { numCells_m = NumCells; }
+inline void TravelingWave::setNumCells(int NumCells) {
+    numCells_m = NumCells;
+}
 
-inline void TravelingWave::setMode(double mode) { mode_m = mode; }
+inline void TravelingWave::setMode(double mode) {
+    mode_m = mode;
+}
 
 inline CoordinateSystemTrafo TravelingWave::getEdgeToBegin() const {
     CoordinateSystemTrafo ret(

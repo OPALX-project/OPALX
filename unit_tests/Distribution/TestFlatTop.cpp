@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include <mpi.h>
-#include <cmath>
 #include <memory>
+#include <cmath>
 
 #include "Distribution/FlatTop.h"
 #include "Ippl.h"
@@ -10,22 +10,24 @@
 class FlatTopTest : public ::testing::Test {
 protected:
     static void SetUpTestSuite() {
-        int argc    = 0;
+        int argc = 0;
         char** argv = nullptr;
 
         ippl::initialize(argc, argv);
     }
 
-    static void TearDownTestSuite() { ippl::finalize(); }
+    static void TearDownTestSuite() {
+        ippl::finalize();
+    }
 
     void SetUp() override {
         // Minimal 3D grid parameters
-        nr                             = 64;
-        ippl::Vector<double, 3> rmin   = -4.0;
-        ippl::Vector<double, 3> rmax   = 4.0;
-        ippl::Vector<double, 3> origin = rmin;
-        ippl::Vector<double, 3> hr     = (rmax - rmin) / ippl::Vector<double, 3>(nr);
-        std::array<bool, 3> decomp     = {false, false, true};
+        nr = 64;
+        ippl::Vector<double,3> rmin = -4.0;
+        ippl::Vector<double,3> rmax = 4.0;
+        ippl::Vector<double,3> origin = rmin;
+        ippl::Vector<double,3> hr = (rmax - rmin) / ippl::Vector<double,3>(nr);
+        std::array<bool,3> decomp = {false, false, true};
 
         ippl::NDIndex<3> domain;
         for (unsigned i = 0; i < 3; i++) {
@@ -33,8 +35,7 @@ protected:
         }
 
         // Create FieldContainer
-        fc = std::make_shared<FieldContainer_t>(
-            hr, rmin, rmax, decomp, domain, origin, this->isAllPeriodic_m);
+        fc = std::make_shared<FieldContainer_t>(hr, rmin, rmax, decomp, domain, origin, this->isAllPeriodic_m);
 
         // Create mesh and fieldlayout
         Mesh_t<3> mesh(domain, hr, origin);
@@ -50,7 +51,7 @@ protected:
 
     std::shared_ptr<ParticleContainer<double, 3>> pc;
     std::shared_ptr<FieldContainer_t> fc;
-    ippl::Vector<int, 3> nr;
+    ippl::Vector<int,3> nr;
     bool isAllPeriodic_m = true;
 };
 
@@ -96,16 +97,19 @@ protected:
  * using a finite-sample tolerance.
  */
 TEST_F(FlatTopTest, UniformDiskStatisticsAndBounds) {
-    const Vector_t<double, 3> sigmaR = {0.5, 1.0, 0.0};
-    const Vector_t<double, 3> cutoff = 4.0;
+    const Vector_t<double,3> sigmaR = {0.5, 1.0, 0.0};
+    const Vector_t<double,3> cutoff = 4.0;
 
     // Minimal FlatTop constructor usage
     FlatTop sampler(
         pc,
         /*emitting=*/false,
         /*sigmaTFall=*/1.0,
-        /*sigmaTRise=*/1.0, cutoff,
-        /*tPulseLengthFWHM=*/1.0, sigmaR);
+        /*sigmaTRise=*/1.0,
+        cutoff,
+        /*tPulseLengthFWHM=*/1.0,
+        sigmaR
+    );
 
     const size_t nlocal = 0;
     const size_t nNew   = 100000;
@@ -138,14 +142,16 @@ TEST_F(FlatTopTest, UniformDiskStatisticsAndBounds) {
         EXPECT_DOUBLE_EQ(Pview(i)[2], 0.0);
 
         // inside ellipse
-        const double r2 = (x * x) / (sigmaR[0] * sigmaR[0]) + (y * y) / (sigmaR[1] * sigmaR[1]);
+        const double r2 =
+            (x*x)/(sigmaR[0]*sigmaR[0]) +
+            (y*y)/(sigmaR[1]*sigmaR[1]);
 
         EXPECT_LE(r2, 1.0 + 1e-14);
 
-        sumx += x;
-        sumy += y;
-        sumx2 += x * x;
-        sumy2 += y * y;
+        sumx  += x;
+        sumy  += y;
+        sumx2 += x*x;
+        sumy2 += y*y;
     }
 
     const double meanx = sumx / nNew;
@@ -159,9 +165,10 @@ TEST_F(FlatTopTest, UniformDiskStatisticsAndBounds) {
 
     // Uniform disk second moments:
     // E[x^2] = σx^2 / 4, E[y^2] = σy^2 / 4
-    EXPECT_NEAR(varx, sigmaR[0] * sigmaR[0] / 4.0, 1e-2);
-    EXPECT_NEAR(vary, sigmaR[1] * sigmaR[1] / 4.0, 1e-2);
+    EXPECT_NEAR(varx, sigmaR[0]*sigmaR[0] / 4.0, 1e-2);
+    EXPECT_NEAR(vary, sigmaR[1]*sigmaR[1] / 4.0, 1e-2);
 }
+
 
 /**
  * @brief This test counts the number of particles entering the domain per rank for a FlatTop pulse.
@@ -224,7 +231,7 @@ TEST_F(FlatTopTest, UniformDiskStatisticsAndBounds) {
  * @f]
  *
  * and @f$N_{\mathrm{new,local}}^{(r)} = N_{\mathrm{new,local}}@f$ for @f$r > 0@f$.
- *
+ * 
  * The total number of particles entering the domain is therefore
  *
  * @f[
@@ -244,15 +251,18 @@ TEST_F(FlatTopTest, UniformDiskStatisticsAndBounds) {
  * this analytic expectation exactly.
  */
 TEST_F(FlatTopTest, CountEnteringParticles_NoDomainDecomp) {
-    const Vector_t<double, 3> sigmaR = {1.0, 1.0, 0.0};
-    const Vector_t<double, 3> cutoff = {4.0, 4.0, 4.0};
+    const Vector_t<double,3> sigmaR = {1.0, 1.0, 0.0};
+    const Vector_t<double,3> cutoff = {4.0, 4.0, 4.0};
 
     FlatTop sampler(
         pc,
         /*emitting=*/true,
         /*sigmaTFall=*/1.0,
-        /*sigmaTRise=*/1.0, cutoff,
-        /*tPulseLengthFWHM=*/10.0, sigmaR);
+        /*sigmaTRise=*/1.0,
+        cutoff,
+        /*tPulseLengthFWHM=*/10.0,
+        sigmaR
+    );
 
     sampler.setWithDomainDecomp(false);
 
@@ -266,16 +276,18 @@ TEST_F(FlatTopTest, CountEnteringParticles_NoDomainDecomp) {
     size_t nlocal = sampler.countEnteringParticlesPerRank(t0, tf);
 
     // --- compute expected result ---
-    double f0    = sampler.FlatTopProfile(t0);
-    double f1    = sampler.FlatTopProfile(tf);
+    double f0 = sampler.FlatTopProfile(t0);
+    double f1 = sampler.FlatTopProfile(tf);
     double tArea = 0.5 * (f0 + f1) * (tf - t0);
 
-    double expectedTotalNew = std::floor(totalN * tArea / sampler.getDistArea());
+    double expectedTotalNew =
+        std::floor(totalN * tArea / sampler.getDistArea());
 
     int nranks;
     MPI_Comm_size(MPI_COMM_WORLD, &nranks);
 
-    size_t expectedLocal = static_cast<size_t>(std::floor(expectedTotalNew / nranks));
+    size_t expectedLocal =
+        static_cast<size_t>(std::floor(expectedTotalNew / nranks));
 
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -289,7 +301,14 @@ TEST_F(FlatTopTest, CountEnteringParticles_NoDomainDecomp) {
     EXPECT_EQ(nlocal, expectedLocal);
 
     size_t globalEmitted = 0;
-    MPI_Allreduce(&nlocal, &globalEmitted, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
+    MPI_Allreduce(
+        &nlocal,
+        &globalEmitted,
+        1,
+        MPI_UNSIGNED_LONG,
+        MPI_SUM,
+        MPI_COMM_WORLD
+    );
 
     EXPECT_EQ(globalEmitted, expectedTotalNew);
 }

@@ -29,32 +29,35 @@
 #define ENDFIELDMODEL_ASYMMETRICENGE_H_
 
 #include <iostream>
-#include <memory>
 #include <vector>
+#include <memory>
 
 #include "AbsBeamline/EndFieldModel/EndFieldModel.h"
 #include "AbsBeamline/EndFieldModel/Enge.h"
 
 namespace endfieldmodel {
 
-    /** Calculate the AsymmetricEnge function (e.g. for multipole end fields).
-     *
-     *  AsymmetricEnge function is given by\n
-     *  \f$T(x) = (tanh( (x+x0)/\lambda )-tanh( (x-x0)/\lambda ))/2\f$\n
-     *  The derivatives of tanh(x) are given by\n
-     *  \f$d^p tanh(x)/dx^p = \sum_q I_{pq} tanh^{q}(x)\f$\n
-     *  where \f$I_{pq}\f$ are calculated using some recursion relation. Using these
-     *  expressions, one can calculate a recursion relation for higher order
-     *  derivatives and hence calculate analytical derivatives at arbitrary order.
-     */
-    class AsymmetricEnge : public EndFieldModel {
+/** Calculate the AsymmetricEnge function (e.g. for multipole end fields).
+ *
+ *  AsymmetricEnge function is given by\n
+ *  \f$T(x) = (tanh( (x+x0)/\lambda )-tanh( (x-x0)/\lambda ))/2\f$\n
+ *  The derivatives of tanh(x) are given by\n
+ *  \f$d^p tanh(x)/dx^p = \sum_q I_{pq} tanh^{q}(x)\f$\n
+ *  where \f$I_{pq}\f$ are calculated using some recursion relation. Using these
+ *  expressions, one can calculate a recursion relation for higher order
+ *  derivatives and hence calculate analytical derivatives at arbitrary order.
+ */
+class AsymmetricEnge : public EndFieldModel {
     public:
         /** Default constructor */
         AsymmetricEnge();
         /** Constructor taking enge parameters */
-        AsymmetricEnge(
-            const std::vector<double> aStart, double x0Start, double lambdaStart,
-            const std::vector<double> aEnd, double x0End, double lambdaEnd);
+        AsymmetricEnge(const std::vector<double> aStart,
+                       double x0Start,
+                       double lambdaStart, 
+                       const std::vector<double> aEnd,
+                       double x0End,
+                       double lambdaEnd);
 
         /** Inheritable copy constructor. We take a deep copy of the engeStart
          *  and engeEnd
@@ -107,48 +110,69 @@ namespace endfieldmodel {
         AsymmetricEnge(const AsymmetricEnge& rhs);
         std::shared_ptr<Enge> engeStart_m;
         std::shared_ptr<Enge> engeEnd_m;
-    };
+};
 
-    std::shared_ptr<Enge> AsymmetricEnge::getEngeStart() const { return engeStart_m; }
-    std::shared_ptr<Enge> AsymmetricEnge::getEngeEnd() const { return engeEnd_m; }
-    void AsymmetricEnge::setEngeStart(std::shared_ptr<Enge> enge) { engeStart_m = enge; }
-    void AsymmetricEnge::setEngeEnd(std::shared_ptr<Enge> enge) { engeEnd_m = enge; }
+std::shared_ptr<Enge> AsymmetricEnge::getEngeStart() const {
+    return engeStart_m;
+}
+std::shared_ptr<Enge> AsymmetricEnge::getEngeEnd() const {
+    return engeEnd_m;
+}
+void AsymmetricEnge::setEngeStart(std::shared_ptr<Enge> enge) {
+    engeStart_m = enge;
+}
+void AsymmetricEnge::setEngeEnd(std::shared_ptr<Enge> enge) {
+    engeEnd_m = enge;
+}
 
-    double AsymmetricEnge::getX0Start() const { return engeStart_m->getX0(); }
+double AsymmetricEnge::getX0Start() const {
+    return engeStart_m->getX0();
+}
 
-    double AsymmetricEnge::getX0End() const { return engeEnd_m->getX0(); }
+double AsymmetricEnge::getX0End() const {
+    return engeEnd_m->getX0();
+}
 
-    void AsymmetricEnge::setX0Start(double x0) { engeStart_m->setX0(x0); }
+void AsymmetricEnge::setX0Start(double x0) {
+    engeStart_m->setX0(x0);
+}
 
-    void AsymmetricEnge::setX0End(double x0) { engeEnd_m->setX0(x0); }
+void AsymmetricEnge::setX0End(double x0) {
+    engeEnd_m->setX0(x0);
+}
 
-    double AsymmetricEnge::function(double x, int n) const {
-        // f(x) = E(x-x0) + E(-x-x0) - 1
-        // f^{(2n)} = E^{(2n)}(x-x0) + E^{(2n)}(-x-x0)
-        // f^{(2n+1)} = E^{(2n)}(x-x0) - E^{(2n)}(-x-x0)
-        if (n == 0) {
-            return engeStart_m->getEnge(x - engeStart_m->getX0(), n)
-                   + engeEnd_m->getEnge(-x - engeEnd_m->getX0(), n) - 1;
-        } else if (n % 2) {
-            return engeStart_m->getEnge(x - engeStart_m->getX0(), n)
-                   - engeEnd_m->getEnge(-x - engeEnd_m->getX0(), n);
-        } else {
-            return engeStart_m->getEnge(x - engeStart_m->getX0(), n)
-                   + engeEnd_m->getEnge(-x - engeEnd_m->getX0(), n);
-        }
+double AsymmetricEnge::function(double x, int n) const {
+    // f(x) = E(x-x0) + E(-x-x0) - 1
+    // f^{(2n)} = E^{(2n)}(x-x0) + E^{(2n)}(-x-x0)
+    // f^{(2n+1)} = E^{(2n)}(x-x0) - E^{(2n)}(-x-x0)
+    if (n == 0) {
+        return engeStart_m->getEnge(x-engeStart_m->getX0(), n)+
+               engeEnd_m->getEnge(-x-engeEnd_m->getX0(), n)-1;
+    } else if (n%2) {
+        return engeStart_m->getEnge(x-engeStart_m->getX0(), n)-
+               engeEnd_m->getEnge(-x-engeEnd_m->getX0(), n);
+    } else {
+        return engeStart_m->getEnge(x-engeStart_m->getX0(), n)+
+               engeEnd_m->getEnge(-x-engeEnd_m->getX0(), n);
     }
+}
 
-    AsymmetricEnge* AsymmetricEnge::clone() const { return new AsymmetricEnge(*this); }
+AsymmetricEnge* AsymmetricEnge::clone() const {
+    return new AsymmetricEnge(*this);
+}
 
-    void AsymmetricEnge::setMaximumDerivative(size_t n) { Enge::setEngeDiffIndices(n); }
+void AsymmetricEnge::setMaximumDerivative(size_t n) {
+    Enge::setEngeDiffIndices(n);
+}
 
-    double AsymmetricEnge::getCentreLength() const {
-        return (engeStart_m->getCentreLength() + engeEnd_m->getCentreLength()) / 2;
-    }
+double AsymmetricEnge::getCentreLength() const {
+    return (engeStart_m->getCentreLength()+engeEnd_m->getCentreLength())/2;
+}
 
-    double AsymmetricEnge::getEndLength() const {
-        return (engeStart_m->getEndLength() + engeEnd_m->getEndLength()) / 2;
-    }
-}  // namespace endfieldmodel
+double AsymmetricEnge::getEndLength() const {
+    return (engeStart_m->getEndLength()+engeEnd_m->getEndLength())/2;
+}
+}
 
 #endif
+

@@ -30,8 +30,10 @@
 //  This exception is thrown, when CLASSIC detects an inconsistent call to
 //  a routine or method.
 
-class LogicalError : public ClassicException {
+class LogicalError: public ClassicException {
+
 public:
+
     /// The usual constructor.
     // Arguments:
     // [DL]
@@ -40,14 +42,15 @@ public:
     // [DT][b]msg [/b]
     // [DD]the message string identifying the exception
     // [/DL]
-    LogicalError(const std::string& meth, const std::string& msg);
+    LogicalError(const std::string &meth, const std::string &msg);
 
-    LogicalError(const LogicalError&);
+    LogicalError(const LogicalError &);
     virtual ~LogicalError();
 
 private:
+
     // Not implemented.
     LogicalError();
 };
 
-#endif  // CLASSIC_LogicalError_HH
+#endif // CLASSIC_LogicalError_HH

@@ -25,6 +25,7 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
+
 #include <gtest/gtest.h>
 #include <vector>
 #include "Utilities/LinearSpline.h"
@@ -88,8 +89,8 @@ TEST_F(LinearSplineTest, InvalidInput) {
     // Differing lengths
     EXPECT_THROW(LinearSpline spline({0.0}, {0.0, 1.0}), std::invalid_argument);
     // Non-increasing x
-    EXPECT_THROW(
-        LinearSpline spline({0.0, 1.0, 0.5, 2.0}, {0.0, 1.0, 2.0, 3.0}), std::invalid_argument);
+    EXPECT_THROW(LinearSpline spline({0.0, 1.0, 0.5, 2.0}, {0.0, 1.0, 2.0, 3.0}),
+        std::invalid_argument);
 }
 
 TEST_F(LinearSplineTest, Integration) {
@@ -97,26 +98,26 @@ TEST_F(LinearSplineTest, Integration) {
     LinearSpline::Accelerator accel;
 
     // Whole pre-computed intervals
-    EXPECT_NEAR(spline.evalIntegral(0, 1, accel), 0.5, 1e-10);
-    EXPECT_NEAR(spline.evalIntegral(1, 2, accel), 2.5, 1e-10);
-    EXPECT_NEAR(spline.evalIntegral(2, 3, accel), 6.5, 1e-10);
-    EXPECT_NEAR(spline.evalIntegral(3, 4, accel), 12.5, 1e-10);
-    EXPECT_NEAR(spline.evalIntegral(0, 4, accel), 22.0, 1e-10);
+    EXPECT_NEAR( spline.evalIntegral(0, 1, accel), 0.5, 1e-10);
+    EXPECT_NEAR( spline.evalIntegral(1, 2, accel), 2.5, 1e-10);
+    EXPECT_NEAR( spline.evalIntegral(2, 3, accel), 6.5, 1e-10);
+    EXPECT_NEAR( spline.evalIntegral(3, 4, accel), 12.5, 1e-10);
+    EXPECT_NEAR( spline.evalIntegral(0, 4, accel), 22.0, 1e-10);
 
     // Partial first and last intervals
-    EXPECT_NEAR(spline.evalIntegral(0.6, 3.2, accel), 11.26, 1e-10);
+    EXPECT_NEAR( spline.evalIntegral(0.6, 3.2, accel), 11.26, 1e-10);
 
     // Asking again should use the cache
-    EXPECT_NEAR(spline.evalIntegral(0.6, 3.2, accel), 11.26, 1e-10);
+    EXPECT_NEAR( spline.evalIntegral(0.6, 3.2, accel), 11.26, 1e-10);
 
     // Extrapolation below the first interval
-    EXPECT_NEAR(spline.evalIntegral(-1, 1.5, accel), 0.875, 1e-10);
+    EXPECT_NEAR( spline.evalIntegral(-1, 1.5, accel), 0.875, 1e-10);
 
     // Extrapolation above the last interval
-    EXPECT_NEAR(spline.evalIntegral(3, 4.5, accel), 21.375, 1e-10);
+    EXPECT_NEAR( spline.evalIntegral(3, 4.5, accel), 21.375, 1e-10);
 
     // Swapping integral bounds
-    EXPECT_NEAR(spline.evalIntegral(2, 1, accel), 2.5, 1e-10);
+    EXPECT_NEAR( spline.evalIntegral(2, 1, accel), 2.5, 1e-10);
 
     // Uninitialised spline
     LinearSpline spline_uninit;
@@ -124,5 +125,6 @@ TEST_F(LinearSplineTest, Integration) {
 
     // Re-initialise the spline to something different
     spline.init({0.0, 1.0, 2.0, 3.0, 4.0}, {0.0, 2.0, 4.0, 6.0, 8.0});
-    EXPECT_NEAR(spline.evalIntegral(0, 4, accel), 16.0, 1e-10);
+    EXPECT_NEAR( spline.evalIntegral(0, 4, accel), 16.0, 1e-10);
 }
+

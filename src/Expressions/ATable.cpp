@@ -20,44 +20,58 @@
 
 #include <iostream>
 
+
 // Class ATable
 // ------------------------------------------------------------------------
 
 namespace Expressions {
 
-    ATable::ATable(const ATable& rhs)
-        : OArray<double>(rhs),
-          itsExpr(rhs.itsExpr),
-          itsBegin(rhs.itsBegin),
-          itsEnd(rhs.itsEnd),
-          itsStep(rhs.itsEnd) {}
+    ATable::ATable(const ATable &rhs):
+        OArray<double>(rhs), itsExpr(rhs.itsExpr),
+        itsBegin(rhs.itsBegin), itsEnd(rhs.itsEnd), itsStep(rhs.itsEnd)
+    {}
 
-    ATable::ATable(int n1, int n2, int n3)
-        : OArray<double>(), itsExpr(), itsBegin(n1), itsEnd(n2), itsStep(n3) {}
 
-    ATable::~ATable() {}
+    ATable::ATable(int n1, int n2, int n3):
+        OArray<double>(), itsExpr(), itsBegin(n1), itsEnd(n2), itsStep(n3)
+    {}
 
-    OArray<double>* ATable::clone() const { return new ATable(*this); }
 
-    void ATable::defineExpression(PtrToScalar<double> expr) { itsExpr = expr; }
+    ATable::~ATable()
+    {}
+
+
+    OArray<double> *ATable::clone() const {
+        return new ATable(*this);
+    }
+
+
+    void ATable::defineExpression(PtrToScalar<double> expr) {
+        itsExpr = expr;
+    }
+
 
     std::vector<double> ATable::evaluate() const {
         std::vector<double> result(itsEnd, 0.0);
 
-        for (itsHash = itsBegin; itsHash <= itsEnd; itsHash += itsStep) {
-            result[itsHash - 1] = itsExpr->evaluate();
+        for(itsHash = itsBegin; itsHash <= itsEnd; itsHash += itsStep) {
+            result[itsHash-1] = itsExpr->evaluate();
         }
 
         return result;
     }
 
-    double ATable::getHash() const { return itsHash; }
 
-    void ATable::print(std::ostream& os, int) const {
+    double ATable::getHash() const {
+        return itsHash;
+    }
+
+    
+    void ATable::print(std::ostream &os, int) const {
         os << "TABLE(" << itsBegin << ':' << itsEnd << ':' << itsStep << ',';
         itsExpr->print(os);
         os << ')';
         return;
     }
 
-}  // namespace Expressions
+}

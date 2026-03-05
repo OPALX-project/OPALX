@@ -18,8 +18,8 @@
 #ifndef OPALX_LINEAR_SPLINE_H
 #define OPALX_LINEAR_SPLINE_H
 
-#include <vector>
 #include "AbstractSpline.h"
+#include <vector>
 
 // \brief Linear spline interpolation class that implements an equivelent of
 // the gsl_interp_linear mode of the GSL spline class

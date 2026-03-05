@@ -32,27 +32,53 @@ public:
           E_m(&fc->getE()),
           phi_m(&fc->getPhi()),
           pc_m(pc),
-          fs_m(fs) {}
+          fs_m(fs) {
+    }
 
-    ~LoadBalancer() {}
+    ~LoadBalancer() {
+    }
 
-    double getLoadBalanceThreshold() const { return loadbalancethreshold_m; }
-    void setLoadBalanceThreshold(double threshold) { loadbalancethreshold_m = threshold; }
+    double getLoadBalanceThreshold() const {
+        return loadbalancethreshold_m;
+    }
+    void setLoadBalanceThreshold(double threshold) {
+        loadbalancethreshold_m = threshold;
+    }
 
-    Field_t<Dim>* getRho() const { return rho_m; }
-    void setRho(Field_t<Dim>* rho) { rho_m = rho; }
+    Field_t<Dim>* getRho() const {
+        return rho_m;
+    }
+    void setRho(Field_t<Dim>* rho) {
+        rho_m = rho;
+    }
 
-    VField_t<T, Dim>* getE() const { return E_m; }
-    void setE(VField_t<T, Dim>* E) { E_m = E; }
+    VField_t<T, Dim>* getE() const {
+        return E_m;
+    }
+    void setE(VField_t<T, Dim>* E) {
+        E_m = E;
+    }
 
-    Field<T, Dim>* getPhi() { return phi_m; }
-    void setPhi(Field<T, Dim>* phi) { phi_m = phi; }
+    Field<T, Dim>* getPhi() {
+        return phi_m;
+    }
+    void setPhi(Field<T, Dim>* phi) {
+        phi_m = phi;
+    }
 
-    std::shared_ptr<ParticleContainer<T, Dim>> getParticleContainer() const { return pc_m; }
-    void setParticleContainer(std::shared_ptr<ParticleContainer<T, Dim>> pc) { pc_m = pc; }
+    std::shared_ptr<ParticleContainer<T, Dim>> getParticleContainer() const {
+        return pc_m;
+    }
+    void setParticleContainer(std::shared_ptr<ParticleContainer<T, Dim>> pc) {
+        pc_m = pc;
+    }
 
-    std::shared_ptr<FieldSolver_t> getFieldSolver() const { return fs_m; }
-    void setFieldSolver(std::shared_ptr<FieldSolver_t> fs) { fs_m = fs; }
+    std::shared_ptr<FieldSolver_t> getFieldSolver() const {
+        return fs_m;
+    }
+    void setFieldSolver(std::shared_ptr<FieldSolver_t> fs) {
+        fs_m = fs;
+    }
 
     void updateLayout(
         ippl::FieldLayout<Dim>* fl, ippl::UniformCartesian<T, Dim>* mesh,
@@ -90,28 +116,30 @@ public:
         bool& isFirstRepartition) {
         // Repartition the domains
 
+
         using Base = ippl::ParticleBase<ippl::ParticleSpatialLayout<T, Dim>>;
-        typename Base::particle_position_type* R;
-        R        = &pc_m->R;
+        typename Base::particle_position_type *R;
+        R = &pc_m->R;
         bool res = orb.binaryRepartition(*R, *fl, isFirstRepartition);
         if (res != true) {
             std::cout << "Could not repartition!" << std::endl;
             return;
         }
-        // Update
+        // Update                                                                                                                                                                                                                                                                                   
         this->updateLayout(fl, mesh, isFirstRepartition);
         if constexpr (Dim == 2 || Dim == 3) {
-            if (fs_m->getStype() == "FFT") {
-                std::get<FFTSolver_t<T, Dim>>(fs_m->getSolver()).setRhs(*rho_m);
-            }
-            if constexpr (Dim == 3) {
-                if (fs_m->getStype() == "TG") {
-                    std::get<FFTTruncatedGreenSolver_t<T, Dim>>(fs_m->getSolver()).setRhs(*rho_m);
-                } else if (fs_m->getStype() == "OPEN") {
-                    std::get<OpenSolver_t<T, Dim>>(fs_m->getSolver()).setRhs(*rho_m);
+                if (fs_m->getStype() == "FFT") {
+                    std::get<FFTSolver_t<T, Dim>>(fs_m->getSolver()).setRhs(*rho_m);
                 }
+                if constexpr (Dim == 3) {
+                        if (fs_m->getStype() == "TG") {
+                            std::get<FFTTruncatedGreenSolver_t<T, Dim>>(fs_m->getSolver()).setRhs(*rho_m);
+                        } else if (fs_m->getStype() == "OPEN") {
+                            std::get<OpenSolver_t<T, Dim>>(fs_m->getSolver()).setRhs(*rho_m);
+                        }
+                    }
             }
-        }
+        
     }
 
     bool balance(size_type totalP) {

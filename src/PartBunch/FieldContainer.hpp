@@ -42,9 +42,11 @@ public:
           rmax_m(rmax),
           decomp_m(decomp),
           mesh_m(domain, hr, origin),
-          fl_m(MPI_COMM_WORLD, domain, decomp, isAllPeriodic) {}
+          fl_m(MPI_COMM_WORLD, domain, decomp, isAllPeriodic) {
+    }
 
-    ~FieldContainer() {}
+    ~FieldContainer() {
+    }
 
 private:
     Vector_t<double, Dim> hr_m;
@@ -58,45 +60,81 @@ private:
     FieldLayout_t<Dim> fl_m;
 
 public:
-    VField_t<T, Dim>& getE() { return E_m; }
-    void setE(VField_t<T, Dim>& E) { E_m = E; }
+    VField_t<T, Dim>& getE() {
+        return E_m;
+    }
+    void setE(VField_t<T, Dim>& E) {
+        E_m = E;
+    }
 
-    Field_t<Dim>& getRho() { return rho_m; }
-    void setRho(Field_t<Dim>& rho) { rho_m = rho; }
+    Field_t<Dim>& getRho() {
+        return rho_m;
+    }
+    void setRho(Field_t<Dim>& rho) {
+        rho_m = rho;
+    }
 
-    Field<T, Dim>& getPhi() { return phi_m; }
-    void setPhi(Field<T, Dim>& phi) { phi_m = phi; }
+    Field<T, Dim>& getPhi() {
+        return phi_m;
+    }
+    void setPhi(Field<T, Dim>& phi) {
+        phi_m = phi;
+    }
 
-    Vector_t<double, Dim>& getHr() { return hr_m; }
-    void setHr(const Vector_t<double, Dim>& hr) { hr_m = hr; }
+    Vector_t<double, Dim>& getHr() {
+        return hr_m;
+    }
+    void setHr(const Vector_t<double, Dim>& hr) {
+        hr_m = hr;
+    }
 
-    Vector_t<double, Dim>& getRMin() { return rmin_m; }
-    void setRMin(const Vector_t<double, Dim>& rmin) { rmin_m = rmin; }
+    Vector_t<double, Dim>& getRMin() {
+        return rmin_m;
+    }
+    void setRMin(const Vector_t<double, Dim>& rmin) {
+        rmin_m = rmin;
+    }
 
-    Vector_t<double, Dim>& getRMax() { return rmax_m; }
-    void setRMax(const Vector_t<double, Dim>& rmax) { rmax_m = rmax; }
+    Vector_t<double, Dim>& getRMax() {
+        return rmax_m;
+    }
+    void setRMax(const Vector_t<double, Dim>& rmax) {
+        rmax_m = rmax;
+    }
 
-    std::array<bool, Dim> getDecomp() { return decomp_m; }
-    void setDecomp(std::array<bool, Dim> decomp) { decomp_m = decomp; }
+    std::array<bool, Dim> getDecomp() {
+        return decomp_m;
+    }
+    void setDecomp(std::array<bool, Dim> decomp) {
+        decomp_m = decomp;
+    }
 
-    Mesh_t<Dim>& getMesh() { return mesh_m; }
-    void setMesh(Mesh_t<Dim>& mesh) { mesh_m = mesh; }
+    Mesh_t<Dim>& getMesh() {
+        return mesh_m;
+    }
+    void setMesh(Mesh_t<Dim>& mesh) {
+        mesh_m = mesh;
+    }
 
-    FieldLayout_t<Dim>& getFL() { return fl_m; }
-    void setFL(std::shared_ptr<FieldLayout_t<Dim>>& fl) { fl_m = fl; }
+    FieldLayout_t<Dim>& getFL() {
+        return fl_m;
+    }
+    void setFL(std::shared_ptr<FieldLayout_t<Dim>>& fl) {
+        fl_m = fl;
+    }
 
     void initializeFields(std::string stype_m = "") {
-        Inform m("FieldContainer::initializeFields");
-        m << "Mesh spacing = " << mesh_m.getMeshSpacing() << endl;
-        m << "Origin       = " << mesh_m.getOrigin() << endl;
-        m << "FL           = " << fl_m << endl;
+        Inform m ("FieldContainer::initializeFields");
+        m << level3 << "Mesh spacing = " << mesh_m.getMeshSpacing() << endl;
+        m << level3 << "Origin       = " << mesh_m.getOrigin() << endl;
+        m << level3 << "FL           = " << fl_m << endl;
 
         E_m.initialize(mesh_m, fl_m);
         rho_m.initialize(mesh_m, fl_m);
-        m << "E_m, rho_m field initialized." << endl;
+        m << level3 << "E_m, rho_m field initialized." << endl;
         if (stype_m == "CG") {
             phi_m.initialize(mesh_m, fl_m);
-            m << "Phi field initialized for " << stype_m << endl;
+            m << level3 << "Phi field initialized for " << stype_m << endl;
         }
     }
 };

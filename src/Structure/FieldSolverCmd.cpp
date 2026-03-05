@@ -29,8 +29,8 @@
 #include "Expressions/SAutomatic.h"
 #include "Expressions/SRefExpr.h"
 #include "Physics/Physics.h"
-#include "Structure/BinningCmd.h"
 #include "Utilities/OpalException.h"
+#include "Structure/BinningCmd.h"
 
 using namespace Expressions;
 
@@ -38,14 +38,15 @@ using namespace Expressions;
 
 FieldSolverCmd::FieldSolverCmd()
     : Definition(
-          FIELDSOLVER::SIZE, "FIELDSOLVER",
-          "The \"FIELDSOLVER\" statement defines data for a the field solver") {
+        FIELDSOLVER::SIZE, "FIELDSOLVER",
+        "The \"FIELDSOLVER\" statement defines data for a the field solver") {
     itsAttr[FIELDSOLVER::TYPE] = Attributes::makePredefinedString(
-        "TYPE", "Name of the attached field solver.",
-        {"NONE", "FFT", "OPEN", "CG"});  // removed, since not implemented: "P3M"
+        "TYPE", "Name of the attached field solver.", {"NONE", "FFT", "OPEN", "CG"}); // removed, since not implemented: "P3M"
 
     itsAttr[FIELDSOLVER::BINS] = Attributes::makeString(
-        "BINS", "Name of BINNING definition to be used, or NONE for no binning.", "NONE");
+        "BINS",
+        "Name of BINNING definition to be used, or NONE for no binning.",
+        "NONE");
 
     itsAttr[FIELDSOLVER::NX] = Attributes::makeReal("NX", "Meshsize in x");
     itsAttr[FIELDSOLVER::NY] = Attributes::makeReal("NY", "Meshsize in y");
@@ -79,9 +80,11 @@ FieldSolverCmd::FieldSolverCmd()
 }
 
 FieldSolverCmd::FieldSolverCmd(const std::string& name, FieldSolverCmd* parent)
-    : Definition(name, parent) {}
+    : Definition(name, parent) {
+}
 
-FieldSolverCmd::~FieldSolverCmd() {}
+FieldSolverCmd::~FieldSolverCmd() {
+}
 
 FieldSolverCmd* FieldSolverCmd::clone(const std::string& name) {
     return new FieldSolverCmd(name, this);
@@ -101,7 +104,9 @@ FieldSolverCmd* FieldSolverCmd::find(const std::string& name) {
     return fs;
 }
 
-std::string FieldSolverCmd::getType() { return Attributes::getString(itsAttr[FIELDSOLVER::TYPE]); }
+std::string FieldSolverCmd::getType() {
+    return Attributes::getString(itsAttr[FIELDSOLVER::TYPE]);
+}
 
 std::string FieldSolverCmd::getBinsName() const {
     return Attributes::getString(itsAttr[FIELDSOLVER::BINS]);
@@ -113,39 +118,52 @@ BCHandler<3> FieldSolverCmd::constructBCHandler() const {
     BCH_t boundary_conditions(
         BCH_t::strToBCType(Attributes::getString(itsAttr[FIELDSOLVER::BCFFTX])),
         BCH_t::strToBCType(Attributes::getString(itsAttr[FIELDSOLVER::BCFFTY])),
-        BCH_t::strToBCType(Attributes::getString(itsAttr[FIELDSOLVER::BCFFTZ])));
+        BCH_t::strToBCType(Attributes::getString(itsAttr[FIELDSOLVER::BCFFTZ]))
+    );
 
     /// \todo remove this restriction when more BC configurations are implemented
     /**
-     * Add an additional check weather the boundary conditions are valid, which
+     * Add an additional check weather the boundary conditions are valid, which 
      * currently means either OPEN or PERIODIC in all dimensions.
      */
     if (!boundary_conditions.isAllEqual()) {
-        throw OpalException(
-            "PartBunch::PartBunch",
-            "Currently only uniform boundary conditions in all "
-            "dimensions are supported! Please set all "
-            "dimensions to either OPEN or PERIODIC.");
+        throw OpalException("PartBunch::PartBunch",
+                            "Currently only uniform boundary conditions in all "
+                            "dimensions are supported! Please set all "
+                            "dimensions to either OPEN or PERIODIC.");
     }
-
+    
     return boundary_conditions;
 }
 
-double FieldSolverCmd::getNX() const { return Attributes::getReal(itsAttr[FIELDSOLVER::NX]); }
+double FieldSolverCmd::getNX() const {
+    return Attributes::getReal(itsAttr[FIELDSOLVER::NX]);
+}
 
-double FieldSolverCmd::getNY() const { return Attributes::getReal(itsAttr[FIELDSOLVER::NY]); }
+double FieldSolverCmd::getNY() const {
+    return Attributes::getReal(itsAttr[FIELDSOLVER::NY]);
+}
 
-double FieldSolverCmd::getNZ() const { return Attributes::getReal(itsAttr[FIELDSOLVER::NZ]); }
+double FieldSolverCmd::getNZ() const {
+    return Attributes::getReal(itsAttr[FIELDSOLVER::NZ]);
+}
 
-void FieldSolverCmd::setNX(double value) { Attributes::setReal(itsAttr[FIELDSOLVER::NX], value); }
+void FieldSolverCmd::setNX(double value) {
+    Attributes::setReal(itsAttr[FIELDSOLVER::NX], value);
+}
 
-void FieldSolverCmd::setNY(double value) { Attributes::setReal(itsAttr[FIELDSOLVER::NY], value); }
+void FieldSolverCmd::setNY(double value) {
+    Attributes::setReal(itsAttr[FIELDSOLVER::NY], value);
+}
 
-void FieldSolverCmd::setNZ(double value) { Attributes::setReal(itsAttr[FIELDSOLVER::NZ], value); }
+void FieldSolverCmd::setNZ(double value) {
+    Attributes::setReal(itsAttr[FIELDSOLVER::NZ], value);
+}
 
 double FieldSolverCmd::getBoxIncr() const {
     return Attributes::getReal(itsAttr[FIELDSOLVER::BBOXINCR]);
 }
+
 
 void FieldSolverCmd::update() {
     if (itsAttr[FIELDSOLVER::TYPE]) {
@@ -158,7 +176,8 @@ void FieldSolverCmd::setFieldSolverCmdType() {
         {"NONE", FieldSolverCmdType::NONE},
         {"FFT", FieldSolverCmdType::FFT},
         {"OPEN", FieldSolverCmdType::OPEN},
-        {"CG", FieldSolverCmdType::CG}};
+        {"CG", FieldSolverCmdType::CG}
+    };
 
     fsName_m = getType();
 
@@ -171,7 +190,9 @@ void FieldSolverCmd::setFieldSolverCmdType() {
     }
 }
 
-bool FieldSolverCmd::hasValidSolver() { return false; }
+bool FieldSolverCmd::hasValidSolver() {
+    return false;
+}
 
 BinningCmd* FieldSolverCmd::getBinningCmd() const {
     const std::string binsName = getBinsName();

@@ -54,9 +54,9 @@ namespace {
 
 OpalFilter::OpalFilter()
     : Definition(
-          SIZE, "FILTER",
-          "The \"FILTER\" statement defines a 1 dimensional filter to be "
-          "applied on histogram."),
+        SIZE, "FILTER",
+        "The \"FILTER\" statement defines a 1 dimensional filter to be "
+        "applied on histogram."),
       filter_m(0) {
     itsAttr[TYPE] = Attributes::makePredefinedString(
         "TYPE", "Specifies the type of filter.",
@@ -96,7 +96,8 @@ OpalFilter::OpalFilter()
 }
 
 OpalFilter::OpalFilter(const std::string& name, OpalFilter* parent)
-    : Definition(name, parent), filter_m(0) {}
+    : Definition(name, parent), filter_m(0) {
+}
 
 OpalFilter::~OpalFilter() {
     if (filter_m)
@@ -108,9 +109,13 @@ bool OpalFilter::canReplaceBy(Object* object) {
     return dynamic_cast<OpalFilter*>(object) != 0;
 }
 
-OpalFilter* OpalFilter::clone(const std::string& name) { return new OpalFilter(name, this); }
+OpalFilter* OpalFilter::clone(const std::string& name) {
+    return new OpalFilter(name, this);
+}
 
-void OpalFilter::execute() { update(); }
+void OpalFilter::execute() {
+    update();
+}
 
 OpalFilter* OpalFilter::find(const std::string& name) {
     OpalFilter* filter = dynamic_cast<OpalFilter*>(OpalData::getInstance()->find(name));

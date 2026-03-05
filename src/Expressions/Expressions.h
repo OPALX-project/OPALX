@@ -4,6 +4,6 @@
 namespace Expressions {
     double Tgauss(double a);
     double gauss();
-}  // namespace Expressions
+}
 
 #endif

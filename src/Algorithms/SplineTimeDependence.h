@@ -31,8 +31,8 @@
 #include <vector>
 
 #include "Algorithms/AbstractTimeDependence.h"
-#include "Utilities/CubicSpline.h"
 #include "Utilities/LinearSpline.h"
+#include "Utilities/CubicSpline.h"
 
 class Inform;
 
@@ -116,7 +116,7 @@ public:
 
     // Spline order constants
     static constexpr size_t LinearInterpolation = 1;
-    static constexpr size_t CubicInterpolation  = 3;
+    static constexpr size_t CubicInterpolation = 3;
 
 private:
     std::unique_ptr<AbstractSpline> spline_m;
@@ -126,6 +126,8 @@ private:
     std::vector<double> values_m;
 };
 
-inline Inform& operator<<(Inform& os, const SplineTimeDependence& p) { return p.print(os); }
+inline Inform& operator<<(Inform& os, const SplineTimeDependence& p) {
+    return p.print(os);
+}
 
 #endif

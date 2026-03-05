@@ -26,62 +26,69 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "MultipoleTCurvedVarRadius.h"
 #include <source_location>
 #include <vector>
-#include "AbsBeamline/MultipoleTFunctions/CoordinateTransform.h"
 #include "Utilities/GSLCompat.h"
+#include "MultipoleTCurvedVarRadius.h"
+#include "AbsBeamline/MultipoleTFunctions/CoordinateTransform.h"
 
 using namespace endfieldmodel;
 
-MultipoleTCurvedVarRadius::MultipoleTCurvedVarRadius(const std::string& name)
-    : MultipoleTBase(name),
-      maxOrderX_m(10),
-      varRadiusGeometry_m(1.0, 1.0, 1.0, 1.0, 1.0),
-      angle_m(0.0) {}
+MultipoleTCurvedVarRadius::MultipoleTCurvedVarRadius(const std::string &name):
+    MultipoleTBase(name),
+    maxOrderX_m(10),
+    varRadiusGeometry_m(1.0, 1.0, 1.0, 1.0, 1.0),
+    angle_m(0.0) {
+}
 
-MultipoleTCurvedVarRadius::MultipoleTCurvedVarRadius(const MultipoleTCurvedVarRadius& right)
-    : MultipoleTBase(right),
-      maxOrderX_m(right.maxOrderX_m),
-      recursion_m(right.recursion_m),
-      varRadiusGeometry_m(right.varRadiusGeometry_m),
-      angle_m(right.angle_m) {
+MultipoleTCurvedVarRadius::MultipoleTCurvedVarRadius(
+                           const MultipoleTCurvedVarRadius &right):
+    MultipoleTBase(right),
+    maxOrderX_m(right.maxOrderX_m),
+    recursion_m(right.recursion_m),
+    varRadiusGeometry_m(right.varRadiusGeometry_m),
+    angle_m(right.angle_m) {
     RefPartBunch_m = right.RefPartBunch_m;
 }
 
-MultipoleTCurvedVarRadius::~MultipoleTCurvedVarRadius() {}
+MultipoleTCurvedVarRadius::~MultipoleTCurvedVarRadius() {
+}
 
 ElementBase* MultipoleTCurvedVarRadius::clone() const {
     return new MultipoleTCurvedVarRadius(*this);
 }
 
-void MultipoleTCurvedVarRadius::transformCoords(Vector_t<double, 3>& R) {
+void MultipoleTCurvedVarRadius::transformCoords(Vector_t<double, 3> &R) {
     std::vector<double> fringeLength = getFringeLength();
-    coordinatetransform::CoordinateTransform t(
-        R[0], R[1], R[2], getLength() / 2, fringeLength[0], fringeLength[1],
-        (getLength() / angle_m));
+    coordinatetransform::CoordinateTransform t(R[0], R[1], R[2],
+                                               getLength() / 2,
+                                               fringeLength[0],
+                                               fringeLength[1],
+                                               (getLength() / angle_m));
     std::vector<double> r = t.getTransformation();
-    R[0]                  = r[0];
-    R[1]                  = r[1];
-    R[2]                  = r[2];
+    R[0] = r[0];
+    R[1] = r[1];
+    R[2] = r[2];
 }
 
-void MultipoleTCurvedVarRadius::transformBField(
-    Vector_t<double, 3>& B, const Vector_t<double, 3>& R) {
-    double length                    = getLength();
+void MultipoleTCurvedVarRadius::transformBField(Vector_t<double, 3> &B,
+                                                const Vector_t<double, 3> &R) {
+    double length = getLength();
     std::vector<double> fringeLength = getFringeLength();
-    double prefactor =
-        (length / angle_m)
-        * (tanh((length / 2) / fringeLength[0]) + tanh((length / 2) / fringeLength[1]));
-    double theta = fringeLength[0] * log(cosh((R[2] + (length / 2)) / fringeLength[0]))
-                   - fringeLength[1] * log(cosh((R[2] - (length / 2)) / fringeLength[1]));
+    double prefactor = (length / angle_m) *
+                       (tanh((length / 2) / fringeLength[0])
+                       + tanh((length / 2) / fringeLength[1]));
+    double theta = fringeLength[0] * log(cosh((R[2]
+                   + (length / 2)) / fringeLength[0]))
+                   - fringeLength[1] * log(cosh((R[2]
+                   - (length / 2)) / fringeLength[1]));
     theta /= prefactor;
     double Bx = B[0], Bs = B[2];
     B[0] = Bx * cos(theta) - Bs * sin(theta);
     B[2] = Bx * sin(theta) + Bs * cos(theta);
 }
 
-void MultipoleTCurvedVarRadius::setMaxOrder(const std::size_t& maxOrder) {
+void MultipoleTCurvedVarRadius::setMaxOrder(const std::size_t &maxOrder) {
     MultipoleTBase::setMaxOrder(maxOrder);
     std::size_t N = recursion_m.size();
     while (maxOrder >= N) {
@@ -93,34 +100,45 @@ void MultipoleTCurvedVarRadius::setMaxOrder(const std::size_t& maxOrder) {
     }
 }
 
-double MultipoleTCurvedVarRadius::getRadius(const double& s) {
+double MultipoleTCurvedVarRadius::getRadius(const double &s) {
     if (getFringeDeriv(0, s) > 1.0e-12 && angle_m != 0.0) {
-        return getLength() * getFringeDeriv(0, 0) / (getFringeDeriv(0, s) * angle_m);
+        return getLength() * getFringeDeriv(0, 0)
+               / (getFringeDeriv(0, s) * angle_m);
     } else {
-        return 1e300;  // Return -1 if radius is infinite
+        return 1e300; // Return -1 if radius is infinite 
     }
 }
 
-double MultipoleTCurvedVarRadius::getScaleFactor(const double& x, const double& s) {
+double MultipoleTCurvedVarRadius::getScaleFactor(const double &x,
+                                                 const double &s) {
     return (1 + x / getRadius(s));
 }
 
-double MultipoleTCurvedVarRadius::getFn(const std::size_t& n, const double& x, const double& s) {
+double MultipoleTCurvedVarRadius::getFn(const std::size_t &n,
+                                        const double &x,
+                                        const double &s) {
     if (n == 0) {
         return getTransDeriv(0, x) * getFringeDeriv(0, s);
     }
-    double rho  = getLength() / angle_m;
-    double S_0  = getFringeDeriv(0, 0);
-    double y    = getFringeDeriv(0, s) / (S_0 * rho);
+    double rho = getLength() / angle_m;
+    double S_0 = getFringeDeriv(0, 0);
+    double y = getFringeDeriv(0, s) / (S_0 * rho);
     double func = 0.0;
     std::vector<double> fringeDerivatives;
-    for (std::size_t j = 0; j <= recursion_m.at(n).getMaxSDerivatives(); j++) {
+    for (std::size_t j = 0;
+         j <= recursion_m.at(n).getMaxSDerivatives();
+         j++) {
         fringeDerivatives.push_back(getFringeDeriv(j, s) / (S_0 * rho));
     }
-    for (std::size_t i = 0; i <= recursion_m.at(n).getMaxXDerivatives(); i++) {
+    for (std::size_t i = 0;
+         i <= recursion_m.at(n).getMaxXDerivatives();
+         i++) {
         double temp = 0.0;
-        for (std::size_t j = 0; j <= recursion_m.at(n).getMaxSDerivatives(); j++) {
-            temp += recursion_m.at(n).evaluatePolynomial(x, y, i, j, fringeDerivatives)
+        for (std::size_t j = 0;
+             j <= recursion_m.at(n).getMaxSDerivatives();
+             j++) {
+            temp += recursion_m.at(n)
+                    .evaluatePolynomial(x, y, i, j, fringeDerivatives)
                     * fringeDerivatives.at(j);
         }
         func += temp * getTransDeriv(i, x);

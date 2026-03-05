@@ -21,33 +21,37 @@
 #include "AbstractObjects/Attribute.h"
 #include "AbstractObjects/AttributeHandler.h"
 
+
 // Class Attributes::Bool
 // ------------------------------------------------------------------------
 
 namespace Attributes {
 
     /// Parser for attribute of type logical.
-    class Bool : public AttributeHandler {
+    class Bool: public AttributeHandler {
+
     public:
+
         /// Constructor.
         //  Assign attribute name and help string.
-        Bool(const std::string& name, const std::string& help);
+        Bool(const std::string &name, const std::string &help);
 
         virtual ~Bool();
 
         /// Return attribute type string ``logical''.
-        virtual const std::string& getType() const;
+        virtual const std::string &getType() const;
 
         /// Parse the attribute.
-        virtual void parse(Attribute&, Statement&, bool) const;
+        virtual void parse(Attribute &, Statement &, bool) const;
 
     private:
+
         // Not implemented.
         Bool();
-        Bool(const Bool&);
-        void operator=(const Bool&);
+        Bool(const Bool &);
+        void operator=(const Bool &);
     };
 
-};  // namespace Attributes
+};
 
-#endif  // OPAL_Bool_HH
+#endif // OPAL_Bool_HH

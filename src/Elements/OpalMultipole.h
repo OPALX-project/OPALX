@@ -20,8 +20,11 @@
 
 #include "Elements/OpalElement.h"
 
-class OpalMultipole : public OpalElement {
+
+class OpalMultipole: public OpalElement {
+
 public:
+
     /// The attributes of class OpalMultipole.
     enum {
         KN = COMMON,  // The normal field components.
@@ -37,22 +40,23 @@ public:
     virtual ~OpalMultipole();
 
     /// Make clone.
-    virtual OpalMultipole* clone(const std::string& name);
+    virtual OpalMultipole *clone(const std::string &name);
 
     /// Print the object.
     //  Handle printing in OPAL-8 format.
-    virtual void print(std::ostream&) const;
+    virtual void print(std::ostream &) const;
 
     /// Update the embedded CLASSIC multipole.
     virtual void update();
 
 private:
+
     // Not implemented.
-    OpalMultipole(const OpalMultipole&);
-    void operator=(const OpalMultipole&);
+    OpalMultipole(const OpalMultipole &);
+    void operator=(const OpalMultipole &);
 
     // Clone constructor.
-    OpalMultipole(const std::string& name, OpalMultipole* parent);
+    OpalMultipole(const std::string &name, OpalMultipole *parent);
 };
 
-#endif  // OPAL_OpalMultipole_HH
+#endif // OPAL_OpalMultipole_HH

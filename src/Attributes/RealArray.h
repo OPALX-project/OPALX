@@ -22,37 +22,41 @@
 #include "AbstractObjects/AttributeHandler.h"
 #include "AbstractObjects/Expressions.h"
 
+
 // Class RealArray
 // ------------------------------------------------------------------------
 
 namespace Attributes {
 
     /// Parser for an attribute of type real array.
-    class RealArray : public AttributeHandler {
+    class RealArray: public AttributeHandler {
+
     public:
+
         /// Constructor.
         //  Assign attribute name and help string.
-        RealArray(const std::string& name, const std::string& help);
+        RealArray(const std::string &name, const std::string &help);
 
         virtual ~RealArray();
 
         /// Return attribute type string ``real array''.
-        virtual const std::string& getType() const;
+        virtual const std::string &getType() const;
 
         /// Parse the attribute.
-        virtual void parse(Attribute&, Statement&, bool) const;
+        virtual void parse(Attribute &, Statement &, bool) const;
 
         /// Parse a component of the array.
         //  Identified by its index.
-        virtual void parseComponent(Attribute&, Statement&, bool, int) const;
+        virtual void parseComponent(Attribute &, Statement &, bool, int) const;
 
     private:
+
         // Not implemented.
         RealArray();
-        RealArray(const RealArray&);
-        void operator=(const RealArray&);
+        RealArray(const RealArray &);
+        void operator=(const RealArray &);
     };
 
-};  // namespace Attributes
+};
 
-#endif  // OPAL_RealArray_HH
+#endif // OPAL_RealArray_HH

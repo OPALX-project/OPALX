@@ -25,7 +25,7 @@
 #include <unordered_set>
 
 namespace interpolation {
-    class ThreeDGrid;
+  class ThreeDGrid;
 }
 
 class Component;
@@ -51,10 +51,23 @@ class Component;
  *  In order to dump time dependent fields, for example RF, see the
  *  DumpEMFields action.
  */
-class DumpFields : public Action {
+class DumpFields: public Action {
+
 public:
     /// The common attributes of DumpFields.
-    enum { FILE_NAME, X_START, DX, X_STEPS, Y_START, DY, Y_STEPS, Z_START, DZ, Z_STEPS, SIZE };
+    enum {
+        FILE_NAME,
+        X_START,
+        DX,
+        X_STEPS,
+        Y_START,
+        DY,
+        Y_STEPS,
+        Z_START,
+        DZ,
+        Z_STEPS,
+        SIZE
+    };
 
     /** Constructor */
     DumpFields();
@@ -111,7 +124,7 @@ private:
 
     static std::unordered_set<DumpFields*> dumpsSet_m;
 
-    DumpFields(const DumpFields& dump);             // disabled
+    DumpFields(const DumpFields& dump);  // disabled
     DumpFields& operator=(const DumpFields& dump);  // disabled
 };
 
@@ -120,4 +133,4 @@ inline std::ostream& operator<<(std::ostream& os, const DumpFields& b) {
     return os;
 }
 
-#endif  // ifdef OPAL_DUMPFIELDS_HH
+#endif // ifdef OPAL_DUMPFIELDS_HH

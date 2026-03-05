@@ -24,58 +24,66 @@
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/MultipoleRep.h"
-#include "Fields/BMultipoleField.h"
 #include "Physics/Physics.h"
+#include "Fields/BMultipoleField.h"
 
-OpalQuadrupole::OpalQuadrupole()
-    : OpalElement(
-          SIZE, "QUADRUPOLE",
-          "The \"QUADRUPOLE\" element defines a thick quadrupole.\n"
-          "It is a convenience wrapper around MULTIPOLE with a single\n"
-          "quadrupole strength K1.\n"
-          "* If the length is non-zero, K1 is per unit length.\n"
-          "* If the length is zero, K1 is the integrated strength.") {
-    itsAttr[K1] = Attributes::makeReal("K1", "Normalised quadrupole strength in m^(-2)", 0.0);
-    itsAttr[DK1] =
-        Attributes::makeReal("DK1", "Normalised quadrupole strength error in m^(-2)", 0.0);
-    itsAttr[K1S] =
-        Attributes::makeReal("K1S", "Normalised skew quadrupole strength in m^(-2)", 0.0);
-    itsAttr[DK1S] =
-        Attributes::makeReal("DK1S", "Normalised skew quadrupole strength error in m^(-2)", 0.0);
+OpalQuadrupole::OpalQuadrupole():
+    OpalElement(SIZE, "QUADRUPOLE",
+                "The \"QUADRUPOLE\" element defines a thick quadrupole.\n"
+                "It is a convenience wrapper around MULTIPOLE with a single\n"
+                "quadrupole strength K1.\n"
+                "* If the length is non-zero, K1 is per unit length.\n"
+                "* If the length is zero, K1 is the integrated strength.") {
+    itsAttr[K1] = Attributes::makeReal
+                  ("K1", "Normalised quadrupole strength in m^(-2)", 0.0);
+    itsAttr[DK1] = Attributes::makeReal
+                   ("DK1", "Normalised quadrupole strength error in m^(-2)", 0.0);
+    itsAttr[K1S] = Attributes::makeReal
+                   ("K1S", "Normalised skew quadrupole strength in m^(-2)", 0.0);
+    itsAttr[DK1S] = Attributes::makeReal
+                    ("DK1S", "Normalised skew quadrupole strength error in m^(-2)", 0.0);
 
     registerOwnership();
 
     setElement(new MultipoleRep("QUADRUPOLE"));
 }
 
-OpalQuadrupole::OpalQuadrupole(const std::string& name, OpalQuadrupole* parent)
-    : OpalElement(name, parent) {
+
+OpalQuadrupole::OpalQuadrupole(const std::string &name, OpalQuadrupole *parent):
+    OpalElement(name, parent) {
     setElement(new MultipoleRep(name));
 }
 
-OpalQuadrupole::~OpalQuadrupole() {}
 
-OpalQuadrupole* OpalQuadrupole::clone(const std::string& name) {
+OpalQuadrupole::~OpalQuadrupole()
+{}
+
+
+OpalQuadrupole *OpalQuadrupole::clone(const std::string &name) {
     return new OpalQuadrupole(name, this);
 }
 
-void OpalQuadrupole::print(std::ostream& os) const { OpalElement::print(os); }
+
+void OpalQuadrupole::print(std::ostream &os) const {
+    OpalElement::print(os);
+}
+
 
 void OpalQuadrupole::update() {
     OpalElement::update();
 
-    MultipoleRep* mult = dynamic_cast<MultipoleRep*>(getElement());
-    double length      = getLength();
+    MultipoleRep *mult = dynamic_cast<MultipoleRep *>(getElement());
+    double length = getLength();
     mult->setElementLength(length);
 
     // Build a multipole field from the scalar K1 / K1S values.
     // The KN vector convention is: index 0 = dipole, index 1 = quadrupole, ...
     BMultipoleField field;
 
-    double k1   = Attributes::getReal(itsAttr[K1]);
-    double dk1  = Attributes::getReal(itsAttr[DK1]);
-    double k1s  = Attributes::getReal(itsAttr[K1S]);
-    double dk1s = Attributes::getReal(itsAttr[DK1S]);
+    double k1      = Attributes::getReal(itsAttr[K1]);
+    double dk1     = Attributes::getReal(itsAttr[DK1]);
+    double k1s     = Attributes::getReal(itsAttr[K1S]);
+    double dk1s    = Attributes::getReal(itsAttr[DK1S]);
 
     double factor = OpalData::getInstance()->getP0() / Physics::c;
 

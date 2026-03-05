@@ -22,6 +22,7 @@
 
 class FlaggedElmPtr;
 
+
 // Class RangeRep
 // ------------------------------------------------------------------------
 /// Representation of a range within a beam line or sequence.
@@ -31,17 +32,19 @@ class FlaggedElmPtr;
 //  The value may also be "FULL", denoting the complete beam line.
 
 class RangeRep {
+
 public:
+
     /// Default constructor.
     //  Construct range for full line (value "FULL").
     RangeRep();
 
     /// Constructor from two given places.
-    RangeRep(PlaceRep& f, PlaceRep& l);
+    RangeRep(PlaceRep &f, PlaceRep &l);
 
-    RangeRep(const RangeRep&);
+    RangeRep(const RangeRep &);
     ~RangeRep();
-    const RangeRep& operator=(const RangeRep&);
+    const RangeRep &operator=(const RangeRep &);
 
     /// Initialise data for search.
     //  Sets the internal state to the beginning of the beam line.
@@ -53,16 +56,17 @@ public:
 
     /// Enter an element or line.
     //  Sets the internal state to active, when we enter the specified range.
-    void enter(const FlaggedElmPtr&) const;
+    void enter(const FlaggedElmPtr &) const;
 
     /// Leave an element or line.
     //  Sets the internal state to inactive, when we leave the specified range.
-    void leave(const FlaggedElmPtr&) const;
+    void leave(const FlaggedElmPtr &) const;
 
     /// Print in input format.
-    void print(std::ostream& os) const;
+    void print(std::ostream &os) const;
 
 private:
+
     // The begin/end Place structures.
     PlaceRep first;
     PlaceRep last;
@@ -74,9 +78,10 @@ private:
     mutable bool status;
 };
 
-inline std::ostream& operator<<(std::ostream& os, const RangeRep& val) {
+
+inline std::ostream &operator<<(std::ostream &os, const RangeRep &val) {
     val.print(os);
     return os;
 }
 
-#endif  // OPAL_RangeRep_HH
+#endif // OPAL_RangeRep_HH

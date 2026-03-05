@@ -20,8 +20,11 @@
 
 #include "AbstractObjects/Action.h"
 
-class Title : public Action {
+
+class Title: public Action {
+
 public:
+
     /// Exemplar constructor.
     Title();
 
@@ -37,6 +40,7 @@ public:
     virtual void parse(Statement&);
 
 private:
+
     // Not implemented.
     Title(const Title&);
     void operator=(const Title&);
@@ -45,4 +49,4 @@ private:
     Title(const std::string& name, Title* parent);
 };
 
-#endif  // OPAL_Title_HH
+#endif // OPAL_Title_HH

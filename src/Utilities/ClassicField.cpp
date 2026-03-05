@@ -4,9 +4,12 @@ extern Inform* gmsg;
 
 ClassicField::ClassicField(
     std::shared_ptr<Component> element, const double& start, const double& end)
-    : element_m(element), start_m(start), end_m(end), is_on_m(false) {}
+    : element_m(element), start_m(start), end_m(end), is_on_m(false) {
+}
 
-ClassicField::~ClassicField() { element_m = nullptr; }
+ClassicField::~ClassicField() {
+    element_m = nullptr;
+}
 
 void ClassicField::setOn(const double& kineticEnergy) {
     if (!is_on_m) {

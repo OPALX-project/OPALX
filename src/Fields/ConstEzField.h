@@ -20,8 +20,10 @@
 
 #include "Fields/StaticElectricField.h"
 
-class ConstEzField : public StaticElectricField {
+class ConstEzField: public StaticElectricField {
+
 public:
+
     /// Default constructor.
     //  Constructs a null field.
     ConstEzField();
@@ -30,11 +32,11 @@ public:
 
     /// Get field.
     //  Return the time-independent part of the electric field in point [b]P[/b].
-    virtual EVector Efield(const Point3D& P) const;
+    virtual EVector Efield(const Point3D &P) const;
 
     /// Get field.
     //  Return the electric field at time [b]t[/b] in point [b]P[/b].
-    virtual EVector Efield(const Point3D& P, double t) const;
+    virtual EVector Efield(const Point3D &P, double t) const;
 
     /// Get component.
     //  Return the x-component of the electric field in A/m.
@@ -49,8 +51,9 @@ public:
     virtual void scale(double scalar);
 
 private:
+
     // The field components.
     double Ez;
 };
 
-#endif  // CLASSIC_ConstEzField_HH
+#endif // CLASSIC_ConstEzField_HH

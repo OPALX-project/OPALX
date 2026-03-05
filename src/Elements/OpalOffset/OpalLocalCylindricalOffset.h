@@ -25,6 +25,7 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
+
 #ifndef OPAL_ELEMENTS_OpalOffset_OpalLocalCylindricalOffset_HH
 #define OPAL_ELEMENTS_OpalOffset_OpalLocalCylindricalOffset_HH
 
@@ -36,48 +37,48 @@
  */
 namespace OpalOffset {
 
-    /** OpalLocalCylindricalOffset provides classes for making offsets between
-     *  elements in a ring geometry; only condition is that they must be in the
-     *  midplane
-     */
-    class OpalLocalCylindricalOffset : public OpalElement {
-    public:
-        /** Enumeration maps to UI parameters */
-        enum {
-            THETA_IN = COMMON,
-            THETA_OUT,
-            LENGTH,
-            SIZE  // size of the enum
-        };
-
-        /** Define mapping from enum variables to string UI parameter names */
-        OpalLocalCylindricalOffset();
-
-        /** No memory allocated so does nothing */
-        virtual ~OpalLocalCylindricalOffset();
-
-        /** Inherited copy constructor */
-        virtual OpalLocalCylindricalOffset* clone(const std::string& name);
-
-        /** Receive parameters from the parser and hand them off to the
-         *  OpalCylindricalOffset
-         */
-        void update();
-
-        /** Calls print on the OpalElement */
-        virtual void print(std::ostream&) const;
-
-    private:
-        // Not implemented.
-        OpalLocalCylindricalOffset(const OpalLocalCylindricalOffset&);
-        void operator=(const OpalLocalCylindricalOffset&);
-
-        // Clone constructor.
-        OpalLocalCylindricalOffset(const std::string& name, OpalLocalCylindricalOffset* parent);
-
-        static const std::string doc_string;
+/** OpalLocalCylindricalOffset provides classes for making offsets between
+ *  elements in a ring geometry; only condition is that they must be in the
+ *  midplane
+ */
+class OpalLocalCylindricalOffset : public OpalElement {
+  public:
+    /** Enumeration maps to UI parameters */
+    enum {
+        THETA_IN = COMMON,
+        THETA_OUT,
+        LENGTH,
+        SIZE // size of the enum
     };
 
-}  // namespace OpalOffset
+    /** Define mapping from enum variables to string UI parameter names */
+    OpalLocalCylindricalOffset();
 
-#endif  // #define OPAL_ELEMENTS_OpalOffset_OpalLocalCylindricalOffset_HH
+    /** No memory allocated so does nothing */
+    virtual ~OpalLocalCylindricalOffset();
+
+    /** Inherited copy constructor */
+    virtual OpalLocalCylindricalOffset *clone(const std::string &name);
+
+    /** Receive parameters from the parser and hand them off to the
+     *  OpalCylindricalOffset
+     */
+    void update();
+
+    /** Calls print on the OpalElement */
+    virtual void print(std::ostream &) const;
+  private:
+    // Not implemented.
+    OpalLocalCylindricalOffset(const OpalLocalCylindricalOffset &);
+    void operator=(const OpalLocalCylindricalOffset &);
+
+    // Clone constructor.
+    OpalLocalCylindricalOffset(const std::string &name,
+                                 OpalLocalCylindricalOffset *parent);
+
+    static const std::string doc_string;
+};
+
+}
+
+#endif // #define OPAL_ELEMENTS_OpalOffset_OpalLocalCylindricalOffset_HH

@@ -24,23 +24,29 @@
 
 using namespace Expressions;
 
+
 // Class Place
 // ------------------------------------------------------------------------
 
 namespace Attributes {
 
-    Place::Place(const std::string& name, const std::string& help)
-        : AttributeHandler(name, help, 0) {}
+    Place::Place(const std::string &name, const std::string &help):
+        AttributeHandler(name, help, 0)
+    {}
 
-    Place::~Place() {}
 
-    const std::string& Place::getType() const {
+    Place::~Place()
+    {}
+
+
+    const std::string &Place::getType() const {
         static const std::string type("place");
         return type;
     }
 
-    void Place::parse(Attribute& attr, Statement& stat, bool) const {
+
+    void Place::parse(Attribute &attr, Statement &stat, bool) const {
         attr.set(new SValue<PlaceRep>(parsePlace(stat)));
     }
 
-};  // namespace Attributes
+};

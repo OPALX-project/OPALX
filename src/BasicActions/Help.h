@@ -20,8 +20,11 @@
 
 #include "AbstractObjects/Action.h"
 
-class Help : public Action {
+
+class Help: public Action {
+
 public:
+
     /// Exemplar constructor.
     Help();
 
@@ -37,6 +40,7 @@ public:
     virtual void parse(Statement&);
 
 private:
+
     // Not implemented.
     Help(const Help&);
     void operator=(const Help&);
@@ -45,4 +49,4 @@ private:
     Help(const std::string& name, Help* parent);
 };
 
-#endif  // OPAL_Help_HH
+#endif // OPAL_Help_HH

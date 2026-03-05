@@ -18,47 +18,54 @@
 // ------------------------------------------------------------------------
 
 #include "Utilities/RegularExpression.h"
-#include <regex.h>
-#include <algorithm>
+#include "Utilities/OpalException.h"
 #include <cstdlib>
+#include <regex.h>
 #include <cstring>
-#include <functional>
+#include <algorithm>
 #include <iomanip>
 #include <iostream>
 #include <new>
-#include "Utilities/OpalException.h"
+#include <cstring>
+#include <functional>
 
 // Class RegularExpression::Expression
 // ------------------------------------------------------------------------
 
-class RegularExpression::Expression : public regex_t {};
+class RegularExpression::Expression: public regex_t {};
+
 
 // Class RegularExpression
 // ------------------------------------------------------------------------
 
-RegularExpression::RegularExpression(const std::string& pattern, bool ignore)
-    : patt(pattern), caseIgnore(ignore) {
+RegularExpression::RegularExpression(const std::string &pattern, bool ignore):
+    patt(pattern), caseIgnore(ignore) {
     init();
 }
 
-RegularExpression::RegularExpression(const RegularExpression& rhs)
-    : patt(rhs.patt), caseIgnore(rhs.caseIgnore) {
+
+RegularExpression::RegularExpression(const RegularExpression &rhs):
+    patt(rhs.patt), caseIgnore(rhs.caseIgnore) {
     init();
 }
 
-RegularExpression::~RegularExpression() { ::regfree(expr); }
 
-bool RegularExpression::match(const std::string& s) const {
+RegularExpression::~RegularExpression() {
+    ::regfree(expr);
+}
+
+
+bool RegularExpression::match(const std::string &s) const {
     int rc = state;
 
-    if (rc == 0) {
-        int nmatch         = 0;
-        regmatch_t* pmatch = 0;
-        int flags          = 0;
-        rc                 = regexec(expr, s.data(), nmatch, pmatch, flags);
-        if (rc == 0) {
+    if(rc == 0) {
+        int nmatch = 0;
+        regmatch_t *pmatch = 0;
+        int flags = 0;
+        rc = regexec(expr, s.data(), nmatch, pmatch, flags);
+        if(rc == 0) {
             return true;
-        } else if (rc == REG_NOMATCH) {
+        } else if(rc == REG_NOMATCH) {
             return false;
         }
     }
@@ -68,12 +75,15 @@ bool RegularExpression::match(const std::string& s) const {
     throw OpalException("RegularExpression::match()", buffer);
 }
 
-bool RegularExpression::OK() const { return state == 0 && expr != 0; }
+
+bool RegularExpression::OK() const {
+    return state == 0  &&  expr != 0;
+}
+
 
 void RegularExpression::init() {
-    expr      = (Expression*)malloc(sizeof(regex_t));
+    expr = (Expression *) malloc(sizeof(regex_t));
     int flags = REG_NOSUB;
-    if (caseIgnore)
-        flags |= REG_ICASE;
+    if(caseIgnore) flags |= REG_ICASE;
     state = regcomp(expr, patt.c_str(), flags);
 }

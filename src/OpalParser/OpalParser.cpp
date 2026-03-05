@@ -53,9 +53,11 @@ extern Inform* gmsg;
 
 std::vector<std::shared_ptr<TokenStream> > OpalParser::inputStack;
 
-OpalParser::OpalParser() : stopFlag(false) {}
+OpalParser::OpalParser() : stopFlag(false) {
+}
 
-OpalParser::~OpalParser() {}
+OpalParser::~OpalParser() {
+}
 
 void OpalParser::parse(Statement& stat) const {
     if (stat.keyword("SHARED")) {
@@ -563,11 +565,11 @@ Statement* OpalParser::readStatement(TokenStream* is) const {
                      << "\"\n";
         /// \todo check this /stat->printWhere(*IpplInfo::Error, true);
 
-        std::string what           = ex.what();
+        std::string what = ex.what();
         std::string::size_type pos = 0;
         while ((pos = what.find("\n", pos)) != std::string::npos) {
             what.replace(pos, 1, "\n    ");
-            pos += 5;  // length of "\n    "
+            pos += 5; // length of "\n    "
         }
 
         *ippl::Error << "     " << *stat << "    a" << what << '\n' << endl;
@@ -614,7 +616,9 @@ void OpalParser::run(TokenStream* is) const {
     inputStack.pop_back();
 }
 
-void OpalParser::stop() const { stopFlag = true; }
+void OpalParser::stop() const {
+    stopFlag = true;
+}
 
 std::string OpalParser::getHint(const std::string& name, const std::string& type) {
     auto owner = AttributeHandler::getOwner(name);

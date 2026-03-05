@@ -18,14 +18,14 @@
 //
 // ------------------------------------------------------------------------
 
-#include <exception>
-#include <iosfwd>
-#include <vector>
 #include "AbstractObjects/Attribute.h"
 #include "AbstractObjects/Expressions.h"
 #include "Expressions/SValue.h"
 #include "Utilities/LogicalError.h"
 #include "Utilities/OpalException.h"
+#include <iosfwd>
+#include <vector>
+#include <exception>
 
 namespace Expressions {
 
@@ -36,17 +36,19 @@ namespace Expressions {
     //  required.  This is notably needed to implement random generators.
 
     template <class T>
-    class SDeferred : public SValue<T> {
+    class SDeferred: public SValue<T> {
+
     public:
+
         /// Constructor.
         //  From scalar expression.
         explicit SDeferred(PtrToScalar<T> expr);
 
-        SDeferred(const SDeferred<T>&);
+        SDeferred(const SDeferred<T> &);
         virtual ~SDeferred();
 
         /// Make clone.
-        virtual SDeferred<T>* clone() const;
+        virtual SDeferred<T> *clone() const;
 
         /// Evaluate.
         //  The expression is always re-evaluated.
@@ -57,84 +59,99 @@ namespace Expressions {
         virtual bool isExpression() const;
 
         /// Print the attribute value.
-        virtual void print(std::ostream&) const;
+        virtual void print(std::ostream &) const;
 
     protected:
+
         /// Pointer to expression.
         PtrToScalar<T> expr_ptr;
 
     private:
+
         // Not implemented.
         SDeferred();
-        void operator=(const SDeferred<T>&);
+        void operator=(const SDeferred<T> &);
 
         // Guard against recursive definition.
         mutable bool in_evaluation;
     };
 
+
     // Implementation
     // ------------------------------------------------------------------------
 
     template <class T>
-    SDeferred<T>::SDeferred(const SDeferred<T>& rhs)
-        : SValue<T>(), expr_ptr(rhs.expr_ptr->clone()), in_evaluation(false) {}
+    SDeferred<T>::SDeferred(const SDeferred<T> &rhs):
+        SValue<T>(), expr_ptr(rhs.expr_ptr->clone()), in_evaluation(false)
+    {}
+
 
     template <class T>
-    SDeferred<T>::SDeferred(PtrToScalar<T> expr)
-        : SValue<T>(), expr_ptr(expr), in_evaluation(false) {}
+    SDeferred<T>::SDeferred(PtrToScalar<T> expr):
+        SValue<T>(), expr_ptr(expr), in_evaluation(false)
+    {}
+
 
     template <class T>
-    SDeferred<T>::~SDeferred() {}
+    SDeferred<T>::~SDeferred()
+    {}
+
 
     template <class T>
-    SDeferred<T>* SDeferred<T>::clone() const {
+    SDeferred<T> *SDeferred<T>::clone() const {
         return new SDeferred<T>(*this);
     }
 
+
     template <class T>
     T SDeferred<T>::evaluate() {
-        if (in_evaluation) {
-            throw LogicalError("SDeferred::evaluate()", "Recursive expression definitions found.");
+        if(in_evaluation) {
+            throw LogicalError("SDeferred::evaluate()",
+                               "Recursive expression definitions found.");
         } else {
             in_evaluation = true;
             try {
-                this->value   = expr_ptr->evaluate();
+                this->value = expr_ptr->evaluate();
                 in_evaluation = false;
-            } catch (OpalException& ex) {
+            } catch(OpalException &ex) {
                 in_evaluation = false;
-                throw LogicalError(
-                    ex.where(), "Evaluating expression \"" + this->getImage() + "\": " + ex.what());
-            } catch (ClassicException& ex) {
+                throw LogicalError(ex.where(),
+                                   "Evaluating expression \"" +
+                                   this->getImage() + "\": " + ex.what());
+            } catch(ClassicException &ex) {
                 in_evaluation = false;
-                throw LogicalError(
-                    ex.where(), "Evaluating expression \"" + this->getImage() + "\": " + ex.what());
-            } catch (std::exception& ex) {
+                throw LogicalError(ex.where(),
+                                   "Evaluating expression \"" +
+                                   this->getImage() + "\": " + ex.what());
+            } catch(std::exception &ex) {
                 in_evaluation = false;
-                throw LogicalError(
-                    "SDeferred::evaluate()", "Standard C++ exception while evaluating \""
-                                                 + this->getImage() + "\": " + ex.what());
-            } catch (...) {
+                throw LogicalError("SDeferred::evaluate()",
+                                   "Standard C++ exception while evaluating \"" +
+                                   this->getImage() + "\": " + ex.what());
+            } catch(...) {
                 in_evaluation = false;
-                throw LogicalError(
-                    "SDeferred::evaluate()",
-                    "Unknown exception while evaluating \"" + this->getImage() + "\": ");
+                throw LogicalError("SDeferred::evaluate()",
+                                   "Unknown exception while evaluating \"" +
+                                   this->getImage() + "\": ");
             }
         }
 
         return this->value;
     }
 
+
     template <class T>
     bool SDeferred<T>::isExpression() const {
         return true;
     }
 
+
     template <class T>
-    void SDeferred<T>::print(std::ostream& stream) const {
+    void SDeferred<T>::print(std::ostream &stream) const {
         expr_ptr->print(stream, 0);
         return;
     }
 
-}  // namespace Expressions
+}
 
-#endif  // OPAL_SDeferred_HH
+#endif // OPAL_SDeferred_HH

@@ -20,8 +20,11 @@
 
 #include "AbstractObjects/Action.h"
 
-class Call : public Action {
+
+class Call: public Action {
+
 public:
+
     /// Exemplar constructor.
     Call();
 
@@ -37,6 +40,7 @@ public:
     virtual void parse(Statement&);
 
 private:
+
     // Not implemented.
     Call(const Call&);
     void operator=(const Call&);
@@ -45,4 +49,4 @@ private:
     Call(const std::string& name, Call* parent);
 };
 
-#endif  // OPAL_Call_HH
+#endif // OPAL_Call_HH

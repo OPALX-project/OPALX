@@ -18,9 +18,9 @@
 #ifndef DISTRIBUTIONMOMENTS_H
 #define DISTRIBUTIONMOMENTS_H
 
+#include "Ippl.h"
 #include <Kokkos_Core.hpp>
 #include "Algorithms/Matrix.h"
-#include "Ippl.h"
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
 
@@ -42,16 +42,17 @@ public:
     void compute(
         const std::vector<OpalParticle>::const_iterator&,
         const std::vector<OpalParticle>::const_iterator&);
-    void computeMoments(
-        ippl::ParticleAttrib<Vector_t<double, 3>>::view_type Rview,
-        ippl::ParticleAttrib<Vector_t<double, 3>>::view_type Pview,
-        ippl::ParticleAttrib<double>::view_type Mview, size_t Np, size_t Nlocal);
-    void computeMinMaxPosition(
-        ippl::ParticleAttrib<Vector_t<double, 3>>::view_type Rview, size_t Nlcoal);
+    void computeMoments(ippl::ParticleAttrib<Vector_t<double,3>>::view_type  Rview,
+                        ippl::ParticleAttrib<Vector_t<double,3>>::view_type  Pview,
+                        ippl::ParticleAttrib<double>::view_type  Mview,
+                        size_t Np,
+                        size_t Nlocal);
+    void computeMinMaxPosition(ippl::ParticleAttrib<Vector_t<double,3>>::view_type  Rview, size_t Nlcoal);
     void computeMeanKineticEnergy();
-    void computeDebyeLength(
-        ippl::ParticleAttrib<Vector_t<double, 3>>::view_type Pview, size_t Np, size_t Nlocal,
-        double density);
+    void computeDebyeLength(ippl::ParticleAttrib<Vector_t<double,3>>::view_type  Pview,
+                        size_t Np,
+                        size_t Nlocal,
+                        double density);
     void computePlasmaParameter(double);
 
     Vector_t<double, 3> getMeanPosition() const;
@@ -95,18 +96,18 @@ public:
     double getTotalMass() const;
     double getTotalNumParticles() const;
 
-    void computeMeans(
-        ippl::ParticleAttrib<Vector_t<double, 3>>::view_type Rview,
-        ippl::ParticleAttrib<Vector_t<double, 3>>::view_type Pview,
-        ippl::ParticleAttrib<double>::view_type Mview, size_t Np, size_t Nlocal);
-
+    void computeMeans(ippl::ParticleAttrib<Vector_t<double,3>>::view_type  Rview,
+                                         ippl::ParticleAttrib<Vector_t<double,3>>::view_type  Pview,
+                                         ippl::ParticleAttrib<double>::view_type  Mview,
+                                         size_t Np,
+                                         size_t Nlocal);
 private:
     bool isParticleExcluded(const OpalParticle&) const;
 
+    //template <class InputIt>
+    //void computeMeans(const InputIt&, const InputIt&);
     // template <class InputIt>
-    // void computeMeans(const InputIt&, const InputIt&);
-    //  template <class InputIt>
-    //  void computeStatistics(const InputIt&, const InputIt&);
+    // void computeStatistics(const InputIt&, const InputIt&);
     template <class InputIt>
     void computePercentiles(const InputIt&, const InputIt&);
     using iterator_t = std::vector<Vector_t<double, 2>>::const_iterator;
@@ -167,13 +168,17 @@ private:
     static const double percentileFourSigmasNormalDist_m;
 };
 
-inline Vector_t<double, 3> DistributionMoments::getMeanPosition() const { return meanR_m; }
+inline Vector_t<double, 3> DistributionMoments::getMeanPosition() const {
+    return meanR_m;
+}
 
 inline Vector_t<double, 3> DistributionMoments::getStandardDeviationPosition() const {
     return stdR_m;
 }
 
-inline Vector_t<double, 3> DistributionMoments::getMeanMomentum() const { return meanP_m; }
+inline Vector_t<double, 3> DistributionMoments::getMeanMomentum() const {
+    return meanP_m;
+}
 
 inline Vector_t<double, 3> DistributionMoments::getStandardDeviationMomentum() const {
     return stdP_m;
@@ -187,52 +192,96 @@ inline Vector_t<double, 3> DistributionMoments::getGeometricEmittance() const {
     return geometricEps_m;
 }
 
-inline Vector_t<double, 3> DistributionMoments::getStandardDeviationRP() const { return stdRP_m; }
+inline Vector_t<double, 3> DistributionMoments::getStandardDeviationRP() const {
+    return stdRP_m;
+}
 
-inline Vector_t<double, 3> DistributionMoments::getHalo() const { return halo_m; }
+inline Vector_t<double, 3> DistributionMoments::getHalo() const {
+    return halo_m;
+}
 
-inline Vector_t<double, 3> DistributionMoments::getMinPosition() const { return minR_m; }
+inline Vector_t<double, 3> DistributionMoments::getMinPosition() const {
+    return minR_m;
+}
 
-inline Vector_t<double, 3> DistributionMoments::getMaxPosition() const { return maxR_m; }
+inline Vector_t<double, 3> DistributionMoments::getMaxPosition() const {
+    return maxR_m;
+}
 
-inline double DistributionMoments::getMeanTime() const { return meanTime_m; }
+inline double DistributionMoments::getMeanTime() const {
+    return meanTime_m;
+}
 
-inline double DistributionMoments::getStdTime() const { return stdTime_m; }
+inline double DistributionMoments::getStdTime() const {
+    return stdTime_m;
+}
 
-inline double DistributionMoments::getMeanGamma() const { return meanGamma_m; }
+inline double DistributionMoments::getMeanGamma() const {
+    return meanGamma_m;
+}
 
-inline double DistributionMoments::getMeanGammaZ() const { return meanGammaZ_m; }
+inline double DistributionMoments::getMeanGammaZ() const {
+    return meanGammaZ_m;
+}
 
-inline double DistributionMoments::getMeanKineticEnergy() const { return meanKineticEnergy_m; }
+inline double DistributionMoments::getMeanKineticEnergy() const {
+    return meanKineticEnergy_m;
+}
 
 // Compute and return the value of temperature in K
 inline double DistributionMoments::getTemperature() const {
     return (temperature_m / (Physics::kB * Units::eV2kg * Physics::c * Physics::c));
 }
-inline double DistributionMoments::getDebyeLength() const { return debyeLength_m; }
-inline double DistributionMoments::getPlasmaParameter() const { return plasmaParameter_m; }
+inline double DistributionMoments::getDebyeLength() const {
+    return debyeLength_m;
+}
+inline double DistributionMoments::getPlasmaParameter() const {
+    return plasmaParameter_m;
+}
 
-inline double DistributionMoments::getStdKineticEnergy() const { return stdKineticEnergy_m; }
+inline double DistributionMoments::getStdKineticEnergy() const {
+    return stdKineticEnergy_m;
+}
 
-inline double DistributionMoments::getDx() const { return moments_m(0, 5); }
+inline double DistributionMoments::getDx() const {
+    return moments_m(0, 5);
+}
 
-inline double DistributionMoments::getDDx() const { return moments_m(1, 5); }
+inline double DistributionMoments::getDDx() const {
+    return moments_m(1, 5);
+}
 
-inline double DistributionMoments::getDy() const { return moments_m(2, 5); }
+inline double DistributionMoments::getDy() const {
+    return moments_m(2, 5);
+}
 
-inline double DistributionMoments::getDDy() const { return moments_m(3, 5); }
+inline double DistributionMoments::getDDy() const {
+    return moments_m(3, 5);
+}
 
-inline Vector_t<double, 6> DistributionMoments::getCentroid() const { return centroid_m; }
+inline Vector_t<double, 6> DistributionMoments::getCentroid() const {
+    return centroid_m;
+}
 
-inline Vector_t<double, 6> DistributionMoments::getMeans() const { return means_m; }
+inline Vector_t<double, 6> DistributionMoments::getMeans() const {
+    return means_m;
+}
 
-inline matrix6x6_t DistributionMoments::getMoments6x6() const { return moments_m; }
+inline matrix6x6_t DistributionMoments::getMoments6x6() const {
+    return moments_m;
+}
 
-inline double DistributionMoments::getTotalCharge() const { return totalCharge_m; }
+inline double DistributionMoments::getTotalCharge() const {
+    return totalCharge_m;
+}
 
-inline double DistributionMoments::getTotalMass() const { return totalMass_m; }
+inline double DistributionMoments::getTotalMass() const {
+    return totalMass_m;
+}
 
-inline double DistributionMoments::getTotalNumParticles() const { return totalNumParticles_m; }
+inline double DistributionMoments::getTotalNumParticles() const {
+    return totalNumParticles_m;
+}
 
 inline Vector_t<double, 3> DistributionMoments::get68Percentile() const {
     return sixtyEightPercentile_m;

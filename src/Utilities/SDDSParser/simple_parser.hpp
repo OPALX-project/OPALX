@@ -8,42 +8,43 @@
 #ifndef SIMPLE_PARSER_HPP_
 #define SIMPLE_PARSER_HPP_
 
-#include "array.hpp"
-#include "associate.hpp"
 #include "ast.hpp"
+#include "version.hpp"
+#include "description.hpp"
+#include "parameter.hpp"
 #include "column.hpp"
 #include "data.hpp"
-#include "description.hpp"
+#include "associate.hpp"
+#include "array.hpp"
 #include "include.hpp"
-#include "parameter.hpp"
-#include "version.hpp"
 
-#include <cctype>
-#include <sstream>
-#include <stdexcept>
 #include <string>
+#include <sstream>
+#include <cctype>
+#include <stdexcept>
 
 namespace SDDS {
     namespace parser {
 
         class SimpleParser {
         public:
-            SimpleParser(const std::string& input) : input_(input), pos_(0) {}
+            SimpleParser(const std::string& input) 
+                : input_(input), pos_(0) {}
 
             file parse() {
                 file result;
                 skipWhitespace();
-
+                
                 // Parse version
                 result.sddsVersion_m = parseVersion();
                 skipWhitespace();
-
+                
                 // Parse optional description
                 if (match("&description")) {
                     result.sddsDescription_m = parseDescription();
                     skipWhitespace();
                 }
-
+                
                 // Parse parameters, columns, associates, arrays, includes
                 while (pos_ < input_.length()) {
                     skipWhitespace();
@@ -65,7 +66,7 @@ namespace SDDS {
                     }
                     skipWhitespace();
                 }
-
+                
                 return result;
             }
 
@@ -122,7 +123,7 @@ namespace SDDS {
                 if (pos_ >= input_.length() || input_[pos_] != '"') {
                     return "";
                 }
-                pos_++;  // skip opening quote
+                pos_++; // skip opening quote
                 std::string result;
                 while (pos_ < input_.length() && input_[pos_] != '"') {
                     if (input_[pos_] == '\\' && pos_ + 1 < input_.length()) {
@@ -134,7 +135,7 @@ namespace SDDS {
                     pos_++;
                 }
                 if (pos_ < input_.length() && input_[pos_] == '"') {
-                    pos_++;  // skip closing quote
+                    pos_++; // skip closing quote
                 }
                 return result;
             }
@@ -144,9 +145,10 @@ namespace SDDS {
                 std::string result;
                 while (pos_ < input_.length()) {
                     char c = input_[pos_];
-                    if (std::isalnum(static_cast<unsigned char>(c)) || c == '@' || c == '#'
-                        || c == ':' || c == '+' || c == '-' || c == '%' || c == '.' || c == '_'
-                        || c == '$' || c == '&' || c == '/') {
+                    if (std::isalnum(static_cast<unsigned char>(c)) || 
+                        c == '@' || c == '#' || c == ':' || c == '+' || 
+                        c == '-' || c == '%' || c == '.' || c == '_' || 
+                        c == '$' || c == '&' || c == '/') {
                         result += c;
                         pos_++;
                     } else {
@@ -169,8 +171,7 @@ namespace SDDS {
                 expect("SDDS");
                 skipWhitespace();
                 std::string numStr;
-                while (pos_ < input_.length()
-                       && std::isdigit(static_cast<unsigned char>(input_[pos_]))) {
+                while (pos_ < input_.length() && std::isdigit(static_cast<unsigned char>(input_[pos_]))) {
                     numStr += input_[pos_];
                     pos_++;
                 }
@@ -184,21 +185,19 @@ namespace SDDS {
             description parseDescription() {
                 description desc;
                 skipWhitespace();
-
+                
                 while (pos_ < input_.length() && !match("&end")) {
                     skipWhitespace();
                     if (match("text")) {
                         expect('=');
                         desc.text_m = parseString();
                         skipWhitespace();
-                        if (match(','))
-                            skipWhitespace();
+                        if (match(',')) skipWhitespace();
                     } else if (match("contents")) {
                         expect('=');
                         desc.content_m = parseString();
                         skipWhitespace();
-                        if (match(','))
-                            skipWhitespace();
+                        if (match(',')) skipWhitespace();
                     } else {
                         break;
                     }
@@ -210,51 +209,40 @@ namespace SDDS {
             parameter parseParameter() {
                 parameter param;
                 skipWhitespace();
-
+                
                 while (pos_ < input_.length() && !match("&end")) {
                     skipWhitespace();
                     if (match("name")) {
                         expect('=');
                         param.name_m = parseString();
                         skipWhitespace();
-                        if (match(','))
-                            skipWhitespace();
+                        if (match(',')) skipWhitespace();
                     } else if (match("type")) {
                         expect('=');
                         std::string typeStr = parseString();
-                        if (typeStr == "float")
-                            param.type_m = ast::FLOAT;
-                        else if (typeStr == "double")
-                            param.type_m = ast::DOUBLE;
-                        else if (typeStr == "short")
-                            param.type_m = ast::SHORT;
-                        else if (typeStr == "long")
-                            param.type_m = ast::LONG;
-                        else if (typeStr == "character")
-                            param.type_m = ast::CHARACTER;
-                        else if (typeStr == "string")
-                            param.type_m = ast::STRING;
+                        if (typeStr == "float") param.type_m = ast::FLOAT;
+                        else if (typeStr == "double") param.type_m = ast::DOUBLE;
+                        else if (typeStr == "short") param.type_m = ast::SHORT;
+                        else if (typeStr == "long") param.type_m = ast::LONG;
+                        else if (typeStr == "character") param.type_m = ast::CHARACTER;
+                        else if (typeStr == "string") param.type_m = ast::STRING;
                         skipWhitespace();
-                        if (match(','))
-                            skipWhitespace();
+                        if (match(',')) skipWhitespace();
                     } else if (match("units")) {
                         expect('=');
                         param.units_m = parseString();
                         skipWhitespace();
-                        if (match(','))
-                            skipWhitespace();
+                        if (match(',')) skipWhitespace();
                     } else if (match("description")) {
                         expect('=');
                         param.description_m = parseString();
                         skipWhitespace();
-                        if (match(','))
-                            skipWhitespace();
+                        if (match(',')) skipWhitespace();
                     } else {
                         // Skip unsupported fields
                         parseString();
                         skipWhitespace();
-                        if (match(','))
-                            skipWhitespace();
+                        if (match(',')) skipWhitespace();
                     }
                 }
                 expect("&end");
@@ -264,51 +252,40 @@ namespace SDDS {
             column parseColumn() {
                 column col;
                 skipWhitespace();
-
+                
                 while (pos_ < input_.length() && !match("&end")) {
                     skipWhitespace();
                     if (match("name")) {
                         expect('=');
                         col.name_m = parseString();
                         skipWhitespace();
-                        if (match(','))
-                            skipWhitespace();
+                        if (match(',')) skipWhitespace();
                     } else if (match("type")) {
                         expect('=');
                         std::string typeStr = parseString();
-                        if (typeStr == "float")
-                            col.type_m = ast::FLOAT;
-                        else if (typeStr == "double")
-                            col.type_m = ast::DOUBLE;
-                        else if (typeStr == "short")
-                            col.type_m = ast::SHORT;
-                        else if (typeStr == "long")
-                            col.type_m = ast::LONG;
-                        else if (typeStr == "character")
-                            col.type_m = ast::CHARACTER;
-                        else if (typeStr == "string")
-                            col.type_m = ast::STRING;
+                        if (typeStr == "float") col.type_m = ast::FLOAT;
+                        else if (typeStr == "double") col.type_m = ast::DOUBLE;
+                        else if (typeStr == "short") col.type_m = ast::SHORT;
+                        else if (typeStr == "long") col.type_m = ast::LONG;
+                        else if (typeStr == "character") col.type_m = ast::CHARACTER;
+                        else if (typeStr == "string") col.type_m = ast::STRING;
                         skipWhitespace();
-                        if (match(','))
-                            skipWhitespace();
+                        if (match(',')) skipWhitespace();
                     } else if (match("units")) {
                         expect('=');
                         col.units_m = parseString();
                         skipWhitespace();
-                        if (match(','))
-                            skipWhitespace();
+                        if (match(',')) skipWhitespace();
                     } else if (match("description")) {
                         expect('=');
                         col.description_m = parseString();
                         skipWhitespace();
-                        if (match(','))
-                            skipWhitespace();
+                        if (match(',')) skipWhitespace();
                     } else {
                         // Skip unsupported fields
                         parseString();
                         skipWhitespace();
-                        if (match(','))
-                            skipWhitespace();
+                        if (match(',')) skipWhitespace();
                     }
                 }
                 expect("&end");
@@ -321,10 +298,9 @@ namespace SDDS {
                 // Basic implementation - can be extended
                 while (pos_ < input_.length() && !match("&end")) {
                     skipWhitespace();
-                    parseString();  // Skip content for now
+                    parseString(); // Skip content for now
                     skipWhitespace();
-                    if (match(','))
-                        skipWhitespace();
+                    if (match(',')) skipWhitespace();
                 }
                 expect("&end");
                 return assoc;
@@ -336,10 +312,9 @@ namespace SDDS {
                 // Basic implementation - can be extended
                 while (pos_ < input_.length() && !match("&end")) {
                     skipWhitespace();
-                    parseString();  // Skip content for now
+                    parseString(); // Skip content for now
                     skipWhitespace();
-                    if (match(','))
-                        skipWhitespace();
+                    if (match(',')) skipWhitespace();
                 }
                 expect("&end");
                 return arr;
@@ -351,10 +326,9 @@ namespace SDDS {
                 // Basic implementation - can be extended
                 while (pos_ < input_.length() && !match("&end")) {
                     skipWhitespace();
-                    parseString();  // Skip content for now
+                    parseString(); // Skip content for now
                     skipWhitespace();
-                    if (match(','))
-                        skipWhitespace();
+                    if (match(',')) skipWhitespace();
                 }
                 expect("&end");
                 return inc;
@@ -367,34 +341,31 @@ namespace SDDS {
                 if (match("mode")) {
                     expect('=');
                     std::string modeStr = parseString();
-                    if (modeStr == "ascii")
-                        d.mode_m = ast::ASCII;
-                    else if (modeStr == "binary")
-                        d.mode_m = ast::BINARY;
+                    if (modeStr == "ascii") d.mode_m = ast::ASCII;
+                    else if (modeStr == "binary") d.mode_m = ast::BINARY;
                     skipWhitespace();
-                    if (match(','))
-                        skipWhitespace();
+                    if (match(',')) skipWhitespace();
                 }
                 if (match("no_row_counts")) {
                     expect('=');
                     std::string val = parseString();
                     // Parse boolean value
                     skipWhitespace();
-                    if (match(','))
-                        skipWhitespace();
+                    if (match(',')) skipWhitespace();
                 }
                 expect("&end");
                 skipWhitespace();
-
+                
                 // Parse data rows (simplified - actual parsing would be more complex)
                 // This is a placeholder - the actual data parsing is done separately
                 // in the original code via parameter::parse() and column::parse()
-
+                
                 return d;
             }
         };
 
-    }  // namespace parser
-}  // namespace SDDS
+    } // namespace parser
+} // namespace SDDS
 
 #endif /* SIMPLE_PARSER_HPP_ */
+

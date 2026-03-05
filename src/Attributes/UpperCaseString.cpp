@@ -16,9 +16,9 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
+#include "Attributes/Attributes.h"
 #include "Attributes/UpperCaseString.h"
 #include "AbstractObjects/Expressions.h"
-#include "Attributes/Attributes.h"
 #include "Expressions/SValue.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/ParseError.h"
@@ -26,20 +26,25 @@
 
 using namespace Expressions;
 
+
 namespace Attributes {
 
-    UpperCaseString::UpperCaseString(const std::string& name, const std::string& help)
-        : AttributeHandler(name, help, 0) {}
+    UpperCaseString::UpperCaseString(const std::string &name, const std::string &help):
+        AttributeHandler(name, help, 0)
+    {}
 
-    UpperCaseString::~UpperCaseString() {}
 
-    const std::string& UpperCaseString::getType() const {
+    UpperCaseString::~UpperCaseString()
+    {}
+
+
+    const std::string &UpperCaseString::getType() const {
         static const std::string type("string");
         return type;
     }
 
-    void UpperCaseString::parse(Attribute& attr, Statement& stat, bool) const {
+    void UpperCaseString::parse(Attribute &attr, Statement &stat, bool) const {
         Attributes::setUpperCaseString(attr, parseStringValue(stat, "String value expected."));
     }
 
-};  // namespace Attributes
+};
