@@ -1,4 +1,5 @@
 set (_SRCS
+    ConstantEFieldCavityRep.cpp
     DriftRep.cpp
     MarkerRep.cpp
     MonitorRep.cpp
@@ -10,6 +11,7 @@ set (_SRCS
     )
 
 set (HDRS
+    ConstantEFieldCavityRep.h
     DriftRep.h
     MarkerRep.h
     MonitorRep.h
