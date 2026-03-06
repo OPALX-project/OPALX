@@ -89,8 +89,29 @@ void BinningCmd::update() {
         parameterName_m = "VELOCITYZ";
     }
 
-    // Check dumping filename and frequency, make sure it ends with .json and append .json if not present
-    // TODO
+    // Sanitize dump-to-file configuration if present.
+    if (itsAttr[BINNING::DUMPBINSFILE]) {
+        std::string filename = Attributes::getString(itsAttr[BINNING::DUMPBINSFILE]);
+
+        // Treat empty or "NONE" as "no dumping".
+        if (!filename.empty() && filename != "NONE") {
+            // Ensure the file name ends with ".json".
+            const std::string extension = ".json";
+            if (filename.size() < extension.size()
+                || filename.substr(filename.size() - extension.size()) != extension) {
+                filename += extension;
+                Attributes::setString(itsAttr[BINNING::DUMPBINSFILE], filename);
+            }
+
+            // Validate frequency when dumping is enabled.
+            int freq = static_cast<int>(Attributes::getReal(itsAttr[BINNING::DUMPBINSFREQ]));
+            if (freq < 1) {
+                throw OpalException(
+                    "BinningCmd::update",
+                    "DUMPBINSFREQ must be >= 1 when DUMPBINSFILE is set.");
+            }
+        }
+    }
 }
 
 void BinningCmd::setParameterType() {
@@ -153,8 +174,11 @@ std::string BinningCmd::getParameter() {
 }
 
 std::string BinningCmd::getDumpBinsFileName() const {
-    std::string filename = Attributes::getString(itsAttr[BINNING::DUMPBINSFILE]);
-    return filename;
+    if (!dumpBinsToFile()) {
+        throw OpalException("BinningCmd::getDumpBinsFileName",
+                            "No bin dump enabled, but getDumpBinsFileName() was called.");
+    }
+    return Attributes::getString(itsAttr[BINNING::DUMPBINSFILE]);
 }
 
 int BinningCmd::getDumpBinsFrequency() const {
@@ -167,7 +191,8 @@ int BinningCmd::getDumpBinsFrequency() const {
 }
 
 bool BinningCmd::dumpBinsToFile() const {
-    return getDumpBinsFileName() != "NONE";
+    const std::string filename = Attributes::getString(itsAttr[BINNING::DUMPBINSFILE]);
+    return !filename.empty() && filename != "NONE";
 }
 
 BinningParameter BinningCmd::getParameterType() const {
