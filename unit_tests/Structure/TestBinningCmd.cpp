@@ -36,6 +36,14 @@ public:
         // PARAMETER is declared as a predefined string; this helper mirrors normal usage.
         Attributes::setPredefinedString(itsAttr[BINNING::PARAMETER], value);
     }
+
+    void setDumpBinsFile(const std::string& value) {
+        Attributes::setString(itsAttr[BINNING::DUMPBINSFILE], value);
+    }
+
+    void setDumpBinsFreq(double value) {
+        Attributes::setReal(itsAttr[BINNING::DUMPBINSFREQ], value);
+    }
 };
 
 class BinningCmdTest : public ::testing::Test {
@@ -50,6 +58,49 @@ protected:
         ippl::finalize();
     }
 };
+
+// UpdateAppendsJsonExtensionAndValidatesFreq:
+// If DUMPBINSFILE is set without .json, update() appends the extension and
+// enforces a valid DUMPBINSFREQ.
+TEST_F(BinningCmdTest, UpdateAppendsJsonExtensionAndValidatesFreq) {
+    TestableBinningCmd cmd;
+
+    // Enable dumping with a filename missing the .json suffix.
+    cmd.setDumpBinsFile("bins_output");
+    cmd.setDumpBinsFreq(5.0);
+
+    cmd.update();
+
+    EXPECT_TRUE(cmd.dumpBinsToFile());
+    EXPECT_EQ(cmd.getDumpBinsFileName(), "bins_output.json");
+    EXPECT_EQ(cmd.getDumpBinsFrequency(), 5);
+}
+
+// DumpBinsToFileRespectsNoneAndEmpty:
+// dumpBinsToFile() should be false for "NONE" or empty, true otherwise.
+TEST_F(BinningCmdTest, DumpBinsToFileRespectsNoneAndEmpty) {
+    TestableBinningCmd cmd;
+
+    // Default is "NONE".
+    EXPECT_FALSE(cmd.dumpBinsToFile());
+
+    cmd.setDumpBinsFile("");
+    EXPECT_FALSE(cmd.dumpBinsToFile());
+
+    cmd.setDumpBinsFile("bins.json");
+    EXPECT_TRUE(cmd.dumpBinsToFile());
+}
+
+// InvalidDumpFreqThrowsWhenDumpingEnabled:
+// A non-positive DUMPBINSFREQ with an active DUMPBINSFILE must raise.
+TEST_F(BinningCmdTest, InvalidDumpFreqThrowsWhenDumpingEnabled) {
+    TestableBinningCmd cmd;
+
+    cmd.setDumpBinsFile("bins.json");
+    cmd.setDumpBinsFreq(0.0);
+
+    EXPECT_THROW(cmd.update(), OpalException);
+}
 
 // ConstructionDefaults:
 // Verify that a freshly constructed exemplar has the documented defaults.
