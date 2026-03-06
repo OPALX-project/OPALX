@@ -43,6 +43,16 @@ BinningCmd::BinningCmd()
         "The bunch attribute used for binning.",
         {"VELOCITYZ", "POSITIONZ", "PZ", "GAMMAZ"},
         "VELOCITYZ");
+
+    itsAttr[BINNING::DUMPBINSFILE] = Attributes::makeString(
+        "DUMPBINSFILE",
+        "The json file name for dumping bin configuration to a file. Default: \"NONE\" (no dumping).",
+        "NONE");
+
+    itsAttr[BINNING::DUMPBINSFREQ] = Attributes::makeReal(
+        "DUMPBINSFREQ",
+        "The frequency in timesteps of dumping bins to a file. Default: 1.",
+        1);
 }
 
 BinningCmd::BinningCmd(const std::string& name, BinningCmd* parent)
@@ -78,6 +88,9 @@ void BinningCmd::update() {
     } else {
         parameterName_m = "VELOCITYZ";
     }
+
+    // Check dumping filename and frequency, make sure it ends with .json and append .json if not present
+    // TODO
 }
 
 void BinningCmd::setParameterType() {
@@ -109,6 +122,10 @@ Inform& BinningCmd::printInfo(Inform& os) const {
        << "* BINNINGALPHA " << getBinningAlpha() << '\n'
        << "* BINNINGBETA  " << getBinningBeta() << '\n'
        << "* PARAMETER    " << parameterName_m << endl;
+    if (dumpBinsToFile()) {
+        os << "* DUMPBINSFILE " << getDumpBinsFileName() << '\n'
+           << "* DUMPBINSFREQ " << getDumpBinsFrequency() << endl;
+    }
     os << "* ********************************************************************************** "
        << endl;
 
@@ -133,6 +150,28 @@ double BinningCmd::getBinningBeta() const {
 
 std::string BinningCmd::getParameter() {
     return Attributes::getString(itsAttr[BINNING::PARAMETER]);
+}
+
+std::string BinningCmd::getDumpBinsFileName() const {
+    std::string filename = Attributes::getString(itsAttr[BINNING::DUMPBINSFILE]);
+    if (!dumpBinsToFile()) {
+        throw OpalException("BinningCmd::getDumpBinsFileName",
+                            "No bin dump enabled, but getDumpBinsFileName() was called.");
+    }
+    return filename;
+}
+
+int BinningCmd::getDumpBinsFrequency() const {
+    int freq = static_cast<int>(Attributes::getReal(itsAttr[BINNING::DUMPBINSFREQ]));
+    if (dumpBinsToFile() && freq < 1) {
+        throw OpalException("BinningCmd::getDumpBinsFrequency",
+                            "DUMPBINSFREQ must be >= 1 if dumping bins to a file.");
+    }
+    return freq;
+}
+
+bool BinningCmd::dumpBinsToFile() const {
+    return getDumpBinsFileName() != "NONE";
 }
 
 BinningParameter BinningCmd::getParameterType() const {
