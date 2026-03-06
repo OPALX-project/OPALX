@@ -13,9 +13,11 @@
 #include "Ippl.h"
 
 #include <Kokkos_DualView.hpp>
-#include "ParallelReduceTools.h" 
-#include "BinningTools.h"        
-#include "BinHisto.h"           
+#include <vector>
+
+#include "ParallelReduceTools.h"
+#include "BinningTools.h"
+#include "BinHisto.h"
 
 namespace ParticleBinning {
 
@@ -53,8 +55,9 @@ namespace ParticleBinning {
         using hindex_transform_type = typename d_histo_type::hindex_transform_type;
         using dindex_transform_type = typename d_histo_type::dindex_transform_type;
 
-        using h_histo_type_g          = Histogram<size_type, bin_index_type, value_type, false, Kokkos::HostSpace>; 
+        using h_histo_type_g          = Histogram<size_type, bin_index_type, value_type, false, Kokkos::HostSpace>;
         using hview_type_g            = typename h_histo_type_g::hview_type;
+        using hwidth_view_type_g      = typename h_histo_type_g::hwidth_view_type;
         using hindex_transform_type_g = typename h_histo_type_g::hindex_transform_type;
 
         /**
@@ -133,6 +136,11 @@ namespace ParticleBinning {
          * @return Corresponds to (xmax_m - xmin_m)/n_bins. Used in the fine histogram.
          */
         value_type getBinWidth() const { return binWidth_m; }
+
+        /**
+         * @brief Returns the current lower bound of the binning coordinate (xMin).
+         */
+        value_type getXMin() const { return xMin_m; }
 
         /**
          * @brief Sets the current number of bins and adjusts the bin width.
@@ -396,6 +404,18 @@ namespace ParticleBinning {
          * 3. Updates the local histogram with the new bin indices and widths.
          */
         void genAdaptiveHistogram();
+
+        /**
+         * @brief Extracts the global bin configuration (counts and widths) on the host.
+         *
+         * Fills @p binCounts and @p binWidths with the current global histogram data and
+         * returns the lower bound xMin used when defining the histogram.
+         *
+         * @note This should be called after initGlobalHistogram()/genAdaptiveHistogram(),
+         *       typically on rank 0 only.
+         */
+        value_type getBinConfigHost(std::vector<size_type>& binCounts,
+                                    std::vector<value_type>& binWidths) const;
 
         /**
          * @brief Prints the current global histogram to the Inform output stream.
