@@ -154,10 +154,6 @@ std::string BinningCmd::getParameter() {
 
 std::string BinningCmd::getDumpBinsFileName() const {
     std::string filename = Attributes::getString(itsAttr[BINNING::DUMPBINSFILE]);
-    if (!dumpBinsToFile()) {
-        throw OpalException("BinningCmd::getDumpBinsFileName",
-                            "No bin dump enabled, but getDumpBinsFileName() was called.");
-    }
     return filename;
 }
 
