@@ -471,6 +471,18 @@ void PartBunch<T, Dim>::bunchUpdate() {
     ippl::Vector<double, 3> l = e - o;
 
     /*
+    If a coordinate of l is too close to zero, set it to 1e-12.
+    This avoids having a mesh spacing of zero, which would crash ippl and allows
+    empty simulations - especially important for emission sources.
+    */
+    for (int i = 0; i < 3; i++) {
+        if (l[i] < 1e-12) { 
+            l[i] = 1e-12; 
+            m << level3 << "Mesh spacing in dimension " << i << " too small. Set to 1e-12." << endl;
+        }
+    }
+
+    /*
     Now matches OPAL: domain + incr% on each side.
     Note that there is still a mismatch: OPAL only resizes in z direction and
     keeps x/y the same. But this doesn't make too much sense in my opinion...
