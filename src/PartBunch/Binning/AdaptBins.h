@@ -412,7 +412,8 @@ namespace ParticleBinning {
          * returns the lower bound xMin used when defining the histogram.
          *
          * @note This should be called after initGlobalHistogram()/genAdaptiveHistogram(),
-         *       typically on rank 0 only.
+         *       since it relies on the global histogram being initialized and available 
+         *       on host.
          */
         value_type getBinConfigHost(std::vector<size_type>& binCounts,
                                     std::vector<value_type>& binWidths) const;
