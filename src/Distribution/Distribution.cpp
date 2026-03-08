@@ -78,7 +78,8 @@ Distribution::Distribution()
     : Definition(
         DISTRIBUTION::SIZE, "DISTRIBUTION",
         "The DISTRIBUTION statement defines data for the 6D particle distribution."),
-      distrTypeT_m(DistributionType::NODIST) {
+      distrTypeT_m(DistributionType::NODIST),
+      avrgpz_m(0.0) {
     itsAttr[DISTRIBUTION::TYPE] =
         Attributes::makePredefinedString("TYPE", "Distribution type.", {"GAUSS", "MULTIVARIATEGAUSS", "FLATTOP", "FROMFILE"});
 
@@ -307,6 +308,8 @@ void Distribution::setDistParametersMultiVariateGauss() {
 }
 
 void Distribution::setDistParametersFlatTop() {
+    // avrgpz_m is not reset here; TrackRun sets it from BEAM (getMomentum()/getMass() = beta*gamma)
+    // so that initial and emitted particles get the correct reference momentum.
 
     cutoffR_m = 3.;
     cutoffP_m = 3.;

@@ -126,30 +126,30 @@ void FlatTop::setInternalVariables(bool emitting,
 void FlatTop::generateUniformDisk(size_type nlocal, size_t nNew) {
 
     GeneratorPool rand_pool = rand_pool_m;
-    Vector_t<double, 3> rmin;
-    Vector_t<double, 3> rmax;
-    Vector_t<double, 3> hr;
+    view_type Rview         = pc_m->R.getView();
+    view_type Pview         = pc_m->P.getView();
 
-    view_type Rview = pc_m->R.getView();
-    view_type Pview = pc_m->P.getView();
-
-    double pi = Physics::pi;
+    double pi               = Physics::pi;
     Vector_t<double, 3> sigmaR = sigmaR_m;
-    // Sample (Rx,Ry) on a unit ring, then scale with sigmaRx and sigmaRy, set Px=Py=0
+    Vector_t<double, 3> R0   = R0_m;
+    Vector_t<double, 3> P0   = P0_m;
+    // Beam reference momentum in beta*gamma (set by TrackRun from BEAM); emission source P0 is offset on top.
+    const double beamPz = opalDist_m->getAvrgpz();
+    // Sample (Rx,Ry) on a unit ring, scale with sigmaR, then add R0/P0 (emission source offset).
     Kokkos::parallel_for(
-               "unitDisk", Kokkos::RangePolicy<>(nlocal, nlocal+nNew), KOKKOS_LAMBDA(const size_t j) {
-                auto generator = rand_pool.get_state();
-                double r = Kokkos::sqrt( generator.drand(0., 1.) );
-                double theta = 2.0 * pi * generator.drand(0., 1.);
-                rand_pool.free_state(generator);
+        "unitDisk", Kokkos::RangePolicy<>(nlocal, nlocal + nNew), KOKKOS_LAMBDA(const size_t j) {
+            auto generator = rand_pool.get_state();
+            double r       = Kokkos::sqrt(generator.drand(0., 1.));
+            double theta   = 2.0 * pi * generator.drand(0., 1.);
+            rand_pool.free_state(generator);
 
-                Rview(j)[0] = r * Kokkos::cos(theta) * sigmaR[0];
-                Rview(j)[1] = r * Kokkos::sin(theta) * sigmaR[1];
-                Rview(j)[2]  = 0.0;
-                Pview(j)[0] = 0.0;
-                Pview(j)[1] = 0.0;
-                Pview(j)[2] = 0.0;
-    });
+            Rview(j)[0] = r * Kokkos::cos(theta) * sigmaR[0] + R0[0];
+            Rview(j)[1] = r * Kokkos::sin(theta) * sigmaR[1] + R0[1];
+            Rview(j)[2] = 0.0 + R0[2];
+            Pview(j)[0] = 0.0 + P0[0];
+            Pview(j)[1] = 0.0 + P0[1];
+            Pview(j)[2] = 0.0 + P0[2] + beamPz;
+        });
     Kokkos::fence();
 }
 
@@ -325,20 +325,26 @@ void FlatTop::allocateParticles(size_t numberOfParticles){
 void FlatTop::emitParticles(double t, double dt) {
     extern Inform* gmsg;
 
-    // count number of new particles to be emitted
-    size_type nNew = countEnteringParticlesPerRank(t, t + dt);
+    // Time profile uses (t - t0) so sampling begins at t0.
+    double tShift = t - t0_m;
+    double dtShift = dt;
+    // Count number of new particles to be emitted in [tShift, tShift+dtShift].
+    size_type nNew = countEnteringParticlesPerRank(tShift, tShift + dtShift);
+    if (nNew == 0) { return; }
 
-    // current number of particles per rank
+    // Current number of particles per rank.
     size_type nlocal = pc_m->getLocalNum();
 
-    // extend particle container to accomodate new particles
+    // Intended design: fill only into pre-allocated slice [nextEmitIndex, nextEmitIndex+nNew)
+    // (no create), when ParticleContainer supports reserve(total) + setActiveSize. Until then
+    // we extend the container each step.
     pc_m->create(nNew);
 
-    // generate new particles on uniform disc
-    *gmsg << "* generate particles on a disc" << endl;
+    // Generate new particles on uniform disc (sample into [nlocal, nlocal+nNew)).
+    *gmsg << level3 << "* generate particles on a disc" << endl;
     generateUniformDisk(nlocal, nNew);
 
-    *gmsg << "* new particles emmitted" << endl;
+    *gmsg << level3 << "* " << nNew << " new particles emmitted" << endl;
 }
 
 void FlatTop::testNumEmitParticles(size_type nsteps, double dt) {
