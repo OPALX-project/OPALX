@@ -329,12 +329,12 @@ void TrackRun::execute() {
 
     // set distribution type
     dist_m->setDist();
-    dist_m->setAvrgPz( beam->getMomentum()/beam->getMass() );
+    dist_m->setAvrgPz(beam->getMomentum()/beam->getMass());
 
     // sample particles
-    auto pc = bunch_m->getParticleContainer();
-    auto fc = bunch_m->getFieldContainer();
-    size_type Np = beam->getNumberOfParticles();
+    auto pc               = bunch_m->getParticleContainer();
+    auto fc               = bunch_m->getFieldContainer();
+    size_type Np          = beam->getNumberOfParticles();
     Vector_t<int, Dim> nr = bunch_m->nr_m;
 
     std::shared_ptr<Distribution> opalDist(dist_m);
