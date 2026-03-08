@@ -479,6 +479,7 @@ void PartBunch<T, Dim>::bunchUpdate() {
         if (l[i] < 1e-12) { 
             l[i] = 1e-12; 
             m << level3 << "Mesh spacing in dimension " << i << " too small. Set to 1e-12." << endl;
+            //return;
         }
     }
 

@@ -85,7 +85,8 @@ ParallelTracker::ParallelTracker(
 ParallelTracker::ParallelTracker(
     const Beamline& beamline, PartBunch_t* bunch, DataSink& ds, const PartData& reference,
     bool revBeam, bool revTrack, const std::vector<unsigned long long>& maxSteps, double zstart,
-    const std::vector<double>& zstop, const std::vector<double>& dt)
+    const std::vector<double>& zstop, const std::vector<double>& dt,
+    const std::vector<std::shared_ptr<SamplingBase>>& emittingSamplers)
     : Tracker(beamline, bunch, reference, revBeam, revTrack),
       itsDataSink_m(&ds),
       itsOpalBeamline_m(beamline.getOrigin3D(), beamline.getInitialDirection()),
@@ -104,7 +105,8 @@ ParallelTracker::ParallelTracker(
       OrbThreader_m(IpplTimings::getTimer("OrbThreader")),
       emissionSteps_m(std::numeric_limits<unsigned int>::max()),
       wakeStatus_m(false),
-      wakeFunction_m(nullptr) {
+      wakeFunction_m(nullptr),
+      emittingSamplers_m(emittingSamplers) {
     
       for (unsigned int i = 0; i < zstop.size(); ++i) {
           stepSizes_m.push_back(dt[i], zstop[i], maxSteps[i]);
@@ -283,8 +285,16 @@ void ParallelTracker::execute() {
     //    beamlineToLab.transformTo(itsBunch_m->getParticleContainer()->getMeanR());
     itsBunch_m->RefPartR_m = 
         beamlineToLab.transformTo(Vector_t<double, 3>(0, 0, 0));
-    itsBunch_m->RefPartP_m = 
-        beamlineToLab.rotateTo(itsBunch_m->getParticleContainer()->getMeanP());
+    if (itsBunch_m->getTotalNum() > 0) {
+        itsBunch_m->RefPartP_m =
+            beamlineToLab.rotateTo(itsBunch_m->getParticleContainer()->getMeanP());
+    } else {
+        // Empty bunch: set RefPartP_m to BEAM's P0 (design momentum, same as added to particles' z).
+        const double P0 = itsReference.getP() / itsReference.getM();  // beta*gamma from BEAM pc
+        itsBunch_m->RefPartP_m =
+            beamlineToLab.rotateTo(Vector_t<double, 3>(0.0, 0.0, P0));
+        m << level2 << "Empty simulation: RefPartP_m set to P0 manually (beta*gamma) = " << P0 << endl;
+    }
     m << level4 << "Transformed reference particle position and momentum to lab frame." << endl;
 
     // If the bunch contains particles and the desired starting position (zstart_m) 
@@ -384,7 +394,6 @@ void ParallelTracker::execute() {
     // Main tracking loop over step size configurations
     m << level5 << ">>>>>>>>>>>>>>>>>> Starting Tracking Loop >>>>>>>>>>>>>>>>>>" << endl;
     while (!stepSizes_m.reachedEnd()) {
-
         // Set the number of steps for the current track
         unsigned long long trackSteps = stepSizes_m.getNumSteps() + step;
         dtCurrentTrack_m              = stepSizes_m.getdT();
@@ -394,6 +403,8 @@ void ParallelTracker::execute() {
         m << level2 << "Starting track with dt = " << Util::getTimeString(dtCurrentTrack_m) 
           << ", track steps = " << step << " to " << trackSteps << "." << endl;
         for (; step < trackSteps; ++step) {
+            // Particle R and mesh are in REFERENCE frame for the whole step except inside
+            // computeSpaceChargeFields (beam frame only during computeSelfFields).
 
             // Get the bunch spatial bounds
             Vector_t<double, 3> rmin(0.0), rmax(0.0);
@@ -401,33 +412,41 @@ void ParallelTracker::execute() {
                 itsBunch_m->calcBeamParameters();
                 itsBunch_m->get_bounds(rmin, rmax);
             }
- 
-            // First half of the time integration
-            timeIntegration1(pusher);
-            m << level4 << "timeIntegration1 done at step " << step << "." << endl;
-
-            // Reset E and B fields
-            resetFields();
-            m << level4 << "E and B fields reset at step " << step << "." << endl;
-
-            // Space charge field computation
-            computeSpaceChargeFields(step);
-            m << level4 << "Space charge field computation done at step " << step << "." << endl;
             
-            // External field computation
-            computeExternalFields(oth);
-            m << level4 << "External field computation done at step " << step << "." << endl;
+            if (itsBunch_m->getTotalNum() > 0) {
+                // First half of the time integration
+                timeIntegration1(pusher);
+                m << level4 << "timeIntegration1 done at step " << step << "." << endl;
 
-            // Second half of the time integration
-            timeIntegration2(pusher);
-            m << level4 << "timeIntegration2 done at step " << step << "." << endl;
+                // Reset E and B fields
+                resetFields();
+                m << level4 << "E and B fields reset at step " << step << "." << endl;
 
+                // Space charge field computation
+                computeSpaceChargeFields(step);
+                m << level4 << "Space charge field computation done at step " << step << "." << endl;
+                
+                // External field computation
+                computeExternalFields(oth);
+                m << level4 << "External field computation done at step " << step << "." << endl;
+
+                // Second half of the time integration
+                timeIntegration2(pusher);
+                m << level4 << "timeIntegration2 done at step " << step << "." << endl;
+            } else {
+                m << level2 << "Empty simulation: skipping time integration and field computations "
+                  << "at step " << step << "." << endl;
+            }
+
+            // Emit particles from time-dependent (emitting) sources (R set in REFERENCE frame).
+            emitFromEmissionSources(itsBunch_m->getT(), itsBunch_m->getdT());
+            m << level4 << "Emit particles from emission sources done at step " << step << "." << endl;
+            itsBunch_m->bunchUpdate();  // mesh from current R so stays REFERENCE frame for next step
+            m << level5 << "Bunch updated after emission." << endl;
+            // Set dt for all particles (including newly emitted) so next step's push uses correct per-particle dt.
             // Reset particle time step size to the current track time step (pulled out of timeIntegration2)
             setTime();
             m << level5 << "Set time view of particle bunch to dt = " << Util::getTimeString(itsBunch_m->getdT()) << "." << endl;
-            
-            /// \todo needs to be implemented  
-            // emitParticles(step);
 
             // Select new time step size for the next iteration based on the current track configuration
             selectDT(back_track);
@@ -554,6 +573,14 @@ void ParallelTracker::timeIntegration2(BorisPusher& pusher) {
 }
 
 void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
+    /*
+     * Frame of reference in this function:
+     * - ENTRY:  R, E, B in REFERENCE frame (lab, z along beam, pathLength_m = reference s).
+     * - After transform to beam:  R in BEAM frame (origin at reference, z along momentum).
+     * - Inside computeSelfFields/bunchUpdate: mesh is built from R, so mesh is in BEAM frame.
+     * - After transform back:  R, E, B in REFERENCE frame again.
+     * - After final bunchUpdate(): mesh rebuilt from R, so mesh in REFERENCE frame (must match R).
+     */
     Inform m("ParallelTracker::computeSpaceChargeFields");
     if (!itsBunch_m->hasFieldSolver()) {
         /*
@@ -607,6 +634,9 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
     beamToReferenceCSTrafo.rotateBunchTo(
         itsBunch_m->getParticleContainer()->B.getView());
     m << level5 << "Rotate B fields back to reference coordinate system done. ComputeSelfFields done." << endl;
+    /// Rebuild mesh from reference-frame positions so mesh origin/bounds match current coordinates.
+    /// (computeSelfFields had called bunchUpdate() in beam coords; without this, mesh would stay in beam frame.)
+    itsBunch_m->bunchUpdate();
 }
 
 void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
@@ -705,10 +735,22 @@ void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
     }
 }
 
+void ParallelTracker::emitFromEmissionSources(double t, double dt) {
+    for (const auto& sampler : emittingSamplers_m) {
+        if (sampler) {
+            sampler->emitParticles(t, dt);
+        }
+    }
+    itsBunch_m->setMass();
+    itsBunch_m->setCharge();
+    // itsBunch_m->updateNumTotal(); // handled internally by ippl
+    // itsBunch_m->bunchUpdate();
+}
+
 /**
  * @brief Resets the E and B field views to 0
  */
-void ParallelTracker::resetFields() {    
+void ParallelTracker::resetFields() {
     itsBunch_m->getParticleContainer()->E = 0;
     itsBunch_m->getParticleContainer()->B = 0;
 }
@@ -750,7 +792,7 @@ void ParallelTracker::pushParticles(const BorisPusher& pusher) {
     //itsBunch_m->getParticleContainer()->update();
     Kokkos::fence();
     ippl::Comm->barrier();
-    itsBunch_m->bunchUpdate();
+    // itsBunch_m->bunchUpdate();
 }
 
 /**
@@ -1140,6 +1182,7 @@ void ParallelTracker::writePhaseSpace(const long long /*step*/, bool psDump, boo
     }
 
     if (statDump) {
+        itsBunch_m->calcBeamParameters();
         itsDataSink_m->dumpSDDS(itsBunch_m, FDext, -1.0);
         *gmsg << level2 << "* Wrote beam statistics." << endl;
     }
