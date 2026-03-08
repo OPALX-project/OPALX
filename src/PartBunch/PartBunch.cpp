@@ -522,9 +522,6 @@ void PartBunch<T, Dim>::computeSelfFields() {
         m << level4 << "No AdaptBins object present, not using binning." << endl;
     }
 
-    static IpplTimings::TimerRef SolveTimer = IpplTimings::getTimer("SolveTimer");
-    IpplTimings::startTimer(SolveTimer);
-
     /*
     I would guess that ths bunchUpdate is only necessary after a push (where we
     need it anyways, since positions have changed). However, when removing it,
@@ -641,8 +638,6 @@ void PartBunch<T, Dim>::computeSelfFields() {
     );
     m << "E-field scale = " << efScale << endl;    
     spaceChargeEFieldCheck(efScale);*/
-
-    IpplTimings::stopTimer(SolveTimer);
 }
 
 template <typename T, unsigned Dim>

@@ -356,12 +356,7 @@ void TrackRun::execute() {
 
     *gmsg << level2 << "* About to create particles ..." << endl;
     
-    static IpplTimings::TimerRef GenParticlesTimer  = IpplTimings::getTimer("GenParticles");
-    IpplTimings::startTimer(GenParticlesTimer);
-
     sampler_m->generateParticles(Np, nr);
-
-    IpplTimings::stopTimer(GenParticlesTimer);
 
     *gmsg << level2 << "* Particle creation done" << endl;
     
