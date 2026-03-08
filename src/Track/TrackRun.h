@@ -84,6 +84,9 @@ private:
 
     std::shared_ptr<SamplingBase> sampler_m;
 
+    /// Samplers for time-dependent (emitting) sources; tracker calls emitParticles(t, dt) on each.
+    std::vector<std::shared_ptr<SamplingBase>> emittingSamplers_m;
+
     std::shared_ptr<FieldSolverCmd> fs_m;
 
     DataSink* ds_m;
@@ -101,8 +104,6 @@ private:
     std::shared_ptr<bunch_type> bunch_m;
 
     bool isFollowupTrack_m;
-
-    static const std::string defaultDistribution_m;
 
     RunMethod method_m;
     static const BiMap<RunMethod, std::string> stringMethod_s;

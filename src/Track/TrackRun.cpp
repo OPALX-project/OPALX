@@ -45,9 +45,11 @@
 
 #include "Utilities/OpalException.h"
 
+#include "Lines/EmissionSourceList.h"
 #include "Structure/Beam.h"
 #include "Structure/BoundaryGeometry.h"
 #include "Structure/DataSink.h"
+#include "Structure/EmissionSource.h"
 #include "Structure/H5PartWrapper.h"
 #include "Structure/H5PartWrapperForPT.h"
 
@@ -72,7 +74,6 @@ namespace TRACKRUN {
         BEAM,              // The beam to track
         FIELDSOLVER,       // The field solver attached
         BOUNDARYGEOMETRY,  // The boundary geometry
-        DISTRIBUTION,      // The particle distribution
         TRACKBACK,         // In case we run the beam backwards
         SIZE
     };
@@ -114,9 +115,6 @@ TrackRun::TrackRun()
 
     itsAttr[TRACKRUN::BOUNDARYGEOMETRY] = Attributes::makeString(
         "BOUNDARYGEOMETRY", "Boundary geometry to be used NONE (default).", "NONE");
-
-    itsAttr[TRACKRUN::DISTRIBUTION] =
-        Attributes::makeStringArray("DISTRIBUTION", "List of particle distributions to be used.");
 
     itsAttr[TRACKRUN::TRACKBACK] =
         Attributes::makeBool("TRACKBACK", "Track in reverse direction, default: false.", false);
@@ -200,9 +198,18 @@ void TrackRun::execute() {
     }
    
     isFollowupTrack_m = opal_m->hasBunchAllocated();
-    if (!itsAttr[TRACKRUN::DISTRIBUTION] && !isFollowupTrack_m) {
-        throw OpalException(
-            "TrackRun::execute", "\"DISTRIBUTION\" must be set in \"RUN\" command.");
+    if (!isFollowupTrack_m) {
+        if (!Track::block->emissionSources) {
+            throw OpalException(
+                "TrackRun::execute",
+                "\"SOURCES\" must be set in \"TRACK\" command (name of EMISSIONSOURCELIST).");
+        }
+        const auto& sources = Track::block->emissionSources->fetchSources();
+        if (sources.empty()) {
+            throw OpalException(
+                "TrackRun::execute",
+                "Emission sources list must contain at least one EMISSIONSOURCE.");
+        }
     }
     if (!itsAttr[TRACKRUN::FIELDSOLVER]) {
         throw OpalException("TrackRun::execute", "\"FIELDSOLVER\" must be set in \"RUN\" command.");
@@ -223,22 +230,14 @@ void TrackRun::execute() {
 
      */
 
-    /*
-     * Distribution(s) can be set via a single distribution or a list
-     * (array) of distributions. If an array is defined the first in the
-     * list is treated as the primary distribution. All others are added to
-     * it to create the full distribution.
-     */
-    std::vector<std::string> distributionArray =
-        Attributes::getStringArray(itsAttr[TRACKRUN::DISTRIBUTION]);
-    const size_t numberOfDistributions = distributionArray.size();
+    // Get emission sources from TRACK SOURCES= (EMISSIONSOURCELIST).
+    const auto& emissionSourcesList = Track::block->emissionSources->fetchSources();
+    *gmsg << "* Number of emission sources  " << emissionSourcesList.size() << endl;
 
-    *gmsg << "* Number of distributions  " << numberOfDistributions << endl;
-
-
-    // \todo here we can loop over several distributions
-
-    dist_m = std::shared_ptr<Distribution>(Distribution::find(distributionArray[0]));
+    // Use first emission source's distribution for bunch setup (beam params); full loop in init.
+    EmissionSource* firstSource = emissionSourcesList[0];
+    dist_m = std::shared_ptr<Distribution>(
+        Distribution::find(firstSource->getDistributionName()));
     dist_m->setDistType();
     *gmsg << *dist_m << endl;
 
@@ -357,6 +356,14 @@ void TrackRun::execute() {
             throw OpalException("Distribution::create", "Unknown \"TYPE\" of \"DISTRIBUTION\"");
     }
 
+    // Apply emission source offsets (R0, P0, t0) from the first emission source.
+    sampler_m->setEmissionOffsets(firstSource->getR0(), firstSource->getP0(), firstSource->getT0());
+
+    emittingSamplers_m.clear();
+    if (opalDist->emitting_m) {
+        emittingSamplers_m.push_back(sampler_m);
+    }
+
     *gmsg << level2 << "* About to create particles ..." << endl;
     
     static IpplTimings::TimerRef GenParticlesTimer  = IpplTimings::getTimer("GenParticles");
@@ -414,7 +421,7 @@ void TrackRun::execute() {
     itsTracker_m = new ParallelTracker(
         *Track::block->use->fetchLine(), bunch_m.get(), *ds_m, Track::block->reference, false,
         Attributes::getBool(itsAttr[TRACKRUN::TRACKBACK]), Track::block->localTimeSteps,
-        Track::block->zstart, Track::block->zstop, Track::block->dT);
+        Track::block->zstart, Track::block->zstop, Track::block->dT, emittingSamplers_m);
 
     itsTracker_m->execute();
 
