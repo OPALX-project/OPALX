@@ -1,5 +1,6 @@
 set (_SRCS
   Beam.cpp
+  EmissionSource.cpp
   BoundingBox.cpp
   BoundaryGeometry.cpp
   DataSink.cpp
@@ -24,6 +25,7 @@ set (_SRCS
 
 set (HDRS
     Beam.h
+    EmissionSource.h
     BoundaryGeometry.h
     BoundingBox.h
     DataSink.h
