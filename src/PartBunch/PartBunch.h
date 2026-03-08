@@ -28,6 +28,7 @@
 #include "Utilities/Options.h" // Needed to define binning parameters!
 #include "PartBunch/Binning/AdaptBins.h" // TODO: binning
 
+class DataSink;  // forward declaration; full type needed only in .cpp
 
 extern Inform* gmsg;
 
@@ -172,9 +173,9 @@ private:
     long long globalTrackStep_m;
 
 
-    std::shared_ptr<Distribution> OPALdist_m;
-
     std::shared_ptr<FieldSolverCmd> OPALFieldSolver_m;
+
+    std::shared_ptr<DataSink> dataSink_m;
     
     // unit state of PartBunch --> always false after initialization, so use this as standard flag
     // UnitState_t unit_state_m;
@@ -198,14 +199,24 @@ private:
 
 public:
 
-    PartBunch(double qi, 
-              double mi, 
-              size_t totalP, 
-              /*int nt,*/ 
-              double lbt, 
+    /**
+     * @brief Construct a PartBunch with given macro charge/mass and configuration.
+     *
+     * @param qi              Charge per macroparticle [C].
+     * @param mi              Mass per macroparticle [GeV/c^2].
+     * @param totalP          Total number of macroparticles.
+     * @param lbt             Load-balancer timescale.
+     * @param integration_method Name of the integrator (e.g. "LF2").
+     * @param OPALFieldSolver Field solver command providing mesh and binning configuration.
+     * @param dataSink        Shared pointer to the global DataSink used for diagnostics.
+     */
+    PartBunch(double qi,
+              double mi,
+              size_t totalP,
+              double lbt,
               std::string integration_method,
-              std::shared_ptr<Distribution> &OPALdistribution, 
-              std::shared_ptr<FieldSolverCmd> &OPALFieldSolver);
+              std::shared_ptr<FieldSolverCmd>& OPALFieldSolver,
+              std::shared_ptr<DataSink> dataSink);
 
     void bunchUpdate();
     
@@ -519,6 +530,7 @@ public:
     }
 
     void computeSelfFields();
+    void dumpBinConfig(bool preMerge);
 
     Inform& print(Inform& os);
 
