@@ -33,9 +33,6 @@ PartBunch<T, Dim>::PartBunch(double qi,
       OPALdist_m(OPALdistribution),
       OPALFieldSolver_m(OPALFieldSolver) {
 
-    static IpplTimings::TimerRef gatherInfoPartBunch = IpplTimings::getTimer("gatherInfoPartBunch");
-    IpplTimings::startTimer(gatherInfoPartBunch);
-    
     Inform m("PartBunch::PartBunch");
     m << level4 << "PartBunch Constructor" << endl;
 
@@ -82,8 +79,6 @@ PartBunch<T, Dim>::PartBunch(double qi,
         this->fcontainer_m->getMesh(), this->fcontainer_m->getFL()
     ));
 
-    IpplTimings::stopTimer(gatherInfoPartBunch);
-
     this->setTempEField(std::make_shared<VField_t<T, Dim>>(
         this->fcontainer_m->getE()
     )); // user copy constructor
@@ -91,16 +86,9 @@ PartBunch<T, Dim>::PartBunch(double qi,
                                       this->fcontainer_m->getFL());
     // -----------------------------------------------
 
-    static IpplTimings::TimerRef setSolverT = IpplTimings::getTimer("setSolver");
-    IpplTimings::startTimer(setSolverT);
     setSolver();
-    IpplTimings::stopTimer(setSolverT);
 
-
-    static IpplTimings::TimerRef prerun = IpplTimings::getTimer("prerun");
-    IpplTimings::startTimer(prerun);
     pre_run();
-    IpplTimings::stopTimer(prerun);
     
     globalPartPerNode_m = std::make_unique<size_t[]>(ippl::Comm->size());
 
