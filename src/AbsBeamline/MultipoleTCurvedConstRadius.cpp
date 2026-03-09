@@ -40,7 +40,7 @@ void MultipoleTCurvedConstRadius::initialise() {
     planarArcGeometry_m.setCurvature(element_m->getBendAngle() / element_m->getLength());
 }
 
-void MultipoleTCurvedConstRadius::transformCoords(Vector_t<double>& R) {
+void MultipoleTCurvedConstRadius::transformCoords(Vector_t<double, 3>& R) {
     if(element_m->getBendAngle() != 0.0) {
         const double radius = element_m->getLength() / element_m->getBendAngle();
         const double alpha = std::atan(R[2] / (R[0] + radius));
@@ -52,7 +52,7 @@ void MultipoleTCurvedConstRadius::transformCoords(Vector_t<double>& R) {
     R[2] += element_m->getLength() / 2.0; // Magnet origin at the center rather than entry
 }
 
-void MultipoleTCurvedConstRadius::transformBField(Vector_t<double>& B, const Vector_t<double>& R) {
+void MultipoleTCurvedConstRadius::transformBField(Vector_t<double, 3>& B, const Vector_t<double, 3>& R) {
     const double theta = R[2] * element_m->getBendAngle() / element_m->getLength();
     const double Bx = B[0];
     const double Bs = B[2];
@@ -60,9 +60,9 @@ void MultipoleTCurvedConstRadius::transformBField(Vector_t<double>& B, const Vec
     B[2] = Bx * std::sin(theta) + Bs * std::cos(theta);
 }
 
-Vector_t<double> MultipoleTCurvedConstRadius::localCartesianToOpalCartesian(
-        const Vector_t<double>& r) {
-    Vector_t<double> result = r;
+Vector_t<double, 3> MultipoleTCurvedConstRadius::localCartesianToOpalCartesian(
+        const Vector_t<double, 3>& r) {
+    Vector_t<double, 3> result = r;
     if(element_m->getBendAngle() != 0.0) {
         const double radius = element_m->getLength() / element_m->getBendAngle();
         const double theta = element_m->getBendAngle() / 2.0;
@@ -74,10 +74,10 @@ Vector_t<double> MultipoleTCurvedConstRadius::localCartesianToOpalCartesian(
     return result;
 }
 
-double MultipoleTCurvedConstRadius::getScaleFactor(double x, double /*s*/) {
+double MultipoleTCurvedConstRadius::getScaleFactor(const double x, double /*s*/) {
     return 1 + x * element_m->getBendAngle() / element_m->getLength();
 }
 
-double MultipoleTCurvedConstRadius::getFn(unsigned int n, double x, double s) {
+double MultipoleTCurvedConstRadius::getFn(unsigned int /*n*/, double /*x*/, double /*s*/) {
     return 0.0;
 }

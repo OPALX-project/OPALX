@@ -34,7 +34,7 @@ MultipoleTBase::MultipoleTBase(MultipoleT* element) :
     element_m(element) {
 }
 
-double MultipoleTBase::getBz(const Vector_t<double>& R) {
+double MultipoleTBase::getBz(const Vector_t<double, 3>& R) {
     double Bz = 0.0;
     std::size_t n = element_m->getMaxFOrder() + 1;
     while(n != 0) {
@@ -45,7 +45,7 @@ double MultipoleTBase::getBz(const Vector_t<double>& R) {
     return Bz;
 }
 
-double MultipoleTBase::getBx(const Vector_t<double>& R) {
+double MultipoleTBase::getBx(const Vector_t<double, 3>& R) {
     double Bx = 0.0;
     std::size_t n = element_m->getMaxFOrder() + 1;
     while(n != 0) {
@@ -57,7 +57,7 @@ double MultipoleTBase::getBx(const Vector_t<double>& R) {
     return Bx;
 }
 
-double MultipoleTBase::getBs(const Vector_t<double>& R) {
+double MultipoleTBase::getBs(const Vector_t<double, 3>& R) {
     double Bs = 0.0;
     std::size_t n = element_m->getMaxFOrder() + 1;
     while(n != 0) {
@@ -71,28 +71,28 @@ double MultipoleTBase::getBs(const Vector_t<double>& R) {
 
 void MultipoleTBase::generateTanhCoefficients(const unsigned int numDerivatives) {
     const auto numCoefficients = numDerivatives + 2;
-    Kokkos::resize(tanhCoefficients_m, numDerivatives + 1, numCoefficients);
-    const auto hostCoefficients = Kokkos::create_mirror_view(tanhCoefficients_m);
+    Kokkos::resize(tanhCoefficientsDevice_m, numDerivatives + 1, numCoefficients);
+    Kokkos::resize(tanhCoefficientsHost_m, numDerivatives + 1, numCoefficients);
     // Zero initialize
     for(unsigned int n = 0; n <= numDerivatives; ++n) {
         for(unsigned int k = 0; k < numDerivatives; ++k) {
-            hostCoefficients(n, k) = 0.0;
+            tanhCoefficientsHost_m(n, k) = 0.0;
         }
     }
     // 0th derivative: P0(t) = t
-    hostCoefficients(0, 1) = 1.0;
+    tanhCoefficientsHost_m(0, 1) = 1.0;
     // Build higher derivatives iteratively
     for(unsigned int n = 1; n <= numDerivatives; ++n) {
         for(unsigned int k = 0; k < numCoefficients; ++k) {
             double val = 0.0;
             if(k + 1 < numCoefficients) {
-                val += (k + 1) * hostCoefficients(n - 1, k + 1);
+                val += (k + 1) * tanhCoefficientsHost_m(n - 1, k + 1);
             }
             if(k >= 1) {
-                val -= (k - 1) * hostCoefficients(n - 1, k - 1);
+                val -= (k - 1) * tanhCoefficientsHost_m(n - 1, k - 1);
             }
-            hostCoefficients(n, k) = val;
+            tanhCoefficientsHost_m(n, k) = val;
         }
     }
-    Kokkos::deep_copy(tanhCoefficients_m, hostCoefficients);
+    Kokkos::deep_copy(tanhCoefficientsDevice_m, tanhCoefficientsHost_m);
 }

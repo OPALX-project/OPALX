@@ -103,6 +103,8 @@ public:
     EMField &getField() override { return dummy; }
     /** Return a dummy field value */
     const EMField &getField() const override { return dummy; }
+    /* Calculate the field for all particles */
+    bool apply() override { return true; }
     /** Calculate the field at some arbitrary position \n
      *  If particle is outside field map true is returned,
      *  otherwise false is returned
@@ -112,8 +114,8 @@ public:
      *  \param E -> Calculated electric field - always 0 (no E-field)
      *  \param B -> Calculated magnetic field
      */
-    bool apply(const Vector_t<double> &R, const Vector_t<double> &P, const double &t,
-               Vector_t<double> &E, Vector_t<double> &B) override;
+    bool apply(const Vector_t<double, 3> &R, const Vector_t<double, 3> &P, const double &t,
+               Vector_t<double, 3> &E, Vector_t<double, 3> &B) override;
     /** Calculate the field at the position of the ith particle
      *  \param i -> Index of the particle event; field is calculated at this
      *  position
@@ -123,7 +125,7 @@ public:
      *  \param E -> Calculated electric field - always 0 (no E-field)
      *  \param B -> Calculated magnetic field
      */
-    bool apply(const size_t &i, const double &t, Vector_t<double> &E, Vector_t<double> &B) override;
+    bool apply(const size_t &i, const double &t, Vector_t<double, 3> &E, Vector_t<double, 3> &B) override;
     /** Initialise the MultipoleT
      *  \param bunch -> Bunch the global bunch object
      *  \param startField -> Not used
@@ -247,9 +249,9 @@ public:
      */
     double getTransDeriv(const std::size_t& n, const double& x) const;
 
-    Vector_t<double> toMagnetCoords(const Vector_t<double>& R);
-    Vector_t<double> getField(const Vector_t<double>& magnetCoords);
-    Vector_t<double> localCartesianToOpalCartesian(const Vector_t<double>& r);
+    Vector_t<double, 3> toMagnetCoords(const Vector_t<double, 3>& R);
+    Vector_t<double, 3> getField(const Vector_t<double, 3>& magnetCoords);
+    Vector_t<double, 3> localCartesianToOpalCartesian(const Vector_t<double, 3>& r);
     double localCartesianRotation();
 
     void setScalingName(const std::string& name);
@@ -262,9 +264,9 @@ protected:
      * @param R -> coordinate to rotate
      * @return -> rotated coordinate
      */
-    Vector_t<double> rotateFrame(const Vector_t<double>& R) const;
-    bool insideAperture(const Vector_t<double>& R) const;
-    bool insideBoundingBox(const Vector_t<double>& R) const;
+    Vector_t<double, 3> rotateFrame(const Vector_t<double, 3>& R) const;
+    bool insideAperture(const Vector_t<double, 3>& R) const;
+    bool insideBoundingBox(const Vector_t<double, 3>& R) const;
     void chooseImplementation();
 
     // End fields

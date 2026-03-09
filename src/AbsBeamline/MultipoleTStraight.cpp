@@ -37,7 +37,7 @@ void MultipoleTStraight::initialise() {
     straightGeometry_m.setElementLength(element_m->getLength());
 }
 
-double MultipoleTStraight::getBx(const Vector_t<double>& R) {
+double MultipoleTStraight::getBx(const Vector_t<double, 3>& R) {
     double Bx = 0.0;
     for(unsigned int n = 0; n <= element_m->getMaxFOrder(); n++) {
         double f_n = 0.0;
@@ -51,7 +51,7 @@ double MultipoleTStraight::getBx(const Vector_t<double>& R) {
     return Bx;
 }
 
-double MultipoleTStraight::getBs(const Vector_t<double>& R) {
+double MultipoleTStraight::getBs(const Vector_t<double, 3>& R) {
     double Bs = 0.0;
     for(unsigned int n = 0; n <= element_m->getMaxFOrder(); n++) {
         double f_n = 0.0;
@@ -78,11 +78,11 @@ double MultipoleTStraight::getFn(const unsigned int n, const double x, const dou
     return f_n;
 }
 
-Vector_t<double> MultipoleTStraight::localCartesianToOpalCartesian(const Vector_t<double>& r) {
+Vector_t<double, 3> MultipoleTStraight::localCartesianToOpalCartesian(const Vector_t<double, 3>& r) {
     return {r[0], r[1], r[2] + element_m->getLength() / 2.0};
 }
 
-void MultipoleTStraight::transformCoords(Vector_t<double>& R) {
+void MultipoleTStraight::transformCoords(Vector_t<double, 3>& R) {
     // Magnet origin at the center rather than entry
     R[2] += element_m->getLength() / 2.0;
 }

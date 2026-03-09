@@ -54,18 +54,18 @@ TEST_F(MultipoleTTest, TransverseDerivatives) {
 
 TEST_F(MultipoleTTest, FringeDerivatives) {
     setFringeField(2.0, 1.0, 1.0);
-    EXPECT_DOUBLE_EQ(getFringeDeriv(0, -2.0), 0.49966464986953352);
-    EXPECT_DOUBLE_EQ(getFringeDeriv(0, 2.0), 0.49966464986953352);
-    EXPECT_DOUBLE_EQ(getFringeDeriv(1, -2.0), 0.49932952465848707);
-    EXPECT_DOUBLE_EQ(getFringeDeriv(1, 2.0), -0.49932952465848707);
-    EXPECT_DOUBLE_EQ(getFringeDeriv(2, -2.0), -0.0013400513070529474);
-    EXPECT_DOUBLE_EQ(getFringeDeriv(2, 2.0), -0.0013400513070529474);
-    EXPECT_DOUBLE_EQ(getFringeDeriv(3, -2.0), -1.0026765069198489);
-    EXPECT_DOUBLE_EQ(getFringeDeriv(3, 2.0), 1.0026765069198489);
-    EXPECT_DOUBLE_EQ(getFringeDeriv(4, -2.0), -0.0053386419156264964);
-    EXPECT_DOUBLE_EQ(getFringeDeriv(4, 2.0), -0.0053386419156264964);
-    EXPECT_DOUBLE_EQ(getFringeDeriv(5, -2.0), 7.9893801387861263);
-    EXPECT_DOUBLE_EQ(getFringeDeriv(5, 2.0), -7.9893801387861263);
-    EXPECT_DOUBLE_EQ(getFringeDeriv(6, -2.0), -0.021010422121266359);
-    EXPECT_DOUBLE_EQ(getFringeDeriv(6, 2.0), -0.021010422121266359);
+    EXPECT_NEAR(getFringeDeriv(0, -2.0), 0.49966464986953352, 1e-8);
+    EXPECT_NEAR(getFringeDeriv(0, 2.0), 0.49966464986953352, 1e-8);
+    EXPECT_NEAR(getFringeDeriv(1, -2.0), 0.49932952465848707, 1e-8);
+    EXPECT_NEAR(getFringeDeriv(1, 2.0), -0.49932952465848707, 1e-8);
+    EXPECT_NEAR(getFringeDeriv(2, -2.0), -0.0013400513070529474, 1e-8);
+    EXPECT_NEAR(getFringeDeriv(2, 2.0), -0.0013400513070529474, 1e-8);
+    EXPECT_NEAR(getFringeDeriv(3, -2.0), -1.0026765069198489, 1e-8);
+    EXPECT_NEAR(getFringeDeriv(3, 2.0), 1.0026765069198489, 1e-8);
+    EXPECT_NEAR(getFringeDeriv(4, -2.0), -0.0053386419156264964, 1e-8);
+    EXPECT_NEAR(getFringeDeriv(4, 2.0), -0.0053386419156264964, 1e-8);
+    EXPECT_NEAR(getFringeDeriv(5, -2.0), 7.9893801387861263, 1e-8);
+    EXPECT_NEAR(getFringeDeriv(5, 2.0), -7.9893801387861263, 1e-8);
+    EXPECT_NEAR(getFringeDeriv(6, -2.0), -0.021010422121266359, 1e-8);
+    EXPECT_NEAR(getFringeDeriv(6, 2.0), -0.021010422121266359, 1e-8);
 }

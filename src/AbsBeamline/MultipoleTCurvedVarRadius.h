@@ -96,9 +96,9 @@ public:
     /** Return the cell geometry */
     const BGeometryBase* getGeometry() const override { return &varRadiusGeometry_m; }
     /** Transform to Frenet-Serret coordinates for sector magnets */
-    void transformCoords(Vector_t<double>& /*R*/) override;
+    void transformCoords(Vector_t<double, 3>& /*R*/) override;
     /** Transform B-field from Frenet-Serret coordinates to lab coordinates */
-    void transformBField(Vector_t<double>& /*B*/, const Vector_t<double>& /*R*/) override;
+    void transformBField(Vector_t<double, 3>& /*B*/, const Vector_t<double, 3>& /*R*/) override;
     /** Returns the scale factor @f$ h_s = 1@f$
      *  \param x -> Coordinate x
      *  \param s -> Coordinate s
@@ -117,10 +117,10 @@ public:
      */
     void setMaxOrder(size_t orderZ, size_t orderX) override;
 
-    Vector_t<double> localCartesianToCurvilinear(const Vector_t<double>& r);
-    Vector_t<double> curvilinearToLocalCartesian(const Vector_t<double>& r);
-    Vector_t<double> localCartesianToOpalCartesian(const Vector_t<double>& r) override;
-    double reverseTransformResidual(const Vector_t<double>& r, const Vector_t<double>& target);
+    Vector_t<double, 3> localCartesianToCurvilinear(const Vector_t<double, 3>& r);
+    Vector_t<double, 3> curvilinearToLocalCartesian(const Vector_t<double, 3>& r);
+    Vector_t<double, 3> localCartesianToOpalCartesian(const Vector_t<double, 3>& r) override;
+    double reverseTransformResidual(const Vector_t<double, 3>& r, const Vector_t<double, 3>& target);
     static constexpr size_t ReverseTransformMaxIterations = 1000;
     static constexpr double ReverseTransformTolerance = 1e-6;
     static constexpr double TangentStep = 1e-3;
@@ -131,7 +131,7 @@ private:
     std::vector<polynomial::RecursionRelationTwo> recursion_m;
     /** Geometry */
     VarRadiusGeometry varRadiusGeometry_m;
-    Vector_t<double> localCartesianEntryPoint_;
+    Vector_t<double, 3> localCartesianEntryPoint_;
     double localCartesianRotation_{};
 };
 
