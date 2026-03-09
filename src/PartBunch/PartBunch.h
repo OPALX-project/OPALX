@@ -6,7 +6,6 @@
 #include "Algorithms/Matrix.h"
 #include "Algorithms/CoordinateSystemTrafo.h"
 #include "Attributes/Attributes.h"
-#include "Distribution/Distribution.h"
 #include "Manager/BaseManager.h"
 #include "Manager/PicManager.h"
 #include "PartBunch/FieldContainer.hpp"
@@ -171,9 +170,6 @@ private:
     /// if multiple TRACK commands
     long long globalTrackStep_m;
 
-
-    std::shared_ptr<Distribution> OPALdist_m;
-
     std::shared_ptr<FieldSolverCmd> OPALFieldSolver_m;
     
     // unit state of PartBunch --> always false after initialization, so use this as standard flag
@@ -198,13 +194,12 @@ private:
 
 public:
 
-    PartBunch(double qi, 
-              double mi, 
-              size_t totalP, 
-              /*int nt,*/ 
-              double lbt, 
+    PartBunch(double qi,
+              double mi,
+              size_t totalP,
+              /*int nt,*/
+              double lbt,
               std::string integration_method,
-              std::shared_ptr<Distribution> &OPALdistribution, 
               std::shared_ptr<FieldSolverCmd> &OPALFieldSolver);
 
     void bunchUpdate();
