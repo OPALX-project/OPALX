@@ -340,4 +340,37 @@ void MultiVariateGaussian::generateParticles(size_t &numberOfParticles, Vector_t
     Kokkos::fence();
 
     IpplTimings::stopTimer(samplerTimer_m);
+    hasEmittedOnce_m = true;
+}
+
+void MultiVariateGaussian::emitParticles(double t, double dt) {
+    // One-shot delayed emission for multivariate Gaussian sources.
+    const double tStart = t;
+    const double tEnd   = t + dt;
+
+    if (hasEmittedOnce_m) {
+        return;
+    }
+
+    if (std::abs(t0_m) < 0.0) {
+        throw OpalException("MultiVariateGaussian::emitParticles",
+                            "T0 attribute must be positive.");
+        return;
+    }
+
+    if (!(tStart <= t0_m && t0_m < tEnd)) {
+        return;
+    }
+
+    if (!opalDist_m) {
+        return;
+    }
+    size_t Ndist = opalDist_m->getNumParticles();
+    if (Ndist == 0) {
+        return;
+    }
+
+    Vector_t<double, 3> dummyNr(0.0);
+    generateParticles(Ndist, dummyNr);
+    hasEmittedOnce_m = true;
 }

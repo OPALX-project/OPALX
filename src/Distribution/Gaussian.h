@@ -78,6 +78,16 @@ public:
      */
     void generateParticles(size_t& numberOfParticles, Vector_t<double, 3> nr) override;
 
+    /**
+     * @brief Time-stepped emission hook.
+     *
+     * For GAUSS, this is used for one-shot delayed injection: if a source has t0 > 0,
+     * the sampler emits its full NPARTDIST macroparticles once when the global time
+     * interval [t, t+dt] crosses t0. For t0 == 0, sampling is handled in TrackRun
+     * via generateParticles and this method doesn't do anything.
+     */
+    void emitParticles(double t, double dt) override;
+
     void setSigmaR(const Vector_t<double, 3>& sigmaR) {
         sigmaR_m = sigmaR;
     }

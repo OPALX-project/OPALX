@@ -320,4 +320,41 @@ void FromFile::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> 
     ippl::Comm->barrier();
     mALL << "Rank " << rank << ": " << nlocal << " local particles" << endl;
     ippl::Comm->barrier();
+
+    hasEmittedOnce_m = true;
+}
+
+void FromFile::emitParticles(double t, double dt) {
+    // One-shot delayed emission for FROMFILE sources.
+    const double tStart = t;
+    const double tEnd   = t + dt;
+
+    if (hasEmittedOnce_m) {
+        // Don't sample again!
+        return;
+    }
+
+    if (std::abs(t0_m) < 0.0) {
+        throw OpalException("FromFile::emitParticles",
+                            "T0 attribute must be positive.");
+    }
+
+    if (!(tStart <= t0_m && t0_m < tEnd)) {
+        // Not time to emit yet.
+        return;
+    }
+
+    // If bound to a Distribution, respect its NPARTDIST; otherwise fall back to file count.
+    size_t requested = numParticles_m;
+    if (opalDist_m && opalDist_m->getNumParticles() > 0) {
+        requested = opalDist_m->getNumParticles();
+    }
+    if (requested == 0) {
+        // Short circuit: no particles to emit.
+        return;
+    }
+
+    Vector_t<double, 3> dummyNr(0.0);
+    generateParticles(requested, dummyNr);
+    hasEmittedOnce_m = true;
 }

@@ -161,5 +161,44 @@ void Gaussian::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> 
     Kokkos::fence();
 
     IpplTimings::stopTimer(samperTimer_m);
+    hasEmittedOnce_m = true;
+}
+
+void Gaussian::emitParticles(double t, double dt) {
+    // One-shot delayed emission: emit once when [t, t+dt] crosses t0_m.
+    // For t0 == 0, TrackRun has already called generateParticles at initialization.
+    const double tStart = t;
+    const double tEnd   = t + dt;
+
+    // Guard against multiple emissions.
+    if (hasEmittedOnce_m) {
+        return;
+    }
+
+    // If t0 is effectively zero, treat this as an initial distribution handled elsewhere.
+    if (std::abs(t0_m) < 0.0) {
+        throw OpalException("Gaussian::emitParticles",
+                            "T0 attribute must be positive.");
+        return;
+    }
+
+    // Fire when the time interval [tStart, tEnd] crosses t0_m.
+    if (!(tStart <= t0_m && t0_m < tEnd)) {
+        return;
+    }
+
+    // Use the per-distribution particle count configured via NPARTDIST.
+    if (!opalDist_m) {
+        return;
+    }
+    size_t Ndist = opalDist_m->getNumParticles();
+    if (Ndist == 0) {
+        return;
+    }
+
+    // Reuse the existing spatial/momentum sampling implementation.
+    Vector_t<double, 3> dummyNr(0.0);
+    generateParticles(Ndist, dummyNr);
+    hasEmittedOnce_m = true;
 }
 
