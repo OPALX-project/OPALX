@@ -17,6 +17,10 @@
 
 #include <cstring>
 
+// Ensure real MPI types are defined before including H5hut.
+// This avoids H5hut's serial stubs redefining MPI_Comm/MPI_Datatype.
+#include <mpi.h>
+
 extern "C" {
   #include "H5hut.h"
 }
