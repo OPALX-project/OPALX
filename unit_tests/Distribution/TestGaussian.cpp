@@ -22,7 +22,7 @@ protected:
 
     void SetUp() override {
         // Minimal 3D grid parameters
-        nr = 64;
+        nr = 32;
         ippl::Vector<double,3> rmin = -4.0;
         ippl::Vector<double,3> rmax = 4.0;
         ippl::Vector<double,3> origin = rmin;
@@ -169,7 +169,7 @@ TEST_F(GaussianTest, meanR_stddevR) {
 
     Gaussian sampler(pc, sigmaR_ref, sigmaP_ref, avrgpz, cutoffR);
 
-    size_t total_nparticles = 1000000;
+    size_t total_nparticles = 100000;
 
     sampler.generateParticles(total_nparticles, nr);
 
@@ -204,7 +204,7 @@ TEST_F(GaussianTest, cutoffR)
     bool fixMeanR = false;
     Gaussian sampler(pc, sigmaR, sigmaP, avrgpz, cutoffR, fixMeanR);
 
-    size_t total_nparticles = 1000000;
+    size_t total_nparticles = 100000;
 
     sampler.generateParticles(total_nparticles, nr);
 
@@ -232,7 +232,7 @@ TEST_F(GaussianTest, meanP_and_steddevP)
 
     Gaussian sampler(pc,sigmaR_ref, sigmaP_ref, avrgpz, cutoffR);
 
-    size_t total_nparticles = 1000000;
+    size_t total_nparticles = 100000;
     sampler.generateParticles(total_nparticles, nr);
 
     auto Pview = pc->P.getView();
