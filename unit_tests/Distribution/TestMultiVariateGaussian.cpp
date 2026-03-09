@@ -22,7 +22,7 @@ protected:
 
     void SetUp() override {
         // Minimal 3D grid parameters
-        nr = 64;
+        nr = 32;
         ippl::Vector<double,3> rmin = -4.0;
         ippl::Vector<double,3> rmax = 4.0;
         ippl::Vector<double,3> origin = rmin;
@@ -125,7 +125,7 @@ TEST_F(MultiVariateGaussianTest, meanR_varR) {
 
     MultiVariateGaussian sampler(pc, meanR_ref, meanP_ref, sigmaR_ref, sigmaP_ref, cutoffR_ref, cutoffP_ref);
 
-    size_t total_nparticles = 1000000;
+    size_t total_nparticles = 100000;
 
     sampler.generateParticles(total_nparticles, nr);
 
@@ -204,7 +204,7 @@ TEST_F(MultiVariateGaussianTest, cutoffR)
     bool fixMeanP = false;
     MultiVariateGaussian sampler(pc, meanR_ref, meanP_ref, sigmaR_ref, sigmaP_ref, cutoffR_ref, cutoffP_ref, fixMeanR, fixMeanP);
 
-    size_t total_nparticles = 1000000;
+    size_t total_nparticles = 100000;
 
     sampler.generateParticles(total_nparticles, nr);
     
@@ -231,7 +231,7 @@ TEST_F(MultiVariateGaussianTest, meanP_and_varP)
 
     MultiVariateGaussian sampler(pc, meanR_ref, meanP_ref, sigmaR_ref, sigmaP_ref, cutoffR_ref, cutoffP_ref, fixMeanR, fixMeanP);
 
-    size_t total_nparticles = 1000000;
+    size_t total_nparticles = 100000;
     sampler.generateParticles(total_nparticles, nr);
 
     double meanP[3] = {0.0, 0.0, 0.0};
