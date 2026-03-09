@@ -32,12 +32,12 @@
 //   intended for processes that require algorithm-specific data in the
 //   accelerator model.
 //   [P]
-//   The class ElementBase has as base class the abstract class RCObject.
+//   The class ElementBase is a base class.
 //   Virtual derivation is used to make multiple inheritance possible for
 //   derived concrete classes. ElementBase implements three copy modes:
 //   [OL]
 //   [LI]
-//   Copy by reference: Call RCObject::addReference() and use [b]this[/b].
+//   Copy by reference: Use std::shared_ptr to share ownership.
 //   [LI]
 //   Copy structure: use ElementBase::copyStructure().
 //   During copying of the structure, all sharable items are re-used, while
@@ -68,10 +68,10 @@
 #include "Algorithms/Quaternion.hpp"
 #include "BeamlineGeometry/Euclid3D.h"
 #include "BeamlineGeometry/Geometry.h"
-#include "MemoryManagement/RCObject.h"
 #include "Structure/BoundingBox.h"
 #include "Utilities/GeneralClassicException.h"
 
+#include <memory>
 #include <optional>
 
 #include <map>
@@ -101,7 +101,8 @@ enum class ElementType : unsigned short {
     PROBE,
     VACUUM,
     SOLENOID,
-    SOURCE
+    SOURCE,
+    CONSTANTEFIELDCAVITY
 };
 
 enum class ApertureType : unsigned short {
@@ -111,7 +112,7 @@ enum class ApertureType : unsigned short {
     CONIC_ELLIPTICAL
 };
 
-class ElementBase : public RCObject {
+class ElementBase : public std::enable_shared_from_this<ElementBase> {
 public:
     /// Constructor with given name.
     explicit ElementBase(const std::string& name);

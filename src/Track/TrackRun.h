@@ -86,7 +86,7 @@ private:
 
     std::shared_ptr<FieldSolverCmd> fs_m;
 
-    DataSink* ds_m;
+    std::shared_ptr<DataSink> ds_m;
 
     H5PartWrapper* phaseSpaceSink_m;
 

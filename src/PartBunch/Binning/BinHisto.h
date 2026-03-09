@@ -171,6 +171,7 @@ namespace ParticleBinning {
          * @brief Returns the Kokkos View containing the histogram bin counts.
          */
         view_type getHistogram() { return histogram_m; }
+        view_type getHistogram() const { return histogram_m; }
 
         /**
          * @brief Returns the Kokkos View containing the post-sum of bin counts.
@@ -573,21 +574,23 @@ namespace ParticleBinning {
             hwidth_view_type hostWidths = getHostView<hwidth_view_type>(binWidths_m);
             // TODO: if I leave this here, it may need a deep_copy to make it save for every execution space
 
+            Inform msg("AdaptBins::printPythonArrays");
+
             // Output counts as a Python NumPy array
-            std::cout << "bin_counts = np.array([";
+            msg << level5 << "bin_counts = np.array([";
             for (bin_index_type i = 0; i < numBins_m; ++i) {
-                std::cout << hostCounts(i);
-                if (i < numBins_m - 1) std::cout << ", ";
+                msg << level5 << hostCounts(i);
+                if (i < numBins_m - 1) msg << level5 << ", ";
             }
-            std::cout << "])" << std::endl;
+            msg << level5 << "])" << endl;
 
             // Output widths as a Python NumPy array
-            std::cout << "bin_widths = np.array([";
+            msg << level5 << "bin_widths = np.array([";
             for (bin_index_type i = 0; i < numBins_m; ++i) {
-                std::cout << std::fixed << std::setprecision(6) << hostWidths(i);
-                if (i < numBins_m - 1) std::cout << ", ";
+                msg << level5 << std::fixed << std::setprecision(6) << hostWidths(i);
+                if (i < numBins_m - 1) msg << level5 << ", ";
             }
-            std::cout << "])" << std::endl;
+            msg << level5 << "])" << endl;
         }
 
     };

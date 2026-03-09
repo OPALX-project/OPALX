@@ -6,6 +6,28 @@
 namespace ParticleBinning {
 
     template <typename BunchType, typename BinningSelector>
+    typename AdaptBins<BunchType, BinningSelector>::value_type
+    AdaptBins<BunchType, BinningSelector>::getBinConfigHost(std::vector<size_type>& binCounts,
+                                                            std::vector<value_type>& binWidths) const {
+        const bin_index_type numBins = getCurrentBinCount();
+        binCounts.resize(numBins);
+        binWidths.resize(numBins);
+
+        // Use the global (MPI-reduced) histogram as source, similar to print().
+        hview_type_g countsHost =
+            globalBinHisto_m.template getHostView<hview_type_g>(globalBinHisto_m.getHistogram());
+        hwidth_view_type_g widthsHost =
+            globalBinHisto_m.template getHostView<hwidth_view_type_g>(globalBinHisto_m.getBinWidths());
+
+        for (bin_index_type i = 0; i < numBins; ++i) {
+            binCounts[i] = countsHost(i);
+            binWidths[i] = widthsHost(i);
+        }
+
+        return xMin_m;
+    }
+
+    template <typename BunchType, typename BinningSelector>
     void AdaptBins<BunchType, BinningSelector>::initLimits() {
         Inform msg("AdaptBins");  // INFORM_ALL_NODES
 

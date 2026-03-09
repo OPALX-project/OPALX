@@ -20,11 +20,13 @@
 //
 #ifndef OPAL_FieldSolver_HH
 #define OPAL_FieldSolver_HH
+
 #include <string>
 #include "AbstractObjects/Definition.h"
 #include "Algorithms/PartData.h"
 #include "Attributes/Attributes.h"
 #include "PartBunch/BCHandler.hpp"
+#include "Structure/BinningCmd.h"
 
 #include "Ippl.h"
 
@@ -34,6 +36,7 @@ enum class FieldSolverCmdType : short { NONE = -1, FFT = 0, OPEN = 1, CG = 2 };
 namespace FIELDSOLVER {
     enum {
         TYPE,      // The field solver name
+        BINS,      // Name of BINNING definition or NONE
         NX,        // mesh size in x
         NY,        // mesh size in y
         NZ,        // mesh size in z
@@ -63,6 +66,8 @@ public:
     static FieldSolverCmd* find(const std::string& name);
 
     std::string getType();
+    std::string getBinsName() const;
+    BinningCmd* getBinningCmd() const;
 
     /// Returns solver boundary conditions handler object.
     BCHandler<3> constructBCHandler() const;
@@ -91,6 +96,8 @@ public:
     virtual void execute();
 
     bool hasValidSolver();
+
+    bool hasBinningCmd() const { return getBinningCmd() != nullptr; }
 
     void setFieldSolverCmdType();
     FieldSolverCmdType getFieldSolverCmdType() const;

@@ -51,6 +51,7 @@
 // Table-related commands.
 #include "Structure/Beam.h"
 #include "Structure/FieldSolverCmd.h"
+#include "Structure/BinningCmd.h"
 // #include "Tables/List.h"
 
 // Value definitions commands.
@@ -62,6 +63,7 @@
 
 // Element commands.
 #include "Elements/OpalCavity.h"
+#include "Elements/OpalConstantEFieldCavity.h"
 #include "Elements/OpalDrift.h"
 #include "Elements/OpalMarker.h"
 #include "Elements/OpalOffset/OpalLocalCartesianOffset.h"
@@ -118,11 +120,13 @@ namespace {
         opal->create(new Beam());
         opal->create(new FieldSolverCmd());
         opal->create(new Distribution());
+        opal->create(new BinningCmd());
     }
 
     void makeElements() {
         OpalData* opal = OpalData::getInstance();
         opal->create(new OpalCavity());
+        opal->create(new OpalConstantEFieldCavity());
         opal->create(new OpalDrift());
         opal->create(new OpalMarker());
         opal->create(new OpalProbe());

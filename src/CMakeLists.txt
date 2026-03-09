@@ -101,7 +101,6 @@ add_subdirectory (Tables)
 add_subdirectory (Track)
 add_subdirectory (Utilities)
 add_subdirectory (ValueDefinitions)
-add_subdirectory (MemoryManagement)
 
 include(${PROJECT_SOURCE_DIR}/cmake/PlatformOptions.cmake)
 

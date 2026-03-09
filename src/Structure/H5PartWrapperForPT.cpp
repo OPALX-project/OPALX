@@ -204,7 +204,7 @@ void H5PartWrapperForPT::readStepData(
     }
 
     REPORTONERROR(H5PartSetView(file_m, -1, -1));
-    *gmsg << "H5PartWrapperForPT::readStepData not implemented" << endl;
+    *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
 }
 
 void H5PartWrapperForPT::writeHeader() {
@@ -432,7 +432,7 @@ void H5PartWrapperForPT::writeStepData(PartBunch_t* bunch) {
     WRITEDATA(Float64, file_m, "y", f64buffer);
 
     for (size_t i = 0; i < numLocalParticles; ++i)
-        f64buffer[i] = rView(i)(1);
+        f64buffer[i] = rView(i)(2);
     WRITEDATA(Float64, file_m, "z", f64buffer);
 
     auto pViewDevice  = bunch->getParticleContainer()->P.getView();
