@@ -270,7 +270,7 @@ void TrackRun::execute() {
                        // (see "3.1. Physical Units", where mass generally is in MeV/c^2)
                        // However, OPAL seems to use eV for the pusher!
                        /// \todo it would be much better to reinstate PartData or itsReference_m?
-        totalParticlesForBunch, 1.0, "LF2", fs_m);
+        totalParticlesForBunch, 1.0, "LF2", fs_m, ds_m);
     bunch_m->setT(0.0);
     bunch_m->setBeamFrequency(beam->getFrequency() * Units::MHz2Hz);
 
@@ -443,6 +443,7 @@ void TrackRun::initDataSink() {
     }
 
     // Wrap the global DataSink in a non-owning shared_ptr for local use.
+    /// \todo this is a hack to avoid having to pass the DataSink to the PartBunch constructor. Refactor to completely use shared_ptr later!
     DataSink* raw = opal_m->getDataSink();
     ds_m = std::shared_ptr<DataSink>(raw, [](DataSink*) {});
 }
