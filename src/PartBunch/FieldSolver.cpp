@@ -213,8 +213,8 @@ void FieldSolver<double,3>::dumpScalField(std::string what) {
     auto spacing  = mesh_mp->getMeshSpacing();
     auto origin   = mesh_mp->getOrigin();
 
-    Field_t<3>::view_type fieldV       = field->getView();
-    Field_t<3>::HostMirror field_hostV = field->getHostMirror();
+    Field_t<3>::view_type fieldV             = field->getView();
+    Field_t<3>::host_mirror_type field_hostV = field->getHostMirror();
     Kokkos::deep_copy(field_hostV, fieldV);     
 
     std::filesystem::path file(dirname);
