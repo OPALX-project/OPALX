@@ -72,7 +72,7 @@ class ParallelTracker : public Tracker {
 private:
     /* ============================= Variables ============================= */
     // Responsible for writing beam statistics
-    DataSink* itsDataSink_m;
+    std::shared_ptr<DataSink> itsDataSink_m;
 
     // Beamline Object which holds a list of pointers to beamline components
     OpalBeamline itsOpalBeamline_m;
@@ -193,8 +193,8 @@ public:
      * Vector of different timesteps for individual tracks
      * Optional list of emitting samplers (emitParticles(t, dt) called each step)
     */
-    explicit ParallelTracker(const Beamline& bl, PartBunch_t* bunch, 
-        DataSink& ds, const PartData& data, bool revBeam,
+    explicit ParallelTracker(const Beamline& bl, PartBunch_t* bunch,
+        const std::shared_ptr<DataSink>& ds, const PartData& data, bool revBeam,
         bool revTrack, const std::vector<unsigned long long>& maxSTEPS, 
         double zstart, const std::vector<double>& zstop, 
         const std::vector<double>& dt,
