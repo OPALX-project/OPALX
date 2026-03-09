@@ -1,6 +1,7 @@
 #include "PartBunch/PartBunch.h"
 #include "Algorithms/Matrix.h"
 #include "Utilities/Util.h"
+#include "Structure/DataSink.h"
 
 #undef doDEBUG
 
@@ -11,7 +12,8 @@ PartBunch<T, Dim>::PartBunch(double qi,
                              /*int nt,*/
                              double lbt,
                              std::string integration_method,
-                             std::shared_ptr<FieldSolverCmd> &OPALFieldSolver)
+                             std::shared_ptr<FieldSolverCmd>& OPALFieldSolver,
+                             std::shared_ptr<DataSink> dataSink)
     : ippl::PicManager<T, Dim, ParticleContainer<T, Dim>, FieldContainer<T, Dim>, LoadBalancer<T, Dim>>(),
       time_m(0.0),
       totalP_m(totalP),
@@ -29,7 +31,8 @@ PartBunch<T, Dim>::PartBunch(double qi,
       RefPartP_m(0.0),
       localTrackStep_m(0),
       globalTrackStep_m(0),
-      OPALFieldSolver_m(OPALFieldSolver) {
+      OPALFieldSolver_m(OPALFieldSolver),
+      dataSink_m(std::move(dataSink)) {
 
     static IpplTimings::TimerRef gatherInfoPartBunch = IpplTimings::getTimer("gatherInfoPartBunch");
     IpplTimings::startTimer(gatherInfoPartBunch);
@@ -531,15 +534,15 @@ void PartBunch<T, Dim>::computeSelfFields() {
 
         // Start binning and sorting by bins
         std::shared_ptr<AdaptBins_t> bins = this->getBins();
-        //VField_t<double, 3>& Etmp = *(this->getTempEField());
 
         IpplTimings::startTimer(completeBinningT);
-        bins->doFullRebin(bins->getMaxBinCount()); // rebin with 128 bins // bins->getMaxBinCount()
-        bins->print(); // For debugging...
-        bins->sortContainerByBin(); // Sort BEFORE, since it generates less atomics overhead with more bins!
-        bins->genAdaptiveHistogram(); // merge bins with width/N_part ratio of 1.0
+        bins->doFullRebin(bins->getMaxBinCount());
+        dumpBinConfig(true);   // pre-merge configuration
+        bins->sortContainerByBin();    // Sort BEFORE merging to reduce atomics overhead.
+        bins->genAdaptiveHistogram();  // merge bins adaptively
+        dumpBinConfig(false);  // post-merge configuration
+
         IpplTimings::stopTimer(completeBinningT);
-        bins->print(); // For debugging (level5; see AdaptBins::print()).
         m << level4 << "Binning routine done." << endl;
     } else {
         m << level4 << "No AdaptBins object present, not using binning." << endl;
@@ -666,6 +669,53 @@ void PartBunch<T, Dim>::computeSelfFields() {
     spaceChargeEFieldCheck(efScale);*/
 
     IpplTimings::stopTimer(SolveTimer);
+}
+
+template <typename T, unsigned Dim>
+void PartBunch<T, Dim>::dumpBinConfig(bool preMerge) {
+    if (!hasBinning() || !dataSink_m) {
+        throw OpalException("PartBunch::dumpBinConfig", 
+                            "No binning or data sink set, but dumpBinConfig() was called.");
+    }
+
+    Inform m("PartBunch::dumpBinConfig");
+
+    BinningCmd* binningCmd = OPALFieldSolver_m->getBinningCmd();
+    if (!binningCmd) {
+        return;
+    }
+
+    const long long step = getGlobalTrackStep();
+    const int dumpFreq   = binningCmd->getDumpBinsFrequency();
+    if (dumpFreq <= 0 || (step % dumpFreq) != 0) {
+        return;
+    }
+
+    std::shared_ptr<AdaptBins_t> bins = getBins();
+    if (!bins) {
+        return;
+    }
+
+    std::vector<typename AdaptBins_t::size_type> countsHost;
+    std::vector<typename AdaptBins_t::value_type> widthsHost;
+    const auto xMin = bins->getBinConfigHost(countsHost, widthsHost);
+
+    std::vector<std::size_t> counts(countsHost.begin(), countsHost.end());
+    std::vector<double> widths(widthsHost.begin(), widthsHost.end());
+
+    m << level5 << "Dumping bin configuration (preMerge=" << (preMerge ? 1 : 0)
+      << ") at globalTrackStep=" << step
+      << " with nBins=" << counts.size()
+      << " to file \"" << binningCmd->getDumpBinsFileName() << "\"." << endl;
+
+    dataSink_m->dumpBinConfig(
+        step,
+        getT(),
+        preMerge,
+        counts,
+        widths,
+        static_cast<double>(xMin),
+        binningCmd->getDumpBinsFileName());
 }
 
 template <typename T, unsigned Dim>

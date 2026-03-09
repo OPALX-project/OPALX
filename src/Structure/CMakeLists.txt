@@ -3,6 +3,7 @@ set (_SRCS
   EmissionSource.cpp
   BoundingBox.cpp
   BoundaryGeometry.cpp
+  BinConfigWriter.cpp
   DataSink.cpp
   ElementPositionWriter.cpp
   FieldSolverCmd.cpp
@@ -28,6 +29,7 @@ set (HDRS
     EmissionSource.h
     BoundaryGeometry.h
     BoundingBox.h
+    BinConfigWriter.h
     DataSink.h
     ElementPositionWriter.h
     FieldSolverCmd.h

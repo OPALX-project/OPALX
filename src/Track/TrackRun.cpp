@@ -260,6 +260,7 @@ void TrackRun::execute() {
     - Charge per macro particle in [C], this should be macrocharge_m or q_m in the bunch. This will be used for the field calculations.
     - The pusher needs consistent units: eV for mass and elementary charges for charge. This will (hopefully) be handled inside the pusher routines!
     */
+    initDataSink();
     size_t totalParticlesForBunch =
         computeTotalParticlesForBunch(beam, emissionSourcesList);
 
@@ -319,7 +320,6 @@ void TrackRun::execute() {
     bunch_m->setMass();
     bunch_m->bunchUpdate();
     bunch_m->print(*gmsg);
-    initDataSink();
 
     /*
     if (!isFollowupTrack_m) {
@@ -352,7 +352,7 @@ void TrackRun::execute() {
     */
 
     itsTracker_m = new ParallelTracker(
-        *Track::block->use->fetchLine(), bunch_m.get(), *ds_m, Track::block->reference, false,
+        *Track::block->use->fetchLine(), bunch_m.get(), ds_m, Track::block->reference, false,
         Attributes::getBool(itsAttr[TRACKRUN::TRACKBACK]), Track::block->localTimeSteps,
         Track::block->zstart, Track::block->zstop, Track::block->dT, emittingSamplers_m);
 
@@ -435,13 +435,16 @@ void TrackRun::initDataSink() {
         if (!opal_m->hasDataSinkAllocated()) {
             opal_m->setDataSink(new DataSink(phaseSpaceSink_m, false));
         } else {
-            ds_m = opal_m->getDataSink();
-            ds_m->changeH5Wrapper(phaseSpaceSink_m);
+            DataSink* raw = opal_m->getDataSink();
+            raw->changeH5Wrapper(phaseSpaceSink_m);
         }
     } else {
         opal_m->setDataSink(new DataSink(phaseSpaceSink_m, true));
     }
-    ds_m = opal_m->getDataSink();
+
+    // Wrap the global DataSink in a non-owning shared_ptr for local use.
+    DataSink* raw = opal_m->getDataSink();
+    ds_m = std::shared_ptr<DataSink>(raw, [](DataSink*) {});
 }
 
 void TrackRun::setupBoundaryGeometry() {
