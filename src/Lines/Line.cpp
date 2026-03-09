@@ -163,12 +163,12 @@ void Line::parse(Statement &stat) {
 
     // Insert the begin and end markers.
     FlaggedBeamline *line = fetchLine();
-    ElementBase *markS = Element::find("#S")->getElement();
-    FlaggedElmPtr first(markS, false);
+    auto markS = Element::find("#S")->getElementPtr();
+    FlaggedElmPtr first(ElmPtr(markS), false);
     line->push_front(first);
 
-    ElementBase *markE = Element::find("#E")->getElement();
-    FlaggedElmPtr last(markE, false);
+    auto markE = Element::find("#E")->getElementPtr();
+    FlaggedElmPtr last(ElmPtr(markE), false);
     line->push_back(last);
 
     // Construct expression for length, and fill in occurrence counters.

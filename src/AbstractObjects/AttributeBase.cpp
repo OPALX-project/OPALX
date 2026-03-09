@@ -22,8 +22,7 @@
 // Class AttributeBase
 // ------------------------------------------------------------------------
 
-AttributeBase::AttributeBase():
-    RCObject()
+AttributeBase::AttributeBase()
 {}
 
 

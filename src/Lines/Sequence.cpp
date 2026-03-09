@@ -293,12 +293,12 @@ void Sequence::storeLine(TLine& newLine) {
 
 void Sequence::addEndMarkers(TLine& line) const {
     SequenceMember member;
-    member.setElement(Element::find("#S")->getElement());
+    member.setElement(Element::find("#S")->getElementPtr());
     member.itsPosition = 0.0;
     member.itsFlag     = SequenceMember::ABSOLUTE;
     member.itsType     = SequenceMember::GLOBAL;
     line.push_front(member);
-    member.setElement(Element::find("#E")->getElement());
+    member.setElement(Element::find("#E")->getElementPtr());
     member.itsPosition = getLength();
     line.push_back(member);
 }

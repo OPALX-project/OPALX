@@ -16,7 +16,7 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "Utilities/Util.h"
-#include "OPALrevision.h"
+#include "OPALXrevision.h"
 #include "Physics/Physics.h"
 
 #include <filesystem>

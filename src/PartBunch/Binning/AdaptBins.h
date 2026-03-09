@@ -13,9 +13,11 @@
 #include "Ippl.h"
 
 #include <Kokkos_DualView.hpp>
-#include "ParallelReduceTools.h" 
-#include "BinningTools.h"        
-#include "BinHisto.h"           
+#include <vector>
+
+#include "ParallelReduceTools.h"
+#include "BinningTools.h"
+#include "BinHisto.h"
 
 namespace ParticleBinning {
 
@@ -53,8 +55,9 @@ namespace ParticleBinning {
         using hindex_transform_type = typename d_histo_type::hindex_transform_type;
         using dindex_transform_type = typename d_histo_type::dindex_transform_type;
 
-        using h_histo_type_g          = Histogram<size_type, bin_index_type, value_type, false, Kokkos::HostSpace>; 
+        using h_histo_type_g          = Histogram<size_type, bin_index_type, value_type, false, Kokkos::HostSpace>;
         using hview_type_g            = typename h_histo_type_g::hview_type;
+        using hwidth_view_type_g      = typename h_histo_type_g::hwidth_view_type;
         using hindex_transform_type_g = typename h_histo_type_g::hindex_transform_type;
 
         /**
@@ -86,7 +89,7 @@ namespace ParticleBinning {
             initTimers();
 
             Inform msg("AdaptBins");
-            msg << "AdaptBins initialized with maxBins = " << maxBins_m 
+            msg << level3 << "AdaptBins initialized with maxBins = " << maxBins_m 
                 << ", alpha = " << binningAlpha_m
                 << ", beta = " << binningBeta_m
                 << ", desiredWidth = " << desiredWidth_m << endl;
@@ -133,6 +136,11 @@ namespace ParticleBinning {
          * @return Corresponds to (xmax_m - xmin_m)/n_bins. Used in the fine histogram.
          */
         value_type getBinWidth() const { return binWidth_m; }
+
+        /**
+         * @brief Returns the current lower bound of the binning coordinate (xMin).
+         */
+        value_type getXMin() const { return xMin_m; }
 
         /**
          * @brief Sets the current number of bins and adjusts the bin width.
@@ -398,6 +406,19 @@ namespace ParticleBinning {
         void genAdaptiveHistogram();
 
         /**
+         * @brief Extracts the global bin configuration (counts and widths) on the host.
+         *
+         * Fills @p binCounts and @p binWidths with the current global histogram data and
+         * returns the lower bound xMin used when defining the histogram.
+         *
+         * @note This should be called after initGlobalHistogram()/genAdaptiveHistogram(),
+         *       since it relies on the global histogram being initialized and available 
+         *       on host.
+         */
+        value_type getBinConfigHost(std::vector<size_type>& binCounts,
+                                    std::vector<value_type>& binWidths) const;
+
+        /**
          * @brief Prints the current global histogram to the Inform output stream.
          * 
          * This function outputs the global histogram data (bin counts) to the standard output.
@@ -417,39 +438,39 @@ namespace ParticleBinning {
             Inform msg("KOKKOS DEBUG"); // , INFORM_ALL_NODES
 
             int rank = ippl::Comm->rank();
-            msg << "=====================================" << endl;
-            msg << " Kokkos Debug Information (Rank " << rank << ")" << endl;
-            msg << "=====================================" << endl;
+            msg << level2 << "=====================================" << endl;
+            msg << level2 << " Kokkos Debug Information (Rank " << rank << ")" << endl;
+            msg << level2 << "=====================================" << endl;
 
             // Check number of CPU threads (OpenMP or other CPU execution spaces)
             #ifdef KOKKOS_ENABLE_OPENMP
             int num_threads = Kokkos::OpenMP::concurrency();
-            msg << "CPU Threads (OpenMP): " << num_threads << endl;
+            msg << level2 << "CPU Threads (OpenMP): " << num_threads << endl;
             #elif defined(KOKKOS_ENABLE_THREADS)
             int num_threads = Kokkos::Threads::concurrency();
-            msg << "CPU Threads (Kokkos::Threads): " << num_threads << endl;
+            msg << level2 << "CPU Threads (Kokkos::Threads): " << num_threads << endl;
             #else
-            msg << "CPU Threads: No multi-threaded CPU execution space enabled." << endl;
+            msg << level2 << "CPU Threads: No multi-threaded CPU execution space enabled." << endl;
             #endif
 
             // Check number of GPUs (CUDA devices)
             #ifdef KOKKOS_ENABLE_CUDA
             int num_gpus = Kokkos::Cuda::detect_device_count();
-            msg << "CUDA Enabled: Rank " << rank << " sees " << num_gpus << " GPU(s) available." << endl;
+            msg << level2 << "CUDA Enabled: Rank " << rank << " sees " << num_gpus << " GPU(s) available." << endl;
             Kokkos::Cuda cuda_instance;  
             std::stringstream ss;
             cuda_instance.print_configuration(ss);
-            msg << ss.str();
+            msg << level2 << ss.str();
             #else
-            msg << "CUDA: GPU support disabled.\n";
+            msg << level2 << "CUDA: GPU support disabled.\n";
             #endif
 
             // Additional information on concurrency in the default execution space
             int default_concurrency = Kokkos::DefaultExecutionSpace::concurrency();
-            msg << "Default Execution Space Concurrency: " << default_concurrency << endl;
-            msg << "Binning cost function parameters: alpha = " << binningAlpha_m << ", beta = " << binningBeta_m << ", desiredWidth = " << desiredWidth_m << endl;
+            msg << level2 << "Default Execution Space Concurrency: " << default_concurrency << endl;
+            msg << level2 << "Binning cost function parameters: alpha = " << binningAlpha_m << ", beta = " << binningBeta_m << ", desiredWidth = " << desiredWidth_m << endl;
 
-            msg << "=====================================" << endl;
+            msg << level2 << "=====================================" << endl;
         }
 
         /**

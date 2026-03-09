@@ -77,7 +77,7 @@ void DistributionMoments::computeMeans(ippl::ParticleAttrib<Vector_t<double,3>>:
                         gamma0 += Pview(k)[j]*Pview(k)[j];
                     }
                     gamma0 = Kokkos::sqrt(gamma0+1.0);
-                    ekin0  = (gamma0-1.0) * Mview(k);
+                    ekin0  = (gamma0-1.0) * Mview(k) * Units::GeV2MeV; // output in MeV
                     gamma += gamma0;
                     ekin += ekin0;
 
@@ -243,7 +243,7 @@ void DistributionMoments::computeMoments(ippl::ParticleAttrib<Vector_t<double,3>
                         gamma0 += Pview(k)[j]*Pview(k)[j];
                     }
                     gamma0 = Kokkos::sqrt(gamma0+1.0);
-                    ekin0  = (gamma0-1.0) * Mview(k);
+                    ekin0  = (gamma0-1.0) * Mview(k) * Units::GeV2MeV; // output in MeV
 
                     ekin += (ekin0-mekin)*(ekin0-mekin);
                 }, Kokkos::Sum<double>(loc_std_mekin) );
@@ -343,7 +343,7 @@ void DistributionMoments::computeMinMaxPosition(ippl::ParticleAttrib<Vector_t<do
 void DistributionMoments::compute(
     const std::vector<OpalParticle>::const_iterator& /*first*/,
     const std::vector<OpalParticle>::const_iterator& /*last*/) {
-    *gmsg << "not implemented" << endl;
+    *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
 }
 
 
@@ -571,7 +571,7 @@ double DistributionMoments::computeNormalizedEmittance(
 }
 
 void DistributionMoments::fillMembers(std::vector<double>& /*localMoments*/) {
-    *gmsg << "not implemented" << endl;
+    *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl; 
     /*
     Vector_t<double, 3> squaredEps, fac, sumRP;
     double perParticle = 1.0 / totalNumParticles_m;
@@ -759,6 +759,6 @@ void DistributionMoments::resetPlasmaParameters() {
 /// \todo this needs to go
 bool DistributionMoments::isParticleExcluded(const OpalParticle& /*particle*/) const {
     // FIXME After issue 287 is resolved this shouldn't be necessary anymore
-    *gmsg << "not implemented" << endl;
+    *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl; 
     return true;
 }

@@ -352,7 +352,7 @@ int Object::occurrenceCount() {
 
 
 Object::Object(int size, const char *name, const char *help):
-    RCObject(), itsAttr(size), itsParent(0),
+    itsAttr(size), itsParent(0),
     itsName(name), itsHelp(help), occurrence(0), sharedFlag(false) {
     // NOTE: The derived classes must define the attribute handlers and
     //       any initial values for the attributes.
@@ -364,7 +364,7 @@ Object::Object(int size, const char *name, const char *help):
 
 
 Object::Object(const std::string &name, Object *parent):
-    RCObject(), itsAttr(parent->itsAttr), itsParent(parent),
+    itsAttr(parent->itsAttr), itsParent(parent),
     itsName(name), itsHelp(parent->itsHelp), occurrence(0), sharedFlag(false) {
     // The object is now different from the data base.
     builtin = flagged = false;

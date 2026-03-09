@@ -38,6 +38,7 @@
 #include "Algorithms/IndexMap.h"
 #include "Algorithms/OrbitThreader.h"
 
+#include "AbsBeamline/ConstantEFieldCavity.h"
 #include "AbsBeamline/Drift.h"
 #include "AbsBeamline/ElementBase.h"
 #include "AbsBeamline/Marker.h"
@@ -70,7 +71,7 @@ class ParallelTracker : public Tracker {
 private:
     /* ============================= Variables ============================= */
     // Responsible for writing beam statistics
-    DataSink* itsDataSink_m;
+    std::shared_ptr<DataSink> itsDataSink_m;
 
     // Beamline Object which holds a list of pointers to beamline components
     OpalBeamline itsOpalBeamline_m;
@@ -186,8 +187,8 @@ public:
      * Vector of ends of the individual tracks
      * Vector of different timesteps for individual tracks
     */
-    explicit ParallelTracker(const Beamline& bl, PartBunch_t* bunch, 
-        DataSink& ds, const PartData& data, bool revBeam,
+    explicit ParallelTracker(const Beamline& bl, PartBunch_t* bunch,
+        const std::shared_ptr<DataSink>& ds, const PartData& data, bool revBeam,
         bool revTrack, const std::vector<unsigned long long>& maxSTEPS, 
         double zstart, const std::vector<double>& zstop, 
         const std::vector<double>& dt);
@@ -199,6 +200,9 @@ public:
     /// Apply the algorithm to a beam line.
     //  overwrite the execute-methode from DefaultVisitor
     virtual void visitBeamline(const Beamline&);
+
+    /// Apply the algorithm to a constant E-field cavity element.
+    virtual void visitConstantEFieldCavity(const ConstantEFieldCavity&);
 
     /// Apply the algorithm to a drift space.
     virtual void visitDrift(const Drift&);
@@ -308,6 +312,10 @@ private:
     void transformBunch(const CoordinateSystemTrafo& trafo);
     /* ===================================================================== */
 };
+
+inline void ParallelTracker::visitConstantEFieldCavity(const ConstantEFieldCavity& cav) {
+    itsOpalBeamline_m.visit(cav, *this, itsBunch_m);
+}
 
 inline void ParallelTracker::visitDrift(const Drift& drift) {
     itsOpalBeamline_m.visit(drift, *this, itsBunch_m);

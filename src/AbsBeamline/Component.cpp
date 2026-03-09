@@ -106,7 +106,7 @@ bool Component::apply(
             return true;
     }
     */
-    *gmsg << "Component::apply not implemented" << endl;
+    *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
     return false;
 }
 

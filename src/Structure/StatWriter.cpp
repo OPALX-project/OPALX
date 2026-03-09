@@ -93,6 +93,7 @@ void StatWriter::fillHeader(const losses_t& losses) {
     columns_m.addColumn("temperature", "double",  "K", "Temperature of the beam");
     columns_m.addColumn("rmsDensity", "double",  "1", "RMS number density of the beam");
 
+    columns_m.addColumn("nBins", "int", "1", "Number of field solver bins, potentially after adaptive binning.");
 
     /// \todo Options::computePercentiles needs to be brought back
     /*
@@ -280,6 +281,7 @@ void StatWriter::write(
     columns_m.addColumnValue("plasmaParameter", beam->get_plasmaParameter()); // 43 plasma parameter
     columns_m.addColumnValue("temperature", beam->get_temperature()); // 44 Temperature 
     columns_m.addColumnValue("rmsDensity", beam->get_rmsDensity()); // 45 RMS number density
+    columns_m.addColumnValue("nBins", beam->getCurrentNBins());
 
     /*
     if (Options::computePercentiles) {

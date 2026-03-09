@@ -18,7 +18,6 @@
 //
 // ------------------------------------------------------------------------
 
-#include "MemoryManagement/RCObject.h"
 #include "AbstractObjects/AttributeBase.h"
 #include <memory.h>
 #include <cstring>
@@ -48,7 +47,7 @@ class Statement;
 //  When ``is_deferred'' is false, any expression for the attribute is
 //  cached.  It is re-evaluated only when any other definition has changed.
 
-class AttributeHandler: public RCObject {
+class AttributeHandler {
 
 public:
 
@@ -58,12 +57,6 @@ public:
     AttributeHandler(const std::string &name, const std::string &help, AttributeBase *def);
 
     virtual ~AttributeHandler();
-
-    /// Make clone.
-    //  Attribute handlers are always shared, so this method should never
-    //  be called.  It exists only to fulfill the requirements of the class
-    //  [b]Pointer[/b].
-    virtual AttributeHandler *clone() const;
 
     /// Return default value.
     //  Return the default value stored in this parser.
