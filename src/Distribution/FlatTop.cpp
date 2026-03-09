@@ -129,12 +129,13 @@ void FlatTop::generateUniformDisk(size_type nlocal, size_t nNew) {
     view_type Rview         = pc_m->R.getView();
     view_type Pview         = pc_m->P.getView();
 
-    double pi               = Physics::pi;
+    double pi                  = Physics::pi;
     Vector_t<double, 3> sigmaR = sigmaR_m;
-    Vector_t<double, 3> R0   = R0_m;
-    Vector_t<double, 3> P0   = P0_m;
+    Vector_t<double, 3> R0     = R0_m;
+    Vector_t<double, 3> P0     = P0_m;
     // Beam reference momentum in beta*gamma (set by TrackRun from BEAM); emission source P0 is offset on top.
-    const double beamPz = opalDist_m->getAvrgpz();
+    // opalDist_m may be null when FlatTop is constructed directly in unit tests without a Distribution.
+    const double beamPz = opalDist_m ? opalDist_m->getAvrgpz() : 0.0;
     // Sample (Rx,Ry) on a unit ring, scale with sigmaR, then add R0/P0 (emission source offset).
     Kokkos::parallel_for(
         "unitDisk", Kokkos::RangePolicy<>(nlocal, nlocal + nNew), KOKKOS_LAMBDA(const size_t j) {
