@@ -119,7 +119,69 @@ void RFCavity::accept(BeamlineVisitor& visitor) const {
     visitor.visitRFCavity(*this);
 }
 
-bool RFCavity::apply() {
+
+/* ========================================================================== */
+/* ============================== Apply Functions =========================== */
+
+/**
+ * @brief Applies the Standing Wave RF Cavity field to all particles inside the RF cavity
+ * 
+ * @note TODO: Check if getFieldstrength(R, tmpE, tmpB) returns 0 outside of RF cavity to skip if statement
+ */
+bool RFCavity::apply() 
+{
+    // Get the particle container
+    std::shared_ptr<ParticleContainer_t> pc = 
+        RefPartBunch_m->getParticleContainer();    
+
+    // Device-accessible views for particle properties
+    auto Rview = pc->R.getView();
+    auto Eview = pc->E.getView();
+    auto Bview = pc->B.getView();
+    
+    // RF parameters (copied to device)
+    double freq       = frequency_m;
+    double scale      = scale_m + scaleError_m;
+    double phase      = phase_m + phaseError_m;
+
+    double startField = startField_m;
+    double endField   = startField_m + getElementLength();
+    
+    // Pointer to fieldmap for getFieldstrength()
+    auto fieldmap = fieldmap_m; 
+
+    // Reference particle time
+    const double t = RefPartBunch_m->getT();
+
+    // RF phase for all particles at this step
+    const double phi    = freq * t + phase; 
+    const double cosphi = Kokkos::cos(phi);
+    const double sinphi = Kokkos::sin(phi);
+
+    Kokkos::parallel_for("RFCavity::apply", 
+        ippl::getRangePolicy(Rview), 
+        KOKKOS_LAMBDA(const int i)
+    {
+        const auto& R = Rview(i);
+
+        // Only apply inside RF cavity region
+        if (R(2) >= startField && R(2) < endField)
+        {
+            Vector_t<double, 3> tmpE(0.0), tmpB(0.0);
+
+            // Check if particle is inside the fieldmap
+            bool outOfBounds = fieldmap->getFieldstrength(R, tmpE, tmpB);
+            // if (outOfBounds) return getFlagDeleteOnTransverseExit();
+
+            // Apply RF field
+            if(!outOfBounds) 
+            {
+                Eview(i) += scale * cosphi * tmpE;
+                Bview(i) -= scale * sinphi * tmpB;
+            }
+        }
+    });
+
     return false;
 }
 
