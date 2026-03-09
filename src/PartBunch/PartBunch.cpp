@@ -5,13 +5,12 @@
 #undef doDEBUG
 
 template <typename T, unsigned Dim>
-PartBunch<T, Dim>::PartBunch(double qi, 
-                             double mi, 
+PartBunch<T, Dim>::PartBunch(double qi,
+                             double mi,
                              size_t totalP,
-                             /*int nt,*/ 
+                             /*int nt,*/
                              double lbt,
-                             std::string integration_method, 
-                             std::shared_ptr<Distribution> &OPALdistribution,
+                             std::string integration_method,
                              std::shared_ptr<FieldSolverCmd> &OPALFieldSolver)
     : ippl::PicManager<T, Dim, ParticleContainer<T, Dim>, FieldContainer<T, Dim>, LoadBalancer<T, Dim>>(),
       time_m(0.0),
@@ -30,7 +29,6 @@ PartBunch<T, Dim>::PartBunch(double qi,
       RefPartP_m(0.0),
       localTrackStep_m(0),
       globalTrackStep_m(0),
-      OPALdist_m(OPALdistribution),
       OPALFieldSolver_m(OPALFieldSolver) {
 
     static IpplTimings::TimerRef gatherInfoPartBunch = IpplTimings::getTimer("gatherInfoPartBunch");

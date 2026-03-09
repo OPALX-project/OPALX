@@ -35,6 +35,7 @@ class Beam;
 class OpalData;
 class DataSink;
 class Distribution;
+class EmissionSource;
 class H5PartWrapper;
 class Inform;
 class Tracker;
@@ -74,15 +75,20 @@ private:
 
     void setupBoundaryGeometry();
 
-    double setupDistribution(Beam* beam);
+    /// Build samplers for all emission sources, perform initial sampling for t0 == 0
+    /// sources, and populate emittingSamplers_m for time-dependent or delayed sources.
+    void setupDistributionsAndSamplers(const std::vector<EmissionSource*>& sources, Beam* beam);
+
+    /// Compute total number of macroparticles for the bunch from BEAM::NPART and
+    /// optional per-distribution NPARTDIST values on the emission sources.
+    size_t computeTotalParticlesForBunch(
+        Beam* beam,
+        const std::vector<EmissionSource*>& sources) const;
 
     Tracker* itsTracker_m;
 
-    std::shared_ptr<Distribution> dist_m;
-
+    /// Distributions referenced by all emission sources (non-owning raw pointers).
     std::vector<Distribution*> distrs_m;
-
-    std::shared_ptr<SamplingBase> sampler_m;
 
     /// Samplers for time-dependent (emitting) sources; tracker calls emitParticles(t, dt) on each.
     std::vector<std::shared_ptr<SamplingBase>> emittingSamplers_m;

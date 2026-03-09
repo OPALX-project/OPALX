@@ -91,7 +91,6 @@ TrackRun::TrackRun()
         "The \"RUN\" sub-command tracks the defined particles through "
         "the given lattice."),
       itsTracker_m(nullptr),
-      dist_m(nullptr),
       fs_m(nullptr),
       ds_m(nullptr),
       phaseSpaceSink_m(nullptr),
@@ -126,7 +125,6 @@ TrackRun::TrackRun()
 TrackRun::TrackRun(const std::string& name, TrackRun* parent)
     : Action(name, parent),
       itsTracker_m(nullptr),
-      dist_m(nullptr),
       fs_m(nullptr),
       ds_m(nullptr),
       phaseSpaceSink_m(nullptr),
@@ -234,13 +232,6 @@ void TrackRun::execute() {
     const auto& emissionSourcesList = Track::block->emissionSources->fetchSources();
     *gmsg << "* Number of emission sources  " << emissionSourcesList.size() << endl;
 
-    // Use first emission source's distribution for bunch setup (beam params); full loop in init.
-    EmissionSource* firstSource = emissionSourcesList[0];
-    dist_m = std::shared_ptr<Distribution>(
-        Distribution::find(firstSource->getDistributionName()));
-    dist_m->setDistType();
-    *gmsg << *dist_m << endl;
-
     fs_m = std::shared_ptr<FieldSolverCmd>(FieldSolverCmd::find(Attributes::getString(itsAttr[TRACKRUN::FIELDSOLVER])));
     *gmsg << level1 << *fs_m << endl;
 
@@ -269,12 +260,16 @@ void TrackRun::execute() {
     - Charge per macro particle in [C], this should be macrocharge_m or q_m in the bunch. This will be used for the field calculations.
     - The pusher needs consistent units: eV for mass and elementary charges for charge. This will (hopefully) be handled inside the pusher routines!
     */
-    bunch_m = std::make_shared<bunch_type>(macrocharge_m, // set the Charge per macro-particle 
-                                           macromass_m,   // set the Mass per macro-particle, [GeV], for correct particle kick!
-                                                                                      // (see "3.1. Physical Units", where mass generally is in MeV/c^2)
-                                                                                      // However, OPAL seems to use eV for the pusher!
-                                                                                     /// \todo it would be much better to reinstate PartData or itsReference_m?
-                                           beam->getNumberOfParticles()/*, 10*/, 1.0, "LF2", dist_m, fs_m);
+    size_t totalParticlesForBunch =
+        computeTotalParticlesForBunch(beam, emissionSourcesList);
+
+    bunch_m = std::make_shared<bunch_type>(
+        macrocharge_m, // set the Charge per macro-particle 
+        macromass_m,   // set the Mass per macro-particle, [GeV], for correct particle kick!
+                       // (see "3.1. Physical Units", where mass generally is in MeV/c^2)
+                       // However, OPAL seems to use eV for the pusher!
+                       /// \todo it would be much better to reinstate PartData or itsReference_m?
+        totalParticlesForBunch, 1.0, "LF2", fs_m);
     bunch_m->setT(0.0);
     bunch_m->setBeamFrequency(beam->getFrequency() * Units::MHz2Hz);
 
@@ -295,19 +290,6 @@ void TrackRun::execute() {
     }
 
 
-    /*
-      \todo Mohsen here we need to create the particles based on dist_m
-      
-
-      We have 3 main modes: emit particles, inject particles or get particles from a restart run
-
-      Lets start with the inject particles.
-
-      
-      Note: in the pre_run (bunch_m) I disables the particle generation.
-
-     */
-
     //double deltaP = Attributes::getReal(itsAttr[Distribution::OFFSETP]);
     //if (inputMoUnits_m == InputMomentumUnits::EVOVERC) {
     //    deltaP = Util::convertMomentumEVoverCToBetaGamma(deltaP, beam->getM());
@@ -324,58 +306,9 @@ void TrackRun::execute() {
         *gmsg << level5 << "MPI_Comm_size= " << world_size << endl;
     }
 
-    static IpplTimings::TimerRef samplingTime = IpplTimings::getTimer("samplingTime");
-    IpplTimings::startTimer(samplingTime);
-
-    // set distribution type
-    dist_m->setDist();
-    dist_m->setAvrgPz(beam->getMomentum()/beam->getMass());
-
-    // sample particles
-    auto pc               = bunch_m->getParticleContainer();
-    auto fc               = bunch_m->getFieldContainer();
-    size_type Np          = beam->getNumberOfParticles();
-    Vector_t<int, Dim> nr = bunch_m->nr_m;
-
-    std::shared_ptr<Distribution> opalDist(dist_m);
-
-    switch (opalDist->getType()){
-        case DistributionType::GAUSS:
-            sampler_m = std::make_shared<Gaussian>(pc, fc, opalDist);
-            break;
-        case DistributionType::MULTIVARIATEGAUSS:
-            sampler_m = std::make_shared<MultiVariateGaussian>(pc, fc, opalDist);
-            break;
-        case DistributionType::FLATTOP:
-            sampler_m = std::make_shared<FlatTop>(pc, fc, opalDist);
-            break;
-        case DistributionType::FROMFILE:
-            sampler_m = std::make_shared<FromFile>(pc, fc, opalDist);
-            break;
-        default:
-            throw OpalException("Distribution::create", "Unknown \"TYPE\" of \"DISTRIBUTION\"");
-    }
-
-    // Apply emission source offsets (R0, P0, t0) from the first emission source.
-    sampler_m->setEmissionOffsets(firstSource->getR0(), firstSource->getP0(), firstSource->getT0());
-
-    emittingSamplers_m.clear();
-    if (opalDist->emitting_m) {
-        emittingSamplers_m.push_back(sampler_m);
-    }
-
-    *gmsg << level2 << "* About to create particles ..." << endl;
-    
-    static IpplTimings::TimerRef GenParticlesTimer  = IpplTimings::getTimer("GenParticles");
-    IpplTimings::startTimer(GenParticlesTimer);
-
-    sampler_m->generateParticles(Np, nr);
-
-    IpplTimings::stopTimer(GenParticlesTimer);
-
-    *gmsg << level2 << "* Particle creation done" << endl;
-    
-    IpplTimings::stopTimer(samplingTime);
+    // Setup all distributions and samplers, perform initial sampling (t0 == 0),
+    // and prepare emittingSamplers_m for time-dependent / delayed sources.
+    setupDistributionsAndSamplers(emissionSourcesList, beam);
 
     /* 
        reset the fieldsolver with correct hr_m
@@ -522,6 +455,111 @@ void TrackRun::setupBoundaryGeometry() {
             OpalData::getInstance()->setGlobalGeometry(bg);
         }
     }
+}
+
+size_t TrackRun::computeTotalParticlesForBunch(
+    Beam* beam,
+    const std::vector<EmissionSource*>& sources) const {
+    size_t beamNumParticles = beam->getNumberOfParticles();
+
+    size_t totalFromDists = 0;
+    for (EmissionSource* src : sources) {
+        auto* dist = Distribution::find(src->getDistributionName());
+        totalFromDists += dist->getNumParticles();
+    }
+
+    if (totalFromDists > 0) {
+        *gmsg << level3
+              << "* Sum of per-distribution NPARTDIST over all emission sources = "
+              << totalFromDists << ", BEAM::NPART = " << beamNumParticles << endl;
+        if (totalFromDists != beamNumParticles) {
+            *gmsg << level1
+                  << "* WARNING: Sum of NPARTDIST over all distributions ("
+                  << totalFromDists
+                  << ") does not match BEAM::NPART (" << beamNumParticles
+                  << "). Macro-charge per particle still derived from BEAM." << endl;
+        }
+        return totalFromDists;
+    }
+
+    return beamNumParticles;
+}
+
+void TrackRun::setupDistributionsAndSamplers(const std::vector<EmissionSource*>& sources,
+                                             Beam* beam) {
+    static IpplTimings::TimerRef samplingTime = IpplTimings::getTimer("samplingTime");
+
+    IpplTimings::startTimer(samplingTime);
+
+    // Common containers / parameters used by all samplers.
+    auto pc               = bunch_m->getParticleContainer();
+    auto fc               = bunch_m->getFieldContainer();
+    Vector_t<int, Dim> nr = bunch_m->nr_m;
+    const double avrgpz   = beam->getMomentum() / beam->getMass();
+
+    emittingSamplers_m.clear();
+    distrs_m.clear();
+
+    for (EmissionSource* src : sources) {
+        auto* distRaw = Distribution::find(src->getDistributionName());
+        // Do not take ownership of global Distribution objects.
+        std::shared_ptr<Distribution> opalDist(distRaw, [](Distribution*){});
+
+        // Ensure distribution parameters and reference momentum are up to date.
+        opalDist->setDistType();
+        opalDist->setDist();
+        opalDist->setAvrgPz(avrgpz);
+
+        distrs_m.push_back(distRaw);
+
+        // Build a sampler instance for this emission source.
+        std::shared_ptr<SamplingBase> sampler;
+        switch (opalDist->getType()) {
+            case DistributionType::GAUSS:
+                sampler = std::make_shared<Gaussian>(pc, fc, opalDist);
+                break;
+            case DistributionType::MULTIVARIATEGAUSS:
+                sampler = std::make_shared<MultiVariateGaussian>(pc, fc, opalDist);
+                break;
+            case DistributionType::FLATTOP:
+                sampler = std::make_shared<FlatTop>(pc, fc, opalDist);
+                break;
+            case DistributionType::FROMFILE:
+                sampler = std::make_shared<FromFile>(pc, fc, opalDist);
+                break;
+            default:
+                throw OpalException("Distribution::create",
+                                    "Unknown \"TYPE\" of \"DISTRIBUTION\"");
+        }
+
+        // Per-source emission offsets and start time.
+        const auto  R0  = src->getR0();
+        const auto  P0  = src->getP0();
+        const double t0 = src->getT0();
+        sampler->setEmissionOffsets(R0, P0, t0);
+
+        const size_t Ndist = opalDist->getNumParticles();
+        size_t       Nmutable = Ndist;
+
+        // Always call generateParticles once per source; time-independent samplers
+        // will internally early-return when t0 > 0, while FlatTop will set up its
+        // emission structures irrespective of t0.
+        sampler->generateParticles(Nmutable, nr);
+
+        // Time-dependent (emitted) distributions (e.g. FlatTop) and delayed
+        // one-shot injectors (t0 > 0) participate in emitParticles(t, dt)
+        // during tracking.
+        if (opalDist->emitting_m || src->getT0() > 0.0) {
+            emittingSamplers_m.push_back(sampler);
+            *gmsg << level2 << "* Configured emitting source of type "
+                  << opalDist->getTypeofDistribution() << " with NPARTDIST = "
+                  << Ndist << ", t0 = " << t0 << endl;
+        }
+    }
+
+    *gmsg << level2 << "* Particle sampling / sampler setup for all emission sources done."
+          << endl;
+    IpplTimings::stopTimer(samplingTime);
 }
 
 Inform& TrackRun::print(Inform& os) const {
