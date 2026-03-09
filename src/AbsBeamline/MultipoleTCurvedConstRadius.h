@@ -91,9 +91,9 @@ public:
     /** Return the cell geometry */
     const BGeometryBase* getGeometry() const override { return &planarArcGeometry_m; }
     /** Transform to Frenet-Serret coordinates for sector magnets */
-    void transformCoords(Vector_t<double>& /*R*/) override;
+    void transformCoords(Vector_t<double, 3>& /*R*/) override;
     /** Transform B-field from Frenet-Serret coordinates to lab coordinates */
-    void transformBField(Vector_t<double>& /*B*/, const Vector_t<double>& /*R*/) override;
+    void transformBField(Vector_t<double, 3>& /*B*/, const Vector_t<double, 3>& /*R*/) override;
     /** Returns the scale factor @f$ h_s = 1@f$
      *  \param x -> Coordinate x
      *  \param s -> Coordinate s
@@ -111,7 +111,7 @@ public:
      *  \param order -> Number of terms in expansion in z
      */
 
-    Vector_t<double> localCartesianToOpalCartesian(const Vector_t<double>& r) override;
+    Vector_t<double, 3> localCartesianToOpalCartesian(const Vector_t<double, 3>& r) override;
 private:
     /** Geometry */
     PlanarArcGeometry planarArcGeometry_m;

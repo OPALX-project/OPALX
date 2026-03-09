@@ -29,7 +29,6 @@
  */
 
 #include "MultipoleT.h"
-
 #include "BeamlineVisitor.h"
 #include "AbsBeamline/MultipoleTFunctions/tanhDeriv.h"
 #include "MultipoleTStraight.h"
@@ -74,8 +73,8 @@ void MultipoleT::accept(BeamlineVisitor& visitor) const {
     visitor.visitMultipoleT(*this);
 }
 
-Vector_t<double> MultipoleT::rotateFrame(const Vector_t<double>& R) const {
-    Vector_t<double> R_prime(3), R_pprime(3);
+Vector_t<double, 3> MultipoleT::rotateFrame(const Vector_t<double, 3>& R) const {
+    Vector_t<double, 3> R_prime(3), R_pprime(3);
     /** Apply two 2D rotation matrices to coordinate vector
       * Rotate around central axis => skew fields
       * Rotate azimuthally => entrance angle
@@ -93,27 +92,27 @@ Vector_t<double> MultipoleT::rotateFrame(const Vector_t<double>& R) const {
     return R_pprime;
 }
 
-bool MultipoleT::insideAperture(const Vector_t<double>& R) const {
+bool MultipoleT::insideAperture(const Vector_t<double, 3>& R) const {
     return std::abs(R[1]) <= verticalApert_m / 2.0 &&
             std::abs(R[0]) <= horizontalApert_m / 2.0;
 }
 
-bool MultipoleT::insideBoundingBox(const Vector_t<double>& R) const {
+bool MultipoleT::insideBoundingBox(const Vector_t<double, 3>& R) const {
     return boundingBoxLength_m == 0.0 || fabs(R[2]) <= boundingBoxLength_m / 2.0;
 }
 
-Vector_t<double> MultipoleT::toMagnetCoords(const Vector_t<double>& R) {
+Vector_t<double, 3> MultipoleT::toMagnetCoords(const Vector_t<double, 3>& R) {
     /** Rotate coordinates around the central axis of the magnet */
     /* TODO:  I'm not sure this is the correct thing to do */
-    Vector_t<double> result = rotateFrame(R);
+    Vector_t<double, 3> result = rotateFrame(R);
     /** Go to local Frenet-Serret coordinates */
     result[2] *= -1; // OPAL uses a different sign convention...
     implementation_->transformCoords(result);
     return result;
 }
 
-Vector_t<double> MultipoleT::getField(const Vector_t<double>& magnetCoords) {
-    Vector_t<double> result;
+Vector_t<double, 3> MultipoleT::getField(const Vector_t<double, 3>& magnetCoords) {
+    Vector_t<double, 3> result;
     /** Calculate B-field in the local Frenet-Serret frame */
     result[0] = implementation_->getBx(magnetCoords);
     result[1] = implementation_->getBz(magnetCoords);
@@ -124,10 +123,10 @@ Vector_t<double> MultipoleT::getField(const Vector_t<double>& magnetCoords) {
     return result;
 }
 
-bool MultipoleT::apply(const Vector_t<double>& R, const Vector_t<double>& /*P*/, const double& t,
-        Vector_t<double>& /*E*/, Vector_t<double>& B) {
+bool MultipoleT::apply(const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& t,
+        Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B) {
     ;
-    const Vector_t<double> R_prime = toMagnetCoords(R);
+    const Vector_t<double, 3> R_prime = toMagnetCoords(R);
     bool result;
     if(insideAperture(R_prime) && insideBoundingBox(R_prime)) {
         B = getField(R_prime);
@@ -224,11 +223,11 @@ void MultipoleT::finalise() {
     RefPartBunch_m = nullptr;
 }
 
-bool MultipoleT::apply(const size_t& i, const double& t, Vector_t<double>& E, Vector_t<double>& B) {
+bool MultipoleT::apply(const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
     const std::shared_ptr<ParticleContainer_t> pc = RefPartBunch_m->getParticleContainer();
     const auto Rview = pc->R.getView();
     const Vector_t<double, 3> R = Rview(i);
-    const Vector_t<double> dummyP;
+    const Vector_t<double, 3> dummyP;
     return apply(R[i], dummyP, t, E, B);
 }
 
@@ -327,7 +326,7 @@ const BGeometryBase& MultipoleT::getGeometry() const {
     return *implementation_->getGeometry();
 }
 
-Vector_t<double> MultipoleT::localCartesianToOpalCartesian(const Vector_t<double>& r) {
+Vector_t<double, 3> MultipoleT::localCartesianToOpalCartesian(const Vector_t<double, 3>& r) {
     return implementation_->localCartesianToOpalCartesian(r);
 }
 

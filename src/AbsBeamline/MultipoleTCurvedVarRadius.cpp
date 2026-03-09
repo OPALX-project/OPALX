@@ -49,17 +49,17 @@ void MultipoleTCurvedVarRadius::initialise() {
     // Now work out where the entry point will be in the local cartesian coordinate system
     // whose origin is at the center of the magnet.
     localCartesianEntryPoint_ = curvilinearToLocalCartesian(
-            Vector_t<double>{0.0, 0.0, element_m->getLength() / 2.0 + element_m->getEntryOffset()});
+            Vector_t<double, 3>{0.0, 0.0, element_m->getLength() / 2.0 + element_m->getEntryOffset()});
     // The tangent to the curve at this point forms the z axis of the coordinate system
     // opal addresses us in, so we can calculate the rotation required
     auto secondPoint = curvilinearToLocalCartesian(
-            Vector_t<double>{0.0, 0.0,
+            Vector_t<double, 3>{0.0, 0.0,
                     element_m->getLength() / 2.0 + element_m->getEntryOffset() + TangentStep});
     localCartesianRotation_ = -atan2(secondPoint[0] - localCartesianEntryPoint_[0],
             secondPoint[2] - localCartesianEntryPoint_[2]);
 }
 
-void MultipoleTCurvedVarRadius::transformCoords(Vector_t<double>& R) {
+void MultipoleTCurvedVarRadius::transformCoords(Vector_t<double, 3>& R) {
     // Rotate Opal supplied cartesian coordinates around its origin
     auto x_rotated = R[0] * cos(localCartesianRotation_) -
             R[2] * sin(localCartesianRotation_);
@@ -72,8 +72,8 @@ void MultipoleTCurvedVarRadius::transformCoords(Vector_t<double>& R) {
     R = localCartesianToCurvilinear(R);
 }
 
-Vector_t<double>
-    MultipoleTCurvedVarRadius::localCartesianToOpalCartesian(const Vector_t<double>& r) {
+Vector_t<double, 3>
+    MultipoleTCurvedVarRadius::localCartesianToOpalCartesian(const Vector_t<double, 3>& r) {
     // Offset to the Opal origin
     auto x_offset = r[0] - localCartesianEntryPoint_[0];
     auto z_offset = r[2] - localCartesianEntryPoint_[2];
@@ -85,7 +85,7 @@ Vector_t<double>
     return {x_rotated, r[1], -z_rotated};
 }
 
-Vector_t<double> MultipoleTCurvedVarRadius::localCartesianToCurvilinear(const Vector_t<double>& r) {
+Vector_t<double, 3> MultipoleTCurvedVarRadius::localCartesianToCurvilinear(const Vector_t<double, 3>& r) {
     auto [s0, leftFringe, rightFringe] = element_m->getFringeField();
     double rho = element_m->getLength() / element_m->getBendAngle();
     coordinatetransform::CoordinateTransform t(r[0], r[1], r[2], s0, leftFringe, rightFringe, rho);
@@ -93,7 +93,7 @@ Vector_t<double> MultipoleTCurvedVarRadius::localCartesianToCurvilinear(const Ve
     return {result[0], result[1], result[2]};
 }
 
-void MultipoleTCurvedVarRadius::transformBField(Vector_t<double>& B, const Vector_t<double>& R) {
+void MultipoleTCurvedVarRadius::transformBField(Vector_t<double, 3>& B, const Vector_t<double, 3>& R) {
     auto [s0, leftFringe, rightFringe] = element_m->getFringeField();
     double rho = element_m->getLength() / element_m->getBendAngle();
     double prefactor = rho * (tanh(s0 / leftFringe) + tanh(s0 / rightFringe));
@@ -152,7 +152,7 @@ double MultipoleTCurvedVarRadius::getFn(unsigned int n, double x, double s) {
 }
 
 double MultipoleTCurvedVarRadius::reverseTransformResidual(
-        const Vector_t<double>& r, const Vector_t<double>& target) {
+        const Vector_t<double, 3>& r, const Vector_t<double, 3>& target) {
     // Return the distance between the vector r and the target.
     // We only consider the first and last coordinates as the height coordinate
     // is invariant across these transforms.
@@ -162,19 +162,19 @@ double MultipoleTCurvedVarRadius::reverseTransformResidual(
     return sqrt(dx * dx + ds * ds);
 }
 
-Vector_t<double> MultipoleTCurvedVarRadius::curvilinearToLocalCartesian(const Vector_t<double>& r) {
+Vector_t<double, 3> MultipoleTCurvedVarRadius::curvilinearToLocalCartesian(const Vector_t<double, 3>& r) {
     // This functions uses a minimize loop and coordinate descent with backtracking
     // to implement the inverse coordinate transform from the magnet's curvilinear
     // system to the local cartesian system whose origins are the centre of the magnet.
     // Note that this function is iterative and should therefore only be used occasionally.
-    Vector_t<double> result{r};
+    Vector_t<double, 3> result{r};
     double step = 1.0;
     double best_res = reverseTransformResidual(result, r);
     for(size_t iter = 0; iter < ReverseTransformMaxIterations; ++iter) {
         bool improved = false;
         for(int dim = 0; dim < 2; ++dim) {
             for(int dir = -1; dir <= 1; dir += 2) {
-                Vector_t<double> trial = result;
+                Vector_t<double, 3> trial = result;
                 if(dim == 0) {
                     trial[0] += dir * step;
                 } else {

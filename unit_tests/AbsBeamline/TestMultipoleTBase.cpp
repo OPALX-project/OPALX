@@ -13,16 +13,17 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL.  If not, see <https://www.gnu.org/licenses/>.
 //
-#include "gtest/gtest.h"
 #include "AbsBeamline/MultipoleTBase.h"
+#include "gtest/gtest.h"
 
 class MultipoleTBaseTest : public testing::Test, public MultipoleTBase {
 public:
-    MultipoleTBaseTest() : MultipoleTBase(nullptr) {}
+    MultipoleTBaseTest() : MultipoleTBase(nullptr) {
+    }
 
 protected:
     static void SetUpTestSuite() {
-        int argc = 0;
+        int argc    = 0;
         char** argv = nullptr;
 
         ippl::initialize(argc, argv);
@@ -41,22 +42,35 @@ protected:
     }
 
     // Overrides of MultipoleTBase
-    void initialise() override {}
-    BGeometryBase* getGeometry() override { return nullptr; }
-    const BGeometryBase* getGeometry() const override { return nullptr; }
-    void transformCoords(Vector_t<double>& /*R*/) override {}
-    void transformBField(Vector_t<double>& /*B*/, const Vector_t<double>& /*R*/) override {}
-    double getScaleFactor(double /*x*/, double /*s*/) override { return 1.0; }
-    double getFn(unsigned int /*n*/, double /*x*/, double /*s*/) override { return 0.0; }
-    Vector_t<double> localCartesianToOpalCartesian(const Vector_t<double>& r) override { return r; }
+    void initialise() override {
+    }
+    BGeometryBase* getGeometry() override {
+        return nullptr;
+    }
+    const BGeometryBase* getGeometry() const override {
+        return nullptr;
+    }
+    void transformCoords(Vector_t<double, 3>& /*R*/) override {
+    }
+    void transformBField(Vector_t<double, 3>& /*B*/, const Vector_t<double, 3>& /*R*/) override {
+    }
+    double getScaleFactor(double /*x*/, double /*s*/) override {
+        return 1.0;
+    }
+    double getFn(unsigned int /*n*/, double /*x*/, double /*s*/) override {
+        return 0.0;
+    }
+    Vector_t<double, 3> localCartesianToOpalCartesian(const Vector_t<double, 3>& r) override {
+        return r;
+    }
 
     // Tanh derivative coefficient test helper
     std::vector<double> tanhCoefficients(const unsigned int derivative) const {
         std::vector<double> coefficients;
-        const auto numCoefficients = tanhCoefficients_m.extent(1);
+        const auto numCoefficients = tanhCoefficientsHost_m.extent(1);
         coefficients.resize(numCoefficients);
-        for(unsigned int i = 0; i < numCoefficients ; ++i) {
-            coefficients[i] = tanhCoefficients_m(derivative, i);
+        for (unsigned int i = 0; i < numCoefficients; ++i) {
+            coefficients[i] = tanhCoefficientsHost_m(derivative, i);
         }
         return coefficients;
     }
@@ -88,8 +102,8 @@ TEST_F(MultipoleTBaseTest, FringeDerivatives) {
     Kokkos::Array<double, MaxDerivatives> derivativesNeg;
     Kokkos::Array<double, MaxDerivatives> derivativesPos;
     generateTanhCoefficients(6);
-    calcFringeDerivatives(2.0, 1.0, 1.0, -2.0, tanhCoefficients_m, derivativesNeg);
-    calcFringeDerivatives(2.0, 1.0, 1.0, 2.0, tanhCoefficients_m, derivativesPos);
+    calcFringeDerivatives(2.0, 1.0, 1.0, -2.0, tanhCoefficientsHost_m, derivativesNeg);
+    calcFringeDerivatives(2.0, 1.0, 1.0, 2.0, tanhCoefficientsHost_m, derivativesPos);
     EXPECT_NEAR(derivativesNeg[0], 0.49966464986953352, 1e-10);
     EXPECT_NEAR(derivativesPos[0], 0.49966464986953352, 1e-10);
     EXPECT_NEAR(derivativesNeg[1], 0.49932952465848707, 1e-10);

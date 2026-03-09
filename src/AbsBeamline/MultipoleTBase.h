@@ -88,7 +88,8 @@ public:
 
 protected:
     MultipoleT* element_m;
-    Kokkos::View<double**> tanhCoefficients_m;
+    Kokkos::View<double**> tanhCoefficientsDevice_m;
+    Kokkos::View<double**, Kokkos::CudaHostPinnedSpace> tanhCoefficientsHost_m;
 
 public:
     /** Initialise the element */
@@ -98,9 +99,9 @@ public:
     /** Return the cell geometry */
     virtual const BGeometryBase* getGeometry() const = 0;
     /** Transform to Frenet-Serret coordinates for sector magnets */
-    virtual void transformCoords(Vector_t<double>& R) = 0;
+    virtual void transformCoords(Vector_t<double, 3>& R) = 0;
     /** Transform B-field from Frenet-Serret coordinates to lab coordinates */
-    virtual void transformBField(Vector_t<double>& B, const Vector_t<double>& R) = 0;
+    virtual void transformBField(Vector_t<double, 3>& B, const Vector_t<double, 3>& R) = 0;
     /** Returns the scale factor @f$ h_s = 1 + x / \rho(s) @f$
      *  \param x -> Coordinate x
      *  \param s -> Coordinate s
@@ -110,17 +111,17 @@ public:
      *  Returns zero far outside fringe field
      *  @f$ Bx = sum_n z^(2n+1) / (2n+1)! * \partial_x f_n @f$
      */
-    virtual double getBx(const Vector_t<double>& R);
+    virtual double getBx(const Vector_t<double, 3>& R);
     /** Returns the vertical field component \n
      *  Returns zero far outside fringe field
      *  @f$ Bz = sum_n  f_n * z^(2n) / (2n)! @f$
      */
-    virtual double getBz(const Vector_t<double>& R);
+    virtual double getBz(const Vector_t<double, 3>& R);
     /** Returns the component of the field along the central axis \n
      *  Returns zero far outside fringe field
       * @f$ Bs = sum_n z^(2n+1) / (2n+1)! \partial_s f_n / h_s @f$
       */
-    virtual double getBs(const Vector_t<double>& R);
+    virtual double getBs(const Vector_t<double, 3>& R);
     /** Calculate fn(x, s) by expanding the differential operator
      *  (from Laplacian and scalar potential) in terms of polynomials
      *  \param n -> nth derivative
@@ -134,7 +135,7 @@ public:
      */
     virtual void setMaxOrder(size_t /*orderZ*/, size_t /*orderX*/) {}
 
-    virtual Vector_t<double> localCartesianToOpalCartesian(const Vector_t<double>& r) = 0;
+    virtual Vector_t<double, 3> localCartesianToOpalCartesian(const Vector_t<double, 3>& r) = 0;
     virtual double localCartesianRotation() { return 0.0; }
 
 protected:
@@ -156,9 +157,10 @@ protected:
     static void calcTransverseDerivatives(const Kokkos::Array<double, NumPoles>& poles,
             unsigned int numDerivatives, double x,
             Kokkos::Array<double, MaxDerivatives>& derivatives);
+    template<class ViewType>
     KOKKOS_INLINE_FUNCTION
     static void calcFringeDerivatives(const double& s0, const double& lambdaLeft,
-            const double& lambdaRight, double s, Kokkos::View<double**> tanhCoefficients,
+            const double& lambdaRight, double s, const ViewType& tanhCoefficients,
             Kokkos::Array<double, MaxDerivatives>& derivatives);
     void generateTanhCoefficients(unsigned int numDerivatives);
 };
@@ -230,9 +232,10 @@ void MultipoleTBase::calcTransverseDerivatives(const Kokkos::Array<double, NumPo
     }
 }
 
+template<class ViewType>
 KOKKOS_INLINE_FUNCTION
 void MultipoleTBase::calcFringeDerivatives(const double& s0, const double& lambdaLeft,
-        const double& lambdaRight, const double s, Kokkos::View<double**> tanhCoefficients,
+        const double& lambdaRight, const double s, const ViewType& tanhCoefficients,
         Kokkos::Array<double, MaxDerivatives>& derivatives) {
     const double tLeft = std::tanh((s + s0) / lambdaLeft);
     const double tRight = std::tanh((s - s0) / lambdaRight);
