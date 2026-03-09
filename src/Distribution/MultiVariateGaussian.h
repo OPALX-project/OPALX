@@ -104,8 +104,8 @@ public:
      * @brief Time-stepped emission hook for one-shot delayed injection.
      *
      * Like Gaussian, this emits once when [t, t+dt] crosses t0 for sources
-     * configured with t0 > 0 and a positive NPARTDIST. For t0 == 0, initial
-     * sampling is performed in TrackRun via generateParticles.
+     * configured with t0 > 0 and a positive NPARTDIST. Initial sampling at
+     * t0 == 0 is handled via generateParticles.
      */
     void emitParticles(double t, double dt) override;
 

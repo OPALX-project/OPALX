@@ -68,8 +68,8 @@ public:
      * @brief Time-stepped emission hook for one-shot delayed file-based injection.
      *
      * When a source using FROMFILE has t0 > 0 and a positive NPARTDIST, the sampler
-     * will read and inject particles once when [t, t+dt] crosses t0. For t0 == 0,
-     * TrackRun handles sampling at initialization via generateParticles.
+     * will read and inject particles once when [t, t+dt] crosses t0. Initial sampling
+     * at t0 == 0 is handled via generateParticles.
      */
     void emitParticles(double t, double dt) override;
 

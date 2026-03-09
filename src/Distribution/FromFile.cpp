@@ -233,6 +233,12 @@ std::string FromFile::normalizeColumnName(const std::string& name) {
 }
 
 void FromFile::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> /*nr*/) {
+    // Only generate during initial sampling (t0 <= 0). For t0 > 0, this
+    // distribution is time-independent and should not contribute here unless
+    // explicitly triggered via emitParticles (which sets hasEmittedOnce_m).
+    if (t0_m > 0.0 && !hasEmittedOnce_m) {
+        return;
+    }
     Inform m("FromFile::generateParticles");
 
     // Use number of particles from file if available, otherwise use requested number
@@ -320,8 +326,6 @@ void FromFile::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> 
     ippl::Comm->barrier();
     mALL << "Rank " << rank << ": " << nlocal << " local particles" << endl;
     ippl::Comm->barrier();
-
-    hasEmittedOnce_m = true;
 }
 
 void FromFile::emitParticles(double t, double dt) {
@@ -330,13 +334,12 @@ void FromFile::emitParticles(double t, double dt) {
     const double tEnd   = t + dt;
 
     if (hasEmittedOnce_m) {
-        // Don't sample again!
+        // Don't sample again.
         return;
     }
 
-    if (std::abs(t0_m) < 0.0) {
-        throw OpalException("FromFile::emitParticles",
-                            "T0 attribute must be positive.");
+    if (t0_m <= 0.0) {
+        return;
     }
 
     if (!(tStart <= t0_m && t0_m < tEnd)) {
@@ -354,7 +357,7 @@ void FromFile::emitParticles(double t, double dt) {
         return;
     }
 
+    hasEmittedOnce_m = true;
     Vector_t<double, 3> dummyNr(0.0);
     generateParticles(requested, dummyNr);
-    hasEmittedOnce_m = true;
 }
