@@ -197,6 +197,12 @@ void MultiVariateGaussian::ComputeCenteredBounds() {
  * @brief Generates particles following a multivariate Gaussian distribution.
  */
 void MultiVariateGaussian::generateParticles(size_t &numberOfParticles, Vector_t<double, 3> /*nr*/) {
+    // Only generate during initial sampling (t0 <= 0). For t0 > 0, this
+    // distribution is time-independent and should not contribute here unless
+    // explicitly triggered via emitParticles (which sets hasEmittedOnce_m).
+    if (t0_m > 0.0 && !hasEmittedOnce_m) {
+        return;
+    }
     IpplTimings::startTimer(samplerTimer_m);
 
     auto rand_pool64 = randPool_m;
@@ -340,7 +346,6 @@ void MultiVariateGaussian::generateParticles(size_t &numberOfParticles, Vector_t
     Kokkos::fence();
 
     IpplTimings::stopTimer(samplerTimer_m);
-    hasEmittedOnce_m = true;
 }
 
 void MultiVariateGaussian::emitParticles(double t, double dt) {
@@ -352,9 +357,7 @@ void MultiVariateGaussian::emitParticles(double t, double dt) {
         return;
     }
 
-    if (std::abs(t0_m) < 0.0) {
-        throw OpalException("MultiVariateGaussian::emitParticles",
-                            "T0 attribute must be positive.");
+    if (t0_m <= 0.0) {
         return;
     }
 
@@ -370,7 +373,7 @@ void MultiVariateGaussian::emitParticles(double t, double dt) {
         return;
     }
 
+    hasEmittedOnce_m = true;
     Vector_t<double, 3> dummyNr(0.0);
     generateParticles(Ndist, dummyNr);
-    hasEmittedOnce_m = true;
 }

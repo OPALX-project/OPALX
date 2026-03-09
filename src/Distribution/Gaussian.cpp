@@ -62,6 +62,12 @@ void Gaussian::initRandomPool() {
  * @param nr The number of grid points in each dimension (not used here).
  */
 void Gaussian::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> /*nr*/) {
+    // Only generate during initial sampling (t0 <= 0). For t0 > 0, this
+    // distribution is time-independent and should not contribute here unless
+    // explicitly triggered via emitParticles (which sets hasEmittedOnce_m).
+    if (t0_m > 0.0 && !hasEmittedOnce_m) {
+        return;
+    }
     auto rand_pool64 = randPool_m;
 
     IpplTimings::startTimer(samperTimer_m);
@@ -161,24 +167,19 @@ void Gaussian::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> 
     Kokkos::fence();
 
     IpplTimings::stopTimer(samperTimer_m);
-    hasEmittedOnce_m = true;
 }
 
 void Gaussian::emitParticles(double t, double dt) {
-    // One-shot delayed emission: emit once when [t, t+dt] crosses t0_m.
-    // For t0 == 0, TrackRun has already called generateParticles at initialization.
+    // One-shot delayed emission for GAUSS: emit once when [t, t+dt] crosses t0_m.
     const double tStart = t;
     const double tEnd   = t + dt;
 
-    // Guard against multiple emissions.
     if (hasEmittedOnce_m) {
         return;
     }
 
-    // If t0 is effectively zero, treat this as an initial distribution handled elsewhere.
-    if (std::abs(t0_m) < 0.0) {
-        throw OpalException("Gaussian::emitParticles",
-                            "T0 attribute must be positive.");
+    // Only meaningful for t0 > 0.
+    if (t0_m <= 0.0) {
         return;
     }
 
@@ -187,7 +188,6 @@ void Gaussian::emitParticles(double t, double dt) {
         return;
     }
 
-    // Use the per-distribution particle count configured via NPARTDIST.
     if (!opalDist_m) {
         return;
     }
@@ -196,9 +196,9 @@ void Gaussian::emitParticles(double t, double dt) {
         return;
     }
 
-    // Reuse the existing spatial/momentum sampling implementation.
+    // Mark as emitted so generateParticles will not early-return.
+    hasEmittedOnce_m = true;
     Vector_t<double, 3> dummyNr(0.0);
     generateParticles(Ndist, dummyNr);
-    hasEmittedOnce_m = true;
 }
 
