@@ -89,7 +89,7 @@ public:
 protected:
     MultipoleT* element_m;
     Kokkos::View<double**> tanhCoefficientsDevice_m;
-    Kokkos::View<double**, Kokkos::CudaHostPinnedSpace> tanhCoefficientsHost_m;
+    Kokkos::View<double**, Kokkos::SharedHostPinnedSpace> tanhCoefficientsHost_m;
 
 public:
     /** Initialise the element */
