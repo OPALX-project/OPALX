@@ -321,11 +321,11 @@ double FlatTop::countEnteringParticlesPerRank(double t0, double tf){
 void FlatTop::allocateParticles(size_t numberOfParticles){
     totalN_m = numberOfParticles;
 
-    size_type nlocal;
-
-    nlocal = computeNlocalUniformly(totalN_m);
-
-    pc_m->create(nlocal);
+    // Initial allocation is now handled centrally in TrackRun / PartBunch via the
+    // bunch's total particle count. Here we only record the desired total number
+    // of particles for this distribution. Actual per-step emission will append
+    // new particles using pc_m->create(nNew), guarded by a global BEAM::NPART
+    // limit in ParallelTracker.
 }
 
 void FlatTop::emitParticles(double t, double dt) {

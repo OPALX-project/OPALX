@@ -181,6 +181,11 @@ private:
     /// Temporary E field container used to store temporary E field during binned solver
     std::shared_ptr<VField_t<T, Dim>> Etmp_m;
 
+    /// Maximum allowed number of local macroparticles on this rank.
+    /// Used as a safety guard to detect when particle emission triggers an
+    /// internal resize (Kokkos::realloc) of the particle arrays.
+    size_t maxLocalNum_m = 0;
+
 public:
 
     /**
@@ -211,6 +216,12 @@ public:
     std::shared_ptr<ParticleContainer_t> getParticleContainer() {
         return this->pcontainer_m;
     }
+
+    /// Set / get the maximum allowed number of local macroparticles on this rank.
+    /// Initialised from the global total number of macroparticles and the MPI
+    /// world size (see TrackRun) and used to detect over-emission.
+    void setMaxLocalNum(size_t n) { maxLocalNum_m = n; }
+    size_t getMaxLocalNum() const { return maxLocalNum_m; }
 
     void setSolver();
 

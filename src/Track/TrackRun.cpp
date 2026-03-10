@@ -274,8 +274,21 @@ void TrackRun::execute() {
     bunch_m->setT(0.0);
     bunch_m->setBeamFrequency(beam->getFrequency() * Units::MHz2Hz);
 
+    // Configure a per-rank upper bound for the number of macroparticles. This is
+    // used later to detect when emission causes the underlying particle arrays to
+    // grow beyond their initial capacity (which would trigger a Kokkos::realloc
+    // and lead to silent particle loss). If distribution are set up correctly, there should not be
+    // an issue. The max number also gets a few particles extra accounting for N%ranks != 0.
+    // Alternatively, one can always do an overallocation.
+    const double nRanks = static_cast<double>(ippl::Comm->size());
+    bunch_m->setMaxLocalNum(static_cast<size_t>(totalParticlesForBunch / nRanks + 2 * nRanks + 1));
+
+    // Allocate particle memory in the container, can be done after the constructor of the bunch is
+    // done (sets up the container).
+    bunch_m->getParticleContainer()->create(bunch_m->getMaxLocalNum());
+
     *gmsg << level2 << *(bunch_m->getBCHandler()) << endl;
-    
+
     setupBoundaryGeometry();
 
     // Get algorithm to use.
