@@ -78,14 +78,15 @@ protected:
 
 TEST_F(MultipoleTBaseTest, TransverseDerivatives) {
     constexpr Kokkos::Array poles = {0.0, 1.0, 2.0, 3.0, 4.0, 5.0};
-    Kokkos::Array<double, MaxDerivatives> derivatives;
-    calcTransverseDerivatives(poles, 6, 1.0, derivatives);
-    EXPECT_DOUBLE_EQ(derivatives[0], 55.0);
-    EXPECT_DOUBLE_EQ(derivatives[1], 170.0);
-    EXPECT_DOUBLE_EQ(derivatives[2], 414.0);
-    EXPECT_DOUBLE_EQ(derivatives[3], 696.0);
-    EXPECT_DOUBLE_EQ(derivatives[4], 600.0);
-    EXPECT_DOUBLE_EQ(derivatives[5], 0.0);
+    Kokkos::Array<double, MaxDerivatives> derivatives{};
+    calcTransverseDerivatives(poles, 7, 1.0, derivatives);
+    EXPECT_DOUBLE_EQ(derivatives[0], 15.0);
+    EXPECT_DOUBLE_EQ(derivatives[1], 55.0);
+    EXPECT_DOUBLE_EQ(derivatives[2], 170.0);
+    EXPECT_DOUBLE_EQ(derivatives[3], 414.0);
+    EXPECT_DOUBLE_EQ(derivatives[4], 696.0);
+    EXPECT_DOUBLE_EQ(derivatives[5], 600.0);
+    EXPECT_DOUBLE_EQ(derivatives[6], 0.0);
 }
 
 TEST_F(MultipoleTBaseTest, FringeDerivativeConstants) {
@@ -99,8 +100,8 @@ TEST_F(MultipoleTBaseTest, FringeDerivativeConstants) {
 }
 
 TEST_F(MultipoleTBaseTest, FringeDerivatives) {
-    Kokkos::Array<double, MaxDerivatives> derivativesNeg;
-    Kokkos::Array<double, MaxDerivatives> derivativesPos;
+    Kokkos::Array<double, MaxDerivatives> derivativesNeg{};
+    Kokkos::Array<double, MaxDerivatives> derivativesPos{};
     generateTanhCoefficients(6);
     calcFringeDerivatives(2.0, 1.0, 1.0, -2.0, tanhCoefficientsHost_m, derivativesNeg);
     calcFringeDerivatives(2.0, 1.0, 1.0, 2.0, tanhCoefficientsHost_m, derivativesPos);

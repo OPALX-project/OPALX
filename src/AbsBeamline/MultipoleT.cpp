@@ -44,20 +44,7 @@ MultipoleT::MultipoleT(const std::string& name)
 
 MultipoleT::MultipoleT(const MultipoleT& right)
     : Component(right),
-    fringeField_l(right.fringeField_l),
-    fringeField_r(right.fringeField_r),
-    maxFOrder_m(right.maxFOrder_m),
-    maxXOrder_m(right.maxXOrder_m),
-    transProfile_m(right.transProfile_m),
-    transMaxOrder_m(right.transMaxOrder_m),
-    length_m(right.length_m),
-    entranceAngle_m(right.entranceAngle_m),
-    rotation_m(right.rotation_m),
-    bendAngle_m(right.bendAngle_m),
-    variableRadius_m(right.variableRadius_m),
-    boundingBoxLength_m(right.boundingBoxLength_m),
-    verticalApert_m(right.verticalApert_m),
-    horizontalApert_m(right.horizontalApert_m),
+    config_m(right.config_m),
     scalingName_m(right.scalingName_m),
     scalingTD_m(right.scalingTD_m) {
     RefPartBunch_m = right.RefPartBunch_m;
@@ -80,25 +67,25 @@ Vector_t<double, 3> MultipoleT::rotateFrame(const Vector_t<double, 3>& R) const 
       * Rotate azimuthally => entrance angle
      */
     // 1st rotation
-    R_prime[0] = R[0] * std::cos(rotation_m) + R[1] * std::sin(rotation_m);
-    R_prime[1] = -R[0] * std::sin(rotation_m) + R[1] * std::cos(rotation_m);
+    R_prime[0] = R[0] * std::cos(config_m.rotation_m) + R[1] * std::sin(config_m.rotation_m);
+    R_prime[1] = -R[0] * std::sin(config_m.rotation_m) + R[1] * std::cos(config_m.rotation_m);
     R_prime[2] = R[2];
     // 2nd rotation
-    R_pprime[0] = R_prime[2] * std::sin(entranceAngle_m) +
-            R_prime[0] * std::cos(entranceAngle_m);
+    R_pprime[0] = R_prime[2] * std::sin(config_m.entranceAngle_m) +
+            R_prime[0] * std::cos(config_m.entranceAngle_m);
     R_pprime[1] = R_prime[1];
-    R_pprime[2] = R_prime[2] * std::cos(entranceAngle_m) -
-            R_prime[0] * std::sin(entranceAngle_m);
+    R_pprime[2] = R_prime[2] * std::cos(config_m.entranceAngle_m) -
+            R_prime[0] * std::sin(config_m.entranceAngle_m);
     return R_pprime;
 }
 
 bool MultipoleT::insideAperture(const Vector_t<double, 3>& R) const {
-    return std::abs(R[1]) <= verticalApert_m / 2.0 &&
-            std::abs(R[0]) <= horizontalApert_m / 2.0;
+    return std::abs(R[1]) <= config_m.verticalAperture_m / 2.0 &&
+            std::abs(R[0]) <= config_m.horizontalAperture_m / 2.0;
 }
 
 bool MultipoleT::insideBoundingBox(const Vector_t<double, 3>& R) const {
-    return boundingBoxLength_m == 0.0 || fabs(R[2]) <= boundingBoxLength_m / 2.0;
+    return config_m.boundingBoxLength_m == 0.0 || fabs(R[2]) <= config_m.boundingBoxLength_m / 2.0;
 }
 
 Vector_t<double, 3> MultipoleT::toMagnetCoords(const Vector_t<double, 3>& R) {
@@ -123,39 +110,48 @@ Vector_t<double, 3> MultipoleT::getField(const Vector_t<double, 3>& magnetCoords
     return result;
 }
 
-bool MultipoleT::apply(const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& t,
-        Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B) {
-    ;
-    const Vector_t<double, 3> R_prime = toMagnetCoords(R);
-    bool result;
-    if(insideAperture(R_prime) && insideBoundingBox(R_prime)) {
-        B = getField(R_prime);
-        if(scalingTD_m) {
-            B *= scalingTD_m->getValue(t);
-        }
-        result = false;
-    } else {
-        B = {0.0, 0.0, 0.0};
-        result = getFlagDeleteOnTransverseExit();
+double MultipoleT::getScaling(const double t) const {
+    double scaling = 1.0;
+    if(scalingTD_m) {
+        scaling = scalingTD_m->getValue(t);
     }
-    return result;
+    return scaling;
+}
+
+bool MultipoleT::apply() {
+    const auto pc = RefPartBunch_m->getParticleContainer();
+    implementation_->getField(pc->R.getView(), pc->E.getView(), pc->B.getView(),
+            getScaling(RefPartBunch_m->getT()));
+    return false;
+}
+
+bool MultipoleT::apply(const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/,
+        const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
+    implementation_->getField(R, E, B, getScaling(t));
+    return false;
+}
+
+bool MultipoleT::apply(const size_t& i, const double& t, Vector_t<double, 3>& E,
+        Vector_t<double, 3>& B) {
+    const auto pc = RefPartBunch_m->getParticleContainer();
+    implementation_->getField(pc->R.getView()(i), E, B, getScaling(t));
+    return false;
 }
 
 void MultipoleT::setFringeField(const double& s0, const double& lambda_l, const double& lambda_r) {
-    fringeField_l.setLambda(lambda_l);
-    fringeField_l.setX0(s0);
-    fringeField_r.setLambda(lambda_r);
-    fringeField_r.setX0(s0);
-    Tanh::setTanhDiffIndices(2 * maxFOrder_m + 1); // Static table builds highest order encountered
+    config_m.fringeS0_m = s0;
+    config_m.fringeLambdaLeft_m = lambda_l;
+    config_m.fringeLambdaRight_m = lambda_r;
     implementation_->initialise();
 }
 
 std::tuple<double, double, double> MultipoleT::getFringeField() const {
-    return {fringeField_l.getX0(), fringeField_l.getLambda(), fringeField_r.getLambda()};
+    return {config_m.fringeS0_m, config_m.fringeLambdaLeft_m, config_m.fringeLambdaRight_m};
 }
 
 double MultipoleT::getFringeDeriv(const std::size_t& n, const double& s) {
-    double result;
+    double result{};
+#if 0
     if(n <= 10) {
         result = (fringeField_l.getTanh(s, static_cast<int>(n)) -
             fringeField_r.getNegTanh(s, static_cast<int>(n))) / 2;
@@ -164,6 +160,7 @@ double MultipoleT::getFringeDeriv(const std::size_t& n, const double& s) {
                 s, fringeField_l.getX0(), fringeField_l.getLambda(),
                 fringeField_r.getLambda(), static_cast<int>(n));
     }
+#endif
     return result;
 }
 
@@ -173,10 +170,10 @@ double MultipoleT::getTransDeriv(const std::size_t& n, const double& x) const {
     if(n > transMaxOrder) {
         return func;
     }
-    std::vector<double> temp = getTransProfile();
+    auto temp = getTransProfile();
     for(std::size_t i = 1; i <= n; i++) {
         for(std::size_t j = 0; j <= transMaxOrder; j++) {
-            if(j <= transMaxOrder_m - i) {
+            if(j <= config_m.transverseProfileMaxOrder_m - i) {
                 temp[j] = temp[j + 1] * static_cast<double>(j + 1);
             } else {
                 temp[j] = 0.0;
@@ -223,33 +220,25 @@ void MultipoleT::finalise() {
     RefPartBunch_m = nullptr;
 }
 
-bool MultipoleT::apply(const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
-    const std::shared_ptr<ParticleContainer_t> pc = RefPartBunch_m->getParticleContainer();
-    const auto Rview = pc->R.getView();
-    const Vector_t<double, 3> R = Rview(i);
-    const Vector_t<double, 3> dummyP;
-    return apply(R[i], dummyP, t, E, B);
-}
-
 void MultipoleT::setElementLength(double length) {
     // Base class first
     Component::setElementLength(length);
     // Then me
-    length_m = length;
+    config_m.length_m = length;
     implementation_->initialise();
 }
 
 void MultipoleT::setBendAngle(double angle, bool variableRadius) {
     // Record information
-    bendAngle_m = angle;
-    variableRadius_m = variableRadius;
+    config_m.bendAngle_m = angle;
+    config_m.variableRadius_m = variableRadius;
     chooseImplementation();
 }
 
 void MultipoleT::chooseImplementation() {
-    if(bendAngle_m == 0.0) {
+    if(config_m.bendAngle_m == 0.0) {
         implementation_ = std::make_unique<MultipoleTStraight>(this);
-    } else if(variableRadius_m) {
+    } else if(config_m.variableRadius_m) {
         implementation_ = std::make_unique<MultipoleTCurvedVarRadius>(this);
     } else {
         implementation_ = std::make_unique<MultipoleTCurvedConstRadius>(this);
@@ -258,42 +247,47 @@ void MultipoleT::chooseImplementation() {
 }
 
 void MultipoleT::setAperture(const double& vertAp, const double& horizAp) {
-    verticalApert_m = vertAp;
-    horizontalApert_m = horizAp;
+    config_m.verticalAperture_m = vertAp;
+    config_m.horizontalAperture_m = horizAp;
 }
 
 void MultipoleT::setBoundingBoxLength(double boundingBoxLength) {
-    boundingBoxLength_m = boundingBoxLength;
+    config_m.boundingBoxLength_m = boundingBoxLength;
 }
 
 void MultipoleT::setTransProfile(const std::vector<double>& profile) {
-    transProfile_m = profile;
-    if(transProfile_m.empty()) {
-        transProfile_m = {0.0};
+    config_m.transverseProfileMaxOrder_m = 1;
+    for(unsigned int i = 0; i < MultipoleTConfig::NumPoles; ++i) {
+        if(i < profile.size() && profile[i] != 0.0) {
+            config_m.transverseProfile_m[i] = profile[i];
+            config_m.transverseProfileMaxOrder_m =
+                    std::max(config_m.transverseProfileMaxOrder_m, i);
+        } else {
+            config_m.transverseProfile_m[i] = 0.0;
+        }
     }
-    transMaxOrder_m = transProfile_m.size() - 1;
 }
 
 void MultipoleT::setMaxOrder(size_t orderZ, size_t orderX) {
-    maxFOrder_m = orderZ;
-    maxXOrder_m = orderX;
-    implementation_->setMaxOrder(maxFOrder_m, maxXOrder_m);
+    config_m.maxFOrder_m = orderZ;
+    config_m.maxXOrder_m = orderX;
+    implementation_->setMaxOrder(config_m.maxFOrder_m, config_m.maxXOrder_m);
 }
 
 void MultipoleT::setRotation(double rot) {
-    rotation_m = rot;
+    config_m.rotation_m = rot;
 }
 
 void MultipoleT::setEntranceAngle(double entranceAngle) {
-    entranceAngle_m = entranceAngle;
+    config_m.entranceAngle_m = entranceAngle;
 }
 
 void MultipoleT::setEntryOffset(double offset) {
-    entryOffset_m = offset;
+    config_m.entryOffset_m = offset;
 }
 
 bool MultipoleT::bends() const {
-    return transProfile_m[0] != 0 || bendAngle_m != 0.0;
+    return config_m.transverseProfile_m[0] != 0 || config_m.bendAngle_m != 0.0;
 }
 
 void MultipoleT::initialise(PartBunch_t* bunch,

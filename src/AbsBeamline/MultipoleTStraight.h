@@ -75,10 +75,11 @@
   * ---------------------------------------------------------------------
   */
 
+#include "AbsBeamline/MultipoleT.h"
 #include "BeamlineGeometry/StraightGeometry.h"
-#include "AbsBeamline/MultipoleTBase.h"
+#include "AbsBeamline/MultipoleTConfig.h"
 
-class MultipoleTStraight final: public MultipoleTBase {
+class MultipoleTStraight final : public MultipoleTBase {
 public:
     /** Constructor */
     explicit MultipoleTStraight(MultipoleT* element);
@@ -88,8 +89,15 @@ public:
     BGeometryBase* getGeometry() override { return &straightGeometry_m; }
     /** Return the cell geometry */
     const BGeometryBase* getGeometry() const override { return &straightGeometry_m; }
+    /** Return the field for an array of points */
+    void getField(const Kokkos::View<Vector_t<double, 3>*>& R,
+            Kokkos::View<Vector_t<double, 3>*>& E, Kokkos::View<Vector_t<double, 3>*>& B,
+            double scaling) override;
+    void getField(const Vector_t<double, 3>& R,
+            Vector_t<double, 3>& E, Vector_t<double, 3>& B,
+            double scaling) override;
     /** Transform to Frenet-Serret coordinates for sector magnets */
-    void transformCoords(Vector_t<double, 3> &R) override;
+    void transformCoords(Vector_t<double, 3>& R) override;
     /** Transform B-field from Frenet-Serret coordinates to lab coordinates */
     void transformBField(Vector_t<double, 3>& /*B*/, const Vector_t<double, 3>& /*R*/) override {}
     /** Returns the scale factor @f$ h_s = 1@f$
@@ -101,12 +109,12 @@ public:
      *  This function has been overloaded because calculating \n
      *  the B-field directly is quicker and more accurate
      */
-    double getBx (const Vector_t<double, 3>& R) override;
+    double getBx(const Vector_t<double, 3>& R) override;
     /** Get s-component of the B-field \n
      *  This function has been overloaded because calculating \n
      *  the B-field directly is quicker and more accurate
      */
-    double getBs (const Vector_t<double, 3>& R) override;
+    double getBs(const Vector_t<double, 3>& R) override;
     /** Calculate fn(x, s) by expanding the differential operator
      *  (from Laplacian and scalar potential) in terms of polynomials
      *  \param n -> nth derivative
@@ -120,6 +128,65 @@ public:
 private:
     /** Geometry */
     StraightGeometry straightGeometry_m;
+
+    // Helpers
+    KOKKOS_INLINE_FUNCTION static Vector_t<double, 3> toMagnetCoords(const Vector_t<double, 3>& R,
+            const MultipoleTConfig& config);
+    template<class ViewType>
+    KOKKOS_INLINE_FUNCTION static void computeBField(const Vector_t<double, 3>& R,
+            Vector_t<double, 3>& B, double scaling, const MultipoleTConfig& config,
+            const ViewType& tanhCoefficients);
 };
+
+KOKKOS_INLINE_FUNCTION Vector_t<double, 3> MultipoleTStraight::toMagnetCoords(
+        const Vector_t<double, 3>& R, const MultipoleTConfig& config) {
+    Vector_t<double, 3> result = rotateFrame(R, config);
+    /** Go to local Frenet-Serret coordinates */
+    result[2] *= -1; // OPAL uses a different sign convention...
+    // Magnet origin at the center rather than entry
+    result[2] += config.length_m / 2.0;
+    return result;
+}
+
+template<class ViewType>
+KOKKOS_INLINE_FUNCTION void MultipoleTStraight::computeBField(const Vector_t<double, 3>& R,
+        Vector_t<double, 3>& B, const double scaling, const MultipoleTConfig& config,
+        const ViewType& tanhCoefficients) {
+    B = {0.0, 0.0, 0.0};
+    const Vector_t<double, 3> RPrime = toMagnetCoords(R, config);
+    const bool insideAperture =
+            Kokkos::abs(RPrime[1]) <= config.verticalAperture_m / 2.0 &&
+            Kokkos::abs(RPrime[0]) <= config.horizontalAperture_m / 2.0;
+    const bool insideBoundingBox =
+            Kokkos::abs(RPrime[2]) <= config.boundingBoxLength_m / 2.0;
+    if(insideAperture && insideBoundingBox) {
+        Kokkos::Array<double, MaxDerivatives> dt;
+        Kokkos::Array<double, MaxDerivatives> ds;
+        calcTransverseDerivatives(config.transverseProfile_m, config.maxFOrder_m * 2 + 1, R[0], dt);
+        calcFringeDerivatives(config.fringeS0_m, config.fringeLambdaLeft_m, config.fringeLambdaRight_m,
+            R[2], tanhCoefficients, ds);
+        for(unsigned int n = 0; n <= config.maxFOrder_m; n++) {
+            double innerSumX{};
+            double innerSumZ{};
+            double innerSumS{};
+            for(unsigned int i = 0; i <= n; i++) {
+                const double k = factorial(n) / (factorial(i) * factorial(n - i));
+                innerSumX += k * dt[2 * i + 1] * ds[2 * n - 2 * i];
+                innerSumZ += k * dt[2 * i] * ds[2 * n - 2 * i];
+                innerSumS += k * dt[2 * i] * ds[2 * n - 2 * i + 1];
+            }
+            const double negOnePowN = powerInteger(-1.0, n);
+            const double xszk = powerInteger(R[1], 2 * n + 1) / factorial(2 * n + 1) * negOnePowN;
+            const double zzk = powerInteger(R[1], 2 * n) / factorial(2 * n) * negOnePowN;
+            B[0] += innerSumX * xszk;
+            B[1] += innerSumZ * zzk;
+            B[2] += innerSumS * xszk;
+        }
+        B[0] *= scaling;
+        B[1] *= scaling;
+        B[2] *= scaling;
+    }
+}
+
 
 #endif
