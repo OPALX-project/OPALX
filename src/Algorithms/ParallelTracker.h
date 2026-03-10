@@ -106,8 +106,6 @@ private:
     // Controls the frequency of load balancing 
     unsigned long long repartFreq_m;
 
-    // Total number of particles in the whole simulation
-    size_t numParticlesInSimulation_m;
     /* ===================================================================== */
     /* ============================== Timers =============================== */
     IpplTimings::TimerRef timeIntegrationTimer1_m;

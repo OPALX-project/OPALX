@@ -69,7 +69,6 @@ ParallelTracker::ParallelTracker(
       zstart_m(0.0),
       dtCurrentTrack_m(0.0),
       repartFreq_m(0),
-      numParticlesInSimulation_m(0),
       timeIntegrationTimer1_m(IpplTimings::getTimer("TIntegration1")),
       timeIntegrationTimer2_m(IpplTimings::getTimer("TIntegration2")),
       fieldEvaluationTimer_m(IpplTimings::getTimer("External field eval")),
@@ -95,7 +94,6 @@ ParallelTracker::ParallelTracker(
       zstart_m(zstart),
       dtCurrentTrack_m(0.0),
       repartFreq_m(0),
-      numParticlesInSimulation_m(0),
       timeIntegrationTimer1_m(IpplTimings::getTimer("TIntegration1")),
       timeIntegrationTimer2_m(IpplTimings::getTimer("TIntegration2")),
       fieldEvaluationTimer_m(IpplTimings::getTimer("External field eval")),
@@ -354,9 +352,6 @@ void ParallelTracker::execute() {
     // Get bounding box
     BoundingBox globalBoundingBox = oth.getBoundingBox();
 
-    // Total particle number
-    numParticlesInSimulation_m = itsBunch_m->getTotalNum();
-
     // Set the time view of the particle bunch
     setTime();
     m << level4 << "Set time view of particle bunch." << endl;
@@ -408,9 +403,10 @@ void ParallelTracker::execute() {
             if (itsBunch_m->getTotalNum() > 0) {
                 itsBunch_m->calcBeamParameters();
                 itsBunch_m->get_bounds(rmin, rmax);
+                m << "Bunch bounds: rmin = " << rmin << ", rmax = " << rmax << endl;
             }
             
-            if (itsBunch_m->getTotalNum() > 0) {
+            if (itsBunch_m->getTotalNum() > 10) {
                 // First half of the time integration
                 timeIntegration1(pusher);
                 m << level4 << "timeIntegration1 done at step " << step << "." << endl;
@@ -420,18 +416,18 @@ void ParallelTracker::execute() {
                 m << level4 << "E and B fields reset at step " << step << "." << endl;
 
                 // Space charge field computation
-                computeSpaceChargeFields(step);
+                //computeSpaceChargeFields(step);
                 m << level4 << "Space charge field computation done at step " << step << "." << endl;
                 
                 // External field computation
-                computeExternalFields(oth);
+                // computeExternalFields(oth);
                 m << level4 << "External field computation done at step " << step << "." << endl;
 
                 // Second half of the time integration
                 timeIntegration2(pusher);
                 m << level4 << "timeIntegration2 done at step " << step << "." << endl;
             } else {
-                m << level2 << "Empty simulation: skipping time integration and field computations "
+                m << level2 << "nParticles < 10: skipping time integration and field computations "
                   << "at step " << step << "." << endl;
             }
 
@@ -500,8 +496,6 @@ void ParallelTracker::execute() {
         ++stepSizes_m;    
      }
     itsBunch_m->set_sPos(pathLength_m);
-
-    numParticlesInSimulation_m = itsBunch_m->getTotalNum();
 
     bool const psDump =
         (((itsBunch_m->getGlobalTrackStep() - 1) % Options::psDumpFreq) + 1 != Options::psDumpFreq);
@@ -715,20 +709,14 @@ void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
             ne = itsBunch_m->boundp_destroyT();
         }
 
-        // \todo
-        // else {
-        //    ne = itsBunch_m->destroyT();
-        // }
-        numParticlesInSimulation_m = itsBunch_m->getTotalNum();
         deletedParticles_m = true;
     }
 
-    size_t totalNum            = itsBunch_m->getTotalNum();
-    numParticlesInSimulation_m = totalNum;
+    size_t totalNum = itsBunch_m->getTotalNum();
 
     if (ne > 0) {
         msg << level1 << "* Deleted " << ne << " particles, "
-            << "remaining " << numParticlesInSimulation_m << " particles" << endl;
+            << "remaining " << totalNum << " particles" << endl;
     }
 }
 
@@ -1083,6 +1071,7 @@ void ParallelTracker::findStartPosition(const BorisPusher& pusher) {
 
 void ParallelTracker::dumpStats(long long step, bool psDump, bool statDump) {
     OPALTimer::Timer myt2;
+    size_t totalNum = itsBunch_m->getTotalNum();
 
     /*
     if (itsBunch_m->getGlobalTrackStep() % 1000 + 1 == 1000) {
@@ -1093,8 +1082,7 @@ void ParallelTracker::dumpStats(long long step, bool psDump, bool statDump) {
         *gmsg << level3;
     }
     */
-    
-    if (numParticlesInSimulation_m == 0) {
+    if (totalNum == 0) {
         *gmsg << level1 << "* " << myt2.time() << " "
             << "Step " << std::setw(6) << itsBunch_m->getGlobalTrackStep() << "; "
             << "   -- no emission yet --     "
@@ -1103,7 +1091,6 @@ void ParallelTracker::dumpStats(long long step, bool psDump, bool statDump) {
     }
 
     // \todo itsBunch_m->calcEMean();
-    //    size_t totalParticles_f = numParticlesInSimulation_m;
     if (std::isnan(pathLength_m) || std::isinf(pathLength_m)) {
         throw OpalException(
             "ParallelTracker::dumpStats()",
