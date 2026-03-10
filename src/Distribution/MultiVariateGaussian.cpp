@@ -212,9 +212,6 @@ void MultiVariateGaussian::generateParticles(size_t &numberOfParticles, Vector_t
     // compute boundaries of normal random numbers
     ComputeCenteredBounds();
 
-    view_type &Rview = pc_m->R.getView();
-    view_type &Pview = pc_m->P.getView();
-
     const double par[6] = {0.0, 1.0, 0.0, 1.0, 0.0, 1.0};
     using Dist_t = ippl::random::NormalDistribution<double, 3>;
     using sampling_t = ippl::random::InverseTransformSampling<double, 3, Kokkos::DefaultExecutionSpace, Dist_t>;
@@ -233,7 +230,16 @@ void MultiVariateGaussian::generateParticles(size_t &numberOfParticles, Vector_t
     }
 
     sampling_t sampling(dist, normRmax_m, normRmin_m, normRmax_m, normRmin_m, nlocal);
+
+    const size_t nlocalCurrent = pc_m->getLocalNum();
     pc_m->create(nlocal);
+
+    view_type RviewFull = pc_m->R.getView();
+    view_type PviewFull = pc_m->P.getView();
+
+    auto Rview = Kokkos::subview(RviewFull, std::make_pair(nlocalCurrent, nlocalCurrent + nlocal));
+    auto Pview = Kokkos::subview(PviewFull, std::make_pair(nlocalCurrent, nlocalCurrent + nlocal));
+
     sampling.generate(Rview, rand_pool64);
 
     sampling.updateBounds(normPmax_m, normPmin_m, normPmax_m, normPmin_m);
@@ -247,102 +253,109 @@ void MultiVariateGaussian::generateParticles(size_t &numberOfParticles, Vector_t
     }
 
     // Apply Cholesky transformation
-    Kokkos::parallel_for(nlocal, KOKKOS_LAMBDA(const int k) {
-        double vec_old[6], vec[6] = {0.0};
-        for (unsigned i = 0; i < 3; ++i) {
-            vec_old[2 * i] = Rview(k)[i];
-            vec_old[2 * i + 1] = Pview(k)[i];
-        }
-        for (unsigned i = 0; i < 6; ++i) {
-            for (unsigned j = 0; j < i + 1; ++j) {
-                vec[i] += L[i][j] * vec_old[j];
+    Kokkos::parallel_for(
+        nlocal, KOKKOS_LAMBDA(const size_t k) {
+            double vec_old[6], vec[6] = {0.0};
+            for (unsigned i = 0; i < 3; ++i) {
+                vec_old[2 * i]     = Rview(k)[i];
+                vec_old[2 * i + 1] = Pview(k)[i];
             }
-        }
-        for (unsigned i = 0; i < 3; ++i) {
-            Rview(k)[i] = vec[2 * i];
-            Pview(k)[i] = vec[2 * i + 1];
-        }
-    });
+            for (unsigned i = 0; i < 6; ++i) {
+                for (unsigned j = 0; j < i + 1; ++j) {
+                    vec[i] += L[i][j] * vec_old[j];
+                }
+            }
+            for (unsigned i = 0; i < 3; ++i) {
+                Rview(k)[i] = vec[2 * i];
+                Pview(k)[i] = vec[2 * i + 1];
+            }
+        });
 
     Kokkos::fence();
 
     // zero mean of R
     double meanR[3], loc_meanR[3];
 
-    if (fixMeanR_m) {    
-        for(int i=0; i<3; i++){
-            meanR[i] = 0.0;
+    if (fixMeanR_m) {
+        for (size_t i = 0; i < 3; i++) {
+            meanR[i]     = 0.0;
             loc_meanR[i] = 0.0;
         }
 
-        Kokkos::parallel_reduce("calc moments of particle distr.", nlocal,
-            KOKKOS_LAMBDA(const int k, double& cent0, double& cent1, double& cent2) {
+        Kokkos::parallel_reduce(
+            "calc moments of particle distr.", nlocal,
+            KOKKOS_LAMBDA(const size_t k, double& cent0, double& cent1, double& cent2) {
                 cent0 += Rview(k)[0];
                 cent1 += Rview(k)[1];
                 cent2 += Rview(k)[2];
             },
-            Kokkos::Sum<double>(loc_meanR[0]), Kokkos::Sum<double>(loc_meanR[1]), Kokkos::Sum<double>(loc_meanR[2]));
+            Kokkos::Sum<double>(loc_meanR[0]), Kokkos::Sum<double>(loc_meanR[1]),
+            Kokkos::Sum<double>(loc_meanR[2]));
         Kokkos::fence();
 
         MPI_Allreduce(loc_meanR, meanR, 3, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
         ippl::Comm->barrier();
 
-        for(int i=0; i<3; i++){
-            meanR[i] = meanR[i]/(1.*numberOfParticles);
+        for (size_t i = 0; i < 3; i++) {
+            meanR[i] = meanR[i] / (1. * numberOfParticles);
         }
 
-        Kokkos::parallel_for(nlocal, KOKKOS_LAMBDA(const int k) {
-            Rview(k)[0] -= meanR[0];
-            Rview(k)[1] -= meanR[1];
-            Rview(k)[2] -= meanR[2];
-        });
+        Kokkos::parallel_for(
+            nlocal, KOKKOS_LAMBDA(const size_t k) {
+                Rview(k)[0] -= meanR[0];
+                Rview(k)[1] -= meanR[1];
+                Rview(k)[2] -= meanR[2];
+            });
         Kokkos::fence();
     }
 
     // zero mean of P
     double meanP[3], loc_meanP[3];
-    if(fixMeanP_m){
-        
-        for(int i=0; i<3; i++){
-            meanP[i] = 0.0;
+    if (fixMeanP_m) {
+        for (size_t i = 0; i < 3; i++) {
+            meanP[i]     = 0.0;
             loc_meanP[i] = 0.0;
         }
-        Kokkos::parallel_reduce("calc moments of particle distr.", nlocal,
-            KOKKOS_LAMBDA(const int k, double& cent0, double& cent1, double& cent2) {
+        Kokkos::parallel_reduce(
+            "calc moments of particle distr.", nlocal,
+            KOKKOS_LAMBDA(const size_t k, double& cent0, double& cent1, double& cent2) {
                 cent0 += Pview(k)[0];
                 cent1 += Pview(k)[1];
                 cent2 += Pview(k)[2];
             },
-            Kokkos::Sum<double>(loc_meanP[0]), Kokkos::Sum<double>(loc_meanP[1]), Kokkos::Sum<double>(loc_meanP[2]));
+            Kokkos::Sum<double>(loc_meanP[0]), Kokkos::Sum<double>(loc_meanP[1]),
+            Kokkos::Sum<double>(loc_meanP[2]));
         Kokkos::fence();
 
         MPI_Allreduce(loc_meanP, meanP, 3, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
         ippl::Comm->barrier();
 
-        for(int i=0; i<3; i++){
-            meanP[i] = meanP[i]/(1.*numberOfParticles);
+        for (size_t i = 0; i < 3; i++) {
+            meanP[i] = meanP[i] / (1. * numberOfParticles);
         }
 
-        Kokkos::parallel_for(nlocal, KOKKOS_LAMBDA(const int k) {
-            Pview(k)[0] -= meanP[0];
-            Pview(k)[1] -= meanP[1];
-            Pview(k)[2] -= meanP[2];
-        });
+        Kokkos::parallel_for(
+            nlocal, KOKKOS_LAMBDA(const size_t k) {
+                Pview(k)[0] -= meanP[0];
+                Pview(k)[1] -= meanP[1];
+                Pview(k)[2] -= meanP[2];
+            });
         Kokkos::fence();
     }
 
     // correct the means of R and P from input
-    for(int i=0; i<3; i++){
+    for (size_t i = 0; i < 3; i++) {
         meanR[i] = meanR_m[i];
         meanP[i] = meanP_m[i];
     }
 
-    Kokkos::parallel_for(nlocal, KOKKOS_LAMBDA(const int k) {
-        for(int i=0; i<3; i++){
-            Rview(k)[i] += meanR[i];
-            Pview(k)[i] += meanP[i];
-        }
-    });
+    Kokkos::parallel_for(
+        nlocal, KOKKOS_LAMBDA(const size_t k) {
+            for (size_t i = 0; i < 3; i++) {
+                Rview(k)[i] += meanR[i];
+                Pview(k)[i] += meanP[i];
+            }
+        });
     Kokkos::fence();
 
     IpplTimings::stopTimer(samplerTimer_m);

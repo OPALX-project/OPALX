@@ -279,7 +279,8 @@ void FromFile::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> 
         startIdx = 0; // Rank 0 always starts at 0
     }
     
-    // Allocate particles
+    // Allocate particles, appending after any existing ones.
+    const size_t nlocalCurrent = pc_m->getLocalNum();
     pc_m->create(nlocal);
     
     // Get Kokkos views
@@ -303,19 +304,19 @@ void FromFile::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> 
         Kokkos::create_mirror(Kokkos::DefaultExecutionSpace::memory_space(), hostParticleData);
     Kokkos::deep_copy(deviceParticleData, hostParticleData);
     
-    // Copy particle data into Kokkos views
+    // Copy particle data into Kokkos views, appending into
+    // [nlocalCurrent, nlocalCurrent + nlocal)
     Kokkos::parallel_for(
-        "FromFile::generateParticles", nlocal,
+        "FromFile::generateParticles", Kokkos::RangePolicy<>(0, nlocal),
         KOKKOS_LAMBDA(const size_t k) {
-            size_t dataIdx = startIdx + k;
-            if (dataIdx < totalParticles) {
-                Rview(k)[0] = deviceParticleData(dataIdx, 0); // x
-                Rview(k)[1] = deviceParticleData(dataIdx, 1); // y
-                Rview(k)[2] = deviceParticleData(dataIdx, 2); // z
-                Pview(k)[0] = deviceParticleData(dataIdx, 3); // px
-                Pview(k)[1] = deviceParticleData(dataIdx, 4); // py
-                Pview(k)[2] = deviceParticleData(dataIdx, 5); // pz
-            }
+            const size_t j       = nlocalCurrent + k;
+            const size_t dataIdx = startIdx + k;
+            Rview(j)[0] = deviceParticleData(dataIdx, 0); // x
+            Rview(j)[1] = deviceParticleData(dataIdx, 1); // y
+            Rview(j)[2] = deviceParticleData(dataIdx, 2); // z
+            Pview(j)[0] = deviceParticleData(dataIdx, 3); // px
+            Pview(j)[1] = deviceParticleData(dataIdx, 4); // py
+            Pview(j)[2] = deviceParticleData(dataIdx, 5); // pz
         }
     );
     Kokkos::fence();
