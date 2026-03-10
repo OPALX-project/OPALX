@@ -145,7 +145,7 @@ namespace ParticleBinning {
         // Ensure the output view has the correct size
         if (post_sum_view.extent(0) != input_view.extent(0) + 1) {
             Inform m("computePostSum");
-            m << "Output view must have size input_view.extent(0) + 1" << endl;
+            m << level4 << "Output view must have size input_view.extent(0) + 1" << endl;
             ippl::Comm->abort();
         }
 
