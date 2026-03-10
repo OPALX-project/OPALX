@@ -84,11 +84,11 @@ void Gaussian::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> 
         rmax(i) = (rmax(i) + mu[i]) * sigmaR_m[i];
     }
 
-    view_type &Rview = pc_m->R.getView();
     const double par[6] = {mu[0], sd[0], mu[1], sd[1], mu[2], sd[2]};
 
     using Dist_t = ippl::random::NormalDistribution<double, 3>;
-    using sampling_t = ippl::random::InverseTransformSampling<double, 3, Kokkos::DefaultExecutionSpace, Dist_t>;
+    using sampling_t =
+        ippl::random::InverseTransformSampling<double, 3, Kokkos::DefaultExecutionSpace, Dist_t>;
     Dist_t dist(par);
 
     MPI_Comm comm = MPI_COMM_WORLD;
@@ -96,7 +96,7 @@ void Gaussian::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> 
     MPI_Comm_size(comm, &nranks);
     MPI_Comm_rank(comm, &rank);
 
-    size_t nlocal = floor(numberOfParticles / nranks);
+    size_t nlocal    = floor(numberOfParticles / nranks);
     size_t remaining = numberOfParticles - nlocal * nranks;
 
     if (remaining > 0 && rank == 0) {
@@ -105,7 +105,15 @@ void Gaussian::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> 
 
     sampling_t sampling(dist, rmax, rmin, rmax, rmin, nlocal);
     nlocal = sampling.getLocalSamplesNum();
+
+    const size_t nlocalCurrent = pc_m->getLocalNum();
     pc_m->create(nlocal);
+
+    view_type RviewFull = pc_m->R.getView();
+    auto Rview = Kokkos::subview(
+        RviewFull,
+        std::make_pair(nlocalCurrent, nlocalCurrent + nlocal));
+
     sampling.generate(Rview, rand_pool64);
 
     if (fixMeanR_m) {
@@ -150,7 +158,11 @@ void Gaussian::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> 
         sd[i] = sigmaP_m[i];
     }
 
-    view_type &Pview = pc_m->P.getView();
+    view_type PviewFull = pc_m->P.getView();
+    auto Pview = Kokkos::subview(
+        PviewFull,
+        std::make_pair(nlocalCurrent, nlocalCurrent + nlocal));
+
     Kokkos::parallel_for(
         nlocal,
         ippl::random::randn<double, 3>(Pview, rand_pool64, mu, sd)
