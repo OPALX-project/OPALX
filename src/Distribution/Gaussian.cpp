@@ -15,7 +15,7 @@ Gaussian::Gaussian(std::shared_ptr<ParticleContainer_t> pc,
                    std::shared_ptr<FieldContainer_t> fc,
                    std::shared_ptr<Distribution_t> opalDist)
     : SamplingBase(pc, fc, opalDist) {
-    samperTimer_m = IpplTimings::getTimer("SamplingTimer");
+    samperTimer_m = IpplTimings::getTimer("Sampling");
     initRandomPool();
     setSigmaP(opalDist->getSigmaP());
     setSigmaR(opalDist->getSigmaR());
@@ -35,7 +35,7 @@ Gaussian::Gaussian(std::shared_ptr<ParticleContainer_t> pc,
     setCutoffR(cutoffR);
     setFixMeanR(fixMeanR);
 
-    samperTimer_m = IpplTimings::getTimer("SamplingTimer");
+    samperTimer_m = IpplTimings::getTimer("Sampling");
     initRandomPool();
 }
 
