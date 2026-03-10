@@ -326,9 +326,6 @@ void TrackRun::execute() {
         *gmsg << level5 << "MPI_Comm_size= " << world_size << endl;
     }
 
-    static IpplTimings::TimerRef samplingTime = IpplTimings::getTimer("samplingTime");
-    IpplTimings::startTimer(samplingTime);
-
     // set distribution type
     dist_m->setDist();
     dist_m->setAvrgPz( beam->getMomentum()/beam->getMass() );
@@ -360,17 +357,10 @@ void TrackRun::execute() {
 
     *gmsg << level2 << "* About to create particles ..." << endl;
     
-    static IpplTimings::TimerRef GenParticlesTimer  = IpplTimings::getTimer("GenParticles");
-    IpplTimings::startTimer(GenParticlesTimer);
-
     sampler_m->generateParticles(Np, nr);
-
-    IpplTimings::stopTimer(GenParticlesTimer);
 
     *gmsg << level2 << "* Particle creation done" << endl;
     
-    IpplTimings::stopTimer(samplingTime);
-
     /* 
        reset the fieldsolver with correct hr_m
        based on the distribution
