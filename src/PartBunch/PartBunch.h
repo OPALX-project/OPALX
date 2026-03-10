@@ -224,9 +224,10 @@ public:
     std::shared_ptr<VField_t<T, Dim>> getTempEField() { return this->Etmp_m; }
     void setTempEField(std::shared_ptr<VField_t<T, Dim>> Etmp) { this->Etmp_m = Etmp; }
 
-    std::shared_ptr<AdaptBins_t> getBins() { return bins_m; } // TODO: Binning
+    std::shared_ptr<AdaptBins_t> getBins() { return bins_m; }
+    std::shared_ptr<AdaptBins_t> getBins() const { return bins_m; }
     
-    void setBins(std::shared_ptr<AdaptBins_t> bins) { bins_m = bins; } // TODO: Binning
+    void setBins(std::shared_ptr<AdaptBins_t> bins) { bins_m = bins; }
 
     void setBCHandler(std::shared_ptr<BCHandler_t> bcHandler) { bcHandler_m = bcHandler; }
     std::shared_ptr<BCHandler_t> getBCHandler() const { return bcHandler_m; }
@@ -540,50 +541,77 @@ public:
         return this->bins_m != nullptr;
     }
 
-    /** Number of field solver bins (1 if no binning, else getBins()->getCurrentBinCount()). */
     int getCurrentNBins() const {
-        return hasBinning() ? static_cast<int>(bins_m->getCurrentBinCount()) : 1;
+        if (!hasBinning()) {
+            return 1;
+        }
+
+        int ret_bins = static_cast<int>(bins_m->getCurrentBinCount());
+        // If the number of bins is the same as the maximum number of bins, we haven't merged bins
+        // yet (likely because the simulation is too empty)
+        if (ret_bins == this->getBins()->getMaxBinCount()) {
+            Inform m("PartBunch::getCurrentNBins");
+            m << level4
+              << "WARNING: Number of bins is the same as the maximum number of bins, we haven't "
+                 "merged bins yet (likely because the simulation is too empty). Returning 1. If "
+                 "that is not the case, check e.g. binning parameters."
+              << endl;
+            return 1;
+        } else {
+            return ret_bins;
+        }
     }
+
     double calcMeanPhi() {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
         return 0.0;
     }
+    
     double getPx(int /*i*/) {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
         return 0.0;
     }
+    
     double getPy(int /*i*/) {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
         return 0.0;
     }
+    
     double getPz(int /*i*/) {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
         return 0.0;
     }
+    
     double getPx0(int /*i*/) {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
         return 0.0;
     }
+    
     double getPy0(int /*i*/) {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
         return 0.0;
     }
+
     double getX(int /*i*/) {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
         return 0.0;
     }
+    
     double getY(int /*i*/) {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
         return 0.0;
     }
+    
     double getZ(int /*i*/) {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
         return 0.0;
     }
+    
     double getX0(int /*i*/) {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
         return 0.0;
     }
+    
     double getY0(int /*i*/) {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
         return 0.0;
