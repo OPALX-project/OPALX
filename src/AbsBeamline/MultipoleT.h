@@ -80,6 +80,7 @@
 #include "Algorithms/AbstractTimeDependence.h"
 #include "Fields/BMultipoleField.h"
 #include "MultipoleTBase.h"
+#include "MultipoleTConfig.h"
 
 class MultipoleT : public Component {
 public:
@@ -104,7 +105,7 @@ public:
     /** Return a dummy field value */
     const EMField &getField() const override { return dummy; }
     /* Calculate the field for all particles */
-    bool apply() override { return true; }
+    bool apply() override;
     /** Calculate the field at some arbitrary position \n
      *  If particle is outside field map true is returned,
      *  otherwise false is returned
@@ -137,21 +138,21 @@ public:
     /** Return true if dipole component not zero */
     bool bends() const override;
     /** Get the number of terms used in calculation of field components */
-    size_t getMaxFOrder() const { return maxFOrder_m; }
-    size_t getMaxXOrder() const { return maxXOrder_m; }
+    size_t getMaxFOrder() const { return config_m.maxFOrder_m; }
+    size_t getMaxXOrder() const { return config_m.maxXOrder_m; }
     /** Set the number of terms used in calculation of field components \n
      *  \param orderZ -> Number of terms in expansion in z
      *  \param orderX -> Number of terms in expansion in x
      */
     void setMaxOrder(size_t orderZ, size_t orderX);
     /** Get the maximum order in the given transverse profile */
-    std::size_t getTransMaxOrder() const { return transMaxOrder_m; }
+    std::size_t getTransMaxOrder() const { return config_m.transverseProfileMaxOrder_m; }
     /** Set the the transverse profile
      *  \param profile -> Multipole field profile
      */
     void setTransProfile(const std::vector<double>& profile);
     /** Get all terms of transverse profile */
-    const std::vector<double>& getTransProfile() const { return transProfile_m; }
+    const Kokkos::Array<double, MultipoleTConfig::NumPoles>& getTransProfile() const { return config_m.transverseProfile_m; }
     /** Set fringe field model \n
      *  Tanh model used here \n
      *  @f[ 1/2 * \left [tanh \left( \frac{s + s_0}{\lambda_{left}} \right)
@@ -175,22 +176,22 @@ public:
      */
     void setEntryOffset(double offset);
     /** Get the offset of the entry point from the standard position */
-    double getEntryOffset() const { return entryOffset_m; }
+    double getEntryOffset() const { return config_m.entryOffset_m; }
     /** Get the variable radius of the magnet */
-    bool getVariableRadius() const { return variableRadius_m; }
+    bool getVariableRadius() const { return config_m.variableRadius_m; }
     /** Set the bending angle of the magnet */
     void setBendAngle(double angle, bool variableRadius);
     /** Get the bending angle of the magnet */
-    double getBendAngle() const { return bendAngle_m; }
+    double getBendAngle() const { return config_m.bendAngle_m; }
     /** Get the entrance angle */
-    double getEntranceAngle() const { return entranceAngle_m; }
+    double getEntranceAngle() const { return config_m.entranceAngle_m; }
     /** Set the length of the magnet
       * If straight-> Actual length
       * If curved -> Arc length
      */
     void setElementLength(double length) override;
     /** Get the length of the magnet */
-    double getLength() const { return length_m; }
+    double getLength() const { return config_m.length_m; }
     /** Set the aperture dimensions \n
       * This element only supports a rectangular aperture
       * \param vertAp -> Vertical aperture length
@@ -200,16 +201,16 @@ public:
     /** Get the aperture dimensions
      * @return {verticalApert, horizontalApert}
      */
-    std::tuple<double, double> getAperture() { return {verticalApert_m, horizontalApert_m}; }
+    std::tuple<double, double> getAperture() { return {config_m.verticalAperture_m, config_m.horizontalAperture_m}; }
     /** Set the angle of rotation of the magnet around its axis \n
      *  To make skew components
      *  \param rot -> Angle of rotation
      */
     void setRotation(double rot);
     /** Get the angle of rotation of the magnet around its axis */
-    double getRotation() const { return rotation_m; }
+    double getRotation() const { return config_m.rotation_m; }
     /** Get the bounding box size */
-    double getBoundingBoxLength() const { return boundingBoxLength_m; }
+    double getBoundingBoxLength() const { return config_m.boundingBoxLength_m; }
     /** Set the bounding box size.  This controls the region for
      *  \param boundingBoxLength -> Distance between centre and entrance
      */
@@ -259,7 +260,12 @@ public:
     std::string getScalingName() const { return scalingName_m; }
     void initialiseTimeDepencencies() const;
 
+    MultipoleTConfig& getConfig() { return config_m; }
+
 protected:
+    /** The magnet configuration */
+    MultipoleTConfig config_m;
+
     /** Rotate the frame to account for the rotation and entry angles.
      * @param R -> coordinate to rotate
      * @return -> rotated coordinate
@@ -268,33 +274,15 @@ protected:
     bool insideAperture(const Vector_t<double, 3>& R) const;
     bool insideBoundingBox(const Vector_t<double, 3>& R) const;
     void chooseImplementation();
+    double getScaling(double t) const;
 
-    // End fields
-    endfieldmodel::Tanh fringeField_l{endfieldmodel::Tanh()}; // Left
-    endfieldmodel::Tanh fringeField_r{endfieldmodel::Tanh()}; // Right
-    /** Number of terms in z expansion used in calculating field components */
-    std::size_t maxFOrder_m{3};
-    /** Highest order of polynomial expansions in x */
-    std::size_t maxXOrder_m{20};
-    /** List of transverse profile coefficients */
-    std::vector<double> transProfile_m{0.0};
-    size_t transMaxOrder_m{1};
-    /** Magnet parameters */
-    double length_m{1.0};
-    double entranceAngle_m{0.0};
-    double rotation_m{0.0};
-    double bendAngle_m{0.0};
-    bool variableRadius_m{false};
-    double boundingBoxLength_m{0.0};
-    double entryOffset_m{0.0};
-    /** Assume rectangular aperture with these dimensions */
-    double verticalApert_m{0.5};
-    double horizontalApert_m{0.5};
     /** Not implemented */
     BMultipoleField dummy;
+
     // Time dependence
     std::string scalingName_m;
     mutable std::shared_ptr<AbstractTimeDependence> scalingTD_m;
+
     // The object that does the work
     std::unique_ptr<MultipoleTBase> implementation_{};
 };
