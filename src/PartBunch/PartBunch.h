@@ -24,8 +24,7 @@
 
 #include "Algorithms/PartData.h"
 
-#include "Utilities/Options.h" // Needed to define binning parameters!
-#include "PartBunch/Binning/AdaptBins.h" // TODO: binning
+#include "PartBunch/Binning/AdaptBins.h"
 
 class DataSink;  // forward declaration; full type needed only in .cpp
 
@@ -129,22 +128,9 @@ private:
     Quaternion_t globalToLocalQuaternion_m;
 
     /**
-       The structure for particle binning
+       Adaptive binning structure (energy/velocity binning handled by AdaptBins).
     */
-
-    // PartBins* pbin_m;
-
-    /// if larger than 0, emitt particles for tEmission_m [s]
-    double tEmission_m;
-
-    /// holds the gamma of the bin
-    std::unique_ptr<double[]> bingamma_m;
-
-    // FIXME: this should go into the Bin class!
-    //  holds number of emitted particles of the bin
-    //  jjyang: opal-cycl use *nBin_m of pbin_m
-    //std::unique_ptr<size_t[]> binemitted_m; // liemen_a: TODO remove!
-    std::shared_ptr<AdaptBins_t> bins_m; // added by liemen_a for AdaptBins class!
+    std::shared_ptr<AdaptBins_t> bins_m;
 
     /// steps per turn for OPAL-cycl
     int stepsPerTurn_m;
@@ -360,11 +346,6 @@ public:
         return reference_m;
     }
 
-    double getEmissionDeltaT() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return 1.0;
-    }
-
     void gatherLoadBalanceStatistics();
 
     size_t getLoadBalance(int p) {
@@ -555,70 +536,6 @@ public:
         return false;
     }
 
-    bool getIfBeamEmitting() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return false;
-    }
-    int getLastEmittedEnergyBin() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return 0;
-    }
-    size_t getNumberOfEmissionSteps() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return 0;
-    }
-    int getNumberOfEnergyBins() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return 0;
-    }
-
-    void Rebin() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-    }
-
-    void setEnergyBins(int /*numberOfEnergyBins*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-    }
-    bool weHaveEnergyBins() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return false;
-    }
-    void setTEmission(double /*t*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-    }
-    double getTEmission() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return 0.0;
-    }
-    bool weHaveBins() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return false;
-    }
-    // void setPBins(PartBins* pbin) {}
-    size_t emitParticles(double /*eZ*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return 0;
-    }
-    void updateNumTotal() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-    }
-    void rebin() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-    }
-    int getLastemittedBin() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return 0;
-    }
-    void setLocalBinCount(size_t /*num*/, int /*bin*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-    }
-    void calcGammas() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-    }
-    double getBinGamma(int /*bin*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return 0.0;
-    }
     bool hasBinning() const {
         return this->bins_m != nullptr;
     }
