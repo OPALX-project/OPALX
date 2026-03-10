@@ -465,9 +465,9 @@ void PartBunch<T, Dim>::bunchUpdate() {
     empty simulations - especially important for emission sources.
     */
     for (int i = 0; i < 3; i++) {
-        if (l[i] < 1e-12) { 
-            l[i] = 1e-12; 
-            m << level3 << "Mesh spacing in dimension " << i << " too small. Set to 1e-12." << endl;
+        if (l[i] < 1e-6) { 
+            l[i] = 1e-6; 
+            m << level3 << "Mesh spacing in dimension " << i << " too small. Set to 1e-6." << endl;
             //return;
         }
     }
