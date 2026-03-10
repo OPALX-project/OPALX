@@ -1166,6 +1166,10 @@ void ParallelTracker::writePhaseSpace(const long long /*step*/, bool psDump, boo
         // the average beam momentum. The bunch is otherwise stored in the
         // REFERENCE frame, so we temporarily transform to BEAM,
         // compute beam parameters, then transform back.
+        //
+        // Edit: old OPAL also uses the reference frame, so don't transform here. You can get
+        // equivalent behaviour by plotting ref_coord + mean_coord!
+        /*
         Quaternion alignment =
             getQuaternion(itsBunch_m->get_pmean(), Vector_t<double, 3>(0, 0, 1));
         CoordinateSystemTrafo beamToReferenceCSTrafo(
@@ -1177,7 +1181,7 @@ void ParallelTracker::writePhaseSpace(const long long /*step*/, bool psDump, boo
 
         // Go to BEAM frame for statistics
         referenceToBeamCSTrafo.transformBunchTo(Rview);
-        referenceToBeamCSTrafo.rotateBunchTo(Pview);
+        referenceToBeamCSTrafo.rotateBunchTo(Pview);*/
 
         // Calculate beam parameters in beam/lab frame and dump statistics
         itsBunch_m->calcBeamParameters();
@@ -1185,8 +1189,8 @@ void ParallelTracker::writePhaseSpace(const long long /*step*/, bool psDump, boo
         *gmsg << level2 << "* Wrote beam statistics." << endl;
 
         // Restore REFERENCE frame for the rest of the tracker
-        beamToReferenceCSTrafo.transformBunchTo(Rview);
-        beamToReferenceCSTrafo.rotateBunchTo(Pview);
+        /*beamToReferenceCSTrafo.transformBunchTo(Rview);
+        beamToReferenceCSTrafo.rotateBunchTo(Pview);*/
     }
 
     if (psDump && (itsBunch_m->getTotalNum() > 0)) {
