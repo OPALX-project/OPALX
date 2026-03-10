@@ -172,6 +172,11 @@ void FlatTop::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> n
         Kokkos::View<bool*> tmp_invalid("tmp_invalid", 0);
         // \todo might be abuse of semantics: maybe think about new pc_m->setTotalNum or pc_m->updateTotal function instead?
         pc_m->destroy(tmp_invalid, pc_m->getLocalNum());
+    } else {
+        throw OpalException(
+            "FlatTop::generateParticles",
+            "FlatTop does not support generating particles without emitting. Set EMITTED = true in "
+            "the input file.");
     }
 }
 
