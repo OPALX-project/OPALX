@@ -34,9 +34,6 @@ PartBunch<T, Dim>::PartBunch(double qi,
       OPALFieldSolver_m(OPALFieldSolver),
       dataSink_m(std::move(dataSink)) {
 
-    static IpplTimings::TimerRef gatherInfoPartBunch = IpplTimings::getTimer("gatherInfoPartBunch");
-    IpplTimings::startTimer(gatherInfoPartBunch);
-    
     Inform m("PartBunch::PartBunch");
     m << level4 << "PartBunch Constructor" << endl;
 
@@ -83,8 +80,6 @@ PartBunch<T, Dim>::PartBunch(double qi,
         this->fcontainer_m->getMesh(), this->fcontainer_m->getFL()
     ));
 
-    IpplTimings::stopTimer(gatherInfoPartBunch);
-
     this->setTempEField(std::make_shared<VField_t<T, Dim>>(
         this->fcontainer_m->getE()
     )); // user copy constructor
@@ -92,16 +87,9 @@ PartBunch<T, Dim>::PartBunch(double qi,
                                       this->fcontainer_m->getFL());
     // -----------------------------------------------
 
-    static IpplTimings::TimerRef setSolverT = IpplTimings::getTimer("setSolver");
-    IpplTimings::startTimer(setSolverT);
     setSolver();
-    IpplTimings::stopTimer(setSolverT);
 
-
-    static IpplTimings::TimerRef prerun = IpplTimings::getTimer("prerun");
-    IpplTimings::startTimer(prerun);
     pre_run();
-    IpplTimings::stopTimer(prerun);
     
     globalPartPerNode_m = std::make_unique<size_t[]>(ippl::Comm->size());
 
@@ -535,9 +523,6 @@ void PartBunch<T, Dim>::computeSelfFields() {
         m << level4 << "No AdaptBins object present, not using binning." << endl;
     }
 
-    static IpplTimings::TimerRef SolveTimer = IpplTimings::getTimer("SolveTimer");
-    IpplTimings::startTimer(SolveTimer);
-
     /*
     I would guess that ths bunchUpdate is only necessary after a push (where we
     need it anyways, since positions have changed). However, when removing it,
@@ -654,8 +639,6 @@ void PartBunch<T, Dim>::computeSelfFields() {
     );
     m << "E-field scale = " << efScale << endl;    
     spaceChargeEFieldCheck(efScale);*/
-
-    IpplTimings::stopTimer(SolveTimer);
 }
 
 template <typename T, unsigned Dim>
