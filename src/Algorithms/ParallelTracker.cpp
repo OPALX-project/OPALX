@@ -443,6 +443,7 @@ void ParallelTracker::execute() {
             m << level4 << "Emit particles from emission sources done at step " << step << "." << endl;
             itsBunch_m->bunchUpdate();  // mesh from current R so stays REFERENCE frame for next step
             m << level5 << "Bunch updated after emission." << endl;
+            
             // Set dt for all particles (including newly emitted) so next step's push uses correct per-particle dt.
             // Reset particle time step size to the current track time step (pulled out of timeIntegration2)
             setTime();
@@ -711,6 +712,11 @@ void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
 }
 
 void ParallelTracker::emitFromEmissionSources(double t, double dt) {
+    // Record the extent of the position array and the current local particle count
+    // before emission. If an internal resize (Kokkos::realloc) happens during
+    // emission, the extent of R will change and we can flag this as an error.
+    const size_t extentBeforeEmission = itsBunch_m->getParticleContainer()->R.getView().extent(0);
+    
     for (const auto& sampler : emittingSamplers_m) {
         if (sampler) {
             sampler->emitParticles(t, dt);
@@ -720,6 +726,23 @@ void ParallelTracker::emitFromEmissionSources(double t, double dt) {
     itsBunch_m->setCharge();
     // itsBunch_m->updateNumTotal(); // handled internally by ippl
     // itsBunch_m->bunchUpdate();
+
+    // Sanity guard: the total number of macroparticles in the bunch must
+    // never exceed the globally configured BEAM::NPART value. Overshooting
+    // this limit would trigger internal reallocations in the particle
+    // container and silently drop already-tracked particles/delete their data in the particle
+    // attributes. This is only a check for the number of local particles, not 
+    const size_t extentAfterEmission = itsBunch_m->getParticleContainer()->R.getView().extent(0);
+    if (extentAfterEmission != extentBeforeEmission) {
+        throw OpalException(
+            "ParallelTracker::emitFromEmissionSources",
+            "Local particle storage was resized during emission (likely due to "
+            "over-emission causing a Kokkos::realloc). This leads to loss of "
+            "previously tracked particles. Please increase the total number of "
+            "macroparticles or adjust NPARTDIST / the emission profile. If you are "
+            "using emission sources, please check the emission profile and adjust "
+            "the number of particles emitted.");
+    }
 }
 
 /**
