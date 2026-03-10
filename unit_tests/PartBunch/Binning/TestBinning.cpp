@@ -279,6 +279,10 @@ TEST_F(BinningTest, HostArrayReductionBasics) {
     a.the_array[3] = 3;
 
     ParticleBinning::HostArrayReduction<size_type, bin_index_type> b;
+    for (bin_index_type i = 0; i < N; ++i) {
+        EXPECT_EQ(b.the_array[i], 0u);
+    }
+    
     b.the_array[0] = 1;
     b.the_array[3] = 2;
 
@@ -485,16 +489,29 @@ TEST_F(BinningTest, HistogramAssignmentOperator) {
     EXPECT_EQ(assigned.getNPartInBin(1), 13u);
 }
 
+struct FillPolicyHistogram1 {
+    using Histo_t = ParticleBinning::Histogram<size_type, bin_index_type, value_type, true>;
+    using view_type = decltype(std::declval<Histo_t>().getHistogram().view_device());
+    view_type dView;
+
+    FillPolicyHistogram1(view_type v) : dView(v) {}
+
+    KOKKOS_FUNCTION
+    void operator()(const int) const {
+        dView(0) = 5;
+        dView(1) = 10;
+        dView(2) = 15;
+    }
+};
+
 TEST_F(BinningTest, HistogramGetBinIterationPolicy) {
     // Use DualView=true to avoid Kokkos subview type mismatch in non-DualView path.
     using Histo_t = ParticleBinning::Histogram<size_type, bin_index_type, value_type, true>;
     Histo_t histo("policyTest", 3, 1.0, 1.0, 1.0, 0.3);
 
-    // Set counts on device then sync
     auto dView = histo.getHistogram().view_device();
-    Kokkos::parallel_for("fillPolicyHisto", 1, KOKKOS_LAMBDA(const int) {
-        dView(0) = 5; dView(1) = 10; dView(2) = 15;
-    });
+    Kokkos::parallel_for("fillPolicyHisto1", 1, FillPolicyHistogram1(dView));
+
     histo.modify_device();
     histo.sync();
     histo.init();
@@ -559,6 +576,21 @@ TEST_F(BinningTest, HistogramMergeBins) {
     EXPECT_EQ(totalAfter, 406u);  // 3*1 + 4*100 + 3*1 = 406
 }
 
+
+struct FillPolicyHistogram2 {
+    using Histo_t = ParticleBinning::Histogram<size_type, bin_index_type, value_type, true>;
+    using view_type = decltype(std::declval<Histo_t>().getHistogram().view_device());
+    view_type dView;
+
+    FillPolicyHistogram2(view_type v) : dView(v) {}
+
+    KOKKOS_FUNCTION
+    void operator()(const int i) const {
+      dView(0) = (i + 1)*10;
+    }
+};
+
+
 TEST_F(BinningTest, HistogramDualViewConstruction) {
     // Test that the DualView variant of Histogram works properly.
     using Histo_t = ParticleBinning::Histogram<size_type, bin_index_type, value_type, true>;
@@ -567,9 +599,8 @@ TEST_F(BinningTest, HistogramDualViewConstruction) {
 
     // Set counts on device, sync to host
     auto dView = histo.getHistogram().view_device();
-    Kokkos::parallel_for("fillDualHisto", 4, KOKKOS_LAMBDA(const int i) {
-        dView(i) = (i + 1) * 10;
-    });
+    Kokkos::parallel_for("fillPolicyHisto2", 4, FillPolicyHistogram2(dView));
+
     histo.modify_device();
     histo.sync();
     histo.init();
