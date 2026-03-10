@@ -19,7 +19,6 @@
 #include "AbstractObjects/BeamSequence.h"
 #include "AbstractObjects/Expressions.h"
 #include "AbstractObjects/OpalData.h"
-#include "Algorithms/PartBins.h"
 #include "BasicActions/Option.h"
 #include "Distribution/LaserProfile.h"
 #include "Elements/OpalBeamline.h"

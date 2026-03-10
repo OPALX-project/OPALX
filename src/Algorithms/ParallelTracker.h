@@ -103,10 +103,6 @@ private:
     // The current time stepsize dt (controlled by StepSizeConfig)
     double dtCurrentTrack_m;
 
-    // This variable controls the minimal number of steps of 
-    // emission (using bins) before we can merge the bins
-    int minStepforReBin_m;
-
     // Controls the frequency of load balancing 
     unsigned long long repartFreq_m;
 
@@ -156,9 +152,6 @@ private:
     std::set<ParticleMatterInteractionHandler*>
         activeParticleMatterInteractionHandlers_m;
     bool particleMatterStatus_m;
-
-    // Does nothing ...
-    unsigned int emissionSteps_m;
 
     // Wakefield stuff - Does nothing...
     bool wakeStatus_m;
@@ -312,7 +305,6 @@ private:
     ParallelTracker();
     ParallelTracker(const ParallelTracker&);
     void operator=(const ParallelTracker&);
-    void emitParticles(long long step);
     void computeWakefield(IndexMap::value_t& elements);
     void computeParticleMatterInteraction(IndexMap::value_t elements, 
         OrbitThreader& oth);

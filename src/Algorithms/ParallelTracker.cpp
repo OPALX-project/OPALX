@@ -68,7 +68,6 @@ ParallelTracker::ParallelTracker(
       pathLength_m(0.0),
       zstart_m(0.0),
       dtCurrentTrack_m(0.0),
-      minStepforReBin_m(-1),
       repartFreq_m(0),
       numParticlesInSimulation_m(0),
       timeIntegrationTimer1_m(IpplTimings::getTimer("TIntegration1")),
@@ -77,7 +76,6 @@ ParallelTracker::ParallelTracker(
       PluginElemTimer_m(IpplTimings::getTimer("PluginElements")),
       BinRepartTimer_m(IpplTimings::getTimer("Binaryrepart")),
       OrbThreader_m(IpplTimings::getTimer("OrbThreader")),
-      emissionSteps_m(std::numeric_limits<unsigned int>::max()),
       wakeStatus_m(false),
       wakeFunction_m(nullptr) {
 }
@@ -96,7 +94,6 @@ ParallelTracker::ParallelTracker(
       pathLength_m(0.0),
       zstart_m(zstart),
       dtCurrentTrack_m(0.0),
-      minStepforReBin_m(-1),
       repartFreq_m(0),
       numParticlesInSimulation_m(0),
       timeIntegrationTimer1_m(IpplTimings::getTimer("TIntegration1")),
@@ -104,7 +101,6 @@ ParallelTracker::ParallelTracker(
       fieldEvaluationTimer_m(IpplTimings::getTimer("External field eval")),
       BinRepartTimer_m(IpplTimings::getTimer("Binaryrepart")),
       OrbThreader_m(IpplTimings::getTimer("OrbThreader")),
-      emissionSteps_m(std::numeric_limits<unsigned int>::max()),
       wakeStatus_m(false),
       wakeFunction_m(nullptr),
       emittingSamplers_m(emittingSamplers) {
@@ -1372,7 +1368,6 @@ bool ParallelTracker::applyPluginElements(const double dt) {
         flag |= tmp;
 
         if (tmp) {
-            itsBunch_m->updateNumTotal();
             *gmsg << level3 << "* Total number of particles after PluginElement= "
                   << itsBunch_m->getTotalNum() << endl;
         }
