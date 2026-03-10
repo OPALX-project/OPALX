@@ -406,7 +406,7 @@ void ParallelTracker::execute() {
                 m << "Bunch bounds: rmin = " << rmin << ", rmax = " << rmax << endl;
             }
             
-            if (itsBunch_m->getTotalNum() > 10) {
+            if (itsBunch_m->getTotalNum() > 0) {
                 // First half of the time integration
                 timeIntegration1(pusher);
                 m << level4 << "timeIntegration1 done at step " << step << "." << endl;
@@ -416,11 +416,11 @@ void ParallelTracker::execute() {
                 m << level4 << "E and B fields reset at step " << step << "." << endl;
 
                 // Space charge field computation
-                //computeSpaceChargeFields(step);
+                computeSpaceChargeFields(step);
                 m << level4 << "Space charge field computation done at step " << step << "." << endl;
                 
                 // External field computation
-                // computeExternalFields(oth);
+                computeExternalFields(oth);
                 m << level4 << "External field computation done at step " << step << "." << endl;
 
                 // Second half of the time integration
@@ -670,32 +670,12 @@ void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
 
         (*it)->setCurrentSCoordinate(pathLength_m + rmin(2));   
 
-        // Transform from reference particle to element frame
-        refToLocalCSTrafo.transformBunchTo(
-            itsBunch_m->getParticleContainer()->R.getView());
-        
-        refToLocalCSTrafo.rotateBunchTo(
-            itsBunch_m->getParticleContainer()->P.getView());
-
-        refToLocalCSTrafo.rotateBunchTo(
-            itsBunch_m->getParticleContainer()->E.getView());
-
-        refToLocalCSTrafo.rotateBunchTo(
-            itsBunch_m->getParticleContainer()->B.getView());
+        transformBunch(refToLocalCSTrafo);
 
         // Apply element
         (*it)->apply(); 
 
-        // Transform from element to reference particle frame
-        localToRefCSTrafo.transformBunchTo(
-            itsBunch_m->getParticleContainer()->R.getView());
-        localToRefCSTrafo.rotateBunchTo(
-            itsBunch_m->getParticleContainer()->P.getView());
-        localToRefCSTrafo.rotateBunchTo(
-            itsBunch_m->getParticleContainer()->E.getView());
-        localToRefCSTrafo.rotateBunchTo(
-            itsBunch_m->getParticleContainer()->B.getView());
-
+        transformBunch(localToRefCSTrafo);
     }
 
 
@@ -755,7 +735,7 @@ void ParallelTracker::pushParticles(const BorisPusher& pusher) {
     //auto dtview = itsBunch_m->getParticleContainer()->dt.getView();
 
     Kokkos::parallel_for(
-        "pushParticles", ippl::getRangePolicy(Rview),
+        "pushParticles", itsBunch_m->getLocalNum(),
         KOKKOS_LAMBDA(const size_t i) {
             /** 
              * \f[ \vec{x}_{n+1/2} = \vec{x}_{n} + \frac{1}{2}\vec{v}_{n-1/2}\quad (= \vec{x}_{n} +
@@ -804,7 +784,7 @@ void ParallelTracker::kickParticles(const BorisPusher& pusher) {
     const double charge = itsReference.getQ();
     Kokkos::parallel_for(
         /// \todo might want to change getRangePolicy to not include overallocation!
-        "kickParticles", ippl::getRangePolicy(Pview),
+        "kickParticles", itsBunch_m->getLocalNum(),
         KOKKOS_LAMBDA(const size_t i) {
             /**
              *
@@ -982,8 +962,10 @@ void ParallelTracker::updateRefToLabCSTrafo() {
     m << " dt= " << itsBunch_m->getdT() << " R=" << R << endl;
     */
 
+    // Transform reference position to lab, but only rotate the momentum vector.
+    // Momentum is a direction/axis and must not be translated.
     Vector_t<double, 3> R = itsBunch_m->toLabTrafo_m.transformFrom(itsBunch_m->RefPartR_m);
-    Vector_t<double, 3> P = itsBunch_m->toLabTrafo_m.transformFrom(itsBunch_m->RefPartP_m);
+    Vector_t<double, 3> P = itsBunch_m->toLabTrafo_m.rotateFrom(itsBunch_m->RefPartP_m);
 
     pathLength_m += std::copysign(1, itsBunch_m->getdT()) * euclidean_norm(R);
 
