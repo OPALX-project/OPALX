@@ -294,8 +294,9 @@ void PartBunch<T, Dim>::calcBeamParameters() {
     Inform m("PartBunch::calcBeamParameters");
     std::shared_ptr<ParticleContainer_t> pc = this->pcontainer_m;
     
-    auto Rview = pc->R.getView();
-    auto Pview = pc->P.getView();
+    using view_type = ippl::ParticleAttrib<Vector_t<double,3>>::view_type;
+    view_type Rview = pc->R.getView();
+    view_type Pview = pc->P.getView();
     this->updateMoments();
     m << level5 << "Moments updated." << endl;
 
