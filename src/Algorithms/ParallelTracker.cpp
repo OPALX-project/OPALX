@@ -403,13 +403,14 @@ void ParallelTracker::execute() {
             if (itsBunch_m->getTotalNum() > 0) {
                 itsBunch_m->calcBeamParameters();
                 itsBunch_m->get_bounds(rmin, rmax);
-                m << "Bunch bounds: rmin = " << rmin << ", rmax = " << rmax << endl;
             }
             
             if (itsBunch_m->getTotalNum() > 0) {
                 // First half of the time integration
                 timeIntegration1(pusher);
                 m << level4 << "timeIntegration1 done at step " << step << "." << endl;
+                itsBunch_m->bunchUpdate();
+                m << level5 << "Bunch updated after timeIntegration1." << endl;
 
                 // Reset E and B fields
                 resetFields();
@@ -426,6 +427,8 @@ void ParallelTracker::execute() {
                 // Second half of the time integration
                 timeIntegration2(pusher);
                 m << level4 << "timeIntegration2 done at step " << step << "." << endl;
+                itsBunch_m->bunchUpdate();
+                m << level5 << "Bunch updated after timeIntegration2." << endl;
             } else {
                 m << level2 << "nParticles < 10: skipping time integration and field computations "
                   << "at step " << step << "." << endl;
@@ -600,6 +603,8 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
     referenceToBeamCSTrafo.transformBunchTo(
         itsBunch_m->getParticleContainer()->R.getView());
     m << level4 << "Transform particle positions to beam coordinate system done." << endl;
+    itsBunch_m->bunchUpdate();
+    m << level5 << "Bunch updated for positions in beam coordinate system." << endl;
 
     /// \todo this function is not implemented (yet)
     // itsBunch_m->boundp();
@@ -628,6 +633,7 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
     /// Rebuild mesh from reference-frame positions so mesh origin/bounds match current coordinates.
     /// (computeSelfFields had called bunchUpdate() in beam coords; without this, mesh would stay in beam frame.)
     itsBunch_m->bunchUpdate();
+    m << level5 << "Bunch updated for positions in reference coordinate system." << endl;
 }
 
 void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
@@ -1126,6 +1132,7 @@ void ParallelTracker::setTime() {
 }
 
 void ParallelTracker::writePhaseSpace(const long long /*step*/, bool psDump, bool statDump) {
+    Inform m("ParallelTracker::writePhaseSpace");
     Vector_t<double, 3> externalE, externalB;
     Vector_t<double, 3> FDext[2];  // FDext = {BHead, EHead, BRef, ERef, BTail, ETail}.
 
@@ -1134,6 +1141,7 @@ void ParallelTracker::writePhaseSpace(const long long /*step*/, bool psDump, boo
     // center of the beam.
     Vector_t<double, 3> rmin, rmax;
     itsBunch_m->get_bounds(rmin, rmax);
+    m << level5 << "Bunch bounds in REFERENCE frame: rmin = " << rmin << ", rmax = " << rmax << endl;
 
     if (psDump || statDump) {
         externalB = Vector_t<double, 3>(0.0);
@@ -1145,16 +1153,40 @@ void ParallelTracker::writePhaseSpace(const long long /*step*/, bool psDump, boo
         FDext[1] =
             (externalE * Units::Vpm2MVpm);  // \todo itsBunch_m->toLabTrafo_m.rotateFrom(externalE *
                                             // Units::Vpm2MVpm);
+        m << level5 << "External fields in REFERENCE frame: externalE = " << externalE << ", externalB = " << externalB << endl;
     }
 
     if (statDump) {
+        // For statistics, we want quantities (mean positions, emittances, etc.)
+        // in the BEAM frame: origin at the reference particle and z-axis along
+        // the average beam momentum. The bunch is otherwise stored in the
+        // REFERENCE frame, so we temporarily transform to BEAM,
+        // compute beam parameters, then transform back.
+        Quaternion alignment =
+            getQuaternion(itsBunch_m->get_pmean(), Vector_t<double, 3>(0, 0, 1));
+        CoordinateSystemTrafo beamToReferenceCSTrafo(
+            Vector_t<double, 3>(0, 0, pathLength_m), alignment.conjugate());
+        CoordinateSystemTrafo referenceToBeamCSTrafo = beamToReferenceCSTrafo.inverted();
+
+        auto Rview = itsBunch_m->getParticleContainer()->R.getView();
+        auto Pview = itsBunch_m->getParticleContainer()->P.getView();
+
+        // Go to BEAM frame for statistics
+        referenceToBeamCSTrafo.transformBunchTo(Rview);
+        referenceToBeamCSTrafo.rotateBunchTo(Pview);
+
+        // Calculate beam parameters in beam/lab frame and dump statistics
         itsBunch_m->calcBeamParameters();
         itsDataSink_m->dumpSDDS(itsBunch_m, FDext, -1.0);
         *gmsg << level2 << "* Wrote beam statistics." << endl;
+
+        // Restore REFERENCE frame for the rest of the tracker
+        beamToReferenceCSTrafo.transformBunchTo(Rview);
+        beamToReferenceCSTrafo.rotateBunchTo(Pview);
     }
 
     if (psDump && (itsBunch_m->getTotalNum() > 0)) {
-        // Write bunch to .h5 file.
+        // Write phase space to .h5 in REFERENCE frame
         itsDataSink_m->dumpH5(itsBunch_m, FDext);
 
         /*
@@ -1222,7 +1254,6 @@ void ParallelTracker::writePhaseSpace(const long long /*step*/, bool psDump, boo
 
             itsBunch_m->calcBeamParameters();
         }
-
         */
         
         *gmsg << level3 << "* Wrote beam phase space." << endl;

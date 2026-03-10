@@ -541,11 +541,16 @@ void PartBunch<T, Dim>::computeSelfFields() {
     need it anyways, since positions have changed). However, when removing it,
     the total energy of the FODO example quickly diverges to "-inf". I don't
     know why this is, but particle positions shouldn't have changed. I would
-    therefore assume that we could separate bunchUpdate from pc->update() in 
-    order to save some computation. 
+    therefore assume that we could separate bunchUpdate from pc->update() in
+    order to save some computation.
+
+    Edit: this is necessary since we transform positions, so we need to update
+    mesh boundaries and spacings!
+
+    Edit 2: this is now handled in computeSpaceChargeFields
     */
-    this->bunchUpdate();
-    m << level5 << "Bunch updated." << endl;
+    // this->bunchUpdate();
+    // m << level5 << "Bunch updated for positions in beam coordinate system." << endl;
 
     /// \todo Add binned field solver here (needs iteration over bins, scatterPerBin calls and Etmp build up)! See https://gitlab.psi.ch/OPAL/opal-x/src/-/blame/binnedFieldSolver/src/PartBunch/PartBunch.cpp?ref_type=heads#L376
 
