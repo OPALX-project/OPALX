@@ -417,9 +417,13 @@ void ParallelTracker::execute() {
                 m << level4 << "E and B fields reset at step " << step << "." << endl;
 
                 // Space charge field computation
-                computeSpaceChargeFields(step);
-                m << level4 << "Space charge field computation done at step " << step << "." << endl;
-                
+                if (itsBunch_m->getLocalNum() > 1) {
+                    // Otherwise no interaction, can skip (and for some reason seg-fault...)
+                    computeSpaceChargeFields(step);
+                    m << level4 << "Space charge field computation done at step " << step << "."
+                      << endl;
+                }
+
                 // External field computation
                 computeExternalFields(oth);
                 m << level4 << "External field computation done at step " << step << "." << endl;
@@ -430,7 +434,7 @@ void ParallelTracker::execute() {
                 itsBunch_m->bunchUpdate();
                 m << level5 << "Bunch updated after timeIntegration2." << endl;
             } else {
-                m << level2 << "nParticles < 10: skipping time integration and field computations "
+                m << level2 << "nParticles = 0: skipping time integration and field computations "
                   << "at step " << step << "." << endl;
             }
 
