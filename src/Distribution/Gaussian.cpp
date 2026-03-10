@@ -65,7 +65,7 @@ void Gaussian::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> 
     // Only generate during initial sampling (t0 <= 0). For t0 > 0, this
     // distribution is time-independent and should not contribute here unless
     // explicitly triggered via emitParticles (which sets hasEmittedOnce_m).
-    if (t0_m > 0.0 && !hasEmittedOnce_m) {
+    if (t0_m > 0.0 && !hasEmittedOnce_m) { // YES this !hasEmittedOnce_m is correct! 
         return;
     }
     auto rand_pool64 = randPool_m;
@@ -125,21 +125,21 @@ void Gaussian::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> 
         }
 
         Kokkos::parallel_reduce(
-                "calc moments of particle distr.", nlocal,
-                KOKKOS_LAMBDA(
-                        const int k, double& cent0, double& cent1, double& cent2) {
-                        cent0 += Rview(k)[0];
-                        cent1 += Rview(k)[1];
-                        cent2 += Rview(k)[2];
-                },
-                Kokkos::Sum<double>(loc_meanR[0]), Kokkos::Sum<double>(loc_meanR[1]), Kokkos::Sum<double>(loc_meanR[2]));
+            "calc moments of particle distr.", nlocal,
+            KOKKOS_LAMBDA(const int k, double& cent0, double& cent1, double& cent2) {
+                cent0 += Rview(k)[0];
+                cent1 += Rview(k)[1];
+                cent2 += Rview(k)[2];
+            },
+            Kokkos::Sum<double>(loc_meanR[0]), Kokkos::Sum<double>(loc_meanR[1]),
+            Kokkos::Sum<double>(loc_meanR[2]));
         Kokkos::fence();
 
         MPI_Allreduce(loc_meanR, meanR, 3, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
         ippl::Comm->barrier();
 
-        for(int i=0; i<3; i++){
-        meanR[i] = meanR[i]/(1.0*numberOfParticles);
+        for (int i = 0; i < 3; i++) {
+            meanR[i] = meanR[i] / (1.0 * numberOfParticles);
         }
 
         Kokkos::parallel_for(
@@ -159,23 +159,18 @@ void Gaussian::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> 
     }
 
     view_type PviewFull = pc_m->P.getView();
-    auto Pview = Kokkos::subview(
-        PviewFull,
-        std::make_pair(nlocalCurrent, nlocalCurrent + nlocal));
+    auto Pview = Kokkos::subview(PviewFull, std::make_pair(nlocalCurrent, nlocalCurrent + nlocal));
 
     Kokkos::parallel_for(
-        nlocal,
-        ippl::random::randn<double, 3>(Pview, rand_pool64, mu, sd)
-    );
+        nlocal, 
+        ippl::random::randn<double, 3>(Pview, rand_pool64, mu, sd));
     Kokkos::fence();
 
     double avrgpz = avrgpz_m;
     Kokkos::parallel_for(
-        nlocal,
-        KOKKOS_LAMBDA(const int k) {
-            Pview(k)[2] += avrgpz;
-        }
-    );
+        nlocal, KOKKOS_LAMBDA(const size_t k) { 
+            Pview(k)[2] += avrgpz; 
+        });
     Kokkos::fence();
 
     IpplTimings::stopTimer(samperTimer_m);
