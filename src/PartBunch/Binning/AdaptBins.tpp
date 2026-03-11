@@ -2,6 +2,7 @@
 #define ADAPT_BINS_TPP
 
 #include "AdaptBins.h"
+#include <limits>
 
 namespace ParticleBinning {
 
@@ -40,7 +41,9 @@ namespace ParticleBinning {
         IpplTimings::startTimer(bInitLimitsT);
         if (nlocal <= 0) {
             msg << level4 << "Particles in the bunch = " << nlocal << ". Overwriting limits manually." << endl;
-            xMin_m = xMax_m = (nlocal == 0) ? 0 : 0; 
+            // Do not let empty ranks influence the global min/max reduction.
+            xMin_m = std::numeric_limits<value_type>::max();
+            xMax_m = std::numeric_limits<value_type>::lowest();
         } else {
             Kokkos::MinMaxScalar<value_type> localMinMax;
             // Sadly this is necessary, since Kokkos seems to have a problem when nlocal == 1, where it does not update localMinMax
@@ -68,6 +71,12 @@ namespace ParticleBinning {
         ippl::Comm->allreduce(xMax_m, 1, std::greater<value_type>());
         ippl::Comm->allreduce(xMin_m, 1, std::less<value_type>());
         IpplTimings::stopTimer(bAllReduceLimitsT);
+
+        // If all ranks were empty, the reductions will keep the sentinel values.
+        if (xMin_m == std::numeric_limits<value_type>::max() &&
+            xMax_m == std::numeric_limits<value_type>::lowest()) {
+            xMin_m = xMax_m = value_type(0);
+        }
 
         // Update bin width variable with new limits
         binWidth_m = (xMax_m - xMin_m) / currentBins_m;
