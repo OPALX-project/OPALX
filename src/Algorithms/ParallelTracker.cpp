@@ -416,13 +416,15 @@ void ParallelTracker::execute() {
                 resetFields();
                 m << level4 << "E and B fields reset at step " << step << "." << endl;
 
+                //std::cout << "local num: " << itsBunch_m->getLocalNum() << std::endl;
+
                 // Space charge field computation
-                if (itsBunch_m->getLocalNum() > 1) {
-                    // Otherwise no interaction, can skip (and for some reason seg-fault...)
-                    computeSpaceChargeFields(step);
-                    m << level4 << "Space charge field computation done at step " << step << "."
-                      << endl;
-                }
+                // if (itsBunch_m->getLocalNum() > 1) {
+                // Otherwise no interaction, can skip (and for some reason seg-fault...)
+                computeSpaceChargeFields(step);
+                m << level4 << "Space charge field computation done at step " << step << "."
+                  << endl;
+                //}
 
                 // External field computation
                 computeExternalFields(oth);
@@ -597,7 +599,19 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
     itsBunch_m->calcBeamParameters();
     m << level4 << "Calculate beam parameters done." << endl;
 
-    Quaternion alignment = getQuaternion(itsBunch_m->get_pmean(), Vector_t<double, 3>(0, 0, 1));
+    // Use mean momentum for beam-frame alignment; with 0 or 1 particle get_pmean() can be
+    // zero or negligible (e.g. rank with no particles), which would make getQuaternion throw.
+    const double pmean_tol = 1e-12;
+    Vector_t<double, 3> pmean = itsBunch_m->get_pmean();
+    double pmean_len2        = dot(pmean, pmean);
+    if (pmean_len2 < pmean_tol * pmean_tol) {
+        pmean = itsBunch_m->RefPartP_m;
+        pmean_len2 = dot(pmean, pmean);
+    }
+    if (pmean_len2 < pmean_tol * pmean_tol) {
+        pmean = Vector_t<double, 3>(0, 0, 1);
+    }
+    Quaternion alignment = getQuaternion(pmean, Vector_t<double, 3>(0, 0, 1));
 
     CoordinateSystemTrafo beamToReferenceCSTrafo(
         Vector_t<double, 3>(0, 0, pathLength_m), alignment.conjugate());
