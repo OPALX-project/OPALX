@@ -124,6 +124,7 @@ void FlatTop::setInternalVariables(bool emitting,
 }
 
 void FlatTop::generateUniformDisk(size_type nlocal, size_t nNew) {
+    if (nNew == 0) { return; }
 
     GeneratorPool rand_pool = rand_pool_m;
     view_type Rview         = pc_m->R.getView();
@@ -209,8 +210,9 @@ size_t FlatTop::computeNlocalUniformly(size_t nglobal){
     const size_type nlocal = nglobal / nranks_u;
     const size_t remaining = nglobal - nlocal * nranks_u;
 
-    if (remaining > 0 && rank == 0) {
-        return nlocal + remaining;
+    // First 'remaining' ranks get one extra particle.
+    if (remaining > 0 && static_cast<size_t>(rank) < remaining) {
+        return nlocal + 1;
     }
     return nlocal;
 }
@@ -241,7 +243,6 @@ void FlatTop::initDomainDecomp(double BoxIncr) {
 }
 
 FlatTop::size_type FlatTop::countEnteringParticlesPerRank(double t0, double tf){
-    size_type nlocalNew = 0;
     const double tArea = integrateTrapezoidal(t0, tf, FlatTopProfile(t0), FlatTopProfile(tf));
     // Integer-safe: floor to avoid over-counting, then clamp to totalN_m (avoids fp overflow into size_type)
     const double totalNewD = std::floor(static_cast<double>(totalN_m) * tArea / distArea_m);
@@ -250,7 +251,8 @@ FlatTop::size_type FlatTop::countEnteringParticlesPerRank(double t0, double tf){
         totalNew = totalN_m;
     }
 
-    return computeNlocalUniformly(totalNew);
+    return pc_m ? static_cast<size_type>(computeLocalEmitCount(static_cast<size_t>(totalNew)))
+                 : computeNlocalUniformly(totalNew);
 
     // The following code is unnecessarily complicated in my opinion as a load balancer will be
     // called anyways. Apart from that it will mitigate errors in the allocated number of particles
@@ -324,7 +326,6 @@ FlatTop::size_type FlatTop::countEnteringParticlesPerRank(double t0, double tf){
             }
         }
     }*/
-    return nlocalNew;
 }
 
 void FlatTop::allocateParticles(size_t numberOfParticles){
@@ -346,7 +347,7 @@ void FlatTop::emitParticles(double t, double dt) {
     // Count number of new particles to be emitted in [tShift, tShift+dtShift].
     size_type nNew = countEnteringParticlesPerRank(tShift, tShift + dtShift);
     msgAll << level5 << "* " << nNew << " new particles to be emitted" << endl;
-    if (nNew == 0) { return; }
+    // if (nNew == 0) { return; } // don't return, see why below
 
     // Current number of particles per rank.
     size_type nlocal = pc_m->getLocalNum();
@@ -355,6 +356,8 @@ void FlatTop::emitParticles(double t, double dt) {
     // Intended design: fill only into pre-allocated slice [nextEmitIndex, nextEmitIndex+nNew)
     // (no create), when ParticleContainer supports reserve(total) + setActiveSize. Until then
     // we extend the container each step.
+    // Note that create can be safely called with nNew=0 (no-op), but it NEEDS to be called, since
+    // other ranks might have != 0 leading to a MPI_Allreduce.
     pc_m->create(nNew);
 
     // Generate new particles on uniform disc (sample into [nlocal, nlocal+nNew)).

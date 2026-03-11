@@ -63,6 +63,14 @@ public:
     virtual void initDomainDecomp(double /*BoxIncr*/) {}
 
     virtual void setWithDomainDecomp(bool /*withDomainDecomp*/) {}
+
+    /**
+     * @brief Computes the number of particles this rank should emit so that the global
+     *        total equals totalToSample and no rank exceeds its capacity (space left).
+     * @param totalToSample Global number of particles to emit this timestep.
+     * @return Local number of particles this rank should create/emit.
+     */
+    size_t computeLocalEmitCount(size_t totalToSample) const;
 };
 #endif
 
