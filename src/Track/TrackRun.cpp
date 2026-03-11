@@ -273,6 +273,7 @@ void TrackRun::execute() {
         totalParticlesForBunch, 1.0, "LF2", fs_m, ds_m);
     bunch_m->setT(0.0);
     bunch_m->setBeamFrequency(beam->getFrequency() * Units::MHz2Hz);
+    *gmsg << level2 << *(bunch_m->getBCHandler()) << endl;
 
     // Configure a per-rank upper bound for the number of macroparticles. This is
     // used later to detect when emission causes the underlying particle arrays to
@@ -281,13 +282,21 @@ void TrackRun::execute() {
     // an issue. The max number also gets a few particles extra accounting for N%ranks != 0.
     // Alternatively, one can always do an overallocation.
     const double nRanks = static_cast<double>(ippl::Comm->size());
-    bunch_m->setMaxLocalNum(static_cast<size_t>(totalParticlesForBunch / nRanks + 2 * nRanks + 1));
+    const size_t maxLocalNum = static_cast<size_t>(totalParticlesForBunch / nRanks + 2 * nRanks + 1);
+    bunch_m->setMaxLocalNum(maxLocalNum);
 
     // Allocate particle memory in the container, can be done after the constructor of the bunch is
-    // done (sets up the container).
-    bunch_m->getParticleContainer()->create(bunch_m->getMaxLocalNum());
+    // done (sets up the container). 
+    bunch_m->getParticleContainer()->create(maxLocalNum);
 
-    *gmsg << level2 << *(bunch_m->getBCHandler()) << endl;
+    // Destroy ALL particles --> result is now they are allocated in the attributes. Note that we
+    // have to destroy ALL particles, since this short circuits the internal IPPL function such that
+    // tmp_invalid does not need to be a valid view and can just be a dummy. Calling create again
+    // will then not alter the underlying view and just increment the localNum counter.
+    Kokkos::View<bool*> tmp_invalid("tmp_invalid", maxLocalNum);
+    bunch_m->getParticleContainer()->destroy(
+        tmp_invalid, maxLocalNum);
+    *gmsg << level3 << "* " << maxLocalNum << " particles created and destroyed. Bunch allocated." << endl;
 
     setupBoundaryGeometry();
 

@@ -443,7 +443,7 @@ void ParallelTracker::execute() {
             m << level4 << "Emit particles from emission sources done at step " << step << "." << endl;
             itsBunch_m->bunchUpdate();  // mesh from current R so stays REFERENCE frame for next step
             m << level5 << "Bunch updated after emission." << endl;
-            
+
             // Set dt for all particles (including newly emitted) so next step's push uses correct per-particle dt.
             // Reset particle time step size to the current track time step (pulled out of timeIntegration2)
             setTime();
@@ -731,7 +731,7 @@ void ParallelTracker::emitFromEmissionSources(double t, double dt) {
     // never exceed the globally configured BEAM::NPART value. Overshooting
     // this limit would trigger internal reallocations in the particle
     // container and silently drop already-tracked particles/delete their data in the particle
-    // attributes. This is only a check for the number of local particles, not 
+    // attributes. This is only a check for the number of local particles.
     const size_t extentAfterEmission = itsBunch_m->getParticleContainer()->R.getView().extent(0);
     if (extentAfterEmission != extentBeforeEmission) {
         throw OpalException(
