@@ -8,6 +8,7 @@
 template <typename T, unsigned Dim>
 PartBunch<T, Dim>::PartBunch(double qi,
                              double mi,
+			     double mrest, /* GeV_c2 */
                              size_t totalP,
                              /*int nt,*/
                              double lbt,
@@ -26,6 +27,7 @@ PartBunch<T, Dim>::PartBunch(double qi,
       isFirstRepartition_m(true),
       qi_m(qi),
       mi_m(mi),
+      mrest_m(mrest),
       rmsDensity_m(0.0),
       RefPartR_m(0.0),
       RefPartP_m(0.0),
@@ -405,11 +407,16 @@ Inform& PartBunch<T, Dim>::print(Inform& os) {
     // if (this->getLocalNum() != 0) {  // to suppress Nans
     Inform::FmtFlags_t ff = os.flags();
 
+    double dek = p2EkinMeV (this->pcontainer_m->getRmsP(), mrest_m );
+    double ek  = p2EkinMeV (this->pcontainer_m->getMeanP(), mrest_m );
+    
     os << level1 << std::scientific << "\n"
        << "* ************** B U N C H "
         "********************************************************* \n"
        << "* PARTICLES       = " << this->getTotalNum() << "\n"
        << "* CHARGE          = " << this->qi_m*this->getTotalNum() << " (Cb) \n"
+       << "* <EKIN>          = " << ek << " (GeV) \n"
+       << "* <dEKIN>         = " << dek << " (GeV) \n"
        << "* INTEGRATOR      = " << integration_method_m << "\n"
        << "* MIN R (origin)  = " << Util::getLengthString( this->pcontainer_m->getMinR(), 5) << "\n"
        << "* MAX R (max ext) = " << Util::getLengthString( this->pcontainer_m->getMaxR(), 5) << "\n"

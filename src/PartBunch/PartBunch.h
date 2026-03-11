@@ -78,6 +78,7 @@ private:
     double qi_m;
 
     double mi_m;
+    double mrest_m; // rest mass of particle
 
     double rmsDensity_m;
 
@@ -204,6 +205,7 @@ public:
      *
      * @param qi              Charge per macroparticle [C].
      * @param mi              Mass per macroparticle [GeV/c^2].
+     * @param mrest           Rest mass of marticle [GeV c^2].
      * @param totalP          Total number of macroparticles.
      * @param lbt             Load-balancer timescale.
      * @param integration_method Name of the integrator (e.g. "LF2").
@@ -212,14 +214,27 @@ public:
      */
     PartBunch(double qi,
               double mi,
+	      double mrest, 
               size_t totalP,
               double lbt,
               std::string integration_method,
               std::shared_ptr<FieldSolverCmd>& OPALFieldSolver,
               std::shared_ptr<DataSink> dataSink);
-
+    /**
+     * @brief 
+     * - recomputes mesh spacing i.e. Layout
+     * - repatition the domain if nessesary
+     * - recomputes all moments of the particle distribution
+     
+     called in:
+     
+     Track/TrackRun.cpp             --> initial calc)
+     PartBunch/PartBunch.cpp        --> in space charge which is wrong 
+     Algorithms/ParallelTracker.cpp --> after push
+     
+     */
     void bunchUpdate();
-    
+  
     ~PartBunch() {
         *gmsg << level2 << "* PartBunch Destructor: Finished time step: " << this->it_m << " time: " << this->time_m << endl;
     }
@@ -367,6 +382,60 @@ public:
         return 1.0;
     }
 
+/**
+ * @brief Compute the kinetic energy of a particle with mass m from the vector \f$\boldsymbol{\beta\gamma}\f$.
+ *
+ * This function assumes the input vector
+ * \f[
+ * \mathbf{p} = \boldsymbol{\beta\gamma}
+ * \f]
+ * where
+ * \f[
+ * \beta = \frac{v}{c}, \qquad
+ * \gamma = \frac{1}{\sqrt{1-\beta^2}}.
+ * \f]
+ * and the mass in GeV
+ * \f[
+ * m c^2
+ * \f]
+ * The magnitude of the vector is
+ * \f[
+ * |\boldsymbol{\beta\gamma}| =
+ * \sqrt{(\beta\gamma_x)^2 + (\beta\gamma_y)^2 + (\beta\gamma_z)^2}.
+ * \f]
+ *
+ * From this we obtain the Lorentz factor
+ * \f[
+ * \gamma = \sqrt{1 + |\boldsymbol{\beta\gamma}|^2}.
+ * \f]
+ *
+ * The kinetic energy is then
+ * \f[
+ * E_{\mathrm{kin}} = (\gamma - 1) m.
+ * \f]
+ *
+ * For protons we use
+ * \f[
+ * m_p c^2 = 938.2720813 \, \mathrm{MeV}.
+ * \f]
+ *
+ * @param p Vector containing \f$(\beta\gamma_x,\beta\gamma_y,\beta\gamma_z)\f$.
+ * @return kinetic energy in MeV.
+ */
+  double p2EkinMeV (const Vector_t<double,Dim>& p, const double mass ) {
+    
+    // magnitude squared of beta*gamma
+    const double p2 = p[0]*p[0] + p[1]*p[1] + p[2]*p[2];
+
+    // Lorentz factor
+    const double gamma = std::sqrt(1.0 + p2);
+
+    // kinetic energy
+    const double Ekin = (gamma - 1.0) * mass;
+
+    return Ekin;
+  }
+  
     void gatherLoadBalanceStatistics();
 
     size_t getLoadBalance(int p) {
