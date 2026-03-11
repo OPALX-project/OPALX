@@ -259,26 +259,25 @@ void FromFile::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> 
     
     numberOfParticles = totalParticles;
     
-    // Distribute particles across MPI ranks
-    MPI_Comm comm = MPI_COMM_WORLD;
-    int nranks, rank;
-    MPI_Comm_size(comm, &nranks);
-    MPI_Comm_rank(comm, &rank);
-    
-    size_t baseParticlesPerRank = totalParticles / nranks;
-    size_t remaining = totalParticles - baseParticlesPerRank * nranks;
-    
-    // Calculate starting index for this rank
-    // Rank 0 gets remaining particles, so other ranks start after that
-    size_t startIdx = rank * baseParticlesPerRank + remaining;
-    
-    // Adjust nlocal: rank 0 gets remaining particles
-    size_t nlocal = baseParticlesPerRank;
-    if (remaining > 0 && rank == 0) {
-        nlocal += remaining;
-        startIdx = 0; // Rank 0 always starts at 0
+    // Distribute particles across MPI ranks (capacity-aware)
+    const int rank = ippl::Comm->rank();
+    const int nranks = std::max(1, ippl::Comm->size());
+    const size_t nranks_u = static_cast<size_t>(nranks);
+    size_t nlocal = pc_m ? computeLocalEmitCount(totalParticles)
+                         : (totalParticles / nranks_u
+                            + (static_cast<size_t>(rank) < (totalParticles % nranks_u) ? 1 : 0));
+    // Use Mpi scan to get the start index for each rank (since they are all potentially different!)
+    size_t startIdx = 0;
+    if (pc_m && ippl::Comm->size() > 0) {
+        unsigned long nlocalUL = static_cast<unsigned long>(nlocal);
+        unsigned long startIdxUL = 0;
+        MPI_Exscan(&nlocalUL, &startIdxUL, 1, MPI_UNSIGNED_LONG, MPI_SUM,
+                   ippl::Comm->getCommunicator());
+        if (rank > 0) {
+            startIdx = static_cast<size_t>(startIdxUL);
+        }
     }
-    
+
     // Allocate particles, appending after any existing ones.
     const size_t nlocalCurrent = pc_m->getLocalNum();
     pc_m->create(nlocal);
