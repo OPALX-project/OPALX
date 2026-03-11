@@ -1,8 +1,9 @@
 #include "Distribution.h"
 #include "SamplingBase.hpp"
 #include "Gaussian.h"
-#include <memory>
+#include <algorithm>
 #include <cmath>
+#include <memory>
 
 /**
  * @brief Constructs a Gaussian sampler.
@@ -91,17 +92,11 @@ void Gaussian::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> 
         ippl::random::InverseTransformSampling<double, 3, Kokkos::DefaultExecutionSpace, Dist_t>;
     Dist_t dist(par);
 
-    MPI_Comm comm = MPI_COMM_WORLD;
-    int nranks, rank;
-    MPI_Comm_size(comm, &nranks);
-    MPI_Comm_rank(comm, &rank);
-
-    size_t nlocal    = floor(numberOfParticles / nranks);
-    size_t remaining = numberOfParticles - nlocal * nranks;
-
-    if (remaining > 0 && rank == 0) {
-        nlocal += remaining;
-    }
+    const int nranks = std::max(1, ippl::Comm->size());
+    // Use computeLocalEmitCount to distribute particles across ranks or uniform fallback.
+    size_t nlocal   = pc_m ? computeLocalEmitCount(static_cast<size_t>(numberOfParticles))
+                           : static_cast<size_t>(floor(numberOfParticles / nranks)
+                                 + (ippl::Comm->rank() < static_cast<int>(numberOfParticles % static_cast<size_t>(nranks)) ? 1 : 0));
 
     sampling_t sampling(dist, rmax, rmin, rmax, rmin, nlocal);
     nlocal = sampling.getLocalSamplesNum();
