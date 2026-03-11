@@ -157,14 +157,14 @@ KOKKOS_INLINE_FUNCTION void MultipoleTStraight::computeBField(const Vector_t<dou
     const bool insideAperture =
             Kokkos::abs(RPrime[1]) <= config.verticalAperture_m / 2.0 &&
             Kokkos::abs(RPrime[0]) <= config.horizontalAperture_m / 2.0;
-    const bool insideBoundingBox =
+    const bool insideBoundingBox = config.boundingBoxLength_m == 0.0 ||
             Kokkos::abs(RPrime[2]) <= config.boundingBoxLength_m / 2.0;
     if(insideAperture && insideBoundingBox) {
         Kokkos::Array<double, MaxDerivatives> dt;
         Kokkos::Array<double, MaxDerivatives> ds;
-        calcTransverseDerivatives(config.transverseProfile_m, config.maxFOrder_m * 2 + 1, R[0], dt);
+        calcTransverseDerivatives(config.transverseProfile_m, config.maxFOrder_m * 2 + 1, RPrime[0], dt);
         calcFringeDerivatives(config.fringeS0_m, config.fringeLambdaLeft_m, config.fringeLambdaRight_m,
-            R[2], tanhCoefficients, ds);
+            RPrime[2], tanhCoefficients, ds);
         for(unsigned int n = 0; n <= config.maxFOrder_m; n++) {
             double innerSumX{};
             double innerSumZ{};
@@ -176,8 +176,8 @@ KOKKOS_INLINE_FUNCTION void MultipoleTStraight::computeBField(const Vector_t<dou
                 innerSumS += k * dt[2 * i] * ds[2 * n - 2 * i + 1];
             }
             const double negOnePowN = powerInteger(-1.0, n);
-            const double xszk = powerInteger(R[1], 2 * n + 1) / factorial(2 * n + 1) * negOnePowN;
-            const double zzk = powerInteger(R[1], 2 * n) / factorial(2 * n) * negOnePowN;
+            const double xszk = powerInteger(RPrime[1], 2 * n + 1) / factorial(2 * n + 1) * negOnePowN;
+            const double zzk = powerInteger(RPrime[1], 2 * n) / factorial(2 * n) * negOnePowN;
             B[0] += innerSumX * xszk;
             B[1] += innerSumZ * zzk;
             B[2] += innerSumS * xszk;

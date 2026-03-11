@@ -35,6 +35,7 @@ MultipoleTStraight::MultipoleTStraight(MultipoleT* element) :
 
 void MultipoleTStraight::initialise() {
     straightGeometry_m.setElementLength(element_m->getLength());
+    generateTanhCoefficients(element_m->getMaxFOrder() * 2 + 1);
 }
 
 void MultipoleTStraight::getField(const Kokkos::View<Vector_t<double, 3>*>& R,

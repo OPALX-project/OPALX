@@ -120,9 +120,14 @@ double MultipoleT::getScaling(const double t) const {
 
 bool MultipoleT::apply() {
     const auto pc = RefPartBunch_m->getParticleContainer();
-    implementation_->getField(pc->R.getView(), pc->E.getView(), pc->B.getView(),
-            getScaling(RefPartBunch_m->getT()));
+    apply(pc->R.getView(), pc->E.getView(), pc->B.getView(), RefPartBunch_m->getT());
     return false;
+}
+
+void MultipoleT::apply(const Kokkos::View<Vector_t<double, 3>*>& R,
+        Kokkos::View<Vector_t<double, 3>*>& E, Kokkos::View<Vector_t<double, 3>*>& B,
+        const double t) const {
+    implementation_->getField(R, E, B, getScaling(t));
 }
 
 bool MultipoleT::apply(const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/,
@@ -272,6 +277,7 @@ void MultipoleT::setMaxOrder(size_t orderZ, size_t orderX) {
     config_m.maxFOrder_m = orderZ;
     config_m.maxXOrder_m = orderX;
     implementation_->setMaxOrder(config_m.maxFOrder_m, config_m.maxXOrder_m);
+    implementation_->initialise();
 }
 
 void MultipoleT::setRotation(double rot) {
