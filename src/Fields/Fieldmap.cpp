@@ -94,6 +94,13 @@ Fieldmap* Fieldmap::getFieldmap(std::string Filename, bool /*fast*/) {
                 return (*position.first).second.Map;
                 break;
  
+            case T2DDynamic: 
+                position = FieldmapDictionary.insert(std::make_pair(
+                    Filename,
+                    FieldmapDescription(T2DDynamic, new FM2DDynamic(Filename))));
+                return (*position.first).second.Map;
+                break;
+
             default:
                 throw GeneralClassicException(
                     "Fieldmap::getFieldmap()",
