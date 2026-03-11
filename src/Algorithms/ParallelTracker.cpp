@@ -405,39 +405,40 @@ void ParallelTracker::execute() {
                 itsBunch_m->get_bounds(rmin, rmax);
             }
             
-            if (itsBunch_m->getTotalNum() > 0) {
-                // First half of the time integration
-                timeIntegration1(pusher);
-                m << level4 << "timeIntegration1 done at step " << step << "." << endl;
-                itsBunch_m->bunchUpdate();
-                m << level5 << "Bunch updated after timeIntegration1." << endl;
+            // First half of the time integration
+            timeIntegration1(pusher);
+            m << level4 << "timeIntegration1 done at step " << step << "." << endl;
+            itsBunch_m->bunchUpdate();
+            m << level5 << "Bunch updated after timeIntegration1." << endl;
 
-                // Reset E and B fields
-                resetFields();
-                m << level4 << "E and B fields reset at step " << step << "." << endl;
+            // Reset E and B fields
+            resetFields();
+            m << level4 << "E and B fields reset at step " << step << "." << endl;
 
-                //std::cout << "local num: " << itsBunch_m->getLocalNum() << std::endl;
+            //std::cout << "local num: " << itsBunch_m->getLocalNum() << std::endl;
 
-                // Space charge field computation
-                // if (itsBunch_m->getLocalNum() > 1) {
-                // Otherwise no interaction, can skip (and for some reason seg-fault...)
-                computeSpaceChargeFields(step);
-                m << level4 << "Space charge field computation done at step " << step << "."
-                  << endl;
-                //}
+            // Space charge field computation
+            // if (itsBunch_m->getLocalNum() > 1) {
+            // Otherwise no interaction, can skip (and for some reason seg-fault...)
+            computeSpaceChargeFields(step);
+            m << level4 << "Space charge field computation done at step " << step << "."
+                << endl;
+            //}
 
-                // External field computation
-                computeExternalFields(oth);
-                m << level4 << "External field computation done at step " << step << "." << endl;
+            // External field computation
+            computeExternalFields(oth);
+            m << level4 << "External field computation done at step " << step << "." << endl;
 
-                // Second half of the time integration
-                timeIntegration2(pusher);
-                m << level4 << "timeIntegration2 done at step " << step << "." << endl;
-                itsBunch_m->bunchUpdate();
-                m << level5 << "Bunch updated after timeIntegration2." << endl;
-            } else {
-                m << level2 << "nParticles = 0: skipping time integration and field computations "
-                  << "at step " << step << "." << endl;
+            // Second half of the time integration
+            timeIntegration2(pusher);
+            m << level4 << "timeIntegration2 done at step " << step << "." << endl;
+            itsBunch_m->bunchUpdate();
+            m << level5 << "Bunch updated after timeIntegration2." << endl;
+
+            if (itsBunch_m->getTotalNum() == 0) {
+                m << level5 << "WARNING: No particles in the bunch at step " << step
+                    << " on rank " << ippl::Comm->rank()
+                    << ". This has no effect on the simulation." << endl;
             }
 
             // Emit particles from time-dependent (emitting) sources (R set in REFERENCE frame).
