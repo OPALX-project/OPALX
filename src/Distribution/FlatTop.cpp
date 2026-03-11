@@ -165,7 +165,8 @@ void FlatTop::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> n
     // initial allocation is similar for both emitting and non-emitting cases
     allocateParticles(numberOfParticles);
 
-    if(emitting_m){
+    // This doesn't do anything, since the allocation is now done in TrackRun.
+    /*if(emitting_m){
         // set nlocal to 0 for the very first time step, before sampling particles
         //pc_m->setLocalNum(0);
 
@@ -177,7 +178,7 @@ void FlatTop::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> n
             "FlatTop::generateParticles",
             "FlatTop does not support generating particles without emitting. Set EMITTED = true in "
             "the input file.");
-    }
+    }*/
 }
 
 double FlatTop::FlatTopProfile(double t){
@@ -200,20 +201,17 @@ double FlatTop::FlatTopProfile(double t){
 }
 
 size_t FlatTop::computeNlocalUniformly(size_t nglobal){
-    MPI_Comm comm = MPI_COMM_WORLD;
-    int nranks;
-    int rank;
-    MPI_Comm_size(comm, &nranks);
-    MPI_Comm_rank(comm, &rank);
+    // Use ippl::Comm so we match the communicator used for allocation in TrackRun (maxLocalNum).
+    const int nranks = ippl::Comm->size();
+    const int rank   = ippl::Comm->rank();
 
-    size_type nlocal = floor(nglobal/nranks);
+    const size_t nranks_u = static_cast<size_t>(nranks > 0 ? nranks : 1);
+    const size_type nlocal = nglobal / nranks_u;
+    const size_t remaining = nglobal - nlocal * nranks_u;
 
-    size_t remaining = nglobal - nlocal*nranks;
-
-    if(remaining>0 && rank==0){
-       nlocal += remaining;
+    if (remaining > 0 && rank == 0) {
+        return nlocal + remaining;
     }
-
     return nlocal;
 }
 
@@ -242,20 +240,30 @@ void FlatTop::initDomainDecomp(double BoxIncr) {
     pc_m->getLayout().updateLayout(*FL, *mesh);
 }
 
-double FlatTop::countEnteringParticlesPerRank(double t0, double tf){
-    size_type nlocalNew=0;
-    double tArea = 0.0;
-    tArea = integrateTrapezoidal(t0, tf, FlatTopProfile(t0), FlatTopProfile(tf));
-    size_type totalNew = floor(totalN_m * tArea / distArea_m);
-    nlocalNew = 0;
+FlatTop::size_type FlatTop::countEnteringParticlesPerRank(double t0, double tf){
+    size_type nlocalNew = 0;
+    const double tArea = integrateTrapezoidal(t0, tf, FlatTopProfile(t0), FlatTopProfile(tf));
+    // Integer-safe: floor to avoid over-counting, then clamp to totalN_m (avoids fp overflow into size_type)
+    const double totalNewD = std::floor(static_cast<double>(totalN_m) * tArea / distArea_m);
+    size_type totalNew = static_cast<size_type>(totalNewD);
+    if (totalNew > totalN_m) {
+        totalNew = totalN_m;
+    }
 
-    if(totalNew>0){
+    return computeNlocalUniformly(totalNew);
+
+    // The following code is unnecessarily complicated in my opinion as a load balancer will be
+    // called anyways. Apart from that it will mitigate errors in the allocated number of particles
+    // per rank.
+    /*
+    if (totalNew > 0) {
         if(!withDomainDecomp_m){
             // the same number of particles per rank
             nlocalNew = computeNlocalUniformly(totalNew);
         }
         else{
-            // select number of particles per rank using estimated domain decomposition at final emission time
+            // select number of particles per rank using estimated domain decomposition at final
+    emission time
             // find min/max of particle positions for [t,t+dt]
             Vector_t<double, 3> prmin, prmax;
             Vector_t<double, 3> sigmaR = sigmaR_m;
@@ -271,7 +279,8 @@ double FlatTop::countEnteringParticlesPerRank(double t0, double tf){
             double dz = prmax[2] - prmin[2];
 
             if (dx <= 0 || dy <= 0 || dz <= 0) {
-                throw std::runtime_error("Invalid global particle volume: prmax must be greater than prmin.");
+                throw std::runtime_error("Invalid global particle volume: prmax must be greater than
+    prmin.");
             }
 
             double globalpvolume = dx * dy * dz;
@@ -302,19 +311,19 @@ double FlatTop::countEnteringParticlesPerRank(double t0, double tf){
                 double z2 = std::min(prmax[2], locrmax[2]);
 
                 if (x2 >= x1 && y2 >= y1 && z2 >= z1) {
-                    double locpvolume = (x2 - x1) * (y2 - y1) * (z2 - z1);
+                    const double locpvolume = (x2 - x1) * (y2 - y1) * (z2 - z1);
                     if (globalpvolume > 0) {
-                        nlocalNew = static_cast<int>(totalNew * locpvolume / globalpvolume);
-                    }
-                    else{
-                        nlocalNew = 0;
+                        const double frac = locpvolume / globalpvolume;
+                        size_type nFromFrac =
+    static_cast<size_type>(std::floor(static_cast<double>(totalNew) * frac)); nlocalNew = (nFromFrac
+    > totalNew) ? totalNew : nFromFrac; } else { nlocalNew = 0;
                     }
                 } else {
                     nlocalNew = 0;
                 }
             }
         }
-    }
+    }*/
     return nlocalNew;
 }
 
@@ -329,17 +338,19 @@ void FlatTop::allocateParticles(size_t numberOfParticles){
 }
 
 void FlatTop::emitParticles(double t, double dt) {
-    extern Inform* gmsg;
+    Inform msgAll = Inform("FlatTop::emitParticles", INFORM_ALL_NODES);
 
     // Time profile uses (t - t0) so sampling begins at t0.
     double tShift = t - t0_m;
     double dtShift = dt;
     // Count number of new particles to be emitted in [tShift, tShift+dtShift].
     size_type nNew = countEnteringParticlesPerRank(tShift, tShift + dtShift);
+    msgAll << level5 << "* " << nNew << " new particles to be emitted" << endl;
     if (nNew == 0) { return; }
 
     // Current number of particles per rank.
     size_type nlocal = pc_m->getLocalNum();
+    msgAll << level5 << "* " << nlocal << " particles already in the container" << endl;
 
     // Intended design: fill only into pre-allocated slice [nextEmitIndex, nextEmitIndex+nNew)
     // (no create), when ParticleContainer supports reserve(total) + setActiveSize. Until then
@@ -347,10 +358,10 @@ void FlatTop::emitParticles(double t, double dt) {
     pc_m->create(nNew);
 
     // Generate new particles on uniform disc (sample into [nlocal, nlocal+nNew)).
-    *gmsg << level3 << "* generate particles on a disc" << endl;
+    msgAll << level3 << "* generate particles on a disc" << endl;
     generateUniformDisk(nlocal, nNew);
 
-    *gmsg << level3 << "* " << nNew << " new particles emmitted" << endl;
+    msgAll << level3 << "* " << nNew << " new particles emmitted" << endl;
 }
 
 void FlatTop::testNumEmitParticles(size_type nsteps, double dt) {
