@@ -278,7 +278,6 @@ void TrackRun::execute() {
                                                                                      /// \todo it would be much better to reinstate PartData or itsReference_m?
                                            beam->getNumberOfParticles()/*, 10*/, 1.0, "LF2", fs_m, ds_m);
     bunch_m->setT(0.0);
-    bunch_m->setBeamFrequency(beam->getFrequency() * Units::MHz2Hz);
 
     *gmsg << level2 << *(bunch_m->getBCHandler()) << endl;
     
