@@ -12,7 +12,13 @@ namespace Versions {
     void fillChanges() {
         if (changes.size() > 0) return;
 
-        changes.insert({105,
+	changes.insert({1,
+			"* Here starts the changelog of OPALX.\n"
+			"  We repeat some of the most important changes of OPAL also\n"
+			"  present in OPALX.\n"
+	               });
+
+	changes.insert({105,
                     "* The normalization of the 2-dimensional field maps has changed.\n"
                     "  Instead of normalizing with the overall maximum value of longitudinal\n"
                     "  component Opal now uses the maximum value on axis.\n"

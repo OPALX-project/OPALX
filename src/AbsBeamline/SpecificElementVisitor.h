@@ -29,6 +29,7 @@
 #include "AbsBeamline/Degrader.h"
 #include "AbsBeamline/ElementBase.h"
 #include "AbsBeamline/FlexibleCollimator.h"
+#include "AbsBeamline/Ip.h"
 #include "AbsBeamline/Offset.h"
 #include "AbsBeamline/Marker.h"
 #include "AbsBeamline/Monitor.h"
@@ -116,6 +117,9 @@ public:
     /// Apply the algorithm to a flexible collimator
     virtual void visitFlexibleCollimator(const FlexibleCollimator &);
 
+    /// Apply the algorithm to a interaction point.
+    virtual void visitIp(const Ip &);
+  
     /// Apply the algorithm to a marker.
     virtual void visitMarker(const Marker &);
 
@@ -270,6 +274,12 @@ void SpecificElementVisitor<ELEM>::visitConstantEFieldCavity(const ConstantEFiel
 template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitDrift(const Drift &element) {
     CastsTrait<ELEM, Drift>::apply(allElementsOfTypeE, element);
+}
+
+
+template<class ELEM>
+void SpecificElementVisitor<ELEM>::visitIp(const Ip &element) {
+    CastsTrait<ELEM, Ip>::apply(allElementsOfTypeE, element);
 }
 
 template<class ELEM>
