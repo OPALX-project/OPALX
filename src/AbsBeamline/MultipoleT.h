@@ -87,24 +87,24 @@ public:
     /** Constructor
      *  \param name -> User-defined name
      */
-    explicit MultipoleT(const std::string &name);
+    explicit MultipoleT(const std::string& name);
     /** Copy constructor */
-    MultipoleT(const MultipoleT &right);
+    MultipoleT(const MultipoleT& right);
     /** Destructor */
     ~MultipoleT() override = default;
     /** Inheritable copy constructor */
     ElementBase* clone() const override;
     /** Accept a beamline visitor */
-    void accept(BeamlineVisitor &visitor) const override;
+    void accept(BeamlineVisitor& visitor) const override;
     /** Return the cell geometry */
     BGeometryBase& getGeometry() override;
     /** Return the cell geometry */
     const BGeometryBase& getGeometry() const override;
     /** Return a dummy field value */
-    EMField &getField() override { return dummy; }
+    EMField& getField() override { return dummy; }
     /** Return a dummy field value */
-    const EMField &getField() const override { return dummy; }
-    /* Calculate the field for all particles */
+    const EMField& getField() const override { return dummy; }
+    /** Calculate the field for all particles */
     bool apply() override;
     /** Calculate the field at some arbitrary position \n
      *  If particle is outside field map true is returned,
@@ -115,8 +115,8 @@ public:
      *  \param E -> Calculated electric field - always 0 (no E-field)
      *  \param B -> Calculated magnetic field
      */
-    bool apply(const Vector_t<double, 3> &R, const Vector_t<double, 3> &P, const double &t,
-               Vector_t<double, 3> &E, Vector_t<double, 3> &B) override;
+    bool apply(const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
+            Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
     /** Calculate the field at the position of the ith particle
      *  \param i -> Index of the particle event; field is calculated at this
      *  position
@@ -126,7 +126,8 @@ public:
      *  \param E -> Calculated electric field - always 0 (no E-field)
      *  \param B -> Calculated magnetic field
      */
-    bool apply(const size_t &i, const double &t, Vector_t<double, 3> &E, Vector_t<double, 3> &B) override;
+    bool apply(const size_t& i, const double& t, Vector_t<double, 3>& E,
+            Vector_t<double, 3>& B) override;
     /** Initialise the MultipoleT
      *  \param bunch -> Bunch the global bunch object
      *  \param startField -> Not used
@@ -152,7 +153,10 @@ public:
      */
     void setTransProfile(const std::vector<double>& profile);
     /** Get all terms of transverse profile */
-    const Kokkos::Array<double, MultipoleTConfig::NumPoles>& getTransProfile() const { return config_m.transverseProfile_m; }
+    const Kokkos::Array<double, MultipoleTConfig::NumPoles>& getTransProfile() const {
+        return config_m.transverseProfile_m;
+    }
+
     /** Set fringe field model \n
      *  Tanh model used here \n
      *  @f[ 1/2 * \left [tanh \left( \frac{s + s_0}{\lambda_{left}} \right)
@@ -162,7 +166,7 @@ public:
      *  \param lambda_right -> Right end field length
      */
     void setFringeField(const double& s0, const double& lambda_left,
-                        const double& lambda_right);
+            const double& lambda_right);
     /** Get the fringe field model
      * @return {s0, leftFringe, rightFringe}
      */
@@ -201,7 +205,10 @@ public:
     /** Get the aperture dimensions
      * @return {verticalApert, horizontalApert}
      */
-    std::tuple<double, double> getAperture() { return {config_m.verticalAperture_m, config_m.horizontalAperture_m}; }
+    std::tuple<double, double> getAperture() {
+        return {config_m.verticalAperture_m, config_m.horizontalAperture_m};
+    }
+
     /** Set the angle of rotation of the magnet around its axis \n
      *  To make skew components
      *  \param rot -> Angle of rotation
@@ -216,7 +223,7 @@ public:
      */
     void setBoundingBoxLength(double boundingBoxLength);
     /** Not implemented */
-    void getDimensions(double &/*zBegin*/, double &/*zEnd*/) const override {}
+    void getDimensions(double&/*zBegin*/, double&/*zEnd*/) const override {}
     /** Returns the value of the fringe field n-th derivative at s
      *  \param n -> nth derivative
      *  \param s -> Coordinate s
@@ -230,8 +237,8 @@ public:
      *  \param s -> Coordinate s
      */
     double getFnDerivX(const std::size_t& n,
-                       const double& x,
-                       const double& s);
+            const double& x,
+            const double& s);
     /** Calculate partial derivative of fn wrt s using a 5-point
      *  finite difference formula
      *  Error of order stepSize^4
@@ -240,8 +247,8 @@ public:
      *  \param s -> Coordinate s
      */
     double getFnDerivS(const std::size_t& n,
-                       const double& x,
-                       const double& s);
+            const double& x,
+            const double& s);
     /** Returns the value of the transverse field n-th derivative at x \n
      *  Transverse field is a polynomial in x, differentiation follows
      *  usual polynomial rules of differentiation
@@ -256,7 +263,7 @@ public:
     double localCartesianRotation();
 
     void setScalingName(const std::string& name);
-    void setScalingModel(const std::shared_ptr<AbstractTimeDependence>& td) {scalingTD_m = td; }
+    void setScalingModel(const std::shared_ptr<AbstractTimeDependence>& td) { scalingTD_m = td; }
     std::string getScalingName() const { return scalingName_m; }
     void initialiseTimeDepencencies() const;
 
@@ -285,5 +292,10 @@ protected:
 
     // The object that does the work
     std::unique_ptr<MultipoleTBase> implementation_{};
+
+    /** This one is here for test purposes.
+     * It is required as there is no facility for mocking a PartBunch. */
+    void apply(const Kokkos::View<Vector_t<double, 3>*>& R, Kokkos::View<Vector_t<double, 3>*>& E,
+            Kokkos::View<Vector_t<double, 3>*>& B, double t) const;
 };
 #endif

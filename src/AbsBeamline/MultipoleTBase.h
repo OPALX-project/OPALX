@@ -264,15 +264,17 @@ void MultipoleTBase::calcFringeDerivatives(const double& s0, const double& lambd
         double leftTerm = 0.0;
         double rightTerm = 0.0;
         for(unsigned int j = 0; j < numCoefficients; ++j) {
-            leftTerm += tanhCoefficients(i, j) * tLeftN;
-            rightTerm += tanhCoefficients(i, j) * tRightN;
+            const auto coeff = tanhCoefficients(i, j);
+            leftTerm += coeff * tLeftN;
+            rightTerm += coeff * tRightN;
             tLeftN *= tLeft;
             tRightN *= tRight;
         }
         // Combine the left and right terms
+        derivatives[i] = (leftTerm / lambdaLeftN - rightTerm / lambdaRightN) / 2;
+        // Lambda powers for next derivative
         lambdaLeftN *= lambdaLeft;
         lambdaRightN *= lambdaRight;
-        derivatives[i] = (leftTerm / lambdaLeftN - rightTerm / lambdaRightN) / 2;
     }
 }
 

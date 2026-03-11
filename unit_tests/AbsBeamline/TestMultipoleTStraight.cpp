@@ -127,9 +127,35 @@ protected:
             double t = 0.0;
             Vector_t<double, 3> R{pos[0], pos[1] - 1.5 + static_cast<double>(i) * stepSize, pos[2]};
             Vector_t<double, 3> B{};
-            raise(SIGTRAP);
             apply(R, P, t, E, B);
             line[i] = std::hypot(B[0], B[1], B[2]);
+            std::cout << line[i] << " ";
+        }
+        std::cout << std::endl;
+    }
+
+    void grabDataLineParallel(std::vector<double>& line, Vector_t<double, 3> pos) {
+        constexpr double stepSize = 3.0/100.0;
+        // Create the views
+        Kokkos::View<Vector_t<double, 3>*> R;
+        Kokkos::View<Vector_t<double, 3>*> E;
+        Kokkos::View<Vector_t<double, 3>*> B;
+        Kokkos::resize(R, line.size());
+        Kokkos::resize(E, line.size());
+        Kokkos::resize(B, line.size());
+        auto hostR = Kokkos::create_mirror_view(R);
+        auto hostB = Kokkos::create_mirror_view(B);
+        // Set the particle positions
+        for(size_t i = 0; i < line.size(); ++i) {
+            hostR(i) = {pos[0], pos[1] - 1.5 + static_cast<double>(i) * stepSize, pos[2]};
+        }
+        Kokkos::deep_copy(R, hostR);
+        // Get the fields
+        apply(R, E, B, 0.0);
+        // Return the fields
+        Kokkos::deep_copy(hostB, B);
+        for(size_t i = 0; i < line.size(); ++i) {
+            line[i] = std::hypot(hostB(i)[0], hostB(i)[1], hostB(i)[2]);
             std::cout << line[i] << " ";
         }
         std::cout << std::endl;
@@ -152,14 +178,13 @@ TEST_F(TestMultipoleTStraight, StraightShape) {
     // Check dipole has constant field magnitude
     setTransProfile({1.0});
     grabDataLine(line, pos);
-    double expected = line[50];
     for(size_t i = 0; i < line.size(); ++i) {
         EXPECT_NEAR(line[i], 1.0, 1e-2);
     }
     // Check quadrupole has linear field magnitude
     setTransProfile({0.0, 1.0});
     grabDataLine(line, pos);
-    expected = 0;
+    double expected = 0;
     double delta = line[51] - line[50];
     EXPECT_NEAR(line[50], expected, 1e-2);
     for(size_t i = 0; i < 50; ++i) {
@@ -180,6 +205,58 @@ TEST_F(TestMultipoleTStraight, StraightShape) {
     // Check the octupole has cubic field magnitude
     setTransProfile({0.0, 0.0, 0.0, 1.0});
     grabDataLine(line, pos);
+    delta = std::cbrt(line[51] - line[50]);
+    EXPECT_NEAR(line[50], 0, 1e-2);
+    for(size_t i = 0; i < 50; ++i) {
+        expected = std::pow(static_cast<double>(i + 1) * delta, 3);
+        EXPECT_NEAR(line[50 - i - 1], expected, 1e-2) << i;
+        EXPECT_NEAR(line[50 + i + 1], expected, 1e-2) << i;
+    }
+}
+
+TEST_F(TestMultipoleTStraight, StraightShapeParallel) {
+    std::vector<double> line;
+    line.resize(101);
+    // Set up the magnet
+    constexpr double length = 4.4;
+    setBendAngle(0.0, false);
+    setElementLength(length);
+    setAperture(3.5, 3.5);
+    setFringeField(2.2, 0.3, 0.3);
+    setRotation(0.0);
+    setEntranceAngle(0.0);
+    setMaxOrder(5, 10);
+    const auto pos = localCartesianToOpalCartesian({0,0,0});
+    // Check dipole has constant field magnitude
+    setTransProfile({1.0});
+    grabDataLineParallel(line, pos);
+    for(size_t i = 0; i < line.size(); ++i) {
+        EXPECT_NEAR(line[i], 1.0, 1e-2);
+    }
+    // Check quadrupole has linear field magnitude
+    setTransProfile({0.0, 1.0});
+    grabDataLineParallel(line, pos);
+    double expected = 0;
+    double delta = line[51] - line[50];
+    EXPECT_NEAR(line[50], expected, 1e-2);
+    for(size_t i = 0; i < 50; ++i) {
+        expected += delta;
+        EXPECT_NEAR(line[50 - i - 1], expected, 1e-2);
+        EXPECT_NEAR(line[50 + i + 1], expected, 1e-2);
+    }
+    // Check the sextupole has quadratic field magnitude
+    setTransProfile({0.0, 0.0, 1.0});
+    grabDataLineParallel(line, pos);
+    delta = std::sqrt(line[51] - line[50]);
+    EXPECT_NEAR(line[50], 0, 1e-2);
+    for(size_t i = 0; i < 50; ++i) {
+        expected = std::pow(static_cast<double>(i + 1) * delta, 2);
+        EXPECT_NEAR(line[50 - i - 1], expected, 1e-2) << i;
+        EXPECT_NEAR(line[50 + i + 1], expected, 1e-2) << i;
+    }
+    // Check the octupole has cubic field magnitude
+    setTransProfile({0.0, 0.0, 0.0, 1.0});
+    grabDataLineParallel(line, pos);
     delta = std::cbrt(line[51] - line[50]);
     EXPECT_NEAR(line[50], 0, 1e-2);
     for(size_t i = 0; i < 50; ++i) {
