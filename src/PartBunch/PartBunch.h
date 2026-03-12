@@ -792,7 +792,7 @@ public:
     }
 
     double get_meanKineticEnergy() {
-        return this->pcontainer_m->getMeanKineticEnergy();
+      return p2EkinMeV(this->pcontainer_m->getMeanP(),reference_m->getM())*Units::eV2MeV;
     }
 
     Vector_t<double, Dim> get_origin() const {
@@ -802,7 +802,7 @@ public:
         return rmax_m;
     }
 
-    // in opal, MeanPosition is return for get_centroid, which I think is wrong. We already have get_rmean()
+    // \todo in opal, MeanPosition is return for get_centroid, which I think is wrong. We already have get_rmean()
     Vector_t<double, 2*Dim> get_centroid() const {
         return this->pcontainer_m->getCentroid();
     }
