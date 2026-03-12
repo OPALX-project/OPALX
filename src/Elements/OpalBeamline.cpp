@@ -563,3 +563,20 @@ void OpalBeamline::activateElements() {
         element->goOnline(designEnergy);
     }
 }
+
+void OpalBeamline::apply(const Vector_t<double, 3>& R, const Vector_t<double, 3>& P,
+        const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
+    for(auto& item : elements_m) {
+        const auto element = item.getElement();
+        auto transform = element->getCSTrafoGlobal2Local();
+        Vector_t<double, 3> localR = transform.transformTo(R);
+        Vector_t<double, 3> localB{};
+        Vector_t<double, 3> localE{};
+        element->apply(localR, P, t, localE, localB);
+        transform.invert();
+        localB = transform.rotateTo(localB);
+        localE = transform.rotateTo(localE);
+        E += localE;
+        B += localB;
+    }
+}
