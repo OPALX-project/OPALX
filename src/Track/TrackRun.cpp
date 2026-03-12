@@ -273,10 +273,10 @@ void TrackRun::execute() {
 
     /// \todo first 2 arguments can go!
     initDataSink();
-    bunch_m = std::make_shared<bunch_type>(macrocharge_m, // set the Charge per macro-particle 
-                                           macromass_m,   // set the Mass per macro-particle, [GeV], for correct particle kick!
-					   // (see "3.1. Physical Units", where mass generally is in MeV/c^2)
-					   // However, OPAL seems to use eV for the pusher!			     
+    bunch_m = std::make_shared<bunch_type>(macrocharge_m,                 // set the Charge per macro-particle 
+                                           macromass_m,                   // set the Mass per macro-particle, [GeV], for correct particle kick!
+					                                  // (see "3.1. Physical Units", where mass generally is in MeV/c^2)
+					                                  // However, OPAL seems to use eV for the pusher!			     
                                            beam->getNumberOfParticles()/*, 10*/, 1.0, "LF2", fs_m, ds_m);
     bunch_m->setT(0.0);
     bunch_m->setReference(&beam->getReference());
