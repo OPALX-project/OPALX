@@ -369,11 +369,13 @@ public:
     void actT() {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
     }
-
+  
     const PartData* getReference() const {
         return reference_m;
     }
 
+
+  /// \todo constructor could set this
     void setReference (const PartData* ref) {
         reference_m = ref;
     }
@@ -786,8 +788,7 @@ public:
     }
 
     double get_gamma() const {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return 1.00;
+      return this->pcontainer_m->getMeanGammaZ();
     }
 
     double get_meanKineticEnergy() {
@@ -825,17 +826,15 @@ public:
     Vector_t<double, Dim> get_pmean() const {
         return this->pcontainer_m->getMeanP();
     }
-    Vector_t<double, Dim> get_pmean_Distribution() const {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return Vector_t<double, Dim>(0.0);
-    }
+
     Vector_t<double, Dim> get_emit() const {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return Vector_t<double, Dim>(0.0);
+        return this->pcontainer_m->getGeometricEmit();
     }
     Vector_t<double, Dim> get_norm_emit() const {
         return this->pcontainer_m->getNormEmit();
     }
+
+  
     Vector_t<double, Dim> get_halo() const {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
         return Vector_t<double, Dim>(0.0);
@@ -873,8 +872,7 @@ public:
         return Vector_t<double, Dim>(0.0);
     }
     Vector_t<double, Dim> get_hr() const {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return Vector_t<double, Dim>(0.0);
+        return hr_m;
     }
 
     double get_Dx() const {
