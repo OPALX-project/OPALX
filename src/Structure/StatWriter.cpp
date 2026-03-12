@@ -200,7 +200,6 @@ void StatWriter::write(
     const size_t npOutside) {
     using ParticleContainer_t = ParticleContainer<T, Dim>;
     std::shared_ptr<ParticleContainer_t> pc = beam->getParticleContainer();
-    double Ekin = pc->getMeanKineticEnergy();
 
     double pathLength = beam->get_sPos();
 
@@ -223,7 +222,7 @@ void StatWriter::write(
     columns_m.addColumnValue("s", pathLength);                      // 2
     columns_m.addColumnValue("numParticles", beam->getTotalNum());  // 3
     columns_m.addColumnValue("charge", Q);                          // 4
-    columns_m.addColumnValue("energy", Ekin);                       // 5
+    columns_m.addColumnValue("energy", beam->get_meanKineticEnergy());                       // 5
 
     columns_m.addColumnValue("rms_x", pc->getRmsR()(0));  // 6
     columns_m.addColumnValue("rms_y", pc->getRmsR()(1));  // 7
