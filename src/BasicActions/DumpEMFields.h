@@ -26,6 +26,8 @@
 #include <unordered_set>
 #include <vector>
 
+#include "OpalBeamline.h"
+
 namespace interpolation {
   class NDGrid;
 }
@@ -118,7 +120,7 @@ public:
      *  0
      *  <field map data>
      */
-    static void writeFields(Component* field);
+    static void writeFields(OpalBeamline& beamline);
 
     /** Print the attributes of DumpEMFields to standard out */
     void print(std::ostream& os) const;
@@ -130,12 +132,12 @@ private:
         CYLINDRICAL
     };
 
-    virtual void writeFieldThis(Component* field);
+    virtual void writeFieldThis(OpalBeamline& beamline);
     virtual void buildGrid();
     void parseCoordinateSystem();
     static void checkInt(double value, std::string name, double tolerance = 1e-9);
     void writeHeader(std::ofstream& fout) const;
-    void writeFieldLine(Component* field,
+    void writeFieldLine(OpalBeamline& beamnline,
                         const Vector_t<double, 3>& point,
                         const double& time,
                         std::ofstream& fout) const;

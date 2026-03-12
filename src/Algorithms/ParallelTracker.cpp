@@ -30,6 +30,7 @@
 #include <sstream>
 #include <string>
 
+#include "DumpEMFields.h"
 #include "Algorithms/Matrix.h"
 
 #include "AbstractObjects/OpalData.h"
@@ -381,7 +382,10 @@ void ParallelTracker::execute() {
 
     /// Directly before the tracker loop, perform bunch sanity checks
     this->itsBunch_m->performBunchSanityChecks();
-    
+
+    // Handle any dump field requests
+    DumpEMFields::writeFields(itsOpalBeamline_m);
+
     // Main tracking loop over step size configurations
     m << level5 << ">>>>>>>>>>>>>>>>>> Starting Tracking Loop >>>>>>>>>>>>>>>>>>" << endl;
     while (!stepSizes_m.reachedEnd()) {
@@ -641,7 +645,7 @@ void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
 
         // Determine transformation from bunch to element 
         CoordinateSystemTrafo refToLocalCSTrafo = 
-            (itsOpalBeamline_m.getMisalignment((*it)) * 
+            (itsOpalBeamline_m.getMisalignment((*it)) *
             (itsOpalBeamline_m.getCSTrafoLab2Local((*it)) * 
             itsBunch_m->toLabTrafo_m));
 

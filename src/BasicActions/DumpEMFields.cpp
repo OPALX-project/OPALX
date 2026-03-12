@@ -207,10 +207,10 @@ void DumpEMFields::buildGrid() {
     filename_m = Attributes::getString(itsAttr[FILE_NAME]);
 }
 
-void DumpEMFields::writeFields(Component* field) {
+void DumpEMFields::writeFields(OpalBeamline& beamline) {
     typedef std::unordered_set<DumpEMFields*>::iterator dump_iter;
     for (dump_iter it = dumpsSet_m.begin(); it != dumpsSet_m.end(); ++it) {
-        (*it)->writeFieldThis(field);
+        (*it)->writeFieldThis(beamline);
     }
 }
 
@@ -260,7 +260,7 @@ void DumpEMFields::writeHeader(std::ofstream& fout) const {
     fout << 0 << std::endl;
 }
 
-void DumpEMFields::writeFieldLine(Component* field,
+void DumpEMFields::writeFieldLine(OpalBeamline& beamline,
                                   const Vector_t<double, 3>& pointIn,
                                   const double& time,
                                   std::ofstream& fout) const {
@@ -274,7 +274,7 @@ void DumpEMFields::writeFieldLine(Component* field,
         point[1] = std::sin(pointIn[1])*pointIn[0];
     }
 
-    field->apply(point, centroid, time, E, B);
+    beamline.apply(point, centroid, time, E, B);
     Vector_t<double, 3> Bout = B;
     Vector_t<double, 3> Eout = E;
     if (coordinates_m == CoordinateSystem::CYLINDRICAL) {
@@ -292,14 +292,10 @@ void DumpEMFields::writeFieldLine(Component* field,
     fout << Eout[0] << " " << Eout[1] << " " << Eout[2] << "\n";
 }
 
-void DumpEMFields::writeFieldThis(Component* field) {
+void DumpEMFields::writeFieldThis(OpalBeamline& beamline) {
     if (grid_m == nullptr) {
         throw OpalException("DumpEMFields::writeFieldThis",
                             "The grid was nullptr; there was a problem with the DumpEMFields initialisation.");
-    }
-    if (field == nullptr) {
-        throw OpalException("DumpEMFields::writeFieldThis",
-                            "The field to be written was nullptr.");
     }
 
     *gmsg << *this << endl;
@@ -337,7 +333,7 @@ void DumpEMFields::writeFieldThis(Component* field) {
             point[i] = point_std[i];
         }
         double time = point_std[3];
-        writeFieldLine(field, point, time, fout);
+        writeFieldLine(beamline, point, time, fout);
     }
     if (!fout.good()) {
         throw OpalException("DumpEMFields::writeFieldThis",
