@@ -78,7 +78,6 @@ private:
     double qi_m;
 
     double mi_m;
-    double mrest_m; // rest mass of particle
 
     double rmsDensity_m;
 
@@ -165,7 +164,7 @@ private:
 
     bool fixed_grid;
 
-    PartData* reference_m;
+    const PartData* reference_m;
 
     /// step in a TRACK command
     long long localTrackStep_m;
@@ -205,7 +204,6 @@ public:
      *
      * @param qi              Charge per macroparticle [C].
      * @param mi              Mass per macroparticle [GeV/c^2].
-     * @param mrest           Rest mass of marticle [GeV c^2].
      * @param totalP          Total number of macroparticles.
      * @param lbt             Load-balancer timescale.
      * @param integration_method Name of the integrator (e.g. "LF2").
@@ -214,7 +212,6 @@ public:
      */
     PartBunch(double qi,
               double mi,
-	      double mrest, 
               size_t totalP,
               double lbt,
               std::string integration_method,
@@ -373,10 +370,14 @@ public:
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
     }
 
-    PartData* getReference() {
+    const PartData* getReference() const {
         return reference_m;
     }
 
+    void setReference (const PartData* ref) {
+        reference_m = ref;
+    }
+  
     double getEmissionDeltaT() {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
         return 1.0;
