@@ -152,7 +152,6 @@ template<class ViewType>
 KOKKOS_INLINE_FUNCTION void MultipoleTStraight::computeBField(const Vector_t<double, 3>& R,
         Vector_t<double, 3>& B, const double scaling, const MultipoleTConfig& config,
         const ViewType& tanhCoefficients) {
-    B = {0.0, 0.0, 0.0};
     const Vector_t<double, 3> RPrime = toMagnetCoords(R, config);
     const bool insideAperture =
             Kokkos::abs(RPrime[1]) <= config.verticalAperture_m / 2.0 &&
@@ -160,6 +159,7 @@ KOKKOS_INLINE_FUNCTION void MultipoleTStraight::computeBField(const Vector_t<dou
     const bool insideBoundingBox = config.boundingBoxLength_m == 0.0 ||
             Kokkos::abs(RPrime[2]) <= config.boundingBoxLength_m / 2.0;
     if(insideAperture && insideBoundingBox) {
+        Vector_t<double, 3> myB{};
         Kokkos::Array<double, MaxDerivatives> dt;
         Kokkos::Array<double, MaxDerivatives> ds;
         calcTransverseDerivatives(config.transverseProfile_m, config.maxFOrder_m * 2 + 1, RPrime[0], dt);
@@ -178,13 +178,11 @@ KOKKOS_INLINE_FUNCTION void MultipoleTStraight::computeBField(const Vector_t<dou
             const double negOnePowN = powerInteger(-1.0, n);
             const double xszk = powerInteger(RPrime[1], 2 * n + 1) / factorial(2 * n + 1) * negOnePowN;
             const double zzk = powerInteger(RPrime[1], 2 * n) / factorial(2 * n) * negOnePowN;
-            B[0] += innerSumX * xszk;
-            B[1] += innerSumZ * zzk;
-            B[2] += innerSumS * xszk;
+            myB[0] += innerSumX * xszk;
+            myB[1] += innerSumZ * zzk;
+            myB[2] += innerSumS * xszk;
         }
-        B[0] *= scaling;
-        B[1] *= scaling;
-        B[2] *= scaling;
+        B += myB * scaling;
     }
 }
 
