@@ -423,9 +423,9 @@ public:
  * \f]
  *
  * @param p Vector containing \f$(\beta\gamma_x,\beta\gamma_y,\beta\gamma_z)\f$.
- * @return kinetic energy in MeV.
+ * @return kinetic energy in eV.
  */
-  double p2EkinMeV (const Vector_t<double,Dim>& p, const double mass ) {
+  double p2Ekin (const Vector_t<double,Dim>& p, const double mass ) {
     
     // magnitude squared of beta*gamma
     const double p2 = p[0]*p[0] + p[1]*p[1] + p[2]*p[2];
@@ -792,7 +792,7 @@ public:
     }
 
     double get_meanKineticEnergy() {
-      return p2EkinMeV(this->pcontainer_m->getMeanP(),reference_m->getM())*Units::eV2MeV;
+      return p2Ekin(this->pcontainer_m->getMeanP(),reference_m->getM())*Units::eV2MeV;
     }
 
     Vector_t<double, Dim> get_origin() const {
