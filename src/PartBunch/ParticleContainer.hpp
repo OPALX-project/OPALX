@@ -149,6 +149,10 @@ public:
         return distMoments_m.getNormalizedEmittance();
     }
 
+    Vector_t<double, 3> getGeometricEmit() const {
+        return distMoments_m.getGeometricEmittance();
+    }
+
    double getDx() const {
        return distMoments_m.getDx();
    }
