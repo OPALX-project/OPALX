@@ -83,7 +83,7 @@ namespace ParticleBinning {
         actually available on host!.
         */
         if constexpr (!std::is_same<typename hview_type::memory_space, Kokkos::HostSpace>::value) {
-            m << "This does not work if the histogram is not saved in a DualView, since it needs host access to the data." << endl;
+            m << level4 << "This does not work if the histogram is not saved in a DualView, since it needs host access to the data." << endl;
             ippl::Comm->abort();
             return hindex_transform_type("error", 0);
         }
@@ -95,7 +95,7 @@ namespace ParticleBinning {
         const bin_index_type n = numBins_m;
         if (n < 2) {
             // Should not happen, since this function is to be called after generating a very fine histogram, e.g. 128 bins
-            m << "Not merging, since n_bins = " << n << " is too small!" << endl;
+            m << level4 << "Not merging, since n_bins = " << n << " is too small!" << endl;
             hindex_transform_type oldToNewBinsView("oldToNewBinsView", n);
             Kokkos::deep_copy(oldToNewBinsView, 0);
             return oldToNewBinsView;
@@ -273,7 +273,7 @@ namespace ParticleBinning {
         initPostSum();
         IpplTimings::stopTimer(bMergeBinsT);
 
-        m << "Re-binned from " << n << " bins down to "
+        m << level3 << "Re-binned from " << n << " bins down to "
           << numBins_m << " bins. Total deviation cost = "
           << totalCost << endl;
 
