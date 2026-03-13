@@ -89,7 +89,7 @@ namespace ParticleBinning {
             initTimers();
 
             Inform msg("AdaptBins");
-            msg << level3 << "AdaptBins initialized with maxBins = " << maxBins_m 
+            msg << level4 << "AdaptBins initialized with maxBins = " << maxBins_m 
                 << ", alpha = " << binningAlpha_m
                 << ", beta = " << binningBeta_m
                 << ", desiredWidth = " << desiredWidth_m << endl;
