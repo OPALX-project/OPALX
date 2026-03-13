@@ -405,8 +405,8 @@ Inform& PartBunch<T, Dim>::print(Inform& os) {
     // if (this->getLocalNum() != 0) {  // to suppress Nans
     Inform::FmtFlags_t ff = os.flags();
 
-    double dek = p2EkinMeV (this->pcontainer_m->getRmsP(),  reference_m->getM()*Units::eV2MeV);
-    double ek  = p2EkinMeV (this->pcontainer_m->getMeanP(), reference_m->getM()*Units::eV2MeV );
+    double dek = p2Ekin(this->pcontainer_m->getRmsP(),  reference_m->getM()*Units::eV2MeV);
+    double ek  = p2Ekin(this->pcontainer_m->getMeanP(), reference_m->getM()*Units::eV2MeV );
     
     os << level1 << std::scientific << "\n"
        << "* ************** B U N C H "
