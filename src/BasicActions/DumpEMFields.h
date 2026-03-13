@@ -21,10 +21,9 @@
 
 #include "AbsBeamline/Component.h"
 #include "AbstractObjects/Action.h"
-
 #include <string>
 #include <unordered_set>
-#include <vector>
+#include <set>
 
 namespace interpolation {
   class NDGrid;
@@ -57,7 +56,6 @@ public:
     /// The common attributes of DumpEMFields.
     enum {
         FILE_NAME,
-        COORDINATE_SYSTEM,
         X_START,
         DX,
         X_STEPS,
@@ -86,14 +84,14 @@ public:
     DumpEMFields(const std::string& name, DumpEMFields* parent);
 
     /** Destructor deletes grid_m and if in the dumps set, take it out */
-    virtual ~DumpEMFields();
+    ~DumpEMFields() override;
 
     /** Make a clone (overloadable copy-constructor).
      *    @param name not used
      *  If this is in the dumpsSet_m, so will the clone. Not sure how the
      *  itsAttr stuff works, so this may not get properly copied?
      */
-    virtual DumpEMFields* clone(const std::string& name);
+    DumpEMFields* clone(const std::string& name) override;
 
     /** Builds the grid but does not write the field map
      *
@@ -101,11 +99,10 @@ public:
      *  Checks that X_STEPS, Y_STEPS, Z_STEPS are integers or throws
      *  OpalException.
      */
-    virtual void execute();
+    void execute() override;
 
     /** Write the fields for all defined DumpEMFields objects
-     *    @param field borrowed reference to the Component object that holds the
-     *    field map; caller owns the memory.
+     *    @param elements the set of components.
      *  Iterates over the DumpEMFields in the dumpsSet_m and calls writeFieldThis
      *  on each DumpEMFields. This writes each field map in turn. Format is:
      *  <number of rows>
@@ -118,37 +115,29 @@ public:
      *  0
      *  <field map data>
      */
-    static void writeFields(Component* field);
+    static void writeFields(const std::set<std::shared_ptr<Component>>& elements);
 
     /** Print the attributes of DumpEMFields to standard out */
-    void print(std::ostream& os) const;
+    void print(std::ostream& os) const override;
 
 private:
 
-    enum class CoordinateSystem: unsigned short {
-        CARTESIAN,
-        CYLINDRICAL
-    };
-
-    virtual void writeFieldThis(Component* field);
+    virtual void writeFieldThis(const std::set<std::shared_ptr<Component>>& elements);
     virtual void buildGrid();
-    void parseCoordinateSystem();
-    static void checkInt(double value, std::string name, double tolerance = 1e-9);
+    static void checkInt(double value, const std::string& name, double tolerance = 1e-9);
     void writeHeader(std::ofstream& fout) const;
-    void writeFieldLine(Component* field,
+    static void writeFieldLine(const std::set<std::shared_ptr<Component>>& elements,
                         const Vector_t<double, 3>& point,
                         const double& time,
-                        std::ofstream& fout) const;
+                        std::ofstream& fout);
 
     interpolation::NDGrid* grid_m;
     std::string filename_m;
 
-    CoordinateSystem coordinates_m = CoordinateSystem::CARTESIAN;
-
     static std::unordered_set<DumpEMFields*> dumpsSet_m;
 
-    DumpEMFields(const DumpEMFields& dump);  // disabled
-    DumpEMFields& operator=(const DumpEMFields& dump);  // disabled
+    DumpEMFields(const DumpEMFields& dump) = delete;
+    DumpEMFields& operator=(const DumpEMFields& dump) = delete;
 };
 
 inline std::ostream& operator<<(std::ostream& os, const DumpEMFields& b) {
@@ -156,4 +145,4 @@ inline std::ostream& operator<<(std::ostream& os, const DumpEMFields& b) {
     return os;
 }
 
-#endif // ifdef OPAL_DUMPFIELDS_HH
+#endif // ifdef OPAL_BASICACTIONS_DUMPEMFIELDS_HH
