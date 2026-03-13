@@ -43,6 +43,7 @@ public:
 
     void activateElements();
     std::set<std::shared_ptr<Component>> getElements(const Vector_t<double, 3>& x);
+    std::set<std::shared_ptr<Component>> getElements();
     Vector_t<double, 3> transformTo(const Vector_t<double, 3>& r) const;
     Vector_t<double, 3> transformFrom(const Vector_t<double, 3>& r) const;
     Vector_t<double, 3> rotateTo(const Vector_t<double, 3>& r) const;
