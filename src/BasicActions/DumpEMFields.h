@@ -56,6 +56,7 @@ public:
     /// The common attributes of DumpEMFields.
     enum {
         FILE_NAME,
+        COORDINATE_SYSTEM,
         X_START,
         DX,
         X_STEPS,
@@ -122,17 +123,25 @@ public:
 
 private:
 
+    enum class CoordinateSystem: unsigned short {
+        CARTESIAN,
+        CYLINDRICAL
+    };
+
     virtual void writeFieldThis(const std::set<std::shared_ptr<Component>>& elements);
     virtual void buildGrid();
+    void parseCoordinateSystem();
     static void checkInt(double value, const std::string& name, double tolerance = 1e-9);
     void writeHeader(std::ofstream& fout) const;
-    static void writeFieldLine(const std::set<std::shared_ptr<Component>>& elements,
+    void writeFieldLine(const std::set<std::shared_ptr<Component>>& elements,
                         const Vector_t<double, 3>& point,
                         const double& time,
-                        std::ofstream& fout);
+                        std::ofstream& fout) const;
 
     interpolation::NDGrid* grid_m;
     std::string filename_m;
+
+    CoordinateSystem coordinates_m = CoordinateSystem::CARTESIAN;
 
     static std::unordered_set<DumpEMFields*> dumpsSet_m;
 
