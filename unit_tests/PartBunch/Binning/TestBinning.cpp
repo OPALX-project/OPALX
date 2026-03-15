@@ -497,7 +497,7 @@ struct FillPolicyHistogram1 {
     FillPolicyHistogram1(view_type v) : dView(v) {}
 
     KOKKOS_FUNCTION
-    void operator()(const int) const {
+    void operator()(const size_t) const {
         dView(0) = 5;
         dView(1) = 10;
         dView(2) = 15;
@@ -586,7 +586,7 @@ struct FillPolicyHistogram2 {
 
     KOKKOS_FUNCTION
     void operator()(const int i) const {
-      dView(0) = (i + 1)*10;
+        dView(i) = (i + 1) * 10;
     }
 };
 
