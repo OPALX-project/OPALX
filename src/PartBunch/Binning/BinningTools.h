@@ -2,6 +2,7 @@
 #define BINNINGTOOLS_H
 
 #include "ParallelReduceTools.h" // needed for HistoReductionMode and maxArrSize
+#include "Utilities/OpalException.h"
 
 namespace ParticleBinning {
 
