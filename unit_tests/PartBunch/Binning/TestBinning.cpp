@@ -346,10 +346,20 @@ TEST_F(BinningTest, DetermineHistoReductionModeStandard) {
 }
 
 TEST_F(BinningTest, DetermineHistoReductionModeForced) {
-    // If a specific mode is forced, it should be respected (unless host-only execution space).
+    // If a specific mode is forced, it should be respected where supported.
     bool isHostSpace = std::is_same<Kokkos::DefaultExecutionSpace,
                                     Kokkos::DefaultHostExecutionSpace>::value;
+
     if (!isHostSpace) {
+#ifdef OPALX_DEVICE_COMPILATION
+        // On device builds, forcing HostOnly must throw (guard against misuse).
+        EXPECT_THROW(
+            (ParticleBinning::determineHistoReductionMode<bin_index_type>(
+                ParticleBinning::HistoReductionMode::HostOnly, 2)),
+            std::runtime_error);
+#endif
+
+        // For other modes like TeamBased, the preference must be respected.
         auto mode = ParticleBinning::determineHistoReductionMode<bin_index_type>(
             ParticleBinning::HistoReductionMode::TeamBased, 2);
         EXPECT_EQ(mode, ParticleBinning::HistoReductionMode::TeamBased);
