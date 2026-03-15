@@ -267,7 +267,11 @@ TEST_F(BinningTest, CreateReductionObjectInvalid) {
 }
 
 TEST_F(BinningTest, HostArrayReductionBasics) {
-    // HostArrayReduction: dynamic allocation, zero init, +=
+    // HostArrayReduction is a host-only helper and cannot be used when
+    // OPALX_DEVICE_COMPILATION is enabled (see ParallelReduceTools.h).
+#ifdef OPALX_DEVICE_COMPILATION
+    GTEST_SKIP() << "HostArrayReduction is host-only; skipped under OPALX_DEVICE_COMPILATION.";
+#else
     constexpr bin_index_type N = 4;
     ParticleBinning::HostArrayReduction<size_type, bin_index_type>::binCountStatic = N;
 
@@ -282,13 +286,14 @@ TEST_F(BinningTest, HostArrayReductionBasics) {
     for (bin_index_type i = 0; i < N; ++i) {
         EXPECT_EQ(b.the_array[i], 0u);
     }
-    
+
     b.the_array[0] = 1;
     b.the_array[3] = 2;
 
     a += b;
     EXPECT_EQ(a.the_array[0], 8u);
     EXPECT_EQ(a.the_array[3], 5u);
+#endif
 }
 
 TEST_F(BinningTest, KokkosReductionIdentityArrayReduction) {
@@ -302,6 +307,9 @@ TEST_F(BinningTest, KokkosReductionIdentityArrayReduction) {
 }
 
 TEST_F(BinningTest, KokkosReductionIdentityHostArrayReduction) {
+#ifdef OPALX_DEVICE_COMPILATION
+    GTEST_SKIP() << "HostArrayReduction reduction identity is host-only; skipped under OPALX_DEVICE_COMPILATION.";
+#else
     constexpr bin_index_type N = 4;
     ParticleBinning::HostArrayReduction<size_type, bin_index_type>::binCountStatic = N;
     auto identity = Kokkos::reduction_identity<
@@ -309,6 +317,7 @@ TEST_F(BinningTest, KokkosReductionIdentityHostArrayReduction) {
     for (bin_index_type i = 0; i < N; ++i) {
         EXPECT_EQ(identity.the_array[i], 0u);
     }
+#endif
 }
 
 
@@ -907,6 +916,11 @@ TEST_F(BinningTest, AdaptBinsSortAndPoliciesConsistent) {
 
 TEST_F(BinningTest, AdaptBinsHistoReductionModes) {
     // Test that doFullRebin works with each explicitly forced reduction mode.
+    // HostOnly reduction mode is implemented using HostArrayReduction, which is
+    // explicitly host-only in device builds (see ParallelReduceTools.h).
+#ifdef OPALX_DEVICE_COMPILATION
+    GTEST_SKIP() << "HostOnly histogram reduction is host-only; skipped under OPALX_DEVICE_COMPILATION.";
+#else
     size_t nPart = 200;
     createParticles(nPart);
 
@@ -921,6 +935,7 @@ TEST_F(BinningTest, AdaptBinsHistoReductionModes) {
         totalHost += adaptBins->getNPartInBin(b);
     }
     EXPECT_EQ(totalHost, bunch->getLocalNum());
+#endif
 }
 
 TEST_F(BinningTest, AdaptBinsUniformDistributionEvenBins) {
