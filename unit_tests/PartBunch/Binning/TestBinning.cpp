@@ -11,6 +11,7 @@
 
 #include "Ippl.h"
 #include "gtest/gtest.h"
+#include "Utilities/OpalException.h"
 
 // VField_t alias required by ParallelReduceTools.h (vnorm) and AdaptBins.h (LTrans)
 template <unsigned Dim>
@@ -356,7 +357,7 @@ TEST_F(BinningTest, DetermineHistoReductionModeForced) {
         EXPECT_THROW(
             (ParticleBinning::determineHistoReductionMode<bin_index_type>(
                 ParticleBinning::HistoReductionMode::HostOnly, 2)),
-            std::runtime_error);
+            OpalException);
 #endif
 
         // For other modes like TeamBased, the preference must be respected.
