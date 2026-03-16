@@ -33,16 +33,15 @@ DumpEMFields::DumpEMFields() :
     Action(SIZE, "DUMPEMFIELDS",
            "The \"DUMPEMFIELDS\" statement dumps a field map to a user-defined "
            "field file, for checking that fields are generated correctly. "
-           "The fields are written out on a grid in space and time."),
-    grid_m(nullptr),
-    filename_m("") {
+           "The fields are written out on a grid in space and time.") {
 
     // would be nice if "steps" could be integer
     itsAttr[FILE_NAME] = Attributes::makeString
         ("FILE_NAME", "Name of the file to which field data is dumped");
 
     itsAttr[COORDINATE_SYSTEM] = Attributes::makePredefinedString
-        ("COORDINATE_SYSTEM", "Choose to use CARTESIAN or CYLINDRICAL coordinates", {"CARTESIAN", "CYLINDRICAL"}, "CARTESIAN");
+        ("COORDINATE_SYSTEM", "Choose to use CARTESIAN or CYLINDRICAL coordinates",
+            {"CARTESIAN", "CYLINDRICAL"}, "CARTESIAN");
 
     itsAttr[X_START] = Attributes::makeReal
         ("X_START", "(Cartesian) Start point in the grid in x [m]");
@@ -98,28 +97,37 @@ DumpEMFields::DumpEMFields() :
     itsAttr[PHI_STEPS] = Attributes::makeReal
         ("PHI_STEPS", "(Cylindrical) Number of steps in phi");
 
+    itsAttr[CYL_ORIGIN_X] = Attributes::makeReal
+        ("CYL_ORIGIN_X", "(Cylindrical) Origin X", 0.0);
+
+    itsAttr[CYL_ORIGIN_Y] = Attributes::makeReal
+        ("CYL_ORIGIN_Y", "(Cylindrical) Origin Y", 0.0);
+
+    itsAttr[CYL_ORIGIN_Z] = Attributes::makeReal
+        ("CYL_ORIGIN_Z", "(Cylindrical) Origin Z", 0.0);
+
     registerOwnership(AttributeHandler::STATEMENT);
 }
 
 DumpEMFields::DumpEMFields(const std::string& name, DumpEMFields* parent):
-    Action(name, parent), grid_m(nullptr) {
+    Action(name, parent) {
 }
 
 DumpEMFields::~DumpEMFields() {
-    delete grid_m;
     dumpsSet_m.erase(this);
 }
 
 DumpEMFields* DumpEMFields::clone(const std::string& name) {
     auto* dumper = new DumpEMFields(name, this);
     if (grid_m != nullptr) {
-        dumper->grid_m = grid_m->clone();
+        dumper->grid_m.reset(grid_m->clone());
     }
     dumper->filename_m = filename_m;
     dumper->coordinates_m = coordinates_m;
     if (dumpsSet_m.contains(this)) {
         dumpsSet_m.insert(dumper);
     }
+    dumper->cylindricalOrigin_m = cylindricalOrigin_m;
     return dumper;
 }
 
@@ -189,13 +197,12 @@ void DumpEMFields::buildGrid() {
     checkInt(nt, "T_STEPS");
     gridSize[3] = nt;
 
-    if (grid_m != nullptr) {
-        delete grid_m;
-    }
-
-    grid_m = new interpolation::NDGrid(4, &gridSize[0], &spacing[0], &origin[0]);
+    grid_m = std::make_unique<interpolation::NDGrid>(4, &gridSize[0], &spacing[0], &origin[0]);
 
     filename_m = Attributes::getString(itsAttr[FILE_NAME]);
+    cylindricalOrigin_m[0] = Attributes::getReal(itsAttr[CYL_ORIGIN_X]);
+    cylindricalOrigin_m[1] = Attributes::getReal(itsAttr[CYL_ORIGIN_Y]);
+    cylindricalOrigin_m[2] = Attributes::getReal(itsAttr[CYL_ORIGIN_Z]);
 }
 
 void DumpEMFields::writeFields(const std::set<std::shared_ptr<Component>>& elements) {
@@ -261,13 +268,14 @@ void DumpEMFields::writeFieldLine(const std::set<std::shared_ptr<Component>>& el
     Vector_t<double, 3> localPoint = point;
     if (coordinates_m == CoordinateSystem::CYLINDRICAL) {
         // pointIn is r, phi, z
-        localPoint[0] = std::cos(point[1]) * point[0];
-        localPoint[1] = std::sin(point[1]) * point[0];
+        localPoint[0] = std::cos(point[1]) * point[0] + cylindricalOrigin_m[0];
+        localPoint[1] = std::sin(point[1]) * point[0] + cylindricalOrigin_m[1];
+        localPoint[2] = point[2] + cylindricalOrigin_m[2];
     }
     // Collect the fields
     for(auto& element : elements) {
         auto transform = element->getCSTrafoGlobal2Local();
-        Vector_t<double, 3> localR = transform.transformTo(point);
+        Vector_t<double, 3> localR = transform.transformTo(localPoint);
         Vector_t<double, 3> localB{};
         Vector_t<double, 3> localE{};
         element->apply(localR, {}, time, localE, localB);
@@ -298,7 +306,8 @@ void DumpEMFields::writeFieldLine(const std::set<std::shared_ptr<Component>>& el
 void DumpEMFields::writeFieldThis(const std::set<std::shared_ptr<Component>>& elements) {
     if (grid_m == nullptr) {
         throw OpalException("DumpEMFields::writeFieldThis",
-                            "The grid was nullptr; there was a problem with the DumpEMFields initialisation.");
+                            "The grid was nullptr; there was a problem with the "
+                            "DumpEMFields initialisation.");
     }
 
     *gmsg << *this << endl;

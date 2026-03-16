@@ -52,7 +52,8 @@ public:
     EMField& getField() const override { return *field_m; }
     bool apply(const Vector_t<double, 3>& r, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
             Vector_t<double, 3>& E, Vector_t<double, 3>& B) override {
-        if (r(0) < 0. || r(0) > 1. || r(1) < -1. || r(1) > 0. ||
+        if (r(0) < 0. || r(0) > 1. ||
+            r(1) < -1. || r(1) > 0. ||
             r(2) < 0. || r(2) > 1.) {
                 return true; // isOutOfBounds
             }
@@ -102,6 +103,34 @@ void setAttributesCart(DumpEMFields* dump,
     Attributes::setString(*dump->findAttribute("FILE_NAME"), filename);
 }
 
+void setOriginCyl(DumpEMFields* dump, const double xc, const double yc, const double zc) {
+    setOneAttribute(dump, "CYL_ORIGIN_X", xc);
+    setOneAttribute(dump, "CYL_ORIGIN_Y", yc);
+    setOneAttribute(dump, "CYL_ORIGIN_Z", zc);
+}
+
+void setAttributesCyl(DumpEMFields* dump,
+                   const double r0, const double dr, const double nr,
+                   const double phi0, const double dphi, const double nphi,
+                   const double z0, const double dz, const double nz,
+                   const double t0, const double dt, const double nt,
+                   const std::string& filename) {
+    setOneAttribute(dump, "R_START", r0);
+    setOneAttribute(dump, "DR", dr);
+    setOneAttribute(dump, "R_STEPS", nr);
+    setOneAttribute(dump, "PHI_START", phi0);
+    setOneAttribute(dump, "DPHI", dphi);
+    setOneAttribute(dump, "PHI_STEPS", nphi);
+    setOneAttribute(dump, "Z_START", z0);
+    setOneAttribute(dump, "DZ", dz);
+    setOneAttribute(dump, "Z_STEPS", nz);
+    setOneAttribute(dump, "T_START", t0);
+    setOneAttribute(dump, "DT", dt);
+    setOneAttribute(dump, "T_STEPS", nt);
+    Attributes::setString(*dump->findAttribute("FILE_NAME"), filename);
+    Attributes::setPredefinedString(*dump->findAttribute("COORDINATE_SYSTEM"), "cYLindriCAL");
+}
+
 TEST(TestDumpEMFields, ConstructorDestructor) {
     // neither in the set and grid is null
     const auto* dump1 = new DumpEMFields();
@@ -126,19 +155,26 @@ TEST(TestDumpEMFields, executeTest) {
     // dump the fields
     DumpEMFields dump1;
     execute_throws(&dump1, "should throw due to nsteps < 1");
-    setAttributesCart(&dump1, 1., 1., 1.,   1., 1., 1.,   1., 1., 1.,   1., 1., 1., "/dev/null");
+    setAttributesCart(&dump1, 1., 1., 1.,   1., 1., 1.,   1., 1., 1.,   1., 1., 1.,
+        "/dev/null");
     dump1.execute();  // should be okay (normal)
-    setAttributesCart(&dump1, -1., -1., 1.,   -1., -1., 1.,   -1., -1., 1.,   1., 1., 1., "/dev/null");
+    setAttributesCart(&dump1, -1., -1., 1.,   -1., -1., 1.,   -1., -1., 1.,   1., 1., 1.,
+        "/dev/null");
     dump1.execute();  // should be okay (-ve step is okay)
-    setAttributesCart(&dump1, -1., -1., 0.,   -1., -1., 1.,   -1., -1., 1.,   1., 1., 1., "/dev/null");
+    setAttributesCart(&dump1, -1., -1., 0.,   -1., -1., 1.,   -1., -1., 1.,   1., 1., 1.,
+        "/dev/null");
     execute_throws(&dump1, "should throw due to nsteps x < 1");
-    setAttributesCart(&dump1, -1., -1., 1.,   -1., -1., 0.,   -1., -1., 1.,   1., 1., 1., "/dev/null");
+    setAttributesCart(&dump1, -1., -1., 1.,   -1., -1., 0.,   -1., -1., 1.,   1., 1., 1.,
+        "/dev/null");
     execute_throws(&dump1, "should throw due to nsteps y < 1");
-    setAttributesCart(&dump1, -1., -1., 1.,   -1., -1., 1.,   -1., -1., 0.,   1., 1., 1., "/dev/null");
+    setAttributesCart(&dump1, -1., -1., 1.,   -1., -1., 1.,   -1., -1., 0.,   1., 1., 1.,
+        "/dev/null");
     execute_throws(&dump1, "should throw due to nsteps z < 1");
-    setAttributesCart(&dump1, -1., -1., 1.,   -1., -1., 1.,   -1., -1., 1.,   1., 1., 0., "/dev/null");
+    setAttributesCart(&dump1, -1., -1., 1.,   -1., -1., 1.,   -1., -1., 1.,   1., 1., 0.,
+        "/dev/null");
     execute_throws(&dump1, "should throw due to nsteps t < 1");
-    setAttributesCart(&dump1, -1., -1., 1.,   -1., -1., 1.,   -1., -1., 1.5,   2., 2., 1., "/dev/null");
+    setAttributesCart(&dump1, -1., -1., 1.,   -1., -1., 1.,   -1., -1., 1.5,   2., 2., 1.,
+        "/dev/null");
     execute_throws(&dump1, "should throw due to nsteps not integer");
 }
 
@@ -221,6 +257,133 @@ TEST(TestDumpEMFields, writeFieldsCartTest) {
         EXPECT_NEAR(line[9], -line[6], tol);
     }
     clear_files({fname1, fname2, fname3, fname4});
+}
+
+TEST(TestDumpEMFields, writeFieldsCylTest) {
+    std::string auxDirectory = OpalData::getInstance()->getAuxiliaryOutputDirectory();
+    std::filesystem::create_directory(auxDirectory);
+
+    std::string fnameCyl = "testCyl";
+
+    clear_files({fnameCyl});
+    DumpEMFields dump;
+    setAttributesCyl(&dump, 0.1, 0.1, 3.,   90.*Units::deg2rad, 45.*Units::deg2rad, 16,
+        0.2, 0.3, 2.,   1., 1., 2., fnameCyl);
+    dump.execute();
+    // depending on execution order, this might write cartesian tests as well... never mind
+    std::set<std::shared_ptr<Component>> elements;
+    elements.insert(std::make_shared<MockComponent>());
+    try {
+        DumpEMFields::writeFields(elements);
+    } catch (OpalException& exc) {
+        EXPECT_TRUE(false) << "Threw OpalException on writefields: " << exc.what() << std::endl;
+    }
+    std::ifstream fin(Util::combineFilePath({auxDirectory, fnameCyl}));
+    EXPECT_TRUE(fin.good());
+    int n_lines;
+    fin >> n_lines;
+    EXPECT_EQ(n_lines, 192);
+    std::string test_line;
+    for (size_t i = 0; i < 12; ++i) {
+        std::getline(fin, test_line);
+        std::cout << test_line << std::endl;
+    }
+    std::vector line(10, 0.);
+    for (size_t line_index = 0; line_index < 24; ++line_index) {
+        constexpr double tol = 1e-9;
+        for (size_t i = 0; i < 10; ++i) {
+            fin >> line[i];
+        }
+        if (line_index == 0) {
+            EXPECT_NEAR(line[0], 0.1, tol);
+            EXPECT_NEAR(line[1], 90, tol);
+            EXPECT_NEAR(line[2], 0.2, tol);
+            EXPECT_NEAR(line[3], 1., tol);
+        }
+        while (line[1] > 360.) {
+            line[1] -= 360.;
+        }
+        if (line[1] < 90. || line[1] > 270.) {
+            EXPECT_NEAR(line[4] * line[4] + line[5] * line[5], line[0] * line[0], tol);
+            EXPECT_NEAR(line[6], line[2], tol);
+        } else {
+            EXPECT_NEAR(line[4], 0., tol);
+            EXPECT_NEAR(line[5], 0., tol);
+            EXPECT_NEAR(line[6], 0., tol);
+        }
+        EXPECT_NEAR(line[7], -line[4], tol);
+        EXPECT_NEAR(line[8], -line[5], tol);
+        EXPECT_NEAR(line[9], -line[6], tol);
+    }
+    clear_files({fnameCyl});
+
+    // EXPECT_TRUE(false) << "Do DumpEMFields cylindrical documentation!";
+}
+
+TEST(TestDumpEMFields, writeFieldsCylOriginTest) {
+    std::string auxDirectory = OpalData::getInstance()->getAuxiliaryOutputDirectory();
+    std::filesystem::create_directory(auxDirectory);
+
+    constexpr std::string fnameCyl1 = "testCyl1";
+    constexpr std::string fnameCyl2 = "testCyl2";
+
+    clear_files({fnameCyl1, fnameCyl2});
+    DumpEMFields dump1;
+    setAttributesCyl(&dump1, 0.1, 0., 1.,   335.*Units::deg2rad, 0., 1,
+        0.2, 0., 1.,   1., 0., 1., fnameCyl1);
+    dump1.execute();
+    DumpEMFields dump2;
+    setAttributesCyl(&dump2, 0.1, 0., 1.,   335.*Units::deg2rad, 0., 1,
+        0.2, 0., 1.,   1., 0., 1., fnameCyl2);
+    setOriginCyl(&dump2, 0.01, 0.02, 0.03);
+    dump2.execute();
+    // depending on execution order, this might write cartesian tests as well... never mind
+    std::set<std::shared_ptr<Component>> elements;
+    elements.insert(std::make_shared<MockComponent>());
+    try {
+        DumpEMFields::writeFields(elements);
+    } catch (OpalException& exc) {
+        EXPECT_TRUE(false) << "Threw OpalException on writefields: " << exc.what() << std::endl;
+    }
+    // Read the origin (0,0,0) file
+    std::ifstream fin1(Util::combineFilePath({auxDirectory, fnameCyl1}));
+    EXPECT_TRUE(fin1.good());
+    int n_lines;
+    fin1 >> n_lines;
+    EXPECT_EQ(n_lines, 1);
+    std::string test_line;
+    for (size_t i = 0; i < 12; ++i) {
+        std::getline(fin1, test_line);
+        std::cout << test_line << std::endl;
+    }
+    std::vector line1(10, 0.);
+    for (size_t i = 0; i < 10; ++i) {
+        fin1 >> line1[i];
+    }
+    // Read the origin (1,2,3) file
+    std::ifstream fin2(Util::combineFilePath({auxDirectory, fnameCyl2}));
+    EXPECT_TRUE(fin2.good());
+    fin2 >> n_lines;
+    EXPECT_EQ(n_lines, 1);
+    for (size_t i = 0; i < 12; ++i) {
+        std::getline(fin2, test_line);
+        std::cout << test_line << std::endl;
+    }
+    std::vector line2(10, 0.);
+    for (size_t i = 0; i < 10; ++i) {
+        fin2 >> line2[i];
+    }
+    EXPECT_EQ(line1[0], line2[0]);
+    EXPECT_EQ(line1[1], line2[1]);
+    EXPECT_EQ(line1[2], line2[2]);
+    EXPECT_EQ(line1[3], line2[3]);
+    EXPECT_NE(line1[4], line2[4]);
+    EXPECT_NE(line1[5], line2[5]);
+    EXPECT_NE(line1[6], line2[6]);
+    EXPECT_NE(line1[7], line2[7]);
+    EXPECT_NE(line1[8], line2[8]);
+    EXPECT_NE(line1[9], line2[9]);
+    clear_files({fnameCyl1, fnameCyl2});
 }
 
 }
