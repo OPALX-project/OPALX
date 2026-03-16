@@ -324,8 +324,8 @@ TEST(TestDumpEMFields, writeFieldsCylOriginTest) {
     std::string auxDirectory = OpalData::getInstance()->getAuxiliaryOutputDirectory();
     std::filesystem::create_directory(auxDirectory);
 
-    constexpr std::string fnameCyl1 = "testCyl1";
-    constexpr std::string fnameCyl2 = "testCyl2";
+    std::string fnameCyl1 = "testCyl1";
+    std::string fnameCyl2 = "testCyl2";
 
     clear_files({fnameCyl1, fnameCyl2});
     DumpEMFields dump1;
