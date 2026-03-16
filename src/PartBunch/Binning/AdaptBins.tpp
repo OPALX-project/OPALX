@@ -247,12 +247,17 @@ namespace ParticleBinning {
         bin_index_type numBins = getCurrentBinCount();
         
         // Create a view to hold the global histogram on all ranks
-        globalBinHisto_m = h_histo_type_g("globalBinHisto_m", numBins, xMax_m - xMin_m,
-                                          binningAlpha_m, binningBeta_m, desiredWidth_m);
+        globalBinHisto_m = h_histo_type_g(
+                                                "globalBinHisto_m", numBins, xMax_m - xMin_m,
+
+
+        binningAlpha_m, binningBeta_m, desiredWidth_m
+    );
         
         // Get host ("mirror" <-- depends on mode of BinHisto class) view of histograms --> reduce on host!
         hview_type localBinHistoHost    = localBinHisto_m.template getHostView<hview_type>(localBinHisto_m.getHistogram()); 
-        hview_type_g globalBinHistoHost = globalBinHisto_m.template getHostView<hview_type_g>(globalBinHisto_m.getHistogram()); 
+        hview_type_g globalBinHistoHost = globalBinHisto_m.template           getHostView<   hview_type_g>(globalBinHisto_m.getHistogram()); 
+
 
         
         // Note: The allreduce also works when the .data() returns a CUDA space pointer.
