@@ -139,7 +139,8 @@ jobs:
           cmake .. \
             -DBUILD_TYPE=Debug \
             -DPLATFORMS=CUDA \
-            -DARCH=AMPERE80
+            -DARCH=AMPERE80 \
+            -DOPALX_ENABLE_UNIT_TESTS=ON
           
       - name: Build project
         run: |
@@ -186,7 +187,8 @@ jobs:
             -DAMDGPU_TARGETS=gfx90a \
             -DCMAKE_HIP_ARCHITECTURES=gfx90a \
             -DCMAKE_HIP_FLAGS=--offload-arch=gfx90a \
-            -DKokkos_ARCH_AMD_GFX90A=ON
+            -DKokkos_ARCH_AMD_GFX90A=ON \
+            -DOPALX_ENABLE_UNIT_TESTS=ON
           
       - name: Build project
         run: |
