@@ -31,7 +31,7 @@ MultiVariateGaussian::MultiVariateGaussian(std::shared_ptr<ParticleContainer_t> 
         meanP_m = 0.0;
         meanP_m[2] = opalDist_m->getAvrgpz();
 
-        samplerTimer_m = IpplTimings::getTimer("SamplingTimer");
+        samplerTimer_m = IpplTimings::getTimer("Sampling");
         initRandomPool();
     }
 
@@ -66,7 +66,7 @@ MultiVariateGaussian::MultiVariateGaussian(std::shared_ptr<ParticleContainer_t> 
     setFixMeanR(fixMeanR);
     setFixMeanP(fixMeanP);
 
-    samplerTimer_m = IpplTimings::getTimer("SamplingTimer");
+    samplerTimer_m = IpplTimings::getTimer("Sampling");
     initRandomPool();
 }
 
@@ -97,7 +97,7 @@ MultiVariateGaussian::MultiVariateGaussian(std::shared_ptr<ParticleContainer_t> 
     setFixMeanR(fixMeanR);
     setFixMeanP(fixMeanP);
 
-    samplerTimer_m = IpplTimings::getTimer("SamplingTimer");
+    samplerTimer_m = IpplTimings::getTimer("Sampling");
     initRandomPool();
 }
 

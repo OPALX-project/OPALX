@@ -166,6 +166,41 @@ void DataSink::writeImpactStatistics(
     }
 }
 
+void DataSink::dumpBinConfig(long long step,
+                             double time,
+                             bool preMerge,
+                             const std::vector<std::size_t>& binCounts,
+                             const std::vector<double>& binWidths,
+                             double xMin,
+                             const std::string& fileName) {
+    if (ippl::Comm->rank() != 0) {
+        return;
+    }
+
+    Inform m("DataSink::dumpBinConfig");
+
+    if (binCounts.size() != binWidths.size()) {
+        m << level4 << "Invalid bin configuration: binCounts.size() = " << binCounts.size()
+          << ", binWidths.size() = " << binWidths.size() << endl;
+        throw OpalException("DataSink::dumpBinConfig",
+                            "binCounts and binWidths must have the same length.");
+    }
+
+    if (!binConfigWriter_m) {
+        m << level4 << "Creating BinConfigWriter for JSON binning output file \""
+          << fileName << "\"." << endl;
+        binConfigWriter_m = std::make_unique<BinConfigWriter>(fileName);
+    }
+
+    m << level5 << "Dumping bin configuration snapshot: step=" << step
+      << ", time=" << time
+      << ", preMerge=" << (preMerge ? 1 : 0)
+      << ", nBins=" << binCounts.size()
+      << ", xMin=" << xMin << endl;
+
+    binConfigWriter_m->writeEntry(step, time, preMerge, binCounts, binWidths, xMin);
+}
+
 void DataSink::rewindLines() {
     unsigned int linesToRewind = 0;
 

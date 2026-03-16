@@ -61,7 +61,7 @@ class PartData;
 ParallelTracker::ParallelTracker(
     const Beamline& beamline, const PartData& reference, bool revBeam, bool revTrack)
     : Tracker(beamline, reference, revBeam, revTrack),
-      itsDataSink_m(nullptr),
+      itsDataSink_m(),
       itsOpalBeamline_m(beamline.getOrigin3D(), beamline.getInitialDirection()),
       opalRing_m(nullptr),
       globalEOL_m(false),
@@ -83,11 +83,12 @@ ParallelTracker::ParallelTracker(
 }
 
 ParallelTracker::ParallelTracker(
-    const Beamline& beamline, PartBunch_t* bunch, DataSink& ds, const PartData& reference,
-    bool revBeam, bool revTrack, const std::vector<unsigned long long>& maxSteps, double zstart,
+    const Beamline& beamline, PartBunch_t* bunch, const std::shared_ptr<DataSink>& ds,
+    const PartData& reference, bool revBeam, bool revTrack,
+    const std::vector<unsigned long long>& maxSteps, double zstart,
     const std::vector<double>& zstop, const std::vector<double>& dt)
     : Tracker(beamline, bunch, reference, revBeam, revTrack),
-      itsDataSink_m(&ds),
+      itsDataSink_m(ds),
       itsOpalBeamline_m(beamline.getOrigin3D(), beamline.getInitialDirection()),
       opalRing_m(nullptr),
       globalEOL_m(false),

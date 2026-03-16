@@ -1,18 +1,19 @@
 #include "PartBunch/PartBunch.h"
 #include "Algorithms/Matrix.h"
 #include "Utilities/Util.h"
+#include "Structure/DataSink.h"
 
 #undef doDEBUG
 
 template <typename T, unsigned Dim>
-PartBunch<T, Dim>::PartBunch(double qi, 
-                             double mi, 
+PartBunch<T, Dim>::PartBunch(double qi,
+                             double mi,
                              size_t totalP,
-                             /*int nt,*/ 
+                             /*int nt,*/
                              double lbt,
-                             std::string integration_method, 
-                             std::shared_ptr<Distribution> &OPALdistribution,
-                             std::shared_ptr<FieldSolverCmd> &OPALFieldSolver)
+                             std::string integration_method,
+                             std::shared_ptr<FieldSolverCmd>& OPALFieldSolver,
+                             std::shared_ptr<DataSink> dataSink)
     : ippl::PicManager<T, Dim, ParticleContainer<T, Dim>, FieldContainer<T, Dim>, LoadBalancer<T, Dim>>(),
       time_m(0.0),
       totalP_m(totalP),
@@ -30,12 +31,9 @@ PartBunch<T, Dim>::PartBunch(double qi,
       RefPartP_m(0.0),
       localTrackStep_m(0),
       globalTrackStep_m(0),
-      OPALdist_m(OPALdistribution),
-      OPALFieldSolver_m(OPALFieldSolver) {
+      OPALFieldSolver_m(OPALFieldSolver),
+      dataSink_m(std::move(dataSink)) {
 
-    static IpplTimings::TimerRef gatherInfoPartBunch = IpplTimings::getTimer("gatherInfoPartBunch");
-    IpplTimings::startTimer(gatherInfoPartBunch);
-    
     Inform m("PartBunch::PartBunch");
     m << level4 << "PartBunch Constructor" << endl;
 
@@ -82,8 +80,6 @@ PartBunch<T, Dim>::PartBunch(double qi,
         this->fcontainer_m->getMesh(), this->fcontainer_m->getFL()
     ));
 
-    IpplTimings::stopTimer(gatherInfoPartBunch);
-
     this->setTempEField(std::make_shared<VField_t<T, Dim>>(
         this->fcontainer_m->getE()
     )); // user copy constructor
@@ -91,16 +87,9 @@ PartBunch<T, Dim>::PartBunch(double qi,
                                       this->fcontainer_m->getFL());
     // -----------------------------------------------
 
-    static IpplTimings::TimerRef setSolverT = IpplTimings::getTimer("setSolver");
-    IpplTimings::startTimer(setSolverT);
     setSolver();
-    IpplTimings::stopTimer(setSolverT);
 
-
-    static IpplTimings::TimerRef prerun = IpplTimings::getTimer("prerun");
-    IpplTimings::startTimer(prerun);
     pre_run();
-    IpplTimings::stopTimer(prerun);
     
     globalPartPerNode_m = std::make_unique<size_t[]>(ippl::Comm->size());
 
@@ -416,11 +405,16 @@ Inform& PartBunch<T, Dim>::print(Inform& os) {
     // if (this->getLocalNum() != 0) {  // to suppress Nans
     Inform::FmtFlags_t ff = os.flags();
 
+    double dek = p2Ekin(this->pcontainer_m->getRmsP(),  reference_m->getM()*Units::eV2MeV);
+    double ek  = p2Ekin(this->pcontainer_m->getMeanP(), reference_m->getM()*Units::eV2MeV );
+    
     os << level1 << std::scientific << "\n"
        << "* ************** B U N C H "
         "********************************************************* \n"
        << "* PARTICLES       = " << this->getTotalNum() << "\n"
        << "* CHARGE          = " << this->qi_m*this->getTotalNum() << " (Cb) \n"
+       << "* <EKIN>          = " << ek << " (GeV) \n"
+       << "* <dEKIN>         = " << dek << " (GeV) \n"
        << "* INTEGRATOR      = " << integration_method_m << "\n"
        << "* MIN R (origin)  = " << Util::getLengthString( this->pcontainer_m->getMinR(), 5) << "\n"
        << "* MAX R (max ext) = " << Util::getLengthString( this->pcontainer_m->getMaxR(), 5) << "\n"
@@ -520,22 +514,19 @@ void PartBunch<T, Dim>::computeSelfFields() {
 
         // Start binning and sorting by bins
         std::shared_ptr<AdaptBins_t> bins = this->getBins();
-        //VField_t<double, 3>& Etmp = *(this->getTempEField());
 
         IpplTimings::startTimer(completeBinningT);
-        bins->doFullRebin(bins->getMaxBinCount()); // rebin with 128 bins // bins->getMaxBinCount()
-        bins->print(); // For debugging...
-        bins->sortContainerByBin(); // Sort BEFORE, since it generates less atomics overhead with more bins!
-        bins->genAdaptiveHistogram(); // merge bins with width/N_part ratio of 1.0
+        bins->doFullRebin(bins->getMaxBinCount());
+        dumpBinConfig(true);   // pre-merge configuration
+        bins->sortContainerByBin();    // Sort BEFORE merging to reduce atomics overhead.
+        bins->genAdaptiveHistogram();  // merge bins adaptively
+        dumpBinConfig(false);  // post-merge configuration
+
         IpplTimings::stopTimer(completeBinningT);
-        bins->print(); // For debugging (level5; see AdaptBins::print()).
         m << level4 << "Binning routine done." << endl;
     } else {
         m << level4 << "No AdaptBins object present, not using binning." << endl;
     }
-
-    static IpplTimings::TimerRef SolveTimer = IpplTimings::getTimer("SolveTimer");
-    IpplTimings::startTimer(SolveTimer);
 
     /*
     I would guess that ths bunchUpdate is only necessary after a push (where we
@@ -653,8 +644,53 @@ void PartBunch<T, Dim>::computeSelfFields() {
     );
     m << "E-field scale = " << efScale << endl;    
     spaceChargeEFieldCheck(efScale);*/
+}
 
-    IpplTimings::stopTimer(SolveTimer);
+template <typename T, unsigned Dim>
+void PartBunch<T, Dim>::dumpBinConfig(bool preMerge) {
+    if (!hasBinning() || !dataSink_m) {
+        throw OpalException("PartBunch::dumpBinConfig", 
+                            "No binning or data sink set, but dumpBinConfig() was called.");
+    }
+
+    Inform m("PartBunch::dumpBinConfig");
+
+    BinningCmd* binningCmd = OPALFieldSolver_m->getBinningCmd();
+    if (!binningCmd) {
+        return;
+    }
+
+    const long long step = getGlobalTrackStep();
+    const int dumpFreq   = binningCmd->getDumpBinsFrequency();
+    if (dumpFreq <= 0 || (step % dumpFreq) != 0) {
+        return;
+    }
+
+    std::shared_ptr<AdaptBins_t> bins = getBins();
+    if (!bins) {
+        return;
+    }
+
+    std::vector<typename AdaptBins_t::size_type> countsHost;
+    std::vector<typename AdaptBins_t::value_type> widthsHost;
+    const auto xMin = bins->getBinConfigHost(countsHost, widthsHost);
+
+    std::vector<std::size_t> counts(countsHost.begin(), countsHost.end());
+    std::vector<double> widths(widthsHost.begin(), widthsHost.end());
+
+    m << level5 << "Dumping bin configuration (preMerge=" << (preMerge ? 1 : 0)
+      << ") at globalTrackStep=" << step
+      << " with nBins=" << counts.size()
+      << " to file \"" << binningCmd->getDumpBinsFileName() << "\"." << endl;
+
+    dataSink_m->dumpBinConfig(
+        step,
+        getT(),
+        preMerge,
+        counts,
+        widths,
+        static_cast<double>(xMin),
+        binningCmd->getDumpBinsFileName());
 }
 
 template <typename T, unsigned Dim>
