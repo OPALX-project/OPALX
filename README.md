@@ -2,7 +2,9 @@
 
 ## Manual and Documentation
 
- [OPALX documentation](https://opalx-project.github.io/Manual/)
+[OPALX documentation](https://opalx-project.github.io/Manual/)
+
+Note that OPALX has a clang-format check (version 21.1.8) on every PR to master. See [IPPL's documentation](https://github.com/IPPL-framework/ippl/blob/master/doc/extras/CodeFormattingSetup.md) for instructions how to setup pre-commit hooks.
 
 ## Dependencies
 
