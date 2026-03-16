@@ -24,6 +24,7 @@
 #include <string>
 #include <unordered_set>
 #include <set>
+#include <memory>
 
 namespace interpolation {
   class NDGrid;
@@ -75,6 +76,9 @@ public:
         PHI_START,
         DPHI,
         PHI_STEPS,
+        CYL_ORIGIN_X,
+        CYL_ORIGIN_Y,
+        CYL_ORIGIN_Z,
         SIZE
     };
 
@@ -138,10 +142,11 @@ private:
                         const double& time,
                         std::ofstream& fout) const;
 
-    interpolation::NDGrid* grid_m;
-    std::string filename_m;
+    std::unique_ptr<interpolation::NDGrid> grid_m{};
+    Vector_t<double, 3> cylindricalOrigin_m{};
+    std::string filename_m{};
 
-    CoordinateSystem coordinates_m = CoordinateSystem::CARTESIAN;
+    CoordinateSystem coordinates_m{CoordinateSystem::CARTESIAN};
 
     static std::unordered_set<DumpEMFields*> dumpsSet_m;
 
