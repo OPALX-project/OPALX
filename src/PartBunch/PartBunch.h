@@ -28,6 +28,7 @@
 #include "Utilities/Options.h" // Needed to define binning parameters!
 #include "PartBunch/Binning/AdaptBins.h" // TODO: binning
 
+class DataSink;  // forward declaration; full type needed only in .cpp
 
 extern Inform* gmsg;
 
@@ -163,7 +164,7 @@ private:
 
     bool fixed_grid;
 
-    PartData* reference_m;
+    const PartData* reference_m;
 
     /// step in a TRACK command
     long long localTrackStep_m;
@@ -172,9 +173,9 @@ private:
     long long globalTrackStep_m;
 
 
-    std::shared_ptr<Distribution> OPALdist_m;
-
     std::shared_ptr<FieldSolverCmd> OPALFieldSolver_m;
+
+    std::shared_ptr<DataSink> dataSink_m;
     
     // unit state of PartBunch --> always false after initialization, so use this as standard flag
     // UnitState_t unit_state_m;
@@ -198,17 +199,39 @@ private:
 
 public:
 
-    PartBunch(double qi, 
-              double mi, 
-              size_t totalP, 
-              /*int nt,*/ 
-              double lbt, 
+    /**
+     * @brief Construct a PartBunch with given macro charge/mass and configuration.
+     *
+     * @param qi              Charge per macroparticle [C].
+     * @param mi              Mass per macroparticle [GeV/c^2].
+     * @param totalP          Total number of macroparticles.
+     * @param lbt             Load-balancer timescale.
+     * @param integration_method Name of the integrator (e.g. "LF2").
+     * @param OPALFieldSolver Field solver command providing mesh and binning configuration.
+     * @param dataSink        Shared pointer to the global DataSink used for diagnostics.
+     */
+    PartBunch(double qi,
+              double mi,
+              size_t totalP,
+              double lbt,
               std::string integration_method,
-              std::shared_ptr<Distribution> &OPALdistribution, 
-              std::shared_ptr<FieldSolverCmd> &OPALFieldSolver);
-
+              std::shared_ptr<FieldSolverCmd>& OPALFieldSolver,
+              std::shared_ptr<DataSink> dataSink);
+    /**
+     * @brief 
+     * - recomputes mesh spacing i.e. Layout
+     * - repatition the domain if nessesary
+     * - recomputes all moments of the particle distribution
+     
+     called in:
+     
+     Track/TrackRun.cpp             --> initial calc)
+     PartBunch/PartBunch.cpp        --> in space charge which is wrong 
+     Algorithms/ParallelTracker.cpp --> after push
+     
+     */
     void bunchUpdate();
-    
+  
     ~PartBunch() {
         *gmsg << level2 << "* PartBunch Destructor: Finished time step: " << this->it_m << " time: " << this->time_m << endl;
     }
@@ -346,16 +369,76 @@ public:
     void actT() {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
     }
-
-    PartData* getReference() {
+  
+    const PartData* getReference() const {
         return reference_m;
     }
 
+
+  /// \todo constructor could set this
+    void setReference (const PartData* ref) {
+        reference_m = ref;
+    }
+  
     double getEmissionDeltaT() {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
         return 1.0;
     }
 
+/**
+ * @brief Compute the kinetic energy of a particle with mass m from the vector \f$\boldsymbol{\beta\gamma}\f$.
+ *
+ * This function assumes the input vector
+ * \f[
+ * \mathbf{p} = \boldsymbol{\beta\gamma}
+ * \f]
+ * where
+ * \f[
+ * \beta = \frac{v}{c}, \qquad
+ * \gamma = \frac{1}{\sqrt{1-\beta^2}}.
+ * \f]
+ * and the mass in GeV
+ * \f[
+ * m c^2
+ * \f]
+ * The magnitude of the vector is
+ * \f[
+ * |\boldsymbol{\beta\gamma}| =
+ * \sqrt{(\beta\gamma_x)^2 + (\beta\gamma_y)^2 + (\beta\gamma_z)^2}.
+ * \f]
+ *
+ * From this we obtain the Lorentz factor
+ * \f[
+ * \gamma = \sqrt{1 + |\boldsymbol{\beta\gamma}|^2}.
+ * \f]
+ *
+ * The kinetic energy is then
+ * \f[
+ * E_{\mathrm{kin}} = (\gamma - 1) m.
+ * \f]
+ *
+ * For protons we use
+ * \f[
+ * m_p c^2 = 938.2720813 \, \mathrm{MeV}.
+ * \f]
+ *
+ * @param p Vector containing \f$(\beta\gamma_x,\beta\gamma_y,\beta\gamma_z)\f$.
+ * @return kinetic energy in eV.
+ */
+  double p2Ekin (const Vector_t<double,Dim>& p, const double mass ) {
+    
+    // magnitude squared of beta*gamma
+    const double p2 = p[0]*p[0] + p[1]*p[1] + p[2]*p[2];
+
+    // Lorentz factor
+    const double gamma = std::sqrt(1.0 + p2);
+
+    // kinetic energy
+    const double Ekin = (gamma - 1.0) * mass;
+
+    return Ekin;
+  }
+  
     void gatherLoadBalanceStatistics();
 
     size_t getLoadBalance(int p) {
@@ -509,16 +592,13 @@ public:
             *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
     }
 
-    void setBeamFrequency(double /*v*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-    }
-
     Vector_t<double, Dim> getEExtrema() {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
        return Vector_t<double, Dim>(0);
     }
 
     void computeSelfFields();
+    void dumpBinConfig(bool preMerge);
 
     Inform& print(Inform& os);
 
@@ -708,12 +788,11 @@ public:
     }
 
     double get_gamma() const {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return 1.00;
+      return this->pcontainer_m->getMeanGammaZ();
     }
 
     double get_meanKineticEnergy() {
-        return this->pcontainer_m->getMeanKineticEnergy();
+      return p2Ekin(this->pcontainer_m->getMeanP(),reference_m->getM())*Units::eV2MeV;
     }
 
     Vector_t<double, Dim> get_origin() const {
@@ -723,7 +802,7 @@ public:
         return rmax_m;
     }
 
-    // in opal, MeanPosition is return for get_centroid, which I think is wrong. We already have get_rmean()
+    // \todo in opal, MeanPosition is return for get_centroid, which I think is wrong. We already have get_rmean()
     Vector_t<double, 2*Dim> get_centroid() const {
         return this->pcontainer_m->getCentroid();
     }
@@ -747,17 +826,15 @@ public:
     Vector_t<double, Dim> get_pmean() const {
         return this->pcontainer_m->getMeanP();
     }
-    Vector_t<double, Dim> get_pmean_Distribution() const {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return Vector_t<double, Dim>(0.0);
-    }
+
     Vector_t<double, Dim> get_emit() const {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return Vector_t<double, Dim>(0.0);
+        return this->pcontainer_m->getGeometricEmit();
     }
     Vector_t<double, Dim> get_norm_emit() const {
         return this->pcontainer_m->getNormEmit();
     }
+
+  
     Vector_t<double, Dim> get_halo() const {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
         return Vector_t<double, Dim>(0.0);
@@ -795,8 +872,7 @@ public:
         return Vector_t<double, Dim>(0.0);
     }
     Vector_t<double, Dim> get_hr() const {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return Vector_t<double, Dim>(0.0);
+        return hr_m;
     }
 
     double get_Dx() const {

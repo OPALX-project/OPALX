@@ -270,15 +270,16 @@ void TrackRun::execute() {
     - Charge per macro particle in [C], this should be macrocharge_m or q_m in the bunch. This will be used for the field calculations.
     - The pusher needs consistent units: eV for mass and elementary charges for charge. This will (hopefully) be handled inside the pusher routines!
     */
-    bunch_m = std::make_shared<bunch_type>(macrocharge_m, // set the Charge per macro-particle 
-                                           macromass_m,   // set the Mass per macro-particle, [GeV], for correct particle kick!
-                                                                                      // (see "3.1. Physical Units", where mass generally is in MeV/c^2)
-                                                                                      // However, OPAL seems to use eV for the pusher!
-                                                                                     /// \todo it would be much better to reinstate PartData or itsReference_m?
-                                           beam->getNumberOfParticles()/*, 10*/, 1.0, "LF2", dist_m, fs_m);
-    bunch_m->setT(0.0);
-    bunch_m->setBeamFrequency(beam->getFrequency() * Units::MHz2Hz);
 
+    /// \todo first 2 arguments can go!
+    initDataSink();
+    bunch_m = std::make_shared<bunch_type>(macrocharge_m,                 // set the Charge per macro-particle 
+                                           macromass_m,                   // set the Mass per macro-particle, [GeV], for correct particle kick!
+					                                  // (see "3.1. Physical Units", where mass generally is in MeV/c^2)
+					                                  // However, OPAL seems to use eV for the pusher!			     
+                                           beam->getNumberOfParticles()/*, 10*/, 1.0, "LF2", fs_m, ds_m);
+    bunch_m->setT(0.0);
+    bunch_m->setReference(&beam->getReference());
     *gmsg << level2 << *(bunch_m->getBCHandler()) << endl;
     
     setupBoundaryGeometry();
@@ -325,9 +326,6 @@ void TrackRun::execute() {
         *gmsg << level5 << "MPI_Comm_size= " << world_size << endl;
     }
 
-    static IpplTimings::TimerRef samplingTime = IpplTimings::getTimer("samplingTime");
-    IpplTimings::startTimer(samplingTime);
-
     // set distribution type
     dist_m->setDist();
     dist_m->setAvrgPz( beam->getMomentum()/beam->getMass() );
@@ -359,27 +357,18 @@ void TrackRun::execute() {
 
     *gmsg << level2 << "* About to create particles ..." << endl;
     
-    static IpplTimings::TimerRef GenParticlesTimer  = IpplTimings::getTimer("GenParticles");
-    IpplTimings::startTimer(GenParticlesTimer);
-
     sampler_m->generateParticles(Np, nr);
-
-    IpplTimings::stopTimer(GenParticlesTimer);
 
     *gmsg << level2 << "* Particle creation done" << endl;
     
-    IpplTimings::stopTimer(samplingTime);
-
     /* 
        reset the fieldsolver with correct hr_m
        based on the distribution
     */
-
     bunch_m->setCharge();
     bunch_m->setMass();
     bunch_m->bunchUpdate();
     bunch_m->print(*gmsg);
-    initDataSink();
 
     /*
     if (!isFollowupTrack_m) {
@@ -412,7 +401,7 @@ void TrackRun::execute() {
     */
 
     itsTracker_m = new ParallelTracker(
-        *Track::block->use->fetchLine(), bunch_m.get(), *ds_m, Track::block->reference, false,
+        *Track::block->use->fetchLine(), bunch_m.get(), ds_m, Track::block->reference, false,
         Attributes::getBool(itsAttr[TRACKRUN::TRACKBACK]), Track::block->localTimeSteps,
         Track::block->zstart, Track::block->zstop, Track::block->dT);
 
@@ -495,13 +484,16 @@ void TrackRun::initDataSink() {
         if (!opal_m->hasDataSinkAllocated()) {
             opal_m->setDataSink(new DataSink(phaseSpaceSink_m, false));
         } else {
-            ds_m = opal_m->getDataSink();
-            ds_m->changeH5Wrapper(phaseSpaceSink_m);
+            DataSink* raw = opal_m->getDataSink();
+            raw->changeH5Wrapper(phaseSpaceSink_m);
         }
     } else {
         opal_m->setDataSink(new DataSink(phaseSpaceSink_m, true));
     }
-    ds_m = opal_m->getDataSink();
+
+    // Wrap the global DataSink in a non-owning shared_ptr for local use.
+    DataSink* raw = opal_m->getDataSink();
+    ds_m = std::shared_ptr<DataSink>(raw, [](DataSink*) {});
 }
 
 void TrackRun::setupBoundaryGeometry() {
