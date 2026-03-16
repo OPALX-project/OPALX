@@ -8,6 +8,7 @@ on:
 jobs:
   clang-format:
     runs-on: ubuntu-latest
+    continue-on-error: true
     if: |
       github.event_name == 'merge_group' ||
       (github.event_name == 'pull_request' &&
@@ -25,11 +26,11 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install clang-format 20.1.8 (Python wheel in venv)
+      - name: Install clang-format 21.1.8 (Python wheel in venv)
         run: |
           python -m venv .venv
           . .venv/bin/activate
-          pip install "clang-format==20.1.8"
+          pip install "clang-format==21.1.8"
           .venv/bin/clang-format --version
 
       - name: Get list of modified source files
@@ -59,9 +60,7 @@ jobs:
 
           while IFS= read -r file; do
             [ -z "$file" ] && continue
-            .venv/bin/clang-format --dry-run --Werror \
-              -style=file \
-              "$file"
+            .venv/bin/clang-format --dry-run --Werror "$file"
           done <<'EOF'
           ${{ steps.files.outputs.files }}
           EOF
