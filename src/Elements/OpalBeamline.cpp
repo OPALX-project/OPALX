@@ -53,6 +53,14 @@ std::set<std::shared_ptr<Component>> OpalBeamline::getElements(const Vector_t<do
     return elementSet;
 }
 
+std::set<std::shared_ptr<Component>> OpalBeamline::getElements() {
+    std::set<std::shared_ptr<Component>> elementSet;
+    for(auto& item : elements_m) {
+        elementSet.insert(item.getElement());
+    }
+    return elementSet;
+}
+
 unsigned long OpalBeamline::getFieldAt(
     const unsigned int& /*index*/, const Vector_t<double, 3>& /*pos*/, const long& /*sindex*/,
     const double& /*t*/, Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/) {
@@ -561,22 +569,5 @@ void OpalBeamline::activateElements() {
         std::shared_ptr<Component> element = (*it).getElement();
         (*it).setOn(designEnergy);
         element->goOnline(designEnergy);
-    }
-}
-
-void OpalBeamline::apply(const Vector_t<double, 3>& R, const Vector_t<double, 3>& P,
-        const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
-    for(auto& item : elements_m) {
-        const auto element = item.getElement();
-        auto transform = element->getCSTrafoGlobal2Local();
-        Vector_t<double, 3> localR = transform.transformTo(R);
-        Vector_t<double, 3> localB{};
-        Vector_t<double, 3> localE{};
-        element->apply(localR, P, t, localE, localB);
-        transform.invert();
-        localB = transform.rotateTo(localB);
-        localE = transform.rotateTo(localE);
-        E += localE;
-        B += localB;
     }
 }
