@@ -24,9 +24,9 @@
 #ifndef OPAL_ParallelTracker_HH
 #define OPAL_ParallelTracker_HH
 
+#include "Algorithms/CoordinateSystemTrafo.h"
 #include "Algorithms/StepSizeConfig.h"
 #include "Algorithms/Tracker.h"
-#include "Algorithms/CoordinateSystemTrafo.h"
 #include "Steppers/BorisPusher.h"
 #include "Structure/DataSink.h"
 
@@ -63,9 +63,9 @@ class PluginElement;
 
 /**
  * @brief Implements the simulation loop
- * 
- * @note ParallelTracker implements the main simulation loop. 
- * TRACK and RUN commands in the inputfile invoke the creation of the 
+ *
+ * @note ParallelTracker implements the main simulation loop.
+ * TRACK and RUN commands in the inputfile invoke the creation of the
  * ParalleTracker object and the execution of ParallelTracker::execute()
  */
 class ParallelTracker : public Tracker {
@@ -92,22 +92,22 @@ private:
     // Starting position
     double zstart_m;
 
-    /**   
+    /**
      * stores informations where to change the time step and
      * where to stop the simulation,
      * the time step sizes and
-     * the number of time steps with each configuration 
+     * the number of time steps with each configuration
      */
     StepSizeConfig stepSizes_m;
 
     // The current time stepsize dt (controlled by StepSizeConfig)
     double dtCurrentTrack_m;
 
-    // This variable controls the minimal number of steps of 
+    // This variable controls the minimal number of steps of
     // emission (using bins) before we can merge the bins
     int minStepforReBin_m;
 
-    // Controls the frequency of load balancing 
+    // Controls the frequency of load balancing
     unsigned long long repartFreq_m;
 
     // Total number of particles in the whole simulation
@@ -126,7 +126,7 @@ private:
     typedef std::pair<double[8], Component*> element_pair;
     typedef std::pair<ElementType, element_pair> type_pair;
     typedef std::list<type_pair*> beamline_list;
-    
+
     unsigned turnnumber_m;
 
     std::list<Component*> myElements;
@@ -146,53 +146,57 @@ private:
     double referencePhi;
 
     double sinRefTheta_m;
-    double cosRefTheta_m; 
-    
+    double cosRefTheta_m;
+
     std::vector<PluginElement*> pluginElements_m;
-    /* ===================================================================== */ 
+    /* ===================================================================== */
     /* ========================== NOT IMPLEMENTED ========================== */
     // Particle - Matter interaction
-    std::set<ParticleMatterInteractionHandler*> 
-        activeParticleMatterInteractionHandlers_m;
+    std::set<ParticleMatterInteractionHandler*> activeParticleMatterInteractionHandlers_m;
     bool particleMatterStatus_m;
-   
+
     // Does nothing ...
     unsigned int emissionSteps_m;
-    
-    // Wakefield stuff - Does nothing... 
+
+    // Wakefield stuff - Does nothing...
     bool wakeStatus_m;
     WakeFunction* wakeFunction_m;
-    /* ===================================================================== */ 
+
+    // Interaction Point IP related stuff
+    bool collisionPrototypeInitialized_m;
+    bool collisionPrototypeFinished_m;
+    bool collisionFrameObserved_m;
+
+    /* ===================================================================== */
 public:
     /* ============================ Constructors =========================== */
     /*
      * Constructor for single track
      * The Beamline object "bl"
-     * The reference data object "data" 
+     * The reference data object "data"
      * If "revBeam" is true, the beam runs from s = C to s = 0.
      * If "revTrack" is true, we track against the beam.
-    */ 
-    explicit ParallelTracker(const Beamline& bl, const PartData& data, 
-        bool revBeam, bool revTrack);
+     */
+    explicit ParallelTracker(const Beamline& bl, const PartData& data, bool revBeam, bool revTrack);
 
     /*
      * Constructor for single track
      * The Beamline object "bl"
      * The ParticleBunch "bunch"
      * The DataSink "ds"
-     * The reference data object "data" 
+     * The reference data object "data"
      * If "revBeam" is true, the beam runs from s = C to s = 0.
      * If "revTrack" is true, we track against the beam.
      * Vector of maxSteps per track
      * Starting position "zstart"
      * Vector of ends of the individual tracks
      * Vector of different timesteps for individual tracks
-    */
-    explicit ParallelTracker(const Beamline& bl, PartBunch_t* bunch,
-        const std::shared_ptr<DataSink>& ds, const PartData& data, bool revBeam,
-        bool revTrack, const std::vector<unsigned long long>& maxSTEPS, 
-        double zstart, const std::vector<double>& zstop, 
-        const std::vector<double>& dt);
+     */
+    explicit ParallelTracker(
+        const Beamline& bl, PartBunch_t* bunch, const std::shared_ptr<DataSink>& ds,
+        const PartData& data, bool revBeam, bool revTrack,
+        const std::vector<unsigned long long>& maxSTEPS, double zstart,
+        const std::vector<double>& zstop, const std::vector<double>& dt);
 
     // Destructor
     virtual ~ParallelTracker();
@@ -249,17 +253,20 @@ public:
     void pushParticles(const BorisPusher& pusher);
     void timeIntegration1(BorisPusher& pusher);
     void timeIntegration2(BorisPusher& pusher);
-    void computeSpaceChargeFields(unsigned long long step);    
+    void computeSpaceChargeFields(unsigned long long step);
     void computeExternalFields(OrbitThreader& oth);
     void resetFields();
-    /* ===================================================================== */ 
+    /* ===================================================================== */
     /* =========================== Functions =============================== */
     // Control the dtview of the bunch
     void changeDT(bool backTrack = false);
     void setTime();
 
+    /* =========================== IP Related Functions =============================== */
+    void checkInIPRegion(OrbitThreader& oth);
+
 private:
-    // Reference Particle 
+    // Reference Particle
     void updateReferenceParticle(const BorisPusher& pusher);
     void updateReference(const BorisPusher& pusher);
     void updateRefToLabCSTrafo();
@@ -273,7 +280,7 @@ private:
     // Sets itsOpalBeamline_m::prepared_m = true
     void prepareSections();
 
-    // Sets itsBunch_m::dt to dtCurrentTrack_m 
+    // Sets itsBunch_m::dt to dtCurrentTrack_m
     void selectDT(bool backTrack = false);
 
     // void prepareOpalBeamlineSections();
@@ -300,8 +307,7 @@ private:
     void restoreCavityPhases();
     /* ===================================================================== */
     /* ========================== RING FUNCTIONS =========================== */
-    void buildupFieldList(double BcParameter[], ElementType elementType, 
-        Component* elptr);
+    void buildupFieldList(double BcParameter[], ElementType elementType, Component* elptr);
     bool applyPluginElements(const double dt);
     /* ===================================================================== */
     /* ========================== NOT IMPLEMENTED ========================== */
@@ -310,8 +316,7 @@ private:
     void operator=(const ParallelTracker&);
     void emitParticles(long long step);
     void computeWakefield(IndexMap::value_t& elements);
-    void computeParticleMatterInteraction(IndexMap::value_t elements, 
-        OrbitThreader& oth);
+    void computeParticleMatterInteraction(IndexMap::value_t elements, OrbitThreader& oth);
     void handleRestartRun();
     void transformBunch(const CoordinateSystemTrafo& trafo);
     /* ===================================================================== */
