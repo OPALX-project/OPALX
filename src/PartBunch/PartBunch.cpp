@@ -28,9 +28,9 @@ PartBunch<T, Dim>::PartBunch(
       integration_method_m(integration_method),
       solver_m(""),
       isFirstRepartition_m(true),
-      hasCollidingBunches_m(false),
       ipCenterLocalZ_m(-1.0),
       colwinlen_m(-1.0),
+      hasCollidingBunches_m(false),
       qi_m(qi),
       mi_m(mi),
       rmsDensity_m(0.0),
@@ -121,7 +121,6 @@ void PartBunch<T, Dim>::restorePartFieldDomain(const SavedPartFieldDomain& state
     // Inform m("PartBunch::restoreFieldDomain");
 
     auto* mesh = &this->fcontainer_m->getMesh();
-    auto* FL   = &this->fcontainer_m->getFL();
     auto pc    = this->getParticleContainer();
 
     mesh->setOrigin(state.origin);
