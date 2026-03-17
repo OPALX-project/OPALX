@@ -376,6 +376,10 @@ public:
   /// \todo constructor could set this
     void setReference (const PartData* ref) {
         reference_m = ref;
+        if (reference_m && this->pcontainer_m) {
+            // Ensure mean/std kinetic energy in DistributionMoments are computed using reference mass.
+            this->pcontainer_m->setEnergyReferenceMass(reference_m->getM(), true);
+        }
     }
   
     double getEmissionDeltaT() {
