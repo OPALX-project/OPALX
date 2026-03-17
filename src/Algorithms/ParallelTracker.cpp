@@ -616,11 +616,11 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
     if (!itsBunch_m->get_collidingBunches()) {
         Vector_t<double, 3> ipCenterRef(0.0, 0.0, itsBunch_m->get_ipCenterLocalZ());
         Vector_t<double, 3> ipCenterBeam = referenceToBeamCSTrafo.transformTo(ipCenterRef);
-        m << "centZ= " << itsBunch_m->get_ipCenterLocalZ() << " L(centZ)= " << ipCenterBeam(2)
-          << endl;
+        m << level5 << "centZ= " << itsBunch_m->get_ipCenterLocalZ()
+          << " L(centZ)= " << ipCenterBeam(2) << endl;
         itsBunch_m->computeSelfFields();
 
-        m << "Compute self fields done." << endl;
+        m << level5 << "Compute self fields done." << endl;
         /// @brief Transform particle positions back to the reference coordinate system
         beamToReferenceCSTrafo.transformBunchTo(itsBunch_m->getParticleContainer()->R.getView());
         m << level5 << "Transform particle positions back to reference coordinate system done."
@@ -637,8 +637,8 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
         auto savedDomain = itsBunch_m->savePartFieldDomain();
         Vector_t<double, 3> ipCenterRef(0.0, 0.0, itsBunch_m->get_ipCenterLocalZ());
         Vector_t<double, 3> ipCenterBeam = referenceToBeamCSTrafo.transformTo(ipCenterRef);
-        m << "centZ= " << itsBunch_m->get_ipCenterLocalZ() << " L(centZ)= " << ipCenterBeam(2)
-          << endl;
+        m << level5 << "centZ= " << itsBunch_m->get_ipCenterLocalZ()
+          << " L(centZ)= " << ipCenterBeam(2) << endl;
         // itsBunch_m->enableCollisionWindowMesh(ipCenterBeam(2), itsBunch_m->get_colwinlen());
 
         // First stage: solve on the larger collision mesh using the primary bunch only.
@@ -655,7 +655,7 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
         m << level5
           << "Rotate B fields back to reference coordinate system done. ComputeSelfFields done."
           << endl;
-        m << "Compute self fields on collision window mesh done." << endl;
+        m << level5 << "Compute self fields on collision window mesh done." << endl;
         itsBunch_m->restorePartFieldDomain(savedDomain);
         itsBunch_m->calcBeamParameters();
     }
@@ -787,13 +787,24 @@ namespace {
     void debugPrintCollisionCenters1D(
         Inform& m, double bunchCenterZ, double windowMinZ, double windowMaxZ, double ipCenterZ,
         bool mirroredActive, std::size_t width = 80) {
-        m << "bunchCenterZ=" << bunchCenterZ << endl;
-        m << renderCollisionCenters1D(
-            bunchCenterZ, windowMinZ, windowMaxZ, ipCenterZ, mirroredActive, width)
-          << "\n"
-          << renderCollisionLabels1D(windowMinZ, windowMaxZ, ipCenterZ, width) << endl;
-    }
+        static bool firstFrame = true;
 
+        m << level5 << "bunchCenterZ=" << bunchCenterZ << endl;
+
+        const std::string line1 = renderCollisionCenters1D(
+            bunchCenterZ, windowMinZ, windowMaxZ, ipCenterZ, mirroredActive, width);
+        const std::string line2 = renderCollisionLabels1D(windowMinZ, windowMaxZ, ipCenterZ, width);
+
+        if (firstFrame) {
+            std::cout << line1 << '\n' << line2;
+            firstFrame = false;
+        } else {
+            // Move cursor up one line, go to column 1, clear line, write legend line,
+            // move up one line again, clear line, write animation line, then go down.
+            std::cout << "\r\033[2K" << line2 << "\033[1A\r\033[2K" << line1 << "\033[1B\r";
+        }
+        std::cout << std::flush;
+    }
 }  // namespace
 
 /* ADA
@@ -874,7 +885,7 @@ void ParallelTracker::checkInIPRegion(OrbitThreader& oth) {
 
     // One-bunch center used only for debugging / symmetric reconstruction.
     const double bunchCenterZ = 0.5 * (rmin(2) + rmax(2));
-    m << "zmin= " << rmin(2) << " zmax= " << rmax(2) << endl;
+
     // Symmetric virtual partner bunch center.
     // const double mirroredBunchCenterZ = 2.0 * ipCenterLocalZ - bunchCenterZ;
 
@@ -903,7 +914,7 @@ void ParallelTracker::checkInIPRegion(OrbitThreader& oth) {
     // Enter symmetric collision mode once the head enters the window.
     if (!collisionPrototypeInitialized_m && bunchHeadS > windowBeginS) {
         collisionPrototypeInitialized_m = true;
-        m << "start symmetric collision mode" << endl;
+        m << level5 << "start symmetric collision mode" << endl;
 
         itsBunch_m->set_collidingBunches(true);
         itsBunch_m->set_ipCenterLocalZ(ipCenterLocalZ);
@@ -955,7 +966,7 @@ void ParallelTracker::checkInIPRegion(OrbitThreader& oth) {
         itsBunch_m->set_collidingBunches(false);
         itsBunch_m->set_ipCenterLocalZ(-1.0);
         itsBunch_m->set_colwinlen(-1.0);
-        m << "finished symmetric collision mode" << endl;
+        m << level5 << "finished symmetric collision mode" << endl;
         return;
     }
 }
