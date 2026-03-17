@@ -769,266 +769,190 @@ namespace {
   - mirrored and still inside the collision window
   - mirrored and finished, so do not mirror again
 
-
-
-
-
  */
 
 void ParallelTracker::checkInIPRegion(OrbitThreader& oth) {
     Inform m("IP ");
 
-    auto fc = itsBunch_m->getFieldContainer();
+    // Stop once the symmetric collision prototype has completed.
+    if (collisionPrototypeFinished_m) {
+        return;
+    }
+
     auto pc = itsBunch_m->getParticleContainer();
 
+    // Refresh cached bunch statistics/bounds for this step.
+    if (itsBunch_m->getTotalNum() == 0) {
+        collisionFrameObserved_m = false;
+        return;
+    }
     itsBunch_m->calcBeamParameters();
     itsBunch_m->updateMoments();
 
-    bool inIpRegion = false;
-
-    if (collisionPrototypeFinished_m)
-        return;
-
     Vector_t<double, 3> rmin(0.0), rmax(0.0);
-    if (itsBunch_m->getTotalNum() > 0)
-        itsBunch_m->get_bounds(rmin, rmax);
-    else
-        return;
+    itsBunch_m->get_bounds(rmin, rmax);
 
-    const size_t localNum = itsBunch_m->getLocalNum();
-
+    // Query beamline elements overlapping the current bunch extent.
     IndexMap::value_t elements;
-
     try {
         elements = oth.query(pathLength_m + 0.5 * (rmax(2) + rmin(2)), rmax(2) - rmin(2));
-    } catch (IndexMap::OutOfBounds& e) {
+    } catch (IndexMap::OutOfBounds&) {
         globalEOL_m = true;
         return;
     }
 
-    // Iterator all elements at the current position
-    IndexMap::value_t::const_iterator el        = elements.begin();
-    const IndexMap::value_t::const_iterator end = elements.end();
-
-    // Iterate over all elements
-
+    // Find the active IP element and its collision window length.
+    bool inIpRegion  = false;
     double colwinlen = 0.0;
-    IndexMap::key_t ipRange;
-    for (; el != end; ++el) {
-        if ((*el)->getType() == ElementType::IP) {
-            colwinlen  = (*el)->getAttribute("COLWINLEN");
-            ipRange    = oth.getRange(*el, pathLength_m);
+    IndexMap::key_t ipRange{0.0, 0.0};
+
+    for (const auto& element : elements) {
+        if (element->getType() == ElementType::IP) {
             inIpRegion = true;
+            colwinlen  = element->getAttribute("COLWINLEN");
+            ipRange    = oth.getRange(element, pathLength_m);
+            break;
         }
     }
 
-    if (!inIpRegion) {
-        collisionPrototypeInitialized_m = false;
+    // No active IP at this step.
+    if (!inIpRegion || colwinlen <= 0.0) {
+        collisionFrameObserved_m = false;
         return;
-    } else {
-        // const double zl = -1 * rmin[2] + rmax[2];
-        // m << "In IP :: lenght of bunch zl=  " << zl << " rmin= " << rmin << " rmax= " << rmax;
-        // m << " (m) COLWINLEN= " << colwinlen << " (m)" << endl;
+    }
 
-        const double ipCenterS    = 0.5 * (ipRange.begin + ipRange.end);
-        const double windowBeginS = ipCenterS - 0.5 * colwinlen;
-        const double windowEndS   = ipCenterS + 0.5 * colwinlen;
-        const double bunchHeadS   = pathLength_m + rmax(2);
-        const double bunchTailS   = pathLength_m + rmin(2);
-        double ipCenterLocalZ     = ipCenterS - pathLength_m;
-        const double bunchCenterZ = 0.5 * (rmin(2) + rmax(2));
-        const double windowMinZ   = ipCenterLocalZ - 0.5 * colwinlen;
-        const double windowMaxZ   = ipCenterLocalZ + 0.5 * colwinlen;
+    // Geometry in path-length coordinates.
+    const double ipCenterS    = 0.5 * (ipRange.begin + ipRange.end);
+    const double windowBeginS = ipCenterS - 0.5 * colwinlen;
+    const double windowEndS   = ipCenterS + 0.5 * colwinlen;
 
-        const double marginS        = 0.5 * colwinlen;
-        const double observedBeginS = windowBeginS - marginS;
-        const double observedEndS   = windowEndS + marginS;
+    const double bunchTailS = pathLength_m + rmin(2);
+    const double bunchHeadS = pathLength_m + rmax(2);
 
-        collisionFrameObserved_m = (bunchHeadS >= observedBeginS) && (bunchTailS <= observedEndS);
+    // Geometry in the current co-moving/reference frame.
+    const double ipCenterLocalZ = ipCenterS - pathLength_m;
+    const double windowMinZ     = ipCenterLocalZ - 0.5 * colwinlen;
+    const double windowMaxZ     = ipCenterLocalZ + 0.5 * colwinlen;
+
+    // One-bunch center used only for debugging / symmetric reconstruction.
+    const double bunchCenterZ = 0.5 * (rmin(2) + rmax(2));
+
+    // Symmetric virtual partner bunch center.
+    const double mirroredBunchCenterZ = 2.0 * ipCenterLocalZ - bunchCenterZ;
+
+    // Observed frame: collision window plus margin on both sides.
+    const double observedMarginS = 0.25 * colwinlen;
+    const double observedBeginS  = windowBeginS - observedMarginS;
+    const double observedEndS    = windowEndS + observedMarginS;
+
+    collisionFrameObserved_m = (bunchHeadS >= observedBeginS) && (bunchTailS <= observedEndS);
+
+    // Optional debug/logging inside the observed frame only.
+    if (collisionFrameObserved_m) {
+        // const double zl = rmax(2) - rmin(2);
+        // m << "In IP :: lenght of bunch zl= " << zl << " rmin= " << rmin << " rmax= " << rmax
+        //   << " (m) COLWINLEN= " << colwinlen << " (m)" << endl;
 
         // m << "ipCenter= " << ipCenterS << " windowBegins= " << windowBeginS
         //   << " windowEnds= " << windowEndS << " bunchHead= " << bunchHeadS
-        //   << " bunchTail= " << bunchTailS << " Np1= " << itsBunch_m->getTotalNum() << endl;
-
-        if (!collisionPrototypeInitialized_m && bunchHeadS > windowBeginS) {
-            // Mirror around the IP center in the current reference frame.
-
-            // 1. stash old particle data
-            auto oldR   = Kokkos::View<Vector_t<double, 3>*>("oldR", localNum);
-            auto oldP   = Kokkos::View<Vector_t<double, 3>*>("oldP", localNum);
-            auto oldE   = Kokkos::View<Vector_t<double, 3>*>("oldE", localNum);
-            auto oldB   = Kokkos::View<Vector_t<double, 3>*>("oldB", localNum);
-            auto oldQ   = Kokkos::View<double*>("oldQ", localNum);
-            auto oldM   = Kokkos::View<double*>("oldM", localNum);
-            auto oldDt  = Kokkos::View<double*>("oldDt", localNum);
-            auto oldPhi = Kokkos::View<double*>("oldPhi", localNum);
-            auto oldBin = Kokkos::View<ParticleContainer_t::bin_index_type*>("oldBin", localNum);
-            auto oldSp  = Kokkos::View<short*>("oldSp", localNum);
-
-            {
-                auto Rsrc   = pc->R.getView();
-                auto Psrc   = pc->P.getView();
-                auto Esrc   = pc->E.getView();
-                auto Bsrc   = pc->B.getView();
-                auto Qsrc   = pc->Q.getView();
-                auto Msrc   = pc->M.getView();
-                auto dtsrc  = pc->dt.getView();
-                auto Phisrc = pc->Phi.getView();
-                auto Binsrc = pc->Bin.getView();
-                auto Spsrc  = pc->Sp.getView();
-
-                Kokkos::parallel_for(
-                    "stashBunch", Kokkos::RangePolicy<>(0, localNum),
-                    KOKKOS_LAMBDA(const size_t i) {
-                        oldR(i)   = Rsrc(i);
-                        oldP(i)   = Psrc(i);
-                        oldE(i)   = Esrc(i);
-                        oldB(i)   = Bsrc(i);
-                        oldQ(i)   = Qsrc(i);
-                        oldM(i)   = Msrc(i);
-                        oldDt(i)  = dtsrc(i);
-                        oldPhi(i) = Phisrc(i);
-                        oldBin(i) = Binsrc(i);
-                        oldSp(i)  = Spsrc(i);
-                    });
-            }
-            Kokkos::fence();
-
-            pc->create(localNum);
-
-            // 3. reacquire destination views
-            auto Rdst   = pc->R.getView();
-            auto Pdst   = pc->P.getView();
-            auto Edst   = pc->E.getView();
-            auto Bdst   = pc->B.getView();
-            auto Qdst   = pc->Q.getView();
-            auto Mdst   = pc->M.getView();
-            auto dtdst  = pc->dt.getView();
-            auto Phidst = pc->Phi.getView();
-            auto Bindst = pc->Bin.getView();
-            auto Spdst  = pc->Sp.getView();
-
-            // 4. restore original half and fill mirrored half
-            Kokkos::parallel_for(
-                "duplicateBunch", Kokkos::RangePolicy<>(0, localNum),
-                KOKKOS_LAMBDA(const size_t i) {
-                    const size_t j = i + localNum;
-
-                    Rdst(i)   = oldR(i);
-                    Pdst(i)   = oldP(i);
-                    Edst(i)   = oldE(i);
-                    Bdst(i)   = oldB(i);
-                    Qdst(i)   = oldQ(i);
-                    Mdst(i)   = oldM(i);
-                    dtdst(i)  = oldDt(i);
-                    Phidst(i) = oldPhi(i);
-                    Bindst(i) = oldBin(i);
-                    Spdst(i)  = oldSp(i);
-
-                    Rdst(j)    = oldR(i);
-                    Rdst(j)(2) = 2.0 * ipCenterLocalZ - oldR(i)(2);
-
-                    Pdst(j) = oldP(i);
-                    // whith the below the energy is zero
-                    // Pdst(j)(2) = -oldP(i)(2);
-
-                    Edst(j)   = oldE(i);
-                    Bdst(j)   = oldB(i);
-                    Qdst(j)   = oldQ(i);
-                    Mdst(j)   = oldM(i);
-                    dtdst(j)  = oldDt(i);
-                    Phidst(j) = oldPhi(i);
-                    Bindst(j) = oldBin(i);
-                    Spdst(j)  = oldSp(i);
-                });
-            Kokkos::fence();
-
-            auto Rhost = Kokkos::create_mirror_view(Rdst);
-            Kokkos::deep_copy(Rhost, Rdst);
-
-            for (size_t i = 0; i < std::min<size_t>(4, itsBunch_m->getLocalNum()); ++i) {
-                m << "R[" << i << "] = " << Rhost(i) << endl;
-            }
-            for (size_t i = localNum; i < std::min(itsBunch_m->getLocalNum(), localNum + 4); ++i) {
-                m << "Rdup[" << i << "] = " << Rhost(i) << endl;
-            }
-
-            numParticlesInSimulation_m = itsBunch_m->getTotalNum();
-
-            auto& mesh = fc->getMesh();
-            auto& fl   = fc->getFL();
-
-            Vector_t<double, 3> origin   = mesh.getOrigin();
-            Vector_t<double, 3> hr       = fc->getHr();
-            Vector_t<double, 3> meshRMin = fc->getRMin();
-            Vector_t<double, 3> meshRMax = fc->getRMax();
-
-            ipCenterLocalZ = ipCenterS - pathLength_m;
-            meshRMin(2)    = ipCenterLocalZ - 0.5 * colwinlen;
-            meshRMax(2)    = ipCenterLocalZ + 0.5 * colwinlen;
-            origin(2)      = meshRMin(2);
-            hr(2)          = colwinlen / itsBunch_m->nr_m(2);
-
-            mesh.setOrigin(origin);
-            mesh.setMeshSpacing(hr);
-            fc->setRMin(meshRMin);
-            fc->setRMax(meshRMax);
-            fc->setHr(hr);
-
-            pc->getLayout().updateLayout(fl, mesh);
-            pc->update();
-            itsBunch_m->calcBeamParameters();
-            itsBunch_m->updateMoments();
-            collisionPrototypeInitialized_m = true;
-        }
-
-        if (collisionPrototypeInitialized_m && bunchTailS > windowEndS) {
-            m << "finished collision window tracking" << endl;
-            collisionPrototypeFinished_m = true;
-            collisionFrameObserved_m     = false;
-        }
+        //   << " bunchTail= " << bunchTailS << " Np= " << itsBunch_m->getTotalNum() << endl;
 
         debugPrintCollisionCenters1D(
             m, bunchCenterZ, windowMinZ, windowMaxZ, ipCenterLocalZ,
             collisionPrototypeInitialized_m, 100);
     }
 
-    /*
+    // Enter symmetric collision mode once the head enters the window.
+    if (!collisionPrototypeInitialized_m && bunchHeadS > windowBeginS) {
+        collisionPrototypeInitialized_m = true;
+        m << "start symmetric collision mode" << endl;
+        // itsBunch_m->weDoCollisions(true);
+        // itsBunch_m->set_ipCenterLocalZ(ipCenterLocalZ);
+        // itsBunch_m->set_colwinlen(colwinlen);
 
-    // itsBunch_m->print(m);
+        // No duplication of particles in pc.
+        // From here on, the second bunch is virtual only:
+        //   z_partner  = 2 * ipCenterLocalZ - z
+        //   pz_partner = -pz
+        //
+        // Future collision-specific calculations should use this symmetry
+        // locally without modifying the main ParticleContainer.
+    }
 
+    // If symmetric collision mode is active, this is where collision-specific
+    // calculations would be inserted.
+    if (collisionPrototypeInitialized_m) {
+        debugPrintCollisionCenters1D(
+            m, bunchCenterZ, windowMinZ, windowMaxZ, ipCenterLocalZ,
+            collisionPrototypeInitialized_m, 100);
 
+        // PSEUDOCODE ONLY:
+        //
+        // for each real particle i in pc:
+        //     R1 = pc->R(i)
+        //     P1 = pc->P(i)
+        //
+        //     R2 = R1
+        //     R2(2) = 2.0 * ipCenterLocalZ - R1(2)
+        //
+        //     P2 = P1
+        //     P2(2) = -P1(2)
+        //
+        //     use (R1, P1) and virtual (R2, P2) in collision model
+        //
+        // Important:
+        //     do not write R2/P2 back into pc
+        //     do not change mean momentum / reference momentum
+        //     do not change generic OPALX diagnostics here
+    }
 
-      Next steps not nessesary in this function are
-
-      1. calculate new hr_z
-
-      2. set new hr_z and reset the solver
-
-      3. create second bunch (mirror around IP)
-
-      4. change momenta of second bunch
-
-
-      some debug output
-
-      auto Rhost = Kokkos::create_mirror_view(Rdst);
-      Kokkos::deep_copy(Rhost, Rdst);
-
-      auto Phost = Kokkos::create_mirror_view(Pdst);
-      Kokkos::deep_copy(Phost, Pdst);
-
-      for (size_t i = 0; i < std::min<size_t>(4, itsBunch_m->getLocalNum()); ++i) {
-      m << "R[" << i << "] = " << Rhost(i) << " :: " << "P[" << i << "] = " << Phost(i)
-      << endl;
-      }
-      for (size_t i = localNum; i < std::min(itsBunch_m->getLocalNum(), localNum + 4); ++i) {
-      m << "Rdup[" << i << "] = " << Rhost(i) << " :: " << "Pdup[" << i << "] = " << Phost(i)
-      << endl;
-      }
-
-    */
+    // Leave symmetric collision mode once the whole bunch passed the window.
+    if (collisionPrototypeInitialized_m && bunchTailS > windowEndS) {
+        collisionPrototypeFinished_m = true;
+        collisionFrameObserved_m     = false;
+        itsBunch_m->weDoCollisions(false);
+        itsBunch_m->set_ipCenterLocalZ(-1.0);
+        itsBunch_m->set_colwinlen(-1.0);
+        m << "finished symmetric collision mode" << endl;
+        return;
+    }
 }
+
+/*
+
+// itsBunch_m->print(m);
+
+
+
+  Next steps not nessesary in this function are
+
+  1. calculate new hr_z
+
+  2. set new hr_z and reset the solver
+
+  3. create second bunch (mirror around IP)
+
+  4. change momenta of second bunch
+
+
+  some debug output
+
+  auto Rhost = Kokkos::create_mirror_view(Rdst);
+  Kokkos::deep_copy(Rhost, Rdst);
+
+  auto Phost = Kokkos::create_mirror_view(Pdst);
+  Kokkos::deep_copy(Phost, Pdst);
+
+  for (size_t i = 0; i < std::min<size_t>(4, itsBunch_m->getLocalNum()); ++i) {
+  m << "R[" << i << "] = " << Rhost(i) << " :: " << "P[" << i << "] = " << Phost(i)
+  << endl;
+  }
+  for (size_t i = localNum; i < std::min(itsBunch_m->getLocalNum(), localNum + 4); ++i) {
+  m << "Rdup[" << i << "] = " << Rhost(i) << " :: " << "Pdup[" << i << "] = " << Phost(i)
+  << endl;
+  }
+
+*/
 
 void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
     IpplTimings::startTimer(fieldEvaluationTimer_m);

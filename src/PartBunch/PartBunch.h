@@ -3,9 +3,10 @@
 
 #include <memory>
 
-#include "Algorithms/Matrix.h"
 #include "Algorithms/CoordinateSystemTrafo.h"
+#include "Algorithms/Matrix.h"
 #include "Attributes/Attributes.h"
+#include "BCHandler.hpp"
 #include "Distribution/Distribution.h"
 #include "Manager/BaseManager.h"
 #include "Manager/PicManager.h"
@@ -19,14 +20,13 @@
 #include "Random/NormalDistribution.h"
 #include "Random/Randn.h"
 #include "Utilities/OpalException.h"
-#include "BCHandler.hpp"
 
 #include "Structure/FieldSolverCmd.h"
 
 #include "Algorithms/PartData.h"
 
-#include "Utilities/Options.h" // Needed to define binning parameters!
-#include "PartBunch/Binning/AdaptBins.h" // TODO: binning
+#include "PartBunch/Binning/AdaptBins.h"  // TODO: binning
+#include "Utilities/Options.h"            // Needed to define binning parameters!
 
 class DataSink;  // forward declaration; full type needed only in .cpp
 
@@ -40,7 +40,8 @@ KOKKOS_INLINE_FUNCTION typename T::value_type L2Norm(T& x) {
 using view_type = typename ippl::detail::ViewType<ippl::Vector<double, 3>, 1>::view_type;
 
 template <typename T, unsigned Dim>
-class PartBunch : public ippl::PicManager<
+class PartBunch
+    : public ippl::PicManager<
           T, Dim, ParticleContainer<T, Dim>, FieldContainer<T, Dim>, LoadBalancer<T, Dim>> {
 public:
     using ParticleContainer_t = ParticleContainer<T, Dim>;
@@ -49,18 +50,18 @@ public:
     using LoadBalancer_t      = LoadBalancer<T, Dim>;
     using Base                = ippl::ParticleBase<ippl::ParticleSpatialLayout<T, Dim>>;
 
-    using BinningSelector_t   = typename ParticleBinning::CoordinateSelector<ParticleContainer_t>;
-    using AdaptBins_t         = typename ParticleBinning::AdaptBins<ParticleContainer_t, BinningSelector_t>;
-    using binIndex_t          = typename ParticleContainer_t::bin_index_type;
+    using BinningSelector_t = typename ParticleBinning::CoordinateSelector<ParticleContainer_t>;
+    using AdaptBins_t = typename ParticleBinning::AdaptBins<ParticleContainer_t, BinningSelector_t>;
+    using binIndex_t  = typename ParticleContainer_t::bin_index_type;
 
-    using BCHandler_t         = BCHandler<Dim>;
+    using BCHandler_t = BCHandler<Dim>;
 
     double time_m;
 
     size_type totalP_m;
 
-    /// \todo doesn't do anything??? 
-    // int nt_m; 
+    /// \todo doesn't do anything???
+    // int nt_m;
 
     double lbt_m;
 
@@ -73,6 +74,16 @@ public:
     std::string solver_m;
 
     bool isFirstRepartition_m;
+
+    /*
+
+      This is for colliding bunches
+
+     */
+
+    bool hasCollidingBunches_m;
+    double ipCenterLocalZ_m;
+    double colwinlen_m;
 
 private:
     double qi_m;
@@ -115,7 +126,6 @@ public:
     CoordinateSystemTrafo toLabTrafo_m;
 
 private:
-
     std::unique_ptr<size_t[]> globalPartPerNode_m;
 
     // ParticleOrigin refPOrigin_m;
@@ -144,8 +154,8 @@ private:
     // FIXME: this should go into the Bin class!
     //  holds number of emitted particles of the bin
     //  jjyang: opal-cycl use *nBin_m of pbin_m
-    //std::unique_ptr<size_t[]> binemitted_m; // liemen_a: TODO remove!
-    std::shared_ptr<AdaptBins_t> bins_m; // added by liemen_a for AdaptBins class!
+    // std::unique_ptr<size_t[]> binemitted_m; // liemen_a: TODO remove!
+    std::shared_ptr<AdaptBins_t> bins_m;  // added by liemen_a for AdaptBins class!
 
     /// steps per turn for OPAL-cycl
     int stepsPerTurn_m;
@@ -172,11 +182,10 @@ private:
     /// if multiple TRACK commands
     long long globalTrackStep_m;
 
-
     std::shared_ptr<FieldSolverCmd> OPALFieldSolver_m;
 
     std::shared_ptr<DataSink> dataSink_m;
-    
+
     // unit state of PartBunch --> always false after initialization, so use this as standard flag
     // UnitState_t unit_state_m;
     bool isUnitless_m = false;
@@ -198,7 +207,6 @@ private:
     std::shared_ptr<VField_t<T, Dim>> Etmp_m;
 
 public:
-
     /**
      * @brief Construct a PartBunch with given macro charge/mass and configuration.
      *
@@ -210,30 +218,27 @@ public:
      * @param OPALFieldSolver Field solver command providing mesh and binning configuration.
      * @param dataSink        Shared pointer to the global DataSink used for diagnostics.
      */
-    PartBunch(double qi,
-              double mi,
-              size_t totalP,
-              double lbt,
-              std::string integration_method,
-              std::shared_ptr<FieldSolverCmd>& OPALFieldSolver,
-              std::shared_ptr<DataSink> dataSink);
+    PartBunch(
+        double qi, double mi, size_t totalP, double lbt, std::string integration_method,
+        std::shared_ptr<FieldSolverCmd>& OPALFieldSolver, std::shared_ptr<DataSink> dataSink);
     /**
-     * @brief 
+     * @brief
      * - recomputes mesh spacing i.e. Layout
      * - repatition the domain if nessesary
      * - recomputes all moments of the particle distribution
-     
+
      called in:
-     
+
      Track/TrackRun.cpp             --> initial calc)
-     PartBunch/PartBunch.cpp        --> in space charge which is wrong 
+     PartBunch/PartBunch.cpp        --> in space charge which is wrong
      Algorithms/ParallelTracker.cpp --> after push
-     
+
      */
     void bunchUpdate();
-  
+
     ~PartBunch() {
-        *gmsg << level2 << "* PartBunch Destructor: Finished time step: " << this->it_m << " time: " << this->time_m << endl;
+        *gmsg << level2 << "* PartBunch Destructor: Finished time step: " << this->it_m
+              << " time: " << this->time_m << endl;
     }
 
     std::shared_ptr<ParticleContainer_t> getParticleContainer() {
@@ -244,22 +249,34 @@ public:
 
     void setBins();
 
-    void pre_run() override ;
+    void pre_run() override;
 
     void performBunchSanityChecks() const;
 
 public:
-    std::shared_ptr<VField_t<T, Dim>> getTempEField() { return this->Etmp_m; }
-    void setTempEField(std::shared_ptr<VField_t<T, Dim>> Etmp) { this->Etmp_m = Etmp; }
+    std::shared_ptr<VField_t<T, Dim>> getTempEField() {
+        return this->Etmp_m;
+    }
+    void setTempEField(std::shared_ptr<VField_t<T, Dim>> Etmp) {
+        this->Etmp_m = Etmp;
+    }
 
-    std::shared_ptr<AdaptBins_t> getBins() { return bins_m; } // TODO: Binning
-    
-    void setBins(std::shared_ptr<AdaptBins_t> bins) { bins_m = bins; } // TODO: Binning
+    std::shared_ptr<AdaptBins_t> getBins() {
+        return bins_m;
+    }  // TODO: Binning
 
-    void setBCHandler(std::shared_ptr<BCHandler_t> bcHandler) { bcHandler_m = bcHandler; }
-    std::shared_ptr<BCHandler_t> getBCHandler() const { return bcHandler_m; }
+    void setBins(std::shared_ptr<AdaptBins_t> bins) {
+        bins_m = bins;
+    }  // TODO: Binning
 
-    void updateMoments(){
+    void setBCHandler(std::shared_ptr<BCHandler_t> bcHandler) {
+        bcHandler_m = bcHandler;
+    }
+    std::shared_ptr<BCHandler_t> getBCHandler() const {
+        return bcHandler_m;
+    }
+
+    void updateMoments() {
         this->pcontainer_m->updateMoments();
     }
 
@@ -272,33 +289,39 @@ public:
     }
 
     Vector_t<double, Dim> R(size_t /*i*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
         return Vector_t<double, Dim>(0.0);
     }
 
     Vector_t<double, Dim> P(size_t /*i*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
         return Vector_t<double, Dim>(0.0);
     }
 
     Vector_t<double, Dim> Ef(size_t /*i*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
         return Vector_t<double, Dim>(0.0);
     }
 
     Vector_t<double, Dim> Bf(size_t /*i*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
         return Vector_t<double, Dim>(0.0);
     }
 
     Vector_t<double, Dim> dt(size_t /*i*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
         return Vector_t<double, Dim>(0.0);
     }
 
     void advance() override {
         // \todo needs to go
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
     }
 
     void par2grid() override {
@@ -313,7 +336,7 @@ public:
 
     void scatterCIC() {
         scatterCICPerBin(-1);
-    } 
+    }
 
     void scatterCICPerBin(binIndex_t binIndex);
 
@@ -330,13 +353,13 @@ public:
     void setCharge() {
         this->getParticleContainer()->Q = qi_m;
     }
-    
+
     void setMass() {
         this->getParticleContainer()->M = mi_m;
     }
 
     double getCharge() const {
-        return qi_m*this->getTotalNum();
+        return qi_m * this->getTotalNum();
     }
 
     double getChargePerParticle() const {
@@ -350,7 +373,7 @@ public:
         return this->getCharge();
     }
     double getM() const {
-        return  mi_m*this->getTotalNum();
+        return mi_m * this->getTotalNum();
     }
 
     double getdE() const {
@@ -358,87 +381,111 @@ public:
     }
 
     double getGamma(int /*i*/) const {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
         return 0.0;
     }
     double getBeta(int /*i*/) const {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
         return 0.0;
     }
 
     void actT() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
     }
-  
+
     const PartData* getReference() const {
         return reference_m;
     }
 
-
-  /// \todo constructor could set this
-    void setReference (const PartData* ref) {
+    /// \todo constructor could set this
+    void setReference(const PartData* ref) {
         reference_m = ref;
     }
-  
+
     double getEmissionDeltaT() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
         return 1.0;
     }
 
-/**
- * @brief Compute the kinetic energy of a particle with mass m from the vector \f$\boldsymbol{\beta\gamma}\f$.
- *
- * This function assumes the input vector
- * \f[
- * \mathbf{p} = \boldsymbol{\beta\gamma}
- * \f]
- * where
- * \f[
- * \beta = \frac{v}{c}, \qquad
- * \gamma = \frac{1}{\sqrt{1-\beta^2}}.
- * \f]
- * and the mass in GeV
- * \f[
- * m c^2
- * \f]
- * The magnitude of the vector is
- * \f[
- * |\boldsymbol{\beta\gamma}| =
- * \sqrt{(\beta\gamma_x)^2 + (\beta\gamma_y)^2 + (\beta\gamma_z)^2}.
- * \f]
- *
- * From this we obtain the Lorentz factor
- * \f[
- * \gamma = \sqrt{1 + |\boldsymbol{\beta\gamma}|^2}.
- * \f]
- *
- * The kinetic energy is then
- * \f[
- * E_{\mathrm{kin}} = (\gamma - 1) m.
- * \f]
- *
- * For protons we use
- * \f[
- * m_p c^2 = 938.2720813 \, \mathrm{MeV}.
- * \f]
- *
- * @param p Vector containing \f$(\beta\gamma_x,\beta\gamma_y,\beta\gamma_z)\f$.
- * @return kinetic energy in eV.
- */
-  double p2Ekin (const Vector_t<double,Dim>& p, const double mass ) {
-    
-    // magnitude squared of beta*gamma
-    const double p2 = p[0]*p[0] + p[1]*p[1] + p[2]*p[2];
+    /**
+     * @brief
+     *
+     * This function assumes the input vector
+     * \f[
+     * \mathbf{p} = \boldsymbol{\beta\gamma}
+     * \f]
+     * @param p Vector containing \f$(\beta\gamma_x,\beta\gamma_y,\beta\gamma_z)\f$.
+     */
+    void weDoCollisions(bool col) {
+        hasCollidingBunches_m = col;
+    }
 
-    // Lorentz factor
-    const double gamma = std::sqrt(1.0 + p2);
+    void set_ipCenterLocalZ(double locz) {
+        ipCenterLocalZ_m = locz;
+    }
 
-    // kinetic energy
-    const double Ekin = (gamma - 1.0) * mass;
+    void set_colwinlen(double len) {
+        colwinlen_m = len;
+    }
 
-    return Ekin;
-  }
-  
+    /**
+     * @brief Compute the kinetic energy of a particle with mass m from the vector
+     * \f$\boldsymbol{\beta\gamma}\f$.
+     *
+     * This function assumes the input vector
+     * \f[
+     * \mathbf{p} = \boldsymbol{\beta\gamma}
+     * \f]
+     * where
+     * \f[
+     * \beta = \frac{v}{c}, \qquad
+     * \gamma = \frac{1}{\sqrt{1-\beta^2}}.
+     * \f]
+     * and the mass in GeV
+     * \f[
+     * m c^2
+     * \f]
+     * The magnitude of the vector is
+     * \f[
+     * |\boldsymbol{\beta\gamma}| =
+     * \sqrt{(\beta\gamma_x)^2 + (\beta\gamma_y)^2 + (\beta\gamma_z)^2}.
+     * \f]
+     *
+     * From this we obtain the Lorentz factor
+     * \f[
+     * \gamma = \sqrt{1 + |\boldsymbol{\beta\gamma}|^2}.
+     * \f]
+     *
+     * The kinetic energy is then
+     * \f[
+     * E_{\mathrm{kin}} = (\gamma - 1) m.
+     * \f]
+     *
+     * For protons we use
+     * \f[
+     * m_p c^2 = 938.2720813 \, \mathrm{MeV}.
+     * \f]
+     *
+     * @param p Vector containing \f$(\beta\gamma_x,\beta\gamma_y,\beta\gamma_z)\f$.
+     * @return kinetic energy in eV.
+     */
+    double p2Ekin(const Vector_t<double, Dim>& p, const double mass) {
+        // magnitude squared of beta*gamma
+        const double p2 = p[0] * p[0] + p[1] * p[1] + p[2] * p[2];
+
+        // Lorentz factor
+        const double gamma = std::sqrt(1.0 + p2);
+
+        // kinetic energy
+        const double Ekin = (gamma - 1.0) * mass;
+
+        return Ekin;
+    }
+
     void gatherLoadBalanceStatistics();
 
     size_t getLoadBalance(int p) {
@@ -446,48 +493,60 @@ public:
     }
 
     void resizeMesh() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
     }
 
     bool isGridFixed() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
         return false;
     }
 
     void boundp() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
     }
 
     size_t boundp_destroyT() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
         return 1;
     }
 
     void setBCAllOpen() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
     }
     void setBCForDCBeam() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
     }
     void setupBCs() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
     }
     void setBCAllPeriodic() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
     }
 
     void resetInterpolationCache(bool /*clearCache = false*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
     }
     void swap(unsigned int /*i*/, unsigned int /*j*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
     }
     double getRho(int /*x*/, int /*y*/, int /*z*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
         return 0.0;
     }
     void gatherStatistics(unsigned int /*totalP*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
     }
     /**
      * @brief Transform particle positions to a unitless coordinate system.
@@ -516,25 +575,26 @@ public:
      */
     void switchToUnitlessPositions(bool use_dt_per_particle = false) {
         if (isUnitless_m) {
-            throw OpalException("PartBunch::switchToUnitlessPositions",
-                                "PartBunch is already in unitless positions!");
+            throw OpalException(
+                "PartBunch::switchToUnitlessPositions",
+                "PartBunch is already in unitless positions!");
         }
 
         // Divide by c*dt
         double unitless_factor = 1.0 / (Physics::c * this->getdT());
-        auto Rview  = this->getParticleContainer()->R.getView();
-        auto dtview = this->getParticleContainer()->dt.getView();
+        auto Rview             = this->getParticleContainer()->R.getView();
+        auto dtview            = this->getParticleContainer()->dt.getView();
         Kokkos::parallel_for(
-                             "switchToUnitlessPositions", ippl::getRangePolicy(Rview),
-                             KOKKOS_LAMBDA(const size_t i) {
-                                double fac = use_dt_per_particle ? (1.0 / (Physics::c * dtview(i))) 
-                                                                 : unitless_factor;
-                                Rview(i) *= fac;
-                             });
+            "switchToUnitlessPositions", ippl::getRangePolicy(Rview),
+            KOKKOS_LAMBDA(const size_t i) {
+                double fac =
+                    use_dt_per_particle ? (1.0 / (Physics::c * dtview(i))) : unitless_factor;
+                Rview(i) *= fac;
+            });
         isUnitless_m = true;
 
         /// \todo remove later
-        *gmsg << level4 << "* Switched to unitless positions." << endl; 
+        *gmsg << level4 << "* Switched to unitless positions." << endl;
     }
     /**
      * @brief Convert particle positions from unitless back to physical coordinates.
@@ -561,21 +621,21 @@ public:
      */
     void switchOffUnitlessPositions(bool use_dt_per_particle = false) {
         if (!isUnitless_m) {
-            throw OpalException("PartBunch::switchOffUnitlessPositions",
-                                "PartBunch is already in physical positions!");
+            throw OpalException(
+                "PartBunch::switchOffUnitlessPositions",
+                "PartBunch is already in physical positions!");
         }
 
         // Multiply by c*dt
         double unitless_factor = Physics::c * this->getdT();
-        auto Rview  = this->getParticleContainer()->R.getView();
-        auto dtview = this->getParticleContainer()->dt.getView();
+        auto Rview             = this->getParticleContainer()->R.getView();
+        auto dtview            = this->getParticleContainer()->dt.getView();
         Kokkos::parallel_for(
-                             "switchOffUnitlessPositions", ippl::getRangePolicy(Rview),
-                             KOKKOS_LAMBDA(const size_t i) {
-                                double fac = use_dt_per_particle ? (Physics::c * dtview(i)) 
-                                                                 : unitless_factor;
-                                Rview(i) *= fac;
-                             });
+            "switchOffUnitlessPositions", ippl::getRangePolicy(Rview),
+            KOKKOS_LAMBDA(const size_t i) {
+                double fac = use_dt_per_particle ? (Physics::c * dtview(i)) : unitless_factor;
+                Rview(i) *= fac;
+            });
         isUnitless_m = false;
 
         /// \todo remove later
@@ -583,18 +643,22 @@ public:
     }
 
     size_t calcNumPartsOutside(Vector_t<double, Dim> /*x*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
         return 0;
     }
 
     void calcLineDensity(
-        unsigned int /*nBins*/, std::vector<double>& /*lineDensity*/, std::pair<double, double>& /*meshInfo*/) {
-            *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        unsigned int /*nBins*/, std::vector<double>& /*lineDensity*/,
+        std::pair<double, double>& /*meshInfo*/) {
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
     }
 
     Vector_t<double, Dim> getEExtrema() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-       return Vector_t<double, Dim>(0);
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
+        return Vector_t<double, Dim>(0);
     }
 
     void computeSelfFields();
@@ -621,72 +685,90 @@ public:
     }
 
     bool getFieldSolverType() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
         return false;
     }
 
     bool getIfBeamEmitting() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
         return false;
     }
     int getLastEmittedEnergyBin() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
         return 0;
     }
     size_t getNumberOfEmissionSteps() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
         return 0;
     }
     int getNumberOfEnergyBins() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
         return 0;
     }
 
     void Rebin() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
     }
 
     void setEnergyBins(int /*numberOfEnergyBins*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
     }
     bool weHaveEnergyBins() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
         return false;
     }
     void setTEmission(double /*t*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
     }
     double getTEmission() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
         return 0.0;
     }
     bool weHaveBins() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
         return false;
     }
     // void setPBins(PartBins* pbin) {}
     size_t emitParticles(double /*eZ*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
         return 0;
     }
     void updateNumTotal() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
     }
     void rebin() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
     }
     int getLastemittedBin() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
         return 0;
     }
     void setLocalBinCount(size_t /*num*/, int /*bin*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
     }
     void calcGammas() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
     }
     double getBinGamma(int /*bin*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
         return 0.0;
     }
     bool hasBinning() const {
@@ -698,52 +780,64 @@ public:
         return hasBinning() ? static_cast<int>(bins_m->getCurrentBinCount()) : 1;
     }
     double calcMeanPhi() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
         return 0.0;
     }
     double getPx(int /*i*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
         return 0.0;
     }
     double getPy(int /*i*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
         return 0.0;
     }
     double getPz(int /*i*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
         return 0.0;
     }
     double getPx0(int /*i*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
         return 0.0;
     }
     double getPy0(int /*i*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
         return 0.0;
     }
     double getX(int /*i*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
         return 0.0;
     }
     double getY(int /*i*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
         return 0.0;
     }
     double getZ(int /*i*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
         return 0.0;
     }
     double getX0(int /*i*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
         return 0.0;
     }
     double getY0(int /*i*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
         return 0.0;
     }
 
     void setZ(int /*i*/, double /*zcoo*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
     }
 
     void get_bounds(Vector_t<double, Dim>& rmin, Vector_t<double, Dim>& rmax) {
@@ -752,11 +846,13 @@ public:
     }
 
     void getLocalBounds(Vector_t<double, Dim>& /*rmin*/, Vector_t<double, Dim>& /*rmax*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
     }
 
     void get_PBounds(Vector_t<double, Dim>& /*min*/, Vector_t<double, Dim>& /*max*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
     }
 
     void setdT(double dt) {
@@ -788,11 +884,11 @@ public:
     }
 
     double get_gamma() const {
-      return this->pcontainer_m->getMeanGammaZ();
+        return this->pcontainer_m->getMeanGammaZ();
     }
 
     double get_meanKineticEnergy() {
-      return p2Ekin(this->pcontainer_m->getMeanP(),reference_m->getM())*Units::eV2MeV;
+        return p2Ekin(this->pcontainer_m->getMeanP(), reference_m->getM()) * Units::eV2MeV;
     }
 
     Vector_t<double, Dim> get_origin() const {
@@ -802,8 +898,9 @@ public:
         return rmax_m;
     }
 
-    // \todo in opal, MeanPosition is return for get_centroid, which I think is wrong. We already have get_rmean()
-    Vector_t<double, 2*Dim> get_centroid() const {
+    // \todo in opal, MeanPosition is return for get_centroid, which I think is wrong. We already
+    // have get_rmean()
+    Vector_t<double, 2 * Dim> get_centroid() const {
         return this->pcontainer_m->getCentroid();
     }
 
@@ -834,41 +931,49 @@ public:
         return this->pcontainer_m->getNormEmit();
     }
 
-  
     Vector_t<double, Dim> get_halo() const {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
         return Vector_t<double, Dim>(0.0);
     }
     Vector_t<double, Dim> get_68Percentile() const {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
         return Vector_t<double, Dim>(0.0);
     }
     Vector_t<double, Dim> get_95Percentile() const {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
         return Vector_t<double, Dim>(0.0);
     }
     Vector_t<double, Dim> get_99Percentile() const {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
         return Vector_t<double, Dim>(0.0);
     }
     Vector_t<double, Dim> get_99_99Percentile() const {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
         return Vector_t<double, Dim>(0.0);
     }
     Vector_t<double, Dim> get_normalizedEps_68Percentile() const {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
         return Vector_t<double, Dim>(0.0);
     }
     Vector_t<double, Dim> get_normalizedEps_95Percentile() const {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
         return Vector_t<double, Dim>(0.0);
     }
     Vector_t<double, Dim> get_normalizedEps_99Percentile() const {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
         return Vector_t<double, Dim>(0.0);
     }
     Vector_t<double, Dim> get_normalizedEps_99_99Percentile() const {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
         return Vector_t<double, Dim>(0.0);
     }
     Vector_t<double, Dim> get_hr() const {
@@ -893,7 +998,7 @@ public:
     }
 
     void calcDebyeLength() {
-         this->pcontainer_m->computeDebyeLength(rmsDensity_m);
+        this->pcontainer_m->computeDebyeLength(rmsDensity_m);
     }
 
     double get_debyeLength() const {
@@ -978,13 +1083,13 @@ public:
     }
 
     double calculateAngle(double /*x*/, double /*y*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+              << " function: " << __func__ << endl;
         return 0.0;
     }
 
     // Sanity check functions
     void spaceChargeEFieldCheck(Vector_t<double, 3> efScale);
-
 };
 
 // Explicit instantiations
