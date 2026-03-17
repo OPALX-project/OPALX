@@ -131,17 +131,18 @@ void PartBunch<T, Dim>::restorePartFieldDomain(const SavedPartFieldDomain& state
     this->rmax_m = state.partrmax;
 
     /*
-      pc->getLayout().updateLayout(*FL, *mesh);
-      pc->update();
-      this->calcBeamParameters();
-      this->updateMoments();
+    pc->getLayout().updateLayout(*FL, *mesh);
+    pc->update();
+    this->calcBeamParameters();
+    this->updateMoments();
 
-      m << level1 << "Restored field domain." << endl;
-      m << level1 << "\torigin = " << state.origin << endl;
-      m << level1 << "\thr     = " << state.hr << endl;
-      m << level1 << "\trmin   = " << state.rmin << endl;
-      m << level1 << "\trmax   = " << state.rmax << endl;
-    */
+
+    m << level1 << "Restored field domain." << endl;
+    m << level1 << "\torigin = " << state.origin << endl;
+    m << level1 << "\thr     = " << state.hr << endl;
+    m << level1 << "\trmin   = " << state.rmin << endl;
+    m << level1 << "\trmax   = " << state.rmax << endl;
+  */
 }
 
 template <typename T, unsigned Dim>

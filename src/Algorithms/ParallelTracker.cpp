@@ -787,7 +787,9 @@ namespace {
     void debugPrintCollisionCenters1D(
         Inform& m, double bunchCenterZ, double windowMinZ, double windowMaxZ, double ipCenterZ,
         bool mirroredActive, std::size_t width = 80) {
-        static bool firstFrame = true;
+        static bool firstFrame     = true;
+        static std::size_t frameId = 0;
+        static std::ofstream dump("data/collision_ascii_frames.txt");
 
         m << level5 << "bunchCenterZ=" << bunchCenterZ << endl;
 
@@ -804,6 +806,13 @@ namespace {
             std::cout << "\r\033[2K" << line2 << "\033[1A\r\033[2K" << line1 << "\033[1B\r";
         }
         std::cout << std::flush;
+
+        if (dump.is_open()) {
+            dump << "FRAME " << frameId++ << '\n';
+            dump << line1 << '\n';
+            dump << line2 << '\n';
+            dump << '\n';
+        }
     }
 }  // namespace
 
@@ -886,9 +895,6 @@ void ParallelTracker::checkInIPRegion(OrbitThreader& oth) {
     // One-bunch center used only for debugging / symmetric reconstruction.
     const double bunchCenterZ = 0.5 * (rmin(2) + rmax(2));
 
-    // Symmetric virtual partner bunch center.
-    // const double mirroredBunchCenterZ = 2.0 * ipCenterLocalZ - bunchCenterZ;
-
     // Observed frame: collision window plus margin on both sides.
     const double observedMarginS = 0.25 * colwinlen;
     const double observedBeginS  = windowBeginS - observedMarginS;
@@ -923,6 +929,7 @@ void ParallelTracker::checkInIPRegion(OrbitThreader& oth) {
         debugPrintCollisionCenters1D(
             m, bunchCenterZ, windowMinZ, windowMaxZ, ipCenterLocalZ,
             collisionPrototypeInitialized_m, 100);
+
         // No duplication of particles in pc.
         // From here on, the second bunch is virtual only:
         //   z_partner  = 2 * ipCenterLocalZ - z
@@ -970,42 +977,6 @@ void ParallelTracker::checkInIPRegion(OrbitThreader& oth) {
         return;
     }
 }
-
-/*
-
-// itsBunch_m->print(m);
-
-
-
-  Next steps not nessesary in this function are
-
-  1. calculate new hr_z
-
-  2. set new hr_z and reset the solver
-
-  3. create second bunch (mirror around IP)
-
-  4. change momenta of second bunch
-
-
-  some debug output
-
-  auto Rhost = Kokkos::create_mirror_view(Rdst);
-  Kokkos::deep_copy(Rhost, Rdst);
-
-  auto Phost = Kokkos::create_mirror_view(Pdst);
-  Kokkos::deep_copy(Phost, Pdst);
-
-  for (size_t i = 0; i < std::min<size_t>(4, itsBunch_m->getLocalNum()); ++i) {
-  m << "R[" << i << "] = " << Rhost(i) << " :: " << "P[" << i << "] = " << Phost(i)
-  << endl;
-  }
-  for (size_t i = localNum; i < std::min(itsBunch_m->getLocalNum(), localNum + 4); ++i) {
-  m << "Rdup[" << i << "] = " << Rhost(i) << " :: " << "Pdup[" << i << "] = " << Phost(i)
-  << endl;
-  }
-
-*/
 
 void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
     IpplTimings::startTimer(fieldEvaluationTimer_m);
