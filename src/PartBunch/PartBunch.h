@@ -6,7 +6,6 @@
 #include "Algorithms/Matrix.h"
 #include "Algorithms/CoordinateSystemTrafo.h"
 #include "Attributes/Attributes.h"
-#include "Distribution/Distribution.h"
 #include "Manager/BaseManager.h"
 #include "Manager/PicManager.h"
 #include "PartBunch/FieldContainer.hpp"
@@ -25,8 +24,7 @@
 
 #include "Algorithms/PartData.h"
 
-#include "Utilities/Options.h" // Needed to define binning parameters!
-#include "PartBunch/Binning/AdaptBins.h" // TODO: binning
+#include "PartBunch/Binning/AdaptBins.h"
 
 class DataSink;  // forward declaration; full type needed only in .cpp
 
@@ -130,22 +128,9 @@ private:
     Quaternion_t globalToLocalQuaternion_m;
 
     /**
-       The structure for particle binning
+       Adaptive binning structure (energy/velocity binning handled by AdaptBins).
     */
-
-    // PartBins* pbin_m;
-
-    /// if larger than 0, emitt particles for tEmission_m [s]
-    double tEmission_m;
-
-    /// holds the gamma of the bin
-    std::unique_ptr<double[]> bingamma_m;
-
-    // FIXME: this should go into the Bin class!
-    //  holds number of emitted particles of the bin
-    //  jjyang: opal-cycl use *nBin_m of pbin_m
-    //std::unique_ptr<size_t[]> binemitted_m; // liemen_a: TODO remove!
-    std::shared_ptr<AdaptBins_t> bins_m; // added by liemen_a for AdaptBins class!
+    std::shared_ptr<AdaptBins_t> bins_m;
 
     /// steps per turn for OPAL-cycl
     int stepsPerTurn_m;
@@ -172,7 +157,6 @@ private:
     /// if multiple TRACK commands
     long long globalTrackStep_m;
 
-
     std::shared_ptr<FieldSolverCmd> OPALFieldSolver_m;
 
     std::shared_ptr<DataSink> dataSink_m;
@@ -196,6 +180,11 @@ private:
 
     /// Temporary E field container used to store temporary E field during binned solver
     std::shared_ptr<VField_t<T, Dim>> Etmp_m;
+
+    /// Maximum allowed number of local macroparticles on this rank.
+    /// Used as a safety guard to detect when particle emission triggers an
+    /// internal resize (Kokkos::realloc) of the particle arrays.
+    size_t maxLocalNum_m = 0;
 
 public:
 
@@ -240,6 +229,12 @@ public:
         return this->pcontainer_m;
     }
 
+    /// Set / get the maximum allowed number of local macroparticles on this rank.
+    /// Initialised from the global total number of macroparticles and the MPI
+    /// world size (see TrackRun) and used to detect over-emission.
+    void setMaxLocalNum(size_t n) { maxLocalNum_m = n; }
+    size_t getMaxLocalNum() const { return maxLocalNum_m; }
+
     void setSolver();
 
     void setBins();
@@ -252,9 +247,10 @@ public:
     std::shared_ptr<VField_t<T, Dim>> getTempEField() { return this->Etmp_m; }
     void setTempEField(std::shared_ptr<VField_t<T, Dim>> Etmp) { this->Etmp_m = Etmp; }
 
-    std::shared_ptr<AdaptBins_t> getBins() { return bins_m; } // TODO: Binning
+    std::shared_ptr<AdaptBins_t> getBins() { return bins_m; }
+    std::shared_ptr<AdaptBins_t> getBins() const { return bins_m; }
     
-    void setBins(std::shared_ptr<AdaptBins_t> bins) { bins_m = bins; } // TODO: Binning
+    void setBins(std::shared_ptr<AdaptBins_t> bins) { bins_m = bins; }
 
     void setBCHandler(std::shared_ptr<BCHandler_t> bcHandler) { bcHandler_m = bcHandler; }
     std::shared_ptr<BCHandler_t> getBCHandler() const { return bcHandler_m; }
@@ -382,7 +378,7 @@ public:
             this->pcontainer_m->setEnergyReferenceMass(reference_m->getM() * Units::eV2GeV, true);
         }
     }
-  
+
     double getEmissionDeltaT() {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
         return 1.0;
@@ -574,118 +570,81 @@ public:
         return false;
     }
 
-    bool getIfBeamEmitting() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return false;
-    }
-    int getLastEmittedEnergyBin() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return 0;
-    }
-    size_t getNumberOfEmissionSteps() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return 0;
-    }
-    int getNumberOfEnergyBins() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return 0;
-    }
-
-    void Rebin() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-    }
-
-    void setEnergyBins(int /*numberOfEnergyBins*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-    }
-    bool weHaveEnergyBins() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return false;
-    }
-    void setTEmission(double /*t*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-    }
-    double getTEmission() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return 0.0;
-    }
-    bool weHaveBins() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return false;
-    }
-    // void setPBins(PartBins* pbin) {}
-    size_t emitParticles(double /*eZ*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return 0;
-    }
-    void updateNumTotal() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-    }
-    void rebin() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-    }
-    int getLastemittedBin() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return 0;
-    }
-    void setLocalBinCount(size_t /*num*/, int /*bin*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-    }
-    void calcGammas() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-    }
-    double getBinGamma(int /*bin*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return 0.0;
-    }
     bool hasBinning() const {
         return this->bins_m != nullptr;
     }
 
-    /** Number of field solver bins (1 if no binning, else getBins()->getCurrentBinCount()). */
     int getCurrentNBins() const {
-        return hasBinning() ? static_cast<int>(bins_m->getCurrentBinCount()) : 1;
+        if (!hasBinning()) {
+            return 1;
+        }
+
+        int ret_bins = static_cast<int>(bins_m->getCurrentBinCount());
+        // If the number of bins is the same as the maximum number of bins, we haven't merged bins
+        // yet (likely because the simulation is too empty)
+        if (ret_bins == this->getBins()->getMaxBinCount()) {
+            Inform m("PartBunch::getCurrentNBins");
+            m << level4
+              << "WARNING: Number of bins is the same as the maximum number of bins, we haven't "
+                 "merged bins yet (likely because the simulation is too empty). Returning 1. If "
+                 "that is not the case, check e.g. binning parameters."
+              << endl;
+            return 1;
+        } else {
+            return ret_bins;
+        }
     }
+
     double calcMeanPhi() {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
         return 0.0;
     }
+    
     double getPx(int /*i*/) {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
         return 0.0;
     }
+    
     double getPy(int /*i*/) {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
         return 0.0;
     }
+    
     double getPz(int /*i*/) {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
         return 0.0;
     }
+    
     double getPx0(int /*i*/) {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
         return 0.0;
     }
+    
     double getPy0(int /*i*/) {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
         return 0.0;
     }
+
     double getX(int /*i*/) {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
         return 0.0;
     }
+    
     double getY(int /*i*/) {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
         return 0.0;
     }
+    
     double getZ(int /*i*/) {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
         return 0.0;
     }
+    
     double getX0(int /*i*/) {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
         return 0.0;
     }
+    
     double getY0(int /*i*/) {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
         return 0.0;
@@ -737,7 +696,7 @@ public:
     }
 
     double get_gamma() const {
-      return this->pcontainer_m->getMeanGammaZ();
+        return this->pcontainer_m->getMeanGammaZ();
     }
 
     /// Mean kinetic energy over particles (mean of per-particle kinetic energy), in MeV.

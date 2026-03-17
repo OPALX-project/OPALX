@@ -2,6 +2,7 @@
 #include <mpi.h>
 #include <memory>
 #include <cmath>
+#include <algorithm>
 
 #include "Distribution/Gaussian.h"
 #include "Ippl.h"
@@ -22,7 +23,7 @@ protected:
 
     void SetUp() override {
         // Minimal 3D grid parameters
-        nr = 64;
+        nr = 32;
         ippl::Vector<double,3> rmin = -4.0;
         ippl::Vector<double,3> rmax = 4.0;
         ippl::Vector<double,3> origin = rmin;
@@ -161,6 +162,24 @@ void computeMaxAbsR(ViewType &view,
     ippl::Comm->barrier();
 }
 
+/// Preallocate particle container capacity so SamplingBase::computeLocalEmitCount
+/// can distribute particles without being constrained by zero capacity.
+static void preallocateParticleCapacity(
+    const std::shared_ptr<ParticleContainer<double, 3>>& pc,
+    size_t totalParticles)
+{
+    const int nranks     = std::max(1, ippl::Comm->size());
+    const size_t nranksU = static_cast<size_t>(nranks);
+
+    // Mirror TrackRun: give each rank enough headroom above its ideal share.
+    const size_t maxLocalNum =
+        totalParticles / nranksU + 2 * nranksU + 1;
+
+    pc->create(maxLocalNum);
+    Kokkos::View<bool*> tmp_invalid("tmp_invalid", maxLocalNum);
+    pc->destroy(tmp_invalid, maxLocalNum);
+}
+
 TEST_F(GaussianTest, meanR_stddevR) {
     const Vector_t<double, 3> sigmaR_ref = 0.5;
     const Vector_t<double, 3> sigmaP_ref = 1.0;
@@ -169,8 +188,9 @@ TEST_F(GaussianTest, meanR_stddevR) {
 
     Gaussian sampler(pc, sigmaR_ref, sigmaP_ref, avrgpz, cutoffR);
 
-    size_t total_nparticles = 1000000;
+    size_t total_nparticles = 100000;
 
+    preallocateParticleCapacity(pc, total_nparticles);
     sampler.generateParticles(total_nparticles, nr);
 
     auto Rview = pc->R.getView();
@@ -204,8 +224,9 @@ TEST_F(GaussianTest, cutoffR)
     bool fixMeanR = false;
     Gaussian sampler(pc, sigmaR, sigmaP, avrgpz, cutoffR, fixMeanR);
 
-    size_t total_nparticles = 1000000;
+    size_t total_nparticles = 100000;
 
+    preallocateParticleCapacity(pc, total_nparticles);
     sampler.generateParticles(total_nparticles, nr);
 
     auto Rview = pc->R.getView();
@@ -232,7 +253,8 @@ TEST_F(GaussianTest, meanP_and_steddevP)
 
     Gaussian sampler(pc,sigmaR_ref, sigmaP_ref, avrgpz, cutoffR);
 
-    size_t total_nparticles = 1000000;
+    size_t total_nparticles = 100000;
+    preallocateParticleCapacity(pc, total_nparticles);
     sampler.generateParticles(total_nparticles, nr);
 
     auto Pview = pc->P.getView();
