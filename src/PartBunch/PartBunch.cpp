@@ -403,8 +403,16 @@ void PartBunch<T, Dim>::pre_run() {
 
 template <typename T, unsigned Dim>
 double PartBunch<T, Dim>::get_meanKineticEnergy() {
-    return Util::getKineticEnergy(this->pcontainer_m->getMeanP(), reference_m->getM()) *
-           Units::eV2MeV;
+    // Single source of truth: computed in DistributionMoments during updateMoments().
+    // Unit: MeV (see DistributionMoments implementation).
+    return this->pcontainer_m->getMeanKineticEnergy();
+}
+
+template <typename T, unsigned Dim>
+double PartBunch<T, Dim>::getdE() const {
+    // Single source of truth: computed in DistributionMoments during updateMoments().
+    // Unit: MeV (see DistributionMoments implementation).
+    return this->pcontainer_m->getStdKineticEnergy();
 }
 
 template <typename T, unsigned Dim>
@@ -412,16 +420,16 @@ Inform& PartBunch<T, Dim>::print(Inform& os) {
     // if (this->getLocalNum() != 0) {  // to suppress Nans
     Inform::FmtFlags_t ff = os.flags();
 
-    double dek = Util::getKineticEnergy(this->pcontainer_m->getRmsP(), reference_m->getM() * Units::eV2MeV);
-    double ek  = Util::getKineticEnergy(this->pcontainer_m->getMeanP(), reference_m->getM() * Units::eV2MeV);
+    const double ek  = this->get_meanKineticEnergy();
+    const double dek = this->getdE();
     
     os << level1 << std::scientific << "\n"
        << "* ************** B U N C H "
         "********************************************************* \n"
        << "* PARTICLES       = " << this->getTotalNum() << "\n"
        << "* CHARGE          = " << this->qi_m*this->getTotalNum() << " (Cb) \n"
-       << "* <EKIN>          = " << ek << " (GeV) \n"
-       << "* <dEKIN>         = " << dek << " (GeV) \n"
+       << "* <EKIN>          = " << Util::getEnergyString(ek) << "\n"
+       << "* <dEKIN>         = " << Util::getEnergyString(dek) << "\n"
        << "* INTEGRATOR      = " << integration_method_m << "\n"
        << "* MIN R (origin)  = " << Util::getLengthString( this->pcontainer_m->getMinR(), 5) << "\n"
        << "* MAX R (max ext) = " << Util::getLengthString( this->pcontainer_m->getMaxR(), 5) << "\n"
