@@ -402,78 +402,59 @@ void PartBunch<T, Dim>::pre_run() {
 
 template <typename T, unsigned Dim>
 double PartBunch<T, Dim>::get_meanKineticEnergy() {
-    // We want mean(Ekin(p_i)) and we want to use the *reference particle mass*,
-    // not the per-macroparticle mass stored in the container.
-    const size_t Np_raw = this->getTotalNum();
-    const size_t Np     = (Np_raw == 0) ? 1 : Np_raw;
-
+    // Use DistributionMoments as the single source of truth.
+    // If moments were computed with particle mass (instead of macro mass),
+    // rescale by (macroMass / usedMass).
     const size_t Nlocal = this->getLocalNum();
-    const double mRefGeV = reference_m ? reference_m->getM() : 0.0;
 
-    auto Pview = this->pcontainer_m->P.getView();
+    double usedMassGeV = mi_m;
+    if (Nlocal > 0) {
+        auto Mview = this->pcontainer_m->M.getView();
+        double loc_sumM = 0.0;
+        Kokkos::parallel_reduce(
+            "PartBunch::meanMassForEnergyScale", Nlocal,
+            KOKKOS_LAMBDA(const size_t i, double& sumM) { sumM += Mview(i); },
+            Kokkos::Sum<double>(loc_sumM));
+        Kokkos::fence();
 
-    double loc_sumE = 0.0;
-    Kokkos::parallel_reduce(
-        "PartBunch::meanKineticEnergyRefMass", Nlocal,
-        KOKKOS_LAMBDA(const size_t i, double& sumE) {
-            double p2 = 0.0;
-            for (int d = 0; d < 3; ++d) {
-                const double pd = Pview(i)[d];
-                p2 += pd * pd;
-            }
-            const double gamma = Kokkos::sqrt(1.0 + p2);
-            const double ekinMeV = (gamma - 1.0) * mRefGeV * Units::GeV2MeV;
-            sumE += ekinMeV;
-        },
-        Kokkos::Sum<double>(loc_sumE));
-    Kokkos::fence();
+        double glob_sumM = 0.0;
+        ippl::Comm->allreduce(&loc_sumM, &glob_sumM, 1, std::plus<double>());
 
-    double glob_sumE = 0.0;
-    ippl::Comm->allreduce(&loc_sumE, &glob_sumE, 1, std::plus<double>());
+        const size_t Np_raw = this->getTotalNum();
+        const size_t Np     = (Np_raw == 0) ? 1 : Np_raw;
+        usedMassGeV         = glob_sumM / static_cast<double>(Np);
+    }
 
-    return glob_sumE / static_cast<double>(Np);
+    const double scale = (usedMassGeV != 0.0) ? (mi_m / usedMassGeV) : 1.0;
+    return this->pcontainer_m->getMeanKineticEnergy() * scale;
 }
 
 template <typename T, unsigned Dim>
 double PartBunch<T, Dim>::getdE() const {
-    // Stddev of kinetic energy over particles, computed using reference particle mass.
-    const size_t Np_raw = this->getTotalNum();
-    const size_t Np     = (Np_raw == 0) ? 1 : Np_raw;
-
+    // Stddev of kinetic energy over particles (from DistributionMoments),
+    // rescaled if moments used particle mass instead of macro mass.
     const size_t Nlocal = this->getLocalNum();
-    const double mRefGeV = reference_m ? reference_m->getM() : 0.0;
 
-    auto Pview = this->pcontainer_m->P.getView();
+    double usedMassGeV = mi_m;
+    if (Nlocal > 0) {
+        auto Mview = this->pcontainer_m->M.getView();
+        double loc_sumM = 0.0;
+        Kokkos::parallel_reduce(
+            "PartBunch::meanMassForEnergyScaleStd", Nlocal,
+            KOKKOS_LAMBDA(const size_t i, double& sumM) { sumM += Mview(i); },
+            Kokkos::Sum<double>(loc_sumM));
+        Kokkos::fence();
 
-    double loc_sumE  = 0.0;
-    double loc_sumE2 = 0.0;
-    Kokkos::parallel_reduce(
-        "PartBunch::stdKineticEnergyRefMass", Nlocal,
-        KOKKOS_LAMBDA(const size_t i, double& sumE, double& sumE2) {
-            double p2 = 0.0;
-            for (int d = 0; d < 3; ++d) {
-                const double pd = Pview(i)[d];
-                p2 += pd * pd;
-            }
-            const double gamma = Kokkos::sqrt(1.0 + p2);
-            const double ekinMeV = (gamma - 1.0) * mRefGeV * Units::GeV2MeV;
-            sumE += ekinMeV;
-            sumE2 += ekinMeV * ekinMeV;
-        },
-        Kokkos::Sum<double>(loc_sumE), Kokkos::Sum<double>(loc_sumE2));
-    Kokkos::fence();
+        double glob_sumM = 0.0;
+        ippl::Comm->allreduce(&loc_sumM, &glob_sumM, 1, std::plus<double>());
 
-    double glob_sumE  = 0.0;
-    double glob_sumE2 = 0.0;
-    ippl::Comm->allreduce(&loc_sumE, &glob_sumE, 1, std::plus<double>());
-    ippl::Comm->allreduce(&loc_sumE2, &glob_sumE2, 1, std::plus<double>());
-
-    const double mean = glob_sumE / static_cast<double>(Np);
-    double var = glob_sumE2 / static_cast<double>(Np) - mean * mean;
-    if (var < 0.0) {
-        var = 0.0;
+        const size_t Np_raw = this->getTotalNum();
+        const size_t Np     = (Np_raw == 0) ? 1 : Np_raw;
+        usedMassGeV         = glob_sumM / static_cast<double>(Np);
     }
-    return std::sqrt(var);
+
+    const double scale = (usedMassGeV != 0.0) ? (mi_m / usedMassGeV) : 1.0;
+    return this->pcontainer_m->getStdKineticEnergy() * scale;
 }
 
 template <typename T, unsigned Dim>
