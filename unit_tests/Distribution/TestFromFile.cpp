@@ -3,6 +3,7 @@
 #include <memory>
 #include <fstream>
 #include <cstdio>
+#include <algorithm>
 
 #include "Distribution/FromFile.h"
 #include "Distribution/Distribution.h"
@@ -95,6 +96,17 @@ TEST_F(FromFileTest, GeneratesParticlesFromAsciiFile) {
     FromFile sampler(pc, fc, tempFilename);
 
     size_t requested = 10; // larger than available in file to test clamping
+
+    // Preallocate capacity so SamplingBase::computeLocalEmitCount
+    // can distribute up to the requested number of particles.
+    const int nranks     = std::max(1, ippl::Comm->size());
+    const size_t nranksU = static_cast<size_t>(nranks);
+    const size_t maxLocalNum =
+        requested / nranksU + 2 * nranksU + 1;
+    pc->create(maxLocalNum);
+    Kokkos::View<bool*> tmp_invalid("tmp_invalid", maxLocalNum);
+    pc->destroy(tmp_invalid, maxLocalNum);
+
     sampler.generateParticles(requested, nr);
 
     int rank;

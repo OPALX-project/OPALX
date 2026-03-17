@@ -79,6 +79,10 @@ public:
     std::string getTypeofDistribution();
     DistributionType getType() const;
 
+    /// Return the number of macroparticles assigned to this distribution.
+    /// If 0, the distribution did not specify its own NPARTDIST.
+    size_t getNumParticles() const;
+
     Inform& printInfo(Inform& os) const;
 
     ippl::Vector<double, 3> get_pmean() const;
@@ -277,6 +281,10 @@ inline DistributionType Distribution::getType() const {
 
 inline double Distribution::getAvrgpz() const {
     return avrgpz_m;
+}
+
+inline size_t Distribution::getNumParticles() const {
+    return totalNumberParticles_m;
 }
 
 inline std::string Distribution::getTypeofDistribution() {
