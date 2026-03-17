@@ -586,6 +586,7 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
             "space charge effects, please use TYPE=NONE for the field solver.");
     }
 
+    // auto savedDomain = itsBunch_m->savePartFieldDomain();
     itsBunch_m->calcBeamParameters();
     m << level4 << "Calculate beam parameters done." << endl;
 
@@ -603,6 +604,8 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
     /// \todo this function is not implemented (yet)
     // itsBunch_m->boundp();
 
+    itsBunch_m->calcBeamParameters();
+
     if (step % repartFreq_m + 1 == repartFreq_m) {
         doBinaryRepartition();
         m << level4 << "Binary repartition done." << endl;
@@ -610,24 +613,55 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
 
     itsBunch_m->setGlobalMeanR(itsBunch_m->get_centroid());
 
-    itsBunch_m->computeSelfFields();
+    if (!itsBunch_m->get_collidingBunches()) {
+        Vector_t<double, 3> ipCenterRef(0.0, 0.0, itsBunch_m->get_ipCenterLocalZ());
+        Vector_t<double, 3> ipCenterBeam = referenceToBeamCSTrafo.transformTo(ipCenterRef);
+        m << "centZ= " << itsBunch_m->get_ipCenterLocalZ() << " L(centZ)= " << ipCenterBeam(2)
+          << endl;
+        itsBunch_m->computeSelfFields();
+
+        m << "Compute self fields done." << endl;
+        /// @brief Transform particle positions back to the reference coordinate system
+        beamToReferenceCSTrafo.transformBunchTo(itsBunch_m->getParticleContainer()->R.getView());
+        m << level5 << "Transform particle positions back to reference coordinate system done."
+          << endl;
+        /// @brief Rotate E and B fields back to the reference coordinate system
+        beamToReferenceCSTrafo.rotateBunchTo(itsBunch_m->getParticleContainer()->E.getView());
+        m << level5 << "Rotate E fields back to reference coordinate system done." << endl;
+        beamToReferenceCSTrafo.rotateBunchTo(itsBunch_m->getParticleContainer()->B.getView());
+        m << level5
+          << "Rotate B fields back to reference coordinate system done. ComputeSelfFields done."
+          << endl;
+
+    } else {
+        auto savedDomain = itsBunch_m->savePartFieldDomain();
+        Vector_t<double, 3> ipCenterRef(0.0, 0.0, itsBunch_m->get_ipCenterLocalZ());
+        Vector_t<double, 3> ipCenterBeam = referenceToBeamCSTrafo.transformTo(ipCenterRef);
+        m << "centZ= " << itsBunch_m->get_ipCenterLocalZ() << " L(centZ)= " << ipCenterBeam(2)
+          << endl;
+        // itsBunch_m->enableCollisionWindowMesh(ipCenterBeam(2), itsBunch_m->get_colwinlen());
+
+        // First stage: solve on the larger collision mesh using the primary bunch only.
+        // Later this is where mirrored rho deposition should be added.
+        itsBunch_m->computeSelfFields();
+        /// @brief Transform particle positions back to the reference coordinate system
+        beamToReferenceCSTrafo.transformBunchTo(itsBunch_m->getParticleContainer()->R.getView());
+        m << level5 << "Transform particle positions back to reference coordinate system done."
+          << endl;
+        /// @brief Rotate E and B fields back to the reference coordinate system
+        beamToReferenceCSTrafo.rotateBunchTo(itsBunch_m->getParticleContainer()->E.getView());
+        m << level5 << "Rotate E fields back to reference coordinate system done." << endl;
+        beamToReferenceCSTrafo.rotateBunchTo(itsBunch_m->getParticleContainer()->B.getView());
+        m << level5
+          << "Rotate B fields back to reference coordinate system done. ComputeSelfFields done."
+          << endl;
+        m << "Compute self fields on collision window mesh done." << endl;
+        itsBunch_m->restorePartFieldDomain(savedDomain);
+        itsBunch_m->calcBeamParameters();
+    }
+
     m << level3 << "Compute self fields done." << endl;
-
-    /// @brief Transform particle positions back to the reference coordinate system
-    beamToReferenceCSTrafo.transformBunchTo(itsBunch_m->getParticleContainer()->R.getView());
-    m << level5 << "Transform particle positions back to reference coordinate system done." << endl;
-    /// @brief Rotate E and B fields back to the reference coordinate system
-    beamToReferenceCSTrafo.rotateBunchTo(itsBunch_m->getParticleContainer()->E.getView());
-    m << level5 << "Rotate E fields back to reference coordinate system done." << endl;
-    beamToReferenceCSTrafo.rotateBunchTo(itsBunch_m->getParticleContainer()->B.getView());
-    m << level5
-      << "Rotate B fields back to reference coordinate system done. ComputeSelfFields done."
-      << endl;
 }
-
-/*
-ADA
- */
 
 namespace {
     std::pair<double, double> getDisplayRange(double windowMinZ, double windowMaxZ) {
@@ -753,6 +787,7 @@ namespace {
     void debugPrintCollisionCenters1D(
         Inform& m, double bunchCenterZ, double windowMinZ, double windowMaxZ, double ipCenterZ,
         bool mirroredActive, std::size_t width = 80) {
+        m << "bunchCenterZ=" << bunchCenterZ << endl;
         m << renderCollisionCenters1D(
             bunchCenterZ, windowMinZ, windowMaxZ, ipCenterZ, mirroredActive, width)
           << "\n"
@@ -761,9 +796,9 @@ namespace {
 
 }  // namespace
 
-/*
+/* ADA
 
-  Use a simple 3-state logic instead:
+  Use a simple 3-state logic
 
   - not mirrored yet i.e. normal tracking
   - mirrored and still inside the collision window
@@ -787,9 +822,12 @@ void ParallelTracker::checkInIPRegion(OrbitThreader& oth) {
         return;
     }
     itsBunch_m->calcBeamParameters();
-    itsBunch_m->updateMoments();
 
-    Vector_t<double, 3> rmin(0.0), rmax(0.0);
+    const double maxVal = std::numeric_limits<double>::max();
+    const double minVal = -std::numeric_limits<double>::max();
+    ippl::Vector<double, Dim> rmax(minVal);
+    ippl::Vector<double, Dim> rmin(maxVal);
+
     itsBunch_m->get_bounds(rmin, rmax);
 
     // Query beamline elements overlapping the current bunch extent.
@@ -836,9 +874,9 @@ void ParallelTracker::checkInIPRegion(OrbitThreader& oth) {
 
     // One-bunch center used only for debugging / symmetric reconstruction.
     const double bunchCenterZ = 0.5 * (rmin(2) + rmax(2));
-
+    m << "zmin= " << rmin(2) << " zmax= " << rmax(2) << endl;
     // Symmetric virtual partner bunch center.
-    const double mirroredBunchCenterZ = 2.0 * ipCenterLocalZ - bunchCenterZ;
+    // const double mirroredBunchCenterZ = 2.0 * ipCenterLocalZ - bunchCenterZ;
 
     // Observed frame: collision window plus margin on both sides.
     const double observedMarginS = 0.25 * colwinlen;
@@ -866,10 +904,14 @@ void ParallelTracker::checkInIPRegion(OrbitThreader& oth) {
     if (!collisionPrototypeInitialized_m && bunchHeadS > windowBeginS) {
         collisionPrototypeInitialized_m = true;
         m << "start symmetric collision mode" << endl;
-        // itsBunch_m->weDoCollisions(true);
-        // itsBunch_m->set_ipCenterLocalZ(ipCenterLocalZ);
-        // itsBunch_m->set_colwinlen(colwinlen);
 
+        itsBunch_m->set_collidingBunches(true);
+        itsBunch_m->set_ipCenterLocalZ(ipCenterLocalZ);
+        itsBunch_m->set_colwinlen(colwinlen);
+
+        debugPrintCollisionCenters1D(
+            m, bunchCenterZ, windowMinZ, windowMaxZ, ipCenterLocalZ,
+            collisionPrototypeInitialized_m, 100);
         // No duplication of particles in pc.
         // From here on, the second bunch is virtual only:
         //   z_partner  = 2 * ipCenterLocalZ - z
@@ -910,7 +952,7 @@ void ParallelTracker::checkInIPRegion(OrbitThreader& oth) {
     if (collisionPrototypeInitialized_m && bunchTailS > windowEndS) {
         collisionPrototypeFinished_m = true;
         collisionFrameObserved_m     = false;
-        itsBunch_m->weDoCollisions(false);
+        itsBunch_m->set_collidingBunches(false);
         itsBunch_m->set_ipCenterLocalZ(-1.0);
         itsBunch_m->set_colwinlen(-1.0);
         m << "finished symmetric collision mode" << endl;

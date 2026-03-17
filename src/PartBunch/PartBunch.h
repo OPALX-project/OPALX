@@ -81,9 +81,23 @@ public:
 
      */
 
-    bool hasCollidingBunches_m;
+    struct SavedPartFieldDomain {
+        Vector_t<double, Dim> origin;
+        Vector_t<double, Dim> rmin;
+        Vector_t<double, Dim> rmax;
+        Vector_t<double, Dim> hr;
+
+        Vector_t<double, 3> partrmin;
+        Vector_t<double, 3> partrmax;
+    };
+
+    SavedPartFieldDomain savePartFieldDomain() const;
+    void restorePartFieldDomain(const SavedPartFieldDomain& state);
+    void enableCollisionWindowMesh(double ipCenterLocalZ, double colwinlen);
+
     double ipCenterLocalZ_m;
     double colwinlen_m;
+    bool hasCollidingBunches_m;
 
 private:
     double qi_m;
@@ -420,16 +434,29 @@ public:
      * \f]
      * @param p Vector containing \f$(\beta\gamma_x,\beta\gamma_y,\beta\gamma_z)\f$.
      */
-    void weDoCollisions(bool col) {
+
+    void set_collidingBunches(bool col) {
         hasCollidingBunches_m = col;
+    }
+
+    bool get_collidingBunches() {
+        return hasCollidingBunches_m;
     }
 
     void set_ipCenterLocalZ(double locz) {
         ipCenterLocalZ_m = locz;
     }
 
+    double get_ipCenterLocalZ() {
+        return ipCenterLocalZ_m;
+    }
+
     void set_colwinlen(double len) {
         colwinlen_m = len;
+    }
+
+    double get_colwinlen() {
+        return colwinlen_m;
     }
 
     /**

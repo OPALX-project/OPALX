@@ -90,10 +90,119 @@ PartBunch<T, Dim>::PartBunch(
 }
 
 template <typename T, unsigned Dim>
+typename PartBunch<T, Dim>::SavedPartFieldDomain PartBunch<T, Dim>::savePartFieldDomain() const {
+    // Inform m("PartBunch::storeFieldDomain");
+    SavedPartFieldDomain state;
+    state.origin = this->fcontainer_m->getMesh().getOrigin();
+    state.rmin   = this->fcontainer_m->getRMin();
+    state.rmax   = this->fcontainer_m->getRMax();
+    state.hr     = this->fcontainer_m->getHr();
+
+    state.partrmin = this->rmin_m;
+    state.partrmax = this->rmax_m;
+
+    /* m << level1 << "Store field domain." << endl;
+        m << level1 << "\torigin = " << state.origin << endl;
+        m << level1 << "\thr     = " << state.hr << endl;
+        m << level1 << "\trmin   = " << state.rmin << endl;
+        m << level1 << "\trmax   = " << state.rmax << endl;
+        */
+    return state;
+}
+
+template <typename T, unsigned Dim>
+void PartBunch<T, Dim>::restorePartFieldDomain(const SavedPartFieldDomain& state) {
+    // Inform m("PartBunch::restoreFieldDomain");
+
+    auto* mesh = &this->fcontainer_m->getMesh();
+    auto* FL   = &this->fcontainer_m->getFL();
+    auto pc    = this->getParticleContainer();
+
+    mesh->setOrigin(state.origin);
+    mesh->setMeshSpacing(state.hr);
+
+    this->getFieldContainer()->setRMin(state.rmin);
+    this->getFieldContainer()->setRMax(state.rmax);
+    this->getFieldContainer()->setHr(state.hr);
+
+    this->hr_m = state.hr;
+
+    this->rmin_m = state.partrmin;
+    this->rmax_m = state.partrmax;
+
+    /*
+      pc->getLayout().updateLayout(*FL, *mesh);
+      pc->update();
+      this->calcBeamParameters();
+      this->updateMoments();
+
+      m << level1 << "Restored field domain." << endl;
+      m << level1 << "\torigin = " << state.origin << endl;
+      m << level1 << "\thr     = " << state.hr << endl;
+      m << level1 << "\trmin   = " << state.rmin << endl;
+      m << level1 << "\trmax   = " << state.rmax << endl;
+    */
+}
+
+template <typename T, unsigned Dim>
+void PartBunch<T, Dim>::enableCollisionWindowMesh(double ipCenterLocalZ, double colwinlen) {
+    Inform m("PartBunch::enableCollisionWindowMesh");
+
+    if (colwinlen <= 0.0) {
+        throw OpalException("PartBunch::enableCollisionWindowMesh", "COLWINLEN must be > 0");
+    }
+
+    auto* mesh = &this->fcontainer_m->getMesh();
+    auto* FL   = &this->fcontainer_m->getFL();
+    auto pc    = this->getParticleContainer();
+
+    pc->computeMinMaxR();
+
+    Vector_t<double, Dim> o = pc->getMinR();
+    Vector_t<double, Dim> e = pc->getMaxR();
+
+    // Fix z to the collision window in the current co-moving frame.
+    o(2) = ipCenterLocalZ - 0.5 * colwinlen;
+    e(2) = ipCenterLocalZ + 0.5 * colwinlen;
+
+    // Recompute extent after overriding z.
+    Vector_t<double, Dim> l = e - o;
+
+    const double incr = this->OPALFieldSolver_m->getBoxIncr() / 100.0;
+
+    // Keep current bunch-fitted behavior in x/y.
+    o(0) -= l(0) * incr;
+    o(1) -= l(1) * incr;
+    e(0) += l(0) * incr;
+    e(1) += l(1) * incr;
+
+    // Keep z fixed to the collision window for now.
+    l    = e - o;
+    hr_m = l / this->nr_m;
+
+    mesh->setOrigin(o);
+    mesh->setMeshSpacing(hr_m);
+
+    this->getFieldContainer()->setRMin(o);
+    this->getFieldContainer()->setRMax(e);
+    this->getFieldContainer()->setHr(hr_m);
+
+    pc->getLayout().updateLayout(*FL, *mesh);
+    pc->update();
+
+    this->updateMoments();
+
+    m << level3 << "Enabled collision window mesh:" << endl;
+    m << level3 << "\torigin = " << o << endl;
+    m << level3 << "\trmax   = " << e << endl;
+    m << level3 << "\thr     = " << hr_m << endl;
+}
+
+template <typename T, unsigned Dim>
 T PartBunch<T, Dim>::getCouplingConstant() const {
     /*
-    This function needs to be here, since FieldSoler_t is only fully defined
-    at instanciation of PartBunch, so not yet in the header file.
+      This function needs to be here, since FieldSoler_t is only fully defined
+      at instanciation of PartBunch, so not yet in the header file.
     */
 
     if (!hasFieldSolver()) {
@@ -343,10 +452,13 @@ void PartBunch<T, Dim>::calcBeamParameters() {
     ippl::Comm->barrier();
     m << level5 << "Global moments calculated." << endl;
 
-    ippl::Vector<double, Dim> rmax_loc(0.0);
-    ippl::Vector<double, Dim> rmin_loc(0.0);
-    ippl::Vector<double, Dim> rmax(0.0);
-    ippl::Vector<double, Dim> rmin(0.0);
+    const double maxVal = std::numeric_limits<double>::max();
+    const double minVal = -std::numeric_limits<double>::max();
+
+    ippl::Vector<double, Dim> rmax_loc(minVal);
+    ippl::Vector<double, Dim> rmin_loc(maxVal);
+    ippl::Vector<double, Dim> rmax(minVal);
+    ippl::Vector<double, Dim> rmin(maxVal);
 
     /// \todo do this in one step much nicer with ippl::Vector...
     for (unsigned d = 0; d < Dim; ++d) {
@@ -463,17 +575,6 @@ void PartBunch<T, Dim>::bunchUpdate() {
     ippl::Vector<double, 3> o = pc->getMinR();
     ippl::Vector<double, 3> e = pc->getMaxR();
     ippl::Vector<double, 3> l = e - o;
-
-    if (hasCollidingBunches_m) {
-        // collision-window override for z
-        if (ipCenterLocalZ_m < 0.0 || colwinlen_m < 0.0)
-            throw OpalException(
-                "PartBunch<T, Dim>::bunchUpdate()", "ipCenterLocalZ_m < 0.0 || colwinlen_m < 0.0)");
-        else {
-            o(2) = ipCenterLocalZ_m - 0.5 * colwinlen_m;
-            e(2) = ipCenterLocalZ_m + 0.5 * colwinlen_m;
-        }
-    }
 
     /*
     Now matches OPAL: domain + incr% on each side.
