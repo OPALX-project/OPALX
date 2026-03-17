@@ -62,6 +62,8 @@ void DistributionMoments::computeMeans(ippl::ParticleAttrib<Vector_t<double,3>>:
     double loc_centroid[2 * Dim]        = {};
     double centroid[2 * Dim]        = {};
     double loc_Ekin, loc_gamma, loc_gammaz, gammaz;
+    const bool rescaleToReference = rescaleToReference_m;
+    const double referenceMassGeV = referenceMassGeV_m;
 
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -77,7 +79,7 @@ void DistributionMoments::computeMeans(ippl::ParticleAttrib<Vector_t<double,3>>:
                         gamma0 += Pview(k)[j]*Pview(k)[j];
                     }
                     gamma0 = Kokkos::sqrt(gamma0+1.0);
-                    const double massGeV = rescaleToReference_m ? referenceMassGeV_m : Mview(k);
+                    const double massGeV = rescaleToReference ? referenceMassGeV : Mview(k);
                     ekin0  = (gamma0-1.0) * massGeV * Units::GeV2MeV; // output in MeV
                     gamma += gamma0;
                     ekin += ekin0;
@@ -202,6 +204,8 @@ void DistributionMoments::computeMoments(ippl::ParticleAttrib<Vector_t<double,3>
 
     double mekin = meanKineticEnergy_m;
     double loc_std_mekin;
+    const bool rescaleToReferenceStd = rescaleToReference_m;
+    const double referenceMassGeVStd = referenceMassGeV_m;
 
    // compute non-central moments
    for (unsigned i = 0; i < 2 * Dim; ++i) {
@@ -244,7 +248,7 @@ void DistributionMoments::computeMoments(ippl::ParticleAttrib<Vector_t<double,3>
                         gamma0 += Pview(k)[j]*Pview(k)[j];
                     }
                     gamma0 = Kokkos::sqrt(gamma0+1.0);
-                    const double massGeV = rescaleToReference_m ? referenceMassGeV_m : Mview(k);
+                    const double massGeV = rescaleToReferenceStd ? referenceMassGeVStd : Mview(k);
                     ekin0  = (gamma0-1.0) * massGeV * Units::GeV2MeV; // output in MeV
 
                     ekin += (ekin0-mekin)*(ekin0-mekin);
