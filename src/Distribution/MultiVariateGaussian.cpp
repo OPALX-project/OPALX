@@ -3,6 +3,7 @@
 #include <mpi.h>
 
 using Matrix_t = ippl::Vector<ippl::Vector<double, 6>, 6>;
+using view_type = typename ippl::detail::ViewType<ippl::Vector<double, 3>, 1>::view_type;
 
 /**
  * @brief Constructs the MultiVariateGaussian class.

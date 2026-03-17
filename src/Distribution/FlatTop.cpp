@@ -9,6 +9,7 @@ using FieldContainer_t = FieldContainer<double, 3>;
 using Distribution_t = Distribution;
 using GeneratorPool = typename Kokkos::Random_XorShift64_Pool<>;
 using Dist_t = ippl::random::NormalDistribution<double, 3>;
+using view_type = typename ippl::detail::ViewType<ippl::Vector<double, 3>, 1>::view_type;
 
 FlatTop::FlatTop(std::shared_ptr<ParticleContainer_t> pc,
                  std::shared_ptr<FieldContainer_t> fc,
