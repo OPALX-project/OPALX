@@ -21,6 +21,7 @@
 
 #include "AbsBeamline/Component.h"
 #include "AbstractObjects/Action.h"
+#include "Fields/Interpolation/NDGrid.h"
 #include <string>
 #include <unordered_set>
 #include <set>
@@ -88,8 +89,8 @@ public:
     /** Constructor */
     DumpEMFields(const std::string& name, DumpEMFields* parent);
 
-    /** Destructor deletes grid_m and if in the dumps set, take it out */
-    ~DumpEMFields() override;
+    /** Destructor */
+    ~DumpEMFields() override = default;
 
     /** Make a clone (overloadable copy-constructor).
      *    @param name not used
@@ -148,7 +149,7 @@ private:
 
     CoordinateSystem coordinates_m{CoordinateSystem::CARTESIAN};
 
-    static std::unordered_set<DumpEMFields*> dumpsSet_m;
+    static std::unordered_set<std::unique_ptr<DumpEMFields>> dumpsSet_m;
 
     DumpEMFields(const DumpEMFields& dump) = delete;
     DumpEMFields& operator=(const DumpEMFields& dump) = delete;

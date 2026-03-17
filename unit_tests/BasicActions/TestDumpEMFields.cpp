@@ -57,7 +57,6 @@ public:
             r(2) < 0. || r(2) > 1.) {
                 return true; // isOutOfBounds
             }
-        std::cerr << "MockComponent " << r << std::endl;
         B(0) = r(0);
         B(1) = r(1);
         B(2) = r(2);
@@ -112,7 +111,7 @@ void setOriginCyl(DumpEMFields* dump, const double xc, const double yc, const do
 void setAttributesCyl(DumpEMFields* dump,
                    const double r0, const double dr, const double nr,
                    const double phi0, const double dphi, const double nphi,
-                   const double z0, const double dz, const double nz,
+                   const double y0, const double dy, const double ny,
                    const double t0, const double dt, const double nt,
                    const std::string& filename) {
     setOneAttribute(dump, "R_START", r0);
@@ -121,9 +120,9 @@ void setAttributesCyl(DumpEMFields* dump,
     setOneAttribute(dump, "PHI_START", phi0);
     setOneAttribute(dump, "DPHI", dphi);
     setOneAttribute(dump, "PHI_STEPS", nphi);
-    setOneAttribute(dump, "Z_START", z0);
-    setOneAttribute(dump, "DZ", dz);
-    setOneAttribute(dump, "Z_STEPS", nz);
+    setOneAttribute(dump, "Y_START", y0);
+    setOneAttribute(dump, "DY", dy);
+    setOneAttribute(dump, "Y_STEPS", ny);
     setOneAttribute(dump, "T_START", t0);
     setOneAttribute(dump, "DT", dt);
     setOneAttribute(dump, "T_STEPS", nt);
@@ -286,7 +285,6 @@ TEST(TestDumpEMFields, writeFieldsCylTest) {
     std::string test_line;
     for (size_t i = 0; i < 12; ++i) {
         std::getline(fin, test_line);
-        std::cout << test_line << std::endl;
     }
     std::vector line(10, 0.);
     for (size_t line_index = 0; line_index < 24; ++line_index) {
@@ -303,7 +301,7 @@ TEST(TestDumpEMFields, writeFieldsCylTest) {
         while (line[1] > 360.) {
             line[1] -= 360.;
         }
-        if (line[1] < 90. || line[1] > 270.) {
+        if (line[1] < 90.) {
             EXPECT_NEAR(line[4] * line[4] + line[5] * line[5], line[0] * line[0], tol);
             EXPECT_NEAR(line[6], line[2], tol);
         } else {
@@ -329,12 +327,12 @@ TEST(TestDumpEMFields, writeFieldsCylOriginTest) {
 
     clear_files({fnameCyl1, fnameCyl2});
     DumpEMFields dump1;
-    setAttributesCyl(&dump1, 0.1, 0., 1.,   335.*Units::deg2rad, 0., 1,
-        0.2, 0., 1.,   1., 0., 1., fnameCyl1);
+    setAttributesCyl(&dump1, 0.1, 0., 1.,   45.*Units::deg2rad, 0., 1,
+        -0.1, 0., 1.,   1., 0., 1., fnameCyl1);
     dump1.execute();
     DumpEMFields dump2;
-    setAttributesCyl(&dump2, 0.1, 0., 1.,   335.*Units::deg2rad, 0., 1,
-        0.2, 0., 1.,   1., 0., 1., fnameCyl2);
+    setAttributesCyl(&dump2, 0.1, 0., 1.,   45.*Units::deg2rad, 0., 1,
+        -0.1, 0., 1.,   1., 0., 1., fnameCyl2);
     setOriginCyl(&dump2, 0.01, 0.02, 0.03);
     dump2.execute();
     // depending on execution order, this might write cartesian tests as well... never mind
@@ -354,7 +352,6 @@ TEST(TestDumpEMFields, writeFieldsCylOriginTest) {
     std::string test_line;
     for (size_t i = 0; i < 12; ++i) {
         std::getline(fin1, test_line);
-        std::cout << test_line << std::endl;
     }
     std::vector line1(10, 0.);
     for (size_t i = 0; i < 10; ++i) {
@@ -367,7 +364,6 @@ TEST(TestDumpEMFields, writeFieldsCylOriginTest) {
     EXPECT_EQ(n_lines, 1);
     for (size_t i = 0; i < 12; ++i) {
         std::getline(fin2, test_line);
-        std::cout << test_line << std::endl;
     }
     std::vector line2(10, 0.);
     for (size_t i = 0; i < 10; ++i) {
