@@ -18,6 +18,8 @@
 
 #include "Algorithms/DistributionMoments.h"
 
+#include <limits>
+
 #include "Utilities/Options.h"
 #include "Utilities/Util.h"
 
@@ -310,13 +312,19 @@ void DistributionMoments::computeMinMaxPosition(ippl::ParticleAttrib<Vector_t<do
     double rmax[Dim];
     double rmin[Dim];
 
-    for(int i=0; i<Dim; i++){
-        rmin_loc[i] = 0.;
-        rmax_loc[i] = 0.;
+    // Use identity values for min/max so that ranks with no particles (Nlocal == 0)
+    // do not pollute the allreduce. std::less on rmin picks the smallest (real min),
+    // std::greater on rmax picks the largest (real max). When all ranks are empty we
+    // get minR_m > maxR_m and must handle that in the caller / below.
+    const double id_min = std::numeric_limits<double>::max();
+    const double id_max = std::numeric_limits<double>::lowest();
+    for (int i = 0; i < Dim; i++) {
+        rmin_loc[i] = id_min;
+        rmax_loc[i] = id_max;
     }
 
-    for (unsigned d = 0; d < Dim; ++d) {
-        if (Nlocal > 0) {
+    if (Nlocal > 0) {
+        for (unsigned d = 0; d < Dim; ++d) {
             Kokkos::parallel_reduce(
                 "rel max", Nlocal,
                 KOKKOS_LAMBDA(const int i, double& mm) {
@@ -326,24 +334,33 @@ void DistributionMoments::computeMinMaxPosition(ippl::ParticleAttrib<Vector_t<do
                 Kokkos::Max<double>(rmax_loc[d]));
 
             Kokkos::parallel_reduce(
-                "rel min", ippl::getRangePolicy(Rview),
+                "rel min", Nlocal,
                 KOKKOS_LAMBDA(const int i, double& mm) {
                     double tmp_vel = Rview(i)[d];
                     mm             = tmp_vel < mm ? tmp_vel : mm;
                 },
                 Kokkos::Min<double>(rmin_loc[d]));
-         }
-     }
-     Kokkos::fence();
-     ippl::Comm->allreduce(&rmax_loc[0], &rmax[0], Dim, std::greater<double>());
-     ippl::Comm->allreduce(&rmin_loc[0], &rmin[0], Dim, std::less<double>());
-     ippl::Comm->barrier();
+        }
+    }
+    Kokkos::fence();
+    ippl::Comm->allreduce(&rmax_loc[0], &rmax[0], Dim, std::greater<double>());
+    ippl::Comm->allreduce(&rmin_loc[0], &rmin[0], Dim, std::less<double>());
+    ippl::Comm->barrier();
 
-    // store min and max R in class member variables
-     for (unsigned int i=0; i<Dim; i++) {
-            minR_m(i) = rmin[i];
-            maxR_m(i) = rmax[i];
-     }
+    // Empty bunch on all ranks: min stays id_min, max stays id_max → min > max.
+    // Use a tiny valid box so mesh/spacing remain valid (e.g. for first step before emission).
+    bool empty = (rmin[0] >= rmax[0]);
+    if (empty) {
+        for (int i = 0; i < Dim; i++) {
+            rmin[i] = 0.0;
+            rmax[i] = 1e-12;
+        }
+    }
+
+    for (unsigned int i = 0; i < Dim; i++) {
+        minR_m(i) = rmin[i];
+        maxR_m(i) = rmax[i];
+    }
 }
 
 void DistributionMoments::compute(
