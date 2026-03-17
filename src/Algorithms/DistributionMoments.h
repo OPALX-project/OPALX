@@ -38,7 +38,16 @@ class OpalParticle;
 class DistributionMoments {
 public:
     DistributionMoments();
-    void foo();
+    
+    /// Configure whether kinetic-energy moments use a reference particle mass (instead of per-particle M).
+    /// @param referenceMassGeV Reference particle mass in GeV.
+    /// @param rescaleToReference If true, mean/std kinetic energy are computed using referenceMassGeV.
+    void setEnergyReferenceMass(double referenceMassGeV, bool rescaleToReference = true) {
+        referenceMassGeV_m     = referenceMassGeV;
+        rescaleToReference_m   = rescaleToReference;
+    }
+    bool getRescaleEnergyToReference() const { return rescaleToReference_m; }
+    double getEnergyReferenceMassGeV() const { return referenceMassGeV_m; }
     void compute(
         const std::vector<OpalParticle>::const_iterator&,
         const std::vector<OpalParticle>::const_iterator&);
@@ -152,6 +161,10 @@ private:
     double stdKineticEnergy_m;
     double meanGamma_m;
     double meanGammaZ_m;
+
+    // If enabled, compute kinetic energy moments with referenceMassGeV_m instead of Mview(k).
+    bool rescaleToReference_m = false;
+    double referenceMassGeV_m = 0.0;
 
     Vector_t<double, 6> centroid_m;
     Vector_t<double, 6> means_m;
