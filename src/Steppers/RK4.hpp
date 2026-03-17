@@ -84,6 +84,7 @@ template <typename FieldFunction, typename... Arguments>
 bool RK4<FieldFunction, Arguments...>::derivate_m(
     PartBunch_t* bunch, double* y, const double& t, double* yp, const size_t& i,
     Arguments&... args) const {
+    (void)bunch;
     // New for OPAL 2.0: Changing variables to m, T, s
     // Currently: m, ns, kG
 

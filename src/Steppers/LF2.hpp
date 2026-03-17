@@ -48,6 +48,8 @@ template <typename FieldFunction, typename... Arguments>
 bool LF2<FieldFunction, Arguments...>::kick_m(
     PartBunch_t* bunch, const size_t& i, const double& t, const double& h,
     Arguments&... args) const {
+    (void)bunch;
+    (void)h;
     Vector_t<double, 3> externalE = Vector_t<double, 3>(0.0, 0.0, 0.0);
     Vector_t<double, 3> externalB = Vector_t<double, 3>(0.0, 0.0, 0.0);
 
@@ -56,13 +58,10 @@ bool LF2<FieldFunction, Arguments...>::kick_m(
     if (outOfBound)
         return false;
 
-    double const q = 1;  // \todo  = bunch->Q(0) / Physics::q_e;
-    double const M = 1;  // \todo  = bunch->M(0) * Units::GeV2eV;
-                         // same rest energy
-
     BorisPusher pusher;
 
     // \todo pusher.kick(bunch->R(i), bunch->P(i), externalE, externalB, h, M, q);
+    (void)pusher;
 
     return true;
 }
