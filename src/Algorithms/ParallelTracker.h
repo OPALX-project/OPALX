@@ -162,9 +162,27 @@ private:
     bool wakeStatus_m;
     WakeFunction* wakeFunction_m;
 
-    // Interaction Point IP related stuff
+    /**
+     * @brief True once the symmetric collision prototype has been entered.
+     *
+     * The prototype currently models one physical bunch and one virtual mirrored
+     * partner bunch inside the active interaction-point window.
+     */
     bool collisionPrototypeInitialized_m;
+
+    /**
+     * @brief True once the bunch has fully passed the active collision window.
+     *
+     * After this becomes true, the prototype is not re-entered later in the same run.
+     */
     bool collisionPrototypeFinished_m;
+
+    /**
+     * @brief True while the bunch is inside the extended observation frame around the
+     * collision window.
+     *
+     * This flag is used for collision-specific diagnostics and ASCII visualization.
+     */
     bool collisionFrameObserved_m;
 
     /* ===================================================================== */
@@ -253,6 +271,25 @@ public:
     void pushParticles(const BorisPusher& pusher);
     void timeIntegration1(BorisPusher& pusher);
     void timeIntegration2(BorisPusher& pusher);
+    /**
+     * @brief Compute self fields for the current step, including the collision prototype
+     * branch when enabled.
+     *
+     * The current collision-space-charge prototype is organized in three phases:
+     * - Phase 1: ordinary single-bunch tracking with a bunch-fitted mesh.
+     * - Phase 2: once the bunch enters the active interaction-point window, the mesh
+     *   is expanded to cover the full collision window and the deposited charge density
+     *   is prepared for a symmetry-based reconstruction of the partner bunch.
+     * - Phase 3: the resulting grid-based charge density is used as the right-hand side
+     *   of the Poisson solve for the electrostatic scalar field.
+     *
+     * In the present prototype, phase 2 currently uses one physical bunch and one
+     * virtual mirrored bunch model. The routine may temporarily replace the field-domain
+     * geometry, perform the collision-specific solve setup, and then restore the original
+     * physical bunch bounds and field-domain state.
+     *
+     * @param step Global tracking step index.
+     */
     void computeSpaceChargeFields(unsigned long long step);
     void computeExternalFields(OrbitThreader& oth);
     void resetFields();
@@ -263,6 +300,14 @@ public:
     void setTime();
 
     /* =========================== IP Related Functions =============================== */
+    /**
+     * @brief Detect entry into and exit from an active interaction-point collision window.
+     *
+     * The current prototype activates a symmetric collision mode using one physical
+     * bunch and one virtual mirrored bunch reconstructed about the IP center.
+     *
+     * @param oth Orbit-threader used to query the active beamline elements.
+     */
     void checkInIPRegion(OrbitThreader& oth);
 
 private:

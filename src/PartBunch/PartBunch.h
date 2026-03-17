@@ -81,6 +81,13 @@ public:
 
      */
 
+    /**
+     * @brief Saved state for temporarily modifying the field-domain geometry during
+     * collision-specific field solves.
+     *
+     * The stored data includes both the mesh-aligned field-domain quantities and the
+     * cached physical bunch bounds used by `get_bounds()`.
+     */
     struct SavedPartFieldDomain {
         Vector_t<double, Dim> origin;
         Vector_t<double, Dim> rmin;
@@ -91,8 +98,37 @@ public:
         Vector_t<double, 3> partrmax;
     };
 
+    /**
+     * @brief Save the current field-domain and cached physical bunch-bound state.
+     *
+     * This is used by the collision prototype before entering a temporary field solve
+     * that may alter the mesh extents and the cached bunch bounds.
+     *
+     * @return Snapshot of the current field-domain and physical-bounds state.
+     */
     SavedPartFieldDomain savePartFieldDomain() const;
+
+    /**
+     * @brief Restore a previously saved field-domain and cached physical bunch-bound
+     * state.
+     *
+     * After restoring this state, `get_bounds()` again returns the physical bunch
+     * bounds from before the temporary collision solve.
+     *
+     * @param state Snapshot produced by `savePartFieldDomain()`.
+     */
     void restorePartFieldDomain(const SavedPartFieldDomain& state);
+
+    /**
+     * @brief Replace the current field mesh by a collision-window-aligned mesh.
+     *
+     * The transverse extent is still derived from the present bunch extent, while the
+     * longitudinal extent is fixed to the requested collision window in the current
+     * co-moving frame.
+     *
+     * @param ipCenterLocalZ Collision-point center in the bunch-local z coordinate [m].
+     * @param colwinlen Collision-window length in the bunch-local z coordinate [m].
+     */
     void enableCollisionWindowMesh(double ipCenterLocalZ, double colwinlen);
 
     double ipCenterLocalZ_m;
@@ -435,26 +471,56 @@ public:
      * @param p Vector containing \f$(\beta\gamma_x,\beta\gamma_y,\beta\gamma_z)\f$.
      */
 
+    /**
+     * @brief Set whether the bunch is currently in the collision prototype mode.
+     *
+     * @param col True while the symmetric one-real/one-virtual bunch prototype is active.
+     */
     void set_collidingBunches(bool col) {
         hasCollidingBunches_m = col;
     }
 
+    /**
+     * @brief Query whether the collision prototype mode is currently active.
+     *
+     * @return True if collision-specific space-charge handling is enabled.
+     */
     bool get_collidingBunches() {
         return hasCollidingBunches_m;
     }
 
+    /**
+     * @brief Set the interaction-point center in the current co-moving z coordinate.
+     *
+     * @param locz Interaction-point center expressed in bunch-local z [m].
+     */
     void set_ipCenterLocalZ(double locz) {
         ipCenterLocalZ_m = locz;
     }
 
+    /**
+     * @brief Get the interaction-point center in the current co-moving z coordinate.
+     *
+     * @return Interaction-point center expressed in bunch-local z [m].
+     */
     double get_ipCenterLocalZ() {
         return ipCenterLocalZ_m;
     }
 
+    /**
+     * @brief Set the collision-window length used by the collision prototype.
+     *
+     * @param len Collision-window length in bunch-local z [m].
+     */
     void set_colwinlen(double len) {
         colwinlen_m = len;
     }
 
+    /**
+     * @brief Get the collision-window length used by the collision prototype.
+     *
+     * @return Collision-window length in bunch-local z [m].
+     */
     double get_colwinlen() {
         return colwinlen_m;
     }
@@ -688,7 +754,20 @@ public:
         return Vector_t<double, Dim>(0);
     }
 
+    /**
+     * @brief Deposit charge density on the current mesh and solve the self field.
+     *
+     * The deposited scalar field passes through the following diagnostic-relevant unit
+     * stages:
+     * - after scatter and division by `dt`: accumulated charge on the mesh [C]
+     * - after division by cell volume: charge density [C/m^3]
+     * - after multiplication by the coupling constant: solver right-hand side / potential units
+     *
+     * For collision studies, the rho debug dump is emitted after the [C/m^3] stage and
+     * before the coupling constant is applied.
+     */
     void computeSelfFields();
+    void dumpChargeDensityDebug(const std::string& phaseTag) const;
     void dumpBinConfig(bool preMerge);
 
     Inform& print(Inform& os);

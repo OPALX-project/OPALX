@@ -1,7 +1,13 @@
 #include "PartBunch/PartBunch.h"
+#include "AbstractObjects/OpalData.h"
 #include "Algorithms/Matrix.h"
 #include "Structure/DataSink.h"
 #include "Utilities/Util.h"
+
+#include <filesystem>
+#include <fstream>
+#include <iomanip>
+#include <sstream>
 
 #undef doDEBUG
 
@@ -619,6 +625,83 @@ void PartBunch<T, Dim>::bunchUpdate() {
 }
 
 template <typename T, unsigned Dim>
+void PartBunch<T, Dim>::dumpChargeDensityDebug(const std::string& phaseTag) const {
+    Inform m("PartBunch::dumpChargeDensityDebug");
+
+    if (ippl::Comm->size() > 1) {
+        m << level5 << "Skipping rho debug dump for multiple ranks." << endl;
+        return;
+    }
+
+    const auto& rho = this->fcontainer_m->getRho();
+    ippl::NDIndex<Dim> localIdx = rho.getLayout().getLocalNDIndex();
+    const int nghost            = rho.getNghost();
+    auto* mesh                  = &rho.get_mesh();
+    const auto spacing          = mesh->getMeshSpacing();
+    const auto origin           = mesh->getOrigin();
+
+    auto fieldV      = rho.getView();
+    auto field_hostV = rho.getHostMirror();
+    Kokkos::deep_copy(field_hostV, fieldV);
+
+    std::filesystem::create_directories("data");
+
+    std::string basename = "opalx";
+    if (OpalData::getInstance() != nullptr) {
+        basename = OpalData::getInstance()->getInputBasename();
+    }
+
+    std::ostringstream name;
+    name << basename << "-rho_debug-" << phaseTag << "-step-" << std::setfill('0') << std::setw(6)
+         << globalTrackStep_m << ".dat";
+
+    std::filesystem::path file = std::filesystem::path("data") / name.str();
+    std::ofstream fout(file.string(), std::ios::out);
+    fout << std::setprecision(9);
+
+    const auto fieldRMin = this->fcontainer_m->getRMin();
+    const auto fieldRMax = this->fcontainer_m->getRMax();
+
+    fout << "# RHO debug data before coupling constant application" << std::endl;
+    fout << "# units=rho[C/m^3]" << std::endl;
+    fout << "# phase=" << phaseTag << std::endl;
+    fout << "# global_step=" << globalTrackStep_m << " local_step=" << localTrackStep_m << std::endl;
+    fout << "# colliding=" << hasCollidingBunches_m << " ip_center_local_z[m]=" << ipCenterLocalZ_m
+         << " collision_window_length[m]=" << colwinlen_m << std::endl;
+    fout << "# mesh_origin=" << origin << " mesh_spacing=" << spacing << std::endl;
+    fout << "# field_domain_rmin=" << fieldRMin << " field_domain_rmax=" << fieldRMax << std::endl;
+    fout << "# bunch_bounds_rmin=" << rmin_m << " bunch_bounds_rmax=" << rmax_m << std::endl;
+    fout << "#"
+         << std::setw(4) << "i"
+         << std::setw(5) << "j"
+         << std::setw(5) << "k"
+         << std::setw(17) << "x [m]"
+         << std::setw(17) << "y [m]"
+         << std::setw(17) << "z [m]"
+         << std::setw(18) << "rho [C/m^3]" << std::endl;
+
+    for (int i = localIdx[0].first() + nghost; i <= localIdx[0].last() + nghost; ++i) {
+        for (int j = localIdx[1].first() + nghost; j <= localIdx[1].last() + nghost; ++j) {
+            for (int k = localIdx[2].first() + nghost; k <= localIdx[2].last() + nghost; ++k) {
+                const double x = (i - nghost) * spacing[0] + origin[0];
+                const double y = (j - nghost) * spacing[1] + origin[1];
+                const double z = (k - nghost) * spacing[2] + origin[2];
+
+                fout << std::setw(5) << i
+                     << std::setw(5) << j
+                     << std::setw(5) << k
+                     << std::setw(17) << x
+                     << std::setw(17) << y
+                     << std::setw(17) << z
+                     << std::scientific << "\t" << field_hostV(i, j, k) << std::endl;
+            }
+        }
+    }
+
+    m << level5 << "Wrote rho debug dump to " << file.string() << endl;
+}
+
+template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::computeSelfFields() {
     Inform m("PartBunch::computeSelfFields");
 
@@ -717,6 +800,12 @@ void PartBunch<T, Dim>::computeSelfFields() {
         (*rho) = (*rho) - (totalQ / size);
         m << level4 << "Net-0 charge generation with factor " << (totalQ / size) << " done."
           << endl;
+    }
+
+    if (hasCollidingBunches_m) {
+        dumpChargeDensityDebug("collision_window_primary_only");
+    } else if (globalTrackStep_m == 0) {
+        dumpChargeDensityDebug("single_bunch_reference");
     }
 
     /*
