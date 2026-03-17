@@ -373,7 +373,7 @@ public:
     }
 
 
-  /// \todo constructor could set this
+    /// Set inside TrackRun::execute
     void setReference (const PartData* ref) {
         reference_m = ref;
         if (reference_m && this->pcontainer_m) {
