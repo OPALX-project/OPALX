@@ -26,7 +26,9 @@
  */
 
 #include "Algorithms/PolynomialTimeDependence.h"
+#include "Attributes/Attributes.h"
 #include "Elements/OpalPolynomialTimeDependence.h"
+#include "Utilities/OpalException.h"
 #include "Utilities/GeneralClassicException.h"
 #include "gtest/gtest.h"
 
