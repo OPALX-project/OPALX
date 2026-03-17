@@ -378,7 +378,8 @@ public:
         reference_m = ref;
         if (reference_m && this->pcontainer_m) {
             // Ensure mean/std kinetic energy in DistributionMoments are computed using reference mass.
-            this->pcontainer_m->setEnergyReferenceMass(reference_m->getM(), true);
+            // PartData mass is stored in eV; DistributionMoments expects GeV for its energy computation.
+            this->pcontainer_m->setEnergyReferenceMass(reference_m->getM() * Units::eV2GeV, true);
         }
     }
   
