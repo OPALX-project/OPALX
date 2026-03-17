@@ -4,6 +4,8 @@
 #include <memory>
 #include <cmath>
 
+using view_type = typename ippl::detail::ViewType<ippl::Vector<double, 3>, 1>::view_type;
+
 /**
  * @brief Constructs a Gaussian sampler.
  *
@@ -162,4 +164,3 @@ void Gaussian::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> 
 
     IpplTimings::stopTimer(samperTimer_m);
 }
-
