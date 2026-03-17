@@ -353,9 +353,7 @@ public:
         return  mi_m*this->getTotalNum();
     }
 
-    double getdE() const {
-        return this->pcontainer_m->getStdKineticEnergy();
-    }
+    double getdE() const;
 
     double getGamma(int /*i*/) const {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
@@ -385,60 +383,6 @@ public:
         return 1.0;
     }
 
-/**
- * @brief Compute the kinetic energy of a particle with mass m from the vector \f$\boldsymbol{\beta\gamma}\f$.
- *
- * This function assumes the input vector
- * \f[
- * \mathbf{p} = \boldsymbol{\beta\gamma}
- * \f]
- * where
- * \f[
- * \beta = \frac{v}{c}, \qquad
- * \gamma = \frac{1}{\sqrt{1-\beta^2}}.
- * \f]
- * and the mass in GeV
- * \f[
- * m c^2
- * \f]
- * The magnitude of the vector is
- * \f[
- * |\boldsymbol{\beta\gamma}| =
- * \sqrt{(\beta\gamma_x)^2 + (\beta\gamma_y)^2 + (\beta\gamma_z)^2}.
- * \f]
- *
- * From this we obtain the Lorentz factor
- * \f[
- * \gamma = \sqrt{1 + |\boldsymbol{\beta\gamma}|^2}.
- * \f]
- *
- * The kinetic energy is then
- * \f[
- * E_{\mathrm{kin}} = (\gamma - 1) m.
- * \f]
- *
- * For protons we use
- * \f[
- * m_p c^2 = 938.2720813 \, \mathrm{MeV}.
- * \f]
- *
- * @param p Vector containing \f$(\beta\gamma_x,\beta\gamma_y,\beta\gamma_z)\f$.
- * @return kinetic energy in eV.
- */
-  double p2Ekin (const Vector_t<double,Dim>& p, const double mass ) {
-    
-    // magnitude squared of beta*gamma
-    const double p2 = p[0]*p[0] + p[1]*p[1] + p[2]*p[2];
-
-    // Lorentz factor
-    const double gamma = std::sqrt(1.0 + p2);
-
-    // kinetic energy
-    const double Ekin = (gamma - 1.0) * mass;
-
-    return Ekin;
-  }
-  
     void gatherLoadBalanceStatistics();
 
     size_t getLoadBalance(int p) {
@@ -791,9 +735,8 @@ public:
       return this->pcontainer_m->getMeanGammaZ();
     }
 
-    double get_meanKineticEnergy() {
-      return p2Ekin(this->pcontainer_m->getMeanP(),reference_m->getM())*Units::eV2MeV;
-    }
+    /// Mean kinetic energy over particles (mean of per-particle kinetic energy), in MeV.
+    double get_meanKineticEnergy();
 
     Vector_t<double, Dim> get_origin() const {
         return rmin_m;

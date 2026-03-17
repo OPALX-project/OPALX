@@ -401,20 +401,96 @@ void PartBunch<T, Dim>::pre_run() {
 }
 
 template <typename T, unsigned Dim>
+double PartBunch<T, Dim>::get_meanKineticEnergy() {
+    // We want mean(Ekin(p_i)) and we want to use the *reference particle mass*,
+    // not the per-macroparticle mass stored in the container.
+    const size_t Np_raw = this->getTotalNum();
+    const size_t Np     = (Np_raw == 0) ? 1 : Np_raw;
+
+    const size_t Nlocal = this->getLocalNum();
+    const double mRefGeV = reference_m ? reference_m->getM() : 0.0;
+
+    auto Pview = this->pcontainer_m->P.getView();
+
+    double loc_sumE = 0.0;
+    Kokkos::parallel_reduce(
+        "PartBunch::meanKineticEnergyRefMass", Nlocal,
+        KOKKOS_LAMBDA(const size_t i, double& sumE) {
+            double p2 = 0.0;
+            for (int d = 0; d < 3; ++d) {
+                const double pd = Pview(i)[d];
+                p2 += pd * pd;
+            }
+            const double gamma = Kokkos::sqrt(1.0 + p2);
+            const double ekinMeV = (gamma - 1.0) * mRefGeV * Units::GeV2MeV;
+            sumE += ekinMeV;
+        },
+        Kokkos::Sum<double>(loc_sumE));
+    Kokkos::fence();
+
+    double glob_sumE = 0.0;
+    ippl::Comm->allreduce(&loc_sumE, &glob_sumE, 1, std::plus<double>());
+
+    return glob_sumE / static_cast<double>(Np);
+}
+
+template <typename T, unsigned Dim>
+double PartBunch<T, Dim>::getdE() const {
+    // Stddev of kinetic energy over particles, computed using reference particle mass.
+    const size_t Np_raw = this->getTotalNum();
+    const size_t Np     = (Np_raw == 0) ? 1 : Np_raw;
+
+    const size_t Nlocal = this->getLocalNum();
+    const double mRefGeV = reference_m ? reference_m->getM() : 0.0;
+
+    auto Pview = this->pcontainer_m->P.getView();
+
+    double loc_sumE  = 0.0;
+    double loc_sumE2 = 0.0;
+    Kokkos::parallel_reduce(
+        "PartBunch::stdKineticEnergyRefMass", Nlocal,
+        KOKKOS_LAMBDA(const size_t i, double& sumE, double& sumE2) {
+            double p2 = 0.0;
+            for (int d = 0; d < 3; ++d) {
+                const double pd = Pview(i)[d];
+                p2 += pd * pd;
+            }
+            const double gamma = Kokkos::sqrt(1.0 + p2);
+            const double ekinMeV = (gamma - 1.0) * mRefGeV * Units::GeV2MeV;
+            sumE += ekinMeV;
+            sumE2 += ekinMeV * ekinMeV;
+        },
+        Kokkos::Sum<double>(loc_sumE), Kokkos::Sum<double>(loc_sumE2));
+    Kokkos::fence();
+
+    double glob_sumE  = 0.0;
+    double glob_sumE2 = 0.0;
+    ippl::Comm->allreduce(&loc_sumE, &glob_sumE, 1, std::plus<double>());
+    ippl::Comm->allreduce(&loc_sumE2, &glob_sumE2, 1, std::plus<double>());
+
+    const double mean = glob_sumE / static_cast<double>(Np);
+    double var = glob_sumE2 / static_cast<double>(Np) - mean * mean;
+    if (var < 0.0) {
+        var = 0.0;
+    }
+    return std::sqrt(var);
+}
+
+template <typename T, unsigned Dim>
 Inform& PartBunch<T, Dim>::print(Inform& os) {
     // if (this->getLocalNum() != 0) {  // to suppress Nans
     Inform::FmtFlags_t ff = os.flags();
 
-    double dek = p2Ekin(this->pcontainer_m->getRmsP(),  reference_m->getM()*Units::eV2MeV);
-    double ek  = p2Ekin(this->pcontainer_m->getMeanP(), reference_m->getM()*Units::eV2MeV );
+    const double ek  = this->get_meanKineticEnergy();
+    const double dek = this->getdE();
     
     os << level1 << std::scientific << "\n"
        << "* ************** B U N C H "
         "********************************************************* \n"
        << "* PARTICLES       = " << this->getTotalNum() << "\n"
        << "* CHARGE          = " << this->qi_m*this->getTotalNum() << " (Cb) \n"
-       << "* <EKIN>          = " << ek << " (GeV) \n"
-       << "* <dEKIN>         = " << dek << " (GeV) \n"
+       << "* <EKIN>          = " << ek << " (MeV) \n"
+       << "* <dEKIN>         = " << dek << " (MeV) \n"
        << "* INTEGRATOR      = " << integration_method_m << "\n"
        << "* MIN R (origin)  = " << Util::getLengthString( this->pcontainer_m->getMinR(), 5) << "\n"
        << "* MAX R (max ext) = " << Util::getLengthString( this->pcontainer_m->getMaxR(), 5) << "\n"
