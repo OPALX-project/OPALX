@@ -537,6 +537,11 @@ template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::computeSelfFields() {
     Inform m("PartBunch::computeSelfFields");
 
+    if (ippl::Comm->size() == 1 && this->pcontainer_m->getLocalNum() <= 1) {
+        m << level5 << "WARNING: Only 1 or less particles on rank, skipping computeSelfFields." << endl;
+        return;
+    }
+
     if (this->hasBinning()) {
         static IpplTimings::TimerRef completeBinningT = IpplTimings::getTimer("bTotalBinningT");
 
