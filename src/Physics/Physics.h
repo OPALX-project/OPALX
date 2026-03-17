@@ -23,11 +23,18 @@
 #ifndef CLASSIC_Physics_HH
 #define CLASSIC_Physics_HH
 
+#ifdef OPALX_USE_KOKKOS_MATH_CONSTANTS
+#include <Kokkos_MathematicalConstants.hpp>
+#endif
 
 namespace Physics {
 
     /// The value of \f[ \pi \f]
+#ifdef OPALX_USE_KOKKOS_MATH_CONSTANTS
+    constexpr double pi         = Kokkos::numbers::pi_v<double>;
+#else
     constexpr double pi         = 3.14159265358979323846;
+#endif
 
     /// The value of \f[2 \pi \f]
     constexpr double two_pi     = 2 * pi;
@@ -36,10 +43,18 @@ namespace Physics {
     constexpr double u_two_pi   = 1.0 / two_pi;
 
     /// The value of \f[ e \f]
+#ifdef OPALX_USE_KOKKOS_MATH_CONSTANTS
+    constexpr double e          = Kokkos::numbers::e_v<double>;
+#else
     constexpr double e          = 2.7182818284590452354;
+#endif
 
     /// The logarithm of $e$ to the base 10
+#ifdef OPALX_USE_KOKKOS_MATH_CONSTANTS
+    constexpr double log10e     = Kokkos::numbers::log10e_v<double>;
+#else
     constexpr double log10e     = 0.43429448190325182765;
+#endif
 
     /// The velocity of light in m/s
     constexpr double c          = 299792458.0;
