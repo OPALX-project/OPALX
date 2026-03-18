@@ -172,6 +172,8 @@ public:
     void generateTanhCoefficients(unsigned int numDerivatives);
     KOKKOS_INLINE_FUNCTION static Vector_t<double, 3> rotateFrame(Vector_t<double, 3> R,
             const MultipoleTConfig& config);
+    KOKKOS_INLINE_FUNCTION static void calcPowers(double value, unsigned int maxPower,
+            Kokkos::Array<double, MaxPowerInteger>& powers);
 };
 
 KOKKOS_INLINE_FUNCTION
@@ -296,5 +298,13 @@ Vector_t<double, 3> MultipoleTBase::rotateFrame(Vector_t<double, 3> R,
     R2[2] = R1[2] * std::cos(config.entranceAngle_m) - R1[0] * std::sin(config.entranceAngle_m);
     return R2;
 }
+
+KOKKOS_INLINE_FUNCTION void MultipoleTBase::calcPowers(const double value,
+        const unsigned int maxPower, Kokkos::Array<double, MaxPowerInteger>& powers) {
+    powers[0] = 1;
+    for(unsigned int i = 1; i <= maxPower; i++) {
+        powers[i] = powers[i - 1] * value;
+    }
+};
 
 #endif

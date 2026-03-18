@@ -80,8 +80,8 @@
 #include "AbsBeamline/MultipoleTFunctions/RecursionRelation.h"
 #include <vector>
 
-class MultipoleTCurvedConstRadius final: public MultipoleTBase {
-public: 
+class MultipoleTCurvedConstRadius final : public MultipoleTBase {
+public:
     /** Constructor */
     explicit MultipoleTCurvedConstRadius(MultipoleT* element);
     /** Initialise the element */
@@ -90,6 +90,13 @@ public:
     BGeometryBase* getGeometry() override { return &planarArcGeometry_m; }
     /** Return the cell geometry */
     const BGeometryBase* getGeometry() const override { return &planarArcGeometry_m; }
+    /** Return the field for an array of points */
+    void getField(const Kokkos::View<Vector_t<double, 3>*>& R,
+            Kokkos::View<Vector_t<double, 3>*>& E, Kokkos::View<Vector_t<double, 3>*>& B,
+            double scaling) override;
+    void getField(const Vector_t<double, 3>& R,
+            Vector_t<double, 3>& E, Vector_t<double, 3>& B,
+            double scaling) override;
     /** Transform to Frenet-Serret coordinates for sector magnets */
     void transformCoords(Vector_t<double, 3>& /*R*/) override;
     /** Transform B-field from Frenet-Serret coordinates to lab coordinates */
@@ -112,9 +119,89 @@ public:
      */
 
     Vector_t<double, 3> localCartesianToOpalCartesian(const Vector_t<double, 3>& r) override;
+
 private:
     /** Geometry */
     PlanarArcGeometry planarArcGeometry_m;
+
+    // Helpers
+    KOKKOS_INLINE_FUNCTION static Vector_t<double, 3> toMagnetCoords(const Vector_t<double, 3>& R,
+            const MultipoleTConfig& config);
+    template<class ViewType>
+    KOKKOS_INLINE_FUNCTION static void computeBField(const Vector_t<double, 3>& R,
+            Vector_t<double, 3>& B, double scaling, const MultipoleTConfig& config,
+            const ViewType& tanhCoefficients);
 };
+
+KOKKOS_INLINE_FUNCTION Vector_t<double, 3> MultipoleTCurvedConstRadius::toMagnetCoords(
+        const Vector_t<double, 3>& R, const MultipoleTConfig& config) {
+    // Skew and entry angle
+    Vector_t<double, 3> result = rotateFrame(R, config);
+    // Go to local Frenet-Serret coordinates
+    if(config.bendAngle_m != 0.0) {
+        const double radius = config.length_m / config.bendAngle_m;
+        const double rMinusX = radius - R[0];
+        const double alpha = Kokkos::hypot(rMinusX, R[2]);
+        result[0] = alpha - radius;
+        result[1] = R[1];
+        result[2] = radius * Kokkos::atan2(R[2], rMinusX);
+    }
+    // Magnet origin at the center rather than entry
+    result[2] -= config.length_m / 2.0;
+    return result;
+}
+
+template<class ViewType>
+KOKKOS_INLINE_FUNCTION void MultipoleTCurvedConstRadius::computeBField(const Vector_t<double, 3>& R,
+        Vector_t<double, 3>& B, const double scaling, const MultipoleTConfig& config,
+        const ViewType& tanhCoefficients) {
+    const Vector_t<double, 3> RPrime = toMagnetCoords(R, config);
+    const bool insideAperture =
+            Kokkos::abs(RPrime[1]) <= config.verticalAperture_m / 2.0 &&
+            Kokkos::abs(RPrime[0]) <= config.horizontalAperture_m / 2.0;
+    const bool insideBoundingBox = config.boundingBoxLength_m == 0.0 ||
+            Kokkos::abs(RPrime[2]) <= config.boundingBoxLength_m / 2.0;
+    if(insideAperture && insideBoundingBox) {
+        Vector_t<double, 3> myB{};
+        Kokkos::Array<double, MaxDerivatives> dt{};
+        Kokkos::Array<double, MaxDerivatives> ds{};
+        Kokkos::Array<double, MaxPowerInteger> rhoPowers{};
+        Kokkos::Array<double, MaxPowerInteger> hsPowers{};
+        calcTransverseDerivatives(config.transverseProfile_m, config.maxFOrder_m * 2 + 1, RPrime[0],
+                dt);
+        calcFringeDerivatives(config.fringeS0_m, config.fringeLambdaLeft_m,
+                config.fringeLambdaRight_m,
+                RPrime[2], tanhCoefficients, ds);
+        const double rho = config.length_m / config.bendAngle_m;
+        calcPowers(rho, config.maxFOrder_m, rhoPowers);
+        const double hs = 1 + RPrime[0] / rho;
+        calcPowers(hs, 2 * config.maxFOrder_m, hsPowers);
+        for(unsigned int n = 0; n <= config.maxFOrder_m; n++) {
+            double innerSumX{};
+            double innerSumZ{};
+            double innerSumS{};
+            for(unsigned int i = 0; i <= n; i++) {
+                for(unsigned int j = 0; j <= n - i; j++) {
+                    const double k = factorial(n) /
+                            (factorial(i) * factorial(j) * factorial(n - i - j));
+                    const double rhoHs = 1.0 / rhoPowers[i] / hsPowers[2 * n - i - 2 * j];
+                    const double dtx = dt[i + 2 * j + 1] -
+                            (2 * n - i - 2 * j) / rho / hs * dt[i + 2 * j];
+                    innerSumX += k * rhoHs * dtx * ds[2 * n - 2 * i - 2 * j];
+                    innerSumZ += k * rhoHs * dt[i + 2 * j] * ds[2 * n - 2 * i - 2 * j];
+                    innerSumS += k * rhoHs * dt[i + 2 * j] * ds[2 * n - 2 * i - 2 * j + 1];
+                }
+            }
+            const double negOnePowN = powerInteger(-1.0, n);
+            const double xszk = powerInteger(RPrime[1], 2 * n + 1) / factorial(2 * n + 1) *
+                    negOnePowN;
+            const double zzk = powerInteger(RPrime[1], 2 * n) / factorial(2 * n) * negOnePowN;
+            myB[0] += innerSumX * xszk;
+            myB[1] += innerSumZ * zzk;
+            myB[2] += innerSumS * xszk;
+        }
+        B += myB * scaling;
+    }
+}
 
 #endif

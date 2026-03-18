@@ -140,11 +140,10 @@ private:
 
 KOKKOS_INLINE_FUNCTION Vector_t<double, 3> MultipoleTStraight::toMagnetCoords(
         const Vector_t<double, 3>& R, const MultipoleTConfig& config) {
+    // Skew and entry angle
     Vector_t<double, 3> result = rotateFrame(R, config);
-    /** Go to local Frenet-Serret coordinates */
-    result[2] *= -1; // OPAL uses a different sign convention...
     // Magnet origin at the center rather than entry
-    result[2] += config.length_m / 2.0;
+    result[2] -= config.length_m / 2.0;
     return result;
 }
 
