@@ -171,6 +171,7 @@ namespace ParticleBinning {
          * @brief Returns the Kokkos View containing the histogram bin counts.
          */
         view_type getHistogram() { return histogram_m; }
+        view_type getHistogram() const { return histogram_m; }
 
         /**
          * @brief Returns the Kokkos View containing the post-sum of bin counts.

@@ -47,6 +47,8 @@ namespace BINNING {
         BINNINGALPHA, // Aggressiveness of bin-number reduction
         BINNINGBETA,  // Aggressiveness of using wider bins
         PARAMETER,    // Which bunch attribute is used for binning
+        DUMPBINSFILE, // File name for dumping bins
+        DUMPBINSFREQ, // Frequency of dumping bins to a file (only used if DUMPBINSFILE is set)
         SIZE
     };
 }
@@ -71,6 +73,15 @@ public:
 
     std::string getParameter();
     BinningParameter getParameterType() const;
+
+    /// Get the file name for dumping bins to a file.
+    std::string getDumpBinsFileName() const;
+
+    /// Get the frequency of dumping bins to a file.
+    int getDumpBinsFrequency() const;
+
+    /// Check if dumping bins to a file is enabled.
+    bool dumpBinsToFile() const;
 
     /// Update the binning data (internal cache of attributes).
     virtual void update();

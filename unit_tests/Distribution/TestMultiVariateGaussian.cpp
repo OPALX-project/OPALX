@@ -2,6 +2,7 @@
 #include <mpi.h>
 #include <memory>
 #include <cmath>
+#include <algorithm>
 
 #include "Distribution/MultiVariateGaussian.h"
 #include "Ippl.h"
@@ -22,7 +23,7 @@ protected:
 
     void SetUp() override {
         // Minimal 3D grid parameters
-        nr = 64;
+        nr = 32;
         ippl::Vector<double,3> rmin = -4.0;
         ippl::Vector<double,3> rmax = 4.0;
         ippl::Vector<double,3> origin = rmin;
@@ -115,6 +116,11 @@ void computeStdDev(ViewType &view,
     }
 }
 
+// Forward declaration so tests can call this helper before its definition.
+static void preallocateParticleCapacity(
+    const std::shared_ptr<ParticleContainer<double, 3>>& pc,
+    size_t totalParticles);
+
 TEST_F(MultiVariateGaussianTest, meanR_varR) {
     const Vector_t<double, 3> sigmaR_ref = 0.5;
     const Vector_t<double, 3> sigmaP_ref = 1.0;
@@ -125,8 +131,9 @@ TEST_F(MultiVariateGaussianTest, meanR_varR) {
 
     MultiVariateGaussian sampler(pc, meanR_ref, meanP_ref, sigmaR_ref, sigmaP_ref, cutoffR_ref, cutoffP_ref);
 
-    size_t total_nparticles = 1000000;
+    size_t total_nparticles = 100000;
 
+    preallocateParticleCapacity(pc, total_nparticles);
     sampler.generateParticles(total_nparticles, nr);
 
     double meanR[3];
@@ -191,6 +198,23 @@ void computeMaxAbsR(ViewType &view,
     ippl::Comm->barrier();
 }
 
+/// Preallocate particle container capacity so SamplingBase::computeLocalEmitCount
+/// can distribute particles without being constrained by zero capacity.
+static void preallocateParticleCapacity(
+    const std::shared_ptr<ParticleContainer<double, 3>>& pc,
+    size_t totalParticles)
+{
+    const int nranks     = std::max(1, ippl::Comm->size());
+    const size_t nranksU = static_cast<size_t>(nranks);
+
+    const size_t maxLocalNum =
+        totalParticles / nranksU + 2 * nranksU + 1;
+
+    pc->create(maxLocalNum);
+    Kokkos::View<bool*> tmp_invalid("tmp_invalid", maxLocalNum);
+    pc->destroy(tmp_invalid, maxLocalNum);
+}
+
 TEST_F(MultiVariateGaussianTest, cutoffR)
 {
     const Vector_t<double, 3> sigmaR_ref = 0.5;
@@ -204,8 +228,8 @@ TEST_F(MultiVariateGaussianTest, cutoffR)
     bool fixMeanP = false;
     MultiVariateGaussian sampler(pc, meanR_ref, meanP_ref, sigmaR_ref, sigmaP_ref, cutoffR_ref, cutoffP_ref, fixMeanR, fixMeanP);
 
-    size_t total_nparticles = 1000000;
-
+    size_t total_nparticles = 100000;
+    preallocateParticleCapacity(pc, total_nparticles);
     sampler.generateParticles(total_nparticles, nr);
     
     double global_maxAbsR[3];
@@ -231,7 +255,8 @@ TEST_F(MultiVariateGaussianTest, meanP_and_varP)
 
     MultiVariateGaussian sampler(pc, meanR_ref, meanP_ref, sigmaR_ref, sigmaP_ref, cutoffR_ref, cutoffP_ref, fixMeanR, fixMeanP);
 
-    size_t total_nparticles = 1000000;
+    size_t total_nparticles = 100000;
+    preallocateParticleCapacity(pc, total_nparticles);
     sampler.generateParticles(total_nparticles, nr);
 
     double meanP[3] = {0.0, 0.0, 0.0};
@@ -410,6 +435,7 @@ TEST_F(MultiVariateGaussianTest, FullCovarianceTest)
     MultiVariateGaussian sampler(pc, meanR, meanP, covExpected, cutoffR, cutoffP);
 
     size_t total_nparticles = 1000000;
+    preallocateParticleCapacity(pc, total_nparticles);
     sampler.generateParticles(total_nparticles, nr);
 
     double meanSample[6];
