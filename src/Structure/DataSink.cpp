@@ -27,8 +27,6 @@
 //
 #include "Structure/DataSink.h"
 
-#include "OPALconfig.h"
-
 #include "AbstractObjects/OpalData.h"
 #include "Fields/Fieldmap.h"
 #include "Physics/Units.h"
