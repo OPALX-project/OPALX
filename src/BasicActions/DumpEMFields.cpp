@@ -21,6 +21,7 @@
 #include "Attributes/Attributes.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Util.h"
+#include "Physics/Units.h"
 #include <filesystem>
 #include <fstream>
 
