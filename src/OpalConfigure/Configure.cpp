@@ -49,6 +49,7 @@
 
 // Table-related commands.
 #include "Structure/Beam.h"
+#include "Structure/EmissionSource.h"
 #include "Structure/FieldSolverCmd.h"
 #include "Structure/BinningCmd.h"
 // #include "Tables/List.h"
@@ -78,6 +79,7 @@
 #include "Elements/OpalMultipoleT.h"
 
 // Structure-related commands.
+#include "Lines/EmissionSourceList.h"
 #include "Lines/Line.h"
 
 #include "changes.h"
@@ -116,8 +118,10 @@ namespace {
         opal->create(new MacroCmd());
 
         opal->create(new Beam());
+        opal->create(new EmissionSource());
         opal->create(new FieldSolverCmd());
         opal->create(new Distribution());
+        opal->create(new EmissionSourceList());
         opal->create(new BinningCmd());
     }
 

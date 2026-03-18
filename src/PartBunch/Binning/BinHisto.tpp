@@ -120,6 +120,15 @@ namespace ParticleBinning {
         }
         const size_type totalNumParticles = prefixCount(n); // Last value in prefixCount is the total number of particles
 
+        // If there are no particles globally, do not attempt merging (the DP reconstruction
+        // would otherwise yield 0 merged bins and break downstream reducers).
+        if (totalNumParticles == 0) {
+            m << level4 << "Not merging, since totalNumParticles == 0." << endl;
+            hindex_transform_type oldToNewBinsView("oldToNewBinsView", n);
+            Kokkos::deep_copy(oldToNewBinsView, 0);
+            return oldToNewBinsView;
+        }
+
 
         // ----------------------------------------------------------------
         // 2) Dynamic Programming arrays:
