@@ -12,12 +12,6 @@
 #include <cctype>
 #include <filesystem>
 
-using ParticleContainer_t = ParticleContainer<double, 3>;
-using FieldContainer_t = FieldContainer<double, 3>;
-using Distribution_t = Distribution;
-
-using view_type = typename ippl::detail::ViewType<ippl::Vector<double, 3>, 1>::view_type;
-
 FromFile::FromFile(std::shared_ptr<ParticleContainer_t> pc,
                    std::shared_ptr<FieldContainer_t> fc,
                    std::shared_ptr<Distribution_t> opalDist)

@@ -3,8 +3,6 @@
 #include <mpi.h>
 #include <algorithm>
 
-using Matrix_t = ippl::Vector<ippl::Vector<double, 6>, 6>;
-
 /**
  * @brief Constructs the MultiVariateGaussian class.
  * @param pc Shared pointer to the particle container.

@@ -140,6 +140,10 @@ public:
         distMoments_m.computeMoments(this->R.getView(), this->P.getView(), this->M.getView(), Np, Nlocal);
     }
 
+    void setEnergyReferenceMass(double referenceMassGeV, bool rescaleToReference = true) {
+        distMoments_m.setEnergyReferenceMass(referenceMassGeV, rescaleToReference);
+    }
+
     Vector_t<double, 3> getMeanP() const{
          return distMoments_m.getMeanMomentum();
     }

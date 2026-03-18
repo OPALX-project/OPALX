@@ -26,8 +26,10 @@
  */
 
 #include "Algorithms/SplineTimeDependence.h"
+#include "Attributes/Attributes.h"
 #include "Elements/OpalSplineTimeDependence.h"
 #include "Utilities/GeneralClassicException.h"
+#include "Utilities/OpalException.h"
 #include "gtest/gtest.h"
 
 class TestSplineTimeDependence : public testing::Test {

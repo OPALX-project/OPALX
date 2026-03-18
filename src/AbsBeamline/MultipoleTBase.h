@@ -29,6 +29,8 @@
 #ifndef CLASSIC_MULTIPOLETBASE_H
 #define CLASSIC_MULTIPOLETBASE_H
 
+#include "PartBunch/PartBunch.h"
+
 /** ---------------------------------------------------------------------
  *
  * MultipoleTBase is a base class for a straight or curved combined \n
