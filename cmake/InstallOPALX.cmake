@@ -9,6 +9,8 @@ install(
   FILES_MATCHING
   PATTERN "*.h" PATTERN "*.hpp" PATTERN "*.hh" PATTERN "*.H" PATTERN "*.cuh" PATTERN "*.tpp"
   EXCLUDE
+  PATTERN "OPALconfig.h" EXCLUDE
+  PATTERN "OPALXVersions.h" EXCLUDE
   PATTERN "CMakeFiles" EXCLUDE
   PATTERN "CMakeLists.txt" EXCLUDE
   PATTERN "*.cpp" EXCLUDE
