@@ -215,7 +215,7 @@ public:
      * @param tf End time.
      * @return Number of entering particles per rank.
      */
-    double countEnteringParticlesPerRank(double t0, double tf);
+    size_type countEnteringParticlesPerRank(double t0, double tf);
 
     /**
      * @brief Allocates memory for a given number of particles.

@@ -13,6 +13,7 @@
 #include "Ippl.h"
 
 #include <Kokkos_DualView.hpp>
+#include <algorithm>
 #include <vector>
 
 #include "ParallelReduceTools.h"
@@ -150,8 +151,10 @@ namespace ParticleBinning {
          * @note The other parameters (limits) are set before this function is called in doFullRebin().
          */
         void setCurrentBinCount(bin_index_type nBins) {
-            currentBins_m = (nBins > maxBins_m) ? maxBins_m : nBins; 
-            binWidth_m    = (xMax_m - xMin_m) / currentBins_m; 
+            // Hard safety: never allow 0 bins (would break reducers and cause div-by-zero).
+            const bin_index_type clampedUpper = (nBins > maxBins_m) ? maxBins_m : nBins;
+            currentBins_m = std::max<bin_index_type>(1, clampedUpper);
+            binWidth_m    = (xMax_m - xMin_m) / currentBins_m;
         }
 
         /**

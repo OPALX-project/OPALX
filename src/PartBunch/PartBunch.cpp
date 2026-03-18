@@ -294,8 +294,9 @@ void PartBunch<T, Dim>::calcBeamParameters() {
     Inform m("PartBunch::calcBeamParameters");
     std::shared_ptr<ParticleContainer_t> pc = this->pcontainer_m;
     
-    auto Rview = pc->R.getView();
-    auto Pview = pc->P.getView();
+    using view_type = ippl::ParticleAttrib<Vector_t<double,3>>::view_type;
+    view_type Rview = pc->R.getView();
+    view_type Pview = pc->P.getView();
     this->updateMoments();
     m << level5 << "Moments updated." << endl;
 
@@ -401,20 +402,34 @@ void PartBunch<T, Dim>::pre_run() {
 }
 
 template <typename T, unsigned Dim>
+double PartBunch<T, Dim>::get_meanKineticEnergy() {
+    // Single source of truth: computed in DistributionMoments during updateMoments().
+    // Unit: MeV (see DistributionMoments implementation).
+    return this->pcontainer_m->getMeanKineticEnergy();
+}
+
+template <typename T, unsigned Dim>
+double PartBunch<T, Dim>::getdE() const {
+    // Single source of truth: computed in DistributionMoments during updateMoments().
+    // Unit: MeV (see DistributionMoments implementation).
+    return this->pcontainer_m->getStdKineticEnergy();
+}
+
+template <typename T, unsigned Dim>
 Inform& PartBunch<T, Dim>::print(Inform& os) {
     // if (this->getLocalNum() != 0) {  // to suppress Nans
     Inform::FmtFlags_t ff = os.flags();
 
-    double dek = p2Ekin(this->pcontainer_m->getRmsP(),  reference_m->getM()*Units::eV2MeV);
-    double ek  = p2Ekin(this->pcontainer_m->getMeanP(), reference_m->getM()*Units::eV2MeV );
+    const double ek  = this->get_meanKineticEnergy();
+    const double dek = this->getdE();
     
     os << level1 << std::scientific << "\n"
        << "* ************** B U N C H "
         "********************************************************* \n"
        << "* PARTICLES       = " << this->getTotalNum() << "\n"
        << "* CHARGE          = " << this->qi_m*this->getTotalNum() << " (Cb) \n"
-       << "* <EKIN>          = " << ek << " (GeV) \n"
-       << "* <dEKIN>         = " << dek << " (GeV) \n"
+       << "* <EKIN>          = " << Util::getEnergyString(ek) << "\n"
+       << "* <dEKIN>         = " << Util::getEnergyString(dek) << "\n"
        << "* INTEGRATOR      = " << integration_method_m << "\n"
        << "* MIN R (origin)  = " << Util::getLengthString( this->pcontainer_m->getMinR(), 5) << "\n"
        << "* MAX R (max ext) = " << Util::getLengthString( this->pcontainer_m->getMaxR(), 5) << "\n"
@@ -465,6 +480,19 @@ void PartBunch<T, Dim>::bunchUpdate() {
     ippl::Vector<double, 3> l = e - o;
 
     /*
+    If a coordinate of l is too close to zero, set it to 1e-12.
+    This avoids having a mesh spacing of zero, which would crash ippl and allows
+    empty simulations - especially important for emission sources.
+    */
+    for (int i = 0; i < 3; i++) {
+        if (l[i] < 1e-6) { 
+            l[i] = 1e-6; 
+            m << level3 << "Mesh spacing in dimension " << i << " too small. Set to 1e-6." << endl;
+            //return;
+        }
+    }
+
+    /*
     Now matches OPAL: domain + incr% on each side.
     Note that there is still a mismatch: OPAL only resizes in z direction and
     keeps x/y the same. But this doesn't make too much sense in my opinion...
@@ -509,6 +537,12 @@ template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::computeSelfFields() {
     Inform m("PartBunch::computeSelfFields");
 
+    if (ippl::Comm->size() == 1 && this->pcontainer_m->getLocalNum() <= 1) {
+        this->pcontainer_m->E = 0.0;
+        m << level5 << "WARNING: Only 1 or less particles in this bunch, setting E to 0 for particles." << endl;
+        return;
+    }
+
     if (this->hasBinning()) {
         static IpplTimings::TimerRef completeBinningT = IpplTimings::getTimer("bTotalBinningT");
 
@@ -533,11 +567,16 @@ void PartBunch<T, Dim>::computeSelfFields() {
     need it anyways, since positions have changed). However, when removing it,
     the total energy of the FODO example quickly diverges to "-inf". I don't
     know why this is, but particle positions shouldn't have changed. I would
-    therefore assume that we could separate bunchUpdate from pc->update() in 
-    order to save some computation. 
+    therefore assume that we could separate bunchUpdate from pc->update() in
+    order to save some computation.
+
+    Edit: this is necessary since we transform positions, so we need to update
+    mesh boundaries and spacings!
+
+    Edit 2: this is now handled in computeSpaceChargeFields
     */
-    this->bunchUpdate();
-    m << level5 << "Bunch updated." << endl;
+    // this->bunchUpdate();
+    // m << level5 << "Bunch updated for positions in beam coordinate system." << endl;
 
     /// \todo Add binned field solver here (needs iteration over bins, scatterPerBin calls and Etmp build up)! See https://gitlab.psi.ch/OPAL/opal-x/src/-/blame/binnedFieldSolver/src/PartBunch/PartBunch.cpp?ref_type=heads#L376
 

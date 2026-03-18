@@ -2,11 +2,15 @@
 #ifndef OPAL_PARTICLE_CONTAINER_H
 #define OPAL_PARTICLE_CONTAINER_H
 
+// #include <functional>
 #include <memory>
+// #include <vector>
 
 #include "Manager/BaseManager.h"
 
 #include "Algorithms/DistributionMoments.h"
+
+// #include <Kokkos_Core.hpp>
 
 template <typename T>
 using ParticleAttrib = ippl::ParticleAttrib<T>;
@@ -80,6 +84,50 @@ public:
         setBCAllPeriodic();
     }
 
+    /*!
+     * Create nNew new particle slots. If current capacity is sufficient, calls base create.
+     * Otherwise copies existing attribute data to temporaries, calls base create (which
+     * reallocs), then copies data back so existing particles are preserved.
+     */
+    /*void createKeepData(size_type nNew) {
+        const size_type required = this->getLocalNum() + nNew;
+        if (this->R.getView().extent(0) >= required) {
+            this->create(nNew);
+            return;
+        }
+        const size_type nOld = this->getLocalNum();
+        std::vector<std::function<void()>> copyBack;
+        auto saveAttr = [&](auto& attr, const char* name) {
+            auto& v = attr.getView();
+            using VType = std::remove_reference_t<decltype(v)>;
+            VType temp(std::string(name), nOld);
+            Kokkos::deep_copy(
+                temp,
+                Kokkos::subview(v, std::make_pair(size_type(0), nOld)));
+            copyBack.push_back([&attr, nOld, temp]() {
+                Kokkos::deep_copy(
+                    Kokkos::subview(attr.getView(),
+                                   std::make_pair(size_type(0), nOld)),
+                    temp);
+            });
+        };
+        saveAttr(this->R, "createKeepData_R");
+        saveAttr(this->ID, "createKeepData_ID");
+        saveAttr(Q, "createKeepData_Q");
+        saveAttr(M, "createKeepData_M");
+        saveAttr(dt, "createKeepData_dt");
+        saveAttr(Phi, "createKeepData_Phi");
+        saveAttr(Bin, "createKeepData_Bin");
+        saveAttr(Sp, "createKeepData_Sp");
+        saveAttr(P, "createKeepData_P");
+        saveAttr(E, "createKeepData_E");
+        saveAttr(B, "createKeepData_B");
+        this->create(nNew);
+        for (auto& f : copyBack) {
+            f();
+        }
+    }*/
+
     PLayout_t<T, Dim>& getPL() {
         return pl_m;
     }
@@ -90,6 +138,10 @@ public:
 
         size_t Nlocal = this->getLocalNum();
         distMoments_m.computeMoments(this->R.getView(), this->P.getView(), this->M.getView(), Np, Nlocal);
+    }
+
+    void setEnergyReferenceMass(double referenceMassGeV, bool rescaleToReference = true) {
+        distMoments_m.setEnergyReferenceMass(referenceMassGeV, rescaleToReference);
     }
 
     Vector_t<double, 3> getMeanP() const{
