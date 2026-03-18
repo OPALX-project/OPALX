@@ -297,21 +297,26 @@ public:
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
     }
 
+    /**
+     * The following functions are not used yet. Will be properly implemented by
+     * Aliemen as part of the binned solver work.
+     */
+    /*
     void par2grid() override {
         scatterCIC();
     }
-
+    void scatterCIC() {
+        scatterCICPerBin(-1);
+    } 
+    void scatterCICPerBin(binIndex_t binIndex);
+    */
+    
     void grid2par() override {
         gatherCIC();
     }
 
     void gatherCIC();
 
-    void scatterCIC() {
-        scatterCICPerBin(-1);
-    } 
-
-    void scatterCICPerBin(binIndex_t binIndex);
 
     /*
       Up to here it is like the opaltest
