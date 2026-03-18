@@ -223,7 +223,6 @@ else()
 endif()
 
 # Keep high-signal toggles visible in configure output.
-message(STATUS "🔧 Standard output folders (OPALX_USE_STANDARD_FOLDERS): ${OPALX_USE_STANDARD_FOLDERS}")
 message(STATUS "🔧 Skip failing tests (OPALX_SKIP_FAILING_TESTS): ${OPALX_SKIP_FAILING_TESTS}")
 
 # "Build OPALX as a shared library (ON) or static library (OFF)" OFF) 
