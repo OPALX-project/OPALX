@@ -30,7 +30,6 @@ set (HDRS
     OrbitThreader.h
     OpalParticle.h
     ParallelTracker.h
-    PartBunch.hpp
     PartData.h
     PolynomialTimeDependence.h
     SplineTimeDependence.h
