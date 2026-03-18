@@ -1,0 +1,28 @@
+// Build and version information
+// generated automatically - do not edit
+
+#ifndef OPALX_BUILD_INFO_H
+#define OPALX_BUILD_INFO_H
+
+#include <string_view>
+
+namespace buildinfo {
+
+inline constexpr std::string_view project_name    = "OPALX";
+inline constexpr std::string_view project_version = "@PROJECT_VERSION@";
+
+inline constexpr int version_major = @OPALX_VERSION_MAJOR_VALUE@;
+inline constexpr int version_minor = @OPALX_VERSION_MINOR_VALUE@;
+inline constexpr int version_patch = @OPALX_VERSION_PATCH_VALUE@;
+
+inline constexpr std::string_view compile_arch    = "@OPALX_COMPILE_ARCH@";
+inline constexpr std::string_view compile_line    = "@OPALX_COMPILE_LINE@";
+inline constexpr std::string_view compile_date    = "@OPALX_COMPILE_DATE@";
+inline constexpr std::string_view compile_machine = "@OPALX_COMPILE_MACHINE@";
+inline constexpr std::string_view compile_options = "@OPALX_COMPILE_OPTIONS@";
+inline constexpr std::string_view compile_user    = "@OPALX_COMPILE_USER@";
+inline constexpr std::string_view bugreport       = "@OPALX_BUGREPORT@";
+
+}  // namespace buildinfo
+
+#endif

@@ -53,7 +53,7 @@
 #include "Structure/H5PartWrapper.h"
 #include "Structure/H5PartWrapperForPT.h"
 
-#include "OPALconfig.h"
+#include "BuildInfo.h"
 #include "changes.h"
 
 #include "Utilities/BiMap.h"
@@ -162,7 +162,7 @@ TrackRun* TrackRun::clone(const std::string& name) {
 
 void TrackRun::execute() {
    
-    const int currentVersion = ((OPAL_VERSION_MAJOR * 100) + OPAL_VERSION_MINOR) * 100;
+    const int currentVersion = ((buildinfo::version_major * 100) + buildinfo::version_minor) * 100;
 
     if (Options::version < currentVersion) {
         unsigned int fileVersion = Options::version / 100;
