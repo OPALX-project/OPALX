@@ -38,17 +38,20 @@ public:
 protected:
     // Overrides of testing::Test
     static void SetUpTestSuite() {
-        int argc    = 0;
+        int argc = 0;
         char** argv = nullptr;
 
         ippl::initialize(argc, argv);
     }
+
     static void TearDownTestSuite() {
         ippl::finalize();
     }
+
     void SetUp() override {
         // nothing special
     }
+
     void TearDown() override {
         // nothing special
     }
@@ -64,9 +67,8 @@ protected:
     }
 
     static std::vector<std::vector<double>> partialsDerivB(const Vector_t<double, 3>& R,
-        const Vector_t<double, 3>& /*B*/, const double stepSize, Component* dummyField,
-        const double theta = 0.0)
-    {
+            const Vector_t<double, 3>& /*B*/, const double stepSize, Component* dummyField,
+            const double theta = 0.0) {
         // builds a matrix of all partial derivatives of B -> dx_i B_j
         std::vector allPartials(3, std::vector<double>(3));
         for(int i = 0; i < 3; i++) {
@@ -120,7 +122,7 @@ protected:
     }
 
     void grabDataLine(std::vector<double>& line, Vector_t<double, 3> pos) {
-        constexpr double stepSize = 3.0/100.0;
+        constexpr double stepSize = 3.0 / 100.0;
         const Vector_t<double, 3> P(3);
         Vector_t<double, 3> E(3);
         for(size_t i = 0; i < line.size(); ++i) {
@@ -135,7 +137,7 @@ protected:
     }
 
     void grabDataLineParallel(std::vector<double>& line, Vector_t<double, 3> pos) {
-        constexpr double stepSize = 3.0/100.0;
+        constexpr double stepSize = 3.0 / 100.0;
         // Create the views
         Kokkos::View<Vector_t<double, 3>*> R;
         Kokkos::View<Vector_t<double, 3>*> E;
@@ -174,7 +176,7 @@ TEST_F(TestMultipoleTStraight, StraightShape) {
     setRotation(0.0);
     setEntranceAngle(0.0);
     setMaxOrder(5, 10);
-    const auto pos = localCartesianToOpalCartesian({0,0,0});
+    const auto pos = localCartesianToOpalCartesian({0, 0, 0});
     // Check dipole has constant field magnitude
     setTransProfile({1.0});
     grabDataLine(line, pos);
@@ -226,12 +228,12 @@ TEST_F(TestMultipoleTStraight, StraightShapeParallel) {
     setRotation(0.0);
     setEntranceAngle(0.0);
     setMaxOrder(5, 10);
-    const auto pos = localCartesianToOpalCartesian({0,0,0});
+    const auto pos = localCartesianToOpalCartesian({0, 0, 0});
     // Check dipole has constant field magnitude
     setTransProfile({1.0});
     grabDataLineParallel(line, pos);
-    for(size_t i = 0; i < line.size(); ++i) {
-        EXPECT_NEAR(line[i], 1.0, 1e-2);
+    for(const double i : line) {
+        EXPECT_NEAR(i, 1.0, 1e-2);
     }
     // Check quadrupole has linear field magnitude
     setTransProfile({0.0, 1.0});
@@ -266,6 +268,68 @@ TEST_F(TestMultipoleTStraight, StraightShapeParallel) {
     }
 }
 
+TEST_F(TestMultipoleTStraight, ConstCurvedShape) {
+    raise(SIGTRAP);
+    std::vector<double> line(101);
+    // Set up the magnet
+    constexpr double length = 4.4;
+    setBendAngle(0.1, false);
+    setElementLength(length);
+    setAperture(3.5, 3.5);
+    setFringeField(2.2, 0.3, 0.3);
+    setRotation(0.0);
+    setEntranceAngle(0.0);
+    setMaxOrder(5, 10);
+    const auto pos = localCartesianToOpalCartesian({0, 0, 0});
+    // Check dipole has constant field magnitude
+    setTransProfile({1.0});
+    grabDataLine(line, pos);
+    for(const double i : line) {
+        EXPECT_NEAR(i, 1.0, 1e-2);
+    }
+}
+
+
+TEST_F(TestMultipoleTStraight, CurvedConstRadiusDivCurl) {
+    // Set up the magnet
+    setElementLength(4.4);
+    setBendAngle(0.628, false);
+    setAperture(3.5, 3.5);
+    setFringeField(2.2, 0.3, 0.3);
+    setMaxOrder(5, 10);
+    setRotation(0.0);
+    setEntranceAngle(0.0);
+    setTransProfile({1, 1});
+    constexpr double radius = 4.4 / 0.628;
+    for(double theta = 0; theta <= 0.3001; theta += 0.2) {
+        const double x = radius * cos(theta) - radius;
+        const double y = radius * sin(theta);
+        for(double delta = -0.3; delta <= 0.3001; delta += 0.02) {
+            constexpr double z = 0.2;
+            constexpr double stepSize = 1e-3;
+            Vector_t<double, 3> R(0.0, 0.0, 0.0), P(3), E(3);
+            R[0] = x + delta * cos(theta);
+            R[1] = z;
+            R[2] = y + delta * sin(theta);
+            Vector_t<double, 3> B(0., 0., 0.);
+            apply(R, P, 0.0, E, B);
+            double div = calcDivB(R, B, stepSize, this);
+            std::vector<double> curl = calcCurlB(R, B, stepSize, this);
+            const double curlMag = std::hypot(curl[0], curl[1], curl[2]);
+            EXPECT_NEAR(div, 0, 5e-6)
+                     << "R: " << delta << " " << z << " " << radius * theta << std::endl
+                     << "B: " << B[0] << " " << B[1] << " " << B[2] << std::endl
+                     << "Del: " << div << " " << curl[0] << " " << curl[1] << " " << curl[2]
+                     << std::endl;
+            EXPECT_NEAR(curlMag, 0, 1e-9)
+                     << "R: " << delta << " " << z << " " << radius * theta << std::endl
+                     << "B: " << B[0] << " " << B[1] << " " << B[2] << std::endl
+                     << "Del: " << div << " " << curl[0] << " " << curl[1] << " " << curl[2]
+                     << std::endl;
+        }
+    }
+}
+
 #if 0
 TEST_F(TestMultipoleTStraight, Straight) {
     constexpr double length = 4.4;
@@ -292,7 +356,7 @@ TEST_F(TestMultipoleTStraight, Straight) {
             Vector_t<double, 3> B(0., 0., 0.);
             apply(R, P, t, E, B);
             std::cout << "R: " << R[0] << " " << R[1] << " " << R[2] << " = "
-                      << B[0] << " " << B[1] << " " << B[2] << std::endl;
+                    << B[0] << " " << B[1] << " " << B[2] << std::endl;
             double div = calcDivB(R, B, stepSize, this);
             std::vector<double> curl = calcCurlB(R, B, stepSize, this);
             double curlMag = 0.0;
@@ -301,15 +365,15 @@ TEST_F(TestMultipoleTStraight, Straight) {
             curlMag += MultipoleTBase::powerInteger(curl[2], 2);
             curlMag = sqrt(curlMag);
             EXPECT_NEAR(div, 0, 1e-1)
-                << "R: " << x << " " << z << " " << y << std::endl
-                << "B: " << B[0] << " " << B[1] << " " << B[2] << std::endl
-                << "Del: " << div << " " << curl[0] << " " << curl[1]
-                << " " << curl[2] << std::endl;
+                    << "R: " << x << " " << z << " " << y << std::endl
+                    << "B: " << B[0] << " " << B[1] << " " << B[2] << std::endl
+                    << "Del: " << div << " " << curl[0] << " " << curl[1]
+                    << " " << curl[2] << std::endl;
             EXPECT_NEAR(curlMag, 0, 1e-1)
-                << "R: " << x << " " << z << " " << y << std::endl
-                << "B: " << B[0] << " " << B[1] << " " << B[2] << std::endl
-                << "Del: " << div << " " << curl[0] << " " << curl[1] << " "
-                << curl[2] << std::endl;
+                    << "R: " << x << " " << z << " " << y << std::endl
+                    << "B: " << B[0] << " " << B[1] << " " << B[2] << std::endl
+                    << "Del: " << div << " " << curl[0] << " " << curl[1] << " "
+                    << curl[2] << std::endl;
         }
     }
 }
