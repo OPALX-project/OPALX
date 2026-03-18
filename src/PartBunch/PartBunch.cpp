@@ -1,5 +1,6 @@
 #include "PartBunch/PartBunch.h"
 #include "Algorithms/Matrix.h"
+#include "Particle/ParticleAttrib.h"
 #include "Utilities/Util.h"
 #include "Structure/DataSink.h"
 
@@ -580,17 +581,24 @@ void PartBunch<T, Dim>::computeSelfFields() {
 
     /// \todo Add binned field solver here (needs iteration over bins, scatterPerBin calls and Etmp build up)! See https://gitlab.psi.ch/OPAL/opal-x/src/-/blame/binnedFieldSolver/src/PartBunch/PartBunch.cpp?ref_type=heads#L376
 
-    ippl::ParticleAttrib<T>* Q               = &this->pcontainer_m->Q;
-    typename Base::particle_position_type* R = &this->pcontainer_m->R;
-
-    this->fcontainer_m->getRho()             = 0.0;
-    Field_t<Dim>* rho                        = &this->fcontainer_m->getRho();
+    // Macroparticle Charge Q
+    double Q                                    = this->pcontainer_m->Q;
+    ippl::ParticleAttrib<T>* dt                 = &this->pcontainer_m->dt;
+    typename Base::particle_position_type* R    = &this->pcontainer_m->R;
+    this->fcontainer_m->getRho()                = 0.0;
+    Field_t<Dim>* rho                           = &this->fcontainer_m->getRho();
 
     /// \todo replace with scatterCIC? --> later with scatterPerBin!
     // Charge "unit" here is "charge per macroparticle" [C]!
-    *Q = (*Q) * this->pcontainer_m->dt; // Scale by time step
-    scatter(*Q, *rho, *R); 
-    *Q = (*Q) / this->pcontainer_m->dt; // Rescale back to charge per macroparticle
+
+    /** Note
+     * Here we need to scatter the charge scaled by the timestep. 
+     * Now that the charge Q is no longer an attribute, but a constant value, we
+     * can achieve the same result by scaling the dt attribute instead!  
+     */
+    *dt = (*dt) * Q;        // dt now holds Q*dt[i] for each particle i
+    scatter(*dt, *rho, *R); // Scatter this charge 
+    *dt = (*dt) / Q;        // Rescale back to original dt 
     m << level4 << "Scatter done." << endl;
 
     /*
@@ -731,12 +739,13 @@ void PartBunch<T, Dim>::dumpBinConfig(bool preMerge) {
         static_cast<double>(xMin),
         binningCmd->getDumpBinsFileName());
 }
-
+/**
+ * The following functions are not used yet. Will be properly implemented by
+ * Aliemen as part of the binned solver work.
+ */
+/*
 template <typename T, unsigned Dim>
 void PartBunch<T,Dim>::scatterCICPerBin(PartBunch<T,Dim>::binIndex_t binIndex) {
-    /**
-     * Scatters only particles in bin binIndex. Scatters all particles if binIndex=-1
-     */
 
     throw OpalException("PartBunch::scatterCICPerBin", 
         "This function is not implemented yet! Please use scatterCIC for now.");
@@ -803,6 +812,7 @@ void PartBunch<T,Dim>::scatterCICPerBin(PartBunch<T,Dim>::binIndex_t binIndex) {
         *rho = *rho - (Q / size);
     }
 }
+ */
 
 template <typename T, unsigned Dim>
 void PartBunch<T,Dim>::performBunchSanityChecks() const {
