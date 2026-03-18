@@ -301,15 +301,17 @@ public:
      * The following functions are not used yet. Will be properly implemented by
      * Aliemen as part of the binned solver work.
      */
-    /*
+    
     void par2grid() override {
-        scatterCIC();
+        //scatterCIC();
+        return;
     }
     void scatterCIC() {
-        scatterCICPerBin(-1);
+        //scatterCICPerBin(-1);
+        return;
     } 
-    void scatterCICPerBin(binIndex_t binIndex);
-    */
+    //void scatterCICPerBin(binIndex_t binIndex);
+    // unit here
     
     void grid2par() override {
         gatherCIC();
