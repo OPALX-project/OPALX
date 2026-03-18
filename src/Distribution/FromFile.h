@@ -17,10 +17,6 @@
 #include <fstream>
 #include <sstream>
 
-using ParticleContainer_t = ParticleContainer<double, 3>;
-using FieldContainer_t = FieldContainer<double, 3>;
-using Distribution_t = Distribution;
-
 /**
  * @class FromFile
  * @brief Implements the sampling method for reading particle phase space from ASCII files.

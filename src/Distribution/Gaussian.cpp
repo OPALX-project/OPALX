@@ -5,8 +5,6 @@
 #include <cmath>
 #include <memory>
 
-using view_type = typename ippl::detail::ViewType<ippl::Vector<double, 3>, 1>::view_type;
-
 /**
  * @brief Constructs a Gaussian sampler.
  *
