@@ -140,7 +140,7 @@ public:
         Np = (Np == 0) ? 1 : Np; // only used for normalization in the moments class --> avoid division by zero
 
         size_t Nlocal = this->getLocalNum();
-        distMoments_m.computeMoments(this->R.getView(), this->P.getView(), this->M.getView(), Np, Nlocal);
+        distMoments_m.computeMoments(this->R.getView(), this->P.getView(), this->M, Np, Nlocal);
     }
 
     void setEnergyReferenceMass(double referenceMassGeV, bool rescaleToReference = true) {

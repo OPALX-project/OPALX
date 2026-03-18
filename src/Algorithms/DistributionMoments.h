@@ -53,7 +53,7 @@ public:
         const std::vector<OpalParticle>::const_iterator&);
     void computeMoments(ippl::ParticleAttrib<Vector_t<double,3>>::view_type  Rview,
                         ippl::ParticleAttrib<Vector_t<double,3>>::view_type  Pview,
-                        ippl::ParticleAttrib<double>::view_type  Mview,
+                        double massGeV,
                         size_t Np,
                         size_t Nlocal);
     void computeMinMaxPosition(ippl::ParticleAttrib<Vector_t<double,3>>::view_type  Rview, size_t Nlcoal);
@@ -107,7 +107,7 @@ public:
 
     void computeMeans(ippl::ParticleAttrib<Vector_t<double,3>>::view_type  Rview,
                                          ippl::ParticleAttrib<Vector_t<double,3>>::view_type  Pview,
-                                         ippl::ParticleAttrib<double>::view_type  Mview,
+                                         double massGeV,
                                          size_t Np,
                                          size_t Nlocal);
 private:
@@ -162,7 +162,7 @@ private:
     double meanGamma_m;
     double meanGammaZ_m;
 
-    // If enabled, compute kinetic energy moments with referenceMassGeV_m instead of Mview(k).
+    // If enabled, compute kinetic energy moments with referenceMassGeV_m instead of the bunch mass.
     bool rescaleToReference_m = false;
     double referenceMassGeV_m = 0.0;
 

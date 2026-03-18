@@ -123,12 +123,10 @@ bool Ring::apply(
     if (flagNeedUpdate) {
         Inform gmsgALL("OPAL ", INFORM_ALL_NODES);
 
-        auto Qview   = pc->Q.getView();
-        auto Mview   = pc->M.getView();
         auto Binview = pc->Bin.getView();
 
-        const double Q      = Qview(id);
-        const double M      = Mview(id);
+        const double Q      = pc->Q;
+        const double M      = pc->M;
         //        const short int Bin = Binview(id);
 
         gmsgALL << getName() << ": particle " << id << " at " << R
