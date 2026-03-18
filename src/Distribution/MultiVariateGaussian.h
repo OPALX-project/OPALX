@@ -101,6 +101,15 @@ public:
     void generateParticles(size_t &numberOfParticles, Vector_t<double, 3> nr) override;
 
     /**
+     * @brief Time-stepped emission hook for one-shot delayed injection.
+     *
+     * Like Gaussian, this emits once when [t, t+dt] crosses t0 for sources
+     * configured with t0 > 0 and a positive NPARTDIST. Initial sampling at
+     * t0 == 0 is handled via generateParticles.
+     */
+    void emitParticles(double t, double dt) override;
+
+    /**
      * @brief Timer for performance profiling.
      */
     IpplTimings::TimerRef samplerTimer_m;

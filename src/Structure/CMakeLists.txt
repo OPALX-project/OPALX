@@ -1,5 +1,6 @@
 set (_SRCS
   Beam.cpp
+  EmissionSource.cpp
   BoundingBox.cpp
   BoundaryGeometry.cpp
   BinConfigWriter.cpp
@@ -25,6 +26,7 @@ set (_SRCS
 
 set (HDRS
     Beam.h
+    EmissionSource.h
     BoundaryGeometry.h
     BoundingBox.h
     BinConfigWriter.h
