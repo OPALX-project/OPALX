@@ -15,8 +15,10 @@ message(STATUS "📄 Generating OPALXVersions.h")
 
 # Make embedded metadata optional (reduces rebuild churn).
 option(OPALX_EMBED_BUILD_METADATA "Embed user/machine/date in OPALXVersions.h" OFF)
+message(STATUS "🔧 OPALX_EMBED_BUILD_METADATA: ${OPALX_EMBED_BUILD_METADATA}")
 
 if(OPALX_EMBED_BUILD_METADATA)
+  message(STATUS "🧩 Embedding user/machine/date into OPALXVersions.h (this may increase rebuild churn)")
 
   execute_process(COMMAND date OUTPUT_VARIABLE OPALX_COMPILE_DATE OUTPUT_STRIP_TRAILING_WHITESPACE)
 
@@ -25,6 +27,7 @@ if(OPALX_EMBED_BUILD_METADATA)
 
   execute_process(COMMAND whoami OUTPUT_VARIABLE OPALX_COMPILE_USER OUTPUT_STRIP_TRAILING_WHITESPACE)
 else()
+  message(STATUS "🧩 Not embedding build metadata into OPALXVersions.h")
   set(OPALX_COMPILE_DATE "unknown")
   set(OPALX_COMPILE_MACHINE "unknown")
   set(OPALX_COMPILE_USER "unknown")
