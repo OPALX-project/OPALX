@@ -64,6 +64,15 @@ public:
      */
     void generateParticles(size_t& numberOfParticles, Vector_t<double, 3> nr) override;
 
+    /**
+     * @brief Time-stepped emission hook for one-shot delayed file-based injection.
+     *
+     * When a source using FROMFILE has t0 > 0 and a positive NPARTDIST, the sampler
+     * will read and inject particles once when [t, t+dt] crosses t0. Initial sampling
+     * at t0 == 0 is handled via generateParticles.
+     */
+    void emitParticles(double t, double dt) override;
+
 private:
     /**
      * @brief Reads and parses the particle file. Format must be: N (particle count),

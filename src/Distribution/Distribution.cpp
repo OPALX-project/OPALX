@@ -19,7 +19,6 @@
 #include "AbstractObjects/BeamSequence.h"
 #include "AbstractObjects/Expressions.h"
 #include "AbstractObjects/OpalData.h"
-#include "Algorithms/PartBins.h"
 #include "BasicActions/Option.h"
 #include "Distribution/LaserProfile.h"
 #include "Elements/OpalBeamline.h"
@@ -57,9 +56,39 @@ using Base = ippl::ParticleBase<ippl::ParticleSpatialLayout<T, Dim>>;
 using view_type = typename ippl::detail::ViewType<ippl::Vector<double, Dim>, 1>::view_type;
 
 namespace DISTRIBUTION {
-    enum { TYPE, FNAME, SIGMAX, SIGMAY, SIGMAZ, SIGMAPX, SIGMAPY, SIGMAPZ, CORR,
-           CUTOFFPX, CUTOFFPY, CUTOFFPZ, CUTOFFX, CUTOFFY, CUTOFFLONG, CORRX, CORRY,
-           CORRZ, CORRT, SIGMAT, TPULSEFWHM, TRISE, TFALL, FTOSCAMPLITUDE, FTOSCPERIODS, EMITTED, SIZE };
+    enum {
+        TYPE,
+        FNAME,
+        SIGMAX,
+        SIGMAY,
+        SIGMAZ,
+        SIGMAPX,
+        SIGMAPY,
+        SIGMAPZ,
+        CORR,
+        CUTOFFPX,
+        CUTOFFPY,
+        CUTOFFPZ,
+        CUTOFFX,
+        CUTOFFY,
+        CUTOFFLONG,
+        CORRX,
+        CORRY,
+        CORRZ,
+        CORRT,
+        SIGMAT,
+        TPULSEFWHM,
+        TRISE,
+        TFALL,
+        FTOSCAMPLITUDE,
+        FTOSCPERIODS,
+        EMITTED,
+        /// Optional per-distribution particle count (macroparticles).
+        /// If <= 0, this distribution does not specify its own N and
+        /// TrackRun/BEAM logic is used instead.
+        NPARTDIST,
+        SIZE
+    };
 }
 
 /*
@@ -78,7 +107,9 @@ Distribution::Distribution()
     : Definition(
         DISTRIBUTION::SIZE, "DISTRIBUTION",
         "The DISTRIBUTION statement defines data for the 6D particle distribution."),
-      distrTypeT_m(DistributionType::NODIST) {
+      totalNumberParticles_m(0),
+      distrTypeT_m(DistributionType::NODIST),
+      avrgpz_m(0.0) {
     itsAttr[DISTRIBUTION::TYPE] =
         Attributes::makePredefinedString("TYPE", "Distribution type.", {"GAUSS", "MULTIVARIATEGAUSS", "FLATTOP", "FROMFILE"});
 
@@ -124,9 +155,17 @@ Distribution::Distribution()
                                "flat top portion of emitted GAUSS "
                                "distribution", 0.0);
 
-    itsAttr[DISTRIBUTION::EMITTED]
-        = Attributes::makeBool("EMITTED", "Emitted beam, from cathode, as opposed to "
-                               "an injected beam.", false);
+    itsAttr[DISTRIBUTION::EMITTED] =
+        Attributes::makeBool("EMITTED",
+                             "Emitted beam, from cathode, as opposed to "
+                             "an injected beam.",
+                             false);
+
+    itsAttr[DISTRIBUTION::NPARTDIST] = Attributes::makeReal(
+        "NPARTDIST",
+        "Number of macroparticles for this DISTRIBUTION. "
+        "If 0 or negative, this distribution does not specify its own count.",
+        0.0);
 
     registerOwnership(AttributeHandler::STATEMENT);
 }
@@ -307,6 +346,8 @@ void Distribution::setDistParametersMultiVariateGauss() {
 }
 
 void Distribution::setDistParametersFlatTop() {
+    // avrgpz_m is not reset here; TrackRun sets it from BEAM (getMomentum()/getMass() = beta*gamma)
+    // so that initial and emitted particles get the correct reference momentum.
 
     cutoffR_m = 3.;
     cutoffP_m = 3.;
@@ -445,7 +486,15 @@ std::string Distribution::getFilename() const {
 }
 
 void Distribution::setAttributes() {
+    // Set distribution type and shape-related parameters.
     setDist();
+
+    // Cache per-distribution particle count, if provided.
+    // A value <= 0 means \"unspecified\" and will be handled by TrackRun/BEAM.
+    const double npartDist = Attributes::getReal(itsAttr[DISTRIBUTION::NPARTDIST]);
+    totalNumberParticles_m = npartDist > 0.0
+                                 ? static_cast<size_t>(npartDist)
+                                 : static_cast<size_t>(0);
 }
 
 void Distribution::setDist() {

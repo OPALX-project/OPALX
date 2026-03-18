@@ -18,6 +18,8 @@
 
 #include "Algorithms/DistributionMoments.h"
 
+#include <limits>
+
 #include "Utilities/Options.h"
 #include "Utilities/Util.h"
 
@@ -62,6 +64,8 @@ void DistributionMoments::computeMeans(ippl::ParticleAttrib<Vector_t<double,3>>:
     double loc_centroid[2 * Dim]        = {};
     double centroid[2 * Dim]        = {};
     double loc_Ekin, loc_gamma, loc_gammaz, gammaz;
+    const bool rescaleToReference = rescaleToReference_m;
+    const double referenceMassGeV = referenceMassGeV_m;
 
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -77,7 +81,8 @@ void DistributionMoments::computeMeans(ippl::ParticleAttrib<Vector_t<double,3>>:
                         gamma0 += Pview(k)[j]*Pview(k)[j];
                     }
                     gamma0 = Kokkos::sqrt(gamma0+1.0);
-                    ekin0  = (gamma0-1.0) * Mview(k) * Units::GeV2MeV; // output in MeV
+                    const double massGeV = rescaleToReference ? referenceMassGeV : Mview(k);
+                    ekin0  = (gamma0-1.0) * massGeV * Units::GeV2MeV; // output in MeV
                     gamma += gamma0;
                     ekin += ekin0;
 
@@ -201,6 +206,8 @@ void DistributionMoments::computeMoments(ippl::ParticleAttrib<Vector_t<double,3>
 
     double mekin = meanKineticEnergy_m;
     double loc_std_mekin;
+    const bool rescaleToReferenceStd = rescaleToReference_m;
+    const double referenceMassGeVStd = referenceMassGeV_m;
 
    // compute non-central moments
    for (unsigned i = 0; i < 2 * Dim; ++i) {
@@ -243,7 +250,8 @@ void DistributionMoments::computeMoments(ippl::ParticleAttrib<Vector_t<double,3>
                         gamma0 += Pview(k)[j]*Pview(k)[j];
                     }
                     gamma0 = Kokkos::sqrt(gamma0+1.0);
-                    ekin0  = (gamma0-1.0) * Mview(k) * Units::GeV2MeV; // output in MeV
+                    const double massGeV = rescaleToReferenceStd ? referenceMassGeVStd : Mview(k);
+                    ekin0  = (gamma0-1.0) * massGeV * Units::GeV2MeV; // output in MeV
 
                     ekin += (ekin0-mekin)*(ekin0-mekin);
                 }, Kokkos::Sum<double>(loc_std_mekin) );
@@ -304,13 +312,19 @@ void DistributionMoments::computeMinMaxPosition(ippl::ParticleAttrib<Vector_t<do
     double rmax[Dim];
     double rmin[Dim];
 
-    for(int i=0; i<Dim; i++){
-        rmin_loc[i] = 0.;
-        rmax_loc[i] = 0.;
+    // Use identity values for min/max so that ranks with no particles (Nlocal == 0)
+    // do not pollute the allreduce. std::less on rmin picks the smallest (real min),
+    // std::greater on rmax picks the largest (real max). When all ranks are empty we
+    // get minR_m > maxR_m and must handle that in the caller / below.
+    const double id_min = std::numeric_limits<double>::max();
+    const double id_max = std::numeric_limits<double>::lowest();
+    for (int i = 0; i < Dim; i++) {
+        rmin_loc[i] = id_min;
+        rmax_loc[i] = id_max;
     }
 
-    for (unsigned d = 0; d < Dim; ++d) {
-        if (Nlocal > 0) {
+    if (Nlocal > 0) {
+        for (unsigned d = 0; d < Dim; ++d) {
             Kokkos::parallel_reduce(
                 "rel max", Nlocal,
                 KOKKOS_LAMBDA(const int i, double& mm) {
@@ -320,24 +334,33 @@ void DistributionMoments::computeMinMaxPosition(ippl::ParticleAttrib<Vector_t<do
                 Kokkos::Max<double>(rmax_loc[d]));
 
             Kokkos::parallel_reduce(
-                "rel min", ippl::getRangePolicy(Rview),
+                "rel min", Nlocal,
                 KOKKOS_LAMBDA(const int i, double& mm) {
                     double tmp_vel = Rview(i)[d];
                     mm             = tmp_vel < mm ? tmp_vel : mm;
                 },
                 Kokkos::Min<double>(rmin_loc[d]));
-         }
-     }
-     Kokkos::fence();
-     ippl::Comm->allreduce(&rmax_loc[0], &rmax[0], Dim, std::greater<double>());
-     ippl::Comm->allreduce(&rmin_loc[0], &rmin[0], Dim, std::less<double>());
-     ippl::Comm->barrier();
+        }
+    }
+    Kokkos::fence();
+    ippl::Comm->allreduce(&rmax_loc[0], &rmax[0], Dim, std::greater<double>());
+    ippl::Comm->allreduce(&rmin_loc[0], &rmin[0], Dim, std::less<double>());
+    ippl::Comm->barrier();
 
-    // store min and max R in class member variables
-     for (unsigned int i=0; i<Dim; i++) {
-            minR_m(i) = rmin[i];
-            maxR_m(i) = rmax[i];
-     }
+    // Empty bunch on all ranks: min stays id_min, max stays id_max → min > max.
+    // Use a tiny valid box so mesh/spacing remain valid (e.g. for first step before emission).
+    bool empty = (rmin[0] >= rmax[0]);
+    if (empty) {
+        for (int i = 0; i < Dim; i++) {
+            rmin[i] = 0.0;
+            rmax[i] = 1e-12;
+        }
+    }
+
+    for (unsigned int i = 0; i < Dim; i++) {
+        minR_m(i) = rmin[i];
+        maxR_m(i) = rmax[i];
+    }
 }
 
 void DistributionMoments::compute(
