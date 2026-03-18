@@ -212,10 +212,19 @@ option(OPALX_USE_INSTALLED_HDF5 "Use system-installed HDF5 instead of building f
 option(OPALX_USE_INSTALLED_H5HUT "Use system-installed H5HUT instead of building from source" OFF)
 option(OPALX_USE_INSTALLED_GTEST "Use system-installed GoogleTest instead of building from source" OFF)
 
+# -----------------------------------------------------------------------------
+# Compile-definition style options (keep consistent with other global compile definitions)
+# -----------------------------------------------------------------------------
+if(OPALX_USE_KOKKOS_MATH_CONSTANTS)
+  add_compile_definitions(OPALX_USE_KOKKOS_MATH_CONSTANTS)
+  colour_message(STATUS ${Green} "✅ Kokkos math constants enabled (OPALX_USE_KOKKOS_MATH_CONSTANTS)")
+else()
+  colour_message(STATUS ${Cyan} "ℹ️  Kokkos math constants disabled (using literal constants in Physics.h)")
+endif()
+
 # Keep high-signal toggles visible in configure output.
 message(STATUS "🔧 Standard output folders (OPALX_USE_STANDARD_FOLDERS): ${OPALX_USE_STANDARD_FOLDERS}")
 message(STATUS "🔧 Skip failing tests (OPALX_SKIP_FAILING_TESTS): ${OPALX_SKIP_FAILING_TESTS}")
-message(STATUS "🔧 Kokkos math constants (OPALX_USE_KOKKOS_MATH_CONSTANTS): ${OPALX_USE_KOKKOS_MATH_CONSTANTS}")
 
 # "Build OPALX as a shared library (ON) or static library (OFF)" OFF) 
 if(OPALX_DYL)

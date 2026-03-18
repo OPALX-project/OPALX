@@ -45,9 +45,6 @@ add_library(opalx)
 target_sources(opalx PRIVATE changes.cpp)
 
 target_compile_features(opalx PUBLIC cxx_std_20)
-target_compile_definitions(
-  opalx PUBLIC
-  $<$<BOOL:${OPALX_USE_KOKKOS_MATH_CONSTANTS}>:OPALX_USE_KOKKOS_MATH_CONSTANTS>)
 
 target_compile_options(
   opalx
