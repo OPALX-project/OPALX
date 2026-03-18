@@ -639,7 +639,8 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
         Vector_t<double, 3> ipCenterBeam = referenceToBeamCSTrafo.transformTo(ipCenterRef);
         m << level5 << "centZ= " << itsBunch_m->get_ipCenterLocalZ()
           << " L(centZ)= " << ipCenterBeam(2) << endl;
-        itsBunch_m->enableCollisionWindowMesh(ipCenterBeam(2), itsBunch_m->get_colwinlen());
+
+        // itsBunch_m->enableCollisionWindowMesh(ipCenterBeam(2), itsBunch_m->get_colwinlen());
 
         // First stage: solve on the larger collision mesh using the primary bunch only.
         // Later this is where mirrored rho deposition should be added.

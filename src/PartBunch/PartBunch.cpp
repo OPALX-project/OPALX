@@ -633,7 +633,7 @@ void PartBunch<T, Dim>::dumpChargeDensityDebug(const std::string& phaseTag) cons
         return;
     }
 
-    const auto& rho = this->fcontainer_m->getRho();
+    const auto& rho             = this->fcontainer_m->getRho();
     ippl::NDIndex<Dim> localIdx = rho.getLayout().getLocalNDIndex();
     const int nghost            = rho.getNghost();
     auto* mesh                  = &rho.get_mesh();
@@ -665,19 +665,15 @@ void PartBunch<T, Dim>::dumpChargeDensityDebug(const std::string& phaseTag) cons
     fout << "# RHO debug data before coupling constant application" << std::endl;
     fout << "# units=rho[C/m^3]" << std::endl;
     fout << "# phase=" << phaseTag << std::endl;
-    fout << "# global_step=" << globalTrackStep_m << " local_step=" << localTrackStep_m << std::endl;
+    fout << "# global_step=" << globalTrackStep_m << " local_step=" << localTrackStep_m
+         << std::endl;
     fout << "# colliding=" << hasCollidingBunches_m << " ip_center_local_z[m]=" << ipCenterLocalZ_m
          << " collision_window_length[m]=" << colwinlen_m << std::endl;
     fout << "# mesh_origin=" << origin << " mesh_spacing=" << spacing << std::endl;
     fout << "# field_domain_rmin=" << fieldRMin << " field_domain_rmax=" << fieldRMax << std::endl;
     fout << "# bunch_bounds_rmin=" << rmin_m << " bunch_bounds_rmax=" << rmax_m << std::endl;
-    fout << "#"
-         << std::setw(4) << "i"
-         << std::setw(5) << "j"
-         << std::setw(5) << "k"
-         << std::setw(17) << "x [m]"
-         << std::setw(17) << "y [m]"
-         << std::setw(17) << "z [m]"
+    fout << "#" << std::setw(4) << "i" << std::setw(5) << "j" << std::setw(5) << "k"
+         << std::setw(17) << "x [m]" << std::setw(17) << "y [m]" << std::setw(17) << "z [m]"
          << std::setw(18) << "rho [C/m^3]" << std::endl;
 
     for (int i = localIdx[0].first() + nghost; i <= localIdx[0].last() + nghost; ++i) {
@@ -687,13 +683,9 @@ void PartBunch<T, Dim>::dumpChargeDensityDebug(const std::string& phaseTag) cons
                 const double y = (j - nghost) * spacing[1] + origin[1];
                 const double z = (k - nghost) * spacing[2] + origin[2];
 
-                fout << std::setw(5) << i
-                     << std::setw(5) << j
-                     << std::setw(5) << k
-                     << std::setw(17) << x
-                     << std::setw(17) << y
-                     << std::setw(17) << z
-                     << std::scientific << "\t" << field_hostV(i, j, k) << std::endl;
+                fout << std::setw(5) << i << std::setw(5) << j << std::setw(5) << k << std::setw(17)
+                     << x << std::setw(17) << y << std::setw(17) << z << std::scientific << "\t"
+                     << field_hostV(i, j, k) << std::endl;
             }
         }
     }
