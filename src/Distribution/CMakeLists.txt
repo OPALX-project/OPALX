@@ -14,9 +14,7 @@ set (HDRS
     FromFile.h
     Gaussian.h
     LaserProfile.h
-    MapGenerator.h
     MultiVariateGaussian.h
-    matrix_vector_operation.h
     SamplingBase.hpp
     )
 
