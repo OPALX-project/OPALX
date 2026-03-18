@@ -43,6 +43,13 @@ public:
 
     void activateElements();
     std::set<std::shared_ptr<Component>> getElements(const Vector_t<double, 3>& x);
+
+    /**
+     * Get all elements in the beamline, regardless of their position.
+     * @return Set of shared pointers to all elements in the beamline.
+     */
+    std::set<std::shared_ptr<Component>> getElements();
+
     Vector_t<double, 3> transformTo(const Vector_t<double, 3>& r) const;
     Vector_t<double, 3> transformFrom(const Vector_t<double, 3>& r) const;
     Vector_t<double, 3> rotateTo(const Vector_t<double, 3>& r) const;
