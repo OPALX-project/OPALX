@@ -82,7 +82,7 @@ For the release mode, use `Release` instead of `Debug` as the argument for `-DBU
 #### Further Options
 | Flag | Default | Description |
 |------|---------|-------------|
-| `OPALX_EMBED_BUILD_METADATA` | OFF | Embeds user, machine, and date metadata into `OPALXVersions.h`; leave OFF to reduce rebuild churn. |
+| `OPALX_EMBED_BUILD_METADATA` | OFF | Embeds user, machine, and date metadata into `BuildInfo.h`; leave OFF to reduce rebuild churn. |
 | `OPALX_USE_INSTALLED_HDF5` | OFF | Disables the use of system-built HDF5 dependency. |
 | `OPALX_USE_INSTALLED_H5HUT` | OFF |  Disables the use of system-built H5hut dependency. |
 | `OPALX_USE_INSTALLED_GTEST` | OFF |  Disables the use of system-built GoogleTest dependency. |
