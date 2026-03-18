@@ -15,8 +15,8 @@ install(
   PATTERN "*.cc" EXCLUDE
   PATTERN "*.cu" EXCLUDE)
 
-# Install generated version header
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/OPALXVersions.h
+# Install generated build info header
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/BuildInfo.h
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/opalx)
 
 # Install the OPALX library
