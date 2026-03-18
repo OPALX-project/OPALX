@@ -1,7 +1,9 @@
 set (_SRCS
   Beam.cpp
+  EmissionSource.cpp
   BoundingBox.cpp
   BoundaryGeometry.cpp
+  BinConfigWriter.cpp
   DataSink.cpp
   ElementPositionWriter.cpp
   FieldSolverCmd.cpp
@@ -24,8 +26,10 @@ set (_SRCS
 
 set (HDRS
     Beam.h
+    EmissionSource.h
     BoundaryGeometry.h
     BoundingBox.h
+    BinConfigWriter.h
     DataSink.h
     ElementPositionWriter.h
     FieldSolverCmd.h

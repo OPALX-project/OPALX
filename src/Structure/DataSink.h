@@ -32,6 +32,7 @@
 #include "Structure/H5Writer.h"
 #include "Structure/SDDSWriter.h"
 #include "Structure/StatWriter.h"
+#include "Structure/BinConfigWriter.h"
 
 #include <iomanip>
 #include <memory>
@@ -40,6 +41,7 @@
 
 class BoundaryGeometry;
 class H5PartWrapper;
+class BinConfigWriter;
 
 class DataSink {
 private:
@@ -96,6 +98,25 @@ public:
         const PartBunch_t* beam, long long int& step, size_t& impact, double& sey_num,
         size_t numberOfFieldEmittedParticles, bool nEmissionMode, std::string fn);
 
+    /**
+     * @brief Append a binning configuration snapshot to a JSON file.
+     *
+     * @param step       Global tracking step index.
+     * @param time       Absolute simulation time (in seconds).
+     * @param preMerge   true for pre-merge histogram, false for post-merge.
+     * @param binCounts  Per-bin particle counts.
+     * @param binWidths  Per-bin bin widths (same length as @p binCounts).
+     * @param xMin       Lower bound of the histogram coordinate.
+     * @param fileName   Target JSON file name (typically from BinningCmd::getDumpBinsFileName()).
+     */
+    void dumpBinConfig(long long step,
+                       double time,
+                       bool preMerge,
+                       const std::vector<std::size_t>& binCounts,
+                       const std::vector<double>& binWidths,
+                       double xMin,
+                       const std::string& fileName);
+
 private:
     DataSink(const DataSink& ds)         = delete;
     DataSink& operator=(const DataSink&) = delete;
@@ -107,6 +128,9 @@ private:
     h5Writer_t h5Writer_m;
     statWriter_t statWriter_m;
     std::vector<sddsWriter_t> sddsWriter_m;
+
+    // Writer for binning configuration JSON output (rank 0 only).
+    std::unique_ptr<BinConfigWriter> binConfigWriter_m;
 
     static std::string convertToString(int number, int setw = 5);
 

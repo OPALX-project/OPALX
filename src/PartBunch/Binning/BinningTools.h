@@ -2,6 +2,7 @@
 #define BINNINGTOOLS_H
 
 #include "ParallelReduceTools.h" // needed for HistoReductionMode and maxArrSize
+#include "Utilities/OpalException.h"
 
 namespace ParticleBinning {
 
@@ -32,13 +33,20 @@ namespace ParticleBinning {
     template <typename bin_index_type>
     HistoReductionMode determineHistoReductionMode(HistoReductionMode modePreference, bin_index_type binCount) {
         // Overwrite standard mode if compiled with default host execution space!
-        if (std::is_same<Kokkos::DefaultExecutionSpace, Kokkos::DefaultHostExecutionSpace>::value) return HistoReductionMode::HostOnly;
+        if (std::is_same<Kokkos::DefaultExecutionSpace, Kokkos::DefaultHostExecutionSpace>::value)
+            return HistoReductionMode::HostOnly;
 
+#ifdef OPALX_DEVICE_COMPILATION
+        // In device builds HostOnly reductions are not supported; calling them is a logic error.
+        if (modePreference == HistoReductionMode::HostOnly) {
+            throw OpalException(
+                "ParticleBinning::determineHistoReductionMode",
+                "HistoReductionMode::HostOnly is not supported when OPALX_DEVICE_COMPILATION is "
+                "enabled.");
+        }
+#endif
         // Otherwise choose automatically if Standard and respect preference if not on host and not standard!
-        if (modePreference == HistoReductionMode::Standard) { //  || modePreference == HistoReductionMode::HostOnly
-            //if (modePreference == HistoReductionMode::HostOnly) {
-            //    std::cerr << "Warning: HostOnly mode is not supported on CUDA! Switching to Standard mode." << std::endl;
-            //}
+        if (modePreference == HistoReductionMode::Standard) {
             return (binCount <= maxArrSize<bin_index_type>) ? HistoReductionMode::ParallelReduce : HistoReductionMode::TeamBased;
         } else {
             return modePreference;
@@ -145,7 +153,7 @@ namespace ParticleBinning {
         // Ensure the output view has the correct size
         if (post_sum_view.extent(0) != input_view.extent(0) + 1) {
             Inform m("computePostSum");
-            m << "Output view must have size input_view.extent(0) + 1" << endl;
+            m << level4 << "Output view must have size input_view.extent(0) + 1" << endl;
             ippl::Comm->abort();
         }
 

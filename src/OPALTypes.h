@@ -23,6 +23,8 @@
 
 using PartBunch_t = PartBunch<double, 3>;
 
+using ParticleContainer_t = ParticleContainer<double, 3>;
+
 template <typename T, unsigned Dim>
 using Vector_t = ippl::Vector<T, Dim>;
 

@@ -50,6 +50,7 @@
 #include "AbsBeamline/Solenoid.h"
 #include "AbsBeamline/TravelingWave.h"
 #include "Beamlines/Beamline.h"
+#include "Distribution/SamplingBase.hpp"
 #include "Elements/OpalBeamline.h"
 
 #include <list>
@@ -71,7 +72,7 @@ class ParallelTracker : public Tracker {
 private:
     /* ============================= Variables ============================= */
     // Responsible for writing beam statistics
-    DataSink* itsDataSink_m;
+    std::shared_ptr<DataSink> itsDataSink_m;
 
     // Beamline Object which holds a list of pointers to beamline components
     OpalBeamline itsOpalBeamline_m;
@@ -102,15 +103,9 @@ private:
     // The current time stepsize dt (controlled by StepSizeConfig)
     double dtCurrentTrack_m;
 
-    // This variable controls the minimal number of steps of 
-    // emission (using bins) before we can merge the bins
-    int minStepforReBin_m;
-
     // Controls the frequency of load balancing 
     unsigned long long repartFreq_m;
 
-    // Total number of particles in the whole simulation
-    size_t numParticlesInSimulation_m;
     /* ===================================================================== */
     /* ============================== Timers =============================== */
     IpplTimings::TimerRef timeIntegrationTimer1_m;
@@ -148,19 +143,20 @@ private:
     double cosRefTheta_m; 
     
     std::vector<PluginElement*> pluginElements_m;
-    /* ===================================================================== */ 
+
+    /* ===================================================================== */
     /* ========================== NOT IMPLEMENTED ========================== */
     // Particle - Matter interaction
-    std::set<ParticleMatterInteractionHandler*> 
+    std::set<ParticleMatterInteractionHandler*>
         activeParticleMatterInteractionHandlers_m;
     bool particleMatterStatus_m;
-   
-    // Does nothing ...
-    unsigned int emissionSteps_m;
-    
-    // Wakefield stuff - Does nothing... 
+
+    // Wakefield stuff - Does nothing...
     bool wakeStatus_m;
     WakeFunction* wakeFunction_m;
+
+    /// Time-dependent (emitting) sources; emitParticles(t, dt) called each step.
+    std::vector<std::shared_ptr<SamplingBase>> emittingSamplers_m;
     /* ===================================================================== */ 
 public:
     /* ============================ Constructors =========================== */
@@ -186,12 +182,14 @@ public:
      * Starting position "zstart"
      * Vector of ends of the individual tracks
      * Vector of different timesteps for individual tracks
+     * Optional list of emitting samplers (emitParticles(t, dt) called each step)
     */
-    explicit ParallelTracker(const Beamline& bl, PartBunch_t* bunch, 
-        DataSink& ds, const PartData& data, bool revBeam,
+    explicit ParallelTracker(const Beamline& bl, PartBunch_t* bunch,
+        const std::shared_ptr<DataSink>& ds, const PartData& data, bool revBeam,
         bool revTrack, const std::vector<unsigned long long>& maxSTEPS, 
         double zstart, const std::vector<double>& zstop, 
-        const std::vector<double>& dt);
+        const std::vector<double>& dt,
+        const std::vector<std::shared_ptr<SamplingBase>>& emittingSamplers = {});
 
     // Destructor
     virtual ~ParallelTracker();
@@ -247,6 +245,7 @@ public:
     void timeIntegration2(BorisPusher& pusher);
     void computeSpaceChargeFields(unsigned long long step);    
     void computeExternalFields(OrbitThreader& oth);
+    void emitFromEmissionSources(double t, double dt);
     void resetFields();
     /* ===================================================================== */ 
     /* =========================== Functions =============================== */
@@ -304,7 +303,6 @@ private:
     ParallelTracker();
     ParallelTracker(const ParallelTracker&);
     void operator=(const ParallelTracker&);
-    void emitParticles(long long step);
     void computeWakefield(IndexMap::value_t& elements);
     void computeParticleMatterInteraction(IndexMap::value_t elements, 
         OrbitThreader& oth);
