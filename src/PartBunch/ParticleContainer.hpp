@@ -28,10 +28,13 @@ public:
 
 public:
     /// charge in [Cb]
-    ippl::ParticleAttrib<double> Q;
+    //ippl::ParticleAttrib<double> Q;
 
     /// mass
-    ippl::ParticleAttrib<double> M;
+    //ippl::ParticleAttrib<double> M;
+
+    double Q;
+    double M;
 
     /// timestep in [s]
     ippl::ParticleAttrib<double> dt;
@@ -68,8 +71,8 @@ public:
 
     void registerAttributes() {
         // register the particle attributes
-        this->addAttribute(Q);
-        this->addAttribute(M);
+        //this->addAttribute(Q);
+        //this->addAttribute(M);
         this->addAttribute(dt);
         this->addAttribute(Phi);
         this->addAttribute(Bin);
