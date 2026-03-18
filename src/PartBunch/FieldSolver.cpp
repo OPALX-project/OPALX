@@ -6,6 +6,7 @@
 
 #include <filesystem>
 
+#include "Physics/Physics.h"
 #include "Utilities/Util.h"
 #include "AbstractObjects/OpalData.h"
 

@@ -8,7 +8,9 @@
 #
 # -----------------------------------------------------------------------------
 
-if(BUILD_TESTING AND OPALX_SKIP_FAILING_TESTS)
-  #set(OPALX_DISABLED_TEST_LIST
-  #    AssembleRHS)
+if(OPALX_SKIP_FAILING_TESTS)
+  message(FATAL_ERROR
+    "OPALX_SKIP_FAILING_TESTS is currently not implemented. "
+    "It is reserved for future work to exclude known failing tests from the build/test set. "
+    "Please configure with -DOPALX_SKIP_FAILING_TESTS=OFF for now.")
 endif()

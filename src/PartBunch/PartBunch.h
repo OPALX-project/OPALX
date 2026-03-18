@@ -349,9 +349,7 @@ public:
         return  mi_m*this->getTotalNum();
     }
 
-    double getdE() const {
-        return this->pcontainer_m->getStdKineticEnergy();
-    }
+    double getdE() const;
 
     double getGamma(int /*i*/) const {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
@@ -370,15 +368,22 @@ public:
         return reference_m;
     }
 
-    /// \todo constructor could set this
-    void setReference(const PartData* ref) {
+
+    /// Set inside TrackRun::execute
+    void setReference (const PartData* ref) {
         reference_m = ref;
+        if (reference_m && this->pcontainer_m) {
+            // Ensure mean/std kinetic energy in DistributionMoments are computed using reference mass.
+            // PartData mass is stored in eV; DistributionMoments expects GeV for its energy computation.
+            this->pcontainer_m->setEnergyReferenceMass(reference_m->getM() * Units::eV2GeV, true);
+        }
     }
 
     double getEmissionDeltaT() {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
         return 1.0;
     }
+
     void gatherLoadBalanceStatistics();
 
     size_t getLoadBalance(int p) {
@@ -694,6 +699,7 @@ public:
         return this->pcontainer_m->getMeanGammaZ();
     }
 
+    /// Mean kinetic energy over particles (mean of per-particle kinetic energy), in MeV.
     double get_meanKineticEnergy();
 
     Vector_t<double, Dim> get_origin() const {
