@@ -136,19 +136,9 @@ void PartBunch<T, Dim>::restorePartFieldDomain(const SavedPartFieldDomain& state
     this->rmin_m = state.partrmin;
     this->rmax_m = state.partrmax;
 
-    /*
     pc->getLayout().updateLayout(*FL, *mesh);
     pc->update();
-    this->calcBeamParameters();
     this->updateMoments();
-
-
-    m << level1 << "Restored field domain." << endl;
-    m << level1 << "\torigin = " << state.origin << endl;
-    m << level1 << "\thr     = " << state.hr << endl;
-    m << level1 << "\trmin   = " << state.rmin << endl;
-    m << level1 << "\trmax   = " << state.rmax << endl;
-  */
 }
 
 template <typename T, unsigned Dim>
@@ -160,31 +150,17 @@ void PartBunch<T, Dim>::enableCollisionWindowMesh(double ipCenterLocalZ, double 
     }
 
     auto* mesh = &this->fcontainer_m->getMesh();
-    auto* FL   = &this->fcontainer_m->getFL();
-    auto pc    = this->getParticleContainer();
 
-    pc->computeMinMaxR();
+    // Keep the current bunch-following x/y field domain unchanged and only switch
+    // the longitudinal extent from a moving bunch-fitted domain to a fixed
+    // Eulerian collision-window domain.
+    Vector_t<double, Dim> o = this->getFieldContainer()->getRMin();
+    Vector_t<double, Dim> e = this->getFieldContainer()->getRMax();
 
-    Vector_t<double, Dim> o = pc->getMinR();
-    Vector_t<double, Dim> e = pc->getMaxR();
-
-    // Fix z to the collision window in the current co-moving frame.
     o(2) = ipCenterLocalZ - 0.5 * colwinlen;
     e(2) = ipCenterLocalZ + 0.5 * colwinlen;
 
-    // Recompute extent after overriding z.
-    Vector_t<double, Dim> l = e - o;
-
-    const double incr = this->OPALFieldSolver_m->getBoxIncr() / 100.0;
-
-    // Keep current bunch-fitted behavior in x/y.
-    o(0) -= l(0) * incr;
-    o(1) -= l(1) * incr;
-    e(0) += l(0) * incr;
-    e(1) += l(1) * incr;
-
-    // Keep z fixed to the collision window for now.
-    l    = e - o;
+    const Vector_t<double, Dim> l = e - o;
     hr_m = l / this->nr_m;
 
     mesh->setOrigin(o);
@@ -194,9 +170,11 @@ void PartBunch<T, Dim>::enableCollisionWindowMesh(double ipCenterLocalZ, double 
     this->getFieldContainer()->setRMax(e);
     this->getFieldContainer()->setHr(hr_m);
 
-    pc->getLayout().updateLayout(*FL, *mesh);
-    pc->update();
-
+    // The collision prototype only changes the field mesh used by the temporary
+    // self-field solve. The particle layout must stay in the original
+    // bunch-following frame; forcing updateLayout()/pc->update() here remaps the
+    // particles onto the Eulerian collision mesh and introduces an unphysical
+    // longitudinal offset of one collision-window length.
     this->updateMoments();
 
     m << level3 << "Enabled collision window mesh:" << endl;
@@ -581,6 +559,19 @@ void PartBunch<T, Dim>::bunchUpdate() {
 
     ippl::Vector<double, 3> o = pc->getMinR();
     ippl::Vector<double, 3> e = pc->getMaxR();
+
+    const bool keepLongitudinalFieldMesh = hasCollidingBunches_m;
+    Vector_t<double, Dim> currentHr(0.0);
+    if (keepLongitudinalFieldMesh) {
+        // During the collision prototype we keep the longitudinal field mesh
+        // fixed (Eulerian in z) and only continue bunch-following updates in x/y.
+        const auto currentRMin = this->getFieldContainer()->getRMin();
+        const auto currentRMax = this->getFieldContainer()->getRMax();
+        currentHr              = this->getFieldContainer()->getHr();
+        o(2)                   = currentRMin(2);
+        e(2)                   = currentRMax(2);
+    }
+
     ippl::Vector<double, 3> l = e - o;
 
     /*
@@ -594,6 +585,15 @@ void PartBunch<T, Dim>::bunchUpdate() {
     l = e - o;
 
     hr_m = l / this->nr_m;
+
+    if (keepLongitudinalFieldMesh) {
+        const auto currentRMin = this->getFieldContainer()->getRMin();
+        const auto currentRMax = this->getFieldContainer()->getRMax();
+        o(2)                   = currentRMin(2);
+        e(2)                   = currentRMax(2);
+        l(2)                   = e(2) - o(2);
+        hr_m(2)                = currentHr(2);
+    }
 
     mesh->setMeshSpacing(hr_m);
     mesh->setOrigin(o);
@@ -724,8 +724,13 @@ void PartBunch<T, Dim>::computeSelfFields() {
     therefore assume that we could separate bunchUpdate from pc->update() in
     order to save some computation.
     */
-    this->bunchUpdate();
-    m << level5 << "Bunch updated." << endl;
+    if (!hasCollidingBunches_m) {
+        this->bunchUpdate();
+        m << level5 << "Bunch updated." << endl;
+    } else {
+        m << level5 << "Skipping bunchUpdate() in collision mode to keep the beam-frame "
+          << "collision mesh/layout fixed during the temporary self-field solve." << endl;
+    }
 
     /// \todo Add binned field solver here (needs iteration over bins, scatterPerBin calls and Etmp
     /// build up)! See

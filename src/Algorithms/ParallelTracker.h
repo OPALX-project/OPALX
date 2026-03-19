@@ -55,6 +55,7 @@
 
 #include <list>
 #include <memory>
+#include <optional>
 #include <tuple>
 #include <vector>
 
@@ -184,6 +185,22 @@ private:
      * This flag is used for collision-specific diagnostics and ASCII visualization.
      */
     bool collisionFrameObserved_m;
+
+    /**
+     * @brief True once the collision-window mesh has been frozen for the active
+     * IP passage.
+     *
+     * During the collision phase we switch from a bunch-following mesh to an
+     * Eulerian mesh in z. The longitudinal mesh is initialized once on entry
+     * and reused until the bunch leaves the collision window.
+     */
+    bool collisionWindowMeshInitialized_m;
+
+    /**
+     * @brief Saved bunch-following field domain from before entering the
+     * frozen collision-window mesh.
+     */
+    std::optional<PartBunch<double, Dim>::SavedPartFieldDomain> collisionSavedFieldDomain_m;
 
     /* ===================================================================== */
 public:

@@ -57,6 +57,160 @@
 extern Inform* gmsg;
 
 class PartData;
+
+namespace {
+    std::pair<double, double> getDisplayRange(double windowBeginS, double windowEndS) {
+        const double windowLength = windowEndS - windowBeginS;
+        const double margin       = 0.5 * windowLength;
+        return {windowBeginS - margin, windowEndS + margin};
+    }
+
+    bool isInsideDisplay(double z, double displayMinZ, double displayMaxZ) {
+        return z >= displayMinZ && z <= displayMaxZ;
+    }
+
+    std::size_t mapToDisplayIndex(
+        double z, double displayMinZ, double displayMaxZ, std::size_t width) {
+        const double span = displayMaxZ - displayMinZ;
+        if (span <= 0.0 || width < 3) {
+            return 1;
+        }
+
+        double u = (z - displayMinZ) / span;
+        u        = std::clamp(u, 0.0, 1.0);
+
+        std::size_t idx =
+            static_cast<std::size_t>(std::llround(u * static_cast<double>(width - 1)));
+        return std::clamp<std::size_t>(idx, 1, width - 2);
+    }
+
+    void placeLabel(std::string& line, std::size_t pos, const std::string& label) {
+        if (line.empty() || label.empty()) {
+            return;
+        }
+
+        if (pos >= line.size()) {
+            pos = line.size() - 1;
+        }
+
+        const std::size_t maxLen = std::min(label.size(), line.size() - pos);
+        for (std::size_t i = 0; i < maxLen; ++i) {
+            line[pos + i] = label[i];
+        }
+    }
+
+    void placeMarker(std::string& line, std::size_t idx, char marker) {
+        if (idx >= line.size()) {
+            return;
+        }
+
+        if (line[idx] == '-' || line[idx] == ' ') {
+            line[idx] = marker;
+        } else if (line[idx] != '[' && line[idx] != ']' && line[idx] != '|') {
+            line[idx] = 'X';
+        }
+    }
+
+    std::string renderCollisionCenters1D(
+        double bunchCenterS, double windowBeginS, double windowEndS, double ipCenterS,
+        bool mirroredActive, std::size_t width = 80) {
+        if (width < 3) {
+            width = 3;
+        }
+
+        const auto [displayMinS, displayMaxS] = getDisplayRange(windowBeginS, windowEndS);
+
+        std::string line(width, '-');
+        line.front() = '[';
+        line.back()  = ']';
+
+        const std::size_t startIdx =
+            mapToDisplayIndex(windowBeginS, displayMinS, displayMaxS, width);
+        const std::size_t endIdx = mapToDisplayIndex(windowEndS, displayMinS, displayMaxS, width);
+
+        line[startIdx] = '[';
+        line[endIdx]   = ']';
+
+        const std::size_t ipIdx = mapToDisplayIndex(ipCenterS, displayMinS, displayMaxS, width);
+        line[ipIdx]             = '|';
+
+        if (isInsideDisplay(bunchCenterS, displayMinS, displayMaxS)) {
+            placeMarker(
+                line, mapToDisplayIndex(bunchCenterS, displayMinS, displayMaxS, width), '*');
+        } else if (bunchCenterS < displayMinS) {
+            placeMarker(line, 1, '<');
+        } else {
+            placeMarker(line, width - 2, '>');
+        }
+
+        if (mirroredActive) {
+            const double mirroredCenterS = 2.0 * ipCenterS - bunchCenterS;
+
+            if (isInsideDisplay(mirroredCenterS, displayMinS, displayMaxS)) {
+                placeMarker(
+                    line, mapToDisplayIndex(mirroredCenterS, displayMinS, displayMaxS, width), '+');
+            } else if (mirroredCenterS < displayMinS) {
+                placeMarker(line, 1, '<');
+            } else {
+                placeMarker(line, width - 2, '>');
+            }
+        }
+
+        return line;
+    }
+
+    std::string renderCollisionLabels1D(
+        double windowBeginS, double windowEndS, double ipCenterS, std::size_t width = 80) {
+        if (width < 3) {
+            width = 3;
+        }
+
+        const auto [displayMinS, displayMaxS] = getDisplayRange(windowBeginS, windowEndS);
+
+        std::string labels(width, ' ');
+
+        const std::size_t startIdx =
+            mapToDisplayIndex(windowBeginS, displayMinS, displayMaxS, width);
+        const std::size_t ipIdx = mapToDisplayIndex(ipCenterS, displayMinS, displayMaxS, width);
+        const std::size_t endIdx = mapToDisplayIndex(windowEndS, displayMinS, displayMaxS, width);
+
+        placeLabel(labels, startIdx, "S");
+        placeLabel(labels, ipIdx, "IP");
+        placeLabel(labels, endIdx, "E");
+
+        return labels;
+    }
+
+    void debugPrintCollisionCenters1D(
+        double bunchCenterS, double windowBeginS, double windowEndS, double ipCenterS,
+        bool mirroredActive, std::size_t width = 80) {
+        static bool firstFrame     = true;
+        static std::size_t frameId = 0;
+        static std::ofstream dump("data/collision_ascii_frames.txt");
+
+        const std::string line1 = renderCollisionCenters1D(
+            bunchCenterS, windowBeginS, windowEndS, ipCenterS, mirroredActive, width);
+        const std::string line2 =
+            renderCollisionLabels1D(windowBeginS, windowEndS, ipCenterS, width);
+
+        if (firstFrame) {
+            std::cout << line1 << '\n' << line2;
+            firstFrame = false;
+        } else {
+            std::cout << "\r\033[2K" << line2 << "\033[1A\r\033[2K" << line1 << "\033[1B\r";
+        }
+        std::cout << std::flush;
+
+        if (dump.is_open()) {
+            dump << "FRAME " << frameId++ << '\n';
+            dump << line1 << '\n';
+            dump << line2 << '\n';
+            dump << '\n';
+            dump.flush();
+        }
+    }
+}  // namespace
+
 /* ============================== Constructors ============================== */
 ParallelTracker::ParallelTracker(
     const Beamline& beamline, const PartData& reference, bool revBeam, bool revTrack)
@@ -82,7 +236,9 @@ ParallelTracker::ParallelTracker(
       wakeFunction_m(nullptr),
       collisionPrototypeInitialized_m(false),
       collisionPrototypeFinished_m(false),
-      collisionFrameObserved_m(false) {
+      collisionFrameObserved_m(false),
+      collisionWindowMeshInitialized_m(false),
+      collisionSavedFieldDomain_m(std::nullopt) {
 }
 
 ParallelTracker::ParallelTracker(
@@ -111,7 +267,9 @@ ParallelTracker::ParallelTracker(
       wakeFunction_m(nullptr),
       collisionPrototypeInitialized_m(false),
       collisionPrototypeFinished_m(false),
-      collisionFrameObserved_m(false) {
+      collisionFrameObserved_m(false),
+      collisionWindowMeshInitialized_m(false),
+      collisionSavedFieldDomain_m(std::nullopt) {
     for (unsigned int i = 0; i < zstop.size(); ++i) {
         stepSizes_m.push_back(dt[i], zstop[i], maxSteps[i]);
     }
@@ -634,17 +792,28 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
           << endl;
 
     } else {
-        auto savedDomain = itsBunch_m->savePartFieldDomain();
         Vector_t<double, 3> ipCenterRef(0.0, 0.0, itsBunch_m->get_ipCenterLocalZ());
         Vector_t<double, 3> ipCenterBeam = referenceToBeamCSTrafo.transformTo(ipCenterRef);
         m << level5 << "centZ= " << itsBunch_m->get_ipCenterLocalZ()
           << " L(centZ)= " << ipCenterBeam(2) << endl;
 
-        // itsBunch_m->enableCollisionWindowMesh(ipCenterBeam(2), itsBunch_m->get_colwinlen());
+        const double maxVal       = std::numeric_limits<double>::max();
+        const double minVal       = -std::numeric_limits<double>::max();
+        ippl::Vector<double, Dim> physicalRMin(maxVal);
+        ippl::Vector<double, Dim> physicalRMax(minVal);
+        itsBunch_m->calcBeamParameters();
+        itsBunch_m->get_bounds(physicalRMin, physicalRMax);
+
+        if (!collisionWindowMeshInitialized_m) {
+            itsBunch_m->enableCollisionWindowMesh(ipCenterBeam(2), itsBunch_m->get_colwinlen());
+            collisionWindowMeshInitialized_m = true;
+        }
 
         // First stage: solve on the larger collision mesh using the primary bunch only.
         // Later this is where mirrored rho deposition should be added.
         itsBunch_m->computeSelfFields();
+        itsBunch_m->rmin_m = physicalRMin;
+        itsBunch_m->rmax_m = physicalRMax;
         /// @brief Transform particle positions back to the reference coordinate system
         beamToReferenceCSTrafo.transformBunchTo(itsBunch_m->getParticleContainer()->R.getView());
         m << level5 << "Transform particle positions back to reference coordinate system done."
@@ -657,166 +826,11 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
           << "Rotate B fields back to reference coordinate system done. ComputeSelfFields done."
           << endl;
         m << level5 << "Compute self fields on collision window mesh done." << endl;
-        itsBunch_m->restorePartFieldDomain(savedDomain);
         itsBunch_m->calcBeamParameters();
     }
 
     m << level3 << "Compute self fields done." << endl;
 }
-
-namespace {
-    std::pair<double, double> getDisplayRange(double windowMinZ, double windowMaxZ) {
-        const double windowLength = windowMaxZ - windowMinZ;
-        const double margin       = 0.5 * windowLength;
-        return {windowMinZ - margin, windowMaxZ + margin};
-    }
-
-    bool isInsideDisplay(double z, double displayMinZ, double displayMaxZ) {
-        return z >= displayMinZ && z <= displayMaxZ;
-    }
-
-    std::size_t mapToDisplayIndex(
-        double z, double displayMinZ, double displayMaxZ, std::size_t width) {
-        const double span = displayMaxZ - displayMinZ;
-        if (span <= 0.0 || width < 3) {
-            return 1;
-        }
-
-        double u = (z - displayMinZ) / span;
-        u        = std::clamp(u, 0.0, 1.0);
-
-        std::size_t idx =
-            static_cast<std::size_t>(std::llround(u * static_cast<double>(width - 1)));
-        return std::clamp<std::size_t>(idx, 1, width - 2);
-    }
-
-    void placeLabel(std::string& line, std::size_t pos, const std::string& label) {
-        if (line.empty() || label.empty()) {
-            return;
-        }
-
-        if (pos >= line.size()) {
-            pos = line.size() - 1;
-        }
-
-        const std::size_t maxLen = std::min(label.size(), line.size() - pos);
-        for (std::size_t i = 0; i < maxLen; ++i) {
-            line[pos + i] = label[i];
-        }
-    }
-
-    void placeMarker(std::string& line, std::size_t idx, char marker) {
-        if (idx >= line.size()) {
-            return;
-        }
-
-        if (line[idx] == '-' || line[idx] == ' ') {
-            line[idx] = marker;
-        } else if (line[idx] != '[' && line[idx] != ']' && line[idx] != '|') {
-            line[idx] = 'X';
-        }
-    }
-
-    std::string renderCollisionCenters1D(
-        double bunchCenterZ, double windowMinZ, double windowMaxZ, double ipCenterZ,
-        bool mirroredActive, std::size_t width = 80) {
-        if (width < 3) {
-            width = 3;
-        }
-
-        const auto [displayMinZ, displayMaxZ] = getDisplayRange(windowMinZ, windowMaxZ);
-
-        std::string line(width, '-');
-        line.front() = '[';
-        line.back()  = ']';
-
-        const std::size_t startIdx = mapToDisplayIndex(windowMinZ, displayMinZ, displayMaxZ, width);
-        const std::size_t endIdx   = mapToDisplayIndex(windowMaxZ, displayMinZ, displayMaxZ, width);
-
-        line[startIdx] = '[';
-        line[endIdx]   = ']';
-
-        const std::size_t ipIdx = mapToDisplayIndex(ipCenterZ, displayMinZ, displayMaxZ, width);
-        line[ipIdx]             = '|';
-
-        if (isInsideDisplay(bunchCenterZ, displayMinZ, displayMaxZ)) {
-            placeMarker(
-                line, mapToDisplayIndex(bunchCenterZ, displayMinZ, displayMaxZ, width), '*');
-        } else if (bunchCenterZ < displayMinZ) {
-            placeMarker(line, 1, '<');
-        } else {
-            placeMarker(line, width - 2, '>');
-        }
-
-        if (mirroredActive) {
-            const double mirroredCenterZ = 2.0 * ipCenterZ - bunchCenterZ;
-
-            if (isInsideDisplay(mirroredCenterZ, displayMinZ, displayMaxZ)) {
-                placeMarker(
-                    line, mapToDisplayIndex(mirroredCenterZ, displayMinZ, displayMaxZ, width), '+');
-            } else if (mirroredCenterZ < displayMinZ) {
-                placeMarker(line, 1, '<');
-            } else {
-                placeMarker(line, width - 2, '>');
-            }
-        }
-
-        return line;
-    }
-
-    std::string renderCollisionLabels1D(
-        double windowMinZ, double windowMaxZ, double ipCenterZ, std::size_t width = 80) {
-        if (width < 3) {
-            width = 3;
-        }
-
-        const auto [displayMinZ, displayMaxZ] = getDisplayRange(windowMinZ, windowMaxZ);
-
-        std::string labels(width, ' ');
-
-        const std::size_t startIdx = mapToDisplayIndex(windowMinZ, displayMinZ, displayMaxZ, width);
-        const std::size_t ipIdx    = mapToDisplayIndex(ipCenterZ, displayMinZ, displayMaxZ, width);
-        const std::size_t endIdx   = mapToDisplayIndex(windowMaxZ, displayMinZ, displayMaxZ, width);
-
-        placeLabel(labels, startIdx, "S");
-        placeLabel(labels, ipIdx, "IP");
-        placeLabel(labels, endIdx, "E");
-
-        return labels;
-    }
-
-    void debugPrintCollisionCenters1D(
-        Inform& m, double bunchCenterZ, double windowMinZ, double windowMaxZ, double ipCenterZ,
-        bool mirroredActive, std::size_t width = 80) {
-        static bool firstFrame     = true;
-        static std::size_t frameId = 0;
-        static std::ofstream dump("data/collision_ascii_frames.txt");
-
-        m << level5 << "bunchCenterZ=" << bunchCenterZ << endl;
-
-        const std::string line1 = renderCollisionCenters1D(
-            bunchCenterZ, windowMinZ, windowMaxZ, ipCenterZ, mirroredActive, width);
-        const std::string line2 = renderCollisionLabels1D(windowMinZ, windowMaxZ, ipCenterZ, width);
-
-        if (firstFrame) {
-            std::cout << line1 << '\n' << line2;
-            firstFrame = false;
-        } else {
-            // Move cursor up one line, go to column 1, clear line, write legend line,
-            // move up one line again, clear line, write animation line, then go down.
-            std::cout << "\r\033[2K" << line2 << "\033[1A\r\033[2K" << line1 << "\033[1B\r";
-        }
-        std::cout << std::flush;
-
-        if (dump.is_open()) {
-            dump << "FRAME " << frameId++ << '\n';
-            dump << line1 << '\n';
-            dump << line2 << '\n';
-            dump << '\n';
-        }
-    }
-}  // namespace
-
 /* ADA
 
   Use a simple 3-state logic
@@ -844,12 +858,13 @@ void ParallelTracker::checkInIPRegion(OrbitThreader& oth) {
     }
     itsBunch_m->calcBeamParameters();
 
-    const double maxVal = std::numeric_limits<double>::max();
-    const double minVal = -std::numeric_limits<double>::max();
-    ippl::Vector<double, Dim> rmax(minVal);
-    ippl::Vector<double, Dim> rmin(maxVal);
-
-    itsBunch_m->get_bounds(rmin, rmax);
+    // Use the physical particle extent directly here. During collision mode
+    // the Eulerian collision-window mesh may legitimately differ from the
+    // bunch-fitted mesh, so the IP diagnostics must not depend on cached field
+    // domain bounds.
+    pc->computeMinMaxR();
+    const ippl::Vector<double, Dim> rmin = pc->getMinR();
+    const ippl::Vector<double, Dim> rmax = pc->getMaxR();
 
     // Query beamline elements overlapping the current bunch extent.
     IndexMap::value_t elements;
@@ -887,14 +902,9 @@ void ParallelTracker::checkInIPRegion(OrbitThreader& oth) {
 
     const double bunchTailS = pathLength_m + rmin(2);
     const double bunchHeadS = pathLength_m + rmax(2);
+    const double bunchCenterS = 0.5 * (bunchTailS + bunchHeadS);
 
-    // Geometry in the current co-moving/reference frame.
     const double ipCenterLocalZ = ipCenterS - pathLength_m;
-    const double windowMinZ     = ipCenterLocalZ - 0.5 * colwinlen;
-    const double windowMaxZ     = ipCenterLocalZ + 0.5 * colwinlen;
-
-    // One-bunch center used only for debugging / symmetric reconstruction.
-    const double bunchCenterZ = 0.5 * (rmin(2) + rmax(2));
 
     // Observed frame: collision window plus margin on both sides.
     const double observedMarginS = 0.25 * colwinlen;
@@ -903,19 +913,10 @@ void ParallelTracker::checkInIPRegion(OrbitThreader& oth) {
 
     collisionFrameObserved_m = (bunchHeadS >= observedBeginS) && (bunchTailS <= observedEndS);
 
-    // Optional debug/logging inside the observed frame only.
     if (collisionFrameObserved_m) {
-        // const double zl = rmax(2) - rmin(2);
-        // m << "In IP :: lenght of bunch zl= " << zl << " rmin= " << rmin << " rmax= " << rmax
-        //   << " (m) COLWINLEN= " << colwinlen << " (m)" << endl;
-
-        // m << "ipCenter= " << ipCenterS << " windowBegins= " << windowBeginS
-        //   << " windowEnds= " << windowEndS << " bunchHead= " << bunchHeadS
-        //   << " bunchTail= " << bunchTailS << " Np= " << itsBunch_m->getTotalNum() << endl;
-
         debugPrintCollisionCenters1D(
-            m, bunchCenterZ, windowMinZ, windowMaxZ, ipCenterLocalZ,
-            collisionPrototypeInitialized_m, 100);
+            bunchCenterS, windowBeginS, windowEndS, ipCenterS, collisionPrototypeInitialized_m,
+            100);
     }
 
     // Enter symmetric collision mode once the head enters the window.
@@ -926,10 +927,8 @@ void ParallelTracker::checkInIPRegion(OrbitThreader& oth) {
         itsBunch_m->set_collidingBunches(true);
         itsBunch_m->set_ipCenterLocalZ(ipCenterLocalZ);
         itsBunch_m->set_colwinlen(colwinlen);
-
-        debugPrintCollisionCenters1D(
-            m, bunchCenterZ, windowMinZ, windowMaxZ, ipCenterLocalZ,
-            collisionPrototypeInitialized_m, 100);
+        collisionSavedFieldDomain_m      = itsBunch_m->savePartFieldDomain();
+        collisionWindowMeshInitialized_m = false;
 
         // No duplication of particles in pc.
         // From here on, the second bunch is virtual only:
@@ -940,37 +939,16 @@ void ParallelTracker::checkInIPRegion(OrbitThreader& oth) {
         // locally without modifying the main ParticleContainer.
     }
 
-    // If symmetric collision mode is active, this is where collision-specific
-    // calculations would be inserted.
-    if (collisionPrototypeInitialized_m) {
-        debugPrintCollisionCenters1D(
-            m, bunchCenterZ, windowMinZ, windowMaxZ, ipCenterLocalZ,
-            collisionPrototypeInitialized_m, 100);
-
-        // PSEUDOCODE ONLY:
-        //
-        // for each real particle i in pc:
-        //     R1 = pc->R(i)
-        //     P1 = pc->P(i)
-        //
-        //     R2 = R1
-        //     R2(2) = 2.0 * ipCenterLocalZ - R1(2)
-        //
-        //     P2 = P1
-        //     P2(2) = -P1(2)
-        //
-        //     use (R1, P1) and virtual (R2, P2) in collision model
-        //
-        // Important:
-        //     do not write R2/P2 back into pc
-        //     do not change mean momentum / reference momentum
-        //     do not change generic OPALX diagnostics here
-    }
-
     // Leave symmetric collision mode once the whole bunch passed the window.
     if (collisionPrototypeInitialized_m && bunchTailS > windowEndS) {
         collisionPrototypeFinished_m = true;
         collisionFrameObserved_m     = false;
+        if (collisionSavedFieldDomain_m.has_value()) {
+            itsBunch_m->restorePartFieldDomain(*collisionSavedFieldDomain_m);
+            itsBunch_m->calcBeamParameters();
+            collisionSavedFieldDomain_m.reset();
+        }
+        collisionWindowMeshInitialized_m = false;
         itsBunch_m->set_collidingBunches(false);
         itsBunch_m->set_ipCenterLocalZ(-1.0);
         itsBunch_m->set_colwinlen(-1.0);
@@ -1108,7 +1086,9 @@ void ParallelTracker::pushParticles(const BorisPusher& pusher) {
     // itsBunch_m->getParticleContainer()->update();
     Kokkos::fence();
     ippl::Comm->barrier();
-    itsBunch_m->bunchUpdate();
+    if (!itsBunch_m->get_collidingBunches()) {
+        itsBunch_m->bunchUpdate();
+    }
 }
 
 /**
