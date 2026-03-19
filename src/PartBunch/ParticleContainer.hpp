@@ -46,7 +46,7 @@ public:
     ippl::ParticleAttrib<bin_index_type> Bin;
 
     /// the particle specis
-    ippl::ParticleAttrib<short> Sp;
+    short Sp = 0;
 
     /// particle momenta [\beta\gamma]
     typename Base::particle_position_type P;
@@ -76,7 +76,6 @@ public:
         this->addAttribute(dt);
         this->addAttribute(Phi);
         this->addAttribute(Bin);
-        this->addAttribute(Sp);
         this->addAttribute(P);
         this->addAttribute(E);
         //this->addAttribute(Etmp);
@@ -121,7 +120,6 @@ public:
         saveAttr(dt, "createKeepData_dt");
         saveAttr(Phi, "createKeepData_Phi");
         saveAttr(Bin, "createKeepData_Bin");
-        saveAttr(Sp, "createKeepData_Sp");
         saveAttr(P, "createKeepData_P");
         saveAttr(E, "createKeepData_E");
         saveAttr(B, "createKeepData_B");

@@ -476,13 +476,9 @@ void H5PartWrapperForPT::writeStepData(PartBunch_t* bunch) {
         i32buffer[i] = binView(i);
     WRITEDATA(Int32, file_m, "bin", i32buffer);
 
-    auto spViewDevice  = bunch->getParticleContainer()->Sp.getView();
-    auto spView = Kokkos::create_mirror_view(spViewDevice);
-    Kokkos::deep_copy(spView,spViewDevice);
-
-
+    const int sp = bunch->getParticleContainer()->Sp;
     for (size_t i = 0; i < numLocalParticles; ++i)
-        i32buffer[i] = spView(i);
+        i32buffer[i] = sp;
     WRITEDATA(Int32, file_m, "sp", i32buffer);
     
     if (Options::ebDump) {
