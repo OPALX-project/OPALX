@@ -103,4 +103,6 @@ namespace Options {
     unsigned int delPartFreq = 1;
 
     bool computePercentiles = false;
+
+    bool useQMAttributes = false;
 }  // namespace Options

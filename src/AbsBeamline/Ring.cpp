@@ -125,8 +125,8 @@ bool Ring::apply(
 
         auto Binview = pc->Bin.getView();
 
-        const double Q      = pc->Q;
-        const double M      = pc->M;
+        const double Q      = pc->Q(id);
+        const double M      = pc->M(id);
         //        const short int Bin = Binview(id);
 
         gmsgALL << getName() << ": particle " << id << " at " << R

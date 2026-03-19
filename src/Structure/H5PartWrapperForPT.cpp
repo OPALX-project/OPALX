@@ -451,9 +451,9 @@ void H5PartWrapperForPT::writeStepData(PartBunch_t* bunch) {
         f64buffer[i] = pView(i)(2);
     WRITEDATA(Float64, file_m, "pz", f64buffer);
 
-    const double q = bunch->getParticleContainer()->Q;
+    auto pc = bunch->getParticleContainer();
     for (size_t i = 0; i < numLocalParticles; ++i)
-        f64buffer[i] = q;
+        f64buffer[i] = pc->Q(i);
     WRITEDATA(Float64, file_m, "q", f64buffer);
 
 
