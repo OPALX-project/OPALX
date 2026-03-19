@@ -581,8 +581,6 @@ void PartBunch<T, Dim>::computeSelfFields() {
 
     /// \todo Add binned field solver here (needs iteration over bins, scatterPerBin calls and Etmp build up)! See https://gitlab.psi.ch/OPAL/opal-x/src/-/blame/binnedFieldSolver/src/PartBunch/PartBunch.cpp?ref_type=heads#L376
 
-    // Macroparticle Charge Q
-    double Q                                    = this->pcontainer_m->Q;
     ippl::ParticleAttrib<T>* dt                 = &this->pcontainer_m->dt;
     typename Base::particle_position_type* R    = &this->pcontainer_m->R;
     this->fcontainer_m->getRho()                = 0.0;
@@ -591,14 +589,10 @@ void PartBunch<T, Dim>::computeSelfFields() {
     /// \todo replace with scatterCIC? --> later with scatterPerBin!
     // Charge "unit" here is "charge per macroparticle" [C]!
 
-    /** Note
-     * Here we need to scatter the charge scaled by the timestep. 
-     * Now that the charge Q is no longer an attribute, but a constant value, we
-     * can achieve the same result by scaling the dt attribute instead!  
-     */
-    *dt = (*dt) * Q;        // dt now holds Q*dt[i] for each particle i
-    scatter(*dt, *rho, *R); // Scatter this charge 
-    *dt = (*dt) / Q;        // Rescale back to original dt 
+    // Scatter expects the per-particle charge scaled into `dt`.
+    this->pcontainer_m->scaleDtByCharge();
+    scatter(*dt, *rho, *R);
+    this->pcontainer_m->unscaleDtByCharge();
     m << level4 << "Scatter done." << endl;
 
     /*

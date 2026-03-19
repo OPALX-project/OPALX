@@ -92,6 +92,7 @@ namespace {
         MINBINEMITTED,
         MINSTEPFORREBIN,
         COMPUTEPERCENTILES,
+        USEQMATTRIBUTES,
         SIZE
     };
 }  // namespace
@@ -320,6 +321,12 @@ Option::Option()
         "be computed. Default: false",
         computePercentiles);
 
+    itsAttr[USEQMATTRIBUTES] = Attributes::makeBool(
+        "USE_QM_ATTRIBUTES",
+        "If true, store particle charge/mass as per-particle attributes (Q(i)/M(i)). "
+        "If false (default), use a single shared value per container.",
+        useQMAttributes);
+
     registerOwnership(AttributeHandler::STATEMENT);
 
     FileStream::setEcho(echo);
@@ -365,6 +372,7 @@ Option::Option(const std::string& name, Option* parent) : Action(name, parent) {
     Attributes::setReal(itsAttr[HALOSHIFT], haloShift);
     Attributes::setReal(itsAttr[DELPARTFREQ], delPartFreq);
     Attributes::setBool(itsAttr[COMPUTEPERCENTILES], computePercentiles);
+    Attributes::setBool(itsAttr[USEQMATTRIBUTES], useQMAttributes);
 }
 
 Option::~Option() {
@@ -396,6 +404,7 @@ void Option::execute() {
     haloShift          = Attributes::getReal(itsAttr[HALOSHIFT]);
     delPartFreq        = Attributes::getReal(itsAttr[DELPARTFREQ]);
     computePercentiles = Attributes::getBool(itsAttr[COMPUTEPERCENTILES]);
+    useQMAttributes     = Attributes::getBool(itsAttr[USEQMATTRIBUTES]);
 
     /// note: rangen is used only for the random number generator in the OPAL language
     ///       not for the distributions

@@ -56,6 +56,12 @@ public:
                         double massGeV,
                         size_t Np,
                         size_t Nlocal);
+
+    void computeMoments(ippl::ParticleAttrib<Vector_t<double,3>>::view_type  Rview,
+                         ippl::ParticleAttrib<Vector_t<double,3>>::view_type  Pview,
+                         ippl::ParticleAttrib<double>::view_type              Mview,
+                         size_t Np,
+                         size_t Nlocal);
     void computeMinMaxPosition(ippl::ParticleAttrib<Vector_t<double,3>>::view_type  Rview, size_t Nlcoal);
     void computeMeanKineticEnergy();
     void computeDebyeLength(ippl::ParticleAttrib<Vector_t<double,3>>::view_type  Pview,

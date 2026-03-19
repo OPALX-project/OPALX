@@ -331,11 +331,11 @@ public:
     void do_binaryRepart();
 
     void setCharge() {
-        this->getParticleContainer()->Q = qi_m;
+        this->getParticleContainer()->setQ(qi_m);
     }
     
     void setMass() {
-        this->getParticleContainer()->M = mi_m;
+        this->getParticleContainer()->setM(mi_m);
     }
 
     double getCharge() const {
