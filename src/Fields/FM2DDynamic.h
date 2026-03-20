@@ -1,14 +1,11 @@
 #ifndef CLASSIC_FIELDMAP2DDYNAMIC_HH
 #define CLASSIC_FIELDMAP2DDYNAMIC_HH
 
-// #include "gsl/gsl_interp.h"
-// #include "gsl/gsl_spline.h"
 #include "Fields/Fieldmap.h"
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_DualView.hpp>
 
-// class _FM2DDynamic: public _Fieldmap {
 class FM2DDynamic: public Fieldmap {
 
 public:
@@ -64,15 +61,12 @@ public:
         double &xIni, double &xFinal, 
         double &yIni, double &yFinal, 
         double &zIni, double &zFinal) const override;
-    // virtual void getFieldDimensions(double &xIni, double &xFinal, double &yIni, double &yFinal, double &zIni, double &zFinal) const;
 
     /// @brief Swap coordinates
     virtual void swap() override;
-    // virtual void swap();
 
     /// @brief Print info about the field map.
     virtual void getInfo(Inform *msg) override;
-    // virtual void getInfo(Inform *msg);
 
     /**
      * @brief Get the frequency.
@@ -80,7 +74,6 @@ public:
      * @note Not implemented yet
      */
     virtual double getFrequency() const override;
-    // virtual double getFrequency() const;
 
     /**
      * @brief Set the frequency.
@@ -88,7 +81,6 @@ public:
      * @note Not implemented yet
      */
     virtual void setFrequency(double freq) override;
-    // virtual void setFrequency(double freq);
 
     /**
      * @brief Checks if the given coordinate is inside the volume covered by the
@@ -99,9 +91,8 @@ public:
      */
     bool isInside(const Vector_t<double, 3> &r)const{
         return r(2) >= zbegin_m && r(2) < zend_m && 
-        sqrt(r(0)*r(0) + r(1)*r(1)) < rend_m;
+        sqrt(r(0) * r(0) + r(1) * r(1)) < rend_m;
     }
-    // virtual bool isInside(const Vector_t &r) const;
 
     template <class ViewType>
     KOKKOS_INLINE_FUNCTION static void computeField(
@@ -111,72 +102,44 @@ public:
         const ViewType& Ez,
         const ViewType& Er,
         const ViewType& Bt,
-        // const ViewType& Bz, 
-        // const ViewType& Br,
         double hr_m, 
         double hz_m, 
         double zbegin_m, 
         int num_gridpr_m, 
         int num_gridpz_m) {
 
-        // const double RR = std::sqrt(R(0) * R(0) + R(1) * R(1));
         const double RR = sqrt(R(0) * R(0) + R(1) * R(1));
 
         const int indexr    = (int)floor(RR / hr_m);
         const double leverr = (RR / hr_m) - indexr;
-        // const int indexr = (int)std::floor(RR / hr_m);
-        // const double leverr = RR / hr_m - indexr;
 
         const int indexz    = (int)floor((R(2) - zbegin_m) / hz_m);
         const double leverz = (R(2) - zbegin_m) / hz_m - indexz;
-        // const int indexz = (int)std::floor((R(2) - zbegin_m) / hz_m);
-        // const double leverz = (R(2) - zbegin_m) / hz_m - indexz;
 
         if ((indexz < 0) || (indexz + 2 > num_gridpz_m))
             return;
-            // return false;
 
         if(indexr + 2 > num_gridpr_m)
             return;
-            // return true;
 
-        // ChatGPT suggested to keep with const.
-        // int index1     = indexz + indexr * num_gridpz_m;
-        // int index2     = index1 + num_gridpz_m;
         const int index1 = indexz + indexr * num_gridpz_m;
         const int index2 = index1 + num_gridpz_m;
 
-        // ChatGPT suggested to put const in these as well.
         const double EfieldR = (1.0 - leverz)  * (1.0 - leverr) * Er(index1)
                             + leverz         * (1.0 - leverr) * Er(index1 + 1)
                             + (1.0 - leverz) * leverr         * Er(index2)
                             + leverz         * leverr         * Er(index2 + 1);
-        // double EfieldR = (1.0 - leverz) * (1.0 - leverr) * FieldstrengthEr_m[index1]
-        //                 + leverz         * (1.0 - leverr) * FieldstrengthEr_m[index1 + 1]
-        //                 + (1.0 - leverz) * leverr         * FieldstrengthEr_m[index2]
-        //                 + leverz         * leverr         * FieldstrengthEr_m[index2 + 1];
-
 
         const double EfieldZ = (1.0 - leverz)  * (1.0 - leverr) * Ez(index1)
                             + leverz         * (1.0 - leverr) * Ez(index1 + 1)
                             + (1.0 - leverz) * leverr         * Ez(index2)
                             + leverz         * leverr         * Ez(index2 + 1);
-        // double EfieldZ = (1.0 - leverz) * (1.0 - leverr) * FieldstrengthEz_m[index1]
-        //                 + leverz         * (1.0 - leverr) * FieldstrengthEz_m[index1 + 1]
-        //                 + (1.0 - leverz) * leverr         * FieldstrengthEz_m[index2]
-        //                 + leverz         * leverr         * FieldstrengthEz_m[index2 + 1];
 
         const double BfieldT = (1.0 - leverz)  * (1.0 - leverr) * Bt(index1)
                             + leverz         * (1.0 - leverr) * Bt(index1 + 1)
                             + (1.0 - leverz) * leverr         * Bt(index2)
                             + leverz         * leverr         * Bt(index2 + 1);
-        // double BfieldT = (1.0 - leverz) * (1.0 - leverr) * FieldstrengthBt_m[index1]
-        //                 + leverz         * (1.0 - leverr) * FieldstrengthBt_m[index1 + 1]
-        //                 + (1.0 - leverz) * leverr         * FieldstrengthBt_m[index2]
-        //                 + leverz         * leverr         * FieldstrengthBt_m[index2 + 1];
 
-
-        // if (RR != 0) {
         if(RR > 1e-14) {
             E(0) += EfieldR * R(0) / RR;
             E(1) += EfieldR * R(1) / RR;
@@ -185,7 +148,6 @@ public:
         }
         E(2) += EfieldZ;
         return;
-        // return false;
     }
 
     /**
@@ -194,18 +156,12 @@ public:
      * @param pc Particle container
      */
     void applyField(std::shared_ptr<ParticleContainer_t> pc);
-
-
-    // not used yet? to check
-    // virtual ~_FM2DDynamic();    
+ 
     virtual void getOnaxisEz(std::vector<std::pair<double, double> > & F) override;
 
 private:
     FM2DDynamic(const std::string& filename);
-    // FM2DDynamic(std::string aFilename);
     ~FM2DDynamic();
-
-    // static FM2DDynamic create(const std::string& filename);
 
     virtual void readMap();
     virtual void freeMap();
@@ -234,13 +190,5 @@ private:
     bool swap_m;
     friend class Fieldmap;
 };
-
-// inline bool _FM2DDynamic::isInside(const Vector_t &r) const
-// {
-//     return r(2) >= zbegin_m && r(2) < zend_m && std::sqrt(r(0)*r(0) + r(1)*r(1)) < rend_m;
-// }
-
-
-// using FM2DDynamic = std::shared_ptr<_FM2DDynamic>;
 
 #endif
