@@ -670,7 +670,9 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
     /// \todo this function is not implemented (yet)
     // itsBunch_m->boundp();
 
-    itsBunch_m->calcBeamParameters();
+    if (usesFrozenInteractionWindowMesh()) {
+        itsBunch_m->calcBeamParameters();
+    }
 
     if (step % repartFreq_m + 1 == repartFreq_m) {
         doBinaryRepartition();
@@ -893,6 +895,8 @@ void ParallelTracker::computeDefaultSelfFields(
     itsBunch_m->computeSelfFields();
     m << level5 << "Compute self fields done." << endl;
     transformFieldsToReferenceFrame(beamToReferenceCSTrafo, m);
+    itsBunch_m->bunchUpdate();
+    m << level5 << "Bunch updated for positions in reference coordinate system." << endl;
 }
 
 void ParallelTracker::computeInteractionWindowSelfFields(
