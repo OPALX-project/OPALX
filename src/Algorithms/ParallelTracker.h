@@ -61,6 +61,7 @@
 
 class ParticleMatterInteractionHandler;
 class PluginElement;
+class CollisionDynamicsAnimation;
 
 /**
  * @brief Implements the simulation loop
@@ -201,6 +202,9 @@ private:
      * frozen collision-window mesh.
      */
     std::optional<PartBunch<double, Dim>::SavedPartFieldDomain> collisionSavedFieldDomain_m;
+
+    // ASCII visualization helper for the collision-window prototype.
+    std::unique_ptr<CollisionDynamicsAnimation> collisionAnimation_m;
 
     /* ===================================================================== */
 public:

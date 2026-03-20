@@ -23,12 +23,9 @@
 
 #include <cfloat>
 #include <cmath>
-#include <fstream>
 #include <iomanip>
-#include <iostream>
 #include <limits>
 #include <sstream>
-#include <string>
 
 #include "Algorithms/Matrix.h"
 
@@ -48,6 +45,7 @@
 #include "Utilities/Options.h"
 #include "Utilities/Timer.h"
 #include "Utilities/Util.h"
+#include "Utilities/CollisionDynamicsAnimation.h"
 #include "ValueDefinitions/RealVariable.h"
 
 #include "AbsBeamline/Offset.h"
@@ -57,159 +55,6 @@
 extern Inform* gmsg;
 
 class PartData;
-
-namespace {
-    std::pair<double, double> getDisplayRange(double windowBeginS, double windowEndS) {
-        const double windowLength = windowEndS - windowBeginS;
-        const double margin       = 0.5 * windowLength;
-        return {windowBeginS - margin, windowEndS + margin};
-    }
-
-    bool isInsideDisplay(double z, double displayMinZ, double displayMaxZ) {
-        return z >= displayMinZ && z <= displayMaxZ;
-    }
-
-    std::size_t mapToDisplayIndex(
-        double z, double displayMinZ, double displayMaxZ, std::size_t width) {
-        const double span = displayMaxZ - displayMinZ;
-        if (span <= 0.0 || width < 3) {
-            return 1;
-        }
-
-        double u = (z - displayMinZ) / span;
-        u        = std::clamp(u, 0.0, 1.0);
-
-        std::size_t idx =
-            static_cast<std::size_t>(std::llround(u * static_cast<double>(width - 1)));
-        return std::clamp<std::size_t>(idx, 1, width - 2);
-    }
-
-    void placeLabel(std::string& line, std::size_t pos, const std::string& label) {
-        if (line.empty() || label.empty()) {
-            return;
-        }
-
-        if (pos >= line.size()) {
-            pos = line.size() - 1;
-        }
-
-        const std::size_t maxLen = std::min(label.size(), line.size() - pos);
-        for (std::size_t i = 0; i < maxLen; ++i) {
-            line[pos + i] = label[i];
-        }
-    }
-
-    void placeMarker(std::string& line, std::size_t idx, char marker) {
-        if (idx >= line.size()) {
-            return;
-        }
-
-        if (line[idx] == '-' || line[idx] == ' ') {
-            line[idx] = marker;
-        } else if (line[idx] != '[' && line[idx] != ']' && line[idx] != '|') {
-            line[idx] = 'X';
-        }
-    }
-
-    std::string renderCollisionCenters1D(
-        double bunchCenterS, double windowBeginS, double windowEndS, double ipCenterS,
-        bool mirroredActive, std::size_t width = 80) {
-        if (width < 3) {
-            width = 3;
-        }
-
-        const auto [displayMinS, displayMaxS] = getDisplayRange(windowBeginS, windowEndS);
-
-        std::string line(width, '-');
-        line.front() = '[';
-        line.back()  = ']';
-
-        const std::size_t startIdx =
-            mapToDisplayIndex(windowBeginS, displayMinS, displayMaxS, width);
-        const std::size_t endIdx = mapToDisplayIndex(windowEndS, displayMinS, displayMaxS, width);
-
-        line[startIdx] = '[';
-        line[endIdx]   = ']';
-
-        const std::size_t ipIdx = mapToDisplayIndex(ipCenterS, displayMinS, displayMaxS, width);
-        line[ipIdx]             = '|';
-
-        if (isInsideDisplay(bunchCenterS, displayMinS, displayMaxS)) {
-            placeMarker(
-                line, mapToDisplayIndex(bunchCenterS, displayMinS, displayMaxS, width), '*');
-        } else if (bunchCenterS < displayMinS) {
-            placeMarker(line, 1, '<');
-        } else {
-            placeMarker(line, width - 2, '>');
-        }
-
-        if (mirroredActive) {
-            const double mirroredCenterS = 2.0 * ipCenterS - bunchCenterS;
-
-            if (isInsideDisplay(mirroredCenterS, displayMinS, displayMaxS)) {
-                placeMarker(
-                    line, mapToDisplayIndex(mirroredCenterS, displayMinS, displayMaxS, width), '+');
-            } else if (mirroredCenterS < displayMinS) {
-                placeMarker(line, 1, '<');
-            } else {
-                placeMarker(line, width - 2, '>');
-            }
-        }
-
-        return line;
-    }
-
-    std::string renderCollisionLabels1D(
-        double windowBeginS, double windowEndS, double ipCenterS, std::size_t width = 80) {
-        if (width < 3) {
-            width = 3;
-        }
-
-        const auto [displayMinS, displayMaxS] = getDisplayRange(windowBeginS, windowEndS);
-
-        std::string labels(width, ' ');
-
-        const std::size_t startIdx =
-            mapToDisplayIndex(windowBeginS, displayMinS, displayMaxS, width);
-        const std::size_t ipIdx = mapToDisplayIndex(ipCenterS, displayMinS, displayMaxS, width);
-        const std::size_t endIdx = mapToDisplayIndex(windowEndS, displayMinS, displayMaxS, width);
-
-        placeLabel(labels, startIdx, "S");
-        placeLabel(labels, ipIdx, "IP");
-        placeLabel(labels, endIdx, "E");
-
-        return labels;
-    }
-
-    void debugPrintCollisionCenters1D(
-        double bunchCenterS, double windowBeginS, double windowEndS, double ipCenterS,
-        bool mirroredActive, std::size_t width = 80) {
-        static bool firstFrame     = true;
-        static std::size_t frameId = 0;
-        static std::ofstream dump("data/collision_ascii_frames.txt");
-
-        const std::string line1 = renderCollisionCenters1D(
-            bunchCenterS, windowBeginS, windowEndS, ipCenterS, mirroredActive, width);
-        const std::string line2 =
-            renderCollisionLabels1D(windowBeginS, windowEndS, ipCenterS, width);
-
-        if (firstFrame) {
-            std::cout << line1 << '\n' << line2;
-            firstFrame = false;
-        } else {
-            std::cout << "\r\033[2K" << line2 << "\033[1A\r\033[2K" << line1 << "\033[1B\r";
-        }
-        std::cout << std::flush;
-
-        if (dump.is_open()) {
-            dump << "FRAME " << frameId++ << '\n';
-            dump << line1 << '\n';
-            dump << line2 << '\n';
-            dump << '\n';
-            dump.flush();
-        }
-    }
-}  // namespace
 
 /* ============================== Constructors ============================== */
 ParallelTracker::ParallelTracker(
@@ -238,7 +83,8 @@ ParallelTracker::ParallelTracker(
       collisionPrototypeFinished_m(false),
       collisionFrameObserved_m(false),
       collisionWindowMeshInitialized_m(false),
-      collisionSavedFieldDomain_m(std::nullopt) {
+      collisionSavedFieldDomain_m(std::nullopt),
+      collisionAnimation_m(std::make_unique<CollisionDynamicsAnimation>()) {
 }
 
 ParallelTracker::ParallelTracker(
@@ -269,7 +115,8 @@ ParallelTracker::ParallelTracker(
       collisionPrototypeFinished_m(false),
       collisionFrameObserved_m(false),
       collisionWindowMeshInitialized_m(false),
-      collisionSavedFieldDomain_m(std::nullopt) {
+      collisionSavedFieldDomain_m(std::nullopt),
+      collisionAnimation_m(std::make_unique<CollisionDynamicsAnimation>()) {
     for (unsigned int i = 0; i < zstop.size(); ++i) {
         stepSizes_m.push_back(dt[i], zstop[i], maxSteps[i]);
     }
@@ -913,10 +760,32 @@ void ParallelTracker::checkInIPRegion(OrbitThreader& oth) {
 
     collisionFrameObserved_m = (bunchHeadS >= observedBeginS) && (bunchTailS <= observedEndS);
 
+    const bool leavingCollisionMode =
+        collisionPrototypeInitialized_m && (bunchTailS > windowEndS);
+
+    if (leavingCollisionMode) {
+        collisionPrototypeFinished_m = true;
+        if (collisionSavedFieldDomain_m.has_value()) {
+            itsBunch_m->restorePartFieldDomain(*collisionSavedFieldDomain_m);
+            itsBunch_m->calcBeamParameters();
+            collisionSavedFieldDomain_m.reset();
+        }
+        collisionWindowMeshInitialized_m = false;
+        itsBunch_m->set_collidingBunches(false);
+        itsBunch_m->set_ipCenterLocalZ(-1.0);
+        itsBunch_m->set_colwinlen(-1.0);
+        collisionPrototypeInitialized_m = false;
+        m << level5 << "finished symmetric collision mode" << endl;
+    }
+
     if (collisionFrameObserved_m) {
-        debugPrintCollisionCenters1D(
-            bunchCenterS, windowBeginS, windowEndS, ipCenterS, collisionPrototypeInitialized_m,
-            100);
+        const bool fixedMesh = collisionPrototypeInitialized_m;
+        const double meshBeginS = fixedMesh ? windowBeginS : bunchTailS;
+        const double meshEndS   = fixedMesh ? windowEndS : bunchHeadS;
+
+        collisionAnimation_m->render(
+            bunchCenterS, meshBeginS, meshEndS, windowBeginS, windowEndS, ipCenterS,
+            collisionPrototypeInitialized_m, fixedMesh);
     }
 
     // Enter symmetric collision mode once the head enters the window.
@@ -940,19 +809,7 @@ void ParallelTracker::checkInIPRegion(OrbitThreader& oth) {
     }
 
     // Leave symmetric collision mode once the whole bunch passed the window.
-    if (collisionPrototypeInitialized_m && bunchTailS > windowEndS) {
-        collisionPrototypeFinished_m = true;
-        collisionFrameObserved_m     = false;
-        if (collisionSavedFieldDomain_m.has_value()) {
-            itsBunch_m->restorePartFieldDomain(*collisionSavedFieldDomain_m);
-            itsBunch_m->calcBeamParameters();
-            collisionSavedFieldDomain_m.reset();
-        }
-        collisionWindowMeshInitialized_m = false;
-        itsBunch_m->set_collidingBunches(false);
-        itsBunch_m->set_ipCenterLocalZ(-1.0);
-        itsBunch_m->set_colwinlen(-1.0);
-        m << level5 << "finished symmetric collision mode" << endl;
+    if (leavingCollisionMode) {
         return;
     }
 }
