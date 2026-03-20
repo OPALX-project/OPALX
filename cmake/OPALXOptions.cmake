@@ -50,10 +50,13 @@ set(OPALX_SUPPORTED_PLATFORMS "SERIAL;OPENMP;CUDA;HIP")
 # === Normalize to uppercase ===
 string(TOUPPER "${OPALX_PLATFORMS}" OPALX_PLATFORMS)
 
-# === Declare a HIP profiler option ===
-if("HIP" IN_LIST OPALX_PLATFORMS)
-  option(OPALX_ENABLE_HIP_PROFILER "Enable HIP Systems Profiler" OFF)
-endif()
+# -----------------------------------------------------------------------------
+# HIP profiler (user-facing)
+#
+# Always declare the option so it shows up in cmake-gui/cmake -L,
+# but enforce that it can only be enabled for the HIP backend.
+# -----------------------------------------------------------------------------
+option(OPALX_ENABLE_HIP_PROFILER "Enable HIP Systems Profiler (HIP backend only)" OFF)
 
 # -----------------------------------------------------------------------------
 # Sanity check for known platforms
@@ -104,10 +107,12 @@ endif()
 # Profiler section
 # -----------------------------------------------------------------------------
 
+message(STATUS "🔧 HIP profiler (OPALX_ENABLE_HIP_PROFILER): ${OPALX_ENABLE_HIP_PROFILER}")
 if(OPALX_ENABLE_HIP_PROFILER)
   if("HIP" IN_LIST OPALX_PLATFORMS)
-    message(STATUS "🧩 Enabling HIP Profiler and KOKKOS profiliing")
-    add_compile_definitions(-DOPALX_ENABLE_HIP_PROFILER)
+    message(FATAL_ERROR
+      "OPALX_ENABLE_HIP_PROFILER was enabled, but HIP profiling support is currently not implemented in OPALX. "
+      "This option is reserved for future work. Please configure with -DOPALX_ENABLE_HIP_PROFILER=OFF for now.")
   else()
     message(FATAL_ERROR "Cannot enable HIP Systems Profiler since platform is not HIP")
   endif()
@@ -202,9 +207,23 @@ option(OPALX_USE_STANDARD_FOLDERS "Put all generated binaries in bin/lib folders
 option(OPALX_SKIP_FAILING_TESTS "Do not build/test tests that are currently marked as failing" OFF)
 option(OPALX_ENABLE_SCRIPTS "Generate job script templates for some benchmarks/tests" OFF)
 option(OPALX_FIELD_DEBUG "Enable FieldSolver field-dump debug code" OFF)
+option(OPALX_USE_KOKKOS_MATH_CONSTANTS "Use Kokkos mathematical constants in Physics.h" ON)
 option(OPALX_USE_INSTALLED_HDF5 "Use system-installed HDF5 instead of building from source" OFF)
 option(OPALX_USE_INSTALLED_H5HUT "Use system-installed H5HUT instead of building from source" OFF)
 option(OPALX_USE_INSTALLED_GTEST "Use system-installed GoogleTest instead of building from source" OFF)
+
+# -----------------------------------------------------------------------------
+# Compile-definition style options (keep consistent with other global compile definitions)
+# -----------------------------------------------------------------------------
+if(OPALX_USE_KOKKOS_MATH_CONSTANTS)
+  add_compile_definitions(OPALX_USE_KOKKOS_MATH_CONSTANTS)
+  colour_message(STATUS ${Green} "✅ Kokkos math constants enabled (OPALX_USE_KOKKOS_MATH_CONSTANTS)")
+else()
+  colour_message(STATUS ${Cyan} "ℹ️  Kokkos math constants disabled (using literal constants in Physics.h)")
+endif()
+
+# Keep high-signal toggles visible in configure output.
+message(STATUS "🔧 Skip failing tests (OPALX_SKIP_FAILING_TESTS): ${OPALX_SKIP_FAILING_TESTS}")
 
 # "Build OPALX as a shared library (ON) or static library (OFF)" OFF) 
 if(OPALX_DYL)

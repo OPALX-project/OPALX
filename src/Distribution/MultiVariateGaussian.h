@@ -10,9 +10,6 @@
 #include <memory>
 #include <cmath>
 
-using ParticleContainer_t = ParticleContainer<double, 3>;
-using FieldContainer_t = FieldContainer<double, 3>;
-using Distribution_t = Distribution;
 using GeneratorPool = typename Kokkos::Random_XorShift64_Pool<>;
 using Dist_t = ippl::random::NormalDistribution<double, 3>;
 using Matrix_t = ippl::Vector<ippl::Vector<double, 6>, 6>;

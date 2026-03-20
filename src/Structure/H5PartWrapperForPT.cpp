@@ -20,7 +20,7 @@
 #include "AbstractObjects/OpalData.h"
 #include "PartBunch/PartBunch.h"
 
-#include "OPALconfig.h"
+#include "BuildInfo.h"
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
 #include "Utilities/OpalException.h"
@@ -209,7 +209,7 @@ void H5PartWrapperForPT::readStepData(
 
 void H5PartWrapperForPT::writeHeader() {
     std::stringstream OPAL_version;
-    OPAL_version << OPAL_PROJECT_NAME << " " << OPAL_PROJECT_VERSION << " # git rev. "
+    OPAL_version << buildinfo::project_name << " " << buildinfo::project_version << " # git rev. "
                  << Util::getGitRevision();
     WRITESTRINGFILEATTRIB(file_m, "OPAL_version", OPAL_version.str().c_str());
 

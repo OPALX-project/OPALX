@@ -5,11 +5,11 @@ set (_SRCS
 
 set (HDRS
     PartBunch.h
+    PartBunchFwd.h
     FieldSolver.hpp
     FieldContainer.hpp
     LoadBalancer.hpp
     ParticleContainer.hpp
-    datatypes.h
     BCHandler.hpp
 )
 
