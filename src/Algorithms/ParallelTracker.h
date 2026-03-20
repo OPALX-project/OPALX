@@ -176,8 +176,14 @@ private:
 
     /**
      * @brief Lifecycle of the interaction-window model for the current run.
+     *
+     * `Pending` marks the step-boundary handoff: the head of the bunch has
+     * entered the interaction window, but the tracker has not yet switched the
+     * field solve over to the frozen Eulerian-in-z interaction-window mesh.
+     * This avoids mixing inactive and active interaction-window behavior inside
+     * the same integration step.
      */
-    enum class InteractionWindowPhase { Inactive, Active, Completed };
+    enum class InteractionWindowPhase { Inactive, Pending, Active, Completed };
 
     /**
      * @brief Tracker-owned state for the interaction-window passage.
@@ -354,6 +360,7 @@ private:
         double bunchTailS,
         double bunchHeadS,
         const InteractionWindowGeometry& geometry);
+    bool usesFrozenInteractionWindowMesh() const;
     void transformFieldsToReferenceFrame(
         const CoordinateSystemTrafo& beamToReferenceCSTrafo,
         Inform& m);

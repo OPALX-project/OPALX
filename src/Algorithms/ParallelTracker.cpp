@@ -413,8 +413,13 @@ void ParallelTracker::execute() {
             // First half of the time integration
             timeIntegration1(pusher);
             m << level4 << "timeIntegration1 done at step " << step << "." << endl;
-            itsBunch_m->bunchUpdate();
-            m << level5 << "Bunch updated after timeIntegration1." << endl;
+            if (!usesFrozenInteractionWindowMesh()) {
+                itsBunch_m->bunchUpdate();
+                m << level5 << "Bunch updated after timeIntegration1." << endl;
+            } else {
+                m << level5 << "Skipping bunchUpdate() after timeIntegration1 in "
+                  << "interaction-window mode." << endl;
+            }
 
             // Reset E and B fields
             resetFields();
@@ -438,8 +443,13 @@ void ParallelTracker::execute() {
             // Second half of the time integration
             timeIntegration2(pusher);
             m << level4 << "timeIntegration2 done at step " << step << "." << endl;
-            itsBunch_m->bunchUpdate();
-            m << level5 << "Bunch updated after timeIntegration2." << endl;
+            if (!usesFrozenInteractionWindowMesh()) {
+                itsBunch_m->bunchUpdate();
+                m << level5 << "Bunch updated after timeIntegration2." << endl;
+            } else {
+                m << level5 << "Skipping bunchUpdate() after timeIntegration2 in "
+                  << "interaction-window mode." << endl;
+            }
 
             if (itsBunch_m->getTotalNum() == 0) {
                 m << level5 << "WARNING: No particles in the bunch at step " << step
@@ -450,8 +460,13 @@ void ParallelTracker::execute() {
             // Emit particles from time-dependent (emitting) sources (R set in REFERENCE frame).
             emitFromEmissionSources(itsBunch_m->getT(), itsBunch_m->getdT());
             m << level4 << "Emit particles from emission sources done at step " << step << "." << endl;
-            itsBunch_m->bunchUpdate();  // mesh from current R so stays REFERENCE frame for next step
-            m << level5 << "Bunch updated after emission." << endl;
+            if (!usesFrozenInteractionWindowMesh()) {
+                itsBunch_m->bunchUpdate();  // mesh from current R so stays REFERENCE frame for next step
+                m << level5 << "Bunch updated after emission." << endl;
+            } else {
+                m << level5 << "Skipping bunchUpdate() after emission in interaction-window mode."
+                  << endl;
+            }
 
             // Set dt for all particles (including newly emitted) so next step's push uses correct per-particle dt.
             // Reset particle time step size to the current track time step (pulled out of timeIntegration2)
@@ -616,6 +631,11 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
     itsBunch_m->calcBeamParameters();
     m << level4 << "Calculate beam parameters done." << endl;
 
+    if (interactionWindowState_m.phase == InteractionWindowPhase::Pending &&
+        interactionWindowState_m.geometry.has_value()) {
+        enterInteractionWindow(*interactionWindowState_m.geometry, m);
+    }
+
     // Use mean momentum for beam-frame alignment; with 0 or 1 particle get_pmean() can be
     // zero or negligible (e.g. rank with no particles), which would make getQuaternion throw.
     const double pmean_tol = 1e-12;
@@ -638,8 +658,14 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
     /// @brief Transform particle positions to the beam coordinate system
     referenceToBeamCSTrafo.transformBunchTo(itsBunch_m->getParticleContainer()->R.getView());
     m << level4 << "Transform particle positions to beam coordinate system done." << endl;
-    itsBunch_m->bunchUpdate();
-    m << level5 << "Bunch updated for positions in beam coordinate system." << endl;
+    if (!usesFrozenInteractionWindowMesh()) {
+        itsBunch_m->bunchUpdate();
+        m << level5 << "Bunch updated for positions in beam coordinate system." << endl;
+    } else {
+        m << level5 << "Skipping initial bunchUpdate() in interaction-window mode to keep the "
+          << "beam-frame interaction-window mesh/layout fixed across the temporary field solve."
+          << endl;
+    }
 
     /// \todo this function is not implemented (yet)
     // itsBunch_m->boundp();
@@ -696,16 +722,22 @@ void ParallelTracker::checkInIPRegion(OrbitThreader& oth) {
     const ippl::Vector<double, Dim> rmin = pc->getMinR();
     const ippl::Vector<double, Dim> rmax = pc->getMaxR();
 
-    const auto geometry = detectInteractionWindow(oth, rmin, rmax);
+    const double bunchTailS = pathLength_m + rmin(2);
+    const double bunchHeadS = pathLength_m + rmax(2);
 
-    // No active IP at this step.
+    std::optional<InteractionWindowGeometry> geometry = detectInteractionWindow(oth, rmin, rmax);
+    if (!geometry.has_value() &&
+        (interactionWindowState_m.phase == InteractionWindowPhase::Pending ||
+         interactionWindowState_m.phase == InteractionWindowPhase::Active) &&
+        interactionWindowState_m.geometry.has_value()) {
+        geometry = interactionWindowState_m.geometry;
+    }
+
     if (!geometry.has_value()) {
         interactionWindowState_m.frameObserved = false;
         return;
     }
 
-    const double bunchTailS = pathLength_m + rmin(2);
-    const double bunchHeadS = pathLength_m + rmax(2);
     const auto& activeGeometry = *geometry;
 
     interactionWindowState_m.frameObserved =
@@ -729,7 +761,8 @@ void ParallelTracker::checkInIPRegion(OrbitThreader& oth) {
     // Enter interaction-window mode once the head enters the window.
     if (interactionWindowState_m.phase == InteractionWindowPhase::Inactive &&
         bunchHeadS > activeGeometry.beginS) {
-        enterInteractionWindow(activeGeometry, m);
+        interactionWindowState_m.phase    = InteractionWindowPhase::Pending;
+        interactionWindowState_m.geometry = activeGeometry;
     }
 
     // Leave interaction-window mode once the whole bunch passed the window.
@@ -819,8 +852,7 @@ void ParallelTracker::renderInteractionWindowFrame(
     double bunchTailS,
     double bunchHeadS,
     const InteractionWindowGeometry& geometry) {
-    const bool useFrozenInteractionWindowMesh =
-        interactionWindowState_m.phase == InteractionWindowPhase::Active;
+    const bool useFrozenInteractionWindowMesh = usesFrozenInteractionWindowMesh();
     const double bunchCenterS = 0.5 * (bunchTailS + bunchHeadS);
     const double meshBeginS = useFrozenInteractionWindowMesh ? geometry.beginS : bunchTailS;
     const double meshEndS   = useFrozenInteractionWindowMesh ? geometry.endS : bunchHeadS;
@@ -834,6 +866,10 @@ void ParallelTracker::renderInteractionWindowFrame(
         geometry.interactionPointS,
         interactionWindowState_m.phase == InteractionWindowPhase::Active,
         useFrozenInteractionWindowMesh);
+}
+
+bool ParallelTracker::usesFrozenInteractionWindowMesh() const {
+    return interactionWindowState_m.phase == InteractionWindowPhase::Active;
 }
 
 void ParallelTracker::transformFieldsToReferenceFrame(
@@ -863,11 +899,13 @@ void ParallelTracker::computeInteractionWindowSelfFields(
     const CoordinateSystemTrafo& referenceToBeamCSTrafo,
     const CoordinateSystemTrafo& beamToReferenceCSTrafo,
     Inform& m) {
+    PAssert(interactionWindowState_m.geometry.has_value());
+
     const auto& config = itsBunch_m->getInteractionWindowConfig();
-    Vector_t<double, 3> ipCenterRef(0.0, 0.0, config.interactionPointLocalZ);
+    Vector_t<double, 3> ipCenterRef(0.0, 0.0, interactionWindowState_m.geometry->interactionPointS);
     Vector_t<double, 3> ipCenterBeam = referenceToBeamCSTrafo.transformTo(ipCenterRef);
-    m << level5 << "centZ= " << config.interactionPointLocalZ
-      << " L(centZ)= " << ipCenterBeam(2) << endl;
+    m << level5 << "centS= " << interactionWindowState_m.geometry->interactionPointS
+      << " beamLocalZ= " << ipCenterBeam(2) << endl;
 
     const double maxVal       = std::numeric_limits<double>::max();
     const double minVal       = -std::numeric_limits<double>::max();

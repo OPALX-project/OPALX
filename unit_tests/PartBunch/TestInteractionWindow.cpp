@@ -9,6 +9,7 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 extern Inform* gmsg;
 
@@ -58,6 +59,29 @@ std::shared_ptr<Bunch_t> makeBunch() {
 
     return std::make_shared<Bunch_t>(
         -1.0e-15, 5.10999e-4, 16, 1.0, "LF2", fieldSolver, dataSink);
+}
+
+void setParticlePositions(
+    const std::shared_ptr<Bunch_t>& bunch,
+    const std::vector<Vector3d>& positions) {
+    auto pc = bunch->getParticleContainer();
+    if (pc->getLocalNum() == 0) {
+        pc->create(positions.size());
+    } else {
+        ASSERT_EQ(pc->getLocalNum(), positions.size());
+    }
+
+    auto R_host = pc->R.getHostMirror();
+    auto P_host = pc->P.getHostMirror();
+    for (size_t i = 0; i < positions.size(); ++i) {
+        R_host(i) = positions[i];
+        P_host(i) = Vector3d(0.0);
+    }
+
+    Kokkos::deep_copy(pc->R.getView(), R_host);
+    Kokkos::deep_copy(pc->P.getView(), P_host);
+    Kokkos::fence();
+    pc->update();
 }
 
 void expectVectorNear(
@@ -183,6 +207,47 @@ TEST_F(InteractionWindowPartBunchTest, RestoreFieldDomainStateRestoresMeshAndPhy
     expectVectorNear(fieldContainer->getMesh().getOrigin(), savedState.origin, 1.0e-14);
     expectVectorNear(restoredPhysicalRMin, savedState.partrmin, 1.0e-14);
     expectVectorNear(restoredPhysicalRMax, savedState.partrmax, 1.0e-14);
+}
+
+// ----------------------------------------------------------------------------
+// bunchUpdate() in interaction-window mode
+// ----------------------------------------------------------------------------
+
+// Once the interaction-window configuration is active, bunchUpdate() must keep
+// the longitudinal field domain frozen while still allowing the transverse
+// field domain to follow the physical bunch. This is the key invariant behind
+// the frozen Eulerian-in-z mesh used during the interaction-window solve.
+TEST_F(InteractionWindowPartBunchTest, BunchUpdateKeepsLongitudinalFieldDomainFrozen) {
+    auto bunch = makeBunch();
+    auto fieldContainer = bunch->getFieldContainer();
+
+    setParticlePositions(
+        bunch,
+        {Vector3d(-0.20, -0.10, -0.05), Vector3d(0.10, 0.20, 0.05)});
+    bunch->bunchUpdate();
+
+    bunch->setInteractionWindowConfig(1.25, 0.50);
+    bunch->enableInteractionWindowMesh(1.25, 0.50);
+
+    const Vector3d frozenRMin = fieldContainer->getRMin();
+    const Vector3d frozenRMax = fieldContainer->getRMax();
+    const Vector3d frozenHr   = fieldContainer->getHr();
+
+    setParticlePositions(
+        bunch,
+        {Vector3d(-0.60, -0.30, -0.20), Vector3d(0.50, 0.40, 0.20)});
+    bunch->bunchUpdate();
+
+    const Vector3d updatedRMin = fieldContainer->getRMin();
+    const Vector3d updatedRMax = fieldContainer->getRMax();
+    const Vector3d updatedHr   = fieldContainer->getHr();
+
+    EXPECT_DOUBLE_EQ(updatedRMin[2], frozenRMin[2]);
+    EXPECT_DOUBLE_EQ(updatedRMax[2], frozenRMax[2]);
+    EXPECT_DOUBLE_EQ(updatedHr[2], frozenHr[2]);
+
+    EXPECT_LT(updatedRMin[0], frozenRMin[0]);
+    EXPECT_GT(updatedRMax[0], frozenRMax[0]);
 }
 
 }  // namespace
