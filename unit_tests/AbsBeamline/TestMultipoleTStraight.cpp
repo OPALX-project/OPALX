@@ -24,357 +24,317 @@
  *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  */
-#include "gtest/gtest.h"
-#include "AbsBeamline/MultipoleT.h"
 #include <vector>
-
 #include "AbsBeamline/Component.h"
+#include "AbsBeamline/MultipoleT.h"
+#include "gtest/gtest.h"
 
 class TestMultipoleTStraight : public testing::Test, public MultipoleT {
 public:
-    TestMultipoleTStraight() : MultipoleT("Magnet") {
-    }
+    TestMultipoleTStraight() : MultipoleT("Magnet") {}
 
 protected:
-    // Overrides of testing::Test
     static void SetUpTestSuite() {
-        int argc = 0;
+        int argc    = 0;
         char** argv = nullptr;
-
         ippl::initialize(argc, argv);
     }
-
-    static void TearDownTestSuite() {
-        ippl::finalize();
-    }
-
-    void SetUp() override {
-        // nothing special
-    }
-
-    void TearDown() override {
-        // nothing special
-    }
+    static void TearDownTestSuite() { ippl::finalize(); }
 
     // Test helper functions
-    static Vector_t<double, 3> rotateBy(const Vector_t<double, 3>& center,
-            const Vector_t<double, 3>& point, const double theta) {
-        const auto x_prime = point[0] - center[0];
-        const auto z_prime = point[2] - center[2];
-        const auto x_rotated = x_prime * cos(theta) - z_prime * sin(theta) + center[0];
-        const auto z_rotated = x_prime * sin(theta) + z_prime * cos(theta) + center[2];
-        return {x_rotated, point[1], z_rotated};
+    static Vector_t<double, 3> curvilinearToGlobal(
+        const Vector_t<double, 3>& local, const Vector_t<double, 3>& elementEntry,
+        const double elementLength) {
+        const double x = local[0] + elementEntry[0];
+        const double y = local[1] + elementEntry[1];
+        const double z = local[2] + elementLength / 2 + elementEntry[2];
+        return {x, y, z};
     }
 
-    static std::vector<std::vector<double>> partialsDerivB(const Vector_t<double, 3>& R,
-            const Vector_t<double, 3>& /*B*/, const double stepSize, Component* dummyField,
-            const double theta = 0.0) {
-        // builds a matrix of all partial derivatives of B -> dx_i B_j
-        std::vector allPartials(3, std::vector<double>(3));
-        for(int i = 0; i < 3; i++) {
-            Vector_t<double, 3> P, E;
-            double t = 0;
-            // B at the previous and next grid points R_prev, R_next
-            Vector_t<double, 3> R_pprev = R, R_prev = R, R_next = R, R_nnext = R;
-            R_pprev(i) -= 2 * stepSize;
-            R_nnext(i) += 2 * stepSize;
-            R_prev(i) -= stepSize;
-            R_next(i) += stepSize;
-            // Rotate these points by the angle
-            R_pprev = rotateBy(R, R_pprev, theta);
-            R_nnext = rotateBy(R, R_nnext, theta);
-            R_prev = rotateBy(R, R_prev, theta);
-            R_next = rotateBy(R, R_next, theta);
-            // Get the magnetic fields and derivatives
-            Vector_t<double, 3> B_prev, B_next, B_pprev, B_nnext;
-            dummyField->apply(R_prev, P, t, E, B_prev);
-            dummyField->apply(R_next, P, t, E, B_next);
-            dummyField->apply(R_pprev, P, t, E, B_pprev);
-            dummyField->apply(R_nnext, P, t, E, B_nnext);
-            for(int j = 0; j < 3; j++) {
-                allPartials[i][j] =
-                        (B_pprev[j] - 8 * B_prev[j] + 8 * B_next[j] - B_nnext[j]) / (12 * stepSize);
-            }
-        }
-        return allPartials;
-    }
-
-    static double calcDivB(const Vector_t<double, 3>& R, const Vector_t<double, 3>& B,
-            const double stepSize, Component* dummyField, const double theta = 0.0) {
-        double div = 0;
-        std::vector partials(3, std::vector<double>(3));
-        partials = partialsDerivB(R, B, stepSize, dummyField, theta);
-        for(int i = 0; i < 3; i++) {
-            div += partials[i][i];
-        }
-        return div;
-    }
-
-    static std::vector<double> calcCurlB(const Vector_t<double, 3>& R, const Vector_t<double, 3>& B,
-            const double stepSize, Component* dummyField, const double theta = 0.0) {
-        std::vector<double> curl(3);
-        std::vector partials(3, std::vector<double>(3));
-        partials = partialsDerivB(R, B, stepSize, dummyField, theta);
-        curl[0] = partials[1][2] - partials[2][1];
-        curl[1] = partials[2][0] - partials[0][2];
-        curl[2] = partials[0][1] - partials[1][0];
-        return curl;
-    }
-
-    void grabDataLine(std::vector<double>& line, Vector_t<double, 3> pos) {
-        constexpr double stepSize = 3.0 / 100.0;
-        const Vector_t<double, 3> P(3);
-        Vector_t<double, 3> E(3);
-        for(size_t i = 0; i < line.size(); ++i) {
-            double t = 0.0;
-            Vector_t<double, 3> R{pos[0], pos[1] - 1.5 + static_cast<double>(i) * stepSize, pos[2]};
-            Vector_t<double, 3> B{};
-            apply(R, P, t, E, B);
-            line[i] = std::hypot(B[0], B[1], B[2]);
-            std::cout << line[i] << " ";
-        }
-        std::cout << std::endl;
-    }
-
-    void grabDataLineParallel(std::vector<double>& line, Vector_t<double, 3> pos) {
-        constexpr double stepSize = 3.0 / 100.0;
+    void grabTransverseDataLine(
+        std::vector<double>& line, const double s, const double width,
+        const Vector_t<double, 3>& elementEntry, const double elementLength) const {
         // Create the views
+        std::vector<Vector_t<double, 3>> local;
         Kokkos::View<Vector_t<double, 3>*> R;
         Kokkos::View<Vector_t<double, 3>*> E;
         Kokkos::View<Vector_t<double, 3>*> B;
+        local.resize(line.size());
         Kokkos::resize(R, line.size());
         Kokkos::resize(E, line.size());
         Kokkos::resize(B, line.size());
-        auto hostR = Kokkos::create_mirror_view(R);
-        auto hostB = Kokkos::create_mirror_view(B);
+        const auto hostR = Kokkos::create_mirror_view(R);
+        const auto hostB = Kokkos::create_mirror_view(B);
         // Set the particle positions
-        for(size_t i = 0; i < line.size(); ++i) {
-            hostR(i) = {pos[0], pos[1] - 1.5 + static_cast<double>(i) * stepSize, pos[2]};
+        const double stepSize = width / static_cast<double>(line.size() - 1);
+        for (size_t i = 0; i < line.size(); ++i) {
+            local[i] = {i * stepSize - width / 2, 0, s};
+            hostR(i) = curvilinearToGlobal(local[i], elementEntry, elementLength);
         }
         Kokkos::deep_copy(R, hostR);
         // Get the fields
         apply(R, E, B, 0.0);
         // Return the fields
         Kokkos::deep_copy(hostB, B);
-        for(size_t i = 0; i < line.size(); ++i) {
+        for (size_t i = 0; i < line.size(); ++i) {
             line[i] = std::hypot(hostB(i)[0], hostB(i)[1], hostB(i)[2]);
-            std::cout << line[i] << " ";
+            std::cout << i << ": Local=" << local[i] << ", Global=" << R[i]
+                      << ", mag(B)=" << line[i] << std::endl;
         }
         std::cout << std::endl;
     }
+
+    void grabLongitudinalDivCurlLine(
+        std::vector<double>& fieldLine, std::vector<double>& divLine,
+        std::vector<Vector_t<double, 3>>& curlLine, const double x, const double length,
+        const Vector_t<double, 3>& elementEntry, const double elementLength, const double dr) {
+        const double stepSize = length / static_cast<double>(divLine.size() - 1);
+        const double startS   = 0 - (elementLength - length) / 2;
+        for (size_t i = 0; i < divLine.size(); ++i) {
+            // Get the sourrounding 6 B fields
+            Vector_t<double, 3> local{x, 0, i * stepSize + startS};
+            Vector_t<double, 3> R =
+                curvilinearToGlobal(local, elementEntry, elementLength);
+            Vector_t<double, 3> B;
+            Vector_t<double, 3> Bxp;
+            Vector_t<double, 3> Bxm;
+            Vector_t<double, 3> Byp;
+            Vector_t<double, 3> Bym;
+            Vector_t<double, 3> Bzp;
+            Vector_t<double, 3> Bzm;
+            Vector_t<double, 3> E;
+            apply(R, {}, 0.0, E, B);
+            apply(R + Vector_t<double, 3>{dr, 0, 0}, {}, 0.0, E, Bxp);
+            apply(R - Vector_t<double, 3>{dr, 0, 0}, {}, 0.0, E, Bxm);
+            apply(R + Vector_t<double, 3>{0, dr, 0}, {}, 0.0, E, Byp);
+            apply(R - Vector_t<double, 3>{0, dr, 0}, {}, 0.0, E, Bym);
+            apply(R + Vector_t<double, 3>{0, 0, dr}, {}, 0.0, E, Bzp);
+            apply(R - Vector_t<double, 3>{0, 0, dr}, {}, 0.0, E, Bzm);
+            // Calculate the divergence and curl using central differences
+            divLine[i]     = (Bxp[0] - Bxm[0] + Byp[1] - Bym[1] + Bzp[2] - Bzm[2]) / 2 / dr;
+            curlLine[i][0] = (Byp[2] - Bym[2] - Bzp[1] + Bzm[1]) / 2 / dr;
+            curlLine[i][1] = (Bzp[0] - Bzm[0] - Bxp[2] + Bxm[2]) / 2 / dr;
+            curlLine[i][2] = (Bxp[1] - Bxm[1] - Byp[0] + Bym[0]) / 2 / dr;
+            fieldLine[i]   = std::hypot(B[0], B[1], B[2]);
+            std::cout << i << ": Local=" << local << ", Global=" << R << ", div(B)=" << divLine[i]
+                      << ", curl(B)=" << curlLine[i] << ", B=" << fieldLine[i] << std::endl;
+        }
+    }
 };
 
-TEST_F(TestMultipoleTStraight, StraightShape) {
-    std::vector<double> line;
-    line.resize(101);
-    // Set up the magnet
-    constexpr double length = 4.4;
-    setBendAngle(0.0, false);
-    setElementLength(length);
-    setAperture(3.5, 3.5);
-    setFringeField(2.2, 0.3, 0.3);
-    setRotation(0.0);
-    setEntranceAngle(0.0);
-    setMaxOrder(5, 10);
-    const auto pos = localCartesianToOpalCartesian({0, 0, 0});
-    // Check dipole has constant field magnitude
-    setTransProfile({1.0});
-    grabDataLine(line, pos);
-    for(size_t i = 0; i < line.size(); ++i) {
-        EXPECT_NEAR(line[i], 1.0, 1e-2);
-    }
-    // Check quadrupole has linear field magnitude
-    setTransProfile({0.0, 1.0});
-    grabDataLine(line, pos);
-    double expected = 0;
-    double delta = line[51] - line[50];
-    EXPECT_NEAR(line[50], expected, 1e-2);
-    for(size_t i = 0; i < 50; ++i) {
-        expected += delta;
-        EXPECT_NEAR(line[50 - i - 1], expected, 1e-2);
-        EXPECT_NEAR(line[50 + i + 1], expected, 1e-2);
-    }
-    // Check the sextupole has quadratic field magnitude
-    setTransProfile({0.0, 0.0, 1.0});
-    grabDataLine(line, pos);
-    delta = std::sqrt(line[51] - line[50]);
-    EXPECT_NEAR(line[50], 0, 1e-2);
-    for(size_t i = 0; i < 50; ++i) {
-        expected = std::pow(static_cast<double>(i + 1) * delta, 2);
-        EXPECT_NEAR(line[50 - i - 1], expected, 1e-2) << i;
-        EXPECT_NEAR(line[50 + i + 1], expected, 1e-2) << i;
-    }
-    // Check the octupole has cubic field magnitude
-    setTransProfile({0.0, 0.0, 0.0, 1.0});
-    grabDataLine(line, pos);
-    delta = std::cbrt(line[51] - line[50]);
-    EXPECT_NEAR(line[50], 0, 1e-2);
-    for(size_t i = 0; i < 50; ++i) {
-        expected = std::pow(static_cast<double>(i + 1) * delta, 3);
-        EXPECT_NEAR(line[50 - i - 1], expected, 1e-2) << i;
-        EXPECT_NEAR(line[50 + i + 1], expected, 1e-2) << i;
-    }
-}
-
-TEST_F(TestMultipoleTStraight, StraightShapeParallel) {
-    std::vector<double> line;
-    line.resize(101);
-    // Set up the magnet
-    constexpr double length = 4.4;
-    setBendAngle(0.0, false);
-    setElementLength(length);
-    setAperture(3.5, 3.5);
-    setFringeField(2.2, 0.3, 0.3);
-    setRotation(0.0);
-    setEntranceAngle(0.0);
-    setMaxOrder(5, 10);
-    const auto pos = localCartesianToOpalCartesian({0, 0, 0});
-    // Check dipole has constant field magnitude
-    setTransProfile({1.0});
-    grabDataLineParallel(line, pos);
-    for(const double i : line) {
-        EXPECT_NEAR(i, 1.0, 1e-2);
-    }
-    // Check quadrupole has linear field magnitude
-    setTransProfile({0.0, 1.0});
-    grabDataLineParallel(line, pos);
-    double expected = 0;
-    double delta = line[51] - line[50];
-    EXPECT_NEAR(line[50], expected, 1e-2);
-    for(size_t i = 0; i < 50; ++i) {
-        expected += delta;
-        EXPECT_NEAR(line[50 - i - 1], expected, 1e-2);
-        EXPECT_NEAR(line[50 + i + 1], expected, 1e-2);
-    }
-    // Check the sextupole has quadratic field magnitude
-    setTransProfile({0.0, 0.0, 1.0});
-    grabDataLineParallel(line, pos);
-    delta = std::sqrt(line[51] - line[50]);
-    EXPECT_NEAR(line[50], 0, 1e-2);
-    for(size_t i = 0; i < 50; ++i) {
-        expected = std::pow(static_cast<double>(i + 1) * delta, 2);
-        EXPECT_NEAR(line[50 - i - 1], expected, 1e-2) << i;
-        EXPECT_NEAR(line[50 + i + 1], expected, 1e-2) << i;
-    }
-    // Check the octupole has cubic field magnitude
-    setTransProfile({0.0, 0.0, 0.0, 1.0});
-    grabDataLineParallel(line, pos);
-    delta = std::cbrt(line[51] - line[50]);
-    EXPECT_NEAR(line[50], 0, 1e-2);
-    for(size_t i = 0; i < 50; ++i) {
-        expected = std::pow(static_cast<double>(i + 1) * delta, 3);
-        EXPECT_NEAR(line[50 - i - 1], expected, 1e-2) << i;
-        EXPECT_NEAR(line[50 + i + 1], expected, 1e-2) << i;
-    }
-}
-
-TEST_F(TestMultipoleTStraight, ConstCurvedShape) {
-    raise(SIGTRAP);
+TEST_F(TestMultipoleTStraight, Dipole) {
     std::vector<double> line(101);
     // Set up the magnet
-    constexpr double length = 4.4;
-    setBendAngle(0.1, false);
+    constexpr double length      = 4.4;
+    constexpr double bendAngle   = 0.0;
+    constexpr double dipoleField = 1.0;
+    setBendAngle(bendAngle, false);
     setElementLength(length);
     setAperture(3.5, 3.5);
-    setFringeField(2.2, 0.3, 0.3);
+    setFringeField(length / 2, 0.3, 0.3);
     setRotation(0.0);
     setEntranceAngle(0.0);
     setMaxOrder(5, 10);
-    const auto pos = localCartesianToOpalCartesian({0, 0, 0});
-    // Check dipole has constant field magnitude
-    setTransProfile({1.0});
-    grabDataLine(line, pos);
-    for(const double i : line) {
-        EXPECT_NEAR(i, 1.0, 1e-2);
+    // Check dipole has the correct constant transverse field magnitude at the center
+    setTransProfile({dipoleField});
+    grabTransverseDataLine(line, 0, 3.0, {0, 0, 0}, length);
+    for (const double val : line) {
+        EXPECT_NEAR(val, dipoleField, 1e-2);
+    }
+    // Check dipole has the correct constant transverse field magnitude at the edge
+    setTransProfile({dipoleField});
+    grabTransverseDataLine(line, -length / 2, 3.0, {0, 0, 0}, length);
+    for (const double val : line) {
+        EXPECT_NEAR(val, dipoleField / 2, 1e-2);
     }
 }
 
-
-TEST_F(TestMultipoleTStraight, CurvedConstRadiusDivCurl) {
+TEST_F(TestMultipoleTStraight, Quadrupole) {
+    constexpr unsigned int samplesPerSide = 50;
+    std::vector<double> line(2 * samplesPerSide + 1);
     // Set up the magnet
-    setElementLength(4.4);
-    setBendAngle(0.628, false);
+    constexpr double length          = 4.4;
+    constexpr double bendAngle       = 0.0;
+    constexpr double quadrupoleField = 1.0;
+    setBendAngle(bendAngle, false);
+    setElementLength(length);
     setAperture(3.5, 3.5);
-    setFringeField(2.2, 0.3, 0.3);
-    setMaxOrder(5, 10);
+    setFringeField(length / 2, 0.3, 0.3);
     setRotation(0.0);
     setEntranceAngle(0.0);
-    setTransProfile({1, 1});
-    constexpr double radius = 4.4 / 0.628;
-    for(double theta = 0; theta <= 0.3001; theta += 0.2) {
-        const double x = radius * cos(theta) - radius;
-        const double y = radius * sin(theta);
-        for(double delta = -0.3; delta <= 0.3001; delta += 0.02) {
-            constexpr double z = 0.2;
-            constexpr double stepSize = 1e-3;
-            Vector_t<double, 3> R(0.0, 0.0, 0.0), P(3), E(3);
-            R[0] = x + delta * cos(theta);
-            R[1] = z;
-            R[2] = y + delta * sin(theta);
-            Vector_t<double, 3> B(0., 0., 0.);
-            apply(R, P, 0.0, E, B);
-            double div = calcDivB(R, B, stepSize, this);
-            std::vector<double> curl = calcCurlB(R, B, stepSize, this);
-            const double curlMag = std::hypot(curl[0], curl[1], curl[2]);
-            EXPECT_NEAR(div, 0, 5e-6)
-                     << "R: " << delta << " " << z << " " << radius * theta << std::endl
-                     << "B: " << B[0] << " " << B[1] << " " << B[2] << std::endl
-                     << "Del: " << div << " " << curl[0] << " " << curl[1] << " " << curl[2]
-                     << std::endl;
-            EXPECT_NEAR(curlMag, 0, 1e-9)
-                     << "R: " << delta << " " << z << " " << radius * theta << std::endl
-                     << "B: " << B[0] << " " << B[1] << " " << B[2] << std::endl
-                     << "Del: " << div << " " << curl[0] << " " << curl[1] << " " << curl[2]
-                     << std::endl;
-        }
+    setMaxOrder(5, 10);
+    // Check quadrupole has linear field magnitude at the center
+    setTransProfile({0, quadrupoleField});
+    grabTransverseDataLine(line, 0, 3.0, {0, 0, 0}, length);
+    double expected = 0;
+    double delta    = line[samplesPerSide + 1] - line[samplesPerSide];
+    EXPECT_NEAR(delta, 0.03, 1e-5);
+    EXPECT_NEAR(line[samplesPerSide], expected, 1e-5);
+    for (size_t i = 0; i < samplesPerSide; ++i) {
+        expected += delta;
+        EXPECT_NEAR(line[samplesPerSide - i - 1], expected, 1e-2);
+        EXPECT_NEAR(line[samplesPerSide + i + 1], expected, 1e-2);
+    }
+    // Check quadrupole has linear field magnitude at the edge with half the slope
+    setTransProfile({0, quadrupoleField});
+    grabTransverseDataLine(line, -length / 2, 3.0, {0, 0, 0}, length);
+    expected = 0;
+    delta    = line[samplesPerSide + 1] - line[samplesPerSide];
+    EXPECT_NEAR(delta, 0.015, 1e-5);
+    EXPECT_NEAR(line[samplesPerSide], expected, 1e-5);
+    for (size_t i = 0; i < samplesPerSide; ++i) {
+        expected += delta;
+        EXPECT_NEAR(line[samplesPerSide - i - 1], expected, 1e-2);
+        EXPECT_NEAR(line[samplesPerSide + i + 1], expected, 1e-2);
     }
 }
 
-#if 0
-TEST_F(TestMultipoleTStraight, Straight) {
-    constexpr double length = 4.4;
-    setBendAngle(0.0, false);
+TEST_F(TestMultipoleTStraight, Sextupole) {
+    constexpr unsigned int samplesPerSide = 50;
+    std::vector<double> line(2 * samplesPerSide + 1);
+    // Set up the magnet
+    constexpr double length         = 4.4;
+    constexpr double bendAngle      = 0.0;
+    constexpr double sextupoleField = 1.0;
+    setBendAngle(bendAngle, false);
     setElementLength(length);
     setAperture(3.5, 3.5);
-    setFringeField(2.2, 0.3, 0.3);
+    setFringeField(length / 2, 0.3, 0.3);
     setRotation(0.0);
     setEntranceAngle(0.0);
-    setTransProfile({1.0, 1.0});
-    setMaxOrder(5, 20);
-    Vector_t<double, 3> R(0.0, 0.0, 0.0), E(3);
-    const Vector_t<double, 3> P(3);
-    for(size_t i = 0; i < 6; ++i) {
-        double x = -0.3 + static_cast<double>(i) * 0.1;
-        for(size_t j = 0; j < 6; ++j) {
-            double z = -0.3;
-            double t = 0.0;
-            constexpr double stepSize = 1e-3;
-            double y = -3.0 + static_cast<double>(j) * 1.0;
-            R[0] = x;
-            R[1] = z;
-            R[2] = y - length / 2.0;
-            Vector_t<double, 3> B(0., 0., 0.);
-            apply(R, P, t, E, B);
-            std::cout << "R: " << R[0] << " " << R[1] << " " << R[2] << " = "
-                    << B[0] << " " << B[1] << " " << B[2] << std::endl;
-            double div = calcDivB(R, B, stepSize, this);
-            std::vector<double> curl = calcCurlB(R, B, stepSize, this);
-            double curlMag = 0.0;
-            curlMag += MultipoleTBase::powerInteger(curl[0], 2);
-            curlMag += MultipoleTBase::powerInteger(curl[1], 2);
-            curlMag += MultipoleTBase::powerInteger(curl[2], 2);
-            curlMag = sqrt(curlMag);
-            EXPECT_NEAR(div, 0, 1e-1)
-                    << "R: " << x << " " << z << " " << y << std::endl
-                    << "B: " << B[0] << " " << B[1] << " " << B[2] << std::endl
-                    << "Del: " << div << " " << curl[0] << " " << curl[1]
-                    << " " << curl[2] << std::endl;
-            EXPECT_NEAR(curlMag, 0, 1e-1)
-                    << "R: " << x << " " << z << " " << y << std::endl
-                    << "B: " << B[0] << " " << B[1] << " " << B[2] << std::endl
-                    << "Del: " << div << " " << curl[0] << " " << curl[1] << " "
-                    << curl[2] << std::endl;
-        }
+    setMaxOrder(5, 10);
+    // Check sextupole has quadratic field magnitude at the center
+    setTransProfile({0, 0, sextupoleField});
+    grabTransverseDataLine(line, 0, 3.0, {0, 0, 0}, length);
+    double expected = 0;
+    double delta    = std::sqrt(line[samplesPerSide + 1] - line[samplesPerSide]);
+    EXPECT_NEAR(delta, 0.03, 1e-5);
+    EXPECT_NEAR(line[samplesPerSide], expected, 1e-5);
+    for (size_t i = 0; i < samplesPerSide; ++i) {
+        expected = std::pow(static_cast<double>(i + 1) * delta, 2);
+        EXPECT_NEAR(line[samplesPerSide - i - 1], expected, 1e-2);
+        EXPECT_NEAR(line[samplesPerSide + i + 1], expected, 1e-2);
+    }
+    // Check sextupole has quadratic field magnitude at the edge with half the slope
+    setTransProfile({0, 0, sextupoleField});
+    grabTransverseDataLine(line, -length / 2, 3.0, {0, 0, 0}, length);
+    expected = 0;
+    delta    = std::sqrt(line[samplesPerSide + 1] - line[samplesPerSide]);
+    EXPECT_NEAR(delta, 0.02121, 1e-5);
+    EXPECT_NEAR(line[samplesPerSide], expected, 1e-5);
+    for (size_t i = 0; i < samplesPerSide; ++i) {
+        expected = std::pow(static_cast<double>(i + 1) * delta, 2);
+        EXPECT_NEAR(line[samplesPerSide - i - 1], expected, 1e-2);
+        EXPECT_NEAR(line[samplesPerSide + i + 1], expected, 1e-2);
     }
 }
-#endif
+
+TEST_F(TestMultipoleTStraight, Octupole) {
+    constexpr unsigned int samplesPerSide = 50;
+    std::vector<double> line(2 * samplesPerSide + 1);
+    // Set up the magnet
+    constexpr double length        = 4.4;
+    constexpr double bendAngle     = 0.0;
+    constexpr double octupoleField = 1.0;
+    setBendAngle(bendAngle, false);
+    setElementLength(length);
+    setAperture(3.5, 3.5);
+    setFringeField(length / 2, 0.3, 0.3);
+    setRotation(0.0);
+    setEntranceAngle(0.0);
+    setMaxOrder(5, 10);
+    // Check octupole has cubic field magnitude at the center
+    setTransProfile({0, 0, 0, octupoleField});
+    grabTransverseDataLine(line, 0, 3.0, {0, 0, 0}, length);
+    double expected = 0;
+    double delta    = std::cbrt(line[samplesPerSide + 1] - line[samplesPerSide]);
+    EXPECT_NEAR(delta, 0.03, 1e-5);
+    EXPECT_NEAR(line[samplesPerSide], expected, 1e-5);
+    for (size_t i = 0; i < samplesPerSide; ++i) {
+        expected = std::pow(static_cast<double>(i + 1) * delta, 3);
+        EXPECT_NEAR(line[samplesPerSide - i - 1], expected, 1e-2);
+        EXPECT_NEAR(line[samplesPerSide + i + 1], expected, 1e-2);
+    }
+    // Check octupole has cubic field magnitude at the edge with half the slope
+    setTransProfile({0, 0, 0, octupoleField});
+    grabTransverseDataLine(line, -length / 2, 3.0, {0, 0, 0}, length);
+    expected = 0;
+    delta    = std::cbrt(line[samplesPerSide + 1] - line[samplesPerSide]);
+    EXPECT_NEAR(delta, 0.023811, 1e-5);
+    EXPECT_NEAR(line[samplesPerSide], expected, 1e-5);
+    for (size_t i = 0; i < samplesPerSide; ++i) {
+        expected = std::pow(static_cast<double>(i + 1) * delta, 3);
+        EXPECT_NEAR(line[samplesPerSide - i - 1], expected, 1e-2);
+        EXPECT_NEAR(line[samplesPerSide + i + 1], expected, 1e-2);
+    }
+}
+
+TEST_F(TestMultipoleTStraight, Decapole) {
+    constexpr unsigned int samplesPerSide = 50;
+    std::vector<double> line(2 * samplesPerSide + 1);
+    // Set up the magnet
+    constexpr double length        = 4.4;
+    constexpr double bendAngle     = 0.0;
+    constexpr double decapoleField = 1.0;
+    setBendAngle(bendAngle, false);
+    setElementLength(length);
+    setAperture(3.5, 3.5);
+    setFringeField(length / 2, 0.3, 0.3);
+    setRotation(0.0);
+    setEntranceAngle(0.0);
+    setMaxOrder(5, 10);
+    // Check decapole has quartic field magnitude at the center
+    setTransProfile({0, 0, 0, 0, decapoleField});
+    grabTransverseDataLine(line, 0, 3.0, {0, 0, 0}, length);
+    double expected = 0;
+    double delta    = std::pow(line[samplesPerSide + 1] - line[samplesPerSide], 1.0 / 4.0);
+    EXPECT_NEAR(delta, 0.03, 1e-5);
+    EXPECT_NEAR(line[samplesPerSide], expected, 1e-5);
+    for (size_t i = 0; i < samplesPerSide; ++i) {
+        expected = std::pow(static_cast<double>(i + 1) * delta, 4);
+        EXPECT_NEAR(line[samplesPerSide - i - 1], expected, 1e-2);
+        EXPECT_NEAR(line[samplesPerSide + i + 1], expected, 1e-2);
+    }
+    // Check decapole has quartic field magnitude at the edge with half the slope
+    setTransProfile({0, 0, 0, 0, decapoleField});
+    grabTransverseDataLine(line, -length / 2, 3.0, {0, 0, 0}, length);
+    expected = 0;
+    delta    = std::pow(line[samplesPerSide + 1] - line[samplesPerSide], 1.0 / 4.0);
+    EXPECT_NEAR(delta, 0.025227, 1e-5);
+    EXPECT_NEAR(line[samplesPerSide], expected, 1e-5);
+    for (size_t i = 0; i < samplesPerSide; ++i) {
+        expected = std::pow(static_cast<double>(i + 1) * delta, 4);
+        EXPECT_NEAR(line[samplesPerSide - i - 1], expected, 1e-2);
+        EXPECT_NEAR(line[samplesPerSide + i + 1], expected, 1e-2);
+    }
+}
+
+TEST_F(TestMultipoleTStraight, DivCurl) {
+    constexpr unsigned int samplesPerSide = 20;
+    std::vector<double> divLine(2 * samplesPerSide + 1);
+    std::vector<double> fieldLine(2 * samplesPerSide + 1);
+    std::vector<Vector_t<double, 3>> curlLine(2 * samplesPerSide + 1);
+    constexpr double dr = 0.001;
+    // Set up the magnet
+    constexpr double length    = 4.4;
+    constexpr double bendAngle = 0.0;
+    setBendAngle(bendAngle, false);
+    setElementLength(length);
+    setAperture(3.5, 3.5);
+    setFringeField(length / 2, 0.3, 0.3);
+    setRotation(0.0);
+    setEntranceAngle(0.0);
+    setMaxOrder(5, 10);
+    setTransProfile({1, 1, 1, 1, 1});
+    // Get the data
+    grabLongitudinalDivCurlLine(
+        fieldLine, divLine, curlLine, 0, length * 1.5, {}, length, dr);
+    // Analyse the results
+    for (size_t i = 0; i < divLine.size(); ++i) {
+        const double divError = std::abs(divLine[i]) * dr / fieldLine[i];
+        const double curlError =
+            std::hypot(curlLine[i][0], curlLine[i][1], curlLine[i][2]) * dr / fieldLine[i];
+        EXPECT_NEAR(divError, 0, 1e-5);
+        EXPECT_NEAR(curlError, 0, 1e-2);
+    }
+}

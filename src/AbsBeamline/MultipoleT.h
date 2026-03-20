@@ -294,7 +294,7 @@ protected:
     std::unique_ptr<MultipoleTBase> implementation_{};
 
     /** This one is here for test purposes.
-     * It is required as there is no facility for mocking a PartBunch. */
+     * It is required as it is too difficult to mock a PartBunch. */
     void apply(const Kokkos::View<Vector_t<double, 3>*>& R, Kokkos::View<Vector_t<double, 3>*>& E,
             Kokkos::View<Vector_t<double, 3>*>& B, double t) const;
 };
