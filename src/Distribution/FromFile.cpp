@@ -314,6 +314,17 @@ void FromFile::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> 
     );
     Kokkos::fence();
 
+    // Apply per-emission-source offsets after all mean-fixing/corrections.
+    // EMISSIONSOURCE offsets are expected to translate the generated bunch
+    // without being affected by the internal "fix mean" logic.
+    const Vector_t<double, 3> R0 = R0_m;
+    const Vector_t<double, 3> P0 = P0_m;
+    Kokkos::parallel_for(
+        nlocal, KOKKOS_LAMBDA(const size_t k) {
+            Rview(k) += R0;
+            Pview(k) += P0;
+        });
+
     Inform mALL("FromFile::generateParticles", INFORM_ALL_NODES);
     mALL << "FromFile: Loaded " << totalParticles << " particles from file '" 
          << filename_m << "'" << endl;
