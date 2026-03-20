@@ -19,7 +19,6 @@
 #include "LBalWriter.h"
 
 #include "AbstractObjects/OpalData.h"
-#include "OPALconfig.h"
 #include "PartBunch/PartBunch.h"
 #include "Physics/Units.h"
 #include "Utilities/Timer.h"

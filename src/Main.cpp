@@ -40,7 +40,7 @@ extern "C" {
 
 #include "Utilities/SDDSParser/SDDSParserException.h"
 
-#include "OPALconfig.h"
+#include "BuildInfo.h"
 
 // IPPL
 #include "GSLErrorHandling.h"
@@ -58,6 +58,8 @@ extern "C" {
 #include <iomanip>
 #include <iostream>
 #include <set>
+
+extern Inform* gmsg;
 
 namespace OPALXMAIN {
     void printStdoutHeader() {
@@ -84,7 +86,7 @@ namespace OPALXMAIN {
         std::string copyRight   = "(c) PSI, https://github.com/OPALX-project/OPALX";
         *gmsg << endl
               << "OPALX is the performance portable version of OPAL :: Version "
-              << OPAL_PROJECT_VERSION << "\n"
+              << buildinfo::project_version << "\n"
               << std::setw(37 + gitRevision.length() / 2) << std::right << gitRevision << "\n\n"
               << endl
               << std::setw(37 + copyRight.length() / 2) << std::right << copyRight << "\n\n"
@@ -92,7 +94,7 @@ namespace OPALXMAIN {
 
         *gmsg << "Please send cookies, goodies or other motivations (wine and beer ... ) \nto the "
                  "OPAL developers "
-              << PACKAGE_BUGREPORT << "\n"
+              << buildinfo::bugreport << "\n"
               << endl;
         *gmsg << "Time: " << timeStr << " date: " << dateStr << "\n" << endl;
 
@@ -239,17 +241,17 @@ int main(int argc, char* argv[]) {
                     exit(0);
                 } else if (argStr == std::string("--version")) {
                     if (ippl::Comm->rank() == 0) {
-                        std::cout << OPAL_PROJECT_VERSION << std::endl;
+                        std::cout << buildinfo::project_version << std::endl;
                     }
                     exit(0);
                 } else if (argStr == std::string("--version-full")) {
                     OPALXMAIN::printStdoutHeader();
-                    *ippl::Info << "OPAL Version " << OPAL_PROJECT_VERSION << ", git rev. "
+                    *ippl::Info << "OPAL Version " << buildinfo::project_version << ", git rev. "
                                 << Util::getGitRevision() << endl;
                     IpplInfo::printVersion();
                     std::string options =
                         (IpplInfo::compileOptions() + std::string(" ")
-                         + std::string(OPAL_COMPILE_OPTIONS) + std::string(" "));
+                         + std::string(buildinfo::compile_options) + std::string(" "));
                     std::set<std::string> uniqOptions;
                     while (options.length() > 0) {
                         size_t n = options.find_first_of(' ');

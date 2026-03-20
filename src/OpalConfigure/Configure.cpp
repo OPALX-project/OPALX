@@ -30,7 +30,6 @@
 // Basic action commands.
 #include "BasicActions/Call.h"
 #include "BasicActions/DumpEMFields.h"
-#include "BasicActions/DumpFields.h"
 #include "BasicActions/Echo.h"
 #include "BasicActions/Help.h"
 #include "BasicActions/Option.h"
@@ -93,7 +92,6 @@ namespace {
     void makeActions() {
         OpalData* opal = OpalData::getInstance();
         opal->create(new Call());
-        opal->create(new DumpFields());
         opal->create(new DumpEMFields());
         opal->create(new Echo());
         opal->create(new Help());

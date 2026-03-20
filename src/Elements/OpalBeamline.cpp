@@ -53,6 +53,14 @@ std::set<std::shared_ptr<Component>> OpalBeamline::getElements(const Vector_t<do
     return elementSet;
 }
 
+std::set<std::shared_ptr<Component>> OpalBeamline::getElements() {
+    std::set<std::shared_ptr<Component>> elementSet;
+    for(auto& item : elements_m) {
+        elementSet.insert(item.getElement());
+    }
+    return elementSet;
+}
+
 unsigned long OpalBeamline::getFieldAt(
     const unsigned int& /*index*/, const Vector_t<double, 3>& /*pos*/, const long& /*sindex*/,
     const double& /*t*/, Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/) {

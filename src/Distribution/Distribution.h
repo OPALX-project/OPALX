@@ -36,6 +36,10 @@
 #include "PartBunch/FieldSolver.hpp"
 #include "PartBunch/LoadBalancer.hpp"
 #include "PartBunch/ParticleContainer.hpp"
+#include "Random/Distribution.h"
+#include "Random/InverseTransformSampling.h"
+#include "Random/NormalDistribution.h"
+#include "Random/Randn.h"
 
 #ifdef WITH_UNIT_TESTS
 #include <gtest/gtest_prod.h>
