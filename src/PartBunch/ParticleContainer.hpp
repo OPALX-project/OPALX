@@ -20,6 +20,33 @@ using ParticleAttrib = ippl::ParticleAttrib<T>;
 using size_type = ippl::detail::size_type;
 
 // Define the ParticlesContainer class
+/**
+ * @class ParticleContainer
+ * @brief This class inherits from ippl::ParticleBase and implements the 
+ * container structure for the particles. 
+ * 
+ * The values for each particle that are tracked in Kokkos::Views
+ * during the simulation are:
+ * R - Position (from base class)
+ * P - Momentum [beta*gamma]
+ * dt - Time step
+ * Phi - Scalar potential
+ * Bin - Energy bin
+ * E - Electric field
+ * B - Magnetic field
+ * -----------------------------------
+ * Q - Charge
+ * M - Mass
+ * 
+ * The charge Q and mass M values are special cases. The default behaviour is to 
+ * save a single value for Q and M in a Kokkos::View of extent 1. Individual 
+ * values per particle can be activated in the inputfile with 
+ * `OPTION, USE_QM_ATTRIBUTES=TRUE;`. In this case full `ippl::ParticleAttrib` 
+ * views are allocated. 
+ * This comes comes at the drawback that the Q and M views need to be accessed
+ * using the `getQView()` and `getMView()` functions, which internally check
+ * the storage mode.
+*/
 template <typename T, unsigned Dim = 3>
 class ParticleContainer : public ippl::ParticleBase<ippl::ParticleSpatialLayout<T, Dim>> {
     using Base = ippl::ParticleBase<ippl::ParticleSpatialLayout<T, Dim>>;
@@ -30,6 +57,7 @@ public:
     /// Defines which type to use as a particle bin.
     using bin_index_type = short int;  // Needed in AdaptBins class
 
+    /// View types of Q and M values
     using qm_view_type = typename ippl::ParticleAttrib<double>::view_type;
 public:
     /// Charge view in [Cb].
@@ -275,6 +303,13 @@ public:
         return distMoments_m.getDebyeLength();
     }
 
+    /**
+     * @brief Set particle charge for the active Q storage mode.
+     * @param q Charge value in [Cb].
+     *
+     * In `QMStorageMode::Attributes`, this assigns `q` to every local particle.
+     * In `QMStorageMode::SingleValue`, this updates the shared scalar charge view.
+     */
     void setQ(double q) {
         if (qmStorageMode_m == QMStorageMode::Attributes) {
             auto view = QAttr.getView();
@@ -289,6 +324,13 @@ public:
         }
     }
 
+    /**
+     * @brief Set particle mass for the active M storage mode.
+     * @param m Mass value in [GeV].
+     *
+     * In `QMStorageMode::Attributes`, this assigns `m` to every local particle.
+     * In `QMStorageMode::SingleValue`, this updates the shared scalar mass view.
+     */
     void setM(double m) {
         if (qmStorageMode_m == QMStorageMode::Attributes) {
             auto view = MAttr.getView();
@@ -303,7 +345,14 @@ public:
         }
     }
 
-    /// Scale `dt[i]` by `Q(i)` so that `scatter(*dt, ...)` uses the correct per-particle charge.
+    /**
+     * @brief Scale particle time-step weights by charge before scatter.
+     *
+     * Multiplies each local `dt[i]` by the corresponding charge used for deposition.
+     * In `QMStorageMode::Attributes`, the per-particle `QAttr(i)` is used.
+     * In `QMStorageMode::SingleValue`, the shared scalar `QView_m(0)` is used.
+     *
+     */
     void scaleDtByCharge() {
         auto dtView = dt.getView();
         const size_type n = dtView.extent(0);
@@ -328,7 +377,13 @@ public:
         Kokkos::fence();
     }
 
-    /// Undo `scaleDtByCharge()` after scattering.
+    /**
+     * @brief Restore original `dt` values after `scaleDtByCharge()`.
+     *
+     * Divides each local `dt[i]` by the same charge factor applied in
+     * `scaleDtByCharge()`.
+     *
+     */
     void unscaleDtByCharge() {
         auto dtView      = dt.getView();
         const size_type n = dtView.extent(0);
