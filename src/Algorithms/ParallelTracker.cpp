@@ -666,6 +666,7 @@ void ParallelTracker::checkInIPRegion(OrbitThreader& oth) {
     const auto& activeGeometry = *geometry;
 
     interactionWindowState_m.frameObserved =
+        activeGeometry.visualize &&
         (bunchHeadS >= activeGeometry.observedBeginS) &&
         (bunchTailS <= activeGeometry.observedEndS);
     interactionWindowState_m.geometry = activeGeometry;
@@ -728,7 +729,8 @@ ParallelTracker::detectInteractionWindow(
             interactionWindowLength,
             interactionPointS - pathLength_m,
             interactionPointS - 0.5 * interactionWindowLength - observedMarginS,
-            interactionPointS + 0.5 * interactionWindowLength + observedMarginS};
+            interactionPointS + 0.5 * interactionWindowLength + observedMarginS,
+            element->getAttribute("VISUALIZE") != 0.0};
     }
 
     return std::nullopt;

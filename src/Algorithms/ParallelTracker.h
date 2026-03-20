@@ -180,6 +180,7 @@ private:
         double interactionPointLocalZ = 0.0;
         double observedBeginS      = 0.0;
         double observedEndS        = 0.0;
+        bool visualize            = false;
     };
 
     /**

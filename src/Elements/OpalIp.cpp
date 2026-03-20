@@ -26,6 +26,10 @@ OpalIp::OpalIp()
 
     itsAttr[COLWINLEN] =
         Attributes::makeReal("COLWINLEN", "The collision windlow lenght in [m]", 0.001);
+    itsAttr[VISUALIZE] = Attributes::makeBool(
+        "VISUALIZE",
+        "If true, emit the ASCII interaction-window visualization during tracking.",
+        false);
 
     registerOwnership();
 
@@ -53,6 +57,7 @@ void OpalIp::update() {
     IpRep* ip = static_cast<IpRep*>(getElement());
     ip->setElementLength(Attributes::getReal(itsAttr[LENGTH]));
     ip->setAttribute("COLWINLEN", Attributes::getReal(itsAttr[COLWINLEN]));
+    ip->setAttribute("VISUALIZE", Attributes::getBool(itsAttr[VISUALIZE]) ? 1.0 : 0.0);
 
     // Transmit "unknown" attributes.
     OpalElement::updateUnknown(ip);
