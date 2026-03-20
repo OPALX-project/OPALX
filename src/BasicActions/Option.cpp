@@ -325,8 +325,8 @@ Option::Option()
         "USE_QM_ATTRIBUTES",
         "If true, store particle charge/mass as per-particle attributes "
         "(accessible via per-particle `Q`/`M` views). "
-        "If false (default), use a single shared value (still in a View) per 
-        container to save memory",
+        "If false (default), use a single shared value (still in a View) per"
+        "container to save memory",
         useQMAttributes);
 
     registerOwnership(AttributeHandler::STATEMENT);
