@@ -1,20 +1,10 @@
-//
-// Class RFCavity
-//   Defines the abstract interface for for RF cavities.
-//
-// Copyright (c) 200x - 2021, Paul Scherrer Institut, Villigen PSI, Switzerland
-// All rights reserved
-//
-// This file is part of OPAL.
-//
-// OPAL is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// You should have received a copy of the GNU General Public License
-// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
-//
+/**
+ * @class RFCavity
+ * @brief Interface for general multipole.
+ *
+ * Class RFCavity defines the abstract interface for RF cavities.
+ *   - SW: Standing Wave Cavity
+ */
 #include "AbsBeamline/RFCavity.h"
 
 #include "Utilities/BiMap.h"
@@ -122,7 +112,6 @@ void RFCavity::accept(BeamlineVisitor& visitor) const {
 
 /* ========================================================================== */
 /* ============================== Apply Functions =========================== */
-
 /**
  * @brief Applies the Standing Wave RF Cavity field to all particles inside the RF cavity
  * 
