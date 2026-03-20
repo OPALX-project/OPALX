@@ -17,10 +17,6 @@
 #include <fstream>
 #include <sstream>
 
-using ParticleContainer_t = ParticleContainer<double, 3>;
-using FieldContainer_t = FieldContainer<double, 3>;
-using Distribution_t = Distribution;
-
 /**
  * @class FromFile
  * @brief Implements the sampling method for reading particle phase space from ASCII files.
@@ -63,6 +59,15 @@ public:
      * @param nr Number of grid points per direction (not used here).
      */
     void generateParticles(size_t& numberOfParticles, Vector_t<double, 3> nr) override;
+
+    /**
+     * @brief Time-stepped emission hook for one-shot delayed file-based injection.
+     *
+     * When a source using FROMFILE has t0 > 0 and a positive NPARTDIST, the sampler
+     * will read and inject particles once when [t, t+dt] crosses t0. Initial sampling
+     * at t0 == 0 is handled via generateParticles.
+     */
+    void emitParticles(double t, double dt) override;
 
 private:
     /**

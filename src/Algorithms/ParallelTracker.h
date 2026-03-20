@@ -51,6 +51,7 @@
 #include "AbsBeamline/Solenoid.h"
 #include "AbsBeamline/TravelingWave.h"
 #include "Beamlines/Beamline.h"
+#include "Distribution/SamplingBase.hpp"
 #include "Elements/OpalBeamline.h"
 
 #include <list>
@@ -105,15 +106,9 @@ private:
     // The current time stepsize dt (controlled by StepSizeConfig)
     double dtCurrentTrack_m;
 
-    // This variable controls the minimal number of steps of
-    // emission (using bins) before we can merge the bins
-    int minStepforReBin_m;
-
     // Controls the frequency of load balancing
     unsigned long long repartFreq_m;
 
-    // Total number of particles in the whole simulation
-    size_t numParticlesInSimulation_m;
     /* ===================================================================== */
     /* ============================== Timers =============================== */
     IpplTimings::TimerRef timeIntegrationTimer1_m;
@@ -156,10 +151,6 @@ private:
     // Particle - Matter interaction
     std::set<ParticleMatterInteractionHandler*> activeParticleMatterInteractionHandlers_m;
     bool particleMatterStatus_m;
-
-    // Does nothing ...
-    unsigned int emissionSteps_m;
-
     // Wakefield stuff - Does nothing...
     bool wakeStatus_m;
     WakeFunction* wakeFunction_m;
@@ -211,6 +202,9 @@ private:
     std::unique_ptr<InteractionWindowAnimation> interactionWindowAnimation_m;
 
     /* ===================================================================== */
+    /// Time-dependent (emitting) sources; emitParticles(t, dt) called each step.
+    std::vector<std::shared_ptr<SamplingBase>> emittingSamplers_m;
+    /* ===================================================================== */
 public:
     /* ============================ Constructors =========================== */
     /*
@@ -239,7 +233,8 @@ public:
         const Beamline& bl, PartBunch_t* bunch, const std::shared_ptr<DataSink>& ds,
         const PartData& data, bool revBeam, bool revTrack,
         const std::vector<unsigned long long>& maxSTEPS, double zstart,
-        const std::vector<double>& zstop, const std::vector<double>& dt);
+        const std::vector<double>& zstop, const std::vector<double>& dt,
+        const std::vector<std::shared_ptr<SamplingBase>>& emittingSamplers = {});
 
     // Destructor
     virtual ~ParallelTracker();
@@ -317,6 +312,7 @@ public:
      */
     void computeSpaceChargeFields(unsigned long long step);
     void computeExternalFields(OrbitThreader& oth);
+    void emitFromEmissionSources(double t, double dt);
     void resetFields();
     /* ===================================================================== */
     /* =========================== Functions =============================== */
@@ -417,7 +413,6 @@ private:
     ParallelTracker();
     ParallelTracker(const ParallelTracker&);
     void operator=(const ParallelTracker&);
-    void emitParticles(long long step);
     void computeWakefield(IndexMap::value_t& elements);
     void computeParticleMatterInteraction(IndexMap::value_t elements, OrbitThreader& oth);
     void handleRestartRun();

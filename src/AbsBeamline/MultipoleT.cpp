@@ -29,6 +29,7 @@
 #include "AbsBeamline/Component.h"
 #include "BeamlineGeometry/StraightGeometry.h"
 #include "Fields/BMultipoleField.h"
+#include "PartBunch/PartBunch.h"
 
 #include "Utilities/GSLCompat.h"
 #include "MultipoleT.h"

@@ -8,7 +8,6 @@
 #include "Algorithms/Matrix.h"
 #include "Attributes/Attributes.h"
 #include "BCHandler.hpp"
-#include "Distribution/Distribution.h"
 #include "Manager/BaseManager.h"
 #include "Manager/PicManager.h"
 #include "PartBunch/FieldContainer.hpp"
@@ -26,8 +25,7 @@
 
 #include "Algorithms/PartData.h"
 
-#include "PartBunch/Binning/AdaptBins.h"  // TODO: binning
-#include "Utilities/Options.h"            // Needed to define binning parameters!
+#include "PartBunch/Binning/AdaptBins.h"
 
 class DataSink;  // forward declaration; full type needed only in .cpp
 
@@ -210,22 +208,9 @@ private:
     Quaternion_t globalToLocalQuaternion_m;
 
     /**
-       The structure for particle binning
+       Adaptive binning structure (energy/velocity binning handled by AdaptBins).
     */
-
-    // PartBins* pbin_m;
-
-    /// if larger than 0, emitt particles for tEmission_m [s]
-    double tEmission_m;
-
-    /// holds the gamma of the bin
-    std::unique_ptr<double[]> bingamma_m;
-
-    // FIXME: this should go into the Bin class!
-    //  holds number of emitted particles of the bin
-    //  jjyang: opal-cycl use *nBin_m of pbin_m
-    // std::unique_ptr<size_t[]> binemitted_m; // liemen_a: TODO remove!
-    std::shared_ptr<AdaptBins_t> bins_m;  // added by liemen_a for AdaptBins class!
+    std::shared_ptr<AdaptBins_t> bins_m;
 
     /// steps per turn for OPAL-cycl
     int stepsPerTurn_m;
@@ -280,6 +265,11 @@ private:
     /// Temporary E field container used to store temporary E field during binned solver
     std::shared_ptr<VField_t<T, Dim>> Etmp_m;
 
+    /// Maximum allowed number of local macroparticles on this rank.
+    /// Used as a safety guard to detect when particle emission triggers an
+    /// internal resize (Kokkos::realloc) of the particle arrays.
+    size_t maxLocalNum_m = 0;
+
 public:
     /**
      * @brief Construct a PartBunch with given macro charge/mass and configuration.
@@ -321,6 +311,12 @@ public:
         return this->pcontainer_m;
     }
 
+    /// Set / get the maximum allowed number of local macroparticles on this rank.
+    /// Initialised from the global total number of macroparticles and the MPI
+    /// world size (see TrackRun) and used to detect over-emission.
+    void setMaxLocalNum(size_t n) { maxLocalNum_m = n; }
+    size_t getMaxLocalNum() const { return maxLocalNum_m; }
+
     void setSolver();
 
     void setBins();
@@ -337,13 +333,9 @@ public:
         this->Etmp_m = Etmp;
     }
 
-    std::shared_ptr<AdaptBins_t> getBins() {
-        return bins_m;
-    }  // TODO: Binning
-
-    void setBins(std::shared_ptr<AdaptBins_t> bins) {
-        bins_m = bins;
-    }  // TODO: Binning
+    std::shared_ptr<AdaptBins_t> getBins() { return bins_m; }
+    std::shared_ptr<AdaptBins_t> getBins() const { return bins_m; }
+    void setBins(std::shared_ptr<AdaptBins_t> bins) { bins_m = bins; }
 
     void setBCHandler(std::shared_ptr<BCHandler_t> bcHandler) {
         bcHandler_m = bcHandler;
@@ -452,9 +444,7 @@ public:
         return mi_m * this->getTotalNum();
     }
 
-    double getdE() const {
-        return this->pcontainer_m->getStdKineticEnergy();
-    }
+    double getdE() const;
 
     double getGamma(int /*i*/) const {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
@@ -476,9 +466,14 @@ public:
         return reference_m;
     }
 
-    /// \todo constructor could set this
+    /// Set inside TrackRun::execute.
     void setReference(const PartData* ref) {
         reference_m = ref;
+        if (reference_m && this->pcontainer_m) {
+            // Ensure mean/std kinetic energy in DistributionMoments are computed using reference mass.
+            // PartData mass is stored in eV; DistributionMoments expects GeV for its energy computation.
+            this->pcontainer_m->setEnergyReferenceMass(reference_m->getM() * Units::eV2GeV, true);
+        }
     }
 
     double getEmissionDeltaT() {
@@ -486,16 +481,6 @@ public:
               << " function: " << __func__ << endl;
         return 1.0;
     }
-
-    /**
-     * @brief
-     *
-     * This function assumes the input vector
-     * \f[
-     * \mathbf{p} = \boldsymbol{\beta\gamma}
-     * \f]
-     * @param p Vector containing \f$(\beta\gamma_x,\beta\gamma_y,\beta\gamma_z)\f$.
-     */
 
     /**
      * @brief Set the bunch-side interaction-window geometry in the current
@@ -537,61 +522,6 @@ public:
     const InteractionWindowConfig& getInteractionWindowConfig() const {
         return *interactionWindowConfig_m;
     }
-
-    /**
-     * @brief Compute the kinetic energy of a particle with mass m from the vector
-     * \f$\boldsymbol{\beta\gamma}\f$.
-     *
-     * This function assumes the input vector
-     * \f[
-     * \mathbf{p} = \boldsymbol{\beta\gamma}
-     * \f]
-     * where
-     * \f[
-     * \beta = \frac{v}{c}, \qquad
-     * \gamma = \frac{1}{\sqrt{1-\beta^2}}.
-     * \f]
-     * and the mass in GeV
-     * \f[
-     * m c^2
-     * \f]
-     * The magnitude of the vector is
-     * \f[
-     * |\boldsymbol{\beta\gamma}| =
-     * \sqrt{(\beta\gamma_x)^2 + (\beta\gamma_y)^2 + (\beta\gamma_z)^2}.
-     * \f]
-     *
-     * From this we obtain the Lorentz factor
-     * \f[
-     * \gamma = \sqrt{1 + |\boldsymbol{\beta\gamma}|^2}.
-     * \f]
-     *
-     * The kinetic energy is then
-     * \f[
-     * E_{\mathrm{kin}} = (\gamma - 1) m.
-     * \f]
-     *
-     * For protons we use
-     * \f[
-     * m_p c^2 = 938.2720813 \, \mathrm{MeV}.
-     * \f]
-     *
-     * @param p Vector containing \f$(\beta\gamma_x,\beta\gamma_y,\beta\gamma_z)\f$.
-     * @return kinetic energy in eV.
-     */
-    double p2Ekin(const Vector_t<double, Dim>& p, const double mass) {
-        // magnitude squared of beta*gamma
-        const double p2 = p[0] * p[0] + p[1] * p[1] + p[2] * p[2];
-
-        // Lorentz factor
-        const double gamma = std::sqrt(1.0 + p2);
-
-        // kinetic energy
-        const double Ekin = (gamma - 1.0) * mass;
-
-        return Ekin;
-    }
-
     void gatherLoadBalanceStatistics();
 
     size_t getLoadBalance(int p) {
@@ -894,60 +824,87 @@ public:
         return this->bins_m != nullptr;
     }
 
-    /** Number of field solver bins (1 if no binning, else getBins()->getCurrentBinCount()). */
     int getCurrentNBins() const {
-        return hasBinning() ? static_cast<int>(bins_m->getCurrentBinCount()) : 1;
+        if (!hasBinning()) {
+            return 1;
+        }
+
+        int ret_bins = static_cast<int>(bins_m->getCurrentBinCount());
+        // If the number of bins is the same as the maximum number of bins, we haven't merged bins
+        // yet (likely because the simulation is too empty)
+        if (ret_bins == this->getBins()->getMaxBinCount()) {
+            Inform m("PartBunch::getCurrentNBins");
+            m << level4
+              << "WARNING: Number of bins is the same as the maximum number of bins, we haven't "
+                 "merged bins yet (likely because the simulation is too empty). Returning 1. If "
+                 "that is not the case, check e.g. binning parameters."
+              << endl;
+            return 1;
+        } else {
+            return ret_bins;
+        }
     }
+
     double calcMeanPhi() {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
               << " function: " << __func__ << endl;
         return 0.0;
     }
+    
     double getPx(int /*i*/) {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
               << " function: " << __func__ << endl;
         return 0.0;
     }
+    
     double getPy(int /*i*/) {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
               << " function: " << __func__ << endl;
         return 0.0;
     }
+    
     double getPz(int /*i*/) {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
               << " function: " << __func__ << endl;
         return 0.0;
     }
+    
     double getPx0(int /*i*/) {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
               << " function: " << __func__ << endl;
         return 0.0;
     }
+    
     double getPy0(int /*i*/) {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
               << " function: " << __func__ << endl;
         return 0.0;
     }
+
     double getX(int /*i*/) {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
               << " function: " << __func__ << endl;
         return 0.0;
     }
+    
     double getY(int /*i*/) {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
               << " function: " << __func__ << endl;
         return 0.0;
     }
+    
     double getZ(int /*i*/) {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
               << " function: " << __func__ << endl;
         return 0.0;
     }
+    
     double getX0(int /*i*/) {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
               << " function: " << __func__ << endl;
         return 0.0;
     }
+    
     double getY0(int /*i*/) {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
               << " function: " << __func__ << endl;
@@ -1022,9 +979,8 @@ public:
         return this->pcontainer_m->getMeanGammaZ();
     }
 
-    double get_meanKineticEnergy() {
-        return p2Ekin(this->pcontainer_m->getMeanP(), reference_m->getM()) * Units::eV2MeV;
-    }
+    /// Mean kinetic energy over particles (mean of per-particle kinetic energy), in MeV.
+    double get_meanKineticEnergy();
 
     Vector_t<double, Dim> get_origin() const {
         return rmin_m;
