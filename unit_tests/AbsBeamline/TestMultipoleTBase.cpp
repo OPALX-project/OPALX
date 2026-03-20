@@ -18,48 +18,25 @@
 
 class MultipoleTBaseTest : public testing::Test, public MultipoleTBase {
 public:
-    MultipoleTBaseTest() : MultipoleTBase(nullptr) {
-    }
+    MultipoleTBaseTest() : MultipoleTBase(nullptr) {}
 
 protected:
     static void SetUpTestSuite() {
         int argc    = 0;
         char** argv = nullptr;
-
         ippl::initialize(argc, argv);
     }
 
-    static void TearDownTestSuite() {
-        ippl::finalize();
-    }
-
-    void SetUp() override {
-        // nothing special
-    }
-
-    void TearDown() override {
-        // nothing special
-    }
+    static void TearDownTestSuite() { ippl::finalize(); }
 
     // Overrides of MultipoleTBase
-    void initialise() override {
-    }
-    BGeometryBase* getGeometry() override {
-        return nullptr;
-    }
-    const BGeometryBase* getGeometry() const override {
-        return nullptr;
-    }
-    void transformCoords(Vector_t<double, 3>& /*R*/) override {
-    }
-    void transformBField(Vector_t<double, 3>& /*B*/, const Vector_t<double, 3>& /*R*/) override {
-    }
-    double getScaleFactor(double /*x*/, double /*s*/) override {
-        return 1.0;
-    }
-    double getFn(unsigned int /*n*/, double /*x*/, double /*s*/) override {
-        return 0.0;
-    }
+    void initialise() override {}
+    BGeometryBase* getGeometry() override { return nullptr; }
+    const BGeometryBase* getGeometry() const override { return nullptr; }
+    void transformCoords(Vector_t<double, 3>& /*R*/) override {}
+    void transformBField(Vector_t<double, 3>& /*B*/, const Vector_t<double, 3>& /*R*/) override {}
+    double getScaleFactor(double /*x*/, double /*s*/) override { return 1.0; }
+    double getFn(unsigned int /*n*/, double /*x*/, double /*s*/) override { return 0.0; }
     Vector_t<double, 3> localCartesianToOpalCartesian(const Vector_t<double, 3>& r) override {
         return r;
     }
