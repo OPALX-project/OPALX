@@ -1,6 +1,7 @@
 #include "Fields/FM2DDynamic.h"
 #include "Fields/Fieldmap.hpp"
-#include "Physics/Physics.h"
+#include "PartBunch/PartBunch.h"
+// #include "Physics/Physics.h" // not used? to check
 #include "Physics/Units.h"
 #include "Utilities/GeneralClassicException.h"
 #include "Utilities/Util.h"
@@ -11,10 +12,8 @@
 
 
 FM2DDynamic::FM2DDynamic(const std::string& filename)
-    : Fieldmap(filename),
-      FieldstrengthEz_m(nullptr),
-      FieldstrengthEr_m(nullptr),
-      FieldstrengthBt_m(nullptr) {
+    : Fieldmap(filename)
+{
     std::ifstream file;
     std::string tmpString;
     double tmpDouble;
@@ -102,9 +101,9 @@ FM2DDynamic::FM2DDynamic(const std::string& filename)
 
             // convert cm to m
             rbegin_m *= Units::cm2m;
-            rend_m *= Units::cm2m;
+            rend_m   *= Units::cm2m;
             zbegin_m *= Units::cm2m;
-            zend_m *= Units::cm2m;
+            zend_m   *= Units::cm2m;
 
             hr_m = (rend_m - rbegin_m) / num_gridpr_m;
             hz_m = (zend_m - zbegin_m) / num_gridpz_m;
@@ -125,13 +124,10 @@ FM2DDynamic::~FM2DDynamic() {
     freeMap();
 }
 
-// FM2DDynamic _FM2DDynamic::create(const std::string& filename)
-// {
-//     return FM2DDynamic(new _FM2DDynamic(filename));
-// }
 
 void FM2DDynamic::readMap() {
-    if(FieldstrengthEz_m.h_view.data() == nullptr) {
+    // if(FieldstrengthEz_m.h_view.data() == nullptr) {
+    if(FieldstrengthEz_m.extent(0) == 0) {
         // declare variables and allocate memory
         std::ifstream in;
         std::string tmpString;
@@ -146,10 +142,6 @@ void FM2DDynamic::readMap() {
         auto Er = FieldstrengthEr_m.view_host();
         auto Bt = FieldstrengthBt_m.view_host();
 
-        // FieldstrengthEz_m = new double[num_gridpz_m * num_gridpr_m];
-        // FieldstrengthEr_m = new double[num_gridpz_m * num_gridpr_m];
-        // FieldstrengthBt_m = new double[num_gridpz_m * num_gridpr_m];
-
         // read in field map and parse it
         in.open(Filename_m.c_str());
         getLine(in, tmpString);
@@ -162,10 +154,11 @@ void FM2DDynamic::readMap() {
                 for(int j = 0; j < num_gridpr_m; j++) {
                     interpretLine<double, double, double, double>(
                         in,
-                        Er(i + j * num_gridpz_m),
-                        Ez(i + j * num_gridpz_m),
-                        Bt(i + j * num_gridpz_m),
-                        tmpDouble);
+                        Er(j * num_gridpz_m + i),
+                        Ez(j * num_gridpz_m + i),
+                        Bt(j * num_gridpz_m + i),
+                        tmpDouble
+                    );
                 }
             }
         } else {
@@ -173,10 +166,10 @@ void FM2DDynamic::readMap() {
                 for(int i = 0; i < num_gridpz_m; i++) {
                     interpretLine<double, double, double, double>(
                         in,
-                        Ez(i + j * num_gridpz_m),
-                        Er(i + j * num_gridpz_m),
+                        Ez(j * num_gridpz_m + i),
+                        Er(j * num_gridpz_m + i),
                         tmpDouble,
-                        Bt(i + j * num_gridpz_m)
+                        Bt(j * num_gridpz_m + i)
                     );
 
                 }
@@ -186,8 +179,8 @@ void FM2DDynamic::readMap() {
 
         if (normalize_m) {
             // find maximum field
-            // To make it more general should replace num_gridpz_m with size?
-            for(int i = 0; i < num_gridpz_m; ++ i) {
+            // Is (i < num_gridpz_m) enough or should it be (i < size)?
+            for(size_t i = 0; i < size; ++ i) {    
                 if(std::abs(Ez(i)) > Ezmax) {
                     Ezmax = std::abs(Ez(i));
                 }
@@ -200,7 +193,7 @@ void FM2DDynamic::readMap() {
         double const scaleE = 1.e6 / Ezmax;          // MV/m -> V/m conversion
         double const scaleB = Physics::mu_0 / Ezmax; // H -> B conversion
 
-        for(int i = 0; i < size; i++) {
+        for(size_t i = 0; i < size; i++) {
             Ez(i) *= scaleE; 
             Er(i) *= scaleE;
             Bt(i) *= scaleB; 
@@ -218,20 +211,12 @@ void FM2DDynamic::readMap() {
         *ippl::Info << level3 
             << typeset_msg("read in fieldmap '" + Filename_m + "'", "info")
             << endl;
-        // INFOMSG(level3 << typeset_msg("read in fieldmap '" + Filename_m  + "'", "info") << "\n"
-        //         << endl);
     }
 }
 
 void FM2DDynamic::freeMap() {
-    // if(FieldstrengthEz_m != nullptr) {
-    //     delete[] FieldstrengthEz_m;
-    //     FieldstrengthEz_m = nullptr;
-    //     delete[] FieldstrengthEr_m;
-    //     FieldstrengthEr_m = nullptr;
-    //     delete[] FieldstrengthBt_m;
-    //     FieldstrengthBt_m = nullptr;
-    if(FieldstrengthEz_m.h_view.data() != nullptr) {
+    // if(FieldstrengthEz_m.h_view.data() != nullptr) {
+    if(FieldstrengthEz_m.extent(0) != 0) {
 
         FieldstrengthEz_m = Kokkos::DualView<double*>();
         FieldstrengthEr_m = Kokkos::DualView<double*>();
@@ -301,6 +286,7 @@ bool FM2DDynamic::getFieldstrength(
     Vector_t<double,3>& E,
     Vector_t<double,3>& B) const
 {
+
     if (isInside(R)) {
 
         computeField(
@@ -323,51 +309,6 @@ bool FM2DDynamic::getFieldstrength(
         return true;
     }
 }
-
-// bool _FM2DDynamic::getFieldstrength(const Vector_t &R, Vector_t &E, Vector_t &B) const {
-//     // do bi-linear interpolation
-//     const double RR = std::sqrt(R(0) * R(0) + R(1) * R(1));
-
-//     const int indexr = (int)std::floor(RR / hr_m);
-//     const double leverr = RR / hr_m - indexr;
-
-//     const int indexz = (int)std::floor((R(2) - zbegin_m) / hz_m);
-//     const double leverz = (R(2) - zbegin_m) / hz_m - indexz;
-
-//     if((indexz < 0) || (indexz + 2 > num_gridpz_m))
-//         return false;
-//     if(indexr + 2 > num_gridpr_m)
-//         return true;
-
-//     const int index1 = indexz + indexr * num_gridpz_m;
-//     const int index2 = index1 + num_gridpz_m;
-
-//     double EfieldR = (1.0 - leverz) * (1.0 - leverr) * FieldstrengthEr_m[index1]
-//                      + leverz         * (1.0 - leverr) * FieldstrengthEr_m[index1 + 1]
-//                      + (1.0 - leverz) * leverr         * FieldstrengthEr_m[index2]
-//                      + leverz         * leverr         * FieldstrengthEr_m[index2 + 1];
-
-//     double EfieldZ = (1.0 - leverz) * (1.0 - leverr) * FieldstrengthEz_m[index1]
-//                      + leverz         * (1.0 - leverr) * FieldstrengthEz_m[index1 + 1]
-//                      + (1.0 - leverz) * leverr         * FieldstrengthEz_m[index2]
-//                      + leverz         * leverr         * FieldstrengthEz_m[index2 + 1];
-
-//     double BfieldT = (1.0 - leverz) * (1.0 - leverr) * FieldstrengthBt_m[index1]
-//                      + leverz         * (1.0 - leverr) * FieldstrengthBt_m[index1 + 1]
-//                      + (1.0 - leverz) * leverr         * FieldstrengthBt_m[index2]
-//                      + leverz         * leverr         * FieldstrengthBt_m[index2 + 1];
-
-//     if(RR > 1e-10) {
-//         E(0) += EfieldR * R(0) / RR;
-//         E(1) += EfieldR * R(1) / RR;
-//         B(0) -= BfieldT * R(1) / RR;
-//         B(1) += BfieldT * R(0) / RR;
-//     }
-//     E(2) += EfieldZ;
-
-//     return false;
-// }
-
 
 /**
  * @brief Get the derivative of the field at position R
@@ -402,8 +343,6 @@ void FM2DDynamic::getFieldDimensions(
 
 void FM2DDynamic::swap() {
     swap_m = !swap_m;
-    // if(swap_m) swap_m = false;
-    // else swap_m = true;
 }
 
 void FM2DDynamic::getInfo(Inform* msg) {
@@ -431,14 +370,3 @@ void FM2DDynamic::getOnaxisEz(std::vector<std::pair<double, double>>& F) {
         F[i].second = Ez(i) / 1e6;  // Convert V/m -> MV/m
     }
 }
-
-// void FM2DDynamic::getOnaxisEz(std::vector<std::pair<double, double> > & F) {
-//     double dz = (zend_m - zbegin_m) / (num_gridpz_m - 1);
-//     F.resize(num_gridpz_m);
-
-//     for(int i = 0; i < num_gridpz_m; ++ i) {
-//         F[i].first = dz * i;
-//         F[i].second = FieldstrengthEz_m[i] / 1e6;
-
-//     }
-// }
