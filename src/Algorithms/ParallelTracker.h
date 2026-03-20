@@ -61,7 +61,7 @@
 
 class ParticleMatterInteractionHandler;
 class PluginElement;
-class CollisionDynamicsAnimation;
+class InteractionWindowAnimation;
 
 /**
  * @brief Implements the simulation loop
@@ -165,46 +165,48 @@ private:
     WakeFunction* wakeFunction_m;
 
     /**
-     * @brief True once the symmetric collision prototype has been entered.
+     * @brief True while the bunch is inside the active interaction window.
      *
-     * The prototype currently models one physical bunch and one virtual mirrored
-     * partner bunch inside the active interaction-point window.
+     * In this mode, the longitudinal field mesh changes from the normal
+     * bunch-following representation (Lagrangian in z) to a fixed interaction-window
+     * representation (Eulerian in z).
      */
-    bool collisionPrototypeInitialized_m;
+    bool interactionWindowActive_m;
 
     /**
-     * @brief True once the bunch has fully passed the active collision window.
+     * @brief True once the bunch has fully passed the active interaction window.
      *
      * After this becomes true, the prototype is not re-entered later in the same run.
      */
-    bool collisionPrototypeFinished_m;
+    bool interactionWindowCompleted_m;
 
     /**
      * @brief True while the bunch is inside the extended observation frame around the
-     * collision window.
+     * interaction window.
      *
-     * This flag is used for collision-specific diagnostics and ASCII visualization.
+     * This flag is used for interaction-window diagnostics and ASCII visualization.
      */
-    bool collisionFrameObserved_m;
+    bool interactionWindowFrameObserved_m;
 
     /**
-     * @brief True once the collision-window mesh has been frozen for the active
+     * @brief True once the interaction-window mesh has been frozen for the active
      * IP passage.
      *
-     * During the collision phase we switch from a bunch-following mesh to an
-     * Eulerian mesh in z. The longitudinal mesh is initialized once on entry
-     * and reused until the bunch leaves the collision window.
+     * During the interaction-window phase we switch from a bunch-following mesh
+     * to an Eulerian mesh in z. The longitudinal mesh is initialized once on
+     * entry and reused until the bunch leaves the interaction window.
      */
-    bool collisionWindowMeshInitialized_m;
+    bool interactionWindowMeshInitialized_m;
 
     /**
      * @brief Saved bunch-following field domain from before entering the
-     * frozen collision-window mesh.
+     * frozen interaction-window mesh.
      */
-    std::optional<PartBunch<double, Dim>::SavedPartFieldDomain> collisionSavedFieldDomain_m;
+    std::optional<PartBunch<double, Dim>::SavedFieldDomainState>
+        savedPreInteractionWindowFieldDomain_m;
 
-    // ASCII visualization helper for the collision-window prototype.
-    std::unique_ptr<CollisionDynamicsAnimation> collisionAnimation_m;
+    // ASCII visualization helper for the interaction-window dynamics.
+    std::unique_ptr<InteractionWindowAnimation> interactionWindowAnimation_m;
 
     /* ===================================================================== */
 public:
@@ -293,21 +295,21 @@ public:
     void timeIntegration1(BorisPusher& pusher);
     void timeIntegration2(BorisPusher& pusher);
     /**
-     * @brief Compute self fields for the current step, including the collision prototype
-     * branch when enabled.
+     * @brief Compute self fields for the current step, including the
+     * interaction-window branch when enabled.
      *
-     * The current collision-space-charge prototype is organized in three phases:
+     * The current interaction-window space-charge model is organized in three phases:
      * - Phase 1: ordinary single-bunch tracking with a bunch-fitted mesh.
      * - Phase 2: once the bunch enters the active interaction-point window, the mesh
-     *   is expanded to cover the full collision window and the deposited charge density
+     *   is expanded to cover the full interaction window and the deposited charge density
      *   is prepared for a symmetry-based reconstruction of the partner bunch.
      * - Phase 3: the resulting grid-based charge density is used as the right-hand side
      *   of the Poisson solve for the electrostatic scalar field.
      *
-     * In the present prototype, phase 2 currently uses one physical bunch and one
-     * virtual mirrored bunch model. The routine may temporarily replace the field-domain
-     * geometry, perform the collision-specific solve setup, and then restore the original
-     * physical bunch bounds and field-domain state.
+     * In the present model, phase 2 currently uses one physical bunch and one
+     * virtual mirrored bunch. The routine may temporarily replace the field-domain
+     * geometry, perform the interaction-window-specific solve setup, and then
+     * restore the original physical bunch bounds and field-domain state.
      *
      * @param step Global tracking step index.
      */
@@ -322,10 +324,11 @@ public:
 
     /* =========================== IP Related Functions =============================== */
     /**
-     * @brief Detect entry into and exit from an active interaction-point collision window.
+     * @brief Detect entry into and exit from an active interaction window around the
+     * interaction point.
      *
-     * The current prototype activates a symmetric collision mode using one physical
-     * bunch and one virtual mirrored bunch reconstructed about the IP center.
+     * The current model activates a symmetric interaction-window mode using one
+     * physical bunch and one virtual mirrored bunch reconstructed about the IP center.
      *
      * @param oth Orbit-threader used to query the active beamline elements.
      */

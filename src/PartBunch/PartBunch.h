@@ -77,18 +77,24 @@ public:
 
     /*
 
-      This is for colliding bunches
+      This is for the interaction-window mode
 
      */
 
     /**
      * @brief Saved state for temporarily modifying the field-domain geometry during
-     * collision-specific field solves.
+     * interaction-window field solves.
      *
      * The stored data includes both the mesh-aligned field-domain quantities and the
      * cached physical bunch bounds used by `get_bounds()`.
+     *
+     * Outside the interaction window the longitudinal field mesh is bunch-following
+     * (Lagrangian in z). Inside the interaction window the longitudinal field mesh is
+     * fixed over the full window (Eulerian in z). This state object stores the
+     * pre-window field-domain geometry so that the bunch-following mesh can be
+     * restored after leaving the interaction window.
      */
-    struct SavedPartFieldDomain {
+    struct SavedFieldDomainState {
         Vector_t<double, Dim> origin;
         Vector_t<double, Dim> rmin;
         Vector_t<double, Dim> rmax;
@@ -101,39 +107,42 @@ public:
     /**
      * @brief Save the current field-domain and cached physical bunch-bound state.
      *
-     * This is used by the collision prototype before entering a temporary field solve
+     * This is used before entering a temporary interaction-window field solve
      * that may alter the mesh extents and the cached bunch bounds.
      *
      * @return Snapshot of the current field-domain and physical-bounds state.
      */
-    SavedPartFieldDomain savePartFieldDomain() const;
+    SavedFieldDomainState saveFieldDomainState() const;
 
     /**
      * @brief Restore a previously saved field-domain and cached physical bunch-bound
      * state.
      *
      * After restoring this state, `get_bounds()` again returns the physical bunch
-     * bounds from before the temporary collision solve.
+     * bounds from before the temporary interaction-window solve.
      *
-     * @param state Snapshot produced by `savePartFieldDomain()`.
+     * @param state Snapshot produced by `saveFieldDomainState()`.
      */
-    void restorePartFieldDomain(const SavedPartFieldDomain& state);
+    void restoreFieldDomainState(const SavedFieldDomainState& state);
 
     /**
-     * @brief Replace the current field mesh by a collision-window-aligned mesh.
+     * @brief Replace the current field mesh by an interaction-window-aligned mesh.
      *
-     * The transverse extent is still derived from the present bunch extent, while the
-     * longitudinal extent is fixed to the requested collision window in the current
-     * co-moving frame.
+     * This marks the Lagrangian-to-Eulerian transition in the longitudinal direction:
+     * x/y remain bunch-following, while z is fixed to the requested interaction
+     * window in the current co-moving frame.
      *
-     * @param ipCenterLocalZ Collision-point center in the bunch-local z coordinate [m].
-     * @param colwinlen Collision-window length in the bunch-local z coordinate [m].
+     * @param interactionPointLocalZ Interaction-point center in the bunch-local z
+     * coordinate [m].
+     * @param interactionWindowLength Interaction-window length in the bunch-local z
+     * coordinate [m].
      */
-    void enableCollisionWindowMesh(double ipCenterLocalZ, double colwinlen);
+    void enableInteractionWindowMesh(
+        double interactionPointLocalZ, double interactionWindowLength);
 
-    double ipCenterLocalZ_m;
-    double colwinlen_m;
-    bool hasCollidingBunches_m;
+    double interactionPointLocalZ_m;
+    double interactionWindowLength_m;
+    bool interactionWindowActive_m;
 
 private:
     double qi_m;
@@ -472,21 +481,21 @@ public:
      */
 
     /**
-     * @brief Set whether the bunch is currently in the collision prototype mode.
+     * @brief Set whether the bunch is currently in the interaction-window mode.
      *
-     * @param col True while the symmetric one-real/one-virtual bunch prototype is active.
+     * @param active True while the interaction-window mode is active.
      */
-    void set_collidingBunches(bool col) {
-        hasCollidingBunches_m = col;
+    void set_interactionWindowActive(bool active) {
+        interactionWindowActive_m = active;
     }
 
     /**
-     * @brief Query whether the collision prototype mode is currently active.
+     * @brief Query whether the interaction-window mode is currently active.
      *
-     * @return True if collision-specific space-charge handling is enabled.
+     * @return True if interaction-window-specific space-charge handling is enabled.
      */
-    bool get_collidingBunches() {
-        return hasCollidingBunches_m;
+    bool get_interactionWindowActive() {
+        return interactionWindowActive_m;
     }
 
     /**
@@ -494,8 +503,8 @@ public:
      *
      * @param locz Interaction-point center expressed in bunch-local z [m].
      */
-    void set_ipCenterLocalZ(double locz) {
-        ipCenterLocalZ_m = locz;
+    void set_interactionPointLocalZ(double locz) {
+        interactionPointLocalZ_m = locz;
     }
 
     /**
@@ -503,26 +512,26 @@ public:
      *
      * @return Interaction-point center expressed in bunch-local z [m].
      */
-    double get_ipCenterLocalZ() {
-        return ipCenterLocalZ_m;
+    double get_interactionPointLocalZ() {
+        return interactionPointLocalZ_m;
     }
 
     /**
-     * @brief Set the collision-window length used by the collision prototype.
+     * @brief Set the interaction-window length used by the interaction-window mode.
      *
-     * @param len Collision-window length in bunch-local z [m].
+     * @param len Interaction-window length in bunch-local z [m].
      */
-    void set_colwinlen(double len) {
-        colwinlen_m = len;
+    void set_interactionWindowLength(double len) {
+        interactionWindowLength_m = len;
     }
 
     /**
-     * @brief Get the collision-window length used by the collision prototype.
+     * @brief Get the interaction-window length used by the interaction-window mode.
      *
-     * @return Collision-window length in bunch-local z [m].
+     * @return Interaction-window length in bunch-local z [m].
      */
-    double get_colwinlen() {
-        return colwinlen_m;
+    double get_interactionWindowLength() {
+        return interactionWindowLength_m;
     }
 
     /**

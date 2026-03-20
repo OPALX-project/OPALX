@@ -45,7 +45,7 @@
 #include "Utilities/Options.h"
 #include "Utilities/Timer.h"
 #include "Utilities/Util.h"
-#include "Utilities/CollisionDynamicsAnimation.h"
+#include "Utilities/InteractionWindowAnimation.h"
 #include "ValueDefinitions/RealVariable.h"
 
 #include "AbsBeamline/Offset.h"
@@ -79,12 +79,12 @@ ParallelTracker::ParallelTracker(
       emissionSteps_m(std::numeric_limits<unsigned int>::max()),
       wakeStatus_m(false),
       wakeFunction_m(nullptr),
-      collisionPrototypeInitialized_m(false),
-      collisionPrototypeFinished_m(false),
-      collisionFrameObserved_m(false),
-      collisionWindowMeshInitialized_m(false),
-      collisionSavedFieldDomain_m(std::nullopt),
-      collisionAnimation_m(std::make_unique<CollisionDynamicsAnimation>()) {
+      interactionWindowActive_m(false),
+      interactionWindowCompleted_m(false),
+      interactionWindowFrameObserved_m(false),
+      interactionWindowMeshInitialized_m(false),
+      savedPreInteractionWindowFieldDomain_m(std::nullopt),
+      interactionWindowAnimation_m(std::make_unique<InteractionWindowAnimation>()) {
 }
 
 ParallelTracker::ParallelTracker(
@@ -111,12 +111,12 @@ ParallelTracker::ParallelTracker(
       emissionSteps_m(std::numeric_limits<unsigned int>::max()),
       wakeStatus_m(false),
       wakeFunction_m(nullptr),
-      collisionPrototypeInitialized_m(false),
-      collisionPrototypeFinished_m(false),
-      collisionFrameObserved_m(false),
-      collisionWindowMeshInitialized_m(false),
-      collisionSavedFieldDomain_m(std::nullopt),
-      collisionAnimation_m(std::make_unique<CollisionDynamicsAnimation>()) {
+      interactionWindowActive_m(false),
+      interactionWindowCompleted_m(false),
+      interactionWindowFrameObserved_m(false),
+      interactionWindowMeshInitialized_m(false),
+      savedPreInteractionWindowFieldDomain_m(std::nullopt),
+      interactionWindowAnimation_m(std::make_unique<InteractionWindowAnimation>()) {
     for (unsigned int i = 0; i < zstop.size(); ++i) {
         stepSizes_m.push_back(dt[i], zstop[i], maxSteps[i]);
     }
@@ -591,7 +591,7 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
             "space charge effects, please use TYPE=NONE for the field solver.");
     }
 
-    // auto savedDomain = itsBunch_m->savePartFieldDomain();
+    // auto savedDomain = itsBunch_m->saveFieldDomainState();
     itsBunch_m->calcBeamParameters();
     m << level4 << "Calculate beam parameters done." << endl;
 
@@ -618,10 +618,10 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
 
     itsBunch_m->setGlobalMeanR(itsBunch_m->get_centroid());
 
-    if (!itsBunch_m->get_collidingBunches()) {
-        Vector_t<double, 3> ipCenterRef(0.0, 0.0, itsBunch_m->get_ipCenterLocalZ());
+    if (!itsBunch_m->get_interactionWindowActive()) {
+        Vector_t<double, 3> ipCenterRef(0.0, 0.0, itsBunch_m->get_interactionPointLocalZ());
         Vector_t<double, 3> ipCenterBeam = referenceToBeamCSTrafo.transformTo(ipCenterRef);
-        m << level5 << "centZ= " << itsBunch_m->get_ipCenterLocalZ()
+        m << level5 << "centZ= " << itsBunch_m->get_interactionPointLocalZ()
           << " L(centZ)= " << ipCenterBeam(2) << endl;
         itsBunch_m->computeSelfFields();
 
@@ -639,9 +639,9 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
           << endl;
 
     } else {
-        Vector_t<double, 3> ipCenterRef(0.0, 0.0, itsBunch_m->get_ipCenterLocalZ());
+        Vector_t<double, 3> ipCenterRef(0.0, 0.0, itsBunch_m->get_interactionPointLocalZ());
         Vector_t<double, 3> ipCenterBeam = referenceToBeamCSTrafo.transformTo(ipCenterRef);
-        m << level5 << "centZ= " << itsBunch_m->get_ipCenterLocalZ()
+        m << level5 << "centZ= " << itsBunch_m->get_interactionPointLocalZ()
           << " L(centZ)= " << ipCenterBeam(2) << endl;
 
         const double maxVal       = std::numeric_limits<double>::max();
@@ -651,12 +651,13 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
         itsBunch_m->calcBeamParameters();
         itsBunch_m->get_bounds(physicalRMin, physicalRMax);
 
-        if (!collisionWindowMeshInitialized_m) {
-            itsBunch_m->enableCollisionWindowMesh(ipCenterBeam(2), itsBunch_m->get_colwinlen());
-            collisionWindowMeshInitialized_m = true;
+        if (!interactionWindowMeshInitialized_m) {
+            itsBunch_m->enableInteractionWindowMesh(
+                ipCenterBeam(2), itsBunch_m->get_interactionWindowLength());
+            interactionWindowMeshInitialized_m = true;
         }
 
-        // First stage: solve on the larger collision mesh using the primary bunch only.
+        // First stage: solve on the larger interaction-window mesh using the primary bunch only.
         // Later this is where mirrored rho deposition should be added.
         itsBunch_m->computeSelfFields();
         itsBunch_m->rmin_m = physicalRMin;
@@ -672,7 +673,7 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
         m << level5
           << "Rotate B fields back to reference coordinate system done. ComputeSelfFields done."
           << endl;
-        m << level5 << "Compute self fields on collision window mesh done." << endl;
+        m << level5 << "Compute self fields on interaction-window mesh done." << endl;
         itsBunch_m->calcBeamParameters();
     }
 
@@ -683,7 +684,7 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
   Use a simple 3-state logic
 
   - not mirrored yet i.e. normal tracking
-  - mirrored and still inside the collision window
+  - mirrored and still inside the interaction window
   - mirrored and finished, so do not mirror again
 
  */
@@ -691,8 +692,8 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
 void ParallelTracker::checkInIPRegion(OrbitThreader& oth) {
     Inform m("IP ");
 
-    // Stop once the symmetric collision prototype has completed.
-    if (collisionPrototypeFinished_m) {
+    // Stop once the interaction-window passage has completed.
+    if (interactionWindowCompleted_m) {
         return;
     }
 
@@ -700,13 +701,13 @@ void ParallelTracker::checkInIPRegion(OrbitThreader& oth) {
 
     // Refresh cached bunch statistics/bounds for this step.
     if (itsBunch_m->getTotalNum() == 0) {
-        collisionFrameObserved_m = false;
+        interactionWindowFrameObserved_m = false;
         return;
     }
     itsBunch_m->calcBeamParameters();
 
-    // Use the physical particle extent directly here. During collision mode
-    // the Eulerian collision-window mesh may legitimately differ from the
+    // Use the physical particle extent directly here. During interaction-window mode
+    // the Eulerian interaction-window mesh may legitimately differ from the
     // bunch-fitted mesh, so the IP diagnostics must not depend on cached field
     // domain bounds.
     pc->computeMinMaxR();
@@ -722,30 +723,30 @@ void ParallelTracker::checkInIPRegion(OrbitThreader& oth) {
         return;
     }
 
-    // Find the active IP element and its collision window length.
-    bool inIpRegion  = false;
-    double colwinlen = 0.0;
+    // Find the active IP element and its interaction-window length.
+    bool inIpRegion               = false;
+    double interactionWindowLength = 0.0;
     IndexMap::key_t ipRange{0.0, 0.0};
 
     for (const auto& element : elements) {
         if (element->getType() == ElementType::IP) {
             inIpRegion = true;
-            colwinlen  = element->getAttribute("COLWINLEN");
-            ipRange    = oth.getRange(element, pathLength_m);
+            interactionWindowLength = element->getAttribute("COLWINLEN");
+            ipRange = oth.getRange(element, pathLength_m);
             break;
         }
     }
 
     // No active IP at this step.
-    if (!inIpRegion || colwinlen <= 0.0) {
-        collisionFrameObserved_m = false;
+    if (!inIpRegion || interactionWindowLength <= 0.0) {
+        interactionWindowFrameObserved_m = false;
         return;
     }
 
     // Geometry in path-length coordinates.
     const double ipCenterS    = 0.5 * (ipRange.begin + ipRange.end);
-    const double windowBeginS = ipCenterS - 0.5 * colwinlen;
-    const double windowEndS   = ipCenterS + 0.5 * colwinlen;
+    const double windowBeginS = ipCenterS - 0.5 * interactionWindowLength;
+    const double windowEndS   = ipCenterS + 0.5 * interactionWindowLength;
 
     const double bunchTailS = pathLength_m + rmin(2);
     const double bunchHeadS = pathLength_m + rmax(2);
@@ -753,63 +754,66 @@ void ParallelTracker::checkInIPRegion(OrbitThreader& oth) {
 
     const double ipCenterLocalZ = ipCenterS - pathLength_m;
 
-    // Observed frame: collision window plus margin on both sides.
-    const double observedMarginS = 0.25 * colwinlen;
+    // Observed frame: interaction window plus margin on both sides.
+    const double observedMarginS = 0.25 * interactionWindowLength;
     const double observedBeginS  = windowBeginS - observedMarginS;
     const double observedEndS    = windowEndS + observedMarginS;
 
-    collisionFrameObserved_m = (bunchHeadS >= observedBeginS) && (bunchTailS <= observedEndS);
+    interactionWindowFrameObserved_m =
+        (bunchHeadS >= observedBeginS) && (bunchTailS <= observedEndS);
 
-    const bool leavingCollisionMode =
-        collisionPrototypeInitialized_m && (bunchTailS > windowEndS);
+    const bool leavingInteractionWindow =
+        interactionWindowActive_m && (bunchTailS > windowEndS);
 
-    if (leavingCollisionMode) {
-        collisionPrototypeFinished_m = true;
-        if (collisionSavedFieldDomain_m.has_value()) {
-            itsBunch_m->restorePartFieldDomain(*collisionSavedFieldDomain_m);
+    if (leavingInteractionWindow) {
+        interactionWindowCompleted_m = true;
+        if (savedPreInteractionWindowFieldDomain_m.has_value()) {
+            itsBunch_m->restoreFieldDomainState(*savedPreInteractionWindowFieldDomain_m);
             itsBunch_m->calcBeamParameters();
-            collisionSavedFieldDomain_m.reset();
+            savedPreInteractionWindowFieldDomain_m.reset();
         }
-        collisionWindowMeshInitialized_m = false;
-        itsBunch_m->set_collidingBunches(false);
-        itsBunch_m->set_ipCenterLocalZ(-1.0);
-        itsBunch_m->set_colwinlen(-1.0);
-        collisionPrototypeInitialized_m = false;
-        m << level5 << "finished symmetric collision mode" << endl;
+        interactionWindowMeshInitialized_m = false;
+        itsBunch_m->set_interactionWindowActive(false);
+        itsBunch_m->set_interactionPointLocalZ(-1.0);
+        itsBunch_m->set_interactionWindowLength(-1.0);
+        interactionWindowActive_m = false;
+        m << level5 << "finished interaction-window mode" << endl;
     }
 
-    if (collisionFrameObserved_m) {
-        const bool fixedMesh = collisionPrototypeInitialized_m;
-        const double meshBeginS = fixedMesh ? windowBeginS : bunchTailS;
-        const double meshEndS   = fixedMesh ? windowEndS : bunchHeadS;
+    if (interactionWindowFrameObserved_m) {
+        const bool useFrozenInteractionWindowMesh = interactionWindowActive_m;
+        const double meshBeginS =
+            useFrozenInteractionWindowMesh ? windowBeginS : bunchTailS;
+        const double meshEndS =
+            useFrozenInteractionWindowMesh ? windowEndS : bunchHeadS;
 
-        collisionAnimation_m->render(
+        interactionWindowAnimation_m->render(
             bunchCenterS, meshBeginS, meshEndS, windowBeginS, windowEndS, ipCenterS,
-            collisionPrototypeInitialized_m, fixedMesh);
+            interactionWindowActive_m, useFrozenInteractionWindowMesh);
     }
 
-    // Enter symmetric collision mode once the head enters the window.
-    if (!collisionPrototypeInitialized_m && bunchHeadS > windowBeginS) {
-        collisionPrototypeInitialized_m = true;
-        m << level5 << "start symmetric collision mode" << endl;
+    // Enter interaction-window mode once the head enters the window.
+    if (!interactionWindowActive_m && bunchHeadS > windowBeginS) {
+        interactionWindowActive_m = true;
+        m << level5 << "start interaction-window mode" << endl;
 
-        itsBunch_m->set_collidingBunches(true);
-        itsBunch_m->set_ipCenterLocalZ(ipCenterLocalZ);
-        itsBunch_m->set_colwinlen(colwinlen);
-        collisionSavedFieldDomain_m      = itsBunch_m->savePartFieldDomain();
-        collisionWindowMeshInitialized_m = false;
+        itsBunch_m->set_interactionWindowActive(true);
+        itsBunch_m->set_interactionPointLocalZ(ipCenterLocalZ);
+        itsBunch_m->set_interactionWindowLength(interactionWindowLength);
+        savedPreInteractionWindowFieldDomain_m = itsBunch_m->saveFieldDomainState();
+        interactionWindowMeshInitialized_m     = false;
 
         // No duplication of particles in pc.
         // From here on, the second bunch is virtual only:
         //   z_partner  = 2 * ipCenterLocalZ - z
         //   pz_partner = -pz
         //
-        // Future collision-specific calculations should use this symmetry
+        // Future interaction-window-specific calculations should use this symmetry
         // locally without modifying the main ParticleContainer.
     }
 
-    // Leave symmetric collision mode once the whole bunch passed the window.
-    if (leavingCollisionMode) {
+    // Leave interaction-window mode once the whole bunch passed the window.
+    if (leavingInteractionWindow) {
         return;
     }
 }
@@ -943,7 +947,7 @@ void ParallelTracker::pushParticles(const BorisPusher& pusher) {
     // itsBunch_m->getParticleContainer()->update();
     Kokkos::fence();
     ippl::Comm->barrier();
-    if (!itsBunch_m->get_collidingBunches()) {
+    if (!itsBunch_m->get_interactionWindowActive()) {
         itsBunch_m->bunchUpdate();
     }
 }
@@ -1260,8 +1264,8 @@ void ParallelTracker::dumpStats(long long step, bool psDump, bool statDump) {
             "ParallelTracker::dumpStats()",
             "there seems to be something wrong with the position of the bunch!");
     } else {
-        // if (collisionPrototypeInitialized_m ^ collisionPrototypeFinished_m)
-        if (!collisionFrameObserved_m)
+        // if (interactionWindowActive_m ^ interactionWindowCompleted_m)
+        if (!interactionWindowFrameObserved_m)
             *gmsg << level1 << "* " << myt2.time() << " "
                   << "Step " << std::setw(6) << itsBunch_m->getGlobalTrackStep() << " "
                   << "at " << Util::getLengthString(pathLength_m) << ", "

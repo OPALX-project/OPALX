@@ -28,9 +28,9 @@ PartBunch<T, Dim>::PartBunch(
       integration_method_m(integration_method),
       solver_m(""),
       isFirstRepartition_m(true),
-      hasCollidingBunches_m(false),
-      ipCenterLocalZ_m(-1.0),
-      colwinlen_m(-1.0),
+      interactionPointLocalZ_m(-1.0),
+      interactionWindowLength_m(-1.0),
+      interactionWindowActive_m(false),
       qi_m(qi),
       mi_m(mi),
       rmsDensity_m(0.0),
@@ -96,9 +96,9 @@ PartBunch<T, Dim>::PartBunch(
 }
 
 template <typename T, unsigned Dim>
-typename PartBunch<T, Dim>::SavedPartFieldDomain PartBunch<T, Dim>::savePartFieldDomain() const {
+typename PartBunch<T, Dim>::SavedFieldDomainState PartBunch<T, Dim>::saveFieldDomainState() const {
     // Inform m("PartBunch::storeFieldDomain");
-    SavedPartFieldDomain state;
+    SavedFieldDomainState state;
     state.origin = this->fcontainer_m->getMesh().getOrigin();
     state.rmin   = this->fcontainer_m->getRMin();
     state.rmax   = this->fcontainer_m->getRMax();
@@ -117,7 +117,7 @@ typename PartBunch<T, Dim>::SavedPartFieldDomain PartBunch<T, Dim>::savePartFiel
 }
 
 template <typename T, unsigned Dim>
-void PartBunch<T, Dim>::restorePartFieldDomain(const SavedPartFieldDomain& state) {
+void PartBunch<T, Dim>::restoreFieldDomainState(const SavedFieldDomainState& state) {
     // Inform m("PartBunch::restoreFieldDomain");
 
     auto* mesh = &this->fcontainer_m->getMesh();
@@ -142,23 +142,25 @@ void PartBunch<T, Dim>::restorePartFieldDomain(const SavedPartFieldDomain& state
 }
 
 template <typename T, unsigned Dim>
-void PartBunch<T, Dim>::enableCollisionWindowMesh(double ipCenterLocalZ, double colwinlen) {
-    Inform m("PartBunch::enableCollisionWindowMesh");
+void PartBunch<T, Dim>::enableInteractionWindowMesh(
+    double interactionPointLocalZ, double interactionWindowLength) {
+    Inform m("PartBunch::enableInteractionWindowMesh");
 
-    if (colwinlen <= 0.0) {
-        throw OpalException("PartBunch::enableCollisionWindowMesh", "COLWINLEN must be > 0");
+    if (interactionWindowLength <= 0.0) {
+        throw OpalException(
+            "PartBunch::enableInteractionWindowMesh", "interactionWindowLength must be > 0");
     }
 
     auto* mesh = &this->fcontainer_m->getMesh();
 
     // Keep the current bunch-following x/y field domain unchanged and only switch
-    // the longitudinal extent from a moving bunch-fitted domain to a fixed
-    // Eulerian collision-window domain.
+    // the longitudinal extent from a moving bunch-fitted domain (Lagrangian in z)
+    // to a fixed Eulerian interaction-window domain.
     Vector_t<double, Dim> o = this->getFieldContainer()->getRMin();
     Vector_t<double, Dim> e = this->getFieldContainer()->getRMax();
 
-    o(2) = ipCenterLocalZ - 0.5 * colwinlen;
-    e(2) = ipCenterLocalZ + 0.5 * colwinlen;
+    o(2) = interactionPointLocalZ - 0.5 * interactionWindowLength;
+    e(2) = interactionPointLocalZ + 0.5 * interactionWindowLength;
 
     const Vector_t<double, Dim> l = e - o;
     hr_m = l / this->nr_m;
@@ -170,14 +172,14 @@ void PartBunch<T, Dim>::enableCollisionWindowMesh(double ipCenterLocalZ, double 
     this->getFieldContainer()->setRMax(e);
     this->getFieldContainer()->setHr(hr_m);
 
-    // The collision prototype only changes the field mesh used by the temporary
-    // self-field solve. The particle layout must stay in the original
+    // The interaction-window mode only changes the field mesh used by the
+    // temporary self-field solve. The particle layout must stay in the original
     // bunch-following frame; forcing updateLayout()/pc->update() here remaps the
-    // particles onto the Eulerian collision mesh and introduces an unphysical
-    // longitudinal offset of one collision-window length.
+    // particles onto the Eulerian interaction-window mesh and introduces an
+    // unphysical longitudinal offset of one interaction-window length.
     this->updateMoments();
 
-    m << level3 << "Enabled collision window mesh:" << endl;
+    m << level3 << "Enabled interaction-window mesh:" << endl;
     m << level3 << "\torigin = " << o << endl;
     m << level3 << "\trmax   = " << e << endl;
     m << level3 << "\thr     = " << hr_m << endl;
@@ -560,10 +562,10 @@ void PartBunch<T, Dim>::bunchUpdate() {
     ippl::Vector<double, 3> o = pc->getMinR();
     ippl::Vector<double, 3> e = pc->getMaxR();
 
-    const bool keepLongitudinalFieldMesh = hasCollidingBunches_m;
+    const bool keepLongitudinalFieldMesh = interactionWindowActive_m;
     Vector_t<double, Dim> currentHr(0.0);
     if (keepLongitudinalFieldMesh) {
-        // During the collision prototype we keep the longitudinal field mesh
+        // During the interaction-window mode we keep the longitudinal field mesh
         // fixed (Eulerian in z) and only continue bunch-following updates in x/y.
         const auto currentRMin = this->getFieldContainer()->getRMin();
         const auto currentRMax = this->getFieldContainer()->getRMax();
@@ -667,8 +669,9 @@ void PartBunch<T, Dim>::dumpChargeDensityDebug(const std::string& phaseTag) cons
     fout << "# phase=" << phaseTag << std::endl;
     fout << "# global_step=" << globalTrackStep_m << " local_step=" << localTrackStep_m
          << std::endl;
-    fout << "# colliding=" << hasCollidingBunches_m << " ip_center_local_z[m]=" << ipCenterLocalZ_m
-         << " collision_window_length[m]=" << colwinlen_m << std::endl;
+    fout << "# interaction_window_active=" << interactionWindowActive_m
+         << " interaction_point_local_z[m]=" << interactionPointLocalZ_m
+         << " interaction_window_length[m]=" << interactionWindowLength_m << std::endl;
     fout << "# mesh_origin=" << origin << " mesh_spacing=" << spacing << std::endl;
     fout << "# field_domain_rmin=" << fieldRMin << " field_domain_rmax=" << fieldRMax << std::endl;
     fout << "# bunch_bounds_rmin=" << rmin_m << " bunch_bounds_rmax=" << rmax_m << std::endl;
@@ -724,12 +727,13 @@ void PartBunch<T, Dim>::computeSelfFields() {
     therefore assume that we could separate bunchUpdate from pc->update() in
     order to save some computation.
     */
-    if (!hasCollidingBunches_m) {
+    if (!interactionWindowActive_m) {
         this->bunchUpdate();
         m << level5 << "Bunch updated." << endl;
     } else {
-        m << level5 << "Skipping bunchUpdate() in collision mode to keep the beam-frame "
-          << "collision mesh/layout fixed during the temporary self-field solve." << endl;
+        m << level5 << "Skipping bunchUpdate() in interaction-window mode to keep the beam-frame "
+          << "interaction-window mesh/layout fixed during the temporary self-field solve."
+          << endl;
     }
 
     /// \todo Add binned field solver here (needs iteration over bins, scatterPerBin calls and Etmp
@@ -799,7 +803,7 @@ void PartBunch<T, Dim>::computeSelfFields() {
           << endl;
     }
 
-    if (hasCollidingBunches_m) {
+    if (interactionWindowActive_m) {
         dumpChargeDensityDebug("collision_window_primary_only");
     } else if (globalTrackStep_m == 0) {
         dumpChargeDensityDebug("single_bunch_reference");
