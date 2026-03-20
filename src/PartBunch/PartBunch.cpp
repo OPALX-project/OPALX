@@ -28,9 +28,7 @@ PartBunch<T, Dim>::PartBunch(
       integration_method_m(integration_method),
       solver_m(""),
       isFirstRepartition_m(true),
-      interactionPointLocalZ_m(-1.0),
-      interactionWindowLength_m(-1.0),
-      interactionWindowActive_m(false),
+      interactionWindowConfig_m(std::nullopt),
       qi_m(qi),
       mi_m(mi),
       rmsDensity_m(0.0),
@@ -562,7 +560,7 @@ void PartBunch<T, Dim>::bunchUpdate() {
     ippl::Vector<double, 3> o = pc->getMinR();
     ippl::Vector<double, 3> e = pc->getMaxR();
 
-    const bool keepLongitudinalFieldMesh = interactionWindowActive_m;
+    const bool keepLongitudinalFieldMesh = interactionWindowConfig_m.has_value();
     Vector_t<double, Dim> currentHr(0.0);
     if (keepLongitudinalFieldMesh) {
         // During the interaction-window mode we keep the longitudinal field mesh
@@ -669,9 +667,14 @@ void PartBunch<T, Dim>::dumpChargeDensityDebug(const std::string& phaseTag) cons
     fout << "# phase=" << phaseTag << std::endl;
     fout << "# global_step=" << globalTrackStep_m << " local_step=" << localTrackStep_m
          << std::endl;
-    fout << "# interaction_window_active=" << interactionWindowActive_m
-         << " interaction_point_local_z[m]=" << interactionPointLocalZ_m
-         << " interaction_window_length[m]=" << interactionWindowLength_m << std::endl;
+    fout << "# interaction_window_active=" << interactionWindowConfig_m.has_value();
+    if (interactionWindowConfig_m.has_value()) {
+        fout << " interaction_point_local_z[m]="
+             << interactionWindowConfig_m->interactionPointLocalZ
+             << " interaction_window_length[m]="
+             << interactionWindowConfig_m->interactionWindowLength;
+    }
+    fout << std::endl;
     fout << "# mesh_origin=" << origin << " mesh_spacing=" << spacing << std::endl;
     fout << "# field_domain_rmin=" << fieldRMin << " field_domain_rmax=" << fieldRMax << std::endl;
     fout << "# bunch_bounds_rmin=" << rmin_m << " bunch_bounds_rmax=" << rmax_m << std::endl;
@@ -727,7 +730,7 @@ void PartBunch<T, Dim>::computeSelfFields() {
     therefore assume that we could separate bunchUpdate from pc->update() in
     order to save some computation.
     */
-    if (!interactionWindowActive_m) {
+    if (!interactionWindowConfig_m.has_value()) {
         this->bunchUpdate();
         m << level5 << "Bunch updated." << endl;
     } else {
@@ -803,7 +806,7 @@ void PartBunch<T, Dim>::computeSelfFields() {
           << endl;
     }
 
-    if (interactionWindowActive_m) {
+    if (interactionWindowConfig_m.has_value()) {
         dumpChargeDensityDebug("collision_window_primary_only");
     } else if (globalTrackStep_m == 0) {
         dumpChargeDensityDebug("single_bunch_reference");

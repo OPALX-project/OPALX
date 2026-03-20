@@ -165,45 +165,46 @@ private:
     WakeFunction* wakeFunction_m;
 
     /**
-     * @brief True while the bunch is inside the active interaction window.
+     * @brief Geometric description of an active interaction window around the IP.
      *
-     * In this mode, the longitudinal field mesh changes from the normal
-     * bunch-following representation (Lagrangian in z) to a fixed interaction-window
-     * representation (Eulerian in z).
+     * All longitudinal coordinates are stored in path-length coordinates `s`.
+     * The local-z position of the interaction point is stored separately because
+     * the field solve uses beam-frame coordinates while the tracker logic and the
+     * ASCII visualization operate in `s`.
      */
-    bool interactionWindowActive_m;
+    struct InteractionWindowGeometry {
+        double interactionPointS   = 0.0;
+        double beginS              = 0.0;
+        double endS                = 0.0;
+        double length              = 0.0;
+        double interactionPointLocalZ = 0.0;
+        double observedBeginS      = 0.0;
+        double observedEndS        = 0.0;
+    };
 
     /**
-     * @brief True once the bunch has fully passed the active interaction window.
-     *
-     * After this becomes true, the prototype is not re-entered later in the same run.
+     * @brief Lifecycle of the interaction-window model for the current run.
      */
-    bool interactionWindowCompleted_m;
+    enum class InteractionWindowPhase { Inactive, Active, Completed };
 
     /**
-     * @brief True while the bunch is inside the extended observation frame around the
-     * interaction window.
+     * @brief Tracker-owned state for the interaction-window passage.
      *
-     * This flag is used for interaction-window diagnostics and ASCII visualization.
+     * This keeps the interaction-window lifecycle, geometry, and temporary
+     * field-domain data together. The field mesh switches from the normal
+     * bunch-following representation (Lagrangian in z) to a frozen
+     * interaction-window representation (Eulerian in z) while this state is
+     * active.
      */
-    bool interactionWindowFrameObserved_m;
+    struct InteractionWindowState {
+        InteractionWindowPhase phase = InteractionWindowPhase::Inactive;
+        bool frameObserved          = false;
+        bool meshInitialized        = false;
+        std::optional<InteractionWindowGeometry> geometry;
+        std::optional<PartBunch<double, Dim>::SavedFieldDomainState> savedFieldDomain;
+    };
 
-    /**
-     * @brief True once the interaction-window mesh has been frozen for the active
-     * IP passage.
-     *
-     * During the interaction-window phase we switch from a bunch-following mesh
-     * to an Eulerian mesh in z. The longitudinal mesh is initialized once on
-     * entry and reused until the bunch leaves the interaction window.
-     */
-    bool interactionWindowMeshInitialized_m;
-
-    /**
-     * @brief Saved bunch-following field domain from before entering the
-     * frozen interaction-window mesh.
-     */
-    std::optional<PartBunch<double, Dim>::SavedFieldDomainState>
-        savedPreInteractionWindowFieldDomain_m;
+    InteractionWindowState interactionWindowState_m;
 
     // ASCII visualization helper for the interaction-window dynamics.
     std::unique_ptr<InteractionWindowAnimation> interactionWindowAnimation_m;
@@ -335,6 +336,38 @@ public:
     void checkInIPRegion(OrbitThreader& oth);
 
 private:
+    /**
+     * @brief Detect an interaction window overlapping the current bunch extent.
+     *
+     * @param oth Orbit-threader used to query the active beamline elements.
+     * @param rmin Physical bunch lower bounds in the reference-particle frame.
+     * @param rmax Physical bunch upper bounds in the reference-particle frame.
+     *
+     * @return The current interaction-window geometry if an IP overlaps the
+     *         bunch extent, otherwise `std::nullopt`.
+     */
+    std::optional<InteractionWindowGeometry> detectInteractionWindow(
+        OrbitThreader& oth,
+        const ippl::Vector<double, Dim>& rmin,
+        const ippl::Vector<double, Dim>& rmax);
+
+    void enterInteractionWindow(const InteractionWindowGeometry& geometry, Inform& m);
+    void leaveInteractionWindow(Inform& m);
+    void renderInteractionWindowFrame(
+        double bunchTailS,
+        double bunchHeadS,
+        const InteractionWindowGeometry& geometry);
+    void transformFieldsToReferenceFrame(
+        const CoordinateSystemTrafo& beamToReferenceCSTrafo,
+        Inform& m);
+    void computeDefaultSelfFields(
+        const CoordinateSystemTrafo& beamToReferenceCSTrafo,
+        Inform& m);
+    void computeInteractionWindowSelfFields(
+        const CoordinateSystemTrafo& referenceToBeamCSTrafo,
+        const CoordinateSystemTrafo& beamToReferenceCSTrafo,
+        Inform& m);
+
     // Reference Particle
     void updateReferenceParticle(const BorisPusher& pusher);
     void updateReference(const BorisPusher& pusher);

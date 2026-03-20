@@ -2,6 +2,7 @@
 #define PARTBUNCH_H
 
 #include <memory>
+#include <optional>
 
 #include "Algorithms/CoordinateSystemTrafo.h"
 #include "Algorithms/Matrix.h"
@@ -140,9 +141,21 @@ public:
     void enableInteractionWindowMesh(
         double interactionPointLocalZ, double interactionWindowLength);
 
-    double interactionPointLocalZ_m;
-    double interactionWindowLength_m;
-    bool interactionWindowActive_m;
+    /**
+     * @brief Local interaction-window configuration needed by the bunch-side
+     * field solve.
+     *
+     * This stores only the geometry expressed in the current co-moving z frame.
+     * The lifecycle of the interaction-window passage is tracked by
+     * `ParallelTracker`; the bunch only keeps the geometry required to freeze
+     * the field mesh in z during the temporary Eulerian interaction-window solve.
+     */
+    struct InteractionWindowConfig {
+        double interactionPointLocalZ = 0.0;
+        double interactionWindowLength = 0.0;
+    };
+
+    std::optional<InteractionWindowConfig> interactionWindowConfig_m;
 
 private:
     double qi_m;
@@ -157,8 +170,6 @@ public:
     Vector_t<int, Dim> nr_m;
 
     Vector_t<double, Dim> origin_m;
-    Vector_t<double, Dim> rmin_m;
-    Vector_t<double, Dim> rmax_m;
 
     /// mesh size [m]
     Vector_t<double, Dim> hr_m;
@@ -256,6 +267,10 @@ private:
     /// the position along design trajectory
     double spos_m;
 
+    // Cached physical bunch bounds, distinct from the field-domain bounds.
+    Vector_t<double, Dim> rmin_m;
+    Vector_t<double, Dim> rmax_m;
+
     /*
        flags to tell if we are a DC-beam
      */
@@ -296,8 +311,10 @@ public:
     void bunchUpdate();
 
     ~PartBunch() {
-        *gmsg << level2 << "* PartBunch Destructor: Finished time step: " << this->it_m
-              << " time: " << this->time_m << endl;
+        if (gmsg != nullptr) {
+            *gmsg << level2 << "* PartBunch Destructor: Finished time step: " << this->it_m
+                  << " time: " << this->time_m << endl;
+        }
     }
 
     std::shared_ptr<ParticleContainer_t> getParticleContainer() {
@@ -481,57 +498,44 @@ public:
      */
 
     /**
-     * @brief Set whether the bunch is currently in the interaction-window mode.
+     * @brief Set the bunch-side interaction-window geometry in the current
+     * co-moving z frame.
      *
-     * @param active True while the interaction-window mode is active.
+     * @param interactionPointLocalZ Interaction-point center expressed in
+     *        bunch-local z [m].
+     * @param interactionWindowLength Interaction-window length in bunch-local
+     *        z [m].
      */
-    void set_interactionWindowActive(bool active) {
-        interactionWindowActive_m = active;
+    void setInteractionWindowConfig(
+        double interactionPointLocalZ,
+        double interactionWindowLength) {
+        interactionWindowConfig_m =
+            InteractionWindowConfig{interactionPointLocalZ, interactionWindowLength};
     }
 
     /**
-     * @brief Query whether the interaction-window mode is currently active.
-     *
-     * @return True if interaction-window-specific space-charge handling is enabled.
+     * @brief Clear the bunch-side interaction-window configuration.
      */
-    bool get_interactionWindowActive() {
-        return interactionWindowActive_m;
+    void clearInteractionWindowConfig() {
+        interactionWindowConfig_m.reset();
     }
 
     /**
-     * @brief Set the interaction-point center in the current co-moving z coordinate.
+     * @brief Query whether bunch-side interaction-window geometry is configured.
      *
-     * @param locz Interaction-point center expressed in bunch-local z [m].
+     * @return True if the field solve should use interaction-window geometry.
      */
-    void set_interactionPointLocalZ(double locz) {
-        interactionPointLocalZ_m = locz;
+    bool hasInteractionWindowConfig() const {
+        return interactionWindowConfig_m.has_value();
     }
 
     /**
-     * @brief Get the interaction-point center in the current co-moving z coordinate.
+     * @brief Get the bunch-side interaction-window geometry.
      *
-     * @return Interaction-point center expressed in bunch-local z [m].
+     * @return Interaction-window configuration in bunch-local z coordinates.
      */
-    double get_interactionPointLocalZ() {
-        return interactionPointLocalZ_m;
-    }
-
-    /**
-     * @brief Set the interaction-window length used by the interaction-window mode.
-     *
-     * @param len Interaction-window length in bunch-local z [m].
-     */
-    void set_interactionWindowLength(double len) {
-        interactionWindowLength_m = len;
-    }
-
-    /**
-     * @brief Get the interaction-window length used by the interaction-window mode.
-     *
-     * @return Interaction-window length in bunch-local z [m].
-     */
-    double get_interactionWindowLength() {
-        return interactionWindowLength_m;
+    const InteractionWindowConfig& getInteractionWindowConfig() const {
+        return *interactionWindowConfig_m;
     }
 
     /**
@@ -988,6 +992,22 @@ public:
 
     double getT() const {
         return t_m;
+    }
+
+    /**
+     * @brief Replace the cached physical bunch bounds.
+     *
+     * This updates the bounds returned by `get_bounds()` and used by
+     * diagnostics or tracker logic. It does not modify the field-domain mesh.
+     *
+     * @param rmin Physical lower bunch bounds.
+     * @param rmax Physical upper bunch bounds.
+     */
+    void setPhysicalBounds(
+        const Vector_t<double, Dim>& rmin,
+        const Vector_t<double, Dim>& rmax) {
+        rmin_m = rmin;
+        rmax_m = rmax;
     }
 
     void set_sPos(double s) {
