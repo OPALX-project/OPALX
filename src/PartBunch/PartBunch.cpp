@@ -589,7 +589,12 @@ void PartBunch<T, Dim>::computeSelfFields() {
     /// \todo replace with scatterCIC? --> later with scatterPerBin!
     // Charge "unit" here is "charge per macroparticle" [C]!
 
-    // Scatter expects the per-particle charge scaled into `dt`.
+    /**
+     * @note Here we scatter the charge scaled by the timestep dt onto the grid. 
+     * Since the charge Q is handled specially (see ParticleContainer.hpp description)
+     * we instead scale and scatter the dt. This is a pure "hack" which leaves
+     * the physics unchanged.
+    */
     this->pcontainer_m->scaleDtByCharge();
     scatter(*dt, *rho, *R);
     this->pcontainer_m->unscaleDtByCharge();
