@@ -66,7 +66,7 @@ namespace Options {
     //  - REFERENCE, in Cartesian frame of the reference (0) particle
     extern DumpFrame psDumpFrame;
 
-    /// If true, store `Q`/`M` as per-particle attributes (`Q(i)`/`M(i)`).
+    /// If true, store `Q`/`M` as per-particle attributes (accessible via `getQView()`/`getMView()`).
     /// If false (default), use a single shared value per container to save memory.
     extern bool useQMAttributes;
 
