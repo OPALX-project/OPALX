@@ -2,7 +2,6 @@
 #include "SamplingBase.hpp"
 #include "Gaussian.h"
 #include <algorithm>
-#include <cmath>
 #include <memory>
 
 /**
@@ -167,6 +166,17 @@ void Gaussian::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> 
             Pview(k)[2] += avrgpz; 
         });
     Kokkos::fence();
+
+    // Apply per-emission-source offsets after all mean-fixing/corrections.
+    // EMISSIONSOURCE offsets are expected to translate the generated bunch
+    // without being affected by the internal "fix mean" logic.
+    const Vector_t<double, 3> R0 = R0_m;
+    const Vector_t<double, 3> P0 = P0_m;
+    Kokkos::parallel_for(
+        nlocal, KOKKOS_LAMBDA(const size_t k) {
+            Rview(k) += R0;
+            Pview(k) += P0;
+        });
 
     IpplTimings::stopTimer(samperTimer_m);
 }
