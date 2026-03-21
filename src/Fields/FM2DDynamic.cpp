@@ -272,6 +272,59 @@ void FM2DDynamic::applyField(std::shared_ptr<ParticleContainer_t> pc)
     });
 }
 
+void FM2DDynamic::applyRFField(
+    std::shared_ptr<ParticleContainer_t> pc,
+    double electricScale,
+    double magneticScale,
+    double startField,
+    double endField)
+{
+    double zbegin = zbegin_m;
+    double zend = zend_m;
+    double rend = rend_m;
+    double hr = hr_m;
+    double hz = hz_m;
+    int num_gridpr = num_gridpr_m;
+    int num_gridpz = num_gridpz_m;
+
+    auto Ez_device = FieldstrengthEz_m.view_device();
+    auto Er_device = FieldstrengthEr_m.view_device();
+    auto Bt_device = FieldstrengthBt_m.view_device();
+
+    auto Rview = pc->R.getView();
+    auto Eview = pc->E.getView();
+    auto Bview = pc->B.getView();
+
+    Kokkos::parallel_for(
+        "FM2DDynamic::applyRFField",
+        ippl::getRangePolicy(Rview),
+        KOKKOS_LAMBDA(const int i) {
+            const auto& R = Rview(i);
+
+            if (R(2) >= startField && R(2) < endField &&
+                R(2) >= zbegin && R(2) < zend &&
+                sqrt(R(0) * R(0) + R(1) * R(1)) < rend) {
+                Vector_t<double, 3> tmpE(0.0), tmpB(0.0);
+
+                computeField(
+                    R,
+                    tmpE,
+                    tmpB,
+                    Ez_device,
+                    Er_device,
+                    Bt_device,
+                    hr,
+                    hz,
+                    zbegin,
+                    num_gridpr,
+                    num_gridpz);
+
+                Eview(i) += electricScale * tmpE;
+                Bview(i) += magneticScale * tmpB;
+            }
+        });
+}
+
 /**
  * @brief Get the fieldstrength at position R
  * 

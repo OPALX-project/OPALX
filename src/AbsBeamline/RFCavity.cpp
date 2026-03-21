@@ -11,6 +11,7 @@
 #include <filesystem>
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Fields/Fieldmap.h"
+#include "Fields/FM2DDynamic.h"
 #include "PartBunch/PartBunch.h"
 #include "Physics/Units.h"
 #include "Steppers/BorisPusher.h"
@@ -123,11 +124,6 @@ bool RFCavity::apply()
     std::shared_ptr<ParticleContainer_t> pc = 
         RefPartBunch_m->getParticleContainer();    
 
-    // Device-accessible views for particle properties
-    auto Rview = pc->R.getView();
-    auto Eview = pc->E.getView();
-    auto Bview = pc->B.getView();
-    
     // RF parameters (copied to device)
     double freq       = frequency_m;
     double scale      = scale_m + scaleError_m;
@@ -136,9 +132,6 @@ bool RFCavity::apply()
     double startField = startField_m;
     double endField   = startField_m + getElementLength();
     
-    // Pointer to fieldmap for getFieldstrength()
-    auto fieldmap = fieldmap_m; 
-
     // Reference particle time
     const double t = RefPartBunch_m->getT();
 
@@ -147,29 +140,19 @@ bool RFCavity::apply()
     const double cosphi = Kokkos::cos(phi);
     const double sinphi = Kokkos::sin(phi);
 
-    Kokkos::parallel_for("RFCavity::apply", 
-        ippl::getRangePolicy(Rview), 
-        KOKKOS_LAMBDA(const int i)
-    {
-        const auto& R = Rview(i);
+    auto* dynamicFieldmap = dynamic_cast<FM2DDynamic*>(fieldmap_m);
+    if (dynamicFieldmap == nullptr) {
+        throw GeneralClassicException(
+            "RFCavity::apply",
+            "RFCavity particle application currently requires an FM2DDynamic field map.");
+    }
 
-        // Only apply inside RF cavity region
-        if (R(2) >= startField && R(2) < endField)
-        {
-            Vector_t<double, 3> tmpE(0.0), tmpB(0.0);
-
-            // Check if particle is inside the fieldmap
-            bool outOfBounds = fieldmap->getFieldstrength(R, tmpE, tmpB);
-            // if (outOfBounds) return getFlagDeleteOnTransverseExit();
-
-            // Apply RF field
-            if(!outOfBounds) 
-            {
-                Eview(i) += scale * cosphi * tmpE;
-                Bview(i) -= scale * sinphi * tmpB;
-            }
-        }
-    });
+    dynamicFieldmap->applyRFField(
+        pc,
+        scale * cosphi,
+        -scale * sinphi,
+        startField,
+        endField);
 
     return false;
 }
