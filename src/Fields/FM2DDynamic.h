@@ -89,7 +89,7 @@ public:
      * @note This cannot be called inside a GPU kernel (implicit capture of the
      * 'this' pointer not allowed on device)
      */
-    bool isInside(const Vector_t<double, 3> &r)const{
+    bool isInside(const Vector_t<double, 3> &r) const override {
         return r(2) >= zbegin_m && r(2) < zend_m && 
         sqrt(r(0) * r(0) + r(1) * r(1)) < rend_m;
     }
@@ -155,7 +155,7 @@ public:
      * 
      * @param pc Particle container
      */
-    void applyField(std::shared_ptr<ParticleContainer_t> pc);
+    void applyField(std::shared_ptr<ParticleContainer_t> pc) override;
  
     virtual void getOnaxisEz(std::vector<std::pair<double, double> > & F) override;
 
@@ -163,8 +163,8 @@ private:
     FM2DDynamic(const std::string& filename);
     ~FM2DDynamic();
 
-    virtual void readMap();
-    virtual void freeMap();
+    void readMap() override;
+    void freeMap() override;
 
     /// @brief Fieldstrengths
     Kokkos::DualView<double*> FieldstrengthEz_m;    /**< 2D array with Ez, read in first along z0 - r0 to rN then z1 - r0 to rN until zN - r0 to rN  */
