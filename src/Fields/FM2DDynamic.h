@@ -156,6 +156,25 @@ public:
      * @param pc Particle container
      */
     void applyField(std::shared_ptr<ParticleContainer_t> pc) override;
+
+    /**
+     * @brief Apply the RF-scaled dynamic field map to all particles.
+     *
+     * This is the device-safe path used by `RFCavity`. It avoids calling the
+     * virtual `Fieldmap::getFieldstrength()` interface inside a Kokkos kernel.
+     *
+     * @param pc Particle container.
+     * @param electricScale Scale factor applied to the electric field.
+     * @param magneticScale Scale factor applied to the magnetic field.
+     * @param startField Begin of the active cavity region.
+     * @param endField End of the active cavity region.
+     */
+    void applyRFField(
+        std::shared_ptr<ParticleContainer_t> pc,
+        double electricScale,
+        double magneticScale,
+        double startField,
+        double endField);
  
     virtual void getOnaxisEz(std::vector<std::pair<double, double> > & F) override;
 
