@@ -26,6 +26,10 @@ OpalIp::OpalIp()
 
     itsAttr[COLWINLEN] =
         Attributes::makeReal("COLWINLEN", "The collision windlow lenght in [m]", 0.001);
+    itsAttr[COPY] = Attributes::makeBool(
+        "COPY",
+        "If true, enable the future mirrored-bunch copy model for the interaction window.",
+        false);
     itsAttr[VISUALIZE] = Attributes::makeBool(
         "VISUALIZE",
         "If true, emit the ASCII interaction-window visualization during tracking.",
@@ -57,6 +61,7 @@ void OpalIp::update() {
     IpRep* ip = static_cast<IpRep*>(getElement());
     ip->setElementLength(Attributes::getReal(itsAttr[LENGTH]));
     ip->setAttribute("COLWINLEN", Attributes::getReal(itsAttr[COLWINLEN]));
+    ip->setAttribute("COPY", Attributes::getBool(itsAttr[COPY]) ? 1.0 : 0.0);
     ip->setAttribute("VISUALIZE", Attributes::getBool(itsAttr[VISUALIZE]) ? 1.0 : 0.0);
 
     // Transmit "unknown" attributes.

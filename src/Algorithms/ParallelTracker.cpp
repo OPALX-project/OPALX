@@ -808,6 +808,7 @@ ParallelTracker::detectInteractionWindow(
             interactionPointS - pathLength_m,
             interactionPointS - 0.5 * interactionWindowLength - observedMarginS,
             interactionPointS + 0.5 * interactionWindowLength + observedMarginS,
+            element->getAttribute("COPY") != 0.0,
             element->getAttribute("VISUALIZE") != 0.0};
     }
 
@@ -832,6 +833,8 @@ void ParallelTracker::enterInteractionWindow(
     //   z_partner  = 2 * interactionPointLocalZ - z
     //   pz_partner = -pz
     //
+    // The COPY attribute is parsed and propagated into the interaction-window
+    // state, but the tracker still uses the virtual mirrored-bunch model only.
     // Future interaction-window-specific calculations should use this symmetry
     // locally without modifying the main ParticleContainer.
 }
@@ -1081,9 +1084,6 @@ void ParallelTracker::pushParticles(const BorisPusher& pusher) {
     // itsBunch_m->getParticleContainer()->update();
     Kokkos::fence();
     ippl::Comm->barrier();
-    if (interactionWindowState_m.phase != InteractionWindowPhase::Active) {
-        itsBunch_m->bunchUpdate();
-    }
 }
 
 /**

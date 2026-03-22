@@ -27,6 +27,7 @@ public:
     enum {
          GEOMETRY = COMMON,  // geometry of boundary, one more enum member besides the common ones in OpalElement.
          COLWINLEN,          // The lenght of the collision window
+         COPY,               // Enable mirrored-bunch copy model
          VISUALIZE,          // Enable ASCII interaction-window visualization
          SIZE
     };
