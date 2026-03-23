@@ -136,8 +136,7 @@ public:
      * @param interactionWindowLength Interaction-window length in the bunch-local z
      * coordinate [m].
      */
-    void enableInteractionWindowMesh(
-        double interactionPointLocalZ, double interactionWindowLength);
+    void enableInteractionWindowMesh(double interactionPointLocalZ, double interactionWindowLength);
 
     /**
      * @brief Local interaction-window configuration needed by the bunch-side
@@ -149,7 +148,7 @@ public:
      * the field mesh in z during the temporary Eulerian interaction-window solve.
      */
     struct InteractionWindowConfig {
-        double interactionPointLocalZ = 0.0;
+        double interactionPointLocalZ  = 0.0;
         double interactionWindowLength = 0.0;
     };
 
@@ -314,8 +313,12 @@ public:
     /// Set / get the maximum allowed number of local macroparticles on this rank.
     /// Initialised from the global total number of macroparticles and the MPI
     /// world size (see TrackRun) and used to detect over-emission.
-    void setMaxLocalNum(size_t n) { maxLocalNum_m = n; }
-    size_t getMaxLocalNum() const { return maxLocalNum_m; }
+    void setMaxLocalNum(size_t n) {
+        maxLocalNum_m = n;
+    }
+    size_t getMaxLocalNum() const {
+        return maxLocalNum_m;
+    }
 
     void setSolver();
 
@@ -333,9 +336,15 @@ public:
         this->Etmp_m = Etmp;
     }
 
-    std::shared_ptr<AdaptBins_t> getBins() { return bins_m; }
-    std::shared_ptr<AdaptBins_t> getBins() const { return bins_m; }
-    void setBins(std::shared_ptr<AdaptBins_t> bins) { bins_m = bins; }
+    std::shared_ptr<AdaptBins_t> getBins() {
+        return bins_m;
+    }
+    std::shared_ptr<AdaptBins_t> getBins() const {
+        return bins_m;
+    }
+    void setBins(std::shared_ptr<AdaptBins_t> bins) {
+        bins_m = bins;
+    }
 
     void setBCHandler(std::shared_ptr<BCHandler_t> bcHandler) {
         bcHandler_m = bcHandler;
@@ -392,21 +401,27 @@ public:
               << " function: " << __func__ << endl;
     }
 
+    /**
+     * The following functions are not used yet. Will be properly implemented by
+     * Aliemen as part of the binned solver work.
+     */
+
     void par2grid() override {
-        scatterCIC();
+        // scatterCIC();
+        return;
     }
+    void scatterCIC() {
+        // scatterCICPerBin(-1);
+        return;
+    }
+    // void scatterCICPerBin(binIndex_t binIndex);
+    //  unit here
 
     void grid2par() override {
         gatherCIC();
     }
 
     void gatherCIC();
-
-    void scatterCIC() {
-        scatterCICPerBin(-1);
-    }
-
-    void scatterCICPerBin(binIndex_t binIndex);
 
     /*
       Up to here it is like the opaltest
@@ -419,11 +434,11 @@ public:
     void do_binaryRepart();
 
     void setCharge() {
-        this->getParticleContainer()->Q = qi_m;
+        this->getParticleContainer()->setQ(qi_m);
     }
 
     void setMass() {
-        this->getParticleContainer()->M = mi_m;
+        this->getParticleContainer()->setM(mi_m);
     }
 
     double getCharge() const {
@@ -470,8 +485,9 @@ public:
     void setReference(const PartData* ref) {
         reference_m = ref;
         if (reference_m && this->pcontainer_m) {
-            // Ensure mean/std kinetic energy in DistributionMoments are computed using reference mass.
-            // PartData mass is stored in eV; DistributionMoments expects GeV for its energy computation.
+            // Ensure mean/std kinetic energy in DistributionMoments are computed using reference
+            // mass. PartData mass is stored in eV; DistributionMoments expects GeV for its energy
+            // computation.
             this->pcontainer_m->setEnergyReferenceMass(reference_m->getM() * Units::eV2GeV, true);
         }
     }
@@ -491,9 +507,7 @@ public:
      * @param interactionWindowLength Interaction-window length in bunch-local
      *        z [m].
      */
-    void setInteractionWindowConfig(
-        double interactionPointLocalZ,
-        double interactionWindowLength) {
+    void setInteractionWindowConfig(double interactionPointLocalZ, double interactionWindowLength) {
         interactionWindowConfig_m =
             InteractionWindowConfig{interactionPointLocalZ, interactionWindowLength};
     }
@@ -850,31 +864,31 @@ public:
               << " function: " << __func__ << endl;
         return 0.0;
     }
-    
+
     double getPx(int /*i*/) {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
               << " function: " << __func__ << endl;
         return 0.0;
     }
-    
+
     double getPy(int /*i*/) {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
               << " function: " << __func__ << endl;
         return 0.0;
     }
-    
+
     double getPz(int /*i*/) {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
               << " function: " << __func__ << endl;
         return 0.0;
     }
-    
+
     double getPx0(int /*i*/) {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
               << " function: " << __func__ << endl;
         return 0.0;
     }
-    
+
     double getPy0(int /*i*/) {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
               << " function: " << __func__ << endl;
@@ -886,25 +900,25 @@ public:
               << " function: " << __func__ << endl;
         return 0.0;
     }
-    
+
     double getY(int /*i*/) {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
               << " function: " << __func__ << endl;
         return 0.0;
     }
-    
+
     double getZ(int /*i*/) {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
               << " function: " << __func__ << endl;
         return 0.0;
     }
-    
+
     double getX0(int /*i*/) {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
               << " function: " << __func__ << endl;
         return 0.0;
     }
-    
+
     double getY0(int /*i*/) {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
               << " function: " << __func__ << endl;
@@ -960,9 +974,7 @@ public:
      * @param rmin Physical lower bunch bounds.
      * @param rmax Physical upper bunch bounds.
      */
-    void setPhysicalBounds(
-        const Vector_t<double, Dim>& rmin,
-        const Vector_t<double, Dim>& rmax) {
+    void setPhysicalBounds(const Vector_t<double, Dim>& rmin, const Vector_t<double, Dim>& rmax) {
         rmin_m = rmin;
         rmax_m = rmax;
     }

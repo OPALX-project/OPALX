@@ -67,6 +67,15 @@ void DistributionMoments::computeMeans(ippl::ParticleAttrib<Vector_t<double,3>>:
     const bool rescaleToReference = rescaleToReference_m;
     const double referenceMassGeV = referenceMassGeV_m;
 
+    /* 
+    This references the storage mode of the charge (Q) and mass (M) attributes.
+    If the storage mode is SingleValue, then the mass is a scalar value that is the same for all particles.
+    If the storage mode is Attributes, then the mass is a per-particle attribute.
+
+    SingleValue is the default storage mode.
+    */
+    const bool massIsScalarView   = (Mview.extent(0) == 1);
+
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
@@ -81,7 +90,8 @@ void DistributionMoments::computeMeans(ippl::ParticleAttrib<Vector_t<double,3>>:
                         gamma0 += Pview(k)[j]*Pview(k)[j];
                     }
                     gamma0 = Kokkos::sqrt(gamma0+1.0);
-                    const double massGeV = rescaleToReference ? referenceMassGeV : Mview(k);
+                    const double massGeV =
+                        rescaleToReference ? referenceMassGeV : (massIsScalarView ? Mview(0) : Mview(k));
                     ekin0  = (gamma0-1.0) * massGeV * Units::GeV2MeV; // output in MeV
                     gamma += gamma0;
                     ekin += ekin0;
@@ -208,6 +218,7 @@ void DistributionMoments::computeMoments(ippl::ParticleAttrib<Vector_t<double,3>
     double loc_std_mekin;
     const bool rescaleToReferenceStd = rescaleToReference_m;
     const double referenceMassGeVStd = referenceMassGeV_m;
+    const bool massIsScalarView      = (Mview.extent(0) == 1);
 
    // compute non-central moments
    for (unsigned i = 0; i < 2 * Dim; ++i) {
@@ -250,7 +261,8 @@ void DistributionMoments::computeMoments(ippl::ParticleAttrib<Vector_t<double,3>
                         gamma0 += Pview(k)[j]*Pview(k)[j];
                     }
                     gamma0 = Kokkos::sqrt(gamma0+1.0);
-                    const double massGeV = rescaleToReferenceStd ? referenceMassGeVStd : Mview(k);
+                    const double massGeV =
+                        rescaleToReferenceStd ? referenceMassGeVStd : (massIsScalarView ? Mview(0) : Mview(k));
                     ekin0  = (gamma0-1.0) * massGeV * Units::GeV2MeV; // output in MeV
 
                     ekin += (ekin0-mekin)*(ekin0-mekin);
