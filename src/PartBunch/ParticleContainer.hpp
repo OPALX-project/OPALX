@@ -127,7 +127,6 @@ public:
         this->addAttribute(B);
 
         if (qmStorageMode_m == QMStorageMode::Attributes) {
-            std::cout << "ATTRIBUTE MODE" << std::endl;
             this->addAttribute(QAttr);
             this->addAttribute(MAttr);
         }
