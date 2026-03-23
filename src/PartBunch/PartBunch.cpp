@@ -155,19 +155,21 @@ void PartBunch<T, Dim>::setSolver() {
 
     this->fcontainer_m->initializeFields(this->solver_m);
 
+    // Needs to happen before setting the field solver, since the field solver needs the bins.
     setBins();
 
-    this->setFieldSolver(std::make_shared<BinnedFieldSolver<T, Dim>>(
-        this->solver_m,
-        &this->fcontainer_m->getRho(),
-        &this->fcontainer_m->getE(),
-        &this->fcontainer_m->getPhi(),
-        this->getBCHandler()));
+    this->setFieldSolver(
+        std::make_shared<BinnedFieldSolver<T, Dim>>(
+            this->solver_m, &this->fcontainer_m->getRho(), &this->fcontainer_m->getE(),
+            &this->fcontainer_m->getPhi(), this->getBCHandler(),
+            hasBinning() ? OPALFieldSolver_m->getBinningCmd()->getTablePrintFrequency() : 0
+        )
+    );
     m << level4 << "Binned field solver set (binned or legacy at runtime)." << endl;
 
     this->fsolver_m->initSolver();
     m << level4 << "Field solver initialized." << endl;
-        
+
     /// ADA we need to be able to set a load balancer when not having a field solver
     this->setLoadBalancer(std::make_shared<LoadBalancer_t>(
         this->lbt_m, 
@@ -203,7 +205,8 @@ void PartBunch<T, Dim>::setBins() {
         binningCmd->getMaxBins(),
         binningCmd->getBinningAlpha(),
         binningCmd->getBinningBeta(),
-        binningCmd->getDesiredWidth() // Cost function parameters
+        binningCmd->getDesiredWidth(), // Cost function parameters
+        binningCmd->getOpalName()
     ));
     m << level3 << "Bins set." << endl;
     this->getBins()->debug();

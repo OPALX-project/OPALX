@@ -1,10 +1,11 @@
 template <typename T, unsigned Dim>
 BinnedFieldSolver<T, Dim>::BinnedFieldSolver(
     std::string solver, Field_t<Dim>* rho, VField_t<T, Dim>* E, Field_t<Dim>* phi,
-    std::shared_ptr<BCHandler_t> bcHandler)
+    std::shared_ptr<BCHandler_t> bcHandler, int tablePrintFrequency)
     : FieldSolver<T, Dim>(solver, rho, E, phi, bcHandler) {
     scatterAttribute_m = ScatterAttribute::ChargeQ;
     gatherAttribute_m  = GatherAttribute::ElectricFieldE;
+    tablePrintFrequency_m = tablePrintFrequency;
 }
 
 template <typename T, unsigned Dim>
@@ -58,12 +59,16 @@ void BinnedFieldSolver<T, Dim>::setGatherAttribute(const GatherAttribute attr) {
 
 template <typename T, unsigned Dim>
 void BinnedFieldSolver<T, Dim>::printBinStatsTable(
-    const std::string& tableName, const bin_index_type nBinsOrZero,
+    const std::string& binningCmdName,
     const std::vector<BinStatsRow>& rows) {
     // print the table header (metadata + column names).
-    Inform m("BinnedFieldSolver::printBinStatsTable");
-    m << level2 << tableName << " | nBins=" << static_cast<int>(nBinsOrZero)
-      << " | stype=" << this->getStype() << endl;
+    const std::string informName =
+        binningCmdName.empty()
+            ? "BinnedFieldSolver::printBinStatsTable"
+            : ("BinnedFieldSolver::printBinStatsTable[" + binningCmdName + "]");
+    Inform m(informName.c_str());
+    // m << level2 << tableName << " | nBins=" << static_cast<int>(nBinsOrZero)
+    //   << " | stype=" << this->getStype() << endl;
     m << level2 << std::setw(9) << "bin"
       << " | " << std::setw(13) << "nParticles"
       << " | " << std::setw(15) << "gammaBin" << endl;
@@ -159,7 +164,12 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(std::shared_ptr<PartBunc
     gatherFromTempToParticles(bunch, EtmpSP);
 
     // per-call table: gammaBin / nParticles / binNumber.
-    printBinStatsTable("BinStats", nBins, binStats);
+    if (tablePrintFrequency_m > 0) {
+        const long long step = bunch->getGlobalTrackStep();
+        if (step >= 0 && (step % tablePrintFrequency_m) == 0) {
+            printBinStatsTable(bins->getBinningCmdName(), binStats);
+        }
+    }
 }
 
 template <typename T, unsigned Dim>
@@ -185,10 +195,6 @@ void BinnedFieldSolver<T, Dim>::computeLegacySelfFields(std::shared_ptr<PartBunc
             "BinnedFieldSolver::computeLegacySelfFields",
             "Unsupported scatter attribute in legacy solver.");
     }
-
-    // Cache values for the legacy table output.
-    const std::vector<BinStatsRow> legacyRows = {
-        BinStatsRow{-1, static_cast<unsigned long long>(pc->getTotalNum()), bunch->get_gamma()}};
 
     ippl::ParticleAttrib<T>* Qattrib                      = &pc->Q;
     typename PartBunch_t::Base::particle_position_type* R = &pc->R;
@@ -243,8 +249,7 @@ void BinnedFieldSolver<T, Dim>::computeLegacySelfFields(std::shared_ptr<PartBunc
             "Unsupported gather attribute in legacy solver.");
     }
 
-    // print the legacy bin statistics table.
-    printBinStatsTable("LegacyStats", /*nBinsOrZero=*/0, legacyRows);
+    // TABLEPRINTFREQ is binned-mode only; legacy mode intentionally prints nothing.
 }
 
 template <typename T, unsigned Dim>

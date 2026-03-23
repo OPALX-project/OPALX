@@ -14,6 +14,7 @@
 
 #include <Kokkos_DualView.hpp>
 #include <algorithm>
+#include <string>
 #include <vector>
 
 #include "ParallelReduceTools.h"
@@ -76,10 +77,12 @@ namespace ParticleBinning {
          *       in Alexander Liemen's master thesis "Adaptive Energy Binning in OPAL-X".
          */
         AdaptBins(std::shared_ptr<BunchType> bunch, BinningSelector var_selector, bin_index_type maxBins,
-                  value_type binningAlpha, value_type binningBeta, value_type desiredWidth)
+                  value_type binningAlpha, value_type binningBeta, value_type desiredWidth,
+                  const std::string& binningCmdName)
             : bunch_m(bunch)
             , var_selector_m(var_selector)
             , maxBins_m(maxBins)
+            , binningCmdName_m(binningCmdName)
             , binningAlpha_m(binningAlpha)
             , binningBeta_m(binningBeta)
             , desiredWidth_m(desiredWidth) {
@@ -123,6 +126,13 @@ namespace ParticleBinning {
          * @return The current bin count.
          */
         bin_index_type getCurrentBinCount() const { return currentBins_m; }
+
+        /**
+         * @brief Returns the logical name of the active OPAL `BinningCmd` definition.
+         *
+         * Used for diagnostic output (e.g. bin stats table headers).
+         */
+        const std::string& getBinningCmdName() const { return binningCmdName_m; }
 
         /**
          * @brief Gets the maximum number of bins. Will be used for the fine uniform histogram before merging.
@@ -512,6 +522,7 @@ namespace ParticleBinning {
         BinningSelector var_selector_m;        ///< Variable selector for binning.
         const bin_index_type maxBins_m;        ///< Maximum number of bins. 
         bin_index_type currentBins_m;          ///< Current number of bins in use.
+        std::string binningCmdName_m;          ///< Name of the active OPAL `BinningCmd` definition.
         value_type xMin_m;                     ///< Minimum value of bin attribute.
         value_type xMax_m;                     ///< Maximum value of bin attribute.
         value_type binWidth_m;                 ///< Width of each bin (assumes a uniform histogram).
