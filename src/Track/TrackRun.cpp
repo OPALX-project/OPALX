@@ -265,7 +265,10 @@ void TrackRun::execute() {
 
     // For now we are running the simulation with the first beam object
     Beam* beam = beams.front();
-    *gmsg << level1 << *beam << endl;
+    // Print the BEAM banner for each resolved beam.
+    for (Beam* b : beams) {
+        *gmsg << level1 << *b << endl;
+    }
 
     // Resolve emission sources from the selected BEAM.
     EmissionSourceList* esl = EmissionSourceList::find(beam->getEmissionSourceListName());
