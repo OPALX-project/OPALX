@@ -297,21 +297,28 @@ public:
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
     }
 
+    /**
+     * The following functions are not used yet. Will be properly implemented by
+     * Aliemen as part of the binned solver work.
+     */
+    
     void par2grid() override {
-        scatterCIC();
+        //scatterCIC();
+        return;
     }
-
+    void scatterCIC() {
+        //scatterCICPerBin(-1);
+        return;
+    } 
+    //void scatterCICPerBin(binIndex_t binIndex);
+    // unit here
+    
     void grid2par() override {
         gatherCIC();
     }
 
     void gatherCIC();
 
-    void scatterCIC() {
-        scatterCICPerBin(-1);
-    } 
-
-    void scatterCICPerBin(binIndex_t binIndex);
 
     /*
       Up to here it is like the opaltest
@@ -324,11 +331,11 @@ public:
     void do_binaryRepart();
 
     void setCharge() {
-        this->getParticleContainer()->Q = qi_m;
+        this->getParticleContainer()->setQ(qi_m);
     }
     
     void setMass() {
-        this->getParticleContainer()->M = mi_m;
+        this->getParticleContainer()->setM(mi_m);
     }
 
     double getCharge() const {

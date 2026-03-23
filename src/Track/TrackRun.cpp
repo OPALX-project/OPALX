@@ -38,6 +38,7 @@
 
 #include "Distribution/FromFile.h"
 
+#include "Physics/ParticleProperties.h"
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
 
@@ -273,6 +274,9 @@ void TrackRun::execute() {
         totalParticlesForBunch, 1.0, "LF2", fs_m, ds_m);
     bunch_m->setT(0.0);
     bunch_m->setReference(&beam->getReference());
+
+    bunch_m->getParticleContainer()->Sp =
+        static_cast<short>(ParticleProperties::getParticleType(beam->getParticleName()));
     *gmsg << level2 << *(bunch_m->getBCHandler()) << endl;
 
     // Configure a per-rank upper bound for the number of macroparticles. This is

@@ -10,6 +10,8 @@
 
 #include "Algorithms/DistributionMoments.h"
 
+#include "Utilities/Options.h"
+
 // #include <Kokkos_Core.hpp>
 
 template <typename T>
@@ -17,21 +19,62 @@ using ParticleAttrib = ippl::ParticleAttrib<T>;
 
 using size_type = ippl::detail::size_type;
 
-// Define the ParticlesContainer class
+/**
+ * @class ParticleContainer
+ * @brief Container for all per-particle (and per-simulation) fields tracked during OPALX tracking.
+ *
+ * The values tracked in Kokkos::Views during the simulation are:
+ * R  - Position (from base class)
+ * P  - Momentum [beta*gamma]
+ * dt - Time step
+ * Phi- Scalar potential
+ * Bin- Energy bin
+ * E  - Electric field
+ * B  - Magnetic field
+ *
+ * Charge (Q) and mass (M):
+ * - Default: QM_MODE="SINGLE" -> QMStorageMode=SingleValue
+ *   * Q and M are stored as a single shared value per container (memory-efficient).
+ *   * Access via `getQView()` / `getMView()` returns the shared views.
+ * - Alternative: QM_MODE="ATTRIBUTES" -> QMStorageMode=Attributes
+ *   * Q and M are stored as per-particle attributes.
+ *   * Access via `getQView()` / `getMView()` returns the per-particle attribute views.
+ *
+ * Access to Q/M should be done with `getQView()` / `getMView()`.
+ * They automatically select the correct underlying storage mode.
+ */
 template <typename T, unsigned Dim = 3>
 class ParticleContainer : public ippl::ParticleBase<ippl::ParticleSpatialLayout<T, Dim>> {
     using Base = ippl::ParticleBase<ippl::ParticleSpatialLayout<T, Dim>>;
 
 public:
+    enum class QMStorageMode { SingleValue, Attributes };
+
     /// Defines which type to use as a particle bin.
     using bin_index_type = short int;  // Needed in AdaptBins class
 
+    /// View types of Q and M values
+    using qm_view_type = typename ippl::ParticleAttrib<double>::view_type;
 public:
-    /// charge in [Cb]
-    ippl::ParticleAttrib<double> Q;
+    /// Charge view in [Cb].
+    /// In `SingleValue` mode this is a rank-1 view of length 1.
+    /// In `Attributes` mode this is the per-particle attribute view.
+    qm_view_type getQView() const {
+        if (qmStorageMode_m == QMStorageMode::Attributes) {
+            return QAttr.getView();
+        }
+        return QView_m;
+    }
 
-    /// mass
-    ippl::ParticleAttrib<double> M;
+    /// Mass view in [GeV].
+    /// In `SingleValue` mode this is a rank-1 view of length 1.
+    /// In `Attributes` mode this is the per-particle attribute view.
+    qm_view_type getMView() const {
+        if (qmStorageMode_m == QMStorageMode::Attributes) {
+            return MAttr.getView();
+        }
+        return MView_m;
+    }
 
     /// timestep in [s]
     ippl::ParticleAttrib<double> dt;
@@ -43,7 +86,7 @@ public:
     ippl::ParticleAttrib<bin_index_type> Bin;
 
     /// the particle specis
-    ippl::ParticleAttrib<short> Sp;
+    short Sp = 0;
 
     /// particle momenta [\beta\gamma]
     typename Base::particle_position_type P;
@@ -57,10 +100,18 @@ public:
     /// magnetic field at particle position
     typename Base::particle_position_type B;
 
-    ParticleContainer(Mesh_t<Dim>& mesh, FieldLayout_t<Dim>& FL) : pl_m(FL, mesh), distMoments_m() {
+    ParticleContainer(Mesh_t<Dim>& mesh, FieldLayout_t<Dim>& FL)
+        : pl_m(FL, mesh),
+          qmStorageMode_m(
+              Options::useQMAttributes ? QMStorageMode::Attributes : QMStorageMode::SingleValue),
+          distMoments_m(),
+          QView_m("ParticleContainer::QView_m", 1),
+          MView_m("ParticleContainer::MView_m", 1) {
         this->initialize(pl_m);
         registerAttributes();
         setupBCs();
+        Kokkos::deep_copy(QView_m, 0.0);
+        Kokkos::deep_copy(MView_m, 0.0);
     }
 
     ~ParticleContainer() {
@@ -68,16 +119,17 @@ public:
 
     void registerAttributes() {
         // register the particle attributes
-        this->addAttribute(Q);
-        this->addAttribute(M);
         this->addAttribute(dt);
         this->addAttribute(Phi);
         this->addAttribute(Bin);
-        this->addAttribute(Sp);
         this->addAttribute(P);
         this->addAttribute(E);
-        //this->addAttribute(Etmp);
         this->addAttribute(B);
+
+        if (qmStorageMode_m == QMStorageMode::Attributes) {
+            this->addAttribute(QAttr);
+            this->addAttribute(MAttr);
+        }
     }
 
     void setupBCs() {
@@ -118,7 +170,6 @@ public:
         saveAttr(dt, "createKeepData_dt");
         saveAttr(Phi, "createKeepData_Phi");
         saveAttr(Bin, "createKeepData_Bin");
-        saveAttr(Sp, "createKeepData_Sp");
         saveAttr(P, "createKeepData_P");
         saveAttr(E, "createKeepData_E");
         saveAttr(B, "createKeepData_B");
@@ -137,7 +188,8 @@ public:
         Np = (Np == 0) ? 1 : Np; // only used for normalization in the moments class --> avoid division by zero
 
         size_t Nlocal = this->getLocalNum();
-        distMoments_m.computeMoments(this->R.getView(), this->P.getView(), this->M.getView(), Np, Nlocal);
+
+        distMoments_m.computeMoments(this->R.getView(), this->P.getView(), getMView(), Np, Nlocal);
     }
 
     void setEnergyReferenceMass(double referenceMassGeV, bool rescaleToReference = true) {
@@ -246,6 +298,115 @@ public:
         return distMoments_m.getDebyeLength();
     }
 
+    /**
+     * @brief Set particle charge for the active Q storage mode.
+     * @param q Charge value in [Cb].
+     *
+     * In `QMStorageMode::Attributes`, this assigns `q` to every local particle.
+     * In `QMStorageMode::SingleValue`, this updates the shared scalar charge view.
+     */
+    void setQ(double q) {
+        if (qmStorageMode_m == QMStorageMode::Attributes) {
+            auto view = QAttr.getView();
+            const size_type n = view.extent(0);
+            using exec_space = typename ippl::ParticleAttrib<double>::execution_space;
+            Kokkos::parallel_for(
+                "ParticleContainer::setQ", Kokkos::RangePolicy<exec_space>(0, n),
+                KOKKOS_LAMBDA(const size_type i) { view(i) = q; });
+            Kokkos::fence();
+        } else {
+            Kokkos::deep_copy(QView_m, q);
+        }
+    }
+
+    /**
+     * @brief Set particle mass for the active M storage mode.
+     * @param m Mass value in [GeV].
+     *
+     * In `QMStorageMode::Attributes`, this assigns `m` to every local particle.
+     * In `QMStorageMode::SingleValue`, this updates the shared scalar mass view.
+     */
+    void setM(double m) {
+        if (qmStorageMode_m == QMStorageMode::Attributes) {
+            auto view = MAttr.getView();
+            const size_type n = view.extent(0);
+            using exec_space = typename ippl::ParticleAttrib<double>::execution_space;
+            Kokkos::parallel_for(
+                "ParticleContainer::setM", Kokkos::RangePolicy<exec_space>(0, n),
+                KOKKOS_LAMBDA(const size_type i) { view(i) = m; });
+            Kokkos::fence();
+        } else {
+            Kokkos::deep_copy(MView_m, m);
+        }
+    }
+
+    /**
+     * @brief Scale particle time-step weights by charge before scatter.
+     *
+     * Multiplies each local `dt[i]` by the corresponding charge used for deposition.
+     * In `QMStorageMode::Attributes`, the per-particle `QAttr(i)` is used.
+     * In `QMStorageMode::SingleValue`, the shared scalar `QView_m(0)` is used.
+     *
+     */
+    void scaleDtByCharge() {
+        auto dtView = dt.getView();
+        const size_type n = dtView.extent(0);
+        if (n == 0) {
+            return;
+        }
+
+        using exec_space = typename ippl::ParticleAttrib<double>::execution_space;
+        if (qmStorageMode_m == QMStorageMode::Attributes) {
+            auto qView = QAttr.getView();
+            Kokkos::parallel_for(
+                "ParticleContainer::scaleDtByCharge(attrs)",
+                Kokkos::RangePolicy<exec_space>(0, n),
+                KOKKOS_LAMBDA(const size_type i) { dtView(i) *= qView(i); });
+        } else {
+            auto QView = QView_m;
+            Kokkos::parallel_for(
+                "ParticleContainer::scaleDtByCharge(single)",
+                Kokkos::RangePolicy<exec_space>(0, n),
+                KOKKOS_LAMBDA(const size_type i) { dtView(i) *= QView(0); });
+        }
+        Kokkos::fence();
+    }
+
+    /**
+     * @brief Restore original `dt` values after `scaleDtByCharge()`.
+     *
+     * Divides each local `dt[i]` by the same charge factor applied in
+     * `scaleDtByCharge()`.
+     *
+     */
+    void unscaleDtByCharge() {
+        auto dtView      = dt.getView();
+        const size_type n = dtView.extent(0);
+        if (n == 0) {
+            return;
+        }
+
+        using exec_space = typename ippl::ParticleAttrib<double>::execution_space;
+        if (qmStorageMode_m == QMStorageMode::Attributes) {
+            auto qView = QAttr.getView();
+            Kokkos::parallel_for(
+                "ParticleContainer::unscaleDtByCharge(attrs)",
+                Kokkos::RangePolicy<exec_space>(0, n),
+                KOKKOS_LAMBDA(const size_type i) { dtView(i) /= qView(i); });
+        } else {
+            auto QView = QView_m;
+            Kokkos::parallel_for(
+                "ParticleContainer::unscaleDtByCharge(single)",
+                Kokkos::RangePolicy<exec_space>(0, n),
+                KOKKOS_LAMBDA(const size_type i) { dtView(i) /= QView(0); });
+        }
+        Kokkos::fence();
+    }
+
+    QMStorageMode getQMStorageMode() const {
+        return qmStorageMode_m;
+    }
+
 private:
     void setBCAllPeriodic() {
         this->setParticleBC(ippl::BC::PERIODIC);
@@ -253,7 +414,17 @@ private:
 
     PLayout_t<T, Dim> pl_m;
 
+    QMStorageMode qmStorageMode_m = QMStorageMode::SingleValue;
+
     DistributionMoments distMoments_m;
+
+    // Single shared scalar mode stored as a length-1 Kokkos view.
+    qm_view_type QView_m;
+    qm_view_type MView_m;
+
+    // Per-particle attributes mode
+    ippl::ParticleAttrib<double> QAttr;
+    ippl::ParticleAttrib<double> MAttr;
 };
 
 #endif
