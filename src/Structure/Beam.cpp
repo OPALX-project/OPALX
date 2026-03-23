@@ -46,6 +46,7 @@ namespace {
         BCURRENT,  // Beam current in A
         BFREQ,     // Beam frequency in MHz
         NPART,     // Number of particles per bunch
+        SOURCES,   // Name of EMISSIONSOURCELIST
         SIZE
     };
 }
@@ -76,6 +77,9 @@ Beam::Beam()
     itsAttr[BFREQ] = Attributes::makeReal("BFREQ", "Beam frequency [MHz] (all bunches)");
 
     itsAttr[NPART] = Attributes::makeReal("NPART", "Number of particles in bunch");
+
+    itsAttr[SOURCES] =
+        Attributes::makeString("SOURCES", "Name of the emission sources list (EMISSIONSOURCELIST).");
 
     // Set up default beam.
     Beam* defBeam    = clone("UNNAMED_BEAM");
@@ -127,6 +131,25 @@ void Beam::execute() {
     if (!(itsAttr[NPART])) {
         throw OpalException("Beam::execute()", "\"NPART\" must be set.");
     }
+
+    // Beam-only validation: each beam must specify its EMISSIONSOURCELIST.
+    (void)getEmissionSourceListName();
+}
+
+std::string Beam::getEmissionSourceListName() const {
+    if (!itsAttr[SOURCES]) {
+        throw OpalException(
+            "Beam::getEmissionSourceListName()",
+            "\"SOURCES\" must be set for a beam (name of EMISSIONSOURCELIST).");
+    }
+
+    const std::string name = Attributes::getString(itsAttr[SOURCES]);
+    if (name.empty()) {
+        throw OpalException(
+            "Beam::getEmissionSourceListName()",
+            "\"SOURCES\" must not be empty for a beam (name of EMISSIONSOURCELIST).");
+    }
+    return name;
 }
 
 Beam* Beam::find(const std::string& name) {

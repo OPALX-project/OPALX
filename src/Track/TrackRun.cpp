@@ -196,20 +196,9 @@ void TrackRun::execute() {
         }
     }
    
+    // Follow-up behavior is still based on whether a bunch was allocated already.
+    // Emission sources are resolved from the selected BEAM later.
     isFollowupTrack_m = opal_m->hasBunchAllocated();
-    if (!isFollowupTrack_m) {
-        if (!Track::block->emissionSources) {
-            throw OpalException(
-                "TrackRun::execute",
-                "\"SOURCES\" must be set in \"TRACK\" command (name of EMISSIONSOURCELIST).");
-        }
-        const auto& sources = Track::block->emissionSources->fetchSources();
-        if (sources.empty()) {
-            throw OpalException(
-                "TrackRun::execute",
-                "Emission sources list must contain at least one EMISSIONSOURCE.");
-        }
-    }
     if (!itsAttr[TRACKRUN::FIELDSOLVER]) {
         throw OpalException("TrackRun::execute", "\"FIELDSOLVER\" must be set in \"RUN\" command.");
     }
@@ -227,10 +216,6 @@ void TrackRun::execute() {
       Gather all data in order to initialize the particle bunch_m
 
      */
-
-    // Get emission sources from TRACK SOURCES= (EMISSIONSOURCELIST).
-    const auto& emissionSourcesList = Track::block->emissionSources->fetchSources();
-    *gmsg << "* Number of emission sources  " << emissionSourcesList.size() << endl;
 
     fs_m = std::shared_ptr<FieldSolverCmd>(FieldSolverCmd::find(Attributes::getString(itsAttr[TRACKRUN::FIELDSOLVER])));
     *gmsg << level1 << *fs_m << endl;
@@ -281,6 +266,14 @@ void TrackRun::execute() {
     // For now we are running the simulation with the first beam object
     Beam* beam = beams.front();
     *gmsg << level1 << *beam << endl;
+
+    // Resolve emission sources from the selected BEAM.
+    EmissionSourceList* esl = EmissionSourceList::find(beam->getEmissionSourceListName());
+    const auto& emissionSourcesList = esl->fetchSources();
+    if (emissionSourcesList.empty()) {
+        throw OpalException("TrackRun::execute", "Emission sources list must contain at least one EMISSIONSOURCE.");
+    }
+    *gmsg << "* Number of emission sources  " << emissionSourcesList.size() << endl;
 
     macrocharge_m = beam->getChargePerParticle(); // Returns macro charge in [C]
     macromass_m   = beam->getMassPerParticle(); // returns MACRO mass in GeV (mass per simulation particle)
