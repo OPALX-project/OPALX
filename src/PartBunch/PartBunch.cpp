@@ -1,5 +1,6 @@
 #include "PartBunch/PartBunch.h"
 #include "Algorithms/Matrix.h"
+#include "Particle/ParticleAttrib.h"
 #include "Utilities/Util.h"
 #include "Structure/DataSink.h"
 
@@ -422,12 +423,22 @@ Inform& PartBunch<T, Dim>::print(Inform& os) {
 
     const double ek  = this->get_meanKineticEnergy();
     const double dek = this->getdE();
+
+    // ParticleContainer tracks charge/mass storage mode for QM attributes.
+    std::string qmStorageModeStr = "SINGLE";
+    if (this->pcontainer_m) {
+        const auto qmMode = this->pcontainer_m->getQMStorageMode();
+        if (qmMode == ParticleContainer_t::QMStorageMode::Attributes) {
+            qmStorageModeStr = "ATTRIBUTES";
+        }
+    }
     
     os << level1 << std::scientific << "\n"
        << "* ************** B U N C H "
         "********************************************************* \n"
        << "* PARTICLES       = " << this->getTotalNum() << "\n"
        << "* CHARGE          = " << this->qi_m*this->getTotalNum() << " (Cb) \n"
+       << "* QM STORAGE MODE = " << qmStorageModeStr << "\n"
        << "* <EKIN>          = " << Util::getEnergyString(ek) << "\n"
        << "* <dEKIN>         = " << Util::getEnergyString(dek) << "\n"
        << "* INTEGRATOR      = " << integration_method_m << "\n"
@@ -580,17 +591,23 @@ void PartBunch<T, Dim>::computeSelfFields() {
 
     /// \todo Add binned field solver here (needs iteration over bins, scatterPerBin calls and Etmp build up)! See https://gitlab.psi.ch/OPAL/opal-x/src/-/blame/binnedFieldSolver/src/PartBunch/PartBunch.cpp?ref_type=heads#L376
 
-    ippl::ParticleAttrib<T>* Q               = &this->pcontainer_m->Q;
-    typename Base::particle_position_type* R = &this->pcontainer_m->R;
-
-    this->fcontainer_m->getRho()             = 0.0;
-    Field_t<Dim>* rho                        = &this->fcontainer_m->getRho();
+    ippl::ParticleAttrib<T>* dt                 = &this->pcontainer_m->dt;
+    typename Base::particle_position_type* R    = &this->pcontainer_m->R;
+    this->fcontainer_m->getRho()                = 0.0;
+    Field_t<Dim>* rho                           = &this->fcontainer_m->getRho();
 
     /// \todo replace with scatterCIC? --> later with scatterPerBin!
     // Charge "unit" here is "charge per macroparticle" [C]!
-    *Q = (*Q) * this->pcontainer_m->dt; // Scale by time step
-    scatter(*Q, *rho, *R); 
-    *Q = (*Q) / this->pcontainer_m->dt; // Rescale back to charge per macroparticle
+
+    /**
+     * @note Here we scatter the charge scaled by the timestep dt onto the grid. 
+     * Since the charge Q is handled specially (see ParticleContainer.hpp description)
+     * we instead scale and scatter the dt. This is a pure "hack" which leaves
+     * the physics unchanged.
+    */
+    this->pcontainer_m->scaleDtByCharge();
+    scatter(*dt, *rho, *R);
+    this->pcontainer_m->unscaleDtByCharge();
     m << level4 << "Scatter done." << endl;
 
     /*
@@ -731,12 +748,13 @@ void PartBunch<T, Dim>::dumpBinConfig(bool preMerge) {
         static_cast<double>(xMin),
         binningCmd->getDumpBinsFileName());
 }
-
+/**
+ * The following functions are not used yet. Will be properly implemented by
+ * Aliemen as part of the binned solver work.
+ */
+/*
 template <typename T, unsigned Dim>
 void PartBunch<T,Dim>::scatterCICPerBin(PartBunch<T,Dim>::binIndex_t binIndex) {
-    /**
-     * Scatters only particles in bin binIndex. Scatters all particles if binIndex=-1
-     */
 
     throw OpalException("PartBunch::scatterCICPerBin", 
         "This function is not implemented yet! Please use scatterCIC for now.");
@@ -803,6 +821,7 @@ void PartBunch<T,Dim>::scatterCICPerBin(PartBunch<T,Dim>::binIndex_t binIndex) {
         *rho = *rho - (Q / size);
     }
 }
+ */
 
 template <typename T, unsigned Dim>
 void PartBunch<T,Dim>::performBunchSanityChecks() const {
