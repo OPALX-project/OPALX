@@ -92,7 +92,7 @@ namespace {
         MINBINEMITTED,
         MINSTEPFORREBIN,
         COMPUTEPERCENTILES,
-        USEQMATTRIBUTES,
+        QM_MODE,
         SIZE
     };
 }  // namespace
@@ -321,13 +321,13 @@ Option::Option()
         "be computed. Default: false",
         computePercentiles);
 
-    itsAttr[USEQMATTRIBUTES] = Attributes::makeBool(
-        "USE_QM_ATTRIBUTES",
-        "If true, store particle charge/mass as per-particle attributes "
-        "(accessible via per-particle `Q`/`M` views). "
-        "If false (default), use a single shared value (still in a View) per"
-        "container to save memory",
-        useQMAttributes);
+    itsAttr[QM_MODE] = Attributes::makeString(
+        "QM_MODE",
+        "Storage mode for particle charge/mass. "
+        "SINGLE uses one shared value per container; "
+        "ATTRIBUTES stores per-particle values (accessible via per-particle "
+        "`Q`/`M` views).",
+        useQMAttributes ? std::string("ATTRIBUTES") : std::string("SINGLE"));
 
     registerOwnership(AttributeHandler::STATEMENT);
 
@@ -374,7 +374,8 @@ Option::Option(const std::string& name, Option* parent) : Action(name, parent) {
     Attributes::setReal(itsAttr[HALOSHIFT], haloShift);
     Attributes::setReal(itsAttr[DELPARTFREQ], delPartFreq);
     Attributes::setBool(itsAttr[COMPUTEPERCENTILES], computePercentiles);
-    Attributes::setBool(itsAttr[USEQMATTRIBUTES], useQMAttributes);
+    Attributes::setString(itsAttr[QM_MODE],
+                          useQMAttributes ? std::string("ATTRIBUTES") : std::string("SINGLE"));
 }
 
 Option::~Option() {
@@ -406,7 +407,15 @@ void Option::execute() {
     haloShift          = Attributes::getReal(itsAttr[HALOSHIFT]);
     delPartFreq        = Attributes::getReal(itsAttr[DELPARTFREQ]);
     computePercentiles = Attributes::getBool(itsAttr[COMPUTEPERCENTILES]);
-    useQMAttributes     = Attributes::getBool(itsAttr[USEQMATTRIBUTES]);
+    const std::string qmMode = Attributes::getString(itsAttr[QM_MODE]);
+    if (qmMode == "ATTRIBUTES") {
+        useQMAttributes = true;
+    } else if (qmMode == "SINGLE") {
+        useQMAttributes = false;
+    } else {
+        throw OpalException("Option::execute", "Unsupported QM_MODE '" + qmMode +
+                                                    "'. Use \"SINGLE\" or \"ATTRIBUTES\".");
+    }
 
     /// note: rangen is used only for the random number generator in the OPAL language
     ///       not for the distributions
