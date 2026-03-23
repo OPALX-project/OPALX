@@ -820,6 +820,7 @@ void ParallelTracker::enterInteractionWindow(
     Inform& m) {
     interactionWindowState_m.phase            = InteractionWindowPhase::Active;
     interactionWindowState_m.meshInitialized  = false;
+    interactionWindowState_m.copyDiagnosticsDumped = false;
     interactionWindowState_m.geometry         = geometry;
     interactionWindowState_m.savedFieldDomain = itsBunch_m->saveFieldDomainState();
 
@@ -849,6 +850,7 @@ void ParallelTracker::leaveInteractionWindow(Inform& m) {
     }
 
     interactionWindowState_m.meshInitialized = false;
+    interactionWindowState_m.copyDiagnosticsDumped = false;
     itsBunch_m->clearInteractionWindowConfig();
     m << level5 << "finished interaction-window mode" << endl;
 }
@@ -921,20 +923,45 @@ void ParallelTracker::computeInteractionWindowSelfFields(
     itsBunch_m->calcBeamParameters();
     itsBunch_m->get_bounds(physicalRMin, physicalRMax);
 
+    const bool runCopyEntryDiagnostics =
+        !interactionWindowState_m.copyDiagnosticsDumped &&
+        !interactionWindowState_m.meshInitialized &&
+        interactionWindowState_m.geometry->copyModel;
+
+    if (runCopyEntryDiagnostics) {
+        logInteractionWindowMeshState("before_enlarge", m);
+        itsBunch_m->computeSelfFields(std::string("copy_before_enlarge"));
+        interactionWindowState_m.copyDiagnosticsDumped = true;
+    }
+
     if (!interactionWindowState_m.meshInitialized) {
         itsBunch_m->enableInteractionWindowMesh(
             ipCenterBeam(2), config.interactionWindowLength);
         interactionWindowState_m.meshInitialized = true;
+        if (runCopyEntryDiagnostics) {
+            logInteractionWindowMeshState("after_enlarge", m);
+            itsBunch_m->computeSelfFields(std::string("copy_after_enlarge"));
+        }
     }
 
     // First stage: solve on the larger interaction-window mesh using the primary bunch only.
     // Later this is where mirrored rho deposition should be added.
-    itsBunch_m->computeSelfFields();
+    if (!runCopyEntryDiagnostics) {
+        itsBunch_m->computeSelfFields();
+    }
     itsBunch_m->setPhysicalBounds(physicalRMin, physicalRMax);
 
     transformFieldsToReferenceFrame(beamToReferenceCSTrafo, m);
     m << level5 << "Compute self fields on interaction-window mesh done." << endl;
     itsBunch_m->calcBeamParameters();
+}
+
+void ParallelTracker::logInteractionWindowMeshState(const std::string& phaseTag, Inform& m) const {
+    const auto* rho = itsBunch_m->getFieldSolver()->getRho();
+    const auto* mesh = &rho->get_mesh();
+    m << level2 << "[COPY diagnostics] " << phaseTag
+      << " mesh origin = " << mesh->getOrigin()
+      << ", mesh spacing = " << mesh->getMeshSpacing() << endl;
 }
 
 void ParallelTracker::computeExternalFields(OrbitThreader& oth) {

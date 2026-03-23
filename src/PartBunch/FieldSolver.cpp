@@ -159,7 +159,7 @@ void FieldSolver<double,3>::dumpVectField(std::string what) {
 }
 
 template <>
-void FieldSolver<double,3>::dumpScalField(std::string what) {
+void FieldSolver<double,3>::dumpScalField(std::string what, const std::string& tag) {
 
     /*
       what == phi | rho
@@ -221,8 +221,11 @@ void FieldSolver<double,3>::dumpScalField(std::string what) {
     std::filesystem::path file(dirname);
     std::string basename = OpalData::getInstance()->getInputBasename();
     std::ostringstream oss;
-    oss << basename << "-" << (what + std::string("_") + type) << "-" 
-        << std::setfill('0') << std::setw(6) << call_counter_m << ".dat";
+    oss << basename << "-" << (what + std::string("_") + type);
+    if (!tag.empty()) {
+        oss << "-" << tag;
+    }
+    oss << "-" << std::setfill('0') << std::setw(6) << call_counter_m << ".dat";
     std::string filename = oss.str();
     file /= filename;
     std::ofstream fout(file.string(), std::ios::out);
@@ -233,6 +236,7 @@ void FieldSolver<double,3>::dumpScalField(std::string what) {
          << "# origin= " << std::fixed << origin 
          << " h= " << std::fixed << spacing 
          << " nghosts=" << nghost << std::endl 
+         << "# tag= " << tag << std::endl
          << "#"
          << std::setw(4)  << "i"
          << std::setw(5)  << "j"

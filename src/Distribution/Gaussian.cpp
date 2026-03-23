@@ -213,4 +213,3 @@ void Gaussian::emitParticles(double t, double dt) {
     Vector_t<double, 3> dummyNr(0.0);
     generateParticles(Ndist, dummyNr);
 }
-

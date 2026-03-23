@@ -199,6 +199,7 @@ private:
         InteractionWindowPhase phase = InteractionWindowPhase::Inactive;
         bool frameObserved          = false;
         bool meshInitialized        = false;
+        bool copyDiagnosticsDumped  = false;
         std::optional<InteractionWindowGeometry> geometry;
         std::optional<PartBunch<double, Dim>::SavedFieldDomainState> savedFieldDomain;
     };
@@ -372,6 +373,7 @@ private:
         const CoordinateSystemTrafo& referenceToBeamCSTrafo,
         const CoordinateSystemTrafo& beamToReferenceCSTrafo,
         Inform& m);
+    void logInteractionWindowMeshState(const std::string& phaseTag, Inform& m) const;
 
     // Reference Particle
     void updateReferenceParticle(const BorisPusher& pusher);

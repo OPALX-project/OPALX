@@ -709,7 +709,7 @@ public:
      * For collision studies, the rho debug dump is emitted after the [C/m^3] stage and
      * before the coupling constant is applied.
      */
-    void computeSelfFields();
+    void computeSelfFields(const std::optional<std::string>& rhoDumpTag = std::nullopt);
     void dumpChargeDensityDebug(const std::string& phaseTag) const;
     void dumpBinConfig(bool preMerge);
 

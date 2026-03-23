@@ -36,7 +36,7 @@ public:
 
     ~FieldSolver() override = default;
 
-    void dumpScalField(std::string what);
+    void dumpScalField(std::string what, const std::string& tag = "");
     void dumpVectField(std::string what);
 
     Field_t<Dim>* getRho() {

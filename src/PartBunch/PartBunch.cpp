@@ -728,7 +728,7 @@ void PartBunch<T, Dim>::dumpChargeDensityDebug(const std::string& phaseTag) cons
 }
 
 template <typename T, unsigned Dim>
-void PartBunch<T, Dim>::computeSelfFields() {
+void PartBunch<T, Dim>::computeSelfFields(const std::optional<std::string>& rhoDumpTag) {
     Inform m("PartBunch::computeSelfFields");
 
     if (ippl::Comm->size() == 1 && this->pcontainer_m->getLocalNum() <= 1) {
@@ -840,10 +840,11 @@ void PartBunch<T, Dim>::computeSelfFields() {
           << endl;
     }
 
-    if (interactionWindowConfig_m.has_value()) {
-        dumpChargeDensityDebug("collision_window_primary_only");
-    } else if (globalTrackStep_m == 0) {
-        dumpChargeDensityDebug("single_bunch_reference");
+    dumpChargeDensityDebug("every_step");
+
+    if (rhoDumpTag.has_value()) {
+        this->getFieldSolver()->dumpScalField("RHO", *rhoDumpTag);
+        m << level4 << "Tagged rho dump written with tag \"" << *rhoDumpTag << "\"." << endl;
     }
 
     /*
