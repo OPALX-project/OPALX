@@ -399,32 +399,14 @@ void BinnedFieldSolver<T, Dim>::accumulateFieldToTemp(
         "BinnedFieldSolver::accumulateFieldToTemp", Eprime.getFieldRangePolicy(),
         KOKKOS_LAMBDA(const ippl::RangePolicy<Dim>::index_array_type& idx) {
             Vector_t<T, Dim> ePrime = apply(ePrimeView, idx);
-            const double ePrimeDotW =
-                static_cast<double>(ePrime[0]) * w[0] + static_cast<double>(ePrime[1]) * w[1]
-                + static_cast<double>(ePrime[2]) * w[2];
-
-            const double eLabX =
-                gammaBin * static_cast<double>(ePrime[0]) + gammaMinusOne * ePrimeDotW * w[0];
-            const double eLabY =
-                gammaBin * static_cast<double>(ePrime[1]) + gammaMinusOne * ePrimeDotW * w[1];
-            const double eLabZ =
-                gammaBin * static_cast<double>(ePrime[2]) + gammaMinusOne * ePrimeDotW * w[2];
-
-            const double bLabX = gammaOverCSq * (v[1] * static_cast<double>(ePrime[2])
-                                                 - v[2] * static_cast<double>(ePrime[1]));
-            const double bLabY = gammaOverCSq * (v[2] * static_cast<double>(ePrime[0])
-                                                 - v[0] * static_cast<double>(ePrime[2]));
-            const double bLabZ = gammaOverCSq * (v[0] * static_cast<double>(ePrime[1])
-                                                 - v[1] * static_cast<double>(ePrime[0]));
-
+            const T ePrimeDotW = ePrime.dot(w);
+            Vector_t<T, Dim> eLab =
+                gammaBin * ePrime + gammaMinusOne * ePrimeDotW * w;
+            Vector_t<T, Dim> bLab = gammaOverCSq * cross(v, ePrime);
             Vector_t<T, Dim> eTotal = apply(eTmpView, idx);
             Vector_t<T, Dim> bTotal = apply(bTmpView, idx);
-            eTotal[0] += static_cast<T>(eLabX);
-            eTotal[1] += static_cast<T>(eLabY);
-            eTotal[2] += static_cast<T>(eLabZ);
-            bTotal[0] += static_cast<T>(bLabX);
-            bTotal[1] += static_cast<T>(bLabY);
-            bTotal[2] += static_cast<T>(bLabZ);
+            eTotal += eLab;
+            bTotal += bLab;
             apply(eTmpView, idx) = eTotal;
             apply(bTmpView, idx) = bTotal;
         });
