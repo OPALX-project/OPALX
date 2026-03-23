@@ -163,6 +163,8 @@ private:
     void rebinAndPrepare(std::shared_ptr<PartBunch_t> bunch,
                           std::shared_ptr<AdaptBins_t> bins);
 
+public:
+
     /**
      * @brief Compute the per-bin global average gamma.
      *
@@ -217,6 +219,8 @@ private:
      */
     void accumulateFieldToTemp(const double gammaBin,
                                 std::shared_ptr<VField_t<T, Dim>> EtmpSP);
+
+private:
 
     /**
      * @brief Gather the accumulated lab-frame electric field from `Etmp` back to particles.
