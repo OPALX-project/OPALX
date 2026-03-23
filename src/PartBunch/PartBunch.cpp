@@ -81,14 +81,15 @@ PartBunch<T, Dim>::PartBunch(double qi,
         this->fcontainer_m->getMesh(), this->fcontainer_m->getFL()
     ));
 
-    this->setTempEField(std::make_shared<VField_t<T, Dim>>(
-        this->fcontainer_m->getE()
-    )); // user copy constructor
-    this->getTempEField()->initialize(this->fcontainer_m->getMesh(), 
-                                      this->fcontainer_m->getFL());
-    // -----------------------------------------------
-
     setSolver();
+
+    // Build temporary accumulation fields after solver/field initialization so they
+    // match the current mesh/layout and backing storage configuration.
+    this->setTempEField(std::make_shared<VField_t<T, Dim>>());
+    this->getTempEField()->initialize(this->fcontainer_m->getMesh(), this->fcontainer_m->getFL());
+    this->setTempBField(std::make_shared<VField_t<T, Dim>>());
+    this->getTempBField()->initialize(this->fcontainer_m->getMesh(), this->fcontainer_m->getFL());
+    // -----------------------------------------------
 
     pre_run();
     
