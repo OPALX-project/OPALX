@@ -101,10 +101,18 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(std::shared_ptr<PartBunc
             "BinnedFieldSolver::computeBinnedSelfFields",
             "Temporary E field (Etmp) is not initialized.");
     }
+    std::shared_ptr<VField_t<T, Dim>> BtmpSP = bunch->getTempBField();
+    if (!BtmpSP) {
+        throw OpalException(
+            "BinnedFieldSolver::computeBinnedSelfFields",
+            "Temporary B field (Btmp) is not initialized.");
+    }
 
     VField_t<T, Dim>& Etmp = *EtmpSP;
+    VField_t<T, Dim>& Btmp = *BtmpSP;
     // clear the accumulation buffer.
     Etmp = 0.0;
+    Btmp = 0.0;
 
     // determine the number of bins used for this step.
     const bin_index_type nBins = bins->getCurrentBinCount();
@@ -130,7 +138,8 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(std::shared_ptr<PartBunc
           << " nPartGlobal=" << static_cast<unsigned long long>(nPartGlobal) << endl;
 
         // compute global average gamma for this bin.
-        const double gammaBin = computeGammaBinGlobal(bunch, bins, binIndex, nPartGlobal);
+        const BinKinematics kinematics = computeGammaBinGlobal(bunch, bins, binIndex, nPartGlobal);
+        const double gammaBin          = kinematics.gammaBin;
         if (gammaBin <= 0.0) {
             throw OpalException(
                 "BinnedFieldSolver::computeBinnedSelfFields",
@@ -157,11 +166,11 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(std::shared_ptr<PartBunc
         m << level4 << "binIndex=" << static_cast<int>(binIndex)
           << " runSolver(true) done; accumulate->Etmp" << endl;
 
-        accumulateFieldToTemp(gammaBin, EtmpSP);
+        accumulateFieldToTemp(gammaBin, kinematics.pmean, EtmpSP, BtmpSP);
     }
 
     // after all bins, gather the accumulated lab-frame field back to particles.
-    gatherFromTempToParticles(bunch, EtmpSP);
+    gatherFromTempToParticles(bunch, EtmpSP, BtmpSP);
 
     // per-call table: gammaBin / nParticles / binNumber.
     if (tablePrintFrequency_m > 0) {
@@ -269,10 +278,10 @@ void BinnedFieldSolver<T, Dim>::rebinAndPrepare(
 }
 
 template <typename T, unsigned Dim>
-double BinnedFieldSolver<T, Dim>::computeGammaBinGlobal(
+typename BinnedFieldSolver<T, Dim>::BinKinematics BinnedFieldSolver<T, Dim>::computeGammaBinGlobal(
     std::shared_ptr<PartBunch_t> bunch, std::shared_ptr<AdaptBins_t> bins,
     const bin_index_type binIndex, const size_type nPartGlobal) const {
-    // compute global mean gamma for the merged bin.
+    // compute global mean momentum and gamma for the merged bin.
     Inform m("BinnedFieldSolver::computeGammaBinGlobal");
     m << level4 << "gammaBinGlobal: binIndex=" << static_cast<int>(binIndex)
       << ", nPartGlobal=" << static_cast<unsigned long long>(nPartGlobal) << endl;
@@ -280,24 +289,29 @@ double BinnedFieldSolver<T, Dim>::computeGammaBinGlobal(
     typename AdaptBins_t::position_view_type pView = bunch->getParticleContainer()->P.getView();
     typename AdaptBins_t::hash_type indices        = bins->getHashArray();
 
-    // compute the per-rank (local) gamma sum over particles in this bin.
-    double localGammaSum = 0.0;
+    // compute local momentum sums over particles in this bin.
+    Vector_t<double, Dim> localPsum(0.0);
     Kokkos::parallel_reduce(
-        "BinnedFieldSolver::gammaPerBin", bins->getBinIterationPolicy(binIndex),
-        KOKKOS_LAMBDA(const size_type i, double& sum) {
-            const double pz = pView(indices(i))[2];
-            sum += Kokkos::sqrt(1.0 + pz * pz);
+        "BinnedFieldSolver::pmeanPerBin", bins->getBinIterationPolicy(binIndex),
+        KOKKOS_LAMBDA(const size_type i, Vector_t<double, Dim>& sum) {
+            sum += pView(indices(i));
         },
-        localGammaSum);
+        localPsum);
 
-    // reduce gamma sums across MPI ranks and normalize by `nPartGlobal`.
-    double globalGammaSum = 0.0;
-    ippl::Comm->allreduce(&localGammaSum, &globalGammaSum, 1, std::plus<double>());
+    // reduce momentum sums across MPI ranks and normalize by `nPartGlobal`.
+    Vector_t<double, Dim> globalPsum(0.0);
+    ippl::Comm->allreduce(localPsum, 1, std::plus<Vector_t<double, Dim>>());
+    globalPsum = localPsum;
 
+    BinKinematics kinematics;
     if (nPartGlobal == 0) {
-        return 1.0;
+        return kinematics;
     }
-    return globalGammaSum / static_cast<double>(nPartGlobal);
+
+    kinematics.pmean = globalPsum / static_cast<double>(nPartGlobal);
+    kinematics.gammaBin =
+        Kokkos::sqrt(1.0 + kinematics.pmean.dot(kinematics.pmean));
+    return kinematics;
 }
 
 template <typename T, unsigned Dim>
@@ -359,42 +373,79 @@ void BinnedFieldSolver<T, Dim>::prepareRhoForBin(
 
 template <typename T, unsigned Dim>
 void BinnedFieldSolver<T, Dim>::accumulateFieldToTemp(
-    const double gammaBin, std::shared_ptr<VField_t<T, Dim>> EtmpSP) {
-    // transform rest-frame E to lab-frame E (z-boost) and accumulate.
+    const double gammaBin, const Vector_t<double, Dim>& pmean,
+    std::shared_ptr<VField_t<T, Dim>> EtmpSP, std::shared_ptr<VField_t<T, Dim>> BtmpSP) {
+    // transform rest-frame fields to lab-frame fields and accumulate.
     Inform m("BinnedFieldSolver::accumulateFieldToTemp");
     m << level4 << "accumulate: gammaBin=" << std::setprecision(10) << gammaBin << endl;
 
+    const double invGamma = (gammaBin > 0.0) ? (1.0 / gammaBin) : 0.0;
+    const Vector_t<double, Dim> v = Physics::c * pmean * invGamma;
+    const double vNorm             = Kokkos::sqrt(v.dot(v));
+    const Vector_t<double, Dim> w =
+        (vNorm > 0.0) ? (v / vNorm) : Vector_t<double, Dim>(0.0);
+    const double gammaMinusOne = gammaBin - 1.0;
+    const double gammaOverCSq  = gammaBin / (Physics::c * Physics::c);
+
     const VField_t<T, Dim>& Eprime = *(this->getE());
     VField_t<T, Dim>& Etmp         = *EtmpSP;
+    VField_t<T, Dim>& Btmp         = *BtmpSP;
+    auto ePrimeView                = Eprime.getView();
+    auto eTmpView                  = Etmp.getView();
+    auto bTmpView                  = Btmp.getView();
 
-    // parallel element-wise transformation and accumulation into `Etmp`.
+    // parallel element-wise transformation and accumulation into temporaries.
     ippl::parallel_for(
         "BinnedFieldSolver::accumulateFieldToTemp", Eprime.getFieldRangePolicy(),
         KOKKOS_LAMBDA(const ippl::RangePolicy<Dim>::index_array_type& idx) {
-            Vector_t<T, Dim> ePrime = apply(Eprime, idx);
-            Vector_t<T, Dim> eTotal = apply(Etmp, idx);
+            Vector_t<T, Dim> ePrime = apply(ePrimeView, idx);
+            const double ePrimeDotW =
+                static_cast<double>(ePrime[0]) * w[0] + static_cast<double>(ePrime[1]) * w[1]
+                + static_cast<double>(ePrime[2]) * w[2];
 
-            eTotal[0] += gammaBin * ePrime[0];
-            eTotal[1] += gammaBin * ePrime[1];
-            eTotal[2] += ePrime[2];
+            const double eLabX =
+                gammaBin * static_cast<double>(ePrime[0]) + gammaMinusOne * ePrimeDotW * w[0];
+            const double eLabY =
+                gammaBin * static_cast<double>(ePrime[1]) + gammaMinusOne * ePrimeDotW * w[1];
+            const double eLabZ =
+                gammaBin * static_cast<double>(ePrime[2]) + gammaMinusOne * ePrimeDotW * w[2];
 
-            apply(Etmp, idx) = eTotal;
+            const double bLabX = gammaOverCSq * (v[1] * static_cast<double>(ePrime[2])
+                                                 - v[2] * static_cast<double>(ePrime[1]));
+            const double bLabY = gammaOverCSq * (v[2] * static_cast<double>(ePrime[0])
+                                                 - v[0] * static_cast<double>(ePrime[2]));
+            const double bLabZ = gammaOverCSq * (v[0] * static_cast<double>(ePrime[1])
+                                                 - v[1] * static_cast<double>(ePrime[0]));
+
+            Vector_t<T, Dim> eTotal = apply(eTmpView, idx);
+            Vector_t<T, Dim> bTotal = apply(bTmpView, idx);
+            eTotal[0] += static_cast<T>(eLabX);
+            eTotal[1] += static_cast<T>(eLabY);
+            eTotal[2] += static_cast<T>(eLabZ);
+            bTotal[0] += static_cast<T>(bLabX);
+            bTotal[1] += static_cast<T>(bLabY);
+            bTotal[2] += static_cast<T>(bLabZ);
+            apply(eTmpView, idx) = eTotal;
+            apply(bTmpView, idx) = bTotal;
         });
 }
 
 template <typename T, unsigned Dim>
 void BinnedFieldSolver<T, Dim>::gatherFromTempToParticles(
-    std::shared_ptr<PartBunch_t> bunch, std::shared_ptr<VField_t<T, Dim>> EtmpSP) {
-    // gather accumulated lab-frame E from mesh back to particles.
+    std::shared_ptr<PartBunch_t> bunch, std::shared_ptr<VField_t<T, Dim>> EtmpSP,
+    std::shared_ptr<VField_t<T, Dim>> BtmpSP) {
+    // gather accumulated lab-frame E and B from mesh back to particles.
     Inform m("BinnedFieldSolver::gatherFromTempToParticles");
-    m << level4 << "gather Etmp->particles" << endl;
+    m << level4 << "gather Etmp/Btmp->particles" << endl;
 
     VField_t<T, Dim>& Etmp            = *EtmpSP;
+    VField_t<T, Dim>& Btmp            = *BtmpSP;
     std::shared_ptr<ParticleCtr_t> pc = bunch->getParticleContainer();
 
     // gather only the supported field attribute back to particles.
     if (gatherAttribute_m == GatherAttribute::ElectricFieldE) {
         gather(pc->E, Etmp, pc->R);
+        gather(pc->B, Btmp, pc->R);
     } else {
         throw OpalException(
             "BinnedFieldSolver::gatherFromTempToParticles",
