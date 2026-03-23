@@ -423,12 +423,22 @@ Inform& PartBunch<T, Dim>::print(Inform& os) {
 
     const double ek  = this->get_meanKineticEnergy();
     const double dek = this->getdE();
+
+    // ParticleContainer tracks charge/mass storage mode for QM attributes.
+    std::string qmStorageModeStr = "SINGLE";
+    if (this->pcontainer_m) {
+        const auto qmMode = this->pcontainer_m->getQMStorageMode();
+        if (qmMode == ParticleContainer_t::QMStorageMode::Attributes) {
+            qmStorageModeStr = "ATTRIBUTES";
+        }
+    }
     
     os << level1 << std::scientific << "\n"
        << "* ************** B U N C H "
         "********************************************************* \n"
        << "* PARTICLES       = " << this->getTotalNum() << "\n"
        << "* CHARGE          = " << this->qi_m*this->getTotalNum() << " (Cb) \n"
+       << "* QM STORAGE MODE = " << qmStorageModeStr << "\n"
        << "* <EKIN>          = " << Util::getEnergyString(ek) << "\n"
        << "* <dEKIN>         = " << Util::getEnergyString(dek) << "\n"
        << "* INTEGRATOR      = " << integration_method_m << "\n"

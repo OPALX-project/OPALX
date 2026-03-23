@@ -66,6 +66,14 @@ void DistributionMoments::computeMeans(ippl::ParticleAttrib<Vector_t<double,3>>:
     double loc_Ekin, loc_gamma, loc_gammaz, gammaz;
     const bool rescaleToReference = rescaleToReference_m;
     const double referenceMassGeV = referenceMassGeV_m;
+
+    /* 
+    This references the storage mode of the charge (Q) and mass (M) attributes.
+    If the storage mode is SingleValue, then the mass is a scalar value that is the same for all particles.
+    If the storage mode is Attributes, then the mass is a per-particle attribute.
+
+    SingleValue is the default storage mode.
+    */
     const bool massIsScalarView   = (Mview.extent(0) == 1);
 
     int rank;
