@@ -44,6 +44,10 @@ public:
     void setDumpBinsFreq(double value) {
         Attributes::setReal(itsAttr[BINNING::DUMPBINSFREQ], value);
     }
+
+    void setTablePrintFrequency(double value) {
+        Attributes::setReal(itsAttr[BINNING::TABLEPRINTFREQ], value);
+    }
 };
 
 class BinningCmdTest : public ::testing::Test {
@@ -102,6 +106,15 @@ TEST_F(BinningCmdTest, InvalidDumpFreqThrowsWhenDumpingEnabled) {
     EXPECT_THROW(cmd.update(), OpalException);
 }
 
+// InvalidTablePrintFrequencyThrowsWhenNegative:
+// Negative TABLEPRINTFREQ values are rejected by update().
+TEST_F(BinningCmdTest, InvalidTablePrintFrequencyThrowsWhenNegative) {
+    TestableBinningCmd cmd;
+
+    cmd.setTablePrintFrequency(-1.0);
+    EXPECT_THROW(cmd.update(), OpalException);
+}
+
 // ConstructionDefaults:
 // Verify that a freshly constructed exemplar has the documented defaults.
 TEST_F(BinningCmdTest, ConstructionDefaults) {
@@ -114,6 +127,8 @@ TEST_F(BinningCmdTest, ConstructionDefaults) {
 
     EXPECT_EQ(cmd.getParameter(), "VELOCITYZ");
     EXPECT_EQ(cmd.getParameterType(), BinningParameter::VELOCITYZ);
+
+    EXPECT_EQ(cmd.getTablePrintFrequency(), 10);
 }
 
 // GettersReflectAttributes:
@@ -126,6 +141,7 @@ TEST_F(BinningCmdTest, GettersReflectAttributes) {
     cmd.setBinningAlpha(0.5);
     cmd.setBinningBeta(1.75);
     cmd.setParameterString("PZ");
+    cmd.setTablePrintFrequency(3.0);
 
     // update() refreshes the internal cached parameter string.
     cmd.update();
@@ -136,6 +152,8 @@ TEST_F(BinningCmdTest, GettersReflectAttributes) {
     EXPECT_DOUBLE_EQ(cmd.getBinningBeta(), 1.75);
 
     EXPECT_EQ(cmd.getParameter(), "PZ");
+
+    EXPECT_EQ(cmd.getTablePrintFrequency(), 3);
 }
 
 // ExecuteMapsKnownParameters:

@@ -45,6 +45,7 @@ using size_type = ippl::detail::size_type;
 #include <numeric>
 #include <algorithm>
 #include <cmath>
+#include <string>
 #include <iostream>
 
 // ============================================================================
@@ -201,9 +202,11 @@ protected:
     void buildAdaptBins(bin_index_type maxBins = 5,
                         value_type alpha = 1.0,
                         value_type beta  = 1.0,
-                        value_type desW  = 0.1) {
+                        value_type desW  = 0.1,
+                        const std::string& binningCmdName = "TEST_BINNING_CMD") {
         Selector_t selector(2);  // bin along axis 2 (z-component of P)
-        adaptBins = std::make_shared<AdaptBins_t>(bunch, selector, maxBins, alpha, beta, desW);
+        adaptBins = std::make_shared<AdaptBins_t>(
+            bunch, selector, maxBins, alpha, beta, desW, binningCmdName);
     }
 };
 
