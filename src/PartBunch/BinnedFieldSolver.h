@@ -103,6 +103,12 @@ public:
     void setGatherAttribute(const GatherAttribute attr);
 
 private:
+    struct BinKinematics {
+        Vector_t<double, Dim> pmean = Vector_t<double, Dim>(0.0);
+        double gammaBin             = 1.0;
+    };
+
+private:
     ScatterAttribute scatterAttribute_m;
     GatherAttribute gatherAttribute_m;
     int tablePrintFrequency_m = 0;
@@ -166,23 +172,23 @@ private:
 public:
 
     /**
-     * @brief Compute the per-bin global average gamma.
+     * @brief Compute per-bin global mean momentum and gamma.
      *
-     * For each merged bin, gamma is computed per particle as:
-     * `gamma = sqrt(1 + pz^2)` (with `pz` taken from the bunch momentum container),
-     * then averaged across particles and MPI ranks using the global particle count.
+     * The function computes the global mean momentum vector `pmean` across all
+     * particles in the merged bin and derives:
+     * `gammaBin = sqrt(1 + dot(pmean, pmean))`.
      *
      * @param bunch        Bunch providing particle data.
      * @param bins         Bins providing the merged-bin iteration policy and indexing.
      * @param binIndex     Bin index in the merged-bin space.
      * @param nPartGlobal  Global particle count for this merged bin.
      *
-     * @return Global average gamma for the bin.
+     * @return Per-bin kinematics bundle (`pmean`, `gammaBin`).
      */
-    double computeGammaBinGlobal(std::shared_ptr<PartBunch_t> bunch,
-                                  std::shared_ptr<AdaptBins_t> bins,
-                                  const bin_index_type binIndex,
-                                  const size_type nPartGlobal) const;
+    BinKinematics computeGammaBinGlobal(std::shared_ptr<PartBunch_t> bunch,
+                                        std::shared_ptr<AdaptBins_t> bins,
+                                        const bin_index_type binIndex,
+                                        const size_type nPartGlobal) const;
 
     /**
      * @brief Build mesh `rho` for a specific merged bin and apply all corrections.
@@ -206,30 +212,36 @@ public:
                            const double gammaBin);
 
     /**
-     * @brief Accumulate the Lorentz-boosted electric field from solver output into `Etmp`.
+     * @brief Accumulate Lorentz-transformed electric/magnetic fields into temporaries.
      *
-     * The solver output field is interpreted as the rest-frame field for the given bin
-     * and is transformed to the lab frame (z-directed boost, `B' = 0`) via:
-     * - `Ex_lab = gammaBin * Ex'`
-     * - `Ey_lab = gammaBin * Ey'`
-     * - `Ez_lab = Ez'`
+     * The solver output field is interpreted as the bin-frame electric field `E'`
+     * with `B' = 0`, and transformed to the lab frame with:
+     * - `E_lab = gammaBin * E' + (gammaBin - 1) * (E' · w) * w`
+     * - `B_lab = (gammaBin / c^2) * (v x E')`
+     * where `v = c * pmean / gammaBin` and `w = v / |v|` (or `w = 0` if `|v| = 0`).
      *
      * @param gammaBin  Global average gamma for the merged bin.
+     * @param pmean     Global average normalized momentum for the merged bin.
      * @param EtmpSP    Temporary electric field buffer for accumulation.
+     * @param BtmpSP    Temporary magnetic field buffer for accumulation.
      */
     void accumulateFieldToTemp(const double gammaBin,
-                                std::shared_ptr<VField_t<T, Dim>> EtmpSP);
+                               const Vector_t<double, Dim>& pmean,
+                               std::shared_ptr<VField_t<T, Dim>> EtmpSP,
+                               std::shared_ptr<VField_t<T, Dim>> BtmpSP);
 
 private:
 
     /**
-     * @brief Gather the accumulated lab-frame electric field from `Etmp` back to particles.
+     * @brief Gather the accumulated lab-frame fields from temporaries back to particles.
      *
      * @param bunch   Particle bunch to gather into.
      * @param EtmpSP  Temporary electric field buffer holding the accumulated lab-frame field.
+     * @param BtmpSP  Temporary magnetic field buffer holding the accumulated lab-frame field.
      */
     void gatherFromTempToParticles(std::shared_ptr<PartBunch_t> bunch,
-                                    std::shared_ptr<VField_t<T, Dim>> EtmpSP);
+                                   std::shared_ptr<VField_t<T, Dim>> EtmpSP,
+                                   std::shared_ptr<VField_t<T, Dim>> BtmpSP);
 };
 
 #include "BinnedFieldSolver.tpp"

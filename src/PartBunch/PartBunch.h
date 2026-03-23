@@ -180,6 +180,8 @@ private:
 
     /// Temporary E field container used to store temporary E field during binned solver
     std::shared_ptr<VField_t<T, Dim>> Etmp_m;
+    /// Temporary B field container used to store temporary B field during binned solver
+    std::shared_ptr<VField_t<T, Dim>> Btmp_m;
 
     /// Maximum allowed number of local macroparticles on this rank.
     /// Used as a safety guard to detect when particle emission triggers an
@@ -246,6 +248,8 @@ public:
 public:
     std::shared_ptr<VField_t<T, Dim>> getTempEField() { return this->Etmp_m; }
     void setTempEField(std::shared_ptr<VField_t<T, Dim>> Etmp) { this->Etmp_m = Etmp; }
+    std::shared_ptr<VField_t<T, Dim>> getTempBField() { return this->Btmp_m; }
+    void setTempBField(std::shared_ptr<VField_t<T, Dim>> Btmp) { this->Btmp_m = Btmp; }
 
     std::shared_ptr<AdaptBins_t> getBins() { return bins_m; }
     std::shared_ptr<AdaptBins_t> getBins() const { return bins_m; }
