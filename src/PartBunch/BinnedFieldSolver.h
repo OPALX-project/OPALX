@@ -64,12 +64,15 @@ public:
      * @param E          Pointer to the mesh electric-field storage (solver output).
      * @param phi        Pointer to the potential-field storage (solver internal use).
      * @param bcHandler  Shared pointer to the boundary-condition handler.
+     * @param tablePrintFrequency Global timestep frequency of printing the bin stats table
+     *                             to console in binned mode. If `0`, printing is disabled.
      */
     BinnedFieldSolver(std::string solver,
                        Field_t<Dim>* rho,
                        VField_t<T, Dim>* E,
                        Field_t<Dim>* phi,
-                       std::shared_ptr<BCHandler_t> bcHandler);
+                       std::shared_ptr<BCHandler_t> bcHandler,
+                       int tablePrintFrequency);
 
     /**
      * @brief Compute space-charge self-fields for the given particle bunch.
@@ -102,6 +105,7 @@ public:
 private:
     ScatterAttribute scatterAttribute_m;
     GatherAttribute gatherAttribute_m;
+    int tablePrintFrequency_m = 0;
 
     /**
      * @brief Row entry for the level-3 bin statistics table.
@@ -123,8 +127,7 @@ private:
      * @param nBinsOrZero  Number of bins (for header metadata). Use `0` for legacy mode.
      * @param rows         Table rows to print.
      */
-    void printBinStatsTable(const std::string& tableName,
-                             const bin_index_type nBinsOrZero,
+    void printBinStatsTable(const std::string& binningCmdName,
                              const std::vector<BinStatsRow>& rows);
 
 private:
