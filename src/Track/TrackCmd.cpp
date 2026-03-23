@@ -192,19 +192,8 @@ void TrackCmd::execute() {
     // Find BeamSequence
     BeamSequence* theLineToTrack = BeamSequence::find(Attributes::getString(itsAttr[LINE]));
 
-    // SOURCES (EMISSIONSOURCELIST) is required for particle injection.
-    if (!itsAttr[SOURCES] || Attributes::getString(itsAttr[SOURCES]) == "") {
-        throw OpalException(
-            "TrackCmd::execute",
-            "\"SOURCES\" must be set in \"TRACK\" command (name of EMISSIONSOURCELIST).");
-    }
-    EmissionSourceList* emissionSourcesList =
-        EmissionSourceList::find(Attributes::getString(itsAttr[SOURCES]));
-    if (emissionSourcesList->fetchSources().empty()) {
-        throw OpalException(
-            "TrackCmd::execute",
-            "Emission sources list must contain at least one EMISSIONSOURCE.");
-    }
+    // TRACK,SOURCES is optional (and ignored); emission sources come from the selected BEAM.
+    EmissionSourceList* emissionSourcesList = nullptr;
 
     // Resolve beams (BEAMS has precedence over BEAM).
     std::vector<std::string> beamNames = Attributes::getStringArray(itsAttr[BEAMS]);
