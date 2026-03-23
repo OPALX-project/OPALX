@@ -213,9 +213,8 @@ void TrackRun::execute() {
     if (!itsAttr[TRACKRUN::FIELDSOLVER]) {
         throw OpalException("TrackRun::execute", "\"FIELDSOLVER\" must be set in \"RUN\" command.");
     }
-    if (!itsAttr[TRACKRUN::BEAM]) {
-        throw OpalException("TrackRun::execute", "\"BEAM\" must be set in \"RUN\" command.");
-    }
+    // RUN::BEAM is optional when TRACK specifies BEAMS.
+    // For now, we still track using only the first resolved beam.
 
     OpalData::getInstance()->setInOPALTMode();
 
@@ -240,7 +239,44 @@ void TrackRun::execute() {
         *gmsg << level1 << *fs_m->getBinningCmd() << endl;
     }
 
-    Beam* beam = Beam::find(Attributes::getString(itsAttr[TRACKRUN::BEAM]));
+    std::vector<std::string> beamNames;
+    if (itsAttr[TRACKRUN::BEAM]) {
+        const std::string beamName = Attributes::getString(itsAttr[TRACKRUN::BEAM]);
+        if (!beamName.empty()) {
+            beamNames.push_back(beamName);
+        }
+    }
+
+    if (beamNames.empty()) {
+        beamNames = Track::block->beamNames_m;
+    }
+
+    if (beamNames.empty()) {
+        throw OpalException("TrackRun::execute", "No beam specified: set RUN::BEAM or TRACK::BEAMS.");
+    }
+
+    std::vector<Beam*> beams;
+    beams.reserve(beamNames.size());
+    for (const auto& name : beamNames) {
+        if (name.empty()) {
+            throw OpalException("TrackRun::execute", "Empty beam name in resolved beam list.");
+        }
+        beams.push_back(Beam::find(name));  // fail fast
+    }
+
+    *gmsg << level1 << "* RUN resolved beams: ";
+    for (size_t i = 0; i < beamNames.size(); ++i) {
+        *gmsg << beamNames[i] << (i + 1 < beamNames.size() ? ", " : "");
+    }
+    *gmsg << endl;
+
+    if (beams.size() > 1) {
+        *gmsg << level1 << "WARNING: Multiple beams requested; using first beam '"
+              << beamNames.front()
+              << "' for tracking (concurrent multi-beam beyond scope for now)." << endl;
+    }
+
+    Beam* beam = beams.front();
     *gmsg << level1 << *beam << endl;
 
     macrocharge_m = beam->getChargePerParticle(); // Returns macro charge in [C]
@@ -377,7 +413,7 @@ void TrackRun::execute() {
     */
 
     itsTracker_m = new ParallelTracker(
-        *Track::block->use->fetchLine(), bunch_m.get(), ds_m, Track::block->reference, false,
+        *Track::block->use->fetchLine(), bunch_m.get(), ds_m, beam->getReference(), false,
         Attributes::getBool(itsAttr[TRACKRUN::TRACKBACK]), Track::block->localTimeSteps,
         Track::block->zstart, Track::block->zstop, Track::block->dT, emittingSamplers_m);
 
@@ -610,9 +646,24 @@ Inform& TrackRun::print(Inform& os) const {
        << "* Statistics dump frequency     = " << Options::statDumpFreq << " w.r.t. the time step."
        << '\n'
        << "* DT                            = " << Track::block->dT.front() << " [s]\n"
-       << "* MAXSTEPS                      = " << Track::block->localTimeSteps.front() << '\n'
-       << "* Mass of simulation particle   = " << Beam::find(Attributes::getString(itsAttr[TRACKRUN::BEAM]))->getChargePerParticle() << " [GeV/c^2]" << '\n'
-       << "* Charge of simulation particle = " << Beam::find(Attributes::getString(itsAttr[TRACKRUN::BEAM]))->getMassPerParticle() << " [C]" << '\n';
+       << "* MAXSTEPS                      = " << Track::block->localTimeSteps.front() << '\n';
+
+    std::string primaryBeamName;
+    if (itsAttr[TRACKRUN::BEAM]) {
+        primaryBeamName = Attributes::getString(itsAttr[TRACKRUN::BEAM]);
+    }
+    if (primaryBeamName.empty() && Track::block && !Track::block->beamNames_m.empty()) {
+        primaryBeamName = Track::block->beamNames_m.front();
+    }
+
+    if (!primaryBeamName.empty()) {
+        Beam* beam = Beam::find(primaryBeamName);
+        os << "* Mass of simulation particle   = " << beam->getChargePerParticle() << " [GeV/c^2]" << '\n'
+           << "* Charge of simulation particle = " << beam->getMassPerParticle() << " [C]" << '\n';
+    } else {
+        os << "* Mass of simulation particle   = <unresolved>" << '\n'
+           << "* Charge of simulation particle = <unresolved>" << '\n';
+    }
     os << "* ********************************************************************************** ";
     return os;
 }

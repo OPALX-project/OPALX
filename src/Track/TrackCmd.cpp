@@ -32,6 +32,7 @@ namespace {
         LINE,      // The name of lattice to be tracked.
         SOURCES,   // The name of the emission sources list (EMISSIONSOURCELIST).
         BEAM,      // The name of beam to be used.
+        BEAMS,     // The names of beams to be used (replaces BEAM for input).
         DT,        // The integration timestep in second.
                    // In case of the adaptive integrator, time step guideline for
                    // external field integration.
@@ -66,6 +67,9 @@ TrackCmd::TrackCmd() : Action(SIZE, "TRACK", "The \"TRACK\" command initiates tr
         Attributes::makeString("SOURCES", "Name of the emission sources list (EMISSIONSOURCELIST).");
 
     itsAttr[BEAM] = Attributes::makeString("BEAM", "Name of beam to be used.", "UNNAMED_BEAM");
+
+    itsAttr[BEAMS] = Attributes::makeStringArray(
+        "BEAMS", "Names of beams to be used (replaces BEAM).");
 
     itsAttr[DT] = Attributes::makeRealArray("DT", "The integration timestep in [s].");
 
@@ -202,8 +206,26 @@ void TrackCmd::execute() {
             "Emission sources list must contain at least one EMISSIONSOURCE.");
     }
 
-    // Find Beam
-    Beam* beam = Beam::find(Attributes::getString(itsAttr[BEAM]));
+    // Resolve beams (BEAMS has precedence over BEAM).
+    std::vector<std::string> beamNames = Attributes::getStringArray(itsAttr[BEAMS]);
+    if (beamNames.empty()) {
+        beamNames.push_back(Attributes::getString(itsAttr[BEAM]));
+    }
+    if (beamNames.empty()) {
+        throw OpalException("TrackCmd::execute", "Neither \"BEAMS\" nor \"BEAM\" was specified.");
+    }
+
+    std::vector<Beam*> beams;
+    beams.reserve(beamNames.size());
+    for (const auto& name : beamNames) {
+        if (name.empty()) {
+            throw OpalException("TrackCmd::execute", "Empty beam name in \"BEAMS\".");
+        }
+        beams.push_back(Beam::find(name));  // fail fast
+    }
+
+    // Current tracker supports only a single beam; use the first one for now.
+    Beam* beam = beams.front();
 
     // std::cout << "TrackCmd::execute" << std::endl;
     // std::cout << *theLineToTrack << std::endl;
@@ -237,7 +259,7 @@ void TrackCmd::execute() {
 
     Track::block = new Track(
         theLineToTrack, beam->getReference(), dt, maxsteps, stepsperturn, zstart, zstop,
-        timeintegrator, t0, dtScInit, deltaTau, emissionSourcesList);
+        timeintegrator, t0, dtScInit, deltaTau, emissionSourcesList, beamNames);
 
     Track::block->truncOrder = (int)Attributes::getReal(itsAttr[MAP_ORDER]);
 
