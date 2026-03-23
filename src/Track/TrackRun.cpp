@@ -239,6 +239,7 @@ void TrackRun::execute() {
         *gmsg << level1 << *fs_m->getBinningCmd() << endl;
     }
 
+    // Vector of beam names for organizing stat files
     std::vector<std::string> beamNames;
     if (itsAttr[TRACKRUN::BEAM]) {
         const std::string beamName = Attributes::getString(itsAttr[TRACKRUN::BEAM]);
@@ -255,6 +256,7 @@ void TrackRun::execute() {
         throw OpalException("TrackRun::execute", "No beam specified: set RUN::BEAM or TRACK::BEAMS.");
     }
 
+    // Vector of beams
     std::vector<Beam*> beams;
     beams.reserve(beamNames.size());
     for (const auto& name : beamNames) {
@@ -276,6 +278,7 @@ void TrackRun::execute() {
               << "' for tracking (concurrent multi-beam beyond scope for now)." << endl;
     }
 
+    // For now we are running the simulation with the first beam object
     Beam* beam = beams.front();
     *gmsg << level1 << *beam << endl;
 
