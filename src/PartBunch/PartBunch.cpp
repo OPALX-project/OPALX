@@ -1,4 +1,5 @@
 #include "PartBunch/PartBunch.h"
+#include "PartBunch/BinnedFieldSolver.h"
 #include "Algorithms/Matrix.h"
 #include "Utilities/Util.h"
 #include "Structure/DataSink.h"
@@ -153,15 +154,16 @@ void PartBunch<T, Dim>::setSolver() {
     this->solver_m = OPALFieldSolver_m->getType();
 
     this->fcontainer_m->initializeFields(this->solver_m);
-    
-    this->setFieldSolver(std::make_shared<FieldSolver_t>(
-        this->solver_m, 
-        &this->fcontainer_m->getRho(), 
+
+    setBins();
+
+    this->setFieldSolver(std::make_shared<BinnedFieldSolver<T, Dim>>(
+        this->solver_m,
+        &this->fcontainer_m->getRho(),
         &this->fcontainer_m->getE(),
         &this->fcontainer_m->getPhi(),
-        this->getBCHandler()
-    ));
-    m << level4 << "Field solver set." << endl;
+        this->getBCHandler()));
+    m << level4 << "Binned field solver set (binned or legacy at runtime)." << endl;
 
     this->fsolver_m->initSolver();
     m << level4 << "Field solver initialized." << endl;
@@ -174,8 +176,6 @@ void PartBunch<T, Dim>::setSolver() {
         this->fsolver_m
     ));
     m << level3 << "Solver and Load Balancer set." << endl;
-
-    setBins();
 }
 
 template <typename T, unsigned Dim>
@@ -534,155 +534,18 @@ void PartBunch<T, Dim>::bunchUpdate() {
 }
 
 template <typename T, unsigned Dim>
-void PartBunch<T, Dim>::computeSelfFields() {
-    Inform m("PartBunch::computeSelfFields");
+void PartBunch<T, Dim>::computeBinnedSelfFields() {
+    using BinnedSolver_t = BinnedFieldSolver<T, Dim>;
 
-    if (ippl::Comm->size() == 1 && this->pcontainer_m->getLocalNum() <= 1) {
-        this->pcontainer_m->E = 0.0;
-        m << level5 << "WARNING: Only 1 or less particles in this bunch, setting E to 0 for particles." << endl;
-        return;
+    BinnedSolver_t* bsolver = dynamic_cast<BinnedSolver_t*>(this->fsolver_m.get());
+    if (!bsolver) {
+        throw OpalException("PartBunch::computeBinnedSelfFields",
+                            "Field solver is not a BinnedFieldSolver instance.");
     }
 
-    if (this->hasBinning()) {
-        static IpplTimings::TimerRef completeBinningT = IpplTimings::getTimer("bTotalBinningT");
-
-        // Start binning and sorting by bins
-        std::shared_ptr<AdaptBins_t> bins = this->getBins();
-
-        IpplTimings::startTimer(completeBinningT);
-        bins->doFullRebin(bins->getMaxBinCount());
-        dumpBinConfig(true);   // pre-merge configuration
-        bins->sortContainerByBin();    // Sort BEFORE merging to reduce atomics overhead.
-        bins->genAdaptiveHistogram();  // merge bins adaptively
-        dumpBinConfig(false);  // post-merge configuration
-
-        IpplTimings::stopTimer(completeBinningT);
-        m << level4 << "Binning routine done." << endl;
-    } else {
-        m << level4 << "No AdaptBins object present, not using binning." << endl;
-    }
-
-    /*
-    I would guess that ths bunchUpdate is only necessary after a push (where we
-    need it anyways, since positions have changed). However, when removing it,
-    the total energy of the FODO example quickly diverges to "-inf". I don't
-    know why this is, but particle positions shouldn't have changed. I would
-    therefore assume that we could separate bunchUpdate from pc->update() in
-    order to save some computation.
-
-    Edit: this is necessary since we transform positions, so we need to update
-    mesh boundaries and spacings!
-
-    Edit 2: this is now handled in computeSpaceChargeFields
-    */
-    // this->bunchUpdate();
-    // m << level5 << "Bunch updated for positions in beam coordinate system." << endl;
-
-    /// \todo Add binned field solver here (needs iteration over bins, scatterPerBin calls and Etmp build up)! See https://gitlab.psi.ch/OPAL/opal-x/src/-/blame/binnedFieldSolver/src/PartBunch/PartBunch.cpp?ref_type=heads#L376
-
-    ippl::ParticleAttrib<T>* Q               = &this->pcontainer_m->Q;
-    typename Base::particle_position_type* R = &this->pcontainer_m->R;
-
-    this->fcontainer_m->getRho()             = 0.0;
-    Field_t<Dim>* rho                        = &this->fcontainer_m->getRho();
-
-    /// \todo replace with scatterCIC? --> later with scatterPerBin!
-    // Charge "unit" here is "charge per macroparticle" [C]!
-    *Q = (*Q) * this->pcontainer_m->dt; // Scale by time step
-    scatter(*Q, *rho, *R); 
-    *Q = (*Q) / this->pcontainer_m->dt; // Rescale back to charge per macroparticle
-    m << level4 << "Scatter done." << endl;
-
-    /*
-    Now rho is in units of [C * s] -- need to divide by dt to get back to [C].
-    Note By using the global timestep getdT(), we account for the possibility of 
-    "fractional timesteps", meaning the particle was virtually "created in the
-    middle" of a full timestep. As of now, this might not be necessary.
-    */
-    (*rho) = (*rho) / getdT(); 
-    m << level4 << "Rho scale by dt done." << endl;
-
-#ifdef doDEBUG
-    const double qtot                        = this->qi_m * this->getTotalNum();
-    size_type TotalParticles                 = 0;
-    size_type localParticles                 = this->pcontainer_m->getLocalNum();
-   
-    double relError                          = std::fabs((qtot - (*rho).sum()) / qtot);
-    
-    ippl::Comm->reduce(localParticles, TotalParticles, 1, std::plus<size_type>());
-    
-    if ((ippl::Comm->rank() == 0) && (relError > 1.0E-13)) {
-            Inform m2("PartBunch::computeSelfFields2", INFORM_ALL_NODES);
-            m2 << "Time step: " << it_m
-               << " total particles in the sim. " << totalP_m 
-               << " missing : " << totalP_m-TotalParticles 
-               << " rel. error in charge conservation: " << relError << endl;
-    }
-#endif
-
-    // At this point, the units of rho need to be corrected: rho = rho / cellVolume
-    if (this->fsolver_m->getStype() != "FEM" && this->fsolver_m->getStype() != "FEM_PRECON") {
-        // CG solver already accounts for cell volume internally in FD,
-        // other solvers need explicit normalization here
-        double cellVolume = std::reduce(hr_m.begin(), hr_m.end(), 1., std::multiplies<double>());
-        (*rho)            = (*rho) / cellVolume;
-        m << level4 << "Rho normalized by cell volume: " << cellVolume << "." << endl;
-    }
-
-    // Alpine uses net 0 charge density for periodic BCs, so we need to subtract background charge here (?TODO: check)
-    // Note: otherwise solvers like the CG solver will "explode" and give unnormalized potentials?
-    double totalQ = getCharge();
-    if (this->fsolver_m->getStype() != "OPEN") {
-        double size = 1;
-        for (size_t d = 0; d < 3; d++) {
-            size *= rmax_m[d] - rmin_m[d];
-        }
-
-        (*rho) = (*rho) - (totalQ / size);
-        m << level4 << "Net-0 charge generation with factor " << (totalQ / size) << " done." << endl;
-    }
-
-    /*
-    This concludes the scatter step ( \todo perhaps we want to put this in its own function, like scatterCIC)
-
-    Next is the solver step. The solver computes the E-field from rho directly. However,
-    at the moment, the potential has units of [C/m^3].
-
-    From OPAL:
-    The scalar potential is given back with rho_m in units [C/m] = [F*V/m] and must be divided by
-    4*pi*\epsilon_0 [F/m] resulting in [V].
-
-    @note rho is overloaded and becomse phi when runSolver is called!
-    */
-    (*rho) = (*rho) * this->getCouplingConstant(); // now rho_m has units of [V]
-    m << level5 << "Rho coupling applied." << endl;
-
-    this->fsolver_m->runSolver();
-    m << level4 << "Field solver ran." << endl;
-
-    /*
-    Now, with E=-grad(phi), E has units of [V/m] (note, phi is a scalar potential).
-
-    Note that we do this step separately, even though the solvers can provide
-    it firectlt, since some field solver then don't produce phi, which might
-    be necessary elsewhere or for debugging.
-    
-    This can be optimized later by changing the output type of the solvers and 
-    removing this line! As it is implemented now, it will always provide both 
-    (phi and the E field that is actually used for kicking the particles).
-    */
-    
-    gather(this->pcontainer_m->E, this->fcontainer_m->getE(), this->pcontainer_m->R);
-    m << level4 << "Gather done." << endl;
-
-    /// \todo put back in
-    /*Vector_t<double, 3> efScale = Vector_t<double,3>(
-        gammaz*cc/hr_scaled[0], 
-        gammaz*cc/hr_scaled[1], 
-        cc / gammaz / hr_scaled[2]
-    );
-    m << "E-field scale = " << efScale << endl;    
-    spaceChargeEFieldCheck(efScale);*/
+    // Non-owning shared_ptr alias: solver does not manage bunch lifetime.
+    std::shared_ptr<PartBunch<T, Dim>> bunchPtr(this, [](PartBunch<T, Dim>*) { });
+    bsolver->computeSelfFields(bunchPtr);
 }
 
 template <typename T, unsigned Dim>
