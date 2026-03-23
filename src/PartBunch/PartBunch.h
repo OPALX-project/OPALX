@@ -542,7 +542,14 @@ public:
        return Vector_t<double, Dim>(0);
     }
 
-    void computeSelfFields();
+    /**
+     * @brief Compute the bunch self-fields (binned when available).
+     *
+     * The actual implementation lives in the solver object (see `BinnedFieldSolver`).
+     * `ParallelTracker` only orchestrates reference/beam-frame transforms and calls
+     * this delegator once per step.
+     */
+    void computeBinnedSelfFields();
     void dumpBinConfig(bool preMerge);
 
     Inform& print(Inform& os);
