@@ -19,34 +19,30 @@ using ParticleAttrib = ippl::ParticleAttrib<T>;
 
 using size_type = ippl::detail::size_type;
 
-// Define the ParticlesContainer class
 /**
  * @class ParticleContainer
- * @brief This class inherits from ippl::ParticleBase and implements the 
- * container structure for the particles. 
- * 
- * The values for each particle that are tracked in Kokkos::Views
- * during the simulation are:
- * R - Position (from base class)
- * P - Momentum [beta*gamma]
+ * @brief Container for all per-particle (and per-simulation) fields tracked during OPALX tracking.
+ *
+ * The values tracked in Kokkos::Views during the simulation are:
+ * R  - Position (from base class)
+ * P  - Momentum [beta*gamma]
  * dt - Time step
- * Phi - Scalar potential
- * Bin - Energy bin
- * E - Electric field
- * B - Magnetic field
- * -----------------------------------
- * Q - Charge
- * M - Mass
- * 
- * The charge Q and mass M values are special cases. The default behaviour is to 
- * save a single value for Q and M in a Kokkos::View of extent 1. Individual 
- * values per particle can be activated in the inputfile with 
- * `OPTION, USE_QM_ATTRIBUTES=TRUE;`. In this case full `ippl::ParticleAttrib` 
- * views are allocated. 
- * This comes comes at the drawback that the Q and M views need to be accessed
- * using the `getQView()` and `getMView()` functions, which internally check
- * the storage mode.
-*/
+ * Phi- Scalar potential
+ * Bin- Energy bin
+ * E  - Electric field
+ * B  - Magnetic field
+ *
+ * Charge (Q) and mass (M):
+ * - Default: QM_MODE="SINGLE" -> QMStorageMode=SingleValue
+ *   * Q and M are stored as a single shared value per container (memory-efficient).
+ *   * Access via `getQView()` / `getMView()` returns the shared views.
+ * - Alternative: QM_MODE="ATTRIBUTES" -> QMStorageMode=Attributes
+ *   * Q and M are stored as per-particle attributes.
+ *   * Access via `getQView()` / `getMView()` returns the per-particle attribute views.
+ *
+ * Access to Q/M should be done with `getQView()` / `getMView()`.
+ * They automatically select the correct underlying storage mode.
+ */
 template <typename T, unsigned Dim = 3>
 class ParticleContainer : public ippl::ParticleBase<ippl::ParticleSpatialLayout<T, Dim>> {
     using Base = ippl::ParticleBase<ippl::ParticleSpatialLayout<T, Dim>>;

@@ -104,5 +104,6 @@ namespace Options {
 
     bool computePercentiles = false;
 
-    bool useQMAttributes = false;
+    bool useQMAttributes = false;  // corresponds to QM_MODE=SINGLE
+
 }  // namespace Options
