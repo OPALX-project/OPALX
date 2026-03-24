@@ -476,8 +476,9 @@ public:
         double unitless_factor = 1.0 / (Physics::c * this->getdT());
         auto Rview  = this->getParticleContainer()->R.getView();
         auto dtview = this->getParticleContainer()->dt.getView();
+        const size_t nLocal = this->getLocalNum();
         Kokkos::parallel_for(
-                             "switchToUnitlessPositions", ippl::getRangePolicy(Rview),
+                             "switchToUnitlessPositions", Kokkos::RangePolicy<>(0, nLocal),
                              KOKKOS_LAMBDA(const size_t i) {
                                 double fac = use_dt_per_particle ? (1.0 / (Physics::c * dtview(i))) 
                                                                  : unitless_factor;
@@ -521,13 +522,13 @@ public:
         double unitless_factor = Physics::c * this->getdT();
         auto Rview  = this->getParticleContainer()->R.getView();
         auto dtview = this->getParticleContainer()->dt.getView();
+        const size_t nLocal    = this->getLocalNum();
         Kokkos::parallel_for(
-                             "switchOffUnitlessPositions", ippl::getRangePolicy(Rview),
-                             KOKKOS_LAMBDA(const size_t i) {
-                                double fac = use_dt_per_particle ? (Physics::c * dtview(i)) 
-                                                                 : unitless_factor;
-                                Rview(i) *= fac;
-                             });
+            "switchOffUnitlessPositions", Kokkos::RangePolicy<>(0, nLocal),
+            KOKKOS_LAMBDA(const size_t i) {
+                double fac = use_dt_per_particle ? (Physics::c * dtview(i)) : unitless_factor;
+                Rview(i) *= fac;
+            });
         isUnitless_m = false;
 
         /// \todo remove later
