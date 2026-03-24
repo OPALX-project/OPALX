@@ -553,7 +553,7 @@ public:
      * `ParallelTracker` only orchestrates reference/beam-frame transforms and calls
      * this delegator once per step.
      */
-    void computeBinnedSelfFields();
+    void computeSelfFields();
     void dumpBinConfig(bool preMerge);
 
     Inform& print(Inform& os);

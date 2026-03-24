@@ -538,12 +538,12 @@ void PartBunch<T, Dim>::bunchUpdate() {
 }
 
 template <typename T, unsigned Dim>
-void PartBunch<T, Dim>::computeBinnedSelfFields() {
+void PartBunch<T, Dim>::computeSelfFields() {
     using BinnedSolver_t = BinnedFieldSolver<T, Dim>;
 
     BinnedSolver_t* bsolver = dynamic_cast<BinnedSolver_t*>(this->fsolver_m.get());
     if (!bsolver) {
-        throw OpalException("PartBunch::computeBinnedSelfFields",
+        throw OpalException("PartBunch::computeSelfFields",
                             "Field solver is not a BinnedFieldSolver instance.");
     }
 
