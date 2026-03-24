@@ -630,10 +630,10 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
         Vector_t<double, 3>(0, 0, pathLength_m), alignment.conjugate());
 
     CoordinateSystemTrafo referenceToBeamCSTrafo = beamToReferenceCSTrafo.inverted();
-   
+
     /// @brief Transform particle positions to the beam coordinate system
-    referenceToBeamCSTrafo.transformBunchTo(
-        itsBunch_m->getParticleContainer()->R.getView());
+    referenceToBeamCSTrafo.transformBunchTo(itsBunch_m->getParticleContainer()->R.getView(),
+                                            itsBunch_m->getLocalNum());
     m << level4 << "Transform particle positions to beam coordinate system done." << endl;
     itsBunch_m->bunchUpdate();
     m << level5 << "Bunch updated for positions in beam coordinate system." << endl;
@@ -651,16 +651,14 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
     itsBunch_m->computeSelfFields();
     m << level3 << "Compute self fields done." << endl;
     
-    /// @brief Transform particle positions back to the reference coordinate system 
-    beamToReferenceCSTrafo.transformBunchTo(
-        itsBunch_m->getParticleContainer()->R.getView());
+    /// @brief Transform particle positions back to the reference coordinate system
+    const size_t nLocRef = itsBunch_m->getLocalNum();
+    beamToReferenceCSTrafo.transformBunchTo(itsBunch_m->getParticleContainer()->R.getView(), nLocRef);
     m << level5 << "Transform particle positions back to reference coordinate system done." << endl;
     /// @brief Rotate E and B fields back to the reference coordinate system
-    beamToReferenceCSTrafo.rotateBunchTo(
-        itsBunch_m->getParticleContainer()->E.getView());
+    beamToReferenceCSTrafo.rotateBunchTo(itsBunch_m->getParticleContainer()->E.getView(), nLocRef);
     m << level5 << "Rotate E fields back to reference coordinate system done." << endl;
-    beamToReferenceCSTrafo.rotateBunchTo(
-        itsBunch_m->getParticleContainer()->B.getView());
+    beamToReferenceCSTrafo.rotateBunchTo(itsBunch_m->getParticleContainer()->B.getView(), nLocRef);
     m << level5 << "Rotate B fields back to reference coordinate system done. ComputeSelfFields done." << endl;
     /// Rebuild mesh from reference-frame positions so mesh origin/bounds match current coordinates.
     /// (computeSelfFields had called bunchUpdate() in beam coords; without this, mesh would stay in beam frame.)
@@ -842,9 +840,7 @@ void ParallelTracker::kickParticles(const BorisPusher& pusher) {
 
     const double mass = itsReference.getM();
     const double charge = itsReference.getQ();
-    Kokkos::parallel_for(
-        /// \todo might want to change getRangePolicy to not include overallocation!
-        "kickParticles", itsBunch_m->getLocalNum(),
+    Kokkos::parallel_for("kickParticles", itsBunch_m->getLocalNum(),
         KOKKOS_LAMBDA(const size_t i) {
             /**
              *
@@ -1003,10 +999,12 @@ void ParallelTracker::updateReferenceParticle(const BorisPusher& pusher) {
 }
 
 void ParallelTracker::transformBunch(const CoordinateSystemTrafo& trafo) {
-    trafo.transformBunchTo(itsBunch_m->getParticleContainer()->R.getView());
-    trafo.rotateBunchTo(itsBunch_m->getParticleContainer()->P.getView());
-    trafo.rotateBunchTo(itsBunch_m->getParticleContainer()->E.getView());
-    trafo.rotateBunchTo(itsBunch_m->getParticleContainer()->B.getView());
+    const size_t nLoc = itsBunch_m->getLocalNum();
+    auto pc           = itsBunch_m->getParticleContainer();
+    trafo.transformBunchTo(pc->R.getView(), nLoc);
+    trafo.rotateBunchTo(pc->P.getView(), nLoc);
+    trafo.rotateBunchTo(pc->E.getView(), nLoc);
+    trafo.rotateBunchTo(pc->B.getView(), nLoc);
 }
 
 void ParallelTracker::updateRefToLabCSTrafo() {
@@ -1230,8 +1228,9 @@ void ParallelTracker::writePhaseSpace(const long long /*step*/, bool psDump, boo
         auto Pview = itsBunch_m->getParticleContainer()->P.getView();
 
         // Go to BEAM frame for statistics
-        referenceToBeamCSTrafo.transformBunchTo(Rview);
-        referenceToBeamCSTrafo.rotateBunchTo(Pview);*/
+        const size_t nLocStat = itsBunch_m->getLocalNum();
+        referenceToBeamCSTrafo.transformBunchTo(Rview, nLocStat);
+        referenceToBeamCSTrafo.rotateBunchTo(Pview, nLocStat);*/
 
         // Calculate beam parameters in beam/lab frame and dump statistics
         itsBunch_m->calcBeamParameters();
@@ -1239,8 +1238,8 @@ void ParallelTracker::writePhaseSpace(const long long /*step*/, bool psDump, boo
         *gmsg << level2 << "* Wrote beam statistics." << endl;
 
         // Restore REFERENCE frame for the rest of the tracker
-        /*beamToReferenceCSTrafo.transformBunchTo(Rview);
-        beamToReferenceCSTrafo.rotateBunchTo(Pview);*/
+        /*beamToReferenceCSTrafo.transformBunchTo(Rview, itsBunch_m->getLocalNum());
+        beamToReferenceCSTrafo.rotateBunchTo(Pview, itsBunch_m->getLocalNum());*/
     }
 
     if (psDump && (itsBunch_m->getTotalNum() > 0)) {

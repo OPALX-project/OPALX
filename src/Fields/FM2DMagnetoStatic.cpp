@@ -219,20 +219,16 @@ void FM2DMagnetoStatic::applyField(std::shared_ptr<ParticleContainer_t> pc)
     auto Bview = pc->B.getView();
     const size_t nLocal = pc->getLocalNum();
 
-    Kokkos::parallel_for("FM2DMagnetoStatic::applyField",
-    Kokkos::RangePolicy<>(0, nLocal),
-    KOKKOS_LAMBDA(const size_t i) {
-        // Check bounds
-        if(Rview(i)(2) >= zbegin &&Rview(i)(2) < zend &&
-            sqrt(Rview(i)(0)*Rview(i)(0) + Rview(i)(1)*Rview(i)(1)) < rend) 
-        {
-            computeField(Rview(i),
-                Bview(i),
-                Bz_device,
-                Br_device,
-                hr, hz, zbegin, num_gridpr, num_gridpz);
-        }
-    });
+    Kokkos::parallel_for("FM2DMagnetoStatic::applyField", nLocal, 
+        KOKKOS_LAMBDA(const size_t i) {
+            // Check bounds
+            if (Rview(i)(2) >= zbegin && Rview(i)(2) < zend
+                && sqrt(Rview(i)(0) * Rview(i)(0) + Rview(i)(1) * Rview(i)(1)) < rend) {
+                computeField(
+                    Rview(i), Bview(i), Bz_device, Br_device, hr, hz, zbegin, num_gridpr,
+                    num_gridpz);
+            }
+        });
 
     return;
 }
