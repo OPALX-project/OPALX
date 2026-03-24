@@ -57,4 +57,4 @@ struct MultipoleTConfig {
     double fringeLambdaRight_m;
 };
 
-#endif //OPALX_MULTIPOLETCONFIG_H
+#endif  // OPALX_MULTIPOLETCONFIG_H

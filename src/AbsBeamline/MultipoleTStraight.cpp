@@ -29,81 +29,33 @@
 #include "MultipoleTStraight.h"
 #include "MultipoleT.h"
 
-MultipoleTStraight::MultipoleTStraight(MultipoleT* element) :
-    MultipoleTBase(element) {
-}
+MultipoleTStraight::MultipoleTStraight(MultipoleT* element) : MultipoleTBase(element) {}
 
 void MultipoleTStraight::initialise() {
     straightGeometry_m.setElementLength(element_m->getLength());
     generateTanhCoefficients(element_m->getMaxFOrder() * 2 + 1);
 }
 
-void MultipoleTStraight::getField(const Kokkos::View<Vector_t<double, 3>*>& R,
-        Kokkos::View<Vector_t<double, 3>*>& /*E*/, Kokkos::View<Vector_t<double, 3>*>& B,
-        const double scaling) {
+void MultipoleTStraight::getField(
+    const Kokkos::View<Vector_t<double, 3>*>& R, Kokkos::View<Vector_t<double, 3>*>& /*E*/,
+    Kokkos::View<Vector_t<double, 3>*>& B, const double scaling) {
     // Local variables that are copied into the kernel
-    const auto config = element_m->getConfig();
+    const auto config           = element_m->getConfig();
     const auto tanhCoefficients = tanhCoefficientsDevice_m;
     // Kernel launch over all particles
-    Kokkos::parallel_for("MultipoleTStraight::getField()", ippl::getRangePolicy(R),
-            KOKKOS_LAMBDA(const int i) {
-                computeBField(R(i), B(i), scaling, config, tanhCoefficients);
-            });
+    Kokkos::parallel_for(
+        "MultipoleTStraight::getField()", ippl::getRangePolicy(R), KOKKOS_LAMBDA(const int i) {
+            computeBField(R(i), B(i), scaling, config, tanhCoefficients);
+        });
 }
 
-bool MultipoleTStraight::getField(const Vector_t<double, 3>& R,
-        Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B,
-        const double scaling) {
+bool MultipoleTStraight::getField(
+    const Vector_t<double, 3>& R, Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B,
+    const double scaling) {
     return computeBField(R, B, scaling, element_m->getConfig(), tanhCoefficientsHost_m);
 }
 
-double MultipoleTStraight::getBx(const Vector_t<double, 3>& R) {
-    double Bx = 0.0;
-    for(unsigned int n = 0; n <= element_m->getMaxFOrder(); n++) {
-        double f_n = 0.0;
-        for(unsigned int i = 0; i <= n; i++) {
-            f_n += choose(n, i) * element_m->getTransDeriv(2 * i + 1, R[0]) *
-                    element_m->getFringeDeriv(2 * n - 2 * i, R[2]);
-        }
-        f_n *= powerInteger(-1.0, n);
-        Bx += f_n * powerInteger(R[1], 2 * n + 1) / factorial(2 * n + 1);
-    }
-    return Bx;
-}
-
-double MultipoleTStraight::getBs(const Vector_t<double, 3>& R) {
-    double Bs = 0.0;
-    for(unsigned int n = 0; n <= element_m->getMaxFOrder(); n++) {
-        double f_n = 0.0;
-        for(unsigned int i = 0; i <= n; i++) {
-            f_n += choose(n, i) * element_m->getTransDeriv(2 * i, R[0]) *
-                    element_m->getFringeDeriv(2 * n - 2 * i + 1, R[2]);
-        }
-        f_n *= powerInteger(-1.0, n);
-        Bs += f_n * powerInteger(R[1], 2 * n + 1) / factorial(2 * n + 1);
-    }
-    return Bs;
-}
-
-double MultipoleTStraight::getFn(const unsigned int n, const double x, const double s) {
-    if(n == 0) {
-        return element_m->getTransDeriv(0, x) * element_m->getFringeDeriv(0, s);
-    }
-    double f_n = 0.0;
-    for(unsigned int i = 0; i <= n; i++) {
-        f_n += choose(n, i) * element_m->getTransDeriv(2 * i, x) *
-                element_m->getFringeDeriv(2 * n - 2 * i, s);
-    }
-    f_n *= powerInteger(-1.0, n);
-    return f_n;
-}
-
-Vector_t<double, 3>
-    MultipoleTStraight::localCartesianToOpalCartesian(const Vector_t<double, 3>& r) {
+Vector_t<double, 3> MultipoleTStraight::localCartesianToOpalCartesian(
+    const Vector_t<double, 3>& r) {
     return {r[0], r[1], r[2] + element_m->getLength() / 2.0};
-}
-
-void MultipoleTStraight::transformCoords(Vector_t<double, 3>& R) {
-    // Magnet origin at the center rather than entry
-    R[2] += element_m->getLength() / 2.0;
 }

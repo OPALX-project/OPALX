@@ -74,8 +74,8 @@
  * ---------------------------------------------------------------------
  */
 
-#include "OPALTypes.h"
 #include "AbsBeamline/MultipoleTConfig.h"
+#include "OPALTypes.h"
 class MultipoleT;
 class BeamlineVisitor;
 class BGeometryBase;
@@ -100,58 +100,25 @@ public:
     /** Return the cell geometry */
     virtual const BGeometryBase* getGeometry() const = 0;
     /** Return the field for an array of points */
-    virtual void getField(const Kokkos::View<Vector_t<double, 3>*>& /*R*/,
-            Kokkos::View<Vector_t<double, 3>*>& /*E*/, Kokkos::View<Vector_t<double, 3>*>& /*B*/,
-            double /*scaling*/) {}
+    virtual void getField(
+        const Kokkos::View<Vector_t<double, 3>*>& /*R*/, Kokkos::View<Vector_t<double, 3>*>& /*E*/,
+        Kokkos::View<Vector_t<double, 3>*>& /*B*/, double /*scaling*/) {}
 
     /** Return the field for a single point */
-    virtual bool getField(const Vector_t<double, 3>& /*R*/,
-            Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/,
-            double /*scaling*/) { return false; }
+    virtual bool getField(
+        const Vector_t<double, 3>& /*R*/, Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/,
+        double /*scaling*/) {
+        return false;
+    }
 
-    /** Transform to Frenet-Serret coordinates for sector magnets */
-    virtual void transformCoords(Vector_t<double, 3>& R) = 0;
-    /** Transform B-field from Frenet-Serret coordinates to lab coordinates */
-    virtual void transformBField(Vector_t<double, 3>& B, const Vector_t<double, 3>& R) = 0;
-    /** Returns the scale factor @f$ h_s = 1 + x / \rho(s) @f$
-     *  \param x -> Coordinate x
-     *  \param s -> Coordinate s
-     */
-    virtual double getScaleFactor(double x, double s) = 0;
-    /** Returns the radial component of the field \n
-     *  Returns zero far outside fringe field
-     *  @f$ Bx = sum_n z^(2n+1) / (2n+1)! * \partial_x f_n @f$
-     */
-    virtual double getBx(const Vector_t<double, 3>& R);
-    /** Returns the vertical field component \n
-     *  Returns zero far outside fringe field
-     *  @f$ Bz = sum_n  f_n * z^(2n) / (2n)! @f$
-     */
-    virtual double getBz(const Vector_t<double, 3>& R);
-    /** Returns the component of the field along the central axis \n
-     *  Returns zero far outside fringe field
-      * @f$ Bs = sum_n z^(2n+1) / (2n+1)! \partial_s f_n / h_s @f$
-      */
-    virtual double getBs(const Vector_t<double, 3>& R);
-    /** Calculate fn(x, s) by expanding the differential operator
-     *  (from Laplacian and scalar potential) in terms of polynomials
-     *  \param n -> nth derivative
-     *  \param x -> Coordinate x
-     *  \param s -> Coordinate s
-     */
-    virtual double getFn(unsigned int n, double x, double s) = 0;
-    /** Set the number of terms used in calculation of field components \n
-     *  \param orderZ -> Number of terms in expansion in z
-     *  \param orderX -> Number of terms in expansion in x
-     */
     virtual void setMaxOrder(size_t /*orderZ*/, size_t /*orderX*/) {}
 
     virtual Vector_t<double, 3> localCartesianToOpalCartesian(const Vector_t<double, 3>& r) = 0;
     virtual double localCartesianRotation() { return 0.0; }
 
     // Constants
-    static constexpr size_t MaxFactorial = 20;
-    static constexpr size_t MaxPowerInteger = 20;
+    static constexpr size_t MaxFactorial         = 20;
+    static constexpr size_t MaxPowerInteger      = 20;
     static constexpr unsigned int MaxDerivatives = 20;
 
     /** Helper function that returns factorial of n for n<=20 on both host and GPU */
@@ -162,46 +129,44 @@ public:
     KOKKOS_INLINE_FUNCTION static double choose(unsigned int n, unsigned int m);
     /** Helper function that calculates transverse derivatives for multipole fields */
     KOKKOS_INLINE_FUNCTION static void calcTransverseDerivatives(
-            const Kokkos::Array<double, MultipoleTConfig::NumPoles>& poles,
-            unsigned int numDerivatives, double x,
-            Kokkos::Array<double, MaxDerivatives>& derivatives);
-    template<class ViewType>
-    KOKKOS_INLINE_FUNCTION static void calcFringeDerivatives(const double& s0,
-            const double& lambdaLeft, const double& lambdaRight, double s,
-            const ViewType& tanhCoefficients, Kokkos::Array<double, MaxDerivatives>& derivatives);
+        const Kokkos::Array<double, MultipoleTConfig::NumPoles>& poles, unsigned int numDerivatives,
+        double x, Kokkos::Array<double, MaxDerivatives>& derivatives);
+    template <class ViewType>
+    KOKKOS_INLINE_FUNCTION static void calcFringeDerivatives(
+        const double& s0, const double& lambdaLeft, const double& lambdaRight, double s,
+        const ViewType& tanhCoefficients, Kokkos::Array<double, MaxDerivatives>& derivatives);
     void generateTanhCoefficients(unsigned int numDerivatives);
-    KOKKOS_INLINE_FUNCTION static Vector_t<double, 3> rotateFrame(Vector_t<double, 3> R,
-            const MultipoleTConfig& config);
-    KOKKOS_INLINE_FUNCTION static void calcPowers(double value, unsigned int maxPower,
-            Kokkos::Array<double, MaxPowerInteger>& powers);
+    KOKKOS_INLINE_FUNCTION static Vector_t<double, 3> rotateFrame(
+        Vector_t<double, 3> R, const MultipoleTConfig& config);
+    KOKKOS_INLINE_FUNCTION static void calcPowers(
+        double value, unsigned int maxPower, Kokkos::Array<double, MaxPowerInteger>& powers);
 };
 
 KOKKOS_INLINE_FUNCTION
 double MultipoleTBase::factorial(const unsigned int n) {
     static constexpr double factorialTable[MaxFactorial + 1] = {
-            1.0,
-            1.0,
-            2.0,
-            6.0,
-            24.0,
-            120.0,
-            720.0,
-            5040.0,
-            40320.0,
-            362880.0,
-            3628800.0,
-            39916800.0,
-            479001600.0,
-            6227020800.0,
-            87178291200.0,
-            1307674368000.0,
-            20922789888000.0,
-            355687428096000.0,
-            6402373705728000.0,
-            121645100408832000.0,
-            2432902008176640000.0
-    };
-    if(n > MaxFactorial) {
+        1.0,
+        1.0,
+        2.0,
+        6.0,
+        24.0,
+        120.0,
+        720.0,
+        5040.0,
+        40320.0,
+        362880.0,
+        3628800.0,
+        39916800.0,
+        479001600.0,
+        6227020800.0,
+        87178291200.0,
+        1307674368000.0,
+        20922789888000.0,
+        355687428096000.0,
+        6402373705728000.0,
+        121645100408832000.0,
+        2432902008176640000.0};
+    if (n > MaxFactorial) {
         Kokkos::abort("factorial out of bounds");
     }
     return factorialTable[n];
@@ -209,12 +174,12 @@ double MultipoleTBase::factorial(const unsigned int n) {
 
 KOKKOS_INLINE_FUNCTION
 double MultipoleTBase::powerInteger(double x, unsigned int n) {
-    if(n > MaxPowerInteger) {
+    if (n > MaxPowerInteger) {
         Kokkos::abort("integer power out of bounds");
     }
     double result = 1.0;
-    while(n > 0) {
-        if(n & 1) {
+    while (n > 0) {
+        if (n & 1) {
             result *= x;
         }
         x *= x;
@@ -230,42 +195,41 @@ double MultipoleTBase::choose(const unsigned int n, const unsigned int m) {
 
 KOKKOS_INLINE_FUNCTION
 void MultipoleTBase::calcTransverseDerivatives(
-        const Kokkos::Array<double, MultipoleTConfig::NumPoles>& poles,
-        const unsigned int numDerivatives, const double x,
-        Kokkos::Array<double, MaxDerivatives>& derivatives) {
+    const Kokkos::Array<double, MultipoleTConfig::NumPoles>& poles,
+    const unsigned int numDerivatives, const double x,
+    Kokkos::Array<double, MaxDerivatives>& derivatives) {
     Kokkos::Array<double, MultipoleTConfig::NumPoles> coefficients = poles;
-    for(unsigned int i = 0; i < numDerivatives; ++i) {
+    for (unsigned int i = 0; i < numDerivatives; ++i) {
         // Calculate the value of this derivative
         derivatives[i] = 0;
-        for(unsigned int j = 0; j < MultipoleTConfig::NumPoles; ++j) {
+        for (unsigned int j = 0; j < MultipoleTConfig::NumPoles; ++j) {
             derivatives[i] += coefficients[j] * powerInteger(x, j);
         }
         // Differentiate for the next derivative
-        for(unsigned int j = 0; j < MultipoleTConfig::NumPoles - 1; ++j) {
+        for (unsigned int j = 0; j < MultipoleTConfig::NumPoles - 1; ++j) {
             coefficients[j] = coefficients[j + 1] * static_cast<double>(j + 1);
         }
         coefficients[MultipoleTConfig::NumPoles - 1] = 0.0;
     }
 }
 
-template<class ViewType>
-KOKKOS_INLINE_FUNCTION
-void MultipoleTBase::calcFringeDerivatives(const double& s0, const double& lambdaLeft,
-        const double& lambdaRight, const double s, const ViewType& tanhCoefficients,
-        Kokkos::Array<double, MaxDerivatives>& derivatives) {
-    const double tLeft = std::tanh((s + s0) / lambdaLeft);
-    const double tRight = std::tanh((s - s0) / lambdaRight);
-    double lambdaLeftN = 1.0;
-    double lambdaRightN = 1.0;
-    const unsigned int numDerivatives = tanhCoefficients.extent(0);
+template <class ViewType>
+KOKKOS_INLINE_FUNCTION void MultipoleTBase::calcFringeDerivatives(
+    const double& s0, const double& lambdaLeft, const double& lambdaRight, const double s,
+    const ViewType& tanhCoefficients, Kokkos::Array<double, MaxDerivatives>& derivatives) {
+    const double tLeft                 = std::tanh((s + s0) / lambdaLeft);
+    const double tRight                = std::tanh((s - s0) / lambdaRight);
+    double lambdaLeftN                 = 1.0;
+    double lambdaRightN                = 1.0;
+    const unsigned int numDerivatives  = tanhCoefficients.extent(0);
     const unsigned int numCoefficients = tanhCoefficients.extent(1);
-    for(unsigned int i = 0; i < numDerivatives; ++i) {
+    for (unsigned int i = 0; i < numDerivatives; ++i) {
         // Evaluate the polynomial for both left and right
-        double tLeftN = 1.0;
-        double tRightN = 1.0;
-        double leftTerm = 0.0;
+        double tLeftN    = 1.0;
+        double tRightN   = 1.0;
+        double leftTerm  = 0.0;
         double rightTerm = 0.0;
-        for(unsigned int j = 0; j < numCoefficients; ++j) {
+        for (unsigned int j = 0; j < numCoefficients; ++j) {
             const auto coeff = tanhCoefficients(i, j);
             leftTerm += coeff * tLeftN;
             rightTerm += coeff * tRightN;
@@ -281,12 +245,12 @@ void MultipoleTBase::calcFringeDerivatives(const double& s0, const double& lambd
 }
 
 KOKKOS_INLINE_FUNCTION
-Vector_t<double, 3> MultipoleTBase::rotateFrame(Vector_t<double, 3> R,
-        const MultipoleTConfig& config) {
+Vector_t<double, 3> MultipoleTBase::rotateFrame(
+    Vector_t<double, 3> R, const MultipoleTConfig& config) {
     Vector_t<double, 3> R1(3), R2(3);
     /** Apply two 2D rotation matrices to coordinate vector
-      * Rotate around central axis => skew fields
-      * Rotate azimuthally => entrance angle
+     * Rotate around central axis => skew fields
+     * Rotate azimuthally => entrance angle
      */
     // 1st rotation
     R1[0] = R[0] * std::cos(config.rotation_m) + R[1] * std::sin(config.rotation_m);
@@ -299,12 +263,13 @@ Vector_t<double, 3> MultipoleTBase::rotateFrame(Vector_t<double, 3> R,
     return R2;
 }
 
-KOKKOS_INLINE_FUNCTION void MultipoleTBase::calcPowers(const double value,
-        const unsigned int maxPower, Kokkos::Array<double, MaxPowerInteger>& powers) {
+KOKKOS_INLINE_FUNCTION void MultipoleTBase::calcPowers(
+    const double value, const unsigned int maxPower,
+    Kokkos::Array<double, MaxPowerInteger>& powers) {
     powers[0] = 1;
-    for(unsigned int i = 1; i <= maxPower; i++) {
+    for (unsigned int i = 1; i <= maxPower; i++) {
         powers[i] = powers[i - 1] * value;
     }
-};
+}
 
 #endif
