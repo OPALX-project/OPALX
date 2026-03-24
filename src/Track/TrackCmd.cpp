@@ -20,6 +20,7 @@
 #include "AbstractObjects/BeamSequence.h"
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
+#include "Lines/EmissionSourceList.h"
 #include "Structure/Beam.h"
 #include "Track/Track.h"
 #include "Track/TrackParser.h"
@@ -29,6 +30,7 @@ namespace {
     // The attributes of class TrackCmd
     enum {
         LINE,      // The name of lattice to be tracked.
+        SOURCES,   // The name of the emission sources list (EMISSIONSOURCELIST).
         BEAM,      // The name of beam to be used.
         DT,        // The integration timestep in second.
                    // In case of the adaptive integrator, time step guideline for
@@ -59,6 +61,9 @@ const std::map<std::string, Steppers::TimeIntegrator> TrackCmd::stringTimeIntegr
 
 TrackCmd::TrackCmd() : Action(SIZE, "TRACK", "The \"TRACK\" command initiates tracking.") {
     itsAttr[LINE] = Attributes::makeString("LINE", "Name of lattice to be tracked.");
+
+    itsAttr[SOURCES] =
+        Attributes::makeString("SOURCES", "Name of the emission sources list (EMISSIONSOURCELIST).");
 
     itsAttr[BEAM] = Attributes::makeString("BEAM", "Name of beam to be used.", "UNNAMED_BEAM");
 
@@ -183,6 +188,20 @@ void TrackCmd::execute() {
     // Find BeamSequence
     BeamSequence* theLineToTrack = BeamSequence::find(Attributes::getString(itsAttr[LINE]));
 
+    // SOURCES (EMISSIONSOURCELIST) is required for particle injection.
+    if (!itsAttr[SOURCES] || Attributes::getString(itsAttr[SOURCES]) == "") {
+        throw OpalException(
+            "TrackCmd::execute",
+            "\"SOURCES\" must be set in \"TRACK\" command (name of EMISSIONSOURCELIST).");
+    }
+    EmissionSourceList* emissionSourcesList =
+        EmissionSourceList::find(Attributes::getString(itsAttr[SOURCES]));
+    if (emissionSourcesList->fetchSources().empty()) {
+        throw OpalException(
+            "TrackCmd::execute",
+            "Emission sources list must contain at least one EMISSIONSOURCE.");
+    }
+
     // Find Beam
     Beam* beam = Beam::find(Attributes::getString(itsAttr[BEAM]));
 
@@ -218,7 +237,7 @@ void TrackCmd::execute() {
 
     Track::block = new Track(
         theLineToTrack, beam->getReference(), dt, maxsteps, stepsperturn, zstart, zstop,
-        timeintegrator, t0, dtScInit, deltaTau);
+        timeintegrator, t0, dtScInit, deltaTau, emissionSourcesList);
 
     Track::block->truncOrder = (int)Attributes::getReal(itsAttr[MAP_ORDER]);
 

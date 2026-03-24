@@ -19,7 +19,7 @@
 
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
-#include "OPALconfig.h"
+#include "BuildInfo.h"
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
 #include "Utilities/Options.h"
@@ -62,7 +62,7 @@ RealConstant::RealConstant()
 
     opal->create(new RealConstant(
         "OPALVERSION", this,
-        OPAL_VERSION_MAJOR * 10000 + OPAL_VERSION_MINOR * 100 + OPAL_VERSION_PATCH));
+        buildinfo::version_major * 10000 + buildinfo::version_minor * 100 + buildinfo::version_patch));
     opal->create(new RealConstant("RANK", this, ippl::Comm->rank()));
 }
 

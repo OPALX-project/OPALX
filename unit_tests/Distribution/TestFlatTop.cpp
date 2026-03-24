@@ -2,6 +2,7 @@
 #include <mpi.h>
 #include <memory>
 #include <cmath>
+#include <algorithm>
 
 #include "Distribution/FlatTop.h"
 #include "Ippl.h"
@@ -270,6 +271,15 @@ TEST_F(FlatTopTest, CountEnteringParticles_NoDomainDecomp) {
     const size_t totalN = 100000;
     sampler.allocateParticles(totalN);
 
+    // Preallocate capacity so computeLocalEmitCount can distribute totalN.
+    const int nranksConst     = std::max(1, ippl::Comm->size());
+    const size_t nranksU = static_cast<size_t>(nranksConst);
+    const size_t maxLocalNum =
+        totalN / nranksU + 2 * nranksU + 1;
+    pc->create(maxLocalNum);
+    Kokkos::View<bool*> tmp_invalid("tmp_invalid", maxLocalNum);
+    pc->destroy(tmp_invalid, maxLocalNum);
+
     const double t0 = 2.0;
     const double tf = 2.1;
 
@@ -280,23 +290,22 @@ TEST_F(FlatTopTest, CountEnteringParticles_NoDomainDecomp) {
     double f1 = sampler.FlatTopProfile(tf);
     double tArea = 0.5 * (f0 + f1) * (tf - t0);
 
-    double expectedTotalNew =
+    double expectedTotalNewD =
         std::floor(totalN * tArea / sampler.getDistArea());
+    const size_t expectedTotalNew =
+        static_cast<size_t>(expectedTotalNewD);
 
     int nranks;
     MPI_Comm_size(MPI_COMM_WORLD, &nranks);
 
-    size_t expectedLocal =
-        static_cast<size_t>(std::floor(expectedTotalNew / nranks));
-
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-    // Rank 0 gets remainder
-    size_t remainder = expectedTotalNew - expectedLocal * nranks;
-    if (rank == 0) {
-        expectedLocal += remainder;
-    }
+    // Mirror SamplingBase::computeLocalEmitCount for equal capacities:
+    // first 'rem' ranks get one extra particle.
+    size_t base = expectedTotalNew / static_cast<size_t>(nranks);
+    size_t rem  = expectedTotalNew % static_cast<size_t>(nranks);
+    size_t expectedLocal = base + ((static_cast<size_t>(rank) < rem) ? 1 : 0);
 
     EXPECT_EQ(nlocal, expectedLocal);
 

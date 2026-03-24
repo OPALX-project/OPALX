@@ -36,6 +36,10 @@
 #include "PartBunch/FieldSolver.hpp"
 #include "PartBunch/LoadBalancer.hpp"
 #include "PartBunch/ParticleContainer.hpp"
+#include "Random/Distribution.h"
+#include "Random/InverseTransformSampling.h"
+#include "Random/NormalDistribution.h"
+#include "Random/Randn.h"
 
 #ifdef WITH_UNIT_TESTS
 #include <gtest/gtest_prod.h>
@@ -78,6 +82,10 @@ public:
 
     std::string getTypeofDistribution();
     DistributionType getType() const;
+
+    /// Return the number of macroparticles assigned to this distribution.
+    /// If 0, the distribution did not specify its own NPARTDIST.
+    size_t getNumParticles() const;
 
     Inform& printInfo(Inform& os) const;
 
@@ -277,6 +285,10 @@ inline DistributionType Distribution::getType() const {
 
 inline double Distribution::getAvrgpz() const {
     return avrgpz_m;
+}
+
+inline size_t Distribution::getNumParticles() const {
+    return totalNumberParticles_m;
 }
 
 inline std::string Distribution::getTypeofDistribution() {

@@ -101,9 +101,10 @@ bool VectorMap::checkValue(const std::vector<double>& value) const {
 }
 
 void VectorMap::function(const Mesh::Iterator& point, double* value) const {
-    double PointA[this->getPointDimension()];
-    point.getPosition(PointA);
-    function(PointA, value);
+    // Use standard C++ storage here; Clang warns on the VLA extension.
+    std::vector<double> pointA(this->getPointDimension());
+    point.getPosition(pointA.data());
+    function(pointA.data(), value);
 }
 
 void VectorMap::functionAppend

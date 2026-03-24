@@ -20,7 +20,7 @@
 
 #include "AbstractObjects/OpalData.h"
 #include "PartBunch/PartBunch.h"
-#include "OPALconfig.h"
+#include "BuildInfo.h"
 #include "Utilities/SDDSParser.h"
 #include "Utilities/Util.h"
 
@@ -107,7 +107,7 @@ void SDDSWriter::replaceVersionString() {
         if (line != versionFile) {
             fs << line << "\n";
         } else {
-            fs << OPAL_PROJECT_NAME << " " << OPAL_PROJECT_VERSION << " git rev. #"
+            fs << buildinfo::project_name << " " << buildinfo::project_version << " git rev. #"
                << Util::getGitRevision() << "\n";
         }
 
@@ -198,7 +198,7 @@ void SDDSWriter::writeInfo() {
 
 void SDDSWriter::addDefaultParameters() {
     std::stringstream revision;
-    revision << OPAL_PROJECT_NAME << " " << OPAL_PROJECT_VERSION << " "
+    revision << buildinfo::project_name << " " << buildinfo::project_version << " "
              << "git rev. #" << Util::getGitRevision();
 
     std::string flavor;
