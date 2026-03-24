@@ -266,6 +266,7 @@ bool Multipole::apply()
     auto Rview = pc->R.getView();
     auto Eview = pc->E.getView();
     auto Bview = pc->B.getView();
+    const size_t nLocal = pc->getLocalNum();
 
     // Local variables that are copied into the kernel
     double elemLength = getElementLength();
@@ -277,7 +278,7 @@ bool Multipole::apply()
     int maxSkew = max_SkewComponent_m;
 
     // Kernel launch over all particles
-    Kokkos::parallel_for("Multipole::apply()", ippl::getRangePolicy(Rview), 
+    Kokkos::parallel_for("Multipole::apply()", Kokkos::RangePolicy<>(0, nLocal), 
     KOKKOS_LAMBDA(const int i)
     {
         // Check bounds
