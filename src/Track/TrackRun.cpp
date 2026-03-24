@@ -72,7 +72,6 @@ namespace TRACKRUN {
     enum {
         METHOD,            // Tracking method to use.
         TURNS,             // The number of turns to be tracked, we keep that for the moment
-        BEAM,              // The beam to track
         FIELDSOLVER,       // The field solver attached
         BOUNDARYGEOMETRY,  // The boundary geometry
         TRACKBACK,         // In case we run the beam backwards
@@ -107,8 +106,6 @@ TrackRun::TrackRun()
         "TURNS",
         "Number of turns to be tracked; Number of neighboring bunches to be tracked in cyclotron.",
         1.0);
-
-    itsAttr[TRACKRUN::BEAM] = Attributes::makeString("BEAM", "Name of beam.");
 
     itsAttr[TRACKRUN::FIELDSOLVER] =
         Attributes::makeString("FIELDSOLVER", "Field solver to be used.");
@@ -202,7 +199,7 @@ void TrackRun::execute() {
     if (!itsAttr[TRACKRUN::FIELDSOLVER]) {
         throw OpalException("TrackRun::execute", "\"FIELDSOLVER\" must be set in \"RUN\" command.");
     }
-    // RUN::BEAM is optional when TRACK specifies BEAMS.
+    // Beam selection is resolved from TRACK::BEAM / TRACK::BEAMS.
     // For now, we still track using only the first resolved beam.
 
     OpalData::getInstance()->setInOPALTMode();
@@ -225,20 +222,10 @@ void TrackRun::execute() {
     }
 
     // Vector of beam names for organizing stat files
-    std::vector<std::string> beamNames;
-    if (itsAttr[TRACKRUN::BEAM]) {
-        const std::string beamName = Attributes::getString(itsAttr[TRACKRUN::BEAM]);
-        if (!beamName.empty()) {
-            beamNames.push_back(beamName);
-        }
-    }
+    std::vector<std::string> beamNames = Track::block->beamNames_m;
 
     if (beamNames.empty()) {
-        beamNames = Track::block->beamNames_m;
-    }
-
-    if (beamNames.empty()) {
-        throw OpalException("TrackRun::execute", "No beam specified: set RUN::BEAM or TRACK::BEAMS.");
+        throw OpalException("TrackRun::execute", "No beam specified: set TRACK::BEAM or TRACK::BEAMS.");
     }
 
     // Vector of beams
@@ -283,7 +270,7 @@ void TrackRun::execute() {
     
     /// \todo debugging output, can potentially be removed later
     double part_per_macro_ratio = macrocharge_m / (beam->getCharge() * Physics::q_e);
-    *gmsg << level2 << "* Macro charge per particle [eV]: " << (macrocharge_m) << endl;
+    *gmsg << level2 << "* Macro charge per particle [C]: " << (macrocharge_m) << endl;
     *gmsg << level2 << "* Macro mass per particle: [GeV/c^2] " << (macromass_m) << endl;
     *gmsg << level2 << "* Particles per macro particle: " << part_per_macro_ratio << endl;
     /*
@@ -449,7 +436,7 @@ void TrackRun::setupFieldsolver() {
     if (fs_m->getFieldSolverType() != FieldSolverType::NONE) {
         size_t numGridPoints =
             fs_m->getMX() * fs_m->getMY() * fs_m->getMZ();  // total number of gridpoints
-        Beam* beam          = Beam::find(Attributes::getString(itsAttr[TRACKRUN::BEAM]));
+        Beam* beam          = Beam::find(Track::block->beamNames_m.front());
         size_t numParticles = beam->getNumberOfParticles();
 
         if (!opal->inRestartRun() && numParticles < numGridPoints) {
@@ -648,10 +635,7 @@ Inform& TrackRun::print(Inform& os) const {
        << "* MAXSTEPS                      = " << Track::block->localTimeSteps.front() << '\n';
 
     std::string primaryBeamName;
-    if (itsAttr[TRACKRUN::BEAM]) {
-        primaryBeamName = Attributes::getString(itsAttr[TRACKRUN::BEAM]);
-    }
-    if (primaryBeamName.empty() && Track::block && !Track::block->beamNames_m.empty()) {
+    if (Track::block && !Track::block->beamNames_m.empty()) {
         primaryBeamName = Track::block->beamNames_m.front();
     }
 
