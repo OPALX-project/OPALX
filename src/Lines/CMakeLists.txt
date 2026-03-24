@@ -1,4 +1,5 @@
 set (_SRCS
+    EmissionSourceList.cpp
     Line.cpp
     LineTemplate.cpp
     Replacer.cpp
@@ -9,6 +10,7 @@ set (_SRCS
     )
 
 set (HDRS
+    EmissionSourceList.h
     Line.h
     LineTemplate.h
     Replacer.h

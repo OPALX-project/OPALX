@@ -10,9 +10,6 @@
 #include <memory>
 #include <cmath>
 
-using ParticleContainer_t = ParticleContainer<double, 3>;
-using FieldContainer_t = FieldContainer<double, 3>;
-using Distribution_t = Distribution;
 using GeneratorPool = typename Kokkos::Random_XorShift64_Pool<>;
 using Dist_t = ippl::random::NormalDistribution<double, 3>;
 using Matrix_t = ippl::Vector<ippl::Vector<double, 6>, 6>;
@@ -99,6 +96,15 @@ public:
      * @param nr Vector specifying additional sampling parameters.
      */
     void generateParticles(size_t &numberOfParticles, Vector_t<double, 3> nr) override;
+
+    /**
+     * @brief Time-stepped emission hook for one-shot delayed injection.
+     *
+     * Like Gaussian, this emits once when [t, t+dt] crosses t0 for sources
+     * configured with t0 > 0 and a positive NPARTDIST. Initial sampling at
+     * t0 == 0 is handled via generateParticles.
+     */
+    void emitParticles(double t, double dt) override;
 
     /**
      * @brief Timer for performance profiling.

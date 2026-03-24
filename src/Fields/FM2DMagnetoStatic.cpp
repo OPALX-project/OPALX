@@ -1,5 +1,6 @@
 #include "Fields/FM2DMagnetoStatic.h"
 #include "Fields/Fieldmap.hpp"
+#include "PartBunch/PartBunch.h"
 #include "Physics/Units.h"
 #include "Utilities/GeneralClassicException.h"
 #include "Utilities/Util.h"

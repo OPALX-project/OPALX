@@ -9,14 +9,16 @@ install(
   FILES_MATCHING
   PATTERN "*.h" PATTERN "*.hpp" PATTERN "*.hh" PATTERN "*.H" PATTERN "*.cuh" PATTERN "*.tpp"
   EXCLUDE
+  PATTERN "OPALconfig.h" EXCLUDE
+  PATTERN "OPALXVersions.h" EXCLUDE
   PATTERN "CMakeFiles" EXCLUDE
   PATTERN "CMakeLists.txt" EXCLUDE
   PATTERN "*.cpp" EXCLUDE
   PATTERN "*.cc" EXCLUDE
   PATTERN "*.cu" EXCLUDE)
 
-# Install generated version header
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/OPALXVersions.h
+# Install generated build info header
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/BuildInfo.h
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/opalx)
 
 # Install the OPALX library

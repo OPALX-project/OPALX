@@ -17,7 +17,7 @@ endif()
 # ------------------------------------------------------------------------------
 # Project declaration and version
 # ------------------------------------------------------------------------------
-project(OPALX VERSION 1.0 LANGUAGES C CXX)
+project(OPALX VERSION 0.9 LANGUAGES C CXX)
 
 # ------------------------------------------------------------------------------
 # Module path, setup before including any cmake modules
@@ -43,6 +43,7 @@ include(ProjectSetup)
 # Setup Output directories
 # ------------------------------------------------------------------------------
 if(OPALX_USE_STANDARD_FOLDERS)
+  message(STATUS "🔧 OPALX_USE_STANDARD_FOLDERS=ON: using ${PROJECT_BINARY_DIR}/bin and ${PROJECT_BINARY_DIR}/lib for all targets")
   set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin
       CACHE PATH "Single Directory for all Executables.")
   set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib
@@ -50,6 +51,7 @@ if(OPALX_USE_STANDARD_FOLDERS)
   set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib
       CACHE PATH "Single Directory for all static libraries.")
 else()
+  message(STATUS "🔧 OPALX_USE_STANDARD_FOLDERS=OFF: using CMake default output directories")
   unset(CMAKE_RUNTIME_OUTPUT_DIRECTORY CACHE)
   unset(CMAKE_LIBRARY_OUTPUT_DIRECTORY CACHE)
   unset(CMAKE_ARCHIVE_OUTPUT_DIRECTORY CACHE)

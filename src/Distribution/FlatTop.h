@@ -15,9 +15,6 @@
 #include <memory>
 #include <cmath>
 
-using ParticleContainer_t = ParticleContainer<double, 3>;
-using FieldContainer_t = FieldContainer<double, 3>;
-using Distribution_t = Distribution;
 using GeneratorPool = typename Kokkos::Random_XorShift64_Pool<>;
 using Dist_t = ippl::random::NormalDistribution<double, 3>;
 
@@ -215,7 +212,7 @@ public:
      * @param tf End time.
      * @return Number of entering particles per rank.
      */
-    double countEnteringParticlesPerRank(double t0, double tf);
+    size_type countEnteringParticlesPerRank(double t0, double tf);
 
     /**
      * @brief Allocates memory for a given number of particles.
