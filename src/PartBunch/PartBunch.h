@@ -47,11 +47,12 @@ public:
     using LoadBalancer_t      = LoadBalancer<T, Dim>;
     using Base                = ippl::ParticleBase<ippl::ParticleSpatialLayout<T, Dim>>;
 
-    using BinningSelector_t   = typename ParticleBinning::CoordinateSelector<ParticleContainer_t>;
-    using AdaptBins_t         = typename ParticleBinning::AdaptBins<ParticleContainer_t, BinningSelector_t>;
-    using binIndex_t          = typename ParticleContainer_t::bin_index_type;
+    using CoordinateSelector_t = typename ParticleBinning::CoordinateSelector<ParticleContainer_t>;
+    using GammaSelector_t      = typename ParticleBinning::GammaSelector<ParticleContainer_t>;
+    using AdaptBins_t          = typename ParticleBinning::AdaptBinsBase<ParticleContainer_t>;
+    using binIndex_t           = typename ParticleContainer_t::bin_index_type;
 
-    using BCHandler_t         = BCHandler<Dim>;
+    using BCHandler_t          = BCHandler<Dim>;
 
     double time_m;
 

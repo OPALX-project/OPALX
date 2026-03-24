@@ -295,7 +295,7 @@ typename BinnedFieldSolver<T, Dim>::BinKinematics BinnedFieldSolver<T, Dim>::com
     m << level4 << "gammaBinGlobal: binIndex=" << static_cast<int>(binIndex)
       << ", nPartGlobal=" << static_cast<unsigned long long>(nPartGlobal) << endl;
 
-    typename AdaptBins_t::position_view_type pView = bunch->getParticleContainer()->P.getView();
+    typename PartBunch_t::Base::particle_position_type::view_type pView = bunch->getParticleContainer()->P.getView();
     typename AdaptBins_t::hash_type indices        = bins->getHashArray();
 
     // compute local momentum sums over particles in this bin.

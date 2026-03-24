@@ -194,21 +194,38 @@ void PartBunch<T, Dim>::setBins() {
 
     m << level4 << "Using binning command: " << binningCmd->getOpalName() << endl;
 
-    std::string parameterName = binningCmd->getParameter();
-    if (parameterName != "VELOCITYZ") {
-        throw OpalException("PartBunch::setBins",
-                            "Binning parameter " + parameterName + " not supported yet! Only VELOCITYZ.");
+    switch (binningCmd->getParameterType()) {
+        case BinningParameter::VELOCITYZ:
+            this->setBins(
+                std::make_shared<ParticleBinning::AdaptBins<ParticleContainer_t, CoordinateSelector_t>>(
+                    this->getParticleContainer(), 
+                    CoordinateSelector_t(2), 
+                    binningCmd->getMaxBins(),
+                    binningCmd->getBinningAlpha(), 
+                    binningCmd->getBinningBeta(),
+                    binningCmd->getDesiredWidth(), 
+                    binningCmd->getOpalName()
+                )
+            );
+            break;
+        case BinningParameter::GAMMAZ:
+            this->setBins(
+                std::make_shared<ParticleBinning::AdaptBins<ParticleContainer_t, GammaSelector_t>>(
+                    this->getParticleContainer(),
+                    GammaSelector_t(2), 
+                    binningCmd->getMaxBins(),
+                    binningCmd->getBinningAlpha(), 
+                    binningCmd->getBinningBeta(),
+                    binningCmd->getDesiredWidth(), 
+                    binningCmd->getOpalName()
+                )
+            );
+            break;
+        default:
+            throw OpalException(
+                "PartBunch::setBins", "Binning parameter " + binningCmd->getParameter()
+                                          + " not supported yet! Only VELOCITYZ and GAMMAZ.");
     }
-
-    this->setBins(std::make_shared<AdaptBins_t>(
-        this->getParticleContainer(),
-        BinningSelector_t(2),
-        binningCmd->getMaxBins(),
-        binningCmd->getBinningAlpha(),
-        binningCmd->getBinningBeta(),
-        binningCmd->getDesiredWidth(), // Cost function parameters
-        binningCmd->getOpalName()
-    ));
     m << level3 << "Bins set." << endl;
     this->getBins()->debug();
 }
