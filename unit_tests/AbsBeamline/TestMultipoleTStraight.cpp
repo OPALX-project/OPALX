@@ -78,10 +78,10 @@ protected:
         Kokkos::deep_copy(hostB, B);
         for (size_t i = 0; i < line.size(); ++i) {
             line[i] = std::hypot(hostB(i)[0], hostB(i)[1], hostB(i)[2]);
-            std::cout << i << ": Local=" << local[i] << ", Global=" << R[i]
-                      << ", mag(B)=" << line[i] << std::endl;
+            //std::cout << i << ": Local=" << local[i] << ", Global=" << R[i]
+            //          << ", mag(B)=" << line[i] << std::endl;
         }
-        std::cout << std::endl;
+        //std::cout << std::endl;
     }
 
     void grabLongitudinalDivCurlLine(
@@ -116,8 +116,8 @@ protected:
             curlLine[i][1] = (Bzp[0] - Bzm[0] - Bxp[2] + Bxm[2]) / 2 / dr;
             curlLine[i][2] = (Bxp[1] - Bxm[1] - Byp[0] + Bym[0]) / 2 / dr;
             fieldLine[i]   = std::hypot(B[0], B[1], B[2]);
-            std::cout << i << ": Local=" << local << ", Global=" << R << ", div(B)=" << divLine[i]
-                      << ", curl(B)=" << curlLine[i] << ", B=" << fieldLine[i] << std::endl;
+            //std::cout << i << ": Local=" << local << ", Global=" << R << ", div(B)=" << divLine[i]
+            //          << ", curl(B)=" << curlLine[i] << ", B=" << fieldLine[i] << std::endl;
         }
     }
 };
