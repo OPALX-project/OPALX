@@ -7,9 +7,9 @@
 #undef doDEBUG
 
 template <typename T, unsigned Dim>
-PartBunch<T, Dim>::PartBunch(double qi,
-                             double mi,
-                             size_t totalP,
+PartBunch<T, Dim>::PartBunch(std::vector<double> qi,
+                             std::vector<double> mi,
+                             size_t num_containers,
                              /*int nt,*/
                              double lbt,
                              std::string integration_method,
@@ -25,10 +25,10 @@ PartBunch<T, Dim>::PartBunch(double qi,
       integration_method_m(integration_method),
       solver_m(""),
       time_m(0.0),
-      totalP_m(totalP),
+      totalP_m(0),
       //nt_m(nt),
-      qi_m(qi),
-      mi_m(mi),
+      qi_m(std::move(qi)),
+      mi_m(std::move(mi)),
       OPALFieldSolver_m(OPALFieldSolver),
       dataSink_m(std::move(dataSink)),
       rmsDensity_m(0.0),
@@ -37,6 +37,19 @@ PartBunch<T, Dim>::PartBunch(double qi,
 
     Inform m("PartBunch::PartBunch");
     m << level4 << "PartBunch Constructor" << endl;
+
+    if (num_containers == 0) {
+        throw OpalException("PartBunch::PartBunch",
+                            "num_containers must be > 0.");
+    }
+    if (qi_m.size() != num_containers) {
+        throw OpalException("PartBunch::PartBunch",
+                            "qi size must match num_containers.");
+    }
+    if (mi_m.size() != num_containers) {
+        throw OpalException("PartBunch::PartBunch",
+                            "mi size must match num_containers.");
+    }
 
     //  get the needed information from OPAL FieldSolver command
 
@@ -78,8 +91,11 @@ PartBunch<T, Dim>::PartBunch(double qi,
     ));
 
     this->setParticleContainer(std::make_shared<ParticleContainer_t>(
-        this->fcontainer_m->getMesh(), this->fcontainer_m->getFL()
-    ));
+        this->fcontainer_m->getMesh(), this->fcontainer_m->getFL()));
+    for (size_t i = 1; i < num_containers; ++i) {
+        this->addParticleContainer(std::make_shared<ParticleContainer_t>(
+            this->fcontainer_m->getMesh(), this->fcontainer_m->getFL()));
+    }
 
     this->setTempEField(std::make_shared<VField_t<T, Dim>>(
         this->fcontainer_m->getE()
@@ -436,8 +452,8 @@ Inform& PartBunch<T, Dim>::print(Inform& os) {
     os << level1 << std::scientific << "\n"
        << "* ************** B U N C H "
         "********************************************************* \n"
-       << "* PARTICLES       = " << this->getTotalNum() << "\n"
-       << "* CHARGE          = " << this->qi_m*this->getTotalNum() << " (Cb) \n"
+       << "* PARTICLES       = " << this->getTotalNumAllContainers() << "\n"
+       << "* CHARGE          = " << this->getTotalCharge() << " (Cb) \n"
        << "* QM STORAGE MODE = " << qmStorageModeStr << "\n"
        << "* <EKIN>          = " << Util::getEnergyString(ek) << "\n"
        << "* <dEKIN>         = " << Util::getEnergyString(dek) << "\n"
@@ -620,7 +636,7 @@ void PartBunch<T, Dim>::computeSelfFields() {
     m << level4 << "Rho scale by dt done." << endl;
 
 #ifdef doDEBUG
-    const double qtot                        = this->qi_m * this->getTotalNum();
+    const double qtot                        = this->getTotalCharge();
     size_type TotalParticles                 = 0;
     size_type localParticles                 = this->pcontainer_m->getLocalNum();
    
@@ -648,7 +664,7 @@ void PartBunch<T, Dim>::computeSelfFields() {
 
     // Alpine uses net 0 charge density for periodic BCs, so we need to subtract background charge here (?TODO: check)
     // Note: otherwise solvers like the CG solver will "explode" and give unnormalized potentials?
-    double totalQ = getCharge();
+    double totalQ = getTotalCharge();
     if (this->fsolver_m->getStype() != "OPEN") {
         double size = 1;
         for (size_t d = 0; d < 3; d++) {
@@ -775,11 +791,11 @@ void PartBunch<T,Dim>::scatterCICPerBin(PartBunch<T,Dim>::binIndex_t binIndex) {
 
     if (binIndex == -1) {
         // Use original scatterCIC logic for all particles
-        Q = this->qi_m * this->getTotalNum();
+        Q = this->getChargePerParticle() * this->getTotalNum();
         scatter(*q, *rho, *R);
     } else {
         // Use per-bin scattering logic
-        Q = this->qi_m * this->bins_m->getNPartInBin(binIndex, true);
+        Q = this->getChargePerParticle() * this->bins_m->getNPartInBin(binIndex, true);
         scatter(*q, *rho, *R, this->bins_m->getBinIterationPolicy(binIndex), this->bins_m->getHashArray());
     }
 
