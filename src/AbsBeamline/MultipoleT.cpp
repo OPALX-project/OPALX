@@ -132,14 +132,14 @@ void MultipoleT::apply(const Kokkos::View<Vector_t<double, 3>*>& R,
 
 bool MultipoleT::apply(const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/,
         const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
-    implementation_->getField(R, E, B, getScaling(t));
+    return implementation_->getField(R, E, B, getScaling(t));
     return false;
 }
 
 bool MultipoleT::apply(const size_t& i, const double& t, Vector_t<double, 3>& E,
         Vector_t<double, 3>& B) {
     const auto pc = RefPartBunch_m->getParticleContainer();
-    implementation_->getField(pc->R.getView()(i), E, B, getScaling(t));
+    return implementation_->getField(pc->R.getView()(i), E, B, getScaling(t));
     return false;
 }
 

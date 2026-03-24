@@ -94,7 +94,7 @@ public:
     void getField(const Kokkos::View<Vector_t<double, 3>*>& R,
             Kokkos::View<Vector_t<double, 3>*>& E, Kokkos::View<Vector_t<double, 3>*>& B,
             double scaling) override;
-    void getField(const Vector_t<double, 3>& R,
+    bool getField(const Vector_t<double, 3>& R,
             Vector_t<double, 3>& E, Vector_t<double, 3>& B,
             double scaling) override;
     /** Transform to Frenet-Serret coordinates for sector magnets */
@@ -128,7 +128,7 @@ private:
     KOKKOS_INLINE_FUNCTION static Vector_t<double, 3> toMagnetCoords(const Vector_t<double, 3>& R,
             const MultipoleTConfig& config);
     template<class ViewType>
-    KOKKOS_INLINE_FUNCTION static void computeBField(const Vector_t<double, 3>& R,
+    KOKKOS_INLINE_FUNCTION static bool computeBField(const Vector_t<double, 3>& R,
             Vector_t<double, 3>& B, double scaling, const MultipoleTConfig& config,
             const ViewType& tanhCoefficients);
 };
@@ -152,7 +152,7 @@ KOKKOS_INLINE_FUNCTION Vector_t<double, 3> MultipoleTCurvedConstRadius::toMagnet
 }
 
 template<class ViewType>
-KOKKOS_INLINE_FUNCTION void MultipoleTCurvedConstRadius::computeBField(const Vector_t<double, 3>& R,
+KOKKOS_INLINE_FUNCTION bool MultipoleTCurvedConstRadius::computeBField(const Vector_t<double, 3>& R,
         Vector_t<double, 3>& B, const double scaling, const MultipoleTConfig& config,
         const ViewType& tanhCoefficients) {
     const Vector_t<double, 3> RPrime = toMagnetCoords(R, config);
@@ -202,6 +202,7 @@ KOKKOS_INLINE_FUNCTION void MultipoleTCurvedConstRadius::computeBField(const Vec
         }
         B += myB * scaling;
     }
+    return !insideAperture;
 }
 
 #endif
