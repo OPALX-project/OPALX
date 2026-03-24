@@ -22,6 +22,16 @@ void BinnedFieldSolver<T, Dim>::computeSelfFields(std::shared_ptr<PartBunch_t> b
             "BinnedFieldSolver::computeSelfFields", "Bunch particle container is not available.");
     }
 
+    Inform m("BinnedFieldSolver::computeSelfFields");
+    // TYPE=NONE is a true no-op: skip all binning/scatter/solve/gather work.
+    if (this->getStype() == "NONE") {
+        // Already called in ParallelTracker::resetFields()
+        // pc->E = 0.0;
+        // pc->B = 0.0;
+        m << level5 << "Skipping scatter/gather and self-field computation for NONE solver." << endl;
+        return;
+    }
+
     // trivial case where self-field has no effect.
     if (ippl::Comm->size() == 1 && pc->getLocalNum() <= 1) {
         pc->E = 0.0;
@@ -31,16 +41,15 @@ void BinnedFieldSolver<T, Dim>::computeSelfFields(std::shared_ptr<PartBunch_t> b
     // decide which solver path to run (binned vs legacy).
     const bool hasBins = bunch->hasBinning();
 
-    Inform m("BinnedFieldSolver::computeSelfFields");
     m << level4 << "Entry: rank=" << ippl::Comm->rank() << ", localParticles=" << pc->getLocalNum()
       << ", totalParticles=" << pc->getTotalNum() << ", hasBins=" << (hasBins ? 1 : 0)
       << ", stype=" << this->getStype() << endl;
 
     if (hasBins) {
-        m << level5 << "Dispatching to computeBinnedSelfFields() (binned path)." << endl;
+        m << level4 << "Dispatching to computeBinnedSelfFields() (binned path)." << endl;
         computeBinnedSelfFields(bunch);
     } else {
-        m << level5 << "Dispatching to computeLegacySelfFields() (legacy path)." << endl;
+        m << level4 << "Dispatching to computeLegacySelfFields() (legacy path)." << endl;
         computeLegacySelfFields(bunch);
     }
 }
