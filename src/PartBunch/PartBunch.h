@@ -53,92 +53,87 @@ public:
 
     using BCHandler_t         = BCHandler<Dim>;
 
-    double time_m;
-
-    size_type totalP_m;
-
-    /// \todo doesn't do anything??? 
-    // int nt_m; 
-
-    double lbt_m;
-
-    double dt_m;
-
-    int it_m;
-
-    std::string integration_method_m;
-
-    std::string solver_m;
-
-    bool isFirstRepartition_m;
-
-private:
-    double qi_m;
-
-    double mi_m;
-
-    double rmsDensity_m;
-
-    std::shared_ptr<BCHandler_t> bcHandler_m;
-
 public:
-    Vector_t<int, Dim> nr_m;
+    // Per container values ====================================================
+    
+    // Reference particle values
+    Vector_t<double, Dim> RefPartR_m; // reference particle position
+    Vector_t<double, Dim> RefPartP_m; // reference particle momentum
+    CoordinateSystemTrafo toLabTrafo_m; // transformation to lab frame
 
-    Vector_t<double, Dim> origin_m;
-    Vector_t<double, Dim> rmin_m;
-    Vector_t<double, Dim> rmax_m;
+    // Shared values for all containers ========================================
+    
+    double dt_m; // time step
+    int it_m; // iteration count
 
-    /// mesh size [m]
-    Vector_t<double, Dim> hr_m;
-
-    // Landau damping specific
-    double Bext_m;
-    double alpha_m;
-    double DrInv_m;
-
+    double lbt_m; // load balancer threshold
+    bool isFirstRepartition_m; // first repartition flag
     ippl::NDIndex<Dim> domain_m;
     std::array<bool, Dim> decomp_m;
 
-    /*
-      Up to here it is like the opaltest
-    */
+    // Solver
+    std::string integration_method_m; // integration method
+    std::string solver_m; // field solver type
 
-    /**
-      Reference particle structures
-     */
+    // Mesh 
+    Vector_t<int, Dim> nr_m; // number of grid points
+    Vector_t<double, Dim> origin_m; // origin of the mesh
+    Vector_t<double, Dim> rmin_m; // minimum extent of the mesh
+    Vector_t<double, Dim> rmax_m; // maximum extent of the mesh
+    Vector_t<double, Dim> hr_m; // mesh size [m]
 
-    Vector_t<double, Dim> RefPartR_m;
-    Vector_t<double, Dim> RefPartP_m;
+    // Unused values ===========================================================
+   
+    double time_m;
+    size_type totalP_m; // except for #doDEBUG
+    // int nt_m; 
 
-    CoordinateSystemTrafo toLabTrafo_m;
+    // Landau damping specific
+    // double Bext_m;
+    // double alpha_m;
+    // double DrInv_m;
 
 private:
 
-    std::unique_ptr<size_t[]> globalPartPerNode_m;
+    // Per container values ====================================================
 
-    // ParticleOrigin refPOrigin_m;
-    // ParticleType refPType_m;
+    double qi_m; // charge per macroparticle [C]
+    double mi_m; // mass per macroparticle [GeV]
 
-    /// Initialize the translation vector and rotation quaternion
-    /// here. Cyclotron tracker will reset these values each timestep
-    /// TTracker can just use 0 translation and 0 rotation (quat[1 0 0 0]).
-    // Vector_t globalMeanR_m = Vector_t(0.0, 0.0, 0.0);
-    // Quaternion_t globalToLocalQuaternion_m = Quaternion_t(1.0, 0.0, 0.0, 0.0);
-    Vector_t<double, Dim> globalMeanR_m;
-    Quaternion_t globalToLocalQuaternion_m;
+    std::unique_ptr<size_t[]> globalPartPerNode_m; // reducer object for load balance statistics
 
-    /**
-       Adaptive binning structure (energy/velocity binning handled by AdaptBins).
-    */
-    std::shared_ptr<AdaptBins_t> bins_m;
+    Vector_t<double, Dim> globalMeanR_m; // global mean position
+    Quaternion_t globalToLocalQuaternion_m; // global to local quaternion
+    
+    const PartData* reference_m; // reference particle data
+   
+    double spos_m; // s position along design trajectory
 
-    /// steps per turn for OPAL-cycl
-    int stepsPerTurn_m;
 
-    /// current bunch number
-    short numBunch_m;
+    // Shared values for all containers ========================================
 
-    /// number of particles per bunch
+    std::shared_ptr<BCHandler_t> bcHandler_m; // field boundary handler
+    std::shared_ptr<AdaptBins_t> bins_m; // adaptive binning structure
+
+    std::shared_ptr<FieldSolverCmd> OPALFieldSolver_m; // field solver command
+    std::shared_ptr<DataSink> dataSink_m; // data sink
+
+    // unit state of PartBunch --> always false after initialization, so use this as standard flag
+    bool isUnitless_m = false; // unitless flag
+
+    double t_m; // time of integration
+
+    /// Temporary E field container used to store temporary E field during binned solver
+    std::shared_ptr<VField_t<T, Dim>> Etmp_m;
+
+    // Unused values ===========================================================
+
+    double rmsDensity_m;
+
+    int stepsPerTurn_m; // steps per turn for OPAL-cycl
+
+    // multiple bunches specific
+    short numBunch_m; 
     std::vector<size_t> bunchTotalNum_m;
     std::vector<size_t> bunchLocalNum_m;
 
@@ -147,39 +142,13 @@ private:
     /// it is stored during phase space dump.
     int SteptoLastInj_m;
 
-    bool fixed_grid;
+    bool fixed_grid; // fixed grid flag
 
-    const PartData* reference_m;
-
-    /// step in a TRACK command
     long long localTrackStep_m;
-
-    /// if multiple TRACK commands
     long long globalTrackStep_m;
 
-    std::shared_ptr<FieldSolverCmd> OPALFieldSolver_m;
-
-    std::shared_ptr<DataSink> dataSink_m;
-    
-    // unit state of PartBunch --> always false after initialization, so use this as standard flag
-    // UnitState_t unit_state_m;
-    bool isUnitless_m = false;
-    // UnitState_t stateOfLastBoundP_m;
-
-    /// holds the actual time of the integration
-    double t_m;
-
-    /// the position along design trajectory
-    double spos_m;
-
-    /*
-       flags to tell if we are a DC-beam
-     */
-    bool dcBeam_m;
+    bool dcBeam_m; //flags to tell if we are a DC-beam 
     double periodLength_m;
-
-    /// Temporary E field container used to store temporary E field during binned solver
-    std::shared_ptr<VField_t<T, Dim>> Etmp_m;
 
     /// Maximum allowed number of local macroparticles on this rank.
     /// Used as a safety guard to detect when particle emission triggers an
