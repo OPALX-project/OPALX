@@ -407,6 +407,61 @@ public:
         return qmStorageMode_m;
     }
 
+    /**
+     * @brief Delete particles whose position is more than sigmasAway standard deviations
+     *        from the bunch mean in any spatial dimension.
+     *
+     * Recomputes distribution moments, marks all particles outside the
+     * [mean - sigmasAway*sigma, mean + sigmasAway*sigma] hyper-rectangle as
+     * invalid, then calls the IPPL ParticleBase::destroy to compact the
+     * particle arrays.
+     *
+     * @param sigmasAway Number of standard deviations defining the boundary.
+     * @return Global number of particles destroyed (across all MPI ranks).
+     */
+    size_type deleteParticlesOutside(double sigmasAway) {
+        size_type nLocal = this->getLocalNum();
+
+        if (nLocal == 0 && this->getTotalNum() == 0) return 0;
+        if (sigmasAway <= 0.0) return 0;
+
+        updateMoments();
+
+        Vector_t<double, Dim> meanR = getMeanR();
+        Vector_t<double, Dim> rmsR  = getRmsR();
+
+        double lb0 = meanR[0] - sigmasAway * rmsR[0];
+        double lb1 = meanR[1] - sigmasAway * rmsR[1];
+        double lb2 = meanR[2] - sigmasAway * rmsR[2];
+        double ub0 = meanR[0] + sigmasAway * rmsR[0];
+        double ub1 = meanR[1] + sigmasAway * rmsR[1];
+        double ub2 = meanR[2] + sigmasAway * rmsR[2];
+
+        Kokkos::View<bool*> invalid("deleteParticlesOutside::invalid", nLocal);
+        auto Rview = this->R.getView();
+
+        size_type localDestroyNum = 0;
+        Kokkos::parallel_reduce(
+            "ParticleContainer::deleteParticlesOutside::mark", Kokkos::RangePolicy<>(0, nLocal),
+            KOKKOS_LAMBDA(const size_type i, size_type& count) {
+                bool outside = (Rview(i)[0] < lb0 || Rview(i)[0] > ub0)
+                            || (Rview(i)[1] < lb1 || Rview(i)[1] > ub1)
+                            || (Rview(i)[2] < lb2 || Rview(i)[2] > ub2);
+                invalid(i) = outside;
+                count += outside ? 1 : 0;
+            }, localDestroyNum);
+        Kokkos::fence();
+
+        size_type globalDestroyNum = 0;
+        ippl::Comm->allreduce(localDestroyNum, globalDestroyNum, 1, std::plus<size_type>());
+
+        if (globalDestroyNum == 0) return 0;
+
+        this->destroy(invalid, localDestroyNum);
+
+        return globalDestroyNum;
+    }
+
 private:
     void setBCAllPeriodic() {
         this->setParticleBC(ippl::BC::PERIODIC);
