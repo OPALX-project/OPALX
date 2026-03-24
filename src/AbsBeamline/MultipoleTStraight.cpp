@@ -51,10 +51,10 @@ void MultipoleTStraight::getField(const Kokkos::View<Vector_t<double, 3>*>& R,
             });
 }
 
-void MultipoleTStraight::getField(const Vector_t<double, 3>& R,
+bool MultipoleTStraight::getField(const Vector_t<double, 3>& R,
         Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B,
         const double scaling) {
-    computeBField(R, B, scaling, element_m->getConfig(), tanhCoefficientsHost_m);
+    return computeBField(R, B, scaling, element_m->getConfig(), tanhCoefficientsHost_m);
 }
 
 double MultipoleTStraight::getBx(const Vector_t<double, 3>& R) {

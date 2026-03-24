@@ -105,9 +105,9 @@ public:
             double /*scaling*/) {}
 
     /** Return the field for a single point */
-    virtual void getField(const Vector_t<double, 3>& /*R*/,
+    virtual bool getField(const Vector_t<double, 3>& /*R*/,
             Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/,
-            double /*scaling*/) {}
+            double /*scaling*/) { return false; }
 
     /** Transform to Frenet-Serret coordinates for sector magnets */
     virtual void transformCoords(Vector_t<double, 3>& R) = 0;

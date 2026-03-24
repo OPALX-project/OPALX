@@ -52,10 +52,10 @@ void MultipoleTCurvedConstRadius::getField(
         });
 }
 
-void MultipoleTCurvedConstRadius::getField(
+bool MultipoleTCurvedConstRadius::getField(
     const Vector_t<double, 3>& R, Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B,
     const double scaling) {
-    computeBField(R, B, scaling, element_m->getConfig(), tanhCoefficientsHost_m);
+    return computeBField(R, B, scaling, element_m->getConfig(), tanhCoefficientsHost_m);
 }
 
 void MultipoleTCurvedConstRadius::transformCoords(Vector_t<double, 3>& R) {
