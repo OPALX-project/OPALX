@@ -308,10 +308,12 @@ public:
     void setQ(double q) {
         if (qmStorageMode_m == QMStorageMode::Attributes) {
             auto view = QAttr.getView();
-            const size_type n = view.extent(0);
-            using exec_space = typename ippl::ParticleAttrib<double>::execution_space;
+            const size_type n = this->getLocalNum();
+            if (n == 0) {
+                return;
+            }
             Kokkos::parallel_for(
-                "ParticleContainer::setQ", Kokkos::RangePolicy<exec_space>(0, n),
+                "ParticleContainer::setQ", n,
                 KOKKOS_LAMBDA(const size_type i) { view(i) = q; });
             Kokkos::fence();
         } else {
@@ -330,9 +332,9 @@ public:
         if (qmStorageMode_m == QMStorageMode::Attributes) {
             auto view = MAttr.getView();
             const size_type n = view.extent(0);
-            using exec_space = typename ippl::ParticleAttrib<double>::execution_space;
+            
             Kokkos::parallel_for(
-                "ParticleContainer::setM", Kokkos::RangePolicy<exec_space>(0, n),
+                "ParticleContainer::setM", n,
                 KOKKOS_LAMBDA(const size_type i) { view(i) = m; });
             Kokkos::fence();
         } else {
@@ -350,23 +352,20 @@ public:
      */
     void scaleDtByCharge() {
         auto dtView = dt.getView();
-        const size_type n = dtView.extent(0);
+        const size_type n = this->getLocalNum();
         if (n == 0) {
             return;
         }
 
-        using exec_space = typename ippl::ParticleAttrib<double>::execution_space;
         if (qmStorageMode_m == QMStorageMode::Attributes) {
             auto qView = QAttr.getView();
             Kokkos::parallel_for(
-                "ParticleContainer::scaleDtByCharge(attrs)",
-                Kokkos::RangePolicy<exec_space>(0, n),
+                "ParticleContainer::scaleDtByCharge(attrs)", n,
                 KOKKOS_LAMBDA(const size_type i) { dtView(i) *= qView(i); });
         } else {
             auto QView = QView_m;
             Kokkos::parallel_for(
-                "ParticleContainer::scaleDtByCharge(single)",
-                Kokkos::RangePolicy<exec_space>(0, n),
+                "ParticleContainer::scaleDtByCharge(single)", n,
                 KOKKOS_LAMBDA(const size_type i) { dtView(i) *= QView(0); });
         }
         Kokkos::fence();
@@ -381,23 +380,20 @@ public:
      */
     void unscaleDtByCharge() {
         auto dtView      = dt.getView();
-        const size_type n = dtView.extent(0);
+        const size_type n = this->getLocalNum();
         if (n == 0) {
             return;
         }
 
-        using exec_space = typename ippl::ParticleAttrib<double>::execution_space;
         if (qmStorageMode_m == QMStorageMode::Attributes) {
             auto qView = QAttr.getView();
             Kokkos::parallel_for(
-                "ParticleContainer::unscaleDtByCharge(attrs)",
-                Kokkos::RangePolicy<exec_space>(0, n),
+                "ParticleContainer::unscaleDtByCharge(attrs)", n,
                 KOKKOS_LAMBDA(const size_type i) { dtView(i) /= qView(i); });
         } else {
             auto QView = QView_m;
             Kokkos::parallel_for(
-                "ParticleContainer::unscaleDtByCharge(single)",
-                Kokkos::RangePolicy<exec_space>(0, n),
+                "ParticleContainer::unscaleDtByCharge(single)", n,
                 KOKKOS_LAMBDA(const size_type i) { dtView(i) /= QView(0); });
         }
         Kokkos::fence();
@@ -442,7 +438,7 @@ public:
 
         size_type localDestroyNum = 0;
         Kokkos::parallel_reduce(
-            "ParticleContainer::deleteParticlesOutside::mark", Kokkos::RangePolicy<>(0, nLocal),
+            "ParticleContainer::deleteParticlesOutside::mark", nLocal,
             KOKKOS_LAMBDA(const size_type i, size_type& count) {
                 bool outside = (Rview(i)[0] < lb0 || Rview(i)[0] > ub0)
                             || (Rview(i)[1] < lb1 || Rview(i)[1] > ub1)

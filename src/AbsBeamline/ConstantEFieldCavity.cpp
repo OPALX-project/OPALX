@@ -80,8 +80,7 @@ bool ConstantEFieldCavity::apply() {
     const double Ey         = Ey_m;
     const double Ez         = Ez_m;
 
-    Kokkos::parallel_for(
-        "ConstantEFieldCavity::apply()", Kokkos::RangePolicy<>(0, nLocal),
+    Kokkos::parallel_for("ConstantEFieldCavity::apply()", nLocal,
         KOKKOS_LAMBDA(const size_t i) {
             if (Rview(i)[2] > 0.0 && Rview(i)[2] <= elemLength) {
                 Eview(i)[0] += Ex;
