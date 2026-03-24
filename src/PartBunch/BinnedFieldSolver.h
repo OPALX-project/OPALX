@@ -42,6 +42,8 @@ public:
     using bin_index_type = typename AdaptBins_t::bin_index_type;
     using size_type      = typename AdaptBins_t::size_type;
 
+    using particle_position_type = typename PartBunch_t::Base::particle_position_type;
+
     /**
      * @brief Which particle attribute to scatter from to build the mesh charge density `rho`.
      *
