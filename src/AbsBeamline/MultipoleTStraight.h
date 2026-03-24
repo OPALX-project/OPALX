@@ -96,32 +96,6 @@ public:
     bool getField(const Vector_t<double, 3>& R,
             Vector_t<double, 3>& E, Vector_t<double, 3>& B,
             double scaling) override;
-    /** Transform to Frenet-Serret coordinates for sector magnets */
-    void transformCoords(Vector_t<double, 3>& R) override;
-    /** Transform B-field from Frenet-Serret coordinates to lab coordinates */
-    void transformBField(Vector_t<double, 3>& /*B*/, const Vector_t<double, 3>& /*R*/) override {}
-    /** Returns the scale factor @f$ h_s = 1@f$
-     *  \param x -> Coordinate x
-     *  \param s -> Coordinate s
-     */
-    double getScaleFactor(double /*x*/, double /*s*/) override { return 1; }
-    /** Get x-component of the B-field \n
-     *  This function has been overloaded because calculating \n
-     *  the B-field directly is quicker and more accurate
-     */
-    double getBx(const Vector_t<double, 3>& R) override;
-    /** Get s-component of the B-field \n
-     *  This function has been overloaded because calculating \n
-     *  the B-field directly is quicker and more accurate
-     */
-    double getBs(const Vector_t<double, 3>& R) override;
-    /** Calculate fn(x, s) by expanding the differential operator
-     *  (from Laplacian and scalar potential) in terms of polynomials
-     *  \param n -> nth derivative
-     *  \param x -> Coordinate x
-     *  \param s -> Coordinate s
-     */
-    double getFn(unsigned int n, double x, double s) override;
 
     Vector_t<double, 3> localCartesianToOpalCartesian(const Vector_t<double, 3>& r) override;
 

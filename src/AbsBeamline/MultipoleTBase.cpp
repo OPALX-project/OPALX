@@ -26,69 +26,31 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 #include "MultipoleTBase.h"
 #include "MultipoleT.h"
 
-MultipoleTBase::MultipoleTBase(MultipoleT* element) :
-    element_m(element) {
-}
-
-double MultipoleTBase::getBz(const Vector_t<double, 3>& R) {
-    double Bz = 0.0;
-    std::size_t n = element_m->getMaxFOrder() + 1;
-    while(n != 0) {
-        n--;
-        Bz = Bz * R[1] * R[1] + getFn(n, R[0], R[2])
-                / factorial(2 * n);
-    }
-    return Bz;
-}
-
-double MultipoleTBase::getBx(const Vector_t<double, 3>& R) {
-    double Bx = 0.0;
-    std::size_t n = element_m->getMaxFOrder() + 1;
-    while(n != 0) {
-        n--;
-        Bx = Bx * R[1] * R[1] + element_m->getFnDerivX(n, R[0], R[2])
-                / factorial(2 * n + 1);
-    }
-    Bx *= R[1];
-    return Bx;
-}
-
-double MultipoleTBase::getBs(const Vector_t<double, 3>& R) {
-    double Bs = 0.0;
-    std::size_t n = element_m->getMaxFOrder() + 1;
-    while(n != 0) {
-        n--;
-        Bs = Bs * R[1] * R[1] + element_m->getFnDerivS(n, R[0], R[2])
-                / factorial(2 * n + 1);
-    }
-    Bs *= R[1] / getScaleFactor(R[0], R[2]);
-    return Bs;
-}
+MultipoleTBase::MultipoleTBase(MultipoleT* element) : element_m(element) {}
 
 void MultipoleTBase::generateTanhCoefficients(const unsigned int numDerivatives) {
     const auto numCoefficients = numDerivatives + 2;
     Kokkos::resize(tanhCoefficientsDevice_m, numDerivatives + 1, numCoefficients);
     Kokkos::resize(tanhCoefficientsHost_m, numDerivatives + 1, numCoefficients);
     // Zero initialize
-    for(unsigned int n = 0; n <= numDerivatives; ++n) {
-        for(unsigned int k = 0; k < numDerivatives; ++k) {
+    for (unsigned int n = 0; n <= numDerivatives; ++n) {
+        for (unsigned int k = 0; k < numDerivatives; ++k) {
             tanhCoefficientsHost_m(n, k) = 0.0;
         }
     }
     // 0th derivative: P0(t) = t
     tanhCoefficientsHost_m(0, 1) = 1.0;
     // Build higher derivatives iteratively
-    for(unsigned int n = 1; n <= numDerivatives; ++n) {
-        for(unsigned int k = 0; k < numCoefficients; ++k) {
+    for (unsigned int n = 1; n <= numDerivatives; ++n) {
+        for (unsigned int k = 0; k < numCoefficients; ++k) {
             double val = 0.0;
-            if(k + 1 < numCoefficients) {
+            if (k + 1 < numCoefficients) {
                 val += (k + 1) * tanhCoefficientsHost_m(n - 1, k + 1);
             }
-            if(k >= 1) {
+            if (k >= 1) {
                 val -= (k - 1) * tanhCoefficientsHost_m(n - 1, k - 1);
             }
             tanhCoefficientsHost_m(n, k) = val;

@@ -1,7 +1,7 @@
 /*
  *  Copyright (c) 2017, Titus Dascalu
  *  Copyright (c) 2018, Martin Duy Tat
-*  Copyright (c) 2025, Jon Thompson
+ *  Copyright (c) 2025, Jon Thompson
  *  All rights reserved.
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions are met:
@@ -115,8 +115,9 @@ public:
      *  \param E -> Calculated electric field - always 0 (no E-field)
      *  \param B -> Calculated magnetic field
      */
-    bool apply(const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-            Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
+    bool apply(
+        const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
+        Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
     /** Calculate the field at the position of the ith particle
      *  \param i -> Index of the particle event; field is calculated at this
      *  position
@@ -126,8 +127,8 @@ public:
      *  \param E -> Calculated electric field - always 0 (no E-field)
      *  \param B -> Calculated magnetic field
      */
-    bool apply(const size_t& i, const double& t, Vector_t<double, 3>& E,
-            Vector_t<double, 3>& B) override;
+    bool apply(
+        const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
     /** Initialise the MultipoleT
      *  \param bunch -> Bunch the global bunch object
      *  \param startField -> Not used
@@ -165,8 +166,7 @@ public:
      *  \param lambda_left -> Left end field length
      *  \param lambda_right -> Right end field length
      */
-    void setFringeField(const double& s0, const double& lambda_left,
-            const double& lambda_right);
+    void setFringeField(const double& s0, const double& lambda_left, const double& lambda_right);
     /** Get the fringe field model
      * @return {s0, leftFringe, rightFringe}
      */
@@ -190,16 +190,16 @@ public:
     /** Get the entrance angle */
     double getEntranceAngle() const { return config_m.entranceAngle_m; }
     /** Set the length of the magnet
-      * If straight-> Actual length
-      * If curved -> Arc length
+     * If straight-> Actual length
+     * If curved -> Arc length
      */
     void setElementLength(double length) override;
     /** Get the length of the magnet */
     double getLength() const { return config_m.length_m; }
     /** Set the aperture dimensions \n
-      * This element only supports a rectangular aperture
-      * \param vertAp -> Vertical aperture length
-      * \param horizAp -> Horisontal aperture length
+     * This element only supports a rectangular aperture
+     * \param vertAp -> Vertical aperture length
+     * \param horizAp -> Horisontal aperture length
      */
     void setAperture(const double& vertAp, const double& horizAp);
     /** Get the aperture dimensions
@@ -223,49 +223,15 @@ public:
      */
     void setBoundingBoxLength(double boundingBoxLength);
     /** Not implemented */
-    void getDimensions(double&/*zBegin*/, double&/*zEnd*/) const override {}
-    /** Returns the value of the fringe field n-th derivative at s
-     *  \param n -> nth derivative
-     *  \param s -> Coordinate s
-     */
-    double getFringeDeriv(const std::size_t& n, const double& s);
-    /** Calculate partial derivative of fn wrt x using a 5-point
-     *  finite difference formula
-     *  Error of order stepSize^4
-     *  \param n -> nth derivative
-     *  \param x -> Coordinate x
-     *  \param s -> Coordinate s
-     */
-    double getFnDerivX(const std::size_t& n,
-            const double& x,
-            const double& s);
-    /** Calculate partial derivative of fn wrt s using a 5-point
-     *  finite difference formula
-     *  Error of order stepSize^4
-     *  \param n -> nth derivative
-     *  \param x -> Coordinate x
-     *  \param s -> Coordinate s
-     */
-    double getFnDerivS(const std::size_t& n,
-            const double& x,
-            const double& s);
-    /** Returns the value of the transverse field n-th derivative at x \n
-     *  Transverse field is a polynomial in x, differentiation follows
-     *  usual polynomial rules of differentiation
-     *  \param n -> nth derivative
-     *  \param x -> Coordinate x
-     */
-    double getTransDeriv(const std::size_t& n, const double& x) const;
+    void getDimensions(double& /*zBegin*/, double& /*zEnd*/) const override {}
 
-    Vector_t<double, 3> toMagnetCoords(const Vector_t<double, 3>& R);
-    Vector_t<double, 3> getField(const Vector_t<double, 3>& magnetCoords);
-    Vector_t<double, 3> localCartesianToOpalCartesian(const Vector_t<double, 3>& r);
-    double localCartesianRotation();
+    Vector_t<double, 3> localCartesianToOpalCartesian(const Vector_t<double, 3>& r) const;
+    double localCartesianRotation() const;
 
     void setScalingName(const std::string& name);
     void setScalingModel(const std::shared_ptr<AbstractTimeDependence>& td) { scalingTD_m = td; }
     std::string getScalingName() const { return scalingName_m; }
-    void initialiseTimeDepencencies() const;
+    void initialiseTimeDependencies() const;
 
     MultipoleTConfig& getConfig() { return config_m; }
 
@@ -278,8 +244,6 @@ protected:
      * @return -> rotated coordinate
      */
     Vector_t<double, 3> rotateFrame(const Vector_t<double, 3>& R) const;
-    bool insideAperture(const Vector_t<double, 3>& R) const;
-    bool insideBoundingBox(const Vector_t<double, 3>& R) const;
     void chooseImplementation();
     double getScaling(double t) const;
 
@@ -295,7 +259,8 @@ protected:
 
     /** This one is here for test purposes.
      * It is required as it is too difficult to mock a PartBunch. */
-    void apply(const Kokkos::View<Vector_t<double, 3>*>& R, Kokkos::View<Vector_t<double, 3>*>& E,
-            Kokkos::View<Vector_t<double, 3>*>& B, double t) const;
+    void apply(
+        const Kokkos::View<Vector_t<double, 3>*>& R, Kokkos::View<Vector_t<double, 3>*>& E,
+        Kokkos::View<Vector_t<double, 3>*>& B, double t) const;
 };
 #endif

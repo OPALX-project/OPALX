@@ -58,27 +58,6 @@ bool MultipoleTCurvedConstRadius::getField(
     return computeBField(R, B, scaling, element_m->getConfig(), tanhCoefficientsHost_m);
 }
 
-void MultipoleTCurvedConstRadius::transformCoords(Vector_t<double, 3>& R) {
-    if (element_m->getBendAngle() != 0.0) {
-        const double radius = element_m->getLength() / element_m->getBendAngle();
-        const double alpha  = std::atan(R[2] / (R[0] + radius));
-        if (alpha != 0.0) {
-            R[0] = R[2] / std::sin(alpha) - radius;
-            R[2] = radius * alpha;
-        }
-    }
-    R[2] += element_m->getLength() / 2.0;  // Magnet origin at the center rather than entry
-}
-
-void MultipoleTCurvedConstRadius::transformBField(
-    Vector_t<double, 3>& B, const Vector_t<double, 3>& R) {
-    const double theta = R[2] * element_m->getBendAngle() / element_m->getLength();
-    const double Bx    = B[0];
-    const double Bs    = B[2];
-    B[0]               = Bx * std::cos(theta) - Bs * std::sin(theta);
-    B[2]               = Bx * std::sin(theta) + Bs * std::cos(theta);
-}
-
 Vector_t<double, 3> MultipoleTCurvedConstRadius::localCartesianToOpalCartesian(
     const Vector_t<double, 3>& r) {
     Vector_t<double, 3> result = r;
@@ -91,12 +70,4 @@ Vector_t<double, 3> MultipoleTCurvedConstRadius::localCartesianToOpalCartesian(
         result[2]           = ds;
     }
     return result;
-}
-
-double MultipoleTCurvedConstRadius::getScaleFactor(const double x, double /*s*/) {
-    return 1 + x * element_m->getBendAngle() / element_m->getLength();
-}
-
-double MultipoleTCurvedConstRadius::getFn(unsigned int /*n*/, double /*x*/, double /*s*/) {
-    return 0.0;
 }

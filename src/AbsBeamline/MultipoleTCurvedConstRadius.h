@@ -77,8 +77,6 @@
 
 #include "BeamlineGeometry/PlanarArcGeometry.h"
 #include "AbsBeamline/MultipoleTBase.h"
-#include "AbsBeamline/MultipoleTFunctions/RecursionRelation.h"
-#include <vector>
 
 class MultipoleTCurvedConstRadius final : public MultipoleTBase {
 public:
@@ -97,27 +95,6 @@ public:
     bool getField(const Vector_t<double, 3>& R,
             Vector_t<double, 3>& E, Vector_t<double, 3>& B,
             double scaling) override;
-    /** Transform to Frenet-Serret coordinates for sector magnets */
-    void transformCoords(Vector_t<double, 3>& /*R*/) override;
-    /** Transform B-field from Frenet-Serret coordinates to lab coordinates */
-    void transformBField(Vector_t<double, 3>& /*B*/, const Vector_t<double, 3>& /*R*/) override;
-    /** Returns the scale factor @f$ h_s = 1@f$
-     *  \param x -> Coordinate x
-     *  \param s -> Coordinate s
-     */
-    double getScaleFactor(double x, double s) override;
-    /** Calculate fn(x, s) by expanding the differential operator
-     *  (from Laplacian and scalar potential) in terms of polynomials
-     *  \param n -> nth derivative
-     *  \param x -> Coordinate x
-     *  \param s -> Coordinate s
-     */
-    double getFn(unsigned int n, double x, double s) override;
-    /** Set the number of terms used in calculation of field components \n
-     *  Maximum power of z in Bz is 2 * maxOrder_m
-     *  \param order -> Number of terms in expansion in z
-     */
-
     Vector_t<double, 3> localCartesianToOpalCartesian(const Vector_t<double, 3>& r) override;
 
 private:
