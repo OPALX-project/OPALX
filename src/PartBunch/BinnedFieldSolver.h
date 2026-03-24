@@ -244,7 +244,8 @@ private:
                                    std::shared_ptr<VField_t<T, Dim>> BtmpSP);
 };
 
-#include "BinnedFieldSolver.tpp"
+// Reduce compile-time churn: instantiate the only supported concrete solver in one TU.
+extern template class BinnedFieldSolver<double, 3>;
 
 #endif  // OPALX_BINNED_FIELD_SOLVER_H
 
