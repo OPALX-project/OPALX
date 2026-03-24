@@ -1,7 +1,7 @@
 set (_SRCS
     PartBunch.cpp
     FieldSolver.cpp
-    BinnedFieldSolver.tpp
+    BinnedFieldSolver.cpp
 )
 
 set (HDRS
