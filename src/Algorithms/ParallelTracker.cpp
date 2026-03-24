@@ -640,7 +640,7 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
 
     itsBunch_m->setGlobalMeanR(itsBunch_m->get_centroid());
 
-    itsBunch_m->computeBinnedSelfFields();
+    itsBunch_m->computeSelfFields();
     m << level3 << "Compute self fields done." << endl;
     
     /// @brief Transform particle positions back to the reference coordinate system 

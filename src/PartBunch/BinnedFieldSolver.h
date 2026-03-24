@@ -118,8 +118,8 @@ private:
      */
     struct BinStatsRow {
         long long binNumber;            //!< Merged bin index (or `-1` for legacy mode).
-        unsigned long long nParticles; //!< Number of particles in the (merged) bin.
-        double gammaBin;               //!< Global average gamma for the (merged) bin.
+        unsigned long long nParticles;  //!< Number of particles in the (merged) bin.
+        double gammaBin;                //!< Global average gamma for the (merged) bin.
     };
 
     /**
