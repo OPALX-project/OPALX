@@ -214,17 +214,17 @@ void BinnedFieldSolver<T, Dim>::computeLegacySelfFields(std::shared_ptr<PartBunc
             "Unsupported scatter attribute in legacy solver.");
     }
 
-    ippl::ParticleAttrib<T>* Qattrib                      = &pc->Q;
     typename PartBunch_t::Base::particle_position_type* R = &pc->R;
 
     Field_t<Dim>* rho = this->getRho();
     *rho              = 0.0;
 
-    // scatter particle charges to mesh rho with dt scaling.
-    // Scatter only depends on charges; scale by per-particle dt like legacy code.
-    *Qattrib = (*Qattrib) * pc->dt;
-    scatter(*Qattrib, *rho, *R);
-    *Qattrib = (*Qattrib) / pc->dt;
+    // Scatter charge to mesh rho using dt-weighted deposition (master approach):
+    // scale dt by Q, scatter dt, then restore dt.
+    pc->scaleDtByCharge();
+    ippl::ParticleAttrib<T>* dtAttrib = &pc->dt;
+    scatter(*dtAttrib, *rho, *R);
+    pc->unscaleDtByCharge();
 
     // Rho normalization for fractional time steps.
     (*rho) = (*rho) / bunch->getdT();
@@ -327,7 +327,10 @@ template <typename T, unsigned Dim>
 void BinnedFieldSolver<T, Dim>::prepareRhoForBin(
     std::shared_ptr<PartBunch_t> bunch, std::shared_ptr<AdaptBins_t> bins,
     const bin_index_type binIndex, const size_type nPartGlobal, const double gammaBin) {
-    // scatter bin charges and apply rho corrections (dt, cellVolume, background, Lorentz scaling).
+    // Scatter bin charge to rho using dt-weighted deposition.
+    // If the ParticleContainer supports scaleDtByCharge(), use the master approach:
+    // scale dt by charge, scatter dt, then unscale.
+    // Otherwise, fall back to temporarily scaling/scattering Q by dt.
     Inform m("BinnedFieldSolver::prepareRhoForBin");
     m << level4 << "prepareRho: binIndex=" << static_cast<int>(binIndex)
       << ", nPartGlobal=" << static_cast<unsigned long long>(nPartGlobal)
@@ -338,7 +341,6 @@ void BinnedFieldSolver<T, Dim>::prepareRhoForBin(
 
     // access particle views and validate scatter support.
     std::shared_ptr<ParticleCtr_t> pc                     = bunch->getParticleContainer();
-    ippl::ParticleAttrib<T>* Qattrib                      = &pc->Q;
     typename PartBunch_t::Base::particle_position_type* R = &pc->R;
 
     if (scatterAttribute_m != ScatterAttribute::ChargeQ) {
@@ -347,11 +349,16 @@ void BinnedFieldSolver<T, Dim>::prepareRhoForBin(
             "Unsupported scatter attribute in binned solver.");
     }
 
-    // scatter bin charges to rho (with bin iteration policy and hash indexing).
-    // Charge 'unit' is charge per macroparticle; scale by per-particle dt before scatter.
-    *Qattrib = (*Qattrib) * pc->dt;
-    scatter(*Qattrib, *rho, *R, bins->getBinIterationPolicy(binIndex), bins->getHashArray());
-    *Qattrib = (*Qattrib) / pc->dt;
+    // Scatter bin charge to rho (with bin iteration policy and hash indexing).
+    // Master approach: scale dt by Q, scatter dt, then restore dt.
+    pc->scaleDtByCharge();
+    ippl::ParticleAttrib<T>* dtAttrib = &pc->dt;
+    scatter(*dtAttrib,
+            *rho,
+            *R,
+            bins->getBinIterationPolicy(binIndex),
+            bins->getHashArray());
+    pc->unscaleDtByCharge();
 
     // normalize rho for fractional time steps and mesh conventions.
     (*rho) = (*rho) / bunch->getdT();
