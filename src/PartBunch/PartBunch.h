@@ -268,6 +268,11 @@ public:
 
     void do_binaryRepart();
 
+    /**
+     * @brief Set the per-particle charge for each particle container.
+     * @note Copies values from `qi_m` into each particle container via `setQ`.
+     * @note Throws if the number of particle containers and `qi_m` entries do not match.
+     */
     void setCharge() {
         const auto& containers = this->getParticleContainers();
         if (containers.size() != qi_m.size()) {
@@ -279,6 +284,11 @@ public:
         }
     }
     
+    /**
+     * @brief Set the per-particle mass for each particle container.
+     * @note Copies values from `mi_m` into each particle container via `setM`.
+     * @note Throws if the number of particle containers and `mi_m` entries do not match.
+     */
     void setMass() {
         const auto& containers = this->getParticleContainers();
         if (containers.size() != mi_m.size()) {
@@ -290,6 +300,13 @@ public:
         }
     }
 
+    /**
+     * @brief Get the total charge for a given particle container.
+     * @param containerIndex Index of the particle container.
+     * @returns `qi_m[containerIndex] * getParticleContainers()[containerIndex]->getTotalNum()`.
+     * @note Throws if the number of particle containers and `qi_m` entries do not match, or if
+     *       `containerIndex` is out of range.
+     */
     double getCharge(size_t containerIndex = 0) const {
         const auto& containers = this->getParticleContainers();
         if (containers.size() != qi_m.size()) {
@@ -303,6 +320,12 @@ public:
         return qi_m[containerIndex] * containers[containerIndex]->getTotalNum();
     }
 
+    /**
+     * @brief Get the charge per particle for a given particle container.
+     * @param containerIndex Index of the particle container.
+     * @returns `qi_m[containerIndex]`.
+     * @note Throws if `containerIndex` is out of range.
+     */
     double getChargePerParticle(size_t containerIndex = 0) const {
         if (containerIndex >= qi_m.size()) {
             throw OpalException("PartBunch::getChargePerParticle",
@@ -310,6 +333,13 @@ public:
         }
         return qi_m[containerIndex];
     }
+
+    /**
+     * @brief Get the mass per particle for a given particle container.
+     * @param containerIndex Index of the particle container.
+     * @returns `mi_m[containerIndex]`.
+     * @note Throws if `containerIndex` is out of range.
+     */
     double getMassPerParticle(size_t containerIndex = 0) const {
         if (containerIndex >= mi_m.size()) {
             throw OpalException("PartBunch::getMassPerParticle",
@@ -318,9 +348,22 @@ public:
         return mi_m[containerIndex];
     }
 
+    /**
+     * @brief Alias for `getCharge(containerIndex)`.
+     * @param containerIndex Index of the particle container.
+     * @returns Equivalent to `getCharge(containerIndex)`.
+     */
     double getQ(size_t containerIndex = 0) const {
         return this->getCharge(containerIndex);
     }
+
+    /**
+     * @brief Get the total mass for a given particle container.
+     * @param containerIndex Index of the particle container.
+     * @returns `mi_m[containerIndex] * getParticleContainers()[containerIndex]->getTotalNum()`.
+     * @note Throws if the number of particle containers and `mi_m` entries do not match, or if
+     *       `containerIndex` is out of range.
+     */
     double getM(size_t containerIndex = 0) const {
         const auto& containers = this->getParticleContainers();
         if (containers.size() != mi_m.size()) {
@@ -334,6 +377,11 @@ public:
         return mi_m[containerIndex] * containers[containerIndex]->getTotalNum();
     }
 
+    /**
+     * @brief Get the total charge across all particle containers.
+     * @returns `sum_i(qi_m[i] * containers[i]->getTotalNum())`.
+     * @note Throws if the number of particle containers and `qi_m` entries do not match.
+     */
     double getTotalCharge() const {
         const auto& containers = this->getParticleContainers();
         if (containers.size() != qi_m.size()) {
@@ -347,6 +395,11 @@ public:
         return charge;
     }
 
+    /**
+     * @brief Get the total mass across all particle containers.
+     * @returns `sum_i(mi_m[i] * containers[i]->getTotalNum())`.
+     * @note Throws if the number of particle containers and `mi_m` entries do not match.
+     */
     double getTotalMass() const {
         const auto& containers = this->getParticleContainers();
         if (containers.size() != mi_m.size()) {
