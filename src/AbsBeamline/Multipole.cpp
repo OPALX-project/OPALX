@@ -266,6 +266,7 @@ bool Multipole::apply()
     auto Rview = pc->R.getView();
     auto Eview = pc->E.getView();
     auto Bview = pc->B.getView();
+    const size_t nLocal = pc->getLocalNum();
 
     // Local variables that are copied into the kernel
     double elemLength = getElementLength();
@@ -277,21 +278,19 @@ bool Multipole::apply()
     int maxSkew = max_SkewComponent_m;
 
     // Kernel launch over all particles
-    Kokkos::parallel_for("Multipole::apply()", ippl::getRangePolicy(Rview), 
-    KOKKOS_LAMBDA(const int i)
-    {
-        // Check bounds
-        if (Rview(i)(2) > 0 && Rview(i)(2) <= elemLength){
-            Vector_t<double,3> Ef(0.0), Bf(0.0);
-            // Compute field at particle position
-            computeField(Rview(i), Ef, Bf, 
-                normalComponents, skewComponents,maxNormal, maxSkew);
-            for(unsigned d=0; d<3; ++d){
-                Eview(i)(d) += Ef(d);
-                Bview(i)(d) += Bf(d);
+    Kokkos::parallel_for("Multipole::apply()", nLocal, 
+        KOKKOS_LAMBDA(const size_t i) {
+            // Check bounds
+            if (Rview(i)(2) > 0 && Rview(i)(2) <= elemLength) {
+                Vector_t<double, 3> Ef(0.0), Bf(0.0);
+                // Compute field at particle position
+                computeField(Rview(i), Ef, Bf, normalComponents, skewComponents, maxNormal, maxSkew);
+                for (unsigned d = 0; d < 3; ++d) {
+                    Eview(i)(d) += Ef(d);
+                    Bview(i)(d) += Bf(d);
+                }
             }
-        }    
-    });
+        });
     return false;
 }
 
