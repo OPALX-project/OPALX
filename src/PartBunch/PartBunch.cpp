@@ -12,7 +12,7 @@ PartBunch<T, Dim>::PartBunch(double qi,
                              double mi,
                              double lbt,
                              std::string integration_method,
-                             std::shared_ptr<FieldSolverCmd>& OPALFieldSolver,
+                             std::shared_ptr<FieldSolverCmd> OPALFieldSolver,
                              std::shared_ptr<DataSink> dataSink)
     : ippl::PicManager<T, Dim, ParticleContainer<T, Dim>, FieldContainer<T, Dim>, LoadBalancer<T, Dim>>(),
       RefPartR_m(0.0),
@@ -92,30 +92,6 @@ PartBunch<T, Dim>::PartBunch(double qi,
     globalPartPerNode_m = std::make_unique<size_t[]>(ippl::Comm->size());
 
     m << level5 << "* PartBunch constructor done." << endl;
-}
-
-template <typename T, unsigned Dim>
-T PartBunch<T, Dim>::getCouplingConstant() const {
-    /*
-    This function needs to be here, since FieldSoler_t is only fully defined
-    at instanciation of PartBunch, so not yet in the header file.
-    */
-    
-    if (!hasFieldSolver()) {
-        throw OpalException("PartBunch::getCouplingConstant",
-                            "Cannot return coupling if fsolver_m is not a "
-                            "FieldSolver instance");
-    }
-    return this->getFieldSolver()->getCouplingConstant();
-}
-
-template <typename T, unsigned Dim>
-void PartBunch<T, Dim>::gatherCIC() {
-    using Base = ippl::ParticleBase<ippl::ParticleSpatialLayout<T, Dim>>;
-    typename Base::particle_position_type* Ep = &this->pcontainer_m->E;
-    typename Base::particle_position_type* R = &this->pcontainer_m->R;
-    VField_t<T, Dim>* Ef = &this->fcontainer_m->getE();
-    gather(*Ep, *Ef, *R);
 }
 
 template <typename T, unsigned Dim>
@@ -226,8 +202,9 @@ void PartBunch<T, Dim>::setBins() {
     this->getBins()->debug();
 }
 
-template <typename T, unsigned Dim>
-void PartBunch<T, Dim>::spaceChargeEFieldCheck(Vector_t<double, 3> /*efScale*/) {
+// Commented out, since never used (perhaps needed later)
+/*template <typename T, unsigned Dim>
+void PartBunch<T, Dim>::spaceChargeEFieldCheck(Vector_t<double, 3> efScale) {
     Inform msg("PartBunch::spaceChargeEFieldCheck");
 
     auto pE_view   = this->pcontainer_m->E.getView();
@@ -304,7 +281,7 @@ void PartBunch<T, Dim>::spaceChargeEFieldCheck(Vector_t<double, 3> /*efScale*/) 
     avgphi /= this->getTotalNum(); 
     msg << level4 << "avgphi = " << avgphi << endl;
 
-}
+}*/
 
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::calcBeamParameters() {
@@ -423,13 +400,6 @@ double PartBunch<T, Dim>::get_meanKineticEnergy() {
     // Single source of truth: computed in DistributionMoments during updateMoments().
     // Unit: MeV (see DistributionMoments implementation).
     return this->pcontainer_m->getMeanKineticEnergy();
-}
-
-template <typename T, unsigned Dim>
-double PartBunch<T, Dim>::getdE() const {
-    // Single source of truth: computed in DistributionMoments during updateMoments().
-    // Unit: MeV (see DistributionMoments implementation).
-    return this->pcontainer_m->getStdKineticEnergy();
 }
 
 template <typename T, unsigned Dim>
@@ -621,80 +591,6 @@ void PartBunch<T, Dim>::dumpBinConfig(bool preMerge) {
         static_cast<double>(xMin),
         binningCmd->getDumpBinsFileName());
 }
-/**
- * The following functions are not used yet. Will be properly implemented by
- * Aliemen as part of the binned solver work.
- */
-/*
-template <typename T, unsigned Dim>
-void PartBunch<T,Dim>::scatterCICPerBin(PartBunch<T,Dim>::binIndex_t binIndex) {
-
-    throw OpalException("PartBunch::scatterCICPerBin", 
-        "This function is not implemented yet! Please use scatterCIC for now.");
-
-    Inform m("PartBunch::scatterCICPerBin");
-    m << "Scattering binIndex = " << binIndex << " to grid." << endl;
-
-    this->fcontainer_m->getRho() = 0.0;
-
-    ippl::ParticleAttrib<T>* q               = &this->pcontainer_m->Q;
-    typename Base::particle_position_type* R = &this->pcontainer_m->R;
-    Field_t<Dim>* rho                        = &this->fcontainer_m->getRho();
-    
-    double Q;
-    Vector_t<double, 3> rmin                 = rmin_m;
-    Vector_t<double, 3> rmax                 = rmax_m;
-    Vector_t<double, 3> hr                   = hr_m;
-
-    if (binIndex == -1) {
-        // Use original scatterCIC logic for all particles
-        Q = this->qi_m * this->getTotalNum();
-        scatter(*q, *rho, *R);
-    } else {
-        // Use per-bin scattering logic
-        Q = this->qi_m * this->bins_m->getNPartInBin(binIndex, true);
-        scatter(*q, *rho, *R, this->bins_m->getBinIterationPolicy(binIndex), this->bins_m->getHashArray());
-    }
-
-    m << "gammz= " << this->pcontainer_m->getMeanP()[2] << endl;
-    
-#ifdef doDEBUG
-    double relError = std::fabs((Q - (*rho).sum()) / Q);
-    size_type TotalParticles = 0;
-    size_type localParticles = this->pcontainer_m->getLocalNum();
-    size_type totalP_check = (binIndex == -1) ? totalP_m : this->pcontainer_m->getTotalNum();
-
-    m << "computeSelfFields sum rho = " << (*rho).sum() << ", relError = " << relError << endl;
-    
-    ippl::Comm->reduce(localParticles, TotalParticles, 1, std::plus<size_type>());
-
-    if (ippl::Comm->rank() == 0) {
-        if (TotalParticles != totalP_check || relError > 1e-10) {
-            m << "Time step: " << it_m << endl;
-            m << "Total particles in the sim. " << totalP_check << " "
-              << "after update: " << TotalParticles << endl;
-            m << "Rel. error in charge conservation: " << relError << endl;
-            ippl::Comm->abort();
-        }
-    }
-#endif
-    
-    double cellVolume = std::reduce(hr.begin(), hr.end(), 1., std::multiplies<double>());
-        
-    m << "cellVolume= " << cellVolume << endl;
-
-    (*rho) = (*rho) / cellVolume;
-
-    // rho = rho_e - rho_i (only if periodic BCs)
-    if (this->fsolver_m->getStype() != "OPEN") {
-        double size = 1;
-        for (unsigned d = 0; d < 3; d++) {
-            size *= rmax[d] - rmin[d];
-        }
-        *rho = *rho - (Q / size);
-    }
-}
- */
 
 template <typename T, unsigned Dim>
 void PartBunch<T,Dim>::performBunchSanityChecks() const {

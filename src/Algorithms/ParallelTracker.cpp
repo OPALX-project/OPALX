@@ -671,7 +671,8 @@ void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
     Inform msg("ParallelTracker ", *gmsg);
 
     // Flag for out-of-bounds particles, locally and globally
-    bool locPartOutOfBounds = false, globPartOutOfBounds = false;
+    // bool locPartOutOfBounds = false;
+    // bool globPartOutOfBounds = false;
     
     // Bunch bounds
     Vector_t<double, 3> rmin(0.0), rmax(0.0);
@@ -717,7 +718,9 @@ void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
 
     IpplTimings::stopTimer(fieldEvaluationTimer_m);
 
-    ippl::Comm->reduce(locPartOutOfBounds, globPartOutOfBounds, 1, std::logical_or<bool>());
+    // Commented out, since elements don't delete particles yet. 
+    /// \todo should they do this at some point, integrate it into the pc->deleteParticlesOutside function!
+    /*ippl::Comm->reduce(locPartOutOfBounds, globPartOutOfBounds, 1, std::logical_or<bool>());
 
     size_t ne = 0;
     if (globPartOutOfBounds) {
@@ -733,7 +736,7 @@ void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
     if (ne > 0) {
         msg << level1 << "* Deleted " << ne << " particles, "
             << "remaining " << totalNum << " particles" << endl;
-    }
+    }*/
 }
 
 void ParallelTracker::emitFromEmissionSources(double t, double dt) {
