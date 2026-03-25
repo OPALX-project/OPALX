@@ -118,11 +118,11 @@ private:
     /// Temporary E field container used to store temporary E field during binned solver
     std::shared_ptr<VField_t<T, Dim>> Etmp_m;
 
+    long long globalTrackStep_m;
     // Unused values ===========================================================
 
     double rmsDensity_m;
 
-    long long globalTrackStep_m;
 
 public:
 
