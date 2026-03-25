@@ -1,5 +1,3 @@
-// NOTE: This header contains the template declaration and doxygen documentation.
-// Implementation lives in `BinnedFieldSolver.tpp`.
 #ifndef OPALX_BINNED_FIELD_SOLVER_H
 #define OPALX_BINNED_FIELD_SOLVER_H
 
@@ -28,7 +26,15 @@
  *     the per-bin algorithm is executed.
  *   - Otherwise, the legacy monolithic scatter/solve/gather path is used.
  * - The solver currently supports only `ChargeQ -> rho` scattering and `ElectricFieldE`
- *   gathering.
+ *   gathering, but gathers both E and B fields.
+ * - Physics details:
+ *   - See https://github.com/aliemen/HS24-masters-thesis for details.
+ *   - After bins are calculated, it solves electrostatics per bin in a quasi-static approximation.
+ *   - Fields per bin are then transformed to the lab frame and accumulated into the temporary
+ *     fields, this also produces the magnetic field contributions.
+ *   - Finally, the accumulated fields are gathered back to the particles.
+ *   - This procedure approximates full Maxwell's equations for the self-fields.
+ *   - Without a bins object, it falls back to the legacy electrostatic approximation.
  */
 template <typename T, unsigned Dim>
 class BinnedFieldSolver : public FieldSolver<T, Dim> {
