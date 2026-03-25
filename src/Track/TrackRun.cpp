@@ -271,7 +271,7 @@ void TrackRun::execute() {
         macromass_m,   // set the Mass per macro-particle, [GeV], for correct particle kick!
                        // (see "3.1. Physical Units", where mass generally is in MeV/c^2)
                        // However, OPAL seems to use eV for the pusher!
-        totalParticlesForBunch, 1.0, "LF2", fs_m, ds_m);
+        1.0, "LF2", fs_m, ds_m);
     bunch_m->setT(0.0);
     bunch_m->setReference(&beam->getReference());
 
