@@ -78,10 +78,12 @@ private:
 
     /// Build samplers for all emission sources, perform initial sampling for t0 == 0
     /// sources, and populate emittingSamplers_m for time-dependent or delayed sources.
+    /// Applied to particle container [index]
     void setupDistributionsAndSamplers(
         const std::vector<EmissionSource*>& sources, 
         Beam* beam, 
-        emittingSamplers_t emittingSamplers
+        emittingSamplers_t emittingSamplers,
+        size_t index=0
     );
 
     /// Compute total number of macroparticles for the bunch from BEAM::NPART and
