@@ -388,6 +388,8 @@ void TrackRun::execute() {
     */
     bunch_m->setCharge();
     bunch_m->setMass();
+
+    // TODO: CONTINUTE MULTIBUNCH WORK FROM HERE ON
     bunch_m->bunchUpdate();
     bunch_m->print(*gmsg);
 
@@ -398,7 +400,6 @@ void TrackRun::execute() {
     }
     */
 
-    // TODO: CHECK FOR EACH CONTAINER
     if (bunch_m->getTotalNum() > 0) {
         double spos = Track::block->zstart;
         auto& zstop = Track::block->zstop;
