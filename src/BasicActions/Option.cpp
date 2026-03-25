@@ -501,6 +501,11 @@ void Option::execute() {
         nLHS = int(Attributes::getReal(itsAttr[NLHS]));
     }
 
+    if (itsAttr[BOUNDPDESTROYFQ]) {
+        boundpDestroyFreq = int(Attributes::getReal(itsAttr[BOUNDPDESTROYFQ]));
+        boundpDestroyFreq = (boundpDestroyFreq < 1) ? 1 : boundpDestroyFreq;
+    }
+
     if (itsAttr[CZERO]) {
         cZero = bool(Attributes::getBool(itsAttr[CZERO]));
     }
