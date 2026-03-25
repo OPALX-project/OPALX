@@ -29,8 +29,8 @@ PartBunch<T, Dim>::PartBunch(std::vector<double> qi,
       mi_m(std::move(mi)),
       OPALFieldSolver_m(OPALFieldSolver),
       dataSink_m(std::move(dataSink)),
-      rmsDensity_m(0.0),
-      globalTrackStep_m(0) {
+      globalTrackStep_m(0),
+      rmsDensity_m(0.0) {
 
     Inform m("PartBunch::PartBunch");
     m << level4 << "PartBunch Constructor" << endl;
