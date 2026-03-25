@@ -84,14 +84,6 @@ public:
 
     // Unused values ===========================================================
    
-    double time_m;
-    size_type totalP_m; // except for #doDEBUG
-    // int nt_m; 
-
-    // Landau damping specific
-    // double Bext_m;
-    // double alpha_m;
-    // double DrInv_m;
 
 private:
 
@@ -130,30 +122,7 @@ private:
 
     double rmsDensity_m;
 
-    int stepsPerTurn_m; // steps per turn for OPAL-cycl
-
-    // multiple bunches specific
-    short numBunch_m; 
-    std::vector<size_t> bunchTotalNum_m;
-    std::vector<size_t> bunchLocalNum_m;
-
-    /// this parameter records the current steps since last bunch injection
-    /// it helps to inject new bunches correctly in the restart run of OPAL-cycl
-    /// it is stored during phase space dump.
-    int SteptoLastInj_m;
-
-    bool fixed_grid; // fixed grid flag
-
-    long long localTrackStep_m;
     long long globalTrackStep_m;
-
-    bool dcBeam_m; //flags to tell if we are a DC-beam 
-    double periodLength_m;
-
-    /// Maximum allowed number of local macroparticles on this rank.
-    /// Used as a safety guard to detect when particle emission triggers an
-    /// internal resize (Kokkos::realloc) of the particle arrays.
-    size_t maxLocalNum_m = 0;
 
 public:
 
@@ -191,18 +160,12 @@ public:
     void bunchUpdate();
   
     ~PartBunch() {
-        *gmsg << level2 << "* PartBunch Destructor: Finished time step: " << this->it_m << " time: " << this->time_m << endl;
+        *gmsg << level2 << "* PartBunch Destructor: Finished time step: " << this->it_m << endl;
     }
 
     std::shared_ptr<ParticleContainer_t> getParticleContainer() {
         return this->pcontainer_m;
     }
-
-    /// Set / get the maximum allowed number of local macroparticles on this rank.
-    /// Initialised from the global total number of macroparticles and the MPI
-    /// world size (see TrackRun) and used to detect over-emission.
-    void setMaxLocalNum(size_t n) { maxLocalNum_m = n; }
-    size_t getMaxLocalNum() const { return maxLocalNum_m; }
 
     void setSolver();
 
@@ -791,18 +754,6 @@ public:
         return rmsDensity_m;
     }
 
-    /*
-      Some quantities related to integrations/tracking
-     */
-
-    void setStepsPerTurn(int n) {
-        stepsPerTurn_m = n;
-    }
-
-    int getStepsPerTurn() const {
-        return stepsPerTurn_m;
-    }
-
     /// step in multiple TRACK commands
     void setGlobalTrackStep(long long n) {
         globalTrackStep_m = n;
@@ -812,28 +763,8 @@ public:
         return globalTrackStep_m;
     }
 
-    /// step in a TRACK command
-    void setLocalTrackStep(long long n) {
-        localTrackStep_m = n;
-    }
-
     void incTrackSteps() {
         globalTrackStep_m++;
-        localTrackStep_m++;
-    }
-
-    long long getLocalTrackStep() const {
-        return localTrackStep_m;
-    }
-
-    void setNumBunch(short n) {
-        numBunch_m = n;
-        bunchTotalNum_m.resize(n);
-        bunchLocalNum_m.resize(n);
-    }
-
-    short getNumBunch() const {
-        return numBunch_m;
     }
 
     void setGlobalMeanR(Vector_t<double, Dim> globalMeanR) {
@@ -852,13 +783,6 @@ public:
         return globalToLocalQuaternion_m;
     }
 
-    void setSteptoLastInj(int n) {
-        SteptoLastInj_m = n;
-    }
-
-    int getSteptoLastInj() const {
-        return SteptoLastInj_m;
-    }
 
     double calculateAngle(double /*x*/, double /*y*/) {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
