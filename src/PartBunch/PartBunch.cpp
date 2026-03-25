@@ -16,24 +16,21 @@ PartBunch<T, Dim>::PartBunch(double qi,
                              std::shared_ptr<FieldSolverCmd>& OPALFieldSolver,
                              std::shared_ptr<DataSink> dataSink)
     : ippl::PicManager<T, Dim, ParticleContainer<T, Dim>, FieldContainer<T, Dim>, LoadBalancer<T, Dim>>(),
-      time_m(0.0),
-      totalP_m(totalP),
-      //nt_m(nt),
-      lbt_m(lbt),
-      dt_m(0),
-      it_m(0),
-      integration_method_m(integration_method),
-      solver_m(""),
-      isFirstRepartition_m(true),
-      qi_m(qi),
-      mi_m(mi),
-      rmsDensity_m(0.0),
       RefPartR_m(0.0),
       RefPartP_m(0.0),
-      localTrackStep_m(0),
-      globalTrackStep_m(0),
+      dt_m(0),
+      it_m(0),
+      lbt_m(lbt),
+      isFirstRepartition_m(true),
+      integration_method_m(integration_method),
+      solver_m(""),
+      //nt_m(nt),
+      qi_m(qi),
+      mi_m(mi),
       OPALFieldSolver_m(OPALFieldSolver),
-      dataSink_m(std::move(dataSink)) {
+      dataSink_m(std::move(dataSink)),
+      rmsDensity_m(0.0),
+      globalTrackStep_m(0) {
 
     Inform m("PartBunch::PartBunch");
     m << level4 << "PartBunch Constructor" << endl;
@@ -618,24 +615,6 @@ void PartBunch<T, Dim>::computeSelfFields() {
     */
     (*rho) = (*rho) / getdT(); 
     m << level4 << "Rho scale by dt done." << endl;
-
-#ifdef doDEBUG
-    const double qtot                        = this->qi_m * this->getTotalNum();
-    size_type TotalParticles                 = 0;
-    size_type localParticles                 = this->pcontainer_m->getLocalNum();
-   
-    double relError                          = std::fabs((qtot - (*rho).sum()) / qtot);
-    
-    ippl::Comm->reduce(localParticles, TotalParticles, 1, std::plus<size_type>());
-    
-    if ((ippl::Comm->rank() == 0) && (relError > 1.0E-13)) {
-            Inform m2("PartBunch::computeSelfFields2", INFORM_ALL_NODES);
-            m2 << "Time step: " << it_m
-               << " total particles in the sim. " << totalP_m 
-               << " missing : " << totalP_m-TotalParticles 
-               << " rel. error in charge conservation: " << relError << endl;
-    }
-#endif
 
     // At this point, the units of rho need to be corrected: rho = rho / cellVolume
     if (this->fsolver_m->getStype() != "FEM" && this->fsolver_m->getStype() != "FEM_PRECON") {
