@@ -82,14 +82,16 @@ double MultipoleT::getScaling(const double t) const {
 
 bool MultipoleT::apply() {
     const auto pc = RefPartBunch_m->getParticleContainer();
-    apply(pc->R.getView(), pc->E.getView(), pc->B.getView(), RefPartBunch_m->getT());
+    apply(
+        pc->R.getView(), pc->E.getView(), pc->B.getView(), RefPartBunch_m->getT(),
+        pc->getLocalNum());
     return false;
 }
 
 void MultipoleT::apply(
     const Kokkos::View<Vector_t<double, 3>*>& R, Kokkos::View<Vector_t<double, 3>*>& E,
-    Kokkos::View<Vector_t<double, 3>*>& B, const double t) const {
-    implementation_->getField(R, E, B, getScaling(t));
+    Kokkos::View<Vector_t<double, 3>*>& B, const double t, const size_t count) const {
+    implementation_->getField(R, E, B, getScaling(t), count);
 }
 
 bool MultipoleT::apply(
@@ -136,9 +138,9 @@ void MultipoleT::setBendAngle(const double angle, const bool variableRadius) {
 void MultipoleT::chooseImplementation() {
     if (config_m.bendAngle_m == 0.0) {
         implementation_ = std::make_unique<MultipoleTStraight>(this);
-    // This is where the variable radius code is to be patched in.
-    //} else if (config_m.variableRadius_m) {
-    //    implementation_ = std::make_unique<MultipoleTCurvedVarRadius>(this);
+        // This is where the variable radius code is to be patched in.
+        //} else if (config_m.variableRadius_m) {
+        //    implementation_ = std::make_unique<MultipoleTCurvedVarRadius>(this);
     } else {
         implementation_ = std::make_unique<MultipoleTCurvedConstRadius>(this);
     }

@@ -40,14 +40,13 @@ void MultipoleTCurvedConstRadius::initialise() {
 
 void MultipoleTCurvedConstRadius::getField(
     const Kokkos::View<Vector_t<double, 3>*>& R, Kokkos::View<Vector_t<double, 3>*>& /*E*/,
-    Kokkos::View<Vector_t<double, 3>*>& B, const double scaling) {
+    Kokkos::View<Vector_t<double, 3>*>& B, const double scaling, const size_t count) {
     // Local variables that are copied into the kernel
     const auto config           = element_m->getConfig();
     const auto tanhCoefficients = tanhCoefficientsDevice_m;
     // Kernel launch over all particles
     Kokkos::parallel_for(
-        "MultipoleTCurvedConstRadius::getField()", ippl::getRangePolicy(R),
-        KOKKOS_LAMBDA(const int i) {
+        "MultipoleTCurvedConstRadius::getField()", count, KOKKOS_LAMBDA(const int i) {
             computeBField(R(i), B(i), scaling, config, tanhCoefficients);
         });
 }
