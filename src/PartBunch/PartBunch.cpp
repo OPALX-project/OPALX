@@ -9,8 +9,6 @@
 template <typename T, unsigned Dim>
 PartBunch<T, Dim>::PartBunch(double qi,
                              double mi,
-                             size_t totalP,
-                             /*int nt,*/
                              double lbt,
                              std::string integration_method,
                              std::shared_ptr<FieldSolverCmd>& OPALFieldSolver,
@@ -29,8 +27,8 @@ PartBunch<T, Dim>::PartBunch(double qi,
       mi_m(mi),
       OPALFieldSolver_m(OPALFieldSolver),
       dataSink_m(std::move(dataSink)),
-      rmsDensity_m(0.0),
-      globalTrackStep_m(0) {
+      globalTrackStep_m(0),
+      rmsDensity_m(0.0) {
 
     Inform m("PartBunch::PartBunch");
     m << level4 << "PartBunch Constructor" << endl;

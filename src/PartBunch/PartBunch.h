@@ -131,7 +131,6 @@ public:
      *
      * @param qi              Charge per macroparticle [C].
      * @param mi              Mass per macroparticle [GeV/c^2].
-     * @param totalP          Total number of macroparticles.
      * @param lbt             Load-balancer timescale.
      * @param integration_method Name of the integrator (e.g. "LF2").
      * @param OPALFieldSolver Field solver command providing mesh and binning configuration.
@@ -139,7 +138,6 @@ public:
      */
     PartBunch(double qi,
               double mi,
-              size_t totalP,
               double lbt,
               std::string integration_method,
               std::shared_ptr<FieldSolverCmd>& OPALFieldSolver,
