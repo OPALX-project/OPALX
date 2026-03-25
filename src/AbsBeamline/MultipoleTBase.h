@@ -104,7 +104,7 @@ public:
     /** Return the field for an array of points */
     virtual void getField(
         const Kokkos::View<Vector_t<double, 3>*>& /*R*/, Kokkos::View<Vector_t<double, 3>*>& /*E*/,
-        Kokkos::View<Vector_t<double, 3>*>& /*B*/, double /*scaling*/) {}
+        Kokkos::View<Vector_t<double, 3>*>& /*B*/, double /*scaling*/, size_t /*count*/) {}
 
     /** Return the field for a single point */
     virtual bool getField(

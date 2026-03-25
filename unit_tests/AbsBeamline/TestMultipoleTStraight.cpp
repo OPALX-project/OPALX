@@ -68,12 +68,12 @@ protected:
         // Set the particle positions
         const double stepSize = width / static_cast<double>(line.size() - 1);
         for (size_t i = 0; i < line.size(); ++i) {
-            local[i] = {i * stepSize - width / 2, 0, s};
+            local[i] = {static_cast<double>(i) * stepSize - width / 2, 0, s};
             hostR(i) = curvilinearToGlobal(local[i], elementEntry, elementLength);
         }
         Kokkos::deep_copy(R, hostR);
         // Get the fields
-        apply(R, E, B, 0.0);
+        apply(R, E, B, 0.0, line.size());
         // Return the fields
         Kokkos::deep_copy(hostB, B);
         for (size_t i = 0; i < line.size(); ++i) {
@@ -92,7 +92,7 @@ protected:
         const double startS   = 0 - (elementLength - length) / 2;
         for (size_t i = 0; i < divLine.size(); ++i) {
             // Get the sourrounding 6 B fields
-            Vector_t<double, 3> local{x, 0, i * stepSize + startS};
+            Vector_t<double, 3> local{x, 0, static_cast<double>(i) * stepSize + startS};
             Vector_t<double, 3> R =
                 curvilinearToGlobal(local, elementEntry, elementLength);
             Vector_t<double, 3> B;
