@@ -202,9 +202,9 @@ void TrackRun::execute() {
 
     OpalData::getInstance()->setInOPALTMode();
 
-    if (isFollowupTrack_m) {
-        Track::block->bunch->setLocalTrackStep(0);
-    }
+    //if (isFollowupTrack_m) {
+    //    Track::block->bunch->setLocalTrackStep(0);
+    //}
 
     // Fieldsover command
     fs_m = std::shared_ptr<FieldSolverCmd>(FieldSolverCmd::find(Attributes::getString(itsAttr[TRACKRUN::FIELDSOLVER])));
