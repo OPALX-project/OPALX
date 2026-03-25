@@ -118,9 +118,9 @@ void H5PartWrapperForPT::readStepHeader(PartBunch_t* bunch) {
     READSTEPATTRIB(Float64, file_m, "SPOS", &spos);
     bunch->set_sPos(spos);
 
-    h5_int64_t ltstep;
-    READSTEPATTRIB(Int64, file_m, "LocalTrackStep", &ltstep);
-    bunch->setLocalTrackStep((long long)(ltstep + 1));
+    //h5_int64_t ltstep;
+    //READSTEPATTRIB(Int64, file_m, "LocalTrackStep", &ltstep);
+    //bunch->setLocalTrackStep((long long)(ltstep + 1));
 
     h5_int64_t gtstep;
     READSTEPATTRIB(Int64, file_m, "GlobalTrackStep", &gtstep);
@@ -332,7 +332,7 @@ void H5PartWrapperForPT::writeStepHeader(
                    / (2.0 * bunch->get_gamma() * I_0
                       * (geomvareps[0] * geomvareps[0] + geomvareps[1] * geomvareps[1]));
 
-    h5_int64_t localTrackStep  = (h5_int64_t)bunch->getLocalTrackStep();
+    //h5_int64_t localTrackStep  = (h5_int64_t)bunch->getLocalTrackStep();
     h5_int64_t globalTrackStep = (h5_int64_t)bunch->getGlobalTrackStep();
 
     double mass   = Units::eV2GeV * bunch->getM();
@@ -369,7 +369,7 @@ void H5PartWrapperForPT::writeStepHeader(
     WRITESTEPATTRIB(Float64, file_m, "maxP", (h5_float64_t*)&maxP, 3);
 
     WRITESTEPATTRIB(Int64, file_m, "Step", &numSteps_m, 1);
-    WRITESTEPATTRIB(Int64, file_m, "LocalTrackStep", &localTrackStep, 1);
+    //WRITESTEPATTRIB(Int64, file_m, "LocalTrackStep", &localTrackStep, 1);
     WRITESTEPATTRIB(Int64, file_m, "GlobalTrackStep", &globalTrackStep, 1);
 
     WRITESTEPATTRIB(Float64, file_m, "#sigma", &sigma, 1);
