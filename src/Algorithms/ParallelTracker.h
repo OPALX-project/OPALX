@@ -41,7 +41,7 @@
 #include "AbsBeamline/ConstantEFieldCavity.h"
 #include "AbsBeamline/Drift.h"
 #include "AbsBeamline/ElementBase.h"
-#include "AbsBeamline/Ip.h"
+#include "AbsBeamline/BeamBeam.h"
 #include "AbsBeamline/Marker.h"
 #include "AbsBeamline/Multipole.h"
 #include "AbsBeamline/MultipoleT.h"
@@ -62,7 +62,7 @@
 
 class ParticleMatterInteractionHandler;
 class PluginElement;
-class InteractionWindowAnimation;
+class BeamBeamWindowAnimation;
 
 /**
  * @brief Implements the simulation loop
@@ -156,57 +156,49 @@ private:
     WakeFunction* wakeFunction_m;
 
     /**
-     * @brief Geometric description of an active interaction window around the IP.
+     * @brief Geometric description of an active beam-beam window around the IP.
      *
      * All longitudinal coordinates are stored in path-length coordinates `s`.
-     * The local-z position of the interaction point is stored separately because
-     * the field solve uses beam-frame coordinates while the tracker logic and the
-     * ASCII visualization operate in `s`.
+     * Beam-frame coordinates needed by the field solve are derived from this
+     * geometry and the current tracker position.
      */
-    struct InteractionWindowGeometry {
-        double interactionPointS   = 0.0;
-        double beginS              = 0.0;
-        double endS                = 0.0;
-        double length              = 0.0;
-        double interactionPointLocalZ = 0.0;
-        double observedBeginS      = 0.0;
-        double observedEndS        = 0.0;
-        bool copyModel            = false;
-        bool visualize            = false;
+    struct BeamBeamGeometry {
+        double interactionPointS = 0.0;
+        double beginS            = 0.0;
+        double endS              = 0.0;
+        double length            = 0.0;
+        bool copyModel           = false;
+        bool visualize           = false;
     };
 
     /**
-     * @brief Lifecycle of the interaction-window model for the current run.
-     *
-     * `Pending` marks the step-boundary handoff: the head of the bunch has
-     * entered the interaction window, but the tracker has not yet switched the
-     * field solve over to the frozen Eulerian-in-z interaction-window mesh.
-     * This avoids mixing inactive and active interaction-window behavior inside
-     * the same integration step.
+     * @brief Lifecycle of the beam-beam-window model for the current run.
      */
-    enum class InteractionWindowPhase { Inactive, Pending, Active, Completed };
+    enum class BeamBeamWindowState { Inactive, Active, Completed };
 
     /**
-     * @brief Tracker-owned state for the interaction-window passage.
+     * @brief Tracker-owned state for the beam-beam-window passage.
      *
-     * This keeps the interaction-window lifecycle, geometry, and temporary
+     * This keeps the beam-beam-window lifecycle, geometry, and temporary
      * field-domain data together. The field mesh switches from the normal
      * bunch-following representation (Lagrangian in z) to a frozen
-     * interaction-window representation (Eulerian in z) while this state is
+     * beam-beam-window representation (Eulerian in z) while this state is
      * active.
      */
-    struct InteractionWindowState {
-        InteractionWindowPhase phase = InteractionWindowPhase::Inactive;
+    struct BeamBeamState {
+        BeamBeamWindowState state = BeamBeamWindowState::Inactive;
         bool frameObserved          = false;
         bool meshInitialized        = false;
-        std::optional<InteractionWindowGeometry> geometry;
+        bool entryRhoSnapshotDumped = false;
+        std::optional<BeamBeamGeometry> geometry;
         std::optional<PartBunch<double, Dim>::SavedFieldDomainState> savedFieldDomain;
     };
 
-    InteractionWindowState interactionWindowState_m;
+    BeamBeamState beamBeamState_m;
+    static constexpr int postBeamBeamWindowVisualizationSteps_m = 4;
 
-    // ASCII visualization helper for the interaction-window dynamics.
-    std::unique_ptr<InteractionWindowAnimation> interactionWindowAnimation_m;
+    // ASCII visualization helper for the beam-beam-window dynamics.
+    std::unique_ptr<BeamBeamWindowAnimation> beamBeamWindowAnimation_m;
 
     /* ===================================================================== */
     /// Time-dependent (emitting) sources; emitParticles(t, dt) called each step.
@@ -258,7 +250,7 @@ public:
     virtual void visitDrift(const Drift&);
 
     /// Apply the algorithm to an interaction point.
-    virtual void visitIp(const Ip&);
+    virtual void visitBeamBeam(const BeamBeam&);
 
     /// Apply the algorithm to a ring
     virtual void visitRing(const Ring& ring);
@@ -300,19 +292,19 @@ public:
     void timeIntegration2(BorisPusher& pusher);
     /**
      * @brief Compute self fields for the current step, including the
-     * interaction-window branch when enabled.
+     * beam-beam-window branch when enabled.
      *
-     * The current interaction-window space-charge model is organized in three phases:
+     * The current beam-beam-window space-charge model is organized in three phases:
      * - Phase 1: ordinary single-bunch tracking with a bunch-fitted mesh.
      * - Phase 2: once the bunch enters the active interaction-point window, the mesh
-     *   is expanded to cover the full interaction window and the deposited charge density
+     *   is expanded to cover the full beam-beam window and the deposited charge density
      *   is prepared for a symmetry-based reconstruction of the partner bunch.
      * - Phase 3: the resulting grid-based charge density is used as the right-hand side
      *   of the Poisson solve for the electrostatic scalar field.
      *
      * In the present model, phase 2 currently uses one physical bunch and one
      * virtual mirrored bunch. The routine may temporarily replace the field-domain
-     * geometry, perform the interaction-window-specific solve setup, and then
+     * geometry, perform the beam-beam-window-specific solve setup, and then
      * restore the original physical bunch bounds and field-domain state.
      *
      * @param step Global tracking step index.
@@ -329,47 +321,47 @@ public:
 
     /* =========================== IP Related Functions =============================== */
     /**
-     * @brief Detect entry into and exit from an active interaction window around the
+     * @brief Detect entry into and exit from an active beam-beam window around the
      * interaction point.
      *
-     * The current model activates a symmetric interaction-window mode using one
+     * The current model activates a symmetric beam-beam-window mode using one
      * physical bunch and one virtual mirrored bunch reconstructed about the IP center.
      *
      * @param oth Orbit-threader used to query the active beamline elements.
      */
-    void checkInIPRegion(OrbitThreader& oth);
+    void checkInBBRegion(OrbitThreader& oth);
 
 private:
     /**
-     * @brief Detect an interaction window overlapping the current bunch extent.
+     * @brief Detect an beam-beam window overlapping the current bunch extent.
      *
      * @param oth Orbit-threader used to query the active beamline elements.
      * @param rmin Physical bunch lower bounds in the reference-particle frame.
      * @param rmax Physical bunch upper bounds in the reference-particle frame.
      *
-     * @return The current interaction-window geometry if an IP overlaps the
+     * @return The current beam-beam-window geometry if an IP overlaps the
      *         bunch extent, otherwise `std::nullopt`.
      */
-    std::optional<InteractionWindowGeometry> detectInteractionWindow(
+    std::optional<BeamBeamGeometry> detectBeamBeamWindow(
         OrbitThreader& oth,
         const ippl::Vector<double, Dim>& rmin,
         const ippl::Vector<double, Dim>& rmax);
 
-    void enterInteractionWindow(const InteractionWindowGeometry& geometry, Inform& m);
-    void leaveInteractionWindow(Inform& m);
-    void renderInteractionWindowFrame(
+    void enterBeamBeamWindow(const BeamBeamGeometry& geometry, Inform& m);
+    void leaveBeamBeamWindow(Inform& m);
+    void renderBeamBeamWindowFrame(
         double bunchTailS,
         double bunchHeadS,
-        const InteractionWindowGeometry& geometry);
-    bool usesFrozenInteractionWindowMesh() const;
+        const BeamBeamGeometry& geometry);
+    bool usesFrozenBeamBeamWindowMesh() const;
     void transformFieldsToReferenceFrame(
         const CoordinateSystemTrafo& beamToReferenceCSTrafo,
         Inform& m);
     void computeDefaultSelfFields(
         const CoordinateSystemTrafo& beamToReferenceCSTrafo,
         Inform& m);
-    void computeInteractionWindowSelfFields(
-        const CoordinateSystemTrafo& referenceToBeamCSTrafo,
+    void computeBeamBeamWindowSelfFields(
+        const CoordinateSystemTrafo&,
         const CoordinateSystemTrafo& beamToReferenceCSTrafo,
         Inform& m);
 
@@ -436,8 +428,8 @@ inline void ParallelTracker::visitDrift(const Drift& drift) {
     itsOpalBeamline_m.visit(drift, *this, itsBunch_m);
 }
 
-inline void ParallelTracker::visitIp(const Ip& ip) {
-    itsOpalBeamline_m.visit(ip, *this, itsBunch_m);
+inline void ParallelTracker::visitBeamBeam(const BeamBeam& beamBeam) {
+    itsOpalBeamline_m.visit(beamBeam, *this, itsBunch_m);
 }
 
 inline void ParallelTracker::visitMarker(const Marker& marker) {

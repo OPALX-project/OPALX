@@ -29,7 +29,7 @@ PartBunch<T, Dim>::PartBunch(
       integration_method_m(integration_method),
       solver_m(""),
       isFirstRepartition_m(true),
-      interactionWindowConfig_m(std::nullopt),
+      beamBeamWindowConfig_m(std::nullopt),
       qi_m(qi),
       mi_m(mi),
       rmsDensity_m(0.0),
@@ -141,25 +141,25 @@ void PartBunch<T, Dim>::restoreFieldDomainState(const SavedFieldDomainState& sta
 }
 
 template <typename T, unsigned Dim>
-void PartBunch<T, Dim>::enableInteractionWindowMesh(
-    double interactionPointLocalZ, double interactionWindowLength) {
-    Inform m("PartBunch::enableInteractionWindowMesh");
+void PartBunch<T, Dim>::enableBeamBeamWindowMesh(
+    double interactionPointLocalZ, double beamBeamWindowLength) {
+    Inform m("PartBunch::enableBeamBeamWindowMesh");
 
-    if (interactionWindowLength <= 0.0) {
+    if (beamBeamWindowLength <= 0.0) {
         throw OpalException(
-            "PartBunch::enableInteractionWindowMesh", "interactionWindowLength must be > 0");
+            "PartBunch::enableBeamBeamWindowMesh", "beamBeamWindowLength must be > 0");
     }
 
     auto* mesh = &this->fcontainer_m->getMesh();
 
     // Keep the current bunch-following x/y field domain unchanged and only switch
     // the longitudinal extent from a moving bunch-fitted domain (Lagrangian in z)
-    // to a fixed Eulerian interaction-window domain.
+    // to a fixed Eulerian beam-beam-window domain.
     Vector_t<double, Dim> o = this->getFieldContainer()->getRMin();
     Vector_t<double, Dim> e = this->getFieldContainer()->getRMax();
 
-    o(2) = interactionPointLocalZ - 0.5 * interactionWindowLength;
-    e(2) = interactionPointLocalZ + 0.5 * interactionWindowLength;
+    o(2) = interactionPointLocalZ - 0.5 * beamBeamWindowLength;
+    e(2) = interactionPointLocalZ + 0.5 * beamBeamWindowLength;
 
     const Vector_t<double, Dim> l = e - o;
     hr_m                          = l / this->nr_m;
@@ -171,14 +171,14 @@ void PartBunch<T, Dim>::enableInteractionWindowMesh(
     this->getFieldContainer()->setRMax(e);
     this->getFieldContainer()->setHr(hr_m);
 
-    // The interaction-window mode only changes the field mesh used by the
+    // The beam-beam-window mode only changes the field mesh used by the
     // temporary self-field solve. The particle layout must stay in the original
     // bunch-following frame; forcing updateLayout()/pc->update() here remaps the
-    // particles onto the Eulerian interaction-window mesh and introduces an
-    // unphysical longitudinal offset of one interaction-window length.
+    // particles onto the Eulerian beam-beam-window mesh and introduces an
+    // unphysical longitudinal offset of one beam-beam-window length.
     this->updateMoments();
 
-    m << level3 << "Enabled interaction-window mesh:" << endl;
+    m << level3 << "Enabled beam-beam-window mesh:" << endl;
     m << level3 << "\torigin = " << o << endl;
     m << level3 << "\trmax   = " << e << endl;
     m << level3 << "\thr     = " << hr_m << endl;
@@ -585,10 +585,10 @@ void PartBunch<T, Dim>::bunchUpdate() {
     ippl::Vector<double, 3> o = pc->getMinR();
     ippl::Vector<double, 3> e = pc->getMaxR();
 
-    const bool keepLongitudinalFieldMesh = interactionWindowConfig_m.has_value();
+    const bool keepLongitudinalFieldMesh = beamBeamWindowConfig_m.has_value();
     Vector_t<double, Dim> currentHr(0.0);
     if (keepLongitudinalFieldMesh) {
-        // During the interaction-window mode we keep the longitudinal field mesh
+        // During the beam-beam-window mode we keep the longitudinal field mesh
         // fixed (Eulerian in z) and only continue bunch-following updates in x/y.
         const auto currentRMin = this->getFieldContainer()->getRMin();
         const auto currentRMax = this->getFieldContainer()->getRMax();
@@ -663,7 +663,134 @@ void PartBunch<T, Dim>::bunchUpdate() {
 }
 
 template <typename T, unsigned Dim>
-void PartBunch<T, Dim>::dumpChargeDensityDebug(const std::string& phaseTag) const {
+std::vector<std::string> PartBunch<T, Dim>::buildScalarDumpHeaders(
+    const std::string& snapshotKind,
+    const std::string& coordinateFrame,
+    const std::optional<BeamBeamWindowConfig>& geometryOverride,
+    std::optional<bool> activeOverride) const {
+    std::vector<std::string> headers;
+    headers.reserve(16);
+
+    headers.push_back("coordinate_frame=" + coordinateFrame);
+
+    std::ostringstream globalStepHeader;
+    globalStepHeader << "global_step=" << globalTrackStep_m;
+    headers.push_back(globalStepHeader.str());
+
+    std::ostringstream localStepHeader;
+    localStepHeader << "local_step=" << localTrackStep_m;
+    headers.push_back(localStepHeader.str());
+
+    std::ostringstream pathLengthHeader;
+    pathLengthHeader << std::setprecision(12) << "path_length_s=" << get_sPos();
+    headers.push_back(pathLengthHeader.str());
+
+    headers.push_back("snapshot_kind=" + snapshotKind);
+
+    const bool beamBeamWindowActive =
+        activeOverride.value_or(beamBeamWindowConfig_m.has_value());
+
+    std::ostringstream activeHeader;
+    activeHeader << "interaction_window_active=" << beamBeamWindowActive;
+    headers.push_back(activeHeader.str());
+
+    std::ostringstream meshOriginHeader;
+    meshOriginHeader << "mesh_origin=" << origin_m;
+    headers.push_back(meshOriginHeader.str());
+
+    std::ostringstream meshSpacingHeader;
+    meshSpacingHeader << "mesh_spacing=" << hr_m;
+    headers.push_back(meshSpacingHeader.str());
+
+    std::ostringstream fieldRMinHeader;
+    fieldRMinHeader << "field_domain_rmin=" << this->fcontainer_m->getRMin();
+    headers.push_back(fieldRMinHeader.str());
+
+    std::ostringstream fieldRMaxHeader;
+    fieldRMaxHeader << "field_domain_rmax=" << this->fcontainer_m->getRMax();
+    headers.push_back(fieldRMaxHeader.str());
+
+    std::ostringstream bunchRMinHeader;
+    bunchRMinHeader << "bunch_bounds_rmin=" << rmin_m;
+    headers.push_back(bunchRMinHeader.str());
+
+    std::ostringstream bunchRMaxHeader;
+    bunchRMaxHeader << "bunch_bounds_rmax=" << rmax_m;
+    headers.push_back(bunchRMaxHeader.str());
+
+    const auto& geometryConfig =
+        geometryOverride.has_value()
+            ? geometryOverride
+            : (beamBeamWindowConfig_m.has_value() ? beamBeamWindowConfig_m
+                                                     : beamBeamWindowVisualizationConfig_m);
+
+    if (geometryConfig.has_value()) {
+        const auto& cfg = *geometryConfig;
+        const double interactionPointBeamZ = cfg.interactionPointS - get_sPos();
+        const double interactionPointElementZ = 0.5 * cfg.beamBeamWindowLength;
+
+        std::ostringstream interactionPointHeader;
+        interactionPointHeader << std::setprecision(12)
+                               << "interaction_point=(" << 0.0 << "," << 0.0 << ","
+                               << interactionPointBeamZ << ")";
+        headers.push_back(interactionPointHeader.str());
+
+        std::ostringstream interactionPointSHeader;
+        interactionPointSHeader << std::setprecision(12)
+                                << "interaction_point_s=" << cfg.interactionPointS;
+        headers.push_back(interactionPointSHeader.str());
+
+        std::ostringstream interactionPointBeamZHeader;
+        interactionPointBeamZHeader << std::setprecision(12)
+                                    << "interaction_point_beam_z=" << interactionPointBeamZ;
+        headers.push_back(interactionPointBeamZHeader.str());
+
+        std::ostringstream interactionPointElementZHeader;
+        interactionPointElementZHeader << std::setprecision(12)
+                                       << "interaction_point_element_z="
+                                       << interactionPointElementZ;
+        headers.push_back(interactionPointElementZHeader.str());
+
+        std::ostringstream elementZRangeHeader;
+        elementZRangeHeader << std::setprecision(12)
+                            << "ip_element_z_range=("
+                            << (cfg.windowBeginS - cfg.interactionPointS + interactionPointBeamZ)
+                            << ","
+                            << (cfg.windowEndS - cfg.interactionPointS + interactionPointBeamZ)
+                            << ")";
+        headers.push_back(elementZRangeHeader.str());
+
+        std::ostringstream elementSRangeHeader;
+        elementSRangeHeader << std::setprecision(12)
+                            << "ip_element_s_range=(" << cfg.windowBeginS << ","
+                            << cfg.windowEndS << ")";
+        headers.push_back(elementSRangeHeader.str());
+
+        std::ostringstream windowZRangeHeader;
+        windowZRangeHeader << std::setprecision(12)
+                           << "collision_window_z_range=("
+                           << (cfg.windowBeginS - cfg.interactionPointS + interactionPointBeamZ)
+                           << ","
+                           << (cfg.windowEndS - cfg.interactionPointS + interactionPointBeamZ)
+                           << ")";
+        headers.push_back(windowZRangeHeader.str());
+
+        std::ostringstream windowSRangeHeader;
+        windowSRangeHeader << std::setprecision(12)
+                           << "collision_window_s_range=(" << cfg.windowBeginS << ","
+                           << cfg.windowEndS << ")";
+        headers.push_back(windowSRangeHeader.str());
+
+        std::ostringstream copyModelHeader;
+        copyModelHeader << "copy_model=" << cfg.copyModel;
+        headers.push_back(copyModelHeader.str());
+    }
+
+    return headers;
+}
+
+template <typename T, unsigned Dim>
+void PartBunch<T, Dim>::dumpChargeDensityDebug(const std::string& phaseTag) {
     Inform m("PartBunch::dumpChargeDensityDebug");
 
     if (ippl::Comm->size() > 1) {
@@ -671,70 +798,49 @@ void PartBunch<T, Dim>::dumpChargeDensityDebug(const std::string& phaseTag) cons
         return;
     }
 
-    const auto& rho             = this->fcontainer_m->getRho();
-    ippl::NDIndex<Dim> localIdx = rho.getLayout().getLocalNDIndex();
-    const int nghost            = rho.getNghost();
-    auto* mesh                  = &rho.get_mesh();
-    const auto spacing          = mesh->getMeshSpacing();
-    const auto origin           = mesh->getOrigin();
+    getFieldSolver()->dumpScalField(
+        "RHO",
+        "collwin_vis",
+        buildScalarDumpHeaders(phaseTag));
+    m << level5 << "Wrote unified rho debug dump for phase " << phaseTag << "." << endl;
+}
 
-    auto fieldV      = rho.getView();
-    auto field_hostV = rho.getHostMirror();
-    Kokkos::deep_copy(field_hostV, fieldV);
+template <typename T, unsigned Dim>
+void PartBunch<T, Dim>::scatterMirroredChargeDensity(
+    Field_t<Dim>* rho,
+    double interactionPointLocalZ) {
+    Inform m("PartBunch::scatterMirroredChargeDensity");
 
-    std::filesystem::create_directories("data");
-
-    std::string basename = "opalx";
-    if (OpalData::getInstance() != nullptr) {
-        basename = OpalData::getInstance()->getInputBasename();
+    auto pc = this->getParticleContainer();
+    auto Rview = pc->R.getView();
+    const size_type nLocal = pc->getLocalNum();
+    if (nLocal == 0) {
+        return;
     }
 
-    std::ostringstream name;
-    name << basename << "-rho_debug-" << phaseTag << "-step-" << std::setfill('0') << std::setw(6)
-         << globalTrackStep_m << ".dat";
+    Kokkos::View<double*> originalZ("PartBunch::scatterMirroredChargeDensity::originalZ", nLocal);
 
-    std::filesystem::path file = std::filesystem::path("data") / name.str();
-    std::ofstream fout(file.string(), std::ios::out);
-    fout << std::setprecision(9);
+    Kokkos::parallel_for(
+        "PartBunch::mirrorPositionsForScatter",
+        Kokkos::RangePolicy<typename ippl::ParticleAttrib<double>::execution_space>(0, nLocal),
+        KOKKOS_LAMBDA(const size_type i) {
+            originalZ(i) = Rview(i)[2];
+            Rview(i)[2] = 2.0 * interactionPointLocalZ - Rview(i)[2];
+        });
+    Kokkos::fence();
 
-    const auto fieldRMin = this->fcontainer_m->getRMin();
-    const auto fieldRMax = this->fcontainer_m->getRMax();
+    auto* dt = &pc->dt;
+    pc->scaleDtByCharge();
+    scatter(*dt, *rho, pc->R);
+    pc->unscaleDtByCharge();
 
-    fout << "# RHO debug data before coupling constant application" << std::endl;
-    fout << "# units=rho[C/m^3]" << std::endl;
-    fout << "# phase=" << phaseTag << std::endl;
-    fout << "# global_step=" << globalTrackStep_m << " local_step=" << localTrackStep_m
-         << std::endl;
-    fout << "# interaction_window_active=" << interactionWindowConfig_m.has_value();
-    if (interactionWindowConfig_m.has_value()) {
-        fout << " interaction_point_local_z[m]="
-             << interactionWindowConfig_m->interactionPointLocalZ
-             << " interaction_window_length[m]="
-             << interactionWindowConfig_m->interactionWindowLength;
-    }
-    fout << std::endl;
-    fout << "# mesh_origin=" << origin << " mesh_spacing=" << spacing << std::endl;
-    fout << "# field_domain_rmin=" << fieldRMin << " field_domain_rmax=" << fieldRMax << std::endl;
-    fout << "# bunch_bounds_rmin=" << rmin_m << " bunch_bounds_rmax=" << rmax_m << std::endl;
-    fout << "#" << std::setw(4) << "i" << std::setw(5) << "j" << std::setw(5) << "k"
-         << std::setw(17) << "x [m]" << std::setw(17) << "y [m]" << std::setw(17) << "z [m]"
-         << std::setw(18) << "rho [C/m^3]" << std::endl;
+    Kokkos::parallel_for(
+        "PartBunch::restorePositionsAfterMirrorScatter",
+        Kokkos::RangePolicy<typename ippl::ParticleAttrib<double>::execution_space>(0, nLocal),
+        KOKKOS_LAMBDA(const size_type i) { Rview(i)[2] = originalZ(i); });
+    Kokkos::fence();
 
-    for (int i = localIdx[0].first() + nghost; i <= localIdx[0].last() + nghost; ++i) {
-        for (int j = localIdx[1].first() + nghost; j <= localIdx[1].last() + nghost; ++j) {
-            for (int k = localIdx[2].first() + nghost; k <= localIdx[2].last() + nghost; ++k) {
-                const double x = (i - nghost) * spacing[0] + origin[0];
-                const double y = (j - nghost) * spacing[1] + origin[1];
-                const double z = (k - nghost) * spacing[2] + origin[2];
-
-                fout << std::setw(5) << i << std::setw(5) << j << std::setw(5) << k << std::setw(17)
-                     << x << std::setw(17) << y << std::setw(17) << z << std::scientific << "\t"
-                     << field_hostV(i, j, k) << std::endl;
-            }
-        }
-    }
-
-    m << level5 << "Wrote rho debug dump to " << file.string() << endl;
+    m << level4 << "Mirrored charge density scatter done." << endl;
 }
 
 template <typename T, unsigned Dim>
@@ -776,12 +882,12 @@ void PartBunch<T, Dim>::computeSelfFields() {
     therefore assume that we could separate bunchUpdate from pc->update() in
     order to save some computation.
     */
-    if (!interactionWindowConfig_m.has_value()) {
+    if (!beamBeamWindowConfig_m.has_value()) {
         this->bunchUpdate();
         m << level5 << "Bunch updated." << endl;
     } else {
-        m << level5 << "Skipping bunchUpdate() in interaction-window mode to keep the beam-frame "
-          << "interaction-window mesh/layout fixed during the temporary self-field solve." << endl;
+        m << level5 << "Skipping bunchUpdate() in beam-beam-window mode to keep the beam-frame "
+          << "beam-beam-window mesh/layout fixed during the temporary self-field solve." << endl;
     }
 
     /// \todo Add binned field solver here (needs iteration over bins, scatterPerBin calls and Etmp
@@ -792,6 +898,19 @@ void PartBunch<T, Dim>::computeSelfFields() {
     typename Base::particle_position_type* R = &this->pcontainer_m->R;
     this->fcontainer_m->getRho()             = 0.0;
     Field_t<Dim>* rho                        = &this->fcontainer_m->getRho();
+    const bool dumpBeamBeamWindowStages =
+        beamBeamWindowConfig_m.has_value() && beamBeamWindowConfig_m->copyModel &&
+        globalTrackStep_m >= 29 && globalTrackStep_m <= 31;
+
+    auto dumpBeamBeamWindowStage = [&](const std::string& stageName) {
+        if (!dumpBeamBeamWindowStages) {
+            return;
+        }
+        getFieldSolver()->dumpScalField(
+            "RHO",
+            "collwin_stage",
+            buildScalarDumpHeaders(stageName));
+    };
 
     /// \todo replace with scatterCIC? --> later with scatterPerBin!
     // Charge "unit" here is "charge per macroparticle" [C]!
@@ -806,6 +925,14 @@ void PartBunch<T, Dim>::computeSelfFields() {
     scatter(*dt, *rho, *R);
     this->pcontainer_m->unscaleDtByCharge();
     m << level4 << "Scatter done." << endl;
+    dumpBeamBeamWindowStage("after_primary_scatter");
+
+    if (beamBeamWindowConfig_m.has_value() && beamBeamWindowConfig_m->copyModel) {
+        const double interactionPointBeamZ =
+            beamBeamWindowConfig_m->interactionPointS - get_sPos();
+        scatterMirroredChargeDensity(rho, interactionPointBeamZ);
+        dumpBeamBeamWindowStage("after_mirror_scatter");
+    }
 
     /*
     Now rho is in units of [C * s] -- need to divide by dt to get back to [C].
@@ -856,9 +983,16 @@ void PartBunch<T, Dim>::computeSelfFields() {
         m << level4 << "Net-0 charge generation with factor " << (totalQ / size) << " done."
           << endl;
     }
+    dumpBeamBeamWindowStage("after_background_subtraction");
 
-    if (interactionWindowConfig_m.has_value()) {
+    if (beamBeamWindowConfig_m.has_value()) {
         dumpChargeDensityDebug("collision_window_primary_only");
+    } else if (hasBeamBeamWindowVisualizationTail()) {
+        dumpChargeDensityDebug("post_collision_window_single_bunch");
+        --beamBeamWindowVisualizationTailSteps_m;
+        if (beamBeamWindowVisualizationTailSteps_m <= 0) {
+            clearBeamBeamWindowVisualizationTail();
+        }
     } else if (globalTrackStep_m == 0) {
         dumpChargeDensityDebug("single_bunch_reference");
     }

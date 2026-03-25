@@ -76,22 +76,22 @@ public:
 
     /*
 
-      This is for the interaction-window mode
+      This is for the beam-beam-window mode
 
      */
 
     /**
      * @brief Saved state for temporarily modifying the field-domain geometry during
-     * interaction-window field solves.
+     * beam-beam-window field solves.
      *
      * The stored data includes both the mesh-aligned field-domain quantities and the
      * cached physical bunch bounds used by `get_bounds()`.
      *
-     * Outside the interaction window the longitudinal field mesh is bunch-following
-     * (Lagrangian in z). Inside the interaction window the longitudinal field mesh is
+     * Outside the beam-beam window the longitudinal field mesh is bunch-following
+     * (Lagrangian in z). Inside the beam-beam window the longitudinal field mesh is
      * fixed over the full window (Eulerian in z). This state object stores the
      * pre-window field-domain geometry so that the bunch-following mesh can be
-     * restored after leaving the interaction window.
+     * restored after leaving the beam-beam window.
      */
     struct SavedFieldDomainState {
         Vector_t<double, Dim> origin;
@@ -106,7 +106,7 @@ public:
     /**
      * @brief Save the current field-domain and cached physical bunch-bound state.
      *
-     * This is used before entering a temporary interaction-window field solve
+     * This is used before entering a temporary beam-beam-window field solve
      * that may alter the mesh extents and the cached bunch bounds.
      *
      * @return Snapshot of the current field-domain and physical-bounds state.
@@ -118,14 +118,14 @@ public:
      * state.
      *
      * After restoring this state, `get_bounds()` again returns the physical bunch
-     * bounds from before the temporary interaction-window solve.
+     * bounds from before the temporary beam-beam-window solve.
      *
      * @param state Snapshot produced by `saveFieldDomainState()`.
      */
     void restoreFieldDomainState(const SavedFieldDomainState& state);
 
     /**
-     * @brief Replace the current field mesh by an interaction-window-aligned mesh.
+     * @brief Replace the current field mesh by an beam-beam-window-aligned mesh.
      *
      * This marks the Lagrangian-to-Eulerian transition in the longitudinal direction:
      * x/y remain bunch-following, while z is fixed to the requested interaction
@@ -133,26 +133,32 @@ public:
      *
      * @param interactionPointLocalZ Interaction-point center in the bunch-local z
      * coordinate [m].
-     * @param interactionWindowLength Interaction-window length in the bunch-local z
+     * @param beamBeamWindowLength Interaction-window length in the bunch-local z
      * coordinate [m].
      */
-    void enableInteractionWindowMesh(double interactionPointLocalZ, double interactionWindowLength);
+    void enableBeamBeamWindowMesh(double interactionPointLocalZ, double beamBeamWindowLength);
 
     /**
-     * @brief Local interaction-window configuration needed by the bunch-side
+     * @brief Stable beam-beam-window configuration needed by the bunch-side
      * field solve.
      *
-     * This stores only the geometry expressed in the current co-moving z frame.
-     * The lifecycle of the interaction-window passage is tracked by
-     * `ParallelTracker`; the bunch only keeps the geometry required to freeze
-     * the field mesh in z during the temporary Eulerian interaction-window solve.
+     * The lifecycle of the beam-beam-window passage is tracked by
+     * `ParallelTracker`; the bunch only keeps the stable geometry required to
+     * freeze the field mesh in z during the temporary Eulerian beam-beam-window
+     * solve. The beam-local interaction-point position is derived from
+     * `interactionPointS - get_sPos()` when needed.
      */
-    struct InteractionWindowConfig {
-        double interactionPointLocalZ  = 0.0;
-        double interactionWindowLength = 0.0;
+    struct BeamBeamWindowConfig {
+        double beamBeamWindowLength = 0.0;
+        double interactionPointS       = 0.0;
+        double windowBeginS            = 0.0;
+        double windowEndS              = 0.0;
+        bool copyModel                 = false;
     };
 
-    std::optional<InteractionWindowConfig> interactionWindowConfig_m;
+    std::optional<BeamBeamWindowConfig> beamBeamWindowConfig_m;
+    std::optional<BeamBeamWindowConfig> beamBeamWindowVisualizationConfig_m;
+    int beamBeamWindowVisualizationTailSteps_m = 0;
 
 private:
     double qi_m;
@@ -499,43 +505,77 @@ public:
     }
 
     /**
-     * @brief Set the bunch-side interaction-window geometry in the current
-     * co-moving z frame.
+     * @brief Set the bunch-side beam-beam-window geometry.
      *
-     * @param interactionPointLocalZ Interaction-point center expressed in
-     *        bunch-local z [m].
-     * @param interactionWindowLength Interaction-window length in bunch-local
+     * @param beamBeamWindowLength Interaction-window length in bunch-local
      *        z [m].
      */
-    void setInteractionWindowConfig(double interactionPointLocalZ, double interactionWindowLength) {
-        interactionWindowConfig_m =
-            InteractionWindowConfig{interactionPointLocalZ, interactionWindowLength};
+    void setBeamBeamWindowConfig(
+        double beamBeamWindowLength,
+        double interactionPointS,
+        double windowBeginS,
+        double windowEndS,
+        bool copyModel) {
+        beamBeamWindowConfig_m = BeamBeamWindowConfig{
+            beamBeamWindowLength,
+            interactionPointS,
+            windowBeginS,
+            windowEndS,
+            copyModel};
     }
 
     /**
-     * @brief Clear the bunch-side interaction-window configuration.
+     * @brief Clear the bunch-side beam-beam-window configuration.
      */
-    void clearInteractionWindowConfig() {
-        interactionWindowConfig_m.reset();
+    void clearBeamBeamWindowConfig() {
+        beamBeamWindowConfig_m.reset();
+    }
+
+    void setBeamBeamWindowVisualizationTail(
+        const BeamBeamWindowConfig& config,
+        int steps) {
+        beamBeamWindowVisualizationConfig_m = config;
+        beamBeamWindowVisualizationTailSteps_m = steps;
+    }
+
+    void clearBeamBeamWindowVisualizationTail() {
+        beamBeamWindowVisualizationConfig_m.reset();
+        beamBeamWindowVisualizationTailSteps_m = 0;
+    }
+
+    bool hasBeamBeamWindowVisualizationTail() const {
+        return beamBeamWindowVisualizationConfig_m.has_value() &&
+               beamBeamWindowVisualizationTailSteps_m > 0;
     }
 
     /**
-     * @brief Query whether bunch-side interaction-window geometry is configured.
+     * @brief Query whether bunch-side beam-beam-window geometry is configured.
      *
-     * @return True if the field solve should use interaction-window geometry.
+     * @return True if the field solve should use beam-beam-window geometry.
      */
-    bool hasInteractionWindowConfig() const {
-        return interactionWindowConfig_m.has_value();
+    bool hasBeamBeamWindowConfig() const {
+        return beamBeamWindowConfig_m.has_value();
     }
 
     /**
-     * @brief Get the bunch-side interaction-window geometry.
+     * @brief Get the bunch-side beam-beam-window geometry.
      *
      * @return Interaction-window configuration in bunch-local z coordinates.
      */
-    const InteractionWindowConfig& getInteractionWindowConfig() const {
-        return *interactionWindowConfig_m;
+    const BeamBeamWindowConfig& getBeamBeamWindowConfig() const {
+        return *beamBeamWindowConfig_m;
     }
+
+    std::vector<std::string> buildScalarDumpHeaders(
+        const std::string& snapshotKind,
+        const std::string& coordinateFrame = "beam",
+        const std::optional<BeamBeamWindowConfig>& geometryOverride = std::nullopt,
+        std::optional<bool> activeOverride = std::nullopt) const;
+
+private:
+    void scatterMirroredChargeDensity(Field_t<Dim>* rho, double interactionPointLocalZ);
+
+public:
     void gatherLoadBalanceStatistics();
 
     size_t getLoadBalance(int p) {
@@ -724,7 +764,7 @@ public:
      * before the coupling constant is applied.
      */
     void computeSelfFields();
-    void dumpChargeDensityDebug(const std::string& phaseTag) const;
+    void dumpChargeDensityDebug(const std::string& phaseTag);
     void dumpBinConfig(bool preMerge);
 
     Inform& print(Inform& os);

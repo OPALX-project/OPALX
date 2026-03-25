@@ -43,7 +43,7 @@ class FlaggedElmPtr;
 
 // Specific element classes interacting with a BeamlineVisitor
 class Drift;
-class Ip;
+class BeamBeam;
 class Marker;
 class Monitor;
 class Multipole;
@@ -84,7 +84,7 @@ public:
     virtual void visitFlaggedElmPtr(const FlaggedElmPtr&) = 0;
 
     /// Apply the algorithm to a drift space.
-    virtual void visitIp(const Ip&) = 0;
+    virtual void visitBeamBeam(const BeamBeam&) = 0;
   
     /// Apply the algorithm to a marker.
     virtual void visitMarker(const Marker&) = 0;

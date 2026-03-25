@@ -25,7 +25,7 @@
 #include "AbsBeamline/ConstantEFieldCavity.h"
 #include "AbsBeamline/Drift.h"
 #include "AbsBeamline/ElementBase.h"
-#include "AbsBeamline/Ip.h"
+#include "AbsBeamline/BeamBeam.h"
 #include "AbsBeamline/Marker.h"
 #include "AbsBeamline/Monitor.h"
 #include "AbsBeamline/Multipole.h"
@@ -72,8 +72,8 @@ void DefaultVisitor::visitDrift(const Drift& drf) {
     applyDefault(drf);
 }
 
-void DefaultVisitor::visitIp(const Ip& ip) {
-    applyDefault(ip);
+void DefaultVisitor::visitBeamBeam(const BeamBeam& beamBeam) {
+    applyDefault(beamBeam);
 }
 
 

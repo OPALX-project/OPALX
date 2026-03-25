@@ -4,7 +4,7 @@ set (_SRCS
     ClassicException.cpp
     ClassicField.cpp
     ClassicRandom.cpp
-    InteractionWindowAnimation.cpp
+    BeamBeamWindowAnimation.cpp
     ComplexErrorFun.cpp
     ConvergenceError.cpp
     DivideError.cpp
@@ -55,7 +55,7 @@ set (HDRS
     ClassicException.h
     ClassicField.h
     ClassicRandom.h
-    InteractionWindowAnimation.h
+    BeamBeamWindowAnimation.h
     ComplexErrorFun.h
     ConvergenceError.h
     DivideError.h

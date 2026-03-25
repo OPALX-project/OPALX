@@ -1,7 +1,7 @@
 set (_SRCS
     ConstantEFieldCavityRep.cpp
     DriftRep.cpp
-    IpRep.cpp
+    BeamBeamRep.cpp
     MarkerRep.cpp
     MonitorRep.cpp
     MultipoleRep.cpp
@@ -14,7 +14,7 @@ set (_SRCS
 set (HDRS
     ConstantEFieldCavityRep.h
     DriftRep.h
-    IpRep.h
+    BeamBeamRep.h
     MarkerRep.h
     MonitorRep.h
     MultipoleRep.h

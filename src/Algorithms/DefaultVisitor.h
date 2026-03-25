@@ -58,7 +58,7 @@ public:
     virtual void visitFlaggedElmPtr(const FlaggedElmPtr&);
 
     /// Apply the algorithm to an interaction point.
-    virtual void visitIp(const Ip&);
+    virtual void visitBeamBeam(const BeamBeam&);
   
     /// Apply the algorithm to a marker.
     virtual void visitMarker(const Marker&);

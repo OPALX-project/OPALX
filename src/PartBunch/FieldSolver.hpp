@@ -2,6 +2,8 @@
 #define OPAL_FIELD_SOLVER_H
 
 #include <memory>
+#include <string>
+#include <vector>
 #include "Manager/BaseManager.h"
 #include "Manager/FieldSolverBase.h"
 #include "BCHandler.hpp"
@@ -36,7 +38,10 @@ public:
 
     ~FieldSolver() override = default;
 
-    void dumpScalField(std::string what);
+    void dumpScalField(
+        std::string what,
+        const std::string& tag = "",
+        const std::vector<std::string>& extraHeaderLines = {});
     void dumpVectField(std::string what);
 
     Field_t<Dim>* getRho() {
