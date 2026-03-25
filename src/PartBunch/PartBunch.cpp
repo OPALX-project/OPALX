@@ -312,9 +312,9 @@ void PartBunch<T, Dim>::calcBeamParameters() {
     MomentsMat moment(MomentsVec(0.0));
 
     for (unsigned i = 0; i < 2 * Dim; ++i) {
-        Kokkos::parallel_reduce(
-            "calc moments of particle distr.", ippl::getRangePolicy(Rview),
-            KOKKOS_LAMBDA(const int k, double& cent, double& mom0, double& mom1, 
+        const size_t nLocal = this->getLocalNum();
+        Kokkos::parallel_reduce("calc moments of particle distr.", nLocal,
+            KOKKOS_LAMBDA(const size_t k, double& cent, double& mom0, double& mom1, 
                           double& mom2, double& mom3, double& mom4, 
                           double& mom5) {
                 double part[2 * Dim];
