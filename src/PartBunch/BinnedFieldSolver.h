@@ -104,7 +104,6 @@ public:
      */
     void setGatherAttribute(const GatherAttribute attr);
 
-private:
     struct BinKinematics {
         Vector_t<double, Dim> pmean = Vector_t<double, Dim>(0.0);
         double gammaBin             = 1.0;
