@@ -55,6 +55,7 @@
 #include "Structure/H5PartWrapperForPT.h"
 
 #include "BuildInfo.h"
+#include "Utility/Inform.h"
 #include "changes.h"
 
 #include "Utilities/BiMap.h"
@@ -265,7 +266,8 @@ void TrackRun::execute() {
         *gmsg << level2 << "* Beam[" << i << "] " << beamNames[i]
               << " macro mass per particle [GeV/c^2]: " << macromass << endl;
         *gmsg << level2 << "* Beam[" << i << "] " << beamNames[i]
-              << " particles per macro particle: " << part_per_macro_ratio << endl;
+              << " particles per macro particle: " << part_per_macro_ratio 
+              << endl << endl;
 
         EmissionSourceList* esl = EmissionSourceList::find(b->getEmissionSourceListName());
         const auto& sources = esl->fetchSources();
@@ -374,9 +376,10 @@ void TrackRun::execute() {
     std::vector<emittingSamplers_t> emittingSamplersList(particleContainers.size());
     for(size_t i=0; i<particleContainers.size(); ++i){
         setupDistributionsAndSamplers(
-            emissionSourcesLists.front(), 
-            beam,
-            emittingSamplersList[i]);
+            emissionSourcesLists[i], 
+            beams[i],
+            emittingSamplersList[i],
+            i);
     }
 
     /* 
@@ -527,13 +530,14 @@ size_t TrackRun::computeTotalParticlesForBunch(
 void TrackRun::setupDistributionsAndSamplers(
     const std::vector<EmissionSource*>& sources,
     Beam* beam,
-    emittingSamplers_t emittingSamplers) {
+    emittingSamplers_t emittingSamplers,
+    size_t index) {
     static IpplTimings::TimerRef samplingTime = IpplTimings::getTimer("samplingTime");
 
     IpplTimings::startTimer(samplingTime);
 
     // Common containers / parameters used by all samplers.
-    auto pc               = bunch_m->getParticleContainer();
+    auto pc               = bunch_m->getParticleContainer(index);
     auto fc               = bunch_m->getFieldContainer();
     Vector_t<int, Dim> nr = bunch_m->nr_m;
     const double avrgpz   = beam->getMomentum() / beam->getMass();
@@ -581,7 +585,7 @@ void TrackRun::setupDistributionsAndSamplers(
 
         const size_t Ndist = opalDist->getNumParticles();
         size_t       Nmutable = Ndist;
-
+    
         // Always call generateParticles once per source; time-independent samplers
         // will internally early-return when t0 > 0, while FlatTop will set up its
         // emission structures irrespective of t0.

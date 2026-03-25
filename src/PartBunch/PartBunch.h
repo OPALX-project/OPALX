@@ -163,11 +163,6 @@ public:
     ~PartBunch() {
         *gmsg << level2 << "* PartBunch Destructor: Finished time step: " << this->it_m << endl;
     }
-
-    std::shared_ptr<ParticleContainer_t> getParticleContainer() {
-        return this->pcontainer_m;
-    }
-
     size_t getTotalNumAllContainers() const {
         size_t total = 0;
         for (const auto& pc : this->getParticleContainers()) {
