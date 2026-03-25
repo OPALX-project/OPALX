@@ -456,16 +456,16 @@ namespace ParticleBinning {
             msg << level2 << "CPU Threads: No multi-threaded CPU execution space enabled." << endl;
             #endif
 
-            // Check number of GPUs (CUDA devices)
+            // Check number of GPUs (CUDA/HIP devices)
             #if defined(KOKKOS_ENABLE_CUDA)
-            int num_gpus = Kokkos::Cuda::detect_device_count();
+            int num_gpus = Kokkos::num_devices();
             msg << level2 << "CUDA Enabled: Rank " << rank << " sees " << num_gpus << " GPU(s) available." << endl;
             Kokkos::Cuda cuda_instance;
             std::stringstream ss;
             cuda_instance.print_configuration(ss);
             msg << level2 << ss.str();
             #elif defined(KOKKOS_ENABLE_HIP)
-            int num_gpus = Kokkos::Experimental::HIP::detect_device_count();
+            int num_gpus = Kokkos::num_devices();
             msg << level2 << "HIP Enabled: Rank " << rank << " sees " << num_gpus << " GPU(s) available." << endl;
             Kokkos::Experimental::HIP hip_instance;
             std::stringstream ss;
