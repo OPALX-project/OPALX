@@ -531,7 +531,7 @@ size_t TrackRun::computeTotalParticlesForBunch(
 void TrackRun::setupDistributionsAndSamplers(
     const std::vector<EmissionSource*>& sources,
     Beam* beam,
-    emittingSamplers_t emittingSamplers,
+    emittingSamplers_t& emittingSamplers,
     size_t index) {
     static IpplTimings::TimerRef samplingTime = IpplTimings::getTimer("samplingTime");
 
