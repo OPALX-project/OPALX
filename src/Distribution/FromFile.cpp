@@ -299,8 +299,7 @@ void FromFile::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> 
     
     // Copy particle data into Kokkos views, appending into
     // [nlocalCurrent, nlocalCurrent + nlocal)
-    Kokkos::parallel_for(
-        "FromFile::generateParticles", Kokkos::RangePolicy<>(0, nlocal),
+    Kokkos::parallel_for("FromFile::generateParticles", nlocal,
         KOKKOS_LAMBDA(const size_t k) {
             const size_t j       = nlocalCurrent + k;
             const size_t dataIdx = startIdx + k;
