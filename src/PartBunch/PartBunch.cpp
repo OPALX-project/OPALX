@@ -1,6 +1,7 @@
 #include "PartBunch/PartBunch.h"
 #include "PartBunch/BinnedFieldSolver.h"
 #include "Algorithms/Matrix.h"
+#include "Particle/ParticleAttrib.h"
 #include "Utilities/Util.h"
 #include "Structure/DataSink.h"
 
@@ -16,24 +17,21 @@ PartBunch<T, Dim>::PartBunch(double qi,
                              std::shared_ptr<FieldSolverCmd>& OPALFieldSolver,
                              std::shared_ptr<DataSink> dataSink)
     : ippl::PicManager<T, Dim, ParticleContainer<T, Dim>, FieldContainer<T, Dim>, LoadBalancer<T, Dim>>(),
-      time_m(0.0),
-      totalP_m(totalP),
-      //nt_m(nt),
-      lbt_m(lbt),
-      dt_m(0),
-      it_m(0),
-      integration_method_m(integration_method),
-      solver_m(""),
-      isFirstRepartition_m(true),
-      qi_m(qi),
-      mi_m(mi),
-      rmsDensity_m(0.0),
       RefPartR_m(0.0),
       RefPartP_m(0.0),
-      localTrackStep_m(0),
-      globalTrackStep_m(0),
+      dt_m(0),
+      it_m(0),
+      lbt_m(lbt),
+      isFirstRepartition_m(true),
+      integration_method_m(integration_method),
+      solver_m(""),
+      //nt_m(nt),
+      qi_m(qi),
+      mi_m(mi),
       OPALFieldSolver_m(OPALFieldSolver),
-      dataSink_m(std::move(dataSink)) {
+      dataSink_m(std::move(dataSink)),
+      rmsDensity_m(0.0),
+      globalTrackStep_m(0) {
 
     Inform m("PartBunch::PartBunch");
     m << level4 << "PartBunch Constructor" << endl;
@@ -335,9 +333,9 @@ void PartBunch<T, Dim>::calcBeamParameters() {
     MomentsMat moment(MomentsVec(0.0));
 
     for (unsigned i = 0; i < 2 * Dim; ++i) {
-        Kokkos::parallel_reduce(
-            "calc moments of particle distr.", ippl::getRangePolicy(Rview),
-            KOKKOS_LAMBDA(const int k, double& cent, double& mom0, double& mom1, 
+        const size_t nLocal = this->getLocalNum();
+        Kokkos::parallel_reduce("calc moments of particle distr.", nLocal,
+            KOKKOS_LAMBDA(const size_t k, double& cent, double& mom0, double& mom1, 
                           double& mom2, double& mom3, double& mom4, 
                           double& mom5) {
                 double part[2 * Dim];
@@ -443,12 +441,22 @@ Inform& PartBunch<T, Dim>::print(Inform& os) {
 
     const double ek  = this->get_meanKineticEnergy();
     const double dek = this->getdE();
+
+    // ParticleContainer tracks charge/mass storage mode for QM attributes.
+    std::string qmStorageModeStr = "SINGLE";
+    if (this->pcontainer_m) {
+        const auto qmMode = this->pcontainer_m->getQMStorageMode();
+        if (qmMode == ParticleContainer_t::QMStorageMode::Attributes) {
+            qmStorageModeStr = "ATTRIBUTES";
+        }
+    }
     
     os << level1 << std::scientific << "\n"
        << "* ************** B U N C H "
         "********************************************************* \n"
        << "* PARTICLES       = " << this->getTotalNum() << "\n"
        << "* CHARGE          = " << this->qi_m*this->getTotalNum() << " (Cb) \n"
+       << "* QM STORAGE MODE = " << qmStorageModeStr << "\n"
        << "* <EKIN>          = " << Util::getEnergyString(ek) << "\n"
        << "* <dEKIN>         = " << Util::getEnergyString(dek) << "\n"
        << "* INTEGRATOR      = " << integration_method_m << "\n"
@@ -615,12 +623,13 @@ void PartBunch<T, Dim>::dumpBinConfig(bool preMerge) {
         static_cast<double>(xMin),
         binningCmd->getDumpBinsFileName());
 }
-
+/**
+ * The following functions are not used yet. Will be properly implemented by
+ * Aliemen as part of the binned solver work.
+ */
+/*
 template <typename T, unsigned Dim>
 void PartBunch<T,Dim>::scatterCICPerBin(PartBunch<T,Dim>::binIndex_t binIndex) {
-    /**
-     * Scatters only particles in bin binIndex. Scatters all particles if binIndex=-1
-     */
 
     throw OpalException("PartBunch::scatterCICPerBin", 
         "This function is not implemented yet! Please use scatterCIC for now.");
@@ -687,6 +696,7 @@ void PartBunch<T,Dim>::scatterCICPerBin(PartBunch<T,Dim>::binIndex_t binIndex) {
         *rho = *rho - (Q / size);
     }
 }
+ */
 
 template <typename T, unsigned Dim>
 void PartBunch<T,Dim>::performBunchSanityChecks() const {
