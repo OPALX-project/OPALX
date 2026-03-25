@@ -36,7 +36,7 @@ public:
 using PartBunch_t = PartBunch<double, 3>;
 using ParticleContainer_t = typename PartBunch_t::ParticleContainer_t;
 using AdaptBins_t = typename PartBunch_t::AdaptBins_t;
-using Selector_t = typename PartBunch_t::BinningSelector_t;
+using CoordinateSelector_t = typename PartBunch_t::CoordinateSelector_t;
 
 constexpr size_t kDefaultNParticles = 64;
 
@@ -88,13 +88,13 @@ protected:
 
         // qi/mi/lbt are used by rho scaling; but with NullSolver we mostly validate
         // "no-throw" and deterministic zero E behavior.
-        bunch = std::make_shared<PartBunch_t>(/*qi=*/1.0,
-                                               /*mi=*/1.0,
-                                               /*totalP=*/kDefaultNParticles,
-                                               /*lbt=*/1.0,
-                                               /*integration_method=*/"LF2",
-                                               fsCmdBase,
-                                               dataSink);
+        bunch = std::make_shared<PartBunch_t>(
+            /*qi=*/1.0,
+            /*mi=*/1.0,
+            /*lbt=*/1.0,
+            /*integration_method=*/"LF2",
+            fsCmdBase,
+            dataSink);
         pc = bunch->getParticleContainer();
     }
 
@@ -115,7 +115,6 @@ protected:
         auto R_host  = pc->R.getHostMirror();
         auto P_host  = pc->P.getHostMirror();
         auto dt_host = pc->dt.getHostMirror();
-        auto Q_host  = pc->Q.getHostMirror();
         auto E_host  = pc->E.getHostMirror();
 
         // Match mesh extents from the bunch' field container.
@@ -140,7 +139,6 @@ protected:
             P_host(i)[2] = unifP_z(eng);
 
             dt_host(i) = dt;
-            Q_host(i)  = qi;
 
             // Initialize particle E to zero; solver should leave it zero in NONE mode.
             E_host(i)[0] = 0.0;
@@ -151,8 +149,8 @@ protected:
         Kokkos::deep_copy(pc->R.getView(), R_host);
         Kokkos::deep_copy(pc->P.getView(), P_host);
         Kokkos::deep_copy(pc->dt.getView(), dt_host);
-        Kokkos::deep_copy(pc->Q.getView(), Q_host);
         Kokkos::deep_copy(pc->E.getView(), E_host);
+        pc->setQ(qi);
 
         ippl::Comm->barrier();
         Kokkos::fence();
@@ -163,14 +161,18 @@ protected:
                                              double alpha,
                                              double beta,
                                              double desiredWidth) {
-        Selector_t selector(/*axis=*/2);
-        auto bins = std::make_shared<AdaptBins_t>(pc,
-                                                   selector,
-                                                   maxBins,
-                                                   alpha,
-                                                   beta,
-                                                   desiredWidth,
-                                                   /*binningCmdName=*/"TEST_BINNING_CMD");
+        using ConcreteBins_t =
+            ParticleBinning::AdaptBins<ParticleContainer_t, CoordinateSelector_t>;
+
+        CoordinateSelector_t selector(/*axis=*/2);
+        auto bins = std::make_shared<ConcreteBins_t>(
+            pc,
+            selector,
+            maxBins,
+            alpha,
+            beta,
+            desiredWidth,
+            /*binningCmdName=*/"TEST_BINNING_CMD");
         bunch->setBins(bins);
         return bins;
     }
@@ -200,7 +202,7 @@ TEST_F(BinnedFieldSolverSmokeTest, LegacyPath_NoBins_NoThrowAndEZero) {
     ASSERT_FALSE(bunch->hasBinning());
     createParticles(kDefaultNParticles, /*pzMin=*/0.1, /*pzMax=*/0.9);
 
-    EXPECT_NO_THROW(bunch->computeBinnedSelfFields());
+    EXPECT_NO_THROW(bunch->computeSelfFields());
     expectAllParticleEZeroAndFinite(/*tol=*/1e-8);
 }
 
@@ -211,7 +213,7 @@ TEST_F(BinnedFieldSolverSmokeTest, BinnedPath_WithBins_NoThrowAndEZero) {
     auto bins = attachBins(maxBins, /*alpha=*/1.0, /*beta=*/1.0, /*desiredWidth=*/0.3);
     ASSERT_TRUE(bunch->hasBinning());
 
-    EXPECT_NO_THROW(bunch->computeBinnedSelfFields());
+    EXPECT_NO_THROW(bunch->computeSelfFields());
 
     const auto currentBins = bins->getCurrentBinCount();
     EXPECT_GE(currentBins, 1);
