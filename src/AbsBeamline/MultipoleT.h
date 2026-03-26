@@ -225,11 +225,7 @@ public:
     /** Not implemented */
     void getDimensions(double& /*zBegin*/, double& /*zEnd*/) const override {}
 
-    Vector_t<double, 3> localCartesianToOpalCartesian(const Vector_t<double, 3>& r) const;
-    double localCartesianRotation() const;
-
     void setScalingName(const std::string& name);
-    void setScalingModel(const std::shared_ptr<AbstractTimeDependence>& td) { scalingTD_m = td; }
     std::string getScalingName() const { return scalingName_m; }
     void initialiseTimeDependencies() const;
 
@@ -239,11 +235,6 @@ protected:
     /** The magnet configuration */
     MultipoleTConfig config_m;
 
-    /** Rotate the frame to account for the rotation and entry angles.
-     * @param R -> coordinate to rotate
-     * @return -> rotated coordinate
-     */
-    Vector_t<double, 3> rotateFrame(const Vector_t<double, 3>& R) const;
     void chooseImplementation();
     double getScaling(double t) const;
 
@@ -260,7 +251,7 @@ protected:
     /** This one is here for test purposes.
      * It is required as it is too difficult to mock a PartBunch. */
     void apply(
-        const Kokkos::View<Vector_t<double, 3>*>& R, Kokkos::View<Vector_t<double, 3>*>& E,
-        Kokkos::View<Vector_t<double, 3>*>& B, double t, size_t count) const;
+        Kokkos::View<Vector_t<double, 3>*> R, Kokkos::View<Vector_t<double, 3>*> E,
+        Kokkos::View<Vector_t<double, 3>*> B, double t, size_t count) const;
 };
 #endif

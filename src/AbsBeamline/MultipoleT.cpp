@@ -53,25 +53,6 @@ void MultipoleT::accept(BeamlineVisitor& visitor) const {
     visitor.visitMultipoleT(*this);
 }
 
-Vector_t<double, 3> MultipoleT::rotateFrame(const Vector_t<double, 3>& R) const {
-    Vector_t<double, 3> R_prime(3), R_pprime(3);
-    /** Apply two 2D rotation matrices to coordinate vector
-     * Rotate around central axis => skew fields
-     * Rotate azimuthally => entrance angle
-     */
-    // 1st rotation
-    R_prime[0] = R[0] * std::cos(config_m.rotation_m) + R[1] * std::sin(config_m.rotation_m);
-    R_prime[1] = -R[0] * std::sin(config_m.rotation_m) + R[1] * std::cos(config_m.rotation_m);
-    R_prime[2] = R[2];
-    // 2nd rotation
-    R_pprime[0] = R_prime[2] * std::sin(config_m.entranceAngle_m)
-                  + R_prime[0] * std::cos(config_m.entranceAngle_m);
-    R_pprime[1] = R_prime[1];
-    R_pprime[2] = R_prime[2] * std::cos(config_m.entranceAngle_m)
-                  - R_prime[0] * std::sin(config_m.entranceAngle_m);
-    return R_pprime;
-}
-
 double MultipoleT::getScaling(const double t) const {
     double scaling = 1.0;
     if (scalingTD_m) {
@@ -82,32 +63,31 @@ double MultipoleT::getScaling(const double t) const {
 
 bool MultipoleT::apply() {
     const auto pc = RefPartBunch_m->getParticleContainer();
-    apply(
-        pc->R.getView(), pc->E.getView(), pc->B.getView(), RefPartBunch_m->getT(),
-        pc->getLocalNum());
+    apply(pc->R.getView(), pc->E.getView(), pc->B.getView(), RefPartBunch_m->getT(),
+          pc->getLocalNum());
     return false;
 }
 
 void MultipoleT::apply(
-    const Kokkos::View<Vector_t<double, 3>*>& R, Kokkos::View<Vector_t<double, 3>*>& E,
-    Kokkos::View<Vector_t<double, 3>*>& B, const double t, const size_t count) const {
+        const Kokkos::View<Vector_t<double, 3>*> R, const Kokkos::View<Vector_t<double, 3>*> E,
+        const Kokkos::View<Vector_t<double, 3>*> B, const double t, const size_t count) const {
     implementation_->getField(R, E, B, getScaling(t), count);
 }
 
 bool MultipoleT::apply(
-    const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& t,
-    Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
+        const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& t,
+        Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
     return implementation_->getField(R, E, B, getScaling(t));
 }
 
 bool MultipoleT::apply(
-    const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
+        const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
     const auto pc = RefPartBunch_m->getParticleContainer();
     return implementation_->getField(pc->R.getView()(i), E, B, getScaling(t));
 }
 
 void MultipoleT::setFringeField(
-    const double& s0, const double& lambda_left, const double& lambda_right) {
+        const double& s0, const double& lambda_left, const double& lambda_right) {
     config_m.fringeS0_m          = s0;
     config_m.fringeLambdaLeft_m  = lambda_left;
     config_m.fringeLambdaRight_m = lambda_right;
@@ -162,7 +142,7 @@ void MultipoleT::setTransProfile(const std::vector<double>& profile) {
         if (i < profile.size() && profile[i] != 0.0) {
             config_m.transverseProfile_m[i] = profile[i];
             config_m.transverseProfileMaxOrder_m =
-                std::max(config_m.transverseProfileMaxOrder_m, i);
+                    std::max(config_m.transverseProfileMaxOrder_m, i);
         } else {
             config_m.transverseProfile_m[i] = 0.0;
         }
@@ -172,7 +152,6 @@ void MultipoleT::setTransProfile(const std::vector<double>& profile) {
 void MultipoleT::setMaxOrder(const size_t orderZ, const size_t orderX) {
     config_m.maxFOrder_m = orderZ;
     config_m.maxXOrder_m = orderX;
-    implementation_->setMaxOrder(config_m.maxFOrder_m, config_m.maxXOrder_m);
     implementation_->initialise();
 }
 
@@ -211,11 +190,3 @@ void MultipoleT::initialiseTimeDependencies() const {
 BGeometryBase& MultipoleT::getGeometry() { return *implementation_->getGeometry(); }
 
 const BGeometryBase& MultipoleT::getGeometry() const { return *implementation_->getGeometry(); }
-
-Vector_t<double, 3> MultipoleT::localCartesianToOpalCartesian(const Vector_t<double, 3>& r) const {
-    return implementation_->localCartesianToOpalCartesian(r);
-}
-
-double MultipoleT::localCartesianRotation() const {
-    return implementation_->localCartesianRotation();
-}

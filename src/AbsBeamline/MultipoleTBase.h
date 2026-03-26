@@ -99,24 +99,15 @@ public:
     virtual void initialise() = 0;
     /** Return the cell geometry */
     virtual BGeometryBase* getGeometry() = 0;
-    /** Return the cell geometry */
-    virtual const BGeometryBase* getGeometry() const = 0;
     /** Return the field for an array of points */
     virtual void getField(
-        const Kokkos::View<Vector_t<double, 3>*>& /*R*/, Kokkos::View<Vector_t<double, 3>*>& /*E*/,
-        Kokkos::View<Vector_t<double, 3>*>& /*B*/, double /*scaling*/, size_t /*count*/) {}
+        Kokkos::View<Vector_t<double, 3>*> /*R*/, Kokkos::View<Vector_t<double, 3>*> /*E*/,
+        Kokkos::View<Vector_t<double, 3>*> /*B*/, double /*scaling*/, size_t /*count*/) = 0;
 
     /** Return the field for a single point */
     virtual bool getField(
         const Vector_t<double, 3>& /*R*/, Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/,
-        double /*scaling*/) {
-        return false;
-    }
-
-    virtual void setMaxOrder(size_t /*orderZ*/, size_t /*orderX*/) {}
-
-    virtual Vector_t<double, 3> localCartesianToOpalCartesian(const Vector_t<double, 3>& r) = 0;
-    virtual double localCartesianRotation() { return 0.0; }
+        double /*scaling*/) = 0;
 
     // Constants
     static constexpr size_t MaxFactorial         = 20;
@@ -127,8 +118,6 @@ public:
     KOKKOS_INLINE_FUNCTION static double factorial(unsigned int n);
     /** Helper function that returns x^n for 0<=n<=20 on both host and GPU */
     KOKKOS_INLINE_FUNCTION static double powerInteger(double x, unsigned int n);
-    /** Helper function that returns the combinatorial factor n choose m = n!/(m!(n-m)! */
-    KOKKOS_INLINE_FUNCTION static double choose(unsigned int n, unsigned int m);
     /** Helper function that calculates transverse derivatives for multipole fields */
     KOKKOS_INLINE_FUNCTION static void calcTransverseDerivatives(
         const Kokkos::Array<double, MultipoleTConfig::NumPoles>& poles, unsigned int numDerivatives,
@@ -188,11 +177,6 @@ double MultipoleTBase::powerInteger(double x, unsigned int n) {
         n >>= 1;
     }
     return result;
-}
-
-KOKKOS_INLINE_FUNCTION
-double MultipoleTBase::choose(const unsigned int n, const unsigned int m) {
-    return factorial(n) / (factorial(m) * factorial(n - m));
 }
 
 KOKKOS_INLINE_FUNCTION

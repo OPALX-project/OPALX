@@ -338,3 +338,81 @@ TEST_F(TestMultipoleTStraight, DivCurl) {
         EXPECT_NEAR(curlError, 0, 1e-2);
     }
 }
+
+TEST_F(TestMultipoleTStraight, Geometry) {
+    TestMultipoleTStraight* magnet = this;
+    auto* geom = &magnet->getGeometry();
+    EXPECT_NE(geom, nullptr);
+    auto* constGeom = &const_cast<const TestMultipoleTStraight*>(magnet)->getGeometry();
+    EXPECT_NE(constGeom, nullptr);
+    EXPECT_EQ(geom, constGeom);
+}
+
+TEST_F(TestMultipoleTStraight, BoundingBox) {
+    std::vector<double> line(3);
+    // Set up the magnet
+    constexpr double length      = 4;
+    constexpr double bendAngle   = 0.0;
+    constexpr double dipoleField = 1.0;
+    setBendAngle(bendAngle, false);
+    setElementLength(length);
+    setAperture(3.5, 3.5);
+    setFringeField(length / 2, 3, 3);
+    setRotation(0.0);
+    setEntranceAngle(0.0);
+    setMaxOrder(5, 10);
+    setBoundingBoxLength(6);
+    setTransProfile({dipoleField});
+    // Check field vanishes outside the bounding box
+    grabTransverseDataLine(line, -3.1, 3.0, {0, 0, 0}, length);
+    for (const double val : line) {
+        EXPECT_EQ(val, 0.0);
+    }
+    // Check field is present inside the bounding box
+    grabTransverseDataLine(line, -3.0, 3.0, {0, 0, 0}, length);
+    for (const double val : line) {
+        EXPECT_NE(val, 0.0);
+    }
+    // Check field is present inside the bounding box
+    grabTransverseDataLine(line, 0.0, 3.0, {0, 0, 0}, length);
+    for (const double val : line) {
+        EXPECT_NE(val, 0.0);
+    }
+    // Check field is present inside the bounding box
+    grabTransverseDataLine(line, 3.0, 3.0, {0, 0, 0}, length);
+    for (const double val : line) {
+        EXPECT_NE(val, 0.0);
+    }
+    // Check field vanishes outside the bounding box
+    grabTransverseDataLine(line, 3.1, 3.0, {0, 0, 0}, length);
+    for (const double val : line) {
+        EXPECT_EQ(val, 0.0);
+    }
+}
+
+TEST_F(TestMultipoleTStraight, Aperture) {
+    std::vector<double> line(9);
+    // Set up the magnet
+    constexpr double length      = 4;
+    constexpr double bendAngle   = 0.0;
+    constexpr double dipoleField = 1.0;
+    setBendAngle(bendAngle, false);
+    setElementLength(length);
+    setAperture(3.5, 3.5);
+    setFringeField(length / 2, 3, 3);
+    setRotation(0.0);
+    setEntranceAngle(0.0);
+    setMaxOrder(5, 10);
+    setTransProfile({dipoleField});
+    // Check field vanishes outside the aperture
+    grabTransverseDataLine(line, 0, 4.0, {0, 0, 0}, length);
+    EXPECT_EQ(line[0], 0.0);  // -4.0
+    EXPECT_NE(line[1], 0.0);  // -3.0
+    EXPECT_NE(line[2], 0.0);  // -2.0
+    EXPECT_NE(line[3], 0.0);  // -1.0
+    EXPECT_NE(line[4], 0.0);  // 0.0
+    EXPECT_NE(line[5], 0.0);  // 1.0
+    EXPECT_NE(line[6], 0.0);  // 2.0
+    EXPECT_NE(line[7], 0.0);  // 3.0
+    EXPECT_EQ(line[8], 0.0);  // 3.0
+}

@@ -37,25 +37,20 @@ void MultipoleTStraight::initialise() {
 }
 
 void MultipoleTStraight::getField(
-    const Kokkos::View<Vector_t<double, 3>*>& R, Kokkos::View<Vector_t<double, 3>*>& /*E*/,
-    Kokkos::View<Vector_t<double, 3>*>& B, const double scaling, const size_t count) {
+        const Kokkos::View<Vector_t<double, 3>*> R, Kokkos::View<Vector_t<double, 3>*> /*E*/,
+        const Kokkos::View<Vector_t<double, 3>*> B, const double scaling, const size_t count) {
     // Local variables that are copied into the kernel
     const auto config           = element_m->getConfig();
     const auto tanhCoefficients = tanhCoefficientsDevice_m;
     // Kernel launch over all particles
     Kokkos::parallel_for(
-        "MultipoleTStraight::getField()", count, KOKKOS_LAMBDA(const int i) {
-            computeBField(R(i), B(i), scaling, config, tanhCoefficients);
-        });
+            "MultipoleTStraight::getField()", count, KOKKOS_LAMBDA(const int i) {
+                computeBField(R(i), B(i), scaling, config, tanhCoefficients);
+            });
 }
 
 bool MultipoleTStraight::getField(
-    const Vector_t<double, 3>& R, Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B,
-    const double scaling) {
+        const Vector_t<double, 3>& R, Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B,
+        const double scaling) {
     return computeBField(R, B, scaling, element_m->getConfig(), tanhCoefficientsHost_m);
-}
-
-Vector_t<double, 3> MultipoleTStraight::localCartesianToOpalCartesian(
-    const Vector_t<double, 3>& r) {
-    return {r[0], r[1], r[2] + element_m->getLength() / 2.0};
 }
