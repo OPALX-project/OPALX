@@ -39,8 +39,8 @@ void MultipoleTCurvedConstRadius::initialise() {
 }
 
 void MultipoleTCurvedConstRadius::getField(
-    const Kokkos::View<Vector_t<double, 3>*>& R, Kokkos::View<Vector_t<double, 3>*>& /*E*/,
-    Kokkos::View<Vector_t<double, 3>*>& B, const double scaling, const size_t count) {
+        const Kokkos::View<Vector_t<double, 3>*> R, Kokkos::View<Vector_t<double, 3>*> /*E*/,
+        const Kokkos::View<Vector_t<double, 3>*> B, const double scaling, const size_t count) {
     // Local variables that are copied into the kernel
     const auto config           = element_m->getConfig();
     const auto tanhCoefficients = tanhCoefficientsDevice_m;
@@ -55,18 +55,4 @@ bool MultipoleTCurvedConstRadius::getField(
     const Vector_t<double, 3>& R, Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B,
     const double scaling) {
     return computeBField(R, B, scaling, element_m->getConfig(), tanhCoefficientsHost_m);
-}
-
-Vector_t<double, 3> MultipoleTCurvedConstRadius::localCartesianToOpalCartesian(
-    const Vector_t<double, 3>& r) {
-    Vector_t<double, 3> result = r;
-    if (element_m->getBendAngle() != 0.0) {
-        const double radius = element_m->getLength() / element_m->getBendAngle();
-        const double theta  = element_m->getBendAngle() / 2.0;
-        const double ds     = radius * std::sin(theta);
-        const double dx     = radius * (1 - std::cos(theta));
-        result[0]           = -dx;
-        result[2]           = ds;
-    }
-    return result;
 }

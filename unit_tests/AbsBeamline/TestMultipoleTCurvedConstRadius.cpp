@@ -344,3 +344,82 @@ TEST_F(TestMultipoleTCurvedConstRadius, DivCurl) {
         EXPECT_NEAR(curlError, 0, 1e-2);
     }
 }
+
+TEST_F(TestMultipoleTCurvedConstRadius, Geometry) {
+    TestMultipoleTCurvedConstRadius* magnet = this;
+    auto* geom = &magnet->getGeometry();
+    EXPECT_NE(geom, nullptr);
+    auto* constGeom = &const_cast<const TestMultipoleTCurvedConstRadius*>(magnet)->getGeometry();
+    EXPECT_NE(constGeom, nullptr);
+    EXPECT_EQ(geom, constGeom);
+}
+
+TEST_F(TestMultipoleTCurvedConstRadius, BoundingBox) {
+    std::vector<double> line(3);
+    // Set up the magnet
+    constexpr double length      = 4;
+    constexpr double bendAngle   = M_PI / 8.0;
+    constexpr double dipoleField = 1.0;
+    setBendAngle(bendAngle, false);
+    setElementLength(length);
+    setAperture(3.5, 3.5);
+    setFringeField(length / 2, 3, 3);
+    setRotation(0.0);
+    setEntranceAngle(0.0);
+    setMaxOrder(5, 10);
+    setBoundingBoxLength(6);
+    setTransProfile({dipoleField});
+    // Check field vanishes outside the bounding box
+    grabTransverseDataLine(line, -3.1, 3.0, {0, 0, 0}, length, bendAngle);
+    for (const double val : line) {
+        EXPECT_EQ(val, 0.0);
+    }
+    // Check field is present inside the bounding box
+    grabTransverseDataLine(line, -3.0, 3.0, {0, 0, 0}, length, bendAngle);
+    for (const double val : line) {
+        EXPECT_NE(val, 0.0);
+    }
+    // Check field is present inside the bounding box
+    grabTransverseDataLine(line, 0.0, 3.0, {0, 0, 0}, length, bendAngle);
+    for (const double val : line) {
+        EXPECT_NE(val, 0.0);
+    }
+    // Check field is present inside the bounding box
+    grabTransverseDataLine(line, 3.0, 3.0, {0, 0, 0}, length, bendAngle);
+    for (const double val : line) {
+        EXPECT_NE(val, 0.0);
+    }
+    // Check field vanishes outside the bounding box
+    grabTransverseDataLine(line, 3.1, 3.0, {0, 0, 0}, length, bendAngle);
+    for (const double val : line) {
+        EXPECT_EQ(val, 0.0);
+    }
+}
+
+TEST_F(TestMultipoleTCurvedConstRadius, Aperture) {
+    std::vector<double> line(9);
+    // Set up the magnet
+    constexpr double length      = 4;
+    constexpr double bendAngle   = M_PI / 8.0;
+    constexpr double dipoleField = 1.0;
+    setBendAngle(bendAngle, false);
+    setElementLength(length);
+    setAperture(3.5, 3.5);
+    setFringeField(length / 2, 3, 3);
+    setRotation(0.0);
+    setEntranceAngle(0.0);
+    setMaxOrder(5, 10);
+    setTransProfile({dipoleField});
+    // Check field vanishes outside the aperture
+    grabTransverseDataLine(line, 0, 4.0, {0, 0, 0}, length, bendAngle);
+    EXPECT_EQ(line[0], 0.0);  // -4.0
+    EXPECT_NE(line[1], 0.0);  // -3.0
+    EXPECT_NE(line[2], 0.0);  // -2.0
+    EXPECT_NE(line[3], 0.0);  // -1.0
+    EXPECT_NE(line[4], 0.0);  // 0.0
+    EXPECT_NE(line[5], 0.0);  // 1.0
+    EXPECT_NE(line[6], 0.0);  // 2.0
+    EXPECT_NE(line[7], 0.0);  // 3.0
+    EXPECT_EQ(line[8], 0.0);  // 3.0
+}
+

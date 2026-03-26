@@ -87,17 +87,13 @@ public:
     void initialise() override;
     /** Return the cell geometry */
     BGeometryBase* getGeometry() override { return &straightGeometry_m; }
-    /** Return the cell geometry */
-    const BGeometryBase* getGeometry() const override { return &straightGeometry_m; }
     /** Return the field for an array of points */
-    void getField(const Kokkos::View<Vector_t<double, 3>*>& R,
-            Kokkos::View<Vector_t<double, 3>*>& E, Kokkos::View<Vector_t<double, 3>*>& B,
+    void getField(Kokkos::View<Vector_t<double, 3>*> R,
+            Kokkos::View<Vector_t<double, 3>*> E, Kokkos::View<Vector_t<double, 3>*> B,
             double scaling, size_t count) override;
     bool getField(const Vector_t<double, 3>& R,
             Vector_t<double, 3>& E, Vector_t<double, 3>& B,
             double scaling) override;
-
-    Vector_t<double, 3> localCartesianToOpalCartesian(const Vector_t<double, 3>& r) override;
 
 private:
     /** Geometry */

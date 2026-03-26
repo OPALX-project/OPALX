@@ -64,8 +64,7 @@ OpalMultipoleT::OpalMultipoleT()
         "ENTRYOFFSET", "Longitudinal offset from standard entrance point [m]", 0.0);
 
     // Time dependence attributes
-    itsAttr[SCALING_MODEL] = Attributes::makeString
-        ("SCALING_MODEL",
+    itsAttr[SCALING_MODEL] = Attributes::makeUpperCaseString("SCALING_MODEL",
          "The name of the time dependence model, which should give a scaling factor.");
 
     // Misalignment attributes
