@@ -8,8 +8,10 @@
 #undef doDEBUG
 
 template <typename T, unsigned Dim>
-PartBunch<T, Dim>::PartBunch(double qi,
-                             double mi,
+PartBunch<T, Dim>::PartBunch(std::vector<double> qi,
+                             std::vector<double> mi,
+                             size_t num_containers,
+                             /*int nt,*/
                              double lbt,
                              std::string integration_method,
                              std::shared_ptr<FieldSolverCmd> OPALFieldSolver,
@@ -24,8 +26,8 @@ PartBunch<T, Dim>::PartBunch(double qi,
       integration_method_m(integration_method),
       solver_m(""),
       //nt_m(nt),
-      qi_m(qi),
-      mi_m(mi),
+      qi_m(std::move(qi)),
+      mi_m(std::move(mi)),
       OPALFieldSolver_m(OPALFieldSolver),
       dataSink_m(std::move(dataSink)),
       globalTrackStep_m(0),
@@ -33,6 +35,19 @@ PartBunch<T, Dim>::PartBunch(double qi,
 
     Inform m("PartBunch::PartBunch");
     m << level4 << "PartBunch Constructor" << endl;
+
+    if (num_containers == 0) {
+        throw OpalException("PartBunch::PartBunch",
+                            "num_containers must be > 0.");
+    }
+    if (qi_m.size() != num_containers) {
+        throw OpalException("PartBunch::PartBunch",
+                            "qi size must match num_containers.");
+    }
+    if (mi_m.size() != num_containers) {
+        throw OpalException("PartBunch::PartBunch",
+                            "mi size must match num_containers.");
+    }
 
     //  get the needed information from OPAL FieldSolver command
 
@@ -74,8 +89,11 @@ PartBunch<T, Dim>::PartBunch(double qi,
     ));
 
     this->setParticleContainer(std::make_shared<ParticleContainer_t>(
-        this->fcontainer_m->getMesh(), this->fcontainer_m->getFL()
-    ));
+        this->fcontainer_m->getMesh(), this->fcontainer_m->getFL()));
+    for (size_t i = 1; i < num_containers; ++i) {
+        this->addParticleContainer(std::make_shared<ParticleContainer_t>(
+            this->fcontainer_m->getMesh(), this->fcontainer_m->getFL()));
+    }
 
     setSolver();
 
@@ -407,51 +425,60 @@ Inform& PartBunch<T, Dim>::print(Inform& os) {
     // if (this->getLocalNum() != 0) {  // to suppress Nans
     Inform::FmtFlags_t ff = os.flags();
 
-    const double ek  = this->get_meanKineticEnergy();
-    const double dek = this->getdE();
+    const auto& containers = this->getParticleContainers();
+    for (size_t ci = 0; ci < containers.size(); ++ci) {
+        const auto& pc = containers[ci];
+        if (!pc) {
+            os << level1 << "Skipping null particle container: " << ci << endl;
+            continue;
+        }
 
-    // ParticleContainer tracks charge/mass storage mode for QM attributes.
-    std::string qmStorageModeStr = "SINGLE";
-    if (this->pcontainer_m) {
-        const auto qmMode = this->pcontainer_m->getQMStorageMode();
+        const double ek  = pc->getMeanKineticEnergy();
+        const double dek = pc->getStdKineticEnergy();
+
+        // ParticleContainer tracks charge/mass storage mode for QM attributes.
+        std::string qmStorageModeStr = "SINGLE";
+        const auto qmMode             = pc->getQMStorageMode();
         if (qmMode == ParticleContainer_t::QMStorageMode::Attributes) {
             qmStorageModeStr = "ATTRIBUTES";
         }
-    }
-    
-    os << level1 << std::scientific << "\n"
-       << "* ************** B U N C H "
-        "********************************************************* \n"
-       << "* PARTICLES       = " << this->getTotalNum() << "\n"
-       << "* CHARGE          = " << this->qi_m*this->getTotalNum() << " (Cb) \n"
-       << "* QM STORAGE MODE = " << qmStorageModeStr << "\n"
-       << "* <EKIN>          = " << Util::getEnergyString(ek) << "\n"
-       << "* <dEKIN>         = " << Util::getEnergyString(dek) << "\n"
-       << "* INTEGRATOR      = " << integration_method_m << "\n"
-       << "* MIN R (origin)  = " << Util::getLengthString( this->pcontainer_m->getMinR(), 5) << "\n"
-       << "* MAX R (max ext) = " << Util::getLengthString( this->pcontainer_m->getMaxR(), 5) << "\n"
-       << "* RMS R           = " << Util::getLengthString( this->pcontainer_m->getRmsR(), 5) << "\n"
-       << "* RMS P           = " << this->pcontainer_m->getRmsP() << " [beta gamma]\n"
-       << "* Mean R          = " << this->pcontainer_m->getMeanR() << " [m]\n"
-       << "* Mean P          = " << this->pcontainer_m->getMeanP() << " [beta gamma]\n"
-       << "* MESH SPACING    = " << Util::getLengthString( this->fcontainer_m->getMesh().getMeshSpacing(), 5) << "\n"
-       << "* COMPDOM INCR    = " << this->OPALFieldSolver_m->getBoxIncr() << " (%) \n"
-       << "* FIELD LAYOUT    = " << this->fcontainer_m->getFL() << "\n"
-       << "* Centroid : \n* ";
-    for (unsigned int i=0; i<2*Dim; i++) {
-        os << level1 << this->pcontainer_m->getCentroid()[i] << " ";
-    }
-    os << level1 << endl << "* Cov Matrix : \n* ";
-    for (unsigned int i=0; i<2*Dim; i++) {
-        for (unsigned int j=0; j<2*Dim; j++) {
-            os << level1 << this->pcontainer_m->getCovMatrix()(i,j) << " ";
+
+        os << level1 << std::scientific << "\n"
+           << "* ************** B U N C H "
+            "********************************************************* \n"
+           << "* CONTAINER       = " << ci << "\n"
+           << "* PARTICLES       = " << pc->getTotalNum() << "\n"
+           << "* CHARGE          = " << this->getCharge(ci) << " (Cb) \n"
+           << "* QM STORAGE MODE = " << qmStorageModeStr << "\n"
+           << "* <EKIN>          = " << Util::getEnergyString(ek) << "\n"
+           << "* <dEKIN>         = " << Util::getEnergyString(dek) << "\n"
+           << "* INTEGRATOR      = " << integration_method_m << "\n"
+           << "* MIN R (origin)  = " << Util::getLengthString(pc->getMinR(), 5) << "\n"
+           << "* MAX R (max ext) = " << Util::getLengthString(pc->getMaxR(), 5) << "\n"
+           << "* RMS R           = " << Util::getLengthString(pc->getRmsR(), 5) << "\n"
+           << "* RMS P           = " << pc->getRmsP() << " [beta gamma]\n"
+           << "* Mean R          = " << pc->getMeanR() << " [m]\n"
+           << "* Mean P          = " << pc->getMeanP() << " [beta gamma]\n"
+           << "* MESH SPACING    = " << Util::getLengthString(this->fcontainer_m->getMesh().getMeshSpacing(), 5) << "\n"
+           << "* COMPDOM INCR    = " << this->OPALFieldSolver_m->getBoxIncr() << " (%) \n"
+           << "* FIELD LAYOUT    = " << this->fcontainer_m->getFL() << "\n"
+           << "* Centroid : \n* ";
+        for (unsigned int i = 0; i < 2 * Dim; i++) {
+            os << level1 << pc->getCentroid()[i] << " ";
         }
-        os << level1 << "\n* ";
+        os << level1 << endl << "* Cov Matrix : \n* ";
+        for (unsigned int i = 0; i < 2 * Dim; i++) {
+            for (unsigned int j = 0; j < 2 * Dim; j++) {
+                os << level1 << pc->getCovMatrix()(i, j) << " ";
+            }
+            os << level1 << "\n* ";
+        }
+        os << level1 << "* "
+           "********************************************************************************"
+           "** \n"
+           << endl;
     }
-    os << level1 << "* "
-        "********************************************************************************"
-        "** \n"
-       << endl;
+
     os.flags(ff);
     return os;
 }
