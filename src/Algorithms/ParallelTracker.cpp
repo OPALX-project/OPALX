@@ -652,7 +652,9 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
     CoordinateSystemTrafo referenceToBeamCSTrafo = beamToReferenceCSTrafo.inverted();
 
     /// @brief Transform particle positions to the beam coordinate system
-    referenceToBeamCSTrafo.transformBunchTo(itsBunch_m->getParticleContainer()->R.getView());
+    const size_t nLocalBeam = itsBunch_m->getLocalNum();
+    referenceToBeamCSTrafo.transformBunchTo(
+        itsBunch_m->getParticleContainer()->R.getView(), nLocalBeam);
     m << level4 << "Transform particle positions to beam coordinate system done." << endl;
     if (!usesFrozenBeamBeamWindowMesh()) {
         itsBunch_m->bunchUpdate();
@@ -895,13 +897,17 @@ bool ParallelTracker::usesFrozenBeamBeamWindowMesh() const {
 void ParallelTracker::transformFieldsToReferenceFrame(
     const CoordinateSystemTrafo& beamToReferenceCSTrafo,
     Inform& m) {
-    beamToReferenceCSTrafo.transformBunchTo(itsBunch_m->getParticleContainer()->R.getView());
+    const size_t nLocRef = itsBunch_m->getLocalNum();
+    beamToReferenceCSTrafo.transformBunchTo(
+        itsBunch_m->getParticleContainer()->R.getView(), nLocRef);
     m << level5 << "Transform particle positions back to reference coordinate system done."
       << endl;
 
-    beamToReferenceCSTrafo.rotateBunchTo(itsBunch_m->getParticleContainer()->E.getView());
+    beamToReferenceCSTrafo.rotateBunchTo(
+        itsBunch_m->getParticleContainer()->E.getView(), nLocRef);
     m << level5 << "Rotate E fields back to reference coordinate system done." << endl;
-    beamToReferenceCSTrafo.rotateBunchTo(itsBunch_m->getParticleContainer()->B.getView());
+    beamToReferenceCSTrafo.rotateBunchTo(
+        itsBunch_m->getParticleContainer()->B.getView(), nLocRef);
     m << level5
       << "Rotate B fields back to reference coordinate system done. ComputeSelfFields done."
       << endl;
@@ -1301,10 +1307,11 @@ void ParallelTracker::updateReferenceParticle(const BorisPusher& pusher) {
 }
 
 void ParallelTracker::transformBunch(const CoordinateSystemTrafo& trafo) {
-    trafo.transformBunchTo(itsBunch_m->getParticleContainer()->R.getView());
-    trafo.rotateBunchTo(itsBunch_m->getParticleContainer()->P.getView());
-    trafo.rotateBunchTo(itsBunch_m->getParticleContainer()->E.getView());
-    trafo.rotateBunchTo(itsBunch_m->getParticleContainer()->B.getView());
+    const size_t nLocal = itsBunch_m->getLocalNum();
+    trafo.transformBunchTo(itsBunch_m->getParticleContainer()->R.getView(), nLocal);
+    trafo.rotateBunchTo(itsBunch_m->getParticleContainer()->P.getView(), nLocal);
+    trafo.rotateBunchTo(itsBunch_m->getParticleContainer()->E.getView(), nLocal);
+    trafo.rotateBunchTo(itsBunch_m->getParticleContainer()->B.getView(), nLocal);
 }
 
 void ParallelTracker::updateRefToLabCSTrafo() {

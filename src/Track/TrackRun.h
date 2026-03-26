@@ -41,6 +41,7 @@ class Inform;
 class Tracker;
 
 class TrackRun : public Action {
+    using emittingSamplers_t = std::vector<std::shared_ptr<SamplingBase>>;
 public:
     /// Exemplar constructor.
     TrackRun();
@@ -77,7 +78,9 @@ private:
 
     /// Build samplers for all emission sources, perform initial sampling for t0 == 0
     /// sources, and populate emittingSamplers_m for time-dependent or delayed sources.
-    void setupDistributionsAndSamplers(const std::vector<EmissionSource*>& sources, Beam* beam);
+    void setupDistributionsAndSamplers(
+        const std::vector<EmissionSource*>& sources,
+        Beam* beam);
 
     /// Compute total number of macroparticles for the bunch from BEAM::NPART and
     /// optional per-distribution NPARTDIST values on the emission sources.
@@ -91,7 +94,7 @@ private:
     std::vector<Distribution*> distrs_m;
 
     /// Samplers for time-dependent (emitting) sources; tracker calls emitParticles(t, dt) on each.
-    std::vector<std::shared_ptr<SamplingBase>> emittingSamplers_m;
+    emittingSamplers_t emittingSamplers_m;
 
     std::shared_ptr<FieldSolverCmd> fs_m;
 
@@ -112,12 +115,9 @@ private:
     bool isFollowupTrack_m;
 
     RunMethod method_m;
-    static const BiMap<RunMethod, std::string> stringMethod_s;
-
-    // macro mass / charge for simulation particles
     double macromass_m;
     double macrocharge_m;
-
+    static const BiMap<RunMethod, std::string> stringMethod_s;
     
 };
 
