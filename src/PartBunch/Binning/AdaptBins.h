@@ -435,7 +435,7 @@ namespace ParticleBinning {
          * @brief Outputs debug information related to Kokkos and MPI configurations.
          * 
          * This function prints information about the number of threads (in OpenMP) or GPUs
-         * (in CUDA) available on the current MPI rank, along with other debug information.
+         * (in CUDA/HIP) available on the current MPI rank, along with other debug information.
          */
         void debug() {
             Inform msg("KOKKOS DEBUG"); // , INFORM_ALL_NODES
@@ -456,16 +456,23 @@ namespace ParticleBinning {
             msg << level2 << "CPU Threads: No multi-threaded CPU execution space enabled." << endl;
             #endif
 
-            // Check number of GPUs (CUDA devices)
-            #ifdef KOKKOS_ENABLE_CUDA
-            int num_gpus = Kokkos::Cuda::detect_device_count();
+            // Check number of GPUs (CUDA/HIP devices)
+            #if defined(KOKKOS_ENABLE_CUDA)
+            int num_gpus = Kokkos::num_devices();
             msg << level2 << "CUDA Enabled: Rank " << rank << " sees " << num_gpus << " GPU(s) available." << endl;
-            Kokkos::Cuda cuda_instance;  
+            Kokkos::Cuda cuda_instance;
             std::stringstream ss;
             cuda_instance.print_configuration(ss);
             msg << level2 << ss.str();
+            #elif defined(KOKKOS_ENABLE_HIP)
+            int num_gpus = Kokkos::num_devices();
+            msg << level2 << "HIP Enabled: Rank " << rank << " sees " << num_gpus << " GPU(s) available." << endl;
+            Kokkos::Experimental::HIP hip_instance;
+            std::stringstream ss;
+            hip_instance.print_configuration(ss);
+            msg << level2 << ss.str();
             #else
-            msg << level2 << "CUDA: GPU support disabled.\n";
+            msg << level2 << "CUDA/HIP: GPU support disabled.\n";
             #endif
 
             // Additional information on concurrency in the default execution space
