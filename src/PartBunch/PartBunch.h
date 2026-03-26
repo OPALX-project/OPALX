@@ -762,10 +762,6 @@ public:
     Quaternion_t getGlobalToLocalQuaternion() {
         return globalToLocalQuaternion_m;
     }
-
-    // Sanity check functions. Commented out, since never used (perhaps needed later)
-    // void spaceChargeEFieldCheck(Vector_t<double, 3> efScale);
-
 };
 
 // Explicit instantiations
