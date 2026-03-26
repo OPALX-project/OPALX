@@ -1,6 +1,27 @@
-//
-// Unit tests for the BinningCmd definition command.
-//
+/**
+ * @file TestBinningCmd.cpp
+ * @brief Unit tests for `BinningCmd` (input command parsing/validation and parameter mapping).
+ *
+ * This file tests the behavior of the OPAL command object `BinningCmd`, focusing on:
+ * - Default construction values (max bins, desired width, alpha/beta, default parameter, print
+ * frequency).
+ * - Getter/setter consistency via a small test helper (`TestableBinningCmd`) that writes to
+ *   internal attributes using the standard `Attributes` interface.
+ * - `update()` validation logic:
+ *   - Appending `.json` to `DUMPBINSFILE` when a filename is provided without the suffix.
+ *   - Enforcing that `DUMPBINSFREQ` is positive when dumping is enabled.
+ *   - Rejecting negative `TABLEPRINTFREQ`.
+ * - `execute()` behavior:
+ *   - Mapping supported `PARAMETER` strings to the corresponding `BinningParameter` enum.
+ *   - Throwing `OpalException` for unknown/unsupported parameter strings.
+ * - `clone(name)`:
+ *   - Copies attribute state and cached parameter selection into a new named command object.
+ * - `printInfo()`:
+ *   - Smoke test that the informational printing path can be invoked without throwing.
+ *
+ * These tests ensure the object properly handles invalid configurations and is
+ * stable in its public API.
+ */
 
 #include <gtest/gtest.h>
 

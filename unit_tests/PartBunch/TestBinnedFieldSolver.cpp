@@ -1,3 +1,30 @@
+/**
+ * @file TestBinnedFieldSolver.cpp
+ * @brief Smoke tests for `PartBunch::computeSelfFields()` with and without particle binning
+ * enabled.
+ *
+ * This file validates that the self-field computation pathway is stable across the
+ * "legacy" (no binning attached) and "binned" (adaptive bins attached) execution paths.
+ *
+ * The tests construct a small `PartBunch<double,3>` with a minimal `FieldSolverCmd`
+ * configuration (type `"NONE"` and periodic FFT boundary conditions), populate a set of
+ * particles with deterministic random initial conditions, and then invoke
+ * `PartBunch::computeSelfFields()`.
+ *
+ * Key behaviors verified:
+ * - `computeSelfFields()` does not throw for a non-binned bunch.
+ * - `computeSelfFields()` does not throw when adaptive binning is attached.
+ * - When using solver type `"NONE"`, the per-particle electric field `E` remains finite
+ *   and (near) zero after the call.
+ * - When binning is active, the current bin count is sane (between 1 and the configured
+ *   maximum).
+ *
+ * Notes:
+ * - The fixture initializes IPPL and disables HDF5 output to keep the tests lightweight.
+ * - The goal is a robustness/smoke check (no physics validation of non-trivial fields, since this
+ * would require way more computational resources).
+ */
+
 #include <gtest/gtest.h>
 
 #include <cmath>
