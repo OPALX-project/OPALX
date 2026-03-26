@@ -89,8 +89,9 @@ protected:
         // qi/mi/lbt are used by rho scaling; but with NullSolver we mostly validate
         // "no-throw" and deterministic zero E behavior.
         bunch = std::make_shared<PartBunch_t>(
-            /*qi=*/1.0,
-            /*mi=*/1.0,
+            /*qi=*/std::vector<double>{1.0},
+            /*mi=*/std::vector<double>{1.0},
+            /*num_containers=*/1,
             /*lbt=*/1.0,
             /*integration_method=*/"LF2",
             fsCmdBase,
