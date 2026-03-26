@@ -677,10 +677,6 @@ std::vector<std::string> PartBunch<T, Dim>::buildScalarDumpHeaders(
     globalStepHeader << "global_step=" << globalTrackStep_m;
     headers.push_back(globalStepHeader.str());
 
-    std::ostringstream localStepHeader;
-    localStepHeader << "local_step=" << localTrackStep_m;
-    headers.push_back(localStepHeader.str());
-
     std::ostringstream pathLengthHeader;
     pathLengthHeader << std::setprecision(12) << "path_length_s=" << get_sPos();
     headers.push_back(pathLengthHeader.str());
@@ -706,10 +702,6 @@ std::vector<std::string> PartBunch<T, Dim>::buildScalarDumpHeaders(
     fieldRMinHeader << "field_domain_rmin=" << this->fcontainer_m->getRMin();
     headers.push_back(fieldRMinHeader.str());
 
-    std::ostringstream fieldRMaxHeader;
-    fieldRMaxHeader << "field_domain_rmax=" << this->fcontainer_m->getRMax();
-    headers.push_back(fieldRMaxHeader.str());
-
     std::ostringstream bunchRMinHeader;
     bunchRMinHeader << "bunch_bounds_rmin=" << rmin_m;
     headers.push_back(bunchRMinHeader.str());
@@ -717,6 +709,40 @@ std::vector<std::string> PartBunch<T, Dim>::buildScalarDumpHeaders(
     std::ostringstream bunchRMaxHeader;
     bunchRMaxHeader << "bunch_bounds_rmax=" << rmax_m;
     headers.push_back(bunchRMaxHeader.str());
+
+    std::ostringstream totalNumHeader;
+    totalNumHeader << "particle_total_num=" << this->getTotalNum();
+    headers.push_back(totalNumHeader.str());
+
+    std::ostringstream localNumHeader;
+    localNumHeader << "particle_local_num=" << this->getLocalNum();
+    headers.push_back(localNumHeader.str());
+
+    std::ostringstream chargePerParticleHeader;
+    chargePerParticleHeader << std::setprecision(12)
+                            << "particle_charge_per_macroparticle="
+                            << this->getChargePerParticle();
+    headers.push_back(chargePerParticleHeader.str());
+
+    std::ostringstream totalChargeHeader;
+    totalChargeHeader << std::setprecision(12)
+                      << "particle_total_charge=" << this->getCharge();
+    headers.push_back(totalChargeHeader.str());
+
+    const auto centroid = this->get_centroid();
+
+    std::ostringstream meanRHeader;
+    meanRHeader << std::setprecision(12)
+                << "particle_mean_r=("
+                << centroid[0] << ","
+                << centroid[1] << ","
+                << centroid[2] << ")";
+    headers.push_back(meanRHeader.str());
+
+    std::ostringstream meanSHeader;
+    meanSHeader << std::setprecision(12)
+                << "particle_mean_s=" << (get_sPos() + centroid[2]);
+    headers.push_back(meanSHeader.str());
 
     const auto& geometryConfig =
         geometryOverride.has_value()
@@ -727,7 +753,6 @@ std::vector<std::string> PartBunch<T, Dim>::buildScalarDumpHeaders(
     if (geometryConfig.has_value()) {
         const auto& cfg = *geometryConfig;
         const double interactionPointBeamZ = cfg.interactionPointS - get_sPos();
-        const double interactionPointElementZ = 0.5 * cfg.beamBeamWindowLength;
 
         std::ostringstream interactionPointHeader;
         interactionPointHeader << std::setprecision(12)
@@ -745,12 +770,6 @@ std::vector<std::string> PartBunch<T, Dim>::buildScalarDumpHeaders(
                                     << "interaction_point_beam_z=" << interactionPointBeamZ;
         headers.push_back(interactionPointBeamZHeader.str());
 
-        std::ostringstream interactionPointElementZHeader;
-        interactionPointElementZHeader << std::setprecision(12)
-                                       << "interaction_point_element_z="
-                                       << interactionPointElementZ;
-        headers.push_back(interactionPointElementZHeader.str());
-
         std::ostringstream elementZRangeHeader;
         elementZRangeHeader << std::setprecision(12)
                             << "ip_element_z_range=("
@@ -765,25 +784,6 @@ std::vector<std::string> PartBunch<T, Dim>::buildScalarDumpHeaders(
                             << "ip_element_s_range=(" << cfg.windowBeginS << ","
                             << cfg.windowEndS << ")";
         headers.push_back(elementSRangeHeader.str());
-
-        std::ostringstream windowZRangeHeader;
-        windowZRangeHeader << std::setprecision(12)
-                           << "collision_window_z_range=("
-                           << (cfg.windowBeginS - cfg.interactionPointS + interactionPointBeamZ)
-                           << ","
-                           << (cfg.windowEndS - cfg.interactionPointS + interactionPointBeamZ)
-                           << ")";
-        headers.push_back(windowZRangeHeader.str());
-
-        std::ostringstream windowSRangeHeader;
-        windowSRangeHeader << std::setprecision(12)
-                           << "collision_window_s_range=(" << cfg.windowBeginS << ","
-                           << cfg.windowEndS << ")";
-        headers.push_back(windowSRangeHeader.str());
-
-        std::ostringstream copyModelHeader;
-        copyModelHeader << "copy_model=" << cfg.copyModel;
-        headers.push_back(copyModelHeader.str());
     }
 
     return headers;
@@ -901,6 +901,21 @@ void PartBunch<T, Dim>::computeSelfFields() {
     const bool dumpBeamBeamWindowStages =
         beamBeamWindowConfig_m.has_value() && beamBeamWindowConfig_m->copyModel &&
         globalTrackStep_m >= 29 && globalTrackStep_m <= 31;
+
+    if (beamBeamWindowConfig_m.has_value()) {
+        const auto centroid = this->get_centroid();
+        m << "BeamBeam pre-scatter diagnostics: "
+          << "step=" << globalTrackStep_m
+          << ", totalNum=" << this->getTotalNum()
+          << ", localNum=" << this->getLocalNum()
+          << ", qMacro=" << this->getChargePerParticle()
+          << " C, totalCharge=" << this->getCharge()
+          << " C, meanZ=" << centroid[2]
+          << " m, meanS=" << (get_sPos() + centroid[2])
+          << " m, sPos=" << get_sPos()
+          << " m, dt=" << getdT()
+          << " s" << endl;
+    }
 
     auto dumpBeamBeamWindowStage = [&](const std::string& stageName) {
         if (!dumpBeamBeamWindowStages) {
