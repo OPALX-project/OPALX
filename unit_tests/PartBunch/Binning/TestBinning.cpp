@@ -1,13 +1,17 @@
-//
-// Unit tests for the Binning module:
-//   - ParallelReduceTools (ArrayReduction, HostArrayReduction, createReductionObject)
-//   - BinningTools (computeFixSum, determineHistoReductionMode, viewIsSorted, CoordinateSelector)
-//   - BinHisto (Histogram class: construction, init, postSum, mergeBins, iteration policies)
-//   - AdaptBins (full integration: initLimits, assignBins, histogram, sort, adaptive rebinning)
-//
-// A minimal bunch type (TestBunch) is constructed with a mesh and field layout,
-// similar to how it is done for IPPL's GatherScatterTest.
-//
+/**
+ * @file TestBinning.cpp
+ * @brief Unit tests for the particle binning subsystem (tools, histogram, and adaptive binning
+ * workflow).
+ *
+ * Unit tests for the Binning module:
+ *   - ParallelReduceTools (ArrayReduction, HostArrayReduction, createReductionObject)
+ *   - BinningTools (computeFixSum, determineHistoReductionMode, viewIsSorted, CoordinateSelector)
+ *   - BinHisto (Histogram class: construction, init, postSum, mergeBins, iteration policies)
+ *   - AdaptBins (full integration: initLimits, assignBins, histogram, sort, adaptive rebinning)
+ *
+ * A minimal bunch type (TestBunch) is constructed with a mesh and field layout,
+ * similar to how it is done for IPPL's GatherScatterTest.
+ */
 
 #include "Ippl.h"
 #include "gtest/gtest.h"
