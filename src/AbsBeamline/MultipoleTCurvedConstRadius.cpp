@@ -46,13 +46,13 @@ void MultipoleTCurvedConstRadius::getField(
     const auto tanhCoefficients = tanhCoefficientsDevice_m;
     // Kernel launch over all particles
     Kokkos::parallel_for(
-        "MultipoleTCurvedConstRadius::getField()", count, KOKKOS_LAMBDA(const int i) {
-            computeBField(R(i), B(i), scaling, config, tanhCoefficients);
-        });
+            "MultipoleTCurvedConstRadius::getField()", count, KOKKOS_LAMBDA(const int i) {
+                computeBField(R(i), B(i), scaling, config, tanhCoefficients);
+            });
 }
 
 bool MultipoleTCurvedConstRadius::getField(
-    const Vector_t<double, 3>& R, Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B,
-    const double scaling) {
+        const Vector_t<double, 3>& R, Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B,
+        const double scaling) {
     return computeBField(R, B, scaling, element_m->getConfig(), tanhCoefficientsHost_m);
 }

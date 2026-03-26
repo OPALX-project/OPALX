@@ -116,8 +116,8 @@ public:
      *  \param B -> Calculated magnetic field
      */
     bool apply(
-        const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-        Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
+            const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
+            Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
     /** Calculate the field at the position of the ith particle
      *  \param i -> Index of the particle event; field is calculated at this
      *  position
@@ -127,8 +127,8 @@ public:
      *  \param E -> Calculated electric field - always 0 (no E-field)
      *  \param B -> Calculated magnetic field
      */
-    bool apply(
-        const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
+    bool apply(const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B)
+            override;
     /** Initialise the MultipoleT
      *  \param bunch -> Bunch the global bunch object
      *  \param startField -> Not used
@@ -251,7 +251,7 @@ protected:
     /** This one is here for test purposes.
      * It is required as it is too difficult to mock a PartBunch. */
     void apply(
-        Kokkos::View<Vector_t<double, 3>*> R, Kokkos::View<Vector_t<double, 3>*> E,
-        Kokkos::View<Vector_t<double, 3>*> B, double t, size_t count) const;
+            Kokkos::View<Vector_t<double, 3>*> R, Kokkos::View<Vector_t<double, 3>*> E,
+            Kokkos::View<Vector_t<double, 3>*> B, double t, size_t count) const;
 };
 #endif
