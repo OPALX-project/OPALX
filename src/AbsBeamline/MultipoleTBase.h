@@ -101,13 +101,13 @@ public:
     virtual BGeometryBase* getGeometry() = 0;
     /** Return the field for an array of points */
     virtual void getField(
-        Kokkos::View<Vector_t<double, 3>*> /*R*/, Kokkos::View<Vector_t<double, 3>*> /*E*/,
-        Kokkos::View<Vector_t<double, 3>*> /*B*/, double /*scaling*/, size_t /*count*/) = 0;
+            Kokkos::View<Vector_t<double, 3>*> /*R*/, Kokkos::View<Vector_t<double, 3>*> /*E*/,
+            Kokkos::View<Vector_t<double, 3>*> /*B*/, double /*scaling*/, size_t /*count*/) = 0;
 
     /** Return the field for a single point */
     virtual bool getField(
-        const Vector_t<double, 3>& /*R*/, Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/,
-        double /*scaling*/) = 0;
+            const Vector_t<double, 3>& /*R*/, Vector_t<double, 3>& /*E*/,
+            Vector_t<double, 3>& /*B*/, double /*scaling*/) = 0;
 
     // Constants
     static constexpr size_t MaxFactorial         = 20;
@@ -120,43 +120,44 @@ public:
     KOKKOS_INLINE_FUNCTION static double powerInteger(double x, unsigned int n);
     /** Helper function that calculates transverse derivatives for multipole fields */
     KOKKOS_INLINE_FUNCTION static void calcTransverseDerivatives(
-        const Kokkos::Array<double, MultipoleTConfig::NumPoles>& poles, unsigned int numDerivatives,
-        double x, Kokkos::Array<double, MaxDerivatives>& derivatives);
+            const Kokkos::Array<double, MultipoleTConfig::NumPoles>& poles,
+            unsigned int numDerivatives, double x,
+            Kokkos::Array<double, MaxDerivatives>& derivatives);
     template <class ViewType>
     KOKKOS_INLINE_FUNCTION static void calcFringeDerivatives(
-        const double& s0, const double& lambdaLeft, const double& lambdaRight, double s,
-        const ViewType& tanhCoefficients, Kokkos::Array<double, MaxDerivatives>& derivatives);
+            const double& s0, const double& lambdaLeft, const double& lambdaRight, double s,
+            const ViewType& tanhCoefficients, Kokkos::Array<double, MaxDerivatives>& derivatives);
     void generateTanhCoefficients(unsigned int numDerivatives);
     KOKKOS_INLINE_FUNCTION static Vector_t<double, 3> rotateFrame(
-        Vector_t<double, 3> R, const MultipoleTConfig& config);
+            Vector_t<double, 3> R, const MultipoleTConfig& config);
     KOKKOS_INLINE_FUNCTION static void calcPowers(
-        double value, unsigned int maxPower, Kokkos::Array<double, MaxPowerInteger>& powers);
+            double value, unsigned int maxPower, Kokkos::Array<double, MaxPowerInteger>& powers);
 };
 
 KOKKOS_INLINE_FUNCTION
 double MultipoleTBase::factorial(const unsigned int n) {
     static constexpr double factorialTable[MaxFactorial + 1] = {
-        1.0,
-        1.0,
-        2.0,
-        6.0,
-        24.0,
-        120.0,
-        720.0,
-        5040.0,
-        40320.0,
-        362880.0,
-        3628800.0,
-        39916800.0,
-        479001600.0,
-        6227020800.0,
-        87178291200.0,
-        1307674368000.0,
-        20922789888000.0,
-        355687428096000.0,
-        6402373705728000.0,
-        121645100408832000.0,
-        2432902008176640000.0};
+            1.0,
+            1.0,
+            2.0,
+            6.0,
+            24.0,
+            120.0,
+            720.0,
+            5040.0,
+            40320.0,
+            362880.0,
+            3628800.0,
+            39916800.0,
+            479001600.0,
+            6227020800.0,
+            87178291200.0,
+            1307674368000.0,
+            20922789888000.0,
+            355687428096000.0,
+            6402373705728000.0,
+            121645100408832000.0,
+            2432902008176640000.0};
     if (n > MaxFactorial) {
         Kokkos::abort("factorial out of bounds");
     }
@@ -181,9 +182,9 @@ double MultipoleTBase::powerInteger(double x, unsigned int n) {
 
 KOKKOS_INLINE_FUNCTION
 void MultipoleTBase::calcTransverseDerivatives(
-    const Kokkos::Array<double, MultipoleTConfig::NumPoles>& poles,
-    const unsigned int numDerivatives, const double x,
-    Kokkos::Array<double, MaxDerivatives>& derivatives) {
+        const Kokkos::Array<double, MultipoleTConfig::NumPoles>& poles,
+        const unsigned int numDerivatives, const double x,
+        Kokkos::Array<double, MaxDerivatives>& derivatives) {
     Kokkos::Array<double, MultipoleTConfig::NumPoles> coefficients = poles;
     for (unsigned int i = 0; i < numDerivatives; ++i) {
         // Calculate the value of this derivative
@@ -201,8 +202,8 @@ void MultipoleTBase::calcTransverseDerivatives(
 
 template <class ViewType>
 KOKKOS_INLINE_FUNCTION void MultipoleTBase::calcFringeDerivatives(
-    const double& s0, const double& lambdaLeft, const double& lambdaRight, const double s,
-    const ViewType& tanhCoefficients, Kokkos::Array<double, MaxDerivatives>& derivatives) {
+        const double& s0, const double& lambdaLeft, const double& lambdaRight, const double s,
+        const ViewType& tanhCoefficients, Kokkos::Array<double, MaxDerivatives>& derivatives) {
     const double tLeft                 = std::tanh((s + s0) / lambdaLeft);
     const double tRight                = std::tanh((s - s0) / lambdaRight);
     double lambdaLeftN                 = 1.0;
@@ -232,7 +233,7 @@ KOKKOS_INLINE_FUNCTION void MultipoleTBase::calcFringeDerivatives(
 
 KOKKOS_INLINE_FUNCTION
 Vector_t<double, 3> MultipoleTBase::rotateFrame(
-    Vector_t<double, 3> R, const MultipoleTConfig& config) {
+        Vector_t<double, 3> R, const MultipoleTConfig& config) {
     Vector_t<double, 3> R1(3), R2(3);
     /** Apply two 2D rotation matrices to coordinate vector
      * Rotate around central axis => skew fields
@@ -250,8 +251,8 @@ Vector_t<double, 3> MultipoleTBase::rotateFrame(
 }
 
 KOKKOS_INLINE_FUNCTION void MultipoleTBase::calcPowers(
-    const double value, const unsigned int maxPower,
-    Kokkos::Array<double, MaxPowerInteger>& powers) {
+        const double value, const unsigned int maxPower,
+        Kokkos::Array<double, MaxPowerInteger>& powers) {
     powers[0] = 1;
     for (unsigned int i = 1; i <= maxPower; i++) {
         powers[i] = powers[i - 1] * value;
