@@ -679,7 +679,7 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
 
     itsBunch_m->setGlobalMeanR(itsBunch_m->get_centroid());
 
-    if (beamBeamState_m.state != BeamBeamWindowState::Active) {
+    if (beamBeamState_m.state != BEAMBEAM::WindowState::Active) {
         computeDefaultSelfFields(beamToReferenceCSTrafo, m);
     } else {
         computeBeamBeamWindowSelfFields(referenceToBeamCSTrafo, beamToReferenceCSTrafo, m);
@@ -701,7 +701,7 @@ void ParallelTracker::checkInBBRegion(OrbitThreader& oth) {
     Inform m("BeamBeam ");
 
     // Stop once the beam-beam-window passage has completed.
-    if (beamBeamState_m.state == BeamBeamWindowState::Completed) {
+    if (beamBeamState_m.state == BEAMBEAM::WindowState::Completed) {
         return;
     }
 
@@ -725,9 +725,9 @@ void ParallelTracker::checkInBBRegion(OrbitThreader& oth) {
     const double bunchTailS = pathLength_m + rmin(2);
     const double bunchHeadS = pathLength_m + rmax(2);
 
-    std::optional<BeamBeamGeometry> geometry = detectBeamBeamWindow(oth, rmin, rmax);
+    std::optional<BEAMBEAM::ActualGeometry> geometry = detectBeamBeamWindow(oth, rmin, rmax);
     if (!geometry.has_value() &&
-        beamBeamState_m.state == BeamBeamWindowState::Active &&
+        beamBeamState_m.state == BEAMBEAM::WindowState::Active &&
         beamBeamState_m.geometry.has_value()) {
         geometry = beamBeamState_m.geometry;
     }
@@ -743,13 +743,13 @@ void ParallelTracker::checkInBBRegion(OrbitThreader& oth) {
     const double observedEndS    = activeGeometry.endS + observedMarginS;
 
     beamBeamDiagnostics_m.frameObserved =
-        activeGeometry.visualize &&
+        activeGeometry.config.visualize &&
         (bunchHeadS >= observedBeginS) &&
         (bunchTailS <= observedEndS);
     beamBeamState_m.geometry = activeGeometry;
 
     const bool leavingBeamBeamWindow =
-        beamBeamState_m.state == BeamBeamWindowState::Active &&
+        beamBeamState_m.state == BEAMBEAM::WindowState::Active &&
         (bunchTailS > activeGeometry.endS);
 
     if (leavingBeamBeamWindow) {
@@ -761,11 +761,11 @@ void ParallelTracker::checkInBBRegion(OrbitThreader& oth) {
     }
 
     // Enter beam-beam-window mode once the head enters the window.
-    if (beamBeamState_m.state == BeamBeamWindowState::Inactive &&
+    if (beamBeamState_m.state == BEAMBEAM::WindowState::Inactive &&
         bunchHeadS > activeGeometry.beginS) {
         enterBeamBeamWindow(activeGeometry, m);
         beamBeamDiagnostics_m.frameObserved =
-            activeGeometry.visualize &&
+            activeGeometry.config.visualize &&
             (bunchHeadS >= observedBeginS) &&
             (bunchTailS <= observedEndS);
     }
@@ -776,7 +776,7 @@ void ParallelTracker::checkInBBRegion(OrbitThreader& oth) {
     }
 }
 
-std::optional<ParallelTracker::BeamBeamGeometry>
+std::optional<BEAMBEAM::ActualGeometry>
 ParallelTracker::detectBeamBeamWindow(
     OrbitThreader& oth,
     const ippl::Vector<double, Dim>& rmin,
@@ -801,22 +801,23 @@ ParallelTracker::detectBeamBeamWindow(
 
         const IndexMap::key_t ipRange = oth.getRange(element, pathLength_m);
         const double interactionPointS = 0.5 * (ipRange.begin + ipRange.end);
-        return BeamBeamGeometry{
+        return BEAMBEAM::ActualGeometry{
             interactionPointS,
             interactionPointS - 0.5 * beamBeamWindowLength,
             interactionPointS + 0.5 * beamBeamWindowLength,
             beamBeamWindowLength,
-            element->getAttribute("COPY") != 0.0,
-            element->getAttribute("VISUALIZE") != 0.0};
+            BEAMBEAM::Config{
+                element->getAttribute("COPY") != 0.0,
+                element->getAttribute("VISUALIZE") != 0.0}};
     }
 
     return std::nullopt;
 }
 
 void ParallelTracker::enterBeamBeamWindow(
-    const BeamBeamGeometry& geometry,
+    const BEAMBEAM::ActualGeometry& geometry,
     Inform& m) {
-    beamBeamState_m.state            = BeamBeamWindowState::Active;
+    beamBeamState_m.state            = BEAMBEAM::WindowState::Active;
     beamBeamState_m.geometry         = geometry;
     beamBeamState_m.savedFieldDomain = itsBunch_m->saveFieldDomainState();
     beamBeamDiagnostics_m.entryRhoSnapshotDumped = false;
@@ -829,7 +830,7 @@ void ParallelTracker::enterBeamBeamWindow(
         geometry.interactionPointS,
         geometry.beginS,
         geometry.endS,
-        geometry.copyModel);
+        geometry.config.copyModel);
 
     // No duplication of particles in pc.
     // From here on, the second bunch is virtual only:
@@ -843,7 +844,7 @@ void ParallelTracker::enterBeamBeamWindow(
 }
 
 void ParallelTracker::leaveBeamBeamWindow(Inform& m) {
-    beamBeamState_m.state = BeamBeamWindowState::Completed;
+    beamBeamState_m.state = BEAMBEAM::WindowState::Completed;
     beamBeamDiagnostics_m.entryRhoSnapshotDumped = false;
 
     if (beamBeamState_m.geometry.has_value()) {
@@ -871,7 +872,7 @@ void ParallelTracker::leaveBeamBeamWindow(Inform& m) {
 void ParallelTracker::renderBeamBeamWindowFrame(
     double bunchTailS,
     double bunchHeadS,
-    const BeamBeamGeometry& geometry) {
+    const BEAMBEAM::ActualGeometry& geometry) {
     const bool useFrozenBeamBeamWindowMesh = usesFrozenBeamBeamWindowMesh();
     const double bunchCenterS = 0.5 * (bunchTailS + bunchHeadS);
     const double meshBeginS = useFrozenBeamBeamWindowMesh ? geometry.beginS : bunchTailS;
@@ -884,12 +885,12 @@ void ParallelTracker::renderBeamBeamWindowFrame(
         geometry.beginS,
         geometry.endS,
         geometry.interactionPointS,
-        beamBeamState_m.state == BeamBeamWindowState::Active,
+        beamBeamState_m.state == BEAMBEAM::WindowState::Active,
         useFrozenBeamBeamWindowMesh);
 }
 
 bool ParallelTracker::usesFrozenBeamBeamWindowMesh() const {
-    return beamBeamState_m.state == BeamBeamWindowState::Active;
+    return beamBeamState_m.state == BEAMBEAM::WindowState::Active;
 }
 
 void ParallelTracker::transformFieldsToReferenceFrame(

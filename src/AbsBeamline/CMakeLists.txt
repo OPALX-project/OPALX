@@ -40,6 +40,7 @@ set(_HDRS
     Drift.h
     ElementBase.h
     BeamBeam.h
+    BeamBeamDefinitions.h
     Marker.h
     Multipole.h
     MultipoleT.h

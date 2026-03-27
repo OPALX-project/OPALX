@@ -38,6 +38,7 @@
 #include "Algorithms/OrbitThreader.h"
 
 #include "AbsBeamline/BeamBeam.h"
+#include "AbsBeamline/BeamBeamDefinitions.h"
 #include "AbsBeamline/ConstantEFieldCavity.h"
 #include "AbsBeamline/Drift.h"
 #include "AbsBeamline/ElementBase.h"
@@ -154,49 +155,11 @@ private:
     bool wakeStatus_m;
     WakeFunction* wakeFunction_m;
 
-    /**
-     * @brief Geometric description of an active beam-beam window around the IP.
-     *
-     * All longitudinal coordinates are stored in path-length coordinates `s`.
-     * Beam-frame coordinates needed by the field solve are derived from this
-     * geometry and the current tracker position.
-     */
-    struct BeamBeamGeometry {
-        double interactionPointS = 0.0;
-        double beginS            = 0.0;
-        double endS              = 0.0;
-        double length            = 0.0;
-        bool copyModel           = false;
-        bool visualize           = false;
-    };
+    /* ===================================================================== */
+    /* ========================== BEAM BEAM ================================ */
 
-    /**
-     * @brief Lifecycle of the beam-beam-window model for the current run.
-     */
-    enum class BeamBeamWindowState { Inactive, Active, Completed };
-
-    /**
-     * @brief Tracker-owned runtime state for the beam-beam-window passage.
-     *
-     * This keeps only the active lifecycle, geometry, and temporary field-domain
-     * rollback state needed by the physics model.
-     */
-    struct BeamBeamState {
-        BeamBeamWindowState state = BeamBeamWindowState::Inactive;
-        std::optional<BeamBeamGeometry> geometry;
-        std::optional<PartBunch<double, Dim>::SavedFieldDomainState> savedFieldDomain;
-    };
-
-    /**
-     * @brief Diagnostics-only flags for beam-beam-window visualization/output.
-     */
-    struct BeamBeamDiagnosticsState {
-        bool frameObserved          = false;
-        bool entryRhoSnapshotDumped = false;
-    };
-
-    BeamBeamState beamBeamState_m;
-    BeamBeamDiagnosticsState beamBeamDiagnostics_m;
+    BEAMBEAM::Runtime<PartBunch<double, Dim>::SavedFieldDomainState> beamBeamState_m;
+    BEAMBEAM::Diagnostics beamBeamDiagnostics_m;
     static constexpr int postBeamBeamWindowVisualizationSteps_m = 4;
 
     // ASCII visualization helper for the beam-beam-window dynamics.
@@ -344,14 +307,14 @@ private:
      * @return The current beam-beam-window geometry if an IP overlaps the
      *         bunch extent, otherwise `std::nullopt`.
      */
-    std::optional<BeamBeamGeometry> detectBeamBeamWindow(
+    std::optional<BEAMBEAM::ActualGeometry> detectBeamBeamWindow(
             OrbitThreader& oth, const ippl::Vector<double, Dim>& rmin,
             const ippl::Vector<double, Dim>& rmax);
 
-    void enterBeamBeamWindow(const BeamBeamGeometry& geometry, Inform& m);
+    void enterBeamBeamWindow(const BEAMBEAM::ActualGeometry& geometry, Inform& m);
     void leaveBeamBeamWindow(Inform& m);
     void renderBeamBeamWindowFrame(
-            double bunchTailS, double bunchHeadS, const BeamBeamGeometry& geometry);
+            double bunchTailS, double bunchHeadS, const BEAMBEAM::ActualGeometry& geometry);
     bool usesFrozenBeamBeamWindowMesh() const;
     void transformFieldsToReferenceFrame(
             const CoordinateSystemTrafo& beamToReferenceCSTrafo, Inform& m);

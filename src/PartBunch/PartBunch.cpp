@@ -14,12 +14,12 @@
 
 template <typename T, unsigned Dim>
 PartBunch<T, Dim>::PartBunch(
-    double qi, double mi, size_t totalP,
-    /*int nt,*/
-    double lbt, std::string integration_method, std::shared_ptr<FieldSolverCmd>& OPALFieldSolver,
-    std::shared_ptr<DataSink> dataSink)
+        double qi, double mi, size_t totalP,
+        /*int nt,*/
+        double lbt, std::string integration_method,
+        std::shared_ptr<FieldSolverCmd>& OPALFieldSolver, std::shared_ptr<DataSink> dataSink)
     : ippl::PicManager<
-          T, Dim, ParticleContainer<T, Dim>, FieldContainer<T, Dim>, LoadBalancer<T, Dim>>(),
+              T, Dim, ParticleContainer<T, Dim>, FieldContainer<T, Dim>, LoadBalancer<T, Dim>>(),
       time_m(0.0),
       totalP_m(totalP),
       // nt_m(nt),
@@ -45,7 +45,7 @@ PartBunch<T, Dim>::PartBunch(
     //  get the needed information from OPAL FieldSolver command
 
     nr_m = Vector_t<int, Dim>(
-        OPALFieldSolver_m->getNX(), OPALFieldSolver_m->getNY(), OPALFieldSolver_m->getNZ());
+            OPALFieldSolver_m->getNX(), OPALFieldSolver_m->getNY(), OPALFieldSolver_m->getNZ());
 
     const Vector_t<bool, 3> domainDecomposition = OPALFieldSolver_m->getDomDec();
 
@@ -73,15 +73,16 @@ PartBunch<T, Dim>::PartBunch(
     rmax_m = origin_m + length;
 
     this->setFieldContainer(
-        std::make_shared<FieldContainer_t>(
-            hr_m, rmin_m, rmax_m, decomp_m, domain_m, origin_m, isAllPeriodic));
+            std::make_shared<FieldContainer_t>(
+                    hr_m, rmin_m, rmax_m, decomp_m, domain_m, origin_m, isAllPeriodic));
 
     this->setParticleContainer(
-        std::make_shared<ParticleContainer_t>(
-            this->fcontainer_m->getMesh(), this->fcontainer_m->getFL()));
+            std::make_shared<ParticleContainer_t>(
+                    this->fcontainer_m->getMesh(), this->fcontainer_m->getFL()));
 
     this->setTempEField(
-        std::make_shared<VField_t<T, Dim>>(this->fcontainer_m->getE()));  // user copy constructor
+            std::make_shared<VField_t<T, Dim>>(
+                    this->fcontainer_m->getE()));  // user copy constructor
     this->getTempEField()->initialize(this->fcontainer_m->getMesh(), this->fcontainer_m->getFL());
     // -----------------------------------------------
 
@@ -142,12 +143,12 @@ void PartBunch<T, Dim>::restoreFieldDomainState(const SavedFieldDomainState& sta
 
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::enableBeamBeamWindowMesh(
-    double interactionPointLocalZ, double beamBeamWindowLength) {
+        double interactionPointLocalZ, double beamBeamWindowLength) {
     Inform m("PartBunch::enableBeamBeamWindowMesh");
 
     if (beamBeamWindowLength <= 0.0) {
         throw OpalException(
-            "PartBunch::enableBeamBeamWindowMesh", "beamBeamWindowLength must be > 0");
+                "PartBunch::enableBeamBeamWindowMesh", "beamBeamWindowLength must be > 0");
     }
 
     auto* mesh = &this->fcontainer_m->getMesh();
@@ -193,9 +194,9 @@ T PartBunch<T, Dim>::getCouplingConstant() const {
 
     if (!hasFieldSolver()) {
         throw OpalException(
-            "PartBunch::getCouplingConstant",
-            "Cannot return coupling if fsolver_m is not a "
-            "FieldSolver instance");
+                "PartBunch::getCouplingConstant",
+                "Cannot return coupling if fsolver_m is not a "
+                "FieldSolver instance");
     }
     return this->getFieldSolver()->getCouplingConstant();
 }
@@ -242,9 +243,9 @@ void PartBunch<T, Dim>::setSolver() {
     this->fcontainer_m->initializeFields(this->solver_m);
 
     this->setFieldSolver(
-        std::make_shared<FieldSolver_t>(
-            this->solver_m, &this->fcontainer_m->getRho(), &this->fcontainer_m->getE(),
-            &this->fcontainer_m->getPhi(), this->getBCHandler()));
+            std::make_shared<FieldSolver_t>(
+                    this->solver_m, &this->fcontainer_m->getRho(), &this->fcontainer_m->getE(),
+                    &this->fcontainer_m->getPhi(), this->getBCHandler()));
     m << level4 << "Field solver set." << endl;
 
     this->fsolver_m->initSolver();
@@ -252,8 +253,8 @@ void PartBunch<T, Dim>::setSolver() {
 
     /// ADA we need to be able to set a load balancer when not having a field solver
     this->setLoadBalancer(
-        std::make_shared<LoadBalancer_t>(
-            this->lbt_m, this->fcontainer_m, this->pcontainer_m, this->fsolver_m));
+            std::make_shared<LoadBalancer_t>(
+                    this->lbt_m, this->fcontainer_m, this->pcontainer_m, this->fsolver_m));
     m << level3 << "Solver and Load Balancer set." << endl;
 
     setBins();
@@ -276,16 +277,16 @@ void PartBunch<T, Dim>::setBins() {
     std::string parameterName = binningCmd->getParameter();
     if (parameterName != "VELOCITYZ") {
         throw OpalException(
-            "PartBunch::setBins",
-            "Binning parameter " + parameterName + " not supported yet! Only VELOCITYZ.");
+                "PartBunch::setBins",
+                "Binning parameter " + parameterName + " not supported yet! Only VELOCITYZ.");
     }
 
     this->setBins(
-        std::make_shared<AdaptBins_t>(
-            this->getParticleContainer(), BinningSelector_t(2), binningCmd->getMaxBins(),
-            binningCmd->getBinningAlpha(), binningCmd->getBinningBeta(),
-            binningCmd->getDesiredWidth()  // Cost function parameters
-            ));
+            std::make_shared<AdaptBins_t>(
+                    this->getParticleContainer(), BinningSelector_t(2), binningCmd->getMaxBins(),
+                    binningCmd->getBinningAlpha(), binningCmd->getBinningBeta(),
+                    binningCmd->getDesiredWidth()  // Cost function parameters
+                    ));
     m << level3 << "Bins set." << endl;
     this->getBins()->debug();
 }
@@ -308,51 +309,51 @@ void PartBunch<T, Dim>::spaceChargeEFieldCheck(Vector_t<double, 3> /*efScale*/) 
     int myRank = ippl::Comm->rank();
 
     Kokkos::parallel_reduce(
-        "check e-field", this->getLocalNum(),
-        KOKKOS_LAMBDA(
-            const int i, double& loc_avgE, double& loc_minEComponent, double& loc_maxEComponent,
-            double& loc_minE, double& loc_maxE) {
-            double EX = pE_view[i][0] * cc;
-            double EY = pE_view[i][1] * cc;
-            double EZ = pE_view[i][2] * cc;
+            "check e-field", this->getLocalNum(),
+            KOKKOS_LAMBDA(
+                    const int i, double& loc_avgE, double& loc_minEComponent,
+                    double& loc_maxEComponent, double& loc_minE, double& loc_maxE) {
+                double EX = pE_view[i][0] * cc;
+                double EY = pE_view[i][1] * cc;
+                double EZ = pE_view[i][2] * cc;
 
-            double ENorm = Kokkos::sqrt(EX * EX + EY * EY + EZ * EZ);
+                double ENorm = Kokkos::sqrt(EX * EX + EY * EY + EZ * EZ);
 
-            loc_avgE += ENorm;
+                loc_avgE += ENorm;
 
-            loc_minEComponent = EX < loc_minEComponent ? EX : loc_minEComponent;
-            loc_minEComponent = EY < loc_minEComponent ? EY : loc_minEComponent;
-            loc_minEComponent = EZ < loc_minEComponent ? EZ : loc_minEComponent;
+                loc_minEComponent = EX < loc_minEComponent ? EX : loc_minEComponent;
+                loc_minEComponent = EY < loc_minEComponent ? EY : loc_minEComponent;
+                loc_minEComponent = EZ < loc_minEComponent ? EZ : loc_minEComponent;
 
-            loc_maxEComponent = EX > loc_maxEComponent ? EX : loc_maxEComponent;
-            loc_maxEComponent = EY > loc_maxEComponent ? EY : loc_maxEComponent;
-            loc_maxEComponent = EZ > loc_maxEComponent ? EZ : loc_maxEComponent;
+                loc_maxEComponent = EX > loc_maxEComponent ? EX : loc_maxEComponent;
+                loc_maxEComponent = EY > loc_maxEComponent ? EY : loc_maxEComponent;
+                loc_maxEComponent = EZ > loc_maxEComponent ? EZ : loc_maxEComponent;
 
-            loc_minE = ENorm < loc_minE ? ENorm : loc_minE;
-            loc_maxE = ENorm > loc_maxE ? ENorm : loc_maxE;
-        },
-        Kokkos::Sum<T>(avgE), Kokkos::Min<T>(minEComponent), Kokkos::Max<T>(maxEComponent),
-        Kokkos::Min<T>(minE), Kokkos::Max<T>(maxE));
+                loc_minE = ENorm < loc_minE ? ENorm : loc_minE;
+                loc_maxE = ENorm > loc_maxE ? ENorm : loc_maxE;
+            },
+            Kokkos::Sum<T>(avgE), Kokkos::Min<T>(minEComponent), Kokkos::Max<T>(maxEComponent),
+            Kokkos::Min<T>(minE), Kokkos::Max<T>(maxE));
 
     if (this->getLocalNum() == 0) {
         minEComponent = maxEComponent = minE = maxE = avgE = 0.0;
     }
 
     MPI_Reduce(
-        myRank == 0 ? MPI_IN_PLACE : &avgE, &avgE, 1, MPI_DOUBLE, MPI_SUM, 0,
-        ippl::Comm->getCommunicator());
+            myRank == 0 ? MPI_IN_PLACE : &avgE, &avgE, 1, MPI_DOUBLE, MPI_SUM, 0,
+            ippl::Comm->getCommunicator());
     MPI_Reduce(
-        myRank == 0 ? MPI_IN_PLACE : &minEComponent, &minEComponent, 1, MPI_DOUBLE, MPI_MIN, 0,
-        ippl::Comm->getCommunicator());
+            myRank == 0 ? MPI_IN_PLACE : &minEComponent, &minEComponent, 1, MPI_DOUBLE, MPI_MIN, 0,
+            ippl::Comm->getCommunicator());
     MPI_Reduce(
-        myRank == 0 ? MPI_IN_PLACE : &maxEComponent, &maxEComponent, 1, MPI_DOUBLE, MPI_MAX, 0,
-        ippl::Comm->getCommunicator());
+            myRank == 0 ? MPI_IN_PLACE : &maxEComponent, &maxEComponent, 1, MPI_DOUBLE, MPI_MAX, 0,
+            ippl::Comm->getCommunicator());
     MPI_Reduce(
-        myRank == 0 ? MPI_IN_PLACE : &minE, &minE, 1, MPI_DOUBLE, MPI_MIN, 0,
-        ippl::Comm->getCommunicator());
+            myRank == 0 ? MPI_IN_PLACE : &minE, &minE, 1, MPI_DOUBLE, MPI_MIN, 0,
+            ippl::Comm->getCommunicator());
     MPI_Reduce(
-        myRank == 0 ? MPI_IN_PLACE : &maxE, &maxE, 1, MPI_DOUBLE, MPI_MAX, 0,
-        ippl::Comm->getCommunicator());
+            myRank == 0 ? MPI_IN_PLACE : &maxE, &maxE, 1, MPI_DOUBLE, MPI_MAX, 0,
+            ippl::Comm->getCommunicator());
 
     size_t Np = this->getTotalNum();
     avgE /= (Np == 0) ? 1 : Np;  // avoid division by zero for empty simulations (see also
@@ -363,17 +364,18 @@ void PartBunch<T, Dim>::spaceChargeEFieldCheck(Vector_t<double, 3> /*efScale*/) 
     using mdrange_type = Kokkos::MDRangePolicy<Kokkos::Rank<3>>;
 
     Kokkos::parallel_reduce(
-        "check phi",
-        mdrange_type({0, 0, 0}, {fphi_view.extent(0), fphi_view.extent(1), fphi_view.extent(2)}),
-        KOKKOS_LAMBDA(const int i, const int j, const int k, double& loc_avgphi) {
-            double phi = fphi_view(i, j, k);
-            loc_avgphi += phi;
-        },
-        Kokkos::Sum<T>(avgphi));
+            "check phi",
+            mdrange_type(
+                    {0, 0, 0}, {fphi_view.extent(0), fphi_view.extent(1), fphi_view.extent(2)}),
+            KOKKOS_LAMBDA(const int i, const int j, const int k, double& loc_avgphi) {
+                double phi = fphi_view(i, j, k);
+                loc_avgphi += phi;
+            },
+            Kokkos::Sum<T>(avgphi));
 
     MPI_Reduce(
-        myRank == 0 ? MPI_IN_PLACE : &avgphi, &avgphi, 1, MPI_DOUBLE, MPI_SUM, 0,
-        ippl::Comm->getCommunicator());
+            myRank == 0 ? MPI_IN_PLACE : &avgphi, &avgphi, 1, MPI_DOUBLE, MPI_SUM, 0,
+            ippl::Comm->getCommunicator());
     avgphi /= this->getTotalNum();
     msg << level4 << "avgphi = " << avgphi << endl;
 }
@@ -404,30 +406,30 @@ void PartBunch<T, Dim>::calcBeamParameters() {
 
     for (unsigned i = 0; i < 2 * Dim; ++i) {
         Kokkos::parallel_reduce(
-            "calc moments of particle distr.", ippl::getRangePolicy(Rview),
-            KOKKOS_LAMBDA(
-                const int k, double& cent, double& mom0, double& mom1, double& mom2, double& mom3,
-                double& mom4, double& mom5) {
-                double part[2 * Dim];
-                part[0] = Rview(k)[0];
-                part[1] = Pview(k)[0];
-                part[2] = Rview(k)[1];
-                part[3] = Pview(k)[1];
-                part[4] = Rview(k)[2];
-                part[5] = Pview(k)[2];
+                "calc moments of particle distr.", ippl::getRangePolicy(Rview),
+                KOKKOS_LAMBDA(
+                        const int k, double& cent, double& mom0, double& mom1, double& mom2,
+                        double& mom3, double& mom4, double& mom5) {
+                    double part[2 * Dim];
+                    part[0] = Rview(k)[0];
+                    part[1] = Pview(k)[0];
+                    part[2] = Rview(k)[1];
+                    part[3] = Pview(k)[1];
+                    part[4] = Rview(k)[2];
+                    part[5] = Pview(k)[2];
 
-                cent += part[i];
-                mom0 += part[i] * part[0];
-                mom1 += part[i] * part[1];
-                mom2 += part[i] * part[2];
-                mom3 += part[i] * part[3];
-                mom4 += part[i] * part[4];
-                mom5 += part[i] * part[5];
-            },
-            Kokkos::Sum<T>(loc_centroid[i]), Kokkos::Sum<T>(loc_moment[i][0]),
-            Kokkos::Sum<T>(loc_moment[i][1]), Kokkos::Sum<T>(loc_moment[i][2]),
-            Kokkos::Sum<T>(loc_moment[i][3]), Kokkos::Sum<T>(loc_moment[i][4]),
-            Kokkos::Sum<T>(loc_moment[i][5]));
+                    cent += part[i];
+                    mom0 += part[i] * part[0];
+                    mom1 += part[i] * part[1];
+                    mom2 += part[i] * part[2];
+                    mom3 += part[i] * part[3];
+                    mom4 += part[i] * part[4];
+                    mom5 += part[i] * part[5];
+                },
+                Kokkos::Sum<T>(loc_centroid[i]), Kokkos::Sum<T>(loc_moment[i][0]),
+                Kokkos::Sum<T>(loc_moment[i][1]), Kokkos::Sum<T>(loc_moment[i][2]),
+                Kokkos::Sum<T>(loc_moment[i][3]), Kokkos::Sum<T>(loc_moment[i][4]),
+                Kokkos::Sum<T>(loc_moment[i][5]));
         Kokkos::fence();
     }
     m << level5 << "Local moments calculated." << endl;
@@ -450,20 +452,20 @@ void PartBunch<T, Dim>::calcBeamParameters() {
     /// \todo do this in one step much nicer with ippl::Vector...
     for (unsigned d = 0; d < Dim; ++d) {
         Kokkos::parallel_reduce(
-            "rel max", this->getLocalNum(),
-            KOKKOS_LAMBDA(const int i, double& mm) {
-                double tmp_vel = Rview(i)[d];
-                mm             = tmp_vel > mm ? tmp_vel : mm;
-            },
-            Kokkos::Max<T>(rmax_loc[d]));
+                "rel max", this->getLocalNum(),
+                KOKKOS_LAMBDA(const int i, double& mm) {
+                    double tmp_vel = Rview(i)[d];
+                    mm             = tmp_vel > mm ? tmp_vel : mm;
+                },
+                Kokkos::Max<T>(rmax_loc[d]));
 
         Kokkos::parallel_reduce(
-            "rel min", this->getLocalNum(),
-            KOKKOS_LAMBDA(const int i, double& mm) {
-                double tmp_vel = Rview(i)[d];
-                mm             = tmp_vel < mm ? tmp_vel : mm;
-            },
-            Kokkos::Min<T>(rmin_loc[d]));
+                "rel min", this->getLocalNum(),
+                KOKKOS_LAMBDA(const int i, double& mm) {
+                    double tmp_vel = Rview(i)[d];
+                    mm             = tmp_vel < mm ? tmp_vel : mm;
+                },
+                Kokkos::Min<T>(rmin_loc[d]));
     }
     m << level5 << "Local min/max calculated." << endl;
     Kokkos::fence();
@@ -664,10 +666,9 @@ void PartBunch<T, Dim>::bunchUpdate() {
 
 template <typename T, unsigned Dim>
 std::vector<std::string> PartBunch<T, Dim>::buildScalarDumpHeaders(
-    const std::string& snapshotKind,
-    const std::string& coordinateFrame,
-    const std::optional<BeamBeamWindowConfig>& geometryOverride,
-    std::optional<bool> activeOverride) const {
+        const std::string& snapshotKind, const std::string& coordinateFrame,
+        const std::optional<BeamBeamWindowConfig>& geometryOverride,
+        std::optional<bool> activeOverride) const {
     std::vector<std::string> headers;
     headers.reserve(16);
 
@@ -683,8 +684,7 @@ std::vector<std::string> PartBunch<T, Dim>::buildScalarDumpHeaders(
 
     headers.push_back("snapshot_kind=" + snapshotKind);
 
-    const bool beamBeamWindowActive =
-        activeOverride.value_or(beamBeamWindowConfig_m.has_value());
+    const bool beamBeamWindowActive = activeOverride.value_or(beamBeamWindowConfig_m.has_value());
 
     std::ostringstream activeHeader;
     activeHeader << "interaction_window_active=" << beamBeamWindowActive;
@@ -720,44 +720,37 @@ std::vector<std::string> PartBunch<T, Dim>::buildScalarDumpHeaders(
 
     std::ostringstream chargePerParticleHeader;
     chargePerParticleHeader << std::setprecision(12)
-                            << "particle_charge_per_macroparticle="
-                            << this->getChargePerParticle();
+                            << "particle_charge_per_macroparticle=" << this->getChargePerParticle();
     headers.push_back(chargePerParticleHeader.str());
 
     std::ostringstream totalChargeHeader;
-    totalChargeHeader << std::setprecision(12)
-                      << "particle_total_charge=" << this->getCharge();
+    totalChargeHeader << std::setprecision(12) << "particle_total_charge=" << this->getCharge();
     headers.push_back(totalChargeHeader.str());
 
     const auto centroid = this->get_centroid();
 
     std::ostringstream meanRHeader;
-    meanRHeader << std::setprecision(12)
-                << "particle_mean_r=("
-                << centroid[0] << ","
-                << centroid[1] << ","
-                << centroid[2] << ")";
+    meanRHeader << std::setprecision(12) << "particle_mean_r=(" << centroid[0] << "," << centroid[1]
+                << "," << centroid[2] << ")";
     headers.push_back(meanRHeader.str());
 
     std::ostringstream meanSHeader;
-    meanSHeader << std::setprecision(12)
-                << "particle_mean_s=" << (get_sPos() + centroid[2]);
+    meanSHeader << std::setprecision(12) << "particle_mean_s=" << (get_sPos() + centroid[2]);
     headers.push_back(meanSHeader.str());
 
     const auto& geometryConfig =
-        geometryOverride.has_value()
-            ? geometryOverride
-            : (beamBeamWindowConfig_m.has_value() ? beamBeamWindowConfig_m
-                                                     : beamBeamWindowVisualizationConfig_m);
+            geometryOverride.has_value()
+                    ? geometryOverride
+                    : (beamBeamWindowConfig_m.has_value() ? beamBeamWindowConfig_m
+                                                          : beamBeamWindowVisualizationConfig_m);
 
     if (geometryConfig.has_value()) {
-        const auto& cfg = *geometryConfig;
+        const auto& cfg                    = *geometryConfig;
         const double interactionPointBeamZ = cfg.interactionPointS - get_sPos();
 
         std::ostringstream interactionPointHeader;
-        interactionPointHeader << std::setprecision(12)
-                               << "interaction_point=(" << 0.0 << "," << 0.0 << ","
-                               << interactionPointBeamZ << ")";
+        interactionPointHeader << std::setprecision(12) << "interaction_point=(" << 0.0 << ","
+                               << 0.0 << "," << interactionPointBeamZ << ")";
         headers.push_back(interactionPointHeader.str());
 
         std::ostringstream interactionPointSHeader;
@@ -771,8 +764,7 @@ std::vector<std::string> PartBunch<T, Dim>::buildScalarDumpHeaders(
         headers.push_back(interactionPointBeamZHeader.str());
 
         std::ostringstream elementZRangeHeader;
-        elementZRangeHeader << std::setprecision(12)
-                            << "ip_element_z_range=("
+        elementZRangeHeader << std::setprecision(12) << "ip_element_z_range=("
                             << (cfg.windowBeginS - cfg.interactionPointS + interactionPointBeamZ)
                             << ","
                             << (cfg.windowEndS - cfg.interactionPointS + interactionPointBeamZ)
@@ -780,9 +772,8 @@ std::vector<std::string> PartBunch<T, Dim>::buildScalarDumpHeaders(
         headers.push_back(elementZRangeHeader.str());
 
         std::ostringstream elementSRangeHeader;
-        elementSRangeHeader << std::setprecision(12)
-                            << "ip_element_s_range=(" << cfg.windowBeginS << ","
-                            << cfg.windowEndS << ")";
+        elementSRangeHeader << std::setprecision(12) << "ip_element_s_range=(" << cfg.windowBeginS
+                            << "," << cfg.windowEndS << ")";
         headers.push_back(elementSRangeHeader.str());
     }
 
@@ -798,21 +789,17 @@ void PartBunch<T, Dim>::dumpChargeDensityDebug(const std::string& phaseTag) {
         return;
     }
 
-    getFieldSolver()->dumpScalField(
-        "RHO",
-        "collwin_vis",
-        buildScalarDumpHeaders(phaseTag));
+    getFieldSolver()->dumpScalField("RHO", "collwin_vis", buildScalarDumpHeaders(phaseTag));
     m << level5 << "Wrote unified rho debug dump for phase " << phaseTag << "." << endl;
 }
 
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::scatterMirroredChargeDensity(
-    Field_t<Dim>* rho,
-    double interactionPointLocalZ) {
+        Field_t<Dim>* rho, double interactionPointLocalZ) {
     Inform m("PartBunch::scatterMirroredChargeDensity");
 
-    auto pc = this->getParticleContainer();
-    auto Rview = pc->R.getView();
+    auto pc                = this->getParticleContainer();
+    auto Rview             = pc->R.getView();
     const size_type nLocal = pc->getLocalNum();
     if (nLocal == 0) {
         return;
@@ -821,12 +808,12 @@ void PartBunch<T, Dim>::scatterMirroredChargeDensity(
     Kokkos::View<double*> originalZ("PartBunch::scatterMirroredChargeDensity::originalZ", nLocal);
 
     Kokkos::parallel_for(
-        "PartBunch::mirrorPositionsForScatter",
-        Kokkos::RangePolicy<typename ippl::ParticleAttrib<double>::execution_space>(0, nLocal),
-        KOKKOS_LAMBDA(const size_type i) {
-            originalZ(i) = Rview(i)[2];
-            Rview(i)[2] = 2.0 * interactionPointLocalZ - Rview(i)[2];
-        });
+            "PartBunch::mirrorPositionsForScatter",
+            Kokkos::RangePolicy<typename ippl::ParticleAttrib<double>::execution_space>(0, nLocal),
+            KOKKOS_LAMBDA(const size_type i) {
+                originalZ(i) = Rview(i)[2];
+                Rview(i)[2]  = 2.0 * interactionPointLocalZ - Rview(i)[2];
+            });
     Kokkos::fence();
 
     auto* dt = &pc->dt;
@@ -835,9 +822,9 @@ void PartBunch<T, Dim>::scatterMirroredChargeDensity(
     pc->unscaleDtByCharge();
 
     Kokkos::parallel_for(
-        "PartBunch::restorePositionsAfterMirrorScatter",
-        Kokkos::RangePolicy<typename ippl::ParticleAttrib<double>::execution_space>(0, nLocal),
-        KOKKOS_LAMBDA(const size_type i) { Rview(i)[2] = originalZ(i); });
+            "PartBunch::restorePositionsAfterMirrorScatter",
+            Kokkos::RangePolicy<typename ippl::ParticleAttrib<double>::execution_space>(0, nLocal),
+            KOKKOS_LAMBDA(const size_type i) { Rview(i)[2] = originalZ(i); });
     Kokkos::fence();
 
     m << level4 << "Mirrored charge density scatter done." << endl;
@@ -898,10 +885,11 @@ void PartBunch<T, Dim>::computeSelfFields() {
     typename Base::particle_position_type* R = &this->pcontainer_m->R;
     this->fcontainer_m->getRho()             = 0.0;
     Field_t<Dim>* rho                        = &this->fcontainer_m->getRho();
-    const bool dumpBeamBeamWindowStages =
-        beamBeamWindowConfig_m.has_value() && beamBeamWindowConfig_m->copyModel &&
-        globalTrackStep_m >= 29 && globalTrackStep_m <= 31;
+    const bool dumpBeamBeamWindowStages      = beamBeamWindowConfig_m.has_value()
+                                          && beamBeamWindowConfig_m->copyModel
+                                          && globalTrackStep_m >= 29 && globalTrackStep_m <= 31;
 
+    /*
     if (beamBeamWindowConfig_m.has_value()) {
         const auto centroid = this->get_centroid();
         m << "BeamBeam pre-scatter diagnostics: "
@@ -916,15 +904,13 @@ void PartBunch<T, Dim>::computeSelfFields() {
           << " m, dt=" << getdT()
           << " s" << endl;
     }
+    /*/
 
     auto dumpBeamBeamWindowStage = [&](const std::string& stageName) {
         if (!dumpBeamBeamWindowStages) {
             return;
         }
-        getFieldSolver()->dumpScalField(
-            "RHO",
-            "collwin_stage",
-            buildScalarDumpHeaders(stageName));
+        getFieldSolver()->dumpScalField("RHO", "collwin_stage", buildScalarDumpHeaders(stageName));
     };
 
     /// \todo replace with scatterCIC? --> later with scatterPerBin!
@@ -943,8 +929,7 @@ void PartBunch<T, Dim>::computeSelfFields() {
     dumpBeamBeamWindowStage("after_primary_scatter");
 
     if (beamBeamWindowConfig_m.has_value() && beamBeamWindowConfig_m->copyModel) {
-        const double interactionPointBeamZ =
-            beamBeamWindowConfig_m->interactionPointS - get_sPos();
+        const double interactionPointBeamZ = beamBeamWindowConfig_m->interactionPointS - get_sPos();
         scatterMirroredChargeDensity(rho, interactionPointBeamZ);
         dumpBeamBeamWindowStage("after_mirror_scatter");
     }
@@ -1060,8 +1045,8 @@ template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::dumpBinConfig(bool preMerge) {
     if (!hasBinning() || !dataSink_m) {
         throw OpalException(
-            "PartBunch::dumpBinConfig",
-            "No binning or data sink set, but dumpBinConfig() was called.");
+                "PartBunch::dumpBinConfig",
+                "No binning or data sink set, but dumpBinConfig() was called.");
     }
 
     Inform m("PartBunch::dumpBinConfig");
@@ -1094,8 +1079,8 @@ void PartBunch<T, Dim>::dumpBinConfig(bool preMerge) {
       << binningCmd->getDumpBinsFileName() << "\"." << endl;
 
     dataSink_m->dumpBinConfig(
-        step, getT(), preMerge, counts, widths, static_cast<double>(xMin),
-        binningCmd->getDumpBinsFileName());
+            step, getT(), preMerge, counts, widths, static_cast<double>(xMin),
+            binningCmd->getDumpBinsFileName());
 }
 /**
  * The following functions are not used yet. Will be properly implemented by
@@ -1184,13 +1169,13 @@ void PartBunch<T, Dim>::performBunchSanityChecks() const {
     // Check if bc handler was initialized properly
     if (!this->getBCHandler()) {
         throw OpalException(
-            "PartBunch::performBunchSanityChecks", "BC Handler not initialized properly.");
+                "PartBunch::performBunchSanityChecks", "BC Handler not initialized properly.");
     }
     ms << level4 << "BC Handler initialized properly." << endl;
 
     if (!hasFieldSolver()) {
         throw OpalException(
-            "PartBunch::performBunchSanityChecks", "Field Solver was not initialized.");
+                "PartBunch::performBunchSanityChecks", "Field Solver was not initialized.");
     }
     ms << level4 << "Field Solver object was initialized." << endl;
 
@@ -1201,14 +1186,15 @@ void PartBunch<T, Dim>::performBunchSanityChecks() const {
     const std::shared_ptr<FieldContainer<T, Dim>> fctr = this->fcontainer_m;
     if (!fctr) {
         throw OpalException(
-            "PartBunch::performBunchSanityChecks", "FieldContainer isn't initialized correctly.");
+                "PartBunch::performBunchSanityChecks",
+                "FieldContainer isn't initialized correctly.");
     }
 
     // Check internal field pointers are set
     if (fs->getRho() == nullptr || fs->getE() == nullptr || fs->getPhi() == nullptr) {
         throw OpalException(
-            "PartBunch::performBunchSanityChecks",
-            "FieldSolver internal fields (rho/E/phi) not assigned.");
+                "PartBunch::performBunchSanityChecks",
+                "FieldSolver internal fields (rho/E/phi) not assigned.");
     }
     ms << level4 << "FieldSolver internal field pointers are set." << endl;
 
@@ -1216,8 +1202,8 @@ void PartBunch<T, Dim>::performBunchSanityChecks() const {
     if (fs->getRho() != &fctr->getRho() || fs->getE() != &fctr->getE()
         || fs->getPhi() != &fctr->getPhi()) {
         throw OpalException(
-            "PartBunch::performBunchSanityChecks",
-            "FieldSolver fields do not match FieldContainer.");
+                "PartBunch::performBunchSanityChecks",
+                "FieldSolver fields do not match FieldContainer.");
     }
     ms << level4 << "FieldSolver fields match FieldContainer." << endl;
 
@@ -1239,11 +1225,11 @@ void PartBunch<T, Dim>::performBunchSanityChecks() const {
     const std::string stype = fs->getStype();
     if (stype.empty()) {
         throw OpalException(
-            "PartBunch::performBunchSanityChecks", "FieldSolver type string is empty.");
+                "PartBunch::performBunchSanityChecks", "FieldSolver type string is empty.");
     }
     if (stype != "FFT" && stype != "OPEN" && stype != "CG" && stype != "NONE") {
         throw OpalException(
-            "PartBunch::performBunchSanityChecks", "Unsupported FieldSolver type: " + stype);
+                "PartBunch::performBunchSanityChecks", "Unsupported FieldSolver type: " + stype);
     }
     ms << level4 << "FieldSolver type: " << stype << endl;
 
@@ -1251,8 +1237,8 @@ void PartBunch<T, Dim>::performBunchSanityChecks() const {
     auto Eview = fctr->getE().getView();
     if (Eview.extent(0) == 0 || Eview.extent(1) == 0 || Eview.extent(2) == 0) {
         throw OpalException(
-            "PartBunch::performBunchSanityChecks",
-            "E-field layout not initialized (zero extent). ");
+                "PartBunch::performBunchSanityChecks",
+                "E-field layout not initialized (zero extent). ");
     }
     ms << level4 << "E-field layout initialized." << endl;
 
