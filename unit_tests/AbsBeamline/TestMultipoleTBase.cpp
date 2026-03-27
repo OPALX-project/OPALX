@@ -53,19 +53,6 @@ protected:
     }
 };
 
-#if 0
-TEST_F(MultipoleTBaseTest, FactorialBoundaryCondition) {
-    GTEST_FLAG_SET(death_test_style, "threadsafe");
-    EXPECT_DEATH(MultipoleTBase::factorial(MaxFactorial + 1), "factorial out of bounds");
-}
-
-TEST_F(MultipoleTBaseTest, PowerIntegerBoundaryCondition) {
-    GTEST_FLAG_SET(death_test_style, "threadsafe");
-    EXPECT_DEATH(
-        MultipoleTBase::powerInteger(5, MaxPowerInteger + 1), "integer power out of bounds");
-}
-#endif
-
 TEST_F(MultipoleTBaseTest, TransverseDerivatives) {
     constexpr Kokkos::Array poles = {0.0, 1.0, 2.0, 3.0, 4.0, 5.0};
     Kokkos::Array<double, MaxDerivatives> derivatives{};
