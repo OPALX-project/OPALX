@@ -128,11 +128,11 @@ void H5PartWrapperForPT::readStepHeader(PartBunch_t* bunch) {
 
     Vector_t<double, 3> RefPartR;
     READSTEPATTRIB(Float64, file_m, "RefPartR", (h5_float64_t*)&RefPartR);
-    bunch->RefPartR_m = RefPartR;
+    bunch->setRefPartR(RefPartR);
 
     Vector_t<double, 3> RefPartP;
     READSTEPATTRIB(Float64, file_m, "RefPartP", (h5_float64_t*)&RefPartP);
-    bunch->RefPartP_m = RefPartP;
+    bunch->setRefPartP(RefPartP);
 
     Vector_t<double, 3> TaitBryant;
     READSTEPATTRIB(Float64, file_m, "TaitBryantAngles", (h5_float64_t*)&TaitBryant);
@@ -318,8 +318,8 @@ void H5PartWrapperForPT::writeStepHeader(
     Vector_t<double, 3> psigma     = bunch->get_prms();
     Vector_t<double, 3> vareps     = bunch->get_norm_emit();
     Vector_t<double, 3> geomvareps = bunch->get_emit();
-    Vector_t<double, 3> RefPartR   = bunch->RefPartR_m;
-    Vector_t<double, 3> RefPartP   = bunch->RefPartP_m;
+    Vector_t<double, 3> RefPartR   = bunch->getRefPartR();
+    Vector_t<double, 3> RefPartP   = bunch->getRefPartP();
     Vector_t<double, 3>
         TaitBryant;  // ADA = Util::getTaitBryantAngles(bunch->toLabTrafo_m.getRotation());
     Vector_t<double, 3> pmean = bunch->get_pmean();

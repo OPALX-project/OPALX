@@ -54,9 +54,9 @@ public:
     // Per container values ====================================================
     
     // Reference particle values
-    Vector_t<double, Dim> RefPartR_m; // reference particle position
-    Vector_t<double, Dim> RefPartP_m; // reference particle momentum
-    CoordinateSystemTrafo toLabTrafo_m; // transformation to lab frame
+    std::vector<Vector_t<double, Dim>> RefPartR_m; // reference particle position per container
+    std::vector<Vector_t<double, Dim>> RefPartP_m; // reference particle momentum per container
+    std::vector<CoordinateSystemTrafo> toLabTrafo_m; // transformation to lab frame per container
 
     // Shared values for all containers ========================================
     
@@ -83,6 +83,12 @@ public:
    
 
 private:
+    void checkContainerIndex(size_t containerIndex, const char* where) const {
+        const auto& containers = this->getParticleContainers();
+        if (containerIndex >= containers.size()) {
+            throw OpalException(where, "Container index out of range.");
+        }
+    }
 
     // Per container values ====================================================
 
@@ -368,6 +374,51 @@ public:
 
     double getdE() {
         return this->pcontainer_m->getStdKineticEnergy(); // Unit: MeV
+    }
+
+    const Vector_t<double, Dim>& getRefPartR(size_t containerIndex = 0) const {
+        checkContainerIndex(containerIndex, "PartBunch::getRefPartR");
+        return RefPartR_m[containerIndex];
+    }
+
+    Vector_t<double, Dim>& getRefPartR(size_t containerIndex = 0) {
+        checkContainerIndex(containerIndex, "PartBunch::getRefPartR");
+        return RefPartR_m[containerIndex];
+    }
+
+    void setRefPartR(const Vector_t<double, Dim>& refPartR, size_t containerIndex = 0) {
+        checkContainerIndex(containerIndex, "PartBunch::setRefPartR");
+        RefPartR_m[containerIndex] = refPartR;
+    }
+
+    const Vector_t<double, Dim>& getRefPartP(size_t containerIndex = 0) const {
+        checkContainerIndex(containerIndex, "PartBunch::getRefPartP");
+        return RefPartP_m[containerIndex];
+    }
+
+    Vector_t<double, Dim>& getRefPartP(size_t containerIndex = 0) {
+        checkContainerIndex(containerIndex, "PartBunch::getRefPartP");
+        return RefPartP_m[containerIndex];
+    }
+
+    void setRefPartP(const Vector_t<double, Dim>& refPartP, size_t containerIndex = 0) {
+        checkContainerIndex(containerIndex, "PartBunch::setRefPartP");
+        RefPartP_m[containerIndex] = refPartP;
+    }
+
+    const CoordinateSystemTrafo& getToLabTrafo(size_t containerIndex = 0) const {
+        checkContainerIndex(containerIndex, "PartBunch::getToLabTrafo");
+        return toLabTrafo_m[containerIndex];
+    }
+
+    CoordinateSystemTrafo& getToLabTrafo(size_t containerIndex = 0) {
+        checkContainerIndex(containerIndex, "PartBunch::getToLabTrafo");
+        return toLabTrafo_m[containerIndex];
+    }
+
+    void setToLabTrafo(const CoordinateSystemTrafo& toLabTrafo, size_t containerIndex = 0) {
+        checkContainerIndex(containerIndex, "PartBunch::setToLabTrafo");
+        toLabTrafo_m[containerIndex] = toLabTrafo;
     }
   
     const PartData* getReference() const {
