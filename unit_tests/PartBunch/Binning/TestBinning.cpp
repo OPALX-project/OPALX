@@ -1,13 +1,17 @@
-//
-// Unit tests for the Binning module:
-//   - ParallelReduceTools (ArrayReduction, HostArrayReduction, createReductionObject)
-//   - BinningTools (computeFixSum, determineHistoReductionMode, viewIsSorted, CoordinateSelector)
-//   - BinHisto (Histogram class: construction, init, postSum, mergeBins, iteration policies)
-//   - AdaptBins (full integration: initLimits, assignBins, histogram, sort, adaptive rebinning)
-//
-// A minimal bunch type (TestBunch) is constructed with a mesh and field layout,
-// similar to how it is done for IPPL's GatherScatterTest.
-//
+/**
+ * @file TestBinning.cpp
+ * @brief Unit tests for the particle binning subsystem (tools, histogram, and adaptive binning
+ * workflow).
+ *
+ * Unit tests for the Binning module:
+ *   - ParallelReduceTools (ArrayReduction, HostArrayReduction, createReductionObject)
+ *   - BinningTools (computeFixSum, determineHistoReductionMode, viewIsSorted, CoordinateSelector)
+ *   - BinHisto (Histogram class: construction, init, postSum, mergeBins, iteration policies)
+ *   - AdaptBins (full integration: initLimits, assignBins, histogram, sort, adaptive rebinning)
+ *
+ * A minimal bunch type (TestBunch) is constructed with a mesh and field layout,
+ * similar to how it is done for IPPL's GatherScatterTest.
+ */
 
 #include "Ippl.h"
 #include "gtest/gtest.h"
@@ -45,6 +49,7 @@ using size_type = ippl::detail::size_type;
 #include <numeric>
 #include <algorithm>
 #include <cmath>
+#include <string>
 #include <iostream>
 
 // ============================================================================
@@ -201,9 +206,11 @@ protected:
     void buildAdaptBins(bin_index_type maxBins = 5,
                         value_type alpha = 1.0,
                         value_type beta  = 1.0,
-                        value_type desW  = 0.1) {
+                        value_type desW  = 0.1,
+                        const std::string& binningCmdName = "TEST_BINNING_CMD") {
         Selector_t selector(2);  // bin along axis 2 (z-component of P)
-        adaptBins = std::make_shared<AdaptBins_t>(bunch, selector, maxBins, alpha, beta, desW);
+        adaptBins = std::make_shared<AdaptBins_t>(
+            bunch, selector, maxBins, alpha, beta, desW, binningCmdName);
     }
 };
 

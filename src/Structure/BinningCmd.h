@@ -49,6 +49,7 @@ namespace BINNING {
         PARAMETER,    // Which bunch attribute is used for binning
         DUMPBINSFILE, // File name for dumping bins
         DUMPBINSFREQ, // Frequency of dumping bins to a file (only used if DUMPBINSFILE is set)
+        TABLEPRINTFREQ, // Frequency of printing bin stats table to console (binned mode only)
         SIZE
     };
 }
@@ -79,6 +80,10 @@ public:
 
     /// Get the frequency of dumping bins to a file.
     int getDumpBinsFrequency() const;
+
+    /// Get frequency (in global timesteps) of printing bin stats to console.
+    /// Returns an integer >= 0. If 0, printing is disabled.
+    int getTablePrintFrequency() const;
 
     /// Check if dumping bins to a file is enabled.
     bool dumpBinsToFile() const;
