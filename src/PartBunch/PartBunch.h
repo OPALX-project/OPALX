@@ -51,83 +51,128 @@ public:
     using BCHandler_t          = BCHandler<Dim>;
 
 public:
-    // Per container values ====================================================
+// Per container values ========================================================
     
-    // Reference particle values
-    std::vector<Vector_t<double, Dim>> RefPartR_m; // reference particle position per container
-    std::vector<Vector_t<double, Dim>> RefPartP_m; // reference particle momentum per container
-    std::vector<CoordinateSystemTrafo> toLabTrafo_m; // transformation to lab frame per container
+    // Reference particle position per container
+    std::vector<Vector_t<double, Dim>> RefPartR_m; 
 
-    // Shared values for all containers ========================================
+    // Reference particle momentum per container
+    std::vector<Vector_t<double, Dim>> RefPartP_m; 
+
+    //  Bunch-lab transformation per container
+    std::vector<CoordinateSystemTrafo> toLabTrafo_m; 
+
+// Shared values for all containers ============================================
     
-    double dt_m; // time step
-    int it_m; // iteration count
+    // Time step
+    double dt_m; 
 
-    double lbt_m; // load balancer threshold
-    bool isFirstRepartition_m; // first repartition flag
+    // Iteration count
+    int it_m; 
+
+    // Integration methods : LEAPFROG 
+    std::string integration_method_m; 
+
+    // Field solver type
+    std::string solver_m; 
+
+    // Number of mesh points per dimension
+    Vector_t<int, Dim> nr_m; 
+
+    // Mesh spacial origin
+    Vector_t<double, Dim> origin_m; 
+
+    // Maximum point of the mesh 
+    Vector_t<double, Dim> rmin_m; 
+
+    // Minimum point of the mesh
+    Vector_t<double, Dim> rmax_m; 
+
+    // Mesh spacing [m]
+    Vector_t<double, Dim> hr_m; 
+
+// Load Balancing (To be properly implemented) =================================
+
+    // Load balancing threshold
+    double lbt_m; 
+
+    // Is first repartition flat
+    bool isFirstRepartition_m; 
+
+    // 3-D array for the domain
     ippl::NDIndex<Dim> domain_m;
+
+    // Boolean array 
     std::array<bool, Dim> decomp_m;
 
-    // Solver
-    std::string integration_method_m; // integration method
-    std::string solver_m; // field solver type
+private:
 
-    // Mesh 
-    Vector_t<int, Dim> nr_m; // number of grid points
-    Vector_t<double, Dim> origin_m; // origin of the mesh
-    Vector_t<double, Dim> rmin_m; // minimum extent of the mesh
-    Vector_t<double, Dim> rmax_m; // maximum extent of the mesh
-    Vector_t<double, Dim> hr_m; // mesh size [m]
+// Per container values ========================================================
 
-    // Unused values ===========================================================
-   
+    // Charge per macroparticle [C], per container
+    std::vector<double> qi_m; 
+
+    // Mass per macroparticle [GeV], per container
+    std::vector<double> mi_m; 
+
+    // Global to local quaternion per container
+    std::vector<Quaternion_t> globalToLocalQuaternion_m; 
+    
+    // Reference particle data per container
+    std::vector<const PartData*> reference_m;    
+
+    // S position along design trajectory per container
+    std::vector<double> spos_m; 
+
+
+// Shared values for all containers ============================================
+
+    // Field boundary handler
+    std::shared_ptr<BCHandler_t> bcHandler_m; 
+
+    // Adaptive binning structure
+    std::shared_ptr<AdaptBins_t> bins_m; 
+
+    // Field solver command
+    std::shared_ptr<FieldSolverCmd> OPALFieldSolver_m; 
+
+    // Data sink
+    std::shared_ptr<DataSink> dataSink_m;
+
+    // unit state of PartBunch --> always false after initialization, so use this as standard flag
+    bool isUnitless_m = false; 
+
+    // Time of integration
+    double t_m; 
+
+    /// Temporary E field container used to store temporary E field during binned solver
+    std::shared_ptr<VField_t<T, Dim>> Etmp_m;
+
+    /// Temporary B field container used to store temporary B field during binned solver
+    std::shared_ptr<VField_t<T, Dim>> Btmp_m;
+
+    // Global tracking step 
+    long long globalTrackStep_m;
+    
+// Load Balancing (To be properly implemented) =================================
+
+    // reducer object for load balance statistics
+    std::unique_ptr<size_t[]> globalPartPerNode_m; 
+
+// Unused values ===============================================================
+
+    // Still written to stat file for some reason? 
+    double rmsDensity_m;
 
 private:
+
+    /// @brief Check if the container index is valid.
     void checkContainerIndex(size_t containerIndex, const char* where) const {
         const auto& containers = this->getParticleContainers();
         if (containerIndex >= containers.size()) {
             throw OpalException(where, "Container index out of range.");
         }
     }
-
-    // Per container values ====================================================
-
-    std::vector<double> qi_m; // charge per macroparticle [C], per container
-    std::vector<double> mi_m; // mass per macroparticle [GeV], per container
-
-    std::unique_ptr<size_t[]> globalPartPerNode_m; // reducer object for load balance statistics
-
-    Vector_t<double, Dim> globalMeanR_m; // global mean position
-    Quaternion_t globalToLocalQuaternion_m; // global to local quaternion
-    
-    const PartData* reference_m; // reference particle data
-   
-    double spos_m; // s position along design trajectory
-
-
-    // Shared values for all containers ========================================
-
-    std::shared_ptr<BCHandler_t> bcHandler_m; // field boundary handler
-    std::shared_ptr<AdaptBins_t> bins_m; // adaptive binning structure
-
-    std::shared_ptr<FieldSolverCmd> OPALFieldSolver_m; // field solver command
-    std::shared_ptr<DataSink> dataSink_m; // data sink
-
-    // unit state of PartBunch --> always false after initialization, so use this as standard flag
-    bool isUnitless_m = false; // unitless flag
-
-    double t_m; // time of integration
-
-    /// Temporary E field container used to store temporary E field during binned solver
-    std::shared_ptr<VField_t<T, Dim>> Etmp_m;
-    /// Temporary B field container used to store temporary B field during binned solver
-    std::shared_ptr<VField_t<T, Dim>> Btmp_m;
-
-    long long globalTrackStep_m;
-    // Unused values ===========================================================
-
-    double rmsDensity_m;
-
 
 public:
 
@@ -149,6 +194,7 @@ public:
               std::string integration_method,
               std::shared_ptr<FieldSolverCmd> OPALFieldSolver,
               std::shared_ptr<DataSink> dataSink);
+
     /**
      * @brief 
      * - recomputes mesh spacing i.e. Layout
@@ -173,59 +219,104 @@ public:
         return total;
     }
 
+    /// @brief Set field solver
     void setSolver();
 
+    /// @brief Set bins for binned field solver
     void setBins();
 
+    /// @brief Setup run for the field solver
     void pre_run() override;
 
+    /// @brief Sanity check 
     void performBunchSanityChecks() const;
 
+    // ! NOT TO BE USED: This functionality has moved elsewhere
     void advance() override {
         throw OpalException(
             "PartBunch::advance",
             "Not used: just exists because ippl::PicManager wants it that way.");
     }
+
+    // ! NOT TO BE USED: This functionality has moved elsewhere
     void par2grid() override {
         throw OpalException(
             "PartBunch::par2grid",
             "Not used: just exists because ippl::PicManager wants it that way.");
     }
+
+    // ! NOT TO BE USED: This functionality has moved elsewhere
     void grid2par() override {
         throw OpalException(
             "PartBunch::grid2par",
             "Not used: just exists because ippl::PicManager wants it that way.");
     }
 
-public:
-    std::shared_ptr<VField_t<T, Dim>> getTempEField() { return this->Etmp_m; }
-    void setTempEField(std::shared_ptr<VField_t<T, Dim>> Etmp) { this->Etmp_m = Etmp; }
-    std::shared_ptr<VField_t<T, Dim>> getTempBField() { return this->Btmp_m; }
-    void setTempBField(std::shared_ptr<VField_t<T, Dim>> Btmp) { this->Btmp_m = Btmp; }
+    /// @brief Get the temporary E field
+    std::shared_ptr<VField_t<T, Dim>> getTempEField() { 
+        return this->Etmp_m; 
+    }
 
-    std::shared_ptr<AdaptBins_t> getBins() { return bins_m; }
-    std::shared_ptr<AdaptBins_t> getBins() const { return bins_m; }
+    /// @brief Set the temporary E field
+    void setTempEField(std::shared_ptr<VField_t<T, Dim>> Etmp) { 
+        this->Etmp_m = Etmp; 
+    }
+
+    /// @brief Get temporary B field
+    std::shared_ptr<VField_t<T, Dim>> getTempBField() { 
+        return this->Btmp_m; 
+    }
+
+    /// @brief Set the temporary B field
+    void setTempBField(std::shared_ptr<VField_t<T, Dim>> Btmp) { 
+        this->Btmp_m = Btmp; 
+    }
+
+    /// @brief Get bins
+    std::shared_ptr<AdaptBins_t> getBins() { 
+        return bins_m; 
+    }
+
+    /// @brief Get bins const version
+    std::shared_ptr<AdaptBins_t> getBins() const { 
+        return bins_m; 
+    }
     
-    void setBins(std::shared_ptr<AdaptBins_t> bins) { bins_m = bins; }
-
-    void setBCHandler(std::shared_ptr<BCHandler_t> bcHandler) { bcHandler_m = bcHandler; }
-    std::shared_ptr<BCHandler_t> getBCHandler() const { return bcHandler_m; }
-
-    void updateMoments(){
-        this->pcontainer_m->updateMoments();
+    /// @brief Set bins
+    void setBins(std::shared_ptr<AdaptBins_t> bins) { 
+        bins_m = bins; 
     }
 
-    size_t getTotalNum() const {
-        return this->pcontainer_m->getTotalNum();
+    /// @brief Set BC handler
+    void setBCHandler(std::shared_ptr<BCHandler_t> bcHandler) { 
+        bcHandler_m = bcHandler; 
     }
 
-    size_t getLocalNum() const {
-        return this->pcontainer_m->getLocalNum();
+    /// @brief Get BC handler
+    std::shared_ptr<BCHandler_t> getBCHandler() const { 
+        return bcHandler_m; 
     }
 
+    /// @brief Compute statistics (moments) for the specified container
+    void updateMoments(size_t containerIndex = 0) {
+        checkContainerIndex(containerIndex, "PartBunch::updateMoments");
+        this->getParticleContainer(containerIndex)->updateMoments();
+    }
+
+    /// @brief Get global number of particles for the specified container
+    size_t getTotalNum(size_t containerIndex = 0) const {
+        checkContainerIndex(containerIndex, "PartBunch::getTotalNum");
+        return this->getParticleContainers()[containerIndex]->getTotalNum();
+    }
+
+    /// @brief Get local number of particles for the specified container
+    size_t getLocalNum(size_t containerIndex = 0) const {
+        checkContainerIndex(containerIndex, "PartBunch::getLocalNum");
+        return this->getParticleContainers()[containerIndex]->getLocalNum();
+    }
+
+    /// @brief Update Moments and calculate rmin_m and rmax_m
     void calcBeamParameters();
-
-    void do_binaryRepart();
 
     /**
      * @brief Set the per-particle charge for each particle container.
@@ -372,74 +463,83 @@ public:
         return mass;
     }
 
-    double getdE() {
-        return this->pcontainer_m->getStdKineticEnergy(); // Unit: MeV
+    /// @brief Get standard deviation of energy in the specified container
+    /// @note Unit = MeV
+    double getdE(size_t containerIndex = 0) {
+        return this->getParticleContainers()[containerIndex]->getStdKineticEnergy();
     }
 
+    /// @brief Get the reference particle position for a container (const).
     const Vector_t<double, Dim>& getRefPartR(size_t containerIndex = 0) const {
         checkContainerIndex(containerIndex, "PartBunch::getRefPartR");
         return RefPartR_m[containerIndex];
     }
 
+    /// @brief Get the reference particle position for a container.
     Vector_t<double, Dim>& getRefPartR(size_t containerIndex = 0) {
         checkContainerIndex(containerIndex, "PartBunch::getRefPartR");
         return RefPartR_m[containerIndex];
     }
 
+    /// @brief Set the reference particle position for a container.
     void setRefPartR(const Vector_t<double, Dim>& refPartR, size_t containerIndex = 0) {
         checkContainerIndex(containerIndex, "PartBunch::setRefPartR");
         RefPartR_m[containerIndex] = refPartR;
     }
 
+    /// @brief Get the reference particle momentum for a container (const).
     const Vector_t<double, Dim>& getRefPartP(size_t containerIndex = 0) const {
         checkContainerIndex(containerIndex, "PartBunch::getRefPartP");
         return RefPartP_m[containerIndex];
     }
 
+    /// @brief Get the reference particle momentum for a container.
     Vector_t<double, Dim>& getRefPartP(size_t containerIndex = 0) {
         checkContainerIndex(containerIndex, "PartBunch::getRefPartP");
         return RefPartP_m[containerIndex];
     }
 
+    /// @brief Set the reference particle momentum for a container.
     void setRefPartP(const Vector_t<double, Dim>& refPartP, size_t containerIndex = 0) {
         checkContainerIndex(containerIndex, "PartBunch::setRefPartP");
         RefPartP_m[containerIndex] = refPartP;
     }
 
+    /// @brief Get the local-to-lab coordinate transformation for a container (const).
     const CoordinateSystemTrafo& getToLabTrafo(size_t containerIndex = 0) const {
         checkContainerIndex(containerIndex, "PartBunch::getToLabTrafo");
         return toLabTrafo_m[containerIndex];
     }
 
+    /// @brief Get the local-to-lab coordinate transformation for a container.
     CoordinateSystemTrafo& getToLabTrafo(size_t containerIndex = 0) {
         checkContainerIndex(containerIndex, "PartBunch::getToLabTrafo");
         return toLabTrafo_m[containerIndex];
     }
 
+    /// @brief Set the local-to-lab coordinate transformation for a container.
     void setToLabTrafo(const CoordinateSystemTrafo& toLabTrafo, size_t containerIndex = 0) {
         checkContainerIndex(containerIndex, "PartBunch::setToLabTrafo");
         toLabTrafo_m[containerIndex] = toLabTrafo;
     }
   
-    const PartData* getReference() const {
-        return reference_m;
+    /// @brief Get reference particle data for a container.
+    const PartData* getReference(size_t containerIndex = 0) const {
+        checkContainerIndex(containerIndex, "PartBunch::getReference");
+        return reference_m[containerIndex];
     }
 
-
-    /// Set inside TrackRun::execute
-    void setReference (const PartData* ref) {
-        reference_m = ref;
-        if (reference_m && this->pcontainer_m) {
+    /// @brief Sets reference mass for specified container
+    /// @note Done in `TrackRun::execute()`
+    void setReference(const PartData* ref, size_t containerIndex = 0) {
+        checkContainerIndex(containerIndex, "PartBunch::setReference");
+        reference_m[containerIndex] = ref;
+        auto pc = this->getParticleContainer(containerIndex);
+        if (reference_m[containerIndex] && pc) {
             // Ensure mean/std kinetic energy in DistributionMoments are computed using reference mass.
             // PartData mass is stored in eV; DistributionMoments expects GeV for its energy computation.
-            this->pcontainer_m->setEnergyReferenceMass(reference_m->getM() * Units::eV2GeV, true);
+            pc->setEnergyReferenceMass(reference_m[containerIndex]->getM() * Units::eV2GeV, true);
         }
-    }
-
-    void gatherLoadBalanceStatistics();
-
-    size_t getLoadBalance(int p) {
-        return globalPartPerNode_m[p];
     }
 
     /**
@@ -535,16 +635,19 @@ public:
         *gmsg << level4 << "* Switched to physical positions." << endl;
     }
 
+    // ! NOT IMPLEMENTED
     size_t calcNumPartsOutside(Vector_t<double, Dim> /*x*/) {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
         return 0;
     }
 
+    // ! NOT IMPLEMENTED
     void calcLineDensity(
         unsigned int /*nBins*/, std::vector<double>& /*lineDensity*/, std::pair<double, double>& /*meshInfo*/) {
             *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
     }
 
+    // ! NOT IMPLEMENTED
     Vector_t<double, Dim> getEExtrema() {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
        return Vector_t<double, Dim>(0);
@@ -558,14 +661,19 @@ public:
      * this delegator once per step.
      */
     void computeSelfFields();
+
+    /// @brief Dump binning config
     void dumpBinConfig(bool preMerge);
 
+    /// @brief Print information for each bunch (container)
     Inform& print(Inform& os);
 
+    /// @brief Checks existence of field solver
     bool hasFieldSolver() const {
         return this->fsolver_m != nullptr;
     }
 
+    /// @brief Get field solver
     FieldSolver_t* getFieldSolver() {
         /*
         \todo this needs to change, best would be to use a smart pointer!
@@ -580,14 +688,17 @@ public:
         return static_cast<const FieldSolver_t*>(this->fsolver_m.get());
     }
 
+    /// @brief Get field solver backend type string.
     std::string getFieldSolverType() {
         return this->getFieldSolver()->getStype();
     }
 
+    /// @brief Check whether adaptive binning is enabled.
     bool hasBinning() const {
         return this->bins_m != nullptr;
     }
 
+    /// @brief Get active number of bins (returns 1 when binning is effectively inactive).
     int getCurrentNBins() const {
         if (!hasBinning()) {
             return 1;
@@ -609,16 +720,14 @@ public:
         }
     }
 
+    // ! NOT TO BE USED: COMPATIBILITY STUB
     double calcMeanPhi() {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
         return 0.0;
     }
 
-    void get_bounds(Vector_t<double, Dim>& rmin, Vector_t<double, Dim>& rmax) {
-        rmin = rmin_m;
-        rmax = rmax_m;
-    }
 
+    // ! NOT TO BE USED: COMPATIBILITY STUB
     Vector_t<double, Dim> R(size_t) {
         throw OpalException(
             "PartBunch::R",
@@ -627,6 +736,7 @@ public:
         return Vector_t<double, Dim>(0.0);
     }
 
+    // ! NOT TO BE USED: COMPATIBILITY STUB
     Vector_t<double, Dim> P(size_t) {
         throw OpalException(
             "PartBunch::P",
@@ -635,86 +745,219 @@ public:
         return Vector_t<double, Dim>(0.0);
     }
 
+    /// @brief Get the current local particle-position bounds.
+    void get_bounds(Vector_t<double, Dim>& rmin, Vector_t<double, Dim>& rmax) {
+        rmin = rmin_m;
+        rmax = rmax_m;
+    }
+    
+    /// @brief Set the global time step.
     void setdT(double dt) {
         dt_m = dt;
     }
 
+    /// @brief Get the global time step.
     double getdT() const {
         return dt_m;
     }
 
+    /// @brief Set the current simulation time.
     void setT(double t) {
         t_m = t;
     }
 
+    /// @brief Advance time by one global time step.
     void incrementT() {
         t_m += dt_m;
     }
 
+    /// @brief Get the current simulation time.
     double getT() const {
         return t_m;
     }
 
-    void set_sPos(double s) {
-        spos_m = s;
+    /// @brief Set longitudinal position for a container.
+    void set_sPos(double s, size_t containerIndex = 0) {
+        checkContainerIndex(containerIndex, "PartBunch::set_sPos");
+        spos_m[containerIndex] = s;
     }
 
-    double get_sPos() const {
-        return spos_m;
+    /// @brief Get longitudinal position for a container.
+    double get_sPos(size_t containerIndex = 0) const {
+        checkContainerIndex(containerIndex, "PartBunch::get_sPos");
+        return spos_m[containerIndex];
     }
 
-    double get_gamma() const {
-        return this->pcontainer_m->getMeanGammaZ();
+    /// @brief Get mean relativistic gamma (z) for the specified container.
+    double get_gamma(size_t containerIndex = 0) const {
+        checkContainerIndex(containerIndex, "PartBunch::get_gamma");
+        return this->getParticleContainers()[containerIndex]->getMeanGammaZ();
     }
 
     /// Mean kinetic energy over particles (mean of per-particle kinetic energy), in MeV.
-    double get_meanKineticEnergy();
+    double get_meanKineticEnergy(size_t containerIndex = 0) {
+        checkContainerIndex(containerIndex, "PartBunch::get_meanKineticEnergy");
+        // Single source of truth: computed in DistributionMoments during updateMoments().
+        // Unit: MeV (see DistributionMoments implementation).
+        return this->getParticleContainers()[containerIndex]->getMeanKineticEnergy();
+    }
 
+    /// @brief Get the current lower bound of the bunch extent.
     Vector_t<double, Dim> get_origin() const {
         return rmin_m;
     }
+    /// @brief Get the current upper bound of the bunch extent.
     Vector_t<double, Dim> get_maxExtent() const {
         return rmax_m;
     }
 
     // \todo in opal, MeanPosition is return for get_centroid, which I think is wrong. We already have get_rmean()
-    Vector_t<double, 2*Dim> get_centroid() const {
-        return this->pcontainer_m->getCentroid();
+    /// @brief Get phase-space centroid from the active particle container.
+    Vector_t<double, 2*Dim> get_centroid(size_t containerIndex = 0) const {
+        checkContainerIndex(containerIndex, "PartBunch::get_centroid");
+        return this->getParticleContainers()[containerIndex]->getCentroid();
     }
 
-    Vector_t<double, Dim> get_rrms() const {
-        return this->pcontainer_m->getRmsR();
+    /// @brief Get RMS beam size in position coordinates.
+    Vector_t<double, Dim> get_rrms(size_t containerIndex = 0) const {
+        checkContainerIndex(containerIndex, "PartBunch::get_rrms");
+        return this->getParticleContainers()[containerIndex]->getRmsR();
     }
 
-    Vector_t<double, Dim> get_rprms() const {
-        return this->pcontainer_m->getRmsRP();
+    /// @brief Get RMS of normalized slopes r'.
+    Vector_t<double, Dim> get_rprms(size_t containerIndex = 0) const {
+        checkContainerIndex(containerIndex, "PartBunch::get_rprms");
+        return this->getParticleContainers()[containerIndex]->getRmsRP();
     }
 
-    Vector_t<double, Dim> get_prms() const {
-        return this->pcontainer_m->getRmsP();
+    /// @brief Get RMS momentum spread.
+    Vector_t<double, Dim> get_prms(size_t containerIndex = 0) const {
+        checkContainerIndex(containerIndex, "PartBunch::get_prms");
+        return this->getParticleContainers()[containerIndex]->getRmsP();
     }
 
-    Vector_t<double, Dim> get_rmean() const {
-        return this->pcontainer_m->getMeanR();
+    /// @brief Get mean position.
+    Vector_t<double, Dim> get_rmean(size_t containerIndex = 0) const {
+        checkContainerIndex(containerIndex, "PartBunch::get_rmean");
+        return this->getParticleContainers()[containerIndex]->getMeanR();
     }
 
-    Vector_t<double, Dim> get_pmean() const {
-        return this->pcontainer_m->getMeanP();
+    /// @brief Get mean momentum.
+    Vector_t<double, Dim> get_pmean(size_t containerIndex = 0) const {
+        checkContainerIndex(containerIndex, "PartBunch::get_pmean");
+        return this->getParticleContainers()[containerIndex]->getMeanP();
     }
 
-    Vector_t<double, Dim> get_emit() const {
-        return this->pcontainer_m->getGeometricEmit();
+    /// @brief Get geometric emittance.
+    Vector_t<double, Dim> get_emit(size_t containerIndex = 0) const {
+        checkContainerIndex(containerIndex, "PartBunch::get_emit");
+        return this->getParticleContainers()[containerIndex]->getGeometricEmit();
     }
-    Vector_t<double, Dim> get_norm_emit() const {
-        return this->pcontainer_m->getNormEmit();
+    /// @brief Get normalized emittance.
+    Vector_t<double, Dim> get_norm_emit(size_t containerIndex = 0) const {
+        checkContainerIndex(containerIndex, "PartBunch::get_norm_emit");
+        return this->getParticleContainers()[containerIndex]->getNormEmit();
     }
 
-  
+    // ! NOT IMPLEMENTED
     Vector_t<double, Dim> get_halo() const {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
         return Vector_t<double, Dim>(0.0);
     }
-    // Not used, but might be useful later. Commented out for now.
+
+    /// @brief Get mesh spacing
+    Vector_t<double, Dim> get_hr() const {
+        return hr_m;
+    }
+    /// @brief Get horizontal dispersion for the specified container.
+    double get_Dx(size_t containerIndex = 0) const {
+        checkContainerIndex(containerIndex, "PartBunch::get_Dx");
+        return this->getParticleContainers()[containerIndex]->getDx();
+    }
+    /// @brief Get vertical dispersion for the specified container.
+    double get_Dy(size_t containerIndex = 0) const {
+        checkContainerIndex(containerIndex, "PartBunch::get_Dy");
+        return this->getParticleContainers()[containerIndex]->getDy();
+    }
+    /// @brief Get horizontal dispersion derivative for the specified container.
+    double get_DDx(size_t containerIndex = 0) const {
+        checkContainerIndex(containerIndex, "PartBunch::get_DDx");
+        return this->getParticleContainers()[containerIndex]->getDDx();
+    }
+    /// @brief Get vertical dispersion derivative for the specified container.
+    double get_DDy(size_t containerIndex = 0) const {
+        checkContainerIndex(containerIndex, "PartBunch::get_DDy");
+        return this->getParticleContainers()[containerIndex]->getDDy();
+    }
+
+    /// @brief Get beam temperature for the specified container.
+    double get_temperature(size_t containerIndex = 0) const {
+        checkContainerIndex(containerIndex, "PartBunch::get_temperature");
+        return this->getParticleContainers()[containerIndex]->getTemperature();
+    }
+
+    /// @brief Compute Debye length for the specified container.
+    void calcDebyeLength(size_t containerIndex = 0) {
+        checkContainerIndex(containerIndex, "PartBunch::calcDebyeLength");
+        this->getParticleContainers()[containerIndex]->computeDebyeLength(rmsDensity_m);
+    }
+
+    /// @brief Get Debye length for the specified container.
+    double get_debyeLength(size_t containerIndex = 0) const {
+        checkContainerIndex(containerIndex, "PartBunch::get_debyeLength");
+        return this->getParticleContainers()[containerIndex]->getDebyeLength();
+    }
+
+    /// @brief Get plasma parameter for the specified container.
+    double get_plasmaParameter(size_t containerIndex = 0) const {
+        checkContainerIndex(containerIndex, "PartBunch::get_plasmaParameter");
+        return this->getParticleContainers()[containerIndex]->getPlasmaParameter();
+    }
+
+    /// @brief Set tracking step 
+    void setGlobalTrackStep(long long n) {
+        globalTrackStep_m = n;
+    }
+
+    /// @brief Get tracking step
+    long long getGlobalTrackStep() const {
+        return globalTrackStep_m;
+    }
+
+    /// @brief Increment tracking step
+    void incTrackSteps() {
+        globalTrackStep_m++;
+    }
+
+    /// @brief Set global-to-local rotation quaternion for the specified container.
+    void setGlobalToLocalQuaternion(Quaternion_t globalToLocalQuaternion, size_t containerIndex = 0) {
+        checkContainerIndex(containerIndex, "PartBunch::setGlobalToLocalQuaternion");
+        globalToLocalQuaternion_m[containerIndex] = globalToLocalQuaternion;
+    }
+
+    /// @brief Get global-to-local rotation quaternion for the specified container.
+    Quaternion_t getGlobalToLocalQuaternion(size_t containerIndex = 0) {
+        checkContainerIndex(containerIndex, "PartBunch::getGlobalToLocalQuaternion");
+        return globalToLocalQuaternion_m[containerIndex];
+    }
+
+// Load Balancing (To be properly implemented) =================================
+   
+    /// @brief Load balancing reparitioning
+    void do_binaryRepart();
+
+    void gatherLoadBalanceStatistics();
+
+    size_t getLoadBalance(int p) {
+        return globalPartPerNode_m[p];
+    }
+
+// Unused / Commented out ======================================================
+
+    double get_rmsDensity() const {
+        return rmsDensity_m;
+    }
+
     /*Vector_t<double, Dim> get_68Percentile() const {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
         return Vector_t<double, Dim>(0.0);
@@ -748,71 +991,6 @@ public:
         return Vector_t<double, Dim>(0.0);
     }*/
 
-    Vector_t<double, Dim> get_hr() const {
-        return hr_m;
-    }
-
-    double get_Dx() const {
-        return this->pcontainer_m->getDx();
-    }
-    double get_Dy() const {
-        return this->pcontainer_m->getDy();
-    }
-    double get_DDx() const {
-        return this->pcontainer_m->getDDx();
-    }
-    double get_DDy() const {
-        return this->pcontainer_m->getDDy();
-    }
-
-    double get_temperature() const {
-        return this->pcontainer_m->getTemperature();
-    }
-
-    void calcDebyeLength() {
-         this->pcontainer_m->computeDebyeLength(rmsDensity_m);
-    }
-
-    double get_debyeLength() const {
-        return this->pcontainer_m->getDebyeLength();
-    }
-
-    double get_plasmaParameter() const {
-        return this->pcontainer_m->getPlasmaParameter();
-    }
-
-    double get_rmsDensity() const {
-        return rmsDensity_m;
-    }
-
-    /// step in multiple TRACK commands
-    void setGlobalTrackStep(long long n) {
-        globalTrackStep_m = n;
-    }
-
-    long long getGlobalTrackStep() const {
-        return globalTrackStep_m;
-    }
-
-    void incTrackSteps() {
-        globalTrackStep_m++;
-    }
-
-    void setGlobalMeanR(Vector_t<double, Dim> globalMeanR) {
-        globalMeanR_m = globalMeanR;
-    }
-
-    Vector_t<double, Dim> getGlobalMeanR() {
-        return globalMeanR_m;
-    }
-
-    void setGlobalToLocalQuaternion(Quaternion_t globalToLocalQuaternion) {
-        globalToLocalQuaternion_m = globalToLocalQuaternion;
-    }
-
-    Quaternion_t getGlobalToLocalQuaternion() {
-        return globalToLocalQuaternion_m;
-    }
 };
 
 // Explicit instantiations

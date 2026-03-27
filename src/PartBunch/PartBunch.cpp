@@ -22,13 +22,16 @@ PartBunch<T, Dim>::PartBunch(std::vector<double> qi,
       toLabTrafo_m(num_containers),
       dt_m(0),
       it_m(0),
-      lbt_m(lbt),
-      isFirstRepartition_m(true),
       integration_method_m(integration_method),
       solver_m(""),
-      //nt_m(nt),
+      lbt_m(lbt),
+      isFirstRepartition_m(true),
       qi_m(std::move(qi)),
       mi_m(std::move(mi)),
+      globalToLocalQuaternion_m(num_containers, Quaternion_t()),
+      reference_m(num_containers, nullptr),
+      spos_m(num_containers, 0.0),
+      //nt_m(nt),
       OPALFieldSolver_m(OPALFieldSolver),
       dataSink_m(std::move(dataSink)),
       globalTrackStep_m(0),
@@ -331,13 +334,6 @@ void PartBunch<T, Dim>::pre_run() {
     m << level4 << "Field solver ran during pre_run." << endl;
     this->getFieldSolver()->resetCallCounter();
     m << level4 << "Call counter reset. pre_run done." << endl;
-}
-
-template <typename T, unsigned Dim>
-double PartBunch<T, Dim>::get_meanKineticEnergy() {
-    // Single source of truth: computed in DistributionMoments during updateMoments().
-    // Unit: MeV (see DistributionMoments implementation).
-    return this->pcontainer_m->getMeanKineticEnergy();
 }
 
 template <typename T, unsigned Dim>
