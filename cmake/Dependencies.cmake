@@ -218,7 +218,7 @@ if(OPALX_USE_INSTALLED_H5HUT)
 else()
     message(STATUS "⚙ Building H5Hut from source (FetchContent)")
     set(H5hut_VERSION cmake)
-    set(H5hut_GIT https://github.com/eth-cscs/h5hut.git)
+    set(H5hut_GIT https://github.com/H5hut/H5hut.git)
     set(H5hut_WITH_MPI ON)
     set(fetch_string
       GIT_TAG ${H5hut_VERSION}
