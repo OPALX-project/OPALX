@@ -669,9 +669,6 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
 void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
     IpplTimings::startTimer(fieldEvaluationTimer_m);
     Inform msg("ParallelTracker ", *gmsg);
-
-    // Flag for out-of-bounds particles, locally and globally
-    bool locPartOutOfBounds = false, globPartOutOfBounds = false;
     
     // Bunch bounds
     Vector_t<double, 3> rmin(0.0), rmax(0.0);
@@ -714,26 +711,7 @@ void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
         transformBunch(localToRefCSTrafo);
     }
 
-
     IpplTimings::stopTimer(fieldEvaluationTimer_m);
-
-    ippl::Comm->reduce(locPartOutOfBounds, globPartOutOfBounds, 1, std::logical_or<bool>());
-
-    size_t ne = 0;
-    if (globPartOutOfBounds) {
-        if (itsBunch_m->hasFieldSolver()) {
-            ne = itsBunch_m->boundp_destroyT();
-        }
-
-        deletedParticles_m = true;
-    }
-
-    size_t totalNum = itsBunch_m->getTotalNum();
-
-    if (ne > 0) {
-        msg << level1 << "* Deleted " << ne << " particles, "
-            << "remaining " << totalNum << " particles" << endl;
-    }
 }
 
 void ParallelTracker::emitFromEmissionSources(double t, double dt) {

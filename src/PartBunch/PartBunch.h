@@ -31,11 +31,6 @@ class DataSink;  // forward declaration; full type needed only in .cpp
 
 extern Inform* gmsg;
 
-template <typename T>
-KOKKOS_INLINE_FUNCTION typename T::value_type L2Norm(T& x) {
-    return sqrt(dot(x, x).apply());
-}
-
 using view_type = typename ippl::detail::ViewType<ippl::Vector<double, 3>, 1>::view_type;
 
 template <typename T, unsigned Dim>
@@ -48,11 +43,12 @@ public:
     using LoadBalancer_t      = LoadBalancer<T, Dim>;
     using Base                = ippl::ParticleBase<ippl::ParticleSpatialLayout<T, Dim>>;
 
-    using BinningSelector_t   = typename ParticleBinning::CoordinateSelector<ParticleContainer_t>;
-    using AdaptBins_t         = typename ParticleBinning::AdaptBins<ParticleContainer_t, BinningSelector_t>;
-    using binIndex_t          = typename ParticleContainer_t::bin_index_type;
+    using CoordinateSelector_t = typename ParticleBinning::CoordinateSelector<ParticleContainer_t>;
+    using GammaSelector_t      = typename ParticleBinning::GammaSelector<ParticleContainer_t>;
+    using AdaptBins_t          = typename ParticleBinning::AdaptBinsBase<ParticleContainer_t>;
+    using binIndex_t           = typename ParticleContainer_t::bin_index_type;
 
-    using BCHandler_t         = BCHandler<Dim>;
+    using BCHandler_t          = BCHandler<Dim>;
 
 public:
     // Per container values ====================================================
@@ -118,6 +114,8 @@ private:
 
     /// Temporary E field container used to store temporary E field during binned solver
     std::shared_ptr<VField_t<T, Dim>> Etmp_m;
+    /// Temporary B field container used to store temporary B field during binned solver
+    std::shared_ptr<VField_t<T, Dim>> Btmp_m;
 
     long long globalTrackStep_m;
     // Unused values ===========================================================
@@ -143,7 +141,7 @@ public:
               size_t num_containers,
               double lbt,
               std::string integration_method,
-              std::shared_ptr<FieldSolverCmd>& OPALFieldSolver,
+              std::shared_ptr<FieldSolverCmd> OPALFieldSolver,
               std::shared_ptr<DataSink> dataSink);
     /**
      * @brief 
@@ -159,10 +157,6 @@ public:
      
      */
     void bunchUpdate();
-  
-    ~PartBunch() {
-        *gmsg << level2 << "* PartBunch Destructor: Finished time step: " << this->it_m << endl;
-    }
     size_t getTotalNumAllContainers() const {
         size_t total = 0;
         for (const auto& pc : this->getParticleContainers()) {
@@ -177,13 +171,31 @@ public:
 
     void setBins();
 
-    void pre_run() override ;
+    void pre_run() override;
 
     void performBunchSanityChecks() const;
+
+    void advance() override {
+        throw OpalException(
+            "PartBunch::advance",
+            "Not used: just exists because ippl::PicManager wants it that way.");
+    }
+    void par2grid() override {
+        throw OpalException(
+            "PartBunch::par2grid",
+            "Not used: just exists because ippl::PicManager wants it that way.");
+    }
+    void grid2par() override {
+        throw OpalException(
+            "PartBunch::grid2par",
+            "Not used: just exists because ippl::PicManager wants it that way.");
+    }
 
 public:
     std::shared_ptr<VField_t<T, Dim>> getTempEField() { return this->Etmp_m; }
     void setTempEField(std::shared_ptr<VField_t<T, Dim>> Etmp) { this->Etmp_m = Etmp; }
+    std::shared_ptr<VField_t<T, Dim>> getTempBField() { return this->Btmp_m; }
+    void setTempBField(std::shared_ptr<VField_t<T, Dim>> Btmp) { this->Btmp_m = Btmp; }
 
     std::shared_ptr<AdaptBins_t> getBins() { return bins_m; }
     std::shared_ptr<AdaptBins_t> getBins() const { return bins_m; }
@@ -204,65 +216,6 @@ public:
     size_t getLocalNum() const {
         return this->pcontainer_m->getLocalNum();
     }
-
-    Vector_t<double, Dim> R(size_t /*i*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return Vector_t<double, Dim>(0.0);
-    }
-
-    Vector_t<double, Dim> P(size_t /*i*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return Vector_t<double, Dim>(0.0);
-    }
-
-    Vector_t<double, Dim> Ef(size_t /*i*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return Vector_t<double, Dim>(0.0);
-    }
-
-    Vector_t<double, Dim> Bf(size_t /*i*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return Vector_t<double, Dim>(0.0);
-    }
-
-    Vector_t<double, Dim> dt(size_t /*i*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return Vector_t<double, Dim>(0.0);
-    }
-
-    void advance() override {
-        // \todo needs to go
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-    }
-
-    /**
-     * The following functions are not used yet. Will be properly implemented by
-     * Aliemen as part of the binned solver work.
-     */
-    
-    void par2grid() override {
-        //scatterCIC();
-        return;
-    }
-    void scatterCIC() {
-        //scatterCICPerBin(-1);
-        return;
-    } 
-    //void scatterCICPerBin(binIndex_t binIndex);
-    // unit here
-    
-    void grid2par() override {
-        gatherCIC();
-    }
-
-    void gatherCIC();
-
-
-    /*
-      Up to here it is like the opaltest
-    */
-
-    T getCouplingConstant() const;
 
     void calcBeamParameters();
 
@@ -413,19 +366,8 @@ public:
         return mass;
     }
 
-    double getdE() const;
-
-    double getGamma(int /*i*/) const {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return 0.0;
-    }
-    double getBeta(int /*i*/) const {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return 0.0;
-    }
-
-    void actT() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+    double getdE() {
+        return this->pcontainer_m->getStdKineticEnergy(); // Unit: MeV
     }
   
     const PartData* getReference() const {
@@ -443,61 +385,12 @@ public:
         }
     }
 
-    double getEmissionDeltaT() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return 1.0;
-    }
-
     void gatherLoadBalanceStatistics();
 
     size_t getLoadBalance(int p) {
         return globalPartPerNode_m[p];
     }
 
-    void resizeMesh() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-    }
-
-    bool isGridFixed() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return false;
-    }
-
-    void boundp() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-    }
-
-    size_t boundp_destroyT() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return 1;
-    }
-
-    void setBCAllOpen() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-    }
-    void setBCForDCBeam() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-    }
-    void setupBCs() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-    }
-    void setBCAllPeriodic() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-    }
-
-    void resetInterpolationCache(bool /*clearCache = false*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-    }
-    void swap(unsigned int /*i*/, unsigned int /*j*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-    }
-    double getRho(int /*x*/, int /*y*/, int /*z*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return 0.0;
-    }
-    void gatherStatistics(unsigned int /*totalP*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-    }
     /**
      * @brief Transform particle positions to a unitless coordinate system.
      *
@@ -606,6 +499,13 @@ public:
        return Vector_t<double, Dim>(0);
     }
 
+    /**
+     * @brief Compute the bunch self-fields (binned when available).
+     *
+     * The actual implementation lives in the solver object (see `BinnedFieldSolver`).
+     * `ParallelTracker` only orchestrates reference/beam-frame transforms and calls
+     * this delegator once per step.
+     */
     void computeSelfFields();
     void dumpBinConfig(bool preMerge);
 
@@ -629,9 +529,8 @@ public:
         return static_cast<const FieldSolver_t*>(this->fsolver_m.get());
     }
 
-    bool getFieldSolverType() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return false;
+    std::string getFieldSolverType() {
+        return this->getFieldSolver()->getStype();
     }
 
     bool hasBinning() const {
@@ -663,72 +562,26 @@ public:
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
         return 0.0;
     }
-    
-    double getPx(int /*i*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return 0.0;
-    }
-    
-    double getPy(int /*i*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return 0.0;
-    }
-    
-    double getPz(int /*i*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return 0.0;
-    }
-    
-    double getPx0(int /*i*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return 0.0;
-    }
-    
-    double getPy0(int /*i*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return 0.0;
-    }
-
-    double getX(int /*i*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return 0.0;
-    }
-    
-    double getY(int /*i*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return 0.0;
-    }
-    
-    double getZ(int /*i*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return 0.0;
-    }
-    
-    double getX0(int /*i*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return 0.0;
-    }
-    
-    double getY0(int /*i*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return 0.0;
-    }
-
-    void setZ(int /*i*/, double /*zcoo*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-    }
 
     void get_bounds(Vector_t<double, Dim>& rmin, Vector_t<double, Dim>& rmax) {
         rmin = rmin_m;
         rmax = rmax_m;
     }
 
-    void getLocalBounds(Vector_t<double, Dim>& /*rmin*/, Vector_t<double, Dim>& /*rmax*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+    Vector_t<double, Dim> R(size_t) {
+        throw OpalException(
+            "PartBunch::R",
+            "Not implemented: shouldn't be called, since this is not the correct way to access "
+            "particle positions.");
+        return Vector_t<double, Dim>(0.0);
     }
 
-    void get_PBounds(Vector_t<double, Dim>& /*min*/, Vector_t<double, Dim>& /*max*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+    Vector_t<double, Dim> P(size_t) {
+        throw OpalException(
+            "PartBunch::P",
+            "Not implemented: shouldn't be called, since this is not the correct way to access "
+            "particle momenta.");
+        return Vector_t<double, Dim>(0.0);
     }
 
     void setdT(double dt) {
@@ -810,7 +663,8 @@ public:
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
         return Vector_t<double, Dim>(0.0);
     }
-    Vector_t<double, Dim> get_68Percentile() const {
+    // Not used, but might be useful later. Commented out for now.
+    /*Vector_t<double, Dim> get_68Percentile() const {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
         return Vector_t<double, Dim>(0.0);
     }
@@ -841,7 +695,8 @@ public:
     Vector_t<double, Dim> get_normalizedEps_99_99Percentile() const {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
         return Vector_t<double, Dim>(0.0);
-    }
+    }*/
+
     Vector_t<double, Dim> get_hr() const {
         return hr_m;
     }
@@ -907,16 +762,6 @@ public:
     Quaternion_t getGlobalToLocalQuaternion() {
         return globalToLocalQuaternion_m;
     }
-
-
-    double calculateAngle(double /*x*/, double /*y*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return 0.0;
-    }
-
-    // Sanity check functions
-    void spaceChargeEFieldCheck(Vector_t<double, 3> efScale);
-
 };
 
 // Explicit instantiations
