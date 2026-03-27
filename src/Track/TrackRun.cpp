@@ -293,8 +293,10 @@ void TrackRun::execute() {
         macromasses,
         beams.size(),
         1.0, "LF2", fs_m, ds_m);
-    bunch_m->setT(0.0); 
-    bunch_m->setReference(&beam->getReference()); // TODO: do for each container
+    bunch_m->setT(0.0);
+    for (size_t i = 0; i < beams.size(); ++i) {
+        bunch_m->setReference(&beams[i]->getReference(), i);
+    }
 
     std::vector<size_t> totalParticlesPerBeam(beams.size());
     for (size_t i = 0; i < beams.size(); ++i) {
