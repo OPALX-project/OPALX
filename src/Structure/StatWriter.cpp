@@ -240,13 +240,13 @@ void StatWriter::write(
     columns_m.addColumnValue("mean_y", pc->getMeanR()(1));  // 16
     columns_m.addColumnValue("mean_s", pc->getMeanR()(2));  // 17
 
-    columns_m.addColumnValue("ref_x", beam->RefPartR_m(0));  // 18
-    columns_m.addColumnValue("ref_y", beam->RefPartR_m(1));  // 19
-    columns_m.addColumnValue("ref_z", beam->RefPartR_m(2));  // 20
+    columns_m.addColumnValue("ref_x", beam->getRefPartR()(0));  // 18
+    columns_m.addColumnValue("ref_y", beam->getRefPartR()(1));  // 19
+    columns_m.addColumnValue("ref_z", beam->getRefPartR()(2));  // 20
 
-    columns_m.addColumnValue("ref_px", beam->RefPartP_m(0));  // 21
-    columns_m.addColumnValue("ref_py", beam->RefPartP_m(1));  // 22
-    columns_m.addColumnValue("ref_pz", beam->RefPartP_m(2));  // 23
+    columns_m.addColumnValue("ref_px", beam->getRefPartP()(0));  // 21
+    columns_m.addColumnValue("ref_py", beam->getRefPartP()(1));  // 22
+    columns_m.addColumnValue("ref_pz", beam->getRefPartP()(2));  // 23
 
     columns_m.addColumnValue("max_x", pc->getMaxR()(0));  // 24
     columns_m.addColumnValue("max_y", pc->getMaxR()(1));  // 25
