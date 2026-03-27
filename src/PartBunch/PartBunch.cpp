@@ -1,41 +1,52 @@
 #include "PartBunch/PartBunch.h"
 #include "Algorithms/Matrix.h"
+#include "Particle/ParticleAttrib.h"
 #include "Utilities/Util.h"
 #include "Structure/DataSink.h"
 
 #undef doDEBUG
 
 template <typename T, unsigned Dim>
-PartBunch<T, Dim>::PartBunch(double qi,
-                             double mi,
-                             size_t totalP,
+PartBunch<T, Dim>::PartBunch(std::vector<double> qi,
+                             std::vector<double> mi,
+                             size_t num_containers,
                              /*int nt,*/
                              double lbt,
                              std::string integration_method,
                              std::shared_ptr<FieldSolverCmd>& OPALFieldSolver,
                              std::shared_ptr<DataSink> dataSink)
     : ippl::PicManager<T, Dim, ParticleContainer<T, Dim>, FieldContainer<T, Dim>, LoadBalancer<T, Dim>>(),
-      time_m(0.0),
-      totalP_m(totalP),
-      //nt_m(nt),
-      lbt_m(lbt),
-      dt_m(0),
-      it_m(0),
-      integration_method_m(integration_method),
-      solver_m(""),
-      isFirstRepartition_m(true),
-      qi_m(qi),
-      mi_m(mi),
-      rmsDensity_m(0.0),
       RefPartR_m(0.0),
       RefPartP_m(0.0),
-      localTrackStep_m(0),
-      globalTrackStep_m(0),
+      dt_m(0),
+      it_m(0),
+      lbt_m(lbt),
+      isFirstRepartition_m(true),
+      integration_method_m(integration_method),
+      solver_m(""),
+      //nt_m(nt),
+      qi_m(std::move(qi)),
+      mi_m(std::move(mi)),
       OPALFieldSolver_m(OPALFieldSolver),
-      dataSink_m(std::move(dataSink)) {
+      dataSink_m(std::move(dataSink)),
+      globalTrackStep_m(0),
+      rmsDensity_m(0.0) {
 
     Inform m("PartBunch::PartBunch");
     m << level4 << "PartBunch Constructor" << endl;
+
+    if (num_containers == 0) {
+        throw OpalException("PartBunch::PartBunch",
+                            "num_containers must be > 0.");
+    }
+    if (qi_m.size() != num_containers) {
+        throw OpalException("PartBunch::PartBunch",
+                            "qi size must match num_containers.");
+    }
+    if (mi_m.size() != num_containers) {
+        throw OpalException("PartBunch::PartBunch",
+                            "mi size must match num_containers.");
+    }
 
     //  get the needed information from OPAL FieldSolver command
 
@@ -77,8 +88,11 @@ PartBunch<T, Dim>::PartBunch(double qi,
     ));
 
     this->setParticleContainer(std::make_shared<ParticleContainer_t>(
-        this->fcontainer_m->getMesh(), this->fcontainer_m->getFL()
-    ));
+        this->fcontainer_m->getMesh(), this->fcontainer_m->getFL()));
+    for (size_t i = 1; i < num_containers; ++i) {
+        this->addParticleContainer(std::make_shared<ParticleContainer_t>(
+            this->fcontainer_m->getMesh(), this->fcontainer_m->getFL()));
+    }
 
     this->setTempEField(std::make_shared<VField_t<T, Dim>>(
         this->fcontainer_m->getE()
@@ -314,9 +328,9 @@ void PartBunch<T, Dim>::calcBeamParameters() {
     MomentsMat moment(MomentsVec(0.0));
 
     for (unsigned i = 0; i < 2 * Dim; ++i) {
-        Kokkos::parallel_reduce(
-            "calc moments of particle distr.", ippl::getRangePolicy(Rview),
-            KOKKOS_LAMBDA(const int k, double& cent, double& mom0, double& mom1, 
+        const size_t nLocal = this->getLocalNum();
+        Kokkos::parallel_reduce("calc moments of particle distr.", nLocal,
+            KOKKOS_LAMBDA(const size_t k, double& cent, double& mom0, double& mom1, 
                           double& mom2, double& mom3, double& mom4, 
                           double& mom5) {
                 double part[2 * Dim];
@@ -420,41 +434,60 @@ Inform& PartBunch<T, Dim>::print(Inform& os) {
     // if (this->getLocalNum() != 0) {  // to suppress Nans
     Inform::FmtFlags_t ff = os.flags();
 
-    const double ek  = this->get_meanKineticEnergy();
-    const double dek = this->getdE();
-    
-    os << level1 << std::scientific << "\n"
-       << "* ************** B U N C H "
-        "********************************************************* \n"
-       << "* PARTICLES       = " << this->getTotalNum() << "\n"
-       << "* CHARGE          = " << this->qi_m*this->getTotalNum() << " (Cb) \n"
-       << "* <EKIN>          = " << Util::getEnergyString(ek) << "\n"
-       << "* <dEKIN>         = " << Util::getEnergyString(dek) << "\n"
-       << "* INTEGRATOR      = " << integration_method_m << "\n"
-       << "* MIN R (origin)  = " << Util::getLengthString( this->pcontainer_m->getMinR(), 5) << "\n"
-       << "* MAX R (max ext) = " << Util::getLengthString( this->pcontainer_m->getMaxR(), 5) << "\n"
-       << "* RMS R           = " << Util::getLengthString( this->pcontainer_m->getRmsR(), 5) << "\n"
-       << "* RMS P           = " << this->pcontainer_m->getRmsP() << " [beta gamma]\n"
-       << "* Mean R          = " << this->pcontainer_m->getMeanR() << " [m]\n"
-       << "* Mean P          = " << this->pcontainer_m->getMeanP() << " [beta gamma]\n"
-       << "* MESH SPACING    = " << Util::getLengthString( this->fcontainer_m->getMesh().getMeshSpacing(), 5) << "\n"
-       << "* COMPDOM INCR    = " << this->OPALFieldSolver_m->getBoxIncr() << " (%) \n"
-       << "* FIELD LAYOUT    = " << this->fcontainer_m->getFL() << "\n"
-       << "* Centroid : \n* ";
-    for (unsigned int i=0; i<2*Dim; i++) {
-        os << level1 << this->pcontainer_m->getCentroid()[i] << " ";
-    }
-    os << level1 << endl << "* Cov Matrix : \n* ";
-    for (unsigned int i=0; i<2*Dim; i++) {
-        for (unsigned int j=0; j<2*Dim; j++) {
-            os << level1 << this->pcontainer_m->getCovMatrix()(i,j) << " ";
+    const auto& containers = this->getParticleContainers();
+    for (size_t ci = 0; ci < containers.size(); ++ci) {
+        const auto& pc = containers[ci];
+        if (!pc) {
+            os << level1 << "Skipping null particle container: " << ci << endl;
+            continue;
         }
-        os << level1 << "\n* ";
+
+        const double ek  = pc->getMeanKineticEnergy();
+        const double dek = pc->getStdKineticEnergy();
+
+        // ParticleContainer tracks charge/mass storage mode for QM attributes.
+        std::string qmStorageModeStr = "SINGLE";
+        const auto qmMode             = pc->getQMStorageMode();
+        if (qmMode == ParticleContainer_t::QMStorageMode::Attributes) {
+            qmStorageModeStr = "ATTRIBUTES";
+        }
+
+        os << level1 << std::scientific << "\n"
+           << "* ************** B U N C H "
+            "********************************************************* \n"
+           << "* CONTAINER       = " << ci << "\n"
+           << "* PARTICLES       = " << pc->getTotalNum() << "\n"
+           << "* CHARGE          = " << this->getCharge(ci) << " (Cb) \n"
+           << "* QM STORAGE MODE = " << qmStorageModeStr << "\n"
+           << "* <EKIN>          = " << Util::getEnergyString(ek) << "\n"
+           << "* <dEKIN>         = " << Util::getEnergyString(dek) << "\n"
+           << "* INTEGRATOR      = " << integration_method_m << "\n"
+           << "* MIN R (origin)  = " << Util::getLengthString(pc->getMinR(), 5) << "\n"
+           << "* MAX R (max ext) = " << Util::getLengthString(pc->getMaxR(), 5) << "\n"
+           << "* RMS R           = " << Util::getLengthString(pc->getRmsR(), 5) << "\n"
+           << "* RMS P           = " << pc->getRmsP() << " [beta gamma]\n"
+           << "* Mean R          = " << pc->getMeanR() << " [m]\n"
+           << "* Mean P          = " << pc->getMeanP() << " [beta gamma]\n"
+           << "* MESH SPACING    = " << Util::getLengthString(this->fcontainer_m->getMesh().getMeshSpacing(), 5) << "\n"
+           << "* COMPDOM INCR    = " << this->OPALFieldSolver_m->getBoxIncr() << " (%) \n"
+           << "* FIELD LAYOUT    = " << this->fcontainer_m->getFL() << "\n"
+           << "* Centroid : \n* ";
+        for (unsigned int i = 0; i < 2 * Dim; i++) {
+            os << level1 << pc->getCentroid()[i] << " ";
+        }
+        os << level1 << endl << "* Cov Matrix : \n* ";
+        for (unsigned int i = 0; i < 2 * Dim; i++) {
+            for (unsigned int j = 0; j < 2 * Dim; j++) {
+                os << level1 << pc->getCovMatrix()(i, j) << " ";
+            }
+            os << level1 << "\n* ";
+        }
+        os << level1 << "* "
+           "********************************************************************************"
+           "** \n"
+           << endl;
     }
-    os << level1 << "* "
-        "********************************************************************************"
-        "** \n"
-       << endl;
+
     os.flags(ff);
     return os;
 }
@@ -580,17 +613,23 @@ void PartBunch<T, Dim>::computeSelfFields() {
 
     /// \todo Add binned field solver here (needs iteration over bins, scatterPerBin calls and Etmp build up)! See https://gitlab.psi.ch/OPAL/opal-x/src/-/blame/binnedFieldSolver/src/PartBunch/PartBunch.cpp?ref_type=heads#L376
 
-    ippl::ParticleAttrib<T>* Q               = &this->pcontainer_m->Q;
-    typename Base::particle_position_type* R = &this->pcontainer_m->R;
-
-    this->fcontainer_m->getRho()             = 0.0;
-    Field_t<Dim>* rho                        = &this->fcontainer_m->getRho();
+    ippl::ParticleAttrib<T>* dt                 = &this->pcontainer_m->dt;
+    typename Base::particle_position_type* R    = &this->pcontainer_m->R;
+    this->fcontainer_m->getRho()                = 0.0;
+    Field_t<Dim>* rho                           = &this->fcontainer_m->getRho();
 
     /// \todo replace with scatterCIC? --> later with scatterPerBin!
     // Charge "unit" here is "charge per macroparticle" [C]!
-    *Q = (*Q) * this->pcontainer_m->dt; // Scale by time step
-    scatter(*Q, *rho, *R); 
-    *Q = (*Q) / this->pcontainer_m->dt; // Rescale back to charge per macroparticle
+
+    /**
+     * @note Here we scatter the charge scaled by the timestep dt onto the grid. 
+     * Since the charge Q is handled specially (see ParticleContainer.hpp description)
+     * we instead scale and scatter the dt. This is a pure "hack" which leaves
+     * the physics unchanged.
+    */
+    this->pcontainer_m->scaleDtByCharge();
+    scatter(*dt, *rho, *R);
+    this->pcontainer_m->unscaleDtByCharge();
     m << level4 << "Scatter done." << endl;
 
     /*
@@ -601,24 +640,6 @@ void PartBunch<T, Dim>::computeSelfFields() {
     */
     (*rho) = (*rho) / getdT(); 
     m << level4 << "Rho scale by dt done." << endl;
-
-#ifdef doDEBUG
-    const double qtot                        = this->qi_m * this->getTotalNum();
-    size_type TotalParticles                 = 0;
-    size_type localParticles                 = this->pcontainer_m->getLocalNum();
-   
-    double relError                          = std::fabs((qtot - (*rho).sum()) / qtot);
-    
-    ippl::Comm->reduce(localParticles, TotalParticles, 1, std::plus<size_type>());
-    
-    if ((ippl::Comm->rank() == 0) && (relError > 1.0E-13)) {
-            Inform m2("PartBunch::computeSelfFields2", INFORM_ALL_NODES);
-            m2 << "Time step: " << it_m
-               << " total particles in the sim. " << totalP_m 
-               << " missing : " << totalP_m-TotalParticles 
-               << " rel. error in charge conservation: " << relError << endl;
-    }
-#endif
 
     // At this point, the units of rho need to be corrected: rho = rho / cellVolume
     if (this->fsolver_m->getStype() != "FEM" && this->fsolver_m->getStype() != "FEM_PRECON") {
@@ -631,7 +652,7 @@ void PartBunch<T, Dim>::computeSelfFields() {
 
     // Alpine uses net 0 charge density for periodic BCs, so we need to subtract background charge here (?TODO: check)
     // Note: otherwise solvers like the CG solver will "explode" and give unnormalized potentials?
-    double totalQ = getCharge();
+    double totalQ = getTotalCharge();
     if (this->fsolver_m->getStype() != "OPEN") {
         double size = 1;
         for (size_t d = 0; d < 3; d++) {
@@ -731,12 +752,13 @@ void PartBunch<T, Dim>::dumpBinConfig(bool preMerge) {
         static_cast<double>(xMin),
         binningCmd->getDumpBinsFileName());
 }
-
+/**
+ * The following functions are not used yet. Will be properly implemented by
+ * Aliemen as part of the binned solver work.
+ */
+/*
 template <typename T, unsigned Dim>
 void PartBunch<T,Dim>::scatterCICPerBin(PartBunch<T,Dim>::binIndex_t binIndex) {
-    /**
-     * Scatters only particles in bin binIndex. Scatters all particles if binIndex=-1
-     */
 
     throw OpalException("PartBunch::scatterCICPerBin", 
         "This function is not implemented yet! Please use scatterCIC for now.");
@@ -757,11 +779,11 @@ void PartBunch<T,Dim>::scatterCICPerBin(PartBunch<T,Dim>::binIndex_t binIndex) {
 
     if (binIndex == -1) {
         // Use original scatterCIC logic for all particles
-        Q = this->qi_m * this->getTotalNum();
+        Q = this->getChargePerParticle() * this->getTotalNum();
         scatter(*q, *rho, *R);
     } else {
         // Use per-bin scattering logic
-        Q = this->qi_m * this->bins_m->getNPartInBin(binIndex, true);
+        Q = this->getChargePerParticle() * this->bins_m->getNPartInBin(binIndex, true);
         scatter(*q, *rho, *R, this->bins_m->getBinIterationPolicy(binIndex), this->bins_m->getHashArray());
     }
 
@@ -803,6 +825,7 @@ void PartBunch<T,Dim>::scatterCICPerBin(PartBunch<T,Dim>::binIndex_t binIndex) {
         *rho = *rho - (Q / size);
     }
 }
+ */
 
 template <typename T, unsigned Dim>
 void PartBunch<T,Dim>::performBunchSanityChecks() const {
