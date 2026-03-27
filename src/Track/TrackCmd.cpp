@@ -233,7 +233,8 @@ void TrackCmd::execute() {
 
     Track::block = new Track(
         theLineToTrack, beam->getReference(), dt, maxsteps, stepsperturn, zstart, zstop,
-        timeintegrator, t0, dtScInit, deltaTau, emissionSourcesList);
+        timeintegrator, t0, dtScInit, deltaTau, emissionSourcesList,
+        {Attributes::getString(itsAttr[BEAM])});
 
     Track::block->truncOrder = (int)Attributes::getReal(itsAttr[MAP_ORDER]);
 

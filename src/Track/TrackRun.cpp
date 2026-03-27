@@ -162,6 +162,22 @@ TrackRun* TrackRun::clone(const std::string& name) {
 }
 
 void TrackRun::execute() {
+    const auto resolveBeamName = [&]() -> std::string {
+        if (itsAttr[TRACKRUN::BEAM]) {
+            const std::string runBeam = Attributes::getString(itsAttr[TRACKRUN::BEAM]);
+            if (!runBeam.empty()) {
+                return runBeam;
+            }
+        }
+
+        if (Track::block != nullptr && !Track::block->beamNames_m.empty() &&
+            !Track::block->beamNames_m.front().empty()) {
+            return Track::block->beamNames_m.front();
+        }
+
+        return "";
+    };
+
    
     const int currentVersion = ((buildinfo::version_major * 100) + buildinfo::version_minor) * 100;
 
@@ -208,8 +224,12 @@ void TrackRun::execute() {
     if (!itsAttr[TRACKRUN::FIELDSOLVER]) {
         throw OpalException("TrackRun::execute", "\"FIELDSOLVER\" must be set in \"RUN\" command.");
     }
-    if (!itsAttr[TRACKRUN::BEAM]) {
-        throw OpalException("TrackRun::execute", "\"BEAM\" must be set in \"RUN\" command.");
+
+    const std::string beamName = resolveBeamName();
+    if (beamName.empty()) {
+        throw OpalException(
+            "TrackRun::execute",
+            "No beam specified: set TRACK::BEAM or RUN::BEAM.");
     }
 
     OpalData::getInstance()->setInOPALTMode();
@@ -225,13 +245,6 @@ void TrackRun::execute() {
      */
 
     // Get emission sources from TRACK SOURCES= (EMISSIONSOURCELIST).
-    const std::vector<EmissionSource*> emptyEmissionSourcesList;
-    const auto& emissionSourcesList =
-        Track::block->emissionSources != nullptr
-            ? Track::block->emissionSources->fetchSources()
-            : emptyEmissionSourcesList;
-    *gmsg << "* Number of emission sources  " << emissionSourcesList.size() << endl;
-
     fs_m = std::shared_ptr<FieldSolverCmd>(FieldSolverCmd::find(Attributes::getString(itsAttr[TRACKRUN::FIELDSOLVER])));
     *gmsg << level1 << *fs_m << endl;
 
@@ -239,8 +252,19 @@ void TrackRun::execute() {
         *gmsg << level1 << *fs_m->getBinningCmd() << endl;
     }
 
-    Beam* beam = Beam::find(Attributes::getString(itsAttr[TRACKRUN::BEAM]));
+    Beam* beam = Beam::find(beamName);
     *gmsg << level1 << *beam << endl;
+
+    std::vector<EmissionSource*> emissionSourcesList;
+    if (Track::block->emissionSources != nullptr) {
+        const auto& trackSources = Track::block->emissionSources->fetchSources();
+        emissionSourcesList.assign(trackSources.begin(), trackSources.end());
+    } else {
+        EmissionSourceList* emissionSources = EmissionSourceList::find(beam->getEmissionSourceListName());
+        const auto& beamSources = emissionSources->fetchSources();
+        emissionSourcesList.assign(beamSources.begin(), beamSources.end());
+    }
+    *gmsg << "* Number of emission sources  " << emissionSourcesList.size() << endl;
 
     macrocharge_m = beam->getChargePerParticle(); // Returns macro charge in [C]
     macromass_m   = beam->getMassPerParticle(); // returns MACRO mass in GeV (mass per simulation particle)
@@ -591,6 +615,14 @@ void TrackRun::setupDistributionsAndSamplers(const std::vector<EmissionSource*>&
 }
 
 Inform& TrackRun::print(Inform& os) const {
+    std::string beamName;
+    if (itsAttr[TRACKRUN::BEAM]) {
+        beamName = Attributes::getString(itsAttr[TRACKRUN::BEAM]);
+    }
+    if (beamName.empty() && Track::block != nullptr && !Track::block->beamNames_m.empty()) {
+        beamName = Track::block->beamNames_m.front();
+    }
+
     os << endl;
     os << "* ************* T R A C K  R U N *************************************************** "
        << endl;
@@ -609,9 +641,15 @@ Inform& TrackRun::print(Inform& os) const {
        << "* Statistics dump frequency     = " << Options::statDumpFreq << " w.r.t. the time step."
        << '\n'
        << "* DT                            = " << Track::block->dT.front() << " [s]\n"
-       << "* MAXSTEPS                      = " << Track::block->localTimeSteps.front() << '\n'
-       << "* Mass of simulation particle   = " << Beam::find(Attributes::getString(itsAttr[TRACKRUN::BEAM]))->getChargePerParticle() << " [GeV/c^2]" << '\n'
-       << "* Charge of simulation particle = " << Beam::find(Attributes::getString(itsAttr[TRACKRUN::BEAM]))->getMassPerParticle() << " [C]" << '\n';
+       << "* MAXSTEPS                      = " << Track::block->localTimeSteps.front() << '\n';
+    if (!beamName.empty()) {
+        Beam* beam = Beam::find(beamName);
+        os << "* Mass of simulation particle   = " << beam->getChargePerParticle() << " [GeV/c^2]" << '\n'
+           << "* Charge of simulation particle = " << beam->getMassPerParticle() << " [C]" << '\n';
+    } else {
+        os << "* Mass of simulation particle   = <unresolved>" << '\n'
+           << "* Charge of simulation particle = <unresolved>" << '\n';
+    }
     os << "* ********************************************************************************** ";
     return os;
 }
