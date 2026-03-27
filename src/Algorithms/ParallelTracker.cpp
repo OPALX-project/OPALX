@@ -709,7 +709,7 @@ void ParallelTracker::checkInBBRegion(OrbitThreader& oth) {
 
     // Refresh cached bunch statistics/bounds for this step.
     if (itsBunch_m->getTotalNum() == 0) {
-        beamBeamState_m.frameObserved = false;
+        beamBeamDiagnostics_m.frameObserved = false;
         return;
     }
     itsBunch_m->calcBeamParameters();
@@ -733,7 +733,7 @@ void ParallelTracker::checkInBBRegion(OrbitThreader& oth) {
     }
 
     if (!geometry.has_value()) {
-        beamBeamState_m.frameObserved = false;
+        beamBeamDiagnostics_m.frameObserved = false;
         return;
     }
 
@@ -742,7 +742,7 @@ void ParallelTracker::checkInBBRegion(OrbitThreader& oth) {
     const double observedBeginS  = activeGeometry.beginS - observedMarginS;
     const double observedEndS    = activeGeometry.endS + observedMarginS;
 
-    beamBeamState_m.frameObserved =
+    beamBeamDiagnostics_m.frameObserved =
         activeGeometry.visualize &&
         (bunchHeadS >= observedBeginS) &&
         (bunchTailS <= observedEndS);
@@ -756,7 +756,7 @@ void ParallelTracker::checkInBBRegion(OrbitThreader& oth) {
         leaveBeamBeamWindow(m);
     }
 
-    if (beamBeamState_m.frameObserved) {
+    if (beamBeamDiagnostics_m.frameObserved) {
         renderBeamBeamWindowFrame(bunchTailS, bunchHeadS, activeGeometry);
     }
 
@@ -764,7 +764,7 @@ void ParallelTracker::checkInBBRegion(OrbitThreader& oth) {
     if (beamBeamState_m.state == BeamBeamWindowState::Inactive &&
         bunchHeadS > activeGeometry.beginS) {
         enterBeamBeamWindow(activeGeometry, m);
-        beamBeamState_m.frameObserved =
+        beamBeamDiagnostics_m.frameObserved =
             activeGeometry.visualize &&
             (bunchHeadS >= observedBeginS) &&
             (bunchTailS <= observedEndS);
@@ -817,10 +817,9 @@ void ParallelTracker::enterBeamBeamWindow(
     const BeamBeamGeometry& geometry,
     Inform& m) {
     beamBeamState_m.state            = BeamBeamWindowState::Active;
-    beamBeamState_m.meshInitialized  = false;
-    beamBeamState_m.entryRhoSnapshotDumped = false;
     beamBeamState_m.geometry         = geometry;
     beamBeamState_m.savedFieldDomain = itsBunch_m->saveFieldDomainState();
+    beamBeamDiagnostics_m.entryRhoSnapshotDumped = false;
     itsBunch_m->clearBeamBeamWindowVisualizationTail();
 
     m << level5 << "start beam-beam-window mode" << endl;
@@ -845,7 +844,7 @@ void ParallelTracker::enterBeamBeamWindow(
 
 void ParallelTracker::leaveBeamBeamWindow(Inform& m) {
     beamBeamState_m.state = BeamBeamWindowState::Completed;
-    beamBeamState_m.entryRhoSnapshotDumped = false;
+    beamBeamDiagnostics_m.entryRhoSnapshotDumped = false;
 
     if (beamBeamState_m.geometry.has_value()) {
         const auto& geometry = *beamBeamState_m.geometry;
@@ -865,7 +864,6 @@ void ParallelTracker::leaveBeamBeamWindow(Inform& m) {
         beamBeamState_m.savedFieldDomain.reset();
     }
 
-    beamBeamState_m.meshInitialized = false;
     itsBunch_m->clearBeamBeamWindowConfig();
     m << level5 << "finished beam-beam-window mode" << endl;
 }
@@ -942,7 +940,7 @@ void ParallelTracker::computeBeamBeamWindowSelfFields(
     itsBunch_m->calcBeamParameters();
     itsBunch_m->get_bounds(physicalRMin, physicalRMax);
 
-    if (!beamBeamState_m.meshInitialized && !beamBeamState_m.entryRhoSnapshotDumped) {
+    if (!beamBeamDiagnostics_m.entryRhoSnapshotDumped) {
         itsBunch_m->computeSelfFields();
         auto beforeHeaders =
             itsBunch_m->buildScalarDumpHeaders("before_interaction_window_mesh_enlarge");
@@ -951,19 +949,18 @@ void ParallelTracker::computeBeamBeamWindowSelfFields(
             "collwin_vis",
             beforeHeaders);
         itsBunch_m->setPhysicalBounds(physicalRMin, physicalRMax);
-        beamBeamState_m.entryRhoSnapshotDumped = true;
+        beamBeamDiagnostics_m.entryRhoSnapshotDumped = true;
     }
 
     // Re-center the beam-frame mesh every active step so the BeamBeam mesh stays
     // fixed in the BeamBeam/lab frame while the bunch moves through it.
     itsBunch_m->enableBeamBeamWindowMesh(
         ipCenterBeam(2), beamBeamState_m.geometry->length);
-    beamBeamState_m.meshInitialized = true;
 
     // First stage: solve on the larger beam-beam-window mesh using the primary bunch only.
     // Later this is where mirrored rho deposition should be added.
     itsBunch_m->computeSelfFields();
-    if (beamBeamState_m.entryRhoSnapshotDumped && beamBeamState_m.meshInitialized) {
+    if (beamBeamDiagnostics_m.entryRhoSnapshotDumped) {
         auto afterHeaders =
             itsBunch_m->buildScalarDumpHeaders("after_interaction_window_mesh_enlarge");
         itsBunch_m->getFieldSolver()->dumpScalField(
@@ -1442,7 +1439,7 @@ void ParallelTracker::dumpStats(long long step, bool psDump, bool statDump) {
             "ParallelTracker::dumpStats()",
             "there seems to be something wrong with the position of the bunch!");
     } else {
-        if (!beamBeamState_m.frameObserved)
+        if (!beamBeamDiagnostics_m.frameObserved)
             *gmsg << level1 << "* " << myt2.time() << " "
                   << "Step " << std::setw(6) << itsBunch_m->getGlobalTrackStep() << " "
                   << "at " << Util::getLengthString(pathLength_m) << ", "

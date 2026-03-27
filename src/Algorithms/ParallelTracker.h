@@ -20,7 +20,6 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
-
 #ifndef OPAL_ParallelTracker_HH
 #define OPAL_ParallelTracker_HH
 
@@ -38,10 +37,10 @@
 #include "Algorithms/IndexMap.h"
 #include "Algorithms/OrbitThreader.h"
 
+#include "AbsBeamline/BeamBeam.h"
 #include "AbsBeamline/ConstantEFieldCavity.h"
 #include "AbsBeamline/Drift.h"
 #include "AbsBeamline/ElementBase.h"
-#include "AbsBeamline/BeamBeam.h"
 #include "AbsBeamline/Marker.h"
 #include "AbsBeamline/Multipole.h"
 #include "AbsBeamline/MultipoleT.h"
@@ -177,24 +176,27 @@ private:
     enum class BeamBeamWindowState { Inactive, Active, Completed };
 
     /**
-     * @brief Tracker-owned state for the beam-beam-window passage.
+     * @brief Tracker-owned runtime state for the beam-beam-window passage.
      *
-     * This keeps the beam-beam-window lifecycle, geometry, and temporary
-     * field-domain data together. The field mesh switches from the normal
-     * bunch-following representation (Lagrangian in z) to a frozen
-     * beam-beam-window representation (Eulerian in z) while this state is
-     * active.
+     * This keeps only the active lifecycle, geometry, and temporary field-domain
+     * rollback state needed by the physics model.
      */
     struct BeamBeamState {
         BeamBeamWindowState state = BeamBeamWindowState::Inactive;
-        bool frameObserved          = false;
-        bool meshInitialized        = false;
-        bool entryRhoSnapshotDumped = false;
         std::optional<BeamBeamGeometry> geometry;
         std::optional<PartBunch<double, Dim>::SavedFieldDomainState> savedFieldDomain;
     };
 
+    /**
+     * @brief Diagnostics-only flags for beam-beam-window visualization/output.
+     */
+    struct BeamBeamDiagnosticsState {
+        bool frameObserved          = false;
+        bool entryRhoSnapshotDumped = false;
+    };
+
     BeamBeamState beamBeamState_m;
+    BeamBeamDiagnosticsState beamBeamDiagnostics_m;
     static constexpr int postBeamBeamWindowVisualizationSteps_m = 4;
 
     // ASCII visualization helper for the beam-beam-window dynamics.
@@ -229,11 +231,11 @@ public:
      * Vector of different timesteps for individual tracks
      */
     explicit ParallelTracker(
-        const Beamline& bl, PartBunch_t* bunch, const std::shared_ptr<DataSink>& ds,
-        const PartData& data, bool revBeam, bool revTrack,
-        const std::vector<unsigned long long>& maxSTEPS, double zstart,
-        const std::vector<double>& zstop, const std::vector<double>& dt,
-        const std::vector<std::shared_ptr<SamplingBase>>& emittingSamplers = {});
+            const Beamline& bl, PartBunch_t* bunch, const std::shared_ptr<DataSink>& ds,
+            const PartData& data, bool revBeam, bool revTrack,
+            const std::vector<unsigned long long>& maxSTEPS, double zstart,
+            const std::vector<double>& zstop, const std::vector<double>& dt,
+            const std::vector<std::shared_ptr<SamplingBase>>& emittingSamplers = {});
 
     // Destructor
     virtual ~ParallelTracker();
@@ -343,27 +345,20 @@ private:
      *         bunch extent, otherwise `std::nullopt`.
      */
     std::optional<BeamBeamGeometry> detectBeamBeamWindow(
-        OrbitThreader& oth,
-        const ippl::Vector<double, Dim>& rmin,
-        const ippl::Vector<double, Dim>& rmax);
+            OrbitThreader& oth, const ippl::Vector<double, Dim>& rmin,
+            const ippl::Vector<double, Dim>& rmax);
 
     void enterBeamBeamWindow(const BeamBeamGeometry& geometry, Inform& m);
     void leaveBeamBeamWindow(Inform& m);
     void renderBeamBeamWindowFrame(
-        double bunchTailS,
-        double bunchHeadS,
-        const BeamBeamGeometry& geometry);
+            double bunchTailS, double bunchHeadS, const BeamBeamGeometry& geometry);
     bool usesFrozenBeamBeamWindowMesh() const;
     void transformFieldsToReferenceFrame(
-        const CoordinateSystemTrafo& beamToReferenceCSTrafo,
-        Inform& m);
-    void computeDefaultSelfFields(
-        const CoordinateSystemTrafo& beamToReferenceCSTrafo,
-        Inform& m);
+            const CoordinateSystemTrafo& beamToReferenceCSTrafo, Inform& m);
+    void computeDefaultSelfFields(const CoordinateSystemTrafo& beamToReferenceCSTrafo, Inform& m);
     void computeBeamBeamWindowSelfFields(
-        const CoordinateSystemTrafo&,
-        const CoordinateSystemTrafo& beamToReferenceCSTrafo,
-        Inform& m);
+            const CoordinateSystemTrafo&, const CoordinateSystemTrafo& beamToReferenceCSTrafo,
+            Inform& m);
 
     // Reference Particle
     void updateReferenceParticle(const BorisPusher& pusher);
