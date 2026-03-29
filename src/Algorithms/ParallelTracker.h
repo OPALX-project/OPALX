@@ -297,6 +297,11 @@ public:
     void checkInBBRegion(OrbitThreader& oth);
 
 private:
+    struct BeamBeamLongitudinalExtent {
+        double tail = 0.0;
+        double head = 0.0;
+    };
+
     /**
      * @brief Detect an beam-beam window overlapping the current bunch extent.
      *
@@ -310,6 +315,9 @@ private:
     std::optional<BEAMBEAM::ActualGeometry> detectBeamBeamWindow(
             OrbitThreader& oth, const ippl::Vector<double, Dim>& rmin,
             const ippl::Vector<double, Dim>& rmax);
+    BeamBeamLongitudinalExtent computeBeamBeamLongitudinalExtent(
+            double bunchS, const ippl::Vector<double, Dim>& rmin,
+            const ippl::Vector<double, Dim>& rmax) const;
 
     void enterBeamBeamWindow(const BEAMBEAM::ActualGeometry& geometry, Inform& m);
     void leaveBeamBeamWindow(Inform& m);

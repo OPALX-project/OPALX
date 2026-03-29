@@ -157,9 +157,15 @@ public:
         bool copyModel                 = false;
     };
 
+    struct BeamBeamWindowVisualizationTail {
+        double interactionPointS = 0.0;
+        double windowBeginS      = 0.0;
+        double windowEndS        = 0.0;
+        int remainingSteps       = 0;
+    };
+
     std::optional<BeamBeamWindowConfig> beamBeamWindowConfig_m;
-    std::optional<BeamBeamWindowConfig> beamBeamWindowVisualizationConfig_m;
-    int beamBeamWindowVisualizationTailSteps_m = 0;
+    std::optional<BeamBeamWindowVisualizationTail> beamBeamWindowVisualizationTail_m;
     bool beamBeamWindowParticleLayoutInitialized_m = false;
     std::unique_ptr<H5BeamBeamDiagnosticsWriter> beamBeamDiagnosticsWriter_m;
     double lastDepositedChargeBeforeBackground_m = 0.0;
@@ -539,20 +545,24 @@ public:
     }
 
     void setBeamBeamWindowVisualizationTail(
-        const BeamBeamWindowConfig& config,
+        double interactionPointS,
+        double windowBeginS,
+        double windowEndS,
         int steps) {
-        beamBeamWindowVisualizationConfig_m = config;
-        beamBeamWindowVisualizationTailSteps_m = steps;
+        beamBeamWindowVisualizationTail_m = BeamBeamWindowVisualizationTail{
+            interactionPointS,
+            windowBeginS,
+            windowEndS,
+            steps};
     }
 
     void clearBeamBeamWindowVisualizationTail() {
-        beamBeamWindowVisualizationConfig_m.reset();
-        beamBeamWindowVisualizationTailSteps_m = 0;
+        beamBeamWindowVisualizationTail_m.reset();
     }
 
     bool hasBeamBeamWindowVisualizationTail() const {
-        return beamBeamWindowVisualizationConfig_m.has_value() &&
-               beamBeamWindowVisualizationTailSteps_m > 0;
+        return beamBeamWindowVisualizationTail_m.has_value() &&
+               beamBeamWindowVisualizationTail_m->remainingSteps > 0;
     }
 
     /**

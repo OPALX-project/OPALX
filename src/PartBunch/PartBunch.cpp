@@ -739,15 +739,27 @@ std::vector<std::string> PartBunch<T, Dim>::buildScalarDumpHeaders(
     meanSHeader << std::setprecision(12) << "particle_mean_s=" << (get_sPos() + meanR[2]);
     headers.push_back(meanSHeader.str());
 
-    const auto& geometryConfig =
-            geometryOverride.has_value()
-                    ? geometryOverride
-                    : (beamBeamWindowConfig_m.has_value() ? beamBeamWindowConfig_m
-                                                          : beamBeamWindowVisualizationConfig_m);
+    const bool hasGeometryOverride = geometryOverride.has_value();
+    const bool hasActiveGeometry = beamBeamWindowConfig_m.has_value();
+    const bool hasTailGeometry = beamBeamWindowVisualizationTail_m.has_value();
 
-    if (geometryConfig.has_value()) {
-        const auto& cfg                    = *geometryConfig;
-        const double interactionPointBeamZ = cfg.interactionPointS - get_sPos();
+    if (hasGeometryOverride || hasActiveGeometry || hasTailGeometry) {
+        const double interactionPointS = hasGeometryOverride
+                                             ? geometryOverride->interactionPointS
+                                             : (hasActiveGeometry
+                                                    ? beamBeamWindowConfig_m->interactionPointS
+                                                    : beamBeamWindowVisualizationTail_m->interactionPointS);
+        const double windowBeginS = hasGeometryOverride
+                                        ? geometryOverride->windowBeginS
+                                        : (hasActiveGeometry
+                                               ? beamBeamWindowConfig_m->windowBeginS
+                                               : beamBeamWindowVisualizationTail_m->windowBeginS);
+        const double windowEndS = hasGeometryOverride
+                                      ? geometryOverride->windowEndS
+                                      : (hasActiveGeometry
+                                             ? beamBeamWindowConfig_m->windowEndS
+                                             : beamBeamWindowVisualizationTail_m->windowEndS);
+        const double interactionPointBeamZ = interactionPointS - get_sPos();
 
         std::ostringstream interactionPointHeader;
         interactionPointHeader << std::setprecision(12) << "interaction_point=(" << 0.0 << ","
@@ -756,7 +768,7 @@ std::vector<std::string> PartBunch<T, Dim>::buildScalarDumpHeaders(
 
         std::ostringstream interactionPointSHeader;
         interactionPointSHeader << std::setprecision(12)
-                                << "interaction_point_s=" << cfg.interactionPointS;
+                                << "interaction_point_s=" << interactionPointS;
         headers.push_back(interactionPointSHeader.str());
 
         std::ostringstream interactionPointBeamZHeader;
@@ -766,15 +778,15 @@ std::vector<std::string> PartBunch<T, Dim>::buildScalarDumpHeaders(
 
         std::ostringstream elementZRangeHeader;
         elementZRangeHeader << std::setprecision(12) << "ip_element_z_range=("
-                            << (cfg.windowBeginS - cfg.interactionPointS + interactionPointBeamZ)
+                            << (windowBeginS - interactionPointS + interactionPointBeamZ)
                             << ","
-                            << (cfg.windowEndS - cfg.interactionPointS + interactionPointBeamZ)
+                            << (windowEndS - interactionPointS + interactionPointBeamZ)
                             << ")";
         headers.push_back(elementZRangeHeader.str());
 
         std::ostringstream elementSRangeHeader;
-        elementSRangeHeader << std::setprecision(12) << "ip_element_s_range=(" << cfg.windowBeginS
-                            << "," << cfg.windowEndS << ")";
+        elementSRangeHeader << std::setprecision(12) << "ip_element_s_range=(" << windowBeginS
+                            << "," << windowEndS << ")";
         headers.push_back(elementSRangeHeader.str());
     }
 
@@ -797,10 +809,6 @@ H5BeamBeamDiagnosticsWriter* PartBunch<T, Dim>::getBeamBeamDiagnosticsWriter() {
 template <typename T, unsigned Dim>
 H5BeamBeamDiagnosticsWriter::StepMetadata
 PartBunch<T, Dim>::buildBeamBeamDiagnosticsStepMetadata(const std::string& snapshotKind) const {
-    const auto cfg =
-        beamBeamWindowConfig_m.has_value()
-            ? beamBeamWindowConfig_m
-            : beamBeamWindowVisualizationConfig_m;
     const auto meanR = this->get_rmean();
     const auto meshOrigin = this->fcontainer_m->getMesh().getOrigin();
 
@@ -817,9 +825,16 @@ PartBunch<T, Dim>::buildBeamBeamDiagnosticsStepMetadata(const std::string& snaps
     meta.coordinateFrame         = "beam";
     meta.snapshotKind            = snapshotKind;
     meta.interactionWindowActive = beamBeamWindowConfig_m.has_value();
-    if (cfg.has_value()) {
-        meta.interactionPointS = cfg->interactionPointS;
-        meta.beamBeamSRange    = {cfg->windowBeginS, cfg->windowEndS};
+    if (beamBeamWindowConfig_m.has_value()) {
+        meta.interactionPointS = beamBeamWindowConfig_m->interactionPointS;
+        meta.beamBeamSRange    = {
+            beamBeamWindowConfig_m->windowBeginS,
+            beamBeamWindowConfig_m->windowEndS};
+    } else if (beamBeamWindowVisualizationTail_m.has_value()) {
+        meta.interactionPointS = beamBeamWindowVisualizationTail_m->interactionPointS;
+        meta.beamBeamSRange    = {
+            beamBeamWindowVisualizationTail_m->windowBeginS,
+            beamBeamWindowVisualizationTail_m->windowEndS};
     } else {
         meta.interactionPointS = std::numeric_limits<double>::quiet_NaN();
         meta.beamBeamSRange    = {
@@ -1044,8 +1059,8 @@ void PartBunch<T, Dim>::computeSelfFields() {
         dumpChargeDensityDebug("collision_window_primary_only");
     } else if (hasBeamBeamWindowVisualizationTail()) {
         dumpChargeDensityDebug("post_collision_window_single_bunch");
-        --beamBeamWindowVisualizationTailSteps_m;
-        if (beamBeamWindowVisualizationTailSteps_m <= 0) {
+        --beamBeamWindowVisualizationTail_m->remainingSteps;
+        if (beamBeamWindowVisualizationTail_m->remainingSteps <= 0) {
             clearBeamBeamWindowVisualizationTail();
         }
     } else if (globalTrackStep_m == 0) {

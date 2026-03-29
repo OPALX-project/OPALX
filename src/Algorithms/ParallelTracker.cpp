@@ -727,16 +727,8 @@ void ParallelTracker::checkInBBRegion(OrbitThreader& oth) {
     const ippl::Vector<double, Dim> rmin = pc->getMinR();
     const ippl::Vector<double, Dim> rmax = pc->getMaxR();
     const double bunchS = pathLength_m;
-
-    const double bunchTailS = bunchS + rmin(2);
-    const double bunchHeadS = bunchS + rmax(2);
-    const double bunchHeadSExit = 2.0 * bunchS + rmax(2);
-    const double bunchTailSObserved =
-        beamBeamState_m.state == BEAMBEAM::WindowState::Active ? 2.0 * bunchS + rmin(2)
-                                                               : bunchTailS;
-    const double bunchHeadSObserved =
-        beamBeamState_m.state == BEAMBEAM::WindowState::Active ? bunchHeadSExit
-                                                               : bunchHeadS;
+    BeamBeamLongitudinalExtent bunchExtent =
+        computeBeamBeamLongitudinalExtent(bunchS, rmin, rmax);
 
     std::optional<BEAMBEAM::ActualGeometry> geometry = detectBeamBeamWindow(oth, rmin, rmax);
     if (!geometry.has_value() &&
@@ -757,8 +749,8 @@ void ParallelTracker::checkInBBRegion(OrbitThreader& oth) {
 
     beamBeamDiagnostics_m.frameObserved =
         activeGeometry.config.visualize &&
-        (bunchHeadSObserved >= observedBeginS) &&
-        (bunchTailSObserved <= observedEndS);
+        (bunchExtent.head >= observedBeginS) &&
+        (bunchExtent.tail <= observedEndS);
     beamBeamState_m.geometry = activeGeometry;
 
     const double beamBeamCellHalfWidth =
@@ -766,14 +758,14 @@ void ParallelTracker::checkInBBRegion(OrbitThreader& oth) {
 
     const bool leavingBeamBeamWindow =
         beamBeamState_m.state == BEAMBEAM::WindowState::Active &&
-        (bunchHeadSExit > activeGeometry.endS);
+        (bunchExtent.head > activeGeometry.endS);
 
     if (leavingBeamBeamWindow) {
         leaveBeamBeamWindow(m);
     }
 
     if (beamBeamDiagnostics_m.frameObserved) {
-        renderBeamBeamWindowFrame(bunchTailSObserved, bunchHeadSObserved, activeGeometry);
+        renderBeamBeamWindowFrame(bunchExtent.tail, bunchExtent.head, activeGeometry);
     }
 
     // Enter beam-beam-window mode once the whole bunch is inside the window
@@ -781,12 +773,13 @@ void ParallelTracker::checkInBBRegion(OrbitThreader& oth) {
     // losing CIC support at the fixed-mesh boundaries right at entry, for both
     // the physical bunch and its mirrored partner.
     if (beamBeamState_m.state == BEAMBEAM::WindowState::Inactive &&
-        bunchTailS >= activeGeometry.beginS + beamBeamCellHalfWidth) {
+        bunchExtent.tail >= activeGeometry.beginS + beamBeamCellHalfWidth) {
         enterBeamBeamWindow(activeGeometry, m);
+        bunchExtent = computeBeamBeamLongitudinalExtent(bunchS, rmin, rmax);
         beamBeamDiagnostics_m.frameObserved =
             activeGeometry.config.visualize &&
-            (bunchHeadSObserved >= observedBeginS) &&
-            (bunchTailSObserved <= observedEndS);
+            (bunchExtent.head >= observedBeginS) &&
+            (bunchExtent.tail <= observedEndS);
     }
 
     // Leave beam-beam-window mode as soon as the first particle exits the
@@ -795,6 +788,20 @@ void ParallelTracker::checkInBBRegion(OrbitThreader& oth) {
     if (leavingBeamBeamWindow) {
         return;
     }
+}
+
+ParallelTracker::BeamBeamLongitudinalExtent ParallelTracker::computeBeamBeamLongitudinalExtent(
+    double bunchS,
+    const ippl::Vector<double, Dim>& rmin,
+    const ippl::Vector<double, Dim>& rmax) const {
+    if (beamBeamState_m.state == BEAMBEAM::WindowState::Active) {
+        // During active BeamBeam tracking the fixed-window solve uses the
+        // lab-frame convention that matches the active diagnostics and exit
+        // boundary check.
+        return {2.0 * bunchS + rmin(2), 2.0 * bunchS + rmax(2)};
+    }
+
+    return {bunchS + rmin(2), bunchS + rmax(2)};
 }
 
 std::optional<BEAMBEAM::ActualGeometry>
@@ -871,12 +878,9 @@ void ParallelTracker::leaveBeamBeamWindow(Inform& m) {
     if (beamBeamState_m.geometry.has_value()) {
         const auto& geometry = *beamBeamState_m.geometry;
         itsBunch_m->setBeamBeamWindowVisualizationTail(
-            PartBunch<double, Dim>::BeamBeamWindowConfig{
-                geometry.length,
-                geometry.interactionPointS,
-                geometry.beginS,
-                geometry.endS,
-                false},
+            geometry.interactionPointS,
+            geometry.beginS,
+            geometry.endS,
             postBeamBeamWindowVisualizationSteps_m);
     }
 
