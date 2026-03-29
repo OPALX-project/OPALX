@@ -157,17 +157,8 @@ public:
         bool copyModel                 = false;
     };
 
-    struct BeamBeamTrackerDiagnostics {
-        double bunchSRef = 0.0;
-        double bunchTailS = 0.0;
-        double bunchHeadS = 0.0;
-        double windowEndS = 0.0;
-        bool leaving = false;
-    };
-
     std::optional<BeamBeamWindowConfig> beamBeamWindowConfig_m;
     std::optional<BeamBeamWindowConfig> beamBeamWindowVisualizationConfig_m;
-    std::optional<BeamBeamTrackerDiagnostics> beamBeamTrackerDiagnostics_m;
     int beamBeamWindowVisualizationTailSteps_m = 0;
     bool beamBeamWindowParticleLayoutInitialized_m = false;
     std::unique_ptr<H5BeamBeamDiagnosticsWriter> beamBeamDiagnosticsWriter_m;
@@ -545,20 +536,6 @@ public:
     void clearBeamBeamWindowConfig() {
         beamBeamWindowConfig_m.reset();
         beamBeamWindowParticleLayoutInitialized_m = false;
-    }
-
-    void setBeamBeamTrackerDiagnostics(
-        double bunchSRef,
-        double bunchTailS,
-        double bunchHeadS,
-        double windowEndS,
-        bool leaving) {
-        beamBeamTrackerDiagnostics_m =
-            BeamBeamTrackerDiagnostics{bunchSRef, bunchTailS, bunchHeadS, windowEndS, leaving};
-    }
-
-    void clearBeamBeamTrackerDiagnostics() {
-        beamBeamTrackerDiagnostics_m.reset();
     }
 
     void setBeamBeamWindowVisualizationTail(

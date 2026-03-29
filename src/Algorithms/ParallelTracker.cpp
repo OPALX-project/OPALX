@@ -707,7 +707,6 @@ void ParallelTracker::checkInBBRegion(OrbitThreader& oth) {
 
     // Stop once the beam-beam-window passage has completed.
     if (beamBeamState_m.state == BEAMBEAM::WindowState::Completed) {
-        itsBunch_m->clearBeamBeamTrackerDiagnostics();
         return;
     }
 
@@ -716,7 +715,6 @@ void ParallelTracker::checkInBBRegion(OrbitThreader& oth) {
     // Refresh cached bunch statistics/bounds for this step.
     if (itsBunch_m->getTotalNum() == 0) {
         beamBeamDiagnostics_m.frameObserved = false;
-        itsBunch_m->clearBeamBeamTrackerDiagnostics();
         return;
     }
     itsBunch_m->calcBeamParameters();
@@ -732,7 +730,6 @@ void ParallelTracker::checkInBBRegion(OrbitThreader& oth) {
 
     const double bunchTailS = bunchS + rmin(2);
     const double bunchHeadS = bunchS + rmax(2);
-    const double bunchTailSExit = 2.0 * bunchS + rmin(2);
     const double bunchHeadSExit = 2.0 * bunchS + rmax(2);
 
     std::optional<BEAMBEAM::ActualGeometry> geometry = detectBeamBeamWindow(oth, rmin, rmax);
@@ -744,7 +741,6 @@ void ParallelTracker::checkInBBRegion(OrbitThreader& oth) {
 
     if (!geometry.has_value()) {
         beamBeamDiagnostics_m.frameObserved = false;
-        itsBunch_m->clearBeamBeamTrackerDiagnostics();
         return;
     }
 
@@ -765,13 +761,6 @@ void ParallelTracker::checkInBBRegion(OrbitThreader& oth) {
     const bool leavingBeamBeamWindow =
         beamBeamState_m.state == BEAMBEAM::WindowState::Active &&
         (bunchHeadSExit > activeGeometry.endS);
-
-    itsBunch_m->setBeamBeamTrackerDiagnostics(
-        bunchS,
-        bunchTailSExit,
-        bunchHeadSExit,
-        activeGeometry.endS,
-        leavingBeamBeamWindow);
 
     if (leavingBeamBeamWindow) {
         leaveBeamBeamWindow(m);

@@ -44,11 +44,6 @@ public:
         double particleTotalCharge        = 0.0;
         std::array<double, 3> particleMeanR = {0.0, 0.0, 0.0};
         double particleMeanS              = 0.0;
-        double bunchSRef                  = 0.0;
-        double bunchTailS                 = 0.0;
-        double bunchHeadS                 = 0.0;
-        double beamBeamWindowEndS         = 0.0;
-        h5_int64_t leavingBeamBeamWindow  = 0;
     };
 
     explicit H5BeamBeamDiagnosticsWriter(const std::string& fileName);

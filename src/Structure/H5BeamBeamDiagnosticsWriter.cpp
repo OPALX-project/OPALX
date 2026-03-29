@@ -231,25 +231,6 @@ void H5BeamBeamDiagnosticsWriter::writeStepMetadata(const StepMetadata& meta) {
     reportOnError(
         H5WriteStepAttribFloat64(file_m, "particle_mean_s", &meta.particleMeanS, 1),
         "particle_mean_s");
-    reportOnError(
-        H5WriteStepAttribFloat64(file_m, "bunch_s_ref", &meta.bunchSRef, 1),
-        "bunch_s_ref");
-    reportOnError(
-        H5WriteStepAttribFloat64(file_m, "bunch_tail_s", &meta.bunchTailS, 1),
-        "bunch_tail_s");
-    reportOnError(
-        H5WriteStepAttribFloat64(file_m, "bunch_head_s", &meta.bunchHeadS, 1),
-        "bunch_head_s");
-    reportOnError(
-        H5WriteStepAttribFloat64(file_m, "beambeam_window_end_s", &meta.beamBeamWindowEndS, 1),
-        "beambeam_window_end_s");
-    reportOnError(
-        H5WriteStepAttribInt64(
-            file_m,
-            "leaving_beambeam_window",
-            &meta.leavingBeamBeamWindow,
-            1),
-        "leaving_beambeam_window");
 }
 
 void H5BeamBeamDiagnosticsWriter::writeScalarField(

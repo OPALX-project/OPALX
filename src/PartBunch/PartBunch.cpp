@@ -829,21 +829,6 @@ PartBunch<T, Dim>::buildBeamBeamDiagnosticsStepMetadata(const std::string& snaps
     meta.particleTotalCharge     = this->getCharge();
     meta.particleMeanR           = {meanR[0], meanR[1], meanR[2]};
     meta.particleMeanS           = get_sPos() + meanR[2];
-    if (beamBeamTrackerDiagnostics_m.has_value()) {
-        meta.bunchSRef          = beamBeamTrackerDiagnostics_m->bunchSRef;
-        meta.bunchTailS         = beamBeamTrackerDiagnostics_m->bunchTailS;
-        meta.bunchHeadS         = beamBeamTrackerDiagnostics_m->bunchHeadS;
-        meta.beamBeamWindowEndS = beamBeamTrackerDiagnostics_m->windowEndS;
-        meta.leavingBeamBeamWindow =
-            beamBeamTrackerDiagnostics_m->leaving ? 1 : 0;
-    } else {
-        meta.bunchSRef          = std::numeric_limits<double>::quiet_NaN();
-        meta.bunchTailS         = std::numeric_limits<double>::quiet_NaN();
-        meta.bunchHeadS         = std::numeric_limits<double>::quiet_NaN();
-        meta.beamBeamWindowEndS = std::numeric_limits<double>::quiet_NaN();
-        meta.leavingBeamBeamWindow = 0;
-    }
-
     return meta;
 }
 
