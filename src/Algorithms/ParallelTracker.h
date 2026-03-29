@@ -318,6 +318,13 @@ private:
     BeamBeamLongitudinalExtent computeBeamBeamLongitudinalExtent(
             double bunchS, const ippl::Vector<double, Dim>& rmin,
             const ippl::Vector<double, Dim>& rmax) const;
+    void applyBeamBeamWindowConfig(const BEAMBEAM::ActualGeometry& geometry);
+    std::optional<double> performBeamBeamWindowEntryTransition(
+            const BEAMBEAM::ActualGeometry& geometry,
+            const ippl::Vector<double, Dim>& physicalRMin,
+            const ippl::Vector<double, Dim>& physicalRMax);
+    void validateBeamBeamCopiedCharge(double referenceCharge) const;
+    void dumpBeamBeamTransitionSnapshot(const std::string& snapshotKind) const;
 
     void enterBeamBeamWindow(const BEAMBEAM::ActualGeometry& geometry, Inform& m);
     void leaveBeamBeamWindow(Inform& m);

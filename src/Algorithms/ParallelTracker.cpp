@@ -853,12 +853,7 @@ void ParallelTracker::enterBeamBeamWindow(
 
     m << level5 << "start beam-beam-window mode" << endl;
 
-    itsBunch_m->setBeamBeamWindowConfig(
-        geometry.length,
-        geometry.interactionPointS,
-        geometry.beginS,
-        geometry.endS,
-        geometry.config.copyModel);
+    applyBeamBeamWindowConfig(geometry);
 
     // No duplication of particles in pc.
     // From here on, the second bunch is virtual only:
@@ -869,6 +864,70 @@ void ParallelTracker::enterBeamBeamWindow(
     // state, but the tracker still uses the virtual mirrored-bunch model only.
     // Future beam-beam-window-specific calculations should use this symmetry
     // locally without modifying the main ParticleContainer.
+}
+
+void ParallelTracker::applyBeamBeamWindowConfig(const BEAMBEAM::ActualGeometry& geometry) {
+    itsBunch_m->setBeamBeamWindowConfig(
+        geometry.length,
+        geometry.interactionPointS,
+        geometry.beginS,
+        geometry.endS,
+        geometry.config.copyModel);
+}
+
+std::optional<double> ParallelTracker::performBeamBeamWindowEntryTransition(
+    const BEAMBEAM::ActualGeometry& geometry,
+    const ippl::Vector<double, Dim>& physicalRMin,
+    const ippl::Vector<double, Dim>& physicalRMax) {
+    if (beamBeamDiagnostics_m.entryRhoSnapshotDumped) {
+        return std::nullopt;
+    }
+
+    itsBunch_m->clearBeamBeamWindowConfig();
+    itsBunch_m->computeSelfFields();
+    if (!itsBunch_m->hasLastDepositedChargeBeforeBackground()) {
+        throw OpalException(
+            "ParallelTracker::performBeamBeamWindowEntryTransition",
+            "Missing deposited-charge diagnostics for the pre-enlarge BeamBeam solve.");
+    }
+
+    const double referenceCharge =
+        std::abs(itsBunch_m->getLastDepositedChargeBeforeBackground());
+    dumpBeamBeamTransitionSnapshot("before_interaction_window_mesh_enlarge");
+    applyBeamBeamWindowConfig(geometry);
+    itsBunch_m->setPhysicalBounds(physicalRMin, physicalRMax);
+    beamBeamDiagnostics_m.entryRhoSnapshotDumped = true;
+    return referenceCharge;
+}
+
+void ParallelTracker::validateBeamBeamCopiedCharge(double referenceCharge) const {
+    if (!itsBunch_m->hasLastDepositedChargeBeforeBackground()) {
+        throw OpalException(
+            "ParallelTracker::validateBeamBeamCopiedCharge",
+            "Missing deposited-charge diagnostics for the enlarged BeamBeam solve.");
+    }
+
+    const double enlargedCharge =
+        std::abs(itsBunch_m->getLastDepositedChargeBeforeBackground());
+    const double expectedCharge = 2.0 * referenceCharge;
+    const double tolerance = std::max(1.0e-18, 1.0e-2 * expectedCharge);
+
+    if (std::abs(enlargedCharge - expectedCharge) > tolerance) {
+        std::ostringstream msg;
+        msg << "BeamBeam enlarged-domain charge mismatch at path length s="
+            << pathLength_m
+            << ": expected " << expectedCharge
+            << " C from copied bunch, got " << enlargedCharge
+            << " C (reference pre-enlarge charge " << referenceCharge << " C).";
+        throw OpalException(
+            "ParallelTracker::validateBeamBeamCopiedCharge",
+            msg.str());
+    }
+}
+
+void ParallelTracker::dumpBeamBeamTransitionSnapshot(const std::string& snapshotKind) const {
+    auto headers = itsBunch_m->buildScalarDumpHeaders(snapshotKind);
+    itsBunch_m->getFieldSolver()->dumpScalField("RHO", "collwin_vis", headers);
 }
 
 void ParallelTracker::leaveBeamBeamWindow(Inform& m) {
@@ -952,11 +1011,12 @@ void ParallelTracker::computeBeamBeamWindowSelfFields(
     const CoordinateSystemTrafo& beamToReferenceCSTrafo,
     Inform& m) {
     PAssert(beamBeamState_m.geometry.has_value());
+    const auto& geometry = *beamBeamState_m.geometry;
 
     const double interactionPointBeamZ =
-        beamBeamState_m.geometry->interactionPointS - pathLength_m;
+        geometry.interactionPointS - pathLength_m;
     Vector_t<double, 3> ipCenterBeam(0.0, 0.0, interactionPointBeamZ);
-    m << level5 << "centS= " << beamBeamState_m.geometry->interactionPointS
+    m << level5 << "centS= " << geometry.interactionPointS
       << " beamLocalZ= " << ipCenterBeam(2) << endl;
 
     const double maxVal       = std::numeric_limits<double>::max();
@@ -965,73 +1025,22 @@ void ParallelTracker::computeBeamBeamWindowSelfFields(
     ippl::Vector<double, Dim> physicalRMax(minVal);
     itsBunch_m->calcBeamParameters();
     itsBunch_m->get_bounds(physicalRMin, physicalRMax);
-    std::optional<double> preEnlargePrimaryCharge;
-
-    if (!beamBeamDiagnostics_m.entryRhoSnapshotDumped) {
-        itsBunch_m->clearBeamBeamWindowConfig();
-        itsBunch_m->computeSelfFields();
-        if (!itsBunch_m->hasLastDepositedChargeBeforeBackground()) {
-            throw OpalException(
-                "ParallelTracker::computeBeamBeamWindowSelfFields",
-                "Missing deposited-charge diagnostics for the pre-enlarge BeamBeam solve.");
-        }
-        preEnlargePrimaryCharge = itsBunch_m->getLastDepositedChargeBeforeBackground();
-        auto beforeHeaders =
-            itsBunch_m->buildScalarDumpHeaders("before_interaction_window_mesh_enlarge");
-        itsBunch_m->getFieldSolver()->dumpScalField(
-            "RHO",
-            "collwin_vis",
-            beforeHeaders);
-        itsBunch_m->setBeamBeamWindowConfig(
-            beamBeamState_m.geometry->length,
-            beamBeamState_m.geometry->interactionPointS,
-            beamBeamState_m.geometry->beginS,
-            beamBeamState_m.geometry->endS,
-            beamBeamState_m.geometry->config.copyModel);
-        itsBunch_m->setPhysicalBounds(physicalRMin, physicalRMax);
-        beamBeamDiagnostics_m.entryRhoSnapshotDumped = true;
-    }
+    const std::optional<double> preEnlargePrimaryCharge =
+        performBeamBeamWindowEntryTransition(geometry, physicalRMin, physicalRMax);
 
     // Re-center the beam-frame mesh every active step so the BeamBeam mesh stays
     // fixed in the BeamBeam/lab frame while the bunch moves through it.
     itsBunch_m->enableBeamBeamWindowMesh(
-        ipCenterBeam(2), beamBeamState_m.geometry->length);
+        ipCenterBeam(2), geometry.length);
 
     // First stage: solve on the larger beam-beam-window mesh using the primary bunch only.
     // Later this is where mirrored rho deposition should be added.
     itsBunch_m->computeSelfFields();
-    if (preEnlargePrimaryCharge.has_value() && beamBeamState_m.geometry->config.copyModel) {
-        if (!itsBunch_m->hasLastDepositedChargeBeforeBackground()) {
-            throw OpalException(
-                "ParallelTracker::computeBeamBeamWindowSelfFields",
-                "Missing deposited-charge diagnostics for the enlarged BeamBeam solve.");
-        }
-
-        const double referenceCharge = std::abs(*preEnlargePrimaryCharge);
-        const double enlargedCharge =
-            std::abs(itsBunch_m->getLastDepositedChargeBeforeBackground());
-        const double expectedCharge = 2.0 * referenceCharge;
-        const double tolerance = std::max(1.0e-18, 1.0e-2 * expectedCharge);
-
-        if (std::abs(enlargedCharge - expectedCharge) > tolerance) {
-            std::ostringstream msg;
-            msg << "BeamBeam enlarged-domain charge mismatch at path length s="
-                << pathLength_m
-                << ": expected " << expectedCharge
-                << " C from copied bunch, got " << enlargedCharge
-                << " C (reference pre-enlarge charge " << referenceCharge << " C).";
-            throw OpalException(
-                "ParallelTracker::computeBeamBeamWindowSelfFields",
-                msg.str());
-        }
+    if (preEnlargePrimaryCharge.has_value() && geometry.config.copyModel) {
+        validateBeamBeamCopiedCharge(*preEnlargePrimaryCharge);
     }
-    if (beamBeamDiagnostics_m.entryRhoSnapshotDumped) {
-        auto afterHeaders =
-            itsBunch_m->buildScalarDumpHeaders("after_interaction_window_mesh_enlarge");
-        itsBunch_m->getFieldSolver()->dumpScalField(
-            "RHO",
-            "collwin_vis",
-            afterHeaders);
+    if (preEnlargePrimaryCharge.has_value()) {
+        dumpBeamBeamTransitionSnapshot("after_interaction_window_mesh_enlarge");
     }
     itsBunch_m->setPhysicalBounds(physicalRMin, physicalRMax);
 
