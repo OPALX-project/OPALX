@@ -16,13 +16,15 @@
  * This writer is intentionally narrow in scope:
  * - one file per run
  * - one HDF5 step per BeamBeam-triggered diagnostic event
- * - scalar charge density and electric-field components on the field mesh
+ * - scalar charge density, scalar potential, and electric-field components
+ *   on the field mesh
  *
  * The charge density is captured before the solver coupling constant is applied,
- * while the electric field is written after the solve. To preserve that timing
- * without duplicating higher-level file logic in PartBunch, the writer exposes
- * a small two-stage API: beginStep() caches the physical charge density, and
- * endStep() writes the full step once the electric field is available.
+ * while the scalar potential and electric field are written after the solve.
+ * To preserve that timing without duplicating higher-level file logic in
+ * PartBunch, the writer exposes a small two-stage API: beginStep() caches the
+ * physical charge density, and endStep() writes the full step once the solve
+ * outputs are available.
  */
 class H5BeamBeamDiagnosticsWriter {
 public:
@@ -52,7 +54,7 @@ public:
     void close();
 
     void beginStep(const StepMetadata& meta, const Field_t<3>& rhoDensity);
-    void endStep(const VField_t<double, 3>& efield);
+    void endStep(const Field_t<3>& phiField, const VField_t<double, 3>& efield);
 
 private:
     struct PreparedStep {

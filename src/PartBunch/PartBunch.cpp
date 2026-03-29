@@ -1088,7 +1088,11 @@ void PartBunch<T, Dim>::computeSelfFields() {
 
     if constexpr (Dim == 3 && std::is_same_v<T, double>) {
         if (writeBeamBeamH5Diagnostics) {
-            getBeamBeamDiagnosticsWriter()->endStep(this->fcontainer_m->getE());
+            const Field_t<3>& phiField =
+                (this->fsolver_m->getStype() == "CG")
+                    ? this->fcontainer_m->getPhi()
+                    : this->fcontainer_m->getRho();
+            getBeamBeamDiagnosticsWriter()->endStep(phiField, this->fcontainer_m->getE());
         }
     }
 

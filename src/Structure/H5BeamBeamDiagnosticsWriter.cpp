@@ -40,7 +40,9 @@ void H5BeamBeamDiagnosticsWriter::beginStep(
     preparedStep_m  = std::move(step);
 }
 
-void H5BeamBeamDiagnosticsWriter::endStep(const VField_t<double, 3>& efield) {
+void H5BeamBeamDiagnosticsWriter::endStep(
+    const Field_t<3>& phiField,
+    const VField_t<double, 3>& efield) {
     if (!preparedStep_m.has_value()) {
         throw OpalException(kWhere, "endStep() called without a matching beginStep().");
     }
@@ -51,11 +53,13 @@ void H5BeamBeamDiagnosticsWriter::endStep(const VField_t<double, 3>& efield) {
 
     const PreparedStep& step = *preparedStep_m;
     const auto& meta         = step.meta;
+    const std::vector<h5_float64_t> phi = flattenScalarField(phiField, step.localIndex);
 
     reportOnError(H5SetStep(file_m, stepCounter_m), "H5SetStep");
     writeStepMetadata(meta);
 
     writeScalarField("rho", step.rho, step.localIndex, meta.origin, meta.spacing);
+    writeScalarField("phi", phi, step.localIndex, meta.origin, meta.spacing);
 
     std::vector<h5_float64_t> ex;
     std::vector<h5_float64_t> ey;
