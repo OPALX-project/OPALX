@@ -425,6 +425,11 @@ void ParallelTracker::execute() {
             resetFields();
             m << level4 << "E and B fields reset at step " << step << "." << endl;
 
+            // The BeamBeam state check and self-field solve must use the
+            // current longitudinal reference position for this step, not the
+            // stale value from the previous loop iteration.
+            itsBunch_m->set_sPos(pathLength_m);
+
             // Detect and activate the beam-beam window before the self-field solve
             // so the first step inside the window already uses the enlarged mesh.
             checkInBBRegion(oth);
@@ -677,7 +682,7 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
         m << level4 << "Binary repartition done." << endl;
     }
 
-    itsBunch_m->setGlobalMeanR(itsBunch_m->get_centroid());
+    itsBunch_m->setGlobalMeanR(itsBunch_m->get_rmean());
 
     if (beamBeamState_m.state != BEAMBEAM::WindowState::Active) {
         computeDefaultSelfFields(beamToReferenceCSTrafo, m);
@@ -702,6 +707,7 @@ void ParallelTracker::checkInBBRegion(OrbitThreader& oth) {
 
     // Stop once the beam-beam-window passage has completed.
     if (beamBeamState_m.state == BEAMBEAM::WindowState::Completed) {
+        itsBunch_m->clearBeamBeamTrackerDiagnostics();
         return;
     }
 
@@ -710,6 +716,7 @@ void ParallelTracker::checkInBBRegion(OrbitThreader& oth) {
     // Refresh cached bunch statistics/bounds for this step.
     if (itsBunch_m->getTotalNum() == 0) {
         beamBeamDiagnostics_m.frameObserved = false;
+        itsBunch_m->clearBeamBeamTrackerDiagnostics();
         return;
     }
     itsBunch_m->calcBeamParameters();
@@ -721,9 +728,12 @@ void ParallelTracker::checkInBBRegion(OrbitThreader& oth) {
     pc->computeMinMaxR();
     const ippl::Vector<double, Dim> rmin = pc->getMinR();
     const ippl::Vector<double, Dim> rmax = pc->getMaxR();
+    const double bunchS = pathLength_m;
 
-    const double bunchTailS = pathLength_m + rmin(2);
-    const double bunchHeadS = pathLength_m + rmax(2);
+    const double bunchTailS = bunchS + rmin(2);
+    const double bunchHeadS = bunchS + rmax(2);
+    const double bunchTailSExit = 2.0 * bunchS + rmin(2);
+    const double bunchHeadSExit = 2.0 * bunchS + rmax(2);
 
     std::optional<BEAMBEAM::ActualGeometry> geometry = detectBeamBeamWindow(oth, rmin, rmax);
     if (!geometry.has_value() &&
@@ -734,6 +744,7 @@ void ParallelTracker::checkInBBRegion(OrbitThreader& oth) {
 
     if (!geometry.has_value()) {
         beamBeamDiagnostics_m.frameObserved = false;
+        itsBunch_m->clearBeamBeamTrackerDiagnostics();
         return;
     }
 
@@ -748,9 +759,19 @@ void ParallelTracker::checkInBBRegion(OrbitThreader& oth) {
         (bunchTailS <= observedEndS);
     beamBeamState_m.geometry = activeGeometry;
 
+    const double beamBeamCellHalfWidth =
+        0.5 * activeGeometry.length / static_cast<double>(itsBunch_m->nr_m[2]);
+
     const bool leavingBeamBeamWindow =
         beamBeamState_m.state == BEAMBEAM::WindowState::Active &&
-        (bunchTailS > activeGeometry.endS);
+        (bunchHeadSExit > activeGeometry.endS);
+
+    itsBunch_m->setBeamBeamTrackerDiagnostics(
+        bunchS,
+        bunchTailSExit,
+        bunchHeadSExit,
+        activeGeometry.endS,
+        leavingBeamBeamWindow);
 
     if (leavingBeamBeamWindow) {
         leaveBeamBeamWindow(m);
@@ -760,9 +781,12 @@ void ParallelTracker::checkInBBRegion(OrbitThreader& oth) {
         renderBeamBeamWindowFrame(bunchTailS, bunchHeadS, activeGeometry);
     }
 
-    // Enter beam-beam-window mode once the head enters the window.
+    // Enter beam-beam-window mode once the whole bunch is inside the window
+    // with at least half a BeamBeam cell of longitudinal margin. This avoids
+    // losing CIC support at the fixed-mesh boundaries right at entry, for both
+    // the physical bunch and its mirrored partner.
     if (beamBeamState_m.state == BEAMBEAM::WindowState::Inactive &&
-        bunchHeadS > activeGeometry.beginS) {
+        bunchTailS >= activeGeometry.beginS + beamBeamCellHalfWidth) {
         enterBeamBeamWindow(activeGeometry, m);
         beamBeamDiagnostics_m.frameObserved =
             activeGeometry.config.visualize &&
@@ -770,7 +794,9 @@ void ParallelTracker::checkInBBRegion(OrbitThreader& oth) {
             (bunchTailS <= observedEndS);
     }
 
-    // Leave beam-beam-window mode once the whole bunch passed the window.
+    // Leave beam-beam-window mode as soon as the first particle exits the
+    // BeamBeam window. Beyond that point no copied bunch is needed anymore and
+    // tracking can switch back to the co-moving mesh.
     if (leavingBeamBeamWindow) {
         return;
     }
@@ -940,15 +966,29 @@ void ParallelTracker::computeBeamBeamWindowSelfFields(
     ippl::Vector<double, Dim> physicalRMax(minVal);
     itsBunch_m->calcBeamParameters();
     itsBunch_m->get_bounds(physicalRMin, physicalRMax);
+    std::optional<double> preEnlargePrimaryCharge;
 
     if (!beamBeamDiagnostics_m.entryRhoSnapshotDumped) {
+        itsBunch_m->clearBeamBeamWindowConfig();
         itsBunch_m->computeSelfFields();
+        if (!itsBunch_m->hasLastDepositedChargeBeforeBackground()) {
+            throw OpalException(
+                "ParallelTracker::computeBeamBeamWindowSelfFields",
+                "Missing deposited-charge diagnostics for the pre-enlarge BeamBeam solve.");
+        }
+        preEnlargePrimaryCharge = itsBunch_m->getLastDepositedChargeBeforeBackground();
         auto beforeHeaders =
             itsBunch_m->buildScalarDumpHeaders("before_interaction_window_mesh_enlarge");
         itsBunch_m->getFieldSolver()->dumpScalField(
             "RHO",
             "collwin_vis",
             beforeHeaders);
+        itsBunch_m->setBeamBeamWindowConfig(
+            beamBeamState_m.geometry->length,
+            beamBeamState_m.geometry->interactionPointS,
+            beamBeamState_m.geometry->beginS,
+            beamBeamState_m.geometry->endS,
+            beamBeamState_m.geometry->config.copyModel);
         itsBunch_m->setPhysicalBounds(physicalRMin, physicalRMax);
         beamBeamDiagnostics_m.entryRhoSnapshotDumped = true;
     }
@@ -961,6 +1001,31 @@ void ParallelTracker::computeBeamBeamWindowSelfFields(
     // First stage: solve on the larger beam-beam-window mesh using the primary bunch only.
     // Later this is where mirrored rho deposition should be added.
     itsBunch_m->computeSelfFields();
+    if (preEnlargePrimaryCharge.has_value() && beamBeamState_m.geometry->config.copyModel) {
+        if (!itsBunch_m->hasLastDepositedChargeBeforeBackground()) {
+            throw OpalException(
+                "ParallelTracker::computeBeamBeamWindowSelfFields",
+                "Missing deposited-charge diagnostics for the enlarged BeamBeam solve.");
+        }
+
+        const double referenceCharge = std::abs(*preEnlargePrimaryCharge);
+        const double enlargedCharge =
+            std::abs(itsBunch_m->getLastDepositedChargeBeforeBackground());
+        const double expectedCharge = 2.0 * referenceCharge;
+        const double tolerance = std::max(1.0e-18, 1.0e-2 * expectedCharge);
+
+        if (std::abs(enlargedCharge - expectedCharge) > tolerance) {
+            std::ostringstream msg;
+            msg << "BeamBeam enlarged-domain charge mismatch at path length s="
+                << pathLength_m
+                << ": expected " << expectedCharge
+                << " C from copied bunch, got " << enlargedCharge
+                << " C (reference pre-enlarge charge " << referenceCharge << " C).";
+            throw OpalException(
+                "ParallelTracker::computeBeamBeamWindowSelfFields",
+                msg.str());
+        }
+    }
     if (beamBeamDiagnostics_m.entryRhoSnapshotDumped) {
         auto afterHeaders =
             itsBunch_m->buildScalarDumpHeaders("after_interaction_window_mesh_enlarge");

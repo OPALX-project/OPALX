@@ -9,6 +9,7 @@
 #include <fstream>
 #include <iomanip>
 #include <sstream>
+#include <type_traits>
 
 #undef doDEBUG
 
@@ -121,8 +122,6 @@ void PartBunch<T, Dim>::restoreFieldDomainState(const SavedFieldDomainState& sta
     // Inform m("PartBunch::restoreFieldDomain");
 
     auto* mesh = &this->fcontainer_m->getMesh();
-    auto* FL   = &this->fcontainer_m->getFL();
-    auto pc    = this->getParticleContainer();
 
     mesh->setOrigin(state.origin);
     mesh->setMeshSpacing(state.hr);
@@ -136,9 +135,7 @@ void PartBunch<T, Dim>::restoreFieldDomainState(const SavedFieldDomainState& sta
     this->rmin_m = state.partrmin;
     this->rmax_m = state.partrmax;
 
-    pc->getLayout().updateLayout(*FL, *mesh);
-    pc->update();
-    this->updateMoments();
+    beamBeamWindowParticleLayoutInitialized_m = false;
 }
 
 template <typename T, unsigned Dim>
@@ -172,11 +169,14 @@ void PartBunch<T, Dim>::enableBeamBeamWindowMesh(
     this->getFieldContainer()->setRMax(e);
     this->getFieldContainer()->setHr(hr_m);
 
-    // The beam-beam-window mode only changes the field mesh used by the
-    // temporary self-field solve. The particle layout must stay in the original
-    // bunch-following frame; forcing updateLayout()/pc->update() here remaps the
-    // particles onto the Eulerian beam-beam-window mesh and introduces an
-    // unphysical longitudinal offset of one beam-beam-window length.
+    auto* FL = &this->fcontainer_m->getFL();
+    auto pc  = this->getParticleContainer();
+    pc->getLayout().updateLayout(*FL, *mesh);
+    if (!beamBeamWindowParticleLayoutInitialized_m) {
+        pc->update();
+        beamBeamWindowParticleLayoutInitialized_m = true;
+    }
+
     this->updateMoments();
 
     m << level3 << "Enabled beam-beam-window mesh:" << endl;
@@ -671,6 +671,7 @@ std::vector<std::string> PartBunch<T, Dim>::buildScalarDumpHeaders(
         std::optional<bool> activeOverride) const {
     std::vector<std::string> headers;
     headers.reserve(16);
+    const auto meshOrigin = this->fcontainer_m->getMesh().getOrigin();
 
     headers.push_back("coordinate_frame=" + coordinateFrame);
 
@@ -691,7 +692,7 @@ std::vector<std::string> PartBunch<T, Dim>::buildScalarDumpHeaders(
     headers.push_back(activeHeader.str());
 
     std::ostringstream meshOriginHeader;
-    meshOriginHeader << "mesh_origin=" << origin_m;
+    meshOriginHeader << "mesh_origin=" << meshOrigin;
     headers.push_back(meshOriginHeader.str());
 
     std::ostringstream meshSpacingHeader;
@@ -727,15 +728,15 @@ std::vector<std::string> PartBunch<T, Dim>::buildScalarDumpHeaders(
     totalChargeHeader << std::setprecision(12) << "particle_total_charge=" << this->getCharge();
     headers.push_back(totalChargeHeader.str());
 
-    const auto centroid = this->get_centroid();
+    const auto meanR = this->get_rmean();
 
     std::ostringstream meanRHeader;
-    meanRHeader << std::setprecision(12) << "particle_mean_r=(" << centroid[0] << "," << centroid[1]
-                << "," << centroid[2] << ")";
+    meanRHeader << std::setprecision(12) << "particle_mean_r=(" << meanR[0] << "," << meanR[1]
+                << "," << meanR[2] << ")";
     headers.push_back(meanRHeader.str());
 
     std::ostringstream meanSHeader;
-    meanSHeader << std::setprecision(12) << "particle_mean_s=" << (get_sPos() + centroid[2]);
+    meanSHeader << std::setprecision(12) << "particle_mean_s=" << (get_sPos() + meanR[2]);
     headers.push_back(meanSHeader.str());
 
     const auto& geometryConfig =
@@ -778,6 +779,72 @@ std::vector<std::string> PartBunch<T, Dim>::buildScalarDumpHeaders(
     }
 
     return headers;
+}
+
+template <typename T, unsigned Dim>
+H5BeamBeamDiagnosticsWriter* PartBunch<T, Dim>::getBeamBeamDiagnosticsWriter() {
+    if (!beamBeamDiagnosticsWriter_m) {
+        const std::filesystem::path filePath =
+            std::filesystem::path("data")
+            / (OpalData::getInstance()->getInputBasename() + "-beambeam_diagnostics.h5");
+        beamBeamDiagnosticsWriter_m =
+            std::make_unique<H5BeamBeamDiagnosticsWriter>(filePath.string());
+    }
+
+    return beamBeamDiagnosticsWriter_m.get();
+}
+
+template <typename T, unsigned Dim>
+H5BeamBeamDiagnosticsWriter::StepMetadata
+PartBunch<T, Dim>::buildBeamBeamDiagnosticsStepMetadata(const std::string& snapshotKind) const {
+    const auto cfg =
+        beamBeamWindowConfig_m.has_value()
+            ? beamBeamWindowConfig_m
+            : beamBeamWindowVisualizationConfig_m;
+    const auto meanR = this->get_rmean();
+    const auto meshOrigin = this->fcontainer_m->getMesh().getOrigin();
+
+    H5BeamBeamDiagnosticsWriter::StepMetadata meta;
+    meta.globalStep              = globalTrackStep_m;
+    meta.time                    = getT();
+    meta.pathLengthS             = get_sPos();
+    meta.shape                   = {
+        static_cast<h5_int64_t>(nr_m[0]),
+        static_cast<h5_int64_t>(nr_m[1]),
+        static_cast<h5_int64_t>(nr_m[2])};
+    meta.origin                  = {meshOrigin[0], meshOrigin[1], meshOrigin[2]};
+    meta.spacing                 = {hr_m[0], hr_m[1], hr_m[2]};
+    meta.coordinateFrame         = "beam";
+    meta.snapshotKind            = snapshotKind;
+    meta.interactionWindowActive = beamBeamWindowConfig_m.has_value();
+    if (cfg.has_value()) {
+        meta.interactionPointS = cfg->interactionPointS;
+        meta.beamBeamSRange    = {cfg->windowBeginS, cfg->windowEndS};
+    } else {
+        meta.interactionPointS = std::numeric_limits<double>::quiet_NaN();
+        meta.beamBeamSRange    = {
+            std::numeric_limits<double>::quiet_NaN(),
+            std::numeric_limits<double>::quiet_NaN()};
+    }
+    meta.particleTotalCharge     = this->getCharge();
+    meta.particleMeanR           = {meanR[0], meanR[1], meanR[2]};
+    meta.particleMeanS           = get_sPos() + meanR[2];
+    if (beamBeamTrackerDiagnostics_m.has_value()) {
+        meta.bunchSRef          = beamBeamTrackerDiagnostics_m->bunchSRef;
+        meta.bunchTailS         = beamBeamTrackerDiagnostics_m->bunchTailS;
+        meta.bunchHeadS         = beamBeamTrackerDiagnostics_m->bunchHeadS;
+        meta.beamBeamWindowEndS = beamBeamTrackerDiagnostics_m->windowEndS;
+        meta.leavingBeamBeamWindow =
+            beamBeamTrackerDiagnostics_m->leaving ? 1 : 0;
+    } else {
+        meta.bunchSRef          = std::numeric_limits<double>::quiet_NaN();
+        meta.bunchTailS         = std::numeric_limits<double>::quiet_NaN();
+        meta.bunchHeadS         = std::numeric_limits<double>::quiet_NaN();
+        meta.beamBeamWindowEndS = std::numeric_limits<double>::quiet_NaN();
+        meta.leavingBeamBeamWindow = 0;
+    }
+
+    return meta;
 }
 
 template <typename T, unsigned Dim>
@@ -833,6 +900,8 @@ void PartBunch<T, Dim>::scatterMirroredChargeDensity(
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::computeSelfFields() {
     Inform m("PartBunch::computeSelfFields");
+    lastDepositedChargeBeforeBackgroundValid_m = false;
+    lastDepositedChargeBeforeBackground_m = 0.0;
 
     if (ippl::Comm->size() == 1 && this->pcontainer_m->getLocalNum() <= 1) {
         this->pcontainer_m->E = 0.0;
@@ -885,33 +954,24 @@ void PartBunch<T, Dim>::computeSelfFields() {
     typename Base::particle_position_type* R = &this->pcontainer_m->R;
     this->fcontainer_m->getRho()             = 0.0;
     Field_t<Dim>* rho                        = &this->fcontainer_m->getRho();
-    const bool dumpBeamBeamWindowStages      = beamBeamWindowConfig_m.has_value()
-                                          && beamBeamWindowConfig_m->copyModel
-                                          && globalTrackStep_m >= 29 && globalTrackStep_m <= 31;
+    const bool writeBeamBeamH5Diagnostics = true;
 
     /*
     if (beamBeamWindowConfig_m.has_value()) {
-        const auto centroid = this->get_centroid();
+        const auto meanR = this->get_rmean();
         m << "BeamBeam pre-scatter diagnostics: "
           << "step=" << globalTrackStep_m
           << ", totalNum=" << this->getTotalNum()
           << ", localNum=" << this->getLocalNum()
           << ", qMacro=" << this->getChargePerParticle()
           << " C, totalCharge=" << this->getCharge()
-          << " C, meanZ=" << centroid[2]
-          << " m, meanS=" << (get_sPos() + centroid[2])
+          << " C, meanZ=" << meanR[2]
+          << " m, meanS=" << (get_sPos() + meanR[2])
           << " m, sPos=" << get_sPos()
           << " m, dt=" << getdT()
           << " s" << endl;
     }
     /*/
-
-    auto dumpBeamBeamWindowStage = [&](const std::string& stageName) {
-        if (!dumpBeamBeamWindowStages) {
-            return;
-        }
-        getFieldSolver()->dumpScalField("RHO", "collwin_stage", buildScalarDumpHeaders(stageName));
-    };
 
     /// \todo replace with scatterCIC? --> later with scatterPerBin!
     // Charge "unit" here is "charge per macroparticle" [C]!
@@ -926,12 +986,10 @@ void PartBunch<T, Dim>::computeSelfFields() {
     scatter(*dt, *rho, *R);
     this->pcontainer_m->unscaleDtByCharge();
     m << level4 << "Scatter done." << endl;
-    dumpBeamBeamWindowStage("after_primary_scatter");
 
     if (beamBeamWindowConfig_m.has_value() && beamBeamWindowConfig_m->copyModel) {
         const double interactionPointBeamZ = beamBeamWindowConfig_m->interactionPointS - get_sPos();
         scatterMirroredChargeDensity(rho, interactionPointBeamZ);
-        dumpBeamBeamWindowStage("after_mirror_scatter");
     }
 
     /*
@@ -941,6 +999,8 @@ void PartBunch<T, Dim>::computeSelfFields() {
     middle" of a full timestep. As of now, this might not be necessary.
     */
     (*rho) = (*rho) / getdT();
+    lastDepositedChargeBeforeBackground_m = (*rho).sum();
+    lastDepositedChargeBeforeBackgroundValid_m = true;
     m << level4 << "Rho scale by dt done." << endl;
 
 #ifdef doDEBUG
@@ -983,7 +1043,17 @@ void PartBunch<T, Dim>::computeSelfFields() {
         m << level4 << "Net-0 charge generation with factor " << (totalQ / size) << " done."
           << endl;
     }
-    dumpBeamBeamWindowStage("after_background_subtraction");
+
+    if constexpr (Dim == 3 && std::is_same_v<T, double>) {
+        if (writeBeamBeamH5Diagnostics) {
+            const std::string snapshotKind =
+                beamBeamWindowConfig_m.has_value() ? "active_beambeam" : "normal_tracking";
+
+            getBeamBeamDiagnosticsWriter()->beginStep(
+                buildBeamBeamDiagnosticsStepMetadata(snapshotKind),
+                *rho);
+        }
+    }
 
     if (beamBeamWindowConfig_m.has_value()) {
         dumpChargeDensityDebug("collision_window_primary_only");
@@ -1015,6 +1085,12 @@ void PartBunch<T, Dim>::computeSelfFields() {
 
     this->fsolver_m->runSolver();
     m << level4 << "Field solver ran." << endl;
+
+    if constexpr (Dim == 3 && std::is_same_v<T, double>) {
+        if (writeBeamBeamH5Diagnostics) {
+            getBeamBeamDiagnosticsWriter()->endStep(this->fcontainer_m->getE());
+        }
+    }
 
     /*
     Now, with E=-grad(phi), E has units of [V/m] (note, phi is a scalar potential).
