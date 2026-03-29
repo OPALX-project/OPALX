@@ -731,6 +731,12 @@ void ParallelTracker::checkInBBRegion(OrbitThreader& oth) {
     const double bunchTailS = bunchS + rmin(2);
     const double bunchHeadS = bunchS + rmax(2);
     const double bunchHeadSExit = 2.0 * bunchS + rmax(2);
+    const double bunchTailSObserved =
+        beamBeamState_m.state == BEAMBEAM::WindowState::Active ? 2.0 * bunchS + rmin(2)
+                                                               : bunchTailS;
+    const double bunchHeadSObserved =
+        beamBeamState_m.state == BEAMBEAM::WindowState::Active ? bunchHeadSExit
+                                                               : bunchHeadS;
 
     std::optional<BEAMBEAM::ActualGeometry> geometry = detectBeamBeamWindow(oth, rmin, rmax);
     if (!geometry.has_value() &&
@@ -751,8 +757,8 @@ void ParallelTracker::checkInBBRegion(OrbitThreader& oth) {
 
     beamBeamDiagnostics_m.frameObserved =
         activeGeometry.config.visualize &&
-        (bunchHeadS >= observedBeginS) &&
-        (bunchTailS <= observedEndS);
+        (bunchHeadSObserved >= observedBeginS) &&
+        (bunchTailSObserved <= observedEndS);
     beamBeamState_m.geometry = activeGeometry;
 
     const double beamBeamCellHalfWidth =
@@ -767,7 +773,7 @@ void ParallelTracker::checkInBBRegion(OrbitThreader& oth) {
     }
 
     if (beamBeamDiagnostics_m.frameObserved) {
-        renderBeamBeamWindowFrame(bunchTailS, bunchHeadS, activeGeometry);
+        renderBeamBeamWindowFrame(bunchTailSObserved, bunchHeadSObserved, activeGeometry);
     }
 
     // Enter beam-beam-window mode once the whole bunch is inside the window
@@ -779,8 +785,8 @@ void ParallelTracker::checkInBBRegion(OrbitThreader& oth) {
         enterBeamBeamWindow(activeGeometry, m);
         beamBeamDiagnostics_m.frameObserved =
             activeGeometry.config.visualize &&
-            (bunchHeadS >= observedBeginS) &&
-            (bunchTailS <= observedEndS);
+            (bunchHeadSObserved >= observedBeginS) &&
+            (bunchTailSObserved <= observedEndS);
     }
 
     // Leave beam-beam-window mode as soon as the first particle exits the
