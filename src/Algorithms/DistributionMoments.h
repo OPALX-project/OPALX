@@ -38,8 +38,10 @@ class OpalParticle;
 
 class DistributionMoments {
 public:
-    void setBunchStateHandler(std::shared_ptr<BunchStateHandler> bunchStateHandler) { 
-        bunchStateHandler_m = bunchStateHandler; 
+    DistributionMoments();
+
+    void setBunchStateHandler(std::shared_ptr<BunchStateHandler> bunchStateHandler) {
+        bunchStateHandler_m = std::move(bunchStateHandler);
     }
     
     /// Configure whether kinetic-energy moments use a reference particle mass (instead of per-particle M).
