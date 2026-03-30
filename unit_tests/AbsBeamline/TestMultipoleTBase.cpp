@@ -13,6 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL.  If not, see <https://www.gnu.org/licenses/>.
 //
+
 #include "AbsBeamline/MultipoleTBase.h"
 #include "gtest/gtest.h"
 
@@ -20,7 +21,6 @@ class MultipoleTBaseTest : public testing::Test, public MultipoleTBase {
 public:
     MultipoleTBaseTest() : MultipoleTBase(nullptr) {}
 
-protected:
     static void SetUpTestSuite() {
         int argc    = 0;
         char** argv = nullptr;

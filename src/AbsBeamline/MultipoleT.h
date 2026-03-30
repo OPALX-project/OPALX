@@ -1,34 +1,22 @@
-/*
- *  Copyright (c) 2017, Titus Dascalu
- *  Copyright (c) 2018, Martin Duy Tat
- *  Copyright (c) 2025, Jon Thompson
- *  All rights reserved.
- *  Redistribution and use in source and binary forms, with or without
- *  modification, are permitted provided that the following conditions are met:
- *  1. Redistributions of source code must retain the above copyright notice,
- *     this list of conditions and the following disclaimer.
- *  2. Redistributions in binary form must reproduce the above copyright notice,
- *     this list of conditions and the following disclaimer in the documentation
- *     and/or other materials provided with the distribution.
- *  3. Neither the name of STFC nor the names of its contributors may be used to
- *     endorse or promote products derived from this software without specific
- *     prior written permission.
- *
- *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
- *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- *  POSSIBILITY OF SUCH DAMAGE.
- */
+//
+// Cubic Spline Interpolation to replace GSL spline
+//
+// Copyright (c) 2023, Paul Scherrer Institute, Villigen PSI, Switzerland
+// All rights reserved
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 
-#ifndef CLASSIC_MULTIPOLET_H
-#define CLASSIC_MULTIPOLET_H
+#ifndef ABSBEAMLINE_MULTIPOLET_H
+#define ABSBEAMLINE_MULTIPOLET_H
 
 /** ---------------------------------------------------------------------
  *
@@ -237,6 +225,7 @@ protected:
 
     void chooseImplementation();
     double getScaling(double t) const;
+    void validateConfiguration() const;
 
     /** Not implemented */
     BMultipoleField dummy;
@@ -247,11 +236,5 @@ protected:
 
     // The object that does the work
     std::unique_ptr<MultipoleTBase> implementation_{};
-
-    /** This one is here for test purposes.
-     * It is required as it is too difficult to mock a PartBunch. */
-    void apply(
-            Kokkos::View<Vector_t<double, 3>*> R, Kokkos::View<Vector_t<double, 3>*> E,
-            Kokkos::View<Vector_t<double, 3>*> B, double t, size_t count) const;
 };
 #endif

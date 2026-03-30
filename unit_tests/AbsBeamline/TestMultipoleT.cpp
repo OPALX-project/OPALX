@@ -13,11 +13,10 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL.  If not, see <https://www.gnu.org/licenses/>.
 //
-#include <csignal>
 
+#include <csignal>
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "AbsBeamline/MultipoleT.h"
-#include "Algorithms/DefaultVisitor.h"
 #include "Algorithms/SplineTimeDependence.h"
 #include "gtest/gtest.h"
 
@@ -25,7 +24,6 @@ class TestMultipoleT : public testing::Test, public MultipoleT, public BeamlineV
 public:
     TestMultipoleT() : MultipoleT("Magnet") {}
 
-protected:
     static void SetUpTestSuite() {
         int argc    = 0;
         char** argv = nullptr;
@@ -136,4 +134,16 @@ TEST_F(TestMultipoleT, OddApis) {
     EXPECT_NO_THROW(finalise());
     double a,b;
     EXPECT_NO_THROW(getDimensions(a, b));
+}
+
+TEST_F(TestMultipoleT, ConfigurationValidation) {
+    // Set up the magnet
+    setBendAngle(0, false);
+    setElementLength(4);
+    setAperture(0.3, 0.3);
+    setFringeField(2, 0.2, 0.2);
+    setTransProfile({1});
+    // Illegal F order
+    setMaxOrder(10, 10);
+    EXPECT_THROW(fieldAtT({0.0, 0.0, 2.0}, 0.0), OpalException);
 }
