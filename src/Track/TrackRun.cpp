@@ -578,6 +578,8 @@ void TrackRun::setupDistributionsAndSamplers(
                                     "Unknown \"TYPE\" of \"DISTRIBUTION\"");
         }
 
+        sampler->setBunchStateHandler(bunch_m->getBunchStateHandler());
+
         // Per-source emission offsets and start time.
         const auto  R0  = src->getR0();
         const auto  P0  = src->getP0();
