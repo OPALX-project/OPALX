@@ -9,6 +9,7 @@
 #include "Manager/BaseManager.h"
 
 #include "Algorithms/DistributionMoments.h"
+#include "PartBunch/BunchStateHandler.h"
 
 #include "Utilities/Options.h"
 
@@ -138,6 +139,11 @@ public:
 
     PLayout_t<T, Dim>& getPL() {
         return pl_m;
+    }
+
+    void setBunchStateHandler(std::shared_ptr<BunchStateHandler> handler) {
+        bunchStateHandler_m = handler;
+        distMoments_m.setBunchStateHandler(handler);
     }
 
     void updateMoments(){
@@ -412,6 +418,10 @@ public:
 
         this->destroy(invalid, localDestroyNum);
 
+        // Only called if globalDestroyNum > 0, i.e. if any particles were destroyed --> statistics
+        // changed --> moments are dirty
+        bunchStateHandler_m->markMomentsDirty();
+
         return globalDestroyNum;
     }
 
@@ -425,6 +435,9 @@ private:
     QMStorageMode qmStorageMode_m = QMStorageMode::SingleValue;
 
     DistributionMoments distMoments_m;
+
+    /// BunchStateHandler necessary for bunch state tracking.
+    std::shared_ptr<BunchStateHandler> bunchStateHandler_m;
 
     // Single shared scalar mode stored as a length-1 Kokkos view.
     qm_view_type QView_m;
