@@ -17,17 +17,14 @@
 //
 
 #include "Algorithms/DistributionMoments.h"
-
-#include <limits>
-
+#include "AbstractObjects/OpalParticle.h"
+#include "Utilities/GSLHistogram.h"
+#include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
 #include "Utilities/Util.h"
-
 #include "Utility/Inform.h"
 
-#include "AbstractObjects/OpalParticle.h"
-
-#include "Utilities/GSLHistogram.h"
+#include <limits>
 
 extern Inform* gmsg;
 

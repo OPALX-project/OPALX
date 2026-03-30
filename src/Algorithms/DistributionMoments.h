@@ -18,13 +18,13 @@
 #ifndef DISTRIBUTIONMOMENTS_H
 #define DISTRIBUTIONMOMENTS_H
 
-#include "Ippl.h"
-#include <Kokkos_Core.hpp>
 #include "Algorithms/Matrix.h"
+#include "Ippl.h"
+#include "PartBunch/BunchStateHandler.h"
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
-#include "PartBunch/BunchStateHandler.h"
 
+#include <Kokkos_Core.hpp>
 #include <vector>
 
 template <typename T, unsigned Dim = 3>
@@ -43,30 +43,35 @@ public:
     void setBunchStateHandler(std::shared_ptr<BunchStateHandler> bunchStateHandler) {
         bunchStateHandler_m = std::move(bunchStateHandler);
     }
-    
-    /// Configure whether kinetic-energy moments use a reference particle mass (instead of per-particle M).
+
+    /// Configure whether kinetic-energy moments use a reference particle mass (instead of
+    /// per-particle M).
     /// @param referenceMassGeV Reference particle mass in GeV.
-    /// @param rescaleToReference If true, mean/std kinetic energy are computed using referenceMassGeV.
+    /// @param rescaleToReference If true, mean/std kinetic energy are computed using
+    /// referenceMassGeV.
     void setEnergyReferenceMass(double referenceMassGeV, bool rescaleToReference = true) {
-        referenceMassGeV_m     = referenceMassGeV;
-        rescaleToReference_m   = rescaleToReference;
+        referenceMassGeV_m   = referenceMassGeV;
+        rescaleToReference_m = rescaleToReference;
     }
-    bool getRescaleEnergyToReference() const { return rescaleToReference_m; }
-    double getEnergyReferenceMassGeV() const { return referenceMassGeV_m; }
+    bool getRescaleEnergyToReference() const {
+        return rescaleToReference_m;
+    }
+    double getEnergyReferenceMassGeV() const {
+        return referenceMassGeV_m;
+    }
     void compute(
-        const std::vector<OpalParticle>::const_iterator&,
-        const std::vector<OpalParticle>::const_iterator&);
-    void computeMoments(ippl::ParticleAttrib<Vector_t<double,3>>::view_type  Rview,
-                        ippl::ParticleAttrib<Vector_t<double,3>>::view_type  Pview,
-                        ippl::ParticleAttrib<double>::view_type  Mview,
-                        size_t Np,
-                        size_t Nlocal);
-    void computeMinMaxPosition(ippl::ParticleAttrib<Vector_t<double,3>>::view_type  Rview, size_t Nlcoal);
+            const std::vector<OpalParticle>::const_iterator&,
+            const std::vector<OpalParticle>::const_iterator&);
+    void computeMoments(
+            ippl::ParticleAttrib<Vector_t<double, 3>>::view_type Rview,
+            ippl::ParticleAttrib<Vector_t<double, 3>>::view_type Pview,
+            ippl::ParticleAttrib<double>::view_type Mview, size_t Np, size_t Nlocal);
+    void computeMinMaxPosition(
+            ippl::ParticleAttrib<Vector_t<double, 3>>::view_type Rview, size_t Nlcoal);
     void computeMeanKineticEnergy();
-    void computeDebyeLength(ippl::ParticleAttrib<Vector_t<double,3>>::view_type  Pview,
-                        size_t Np,
-                        size_t Nlocal,
-                        double density);
+    void computeDebyeLength(
+            ippl::ParticleAttrib<Vector_t<double, 3>>::view_type Pview, size_t Np, size_t Nlocal,
+            double density);
     void computePlasmaParameter(double);
 
     Vector_t<double, 3> getMeanPosition() const;
@@ -110,26 +115,26 @@ public:
     double getTotalMass() const;
     double getTotalNumParticles() const;
 
-    void computeMeans(ippl::ParticleAttrib<Vector_t<double,3>>::view_type  Rview,
-                                         ippl::ParticleAttrib<Vector_t<double,3>>::view_type  Pview,
-                                         ippl::ParticleAttrib<double>::view_type  Mview,
-                                         size_t Np,
-                                         size_t Nlocal);
+    void computeMeans(
+            ippl::ParticleAttrib<Vector_t<double, 3>>::view_type Rview,
+            ippl::ParticleAttrib<Vector_t<double, 3>>::view_type Pview,
+            ippl::ParticleAttrib<double>::view_type Mview, size_t Np, size_t Nlocal);
+
 private:
     bool isParticleExcluded(const OpalParticle&) const;
 
-    //template <class InputIt>
-    //void computeMeans(const InputIt&, const InputIt&);
     // template <class InputIt>
-    // void computeStatistics(const InputIt&, const InputIt&);
+    // void computeMeans(const InputIt&, const InputIt&);
+    //  template <class InputIt>
+    //  void computeStatistics(const InputIt&, const InputIt&);
     template <class InputIt>
     void computePercentiles(const InputIt&, const InputIt&);
     using iterator_t = std::vector<Vector_t<double, 2>>::const_iterator;
     std::pair<double, iterator_t> determinePercentilesDetail(
-        const iterator_t& begin, const iterator_t& end,
-        const std::vector<int>& globalAccumulatedHistogram,
-        const std::vector<int>& localAccumulatedHistogram, unsigned int dimension,
-        int numRequiredParticles) const;
+            const iterator_t& begin, const iterator_t& end,
+            const std::vector<int>& globalAccumulatedHistogram,
+            const std::vector<int>& localAccumulatedHistogram, unsigned int dimension,
+            int numRequiredParticles) const;
     double computeNormalizedEmittance(const iterator_t& begin, const iterator_t& end) const;
 
     void fillMembers(std::vector<double>&);
