@@ -505,6 +505,12 @@ void PartBunch<T, Dim>::dumpBinConfig(bool preMerge) {
         return;
     }
 
+    // If BINNING is configured with DUMPBINSFILE="NONE", skip all file dumping.
+    // (BinnedFieldSolver may still call dumpBinConfig() during rebin/merge steps.)
+    if (!binningCmd->dumpBinsToFile()) {
+        return;
+    }
+
     const long long step = getGlobalTrackStep();
     const int dumpFreq   = binningCmd->getDumpBinsFrequency();
     if (dumpFreq <= 0 || (step % dumpFreq) != 0) {
