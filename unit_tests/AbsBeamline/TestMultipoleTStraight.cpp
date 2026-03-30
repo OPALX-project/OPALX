@@ -1,50 +1,54 @@
-/*
- *  Copyright (c) 2025, Jon Thompson
- *  All rights reserved.
- *  Redistribution and use in source and binary forms, with or without
- *  modification, are permitted provided that the following conditions are met:
- *  1. Redistributions of source code must retain the above copyright notice,
- *     this list of conditions and the following disclaimer.
- *  2. Redistributions in binary form must reproduce the above copyright notice,
- *     this list of conditions and the following disclaimer in the documentation
- *     and/or other materials provided with the distribution.
- *  3. Neither the name of STFC nor the names of its contributors may be used to
- *     endorse or promote products derived from this software without specific
- *     prior written permission.
- *
- *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
- *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- *  POSSIBILITY OF SUCH DAMAGE.
- */
+//
+// Cubic Spline Interpolation to replace GSL spline
+//
+// Copyright (c) 2023, Paul Scherrer Institute, Villigen PSI, Switzerland
+// All rights reserved
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
+
 #include <vector>
 #include "AbsBeamline/Component.h"
 #include "AbsBeamline/MultipoleT.h"
+#include "AbstractObjects/OpalData.h"
+#include "Structure/DataSink.h"
 #include "gtest/gtest.h"
 
 class TestMultipoleTStraight : public testing::Test, public MultipoleT {
 public:
     TestMultipoleTStraight() : MultipoleT("Magnet") {}
 
-protected:
     static void SetUpTestSuite() {
         int argc    = 0;
         char** argv = nullptr;
         ippl::initialize(argc, argv);
+        // DataSink requires a basename to create *.stat / *.lbal writers.
+        OpalData::getInstance()->storeInputFn("unit_test.opal");
+        // Many OPAL writers assume `gmsg` is initialized (see SDDSWriter/StatWriter).
+        // Unit tests normally don't set this up via Main().
+        gmsg = new Inform(nullptr, -1);
+        // DataSink::DataSink() constructs HDF5 writers when enabled, but the unit
+        // test doesn't have an H5PartWrapper. Disable HDF5 for this smoke test.
+        Options::enableHDF5 = false;
     }
-    static void TearDownTestSuite() { ippl::finalize(); }
+    static void TearDownTestSuite() {
+        delete gmsg;
+        gmsg = nullptr;
+        ippl::finalize();
+    }
 
     // Test helper functions
     static Vector_t<double, 3> curvilinearToGlobal(
-        const Vector_t<double, 3>& local, const Vector_t<double, 3>& elementEntry,
-        const double elementLength) {
+            const Vector_t<double, 3>& local, const Vector_t<double, 3>& elementEntry,
+            const double elementLength) {
         const double x = local[0] + elementEntry[0];
         const double y = local[1] + elementEntry[1];
         const double z = local[2] + elementLength / 2 + elementEntry[2];
@@ -52,49 +56,51 @@ protected:
     }
 
     void grabTransverseDataLine(
-        std::vector<double>& line, const double s, const double width,
-        const Vector_t<double, 3>& elementEntry, const double elementLength) const {
-        // Create the views
-        std::vector<Vector_t<double, 3>> local;
-        Kokkos::View<Vector_t<double, 3>*> R;
-        Kokkos::View<Vector_t<double, 3>*> E;
-        Kokkos::View<Vector_t<double, 3>*> B;
-        local.resize(line.size());
-        Kokkos::resize(R, line.size());
-        Kokkos::resize(E, line.size());
-        Kokkos::resize(B, line.size());
-        const auto hostR = Kokkos::create_mirror_view(R);
-        const auto hostB = Kokkos::create_mirror_view(B);
+            std::vector<double>& line, const double s, const double width,
+            const Vector_t<double, 3>& elementEntry, const double elementLength) {
+        // Make the bunch
+        const auto bunch = makeBunch(line.size());
+        const auto pc = bunch->getParticleContainer();
+        // Create the local views and data
+        std::vector<Vector_t<double, 3>> localR(line.size());
+        const auto hostR = Kokkos::create_mirror_view(pc->R.getView());
+        const auto hostB = Kokkos::create_mirror_view(pc->B.getView());
         // Set the particle positions
         const double stepSize = width / static_cast<double>(line.size() - 1);
         for (size_t i = 0; i < line.size(); ++i) {
-            local[i] = {static_cast<double>(i) * stepSize - width / 2, 0, s};
-            hostR(i) = curvilinearToGlobal(local[i], elementEntry, elementLength);
+            localR[i] = {static_cast<double>(i) * stepSize - width / 2, 0, s};
+            hostR(i) = curvilinearToGlobal(localR[i], elementEntry, elementLength);
         }
-        Kokkos::deep_copy(R, hostR);
+        Kokkos::deep_copy(pc->R.getView(), hostR);
+        pc->setQ(bunch->getChargePerParticle());
+        ippl::Comm->barrier();
+        Kokkos::fence();
+        // Register the bunch with the element
+        bunch->setT(0.0);
+        double startField, endField;
+        initialise(bunch.get(), startField, endField);
         // Get the fields
-        apply(R, E, B, 0.0, line.size());
+        apply();
         // Return the fields
-        Kokkos::deep_copy(hostB, B);
+        Kokkos::deep_copy(hostB, pc->B.getView());
         for (size_t i = 0; i < line.size(); ++i) {
             line[i] = std::hypot(hostB(i)[0], hostB(i)[1], hostB(i)[2]);
-            //std::cout << i << ": Local=" << local[i] << ", Global=" << R[i]
-            //          << ", mag(B)=" << line[i] << std::endl;
+        //    std::cout << i << ": Local=" << localR[i] << ", Global=" << hostR[i]
+        //              << ", mag(B)=" << line[i] << std::endl;
         }
         //std::cout << std::endl;
     }
 
     void grabLongitudinalDivCurlLine(
-        std::vector<double>& fieldLine, std::vector<double>& divLine,
-        std::vector<Vector_t<double, 3>>& curlLine, const double x, const double length,
-        const Vector_t<double, 3>& elementEntry, const double elementLength, const double dr) {
+            std::vector<double>& fieldLine, std::vector<double>& divLine,
+            std::vector<Vector_t<double, 3>>& curlLine, const double x, const double length,
+            const Vector_t<double, 3>& elementEntry, const double elementLength, const double dr) {
         const double stepSize = length / static_cast<double>(divLine.size() - 1);
         const double startS   = 0 - (elementLength - length) / 2;
         for (size_t i = 0; i < divLine.size(); ++i) {
             // Get the sourrounding 6 B fields
             Vector_t<double, 3> local{x, 0, static_cast<double>(i) * stepSize + startS};
-            Vector_t<double, 3> R =
-                curvilinearToGlobal(local, elementEntry, elementLength);
+            Vector_t<double, 3> R = curvilinearToGlobal(local, elementEntry, elementLength);
             Vector_t<double, 3> B;
             Vector_t<double, 3> Bxp;
             Vector_t<double, 3> Bxm;
@@ -116,10 +122,49 @@ protected:
             curlLine[i][1] = (Bzp[0] - Bzm[0] - Bxp[2] + Bxm[2]) / 2 / dr;
             curlLine[i][2] = (Bxp[1] - Bxm[1] - Byp[0] + Bym[0]) / 2 / dr;
             fieldLine[i]   = std::hypot(B[0], B[1], B[2]);
-            //std::cout << i << ": Local=" << local << ", Global=" << R << ", div(B)=" << divLine[i]
-            //          << ", curl(B)=" << curlLine[i] << ", B=" << fieldLine[i] << std::endl;
+            // std::cout << i << ": Local=" << local << ", Global=" << R << ", div(B)=" <<
+            // divLine[i]
+            //           << ", curl(B)=" << curlLine[i] << ", B=" << fieldLine[i] << std::endl;
         }
     }
+
+    class TestableFieldSolverCmd : public FieldSolverCmd {
+    public:
+        void setType(const std::string& t) {
+            Attributes::setPredefinedString(this->itsAttr[FIELDSOLVER::TYPE], t);
+        }
+
+        void setBCX(const std::string& bc) {
+            Attributes::setPredefinedString(this->itsAttr[FIELDSOLVER::BCFFTX], bc);
+        }
+        void setBCY(const std::string& bc) {
+            Attributes::setPredefinedString(this->itsAttr[FIELDSOLVER::BCFFTY], bc);
+        }
+        void setBCZ(const std::string& bc) {
+            Attributes::setPredefinedString(this->itsAttr[FIELDSOLVER::BCFFTZ], bc);
+        }
+    };
+
+    std::shared_ptr<FieldSolverCmd> fsCmdBase_m;
+
+    std::shared_ptr<PartBunch_t> makeBunch(const size_t numParticles) {
+        auto dataSink    = std::make_shared<DataSink>();
+        const auto fsCmd = std::make_shared<TestableFieldSolverCmd>();
+        fsCmdBase_m      = fsCmd;
+        fsCmd->setType("NONE");
+        fsCmd->setNX(8);
+        fsCmd->setNY(8);
+        fsCmd->setNZ(8);
+        fsCmd->setBCX("PERIODIC");
+        fsCmd->setBCY("PERIODIC");
+        fsCmd->setBCZ("PERIODIC");
+        auto bunch = std::make_shared<PartBunch_t>(
+                /*qi=*/std::vector{1.0}, /*mi=*/std::vector{1.0}, /*num_containers=*/1,
+                /*lbt=*/1.0, /*integration_method=*/"LF2", fsCmdBase_m, dataSink);
+        bunch->getParticleContainer()->create(numParticles);
+        return bunch;
+    }
+
 };
 
 TEST_F(TestMultipoleTStraight, Dipole) {
@@ -327,13 +372,12 @@ TEST_F(TestMultipoleTStraight, DivCurl) {
     setMaxOrder(5, 10);
     setTransProfile({1, 1, 1, 1, 1});
     // Get the data
-    grabLongitudinalDivCurlLine(
-        fieldLine, divLine, curlLine, 0, length * 1.5, {}, length, dr);
+    grabLongitudinalDivCurlLine(fieldLine, divLine, curlLine, 0, length * 1.5, {}, length, dr);
     // Analyse the results
     for (size_t i = 0; i < divLine.size(); ++i) {
         const double divError = std::abs(divLine[i]) * dr / fieldLine[i];
         const double curlError =
-            std::hypot(curlLine[i][0], curlLine[i][1], curlLine[i][2]) * dr / fieldLine[i];
+                std::hypot(curlLine[i][0], curlLine[i][1], curlLine[i][2]) * dr / fieldLine[i];
         EXPECT_NEAR(divError, 0, 1e-5);
         EXPECT_NEAR(curlError, 0, 1e-2);
     }
@@ -341,7 +385,7 @@ TEST_F(TestMultipoleTStraight, DivCurl) {
 
 TEST_F(TestMultipoleTStraight, Geometry) {
     TestMultipoleTStraight* magnet = this;
-    auto* geom = &magnet->getGeometry();
+    auto* geom                     = &magnet->getGeometry();
     EXPECT_NE(geom, nullptr);
     auto* constGeom = &const_cast<const TestMultipoleTStraight*>(magnet)->getGeometry();
     EXPECT_NE(constGeom, nullptr);
@@ -415,4 +459,46 @@ TEST_F(TestMultipoleTStraight, Aperture) {
     EXPECT_NE(line[6], 0.0);  // 2.0
     EXPECT_NE(line[7], 0.0);  // 3.0
     EXPECT_EQ(line[8], 0.0);  // 3.0
+}
+
+TEST_F(TestMultipoleTStraight, FieldAtSingleParticlePosition) {
+    // Set up the magnet
+    constexpr double length      = 4.4;
+    constexpr double bendAngle   = 0.0;
+    constexpr double dipoleField = 1.0;
+    setBendAngle(bendAngle, false);
+    setElementLength(length);
+    setAperture(3.5, 3.5);
+    setFringeField(length / 2, 0.3, 0.3);
+    setRotation(0.0);
+    setEntranceAngle(0.0);
+    setMaxOrder(5, 10);
+    setTransProfile({dipoleField});
+    // Make the bunch
+    const auto bunch = makeBunch(1);
+    const auto pc = bunch->getParticleContainer();
+    // Create the local views and data
+    std::vector<Vector_t<double, 3>> localR(1);
+    const auto hostR = Kokkos::create_mirror_view(pc->R.getView());
+    const auto hostB = Kokkos::create_mirror_view(pc->B.getView());
+    // Set the particle position
+    localR[0] = {0, 0, 0};
+    hostR(0) = curvilinearToGlobal(localR[0], {0, 0, 0}, length);
+    Kokkos::deep_copy(pc->R.getView(), hostR);
+    pc->setQ(bunch->getChargePerParticle());
+    ippl::Comm->barrier();
+    Kokkos::fence();
+    // Register the bunch with the element
+    bunch->setT(0.0);
+    double startField, endField;
+    initialise(bunch.get(), startField, endField);
+    // Get the fields
+    Vector_t<double, 3> E{}, B{};
+    apply(0, 0.0, E, B);
+    // Check the field
+    const auto val = std::hypot(B[0], B[1], B[2]);
+    EXPECT_NEAR(val, dipoleField, 1e-2);
+    EXPECT_EQ(E[0], 0.0);
+    EXPECT_EQ(E[1], 0.0);
+    EXPECT_EQ(E[2], 0.0);
 }
