@@ -9,6 +9,7 @@
 #include "Attributes/Attributes.h"
 #include "Manager/BaseManager.h"
 #include "Manager/PicManager.h"
+#include "PartBunch/BunchStateHandler.h"
 #include "PartBunch/FieldContainer.hpp"
 #include "PartBunch/FieldSolver.hpp"
 #include "PartBunch/LoadBalancer.hpp"
@@ -64,7 +65,7 @@ public:
     int it_m; // iteration count
 
     double lbt_m; // load balancer threshold
-    bool isFirstRepartition_m; // first repartition flag
+    // Routed through bunchState_m.isFirstRepartition() / setFirstRepartition().
     ippl::NDIndex<Dim> domain_m;
     std::array<bool, Dim> decomp_m;
 
@@ -107,8 +108,7 @@ private:
     std::shared_ptr<FieldSolverCmd> OPALFieldSolver_m; // field solver command
     std::shared_ptr<DataSink> dataSink_m; // data sink
 
-    // unit state of PartBunch --> always false after initialization, so use this as standard flag
-    bool isUnitless_m = false; // unitless flag
+    std::shared_ptr<BunchStateHandler> bunchState_m;
 
     double t_m; // time of integration
 
@@ -204,6 +204,9 @@ public:
 
     void setBCHandler(std::shared_ptr<BCHandler_t> bcHandler) { bcHandler_m = bcHandler; }
     std::shared_ptr<BCHandler_t> getBCHandler() const { return bcHandler_m; }
+
+    std::shared_ptr<BunchStateHandler> getBunchStateHandler() { return bunchState_m; }
+    std::shared_ptr<const BunchStateHandler> getBunchStateHandler() const { return bunchState_m; }
 
     void updateMoments(){
         this->pcontainer_m->updateMoments();
@@ -417,12 +420,11 @@ public:
      *      this function throws an OpalException.
      */
     void switchToUnitlessPositions(bool use_dt_per_particle = false) {
-        if (isUnitless_m) {
+        if (bunchState_m->isUnitlessPositions()) {
             throw OpalException("PartBunch::switchToUnitlessPositions",
                                 "PartBunch is already in unitless positions!");
         }
 
-        // Divide by c*dt
         double unitless_factor = 1.0 / (Physics::c * this->getdT());
         auto Rview             = this->getParticleContainer()->R.getView();
         auto dtview            = this->getParticleContainer()->dt.getView();
@@ -433,9 +435,7 @@ public:
                     use_dt_per_particle ? (1.0 / (Physics::c * dtview(i))) : unitless_factor;
                 Rview(i) *= fac;
             });
-        isUnitless_m = true;
-
-        /// \todo remove later
+        bunchState_m->setUnitlessPositions(true);
         *gmsg << level4 << "* Switched to unitless positions." << endl; 
     }
     /**
@@ -458,16 +458,15 @@ public:
      *                            the global dt from getdT() (false) for the scaling.
      *
      * @pre The PartBunch must currently be in unitless coordinates. If the bunch is
-     *      already in physical coordinates (isUnitless_m is false), this function
+     *      already in physical coordinates (unitlessPositions is false), this function
      *      throws an OpalException.
      */
     void switchOffUnitlessPositions(bool use_dt_per_particle = false) {
-        if (!isUnitless_m) {
+        if (!bunchState_m->isUnitlessPositions()) {
             throw OpalException("PartBunch::switchOffUnitlessPositions",
                                 "PartBunch is already in physical positions!");
         }
 
-        // Multiply by c*dt
         double unitless_factor = Physics::c * this->getdT();
         auto Rview  = this->getParticleContainer()->R.getView();
         auto dtview = this->getParticleContainer()->dt.getView();
@@ -478,9 +477,7 @@ public:
                 double fac = use_dt_per_particle ? (Physics::c * dtview(i)) : unitless_factor;
                 Rview(i) *= fac;
             });
-        isUnitless_m = false;
-
-        /// \todo remove later
+        bunchState_m->setUnitlessPositions(false);
         *gmsg << level4 << "* Switched to physical positions." << endl;
     }
 
