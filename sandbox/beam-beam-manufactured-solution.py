@@ -229,7 +229,7 @@ def manufactured_setup_from_h5(np, h5_path: Path, step_number: int, state_raw: s
 
         rho, origin, spacing = read_h5_scalar_field(np, step, "rho")
         phi, _, _ = read_h5_scalar_field(np, step, "phi")
-        # ex, _, _ = read_h5_scalar_field(np, step, "Ex")
+        ez, _, _ = read_h5_scalar_field(np, step, "Ez")
         # ey, _, _ = read_h5_scalar_field(np, step, "Ey")
         # ez, _, _ = read_h5_scalar_field(np, step, "Ez")
 
@@ -270,7 +270,7 @@ def manufactured_setup_from_h5(np, h5_path: Path, step_number: int, state_raw: s
             "opalx": {
                 "rho": rho,
                 "phi": phi,
-                # "Ex": ex,
+                "Ez": ez,
                 # "Ey": ey,
                 # "Ez": ez,
             },
@@ -364,6 +364,7 @@ def plot_comparison(
     field_labels = {
         "rho": r"$\rho$",
         "phi": r"$\phi$",
+        "Ez": r"$E_z$",
     }
     # components = ("rho", "phi", "Ex", "Ez")
     fig, axes = plt.subplots(

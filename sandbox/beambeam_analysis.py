@@ -157,11 +157,14 @@ def normalize_compare_component(component: str | None) -> tuple[str, ...]:
     mapping = {
         "rho": ("rho",),
         "phi": ("phi",),
+        "ez": ("Ez",),
         "rho-z-axis": ("rho-z-axis",),
         "phi-z-axis": ("phi-z-axis",),
         "rho+phi": ("rho", "phi"),
+        "rho+phi+ez": ("rho", "phi", "Ez"),
         "rho,phi": ("rho", "phi"),
-        "all": ("rho", "phi"),
+        "rho,phi,ez": ("rho", "phi", "Ez"),
+        "all": ("rho", "phi", "Ez"),
         "both": ("rho", "phi"),
     }
     return mapping.get(normalized, ("rho", "phi"))
@@ -456,6 +459,190 @@ def render_manufactured_compare_output(
     )
 
 
+def prepare_ez_along_bunch_data(
+    *,
+    h5_path: Path,
+    step: int,
+    state: str | None = None,
+):
+    manufactured = load_manufactured_solution()
+    np = manufactured.load_numpy()
+    h5py = manufactured.load_h5py()
+
+    with h5py.File(h5_path, "r") as h5file:
+        step_name, _snapshot_kind = manufactured.select_h5_step(
+            h5file,
+            step,
+            normalize_compare_state(state),
+        )
+        step_group = h5file[step_name]
+        ez_field, origin, spacing = manufactured.read_h5_scalar_field(np, step_group, "Ez")
+        particle_mean_r = manufactured.decode_value(step_group.attrs.get("particle_mean_r"))
+        interaction_point_s = manufactured.decode_value(step_group.attrs.get("interaction_point_s"))
+        path_length_s = manufactured.decode_value(step_group.attrs.get("path_length_s"))
+        snapshot_kind = str(manufactured.decode_value(step_group.attrs.get("snapshot_kind", "")))
+
+    if not (isinstance(particle_mean_r, list) and len(particle_mean_r) >= 3):
+        raise SystemExit("particle_mean_r missing or invalid in HDF5 step.")
+
+    nx = ez_field.shape[2]
+    ny = ez_field.shape[1]
+    nz = ez_field.shape[0]
+    x_centers = origin[0] + (np.arange(nx) + 0.5) * spacing[0]
+    y_centers = origin[1] + (np.arange(ny) + 0.5) * spacing[1]
+    z_centers = origin[2] + (np.arange(nz) + 0.5) * spacing[2]
+
+    x_mean = float(particle_mean_r[0])
+    y_mean = float(particle_mean_r[1])
+    z_mean = float(particle_mean_r[2])
+
+    ix = int(np.argmin(np.abs(x_centers - x_mean)))
+    iy = int(np.argmin(np.abs(y_centers - y_mean)))
+    ez_line = ez_field[:, iy, ix]
+
+    ip_beam_z = None
+    if isinstance(interaction_point_s, float) and isinstance(path_length_s, float):
+        ip_beam_z = interaction_point_s - path_length_s
+
+    title = f"step {step}"
+    return {
+        "np": np,
+        "z_centers": z_centers,
+        "ez_line": ez_line,
+        "z_mean": z_mean,
+        "ip_beam_z": ip_beam_z,
+        "title": title,
+    }
+
+
+def plot_ez_along_bunch(
+    *,
+    plt,
+    z_centers,
+    ez_line,
+    z_mean: float,
+    ip_beam_z: float | None,
+    title: str,
+    output: Path | None = None,
+    axis_limits=None,
+) -> None:
+    fig, ax = plt.subplots(figsize=(10, 6), constrained_layout=True)
+    ax.plot(z_centers, ez_line, linewidth=2.0, color="tab:blue", label="OPALX $E_z$")
+    if ip_beam_z is not None:
+        ax.axvline(ip_beam_z, color="darkorange", linestyle=":", linewidth=1.2, label="IP")
+    ax.set_xlabel("z [m]")
+    ax.set_ylabel(r"$E_z$ [V/m]")
+    ax.set_title(title)
+    ax.grid(True, color="0.75", linewidth=0.9, alpha=0.9)
+    if ip_beam_z is not None:
+        ax.legend()
+    if axis_limits is not None:
+        ax.set_xlim(*axis_limits["x"])
+        ax.set_ylim(*axis_limits["y"])
+
+    if output is not None:
+        fig.savefig(output, dpi=150)
+        plt.close(fig)
+    else:
+        plt.show()
+
+
+def run_ez_along_bunch_plot(
+    *,
+    h5_path: Path,
+    step: int,
+    state: str | None = None,
+    output: Path | None = None,
+    force_agg: bool = False,
+) -> None:
+    configure_matplotlib_backend(force_agg or output is not None)
+    manufactured = load_manufactured_solution()
+    plt = manufactured.load_matplotlib()
+    data = prepare_ez_along_bunch_data(h5_path=h5_path, step=step, state=state)
+    plot_ez_along_bunch(
+        plt=plt,
+        z_centers=data["z_centers"],
+        ez_line=data["ez_line"],
+        z_mean=data["z_mean"],
+        ip_beam_z=data["ip_beam_z"],
+        title=data["title"],
+        output=output,
+    )
+
+
+def run_ez_along_bunch_movie(
+    *,
+    h5_path: Path,
+    start: int,
+    end: int,
+    state: str | None = None,
+    output: Path | None = None,
+    duration_ms: int = 250,
+    force_agg: bool = False,
+) -> None:
+    if output is None:
+        raise SystemExit("movie output path is required")
+
+    configure_matplotlib_backend(True if force_agg or output is not None else False)
+    manufactured = load_manufactured_solution()
+    plt = manufactured.load_matplotlib()
+    image_cls = load_pillow_image()
+
+    lo = min(start, end)
+    hi = max(start, end)
+    prepared_steps = []
+    xmins = []
+    xmaxs = []
+    ymins = []
+    ymaxs = []
+
+    for step in range(lo, hi + 1):
+        data = prepare_ez_along_bunch_data(h5_path=h5_path, step=step, state=state)
+        prepared_steps.append((step, data))
+        xmins.append(float(data["np"].min(data["z_centers"])))
+        xmaxs.append(float(data["np"].max(data["z_centers"])))
+        ymins.append(float(data["np"].min(data["ez_line"])))
+        ymaxs.append(float(data["np"].max(data["ez_line"])))
+
+    def padded(lo_value: float, hi_value: float) -> tuple[float, float]:
+        span = hi_value - lo_value
+        pad = 0.05 * max(abs(lo_value), abs(hi_value), span, 1.0e-30)
+        return lo_value - pad, hi_value + pad
+
+    axis_limits = {
+        "x": (min(xmins), max(xmaxs)),
+        "y": padded(min(ymins), max(ymaxs)),
+    }
+
+    frames = []
+    with tempfile.TemporaryDirectory(prefix="beambeam-ez-along-bunch-") as tmpdir:
+        tmpdir_path = Path(tmpdir)
+        for step, data in prepared_steps:
+            frame_path = tmpdir_path / f"ez-{step:06d}.png"
+            plot_ez_along_bunch(
+                plt=plt,
+                z_centers=data["z_centers"],
+                ez_line=data["ez_line"],
+                z_mean=data["z_mean"],
+                ip_beam_z=data["ip_beam_z"],
+                title=data["title"],
+                output=frame_path,
+                axis_limits=axis_limits,
+            )
+            frames.append(image_cls.open(frame_path).convert("RGBA"))
+
+        if not frames:
+            raise SystemExit("no Ez-along-bunch frames generated")
+
+        frames[0].save(
+            output,
+            save_all=True,
+            append_images=frames[1:],
+            duration=duration_ms,
+            loop=0,
+        )
+
+
 def run_manufactured_compare_movie(
     *,
     h5_path: Path,
@@ -482,14 +669,14 @@ def run_manufactured_compare_movie(
     frames = []
     components = normalize_compare_component(comparison)
     if len(components) != 1:
-        raise SystemExit("compare movie requires exactly one comparison kind: rho, phi, rho-z-axis, or phi-z-axis")
+        raise SystemExit("compare movie requires exactly one comparison kind: rho, phi, Ez, rho-z-axis, or phi-z-axis")
     comparison_name = components[0]
     prepared_steps = []
     image_axis_limits = None
     line_axis_limits = None
     scale_overrides = None
 
-    if comparison_name in ("rho", "phi"):
+    if comparison_name in ("rho", "phi", "Ez"):
         xmins = []
         xmaxs = []
         zmins = []
@@ -678,6 +865,7 @@ def create_tk_gui() -> None:
                 current_index = {"value": 0}
                 playing = {"value": True}
                 after_id = {"value": None}
+                suppress_slider_callback = {"value": False}
 
                 step_text = tk.StringVar()
 
@@ -687,12 +875,17 @@ def create_tk_gui() -> None:
                     else:
                         step_text.set(f"frame {index}")
 
-                def show_frame(index: int) -> None:
+                def show_frame(index: int, *, update_slider: bool = True) -> None:
                     frame_index = max(0, min(index, len(tk_frames) - 1))
                     current_index["value"] = frame_index
                     image_label.configure(image=tk_frames[frame_index])
                     image_label.image = tk_frames[frame_index]
-                    slider.set(frame_index)
+                    if update_slider:
+                        suppress_slider_callback["value"] = True
+                        try:
+                            slider.set(frame_index)
+                        finally:
+                            suppress_slider_callback["value"] = False
                     update_step_text(frame_index)
 
                 def advance() -> None:
@@ -710,10 +903,12 @@ def create_tk_gui() -> None:
                         after_id["value"] = viewer.after(duration_ms, advance)
 
                 def on_slider(value: str) -> None:
+                    if suppress_slider_callback["value"]:
+                        return
                     if after_id["value"] is not None:
                         viewer.after_cancel(after_id["value"])
                         after_id["value"] = None
-                    show_frame(int(float(value)))
+                    show_frame(int(float(value)), update_slider=False)
                     if playing["value"]:
                         after_id["value"] = viewer.after(duration_ms, advance)
 
@@ -1038,7 +1233,7 @@ def create_tk_gui() -> None:
     ttk.Combobox(
         compare_frame,
         textvariable=compare_component,
-        values=("rho+phi", "rho", "phi", "rho-z-axis", "phi-z-axis"),
+        values=("rho+phi", "rho+phi+Ez", "rho", "phi", "Ez", "rho-z-axis", "phi-z-axis"),
         width=28,
         state="readonly",
     ).grid(row=6, column=1, sticky="w", padx=6, pady=4)
@@ -1127,10 +1322,66 @@ def create_tk_gui() -> None:
         overview_text = build_overview_table_text(h5_path, None, None)
         show_text_window("BeamBeam Overview Table", overview_text)
 
+    def show_ez_along_bunch_from_gui():
+        h5_path = Path(compare_h5.get())
+        if not h5_path.exists():
+            raise FileNotFoundError(f"missing file: {h5_path}")
+        state_value = compare_state.get().strip() or None
+        start_value = compare_start.get().strip()
+        end_value = compare_end.get().strip()
+        step_value = compare_step.get().strip()
+
+        if start_value or end_value:
+            if not (start_value and end_value):
+                raise ValueError("both start and end are required for Ez along bunch range output")
+            start_int = int(start_value)
+            end_int = int(end_value)
+            is_movie = start_int != end_int
+            selected_step = start_int
+        else:
+            if not step_value:
+                raise ValueError("either step or both start and end are required for Ez along bunch")
+            selected_step = int(step_value)
+            start_int = selected_step
+            end_int = selected_step
+            is_movie = False
+
+        display_output = temp_output_path(
+            "beambeam-ez-along-bunch",
+            ".gif" if is_movie else ".png",
+        )
+
+        def job():
+            if is_movie:
+                run_ez_along_bunch_movie(
+                    h5_path=h5_path,
+                    start=start_int,
+                    end=end_int,
+                    state=state_value,
+                    output=display_output,
+                    force_agg=True,
+                )
+                return (
+                    "Ez Along Bunch",
+                    [display_output],
+                    {str(display_output): list(range(min(start_int, end_int), max(start_int, end_int) + 1))},
+                )
+            run_ez_along_bunch_plot(
+                h5_path=h5_path,
+                step=selected_step,
+                state=state_value,
+                output=display_output,
+                force_agg=True,
+            )
+            return ("Ez Along Bunch", [display_output], None)
+
+        handle_errors(job, lambda result: show_render_window(*result))
+
     button_row = ttk.Frame(compare_frame)
     button_row.grid(row=8, column=0, columnspan=3, sticky="ew", padx=6, pady=12)
     button_row.columnconfigure(0, weight=1)
     button_row.columnconfigure(1, weight=1)
+    button_row.columnconfigure(2, weight=1)
 
     ttk.Button(
         button_row,
@@ -1142,6 +1393,11 @@ def create_tk_gui() -> None:
         text="Show Overview Table",
         command=show_compare_overview_from_gui,
     ).grid(row=0, column=1, sticky="ew", padx=(6, 0))
+    ttk.Button(
+        button_row,
+        text="Show Ez Along Bunch",
+        command=show_ez_along_bunch_from_gui,
+    ).grid(row=0, column=2, sticky="ew", padx=(6, 0))
 
     root.mainloop()
 
@@ -1674,7 +1930,7 @@ def parse_args() -> argparse.Namespace:
     compare_parser.add_argument(
         "--comparison",
         default="rho+phi",
-        help="Comparison kind: rho, phi, rho-z-axis, phi-z-axis, or rho+phi. Movies require exactly one kind.",
+        help="Comparison kind: rho, phi, Ez, rho-z-axis, phi-z-axis, rho+phi, or rho+phi+Ez. Movies require exactly one kind.",
     )
     compare_parser.add_argument(
         "--state",
