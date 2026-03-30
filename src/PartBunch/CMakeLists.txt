@@ -7,6 +7,7 @@ set (_SRCS
 set (HDRS
     PartBunch.h
     PartBunchFwd.h
+    BunchStateHandler.h
     FieldSolver.hpp
     FieldContainer.hpp
     LoadBalancer.hpp
