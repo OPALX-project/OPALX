@@ -22,7 +22,7 @@ PartBunch<T, Dim>::PartBunch(std::vector<double> qi,
       dt_m(0),
       it_m(0),
       lbt_m(lbt),
-      isFirstRepartition_m(true),
+      // isFirstRepartition is now managed by bunchState_m (default: true)
       integration_method_m(integration_method),
       solver_m(""),
       //nt_m(nt),
@@ -32,6 +32,8 @@ PartBunch<T, Dim>::PartBunch(std::vector<double> qi,
       dataSink_m(std::move(dataSink)),
       globalTrackStep_m(0),
       rmsDensity_m(0.0) {
+
+    bunchState_m = std::make_shared<BunchStateHandler>();
 
     Inform m("PartBunch::PartBunch");
     m << level4 << "PartBunch Constructor" << endl;
@@ -90,9 +92,13 @@ PartBunch<T, Dim>::PartBunch(std::vector<double> qi,
 
     this->setParticleContainer(std::make_shared<ParticleContainer_t>(
         this->fcontainer_m->getMesh(), this->fcontainer_m->getFL()));
+    this->pcontainer_m->setBunchStateHandler(bunchState_m);
+    /// \todo if we want, we could also have a separate BunchStateHandler for each container later? But I think it could also make sense to only have one global handler.
     for (size_t i = 1; i < num_containers; ++i) {
-        this->addParticleContainer(std::make_shared<ParticleContainer_t>(
-            this->fcontainer_m->getMesh(), this->fcontainer_m->getFL()));
+        auto pc = std::make_shared<ParticleContainer_t>(
+            this->fcontainer_m->getMesh(), this->fcontainer_m->getFL());
+        pc->setBunchStateHandler(bunchState_m);
+        this->addParticleContainer(pc);
     }
 
     setSolver();
@@ -122,7 +128,7 @@ void PartBunch<T, Dim>::do_binaryRepart() {
     if (this->loadbalancer_m->balance(totalP)) {
         auto* mesh = &fc->getRho().get_mesh();
         auto* FL = &fc->getFL();
-        this->loadbalancer_m->repartition(FL, mesh, isFirstRepartition_m);
+        this->loadbalancer_m->repartition(FL, mesh, bunchState_m->isFirstRepartitionRef());
     }
 }
 
@@ -228,8 +234,9 @@ void PartBunch<T, Dim>::calcBeamParameters() {
     using view_type = ippl::ParticleAttrib<Vector_t<double,3>>::view_type;
     view_type Rview = pc->R.getView();
     view_type Pview = pc->P.getView();
+    // Always request moments update; DistributionMoments decides whether the
+    // expensive computation is needed based on bunch-state "momentsDirty".
     this->updateMoments();
-    m << level5 << "Moments updated." << endl;
 
     ////////////////////////////////////
     //// Calculate Moments of R and P //
@@ -467,13 +474,14 @@ void PartBunch<T, Dim>::bunchUpdate() {
     pc->update();
     m << level5 << "Particle container updated with new layout." << endl;
 
-    this->isFirstRepartition_m = true;
+    bunchState_m->setFirstRepartition(true);
     //this->loadbalancer_m->initializeORB(FL, mesh);
-    //this->loadbalancer_m->repartition(FL, mesh, this->isFirstRepartition_m);
+    //this->loadbalancer_m->repartition(FL, mesh, bunchState_m.isFirstRepartition());
     m << level5 << "Load balancer repartitioning done." << endl;
 
+    // Always request moments update; DistributionMoments decides whether it
+    // actually needs to recompute based on the dirty flag.
     this->updateMoments();
-    m << level5 << "Moments updated." << endl;
 }
 
 template <typename T, unsigned Dim>
