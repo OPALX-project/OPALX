@@ -23,6 +23,7 @@
 #include "Algorithms/Matrix.h"
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
+#include "PartBunch/BunchStateHandler.h"
 
 #include <vector>
 
@@ -37,7 +38,9 @@ class OpalParticle;
 
 class DistributionMoments {
 public:
-    DistributionMoments();
+    void setBunchStateHandler(std::shared_ptr<BunchStateHandler> bunchStateHandler) { 
+        bunchStateHandler_m = bunchStateHandler; 
+    }
     
     /// Configure whether kinetic-energy moments use a reference particle mass (instead of per-particle M).
     /// @param referenceMassGeV Reference particle mass in GeV.
@@ -132,6 +135,8 @@ private:
     void reset();
 
     void resetPlasmaParameters();
+
+    std::shared_ptr<BunchStateHandler> bunchStateHandler_m;
 
     Vector_t<double, 3> meanR_m;
     Vector_t<double, 3> meanP_m;

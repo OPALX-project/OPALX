@@ -153,7 +153,21 @@ void DistributionMoments::computeMoments(ippl::ParticleAttrib<Vector_t<double,3>
                                          ippl::ParticleAttrib<double>::view_type  Mview,
                                          size_t Np,
                                          size_t Nlocal) {
+    // Check that the BunchStateHandler is set. Should always be set, so throw an exception if not.
+    if (!bunchStateHandler_m) {
+        throw OpalException(
+                "DistributionMoments::computeMoments",
+                "BunchStateHandler not set, cannot use DistributionMoments instance correctly.");
+    }
+
     Np = (Np == 0) ? 1 : Np; // Explanation: see DistributionMoments::computeMeans implementation
+
+    // Single source of truth: only recompute when the bunch indicates moments
+    // are dirty. The bunchStateHandler is also responsible for clearing the flag.
+    // Short circuits if no relevant values were updated since last computation.
+    if (!bunchStateHandler_m->isMomentsDirty()) { 
+        return; 
+    }
 
     reset();
     computeMeans(Rview, Pview, Mview, Np, Nlocal);
@@ -313,6 +327,8 @@ void DistributionMoments::computeMoments(ippl::ParticleAttrib<Vector_t<double,3>
     double betaGamma = std::sqrt(std::pow(meanGamma_m, 2) - 1.0);
     geometricEps_m = normalizedEps_m / Vector_t<double,3>(betaGamma);
 
+    // Moments are now up to date, clear the flag
+    bunchStateHandler_m->clearMomentsDirty();
 }
 
 void DistributionMoments::computeMinMaxPosition(ippl::ParticleAttrib<Vector_t<double,3>>::view_type Rview, size_t Nlocal)
