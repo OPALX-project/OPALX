@@ -348,8 +348,19 @@ def plot_analytic_solution(plt, analytic, origin, spacing, title, output):
     finalize_figure(plt, fig, output)
 
 
-def plot_comparison(np, plt, analytic, opalx, origin, spacing, title, output):
-    components = ("rho", "phi")
+def plot_comparison(
+    np,
+    plt,
+    analytic,
+    opalx,
+    origin,
+    spacing,
+    title,
+    output,
+    components=("rho", "phi"),
+    extent_override=None,
+    scale_overrides=None,
+):
     field_labels = {
         "rho": r"$\rho$",
         "phi": r"$\phi$",
@@ -369,12 +380,17 @@ def plot_comparison(np, plt, analytic, opalx, origin, spacing, title, output):
         analytic_panel, extent = central_xz_slice(analytic[name], origin, spacing)
         opalx_panel, _ = central_xz_slice(opalx[name], origin, spacing)
         diff_panel, _ = central_xz_slice(metrics["diff"], origin, spacing)
+        if extent_override is not None:
+            extent = extent_override
 
         vmax = max(
             float(abs(analytic_panel).max()),
             float(abs(opalx_panel).max()),
         )
         dmax = float(abs(diff_panel).max())
+        if scale_overrides is not None and name in scale_overrides:
+            vmax = float(scale_overrides[name]["vmax"])
+            dmax = float(scale_overrides[name]["dmax"])
 
         analytic_ax = axes[row_index][0]
         opalx_ax = axes[row_index][1]
@@ -438,7 +454,7 @@ def plot_comparison(np, plt, analytic, opalx, origin, spacing, title, output):
     finalize_figure(plt, fig, output)
 
 
-def plot_rho_z_axis_diagnostic(np, plt, analytic, opalx, origin, spacing, title, output):
+def plot_rho_z_axis_diagnostic(np, plt, analytic, opalx, origin, spacing, title, output, axis_limits=None):
     z_coords, analytic_line = central_z_axis_line(np, analytic["rho"], origin, spacing)
     _, opalx_line = central_z_axis_line(np, opalx["rho"], origin, spacing)
     delta_line = opalx_line - analytic_line
@@ -453,17 +469,23 @@ def plot_rho_z_axis_diagnostic(np, plt, analytic, opalx, origin, spacing, title,
     main_ax.set_ylabel(r"$\rho$ [C/m$^3$]")
     main_ax.legend()
     main_ax.grid(True, alpha=0.3)
+    if axis_limits is not None:
+        main_ax.set_xlim(*axis_limits["x"])
+        main_ax.set_ylim(*axis_limits["main_y"])
 
     diff_ax = axes[1][0]
     diff_ax.plot(z_coords, delta_line, color="black", linewidth=1.8)
     diff_ax.set_xlabel("z [m]")
     diff_ax.set_ylabel(r"$\Delta\rho$")
     diff_ax.grid(True, alpha=0.3)
+    if axis_limits is not None:
+        diff_ax.set_xlim(*axis_limits["x"])
+        diff_ax.set_ylim(*axis_limits["diff_y"])
 
     finalize_figure(plt, fig, output)
 
 
-def plot_phi_z_axis_diagnostic(np, plt, analytic, opalx, origin, spacing, title, output):
+def plot_phi_z_axis_diagnostic(np, plt, analytic, opalx, origin, spacing, title, output, axis_limits=None):
     z_coords, analytic_line = central_z_axis_line(np, analytic["phi"], origin, spacing)
     _, opalx_line = central_z_axis_line(np, opalx["phi"], origin, spacing)
     delta_line = opalx_line - analytic_line
@@ -478,12 +500,18 @@ def plot_phi_z_axis_diagnostic(np, plt, analytic, opalx, origin, spacing, title,
     main_ax.set_ylabel(r"$\phi$ [V]")
     main_ax.legend()
     main_ax.grid(True, alpha=0.3)
+    if axis_limits is not None:
+        main_ax.set_xlim(*axis_limits["x"])
+        main_ax.set_ylim(*axis_limits["main_y"])
 
     diff_ax = axes[1][0]
     diff_ax.plot(z_coords, delta_line, color="black", linewidth=1.8)
     diff_ax.set_xlabel("z [m]")
     diff_ax.set_ylabel(r"$\Delta\phi$")
     diff_ax.grid(True, alpha=0.3)
+    if axis_limits is not None:
+        diff_ax.set_xlim(*axis_limits["x"])
+        diff_ax.set_ylim(*axis_limits["diff_y"])
 
     finalize_figure(plt, fig, output)
 

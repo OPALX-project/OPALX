@@ -485,29 +485,11 @@ def plot_gallery_xz(path: Path, start, end, cols: int, side: str, state_raw) -> 
             raise SystemExit("no steps found in selected range")
 
         panels = []
-        vmin = None
-        vmax = None
 
         for step_name, row in zip(step_names, rows):
             step = h5file[step_name]
             data = compute_xz_projection_data(step, row, np, side)
             panels.append(data)
-
-            current_min = float(data["projection"].min())
-            current_max = float(data["projection"].max())
-            vmin = current_min if vmin is None else min(vmin, current_min)
-            vmax = current_max if vmax is None else max(vmax, current_max)
-
-        if vmin is None or vmax is None:
-            raise SystemExit("failed to determine gallery color scale")
-
-        if vmin < 0.0 and vmax <= 0.0:
-            color_limits = (vmin, 0.0)
-        elif vmin >= 0.0 and vmax > 0.0:
-            color_limits = (0.0, vmax)
-        else:
-            bound = max(abs(vmin), abs(vmax))
-            color_limits = (-bound, bound)
 
         n_panels = len(panels)
         n_cols = min(cols, n_panels)
@@ -524,6 +506,15 @@ def plot_gallery_xz(path: Path, start, end, cols: int, side: str, state_raw) -> 
         for ax, panel in zip(axes.flat, panels):
             x_limits = (panel["extent"][0], panel["extent"][1])
             z_limits = (panel["extent"][2], panel["extent"][3])
+            current_min = float(panel["projection"].min())
+            current_max = float(panel["projection"].max())
+            if current_min < 0.0 and current_max <= 0.0:
+                color_limits = (current_min, 0.0)
+            elif current_min >= 0.0 and current_max > 0.0:
+                color_limits = (0.0, current_max)
+            else:
+                bound = max(abs(current_min), abs(current_max))
+                color_limits = (-bound, bound)
             ax.imshow(
                 panel["projection"],
                 origin="lower",
@@ -538,9 +529,9 @@ def plot_gallery_xz(path: Path, start, end, cols: int, side: str, state_raw) -> 
                     panel["primary_centroid"][0],
                     panel["primary_centroid"][1],
                     marker="x",
-                    color="black",
-                    markersize=8,
-                    markeredgewidth=1.5,
+                    color="#ffd400",
+                    markersize=10,
+                    markeredgewidth=2.0,
                 )
             if panel["secondary_centroid"] is not None:
                 ax.plot(
@@ -548,9 +539,9 @@ def plot_gallery_xz(path: Path, start, end, cols: int, side: str, state_raw) -> 
                     panel["secondary_centroid"][1],
                     marker="o",
                     markerfacecolor="none",
-                    markeredgecolor="black",
-                    markersize=8,
-                    markeredgewidth=1.5,
+                    markeredgecolor="#00c8ff",
+                    markersize=10,
+                    markeredgewidth=2.0,
                 )
             ax.set_xlim(*x_limits)
             ax.set_ylim(*z_limits)

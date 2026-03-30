@@ -1,3 +1,5 @@
+*.png
+*.stat
 .DS_Store
 .ipynb_checkpoints
 #*
