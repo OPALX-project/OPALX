@@ -1,6 +1,7 @@
 #include "PartBunch/PartBunch.h"
 #include "AbstractObjects/OpalData.h"
 #include "Algorithms/Matrix.h"
+#include "PartBunch/BinnedFieldSolver.h"
 #include "Particle/ParticleAttrib.h"
 #include "Structure/DataSink.h"
 #include "Utilities/Util.h"
@@ -85,6 +86,8 @@ PartBunch<T, Dim>::PartBunch(
             std::make_shared<VField_t<T, Dim>>(
                     this->fcontainer_m->getE()));  // user copy constructor
     this->getTempEField()->initialize(this->fcontainer_m->getMesh(), this->fcontainer_m->getFL());
+    this->setTempBField(std::make_shared<VField_t<T, Dim>>());
+    this->getTempBField()->initialize(this->fcontainer_m->getMesh(), this->fcontainer_m->getFL());
     // -----------------------------------------------
 
     setSolver();
@@ -95,6 +98,24 @@ PartBunch<T, Dim>::PartBunch(
 
     m << level5 << "* PartBunch constructor done." << endl;
 }
+
+template <typename T, unsigned Dim>
+PartBunch<T, Dim>::PartBunch(
+        std::vector<double> qi,
+        std::vector<double> mi,
+        size_t num_containers,
+        double lbt,
+        std::string integration_method,
+        std::shared_ptr<FieldSolverCmd> OPALFieldSolver,
+        std::shared_ptr<DataSink> dataSink)
+    : PartBunch(
+          qi.empty() ? 0.0 : qi.front(),
+          mi.empty() ? 0.0 : mi.front(),
+          num_containers,
+          lbt,
+          integration_method,
+          OPALFieldSolver,
+          std::move(dataSink)) {}
 
 template <typename T, unsigned Dim>
 typename PartBunch<T, Dim>::SavedFieldDomainState PartBunch<T, Dim>::saveFieldDomainState() const {
@@ -242,11 +263,17 @@ void PartBunch<T, Dim>::setSolver() {
 
     this->fcontainer_m->initializeFields(this->solver_m);
 
+    setBins();
+
     this->setFieldSolver(
-            std::make_shared<FieldSolver_t>(
-                    this->solver_m, &this->fcontainer_m->getRho(), &this->fcontainer_m->getE(),
-                    &this->fcontainer_m->getPhi(), this->getBCHandler()));
-    m << level4 << "Field solver set." << endl;
+            std::make_shared<BinnedFieldSolver<T, Dim>>(
+                    this->solver_m,
+                    &this->fcontainer_m->getRho(),
+                    &this->fcontainer_m->getE(),
+                    &this->fcontainer_m->getPhi(),
+                    this->getBCHandler(),
+                    hasBinning() ? OPALFieldSolver_m->getBinningCmd()->getTablePrintFrequency() : 0));
+    m << level4 << "Binned field solver set (binned or legacy at runtime)." << endl;
 
     this->fsolver_m->initSolver();
     m << level4 << "Field solver initialized." << endl;
@@ -256,8 +283,6 @@ void PartBunch<T, Dim>::setSolver() {
             std::make_shared<LoadBalancer_t>(
                     this->lbt_m, this->fcontainer_m, this->pcontainer_m, this->fsolver_m));
     m << level3 << "Solver and Load Balancer set." << endl;
-
-    setBins();
 }
 
 template <typename T, unsigned Dim>
@@ -274,19 +299,35 @@ void PartBunch<T, Dim>::setBins() {
 
     m << level4 << "Using binning command: " << binningCmd->getOpalName() << endl;
 
-    std::string parameterName = binningCmd->getParameter();
-    if (parameterName != "VELOCITYZ") {
-        throw OpalException(
-                "PartBunch::setBins",
-                "Binning parameter " + parameterName + " not supported yet! Only VELOCITYZ.");
+    switch (binningCmd->getParameterType()) {
+        case BinningParameter::VELOCITYZ:
+            this->setBins(
+                    std::make_shared<ParticleBinning::AdaptBins<ParticleContainer_t, CoordinateSelector_t>>(
+                            this->getParticleContainer(),
+                            CoordinateSelector_t(2),
+                            binningCmd->getMaxBins(),
+                            binningCmd->getBinningAlpha(),
+                            binningCmd->getBinningBeta(),
+                            binningCmd->getDesiredWidth(),
+                            binningCmd->getOpalName()));
+            break;
+        case BinningParameter::GAMMAZ:
+            this->setBins(
+                    std::make_shared<ParticleBinning::AdaptBins<ParticleContainer_t, GammaSelector_t>>(
+                            this->getParticleContainer(),
+                            GammaSelector_t(2),
+                            binningCmd->getMaxBins(),
+                            binningCmd->getBinningAlpha(),
+                            binningCmd->getBinningBeta(),
+                            binningCmd->getDesiredWidth(),
+                            binningCmd->getOpalName()));
+            break;
+        default:
+            throw OpalException(
+                    "PartBunch::setBins",
+                    "Binning parameter " + binningCmd->getParameter()
+                    + " not supported yet! Only VELOCITYZ and GAMMAZ.");
     }
-
-    this->setBins(
-            std::make_shared<AdaptBins_t>(
-                    this->getParticleContainer(), BinningSelector_t(2), binningCmd->getMaxBins(),
-                    binningCmd->getBinningAlpha(), binningCmd->getBinningBeta(),
-                    binningCmd->getDesiredWidth()  // Cost function parameters
-                    ));
     m << level3 << "Bins set." << endl;
     this->getBins()->debug();
 }

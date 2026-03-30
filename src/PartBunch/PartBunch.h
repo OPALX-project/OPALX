@@ -29,6 +29,8 @@
 #include "PartBunch/Binning/AdaptBins.h"
 
 class DataSink;  // forward declaration; full type needed only in .cpp
+template <typename T, unsigned Dim>
+class BinnedFieldSolver;
 
 extern Inform* gmsg;
 
@@ -50,9 +52,11 @@ public:
     using LoadBalancer_t      = LoadBalancer<T, Dim>;
     using Base                = ippl::ParticleBase<ippl::ParticleSpatialLayout<T, Dim>>;
 
-    using BinningSelector_t = typename ParticleBinning::CoordinateSelector<ParticleContainer_t>;
-    using AdaptBins_t = typename ParticleBinning::AdaptBins<ParticleContainer_t, BinningSelector_t>;
-    using binIndex_t  = typename ParticleContainer_t::bin_index_type;
+    using CoordinateSelector_t = typename ParticleBinning::CoordinateSelector<ParticleContainer_t>;
+    using GammaSelector_t      = typename ParticleBinning::GammaSelector<ParticleContainer_t>;
+    using BinningSelector_t    = CoordinateSelector_t;
+    using AdaptBins_t          = typename ParticleBinning::AdaptBinsBase<ParticleContainer_t>;
+    using binIndex_t           = typename ParticleContainer_t::bin_index_type;
 
     using BCHandler_t = BCHandler<Dim>;
 
@@ -271,6 +275,7 @@ private:
     // Cached physical bunch bounds, distinct from the field-domain bounds.
     Vector_t<double, Dim> rmin_m;
     Vector_t<double, Dim> rmax_m;
+    friend class BinnedFieldSolver<T, Dim>;
 
     /*
        flags to tell if we are a DC-beam
@@ -280,6 +285,8 @@ private:
 
     /// Temporary E field container used to store temporary E field during binned solver
     std::shared_ptr<VField_t<T, Dim>> Etmp_m;
+    /// Temporary B field container used to store temporary B field during binned solver
+    std::shared_ptr<VField_t<T, Dim>> Btmp_m;
 
     /// Maximum allowed number of local macroparticles on this rank.
     /// Used as a safety guard to detect when particle emission triggers an
@@ -301,6 +308,14 @@ public:
     PartBunch(
         double qi, double mi, size_t totalP, double lbt, std::string integration_method,
         std::shared_ptr<FieldSolverCmd>& OPALFieldSolver, std::shared_ptr<DataSink> dataSink);
+    PartBunch(
+        std::vector<double> qi,
+        std::vector<double> mi,
+        size_t num_containers,
+        double lbt,
+        std::string integration_method,
+        std::shared_ptr<FieldSolverCmd> OPALFieldSolver,
+        std::shared_ptr<DataSink> dataSink);
     /**
      * @brief
      * - recomputes mesh spacing i.e. Layout
@@ -351,6 +366,12 @@ public:
     }
     void setTempEField(std::shared_ptr<VField_t<T, Dim>> Etmp) {
         this->Etmp_m = Etmp;
+    }
+    std::shared_ptr<VField_t<T, Dim>> getTempBField() {
+        return this->Btmp_m;
+    }
+    void setTempBField(std::shared_ptr<VField_t<T, Dim>> Btmp) {
+        this->Btmp_m = Btmp;
     }
 
     std::shared_ptr<AdaptBins_t> getBins() {
@@ -815,10 +836,8 @@ public:
         return static_cast<const FieldSolver_t*>(this->fsolver_m.get());
     }
 
-    bool getFieldSolverType() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
-              << " function: " << __func__ << endl;
-        return false;
+    std::string getFieldSolverType() {
+        return this->getFieldSolver()->getStype();
     }
 
     bool getIfBeamEmitting() {
