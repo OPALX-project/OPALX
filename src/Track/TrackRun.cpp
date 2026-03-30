@@ -198,17 +198,10 @@ void TrackRun::execute() {
     if (!itsAttr[TRACKRUN::FIELDSOLVER]) {
         throw OpalException("TrackRun::execute", "\"FIELDSOLVER\" must be set in \"RUN\" command.");
     }
-    // Beam selection is resolved from TRACK::BEAM / TRACK::BEAMS.
-    // For now, we still track using only the first resolved beam.
-
-    OpalData::getInstance()->setInOPALTMode();
-
-    //if (isFollowupTrack_m) {
-    //    Track::block->bunch->setLocalTrackStep(0);
-    //}
 
     // Fieldsover command
-    fs_m = std::shared_ptr<FieldSolverCmd>(FieldSolverCmd::find(Attributes::getString(itsAttr[TRACKRUN::FIELDSOLVER])));
+    fs_m = std::shared_ptr<FieldSolverCmd>(
+        FieldSolverCmd::find(Attributes::getString(itsAttr[TRACKRUN::FIELDSOLVER])));
     *gmsg << level1 << *fs_m << endl;
     if (fs_m->hasBinningCmd()) {
         *gmsg << level1 << *fs_m->getBinningCmd() << endl;
@@ -216,13 +209,12 @@ void TrackRun::execute() {
 
     // Process BEAM object names
     std::vector<std::string> beamNames = Track::block->beamNames_m;
-
     if (beamNames.empty()) {
         throw OpalException("TrackRun::execute", 
             "No beam specified: set TRACK::BEAM or TRACK::BEAMS.");
     }
 
-    // Create vector or BEAMs
+    // Create vector of BEAMs
     std::vector<Beam*> beams;
     beams.reserve(beamNames.size());
     for (const auto& name : beamNames) {
@@ -252,6 +244,7 @@ void TrackRun::execute() {
     macromasses.reserve(beams.size());
     emissionSourcesLists.reserve(beams.size());
 
+    // Fill macro quantities and emissionSourceList per container (beam)
     for (size_t i = 0; i < beams.size(); ++i) {
         Beam* b = beams[i];
 
@@ -278,54 +271,64 @@ void TrackRun::execute() {
         }
         emissionSourcesLists.emplace_back(sources.begin(), sources.end());
     }
-    //*gmsg << "* Number of emission sources (all beams) " << totalEmissionSources << endl;
 
     /*
     Need the following units for mass and charge:
-    - Charge per macro particle in [C], this should be macrocharge_m or q_m in the bunch. This will be used for the field calculations.
-    - The pusher needs consistent units: eV for mass and elementary charges for charge. This will (hopefully) be handled inside the pusher routines!
+    - Charge per macro particle in [C], this should be macrocharge_m or q_m in the bunch. 
+      This will be used for the field calculations.
+    - The pusher needs consistent units: eV for mass and elementary charges for charge. 
+      This will (hopefully) be handled inside the pusher routines!
     */
 
-    /// \todo first 2 arguments can go!
+    // ? Need to see how this interacts with multiple containers
     initDataSink();
+
+    // Create PartBunch (PIC Manager) with multiple particle containers
     bunch_m = std::make_shared<bunch_type>(
-        macrocharges,
-        macromasses,
-        beams.size(),
-        1.0, "LF2", fs_m, ds_m);
+        macrocharges, // Macro charge [C]
+        macromasses,  // Macro Mass [GeV]
+        beams.size(), // Number of particle containers
+        1.0,        // lbt
+        "LF2",      // Integrator
+        fs_m,       // Fieldsolver
+        ds_m);      // Data sink
+    
+    // Set PartBunch time to 0 (only bookkeeping)
     bunch_m->setT(0.0);
+
+    // Set reference mass for all conatiners
     for (size_t i = 0; i < beams.size(); ++i) {
         bunch_m->setReference(&beams[i]->getReference(), i);
     }
 
+    // Set total particles per container (beam)
     std::vector<size_t> totalParticlesPerBeam(beams.size());
     for (size_t i = 0; i < beams.size(); ++i) {
         Beam* b = beams[i];
-        //EmissionSourceList* esl = EmissionSourceList::find(b->getEmissionSourceListName());
         totalParticlesPerBeam[i] = computeTotalParticlesForBunch(b, emissionSourcesLists[i]);
     }
 
+    // Fill species information into particlecontainers vector
     const auto& particleContainers = bunch_m->getParticleContainers();
     if (particleContainers.size() != beams.size()) {
         throw OpalException("TrackRun::execute",
                             "Mismatch between number of beams and particle containers.");
     }
-
     for (size_t i = 0; i < beams.size(); ++i) {
         particleContainers[i]->Sp =
             static_cast<short>(ParticleProperties::getParticleType(beams[i]->getParticleName()));
     }
+
+    // BC handler
     *gmsg << level2 << *(bunch_m->getBCHandler()) << endl;
 
+    // Allocate space for each container per rank
     const double nRanks = static_cast<double>(ippl::Comm->size());
     std::vector<size_t> maxLocalNumPerBeam(beams.size());
     for (size_t i = 0; i < beams.size(); ++i) {
         maxLocalNumPerBeam[i] =
             static_cast<size_t>(totalParticlesPerBeam[i] / nRanks + 2 * nRanks + 1);
     }
-
-    // Allocate particle memory in the container, can be done after the constructor of the bunch is
-    // done (sets up the container).
     for (size_t i = 0; i < particleContainers.size(); ++i) {
         particleContainers[i]->create(maxLocalNumPerBeam[i]);
     }
@@ -384,24 +387,15 @@ void TrackRun::execute() {
             i);
     }
 
-    /* 
-       reset the fieldsolver with correct hr_m
-       based on the distribution
-    */
+    // Set charge Q and mass M attributes for each container
     bunch_m->setCharge();
     bunch_m->setMass();
 
-    // TODO: CONTINUTE MULTIBUNCH WORK FROM HERE ON
+    // Calculate extents and update moments for each container
     bunch_m->bunchUpdate();
     bunch_m->print(*gmsg);
 
-    /*
-    if (!isFollowupTrack_m) {
-        *gmsg << std::scientific;
-        *gmsg << *dist_m << endl;
-    }
-    */
-
+    // Set ZStart, ZStop, and dT
     if (bunch_m->getTotalNum() > 0) {
         double spos = Track::block->zstart;
         auto& zstop = Track::block->zstop;

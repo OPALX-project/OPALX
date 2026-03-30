@@ -20,11 +20,8 @@
 #include "Random/Randn.h"
 #include "Utilities/OpalException.h"
 #include "BCHandler.hpp"
-
 #include "Structure/FieldSolverCmd.h"
-
 #include "Algorithms/PartData.h"
-
 #include "PartBunch/Binning/AdaptBins.h"
 
 class DataSink;  // forward declaration; full type needed only in .cpp

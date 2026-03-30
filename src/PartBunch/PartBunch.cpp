@@ -5,6 +5,8 @@
 #include "Utilities/Util.h"
 #include "Structure/DataSink.h"
 
+#include <algorithm>
+
 #undef doDEBUG
 
 template <typename T, unsigned Dim>
@@ -411,12 +413,43 @@ void PartBunch<T, Dim>::bunchUpdate() {
     auto *mesh = &this->fcontainer_m->getMesh();
     auto *FL   = &this->fcontainer_m->getFL();
 
-    std::shared_ptr<ParticleContainer_t> pc = this->getParticleContainer();
+    const auto& containers = this->getParticleContainers();
 
-    pc->computeMinMaxR();
+    bool hasNonEmptyContainer = false;
+    ippl::Vector<double, 3> o(0.0);
+    ippl::Vector<double, 3> e(0.0);
 
-    ippl::Vector<double, 3> o = pc->getMinR();
-    ippl::Vector<double, 3> e = pc->getMaxR();
+    for (const auto& pc : containers) {
+        if (!pc || pc->getTotalNum() == 0) {
+            continue;
+        }
+
+        pc->computeMinMaxR();
+        const ippl::Vector<double, 3> minR = pc->getMinR();
+        const ippl::Vector<double, 3> maxR = pc->getMaxR();
+
+        if (!hasNonEmptyContainer) {
+            o = minR;
+            e = maxR;
+            hasNonEmptyContainer = true;
+        } else {
+            for (int i = 0; i < 3; ++i) {
+                o[i] = std::min(o[i], minR[i]);
+                e[i] = std::max(e[i], maxR[i]);
+            }
+        }
+    }
+
+    if (!hasNonEmptyContainer) {
+        if (containers.empty() || !containers[0]) {
+            throw OpalException("PartBunch::bunchUpdate",
+                                "No valid particle container available for bunch update.");
+        }
+        containers[0]->computeMinMaxR();
+        o = containers[0]->getMinR();
+        e = containers[0]->getMaxR();
+    }
+
     ippl::Vector<double, 3> l = e - o;
 
     /*
@@ -460,17 +493,28 @@ void PartBunch<T, Dim>::bunchUpdate() {
     m << level3 << "\t\t> Mesh spacing:  " << hr_m << endl;
     m << level3 << "\t\t> Box increment: " << this->OPALFieldSolver_m->getBoxIncr() << "%" << endl;
 
-    pc->getLayout().updateLayout(*FL, *mesh);
-    pc->update();
-    m << level5 << "Particle container updated with new layout." << endl;
+    for (size_t i = 0; i < containers.size(); ++i) {
+        const auto& pc = containers[i];
+        if (!pc) {
+            continue;
+        }
+        pc->getLayout().updateLayout(*FL, *mesh);
+        pc->update();
+        m << level5 << "Particle container " << i << " updated with new layout." << endl;
+    }
 
     this->isFirstRepartition_m = true;
     //this->loadbalancer_m->initializeORB(FL, mesh);
     //this->loadbalancer_m->repartition(FL, mesh, this->isFirstRepartition_m);
     m << level5 << "Load balancer repartitioning done." << endl;
 
-    this->updateMoments();
-    m << level5 << "Moments updated." << endl;
+    for (size_t i = 0; i < containers.size(); ++i) {
+        if (!containers[i]) {
+            continue;
+        }
+        this->updateMoments(i);
+    }
+    m << level5 << "Moments updated for all particle containers." << endl;
 }
 
 template <typename T, unsigned Dim>
