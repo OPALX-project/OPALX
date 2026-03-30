@@ -793,6 +793,7 @@ void ParallelTracker::pushParticles(const BorisPusher& pusher) {
     //itsBunch_m->getParticleContainer()->update();
     Kokkos::fence();
     ippl::Comm->barrier();
+    itsBunch_m->getBunchStateHandler()->markMomentsDirty();
     // itsBunch_m->bunchUpdate();
 }
 
@@ -866,6 +867,7 @@ void ParallelTracker::kickParticles(const BorisPusher& pusher) {
     */
     Kokkos::fence();
     ippl::Comm->barrier();
+    itsBunch_m->getBunchStateHandler()->markMomentsDirty();
 
     m << level5 << "Completed parallel kick operation." << endl;
 }
