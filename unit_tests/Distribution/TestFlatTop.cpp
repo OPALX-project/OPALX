@@ -5,6 +5,7 @@
 #include <algorithm>
 
 #include "Distribution/FlatTop.h"
+#include "PartBunch/BunchStateHandler.h"
 #include "Ippl.h"
 #include "Utility/IpplTimings.h"
 
@@ -44,6 +45,8 @@ protected:
 
         // Create ParticleContainer
         pc = std::make_shared<ParticleContainer<double, 3>>(mesh, fl);
+
+        bunchStateHandler = std::make_shared<BunchStateHandler>();
     }
 
     void TearDown() override {
@@ -52,6 +55,7 @@ protected:
 
     std::shared_ptr<ParticleContainer<double, 3>> pc;
     std::shared_ptr<FieldContainer_t> fc;
+    std::shared_ptr<BunchStateHandler> bunchStateHandler;
     ippl::Vector<int,3> nr;
     bool isAllPeriodic_m = true;
 };
@@ -111,6 +115,7 @@ TEST_F(FlatTopTest, UniformDiskStatisticsAndBounds) {
         /*tPulseLengthFWHM=*/1.0,
         sigmaR
     );
+    sampler.setBunchStateHandler(bunchStateHandler);
 
     const size_t nlocal = 0;
     const size_t nNew   = 100000;
@@ -264,6 +269,7 @@ TEST_F(FlatTopTest, CountEnteringParticles_NoDomainDecomp) {
         /*tPulseLengthFWHM=*/10.0,
         sigmaR
     );
+    sampler.setBunchStateHandler(bunchStateHandler);
 
     sampler.setWithDomainDecomp(false);
 
