@@ -86,9 +86,6 @@ private:
     // Flag indicating if particles are lost
     bool deletedParticles_m;
 
-    // Path along beamline
-    double pathLength_m;
-
     // Starting position
     double zstart_m;
 
