@@ -496,9 +496,15 @@ void ParallelTracker::execute() {
                 m << level4 << "Updated reference particle at step " << step << "." << endl;
             }
 
-            // Delete particles?
+            // Delete particles outside N-sigma boundary (N = BOUNDPDESTROYFQ)
             if (deletedParticles_m) {
-                /// \todo doDelete
+                double sigmas = static_cast<double>(Options::boundpDestroy);
+                size_t nDeleted = itsBunch_m->getParticleContainer()->deleteParticlesOutside(sigmas);
+                if (nDeleted > 0) {
+                    m << level2 << "Deleted " << nDeleted << " particles outside "
+                      << sigmas << "-sigma boundary, "
+                      << itsBunch_m->getTotalNum() << " remaining." << endl;
+                }
                 deletedParticles_m = false;
             }
 
