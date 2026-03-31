@@ -2,6 +2,8 @@
 #include "PartBunch/BinnedFieldSolver.h"
 #include "Algorithms/Matrix.h"
 #include "Particle/ParticleAttrib.h"
+#include "Physics/ParticleProperties.h"
+#include "Structure/Beam.h"
 #include "Utilities/Util.h"
 #include "Structure/DataSink.h"
 
@@ -12,7 +14,8 @@
 template <typename T, unsigned Dim>
 PartBunch<T, Dim>::PartBunch(std::vector<double> qi,
                              std::vector<double> mi,
-                             size_t num_containers,
+                             const std::vector<Beam*>& beams,
+                             std::vector<size_t> totalParticlesPerBeam,
                              /*int nt,*/
                              double lbt,
                              std::string integration_method,
@@ -34,6 +37,7 @@ PartBunch<T, Dim>::PartBunch(std::vector<double> qi,
     Inform m("PartBunch::PartBunch");
     m << level4 << "PartBunch Constructor" << endl;
 
+    const size_t num_containers = beams.size();
     if (num_containers == 0) {
         throw OpalException("PartBunch::PartBunch",
                             "num_containers must be > 0.");
@@ -45,6 +49,16 @@ PartBunch<T, Dim>::PartBunch(std::vector<double> qi,
     if (mi.size() != num_containers) {
         throw OpalException("PartBunch::PartBunch",
                             "mi size must match num_containers.");
+    }
+    if (totalParticlesPerBeam.size() != num_containers) {
+        throw OpalException("PartBunch::PartBunch",
+                            "totalParticlesPerBeam size must match num_containers.");
+    }
+    for (size_t i = 0; i < num_containers; ++i) {
+        if (beams[i] == nullptr) {
+            throw OpalException("PartBunch::PartBunch",
+                                "beams must not contain null pointers.");
+        }
     }
 
     //  get the needed information from OPAL FieldSolver command
@@ -96,6 +110,24 @@ PartBunch<T, Dim>::PartBunch(std::vector<double> qi,
     for (size_t i = 0; i < containers.size(); ++i) {
         containers[i]->setQ(qi[i]);
         containers[i]->setM(mi[i]);
+        containers[i]->setReference(&beams[i]->getReference());
+        containers[i]->Sp =
+            static_cast<short>(ParticleProperties::getParticleType(beams[i]->getParticleName()));
+    }
+
+    // Allocate enough storage per rank, then destroy all particles to keep only capacity.
+    const double nRanks = static_cast<double>(ippl::Comm->size());
+    std::vector<size_t> maxLocalNumPerBeam(num_containers);
+    for (size_t i = 0; i < num_containers; ++i) {
+        maxLocalNumPerBeam[i] =
+            static_cast<size_t>(totalParticlesPerBeam[i] / nRanks + 2 * nRanks + 1);
+        containers[i]->create(maxLocalNumPerBeam[i]);
+    }
+    for (size_t i = 0; i < num_containers; ++i) {
+        Kokkos::View<bool*> tmp_invalid("tmp_invalid", maxLocalNumPerBeam[i]);
+        containers[i]->destroy(tmp_invalid, maxLocalNumPerBeam[i]);
+        *gmsg << level3 << "* Container " << i << ": " << maxLocalNumPerBeam[i]
+              << " particles created and destroyed. Bunch allocated." << endl;
     }
 
     setSolver();
@@ -109,6 +141,7 @@ PartBunch<T, Dim>::PartBunch(std::vector<double> qi,
     // -----------------------------------------------
 
     pre_run();
+    this->setT(0.0);
     
     globalPartPerNode_m = std::make_unique<size_t[]>(ippl::Comm->size());
 

@@ -38,7 +38,6 @@
 
 #include "Distribution/FromFile.h"
 
-#include "Physics/ParticleProperties.h"
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
 
@@ -283,24 +282,6 @@ void TrackRun::execute() {
     // ? Need to see how this interacts with multiple containers
     initDataSink();
 
-    // Create PartBunch (PIC Manager) with multiple particle containers
-    bunch_m = std::make_shared<bunch_type>(
-        macrocharges, // Macro charge [C]
-        macromasses,  // Macro Mass [GeV]
-        beams.size(), // Number of particle containers
-        1.0,        // lbt
-        "LF2",      // Integrator
-        fs_m,       // Fieldsolver
-        ds_m);      // Data sink
-    
-    // Set PartBunch time to 0 (only bookkeeping)
-    bunch_m->setT(0.0);
-
-    // Set reference mass for all conatiners
-    for (size_t i = 0; i < beams.size(); ++i) {
-        bunch_m->getParticleContainer(i)->setReference(&beams[i]->getReference());
-    }
-
     // Set total particles per container (beam)
     std::vector<size_t> totalParticlesPerBeam(beams.size());
     for (size_t i = 0; i < beams.size(); ++i) {
@@ -308,41 +289,26 @@ void TrackRun::execute() {
         totalParticlesPerBeam[i] = computeTotalParticlesForBunch(b, emissionSourcesLists[i]);
     }
 
-    // Fill species information into particlecontainers vector
+    // Create PartBunch (PIC Manager) with multiple particle containers
+    bunch_m = std::make_shared<bunch_type>(
+        macrocharges,           // Macro charge [C]
+        macromasses,            // Macro Mass [GeV]
+        beams,                  // Beam objects per container
+        totalParticlesPerBeam,  // Per-beam particle counts for allocation
+        1.0,                    // lbt
+        "LF2",                  // Integrator
+        fs_m,                   // Fieldsolver
+        ds_m);                  // Data sink
+
+    // Validate container setup produced by constructor
     const auto& particleContainers = bunch_m->getParticleContainers();
     if (particleContainers.size() != beams.size()) {
         throw OpalException("TrackRun::execute",
                             "Mismatch between number of beams and particle containers.");
     }
-    for (size_t i = 0; i < beams.size(); ++i) {
-        particleContainers[i]->Sp =
-            static_cast<short>(ParticleProperties::getParticleType(beams[i]->getParticleName()));
-    }
 
     // BC handler
     *gmsg << level2 << *(bunch_m->getBCHandler()) << endl;
-
-    // Allocate space for each container per rank
-    const double nRanks = static_cast<double>(ippl::Comm->size());
-    std::vector<size_t> maxLocalNumPerBeam(beams.size());
-    for (size_t i = 0; i < beams.size(); ++i) {
-        maxLocalNumPerBeam[i] =
-            static_cast<size_t>(totalParticlesPerBeam[i] / nRanks + 2 * nRanks + 1);
-    }
-    for (size_t i = 0; i < particleContainers.size(); ++i) {
-        particleContainers[i]->create(maxLocalNumPerBeam[i]);
-    }
-
-    // Destroy ALL particles --> result is now they are allocated in the attributes. Note that we
-    // have to destroy ALL particles, since this short circuits the internal IPPL function such that
-    // tmp_invalid does not need to be a valid view and can just be a dummy. Calling create again
-    // will then not alter the underlying view and just increment the localNum counter.
-    for (size_t i = 0; i < particleContainers.size(); ++i) {
-        Kokkos::View<bool*> tmp_invalid("tmp_invalid", maxLocalNumPerBeam[i]);
-        particleContainers[i]->destroy(tmp_invalid, maxLocalNumPerBeam[i]);
-        *gmsg << level3 << "* Container " << i << ": " << maxLocalNumPerBeam[i]
-              << " particles created and destroyed. Bunch allocated." << endl;
-    }
 
     setupBoundaryGeometry();
 
@@ -385,12 +351,6 @@ void TrackRun::execute() {
             beams[i],
             emittingSamplersList[i],
             i);
-    }
-
-    // Set charge Q and mass M attributes for each container
-    for (size_t i = 0; i < particleContainers.size(); ++i) {
-        particleContainers[i]->setQ(macrocharges[i]);
-        particleContainers[i]->setM(macromasses[i]);
     }
 
     // Calculate extents and update moments for each container

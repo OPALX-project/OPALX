@@ -25,6 +25,7 @@
 #include "PartBunch/Binning/AdaptBins.h"
 
 class DataSink;  // forward declaration; full type needed only in .cpp
+class Beam;
 
 extern Inform* gmsg;
 
@@ -155,7 +156,8 @@ public:
      */
     PartBunch(std::vector<double> qi, 
               std::vector<double> mi,
-              size_t num_containers,
+              const std::vector<Beam*>& beams,
+              std::vector<size_t> totalParticlesPerBeam,
               double lbt,
               std::string integration_method,
               std::shared_ptr<FieldSolverCmd> OPALFieldSolver,
