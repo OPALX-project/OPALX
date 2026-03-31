@@ -227,9 +227,6 @@ void TrackRun::execute() {
         *gmsg << beamNames[i] << (i + 1 < beamNames.size() ? ", " : "");
     }
     *gmsg << endl;
-    // For now we still use the first beam as reference beam in places that
-    // are not container-aware yet.
-    Beam* beam = beams.front();
     // Print the BEAM banner for each resolved beam.
     for (Beam* b : beams) {
         *gmsg << level1 << *b << endl;
@@ -382,7 +379,7 @@ void TrackRun::execute() {
     */
     // TODO: INITIALISE WITH ALL CONTAINERS, EMITTINGSAMPLERSLIST
     itsTracker_m = new ParallelTracker(
-        *Track::block->use->fetchLine(), bunch_m.get(), ds_m, beam->getReference(), false,
+        *Track::block->use->fetchLine(), bunch_m.get(), ds_m, false,
         Attributes::getBool(itsAttr[TRACKRUN::TRACKBACK]), Track::block->localTimeSteps,
         Track::block->zstart, Track::block->zstop, Track::block->dT, emittingSamplersList[0]);
 

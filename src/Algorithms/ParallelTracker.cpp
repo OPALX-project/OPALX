@@ -57,11 +57,10 @@
 
 extern Inform* gmsg;
 
-class PartData;
 /* ============================== Constructors ============================== */
 ParallelTracker::ParallelTracker(
-    const Beamline& beamline, const PartData& reference, bool revBeam, bool revTrack)
-    : Tracker(beamline, reference, revBeam, revTrack),
+    const Beamline& beamline, bool revBeam, bool revTrack)
+    : Tracker(beamline, revBeam, revTrack),
       itsDataSink_m(),
       itsOpalBeamline_m(beamline.getOrigin3D(), beamline.getInitialDirection()),
       opalRing_m(nullptr),
@@ -82,11 +81,11 @@ ParallelTracker::ParallelTracker(
 
 ParallelTracker::ParallelTracker(
     const Beamline& beamline, PartBunch_t* bunch, const std::shared_ptr<DataSink>& ds,
-    const PartData& reference, bool revBeam, bool revTrack,
+    bool revBeam, bool revTrack,
     const std::vector<unsigned long long>& maxSteps, double zstart,
     const std::vector<double>& zstop, const std::vector<double>& dt,
     const std::vector<std::shared_ptr<SamplingBase>>& emittingSamplers)
-    : Tracker(beamline, bunch, reference, revBeam, revTrack),
+    : Tracker(beamline, bunch, revBeam, revTrack),
       itsDataSink_m(ds),
       itsOpalBeamline_m(beamline.getOrigin3D(), beamline.getInitialDirection()),
       opalRing_m(nullptr),
@@ -166,7 +165,8 @@ void ParallelTracker::execute() {
     bool back_track = false;
 
     // Initialize the Boris particle pusher
-    BorisPusher pusher(itsReference);
+    const PartData& ref = *itsBunch_m->getParticleContainer()->getReference();
+    BorisPusher pusher(ref);
     m << level3 << "Initialized Boris pusher." << endl;
 
     // Reset the global phase shift
@@ -214,7 +214,7 @@ void ParallelTracker::execute() {
             beamlineToLab.rotateTo(itsBunch_m->getParticleContainer()->getMeanP());
     } else {
         // Empty bunch: set RefPartP_m to BEAM's P0 (design momentum, same as added to particles' z).
-        const double P0 = itsReference.getP() / itsReference.getM();  // beta*gamma from BEAM pc
+        const double P0 = ref.getP() / ref.getM();  // beta*gamma from BEAM pc
         itsBunch_m->getParticleContainer()->getRefPartP() =
             beamlineToLab.rotateTo(Vector_t<double, 3>(0.0, 0.0, P0));
         m << level2 << "Empty simulation: RefPartP_m set to P0 manually (beta*gamma) = " << P0 << endl;
@@ -261,7 +261,7 @@ void ParallelTracker::execute() {
 
     // Create an OrbitThreader object to handle orbit threading and element queries
     OrbitThreader oth(
-        itsReference,                               // Reference particle data
+        ref,                                        // Reference particle data
         itsBunch_m->getParticleContainer()->getRefPartR(),  // Reference particle position
         itsBunch_m->getParticleContainer()->getRefPartP(),  // Reference particle momentum
         pathLength_m,                               // Current path length
@@ -745,8 +745,9 @@ void ParallelTracker::kickParticles(const BorisPusher& pusher) {
     in the BorisPusher.push call. 
     */
 
-    const double mass = itsReference.getM();
-    const double charge = itsReference.getQ();
+    const PartData& ref = *itsBunch_m->getParticleContainer()->getReference();
+    const double mass = ref.getM();
+    const double charge = ref.getQ();
     Kokkos::parallel_for("kickParticles", itsBunch_m->getParticleContainer()->getLocalNum(),
         KOKKOS_LAMBDA(const size_t i) {
             /**
@@ -1272,6 +1273,7 @@ void ParallelTracker::restoreCavityPhases() {
 }
 
 void ParallelTracker::autophaseCavities(const BorisPusher& pusher) {
+    const PartData& ref = *itsBunch_m->getParticleContainer()->getReference();
     double t                  = itsBunch_m->getT();
     Vector_t<double, 3> nextR = itsBunch_m->getParticleContainer()->getRefPartR() / (Physics::c * itsBunch_m->getdT());
     pusher.push(nextR, itsBunch_m->getParticleContainer()->getRefPartP(), itsBunch_m->getdT());
@@ -1282,7 +1284,7 @@ void ParallelTracker::autophaseCavities(const BorisPusher& pusher) {
         if (element->getType() == ElementType::TRAVELINGWAVE) {
             const TravelingWave* TWelement = static_cast<const TravelingWave*>(element.get());
             if (!TWelement->getAutophaseVeto()) {
-                CavityAutophaser ap(itsReference, element);
+                CavityAutophaser ap(ref, element);
                 ap.getPhaseAtMaxEnergy(
                     itsOpalBeamline_m.transformToLocalCS(element, itsBunch_m->getParticleContainer()->getRefPartR()),
                     itsOpalBeamline_m.rotateToLocalCS(element, itsBunch_m->getParticleContainer()->getRefPartP()), t,
@@ -1292,7 +1294,7 @@ void ParallelTracker::autophaseCavities(const BorisPusher& pusher) {
         } else if (element->getType() == ElementType::RFCAVITY) {
             const RFCavity* RFelement = static_cast<const RFCavity*>(element.get());
             if (!RFelement->getAutophaseVeto()) {
-                CavityAutophaser ap(itsReference, element);
+                CavityAutophaser ap(ref, element);
                 ap.getPhaseAtMaxEnergy(
                     itsOpalBeamline_m.transformToLocalCS(element, itsBunch_m->getParticleContainer()->getRefPartR()),
                     itsOpalBeamline_m.rotateToLocalCS(element, itsBunch_m->getParticleContainer()->getRefPartP()), t,

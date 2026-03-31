@@ -21,7 +21,6 @@
 // ------------------------------------------------------------------------
 
 #include "Algorithms/DefaultVisitor.h"
-#include "Algorithms/PartData.h"
 
 // Class AbstractTracker
 // ------------------------------------------------------------------------
@@ -40,18 +39,11 @@ public:
 
     /// Constructor.
     //  The beam line to be tracked is [b]bl[/b].
-    //  The particle reference data are taken from [b]data[/b].
     //  If [b]revBeam[/b] is true, the beam runs from s = C to s = 0.
     //  If [b]revTrack[/b] is true, we track against the beam.
-    AbstractTracker(const Beamline &, const PartData &,
-                    bool backBeam, bool backTrack);
+    AbstractTracker(const Beamline &, bool backBeam, bool backTrack);
 
     virtual ~AbstractTracker();
-
-protected:
-
-    /// The reference information.
-    const PartData itsReference;
 
 private:
 
