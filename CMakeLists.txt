@@ -22,7 +22,7 @@ project(OPALX VERSION 0.9 LANGUAGES C CXX)
 # ------------------------------------------------------------------------------
 # Module path, setup before including any cmake modules
 # ------------------------------------------------------------------------------
-list(PREPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" "${PROJECT_SOURCE_DIR}/CMakeModules")
+list(PREPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 
 # ------------------------------------------------------------------------------
 # load message macros (for colors), needs to be done here to get the order right
