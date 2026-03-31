@@ -9,6 +9,9 @@
 #include "Manager/BaseManager.h"
 
 #include "Algorithms/DistributionMoments.h"
+#include "Algorithms/PartData.h"
+#include "Algorithms/Quaternion.hpp"
+#include "Algorithms/CoordinateSystemTrafo.h"
 
 #include "Utilities/Options.h"
 
@@ -278,6 +281,27 @@ public:
         }
     }
 
+    /// @brief Get charge per particle [Cb].
+    double getChargePerParticle() const {
+        if (qmStorageMode_m == QMStorageMode::Attributes) {
+            auto view = QAttr.getView();
+            if (view.extent(0) == 0) {
+                return 0.0;
+            }
+            double q = 0.0;
+            Kokkos::deep_copy(q, Kokkos::subview(view, 0));
+            return q;
+        }
+        double q = 0.0;
+        Kokkos::deep_copy(q, Kokkos::subview(QView_m, 0));
+        return q;
+    }
+
+    /// @brief Get total charge [Cb] in this container.
+    double getTotalCharge() const {
+        return getChargePerParticle() * this->getTotalNum();
+    }
+
     /**
      * @brief Set particle mass for the active M storage mode.
      * @param m Mass value in [GeV].
@@ -297,6 +321,106 @@ public:
         } else {
             Kokkos::deep_copy(MView_m, m);
         }
+    }
+
+    /// @brief Get mass per particle [GeV].
+    double getMassPerParticle() const {
+        if (qmStorageMode_m == QMStorageMode::Attributes) {
+            auto view = MAttr.getView();
+            if (view.extent(0) == 0) {
+                return 0.0;
+            }
+            double m = 0.0;
+            Kokkos::deep_copy(m, Kokkos::subview(view, 0));
+            return m;
+        }
+        double m = 0.0;
+        Kokkos::deep_copy(m, Kokkos::subview(MView_m, 0));
+        return m;
+    }
+
+    /// @brief Get total mass [GeV] in this container.
+    double getTotalMass() const {
+        return getMassPerParticle() * this->getTotalNum();
+    }
+
+    /// @brief Get the reference particle position (const).
+    const Vector_t<double, Dim>& getRefPartR() const {
+        return refPartR_m;
+    }
+
+    /// @brief Get the reference particle position.
+    Vector_t<double, Dim>& getRefPartR() {
+        return refPartR_m;
+    }
+
+    /// @brief Set the reference particle position.
+    void setRefPartR(const Vector_t<double, Dim>& refPartR) {
+        refPartR_m = refPartR;
+    }
+
+    /// @brief Get the reference particle momentum (const).
+    const Vector_t<double, Dim>& getRefPartP() const {
+        return refPartP_m;
+    }
+
+    /// @brief Get the reference particle momentum.
+    Vector_t<double, Dim>& getRefPartP() {
+        return refPartP_m;
+    }
+
+    /// @brief Set the reference particle momentum.
+    void setRefPartP(const Vector_t<double, Dim>& refPartP) {
+        refPartP_m = refPartP;
+    }
+
+    /// @brief Set reference particle data.
+    void setReference(const PartData* ref) {
+        reference_m = ref;
+        if (reference_m) {
+            // PartData mass is stored in eV; DistributionMoments expects GeV.
+            setEnergyReferenceMass(reference_m->getM() * Units::eV2GeV, true);
+        }
+    }
+
+    /// @brief Get reference particle data.
+    const PartData* getReference() const {
+        return reference_m;
+    }
+
+    /// @brief Set longitudinal position along design trajectory.
+    void set_sPos(double sPos) {
+        sPos_m = sPos;
+    }
+
+    /// @brief Get longitudinal position along design trajectory.
+    double get_sPos() const {
+        return sPos_m;
+    }
+
+    /// @brief Set global-to-local rotation quaternion.
+    void setGlobalToLocalQuaternion(const Quaternion_t& globalToLocalQuaternion) {
+        globalToLocalQuaternion_m = globalToLocalQuaternion;
+    }
+
+    /// @brief Get global-to-local rotation quaternion.
+    Quaternion_t getGlobalToLocalQuaternion() const {
+        return globalToLocalQuaternion_m;
+    }
+
+    /// @brief Get local-to-lab coordinate transformation (const).
+    const CoordinateSystemTrafo& getToLabTrafo() const {
+        return toLabTrafo_m;
+    }
+
+    /// @brief Get local-to-lab coordinate transformation.
+    CoordinateSystemTrafo& getToLabTrafo() {
+        return toLabTrafo_m;
+    }
+
+    /// @brief Set local-to-lab coordinate transformation.
+    void setToLabTrafo(const CoordinateSystemTrafo& toLabTrafo) {
+        toLabTrafo_m = toLabTrafo;
     }
 
     /**
@@ -433,6 +557,23 @@ private:
     // Per-particle attributes mode
     ippl::ParticleAttrib<double> QAttr;
     ippl::ParticleAttrib<double> MAttr;
+
+    // Reference particle information
+    Vector_t<double, Dim> refPartR_m;
+    Vector_t<double, Dim> refPartP_m;
+
+    // Global to local quaternion
+    Quaternion_t globalToLocalQuaternion_m;
+
+    // Reference particle to lab transformation
+    CoordinateSystemTrafo toLabTrafo_m;
+
+    // Particle reference data (!= reference particle)
+    const PartData* reference_m = nullptr;
+
+    // Distance along the beamline 
+    double sPos_m = 0.0;
+
 };
 
 #endif

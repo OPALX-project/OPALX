@@ -110,13 +110,14 @@ void H5PartWrapperForPT::readStep(
 }
 
 void H5PartWrapperForPT::readStepHeader(PartBunch_t* bunch) {
+    auto pc = bunch->getParticleContainer();
     double actualT;
     READSTEPATTRIB(Float64, file_m, "TIME", &actualT);
     bunch->setT(actualT);
 
     double spos;
     READSTEPATTRIB(Float64, file_m, "SPOS", &spos);
-    bunch->set_sPos(spos);
+    pc->set_sPos(spos);
 
     //h5_int64_t ltstep;
     //READSTEPATTRIB(Int64, file_m, "LocalTrackStep", &ltstep);
@@ -128,11 +129,11 @@ void H5PartWrapperForPT::readStepHeader(PartBunch_t* bunch) {
 
     Vector_t<double, 3> RefPartR;
     READSTEPATTRIB(Float64, file_m, "RefPartR", (h5_float64_t*)&RefPartR);
-    bunch->setRefPartR(RefPartR);
+    pc->setRefPartR(RefPartR);
 
     Vector_t<double, 3> RefPartP;
     READSTEPATTRIB(Float64, file_m, "RefPartP", (h5_float64_t*)&RefPartP);
-    bunch->setRefPartP(RefPartP);
+    pc->setRefPartP(RefPartP);
 
     Vector_t<double, 3> TaitBryant;
     READSTEPATTRIB(Float64, file_m, "TaitBryantAngles", (h5_float64_t*)&TaitBryant);
@@ -293,7 +294,7 @@ void H5PartWrapperForPT::writeHeader() {
 void H5PartWrapperForPT::writeStep(
     PartBunch_t* bunch, const std::map<std::string, double>& additionalStepAttributes) {
     
-    if (bunch->getTotalNum() == 0)
+    if (bunch->getParticleContainer()->getTotalNum() == 0)
         return;
 
     open(H5_O_APPENDONLY);
@@ -305,38 +306,39 @@ void H5PartWrapperForPT::writeStep(
 
 void H5PartWrapperForPT::writeStepHeader(
     PartBunch_t* bunch, const std::map<std::string, double>& additionalStepAttributes) {
-    double actPos                = bunch->get_sPos();
+    auto pc                      = bunch->getParticleContainer();
+    double actPos                = pc->get_sPos();
     double t                     = bunch->getT();
     Vector_t<double, 3> rmin     = bunch->get_origin();
     Vector_t<double, 3> rmax     = bunch->get_maxExtent();
-    Vector_t<double, 3> centroid = bunch->get_centroid();
+    Vector_t<double, 3> centroid = pc->getCentroid();
 
     Vector_t<double, 3> maxP(0.0);
     Vector_t<double, 3> minP(0.0);
 
-    Vector_t<double, 3> xsigma     = bunch->get_rrms();
-    Vector_t<double, 3> psigma     = bunch->get_prms();
-    Vector_t<double, 3> vareps     = bunch->get_norm_emit();
-    Vector_t<double, 3> geomvareps = bunch->get_emit();
-    Vector_t<double, 3> RefPartR   = bunch->getRefPartR();
-    Vector_t<double, 3> RefPartP   = bunch->getRefPartP();
+    Vector_t<double, 3> xsigma     = pc->getRmsR();
+    Vector_t<double, 3> psigma     = pc->getRmsP();
+    Vector_t<double, 3> vareps     = pc->getNormEmit();
+    Vector_t<double, 3> geomvareps = pc->getGeometricEmit();
+    Vector_t<double, 3> RefPartR   = pc->getRefPartR();
+    Vector_t<double, 3> RefPartP   = pc->getRefPartP();
     Vector_t<double, 3>
         TaitBryant;  // ADA = Util::getTaitBryantAngles(bunch->toLabTrafo_m.getRotation());
-    Vector_t<double, 3> pmean = bunch->get_pmean();
+    Vector_t<double, 3> pmean = pc->getMeanP();
 
-    double meanEnergy   = bunch->get_meanKineticEnergy();
-    double energySpread = bunch->getdE();
+    double meanEnergy   = pc->getMeanKineticEnergy();
+    double energySpread = pc->getStdKineticEnergy();
     double I_0 =
-        4.0 * Physics::pi * Physics::epsilon_0 * Physics::c * bunch->getM() / bunch->getQ();
+        4.0 * Physics::pi * Physics::epsilon_0 * Physics::c * pc->getTotalMass() / pc->getTotalCharge();
     double sigma = ((xsigma[0] * xsigma[0]) + (xsigma[1] * xsigma[1]))
-                   / (2.0 * bunch->get_gamma() * I_0
+                   / (2.0 * pc->getMeanGammaZ() * I_0
                       * (geomvareps[0] * geomvareps[0] + geomvareps[1] * geomvareps[1]));
 
     //h5_int64_t localTrackStep  = (h5_int64_t)bunch->getLocalTrackStep();
     h5_int64_t globalTrackStep = (h5_int64_t)bunch->getGlobalTrackStep();
 
-    double mass   = Units::eV2GeV * bunch->getM();
-    double charge = bunch->getCharge();
+    double mass   = Units::eV2GeV * pc->getTotalMass();
+    double charge = pc->getTotalCharge();
 
     h5_int64_t numBunch      = 1;
     h5_int64_t SteptoLastInj = 0;
@@ -410,7 +412,7 @@ void H5PartWrapperForPT::writeStepHeader(
 
 void H5PartWrapperForPT::writeStepData(PartBunch_t* bunch) {
 
-    size_t numLocalParticles = bunch->getLocalNum();
+    size_t numLocalParticles = bunch->getParticleContainer()->getLocalNum();
        
     auto rViewDevice  = bunch->getParticleContainer()->R.getView();
     auto rView = Kokkos::create_mirror_view(rViewDevice);

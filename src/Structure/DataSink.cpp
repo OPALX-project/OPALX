@@ -88,7 +88,8 @@ void DataSink::dumpSDDS(
 
     size_t npOutside = 0;
     if (Options::beamHaloBoundary > 0)
-        npOutside = beam->calcNumPartsOutside(Options::beamHaloBoundary * beam->get_rrms());
+        npOutside = beam->calcNumPartsOutside(
+            Options::beamHaloBoundary * beam->getParticleContainer()->getRmsR());
 
     IpplTimings::startTimer(StatMarkerTimer_m);
 
@@ -129,11 +130,12 @@ void DataSink::writeImpactStatistics(
     size_t Npart   = 0;
     double Npart_d = 0.0;
     if (!nEmissionMode) {
-        charge = -1.0 * beam->getCharge();
+        const auto pc = beam->getParticleContainers()[0];
+        charge = -1.0 * pc->getTotalCharge();
         // reduce(charge, charge, OpAddAssign());
-        Npart_d = -1.0 * charge / beam->getChargePerParticle();
+        Npart_d = -1.0 * charge / pc->getChargePerParticle();
     } else {
-        Npart = beam->getTotalNum();
+        Npart = beam->getParticleContainers()[0]->getTotalNum();
     }
     if (ippl::Comm->rank() == 0) {
         std::string ffn = fn + std::string(".dat");

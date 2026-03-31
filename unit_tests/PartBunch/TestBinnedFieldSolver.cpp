@@ -155,7 +155,7 @@ protected:
         std::uniform_real_distribution<double> unifP_z(pzMin, pzMax);
 
         const double dt = bunch->getdT();
-        const double qi = bunch->getChargePerParticle();
+        const double qi = pc->getChargePerParticle();
 
         for (size_t i = 0; i < nPart; ++i) {
             R_host(i)[0] = unifR_x(eng);
