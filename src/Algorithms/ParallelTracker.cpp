@@ -472,7 +472,7 @@ void ParallelTracker::execute() {
 
             // Delete particles outside N-sigma boundary (N = BOUNDPDESTROYFQ)
             // if (deletedParticles_m) {
-            double sigmas = static_cast<double>(Options::boundpDestroyFreq);
+            double sigmas = static_cast<double>(Options::boundpDestroy);
             //if (sigmas > 0.0) {
             size_t nDeleted = itsBunch_m->getParticleContainer()->deleteParticlesOutside(sigmas);
             if (nDeleted > 0) {
