@@ -80,7 +80,7 @@ namespace {
         ENABLEHDF5,
         ENABLEVTK,
         ASCIIDUMP,
-        BOUNDPDESTROYFQ,
+        BOUNDPDESTROY,
         BEAMHALOBOUNDARY,
         CLOTUNEONLY,
         IDEALIZED,
@@ -273,11 +273,11 @@ Option::Option()
     itsAttr[ASCIIDUMP] = Attributes::makeBool(
             "ASCIIDUMP", "If true, some of the elements dump in ASCII instead of HDF5", asciidump);
 
-    itsAttr[BOUNDPDESTROYFQ] = Attributes::makeReal(
-            "BOUNDPDESTROYFQ",
-            "The frequency to do boundp_destroy to "
-            "delete lost particles. Default 10",
-            boundpDestroyFreq);
+    itsAttr[BOUNDPDESTROY] = Attributes::makeReal(
+            "BOUNDPDESTROY",
+            "The number of sigmas away from the mean "
+            "at which particles are deleted. Default 10",
+            boundpDestroy);
 
     itsAttr[BEAMHALOBOUNDARY] = Attributes::makeReal(
             "BEAMHALOBOUNDARY",
@@ -365,7 +365,7 @@ Option::Option(const std::string& name, Option* parent) : Action(name, parent) {
     Attributes::setBool(itsAttr[ENABLEHDF5], enableHDF5);
     Attributes::setBool(itsAttr[ENABLEVTK], enableVTK);
     Attributes::setBool(itsAttr[ASCIIDUMP], asciidump);
-    Attributes::setReal(itsAttr[BOUNDPDESTROYFQ], boundpDestroyFreq);
+    Attributes::setReal(itsAttr[BOUNDPDESTROY], boundpDestroy);
     Attributes::setReal(itsAttr[BEAMHALOBOUNDARY], beamHaloBoundary);
     Attributes::setBool(itsAttr[IDEALIZED], idealized);
     Attributes::setBool(itsAttr[LOGBENDTRAJECTORY], writeBendTrajectories);
@@ -496,7 +496,7 @@ void Option::execute() {
         nLHS = int(Attributes::getReal(itsAttr[NLHS]));
     }
 
-    if (itsAttr[BOUNDPDESTROYFQ]) {
+    if (itsAttr[BOUNDPDESTROY]) {
         /*
          * Historically, BOUNDPDESTROYFQ was used as a positive frequency and
          * clamped to values >= 1 here. In OPAL-X, the same parameter now also
@@ -504,7 +504,7 @@ void Option::execute() {
          * deleteParticlesOutside(N). A value <= 0 is treated as "disabled"
          * by deleteParticlesOutside, so we must *not* clamp it to 1 anymore.
          */
-        boundpDestroyFreq = Attributes::getReal(itsAttr[BOUNDPDESTROYFQ]);
+        boundpDestroy = Attributes::getReal(itsAttr[BOUNDPDESTROY]);
     }
 
     if (itsAttr[CZERO]) {
