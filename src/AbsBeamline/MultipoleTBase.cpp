@@ -22,7 +22,8 @@ MultipoleTBase::MultipoleTBase(MultipoleT* element) : element_m(element) {}
 
 void MultipoleTBase::generateTanhCoefficients(const unsigned int numDerivatives) {
     const auto numCoefficients = numDerivatives + 2;
-    Kokkos::resize(tanhCoefficientsHost_m, numDerivatives + 1, numCoefficients);
+    Kokkos::resize(tanhCoefficientsGpu_m, numDerivatives + 1, numCoefficients);
+    tanhCoefficientsHost_m = Kokkos::create_mirror_view(tanhCoefficientsGpu_m);
     // Zero initialize
     for (unsigned int n = 0; n <= numDerivatives; ++n) {
         for (unsigned int k = 0; k < numDerivatives; ++k) {
@@ -44,4 +45,5 @@ void MultipoleTBase::generateTanhCoefficients(const unsigned int numDerivatives)
             tanhCoefficientsHost_m(n, k) = val;
         }
     }
+    Kokkos::deep_copy(tanhCoefficientsGpu_m, tanhCoefficientsHost_m);
 }

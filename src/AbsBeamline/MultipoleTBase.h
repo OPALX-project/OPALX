@@ -66,7 +66,6 @@
  */
 
 #include "AbsBeamline/MultipoleTConfig.h"
-#include "OPALTypes.h"
 class MultipoleT;
 class BeamlineVisitor;
 class BGeometryBase;
@@ -80,7 +79,8 @@ public:
 
 protected:
     MultipoleT* element_m;
-    Kokkos::View<double**, Kokkos::SharedHostPinnedSpace> tanhCoefficientsHost_m;
+    Kokkos::View<double**> tanhCoefficientsGpu_m;
+    Kokkos::View<double**>::host_mirror_type tanhCoefficientsHost_m;
 
 public:
     /** Initialise the element */

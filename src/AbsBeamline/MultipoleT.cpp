@@ -72,6 +72,7 @@ bool MultipoleT::apply(
     Kokkos::deep_copy(
             Kokkos::View<Vector_t<double, 3>, Kokkos::HostSpace>(&R),
             Kokkos::subview(pc->R.getView(), i));
+    Kokkos::fence();
     return implementation_->getField(R, E, B, getScaling(t));
 }
 

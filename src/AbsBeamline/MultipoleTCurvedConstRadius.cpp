@@ -32,7 +32,7 @@ void MultipoleTCurvedConstRadius::getField(
         const Kokkos::View<Vector_t<double, 3>*> B, const double scaling, const size_t count) {
     // Local variables that are copied into the kernel
     const auto config           = element_m->getConfig();
-    const auto tanhCoefficients = tanhCoefficientsHost_m;
+    const auto tanhCoefficients = tanhCoefficientsGpu_m;
     // Kernel launch over all particles
     Kokkos::parallel_for(
             "MultipoleTCurvedConstRadius::getField()", count, KOKKOS_LAMBDA(const size_t i) {
