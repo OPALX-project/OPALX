@@ -2,6 +2,7 @@
 #define PARTBUNCH_H
 
 #include <memory>
+#include <vector>
 
 #include "Algorithms/Matrix.h"
 #include "Algorithms/CoordinateSystemTrafo.h"
@@ -30,11 +31,6 @@ class DataSink;  // forward declaration; full type needed only in .cpp
 
 extern Inform* gmsg;
 
-template <typename T>
-KOKKOS_INLINE_FUNCTION typename T::value_type L2Norm(T& x) {
-    return sqrt(dot(x, x).apply());
-}
-
 using view_type = typename ippl::detail::ViewType<ippl::Vector<double, 3>, 1>::view_type;
 
 template <typename T, unsigned Dim>
@@ -47,164 +43,105 @@ public:
     using LoadBalancer_t      = LoadBalancer<T, Dim>;
     using Base                = ippl::ParticleBase<ippl::ParticleSpatialLayout<T, Dim>>;
 
-    using BinningSelector_t   = typename ParticleBinning::CoordinateSelector<ParticleContainer_t>;
-    using AdaptBins_t         = typename ParticleBinning::AdaptBins<ParticleContainer_t, BinningSelector_t>;
-    using binIndex_t          = typename ParticleContainer_t::bin_index_type;
+    using CoordinateSelector_t = typename ParticleBinning::CoordinateSelector<ParticleContainer_t>;
+    using GammaSelector_t      = typename ParticleBinning::GammaSelector<ParticleContainer_t>;
+    using AdaptBins_t          = typename ParticleBinning::AdaptBinsBase<ParticleContainer_t>;
+    using binIndex_t           = typename ParticleContainer_t::bin_index_type;
 
-    using BCHandler_t         = BCHandler<Dim>;
-
-    double time_m;
-
-    size_type totalP_m;
-
-    /// \todo doesn't do anything??? 
-    // int nt_m; 
-
-    double lbt_m;
-
-    double dt_m;
-
-    int it_m;
-
-    std::string integration_method_m;
-
-    std::string solver_m;
-
-    bool isFirstRepartition_m;
-
-private:
-    double qi_m;
-
-    double mi_m;
-
-    double rmsDensity_m;
-
-    std::shared_ptr<BCHandler_t> bcHandler_m;
+    using BCHandler_t          = BCHandler<Dim>;
 
 public:
-    Vector_t<int, Dim> nr_m;
+    // Per container values ====================================================
+    
+    // Reference particle values
+    Vector_t<double, Dim> RefPartR_m; // reference particle position
+    Vector_t<double, Dim> RefPartP_m; // reference particle momentum
+    CoordinateSystemTrafo toLabTrafo_m; // transformation to lab frame
 
-    Vector_t<double, Dim> origin_m;
-    Vector_t<double, Dim> rmin_m;
-    Vector_t<double, Dim> rmax_m;
+    // Shared values for all containers ========================================
+    
+    double dt_m; // time step
+    int it_m; // iteration count
 
-    /// mesh size [m]
-    Vector_t<double, Dim> hr_m;
-
-    // Landau damping specific
-    double Bext_m;
-    double alpha_m;
-    double DrInv_m;
-
+    double lbt_m; // load balancer threshold
+    bool isFirstRepartition_m; // first repartition flag
     ippl::NDIndex<Dim> domain_m;
     std::array<bool, Dim> decomp_m;
 
-    /*
-      Up to here it is like the opaltest
-    */
+    // Solver
+    std::string integration_method_m; // integration method
+    std::string solver_m; // field solver type
 
-    /**
-      Reference particle structures
-     */
+    // Mesh 
+    Vector_t<int, Dim> nr_m; // number of grid points
+    Vector_t<double, Dim> origin_m; // origin of the mesh
+    Vector_t<double, Dim> rmin_m; // minimum extent of the mesh
+    Vector_t<double, Dim> rmax_m; // maximum extent of the mesh
+    Vector_t<double, Dim> hr_m; // mesh size [m]
 
-    Vector_t<double, Dim> RefPartR_m;
-    Vector_t<double, Dim> RefPartP_m;
-
-    CoordinateSystemTrafo toLabTrafo_m;
+    // Unused values ===========================================================
+   
 
 private:
 
-    std::unique_ptr<size_t[]> globalPartPerNode_m;
+    // Per container values ====================================================
 
-    // ParticleOrigin refPOrigin_m;
-    // ParticleType refPType_m;
+    std::vector<double> qi_m; // charge per macroparticle [C], per container
+    std::vector<double> mi_m; // mass per macroparticle [GeV], per container
 
-    /// Initialize the translation vector and rotation quaternion
-    /// here. Cyclotron tracker will reset these values each timestep
-    /// TTracker can just use 0 translation and 0 rotation (quat[1 0 0 0]).
-    // Vector_t globalMeanR_m = Vector_t(0.0, 0.0, 0.0);
-    // Quaternion_t globalToLocalQuaternion_m = Quaternion_t(1.0, 0.0, 0.0, 0.0);
-    Vector_t<double, Dim> globalMeanR_m;
-    Quaternion_t globalToLocalQuaternion_m;
+    std::unique_ptr<size_t[]> globalPartPerNode_m; // reducer object for load balance statistics
 
-    /**
-       Adaptive binning structure (energy/velocity binning handled by AdaptBins).
-    */
-    std::shared_ptr<AdaptBins_t> bins_m;
-
-    /// steps per turn for OPAL-cycl
-    int stepsPerTurn_m;
-
-    /// current bunch number
-    short numBunch_m;
-
-    /// number of particles per bunch
-    std::vector<size_t> bunchTotalNum_m;
-    std::vector<size_t> bunchLocalNum_m;
-
-    /// this parameter records the current steps since last bunch injection
-    /// it helps to inject new bunches correctly in the restart run of OPAL-cycl
-    /// it is stored during phase space dump.
-    int SteptoLastInj_m;
-
-    bool fixed_grid;
-
-    const PartData* reference_m;
-
-    /// step in a TRACK command
-    long long localTrackStep_m;
-
-    /// if multiple TRACK commands
-    long long globalTrackStep_m;
-
-    std::shared_ptr<FieldSolverCmd> OPALFieldSolver_m;
-
-    std::shared_ptr<DataSink> dataSink_m;
+    Vector_t<double, Dim> globalMeanR_m; // global mean position
+    Quaternion_t globalToLocalQuaternion_m; // global to local quaternion
     
+    const PartData* reference_m; // reference particle data
+   
+    double spos_m; // s position along design trajectory
+
+
+    // Shared values for all containers ========================================
+
+    std::shared_ptr<BCHandler_t> bcHandler_m; // field boundary handler
+    std::shared_ptr<AdaptBins_t> bins_m; // adaptive binning structure
+
+    std::shared_ptr<FieldSolverCmd> OPALFieldSolver_m; // field solver command
+    std::shared_ptr<DataSink> dataSink_m; // data sink
+
     // unit state of PartBunch --> always false after initialization, so use this as standard flag
-    // UnitState_t unit_state_m;
-    bool isUnitless_m = false;
-    // UnitState_t stateOfLastBoundP_m;
+    bool isUnitless_m = false; // unitless flag
 
-    /// holds the actual time of the integration
-    double t_m;
-
-    /// the position along design trajectory
-    double spos_m;
-
-    /*
-       flags to tell if we are a DC-beam
-     */
-    bool dcBeam_m;
-    double periodLength_m;
+    double t_m; // time of integration
 
     /// Temporary E field container used to store temporary E field during binned solver
     std::shared_ptr<VField_t<T, Dim>> Etmp_m;
+    /// Temporary B field container used to store temporary B field during binned solver
+    std::shared_ptr<VField_t<T, Dim>> Btmp_m;
 
-    /// Maximum allowed number of local macroparticles on this rank.
-    /// Used as a safety guard to detect when particle emission triggers an
-    /// internal resize (Kokkos::realloc) of the particle arrays.
-    size_t maxLocalNum_m = 0;
+    long long globalTrackStep_m;
+    // Unused values ===========================================================
+
+    double rmsDensity_m;
+
 
 public:
 
     /**
      * @brief Construct a PartBunch with given macro charge/mass and configuration.
      *
-     * @param qi              Charge per macroparticle [C].
-     * @param mi              Mass per macroparticle [GeV/c^2].
-     * @param totalP          Total number of macroparticles.
+     * @param qi              Vector of macrocharges per species [C]
+     * @param mi              Vector of macromasses per species [GeV/c^2]
+     * @param num_containeres Total number of containers 
      * @param lbt             Load-balancer timescale.
      * @param integration_method Name of the integrator (e.g. "LF2").
      * @param OPALFieldSolver Field solver command providing mesh and binning configuration.
      * @param dataSink        Shared pointer to the global DataSink used for diagnostics.
      */
-    PartBunch(double qi,
-              double mi,
-              size_t totalP,
+    PartBunch(std::vector<double> qi, 
+              std::vector<double> mi,
+              size_t num_containers,
               double lbt,
               std::string integration_method,
-              std::shared_ptr<FieldSolverCmd>& OPALFieldSolver,
+              std::shared_ptr<FieldSolverCmd> OPALFieldSolver,
               std::shared_ptr<DataSink> dataSink);
     /**
      * @brief 
@@ -220,32 +157,45 @@ public:
      
      */
     void bunchUpdate();
-  
-    ~PartBunch() {
-        *gmsg << level2 << "* PartBunch Destructor: Finished time step: " << this->it_m << " time: " << this->time_m << endl;
+    size_t getTotalNumAllContainers() const {
+        size_t total = 0;
+        for (const auto& pc : this->getParticleContainers()) {
+            if (pc) {
+                total += pc->getTotalNum();
+            }
+        }
+        return total;
     }
-
-    std::shared_ptr<ParticleContainer_t> getParticleContainer() {
-        return this->pcontainer_m;
-    }
-
-    /// Set / get the maximum allowed number of local macroparticles on this rank.
-    /// Initialised from the global total number of macroparticles and the MPI
-    /// world size (see TrackRun) and used to detect over-emission.
-    void setMaxLocalNum(size_t n) { maxLocalNum_m = n; }
-    size_t getMaxLocalNum() const { return maxLocalNum_m; }
 
     void setSolver();
 
     void setBins();
 
-    void pre_run() override ;
+    void pre_run() override;
 
     void performBunchSanityChecks() const;
+
+    void advance() override {
+        throw OpalException(
+            "PartBunch::advance",
+            "Not used: just exists because ippl::PicManager wants it that way.");
+    }
+    void par2grid() override {
+        throw OpalException(
+            "PartBunch::par2grid",
+            "Not used: just exists because ippl::PicManager wants it that way.");
+    }
+    void grid2par() override {
+        throw OpalException(
+            "PartBunch::grid2par",
+            "Not used: just exists because ippl::PicManager wants it that way.");
+    }
 
 public:
     std::shared_ptr<VField_t<T, Dim>> getTempEField() { return this->Etmp_m; }
     void setTempEField(std::shared_ptr<VField_t<T, Dim>> Etmp) { this->Etmp_m = Etmp; }
+    std::shared_ptr<VField_t<T, Dim>> getTempBField() { return this->Btmp_m; }
+    void setTempBField(std::shared_ptr<VField_t<T, Dim>> Btmp) { this->Btmp_m = Btmp; }
 
     std::shared_ptr<AdaptBins_t> getBins() { return bins_m; }
     std::shared_ptr<AdaptBins_t> getBins() const { return bins_m; }
@@ -267,101 +217,157 @@ public:
         return this->pcontainer_m->getLocalNum();
     }
 
-    Vector_t<double, Dim> R(size_t /*i*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return Vector_t<double, Dim>(0.0);
-    }
-
-    Vector_t<double, Dim> P(size_t /*i*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return Vector_t<double, Dim>(0.0);
-    }
-
-    Vector_t<double, Dim> Ef(size_t /*i*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return Vector_t<double, Dim>(0.0);
-    }
-
-    Vector_t<double, Dim> Bf(size_t /*i*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return Vector_t<double, Dim>(0.0);
-    }
-
-    Vector_t<double, Dim> dt(size_t /*i*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return Vector_t<double, Dim>(0.0);
-    }
-
-    void advance() override {
-        // \todo needs to go
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-    }
-
-    void par2grid() override {
-        scatterCIC();
-    }
-
-    void grid2par() override {
-        gatherCIC();
-    }
-
-    void gatherCIC();
-
-    void scatterCIC() {
-        scatterCICPerBin(-1);
-    } 
-
-    void scatterCICPerBin(binIndex_t binIndex);
-
-    /*
-      Up to here it is like the opaltest
-    */
-
-    T getCouplingConstant() const;
-
     void calcBeamParameters();
 
     void do_binaryRepart();
 
+    /**
+     * @brief Set the per-particle charge for each particle container.
+     * @note Copies values from `qi_m` into each particle container via `setQ`.
+     * @note Throws if the number of particle containers and `qi_m` entries do not match.
+     */
     void setCharge() {
-        this->getParticleContainer()->Q = qi_m;
+        const auto& containers = this->getParticleContainers();
+        if (containers.size() != qi_m.size()) {
+            throw OpalException("PartBunch::setCharge",
+                                "Number of particle containers and qi values do not match.");
+        }
+        for (size_t i = 0; i < containers.size(); ++i) {
+            containers[i]->setQ(qi_m[i]);
+        }
     }
     
+    /**
+     * @brief Set the per-particle mass for each particle container.
+     * @note Copies values from `mi_m` into each particle container via `setM`.
+     * @note Throws if the number of particle containers and `mi_m` entries do not match.
+     */
     void setMass() {
-        this->getParticleContainer()->M = mi_m;
+        const auto& containers = this->getParticleContainers();
+        if (containers.size() != mi_m.size()) {
+            throw OpalException("PartBunch::setMass",
+                                "Number of particle containers and mi values do not match.");
+        }
+        for (size_t i = 0; i < containers.size(); ++i) {
+            containers[i]->setM(mi_m[i]);
+        }
     }
 
-    double getCharge() const {
-        return qi_m*this->getTotalNum();
+    /**
+     * @brief Get the total charge for a given particle container.
+     * @param containerIndex Index of the particle container.
+     * @returns `qi_m[containerIndex] * getParticleContainers()[containerIndex]->getTotalNum()`.
+     * @note Throws if the number of particle containers and `qi_m` entries do not match, or if
+     *       `containerIndex` is out of range.
+     */
+    double getCharge(size_t containerIndex = 0) const {
+        const auto& containers = this->getParticleContainers();
+        if (containers.size() != qi_m.size()) {
+            throw OpalException("PartBunch::getCharge",
+                                "Number of particle containers and qi values do not match.");
+        }
+        if (containerIndex >= containers.size()) {
+            throw OpalException("PartBunch::getCharge",
+                                "Container index out of range.");
+        }
+        return qi_m[containerIndex] * containers[containerIndex]->getTotalNum();
     }
 
-    double getChargePerParticle() const {
-        return qi_m;
-    }
-    double getMassPerParticle() const {
-        return mi_m;
-    }
-
-    double getQ() const {
-        return this->getCharge();
-    }
-    double getM() const {
-        return  mi_m*this->getTotalNum();
-    }
-
-    double getdE() const;
-
-    double getGamma(int /*i*/) const {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return 0.0;
-    }
-    double getBeta(int /*i*/) const {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return 0.0;
+    /**
+     * @brief Get the charge per particle for a given particle container.
+     * @param containerIndex Index of the particle container.
+     * @returns `qi_m[containerIndex]`.
+     * @note Throws if `containerIndex` is out of range.
+     */
+    double getChargePerParticle(size_t containerIndex = 0) const {
+        if (containerIndex >= qi_m.size()) {
+            throw OpalException("PartBunch::getChargePerParticle",
+                                "Container index out of range.");
+        }
+        return qi_m[containerIndex];
     }
 
-    void actT() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+    /**
+     * @brief Get the mass per particle for a given particle container.
+     * @param containerIndex Index of the particle container.
+     * @returns `mi_m[containerIndex]`.
+     * @note Throws if `containerIndex` is out of range.
+     */
+    double getMassPerParticle(size_t containerIndex = 0) const {
+        if (containerIndex >= mi_m.size()) {
+            throw OpalException("PartBunch::getMassPerParticle",
+                                "Container index out of range.");
+        }
+        return mi_m[containerIndex];
+    }
+
+    /**
+     * @brief Alias for `getCharge(containerIndex)`.
+     * @param containerIndex Index of the particle container.
+     * @returns Equivalent to `getCharge(containerIndex)`.
+     */
+    double getQ(size_t containerIndex = 0) const {
+        return this->getCharge(containerIndex);
+    }
+
+    /**
+     * @brief Get the total mass for a given particle container.
+     * @param containerIndex Index of the particle container.
+     * @returns `mi_m[containerIndex] * getParticleContainers()[containerIndex]->getTotalNum()`.
+     * @note Throws if the number of particle containers and `mi_m` entries do not match, or if
+     *       `containerIndex` is out of range.
+     */
+    double getM(size_t containerIndex = 0) const {
+        const auto& containers = this->getParticleContainers();
+        if (containers.size() != mi_m.size()) {
+            throw OpalException("PartBunch::getM",
+                                "Number of particle containers and mi values do not match.");
+        }
+        if (containerIndex >= containers.size()) {
+            throw OpalException("PartBunch::getM",
+                                "Container index out of range.");
+        }
+        return mi_m[containerIndex] * containers[containerIndex]->getTotalNum();
+    }
+
+    /**
+     * @brief Get the total charge across all particle containers.
+     * @returns `sum_i(qi_m[i] * containers[i]->getTotalNum())`.
+     * @note Throws if the number of particle containers and `qi_m` entries do not match.
+     */
+    double getTotalCharge() const {
+        const auto& containers = this->getParticleContainers();
+        if (containers.size() != qi_m.size()) {
+            throw OpalException("PartBunch::getTotalCharge",
+                                "Number of particle containers and qi values do not match.");
+        }
+        double charge = 0.0;
+        for (size_t i = 0; i < containers.size(); ++i) {
+            charge += qi_m[i] * containers[i]->getTotalNum();
+        }
+        return charge;
+    }
+
+    /**
+     * @brief Get the total mass across all particle containers.
+     * @returns `sum_i(mi_m[i] * containers[i]->getTotalNum())`.
+     * @note Throws if the number of particle containers and `mi_m` entries do not match.
+     */
+    double getTotalMass() const {
+        const auto& containers = this->getParticleContainers();
+        if (containers.size() != mi_m.size()) {
+            throw OpalException("PartBunch::getTotalMass",
+                                "Number of particle containers and mi values do not match.");
+        }
+        double mass = 0.0;
+        for (size_t i = 0; i < containers.size(); ++i) {
+            mass += mi_m[i] * containers[i]->getTotalNum();
+        }
+        return mass;
+    }
+
+    double getdE() {
+        return this->pcontainer_m->getStdKineticEnergy(); // Unit: MeV
     }
   
     const PartData* getReference() const {
@@ -379,61 +385,12 @@ public:
         }
     }
 
-    double getEmissionDeltaT() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return 1.0;
-    }
-
     void gatherLoadBalanceStatistics();
 
     size_t getLoadBalance(int p) {
         return globalPartPerNode_m[p];
     }
 
-    void resizeMesh() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-    }
-
-    bool isGridFixed() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return false;
-    }
-
-    void boundp() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-    }
-
-    size_t boundp_destroyT() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return 1;
-    }
-
-    void setBCAllOpen() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-    }
-    void setBCForDCBeam() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-    }
-    void setupBCs() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-    }
-    void setBCAllPeriodic() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-    }
-
-    void resetInterpolationCache(bool /*clearCache = false*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-    }
-    void swap(unsigned int /*i*/, unsigned int /*j*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-    }
-    double getRho(int /*x*/, int /*y*/, int /*z*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return 0.0;
-    }
-    void gatherStatistics(unsigned int /*totalP*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-    }
     /**
      * @brief Transform particle positions to a unitless coordinate system.
      *
@@ -467,15 +424,15 @@ public:
 
         // Divide by c*dt
         double unitless_factor = 1.0 / (Physics::c * this->getdT());
-        auto Rview  = this->getParticleContainer()->R.getView();
-        auto dtview = this->getParticleContainer()->dt.getView();
+        auto Rview             = this->getParticleContainer()->R.getView();
+        auto dtview            = this->getParticleContainer()->dt.getView();
+        const size_t nLocal    = this->getLocalNum();
         Kokkos::parallel_for(
-                             "switchToUnitlessPositions", ippl::getRangePolicy(Rview),
-                             KOKKOS_LAMBDA(const size_t i) {
-                                double fac = use_dt_per_particle ? (1.0 / (Physics::c * dtview(i))) 
-                                                                 : unitless_factor;
-                                Rview(i) *= fac;
-                             });
+            "switchToUnitlessPositions", nLocal, KOKKOS_LAMBDA(const size_t i) {
+                double fac =
+                    use_dt_per_particle ? (1.0 / (Physics::c * dtview(i))) : unitless_factor;
+                Rview(i) *= fac;
+            });
         isUnitless_m = true;
 
         /// \todo remove later
@@ -514,13 +471,13 @@ public:
         double unitless_factor = Physics::c * this->getdT();
         auto Rview  = this->getParticleContainer()->R.getView();
         auto dtview = this->getParticleContainer()->dt.getView();
+        const size_t nLocal    = this->getLocalNum();
         Kokkos::parallel_for(
-                             "switchOffUnitlessPositions", ippl::getRangePolicy(Rview),
-                             KOKKOS_LAMBDA(const size_t i) {
-                                double fac = use_dt_per_particle ? (Physics::c * dtview(i)) 
-                                                                 : unitless_factor;
-                                Rview(i) *= fac;
-                             });
+            "switchOffUnitlessPositions", nLocal,
+            KOKKOS_LAMBDA(const size_t i) {
+                double fac = use_dt_per_particle ? (Physics::c * dtview(i)) : unitless_factor;
+                Rview(i) *= fac;
+            });
         isUnitless_m = false;
 
         /// \todo remove later
@@ -542,6 +499,13 @@ public:
        return Vector_t<double, Dim>(0);
     }
 
+    /**
+     * @brief Compute the bunch self-fields (binned when available).
+     *
+     * The actual implementation lives in the solver object (see `BinnedFieldSolver`).
+     * `ParallelTracker` only orchestrates reference/beam-frame transforms and calls
+     * this delegator once per step.
+     */
     void computeSelfFields();
     void dumpBinConfig(bool preMerge);
 
@@ -565,9 +529,8 @@ public:
         return static_cast<const FieldSolver_t*>(this->fsolver_m.get());
     }
 
-    bool getFieldSolverType() {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return false;
+    std::string getFieldSolverType() {
+        return this->getFieldSolver()->getStype();
     }
 
     bool hasBinning() const {
@@ -599,72 +562,26 @@ public:
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
         return 0.0;
     }
-    
-    double getPx(int /*i*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return 0.0;
-    }
-    
-    double getPy(int /*i*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return 0.0;
-    }
-    
-    double getPz(int /*i*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return 0.0;
-    }
-    
-    double getPx0(int /*i*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return 0.0;
-    }
-    
-    double getPy0(int /*i*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return 0.0;
-    }
-
-    double getX(int /*i*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return 0.0;
-    }
-    
-    double getY(int /*i*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return 0.0;
-    }
-    
-    double getZ(int /*i*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return 0.0;
-    }
-    
-    double getX0(int /*i*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return 0.0;
-    }
-    
-    double getY0(int /*i*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return 0.0;
-    }
-
-    void setZ(int /*i*/, double /*zcoo*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-    }
 
     void get_bounds(Vector_t<double, Dim>& rmin, Vector_t<double, Dim>& rmax) {
         rmin = rmin_m;
         rmax = rmax_m;
     }
 
-    void getLocalBounds(Vector_t<double, Dim>& /*rmin*/, Vector_t<double, Dim>& /*rmax*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+    Vector_t<double, Dim> R(size_t) {
+        throw OpalException(
+            "PartBunch::R",
+            "Not implemented: shouldn't be called, since this is not the correct way to access "
+            "particle positions.");
+        return Vector_t<double, Dim>(0.0);
     }
 
-    void get_PBounds(Vector_t<double, Dim>& /*min*/, Vector_t<double, Dim>& /*max*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+    Vector_t<double, Dim> P(size_t) {
+        throw OpalException(
+            "PartBunch::P",
+            "Not implemented: shouldn't be called, since this is not the correct way to access "
+            "particle momenta.");
+        return Vector_t<double, Dim>(0.0);
     }
 
     void setdT(double dt) {
@@ -746,7 +663,8 @@ public:
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
         return Vector_t<double, Dim>(0.0);
     }
-    Vector_t<double, Dim> get_68Percentile() const {
+    // Not used, but might be useful later. Commented out for now.
+    /*Vector_t<double, Dim> get_68Percentile() const {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
         return Vector_t<double, Dim>(0.0);
     }
@@ -777,7 +695,8 @@ public:
     Vector_t<double, Dim> get_normalizedEps_99_99Percentile() const {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
         return Vector_t<double, Dim>(0.0);
-    }
+    }*/
+
     Vector_t<double, Dim> get_hr() const {
         return hr_m;
     }
@@ -815,18 +734,6 @@ public:
         return rmsDensity_m;
     }
 
-    /*
-      Some quantities related to integrations/tracking
-     */
-
-    void setStepsPerTurn(int n) {
-        stepsPerTurn_m = n;
-    }
-
-    int getStepsPerTurn() const {
-        return stepsPerTurn_m;
-    }
-
     /// step in multiple TRACK commands
     void setGlobalTrackStep(long long n) {
         globalTrackStep_m = n;
@@ -836,28 +743,8 @@ public:
         return globalTrackStep_m;
     }
 
-    /// step in a TRACK command
-    void setLocalTrackStep(long long n) {
-        localTrackStep_m = n;
-    }
-
     void incTrackSteps() {
         globalTrackStep_m++;
-        localTrackStep_m++;
-    }
-
-    long long getLocalTrackStep() const {
-        return localTrackStep_m;
-    }
-
-    void setNumBunch(short n) {
-        numBunch_m = n;
-        bunchTotalNum_m.resize(n);
-        bunchLocalNum_m.resize(n);
-    }
-
-    short getNumBunch() const {
-        return numBunch_m;
     }
 
     void setGlobalMeanR(Vector_t<double, Dim> globalMeanR) {
@@ -875,23 +762,6 @@ public:
     Quaternion_t getGlobalToLocalQuaternion() {
         return globalToLocalQuaternion_m;
     }
-
-    void setSteptoLastInj(int n) {
-        SteptoLastInj_m = n;
-    }
-
-    int getSteptoLastInj() const {
-        return SteptoLastInj_m;
-    }
-
-    double calculateAngle(double /*x*/, double /*y*/) {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return 0.0;
-    }
-
-    // Sanity check functions
-    void spaceChargeEFieldCheck(Vector_t<double, 3> efScale);
-
 };
 
 // Explicit instantiations

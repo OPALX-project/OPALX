@@ -79,6 +79,10 @@ public:
     /// Mass per macro particle in GeV/c^2
     double getMassPerParticle() const;
 
+    /// Return the name of the EMISSIONSOURCELIST linked to this beam.
+    /// Throws if `SOURCES` is not set.
+    std::string getEmissionSourceListName() const;
+
     /// Update the BEAM data.
     virtual void update();
 
