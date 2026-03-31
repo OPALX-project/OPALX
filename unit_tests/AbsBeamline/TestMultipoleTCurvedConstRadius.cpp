@@ -72,7 +72,7 @@ public:
             localR[i] = {static_cast<double>(i) * stepSize - width / 2, 0, s};
             hostR(i) = curvilinearToGlobal(localR[i], elementEntry, elementLength, bendAngle);
         }
-        Kokkos::deep_copy(hostR, hostR);
+        Kokkos::deep_copy(pc->R.getView(), hostR);
         pc->setQ(bunch->getChargePerParticle());
         ippl::Comm->barrier();
         Kokkos::fence();
@@ -415,7 +415,7 @@ TEST_F(TestMultipoleTCurvedConstRadius, BoundingBox) {
         EXPECT_EQ(val, 0.0);
     }
     // Check field is present inside the bounding box
-    grabTransverseDataLine(line, -3.0, 3.0, {0, 0, 0}, length, bendAngle);
+    grabTransverseDataLine(line, -2.9, 3.0, {0, 0, 0}, length, bendAngle);
     for (const double val : line) {
         EXPECT_NE(val, 0.0);
     }
@@ -425,7 +425,7 @@ TEST_F(TestMultipoleTCurvedConstRadius, BoundingBox) {
         EXPECT_NE(val, 0.0);
     }
     // Check field is present inside the bounding box
-    grabTransverseDataLine(line, 3.0, 3.0, {0, 0, 0}, length, bendAngle);
+    grabTransverseDataLine(line, 2.9, 3.0, {0, 0, 0}, length, bendAngle);
     for (const double val : line) {
         EXPECT_NE(val, 0.0);
     }

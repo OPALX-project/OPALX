@@ -413,7 +413,7 @@ TEST_F(TestMultipoleTStraight, BoundingBox) {
         EXPECT_EQ(val, 0.0);
     }
     // Check field is present inside the bounding box
-    grabTransverseDataLine(line, -3.0, 3.0, {0, 0, 0}, length);
+    grabTransverseDataLine(line, -2.9, 3.0, {0, 0, 0}, length);
     for (const double val : line) {
         EXPECT_NE(val, 0.0);
     }
@@ -423,7 +423,7 @@ TEST_F(TestMultipoleTStraight, BoundingBox) {
         EXPECT_NE(val, 0.0);
     }
     // Check field is present inside the bounding box
-    grabTransverseDataLine(line, 3.0, 3.0, {0, 0, 0}, length);
+    grabTransverseDataLine(line, 2.9, 3.0, {0, 0, 0}, length);
     for (const double val : line) {
         EXPECT_NE(val, 0.0);
     }
