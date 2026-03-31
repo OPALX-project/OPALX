@@ -49,7 +49,7 @@ int H5Writer::writePhaseSpace(PartBunch_t *beam, Vector_t<double, 3> FDext[], do
                               double refR, double refTheta, double refZ,
                               double azimuth, double elevation, bool /*local*/) {
 
-    if (beam->getTotalNum() < 3) return -1; // in single particle mode and tune calculation (2 particles) we do not need h5 data
+    if (beam->getParticleContainer()->getTotalNum() < 3) return -1; // in single particle mode and tune calculation (2 particles) we do not need h5 data
 
     IpplTimings::startTimer(H5PartTimer_m);
     std::map<std::string, double> additionalAttributes = {

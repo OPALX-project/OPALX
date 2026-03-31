@@ -298,7 +298,7 @@ void TrackRun::execute() {
 
     // Set reference mass for all conatiners
     for (size_t i = 0; i < beams.size(); ++i) {
-        bunch_m->setReference(&beams[i]->getReference(), i);
+        bunch_m->getParticleContainer(i)->setReference(&beams[i]->getReference());
     }
 
     // Set total particles per container (beam)
@@ -388,15 +388,17 @@ void TrackRun::execute() {
     }
 
     // Set charge Q and mass M attributes for each container
-    bunch_m->setCharge();
-    bunch_m->setMass();
+    for (size_t i = 0; i < particleContainers.size(); ++i) {
+        particleContainers[i]->setQ(macrocharges[i]);
+        particleContainers[i]->setM(macromasses[i]);
+    }
 
     // Calculate extents and update moments for each container
     bunch_m->bunchUpdate();
     bunch_m->print(*gmsg);
 
     // Set ZStart, ZStop, and dT
-    if (bunch_m->getTotalNum() > 0) {
+    if (bunch_m->getParticleContainer()->getTotalNum() > 0) {
         double spos = Track::block->zstart;
         auto& zstop = Track::block->zstop;
         auto it     = Track::block->dT.begin();

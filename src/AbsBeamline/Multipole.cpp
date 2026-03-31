@@ -725,7 +725,7 @@ bool Multipole::isFocusing(int component) const {
 
     // Fix: Use getNormalComponent() to safely retrieve the value from GPU memory
     return getNormalComponent(component) * std::pow(-1, component + 1)
-               * RefPartBunch_m->getChargePerParticle() > 0.0;
+               * RefPartBunch_m->getParticleContainer()->getChargePerParticle() > 0.0;
 }
 
 /* ========================================================================== */

@@ -233,8 +233,9 @@ void RFCavity::initialise(
         }
         in >> RNormal_m[i] >> VrNormal_m[i] >> DvDr_m[i];
 
-        VrNormal_m[i] *= RefPartBunch_m->getQ();
-        DvDr_m[i] *= RefPartBunch_m->getQ();
+        const auto pc = RefPartBunch_m->getParticleContainer();
+        VrNormal_m[i] *= pc->getTotalCharge();
+        DvDr_m[i] *= pc->getTotalCharge();
     }
     sinAngle_m = std::sin(angle_m * Units::deg2rad);
     cosAngle_m = std::cos(angle_m * Units::deg2rad);
@@ -674,7 +675,7 @@ std::pair<double, double> RFCavity::trackOnAxisParticle(
     Vector_t<double, 3> p({0, 0, p0});
     double t = t0;
 
-    BorisPusher integrator(*RefPartBunch_m->getReference());
+    BorisPusher integrator(*RefPartBunch_m->getParticleContainer()->getReference());
     const double cdt    = Physics::c * dt;
     const double zbegin = startField_m;
     const double zend   = getElementLength() + startField_m;

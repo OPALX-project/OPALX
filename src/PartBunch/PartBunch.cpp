@@ -19,20 +19,12 @@ PartBunch<T, Dim>::PartBunch(std::vector<double> qi,
                              std::shared_ptr<FieldSolverCmd> OPALFieldSolver,
                              std::shared_ptr<DataSink> dataSink)
     : ippl::PicManager<T, Dim, ParticleContainer<T, Dim>, FieldContainer<T, Dim>, LoadBalancer<T, Dim>>(),
-      RefPartR_m(num_containers, Vector_t<double, Dim>(0.0)),
-      RefPartP_m(num_containers, Vector_t<double, Dim>(0.0)),
-      toLabTrafo_m(num_containers),
       dt_m(0),
       it_m(0),
       integration_method_m(integration_method),
       solver_m(""),
       lbt_m(lbt),
       isFirstRepartition_m(true),
-      qi_m(std::move(qi)),
-      mi_m(std::move(mi)),
-      globalToLocalQuaternion_m(num_containers, Quaternion_t()),
-      reference_m(num_containers, nullptr),
-      spos_m(num_containers, 0.0),
       //nt_m(nt),
       OPALFieldSolver_m(OPALFieldSolver),
       dataSink_m(std::move(dataSink)),
@@ -46,11 +38,11 @@ PartBunch<T, Dim>::PartBunch(std::vector<double> qi,
         throw OpalException("PartBunch::PartBunch",
                             "num_containers must be > 0.");
     }
-    if (qi_m.size() != num_containers) {
+    if (qi.size() != num_containers) {
         throw OpalException("PartBunch::PartBunch",
                             "qi size must match num_containers.");
     }
-    if (mi_m.size() != num_containers) {
+    if (mi.size() != num_containers) {
         throw OpalException("PartBunch::PartBunch",
                             "mi size must match num_containers.");
     }
@@ -100,6 +92,11 @@ PartBunch<T, Dim>::PartBunch(std::vector<double> qi,
         this->addParticleContainer(std::make_shared<ParticleContainer_t>(
             this->fcontainer_m->getMesh(), this->fcontainer_m->getFL()));
     }
+    const auto& containers = this->getParticleContainers();
+    for (size_t i = 0; i < containers.size(); ++i) {
+        containers[i]->setQ(qi[i]);
+        containers[i]->setM(mi[i]);
+    }
 
     setSolver();
 
@@ -123,7 +120,7 @@ void PartBunch<T, Dim>::do_binaryRepart() {
     using FieldContainer_t = FieldContainer<T, Dim>;
     std::shared_ptr<FieldContainer_t> fc = this->fcontainer_m;
 
-    size_type totalP = this->getTotalNum();
+    size_type totalP = this->getParticleContainer()->getTotalNum();
 
     if (this->loadbalancer_m->balance(totalP)) {
         auto* mesh = &fc->getRho().get_mesh();
@@ -135,7 +132,7 @@ void PartBunch<T, Dim>::do_binaryRepart() {
 template <typename T, unsigned Dim>
 void  PartBunch<T, Dim>::gatherLoadBalanceStatistics() {
         std::fill_n(globalPartPerNode_m.get(), ippl::Comm->size(), 0);  // Fill the array with zeros
-        globalPartPerNode_m[ippl::Comm->rank()] = getLocalNum();
+        globalPartPerNode_m[ippl::Comm->rank()] = this->getParticleContainer()->getLocalNum();
         ippl::Comm->allreduce(globalPartPerNode_m.get(), 
                               ippl::Comm->size(), 
                               std::plus<size_t>());
@@ -234,7 +231,7 @@ void PartBunch<T, Dim>::calcBeamParameters() {
     using view_type = ippl::ParticleAttrib<Vector_t<double,3>>::view_type;
     view_type Rview = pc->R.getView();
     view_type Pview = pc->P.getView();
-    this->updateMoments();
+    this->getParticleContainer()->updateMoments();
     m << level5 << "Moments updated." << endl;
 
     ////////////////////////////////////
@@ -251,7 +248,7 @@ void PartBunch<T, Dim>::calcBeamParameters() {
     MomentsMat moment(MomentsVec(0.0));
 
     for (unsigned i = 0; i < 2 * Dim; ++i) {
-        const size_t nLocal = this->getLocalNum();
+        const size_t nLocal = this->getParticleContainer()->getLocalNum();
         Kokkos::parallel_reduce("calc moments of particle distr.", nLocal,
             KOKKOS_LAMBDA(const size_t k, double& cent, double& mom0, double& mom1, 
                           double& mom2, double& mom3, double& mom4, 
@@ -294,13 +291,13 @@ void PartBunch<T, Dim>::calcBeamParameters() {
 
     /// \todo do this in one step much nicer with ippl::Vector...
     for (unsigned d = 0; d < Dim; ++d) {
-        Kokkos::parallel_reduce("rel max", this->getLocalNum(),
+        Kokkos::parallel_reduce("rel max", this->getParticleContainer()->getLocalNum(),
             KOKKOS_LAMBDA(const int i, double& mm) {
                 double tmp_vel = Rview(i)[d];
                 mm             = tmp_vel > mm ? tmp_vel : mm;
             }, Kokkos::Max<T>(rmax_loc[d]));
         
-        Kokkos::parallel_reduce("rel min", this->getLocalNum(),
+        Kokkos::parallel_reduce("rel min", this->getParticleContainer()->getLocalNum(),
             KOKKOS_LAMBDA(const int i, double& mm) {
                 double tmp_vel = Rview(i)[d];
                 mm             = tmp_vel < mm ? tmp_vel : mm;
@@ -366,7 +363,7 @@ Inform& PartBunch<T, Dim>::print(Inform& os) {
             "********************************************************* \n"
            << "* CONTAINER       = " << ci << "\n"
            << "* PARTICLES       = " << pc->getTotalNum() << "\n"
-           << "* CHARGE          = " << this->getCharge(ci) << " (Cb) \n"
+           << "* CHARGE          = " << pc->getTotalCharge() << " (Cb) \n"
            << "* QM STORAGE MODE = " << qmStorageModeStr << "\n"
            << "* <EKIN>          = " << Util::getEnergyString(ek) << "\n"
            << "* <dEKIN>         = " << Util::getEnergyString(dek) << "\n"
@@ -512,7 +509,7 @@ void PartBunch<T, Dim>::bunchUpdate() {
         if (!containers[i]) {
             continue;
         }
-        this->updateMoments(i);
+        this->getParticleContainer(i)->updateMoments();
     }
     m << level5 << "Moments updated for all particle containers." << endl;
 }

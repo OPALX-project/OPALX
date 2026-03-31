@@ -49,15 +49,8 @@ public:
 
 public:
 // Per container values ========================================================
-    
-    // Reference particle position per container
-    std::vector<Vector_t<double, Dim>> RefPartR_m; 
 
-    // Reference particle momentum per container
-    std::vector<Vector_t<double, Dim>> RefPartP_m; 
-
-    //  Bunch-lab transformation per container
-    std::vector<CoordinateSystemTrafo> toLabTrafo_m; 
+// Moved to ParticleContainer for now
 
 // Shared values for all containers ============================================
     
@@ -106,21 +99,7 @@ private:
 
 // Per container values ========================================================
 
-    // Charge per macroparticle [C], per container
-    std::vector<double> qi_m; 
-
-    // Mass per macroparticle [GeV], per container
-    std::vector<double> mi_m; 
-
-    // Global to local quaternion per container
-    std::vector<Quaternion_t> globalToLocalQuaternion_m; 
-    
-    // Reference particle data per container
-    std::vector<const PartData*> reference_m;    
-
-    // S position along design trajectory per container
-    std::vector<double> spos_m; 
-
+// Moved to ParticleContainer for now
 
 // Shared values for all containers ============================================
 
@@ -161,16 +140,6 @@ private:
     // Still written to stat file for some reason? 
     double rmsDensity_m;
 
-private:
-
-    /// @brief Check if the container index is valid.
-    void checkContainerIndex(size_t containerIndex, const char* where) const {
-        const auto& containers = this->getParticleContainers();
-        if (containerIndex >= containers.size()) {
-            throw OpalException(where, "Container index out of range.");
-        }
-    }
-
 public:
 
     /**
@@ -203,9 +172,12 @@ public:
      Track/TrackRun.cpp             --> initial calc)
      PartBunch/PartBunch.cpp        --> in space charge which is wrong 
      Algorithms/ParallelTracker.cpp --> after push
-     
      */
     void bunchUpdate();
+
+    /**
+     * @brief Returns the total number of particle across all containers
+    */
     size_t getTotalNumAllContainers() const {
         size_t total = 0;
         for (const auto& pc : this->getParticleContainers()) {
@@ -294,250 +266,8 @@ public:
         return bcHandler_m; 
     }
 
-    /// @brief Compute statistics (moments) for the specified container
-    void updateMoments(size_t containerIndex = 0) {
-        checkContainerIndex(containerIndex, "PartBunch::updateMoments");
-        this->getParticleContainer(containerIndex)->updateMoments();
-    }
-
-    /// @brief Get global number of particles for the specified container
-    size_t getTotalNum(size_t containerIndex = 0) const {
-        checkContainerIndex(containerIndex, "PartBunch::getTotalNum");
-        return this->getParticleContainers()[containerIndex]->getTotalNum();
-    }
-
-    /// @brief Get local number of particles for the specified container
-    size_t getLocalNum(size_t containerIndex = 0) const {
-        checkContainerIndex(containerIndex, "PartBunch::getLocalNum");
-        return this->getParticleContainers()[containerIndex]->getLocalNum();
-    }
-
     /// @brief Update Moments and calculate rmin_m and rmax_m
     void calcBeamParameters();
-
-    /**
-     * @brief Set the per-particle charge for each particle container.
-     * @note Copies values from `qi_m` into each particle container via `setQ`.
-     * @note Throws if the number of particle containers and `qi_m` entries do not match.
-     */
-    void setCharge() {
-        const auto& containers = this->getParticleContainers();
-        if (containers.size() != qi_m.size()) {
-            throw OpalException("PartBunch::setCharge",
-                                "Number of particle containers and qi values do not match.");
-        }
-        for (size_t i = 0; i < containers.size(); ++i) {
-            containers[i]->setQ(qi_m[i]);
-        }
-    }
-    
-    /**
-     * @brief Set the per-particle mass for each particle container.
-     * @note Copies values from `mi_m` into each particle container via `setM`.
-     * @note Throws if the number of particle containers and `mi_m` entries do not match.
-     */
-    void setMass() {
-        const auto& containers = this->getParticleContainers();
-        if (containers.size() != mi_m.size()) {
-            throw OpalException("PartBunch::setMass",
-                                "Number of particle containers and mi values do not match.");
-        }
-        for (size_t i = 0; i < containers.size(); ++i) {
-            containers[i]->setM(mi_m[i]);
-        }
-    }
-
-    /**
-     * @brief Get the total charge for a given particle container.
-     * @param containerIndex Index of the particle container.
-     * @returns `qi_m[containerIndex] * getParticleContainers()[containerIndex]->getTotalNum()`.
-     * @note Throws if the number of particle containers and `qi_m` entries do not match, or if
-     *       `containerIndex` is out of range.
-     */
-    double getCharge(size_t containerIndex = 0) const {
-        const auto& containers = this->getParticleContainers();
-        if (containers.size() != qi_m.size()) {
-            throw OpalException("PartBunch::getCharge",
-                                "Number of particle containers and qi values do not match.");
-        }
-        if (containerIndex >= containers.size()) {
-            throw OpalException("PartBunch::getCharge",
-                                "Container index out of range.");
-        }
-        return qi_m[containerIndex] * containers[containerIndex]->getTotalNum();
-    }
-
-    /**
-     * @brief Get the charge per particle for a given particle container.
-     * @param containerIndex Index of the particle container.
-     * @returns `qi_m[containerIndex]`.
-     * @note Throws if `containerIndex` is out of range.
-     */
-    double getChargePerParticle(size_t containerIndex = 0) const {
-        if (containerIndex >= qi_m.size()) {
-            throw OpalException("PartBunch::getChargePerParticle",
-                                "Container index out of range.");
-        }
-        return qi_m[containerIndex];
-    }
-
-    /**
-     * @brief Get the mass per particle for a given particle container.
-     * @param containerIndex Index of the particle container.
-     * @returns `mi_m[containerIndex]`.
-     * @note Throws if `containerIndex` is out of range.
-     */
-    double getMassPerParticle(size_t containerIndex = 0) const {
-        if (containerIndex >= mi_m.size()) {
-            throw OpalException("PartBunch::getMassPerParticle",
-                                "Container index out of range.");
-        }
-        return mi_m[containerIndex];
-    }
-
-    /**
-     * @brief Alias for `getCharge(containerIndex)`.
-     * @param containerIndex Index of the particle container.
-     * @returns Equivalent to `getCharge(containerIndex)`.
-     */
-    double getQ(size_t containerIndex = 0) const {
-        return this->getCharge(containerIndex);
-    }
-
-    /**
-     * @brief Get the total mass for a given particle container.
-     * @param containerIndex Index of the particle container.
-     * @returns `mi_m[containerIndex] * getParticleContainers()[containerIndex]->getTotalNum()`.
-     * @note Throws if the number of particle containers and `mi_m` entries do not match, or if
-     *       `containerIndex` is out of range.
-     */
-    double getM(size_t containerIndex = 0) const {
-        const auto& containers = this->getParticleContainers();
-        if (containers.size() != mi_m.size()) {
-            throw OpalException("PartBunch::getM",
-                                "Number of particle containers and mi values do not match.");
-        }
-        if (containerIndex >= containers.size()) {
-            throw OpalException("PartBunch::getM",
-                                "Container index out of range.");
-        }
-        return mi_m[containerIndex] * containers[containerIndex]->getTotalNum();
-    }
-
-    /**
-     * @brief Get the total charge across all particle containers.
-     * @returns `sum_i(qi_m[i] * containers[i]->getTotalNum())`.
-     * @note Throws if the number of particle containers and `qi_m` entries do not match.
-     */
-    double getTotalCharge() const {
-        const auto& containers = this->getParticleContainers();
-        if (containers.size() != qi_m.size()) {
-            throw OpalException("PartBunch::getTotalCharge",
-                                "Number of particle containers and qi values do not match.");
-        }
-        double charge = 0.0;
-        for (size_t i = 0; i < containers.size(); ++i) {
-            charge += qi_m[i] * containers[i]->getTotalNum();
-        }
-        return charge;
-    }
-
-    /**
-     * @brief Get the total mass across all particle containers.
-     * @returns `sum_i(mi_m[i] * containers[i]->getTotalNum())`.
-     * @note Throws if the number of particle containers and `mi_m` entries do not match.
-     */
-    double getTotalMass() const {
-        const auto& containers = this->getParticleContainers();
-        if (containers.size() != mi_m.size()) {
-            throw OpalException("PartBunch::getTotalMass",
-                                "Number of particle containers and mi values do not match.");
-        }
-        double mass = 0.0;
-        for (size_t i = 0; i < containers.size(); ++i) {
-            mass += mi_m[i] * containers[i]->getTotalNum();
-        }
-        return mass;
-    }
-
-    /// @brief Get standard deviation of energy in the specified container
-    /// @note Unit = MeV
-    double getdE(size_t containerIndex = 0) {
-        return this->getParticleContainers()[containerIndex]->getStdKineticEnergy();
-    }
-
-    /// @brief Get the reference particle position for a container (const).
-    const Vector_t<double, Dim>& getRefPartR(size_t containerIndex = 0) const {
-        checkContainerIndex(containerIndex, "PartBunch::getRefPartR");
-        return RefPartR_m[containerIndex];
-    }
-
-    /// @brief Get the reference particle position for a container.
-    Vector_t<double, Dim>& getRefPartR(size_t containerIndex = 0) {
-        checkContainerIndex(containerIndex, "PartBunch::getRefPartR");
-        return RefPartR_m[containerIndex];
-    }
-
-    /// @brief Set the reference particle position for a container.
-    void setRefPartR(const Vector_t<double, Dim>& refPartR, size_t containerIndex = 0) {
-        checkContainerIndex(containerIndex, "PartBunch::setRefPartR");
-        RefPartR_m[containerIndex] = refPartR;
-    }
-
-    /// @brief Get the reference particle momentum for a container (const).
-    const Vector_t<double, Dim>& getRefPartP(size_t containerIndex = 0) const {
-        checkContainerIndex(containerIndex, "PartBunch::getRefPartP");
-        return RefPartP_m[containerIndex];
-    }
-
-    /// @brief Get the reference particle momentum for a container.
-    Vector_t<double, Dim>& getRefPartP(size_t containerIndex = 0) {
-        checkContainerIndex(containerIndex, "PartBunch::getRefPartP");
-        return RefPartP_m[containerIndex];
-    }
-
-    /// @brief Set the reference particle momentum for a container.
-    void setRefPartP(const Vector_t<double, Dim>& refPartP, size_t containerIndex = 0) {
-        checkContainerIndex(containerIndex, "PartBunch::setRefPartP");
-        RefPartP_m[containerIndex] = refPartP;
-    }
-
-    /// @brief Get the local-to-lab coordinate transformation for a container (const).
-    const CoordinateSystemTrafo& getToLabTrafo(size_t containerIndex = 0) const {
-        checkContainerIndex(containerIndex, "PartBunch::getToLabTrafo");
-        return toLabTrafo_m[containerIndex];
-    }
-
-    /// @brief Get the local-to-lab coordinate transformation for a container.
-    CoordinateSystemTrafo& getToLabTrafo(size_t containerIndex = 0) {
-        checkContainerIndex(containerIndex, "PartBunch::getToLabTrafo");
-        return toLabTrafo_m[containerIndex];
-    }
-
-    /// @brief Set the local-to-lab coordinate transformation for a container.
-    void setToLabTrafo(const CoordinateSystemTrafo& toLabTrafo, size_t containerIndex = 0) {
-        checkContainerIndex(containerIndex, "PartBunch::setToLabTrafo");
-        toLabTrafo_m[containerIndex] = toLabTrafo;
-    }
-  
-    /// @brief Get reference particle data for a container.
-    const PartData* getReference(size_t containerIndex = 0) const {
-        checkContainerIndex(containerIndex, "PartBunch::getReference");
-        return reference_m[containerIndex];
-    }
-
-    /// @brief Sets reference mass for specified container
-    /// @note Done in `TrackRun::execute()`
-    void setReference(const PartData* ref, size_t containerIndex = 0) {
-        checkContainerIndex(containerIndex, "PartBunch::setReference");
-        reference_m[containerIndex] = ref;
-        auto pc = this->getParticleContainer(containerIndex);
-        if (reference_m[containerIndex] && pc) {
-            // Ensure mean/std kinetic energy in DistributionMoments are computed using reference mass.
-            // PartData mass is stored in eV; DistributionMoments expects GeV for its energy computation.
-            pc->setEnergyReferenceMass(reference_m[containerIndex]->getM() * Units::eV2GeV, true);
-        }
-    }
 
     /**
      * @brief Transform particle positions to a unitless coordinate system.
@@ -574,7 +304,7 @@ public:
         double unitless_factor = 1.0 / (Physics::c * this->getdT());
         auto Rview             = this->getParticleContainer()->R.getView();
         auto dtview            = this->getParticleContainer()->dt.getView();
-        const size_t nLocal    = this->getLocalNum();
+        const size_t nLocal    = this->getParticleContainer()->getLocalNum();
         Kokkos::parallel_for(
             "switchToUnitlessPositions", nLocal, KOKKOS_LAMBDA(const size_t i) {
                 double fac =
@@ -619,7 +349,7 @@ public:
         double unitless_factor = Physics::c * this->getdT();
         auto Rview  = this->getParticleContainer()->R.getView();
         auto dtview = this->getParticleContainer()->dt.getView();
-        const size_t nLocal    = this->getLocalNum();
+        const size_t nLocal    = this->getParticleContainer()->getLocalNum();
         Kokkos::parallel_for(
             "switchOffUnitlessPositions", nLocal,
             KOKKOS_LAMBDA(const size_t i) {
@@ -773,31 +503,6 @@ public:
         return t_m;
     }
 
-    /// @brief Set longitudinal position for a container.
-    void set_sPos(double s, size_t containerIndex = 0) {
-        checkContainerIndex(containerIndex, "PartBunch::set_sPos");
-        spos_m[containerIndex] = s;
-    }
-
-    /// @brief Get longitudinal position for a container.
-    double get_sPos(size_t containerIndex = 0) const {
-        checkContainerIndex(containerIndex, "PartBunch::get_sPos");
-        return spos_m[containerIndex];
-    }
-
-    /// @brief Get mean relativistic gamma (z) for the specified container.
-    double get_gamma(size_t containerIndex = 0) const {
-        checkContainerIndex(containerIndex, "PartBunch::get_gamma");
-        return this->getParticleContainers()[containerIndex]->getMeanGammaZ();
-    }
-
-    /// Mean kinetic energy over particles (mean of per-particle kinetic energy), in MeV.
-    double get_meanKineticEnergy(size_t containerIndex = 0) {
-        checkContainerIndex(containerIndex, "PartBunch::get_meanKineticEnergy");
-        // Single source of truth: computed in DistributionMoments during updateMoments().
-        // Unit: MeV (see DistributionMoments implementation).
-        return this->getParticleContainers()[containerIndex]->getMeanKineticEnergy();
-    }
 
     /// @brief Get the current lower bound of the bunch extent.
     Vector_t<double, Dim> get_origin() const {
@@ -806,54 +511,6 @@ public:
     /// @brief Get the current upper bound of the bunch extent.
     Vector_t<double, Dim> get_maxExtent() const {
         return rmax_m;
-    }
-
-    // \todo in opal, MeanPosition is return for get_centroid, which I think is wrong. We already have get_rmean()
-    /// @brief Get phase-space centroid from the active particle container.
-    Vector_t<double, 2*Dim> get_centroid(size_t containerIndex = 0) const {
-        checkContainerIndex(containerIndex, "PartBunch::get_centroid");
-        return this->getParticleContainers()[containerIndex]->getCentroid();
-    }
-
-    /// @brief Get RMS beam size in position coordinates.
-    Vector_t<double, Dim> get_rrms(size_t containerIndex = 0) const {
-        checkContainerIndex(containerIndex, "PartBunch::get_rrms");
-        return this->getParticleContainers()[containerIndex]->getRmsR();
-    }
-
-    /// @brief Get RMS of normalized slopes r'.
-    Vector_t<double, Dim> get_rprms(size_t containerIndex = 0) const {
-        checkContainerIndex(containerIndex, "PartBunch::get_rprms");
-        return this->getParticleContainers()[containerIndex]->getRmsRP();
-    }
-
-    /// @brief Get RMS momentum spread.
-    Vector_t<double, Dim> get_prms(size_t containerIndex = 0) const {
-        checkContainerIndex(containerIndex, "PartBunch::get_prms");
-        return this->getParticleContainers()[containerIndex]->getRmsP();
-    }
-
-    /// @brief Get mean position.
-    Vector_t<double, Dim> get_rmean(size_t containerIndex = 0) const {
-        checkContainerIndex(containerIndex, "PartBunch::get_rmean");
-        return this->getParticleContainers()[containerIndex]->getMeanR();
-    }
-
-    /// @brief Get mean momentum.
-    Vector_t<double, Dim> get_pmean(size_t containerIndex = 0) const {
-        checkContainerIndex(containerIndex, "PartBunch::get_pmean");
-        return this->getParticleContainers()[containerIndex]->getMeanP();
-    }
-
-    /// @brief Get geometric emittance.
-    Vector_t<double, Dim> get_emit(size_t containerIndex = 0) const {
-        checkContainerIndex(containerIndex, "PartBunch::get_emit");
-        return this->getParticleContainers()[containerIndex]->getGeometricEmit();
-    }
-    /// @brief Get normalized emittance.
-    Vector_t<double, Dim> get_norm_emit(size_t containerIndex = 0) const {
-        checkContainerIndex(containerIndex, "PartBunch::get_norm_emit");
-        return this->getParticleContainers()[containerIndex]->getNormEmit();
     }
 
     // ! NOT IMPLEMENTED
@@ -865,50 +522,6 @@ public:
     /// @brief Get mesh spacing
     Vector_t<double, Dim> get_hr() const {
         return hr_m;
-    }
-    /// @brief Get horizontal dispersion for the specified container.
-    double get_Dx(size_t containerIndex = 0) const {
-        checkContainerIndex(containerIndex, "PartBunch::get_Dx");
-        return this->getParticleContainers()[containerIndex]->getDx();
-    }
-    /// @brief Get vertical dispersion for the specified container.
-    double get_Dy(size_t containerIndex = 0) const {
-        checkContainerIndex(containerIndex, "PartBunch::get_Dy");
-        return this->getParticleContainers()[containerIndex]->getDy();
-    }
-    /// @brief Get horizontal dispersion derivative for the specified container.
-    double get_DDx(size_t containerIndex = 0) const {
-        checkContainerIndex(containerIndex, "PartBunch::get_DDx");
-        return this->getParticleContainers()[containerIndex]->getDDx();
-    }
-    /// @brief Get vertical dispersion derivative for the specified container.
-    double get_DDy(size_t containerIndex = 0) const {
-        checkContainerIndex(containerIndex, "PartBunch::get_DDy");
-        return this->getParticleContainers()[containerIndex]->getDDy();
-    }
-
-    /// @brief Get beam temperature for the specified container.
-    double get_temperature(size_t containerIndex = 0) const {
-        checkContainerIndex(containerIndex, "PartBunch::get_temperature");
-        return this->getParticleContainers()[containerIndex]->getTemperature();
-    }
-
-    /// @brief Compute Debye length for the specified container.
-    void calcDebyeLength(size_t containerIndex = 0) {
-        checkContainerIndex(containerIndex, "PartBunch::calcDebyeLength");
-        this->getParticleContainers()[containerIndex]->computeDebyeLength(rmsDensity_m);
-    }
-
-    /// @brief Get Debye length for the specified container.
-    double get_debyeLength(size_t containerIndex = 0) const {
-        checkContainerIndex(containerIndex, "PartBunch::get_debyeLength");
-        return this->getParticleContainers()[containerIndex]->getDebyeLength();
-    }
-
-    /// @brief Get plasma parameter for the specified container.
-    double get_plasmaParameter(size_t containerIndex = 0) const {
-        checkContainerIndex(containerIndex, "PartBunch::get_plasmaParameter");
-        return this->getParticleContainers()[containerIndex]->getPlasmaParameter();
     }
 
     /// @brief Set tracking step 
@@ -924,18 +537,6 @@ public:
     /// @brief Increment tracking step
     void incTrackSteps() {
         globalTrackStep_m++;
-    }
-
-    /// @brief Set global-to-local rotation quaternion for the specified container.
-    void setGlobalToLocalQuaternion(Quaternion_t globalToLocalQuaternion, size_t containerIndex = 0) {
-        checkContainerIndex(containerIndex, "PartBunch::setGlobalToLocalQuaternion");
-        globalToLocalQuaternion_m[containerIndex] = globalToLocalQuaternion;
-    }
-
-    /// @brief Get global-to-local rotation quaternion for the specified container.
-    Quaternion_t getGlobalToLocalQuaternion(size_t containerIndex = 0) {
-        checkContainerIndex(containerIndex, "PartBunch::getGlobalToLocalQuaternion");
-        return globalToLocalQuaternion_m[containerIndex];
     }
 
 // Load Balancing (To be properly implemented) =================================
