@@ -84,6 +84,7 @@ public:
         apply();
         // Return the fields
         Kokkos::deep_copy(hostB, pc->B.getView());
+        Kokkos::fence();
         for (size_t i = 0; i < line.size(); ++i) {
             line[i] = std::hypot(hostB(i)[0], hostB(i)[1], hostB(i)[2]);
             // std::cout << i << ": Local=" << local[i] << ", Global=" << R[i]
