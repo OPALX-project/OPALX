@@ -43,7 +43,7 @@ const ElementBase& Component::getDesign() const {
 }
 
 void Component::trackBunch(
-    PartBunch_t*, 
+    const std::shared_ptr<PartBunch_t>&,
     const PartData&, 
     bool, 
     bool) const {

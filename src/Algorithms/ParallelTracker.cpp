@@ -80,7 +80,7 @@ ParallelTracker::ParallelTracker(
       { }
 
 ParallelTracker::ParallelTracker(
-    const Beamline& beamline, PartBunch_t* bunch, const std::shared_ptr<DataSink>& ds,
+    const Beamline& beamline, std::shared_ptr<PartBunch_t> bunch, const std::shared_ptr<DataSink>& ds,
     bool revBeam, bool revTrack,
     const std::vector<unsigned long long>& maxSteps, double zstart,
     const std::vector<double>& zstop, const std::vector<double>& dt,

@@ -377,12 +377,12 @@ void TrackRun::execute() {
        findPhasesForMaxEnergy();
 
     */
-    // TODO: INITIALISE WITH ALL CONTAINERS, EMITTINGSAMPLERSLIST
     itsTracker_m = new ParallelTracker(
-        *Track::block->use->fetchLine(), bunch_m.get(), ds_m, false,
+        *Track::block->use->fetchLine(), bunch_m, ds_m, false,
         Attributes::getBool(itsAttr[TRACKRUN::TRACKBACK]), Track::block->localTimeSteps,
         Track::block->zstart, Track::block->zstop, Track::block->dT, emittingSamplersList[0]);
 
+    // TODO: MAKE EXECUTE USE MULTIPLE CONTAINERS 
     itsTracker_m->execute();
 
     /*

@@ -142,7 +142,7 @@ public:
      * Vector of different timesteps for individual tracks
      * Optional list of emitting samplers (emitParticles(t, dt) called each step)
     */
-    explicit ParallelTracker(const Beamline& bl, PartBunch_t* bunch,
+    explicit ParallelTracker(const Beamline& bl, std::shared_ptr<PartBunch_t> bunch,
         const std::shared_ptr<DataSink>& ds, bool revBeam,
         bool revTrack, const std::vector<unsigned long long>& maxSTEPS, 
         double zstart, const std::vector<double>& zstop, 
