@@ -16,6 +16,8 @@
 #include "Fields/EMField.h"
 #include "OPALTypes.h"
 
+#include <memory>
+
 using ParticleContainer_t = ParticleContainer<double, 3>;
 
 class PartData;
@@ -206,7 +208,7 @@ public:
     //  bunch through a non-standard component.
     //  The default version throws a LogicalError.
     virtual void trackBunch(
-        PartBunch_t* bunch, 
+        const std::shared_ptr<PartBunch_t>& bunch,
         const PartData&, 
         bool revBeam, 
         bool revTrack) const;

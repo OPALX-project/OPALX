@@ -57,32 +57,33 @@ DataSink::DataSink(H5PartWrapper* h5wrapper, bool restart) {
 DataSink::DataSink(H5PartWrapper* h5wrapper) : DataSink(h5wrapper, false) {
 }
 
-void DataSink::dumpH5(PartBunch_t* beam, Vector_t<double, 3> FDext[]) const {
+void DataSink::dumpH5(const std::shared_ptr<PartBunch_t>& beam, Vector_t<double, 3> FDext[]) const {
     if (!Options::enableHDF5)
         return;
 
-    h5Writer_m->writePhaseSpace(beam, FDext);
+    h5Writer_m->writePhaseSpace(beam.get(), FDext);
 }
 
 int DataSink::dumpH5(
-    PartBunch_t* beam, Vector_t<double, 3> FDext[], double meanEnergy, double refPr, double refPt,
+    const std::shared_ptr<PartBunch_t>& beam, Vector_t<double, 3> FDext[], double meanEnergy,
+    double refPr, double refPt,
     double refPz, double refR, double refTheta, double refZ, double azimuth, double elevation,
     bool local) const {
     if (!Options::enableHDF5)
         return -1;
 
     return h5Writer_m->writePhaseSpace(
-        beam, FDext, meanEnergy, refPr, refPt, refPz, refR, refTheta, refZ, azimuth, elevation,
+        beam.get(), FDext, meanEnergy, refPr, refPt, refPz, refR, refTheta, refZ, azimuth, elevation,
         local);
 }
 
 void DataSink::dumpSDDS(
-    PartBunch_t* beam, Vector_t<double, 3> FDext[], const double& azimuth) const {
+    const std::shared_ptr<PartBunch_t>& beam, Vector_t<double, 3> FDext[], const double& azimuth) const {
     this->dumpSDDS(beam, FDext, losses_t(), azimuth);
 }
 
 void DataSink::dumpSDDS(
-    PartBunch_t* beam, Vector_t<double, 3> FDext[], const losses_t& losses,
+    const std::shared_ptr<PartBunch_t>& beam, Vector_t<double, 3> FDext[], const losses_t& losses,
     const double& azimuth) const {
     beam->calcBeamParameters();
 
@@ -93,7 +94,7 @@ void DataSink::dumpSDDS(
 
     IpplTimings::startTimer(StatMarkerTimer_m);
 
-    statWriter_m->write(beam, FDext, losses, azimuth, npOutside);
+    statWriter_m->write(beam.get(), FDext, losses, azimuth, npOutside);
 
     beam->gatherLoadBalanceStatistics();
 

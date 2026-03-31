@@ -60,17 +60,20 @@ public:
     DataSink(H5PartWrapper* h5wrapper, bool restart);
     DataSink(H5PartWrapper* h5wrapper);
 
-    void dumpH5(PartBunch_t* beam, Vector_t<double, 3> FDext[]) const;
+    void dumpH5(const std::shared_ptr<PartBunch_t>& beam, Vector_t<double, 3> FDext[]) const;
 
     int dumpH5(
-        PartBunch_t* beam, Vector_t<double, 3> FDext[], double meanEnergy, double refPr,
+        const std::shared_ptr<PartBunch_t>& beam, Vector_t<double, 3> FDext[], double meanEnergy, double refPr,
         double refPt, double refPz, double refR, double refTheta, double refZ, double azimuth,
         double elevation, bool local) const;
 
-    void dumpSDDS(PartBunch_t* beam, Vector_t<double, 3> FDext[], const double& azimuth = -1) const;
+    void dumpSDDS(
+        const std::shared_ptr<PartBunch_t>& beam, Vector_t<double, 3> FDext[],
+        const double& azimuth = -1) const;
 
     void dumpSDDS(
-        PartBunch_t* beam, Vector_t<double, 3> FDext[], const losses_t& losses = losses_t(),
+        const std::shared_ptr<PartBunch_t>& beam, Vector_t<double, 3> FDext[],
+        const losses_t& losses = losses_t(),
         const double& azimuth = -1) const;
 
     /** \brief Write cavity information from  H5 file
