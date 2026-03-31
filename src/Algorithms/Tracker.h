@@ -64,7 +64,6 @@
 
 #include "Algorithms/AbstractTracker.h"
 #include "PartBunch/PartBunch.h"
-#include "Algorithms/PartData.h"
 
 #include "Utilities/ClassicField.h"
 
@@ -76,19 +75,17 @@ class Tracker : public AbstractTracker {
 public:
     /// Constructor.
     //  The beam line to be tracked is [b]bl[/b].
-    //  The particle reference data are taken from [b]data[/b].
     //  The particle bunch is initially empty.
     //  If [b]backBeam[/b] is true, the beam runs from s = C to s = 0.
     //  If [b]backTrack[/b] is true, we track against the beam.
-    Tracker(const Beamline&, const PartData&, bool backBeam, bool backTrack);
+    Tracker(const Beamline&, bool backBeam, bool backTrack);
 
     /// Constructor.
     //  The beam line to be tracked is [b]bl[/b].
-    //  The particle reference data are taken from [b]data[/b].
     //  The particle bunch is taken from [b]bunch[/b].
     //  If [b]backBeam[/b] is true, the beam runs from s = C to s = 0.
     //  If [b]backTrack[/b] is true, we track against the beam.
-    Tracker(const Beamline&, PartBunch_t* bunch, const PartData&, bool backBeam, bool backTrack);
+    Tracker(const Beamline&, PartBunch_t* bunch, bool backBeam, bool backTrack);
 
     virtual ~Tracker();
 

@@ -126,7 +126,7 @@ public:
      * If "revBeam" is true, the beam runs from s = C to s = 0.
      * If "revTrack" is true, we track against the beam.
     */ 
-    explicit ParallelTracker(const Beamline& bl, const PartData& data, 
+    explicit ParallelTracker(const Beamline& bl,
         bool revBeam, bool revTrack);
 
     /*
@@ -134,7 +134,6 @@ public:
      * The Beamline object "bl"
      * The ParticleBunch "bunch"
      * The DataSink "ds"
-     * The reference data object "data" 
      * If "revBeam" is true, the beam runs from s = C to s = 0.
      * If "revTrack" is true, we track against the beam.
      * Vector of maxSteps per track
@@ -144,7 +143,7 @@ public:
      * Optional list of emitting samplers (emitParticles(t, dt) called each step)
     */
     explicit ParallelTracker(const Beamline& bl, PartBunch_t* bunch,
-        const std::shared_ptr<DataSink>& ds, const PartData& data, bool revBeam,
+        const std::shared_ptr<DataSink>& ds, bool revBeam,
         bool revTrack, const std::vector<unsigned long long>& maxSTEPS, 
         double zstart, const std::vector<double>& zstop, 
         const std::vector<double>& dt,
