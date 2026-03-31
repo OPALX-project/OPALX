@@ -162,8 +162,15 @@ void ParallelTracker::execute() {
     // Flag to indicate forward tracking
     bool back_track = false;
 
+    // Container 0: reference orbit for Boris pusher, single OrbitThreader, and zstart logging.
+    if (!itsBunch_m->getParticleContainer(0) ||
+        !itsBunch_m->getParticleContainer(0)->getReference()) {
+        throw OpalException("ParallelTracker::execute",
+                            "Particle container 0 or its PartData reference is null.");
+    }
+    const PartData& ref = *itsBunch_m->getParticleContainer(0)->getReference();
+
     // Initialize the Boris particle pusher
-    const PartData& ref = *itsBunch_m->getParticleContainer()->getReference();
     BorisPusher pusher(ref);
     m << level3 << "Initialized Boris pusher." << endl;
 
@@ -200,29 +207,38 @@ void ParallelTracker::execute() {
     CoordinateSystemTrafo beamlineToLab = 
         itsOpalBeamline_m.getCSTrafoLab2Local().inverted();
 
-    itsBunch_m->getParticleContainer()->setToLabTrafo(beamlineToLab);
-
-    // Transform reference particle coordinates and momentum to the lab frame
-    //itsBunch_m->RefPartR_m = 
-    //    beamlineToLab.transformTo(itsBunch_m->getParticleContainer()->getMeanR());
-    itsBunch_m->getParticleContainer()->getRefPartR() =
-        beamlineToLab.transformTo(Vector_t<double, 3>(0, 0, 0));
-    if (itsBunch_m->getParticleContainer()->getTotalNum() > 0) {
-        itsBunch_m->getParticleContainer()->getRefPartP() =
-            beamlineToLab.rotateTo(itsBunch_m->getParticleContainer()->getMeanP());
-    } else {
-        // Empty bunch: set RefPartP_m to BEAM's P0 (design momentum, same as added to particles' z).
-        const double P0 = ref.getP() / ref.getM();  // beta*gamma from BEAM pc
-        itsBunch_m->getParticleContainer()->getRefPartP() =
-            beamlineToLab.rotateTo(Vector_t<double, 3>(0.0, 0.0, P0));
-        m << level2 << "Empty simulation: RefPartP_m set to P0 manually (beta*gamma) = " << P0 << endl;
+    // Per-container: lab transform and reference orbit state (each beam's PartData for P0 fallback).
+    const auto& particleContainers = itsBunch_m->getParticleContainers();
+    for (const auto& pc : particleContainers) {
+        if (!pc) {
+            continue;
+        }
+        if (!pc->getReference()) {
+            throw OpalException("ParallelTracker::execute",
+                                "Particle container has null PartData reference during lab-frame init.");
+        }
+        pc->setToLabTrafo(beamlineToLab);
+        pc->getRefPartR() = beamlineToLab.transformTo(Vector_t<double, 3>(0, 0, 0));
+        if (pc->getTotalNum() > 0) {
+            pc->getRefPartP() = beamlineToLab.rotateTo(pc->getMeanP());
+        } else {
+            const PartData& pref = *pc->getReference();
+            const double P0    = pref.getP() / pref.getM();  // beta*gamma from BEAM pc
+            pc->getRefPartP()  = beamlineToLab.rotateTo(Vector_t<double, 3>(0.0, 0.0, P0));
+        }
     }
-    m << level4 << "Transformed reference particle position and momentum to lab frame." << endl;
+    if (itsBunch_m->getTotalNumAllContainers() == 0) {
+        const double P0 = ref.getP() / ref.getM();
+        m << level2 << "Empty simulation: RefPartP set to P0 per container (primary beta*gamma) = " << P0
+          << endl;
+    }
+    m << level4 << "Transformed reference particle position and momentum to lab frame (all containers)."
+      << endl;
 
-    // If the bunch contains particles and the desired starting position (zstart_m) 
-    // is ahead of the current path length, integrate the bunch forward to the start position
-    if (itsBunch_m->getParticleContainer()->getTotalNum() > 0) {
-        if (zstart_m > itsBunch_m->getParticleContainer()->get_sPos()) {
+    // If any particles exist and the desired starting position (zstart_m) is ahead of the primary
+    // path length, integrate the primary reference forward to the start position.
+    if (itsBunch_m->getTotalNumAllContainers() > 0) {
+        if (zstart_m > itsBunch_m->getParticleContainer(0)->get_sPos()) {
             findStartPosition(pusher);
         }
     }
@@ -231,18 +247,59 @@ void ParallelTracker::execute() {
     // before the start position (zstart_m)
     stepSizes_m.advanceToPos(zstart_m);
 
-    // Retrieve the bunch spatial bounds 
+    // Global spatial bounds: union over all containers (local merge, then MPI like calcBeamParameters)
     Vector_t<double, 3> rmin(0.0), rmax(0.0);
-    if (itsBunch_m->getParticleContainer()->getTotalNum() > 0) {
-        itsBunch_m->get_bounds(rmin, rmax);
+    if (itsBunch_m->getTotalNumAllContainers() > 0) {
+        bool hasNonEmpty = false;
+        ippl::Vector<double, 3> rminLoc(0.0), rmaxLoc(0.0);
+        for (const auto& pc : particleContainers) {
+            if (!pc || pc->getTotalNum() == 0) {
+                continue;
+            }
+            pc->computeMinMaxR();
+            const ippl::Vector<double, 3> mn = pc->getMinR();
+            const ippl::Vector<double, 3> mx = pc->getMaxR();
+            if (!hasNonEmpty) {
+                rminLoc     = mn;
+                rmaxLoc     = mx;
+                hasNonEmpty = true;
+            } else {
+                for (int i = 0; i < 3; ++i) {
+                    rminLoc[i] = std::min(rminLoc[i], mn[i]);
+                    rmaxLoc[i] = std::max(rmaxLoc[i], mx[i]);
+                }
+            }
+        }
+        if (!hasNonEmpty) {
+            if (particleContainers.empty() || !particleContainers[0]) {
+                throw OpalException("ParallelTracker::execute",
+                                    "No valid particle container for initial bounds.");
+            }
+            particleContainers[0]->computeMinMaxR();
+            rminLoc = particleContainers[0]->getMinR();
+            rmaxLoc = particleContainers[0]->getMaxR();
+        }
+        rmax = rmaxLoc;
+        rmin = rminLoc;
+        ippl::Comm->allreduce(rmax, 1, std::greater<ippl::Vector<double, 3>>());
+        ippl::Comm->allreduce(rmin, 1, std::less<ippl::Vector<double, 3>>());
+        ippl::Comm->barrier();
         m << level4 << "Initial bunch bounds:\n"
           << "  rmin = " << rmin << "\n"
           << "  rmax = " << rmax << endl;
     }
 
-    m << level3 << "ParallelTrack: momentum = " << itsBunch_m->getParticleContainer()->getMeanP()(2) << "\n"
-      << "itsBunch_m->RefPartR_m = " << itsBunch_m->getParticleContainer()->getRefPartR() << "\n"
-      << "itsBunch_m->RefPartP_m = " << itsBunch_m->getParticleContainer()->getRefPartP() << endl;
+    if (itsBunch_m->getParticleContainer(0)->getTotalNum() > 0) {
+        m << level3 << "ParallelTrack (container 0): momentum z = "
+          << itsBunch_m->getParticleContainer(0)->getMeanP()(2) << "\n"
+          << "RefPartR (container 0) = " << itsBunch_m->getParticleContainer(0)->getRefPartR() << "\n"
+          << "RefPartP (container 0) = " << itsBunch_m->getParticleContainer(0)->getRefPartP() << endl;
+    } else {
+        m << level3 << "ParallelTrack: container 0 empty; total particles = "
+          << itsBunch_m->getTotalNumAllContainers() << "\n"
+          << "RefPartR (container 0) = " << itsBunch_m->getParticleContainer(0)->getRefPartR() << "\n"
+          << "RefPartP (container 0) = " << itsBunch_m->getParticleContainer(0)->getRefPartP() << endl;
+    }
 
     
     // Start timing for the OrbitThreader section
@@ -258,10 +315,10 @@ void ParallelTracker::execute() {
 
     // Create an OrbitThreader object to handle orbit threading and element queries
     OrbitThreader oth(
-        ref,                                        // Reference particle data
-        itsBunch_m->getParticleContainer()->getRefPartR(),  // Reference particle position
-        itsBunch_m->getParticleContainer()->getRefPartP(),  // Reference particle momentum
-        itsBunch_m->getParticleContainer()->get_sPos(),  // Current path length
+        ref,                                        // Reference PartData (container 0 beam)
+        itsBunch_m->getParticleContainer(0)->getRefPartR(),
+        itsBunch_m->getParticleContainer(0)->getRefPartP(),
+        itsBunch_m->getParticleContainer(0)->get_sPos(),
         -rmin(2),                                   // Negative minimum z bound
         itsBunch_m->getT(),                         // Current bunch time
         (back_track ? -minTimeStep : minTimeStep),  // Time step direction
@@ -292,7 +349,8 @@ void ParallelTracker::execute() {
     OPALTimer::Timer myt1;
     *gmsg << level1 << "* Track start at: " << myt1.time() 
       << ", t= " << Util::getTimeString(time) << "; "
-      << "zstart at: " << Util::getLengthString(itsBunch_m->getParticleContainer()->get_sPos()) << endl
+      << "zstart at: " << Util::getLengthString(itsBunch_m->getParticleContainer(0)->get_sPos())
+      << endl
       << "* Initial dt = " << Util::getTimeString(itsBunch_m->getdT()) << endl
       << "* Max integration steps = " << stepSizes_m.getMaxSteps() 
       << ", next step = " << step << endl;
