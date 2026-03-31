@@ -115,49 +115,8 @@ private:
     IpplTimings::TimerRef PluginElemTimer_m;
     IpplTimings::TimerRef BinRepartTimer_m;
     IpplTimings::TimerRef OrbThreader_m;
-    /* ===================================================================== */
-    /* ========================== Ring Variables =========================== */
-    typedef std::pair<double[8], Component*> element_pair;
-    typedef std::pair<ElementType, element_pair> type_pair;
-    typedef std::list<type_pair*> beamline_list;
-    
-    unsigned turnnumber_m;
-
-    std::list<Component*> myElements;
-    beamline_list FieldDimensions;
-
-    double bega;
-    double referenceR;
-    double referenceTheta;
-    double referenceZ = 0.0;
-
-    double referencePr;
-    double referencePt;
-    double referencePz = 0.0;
-    double referencePtot;
-
-    double referencePsi;
-    double referencePhi;
-
-    double sinRefTheta_m;
-    double cosRefTheta_m; 
-    
-    std::vector<PluginElement*> pluginElements_m;
-
-    /* ===================================================================== */
-    /* ========================== NOT IMPLEMENTED ========================== */
-    // Particle - Matter interaction
-    std::set<ParticleMatterInteractionHandler*>
-        activeParticleMatterInteractionHandlers_m;
-    bool particleMatterStatus_m;
-
-    // Wakefield stuff - Does nothing...
-    bool wakeStatus_m;
-    WakeFunction* wakeFunction_m;
-
     /// Time-dependent (emitting) sources; emitParticles(t, dt) called each step.
     std::vector<std::shared_ptr<SamplingBase>> emittingSamplers_m;
-    /* ===================================================================== */ 
 public:
     /* ============================ Constructors =========================== */
     /*
@@ -205,9 +164,6 @@ public:
     /// Apply the algorithm to a drift space.
     virtual void visitDrift(const Drift&);
 
-    /// Apply the algorithm to a ring
-    virtual void visitRing(const Ring& ring);
-
     /// Apply the algorithm to a marker.
     virtual void visitMarker(const Marker&);
 
@@ -226,14 +182,6 @@ public:
     /// Apply the algorithm to a RF cavity.
     virtual void visitSolenoid(const Solenoid&);
 
-    /// Apply the algorithm to a traveling wave.
-    virtual void visitTravelingWave(const TravelingWave&);
-
-    /// Apply the algorithm to a scaling FFA.
-    virtual void visitScalingFFAMagnet(const ScalingFFAMagnet& bend);
-
-    /// Apply the algorithm to a vertical FFA magnet.
-    virtual void visitVerticalFFAMagnet(const VerticalFFAMagnet& bend);
     /* ===================================================================== */
     /* ========================= Start Simulation ========================== */
     virtual void execute();
@@ -279,6 +227,7 @@ private:
 
     // Load balancing
     void doBinaryRepartition();
+    void transformBunch(const CoordinateSystemTrafo& trafo);
 
     // Applies a (fractional) step tau
     void applyFractionalStep(const BorisPusher& pusher, double tau);
@@ -294,20 +243,64 @@ private:
     void saveCavityPhases();
     void restoreCavityPhases();
     /* ===================================================================== */
-    /* ========================== RING FUNCTIONS =========================== */
-    void buildupFieldList(double BcParameter[], ElementType elementType, 
-        Component* elptr);
-    bool applyPluginElements(const double dt);
-    /* ===================================================================== */
-    /* ========================== NOT IMPLEMENTED ========================== */
-    ParallelTracker();
-    ParallelTracker(const ParallelTracker&);
-    void operator=(const ParallelTracker&);
-    void computeWakefield(IndexMap::value_t& elements);
-    void computeParticleMatterInteraction(IndexMap::value_t elements, 
-        OrbitThreader& oth);
-    void handleRestartRun();
-    void transformBunch(const CoordinateSystemTrafo& trafo);
+    /* ==================== COMMENTED OUT (UNUSED/NI) ===================== */
+    // NOTE: Moved from earlier sections per request.
+    // typedef std::pair<double[8], Component*> element_pair;
+    // typedef std::pair<ElementType, element_pair> type_pair;
+    // typedef std::list<type_pair*> beamline_list;
+    //
+    // unsigned turnnumber_m;
+    // std::list<Component*> myElements;
+    // beamline_list FieldDimensions;
+    //
+    // double bega;
+    // double referenceR;
+    // double referenceTheta;
+    // double referenceZ = 0.0;
+    //
+    // double referencePr;
+    // double referencePt;
+    // double referencePz = 0.0;
+    // double referencePtot;
+    //
+    // double referencePsi;
+    // double referencePhi;
+    //
+    // double sinRefTheta_m;
+    // double cosRefTheta_m;
+    // std::vector<PluginElement*> pluginElements_m;
+    //
+    // // Particle - Matter interaction
+    // std::set<ParticleMatterInteractionHandler*>
+    //     activeParticleMatterInteractionHandlers_m;
+    // bool particleMatterStatus_m;
+    //
+    // // Wakefield stuff - Does nothing...
+    // bool wakeStatus_m;
+    // WakeFunction* wakeFunction_m;
+    //
+    // /// Apply the algorithm to a ring.
+    // virtual void visitRing(const Ring& ring);
+    //
+    // /// Apply the algorithm to a traveling wave.
+    // virtual void visitTravelingWave(const TravelingWave&);
+    //
+    // /// Apply the algorithm to a scaling FFA.
+    // virtual void visitScalingFFAMagnet(const ScalingFFAMagnet& bend);
+    //
+    // /// Apply the algorithm to a vertical FFA magnet.
+    // virtual void visitVerticalFFAMagnet(const VerticalFFAMagnet& bend);
+    //
+    // void buildupFieldList(double BcParameter[], ElementType elementType,
+    //     Component* elptr);
+    // bool applyPluginElements(const double dt);
+    // ParallelTracker();
+    // ParallelTracker(const ParallelTracker&);
+    // void operator=(const ParallelTracker&);
+    // void computeWakefield(IndexMap::value_t& elements);
+    // void computeParticleMatterInteraction(IndexMap::value_t elements,
+    //     OrbitThreader& oth);
+    // void handleRestartRun();
     /* ===================================================================== */
 };
 
@@ -339,8 +332,8 @@ inline void ParallelTracker::visitSolenoid(const Solenoid& so) {
     itsOpalBeamline_m.visit(so, *this, itsBunch_m);
 }
 
-inline void ParallelTracker::visitTravelingWave(const TravelingWave& as) {
-    itsOpalBeamline_m.visit(as, *this, itsBunch_m);
-}
+// inline void ParallelTracker::visitTravelingWave(const TravelingWave& as) {
+//     itsOpalBeamline_m.visit(as, *this, itsBunch_m);
+// }
 
 #endif  // OPAL_ParallelTracker_HH
