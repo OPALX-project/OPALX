@@ -7,6 +7,7 @@
 
 #include "Distribution/FromFile.h"
 #include "Distribution/Distribution.h"
+#include "PartBunch/BunchStateHandler.h"
 #include "Ippl.h"
 #include "Utility/IpplTimings.h"
 
@@ -42,6 +43,7 @@ protected:
 
         pc = std::make_shared<ParticleContainer<double, 3>>(mesh, fl);
 
+        bunchStateHandler = std::make_shared<BunchStateHandler>();
         tempFilename = "fromfile_test_input.dat";
     }
 
@@ -84,6 +86,7 @@ protected:
     }
 
     std::shared_ptr<ParticleContainer<double, 3>> pc;
+    std::shared_ptr<BunchStateHandler> bunchStateHandler;
     ippl::Vector<int, 3> nr;
     bool isAllPeriodic_m = true;
     std::string tempFilename;
@@ -94,6 +97,7 @@ TEST_F(FromFileTest, GeneratesParticlesFromAsciiFile) {
 
     auto fc = std::shared_ptr<FieldContainer_t>();
     FromFile sampler(pc, fc, tempFilename);
+    sampler.setBunchStateHandler(bunchStateHandler);
 
     size_t requested = 10; // larger than available in file to test clamping
 
@@ -146,6 +150,7 @@ TEST_F(FromFileTest, ParseHeader_ReorderedColumns) {
 
     auto fc = std::shared_ptr<FieldContainer_t>();
     FromFile sampler(pc, fc, tempFilename);
+    sampler.setBunchStateHandler(bunchStateHandler);
 
     size_t requested = 1;
     sampler.generateParticles(requested, nr);
@@ -173,6 +178,7 @@ TEST_F(FromFileTest, ParseHeader_StandardOrderAndAlternateNames) {
 
     auto fc = std::shared_ptr<FieldContainer_t>();
     FromFile sampler(pc, fc, tempFilename);
+    sampler.setBunchStateHandler(bunchStateHandler);
 
     size_t requested = 1;
     sampler.generateParticles(requested, nr);
