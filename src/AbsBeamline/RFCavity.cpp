@@ -675,7 +675,8 @@ std::pair<double, double> RFCavity::trackOnAxisParticle(
     Vector_t<double, 3> p({0, 0, p0});
     double t = t0;
 
-    BorisPusher integrator(*RefPartBunch_m->getParticleContainer()->getReference());
+    BorisPusher integrator;
+    const PartData& ref = *RefPartBunch_m->getParticleContainer()->getReference();
     const double cdt    = Physics::c * dt;
     const double zbegin = startField_m;
     const double zend   = getElementLength() + startField_m;
@@ -698,7 +699,7 @@ std::pair<double, double> RFCavity::trackOnAxisParticle(
             applyToReferenceParticle(z, p, t + 0.5 * dt, Ef, Bf);
         }
 
-        integrator.kick(z, p, Ef, Bf, dt);
+        integrator.kick(z, p, Ef, Bf, dt, ref.getM(), ref.getQ());
 
         dz = 0.5 * p(2) / std::sqrt(1.0 + dot(p, p)) * cdt;
         z /= cdt;

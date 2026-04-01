@@ -171,7 +171,7 @@ void ParallelTracker::execute() {
     const PartData& ref = *itsBunch_m->getParticleContainer(0)->getReference();
 
     // Initialize the Boris particle pusher
-    BorisPusher pusher(ref);
+    BorisPusher pusher;
     m << level3 << "Initialized Boris pusher." << endl;
 
     // Reset the global phase shift
@@ -793,11 +793,8 @@ void ParallelTracker::kickParticles(const BorisPusher& pusher) {
     auto Efview = itsBunch_m->getParticleContainer()->E.getView();
     auto Bfview = itsBunch_m->getParticleContainer()->B.getView();
     m << level5 << "Got particle views for kick operation." << endl;
-    /*
-    We want mass in eV and charge in elementary charges here to match OPAL's 
-    BorisPusher. Note that mass/charge are extracted from the reference particle
-    in the BorisPusher.push call. 
-    */
+    // Mass (eV) and charge (proton charges) from this container's reference particle,
+    // passed explicitly into BorisPusher::kick for GPU-safe kernels.
 
     const PartData& ref = *itsBunch_m->getParticleContainer()->getReference();
     const double mass = ref.getM();
@@ -830,16 +827,8 @@ void ParallelTracker::kickParticles(const BorisPusher& pusher) {
              *   charge Particle charge.
              *
              */
-            Vector_t<double, 3> p = Pview(i); 
+            Vector_t<double, 3> p = Pview(i);
             /// \todo might want to remove dt and R altogether from the kick!
-            /*
-            Also: we need to use mass and charge explicitly, otherwise the 
-            Kokkos inline inside BorisPusher tries to access a host pointer
-            (itsReference_m) to get mass/charge. On CPU this works fine, but
-            and sometimes it works on GH200(?), but usually a bad idea. 
-            Therefore, just use the other function that passes mass/charge
-            explicitly.
-            */
             pusher.kick(0, p, Efview(i), Bfview(i), dtview(i), mass, charge); 
             Pview(i) = p; 
         });
@@ -925,6 +914,7 @@ void ParallelTracker::updateReferenceParticle(const BorisPusher& pusher) {
     const double direction = back_track ? -1 : 1;
     const double dt = direction * std::min(itsBunch_m->getT(), direction * itsBunch_m->getdT());
     const double scaleFactor = Physics::c * dt;
+    const PartData& refKick = *itsBunch_m->getParticleContainer()->getReference();
     Vector_t<double, 3> Ef(0.0), Bf(0.0);
 
     itsBunch_m->getParticleContainer()->getRefPartR() /= scaleFactor;
@@ -953,7 +943,9 @@ void ParallelTracker::updateReferenceParticle(const BorisPusher& pusher) {
         Bf += refToLocalCSTrafo.rotateFrom(localB);
     }
 
-    pusher.kick(itsBunch_m->getParticleContainer()->getRefPartR(), itsBunch_m->getParticleContainer()->getRefPartP(), Ef, Bf, dt);
+    pusher.kick(
+        itsBunch_m->getParticleContainer()->getRefPartR(), itsBunch_m->getParticleContainer()->getRefPartP(), Ef, Bf, dt,
+        refKick.getM(), refKick.getQ());
 
     itsBunch_m->getParticleContainer()->getRefPartR() /= scaleFactor;
     pusher.push(itsBunch_m->getParticleContainer()->getRefPartR(), itsBunch_m->getParticleContainer()->getRefPartP(), dt);
