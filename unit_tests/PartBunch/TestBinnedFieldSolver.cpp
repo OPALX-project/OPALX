@@ -185,6 +185,19 @@ protected:
         pc->update();
     }
 
+    void rebuildBunch() {
+        fsCmdBase = fsCmd;
+        bunch = std::make_shared<PartBunch_t>(
+            /*qi=*/std::vector<double>{1.0},
+            /*mi=*/std::vector<double>{1.0},
+            /*num_containers=*/1,
+            /*lbt=*/1.0,
+            /*integration_method=*/"LF2",
+            fsCmdBase,
+            dataSink);
+        pc = bunch->getParticleContainer();
+    }
+
     std::shared_ptr<AdaptBins_t> attachBins(typename AdaptBins_t::bin_index_type maxBins,
                                              double alpha,
                                              double beta,
@@ -248,6 +261,26 @@ TEST_F(BinnedFieldSolverSmokeTest, BinnedPath_WithBins_NoThrowAndEZero) {
     EXPECT_LE(currentBins, maxBins);
 
     expectAllParticleEZeroAndFinite(/*tol=*/1e-8);
+}
+
+TEST_F(BinnedFieldSolverSmokeTest, BunchUpdate_ImageChargeBoundsIncludeMirroredZ) {
+    constexpr double zPlane = 0.0;
+    bunch->setImageChargeConfiguration(true, zPlane);
+
+    createParticles(kDefaultNParticles, /*pzMin=*/0.1, /*pzMax=*/0.9);
+    bunch->bunchUpdate();
+
+    pc->computeMinMaxR();
+    const auto minR = pc->getMinR();
+    const auto maxR = pc->getMaxR();
+    const auto gridMin = bunch->rmin_m;
+    const auto gridMax = bunch->rmax_m;
+
+    const double mirroredMinZ = 2.0 * zPlane - maxR[2];
+    const double mirroredMaxZ = 2.0 * zPlane - minR[2];
+
+    EXPECT_LE(gridMin[2], std::min(minR[2], mirroredMinZ));
+    EXPECT_GE(gridMax[2], std::max(maxR[2], mirroredMaxZ));
 }
 
 }  // namespace

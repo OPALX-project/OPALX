@@ -24,6 +24,7 @@
 
 #include "Ippl.h"
 #include "PartBunch/FieldContainer.hpp"
+#include "PartBunch/ImageChargeScatterController.h"
 #include "PartBunch/ParticleContainer.hpp"
 #include "Utilities/Options.h"
 
@@ -374,6 +375,87 @@ namespace {
 
         size_t totalAfter = pc->getTotalNum();
         EXPECT_EQ(totalAfter + destroyed, totalBefore);
+    }
+
+    TEST_F(ParticleContainerTest, ImageChargeMirrorTransform_AllParticles_RoundTrip) {
+        Options::useQMAttributes = false;
+        auto pc                  = makeContainer();
+        std::vector<std::array<double, 3>> positions = {
+                {0.1, -0.2, 0.0}, {0.0, 0.3, 0.4}, {-0.2, 0.1, -0.5}};
+        const double dtOrig = 2.5e-12;
+        const double qOrig = 1.6e-19;
+        createParticlesAt(pc, positions, dtOrig);
+        pc->setQ(qOrig);
+
+        // Build dedicated rho fields for baseline and image-charge deposition.
+        ippl::Vector<int, 3> nr        = 8;
+        ippl::Vector<double, 3> rmin   = -4.0;
+        ippl::Vector<double, 3> rmax   = 4.0;
+        ippl::Vector<double, 3> origin = rmin;
+        ippl::Vector<double, 3> hr     = (rmax - rmin) / ippl::Vector<double, 3>(nr);
+        std::array<bool, 3> decomp     = {true, true, true};
+        ippl::NDIndex<3> domain;
+        for (unsigned i = 0; i < 3; ++i) {
+            domain[i] = ippl::Index(nr[i]);
+        }
+        Mesh_t<3> mesh(domain, hr, origin);
+        FieldLayout_t<3> fl(MPI_COMM_WORLD, domain, decomp, true);
+        Field_t<3> rhoBaseline;
+        Field_t<3> rhoImage;
+        rhoBaseline.initialize(mesh, fl);
+        rhoImage.initialize(mesh, fl);
+        rhoBaseline = 0.0;
+        rhoImage = 0.0;
+
+        constexpr double zPlane = 0.125;
+        ImageChargeScatterController<double, 3> baselineController(false, zPlane);
+        ImageChargeScatterController<double, 3> imageController(true, zPlane);
+
+        auto R_before_view = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->R.getView());
+        auto dt_before_view = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->dt.getView());
+        auto q_before_view = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->getQView());
+        std::vector<std::array<double, 3>> R_before(pc->getLocalNum());
+        std::vector<double> dt_before(pc->getLocalNum(), 0.0);
+        for (size_t i = 0; i < pc->getLocalNum(); ++i) {
+            R_before[i][0] = R_before_view(i)[0];
+            R_before[i][1] = R_before_view(i)[1];
+            R_before[i][2] = R_before_view(i)[2];
+            dt_before[i]   = dt_before_view(i);
+        }
+        const double q_before = q_before_view(0);
+
+        // Run the exact production path: primary-only and primary+image scatter.
+        baselineController.scatterPrimaryAndImage(pc, pc->R, rhoBaseline);
+        imageController.scatterPrimaryAndImage(pc, pc->R, rhoImage);
+        Kokkos::fence();
+
+        // Particle state must be restored after image scatter.
+        auto R_after = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->R.getView());
+        auto dt_after = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->dt.getView());
+        auto q_after = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->getQView());
+        for (size_t i = 0; i < pc->getLocalNum(); ++i) {
+            for (unsigned d = 0; d < 3; ++d) {
+                EXPECT_NEAR(R_after(i)[d], R_before[i][d], 1e-14);
+            }
+            EXPECT_NEAR(dt_after(i), dt_before[i], 1e-20);
+        }
+        EXPECT_NEAR(q_after(0), q_before, 1e-30);
+
+        // Verify image scatter actually changes deposited rho versus baseline.
+        auto rhoBaseHost = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), rhoBaseline.getView());
+        auto rhoImgHost = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), rhoImage.getView());
+        bool rhoDiffers = false;
+        for (size_t i = 0; i < rhoBaseHost.extent(0) && !rhoDiffers; ++i) {
+            for (size_t j = 0; j < rhoBaseHost.extent(1) && !rhoDiffers; ++j) {
+                for (size_t k = 0; k < rhoBaseHost.extent(2); ++k) {
+                    if (std::abs(rhoBaseHost(i, j, k) - rhoImgHost(i, j, k)) > 0.0) {
+                        rhoDiffers = true;
+                        break;
+                    }
+                }
+            }
+        }
+        EXPECT_TRUE(rhoDiffers);
     }
 
 }  // namespace
