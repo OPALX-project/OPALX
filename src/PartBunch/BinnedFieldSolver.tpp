@@ -1,11 +1,13 @@
 template <typename T, unsigned Dim>
 BinnedFieldSolver<T, Dim>::BinnedFieldSolver(
-    std::string solver, Field_t<Dim>* rho, VField_t<T, Dim>* E, Field_t<Dim>* phi,
-    std::shared_ptr<BCHandler_t> bcHandler, int tablePrintFrequency)
+        std::string solver, Field_t<Dim>* rho, VField_t<T, Dim>* E, Field_t<Dim>* phi,
+        std::shared_ptr<BCHandler_t> bcHandler, int tablePrintFrequency, bool enableImageCharge,
+        double imageChargePlaneZ)
     : FieldSolver<T, Dim>(solver, rho, E, phi, bcHandler) {
-    scatterAttribute_m = ScatterAttribute::ChargeQ;
-    gatherAttribute_m  = GatherAttribute::ElectricFieldE;
+    scatterAttribute_m    = ScatterAttribute::ChargeQ;
+    gatherAttribute_m     = GatherAttribute::ElectricFieldE;
     tablePrintFrequency_m = tablePrintFrequency;
+    imageScatterController_m.configure(enableImageCharge, imageChargePlaneZ);
 }
 
 template <typename T, unsigned Dim>
@@ -19,7 +21,8 @@ void BinnedFieldSolver<T, Dim>::computeSelfFields(std::shared_ptr<PartBunch_t> b
     std::shared_ptr<ParticleCtr_t> pc = bunch->getParticleContainer();
     if (!pc) {
         throw OpalException(
-            "BinnedFieldSolver::computeSelfFields", "Bunch particle container is not available.");
+                "BinnedFieldSolver::computeSelfFields",
+                "Bunch particle container is not available.");
     }
 
     Inform m("BinnedFieldSolver::computeSelfFields");
@@ -28,7 +31,8 @@ void BinnedFieldSolver<T, Dim>::computeSelfFields(std::shared_ptr<PartBunch_t> b
         // Already called in ParallelTracker::resetFields()
         // pc->E = 0.0;
         // pc->B = 0.0;
-        m << level5 << "Skipping scatter/gather and self-field computation for NONE solver." << endl;
+        m << level5 << "Skipping scatter/gather and self-field computation for NONE solver."
+          << endl;
         return;
     }
 
@@ -67,14 +71,18 @@ void BinnedFieldSolver<T, Dim>::setGatherAttribute(const GatherAttribute attr) {
 }
 
 template <typename T, unsigned Dim>
+void BinnedFieldSolver<T, Dim>::setImageChargeConfiguration(bool enabled, double zPlane) {
+    imageScatterController_m.configure(enabled, zPlane);
+}
+
+template <typename T, unsigned Dim>
 void BinnedFieldSolver<T, Dim>::printBinStatsTable(
-    const std::string& binningCmdName,
-    const std::vector<BinStatsRow>& rows) {
+        const std::string& binningCmdName, const std::vector<BinStatsRow>& rows) {
     // print the table header (metadata + column names).
     const std::string informName =
-        binningCmdName.empty()
-            ? "BinnedFieldSolver::printBinStatsTable"
-            : ("BinnedFieldSolver::printBinStatsTable[" + binningCmdName + "]");
+            binningCmdName.empty()
+                    ? "BinnedFieldSolver::printBinStatsTable"
+                    : ("BinnedFieldSolver::printBinStatsTable[" + binningCmdName + "]");
     Inform m(informName.c_str());
     // m << level2 << tableName << " | nBins=" << static_cast<int>(nBinsOrZero)
     //   << " | stype=" << this->getStype() << endl;
@@ -107,14 +115,14 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(std::shared_ptr<PartBunc
     std::shared_ptr<VField_t<T, Dim>> EtmpSP = bunch->getTempEField();
     if (!EtmpSP) {
         throw OpalException(
-            "BinnedFieldSolver::computeBinnedSelfFields",
-            "Temporary E field (Etmp) is not initialized.");
+                "BinnedFieldSolver::computeBinnedSelfFields",
+                "Temporary E field (Etmp) is not initialized.");
     }
     std::shared_ptr<VField_t<T, Dim>> BtmpSP = bunch->getTempBField();
     if (!BtmpSP) {
         throw OpalException(
-            "BinnedFieldSolver::computeBinnedSelfFields",
-            "Temporary B field (Btmp) is not initialized.");
+                "BinnedFieldSolver::computeBinnedSelfFields",
+                "Temporary B field (Btmp) is not initialized.");
     }
 
     VField_t<T, Dim>& Etmp = *EtmpSP;
@@ -151,17 +159,17 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(std::shared_ptr<PartBunc
         const double gammaBin          = kinematics.gammaBin;
         if (gammaBin <= 0.0) {
             throw OpalException(
-                "BinnedFieldSolver::computeBinnedSelfFields",
-                "Computed non-positive gamma for bin.");
+                    "BinnedFieldSolver::computeBinnedSelfFields",
+                    "Computed non-positive gamma for bin.");
         }
 
         m << level4 << "binIndex=" << static_cast<int>(binIndex)
           << " gammaBin=" << std::setprecision(10) << gammaBin << endl;
 
         binStats.push_back(
-            BinStatsRow{
-                static_cast<long long>(binIndex), static_cast<unsigned long long>(nPartGlobal),
-                gammaBin});
+                BinStatsRow{
+                        static_cast<long long>(binIndex),
+                        static_cast<unsigned long long>(nPartGlobal), gammaBin});
 
         // build rho for this bin and apply lab->solver corrections.
         prepareRhoForBin(bunch, bins, binIndex, nPartGlobal, gammaBin);
@@ -199,8 +207,8 @@ void BinnedFieldSolver<T, Dim>::computeLegacySelfFields(std::shared_ptr<PartBunc
     std::shared_ptr<ParticleCtr_t> pc = bunch->getParticleContainer();
     if (!pc) {
         throw OpalException(
-            "BinnedFieldSolver::computeLegacySelfFields",
-            "Bunch particle container is not available.");
+                "BinnedFieldSolver::computeLegacySelfFields",
+                "Bunch particle container is not available.");
     }
 
     // Level-5 debug: legacy mode entry.
@@ -210,8 +218,8 @@ void BinnedFieldSolver<T, Dim>::computeLegacySelfFields(std::shared_ptr<PartBunc
 
     if (scatterAttribute_m != ScatterAttribute::ChargeQ) {
         throw OpalException(
-            "BinnedFieldSolver::computeLegacySelfFields",
-            "Unsupported scatter attribute in legacy solver.");
+                "BinnedFieldSolver::computeLegacySelfFields",
+                "Unsupported scatter attribute in legacy solver.");
     }
 
     typename PartBunch_t::Base::particle_position_type* R = &pc->R;
@@ -221,10 +229,7 @@ void BinnedFieldSolver<T, Dim>::computeLegacySelfFields(std::shared_ptr<PartBunc
 
     // Scatter charge to mesh rho using dt-weighted deposition (master approach):
     // scale dt by Q, scatter dt, then restore dt.
-    pc->scaleDtByCharge();
-    ippl::ParticleAttrib<T>* dtAttrib = &pc->dt;
-    scatter(*dtAttrib, *rho, *R);
-    pc->unscaleDtByCharge();
+    imageScatterController_m.scatterPrimaryAndImage(pc, *R, *rho);
 
     // Rho normalization for fractional time steps.
     (*rho) = (*rho) / bunch->getdT();
@@ -233,7 +238,7 @@ void BinnedFieldSolver<T, Dim>::computeLegacySelfFields(std::shared_ptr<PartBunc
     const std::string stype = this->getStype();
     if (stype != "FEM" && stype != "FEM_PRECON") {
         const double cellVolume =
-            std::reduce(bunch->hr_m.begin(), bunch->hr_m.end(), 1.0, std::multiplies<double>());
+                std::reduce(bunch->hr_m.begin(), bunch->hr_m.end(), 1.0, std::multiplies<double>());
         (*rho) = (*rho) / cellVolume;
     }
 
@@ -263,8 +268,8 @@ void BinnedFieldSolver<T, Dim>::computeLegacySelfFields(std::shared_ptr<PartBunc
         gather(pc->E, *this->getE(), *R);
     } else {
         throw OpalException(
-            "BinnedFieldSolver::computeLegacySelfFields",
-            "Unsupported gather attribute in legacy solver.");
+                "BinnedFieldSolver::computeLegacySelfFields",
+                "Unsupported gather attribute in legacy solver.");
     }
 
     // TABLEPRINTFREQ is binned-mode only; legacy mode intentionally prints nothing.
@@ -272,7 +277,7 @@ void BinnedFieldSolver<T, Dim>::computeLegacySelfFields(std::shared_ptr<PartBunc
 
 template <typename T, unsigned Dim>
 void BinnedFieldSolver<T, Dim>::rebinAndPrepare(
-    std::shared_ptr<PartBunch_t> bunch, std::shared_ptr<AdaptBins_t> bins) {
+        std::shared_ptr<PartBunch_t> bunch, std::shared_ptr<AdaptBins_t> bins) {
     // adaptive histogram configuration.
     // execute full rebin and generate the adaptive histogram (bin merging).
     Inform m("BinnedFieldSolver::rebinAndPrepare");
@@ -288,8 +293,8 @@ void BinnedFieldSolver<T, Dim>::rebinAndPrepare(
 
 template <typename T, unsigned Dim>
 typename BinnedFieldSolver<T, Dim>::BinKinematics BinnedFieldSolver<T, Dim>::computeGammaBinGlobal(
-    std::shared_ptr<PartBunch_t> bunch, std::shared_ptr<AdaptBins_t> bins,
-    const bin_index_type binIndex, const size_type nPartGlobal) const {
+        std::shared_ptr<PartBunch_t> bunch, std::shared_ptr<AdaptBins_t> bins,
+        const bin_index_type binIndex, const size_type nPartGlobal) const {
     // compute global mean momentum and gamma for the merged bin.
     Inform m("BinnedFieldSolver::computeGammaBinGlobal");
     m << level4 << "gammaBinGlobal: binIndex=" << static_cast<int>(binIndex)
@@ -301,11 +306,11 @@ typename BinnedFieldSolver<T, Dim>::BinKinematics BinnedFieldSolver<T, Dim>::com
     // compute local momentum sums over particles in this bin.
     Vector_t<double, Dim> localPsum(0.0);
     Kokkos::parallel_reduce(
-        "BinnedFieldSolver::pmeanPerBin", bins->getBinIterationPolicy(binIndex),
-        KOKKOS_LAMBDA(const size_type i, Vector_t<double, Dim>& sum) {
-            sum += pView(indices(i));
-        },
-        localPsum);
+            "BinnedFieldSolver::pmeanPerBin", bins->getBinIterationPolicy(binIndex),
+            KOKKOS_LAMBDA(const size_type i, Vector_t<double, Dim>& sum) {
+                sum += pView(indices(i));
+            },
+            localPsum);
 
     // reduce momentum sums across MPI ranks and normalize by `nPartGlobal`.
     Vector_t<double, Dim> globalPsum(0.0);
@@ -317,16 +322,15 @@ typename BinnedFieldSolver<T, Dim>::BinKinematics BinnedFieldSolver<T, Dim>::com
         return kinematics;
     }
 
-    kinematics.pmean = globalPsum / static_cast<double>(nPartGlobal);
-    kinematics.gammaBin =
-        Kokkos::sqrt(1.0 + kinematics.pmean.dot(kinematics.pmean));
+    kinematics.pmean    = globalPsum / static_cast<double>(nPartGlobal);
+    kinematics.gammaBin = Kokkos::sqrt(1.0 + kinematics.pmean.dot(kinematics.pmean));
     return kinematics;
 }
 
 template <typename T, unsigned Dim>
 void BinnedFieldSolver<T, Dim>::prepareRhoForBin(
-    std::shared_ptr<PartBunch_t> bunch, std::shared_ptr<AdaptBins_t> bins,
-    const bin_index_type binIndex, const size_type nPartGlobal, const double gammaBin) {
+        std::shared_ptr<PartBunch_t> bunch, std::shared_ptr<AdaptBins_t> bins,
+        const bin_index_type binIndex, const size_type nPartGlobal, const double gammaBin) {
     // Scatter bin charge to rho using dt-weighted deposition.
     // If the ParticleContainer supports scaleDtByCharge(), use the master approach:
     // scale dt by charge, scatter dt, then unscale.
@@ -345,20 +349,14 @@ void BinnedFieldSolver<T, Dim>::prepareRhoForBin(
 
     if (scatterAttribute_m != ScatterAttribute::ChargeQ) {
         throw OpalException(
-            "BinnedFieldSolver::prepareRhoForBin",
-            "Unsupported scatter attribute in binned solver.");
+                "BinnedFieldSolver::prepareRhoForBin",
+                "Unsupported scatter attribute in binned solver.");
     }
 
     // Scatter bin charge to rho (with bin iteration policy and hash indexing).
     // Master approach: scale dt by Q, scatter dt, then restore dt.
-    pc->scaleDtByCharge();
-    ippl::ParticleAttrib<T>* dtAttrib = &pc->dt;
-    scatter(*dtAttrib,
-            *rho,
-            *R,
-            bins->getBinIterationPolicy(binIndex),
-            bins->getHashArray());
-    pc->unscaleDtByCharge();
+    imageScatterController_m.scatterPrimaryAndImage(
+            pc, *R, *rho, bins->getBinIterationPolicy(binIndex), bins->getHashArray());
 
     // normalize rho for fractional time steps and mesh conventions.
     (*rho) = (*rho) / bunch->getdT();
@@ -366,7 +364,7 @@ void BinnedFieldSolver<T, Dim>::prepareRhoForBin(
     const std::string stype = this->getStype();
     if (stype != "FEM" && stype != "FEM_PRECON") {
         const double cellVolume =
-            std::reduce(bunch->hr_m.begin(), bunch->hr_m.end(), 1.0, std::multiplies<double>());
+                std::reduce(bunch->hr_m.begin(), bunch->hr_m.end(), 1.0, std::multiplies<double>());
         (*rho) = (*rho) / cellVolume;
     }
 
@@ -389,19 +387,18 @@ void BinnedFieldSolver<T, Dim>::prepareRhoForBin(
 
 template <typename T, unsigned Dim>
 void BinnedFieldSolver<T, Dim>::accumulateFieldToTemp(
-    const double gammaBin, const Vector_t<double, Dim>& pmean,
-    std::shared_ptr<VField_t<T, Dim>> EtmpSP, std::shared_ptr<VField_t<T, Dim>> BtmpSP) {
+        const double gammaBin, const Vector_t<double, Dim>& pmean,
+        std::shared_ptr<VField_t<T, Dim>> EtmpSP, std::shared_ptr<VField_t<T, Dim>> BtmpSP) {
     // transform rest-frame fields to lab-frame fields and accumulate.
     Inform m("BinnedFieldSolver::accumulateFieldToTemp");
     m << level4 << "accumulate: gammaBin=" << std::setprecision(10) << gammaBin << endl;
 
-    const double invGamma = (gammaBin > 0.0) ? (1.0 / gammaBin) : 0.0;
+    const double invGamma         = (gammaBin > 0.0) ? (1.0 / gammaBin) : 0.0;
     const Vector_t<double, Dim> v = Physics::c * pmean * invGamma;
-    const double vNorm             = Kokkos::sqrt(v.dot(v));
-    const Vector_t<double, Dim> w =
-        (vNorm > 0.0) ? (v / vNorm) : Vector_t<double, Dim>(0.0);
-    const double gammaMinusOne = gammaBin - 1.0;
-    const double gammaOverCSq  = gammaBin / (Physics::c * Physics::c);
+    const double vNorm            = Kokkos::sqrt(v.dot(v));
+    const Vector_t<double, Dim> w = (vNorm > 0.0) ? (v / vNorm) : Vector_t<double, Dim>(0.0);
+    const double gammaMinusOne    = gammaBin - 1.0;
+    const double gammaOverCSq     = gammaBin / (Physics::c * Physics::c);
 
     const VField_t<T, Dim>& Eprime = *(this->getE());
     VField_t<T, Dim>& Etmp         = *EtmpSP;
@@ -412,26 +409,25 @@ void BinnedFieldSolver<T, Dim>::accumulateFieldToTemp(
 
     // parallel element-wise transformation and accumulation into temporaries.
     ippl::parallel_for(
-        "BinnedFieldSolver::accumulateFieldToTemp", Eprime.getFieldRangePolicy(),
-        KOKKOS_LAMBDA(const ippl::RangePolicy<Dim>::index_array_type& idx) {
-            Vector_t<T, Dim> ePrime = apply(ePrimeView, idx);
-            const T ePrimeDotW = ePrime.dot(w);
-            Vector_t<T, Dim> eLab =
-                gammaBin * ePrime + gammaMinusOne * ePrimeDotW * w;
-            Vector_t<T, Dim> bLab = gammaOverCSq * cross(v, ePrime);
-            Vector_t<T, Dim> eTotal = apply(eTmpView, idx);
-            Vector_t<T, Dim> bTotal = apply(bTmpView, idx);
-            eTotal += eLab;
-            bTotal += bLab;
-            apply(eTmpView, idx) = eTotal;
-            apply(bTmpView, idx) = bTotal;
-        });
+            "BinnedFieldSolver::accumulateFieldToTemp", Eprime.getFieldRangePolicy(),
+            KOKKOS_LAMBDA(const ippl::RangePolicy<Dim>::index_array_type& idx) {
+                Vector_t<T, Dim> ePrime = apply(ePrimeView, idx);
+                const T ePrimeDotW      = ePrime.dot(w);
+                Vector_t<T, Dim> eLab   = gammaBin * ePrime + gammaMinusOne * ePrimeDotW * w;
+                Vector_t<T, Dim> bLab   = gammaOverCSq * cross(v, ePrime);
+                Vector_t<T, Dim> eTotal = apply(eTmpView, idx);
+                Vector_t<T, Dim> bTotal = apply(bTmpView, idx);
+                eTotal += eLab;
+                bTotal += bLab;
+                apply(eTmpView, idx) = eTotal;
+                apply(bTmpView, idx) = bTotal;
+            });
 }
 
 template <typename T, unsigned Dim>
 void BinnedFieldSolver<T, Dim>::gatherFromTempToParticles(
-    std::shared_ptr<PartBunch_t> bunch, std::shared_ptr<VField_t<T, Dim>> EtmpSP,
-    std::shared_ptr<VField_t<T, Dim>> BtmpSP) {
+        std::shared_ptr<PartBunch_t> bunch, std::shared_ptr<VField_t<T, Dim>> EtmpSP,
+        std::shared_ptr<VField_t<T, Dim>> BtmpSP) {
     // gather accumulated lab-frame E and B from mesh back to particles.
     Inform m("BinnedFieldSolver::gatherFromTempToParticles");
     m << level4 << "gather Etmp/Btmp->particles" << endl;
@@ -446,7 +442,7 @@ void BinnedFieldSolver<T, Dim>::gatherFromTempToParticles(
         gather(pc->B, Btmp, pc->R);
     } else {
         throw OpalException(
-            "BinnedFieldSolver::gatherFromTempToParticles",
-            "Unsupported gather attribute in binned solver.");
+                "BinnedFieldSolver::gatherFromTempToParticles",
+                "Unsupported gather attribute in binned solver.");
     }
 }

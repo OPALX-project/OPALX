@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "PartBunch/FieldSolver.hpp"
+#include "PartBunch/ImageChargeScatterController.h"
 #include "PartBunch/PartBunch.h"
 #include "Utilities/OpalException.h"
 
@@ -80,7 +81,9 @@ public:
                        VField_t<T, Dim>* E,
                        Field_t<Dim>* phi,
                        std::shared_ptr<BCHandler_t> bcHandler,
-                       int tablePrintFrequency);
+                       int tablePrintFrequency,
+                       bool enableImageCharge,
+                       double imageChargePlaneZ);
 
     /**
      * @brief Compute space-charge self-fields for the given particle bunch.
@@ -109,6 +112,9 @@ public:
      * @param attr Attribute to gather into.
      */
     void setGatherAttribute(const GatherAttribute attr);
+    void setImageChargeConfiguration(bool enabled, double zPlane);
+    bool isImageChargeEnabled() const { return imageScatterController_m.isEnabled(); }
+    double getImageChargePlaneZ() const { return imageScatterController_m.getZPlane(); }
 
     struct BinKinematics {
         Vector_t<double, Dim> pmean = Vector_t<double, Dim>(0.0);
@@ -119,6 +125,7 @@ private:
     ScatterAttribute scatterAttribute_m;
     GatherAttribute gatherAttribute_m;
     int tablePrintFrequency_m = 0;
+    ImageChargeScatterController<T, Dim> imageScatterController_m;
 
     /**
      * @brief Row entry for the level-3 bin statistics table.
