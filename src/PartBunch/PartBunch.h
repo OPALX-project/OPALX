@@ -189,6 +189,14 @@ public:
     void applyGridUpdate(
             const Vector_t<double, Dim>& lower, const Vector_t<double, Dim>& upper);
 
+    /**
+     * @brief Set the image-charge configuration for the field solver.
+     *
+     * @param enabled Enable image-charge scatter mirror when true.
+     * @param zPlane Mirror plane position in z [m].
+     */
+    void setImageChargeConfiguration(bool enabled, double zPlane);
+
     size_t getTotalNumAllContainers() const {
         size_t total = 0;
         for (const auto& pc : this->getParticleContainers()) {

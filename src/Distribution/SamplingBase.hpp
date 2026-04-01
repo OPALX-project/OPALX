@@ -52,6 +52,8 @@ public:
     }
 
     void setZeroFaceR0Z(bool zeroFaceR0Z) { zeroFaceR0Z_m = zeroFaceR0Z; }
+    bool getZeroFaceR0Z() const { return zeroFaceR0Z_m; }
+    Vector_t<double, 3> getEmissionR0() const { return R0_m; }
 
     virtual void generateParticles(size_t& /*numberOfParticles*/, Vector_t<double, 3> /*nr*/) {}
 

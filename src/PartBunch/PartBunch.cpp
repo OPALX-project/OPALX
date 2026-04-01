@@ -151,8 +151,8 @@ void PartBunch<T, Dim>::setSolver() {
                     &this->fcontainer_m->getPhi(), this->getBCHandler(),
                     hasBinning() ? OPALFieldSolver_m->getBinningCmd()->getTablePrintFrequency()
                                  : 0,
-                    OPALFieldSolver_m->isImageChargeEnabled(),
-                    OPALFieldSolver_m->getImageChargePlaneZ()));
+                    false,
+                    0.0));
     m << level4 << "Binned field solver set (binned or legacy at runtime)." << endl;
 
     this->fsolver_m->initSolver();
@@ -427,9 +427,13 @@ void PartBunch<T, Dim>::computeBoundsForFieldSolve(
     lower = pc->getMinR();
     upper = pc->getMaxR();
 
+    using BinnedSolver_t = BinnedFieldSolver<T, Dim>;
+    BinnedSolver_t* bsolver = dynamic_cast<BinnedSolver_t*>(this->fsolver_m.get());
+    const bool imageChargeEnabled = bsolver && bsolver->isImageChargeEnabled();
+
     // Include mirrored particles in the domain envelope when image-charge mode is enabled.
-    if (this->OPALFieldSolver_m->isImageChargeEnabled()) {
-        const double planeZ = this->OPALFieldSolver_m->getImageChargePlaneZ();
+    if (imageChargeEnabled) {
+        const double planeZ = bsolver->getImageChargePlaneZ();
         const double mirroredMinZ = 2.0 * planeZ - upper[2];
         const double mirroredMaxZ = 2.0 * planeZ - lower[2];
         lower[2] = std::min(lower[2], mirroredMinZ);
@@ -475,6 +479,15 @@ void PartBunch<T, Dim>::applyGridUpdate(
     pc->getLayout().updateLayout(*FL, *mesh);
     pc->update();
     m << level5 << "Particle container updated with new layout." << endl;
+}
+
+template <typename T, unsigned Dim>
+void PartBunch<T, Dim>::setImageChargeConfiguration(bool enabled, double zPlane) {
+    using BinnedSolver_t = BinnedFieldSolver<T, Dim>;
+    BinnedSolver_t* bsolver = dynamic_cast<BinnedSolver_t*>(this->fsolver_m.get());
+    if (bsolver) {
+        bsolver->setImageChargeConfiguration(enabled, zPlane);
+    }
 }
 
 template <typename T, unsigned Dim>
