@@ -130,9 +130,8 @@ namespace Options {
 
     extern bool asciidump;
 
-    // Governs how often boundp_destroy is called to destroy lost particles
-    // Mainly used in the CyclotronTracker as of now -DW
-    extern int boundpDestroyFreq;
+    /// Governs how many sigmas away particles are deleted
+    extern double boundpDestroy;
 
     extern double beamHaloBoundary;
 
