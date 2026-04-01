@@ -335,36 +335,13 @@ public:
 
         Vector_t<double, Dim> meanR = getMeanR();
         Vector_t<double, Dim> rmsR  = getRmsR();
-        bool useDim[Dim]            = {true, true, true};
 
-        /*
-        There is a problem for exactly 2D cases (e.g. when flattop starts sampling). In that case,
-        rms_z=0 and every particle gets deleted. This case needs to be handled separately.
-        Theredore: give rms a small value 1e-9 if it's below 1e-9.
-        */
-        for (size_t i = 0; i < Dim; i++) {
-            std::cout << "rmsR[" << i << "] = " << rmsR[i] << std::endl;
-            std::cout << "meanR[" << i << "] = " << meanR[i] << std::endl;
-            if (rmsR[i] < 1e-6) {
-                // In effectively lower-dimensional beams (e.g. z=const during startup),
-                // do not apply clipping in collapsed dimensions.
-                useDim[i] = false;
-            }
-        }
-
-        double lb0      = meanR[0] - sigmasAway * rmsR[0];
-        double lb1      = meanR[1] - sigmasAway * rmsR[1];
-        double lb2      = meanR[2] - sigmasAway * rmsR[2];
-        double ub0      = meanR[0] + sigmasAway * rmsR[0];
-        double ub1      = meanR[1] + sigmasAway * rmsR[1];
-        double ub2      = meanR[2] + sigmasAway * rmsR[2];
-        const bool use0 = useDim[0];
-        const bool use1 = useDim[1];
-        const bool use2 = useDim[2];
-
-        std::cout << "lb0 = " << lb0 << ", ub0 = " << ub0 << std::endl;
-        std::cout << "lb1 = " << lb1 << ", ub1 = " << ub1 << std::endl;
-        std::cout << "lb2 = " << lb2 << ", ub2 = " << ub2 << std::endl;
+        double lb0 = meanR[0] - sigmasAway * rmsR[0];
+        double lb1 = meanR[1] - sigmasAway * rmsR[1];
+        double lb2 = meanR[2] - sigmasAway * rmsR[2];
+        double ub0 = meanR[0] + sigmasAway * rmsR[0];
+        double ub1 = meanR[1] + sigmasAway * rmsR[1];
+        double ub2 = meanR[2] + sigmasAway * rmsR[2];
 
         Kokkos::View<bool*> invalid("deleteParticlesOutside::invalid", nLocal);
         auto Rview = this->R.getView();
