@@ -1,18 +1,18 @@
 #ifndef OPALX_SAMPLING_BASE_H
 #define OPALX_SAMPLING_BASE_H
 
-#include "Distribution.h"
-#include "PartBunch/BunchStateHandler.h"
-#include "Ippl.h"
 #include <memory>
+#include "Distribution.h"
+#include "Ippl.h"
+#include "PartBunch/BunchStateHandler.h"
 
 using ParticleContainer_t = ParticleContainer<double, 3>;
-using FieldContainer_t = FieldContainer<double, 3>;
-using Distribution_t = Distribution;
+using FieldContainer_t    = FieldContainer<double, 3>;
+using Distribution_t      = Distribution;
 
 using view_type = typename ippl::detail::ViewType<Vector_t<double, 3>, 1>::view_type;
 
-class SamplingBase{
+class SamplingBase {
 protected:
     std::shared_ptr<ParticleContainer_t> pc_m;
     std::shared_ptr<FieldContainer_t> fc_m;
@@ -22,30 +22,23 @@ protected:
     /// Emission source offset: position R0, momentum P0, start time t0 (applied in sample step).
     Vector_t<double, 3> R0_m = 0.0;
     Vector_t<double, 3> P0_m = 0.0;
-    double t0_m                  = 0.0;
+    double t0_m              = 0.0;
+    bool zeroFaceR0Z_m       = false;
 
     /// For one-shot emitters (e.g. Gaussian at delayed t0): guard to avoid double sampling.
     bool hasEmittedOnce_m = false;
 
 public:
-    
-    SamplingBase(std::shared_ptr<ParticleContainer_t> pc,
-        std::shared_ptr<FieldContainer_t> fc,
-        std::shared_ptr<Distribution_t> dist
-    )
-        : pc_m(pc), fc_m(fc), opalDist_m(dist) {
-    }
+    SamplingBase(
+            std::shared_ptr<ParticleContainer_t> pc, std::shared_ptr<FieldContainer_t> fc,
+            std::shared_ptr<Distribution_t> dist)
+        : pc_m(pc), fc_m(fc), opalDist_m(dist) {}
 
-    SamplingBase(std::shared_ptr<ParticleContainer_t> pc,
-        std::shared_ptr<FieldContainer_t> fc
-    )
-        : pc_m(pc), fc_m(fc) {
-    }
+    SamplingBase(std::shared_ptr<ParticleContainer_t> pc, std::shared_ptr<FieldContainer_t> fc)
+        : pc_m(pc), fc_m(fc) {}
 
-    SamplingBase(std::shared_ptr<ParticleContainer_t> pc)
-        : pc_m(pc) {
-    }
-    
+    SamplingBase(std::shared_ptr<ParticleContainer_t> pc) : pc_m(pc) {}
+
     virtual ~SamplingBase() {}
 
     void setBunchStateHandler(std::shared_ptr<BunchStateHandler> handler) {
@@ -57,6 +50,8 @@ public:
         P0_m = P0;
         t0_m = t0;
     }
+
+    void setZeroFaceR0Z(bool zeroFaceR0Z) { zeroFaceR0Z_m = zeroFaceR0Z; }
 
     virtual void generateParticles(size_t& /*numberOfParticles*/, Vector_t<double, 3> /*nr*/) {}
 
@@ -80,5 +75,4 @@ public:
      */
     size_t computeLocalEmitCount(size_t totalToSample) const;
 };
-#endif // OPALX_SAMPLING_BASE_H
-
+#endif  // OPALX_SAMPLING_BASE_H
