@@ -59,7 +59,9 @@ namespace {
             Mesh_t<3> mesh(domain, hr, origin);
             FieldLayout_t<3> fl(MPI_COMM_WORLD, domain, decomp, true);
 
-            return std::make_shared<PC_t>(mesh, fl);
+            std::shared_ptr<PC_t> pc = std::make_shared<PC_t>(mesh, fl);
+            pc->setBunchStateHandler(std::make_shared<BunchStateHandler>());
+            return pc;
         }
 
         /// Create local particles at the given positions with uniform dt and P_z.
