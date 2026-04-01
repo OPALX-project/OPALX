@@ -22,11 +22,11 @@ using Vector3d = ippl::Vector<double, 3>;
  * @brief Test-only FieldSolverCmd helper exposing the minimal attribute setters
  * needed to construct a real PartBunch.
  *
- * The interaction-window unit tests intentionally use the real PartBunch type,
+ * The BeamBeam-window unit tests intentionally use the real PartBunch type,
  * because the bugs we fixed were caused by the coupling between:
  * - cached physical bunch bounds,
  * - field-domain bounds, and
- * - the temporary interaction-window mesh replacement.
+ * - the temporary BeamBeam-window mesh replacement.
  *
  * Using a real bunch here gives coverage over those interfaces without pulling
  * in the full ParallelTracker machinery.
@@ -93,7 +93,7 @@ void expectVectorNear(
     }
 }
 
-class InteractionWindowPartBunchTest : public ::testing::Test {
+class BeamBeamPartBunchTest : public ::testing::Test {
 protected:
     static void SetUpTestSuite() {
         int argc    = 0;
@@ -114,36 +114,38 @@ protected:
 };
 
 // ----------------------------------------------------------------------------
-// InteractionWindowConfig lifecycle
+// BeamBeamWindowConfig lifecycle
 // ----------------------------------------------------------------------------
 
-// Verifies that the bunch-side interaction-window configuration behaves like a
+// Verifies that the bunch-side BeamBeam-window configuration behaves like a
 // narrow geometry input only: absent by default, present after configuration,
 // and removable again without affecting unrelated state.
-TEST_F(InteractionWindowPartBunchTest, InteractionWindowConfigLifecycle) {
+TEST_F(BeamBeamPartBunchTest, BeamBeamWindowConfigLifecycle) {
     auto bunch = makeBunch();
 
-    ASSERT_FALSE(bunch->hasInteractionWindowConfig());
+    ASSERT_FALSE(bunch->hasBeamBeamWindowConfig());
 
-    bunch->setInteractionWindowConfig(1.25, 0.50);
-    ASSERT_TRUE(bunch->hasInteractionWindowConfig());
+    bunch->setBeamBeamWindowConfig(0.50, 1.25, 1.00, 1.50, false);
+    ASSERT_TRUE(bunch->hasBeamBeamWindowConfig());
 
-    const auto& config = bunch->getInteractionWindowConfig();
-    EXPECT_DOUBLE_EQ(config.interactionPointLocalZ, 1.25);
-    EXPECT_DOUBLE_EQ(config.interactionWindowLength, 0.50);
+    const auto& config = bunch->getBeamBeamWindowConfig();
+    EXPECT_DOUBLE_EQ(config.interactionPointS, 1.25);
+    EXPECT_DOUBLE_EQ(config.windowBeginS, 1.00);
+    EXPECT_DOUBLE_EQ(config.windowEndS, 1.50);
+    EXPECT_FALSE(config.copyModel);
 
-    bunch->clearInteractionWindowConfig();
-    EXPECT_FALSE(bunch->hasInteractionWindowConfig());
+    bunch->clearBeamBeamWindowConfig();
+    EXPECT_FALSE(bunch->hasBeamBeamWindowConfig());
 }
 
 // ----------------------------------------------------------------------------
-// enableInteractionWindowMesh
+// enableBeamBeamWindowMesh
 // ----------------------------------------------------------------------------
 
-// The interaction-window mesh switch should keep the transverse field domain
+// The BeamBeam-window mesh switch should keep the transverse field domain
 // unchanged while replacing only the longitudinal mesh extent. This is the
 // explicit Lagrangian-to-Eulerian transition in z that the current model relies on.
-TEST_F(InteractionWindowPartBunchTest, EnableInteractionWindowMeshOnlyChangesLongitudinalDomain) {
+TEST_F(BeamBeamPartBunchTest, EnableBeamBeamWindowMeshOnlyChangesLongitudinalDomain) {
     auto bunch = makeBunch();
     auto fieldContainer = bunch->getFieldContainer();
 
@@ -151,7 +153,7 @@ TEST_F(InteractionWindowPartBunchTest, EnableInteractionWindowMeshOnlyChangesLon
     const Vector3d initialRMax = fieldContainer->getRMax();
     const Vector3d initialHr   = fieldContainer->getHr();
 
-    bunch->enableInteractionWindowMesh(1.25, 0.50);
+    bunch->enableBeamBeamWindowMesh(1.25, 0.50);
 
     const Vector3d updatedRMin = fieldContainer->getRMin();
     const Vector3d updatedRMax = fieldContainer->getRMax();
@@ -180,10 +182,10 @@ TEST_F(InteractionWindowPartBunchTest, EnableInteractionWindowMeshOnlyChangesLon
 // - the mesh-aligned field-domain quantities, and
 // - the cached physical bunch bounds returned by get_bounds().
 //
-// This test covers the exact contract that the interaction-window mode relies on
+// This test covers the exact contract that the BeamBeam-window mode relies on
 // when it temporarily swaps in an Eulerian longitudinal mesh and later returns to
 // the original bunch-following state.
-TEST_F(InteractionWindowPartBunchTest, RestoreFieldDomainStateRestoresMeshAndPhysicalBounds) {
+TEST_F(BeamBeamPartBunchTest, RestoreFieldDomainStateRestoresMeshAndPhysicalBounds) {
     auto bunch = makeBunch();
     auto fieldContainer = bunch->getFieldContainer();
 
@@ -192,7 +194,7 @@ TEST_F(InteractionWindowPartBunchTest, RestoreFieldDomainStateRestoresMeshAndPhy
     bunch->setPhysicalBounds(physicalRMin, physicalRMax);
 
     const auto savedState = bunch->saveFieldDomainState();
-    bunch->enableInteractionWindowMesh(1.25, 0.50);
+    bunch->enableBeamBeamWindowMesh(1.25, 0.50);
     bunch->setPhysicalBounds(Vector3d(10.0), Vector3d(11.0));
 
     bunch->restoreFieldDomainState(savedState);
@@ -210,14 +212,14 @@ TEST_F(InteractionWindowPartBunchTest, RestoreFieldDomainStateRestoresMeshAndPhy
 }
 
 // ----------------------------------------------------------------------------
-// bunchUpdate() in interaction-window mode
+// bunchUpdate() in BeamBeam-window mode
 // ----------------------------------------------------------------------------
 
-// Once the interaction-window configuration is active, bunchUpdate() must keep
+// Once the BeamBeam-window configuration is active, bunchUpdate() must keep
 // the longitudinal field domain frozen while still allowing the transverse
 // field domain to follow the physical bunch. This is the key invariant behind
-// the frozen Eulerian-in-z mesh used during the interaction-window solve.
-TEST_F(InteractionWindowPartBunchTest, BunchUpdateKeepsLongitudinalFieldDomainFrozen) {
+// the frozen Eulerian-in-z mesh used during the BeamBeam solve.
+TEST_F(BeamBeamPartBunchTest, BunchUpdateKeepsLongitudinalFieldDomainFrozen) {
     auto bunch = makeBunch();
     auto fieldContainer = bunch->getFieldContainer();
 
@@ -226,8 +228,8 @@ TEST_F(InteractionWindowPartBunchTest, BunchUpdateKeepsLongitudinalFieldDomainFr
         {Vector3d(-0.20, -0.10, -0.05), Vector3d(0.10, 0.20, 0.05)});
     bunch->bunchUpdate();
 
-    bunch->setInteractionWindowConfig(1.25, 0.50);
-    bunch->enableInteractionWindowMesh(1.25, 0.50);
+    bunch->setBeamBeamWindowConfig(0.50, 1.25, 1.00, 1.50, false);
+    bunch->enableBeamBeamWindowMesh(1.25, 0.50);
 
     const Vector3d frozenRMin = fieldContainer->getRMin();
     const Vector3d frozenRMax = fieldContainer->getRMax();
