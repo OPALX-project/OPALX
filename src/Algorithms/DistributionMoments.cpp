@@ -89,7 +89,7 @@ void DistributionMoments::computeMeans(
     Kokkos::fence();
 
     double glob[8];
-    ippl::Comm->allreduce(loc.data, glob, 8, std::plus<double>());
+    ippl::Comm->allreduce(&loc.data[0], &glob[0], 8, std::plus<double>());
 
     for (size_t i = 0; i < 2 * Dim; ++i) {
         centroid_m(i) = glob[i];
@@ -231,6 +231,7 @@ void DistributionMoments::computeMinMaxPosition(
         ippl::ParticleAttrib<Vector_t<double, 3>>::view_type Rview, size_t Nlocal) {
     // Identity values (lowest / max) are set by the default constructors, so
     // ranks with Nlocal == 0 naturally contribute neutral elements to the allreduce.
+    Inform m("DistributionMoments::computeMinMaxPosition");
     MaxArray<3> loc_max;
     MinArray<3> loc_min;
 
@@ -246,23 +247,26 @@ void DistributionMoments::computeMinMaxPosition(
             Kokkos::Sum<MaxArray<3>>(loc_max), Kokkos::Sum<MinArray<3>>(loc_min));
 
     double rmax[Dim], rmin[Dim];
-    ippl::Comm->allreduce(loc_max.data, rmax, Dim, std::greater<double>());
-    ippl::Comm->allreduce(loc_min.data, rmin, Dim, std::less<double>());
+    ippl::Comm->allreduce(&loc_max.data[0], &rmax[0], Dim, std::greater<double>());
+    ippl::Comm->allreduce(&loc_min.data[0], &rmin[0], Dim, std::less<double>());
 
     // Empty bunch on all ranks: min stays id_min, max stays id_max -> min > max.
-    // Use a tiny valid box so mesh/spacing remain valid (e.g. for first step before emission).
-    /*if (rmin[0] >= rmax[0]) {
-        for (size_t i = 0; i < Dim; ++i) {
-            rmin[i] = 0.0;
-            rmax[i] = 1e-12;
+    // Use a tiny valid box so mesh/spacing remain valid (e.g. for first step before emission). The
+    // same problem arises when one dimension is 0 (e.g. flattop first timestep), then rmin>=rmax
+    // would trigger "=0". Therefore, we HAVE to check rmin>rmax instead.
+    for (size_t i = 0; i < Dim; ++i) {
+        if (rmin[i] > rmax[i]) {
+            rmin[i] = rmax[i] = 0.0;
+            m << level5 << "Min > max in dimension " << i << ". Setting to 0 (degenerate case)."
+              << endl;
         }
-    }*/
-    // Edit: not necessary, since this check is done somewhere else now.
+    }
 
     for (size_t i = 0; i < Dim; ++i) {
         minR_m(i) = rmin[i];
         maxR_m(i) = rmax[i];
     }
+    m << level5 << "Min/max computation done." << endl;
 }
 
 // ---------------------------------------------------------------------------
@@ -536,7 +540,7 @@ void DistributionMoments::computeDebyeLength(
     Kokkos::fence();
 
     double avgVel[3];
-    ippl::Comm->allreduce(loc_vel.data, avgVel, Dim, std::plus<double>());
+    ippl::Comm->allreduce(&loc_vel.data[0], &avgVel[0], Dim, std::plus<double>());
 
     for (unsigned i = 0; i < 3; ++i)
         avgVel[i] /= Np;
