@@ -627,25 +627,6 @@ void PartBunch<T, Dim>::performBunchSanityChecks() const {
     }
     ms << level4 << "E-field layout initialized." << endl;
 
-    // rho / phi layouts should match E (non-zero extent)
-    auto rhoView = fctr->getRho().getView();
-    if (stype != "NONE"
-        && (rhoView.extent(0) == 0 || rhoView.extent(1) == 0 || rhoView.extent(2) == 0)) {
-        throw OpalException(
-                "PartBunch::performBunchSanityChecks",
-                "rho field layout not initialized (zero extent). ");
-    }
-    ms << level4 << "rho field layout initialized." << endl;
-
-    auto phiView = fctr->getPhi().getView();
-    if (stype != "NONE"
-        && (phiView.extent(0) == 0 || phiView.extent(1) == 0 || phiView.extent(2) == 0)) {
-        throw OpalException(
-                "PartBunch::performBunchSanityChecks",
-                "phi field layout not initialized (zero extent). ");
-    }
-    ms << level4 << "phi field layout initialized." << endl;
-
     // Temporary E/B accumulation fields (binned solver path)
     if (!this->Etmp_m || !this->Btmp_m) {
         throw OpalException(
