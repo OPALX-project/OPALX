@@ -60,7 +60,7 @@ public:
             const Vector_t<double, 3>& elementEntry, const double elementLength) {
         // Make the bunch
         const auto bunch = makeBunch(line.size());
-        const auto pc = bunch->getParticleContainer();
+        const auto pc    = bunch->getParticleContainer();
         // Create the local views and data
         std::vector<Vector_t<double, 3>> localR(line.size());
         const auto hostR = Kokkos::create_mirror_view(pc->R.getView());
@@ -69,7 +69,7 @@ public:
         const double stepSize = width / static_cast<double>(line.size() - 1);
         for (size_t i = 0; i < line.size(); ++i) {
             localR[i] = {static_cast<double>(i) * stepSize - width / 2, 0, s};
-            hostR(i) = curvilinearToGlobal(localR[i], elementEntry, elementLength);
+            hostR(i)  = curvilinearToGlobal(localR[i], elementEntry, elementLength);
         }
         Kokkos::deep_copy(pc->R.getView(), hostR);
         pc->setQ(bunch->getChargePerParticle());
@@ -86,10 +86,10 @@ public:
         Kokkos::fence();
         for (size_t i = 0; i < line.size(); ++i) {
             line[i] = std::hypot(hostB(i)[0], hostB(i)[1], hostB(i)[2]);
-        //    std::cout << i << ": Local=" << localR[i] << ", Global=" << hostR[i]
-        //              << ", mag(B)=" << line[i] << std::endl;
+            //    std::cout << i << ": Local=" << localR[i] << ", Global=" << hostR[i]
+            //              << ", mag(B)=" << line[i] << std::endl;
         }
-        //std::cout << std::endl;
+        // std::cout << std::endl;
     }
 
     void grabLongitudinalDivCurlLine(
@@ -165,9 +165,9 @@ public:
         bunch->getParticleContainer()->create(numParticles);
         return bunch;
     }
-
 };
 
+// Test transversely across the magnet to check for a dipole (constant) field.
 TEST_F(TestMultipoleTStraight, Dipole) {
     std::vector<double> line(101);
     // Set up the magnet
@@ -195,6 +195,7 @@ TEST_F(TestMultipoleTStraight, Dipole) {
     }
 }
 
+// Test transversely across the magnet to check for a quadrupole (linear) field.
 TEST_F(TestMultipoleTStraight, Quadrupole) {
     constexpr unsigned int samplesPerSide = 50;
     std::vector<double> line(2 * samplesPerSide + 1);
@@ -235,6 +236,7 @@ TEST_F(TestMultipoleTStraight, Quadrupole) {
     }
 }
 
+// Test transversely across the magnet to check for a sextupole (quadratic) field.
 TEST_F(TestMultipoleTStraight, Sextupole) {
     constexpr unsigned int samplesPerSide = 50;
     std::vector<double> line(2 * samplesPerSide + 1);
@@ -275,6 +277,7 @@ TEST_F(TestMultipoleTStraight, Sextupole) {
     }
 }
 
+// Test transversely across the magnet to check for an octupole (cubic) field.
 TEST_F(TestMultipoleTStraight, Octupole) {
     constexpr unsigned int samplesPerSide = 50;
     std::vector<double> line(2 * samplesPerSide + 1);
@@ -315,6 +318,7 @@ TEST_F(TestMultipoleTStraight, Octupole) {
     }
 }
 
+// Test transversely across the magnet to check for a decapole (quartic) field.
 TEST_F(TestMultipoleTStraight, Decapole) {
     constexpr unsigned int samplesPerSide = 50;
     std::vector<double> line(2 * samplesPerSide + 1);
@@ -355,6 +359,7 @@ TEST_F(TestMultipoleTStraight, Decapole) {
     }
 }
 
+// Check that the field along the center line is Maxwellian (zero div and curl)
 TEST_F(TestMultipoleTStraight, DivCurl) {
     constexpr unsigned int samplesPerSide = 20;
     std::vector<double> divLine(2 * samplesPerSide + 1);
@@ -384,6 +389,7 @@ TEST_F(TestMultipoleTStraight, DivCurl) {
     }
 }
 
+// Check the const and non-const geometry access APIs return the same object
 TEST_F(TestMultipoleTStraight, Geometry) {
     TestMultipoleTStraight* magnet = this;
     auto* geom                     = &magnet->getGeometry();
@@ -393,6 +399,7 @@ TEST_F(TestMultipoleTStraight, Geometry) {
     EXPECT_EQ(geom, constGeom);
 }
 
+// Check that the field outside the bounding box is not calculated
 TEST_F(TestMultipoleTStraight, BoundingBox) {
     std::vector<double> line(3);
     // Set up the magnet
@@ -435,6 +442,7 @@ TEST_F(TestMultipoleTStraight, BoundingBox) {
     }
 }
 
+// Check that the field outside the aperture is not calculated
 TEST_F(TestMultipoleTStraight, Aperture) {
     std::vector<double> line(9);
     // Set up the magnet
@@ -462,6 +470,7 @@ TEST_F(TestMultipoleTStraight, Aperture) {
     EXPECT_EQ(line[8], 0.0);  // 3.0
 }
 
+// Test the single particle version of the apply function
 TEST_F(TestMultipoleTStraight, FieldAtSingleParticlePosition) {
     // Set up the magnet
     constexpr double length      = 4.4;
@@ -477,14 +486,14 @@ TEST_F(TestMultipoleTStraight, FieldAtSingleParticlePosition) {
     setTransProfile({dipoleField});
     // Make the bunch
     const auto bunch = makeBunch(1);
-    const auto pc = bunch->getParticleContainer();
+    const auto pc    = bunch->getParticleContainer();
     // Create the local views and data
     std::vector<Vector_t<double, 3>> localR(1);
     const auto hostR = Kokkos::create_mirror_view(pc->R.getView());
     const auto hostB = Kokkos::create_mirror_view(pc->B.getView());
     // Set the particle position
     localR[0] = {0, 0, 0};
-    hostR(0) = curvilinearToGlobal(localR[0], {0, 0, 0}, length);
+    hostR(0)  = curvilinearToGlobal(localR[0], {0, 0, 0}, length);
     Kokkos::deep_copy(pc->R.getView(), hostR);
     pc->setQ(bunch->getChargePerParticle());
     ippl::Comm->barrier();

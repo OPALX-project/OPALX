@@ -184,7 +184,7 @@ const BGeometryBase& MultipoleT::getGeometry() const { return *implementation_->
 void MultipoleT::validateConfiguration() const {
     if (2 * config_m.maxFOrder_m + 1 > MultipoleTBase::MaxDerivatives) {
         throw OpalException(
-            "MultipoleT::validateConfiguration",
-            "Max F order too large for this implementation");
+                "MultipoleT::validateConfiguration",
+                "Max F order too large for this implementation");
     }
 }
