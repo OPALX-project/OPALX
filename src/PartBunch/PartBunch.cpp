@@ -620,7 +620,7 @@ void PartBunch<T, Dim>::performBunchSanityChecks() const {
 
     // Basic check that the E-field layout has non-zero extent
     auto Eview = fctr->getE().getView();
-    if (Eview.extent(0) == 0 || Eview.extent(1) == 0 || Eview.extent(2) == 0) {
+    if (stype != "NONE" && (Eview.extent(0) == 0 || Eview.extent(1) == 0 || Eview.extent(2) == 0)) {
         throw OpalException(
                 "PartBunch::performBunchSanityChecks",
                 "E-field layout not initialized (zero extent). ");
@@ -629,7 +629,8 @@ void PartBunch<T, Dim>::performBunchSanityChecks() const {
 
     // rho / phi layouts should match E (non-zero extent)
     auto rhoView = fctr->getRho().getView();
-    if (rhoView.extent(0) == 0 || rhoView.extent(1) == 0 || rhoView.extent(2) == 0) {
+    if (stype != "NONE"
+        && (rhoView.extent(0) == 0 || rhoView.extent(1) == 0 || rhoView.extent(2) == 0)) {
         throw OpalException(
                 "PartBunch::performBunchSanityChecks",
                 "rho field layout not initialized (zero extent). ");
@@ -637,7 +638,8 @@ void PartBunch<T, Dim>::performBunchSanityChecks() const {
     ms << level4 << "rho field layout initialized." << endl;
 
     auto phiView = fctr->getPhi().getView();
-    if (phiView.extent(0) == 0 || phiView.extent(1) == 0 || phiView.extent(2) == 0) {
+    if (stype != "NONE"
+        && (phiView.extent(0) == 0 || phiView.extent(1) == 0 || phiView.extent(2) == 0)) {
         throw OpalException(
                 "PartBunch::performBunchSanityChecks",
                 "phi field layout not initialized (zero extent). ");
