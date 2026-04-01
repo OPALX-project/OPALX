@@ -60,7 +60,7 @@ private:
     bool momentsDirty_m      = true;
     bool emittingNow_m       = false;
     bool firstRepartition_m  = true;
-    bool keeGridFixed_m      = false;
+    bool keepGridFixed_m     = false;
 };
 
 #endif
