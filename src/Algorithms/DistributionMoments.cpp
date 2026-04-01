@@ -135,6 +135,9 @@ void DistributionMoments::computeMoments(
         return;
     }
 
+    IpplTimings::TimerRef momentsTimer = IpplTimings::getTimer("computeMoments");
+    IpplTimings::startTimer(momentsTimer);
+
     reset();
     computeMeans(Rview, Pview, Mview, Np, Nlocal);
 
@@ -236,6 +239,8 @@ void DistributionMoments::computeMoments(
 
     double betaGamma = std::sqrt(std::pow(meanGamma_m, 2) - 1.0);
     geometricEps_m   = normalizedEps_m / Vector_t<double, 3>(betaGamma);
+
+    IpplTimings::stopTimer(momentsTimer);
 }
 
 // ---------------------------------------------------------------------------
