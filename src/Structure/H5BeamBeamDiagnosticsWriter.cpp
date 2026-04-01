@@ -85,10 +85,6 @@ std::vector<h5_float64_t> H5BeamBeamDiagnosticsWriter::flattenScalarField(
     const std::size_t n  = nx * ny * nz;
 
     Kokkos::View<h5_float64_t*> dataDevice("H5BeamBeamDiagnosticsWriter::dataDevice", n);
-    const int ixFirst = localIndex[0].first();
-    const int iyFirst = localIndex[1].first();
-    const int izFirst = localIndex[2].first();
-
     Kokkos::parallel_for(
         "H5BeamBeamDiagnosticsWriter::flattenScalarField",
         Kokkos::MDRangePolicy<Kokkos::Rank<3>>({0, 0, 0}, {static_cast<int>(nz), static_cast<int>(ny),
@@ -97,9 +93,11 @@ std::vector<h5_float64_t> H5BeamBeamDiagnosticsWriter::flattenScalarField(
             const std::size_t flatIndex =
                 (static_cast<std::size_t>(izLocal) * ny + static_cast<std::size_t>(iyLocal)) * nx +
                 static_cast<std::size_t>(ixLocal);
-            dataDevice(flatIndex) = fieldView(ixFirst + ixLocal + nghost,
-                                              iyFirst + iyLocal + nghost,
-                                              izFirst + izLocal + nghost);
+            // localIndex describes the global H5 block; the Kokkos field view is local and
+            // therefore must be accessed in local coordinates plus ghost offset only.
+            dataDevice(flatIndex) = fieldView(ixLocal + nghost,
+                                              iyLocal + nghost,
+                                              izLocal + nghost);
         });
 
     auto dataHost = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), dataDevice);
@@ -128,10 +126,6 @@ void H5BeamBeamDiagnosticsWriter::flattenVectorField(
     Kokkos::View<h5_float64_t*> yDevice("H5BeamBeamDiagnosticsWriter::yDevice", n);
     Kokkos::View<h5_float64_t*> zDevice("H5BeamBeamDiagnosticsWriter::zDevice", n);
 
-    const int ixFirst = localIndex[0].first();
-    const int iyFirst = localIndex[1].first();
-    const int izFirst = localIndex[2].first();
-
     Kokkos::parallel_for(
         "H5BeamBeamDiagnosticsWriter::flattenVectorField",
         Kokkos::MDRangePolicy<Kokkos::Rank<3>>({0, 0, 0}, {static_cast<int>(nz), static_cast<int>(ny),
@@ -140,9 +134,9 @@ void H5BeamBeamDiagnosticsWriter::flattenVectorField(
             const std::size_t flatIndex =
                 (static_cast<std::size_t>(izLocal) * ny + static_cast<std::size_t>(iyLocal)) * nx +
                 static_cast<std::size_t>(ixLocal);
-            const auto value = fieldView(ixFirst + ixLocal + nghost,
-                                         iyFirst + iyLocal + nghost,
-                                         izFirst + izLocal + nghost);
+            const auto value = fieldView(ixLocal + nghost,
+                                         iyLocal + nghost,
+                                         izLocal + nghost);
             xDevice(flatIndex) = value[0];
             yDevice(flatIndex) = value[1];
             zDevice(flatIndex) = value[2];
