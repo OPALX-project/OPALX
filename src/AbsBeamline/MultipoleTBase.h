@@ -100,7 +100,7 @@ public:
     /** Return a dummy field value */
     const EMField& getField() const;
     /** Apply to all particles */
-    bool apply();
+    bool apply(const std::shared_ptr<ParticleContainer_t>& pc);
     /** Calculate the field at some arbitrary position \n
      *  If particle is outside field map true is returned,
      *  otherwise false is returned

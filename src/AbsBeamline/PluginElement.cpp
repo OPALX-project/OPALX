@@ -72,7 +72,7 @@ bool PluginElement::bends() const {
     return false;
 }
 
-bool PluginElement::apply() {
+bool PluginElement::apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/) {
     return false;
 }
 

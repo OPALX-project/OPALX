@@ -44,7 +44,7 @@ public:
      * 
      * @returns true if at least one particle is lost, false otherwise
      */
-    virtual bool apply() override;
+    virtual bool apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
 
     /**
      * @brief apply the solenoid field to particle i

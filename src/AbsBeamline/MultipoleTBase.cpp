@@ -71,7 +71,7 @@ MultipoleTBase::MultipoleTBase(const MultipoleTBase &right):
 MultipoleTBase::~MultipoleTBase() {
 }
 
-bool MultipoleTBase::apply() {
+bool MultipoleTBase::apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/) {
     return false;
 }
 

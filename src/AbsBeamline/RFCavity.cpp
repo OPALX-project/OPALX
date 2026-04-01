@@ -119,7 +119,7 @@ void RFCavity::accept(BeamlineVisitor& visitor) const {
     visitor.visitRFCavity(*this);
 }
 
-bool RFCavity::apply() {
+bool RFCavity::apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/) {
     return false;
 }
 

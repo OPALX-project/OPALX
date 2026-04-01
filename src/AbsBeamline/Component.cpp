@@ -83,7 +83,7 @@ ElementType Component::getType() const {
  * 
  * @returns true if particle is out-of-bounds (lost), false otherwise
  */
-bool Component::apply(){
+bool Component::apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/) {
     return false;
 }
 
