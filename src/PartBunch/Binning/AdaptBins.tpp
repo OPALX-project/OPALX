@@ -336,45 +336,6 @@ namespace ParticleBinning {
     }
 
     template <typename BunchType, typename BinningSelector>
-    template <typename T, unsigned Dim>
-    VField_t<T, Dim>& AdaptBins<BunchType, BinningSelector>::LTrans(VField_t<T, Dim>& field, const bin_index_type& currentBin) {
-        Inform m("AdaptBins");
-        
-        position_view_type P = bunch_m->P.getView();
-        hash_type indices    = sortedIndexArr_m;
-
-        // Calculate gamma factor for field back transformation 
-        // Note that P is saved normalized in OPAL, so technically p/mc
-        Vector<T, Dim> gamma_bin2(0.0);
-        Kokkos::parallel_reduce("CalculateGammaFactor", getBinIterationPolicy(currentBin),  
-            KOKKOS_LAMBDA(const size_type& i, Vector<double, 3>& v) {
-                Vector<double, 3> v_comp = P(indices(i)); 
-                v                       += v_comp;  
-            }, Kokkos::Sum<Vector<T, Dim>>(gamma_bin2));
-        bin_index_type npart_bin = getNPartInBin(currentBin);
-        
-        /**
-         * TODO Note: when the load balancer is not called often enough, then the adaptive bin
-         * can lead to a phenomenon where the number of particles in a bin is zero, which leads to
-         * a division by zero. 
-         * So: either check if the number is 0 or make sure ranks always have enough particles!
-         */
-        gamma_bin2  = (npart_bin == 0) ? Vector<double, 3>(0.0) : gamma_bin2/npart_bin; // Now we have <P> for this bin
-        gamma_bin2  = -sqrt(1.0 + gamma_bin2*gamma_bin2); // in these units: gamma=sqrt(1 + <P>^2), assuming <P^2>~0 (since bunch per bin should be "considered constant") // -1.0 / sqrt(1.0 - gamma_bin2 / c2); // negative sign, since we want the inverse transformation
-        
-        m << level5 << "Gamma(binIndex = " << currentBin << ") = -" << gamma_bin2 << endl;
-
-        // Next apply the transformation --> do it manually, since fc->E*gamma does not exist in IPPL...
-        ippl::parallel_for("TransformFieldWithVelocity", field.getFieldRangePolicy(), 
-                           KOKKOS_LAMBDA(const ippl::RangePolicy<Dim>::index_array_type& idx) {
-            apply(field, idx) *= gamma_bin2;
-        });
-
-        return field;
-    }
-    
-
-    template <typename BunchType, typename BinningSelector>
     void AdaptBins<BunchType, BinningSelector>::sortContainerByBin() {
         /*
          * Assume, this function is called after the prefix sum is initialized.

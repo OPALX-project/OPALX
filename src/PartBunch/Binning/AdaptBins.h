@@ -528,37 +528,6 @@ namespace ParticleBinning {
             msg << level2 << "=====================================" << endl;
         }
 
-        /**
-        * @brief Applies a Lorentz transformation to a given vector field based on particle velocities.
-        * 
-        * @tparam T The data type of the field components (e.g., `double`, `float`).
-        * @tparam Dim The dimensionality of the field.
-        * @param field A reference to the vector field to be transformed.
-        * @return A reference to the transformed field.
-        * 
-        * @details
-        * - **Gamma Factor Calculation:** The gamma factor is derived from the velocity components of particles.
-        *   For a given particle velocity \(v\), the gamma factor is computed as:
-        *   \[
-        *   \gamma = \frac{1}{\sqrt{1 - \vec{v} \cdot \vec{v}}}
-        *   \]
-        *   where \(\vec{v}\) is the velocity vector of a particle.
-        * 
-        * - **Field Transformation:** After computing the gamma factor, each component of the field is
-        *   multiplied by the corresponding gamma factor.
-        * 
-        * ### Example Usage:
-        * ```cpp
-        * VField_t<double, 3> field = ...; // Initialize the field
-        * this->bins_m->LTrans(field);     // Apply Lorentz transformation
-        * ```
-        * 
-        * @note This function should not be used inside OPAL-X, since it makes assumptions regarding the actual
-        *       particle bunch. It is just for testing during development. 
-        */
-        template <typename T, unsigned Dim>
-        VField_t<T, Dim>& LTrans(VField_t<T, Dim>& field, const bin_index_type& currentBin); // TODO: may want to add usage of c constant when it exists...
-
     private:
         std::shared_ptr<BunchType> bunch_m;    ///< Shared pointer to the particle container.
         BinningSelector var_selector_m;        ///< Variable selector for binning.
