@@ -79,22 +79,35 @@ std::vector<h5_float64_t> H5BeamBeamDiagnosticsWriter::flattenScalarField(
         const Field_t<3>& field, const ippl::NDIndex<3>& localIndex) {
     const int nghost = field.getNghost();
     auto fieldView   = field.getView();
-    auto fieldHost   = field.getHostMirror();
-    Kokkos::deep_copy(fieldHost, fieldView);
-    ippl::Comm->barrier();
     const std::size_t nx = localIndex[0].length();
     const std::size_t ny = localIndex[1].length();
     const std::size_t nz = localIndex[2].length();
+    const std::size_t n  = nx * ny * nz;
+
+    Kokkos::View<h5_float64_t*> dataDevice("H5BeamBeamDiagnosticsWriter::dataDevice", n);
+    const int ixFirst = localIndex[0].first();
+    const int iyFirst = localIndex[1].first();
+    const int izFirst = localIndex[2].first();
+
+    Kokkos::parallel_for(
+        "H5BeamBeamDiagnosticsWriter::flattenScalarField",
+        Kokkos::MDRangePolicy<Kokkos::Rank<3>>({0, 0, 0}, {static_cast<int>(nz), static_cast<int>(ny),
+                                                           static_cast<int>(nx)}),
+        KOKKOS_LAMBDA(const int izLocal, const int iyLocal, const int ixLocal) {
+            const std::size_t flatIndex =
+                (static_cast<std::size_t>(izLocal) * ny + static_cast<std::size_t>(iyLocal)) * nx +
+                static_cast<std::size_t>(ixLocal);
+            dataDevice(flatIndex) = fieldView(ixFirst + ixLocal + nghost,
+                                              iyFirst + iyLocal + nghost,
+                                              izFirst + izLocal + nghost);
+        });
+
+    auto dataHost = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), dataDevice);
 
     std::vector<h5_float64_t> data;
-    data.reserve(nx * ny * nz);
-
-    for (int iz = localIndex[2].first(); iz <= localIndex[2].last(); ++iz) {
-        for (int iy = localIndex[1].first(); iy <= localIndex[1].last(); ++iy) {
-            for (int ix = localIndex[0].first(); ix <= localIndex[0].last(); ++ix) {
-                data.push_back(fieldHost(ix + nghost, iy + nghost, iz + nghost));
-            }
-        }
+    data.reserve(n);
+    for (std::size_t i = 0; i < n; ++i) {
+        data.push_back(dataHost(i));
     }
 
     return data;
@@ -105,13 +118,39 @@ void H5BeamBeamDiagnosticsWriter::flattenVectorField(
         std::vector<h5_float64_t>& x, std::vector<h5_float64_t>& y, std::vector<h5_float64_t>& z) {
     const int nghost = field.getNghost();
     auto fieldView   = field.getView();
-    auto fieldHost   = field.getHostMirror();
-    Kokkos::deep_copy(fieldHost, fieldView);
 
     const std::size_t nx = localIndex[0].length();
     const std::size_t ny = localIndex[1].length();
     const std::size_t nz = localIndex[2].length();
     const std::size_t n  = nx * ny * nz;
+
+    Kokkos::View<h5_float64_t*> xDevice("H5BeamBeamDiagnosticsWriter::xDevice", n);
+    Kokkos::View<h5_float64_t*> yDevice("H5BeamBeamDiagnosticsWriter::yDevice", n);
+    Kokkos::View<h5_float64_t*> zDevice("H5BeamBeamDiagnosticsWriter::zDevice", n);
+
+    const int ixFirst = localIndex[0].first();
+    const int iyFirst = localIndex[1].first();
+    const int izFirst = localIndex[2].first();
+
+    Kokkos::parallel_for(
+        "H5BeamBeamDiagnosticsWriter::flattenVectorField",
+        Kokkos::MDRangePolicy<Kokkos::Rank<3>>({0, 0, 0}, {static_cast<int>(nz), static_cast<int>(ny),
+                                                           static_cast<int>(nx)}),
+        KOKKOS_LAMBDA(const int izLocal, const int iyLocal, const int ixLocal) {
+            const std::size_t flatIndex =
+                (static_cast<std::size_t>(izLocal) * ny + static_cast<std::size_t>(iyLocal)) * nx +
+                static_cast<std::size_t>(ixLocal);
+            const auto value = fieldView(ixFirst + ixLocal + nghost,
+                                         iyFirst + iyLocal + nghost,
+                                         izFirst + izLocal + nghost);
+            xDevice(flatIndex) = value[0];
+            yDevice(flatIndex) = value[1];
+            zDevice(flatIndex) = value[2];
+        });
+
+    auto xHost = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), xDevice);
+    auto yHost = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), yDevice);
+    auto zHost = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), zDevice);
 
     x.clear();
     y.clear();
@@ -120,14 +159,10 @@ void H5BeamBeamDiagnosticsWriter::flattenVectorField(
     y.reserve(n);
     z.reserve(n);
 
-    for (int iz = localIndex[2].first(); iz <= localIndex[2].last(); ++iz) {
-        for (int iy = localIndex[1].first(); iy <= localIndex[1].last(); ++iy) {
-            for (int ix = localIndex[0].first(); ix <= localIndex[0].last(); ++ix) {
-                x.push_back(fieldHost(ix + nghost, iy + nghost, iz + nghost)[0]);
-                y.push_back(fieldHost(ix + nghost, iy + nghost, iz + nghost)[1]);
-                z.push_back(fieldHost(ix + nghost, iy + nghost, iz + nghost)[2]);
-            }
-        }
+    for (std::size_t i = 0; i < n; ++i) {
+        x.push_back(xHost(i));
+        y.push_back(yHost(i));
+        z.push_back(zHost(i));
     }
 }
 
