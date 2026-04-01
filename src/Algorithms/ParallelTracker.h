@@ -112,39 +112,31 @@ private:
     IpplTimings::TimerRef PluginElemTimer_m;
     IpplTimings::TimerRef BinRepartTimer_m;
     IpplTimings::TimerRef OrbThreader_m;
-    /// Time-dependent (emitting) sources; emitParticles(t, dt) called each step.
-    std::vector<std::shared_ptr<SamplingBase>> emittingSamplers_m;
+    /// Per-container time-dependent (emitting) sources; emitParticles(t, dt) each step.
+    std::vector<std::vector<std::shared_ptr<SamplingBase>>> emittingSamplers_m;
 public:
     /* ============================ Constructors =========================== */
     /*
      * Constructor for single track
      * The Beamline object "bl"
-     * The reference data object "data" 
      * If "revBeam" is true, the beam runs from s = C to s = 0.
-     * If "revTrack" is true, we track against the beam.
+     * OPAL-T parallel tracking is forward (beam) direction only (revTrack is not used).
     */ 
-    explicit ParallelTracker(const Beamline& bl,
-        bool revBeam, bool revTrack);
+    explicit ParallelTracker(const Beamline& bl, bool revBeam);
 
     /*
      * Constructor for single track
-     * The Beamline object "bl"
-     * The ParticleBunch "bunch"
-     * The DataSink "ds"
+     * The Beamline object "bl", the ParticleBunch "bunch", the DataSink "ds".
      * If "revBeam" is true, the beam runs from s = C to s = 0.
-     * If "revTrack" is true, we track against the beam.
-     * Vector of maxSteps per track
-     * Starting position "zstart"
-     * Vector of ends of the individual tracks
-     * Vector of different timesteps for individual tracks
-     * Optional list of emitting samplers (emitParticles(t, dt) called each step)
+     * Vector of maxSteps per track; starting position "zstart"; zstop and dt per segment.
+     * Optional per-container emitting samplers (emitParticles(t, dt) called each step)
     */
     explicit ParallelTracker(const Beamline& bl, std::shared_ptr<PartBunch_t> bunch,
         const std::shared_ptr<DataSink>& ds, bool revBeam,
-        bool revTrack, const std::vector<unsigned long long>& maxSTEPS, 
+        const std::vector<unsigned long long>& maxSTEPS, 
         double zstart, const std::vector<double>& zstop, 
         const std::vector<double>& dt,
-        const std::vector<std::shared_ptr<SamplingBase>>& emittingSamplers = {});
+        const std::vector<std::vector<std::shared_ptr<SamplingBase>>>& emittingSamplers = {});
 
     // Destructor
     virtual ~ParallelTracker();
@@ -183,8 +175,10 @@ public:
     virtual void execute();
     /* ===================================================================== */
     /* ========================= PIC Functions ============================= */
-    void kickParticles(const BorisPusher& pusher);
-    void pushParticles(const BorisPusher& pusher);
+    void kickParticles(const BorisPusher& pusher,
+                       const std::shared_ptr<PartBunch_t::ParticleContainer_t>& pc);
+    void pushParticles(const BorisPusher& pusher,
+                       const std::shared_ptr<PartBunch_t::ParticleContainer_t>& pc);
     void timeIntegration1(BorisPusher& pusher);
     void timeIntegration2(BorisPusher& pusher);
     void computeSpaceChargeFields(unsigned long long step);    
@@ -194,12 +188,12 @@ public:
     /* ===================================================================== */ 
     /* =========================== Functions =============================== */
     // Control the dtview of the bunch
-    void changeDT(bool backTrack = false);
+    void changeDT();
     void setTime();
 
 private:
-    // Reference Particle 
-    void updateReferenceParticle(const BorisPusher& pusher);
+    // Reference particles (all containers)
+    void updateReferenceParticles(const BorisPusher& pusher);
     void updateReference(const BorisPusher& pusher);
     void updateRefToLabCSTrafo();
 
@@ -213,7 +207,7 @@ private:
     void prepareSections();
 
     // Sets itsBunch_m::dt to dtCurrentTrack_m 
-    void selectDT(bool backTrack = false);
+    void selectDT();
 
     // void prepareOpalBeamlineSections();
     void setOptionalVariables();
@@ -223,13 +217,13 @@ private:
 
     // Load balancing
     void doBinaryRepartition();
+    /// Apply trafo to every non-null particle container (R, P, E, B).
     void transformBunch(const CoordinateSystemTrafo& trafo);
-
-    // Applies a (fractional) step tau
-    void applyFractionalStep(const BorisPusher& pusher, double tau);
+    void computeInitialBounds(Vector_t<double, 3>& rmin, Vector_t<double, 3>& rmax);
+    void printInitialContainerRefs(Inform& m) const;
 
     // Finds start for reference particle
-    void findStartPosition(const BorisPusher& pusher);
+    void findStartPositions(const BorisPusher& pusher);
     /* ===================================================================== */
     /* ========================== Autophasing ============================== */
     // Setup for TRAVERLINGWAVE and RFCAVITY

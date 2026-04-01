@@ -255,13 +255,9 @@ void Multipole::setSkewComponent(int n, double v, double vError)
  *  
  * @returns true if particle is out-of-bounds (lost), false otherwise
  */
-bool Multipole::apply()
+bool Multipole::apply(const std::shared_ptr<ParticleContainer_t>& pc)
 {
     std::cout << "Multipole::apply() called" <<std::endl;
-    // Get the particle container
-    std::shared_ptr<ParticleContainer_t> pc = 
-        RefPartBunch_m->getParticleContainer();
-
     // Get the views
     auto Rview = pc->R.getView();
     auto Eview = pc->E.getView();

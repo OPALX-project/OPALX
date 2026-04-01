@@ -339,7 +339,7 @@ void TrackRun::execute() {
     }
 
     // Setup all distributions and samplers, perform initial sampling (t0 == 0),
-    // and prepare emittingSamplers_m for time-dependent / delayed sources.
+    // and prepare per-container emitting sampler lists for ParallelTracker.
     // Do this for each particle container
     std::vector<emittingSamplers_t> emittingSamplersList(particleContainers.size());
     for(size_t i=0; i<particleContainers.size(); ++i){
@@ -379,10 +379,8 @@ void TrackRun::execute() {
     */
     itsTracker_m = new ParallelTracker(
         *Track::block->use->fetchLine(), bunch_m, ds_m, false,
-        Attributes::getBool(itsAttr[TRACKRUN::TRACKBACK]), Track::block->localTimeSteps,
-        Track::block->zstart, Track::block->zstop, Track::block->dT, emittingSamplersList[0]);
-
-    // TODO: MAKE EXECUTE USE MULTIPLE CONTAINERS 
+        Track::block->localTimeSteps,
+        Track::block->zstart, Track::block->zstop, Track::block->dT, emittingSamplersList);
     itsTracker_m->execute();
 
     /*

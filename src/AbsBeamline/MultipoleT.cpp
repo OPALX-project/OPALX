@@ -94,7 +94,7 @@ void MultipoleT::finalise() {
     RefPartBunch_m = nullptr;
 }
 
-bool MultipoleT::apply() {
+bool MultipoleT::apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/) {
     return false;
 }
 

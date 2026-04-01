@@ -104,7 +104,7 @@ public:
     /** Not implemented */
     void getDimensions(double& zBegin, double& zEnd) const override;
     /** Apply to all particles */
-    bool apply() override;
+    bool apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
     /** Calculate the field at some arbitrary position
      *  If particle is outside field map true is returned,
      *  otherwise false is returned

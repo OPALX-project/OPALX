@@ -106,7 +106,7 @@
          delete section_list_m[i];
  }
  
- bool Ring::apply() {
+ bool Ring::apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/) {
      return false;
  }
  
