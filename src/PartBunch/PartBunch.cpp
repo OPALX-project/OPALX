@@ -1,4 +1,5 @@
 #include "PartBunch/PartBunch.h"
+#include "PartBunch/BinnedFieldSolver.h"
 #include "Algorithms/Matrix.h"
 #include "Particle/ParticleAttrib.h"
 #include "Utilities/Util.h"
@@ -13,7 +14,7 @@ PartBunch<T, Dim>::PartBunch(std::vector<double> qi,
                              /*int nt,*/
                              double lbt,
                              std::string integration_method,
-                             std::shared_ptr<FieldSolverCmd>& OPALFieldSolver,
+                             std::shared_ptr<FieldSolverCmd> OPALFieldSolver,
                              std::shared_ptr<DataSink> dataSink)
     : ippl::PicManager<T, Dim, ParticleContainer<T, Dim>, FieldContainer<T, Dim>, LoadBalancer<T, Dim>>(),
       RefPartR_m(0.0),
@@ -94,44 +95,21 @@ PartBunch<T, Dim>::PartBunch(std::vector<double> qi,
             this->fcontainer_m->getMesh(), this->fcontainer_m->getFL()));
     }
 
-    this->setTempEField(std::make_shared<VField_t<T, Dim>>(
-        this->fcontainer_m->getE()
-    )); // user copy constructor
-    this->getTempEField()->initialize(this->fcontainer_m->getMesh(), 
-                                      this->fcontainer_m->getFL());
-    // -----------------------------------------------
-
     setSolver();
+
+    // Build temporary accumulation fields after solver/field initialization so they
+    // match the current mesh/layout and backing storage configuration.
+    this->setTempEField(std::make_shared<VField_t<T, Dim>>());
+    this->getTempEField()->initialize(this->fcontainer_m->getMesh(), this->fcontainer_m->getFL());
+    this->setTempBField(std::make_shared<VField_t<T, Dim>>());
+    this->getTempBField()->initialize(this->fcontainer_m->getMesh(), this->fcontainer_m->getFL());
+    // -----------------------------------------------
 
     pre_run();
     
     globalPartPerNode_m = std::make_unique<size_t[]>(ippl::Comm->size());
 
     m << level5 << "* PartBunch constructor done." << endl;
-}
-
-template <typename T, unsigned Dim>
-T PartBunch<T, Dim>::getCouplingConstant() const {
-    /*
-    This function needs to be here, since FieldSoler_t is only fully defined
-    at instanciation of PartBunch, so not yet in the header file.
-    */
-    
-    if (!hasFieldSolver()) {
-        throw OpalException("PartBunch::getCouplingConstant",
-                            "Cannot return coupling if fsolver_m is not a "
-                            "FieldSolver instance");
-    }
-    return this->getFieldSolver()->getCouplingConstant();
-}
-
-template <typename T, unsigned Dim>
-void PartBunch<T, Dim>::gatherCIC() {
-    using Base = ippl::ParticleBase<ippl::ParticleSpatialLayout<T, Dim>>;
-    typename Base::particle_position_type* Ep = &this->pcontainer_m->E;
-    typename Base::particle_position_type* R = &this->pcontainer_m->R;
-    VField_t<T, Dim>* Ef = &this->fcontainer_m->getE();
-    gather(*Ep, *Ef, *R);
 }
 
 template <typename T, unsigned Dim>
@@ -167,19 +145,22 @@ void PartBunch<T, Dim>::setSolver() {
     this->solver_m = OPALFieldSolver_m->getType();
 
     this->fcontainer_m->initializeFields(this->solver_m);
-    
-    this->setFieldSolver(std::make_shared<FieldSolver_t>(
-        this->solver_m, 
-        &this->fcontainer_m->getRho(), 
-        &this->fcontainer_m->getE(),
-        &this->fcontainer_m->getPhi(),
-        this->getBCHandler()
-    ));
-    m << level4 << "Field solver set." << endl;
+
+    // Needs to happen before setting the field solver, since the field solver needs the bins.
+    setBins();
+
+    this->setFieldSolver(
+        std::make_shared<BinnedFieldSolver<T, Dim>>(
+            this->solver_m, &this->fcontainer_m->getRho(), &this->fcontainer_m->getE(),
+            &this->fcontainer_m->getPhi(), this->getBCHandler(),
+            hasBinning() ? OPALFieldSolver_m->getBinningCmd()->getTablePrintFrequency() : 0
+        )
+    );
+    m << level4 << "Binned field solver set (binned or legacy at runtime)." << endl;
 
     this->fsolver_m->initSolver();
     m << level4 << "Field solver initialized." << endl;
-        
+
     /// ADA we need to be able to set a load balancer when not having a field solver
     this->setLoadBalancer(std::make_shared<LoadBalancer_t>(
         this->lbt_m, 
@@ -188,8 +169,6 @@ void PartBunch<T, Dim>::setSolver() {
         this->fsolver_m
     ));
     m << level3 << "Solver and Load Balancer set." << endl;
-
-    setBins();
 }
 
 template <typename T, unsigned Dim>
@@ -205,102 +184,40 @@ void PartBunch<T, Dim>::setBins() {
 
     m << level4 << "Using binning command: " << binningCmd->getOpalName() << endl;
 
-    std::string parameterName = binningCmd->getParameter();
-    if (parameterName != "VELOCITYZ") {
-        throw OpalException("PartBunch::setBins",
-                            "Binning parameter " + parameterName + " not supported yet! Only VELOCITYZ.");
+    switch (binningCmd->getParameterType()) {
+        case BinningParameter::VELOCITYZ:
+            this->setBins(
+                std::make_shared<ParticleBinning::AdaptBins<ParticleContainer_t, CoordinateSelector_t>>(
+                    this->getParticleContainer(), 
+                    CoordinateSelector_t(2), 
+                    binningCmd->getMaxBins(),
+                    binningCmd->getBinningAlpha(), 
+                    binningCmd->getBinningBeta(),
+                    binningCmd->getDesiredWidth(), 
+                    binningCmd->getOpalName()
+                )
+            );
+            break;
+        case BinningParameter::GAMMAZ:
+            this->setBins(
+                std::make_shared<ParticleBinning::AdaptBins<ParticleContainer_t, GammaSelector_t>>(
+                    this->getParticleContainer(),
+                    GammaSelector_t(2), 
+                    binningCmd->getMaxBins(),
+                    binningCmd->getBinningAlpha(), 
+                    binningCmd->getBinningBeta(),
+                    binningCmd->getDesiredWidth(), 
+                    binningCmd->getOpalName()
+                )
+            );
+            break;
+        default:
+            throw OpalException(
+                "PartBunch::setBins", "Binning parameter " + binningCmd->getParameter()
+                                          + " not supported yet! Only VELOCITYZ and GAMMAZ.");
     }
-
-    this->setBins(std::make_shared<AdaptBins_t>(
-        this->getParticleContainer(),
-        BinningSelector_t(2),
-        binningCmd->getMaxBins(),
-        binningCmd->getBinningAlpha(),
-        binningCmd->getBinningBeta(),
-        binningCmd->getDesiredWidth() // Cost function parameters
-    ));
     m << level3 << "Bins set." << endl;
     this->getBins()->debug();
-}
-
-template <typename T, unsigned Dim>
-void PartBunch<T, Dim>::spaceChargeEFieldCheck(Vector_t<double, 3> /*efScale*/) {
-    Inform msg("PartBunch::spaceChargeEFieldCheck");
-
-    auto pE_view   = this->pcontainer_m->E.getView();
-    auto fphi_view = this->fcontainer_m->getPhi().getView();
-
-
-    
-    double avgphi        = 0.0;
-    double avgE          = 0.0;
-    double minEComponent = std::numeric_limits<T>::max();
-    double maxEComponent = std::numeric_limits<T>::min();
-    double minE          = std::numeric_limits<T>::max();
-    double maxE          = std::numeric_limits<T>::min();
-    double cc            = getCouplingConstant();
-    
-    int myRank = ippl::Comm->rank();
-
-    Kokkos::parallel_reduce(
-        "check e-field", this->getLocalNum(),
-        KOKKOS_LAMBDA(const int i, double& loc_avgE, double& loc_minEComponent,
-                      double& loc_maxEComponent, double& loc_minE, 
-                      double& loc_maxE) {
-            double EX    = pE_view[i][0]*cc;
-            double EY    = pE_view[i][1]*cc;
-            double EZ    = pE_view[i][2]*cc;
-        
-            double ENorm = Kokkos::sqrt(EX*EX + EY*EY + EZ*EZ);
-            
-            loc_avgE += ENorm;
-
-            loc_minEComponent = EX < loc_minEComponent ? EX : loc_minEComponent;
-            loc_minEComponent = EY < loc_minEComponent ? EY : loc_minEComponent;
-            loc_minEComponent = EZ < loc_minEComponent ? EZ : loc_minEComponent;
-            
-            loc_maxEComponent = EX > loc_maxEComponent ? EX : loc_maxEComponent;
-            loc_maxEComponent = EY > loc_maxEComponent ? EY : loc_maxEComponent;
-            loc_maxEComponent = EZ > loc_maxEComponent ? EZ : loc_maxEComponent;   
-
-            loc_minE = ENorm < loc_minE ? ENorm : loc_minE;
-            loc_maxE = ENorm > loc_maxE ? ENorm : loc_maxE;
-        },
-        Kokkos::Sum<T>(avgE), Kokkos::Min<T>(minEComponent),
-        Kokkos::Max<T>(maxEComponent), Kokkos::Min<T>(minE),
-        Kokkos::Max<T>(maxE)
-    );
-
-    if (this->getLocalNum() == 0) {
-        minEComponent = maxEComponent = minE = maxE = avgE = 0.0;
-    }
-
-    MPI_Reduce(myRank == 0 ? MPI_IN_PLACE : &avgE, &avgE, 1, MPI_DOUBLE, MPI_SUM, 0, ippl::Comm->getCommunicator());
-    MPI_Reduce(myRank == 0 ? MPI_IN_PLACE : &minEComponent, &minEComponent, 1, MPI_DOUBLE, MPI_MIN, 0, ippl::Comm->getCommunicator());
-    MPI_Reduce(myRank == 0 ? MPI_IN_PLACE : &maxEComponent, &maxEComponent, 1, MPI_DOUBLE, MPI_MAX, 0, ippl::Comm->getCommunicator());
-    MPI_Reduce(myRank == 0 ? MPI_IN_PLACE : &minE, &minE, 1, MPI_DOUBLE, MPI_MIN, 0, ippl::Comm->getCommunicator());
-    MPI_Reduce(myRank == 0 ? MPI_IN_PLACE : &maxE, &maxE, 1, MPI_DOUBLE, MPI_MAX, 0, ippl::Comm->getCommunicator());
- 
-    size_t Np = this->getTotalNum();
-    avgE /= (Np == 0) ? 1 : Np; // avoid division by zero for empty simulations (see also DistributionMoments::computeMeans implementation) 
-
-    msg << level4 << "avgENorm = " << avgE << endl;
-    
-    using mdrange_type = Kokkos::MDRangePolicy<Kokkos::Rank<3>>;
-
-    Kokkos::parallel_reduce(
-        "check phi", mdrange_type({0,0,0}, {fphi_view.extent(0),fphi_view.extent(1),fphi_view.extent(2)}),
-        KOKKOS_LAMBDA(const int i, const int j, const int k, double& loc_avgphi) {
-            double phi = fphi_view(i,j,k);
-            loc_avgphi += phi;
-        },
-        Kokkos::Sum<T>(avgphi)
-    );
-
-    MPI_Reduce(myRank == 0 ? MPI_IN_PLACE : &avgphi, &avgphi, 1, MPI_DOUBLE, MPI_SUM, 0, ippl::Comm->getCommunicator());
-    avgphi /= this->getTotalNum(); 
-    msg << level4 << "avgphi = " << avgphi << endl;
-
 }
 
 template <typename T, unsigned Dim>
@@ -420,13 +337,6 @@ double PartBunch<T, Dim>::get_meanKineticEnergy() {
     // Single source of truth: computed in DistributionMoments during updateMoments().
     // Unit: MeV (see DistributionMoments implementation).
     return this->pcontainer_m->getMeanKineticEnergy();
-}
-
-template <typename T, unsigned Dim>
-double PartBunch<T, Dim>::getdE() const {
-    // Single source of truth: computed in DistributionMoments during updateMoments().
-    // Unit: MeV (see DistributionMoments implementation).
-    return this->pcontainer_m->getStdKineticEnergy();
 }
 
 template <typename T, unsigned Dim>
@@ -568,142 +478,17 @@ void PartBunch<T, Dim>::bunchUpdate() {
 
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::computeSelfFields() {
-    Inform m("PartBunch::computeSelfFields");
+    using BinnedSolver_t = BinnedFieldSolver<T, Dim>;
 
-    if (ippl::Comm->size() == 1 && this->pcontainer_m->getLocalNum() <= 1) {
-        this->pcontainer_m->E = 0.0;
-        m << level5 << "WARNING: Only 1 or less particles in this bunch, setting E to 0 for particles." << endl;
-        return;
+    BinnedSolver_t* bsolver = dynamic_cast<BinnedSolver_t*>(this->fsolver_m.get());
+    if (!bsolver) {
+        throw OpalException("PartBunch::computeSelfFields",
+                            "Field solver is not a BinnedFieldSolver instance.");
     }
 
-    if (this->hasBinning()) {
-        static IpplTimings::TimerRef completeBinningT = IpplTimings::getTimer("bTotalBinningT");
-
-        // Start binning and sorting by bins
-        std::shared_ptr<AdaptBins_t> bins = this->getBins();
-
-        IpplTimings::startTimer(completeBinningT);
-        bins->doFullRebin(bins->getMaxBinCount());
-        dumpBinConfig(true);   // pre-merge configuration
-        bins->sortContainerByBin();    // Sort BEFORE merging to reduce atomics overhead.
-        bins->genAdaptiveHistogram();  // merge bins adaptively
-        dumpBinConfig(false);  // post-merge configuration
-
-        IpplTimings::stopTimer(completeBinningT);
-        m << level4 << "Binning routine done." << endl;
-    } else {
-        m << level4 << "No AdaptBins object present, not using binning." << endl;
-    }
-
-    /*
-    I would guess that ths bunchUpdate is only necessary after a push (where we
-    need it anyways, since positions have changed). However, when removing it,
-    the total energy of the FODO example quickly diverges to "-inf". I don't
-    know why this is, but particle positions shouldn't have changed. I would
-    therefore assume that we could separate bunchUpdate from pc->update() in
-    order to save some computation.
-
-    Edit: this is necessary since we transform positions, so we need to update
-    mesh boundaries and spacings!
-
-    Edit 2: this is now handled in computeSpaceChargeFields
-    */
-    // this->bunchUpdate();
-    // m << level5 << "Bunch updated for positions in beam coordinate system." << endl;
-
-    /// \todo Add binned field solver here (needs iteration over bins, scatterPerBin calls and Etmp build up)! See https://gitlab.psi.ch/OPAL/opal-x/src/-/blame/binnedFieldSolver/src/PartBunch/PartBunch.cpp?ref_type=heads#L376
-
-    ippl::ParticleAttrib<T>* dt                 = &this->pcontainer_m->dt;
-    typename Base::particle_position_type* R    = &this->pcontainer_m->R;
-    this->fcontainer_m->getRho()                = 0.0;
-    Field_t<Dim>* rho                           = &this->fcontainer_m->getRho();
-
-    /// \todo replace with scatterCIC? --> later with scatterPerBin!
-    // Charge "unit" here is "charge per macroparticle" [C]!
-
-    /**
-     * @note Here we scatter the charge scaled by the timestep dt onto the grid. 
-     * Since the charge Q is handled specially (see ParticleContainer.hpp description)
-     * we instead scale and scatter the dt. This is a pure "hack" which leaves
-     * the physics unchanged.
-    */
-    this->pcontainer_m->scaleDtByCharge();
-    scatter(*dt, *rho, *R);
-    this->pcontainer_m->unscaleDtByCharge();
-    m << level4 << "Scatter done." << endl;
-
-    /*
-    Now rho is in units of [C * s] -- need to divide by dt to get back to [C].
-    Note By using the global timestep getdT(), we account for the possibility of 
-    "fractional timesteps", meaning the particle was virtually "created in the
-    middle" of a full timestep. As of now, this might not be necessary.
-    */
-    (*rho) = (*rho) / getdT(); 
-    m << level4 << "Rho scale by dt done." << endl;
-
-    // At this point, the units of rho need to be corrected: rho = rho / cellVolume
-    if (this->fsolver_m->getStype() != "FEM" && this->fsolver_m->getStype() != "FEM_PRECON") {
-        // CG solver already accounts for cell volume internally in FD,
-        // other solvers need explicit normalization here
-        double cellVolume = std::reduce(hr_m.begin(), hr_m.end(), 1., std::multiplies<double>());
-        (*rho)            = (*rho) / cellVolume;
-        m << level4 << "Rho normalized by cell volume: " << cellVolume << "." << endl;
-    }
-
-    // Alpine uses net 0 charge density for periodic BCs, so we need to subtract background charge here (?TODO: check)
-    // Note: otherwise solvers like the CG solver will "explode" and give unnormalized potentials?
-    double totalQ = getTotalCharge();
-    if (this->fsolver_m->getStype() != "OPEN") {
-        double size = 1;
-        for (size_t d = 0; d < 3; d++) {
-            size *= rmax_m[d] - rmin_m[d];
-        }
-
-        (*rho) = (*rho) - (totalQ / size);
-        m << level4 << "Net-0 charge generation with factor " << (totalQ / size) << " done." << endl;
-    }
-
-    /*
-    This concludes the scatter step ( \todo perhaps we want to put this in its own function, like scatterCIC)
-
-    Next is the solver step. The solver computes the E-field from rho directly. However,
-    at the moment, the potential has units of [C/m^3].
-
-    From OPAL:
-    The scalar potential is given back with rho_m in units [C/m] = [F*V/m] and must be divided by
-    4*pi*\epsilon_0 [F/m] resulting in [V].
-
-    @note rho is overloaded and becomse phi when runSolver is called!
-    */
-    (*rho) = (*rho) * this->getCouplingConstant(); // now rho_m has units of [V]
-    m << level5 << "Rho coupling applied." << endl;
-
-    this->fsolver_m->runSolver();
-    m << level4 << "Field solver ran." << endl;
-
-    /*
-    Now, with E=-grad(phi), E has units of [V/m] (note, phi is a scalar potential).
-
-    Note that we do this step separately, even though the solvers can provide
-    it firectlt, since some field solver then don't produce phi, which might
-    be necessary elsewhere or for debugging.
-    
-    This can be optimized later by changing the output type of the solvers and 
-    removing this line! As it is implemented now, it will always provide both 
-    (phi and the E field that is actually used for kicking the particles).
-    */
-    
-    gather(this->pcontainer_m->E, this->fcontainer_m->getE(), this->pcontainer_m->R);
-    m << level4 << "Gather done." << endl;
-
-    /// \todo put back in
-    /*Vector_t<double, 3> efScale = Vector_t<double,3>(
-        gammaz*cc/hr_scaled[0], 
-        gammaz*cc/hr_scaled[1], 
-        cc / gammaz / hr_scaled[2]
-    );
-    m << "E-field scale = " << efScale << endl;    
-    spaceChargeEFieldCheck(efScale);*/
+    // Non-owning shared_ptr alias: solver does not manage bunch lifetime.
+    std::shared_ptr<PartBunch<T, Dim>> bunchPtr(this, [](PartBunch<T, Dim>*) { });
+    bsolver->computeSelfFields(bunchPtr);
 }
 
 template <typename T, unsigned Dim>
@@ -717,6 +502,12 @@ void PartBunch<T, Dim>::dumpBinConfig(bool preMerge) {
 
     BinningCmd* binningCmd = OPALFieldSolver_m->getBinningCmd();
     if (!binningCmd) {
+        return;
+    }
+
+    // If BINNING is configured with DUMPBINSFILE="NONE", skip all file dumping.
+    // (BinnedFieldSolver may still call dumpBinConfig() during rebin/merge steps.)
+    if (!binningCmd->dumpBinsToFile()) {
         return;
     }
 
@@ -752,80 +543,6 @@ void PartBunch<T, Dim>::dumpBinConfig(bool preMerge) {
         static_cast<double>(xMin),
         binningCmd->getDumpBinsFileName());
 }
-/**
- * The following functions are not used yet. Will be properly implemented by
- * Aliemen as part of the binned solver work.
- */
-/*
-template <typename T, unsigned Dim>
-void PartBunch<T,Dim>::scatterCICPerBin(PartBunch<T,Dim>::binIndex_t binIndex) {
-
-    throw OpalException("PartBunch::scatterCICPerBin", 
-        "This function is not implemented yet! Please use scatterCIC for now.");
-
-    Inform m("PartBunch::scatterCICPerBin");
-    m << "Scattering binIndex = " << binIndex << " to grid." << endl;
-
-    this->fcontainer_m->getRho() = 0.0;
-
-    ippl::ParticleAttrib<T>* q               = &this->pcontainer_m->Q;
-    typename Base::particle_position_type* R = &this->pcontainer_m->R;
-    Field_t<Dim>* rho                        = &this->fcontainer_m->getRho();
-    
-    double Q;
-    Vector_t<double, 3> rmin                 = rmin_m;
-    Vector_t<double, 3> rmax                 = rmax_m;
-    Vector_t<double, 3> hr                   = hr_m;
-
-    if (binIndex == -1) {
-        // Use original scatterCIC logic for all particles
-        Q = this->getChargePerParticle() * this->getTotalNum();
-        scatter(*q, *rho, *R);
-    } else {
-        // Use per-bin scattering logic
-        Q = this->getChargePerParticle() * this->bins_m->getNPartInBin(binIndex, true);
-        scatter(*q, *rho, *R, this->bins_m->getBinIterationPolicy(binIndex), this->bins_m->getHashArray());
-    }
-
-    m << "gammz= " << this->pcontainer_m->getMeanP()[2] << endl;
-    
-#ifdef doDEBUG
-    double relError = std::fabs((Q - (*rho).sum()) / Q);
-    size_type TotalParticles = 0;
-    size_type localParticles = this->pcontainer_m->getLocalNum();
-    size_type totalP_check = (binIndex == -1) ? totalP_m : this->pcontainer_m->getTotalNum();
-
-    m << "computeSelfFields sum rho = " << (*rho).sum() << ", relError = " << relError << endl;
-    
-    ippl::Comm->reduce(localParticles, TotalParticles, 1, std::plus<size_type>());
-
-    if (ippl::Comm->rank() == 0) {
-        if (TotalParticles != totalP_check || relError > 1e-10) {
-            m << "Time step: " << it_m << endl;
-            m << "Total particles in the sim. " << totalP_check << " "
-              << "after update: " << TotalParticles << endl;
-            m << "Rel. error in charge conservation: " << relError << endl;
-            ippl::Comm->abort();
-        }
-    }
-#endif
-    
-    double cellVolume = std::reduce(hr.begin(), hr.end(), 1., std::multiplies<double>());
-        
-    m << "cellVolume= " << cellVolume << endl;
-
-    (*rho) = (*rho) / cellVolume;
-
-    // rho = rho_e - rho_i (only if periodic BCs)
-    if (this->fsolver_m->getStype() != "OPEN") {
-        double size = 1;
-        for (unsigned d = 0; d < 3; d++) {
-            size *= rmax[d] - rmin[d];
-        }
-        *rho = *rho - (Q / size);
-    }
-}
- */
 
 template <typename T, unsigned Dim>
 void PartBunch<T,Dim>::performBunchSanityChecks() const {
