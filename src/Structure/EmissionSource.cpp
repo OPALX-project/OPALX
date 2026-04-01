@@ -46,7 +46,7 @@ void EmissionSource::execute() {}
 EmissionSource* EmissionSource::find(const std::string& name) {
     Object* obj = OpalData::getInstance()->find(name);
     auto* es    = dynamic_cast<EmissionSource*>(obj);
-    if (es == nullptr) {
+    if (!es) {
         throw OpalException("EmissionSource::find()", "EmissionSource \"" + name + "\" not found.");
     }
     return es;
