@@ -123,10 +123,9 @@ void H5BeamBeamDiagnosticsWriter::flattenVectorField(
     for (int iz = localIndex[2].first(); iz <= localIndex[2].last(); ++iz) {
         for (int iy = localIndex[1].first(); iy <= localIndex[1].last(); ++iy) {
             for (int ix = localIndex[0].first(); ix <= localIndex[0].last(); ++ix) {
-                const auto value = fieldHost(ix + nghost, iy + nghost, iz + nghost);
-                x.push_back(value[0]);
-                y.push_back(value[1]);
-                z.push_back(value[2]);
+                x.push_back(fieldHost(ix + nghost, iy + nghost, iz + nghost)[0]);
+                y.push_back(fieldHost(ix + nghost, iy + nghost, iz + nghost)[1]);
+                z.push_back(fieldHost(ix + nghost, iy + nghost, iz + nghost)[2]);
             }
         }
     }

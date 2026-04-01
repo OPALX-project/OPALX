@@ -1034,12 +1034,8 @@ void ParallelTracker::computeBeamBeamWindowSelfFields(
     ippl::Vector<double, Dim> physicalRMax(minVal);
     itsBunch_m->calcBeamParameters();
     itsBunch_m->get_bounds(physicalRMin, physicalRMax);
-    m << level4 << "Entering BeamBeam transition pre-solve at step "
-      << itsBunch_m->getGlobalTrackStep() << "." << endl;
     const std::optional<double> preEnlargePrimaryCharge =
         performBeamBeamWindowEntryTransition(geometry, physicalRMin, physicalRMax);
-    m << level4 << "Completed BeamBeam transition pre-solve at step "
-      << itsBunch_m->getGlobalTrackStep() << "." << endl;
 
     // Re-center the beam-frame mesh every active step so the BeamBeam mesh stays
     // fixed in the BeamBeam/lab frame while the bunch moves through it.
@@ -1048,16 +1044,10 @@ void ParallelTracker::computeBeamBeamWindowSelfFields(
 
     // First stage: solve on the larger beam-beam-window mesh using the primary bunch only.
     // Later this is where mirrored rho deposition should be added.
-    m << level4 << "Starting active BeamBeam self-field solve at step "
-      << itsBunch_m->getGlobalTrackStep() << "." << endl;
     itsBunch_m->computeSelfFields();
-    m << level4 << "Finished active BeamBeam self-field solve at step "
-      << itsBunch_m->getGlobalTrackStep() << "." << endl;
     if (preEnlargePrimaryCharge.has_value() && geometry.config.copyModel) {
         validateBeamBeamCopiedCharge(*preEnlargePrimaryCharge);
     }
-    m << level4 << "Finished copied-charge validation at step "
-      << itsBunch_m->getGlobalTrackStep() << "." << endl;
     if (preEnlargePrimaryCharge.has_value()) {
         dumpBeamBeamTransitionSnapshot("after_interaction_window_mesh_enlarge");
     }
