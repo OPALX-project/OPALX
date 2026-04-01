@@ -416,6 +416,28 @@ void PartBunch<T, Dim>::bunchUpdate() {
     ippl::Vector<double, 3> l = e - o;
 
     /*
+    If keepGridFixed is set, bunchUpdate will not change the grid or any associated layout. However,
+    it will still run the check to see if rmin/rmax of the particles are outside the grid domain.
+    Because otherwise, ippl scatter/gather will give a segmentation fault.
+    */
+    /*if (bunchState_m->isKeepGridFixed()) {
+        m << level3 << "Keeping grid fixed. No grid update will be performed. Checking bounds..."
+          << endl;
+        // Check if any particles are outside the grid domain. If so, throw an exception.
+        Vector_t<double, 3> origin   = mesh->getOrigin();
+        Vector_t<double, 3> mesh_max = origin + mesh->getMeshSpacing() * mesh->getGridSize();
+
+        for (size_t i = 0; i < Dim; i++) {
+            if (o[i] < origin[i] || o[i] > mesh_max[i]) {
+                throw OpalException(
+                        "PartBunch::bunchUpdate",
+                        "Particle is outside the grid domain. Cannot keep grid fixed.");
+            }
+        }
+        return;
+    }*/
+
+    /*
     If a coordinate of l is too close to zero, set it to 1e-12.
     This avoids having a mesh spacing of zero, which would crash ippl and allows
     empty simulations - especially important for emission sources.
