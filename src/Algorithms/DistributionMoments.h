@@ -53,12 +53,8 @@ public:
         referenceMassGeV_m   = referenceMassGeV;
         rescaleToReference_m = rescaleToReference;
     }
-    bool getRescaleEnergyToReference() const {
-        return rescaleToReference_m;
-    }
-    double getEnergyReferenceMassGeV() const {
-        return referenceMassGeV_m;
-    }
+    bool getRescaleEnergyToReference() const { return rescaleToReference_m; }
+    double getEnergyReferenceMassGeV() const { return referenceMassGeV_m; }
     void compute(
             const std::vector<OpalParticle>::const_iterator&,
             const std::vector<OpalParticle>::const_iterator&);
@@ -193,17 +189,13 @@ private:
     static const double percentileFourSigmasNormalDist_m;
 };
 
-inline Vector_t<double, 3> DistributionMoments::getMeanPosition() const {
-    return meanR_m;
-}
+inline Vector_t<double, 3> DistributionMoments::getMeanPosition() const { return meanR_m; }
 
 inline Vector_t<double, 3> DistributionMoments::getStandardDeviationPosition() const {
     return stdR_m;
 }
 
-inline Vector_t<double, 3> DistributionMoments::getMeanMomentum() const {
-    return meanP_m;
-}
+inline Vector_t<double, 3> DistributionMoments::getMeanMomentum() const { return meanP_m; }
 
 inline Vector_t<double, 3> DistributionMoments::getStandardDeviationMomentum() const {
     return stdP_m;
@@ -217,96 +209,52 @@ inline Vector_t<double, 3> DistributionMoments::getGeometricEmittance() const {
     return geometricEps_m;
 }
 
-inline Vector_t<double, 3> DistributionMoments::getStandardDeviationRP() const {
-    return stdRP_m;
-}
+inline Vector_t<double, 3> DistributionMoments::getStandardDeviationRP() const { return stdRP_m; }
 
-inline Vector_t<double, 3> DistributionMoments::getHalo() const {
-    return halo_m;
-}
+inline Vector_t<double, 3> DistributionMoments::getHalo() const { return halo_m; }
 
-inline Vector_t<double, 3> DistributionMoments::getMinPosition() const {
-    return minR_m;
-}
+inline Vector_t<double, 3> DistributionMoments::getMinPosition() const { return minR_m; }
 
-inline Vector_t<double, 3> DistributionMoments::getMaxPosition() const {
-    return maxR_m;
-}
+inline Vector_t<double, 3> DistributionMoments::getMaxPosition() const { return maxR_m; }
 
-inline double DistributionMoments::getMeanTime() const {
-    return meanTime_m;
-}
+inline double DistributionMoments::getMeanTime() const { return meanTime_m; }
 
-inline double DistributionMoments::getStdTime() const {
-    return stdTime_m;
-}
+inline double DistributionMoments::getStdTime() const { return stdTime_m; }
 
-inline double DistributionMoments::getMeanGamma() const {
-    return meanGamma_m;
-}
+inline double DistributionMoments::getMeanGamma() const { return meanGamma_m; }
 
-inline double DistributionMoments::getMeanGammaZ() const {
-    return meanGammaZ_m;
-}
+inline double DistributionMoments::getMeanGammaZ() const { return meanGammaZ_m; }
 
-inline double DistributionMoments::getMeanKineticEnergy() const {
-    return meanKineticEnergy_m;
-}
+inline double DistributionMoments::getMeanKineticEnergy() const { return meanKineticEnergy_m; }
 
 // Compute and return the value of temperature in K
 inline double DistributionMoments::getTemperature() const {
     return (temperature_m / (Physics::kB * Units::eV2kg * Physics::c * Physics::c));
 }
-inline double DistributionMoments::getDebyeLength() const {
-    return debyeLength_m;
-}
-inline double DistributionMoments::getPlasmaParameter() const {
-    return plasmaParameter_m;
-}
+inline double DistributionMoments::getDebyeLength() const { return debyeLength_m; }
+inline double DistributionMoments::getPlasmaParameter() const { return plasmaParameter_m; }
 
-inline double DistributionMoments::getStdKineticEnergy() const {
-    return stdKineticEnergy_m;
-}
+inline double DistributionMoments::getStdKineticEnergy() const { return stdKineticEnergy_m; }
 
-inline double DistributionMoments::getDx() const {
-    return moments_m(0, 5);
-}
+inline double DistributionMoments::getDx() const { return moments_m(0, 5); }
 
-inline double DistributionMoments::getDDx() const {
-    return moments_m(1, 5);
-}
+inline double DistributionMoments::getDDx() const { return moments_m(1, 5); }
 
-inline double DistributionMoments::getDy() const {
-    return moments_m(2, 5);
-}
+inline double DistributionMoments::getDy() const { return moments_m(2, 5); }
 
-inline double DistributionMoments::getDDy() const {
-    return moments_m(3, 5);
-}
+inline double DistributionMoments::getDDy() const { return moments_m(3, 5); }
 
-inline Vector_t<double, 6> DistributionMoments::getCentroid() const {
-    return centroid_m;
-}
+inline Vector_t<double, 6> DistributionMoments::getCentroid() const { return centroid_m; }
 
-inline Vector_t<double, 6> DistributionMoments::getMeans() const {
-    return means_m;
-}
+inline Vector_t<double, 6> DistributionMoments::getMeans() const { return means_m; }
 
-inline matrix6x6_t DistributionMoments::getMoments6x6() const {
-    return moments_m;
-}
+inline matrix6x6_t DistributionMoments::getMoments6x6() const { return moments_m; }
 
-inline double DistributionMoments::getTotalCharge() const {
-    return totalCharge_m;
-}
+inline double DistributionMoments::getTotalCharge() const { return totalCharge_m; }
 
-inline double DistributionMoments::getTotalMass() const {
-    return totalMass_m;
-}
+inline double DistributionMoments::getTotalMass() const { return totalMass_m; }
 
-inline double DistributionMoments::getTotalNumParticles() const {
-    return totalNumParticles_m;
-}
+inline double DistributionMoments::getTotalNumParticles() const { return totalNumParticles_m; }
 
 inline Vector_t<double, 3> DistributionMoments::get68Percentile() const {
     return sixtyEightPercentile_m;
@@ -347,5 +295,110 @@ inline Vector_t<double, 3> DistributionMoments::getMaxR() const {
     }
     return maxDistance;
 }
+
+// ---------------------------------------------------------------------------
+// Custom Kokkos-reducible types for parallel_reduce.
+// All used with Kokkos::Sum (which calls operator+= and reduction_identity::sum()).
+// See
+// https://kokkos.org/kokkos-core-wiki/ProgrammingGuide/Custom-Reductions-Built-In-Reducers-with-Custom-Scalar-Types.html
+// ---------------------------------------------------------------------------
+
+// Element-wise sum of N doubles.
+template <int N>
+struct SumArray {
+    double data[N];
+
+    KOKKOS_INLINE_FUNCTION
+    SumArray() {
+        for (int i = 0; i < N; ++i)
+            data[i] = 0.0;
+    }
+
+    KOKKOS_INLINE_FUNCTION
+    SumArray& operator+=(const SumArray& src) {
+        for (int i = 0; i < N; ++i)
+            data[i] += src.data[i];
+        return *this;
+    }
+};
+
+// Element-wise maximum of N doubles.
+template <int N>
+struct MaxArray {
+    double data[N];
+
+    KOKKOS_INLINE_FUNCTION
+    MaxArray() {
+        for (int i = 0; i < N; ++i)
+            data[i] = Kokkos::reduction_identity<double>::max();
+    }
+
+    KOKKOS_INLINE_FUNCTION
+    MaxArray& operator+=(const MaxArray& src) {
+        for (int i = 0; i < N; ++i)
+            if (src.data[i] > data[i]) data[i] = src.data[i];
+        return *this;
+    }
+};
+
+// Element-wise minimum of N doubles.
+template <int N>
+struct MinArray {
+    double data[N];
+
+    KOKKOS_INLINE_FUNCTION
+    MinArray() {
+        for (int i = 0; i < N; ++i)
+            data[i] = Kokkos::reduction_identity<double>::min();
+    }
+
+    KOKKOS_INLINE_FUNCTION
+    MinArray& operator+=(const MinArray& src) {
+        for (int i = 0; i < N; ++i)
+            if (src.data[i] < data[i]) data[i] = src.data[i];
+        return *this;
+    }
+};
+
+// Element-wise sum of a 6x6 matrix of doubles.
+struct SumMatrix6x6 {
+    double data[6][6];
+
+    KOKKOS_INLINE_FUNCTION
+    SumMatrix6x6() {
+        for (int i = 0; i < 6; ++i)
+            for (int j = 0; j < 6; ++j)
+                data[i][j] = 0.0;
+    }
+
+    KOKKOS_INLINE_FUNCTION
+    SumMatrix6x6& operator+=(const SumMatrix6x6& src) {
+        for (int i = 0; i < 6; ++i)
+            for (int j = 0; j < 6; ++j)
+                data[i][j] += src.data[i][j];
+        return *this;
+    }
+};
+
+namespace Kokkos {
+    template <int N>
+    struct reduction_identity<SumArray<N>> {
+        KOKKOS_FORCEINLINE_FUNCTION static SumArray<N> sum() { return SumArray<N>(); }
+    };
+    template <int N>
+    struct reduction_identity<MaxArray<N>> {
+        KOKKOS_FORCEINLINE_FUNCTION static MaxArray<N> sum() { return MaxArray<N>(); }
+    };
+    template <int N>
+    struct reduction_identity<MinArray<N>> {
+        KOKKOS_FORCEINLINE_FUNCTION static MinArray<N> sum() { return MinArray<N>(); }
+    };
+    template <>
+    struct reduction_identity<SumMatrix6x6> {
+        KOKKOS_FORCEINLINE_FUNCTION static SumMatrix6x6 sum() { return SumMatrix6x6(); }
+    };
+}  // namespace Kokkos
+
+// ---------------------------------------------------------------------------
 
 #endif
