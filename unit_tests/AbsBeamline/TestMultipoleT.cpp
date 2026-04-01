@@ -59,6 +59,7 @@ public:
     }
 };
 
+// Does the clone API return an object with the same configuration
 TEST_F(TestMultipoleT, Cloning) {
     // Set up the magnet
     setBendAngle(1, false);
@@ -93,6 +94,7 @@ TEST_F(TestMultipoleT, Cloning) {
     EXPECT_EQ(theClone->getEntryOffset(), getEntryOffset());
 }
 
+// Attach a time dependency object and check it affects the field output appropriately
 TEST_F(TestMultipoleT, TimeDependency) {
     // Set up a time dependency
     const auto timeDependence = std::make_shared<SplineTimeDependence>(
@@ -115,6 +117,7 @@ TEST_F(TestMultipoleT, TimeDependency) {
     EXPECT_NEAR(fieldAtT({0.0, 0.0, 2.0}, 2.0), 2.0, 1e-6);
 }
 
+// Does the bends API return the correct value
 TEST_F(TestMultipoleT, Bends) {
     setBendAngle(0, false);
     EXPECT_FALSE(bends());
@@ -122,20 +125,7 @@ TEST_F(TestMultipoleT, Bends) {
     EXPECT_TRUE(bends());
 }
 
-TEST_F(TestMultipoleT, OddApis) {
-    // The field object API which currently always returns a dummy object
-    MultipoleT* magnet = this;
-    auto* field = &magnet->getField();
-    EXPECT_NE(field, nullptr);
-    auto* constField = &const_cast<const MultipoleT*>(magnet)->getField();
-    EXPECT_NE(constField, nullptr);
-    EXPECT_EQ(field, constField);
-    // Just make sure these functions do not throw
-    EXPECT_NO_THROW(finalise());
-    double a,b;
-    EXPECT_NO_THROW(getDimensions(a, b));
-}
-
+// Check that an exception if thrown for configuration that is not supported.
 TEST_F(TestMultipoleT, ConfigurationValidation) {
     // Set up the magnet
     setBendAngle(0, false);
@@ -146,4 +136,19 @@ TEST_F(TestMultipoleT, ConfigurationValidation) {
     // Illegal F order
     setMaxOrder(10, 10);
     EXPECT_THROW(fieldAtT({0.0, 0.0, 2.0}, 0.0), OpalException);
+}
+
+// Tests for the few remaining API functions are collected here
+TEST_F(TestMultipoleT, OddApis) {
+    // The field object API which currently always returns a dummy object
+    MultipoleT* magnet = this;
+    auto* field        = &magnet->getField();
+    EXPECT_NE(field, nullptr);
+    auto* constField = &const_cast<const MultipoleT*>(magnet)->getField();
+    EXPECT_NE(constField, nullptr);
+    EXPECT_EQ(field, constField);
+    // Just make sure these functions do not throw
+    EXPECT_NO_THROW(finalise());
+    double a, b;
+    EXPECT_NO_THROW(getDimensions(a, b));
 }

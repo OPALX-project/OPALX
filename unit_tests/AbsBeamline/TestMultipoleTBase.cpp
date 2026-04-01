@@ -33,11 +33,12 @@ public:
     void initialise() override {}
     BGeometryBase* getGeometry() override { return nullptr; }
     void getField(
-        const Kokkos::View<Vector_t<double, 3>*> /*R*/, Kokkos::View<Vector_t<double, 3>*> /*E*/,
-        Kokkos::View<Vector_t<double, 3>*> /*B*/, double /*scaling*/, size_t /*count*/) override {}
+            const Kokkos::View<Vector_t<double, 3>*> /*R*/,
+            Kokkos::View<Vector_t<double, 3>*> /*E*/, Kokkos::View<Vector_t<double, 3>*> /*B*/,
+            double /*scaling*/, size_t /*count*/) override {}
     bool getField(
-        const Vector_t<double, 3>& /*R*/, Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/,
-        double /*scaling*/) override {
+            const Vector_t<double, 3>& /*R*/, Vector_t<double, 3>& /*E*/,
+            Vector_t<double, 3>& /*B*/, double /*scaling*/) override {
         return false;
     }
 
@@ -53,6 +54,7 @@ public:
     }
 };
 
+// Are the derivatives of the transverse polynomial correctly calculated
 TEST_F(MultipoleTBaseTest, TransverseDerivatives) {
     constexpr Kokkos::Array poles = {0.0, 1.0, 2.0, 3.0, 4.0, 5.0};
     Kokkos::Array<double, MaxDerivatives> derivatives{};
@@ -66,6 +68,7 @@ TEST_F(MultipoleTBaseTest, TransverseDerivatives) {
     EXPECT_DOUBLE_EQ(derivatives[6], 0.0);
 }
 
+// Are the tanh fringe polynomial constants calculated correctly
 TEST_F(MultipoleTBaseTest, FringeDerivativeConstants) {
     generateTanhCoefficients(5);
     EXPECT_EQ(tanhCoefficients(0), (std::vector<double>{0, 1, 0, 0, 0, 0, 0}));
@@ -76,6 +79,7 @@ TEST_F(MultipoleTBaseTest, FringeDerivativeConstants) {
     EXPECT_EQ(tanhCoefficients(5), (std::vector<double>{16, 0, -136, 0, 240, 0, -120}));
 }
 
+// Are the derivatives of the longitudinal envelope correctly calculated
 TEST_F(MultipoleTBaseTest, FringeDerivatives) {
     Kokkos::Array<double, MaxDerivatives> derivativesNeg{};
     Kokkos::Array<double, MaxDerivatives> derivativesPos{};

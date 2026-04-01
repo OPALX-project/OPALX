@@ -1,7 +1,5 @@
 //
-// Cubic Spline Interpolation to replace GSL spline
-//
-// Copyright (c) 2023, Paul Scherrer Institute, Villigen PSI, Switzerland
+// Copyright (c) 2026, Paul Scherrer Institute, Villigen PSI, Switzerland
 // All rights reserved
 //
 // This file is part of OPAL.
@@ -61,7 +59,7 @@ public:
             const double bendAngle) {
         // Make the bunch
         const auto bunch = makeBunch(line.size());
-        const auto pc = bunch->getParticleContainer();
+        const auto pc    = bunch->getParticleContainer();
         // Create the local views and data
         std::vector<Vector_t<double, 3>> localR(line.size());
         const auto hostR = Kokkos::create_mirror_view(pc->R.getView());
@@ -70,7 +68,7 @@ public:
         const double stepSize = width / static_cast<double>(line.size() - 1);
         for (size_t i = 0; i < line.size(); ++i) {
             localR[i] = {static_cast<double>(i) * stepSize - width / 2, 0, s};
-            hostR(i) = curvilinearToGlobal(localR[i], elementEntry, elementLength, bendAngle);
+            hostR(i)  = curvilinearToGlobal(localR[i], elementEntry, elementLength, bendAngle);
         }
         Kokkos::deep_copy(pc->R.getView(), hostR);
         pc->setQ(bunch->getChargePerParticle());
@@ -169,6 +167,7 @@ public:
     }
 };
 
+// Test transversely across the magnet to check for a dipole (constant) field.
 TEST_F(TestMultipoleTCurvedConstRadius, Dipole) {
     std::vector<double> line(101);
     // Set up the magnet
@@ -196,6 +195,7 @@ TEST_F(TestMultipoleTCurvedConstRadius, Dipole) {
     }
 }
 
+// Test transversely across the magnet to check for a quadrupole (linear) field.
 TEST_F(TestMultipoleTCurvedConstRadius, Quadrupole) {
     constexpr unsigned int samplesPerSide = 50;
     std::vector<double> line(2 * samplesPerSide + 1);
@@ -236,6 +236,7 @@ TEST_F(TestMultipoleTCurvedConstRadius, Quadrupole) {
     }
 }
 
+// Test transversely across the magnet to check for a sextupole (quadratic) field.
 TEST_F(TestMultipoleTCurvedConstRadius, Sextupole) {
     constexpr unsigned int samplesPerSide = 50;
     std::vector<double> line(2 * samplesPerSide + 1);
@@ -276,6 +277,7 @@ TEST_F(TestMultipoleTCurvedConstRadius, Sextupole) {
     }
 }
 
+// Test transversely across the magnet to check for an octupole (cubic) field.
 TEST_F(TestMultipoleTCurvedConstRadius, Octupole) {
     constexpr unsigned int samplesPerSide = 50;
     std::vector<double> line(2 * samplesPerSide + 1);
@@ -316,6 +318,7 @@ TEST_F(TestMultipoleTCurvedConstRadius, Octupole) {
     }
 }
 
+// Test transversely across the magnet to check for a decapole (quartic) field.
 TEST_F(TestMultipoleTCurvedConstRadius, Decapole) {
     constexpr unsigned int samplesPerSide = 50;
     std::vector<double> line(2 * samplesPerSide + 1);
@@ -356,6 +359,7 @@ TEST_F(TestMultipoleTCurvedConstRadius, Decapole) {
     }
 }
 
+// Check that the field along the center line is Maxwellian (zero div and curl)
 TEST_F(TestMultipoleTCurvedConstRadius, DivCurl) {
     constexpr unsigned int samplesPerSide = 20;
     std::vector<double> divLine(2 * samplesPerSide + 1);
@@ -386,6 +390,7 @@ TEST_F(TestMultipoleTCurvedConstRadius, DivCurl) {
     }
 }
 
+// Check the const and non-const geometry access APIs return the same object
 TEST_F(TestMultipoleTCurvedConstRadius, Geometry) {
     TestMultipoleTCurvedConstRadius* magnet = this;
     auto* geom                              = &magnet->getGeometry();
@@ -395,6 +400,7 @@ TEST_F(TestMultipoleTCurvedConstRadius, Geometry) {
     EXPECT_EQ(geom, constGeom);
 }
 
+// Check that the field outside the bounding box is not calculated
 TEST_F(TestMultipoleTCurvedConstRadius, BoundingBox) {
     std::vector<double> line(3);
     // Set up the magnet
@@ -437,6 +443,7 @@ TEST_F(TestMultipoleTCurvedConstRadius, BoundingBox) {
     }
 }
 
+// Check that the field outside the aperture is not calculated
 TEST_F(TestMultipoleTCurvedConstRadius, Aperture) {
     std::vector<double> line(9);
     // Set up the magnet
