@@ -157,6 +157,38 @@ public:
      
      */
     void bunchUpdate();
+
+    /**
+     * @brief Computes the spatial bounds for the field solver based on the current particle
+     * distribution.
+     *
+     * Determines the minimum and maximum coordinates (`lower`, `upper`) in each dimension that
+     * encompass all particles in the current container. Adjusts these bounds if image-charge
+     * boundary conditions are enabled to ensure the domain includes both the real and mirrored
+     * charge distributions. Guarantees a minimal span (e.g., 1e-6) in each dimension for validity
+     * and applies an additional extension based on the field solver's box increment percentage.
+     *
+     * @param[out] lower The lowest coordinate per dimension after considering all particles and any
+     *                   boundary extensions.
+     * @param[out] upper The highest coordinate per dimension after considering all particles and
+     * any boundary extensions.
+     */
+    void computeBoundsForFieldSolve(Vector_t<double, Dim>& lower, Vector_t<double, Dim>& upper);
+
+    /**
+     * @brief Updates the mesh/grid and internal data structures to match the given spatial bounds.
+     *
+     * Sets the mesh spacing and origin for the field container based on the difference between
+     * `lower` and `upper`, updates references to domain boundaries, and applies these updates to
+     * the underlying mesh and field layout. Triggers a reevaluation of particle container layouts
+     * to ensure the grid matches the computed domain.
+     *
+     * @param[in] lower The minimum coordinates (origin) for the domain in all dimensions.
+     * @param[in] upper The maximum coordinates for the domain in all dimensions.
+     */
+    void applyGridUpdate(
+            const Vector_t<double, Dim>& lower, const Vector_t<double, Dim>& upper);
+
     size_t getTotalNumAllContainers() const {
         size_t total = 0;
         for (const auto& pc : this->getParticleContainers()) {

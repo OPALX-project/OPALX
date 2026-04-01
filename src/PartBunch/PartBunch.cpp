@@ -4,6 +4,7 @@
 #include "Particle/ParticleAttrib.h"
 #include "Structure/DataSink.h"
 #include "Utilities/Util.h"
+#include <algorithm>
 
 #undef doDEBUG
 
@@ -149,7 +150,9 @@ void PartBunch<T, Dim>::setSolver() {
                     this->solver_m, &this->fcontainer_m->getRho(), &this->fcontainer_m->getE(),
                     &this->fcontainer_m->getPhi(), this->getBCHandler(),
                     hasBinning() ? OPALFieldSolver_m->getBinningCmd()->getTablePrintFrequency()
-                                 : 0));
+                                 : 0,
+                    OPALFieldSolver_m->isImageChargeEnabled(),
+                    OPALFieldSolver_m->getImageChargePlaneZ()));
     m << level4 << "Binned field solver set (binned or legacy at runtime)." << endl;
 
     this->fsolver_m->initSolver();
@@ -399,78 +402,69 @@ template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::bunchUpdate() {
     Inform m("PartBunch::bunchUpdate");
     m << level4 << "Updating bunch and doing repartitioning if needed." << endl;
-    /* \brief
-       1. calculates and set hr
-       2. do repartitioning
-    */
+    Vector_t<double, Dim> lower(0.0);
+    Vector_t<double, Dim> upper(0.0);
+    computeBoundsForFieldSolve(lower, upper);
+    applyGridUpdate(lower, upper);
 
-    auto* mesh = &this->fcontainer_m->getMesh();
-    auto* FL   = &this->fcontainer_m->getFL();
+    bunchState_m->setFirstRepartition(true);
+    // this->loadbalancer_m->initializeORB(FL, mesh);
+    // this->loadbalancer_m->repartition(FL, mesh, bunchState_m.isFirstRepartition());
+    m << level5 << "Load balancer repartitioning done." << endl;
+
+    // Always request moments update; DistributionMoments decides whether it
+    // actually needs to recompute based on the dirty flag.
+    this->updateMoments();
+}
+
+template <typename T, unsigned Dim>
+void PartBunch<T, Dim>::computeBoundsForFieldSolve(
+        Vector_t<double, Dim>& lower, Vector_t<double, Dim>& upper) {
+    Inform m("PartBunch::computeBoundsForFieldSolve");
 
     std::shared_ptr<ParticleContainer_t> pc = this->getParticleContainer();
-
     pc->computeMinMaxR();
+    lower = pc->getMinR();
+    upper = pc->getMaxR();
 
-    ippl::Vector<double, 3> o = pc->getMinR();
-    ippl::Vector<double, 3> e = pc->getMaxR();
-    ippl::Vector<double, 3> l = e - o;
+    // Include mirrored particles in the domain envelope when image-charge mode is enabled.
+    if (this->OPALFieldSolver_m->isImageChargeEnabled()) {
+        const double planeZ = this->OPALFieldSolver_m->getImageChargePlaneZ();
+        const double mirroredMinZ = 2.0 * planeZ - upper[2];
+        const double mirroredMaxZ = 2.0 * planeZ - lower[2];
+        lower[2] = std::min(lower[2], mirroredMinZ);
+        upper[2] = std::max(upper[2], mirroredMaxZ);
+        m << level4 << "Image-charge bounds enabled at zPlane=" << planeZ << endl;
+    }
 
-    /*
-    If keepGridFixed is set, bunchUpdate will not change the grid or any associated layout. However,
-    it will still run the check to see if rmin/rmax of the particles are outside the grid domain.
-    Because otherwise, ippl scatter/gather will give a segmentation fault.
-    */
-    /*if (bunchState_m->isKeepGridFixed()) {
-        m << level3 << "Keeping grid fixed. No grid update will be performed. Checking bounds..."
-          << endl;
-        // Check if any particles are outside the grid domain. If so, throw an exception.
-        Vector_t<double, 3> origin   = mesh->getOrigin();
-        Vector_t<double, 3> mesh_max = origin + mesh->getMeshSpacing() * mesh->getGridSize();
-
-        for (size_t i = 0; i < Dim; i++) {
-            if (o[i] < origin[i] || o[i] > mesh_max[i]) {
-                throw OpalException(
-                        "PartBunch::bunchUpdate",
-                        "Particle is outside the grid domain. Cannot keep grid fixed.");
-            }
-        }
-        return;
-    }*/
-
-    /*
-    If a coordinate of l is too close to zero, set it to 1e-12.
-    This avoids having a mesh spacing of zero, which would crash ippl and allows
-    empty simulations - especially important for emission sources.
-    */
-    for (int i = 0; i < 3; i++) {
-        if (l[i] < 1e-6) {
-            l[i] = 1e-6;
+    Vector_t<double, Dim> span = upper - lower;
+    for (unsigned i = 0; i < Dim; ++i) {
+        if (span[i] < 1e-6) {
+            span[i] = 1e-6;
             m << level3 << "Mesh spacing in dimension " << i << " too small. Set to 1e-6." << endl;
-            // return;
         }
     }
 
-    /*
-    Now matches OPAL: domain + incr% on each side.
-    Note that there is still a mismatch: OPAL only resizes in z direction and
-    keeps x/y the same. But this doesn't make too much sense in my opinion...
-    */
-    // Update origin and extent for the FieldContainer (not for the particles!)
-    o = o - l * this->OPALFieldSolver_m->getBoxIncr() / 100.;
-    e = e + l * this->OPALFieldSolver_m->getBoxIncr() / 100.;
-    l = e - o;
+    lower = lower - span * this->OPALFieldSolver_m->getBoxIncr() / 100.0;
+    upper = upper + span * this->OPALFieldSolver_m->getBoxIncr() / 100.0;
+}
 
-    hr_m = l / this->nr_m;
+template <typename T, unsigned Dim>
+void PartBunch<T, Dim>::applyGridUpdate(
+        const Vector_t<double, Dim>& lower, const Vector_t<double, Dim>& upper) {
+    Inform m("PartBunch::applyGridUpdate");
+    auto* mesh = &this->fcontainer_m->getMesh();
+    auto* FL   = &this->fcontainer_m->getFL();
+    std::shared_ptr<ParticleContainer_t> pc = this->getParticleContainer();
+
+    const Vector_t<double, Dim> span = upper - lower;
+    hr_m = span / this->nr_m;
 
     mesh->setMeshSpacing(hr_m);
-    mesh->setOrigin(o);
+    mesh->setOrigin(lower);
 
-    /*
-    I think these in the field container should reflect mesh boundaries, not
-    particle boundaries, since the field solver needs to know the mesh and solve
-    */
-    this->getFieldContainer()->setRMin(o);
-    this->getFieldContainer()->setRMax(e);
+    this->getFieldContainer()->setRMin(lower);
+    this->getFieldContainer()->setRMax(upper);
     this->getFieldContainer()->setHr(hr_m);
 
     m << level3 << "Field Container updated with new mesh boundaries and spacing:" << endl;
@@ -481,15 +475,6 @@ void PartBunch<T, Dim>::bunchUpdate() {
     pc->getLayout().updateLayout(*FL, *mesh);
     pc->update();
     m << level5 << "Particle container updated with new layout." << endl;
-
-    bunchState_m->setFirstRepartition(true);
-    // this->loadbalancer_m->initializeORB(FL, mesh);
-    // this->loadbalancer_m->repartition(FL, mesh, bunchState_m.isFirstRepartition());
-    m << level5 << "Load balancer repartitioning done." << endl;
-
-    // Always request moments update; DistributionMoments decides whether it
-    // actually needs to recompute based on the dirty flag.
-    this->updateMoments();
 }
 
 template <typename T, unsigned Dim>
