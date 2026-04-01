@@ -716,8 +716,6 @@ void ParallelTracker::checkInBBRegion(OrbitThreader& oth) {
         return;
     }
 
-    auto pc = itsBunch_m->getParticleContainer();
-
     // Refresh cached bunch statistics/bounds for this step.
     if (itsBunch_m->getTotalNum() == 0) {
         beamBeamDiagnostics_m.frameObserved = false;
@@ -725,13 +723,14 @@ void ParallelTracker::checkInBBRegion(OrbitThreader& oth) {
     }
     itsBunch_m->calcBeamParameters();
 
-    // Use the physical particle extent directly here. During beam-beam-window mode
+    // Use the global physical particle extent here. During beam-beam-window mode
     // the Eulerian beam-beam-window mesh may legitimately differ from the
     // bunch-fitted mesh, so the IP diagnostics must not depend on cached field
-    // domain bounds.
-    pc->computeMinMaxR();
-    const ippl::Vector<double, Dim> rmin = pc->getMinR();
-    const ippl::Vector<double, Dim> rmax = pc->getMaxR();
+    // domain bounds. The cached physical bounds from get_bounds() are reduced
+    // across ranks, which keeps BeamBeam entry/exit decisions MPI-consistent.
+    ippl::Vector<double, Dim> rmin(0.0);
+    ippl::Vector<double, Dim> rmax(0.0);
+    itsBunch_m->get_bounds(rmin, rmax);
     const double bunchS = pathLength_m;
     BeamBeamLongitudinalExtent bunchExtent =
         computeBeamBeamLongitudinalExtent(bunchS, rmin, rmax);
@@ -963,6 +962,10 @@ void ParallelTracker::renderBeamBeamWindowFrame(
     double bunchTailS,
     double bunchHeadS,
     const BEAMBEAM::ActualGeometry& geometry) {
+    if (ippl::Comm->rank() != 0) {
+        return;
+    }
+
     const bool useFrozenBeamBeamWindowMesh = usesFrozenBeamBeamWindowMesh();
     const double bunchCenterS = 0.5 * (bunchTailS + bunchHeadS);
     const double meshBeginS = useFrozenBeamBeamWindowMesh ? geometry.beginS : bunchTailS;
@@ -1031,8 +1034,12 @@ void ParallelTracker::computeBeamBeamWindowSelfFields(
     ippl::Vector<double, Dim> physicalRMax(minVal);
     itsBunch_m->calcBeamParameters();
     itsBunch_m->get_bounds(physicalRMin, physicalRMax);
+    m << level4 << "Entering BeamBeam transition pre-solve at step "
+      << itsBunch_m->getGlobalTrackStep() << "." << endl;
     const std::optional<double> preEnlargePrimaryCharge =
         performBeamBeamWindowEntryTransition(geometry, physicalRMin, physicalRMax);
+    m << level4 << "Completed BeamBeam transition pre-solve at step "
+      << itsBunch_m->getGlobalTrackStep() << "." << endl;
 
     // Re-center the beam-frame mesh every active step so the BeamBeam mesh stays
     // fixed in the BeamBeam/lab frame while the bunch moves through it.
@@ -1041,10 +1048,16 @@ void ParallelTracker::computeBeamBeamWindowSelfFields(
 
     // First stage: solve on the larger beam-beam-window mesh using the primary bunch only.
     // Later this is where mirrored rho deposition should be added.
+    m << level4 << "Starting active BeamBeam self-field solve at step "
+      << itsBunch_m->getGlobalTrackStep() << "." << endl;
     itsBunch_m->computeSelfFields();
+    m << level4 << "Finished active BeamBeam self-field solve at step "
+      << itsBunch_m->getGlobalTrackStep() << "." << endl;
     if (preEnlargePrimaryCharge.has_value() && geometry.config.copyModel) {
         validateBeamBeamCopiedCharge(*preEnlargePrimaryCharge);
     }
+    m << level4 << "Finished copied-charge validation at step "
+      << itsBunch_m->getGlobalTrackStep() << "." << endl;
     if (preEnlargePrimaryCharge.has_value()) {
         dumpBeamBeamTransitionSnapshot("after_interaction_window_mesh_enlarge");
     }

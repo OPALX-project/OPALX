@@ -194,7 +194,13 @@ void PartBunch<T, Dim>::enableBeamBeamWindowMesh(
     auto pc  = this->getParticleContainer();
     pc->getLayout().updateLayout(*FL, *mesh);
     if (!beamBeamWindowParticleLayoutInitialized_m) {
+        const size_type totalBeforeUpdate = pc->getTotalNum();
+        const size_type localBeforeUpdate = pc->getLocalNum();
         pc->update();
+        m << level4 << "BeamBeam layout initialization particle counts: total "
+          << totalBeforeUpdate << " -> " << pc->getTotalNum()
+          << ", local " << localBeforeUpdate << " -> " << pc->getLocalNum() << "."
+          << endl;
         beamBeamWindowParticleLayoutInitialized_m = true;
     }
 
@@ -995,7 +1001,7 @@ void PartBunch<T, Dim>::computeSelfFields() {
     typename Base::particle_position_type* R = &this->pcontainer_m->R;
     this->fcontainer_m->getRho()             = 0.0;
     Field_t<Dim>* rho                        = &this->fcontainer_m->getRho();
-    const bool writeBeamBeamH5Diagnostics = true;
+    const bool writeBeamBeamH5Diagnostics = (ippl::Comm->size() == 1);
 
     /*
     if (beamBeamWindowConfig_m.has_value()) {
@@ -1023,14 +1029,43 @@ void PartBunch<T, Dim>::computeSelfFields() {
      * we instead scale and scatter the dt. This is a pure "hack" which leaves
      * the physics unchanged.
      */
+    static bool beamBeamEntryChargeDiagnosticsDumped = false;
+    const bool emitBeamBeamEntryChargeDiagnostics =
+        beamBeamWindowConfig_m.has_value() &&
+        beamBeamWindowConfig_m->copyModel &&
+        !beamBeamEntryChargeDiagnosticsDumped;
+
     this->pcontainer_m->scaleDtByCharge();
     scatter(*dt, *rho, *R);
     this->pcontainer_m->unscaleDtByCharge();
     m << level4 << "Scatter done." << endl;
 
+    if (emitBeamBeamEntryChargeDiagnostics) {
+        const double primaryDepositedChargeBeforeMirror =
+            (*rho).sum() / getdT();
+        m << level4 << "BeamBeam deposited charge after primary scatter = "
+          << primaryDepositedChargeBeforeMirror << " C." << endl;
+    }
+
     if (beamBeamWindowConfig_m.has_value() && beamBeamWindowConfig_m->copyModel) {
         const double interactionPointBeamZ = beamBeamWindowConfig_m->interactionPointS - get_sPos();
-        scatterMirroredChargeDensity(rho, interactionPointBeamZ);
+        if (ippl::Comm->size() > 1) {
+            // ParticleAttrib::scatter() accumulates halo contributions into the owned cells.
+            // Reusing the same distributed rho field for the mirrored scatter would therefore
+            // re-accumulate stale primary-scatter halo data on the second accumulateHalo() call.
+            // Split the mirrored deposition onto a fresh field and add the owned result back.
+            Field_t<Dim> primaryRho = rho->deepCopy();
+            (*rho)                  = 0.0;
+            scatterMirroredChargeDensity(rho, interactionPointBeamZ);
+            if (emitBeamBeamEntryChargeDiagnostics) {
+                const double mirroredOnlyDepositedCharge = (*rho).sum() / getdT();
+                m << level4 << "BeamBeam deposited charge from mirrored scatter only = "
+                  << mirroredOnlyDepositedCharge << " C." << endl;
+            }
+            (*rho) = (*rho) + primaryRho;
+        } else {
+            scatterMirroredChargeDensity(rho, interactionPointBeamZ);
+        }
     }
 
     /*
@@ -1040,7 +1075,15 @@ void PartBunch<T, Dim>::computeSelfFields() {
     middle" of a full timestep. As of now, this might not be necessary.
     */
     (*rho) = (*rho) / getdT();
+    // Field::sum() already sums over the owned cells locally and performs a
+    // communicator-wide allreduce. Applying another MPI reduction here would
+    // multiply the deposited charge by the number of ranks.
     lastDepositedChargeBeforeBackground_m = (*rho).sum();
+    if (emitBeamBeamEntryChargeDiagnostics) {
+        m << level4 << "BeamBeam deposited charge after mirrored scatter = "
+          << lastDepositedChargeBeforeBackground_m << " C." << endl;
+        beamBeamEntryChargeDiagnosticsDumped = true;
+    }
     lastDepositedChargeBeforeBackgroundValid_m = true;
     m << level4 << "Rho scale by dt done." << endl;
 
