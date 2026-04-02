@@ -1,11 +1,8 @@
 #include "AbsBeamline/Laser.h"
 
 #include "AbsBeamline/BeamlineVisitor.h"
-#include "Physics/Physics.h"
-#include "Utilities/OpalException.h"
+#include "Physics/LinearCompton.h"
 
-#include <algorithm>
-#include <cmath>
 
 Laser::Laser()
     : Laser("") {
@@ -36,37 +33,6 @@ Laser::Laser(const Laser& right)
 }
 
 Laser::~Laser() {
-}
-
-namespace {
-    // Normalize a direction-like vector and fail fast on invalid zero input so the
-    // public Compton helpers report a clear argument error.
-    Vector_t<double, 3> normalizeDirection(const Vector_t<double, 3>& direction,
-                                           const char* where,
-                                           const char* argument) {
-        const double norm = std::sqrt(dot(direction, direction));
-        if (norm <= 0.0) {
-            throw OpalException(where, std::string("\"") + argument + "\" must be a non-zero vector.");
-        }
-
-        return direction / norm;
-    }
-
-    // Convert total electron energy to beta using OPALX GeV units and reject
-    // unphysical energies below the electron rest energy.
-    double getElectronBeta(double electronTotalEnergyGeV, const char* where) {
-        if (electronTotalEnergyGeV <= Physics::m_e) {
-            throw OpalException(where, "Electron total energy must be larger than the electron rest energy.");
-        }
-
-        const double gamma = electronTotalEnergyGeV / Physics::m_e;
-        return std::sqrt(1.0 - 1.0 / (gamma * gamma));
-    }
-
-    // Clamp roundoff-sensitive dot products before they enter scattering-angle formulas.
-    double clampCosine(double value) {
-        return std::max(-1.0, std::min(1.0, value));
-    }
 }
 
 void Laser::accept(BeamlineVisitor& visitor) const {
@@ -148,59 +114,24 @@ void Laser::setStokes(const Vector_t<double, 3>& stokes) {
 }
 
 double Laser::getPhotonEnergyGeV() const {
-    constexpr const char* where = "Laser::getPhotonEnergyGeV()";
-
-    if (wavelength_m <= 0.0) {
-        throw OpalException(where, "Laser wavelength must be greater than 0.");
-    }
-
-    return Physics::two_pi * Physics::h_bar * Physics::c / wavelength_m;
+    return Physics::LinearCompton::photonEnergyFromWavelengthGeV(wavelength_m);
 }
 
 double Laser::getLinearComptonInvariantX(double electronTotalEnergyGeV,
                                          const Vector_t<double, 3>& beamDirection) const {
-    constexpr const char* where = "Laser::getLinearComptonInvariantX()";
-
-    const double beta = getElectronBeta(electronTotalEnergyGeV, where);
-    const double gamma = electronTotalEnergyGeV / Physics::m_e;
-    const Vector_t<double, 3> normalizedBeamDirection =
-        normalizeDirection(beamDirection, where, "beamDirection");
-    const Vector_t<double, 3> normalizedLaserDirection =
-        normalizeDirection(direction_m, where, "direction");
-
-    // CAIN lncpgn.f uses W1 = gamma * W * (1 - beta * cos(alpha)) in the electron rest frame.
-    const double cosAlpha = clampCosine(dot(normalizedBeamDirection, normalizedLaserDirection));
-    const double laserPhotonEnergy = getPhotonEnergyGeV();
-    const double restFramePhotonEnergy = gamma * laserPhotonEnergy * (1.0 - beta * cosAlpha);
-
-    return 2.0 * restFramePhotonEnergy / Physics::m_e;
+    return Physics::LinearCompton::invariantX(electronTotalEnergyGeV,
+                                              getPhotonEnergyGeV(),
+                                              beamDirection,
+                                              direction_m);
 }
 
 double Laser::getLinearComptonForwardPhotonEnergyGeV(
     double electronTotalEnergyGeV,
     const Vector_t<double, 3>& beamDirection) const {
-    constexpr const char* where = "Laser::getLinearComptonForwardPhotonEnergyGeV()";
-
-    const double beta = getElectronBeta(electronTotalEnergyGeV, where);
-    const double gamma = electronTotalEnergyGeV / Physics::m_e;
-    const Vector_t<double, 3> normalizedBeamDirection =
-        normalizeDirection(beamDirection, where, "beamDirection");
-    const Vector_t<double, 3> normalizedLaserDirection =
-        normalizeDirection(direction_m, where, "direction");
-
-    const double cosAlpha = clampCosine(dot(normalizedBeamDirection, normalizedLaserDirection));
-    const double laserPhotonEnergy = getPhotonEnergyGeV();
-
-    // Follow the CAIN linear Compton kinematics in lncpgn.f: boost the incoming laser photon
-    // into the electron rest frame, apply the Compton energy shift there, then boost the
-    // forward-scattered photon back to the lab frame.
-    const double restFramePhotonEnergy = gamma * laserPhotonEnergy * (1.0 - beta * cosAlpha);
-    const double scatteringCosine = (cosAlpha - beta) / (1.0 - beta * cosAlpha);
-    const double recoilFactor =
-        1.0 + restFramePhotonEnergy / Physics::m_e * (1.0 - scatteringCosine);
-    const double restFrameScatteredPhotonEnergy = restFramePhotonEnergy / recoilFactor;
-
-    return gamma * (1.0 + beta) * restFrameScatteredPhotonEnergy;
+    return Physics::LinearCompton::labForwardPhotonEnergyGeV(electronTotalEnergyGeV,
+                                                             getPhotonEnergyGeV(),
+                                                             beamDirection,
+                                                             direction_m);
 }
 
 const Vector_t<double, 3>& Laser::getStokes() const {
