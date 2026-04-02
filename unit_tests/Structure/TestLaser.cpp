@@ -4,10 +4,13 @@
 #include "Beamlines/FlaggedElmPtr.h"
 #include "Beamlines/TBeamline.h"
 #include "Elements/OpalLaser.h"
+#include "Physics/Physics.h"
 #include "Utilities/LogicalError.h"
 #include "Utilities/OpalException.h"
 
 #include "gtest/gtest.h"
+
+#include <cmath>
 
 namespace {
     void setValidLaserAttributes(OpalLaser& laser) {
@@ -112,6 +115,67 @@ TEST(TestLaser, UpdateRejectsNegativeLength) {
     Attributes::setReal(laser.itsAttr[OpalElement::LENGTH], -1.0);
 
     EXPECT_THROW(laser.update(), OpalException);
+}
+
+/**
+ * @brief Benchmark the CAIN-inspired linear Compton helper for a 90 degree laser crossing.
+ *
+ * The configuration is the simplest fixed-angle case used as a physics-facing unit test:
+ * an electron with total energy \f$E_e\f$ moves along \f$+\hat z\f$, the laser propagates
+ * along \f$+\hat x\f$, and the scattered photon is evaluated in the forward electron
+ * direction \f$+\hat z\f$.
+ *
+ * The exact reference formulas used in this test are
+ * \f[
+ *   \omega_L = \frac{2\pi \hbar c}{\lambda_L},
+ * \f]
+ * \f[
+ *   p_e = \sqrt{E_e^2 - m_e^2},
+ * \f]
+ * \f[
+ *   x = \frac{2 E_e \omega_L}{m_e^2},
+ * \f]
+ * and the forward scattered photon energy from exact energy-momentum conservation,
+ * written in a numerically stable form,
+ * \f[
+ *   \omega_\gamma^{\prime}
+ *   = \frac{E_e\,\omega_L}{\omega_L + m_e^2/(E_e + p_e)}.
+ * \f]
+ *
+ * The stable denominator avoids catastrophic cancellation in the equivalent expression
+ * \f$E_e - p_e + \omega_L\f$ for relativistic electrons.
+ */
+TEST(TestLaser, LinearComptonForwardPhotonEnergyMatchesExactNinetyDegreeKinematics) {
+    OpalLaser laser;
+    setValidLaserAttributes(laser);
+    Attributes::setRealArray(laser.itsAttr[OpalLaser::DIR], {1.0, 0.0, 0.0});
+
+    ASSERT_NO_THROW(laser.update());
+
+    auto* rep = dynamic_cast<LaserRep*>(laser.getElement());
+    ASSERT_NE(rep, nullptr);
+
+    Vector_t<double, 3> beamDirection(0.0);
+    beamDirection(2) = 1.0;
+
+    const double electronTotalEnergyGeV = 1.0;
+    const double laserPhotonEnergyGeV = rep->getPhotonEnergyGeV();
+    const double electronMomentumGeV = std::sqrt(
+        electronTotalEnergyGeV * electronTotalEnergyGeV - Physics::m_e * Physics::m_e);
+    const double expectedInvariantX =
+        2.0 * laserPhotonEnergyGeV * electronTotalEnergyGeV / (Physics::m_e * Physics::m_e);
+    const double stableEnergyMinusMomentum =
+        Physics::m_e * Physics::m_e / (electronTotalEnergyGeV + electronMomentumGeV);
+    const double expectedForwardPhotonEnergyGeV =
+        laserPhotonEnergyGeV * electronTotalEnergyGeV
+        / (stableEnergyMinusMomentum + laserPhotonEnergyGeV);
+
+    EXPECT_NEAR(rep->getLinearComptonInvariantX(electronTotalEnergyGeV, beamDirection),
+                expectedInvariantX,
+                expectedInvariantX * 1.0e-12);
+    EXPECT_NEAR(rep->getLinearComptonForwardPhotonEnergyGeV(electronTotalEnergyGeV, beamDirection),
+                expectedForwardPhotonEnergyGeV,
+                expectedForwardPhotonEnergyGeV * 1.0e-12);
 }
 
 TEST(TestLaser, ParallelTrackerRejectsLaserComponent) {
