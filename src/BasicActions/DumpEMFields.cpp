@@ -17,119 +17,100 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "BasicActions/DumpEMFields.h"
+#include <filesystem>
+#include <fstream>
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
 #include "Physics/Units.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Util.h"
-#include "Physics/Units.h"
-#include <filesystem>
-#include <fstream>
 
 extern Inform* gmsg;
 
 std::unordered_set<std::unique_ptr<DumpEMFields>> DumpEMFields::dumpsSet_m;
 
-DumpEMFields::DumpEMFields() :
-    Action(SIZE, "DUMPEMFIELDS",
-           "The \"DUMPEMFIELDS\" statement dumps a field map to a user-defined "
-           "field file, for checking that fields are generated correctly. "
-           "The fields are written out on a grid in space and time.") {
-
+DumpEMFields::DumpEMFields()
+    : Action(SIZE, "DUMPEMFIELDS",
+             "The \"DUMPEMFIELDS\" statement dumps a field map to a user-defined "
+             "field file, for checking that fields are generated correctly. "
+             "The fields are written out on a grid in space and time.") {
     // would be nice if "steps" could be integer
-    itsAttr[FILE_NAME] = Attributes::makeString
-        ("FILE_NAME", "Name of the file to which field data is dumped");
+    itsAttr[FILE_NAME] =
+            Attributes::makeString("FILE_NAME", "Name of the file to which field data is dumped");
 
-    itsAttr[COORDINATE_SYSTEM] = Attributes::makePredefinedString
-        ("COORDINATE_SYSTEM", "Choose to use CARTESIAN or CYLINDRICAL coordinates",
+    itsAttr[COORDINATE_SYSTEM] = Attributes::makePredefinedString(
+            "COORDINATE_SYSTEM", "Choose to use CARTESIAN or CYLINDRICAL coordinates",
             {"CARTESIAN", "CYLINDRICAL"}, "CARTESIAN");
 
-    itsAttr[X_START] = Attributes::makeReal
-        ("X_START", "(Cartesian) Start point in the grid in x [m]");
+    itsAttr[X_START] =
+            Attributes::makeReal("X_START", "(Cartesian) Start point in the grid in x [m]");
 
-    itsAttr[DX] = Attributes::makeReal
-        ("DX", "(Cartesian) Grid step size in x [m]");
+    itsAttr[DX] = Attributes::makeReal("DX", "(Cartesian) Grid step size in x [m]");
 
-    itsAttr[X_STEPS] = Attributes::makeReal
-        ("X_STEPS", "(Cartesian) Number of steps in x");
+    itsAttr[X_STEPS] = Attributes::makeReal("X_STEPS", "(Cartesian) Number of steps in x");
 
-    itsAttr[Y_START] = Attributes::makeReal
-        ("Y_START", "(Cartesian) Start point in the grid in y (vertical) [m]");
+    itsAttr[Y_START] = Attributes::makeReal(
+            "Y_START", "(Cartesian) Start point in the grid in y (vertical) [m]");
 
-    itsAttr[DY] = Attributes::makeReal
-        ("DY", "(Cartesian) Grid step size in y [m]");
+    itsAttr[DY] = Attributes::makeReal("DY", "(Cartesian) Grid step size in y [m]");
 
-    itsAttr[Y_STEPS] = Attributes::makeReal
-        ("Y_STEPS", "(Cartesian) Number of steps in y");
+    itsAttr[Y_STEPS] = Attributes::makeReal("Y_STEPS", "(Cartesian) Number of steps in y");
 
-    itsAttr[Z_START] = Attributes::makeReal
-        ("Z_START", "Start point in the grid in z [m]");
+    itsAttr[Z_START] = Attributes::makeReal("Z_START", "Start point in the grid in z [m]");
 
-    itsAttr[DZ] = Attributes::makeReal
-        ("DZ", "Grid step size in z [m]");
+    itsAttr[DZ] = Attributes::makeReal("DZ", "Grid step size in z [m]");
 
-    itsAttr[Z_STEPS] = Attributes::makeReal
-        ("Z_STEPS", "Number of steps in z");
+    itsAttr[Z_STEPS] = Attributes::makeReal("Z_STEPS", "Number of steps in z");
 
-    itsAttr[T_START] = Attributes::makeReal
-        ("T_START", "Start point in the grid in time [ns]");
+    itsAttr[T_START] = Attributes::makeReal("T_START", "Start point in the grid in time [ns]");
 
-    itsAttr[DT] = Attributes::makeReal
-        ("DT", "Grid step size in time [ns]");
+    itsAttr[DT] = Attributes::makeReal("DT", "Grid step size in time [ns]");
 
-    itsAttr[T_STEPS] = Attributes::makeReal
-        ("T_STEPS", "Number of steps in time");
+    itsAttr[T_STEPS] = Attributes::makeReal("T_STEPS", "Number of steps in time");
 
-    itsAttr[R_START] = Attributes::makeReal
-        ("R_START", "(Cylindrical) Start point in the grid in radius [m]");
+    itsAttr[R_START] =
+            Attributes::makeReal("R_START", "(Cylindrical) Start point in the grid in radius [m]");
 
-    itsAttr[DR] = Attributes::makeReal
-        ("DR", "(Cylindrical) Grid step size in radius [m]");
+    itsAttr[DR] = Attributes::makeReal("DR", "(Cylindrical) Grid step size in radius [m]");
 
-    itsAttr[R_STEPS] = Attributes::makeReal
-        ("R_STEPS", "(Cylindrical) Number of steps in radius");
+    itsAttr[R_STEPS] = Attributes::makeReal("R_STEPS", "(Cylindrical) Number of steps in radius");
 
-    itsAttr[PHI_START] = Attributes::makeReal
-        ("PHI_START", "(Cylindrical) Start point in the grid in phi [rad]");
+    itsAttr[PHI_START] =
+            Attributes::makeReal("PHI_START", "(Cylindrical) Start point in the grid in phi [rad]");
 
-    itsAttr[DPHI] = Attributes::makeReal
-        ("DPHI", "(Cylindrical) Grid step size in phi [rad]");
+    itsAttr[DPHI] = Attributes::makeReal("DPHI", "(Cylindrical) Grid step size in phi [rad]");
 
-    itsAttr[PHI_STEPS] = Attributes::makeReal
-        ("PHI_STEPS", "(Cylindrical) Number of steps in phi");
+    itsAttr[PHI_STEPS] = Attributes::makeReal("PHI_STEPS", "(Cylindrical) Number of steps in phi");
 
-    itsAttr[CYL_ORIGIN_X] = Attributes::makeReal
-        ("CYL_ORIGIN_X", "(Cylindrical) The X coordinate of the origin [m]. Default=0", 0.0);
+    itsAttr[CYL_ORIGIN_X] = Attributes::makeReal(
+            "CYL_ORIGIN_X", "(Cylindrical) The X coordinate of the origin [m]. Default=0", 0.0);
 
-    itsAttr[CYL_ORIGIN_Y] = Attributes::makeReal
-        ("CYL_ORIGIN_Y", "(Cylindrical) The Y coordinate of the origin [m]. Default=0", 0.0);
+    itsAttr[CYL_ORIGIN_Y] = Attributes::makeReal(
+            "CYL_ORIGIN_Y", "(Cylindrical) The Y coordinate of the origin [m]. Default=0", 0.0);
 
-    itsAttr[CYL_ORIGIN_Z] = Attributes::makeReal
-        ("CYL_ORIGIN_Z", "(Cylindrical) The Z coordinate of the origin [m]. Default=0", 0.0);
+    itsAttr[CYL_ORIGIN_Z] = Attributes::makeReal(
+            "CYL_ORIGIN_Z", "(Cylindrical) The Z coordinate of the origin [m]. Default=0", 0.0);
 
     registerOwnership(AttributeHandler::STATEMENT);
 }
 
-DumpEMFields::DumpEMFields(const std::string& name, DumpEMFields* parent):
-    Action(name, parent) {
-}
+DumpEMFields::DumpEMFields(const std::string& name, DumpEMFields* parent) : Action(name, parent) {}
 
 DumpEMFields* DumpEMFields::clone(const std::string& name) {
     auto* dumper = new DumpEMFields(name, this);
     if (grid_m != nullptr) {
         dumper->grid_m.reset(grid_m->clone());
     }
-    dumper->filename_m = filename_m;
-    dumper->coordinates_m = coordinates_m;
+    dumper->filename_m          = filename_m;
+    dumper->coordinates_m       = coordinates_m;
     dumper->cylindricalOrigin_m = cylindricalOrigin_m;
     return dumper;
 }
 
 void DumpEMFields::parseCoordinateSystem() {
     static const std::map<std::string, CoordinateSystem> stringCoordinateSystem_s = {
-        {"CARTESIAN",   CoordinateSystem::CARTESIAN},
-        {"CYLINDRICAL", CoordinateSystem::CYLINDRICAL}
-    };
+            {"CARTESIAN", CoordinateSystem::CARTESIAN},
+            {"CYLINDRICAL", CoordinateSystem::CYLINDRICAL}};
     coordinates_m = stringCoordinateSystem_s.at(Attributes::getString(itsAttr[COORDINATE_SYSTEM]));
 }
 
@@ -147,59 +128,53 @@ void DumpEMFields::buildGrid() {
     std::vector<int> gridSize(4);
     std::vector<double> origin(4);
     parseCoordinateSystem();
-    switch (coordinates_m) {
-    case CoordinateSystem::CARTESIAN: {
-        origin[0] = Attributes::getReal(itsAttr[X_START]);
-        spacing[0] = Attributes::getReal(itsAttr[DX]);
+    if (coordinates_m == CoordinateSystem::CARTESIAN) {
+        origin[0]       = Attributes::getReal(itsAttr[X_START]);
+        spacing[0]      = Attributes::getReal(itsAttr[DX]);
         const double nx = Attributes::getReal(itsAttr[X_STEPS]);
         checkInt(nx, "X_STEPS");
         gridSize[0] = nx;
 
-        origin[1] = Attributes::getReal(itsAttr[Y_START]);
-        spacing[1] = Attributes::getReal(itsAttr[DY]);
+        origin[1]       = Attributes::getReal(itsAttr[Y_START]);
+        spacing[1]      = Attributes::getReal(itsAttr[DY]);
         const double ny = Attributes::getReal(itsAttr[Y_STEPS]);
         checkInt(ny, "Y_STEPS");
         gridSize[1] = ny;
 
-        origin[2] = Attributes::getReal(itsAttr[Z_START]);
-        spacing[2] = Attributes::getReal(itsAttr[DZ]);
+        origin[2]       = Attributes::getReal(itsAttr[Z_START]);
+        spacing[2]      = Attributes::getReal(itsAttr[DZ]);
         const double nz = Attributes::getReal(itsAttr[Z_STEPS]);
         checkInt(nz, "Z_STEPS");
         gridSize[2] = nz;
-        break;
-    }
-    case CoordinateSystem::CYLINDRICAL: {
-        origin[0] = Attributes::getReal(itsAttr[R_START]);
-        spacing[0] = Attributes::getReal(itsAttr[DR]);
+    } else /* CoordinateSystem::CYLINDRICAL */ {
+        origin[0]           = Attributes::getReal(itsAttr[R_START]);
+        spacing[0]          = Attributes::getReal(itsAttr[DR]);
         const double rSteps = Attributes::getReal(itsAttr[R_STEPS]);
         checkInt(rSteps, "R_STEPS");
         gridSize[0] = rSteps;
 
-        origin[1] = Attributes::getReal(itsAttr[PHI_START]);
-        spacing[1] = Attributes::getReal(itsAttr[DPHI]);
+        origin[1]         = Attributes::getReal(itsAttr[PHI_START]);
+        spacing[1]        = Attributes::getReal(itsAttr[DPHI]);
         const double nphi = Attributes::getReal(itsAttr[PHI_STEPS]);
         checkInt(nphi, "PHI_STEPS");
         gridSize[1] = nphi;
 
-        origin[2] = Attributes::getReal(itsAttr[Y_START]);
-        spacing[2] = Attributes::getReal(itsAttr[DY]);
+        origin[2]       = Attributes::getReal(itsAttr[Y_START]);
+        spacing[2]      = Attributes::getReal(itsAttr[DY]);
         const double ny = Attributes::getReal(itsAttr[Y_STEPS]);
         checkInt(ny, "Y_STEPS");
         gridSize[2] = ny;
-
-        break;
-    }
     }
 
-    origin[3] = Attributes::getReal(itsAttr[T_START]);
-    spacing[3] = Attributes::getReal(itsAttr[DT]);
+    origin[3]       = Attributes::getReal(itsAttr[T_START]);
+    spacing[3]      = Attributes::getReal(itsAttr[DT]);
     const double nt = Attributes::getReal(itsAttr[T_STEPS]);
     checkInt(nt, "T_STEPS");
     gridSize[3] = nt;
 
     grid_m = std::make_unique<interpolation::NDGrid>(4, &gridSize[0], &spacing[0], &origin[0]);
 
-    filename_m = Attributes::getString(itsAttr[FILE_NAME]);
+    filename_m             = Attributes::getString(itsAttr[FILE_NAME]);
     cylindricalOrigin_m[0] = Attributes::getReal(itsAttr[CYL_ORIGIN_X]);
     cylindricalOrigin_m[1] = Attributes::getReal(itsAttr[CYL_ORIGIN_Y]);
     cylindricalOrigin_m[2] = Attributes::getReal(itsAttr[CYL_ORIGIN_Z]);
@@ -213,55 +188,48 @@ void DumpEMFields::writeFields(const std::set<std::shared_ptr<Component>>& eleme
 }
 
 void DumpEMFields::checkInt(double value, const std::string& name, const double tolerance) {
-    value += tolerance; // prevent rounding error
+    value += tolerance;  // prevent rounding error
     if (std::abs(std::floor(value) - value) > 2 * tolerance) {
-        throw OpalException("DumpEMFields::checkInt",
-                            "Value for " + name +
-                            " should be an integer but a real value was found");
+        throw OpalException(
+                "DumpEMFields::checkInt",
+                "Value for " + name + " should be an integer but a real value was found");
     }
     if (std::floor(value) < 0.5) {
-        throw OpalException("DumpEMFields::checkInt",
-                            "Value for " + name + " should be 1 or more");
+        throw OpalException("DumpEMFields::checkInt", "Value for " + name + " should be 1 or more");
     }
 }
 
 void DumpEMFields::writeHeader(std::ofstream& fout) const {
     fout << grid_m->end().toInteger() << "\n";
-    switch (coordinates_m) {
-        case CoordinateSystem::CARTESIAN: {
-            fout << 1 << "  x [m]\n";
-            fout << 2 << "  y [m]\n";
-            fout << 3 << "  z [m]\n";
-            fout << 4 << "  t [ns]\n";
-            fout << 5 << "  Bx [kGauss]\n";
-            fout << 6 << "  By [kGauss]\n";
-            fout << 7 << "  Bz [kGauss]\n";
-            fout << 8 << "  Ex [MV/m]\n";
-            fout << 9 << "  Ey [MV/m]\n";
-            fout << 10 << " Ez [MV/m]\n";
-            break;
-        }
-        case CoordinateSystem::CYLINDRICAL: {
-            fout << 1 << "  r [m]\n";
-            fout << 2 << "  phi [deg]\n";
-            fout << 3 << "  y [m]\n";
-            fout << 4 << "  t [ns]\n";
-            fout << 5 << "  Br   [kGauss]\n";
-            fout << 6 << "  Bphi [kGauss]\n";
-            fout << 7 << "  By   [kGauss]\n";
-            fout << 8 << "  Er   [MV/m]\n";
-            fout << 9 << "  Ephi [MV/m]\n";
-            fout << 10 << " Ey   [MV/m]\n";
-            break;
-        }
+    if (coordinates_m == CoordinateSystem::CARTESIAN) {
+        fout << 1 << "  x [m]\n";
+        fout << 2 << "  y [m]\n";
+        fout << 3 << "  z [m]\n";
+        fout << 4 << "  t [ns]\n";
+        fout << 5 << "  Bx [kGauss]\n";
+        fout << 6 << "  By [kGauss]\n";
+        fout << 7 << "  Bz [kGauss]\n";
+        fout << 8 << "  Ex [MV/m]\n";
+        fout << 9 << "  Ey [MV/m]\n";
+        fout << 10 << " Ez [MV/m]\n";
+    } else /*CoordinateSystem::CYLINDRICAL*/ {
+        fout << 1 << "  r [m]\n";
+        fout << 2 << "  phi [deg]\n";
+        fout << 3 << "  y [m]\n";
+        fout << 4 << "  t [ns]\n";
+        fout << 5 << "  Br   [kGauss]\n";
+        fout << 6 << "  Bphi [kGauss]\n";
+        fout << 7 << "  By   [kGauss]\n";
+        fout << 8 << "  Er   [MV/m]\n";
+        fout << 9 << "  Ephi [MV/m]\n";
+        fout << 10 << " Ey   [MV/m]\n";
     }
     fout << 0 << std::endl;
 }
 
-void DumpEMFields::writeFieldLine(const std::set<std::shared_ptr<Component>>& elements,
-                                  const Vector_t<double, 3>& point,
-                                  const double& time,
-                                  std::ofstream& fout) const {
+void DumpEMFields::writeFieldLine(
+        const std::set<std::shared_ptr<Component>>& elements, const Vector_t<double, 3>& point,
+        const double& time, std::ofstream& fout) const {
     // Translate the coordinate if necessary
     Vector_t<double, 3> E{};
     Vector_t<double, 3> B{};
@@ -273,8 +241,8 @@ void DumpEMFields::writeFieldLine(const std::set<std::shared_ptr<Component>>& el
         localPoint[1] = point[2] + cylindricalOrigin_m[1];
     }
     // Collect the fields
-    for(auto& element : elements) {
-        auto transform = element->getCSTrafoGlobal2Local();
+    for (auto& element : elements) {
+        auto transform             = element->getCSTrafoGlobal2Local();
         Vector_t<double, 3> localR = transform.transformTo(localPoint);
         Vector_t<double, 3> localB{};
         Vector_t<double, 3> localE{};
@@ -290,14 +258,14 @@ void DumpEMFields::writeFieldLine(const std::set<std::shared_ptr<Component>>& el
     Vector_t<double, 3> Eout = E;
     if (coordinates_m == CoordinateSystem::CYLINDRICAL) {
         // point and field out is (r, phi, y), but field in is (x, y, z) - y is vertical
-        Bout[0] =  B[0]*std::cos(point[1])+B[2]*std::sin(point[1]);
-        Bout[1] = -B[0]*std::sin(point[1])+B[2]*std::cos(point[1]);
-        Bout[2] =  B[1];
-        Eout[0] =  E[0]*std::cos(point[1])+E[2]*std::sin(point[1]);
-        Eout[1] = -E[0]*std::sin(point[1])+E[2]*std::cos(point[1]);
-        Eout[2] =  E[1];
-        fout << point[0] << " " << point[1] * Units::rad2deg << " "
-             << point[2] << " " << time << " ";
+        Bout[0] = B[0] * std::cos(point[1]) + B[2] * std::sin(point[1]);
+        Bout[1] = -B[0] * std::sin(point[1]) + B[2] * std::cos(point[1]);
+        Bout[2] = B[1];
+        Eout[0] = E[0] * std::cos(point[1]) + E[2] * std::sin(point[1]);
+        Eout[1] = -E[0] * std::sin(point[1]) + E[2] * std::cos(point[1]);
+        Eout[2] = E[1];
+        fout << point[0] << " " << point[1] * Units::rad2deg << " " << point[2] << " " << time
+             << " ";
     } else {
         fout << point[0] << " " << point[1] << " " << point[2] << " " << time << " ";
     }
@@ -307,9 +275,10 @@ void DumpEMFields::writeFieldLine(const std::set<std::shared_ptr<Component>>& el
 
 void DumpEMFields::writeFieldThis(const std::set<std::shared_ptr<Component>>& elements) {
     if (grid_m == nullptr) {
-        throw OpalException("DumpEMFields::writeFieldThis",
-                            "The grid was nullptr; there was a problem with the "
-                            "DumpEMFields initialisation.");
+        throw OpalException(
+                "DumpEMFields::writeFieldThis",
+                "The grid was nullptr; there was a problem with the "
+                "DumpEMFields initialisation.");
     }
 
     *gmsg << level5 << *this << endl;
@@ -318,30 +287,21 @@ void DumpEMFields::writeFieldThis(const std::set<std::shared_ptr<Component>>& el
     if (std::filesystem::path(filename_m).is_absolute() == true) {
         fname = filename_m;
     } else {
-        fname = Util::combineFilePath({
-            OpalData::getInstance()->getAuxiliaryOutputDirectory(),
-            filename_m
-        });
+        fname = Util::combineFilePath(
+                {OpalData::getInstance()->getAuxiliaryOutputDirectory(), filename_m});
     }
 
     std::vector<double> point_std(4);
     Vector_t<double, 3> point(0., 0., 0.);
     std::ofstream fout;
-    try {
-        fout.open(fname.c_str(), std::ofstream::out);
-    } catch (std::exception&) {
-        throw OpalException("DumpEMFields::writeFieldThis",
-                            "Failed to open DumpEMFields file " + filename_m);
-    }
+    fout.open(fname.c_str(), std::ofstream::out);
     if (!fout.good()) {
-        throw OpalException("DumpEMFields::writeFieldThis",
-                            "Failed to open DumpEMFields file " + filename_m);
+        throw OpalException(
+                "DumpEMFields::writeFieldThis", "Failed to open DumpEMFields file " + filename_m);
     }
     // set precision
     writeHeader(fout);
-    for (interpolation::Mesh::Iterator it = grid_m->begin();
-         it < grid_m->end();
-         ++it) {
+    for (interpolation::Mesh::Iterator it = grid_m->begin(); it < grid_m->end(); ++it) {
         it.getPosition(&point_std[0]);
         for (size_t i = 0; i < 3; ++i) {
             point[i] = point_std[i];
@@ -349,9 +309,13 @@ void DumpEMFields::writeFieldThis(const std::set<std::shared_ptr<Component>>& el
         double time = point_std[3];
         writeFieldLine(elements, point, time, fout);
     }
+    if (failWrite_m) {  // For unit tests only - force a write failure if required
+        fout.setstate(std::ios::badbit);
+    }
     if (!fout.good()) {
-        throw OpalException("DumpEMFields::writeFieldThis",
-                            "Something went wrong during writing " + filename_m);
+        throw OpalException(
+                "DumpEMFields::writeFieldThis",
+                "Something went wrong during writing " + filename_m);
     }
     fout.close();
 }
@@ -363,28 +327,28 @@ void DumpEMFields::print(std::ostream& os) const {
     if (coordinates_m == CoordinateSystem::CARTESIAN) {
         os << "* Coordinate system: " << Attributes::getString(itsAttr[COORDINATE_SYSTEM]) << '\n'
            << "* X_START   = " << Attributes::getReal(itsAttr[X_START]) << " [m]\n"
-           << "* DX        = " << Attributes::getReal(itsAttr[DX])      << " [m]\n"
+           << "* DX        = " << Attributes::getReal(itsAttr[DX]) << " [m]\n"
            << "* X_STEPS   = " << Attributes::getReal(itsAttr[X_STEPS]) << '\n'
            << "* Y_START   = " << Attributes::getReal(itsAttr[Y_START]) << " [m]\n"
-           << "* DY        = " << Attributes::getReal(itsAttr[DY])      << " [m]\n"
+           << "* DY        = " << Attributes::getReal(itsAttr[DY]) << " [m]\n"
            << "* Y_STEPS   = " << Attributes::getReal(itsAttr[Y_STEPS]) << '\n'
            << "* Z_START   = " << Attributes::getReal(itsAttr[Z_START]) << " [m]\n"
-           << "* DZ        = " << Attributes::getReal(itsAttr[DZ])      << " [m]\n"
+           << "* DZ        = " << Attributes::getReal(itsAttr[DZ]) << " [m]\n"
            << "* Z_STEPS   = " << Attributes::getReal(itsAttr[Z_STEPS]) << '\n';
-        } else if (coordinates_m == CoordinateSystem::CYLINDRICAL) {
+    } else if (coordinates_m == CoordinateSystem::CYLINDRICAL) {
         os << "* Coordinate system: " << Attributes::getString(itsAttr[COORDINATE_SYSTEM]) << '\n'
-           << "* R_START   = " << Attributes::getReal(itsAttr[R_START])   << " [m]\n"
-           << "* DR        = " << Attributes::getReal(itsAttr[DR])        << " [m]\n"
-           << "* R_STEPS   = " << Attributes::getReal(itsAttr[R_STEPS])   << '\n'
+           << "* R_START   = " << Attributes::getReal(itsAttr[R_START]) << " [m]\n"
+           << "* DR        = " << Attributes::getReal(itsAttr[DR]) << " [m]\n"
+           << "* R_STEPS   = " << Attributes::getReal(itsAttr[R_STEPS]) << '\n'
            << "* PHI_START = " << Attributes::getReal(itsAttr[PHI_START]) << " [rad]\n"
-           << "* DPHI      = " << Attributes::getReal(itsAttr[DPHI])      << " [rad]\n"
+           << "* DPHI      = " << Attributes::getReal(itsAttr[DPHI]) << " [rad]\n"
            << "* PHI_STEPS = " << Attributes::getReal(itsAttr[PHI_STEPS]) << '\n'
            << "* Y_START   = " << Attributes::getReal(itsAttr[Y_START]) << " [m]\n"
-           << "* DY        = " << Attributes::getReal(itsAttr[DY])      << " [m]\n"
+           << "* DY        = " << Attributes::getReal(itsAttr[DY]) << " [m]\n"
            << "* Y_STEPS   = " << Attributes::getReal(itsAttr[Y_STEPS]) << '\n';
-     }
+    }
     os << "* T_START   = " << Attributes::getReal(itsAttr[T_START]) << " [ns]\n"
-       << "* DT        = " << Attributes::getReal(itsAttr[DT])      << " [ns]\n"
+       << "* DT        = " << Attributes::getReal(itsAttr[DT]) << " [ns]\n"
        << "* T_STEPS   = " << Attributes::getReal(itsAttr[T_STEPS]) << '\n';
     os << "* ********************************************************************************** "
        << std::endl;
