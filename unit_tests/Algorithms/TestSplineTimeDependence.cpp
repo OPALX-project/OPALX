@@ -77,6 +77,9 @@ TEST_F(TestSplineTimeDependence, LinearLookupTest) {
     test_x = times_m[0] - (times_m[1] - times_m[0]) / 2.;
     EXPECT_THROW(timeDep.getValue(test_x), std::invalid_argument);
     EXPECT_THROW(timeDep.getIntegral(test_x), std::invalid_argument);
+    test_x = times_m[9] + (times_m[9] - times_m[8]) / 2.;
+    EXPECT_THROW(timeDep.getValue(test_x), std::invalid_argument);
+    EXPECT_THROW(timeDep.getIntegral(test_x), std::invalid_argument);
 }
 
 TEST_F(TestSplineTimeDependence, CubicLookupTest) {
