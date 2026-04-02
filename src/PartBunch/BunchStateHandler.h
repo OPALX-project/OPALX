@@ -25,9 +25,6 @@
  *   distribution itself (e.g. FlatTop sets it when t > t0 and
  *   particles are being created).
  *
- * - **keepGridFixed**: set whenever the grid should not be changed for the moment. This will
- * overwrite any grid changes in bunchUpdate() and might be used for BeamBeam interaction or image
- * charge calculation.
  */
 class BunchStateHandler {
 public:
@@ -51,16 +48,11 @@ public:
     bool& isFirstRepartitionRef() { return firstRepartition_m; }
     void setFirstRepartition(bool v) { firstRepartition_m = v; }
 
-    // -- keep grid fixed guard ----------------------------------------------
-    bool isKeepGridFixed() const { return keepGridFixed_m; }
-    void setKeepGridFixed(bool v) { keepGridFixed_m = v; }
-
 private:
     bool unitlessPositions_m = false;
     bool momentsDirty_m      = true;
     bool emittingNow_m       = false;
     bool firstRepartition_m  = true;
-    bool keepGridFixed_m     = false;
 };
 
 #endif

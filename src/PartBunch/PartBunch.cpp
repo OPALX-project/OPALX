@@ -145,14 +145,11 @@ void PartBunch<T, Dim>::setSolver() {
     // Needs to happen before setting the field solver, since the field solver needs the bins.
     setBins();
 
-    this->setFieldSolver(
-            std::make_shared<BinnedFieldSolver<T, Dim>>(
-                    this->solver_m, &this->fcontainer_m->getRho(), &this->fcontainer_m->getE(),
-                    &this->fcontainer_m->getPhi(), this->getBCHandler(),
-                    hasBinning() ? OPALFieldSolver_m->getBinningCmd()->getTablePrintFrequency()
-                                 : 0,
-                    false,
-                    0.0));
+    auto binnedSolver = std::make_shared<BinnedFieldSolver<T, Dim>>(
+            this->solver_m, &this->fcontainer_m->getRho(), &this->fcontainer_m->getE(),
+            &this->fcontainer_m->getPhi(), this->getBCHandler(),
+            hasBinning() ? OPALFieldSolver_m->getBinningCmd()->getTablePrintFrequency() : 0);
+    this->setFieldSolver(binnedSolver);
     m << level4 << "Binned field solver set (binned or legacy at runtime)." << endl;
 
     this->fsolver_m->initSolver();
@@ -428,11 +425,10 @@ void PartBunch<T, Dim>::computeBoundsForFieldSolve(
     upper = pc->getMaxR();
 
     using BinnedSolver_t = BinnedFieldSolver<T, Dim>;
-    BinnedSolver_t* bsolver = dynamic_cast<BinnedSolver_t*>(this->fsolver_m.get());
-    const bool imageChargeEnabled = bsolver && bsolver->isImageChargeEnabled();
+    const BinnedSolver_t* bsolver = dynamic_cast<const BinnedSolver_t*>(this->getFieldSolver());
 
     // Include mirrored particles in the domain envelope when image-charge mode is enabled.
-    if (imageChargeEnabled) {
+    if (bsolver && bsolver->isImageChargeEnabled()) {
         const double planeZ = bsolver->getImageChargePlaneZ();
         const double mirroredMinZ = 2.0 * planeZ - upper[2];
         const double mirroredMaxZ = 2.0 * planeZ - lower[2];
@@ -484,7 +480,7 @@ void PartBunch<T, Dim>::applyGridUpdate(
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::setImageChargeConfiguration(bool enabled, double zPlane) {
     using BinnedSolver_t = BinnedFieldSolver<T, Dim>;
-    BinnedSolver_t* bsolver = dynamic_cast<BinnedSolver_t*>(this->fsolver_m.get());
+    BinnedSolver_t* bsolver = dynamic_cast<BinnedSolver_t*>(this->getFieldSolver());
     if (bsolver) {
         bsolver->setImageChargeConfiguration(enabled, zPlane);
     }

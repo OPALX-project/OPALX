@@ -86,6 +86,21 @@ private:
         size_t index=0
     );
 
+    /**
+     * @brief Configure image-charge mode from all configured emission sources.
+     *
+     * Scans all sources across all selected beams for `ZEROFACE_R0Z=true`.
+     * If exactly one source requests zero-face handling, image-charge mode is enabled
+     * and the mirror plane is set to that source's `R0Z`.
+     * If none request it, image-charge mode is disabled.
+     *
+     * @param emissionSourcesLists Per-beam source lists assembled during `RUN` setup.
+     *
+     * @throws OpalException If more than one source requests `ZEROFACE_R0Z=true`.
+     */
+    void configureImageChargeFromSources(
+        const std::vector<std::vector<EmissionSource*>>& emissionSourcesLists);
+
     /// Compute total number of macroparticles for the bunch from BEAM::NPART and
     /// optional per-distribution NPARTDIST values on the emission sources.
     size_t computeTotalParticlesForBunch(

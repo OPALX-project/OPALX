@@ -23,7 +23,6 @@ protected:
     Vector_t<double, 3> R0_m = 0.0;
     Vector_t<double, 3> P0_m = 0.0;
     double t0_m              = 0.0;
-    bool zeroFaceR0Z_m       = false;
 
     /// For one-shot emitters (e.g. Gaussian at delayed t0): guard to avoid double sampling.
     bool hasEmittedOnce_m = false;
@@ -51,8 +50,6 @@ public:
         t0_m = t0;
     }
 
-    void setZeroFaceR0Z(bool zeroFaceR0Z) { zeroFaceR0Z_m = zeroFaceR0Z; }
-    bool getZeroFaceR0Z() const { return zeroFaceR0Z_m; }
     Vector_t<double, 3> getEmissionR0() const { return R0_m; }
 
     virtual void generateParticles(size_t& /*numberOfParticles*/, Vector_t<double, 3> /*nr*/) {}

@@ -60,25 +60,6 @@ public:
     double getZPlane() const { return zPlane_m; }
 
     /**
-     * @brief Test helper: apply image transform to all local particles.
-     *
-     * Mirrors z around the configured plane and flips Q sign.
-     */
-    void applyMirrorForTesting(std::shared_ptr<ParticleCtr_t> pc, PositionAttr_t& positions) const {
-        applyMirrorTransformAll(pc, positions);
-    }
-
-    /**
-     * @brief Test helper: restore image transform for all local particles.
-     *
-     * This is the inverse of `applyMirrorForTesting`.
-     */
-    void restoreMirrorForTesting(
-            std::shared_ptr<ParticleCtr_t> pc, PositionAttr_t& positions) const {
-        restoreMirrorTransformAll(pc, positions);
-    }
-
-    /**
      * @brief Scatter all local particles with optional image pass.
      *
      * Primary pass deposits with the nominal charge.
@@ -105,28 +86,93 @@ public:
             const BinPolicy_t& policy, const Hash_t& hash) const;
 
 private:
-    /// @brief Apply z-mirror + charge sign flip for all local particles.
+        /**
+         * @brief Scatter all local particles using the standard `dt*Q` workflow.
+         *
+         * This helper applies `scaleDtByCharge()`, scatters `dt`, and restores `dt`.
+         *
+         * @param pc Shared particle container.
+         * @param positions Particle positions attribute.
+         * @param rho Target charge-density field.
+         */
+    void scatterScaledDtAll(
+            std::shared_ptr<ParticleCtr_t> pc, PositionAttr_t& positions, RhoField_t& rho) const;
+
+        /**
+         * @brief Scatter a hashed particle subset using the standard `dt*Q` workflow.
+         *
+         * @param pc Shared particle container.
+         * @param positions Particle positions attribute.
+         * @param rho Target charge-density field.
+         * @param policy Bin iteration policy.
+         * @param hash Mapping from policy index to particle index.
+         */
+    void scatterScaledDtSubset(
+            std::shared_ptr<ParticleCtr_t> pc, PositionAttr_t& positions, RhoField_t& rho,
+            const BinPolicy_t& policy, const Hash_t& hash) const;
+
+        /**
+         * @brief Apply z-mirror and charge sign flip for all local particles.
+         * @param pc Shared particle container.
+         * @param positions Particle positions attribute.
+         */
     void applyMirrorTransformAll(
             std::shared_ptr<ParticleCtr_t> pc, PositionAttr_t& positions) const;
 
-    /// @brief Restore z-mirror + charge sign flip for all local particles.
+        /**
+         * @brief Restore z-mirror and charge sign flip for all local particles.
+         *
+         * The operation is its own inverse.
+         *
+         * @param pc Shared particle container.
+         * @param positions Particle positions attribute.
+         */
     void restoreMirrorTransformAll(
             std::shared_ptr<ParticleCtr_t> pc, PositionAttr_t& positions) const;
 
-    /// @brief Apply z-mirror + charge sign flip for a hashed subset.
+        /**
+         * @brief Apply z-mirror and charge sign flip for a hashed particle subset.
+         * @param pc Shared particle container.
+         * @param positions Particle positions attribute.
+         * @param policy Bin iteration policy.
+         * @param hash Mapping from policy index to particle index.
+         */
     void applyMirrorTransformSubset(
             std::shared_ptr<ParticleCtr_t> pc, PositionAttr_t& positions, const BinPolicy_t& policy,
             const Hash_t& hash) const;
 
-    /// @brief Restore z-mirror + charge sign flip for a hashed subset.
+        /**
+         * @brief Restore z-mirror and charge sign flip for a hashed particle subset.
+         *
+         * The operation is its own inverse.
+         *
+         * @param pc Shared particle container.
+         * @param positions Particle positions attribute.
+         * @param policy Bin iteration policy.
+         * @param hash Mapping from policy index to particle index.
+         */
     void restoreMirrorTransformSubset(
             std::shared_ptr<ParticleCtr_t> pc, PositionAttr_t& positions, const BinPolicy_t& policy,
             const Hash_t& hash) const;
 
-    /// @brief Flip charge sign for all local particles (or shared scalar Q in single mode).
+        /**
+         * @brief Flip charge sign for all local particles.
+         *
+         * In single-value Q mode, only the shared scalar is flipped.
+         *
+         * @param pc Shared particle container.
+         */
     void flipChargeSignAll(std::shared_ptr<ParticleCtr_t> pc) const;
 
-    /// @brief Flip charge sign for subset particles (or shared scalar Q in single mode).
+        /**
+         * @brief Flip charge sign for a hashed particle subset.
+         *
+         * In single-value Q mode, only the shared scalar is flipped.
+         *
+         * @param pc Shared particle container.
+         * @param policy Bin iteration policy.
+         * @param hash Mapping from policy index to particle index.
+         */
     void flipChargeSignSubset(
             std::shared_ptr<ParticleCtr_t> pc, const BinPolicy_t& policy, const Hash_t& hash) const;
 

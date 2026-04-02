@@ -727,7 +727,6 @@ void ParallelTracker::emitFromEmissionSources(double t, double dt) {
     }
     itsBunch_m->setMass();
     itsBunch_m->setCharge();
-    configureImageChargeFromEmissionSamplers();
     // itsBunch_m->updateNumTotal(); // handled internally by ippl
     // itsBunch_m->bunchUpdate();
 
@@ -747,32 +746,6 @@ void ParallelTracker::emitFromEmissionSources(double t, double dt) {
             "using emission sources, please check the emission profile and adjust "
             "the number of particles emitted.");
     }
-}
-
-void ParallelTracker::configureImageChargeFromEmissionSamplers() {
-    bool enableImageCharge = false;
-    double zPlane          = 0.0;
-
-    size_t numZeroFaceR0Z = 0;
-    for (const auto& sampler : emittingSamplers_m) {
-        // ZEROFACE_R0Z=true means zero-face handling is requested, so image-charge mode stays off.
-        if (!sampler || !sampler->getZeroFaceR0Z()) {
-            continue;
-        }
-        ++numZeroFaceR0Z;
-        enableImageCharge         = true;
-        const double samplerPlane = sampler->getEmissionR0()[2];
-        zPlane                    = samplerPlane;
-    }
-
-    if (numZeroFaceR0Z > 1) {
-        throw OpalException(
-                "ParallelTracker::configureImageChargeFromEmissionSamplers",
-                "Cannot have more than one emission source with ZEROFACE_R0Z=true, since image "
-                "charge computation is only implemented for one plane.");
-    }
-
-    itsBunch_m->setImageChargeConfiguration(enableImageCharge, zPlane);
 }
 
 /**
