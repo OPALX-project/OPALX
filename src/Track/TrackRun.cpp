@@ -371,6 +371,7 @@ void TrackRun::execute() {
         setupDistributionsAndSamplers(
                 emissionSourcesLists[i], beams[i], emittingSamplersList[i], i);
     }
+    configureImageChargeFromSources(emissionSourcesLists);
 
     /*
        reset the fieldsolver with correct hr_m
@@ -567,7 +568,6 @@ void TrackRun::setupDistributionsAndSamplers(
         const auto P0   = src->getP0();
         const double t0 = src->getT0();
         sampler->setEmissionOffsets(R0, P0, t0);
-        sampler->setZeroFaceR0Z(src->getZeroFaceR0Z());
 
         const size_t Ndist = opalDist->getNumParticles();
         size_t Nmutable    = Ndist;
@@ -590,6 +590,34 @@ void TrackRun::setupDistributionsAndSamplers(
 
     *gmsg << level2 << "* Particle sampling / sampler setup for all emission sources done." << endl;
     IpplTimings::stopTimer(samplingTime);
+}
+
+void TrackRun::configureImageChargeFromSources(
+        const std::vector<std::vector<EmissionSource*>>& emissionSourcesLists) {
+    bool enableImageCharge = false;
+    double zPlane          = 0.0;
+    size_t numZeroFaceR0Z  = 0;
+
+    for (const auto& sourceList : emissionSourcesLists) {
+        for (const auto* src : sourceList) {
+            if (!src || !src->getZeroFaceR0Z()) {
+                continue;
+            }
+
+            ++numZeroFaceR0Z;
+            enableImageCharge = true;
+            zPlane = src->getR0()[2];
+        }
+    }
+
+    if (numZeroFaceR0Z > 1) {
+        throw OpalException(
+                "TrackRun::configureImageChargeFromSources",
+                "Cannot have more than one emission source with ZEROFACE_R0Z=true, since image "
+                "charge computation is only implemented for one plane.");
+    }
+
+    bunch_m->setImageChargeConfiguration(enableImageCharge, zPlane);
 }
 
 Inform& TrackRun::print(Inform& os) const {

@@ -252,7 +252,6 @@ public:
     // Control the dtview of the bunch
     void changeDT(bool backTrack = false);
     void setTime();
-    void configureImageChargeFromEmissionSamplers();
 
 private:
     // Reference Particle 

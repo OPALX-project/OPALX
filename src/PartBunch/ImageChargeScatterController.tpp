@@ -1,19 +1,36 @@
 template <typename T, unsigned Dim>
-void ImageChargeScatterController<T, Dim>::scatterPrimaryAndImage(
+void ImageChargeScatterController<T, Dim>::scatterScaledDtAll(
         std::shared_ptr<ParticleCtr_t> pc, PositionAttr_t& positions, RhoField_t& rho) const {
     pc->scaleDtByCharge();
     ippl::ParticleAttrib<T>* dtAttrib = &pc->dt;
     scatter(*dtAttrib, rho, positions);
     pc->unscaleDtByCharge();
+}
+
+template <typename T, unsigned Dim>
+void ImageChargeScatterController<T, Dim>::scatterScaledDtSubset(
+        std::shared_ptr<ParticleCtr_t> pc,
+        PositionAttr_t& positions,
+        RhoField_t& rho,
+        const BinPolicy_t& policy,
+        const Hash_t& hash) const {
+    pc->scaleDtByCharge();
+    ippl::ParticleAttrib<T>* dtAttrib = &pc->dt;
+    scatter(*dtAttrib, rho, positions, policy, hash);
+    pc->unscaleDtByCharge();
+}
+
+template <typename T, unsigned Dim>
+void ImageChargeScatterController<T, Dim>::scatterPrimaryAndImage(
+        std::shared_ptr<ParticleCtr_t> pc, PositionAttr_t& positions, RhoField_t& rho) const {
+    scatterScaledDtAll(pc, positions, rho);
 
     if (!enabled_m) {
         return;
     }
 
     applyMirrorTransformAll(pc, positions);
-    pc->scaleDtByCharge();
-    scatter(*dtAttrib, rho, positions);
-    pc->unscaleDtByCharge();
+    scatterScaledDtAll(pc, positions, rho);
     restoreMirrorTransformAll(pc, positions);
 }
 
@@ -24,19 +41,14 @@ void ImageChargeScatterController<T, Dim>::scatterPrimaryAndImage(
         RhoField_t& rho,
         const BinPolicy_t& policy,
         const Hash_t& hash) const {
-    pc->scaleDtByCharge();
-    ippl::ParticleAttrib<T>* dtAttrib = &pc->dt;
-    scatter(*dtAttrib, rho, positions, policy, hash);
-    pc->unscaleDtByCharge();
+    scatterScaledDtSubset(pc, positions, rho, policy, hash);
 
     if (!enabled_m) {
         return;
     }
 
     applyMirrorTransformSubset(pc, positions, policy, hash);
-    pc->scaleDtByCharge();
-    scatter(*dtAttrib, rho, positions, policy, hash);
-    pc->unscaleDtByCharge();
+    scatterScaledDtSubset(pc, positions, rho, policy, hash);
     restoreMirrorTransformSubset(pc, positions, policy, hash);
 }
 

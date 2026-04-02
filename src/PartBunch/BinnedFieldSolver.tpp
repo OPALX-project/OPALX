@@ -1,13 +1,15 @@
 template <typename T, unsigned Dim>
 BinnedFieldSolver<T, Dim>::BinnedFieldSolver(
-        std::string solver, Field_t<Dim>* rho, VField_t<T, Dim>* E, Field_t<Dim>* phi,
-        std::shared_ptr<BCHandler_t> bcHandler, int tablePrintFrequency, bool enableImageCharge,
-        double imageChargePlaneZ)
+        std::string solver,
+        Field_t<Dim>* rho,
+        VField_t<T, Dim>* E,
+        Field_t<Dim>* phi,
+        std::shared_ptr<BCHandler_t> bcHandler,
+        int tablePrintFrequency)
     : FieldSolver<T, Dim>(solver, rho, E, phi, bcHandler) {
     scatterAttribute_m    = ScatterAttribute::ChargeQ;
     gatherAttribute_m     = GatherAttribute::ElectricFieldE;
     tablePrintFrequency_m = tablePrintFrequency;
-    imageScatterController_m.configure(enableImageCharge, imageChargePlaneZ);
 }
 
 template <typename T, unsigned Dim>

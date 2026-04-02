@@ -81,9 +81,7 @@ public:
                        VField_t<T, Dim>* E,
                        Field_t<Dim>* phi,
                        std::shared_ptr<BCHandler_t> bcHandler,
-                       int tablePrintFrequency,
-                       bool enableImageCharge,
-                       double imageChargePlaneZ);
+                       int tablePrintFrequency);
 
     /**
      * @brief Compute space-charge self-fields for the given particle bunch.
@@ -112,6 +110,8 @@ public:
      * @param attr Attribute to gather into.
      */
     void setGatherAttribute(const GatherAttribute attr);
+
+    /// @brief Configure optional image-charge scatter pass.
     void setImageChargeConfiguration(bool enabled, double zPlane);
     bool isImageChargeEnabled() const { return imageScatterController_m.isEnabled(); }
     double getImageChargePlaneZ() const { return imageScatterController_m.getZPlane(); }
