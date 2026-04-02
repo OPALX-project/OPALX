@@ -1,6 +1,10 @@
+#include "Algorithms/ParallelTracker.h"
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/LaserRep.h"
+#include "Beamlines/FlaggedElmPtr.h"
+#include "Beamlines/TBeamline.h"
 #include "Elements/OpalLaser.h"
+#include "Utilities/LogicalError.h"
 #include "Utilities/OpalException.h"
 
 #include "gtest/gtest.h"
@@ -108,4 +112,13 @@ TEST(TestLaser, UpdateRejectsNegativeLength) {
     Attributes::setReal(laser.itsAttr[OpalElement::LENGTH], -1.0);
 
     EXPECT_THROW(laser.update(), OpalException);
+}
+
+TEST(TestLaser, ParallelTrackerRejectsLaserComponent) {
+    TBeamline<FlaggedElmPtr> beamline("LINE");
+    PartData reference(0.0, 1.0, 1.0);
+    ParallelTracker tracker(beamline, reference, false, false);
+    LaserRep laser("LASER");
+
+    EXPECT_THROW(tracker.visitComponent(laser), LogicalError);
 }
