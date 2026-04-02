@@ -2,7 +2,6 @@
 
 # Include subdirectories
 add_subdirectory(EndFieldModel)
-add_subdirectory(MultipoleTFunctions)
 
 # List local source and header files
 set(_SRCS
@@ -19,7 +18,6 @@ set(_SRCS
     MultipoleTBase.cpp
     MultipoleTStraight.cpp
     MultipoleTCurvedConstRadius.cpp
-    MultipoleTCurvedVarRadius.cpp
     RFCavity.cpp
     Ring.cpp
     ScalingFFAMagnet.cpp        
@@ -44,7 +42,6 @@ set(_HDRS
     MultipoleTBase.h
     MultipoleTStraight.h
     MultipoleTCurvedConstRadius.h
-    MultipoleTCurvedVarRadius.h
     RFCavity.h
     TravelingWave.h
     SpecificElementVisitor.h
