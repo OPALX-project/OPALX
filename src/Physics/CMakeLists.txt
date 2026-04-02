@@ -1,9 +1,11 @@
 set (_SRCS
+    LinearCompton.cpp
     Material.cpp
     ParticleProperties.cpp
     )
 
 set (HDRS
+    LinearCompton.h
     Material.h
     ParticleProperties.h
     Physics.h
