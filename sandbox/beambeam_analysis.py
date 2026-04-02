@@ -526,10 +526,54 @@ def plot_ez_along_bunch(
     output: Path | None = None,
     axis_limits=None,
 ) -> None:
+    peak_indices = []
+    for index in range(1, len(ez_line) - 1):
+        value = float(ez_line[index])
+        if value <= 0.0:
+            continue
+        if value >= float(ez_line[index - 1]) and value > float(ez_line[index + 1]):
+            peak_indices.append(index)
+
+    if len(peak_indices) >= 2:
+        peak_indices = sorted(
+            peak_indices,
+            key=lambda index: float(ez_line[index]),
+            reverse=True,
+        )[:2]
+        peak_indices.sort(key=lambda index: float(z_centers[index]))
+    else:
+        peak_indices = []
+
     fig, ax = plt.subplots(figsize=(10, 6), constrained_layout=True)
     ax.plot(z_centers, ez_line, linewidth=2.0, color="tab:blue", label="OPALX $E_z$")
     if ip_beam_z is not None:
         ax.axvline(ip_beam_z, color="darkorange", linestyle=":", linewidth=1.2, label="IP")
+
+    if len(peak_indices) == 2:
+        left_index, right_index = peak_indices
+        left_z = float(z_centers[left_index])
+        right_z = float(z_centers[right_index])
+        left_peak = float(ez_line[left_index])
+        right_peak = float(ez_line[right_index])
+        span_y = 0.92 * min(left_peak, right_peak)
+        ax.hlines(span_y, left_z, right_z, colors="crimson", linewidth=2.0)
+        ax.vlines(
+            [left_z, right_z],
+            span_y * 0.985,
+            span_y * 1.015,
+            colors="crimson",
+            linewidth=1.4,
+        )
+        ax.text(
+            0.5 * (left_z + right_z),
+            span_y,
+            f"{right_z - left_z:.6g} m",
+            color="crimson",
+            ha="center",
+            va="bottom",
+            bbox={"boxstyle": "round,pad=0.18", "fc": "white", "ec": "crimson", "alpha": 0.85},
+        )
+
     ax.set_xlabel("z [m]")
     ax.set_ylabel(r"$E_z$ [V/m]")
     ax.set_title(title)
