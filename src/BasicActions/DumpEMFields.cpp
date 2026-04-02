@@ -335,7 +335,7 @@ void DumpEMFields::print(std::ostream& os) const {
            << "* Z_START   = " << Attributes::getReal(itsAttr[Z_START]) << " [m]\n"
            << "* DZ        = " << Attributes::getReal(itsAttr[DZ]) << " [m]\n"
            << "* Z_STEPS   = " << Attributes::getReal(itsAttr[Z_STEPS]) << '\n';
-    } else if (coordinates_m == CoordinateSystem::CYLINDRICAL) {
+    } else /*if (coordinates_m == CoordinateSystem::CYLINDRICAL)*/ {
         os << "* Coordinate system: " << Attributes::getString(itsAttr[COORDINATE_SYSTEM]) << '\n'
            << "* R_START   = " << Attributes::getReal(itsAttr[R_START]) << " [m]\n"
            << "* DR        = " << Attributes::getReal(itsAttr[DR]) << " [m]\n"
