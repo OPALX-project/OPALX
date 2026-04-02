@@ -3,4 +3,4 @@ message(STATUS "Adding unit tests found in ${_relPath}")
 
 add_opalx_test(TestBinningCmd USE_GTEST_MAIN)
 add_opalx_test(TestBinConfigWriter USE_GTEST_MAIN)
-
+add_opalx_test(TestLaser USE_GTEST_MAIN)
