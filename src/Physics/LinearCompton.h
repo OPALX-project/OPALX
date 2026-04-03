@@ -23,12 +23,12 @@ namespace LinearCompton {
  * `Options::seed`, and then draw sampled events via @ref sampleEvent.
  */
 struct SamplingKernel {
-    double electronTotalEnergyGeV = 0.0;
-    double laserPhotonEnergyGeV = 0.0;
-    Vector_t<double, 3> beamDirection = Vector_t<double, 3>(0.0);
-    Vector_t<double, 3> laserDirection = Vector_t<double, 3>(0.0);
-    double incomingPhotonEnergyERFGeV = 0.0;
-    double rejectionUpperBoundSolidAngleERF = 0.0;
+    double electronTotalEnergyGeV = 0.0;  ///< Incoming electron total energy in the lab frame [GeV].
+    double laserPhotonEnergyGeV = 0.0;  ///< Incoming laser-photon energy in the lab frame [GeV].
+    Vector_t<double, 3> beamDirection = Vector_t<double, 3>(0.0);  ///< Normalized incoming electron direction in the lab frame.
+    Vector_t<double, 3> laserDirection = Vector_t<double, 3>(0.0);  ///< Normalized incoming laser direction in the lab frame.
+    double incomingPhotonEnergyERFGeV = 0.0;  ///< Laser-photon energy after Lorentz transforming into the electron rest frame [GeV].
+    double rejectionUpperBoundSolidAngleERF = 0.0;  ///< Conservative upper envelope for @f$d\sigma/d\Omega^*@f$ used by the rejection sampler.
 };
 
 /**
@@ -39,11 +39,11 @@ struct SamplingKernel {
  * and direction after boosting back to the laboratory frame.
  */
 struct SampledEvent {
-    double scatteringCosineERF = 0.0;
-    double azimuthERF = 0.0;
-    double scatteredPhotonEnergyERFGeV = 0.0;
-    double scatteredPhotonEnergyLabGeV = 0.0;
-    Vector_t<double, 3> scatteredPhotonDirectionLab = Vector_t<double, 3>(0.0);
+    double scatteringCosineERF = 0.0;  ///< Rest-frame polar scattering cosine @f$\cos\Theta^*@f$.
+    double azimuthERF = 0.0;  ///< Rest-frame azimuth @f$\phi^*@f$ around the incoming-photon axis [rad].
+    double scatteredPhotonEnergyERFGeV = 0.0;  ///< Outgoing photon energy in the electron rest frame [GeV].
+    double scatteredPhotonEnergyLabGeV = 0.0;  ///< Outgoing photon energy in the laboratory frame [GeV].
+    Vector_t<double, 3> scatteredPhotonDirectionLab = Vector_t<double, 3>(0.0);  ///< Normalized outgoing photon direction in the laboratory frame.
 };
 
 /**
@@ -359,6 +359,16 @@ std::mt19937_64 makeHostRandomEngine(std::uint64_t streamIndex = 0);
  * safe rejection-sampling envelope for the unpolarized
  * @f$d\sigma/d\Omega^*@f$ kernel.
  *
+ * The intended usage is:
+ *
+ * 1. fix one benchmark geometry or one electron state,
+ * 2. call @ref makeSamplingKernel once,
+ * 3. reuse the returned kernel for many calls to @ref sampleEvent.
+ *
+ * If the incoming electron energy or direction varies from particle to
+ * particle, as in the finite-beam benchmark, a separate kernel must be built
+ * for each sampled electron state before drawing the event.
+ *
  * @param electronTotalEnergyGeV Electron total energy in GeV.
  * @param laserPhotonEnergyGeV Laser photon energy in GeV.
  * @param beamDirection Laboratory-frame incoming electron direction.
@@ -377,6 +387,11 @@ SamplingKernel makeSamplingKernel(double electronTotalEnergyGeV,
  * Klein-Nishina angular kernel and samples @f$\phi^*@f$ uniformly on
  * @f$[0, 2\pi)@f$. The returned event contains both rest-frame and
  * laboratory-frame observables.
+ *
+ * This is a validation-oriented Monte Carlo path: it is scalar, host-only, and
+ * deterministic when the engine is created from @ref makeHostRandomEngine with
+ * a fixed `Options::seed`. It is not yet intended to define production photon
+ * creation semantics for tracking.
  *
  * @param kernel Cached sampling kernel created by @ref makeSamplingKernel.
  * @param engine Host-side random engine, typically created by
