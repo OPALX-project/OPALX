@@ -34,6 +34,31 @@ namespace {
             throw OpalException(where, std::string("\"") + argument + "\" must lie in [-1, 1].");
         }
     }
+
+
+    Vector_t<double, 3> chooseReferenceDirection(const Vector_t<double, 3>& direction) {
+        Vector_t<double, 3> reference(0.0);
+        reference(0) = 1.0;
+        if (std::abs(direction(0)) > 0.9) {
+            reference(0) = 0.0;
+            reference(1) = 1.0;
+        }
+        return reference;
+    }
+
+    Vector_t<double, 3> scatteringPlaneAxis(const Vector_t<double, 3>& incomingDirectionERF,
+                                            const Vector_t<double, 3>& boostDirectionLab,
+                                            const char* where) {
+        Vector_t<double, 3> axis = boostDirectionLab
+            - dot(boostDirectionLab, incomingDirectionERF) * incomingDirectionERF;
+        const double axisNorm = std::sqrt(dot(axis, axis));
+        if (axisNorm > 1.0e-14) {
+            return axis / axisNorm;
+        }
+
+        axis = cross(incomingDirectionERF, chooseReferenceDirection(incomingDirectionERF));
+        return normalizeDirection(axis, where, "scatteringPlaneAxis");
+    }
 }
 
 namespace Physics {
@@ -77,6 +102,25 @@ double restFrameIncomingPhotonEnergyGeV(double electronTotalEnergyGeV,
     return gamma * laserPhotonEnergyGeV * (1.0 - beta * cosAlpha);
 }
 
+Vector_t<double, 3> restFrameIncomingPhotonDirection(double electronTotalEnergyGeV,
+                                                     const Vector_t<double, 3>& beamDirection,
+                                                     const Vector_t<double, 3>& laserDirection) {
+    constexpr const char* where = "Physics::LinearCompton::restFrameIncomingPhotonDirection()";
+    const double gamma = electronGamma(electronTotalEnergyGeV);
+    const double beta = electronBeta(electronTotalEnergyGeV);
+    const Vector_t<double, 3> normalizedBeamDirection =
+        normalizeDirection(beamDirection, where, "beamDirection");
+    const Vector_t<double, 3> normalizedLaserDirection =
+        normalizeDirection(laserDirection, where, "laserDirection");
+    const double cosAlpha = clampCosine(dot(normalizedBeamDirection, normalizedLaserDirection));
+    const double denominator = 1.0 - beta * cosAlpha;
+    const Vector_t<double, 3> transverseComponent =
+        normalizedLaserDirection - cosAlpha * normalizedBeamDirection;
+    const Vector_t<double, 3> directionERF = transverseComponent / (gamma * denominator)
+        + ((cosAlpha - beta) / denominator) * normalizedBeamDirection;
+    return normalizeDirection(directionERF, where, "directionERF");
+}
+
 double invariantKappa(double incomingPhotonEnergyERFGeV) {
     constexpr const char* where = "Physics::LinearCompton::invariantKappa()";
     ensureStrictlyPositive(incomingPhotonEnergyERFGeV, where, "incomingPhotonEnergyERFGeV");
@@ -116,10 +160,22 @@ double scatteredPhotonEnergyERFGeV(double incomingPhotonEnergyERFGeV,
     return incomingPhotonEnergyERFGeV / (1.0 + kappa * (1.0 - clampedCosine));
 }
 
+double differentialCrossSectionSolidAngleERF(double incomingPhotonEnergyERFGeV,
+                                             double scatteringCosineERF) {
+    constexpr const char* where = "Physics::LinearCompton::differentialCrossSectionSolidAngleERF()";
+    invariantKappa(incomingPhotonEnergyERFGeV);
+    ensureCosineRange(scatteringCosineERF, where, "scatteringCosineERF");
+    const double clampedCosine = clampCosine(scatteringCosineERF);
+    const double omega2 = scatteredPhotonEnergyERFGeV(incomingPhotonEnergyERFGeV, clampedCosine);
+    const double energyRatio = omega2 / incomingPhotonEnergyERFGeV;
+    const double sin2 = std::max(0.0, 1.0 - clampedCosine * clampedCosine);
+    return 0.5 * Physics::r_e * Physics::r_e * energyRatio * energyRatio
+        * (1.0 / energyRatio + energyRatio - sin2);
+}
+
 double differentialCrossSectionOmegaERF(double incomingPhotonEnergyERFGeV,
                                         double scatteredPhotonEnergyERFGeV) {
     constexpr const char* where = "Physics::LinearCompton::differentialCrossSectionOmegaERF()";
-    const double kappa = invariantKappa(incomingPhotonEnergyERFGeV);
     const double minEnergy = scatteredPhotonEnergyMinERFGeV(incomingPhotonEnergyERFGeV);
     const double maxEnergy = scatteredPhotonEnergyMaxERFGeV(incomingPhotonEnergyERFGeV);
     if (scatteredPhotonEnergyERFGeV < minEnergy - 1.0e-15 ||
@@ -128,14 +184,11 @@ double differentialCrossSectionOmegaERF(double incomingPhotonEnergyERFGeV,
     }
 
     const double clampedEnergy = std::max(minEnergy, std::min(maxEnergy, scatteredPhotonEnergyERFGeV));
-    const double energyRatio = clampedEnergy / incomingPhotonEnergyERFGeV;
     const double cosine = 1.0 - Physics::m_e * (1.0 / clampedEnergy - 1.0 / incomingPhotonEnergyERFGeV);
     const double clampedCosine = clampCosine(cosine);
-    const double sin2 = std::max(0.0, 1.0 - clampedCosine * clampedCosine);
-    const double dsigma_dOmega = 0.5 * Physics::r_e * Physics::r_e * energyRatio * energyRatio
-        * (1.0 / energyRatio + energyRatio - sin2);
+    const double dsigma_dOmega = differentialCrossSectionSolidAngleERF(incomingPhotonEnergyERFGeV,
+                                                                       clampedCosine);
     const double jacobian = Physics::m_e / (clampedEnergy * clampedEnergy);
-    (void)kappa;
     return Physics::two_pi * dsigma_dOmega * jacobian;
 }
 
@@ -174,21 +227,56 @@ double restFrameScatteringCosineForLabForwardPhoton(double electronTotalEnergyGe
     return clampCosine((cosAlpha - beta) / (1.0 - beta * cosAlpha));
 }
 
-double labForwardPhotonEnergyGeV(double electronTotalEnergyGeV,
-                                 double laserPhotonEnergyGeV,
-                                 const Vector_t<double, 3>& beamDirection,
-                                 const Vector_t<double, 3>& laserDirection) {
+double labPhotonEnergyGeV(double electronTotalEnergyGeV,
+                          double laserPhotonEnergyGeV,
+                          const Vector_t<double, 3>& beamDirection,
+                          const Vector_t<double, 3>& laserDirection,
+                          double scatteringCosineERF,
+                          double azimuthERF) {
+    constexpr const char* where = "Physics::LinearCompton::labPhotonEnergyGeV()";
+    ensureStrictlyPositive(laserPhotonEnergyGeV, where, "laserPhotonEnergyGeV");
+    ensureCosineRange(scatteringCosineERF, where, "scatteringCosineERF");
+
     const double gamma = electronGamma(electronTotalEnergyGeV);
     const double beta = electronBeta(electronTotalEnergyGeV);
+    const Vector_t<double, 3> normalizedBeamDirection =
+        normalizeDirection(beamDirection, where, "beamDirection");
+    const Vector_t<double, 3> incomingDirectionERF =
+        restFrameIncomingPhotonDirection(electronTotalEnergyGeV, beamDirection, laserDirection);
     const double omega1 = restFrameIncomingPhotonEnergyGeV(electronTotalEnergyGeV,
                                                            laserPhotonEnergyGeV,
                                                            beamDirection,
                                                            laserDirection);
+    const double clampedCosine = clampCosine(scatteringCosineERF);
+    const double sinTheta = std::sqrt(std::max(0.0, 1.0 - clampedCosine * clampedCosine));
+    const Vector_t<double, 3> axis1 = scatteringPlaneAxis(incomingDirectionERF,
+                                                          normalizedBeamDirection,
+                                                          where);
+    const Vector_t<double, 3> axis2 = normalizeDirection(cross(incomingDirectionERF, axis1),
+                                                         where,
+                                                         "axis2");
+    const Vector_t<double, 3> scatteredDirectionERF = normalizeDirection(
+        clampedCosine * incomingDirectionERF
+            + sinTheta * (std::cos(azimuthERF) * axis1 + std::sin(azimuthERF) * axis2),
+        where,
+        "scatteredDirectionERF");
+    const double omega2 = scatteredPhotonEnergyERFGeV(omega1, clampedCosine);
+    return gamma * omega2 * (1.0 + beta * dot(scatteredDirectionERF, normalizedBeamDirection));
+}
+
+double labForwardPhotonEnergyGeV(double electronTotalEnergyGeV,
+                                 double laserPhotonEnergyGeV,
+                                 const Vector_t<double, 3>& beamDirection,
+                                 const Vector_t<double, 3>& laserDirection) {
     const double scatteringCosine = restFrameScatteringCosineForLabForwardPhoton(electronTotalEnergyGeV,
                                                                                   beamDirection,
                                                                                   laserDirection);
-    const double omega2 = scatteredPhotonEnergyERFGeV(omega1, scatteringCosine);
-    return gamma * (1.0 + beta) * omega2;
+    return labPhotonEnergyGeV(electronTotalEnergyGeV,
+                              laserPhotonEnergyGeV,
+                              beamDirection,
+                              laserDirection,
+                              scatteringCosine,
+                              0.0);
 }
 
 }  // namespace LinearCompton
