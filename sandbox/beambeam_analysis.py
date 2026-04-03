@@ -158,8 +158,11 @@ def normalize_compare_component(component: str | None) -> tuple[str, ...]:
         "rho": ("rho",),
         "phi": ("phi",),
         "ez": ("Ez",),
+        "ex-x-axis": ("Ex-x-axis",),
+        "ey-y-axis": ("Ey-y-axis",),
         "rho-z-axis": ("rho-z-axis",),
         "phi-z-axis": ("phi-z-axis",),
+        "ez-z-axis": ("Ez-z-axis",),
         "rho+phi": ("rho", "phi"),
         "rho+phi+ez": ("rho", "phi", "Ez"),
         "rho,phi": ("rho", "phi"),
@@ -341,7 +344,7 @@ def run_manufactured_compare(
     np = manufactured.load_numpy()
     plt = manufactured.load_matplotlib()
 
-    setup, analytic, origin, spacing, title = prepare_manufactured_compare(
+    setup, analytic, origin, spacing, ip_beam_z, title = prepare_manufactured_compare(
         manufactured,
         np,
         h5_path,
@@ -357,12 +360,13 @@ def run_manufactured_compare(
         setup["opalx"],
         origin,
         spacing,
+        ip_beam_z,
         title,
         output,
         comparison,
     )
     components = normalize_compare_component(comparison)
-    if components == ("rho", "phi"):
+    if components in (("rho", "phi"), ("rho", "phi", "Ez")):
         manufactured.plot_rho_z_axis_diagnostic(
             np,
             plt,
@@ -383,6 +387,39 @@ def run_manufactured_compare(
             title,
             manufactured.derived_output_path(output, "-phi-z-axis"),
         )
+        manufactured.plot_ez_z_axis_diagnostic(
+            np,
+            plt,
+            analytic,
+            setup["opalx"],
+            origin,
+            spacing,
+            title,
+            manufactured.derived_output_path(output, "-ez-z-axis"),
+        )
+        ip_beam_z = setup["interaction_point_s"] - setup["path_length_s"]
+        manufactured.plot_ex_x_axis_diagnostic(
+            np,
+            plt,
+            analytic,
+            setup["opalx"],
+            origin,
+            spacing,
+            title,
+            manufactured.derived_output_path(output, "-ex-x-axis"),
+            ip_beam_z,
+        )
+        manufactured.plot_ey_y_axis_diagnostic(
+            np,
+            plt,
+            analytic,
+            setup["opalx"],
+            origin,
+            spacing,
+            title,
+            manufactured.derived_output_path(output, "-ey-y-axis"),
+            ip_beam_z,
+        )
 
 
 def prepare_manufactured_compare(manufactured, np, h5_path: Path, step: int, sigma: float, state: str | None):
@@ -395,12 +432,13 @@ def prepare_manufactured_compare(manufactured, np, h5_path: Path, step: int, sig
 
     x_grid, y_grid, z_grid = manufactured.build_grid(np, origin, spacing, shape)
     analytic = manufactured.gaussian_pair_fields(np, x_grid, y_grid, z_grid, sigma, charge, centers)
+    ip_beam_z = setup["interaction_point_s"] - setup["path_length_s"]
 
     title = (
         f"Manufactured solution vs OPALX | step {step} | {display_compare_state(setup['snapshot_kind'])} | "
         f"$Q$={charge:.2e} C, $\\sigma$={sigma:.2e} m"
     )
-    return setup, analytic, origin, spacing, title
+    return setup, analytic, origin, spacing, ip_beam_z, title
 
 
 def render_manufactured_compare_output(
@@ -411,6 +449,7 @@ def render_manufactured_compare_output(
     opalx,
     origin,
     spacing,
+    ip_beam_z: float,
     title: str,
     output: Path | None,
     comparison: str | None,
@@ -433,6 +472,47 @@ def render_manufactured_compare_output(
         return
     if components == ("phi-z-axis",):
         manufactured.plot_phi_z_axis_diagnostic(
+            np,
+            plt,
+            analytic,
+            opalx,
+            origin,
+            spacing,
+            title,
+            output,
+            axis_limits=axis_limits,
+        )
+        return
+    if components == ("Ex-x-axis",):
+        manufactured.plot_ex_x_axis_diagnostic(
+            np,
+            plt,
+            analytic,
+            opalx,
+            origin,
+            spacing,
+            title,
+            output,
+            ip_beam_z,
+            axis_limits=axis_limits,
+        )
+        return
+    if components == ("Ey-y-axis",):
+        manufactured.plot_ey_y_axis_diagnostic(
+            np,
+            plt,
+            analytic,
+            opalx,
+            origin,
+            spacing,
+            title,
+            output,
+            ip_beam_z,
+            axis_limits=axis_limits,
+        )
+        return
+    if components == ("Ez-z-axis",):
+        manufactured.plot_ez_z_axis_diagnostic(
             np,
             plt,
             analytic,
@@ -713,7 +793,7 @@ def run_manufactured_compare_movie(
     frames = []
     components = normalize_compare_component(comparison)
     if len(components) != 1:
-        raise SystemExit("compare movie requires exactly one comparison kind: rho, phi, Ez, rho-z-axis, or phi-z-axis")
+        raise SystemExit("compare movie requires exactly one comparison kind: rho, phi, Ez, rho-z-axis, phi-z-axis, Ez-z-axis, Ex-x-axis, or Ey-y-axis")
     comparison_name = components[0]
     prepared_steps = []
     image_axis_limits = None
@@ -728,7 +808,7 @@ def run_manufactured_compare_movie(
         field_vmax = 0.0
         diff_dmax = 0.0
         for step in range(lo, hi + 1):
-            setup, analytic, origin, spacing, title = prepare_manufactured_compare(
+            setup, analytic, origin, spacing, ip_beam_z, title = prepare_manufactured_compare(
                 manufactured,
                 np,
                 h5_path,
@@ -745,7 +825,7 @@ def run_manufactured_compare_movie(
             zmaxs.append(extent[3])
             field_vmax = max(field_vmax, float(np.max(np.abs(analytic_panel))), float(np.max(np.abs(opalx_panel))))
             diff_dmax = max(diff_dmax, float(np.max(np.abs(diff_panel))))
-            prepared_steps.append((step, setup, analytic, origin, spacing, title))
+            prepared_steps.append((step, setup, analytic, origin, spacing, ip_beam_z, title))
         image_axis_limits = {"extent": (min(xmins), max(xmaxs), min(zmins), max(zmaxs))}
         scale_overrides = {
             comparison_name: {
@@ -761,7 +841,7 @@ def run_manufactured_compare_movie(
         diff_ymins = []
         diff_ymaxs = []
         for step in range(lo, hi + 1):
-            setup, analytic, origin, spacing, title = prepare_manufactured_compare(
+            setup, analytic, origin, spacing, ip_beam_z, title = prepare_manufactured_compare(
                 manufactured,
                 np,
                 h5_path,
@@ -772,9 +852,26 @@ def run_manufactured_compare_movie(
             if comparison_name == "rho-z-axis":
                 z_coords, analytic_line = manufactured.central_z_axis_line(np, analytic["rho"], origin, spacing)
                 _, opalx_line = manufactured.central_z_axis_line(np, setup["opalx"]["rho"], origin, spacing)
-            else:
+            elif comparison_name == "phi-z-axis":
                 z_coords, analytic_line = manufactured.central_z_axis_line(np, analytic["phi"], origin, spacing)
                 _, opalx_line = manufactured.central_z_axis_line(np, setup["opalx"]["phi"], origin, spacing)
+            elif comparison_name == "Ez-z-axis":
+                z_coords, analytic_line = manufactured.central_z_axis_line(np, analytic["Ez"], origin, spacing)
+                _, opalx_line = manufactured.central_z_axis_line(np, setup["opalx"]["Ez"], origin, spacing)
+            elif comparison_name == "Ex-x-axis":
+                z_coords, analytic_line = manufactured.transverse_x_axis_line(
+                    np, analytic["Ex"], origin, spacing, ip_beam_z
+                )
+                _, opalx_line = manufactured.transverse_x_axis_line(
+                    np, setup["opalx"]["Ex"], origin, spacing, ip_beam_z
+                )
+            else:
+                z_coords, analytic_line = manufactured.transverse_y_axis_line(
+                    np, analytic["Ey"], origin, spacing, ip_beam_z
+                )
+                _, opalx_line = manufactured.transverse_y_axis_line(
+                    np, setup["opalx"]["Ey"], origin, spacing, ip_beam_z
+                )
             diff_line = opalx_line - analytic_line
             xmins.append(float(np.min(z_coords)))
             xmaxs.append(float(np.max(z_coords)))
@@ -782,7 +879,7 @@ def run_manufactured_compare_movie(
             main_ymaxs.append(float(max(np.max(analytic_line), np.max(opalx_line))))
             diff_ymins.append(float(np.min(diff_line)))
             diff_ymaxs.append(float(np.max(diff_line)))
-            prepared_steps.append((step, setup, analytic, origin, spacing, title))
+            prepared_steps.append((step, setup, analytic, origin, spacing, ip_beam_z, title))
 
         def padded(lo_value: float, hi_value: float) -> tuple[float, float]:
             span = hi_value - lo_value
@@ -797,7 +894,7 @@ def run_manufactured_compare_movie(
 
     with tempfile.TemporaryDirectory(prefix="beambeam-compare-") as tmpdir:
         tmpdir_path = Path(tmpdir)
-        for step, setup, analytic, origin, spacing, title in prepared_steps:
+        for step, setup, analytic, origin, spacing, ip_beam_z, title in prepared_steps:
             frame_path = tmpdir_path / f"compare-{step:06d}.png"
             render_manufactured_compare_output(
                 manufactured,
@@ -807,6 +904,7 @@ def run_manufactured_compare_movie(
                 setup["opalx"],
                 origin,
                 spacing,
+                ip_beam_z,
                 title,
                 frame_path,
                 comparison,
@@ -1277,7 +1375,7 @@ def create_tk_gui() -> None:
     ttk.Combobox(
         compare_frame,
         textvariable=compare_component,
-        values=("rho+phi", "rho+phi+Ez", "rho", "phi", "Ez", "rho-z-axis", "phi-z-axis"),
+        values=("rho+phi", "rho+phi+Ez", "rho", "phi", "Ez", "rho-z-axis", "phi-z-axis", "Ez-z-axis", "Ex-x-axis", "Ey-y-axis"),
         width=28,
         state="readonly",
     ).grid(row=6, column=1, sticky="w", padx=6, pady=4)
@@ -1348,13 +1446,21 @@ def create_tk_gui() -> None:
             )
             gui_state["compare"] = state_snapshot
             save_gui_state(gui_state)
+            preview_paths = [display_output]
+            components = normalize_compare_component(state_snapshot["component"])
+            if components in (("rho", "phi"), ("rho", "phi", "Ez")):
+                preview_paths.extend(
+                    [
+                        display_output.with_name(display_output.stem + "-rho-z-axis" + display_output.suffix),
+                        display_output.with_name(display_output.stem + "-phi-z-axis" + display_output.suffix),
+                        display_output.with_name(display_output.stem + "-ez-z-axis" + display_output.suffix),
+                        display_output.with_name(display_output.stem + "-ex-x-axis" + display_output.suffix),
+                        display_output.with_name(display_output.stem + "-ey-y-axis" + display_output.suffix),
+                    ]
+                )
             return (
                 "Manufactured Compare",
-                [
-                    display_output,
-                    display_output.with_name(display_output.stem + "-rho-z-axis" + display_output.suffix),
-                    display_output.with_name(display_output.stem + "-phi-z-axis" + display_output.suffix),
-                ],
+                preview_paths,
             )
 
         handle_errors(job, lambda result: show_render_window(*result))
@@ -1879,19 +1985,27 @@ def run_web_gui() -> None:
                             output=output,
                             force_agg=True,
                         )
-                        status = (
-                            "Completed manufactured compare.\n"
-                            f"Output: {output}\n"
-                            f"Derived outputs: {output.with_name(output.stem + '-rho-z-axis' + output.suffix)}, "
-                            f"{output.with_name(output.stem + '-phi-z-axis' + output.suffix)}"
-                        )
-                        previews.extend(
-                            [
-                                ("Manufactured compare", output),
-                                ("rho(z)", output.with_name(output.stem + "-rho-z-axis" + output.suffix)),
-                                ("phi(z)", output.with_name(output.stem + "-phi-z-axis" + output.suffix)),
-                            ]
-                        )
+                        component_tuple = normalize_compare_component(component)
+                        status = f"Completed manufactured compare.\nOutput: {output}"
+                        previews.append(("Manufactured compare", output))
+                        if component_tuple in (("rho", "phi"), ("rho", "phi", "Ez")):
+                            status += (
+                                "\nDerived outputs: "
+                                f"{output.with_name(output.stem + '-rho-z-axis' + output.suffix)}, "
+                                f"{output.with_name(output.stem + '-phi-z-axis' + output.suffix)}, "
+                                f"{output.with_name(output.stem + '-ez-z-axis' + output.suffix)}, "
+                                f"{output.with_name(output.stem + '-ex-x-axis' + output.suffix)}, "
+                                f"{output.with_name(output.stem + '-ey-y-axis' + output.suffix)}"
+                            )
+                            previews.extend(
+                                [
+                                    ("rho(z)", output.with_name(output.stem + "-rho-z-axis" + output.suffix)),
+                                    ("phi(z)", output.with_name(output.stem + "-phi-z-axis" + output.suffix)),
+                                    ("Ez(z)", output.with_name(output.stem + "-ez-z-axis" + output.suffix)),
+                                    ("Ex(x)", output.with_name(output.stem + "-ex-x-axis" + output.suffix)),
+                                    ("Ey(y)", output.with_name(output.stem + "-ey-y-axis" + output.suffix)),
+                                ]
+                            )
                 else:
                     raise ValueError(f"unknown mode: {mode}")
                 persist_web_form(form)
@@ -1974,7 +2088,7 @@ def parse_args() -> argparse.Namespace:
     compare_parser.add_argument(
         "--comparison",
         default="rho+phi",
-        help="Comparison kind: rho, phi, Ez, rho-z-axis, phi-z-axis, rho+phi, or rho+phi+Ez. Movies require exactly one kind.",
+        help="Comparison kind: rho, phi, Ez, rho-z-axis, phi-z-axis, Ez-z-axis, Ex-x-axis, Ey-y-axis, rho+phi, or rho+phi+Ez. Movies require exactly one kind.",
     )
     compare_parser.add_argument(
         "--state",

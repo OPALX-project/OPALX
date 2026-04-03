@@ -229,9 +229,9 @@ def manufactured_setup_from_h5(np, h5_path: Path, step_number: int, state_raw: s
 
         rho, origin, spacing = read_h5_scalar_field(np, step, "rho")
         phi, _, _ = read_h5_scalar_field(np, step, "phi")
+        ex, _, _ = read_h5_scalar_field(np, step, "Ex")
+        ey, _, _ = read_h5_scalar_field(np, step, "Ey")
         ez, _, _ = read_h5_scalar_field(np, step, "Ez")
-        # ey, _, _ = read_h5_scalar_field(np, step, "Ey")
-        # ez, _, _ = read_h5_scalar_field(np, step, "Ez")
 
         path_length_s = float(decode_value(attrs.get("path_length_s")))
         interaction_point_s = float(decode_value(attrs.get("interaction_point_s")))
@@ -270,9 +270,9 @@ def manufactured_setup_from_h5(np, h5_path: Path, step_number: int, state_raw: s
             "opalx": {
                 "rho": rho,
                 "phi": phi,
+                "Ex": ex,
+                "Ey": ey,
                 "Ez": ez,
-                # "Ey": ey,
-                # "Ez": ez,
             },
         }
 
@@ -288,6 +288,34 @@ def compute_error_metrics(np, reference, candidate):
         "l2": diff_l2,
         "rel_l2": rel_l2,
         "diff": diff,
+    }
+
+
+def compute_volume_integral(np, field, spacing):
+    cell_volume = float(spacing[0] * spacing[1] * spacing[2])
+    return float(np.sum(field) * cell_volume)
+
+
+def compute_line_antisymmetry_metrics(np, z_coords, values, symmetry_z):
+    mirrored_coords = 2.0 * symmetry_z - z_coords
+    valid = (mirrored_coords >= float(np.min(z_coords))) & (mirrored_coords <= float(np.max(z_coords)))
+    if not np.any(valid):
+        return {
+            "max_abs": float("nan"),
+            "l2": float("nan"),
+            "rel_l2": float("nan"),
+            "residual": np.array([], dtype=float),
+        }
+
+    mirrored_values = np.interp(mirrored_coords[valid], z_coords, values)
+    residual = values[valid] + mirrored_values
+    ref_l2 = float(np.sqrt(np.sum(values[valid] * values[valid])))
+    diff_l2 = float(np.sqrt(np.sum(residual * residual)))
+    return {
+        "max_abs": float(np.max(np.abs(residual))),
+        "l2": diff_l2,
+        "rel_l2": diff_l2 / ref_l2 if ref_l2 > 0.0 else float("nan"),
+        "residual": residual,
     }
 
 
@@ -310,6 +338,30 @@ def central_z_axis_line(np, field, origin, spacing):
     z_coords = origin[2] + (np.arange(field.shape[0]) + 0.5) * spacing[2]
     values = field[:, y_index, x_index]
     return z_coords, values
+
+
+def transverse_x_axis_line(np, field, origin, spacing, z_target):
+    nx = field.shape[2]
+    ny = field.shape[1]
+    nz = field.shape[0]
+    x_coords = origin[0] + (np.arange(nx) + 0.5) * spacing[0]
+    z_coords = origin[2] + (np.arange(nz) + 0.5) * spacing[2]
+    y_index = ny // 2
+    z_index = int(np.argmin(np.abs(z_coords - z_target)))
+    values = field[z_index, y_index, :]
+    return x_coords, values
+
+
+def transverse_y_axis_line(np, field, origin, spacing, z_target):
+    nx = field.shape[2]
+    ny = field.shape[1]
+    nz = field.shape[0]
+    y_coords = origin[1] + (np.arange(ny) + 0.5) * spacing[1]
+    z_coords = origin[2] + (np.arange(nz) + 0.5) * spacing[2]
+    x_index = nx // 2
+    z_index = int(np.argmin(np.abs(z_coords - z_target)))
+    values = field[z_index, :, x_index]
+    return y_coords, values
 
 
 def derived_output_path(output, suffix):
@@ -517,6 +569,103 @@ def plot_phi_z_axis_diagnostic(np, plt, analytic, opalx, origin, spacing, title,
     finalize_figure(plt, fig, output)
 
 
+def plot_ez_z_axis_diagnostic(np, plt, analytic, opalx, origin, spacing, title, output, axis_limits=None):
+    z_coords, analytic_line = central_z_axis_line(np, analytic["Ez"], origin, spacing)
+    _, opalx_line = central_z_axis_line(np, opalx["Ez"], origin, spacing)
+    delta_line = opalx_line - analytic_line
+
+    fig, axes = plt.subplots(2, 1, figsize=(10, 7), squeeze=False, constrained_layout=True)
+    fig.suptitle(title)
+
+    main_ax = axes[0][0]
+    main_ax.plot(z_coords, analytic_line, label="analytic", linewidth=2.0)
+    main_ax.plot(z_coords, opalx_line, label="OPALX", linewidth=1.8, linestyle="--")
+    main_ax.set_xlabel("z [m]")
+    main_ax.set_ylabel(r"$E_z$ [V/m]")
+    main_ax.legend()
+    main_ax.grid(True, alpha=0.3)
+    if axis_limits is not None:
+        main_ax.set_xlim(*axis_limits["x"])
+        main_ax.set_ylim(*axis_limits["main_y"])
+
+    diff_ax = axes[1][0]
+    diff_ax.plot(z_coords, delta_line, color="black", linewidth=1.8)
+    diff_ax.set_xlabel("z [m]")
+    diff_ax.set_ylabel(r"$\Delta E_z$")
+    diff_ax.grid(True, alpha=0.3)
+    if axis_limits is not None:
+        diff_ax.set_xlim(*axis_limits["x"])
+        diff_ax.set_ylim(*axis_limits["diff_y"])
+
+    finalize_figure(plt, fig, output)
+
+
+def plot_ex_x_axis_diagnostic(
+    np, plt, analytic, opalx, origin, spacing, title, output, z_target, axis_limits=None
+):
+    x_coords, analytic_line = transverse_x_axis_line(np, analytic["Ex"], origin, spacing, z_target)
+    _, opalx_line = transverse_x_axis_line(np, opalx["Ex"], origin, spacing, z_target)
+    delta_line = opalx_line - analytic_line
+
+    fig, axes = plt.subplots(2, 1, figsize=(10, 7), squeeze=False, constrained_layout=True)
+    fig.suptitle(title)
+
+    main_ax = axes[0][0]
+    main_ax.plot(x_coords, analytic_line, label="analytic", linewidth=2.0)
+    main_ax.plot(x_coords, opalx_line, label="OPALX", linewidth=1.8, linestyle="--")
+    main_ax.set_xlabel("x [m]")
+    main_ax.set_ylabel(r"$E_x$ [V/m]")
+    main_ax.legend()
+    main_ax.grid(True, alpha=0.3)
+    if axis_limits is not None:
+        main_ax.set_xlim(*axis_limits["x"])
+        main_ax.set_ylim(*axis_limits["main_y"])
+
+    diff_ax = axes[1][0]
+    diff_ax.plot(x_coords, delta_line, color="black", linewidth=1.8)
+    diff_ax.set_xlabel("x [m]")
+    diff_ax.set_ylabel(r"$\Delta E_x$")
+    diff_ax.grid(True, alpha=0.3)
+    if axis_limits is not None:
+        diff_ax.set_xlim(*axis_limits["x"])
+        diff_ax.set_ylim(*axis_limits["diff_y"])
+
+    finalize_figure(plt, fig, output)
+
+
+def plot_ey_y_axis_diagnostic(
+    np, plt, analytic, opalx, origin, spacing, title, output, z_target, axis_limits=None
+):
+    y_coords, analytic_line = transverse_y_axis_line(np, analytic["Ey"], origin, spacing, z_target)
+    _, opalx_line = transverse_y_axis_line(np, opalx["Ey"], origin, spacing, z_target)
+    delta_line = opalx_line - analytic_line
+
+    fig, axes = plt.subplots(2, 1, figsize=(10, 7), squeeze=False, constrained_layout=True)
+    fig.suptitle(title)
+
+    main_ax = axes[0][0]
+    main_ax.plot(y_coords, analytic_line, label="analytic", linewidth=2.0)
+    main_ax.plot(y_coords, opalx_line, label="OPALX", linewidth=1.8, linestyle="--")
+    main_ax.set_xlabel("y [m]")
+    main_ax.set_ylabel(r"$E_y$ [V/m]")
+    main_ax.legend()
+    main_ax.grid(True, alpha=0.3)
+    if axis_limits is not None:
+        main_ax.set_xlim(*axis_limits["x"])
+        main_ax.set_ylim(*axis_limits["main_y"])
+
+    diff_ax = axes[1][0]
+    diff_ax.plot(y_coords, delta_line, color="black", linewidth=1.8)
+    diff_ax.set_xlabel("y [m]")
+    diff_ax.set_ylabel(r"$\Delta E_y$")
+    diff_ax.grid(True, alpha=0.3)
+    if axis_limits is not None:
+        diff_ax.set_xlim(*axis_limits["x"])
+        diff_ax.set_ylim(*axis_limits["diff_y"])
+
+    finalize_figure(plt, fig, output)
+
+
 def parse_args():
     parser = argparse.ArgumentParser(
         description="Manufactured-solution tool for symmetric 3D Gaussian BeamBeam test cases."
@@ -587,18 +736,61 @@ def main() -> int:
                 f"({center[0]:.6e}, {center[1]:.6e}, {center[2]:.6e})"
             )
 
-        for name in ("rho", "phi"):
+        for name in ("rho", "phi", "Ex", "Ey", "Ez"):
             metrics = compute_error_metrics(np, analytic[name], setup["opalx"][name])
             print(
                 f"{name}: max|Δ|={metrics['max_abs']:.6e}, "
                 f"L2={metrics['l2']:.6e}, relL2={metrics['rel_l2']:.6e}"
             )
-        # for name in ("Ex", "Ey", "Ez"):
-        #     metrics = compute_error_metrics(np, analytic[name], setup["opalx"][name])
-        #     print(
-        #         f"{name}: max|Δ|={metrics['max_abs']:.6e}, "
-        #         f"L2={metrics['l2']:.6e}, relL2={metrics['rel_l2']:.6e}"
-        #     )
+
+        ip_beam_z = setup["interaction_point_s"] - setup["path_length_s"]
+        z_coords, analytic_ez_line = central_z_axis_line(np, analytic["Ez"], origin, spacing)
+        _, opalx_ez_line = central_z_axis_line(np, setup["opalx"]["Ez"], origin, spacing)
+        analytic_integral = compute_volume_integral(np, analytic["Ez"], spacing)
+        opalx_integral = compute_volume_integral(np, setup["opalx"]["Ez"], spacing)
+        analytic_antisym = compute_line_antisymmetry_metrics(np, z_coords, analytic_ez_line, ip_beam_z)
+        opalx_antisym = compute_line_antisymmetry_metrics(np, z_coords, opalx_ez_line, ip_beam_z)
+        ip_index = int(np.argmin(np.abs(z_coords - ip_beam_z)))
+        print(
+            f"Ez integral: analytic={analytic_integral:.6e}, "
+            f"OPALX={opalx_integral:.6e} [V m^2]"
+        )
+        print(
+            f"Ez(IP) on axis: analytic={analytic_ez_line[ip_index]:.6e}, "
+            f"OPALX={opalx_ez_line[ip_index]:.6e} [V/m]"
+        )
+        print(
+            f"Ez antisymmetry on axis: analytic max|res|={analytic_antisym['max_abs']:.6e}, "
+            f"OPALX max|res|={opalx_antisym['max_abs']:.6e}"
+        )
+
+        x_coords, analytic_ex_line = transverse_x_axis_line(np, analytic["Ex"], origin, spacing, ip_beam_z)
+        _, opalx_ex_line = transverse_x_axis_line(np, setup["opalx"]["Ex"], origin, spacing, ip_beam_z)
+        analytic_ex_antisym = compute_line_antisymmetry_metrics(np, x_coords, analytic_ex_line, 0.0)
+        opalx_ex_antisym = compute_line_antisymmetry_metrics(np, x_coords, opalx_ex_line, 0.0)
+        x0_index = int(np.argmin(np.abs(x_coords)))
+        print(
+            f"Ex(x, z≈IP) on axis: analytic={analytic_ex_line[x0_index]:.6e}, "
+            f"OPALX={opalx_ex_line[x0_index]:.6e} [V/m]"
+        )
+        print(
+            f"Ex antisymmetry at IP plane: analytic max|res|={analytic_ex_antisym['max_abs']:.6e}, "
+            f"OPALX max|res|={opalx_ex_antisym['max_abs']:.6e}"
+        )
+
+        y_coords, analytic_ey_line = transverse_y_axis_line(np, analytic["Ey"], origin, spacing, ip_beam_z)
+        _, opalx_ey_line = transverse_y_axis_line(np, setup["opalx"]["Ey"], origin, spacing, ip_beam_z)
+        analytic_ey_antisym = compute_line_antisymmetry_metrics(np, y_coords, analytic_ey_line, 0.0)
+        opalx_ey_antisym = compute_line_antisymmetry_metrics(np, y_coords, opalx_ey_line, 0.0)
+        y0_index = int(np.argmin(np.abs(y_coords)))
+        print(
+            f"Ey(y, z≈IP) on axis: analytic={analytic_ey_line[y0_index]:.6e}, "
+            f"OPALX={opalx_ey_line[y0_index]:.6e} [V/m]"
+        )
+        print(
+            f"Ey antisymmetry at IP plane: analytic max|res|={analytic_ey_antisym['max_abs']:.6e}, "
+            f"OPALX max|res|={opalx_ey_antisym['max_abs']:.6e}"
+        )
 
         title = (
             f"Manufactured solution vs OPALX | "
@@ -627,6 +819,41 @@ def main() -> int:
             spacing,
             f"{title}",
             phi_line_output,
+        )
+        ez_line_output = derived_output_path(args.output, "-ez-z-axis")
+        plot_ez_z_axis_diagnostic(
+            np,
+            plt,
+            analytic,
+            setup["opalx"],
+            origin,
+            spacing,
+            f"{title}",
+            ez_line_output,
+        )
+        ex_line_output = derived_output_path(args.output, "-ex-x-axis")
+        plot_ex_x_axis_diagnostic(
+            np,
+            plt,
+            analytic,
+            setup["opalx"],
+            origin,
+            spacing,
+            f"{title}",
+            ex_line_output,
+            ip_beam_z,
+        )
+        ey_line_output = derived_output_path(args.output, "-ey-y-axis")
+        plot_ey_y_axis_diagnostic(
+            np,
+            plt,
+            analytic,
+            setup["opalx"],
+            origin,
+            spacing,
+            f"{title}",
+            ey_line_output,
+            ip_beam_z,
         )
         return 0
 
