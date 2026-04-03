@@ -31,6 +31,7 @@
 
 #include "Physics/LinearCompton.h"
 #include "Physics/Physics.h"
+#include "Utilities/Options.h"
 #include "gtest/gtest.h"
 
 #include <cmath>
@@ -159,4 +160,80 @@ TEST(TestLinearCompton, ExplicitLabPhotonEnergyMatchesForwardHelper) {
                                                                   beamDirection,
                                                                   laserDirection),
                 1.0e-12);
+}
+
+
+TEST(TestLinearCompton, SampledEventsRespectKinematicBounds) {
+    const int previousSeed = Options::seed;
+    Options::seed = 20260403;
+
+    const double electronTotalEnergyGeV = 1.0;
+    const double wavelength_m = 1.03e-6;
+    const double laserPhotonEnergyGeV = Physics::LinearCompton::photonEnergyFromWavelengthGeV(wavelength_m);
+
+    Vector_t<double, 3> beamDirection(0.0);
+    beamDirection(2) = 1.0;
+    Vector_t<double, 3> laserDirection(0.0);
+    laserDirection(0) = 1.0;
+
+    const auto kernel = Physics::LinearCompton::makeSamplingKernel(electronTotalEnergyGeV,
+                                                                   laserPhotonEnergyGeV,
+                                                                   beamDirection,
+                                                                   laserDirection);
+    auto engine = Physics::LinearCompton::makeHostRandomEngine();
+    const auto event = Physics::LinearCompton::sampleEvent(kernel, engine);
+
+    const double minERF = Physics::LinearCompton::scatteredPhotonEnergyMinERFGeV(
+        kernel.incomingPhotonEnergyERFGeV);
+    const double maxERF = Physics::LinearCompton::scatteredPhotonEnergyMaxERFGeV(
+        kernel.incomingPhotonEnergyERFGeV);
+    const double directionNorm = std::sqrt(dot(event.scatteredPhotonDirectionLab,
+                                               event.scatteredPhotonDirectionLab));
+
+    EXPECT_GE(event.scatteringCosineERF, -1.0);
+    EXPECT_LE(event.scatteringCosineERF, 1.0);
+    EXPECT_GE(event.azimuthERF, 0.0);
+    EXPECT_LT(event.azimuthERF, Physics::two_pi);
+    EXPECT_GE(event.scatteredPhotonEnergyERFGeV, minERF);
+    EXPECT_LE(event.scatteredPhotonEnergyERFGeV, maxERF);
+    EXPECT_GT(event.scatteredPhotonEnergyLabGeV, 0.0);
+    EXPECT_NEAR(directionNorm, 1.0, 1.0e-12);
+
+    Options::seed = previousSeed;
+}
+
+TEST(TestLinearCompton, FixedSeedProducesDeterministicSampleSequence) {
+    const int previousSeed = Options::seed;
+    Options::seed = 424242;
+
+    const double electronTotalEnergyGeV = 1.0;
+    const double wavelength_m = 1.03e-6;
+    const double laserPhotonEnergyGeV = Physics::LinearCompton::photonEnergyFromWavelengthGeV(wavelength_m);
+
+    Vector_t<double, 3> beamDirection(0.0);
+    beamDirection(2) = 1.0;
+    Vector_t<double, 3> laserDirection(0.0);
+    laserDirection(0) = 1.0;
+
+    const auto kernel = Physics::LinearCompton::makeSamplingKernel(electronTotalEnergyGeV,
+                                                                   laserPhotonEnergyGeV,
+                                                                   beamDirection,
+                                                                   laserDirection);
+    auto engine1 = Physics::LinearCompton::makeHostRandomEngine();
+    auto engine2 = Physics::LinearCompton::makeHostRandomEngine();
+
+    for (int i = 0; i < 8; ++i) {
+        const auto event1 = Physics::LinearCompton::sampleEvent(kernel, engine1);
+        const auto event2 = Physics::LinearCompton::sampleEvent(kernel, engine2);
+        EXPECT_DOUBLE_EQ(event1.scatteringCosineERF, event2.scatteringCosineERF);
+        EXPECT_DOUBLE_EQ(event1.azimuthERF, event2.azimuthERF);
+        EXPECT_DOUBLE_EQ(event1.scatteredPhotonEnergyERFGeV, event2.scatteredPhotonEnergyERFGeV);
+        EXPECT_DOUBLE_EQ(event1.scatteredPhotonEnergyLabGeV, event2.scatteredPhotonEnergyLabGeV);
+        for (int axis = 0; axis < 3; ++axis) {
+            EXPECT_DOUBLE_EQ(event1.scatteredPhotonDirectionLab(axis),
+                             event2.scatteredPhotonDirectionLab(axis));
+        }
+    }
+
+    Options::seed = previousSeed;
 }

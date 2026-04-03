@@ -2,9 +2,13 @@
 
 #include "Physics/Physics.h"
 #include "Utilities/OpalException.h"
+#include "Utilities/Options.h"
 
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
+#include <limits>
+#include <random>
 #include <string>
 
 namespace {
@@ -58,6 +62,56 @@ namespace {
 
         axis = cross(incomingDirectionERF, chooseReferenceDirection(incomingDirectionERF));
         return normalizeDirection(axis, where, "scatteringPlaneAxis");
+    }
+
+    Vector_t<double, 3> scatteredDirectionERF(const Vector_t<double, 3>& incomingDirectionERF,
+                                              const Vector_t<double, 3>& boostDirectionLab,
+                                              double scatteringCosineERF,
+                                              double azimuthERF,
+                                              const char* where) {
+        ensureCosineRange(scatteringCosineERF, where, "scatteringCosineERF");
+        const double clampedCosine = clampCosine(scatteringCosineERF);
+        const double sinTheta = std::sqrt(std::max(0.0, 1.0 - clampedCosine * clampedCosine));
+        const Vector_t<double, 3> axis1 = scatteringPlaneAxis(incomingDirectionERF,
+                                                              boostDirectionLab,
+                                                              where);
+        const Vector_t<double, 3> axis2 = normalizeDirection(cross(incomingDirectionERF, axis1),
+                                                             where,
+                                                             "axis2");
+        return normalizeDirection(
+            clampedCosine * incomingDirectionERF
+                + sinTheta * (std::cos(azimuthERF) * axis1 + std::sin(azimuthERF) * axis2),
+            where,
+            "scatteredDirectionERF");
+    }
+
+    std::uint64_t deterministicHostSeed() {
+        return Options::seed >= 0 ? static_cast<std::uint64_t>(Options::seed) : 123456789ULL;
+    }
+
+    std::uint64_t mixSeed(std::uint64_t seed, std::uint64_t streamIndex) {
+        const std::uint64_t golden = 0x9E3779B97F4A7C15ULL;
+        std::uint64_t mixed = seed + golden * (streamIndex + 1ULL);
+        mixed ^= (mixed >> 30);
+        mixed *= 0xBF58476D1CE4E5B9ULL;
+        mixed ^= (mixed >> 27);
+        mixed *= 0x94D049BB133111EBULL;
+        mixed ^= (mixed >> 31);
+        return mixed;
+    }
+
+    double rejectionUpperBoundSolidAngleERF(double incomingPhotonEnergyERFGeV) {
+        constexpr int samples = 4096;
+        double upperBound = 0.0;
+        for (int i = 0; i <= samples; ++i) {
+            const double mu = -1.0 + 2.0 * static_cast<double>(i) / static_cast<double>(samples);
+            upperBound = std::max(upperBound,
+                                  Physics::LinearCompton::differentialCrossSectionSolidAngleERF(
+                                      incomingPhotonEnergyERFGeV,
+                                      mu));
+        }
+
+        return std::max(upperBound * 1.0001, std::numeric_limits<double>::min());
     }
 }
 
@@ -119,6 +173,101 @@ Vector_t<double, 3> restFrameIncomingPhotonDirection(double electronTotalEnergyG
     const Vector_t<double, 3> directionERF = transverseComponent / (gamma * denominator)
         + ((cosAlpha - beta) / denominator) * normalizedBeamDirection;
     return normalizeDirection(directionERF, where, "directionERF");
+}
+
+Vector_t<double, 3> labPhotonDirection(double electronTotalEnergyGeV,
+                                       const Vector_t<double, 3>& beamDirection,
+                                       const Vector_t<double, 3>& laserDirection,
+                                       double scatteringCosineERF,
+                                       double azimuthERF) {
+    constexpr const char* where = "Physics::LinearCompton::labPhotonDirection()";
+    const double gamma = electronGamma(electronTotalEnergyGeV);
+    const double beta = electronBeta(electronTotalEnergyGeV);
+    const Vector_t<double, 3> normalizedBeamDirection =
+        normalizeDirection(beamDirection, where, "beamDirection");
+    const Vector_t<double, 3> incomingDirectionERF =
+        restFrameIncomingPhotonDirection(electronTotalEnergyGeV, beamDirection, laserDirection);
+    const Vector_t<double, 3> outgoingDirectionERF = scatteredDirectionERF(incomingDirectionERF,
+                                                                           normalizedBeamDirection,
+                                                                           scatteringCosineERF,
+                                                                           azimuthERF,
+                                                                           where);
+    const double parallelCosine = dot(outgoingDirectionERF, normalizedBeamDirection);
+    const Vector_t<double, 3> transverseDirection =
+        outgoingDirectionERF - parallelCosine * normalizedBeamDirection;
+    const Vector_t<double, 3> boostedDirection = transverseDirection
+        + gamma * (parallelCosine + beta) * normalizedBeamDirection;
+    return normalizeDirection(boostedDirection, where, "boostedDirection");
+}
+
+std::mt19937_64 makeHostRandomEngine(std::uint64_t streamIndex) {
+    return std::mt19937_64(mixSeed(deterministicHostSeed(), streamIndex));
+}
+
+SamplingKernel makeSamplingKernel(double electronTotalEnergyGeV,
+                                  double laserPhotonEnergyGeV,
+                                  const Vector_t<double, 3>& beamDirection,
+                                  const Vector_t<double, 3>& laserDirection) {
+    constexpr const char* where = "Physics::LinearCompton::makeSamplingKernel()";
+    ensureStrictlyPositive(laserPhotonEnergyGeV, where, "laserPhotonEnergyGeV");
+
+    SamplingKernel kernel;
+    kernel.electronTotalEnergyGeV = electronTotalEnergyGeV;
+    kernel.laserPhotonEnergyGeV = laserPhotonEnergyGeV;
+    kernel.beamDirection = normalizeDirection(beamDirection, where, "beamDirection");
+    kernel.laserDirection = normalizeDirection(laserDirection, where, "laserDirection");
+    kernel.incomingPhotonEnergyERFGeV = restFrameIncomingPhotonEnergyGeV(electronTotalEnergyGeV,
+                                                                         laserPhotonEnergyGeV,
+                                                                         kernel.beamDirection,
+                                                                         kernel.laserDirection);
+    kernel.rejectionUpperBoundSolidAngleERF = rejectionUpperBoundSolidAngleERF(
+        kernel.incomingPhotonEnergyERFGeV);
+    return kernel;
+}
+
+SampledEvent sampleEvent(const SamplingKernel& kernel, std::mt19937_64& engine) {
+    constexpr const char* where = "Physics::LinearCompton::sampleEvent()";
+    ensureStrictlyPositive(kernel.incomingPhotonEnergyERFGeV, where, "incomingPhotonEnergyERFGeV");
+    ensureStrictlyPositive(kernel.rejectionUpperBoundSolidAngleERF,
+                           where,
+                           "rejectionUpperBoundSolidAngleERF");
+
+    std::uniform_real_distribution<double> cosineDistribution(-1.0, 1.0);
+    std::uniform_real_distribution<double> azimuthDistribution(0.0, Physics::two_pi);
+    std::uniform_real_distribution<double> acceptDistribution(
+        0.0,
+        kernel.rejectionUpperBoundSolidAngleERF);
+
+    for (int attempt = 0; attempt < 1000000; ++attempt) {
+        const double scatteringCosineERF = cosineDistribution(engine);
+        const double differentialCrossSection = differentialCrossSectionSolidAngleERF(
+            kernel.incomingPhotonEnergyERFGeV,
+            scatteringCosineERF);
+        if (acceptDistribution(engine) > differentialCrossSection) {
+            continue;
+        }
+
+        SampledEvent event;
+        event.scatteringCosineERF = scatteringCosineERF;
+        event.azimuthERF = azimuthDistribution(engine);
+        event.scatteredPhotonEnergyERFGeV = scatteredPhotonEnergyERFGeV(
+            kernel.incomingPhotonEnergyERFGeV,
+            event.scatteringCosineERF);
+        event.scatteredPhotonEnergyLabGeV = labPhotonEnergyGeV(kernel.electronTotalEnergyGeV,
+                                                               kernel.laserPhotonEnergyGeV,
+                                                               kernel.beamDirection,
+                                                               kernel.laserDirection,
+                                                               event.scatteringCosineERF,
+                                                               event.azimuthERF);
+        event.scatteredPhotonDirectionLab = labPhotonDirection(kernel.electronTotalEnergyGeV,
+                                                               kernel.beamDirection,
+                                                               kernel.laserDirection,
+                                                               event.scatteringCosineERF,
+                                                               event.azimuthERF);
+        return event;
+    }
+
+    throw OpalException(where, "Rejection sampler failed to accept an event within the attempt limit.");
 }
 
 double invariantKappa(double incomingPhotonEnergyERFGeV) {
@@ -248,20 +397,13 @@ double labPhotonEnergyGeV(double electronTotalEnergyGeV,
                                                            beamDirection,
                                                            laserDirection);
     const double clampedCosine = clampCosine(scatteringCosineERF);
-    const double sinTheta = std::sqrt(std::max(0.0, 1.0 - clampedCosine * clampedCosine));
-    const Vector_t<double, 3> axis1 = scatteringPlaneAxis(incomingDirectionERF,
-                                                          normalizedBeamDirection,
-                                                          where);
-    const Vector_t<double, 3> axis2 = normalizeDirection(cross(incomingDirectionERF, axis1),
-                                                         where,
-                                                         "axis2");
-    const Vector_t<double, 3> scatteredDirectionERF = normalizeDirection(
-        clampedCosine * incomingDirectionERF
-            + sinTheta * (std::cos(azimuthERF) * axis1 + std::sin(azimuthERF) * axis2),
-        where,
-        "scatteredDirectionERF");
+    const Vector_t<double, 3> outgoingDirectionERF = scatteredDirectionERF(incomingDirectionERF,
+                                                                            normalizedBeamDirection,
+                                                                            clampedCosine,
+                                                                            azimuthERF,
+                                                                            where);
     const double omega2 = scatteredPhotonEnergyERFGeV(omega1, clampedCosine);
-    return gamma * omega2 * (1.0 + beta * dot(scatteredDirectionERF, normalizedBeamDirection));
+    return gamma * omega2 * (1.0 + beta * dot(outgoingDirectionERF, normalizedBeamDirection));
 }
 
 double labForwardPhotonEnergyGeV(double electronTotalEnergyGeV,
