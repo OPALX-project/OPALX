@@ -4,6 +4,7 @@
 #include "Physics/LinearCompton.h"
 #include "Physics/Physics.h"
 
+#include <cstdint>
 #include <cmath>
 #include <filesystem>
 #include <fstream>
@@ -99,6 +100,56 @@ inline SpectrumHistogram integrateLabSpectrum(const SpectrumConfig& config) {
 
     if (histogram.totalWeight <= 0.0) {
         throw std::runtime_error("LinearComptonBenchmark: total histogram weight is not positive.");
+    }
+
+    for (std::size_t i = 0; i < histogram.densityPerGeV.size(); ++i) {
+        histogram.densityPerGeV[i] = histogram.counts[i]
+            / (histogram.totalWeight * histogram.binWidthGeV);
+    }
+
+    return histogram;
+}
+
+inline SpectrumHistogram sampleLabSpectrum(const SpectrumConfig& config,
+                                         std::size_t sampleCount,
+                                         std::uint64_t streamIndex = 0) {
+    SpectrumHistogram histogram;
+    histogram.binWidthGeV = (config.energyMaxGeV - config.energyMinGeV)
+        / static_cast<double>(config.bins);
+    histogram.centersGeV.resize(config.bins);
+    histogram.densityPerGeV.assign(config.bins, 0.0);
+    histogram.counts.assign(config.bins, 0.0);
+
+    for (std::size_t i = 0; i < config.bins; ++i) {
+        histogram.centersGeV[i] = config.energyMinGeV
+            + (static_cast<double>(i) + 0.5) * histogram.binWidthGeV;
+    }
+
+    const double laserPhotonEnergyGeV = Physics::LinearCompton::photonEnergyFromWavelengthGeV(
+        config.wavelength_m);
+    const auto kernel = Physics::LinearCompton::makeSamplingKernel(config.electronTotalEnergyGeV,
+                                                                   laserPhotonEnergyGeV,
+                                                                   config.beamDirection,
+                                                                   config.laserDirection);
+    auto engine = Physics::LinearCompton::makeHostRandomEngine(streamIndex);
+
+    histogram.totalWeight = static_cast<double>(sampleCount);
+    for (std::size_t i = 0; i < sampleCount; ++i) {
+        const auto event = Physics::LinearCompton::sampleEvent(kernel, engine);
+        const double energyGeV = event.scatteredPhotonEnergyLabGeV;
+        if (energyGeV < config.energyMinGeV || energyGeV >= config.energyMaxGeV) {
+            continue;
+        }
+
+        const std::size_t bin = static_cast<std::size_t>(
+            (energyGeV - config.energyMinGeV) / histogram.binWidthGeV);
+        if (bin < histogram.counts.size()) {
+            histogram.counts[bin] += 1.0;
+        }
+    }
+
+    if (histogram.totalWeight <= 0.0) {
+        throw std::runtime_error("LinearComptonBenchmark: sample count must be positive.");
     }
 
     for (std::size_t i = 0; i < histogram.densityPerGeV.size(); ++i) {

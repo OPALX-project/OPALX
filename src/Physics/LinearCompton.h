@@ -3,8 +3,48 @@
 
 #include "OPALTypes.h"
 
+#include <cstdint>
+#include <random>
+
 namespace Physics {
 namespace LinearCompton {
+
+/**
+ * @brief Host-only cached data for repeated linear-Compton event sampling.
+ *
+ * The first Monte Carlo validation path in OPALX is intentionally scalar and
+ * host-side. This structure caches the fixed beam / laser geometry, the
+ * incoming photon energy in the electron rest frame, and the rejection-sampler
+ * envelope used to sample @f$\cos\Theta^*@f$ from the unpolarized
+ * Klein-Nishina kernel.
+ *
+ * The kernel is designed for deterministic testing and validation:
+ * create it once for a fixed benchmark geometry, seed a host RNG from
+ * `Options::seed`, and then draw sampled events via @ref sampleEvent.
+ */
+struct SamplingKernel {
+    double electronTotalEnergyGeV = 0.0;
+    double laserPhotonEnergyGeV = 0.0;
+    Vector_t<double, 3> beamDirection = Vector_t<double, 3>(0.0);
+    Vector_t<double, 3> laserDirection = Vector_t<double, 3>(0.0);
+    double incomingPhotonEnergyERFGeV = 0.0;
+    double rejectionUpperBoundSolidAngleERF = 0.0;
+};
+
+/**
+ * @brief Sampled single-photon Compton event.
+ *
+ * The event is parameterized by the electron-rest-frame scattering variables
+ * @f$(\cos\Theta^*, \phi^*)@f$ and the corresponding scattered photon energy
+ * and direction after boosting back to the laboratory frame.
+ */
+struct SampledEvent {
+    double scatteringCosineERF = 0.0;
+    double azimuthERF = 0.0;
+    double scatteredPhotonEnergyERFGeV = 0.0;
+    double scatteredPhotonEnergyLabGeV = 0.0;
+    Vector_t<double, 3> scatteredPhotonDirectionLab = Vector_t<double, 3>(0.0);
+};
 
 /**
  * @brief Convert a laser wavelength to a single-photon energy.
@@ -165,6 +205,27 @@ Vector_t<double, 3> restFrameIncomingPhotonDirection(double electronTotalEnergyG
                                                      const Vector_t<double, 3>& laserDirection);
 
 /**
+ * @brief Laboratory-frame photon direction from electron-rest-frame scattering angles.
+ *
+ * The outgoing photon direction is defined in the electron rest frame by
+ * @f$\cos\Theta^*@f$ and @f$\phi^*@f$ around the incoming photon axis. The
+ * corresponding direction is then Lorentz boosted back to the laboratory
+ * frame along the incoming electron beam direction.
+ *
+ * @param electronTotalEnergyGeV Electron total energy in GeV.
+ * @param beamDirection Laboratory-frame incoming electron direction.
+ * @param laserDirection Laboratory-frame incoming laser direction.
+ * @param scatteringCosineERF Rest-frame scattering cosine @f$\cos\Theta^*@f$.
+ * @param azimuthERF Rest-frame azimuth angle @f$\phi^*@f$ in rad.
+ * @return Unit vector for the scattered photon direction in the laboratory frame.
+ */
+Vector_t<double, 3> labPhotonDirection(double electronTotalEnergyGeV,
+                                       const Vector_t<double, 3>& beamDirection,
+                                       const Vector_t<double, 3>& laserDirection,
+                                       double scatteringCosineERF,
+                                       double azimuthERF);
+
+/**
  * @brief Laboratory-frame photon energy from electron-rest-frame scattering angles.
  *
  * The outgoing photon is defined by a rest-frame scattering cosine
@@ -278,6 +339,51 @@ double labForwardPhotonEnergyGeV(double electronTotalEnergyGeV,
                                  double laserPhotonEnergyGeV,
                                  const Vector_t<double, 3>& beamDirection,
                                  const Vector_t<double, 3>& laserDirection);
+
+/**
+ * @brief Create a deterministic host-side random engine for Monte Carlo validation.
+ *
+ * The engine is seeded from `Options::seed`. For the validation path, a
+ * negative seed falls back to a fixed constant instead of a time-dependent
+ * seed so that unit tests remain reproducible.
+ *
+ * @param streamIndex Optional stream offset for independent deterministic streams.
+ * @return Host-side Mersenne-Twister engine.
+ */
+std::mt19937_64 makeHostRandomEngine(std::uint64_t streamIndex = 0);
+
+/**
+ * @brief Build a cached sampling kernel for repeated event generation.
+ *
+ * This precomputes the incoming photon energy in the electron rest frame and a
+ * safe rejection-sampling envelope for the unpolarized
+ * @f$d\sigma/d\Omega^*@f$ kernel.
+ *
+ * @param electronTotalEnergyGeV Electron total energy in GeV.
+ * @param laserPhotonEnergyGeV Laser photon energy in GeV.
+ * @param beamDirection Laboratory-frame incoming electron direction.
+ * @param laserDirection Laboratory-frame incoming laser direction.
+ * @return Cached host-side sampling kernel.
+ */
+SamplingKernel makeSamplingKernel(double electronTotalEnergyGeV,
+                                  double laserPhotonEnergyGeV,
+                                  const Vector_t<double, 3>& beamDirection,
+                                  const Vector_t<double, 3>& laserDirection);
+
+/**
+ * @brief Sample one unpolarized linear-Compton event on the host.
+ *
+ * The sampler draws @f$\cos\Theta^*@f$ by rejection from the exact
+ * Klein-Nishina angular kernel and samples @f$\phi^*@f$ uniformly on
+ * @f$[0, 2\pi)@f$. The returned event contains both rest-frame and
+ * laboratory-frame observables.
+ *
+ * @param kernel Cached sampling kernel created by @ref makeSamplingKernel.
+ * @param engine Host-side random engine, typically created by
+ *        @ref makeHostRandomEngine.
+ * @return Sampled linear-Compton event.
+ */
+SampledEvent sampleEvent(const SamplingKernel& kernel, std::mt19937_64& engine);
 
 }  // namespace LinearCompton
 }  // namespace Physics
