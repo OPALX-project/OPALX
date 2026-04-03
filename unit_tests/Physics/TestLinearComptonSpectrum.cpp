@@ -34,6 +34,13 @@ std::filesystem::path referenceSpectrumPath() {
         / "cain_linear_compton_90deg_xi029_histogram.csv";
 }
 
+/** @brief Stored CAIN joint E_gamma-theta_gamma reference for the weak-field single-electron case. */
+std::filesystem::path referenceJointSpectrumPath() {
+    return std::filesystem::path(OPALX_TEST_SOURCE_DIR)
+        / "data"
+        / "cain_linear_compton_90deg_xi029_joint_histogram.csv";
+}
+
 /** @brief Stored CAIN lab-angle reference for the weak-field single-electron case. */
 std::filesystem::path referenceAngularSpectrumPath() {
     return std::filesystem::path(OPALX_TEST_SOURCE_DIR)
@@ -181,7 +188,57 @@ TEST(TestLinearComptonSpectrum, WeakFieldSampledAngularSpectrumMatchesCainRefere
 
     const double l1Distance = LinearComptonBenchmark::angleHistogramL1Distance(opalxSpectrum,
                                                                                cainSpectrum);
+    EXPECT_LT(l1Distance, 0.10);
+
+    Options::seed = previousSeed;
+}
+
+TEST(TestLinearComptonSpectrum, WeakFieldJointSpectrumMatchesCainReference) {
+    LinearComptonBenchmark::JointConfig config;
+    const auto opalxSpectrum = LinearComptonBenchmark::integrateLabJointSpectrum(config);
+    const auto cainSpectrum = LinearComptonBenchmark::readJointCSV(referenceJointSpectrumPath());
+
+    ASSERT_EQ(opalxSpectrum.energyCentersGeV.size(), cainSpectrum.energyCentersGeV.size());
+    ASSERT_EQ(opalxSpectrum.thetaCentersRad.size(), cainSpectrum.thetaCentersRad.size());
+    EXPECT_NEAR(LinearComptonBenchmark::jointHistogramArea(opalxSpectrum), 1.0, 2.0e-3);
+    EXPECT_NEAR(LinearComptonBenchmark::jointHistogramArea(cainSpectrum), 1.0, 2.0e-3);
+
+    const double opalxMeanEnergy = LinearComptonBenchmark::jointHistogramMeanEnergyGeV(opalxSpectrum);
+    const double cainMeanEnergy = LinearComptonBenchmark::jointHistogramMeanEnergyGeV(cainSpectrum);
+    EXPECT_NEAR(opalxMeanEnergy, cainMeanEnergy, cainMeanEnergy * 3.0e-2);
+
+    const double opalxMeanTheta = LinearComptonBenchmark::jointHistogramMeanThetaRad(opalxSpectrum);
+    const double cainMeanTheta = LinearComptonBenchmark::jointHistogramMeanThetaRad(cainSpectrum);
+    EXPECT_NEAR(opalxMeanTheta, cainMeanTheta, cainMeanTheta * 5.0e-2);
+
+    const double l1Distance = LinearComptonBenchmark::jointHistogramL1Distance(opalxSpectrum,
+                                                                               cainSpectrum);
     EXPECT_LT(l1Distance, 0.16);
+}
+
+TEST(TestLinearComptonSpectrum, WeakFieldSampledJointSpectrumMatchesCainReference) {
+    const int previousSeed = Options::seed;
+    Options::seed = 13579;
+
+    LinearComptonBenchmark::JointConfig config;
+    const auto opalxSpectrum = LinearComptonBenchmark::sampleLabJointSpectrum(config, 250000);
+    const auto cainSpectrum = LinearComptonBenchmark::readJointCSV(referenceJointSpectrumPath());
+
+    ASSERT_EQ(opalxSpectrum.energyCentersGeV.size(), cainSpectrum.energyCentersGeV.size());
+    ASSERT_EQ(opalxSpectrum.thetaCentersRad.size(), cainSpectrum.thetaCentersRad.size());
+    EXPECT_NEAR(LinearComptonBenchmark::jointHistogramArea(opalxSpectrum), 1.0, 1.5e-2);
+
+    const double opalxMeanEnergy = LinearComptonBenchmark::jointHistogramMeanEnergyGeV(opalxSpectrum);
+    const double cainMeanEnergy = LinearComptonBenchmark::jointHistogramMeanEnergyGeV(cainSpectrum);
+    EXPECT_NEAR(opalxMeanEnergy, cainMeanEnergy, cainMeanEnergy * 3.5e-2);
+
+    const double opalxMeanTheta = LinearComptonBenchmark::jointHistogramMeanThetaRad(opalxSpectrum);
+    const double cainMeanTheta = LinearComptonBenchmark::jointHistogramMeanThetaRad(cainSpectrum);
+    EXPECT_NEAR(opalxMeanTheta, cainMeanTheta, cainMeanTheta * 6.0e-2);
+
+    const double l1Distance = LinearComptonBenchmark::jointHistogramL1Distance(opalxSpectrum,
+                                                                               cainSpectrum);
+    EXPECT_LT(l1Distance, 0.09);
 
     Options::seed = previousSeed;
 }
