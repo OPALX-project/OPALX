@@ -8,7 +8,13 @@ std::filesystem::path referenceSpectrumPath() {
         / "data"
         / "cain_linear_compton_90deg_xi029_histogram.csv";
 }
+
+std::filesystem::path referenceAngularSpectrumPath() {
+    return std::filesystem::path(OPALX_TEST_SOURCE_DIR)
+        / "data"
+        / "cain_linear_compton_90deg_xi029_theta_histogram.csv";
 }
+}  // namespace
 
 TEST(TestLinearComptonSpectrum, WeakFieldSpectrumMatchesCainReference) {
     LinearComptonBenchmark::SpectrumConfig config;
@@ -28,7 +34,6 @@ TEST(TestLinearComptonSpectrum, WeakFieldSpectrumMatchesCainReference) {
     EXPECT_LT(l1Distance, 0.1);
 }
 
-
 TEST(TestLinearComptonSpectrum, WeakFieldSampledSpectrumMatchesCainReference) {
     const int previousSeed = Options::seed;
     Options::seed = 13579;
@@ -47,6 +52,46 @@ TEST(TestLinearComptonSpectrum, WeakFieldSampledSpectrumMatchesCainReference) {
     const double l1Distance = LinearComptonBenchmark::histogramL1Distance(opalxSpectrum,
                                                                           cainSpectrum);
     EXPECT_LT(l1Distance, 0.14);
+
+    Options::seed = previousSeed;
+}
+
+TEST(TestLinearComptonSpectrum, WeakFieldAngularSpectrumMatchesCainReference) {
+    LinearComptonBenchmark::AngleConfig config;
+    const auto opalxSpectrum = LinearComptonBenchmark::integrateLabAngularSpectrum(config);
+    const auto cainSpectrum = LinearComptonBenchmark::readAngleCSV(referenceAngularSpectrumPath());
+
+    ASSERT_EQ(opalxSpectrum.centersRad.size(), cainSpectrum.centersRad.size());
+    EXPECT_NEAR(LinearComptonBenchmark::angleHistogramArea(opalxSpectrum), 1.0, 5.0e-4);
+    EXPECT_NEAR(LinearComptonBenchmark::angleHistogramArea(cainSpectrum), 1.0, 5.0e-4);
+
+    const double opalxMean = LinearComptonBenchmark::angleHistogramMeanRad(opalxSpectrum);
+    const double cainMean = LinearComptonBenchmark::angleHistogramMeanRad(cainSpectrum);
+    EXPECT_NEAR(opalxMean, cainMean, cainMean * 5.0e-2);
+
+    const double l1Distance = LinearComptonBenchmark::angleHistogramL1Distance(opalxSpectrum,
+                                                                               cainSpectrum);
+    EXPECT_LT(l1Distance, 0.12);
+}
+
+TEST(TestLinearComptonSpectrum, WeakFieldSampledAngularSpectrumMatchesCainReference) {
+    const int previousSeed = Options::seed;
+    Options::seed = 13579;
+
+    LinearComptonBenchmark::AngleConfig config;
+    const auto opalxSpectrum = LinearComptonBenchmark::sampleLabAngularSpectrum(config, 250000);
+    const auto cainSpectrum = LinearComptonBenchmark::readAngleCSV(referenceAngularSpectrumPath());
+
+    ASSERT_EQ(opalxSpectrum.centersRad.size(), cainSpectrum.centersRad.size());
+    EXPECT_NEAR(LinearComptonBenchmark::angleHistogramArea(opalxSpectrum), 1.0, 2.0e-2);
+
+    const double opalxMean = LinearComptonBenchmark::angleHistogramMeanRad(opalxSpectrum);
+    const double cainMean = LinearComptonBenchmark::angleHistogramMeanRad(cainSpectrum);
+    EXPECT_NEAR(opalxMean, cainMean, cainMean * 5.0e-2);
+
+    const double l1Distance = LinearComptonBenchmark::angleHistogramL1Distance(opalxSpectrum,
+                                                                               cainSpectrum);
+    EXPECT_LT(l1Distance, 0.16);
 
     Options::seed = previousSeed;
 }
