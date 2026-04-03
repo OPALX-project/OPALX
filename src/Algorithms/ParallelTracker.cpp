@@ -337,6 +337,8 @@ void ParallelTracker::execute() {
         // Set the number of steps for the current track
         unsigned long long trackSteps = stepSizes_m.getNumSteps() + step;
         dtCurrentTrack_m              = stepSizes_m.getdT();
+
+        //! Select new PartBunch dt from "dtCurrentTrack_m" and deep copy to all containers
         changeDT();
 
         // Inner loop over the number of steps for the current configuration
@@ -396,12 +398,14 @@ void ParallelTracker::execute() {
 
             // Set dt for all particles (including newly emitted) so next step's push uses correct per-particle dt.
             // Reset particle time step size to the current track time step (pulled out of timeIntegration2)
+            //! Deep copy PartBunch dt to all containers
             setTime();
             m << level5 << "Set time view of particle bunch to dt = " << Util::getTimeString(itsBunch_m->getdT()) << "." << endl;
 
             // Select new time step size for the next iteration based on the current track configuration
-            selectDT();
-            m << level5 << "Selected new time step for next iteration." << endl;
+            //! Select new PartBunch dt from "dtCurrentTrack_m" and deep copy to all containers
+            //selectDT();
+            //m << level5 << "Selected new time step for next iteration." << endl;
             
             // Update the bunch time
             itsBunch_m->incrementT();
@@ -763,8 +767,7 @@ void ParallelTracker::pushParticles(
     const BorisPusher& pusher,
     const std::shared_ptr<PartBunch_t::ParticleContainer_t>& pc) {
 
-    /// \todo use false for now, since I am not sure how well integrated "dt_per_particle" is (needs to be consistent with particle emission later!).
-    itsBunch_m->switchToUnitlessPositions(true);
+    pc->switchToUnitlessPositions();
 
     auto Rview  = pc->R.getView();
     auto Pview  = pc->P.getView();
@@ -788,7 +791,7 @@ void ParallelTracker::pushParticles(
             Rview(i) = x;
         });
 
-    itsBunch_m->switchOffUnitlessPositions(true);
+    pc->switchOffUnitlessPositions();
     /// \todo update gives different results on one rank?
     //itsBunch_m->getParticleContainer()->update();
     Kokkos::fence();
