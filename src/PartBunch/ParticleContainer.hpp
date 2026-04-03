@@ -14,6 +14,9 @@
 #include "Algorithms/CoordinateSystemTrafo.h"
 
 #include "Utilities/Options.h"
+#include "Utilities/OpalException.h"
+
+#include "Physics/Physics.h"
 
 // #include <Kokkos_Core.hpp>
 
@@ -480,6 +483,50 @@ public:
         Kokkos::fence();
     }
 
+    /**
+     * @brief Transform positions to unitless coordinates using each particle's dt[i].
+     *
+     * Applies \f$ R'_i = R_i / (c \, dt_i) \f$. Requires valid non-zero dt values per particle.
+     *
+     * @throws OpalException if this container is already in unitless positions.
+     */
+    void switchToUnitlessPositions() {
+        if (isUnitlessPositions_m) {
+            throw OpalException("ParticleContainer::switchToUnitlessPositions",
+                                "ParticleContainer is already in unitless positions!");
+        }
+        auto Rview             = this->R.getView();
+        auto dtview            = this->dt.getView();
+        const size_type nLocal = this->getLocalNum();
+        Kokkos::parallel_for(
+            "ParticleContainer::switchToUnitlessPositions", nLocal,
+            KOKKOS_LAMBDA(const size_type i) { Rview(i) *= 1.0 / (Physics::c * dtview(i)); });
+        Kokkos::fence();
+        isUnitlessPositions_m = true;
+    }
+
+    /**
+     * @brief Restore physical positions from unitless form using each particle's dt[i].
+     *
+     * Applies \f$ R_i = R'_i \, c \, dt_i \f$.
+     *
+     * @throws OpalException if this container is not currently in unitless positions.
+     */
+    void switchOffUnitlessPositions() {
+        if (!isUnitlessPositions_m) {
+            throw OpalException("ParticleContainer::switchOffUnitlessPositions",
+                                "ParticleContainer is already in physical positions!");
+        }
+        auto Rview             = this->R.getView();
+        auto dtview            = this->dt.getView();
+        const size_type nLocal = this->getLocalNum();
+        Kokkos::parallel_for(
+            "ParticleContainer::switchOffUnitlessPositions", nLocal,
+            KOKKOS_LAMBDA(const size_type i) { Rview(i) *= Physics::c * dtview(i); });
+        Kokkos::fence();
+        isUnitlessPositions_m = false;
+    }
+
     QMStorageMode getQMStorageMode() const {
         return qmStorageMode_m;
     }
@@ -573,6 +620,9 @@ private:
 
     // Distance along the beamline 
     double sPos_m = 0.0;
+
+    /// True while R is stored in unitless form (see switchToUnitlessPositions).
+    bool isUnitlessPositions_m = false;
 
 };
 
