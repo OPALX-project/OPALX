@@ -21,7 +21,8 @@ namespace {
  *
  * - deterministic single-electron spectra,
  * - sampled single-electron spectra,
- * - sampled finite-beam spectra driven by `MultiVariateGaussian`.
+ * - sampled finite-beam spectra driven by `MultiVariateGaussian`,
+ * - deterministic or sampled single-electron joint histograms in `E_gamma` and `theta_gamma`.
  *
  * The finite-beam parameters are intentionally simple and map directly onto the
  * Gaussian phase-space widths used in the benchmark, not onto the full OPALX
@@ -31,6 +32,7 @@ struct CliOptions {
     std::filesystem::path output = "opalx-linear-compton-90deg-xi029-spectrum.csv";
     bool sampled = false;
     bool angular = false;
+    bool joint = false;
     bool finiteBeam = false;
     std::size_t samples = 250000;
     std::size_t beamParticles = 250000;
@@ -58,6 +60,8 @@ CliOptions parseArguments(int argc, char** argv) {
             options.sampled = true;
         } else if (arg == "--angular") {
             options.angular = true;
+        } else if (arg == "--joint") {
+            options.joint = true;
         } else if (arg == "--finite-beam") {
             options.finiteBeam = true;
         } else if (arg == "--samples") {
@@ -97,9 +101,10 @@ CliOptions parseArguments(int argc, char** argv) {
             options.beamRelativeEnergySpread = std::stod(argv[++i]);
         } else if (arg == "-h" || arg == "--help") {
             std::cout
-                << "Usage: LinearComptonSpectrumBenchmark [output.csv] [--angular] [--sampled] [--finite-beam] [--samples N] [--beam-particles N] [--seed S]\n"
+                << "Usage: LinearComptonSpectrumBenchmark [output.csv] [--angular|--joint] [--sampled] [--finite-beam] [--samples N] [--beam-particles N] [--seed S]\n"
                 << "  default mode             : deterministic single-electron energy spectrum\n"
                 << "  --angular                : write the lab polar-angle histogram instead of the energy histogram\n"
+                << "  --joint                  : write the joint E_gamma versus theta_gamma histogram\n"
                 << "  --sampled                : host-only Monte Carlo benchmark using LinearCompton::sampleEvent\n"
                 << "  --finite-beam            : sample a finite-emittance electron beam with MultiVariateGaussian\n"
                 << "  --samples N              : number of Monte Carlo samples in single-electron sampled mode\n"
@@ -458,6 +463,10 @@ int main(int argc, char** argv) {
     const CliOptions options = parseArguments(argc, argv);
 
     if (options.finiteBeam) {
+        if (options.joint) {
+            throw std::runtime_error("Finite-beam joint E_gamma-theta_gamma benchmark is not implemented yet.");
+        }
+
         int ipplArgc = argc;
         char** ipplArgv = argv;
         ippl::initialize(ipplArgc, ipplArgv);
@@ -515,12 +524,42 @@ int main(int argc, char** argv) {
                           << "Beam macroparticles = " << options.beamParticles << '\n'
                           << "Seed = " << options.seed << '\n'
                           << "Area = " << LinearComptonBenchmark::histogramArea(histogram) << '\n'
-                          << "Mean energy [GeV] = " << LinearComptonBenchmark::histogramMeanEnergyGeV(histogram) << '\n';
+                          << "Mean energy [GeV] = "
+                          << LinearComptonBenchmark::histogramMeanEnergyGeV(histogram) << '\n';
             }
         }
 
         Options::seed = previousSeed;
         ippl::finalize();
+        return 0;
+    }
+
+    if (options.joint) {
+        LinearComptonBenchmark::JointConfig config;
+        LinearComptonBenchmark::JointHistogram histogram;
+        if (options.sampled) {
+            const int previousSeed = Options::seed;
+            Options::seed = options.seed;
+            histogram = LinearComptonBenchmark::sampleLabJointSpectrum(config, options.samples);
+            Options::seed = previousSeed;
+        } else {
+            histogram = LinearComptonBenchmark::integrateLabJointSpectrum(config);
+        }
+
+        LinearComptonBenchmark::writeJointCSV(histogram, options.output);
+
+        std::cout << "Wrote OPALX linear-Compton joint spectrum to " << options.output << '\n'
+                  << "Mode = " << (options.sampled ? "sampled" : "deterministic") << '\n'
+                  << "Observable = (E_gamma [GeV], theta_lab [rad])\n"
+                  << "Area = " << LinearComptonBenchmark::jointHistogramArea(histogram) << '\n'
+                  << "Mean energy [GeV] = "
+                  << LinearComptonBenchmark::jointHistogramMeanEnergyGeV(histogram) << '\n'
+                  << "Mean angle [rad] = "
+                  << LinearComptonBenchmark::jointHistogramMeanThetaRad(histogram) << '\n';
+        if (options.sampled) {
+            std::cout << "Samples = " << options.samples << '\n'
+                      << "Seed = " << options.seed << '\n';
+        }
         return 0;
     }
 
