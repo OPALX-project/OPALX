@@ -125,6 +125,69 @@ double scatteredPhotonEnergyERFGeV(double incomingPhotonEnergyERFGeV,
                                    double scatteringCosineERF);
 
 /**
+ * @brief Unpolarized Klein-Nishina differential cross section in solid angle.
+ *
+ * The exact electron-rest-frame kernel is
+ * @f[
+ *   \frac{d\sigma}{d\Omega^*}
+ *   = \frac{r_e^2}{2}
+ *     \left(\frac{\omega_2}{\omega_1}\right)^2
+ *     \left(
+ *       \frac{\omega_1}{\omega_2}
+ *       + \frac{\omega_2}{\omega_1}
+ *       - \sin^2\Theta^*
+ *     \right),
+ * @f]
+ * where @f$\omega_2@f$ is the Compton-recoiled photon energy at the same
+ * scattering cosine.
+ *
+ * @param incomingPhotonEnergyERFGeV Incoming photon energy in the electron rest frame in GeV.
+ * @param scatteringCosineERF Rest-frame scattering cosine @f$\cos\Theta^*@f$.
+ * @return Differential cross section in units of m^2 / sr.
+ */
+double differentialCrossSectionSolidAngleERF(double incomingPhotonEnergyERFGeV,
+                                             double scatteringCosineERF);
+
+/**
+ * @brief Incoming laser-photon direction in the electron rest frame.
+ *
+ * The laboratory-frame photon direction is Lorentz transformed into the rest
+ * frame of an electron moving along @p beamDirection. The returned direction is
+ * normalized and can be used as the axis of the Klein-Nishina scattering cone.
+ *
+ * @param electronTotalEnergyGeV Electron total energy in GeV.
+ * @param beamDirection Laboratory-frame incoming electron direction.
+ * @param laserDirection Laboratory-frame incoming laser direction.
+ * @return Unit vector for the incoming photon in the electron rest frame.
+ */
+Vector_t<double, 3> restFrameIncomingPhotonDirection(double electronTotalEnergyGeV,
+                                                     const Vector_t<double, 3>& beamDirection,
+                                                     const Vector_t<double, 3>& laserDirection);
+
+/**
+ * @brief Laboratory-frame photon energy from electron-rest-frame scattering angles.
+ *
+ * The outgoing photon is defined by a rest-frame scattering cosine
+ * @f$\cos\Theta^*@f$ relative to the incoming photon direction and an azimuth
+ * angle @f$\phi^*@f$ around that axis. The photon is then boosted back to the
+ * laboratory frame along the electron beam direction.
+ *
+ * @param electronTotalEnergyGeV Electron total energy in GeV.
+ * @param laserPhotonEnergyGeV Laser photon energy in GeV.
+ * @param beamDirection Laboratory-frame incoming electron direction.
+ * @param laserDirection Laboratory-frame incoming laser direction.
+ * @param scatteringCosineERF Rest-frame scattering cosine @f$\cos\Theta^*@f$.
+ * @param azimuthERF Rest-frame azimuth angle @f$\phi^*@f$ in rad.
+ * @return Scattered photon energy in the laboratory frame in GeV.
+ */
+double labPhotonEnergyGeV(double electronTotalEnergyGeV,
+                          double laserPhotonEnergyGeV,
+                          const Vector_t<double, 3>& beamDirection,
+                          const Vector_t<double, 3>& laserDirection,
+                          double scatteringCosineERF,
+                          double azimuthERF);
+
+/**
  * @brief Unpolarized Klein-Nishina differential cross section in the scattered-photon energy.
  *
  * The underlying angular kernel is

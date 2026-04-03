@@ -131,3 +131,32 @@ TEST(TestLinearCompton, NinetyDegreeLabForwardBenchmarkMatchesExactFormula) {
                 expectedForwardPhotonEnergyGeV,
                 expectedForwardPhotonEnergyGeV * 1.0e-12);
 }
+
+
+TEST(TestLinearCompton, ExplicitLabPhotonEnergyMatchesForwardHelper) {
+    const double electronTotalEnergyGeV = 1.0;
+    const double wavelength_m = 1.03e-6;
+    const double laserPhotonEnergyGeV = Physics::LinearCompton::photonEnergyFromWavelengthGeV(wavelength_m);
+
+    Vector_t<double, 3> beamDirection(0.0);
+    beamDirection(2) = 1.0;
+    Vector_t<double, 3> laserDirection(0.0);
+    laserDirection(0) = 1.0;
+
+    const double scatteringCosine =
+        Physics::LinearCompton::restFrameScatteringCosineForLabForwardPhoton(electronTotalEnergyGeV,
+                                                                             beamDirection,
+                                                                             laserDirection);
+
+    EXPECT_NEAR(Physics::LinearCompton::labPhotonEnergyGeV(electronTotalEnergyGeV,
+                                                           laserPhotonEnergyGeV,
+                                                           beamDirection,
+                                                           laserDirection,
+                                                           scatteringCosine,
+                                                           0.0),
+                Physics::LinearCompton::labForwardPhotonEnergyGeV(electronTotalEnergyGeV,
+                                                                  laserPhotonEnergyGeV,
+                                                                  beamDirection,
+                                                                  laserDirection),
+                1.0e-12);
+}
