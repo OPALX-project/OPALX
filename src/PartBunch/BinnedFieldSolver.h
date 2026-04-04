@@ -1,6 +1,7 @@
 #ifndef OPALX_BINNED_FIELD_SOLVER_H
 #define OPALX_BINNED_FIELD_SOLVER_H
 
+#include <algorithm>
 #include <cmath>
 #include <functional>
 #include <iomanip>
@@ -116,6 +117,10 @@ public:
     bool isImageChargeEnabled() const { return imageScatterController_m.isEnabled(); }
     double getImageChargePlaneZ() const { return imageScatterController_m.getZPlane(); }
 
+    /// @brief Configure dump frequency for dirichlet-plane diagnostics (`0` disables dumps).
+    void setZeroFacePlaneDumpFrequency(int frequency);
+    int getZeroFacePlaneDumpFrequency() const { return zeroFacePlaneDumpFrequency_m; }
+
     struct BinKinematics {
         Vector_t<double, Dim> pmean = Vector_t<double, Dim>(0.0);
         double gammaBin             = 1.0;
@@ -125,7 +130,9 @@ private:
     ScatterAttribute scatterAttribute_m;
     GatherAttribute gatherAttribute_m;
     int tablePrintFrequency_m = 0;
+    int zeroFacePlaneDumpFrequency_m = 0;
     ImageChargeScatterController<T, Dim> imageScatterController_m;
+    bool warnedPlaneDumpParallelUnsupported_m = false;
 
     /**
      * @brief Row entry for the level-3 bin statistics table.
@@ -151,6 +158,18 @@ private:
                              const std::vector<BinStatsRow>& rows);
 
 private:
+    /**
+     * @brief Dump and report potential values interpolated on the image-charge plane.
+     *
+     * If diagnostics are disabled or conditions are not met for the current step,
+     * this function returns without side effects.
+     *
+     * @param bunch   Particle bunch context for time/step and DataSink access.
+     * @param solveTag Label used in output file naming (`legacy`, `binned`, ...).
+     */
+    void dumpDirichletPlaneDiagnosticsIfRequested(
+            std::shared_ptr<PartBunch_t> bunch, const std::string& solveTag);
+
     /**
      * @brief Compute self-fields using the binned algorithm.
      *

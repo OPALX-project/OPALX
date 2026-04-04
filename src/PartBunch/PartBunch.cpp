@@ -163,6 +163,11 @@ void PartBunch<T, Dim>::setSolver() {
 }
 
 template <typename T, unsigned Dim>
+std::string PartBunch<T, Dim>::getFieldSolverType() {
+    return this->getFieldSolver()->getStype();
+}
+
+template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::setBins() {
     Inform m("PartBunch::setBins");
 
@@ -312,10 +317,8 @@ void PartBunch<T, Dim>::pre_run() {
     m << level4 << "Rho initialized to zero." << endl;
 
     /*
-    Force skip field dump during pre_run/warmup!
-    In order to call runSolver without field dump, we need to dynamic cast
-    fsolver_m to FieldSolver_t, since this addition is not possible in the base
-    class (without changing ippl).
+    Force skip field dump during pre_run/warmup by calling the concrete
+    BinnedFieldSolver overload.
     */
     this->getFieldSolver()->runSolver(true);
     m << level4 << "Field solver ran during pre_run." << endl;
@@ -424,8 +427,7 @@ void PartBunch<T, Dim>::computeBoundsForFieldSolve(
     lower = pc->getMinR();
     upper = pc->getMaxR();
 
-    using BinnedSolver_t = BinnedFieldSolver<T, Dim>;
-    const BinnedSolver_t* bsolver = dynamic_cast<const BinnedSolver_t*>(this->getFieldSolver());
+    const BinnedFieldSolver_t* bsolver = this->getFieldSolver();
 
     // Include mirrored particles in the domain envelope when image-charge mode is enabled.
     if (bsolver && bsolver->isImageChargeEnabled()) {
@@ -479,23 +481,17 @@ void PartBunch<T, Dim>::applyGridUpdate(
 
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::setImageChargeConfiguration(bool enabled, double zPlane) {
-    using BinnedSolver_t = BinnedFieldSolver<T, Dim>;
-    BinnedSolver_t* bsolver = dynamic_cast<BinnedSolver_t*>(this->getFieldSolver());
-    if (bsolver) {
-        bsolver->setImageChargeConfiguration(enabled, zPlane);
-    }
+    this->getFieldSolver()->setImageChargeConfiguration(enabled, zPlane);
+}
+
+template <typename T, unsigned Dim>
+void PartBunch<T, Dim>::setZeroFacePlaneDumpFrequency(int frequency) {
+    this->getFieldSolver()->setZeroFacePlaneDumpFrequency(frequency);
 }
 
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::computeSelfFields() {
-    using BinnedSolver_t = BinnedFieldSolver<T, Dim>;
-
-    BinnedSolver_t* bsolver = dynamic_cast<BinnedSolver_t*>(this->fsolver_m.get());
-    if (!bsolver) {
-        throw OpalException(
-                "PartBunch::computeSelfFields",
-                "Field solver is not a BinnedFieldSolver instance.");
-    }
+    BinnedFieldSolver_t* bsolver = this->getFieldSolver();
 
     // Non-owning shared_ptr alias: solver does not manage bunch lifetime.
     std::shared_ptr<PartBunch<T, Dim>> bunchPtr(this, [](PartBunch<T, Dim>*) {});
@@ -576,8 +572,8 @@ void PartBunch<T, Dim>::performBunchSanityChecks() const {
     }
     ms << level4 << "Field Solver object was initialized." << endl;
 
-    // Verify we can access the concrete FieldSolver and its internals
-    auto fs = std::dynamic_pointer_cast<FieldSolver_t>(this->fsolver_m);
+    // Verify we can access the concrete FieldSolver and its internals.
+    auto fs = std::dynamic_pointer_cast<BinnedFieldSolver_t>(this->fsolver_m);
     if (!fs) {
         throw OpalException(
                 "PartBunch::performBunchSanityChecks", "FieldSolver is not set in PartBunch.");
