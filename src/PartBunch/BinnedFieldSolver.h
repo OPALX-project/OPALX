@@ -117,6 +117,13 @@ public:
     bool isImageChargeEnabled() const { return imageScatterController_m.isEnabled(); }
     double getImageChargePlaneZ() const { return imageScatterController_m.getZPlane(); }
 
+    /// @brief Set the maximum number of timesteps for which image charges are active (0 = unlimited).
+    void setZerofaceMaxSteps(int maxSteps);
+    int getZerofaceMaxSteps() const { return zerofaceMaxSteps_m; }
+
+    /// @brief Check whether image charges should be active for a given timestep.
+    bool isImageChargeActiveForStep(size_t step) const;
+
     /// @brief Configure dump frequency for dirichlet-plane diagnostics (`0` disables dumps).
     void setZeroFacePlaneDumpFrequency(int frequency);
     int getZeroFacePlaneDumpFrequency() const { return zeroFacePlaneDumpFrequency_m; }
@@ -131,6 +138,7 @@ private:
     GatherAttribute gatherAttribute_m;
     int tablePrintFrequency_m = 0;
     int zeroFacePlaneDumpFrequency_m = 0;
+    int zerofaceMaxSteps_m = 0;
     ImageChargeScatterController<T, Dim> imageScatterController_m;
     bool warnedPlaneDumpParallelUnsupported_m = false;
 

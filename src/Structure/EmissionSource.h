@@ -20,6 +20,7 @@ public:
         T0,
         ZEROFACE_R0Z,
         ZEROFACEPLANEDUMP,
+        ZEROFACE_MAXSTEPS,
         SIZE
     };
 
@@ -40,6 +41,7 @@ public:
     double getT0() const;
     bool getZeroFaceR0Z() const;
     int getZeroFacePlaneDumpFrequency() const;
+    int getZerofaceMaxSteps() const;
 
 private:
     EmissionSource(const EmissionSource&);

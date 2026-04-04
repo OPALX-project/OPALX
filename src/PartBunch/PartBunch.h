@@ -207,6 +207,9 @@ public:
      */
     void setZeroFacePlaneDumpFrequency(int frequency);
 
+    /// @brief Set the maximum number of timesteps for which image charges are active (0 = unlimited).
+    void setZerofaceMaxSteps(int maxSteps);
+
     size_t getTotalNumAllContainers() const {
         size_t total = 0;
         for (const auto& pc : this->getParticleContainers()) {

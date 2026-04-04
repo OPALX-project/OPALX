@@ -31,7 +31,14 @@ EmissionSource::EmissionSource()
             "ZEROFACEPLANEDUMP",
             "Dump interpolated potential on the ZEROFACE_R0Z plane every n-th global "
             "timestep (0 disables dumping, since it's an expensive operation).",
-            0.0); 
+            0.0);
+
+    itsAttr[ZEROFACE_MAXSTEPS] = Attributes::makeReal(
+            "ZEROFACE_MAXSTEPS",
+            "Number of timesteps for which image charges are active. "
+            "After this many steps, the solver continues without image charges. "
+            "0 means unlimited (image charges always active).",
+            0.0);
 
     registerOwnership(AttributeHandler::STATEMENT);
 }
@@ -89,4 +96,15 @@ int EmissionSource::getZeroFacePlaneDumpFrequency() const {
                 "ZEROFACEPLANEDUMP must be a non-negative integer value.");
     }
     return frequency;
+}
+
+int EmissionSource::getZerofaceMaxSteps() const {
+    const double rawValue = Attributes::getReal(itsAttr[ZEROFACE_MAXSTEPS]);
+    const int value = static_cast<int>(rawValue);
+    if (rawValue < 0.0 || std::floor(rawValue) != rawValue) {
+        throw OpalException(
+                "EmissionSource::getZerofaceMaxSteps",
+                "ZEROFACE_MAXSTEPS must be a non-negative integer value.");
+    }
+    return value;
 }

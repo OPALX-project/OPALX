@@ -429,8 +429,8 @@ void PartBunch<T, Dim>::computeBoundsForFieldSolve(
 
     const BinnedFieldSolver_t* bsolver = this->getFieldSolver();
 
-    // Include mirrored particles in the domain envelope when image-charge mode is enabled.
-    if (bsolver && bsolver->isImageChargeEnabled()) {
+    // Include mirrored particles in the domain envelope when image-charge mode is active for this step.
+    if (bsolver && bsolver->isImageChargeActiveForStep(this->getGlobalTrackStep())) {
         const double planeZ = bsolver->getImageChargePlaneZ();
         const double mirroredMinZ = 2.0 * planeZ - upper[2];
         const double mirroredMaxZ = 2.0 * planeZ - lower[2];
@@ -487,6 +487,11 @@ void PartBunch<T, Dim>::setImageChargeConfiguration(bool enabled, double zPlane)
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::setZeroFacePlaneDumpFrequency(int frequency) {
     this->getFieldSolver()->setZeroFacePlaneDumpFrequency(frequency);
+}
+
+template <typename T, unsigned Dim>
+void PartBunch<T, Dim>::setZerofaceMaxSteps(int maxSteps) {
+    this->getFieldSolver()->setZerofaceMaxSteps(maxSteps);
 }
 
 template <typename T, unsigned Dim>
