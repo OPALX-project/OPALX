@@ -1,3 +1,5 @@
+#include "Structure/DataSink.h"
+
 template <typename T, unsigned Dim>
 BinnedFieldSolver<T, Dim>::BinnedFieldSolver(
         std::string solver,
@@ -78,6 +80,63 @@ void BinnedFieldSolver<T, Dim>::setImageChargeConfiguration(bool enabled, double
 }
 
 template <typename T, unsigned Dim>
+void BinnedFieldSolver<T, Dim>::setZeroFacePlaneDumpFrequency(int frequency) {
+    if (frequency < 0) {
+        throw OpalException(
+                "BinnedFieldSolver::setZeroFacePlaneDumpFrequency",
+                "ZEROFACEPLANEDUMP frequency must be >= 0.");
+    }
+    zeroFacePlaneDumpFrequency_m = frequency;
+}
+
+template <typename T, unsigned Dim>
+void BinnedFieldSolver<T, Dim>::dumpDirichletPlaneDiagnosticsIfRequested(
+        std::shared_ptr<PartBunch_t> bunch, const std::string& solveTag) {
+    if (!imageScatterController_m.isEnabled() || zeroFacePlaneDumpFrequency_m <= 0) {
+        return;
+    }
+
+    const long long step = bunch->getGlobalTrackStep();
+    if (step < 0 || (step % zeroFacePlaneDumpFrequency_m) != 0) {
+        return;
+    }
+
+    Inform m("BinnedFieldSolver::dumpDirichletPlaneDiagnosticsIfRequested");
+
+    if (ippl::Comm->size() != 1) {
+        if (!warnedPlaneDumpParallelUnsupported_m) {
+            warnedPlaneDumpParallelUnsupported_m = true;
+            m << level3
+              << "Dirichlet-plane diagnostics currently support only single-rank runs. "
+              << "Skipping dump and statistics output." << endl;
+        }
+        return;
+    }
+
+    Field_t<Dim>* potentialField =
+            (this->getStype() == "CG") ? this->getPhi() : this->getRho();
+    if (!potentialField) {
+        return;
+    }
+    const double zPlane      = imageScatterController_m.getZPlane();
+
+    std::shared_ptr<DataSink> dataSink = bunch->getDataSink();
+    if (!dataSink) {
+        return;
+    }
+
+    const auto diagnostics =
+            dataSink->dumpDirichletPlane(step, bunch->getT(), zPlane, *potentialField, solveTag);
+    if (diagnostics.sampleCount == 0) {
+        return;
+    }
+
+    m << level3 << "Dirichlet-plane potential diagnostics (" << solveTag << ") at step " << step
+      << ": z=" << zPlane << " m, mean(phi)=" << diagnostics.mean
+      << " V, var(phi)=" << diagnostics.variance << " V^2" << endl;
+}
+
+template <typename T, unsigned Dim>
 void BinnedFieldSolver<T, Dim>::printBinStatsTable(
         const std::string& binningCmdName, const std::vector<BinStatsRow>& rows) {
     // print the table header (metadata + column names).
@@ -145,6 +204,8 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(std::shared_ptr<PartBunc
     std::vector<BinStatsRow> binStats;
     binStats.reserve(static_cast<size_t>(nBins));
 
+    bool dumpedDirichletPlaneThisStep = false;
+
     // iterate over merged bins and accumulate E contributions.
     for (bin_index_type binIndex = 0; binIndex < nBins; ++binIndex) {
         // process a single merged bin (gamma->rho->solve->accumulate).
@@ -184,6 +245,11 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(std::shared_ptr<PartBunc
         this->runSolver(true);
         m << level4 << "binIndex=" << static_cast<int>(binIndex)
           << " runSolver(true) done; accumulate->Etmp" << endl;
+
+                if (!dumpedDirichletPlaneThisStep) {
+                        dumpDirichletPlaneDiagnosticsIfRequested(bunch, "binned");
+                        dumpedDirichletPlaneThisStep = true;
+                }
 
         accumulateFieldToTemp(gammaBin, kinematics.pmean, EtmpSP, BtmpSP);
     }
@@ -263,6 +329,7 @@ void BinnedFieldSolver<T, Dim>::computeLegacySelfFields(std::shared_ptr<PartBunc
     // run the solver once and gather mesh E back to particles.
     m << level4 << "Legacy mode: runSolver() start" << endl;
     this->runSolver();
+    dumpDirichletPlaneDiagnosticsIfRequested(bunch, "legacy");
     m << level4 << "Legacy mode: gather E->particles" << endl;
 
     // Gather solver output directly (legacy path does not use Etmp).

@@ -35,12 +35,15 @@ extern Inform* gmsg;
 using view_type = typename ippl::detail::ViewType<ippl::Vector<double, 3>, 1>::view_type;
 
 template <typename T, unsigned Dim>
+class BinnedFieldSolver;
+
+template <typename T, unsigned Dim>
 class PartBunch : public ippl::PicManager<
           T, Dim, ParticleContainer<T, Dim>, FieldContainer<T, Dim>, LoadBalancer<T, Dim>> {
 public:
     using ParticleContainer_t = ParticleContainer<T, Dim>;
     using FieldContainer_t    = FieldContainer<T, Dim>;
-    using FieldSolver_t       = FieldSolver<T, Dim>;
+    using BinnedFieldSolver_t = BinnedFieldSolver<T, Dim>;
     using LoadBalancer_t      = LoadBalancer<T, Dim>;
     using Base                = ippl::ParticleBase<ippl::ParticleSpatialLayout<T, Dim>>;
 
@@ -197,6 +200,13 @@ public:
      */
     void setImageChargeConfiguration(bool enabled, double zPlane);
 
+    /**
+     * @brief Configure diagnostic dump frequency for the ZEROFACE plane potential.
+     *
+     * @param frequency Dump every n-th global timestep. `0` disables dumping.
+     */
+    void setZeroFacePlaneDumpFrequency(int frequency);
+
     size_t getTotalNumAllContainers() const {
         size_t total = 0;
         for (const auto& pc : this->getParticleContainers()) {
@@ -244,6 +254,7 @@ public:
 
     void setBCHandler(std::shared_ptr<BCHandler_t> bcHandler) { bcHandler_m = bcHandler; }
     std::shared_ptr<BCHandler_t> getBCHandler() const { return bcHandler_m; }
+    std::shared_ptr<DataSink> getDataSink() const { return dataSink_m; }
 
     std::shared_ptr<BunchStateHandler> getBunchStateHandler() { return bunchState_m; }
     std::shared_ptr<const BunchStateHandler> getBunchStateHandler() const { return bunchState_m; }
@@ -552,23 +563,16 @@ public:
         return this->fsolver_m != nullptr;
     }
 
-    FieldSolver_t* getFieldSolver() {
-        /*
-        \todo this needs to change, best would be to use a smart pointer!
-        However, the parent class FieldSolverBase from IPPL uses raw pointers,
-        so changing this would require some changes in IPPL...
-        */
-        return static_cast<FieldSolver_t*>(this->fsolver_m.get());
+    BinnedFieldSolver_t* getFieldSolver() {
+        return dynamic_cast<BinnedFieldSolver_t*>(this->fsolver_m.get());
     }
 
     /// Const overload for better const correctness.
-    const FieldSolver_t* getFieldSolver() const {
-        return static_cast<const FieldSolver_t*>(this->fsolver_m.get());
+    const BinnedFieldSolver_t* getFieldSolver() const {
+        return dynamic_cast<const BinnedFieldSolver_t*>(this->fsolver_m.get());
     }
 
-    std::string getFieldSolverType() {
-        return this->getFieldSolver()->getStype();
-    }
+    std::string getFieldSolverType();
 
     bool hasBinning() const {
         return this->bins_m != nullptr;
