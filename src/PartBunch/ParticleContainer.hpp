@@ -143,6 +143,15 @@ public:
         setBCAllPeriodic();
     }
 
+    /// Apply coordinate transform to local particles: translate R, rotate P, E, B.
+    void transformBunch(const CoordinateSystemTrafo& trafo) {
+        const size_t nLoc = this->getLocalNum();
+        trafo.transformBunchTo(this->R.getView(), nLoc);
+        trafo.rotateBunchTo(this->P.getView(), nLoc);
+        trafo.rotateBunchTo(this->E.getView(), nLoc);
+        trafo.rotateBunchTo(this->B.getView(), nLoc);
+    }
+
     PLayout_t<T, Dim>& getPL() {
         return pl_m;
     }

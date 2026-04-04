@@ -26,7 +26,6 @@
 
 #include "Algorithms/StepSizeConfig.h"
 #include "Algorithms/Tracker.h"
-#include "Algorithms/CoordinateSystemTrafo.h"
 #include "Algorithms/OrbitThreader.h"
 
 #include "Steppers/BorisPusher.h"
@@ -210,8 +209,6 @@ private:
 
     // Load balancing
     void doBinaryRepartition();
-    /// Apply trafo to every non-null particle container (R, P, E, B).
-    void transformBunch(const CoordinateSystemTrafo& trafo);
     void computeInitialBounds(Vector_t<double, 3>& rmin, Vector_t<double, 3>& rmax);
     void printInitialContainerRefs(Inform& m) const;
 

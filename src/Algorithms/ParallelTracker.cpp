@@ -60,14 +60,6 @@ namespace {
 
 using ParticleContainer_t = PartBunch_t::ParticleContainer_t;
 
-void transformBunchInContainer(ParticleContainer_t& pc, const CoordinateSystemTrafo& trafo) {
-    const size_t nLoc = pc.getLocalNum();
-    trafo.transformBunchTo(pc.R.getView(), nLoc);
-    trafo.rotateBunchTo(pc.P.getView(), nLoc);
-    trafo.rotateBunchTo(pc.E.getView(), nLoc);
-    trafo.rotateBunchTo(pc.B.getView(), nLoc);
-}
-
 void updateRefToLabCSTrafoInContainer(ParticleContainer_t& pc, double bunchDT) {
     Vector_t<double, 3> R = pc.getToLabTrafo().transformFrom(pc.getRefPartR());
     Vector_t<double, 3> P = pc.getToLabTrafo().rotateFrom(pc.getRefPartP());
@@ -77,7 +69,7 @@ void updateRefToLabCSTrafoInContainer(ParticleContainer_t& pc, double bunchDT) {
 
     CoordinateSystemTrafo update(R, getQuaternion(P, Vector_t<double, 3>(0, 0, 1)));
 
-    transformBunchInContainer(pc, update);
+    pc.transformBunch(update);
 
     pc.setToLabTrafo(pc.getToLabTrafo() * update.inverted());
 }
@@ -686,12 +678,12 @@ void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
 
             (*it)->setCurrentSCoordinate(pc->get_sPos() + rmin(2));
 
-            transformBunchInContainer(*pc, refToLocalCSTrafo);
+            pc->transformBunch(refToLocalCSTrafo);
 
             // Apply element to this iteration's particle container.
             (*it)->apply(pc);
 
-            transformBunchInContainer(*pc, localToRefCSTrafo);
+            pc->transformBunch(localToRefCSTrafo);
         }
     }
 
@@ -1037,14 +1029,6 @@ void ParallelTracker::updateReferenceParticles(const BorisPusher& pusher) {
         pc.getRefPartR() /= scaleFactor;
         pusher.push(pc.getRefPartR(), pc.getRefPartP(), dt);
         pc.getRefPartR() *= scaleFactor;
-    }
-}
-
-void ParallelTracker::transformBunch(const CoordinateSystemTrafo& trafo) {
-    for (const auto& pc : itsBunch_m->getParticleContainers()) {
-        if (pc) {
-            transformBunchInContainer(*pc, trafo);
-        }
     }
 }
 
