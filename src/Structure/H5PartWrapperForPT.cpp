@@ -292,21 +292,24 @@ void H5PartWrapperForPT::writeHeader() {
 }
 
 void H5PartWrapperForPT::writeStep(
-    PartBunch_t* bunch, const std::map<std::string, double>& additionalStepAttributes) {
-    
-    if (bunch->getParticleContainer()->getTotalNum() == 0)
+    PartBunch_t* bunch, const std::map<std::string, double>& additionalStepAttributes,
+    size_t particleContainerIndex) {
+
+    auto pc = bunch->getParticleContainer(particleContainerIndex);
+    if (!pc || pc->getTotalNum() == 0)
         return;
 
     open(H5_O_APPENDONLY);
-    bunch->calcBeamParameters();
-    writeStepHeader(bunch, additionalStepAttributes);
-    writeStepData(bunch);
+    pc->updateMoments();
+    writeStepHeader(bunch, additionalStepAttributes, particleContainerIndex);
+    writeStepData(bunch, particleContainerIndex);
     close();
 }
 
 void H5PartWrapperForPT::writeStepHeader(
-    PartBunch_t* bunch, const std::map<std::string, double>& additionalStepAttributes) {
-    auto pc                      = bunch->getParticleContainer();
+    PartBunch_t* bunch, const std::map<std::string, double>& additionalStepAttributes,
+    size_t particleContainerIndex) {
+    auto pc                      = bunch->getParticleContainer(particleContainerIndex);
     double actPos                = pc->get_sPos();
     double t                     = bunch->getT();
     Vector_t<double, 3> rmin     = bunch->get_origin();
@@ -410,11 +413,12 @@ void H5PartWrapperForPT::writeStepHeader(
     ++numSteps_m;
 }
 
-void H5PartWrapperForPT::writeStepData(PartBunch_t* bunch) {
+void H5PartWrapperForPT::writeStepData(PartBunch_t* bunch, size_t particleContainerIndex) {
 
-    size_t numLocalParticles = bunch->getParticleContainer()->getLocalNum();
-       
-    auto rViewDevice  = bunch->getParticleContainer()->R.getView();
+    auto pc                  = bunch->getParticleContainer(particleContainerIndex);
+    size_t numLocalParticles = pc->getLocalNum();
+
+    auto rViewDevice = pc->R.getView();
     auto rView = Kokkos::create_mirror_view(rViewDevice);
     Kokkos::deep_copy(rView,rViewDevice);
     
@@ -437,7 +441,7 @@ void H5PartWrapperForPT::writeStepData(PartBunch_t* bunch) {
         f64buffer[i] = rView(i)(2);
     WRITEDATA(Float64, file_m, "z", f64buffer);
 
-    auto pViewDevice  = bunch->getParticleContainer()->P.getView();
+    auto pViewDevice = pc->P.getView();
     auto pView = Kokkos::create_mirror_view(pViewDevice);
     Kokkos::deep_copy(pView,pViewDevice);
  
@@ -453,7 +457,6 @@ void H5PartWrapperForPT::writeStepData(PartBunch_t* bunch) {
         f64buffer[i] = pView(i)(2);
     WRITEDATA(Float64, file_m, "pz", f64buffer);
 
-    auto pc = bunch->getParticleContainer();
     auto qViewDevice = pc->getQView();
     auto qViewHost   = Kokkos::create_mirror_view(qViewDevice);
     Kokkos::deep_copy(qViewHost, qViewDevice);
@@ -482,7 +485,7 @@ void H5PartWrapperForPT::writeStepData(PartBunch_t* bunch) {
     WRITEDATA(Int64, file_m, "id", i64buffer);
     */
     
-    auto binViewDevice  = bunch->getParticleContainer()->Bin.getView();
+    auto binViewDevice = pc->Bin.getView();
     auto binView = Kokkos::create_mirror_view(binViewDevice);
     Kokkos::deep_copy(binView,binViewDevice);
 
@@ -490,14 +493,14 @@ void H5PartWrapperForPT::writeStepData(PartBunch_t* bunch) {
         i32buffer[i] = binView(i);
     WRITEDATA(Int32, file_m, "bin", i32buffer);
 
-    const int sp = bunch->getParticleContainer()->Sp;
+    const int sp = pc->Sp;
     for (size_t i = 0; i < numLocalParticles; ++i)
         i32buffer[i] = sp;
     WRITEDATA(Int32, file_m, "sp", i32buffer);
     
     if (Options::ebDump) {
         
-        auto EViewDevice  = bunch->getParticleContainer()->E.getView();
+        auto EViewDevice = pc->E.getView();
         auto EView = Kokkos::create_mirror_view(EViewDevice);
         Kokkos::deep_copy(EView,EViewDevice);
 
@@ -513,7 +516,7 @@ void H5PartWrapperForPT::writeStepData(PartBunch_t* bunch) {
             f64buffer[i] = EView(i)(2);
         WRITEDATA(Float64, file_m, "Ez", f64buffer);
 
-        auto BViewDevice  = bunch->getParticleContainer()->B.getView();
+        auto BViewDevice = pc->B.getView();
         auto BView = Kokkos::create_mirror_view(BViewDevice);
         Kokkos::deep_copy(BView,BViewDevice);
 
