@@ -33,6 +33,7 @@
 #include "Structure/SDDSWriter.h"
 #include "Structure/StatWriter.h"
 #include "Structure/BinConfigWriter.h"
+#include "Structure/DirichletPlaneWriter.h"
 
 #include <iomanip>
 #include <memory>
@@ -42,6 +43,7 @@
 class BoundaryGeometry;
 class H5PartWrapper;
 class BinConfigWriter;
+class DirichletPlaneWriter;
 
 class DataSink {
 private:
@@ -117,6 +119,28 @@ public:
                        double xMin,
                        const std::string& fileName);
 
+    /**
+     * @brief Interpolate and dump potential values on a 2D z-plane.
+     *
+     * The interpolation and plane extraction are performed on device by
+     * DirichletPlaneWriter; only the 2D plane is copied to host for output.
+     *
+     * @tparam FieldType IPPL scalar field type.
+     * @param step      Global tracking step index.
+     * @param time      Absolute simulation time (seconds).
+     * @param zPlane    Physical z location of the sampled plane (meters).
+     * @param field     Scalar field to sample (`rho`/`phi` depending on solver).
+     * @param solveTag  Label for the solver pass (e.g. `legacy`, `binned`).
+     *
+     * @return Plane diagnostics (mean/variance/sample count).
+     */
+    template <typename FieldType>
+    DirichletPlaneWriter::PlaneDiagnostics dumpDirichletPlane(long long step,
+                                                               double time,
+                                                               double zPlane,
+                                                               const FieldType& field,
+                                                               const std::string& solveTag);
+
 private:
     DataSink(const DataSink& ds)         = delete;
     DataSink& operator=(const DataSink&) = delete;
@@ -132,6 +156,9 @@ private:
     // Writer for binning configuration JSON output (rank 0 only).
     std::unique_ptr<BinConfigWriter> binConfigWriter_m;
 
+    // Writer for dirichlet-plane diagnostics (rank 0 only).
+    std::unique_ptr<DirichletPlaneWriter> dirichletPlaneWriter_m;
+
     static std::string convertToString(int number, int setw = 5);
 
     /// needed to create index for vtk file
@@ -145,6 +172,29 @@ inline std::string DataSink::convertToString(int number, int setw) {
     std::stringstream ss;
     ss << std::setw(setw) << std::setfill('0') << number;
     return ss.str();
+}
+
+template <typename FieldType>
+DirichletPlaneWriter::PlaneDiagnostics DataSink::dumpDirichletPlane(
+        long long step,
+        double time,
+        double zPlane,
+        const FieldType& field,
+        const std::string& solveTag) {
+    if (ippl::Comm->rank() != 0) {
+        return DirichletPlaneWriter::PlaneDiagnostics{};
+    }
+
+    Inform m("DataSink::dumpDirichletPlane");
+
+    if (!dirichletPlaneWriter_m) {
+        m << level4
+          << "Creating DirichletPlaneWriter in directory \"data/dirichletplanedumps\"."
+          << endl;
+        dirichletPlaneWriter_m = std::make_unique<DirichletPlaneWriter>("data/dirichletplanedumps");
+    }
+
+    return dirichletPlaneWriter_m->dumpInterpolatedPlane(step, time, zPlane, field, solveTag);
 }
 
 #endif  // DataSink_H_

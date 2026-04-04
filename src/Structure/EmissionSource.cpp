@@ -3,6 +3,8 @@
 #include "Attributes/Attributes.h"
 #include "Utilities/OpalException.h"
 
+#include <cmath>
+
 EmissionSource::EmissionSource()
     : Definition(
               SIZE, "EMISSIONSOURCE",
@@ -24,6 +26,12 @@ EmissionSource::EmissionSource()
     itsAttr[ZEROFACE_R0Z] = Attributes::makeBool(
             "ZEROFACE_R0Z", "Set Dirichlet boundary conditions (0 potential) in xy plane at R0Z.",
             false);
+
+    itsAttr[ZEROFACEPLANEDUMP] = Attributes::makeReal(
+            "ZEROFACEPLANEDUMP",
+            "Dump interpolated potential on the ZEROFACE_R0Z plane every n-th global "
+            "timestep (0 disables dumping).",
+            0.0); 
 
     registerOwnership(AttributeHandler::STATEMENT);
 }
@@ -71,3 +79,14 @@ ippl::Vector<double, 3> EmissionSource::getP0() const {
 double EmissionSource::getT0() const { return Attributes::getReal(itsAttr[T0]); }
 
 bool EmissionSource::getZeroFaceR0Z() const { return Attributes::getBool(itsAttr[ZEROFACE_R0Z]); }
+
+int EmissionSource::getZeroFacePlaneDumpFrequency() const {
+    const double rawFrequency = Attributes::getReal(itsAttr[ZEROFACEPLANEDUMP]);
+    const int frequency = static_cast<int>(rawFrequency);
+    if (rawFrequency < 0.0 || std::floor(rawFrequency) != rawFrequency) {
+        throw OpalException(
+                "EmissionSource::getZeroFacePlaneDumpFrequency",
+                "ZEROFACEPLANEDUMP must be a non-negative integer value.");
+    }
+    return frequency;
+}
