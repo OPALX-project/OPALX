@@ -63,14 +63,12 @@
 #define CLASSIC_Tracker_HH
 
 #include "Algorithms/AbstractTracker.h"
-#include "PartBunch/PartBunch.h"
+#include "PartBunch/PartBunchFwd.h"
+#include "Utilities/ClassicField.h"
 
 #include <memory>
 
-#include "Utilities/ClassicField.h"
-
-class BMultipoleField;
-class Euclid3D;
+class Beamline;
 class OpalParticle;
 
 class Tracker : public AbstractTracker {

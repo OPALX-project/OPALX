@@ -4,25 +4,18 @@
 #include <memory>
 #include <vector>
 
-#include "Algorithms/Matrix.h"
-#include "Algorithms/CoordinateSystemTrafo.h"
-#include "Attributes/Attributes.h"
 #include "Manager/BaseManager.h"
 #include "Manager/PicManager.h"
 #include "PartBunch/FieldContainer.hpp"
 #include "PartBunch/FieldSolver.hpp"
 #include "PartBunch/LoadBalancer.hpp"
 #include "PartBunch/ParticleContainer.hpp"
-#include "Physics/Physics.h"
-#include "Random/Distribution.h"
-#include "Random/InverseTransformSampling.h"
-#include "Random/NormalDistribution.h"
-#include "Random/Randn.h"
+#include "PartBunch/Binning/AdaptBins.h"
+#include "PartBunch/Binning/AdaptBins.tpp"
+
 #include "Utilities/OpalException.h"
 #include "BCHandler.hpp"
 #include "Structure/FieldSolverCmd.h"
-#include "Algorithms/PartData.h"
-#include "PartBunch/Binning/AdaptBins.h"
 
 class DataSink;  // forward declaration; full type needed only in .cpp
 class Beam;

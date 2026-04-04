@@ -6,14 +6,18 @@
 //
 // OPAL is licensed under GNU GPL version 3.
 //
+#ifndef ABSBEAMLINE_VerticalFFAMagnet_H
+#define ABSBEAMLINE_VerticalFFAMagnet_H
 
 #include "AbsBeamline/Component.h"
 #include "BeamlineGeometry/StraightGeometry.h"
 #include "Fields/BMultipoleField.h"
 #include "PartBunch/PartBunch.h"
 
-#ifndef ABSBEAMLINE_VerticalFFAMagnet_H
-#define ABSBEAMLINE_VerticalFFAMagnet_H
+#include <cstddef>
+#include <memory>
+#include <string>
+#include <vector>
 
 namespace endfieldmodel {
     class EndFieldModel;

@@ -21,11 +21,15 @@
 #define OPAL_Option_HH
 
 #include "AbstractObjects/Action.h"
+#include "AbstractObjects/Object.h"
 #include "Utilities/Options.h"
 
-#include "Utilities/BiMap.h"
-
 #include <string>
+#include <vector>
+
+class Attribute;
+template <typename Left, typename Right>
+class BiMap;
 
 class Option: public Action {
 

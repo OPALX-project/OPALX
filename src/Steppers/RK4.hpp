@@ -16,6 +16,14 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 
+#ifndef OPAL_STEPPERS_RK4_HPP
+#define OPAL_STEPPERS_RK4_HPP
+
+#include "Steppers/RK4.h"
+
+#include <cmath>
+#include <cstddef>
+
 template <typename FieldFunction, typename... Arguments>
 bool RK4<FieldFunction, Arguments...>::doAdvance_m(
     PartBunch_t* bunch, const size_t& i, const double& t, const double dt,
@@ -140,3 +148,5 @@ void RK4<FieldFunction, Arguments...>::copyFrom(
         P(j) = x[j + 3];  // [px,py,pz] (beta*gamma)
     }
 }
+
+#endif

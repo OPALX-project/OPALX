@@ -21,6 +21,7 @@
 #include "value_parser.hpp"
 #include <optional>
 
+#include <iostream>
 #include <vector>
 
 #define BOOST_SPIRIT_NO_PREDEFINED_TERMINALS
