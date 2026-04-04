@@ -21,6 +21,7 @@ public:
         ZEROFACE_R0Z,
         ZEROFACEPLANEDUMP,
         ZEROFACE_MAXSTEPS,
+        EMISSIONMODEL,
         SIZE
     };
 
@@ -42,6 +43,7 @@ public:
     bool getZeroFaceR0Z() const;
     int getZeroFacePlaneDumpFrequency() const;
     int getZerofaceMaxSteps() const;
+    std::string getEmissionModel() const;
 
 private:
     EmissionSource(const EmissionSource&);

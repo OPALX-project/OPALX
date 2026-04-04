@@ -39,6 +39,13 @@ EmissionSource::EmissionSource()
             "After this many steps, the solver continues without image charges. "
             "0 means unlimited (image charges always active).",
             0.0);
+    
+    itsAttr[EMISSIONMODEL] = Attributes::makePredefinedString(
+        "EMISSIONMODEL",
+        "Emission model for cathode emission. "
+        "NONE: thermal momentum applied in z only. "
+        "ASTRA: 3D isotropic thermal emission on forward half-sphere.",
+        {"NONE", "ASTRA"}, "NONE");
 
     registerOwnership(AttributeHandler::STATEMENT);
 }
@@ -107,4 +114,8 @@ int EmissionSource::getZerofaceMaxSteps() const {
                 "ZEROFACE_MAXSTEPS must be a non-negative integer value.");
     }
     return value;
+}
+
+std::string EmissionSource::getEmissionModel() const {
+    return Attributes::getString(itsAttr[EMISSIONMODEL]);
 }
