@@ -596,17 +596,30 @@ void TrackRun::configureImageChargeFromSources(
         const std::vector<std::vector<EmissionSource*>>& emissionSourcesLists) {
     bool enableImageCharge = false;
     double zPlane          = 0.0;
+    int dumpFrequency      = 0;
     size_t numZeroFaceR0Z  = 0;
 
     for (const auto& sourceList : emissionSourcesLists) {
         for (const auto* src : sourceList) {
-            if (!src || !src->getZeroFaceR0Z()) {
+            if (!src) {
+                continue;
+            }
+
+            const int sourceDumpFrequency = src->getZeroFacePlaneDumpFrequency();
+            if (!src->getZeroFaceR0Z()) {
+                if (sourceDumpFrequency > 0) {
+                    throw OpalException(
+                            "TrackRun::configureImageChargeFromSources",
+                            "ZEROFACEPLANEDUMP > 0 requires ZEROFACE_R0Z=true on the same "
+                            "EMISSIONSOURCE.");
+                }
                 continue;
             }
 
             ++numZeroFaceR0Z;
             enableImageCharge = true;
             zPlane = src->getR0()[2];
+            dumpFrequency = sourceDumpFrequency;
         }
     }
 
@@ -618,6 +631,7 @@ void TrackRun::configureImageChargeFromSources(
     }
 
     bunch_m->setImageChargeConfiguration(enableImageCharge, zPlane);
+    bunch_m->setZeroFacePlaneDumpFrequency(enableImageCharge ? dumpFrequency : 0);
 }
 
 Inform& TrackRun::print(Inform& os) const {

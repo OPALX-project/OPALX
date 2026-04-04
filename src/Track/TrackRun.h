@@ -91,7 +91,9 @@ private:
      *
      * Scans all sources across all selected beams for `ZEROFACE_R0Z=true`.
      * If exactly one source requests zero-face handling, image-charge mode is enabled
-     * and the mirror plane is set to that source's `R0Z`.
+    * and the mirror plane is set to that source's `R0Z`.
+    * The same source also provides `ZEROFACEPLANEDUMP`, which controls
+    * diagnostic potential-plane dumping frequency (`0` disables dumping).
      * If none request it, image-charge mode is disabled.
      *
      * @param emissionSourcesLists Per-beam source lists assembled during `RUN` setup.
