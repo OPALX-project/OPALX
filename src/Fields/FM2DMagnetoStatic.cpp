@@ -201,7 +201,7 @@ void FM2DMagnetoStatic::freeMap() {
  * 
  * @param pc Particle container
  */
-void FM2DMagnetoStatic::applyField(std::shared_ptr<ParticleContainer_t> pc)
+void FM2DMagnetoStatic::applyField(std::shared_ptr<ParticleContainer_t> pc, double scale)
 {
     // Local copies of member variables for use in the lambda function
     double zbegin = zbegin_m;
@@ -212,21 +212,23 @@ void FM2DMagnetoStatic::applyField(std::shared_ptr<ParticleContainer_t> pc)
     int num_gridpr = num_gridpr_m;
     int num_gridpz = num_gridpz_m;
 
-    // Device accessible views 
+    // Device accessible views
     auto Bz_device = FieldstrengthBz_m.view_device();
     auto Br_device = FieldstrengthBr_m.view_device();
     auto Rview = pc->R.getView();
     auto Bview = pc->B.getView();
     const size_t nLocal = pc->getLocalNum();
 
-    Kokkos::parallel_for("FM2DMagnetoStatic::applyField", nLocal, 
+    Kokkos::parallel_for("FM2DMagnetoStatic::applyField", nLocal,
         KOKKOS_LAMBDA(const size_t i) {
             // Check bounds
             if (Rview(i)(2) >= zbegin && Rview(i)(2) < zend
                 && sqrt(Rview(i)(0) * Rview(i)(0) + Rview(i)(1) * Rview(i)(1)) < rend) {
+                Vector_t<double, 3> tmpB = 0.0;
                 computeField(
-                    Rview(i), Bview(i), Bz_device, Br_device, hr, hz, zbegin, num_gridpr,
+                    Rview(i), tmpB, Bz_device, Br_device, hr, hz, zbegin, num_gridpr,
                     num_gridpz);
+                Bview(i) += scale * tmpB;
             }
         });
 
