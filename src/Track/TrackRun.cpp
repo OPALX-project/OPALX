@@ -67,7 +67,28 @@
 
 #include <unistd.h>
 
+#include <filesystem>
+
 extern Inform* gmsg;
+
+namespace {
+
+/** Restart source path for container @p index when using per-container H5 names. */
+std::string h5RestartSourceForContainer(
+    const std::string& restartFile, const std::string& containerH5FileName, size_t numContainers) {
+    if (numContainers <= 1) {
+        return restartFile;
+    }
+    namespace fs = std::filesystem;
+    fs::path rf(restartFile);
+    fs::path leaf = fs::path(containerH5FileName).filename();
+    if (rf.has_parent_path()) {
+        return (rf.parent_path() / leaf).string();
+    }
+    return leaf.string();
+}
+
+}  // namespace
 
 namespace TRACKRUN {
     // The attributes of class TrackRun.
@@ -95,7 +116,7 @@ TrackRun::TrackRun()
       itsTracker_m(nullptr),
       fs_m(nullptr),
       ds_m(nullptr),
-      phaseSpaceSink_m(nullptr),
+      phaseSpaceSinks_m(),
       isFollowupTrack_m(false),
       method_m(RunMethod::NONE){
 
@@ -125,7 +146,7 @@ TrackRun::TrackRun(const std::string& name, TrackRun* parent)
       itsTracker_m(nullptr),
       fs_m(nullptr),
       ds_m(nullptr),
-      phaseSpaceSink_m(nullptr),
+      phaseSpaceSinks_m(),
       isFollowupTrack_m(false),
       method_m(RunMethod::NONE){
     /*
@@ -149,7 +170,10 @@ TrackRun::TrackRun(const std::string& name, TrackRun* parent)
 }
 
 TrackRun::~TrackRun() {
-    delete phaseSpaceSink_m;
+    for (H5PartWrapper* p : phaseSpaceSinks_m) {
+        delete p;
+    }
+    phaseSpaceSinks_m.clear();
 }
 
 TrackRun* TrackRun::clone(const std::string& name) {
@@ -277,7 +301,7 @@ void TrackRun::execute() {
     */
 
     // ? Need to see how this interacts with multiple containers
-    initDataSink();
+    initDataSink(beams.size());
 
     // Set total particles per container (beam)
     std::vector<size_t> totalParticlesPerBeam(beams.size());
@@ -409,35 +433,47 @@ std::string TrackRun::getRunMethodName() const {
 }
 
 
-void TrackRun::initDataSink() {
-    if (opal_m->inRestartRun()) {
-        phaseSpaceSink_m = new H5PartWrapperForPT(
-            opal_m->getInputBasename() + std::string(".h5"), opal_m->getRestartStep(),
-            OpalData::getInstance()->getRestartFileName(), H5_O_WRONLY);
-    } else if (isFollowupTrack_m) {
-        phaseSpaceSink_m = new H5PartWrapperForPT(
-            opal_m->getInputBasename() + std::string(".h5"), -1,
-            opal_m->getInputBasename() + std::string(".h5"), H5_O_WRONLY);
-    } else {
-        phaseSpaceSink_m =
-            new H5PartWrapperForPT(opal_m->getInputBasename() + std::string(".h5"), H5_O_WRONLY);
+void TrackRun::initDataSink(size_t numParticleContainers) {
+    for (H5PartWrapper* p : phaseSpaceSinks_m) {
+        delete p;
+    }
+    phaseSpaceSinks_m.clear();
+    phaseSpaceSinks_m.reserve(numParticleContainers);
+
+    const std::string base = opal_m->getInputBasename();
+
+    for (size_t i = 0; i < numParticleContainers; ++i) {
+        const std::string stem = DataSink::diagnosticStemForContainer(base, numParticleContainers, i);
+        const std::string dest   = stem + std::string(".h5");
+        H5PartWrapper* w         = nullptr;
+
+        if (opal_m->inRestartRun()) {
+            const std::string src = h5RestartSourceForContainer(
+                OpalData::getInstance()->getRestartFileName(), dest, numParticleContainers);
+            w = new H5PartWrapperForPT(dest, opal_m->getRestartStep(), src, H5_O_WRONLY);
+        } else if (isFollowupTrack_m) {
+            w = new H5PartWrapperForPT(dest, -1, stem + std::string(".h5"), H5_O_WRONLY);
+        } else {
+            w = new H5PartWrapperForPT(dest, H5_O_WRONLY);
+        }
+        phaseSpaceSinks_m.push_back(w);
     }
 
     if (!opal_m->inRestartRun()) {
         if (!opal_m->hasDataSinkAllocated()) {
-            opal_m->setDataSink(new DataSink(phaseSpaceSink_m, false));
+            opal_m->setDataSink(new DataSink(phaseSpaceSinks_m, false, numParticleContainers));
         } else {
             DataSink* raw = opal_m->getDataSink();
-            raw->changeH5Wrapper(phaseSpaceSink_m);
+            raw->changeH5Wrappers(phaseSpaceSinks_m);
         }
     } else {
-        opal_m->setDataSink(new DataSink(phaseSpaceSink_m, true));
+        opal_m->setDataSink(new DataSink(phaseSpaceSinks_m, true, numParticleContainers));
     }
 
     // Wrap the global DataSink in a non-owning shared_ptr for local use.
     /// \todo this is a hack to avoid having to pass the DataSink to the PartBunch constructor. Refactor to completely use shared_ptr later!
     DataSink* raw = opal_m->getDataSink();
-    ds_m = std::shared_ptr<DataSink>(raw, [](DataSink*) {});
+    ds_m          = std::shared_ptr<DataSink>(raw, [](DataSink*) {});
 }
 
 void TrackRun::setupBoundaryGeometry() {

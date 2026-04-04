@@ -21,6 +21,7 @@
 //
 #include "Algorithms/ParallelTracker.h"
 
+#include <array>
 #include <cfloat>
 #include <cmath>
 #include <iomanip>
@@ -1139,38 +1140,40 @@ void ParallelTracker::findStartPositions(const BorisPusher& pusher) {
 
 void ParallelTracker::dumpStats(long long step, bool psDump, bool statDump) {
     OPALTimer::Timer myt2;
-    size_t totalNum = itsBunch_m->getParticleContainer()->getTotalNum();
+    const size_t totalAll = itsBunch_m->getTotalNumAllContainers();
 
-    /*
-    if (itsBunch_m->getGlobalTrackStep() % 1000 + 1 == 1000) {
-        *gmsg << level1;
-    } else if (itsBunch_m->getGlobalTrackStep() % 100 + 1 == 100) {
-        *gmsg << level2;
-    } else {
-        *gmsg << level3;
-    }
-    */
-    if (totalNum == 0) {
+    if (totalAll == 0) {
         *gmsg << level1 << "* " << myt2.time() << " "
-            << "Step " << std::setw(6) << itsBunch_m->getGlobalTrackStep() << "; "
-            << "   -- no emission yet --     "
-            << "t= " << Util::getTimeString(itsBunch_m->getT()) << endl;
+              << "Step " << std::setw(6) << itsBunch_m->getGlobalTrackStep() << "; "
+              << "   -- no emission yet --     "
+              << "t= " << Util::getTimeString(itsBunch_m->getT()) << endl;
         return;
     }
 
-    // \todo itsBunch_m->calcEMean();
-    const double sPos = itsBunch_m->getParticleContainer()->get_sPos();
-    if (std::isnan(sPos) || std::isinf(sPos)) {
-        throw OpalException(
-            "ParallelTracker::dumpStats()",
-            "there seems to be something wrong with the position of the bunch!");
-    } else {
+    bool anyLogged = false;
+    const auto& containers = itsBunch_m->getParticleContainers();
+    for (size_t ci = 0; ci < containers.size(); ++ci) {
+        const auto& pc = containers[ci];
+        if (!pc || pc->getTotalNum() == 0) {
+            continue;
+        }
+        pc->updateMoments();
+        const double sPos = pc->get_sPos();
+        if (std::isnan(sPos) || std::isinf(sPos)) {
+            throw OpalException(
+                "ParallelTracker::dumpStats()",
+                "invalid path length s for particle container " + std::to_string(ci));
+        }
         *gmsg << level1 << "* " << myt2.time() << " "
-            << "Step " << std::setw(6) << itsBunch_m->getGlobalTrackStep() << " "
-            << "at " << Util::getLengthString(sPos) << ", "
-            << "t= " << Util::getTimeString(itsBunch_m->getT()) << ", "
-            << "E=" << Util::getEnergyString(itsBunch_m->getParticleContainer()->getMeanKineticEnergy()) << endl;
+              << "Step " << std::setw(6) << itsBunch_m->getGlobalTrackStep() << " "
+              << "container[" << ci << "] "
+              << "at " << Util::getLengthString(sPos) << ", "
+              << "t= " << Util::getTimeString(itsBunch_m->getT()) << ", "
+              << "E=" << Util::getEnergyString(pc->getMeanKineticEnergy()) << endl;
+        anyLogged = true;
+    }
 
+    if (anyLogged) {
         writePhaseSpace(step, psDump, statDump);
     }
 }
@@ -1219,65 +1222,41 @@ void ParallelTracker::setTime() {
 void ParallelTracker::writePhaseSpace(const long long /*step*/, bool psDump, bool statDump) {
     Inform m("ParallelTracker::writePhaseSpace");
     Vector_t<double, 3> externalE, externalB;
-    Vector_t<double, 3> FDext[2];  // FDext = {BHead, EHead, BRef, ERef, BTail, ETail}.
 
-    // Sample fields at (xmin, ymin, zmin), (xmax, ymax, zmax) and the centroid location. We
-    // are sampling the electric and magnetic fields at the back, front and
-    // center of the beam.
     Vector_t<double, 3> rmin, rmax;
     itsBunch_m->get_bounds(rmin, rmax);
     m << level5 << "Bunch bounds in REFERENCE frame: rmin = " << rmin << ", rmax = " << rmax << endl;
 
+    const size_t nContainers = itsBunch_m->getNumParticleContainers();
+    std::vector<std::array<Vector_t<double, 3>, 2>> fdByContainer(nContainers);
+
     if (psDump || statDump) {
-        externalB = Vector_t<double, 3>(0.0);
-        externalE = Vector_t<double, 3>(0.0);
-        itsOpalBeamline_m.getFieldAt(
-            itsBunch_m->getParticleContainer()->getRefPartR(), itsBunch_m->getParticleContainer()->getRefPartP(),
-            itsBunch_m->getT() - 0.5 * itsBunch_m->getdT(), externalE, externalB);
-        FDext[0] = externalB;  // \todo itsBunch_m->toLabTrafo_m.rotateFrom(externalB);
-        FDext[1] =
-            (externalE * Units::Vpm2MVpm);  // \todo itsBunch_m->toLabTrafo_m.rotateFrom(externalE *
-                                            // Units::Vpm2MVpm);
-        m << level5 << "External fields in REFERENCE frame: externalE = " << externalE << ", externalB = " << externalB << endl;
+        for (size_t i = 0; i < nContainers; ++i) {
+            auto pc = itsBunch_m->getParticleContainer(i);
+            if (!pc || pc->getTotalNum() == 0) {
+                fdByContainer[i][0] = Vector_t<double, 3>(0.0);
+                fdByContainer[i][1] = Vector_t<double, 3>(0.0);
+                continue;
+            }
+            externalB = Vector_t<double, 3>(0.0);
+            externalE = Vector_t<double, 3>(0.0);
+            itsOpalBeamline_m.getFieldAt(
+                pc->getRefPartR(), pc->getRefPartP(),
+                itsBunch_m->getT() - 0.5 * itsBunch_m->getdT(), externalE, externalB);
+            fdByContainer[i][0] = externalB;
+            fdByContainer[i][1] = externalE * Units::Vpm2MVpm;
+            m << level5 << "External fields (container " << i << "): externalE = " << externalE
+              << ", externalB = " << externalB << endl;
+        }
     }
 
     if (statDump) {
-        // For statistics, we want quantities (mean positions, emittances, etc.)
-        // in the BEAM frame: origin at the reference particle and z-axis along
-        // the average beam momentum. The bunch is otherwise stored in the
-        // REFERENCE frame, so we temporarily transform to BEAM,
-        // compute beam parameters, then transform back.
-        //
-        // Edit: old OPAL also uses the reference frame, so don't transform here. You can get
-        // equivalent behaviour by plotting ref_coord + mean_coord!
-        /*
-        Quaternion alignment =
-            getQuaternion(itsBunch_m->get_pmean(), Vector_t<double, 3>(0, 0, 1));
-        CoordinateSystemTrafo beamToReferenceCSTrafo(
-            Vector_t<double, 3>(0, 0, itsBunch_m->getParticleContainer()->get_sPos()), alignment.conjugate());
-        CoordinateSystemTrafo referenceToBeamCSTrafo = beamToReferenceCSTrafo.inverted();
-
-        auto Rview = itsBunch_m->getParticleContainer()->R.getView();
-        auto Pview = itsBunch_m->getParticleContainer()->P.getView();
-
-        // Go to BEAM frame for statistics
-        const size_t nLocStat = itsBunch_m->getParticleContainer()->getLocalNum();
-        referenceToBeamCSTrafo.transformBunchTo(Rview, nLocStat);
-        referenceToBeamCSTrafo.rotateBunchTo(Pview, nLocStat);*/
-
-        // Calculate beam parameters in beam/lab frame and dump statistics
-        itsBunch_m->calcBeamParameters();
-        itsDataSink_m->dumpSDDS(itsBunch_m, FDext, -1.0);
+        itsDataSink_m->dumpSDDS(itsBunch_m, fdByContainer, -1.0);
         *gmsg << level2 << "* Wrote beam statistics." << endl;
-
-        // Restore REFERENCE frame for the rest of the tracker
-        /*beamToReferenceCSTrafo.transformBunchTo(Rview, itsBunch_m->getLocalNum());
-        beamToReferenceCSTrafo.rotateBunchTo(Pview, itsBunch_m->getLocalNum());*/
     }
 
-    if (psDump && (itsBunch_m->getParticleContainer()->getTotalNum() > 0)) {
-        // Write phase space to .h5 in REFERENCE frame
-        itsDataSink_m->dumpH5(itsBunch_m, FDext);
+    if (psDump && itsBunch_m->getTotalNumAllContainers() > 0) {
+        itsDataSink_m->dumpH5(itsBunch_m, fdByContainer);
 
         /*
         // Write fields to .h5 file.

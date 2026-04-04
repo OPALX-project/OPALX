@@ -18,6 +18,8 @@
 //
 #include "StatWriter.h"
 
+#include <Kokkos_Core.hpp>
+
 #include "AbstractObjects/OpalData.h"
 #include "PartBunch/PartBunch.h"
 #include "Physics/Units.h"
@@ -197,9 +199,12 @@ void StatWriter::fillHeader(const losses_t& losses) {
 
 void StatWriter::write(
     PartBunch_t* beam, Vector_t<double, 3> FDext[], const losses_t& losses, const double& azimuth,
-    const size_t npOutside) {
+    const size_t npOutside, size_t particleContainerIndex) {
     using ParticleContainer_t = ParticleContainer<T, Dim>;
-    std::shared_ptr<ParticleContainer_t> pc = beam->getParticleContainer();
+    std::shared_ptr<ParticleContainer_t> pc = beam->getParticleContainer(particleContainerIndex);
+    if (!pc) {
+        return;
+    }
 
     double pathLength = pc->get_sPos();
 
@@ -332,12 +337,18 @@ void StatWriter::write(
     if (OpalData::getInstance()->isInOPALCyclMode()) {
         if (ippl::Comm->size() == 1) {
             if (pc->getLocalNum() > 0) {
-                columns_m.addColumnValue("R0_x", beam->R(0)[0]);
-                columns_m.addColumnValue("R0_y", beam->R(0)[1]);
-                columns_m.addColumnValue("R0_s", beam->R(0)[2]);
-                columns_m.addColumnValue("P0_x", beam->P(0)[0]);
-                columns_m.addColumnValue("P0_y", beam->P(0)[1]);
-                columns_m.addColumnValue("P0_s", beam->P(0)[2]);
+                auto rDev = pc->R.getView();
+                auto pDev = pc->P.getView();
+                auto rHost = Kokkos::create_mirror_view(rDev);
+                auto pHost = Kokkos::create_mirror_view(pDev);
+                Kokkos::deep_copy(rHost, rDev);
+                Kokkos::deep_copy(pHost, pDev);
+                columns_m.addColumnValue("R0_x", rHost(0)[0]);
+                columns_m.addColumnValue("R0_y", rHost(0)[1]);
+                columns_m.addColumnValue("R0_s", rHost(0)[2]);
+                columns_m.addColumnValue("P0_x", pHost(0)[0]);
+                columns_m.addColumnValue("P0_y", pHost(0)[1]);
+                columns_m.addColumnValue("P0_s", pHost(0)[2]);
             } else {
                 columns_m.addColumnValue("R0_x", 0.0);
                 columns_m.addColumnValue("R0_y", 0.0);
