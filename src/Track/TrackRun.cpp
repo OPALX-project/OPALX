@@ -576,7 +576,7 @@ void TrackRun::setupDistributionsAndSamplers(
         const auto R0   = src->getR0();
         const auto P0   = src->getP0();
         const double t0 = src->getT0();
-        sampler->setEmissionOffsets(R0, P0, t0);
+        sampler->setEmissionOffsets(R0, P0, t0, src->getEmissionModel());
 
         const size_t Ndist = opalDist->getNumParticles();
         size_t Nmutable    = Ndist;
