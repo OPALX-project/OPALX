@@ -132,51 +132,43 @@ void FlatTop::generateUniformDisk(size_type nlocal, size_t nNew) {
     Vector_t<double, 3> R0     = R0_m;
     Vector_t<double, 3> P0     = P0_m;
 
-    // Total thermal momentum magnitude from emission source P0 (beta*gamma).
+    auto range = Kokkos::RangePolicy<>(nlocal, nlocal + nNew);
+
+    // Position sampling is shared: uniform on elliptical disk + R0 offset.
+    Kokkos::parallel_for("unitDisk_R", range, KOKKOS_LAMBDA(const size_t j) {
+        auto generator = rand_pool.get_state();
+        double r     = Kokkos::sqrt(generator.drand(0., 1.));
+        double theta = 2.0 * pi * generator.drand(0., 1.);
+        rand_pool.free_state(generator);
+
+        Rview(j)[0] = r * Kokkos::cos(theta) * sigmaR[0] + R0[0];
+        Rview(j)[1] = r * Kokkos::sin(theta) * sigmaR[1] + R0[1];
+        Rview(j)[2] = 0.0 + R0[2];
+    });
+
+    // Momentum sampling depends on the emission model chosen in EMISSIONSOURCE.
     // BEAM reference momentum (avrgpz) is intentionally NOT applied:
-    // for emitted beams, only the thermal energy matters (old OPAL behavior).
-    const double pTotThermal = euclidean_norm(P0);
-
-    // Determine whether to use ASTRA isotropic sampling or simple z-directed momentum.
-    const bool useAstra = (emissionModel_m == "ASTRA");
-
-    // Sample (Rx,Ry) on a unit ring, scale with sigmaR, then add R0 offset.
-    Kokkos::parallel_for(
-        "unitDisk", Kokkos::RangePolicy<>(nlocal, nlocal + nNew), KOKKOS_LAMBDA(const size_t j) {
+    // for emitted beams only the thermal energy matters (old OPAL behavior).
+    if (emissionModel_m == "ASTRA") {
+        // ASTRA: 3D isotropic thermal emission on forward half-sphere.
+        const double pTot = euclidean_norm(P0);
+        Kokkos::parallel_for("unitDisk_P_astra", range, KOKKOS_LAMBDA(const size_t j) {
             auto generator = rand_pool.get_state();
-
-            // Transverse position: uniform on elliptical disk
-            double r       = Kokkos::sqrt(generator.drand(0., 1.));
-            double theta   = 2.0 * pi * generator.drand(0., 1.);
-
-            double px, py, pz;
-            if (useAstra) {
-                // ASTRA thermal emission: isotropic on forward half-sphere
-                double rand1   = generator.drand(0., 1.);
-                double rand2   = generator.drand(0., 1.);
-
-                double phi_p   = 2.0 * Kokkos::acos(Kokkos::sqrt(rand1));
-                double theta_p = 2.0 * pi * rand2;
-
-                px = pTotThermal * Kokkos::sin(phi_p) * Kokkos::cos(theta_p);
-                py = pTotThermal * Kokkos::sin(phi_p) * Kokkos::sin(theta_p);
-                pz = pTotThermal * Kokkos::fabs(Kokkos::cos(phi_p));
-            } else {
-                // NONE: all thermal momentum in z direction
-                px = P0[0];
-                py = P0[1];
-                pz = P0[2];
-            }
+            double rand1   = generator.drand(0., 1.);
+            double rand2   = generator.drand(0., 1.);
             rand_pool.free_state(generator);
 
-            Rview(j)[0] = r * Kokkos::cos(theta) * sigmaR[0] + R0[0];
-            Rview(j)[1] = r * Kokkos::sin(theta) * sigmaR[1] + R0[1];
-            Rview(j)[2] = 0.0 + R0[2];
+            double phi   = 2.0 * Kokkos::acos(Kokkos::sqrt(rand1));
+            double theta = 2.0 * pi * rand2;
 
-            Pview(j)[0] = px;
-            Pview(j)[1] = py;
-            Pview(j)[2] = pz;
+            Pview(j)[0] = pTot * Kokkos::sin(phi) * Kokkos::cos(theta);
+            Pview(j)[1] = pTot * Kokkos::sin(phi) * Kokkos::sin(theta);
+            Pview(j)[2] = pTot * Kokkos::fabs(Kokkos::cos(phi));
         });
+    } else {
+        // NONE: all thermal momentum applied in z direction.
+        pc_m->P = P0;
+    }
     Kokkos::fence();
 }
 
