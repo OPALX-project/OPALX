@@ -131,7 +131,7 @@ void BinnedFieldSolver<T, Dim>::dumpDirichletPlaneDiagnosticsIfRequested(
         return;
     }
 
-    m << level3 << "Dirichlet-plane potential diagnostics (" << solveTag << ") at step " << step
+    m << level2 << "Dirichlet-plane potential diagnostics (" << solveTag << ") at step " << step
       << ": z=" << zPlane << " m, mean(phi)=" << diagnostics.mean
       << " V, var(phi)=" << diagnostics.variance << " V^2" << endl;
 }

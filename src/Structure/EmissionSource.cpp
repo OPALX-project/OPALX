@@ -30,7 +30,7 @@ EmissionSource::EmissionSource()
     itsAttr[ZEROFACEPLANEDUMP] = Attributes::makeReal(
             "ZEROFACEPLANEDUMP",
             "Dump interpolated potential on the ZEROFACE_R0Z plane every n-th global "
-            "timestep (0 disables dumping).",
+            "timestep (0 disables dumping, since it's an expensive operation).",
             0.0); 
 
     registerOwnership(AttributeHandler::STATEMENT);
