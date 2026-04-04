@@ -231,6 +231,15 @@ void TrackRun::execute() {
         }
         beams.push_back(Beam::find(name));  // fail fast
     }
+    for (const auto* b : beams) {
+        if (b->isPhoton()) {
+            throw OpalException(
+                "TrackRun::execute",
+                "TRACK does not support BEAM, PARTICLE=PHOTON yet. "
+                "Photon beams may be defined for future OPALX features, but they are currently "
+                "rejected during tracking.");
+        }
+    }
     *gmsg << level1 << "* RUN resolved beams: ";
     for (size_t i = 0; i < beamNames.size(); ++i) {
         *gmsg << beamNames[i] << (i + 1 < beamNames.size() ? ", " : "");
