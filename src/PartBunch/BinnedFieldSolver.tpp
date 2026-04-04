@@ -53,12 +53,29 @@ void BinnedFieldSolver<T, Dim>::computeSelfFields(std::shared_ptr<PartBunch_t> b
       << ", totalParticles=" << pc->getTotalNum() << ", hasBins=" << (hasBins ? 1 : 0)
       << ", stype=" << this->getStype() << endl;
 
+    // Temporarily disable image charges if the step limit has been reached.
+    // The controller's enabled flag gates the image scatter pass; by disabling it
+    // here both the legacy and binned paths automatically perform primary-only scatter.
+    const bool imageWasEnabled = imageScatterController_m.isEnabled();
+    const bool imageActiveThisStep = isImageChargeActiveForStep(bunch->getGlobalTrackStep());
+    if (imageWasEnabled && !imageActiveThisStep) {
+        m << level3 << "ZEROFACE_MAXSTEPS reached (step=" << bunch->getGlobalTrackStep()
+          << ", maxSteps=" << zerofaceMaxSteps_m
+          << "); disabling image charges for this step." << endl;
+        imageScatterController_m.configure(false, imageScatterController_m.getZPlane());
+    }
+
     if (hasBins) {
         m << level4 << "Dispatching to computeBinnedSelfFields() (binned path)." << endl;
         computeBinnedSelfFields(bunch);
     } else {
         m << level4 << "Dispatching to computeLegacySelfFields() (legacy path)." << endl;
         computeLegacySelfFields(bunch);
+    }
+
+    // Restore image-charge controller state if it was temporarily disabled.
+    if (imageWasEnabled && !imageActiveThisStep) {
+        imageScatterController_m.configure(true, imageScatterController_m.getZPlane());
     }
 }
 
@@ -77,6 +94,27 @@ void BinnedFieldSolver<T, Dim>::setGatherAttribute(const GatherAttribute attr) {
 template <typename T, unsigned Dim>
 void BinnedFieldSolver<T, Dim>::setImageChargeConfiguration(bool enabled, double zPlane) {
     imageScatterController_m.configure(enabled, zPlane);
+}
+
+template <typename T, unsigned Dim>
+void BinnedFieldSolver<T, Dim>::setZerofaceMaxSteps(int maxSteps) {
+    if (maxSteps < 0) {
+        throw OpalException(
+                "BinnedFieldSolver::setZerofaceMaxSteps",
+                "ZEROFACE_MAXSTEPS must be >= 0.");
+    }
+    zerofaceMaxSteps_m = maxSteps;
+}
+
+template <typename T, unsigned Dim>
+bool BinnedFieldSolver<T, Dim>::isImageChargeActiveForStep(size_t step) const {
+    if (!imageScatterController_m.isEnabled()) {
+        return false;
+    }
+    if (zerofaceMaxSteps_m <= 0) {
+        return true;  // unlimited
+    }
+    return step < static_cast<size_t>(zerofaceMaxSteps_m);
 }
 
 template <typename T, unsigned Dim>

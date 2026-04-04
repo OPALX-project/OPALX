@@ -597,6 +597,7 @@ void TrackRun::configureImageChargeFromSources(
     bool enableImageCharge = false;
     double zPlane          = 0.0;
     int dumpFrequency      = 0;
+    int maxSteps           = 0;
     size_t numZeroFaceR0Z  = 0;
 
     for (const auto& sourceList : emissionSourcesLists) {
@@ -620,6 +621,7 @@ void TrackRun::configureImageChargeFromSources(
             enableImageCharge = true;
             zPlane = src->getR0()[2];
             dumpFrequency = sourceDumpFrequency;
+            maxSteps = src->getZerofaceMaxSteps();
         }
     }
 
@@ -632,6 +634,7 @@ void TrackRun::configureImageChargeFromSources(
 
     bunch_m->setImageChargeConfiguration(enableImageCharge, zPlane);
     bunch_m->setZeroFacePlaneDumpFrequency(enableImageCharge ? dumpFrequency : 0);
+    bunch_m->setZerofaceMaxSteps(enableImageCharge ? maxSteps : 0);
 }
 
 Inform& TrackRun::print(Inform& os) const {
