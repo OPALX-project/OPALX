@@ -1,11 +1,13 @@
 set (_SRCS
     LinearCompton.cpp
+    LinearBreitWheeler.cpp
     Material.cpp
     ParticleProperties.cpp
     )
 
 set (HDRS
     LinearCompton.h
+    LinearBreitWheeler.h
     Material.h
     ParticleProperties.h
     Physics.h
