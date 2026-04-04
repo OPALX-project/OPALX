@@ -36,6 +36,8 @@ using namespace Expressions;
 
 // The attributes of class Beam.
 namespace {
+    constexpr const char* photonParticleName = "PHOTON";
+
     enum {
         PARTICLE,  // The particle name
         MASS,      // The particle rest mass in GeV
@@ -59,7 +61,7 @@ Beam::Beam()
       reference(1.0, Physics::m_p * Units::GeV2eV, 1.0 * Units::GeV2eV) {
     itsAttr[PARTICLE] = Attributes::makePredefinedString(
         "PARTICLE", "Name of particle to be used",
-        {"ELECTRON", "POSITRON", "MUON", "PROTON", "ANTIPROTON", "DEUTERON", "HMINUS", "H2P",
+        {"PHOTON", "ELECTRON", "POSITRON", "MUON", "PROTON", "ANTIPROTON", "DEUTERON", "HMINUS", "H2P",
          "ALPHA", "CARBON", "XENON", "URANIUM"});
 
     itsAttr[MASS] = Attributes::makeReal("MASS", "Particle rest mass [GeV]");
@@ -112,6 +114,35 @@ Beam* Beam::clone(const std::string& name) {
 }
 
 void Beam::execute() {
+    const bool photon = itsAttr[PARTICLE] && getParticleName() == photonParticleName;
+
+    if (photon) {
+        if (!itsAttr[ENERGY]) {
+            throw OpalException("Beam::execute()",
+                                "\"ENERGY\" must be set for PARTICLE=PHOTON.");
+        }
+        if (itsAttr[MASS]) {
+            throw OpalException("Beam::execute()",
+                                "\"MASS\" is not allowed for PARTICLE=PHOTON. Use \"ENERGY\".");
+        }
+        if (itsAttr[CHARGE]) {
+            throw OpalException("Beam::execute()",
+                                "\"CHARGE\" is not allowed for PARTICLE=PHOTON.");
+        }
+        if (itsAttr[PC]) {
+            throw OpalException("Beam::execute()",
+                                "\"PC\" is not allowed for PARTICLE=PHOTON. Use \"ENERGY\".");
+        }
+        if (itsAttr[GAMMA]) {
+            throw OpalException("Beam::execute()",
+                                "\"GAMMA\" is not allowed for PARTICLE=PHOTON. Use \"ENERGY\".");
+        }
+        if (itsAttr[SOURCES]) {
+            throw OpalException("Beam::execute()",
+                                "\"SOURCES\" is not allowed for PARTICLE=PHOTON.");
+        }
+    }
+
     update();
     // Check if energy explicitly has been set with the BEAM command
     if (!itsAttr[GAMMA] && !(itsAttr[ENERGY]) && !(itsAttr[PC])) {
@@ -132,7 +163,16 @@ void Beam::execute() {
         throw OpalException("Beam::execute()", "\"NPART\" must be set.");
     }
 
-    // Beam-only validation: each beam must specify its EMISSIONSOURCELIST.
+    if (photon) {
+        const double energy = Attributes::getReal(itsAttr[ENERGY]);
+        if (energy <= 0.0) {
+            throw OpalException("Beam::execute()",
+                                "\"ENERGY\" should be greater than 0 for PARTICLE=PHOTON.");
+        }
+        return;
+    }
+
+    // Beam-only validation: each non-photon beam must specify its EMISSIONSOURCELIST.
     (void)getEmissionSourceListName();
 }
 
@@ -198,6 +238,10 @@ std::string Beam::getParticleName() const {
     return Attributes::getString(itsAttr[PARTICLE]);
 }
 
+bool Beam::isPhoton() const {
+    return itsAttr[PARTICLE] && getParticleName() == photonParticleName;
+}
+
 double Beam::getFrequency() const {
     return Attributes::getReal(itsAttr[BFREQ]);
 }
@@ -217,6 +261,13 @@ void Beam::update() {
         ParticleType pType = ParticleProperties::getParticleType(pName);
         Attributes::setReal(itsAttr[MASS], ParticleProperties::getParticleMass(pType));
         Attributes::setReal(itsAttr[CHARGE], ParticleProperties::getParticleCharge(pType));
+    }
+
+    if (isPhoton()) {
+        reference = PartData();
+        reference.setQ(0.0);
+        reference.setM(0.0);
+        return;
     }
 
     // Set up particle reference; convert all to eV for CLASSIC.
