@@ -592,7 +592,7 @@ namespace ParticleBinning {
 
 }
 
-#include "AdaptBins.tpp"
+//#include "AdaptBins.tpp"
 
 #endif  // ADAPT_BINS_H
 

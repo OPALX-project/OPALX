@@ -6,7 +6,8 @@
 #include <memory>
 // #include <vector>
 
-#include "Manager/BaseManager.h"
+#include "Ippl.h"
+#include "PartBunch/FieldContainer.hpp"
 
 #include "Algorithms/DistributionMoments.h"
 #include "Algorithms/PartData.h"

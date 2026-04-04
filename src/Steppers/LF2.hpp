@@ -15,6 +15,11 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
+#ifndef OPAL_STEPPERS_LF2_HPP
+#define OPAL_STEPPERS_LF2_HPP
+
+#include "Steppers/LF2.h"
+
 #include "BorisPusher.h"
 #include "Physics/Units.h"
 
@@ -61,3 +66,5 @@ bool LF2<FieldFunction, Arguments...>::kick_m(
     // \todo pusher.kick(bunch->R(i), bunch->P(i), externalE, externalB, h, M, q);
     return true;
 }
+
+#endif

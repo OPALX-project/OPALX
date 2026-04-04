@@ -345,12 +345,12 @@ namespace ParticleBinning {
 
         // Calculate gamma factor for field back transformation 
         // Note that P is saved normalized in OPAL, so technically p/mc
-        Vector<T, Dim> gamma_bin2(0.0);
+        ippl::Vector<T, Dim> gamma_bin2(0.0);
         Kokkos::parallel_reduce("CalculateGammaFactor", getBinIterationPolicy(currentBin),  
-            KOKKOS_LAMBDA(const size_type& i, Vector<double, 3>& v) {
-                Vector<double, 3> v_comp = P(indices(i)); 
+            KOKKOS_LAMBDA(const size_type& i, ippl::Vector<double, 3>& v) {
+                ippl::Vector<double, 3> v_comp = P(indices(i)); 
                 v                       += v_comp;  
-            }, Kokkos::Sum<Vector<T, Dim>>(gamma_bin2));
+            }, Kokkos::Sum<ippl::Vector<T, Dim>>(gamma_bin2));
         bin_index_type npart_bin = getNPartInBin(currentBin);
         
         /**
@@ -359,7 +359,7 @@ namespace ParticleBinning {
          * a division by zero. 
          * So: either check if the number is 0 or make sure ranks always have enough particles!
          */
-        gamma_bin2  = (npart_bin == 0) ? Vector<double, 3>(0.0) : gamma_bin2/npart_bin; // Now we have <P> for this bin
+        gamma_bin2  = (npart_bin == 0) ? ippl::Vector<double, 3>(0.0) : gamma_bin2/npart_bin; // Now we have <P> for this bin
         gamma_bin2  = -sqrt(1.0 + gamma_bin2*gamma_bin2); // in these units: gamma=sqrt(1 + <P>^2), assuming <P^2>~0 (since bunch per bin should be "considered constant") // -1.0 / sqrt(1.0 - gamma_bin2 / c2); // negative sign, since we want the inverse transformation
         
         m << level5 << "Gamma(binIndex = " << currentBin << ") = -" << gamma_bin2 << endl;
@@ -421,6 +421,6 @@ namespace ParticleBinning {
 
 }
 
-#endif // ADAPT_BINS_HPP
+#endif // ADAPT_BINS_TPP
 
 
