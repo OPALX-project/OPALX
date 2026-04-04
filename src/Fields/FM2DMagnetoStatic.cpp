@@ -224,13 +224,11 @@ void FM2DMagnetoStatic::applyField(std::shared_ptr<ParticleContainer_t> pc, doub
             // Check bounds
             if (Rview(i)(2) >= zbegin && Rview(i)(2) < zend
                 && sqrt(Rview(i)(0) * Rview(i)(0) + Rview(i)(1) * Rview(i)(1)) < rend) {
-                Vector_t<double, 3> tmpB({0.0, 0.0, 0.0});
+                Vector_t<double, 3> tmpB = 0.0;
                 computeField(
                     Rview(i), tmpB, Bz_device, Br_device, hr, hz, zbegin, num_gridpr,
                     num_gridpz);
-                Bview(i)(0) += scale * tmpB(0);
-                Bview(i)(1) += scale * tmpB(1);
-                Bview(i)(2) += scale * tmpB(2);
+                Bview(i) += scale * tmpB;
             }
         });
 
