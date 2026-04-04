@@ -20,6 +20,13 @@ EmissionSource::EmissionSource()
 
     itsAttr[T0] = Attributes::makeReal("T0", "Start time when sampling begins [s].", 0.0);
 
+    itsAttr[EMISSIONMODEL] = Attributes::makePredefinedString(
+        "EMISSIONMODEL",
+        "Emission model for cathode emission. "
+        "NONE: thermal momentum applied in z only. "
+        "ASTRA: 3D isotropic thermal emission on forward half-sphere.",
+        {"NONE", "ASTRA"}, "NONE");
+
     registerOwnership(AttributeHandler::STATEMENT);
 }
 
@@ -65,4 +72,8 @@ ippl::Vector<double, 3> EmissionSource::getP0() const {
 
 double EmissionSource::getT0() const {
     return Attributes::getReal(itsAttr[T0]);
+}
+
+std::string EmissionSource::getEmissionModel() const {
+    return Attributes::getString(itsAttr[EMISSIONMODEL]);
 }
