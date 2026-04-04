@@ -9,7 +9,19 @@
 class EmissionSource : public Definition {
 public:
     /// The attributes of class EmissionSource.
-    enum { DISTRIBUTION, R0X, R0Y, R0Z, P0X, P0Y, P0Z, T0, ZEROFACE_R0Z, SIZE };
+    enum {
+        DISTRIBUTION,
+        R0X,
+        R0Y,
+        R0Z,
+        P0X,
+        P0Y,
+        P0Z,
+        T0,
+        ZEROFACE_R0Z,
+        ZEROFACEPLANEDUMP,
+        SIZE
+    };
 
     /// Exemplar constructor.
     EmissionSource();
@@ -27,6 +39,7 @@ public:
     ippl::Vector<double, 3> getP0() const;
     double getT0() const;
     bool getZeroFaceR0Z() const;
+    int getZeroFacePlaneDumpFrequency() const;
 
 private:
     EmissionSource(const EmissionSource&);
