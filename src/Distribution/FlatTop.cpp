@@ -131,26 +131,38 @@ void FlatTop::generateUniformDisk(size_type nlocal, size_t nNew) {
     Vector_t<double, 3> sigmaR = sigmaR_m;
     Vector_t<double, 3> R0     = R0_m;
     Vector_t<double, 3> P0     = P0_m;
-    // Beam reference momentum in beta*gamma (set by TrackRun from BEAM); emission source P0 is
-    // offset on top. opalDist_m may be null when FlatTop is constructed directly in unit tests
-    // without a Distribution.
-    const double beamPz = opalDist_m ? opalDist_m->getAvrgpz() : 0.0;
-    // Sample (Rx,Ry) on a unit ring, scale with sigmaR, then add R0/P0 (emission source offset).
-    // Note that R0/P0 are applied directly here, since then we only need one loop and don't need to
-    // think too much about which indices to apply the offset to.
+
+    // Total thermal momentum magnitude from emission source P0 (beta*gamma).
+    // This mirrors old OPAL's pTotThermal computed from EKIN via getBetaGamma.
+    // BEAM reference momentum (avrgpz) is intentionally NOT applied here:
+    // for emitted beams, only the thermal energy matters (old OPAL behavior).
+    const double pTotThermal = euclidean_norm(P0);
+
+    // Sample (Rx,Ry) on a unit ring, scale with sigmaR, then add R0 offset.
+    // Momentum uses ASTRA 3D isotropic thermal emission model (half-sphere).
     Kokkos::parallel_for(
         "unitDisk", Kokkos::RangePolicy<>(nlocal, nlocal + nNew), KOKKOS_LAMBDA(const size_t j) {
             auto generator = rand_pool.get_state();
+
+            // Transverse position: uniform on elliptical disk
             double r       = Kokkos::sqrt(generator.drand(0., 1.));
             double theta   = 2.0 * pi * generator.drand(0., 1.);
+
+            // ASTRA thermal emission: isotropic on forward half-sphere
+            double rand1   = generator.drand(0., 1.);
+            double rand2   = generator.drand(0., 1.);
             rand_pool.free_state(generator);
+
+            double phi_p   = 2.0 * Kokkos::acos(Kokkos::sqrt(rand1));
+            double theta_p = 2.0 * pi * rand2;
 
             Rview(j)[0] = r * Kokkos::cos(theta) * sigmaR[0] + R0[0];
             Rview(j)[1] = r * Kokkos::sin(theta) * sigmaR[1] + R0[1];
             Rview(j)[2] = 0.0 + R0[2];
-            Pview(j)[0] = 0.0 + P0[0];
-            Pview(j)[1] = 0.0 + P0[1];
-            Pview(j)[2] = 0.0 + P0[2] + beamPz;
+
+            Pview(j)[0] = pTotThermal * Kokkos::sin(phi_p) * Kokkos::cos(theta_p);
+            Pview(j)[1] = pTotThermal * Kokkos::sin(phi_p) * Kokkos::sin(theta_p);
+            Pview(j)[2] = pTotThermal * Kokkos::fabs(Kokkos::cos(phi_p));
         });
     Kokkos::fence();
 }
