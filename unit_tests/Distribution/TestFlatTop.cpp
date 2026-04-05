@@ -121,7 +121,7 @@ TEST_F(FlatTopTest, UniformDiskStatisticsAndBounds) {
     const size_t nNew   = 100000;
 
     pc->create(nNew);
-    sampler.generateUniformDisk(nlocal, nNew);
+    sampler.generateUniformDisk(nlocal, nNew, 1.0e-12);
 
     auto Rview_d = pc->R.getView();
     auto Pview_d = pc->P.getView();
