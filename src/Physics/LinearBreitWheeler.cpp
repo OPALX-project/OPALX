@@ -32,6 +32,12 @@ namespace {
         return std::max(-1.0, std::min(1.0, value));
     }
 
+    void ensureProposalZ(double value, const char* where) {
+        if (value < -1.0 || value > 1.0) {
+            throw OpalException(where, "\"proposalZ\" must lie in [-1, 1].");
+        }
+    }
+
     std::uint64_t deterministicHostSeed() {
         return Options::seed >= 0 ? static_cast<std::uint64_t>(Options::seed) : 123456789ULL;
     }
@@ -190,6 +196,27 @@ double totalCrossSection(double sGeV2) {
     const double logTerm = std::log((1.0 + beta) / (1.0 - beta));
     return 0.5 * Physics::pi * Physics::r_e * Physics::r_e * oneMinusBeta2
         * ((3.0 - std::pow(beta, 4)) * logTerm - 2.0 * beta * (2.0 - beta * beta));
+}
+
+double proposalZToScatteringCosineCM(double sGeV2, double proposalZ) {
+    constexpr const char* where = "Physics::LinearBreitWheeler::proposalZToScatteringCosineCM()";
+    ensureStrictlyPositive(sGeV2, where, "sGeV2");
+    ensureProposalZ(proposalZ, where);
+    if (!isAboveThreshold(sGeV2)) {
+        return 0.0;
+    }
+    const double y = cainProposalY(sGeV2, proposalZ);
+    return 1.0 - 2.0 * y;
+}
+
+double unpolarizedAngularWeight(double sGeV2, double proposalZ) {
+    constexpr const char* where = "Physics::LinearBreitWheeler::unpolarizedAngularWeight()";
+    ensureStrictlyPositive(sGeV2, where, "sGeV2");
+    ensureProposalZ(proposalZ, where);
+    if (!isAboveThreshold(sGeV2)) {
+        return 0.0;
+    }
+    return cainUnpolarizedWeight(sGeV2, proposalZ);
 }
 
 SamplingKernel makeSamplingKernel(double highEnergyPhotonEnergyGeV,

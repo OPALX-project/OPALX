@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
+#include <random>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -23,6 +24,38 @@ enum class FinalState {
 enum class Observable {
     Energy,
     Theta,
+};
+
+/**
+ * @brief Configuration for folding the linear Breit-Wheeler kernel over a finite incoming photon beam.
+ *
+ * This benchmark keeps the laser photon fixed and samples only the incoming
+ * high-energy photon beam. The present implementation models the beam by a
+ * Gaussian spread in the transverse photon slopes around the reference beam
+ * axis and, optionally, by a Gaussian relative energy spread.
+ *
+ * The benchmark intentionally stays momentum-space only. It does not model
+ * photon-beam position spread or laser-overlap weighting yet.
+ */
+struct FinitePhotonBeamConfig {
+    double centralHighEnergyPhotonEnergyGeV = 0.5;
+    double wavelength_m = 1.0e-9;
+    Vector_t<double, 3> referenceHighEnergyDirection = [] {
+        Vector_t<double, 3> value(0.0);
+        value(2) = 1.0;
+        return value;
+    }();
+    Vector_t<double, 3> laserDirection = [] {
+        Vector_t<double, 3> value(0.0);
+        value(2) = -1.0;
+        return value;
+    }();
+    double sigmaThetaXRad = 1.0e-3;
+    double sigmaThetaYRad = 1.0e-3;
+    double relativeEnergySpread = 0.0;
+    std::size_t bins = 80;
+    double minValue = 0.0;
+    double maxValue = 0.5;
 };
 
 struct HistogramConfig {
@@ -99,6 +132,117 @@ inline double sampledObservable(const Physics::LinearBreitWheeler::SampledEvent&
     return state == FinalState::Positron
         ? event.positronEnergyLabGeV
         : event.electronEnergyLabGeV;
+}
+
+inline Vector_t<double, 3> samplePhotonBeamDirection(const Vector_t<double, 3>& referenceDirection,
+                                                     double sigmaThetaXRad,
+                                                     double sigmaThetaYRad,
+                                                     std::mt19937_64& engine) {
+    std::normal_distribution<double> unitNormal(0.0, 1.0);
+    const double slopeX = sigmaThetaXRad * unitNormal(engine);
+    const double slopeY = sigmaThetaYRad * unitNormal(engine);
+
+    Vector_t<double, 3> axis1(0.0);
+    axis1(0) = 1.0;
+    if (std::abs(referenceDirection(0)) > 0.9) {
+        axis1(0) = 0.0;
+        axis1(1) = 1.0;
+    }
+    axis1 = cross(referenceDirection, axis1);
+    const double axis1Norm = std::sqrt(dot(axis1, axis1));
+    axis1 /= axis1Norm;
+    Vector_t<double, 3> axis2 = cross(referenceDirection, axis1);
+    const double axis2Norm = std::sqrt(dot(axis2, axis2));
+    axis2 /= axis2Norm;
+
+    Vector_t<double, 3> direction = referenceDirection + slopeX * axis1 + slopeY * axis2;
+    const double directionNorm = std::sqrt(dot(direction, direction));
+    direction /= directionNorm;
+    return direction;
+}
+
+inline double sampleHighEnergyPhotonEnergyGeV(double centralEnergyGeV,
+                                              double relativeEnergySpread,
+                                              std::mt19937_64& engine) {
+    if (relativeEnergySpread <= 0.0) {
+        return centralEnergyGeV;
+    }
+
+    std::normal_distribution<double> unitNormal(0.0, 1.0);
+    double energyGeV = centralEnergyGeV;
+    do {
+        energyGeV = centralEnergyGeV * (1.0 + relativeEnergySpread * unitNormal(engine));
+    } while (energyGeV <= 0.0);
+    return energyGeV;
+}
+
+/**
+ * @brief Sample a one-dimensional Breit-Wheeler histogram for a finite incoming photon beam.
+ *
+ * The laser photon stays fixed. For each sampled event the incoming high-energy
+ * photon direction is drawn from a Gaussian angular spread around the reference
+ * beam axis, and the energy is optionally smeared by a Gaussian relative energy
+ * spread. The resulting per-event kernel is then sampled with the same
+ * host-side Breit-Wheeler event generator used in the fixed-geometry benchmark.
+ */
+inline Histogram sampleFinitePhotonBeamHistogram(const FinitePhotonBeamConfig& config,
+                                                 FinalState state,
+                                                 Observable observable,
+                                                 std::size_t sampleCount,
+                                                 std::uint64_t streamIndex = 0) {
+    if (config.bins == 0) {
+        throw std::runtime_error("LinearBreitWheelerBenchmark: number of bins must be positive.");
+    }
+    if (config.maxValue <= config.minValue) {
+        throw std::runtime_error("LinearBreitWheelerBenchmark: histogram range must satisfy max > min.");
+    }
+    if (sampleCount == 0) {
+        throw std::runtime_error("LinearBreitWheelerBenchmark: sample count must be positive.");
+    }
+
+    Histogram histogram;
+    histogram.binWidth = (config.maxValue - config.minValue) / static_cast<double>(config.bins);
+    histogram.centers.resize(config.bins);
+    histogram.density.assign(config.bins, 0.0);
+    histogram.counts.assign(config.bins, 0.0);
+    for (std::size_t i = 0; i < config.bins; ++i) {
+        histogram.centers[i] = config.minValue + (static_cast<double>(i) + 0.5) * histogram.binWidth;
+    }
+
+    const double laserPhotonEnergyGeV = Physics::LinearBreitWheeler::photonEnergyFromWavelengthGeV(
+        config.wavelength_m);
+    auto engine = Physics::LinearBreitWheeler::makeHostRandomEngine(streamIndex);
+    histogram.totalWeight = static_cast<double>(sampleCount);
+
+    for (std::size_t i = 0; i < sampleCount; ++i) {
+        const double highEnergyPhotonEnergyGeV = sampleHighEnergyPhotonEnergyGeV(
+            config.centralHighEnergyPhotonEnergyGeV,
+            config.relativeEnergySpread,
+            engine);
+        const auto highEnergyDirection = samplePhotonBeamDirection(
+            config.referenceHighEnergyDirection,
+            config.sigmaThetaXRad,
+            config.sigmaThetaYRad,
+            engine);
+        const auto kernel = Physics::LinearBreitWheeler::makeSamplingKernel(highEnergyPhotonEnergyGeV,
+                                                                            laserPhotonEnergyGeV,
+                                                                            highEnergyDirection,
+                                                                            config.laserDirection);
+        const auto event = Physics::LinearBreitWheeler::sampleEvent(kernel, engine);
+        const double value = sampledObservable(event, state, observable);
+        if (value < config.minValue || value >= config.maxValue) {
+            continue;
+        }
+        const std::size_t bin = static_cast<std::size_t>((value - config.minValue) / histogram.binWidth);
+        if (bin < histogram.counts.size()) {
+            histogram.counts[bin] += 1.0;
+        }
+    }
+
+    for (std::size_t i = 0; i < histogram.counts.size(); ++i) {
+        histogram.density[i] = histogram.counts[i] / (histogram.totalWeight * histogram.binWidth);
+    }
+    return histogram;
 }
 
 /**
