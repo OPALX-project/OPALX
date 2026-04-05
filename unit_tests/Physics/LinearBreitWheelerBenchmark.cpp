@@ -115,22 +115,44 @@ int main(int argc, char** argv) {
     const auto state = parseFinalState(options.particle);
 
     if (options.joint) {
-        LinearBreitWheelerBenchmark::JointHistogramConfig config;
-        config.highEnergyPhotonEnergyGeV = options.highEnergyPhotonEnergyGeV;
-        config.wavelength_m = options.wavelength_m;
-        config.highEnergyDirection = makeDirection(0.0, 0.0, 1.0);
-        config.laserDirection = makeDirection(0.0, 0.0, -1.0);
-        config.energyBins = options.bins;
-        config.thetaBins = options.bins;
-        config.energyMinGeV = options.minValue;
-        config.energyMaxGeV = options.maxValue;
-        config.thetaMinRad = 0.0;
-        config.thetaMaxRad = options.thetaMaxRad;
+        if (options.finitePhotonBeam) {
+            LinearBreitWheelerBenchmark::FinitePhotonBeamJointConfig config;
+            config.centralHighEnergyPhotonEnergyGeV = options.highEnergyPhotonEnergyGeV;
+            config.wavelength_m = options.wavelength_m;
+            config.referenceHighEnergyDirection = makeDirection(0.0, 0.0, 1.0);
+            config.laserDirection = makeDirection(0.0, 0.0, -1.0);
+            config.sigmaThetaXRad = options.photonSigmaThetaRad;
+            config.sigmaThetaYRad = options.photonSigmaThetaRad;
+            config.relativeEnergySpread = options.photonRelativeEnergySpread;
+            config.energyBins = options.bins;
+            config.thetaBins = options.bins;
+            config.energyMinGeV = options.minValue;
+            config.energyMaxGeV = options.maxValue;
+            config.thetaMinRad = 0.0;
+            config.thetaMaxRad = options.thetaMaxRad;
 
-        const auto histogram = LinearBreitWheelerBenchmark::sampleJointHistogram(config,
-                                                                                 state,
-                                                                                 options.samples);
-        LinearBreitWheelerBenchmark::writeJointHistogramCSV(histogram, options.output);
+            const auto histogram = LinearBreitWheelerBenchmark::sampleFinitePhotonBeamJointHistogram(config,
+                                                                                                      state,
+                                                                                                      options.samples);
+            LinearBreitWheelerBenchmark::writeJointHistogramCSV(histogram, options.output);
+        } else {
+            LinearBreitWheelerBenchmark::JointHistogramConfig config;
+            config.highEnergyPhotonEnergyGeV = options.highEnergyPhotonEnergyGeV;
+            config.wavelength_m = options.wavelength_m;
+            config.highEnergyDirection = makeDirection(0.0, 0.0, 1.0);
+            config.laserDirection = makeDirection(0.0, 0.0, -1.0);
+            config.energyBins = options.bins;
+            config.thetaBins = options.bins;
+            config.energyMinGeV = options.minValue;
+            config.energyMaxGeV = options.maxValue;
+            config.thetaMinRad = 0.0;
+            config.thetaMaxRad = options.thetaMaxRad;
+
+            const auto histogram = LinearBreitWheelerBenchmark::sampleJointHistogram(config,
+                                                                                     state,
+                                                                                     options.samples);
+            LinearBreitWheelerBenchmark::writeJointHistogramCSV(histogram, options.output);
+        }
         Options::seed = previousSeed;
         std::cout << "Wrote OPALX linear Breit-Wheeler joint benchmark to " << options.output << '\n';
         return 0;
