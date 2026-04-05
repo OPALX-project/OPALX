@@ -273,13 +273,25 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(std::shared_ptr<PartBunc
                         static_cast<unsigned long long>(nPartGlobal), gammaBin});
 
         // build rho for this bin and apply lab->solver corrections.
+        // Scatter and rho normalization use lab-frame mesh (bunch->hr_m).
         prepareRhoForBin(bunch, bins, binIndex, nPartGlobal, gammaBin);
 
         // Ensure deterministic accumulation even for solver types that do not update `E`.
         *(this->getE()) = 0.0;
 
+        // Lorentz-stretch the z-mesh spacing by gamma so the Poisson solver
+        // operates in the rest-frame geometry (matching legacy OPAL behaviour).
+        // The Green's function and spectral gradient use these spacings,
+        // producing rest-frame E-fields that accumulateFieldToTemp then
+        // Lorentz-transforms back to the lab frame.
+        auto& mesh = this->getRho()->get_mesh();
+        const auto hrOrig = mesh.getMeshSpacing();
+        auto hrStretched = hrOrig;
+        hrStretched[Dim - 1] *= gammaBin;
+        mesh.setMeshSpacing(hrStretched);
+
         m << level4 << "binIndex=" << static_cast<int>(binIndex) << " runSolver(true) start"
-          << endl;
+          << " (hr_z stretched by gamma=" << gammaBin << ")" << endl;
         this->runSolver(true);
         m << level4 << "binIndex=" << static_cast<int>(binIndex)
           << " runSolver(true) done; accumulate->Etmp" << endl;
@@ -290,6 +302,9 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(std::shared_ptr<PartBunc
                 }
 
         accumulateFieldToTemp(gammaBin, kinematics.pmean, EtmpSP, BtmpSP);
+
+        // Restore lab-frame mesh spacing for subsequent scatter/gather operations.
+        mesh.setMeshSpacing(hrOrig);
     }
 
     // after all bins, gather the accumulated lab-frame field back to particles.
@@ -520,7 +535,7 @@ void BinnedFieldSolver<T, Dim>::accumulateFieldToTemp(
             KOKKOS_LAMBDA(const ippl::RangePolicy<Dim>::index_array_type& idx) {
                 Vector_t<T, Dim> ePrime = apply(ePrimeView, idx);
                 const T ePrimeDotW      = ePrime.dot(w);
-                Vector_t<T, Dim> eLab   = gammaBin * ePrime + gammaMinusOne * ePrimeDotW * w;
+                Vector_t<T, Dim> eLab   = gammaBin * ePrime - gammaMinusOne * ePrimeDotW * w;
                 Vector_t<T, Dim> bLab   = gammaOverCSq * cross(v, ePrime);
                 Vector_t<T, Dim> eTotal = apply(eTmpView, idx);
                 Vector_t<T, Dim> bTotal = apply(bTmpView, idx);
