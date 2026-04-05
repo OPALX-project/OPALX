@@ -145,7 +145,53 @@ PartBunch<T, Dim>::PartBunch(std::vector<double> qi,
     
     globalPartPerNode_m = std::make_unique<size_t[]>(ippl::Comm->size());
 
+    resetPcActive();
+
     m << level5 << "* PartBunch constructor done." << endl;
+}
+
+template <typename T, unsigned Dim>
+void PartBunch<T, Dim>::resetPcActive() {
+    const auto& containers = this->getParticleContainers();
+    const size_t n         = containers.size();
+    pcActive_m.resize(n);
+    pcAtZStop_m.resize(n);
+    for (size_t i = 0; i < n; ++i) {
+        pcAtZStop_m[i] = false;
+        const auto& pc = containers[i];
+        if (!pc || pc->getTotalNum() == 0) {
+            pcActive_m[i] = false;
+        } else {
+            pcActive_m[i] = true;
+        }
+    }
+}
+
+template <typename T, unsigned Dim>
+void PartBunch<T, Dim>::setPcAtZStop(size_t i) {
+    if (i >= pcActive_m.size()) {
+        return;
+    }
+    pcActive_m[i]  = false;
+    pcAtZStop_m[i] = true;
+}
+
+template <typename T, unsigned Dim>
+void PartBunch<T, Dim>::refreshPcActiveAfterEmit() {
+    const auto& containers = this->getParticleContainers();
+    const size_t n         = containers.size();
+    if (pcActive_m.size() != n) {
+        return;
+    }
+    for (size_t i = 0; i < n; ++i) {
+        if (pcAtZStop_m[i]) {
+            continue;
+        }
+        const auto& pc = containers[i];
+        if (pc && pc->getTotalNum() > 0) {
+            pcActive_m[i] = true;
+        }
+    }
 }
 
 template <typename T, unsigned Dim>

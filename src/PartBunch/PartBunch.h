@@ -93,7 +93,10 @@ private:
 
 // Per container values ========================================================
 
-// Moved to ParticleContainer for now
+    /// Per-container dynamics on this segment.
+    std::vector<bool> pcActive_m;
+    /// Per-container: segment z-stop reached (no reactivation after emit).
+    std::vector<bool> pcAtZStop_m;
 
 // Shared values for all containers ============================================
 
@@ -124,8 +127,8 @@ private:
 // Load Balancing (To be properly implemented) =================================
 
     // reducer object for load balance statistics
-    std::unique_ptr<size_t[]> globalPartPerNode_m; 
-
+    std::unique_ptr<size_t[]> globalPartPerNode_m;
+    
 // Unused values ===============================================================
 
     // Still written to stat file for some reason? 
@@ -191,6 +194,32 @@ public:
 
     /// @brief Sanity check 
     void performBunchSanityChecks() const;
+
+    /// Segment start: non-empty containers active; empty inactive.
+    void resetPcActive();
+
+    bool isPcActive(size_t i) const {
+        return i < pcActive_m.size() && pcActive_m[i];
+    }
+
+    bool pcAtZStop(size_t i) const {
+        return i < pcAtZStop_m.size() && pcAtZStop_m[i];
+    }
+
+    /// Freeze dynamics for this container until next segment.
+    void setPcAtZStop(size_t i);
+
+    /// After emit: activate non-empty containers not frozen at z-stop.
+    void refreshPcActiveAfterEmit();
+
+    bool anyPcActive() const {
+        for (bool a : pcActive_m) {
+            if (a) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     // ! NOT TO BE USED: This functionality has moved elsewhere
     void advance() override {

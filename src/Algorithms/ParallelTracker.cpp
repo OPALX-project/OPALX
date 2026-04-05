@@ -190,6 +190,11 @@ void ParallelTracker::visitOffset(const Offset& off) {
 void ParallelTracker::execute() {
     Inform m("ParallelTracker::execute");
 
+    // PartBunch::resetPcActive() ran in the constructor while containers were still empty
+    // (allocate-then-destroy for capacity). Initial particles are loaded later in TrackRun
+    // without refreshing these flags, so reference updates must not skip all containers.
+    itsBunch_m->resetPcActive();
+
     // Initialize the Boris particle pusher
     BorisPusher pusher;
     m << level3 << "Initialized Boris pusher." << endl;
@@ -331,11 +336,17 @@ void ParallelTracker::execute() {
 
         //! Select new PartBunch dt from "dtCurrentTrack_m" and deep copy to all containers
         changeDT();
+        itsBunch_m->resetPcActive();
 
         // Inner loop over the number of steps for the current configuration
         m << level2 << "Starting track with dt = " << Util::getTimeString(dtCurrentTrack_m) 
           << ", track steps = " << step << " to " << trackSteps << "." << endl;
         for (; step < trackSteps; ++step) {
+            if (!itsBunch_m->anyPcActive()) {
+                m << level4 << "No active particle containers; ending inner track segment." << endl;
+                break;
+            }
+
             // Particle R and mesh are in REFERENCE frame for the whole step except inside
             // computeSpaceChargeFields (beam frame only during computeSelfFields).
 
@@ -416,7 +427,7 @@ void ParallelTracker::execute() {
             for (size_t i = 0; i < particleContainersStep.size(); ++i) {
                 const auto& pc = particleContainersStep[i];
                 size_t nDeleted = 0;
-                if (!pc) {
+                if (!pc || !itsBunch_m->isPcActive(i)) {
                     continue;
                 }
                 nDeleted = pc->deleteParticlesOutside(sigmas);
@@ -432,7 +443,7 @@ void ParallelTracker::execute() {
 
             for (size_t i = 0; i < particleContainersStep.size(); ++i) {
                 const auto& pc = particleContainersStep[i];
-                if (!pc) {
+                if (!pc || !itsBunch_m->isPcActive(i)) {
                     continue;
                 }
                 m << level4 << "Current path length (container " << i << ") is "
@@ -453,14 +464,11 @@ void ParallelTracker::execute() {
             itsBunch_m->incTrackSteps();
             m << level5 << "Track steps incremented." << endl;
 
-            bool reachedZStop = true;
-            bool hasActiveContainer = false;
             for (size_t i = 0; i < particleContainersStep.size(); ++i) {
                 const auto& pc = particleContainersStep[i];
-                if (!pc) {
+                if (!pc || !itsBunch_m->isPcActive(i)) {
                     continue;
                 }
-                hasActiveContainer = true;
                 ippl::Vector<double, 3> pdivg = pc->getRefPartP() / Util::getGamma(pc->getRefPartP());
                 double beta                    = euclidean_norm(pdivg);
                 double driftPerTimeStep        = std::abs(itsBunch_m->getdT()) * Physics::c * beta;
@@ -472,11 +480,10 @@ void ParallelTracker::execute() {
                       << i << " (zstop = " << Util::getLengthString(stepSizes_m.getZStop())
                       << ", path length = " << Util::getLengthString(pc->get_sPos())
                       << ")." << endl;
-                } else {
-                    reachedZStop = false;
+                    itsBunch_m->setPcAtZStop(i);
                 }
             }
-            if (hasActiveContainer && reachedZStop) {
+            if (!itsBunch_m->anyPcActive()) {
                 m << level2 << "All active containers reached current zstop. Preparing to switch to "
                   << "next configuration." << endl;
                 break;
@@ -513,7 +520,12 @@ void ParallelTracker::execute() {
 void ParallelTracker::timeIntegration1(BorisPusher& pusher) {
     Inform m("ParallelTracker::timeIntegration1");
     IpplTimings::startTimer(timeIntegrationTimer1_m);
-    for (const auto& pc : itsBunch_m->getParticleContainers()) {
+    const size_t n = itsBunch_m->getNumParticleContainers();
+    for (size_t i = 0; i < n; ++i) {
+        if (!itsBunch_m->isPcActive(i)) {
+            continue;
+        }
+        auto pc = itsBunch_m->getParticleContainer(i);
         if (!pc) {
             continue;
         }
@@ -544,7 +556,12 @@ void ParallelTracker::timeIntegration2(BorisPusher& pusher) {
     Inform m("ParallelTracker::timeIntegration2");
 
     IpplTimings::startTimer(timeIntegrationTimer2_m);
-    for (const auto& pc : itsBunch_m->getParticleContainers()) {
+    const size_t n = itsBunch_m->getNumParticleContainers();
+    for (size_t i = 0; i < n; ++i) {
+        if (!itsBunch_m->isPcActive(i)) {
+            continue;
+        }
+        auto pc = itsBunch_m->getParticleContainer(i);
         if (!pc) {
             continue;
         }
@@ -645,7 +662,12 @@ void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
     IpplTimings::startTimer(fieldEvaluationTimer_m);
     Inform msg("ParallelTracker ", *gmsg);
 
-    for (const auto& pc : itsBunch_m->getParticleContainers()) {
+    const size_t nContainers = itsBunch_m->getNumParticleContainers();
+    for (size_t ci = 0; ci < nContainers; ++ci) {
+        if (!itsBunch_m->isPcActive(ci)) {
+            continue;
+        }
+        auto pc = itsBunch_m->getParticleContainer(ci);
         if (!pc) {
             continue;
         }
@@ -698,6 +720,9 @@ void ParallelTracker::emitFromEmissionSources(double t, double dt) {
         if (!pc) {
             continue;
         }
+        if (itsBunch_m->pcAtZStop(ci)) {
+            continue;
+        }
 
         // Record the extent of the position array and the current local particle count
         // before emission. If an internal resize (Kokkos::realloc) happens during
@@ -734,13 +759,19 @@ void ParallelTracker::emitFromEmissionSources(double t, double dt) {
                 "the number of particles emitted.");
         }
     }
+    itsBunch_m->refreshPcActiveAfterEmit();
 }
 
 /**
  * @brief Resets the E and B field views to 0
  */
 void ParallelTracker::resetFields() {
-    for (const auto& pc : itsBunch_m->getParticleContainers()) {
+    const size_t n = itsBunch_m->getNumParticleContainers();
+    for (size_t i = 0; i < n; ++i) {
+        if (!itsBunch_m->isPcActive(i)) {
+            continue;
+        }
+        auto pc = itsBunch_m->getParticleContainer(i);
         if (!pc) {
             continue;
         }
@@ -989,7 +1020,12 @@ void ParallelTracker::updateReferenceParticles(const BorisPusher& pusher) {
     const double dt = std::min(itsBunch_m->getT(), itsBunch_m->getdT());
     const double scaleFactor = Physics::c * dt;
 
-    for (const auto& pcPtr : itsBunch_m->getParticleContainers()) {
+    const size_t n = itsBunch_m->getNumParticleContainers();
+    for (size_t i = 0; i < n; ++i) {
+        if (!itsBunch_m->isPcActive(i)) {
+            continue;
+        }
+        auto pcPtr = itsBunch_m->getParticleContainer(i);
         if (!pcPtr) {
             continue;
         }
@@ -1037,7 +1073,12 @@ void ParallelTracker::updateRefToLabCSTrafo() {
     // Transform reference position to lab, but only rotate the momentum vector.
     // Momentum is a direction/axis and must not be translated.
     const double bunchDT = itsBunch_m->getdT();
-    for (const auto& pc : itsBunch_m->getParticleContainers()) {
+    const size_t n       = itsBunch_m->getNumParticleContainers();
+    for (size_t i = 0; i < n; ++i) {
+        if (!itsBunch_m->isPcActive(i)) {
+            continue;
+        }
+        auto pc = itsBunch_m->getParticleContainer(i);
         if (pc) {
             updateRefToLabCSTrafoInContainer(*pc, bunchDT);
         }
