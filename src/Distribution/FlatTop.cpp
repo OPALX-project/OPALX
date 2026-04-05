@@ -120,12 +120,13 @@ void FlatTop::setInternalVariables(bool emitting,
     sigmaR_m = sigmaR;
 }
 
-void FlatTop::generateUniformDisk(size_type nlocal, size_t nNew) {
+void FlatTop::generateUniformDisk(size_type nlocal, size_t nNew, double dt) {
     if (nNew == 0) { return; }
 
     GeneratorPool rand_pool = rand_pool_m;
     view_type Rview         = pc_m->R.getView();
     view_type Pview         = pc_m->P.getView();
+    auto dtView             = pc_m->dt.getView();
 
     double pi                  = Physics::pi;
     Vector_t<double, 3> sigmaR = sigmaR_m;
@@ -138,11 +139,19 @@ void FlatTop::generateUniformDisk(size_type nlocal, size_t nNew) {
     // Sample (Rx,Ry) on a unit ring, scale with sigmaR, then add R0/P0 (emission source offset).
     // Note that R0/P0 are applied directly here, since then we only need one loop and don't need to
     // think too much about which indices to apply the offset to.
+    //
+    // Each particle is assigned a fractional timestep dt_i = f * dt where f ~ U(0,1).
+    // This represents the fraction of the next integration step the particle will experience,
+    // as if the particle were born at a random time within [t, t+dt]. The per-particle dt is
+    // used by the Boris integrator (push/kick) and by scaleDtByCharge for field deposition,
+    // so the fractional dt naturally spreads particles in z and gives fractional charge
+    // contribution without needing to sample Rz explicitly.
     Kokkos::parallel_for(
         "unitDisk", Kokkos::RangePolicy<>(nlocal, nlocal + nNew), KOKKOS_LAMBDA(const size_t j) {
             auto generator = rand_pool.get_state();
             double r       = Kokkos::sqrt(generator.drand(0., 1.));
             double theta   = 2.0 * pi * generator.drand(0., 1.);
+            double frac    = generator.drand(0., 1.);
             rand_pool.free_state(generator);
 
             Rview(j)[0] = r * Kokkos::cos(theta) * sigmaR[0] + R0[0];
@@ -151,6 +160,10 @@ void FlatTop::generateUniformDisk(size_type nlocal, size_t nNew) {
             Pview(j)[0] = 0.0 + P0[0];
             Pview(j)[1] = 0.0 + P0[1];
             Pview(j)[2] = 0.0 + P0[2] + beamPz;
+
+            // Fractional timestep: particle born at random time within [t, t+dt],
+            // so it experiences frac * dt of the next integration step.
+            dtView(j) = frac * dt;
         });
     Kokkos::fence();
 }
@@ -361,8 +374,9 @@ void FlatTop::emitParticles(double t, double dt) {
     pc_m->create(nNew);
 
     // Generate new particles on uniform disc (sample into [nlocal, nlocal+nNew)).
+    // Each particle receives a fractional per-particle dt for sub-timestep spreading.
     msgAll << level3 << "* generate particles on a disc" << endl;
-    generateUniformDisk(nlocal, nNew);
+    generateUniformDisk(nlocal, nNew, dt);
 
     bunchStateHandler_m->markMomentsDirty();
 
@@ -396,7 +410,7 @@ void FlatTop::testNumEmitParticles(size_type nsteps, double dt) {
         pc_m->create(nNew);
 
         // generate new particles on uniform disc
-        generateUniformDisk(nlocal, nNew);
+        generateUniformDisk(nlocal, nNew, dt);
 
         // write to a file
         auto rViewDevice  = pc_m->R.getView();
