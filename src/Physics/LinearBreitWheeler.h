@@ -140,6 +140,37 @@ double pairBetaCM(double invariantSGeV2);
 double totalCrossSection(double invariantSGeV2);
 
 /**
+ * @brief Map CAIN's proposal parameter @f$z \in [-1,1]@f$ to the CM scattering cosine.
+ *
+ * The linear CAIN generator samples a proposal variable @f$z@f$, transforms it to
+ * an auxiliary variable @f$Y(z)@f$, and then sets
+ * @f[
+ *   \cos\theta = 1 - 2Y.
+ * @f]
+ * This helper exposes that mapping directly so the local angular kernel can be
+ * tested pointwise in the same parameterization used by the rejection sampler.
+ *
+ * @param invariantSGeV2 Two-photon invariant @f$s@f$ in GeV^2.
+ * @param proposalZ CAIN proposal variable @f$z@f$ in [-1,1].
+ * @return Center-of-momentum scattering cosine corresponding to @p proposalZ.
+ */
+double proposalZToScatteringCosineCM(double invariantSGeV2, double proposalZ);
+
+/**
+ * @brief Evaluate the unpolarized CAIN-aligned angular kernel in proposal coordinates.
+ *
+ * This is the dimensionless angular weight used by the current OPALX rejection
+ * sampler after the CAIN change of variables from the proposal parameter @f$z@f$
+ * to the center-of-momentum scattering angle. It is not the physical cross section
+ * in SI units; it is the local kernel shape that controls accepted event sampling.
+ *
+ * @param invariantSGeV2 Two-photon invariant @f$s@f$ in GeV^2.
+ * @param proposalZ CAIN proposal variable @f$z@f$ in [-1,1].
+ * @return Non-negative unpolarized angular weight.
+ */
+double unpolarizedAngularWeight(double invariantSGeV2, double proposalZ);
+
+/**
  * @brief Build a cached sampling kernel for repeated sampled events.
  *
  * The initial OPALX sampled-event path mirrors the linear CAIN event generator:
