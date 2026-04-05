@@ -105,6 +105,30 @@ struct JointHistogramConfig {
     double thetaMaxRad = 0.0045;
 };
 
+struct FinitePhotonBeamJointConfig {
+    double centralHighEnergyPhotonEnergyGeV = 0.5;
+    double wavelength_m = 1.0e-9;
+    Vector_t<double, 3> referenceHighEnergyDirection = [] {
+        Vector_t<double, 3> value(0.0);
+        value(2) = 1.0;
+        return value;
+    }();
+    Vector_t<double, 3> laserDirection = [] {
+        Vector_t<double, 3> value(0.0);
+        value(2) = -1.0;
+        return value;
+    }();
+    double sigmaThetaXRad = 1.0e-3;
+    double sigmaThetaYRad = 1.0e-3;
+    double relativeEnergySpread = 0.0;
+    std::size_t energyBins = 80;
+    std::size_t thetaBins = 80;
+    double energyMinGeV = 0.0;
+    double energyMaxGeV = 0.5;
+    double thetaMinRad = 0.0;
+    double thetaMaxRad = 0.0060;
+};
+
 struct JointHistogram {
     std::vector<double> energyCentersGeV;
     std::vector<double> thetaCentersRad;
@@ -313,6 +337,89 @@ inline Histogram sampleHistogram(const HistogramConfig& config,
  * density is normalized so that integrating over the full histogram cell area
  * yields unity.
  */
+
+inline JointHistogram sampleFinitePhotonBeamJointHistogram(const FinitePhotonBeamJointConfig& config,
+                                                           FinalState state,
+                                                           std::size_t sampleCount,
+                                                           std::uint64_t streamIndex = 0) {
+    if (config.energyBins == 0 || config.thetaBins == 0) {
+        throw std::runtime_error("LinearBreitWheelerBenchmark: joint histogram bin counts must be positive.");
+    }
+    if (config.energyMaxGeV <= config.energyMinGeV || config.thetaMaxRad <= config.thetaMinRad) {
+        throw std::runtime_error("LinearBreitWheelerBenchmark: joint histogram ranges must satisfy max > min.");
+    }
+    if (sampleCount == 0) {
+        throw std::runtime_error("LinearBreitWheelerBenchmark: sample count must be positive.");
+    }
+
+    JointHistogram histogram;
+    histogram.energyBinWidthGeV = (config.energyMaxGeV - config.energyMinGeV)
+        / static_cast<double>(config.energyBins);
+    histogram.thetaBinWidthRad = (config.thetaMaxRad - config.thetaMinRad)
+        / static_cast<double>(config.thetaBins);
+    histogram.energyCentersGeV.resize(config.energyBins);
+    histogram.thetaCentersRad.resize(config.thetaBins);
+    histogram.densityPerGeVRad.assign(config.energyBins,
+                                      std::vector<double>(config.thetaBins, 0.0));
+    histogram.counts.assign(config.energyBins,
+                            std::vector<double>(config.thetaBins, 0.0));
+
+    for (std::size_t i = 0; i < config.energyBins; ++i) {
+        histogram.energyCentersGeV[i] = config.energyMinGeV
+            + (static_cast<double>(i) + 0.5) * histogram.energyBinWidthGeV;
+    }
+    for (std::size_t j = 0; j < config.thetaBins; ++j) {
+        histogram.thetaCentersRad[j] = config.thetaMinRad
+            + (static_cast<double>(j) + 0.5) * histogram.thetaBinWidthRad;
+    }
+
+    const double laserPhotonEnergyGeV = Physics::LinearBreitWheeler::photonEnergyFromWavelengthGeV(
+        config.wavelength_m);
+    auto engine = Physics::LinearBreitWheeler::makeHostRandomEngine(streamIndex);
+    histogram.totalWeight = static_cast<double>(sampleCount);
+
+    for (std::size_t i = 0; i < sampleCount; ++i) {
+        const double highEnergyPhotonEnergyGeV = sampleHighEnergyPhotonEnergyGeV(
+            config.centralHighEnergyPhotonEnergyGeV,
+            config.relativeEnergySpread,
+            engine);
+        const auto highEnergyDirection = samplePhotonBeamDirection(
+            config.referenceHighEnergyDirection,
+            config.sigmaThetaXRad,
+            config.sigmaThetaYRad,
+            engine);
+        const auto kernel = Physics::LinearBreitWheeler::makeSamplingKernel(highEnergyPhotonEnergyGeV,
+                                                                            laserPhotonEnergyGeV,
+                                                                            highEnergyDirection,
+                                                                            config.laserDirection);
+        const auto event = Physics::LinearBreitWheeler::sampleEvent(kernel, engine);
+        const double energyGeV = sampledObservable(event, state, Observable::Energy);
+        const double thetaRad = sampledObservable(event, state, Observable::Theta);
+        if (energyGeV < config.energyMinGeV || energyGeV >= config.energyMaxGeV
+            || thetaRad < config.thetaMinRad || thetaRad >= config.thetaMaxRad) {
+            continue;
+        }
+
+        const std::size_t ie = static_cast<std::size_t>((energyGeV - config.energyMinGeV)
+                                                        / histogram.energyBinWidthGeV);
+        const std::size_t jt = static_cast<std::size_t>((thetaRad - config.thetaMinRad)
+                                                        / histogram.thetaBinWidthRad);
+        if (ie < histogram.counts.size() && jt < histogram.counts[ie].size()) {
+            histogram.counts[ie][jt] += 1.0;
+        }
+    }
+
+    const double cellArea = histogram.energyBinWidthGeV * histogram.thetaBinWidthRad;
+    for (std::size_t i = 0; i < histogram.counts.size(); ++i) {
+        for (std::size_t j = 0; j < histogram.counts[i].size(); ++j) {
+            histogram.densityPerGeVRad[i][j] = histogram.counts[i][j]
+                / (histogram.totalWeight * cellArea);
+        }
+    }
+
+    return histogram;
+}
+
 inline JointHistogram sampleJointHistogram(const JointHistogramConfig& config,
                                            FinalState state,
                                            std::size_t sampleCount,
