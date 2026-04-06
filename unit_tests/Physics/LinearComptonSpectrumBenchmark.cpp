@@ -34,6 +34,7 @@ struct CliOptions {
     bool angular = false;
     bool joint = false;
     bool finiteBeam = false;
+    bool overlapWeighting = false;
     std::size_t samples = 250000;
     std::size_t beamParticles = 250000;
     int seed = 13579;
@@ -41,6 +42,8 @@ struct CliOptions {
     double beamSigmaLongitudinal_m = 0.0;
     double beamRmsAngle_rad = 1.0e-3;
     double beamRelativeEnergySpread = 0.0;
+    double laserRayleigh_m = 12.5;
+    double laserSigmaT_m = 1.0e-12 * Physics::c;
 };
 
 /**
@@ -64,6 +67,8 @@ CliOptions parseArguments(int argc, char** argv) {
             options.joint = true;
         } else if (arg == "--finite-beam") {
             options.finiteBeam = true;
+        } else if (arg == "--overlap-weighting") {
+            options.overlapWeighting = true;
         } else if (arg == "--samples") {
             if (i + 1 >= argc) {
                 throw std::runtime_error("Missing value after --samples");
@@ -99,9 +104,19 @@ CliOptions parseArguments(int argc, char** argv) {
                 throw std::runtime_error("Missing value after --beam-relative-energy-spread");
             }
             options.beamRelativeEnergySpread = std::stod(argv[++i]);
+        } else if (arg == "--laser-rayleigh") {
+            if (i + 1 >= argc) {
+                throw std::runtime_error("Missing value after --laser-rayleigh");
+            }
+            options.laserRayleigh_m = std::stod(argv[++i]);
+        } else if (arg == "--laser-sigma-t") {
+            if (i + 1 >= argc) {
+                throw std::runtime_error("Missing value after --laser-sigma-t");
+            }
+            options.laserSigmaT_m = std::stod(argv[++i]);
         } else if (arg == "-h" || arg == "--help") {
             std::cout
-                << "Usage: LinearComptonSpectrumBenchmark [output.csv] [--angular|--joint] [--sampled] [--finite-beam] [--samples N] [--beam-particles N] [--seed S]\n"
+                << "Usage: LinearComptonSpectrumBenchmark [output.csv] [--angular|--joint] [--sampled] [--finite-beam] [--overlap-weighting] [--samples N] [--beam-particles N] [--seed S]\n"
                 << "  default mode             : deterministic single-electron energy spectrum\n"
                 << "  --angular                : write the lab polar-angle histogram instead of the energy histogram\n"
                 << "  --joint                  : write the joint E_gamma versus theta_gamma histogram\n"
@@ -113,6 +128,9 @@ CliOptions parseArguments(int argc, char** argv) {
                 << "  --beam-sigma-longitudinal: longitudinal RMS beam size in m (default: 0.0, internally clamped)\n"
                 << "  --beam-rms-angle         : transverse RMS beam angle in rad (default: 1e-3)\n"
                 << "  --beam-relative-energy-spread: RMS relative energy spread sigma_E / E (default: 0.0)\n"
+                << "  --overlap-weighting      : condition beam positions on a Gaussian laser envelope\n"
+                << "  --laser-rayleigh         : laser Rayleigh length in m for overlap-conditioned finite-beam mode\n"
+                << "  --laser-sigma-t          : laser RMS pulse length in m for overlap-conditioned finite-beam mode\n"
                 << "  --seed S                 : Options::seed value used in sampled modes\n";
             std::exit(0);
         } else if (!arg.empty() && arg[0] == '-') {
@@ -158,6 +176,53 @@ void preallocateParticleCapacity(const std::shared_ptr<ParticleContainer<double,
  * @param sigmaR RMS position widths used to size the benchmark mesh.
  * @return Temporary particle container for Gaussian electron sampling.
  */
+double effectiveSpatialOverlapSigma(double beamSigma_m,
+                                    double waist_m) {
+    if (beamSigma_m <= 0.0) {
+        return 0.0;
+    }
+    if (waist_m <= 0.0) {
+        return beamSigma_m;
+    }
+
+    const double inverseVariance = 1.0 / (beamSigma_m * beamSigma_m)
+        + 4.0 / (waist_m * waist_m);
+    return std::sqrt(1.0 / inverseVariance);
+}
+
+double effectiveTemporalOverlapSigma(double beamSigmaS_m,
+                                     double laserSigmaT_m) {
+    if (beamSigmaS_m <= 0.0) {
+        return 0.0;
+    }
+    if (laserSigmaT_m <= 0.0) {
+        return beamSigmaS_m;
+    }
+
+    const double inverseVariance = 1.0 / (beamSigmaS_m * beamSigmaS_m)
+        + 1.0 / (laserSigmaT_m * laserSigmaT_m);
+    return std::sqrt(1.0 / inverseVariance);
+}
+
+Vector_t<double, 3> makeFiniteBeamSigmaR(const CliOptions& options,
+                                         double wavelength_m) {
+    if (!options.overlapWeighting) {
+        return Vector_t<double, 3>(options.beamSigmaTransverse_m,
+                                   options.beamSigmaTransverse_m,
+                                   std::max(1.0e-15, options.beamSigmaLongitudinal_m));
+    }
+
+    constexpr double pi = 3.14159265358979323846;
+    const double waist_m = options.laserRayleigh_m > 0.0
+        ? std::sqrt(wavelength_m * options.laserRayleigh_m / pi)
+        : 0.0;
+    return Vector_t<double, 3>(effectiveSpatialOverlapSigma(options.beamSigmaTransverse_m, waist_m),
+                               effectiveSpatialOverlapSigma(options.beamSigmaTransverse_m, waist_m),
+                               std::max(1.0e-15,
+                                        effectiveTemporalOverlapSigma(options.beamSigmaLongitudinal_m,
+                                                                      options.laserSigmaT_m)));
+}
+
 std::shared_ptr<ParticleContainer<double, 3>> makeParticleContainer(const ippl::Vector<double, 3>& sigmaR) {
     ippl::Vector<int, 3> nr = 32;
     const double sigmaScaleXY = std::max(8.0 * sigmaR[0], 1.0e-2);
@@ -226,14 +291,10 @@ LinearComptonBenchmark::SpectrumHistogram sampleFiniteBeamEnergySpectrum(
     const double sigmaPzGeV = std::max(1.0e-15,
                                        sigmaEGeV > 0.0 ? sigmaEGeV / beta0
                                                        : 1.0e-12 * p0GeV);
-    const double sigmaZ_m = std::max(1.0e-15, options.beamSigmaLongitudinal_m);
-
     const Vector_t<double, 3> meanR = 0.0;
     Vector_t<double, 3> meanP(0.0);
     meanP[2] = p0GeV;
-    Vector_t<double, 3> sigmaR(options.beamSigmaTransverse_m,
-                               options.beamSigmaTransverse_m,
-                               sigmaZ_m);
+    const Vector_t<double, 3> sigmaR = makeFiniteBeamSigmaR(options, config.wavelength_m);
     Vector_t<double, 3> sigmaP(sigmaPxGeV,
                                sigmaPxGeV,
                                sigmaPzGeV);
@@ -351,14 +412,10 @@ LinearComptonBenchmark::AngleHistogram sampleFiniteBeamAngularSpectrum(
     const double sigmaPzGeV = std::max(1.0e-15,
                                        sigmaEGeV > 0.0 ? sigmaEGeV / beta0
                                                        : 1.0e-12 * p0GeV);
-    const double sigmaZ_m = std::max(1.0e-15, options.beamSigmaLongitudinal_m);
-
     const Vector_t<double, 3> meanR = 0.0;
     Vector_t<double, 3> meanP(0.0);
     meanP[2] = p0GeV;
-    Vector_t<double, 3> sigmaR(options.beamSigmaTransverse_m,
-                               options.beamSigmaTransverse_m,
-                               sigmaZ_m);
+    const Vector_t<double, 3> sigmaR = makeFiniteBeamSigmaR(options, config.wavelength_m);
     Vector_t<double, 3> sigmaP(sigmaPxGeV,
                                sigmaPxGeV,
                                sigmaPzGeV);
@@ -444,6 +501,132 @@ LinearComptonBenchmark::AngleHistogram sampleFiniteBeamAngularSpectrum(
     }
     return histogram;
 }
+LinearComptonBenchmark::JointHistogram sampleFiniteBeamJointSpectrum(
+    const LinearComptonBenchmark::JointConfig& config,
+    const CliOptions& options) {
+
+    if (options.beamSigmaTransverse_m <= 0.0) {
+        throw std::runtime_error("Finite-beam benchmark requires positive transverse beam size.");
+    }
+    if (options.beamRmsAngle_rad <= 0.0) {
+        throw std::runtime_error("Finite-beam benchmark requires positive transverse RMS angle.");
+    }
+    if (options.beamRelativeEnergySpread < 0.0) {
+        throw std::runtime_error("Finite-beam benchmark requires nonnegative relative energy spread.");
+    }
+
+    const double p0GeV = std::sqrt(config.electronTotalEnergyGeV * config.electronTotalEnergyGeV
+        - Physics::m_e * Physics::m_e);
+    const double sigmaPxGeV = p0GeV * options.beamRmsAngle_rad;
+    const double beta0 = p0GeV / config.electronTotalEnergyGeV;
+    const double sigmaEGeV = options.beamRelativeEnergySpread * config.electronTotalEnergyGeV;
+    const double sigmaPzGeV = std::max(1.0e-15,
+                                       sigmaEGeV > 0.0 ? sigmaEGeV / beta0
+                                                       : 1.0e-12 * p0GeV);
+
+    const Vector_t<double, 3> meanR = 0.0;
+    Vector_t<double, 3> meanP(0.0);
+    meanP[2] = p0GeV;
+    const Vector_t<double, 3> sigmaR = makeFiniteBeamSigmaR(options, config.wavelength_m);
+    Vector_t<double, 3> sigmaP(sigmaPxGeV,
+                               sigmaPxGeV,
+                               sigmaPzGeV);
+    const Vector_t<double, 3> cutoffR = 4.0;
+    const Vector_t<double, 3> cutoffP = 4.0;
+
+    auto pc = makeParticleContainer(sigmaR);
+    preallocateParticleCapacity(pc, options.beamParticles);
+    ippl::Vector<int, 3> nr = 32;
+
+    MultiVariateGaussian sampler(pc, meanR, meanP, sigmaR, sigmaP, cutoffR, cutoffP, true, true);
+    std::size_t numberOfParticles = options.beamParticles;
+    sampler.generateParticles(numberOfParticles, nr);
+
+    LinearComptonBenchmark::JointHistogram histogram;
+    histogram.energyBinWidthGeV = (config.energyMaxGeV - config.energyMinGeV)
+        / static_cast<double>(config.energyBins);
+    histogram.thetaBinWidthRad = (config.thetaMaxRad - config.thetaMinRad)
+        / static_cast<double>(config.thetaBins);
+    histogram.energyCentersGeV.resize(config.energyBins);
+    histogram.thetaCentersRad.resize(config.thetaBins);
+    histogram.densityPerGeVRad.assign(config.energyBins * config.thetaBins, 0.0);
+    histogram.counts.assign(config.energyBins * config.thetaBins, 0.0);
+    for (std::size_t i = 0; i < config.energyBins; ++i) {
+        histogram.energyCentersGeV[i] = config.energyMinGeV
+            + (static_cast<double>(i) + 0.5) * histogram.energyBinWidthGeV;
+    }
+    for (std::size_t j = 0; j < config.thetaBins; ++j) {
+        histogram.thetaCentersRad[j] = config.thetaMinRad
+            + (static_cast<double>(j) + 0.5) * histogram.thetaBinWidthRad;
+    }
+
+    auto pView = pc->P.getView();
+    auto engine = Physics::LinearCompton::makeHostRandomEngine();
+    const double laserPhotonEnergyGeV = Physics::LinearCompton::photonEnergyFromWavelengthGeV(
+        config.wavelength_m);
+
+    histogram.totalWeight = static_cast<double>(pc->getLocalNum());
+    for (std::size_t i = 0; i < pc->getLocalNum(); ++i) {
+        Vector_t<double, 3> beamDirection(0.0);
+        beamDirection[0] = pView(i)[0];
+        beamDirection[1] = pView(i)[1];
+        beamDirection[2] = pView(i)[2];
+        const double p2 = dot(beamDirection, beamDirection);
+        const double momentum = std::sqrt(p2);
+        if (momentum <= 0.0) {
+            continue;
+        }
+        beamDirection /= momentum;
+        const double electronTotalEnergyGeV = std::sqrt(p2 + Physics::m_e * Physics::m_e);
+        const auto kernel = Physics::LinearCompton::makeSamplingKernel(electronTotalEnergyGeV,
+                                                                       laserPhotonEnergyGeV,
+                                                                       beamDirection,
+                                                                       config.laserDirection);
+        const auto event = Physics::LinearCompton::sampleEvent(kernel, engine);
+        const double energyGeV = event.scatteredPhotonEnergyLabGeV;
+        const double thetaRad = LinearComptonBenchmark::photonPolarAngleRad(
+            event.scatteredPhotonDirectionLab,
+            config.beamDirection);
+        if (energyGeV < config.energyMinGeV || energyGeV >= config.energyMaxGeV
+            || thetaRad < config.thetaMinRad || thetaRad >= config.thetaMaxRad) {
+            continue;
+        }
+        const std::size_t energyBin = static_cast<std::size_t>(
+            (energyGeV - config.energyMinGeV) / histogram.energyBinWidthGeV);
+        const std::size_t thetaBin = static_cast<std::size_t>(
+            (thetaRad - config.thetaMinRad) / histogram.thetaBinWidthRad);
+        if (energyBin < histogram.energyCentersGeV.size()
+            && thetaBin < histogram.thetaCentersRad.size()) {
+            histogram.counts[LinearComptonBenchmark::jointHistogramIndex(histogram, energyBin, thetaBin)] += 1.0;
+        }
+    }
+
+    double globalTotalWeight = 0.0;
+    MPI_Allreduce(&histogram.totalWeight,
+                  &globalTotalWeight,
+                  1,
+                  MPI_DOUBLE,
+                  MPI_SUM,
+                  ippl::Comm->getCommunicator());
+    histogram.totalWeight = globalTotalWeight;
+
+    std::vector<double> globalCounts(histogram.counts.size(), 0.0);
+    MPI_Allreduce(histogram.counts.data(),
+                  globalCounts.data(),
+                  static_cast<int>(histogram.counts.size()),
+                  MPI_DOUBLE,
+                  MPI_SUM,
+                  ippl::Comm->getCommunicator());
+    histogram.counts = std::move(globalCounts);
+
+    const double cellArea = histogram.energyBinWidthGeV * histogram.thetaBinWidthRad;
+    for (std::size_t i = 0; i < histogram.densityPerGeVRad.size(); ++i) {
+        histogram.densityPerGeVRad[i] = histogram.counts[i]
+            / (histogram.totalWeight * cellArea);
+    }
+    return histogram;
+}
+
 }  // namespace
 
 /**
@@ -463,10 +646,6 @@ int main(int argc, char** argv) {
     const CliOptions options = parseArguments(argc, argv);
 
     if (options.finiteBeam) {
-        if (options.joint) {
-            throw std::runtime_error("Finite-beam joint E_gamma-theta_gamma benchmark is not implemented yet.");
-        }
-
         int ipplArgc = argc;
         char** ipplArgv = argv;
         ippl::initialize(ipplArgc, ipplArgv);
@@ -474,7 +653,36 @@ int main(int argc, char** argv) {
         const int previousSeed = Options::seed;
         Options::seed = options.seed;
 
-        if (options.angular) {
+        if (options.joint) {
+            LinearComptonBenchmark::JointConfig config;
+            const auto histogram = sampleFiniteBeamJointSpectrum(config, options);
+            LinearComptonBenchmark::writeJointCSV(histogram, options.output);
+            if (ippl::Comm->rank() == 0) {
+                const double p0GeV = std::sqrt(config.electronTotalEnergyGeV * config.electronTotalEnergyGeV
+                    - Physics::m_e * Physics::m_e);
+                const double sigmaPxGeV = p0GeV * options.beamRmsAngle_rad;
+                const double sigmaEGeV = options.beamRelativeEnergySpread * config.electronTotalEnergyGeV;
+                const double geomEmittance = options.beamSigmaTransverse_m * options.beamRmsAngle_rad;
+                std::cout << "Wrote OPALX finite-beam linear-Compton joint spectrum to " << options.output << "\n"
+                          << "Mode = sampled finite beam (MultiVariateGaussian)\n"
+                          << "Observable = (E_gamma [GeV], theta_lab [rad])\n"
+                          << "Beam sigma_x,y [m] = " << options.beamSigmaTransverse_m << "\n"
+                          << "Beam sigma_z [m] = " << options.beamSigmaLongitudinal_m << " (internally clamped if zero)\n"
+                          << "Beam sigma_x',y' [rad] = " << options.beamRmsAngle_rad << "\n"
+                          << "Beam sigma_px,py [GeV] = " << sigmaPxGeV << "\n"
+                          << "Beam sigma_E / E = " << options.beamRelativeEnergySpread << "\n"
+                          << "Beam sigma_E [GeV] = " << sigmaEGeV << "\n"
+                          << "Beam geometric emittance [m rad] = " << geomEmittance << "\n"
+                          << "Overlap-conditioned positions = " << (options.overlapWeighting ? "yes" : "no") << "\n"
+                          << "Laser Rayleigh [m] = " << options.laserRayleigh_m << "\n"
+                          << "Laser sigma_t [m] = " << options.laserSigmaT_m << "\n"
+                          << "Beam macroparticles = " << options.beamParticles << "\n"
+                          << "Seed = " << options.seed << "\n"
+                          << "Area = " << LinearComptonBenchmark::jointHistogramArea(histogram) << "\n"
+                          << "Mean energy [GeV] = " << LinearComptonBenchmark::jointHistogramMeanEnergyGeV(histogram) << "\n"
+                          << "Mean angle [rad] = " << LinearComptonBenchmark::jointHistogramMeanThetaRad(histogram) << "\n";
+            }
+        } else if (options.angular) {
             LinearComptonBenchmark::AngleConfig config;
             const auto histogram = sampleFiniteBeamAngularSpectrum(config, options);
             LinearComptonBenchmark::writeAngleCSV(histogram, options.output);

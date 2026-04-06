@@ -62,6 +62,13 @@ std::filesystem::path referenceFiniteBeamAngularSpectrumPath() {
         / "cain_linear_compton_90deg_xi029_finite_beam_theta_histogram.csv";
 }
 
+/** @brief Stored CAIN joint-spectrum reference for the finite-emittance benchmark. */
+std::filesystem::path referenceFiniteBeamJointSpectrumPath() {
+    return std::filesystem::path(OPALX_TEST_SOURCE_DIR)
+        / "data"
+        / "cain_linear_compton_90deg_xi029_finite_beam_joint_histogram.csv";
+}
+
 /** @brief Stored CAIN energy-spectrum reference for the finite-beam plus energy-spread benchmark. */
 std::filesystem::path referenceFiniteBeamEnergySpreadSpectrumPath() {
     return std::filesystem::path(OPALX_TEST_SOURCE_DIR)
@@ -74,6 +81,27 @@ std::filesystem::path referenceFiniteBeamEnergySpreadAngularSpectrumPath() {
     return std::filesystem::path(OPALX_TEST_SOURCE_DIR)
         / "data"
         / "cain_linear_compton_90deg_xi029_finite_beam_energy_spread_theta_histogram.csv";
+}
+
+/** @brief Stored CAIN joint-spectrum reference for the finite-beam plus energy-spread benchmark. */
+std::filesystem::path referenceFiniteBeamEnergySpreadJointSpectrumPath() {
+    return std::filesystem::path(OPALX_TEST_SOURCE_DIR)
+        / "data"
+        / "cain_linear_compton_90deg_xi029_finite_beam_energy_spread_joint_histogram.csv";
+}
+
+/** @brief Stored CAIN energy-spectrum reference for the overlap-restricted finite-beam benchmark. */
+std::filesystem::path referenceFiniteBeamOverlapSpectrumPath() {
+    return std::filesystem::path(OPALX_TEST_SOURCE_DIR)
+        / "data"
+        / "cain_linear_compton_90deg_xi029_finite_beam_overlap_histogram.csv";
+}
+
+/** @brief Stored CAIN angular reference for the overlap-restricted finite-beam benchmark. */
+std::filesystem::path referenceFiniteBeamOverlapAngularSpectrumPath() {
+    return std::filesystem::path(OPALX_TEST_SOURCE_DIR)
+        / "data"
+        / "cain_linear_compton_90deg_xi029_finite_beam_overlap_theta_histogram.csv";
 }
 
 /** @brief Path to the standalone benchmark executable used by the finite-beam regression cases. */
@@ -92,6 +120,7 @@ std::filesystem::path benchmarkExecutablePath() {
  */
 std::filesystem::path runFiniteBeamBenchmark(const std::string& filename,
                                            bool angular,
+                                           bool joint = false,
                                            const std::string& extraOptions = "") {
     const auto output = std::filesystem::temp_directory_path() / filename;
     std::ostringstream command;
@@ -101,7 +130,9 @@ std::filesystem::path runFiniteBeamBenchmark(const std::string& filename,
     if (!extraOptions.empty()) {
         command << ' ' << extraOptions;
     }
-    if (angular) {
+    if (joint) {
+        command << " --joint";
+    } else if (angular) {
         command << " --angular";
     }
 
@@ -287,6 +318,28 @@ TEST(TestLinearComptonSpectrum, FiniteBeamAngularSpectrumMatchesCainReference) {
 }
 
 
+TEST(TestLinearComptonSpectrum, FiniteBeamJointSpectrumMatchesCainReference) {
+    const auto output = runFiniteBeamBenchmark(
+        "opalx-linear-compton-90deg-xi029-finite-beam-joint-histogram.csv",
+        false,
+        true);
+    const auto opalxSpectrum = LinearComptonBenchmark::readJointCSV(output);
+    const auto cainSpectrum = LinearComptonBenchmark::readJointCSV(referenceFiniteBeamJointSpectrumPath());
+
+    ASSERT_EQ(opalxSpectrum.energyCentersGeV.size(), cainSpectrum.energyCentersGeV.size());
+    ASSERT_EQ(opalxSpectrum.thetaCentersRad.size(), cainSpectrum.thetaCentersRad.size());
+    EXPECT_NEAR(LinearComptonBenchmark::jointHistogramArea(opalxSpectrum), 1.0, 2.5e-2);
+    EXPECT_NEAR(LinearComptonBenchmark::jointHistogramArea(cainSpectrum), 1.0, 1.0e-3);
+
+    EXPECT_NEAR(LinearComptonBenchmark::jointHistogramMeanEnergyGeV(opalxSpectrum),
+                LinearComptonBenchmark::jointHistogramMeanEnergyGeV(cainSpectrum),
+                LinearComptonBenchmark::jointHistogramMeanEnergyGeV(cainSpectrum) * 2.0e-2);
+    EXPECT_NEAR(LinearComptonBenchmark::jointHistogramMeanThetaRad(opalxSpectrum),
+                LinearComptonBenchmark::jointHistogramMeanThetaRad(cainSpectrum),
+                LinearComptonBenchmark::jointHistogramMeanThetaRad(cainSpectrum) * 5.0e-2);
+    EXPECT_LT(LinearComptonBenchmark::jointHistogramL1Distance(opalxSpectrum, cainSpectrum), 0.08);
+}
+
 /**
  * This variant adds a small relative energy spread to the same finite-emittance
  * beam. The tolerance is kept at the same scale as the zero-spread finite-beam
@@ -296,6 +349,7 @@ TEST(TestLinearComptonSpectrum, FiniteBeamAngularSpectrumMatchesCainReference) {
 TEST(TestLinearComptonSpectrum, FiniteBeamEnergySpreadSpectrumMatchesCainReference) {
     const auto output = runFiniteBeamBenchmark(
         "opalx-linear-compton-90deg-xi029-finite-beam-energy-spread-histogram.csv",
+        false,
         false,
         "--beam-relative-energy-spread 0.001");
     const auto opalxSpectrum = LinearComptonBenchmark::readSpectrumCSV(output);
@@ -319,6 +373,7 @@ TEST(TestLinearComptonSpectrum, FiniteBeamEnergySpreadAngularSpectrumMatchesCain
     const auto output = runFiniteBeamBenchmark(
         "opalx-linear-compton-90deg-xi029-finite-beam-energy-spread-theta-histogram.csv",
         true,
+        false,
         "--beam-relative-energy-spread 0.001");
     const auto opalxSpectrum = LinearComptonBenchmark::readAngleCSV(output);
     const auto cainSpectrum = LinearComptonBenchmark::readAngleCSV(
@@ -335,4 +390,62 @@ TEST(TestLinearComptonSpectrum, FiniteBeamEnergySpreadAngularSpectrumMatchesCain
     const double l1Distance = LinearComptonBenchmark::angleHistogramL1Distance(opalxSpectrum,
                                                                                cainSpectrum);
     EXPECT_LT(l1Distance, 0.03);
+}
+
+TEST(TestLinearComptonSpectrum, FiniteBeamEnergySpreadJointSpectrumMatchesCainReference) {
+    const auto output = runFiniteBeamBenchmark(
+        "opalx-linear-compton-90deg-xi029-finite-beam-energy-spread-joint-histogram.csv",
+        false,
+        true,
+        "--beam-relative-energy-spread 0.001");
+    const auto opalxSpectrum = LinearComptonBenchmark::readJointCSV(output);
+    const auto cainSpectrum = LinearComptonBenchmark::readJointCSV(
+        referenceFiniteBeamEnergySpreadJointSpectrumPath());
+
+    ASSERT_EQ(opalxSpectrum.energyCentersGeV.size(), cainSpectrum.energyCentersGeV.size());
+    ASSERT_EQ(opalxSpectrum.thetaCentersRad.size(), cainSpectrum.thetaCentersRad.size());
+    EXPECT_NEAR(LinearComptonBenchmark::jointHistogramArea(opalxSpectrum), 1.0, 2.5e-2);
+    EXPECT_NEAR(LinearComptonBenchmark::jointHistogramArea(cainSpectrum), 1.0, 1.5e-3);
+
+    EXPECT_NEAR(LinearComptonBenchmark::jointHistogramMeanEnergyGeV(opalxSpectrum),
+                LinearComptonBenchmark::jointHistogramMeanEnergyGeV(cainSpectrum),
+                LinearComptonBenchmark::jointHistogramMeanEnergyGeV(cainSpectrum) * 2.0e-2);
+    EXPECT_NEAR(LinearComptonBenchmark::jointHistogramMeanThetaRad(opalxSpectrum),
+                LinearComptonBenchmark::jointHistogramMeanThetaRad(cainSpectrum),
+                LinearComptonBenchmark::jointHistogramMeanThetaRad(cainSpectrum) * 5.0e-2);
+    EXPECT_LT(LinearComptonBenchmark::jointHistogramL1Distance(opalxSpectrum, cainSpectrum), 0.08);
+}
+
+TEST(TestLinearComptonSpectrum, FiniteBeamOverlapSpectrumMatchesCainReference) {
+    const auto output = runFiniteBeamBenchmark(
+        "opalx-linear-compton-90deg-xi029-finite-beam-overlap-histogram.csv",
+        false,
+        false,
+        "--overlap-weighting --beam-sigma-longitudinal 0.000299792 --laser-rayleigh 12.5 --laser-sigma-t 0.000299792");
+    const auto opalxSpectrum = LinearComptonBenchmark::readSpectrumCSV(output);
+    const auto cainSpectrum = LinearComptonBenchmark::readSpectrumCSV(referenceFiniteBeamOverlapSpectrumPath());
+
+    ASSERT_EQ(opalxSpectrum.centersGeV.size(), cainSpectrum.centersGeV.size());
+    EXPECT_NEAR(LinearComptonBenchmark::histogramArea(opalxSpectrum), 1.0, 2.0e-2);
+    EXPECT_NEAR(LinearComptonBenchmark::histogramMeanEnergyGeV(opalxSpectrum),
+                LinearComptonBenchmark::histogramMeanEnergyGeV(cainSpectrum),
+                LinearComptonBenchmark::histogramMeanEnergyGeV(cainSpectrum) * 2.0e-2);
+    EXPECT_LT(LinearComptonBenchmark::histogramL1Distance(opalxSpectrum, cainSpectrum), 0.06);
+}
+
+TEST(TestLinearComptonSpectrum, FiniteBeamOverlapAngularSpectrumMatchesCainReference) {
+    const auto output = runFiniteBeamBenchmark(
+        "opalx-linear-compton-90deg-xi029-finite-beam-overlap-theta-histogram.csv",
+        true,
+        false,
+        "--overlap-weighting --beam-sigma-longitudinal 0.000299792 --laser-rayleigh 12.5 --laser-sigma-t 0.000299792");
+    const auto opalxSpectrum = LinearComptonBenchmark::readAngleCSV(output);
+    const auto cainSpectrum = LinearComptonBenchmark::readAngleCSV(referenceFiniteBeamOverlapAngularSpectrumPath());
+
+    ASSERT_EQ(opalxSpectrum.centersRad.size(), cainSpectrum.centersRad.size());
+    EXPECT_NEAR(LinearComptonBenchmark::angleHistogramArea(opalxSpectrum), 1.0, 2.5e-2);
+    EXPECT_NEAR(LinearComptonBenchmark::angleHistogramMeanRad(opalxSpectrum),
+                LinearComptonBenchmark::angleHistogramMeanRad(cainSpectrum),
+                LinearComptonBenchmark::angleHistogramMeanRad(cainSpectrum) * 2.0e-2);
+    EXPECT_LT(LinearComptonBenchmark::angleHistogramL1Distance(opalxSpectrum, cainSpectrum), 0.05);
 }
