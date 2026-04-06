@@ -100,6 +100,36 @@ std::filesystem::path referenceFinitePhotonBeamEnergySpreadPositronThetaPath() {
     return std::filesystem::path(OPALX_TEST_SOURCE_DIR) / "data"
         / "cain_linear_breit_wheeler_finite_photon_beam_energy_spread_positron_theta.csv";
 }
+
+std::filesystem::path referenceFinitePhotonBeamEnergySpreadElectronJointPath() {
+    return std::filesystem::path(OPALX_TEST_SOURCE_DIR) / "data"
+        / "cain_linear_breit_wheeler_finite_photon_beam_energy_spread_electron_joint.csv";
+}
+
+std::filesystem::path referenceFinitePhotonBeamEnergySpreadPositronJointPath() {
+    return std::filesystem::path(OPALX_TEST_SOURCE_DIR) / "data"
+        / "cain_linear_breit_wheeler_finite_photon_beam_energy_spread_positron_joint.csv";
+}
+
+std::filesystem::path referenceOverlapElectronEnergyPath() {
+    return std::filesystem::path(OPALX_TEST_SOURCE_DIR) / "data"
+        / "cain_linear_breit_wheeler_overlap_electron_energy.csv";
+}
+
+std::filesystem::path referenceOverlapPositronEnergyPath() {
+    return std::filesystem::path(OPALX_TEST_SOURCE_DIR) / "data"
+        / "cain_linear_breit_wheeler_overlap_positron_energy.csv";
+}
+
+std::filesystem::path referenceOverlapElectronThetaPath() {
+    return std::filesystem::path(OPALX_TEST_SOURCE_DIR) / "data"
+        / "cain_linear_breit_wheeler_overlap_electron_theta.csv";
+}
+
+std::filesystem::path referenceOverlapPositronThetaPath() {
+    return std::filesystem::path(OPALX_TEST_SOURCE_DIR) / "data"
+        / "cain_linear_breit_wheeler_overlap_positron_theta.csv";
+}
 }  // namespace
 
 TEST(TestLinearBreitWheelerSpectrum, ElectronEnergySpectrumMatchesCainReference) {
@@ -535,6 +565,205 @@ TEST(TestLinearBreitWheelerSpectrum, FinitePhotonBeamEnergySpreadPositronAngular
                 LinearBreitWheelerBenchmark::histogramMean(cain),
                 LinearBreitWheelerBenchmark::histogramMean(cain) * 8.0e-2);
     EXPECT_LT(LinearBreitWheelerBenchmark::histogramL1Distance(opalx, cain), 0.20);
+
+    Options::seed = previousSeed;
+}
+
+
+TEST(TestLinearBreitWheelerSpectrum, FinitePhotonBeamEnergySpreadElectronJointSpectrumMatchesCainReference) {
+    const int previousSeed = Options::seed;
+    Options::seed = 13579;
+
+    LinearBreitWheelerBenchmark::FinitePhotonBeamJointConfig config;
+    config.energyMinGeV = 0.0;
+    config.energyMaxGeV = 0.5;
+    config.thetaMinRad = 0.0;
+    config.thetaMaxRad = 0.0060;
+    config.sigmaThetaXRad = 1.0e-3;
+    config.sigmaThetaYRad = 1.0e-3;
+    config.relativeEnergySpread = 1.0e-3;
+    const auto opalx = LinearBreitWheelerBenchmark::sampleFinitePhotonBeamJointHistogram(
+        config,
+        LinearBreitWheelerBenchmark::FinalState::Electron,
+        250000);
+    const auto cain = LinearBreitWheelerBenchmark::readJointHistogramCSV(referenceFinitePhotonBeamEnergySpreadElectronJointPath());
+
+    ASSERT_EQ(opalx.energyCentersGeV.size(), cain.energyCentersGeV.size());
+    ASSERT_EQ(opalx.thetaCentersRad.size(), cain.thetaCentersRad.size());
+    EXPECT_NEAR(LinearBreitWheelerBenchmark::jointHistogramArea(opalx), 1.0, 2.5e-2);
+    EXPECT_NEAR(LinearBreitWheelerBenchmark::jointHistogramArea(cain), 1.0, 4.0e-3);
+    EXPECT_NEAR(LinearBreitWheelerBenchmark::jointHistogramMeanEnergyGeV(opalx),
+                LinearBreitWheelerBenchmark::jointHistogramMeanEnergyGeV(cain),
+                LinearBreitWheelerBenchmark::jointHistogramMeanEnergyGeV(cain) * 8.5e-2);
+    EXPECT_NEAR(LinearBreitWheelerBenchmark::jointHistogramMeanThetaRad(opalx),
+                LinearBreitWheelerBenchmark::jointHistogramMeanThetaRad(cain),
+                LinearBreitWheelerBenchmark::jointHistogramMeanThetaRad(cain) * 8.5e-2);
+    EXPECT_LT(LinearBreitWheelerBenchmark::jointHistogramL1Distance(opalx, cain), 0.46);
+
+    Options::seed = previousSeed;
+}
+
+TEST(TestLinearBreitWheelerSpectrum, FinitePhotonBeamEnergySpreadPositronJointSpectrumMatchesCainReference) {
+    const int previousSeed = Options::seed;
+    Options::seed = 13579;
+
+    LinearBreitWheelerBenchmark::FinitePhotonBeamJointConfig config;
+    config.energyMinGeV = 0.0;
+    config.energyMaxGeV = 0.5;
+    config.thetaMinRad = 0.0;
+    config.thetaMaxRad = 0.0060;
+    config.sigmaThetaXRad = 1.0e-3;
+    config.sigmaThetaYRad = 1.0e-3;
+    config.relativeEnergySpread = 1.0e-3;
+    const auto opalx = LinearBreitWheelerBenchmark::sampleFinitePhotonBeamJointHistogram(
+        config,
+        LinearBreitWheelerBenchmark::FinalState::Positron,
+        250000);
+    const auto cain = LinearBreitWheelerBenchmark::readJointHistogramCSV(referenceFinitePhotonBeamEnergySpreadPositronJointPath());
+
+    ASSERT_EQ(opalx.energyCentersGeV.size(), cain.energyCentersGeV.size());
+    ASSERT_EQ(opalx.thetaCentersRad.size(), cain.thetaCentersRad.size());
+    EXPECT_NEAR(LinearBreitWheelerBenchmark::jointHistogramArea(opalx), 1.0, 2.5e-2);
+    EXPECT_NEAR(LinearBreitWheelerBenchmark::jointHistogramArea(cain), 1.0, 4.0e-3);
+    EXPECT_NEAR(LinearBreitWheelerBenchmark::jointHistogramMeanEnergyGeV(opalx),
+                LinearBreitWheelerBenchmark::jointHistogramMeanEnergyGeV(cain),
+                LinearBreitWheelerBenchmark::jointHistogramMeanEnergyGeV(cain) * 8.5e-2);
+    EXPECT_NEAR(LinearBreitWheelerBenchmark::jointHistogramMeanThetaRad(opalx),
+                LinearBreitWheelerBenchmark::jointHistogramMeanThetaRad(cain),
+                LinearBreitWheelerBenchmark::jointHistogramMeanThetaRad(cain) * 8.5e-2);
+    EXPECT_LT(LinearBreitWheelerBenchmark::jointHistogramL1Distance(opalx, cain), 0.46);
+
+    Options::seed = previousSeed;
+}
+
+TEST(TestLinearBreitWheelerSpectrum, OverlapWeightedElectronEnergySpectrumMatchesCainReference) {
+    const int previousSeed = Options::seed;
+    Options::seed = 13579;
+
+    LinearBreitWheelerBenchmark::FinitePhotonBeamConfig config;
+    config.minValue = 0.0;
+    config.maxValue = 0.5;
+    config.sigmaThetaXRad = 1.0e-3;
+    config.sigmaThetaYRad = 1.0e-3;
+    config.sigmaX_m = 1.0e-6;
+    config.sigmaY_m = 1.0e-6;
+    config.sigmaS_m = 5.0e-12 * Physics::c;
+    config.laserRayleighX_m = 1.0e-6;
+    config.laserRayleighY_m = 1.0e-6;
+    config.laserSigmaT_m = 5.0e-12 * Physics::c;
+    config.overlapWeighting = true;
+    const auto opalx = LinearBreitWheelerBenchmark::sampleFinitePhotonBeamHistogram(
+        config,
+        LinearBreitWheelerBenchmark::FinalState::Electron,
+        LinearBreitWheelerBenchmark::Observable::Energy,
+        250000);
+    const auto cain = LinearBreitWheelerBenchmark::readHistogramCSV(referenceOverlapElectronEnergyPath());
+
+    ASSERT_EQ(opalx.centers.size(), cain.centers.size());
+    EXPECT_NEAR(LinearBreitWheelerBenchmark::histogramArea(opalx), 1.0, 2.0e-2);
+    EXPECT_NEAR(LinearBreitWheelerBenchmark::histogramMean(opalx),
+                LinearBreitWheelerBenchmark::histogramMean(cain),
+                LinearBreitWheelerBenchmark::histogramMean(cain) * 1.2e-1);
+    EXPECT_LT(LinearBreitWheelerBenchmark::histogramL1Distance(opalx, cain), 0.28);
+
+    Options::seed = previousSeed;
+}
+
+TEST(TestLinearBreitWheelerSpectrum, OverlapWeightedPositronEnergySpectrumMatchesCainReference) {
+    const int previousSeed = Options::seed;
+    Options::seed = 13579;
+
+    LinearBreitWheelerBenchmark::FinitePhotonBeamConfig config;
+    config.minValue = 0.0;
+    config.maxValue = 0.5;
+    config.sigmaThetaXRad = 1.0e-3;
+    config.sigmaThetaYRad = 1.0e-3;
+    config.sigmaX_m = 1.0e-6;
+    config.sigmaY_m = 1.0e-6;
+    config.sigmaS_m = 5.0e-12 * Physics::c;
+    config.laserRayleighX_m = 1.0e-6;
+    config.laserRayleighY_m = 1.0e-6;
+    config.laserSigmaT_m = 5.0e-12 * Physics::c;
+    config.overlapWeighting = true;
+    const auto opalx = LinearBreitWheelerBenchmark::sampleFinitePhotonBeamHistogram(
+        config,
+        LinearBreitWheelerBenchmark::FinalState::Positron,
+        LinearBreitWheelerBenchmark::Observable::Energy,
+        250000);
+    const auto cain = LinearBreitWheelerBenchmark::readHistogramCSV(referenceOverlapPositronEnergyPath());
+
+    ASSERT_EQ(opalx.centers.size(), cain.centers.size());
+    EXPECT_NEAR(LinearBreitWheelerBenchmark::histogramArea(opalx), 1.0, 2.0e-2);
+    EXPECT_NEAR(LinearBreitWheelerBenchmark::histogramMean(opalx),
+                LinearBreitWheelerBenchmark::histogramMean(cain),
+                LinearBreitWheelerBenchmark::histogramMean(cain) * 1.2e-1);
+    EXPECT_LT(LinearBreitWheelerBenchmark::histogramL1Distance(opalx, cain), 0.28);
+
+    Options::seed = previousSeed;
+}
+
+TEST(TestLinearBreitWheelerSpectrum, OverlapWeightedElectronAngularSpectrumMatchesCainReference) {
+    const int previousSeed = Options::seed;
+    Options::seed = 13579;
+
+    LinearBreitWheelerBenchmark::FinitePhotonBeamConfig config;
+    config.minValue = 0.0;
+    config.maxValue = 0.0060;
+    config.sigmaThetaXRad = 1.0e-3;
+    config.sigmaThetaYRad = 1.0e-3;
+    config.sigmaX_m = 1.0e-6;
+    config.sigmaY_m = 1.0e-6;
+    config.sigmaS_m = 5.0e-12 * Physics::c;
+    config.laserRayleighX_m = 1.0e-6;
+    config.laserRayleighY_m = 1.0e-6;
+    config.laserSigmaT_m = 5.0e-12 * Physics::c;
+    config.overlapWeighting = true;
+    const auto opalx = LinearBreitWheelerBenchmark::sampleFinitePhotonBeamHistogram(
+        config,
+        LinearBreitWheelerBenchmark::FinalState::Electron,
+        LinearBreitWheelerBenchmark::Observable::Theta,
+        250000);
+    const auto cain = LinearBreitWheelerBenchmark::readHistogramCSV(referenceOverlapElectronThetaPath());
+
+    ASSERT_EQ(opalx.centers.size(), cain.centers.size());
+    EXPECT_NEAR(LinearBreitWheelerBenchmark::histogramArea(opalx), 1.0, 2.5e-2);
+    EXPECT_NEAR(LinearBreitWheelerBenchmark::histogramMean(opalx),
+                LinearBreitWheelerBenchmark::histogramMean(cain),
+                LinearBreitWheelerBenchmark::histogramMean(cain) * 1.2e-1);
+    EXPECT_LT(LinearBreitWheelerBenchmark::histogramL1Distance(opalx, cain), 0.32);
+
+    Options::seed = previousSeed;
+}
+
+TEST(TestLinearBreitWheelerSpectrum, OverlapWeightedPositronAngularSpectrumMatchesCainReference) {
+    const int previousSeed = Options::seed;
+    Options::seed = 13579;
+
+    LinearBreitWheelerBenchmark::FinitePhotonBeamConfig config;
+    config.minValue = 0.0;
+    config.maxValue = 0.0060;
+    config.sigmaThetaXRad = 1.0e-3;
+    config.sigmaThetaYRad = 1.0e-3;
+    config.sigmaX_m = 1.0e-6;
+    config.sigmaY_m = 1.0e-6;
+    config.sigmaS_m = 5.0e-12 * Physics::c;
+    config.laserRayleighX_m = 1.0e-6;
+    config.laserRayleighY_m = 1.0e-6;
+    config.laserSigmaT_m = 5.0e-12 * Physics::c;
+    config.overlapWeighting = true;
+    const auto opalx = LinearBreitWheelerBenchmark::sampleFinitePhotonBeamHistogram(
+        config,
+        LinearBreitWheelerBenchmark::FinalState::Positron,
+        LinearBreitWheelerBenchmark::Observable::Theta,
+        250000);
+    const auto cain = LinearBreitWheelerBenchmark::readHistogramCSV(referenceOverlapPositronThetaPath());
+
+    ASSERT_EQ(opalx.centers.size(), cain.centers.size());
+    EXPECT_NEAR(LinearBreitWheelerBenchmark::histogramArea(opalx), 1.0, 2.5e-2);
+    EXPECT_NEAR(LinearBreitWheelerBenchmark::histogramMean(opalx),
+                LinearBreitWheelerBenchmark::histogramMean(cain),
+                LinearBreitWheelerBenchmark::histogramMean(cain) * 1.2e-1);
+    EXPECT_LT(LinearBreitWheelerBenchmark::histogramL1Distance(opalx, cain), 0.32);
 
     Options::seed = previousSeed;
 }

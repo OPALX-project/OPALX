@@ -30,6 +30,11 @@ struct CliOptions {
     double highEnergyPhotonEnergyGeV = 0.5;
     double photonSigmaThetaRad = 1.0e-3;
     double photonRelativeEnergySpread = 0.0;
+    double photonSigmaPositionM = 0.0;
+    double photonSigmaSM = 0.0;
+    double laserRayleighM = 1.0e-6;
+    double laserSigmaTM = 5.0e-12 * Physics::c;
+    bool overlapWeighting = false;
     std::size_t bins = 80;
     double minValue = 0.0;
     double maxValue = 0.5;
@@ -60,6 +65,16 @@ CliOptions parseArguments(int argc, char** argv) {
             options.photonSigmaThetaRad = std::stod(argv[++i]);
         } else if (arg == "--photon-relative-energy-spread") {
             options.photonRelativeEnergySpread = std::stod(argv[++i]);
+        } else if (arg == "--photon-sigma-position") {
+            options.photonSigmaPositionM = std::stod(argv[++i]);
+        } else if (arg == "--photon-sigma-s") {
+            options.photonSigmaSM = std::stod(argv[++i]);
+        } else if (arg == "--laser-rayleigh") {
+            options.laserRayleighM = std::stod(argv[++i]);
+        } else if (arg == "--laser-sigma-t") {
+            options.laserSigmaTM = std::stod(argv[++i]);
+        } else if (arg == "--overlap-weighting") {
+            options.overlapWeighting = true;
         } else if (arg == "--bins") {
             options.bins = static_cast<std::size_t>(std::stoull(argv[++i]));
         } else if (arg == "--min") {
@@ -71,8 +86,9 @@ CliOptions parseArguments(int argc, char** argv) {
         } else if (arg == "-h" || arg == "--help") {
             std::cout
                 << "Usage: LinearBreitWheelerBenchmark [output.csv] [--particle electron|positron]"
-                << " [--observable energy|theta] [--joint] [--finite-photon-beam] [--samples N] [--seed S] [--bins N]"
+                << " [--observable energy|theta] [--joint] [--finite-photon-beam] [--overlap-weighting] [--samples N] [--seed S] [--bins N]"
                 << " [--high-energy-photon E] [--photon-sigma-theta S] [--photon-relative-energy-spread S]"
+                << " [--photon-sigma-position S] [--photon-sigma-s S] [--laser-rayleigh S] [--laser-sigma-t S]"
                 << " [--min V] [--max V] [--theta-max V]\n";
             std::exit(0);
         } else if (!arg.empty() && arg[0] == '-') {
@@ -124,6 +140,13 @@ int main(int argc, char** argv) {
             config.sigmaThetaXRad = options.photonSigmaThetaRad;
             config.sigmaThetaYRad = options.photonSigmaThetaRad;
             config.relativeEnergySpread = options.photonRelativeEnergySpread;
+            config.sigmaX_m = options.photonSigmaPositionM;
+            config.sigmaY_m = options.photonSigmaPositionM;
+            config.sigmaS_m = options.photonSigmaSM;
+            config.laserRayleighX_m = options.laserRayleighM;
+            config.laserRayleighY_m = options.laserRayleighM;
+            config.laserSigmaT_m = options.laserSigmaTM;
+            config.overlapWeighting = options.overlapWeighting;
             config.energyBins = options.bins;
             config.thetaBins = options.bins;
             config.energyMinGeV = options.minValue;
@@ -162,7 +185,7 @@ int main(int argc, char** argv) {
     auto engine = Physics::LinearBreitWheeler::makeHostRandomEngine();
 
     std::ofstream output(options.output);
-    output << "# value\n";
+    output << "# value,weight\n";
 
     if (options.finitePhotonBeam) {
         const double laserPhotonEnergyGeV = Physics::LinearBreitWheeler::photonEnergyFromWavelengthGeV(options.wavelength_m);
@@ -174,24 +197,35 @@ int main(int argc, char** argv) {
         config.sigmaThetaXRad = options.photonSigmaThetaRad;
         config.sigmaThetaYRad = options.photonSigmaThetaRad;
         config.relativeEnergySpread = options.photonRelativeEnergySpread;
+        config.sigmaX_m = options.photonSigmaPositionM;
+        config.sigmaY_m = options.photonSigmaPositionM;
+        config.sigmaS_m = options.photonSigmaSM;
+        config.laserRayleighX_m = options.laserRayleighM;
+        config.laserRayleighY_m = options.laserRayleighM;
+        config.laserSigmaT_m = options.laserSigmaTM;
+        config.overlapWeighting = options.overlapWeighting;
 
         for (std::size_t i = 0; i < options.samples; ++i) {
-            const double highEnergyPhotonEnergyGeV = LinearBreitWheelerBenchmark::sampleHighEnergyPhotonEnergyGeV(
-                config.centralHighEnergyPhotonEnergyGeV,
-                config.relativeEnergySpread,
-                engine);
-            const auto highEnergyDirection = LinearBreitWheelerBenchmark::samplePhotonBeamDirection(
-                config.referenceHighEnergyDirection,
-                config.sigmaThetaXRad,
-                config.sigmaThetaYRad,
-                engine);
-            const auto kernel = Physics::LinearBreitWheeler::makeSamplingKernel(highEnergyPhotonEnergyGeV,
+            const auto beamState = config.overlapWeighting
+                ? LinearBreitWheelerBenchmark::sampleOverlapPhotonBeamState(config, engine)
+                : LinearBreitWheelerBenchmark::samplePhotonBeamState(
+                    config.referenceHighEnergyDirection,
+                    config.sigmaThetaXRad,
+                    config.sigmaThetaYRad,
+                    config.sigmaX_m,
+                    config.sigmaY_m,
+                    config.sigmaS_m,
+                    config.centralHighEnergyPhotonEnergyGeV,
+                    config.relativeEnergySpread,
+                    engine);
+            constexpr double overlapWeight = 1.0;
+            const auto kernel = Physics::LinearBreitWheeler::makeSamplingKernel(beamState.energyGeV,
                                                                                 laserPhotonEnergyGeV,
-                                                                                highEnergyDirection,
+                                                                                beamState.direction,
                                                                                 config.laserDirection);
             const auto event = Physics::LinearBreitWheeler::sampleEvent(kernel, engine);
             const double value = LinearBreitWheelerBenchmark::sampledObservable(event, state, observable);
-            output << value << '\n';
+            output << value << ',' << overlapWeight << '\n';
         }
     } else {
         const double laserPhotonEnergyGeV = Physics::LinearBreitWheeler::photonEnergyFromWavelengthGeV(options.wavelength_m);
@@ -202,7 +236,7 @@ int main(int argc, char** argv) {
         for (std::size_t i = 0; i < options.samples; ++i) {
             const auto event = Physics::LinearBreitWheeler::sampleEvent(kernel, engine);
             const double value = LinearBreitWheelerBenchmark::sampledObservable(event, state, observable);
-            output << value << '\n';
+            output << value << ",1\n";
         }
     }
 
