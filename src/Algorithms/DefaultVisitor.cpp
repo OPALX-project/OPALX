@@ -32,7 +32,6 @@
 #include "AbsBeamline/MultipoleTCurvedConstRadius.h"
 #include "AbsBeamline/MultipoleTCurvedVarRadius.h"
 #include "AbsBeamline/MultipoleTStraight.h"
-#include "AbsBeamline/Offset.h"
 #include "AbsBeamline/Probe.h"
 #include "AbsBeamline/RFCavity.h"
 #include "AbsBeamline/Ring.h"
@@ -98,10 +97,6 @@ void DefaultVisitor::visitMultipoleTCurvedConstRadius(
 
 void DefaultVisitor::visitMultipoleTCurvedVarRadius(const MultipoleTCurvedVarRadius& multTvcurv) {
     applyDefault(multTvcurv);
-}
-
-void DefaultVisitor::visitOffset(const Offset& off) {
-    applyDefault(off);
 }
 
 void DefaultVisitor::visitRing(const Ring& ring) {

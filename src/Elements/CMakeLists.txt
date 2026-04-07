@@ -11,10 +11,6 @@ set (_SRCS
     OpalSolenoid.cpp
     OpalBeamline.cpp
     OpalRingDefinition.cpp      
-    OpalOffset/OpalLocalCylindricalOffset.cpp
-    OpalOffset/OpalLocalCartesianOffset.cpp
-    OpalOffset/OpalGlobalCylindricalOffset.cpp
-    OpalOffset/OpalGlobalCartesianOffset.cpp
     OpalVerticalFFAMagnet.cpp
     OpalProbe.cpp
     OpalPolynomialTimeDependence.cpp
@@ -36,10 +32,6 @@ set (HDRS
     OpalSolenoid.h
     OpalTravelingWave.h
     OpalRingDefinition.h
-    OpalOffset/OpalGlobalCartesianOffset.h
-    OpalOffset/OpalGlobalCylindricalOffset.h
-    OpalOffset/OpalLocalCartesianOffset.h
-    OpalOffset/OpalLocalCylindricalOffset.h
     OpalVerticalFFAMagnet.h
     OpalProbe.h
     OpalPolynomialTimeDependence.h
