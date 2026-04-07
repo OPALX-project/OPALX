@@ -214,7 +214,7 @@ void DistributionMoments::computeMoments(
         stdP_m(i) = std::sqrt(moments_m(2 * i + 1, 2 * i + 1));
     }
 
-    stdKineticEnergy_m = std::sqrt(glob_std_ekin);
+    stdKineticEnergy_m = std::sqrt(glob_std_ekin / Np);
 
     double perParticle = 1. / (1. * Np);
     Vector_t<double, 3> squaredEps, sumRP;
