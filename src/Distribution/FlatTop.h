@@ -158,10 +158,17 @@ private:
 public:
     /**
      * @brief Generates particles (x,y) uniformly on a disk distribution.
+     *
+     * Each new particle is assigned a fractional per-particle dt sampled
+     * uniformly in (0, dt), representing the fraction of the next integration
+     * step the particle will experience (as if born at a random time within
+     * the current emission interval).
+     *
      * @param nlocal Number of local particles.
      * @param nNew Number of new particles to generate.
+     * @param dt Global timestep; used to sample fractional per-particle dt.
      */
-    void generateUniformDisk(size_type nlocal, size_t nNew);
+    void generateUniformDisk(size_type nlocal, size_t nNew, double dt);
 
     /**
      * @brief Sets the number of grid points per direction.
