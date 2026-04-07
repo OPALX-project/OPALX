@@ -133,7 +133,7 @@ bool RFCavity::apply()
     double endField   = startField_m + getElementLength();
     
     // Reference particle time
-    const double t = RefPartBunch_m->getT();
+    const double t = RefPartBunch_m->getT() + 0.5 * RefPartBunch_m->getdT(); // To be consistent with OPAL
 
     // RF phase for all particles at this step
     const double phi    = freq * t + phase; 
@@ -166,7 +166,7 @@ bool RFCavity::apply(
     const Vector_t<double, 3> R = Rview(i);
     const Vector_t<double, 3> P = Pview(i);
 
-    return apply(R(i), P(i), t, E, B);
+    return apply(R, P, t, E, B);
 }
 
 bool RFCavity::apply(
