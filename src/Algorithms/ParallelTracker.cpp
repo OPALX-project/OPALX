@@ -725,11 +725,16 @@ void ParallelTracker::emitFromEmissionSources(double t, double dt) {
     // emission, the extent of R will change and we can flag this as an error.
     const size_t extentBeforeEmission = itsBunch_m->getParticleContainer()->R.getView().extent(0);
     
+    // transform to lab frame (common frame needed for correct sampling!)
+    CoordinateSystemTrafo refToGun =
+                itsOpalBeamline_m.getCSTrafoLab2Local() * itsBunch_m->toLabTrafo_m;
+    transformBunch(refToGun);
     for (const auto& sampler : emittingSamplers_m) {
         if (sampler) {
             sampler->emitParticles(t, dt);
         }
     }
+    transformBunch(refToGun.inverted());
     itsBunch_m->setMass();
     itsBunch_m->setCharge();
     // itsBunch_m->updateNumTotal(); // handled internally by ippl
