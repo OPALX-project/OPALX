@@ -402,6 +402,10 @@ void ParallelTracker::execute() {
             // Particle R and mesh are in REFERENCE frame for the whole step except inside
             // computeSpaceChargeFields (beam frame only during computeSelfFields).
 
+            // Reset EOL flag each step: transient OutOfBounds (e.g. from invalid mesh
+            // bounds immediately after first emission) must not persist across steps.
+            globalEOL_m = false;
+
             // Get the bunch spatial bounds
             Vector_t<double, 3> rmin(0.0), rmax(0.0);
             if (itsBunch_m->getTotalNum() > 0) {
@@ -493,8 +497,12 @@ void ParallelTracker::execute() {
             itsBunch_m->set_sPos(pathLength_m);
             m << level4 << "Updated path length to " << pathLength_m << "." << endl;
 
+            // hasEndOfLineReached uses isOutside(RefPartR_m) with a lab-frame
+            // bounding box, but RefPartR_m lives in the reference frame in OPALX
+            // (near origin), so the check always fails.  Disabled until the
+            // coordinate mismatch is resolved.
             // if (hasEndOfLineReached(globalBoundingBox)) break;
-  
+
             // Dump phase space and statistics at configured intervals
             bool const psDump =
                 ((itsBunch_m->getGlobalTrackStep() % Options::psDumpFreq) + 1
@@ -513,16 +521,21 @@ void ParallelTracker::execute() {
             m << level4 << "Calculated drift per time step: " << Util::getLengthString(driftPerTimeStep) << "." << endl;
 
             if (std::abs(stepSizes_m.getZStop() - pathLength_m) < 0.5 * driftPerTimeStep) {
-                m << level2 << "Approaching end of current step size configuration (zstop = " << Util::getLengthString(stepSizes_m.getZStop()) 
+                m << level2 << "Approaching end of current step size configuration (zstop = " << Util::getLengthString(stepSizes_m.getZStop())
                   << ", path length = " << Util::getLengthString(pathLength_m) << "). Preparing to switch to next configuration." << endl;
                 break;
             }
         }
 
+        // globalEOL_m is reset at the start of each step, so if it is still true
+        // here the last step genuinely ended with an out-of-bounds or reference
+        // particle hitting an element. Synchronize across ranks before deciding.
+        ippl::Comm->allreduce(globalEOL_m, 1, std::logical_and<bool>());
+
         if (globalEOL_m)
             break;
-        ++stepSizes_m;    
-     }
+        ++stepSizes_m;
+    }
     itsBunch_m->set_sPos(pathLength_m);
 
     bool const psDump =
@@ -677,13 +690,23 @@ void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
     
     // Bunch bounds
     Vector_t<double, 3> rmin(0.0), rmax(0.0);
-    if (itsBunch_m->getTotalNum() > 0)
+    if (itsBunch_m->getTotalNum() > 0) {
         itsBunch_m->get_bounds(rmin, rmax);
+        // get_bounds returns cached mesh extents (rmin_m/rmax_m). These are
+        // sentinel values (DBL_MAX / DBL_MIN) when the mesh hasn't been
+        // computed yet — e.g. immediately after the first particles are emitted
+        // before calcBeamParameters() has run.  Fall back to zero so the query
+        // uses pathLength_m as the centre with zero half-width.
+        if (!std::isfinite(rmin(2)) || !std::isfinite(rmax(2))) {
+            rmin = Vector_t<double, 3>(0.0);
+            rmax = Vector_t<double, 3>(0.0);
+        }
+    }
 
     // Get elements at bunch position
     IndexMap::value_t elements;
     try {
-        elements = oth.query(pathLength_m + 0.5 * 
+        elements = oth.query(pathLength_m + 0.5 *
             (rmax(2) + rmin(2)), rmax(2) - rmin(2));
     } catch (IndexMap::OutOfBounds& e) {
         globalEOL_m = true;
@@ -1163,8 +1186,10 @@ void ParallelTracker::setOptionalVariables() {
 }
 
 bool ParallelTracker::hasEndOfLineReached(const BoundingBox& globalBoundingBox) {
-    // \todo check in IPPL 1.0 it was OpBitwiseAndAssign()
-    ippl::Comm->reduce(globalEOL_m,  globalEOL_m, 1, std::logical_and<bool>());
+    // Old IPPL used OpBitwiseAndAssign() via reduce(); new IPPL needs allreduce
+    // so that all ranks receive the result (reduce sends only to root).
+    // In-place allreduce avoids the aliased-buffer error of MPI_Reduce.
+    ippl::Comm->allreduce(globalEOL_m, 1, std::logical_and<bool>());
     globalEOL_m = globalEOL_m || globalBoundingBox.isOutside(itsBunch_m->RefPartR_m);
     return globalEOL_m;
 }
