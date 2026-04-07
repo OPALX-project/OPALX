@@ -25,6 +25,7 @@
 
 #include <ostream>
 #include <string>
+#include <vector>
 
 class Inform;
 
@@ -85,6 +86,9 @@ public:
     /// Return the name of the EMISSIONSOURCELIST linked to this beam.
     /// Throws if `SOURCES` is not set.
     std::string getEmissionSourceListName() const;
+
+    /// Return the configured global process names for this beam.
+    std::vector<std::string> getGlobalProcessNames() const;
 
     /// Update the BEAM data.
     virtual void update();

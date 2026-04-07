@@ -21,6 +21,7 @@
 //
 #include "Algorithms/ParallelTracker.h"
 
+#include <algorithm>
 #include <array>
 #include <cfloat>
 #include <cmath>
@@ -42,6 +43,8 @@
 #include "Distribution/Distribution.h"
 
 #include "Physics/Units.h"
+
+#include "Processes/GlobalProcesses/GlobalProcess.h"
 
 #include "Structure/BoundaryGeometry.h"
 #include "Structure/BoundingBox.h"
@@ -336,6 +339,8 @@ void ParallelTracker::execute() {
             m << level4 << "timeIntegration2 done at step " << step << "." << endl;
             itsBunch_m->bunchUpdate();
             m << level5 << "Bunch updated after timeIntegration2." << endl;
+            applyGlobalProcesses(itsBunch_m->getdT());
+            m << level5 << "Applied global processes at step " << step << "." << endl;
 
             if (itsBunch_m->getTotalNumAllContainers() == 0) {
                 m << level5 << "WARNING: No particles in the bunch at step " << step
@@ -711,6 +716,27 @@ void ParallelTracker::emitFromEmissionSources(double t, double dt) {
         }
     }
     itsBunch_m->refreshPcActiveAfterEmit();
+}
+
+void ParallelTracker::applyGlobalProcesses(double dt) {
+    const size_t nContainers = itsBunch_m->getNumParticleContainers();
+    const long long globalTrackStep = itsBunch_m->getGlobalTrackStep();
+
+    for (size_t ci = 0; ci < nContainers; ++ci) {
+        auto pc = itsBunch_m->getParticleContainer(ci);
+        if (!pc) {
+            continue;
+        }
+        const auto& processes = pc->getGlobalProcesses();
+        if (processes.empty()) {
+            continue;
+        }
+        for (const auto& process : processes) {
+            if (process) {
+                process->apply(*pc, dt, globalTrackStep, ci);
+            }
+        }
+    }
 }
 
 /**
