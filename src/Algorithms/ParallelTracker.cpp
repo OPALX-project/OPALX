@@ -445,16 +445,20 @@ void ParallelTracker::execute() {
                     << ". This has no effect on the simulation." << endl;
             }
 
+            // Reset per-particle dt for all existing particles BEFORE emission, so that
+            // newly emitted particles retain their fractional dt (sampled in generateUniformDisk).
+            // In the next integration step, particles with fractional dt naturally drift/kick
+            // proportionally, spreading them in z and giving fractional charge contribution via
+            // scaleDtByCharge. After that step, setTime() resets them to the full dt.
+            setTime();
+            m << level5 << "Set time view of particle bunch to dt = " << Util::getTimeString(itsBunch_m->getdT()) << "." << endl;
+
             // Emit particles from time-dependent (emitting) sources (R set in REFERENCE frame).
+            // New particles receive a fractional per-particle dt ∈ (0, dt) from the sampler.
             emitFromEmissionSources(itsBunch_m->getT(), itsBunch_m->getdT());
             m << level4 << "Emit particles from emission sources done at step " << step << "." << endl;
             itsBunch_m->bunchUpdate();  // mesh from current R so stays REFERENCE frame for next step
             m << level5 << "Bunch updated after emission." << endl;
-
-            // Set dt for all particles (including newly emitted) so next step's push uses correct per-particle dt.
-            // Reset particle time step size to the current track time step (pulled out of timeIntegration2)
-            setTime();
-            m << level5 << "Set time view of particle bunch to dt = " << Util::getTimeString(itsBunch_m->getdT()) << "." << endl;
 
             // Select new time step size for the next iteration based on the current track configuration
             selectDT(back_track);
@@ -763,7 +767,8 @@ void ParallelTracker::resetFields() {
  */
 void ParallelTracker::pushParticles(const BorisPusher& pusher) {
 
-    /// \todo use false for now, since I am not sure how well integrated "dt_per_particle" is (needs to be consistent with particle emission later!).
+    // Per-particle dt is used so that newly emitted particles with fractional dt
+    // (sampled during emission) are pushed proportionally to their sub-timestep fraction.
     itsBunch_m->switchToUnitlessPositions(true);
 
     auto Rview  = itsBunch_m->getParticleContainer()->R.getView();
