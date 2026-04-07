@@ -63,20 +63,15 @@ class PluginElement;
 class ParallelTracker : public Tracker {
 private:
     /* ============================= Variables ============================= */
+    
     // Responsible for writing beam statistics
     std::shared_ptr<DataSink> itsDataSink_m;
 
     // Beamline Object which holds a list of pointers to beamline components
     OpalBeamline itsOpalBeamline_m;
 
-    // Pointer to OpalRing
-    Ring* opalRing_m;
-
     // Flag indicating if End Of Line has been reached
     bool globalEOL_m;
-
-    // Flag indicating if particles are lost
-    bool deletedParticles_m;
 
     // Starting position
     double zstart_m;
@@ -95,7 +90,9 @@ private:
     // Controls the frequency of load balancing 
     unsigned long long repartFreq_m;
 
-    /* ===================================================================== */
+    /// Per-container time-dependent (emitting) sources; emitParticles(t, dt) each step.
+    std::vector<std::vector<std::shared_ptr<SamplingBase>>> emittingSamplers_m;
+
     /* ============================== Timers =============================== */
     IpplTimings::TimerRef timeIntegrationTimer1_m;
     IpplTimings::TimerRef timeIntegrationTimer2_m;
@@ -104,11 +101,11 @@ private:
     IpplTimings::TimerRef PluginElemTimer_m;
     IpplTimings::TimerRef BinRepartTimer_m;
     IpplTimings::TimerRef OrbThreader_m;
-    /// Per-container time-dependent (emitting) sources; emitParticles(t, dt) each step.
-    std::vector<std::vector<std::shared_ptr<SamplingBase>>> emittingSamplers_m;
+
 public:
     /* ============================ Constructors =========================== */
-    /*
+
+    /** 
      * Constructor for single track
      * The Beamline object "bl"
      * If "revBeam" is true, the beam runs from s = C to s = 0.
@@ -116,7 +113,7 @@ public:
     */ 
     explicit ParallelTracker(const Beamline& bl, bool revBeam);
 
-    /*
+    /** 
      * Constructor for single track
      * The Beamline object "bl", the ParticleBunch "bunch", the DataSink "ds".
      * If "revBeam" is true, the beam runs from s = C to s = 0.
@@ -132,7 +129,7 @@ public:
 
     // Destructor
     virtual ~ParallelTracker();
-    /* ===================================================================== */
+
     /* ========================= Visit Functions =========================== */
     /// Apply the algorithm to a beam line.
     //  overwrite the execute-methode from DefaultVisitor
@@ -153,19 +150,15 @@ public:
     /// Apply the algorithm to an arbitrary multipole.
     virtual void visitMultipoleT(const MultipoleT&);
 
-    /// Apply the algorithm to a offset (placement).
-    virtual void visitOffset(const Offset&);
-
     /// Apply the algorithm to a RF cavity.
     virtual void visitRFCavity(const RFCavity&);
 
     /// Apply the algorithm to a RF cavity.
     virtual void visitSolenoid(const Solenoid&);
 
-    /* ===================================================================== */
     /* ========================= Start Simulation ========================== */
     virtual void execute();
-    /* ===================================================================== */
+
     /* ========================= PIC Functions ============================= */
     void kickParticles(const BorisPusher& pusher,
                        const std::shared_ptr<PartBunch_t::ParticleContainer_t>& pc);
@@ -214,7 +207,7 @@ private:
 
     // Finds start for reference particle
     void findStartPositions(const BorisPusher& pusher);
-    /* ===================================================================== */
+
     /* ========================== Autophasing ============================== */
     // Setup for TRAVERLINGWAVE and RFCAVITY
     void autophaseCavities(const BorisPusher& pusher);
@@ -222,66 +215,6 @@ private:
     void printRFPhases();
     void saveCavityPhases();
     void restoreCavityPhases();
-    /* ===================================================================== */
-    /* ==================== COMMENTED OUT (UNUSED/NI) ===================== */
-    // NOTE: Moved from earlier sections per request.
-    // typedef std::pair<double[8], Component*> element_pair;
-    // typedef std::pair<ElementType, element_pair> type_pair;
-    // typedef std::list<type_pair*> beamline_list;
-    //
-    // unsigned turnnumber_m;
-    // std::list<Component*> myElements;
-    // beamline_list FieldDimensions;
-    //
-    // double bega;
-    // double referenceR;
-    // double referenceTheta;
-    // double referenceZ = 0.0;
-    //
-    // double referencePr;
-    // double referencePt;
-    // double referencePz = 0.0;
-    // double referencePtot;
-    //
-    // double referencePsi;
-    // double referencePhi;
-    //
-    // double sinRefTheta_m;
-    // double cosRefTheta_m;
-    // std::vector<PluginElement*> pluginElements_m;
-    //
-    // // Particle - Matter interaction
-    // std::set<ParticleMatterInteractionHandler*>
-    //     activeParticleMatterInteractionHandlers_m;
-    // bool particleMatterStatus_m;
-    //
-    // // Wakefield stuff - Does nothing...
-    // bool wakeStatus_m;
-    // WakeFunction* wakeFunction_m;
-    //
-    // /// Apply the algorithm to a ring.
-    // virtual void visitRing(const Ring& ring);
-    //
-    // /// Apply the algorithm to a traveling wave.
-    // virtual void visitTravelingWave(const TravelingWave&);
-    //
-    // /// Apply the algorithm to a scaling FFA.
-    // virtual void visitScalingFFAMagnet(const ScalingFFAMagnet& bend);
-    //
-    // /// Apply the algorithm to a vertical FFA magnet.
-    // virtual void visitVerticalFFAMagnet(const VerticalFFAMagnet& bend);
-    //
-    // void buildupFieldList(double BcParameter[], ElementType elementType,
-    //     Component* elptr);
-    // bool applyPluginElements(const double dt);
-    // ParallelTracker();
-    // ParallelTracker(const ParallelTracker&);
-    // void operator=(const ParallelTracker&);
-    // void computeWakefield(IndexMap::value_t& elements);
-    // void computeParticleMatterInteraction(IndexMap::value_t elements,
-    //     OrbitThreader& oth);
-    // void handleRestartRun();
-    /* ===================================================================== */
 };
 
 inline void ParallelTracker::visitConstantEFieldCavity(const ConstantEFieldCavity& cav) {

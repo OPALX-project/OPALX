@@ -78,9 +78,6 @@ public:
     /// Apply the algorithm to an arbitrary curved multipole of variable radius.
     virtual void visitMultipoleTCurvedVarRadius(const MultipoleTCurvedVarRadius&);
 
-    /// Apply the algorithm to an offset (placement).
-    virtual void visitOffset(const Offset&);
-
     /// Apply the algorithm to a Ring.
     virtual void visitRing(const Ring&);
 

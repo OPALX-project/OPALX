@@ -53,7 +53,6 @@
 
 #include "ValueDefinitions/RealVariable.h"
 
-#include "AbsBeamline/Offset.h"
 #include "AbsBeamline/TravelingWave.h"
 extern Inform* gmsg;
 
@@ -98,7 +97,6 @@ ParallelTracker::ParallelTracker(
     : Tracker(beamline, revBeam, false),
       itsDataSink_m(),
       itsOpalBeamline_m(beamline.getOrigin3D(), beamline.getInitialDirection()),
-      opalRing_m(nullptr),
       globalEOL_m(false),
       zstart_m(0.0),
       dtCurrentTrack_m(0.0),
@@ -122,7 +120,6 @@ ParallelTracker::ParallelTracker(
     : Tracker(beamline, bunch, revBeam, false),
       itsDataSink_m(ds),
       itsOpalBeamline_m(beamline.getOrigin3D(), beamline.getInitialDirection()),
-      opalRing_m(nullptr),
       globalEOL_m(false),
       zstart_m(zstart),
       dtCurrentTrack_m(0.0),
@@ -170,17 +167,6 @@ void ParallelTracker::visitBeamline(const Beamline& bl) {
     }
     */
     fbl->iterate(*this, false);
-}
-
-/** * * * @param off */
-void ParallelTracker::visitOffset(const Offset& off) {
-    if (opalRing_m == nullptr)
-        throw OpalException(
-            "ParallelCylcotronTracker::visitOffset",
-            "Attempt to place an offset when Ring not defined");
-    Offset* offNonConst = const_cast<Offset*>(&off);
-    offNonConst->updateGeometry(opalRing_m->getNextPosition(), opalRing_m->getNextNormal());
-    opalRing_m->appendElement(off);
 }
 
 
@@ -317,7 +303,6 @@ void ParallelTracker::execute() {
 
     globalEOL_m        = false;
     //wakeStatus_m       = false;
-    deletedParticles_m = false;
 
     stepSizes_m.printDirect(*gmsg);
 
@@ -422,8 +407,6 @@ void ParallelTracker::execute() {
                 m << level4 << "Updated reference particle at step " << step << "." << endl;
             }
 
-            // Delete particles outside N-sigma boundary (N = BOUNDPDESTROYFQ)
-            // if (deletedParticles_m) {
             double sigmas = static_cast<double>(Options::boundpDestroy);
             //if (sigmas > 0.0) {
             const auto& particleContainersStep = itsBunch_m->getParticleContainers();
@@ -440,9 +423,6 @@ void ParallelTracker::execute() {
                       << pc->getTotalNum() << " remaining (container " << i << ")." << endl;
                 }
             }
-            // }
-            // deletedParticles_m = false;
-            //}
 
             for (size_t i = 0; i < particleContainersStep.size(); ++i) {
                 const auto& pc = particleContainersStep[i];

@@ -103,9 +103,6 @@ public:
     /// Apply the algorithm to an arbitrary curved multipole of variable radius.
     virtual void visitMultipoleTCurvedVarRadius(const MultipoleTCurvedVarRadius&) = 0;
 
-    /// Apply the algorithm to an offset (placement).
-    virtual void visitOffset(const Offset&) = 0;
-
     /// Apply the algorithm to a RF cavity.
     virtual void visitRFCavity(const RFCavity&) = 0;
 
