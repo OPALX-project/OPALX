@@ -288,6 +288,8 @@ public:
     }
 
     /// @brief Update Moments and calculate rmin_m and rmax_m
+    /// @note For now this only considers container 0, which is fine since
+    /// the field solver acts on container 0 for now. 
     void calcBeamParameters();
 
     // ! NOT IMPLEMENTED

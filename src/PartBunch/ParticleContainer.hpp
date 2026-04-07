@@ -4,6 +4,7 @@
 
 // #include <functional>
 #include <memory>
+#include <cmath>
 // #include <vector>
 
 #include "Ippl.h"
@@ -388,6 +389,36 @@ public:
     /// @brief Set local-to-lab coordinate transformation.
     void setToLabTrafo(const CoordinateSystemTrafo& toLabTrafo) {
         toLabTrafo_m = toLabTrafo;
+    }
+
+    /// @brief Advance reference/lab transform state and map bunch accordingly.
+    void updateRefToLabCSTrafo(double bunchDT) {
+        Vector_t<double, 3> R = toLabTrafo_m.transformFrom(refPartR_m);
+        Vector_t<double, 3> P = toLabTrafo_m.rotateFrom(refPartP_m);
+
+        const double ds = std::copysign(1.0, bunchDT)
+                          * std::sqrt(R[0] * R[0] + R[1] * R[1] + R[2] * R[2]);
+        sPos_m += ds;
+
+        CoordinateSystemTrafo update(R, getQuaternion(P, Vector_t<double, 3>(0, 0, 1)));
+        transformBunch(update);
+        toLabTrafo_m = toLabTrafo_m * update.inverted();
+    }
+
+    /// @brief Apply a fractional Boris step and update reference/lab transform state.
+    template <typename Pusher>
+    void applyFractionalStep(const Pusher& pusher, double tau, double pathLengthTarget) {
+        refPartR_m /= (Physics::c * 2 * tau);
+        pusher.push(refPartR_m, refPartP_m, tau);
+        refPartR_m *= (Physics::c * 2 * tau);
+
+        sPos_m = pathLengthTarget;
+        toLabTrafo_m.transformFrom(refPartR_m);
+        Vector_t<double, 3> R = refPartR_m;
+        toLabTrafo_m.rotateFrom(refPartP_m);
+        Vector_t<double, 3> P = refPartP_m;
+        CoordinateSystemTrafo update(R, getQuaternion(P, Vector_t<double, 3>(0, 0, 1)));
+        toLabTrafo_m = toLabTrafo_m * update.inverted();
     }
 
     /**
