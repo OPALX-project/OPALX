@@ -12,223 +12,256 @@
  *  - apply(R,P,t,E,B): inside, outside, boundaries
  *  - phase dependence (cos/sin behavior)
  */
-
 #include <gtest/gtest.h>
 
 #include "Fields/Fieldmap.h"
 #include "AbsBeamline/ElementBase.h"
 #include "BeamlineCore/RFCavityRep.h"
 
+#include "Fields/EMField.h"
+#include "BeamlineGeometry/Geometry.h"
+
 #include <cmath>
 #include <memory>
+// #include <fstream> 
 
-// std::string writeRFCavityFieldmap(const std::string& path)
-// {
-//     std::ofstream f(path);
-
-//     f << "2DDynamic XZ\n";
-//     f << "0.0 1.0 1\n";
-//     f << "100.0\n";
-//     f << "0.0 0.0 1\n";
-
-//     // minimal field (Ez only)
-//     f << "1.0 0.0 0.0 0.0\n";
-
-//     return path;
-// }
-
-// namespace {
-
-// // ---------------------------------------------------------------------------
-// // Minimal concrete RFCavity (since RFCavity is abstract)
-// // ---------------------------------------------------------------------------
-// class TestRFCavity : public RFCavity {
+// class DummyGeometry : public BGeometryBase {
 // public:
-//     TestRFCavity() : RFCavity("TestRFCavity") {}
-
-//     // Required RFCavity interface
-//     double getAmplitude() const override { return scale_m; }
-//     double getFrequency() const override { return frequency_m; }
-//     double getPhase() const override { return phase_m; }
-
-//     // ---- setters for protected members ----
-//     void setFieldmap(Fieldmap* fmap) { fieldmap_m = fmap; }
-//     void setStartField(double val) { startField_m = val; }
-
-//     // ---- required abstract stubs ----
-//     ElementBase* clone() const override {
-//         return new TestRFCavity(*this);
-//     }
-
-//     BGeometryBase& getGeometry() override {
-//         throw std::runtime_error("Not implemented");
-//     }
-
-//     const BGeometryBase& getGeometry() const override {
-//         throw std::runtime_error("Not implemented");
-//     }
-
-//     EMField& getField() override {
-//         throw std::runtime_error("Not implemented");
-//     }
-
-//     const EMField& getField() const override {
-//         throw std::runtime_error("Not implemented");
-//     }
+//     DummyGeometry() : BGeometryBase() {}
 // };
 
-// ---------------------------------------------------------------------------
-// Test fixture
-// ---------------------------------------------------------------------------
-// class RFCavityTest : public ::testing::Test {
-// protected:
-//     void SetUp() override {
-//         cav_ = std::make_unique<TestRFCavity>();
-
-//         cav_->setAmplitudem(2.0);
-//         cav_->setFrequencym(1.0);
-//         cav_->setPhasem(0.0);
-
-//         auto file = writeRFCavityFieldmap("rf_test.dat");
-
-//         cav_->setFieldMapFN(file);
-
-//         cav_->setStartField(0.0);
-//         cav_->setElementLength(1.0);
-//     }
-
-//     std::unique_ptr<TestRFCavity> cav_;
+// class DummyField : public EMField {
+// public:
+//     DummyField() : EMField() {}
 // };
 
+class FakeFieldmap : public Fieldmap {
+public:
+    FakeFieldmap() : Fieldmap("dummy") {}
+
+    bool getFieldstrength(const Vector_t<double,3>&,
+                          Vector_t<double,3>& E,
+                          Vector_t<double,3>& B) const override {
+        E = {1.0, 0.0, 0.0};
+        B = {0.0, 1.0, 0.0};
+        return false; // inside
+    }
+
+    void getFieldDimensions(double& zBegin, double& zEnd) const override {
+        zBegin = 0.0;
+        zEnd   = 1.0;
+    }
+
+    void getFieldDimensions(double& zBegin, double& zEnd,
+                            double&, double&, double&, double&) const override {
+        zBegin = 0.0;
+        zEnd   = 1.0;
+    }
+
+    bool isInside(const Vector_t<double,3>&) const override {
+        return true;
+    }
+
+    // --- required no-op implementations ---
+    void applyField(std::shared_ptr<ParticleContainer_t>, double = 1.0) override {}
+    bool getFieldDerivative(const Vector_t<double,3>&,
+                            Vector_t<double,3>&,
+                            Vector_t<double,3>&,
+                            const DiffDirection&) const override { return false; }
+
+    void swap() override {}
+    void getInfo(Inform*) override {}
+    double getFrequency() const override { return 1.0; }
+    void setFrequency(double) override {}
+    void readMap() override {}
+    void freeMap() override {}
+};
+
 // ---------------------------------------------------------------------------
-// Type and geometry
+// Dummy Geometry (fully concrete)
 // ---------------------------------------------------------------------------
-// TEST_F(RFCavityTest, GetType) {
-//     EXPECT_EQ(cav_->getType(), ElementType::RFCAVITY);
-// }
+class DummyGeometry : public BGeometryBase {
+public:
+    double getArcLength() const override { return 0.0; }
+    double getElementLength() const override { return 0.0; }
 
-// TEST_F(RFCavityTest, Bends) {
-//     EXPECT_FALSE(cav_->bends());
-// }
+    Euclid3D getTransform(double, double) const override {
+        return Euclid3D();
+    }
+};
 
-// TEST_F(RFCavityTest, GetSetAmplitudeFrequencyPhase)
-// {
-//     cav_->setAmplitudem(5.0);
-//     cav_->setFrequencym(2.0);
-//     cav_->setPhasem(0.5);
-
-//     EXPECT_DOUBLE_EQ(cav_->getAmplitudem(), 5.0);
-//     EXPECT_DOUBLE_EQ(cav_->getFrequencym(), 2.0);
-//     EXPECT_DOUBLE_EQ(cav_->getPhasem(), 0.5);
-// }
-
-// TEST_F(RFCavityTest, GetDimensions)
-// {
-//     double zBegin = -1.0;
-//     double zEnd   = -1.0;
-
-//     cav_->initialise(nullptr, zBegin, zEnd);
-
-//     cav_->getDimensions(zBegin, zEnd);
-
-//     EXPECT_GT(zEnd, 0.0);
-//     EXPECT_LE(zBegin, zEnd);
-// }
+// ---------------------------------------------------------------------------
+// Dummy Field (fully concrete)
+// ---------------------------------------------------------------------------
+class DummyField : public EMField {
+public:
+    void scale(double) override {}
+};
 
 
-// // ---------------------------------------------------------------------------
-// // apply(R,P,t,E,B)
-// // ---------------------------------------------------------------------------
-// TEST_F(RFCavityTest, ApplyInside) {
-//     Vector_t<double,3> R = {0.0, 0.0, 0.5};
-//     Vector_t<double,3> P = {0.0, 0.0, 1.0};
-//     Vector_t<double,3> E = {0.0, 0.0, 0.0};
-//     Vector_t<double,3> B = {0.0, 0.0, 0.0};
+// ---------------------------------------------------------------------------
+// Minimal concrete RFCavity
+// ---------------------------------------------------------------------------
+class TestRFCavity : public RFCavity {
+public:
+    TestRFCavity() : RFCavity("test") {}
 
-//     cav_->apply(R, P, 0.0, E, B);
+    // ---- REQUIRED PURE VIRTUALS ----
+    double getAmplitude() const override { return amplitude_; }
+    double getFrequency() const override { return frequency_; }
+    double getPhase() const override { return phase_; }
 
-//     // cos(0)=1 → E scaled
-//     EXPECT_DOUBLE_EQ(E(0), 2.0 * 1.0);
-//     EXPECT_DOUBLE_EQ(E(1), 2.0 * 2.0);
-//     EXPECT_DOUBLE_EQ(E(2), 2.0 * 3.0);
+    ElementBase* clone() const override {
+        return new TestRFCavity(*this);
+    }
 
-//     // sin(0)=0 → B unchanged
-//     EXPECT_DOUBLE_EQ(B(0), 0.0);
-//     EXPECT_DOUBLE_EQ(B(1), 0.0);
-//     EXPECT_DOUBLE_EQ(B(2), 0.0);
-// }
+    BGeometryBase& getGeometry() override { return geom_; }
+    const BGeometryBase& getGeometry() const override { return geom_; }
 
-// TEST_F(RFCavityTest, ApplyOutsideBefore) {
-//     Vector_t<double,3> R = {0.0, 0.0, -0.1};
-//     Vector_t<double,3> P = {0.0, 0.0, 1.0};
-//     Vector_t<double,3> E = {1.0, 1.0, 1.0};
-//     Vector_t<double,3> B = {1.0, 1.0, 1.0};
+    EMField& getField() override { return field_; }
+    const EMField& getField() const override { return field_; }
 
-//     cav_->apply(R, P, 0.0, E, B);
+    // ---- Simple setters for testing ----
+    void setAmplitude(double v) { amplitude_ = v; }
+    void setFrequency(double v) { frequency_ = v; }
+    void setPhase(double v) { phase_ = v; }
 
-//     EXPECT_DOUBLE_EQ(E(0), 1.0);
-//     EXPECT_DOUBLE_EQ(B(0), 1.0);
-// }
+    void setScale(double v) { scale_m = v; }
+    void setPhaseInternal(double v) { phase_m = v; }
+    void setFrequencyInternal(double v) { frequency_m = v; }
 
-// TEST_F(RFCavityTest, ApplyOutsideAfter) {
-//     Vector_t<double,3> R = {0.0, 0.0, 1.5};
-//     Vector_t<double,3> P = {0.0, 0.0, 1.0};
-//     Vector_t<double,3> E = {1.0, 1.0, 1.0};
-//     Vector_t<double,3> B = {1.0, 1.0, 1.0};
+    void setFieldmap(Fieldmap* fmap) { fieldmap_m = fmap; }
+    void setStartField(double val) { startField_m = val; }
 
-//     cav_->apply(R, P, 0.0, E, B);
+private:
+    double amplitude_ = 0.0;
+    double frequency_ = 0.0;
+    double phase_     = 0.0;
 
-//     EXPECT_DOUBLE_EQ(E(0), 1.0);
-//     EXPECT_DOUBLE_EQ(B(0), 1.0);
-// }
+    DummyGeometry geom_;
+    DummyField field_;
+    
+};
 
-// TEST_F(RFCavityTest, ApplyAtStartBoundary) {
-//     Vector_t<double,3> R = {0.0, 0.0, 0.0};
-//     Vector_t<double,3> P = {0.0, 0.0, 1.0};
-//     Vector_t<double,3> E = {0.0, 0.0, 0.0};
-//     Vector_t<double,3> B = {0.0, 0.0, 0.0};
+// ---------------------------------------------------------------------------
+// Test Fixture
+// ---------------------------------------------------------------------------
+class RFCavityTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        cav_ = std::make_unique<TestRFCavity>();
+        fmap_ = std::make_unique<FakeFieldmap>();
 
-//     cav_->apply(R, P, 0.0, E, B);
+        cav_->setScale(2.0);
+        cav_->setFrequencyInternal(1.0);
+        cav_->setPhaseInternal(0.0);
 
-//     EXPECT_DOUBLE_EQ(E(0), 2.0);
-// }
+        cav_->setFieldmap(fmap_.get());
+        cav_->setStartField(0.0);
+        cav_->setElementLength(1.0);
+    }
 
-// TEST_F(RFCavityTest, ApplyAtEndBoundaryExcluded) {
-//     Vector_t<double,3> R = {0.0, 0.0, 1.0};
-//     Vector_t<double,3> P = {0.0, 0.0, 1.0};
-//     Vector_t<double,3> E = {0.0, 0.0, 0.0};
-//     Vector_t<double,3> B = {0.0, 0.0, 0.0};
+    std::unique_ptr<TestRFCavity> cav_;
+    std::unique_ptr<FakeFieldmap> fmap_;
+};
 
-//     cav_->apply(R, P, 0.0, E, B);
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
+TEST_F(RFCavityTest, GetType) {
+    EXPECT_EQ(cav_->getType(), ElementType::RFCAVITY);
+}
 
-//     // End is excluded: no effect
-//     EXPECT_DOUBLE_EQ(E(0), 0.0);
-// }
+TEST_F(RFCavityTest, Bends) {
+    EXPECT_FALSE(cav_->bends());
+}
 
-// // ---------------------------------------------------------------------------
-// // Phase dependence
-// // ---------------------------------------------------------------------------
-// TEST_F(RFCavityTest, ApplyPhaseShiftPiOver2) {
-//     cav_->setPhasem(M_PI / 2.0);
+TEST_F(RFCavityTest, GetSetAmplitudeFrequencyPhase) {
+    cav_->setAmplitude(5.0);
+    cav_->setFrequency(2.0);
+    cav_->setPhase(0.5);
 
-//     Vector_t<double,3> R = {0.0, 0.0, 0.5};
-//     Vector_t<double,3> P = {0.0, 0.0, 1.0};
-//     Vector_t<double,3> E = {0.0, 0.0, 0.0};
-//     Vector_t<double,3> B = {0.0, 0.0, 0.0};
+    EXPECT_DOUBLE_EQ(cav_->getAmplitude(), 5.0);
+    EXPECT_DOUBLE_EQ(cav_->getFrequency(), 2.0);
+    EXPECT_DOUBLE_EQ(cav_->getPhase(), 0.5);
+}
 
-//     cav_->apply(R, P, 0.0, E, B);
+TEST_F(RFCavityTest, GetDimensions) {
+    double zBegin = -1.0, zEnd = -1.0;
 
-//     // cos(pi/2)=0 → no E contribution
-//     EXPECT_NEAR(E(0), 0.0, 1e-12);
-//     EXPECT_NEAR(E(1), 0.0, 1e-12);
-//     EXPECT_NEAR(E(2), 0.0, 1e-12);
+    cav_->getDimensions(zBegin, zEnd);
 
-//     // sin(pi/2)=1 → B affected
-//     EXPECT_DOUBLE_EQ(B(0), -2.0 * 0.5);
-//     EXPECT_DOUBLE_EQ(B(1), -2.0 * 1.0);
-//     EXPECT_DOUBLE_EQ(B(2), -2.0 * 1.5);
-// }
+    EXPECT_EQ(zBegin, 0.0);
+    EXPECT_EQ(zEnd, 0.0);
+}
 
+TEST_F(RFCavityTest, ApplyInside) {
+    Vector_t<double,3> R = {0.0, 0.0, 0.5};
+    Vector_t<double,3> P = {0.0, 0.0, 1.0};
+    Vector_t<double,3> E = {0.0, 0.0, 0.0};
+    Vector_t<double,3> B = {0.0, 0.0, 0.0};
 
+    cav_->apply(R, P, 0.0, E, B);
 
-// } // namespace
+    // cos(0) = 1 → E += scale * E_map
+    EXPECT_DOUBLE_EQ(E(0), 2.0); // 2 * 1
+    EXPECT_DOUBLE_EQ(E(1), 0.0);
+    EXPECT_DOUBLE_EQ(E(2), 0.0);
+
+    // sin(0) = 0 → no B contribution
+    EXPECT_DOUBLE_EQ(B(0), 0.0);
+    EXPECT_DOUBLE_EQ(B(1), 0.0);
+    EXPECT_DOUBLE_EQ(B(2), 0.0);
+}
+
+TEST_F(RFCavityTest, ApplyBefore) {
+    Vector_t<double,3> R = {0.0, 0.0, -0.1};
+    Vector_t<double,3> P = {0.0, 0.0, 1.0};
+    Vector_t<double,3> E = {1.0, 1.0, 1.0};
+    Vector_t<double,3> B = {1.0, 1.0, 1.0};
+
+    cav_->apply(R, P, 0.0, E, B);
+
+    EXPECT_DOUBLE_EQ(E(0), 1.0);
+    EXPECT_DOUBLE_EQ(B(1), 1.0);
+}
+
+TEST_F(RFCavityTest, ApplyAfter) {
+    Vector_t<double,3> R = {0.0, 0.0, 1.5};
+    Vector_t<double,3> P = {0.0, 0.0, 1.0};
+    Vector_t<double,3> E = {1.0, 1.0, 1.0};
+    Vector_t<double,3> B = {1.0, 1.0, 1.0};
+
+    cav_->apply(R, P, 0.0, E, B);
+
+    EXPECT_DOUBLE_EQ(E(0), 1.0);
+    EXPECT_DOUBLE_EQ(B(1), 1.0);
+}
+
+TEST_F(RFCavityTest, ApplyPhaseShift) {
+    cav_->setPhasem(M_PI / 2.0); // 90 degrees
+
+    Vector_t<double,3> R = {0.0, 0.0, 0.5};
+    Vector_t<double,3> P = {0.0, 0.0, 1.0};
+    Vector_t<double,3> E = {0.0, 0.0, 0.0};
+    Vector_t<double,3> B = {0.0, 0.0, 0.0};
+
+    cav_->apply(R, P, 0.0, E, B);
+
+    // cos(pi/2) = 0 → no E
+    EXPECT_NEAR(E(0), 0.0, 1e-12);
+
+    // sin(pi/2) = 1 → B -= scale * B_map
+    EXPECT_DOUBLE_EQ(B(1), -2.0);
+}
+
+TEST_F(RFCavityTest, ApplyToReferenceParticle) {
+    Vector_t<double,3> R = {0.0, 0.0, 0.5};
+    Vector_t<double,3> P = {0.0, 0.0, 1.0};
+    Vector_t<double,3> E = {0.0, 0.0, 0.0};
+    Vector_t<double,3> B = {0.0, 0.0, 0.0};
+
+    cav_->applyToReferenceParticle(R, P, 0.0, E, B);
+
+    EXPECT_DOUBLE_EQ(E(0), 2.0);
+}
