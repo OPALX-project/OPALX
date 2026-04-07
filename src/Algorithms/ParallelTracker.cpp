@@ -392,17 +392,20 @@ void ParallelTracker::execute() {
                     << ". This has no effect on the simulation." << endl;
             }
 
+            // Reset per-particle dt for all existing particles BEFORE emission, so that
+            // newly emitted particles retain their fractional dt (sampled in generateUniformDisk).
+            // In the next integration step, particles with fractional dt naturally drift/kick
+            // proportionally, spreading them in z and giving fractional charge contribution via
+            // scaleDtByCharge. After that step, setTime() resets them to the full dt.
+            setTime();
+            m << level5 << "Set time view of particle bunch to dt = " << Util::getTimeString(itsBunch_m->getdT()) << "." << endl;
+
             // Emit particles from time-dependent (emitting) sources (R set in REFERENCE frame).
+            // New particles receive a fractional per-particle dt ∈ (0, dt) from the sampler.
             emitFromEmissionSources(itsBunch_m->getT(), itsBunch_m->getdT());
             m << level4 << "Emit particles from emission sources done at step " << step << "." << endl;
             itsBunch_m->bunchUpdate();  // mesh from current R so stays REFERENCE frame for next step
             m << level5 << "Bunch updated after emission." << endl;
-
-            // Set dt for all particles (including newly emitted) so next step's push uses correct per-particle dt.
-            // Reset particle time step size to the current track time step (pulled out of timeIntegration2)
-            //! Deep copy PartBunch dt to all containers
-            setTime();
-            m << level5 << "Set time view of particle bunch to dt = " << Util::getTimeString(itsBunch_m->getdT()) << "." << endl;
 
             // Select new time step size for the next iteration based on the current track configuration
             //! Select new PartBunch dt from "dtCurrentTrack_m" and deep copy to all containers
@@ -421,7 +424,7 @@ void ParallelTracker::execute() {
 
             // Delete particles outside N-sigma boundary (N = BOUNDPDESTROYFQ)
             // if (deletedParticles_m) {
-            double sigmas = static_cast<double>(Options::boundpDestroyFreq);
+            double sigmas = static_cast<double>(Options::boundpDestroy);
             //if (sigmas > 0.0) {
             const auto& particleContainersStep = itsBunch_m->getParticleContainers();
             for (size_t i = 0; i < particleContainersStep.size(); ++i) {
@@ -588,6 +591,8 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
      * - After final bunchUpdate(): mesh rebuilt from R, so mesh in REFERENCE frame (must match R).
      */
     Inform m("ParallelTracker::computeSpaceChargeFields");
+    // Current limitation: space-charge transform/scatter/gather is applied via the primary
+    // container path only. Keep this behavior until the dedicated multi-container SC refactor.
     if (!itsBunch_m->hasFieldSolver()) {
         /*
         This should not happen, so when we do not have a field solve, we can
@@ -789,6 +794,8 @@ void ParallelTracker::pushParticles(
     const BorisPusher& pusher,
     const std::shared_ptr<PartBunch_t::ParticleContainer_t>& pc) {
 
+    // Per-particle dt is used so that newly emitted particles with fractional dt
+    // (sampled during emission) are pushed proportionally to their sub-timestep fraction.
     pc->switchToUnitlessPositions();
 
     auto Rview  = pc->R.getView();

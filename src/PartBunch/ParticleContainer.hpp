@@ -62,6 +62,7 @@ public:
 
     /// View types of Q and M values
     using qm_view_type = typename ippl::ParticleAttrib<double>::view_type;
+
 public:
     /// Charge view in [Cb].
     /// In `SingleValue` mode this is a rank-1 view of length 1.
@@ -102,7 +103,7 @@ public:
     typename Base::particle_position_type E;
 
     /// electric field for gun simulation with bins
-    //typename Base::particle_position_type Etmp; // TODO: might not need this...
+    // typename Base::particle_position_type Etmp; // TODO: might not need this...
 
     /// magnetic field at particle position
     typename Base::particle_position_type B;
@@ -110,7 +111,8 @@ public:
     ParticleContainer(Mesh_t<Dim>& mesh, FieldLayout_t<Dim>& FL)
         : pl_m(FL, mesh),
           qmStorageMode_m(
-              Options::useQMAttributes ? QMStorageMode::Attributes : QMStorageMode::SingleValue),
+                  Options::useQMAttributes ? QMStorageMode::Attributes
+                                           : QMStorageMode::SingleValue),
           distMoments_m(),
           QView_m("ParticleContainer::QView_m", 1),
           MView_m("ParticleContainer::MView_m", 1) {
@@ -121,8 +123,7 @@ public:
         Kokkos::deep_copy(MView_m, 0.0);
     }
 
-    ~ParticleContainer() {
-    }
+    ~ParticleContainer() {}
 
     void registerAttributes() {
         // register the particle attributes
@@ -139,9 +140,7 @@ public:
         }
     }
 
-    void setupBCs() {
-        setBCAllPeriodic();
-    }
+    void setupBCs() { setBCAllPeriodic(); }
 
     /// Apply coordinate transform to local particles: translate R, rotate P, E, B.
     void transformBunch(const CoordinateSystemTrafo& trafo) {
@@ -151,14 +150,12 @@ public:
         trafo.rotateBunchTo(this->E.getView(), nLoc);
         trafo.rotateBunchTo(this->B.getView(), nLoc);
     }
+    PLayout_t<T, Dim>& getPL() { return pl_m; }
 
-    PLayout_t<T, Dim>& getPL() {
-        return pl_m;
-    }
-
-    void updateMoments(){
+    void updateMoments() {
         size_t Np = this->getTotalNum();
-        Np = (Np == 0) ? 1 : Np; // only used for normalization in the moments class --> avoid division by zero
+        Np = (Np == 0) ? 1 : Np;  // only used for normalization in the moments class --> avoid
+                                  // division by zero
 
         size_t Nlocal = this->getLocalNum();
 
@@ -169,102 +166,59 @@ public:
         distMoments_m.setEnergyReferenceMass(referenceMassGeV, rescaleToReference);
     }
 
-    Vector_t<double, 3> getMeanP() const{
-         return distMoments_m.getMeanMomentum();
-    }
+    Vector_t<double, 3> getMeanP() const { return distMoments_m.getMeanMomentum(); }
 
-    Vector_t<double, 3> getRmsP() const{
-         return distMoments_m.getStandardDeviationMomentum();
-    }
+    Vector_t<double, 3> getRmsP() const { return distMoments_m.getStandardDeviationMomentum(); }
 
-    Vector_t<double, 3> getMeanR() const{
-         return distMoments_m.getMeanPosition();
-    }
+    Vector_t<double, 3> getMeanR() const { return distMoments_m.getMeanPosition(); }
 
-    Vector_t<double, 3> getRmsR() const{
-         return distMoments_m.getStandardDeviationPosition();
-    }
+    Vector_t<double, 3> getRmsR() const { return distMoments_m.getStandardDeviationPosition(); }
 
-    Vector_t<double, 3> getRmsRP() const{
-         return distMoments_m.getStandardDeviationRP();
-    }
+    Vector_t<double, 3> getRmsRP() const { return distMoments_m.getStandardDeviationRP(); }
 
-    void computeMinMaxR(){
+    void computeMinMaxR() {
         size_t Nlocal = this->getLocalNum();
         distMoments_m.computeMinMaxPosition(this->R.getView(), Nlocal);
     }
 
-    Vector_t<double, 3> getMinR() const {
-         return distMoments_m.getMinPosition();
-    }
+    Vector_t<double, 3> getMinR() const { return distMoments_m.getMinPosition(); }
 
-    Vector_t<double, 3> getMaxR() const {
-         return distMoments_m.getMaxPosition();
-    }
+    Vector_t<double, 3> getMaxR() const { return distMoments_m.getMaxPosition(); }
 
-    matrix6x6_t getCovMatrix() const {
-         return distMoments_m.getMoments6x6();
-    }
+    matrix6x6_t getCovMatrix() const { return distMoments_m.getMoments6x6(); }
 
-    double getMeanKineticEnergy() const {
-          return distMoments_m.getMeanKineticEnergy();
-    }
+    double getMeanKineticEnergy() const { return distMoments_m.getMeanKineticEnergy(); }
 
-    double getStdKineticEnergy() const {
-          return distMoments_m.getStdKineticEnergy();
-    }
+    double getStdKineticEnergy() const { return distMoments_m.getStdKineticEnergy(); }
 
-    Vector_t<double, 6> getMeans() const {
-        return distMoments_m.getMeans();
-    }
+    Vector_t<double, 6> getMeans() const { return distMoments_m.getMeans(); }
 
-    Vector_t<double, 6> getCentroid() const {
-        return distMoments_m.getCentroid();
-    }
+    Vector_t<double, 6> getCentroid() const { return distMoments_m.getCentroid(); }
 
-    Vector_t<double, 3> getNormEmit() const {
-        return distMoments_m.getNormalizedEmittance();
-    }
+    Vector_t<double, 3> getNormEmit() const { return distMoments_m.getNormalizedEmittance(); }
 
-    Vector_t<double, 3> getGeometricEmit() const {
-        return distMoments_m.getGeometricEmittance();
-    }
+    Vector_t<double, 3> getGeometricEmit() const { return distMoments_m.getGeometricEmittance(); }
 
-   double getDx() const {
-       return distMoments_m.getDx();
-   }
+    double getDx() const { return distMoments_m.getDx(); }
 
-   double getDDx() const {
-       return distMoments_m.getDDx();
-   }
+    double getDDx() const { return distMoments_m.getDDx(); }
 
-   double getDy() const {
-       return distMoments_m.getDy();
-   }
+    double getDy() const { return distMoments_m.getDy(); }
 
-   double getDDy() const {
-       return distMoments_m.getDDy();
-   }
+    double getDDy() const { return distMoments_m.getDDy(); }
 
-   double getDebyeLength() const {
-       return distMoments_m.getDebyeLength();
-   }
+    double getDebyeLength() const { return distMoments_m.getDebyeLength(); }
 
-   double getMeanGammaZ() const {
-       return distMoments_m.getMeanGammaZ();
-   }
+    double getMeanGammaZ() const { return distMoments_m.getMeanGammaZ(); }
 
-    double getTemperature() const {
-        return distMoments_m.getTemperature();
-    }
+    double getTemperature() const { return distMoments_m.getTemperature(); }
 
-    double getPlasmaParameter() const {
-        return distMoments_m.getPlasmaParameter();
-    }
+    double getPlasmaParameter() const { return distMoments_m.getPlasmaParameter(); }
 
-    double computeDebyeLength(double density){
+    double computeDebyeLength(double density) {
         size_t Np = this->getTotalNum();
-        Np = (Np == 0) ? 1 : Np; // only used for normalization in the moments class --> avoid division by zero
+        Np = (Np == 0) ? 1 : Np;  // only used for normalization in the moments class --> avoid
+                                  // division by zero
 
         size_t Nlocal = this->getLocalNum();
         distMoments_m.computeDebyeLength(this->P.getView(), Np, Nlocal, density);
@@ -280,14 +234,14 @@ public:
      */
     void setQ(double q) {
         if (qmStorageMode_m == QMStorageMode::Attributes) {
-            auto view = QAttr.getView();
+            auto view         = QAttr.getView();
             const size_type n = this->getLocalNum();
             if (n == 0) {
                 return;
             }
             Kokkos::parallel_for(
-                "ParticleContainer::setQ", n,
-                KOKKOS_LAMBDA(const size_type i) { view(i) = q; });
+                    "ParticleContainer::setQ", n,
+                    KOKKOS_LAMBDA(const size_type i) { view(i) = q; });
             Kokkos::fence();
         } else {
             Kokkos::deep_copy(QView_m, q);
@@ -324,12 +278,12 @@ public:
      */
     void setM(double m) {
         if (qmStorageMode_m == QMStorageMode::Attributes) {
-            auto view = MAttr.getView();
+            auto view         = MAttr.getView();
             const size_type n = view.extent(0);
-            
+
             Kokkos::parallel_for(
-                "ParticleContainer::setM", n,
-                KOKKOS_LAMBDA(const size_type i) { view(i) = m; });
+                    "ParticleContainer::setM", n,
+                    KOKKOS_LAMBDA(const size_type i) { view(i) = m; });
             Kokkos::fence();
         } else {
             Kokkos::deep_copy(MView_m, m);
@@ -445,7 +399,7 @@ public:
      *
      */
     void scaleDtByCharge() {
-        auto dtView = dt.getView();
+        auto dtView       = dt.getView();
         const size_type n = this->getLocalNum();
         if (n == 0) {
             return;
@@ -454,13 +408,13 @@ public:
         if (qmStorageMode_m == QMStorageMode::Attributes) {
             auto qView = QAttr.getView();
             Kokkos::parallel_for(
-                "ParticleContainer::scaleDtByCharge(attrs)", n,
-                KOKKOS_LAMBDA(const size_type i) { dtView(i) *= qView(i); });
+                    "ParticleContainer::scaleDtByCharge(attrs)", n,
+                    KOKKOS_LAMBDA(const size_type i) { dtView(i) *= qView(i); });
         } else {
             auto QView = QView_m;
             Kokkos::parallel_for(
-                "ParticleContainer::scaleDtByCharge(single)", n,
-                KOKKOS_LAMBDA(const size_type i) { dtView(i) *= QView(0); });
+                    "ParticleContainer::scaleDtByCharge(single)", n,
+                    KOKKOS_LAMBDA(const size_type i) { dtView(i) *= QView(0); });
         }
         Kokkos::fence();
     }
@@ -473,7 +427,7 @@ public:
      *
      */
     void unscaleDtByCharge() {
-        auto dtView      = dt.getView();
+        auto dtView       = dt.getView();
         const size_type n = this->getLocalNum();
         if (n == 0) {
             return;
@@ -482,13 +436,13 @@ public:
         if (qmStorageMode_m == QMStorageMode::Attributes) {
             auto qView = QAttr.getView();
             Kokkos::parallel_for(
-                "ParticleContainer::unscaleDtByCharge(attrs)", n,
-                KOKKOS_LAMBDA(const size_type i) { dtView(i) /= qView(i); });
+                    "ParticleContainer::unscaleDtByCharge(attrs)", n,
+                    KOKKOS_LAMBDA(const size_type i) { dtView(i) /= qView(i); });
         } else {
             auto QView = QView_m;
             Kokkos::parallel_for(
-                "ParticleContainer::unscaleDtByCharge(single)", n,
-                KOKKOS_LAMBDA(const size_type i) { dtView(i) /= QView(0); });
+                    "ParticleContainer::unscaleDtByCharge(single)", n,
+                    KOKKOS_LAMBDA(const size_type i) { dtView(i) /= QView(0); });
         }
         Kokkos::fence();
     }
@@ -536,10 +490,7 @@ public:
         Kokkos::fence();
         isUnitlessPositions_m = false;
     }
-
-    QMStorageMode getQMStorageMode() const {
-        return qmStorageMode_m;
-    }
+    QMStorageMode getQMStorageMode() const { return qmStorageMode_m; }
 
     /**
      * @brief Delete particles whose position is more than sigmasAway standard deviations
@@ -576,14 +527,15 @@ public:
 
         size_type localDestroyNum = 0;
         Kokkos::parallel_reduce(
-            "ParticleContainer::deleteParticlesOutside::mark", nLocal,
-            KOKKOS_LAMBDA(const size_type i, size_type& count) {
-                bool outside = (Rview(i)[0] < lb0 || Rview(i)[0] > ub0)
-                            || (Rview(i)[1] < lb1 || Rview(i)[1] > ub1)
-                            || (Rview(i)[2] < lb2 || Rview(i)[2] > ub2);
-                invalid(i) = outside;
-                count += outside ? 1 : 0;
-            }, localDestroyNum);
+                "ParticleContainer::deleteParticlesOutside::mark", nLocal,
+                KOKKOS_LAMBDA(const size_type i, size_type& count) {
+                    bool outside = (Rview(i)[0] < lb0 || Rview(i)[0] > ub0)
+                                   || (Rview(i)[1] < lb1 || Rview(i)[1] > ub1)
+                                   || (Rview(i)[2] < lb2 || Rview(i)[2] > ub2);
+                    invalid(i) = outside;
+                    count += outside ? 1 : 0;
+                },
+                localDestroyNum);
         Kokkos::fence();
 
         size_type globalDestroyNum = 0;
@@ -597,9 +549,7 @@ public:
     }
 
 private:
-    void setBCAllPeriodic() {
-        this->setParticleBC(ippl::BC::PERIODIC);
-    }
+    void setBCAllPeriodic() { this->setParticleBC(ippl::BC::PERIODIC); }
 
     PLayout_t<T, Dim> pl_m;
 

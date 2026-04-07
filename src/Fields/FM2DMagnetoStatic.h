@@ -163,7 +163,7 @@ public:
      * 
      * @param pc Particle container
      */
-    void applyField(std::shared_ptr<ParticleContainer_t> pc) override;
+    void applyField(std::shared_ptr<ParticleContainer_t> pc, double scale = 1.0) override;
 
 private:
     FM2DMagnetoStatic(std::string aFilename);
