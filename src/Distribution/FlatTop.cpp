@@ -147,6 +147,12 @@ void FlatTop::generateUniformDisk(size_type nlocal, size_t nNew, double dt) {
         Rview(j)[1] = r * Kokkos::sin(theta) * sigmaR[1] + R0[1];
         Rview(j)[2] = 0.0 + R0[2];
 
+        // Each particle is assigned a fractional timestep dt_i = f * dt where f ~ U(0,1).
+        // This represents the fraction of the next integration step the particle will experience,
+        // as if the particle were born at a random time within [t, t+dt]. The per-particle dt is
+        // used by the Boris integrator (push/kick) and by scaleDtByCharge for field deposition,
+        // so the fractional dt naturally spreads particles in z and gives fractional charge
+        // contribution without needing to sample Rz explicitly.
         dtView(j) = frac * dt;
     });
 
@@ -170,7 +176,7 @@ void FlatTop::generateUniformDisk(size_type nlocal, size_t nNew, double dt) {
             Pview(j)[2] = pTot * Kokkos::fabs(Kokkos::cos(phi));
         });
     } else {
-        // NONE: all thermal momentum applied in z direction.
+        // NONE: all "thermal" momentum applied in z direction.
         pc_m->P = P0;
     }
     Kokkos::fence();
