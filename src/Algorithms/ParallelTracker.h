@@ -167,6 +167,7 @@ public:
     void computeSpaceChargeFields(unsigned long long step);    
     void computeExternalFields(OrbitThreader& oth);
     void emitFromEmissionSources(double t, double dt);
+    void applyGlobalProcesses(double dt);
     void resetFields();
     /* ===================================================================== */ 
     /* =========================== Functions =============================== */

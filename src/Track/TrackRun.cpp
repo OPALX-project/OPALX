@@ -41,6 +41,9 @@
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
 
+#include "Processes/GlobalProcesses/Decay.h"
+#include "Processes/GlobalProcesses/GlobalProcess.h"
+
 #include "Track/Track.h"
 
 #include "Utilities/OpalException.h"
@@ -86,6 +89,33 @@ std::string h5RestartSourceForContainer(
         return (rf.parent_path() / leaf).string();
     }
     return leaf.string();
+}
+
+std::vector<std::shared_ptr<GlobalProcess>> makeGlobalProcessesForBeam(const Beam& beam,
+                                                                       std::size_t containerIndex) {
+    std::vector<std::shared_ptr<GlobalProcess>> processes;
+    const std::vector<std::string> processNames = beam.getGlobalProcessNames();
+    processes.reserve(processNames.size());
+
+    for (const std::string& processName : processNames) {
+        if (processName == "DECAY") {
+            const std::string particleName = beam.getParticleName();
+            if (particleName == "MUON") {
+                processes.push_back(std::make_shared<Decay>(Physics::tau_mu, containerIndex));
+                continue;
+            }
+            throw OpalException(
+                "TrackRun::execute",
+                "\"DECAY\" is currently supported only for PARTICLE=MUON. Got PARTICLE="
+                    + particleName + ".");
+        }
+
+        throw OpalException(
+            "TrackRun::execute",
+            "Unknown global process \"" + processName + "\". Supported values: DECAY.");
+    }
+
+    return processes;
 }
 
 }  // namespace
@@ -269,9 +299,11 @@ void TrackRun::execute() {
     std::vector<double> macrocharges;
     std::vector<double> macromasses;
     std::vector<std::vector<EmissionSource*>> emissionSourcesLists;
+    std::vector<std::vector<std::shared_ptr<GlobalProcess>>> globalProcessesLists;
     macrocharges.reserve(beams.size());
     macromasses.reserve(beams.size());
     emissionSourcesLists.reserve(beams.size());
+    globalProcessesLists.resize(beams.size());
 
     // Fill macro quantities and emissionSourceList per container (beam)
     for (size_t i = 0; i < beams.size(); ++i) {
@@ -299,6 +331,8 @@ void TrackRun::execute() {
                                 "' must contain at least one EMISSIONSOURCE.");
         }
         emissionSourcesLists.emplace_back(sources.begin(), sources.end());
+
+        globalProcessesLists[i] = makeGlobalProcessesForBeam(*b, i);
     }
 
     /*
@@ -336,7 +370,7 @@ void TrackRun::execute() {
         throw OpalException("TrackRun::execute",
                             "Mismatch between number of beams and particle containers.");
     }
-
+    setupGlobalProcesses(globalProcessesLists);
     // BC handler
     *gmsg << level2 << *(bunch_m->getBCHandler()) << endl;
 
@@ -495,6 +529,22 @@ void TrackRun::setupBoundaryGeometry() {
             BoundaryGeometry* bg = BoundaryGeometry::find(geomDescriptor)->clone(geomDescriptor);
             OpalData::getInstance()->setGlobalGeometry(bg);
         }
+    }
+}
+
+void TrackRun::setupGlobalProcesses(
+    const std::vector<std::vector<std::shared_ptr<GlobalProcess>>>& globalProcessesLists) {
+    const auto& particleContainers = bunch_m->getParticleContainers();
+    if (particleContainers.size() != globalProcessesLists.size()) {
+        throw OpalException("TrackRun::setupGlobalProcesses",
+                            "Mismatch between number of particle containers and global process lists.");
+    }
+
+    for (size_t i = 0; i < particleContainers.size(); ++i) {
+        if (!particleContainers[i]) {
+            continue;
+        }
+        particleContainers[i]->setGlobalProcesses(globalProcessesLists[i]);
     }
 }
 

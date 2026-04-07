@@ -5,7 +5,7 @@
 // #include <functional>
 #include <memory>
 #include <cmath>
-// #include <vector>
+#include <vector>
 
 #include "Ippl.h"
 #include "PartBunch/FieldContainer.hpp"
@@ -26,6 +26,7 @@ template <typename T>
 using ParticleAttrib = ippl::ParticleAttrib<T>;
 
 using size_type = ippl::detail::size_type;
+class GlobalProcess;
 
 /**
  * @class ParticleContainer
@@ -523,6 +524,14 @@ public:
     }
     QMStorageMode getQMStorageMode() const { return qmStorageMode_m; }
 
+    void setGlobalProcesses(const std::vector<std::shared_ptr<GlobalProcess>>& processes) {
+        globalProcesses_m = processes;
+    }
+
+    const std::vector<std::shared_ptr<GlobalProcess>>& getGlobalProcesses() const {
+        return globalProcesses_m;
+    }
+
     /**
      * @brief Delete particles whose position is more than sigmasAway standard deviations
      *        from the bunch mean in any spatial dimension.
@@ -614,6 +623,9 @@ private:
 
     /// True while R is stored in unitless form (see switchToUnitlessPositions).
     bool isUnitlessPositions_m = false;
+
+    /// Global physics processes attached to this container.
+    std::vector<std::shared_ptr<GlobalProcess>> globalProcesses_m;
 
 };
 

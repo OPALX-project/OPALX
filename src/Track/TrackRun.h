@@ -36,6 +36,7 @@ class OpalData;
 class DataSink;
 class Distribution;
 class EmissionSource;
+class GlobalProcess;
 class H5PartWrapper;
 class Inform;
 class Tracker;
@@ -75,6 +76,10 @@ private:
     void initDataSink(size_t numParticleContainers);
 
     void setupBoundaryGeometry();
+
+    /// Attach prebuilt global process lists to each particle container.
+    void setupGlobalProcesses(
+        const std::vector<std::vector<std::shared_ptr<GlobalProcess>>>& globalProcessesLists);
 
     /// Build samplers for all emission sources, perform initial sampling for t0 == 0
     /// sources, and populate emittingSamplers_m for time-dependent or delayed sources.
