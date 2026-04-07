@@ -68,7 +68,7 @@ bool Solenoid::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     Inform m("Solenoid::apply");
     m << level5 << "Solenoid::apply() called." << endl;
 
-    fieldmap_m->applyField(pc);
+    fieldmap_m->applyField(pc, scale_m + scaleError_m);
 
     return false; 
 }
