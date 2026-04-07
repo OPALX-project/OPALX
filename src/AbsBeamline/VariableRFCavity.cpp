@@ -18,9 +18,9 @@
 //
 #include "AbsBeamline/VariableRFCavity.h"
 #include "AbsBeamline/BeamlineVisitor.h"
+#include "PartBunch.h"
 #include "Physics/Units.h"
 #include "Utilities/GeneralClassicException.h"
-#include "PartBunch.h"
 
 VariableRFCavity::VariableRFCavity(const std::string& name) : Component(name) {
     initNull();  // initialise everything to nullptr
@@ -169,20 +169,20 @@ void VariableRFCavity::finalise() { RefPartBunch_m = nullptr; }
 ElementBase* VariableRFCavity::clone() const { return new VariableRFCavity(*this); }
 
 void VariableRFCavity::accept(BeamlineVisitor& visitor) const {
-    const_cast<VariableRFCavity*>(this)->initialise();
+    initialiseTimeDependencies();
     visitor.visitVariableRFCavity(*this);
 }
 
-void VariableRFCavity::initialise() {
+void VariableRFCavity::initialiseTimeDependencies() const {
     const std::shared_ptr<AbstractTimeDependence> phaseTD =
             AbstractTimeDependence::getTimeDependence(phaseName_m);
-    setPhaseModel(std::shared_ptr<AbstractTimeDependence>(phaseTD->clone()));
+    phaseTD_m = std::shared_ptr<AbstractTimeDependence>(phaseTD->clone());
     const std::shared_ptr<AbstractTimeDependence> frequencyTD =
             AbstractTimeDependence::getTimeDependence(frequencyName_m);
-    setFrequencyModel(std::shared_ptr<AbstractTimeDependence>(frequencyTD->clone()));
+    frequencyTD_m = std::shared_ptr<AbstractTimeDependence>(frequencyTD->clone());
     const std::shared_ptr<AbstractTimeDependence> amplitudeTD =
             AbstractTimeDependence::getTimeDependence(amplitudeName_m);
-    setAmplitudeModel(std::shared_ptr<AbstractTimeDependence>(amplitudeTD->clone()));
+    amplitudeTD_m = std::shared_ptr<AbstractTimeDependence>(amplitudeTD->clone());
 
     if (halfHeight_m < 1e-9 || halfWidth_m < 1e-9)
         throw GeneralClassicException(

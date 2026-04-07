@@ -23,7 +23,7 @@
 #include "Algorithms/AbstractTimeDependence.h"
 #include "BeamlineGeometry/StraightGeometry.h"
 #include "Fields/EMField.h"
-#include "Physics.h"
+#include "Physics/Physics.h"
 
 /** @class VariableRFCavity
  *
@@ -202,7 +202,7 @@ public:
      *  Throws if the named time dependencies can't be found. Also throws if the
      *  width or height is < 1 nm
      */
-    void initialise();
+    void initialiseTimeDependencies() const;
 
     /// Not implemented
     EMField& getField() override;
@@ -211,9 +211,9 @@ public:
 
 protected:
     void initNull();
-    std::shared_ptr<AbstractTimeDependence> phaseTD_m;
-    std::shared_ptr<AbstractTimeDependence> amplitudeTD_m;
-    std::shared_ptr<AbstractTimeDependence> frequencyTD_m;
+    mutable std::shared_ptr<AbstractTimeDependence> phaseTD_m;
+    mutable std::shared_ptr<AbstractTimeDependence> amplitudeTD_m;
+    mutable std::shared_ptr<AbstractTimeDependence> frequencyTD_m;
     std::string phaseName_m;
     std::string amplitudeName_m;
     std::string frequencyName_m;
