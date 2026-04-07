@@ -56,41 +56,6 @@
 #include "AbsBeamline/TravelingWave.h"
 extern Inform* gmsg;
 
-namespace {
-
-using ParticleContainer_t = PartBunch_t::ParticleContainer_t;
-
-void updateRefToLabCSTrafoInContainer(ParticleContainer_t& pc, double bunchDT) {
-    Vector_t<double, 3> R = pc.getToLabTrafo().transformFrom(pc.getRefPartR());
-    Vector_t<double, 3> P = pc.getToLabTrafo().rotateFrom(pc.getRefPartP());
-
-    const double ds = std::copysign(1, bunchDT) * euclidean_norm(R);
-    pc.set_sPos(pc.get_sPos() + ds);
-
-    CoordinateSystemTrafo update(R, getQuaternion(P, Vector_t<double, 3>(0, 0, 1)));
-
-    pc.transformBunch(update);
-
-    pc.setToLabTrafo(pc.getToLabTrafo() * update.inverted());
-}
-
-void applyFractionalStepInContainer(
-    const BorisPusher& pusher, double tau, ParticleContainer_t& pc, double pathLengthTarget) {
-    pc.getRefPartR() /= (Physics::c * 2 * tau);
-    pusher.push(pc.getRefPartR(), pc.getRefPartP(), tau);
-    pc.getRefPartR() *= (Physics::c * 2 * tau);
-
-    pc.set_sPos(pathLengthTarget);
-    pc.getToLabTrafo().transformFrom(pc.getRefPartR());
-    Vector_t<double, 3> R = pc.getRefPartR();
-    pc.getToLabTrafo().rotateFrom(pc.getRefPartP());
-    Vector_t<double, 3> P = pc.getRefPartP();
-    CoordinateSystemTrafo update(R, getQuaternion(P, Vector_t<double, 3>(0, 0, 1)));
-    pc.setToLabTrafo(pc.getToLabTrafo() * update.inverted());
-}
-
-}  // namespace
-
 /* ============================== Constructors ============================== */
 ParallelTracker::ParallelTracker(
     const Beamline& beamline, bool revBeam)
@@ -124,14 +89,15 @@ ParallelTracker::ParallelTracker(
       zstart_m(zstart),
       dtCurrentTrack_m(0.0),
       repartFreq_m(0),
+      emittingSamplers_m(emittingSamplers),
       timeIntegrationTimer1_m(IpplTimings::getTimer("TIntegration1")),
       timeIntegrationTimer2_m(IpplTimings::getTimer("TIntegration2")),
       fieldEvaluationTimer_m(IpplTimings::getTimer("External field eval")),
       BinRepartTimer_m(IpplTimings::getTimer("Binaryrepart")),
-      OrbThreader_m(IpplTimings::getTimer("OrbThreader")),
+      OrbThreader_m(IpplTimings::getTimer("OrbThreader"))
       //wakeStatus_m(false),
       //wakeFunction_m(nullptr),
-      emittingSamplers_m(emittingSamplers) {
+       {
     
       for (unsigned int i = 0; i < zstop.size(); ++i) {
           stepSizes_m.push_back(dt[i], zstop[i], maxSteps[i]);
@@ -259,7 +225,7 @@ void ParallelTracker::execute() {
 
     // Create an OrbitThreader object to handle orbit threading and element queries
     OrbitThreader oth(
-        *itsBunch_m->getParticleContainer(0)->getReference(),                                        // Reference PartData (container 0 beam)
+        *itsBunch_m->getParticleContainer(0)->getReference(),                                        
         itsBunch_m->getParticleContainer(0)->getRefPartR(),
         itsBunch_m->getParticleContainer(0)->getRefPartP(),
         itsBunch_m->getParticleContainer(0)->get_sPos(),
@@ -1067,7 +1033,7 @@ void ParallelTracker::updateRefToLabCSTrafo() {
         }
         auto pc = itsBunch_m->getParticleContainer(i);
         if (pc) {
-            updateRefToLabCSTrafoInContainer(*pc, bunchDT);
+            pc->updateRefToLabCSTrafo(bunchDT);
         }
     }
 }
@@ -1134,7 +1100,7 @@ void ParallelTracker::findStartPositions(const BorisPusher& pusher) {
                         pc->getRefPartP() * Physics::c / Util::getGamma(pc->getRefPartP());
                     double speed_i = euclidean_norm(pv);
                     double tau_i   = (zTarget - pc->get_sPos()) / speed_i;
-                    applyFractionalStepInContainer(pusher, tau_i, *pc, zstart_m);
+                    pc->applyFractionalStep(pusher, tau_i, zstart_m);
                 }
 
                 break;
@@ -1156,7 +1122,7 @@ void ParallelTracker::findStartPositions(const BorisPusher& pusher) {
                     pc->getRefPartP() * Physics::c / Util::getGamma(pc->getRefPartP());
                 double speed_i = euclidean_norm(pv);
                 double tau_i   = (zTarget - pc->get_sPos()) / speed_i;
-                applyFractionalStepInContainer(pusher, tau_i, *pc, zstart_m);
+                pc->applyFractionalStep(pusher, tau_i, zstart_m);
             }
 
             break;

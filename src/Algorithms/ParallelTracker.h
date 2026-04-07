@@ -1,6 +1,5 @@
 //
 // Class ParallelTracker
-//   OPAL-T tracker.
 //   The visitor class for tracking particles with time as independent
 //   variable.
 //
@@ -38,7 +37,6 @@
 #include "AbsBeamline/Multipole.h"
 #include "AbsBeamline/MultipoleT.h"
 #include "AbsBeamline/RFCavity.h"
-#include "AbsBeamline/Ring.h"
 #include "AbsBeamline/Solenoid.h"
 
 #include "Beamlines/Beamline.h"
@@ -177,39 +175,43 @@ public:
     void setTime();
 
 private:
-    // Reference particles (all containers)
-    void updateReferenceParticles(const BorisPusher& pusher);
+    /// @brief Update ref particles and trafos 
     void updateReference(const BorisPusher& pusher);
+
+    /// @brief Update ref particles positions
+    void updateReferenceParticles(const BorisPusher& pusher);
+
+    /// @brief Update ref particle trafos
     void updateRefToLabCSTrafo();
 
-    // File writing
+    /// @brief Write phase space
     void writePhaseSpace(const long long step, bool psDump, bool statDump);
+
+    /// @brief dump stats
     void dumpStats(long long step, bool psDump, bool statDump);
 
-    // Visits all elements inside itsBeamline_m
-    // Sorts elements in itsOpalBeamline_m
-    // Sets itsOpalBeamline_m::prepared_m = true
+    /// @brief Prepare all beamline elements
     void prepareSections();
 
-    // Sets itsBunch_m::dt to dtCurrentTrack_m 
+    /// @brief Sets itsBunch_m::dt to dtCurrentTrack_m 
     void selectDT();
 
-    // void prepareOpalBeamlineSections();
+    /// @brief void prepareOpalBeamlineSections();
     void setOptionalVariables();
 
-    // Checks if the reference particle has reached the end of the beamline
+    /// @brief Checks if the reference particle has reached the end of the beamline
     bool hasEndOfLineReached(const BoundingBox& globalBoundingBox);
 
-    // Load balancing
+    /// @brief Load balancing
     void doBinaryRepartition();
     void computeInitialBounds(Vector_t<double, 3>& rmin, Vector_t<double, 3>& rmax);
     void printInitialContainerRefs(Inform& m) const;
 
-    // Finds start for reference particle
+    /// @brief Finds start for reference particle
     void findStartPositions(const BorisPusher& pusher);
 
     /* ========================== Autophasing ============================== */
-    // Setup for TRAVERLINGWAVE and RFCAVITY
+    /// @brief Setup for TRAVERLINGWAVE and RFCAVITY
     void autophaseCavities(const BorisPusher& pusher);
     void updateRFElement(std::string elName, double maxPhi);
     void printRFPhases();
@@ -244,9 +246,5 @@ inline void ParallelTracker::visitRFCavity(const RFCavity& as) {
 inline void ParallelTracker::visitSolenoid(const Solenoid& so) {
     itsOpalBeamline_m.visit(so, *this, itsBunch_m);
 }
-
-// inline void ParallelTracker::visitTravelingWave(const TravelingWave& as) {
-//     itsOpalBeamline_m.visit(as, *this, itsBunch_m);
-// }
 
 #endif  // OPAL_ParallelTracker_HH
