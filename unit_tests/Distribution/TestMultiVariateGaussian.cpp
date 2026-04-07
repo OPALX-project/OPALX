@@ -334,7 +334,7 @@ void computeCovariance6x6(const std::shared_ptr<ParticleContainer<double,3>>& pc
         meanSample[5]
     };
 
-    double loc_moment[6][6] = {0.0};
+    double loc_moment[6][6] = {{0.0}};
 
     for (unsigned i = 0; i < 6; ++i) {
         const unsigned row = i;
