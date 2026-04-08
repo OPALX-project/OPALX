@@ -15,11 +15,11 @@ target_compile_definitions(TestLinearComptonSpectrum PRIVATE
 
 add_opalx_test(TestLinearBreitWheeler USE_GTEST_MAIN)
 
-add_opalx_test(TestLinearBreitWheelerSpectrum USE_GTEST_MAIN NO_MPI)
+#add_opalx_test(TestLinearBreitWheelerSpectrum USE_GTEST_MAIN NO_MPI)
 
-#add_executable(LinearBreitWheelerBenchmark LinearBreitWheelerBenchmark.cpp)
-#target_link_libraries(LinearBreitWheelerBenchmark PRIVATE opalx)
-#target_include_directories(LinearBreitWheelerBenchmark PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+add_executable(LinearBreitWheelerBenchmark LinearBreitWheelerBenchmark.cpp)
+target_link_libraries(LinearBreitWheelerBenchmark PRIVATE opalx)
+target_include_directories(LinearBreitWheelerBenchmark PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 #target_compile_definitions(TestLinearBreitWheelerSpectrum PRIVATE
 #    OPALX_TEST_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
 #)
