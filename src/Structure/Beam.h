@@ -67,6 +67,9 @@ public:
     /// Return Particle's name
     std::string getParticleName() const;
 
+    /// True if this beam is configured as a photon beam.
+    bool isPhoton() const;
+
     /// Return Particle's rest mass in GeV
     double getMass() const;
 
@@ -78,6 +81,10 @@ public:
 
     /// Mass per macro particle in GeV/c^2
     double getMassPerParticle() const;
+
+    /// Return the name of the EMISSIONSOURCELIST linked to this beam.
+    /// Throws if `SOURCES` is not set.
+    std::string getEmissionSourceListName() const;
 
     /// Update the BEAM data.
     virtual void update();

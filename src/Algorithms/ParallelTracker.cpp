@@ -456,16 +456,20 @@ void ParallelTracker::execute() {
                     << ". This has no effect on the simulation." << endl;
             }
 
+            // Reset per-particle dt for all existing particles BEFORE emission, so that
+            // newly emitted particles retain their fractional dt (sampled in generateUniformDisk).
+            // In the next integration step, particles with fractional dt naturally drift/kick
+            // proportionally, spreading them in z and giving fractional charge contribution via
+            // scaleDtByCharge. After that step, setTime() resets them to the full dt.
+            setTime();
+            m << level5 << "Set time view of particle bunch to dt = " << Util::getTimeString(itsBunch_m->getdT()) << "." << endl;
+
             // Emit particles from time-dependent (emitting) sources (R set in REFERENCE frame).
+            // New particles receive a fractional per-particle dt ∈ (0, dt) from the sampler.
             emitFromEmissionSources(itsBunch_m->getT(), itsBunch_m->getdT());
             m << level4 << "Emit particles from emission sources done at step " << step << "." << endl;
             itsBunch_m->bunchUpdate();  // mesh from current R so stays REFERENCE frame for next step
             m << level5 << "Bunch updated after emission." << endl;
-
-            // Set dt for all particles (including newly emitted) so next step's push uses correct per-particle dt.
-            // Reset particle time step size to the current track time step (pulled out of timeIntegration2)
-            setTime();
-            m << level5 << "Set time view of particle bunch to dt = " << Util::getTimeString(itsBunch_m->getdT()) << "." << endl;
 
             // Select new time step size for the next iteration based on the current track configuration
             selectDT(back_track);
@@ -483,7 +487,7 @@ void ParallelTracker::execute() {
 
             // Delete particles outside N-sigma boundary (N = BOUNDPDESTROYFQ)
             // if (deletedParticles_m) {
-            double sigmas = static_cast<double>(Options::boundpDestroyFreq);
+            double sigmas = static_cast<double>(Options::boundpDestroy);
             //if (sigmas > 0.0) {
             size_t nDeleted = itsBunch_m->getParticleContainer()->deleteParticlesOutside(sigmas);
             if (nDeleted > 0) {
@@ -680,9 +684,6 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
 void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
     IpplTimings::startTimer(fieldEvaluationTimer_m);
     Inform msg("ParallelTracker ", *gmsg);
-
-    // Flag for out-of-bounds particles, locally and globally
-    bool locPartOutOfBounds = false, globPartOutOfBounds = false;
     
     // Bunch bounds
     Vector_t<double, 3> rmin(0.0), rmax(0.0);
@@ -725,26 +726,7 @@ void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
         transformBunch(localToRefCSTrafo);
     }
 
-
     IpplTimings::stopTimer(fieldEvaluationTimer_m);
-
-    ippl::Comm->reduce(locPartOutOfBounds, globPartOutOfBounds, 1, std::logical_or<bool>());
-
-    size_t ne = 0;
-    if (globPartOutOfBounds) {
-        if (itsBunch_m->hasFieldSolver()) {
-            ne = itsBunch_m->boundp_destroyT();
-        }
-
-        deletedParticles_m = true;
-    }
-
-    size_t totalNum = itsBunch_m->getTotalNum();
-
-    if (ne > 0) {
-        msg << level1 << "* Deleted " << ne << " particles, "
-            << "remaining " << totalNum << " particles" << endl;
-    }
 }
 
 void ParallelTracker::emitFromEmissionSources(double t, double dt) {
@@ -796,7 +778,8 @@ void ParallelTracker::resetFields() {
  */
 void ParallelTracker::pushParticles(const BorisPusher& pusher) {
 
-    /// \todo use false for now, since I am not sure how well integrated "dt_per_particle" is (needs to be consistent with particle emission later!).
+    // Per-particle dt is used so that newly emitted particles with fractional dt
+    // (sampled during emission) are pushed proportionally to their sub-timestep fraction.
     itsBunch_m->switchToUnitlessPositions(true);
 
     auto Rview  = itsBunch_m->getParticleContainer()->R.getView();

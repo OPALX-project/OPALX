@@ -84,7 +84,7 @@ namespace Options {
 
     bool asciidump = false;
 
-    int boundpDestroyFreq = 10;
+    double boundpDestroy = 10;
 
     double beamHaloBoundary = 0;
 
