@@ -231,6 +231,15 @@ void TrackRun::execute() {
         }
         beams.push_back(Beam::find(name));  // fail fast
     }
+    for (const auto* b : beams) {
+        if (b->isPhoton()) {
+            throw OpalException(
+                "TrackRun::execute",
+                "TRACK does not support BEAM, PARTICLE=PHOTON yet. "
+                "Photon beams may be defined for future OPALX features, but they are currently "
+                "rejected during tracking.");
+        }
+    }
     *gmsg << level1 << "* RUN resolved beams: ";
     for (size_t i = 0; i < beamNames.size(); ++i) {
         *gmsg << beamNames[i] << (i + 1 < beamNames.size() ? ", " : "");
@@ -578,11 +587,11 @@ void TrackRun::setupDistributionsAndSamplers(
                                     "Unknown \"TYPE\" of \"DISTRIBUTION\"");
         }
 
-        // Per-source emission offsets and start time.
+        // Per-source emission offsets, start time, and emission model.
         const auto  R0  = src->getR0();
         const auto  P0  = src->getP0();
         const double t0 = src->getT0();
-        sampler->setEmissionOffsets(R0, P0, t0);
+        sampler->setEmissionOffsets(R0, P0, t0, src->getEmissionModel());
 
         const size_t Ndist = opalDist->getNumParticles();
         size_t       Nmutable = Ndist;
