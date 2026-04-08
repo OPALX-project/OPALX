@@ -30,7 +30,7 @@ VariableRFCavity::VariableRFCavity() {
     initNull();  // initialise everything to nullptr
 }
 
-VariableRFCavity::VariableRFCavity(const VariableRFCavity& var) {
+VariableRFCavity::VariableRFCavity(const VariableRFCavity& var) : Component(var) {
     initNull();  // initialise everything to nullptr
     *this = var;
 }
