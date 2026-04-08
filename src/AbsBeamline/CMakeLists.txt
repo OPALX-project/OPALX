@@ -12,6 +12,7 @@ set(_SRCS
     ConstantEFieldCavity.cpp
     Drift.cpp
     ElementBase.cpp
+    Laser.cpp
     Marker.cpp
     Monitor.cpp
     Multipole.cpp
@@ -38,6 +39,7 @@ set(_HDRS
     ConstantEFieldCavity.h
     Drift.h
     ElementBase.h
+    Laser.h
     Marker.h
     Multipole.h
     MultipoleT.h

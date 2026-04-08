@@ -65,6 +65,7 @@
 #include "Elements/OpalCavity.h"
 #include "Elements/OpalConstantEFieldCavity.h"
 #include "Elements/OpalDrift.h"
+#include "Elements/OpalLaser.h"
 #include "Elements/OpalMarker.h"
 #include "Elements/OpalOffset/OpalLocalCartesianOffset.h"
 #include "Elements/OpalProbe.h"
@@ -130,6 +131,7 @@ namespace {
         opal->create(new OpalCavity());
         opal->create(new OpalConstantEFieldCavity());
         opal->create(new OpalDrift());
+        opal->create(new OpalLaser());
         opal->create(new OpalMarker());
         opal->create(new OpalProbe());
         opal->create(new OpalMultipole());
