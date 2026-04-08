@@ -227,6 +227,10 @@ std::string FromFile::normalizeColumnName(const std::string& name) {
 }
 
 void FromFile::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> /*nr*/) {
+    if (emissionModel_m != "NONE")
+        throw OpalException("FromFile::generateParticles",
+                            "EMISSIONMODEL '" + emissionModel_m + "' is not supported for FROMFILE distributions");
+
     // Only generate during initial sampling (t0 <= 0). For t0 > 0, this
     // distribution is time-independent and should not contribute here unless
     // explicitly triggered via emitParticles (which sets hasEmittedOnce_m).
