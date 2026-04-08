@@ -1,6 +1,7 @@
 #include "Distribution.h"
 #include "SamplingBase.hpp"
 #include "Gaussian.h"
+#include "Utilities/OpalException.h"
 #include <algorithm>
 #include <memory>
 
@@ -62,10 +63,14 @@ void Gaussian::initRandomPool() {
  * @param nr The number of grid points in each dimension (not used here).
  */
 void Gaussian::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> /*nr*/) {
+    if (emissionModel_m != "NONE")
+        throw OpalException("Gaussian::generateParticles",
+                            "EMISSIONMODEL '" + emissionModel_m + "' is not supported for GAUSS distributions");
+
     // Only generate during initial sampling (t0 <= 0). For t0 > 0, this
     // distribution is time-independent and should not contribute here unless
     // explicitly triggered via emitParticles (which sets hasEmittedOnce_m).
-    if (t0_m > 0.0 && !hasEmittedOnce_m) { // YES this !hasEmittedOnce_m is correct! 
+    if (t0_m > 0.0 && !hasEmittedOnce_m) { // YES this !hasEmittedOnce_m is correct!
         return;
     }
     auto rand_pool64 = randPool_m;
