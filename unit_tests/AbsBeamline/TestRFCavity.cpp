@@ -2,24 +2,64 @@
  * \file TestRFCavity.cpp
  * \brief Unit tests for RFCavity component (base layer).
  *
- * Tests RFCavity core API and apply logic using a lightweight concrete subclass
- * and a fake Fieldmap.
+ * This test suite validates the core behavior of RFCavity using:
+ *  - a minimal concrete implementation (TestRFCavity)
+ *  - a controlled fake fieldmap (FakeFieldmap)
  *
- * Covers:
- *  - getType, bends
- *  - amplitude / frequency / phase setters + getters
- *  - getDimensions
- *  - apply(R,P,t,E,B): inside, outside, boundaries
- *  - phase dependence (cos/sin behavior)
+ * ---------------------------------------------------------------------------
+ * Coverage
+ * ---------------------------------------------------------------------------
+ *
+ * 1. Basic API
+ *    - getType()
+ *    - bends()
+ *    - amplitude / frequency / phase setters and getters
+ *
+ * 2. Geometry
+ *    - getDimensions()
+ *
+ * 3. Spatial behavior
+ *    - apply() inside the element
+ *    - apply() before the element
+ *    - apply() after the element
+ *
+ * 4. RF phase behavior (core physics)
+ *    - cos(phi) scaling of electric field (E)
+ *    - sin(phi) scaling of magnetic field (B)
+ *    - special phases:
+ *        * phi = 0        → max E, no B
+ *        * phi = π/2      → no E, max B
+ *        * phi = π        → inverted E
+ *    - independence of frequency at t = 0
+ *
+ * 5. Scaling behavior
+ *    - linear scaling of fields via cavity scale factor
+ *
+ * 6. Time dependence
+ *    - field variation with time through phi = ωt + phase
+ *
+ * 7. Fieldmap interaction / edge cases
+ *    - correct handling of out-of-bounds fieldmap queries
+ *
+ * ---------------------------------------------------------------------------
+ * Notes
+ * ---------------------------------------------------------------------------
+ *
+ * - The FakeFieldmap provides a simple, deterministic field:
+ *      E = (1, 0, 0), B = (0, 1, 0)
+ *   allowing direct verification of cos/sin modulation.
+ *
+ * - Tests focus on physics correctness rather than implementation details.
+ *
+ * - The fixture defines a stable default configuration:
+ *      scale = 1, frequency = 1, phase = 0
+ *   Individual tests override only what they need.
  */
 #include <gtest/gtest.h>
 
 #include "Fields/Fieldmap.h"
 #include "AbsBeamline/ElementBase.h"
 #include "BeamlineCore/RFCavityRep.h"
-
-// #include "Fields/EMField.h"
-// #include "BeamlineGeometry/Geometry.h"
 
 #include <cmath>
 #include <memory>
@@ -144,24 +184,25 @@ private:
 class RFCavityTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        cav_ = std::make_unique<TestRFCavity>();
+        cav_  = std::make_unique<TestRFCavity>();
         fmap_ = std::make_unique<FakeFieldmap>();
 
-        cav_->setScale(1.0);
-        cav_->setFrequencyInternal(1.0);
-        cav_->setPhaseInternal(0.0);
-
+        // --- Geometry ---
         cav_->setFieldmap(fmap_.get());
         cav_->setStartField(0.0);
         cav_->setElementLength(1.0);
-    }
 
+        // --- RF defaults ---
+        cav_->setScale(1.0);
+        cav_->setFrequencyInternal(1.0);
+        cav_->setPhaseInternal(0.0);
+    }
     std::unique_ptr<TestRFCavity> cav_;
     std::unique_ptr<FakeFieldmap> fmap_;
 };
 
 // ---------------------------------------------------------------------------
-// Tests
+// Basic API
 // ---------------------------------------------------------------------------
 TEST_F(RFCavityTest, GetType) {
     EXPECT_EQ(cav_->getType(), ElementType::RFCAVITY);
@@ -181,6 +222,9 @@ TEST_F(RFCavityTest, GetSetAmplitudeFrequencyPhase) {
     EXPECT_DOUBLE_EQ(cav_->getPhase(), 0.5);
 }
 
+// ---------------------------------------------------------------------------
+// Geometry / dimensions
+// ---------------------------------------------------------------------------
 TEST_F(RFCavityTest, GetDimensions) {
     double zBegin = -1.0, zEnd = -1.0;
 
@@ -190,6 +234,9 @@ TEST_F(RFCavityTest, GetDimensions) {
     EXPECT_EQ(zEnd, 0.0);
 }
 
+// ---------------------------------------------------------------------------
+// apply(): spatial behavior
+// ---------------------------------------------------------------------------
 TEST_F(RFCavityTest, ApplyInside) {
     Vector_t<double,3> R = {0.0, 0.0, 0.5};
     Vector_t<double,3> P = {0.0, 0.0, 1.0};
@@ -245,35 +292,13 @@ TEST_F(RFCavityTest, ApplyAfter) {
     EXPECT_DOUBLE_EQ(B(2), 3.0);
 }
 
-TEST_F(RFCavityTest, ApplyPhaseShift) {
-    cav_->setPhasem(M_PI / 2.0); // 90 degrees
-
-    Vector_t<double,3> R = {0.0, 0.0, 0.5};
-    Vector_t<double,3> P = {0.0, 0.0, 1.0};
-    Vector_t<double,3> E = {0.0, 0.0, 0.0};
-    Vector_t<double,3> B = {0.0, 0.0, 0.0};
-
-    cav_->apply(R, P, 0.0, E, B);
-
-    // cos(pi/2) = 0 → no E
-    EXPECT_NEAR(E(0), 0.0, 1e-12);
-
-    // sin(pi/2) = 1 → B -= scale * B_map
-    EXPECT_DOUBLE_EQ(B(1), -1.0);
-}
-
-TEST_F(RFCavityTest, ApplyToReferenceParticle) {
-    Vector_t<double,3> R = {0.0, 0.0, 0.5};
-    Vector_t<double,3> P = {0.0, 0.0, 1.0};
-    Vector_t<double,3> E = {0.0, 0.0, 0.0};
-    Vector_t<double,3> B = {0.0, 0.0, 0.0};
-
-    cav_->applyToReferenceParticle(R, P, 0.0, E, B);
-
-    EXPECT_DOUBLE_EQ(E(0), 1.0);
-}
-
+// ---------------------------------------------------------------------------
+// RF phase behavior (cos/sin physics)
+// ---------------------------------------------------------------------------
+// E ∝ cos(ωt + φ)
+// B ∝ -sin(ωt + φ)
 TEST_F(RFCavityTest, ApplyPhaseZero) {
+    // φ = 0 → cos = 1, sin = 0
     cav_->setPhasem(0.0);
     cav_->setFrequencym(1.0);
 
@@ -294,7 +319,26 @@ TEST_F(RFCavityTest, ApplyPhaseZero) {
     EXPECT_DOUBLE_EQ(B(2), 0.0);
 }
 
+TEST_F(RFCavityTest, ApplyPhaseShift) {
+    // φ = π/2 → cos = 0, sin = 1
+    cav_->setPhasem(M_PI / 2.0); 
+
+    Vector_t<double,3> R = {0.0, 0.0, 0.5};
+    Vector_t<double,3> P = {0.0, 0.0, 1.0};
+    Vector_t<double,3> E = {0.0, 0.0, 0.0};
+    Vector_t<double,3> B = {0.0, 0.0, 0.0};
+
+    cav_->apply(R, P, 0.0, E, B);
+
+    // cos(pi/2) = 0 → no E
+    EXPECT_NEAR(E(0), 0.0, 1e-12);
+
+    // sin(pi/2) = 1 → B -= scale * B_map
+    EXPECT_DOUBLE_EQ(B(1), -1.0);
+}
+
 TEST_F(RFCavityTest, ApplyPhasePi) {
+    // φ = π → cos = -1, sin = 0
     cav_->setPhasem(M_PI);
     cav_->setFrequencym(1.0);
 
@@ -316,6 +360,34 @@ TEST_F(RFCavityTest, ApplyPhasePi) {
     EXPECT_DOUBLE_EQ(B(2), 0.0);
 }
 
+TEST_F(RFCavityTest, PhaseIndependentOfFrequencyAtT0) {
+    cav_->setPhasem(M_PI / 2.0);
+
+    Vector_t<double, 3> R = {0.0, 0.0, 0.5};
+    Vector_t<double, 3> P = {0.0, 0.0, 1.0};
+
+    Vector_t<double, 3> E1 = {0.0, 0.0, 0.0};
+    Vector_t<double, 3> B1 = {0.0, 0.0, 0.0};
+
+    cav_->setFrequencym(1.0);
+    cav_->apply(R, P, 0.0, E1, B1);
+
+    Vector_t<double, 3> E2 = {0.0, 0.0, 0.0};
+    Vector_t<double, 3> B2 = {0.0, 0.0, 0.0};
+
+    cav_->setFrequencym(10.0);
+    cav_->apply(R, P, 0.0, E2, B2);
+
+    EXPECT_NEAR(E1(0), 0.0, 1e-12); 
+    EXPECT_NEAR(E2(0), 0.0, 1e-12);
+
+    EXPECT_NEAR(B1(1), -1.0, 1e-12);
+    EXPECT_NEAR(B2(1), -1.0, 1e-12);
+}
+
+// ---------------------------------------------------------------------------
+// Scaling behavior
+// ---------------------------------------------------------------------------
 TEST_F(RFCavityTest, ApplyScaling) {
     Vector_t<double, 3> R = {0.0, 0.0, 0.5};
     Vector_t<double, 3> P = {0.0, 0.0, 1.0};
@@ -335,31 +407,9 @@ TEST_F(RFCavityTest, ApplyScaling) {
     EXPECT_NEAR(E2(2), 2.0 * E1(2), 1e-12);
 }
 
-TEST_F(RFCavityTest, FrequencyDoesNotMatterAtT0) {
-    cav_->setPhasem(M_PI / 2.0);
-
-    Vector_t<double, 3> R = {0.0, 0.0, 0.5};
-    Vector_t<double, 3> P = {0.0, 0.0, 1.0};
-
-    Vector_t<double, 3> E1 = {0.0, 0.0, 0.0};
-    Vector_t<double, 3> B1 = {0.0, 0.0, 0.0};
-
-    cav_->setFrequencym(1.0);
-    cav_->apply(R, P, 0.0, E1, B1);
-
-    Vector_t<double, 3> E2 = {0.0, 0.0, 0.0};
-    Vector_t<double, 3> B2 = {0.0, 0.0, 0.0};
-
-    cav_->setFrequencym(10.0);
-    cav_->apply(R, P, 0.0, E2, B2);
-
-    EXPECT_NEAR(E1(2), 0.0, 1e-12); 
-    EXPECT_NEAR(E2(2), 0.0, 1e-12);
-
-    EXPECT_NEAR(B1(1), -1.0, 1e-12);
-    EXPECT_NEAR(B2(1), -1.0, 1e-12);
-}
-
+// ---------------------------------------------------------------------------
+// Time dependence
+// ---------------------------------------------------------------------------
 TEST_F(RFCavityTest, TimeDependence) {
     cav_->setPhasem(0.0);
     cav_->setFrequencym(1.0);
@@ -375,9 +425,25 @@ TEST_F(RFCavityTest, TimeDependence) {
     Vector_t<double, 3> E1 = {0.0, 0.0, 0.0};
     Vector_t<double, 3> B1 = {0.0, 0.0, 0.0};
 
-    cav_->apply(R, P, M_PI/2.0, E1, B1); // phi = π/2
+    cav_->apply(R, P, M_PI/2.0, E1, B1); // phi = pi/2
 
-    EXPECT_NE(E0(0), E1(0));  // field changed
+    EXPECT_NEAR(E0(0), 1.0, 1e-12);   // cos(0)
+    EXPECT_NEAR(E1(0), 0.0, 1e-12);   // cos(pi/2)
+}
+
+// ---------------------------------------------------------------------------
+// Fieldmap interaction
+// ---------------------------------------------------------------------------
+TEST_F(RFCavityTest, ApplyToReferenceParticle) {
+    Vector_t<double,3> R = {0.0, 0.0, 0.5};
+    Vector_t<double,3> P = {0.0, 0.0, 1.0};
+    Vector_t<double,3> E = {0.0, 0.0, 0.0};
+    Vector_t<double,3> B = {0.0, 0.0, 0.0};
+
+    // Should behave like apply() for reference particle
+    cav_->applyToReferenceParticle(R, P, 0.0, E, B);
+
+    EXPECT_DOUBLE_EQ(E(0), 1.0);
 }
 
 TEST_F(RFCavityTest, FieldmapOutOfBounds) {
@@ -393,21 +459,3 @@ TEST_F(RFCavityTest, FieldmapOutOfBounds) {
 
     EXPECT_TRUE(out);
 }
-
-// TEST_F(RFCavityTest, KokkosMatchesCPU) {
-//     Vector_t<double, 3> R = {0.0, 0.0, 0.5};
-//     Vector_t<double, 3> P = {0.0, 0.0, 1.0};
-
-//     Vector_t<double, 3> E_cpu = {0.0, 0.0, 0.0};
-//     Vector_t<double, 3> B_cpu = {0.0, 0.0, 0.0};
-
-//     cav_->apply(R, P, 0.0, E_cpu, B_cpu);
-
-//     Vector_t<double, 3> E_kokkos = {0.0, 0.0, 0.0};
-//     Vector_t<double, 3> B_kokkos = {0.0, 0.0, 0.0};
-
-//     cav_->apply();
-
-//     EXPECT_DOUBLE_EQ(E_cpu(2), E_kokkos(2));
-//     EXPECT_DOUBLE_EQ(B_cpu(1), B_kokkos(1));
-// }
