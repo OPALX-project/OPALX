@@ -118,10 +118,11 @@ public:
 /* =========================== Field Functions=============================== */
     /**
      * @brief Apply the FM to all the particles
-     * 
+     *
      * @param pc Particle container
+     * @param scale Scaling factor applied to the field (default 1.0)
      */
-    virtual void applyField(std::shared_ptr<ParticleContainer_t> pc) = 0;
+    virtual void applyField(std::shared_ptr<ParticleContainer_t> pc, double scale = 1.0) = 0;
 
     /**
      * @brief Get the field strength at a given point.

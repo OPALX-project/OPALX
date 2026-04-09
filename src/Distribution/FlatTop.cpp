@@ -120,38 +120,65 @@ void FlatTop::setInternalVariables(bool emitting,
     sigmaR_m = sigmaR;
 }
 
-void FlatTop::generateUniformDisk(size_type nlocal, size_t nNew) {
+void FlatTop::generateUniformDisk(size_type nlocal, size_t nNew, double dt) {
     if (nNew == 0) { return; }
 
     GeneratorPool rand_pool = rand_pool_m;
     view_type Rview         = pc_m->R.getView();
     view_type Pview         = pc_m->P.getView();
+    auto dtView             = pc_m->dt.getView();
 
     double pi                  = Physics::pi;
     Vector_t<double, 3> sigmaR = sigmaR_m;
     Vector_t<double, 3> R0     = R0_m;
     Vector_t<double, 3> P0     = P0_m;
-    // Beam reference momentum in beta*gamma (set by TrackRun from BEAM); emission source P0 is
-    // offset on top. opalDist_m may be null when FlatTop is constructed directly in unit tests
-    // without a Distribution.
-    const double beamPz = opalDist_m ? opalDist_m->getAvrgpz() : 0.0;
-    // Sample (Rx,Ry) on a unit ring, scale with sigmaR, then add R0/P0 (emission source offset).
-    // Note that R0/P0 are applied directly here, since then we only need one loop and don't need to
-    // think too much about which indices to apply the offset to.
-    Kokkos::parallel_for(
-        "unitDisk", Kokkos::RangePolicy<>(nlocal, nlocal + nNew), KOKKOS_LAMBDA(const size_t j) {
+
+    auto range = Kokkos::RangePolicy<>(nlocal, nlocal + nNew);
+
+    // Position sampling is shared: uniform on elliptical disk + R0 offset.
+    Kokkos::parallel_for("unitDisk_R", range, KOKKOS_LAMBDA(const size_t j) {
+        auto generator = rand_pool.get_state();
+        double r       = Kokkos::sqrt(generator.drand(0., 1.));
+        double theta   = 2.0 * pi * generator.drand(0., 1.);
+        double frac    = generator.drand(0., 1.);
+        rand_pool.free_state(generator);
+
+        Rview(j)[0] = r * Kokkos::cos(theta) * sigmaR[0] + R0[0];
+        Rview(j)[1] = r * Kokkos::sin(theta) * sigmaR[1] + R0[1];
+        Rview(j)[2] = 0.0 + R0[2];
+
+        // Each particle is assigned a fractional timestep dt_i = f * dt where f ~ U(0,1).
+        // This represents the fraction of the next integration step the particle will experience,
+        // as if the particle were born at a random time within [t, t+dt]. The per-particle dt is
+        // used by the Boris integrator (push/kick) and by scaleDtByCharge for field deposition,
+        // so the fractional dt naturally spreads particles in z and gives fractional charge
+        // contribution without needing to sample Rz explicitly.
+        dtView(j) = frac * dt;
+    });
+
+    // Momentum sampling depends on the emission model chosen in EMISSIONSOURCE.
+    // BEAM reference momentum (avrgpz) is intentionally NOT applied:
+    // for emitted beams only the thermal energy matters (old OPAL behavior).
+    if (emissionModel_m == "ASTRA") {
+        // ASTRA: 3D isotropic thermal emission on forward half-sphere.
+        const double pTot = euclidean_norm(P0);
+        Kokkos::parallel_for("unitDisk_P_astra", range, KOKKOS_LAMBDA(const size_t j) {
             auto generator = rand_pool.get_state();
-            double r       = Kokkos::sqrt(generator.drand(0., 1.));
-            double theta   = 2.0 * pi * generator.drand(0., 1.);
+            double rand1   = generator.drand(0., 1.);
+            double rand2   = generator.drand(0., 1.);
             rand_pool.free_state(generator);
 
-            Rview(j)[0] = r * Kokkos::cos(theta) * sigmaR[0] + R0[0];
-            Rview(j)[1] = r * Kokkos::sin(theta) * sigmaR[1] + R0[1];
-            Rview(j)[2] = 0.0 + R0[2];
-            Pview(j)[0] = 0.0 + P0[0];
-            Pview(j)[1] = 0.0 + P0[1];
-            Pview(j)[2] = 0.0 + P0[2] + beamPz;
+            double phi   = 2.0 * Kokkos::acos(Kokkos::sqrt(rand1));
+            double theta = 2.0 * pi * rand2;
+
+            Pview(j)[0] = pTot * Kokkos::sin(phi) * Kokkos::cos(theta);
+            Pview(j)[1] = pTot * Kokkos::sin(phi) * Kokkos::sin(theta);
+            Pview(j)[2] = pTot * Kokkos::fabs(Kokkos::cos(phi));
         });
+    } else {
+        // NONE: all "thermal" momentum applied in z direction.
+        pc_m->P = P0;
+    }
     Kokkos::fence();
 }
 
@@ -361,8 +388,9 @@ void FlatTop::emitParticles(double t, double dt) {
     pc_m->create(nNew);
 
     // Generate new particles on uniform disc (sample into [nlocal, nlocal+nNew)).
+    // Each particle receives a fractional per-particle dt for sub-timestep spreading.
     msgAll << level3 << "* generate particles on a disc" << endl;
-    generateUniformDisk(nlocal, nNew);
+    generateUniformDisk(nlocal, nNew, dt);
 
     msgAll << level3 << "* " << nNew << " new particles emmitted" << endl;
 }
@@ -394,7 +422,7 @@ void FlatTop::testNumEmitParticles(size_type nsteps, double dt) {
         pc_m->create(nNew);
 
         // generate new particles on uniform disc
-        generateUniformDisk(nlocal, nNew);
+        generateUniformDisk(nlocal, nNew, dt);
 
         // write to a file
         auto rViewDevice  = pc_m->R.getView();

@@ -20,7 +20,8 @@ protected:
     /// Emission source offset: position R0, momentum P0, start time t0 (applied in sample step).
     Vector_t<double, 3> R0_m = 0.0;
     Vector_t<double, 3> P0_m = 0.0;
-    double t0_m                  = 0.0;
+    double t0_m              = 0.0;
+    std::string emissionModel_m = "NONE";
 
     /// For one-shot emitters (e.g. Gaussian at delayed t0): guard to avoid double sampling.
     bool hasEmittedOnce_m = false;
@@ -46,10 +47,12 @@ public:
     
     virtual ~SamplingBase() {}
 
-    void setEmissionOffsets(ippl::Vector<double, 3> R0, ippl::Vector<double, 3> P0, double t0) {
+    void setEmissionOffsets(ippl::Vector<double, 3> R0, ippl::Vector<double, 3> P0, double t0,
+                            const std::string& emissionModel = "NONE") {
         R0_m = R0;
         P0_m = P0;
         t0_m = t0;
+        emissionModel_m = emissionModel;
     }
 
     virtual void generateParticles(size_t& /*numberOfParticles*/, Vector_t<double, 3> /*nr*/) {}

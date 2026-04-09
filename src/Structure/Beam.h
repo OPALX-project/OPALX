@@ -67,6 +67,9 @@ public:
     /// Return Particle's name
     std::string getParticleName() const;
 
+    /// True if this beam is configured as a photon beam.
+    bool isPhoton() const;
+
     /// Return Particle's rest mass in GeV
     double getMass() const;
 
