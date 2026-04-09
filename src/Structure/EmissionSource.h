@@ -18,6 +18,7 @@ public:
         P0Y,
         P0Z,
         T0,
+        EMISSIONMODEL,
         SIZE
     };
 
@@ -36,6 +37,7 @@ public:
     ippl::Vector<double, 3> getR0() const;
     ippl::Vector<double, 3> getP0() const;
     double getT0() const;
+    std::string getEmissionModel() const;
 
 private:
     EmissionSource(const EmissionSource&);
