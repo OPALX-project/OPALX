@@ -70,6 +70,7 @@ const std::map<ElementType, std::string> ElementBase::elementTypeToString_s = {
     {ElementType::ANY, "Any"},
     {ElementType::BEAMLINE, "Beamline"},
     {ElementType::DRIFT, "Drift"},
+    {ElementType::LASER, "Laser"},
     {ElementType::MARKER, "Marker"},
     {ElementType::MULTIPOLE, "Multipole"},
     {ElementType::RFCAVITY, "RFCavity"},

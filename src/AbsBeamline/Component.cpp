@@ -11,7 +11,10 @@
  */
 
 #include "AbsBeamline/Component.h"
+#include "Utility/Inform.h"
 #include "Utilities/LogicalError.h"
+
+extern Inform* gmsg;
 
 const std::vector<double> Component::defaultAperture_m = 
     std::vector<double>({1e6, 1e6, 1.0});

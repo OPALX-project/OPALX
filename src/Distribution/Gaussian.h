@@ -10,9 +10,6 @@
 #include <memory>
 #include <cmath>
 
-using ParticleContainer_t = ParticleContainer<double, 3>;
-using FieldContainer_t = FieldContainer<double, 3>;
-using Distribution_t = Distribution;
 using GeneratorPool = typename Kokkos::Random_XorShift64_Pool<>;
 using Dist_t = ippl::random::NormalDistribution<double, 3>;
 
@@ -77,6 +74,14 @@ public:
      * @param nr the number of grid cells in R (used in domain decomposition).
      */
     void generateParticles(size_t& numberOfParticles, Vector_t<double, 3> nr) override;
+
+    /**
+     * @brief Time-stepped emission hook for one-shot delayed injection.
+     *
+     * For GAUSS, this emits once when [t, t+dt] crosses t0 for sources with t0 > 0.
+     * Initial sampling at t0 == 0 is handled via generateParticles.
+     */
+    void emitParticles(double t, double dt) override;
 
     void setSigmaR(const Vector_t<double, 3>& sigmaR) {
         sigmaR_m = sigmaR;

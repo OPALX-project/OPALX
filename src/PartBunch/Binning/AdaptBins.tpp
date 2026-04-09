@@ -2,8 +2,31 @@
 #define ADAPT_BINS_TPP
 
 #include "AdaptBins.h"
+#include <limits>
 
 namespace ParticleBinning {
+
+    template <typename BunchType, typename BinningSelector>
+    typename AdaptBins<BunchType, BinningSelector>::value_type
+    AdaptBins<BunchType, BinningSelector>::getBinConfigHost(std::vector<size_type>& binCounts,
+                                                            std::vector<value_type>& binWidths) const {
+        const bin_index_type numBins = getCurrentBinCount();
+        binCounts.resize(numBins);
+        binWidths.resize(numBins);
+
+        // Use the global (MPI-reduced) histogram as source, similar to print().
+        hview_type_g countsHost =
+            globalBinHisto_m.template getHostView<hview_type_g>(globalBinHisto_m.getHistogram());
+        hwidth_view_type_g widthsHost =
+            globalBinHisto_m.template getHostView<hwidth_view_type_g>(globalBinHisto_m.getBinWidths());
+
+        for (bin_index_type i = 0; i < numBins; ++i) {
+            binCounts[i] = countsHost(i);
+            binWidths[i] = widthsHost(i);
+        }
+
+        return xMin_m;
+    }
 
     template <typename BunchType, typename BinningSelector>
     void AdaptBins<BunchType, BinningSelector>::initLimits() {
@@ -17,8 +40,10 @@ namespace ParticleBinning {
         // Start limit reduction if number of particles is big enough.
         IpplTimings::startTimer(bInitLimitsT);
         if (nlocal <= 0) {
-            msg << "Particles in the bunch = " << nlocal << ". Overwriting limits manually." << endl;
-            xMin_m = xMax_m = (nlocal == 0) ? 0 : 0; 
+            msg << level4 << "Particles in the bunch = " << nlocal << ". Overwriting limits manually." << endl;
+            // Do not let empty ranks influence the global min/max reduction.
+            xMin_m = std::numeric_limits<value_type>::max();
+            xMax_m = std::numeric_limits<value_type>::lowest();
         } else {
             Kokkos::MinMaxScalar<value_type> localMinMax;
             // Sadly this is necessary, since Kokkos seems to have a problem when nlocal == 1, where it does not update localMinMax
@@ -47,9 +72,15 @@ namespace ParticleBinning {
         ippl::Comm->allreduce(xMin_m, 1, std::less<value_type>());
         IpplTimings::stopTimer(bAllReduceLimitsT);
 
+        // If all ranks were empty, the reductions will keep the sentinel values.
+        if (xMin_m == std::numeric_limits<value_type>::max() &&
+            xMax_m == std::numeric_limits<value_type>::lowest()) {
+            xMin_m = xMax_m = value_type(0);
+        }
+
         // Update bin width variable with new limits
         binWidth_m = (xMax_m - xMin_m) / currentBins_m;
-        msg << "Initialized limits. Min: " << xMin_m << ", max: " << xMax_m << ", binWidth: " << binWidth_m << endl;
+        msg << level4 << "Initialized limits. Min: " << xMin_m << ", max: " << xMax_m << ", binWidth: " << binWidth_m << endl;
     }
 
 
@@ -99,7 +130,7 @@ namespace ParticleBinning {
 
         IpplTimings::startTimer(bAssignUniformBinsT);
         if (bunch_m->getLocalNum() <= 1) {
-            msg << "Too few bins, assigning all bins to index 0." << endl;
+            msg << level4 << "Too few bins, assigning all bins to index 0." << endl;
             Kokkos::deep_copy(binIndex, 0);
             return;
         }
@@ -117,7 +148,7 @@ namespace ParticleBinning {
         });
         IpplTimings::stopTimer(bAssignUniformBinsT);
 
-        msg << "All bins assigned." << endl; 
+        msg << level4 << "All bins assigned." << endl; 
     }
 
 
@@ -213,26 +244,26 @@ namespace ParticleBinning {
 
         IpplTimings::startTimer(bExecuteHistoReductionT);
         if (mode == HistoReductionMode::HostOnly) {
-            msg << "Using host-only parallel_reduce reduction." << endl;
+            msg << level4 << "Using host-only parallel_reduce reduction." << endl;
             HostArrayReduction<size_type, bin_index_type>::binCountStatic = binCount;  
             HostArrayReduction<size_type, bin_index_type> reducer_arr;
             executeInitLocalHistoReduction(reducer_arr);
         } else if (mode == HistoReductionMode::TeamBased) {
-            msg << "Using team-based + atomic reduction." << endl;
+            msg << level4 << "Using team-based + atomic reduction." << endl;
             executeInitLocalHistoReductionTeamFor();
         } else if (mode == HistoReductionMode::ParallelReduce) {
             auto to_reduce = createReductionObject<size_type, bin_index_type>(binCount);
             std::visit([&](auto& reducer_arr) {
-                msg << "Starting parallel_reduce, array size = " << sizeof(reducer_arr.the_array) / sizeof(reducer_arr.the_array[0]) << endl;
+                msg << level4 << "Starting parallel_reduce, array size = " << sizeof(reducer_arr.the_array) / sizeof(reducer_arr.the_array[0]) << endl;
                 executeInitLocalHistoReduction(reducer_arr);
             }, to_reduce);
         } else {
-            msg << "No valid execution method defined to initialize local histogram for energy binning." << endl;
+            msg << level4 << "No valid execution method defined to initialize local histogram for energy binning." << endl;
             ippl::Comm->abort(); // Exit, since histogram cannot be built (should not happen...)!
         }
         IpplTimings::stopTimer(bExecuteHistoReductionT);
 
-        msg << "Reducer ran without error." << endl;
+        msg << level4 << "Reducer ran without error." << endl;
         
         localBinHisto_m.sync(); // since all reductions happen on device --> sync changes if DualView mode is used
     }
@@ -272,7 +303,7 @@ namespace ParticleBinning {
         globalBinHisto_m.modify_host();
         globalBinHisto_m.sync(); 
  
-        msg << "Global histogram created." << endl;
+        msg << level4 << "Global histogram created." << endl;
     }
 
 
@@ -331,7 +362,7 @@ namespace ParticleBinning {
         gamma_bin2  = (npart_bin == 0) ? Vector<double, 3>(0.0) : gamma_bin2/npart_bin; // Now we have <P> for this bin
         gamma_bin2  = -sqrt(1.0 + gamma_bin2*gamma_bin2); // in these units: gamma=sqrt(1 + <P>^2), assuming <P^2>~0 (since bunch per bin should be "considered constant") // -1.0 / sqrt(1.0 - gamma_bin2 / c2); // negative sign, since we want the inverse transformation
         
-        m << "Gamma(binIndex = " << currentBin << ") = -" << gamma_bin2 << endl;
+        m << level5 << "Gamma(binIndex = " << currentBin << ") = -" << gamma_bin2 << endl;
 
         // Next apply the transformation --> do it manually, since fc->E*gamma does not exist in IPPL...
         ippl::parallel_for("TransformFieldWithVelocity", field.getFieldRangePolicy(), 
@@ -381,7 +412,7 @@ namespace ParticleBinning {
         IpplTimings::startTimer(bVerifySortingT);
         if (localNumParticles > 1 && !viewIsSorted<bin_index_type>(getBinView(), indices, localNumParticles)) {
             Inform msg("AdaptBins");
-            msg << "Sorting failed." << endl;
+            msg << level4 << "Sorting failed." << endl;
             ippl::Comm->abort();
         } 
         IpplTimings::stopTimer(bVerifySortingT);

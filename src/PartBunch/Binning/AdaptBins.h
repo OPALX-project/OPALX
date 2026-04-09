@@ -13,11 +13,50 @@
 #include "Ippl.h"
 
 #include <Kokkos_DualView.hpp>
-#include "ParallelReduceTools.h" 
-#include "BinningTools.h"        
-#include "BinHisto.h"           
+#include <algorithm>
+#include <string>
+#include <vector>
+
+#include "ParallelReduceTools.h"
+#include "BinningTools.h"
+#include "BinHisto.h"
 
 namespace ParticleBinning {
+
+    template <typename BunchType>
+    class AdaptBinsBase {
+    public:
+        using value_type = typename BunchType::Layout_t::value_type;
+        using size_type = typename BunchType::size_type;
+        using bin_index_type = typename BunchType::bin_index_type;
+        using hash_type = ippl::detail::hash_type<Kokkos::DefaultExecutionSpace::memory_space>;
+
+        virtual ~AdaptBinsBase() = default;
+
+        virtual bin_index_type getCurrentBinCount() const = 0;
+        virtual const std::string& getBinningCmdName() const = 0;
+        virtual bin_index_type getMaxBinCount() const = 0;
+        virtual value_type getBinWidth() const = 0;
+        virtual value_type getXMin() const = 0;
+        virtual hash_type getHashArray() = 0;
+        virtual void initLimits() = 0;
+        virtual void instantiateHistogram(bool setToZero = false) = 0;
+        virtual void assignBinsToParticles() = 0;
+        virtual void initLocalHisto(HistoReductionMode modePreference = HistoReductionMode::Standard) = 0;
+        virtual void executeInitLocalHistoReductionTeamFor() = 0;
+        virtual void initGlobalHistogram() = 0;
+        virtual void doFullRebin(bin_index_type nBins, bool recalculateLimits = true,
+                                 HistoReductionMode modePreference = HistoReductionMode::Standard) = 0;
+        virtual void initHistogram(HistoReductionMode modePreference = HistoReductionMode::Standard) = 0;
+        virtual size_type getNPartInBin(bin_index_type binIndex, bool global = false) = 0;
+        virtual void sortContainerByBin() = 0;
+        virtual Kokkos::RangePolicy<> getBinIterationPolicy(const bin_index_type& binIndex) = 0;
+        virtual void genAdaptiveHistogram() = 0;
+        virtual value_type getBinConfigHost(std::vector<size_type>& binCounts,
+                                            std::vector<value_type>& binWidths) const = 0;
+        virtual void print() = 0;
+        virtual void debug() = 0;
+    };
 
     /**
      * @class AdaptBins
@@ -33,7 +72,7 @@ namespace ParticleBinning {
      * @tparam BinningSelector A function or functor that selects the variable for binning (based on attributes).
      */
     template <typename BunchType, typename BinningSelector>
-    class AdaptBins {
+    class AdaptBins : public AdaptBinsBase<BunchType> {
     public:
         // Variable type definitions
         using value_type             = typename BinningSelector::value_type;
@@ -53,8 +92,9 @@ namespace ParticleBinning {
         using hindex_transform_type = typename d_histo_type::hindex_transform_type;
         using dindex_transform_type = typename d_histo_type::dindex_transform_type;
 
-        using h_histo_type_g          = Histogram<size_type, bin_index_type, value_type, false, Kokkos::HostSpace>; 
+        using h_histo_type_g          = Histogram<size_type, bin_index_type, value_type, false, Kokkos::HostSpace>;
         using hview_type_g            = typename h_histo_type_g::hview_type;
+        using hwidth_view_type_g      = typename h_histo_type_g::hwidth_view_type;
         using hindex_transform_type_g = typename h_histo_type_g::hindex_transform_type;
 
         /**
@@ -72,10 +112,12 @@ namespace ParticleBinning {
          *       in Alexander Liemen's master thesis "Adaptive Energy Binning in OPAL-X".
          */
         AdaptBins(std::shared_ptr<BunchType> bunch, BinningSelector var_selector, bin_index_type maxBins,
-                  value_type binningAlpha, value_type binningBeta, value_type desiredWidth)
+                  value_type binningAlpha, value_type binningBeta, value_type desiredWidth,
+                  const std::string& binningCmdName)
             : bunch_m(bunch)
             , var_selector_m(var_selector)
             , maxBins_m(maxBins)
+            , binningCmdName_m(binningCmdName)
             , binningAlpha_m(binningAlpha)
             , binningBeta_m(binningBeta)
             , desiredWidth_m(desiredWidth) {
@@ -86,7 +128,7 @@ namespace ParticleBinning {
             initTimers();
 
             Inform msg("AdaptBins");
-            msg << level3 << "AdaptBins initialized with maxBins = " << maxBins_m 
+            msg << level4 << "AdaptBins initialized with maxBins = " << maxBins_m 
                 << ", alpha = " << binningAlpha_m
                 << ", beta = " << binningBeta_m
                 << ", desiredWidth = " << desiredWidth_m << endl;
@@ -118,21 +160,33 @@ namespace ParticleBinning {
          * 
          * @return The current bin count.
          */
-        bin_index_type getCurrentBinCount() const { return currentBins_m; }
+        bin_index_type getCurrentBinCount() const override { return currentBins_m; }
+
+        /**
+         * @brief Returns the logical name of the active OPAL `BinningCmd` definition.
+         *
+         * Used for diagnostic output (e.g. bin stats table headers).
+         */
+        const std::string& getBinningCmdName() const override { return binningCmdName_m; }
 
         /**
          * @brief Gets the maximum number of bins. Will be used for the fine uniform histogram before merging.
          * 
          * @return The maximum allowed number of bins.
          */
-        bin_index_type getMaxBinCount() const { return maxBins_m; }
+        bin_index_type getMaxBinCount() const override { return maxBins_m; }
 
         /**
          * @brief Returns the average binwidth.
          * 
          * @return Corresponds to (xmax_m - xmin_m)/n_bins. Used in the fine histogram.
          */
-        value_type getBinWidth() const { return binWidth_m; }
+        value_type getBinWidth() const override { return binWidth_m; }
+
+        /**
+         * @brief Returns the current lower bound of the binning coordinate (xMin).
+         */
+        value_type getXMin() const override { return xMin_m; }
 
         /**
          * @brief Sets the current number of bins and adjusts the bin width.
@@ -142,8 +196,10 @@ namespace ParticleBinning {
          * @note The other parameters (limits) are set before this function is called in doFullRebin().
          */
         void setCurrentBinCount(bin_index_type nBins) {
-            currentBins_m = (nBins > maxBins_m) ? maxBins_m : nBins; 
-            binWidth_m    = (xMax_m - xMin_m) / currentBins_m; 
+            // Hard safety: never allow 0 bins (would break reducers and cause div-by-zero).
+            const bin_index_type clampedUpper = (nBins > maxBins_m) ? maxBins_m : nBins;
+            currentBins_m = std::max<bin_index_type>(1, clampedUpper);
+            binWidth_m    = (xMax_m - xMin_m) / currentBins_m;
         }
 
         /**
@@ -151,7 +207,7 @@ namespace ParticleBinning {
          * 
          * @return hash_type sorting the container.
          */
-        hash_type getHashArray() { return sortedIndexArr_m; }
+        hash_type getHashArray() override { return sortedIndexArr_m; }
 
         /**
          * @brief Calculates the bin index for a given position value in a uniform histogram.
@@ -180,7 +236,7 @@ namespace ParticleBinning {
          * 
          * @note Called _before_ bins and histograms are initialized.
          */
-        void initLimits();
+        void initLimits() override;
 
         /**
          * @brief Initializes the histogram view for binning and optionally sets it to zero.
@@ -188,7 +244,7 @@ namespace ParticleBinning {
          * @param setToZero If true, initializes the histogram view to zero. Default is false. 
          *                  The 0 initialization is not needed if data is overwritten anyways.
          */
-        void instantiateHistogram(bool setToZero = false);
+        void instantiateHistogram(bool setToZero = false) override;
 
         /**
          * @brief Assigns each particle in the bunch to a bin based on its position.
@@ -199,7 +255,7 @@ namespace ParticleBinning {
          * 
          * @note It only calculates the fine uniform histogram using maxBins bins.
          */
-        void assignBinsToParticles();
+        void assignBinsToParticles() override;
 
         /**
          * @brief Initializes a local histogram for particle binning.
@@ -210,7 +266,7 @@ namespace ParticleBinning {
          * HistoReductionMode parameter (defined in ParallelReduceTools.h) or the optimal method based
          * on the current architecture/bin number.  
          */
-        void initLocalHisto(HistoReductionMode modePreference = HistoReductionMode::Standard);
+        void initLocalHisto(HistoReductionMode modePreference = HistoReductionMode::Standard) override;
 
         /**
         * @brief Initializes and performs a team-based histogram reduction for particle bins.
@@ -242,7 +298,7 @@ namespace ParticleBinning {
         * @post `localBinHisto` contains the reduced histogram for the local data. 
         *       Next step is to reduce across all MPI ranks. @see getGlobalHistogram
         */
-        void executeInitLocalHistoReductionTeamFor();
+        void executeInitLocalHistoReductionTeamFor() override;
 
         /**
         * @brief Executes a parallel reduction to initialize the local histogram for particle bins.
@@ -276,7 +332,7 @@ namespace ParticleBinning {
          * 
          * @return A view of the global histogram in host space (used for merging/the adaptive histogram).
          */
-        void initGlobalHistogram();
+        void initGlobalHistogram() override;
 
         /**
          * @brief Performs a full rebinning operation on the bunch.
@@ -292,7 +348,7 @@ namespace ParticleBinning {
          * @param modePreference The preferred mode for histogram reduction (default is Standard and choses 
          *                       the best method itself).
          */
-        void doFullRebin(bin_index_type nBins, bool recalculateLimits = true, HistoReductionMode modePreference = HistoReductionMode::Standard) {
+        void doFullRebin(bin_index_type nBins, bool recalculateLimits = true, HistoReductionMode modePreference = HistoReductionMode::Standard) override {
             if (recalculateLimits) initLimits();
             setCurrentBinCount(nBins);
             assignBinsToParticles();
@@ -304,7 +360,7 @@ namespace ParticleBinning {
          * 
          * @param modePreference The preferred mode for histogram reduction (default is Standard).
          */
-        void initHistogram(HistoReductionMode modePreference = HistoReductionMode::Standard) {
+        void initHistogram(HistoReductionMode modePreference = HistoReductionMode::Standard) override {
             instantiateHistogram(true); 
             initLocalHisto(modePreference);
             initGlobalHistogram();
@@ -329,7 +385,7 @@ namespace ParticleBinning {
          * @param global If true, retrieves from global histogram, otherwise from local histogram.
          * @return The number of particles in the specified bin.
          */
-        size_type getNPartInBin(bin_index_type binIndex, bool global = false) {
+        size_type getNPartInBin(bin_index_type binIndex, bool global = false) override {
             // shouldn't happen..., "binIndex < 0" unnecessary, since binIndex is usually unsigned; but just in case the type is changed
             if (binIndex < 0 || binIndex >= getCurrentBinCount()) { return bunch_m->getTotalNum(); } 
 
@@ -360,7 +416,7 @@ namespace ParticleBinning {
          *       overhead from the atomic operations. Therefore, it should be called before merging
          *       (even though calling it afterwards also works). 
          */
-        void sortContainerByBin();
+        void sortContainerByBin() override;
 
         /**
          * @brief Returns the bin iteration policy for a given bin index.
@@ -376,7 +432,7 @@ namespace ParticleBinning {
          * @note It returns an iteration policy that can be used together with sortedIndexArr_m inside
          *       `scatter()` to only iterate and scatter particles in a specific bin. 
          */
-        Kokkos::RangePolicy<> getBinIterationPolicy(const bin_index_type& binIndex) {
+        Kokkos::RangePolicy<> getBinIterationPolicy(const bin_index_type& binIndex) override {
             return localBinHisto_m.getBinIterationPolicy(binIndex);
         }
 
@@ -395,7 +451,20 @@ namespace ParticleBinning {
          * 2. Maps old bin indices to new bin indices using the lookup table returned by `mergeBins()`.
          * 3. Updates the local histogram with the new bin indices and widths.
          */
-        void genAdaptiveHistogram();
+        void genAdaptiveHistogram() override;
+
+        /**
+         * @brief Extracts the global bin configuration (counts and widths) on the host.
+         *
+         * Fills @p binCounts and @p binWidths with the current global histogram data and
+         * returns the lower bound xMin used when defining the histogram.
+         *
+         * @note This should be called after initGlobalHistogram()/genAdaptiveHistogram(),
+         *       since it relies on the global histogram being initialized and available 
+         *       on host.
+         */
+        value_type getBinConfigHost(std::vector<size_type>& binCounts,
+                                    std::vector<value_type>& binWidths) const override;
 
         /**
          * @brief Prints the current global histogram to the Inform output stream.
@@ -403,7 +472,7 @@ namespace ParticleBinning {
          * This function outputs the global histogram data (bin counts) to the standard output.
          * Note: Only for rank 0 in an MPI environment.
          */
-        void print() {
+        void print() override {
             globalBinHisto_m.printPythonArrays();
         }
 
@@ -411,9 +480,9 @@ namespace ParticleBinning {
          * @brief Outputs debug information related to Kokkos and MPI configurations.
          * 
          * This function prints information about the number of threads (in OpenMP) or GPUs
-         * (in CUDA) available on the current MPI rank, along with other debug information.
+         * (in CUDA/HIP) available on the current MPI rank, along with other debug information.
          */
-        void debug() {
+        void debug() override {
             Inform msg("KOKKOS DEBUG"); // , INFORM_ALL_NODES
 
             int rank = ippl::Comm->rank();
@@ -432,16 +501,23 @@ namespace ParticleBinning {
             msg << level2 << "CPU Threads: No multi-threaded CPU execution space enabled." << endl;
             #endif
 
-            // Check number of GPUs (CUDA devices)
-            #ifdef KOKKOS_ENABLE_CUDA
-            int num_gpus = Kokkos::Cuda::detect_device_count();
+            // Check number of GPUs (CUDA/HIP devices)
+            #if defined(KOKKOS_ENABLE_CUDA)
+            int num_gpus = Kokkos::num_devices();
             msg << level2 << "CUDA Enabled: Rank " << rank << " sees " << num_gpus << " GPU(s) available." << endl;
-            Kokkos::Cuda cuda_instance;  
+            Kokkos::Cuda cuda_instance;
             std::stringstream ss;
             cuda_instance.print_configuration(ss);
             msg << level2 << ss.str();
+            #elif defined(KOKKOS_ENABLE_HIP)
+            int num_gpus = Kokkos::num_devices();
+            msg << level2 << "HIP Enabled: Rank " << rank << " sees " << num_gpus << " GPU(s) available." << endl;
+            Kokkos::Experimental::HIP hip_instance;
+            std::stringstream ss;
+            hip_instance.print_configuration(ss);
+            msg << level2 << ss.str();
             #else
-            msg << level2 << "CUDA: GPU support disabled.\n";
+            msg << level2 << "CUDA/HIP: GPU support disabled.\n";
             #endif
 
             // Additional information on concurrency in the default execution space
@@ -488,6 +564,7 @@ namespace ParticleBinning {
         BinningSelector var_selector_m;        ///< Variable selector for binning.
         const bin_index_type maxBins_m;        ///< Maximum number of bins. 
         bin_index_type currentBins_m;          ///< Current number of bins in use.
+        std::string binningCmdName_m;          ///< Name of the active OPAL `BinningCmd` definition.
         value_type xMin_m;                     ///< Minimum value of bin attribute.
         value_type xMax_m;                     ///< Maximum value of bin attribute.
         value_type binWidth_m;                 ///< Width of each bin (assumes a uniform histogram).

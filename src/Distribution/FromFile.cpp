@@ -12,12 +12,6 @@
 #include <cctype>
 #include <filesystem>
 
-using ParticleContainer_t = ParticleContainer<double, 3>;
-using FieldContainer_t = FieldContainer<double, 3>;
-using Distribution_t = Distribution;
-
-using view_type = typename ippl::detail::ViewType<ippl::Vector<double, 3>, 1>::view_type;
-
 FromFile::FromFile(std::shared_ptr<ParticleContainer_t> pc,
                    std::shared_ptr<FieldContainer_t> fc,
                    std::shared_ptr<Distribution_t> opalDist)
@@ -233,6 +227,16 @@ std::string FromFile::normalizeColumnName(const std::string& name) {
 }
 
 void FromFile::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> /*nr*/) {
+    if (emissionModel_m != "NONE")
+        throw OpalException("FromFile::generateParticles",
+                            "EMISSIONMODEL '" + emissionModel_m + "' is not supported for FROMFILE distributions");
+
+    // Only generate during initial sampling (t0 <= 0). For t0 > 0, this
+    // distribution is time-independent and should not contribute here unless
+    // explicitly triggered via emitParticles (which sets hasEmittedOnce_m).
+    if (t0_m > 0.0 && !hasEmittedOnce_m) {
+        return;
+    }
     Inform m("FromFile::generateParticles");
 
     // Use number of particles from file if available, otherwise use requested number
@@ -253,27 +257,27 @@ void FromFile::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> 
     
     numberOfParticles = totalParticles;
     
-    // Distribute particles across MPI ranks
-    MPI_Comm comm = MPI_COMM_WORLD;
-    int nranks, rank;
-    MPI_Comm_size(comm, &nranks);
-    MPI_Comm_rank(comm, &rank);
-    
-    size_t baseParticlesPerRank = totalParticles / nranks;
-    size_t remaining = totalParticles - baseParticlesPerRank * nranks;
-    
-    // Calculate starting index for this rank
-    // Rank 0 gets remaining particles, so other ranks start after that
-    size_t startIdx = rank * baseParticlesPerRank + remaining;
-    
-    // Adjust nlocal: rank 0 gets remaining particles
-    size_t nlocal = baseParticlesPerRank;
-    if (remaining > 0 && rank == 0) {
-        nlocal += remaining;
-        startIdx = 0; // Rank 0 always starts at 0
+    // Distribute particles across MPI ranks (capacity-aware)
+    const int rank = ippl::Comm->rank();
+    const int nranks = std::max(1, ippl::Comm->size());
+    const size_t nranks_u = static_cast<size_t>(nranks);
+    size_t nlocal = pc_m ? computeLocalEmitCount(totalParticles)
+                         : (totalParticles / nranks_u
+                            + (static_cast<size_t>(rank) < (totalParticles % nranks_u) ? 1 : 0));
+    // Use Mpi scan to get the start index for each rank (since they are all potentially different!)
+    size_t startIdx = 0;
+    if (pc_m && ippl::Comm->size() > 0) {
+        unsigned long nlocalUL = static_cast<unsigned long>(nlocal);
+        unsigned long startIdxUL = 0;
+        MPI_Exscan(&nlocalUL, &startIdxUL, 1, MPI_UNSIGNED_LONG, MPI_SUM,
+                   ippl::Comm->getCommunicator());
+        if (rank > 0) {
+            startIdx = static_cast<size_t>(startIdxUL);
+        }
     }
-    
-    // Allocate particles
+
+    // Allocate particles, appending after any existing ones.
+    const size_t nlocalCurrent = pc_m->getLocalNum();
     pc_m->create(nlocal);
     
     // Get Kokkos views
@@ -297,22 +301,32 @@ void FromFile::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> 
         Kokkos::create_mirror(Kokkos::DefaultExecutionSpace::memory_space(), hostParticleData);
     Kokkos::deep_copy(deviceParticleData, hostParticleData);
     
-    // Copy particle data into Kokkos views
-    Kokkos::parallel_for(
-        "FromFile::generateParticles", nlocal,
+    // Copy particle data into Kokkos views, appending into
+    // [nlocalCurrent, nlocalCurrent + nlocal)
+    Kokkos::parallel_for("FromFile::generateParticles", nlocal,
         KOKKOS_LAMBDA(const size_t k) {
-            size_t dataIdx = startIdx + k;
-            if (dataIdx < totalParticles) {
-                Rview(k)[0] = deviceParticleData(dataIdx, 0); // x
-                Rview(k)[1] = deviceParticleData(dataIdx, 1); // y
-                Rview(k)[2] = deviceParticleData(dataIdx, 2); // z
-                Pview(k)[0] = deviceParticleData(dataIdx, 3); // px
-                Pview(k)[1] = deviceParticleData(dataIdx, 4); // py
-                Pview(k)[2] = deviceParticleData(dataIdx, 5); // pz
-            }
+            const size_t j       = nlocalCurrent + k;
+            const size_t dataIdx = startIdx + k;
+            Rview(j)[0] = deviceParticleData(dataIdx, 0); // x
+            Rview(j)[1] = deviceParticleData(dataIdx, 1); // y
+            Rview(j)[2] = deviceParticleData(dataIdx, 2); // z
+            Pview(j)[0] = deviceParticleData(dataIdx, 3); // px
+            Pview(j)[1] = deviceParticleData(dataIdx, 4); // py
+            Pview(j)[2] = deviceParticleData(dataIdx, 5); // pz
         }
     );
     Kokkos::fence();
+
+    // Apply per-emission-source offsets after all mean-fixing/corrections.
+    // EMISSIONSOURCE offsets are expected to translate the generated bunch
+    // without being affected by the internal "fix mean" logic.
+    const Vector_t<double, 3> R0 = R0_m;
+    const Vector_t<double, 3> P0 = P0_m;
+    Kokkos::parallel_for(
+        nlocal, KOKKOS_LAMBDA(const size_t k) {
+            Rview(k) += R0;
+            Pview(k) += P0;
+        });
 
     Inform mALL("FromFile::generateParticles", INFORM_ALL_NODES);
     mALL << "FromFile: Loaded " << totalParticles << " particles from file '" 
@@ -320,4 +334,38 @@ void FromFile::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> 
     ippl::Comm->barrier();
     mALL << "Rank " << rank << ": " << nlocal << " local particles" << endl;
     ippl::Comm->barrier();
+}
+
+void FromFile::emitParticles(double t, double dt) {
+    // One-shot delayed emission for FROMFILE sources.
+    const double tStart = t;
+    const double tEnd   = t + dt;
+
+    if (hasEmittedOnce_m) {
+        // Don't sample again.
+        return;
+    }
+
+    if (t0_m <= 0.0) {
+        return;
+    }
+
+    if (!(tStart <= t0_m && t0_m < tEnd)) {
+        // Not time to emit yet.
+        return;
+    }
+
+    // If bound to a Distribution, respect its NPARTDIST; otherwise fall back to file count.
+    size_t requested = numParticles_m;
+    if (opalDist_m && opalDist_m->getNumParticles() > 0) {
+        requested = opalDist_m->getNumParticles();
+    }
+    if (requested == 0) {
+        // Short circuit: no particles to emit.
+        return;
+    }
+
+    hasEmittedOnce_m = true;
+    Vector_t<double, 3> dummyNr(0.0);
+    generateParticles(requested, dummyNr);
 }

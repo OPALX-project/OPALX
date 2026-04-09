@@ -3,7 +3,7 @@
 # cmake-format: off
 #
 # This file builds the main OPALX target. It:
-#   - Generates OPALXVersions.h from current build system info
+#   - Generates BuildInfo.h from current build system info
 #   - Gathers sources and headers
 #   - Adds all component subdirectories
 #   - Links to external libraries
@@ -11,12 +11,14 @@
 #
 # cmake-format: on
 # -----------------------------------------------------------------------------
-message(STATUS "📄 Generating OPALXVersions.h")
+message(STATUS "📄 Generating BuildInfo.h")
 
 # Make embedded metadata optional (reduces rebuild churn).
-option(OPALX_EMBED_BUILD_METADATA "Embed user/machine/date in OPALXVersions.h" OFF)
+option(OPALX_EMBED_BUILD_METADATA "Embed user/machine/date in BuildInfo.h" OFF)
+message(STATUS "🔧 OPALX_EMBED_BUILD_METADATA: ${OPALX_EMBED_BUILD_METADATA}")
 
 if(OPALX_EMBED_BUILD_METADATA)
+  message(STATUS "🧩 Embedding user/machine/date into BuildInfo.h (this may increase rebuild churn)")
 
   execute_process(COMMAND date OUTPUT_VARIABLE OPALX_COMPILE_DATE OUTPUT_STRIP_TRAILING_WHITESPACE)
 
@@ -25,20 +27,34 @@ if(OPALX_EMBED_BUILD_METADATA)
 
   execute_process(COMMAND whoami OUTPUT_VARIABLE OPALX_COMPILE_USER OUTPUT_STRIP_TRAILING_WHITESPACE)
 else()
+  message(STATUS "🧩 Not embedding build metadata into BuildInfo.h")
   set(OPALX_COMPILE_DATE "unknown")
   set(OPALX_COMPILE_MACHINE "unknown")
   set(OPALX_COMPILE_USER "unknown")
 endif()
 
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/OPALXVersions.h.in
-               ${CMAKE_CURRENT_BINARY_DIR}/OPALXVersions.h @ONLY)
+set(OPALX_COMPILE_ARCH "${CMAKE_SYSTEM_PROCESSOR}")
+set(OPALX_COMPILE_LINE "${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}")
+set(OPALX_COMPILE_OPTIONS "${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE}}")
+set(OPALX_BUGREPORT "https://github.com/OPALX-project/OPALX/issues")
+set(OPALX_VERSION_MAJOR_VALUE "${PROJECT_VERSION_MAJOR}")
+set(OPALX_VERSION_MINOR_VALUE "${PROJECT_VERSION_MINOR}")
+if(PROJECT_VERSION_PATCH)
+  set(OPALX_VERSION_PATCH_VALUE "${PROJECT_VERSION_PATCH}")
+else()
+  set(OPALX_VERSION_PATCH_VALUE "0")
+endif()
+
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/BuildInfo.h.in
+               ${CMAKE_CURRENT_BINARY_DIR}/BuildInfo.h @ONLY)
 
 
 # ------------------------------------------------------------------
 # Build the main executable target: opalx
 # ------------------------------------------------------------------
 
-add_library(opalx)
+add_library(opalx
+        AbsBeamline/MultipoleTConfig.h)
 target_sources(opalx PRIVATE changes.cpp)
 
 target_compile_features(opalx PUBLIC cxx_std_20)
@@ -121,6 +137,7 @@ target_include_directories(opalx PRIVATE
 # CLI executable
 add_executable(opalx_exe Main.cpp)
 target_link_libraries(opalx_exe PUBLIC opalx)
+target_include_directories(opalx_exe PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 
 # this alias should be created after all target properties have been set
 add_library(OPALX::opalx ALIAS opalx)

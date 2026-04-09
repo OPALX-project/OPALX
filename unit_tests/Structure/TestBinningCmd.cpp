@@ -1,6 +1,27 @@
-//
-// Unit tests for the BinningCmd definition command.
-//
+/**
+ * @file TestBinningCmd.cpp
+ * @brief Unit tests for `BinningCmd` (input command parsing/validation and parameter mapping).
+ *
+ * This file tests the behavior of the OPAL command object `BinningCmd`, focusing on:
+ * - Default construction values (max bins, desired width, alpha/beta, default parameter, print
+ * frequency).
+ * - Getter/setter consistency via a small test helper (`TestableBinningCmd`) that writes to
+ *   internal attributes using the standard `Attributes` interface.
+ * - `update()` validation logic:
+ *   - Appending `.json` to `DUMPBINSFILE` when a filename is provided without the suffix.
+ *   - Enforcing that `DUMPBINSFREQ` is positive when dumping is enabled.
+ *   - Rejecting negative `TABLEPRINTFREQ`.
+ * - `execute()` behavior:
+ *   - Mapping supported `PARAMETER` strings to the corresponding `BinningParameter` enum.
+ *   - Throwing `OpalException` for unknown/unsupported parameter strings.
+ * - `clone(name)`:
+ *   - Copies attribute state and cached parameter selection into a new named command object.
+ * - `printInfo()`:
+ *   - Smoke test that the informational printing path can be invoked without throwing.
+ *
+ * These tests ensure the object properly handles invalid configurations and is
+ * stable in its public API.
+ */
 
 #include <gtest/gtest.h>
 
@@ -36,6 +57,18 @@ public:
         // PARAMETER is declared as a predefined string; this helper mirrors normal usage.
         Attributes::setPredefinedString(itsAttr[BINNING::PARAMETER], value);
     }
+
+    void setDumpBinsFile(const std::string& value) {
+        Attributes::setString(itsAttr[BINNING::DUMPBINSFILE], value);
+    }
+
+    void setDumpBinsFreq(double value) {
+        Attributes::setReal(itsAttr[BINNING::DUMPBINSFREQ], value);
+    }
+
+    void setTablePrintFrequency(double value) {
+        Attributes::setReal(itsAttr[BINNING::TABLEPRINTFREQ], value);
+    }
 };
 
 class BinningCmdTest : public ::testing::Test {
@@ -51,6 +84,58 @@ protected:
     }
 };
 
+// UpdateAppendsJsonExtensionAndValidatesFreq:
+// If DUMPBINSFILE is set without .json, update() appends the extension and
+// enforces a valid DUMPBINSFREQ.
+TEST_F(BinningCmdTest, UpdateAppendsJsonExtensionAndValidatesFreq) {
+    TestableBinningCmd cmd;
+
+    // Enable dumping with a filename missing the .json suffix.
+    cmd.setDumpBinsFile("bins_output");
+    cmd.setDumpBinsFreq(5.0);
+
+    cmd.update();
+
+    EXPECT_TRUE(cmd.dumpBinsToFile());
+    EXPECT_EQ(cmd.getDumpBinsFileName(), "bins_output.json");
+    EXPECT_EQ(cmd.getDumpBinsFrequency(), 5);
+}
+
+// DumpBinsToFileRespectsNoneAndEmpty:
+// dumpBinsToFile() should be false for "NONE" or empty, true otherwise.
+TEST_F(BinningCmdTest, DumpBinsToFileRespectsNoneAndEmpty) {
+    TestableBinningCmd cmd;
+
+    // Default is "NONE".
+    EXPECT_FALSE(cmd.dumpBinsToFile());
+
+    cmd.setDumpBinsFile("");
+    EXPECT_FALSE(cmd.dumpBinsToFile());
+
+    cmd.setDumpBinsFile("bins.json");
+    EXPECT_TRUE(cmd.dumpBinsToFile());
+}
+
+// InvalidDumpFreqThrowsWhenDumpingEnabled:
+// A non-positive DUMPBINSFREQ with an active DUMPBINSFILE must raise.
+TEST_F(BinningCmdTest, InvalidDumpFreqThrowsWhenDumpingEnabled) {
+    TestableBinningCmd cmd;
+
+    cmd.setDumpBinsFile("bins.json");
+    cmd.setDumpBinsFreq(0.0);
+
+    EXPECT_THROW(cmd.update(), OpalException);
+}
+
+// InvalidTablePrintFrequencyThrowsWhenNegative:
+// Negative TABLEPRINTFREQ values are rejected by update().
+TEST_F(BinningCmdTest, InvalidTablePrintFrequencyThrowsWhenNegative) {
+    TestableBinningCmd cmd;
+
+    cmd.setTablePrintFrequency(-1.0);
+    EXPECT_THROW(cmd.update(), OpalException);
+}
+
 // ConstructionDefaults:
 // Verify that a freshly constructed exemplar has the documented defaults.
 TEST_F(BinningCmdTest, ConstructionDefaults) {
@@ -63,6 +148,8 @@ TEST_F(BinningCmdTest, ConstructionDefaults) {
 
     EXPECT_EQ(cmd.getParameter(), "VELOCITYZ");
     EXPECT_EQ(cmd.getParameterType(), BinningParameter::VELOCITYZ);
+
+    EXPECT_EQ(cmd.getTablePrintFrequency(), 10);
 }
 
 // GettersReflectAttributes:
@@ -75,6 +162,7 @@ TEST_F(BinningCmdTest, GettersReflectAttributes) {
     cmd.setBinningAlpha(0.5);
     cmd.setBinningBeta(1.75);
     cmd.setParameterString("PZ");
+    cmd.setTablePrintFrequency(3.0);
 
     // update() refreshes the internal cached parameter string.
     cmd.update();
@@ -85,6 +173,8 @@ TEST_F(BinningCmdTest, GettersReflectAttributes) {
     EXPECT_DOUBLE_EQ(cmd.getBinningBeta(), 1.75);
 
     EXPECT_EQ(cmd.getParameter(), "PZ");
+
+    EXPECT_EQ(cmd.getTablePrintFrequency(), 3);
 }
 
 // ExecuteMapsKnownParameters:

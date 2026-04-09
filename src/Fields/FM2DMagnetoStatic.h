@@ -86,7 +86,7 @@ public:
      * @note This cannot be called inside a GPU kernel (implicit capture of the
      * 'this' pointer not allowed on device)
      */
-    bool isInside(const Vector_t<double, 3> &r)const{
+    bool isInside(const Vector_t<double, 3> &r) const override {
         return r(2) >= zbegin_m && r(2) < zend_m && 
         sqrt(r(0)*r(0) + r(1)*r(1)) < rend_m;
     }
@@ -163,14 +163,14 @@ public:
      * 
      * @param pc Particle container
      */
-    void applyField(std::shared_ptr<ParticleContainer_t> pc);
+    void applyField(std::shared_ptr<ParticleContainer_t> pc, double scale = 1.0) override;
 
 private:
     FM2DMagnetoStatic(std::string aFilename);
     ~FM2DMagnetoStatic();
 
-    virtual void readMap();
-    virtual void freeMap();
+    void readMap() override;
+    void freeMap() override;
 
     /// @brief Fieldstrengths 
     Kokkos::DualView<double*> FieldstrengthBz_m;    

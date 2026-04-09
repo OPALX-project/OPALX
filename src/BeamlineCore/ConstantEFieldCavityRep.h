@@ -12,17 +12,17 @@ public:
     ConstantEFieldCavityRep(const ConstantEFieldCavityRep&);
     virtual ~ConstantEFieldCavityRep();
 
-    virtual ElementBase* clone() const;
+    ElementBase* clone() const override;
 
-    virtual Channel* getChannel(const std::string& aKey, bool = false);
+    Channel* getChannel(const std::string& aKey, bool = false) override;
 
-    virtual ConstEzField& getField();
-    virtual const ConstEzField& getField() const;
+    ConstEzField& getField() override;
+    const ConstEzField& getField() const override;
 
-    virtual StraightGeometry& getGeometry();
-    virtual const StraightGeometry& getGeometry() const;
+    StraightGeometry& getGeometry() override;
+    const StraightGeometry& getGeometry() const override;
 
-    void setElementLength(double length);
+    void setElementLength(double length) override;
     void setEz(double ez) override;
 
 private:
@@ -33,4 +33,3 @@ private:
 };
 
 #endif  // CLASSIC_ConstantEFieldCavityRep_HH
-

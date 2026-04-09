@@ -89,6 +89,7 @@ enum class ElementType : unsigned short {
     ANY,
     BEAMLINE,
     DRIFT,
+    LASER,
     MARKER,
     MULTIPOLE,
     MULTIPOLET,
