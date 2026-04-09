@@ -199,6 +199,9 @@ public:
     //  overwrite the execute-methode from DefaultVisitor
     virtual void visitBeamline(const Beamline&);
 
+    /// Apply the algorithm to an arbitrary component.
+    virtual void visitComponent(const Component&);
+
     /// Apply the algorithm to a constant E-field cavity element.
     virtual void visitConstantEFieldCavity(const ConstantEFieldCavity&);
 

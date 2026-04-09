@@ -1,4 +1,5 @@
 #include "MultiVariateGaussian.h"
+#include "Utilities/OpalException.h"
 #include <Kokkos_Core.hpp>
 #include <mpi.h>
 #include <algorithm>
@@ -196,6 +197,10 @@ void MultiVariateGaussian::ComputeCenteredBounds() {
  * @brief Generates particles following a multivariate Gaussian distribution.
  */
 void MultiVariateGaussian::generateParticles(size_t &numberOfParticles, Vector_t<double, 3> /*nr*/) {
+    if (emissionModel_m != "NONE")
+        throw OpalException("MultiVariateGaussian::generateParticles",
+                            "EMISSIONMODEL '" + emissionModel_m + "' is not supported for MULTIVARIATEGAUSS distributions");
+
     // Only generate during initial sampling (t0 <= 0). For t0 > 0, this
     // distribution is time-independent and should not contribute here unless
     // explicitly triggered via emitParticles (which sets hasEmittedOnce_m).
