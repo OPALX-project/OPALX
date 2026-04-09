@@ -2,6 +2,15 @@
 // Class StatWriter
 //   This class writes bunch statistics (*.stat).
 //
+//   One StatWriter instance corresponds to one output file. DataSink::init creates
+//   statWriters_m.size() == numParticleContainers writers: for a single container the
+//   file stem is the input basename (e.g. myjob -> myjob.stat); for multiple containers
+//   stems are basename + "_c" + index (run_c0.stat, run_c1.stat, ...), see
+//   DataSink::diagnosticStemForContainer. Each write() call must use the same
+//   particleContainerIndex as that writer's slot so row data comes from
+//   beam->getParticleContainer(particleContainerIndex). Shared beam-level quantities
+//   (e.g. time t, dt, rmsDensity, nBins) still come from PartBunch_t regardless of index.
+//
 // Copyright (c) 2019, Matthias Frey, Paul Scherrer Institut, Villigen PSI, Switzerland
 //                     Christof Metzger-Kraus, Open Sourcerer
 // All rights reserved
@@ -208,8 +217,9 @@ void StatWriter::write(
 
     double pathLength = pc->get_sPos();
 
-    /// Write data to files. If this is the first write to the beam statistics file, write SDDS
-    /// header information.
+    // First write to this writer's .stat file emits SDDS header via fillHeader/writeHeader.
+    // File vs. container: this object was constructed with the stem for particleContainerIndex;
+    // pc must be beam->getParticleContainer(particleContainerIndex) (caller responsibility).
 
     double Q = pc->getTotalCharge();
 
