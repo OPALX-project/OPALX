@@ -5,6 +5,7 @@ set (_SRCS
     Gaussian.cpp
     LaserProfile.cpp
     MultiVariateGaussian.cpp
+    SamplingBase.cpp
     )
 
 set (HDRS
@@ -13,9 +14,8 @@ set (HDRS
     FromFile.h
     Gaussian.h
     LaserProfile.h
-    MapGenerator.h
     MultiVariateGaussian.h
-    matrix_vector_operation.h
+    SamplingBase.hpp
     )
 
 target_include_directories(opalx PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

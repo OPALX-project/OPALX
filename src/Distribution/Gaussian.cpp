@@ -1,8 +1,9 @@
 #include "Distribution.h"
 #include "SamplingBase.hpp"
 #include "Gaussian.h"
+#include "Utilities/OpalException.h"
+#include <algorithm>
 #include <memory>
-#include <cmath>
 
 /**
  * @brief Constructs a Gaussian sampler.
@@ -62,6 +63,16 @@ void Gaussian::initRandomPool() {
  * @param nr The number of grid points in each dimension (not used here).
  */
 void Gaussian::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> /*nr*/) {
+    if (emissionModel_m != "NONE")
+        throw OpalException("Gaussian::generateParticles",
+                            "EMISSIONMODEL '" + emissionModel_m + "' is not supported for GAUSS distributions");
+
+    // Only generate during initial sampling (t0 <= 0). For t0 > 0, this
+    // distribution is time-independent and should not contribute here unless
+    // explicitly triggered via emitParticles (which sets hasEmittedOnce_m).
+    if (t0_m > 0.0 && !hasEmittedOnce_m) { // YES this !hasEmittedOnce_m is correct!
+        return;
+    }
     auto rand_pool64 = randPool_m;
 
     IpplTimings::startTimer(samperTimer_m);
@@ -78,28 +89,30 @@ void Gaussian::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> 
         rmax(i) = (rmax(i) + mu[i]) * sigmaR_m[i];
     }
 
-    view_type &Rview = pc_m->R.getView();
     const double par[6] = {mu[0], sd[0], mu[1], sd[1], mu[2], sd[2]};
 
     using Dist_t = ippl::random::NormalDistribution<double, 3>;
-    using sampling_t = ippl::random::InverseTransformSampling<double, 3, Kokkos::DefaultExecutionSpace, Dist_t>;
+    using sampling_t =
+        ippl::random::InverseTransformSampling<double, 3, Kokkos::DefaultExecutionSpace, Dist_t>;
     Dist_t dist(par);
 
-    MPI_Comm comm = MPI_COMM_WORLD;
-    int nranks, rank;
-    MPI_Comm_size(comm, &nranks);
-    MPI_Comm_rank(comm, &rank);
-
-    size_t nlocal = floor(numberOfParticles / nranks);
-    size_t remaining = numberOfParticles - nlocal * nranks;
-
-    if (remaining > 0 && rank == 0) {
-        nlocal += remaining;
-    }
+    const int nranks = std::max(1, ippl::Comm->size());
+    // Use computeLocalEmitCount to distribute particles across ranks or uniform fallback.
+    size_t nlocal   = pc_m ? computeLocalEmitCount(static_cast<size_t>(numberOfParticles))
+                           : static_cast<size_t>(floor(numberOfParticles / nranks)
+                                 + (ippl::Comm->rank() < static_cast<int>(numberOfParticles % static_cast<size_t>(nranks)) ? 1 : 0));
 
     sampling_t sampling(dist, rmax, rmin, rmax, rmin, nlocal);
     nlocal = sampling.getLocalSamplesNum();
+
+    const size_t nlocalCurrent = pc_m->getLocalNum();
     pc_m->create(nlocal);
+
+    view_type RviewFull = pc_m->R.getView();
+    auto Rview = Kokkos::subview(
+        RviewFull,
+        std::make_pair(nlocalCurrent, nlocalCurrent + nlocal));
+
     sampling.generate(Rview, rand_pool64);
 
     if (fixMeanR_m) {
@@ -111,21 +124,21 @@ void Gaussian::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> 
         }
 
         Kokkos::parallel_reduce(
-                "calc moments of particle distr.", nlocal,
-                KOKKOS_LAMBDA(
-                        const int k, double& cent0, double& cent1, double& cent2) {
-                        cent0 += Rview(k)[0];
-                        cent1 += Rview(k)[1];
-                        cent2 += Rview(k)[2];
-                },
-                Kokkos::Sum<double>(loc_meanR[0]), Kokkos::Sum<double>(loc_meanR[1]), Kokkos::Sum<double>(loc_meanR[2]));
+            "calc moments of particle distr.", nlocal,
+            KOKKOS_LAMBDA(const int k, double& cent0, double& cent1, double& cent2) {
+                cent0 += Rview(k)[0];
+                cent1 += Rview(k)[1];
+                cent2 += Rview(k)[2];
+            },
+            Kokkos::Sum<double>(loc_meanR[0]), Kokkos::Sum<double>(loc_meanR[1]),
+            Kokkos::Sum<double>(loc_meanR[2]));
         Kokkos::fence();
 
         MPI_Allreduce(loc_meanR, meanR, 3, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
         ippl::Comm->barrier();
 
-        for(int i=0; i<3; i++){
-        meanR[i] = meanR[i]/(1.0*numberOfParticles);
+        for (int i = 0; i < 3; i++) {
+            meanR[i] = meanR[i] / (1.0 * numberOfParticles);
         }
 
         Kokkos::parallel_for(
@@ -144,22 +157,65 @@ void Gaussian::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> 
         sd[i] = sigmaP_m[i];
     }
 
-    view_type &Pview = pc_m->P.getView();
+    view_type PviewFull = pc_m->P.getView();
+    auto Pview = Kokkos::subview(PviewFull, std::make_pair(nlocalCurrent, nlocalCurrent + nlocal));
+
     Kokkos::parallel_for(
-        nlocal,
-        ippl::random::randn<double, 3>(Pview, rand_pool64, mu, sd)
-    );
+        nlocal, 
+        ippl::random::randn<double, 3>(Pview, rand_pool64, mu, sd));
     Kokkos::fence();
 
     double avrgpz = avrgpz_m;
     Kokkos::parallel_for(
-        nlocal,
-        KOKKOS_LAMBDA(const int k) {
-            Pview(k)[2] += avrgpz;
-        }
-    );
+        nlocal, KOKKOS_LAMBDA(const size_t k) { 
+            Pview(k)[2] += avrgpz; 
+        });
     Kokkos::fence();
 
+    // Apply per-emission-source offsets after all mean-fixing/corrections.
+    // EMISSIONSOURCE offsets are expected to translate the generated bunch
+    // without being affected by the internal "fix mean" logic.
+    const Vector_t<double, 3> R0 = R0_m;
+    const Vector_t<double, 3> P0 = P0_m;
+    Kokkos::parallel_for(
+        nlocal, KOKKOS_LAMBDA(const size_t k) {
+            Rview(k) += R0;
+            Pview(k) += P0;
+        });
+
     IpplTimings::stopTimer(samperTimer_m);
+}
+
+void Gaussian::emitParticles(double t, double dt) {
+    // One-shot delayed emission for GAUSS: emit once when [t, t+dt] crosses t0_m.
+    const double tStart = t;
+    const double tEnd   = t + dt;
+
+    if (hasEmittedOnce_m) {
+        return;
+    }
+
+    // Only meaningful for t0 > 0.
+    if (t0_m <= 0.0) {
+        return;
+    }
+
+    // Fire when the time interval [tStart, tEnd] crosses t0_m.
+    if (!(tStart <= t0_m && t0_m < tEnd)) {
+        return;
+    }
+
+    if (!opalDist_m) {
+        return;
+    }
+    size_t Ndist = opalDist_m->getNumParticles();
+    if (Ndist == 0) {
+        return;
+    }
+
+    // Mark as emitted so generateParticles will not early-return.
+    hasEmittedOnce_m = true;
+    Vector_t<double, 3> dummyNr(0.0);
+    generateParticles(Ndist, dummyNr);
 }
 

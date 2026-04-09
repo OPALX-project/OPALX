@@ -8,6 +8,15 @@ on:
     types: [opened, synchronize, reopened, labeled, ready_for_review]
     branches: [ "master" ]
 
+# Cancel any in-progress runs of this workflow for the same pull 
+# request when a new commit is pushed or when the PR is updated 
+# with new labels. This ensures that only the latest run for a 
+# given PR is active, preventing redundant builds and saving CI 
+# resources.
+concurrency:
+  group: ${{ github.workflow }}-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   # ===== CPU SERIAL BUILD =====
   build-cpu-serial-debug:
@@ -139,7 +148,8 @@ jobs:
           cmake .. \
             -DBUILD_TYPE=Debug \
             -DPLATFORMS=CUDA \
-            -DARCH=AMPERE80
+            -DARCH=AMPERE80 \
+            -DOPALX_ENABLE_UNIT_TESTS=ON
           
       - name: Build project
         run: |
@@ -186,7 +196,8 @@ jobs:
             -DAMDGPU_TARGETS=gfx90a \
             -DCMAKE_HIP_ARCHITECTURES=gfx90a \
             -DCMAKE_HIP_FLAGS=--offload-arch=gfx90a \
-            -DKokkos_ARCH_AMD_GFX90A=ON
+            -DKokkos_ARCH_AMD_GFX90A=ON \
+            -DOPALX_ENABLE_UNIT_TESTS=ON
           
       - name: Build project
         run: |

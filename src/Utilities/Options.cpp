@@ -84,7 +84,7 @@ namespace Options {
 
     bool asciidump = false;
 
-    int boundpDestroyFreq = 10;
+    double boundpDestroy = 10;
 
     double beamHaloBoundary = 0;
 
@@ -103,4 +103,7 @@ namespace Options {
     unsigned int delPartFreq = 1;
 
     bool computePercentiles = false;
+
+    bool useQMAttributes = false;  // corresponds to QM_MODE=SINGLE
+
 }  // namespace Options

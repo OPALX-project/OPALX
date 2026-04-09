@@ -71,7 +71,7 @@ bool Solenoid::apply() {
     std::shared_ptr<ParticleContainer_t> pc = 
         RefPartBunch_m->getParticleContainer();
    
-    fieldmap_m->applyField(pc);
+    fieldmap_m->applyField(pc, scale_m + scaleError_m);
 
     return false; 
 }

@@ -84,6 +84,7 @@ For the release mode, use `Release` instead of `Debug` as the argument for `-DBU
 #### Further Options
 | Flag | Default | Description |
 |------|---------|-------------|
+| `OPALX_EMBED_BUILD_METADATA` | OFF | Embeds user, machine, and date metadata into `BuildInfo.h`; leave OFF to reduce rebuild churn. |
 | `OPALX_USE_INSTALLED_HDF5` | OFF | Disables the use of system-built HDF5 dependency. |
 | `OPALX_USE_INSTALLED_H5HUT` | OFF |  Disables the use of system-built H5hut dependency. |
 | `OPALX_USE_INSTALLED_GTEST` | OFF |  Disables the use of system-built GoogleTest dependency. |
@@ -93,11 +94,15 @@ For the release mode, use `Release` instead of `Debug` as the argument for `-DBU
 | `OPALX_ENABLE_EXAMPLES` | OFF | Disables building the Example module. |
 | `OPALX_ENABLE_TESTS` | OFF | Disables building integration tests in the test/ directory. |
 | `OPALX_ENABLE_COVERAGE` | OFF | Disables code coverage instrumentation. |
+| `OPALX_ENABLE_HIP_PROFILER` | OFF | Enables the HIP Systems Profiler on HIP builds and adds the corresponding compile definition. |
 | `OPALX_ENABLE_NSYS_PROFILER` | OFF | Disables Nvidia Nsight Systems Profiler; requires CUDA platform and adds compile definition -DOPALX_ENABLE_NSYS_PROFILER. |
 | `OPALX_ENABLE_SANITIZER` | OFF | Disables sanitizer tools (e.g., AddressSanitizer). |
 | `OPALX_USE_ALTERNATIVE_VARIANT` | OFF | Disables modified variant implementation; required for CUDA 12.2 + GCC 12.3.0 compatibility. |
+| `OPALX_USE_STANDARD_FOLDERS` | OFF | Places generated binaries and libraries under the build tree `bin/` and `lib/` folders. |
+| `OPALX_SKIP_FAILING_TESTS` | OFF | Skips building and running tests that are currently marked as failing. |
 | `OPALX_ENABLE_SCRIPTS` | OFF | Disables generation of job script templates for benchmarks/tests. |
 | `OPALX_FIELD_DEBUG` | OFF | Disables FieldSolver field-dump debug code; emits field dumps during simulation when enabled. |
+| `OPALX_USE_KOKKOS_MATH_CONSTANTS` | ON | Sources `Physics.h` mathematical constants such as `pi`, `e`, and `log10e` from `Kokkos::numbers`; turn OFF to use literal fallback values. |
 
 Enable flags with `-D<FLAG>=ON` during CMake configuration.
 

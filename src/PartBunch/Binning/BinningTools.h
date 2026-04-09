@@ -2,6 +2,7 @@
 #define BINNINGTOOLS_H
 
 #include "ParallelReduceTools.h" // needed for HistoReductionMode and maxArrSize
+#include "Utilities/OpalException.h"
 
 namespace ParticleBinning {
 
@@ -32,13 +33,20 @@ namespace ParticleBinning {
     template <typename bin_index_type>
     HistoReductionMode determineHistoReductionMode(HistoReductionMode modePreference, bin_index_type binCount) {
         // Overwrite standard mode if compiled with default host execution space!
-        if (std::is_same<Kokkos::DefaultExecutionSpace, Kokkos::DefaultHostExecutionSpace>::value) return HistoReductionMode::HostOnly;
+        if (std::is_same<Kokkos::DefaultExecutionSpace, Kokkos::DefaultHostExecutionSpace>::value)
+            return HistoReductionMode::HostOnly;
 
+#ifdef OPALX_DEVICE_COMPILATION
+        // In device builds HostOnly reductions are not supported; calling them is a logic error.
+        if (modePreference == HistoReductionMode::HostOnly) {
+            throw OpalException(
+                "ParticleBinning::determineHistoReductionMode",
+                "HistoReductionMode::HostOnly is not supported when OPALX_DEVICE_COMPILATION is "
+                "enabled.");
+        }
+#endif
         // Otherwise choose automatically if Standard and respect preference if not on host and not standard!
-        if (modePreference == HistoReductionMode::Standard) { //  || modePreference == HistoReductionMode::HostOnly
-            //if (modePreference == HistoReductionMode::HostOnly) {
-            //    std::cerr << "Warning: HostOnly mode is not supported on CUDA! Switching to Standard mode." << std::endl;
-            //}
+        if (modePreference == HistoReductionMode::Standard) {
             return (binCount <= maxArrSize<bin_index_type>) ? HistoReductionMode::ParallelReduce : HistoReductionMode::TeamBased;
         } else {
             return modePreference;
@@ -125,16 +133,49 @@ namespace ParticleBinning {
         }
     };
 
+    /**
+     * @brief Selects the gamma factor for binning.
+     *
+     * This struct provides a way to select the gamma factor for binning. It allows specifying the
+     * axis index, making it versatile for different coordinate-based binning operations. Usually
+     * used on axis 2, meaning the gamma in z-direction.
+     *
+     * @note The implementation is equivalent to CoordinateSelector.
+     */
+    template <typename bunch_type>
+    struct GammaSelector {
+        using value_type         = typename bunch_type::Layout_t::value_type;
+        using size_type          = typename bunch_type::size_type;
+        using position_view_type = typename bunch_type::particle_position_type::view_type;
+
+        position_view_type data_arr;
+        const int axis;
+
+        GammaSelector(int axis_) : axis(axis_) { }
+
+        void updateDataArr(std::shared_ptr<bunch_type> bunch) {
+            data_arr = bunch->P.getView();
+        }
+
+        KOKKOS_INLINE_FUNCTION
+        value_type operator()(const size_type& i) const {
+            const value_type value = data_arr(i)[axis];
+            return sqrt(1 + value * value);
+        }
+    };
 
     /**
-     * @brief Computes the post- or prefix-sum of the input view and stores the result in the ...-sum view.
+     * @brief Computes the post- or prefix-sum of the input view and stores the result in the
+     * ...-sum view.
      *
      * @tparam SizeType The type of the elements in the input and ...-sum views.
      * @param input_view The input view containing the elements to be summed.
-     * @param post_sum_view The output view where the ...-sum results will be stored. It must have a size of input_view.extent(0) + 1.
+     * @param post_sum_view The output view where the ...-sum results will be stored. It must have a
+     * size of input_view.extent(0) + 1.
      * @param postSum If true, the post-sum is computed; otherwise, the prefix-sum is computed.
      *
-     * @throws `ippl::Comm->abort();` if the size of the post_sum_view is not equal to input_view.extent(0) + 1.
+     * @throws `ippl::Comm->abort();` if the size of the post_sum_view is not equal to
+     * input_view.extent(0) + 1.
      */
     template <typename ViewType>
     void computeFixSum(const ViewType& input_view, const ViewType& post_sum_view) {

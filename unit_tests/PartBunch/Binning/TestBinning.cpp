@@ -1,16 +1,21 @@
-//
-// Unit tests for the Binning module:
-//   - ParallelReduceTools (ArrayReduction, HostArrayReduction, createReductionObject)
-//   - BinningTools (computeFixSum, determineHistoReductionMode, viewIsSorted, CoordinateSelector)
-//   - BinHisto (Histogram class: construction, init, postSum, mergeBins, iteration policies)
-//   - AdaptBins (full integration: initLimits, assignBins, histogram, sort, adaptive rebinning)
-//
-// A minimal bunch type (TestBunch) is constructed with a mesh and field layout,
-// similar to how it is done for IPPL's GatherScatterTest.
-//
+/**
+ * @file TestBinning.cpp
+ * @brief Unit tests for the particle binning subsystem (tools, histogram, and adaptive binning
+ * workflow).
+ *
+ * Unit tests for the Binning module:
+ *   - ParallelReduceTools (ArrayReduction, HostArrayReduction, createReductionObject)
+ *   - BinningTools (computeFixSum, determineHistoReductionMode, viewIsSorted, CoordinateSelector)
+ *   - BinHisto (Histogram class: construction, init, postSum, mergeBins, iteration policies)
+ *   - AdaptBins (full integration: initLimits, assignBins, histogram, sort, adaptive rebinning)
+ *
+ * A minimal bunch type (TestBunch) is constructed with a mesh and field layout,
+ * similar to how it is done for IPPL's GatherScatterTest.
+ */
 
 #include "Ippl.h"
 #include "gtest/gtest.h"
+#include "Utilities/OpalException.h"
 
 // VField_t alias required by ParallelReduceTools.h (vnorm) and AdaptBins.h (LTrans)
 template <unsigned Dim>
@@ -44,6 +49,7 @@ using size_type = ippl::detail::size_type;
 #include <numeric>
 #include <algorithm>
 #include <cmath>
+#include <string>
 #include <iostream>
 
 // ============================================================================
@@ -200,9 +206,11 @@ protected:
     void buildAdaptBins(bin_index_type maxBins = 5,
                         value_type alpha = 1.0,
                         value_type beta  = 1.0,
-                        value_type desW  = 0.1) {
+                        value_type desW  = 0.1,
+                        const std::string& binningCmdName = "TEST_BINNING_CMD") {
         Selector_t selector(2);  // bin along axis 2 (z-component of P)
-        adaptBins = std::make_shared<AdaptBins_t>(bunch, selector, maxBins, alpha, beta, desW);
+        adaptBins = std::make_shared<AdaptBins_t>(
+            bunch, selector, maxBins, alpha, beta, desW, binningCmdName);
     }
 };
 
@@ -267,7 +275,11 @@ TEST_F(BinningTest, CreateReductionObjectInvalid) {
 }
 
 TEST_F(BinningTest, HostArrayReductionBasics) {
-    // HostArrayReduction: dynamic allocation, zero init, +=
+    // HostArrayReduction is a host-only helper and cannot be used when
+    // OPALX_DEVICE_COMPILATION is enabled (see ParallelReduceTools.h).
+#ifdef OPALX_DEVICE_COMPILATION
+    GTEST_SKIP() << "HostArrayReduction is host-only; skipped under OPALX_DEVICE_COMPILATION.";
+#else
     constexpr bin_index_type N = 4;
     ParticleBinning::HostArrayReduction<size_type, bin_index_type>::binCountStatic = N;
 
@@ -279,12 +291,17 @@ TEST_F(BinningTest, HostArrayReductionBasics) {
     a.the_array[3] = 3;
 
     ParticleBinning::HostArrayReduction<size_type, bin_index_type> b;
+    for (bin_index_type i = 0; i < N; ++i) {
+        EXPECT_EQ(b.the_array[i], 0u);
+    }
+
     b.the_array[0] = 1;
     b.the_array[3] = 2;
 
     a += b;
     EXPECT_EQ(a.the_array[0], 8u);
     EXPECT_EQ(a.the_array[3], 5u);
+#endif
 }
 
 TEST_F(BinningTest, KokkosReductionIdentityArrayReduction) {
@@ -298,6 +315,9 @@ TEST_F(BinningTest, KokkosReductionIdentityArrayReduction) {
 }
 
 TEST_F(BinningTest, KokkosReductionIdentityHostArrayReduction) {
+#ifdef OPALX_DEVICE_COMPILATION
+    GTEST_SKIP() << "HostArrayReduction reduction identity is host-only; skipped under OPALX_DEVICE_COMPILATION.";
+#else
     constexpr bin_index_type N = 4;
     ParticleBinning::HostArrayReduction<size_type, bin_index_type>::binCountStatic = N;
     auto identity = Kokkos::reduction_identity<
@@ -305,6 +325,7 @@ TEST_F(BinningTest, KokkosReductionIdentityHostArrayReduction) {
     for (bin_index_type i = 0; i < N; ++i) {
         EXPECT_EQ(identity.the_array[i], 0u);
     }
+#endif
 }
 
 
@@ -333,10 +354,20 @@ TEST_F(BinningTest, DetermineHistoReductionModeStandard) {
 }
 
 TEST_F(BinningTest, DetermineHistoReductionModeForced) {
-    // If a specific mode is forced, it should be respected (unless host-only execution space).
+    // If a specific mode is forced, it should be respected where supported.
     bool isHostSpace = std::is_same<Kokkos::DefaultExecutionSpace,
                                     Kokkos::DefaultHostExecutionSpace>::value;
+
     if (!isHostSpace) {
+#ifdef OPALX_DEVICE_COMPILATION
+        // On device builds, forcing HostOnly must throw (guard against misuse).
+        EXPECT_THROW(
+            (ParticleBinning::determineHistoReductionMode<bin_index_type>(
+                ParticleBinning::HistoReductionMode::HostOnly, 2)),
+            OpalException);
+#endif
+
+        // For other modes like TeamBased, the preference must be respected.
         auto mode = ParticleBinning::determineHistoReductionMode<bin_index_type>(
             ParticleBinning::HistoReductionMode::TeamBased, 2);
         EXPECT_EQ(mode, ParticleBinning::HistoReductionMode::TeamBased);
@@ -485,16 +516,29 @@ TEST_F(BinningTest, HistogramAssignmentOperator) {
     EXPECT_EQ(assigned.getNPartInBin(1), 13u);
 }
 
+struct FillPolicyHistogram1 {
+    using Histo_t = ParticleBinning::Histogram<size_type, bin_index_type, value_type, true>;
+    using view_type = decltype(std::declval<Histo_t>().getHistogram().view_device());
+    view_type dView;
+
+    FillPolicyHistogram1(view_type v) : dView(v) {}
+
+    KOKKOS_FUNCTION
+    void operator()(const size_t) const {
+        dView(0) = 5;
+        dView(1) = 10;
+        dView(2) = 15;
+    }
+};
+
 TEST_F(BinningTest, HistogramGetBinIterationPolicy) {
     // Use DualView=true to avoid Kokkos subview type mismatch in non-DualView path.
     using Histo_t = ParticleBinning::Histogram<size_type, bin_index_type, value_type, true>;
     Histo_t histo("policyTest", 3, 1.0, 1.0, 1.0, 0.3);
 
-    // Set counts on device then sync
     auto dView = histo.getHistogram().view_device();
-    Kokkos::parallel_for("fillPolicyHisto", 1, KOKKOS_LAMBDA(const int) {
-        dView(0) = 5; dView(1) = 10; dView(2) = 15;
-    });
+    Kokkos::parallel_for("fillPolicyHisto1", 1, FillPolicyHistogram1(dView));
+
     histo.modify_device();
     histo.sync();
     histo.init();
@@ -559,6 +603,21 @@ TEST_F(BinningTest, HistogramMergeBins) {
     EXPECT_EQ(totalAfter, 406u);  // 3*1 + 4*100 + 3*1 = 406
 }
 
+
+struct FillPolicyHistogram2 {
+    using Histo_t = ParticleBinning::Histogram<size_type, bin_index_type, value_type, true>;
+    using view_type = decltype(std::declval<Histo_t>().getHistogram().view_device());
+    view_type dView;
+
+    FillPolicyHistogram2(view_type v) : dView(v) {}
+
+    KOKKOS_FUNCTION
+    void operator()(const size_t i) const {
+        dView(i) = (i + 1) * 10;
+    }
+};
+
+
 TEST_F(BinningTest, HistogramDualViewConstruction) {
     // Test that the DualView variant of Histogram works properly.
     using Histo_t = ParticleBinning::Histogram<size_type, bin_index_type, value_type, true>;
@@ -567,9 +626,8 @@ TEST_F(BinningTest, HistogramDualViewConstruction) {
 
     // Set counts on device, sync to host
     auto dView = histo.getHistogram().view_device();
-    Kokkos::parallel_for("fillDualHisto", 4, KOKKOS_LAMBDA(const int i) {
-        dView(i) = (i + 1) * 10;
-    });
+    Kokkos::parallel_for("fillPolicyHisto2", 4, FillPolicyHistogram2(dView));
+
     histo.modify_device();
     histo.sync();
     histo.init();
@@ -876,6 +934,11 @@ TEST_F(BinningTest, AdaptBinsSortAndPoliciesConsistent) {
 
 TEST_F(BinningTest, AdaptBinsHistoReductionModes) {
     // Test that doFullRebin works with each explicitly forced reduction mode.
+    // HostOnly reduction mode is implemented using HostArrayReduction, which is
+    // explicitly host-only in device builds (see ParallelReduceTools.h).
+#ifdef OPALX_DEVICE_COMPILATION
+    GTEST_SKIP() << "HostOnly histogram reduction is host-only; skipped under OPALX_DEVICE_COMPILATION.";
+#else
     size_t nPart = 200;
     createParticles(nPart);
 
@@ -890,6 +953,7 @@ TEST_F(BinningTest, AdaptBinsHistoReductionModes) {
         totalHost += adaptBins->getNPartInBin(b);
     }
     EXPECT_EQ(totalHost, bunch->getLocalNum());
+#endif
 }
 
 TEST_F(BinningTest, AdaptBinsUniformDistributionEvenBins) {

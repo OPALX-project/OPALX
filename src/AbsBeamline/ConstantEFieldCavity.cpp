@@ -71,21 +71,21 @@ void ConstantEFieldCavity::setEz(double ez) {
 
 bool ConstantEFieldCavity::apply() {
     std::shared_ptr<ParticleContainer_t> pc = RefPartBunch_m->getParticleContainer();
-    auto Rview                               = pc->R.getView();
-    auto Eview                               = pc->E.getView();
+    auto Rview                              = pc->R.getView();
+    auto Eview                              = pc->E.getView();
+    const size_t nLocal                     = pc->getLocalNum();
 
     const double elemLength = getElementLength();
     const double Ex         = Ex_m;
     const double Ey         = Ey_m;
     const double Ez         = Ez_m;
 
-    Kokkos::parallel_for(
-        "ConstantEFieldCavity::apply()", ippl::getRangePolicy(Rview),
-        KOKKOS_LAMBDA(const int i) {
-            if (Rview(i)(2) > 0.0 && Rview(i)(2) <= elemLength) {
-                Eview(i)(0) += Ex;
-                Eview(i)(1) += Ey;
-                Eview(i)(2) += Ez;
+    Kokkos::parallel_for("ConstantEFieldCavity::apply()", nLocal,
+        KOKKOS_LAMBDA(const size_t i) {
+            if (Rview(i)[2] > 0.0 && Rview(i)[2] <= elemLength) {
+                Eview(i)[0] += Ex;
+                Eview(i)[1] += Ey;
+                Eview(i)[2] += Ez;
             }
         });
     return false;
@@ -94,7 +94,7 @@ bool ConstantEFieldCavity::apply() {
 bool ConstantEFieldCavity::apply(const size_t& i, const double& /*t*/,
                                  Vector_t<double, 3>& E, Vector_t<double, 3>& /*B*/) {
     std::shared_ptr<ParticleContainer_t> pc = RefPartBunch_m->getParticleContainer();
-    auto Rview                               = pc->R.getView();
+    auto Rview                              = pc->R.getView();
     const Vector_t<double, 3> R             = Rview(i);
 
     if (R(2) < 0.0 || R(2) > getElementLength())

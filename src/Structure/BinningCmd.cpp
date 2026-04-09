@@ -53,6 +53,12 @@ BinningCmd::BinningCmd()
         "DUMPBINSFREQ",
         "The frequency in timesteps of dumping bins to a file. Default: 1.",
         1);
+
+    itsAttr[BINNING::TABLEPRINTFREQ] = Attributes::makeReal(
+        "TABLEPRINTFREQ",
+        "The frequency in global timesteps of printing bin statistics to console. "
+        "If 0, printing is disabled. Default: 10.",
+        10);
 }
 
 BinningCmd::BinningCmd(const std::string& name, BinningCmd* parent)
@@ -112,6 +118,16 @@ void BinningCmd::update() {
             }
         }
     }
+
+    // Validate console table print frequency (used in binned mode).
+    {
+        const int freq =
+            static_cast<int>(Attributes::getReal(itsAttr[BINNING::TABLEPRINTFREQ]));
+        if (freq < 0) {
+            throw OpalException("BinningCmd::update",
+                                "TABLEPRINTFREQ must be >= 0.");
+        }
+    }
 }
 
 void BinningCmd::setParameterType() {
@@ -137,16 +153,17 @@ void BinningCmd::setParameterType() {
 Inform& BinningCmd::printInfo(Inform& os) const {
     os << "* ************* B I N N I N G ****************************************************** "
        << endl;
-    os << "* BINNING      " << getOpalName() << '\n'
-       << "* MAXBINS      " << getMaxBins() << '\n'
-       << "* DESIREDWIDTH " << getDesiredWidth() << '\n'
-       << "* BINNINGALPHA " << getBinningAlpha() << '\n'
-       << "* BINNINGBETA  " << getBinningBeta() << '\n'
-       << "* PARAMETER    " << parameterName_m << endl;
+    os << "* BINNING        " << getOpalName() << '\n'
+       << "* MAXBINS        " << getMaxBins() << '\n'
+       << "* DESIREDWIDTH   " << getDesiredWidth() << '\n'
+       << "* BINNINGALPHA   " << getBinningAlpha() << '\n'
+       << "* BINNINGBETA    " << getBinningBeta() << '\n'
+       << "* PARAMETER      " << parameterName_m << endl;
     if (dumpBinsToFile()) {
-        os << "* DUMPBINSFILE " << getDumpBinsFileName() << '\n'
-           << "* DUMPBINSFREQ " << getDumpBinsFrequency() << endl;
+        os << "* DUMPBINSFILE   " << getDumpBinsFileName() << '\n'
+           << "* DUMPBINSFREQ   " << getDumpBinsFrequency() << endl;
     }
+    os << "* TABLEPRINTFREQ " << getTablePrintFrequency() << endl;
     os << "* ********************************************************************************** "
        << endl;
 
@@ -182,6 +199,16 @@ int BinningCmd::getDumpBinsFrequency() const {
     if (dumpBinsToFile() && freq < 1) {
         throw OpalException("BinningCmd::getDumpBinsFrequency",
                             "DUMPBINSFREQ must be >= 1 if dumping bins to a file.");
+    }
+    return freq;
+}
+
+int BinningCmd::getTablePrintFrequency() const {
+    const int freq =
+        static_cast<int>(Attributes::getReal(itsAttr[BINNING::TABLEPRINTFREQ]));
+    if (freq < 0) {
+        throw OpalException("BinningCmd::getTablePrintFrequency",
+                            "TABLEPRINTFREQ must be >= 0.");
     }
     return freq;
 }

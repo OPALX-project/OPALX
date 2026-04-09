@@ -4,6 +4,7 @@ set (_SRCS
     OpalTravelingWave.cpp
     OpalDrift.cpp
     OpalElement.cpp
+    OpalLaser.cpp
     OpalMarker.cpp
     OpalMultipole.cpp
     OpalMultipoleT.cpp
@@ -36,6 +37,7 @@ set (HDRS
     OpalSolenoid.h
     OpalTravelingWave.h
     OpalRingDefinition.h
+    OpalLaser.h
     OpalOffset/OpalGlobalCartesianOffset.h
     OpalOffset/OpalGlobalCylindricalOffset.h
     OpalOffset/OpalLocalCartesianOffset.h
