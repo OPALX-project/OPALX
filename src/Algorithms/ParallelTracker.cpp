@@ -47,6 +47,7 @@
 #include "Structure/BoundingBox.h"
 
 #include "Utilities/OpalException.h"
+#include "Utilities/LogicalError.h"
 #include "Utilities/Options.h"
 #include "Utilities/Timer.h"
 #include "Utilities/Util.h"
@@ -111,6 +112,16 @@ ParallelTracker::~ParallelTracker() {
 }
 /* ========================================================================== */
 /* =========================== Visit Functions ============================== */
+void ParallelTracker::visitComponent(const Component& comp) {
+    if (comp.getType() == ElementType::LASER) {
+        throw LogicalError(
+            "ParallelTracker::visitComponent()",
+            "Tracking of the \"LASER\" element is not implemented yet.");
+    }
+
+    Tracker::visitComponent(comp);
+}
+
 /**
  * @brief Iterates over the list of elements in TBeamline& bl and calls
  * the overloaded accept() function for each element.
