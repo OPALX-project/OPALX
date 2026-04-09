@@ -77,16 +77,21 @@ void OpalLaser::update() {
 
     OpalElement::update();
 
-    // The prototype instance has no attributes set; skip validation and
-    // propagation for it.  OpalData::update() calls update() on every object
-    // in the directory, including prototypes, so we must not throw here.
-    if (getParent() == nullptr) {
+    auto* laser = dynamic_cast<LaserRep*>(getElement());
+    if (!laser) {
+        OpalElement::updateUnknown(getElement());
         return;
     }
 
-    auto* laser = dynamic_cast<LaserRep*>(getElement());
-    if (laser == nullptr) {
-        throw OpalException(where, "Embedded element is not a LaserRep.");
+    // Required attributes are unset on the prototype instance.
+    // OpalData::update() calls update() on every object in the directory,
+    // so skip propagation silently when nothing has been configured yet.
+    //
+    /// \todo Consider a more robust way to handle this, e.g. with default 
+    /// values and then putting checks itself into the representation instance! 
+    if (!itsAttr[WAVELENGTH]) {
+        OpalElement::updateUnknown(laser);
+        return;
     }
 
     const double wavelength = getRequiredPositiveReal(itsAttr, WAVELENGTH, where);
