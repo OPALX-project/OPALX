@@ -83,13 +83,29 @@ void OpalLaser::update() {
         return;
     }
 
-    // Required attributes are unset on the prototype instance.
     // OpalData::update() calls update() on every object in the directory,
-    // so skip propagation silently when nothing has been configured yet.
+    // including the prototype instance whose required attributes are all unset.
+    // Skip propagation silently only when none of the required attributes has
+    // been configured yet (i.e. this is truly the unmodified prototype).
     //
-    /// \todo Consider a more robust way to handle this, e.g. with default 
-    /// values and then putting checks itself into the representation instance! 
-    if (!itsAttr[WAVELENGTH]) {
+    /// \todo Refactor to follow the standard OPAL element pattern:
+    //   1. Register every attribute with a sentinel default in the constructor
+    //      (e.g. Attributes::makeReal("WAVELENGTH", "...", 0.0)) so that
+    //      Attributes::getReal() always returns a well-defined value, even on
+    //      the prototype. OpalSolenoid and OpalCavity are good examples.
+    //   2. In update(), read all attributes unconditionally with
+    //      Attributes::getReal() / Attributes::getRealArray() and forward them
+    //      to LaserRep without throwing. No prototype guard is needed because
+    //      zero/sentinel values are harmless.
+    //   3. Move the "must be positive / must be set" validation into LaserRep,
+    //      e.g. in initialise() which is called only when the element is
+    //      actually inserted into a tracked beamline.  That is the right layer
+    //      to enforce physical constraints, and it keeps OpalLaser::update()
+    //      consistent with every other OpalElement subclass.
+    const bool anyConfigured = itsAttr[WAVELENGTH] || itsAttr[PULSEENERGY]
+                               || itsAttr[PULSELENGTH] || itsAttr[WAISTX]
+                               || itsAttr[WAISTY] || itsAttr[DIR];
+    if (!anyConfigured) {
         OpalElement::updateUnknown(laser);
         return;
     }
