@@ -5,7 +5,6 @@ set (_SRCS
     Euclid3DGeometry.cpp
     NullGeometry.cpp
     PlanarArcGeometry.cpp
-    VarRadiusGeometry.cpp
     RBendGeometry.cpp
     Rotation3D.cpp
     StraightGeometry.cpp
@@ -19,7 +18,6 @@ set (HDRS
     Matrix3D.h
     NullGeometry.h
     PlanarArcGeometry.h
-    VarRadiusGeometry.h
     RBendGeometry.h
     Rotation3D.h
     StraightGeometry.h

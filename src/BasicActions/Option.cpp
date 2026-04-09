@@ -80,7 +80,7 @@ namespace {
         ENABLEHDF5,
         ENABLEVTK,
         ASCIIDUMP,
-        BOUNDPDESTROYFQ,
+        BOUNDPDESTROY,
         BEAMHALOBOUNDARY,
         CLOTUNEONLY,
         IDEALIZED,
@@ -92,6 +92,7 @@ namespace {
         MINBINEMITTED,
         MINSTEPFORREBIN,
         COMPUTEPERCENTILES,
+        QM_MODE,
         SIZE
     };
 }  // namespace
@@ -103,222 +104,230 @@ Option::Option()
     itsAttr[INFO] = Attributes::makeBool("INFO", "If true, print information messages", info);
 
     itsAttr[TRACE] = Attributes::makeBool(
-        "TRACE",
-        "If true, print execution trace"
-        "Must be the first option in the inputfile in "
-        "order to render correct results",
-        mtrace);
+            "TRACE",
+            "If true, print execution trace"
+            "Must be the first option in the inputfile in "
+            "order to render correct results",
+            mtrace);
 
     itsAttr[WARN] = Attributes::makeBool("WARN", "If true, print warning messages", warn);
 
     itsAttr[SEED] = Attributes::makeReal(
-        "SEED", "The seed for the random generator, -1 will use time(0) as seed ");
+            "SEED", "The seed for the random generator, -1 will use time(0) as seed ");
 
     itsAttr[TELL] = Attributes::makeBool(
-        "TELL",
-        "If true, print the current settings. "
-        "Must be the last option in the inputfile in "
-        "order to render correct results",
-        false);
+            "TELL",
+            "If true, print the current settings. "
+            "Must be the last option in the inputfile in "
+            "order to render correct results",
+            false);
 
     itsAttr[PSDUMPFREQ] = Attributes::makeReal(
-        "PSDUMPFREQ",
-        "The frequency to dump the phase space, "
-        "i.e.dump data when step%psDumpFreq==0, its default value is 10.",
-        psDumpFreq);
+            "PSDUMPFREQ",
+            "The frequency to dump the phase space, "
+            "i.e.dump data when step%psDumpFreq==0, its default value is 10.",
+            psDumpFreq);
 
     itsAttr[STATDUMPFREQ] = Attributes::makeReal(
-        "STATDUMPFREQ",
-        "The frequency to dump statistical data "
-        "(e.g. RMS beam quantities), i.e. dump data when step%statDumpFreq == 0, "
-        "its default value is 10.",
-        statDumpFreq);
+            "STATDUMPFREQ",
+            "The frequency to dump statistical data "
+            "(e.g. RMS beam quantities), i.e. dump data when step%statDumpFreq == 0, "
+            "its default value is 10.",
+            statDumpFreq);
 
     itsAttr[PSDUMPEACHTURN] = Attributes::makeBool(
-        "PSDUMPEACHTURN",
-        "If true, dump phase space after each "
-        "turn ,only aviable for OPAL-cycl, its default value is false",
-        psDumpEachTurn);
+            "PSDUMPEACHTURN",
+            "If true, dump phase space after each "
+            "turn ,only aviable for OPAL-cycl, its default value is false",
+            psDumpEachTurn);
 
     itsAttr[SCSOLVEFREQ] = Attributes::makeReal(
-        "SCSOLVEFREQ", "The frequency to solve space charge fields. its default value is 1");
+            "SCSOLVEFREQ", "The frequency to solve space charge fields. its default value is 1");
 
     itsAttr[MTSSUBSTEPS] = Attributes::makeReal(
-        "MTSSUBSTEPS",
-        "How many small timesteps "
-        "are inside the large timestep used in multiple "
-        "time stepping (MTS) integrator");
+            "MTSSUBSTEPS",
+            "How many small timesteps "
+            "are inside the large timestep used in multiple "
+            "time stepping (MTS) integrator");
 
     itsAttr[REMOTEPARTDEL] = Attributes::makeReal(
-        "REMOTEPARTDEL",
-        "Artifically delete the remote particle "
-        "if its distance to the beam mass is larger than "
-        "REMOTEPARTDEL times of the beam rms size, "
-        "its default values is 0 (no delete) ",
-        remotePartDel);
+            "REMOTEPARTDEL",
+            "Artifically delete the remote particle "
+            "if its distance to the beam mass is larger than "
+            "REMOTEPARTDEL times of the beam rms size, "
+            "its default values is 0 (no delete) ",
+            remotePartDel);
 
     itsAttr[PSDUMPFRAME] = Attributes::makePredefinedString(
-        "PSDUMPFRAME",
-        "Controls the frame of phase space dump in "
-        "stat file and h5 file. If 'GLOBAL' OPAL will dump in the "
-        "lab (global) Cartesian frame; if 'BUNCH_MEAN' OPAL will "
-        "dump in the local Cartesian frame of the beam mean; "
-        "if 'REFERENCE'  OPAL will dump in the local Cartesian "
-        "frame of the reference particle 0. Only available for "
-        "OPAL-cycl.",
-        {"BUNCH_MEAN", "REFERENCE", "GLOBAL"}, "GLOBAL");
+            "PSDUMPFRAME",
+            "Controls the frame of phase space dump in "
+            "stat file and h5 file. If 'GLOBAL' OPAL will dump in the "
+            "lab (global) Cartesian frame; if 'BUNCH_MEAN' OPAL will "
+            "dump in the local Cartesian frame of the beam mean; "
+            "if 'REFERENCE'  OPAL will dump in the local Cartesian "
+            "frame of the reference particle 0. Only available for "
+            "OPAL-cycl.",
+            {"BUNCH_MEAN", "REFERENCE", "GLOBAL"}, "GLOBAL");
 
     itsAttr[SPTDUMPFREQ] = Attributes::makeReal(
-        "SPTDUMPFREQ",
-        "The frequency to dump single "
-        "particle trajectory of particles with ID = 0 & 1, "
-        "its default value is 1.",
-        sptDumpFreq);
+            "SPTDUMPFREQ",
+            "The frequency to dump single "
+            "particle trajectory of particles with ID = 0 & 1, "
+            "its default value is 1.",
+            sptDumpFreq);
 
     itsAttr[REPARTFREQ] = Attributes::makeReal(
-        "REPARTFREQ",
-        "The frequency to do particles repartition "
-        "for better load balance between nodes, its "
-        "default value is "
-            + std::to_string(repartFreq) + ".",
-        repartFreq);
+            "REPARTFREQ",
+            "The frequency to do particles repartition "
+            "for better load balance between nodes, its "
+            "default value is "
+                    + std::to_string(repartFreq) + ".",
+            repartFreq);
 
     itsAttr[MINBINEMITTED] = Attributes::makeReal(
-        "MINBINEMITTED",
-        "The number of bins that have to be emitted before the bins are squashed into "
-        "a single bin; the default value is "
-            + std::to_string(minBinEmitted) + ".",
-        minBinEmitted);
+            "MINBINEMITTED",
+            "The number of bins that have to be emitted before the bins are squashed into "
+            "a single bin; the default value is "
+                    + std::to_string(minBinEmitted) + ".",
+            minBinEmitted);
 
     itsAttr[MINSTEPFORREBIN] = Attributes::makeReal(
-        "MINSTEPFORREBIN",
-        "The number of steps into the simulation before the bins are squashed into "
-        "a single bin; the default value is "
-            + std::to_string(minStepForRebin) + ".",
-        minStepForRebin);
+            "MINSTEPFORREBIN",
+            "The number of steps into the simulation before the bins are squashed into "
+            "a single bin; the default value is "
+                    + std::to_string(minStepForRebin) + ".",
+            minStepForRebin);
 
     itsAttr[REBINFREQ] = Attributes::makeReal(
-        "REBINFREQ",
-        "The frequency to reset energy bin ID for "
-        "all particles, its default value is 100.",
-        rebinFreq);
+            "REBINFREQ",
+            "The frequency to reset energy bin ID for "
+            "all particles, its default value is 100.",
+            rebinFreq);
 
     itsAttr[RHODUMP] = Attributes::makeBool(
-        "RHODUMP",
-        "If true, in addition to the phase "
-        "space the scalar rho field is also dumped (H5Block)",
-        rhoDump);
+            "RHODUMP",
+            "If true, in addition to the phase "
+            "space the scalar rho field is also dumped (H5Block)",
+            rhoDump);
 
     itsAttr[EBDUMP] = Attributes::makeBool(
-        "EBDUMP",
-        "If true, in addition to the phase space the "
-        "E and B field at each particle is also dumped into the H5 file)",
-        ebDump);
+            "EBDUMP",
+            "If true, in addition to the phase space the "
+            "E and B field at each particle is also dumped into the H5 file)",
+            ebDump);
 
     itsAttr[CSRDUMP] = Attributes::makeBool(
-        "CSRDUMP",
-        "If true, the csr E field, line density "
-        "and the line density derivative is dumped into the "
-        "data directory)",
-        csrDump);
+            "CSRDUMP",
+            "If true, the csr E field, line density "
+            "and the line density derivative is dumped into the "
+            "data directory)",
+            csrDump);
 
     itsAttr[AUTOPHASE] = Attributes::makeReal(
-        "AUTOPHASE",
-        "If greater than zero OPAL is scanning "
-        "the phases of each rf structure in order to get maximum "
-        "acceleration. Defines the number of refinements of the "
-        "search range",
-        autoPhase);
+            "AUTOPHASE",
+            "If greater than zero OPAL is scanning "
+            "the phases of each rf structure in order to get maximum "
+            "acceleration. Defines the number of refinements of the "
+            "search range",
+            autoPhase);
 
     itsAttr[CZERO] = Attributes::makeBool(
-        "CZERO",
-        "If set to true a symmetric distribution is "
-        "created -> centroid == 0.0",
-        cZero);
+            "CZERO",
+            "If set to true a symmetric distribution is "
+            "created -> centroid == 0.0",
+            cZero);
 
     itsAttr[RNGTYPE] = Attributes::makePredefinedString(
-        "RNGTYPE",
-        "Type of pseudo- or quasi-random number generator, "
-        "see also Quasi-Random Sequences, GSL reference manual.",
-        {"RANDOM", "HALTON", "SOBOL", "NIEDERREITER"}, rngtype);
+            "RNGTYPE",
+            "Type of pseudo- or quasi-random number generator, "
+            "see also Quasi-Random Sequences, GSL reference manual.",
+            {"RANDOM", "HALTON", "SOBOL", "NIEDERREITER"}, rngtype);
 
     itsAttr[CLOTUNEONLY] = Attributes::makeBool(
-        "CLOTUNEONLY",
-        "If set to true stop after "
-        "CLO and tune calculation ",
-        cloTuneOnly);
+            "CLOTUNEONLY",
+            "If set to true stop after "
+            "CLO and tune calculation ",
+            cloTuneOnly);
 
     itsAttr[NUMBLOCKS] = Attributes::makeReal(
-        "NUMBLOCKS",
-        "Maximum number of vectors in the Krylov "
-        "space (for RCGSolMgr). Default value is 0 and BlockCGSolMgr will be used.");
+            "NUMBLOCKS",
+            "Maximum number of vectors in the Krylov "
+            "space (for RCGSolMgr). Default value is 0 and BlockCGSolMgr will be used.");
 
     itsAttr[RECYCLEBLOCKS] = Attributes::makeReal(
-        "RECYCLEBLOCKS",
-        "Number of vectors in the recycle "
-        "space (for RCGSolMgr). Default value is 0 and BlockCGSolMgr will be used.");
+            "RECYCLEBLOCKS",
+            "Number of vectors in the recycle "
+            "space (for RCGSolMgr). Default value is 0 and BlockCGSolMgr will be used.");
 
     itsAttr[NLHS] = Attributes::makeReal(
-        "NLHS",
-        "Number of stored old solutions for extrapolating "
-        "the new starting vector. Default value is 1 and just the last solution is used.");
+            "NLHS",
+            "Number of stored old solutions for extrapolating "
+            "the new starting vector. Default value is 1 and just the last solution is used.");
 
     itsAttr[ENABLEHDF5] =
-        Attributes::makeBool("ENABLEHDF5", "If true, HDF5 actions are enabled", enableHDF5);
+            Attributes::makeBool("ENABLEHDF5", "If true, HDF5 actions are enabled", enableHDF5);
 
-    itsAttr[ENABLEVTK] =
-        Attributes::makeBool("ENABLEVTK", "If true, writing of VTK files are enabled", enableVTK);
+    itsAttr[ENABLEVTK] = Attributes::makeBool(
+            "ENABLEVTK", "If true, writing of VTK files are enabled", enableVTK);
 
     itsAttr[ASCIIDUMP] = Attributes::makeBool(
-        "ASCIIDUMP", "If true, some of the elements dump in ASCII instead of HDF5", asciidump);
+            "ASCIIDUMP", "If true, some of the elements dump in ASCII instead of HDF5", asciidump);
 
-    itsAttr[BOUNDPDESTROYFQ] = Attributes::makeReal(
-        "BOUNDPDESTROYFQ",
-        "The frequency to do boundp_destroy to "
-        "delete lost particles. Default 10",
-        boundpDestroyFreq);
+    itsAttr[BOUNDPDESTROY] = Attributes::makeReal(
+            "BOUNDPDESTROY",
+            "The number of sigmas away from the mean "
+            "at which particles are deleted. Default 10",
+            boundpDestroy);
 
     itsAttr[BEAMHALOBOUNDARY] = Attributes::makeReal(
-        "BEAMHALOBOUNDARY",
-        "Defines in terms of sigma where "
-        "the halo starts. Default 0.0",
-        beamHaloBoundary);
+            "BEAMHALOBOUNDARY",
+            "Defines in terms of sigma where "
+            "the halo starts. Default 0.0",
+            beamHaloBoundary);
 
     itsAttr[IDEALIZED] = Attributes::makeBool(
-        "IDEALIZED",
-        "Using the hard edge model for the calculation "
-        "of path length. Default: false",
-        idealized);
+            "IDEALIZED",
+            "Using the hard edge model for the calculation "
+            "of path length. Default: false",
+            idealized);
 
     itsAttr[LOGBENDTRAJECTORY] = Attributes::makeBool(
-        "LOGBENDTRAJECTORY",
-        "Writing the trajectory of "
-        "every bend to disk. Default: false",
-        writeBendTrajectories);
+            "LOGBENDTRAJECTORY",
+            "Writing the trajectory of "
+            "every bend to disk. Default: false",
+            writeBendTrajectories);
 
     itsAttr[VERSION] = Attributes::makeReal(
-        "VERSION", "Version of OPAL for which input file was written", version);
+            "VERSION", "Version of OPAL for which input file was written", version);
 
     itsAttr[MEMORYDUMP] =
-        Attributes::makeBool("MEMORYDUMP", "If true, write memory to SDDS file", memoryDump);
+            Attributes::makeBool("MEMORYDUMP", "If true, write memory to SDDS file", memoryDump);
 
     itsAttr[HALOSHIFT] = Attributes::makeReal(
-        "HALOSHIFT", "Constant parameter to shift halo value (default: 0.0)", haloShift);
+            "HALOSHIFT", "Constant parameter to shift halo value (default: 0.0)", haloShift);
 
     itsAttr[DELPARTFREQ] = Attributes::makeReal(
-        "DELPARTFREQ",
-        "The frequency to delete particles, "
-        "i.e. delete when step%delPartFreq == 0. Default: 1",
-        delPartFreq);
+            "DELPARTFREQ",
+            "The frequency to delete particles, "
+            "i.e. delete when step%delPartFreq == 0. Default: 1",
+            delPartFreq);
 
     itsAttr[COMPUTEPERCENTILES] = Attributes::makeBool(
-        "COMPUTEPERCENTILES",
-        "Flag to control whether the 68.27 "
-        "(1 sigma for normal distribution), the 95.45 (2 sigmas), "
-        "the 99.73 (3 sigmas) and the 99.994 (4 sigmas) percentiles "
-        "for the beam size and the normalized emittance should "
-        "be computed. Default: false",
-        computePercentiles);
+            "COMPUTEPERCENTILES",
+            "Flag to control whether the 68.27 "
+            "(1 sigma for normal distribution), the 95.45 (2 sigmas), "
+            "the 99.73 (3 sigmas) and the 99.994 (4 sigmas) percentiles "
+            "for the beam size and the normalized emittance should "
+            "be computed. Default: false",
+            computePercentiles);
+
+    itsAttr[QM_MODE] = Attributes::makeString(
+            "QM_MODE",
+            "Storage mode for particle charge/mass. "
+            "SINGLE uses one shared value per container; "
+            "ATTRIBUTES stores per-particle values (accessible via per-particle "
+            "`Q`/`M` views).",
+            useQMAttributes ? std::string("ATTRIBUTES") : std::string("SINGLE"));
 
     registerOwnership(AttributeHandler::STATEMENT);
 
@@ -356,7 +365,7 @@ Option::Option(const std::string& name, Option* parent) : Action(name, parent) {
     Attributes::setBool(itsAttr[ENABLEHDF5], enableHDF5);
     Attributes::setBool(itsAttr[ENABLEVTK], enableVTK);
     Attributes::setBool(itsAttr[ASCIIDUMP], asciidump);
-    Attributes::setReal(itsAttr[BOUNDPDESTROYFQ], boundpDestroyFreq);
+    Attributes::setReal(itsAttr[BOUNDPDESTROY], boundpDestroy);
     Attributes::setReal(itsAttr[BEAMHALOBOUNDARY], beamHaloBoundary);
     Attributes::setBool(itsAttr[IDEALIZED], idealized);
     Attributes::setBool(itsAttr[LOGBENDTRAJECTORY], writeBendTrajectories);
@@ -365,14 +374,13 @@ Option::Option(const std::string& name, Option* parent) : Action(name, parent) {
     Attributes::setReal(itsAttr[HALOSHIFT], haloShift);
     Attributes::setReal(itsAttr[DELPARTFREQ], delPartFreq);
     Attributes::setBool(itsAttr[COMPUTEPERCENTILES], computePercentiles);
+    Attributes::setString(
+            itsAttr[QM_MODE], useQMAttributes ? std::string("ATTRIBUTES") : std::string("SINGLE"));
 }
 
-Option::~Option() {
-}
+Option::~Option() {}
 
-Option* Option::clone(const std::string& name) {
-    return new Option(name, this);
-}
+Option* Option::clone(const std::string& name) { return new Option(name, this); }
 
 void Option::execute() {
     // Store the option flags.
@@ -393,9 +401,19 @@ void Option::execute() {
     seed                  = Attributes::getReal(itsAttr[SEED]);
     writeBendTrajectories = Attributes::getBool(itsAttr[LOGBENDTRAJECTORY]);
 
-    haloShift          = Attributes::getReal(itsAttr[HALOSHIFT]);
-    delPartFreq        = Attributes::getReal(itsAttr[DELPARTFREQ]);
-    computePercentiles = Attributes::getBool(itsAttr[COMPUTEPERCENTILES]);
+    haloShift                = Attributes::getReal(itsAttr[HALOSHIFT]);
+    delPartFreq              = Attributes::getReal(itsAttr[DELPARTFREQ]);
+    computePercentiles       = Attributes::getBool(itsAttr[COMPUTEPERCENTILES]);
+    const std::string qmMode = Attributes::getString(itsAttr[QM_MODE]);
+    if (qmMode == "ATTRIBUTES") {
+        useQMAttributes = true;
+    } else if (qmMode == "SINGLE") {
+        useQMAttributes = false;
+    } else {
+        throw OpalException(
+                "Option::execute",
+                "Unsupported QM_MODE '" + qmMode + "'. Use \"SINGLE\" or \"ATTRIBUTES\".");
+    }
 
     /// note: rangen is used only for the random number generator in the OPAL language
     ///       not for the distributions
@@ -424,20 +442,17 @@ void Option::execute() {
 
     if (itsAttr[PSDUMPFREQ]) {
         psDumpFreq = int(Attributes::getReal(itsAttr[PSDUMPFREQ]));
-        if (psDumpFreq == 0)
-            psDumpFreq = std::numeric_limits<int>::max();
+        if (psDumpFreq == 0) psDumpFreq = std::numeric_limits<int>::max();
     }
 
     if (itsAttr[STATDUMPFREQ]) {
         statDumpFreq = int(Attributes::getReal(itsAttr[STATDUMPFREQ]));
-        if (statDumpFreq == 0)
-            statDumpFreq = std::numeric_limits<int>::max();
+        if (statDumpFreq == 0) statDumpFreq = std::numeric_limits<int>::max();
     }
 
     if (itsAttr[SPTDUMPFREQ]) {
         sptDumpFreq = int(Attributes::getReal(itsAttr[SPTDUMPFREQ]));
-        if (sptDumpFreq == 0)
-            sptDumpFreq = std::numeric_limits<int>::max();
+        if (sptDumpFreq == 0) sptDumpFreq = std::numeric_limits<int>::max();
     }
 
     if (itsAttr[SCSOLVEFREQ]) {
@@ -479,6 +494,17 @@ void Option::execute() {
 
     if (itsAttr[NLHS]) {
         nLHS = int(Attributes::getReal(itsAttr[NLHS]));
+    }
+
+    if (itsAttr[BOUNDPDESTROY]) {
+        /*
+         * Historically, BOUNDPDESTROYFQ was used as a positive frequency and
+         * clamped to values >= 1 here. In OPAL-X, the same parameter now also
+         * encodes the N-sigma boundary used in ParticleContainer::
+         * deleteParticlesOutside(N). A value <= 0 is treated as "disabled"
+         * by deleteParticlesOutside, so we must *not* clamp it to 1 anymore.
+         */
+        boundpDestroy = Attributes::getReal(itsAttr[BOUNDPDESTROY]);
     }
 
     if (itsAttr[CZERO]) {

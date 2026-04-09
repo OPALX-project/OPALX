@@ -20,6 +20,7 @@
 #include "Track/Track.h"
 
 #include "AbstractObjects/OpalData.h"
+#include "Lines/EmissionSourceList.h"
 #include "PartBunch/PartBunch.h"
 #include "Utilities/Options.h"
 
@@ -36,10 +37,13 @@ Track::Track(
     BeamSequence* u, const PartData& ref, const std::vector<double>& dt,
     const std::vector<unsigned long long>& maxtsteps, int stepsperturn, double zStart,
     const std::vector<double>& zStop, Steppers::TimeIntegrator timeintegrator, double t0,
-    double dtScInit, double deltaTau)
+    double dtScInit, double deltaTau,
+    EmissionSourceList* emissionSourcesList,
+    const std::vector<std::string>& beamNames)
     : bunch(nullptr),
       reference(ref),
       use(u),
+      emissionSources(emissionSourcesList),
       parser(),
       dT(dt),
       dtScInit(dtScInit),
@@ -50,7 +54,8 @@ Track::Track(
       zstart(zStart),
       zstop(zStop),
       timeIntegrator(timeintegrator),
-      truncOrder(1) {
+      truncOrder(1),
+      beamNames_m(beamNames) {
     if (!OpalData::getInstance()->hasBunchAllocated()) {
         /// \todo can we do this anymore  OpalData::getInstance()->setPartBunch(new
         /// PartBunch(&ref));

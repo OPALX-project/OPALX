@@ -15,9 +15,6 @@
 #include <memory>
 #include <cmath>
 
-using ParticleContainer_t = ParticleContainer<double, 3>;
-using FieldContainer_t = FieldContainer<double, 3>;
-using Distribution_t = Distribution;
 using GeneratorPool = typename Kokkos::Random_XorShift64_Pool<>;
 using Dist_t = ippl::random::NormalDistribution<double, 3>;
 
@@ -161,10 +158,17 @@ private:
 public:
     /**
      * @brief Generates particles (x,y) uniformly on a disk distribution.
+     *
+     * Each new particle is assigned a fractional per-particle dt sampled
+     * uniformly in (0, dt), representing the fraction of the next integration
+     * step the particle will experience (as if born at a random time within
+     * the current emission interval).
+     *
      * @param nlocal Number of local particles.
      * @param nNew Number of new particles to generate.
+     * @param dt Global timestep; used to sample fractional per-particle dt.
      */
-    void generateUniformDisk(size_type nlocal, size_t nNew);
+    void generateUniformDisk(size_type nlocal, size_t nNew, double dt);
 
     /**
      * @brief Sets the number of grid points per direction.
@@ -215,7 +219,7 @@ public:
      * @param tf End time.
      * @return Number of entering particles per rank.
      */
-    double countEnteringParticlesPerRank(double t0, double tf);
+    size_type countEnteringParticlesPerRank(double t0, double tf);
 
     /**
      * @brief Allocates memory for a given number of particles.

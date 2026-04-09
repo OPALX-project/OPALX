@@ -18,7 +18,7 @@
 #include "Structure/LossDataSink.h"
 #include "AbstractObjects/OpalData.h"
 #include "Algorithms/DistributionMoments.h"
-#include "OPALconfig.h"
+#include "BuildInfo.h"
 #include "Utilities/GeneralClassicException.h"
 #include "Utilities/Options.h"
 #include "Utilities/Util.h"
@@ -234,7 +234,7 @@ void LossDataSink::openH5(h5_int32_t mode) {
 void LossDataSink::writeHeaderH5() {
     // Write file attributes to describe phase space to H5 file.
     std::stringstream OPAL_version;
-    OPAL_version << OPAL_PROJECT_NAME << " " << OPAL_PROJECT_VERSION << " # git rev. "
+    OPAL_version << buildinfo::project_name << " " << buildinfo::project_version << " # git rev. "
                  << Util::getGitRevision();
     WRITE_FILEATTRIB_STRING("OPAL_version", OPAL_version.str().c_str());
 

@@ -2,11 +2,14 @@
 #define IPPL_SAMPLING_BASE_H
 
 #include "Distribution.h"
+#include "Ippl.h"
 #include <memory>
 
 using ParticleContainer_t = ParticleContainer<double, 3>;
 using FieldContainer_t = FieldContainer<double, 3>;
 using Distribution_t = Distribution;
+
+using view_type = typename ippl::detail::ViewType<Vector_t<double, 3>, 1>::view_type;
 
 class SamplingBase{
 protected:
@@ -14,6 +17,15 @@ protected:
     std::shared_ptr<FieldContainer_t> fc_m;
     std::shared_ptr<Distribution_t> opalDist_m;
     std::string samplingMethod_m;
+    /// Emission source offset: position R0, momentum P0, start time t0 (applied in sample step).
+    Vector_t<double, 3> R0_m = 0.0;
+    Vector_t<double, 3> P0_m = 0.0;
+    double t0_m              = 0.0;
+    std::string emissionModel_m = "NONE";
+
+    /// For one-shot emitters (e.g. Gaussian at delayed t0): guard to avoid double sampling.
+    bool hasEmittedOnce_m = false;
+
 public:
     
     SamplingBase(std::shared_ptr<ParticleContainer_t> pc,
@@ -35,6 +47,14 @@ public:
     
     virtual ~SamplingBase() {}
 
+    void setEmissionOffsets(ippl::Vector<double, 3> R0, ippl::Vector<double, 3> P0, double t0,
+                            const std::string& emissionModel = "NONE") {
+        R0_m = R0;
+        P0_m = P0;
+        t0_m = t0;
+        emissionModel_m = emissionModel;
+    }
+
     virtual void generateParticles(size_t& /*numberOfParticles*/, Vector_t<double, 3> /*nr*/) {}
 
     virtual void emitParticles(double /*t*/, double /*dt*/) {}
@@ -48,6 +68,14 @@ public:
     virtual void initDomainDecomp(double /*BoxIncr*/) {}
 
     virtual void setWithDomainDecomp(bool /*withDomainDecomp*/) {}
+
+    /**
+     * @brief Computes the number of particles this rank should emit so that the global
+     *        total equals totalToSample and no rank exceeds its capacity (space left).
+     * @param totalToSample Global number of particles to emit this timestep.
+     * @return Local number of particles this rank should create/emit.
+     */
+    size_t computeLocalEmitCount(size_t totalToSample) const;
 };
 #endif
 

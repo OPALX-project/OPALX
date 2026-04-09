@@ -1,6 +1,5 @@
 set (_SRCS
     Call.cpp
-    DumpFields.cpp
     DumpEMFields.cpp
     Echo.cpp
     Help.cpp
@@ -16,7 +15,6 @@ set (_SRCS
 
 set (HDRS
     Call.h
-    DumpFields.h
     DumpEMFields.h
     Echo.h
     Help.h

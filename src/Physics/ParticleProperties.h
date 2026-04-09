@@ -25,6 +25,7 @@
 
 enum class ParticleType: short {
     UNNAMED = -1,
+    PHOTON,
     ELECTRON,
     POSITRON,
     MUON,

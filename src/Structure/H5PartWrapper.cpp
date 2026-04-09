@@ -5,7 +5,6 @@
 #include "Structure/H5PartWrapper.h"
 
 #include "AbstractObjects/OpalData.h"
-#include "OPALconfig.h"
 #include "Physics/Physics.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
@@ -360,63 +359,100 @@ void H5PartWrapper::copyStep(h5_file_t source, int step) {
 void H5PartWrapper::copyStepHeader(h5_file_t source) {
     h5_int64_t numStepAttributes = H5GetNumStepAttribs(source);
 
-    h5_size_t lengthAttributeName = 256;
-    char attributeName[lengthAttributeName];
+    const h5_size_t lengthAttributeName = 256;
+    std::vector<char> attributeName(lengthAttributeName);
     h5_int64_t attributeType;
     h5_size_t numAttributeElements;
 
     std::vector<char> buffer(256);
-    h5_float32_t* f32buffer = reinterpret_cast<h5_float32_t*>(&buffer[0]);
-    h5_float64_t* f64buffer = reinterpret_cast<h5_float64_t*>(&buffer[0]);
-    h5_int32_t* i32buffer   = reinterpret_cast<h5_int32_t*>(&buffer[0]);
-    h5_int64_t* i64buffer   = reinterpret_cast<h5_int64_t*>(&buffer[0]);
 
     READSTEPATTRIB(String, source, "OPAL_flavour", &buffer[0]);
     predecessorOPALFlavour_m = std::string(&buffer[0]);
 
     for (h5_int64_t i = 0; i < numStepAttributes; ++i) {
         REPORTONERROR(H5GetStepAttribInfo(
-            source, i, attributeName, lengthAttributeName, &attributeType, &numAttributeElements));
+            source,
+            i,
+            attributeName.data(),
+            lengthAttributeName,
+            &attributeType,
+            &numAttributeElements));
 
         if (attributeType == H5TypesCHAR) {
             if (buffer.size() < numAttributeElements) {
                 buffer.resize(numAttributeElements);
             }
 
-            READSTEPATTRIB(String, source, attributeName, &buffer[0]);
-            WRITESTRINGSTEPATTRIB(file_m, attributeName, &buffer[0]);
+            READSTEPATTRIB(String, source, attributeName.data(), &buffer[0]);
+            WRITESTRINGSTEPATTRIB(file_m, attributeName.data(), &buffer[0]);
 
         } else if (attributeType == H5TypesFLOAT) {
             if (buffer.size() < numAttributeElements * sizeof(h5_float32_t)) {
                 buffer.resize(numAttributeElements * sizeof(h5_float32_t));
             }
 
-            READSTEPATTRIB(Float32, source, attributeName, f32buffer);
-            WRITESTEPATTRIB(Float32, file_m, attributeName, f32buffer, numAttributeElements);
+            READSTEPATTRIB(
+                Float32,
+                source,
+                attributeName.data(),
+                reinterpret_cast<h5_float32_t*>(buffer.data()));
+            WRITESTEPATTRIB(
+                Float32,
+                file_m,
+                attributeName.data(),
+                reinterpret_cast<h5_float32_t*>(buffer.data()),
+                numAttributeElements);
 
         } else if (attributeType == H5TypesDOUBLE) {
             if (buffer.size() < numAttributeElements * sizeof(h5_float64_t)) {
                 buffer.resize(numAttributeElements * sizeof(h5_float64_t));
             }
 
-            READSTEPATTRIB(Float64, source, attributeName, f64buffer);
-            WRITESTEPATTRIB(Float64, file_m, attributeName, f64buffer, numAttributeElements);
+            READSTEPATTRIB(
+                Float64,
+                source,
+                attributeName.data(),
+                reinterpret_cast<h5_float64_t*>(buffer.data()));
+            WRITESTEPATTRIB(
+                Float64,
+                file_m,
+                attributeName.data(),
+                reinterpret_cast<h5_float64_t*>(buffer.data()),
+                numAttributeElements);
 
         } else if (attributeType == H5TypesINT32) {
             if (buffer.size() < numAttributeElements * sizeof(h5_int32_t)) {
                 buffer.resize(numAttributeElements * sizeof(h5_int32_t));
             }
 
-            READSTEPATTRIB(Int32, source, attributeName, i32buffer);
-            WRITESTEPATTRIB(Int32, file_m, attributeName, i32buffer, numAttributeElements);
+            READSTEPATTRIB(
+                Int32,
+                source,
+                attributeName.data(),
+                reinterpret_cast<h5_int32_t*>(buffer.data()));
+            WRITESTEPATTRIB(
+                Int32,
+                file_m,
+                attributeName.data(),
+                reinterpret_cast<h5_int32_t*>(buffer.data()),
+                numAttributeElements);
 
         } else if (attributeType == H5TypesINT64) {
             if (buffer.size() < numAttributeElements * sizeof(h5_int64_t)) {
                 buffer.resize(numAttributeElements * sizeof(h5_int64_t));
             }
 
-            READSTEPATTRIB(Int64, source, attributeName, i64buffer);
-            WRITESTEPATTRIB(Int64, file_m, attributeName, i64buffer, numAttributeElements);
+            READSTEPATTRIB(
+                Int64,
+                source,
+                attributeName.data(),
+                reinterpret_cast<h5_int64_t*>(buffer.data()));
+            WRITESTEPATTRIB(
+                Int64,
+                file_m,
+                attributeName.data(),
+                reinterpret_cast<h5_int64_t*>(buffer.data()),
+                numAttributeElements);
 
         } else {
             throw OpalException(
@@ -427,8 +463,8 @@ void H5PartWrapper::copyStepHeader(h5_file_t source) {
 }
 
 void H5PartWrapper::copyStepData(h5_file_t source) {
-    h5_size_t lengthSetName = 256;
-    char setName[lengthSetName];
+    const h5_size_t lengthSetName = 256;
+    std::vector<char> setName(lengthSetName);
     h5_int64_t setType;
     h5_size_t numSetElements;
 
@@ -456,20 +492,21 @@ void H5PartWrapper::copyStepData(h5_file_t source) {
 
     for (h5_ssize_t i = 0; i < numDatasets; ++i) {
         REPORTONERROR(
-            H5PartGetDatasetInfo(source, i, setName, lengthSetName, &setType, &numSetElements));
+            H5PartGetDatasetInfo(
+                source, i, setName.data(), lengthSetName, &setType, &numSetElements));
 
         if (setType == H5TypesFLOAT) {
-            READDATA(Float32, source, setName, f32buffer);
-            WRITEDATA(Float32, file_m, setName, f32buffer);
+            READDATA(Float32, source, setName.data(), f32buffer);
+            WRITEDATA(Float32, file_m, setName.data(), f32buffer);
         } else if (setType == H5TypesDOUBLE) {
-            READDATA(Float64, source, setName, f64buffer);
-            WRITEDATA(Float64, file_m, setName, f64buffer);
+            READDATA(Float64, source, setName.data(), f64buffer);
+            WRITEDATA(Float64, file_m, setName.data(), f64buffer);
         } else if (setType == H5TypesINT32) {
-            READDATA(Int32, source, setName, i32buffer);
-            WRITEDATA(Int32, file_m, setName, i32buffer);
+            READDATA(Int32, source, setName.data(), i32buffer);
+            WRITEDATA(Int32, file_m, setName.data(), i32buffer);
         } else if (setType == H5TypesINT64) {
-            READDATA(Int64, source, setName, i64buffer);
-            WRITEDATA(Int64, file_m, setName, i64buffer);
+            READDATA(Int64, source, setName.data(), i64buffer);
+            WRITEDATA(Int64, file_m, setName.data(), i64buffer);
         } else {
             throw OpalException(
                 "H5PartWrapper::copyStepData", "unknown data type: " + std::to_string(setType));

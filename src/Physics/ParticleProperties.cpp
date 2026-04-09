@@ -49,6 +49,7 @@ double ParticleProperties::getParticleChargeInCoulomb(const ParticleType& type) 
 const BiMap<ParticleType, std::string> ParticleProperties::bmParticleType_s = []() {
     BiMap<ParticleType, std::string> bimap;
     bimap.insert(ParticleType::UNNAMED,    "UNNAMED");
+    bimap.insert(ParticleType::PHOTON,     "PHOTON");
     bimap.insert(ParticleType::ELECTRON,   "ELECTRON");
     bimap.insert(ParticleType::POSITRON,   "POSITRON");
     bimap.insert(ParticleType::MUON,       "MUON");
@@ -67,6 +68,7 @@ const BiMap<ParticleType, std::string> ParticleProperties::bmParticleType_s = []
 }();
 
 const std::map<ParticleType, double> ParticleProperties::particleMass_m = {
+    {ParticleType::PHOTON,     0.0},
     {ParticleType::ELECTRON,   Physics::m_e},
     {ParticleType::POSITRON,   Physics::m_e},
     {ParticleType::MUON,       Physics::m_mu},
@@ -84,6 +86,7 @@ const std::map<ParticleType, double> ParticleProperties::particleMass_m = {
 };
 
 const std::map<ParticleType, double> ParticleProperties::particleCharge_m = {
+    {ParticleType::PHOTON,      0.0},
     {ParticleType::ELECTRON,   -1.0},
     {ParticleType::POSITRON,    1.0},
     {ParticleType::MUON,       -1.0},

@@ -13,6 +13,7 @@ set (_SRCS
     # Fieldmaps
     Fieldmap.cpp
     FM2DMagnetoStatic.cpp
+    FM2DDynamic.cpp
 
     # To be ported from OPAL
     #FM3DH5BlockBase.cpp
@@ -23,7 +24,6 @@ set (_SRCS
     #FM3DMagnetoStaticExtended.cpp
     #FM3DDynamic.cpp
     #FM2DElectroStatic.cpp
-    #FM2DDynamic.cpp
     #FM1DDynamic.cpp
     #FM1DDynamic_fast.cpp
     #Astra1D_fast.cpp

@@ -26,9 +26,11 @@
 #include "Track/TrackParser.h"
 
 #include <stack>
+#include <string>
 #include <vector>
 
 class BeamSequence;
+class EmissionSourceList;
 
 class Track {
 public:
@@ -36,7 +38,9 @@ public:
         BeamSequence*, const PartData&, const std::vector<double>& dt,
         const std::vector<unsigned long long>& maxtsteps, int stepsperturn, double zStart,
         const std::vector<double>& zStop, Steppers::TimeIntegrator timeintegrator, double t0,
-        double dtScInit, double deltaTau);
+        double dtScInit, double deltaTau,
+        EmissionSourceList* emissionSourcesList = nullptr,
+        const std::vector<std::string>& beamNames = {});
     ~Track();
 
     /// The particle bunch to be tracked.
@@ -47,6 +51,9 @@ public:
 
     /// The lattice to be tracked through.
     BeamSequence* use;
+
+    /// The emission sources list for particle injection (SOURCES= on TRACK).
+    EmissionSourceList* emissionSources;
 
     /// The parser used during tracking.
     TrackParser parser;
@@ -81,6 +88,10 @@ public:
 
     /// Trunction order for map tracking
     int truncOrder;
+
+    /// The names of beams selected on the enclosing TRACK command.
+    /// (If RUN::BEAM is omitted, TrackRun resolves from this list.)
+    std::vector<std::string> beamNames_m;
 
 private:
     // Not implemented.
