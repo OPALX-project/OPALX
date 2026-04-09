@@ -1,3 +1,8 @@
+/**
+ * @file PartBunch.cpp
+ * @brief Template method definitions for PartBunch.
+ */
+
 #include "PartBunch/PartBunch.h"
 #include "PartBunch/BinnedFieldSolver.h"
 #include "Algorithms/Matrix.h"
@@ -11,6 +16,9 @@
 
 #undef doDEBUG
 
+/**
+ * @copybrief PartBunch::PartBunch
+ */
 template <typename T, unsigned Dim>
 PartBunch<T, Dim>::PartBunch(std::vector<double> qi,
                              std::vector<double> mi,
@@ -80,7 +88,7 @@ PartBunch<T, Dim>::PartBunch(std::vector<double> qi,
         OPALFieldSolver_m->constructBCHandler()
     ));
 
-    /// \todo so far, we only use true for all periodic and false for all open.
+    // TODO: support mixed periodic/open per axis; currently all periodic or all open.
     bool isAllPeriodic = this->getBCHandler()->isAll(BCHandler_t::PERIODIC);
     m << level5 << "* FieldContainer set to isAllPeriodic = " << isAllPeriodic << endl;
 
@@ -107,10 +115,12 @@ PartBunch<T, Dim>::PartBunch(std::vector<double> qi,
             this->fcontainer_m->getMesh(), this->fcontainer_m->getFL()));
     }
     const auto& containers = this->getParticleContainers();
+    particleNames_m.resize(containers.size());
     for (size_t i = 0; i < containers.size(); ++i) {
         containers[i]->setQ(qi[i]);
         containers[i]->setM(mi[i]);
         containers[i]->setReference(&beams[i]->getReference());
+        particleNames_m[i] = beams[i]->getParticleName();
         containers[i]->Sp =
             static_cast<short>(ParticleProperties::getParticleType(beams[i]->getParticleName()));
     }
@@ -150,6 +160,9 @@ PartBunch<T, Dim>::PartBunch(std::vector<double> qi,
     m << level5 << "* PartBunch constructor done." << endl;
 }
 
+/**
+ * @copybrief PartBunch::resetPcActive
+ */
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::resetPcActive() {
     const auto& containers = this->getParticleContainers();
@@ -167,6 +180,9 @@ void PartBunch<T, Dim>::resetPcActive() {
     }
 }
 
+/**
+ * @copybrief PartBunch::setPcAtZStop
+ */
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::setPcAtZStop(size_t i) {
     if (i >= pcActive_m.size()) {
@@ -176,6 +192,9 @@ void PartBunch<T, Dim>::setPcAtZStop(size_t i) {
     pcAtZStop_m[i] = true;
 }
 
+/**
+ * @copybrief PartBunch::refreshPcActiveAfterEmit
+ */
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::refreshPcActiveAfterEmit() {
     const auto& containers = this->getParticleContainers();
@@ -194,6 +213,9 @@ void PartBunch<T, Dim>::refreshPcActiveAfterEmit() {
     }
 }
 
+/**
+ * @copybrief PartBunch::do_binaryRepart
+ */
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::do_binaryRepart() {
     using FieldContainer_t = FieldContainer<T, Dim>;
@@ -208,6 +230,9 @@ void PartBunch<T, Dim>::do_binaryRepart() {
     }
 }
 
+/**
+ * @copybrief PartBunch::gatherLoadBalanceStatistics
+ */
 template <typename T, unsigned Dim>
 void  PartBunch<T, Dim>::gatherLoadBalanceStatistics() {
         std::fill_n(globalPartPerNode_m.get(), ippl::Comm->size(), 0);  // Fill the array with zeros
@@ -217,6 +242,9 @@ void  PartBunch<T, Dim>::gatherLoadBalanceStatistics() {
                               std::plus<size_t>());
 }
 
+/**
+ * @copybrief PartBunch::setSolver
+ */
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::setSolver() {
     Inform m("PartBunch::setSolver");
@@ -243,7 +271,7 @@ void PartBunch<T, Dim>::setSolver() {
     this->fsolver_m->initSolver();
     m << level4 << "Field solver initialized." << endl;
 
-    /// ADA we need to be able to set a load balancer when not having a field solver
+    // TODO: allow constructing a load balancer when no field solver is present.
     this->setLoadBalancer(std::make_shared<LoadBalancer_t>(
         this->lbt_m, 
         this->fcontainer_m, 
@@ -253,6 +281,9 @@ void PartBunch<T, Dim>::setSolver() {
     m << level3 << "Solver and Load Balancer set." << endl;
 }
 
+/**
+ * @copybrief PartBunch::setBins
+ */
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::setBins() {
     Inform m("PartBunch::setBins");
@@ -302,6 +333,9 @@ void PartBunch<T, Dim>::setBins() {
     this->getBins()->debug();
 }
 
+/**
+ * @copybrief PartBunch::calcBeamParameters
+ */
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::calcBeamParameters() {
     Inform m("PartBunch::calcBeamParameters");
@@ -368,7 +402,7 @@ void PartBunch<T, Dim>::calcBeamParameters() {
     ippl::Vector<double, Dim> rmax(0.0);
     ippl::Vector<double, Dim> rmin(0.0);
 
-    /// \todo do this in one step much nicer with ippl::Vector...
+    // TODO: fuse min/max reductions with ippl::Vector reductions.
     for (unsigned d = 0; d < Dim; ++d) {
         Kokkos::parallel_reduce("rel max", this->getParticleContainer()->getLocalNum(),
             KOKKOS_LAMBDA(const int i, double& mm) {
@@ -395,6 +429,9 @@ void PartBunch<T, Dim>::calcBeamParameters() {
     rmin_m = rmin;
 }
 
+/**
+ * @copybrief PartBunch::pre_run
+ */
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::pre_run() {
     Inform m("PartBunch::pre_run");
@@ -403,17 +440,18 @@ void PartBunch<T, Dim>::pre_run() {
     m << level4 << "Rho initialized to zero." << endl;
 
     /*
-    Force skip field dump during pre_run/warmup!
-    In order to call runSolver without field dump, we need to dynamic cast 
-    fsolver_m to FieldSolver_t, since this addition is not possible in the base
-    class (without changing ippl).
-    */
+     * Skip full field dumps during warmup: runSolver(true) is implemented on the
+     * concrete solver type, not on the IPPL base class.
+     */
     this->getFieldSolver()->runSolver(true);
     m << level4 << "Field solver ran during pre_run." << endl;
     this->getFieldSolver()->resetCallCounter();
     m << level4 << "Call counter reset. pre_run done." << endl;
 }
 
+/**
+ * @copybrief PartBunch::print
+ */
 template <typename T, unsigned Dim>
 Inform& PartBunch<T, Dim>::print(Inform& os) {
     // if (this->getLocalNum() != 0) {  // to suppress Nans
@@ -477,14 +515,15 @@ Inform& PartBunch<T, Dim>::print(Inform& os) {
     return os;
 }
 
+/**
+ * @copybrief PartBunch::bunchUpdate
+ */
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::bunchUpdate() {
     Inform m ("PartBunch::bunchUpdate");
     m << level4 << "Updating bunch and doing repartitioning if needed." << endl;
-    /* \brief
-       1. calculates and set hr
-       2. do repartitioning
-    */
+    // Steps: union particle AABB, expand by box increment, set mesh spacing/origin,
+    // refresh layouts, update moments (repartition hooks are mostly commented).
 
     auto *mesh = &this->fcontainer_m->getMesh();
     auto *FL   = &this->fcontainer_m->getFL();
@@ -593,6 +632,9 @@ void PartBunch<T, Dim>::bunchUpdate() {
     m << level5 << "Moments updated for all particle containers." << endl;
 }
 
+/**
+ * @copybrief PartBunch::computeSelfFields
+ */
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::computeSelfFields() {
     using BinnedSolver_t = BinnedFieldSolver<T, Dim>;
@@ -608,6 +650,9 @@ void PartBunch<T, Dim>::computeSelfFields() {
     bsolver->computeSelfFields(bunchPtr);
 }
 
+/**
+ * @copybrief PartBunch::dumpBinConfig
+ */
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::dumpBinConfig(bool preMerge) {
     if (!hasBinning() || !dataSink_m) {
@@ -661,11 +706,14 @@ void PartBunch<T, Dim>::dumpBinConfig(bool preMerge) {
         binningCmd->getDumpBinsFileName());
 }
 
+/**
+ * @copybrief PartBunch::performBunchSanityChecks
+ */
 template <typename T, unsigned Dim>
 void PartBunch<T,Dim>::performBunchSanityChecks() const {
     Inform ms("PartBunch::performBunchSanityChecks");
     ms << level4 << "========== Performing sanity checks on PartBunch... ==========" << endl;
-    /// \todo always try to add more checks here! Best practice: throw explanatory exceptions and give output when passed.
+    // TODO: extend checks; prefer throwing OpalException with clear messages.
 
     // Check if bc handler was initialized properly
     if (!this->getBCHandler()) {
@@ -749,5 +797,5 @@ void PartBunch<T,Dim>::performBunchSanityChecks() const {
 }
 
 
-// Explicit instantiations
+/** Explicit instantiation for 3D double (OPAL-T). */
 template class PartBunch<double, 3>;

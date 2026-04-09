@@ -84,7 +84,7 @@ namespace {
                 ncent[a][b] /= static_cast<double>(N);
             }
         }
-        e.stdEkinMeV_likeImplementation = std::sqrt(e.stdEkinMeV_likeImplementation);
+        e.stdEkinMeV_likeImplementation = std::sqrt(e.stdEkinMeV_likeImplementation / static_cast<double>(N));
 
         // stdR/stdP from central cov
         for (int d = 0; d < 3; ++d) {

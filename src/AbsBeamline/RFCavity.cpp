@@ -1,26 +1,18 @@
-//
-// Class RFCavity
-//   Defines the abstract interface for for RF cavities.
-//
-// Copyright (c) 200x - 2021, Paul Scherrer Institut, Villigen PSI, Switzerland
-// All rights reserved
-//
-// This file is part of OPAL.
-//
-// OPAL is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// You should have received a copy of the GNU General Public License
-// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
-//
+/**
+ * @class RFCavity
+ * @brief Interface for general multipole.
+ *
+ * Class RFCavity defines the abstract interface for RF cavities.
+ *   - SW: Standing Wave Cavity
+ */
 #include "AbsBeamline/RFCavity.h"
 
+#include "Component.h"
 #include "Utilities/BiMap.h"
 #include <filesystem>
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Fields/Fieldmap.h"
+#include "Fields/FM2DDynamic.h"
 #include "PartBunch/PartBunch.h"
 #include "Physics/Units.h"
 #include "Steppers/BorisPusher.h"
@@ -32,6 +24,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <memory>
 
 extern Inform* gmsg;
 
@@ -119,7 +112,46 @@ void RFCavity::accept(BeamlineVisitor& visitor) const {
     visitor.visitRFCavity(*this);
 }
 
-bool RFCavity::apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/) {
+
+/* ========================================================================== */
+/* ============================== Apply Functions =========================== */
+/**
+ * @brief Applies the Standing Wave RF Cavity field to all particles inside the RF cavity
+ * 
+ * @note TODO: Check if getFieldstrength(R, tmpE, tmpB) returns 0 outside of RF cavity to skip if statement
+ */
+bool RFCavity::apply(const std::shared_ptr<ParticleContainer_t>& pc) 
+{
+    // RF parameters (copied to device)
+    double freq       = frequency_m;
+    double scale      = scale_m + scaleError_m;
+    double phase      = phase_m + phaseError_m;
+
+    double startField = startField_m;
+    double endField   = startField_m + getElementLength();
+    
+    // Reference particle time
+    const double t = RefPartBunch_m->getT() + 0.5 * RefPartBunch_m->getdT(); // To be consistent with OPAL
+
+    // RF phase for all particles at this step
+    const double phi    = freq * t + phase; 
+    const double cosphi = Kokkos::cos(phi);
+    const double sinphi = Kokkos::sin(phi);
+
+    auto* dynamicFieldmap = dynamic_cast<FM2DDynamic*>(fieldmap_m);
+    if (dynamicFieldmap == nullptr) {
+        throw GeneralClassicException(
+            "RFCavity::apply",
+            "RFCavity particle application currently requires an FM2DDynamic field map.");
+    }
+
+    dynamicFieldmap->applyRFField(
+        pc,
+        scale * cosphi,
+        -scale * sinphi,
+        startField,
+        endField);
+
     return false;
 }
 
@@ -132,7 +164,7 @@ bool RFCavity::apply(
     const Vector_t<double, 3> R = Rview(i);
     const Vector_t<double, 3> P = Pview(i);
 
-    return apply(R(i), P(i), t, E, B);
+    return apply(R, P, t, E, B);
 }
 
 bool RFCavity::apply(

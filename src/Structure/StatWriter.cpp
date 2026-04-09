@@ -2,6 +2,15 @@
 // Class StatWriter
 //   This class writes bunch statistics (*.stat).
 //
+//   One StatWriter instance corresponds to one output file. DataSink::init creates
+//   statWriters_m.size() == numParticleContainers writers: for a single container the
+//   file stem is the input basename (e.g. myjob -> myjob.stat); for multiple containers
+//   stems are basename + "_c" + index (run_c0.stat, run_c1.stat, ...), see
+//   DataSink::diagnosticStemForContainer. Each write() call must use the same
+//   particleContainerIndex as that writer's slot so row data comes from
+//   beam->getParticleContainer(particleContainerIndex). Shared beam-level quantities
+//   (e.g. time t, dt, rmsDensity, nBins) still come from PartBunch_t regardless of index.
+//
 // Copyright (c) 2019, Matthias Frey, Paul Scherrer Institut, Villigen PSI, Switzerland
 //                     Christof Metzger-Kraus, Open Sourcerer
 // All rights reserved
@@ -21,16 +30,18 @@
 #include <Kokkos_Core.hpp>
 
 #include "AbstractObjects/OpalData.h"
+#include "BuildInfo.h"
 #include "PartBunch/PartBunch.h"
 #include "Physics/Units.h"
 #include "Utilities/Timer.h"
+#include "Utilities/Util.h"
 
 #include <sstream>
 
 StatWriter::StatWriter(const std::string& fname, bool restart) : StatBaseWriter(fname, restart) {
 }
 
-void StatWriter::fillHeader(const losses_t& losses) {
+void StatWriter::fillHeader(const losses_t& losses, const std::string& species) {
     if (this->hasColumns()) {
         return;
     }
@@ -192,7 +203,13 @@ void StatWriter::fillHeader(const losses_t& losses) {
 
     this->addDescription(ss.str(), "stat parameters");
 
-    this->addDefaultParameters();
+    std::stringstream revision;
+    revision << buildinfo::project_name << " " << buildinfo::project_version << " "
+             << "git rev. #" << Util::getGitRevision();
+
+    addParameter("processors", "long", "Number of Cores used", ippl::Comm->size());
+    addParameter("revision", "string", "git revision of opal", revision.str());
+    addParameter("species", "string", "Particle species of container", species);
 
     this->addInfo("ascii", 1);
 }
@@ -207,9 +224,11 @@ void StatWriter::write(
     }
 
     double pathLength = pc->get_sPos();
+    const std::string species = beam->getParticleName(particleContainerIndex);
 
-    /// Write data to files. If this is the first write to the beam statistics file, write SDDS
-    /// header information.
+    // First write to this writer's .stat file emits SDDS header via fillHeader/writeHeader.
+    // File vs. container: this object was constructed with the stem for particleContainerIndex;
+    // pc must be beam->getParticleContainer(particleContainerIndex) (caller responsibility).
 
     double Q = pc->getTotalCharge();
 
@@ -217,7 +236,7 @@ void StatWriter::write(
         return;
     }
 
-    fillHeader(losses);
+    fillHeader(losses, species);
 
     this->open();
 

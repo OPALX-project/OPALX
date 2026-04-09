@@ -59,8 +59,8 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
-#ifndef CLASSIC_Tracker_HH
-#define CLASSIC_Tracker_HH
+#ifndef OPALX_Tracker_HH
+#define OPALX_Tracker_HH
 
 #include "Algorithms/AbstractTracker.h"
 #include "PartBunch/PartBunchFwd.h"
@@ -127,4 +127,4 @@ private:
     void operator=(const Tracker&);
 };
 
-#endif  // CLASSIC_Tracker_HH
+#endif  // OPALX_Tracker_HH

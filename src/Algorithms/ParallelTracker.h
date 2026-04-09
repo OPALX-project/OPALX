@@ -1,27 +1,25 @@
-//
-// Class ParallelTracker
-//   The visitor class for tracking particles with time as independent
-//   variable.
-//
-// Copyright (c) 200x - 2014, Christof Kraus, Paul Scherrer Institut, Villigen PSI, Switzerland
-//               2015 - 2016, Christof Metzger-Kraus, Helmholtz-Zentrum Berlin, Germany
-//               2017 - 2020, Christof Metzger-Kraus
-//               2025 - present, Ryan Ammann, Paul Scherrer Institut, Villigen PSI, Switzerland
-// All rights reserved
-//
-// This file is part of OPAL.
-//
-// OPAL is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// You should have received a copy of the GNU General Public License
-// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
-//
+/**
+ * @file ParallelTracker.h
+ * @brief Visitor-based parallel tracker with time as the independent variable.
+ *
+ * @copyright Copyright (c) 200x - 2014, Christof Kraus, Paul Scherrer Institut, Villigen PSI, Switzerland
+ * @copyright 2015 - 2016, Christof Metzger-Kraus, Helmholtz-Zentrum Berlin, Germany
+ * @copyright 2017 - 2020, Christof Metzger-Kraus
+ * @copyright 2025 - present, Ryan Ammann, Paul Scherrer Institut, Villigen PSI, Switzerland
+ *
+ * All rights reserved. This file is part of OPAL.
+ *
+ * OPAL is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with OPAL. If not, see https://www.gnu.org/licenses/.
+ */
 
-#ifndef OPAL_ParallelTracker_HH
-#define OPAL_ParallelTracker_HH
+#ifndef OPALX_ParallelTracker_HH
+#define OPALX_ParallelTracker_HH
 
 #include "Algorithms/StepSizeConfig.h"
 #include "Algorithms/Tracker.h"
@@ -52,46 +50,27 @@ class ParticleMatterInteractionHandler;
 class PluginElement;
 
 /**
- * @brief Implements the simulation loop
- * 
- * @note ParallelTracker implements the main simulation loop. 
- * TRACK and RUN commands in the inputfile invoke the creation of the 
- * ParalleTracker object and the execution of ParallelTracker::execute()
+ * @brief Implements the main time-based simulation loop for parallel tracking.
+ *
+ * @note TRACK and RUN in the input file construct a ParallelTracker and run
+ *       ParallelTracker::execute().
  */
 class ParallelTracker : public Tracker {
 private:
-    /* ============================= Variables ============================= */
-    
-    // Responsible for writing beam statistics
-    std::shared_ptr<DataSink> itsDataSink_m;
 
-    // Beamline Object which holds a list of pointers to beamline components
-    OpalBeamline itsOpalBeamline_m;
+    std::shared_ptr<DataSink> itsDataSink_m; ///< Beam statistics and phase-space output.
+    OpalBeamline itsOpalBeamline_m;          ///< Cloned field elements and coordinate transforms.
+    bool globalEOL_m;                       ///< End-of-line flag (e.g. orbit threader out of bounds).
+    double zstart_m;                        ///< Path-length start position for the track (m).
 
-    // Flag indicating if End Of Line has been reached
-    bool globalEOL_m;
-
-    // Starting position
-    double zstart_m;
-
-    /**   
-     * stores informations where to change the time step and
-     * where to stop the simulation,
-     * the time step sizes and
-     * the number of time steps with each configuration 
-     */
+    /** Step-size segments: z-stop, dt, and steps per segment. */
     StepSizeConfig stepSizes_m;
 
-    // The current time stepsize dt (controlled by StepSizeConfig)
-    double dtCurrentTrack_m;
+    double dtCurrentTrack_m;                ///< Global @f$\Delta t@f$ for the current track segment.
+    unsigned long long repartFreq_m;       ///< Space-charge repartition period (steps); off on one rank.
+    std::vector<std::vector<std::shared_ptr<SamplingBase>>> emittingSamplers_m; ///< Per-container emitters.
 
-    // Controls the frequency of load balancing 
-    unsigned long long repartFreq_m;
-
-    /// Per-container time-dependent (emitting) sources; emitParticles(t, dt) each step.
-    std::vector<std::vector<std::shared_ptr<SamplingBase>>> emittingSamplers_m;
-
-    /* ============================== Timers =============================== */
+    // --- Timers ---
     IpplTimings::TimerRef timeIntegrationTimer1_m;
     IpplTimings::TimerRef timeIntegrationTimer2_m;
     IpplTimings::TimerRef fieldEvaluationTimer_m;
@@ -101,23 +80,26 @@ private:
     IpplTimings::TimerRef OrbThreader_m;
 
 public:
-    /* ============================ Constructors =========================== */
-
-    /** 
-     * Constructor for single track
-     * The Beamline object "bl"
-     * If "revBeam" is true, the beam runs from s = C to s = 0.
-     * OPAL-T parallel tracking is forward (beam) direction only (revTrack is not used).
-    */ 
+    /**
+     * @brief Construct tracker with beamline only (no bunch attached here).
+     * @param bl       Beamline definition.
+     * @param revBeam  If true, reversed beam direction (s = C to 0); OPAL-T parallel
+     *                 tracking is forward-only; revTrack is not used.
+     */
     explicit ParallelTracker(const Beamline& bl, bool revBeam);
 
-    /** 
-     * Constructor for single track
-     * The Beamline object "bl", the ParticleBunch "bunch", the DataSink "ds".
-     * If "revBeam" is true, the beam runs from s = C to s = 0.
-     * Vector of maxSteps per track; starting position "zstart"; zstop and dt per segment.
-     * Optional per-container emitting samplers (emitParticles(t, dt) called each step)
-    */
+    /**
+     * @brief Construct tracker with bunch, output sink, and step-size schedule.
+     * @param bl                Beamline definition.
+     * @param bunch             Particle bunch (multi-container).
+     * @param ds                Data sink for statistics and dumps.
+     * @param revBeam           Reversed beam flag (see single-argument constructor).
+     * @param maxSTEPS          Max integration steps per z-segment (parallel to zstop/dt).
+     * @param zstart            Starting path length (m).
+     * @param zstop             Stop path length per segment (m).
+     * @param dt                Time step per segment (s).
+     * @param emittingSamplers  Optional per-container samplers for emitParticles(t, dt).
+     */
     explicit ParallelTracker(const Beamline& bl, std::shared_ptr<PartBunch_t> bunch,
         const std::shared_ptr<DataSink>& ds, bool revBeam,
         const std::vector<unsigned long long>& maxSTEPS, 
@@ -125,98 +107,166 @@ public:
         const std::vector<double>& dt,
         const std::vector<std::vector<std::shared_ptr<SamplingBase>>>& emittingSamplers = {});
 
-    // Destructor
+    /// @brief Destructor; releases tracker resources.
     virtual ~ParallelTracker();
 
-    /* ========================= Visit Functions =========================== */
-    /// Apply the algorithm to a beam line.
-    //  overwrite the execute-methode from DefaultVisitor
+    /// @brief Visit the full beamline (iterates elements into OpalBeamline). Overrides DefaultVisitor.
     virtual void visitBeamline(const Beamline&);
 
-    /// Apply the algorithm to a constant E-field cavity element.
+    /// @brief Visit a generic component; rejects LASER (not implemented).
+    virtual void visitComponent(const Component&);
+
+    /// @brief Apply the algorithm to a constant E-field cavity.
     virtual void visitConstantEFieldCavity(const ConstantEFieldCavity&);
 
-    /// Apply the algorithm to a drift space.
+    /// @brief Apply the algorithm to a drift.
     virtual void visitDrift(const Drift&);
 
-    /// Apply the algorithm to a marker.
+    /// @brief Apply the algorithm to a marker.
     virtual void visitMarker(const Marker&);
 
-    /// Apply the algorithm to a multipole.
+    /// @brief Apply the algorithm to a multipole.
     virtual void visitMultipole(const Multipole&);
 
-    /// Apply the algorithm to an arbitrary multipole.
+    /// @brief Apply the algorithm to a multipole (templated type).
     virtual void visitMultipoleT(const MultipoleT&);
 
-    /// Apply the algorithm to a RF cavity.
+    /// @brief Apply the algorithm to an RF cavity.
     virtual void visitRFCavity(const RFCavity&);
 
-    /// Apply the algorithm to a RF cavity.
+    /// @brief Apply the algorithm to a solenoid.
     virtual void visitSolenoid(const Solenoid&);
 
-    /* ========================= Start Simulation ========================== */
+    /// @brief Run the main tracking loop until all step-size segments complete.
     virtual void execute();
 
-    /* ========================= PIC Functions ============================= */
+    /**
+     * @brief Boris half-kick using E, B and per-particle dt on one container.
+     * @param pusher Boris pusher instance.
+     * @param pc     Particle container.
+     */
     void kickParticles(const BorisPusher& pusher,
                        const std::shared_ptr<PartBunch_t::ParticleContainer_t>& pc);
+                       
+    /**
+     * @brief Boris position push (unitless positions) on one container.
+     * @param pusher Boris pusher instance.
+     * @param pc     Particle container.
+     */
     void pushParticles(const BorisPusher& pusher,
                        const std::shared_ptr<PartBunch_t::ParticleContainer_t>& pc);
+
+    /// @brief First half of the leapfrog step: push all active containers.
     void timeIntegration1(BorisPusher& pusher);
+
+    /// @brief Second half: kick then push all active containers.
     void timeIntegration2(BorisPusher& pusher);
-    void computeSpaceChargeFields(unsigned long long step);    
+
+    /**
+     * @brief Self-fields in beam frame (primary container); optional binary repartition.
+     * @param step Global step index (used for repartition cadence).
+     */
+    void computeSpaceChargeFields(unsigned long long step);
+
+    /// @brief Apply external fields from elements intersecting each active container.
+    /// @param oth Orbit threader for element queries.
     void computeExternalFields(OrbitThreader& oth);
+
+    /// @brief Emit macroparticles from configured samplers per container.
+    /// @param t  Bunch time (s).
+    /// @param dt Global time step (s).
     void emitFromEmissionSources(double t, double dt);
+
+    /// @brief Apply global processes 
     void applyGlobalProcesses(double dt);
+
+    /// @brief Zero E and B on all active particle containers.
     void resetFields();
-    /* ===================================================================== */ 
-    /* =========================== Functions =============================== */
-    // Control the dtview of the bunch
+
+    /// @brief Set bunch dt from StepSizeConfig and copy to all container dt views.
     void changeDT();
+
+    /// @brief Reset per-particle dt views to the current global bunch dt.
     void setTime();
 
 private:
-    /// @brief Update ref particles and trafos 
+
+    /// @brief Update reference trajectories and lab/reference coordinate transforms.
     void updateReference(const BorisPusher& pusher);
 
-    /// @brief Update ref particles positions
+    /// @brief Advance reference positions/momenta through the beamline for one step.
     void updateReferenceParticles(const BorisPusher& pusher);
 
-    /// @brief Update ref particle trafos
+    /// @brief Refresh each container's reference-to-lab transform from current state.
     void updateRefToLabCSTrafo();
 
-    /// @brief Write phase space
+    /**
+     * @brief Write phase space and/or statistics when flags request it.
+     * @param step     Step index (reserved for diagnostics; may be unused in body).
+     * @param psDump   If true, write phase-space snapshot when applicable.
+     * @param statDump If true, write statistics (e.g. SDDS).
+     */
     void writePhaseSpace(const long long step, bool psDump, bool statDump);
 
-    /// @brief dump stats
+    /**
+     * @brief Log per-container stats and trigger dumps according to dump flags.
+     * @param step     Current integration step index.
+     * @param psDump   Forwarded to writePhaseSpace when logging occurs.
+     * @param statDump Forwarded to writePhaseSpace when logging occurs.
+     */
     void dumpStats(long long step, bool psDump, bool statDump);
 
-    /// @brief Prepare all beamline elements
+    /// @brief Accept beamline visitor, prepare sections, compute and save 3D lattice.
     void prepareSections();
 
-    /// @brief Sets itsBunch_m::dt to dtCurrentTrack_m 
+    /// @brief Set global bunch dt to dtCurrentTrack_m.
     void selectDT();
 
-    /// @brief void prepareOpalBeamlineSections();
+    /// @brief Load REPARTFREQ and related options from input.
     void setOptionalVariables();
 
-    /// @brief Checks if the reference particle has reached the end of the beamline
+    /**
+     * @brief Whether tracking should stop at end-of-line (global reduction).
+     * @param globalBoundingBox Spatial bounds from the orbit threader.
+     */
     bool hasEndOfLineReached(const BoundingBox& globalBoundingBox);
 
-    /// @brief Load balancing
+    /// @brief Trigger binary repartition for the field solver if configured.
     void doBinaryRepartition();
+
+    /**
+     * @brief Union of per-container spatial bounds over MPI.
+     * @param[out] rmin Corner of the axis-aligned bounding box (min).
+     * @param[out] rmax Corner of the axis-aligned bounding box (max).
+     */
     void computeInitialBounds(Vector_t<double, 3>& rmin, Vector_t<double, 3>& rmax);
+
+    /**
+     * @brief Log reference state for each container at track start.
+     * @param m Inform stream for log output.
+     */
     void printInitialContainerRefs(Inform& m) const;
 
-    /// @brief Finds start for reference particle
+    /// @brief Integrate references in time until path length reaches zstart_m.
     void findStartPositions(const BorisPusher& pusher);
 
-    /* ========================== Autophasing ============================== */
-    /// @brief Setup for TRAVERLINGWAVE and RFCAVITY
+    /// @brief Autophase TRAVELINGWAVE and RFCAVITY elements along the reference orbit.
     void autophaseCavities(const BorisPusher& pusher);
+
+    /**
+     * @brief Set stored RF phase on the named cavity or traveling-wave element.
+     * @param elName  Element name to match.
+     * @param maxPhi  RF phase to apply (rad).
+     */
     void updateRFElement(std::string elName, double maxPhi);
+
+    /// @brief Print RF phases (debug/diagnostic hook).
     void printRFPhases();
+
+    /// @brief Persist cavity phases to the data sink.
     void saveCavityPhases();
+
+    /// @brief Restore cavity phases from a prior track or restart.
     void restoreCavityPhases();
 };
 
@@ -248,4 +298,4 @@ inline void ParallelTracker::visitSolenoid(const Solenoid& so) {
     itsOpalBeamline_m.visit(so, *this, itsBunch_m);
 }
 
-#endif  // OPAL_ParallelTracker_HH
+#endif  // OPALX_ParallelTracker_HH
