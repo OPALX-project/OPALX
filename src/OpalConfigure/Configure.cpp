@@ -144,7 +144,7 @@ namespace {
         opal->create(new OpalPolynomialTimeDependence());
         opal->create(new OpalSinusoidalTimeDependence());
         opal->create(new OpalSplineTimeDependence());
-        //opal->create(new OpalMultipoleT());
+        opal->create(new OpalMultipoleT());
     }
 };  // namespace
 

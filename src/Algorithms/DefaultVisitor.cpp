@@ -29,9 +29,6 @@
 #include "AbsBeamline/Monitor.h"
 #include "AbsBeamline/Multipole.h"
 #include "AbsBeamline/MultipoleT.h"
-#include "AbsBeamline/MultipoleTCurvedConstRadius.h"
-#include "AbsBeamline/MultipoleTCurvedVarRadius.h"
-#include "AbsBeamline/MultipoleTStraight.h"
 #include "AbsBeamline/Offset.h"
 #include "AbsBeamline/Probe.h"
 #include "AbsBeamline/RFCavity.h"
@@ -85,19 +82,6 @@ void DefaultVisitor::visitMultipole(const Multipole& mult) {
 
 void DefaultVisitor::visitMultipoleT(const MultipoleT& multT) {
     applyDefault(multT);
-}
-
-void DefaultVisitor::visitMultipoleTStraight(const MultipoleTStraight& multTstraight) {
-    applyDefault(multTstraight);
-}
-
-void DefaultVisitor::visitMultipoleTCurvedConstRadius(
-    const MultipoleTCurvedConstRadius& multTccurv) {
-    applyDefault(multTccurv);
-}
-
-void DefaultVisitor::visitMultipoleTCurvedVarRadius(const MultipoleTCurvedVarRadius& multTvcurv) {
-    applyDefault(multTvcurv);
 }
 
 void DefaultVisitor::visitOffset(const Offset& off) {
