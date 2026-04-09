@@ -77,6 +77,13 @@ void OpalLaser::update() {
 
     OpalElement::update();
 
+    // The prototype instance has no attributes set; skip validation and
+    // propagation for it.  OpalData::update() calls update() on every object
+    // in the directory, including prototypes, so we must not throw here.
+    if (getParent() == nullptr) {
+        return;
+    }
+
     auto* laser = dynamic_cast<LaserRep*>(getElement());
     if (laser == nullptr) {
         throw OpalException(where, "Embedded element is not a LaserRep.");
