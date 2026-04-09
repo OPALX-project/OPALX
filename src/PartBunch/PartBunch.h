@@ -73,6 +73,7 @@ public:
 private:
     std::vector<bool> pcActive_m;        ///< Per-container: participate in this track segment.
     std::vector<bool> pcAtZStop_m;       ///< Per-container: frozen at current z-stop until next segment.
+    std::vector<std::string> particleNames_m; ///< Per-container beam particle names.
 
     std::shared_ptr<BCHandler_t> bcHandler_m;           ///< Field boundary conditions.
     std::shared_ptr<AdaptBins_t> bins_m;                ///< Adaptive velocity/gamma binning (optional).
@@ -350,6 +351,14 @@ public:
     double calcMeanPhi() {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
         return 0.0;
+    }
+
+    /// @brief Particle species name for container @p i (from BEAM PARTICLE input).
+    std::string getParticleName(size_t i) const {
+        if (i >= particleNames_m.size()) {
+            return "";
+        }
+        return particleNames_m[i];
     }
 
 

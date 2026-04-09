@@ -30,16 +30,18 @@
 #include <Kokkos_Core.hpp>
 
 #include "AbstractObjects/OpalData.h"
+#include "BuildInfo.h"
 #include "PartBunch/PartBunch.h"
 #include "Physics/Units.h"
 #include "Utilities/Timer.h"
+#include "Utilities/Util.h"
 
 #include <sstream>
 
 StatWriter::StatWriter(const std::string& fname, bool restart) : StatBaseWriter(fname, restart) {
 }
 
-void StatWriter::fillHeader(const losses_t& losses) {
+void StatWriter::fillHeader(const losses_t& losses, const std::string& species) {
     if (this->hasColumns()) {
         return;
     }
@@ -201,7 +203,13 @@ void StatWriter::fillHeader(const losses_t& losses) {
 
     this->addDescription(ss.str(), "stat parameters");
 
-    this->addDefaultParameters();
+    std::stringstream revision;
+    revision << buildinfo::project_name << " " << buildinfo::project_version << " "
+             << "git rev. #" << Util::getGitRevision();
+
+    addParameter("processors", "long", "Number of Cores used", ippl::Comm->size());
+    addParameter("revision", "string", "git revision of opal", revision.str());
+    addParameter("species", "string", "Particle species of container", species);
 
     this->addInfo("ascii", 1);
 }
@@ -216,6 +224,7 @@ void StatWriter::write(
     }
 
     double pathLength = pc->get_sPos();
+    const std::string species = beam->getParticleName(particleContainerIndex);
 
     // First write to this writer's .stat file emits SDDS header via fillHeader/writeHeader.
     // File vs. container: this object was constructed with the stem for particleContainerIndex;
@@ -227,7 +236,7 @@ void StatWriter::write(
         return;
     }
 
-    fillHeader(losses);
+    fillHeader(losses, species);
 
     this->open();
 

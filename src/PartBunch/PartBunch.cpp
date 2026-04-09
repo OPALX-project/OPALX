@@ -115,10 +115,12 @@ PartBunch<T, Dim>::PartBunch(std::vector<double> qi,
             this->fcontainer_m->getMesh(), this->fcontainer_m->getFL()));
     }
     const auto& containers = this->getParticleContainers();
+    particleNames_m.resize(containers.size());
     for (size_t i = 0; i < containers.size(); ++i) {
         containers[i]->setQ(qi[i]);
         containers[i]->setM(mi[i]);
         containers[i]->setReference(&beams[i]->getReference());
+        particleNames_m[i] = beams[i]->getParticleName();
         containers[i]->Sp =
             static_cast<short>(ParticleProperties::getParticleType(beams[i]->getParticleName()));
     }
