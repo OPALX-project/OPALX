@@ -1,5 +1,5 @@
-#ifndef CLASSIC_AbstractTracker_HH
-#define CLASSIC_AbstractTracker_HH
+#ifndef OPALX_AbstractTracker_HH
+#define OPALX_AbstractTracker_HH
 
 // ------------------------------------------------------------------------
 // $RCSfile: AbstractTracker.h,v $
@@ -55,4 +55,4 @@ private:
     void operator=(const AbstractTracker &);
 };
 
-#endif // CLASSIC_AbstractTracker_HH
+#endif // OPALX_AbstractTracker_HH

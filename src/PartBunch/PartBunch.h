@@ -1,3 +1,8 @@
+/**
+ * @file PartBunch.h
+ * @brief Template PIC bunch: IPPL PicManager, shared field mesh/solver, and multiple particle containers.
+ */
+
 #ifndef PARTBUNCH_H
 #define PARTBUNCH_H
 
@@ -17,13 +22,19 @@
 #include "BCHandler.hpp"
 #include "Structure/FieldSolverCmd.h"
 
-class DataSink;  // forward declaration; full type needed only in .cpp
+class DataSink;  ///< Forward declaration; full definition only required in the .cpp translation unit.
 class Beam;
 
 extern Inform* gmsg;
 
 using view_type = typename ippl::detail::ViewType<ippl::Vector<double, 3>, 1>::view_type;
 
+/**
+ * @brief OPAL particle bunch: field container, solver, load balancer, and one or more beams.
+ *
+ * @tparam T   Floating-point type for positions/fields (typically double).
+ * @tparam Dim Spatial dimension (3 for OPALX).
+ */
 template <typename T, unsigned Dim>
 class PartBunch : public ippl::PicManager<
           T, Dim, ParticleContainer<T, Dim>, FieldContainer<T, Dim>, LoadBalancer<T, Dim>> {
@@ -42,110 +53,59 @@ public:
     using BCHandler_t          = BCHandler<Dim>;
 
 public:
-// Per container values ========================================================
+    // --- Shared state (all containers / mesh) ---
 
-// Moved to ParticleContainer for now
+    double dt_m;                         ///< Global time step @f$\Delta t@f$ (s).
+    int it_m;                            ///< Iteration counter (legacy / diagnostics).
+    std::string integration_method_m;    ///< Integrator name (e.g. leapfrog).
+    std::string solver_m;                ///< Field solver type string from input.
+    Vector_t<int, Dim> nr_m;             ///< Mesh cell count per dimension.
+    Vector_t<double, Dim> origin_m;      ///< Mesh origin (lab coordinates).
+    Vector_t<double, Dim> rmin_m;        ///< Current bunch spatial minimum (from primary container stats; see calcBeamParameters).
+    Vector_t<double, Dim> rmax_m;        ///< Current bunch spatial maximum (from primary container stats).
+    Vector_t<double, Dim> hr_m;          ///< Mesh spacing (m).
 
-// Shared values for all containers ============================================
-    
-    // Time step
-    double dt_m; 
-
-    // Iteration count
-    int it_m; 
-
-    // Integration methods : LEAPFROG 
-    std::string integration_method_m; 
-
-    // Field solver type
-    std::string solver_m; 
-
-    // Number of mesh points per dimension
-    Vector_t<int, Dim> nr_m; 
-
-    // Mesh spacial origin
-    Vector_t<double, Dim> origin_m; 
-
-    // Maximum point of the mesh 
-    Vector_t<double, Dim> rmin_m; 
-
-    // Minimum point of the mesh
-    Vector_t<double, Dim> rmax_m; 
-
-    // Mesh spacing [m]
-    Vector_t<double, Dim> hr_m; 
-
-// Load Balancing (To be properly implemented) =================================
-
-    // Load balancing threshold
-    double lbt_m; 
-
-    // Is first repartition flat
-    bool isFirstRepartition_m; 
-
-    // 3-D array for the domain
-    ippl::NDIndex<Dim> domain_m;
-
-    // Boolean array 
-    std::array<bool, Dim> decomp_m;
+    double lbt_m;                       ///< Load-balancer timescale parameter.
+    bool isFirstRepartition_m;          ///< True until the first ORB-style repartition completes.
+    ippl::NDIndex<Dim> domain_m;        ///< Global mesh index extent per dimension.
+    std::array<bool, Dim> decomp_m;     ///< Domain decomposition flags (per axis).
 
 private:
+    std::vector<bool> pcActive_m;        ///< Per-container: participate in this track segment.
+    std::vector<bool> pcAtZStop_m;       ///< Per-container: frozen at current z-stop until next segment.
+    std::vector<std::string> particleNames_m; ///< Per-container beam particle names.
 
-// Per container values ========================================================
+    std::shared_ptr<BCHandler_t> bcHandler_m;           ///< Field boundary conditions.
+    std::shared_ptr<AdaptBins_t> bins_m;                ///< Adaptive velocity/gamma binning (optional).
+    std::shared_ptr<FieldSolverCmd> OPALFieldSolver_m;  ///< Parsed FIELD_SOLVER command.
+    std::shared_ptr<DataSink> dataSink_m;               ///< Diagnostics and dump output.
 
-    /// Per-container dynamics on this segment.
-    std::vector<bool> pcActive_m;
-    /// Per-container: segment z-stop reached (no reactivation after emit).
-    std::vector<bool> pcAtZStop_m;
+    double t_m;                          ///< Current simulation time (s).
 
-// Shared values for all containers ============================================
-
-    // Field boundary handler
-    std::shared_ptr<BCHandler_t> bcHandler_m; 
-
-    // Adaptive binning structure
-    std::shared_ptr<AdaptBins_t> bins_m; 
-
-    // Field solver command
-    std::shared_ptr<FieldSolverCmd> OPALFieldSolver_m; 
-
-    // Data sink
-    std::shared_ptr<DataSink> dataSink_m;
-
-    // Time of integration
-    double t_m; 
-
-    /// Temporary E field container used to store temporary E field during binned solver
+    /** Scratch E field for binned accumulation (same layout as mesh E). */
     std::shared_ptr<VField_t<T, Dim>> Etmp_m;
-
-    /// Temporary B field container used to store temporary B field during binned solver
+    /** Scratch B field for binned accumulation (same layout as mesh B). */
     std::shared_ptr<VField_t<T, Dim>> Btmp_m;
 
-    // Global tracking step 
-    long long globalTrackStep_m;
-    
-// Load Balancing (To be properly implemented) =================================
+    long long globalTrackStep_m;         ///< Global integration step counter.
 
-    // reducer object for load balance statistics
-    std::unique_ptr<size_t[]> globalPartPerNode_m;
-    
-// Unused values ===============================================================
+    std::unique_ptr<size_t[]> globalPartPerNode_m; ///< Per-rank particle counts for load-balance stats.
 
-    // Still written to stat file for some reason? 
-    double rmsDensity_m;
+    double rmsDensity_m;                 ///< Legacy RMS density placeholder (may still appear in stats).
 
 public:
 
     /**
-     * @brief Construct a PartBunch with given macro charge/mass and configuration.
+     * @brief Construct a multi-beam bunch: mesh, solver, containers, and capacity.
      *
-     * @param qi              Vector of macrocharges per species [C]
-     * @param mi              Vector of macromasses per species [GeV/c^2]
-     * @param num_containeres Total number of containers 
-     * @param lbt             Load-balancer timescale.
-     * @param integration_method Name of the integrator (e.g. "LF2").
-     * @param OPALFieldSolver Field solver command providing mesh and binning configuration.
-     * @param dataSink        Shared pointer to the global DataSink used for diagnostics.
+     * @param qi                     Macrocharge per container (C).
+     * @param mi                     Macromass per container (GeV/c²).
+     * @param beams                  One @c Beam per container (reference particle, species).
+     * @param totalParticlesPerBeam  Target macroparticle count per beam (for local allocation).
+     * @param lbt                    Load-balancer timescale.
+     * @param integration_method     Integrator label (e.g. leapfrog).
+     * @param OPALFieldSolver        Field solver command (mesh, BCs, optional binning).
+     * @param dataSink               Diagnostics output sink.
      */
     PartBunch(std::vector<double> qi, 
               std::vector<double> mi,
@@ -157,22 +117,18 @@ public:
               std::shared_ptr<DataSink> dataSink);
 
     /**
-     * @brief 
-     * - recomputes mesh spacing i.e. Layout
-     * - repatition the domain if nessesary
-     * - recomputes all moments of the particle distribution
-     
-     called in:
-     
-     Track/TrackRun.cpp             --> initial calc)
-     PartBunch/PartBunch.cpp        --> in space charge which is wrong 
-     Algorithms/ParallelTracker.cpp --> after push
+     * @brief Refresh mesh from particle extents, update layouts, and recompute moments.
+     *
+     * @par Typical call sites
+     * - @c Track/TrackRun.cpp (initial layout)\n
+     * - @c PartBunch.cpp (space-charge path; review if still appropriate)\n
+     * - @c ParallelTracker.cpp (after position push / frame changes)
      */
     void bunchUpdate();
 
     /**
-     * @brief Returns the total number of particle across all containers
-    */
+     * @brief Sum of @c getTotalNum() over all particle containers.
+     */
     size_t getTotalNumAllContainers() const {
         size_t total = 0;
         for (const auto& pc : this->getParticleContainers()) {
@@ -183,35 +139,43 @@ public:
         return total;
     }
 
-    /// @brief Set field solver
+    /// @brief Build field solver and load balancer from @c OPALFieldSolver_m.
     void setSolver();
 
-    /// @brief Set bins for binned field solver
+    /// @brief Create adaptive bins from the binning command (VELOCITYZ / GAMMAZ).
     void setBins();
 
-    /// @brief Setup run for the field solver
+    /// @brief Warm-up: zero rho and run the field solver once (skip full dumps).
     void pre_run() override;
 
-    /// @brief Sanity check 
+    /**
+     * @brief Validate BC handler, solver wiring, field pointers, and layout extents.
+     * @throw OpalException if initialization is inconsistent.
+     */
     void performBunchSanityChecks() const;
 
-    /// Segment start: non-empty containers active; empty inactive.
+    /// @brief At segment start: active if container is non-empty; inactive if empty.
     void resetPcActive();
 
+    /// @param i Container index.
+    /// @return Whether container @p i participates in the current segment.
     bool isPcActive(size_t i) const {
         return i < pcActive_m.size() && pcActive_m[i];
     }
 
+    /// @param i Container index.
+    /// @return Whether container @p i is frozen at the current z-stop.
     bool pcAtZStop(size_t i) const {
         return i < pcAtZStop_m.size() && pcAtZStop_m[i];
     }
 
-    /// Freeze dynamics for this container until next segment.
+    /// @brief Deactivate container @p i until the next step-size segment (z-stop reached).
     void setPcAtZStop(size_t i);
 
-    /// After emit: activate non-empty containers not frozen at z-stop.
+    /// @brief After emission: reactivate non-empty containers not marked at z-stop.
     void refreshPcActiveAfterEmit();
 
+    /// @return True if any container is active.
     bool anyPcActive() const {
         for (bool a : pcActive_m) {
             if (a) {
@@ -221,90 +185,91 @@ public:
         return false;
     }
 
-    // ! NOT TO BE USED: This functionality has moved elsewhere
+    /// @brief PicManager hook; throws (tracking does not use this path).
     void advance() override {
         throw OpalException(
             "PartBunch::advance",
             "Not used: just exists because ippl::PicManager wants it that way.");
     }
 
-    // ! NOT TO BE USED: This functionality has moved elsewhere
+    /// @brief PicManager hook; throws (scatter handled elsewhere).
     void par2grid() override {
         throw OpalException(
             "PartBunch::par2grid",
             "Not used: just exists because ippl::PicManager wants it that way.");
     }
 
-    // ! NOT TO BE USED: This functionality has moved elsewhere
+    /// @brief PicManager hook; throws (gather handled elsewhere).
     void grid2par() override {
         throw OpalException(
             "PartBunch::grid2par",
             "Not used: just exists because ippl::PicManager wants it that way.");
     }
 
-    /// @brief Get the temporary E field
+    /// @brief Scratch E field used by the binned solver path.
     std::shared_ptr<VField_t<T, Dim>> getTempEField() { 
         return this->Etmp_m; 
     }
 
-    /// @brief Set the temporary E field
+    /// @param Etmp Scratch E field matching the mesh layout.
     void setTempEField(std::shared_ptr<VField_t<T, Dim>> Etmp) { 
         this->Etmp_m = Etmp; 
     }
 
-    /// @brief Get temporary B field
+    /// @brief Scratch B field used by the binned solver path.
     std::shared_ptr<VField_t<T, Dim>> getTempBField() { 
         return this->Btmp_m; 
     }
 
-    /// @brief Set the temporary B field
+    /// @param Btmp Scratch B field matching the mesh layout.
     void setTempBField(std::shared_ptr<VField_t<T, Dim>> Btmp) { 
         this->Btmp_m = Btmp; 
     }
 
-    /// @brief Get bins
+    /// @brief Non-const access to adaptive binning state.
     std::shared_ptr<AdaptBins_t> getBins() { 
         return bins_m; 
     }
 
-    /// @brief Get bins const version
+    /// @brief Const access to adaptive binning state.
     std::shared_ptr<AdaptBins_t> getBins() const { 
         return bins_m; 
     }
     
-    /// @brief Set bins
+    /// @param bins Adaptive binning object (or nullptr to clear).
     void setBins(std::shared_ptr<AdaptBins_t> bins) { 
         bins_m = bins; 
     }
 
-    /// @brief Set BC handler
+    /// @param bcHandler Boundary-condition handler for the mesh.
     void setBCHandler(std::shared_ptr<BCHandler_t> bcHandler) { 
         bcHandler_m = bcHandler; 
     }
 
-    /// @brief Get BC handler
+    /// @brief Current boundary-condition handler.
     std::shared_ptr<BCHandler_t> getBCHandler() const { 
         return bcHandler_m; 
     }
 
-    /// @brief Update Moments and calculate rmin_m and rmax_m
-    /// @note For now this only considers container 0, which is fine since
-    /// the field solver acts on container 0 for now. 
+    /**
+     * @brief Update moments and set @c rmin_m / @c rmax_m from the primary (first) container.
+     * @note Space-charge and mesh updates currently use container 0 only.
+     */
     void calcBeamParameters();
 
-    // ! NOT IMPLEMENTED
+    /// @brief Stub; logs and returns 0.
     size_t calcNumPartsOutside(Vector_t<double, Dim> /*x*/) {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
         return 0;
     }
 
-    // ! NOT IMPLEMENTED
+    /// @brief Stub; logs only.
     void calcLineDensity(
         unsigned int /*nBins*/, std::vector<double>& /*lineDensity*/, std::pair<double, double>& /*meshInfo*/) {
             *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
     }
 
-    // ! NOT IMPLEMENTED
+    /// @brief Stub; logs and returns zero vector.
     Vector_t<double, Dim> getEExtrema() {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
        return Vector_t<double, Dim>(0);
@@ -319,43 +284,48 @@ public:
      */
     void computeSelfFields();
 
-    /// @brief Dump binning config
+    /**
+     * @brief Write bin edges/counts to the data sink when configured.
+     * @param preMerge True if called before a bin-merge step.
+     */
     void dumpBinConfig(bool preMerge);
 
-    /// @brief Print information for each bunch (container)
+    /// @brief Human-readable dump of each container to @p os.
+    /// @param os Output stream wrapper.
+    /// @return Reference to @p os.
     Inform& print(Inform& os);
 
-    /// @brief Checks existence of field solver
+    /// @return True if a field solver instance is installed.
     bool hasFieldSolver() const {
         return this->fsolver_m != nullptr;
     }
 
-    /// @brief Get field solver
+    /**
+     * @brief Non-const pointer to the concrete field solver.
+     * @todo Prefer smart pointers once IPPL @c FieldSolverBase allows it.
+     */
     FieldSolver_t* getFieldSolver() {
-        /*
-        \todo this needs to change, best would be to use a smart pointer!
-        However, the parent class FieldSolverBase from IPPL uses raw pointers,
-        so changing this would require some changes in IPPL...
-        */
         return static_cast<FieldSolver_t*>(this->fsolver_m.get());
     }
 
-    /// Const overload for better const correctness.
+    /// @brief Const overload of getFieldSolver().
     const FieldSolver_t* getFieldSolver() const {
         return static_cast<const FieldSolver_t*>(this->fsolver_m.get());
     }
 
-    /// @brief Get field solver backend type string.
+    /// @brief Backend type string (e.g. FFT, OPEN, CG, NONE).
     std::string getFieldSolverType() {
         return this->getFieldSolver()->getStype();
     }
 
-    /// @brief Check whether adaptive binning is enabled.
+    /// @return True if adaptive binning is configured.
     bool hasBinning() const {
         return this->bins_m != nullptr;
     }
 
-    /// @brief Get active number of bins (returns 1 when binning is effectively inactive).
+    /**
+     * @brief Effective bin count for diagnostics (1 if binning inactive or still at max bins).
+     */
     int getCurrentNBins() const {
         if (!hasBinning()) {
             return 1;
@@ -377,14 +347,22 @@ public:
         }
     }
 
-    // ! NOT TO BE USED: COMPATIBILITY STUB
+    /// @brief Compatibility stub; logs and returns 0.
     double calcMeanPhi() {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
         return 0.0;
     }
 
+    /// @brief Particle species name for container @p i (from BEAM PARTICLE input).
+    std::string getParticleName(size_t i) const {
+        if (i >= particleNames_m.size()) {
+            return "";
+        }
+        return particleNames_m[i];
+    }
 
-    // ! NOT TO BE USED: COMPATIBILITY STUB
+
+    /// @brief Do not use; throws (access positions via @c ParticleContainer::R).
     Vector_t<double, Dim> R(size_t) {
         throw OpalException(
             "PartBunch::R",
@@ -393,7 +371,7 @@ public:
         return Vector_t<double, Dim>(0.0);
     }
 
-    // ! NOT TO BE USED: COMPATIBILITY STUB
+    /// @brief Do not use; throws (access momenta via @c ParticleContainer::P).
     Vector_t<double, Dim> P(size_t) {
         throw OpalException(
             "PartBunch::P",
@@ -402,7 +380,11 @@ public:
         return Vector_t<double, Dim>(0.0);
     }
 
-    /// @brief Get the current local particle-position bounds.
+    /**
+     * @brief Copy cached bunch extent (@c rmin_m, @c rmax_m) from calcBeamParameters.
+     * @param[out] rmin Lower corner.
+     * @param[out] rmax Upper corner.
+     */
     void get_bounds(Vector_t<double, Dim>& rmin, Vector_t<double, Dim>& rmax) {
         rmin = rmin_m;
         rmax = rmax_m;
@@ -434,16 +416,16 @@ public:
     }
 
 
-    /// @brief Get the current lower bound of the bunch extent.
+    /// @brief Cached minimum extent (@c rmin_m); prefer per-container min/max for multi-beam detail.
     Vector_t<double, Dim> get_origin() const {
         return rmin_m;
     }
-    /// @brief Get the current upper bound of the bunch extent.
+    /// @brief Cached maximum extent (@c rmax_m).
     Vector_t<double, Dim> get_maxExtent() const {
         return rmax_m;
     }
 
-    // ! NOT IMPLEMENTED
+    /// @brief Stub; logs and returns zero vector.
     Vector_t<double, Dim> get_halo() const {
         *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
         return Vector_t<double, Dim>(0.0);
@@ -454,74 +436,40 @@ public:
         return hr_m;
     }
 
-    /// @brief Set tracking step 
+    /// @param n Global step counter to store.
     void setGlobalTrackStep(long long n) {
         globalTrackStep_m = n;
     }
 
-    /// @brief Get tracking step
+    /// @brief Current global tracking step.
     long long getGlobalTrackStep() const {
         return globalTrackStep_m;
     }
 
-    /// @brief Increment tracking step
+    /// @brief Increment @c globalTrackStep_m by one.
     void incTrackSteps() {
         globalTrackStep_m++;
     }
 
-// Load Balancing (To be properly implemented) =================================
-   
-    /// @brief Load balancing reparitioning
+    /// @brief ORB/binary repartition when the load balancer requests it (primary container).
     void do_binaryRepart();
 
+    /// @brief All-reduce local particle counts into @c globalPartPerNode_m.
     void gatherLoadBalanceStatistics();
 
+    /// @param p MPI rank index.
+    /// @return Particle count recorded for rank @p p after the last gather.
     size_t getLoadBalance(int p) {
         return globalPartPerNode_m[p];
     }
 
-// Unused / Commented out ======================================================
-
+    /// @brief Legacy RMS density field (may be unused).
     double get_rmsDensity() const {
         return rmsDensity_m;
     }
 
-    /*Vector_t<double, Dim> get_68Percentile() const {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return Vector_t<double, Dim>(0.0);
-    }
-    Vector_t<double, Dim> get_95Percentile() const {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return Vector_t<double, Dim>(0.0);
-    }
-    Vector_t<double, Dim> get_99Percentile() const {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return Vector_t<double, Dim>(0.0);
-    }
-    Vector_t<double, Dim> get_99_99Percentile() const {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return Vector_t<double, Dim>(0.0);
-    }
-    Vector_t<double, Dim> get_normalizedEps_68Percentile() const {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return Vector_t<double, Dim>(0.0);
-    }
-    Vector_t<double, Dim> get_normalizedEps_95Percentile() const {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return Vector_t<double, Dim>(0.0);
-    }
-    Vector_t<double, Dim> get_normalizedEps_99Percentile() const {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return Vector_t<double, Dim>(0.0);
-    }
-    Vector_t<double, Dim> get_normalizedEps_99_99Percentile() const {
-        *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
-        return Vector_t<double, Dim>(0.0);
-    }*/
-
 };
 
-// Explicit instantiations
-extern template class PartBunch<double, 3>;
+extern template class PartBunch<double, 3>; ///< Explicit instantiation for 3D double-precision.
 
-#endif
+#endif  // PARTBUNCH_H

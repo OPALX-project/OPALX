@@ -7,7 +7,6 @@
 #include <cmath>
 #include <stdexcept>
 #include <variant> // for std::variant
-// #include <memory>
 #include <utility> // for std::index_sequence
 
 namespace ParticleBinning {

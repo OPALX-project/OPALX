@@ -95,6 +95,8 @@ public:
     void save3DLattice();
     void save3DInput();
     void print(Inform&) const;
+    void apply(const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& t,
+            Vector_t<double, 3>& E, Vector_t<double, 3>& B);
 
     FieldList getElementByType(ElementType);
 
