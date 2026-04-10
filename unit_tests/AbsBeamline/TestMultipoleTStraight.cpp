@@ -92,6 +92,43 @@ public:
         // std::cout << std::endl;
     }
 
+    void grabVerticalDataLine(
+            std::vector<double>& line, const double s, const double height,
+            const Vector_t<double, 3>& elementEntry, const double elementLength) {
+        // Make the bunch
+        const auto bunch = makeBunch(line.size());
+        const auto pc    = bunch->getParticleContainer();
+        // Create the local views and data
+        std::vector<Vector_t<double, 3>> localR(line.size());
+        const auto hostR = Kokkos::create_mirror_view(pc->R.getView());
+        const auto hostB = Kokkos::create_mirror_view(pc->B.getView());
+        // Set the particle positions
+        const double stepSize = height / static_cast<double>(line.size() - 1);
+        for (size_t i = 0; i < line.size(); ++i) {
+            localR[i] = {0, static_cast<double>(i) * stepSize - height / 2, s};
+            hostR(i)  = curvilinearToGlobal(localR[i], elementEntry, elementLength);
+        }
+        Kokkos::deep_copy(pc->R.getView(), hostR);
+        pc->setQ(pc->getChargePerParticle());
+        ippl::Comm->barrier();
+        Kokkos::fence();
+        // Register the bunch with the element
+        bunch->setT(0.0);
+        double startField, endField;
+        initialise(bunch.get(), startField, endField);
+        // Get the fields
+        apply(pc);
+        // Return the fields
+        Kokkos::deep_copy(hostB, pc->B.getView());
+        Kokkos::fence();
+        for (size_t i = 0; i < line.size(); ++i) {
+            line[i] = std::hypot(hostB(i)[0], hostB(i)[1], hostB(i)[2]);
+            //    std::cout << i << ": Local=" << localR[i] << ", Global=" << hostR[i]
+            //              << ", mag(B)=" << line[i] << std::endl;
+        }
+        // std::cout << std::endl;
+    }
+
     void grabLongitudinalDivCurlLine(
             std::vector<double>& fieldLine, std::vector<double>& divLine,
             std::vector<Vector_t<double, 3>>& curlLine, const double x, const double length,
