@@ -20,10 +20,10 @@
 #include "Utilities/OpalException.h"
 
 const std::string OpalSplineTimeDependence::doc_string =
-        std::string("The \"SPLINE_TIME_DEPENDENCE\" element defines ")
-        + std::string("an array of times and corresponding values for time lookup, ")
-        + std::string("for use in time-dependent elements. Lookup is supported at ")
-        + std::string("first order or third order with quadratic smoothing.");
+        "The \"SPLINE_TIME_DEPENDENCE\" element defines "
+        "an array of times and corresponding values for time lookup, "
+        "for use in time-dependent elements. Lookup is supported at "
+        "first order or third order with quadratic smoothing.";
 
 // I investigated using a StringArray or RealArray here;
 // Don't seem to have capacity to handle variables, so for now not implemented
