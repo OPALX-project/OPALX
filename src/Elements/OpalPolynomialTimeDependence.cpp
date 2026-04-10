@@ -19,10 +19,10 @@
 #include "Attributes/Attributes.h"
 
 const std::string OpalPolynomialTimeDependence::doc_string =
-        std::string("The \"POLYNOMIAL_TIME_DEPENDENCE\" element defines ")
-        + std::string("polynomial coefficients for time dependent RF phase, ")
-        + std::string("frequency, amplitude, etc, given by ")
-        + std::string("f(t) = P0+P1*t+P2*t^2+P3*t^3 where t is the time in ns");
+        "The \"POLYNOMIAL_TIME_DEPENDENCE\" element defines "
+        "polynomial coefficients for time dependent RF phase, "
+        "frequency, amplitude, etc, given by "
+        "f(t) = P0+P1*t+P2*t^2+P3*t^3 where t is the time in ns";
 
 // Use either P0..P3 or COEFFICIENTS.  If COEFFICIENTS are present, P0..P3 are ignored.
 OpalPolynomialTimeDependence::OpalPolynomialTimeDependence()
