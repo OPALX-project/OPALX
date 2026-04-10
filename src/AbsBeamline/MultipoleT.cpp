@@ -154,7 +154,7 @@ void MultipoleT::setEntranceAngle(const double entranceAngle) {
 void MultipoleT::setEntryOffset(const double offset) { config_m.entryOffset_m = offset; }
 
 bool MultipoleT::bends() const {
-    return config_m.transverseProfile_m[0] != 0 || config_m.bendAngle_m != 0.0;
+    return config_m.bendAngle_m != 0.0;
 }
 
 void MultipoleT::initialise(PartBunch_t* bunch, double& /*startField*/, double& /*endField*/) {
