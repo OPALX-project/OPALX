@@ -485,7 +485,7 @@ TEST_F(TestMultipoleTStraight, BoundingBox) {
 }
 
 // Check that the field outside the aperture is not calculated
-TEST_F(TestMultipoleTStraight, Aperture) {
+TEST_F(TestMultipoleTStraight, HorzAperture) {
     std::vector<double> line(9);
     // Set up the magnet
     constexpr double length      = 4;
@@ -501,6 +501,34 @@ TEST_F(TestMultipoleTStraight, Aperture) {
     setTransProfile({dipoleField});
     // Check field vanishes outside the aperture
     grabTransverseDataLine(line, 0, 4.0, {0, 0, 0}, length);
+    EXPECT_EQ(line[0], 0.0);  // -4.0
+    EXPECT_NE(line[1], 0.0);  // -3.0
+    EXPECT_NE(line[2], 0.0);  // -2.0
+    EXPECT_NE(line[3], 0.0);  // -1.0
+    EXPECT_NE(line[4], 0.0);  // 0.0
+    EXPECT_NE(line[5], 0.0);  // 1.0
+    EXPECT_NE(line[6], 0.0);  // 2.0
+    EXPECT_NE(line[7], 0.0);  // 3.0
+    EXPECT_EQ(line[8], 0.0);  // 3.0
+}
+
+// Check that the field outside the aperture is not calculated
+TEST_F(TestMultipoleTStraight, VertAperture) {
+    std::vector<double> line(9);
+    // Set up the magnet
+    constexpr double length      = 4;
+    constexpr double bendAngle   = M_PI / 8.0;
+    constexpr double dipoleField = 1.0;
+    setBendAngle(bendAngle, false);
+    setElementLength(length);
+    setAperture(3.5, 3.5);
+    setFringeField(length / 2, 3, 3);
+    setRotation(0.0);
+    setEntranceAngle(0.0);
+    setMaxOrder(5, 10);
+    setTransProfile({dipoleField});
+    // Check field vanishes outside the aperture
+    grabVerticalDataLine(line, 0, 4.0, {0, 0, 0}, length);
     EXPECT_EQ(line[0], 0.0);  // -4.0
     EXPECT_NE(line[1], 0.0);  // -3.0
     EXPECT_NE(line[2], 0.0);  // -2.0
