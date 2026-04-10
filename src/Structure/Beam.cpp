@@ -49,6 +49,7 @@ namespace {
         BFREQ,     // Beam frequency in MHz
         NPART,     // Number of particles per bunch
         SOURCES,   // Name of EMISSIONSOURCELIST
+        GLOBALPROCESSES,  // Global physics processes active for this beam
         SIZE
     };
 }
@@ -82,6 +83,9 @@ Beam::Beam()
 
     itsAttr[SOURCES] =
         Attributes::makeString("SOURCES", "Name of the emission sources list (EMISSIONSOURCELIST).");
+
+    itsAttr[GLOBALPROCESSES] = Attributes::makeUpperCaseStringArray(
+        "GLOBALPROCESSES", "Global physics processes active for this beam.");
 
     // Set up default beam.
     Beam* defBeam    = clone("UNNAMED_BEAM");
@@ -174,6 +178,15 @@ void Beam::execute() {
 
     // Beam-only validation: each non-photon beam must specify its EMISSIONSOURCELIST.
     (void)getEmissionSourceListName();
+
+    // Currently supported global process names (extend as new processes are implemented).
+    for (const std::string& name : getGlobalProcessNames()) {
+        if (name != "DECAY") {
+            throw OpalException("Beam::execute()",
+                                "Unsupported entry in \"GLOBALPROCESSES\": \"" + name +
+                                "\". Supported values: DECAY.");
+        }
+    }
 }
 
 std::string Beam::getEmissionSourceListName() const {
@@ -190,6 +203,10 @@ std::string Beam::getEmissionSourceListName() const {
             "\"SOURCES\" must not be empty for a beam (name of EMISSIONSOURCELIST).");
     }
     return name;
+}
+
+std::vector<std::string> Beam::getGlobalProcessNames() const {
+    return Attributes::getStringArray(itsAttr[GLOBALPROCESSES]);
 }
 
 Beam* Beam::find(const std::string& name) {

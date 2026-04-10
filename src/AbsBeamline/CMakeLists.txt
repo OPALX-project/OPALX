@@ -24,7 +24,6 @@ set(_SRCS
     ScalingFFAMagnet.cpp        
     Solenoid.cpp
     TravelingWave.cpp
-    Offset.cpp
     VerticalFFAMagnet.cpp
     Probe.cpp
     PluginElement.cpp
@@ -50,7 +49,6 @@ set(_HDRS
     ScalingFFAMagnet.h
     Ring.h
     Solenoid.h
-    Offset.h
     VerticalFFAMagnet.h
     Probe.h
     PluginElement.h

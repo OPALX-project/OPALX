@@ -15,21 +15,69 @@
 //
 
 #include <csignal>
+#include "AbstractObjects/OpalData.h"
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "AbsBeamline/MultipoleT.h"
 #include "Algorithms/SplineTimeDependence.h"
+#include "Attributes/Attributes.h"
+#include "Structure/Beam.h"
+#include "Structure/DataSink.h"
+#include "Structure/FieldSolverCmd.h"
+#include "Utilities/OpalException.h"
+#include "Utilities/Options.h"
+#include "Utility/Inform.h"
 #include "gtest/gtest.h"
 
 class TestMultipoleT : public testing::Test, public MultipoleT, public BeamlineVisitor {
 public:
     TestMultipoleT() : MultipoleT("Magnet") {}
 
+    class TestableFieldSolverCmd : public FieldSolverCmd {
+    public:
+        void setType(const std::string& t) {
+            Attributes::setPredefinedString(this->itsAttr[FIELDSOLVER::TYPE], t);
+        }
+
+        void setBCX(const std::string& bc) {
+            Attributes::setPredefinedString(this->itsAttr[FIELDSOLVER::BCFFTX], bc);
+        }
+        void setBCY(const std::string& bc) {
+            Attributes::setPredefinedString(this->itsAttr[FIELDSOLVER::BCFFTY], bc);
+        }
+        void setBCZ(const std::string& bc) {
+            Attributes::setPredefinedString(this->itsAttr[FIELDSOLVER::BCFFTZ], bc);
+        }
+    };
+
+    static std::shared_ptr<FieldSolverCmd> makeNoFieldSolver() {
+        const auto fsCmd = std::make_shared<TestableFieldSolverCmd>();
+        fsCmd->setType("NONE");
+        fsCmd->setNX(8);
+        fsCmd->setNY(8);
+        fsCmd->setNZ(8);
+        fsCmd->setBCX("PERIODIC");
+        fsCmd->setBCY("PERIODIC");
+        fsCmd->setBCZ("PERIODIC");
+        return fsCmd;
+    }
+
     static void SetUpTestSuite() {
         int argc    = 0;
         char** argv = nullptr;
         ippl::initialize(argc, argv);
+        OpalData::getInstance()->storeInputFn("unit_test.opal");
+        if (gmsg == nullptr) {
+            gmsg = new Inform(nullptr, -1);
+        }
+        Options::enableHDF5 = false;
     }
-    static void TearDownTestSuite() { ippl::finalize(); }
+    static void TearDownTestSuite() {
+        if (gmsg != nullptr) {
+            delete gmsg;
+            gmsg = nullptr;
+        }
+        ippl::finalize();
+    }
 
     // Overrides of BeamlineVisitor
     void execute() override {}
@@ -42,7 +90,6 @@ public:
     void visitMonitor(const Monitor&) override {}
     void visitMultipole(const Multipole&) override {}
     void visitMultipoleT(const MultipoleT&) override {}
-    void visitOffset(const Offset&) override {}
     void visitRFCavity(const RFCavity&) override {}
     void visitScalingFFAMagnet(const ScalingFFAMagnet&) override {}
     void visitRing(const Ring&) override {}
@@ -160,4 +207,32 @@ TEST_F(TestMultipoleT, OddApis) {
     EXPECT_NO_THROW(finalise());
     double a, b;
     EXPECT_NO_THROW(getDimensions(a, b));
+}
+
+TEST_F(TestMultipoleT, ApplySingleParticleThrowsForMultiContainerBunch) {
+    // Configure a simple straight multipole.
+    setBendAngle(0.0, false);
+    setElementLength(1.0);
+    setAperture(1.0, 1.0);
+    setFringeField(0.5, 0.1, 0.1);
+    setTransProfile({1.0});
+
+    // Build a multi-container bunch.
+    const auto dataSink = std::make_shared<DataSink>();
+    const auto fsCmd    = makeNoFieldSolver();
+    const auto beam     = std::make_shared<Beam>();
+    Beam* testBeam      = Beam::find("UNNAMED_BEAM");
+    ASSERT_NE(testBeam, nullptr);
+    const auto bunch = std::make_shared<PartBunch_t>(
+            std::vector<double>{1.0e-9, 2.0e-9}, std::vector<double>{0.511e-3, 0.938},
+            std::vector<Beam*>{testBeam, testBeam}, std::vector<size_t>{1, 1}, 1.0, "LF2", fsCmd,
+            dataSink);
+    ASSERT_EQ(bunch->getNumParticleContainers(), 2u);
+
+    // Register bunch and verify per-particle apply() rejects ambiguous container context.
+    double startField = 0.0;
+    double endField   = 0.0;
+    initialise(bunch.get(), startField, endField);
+    Vector_t<double, 3> E{}, B{};
+    EXPECT_THROW(apply(0, 0.0, E, B), OpalException);
 }

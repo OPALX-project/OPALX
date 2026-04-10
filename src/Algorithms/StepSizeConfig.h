@@ -57,7 +57,6 @@ public:
     StepSizeConfig& operator--();
 
     void shiftZStopRight(double front);
-    void shiftZStopLeft(double back);
 
     double getdT() const;
 

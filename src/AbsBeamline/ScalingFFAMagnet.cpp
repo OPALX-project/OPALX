@@ -27,6 +27,7 @@
 
 #include <cmath>
 #include "AbsBeamline/BeamlineVisitor.h"
+#include "AbsBeamline/EndFieldModel/EndFieldModel.h"
 #include "AbsBeamline/ScalingFFAMagnet.h"
 #include "PartBunch/PartBunch.h"
 #include "Physics/Units.h"
@@ -77,7 +78,7 @@ const EMField& ScalingFFAMagnet::getField() const {
     return dummy;
 }
 
-bool ScalingFFAMagnet::apply() {
+bool ScalingFFAMagnet::apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/) {
     return false;
 }
 

@@ -28,6 +28,9 @@
 #ifndef PolynomialCoefficient_h
 #define PolynomialCoefficient_h
 
+#include <iosfwd>
+#include <vector>
+
 namespace interpolation {
 
 /** \class PolynomialCoefficient

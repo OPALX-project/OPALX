@@ -16,6 +16,11 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
+#ifndef OPAL_FIELD_WRITER_HPP
+#define OPAL_FIELD_WRITER_HPP
+
+#include "Structure/FieldWriter.h"
+
 #include <iomanip>
 #include <fstream>
 
@@ -33,6 +38,7 @@ void FieldWriter::dumpField(FieldType& field, std::string name,
     if (ippl::Comm->size() > 1) {
         return;
     }
+
     /*
     constexpr bool isVectorField = std::is_same<VField_t, FieldType>::value;
     std::string type = (isVectorField) ? "field" : "scalar";
@@ -122,3 +128,5 @@ void FieldWriter::dumpField(FieldType& field, std::string name,
     INFOMSG("*** FINISHED DUMPING " + Util::toUpper(name) + " FIELD ***" << endl);
     */
     }
+
+#endif // OPAL_FIELD_WRITER_HPP

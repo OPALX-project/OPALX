@@ -34,6 +34,7 @@
 #include "Structure/StatWriter.h"
 #include "Structure/BinConfigWriter.h"
 
+#include <array>
 #include <iomanip>
 #include <memory>
 #include <string>
@@ -57,27 +58,42 @@ public:
      * opposed to a calculation restart).
      */
     DataSink();
+    /// One H5 wrapper per particle container (when HDF5 enabled); sizes must match @p numParticleContainers.
+    DataSink(const std::vector<H5PartWrapper*>& h5wrappers, bool restart, size_t numParticleContainers);
     DataSink(H5PartWrapper* h5wrapper, bool restart);
     DataSink(H5PartWrapper* h5wrapper);
 
-    void dumpH5(PartBunch_t* beam, Vector_t<double, 3> FDext[]) const;
+    /** Basename stem for per-container diagnostics: @c basename if @p numContainers<=1 else @c basename_cN. */
+    static std::string diagnosticStemForContainer(
+        const std::string& inputBasename, size_t numContainers, size_t index);
+
+    void dumpH5(const std::shared_ptr<PartBunch_t>& beam, Vector_t<double, 3> FDext[]) const;
+
+    void dumpH5(
+        const std::shared_ptr<PartBunch_t>& beam,
+        const std::vector<std::array<Vector_t<double, 3>, 2>>& fdextPerContainer) const;
 
     int dumpH5(
-        PartBunch_t* beam, Vector_t<double, 3> FDext[], double meanEnergy, double refPr,
+        const std::shared_ptr<PartBunch_t>& beam, Vector_t<double, 3> FDext[], double meanEnergy, double refPr,
         double refPt, double refPz, double refR, double refTheta, double refZ, double azimuth,
         double elevation, bool local) const;
 
-    void dumpSDDS(PartBunch_t* beam, Vector_t<double, 3> FDext[], const double& azimuth = -1) const;
+    void dumpSDDS(
+        const std::shared_ptr<PartBunch_t>& beam,
+        const std::vector<std::array<Vector_t<double, 3>, 2>>& fdextPerContainer,
+        const double& azimuth) const;
 
     void dumpSDDS(
-        PartBunch_t* beam, Vector_t<double, 3> FDext[], const losses_t& losses = losses_t(),
-        const double& azimuth = -1) const;
+        const std::shared_ptr<PartBunch_t>& beam,
+        const std::vector<std::array<Vector_t<double, 3>, 2>>& fdextPerContainer,
+        const losses_t& losses,
+        const double& azimuth) const;
 
     /** \brief Write cavity information from  H5 file
      */
     void storeCavityInformation();
 
-    void changeH5Wrapper(H5PartWrapper* h5wrapper);
+    void changeH5Wrappers(const std::vector<H5PartWrapper*>& h5wrappers);
 
     /**
      * Write geometry points and surface triangles to vtk file
@@ -123,10 +139,10 @@ private:
 
     void rewindLines();
 
-    void init(bool restart = false, H5PartWrapper* h5wrapper = nullptr);
+    void init(bool restart, const std::vector<H5PartWrapper*>& h5wrappers, size_t numParticleContainers);
 
-    h5Writer_t h5Writer_m;
-    statWriter_t statWriter_m;
+    std::vector<h5Writer_t> h5Writers_m;
+    std::vector<statWriter_t> statWriters_m;
     std::vector<sddsWriter_t> sddsWriter_m;
 
     // Writer for binning configuration JSON output (rank 0 only).

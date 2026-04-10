@@ -36,6 +36,7 @@ class OpalData;
 class DataSink;
 class Distribution;
 class EmissionSource;
+class GlobalProcess;
 class H5PartWrapper;
 class Inform;
 class Tracker;
@@ -72,9 +73,13 @@ private:
     void setRunMethod();
     std::string getRunMethodName() const;
 
-    void initDataSink();
+    void initDataSink(size_t numParticleContainers);
 
     void setupBoundaryGeometry();
+
+    /// Attach prebuilt global process lists to each particle container.
+    void setupGlobalProcesses(
+        const std::vector<std::vector<std::shared_ptr<GlobalProcess>>>& globalProcessesLists);
 
     /// Build samplers for all emission sources, perform initial sampling for t0 == 0
     /// sources, and populate emittingSamplers_m for time-dependent or delayed sources.
@@ -104,7 +109,7 @@ private:
 
     std::shared_ptr<DataSink> ds_m;
 
-    H5PartWrapper* phaseSpaceSink_m;
+    std::vector<H5PartWrapper*> phaseSpaceSinks_m;
 
     OpalData* opal_m;
 

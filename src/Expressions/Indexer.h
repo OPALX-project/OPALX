@@ -24,6 +24,7 @@
 #include <cerrno>
 #include <cmath>
 #include <iosfwd>
+#include <ostream>
 #include <vector>
 
 

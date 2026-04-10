@@ -48,7 +48,7 @@ namespace {
         ElementBase* clone() const override { return new MockComponent(*this); }
         EMField& getField() override { return *field_m; }
         EMField& getField() const override { return *field_m; }
-        bool apply() override { return false; }
+        bool apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/) override { return false; }
         bool apply(
                 const size_t& /*i*/, const double& /*t*/, Vector_t<double, 3>& /*E*/,
                 Vector_t<double, 3>& /*B*/) override {

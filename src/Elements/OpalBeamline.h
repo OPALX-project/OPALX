@@ -19,6 +19,7 @@
 #define OPAL_BEAMLINE_H
 
 #include <set>
+#include <memory>
 #include <string>
 
 #include "AbsBeamline/Component.h"
@@ -86,7 +87,7 @@ public:
         Vector_t<double, 3>&);
 
     template <class T>
-    void visit(const T&, BeamlineVisitor&, PartBunch_t*);
+    void visit(const T&, BeamlineVisitor&, const std::shared_ptr<PartBunch_t>&);
 
     void prepareSections();
     void positionElementRelative(std::shared_ptr<ElementBase>);
@@ -110,7 +111,8 @@ private:
 };
 
 template <class T>
-inline void OpalBeamline::visit(const T& element, BeamlineVisitor&, PartBunch_t* bunch) {
+inline void OpalBeamline::visit(
+    const T& element, BeamlineVisitor&, const std::shared_ptr<PartBunch_t>& bunch) {
     Inform msg("OPAL ");
     double startField = 0.0;
     double endField   = 0.0;
@@ -121,12 +123,13 @@ inline void OpalBeamline::visit(const T& element, BeamlineVisitor&, PartBunch_t*
     if (elptr->isElementPositionSet())
         startField = elptr->getElementPosition();
 
-    elptr->initialise(bunch, startField, endField);
+    elptr->initialise(bunch.get(), startField, endField);
     elements_m.push_back(ClassicField(elptr, startField, endField));
 }
 
 template <>
-inline void OpalBeamline::visit<Marker>(const Marker& /*element*/, BeamlineVisitor&, PartBunch_t*) {
+inline void OpalBeamline::visit<Marker>(
+    const Marker& /*element*/, BeamlineVisitor&, const std::shared_ptr<PartBunch_t>&) {
 }
 
 inline Vector_t<double, 3> OpalBeamline::transformTo(const Vector_t<double, 3>& r) const {

@@ -38,6 +38,7 @@ template <typename T, unsigned Dim>
 using Vector = ippl::Vector<T, Dim>;
 
 #include "PartBunch/Binning/AdaptBins.h"
+#include "PartBunch/Binning/AdaptBins.tpp"
 #include "PartBunch/Binning/BinHisto.h"
 #include "PartBunch/Binning/BinningTools.h"
 #include "PartBunch/Binning/ParallelReduceTools.h"

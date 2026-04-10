@@ -21,15 +21,10 @@
 #include <list>
 
 #include "AbsBeamline/BeamlineVisitor.h"
-#include "AbsBeamline/CCollimator.h"
 #include "AbsBeamline/ConstantEFieldCavity.h"
 #include "AbsBeamline/Corrector.h"
-#include "AbsBeamline/Cyclotron.h"
 #include "AbsBeamline/Drift.h"
-#include "AbsBeamline/Degrader.h"
 #include "AbsBeamline/ElementBase.h"
-#include "AbsBeamline/FlexibleCollimator.h"
-#include "AbsBeamline/Offset.h"
 #include "AbsBeamline/Marker.h"
 #include "AbsBeamline/Monitor.h"
 #include "AbsBeamline/Multipole.h"
@@ -38,28 +33,36 @@
 #include "AbsBeamline/MultipoleTCurvedConstRadius.h"
 #include "AbsBeamline/MultipoleTCurvedVarRadius.h"
 #include "AbsBeamline/Probe.h"
-#include "AbsBeamline/RBend.h"
 #include "AbsBeamline/Ring.h"
 #include "AbsBeamline/RFCavity.h"
-#include "AbsBeamline/SBend.h"
-#include "AbsBeamline/SBend3D.h"
 #include "AbsBeamline/ScalingFFAMagnet.h"
-#include "AbsBeamline/Septum.h"
 #include "AbsBeamline/Solenoid.h"
-#include "AbsBeamline/Source.h"
-#include "AbsBeamline/Stripper.h"
 #include "AbsBeamline/TravelingWave.h"
-#include "AbsBeamline/Vacuum.h"
-#include "AbsBeamline/VariableRFCavity.h"
-#include "AbsBeamline/VariableRFCavityFringeField.h"
 #include "AbsBeamline/VerticalFFAMagnet.h"
 
 #ifdef ENABLE_OPAL_FEL
-#include "AbsBeamline/Undulator.h"
 #endif
 
 #include "Beamlines/Beamline.h"
 #include "Beamlines/FlaggedElmPtr.h"
+
+class CCollimator;
+class Cyclotron;
+class Degrader;
+class FlexibleCollimator;
+class RBend;
+class RBend3D;
+class SBend;
+class SBend3D;
+class Septum;
+class Source;
+class Stripper;
+class Vacuum;
+class VariableRFCavity;
+class VariableRFCavityFringeField;
+#ifdef ENABLE_OPAL_FEL
+class Undulator;
+#endif
 
 template <class ELEM1, class ELEM2>
 struct CastsTrait {
@@ -136,9 +139,6 @@ public:
 
     /// Apply the algorithm to an arbitrary curved multipole of variable radius.
     virtual void visitMultipoleTCurvedVarRadius(const MultipoleTCurvedVarRadius &);
-
-    /// Apply the algorithm to an offset (placement).
-    virtual void visitOffset(const Offset &);
 
     /// Apply the algorithm to a probe.
     virtual void visitProbe(const Probe &prob);
@@ -316,11 +316,6 @@ void SpecificElementVisitor<ELEM>::visitMultipoleTCurvedConstRadius(const Multip
 template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitMultipoleTCurvedVarRadius(const MultipoleTCurvedVarRadius &element) {
     CastsTrait<ELEM, MultipoleTCurvedVarRadius>::apply(allElementsOfTypeE, element);
-}
-
-template<class ELEM>
-void SpecificElementVisitor<ELEM>::visitOffset(const Offset &element) {
-    CastsTrait<ELEM, Offset>::apply(allElementsOfTypeE, element);
 }
 
 template<class ELEM>

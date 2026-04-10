@@ -14,9 +14,9 @@
 //
 
 #include <vector>
-#include "AbsBeamline/Component.h"
 #include "AbsBeamline/MultipoleT.h"
 #include "AbstractObjects/OpalData.h"
+#include "Structure/Beam.h"
 #include "Structure/DataSink.h"
 #include "gtest/gtest.h"
 
@@ -71,7 +71,7 @@ public:
             hostR(i)  = curvilinearToGlobal(localR[i], elementEntry, elementLength, bendAngle);
         }
         Kokkos::deep_copy(pc->R.getView(), hostR);
-        pc->setQ(bunch->getChargePerParticle());
+        pc->setQ(pc->getChargePerParticle());
         ippl::Comm->barrier();
         Kokkos::fence();
         // Register the bunch with the element
@@ -79,7 +79,7 @@ public:
         double startField, endField;
         initialise(bunch.get(), startField, endField);
         // Get the fields
-        apply();
+        apply(pc);
         // Return the fields
         Kokkos::deep_copy(hostB, pc->B.getView());
         Kokkos::fence();
@@ -109,7 +109,7 @@ public:
             hostR(i)  = curvilinearToGlobal(localR[i], elementEntry, elementLength, bendAngle);
         }
         Kokkos::deep_copy(pc->R.getView(), hostR);
-        pc->setQ(bunch->getChargePerParticle());
+        pc->setQ(pc->getChargePerParticle());
         ippl::Comm->barrier();
         Kokkos::fence();
         // Register the bunch with the element
@@ -117,7 +117,7 @@ public:
         double startField, endField;
         initialise(bunch.get(), startField, endField);
         // Get the fields
-        apply();
+        apply(pc);
         // Return the fields
         Kokkos::deep_copy(hostB, pc->B.getView());
         Kokkos::fence();
@@ -197,8 +197,13 @@ public:
         fsCmd->setBCX("PERIODIC");
         fsCmd->setBCY("PERIODIC");
         fsCmd->setBCZ("PERIODIC");
+        auto beam    = std::make_shared<Beam>();
+        Beam* opBeam = Beam::find("UNNAMED_BEAM");
+        EXPECT_NE(opBeam, nullptr);
         auto bunch = std::make_shared<PartBunch_t>(
-                /*qi=*/std::vector{1.0}, /*mi=*/std::vector{1.0}, /*num_containers=*/1,
+                /*qi=*/std::vector{1.0}, /*mi=*/std::vector{1.0},
+                /*beams=*/std::vector<Beam*>{opBeam},
+                /*totalParticlesPerBeam=*/std::vector<size_t>{numParticles},
                 /*lbt=*/1.0, /*integration_method=*/"LF2", fsCmdBase_m, dataSink);
         bunch->getParticleContainer()->create(numParticles);
         return bunch;
