@@ -67,7 +67,6 @@
 #include "Elements/OpalDrift.h"
 #include "Elements/OpalLaser.h"
 #include "Elements/OpalMarker.h"
-#include "Elements/OpalOffset/OpalLocalCartesianOffset.h"
 #include "Elements/OpalProbe.h"
 #include "Elements/OpalMultipole.h"
 #include "Elements/OpalQuadrupole.h"
@@ -139,7 +138,6 @@ namespace {
         opal->create(new OpalSolenoid());
         opal->create(new OpalRingDefinition());
         opal->create(new Line());
-        opal->create(new OpalOffset::OpalLocalCartesianOffset());
         opal->create(new OpalVerticalFFAMagnet());
         opal->create(new OpalPolynomialTimeDependence());
         opal->create(new OpalSinusoidalTimeDependence());

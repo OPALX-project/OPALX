@@ -387,7 +387,7 @@ namespace ParticleBinning {
          */
         size_type getNPartInBin(bin_index_type binIndex, bool global = false) override {
             // shouldn't happen..., "binIndex < 0" unnecessary, since binIndex is usually unsigned; but just in case the type is changed
-            if (binIndex < 0 || binIndex >= getCurrentBinCount()) { return bunch_m->getTotalNum(); } 
+            if (binIndex < 0 || binIndex >= getCurrentBinCount()) { return bunch_m->getTotalNum(); }
 
             if (global) {
                 return globalBinHisto_m.getNPartInBin(binIndex);
@@ -591,9 +591,6 @@ namespace ParticleBinning {
     };
 
 }
-
-#include "AdaptBins.tpp"
-
 #endif  // ADAPT_BINS_H
 
 

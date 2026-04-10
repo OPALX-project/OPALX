@@ -128,6 +128,9 @@ namespace Physics {
     /// The muon rest mass in GeV
     constexpr double m_mu       = 0.1056583755;
 
+    /// Muon mean lifetime at rest [s] (PDG)
+    constexpr double tau_mu     = 2.1969811e-6;
+
     /// The deuteron rest mass in GeV
     constexpr double m_d        = 2.013553212745 * amu;
 

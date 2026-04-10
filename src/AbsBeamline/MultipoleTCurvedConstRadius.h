@@ -75,6 +75,7 @@ public:
     /** Return the cell geometry */
     BGeometryBase* getGeometry() override { return &planarArcGeometry_m; }
     /** Return the field for an array of points */
+    // Container-agnostic: R/E/B views come from the caller's particle container.
     void getField(
             Kokkos::View<Vector_t<double, 3>*> R, Kokkos::View<Vector_t<double, 3>*> E,
             Kokkos::View<Vector_t<double, 3>*> B, double scaling, size_t count) override;

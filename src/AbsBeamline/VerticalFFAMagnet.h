@@ -6,14 +6,18 @@
 //
 // OPAL is licensed under GNU GPL version 3.
 //
+#ifndef ABSBEAMLINE_VerticalFFAMagnet_H
+#define ABSBEAMLINE_VerticalFFAMagnet_H
 
 #include "AbsBeamline/Component.h"
 #include "BeamlineGeometry/StraightGeometry.h"
 #include "Fields/BMultipoleField.h"
 #include "PartBunch/PartBunch.h"
 
-#ifndef ABSBEAMLINE_VerticalFFAMagnet_H
-#define ABSBEAMLINE_VerticalFFAMagnet_H
+#include <cstddef>
+#include <memory>
+#include <string>
+#include <vector>
 
 namespace endfieldmodel {
     class EndFieldModel;
@@ -48,7 +52,7 @@ public:
      *  \param B calculated magnetic field
      *  \returns true if particle is outside the field map
      */
-    inline bool apply();
+    inline bool apply(const std::shared_ptr<ParticleContainer_t>& pc);
 
     inline bool apply(
         const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B);
@@ -247,7 +251,7 @@ void VerticalFFAMagnet::setPositiveVerticalExtent(double positiveExtent) {
     zPosExtent_m = positiveExtent * mm;
 }
 
-bool VerticalFFAMagnet::apply() {
+bool VerticalFFAMagnet::apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/) {
     return false;
 }
 

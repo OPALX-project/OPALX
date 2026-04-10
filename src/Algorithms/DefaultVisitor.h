@@ -69,9 +69,6 @@ public:
     /// Apply the algorithm to to an arbitrary multipole.
     virtual void visitMultipoleT(const MultipoleT&);
 
-    /// Apply the algorithm to an offset (placement).
-    virtual void visitOffset(const Offset&);
-
     /// Apply the algorithm to a Ring.
     virtual void visitRing(const Ring&);
 

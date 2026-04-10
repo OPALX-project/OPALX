@@ -29,7 +29,6 @@
 #include "AbsBeamline/Monitor.h"
 #include "AbsBeamline/Multipole.h"
 #include "AbsBeamline/MultipoleT.h"
-#include "AbsBeamline/Offset.h"
 #include "AbsBeamline/Probe.h"
 #include "AbsBeamline/RFCavity.h"
 #include "AbsBeamline/Ring.h"
@@ -82,10 +81,6 @@ void DefaultVisitor::visitMultipole(const Multipole& mult) {
 
 void DefaultVisitor::visitMultipoleT(const MultipoleT& multT) {
     applyDefault(multT);
-}
-
-void DefaultVisitor::visitOffset(const Offset& off) {
-    applyDefault(off);
 }
 
 void DefaultVisitor::visitRing(const Ring& ring) {

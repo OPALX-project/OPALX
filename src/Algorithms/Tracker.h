@@ -59,41 +59,38 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
-#ifndef CLASSIC_Tracker_HH
-#define CLASSIC_Tracker_HH
+#ifndef OPALX_Tracker_HH
+#define OPALX_Tracker_HH
 
 #include "Algorithms/AbstractTracker.h"
-#include "PartBunch/PartBunch.h"
-#include "Algorithms/PartData.h"
-
+#include "PartBunch/PartBunchFwd.h"
 #include "Utilities/ClassicField.h"
 
-class BMultipoleField;
-class Euclid3D;
+#include <memory>
+
+class Beamline;
 class OpalParticle;
 
 class Tracker : public AbstractTracker {
 public:
     /// Constructor.
     //  The beam line to be tracked is [b]bl[/b].
-    //  The particle reference data are taken from [b]data[/b].
     //  The particle bunch is initially empty.
     //  If [b]backBeam[/b] is true, the beam runs from s = C to s = 0.
     //  If [b]backTrack[/b] is true, we track against the beam.
-    Tracker(const Beamline&, const PartData&, bool backBeam, bool backTrack);
+    Tracker(const Beamline&, bool backBeam, bool backTrack);
 
     /// Constructor.
     //  The beam line to be tracked is [b]bl[/b].
-    //  The particle reference data are taken from [b]data[/b].
     //  The particle bunch is taken from [b]bunch[/b].
     //  If [b]backBeam[/b] is true, the beam runs from s = C to s = 0.
     //  If [b]backTrack[/b] is true, we track against the beam.
-    Tracker(const Beamline&, PartBunch_t* bunch, const PartData&, bool backBeam, bool backTrack);
+    Tracker(const Beamline&, std::shared_ptr<PartBunch_t> bunch, bool backBeam, bool backTrack);
 
     virtual ~Tracker();
 
     /// Return the current bunch.
-    const PartBunch_t* getBunch() const;
+    const std::shared_ptr<PartBunch_t>& getBunch() const;
 
     /// Add particle to bunch.
     void addToBunch(const OpalParticle&);
@@ -120,7 +117,7 @@ public:
 
 protected:
     /// The bunch of particles to be tracked.
-    PartBunch_t* itsBunch_m;
+    std::shared_ptr<PartBunch_t> itsBunch_m;
     //  typedef PartBunch::iterator iterator;
 
 private:
@@ -130,4 +127,4 @@ private:
     void operator=(const Tracker&);
 };
 
-#endif  // CLASSIC_Tracker_HH
+#endif  // OPALX_Tracker_HH

@@ -88,24 +88,6 @@ void StepSizeConfig::shiftZStopRight(double front) {
     }
 }
 
-void StepSizeConfig::shiftZStopLeft(double back) {
-    auto it = configurations_m.rbegin();
-    while (std::get<1>(*it) > back &&
-           std::next(it) != configurations_m.rend()) {
-        ++ it;
-    }
-
-    double zstop = std::get<1>(*it);
-    if (zstop > back) return;
-
-    std::get<1>(*it) = back;
-    for (++ it ;
-         it != configurations_m.rend();
-         ++ it) {
-        std::swap(zstop, std::get<1>(*it));
-    }
-}
-
 double StepSizeConfig::getdT() const {
     if (reachedEnd()) {
         throw OpalException("StepSizeConfig::getdT",

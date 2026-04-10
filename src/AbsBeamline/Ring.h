@@ -89,7 +89,7 @@ public:
      *  true. If particle is off the field maps, then set flag on the particle
      *  "Bin" data to -1 and store in LossDataSink
      */
-    virtual bool apply() override;
+    virtual bool apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
 
     virtual bool apply(
         const size_t& id, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;

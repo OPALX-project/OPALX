@@ -18,10 +18,11 @@
 #ifndef CLASSIC_PartPusher_H
 #define CLASSIC_PartPusher_H
 
-#include "Algorithms/PartData.h"
-
+#include "OPALTypes.h"
 #include "Physics/Physics.h"
+#include "Utility/Inform.h"
 
+#include <algorithm>
 #include "Expression/IpplExpressions.h"
 
 /*
@@ -34,14 +35,7 @@ extern Inform* gmsg;
 class BorisPusher {
 public:
 
-    KOKKOS_INLINE_FUNCTION BorisPusher(const PartData& ref);
-    KOKKOS_INLINE_FUNCTION BorisPusher();
-
-    KOKKOS_INLINE_FUNCTION void initialise(const PartData* ref);
-
-    KOKKOS_INLINE_FUNCTION void kick(
-        const Vector_t<double, 3>& R, Vector_t<double, 3>& P, const Vector_t<double, 3>& Ef,
-        const Vector_t<double, 3>& Bf, const double& dt) const;
+    KOKKOS_INLINE_FUNCTION BorisPusher() = default;
 
     KOKKOS_INLINE_FUNCTION void kick(
         const Vector_t<double, 3>& R, Vector_t<double, 3>& P, const Vector_t<double, 3>& Ef,
@@ -49,26 +43,7 @@ public:
         const double& charge) const;
 
     KOKKOS_INLINE_FUNCTION void push(Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& dt) const;
-
-private:
-    const PartData* itsReference;
 };
-
-KOKKOS_INLINE_FUNCTION BorisPusher::BorisPusher(const PartData& ref) : itsReference(&ref) {
-}
-
-KOKKOS_INLINE_FUNCTION BorisPusher::BorisPusher() : itsReference(nullptr) {
-}
-
-KOKKOS_INLINE_FUNCTION void BorisPusher::initialise(const PartData* ref) {
-    itsReference = ref;
-}
-
-KOKKOS_INLINE_FUNCTION void BorisPusher::kick(
-    const Vector_t<double, 3>& R, Vector_t<double, 3>& P, const Vector_t<double, 3>& Ef,
-    const Vector_t<double, 3>& Bf, const double& dt) const {
-    kick(R, P, Ef, Bf, dt, itsReference->getM(), itsReference->getQ());
-}
 
 KOKKOS_INLINE_FUNCTION void BorisPusher::kick(
     const Vector_t<double, 3>& /*R*/, Vector_t<double, 3>& P, const Vector_t<double, 3>& Ef,
