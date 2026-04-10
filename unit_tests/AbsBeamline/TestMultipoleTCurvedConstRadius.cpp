@@ -109,7 +109,7 @@ public:
             hostR(i)  = curvilinearToGlobal(localR[i], elementEntry, elementLength, bendAngle);
         }
         Kokkos::deep_copy(pc->R.getView(), hostR);
-        pc->setQ(bunch->getChargePerParticle());
+        pc->setQ(pc->getChargePerParticle());
         ippl::Comm->barrier();
         Kokkos::fence();
         // Register the bunch with the element
@@ -117,7 +117,7 @@ public:
         double startField, endField;
         initialise(bunch.get(), startField, endField);
         // Get the fields
-        apply();
+        apply(pc);
         // Return the fields
         Kokkos::deep_copy(hostB, pc->B.getView());
         Kokkos::fence();
