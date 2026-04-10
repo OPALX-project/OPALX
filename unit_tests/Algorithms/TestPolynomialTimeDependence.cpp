@@ -1,34 +1,21 @@
-/*
- *  Copyright (c) 2014, Chris Rogers
- *  All rights reserved.
- *  Redistribution and use in source and binary forms, with or without
- *  modification, are permitted provided that the following conditions are met:
- *  1. Redistributions of source code must retain the above copyright notice,
- *     this list of conditions and the following disclaimer.
- *  2. Redistributions in binary form must reproduce the above copyright notice,
- *     this list of conditions and the following disclaimer in the documentation
- *     and/or other materials provided with the distribution.
- *  3. Neither the name of STFC nor the names of its contributors may be used to
- *     endorse or promote products derived from this software without specific
- *     prior written permission.
- *
- *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
- *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- *  POSSIBILITY OF SUCH DAMAGE.
- */
+//
+// Copyright (c) 2026, Paul Scherrer Institute, Villigen PSI, Switzerland
+// All rights reserved
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 
 #include "Algorithms/PolynomialTimeDependence.h"
 #include "Attributes/Attributes.h"
-#include "Elements/OpalPolynomialTimeDependence.h"
-#include "Utilities/OpalException.h"
+#include "Ippl.h"
 #include "Utilities/GeneralClassicException.h"
 #include "gtest/gtest.h"
 
@@ -58,9 +45,8 @@ TEST(TestPolynomialTimeDependence, PolynomialTimeDependenceTest) {
 TEST(TestPolynomialTimeDependence, TDMapTest) {
     // throw on empty value
     EXPECT_THROW(AbstractTimeDependence::getTimeDependence("name"), GeneralClassicException);
-    const std::vector<double> test;
     // set/get time dependence
-    PolynomialTimeDependence time_dep(test);
+    PolynomialTimeDependence time_dep(std::vector<double>{});
     const std::shared_ptr<PolynomialTimeDependence> td1(time_dep.clone());
     AbstractTimeDependence::setTimeDependence("td1", td1);
     EXPECT_EQ(AbstractTimeDependence::getTimeDependence("td1"), td1);
@@ -91,57 +77,31 @@ TEST(TestPolynomialTimeDependence, TDMapNameLookupTest) {
     EXPECT_THROW(AbstractTimeDependence::getName(td3), GeneralClassicException);
 }
 
-TEST(TestPolynomialTimeDependence, UserInterfacePN) {
-    // Make the UI
-    OpalPolynomialTimeDependence ui;
-    // Set the attributes
-    Attributes::setReal(ui.itsAttr[OpalPolynomialTimeDependence::P0], 2);
-    Attributes::setReal(ui.itsAttr[OpalPolynomialTimeDependence::P1], 3);
-    Attributes::setReal(ui.itsAttr[OpalPolynomialTimeDependence::P2], 4);
-    Attributes::setReal(ui.itsAttr[OpalPolynomialTimeDependence::P3], 5);
-    // Update the object
-    EXPECT_NO_THROW(ui.update());
-    // Check the values
-    auto* myDependency = dynamic_cast<PolynomialTimeDependence*>(
-        AbstractTimeDependence::getTimeDependence("POLYNOMIAL_TIME_DEPENDENCE").get());
-    EXPECT_TRUE(myDependency);
-    EXPECT_NEAR(myDependency->getCoefficients()[0], 2, 1e-10);
-    EXPECT_NEAR(myDependency->getCoefficients()[1], 3, 1e-10);
-    EXPECT_NEAR(myDependency->getCoefficients()[2], 4, 1e-10);
-    EXPECT_NEAR(myDependency->getCoefficients()[3], 5, 1e-10);
-    EXPECT_EQ(myDependency->getCoefficients().size(), 4);
+TEST(TestPolynomialTimeDependence, Integral) {
+    // Check empty polynomial coefficients always returns 0.
+    PolynomialTimeDependence time_dependence_1(std::vector<double>{});
+    EXPECT_DOUBLE_EQ(time_dependence_1.getIntegral(0.1), 0.0);
+
+    // Check constant term produces constant
+    PolynomialTimeDependence time_dependence_2({1.0});
+    EXPECT_DOUBLE_EQ(time_dependence_2.getIntegral(0.1), 0.1);
+
+    // Check cubic terms
+    PolynomialTimeDependence time_dependence_3({1.0, 2.0, 3.0});
+    EXPECT_DOUBLE_EQ(time_dependence_3.getIntegral(0.1), 0.111);
 }
 
-TEST(TestPolynomialTimeDependence, UserInterfaceCoeffs) {
-    // Make the UI
-    OpalPolynomialTimeDependence ui;
-    // Set the attributes
-    Attributes::setRealArray(
-        ui.itsAttr[OpalPolynomialTimeDependence::COEFFICIENTS], {2, 3, 4, 5, 6});
-    // Update the object
-    EXPECT_NO_THROW(ui.update());
-    // Check the values
-    auto* myDependency = dynamic_cast<PolynomialTimeDependence*>(
-        AbstractTimeDependence::getTimeDependence("POLYNOMIAL_TIME_DEPENDENCE").get());
-    EXPECT_TRUE(myDependency);
-    EXPECT_NEAR(myDependency->getCoefficients()[0], 2, 1e-10);
-    EXPECT_NEAR(myDependency->getCoefficients()[1], 3, 1e-10);
-    EXPECT_NEAR(myDependency->getCoefficients()[2], 4, 1e-10);
-    EXPECT_NEAR(myDependency->getCoefficients()[3], 5, 1e-10);
-    EXPECT_NEAR(myDependency->getCoefficients()[4], 6, 1e-10);
-    EXPECT_EQ(myDependency->getCoefficients().size(), 5);
-}
-
-TEST(TestPolynomialTimeDependence, UserInterfaceBoth) {
-    // Make the UI
-    OpalPolynomialTimeDependence ui;
-    // Set the attributes
-    Attributes::setRealArray(
-        ui.itsAttr[OpalPolynomialTimeDependence::COEFFICIENTS], {2, 3, 4, 5, 6});
-    Attributes::setReal(ui.itsAttr[OpalPolynomialTimeDependence::P0], 2);
-    Attributes::setReal(ui.itsAttr[OpalPolynomialTimeDependence::P1], 3);
-    Attributes::setReal(ui.itsAttr[OpalPolynomialTimeDependence::P2], 4);
-    Attributes::setReal(ui.itsAttr[OpalPolynomialTimeDependence::P3], 5);
-    // Update the object
-    EXPECT_THROW(ui.update(), std::invalid_argument);
+TEST(TestPolynomialTimeDependence, Print) {
+    int argc    = 0;
+    char** argv = nullptr;
+    ippl::initialize(argc, argv);
+    std::stringstream ss;
+    Inform inform("Test", ss);
+    inform.setOutputLevel(5);
+    PolynomialTimeDependence time_dependence({1.0, 2.0, 3.0});
+    inform << time_dependence << endl;
+    EXPECT_STREQ(
+            "Test> c0= 1.000000e+00 c1= 2.000000e+00 c2= 3.000000e+00 \nTest> \n",
+            ss.str().c_str());
+    ippl::finalize();
 }
