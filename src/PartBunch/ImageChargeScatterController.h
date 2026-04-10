@@ -85,7 +85,8 @@ public:
             std::shared_ptr<ParticleCtr_t> pc, PositionAttr_t& positions, RhoField_t& rho,
             const BinPolicy_t& policy, const Hash_t& hash) const;
 
-private:
+// ==== All of the following functions could be private, but need to be public for device compilation ====
+
         /**
          * @brief Scatter all local particles using the standard `dt*Q` workflow.
          *
