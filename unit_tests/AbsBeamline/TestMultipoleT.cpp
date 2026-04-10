@@ -162,6 +162,15 @@ TEST_F(TestMultipoleT, TimeDependency) {
     EXPECT_NEAR(fieldAtT({0.0, 0.0, 2.0}, 1.0), 1.0, 1e-6);
     EXPECT_NEAR(fieldAtT({0.0, 0.0, 2.0}, 1.2), 2.0, 1e-6);
     EXPECT_NEAR(fieldAtT({0.0, 0.0, 2.0}, 2.0), 2.0, 1e-6);
+    // Now clear the time dependence
+    setScalingName("");
+    // This initialises the time dependency
+    accept(*this);
+    // Test the field at the magnet center at various times
+    EXPECT_NEAR(fieldAtT({0.0, 0.0, 2.0}, 0.0), 1.0, 1e-6);
+    EXPECT_NEAR(fieldAtT({0.0, 0.0, 2.0}, 1.0), 1.0, 1e-6);
+    EXPECT_NEAR(fieldAtT({0.0, 0.0, 2.0}, 1.2), 1.0, 1e-6);
+    EXPECT_NEAR(fieldAtT({0.0, 0.0, 2.0}, 2.0), 1.0, 1e-6);
 }
 
 // Does the bends API return the correct value

@@ -21,22 +21,23 @@
 #include "Attributes/Attributes.h"
 
 const std::string OpalSinusoidalTimeDependence::doc_string =
-    "The \"SINUSOIDAL_TIME_DEPENDENCE\" element defines "
-    "sinusoidal coefficients for a time dependence, "
-    "frequency, phase offset, amplitude, DC offset, given by "
-    "f(t) = sigma_over_i(a[i] / 2 * sin(2 * pi * f[i] * t + p[i]) + o[i])";
+        "The \"SINUSOIDAL_TIME_DEPENDENCE\" element defines "
+        "sinusoidal coefficients for a time dependence, "
+        "frequency, phase offset, amplitude, DC offset, given by "
+        "f(t) = sigma_over_i(a[i] / 2 * sin(2 * pi * f[i] * t + p[i]) + o[i])";
 
 OpalSinusoidalTimeDependence::OpalSinusoidalTimeDependence()
     : OpalElement(static_cast<int>(SIZE), "SINUSOIDAL_TIME_DEPENDENCE", doc_string.c_str()) {
     itsAttr[FREQUENCIES] = Attributes::makeRealArray(
-        "FREQUENCIES",
-        "Sine wave frequencies, length determines the number of sine waves included.");
+            "FREQUENCIES",
+            "Sine wave frequencies, length determines the number of sine waves included.");
     itsAttr[PHASE_OFFSETS] = Attributes::makeRealArray(
-        "PHASE_OFFSETS", "Phase offset for each sine wave.  If undefined, defaults to 0.0.");
+            "PHASE_OFFSETS", "Phase offset for each sine wave.  If undefined, defaults to 0.0.");
     itsAttr[AMPLITUDES] = Attributes::makeRealArray(
-        "AMPLITUDES", "Peak-to-peak amplitude for each sine wave.  If undefined, defaults to 1.0.");
+            "AMPLITUDES",
+            "Peak-to-peak amplitude for each sine wave.  If undefined, defaults to 1.0.");
     itsAttr[DC_OFFSETS] = Attributes::makeRealArray(
-        "DC_OFFSETS", "DC offset for each sine wave.  If undefined, defaults to 0.0.");
+            "DC_OFFSETS", "DC offset for each sine wave.  If undefined, defaults to 0.0.");
     registerOwnership();
 }
 
@@ -44,20 +45,17 @@ OpalSinusoidalTimeDependence* OpalSinusoidalTimeDependence::clone(const std::str
     return new OpalSinusoidalTimeDependence(name, this);
 }
 
-void OpalSinusoidalTimeDependence::print(std::ostream& out) const {
-    OpalElement::print(out);
-}
+void OpalSinusoidalTimeDependence::print(std::ostream& out) const { OpalElement::print(out); }
 
 OpalSinusoidalTimeDependence::OpalSinusoidalTimeDependence(
-    const std::string& name, OpalSinusoidalTimeDependence* parent)
-    : OpalElement(name, parent) {
-}
+        const std::string& name, OpalSinusoidalTimeDependence* parent)
+    : OpalElement(name, parent) {}
 
 void OpalSinusoidalTimeDependence::update() {
     AbstractTimeDependence::setTimeDependence(
-        getOpalName(), std::make_shared<SinusoidalTimeDependence>(
-                           Attributes::getRealArray(itsAttr[FREQUENCIES]),
-                           Attributes::getRealArray(itsAttr[PHASE_OFFSETS]),
-                           Attributes::getRealArray(itsAttr[AMPLITUDES]),
-                           Attributes::getRealArray(itsAttr[DC_OFFSETS])));
+            getOpalName(), std::make_shared<SinusoidalTimeDependence>(
+                                   Attributes::getRealArray(itsAttr[FREQUENCIES]),
+                                   Attributes::getRealArray(itsAttr[PHASE_OFFSETS]),
+                                   Attributes::getRealArray(itsAttr[AMPLITUDES]),
+                                   Attributes::getRealArray(itsAttr[DC_OFFSETS])));
 }

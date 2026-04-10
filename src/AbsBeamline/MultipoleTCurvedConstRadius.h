@@ -101,14 +101,13 @@ KOKKOS_INLINE_FUNCTION Vector_t<double, 3> MultipoleTCurvedConstRadius::toMagnet
     // Skew and entry angle
     Vector_t<double, 3> result = rotateFrame(R, config);
     // Go to local Frenet-Serret coordinates
-    if (config.bendAngle_m != 0.0) {
-        const double radius  = config.length_m / config.bendAngle_m;
-        const double rMinusX = radius - R[0];
-        const double alpha   = Kokkos::hypot(rMinusX, R[2]);
-        result[0]            = alpha - radius;
-        result[1]            = R[1];
-        result[2]            = radius * Kokkos::atan2(R[2], rMinusX);
-    }
+    // Note: if the bend angle is zero, this object is not constructed
+    const double radius  = config.length_m / config.bendAngle_m;
+    const double rMinusX = radius - R[0];
+    const double alpha   = Kokkos::hypot(rMinusX, R[2]);
+    result[0]            = alpha - radius;
+    result[1]            = R[1];
+    result[2]            = radius * Kokkos::atan2(R[2], rMinusX);
     // Magnet origin at the center rather than entry
     result[2] -= config.length_m / 2.0;
     return result;
