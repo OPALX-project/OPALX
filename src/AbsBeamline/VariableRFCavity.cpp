@@ -118,7 +118,7 @@ bool VariableRFCavity::apply(
             Kokkos::View<Vector_t<double, 3>, Kokkos::HostSpace>(&R),
             Kokkos::subview(pc->R.getView(), i));
     Kokkos::fence();
-    const double E0        = amplitudeTD_m->getValue(t);
+    const double E0        = amplitudeTD_m->getValue(t) * Units::MVpm2Vpm;
     const double integralF = frequencyTD_m->getIntegral(t) * Units::MHz2Hz;
     const double phi       = phaseTD_m->getValue(t);
     return computeField(R, E, E0, integralF, phi, halfWidth_m, halfHeight_m);
@@ -127,7 +127,7 @@ bool VariableRFCavity::apply(
 bool VariableRFCavity::apply(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& t,
         Vector_t<double, 3>& E, Vector_t<double, 3>& /*B*/) {
-    const double E0        = amplitudeTD_m->getValue(t);
+    const double E0        = amplitudeTD_m->getValue(t) * Units::MVpm2Vpm;
     const double integralF = frequencyTD_m->getIntegral(t) * Units::MHz2Hz;
     const double phi       = phaseTD_m->getValue(t);
     return computeField(R, E, E0, integralF, phi, halfWidth_m, halfHeight_m);
@@ -138,7 +138,7 @@ bool VariableRFCavity::apply() {
     const auto R           = pc->R.getView();
     const auto E           = pc->E.getView();
     const auto t           = RefPartBunch_m->getT();
-    const double E0        = amplitudeTD_m->getValue(t);
+    const double E0        = amplitudeTD_m->getValue(t) * Units::MVpm2Vpm;
     const double integralF = frequencyTD_m->getIntegral(t) * Units::MHz2Hz;
     const double phi       = phaseTD_m->getValue(t);
     const auto count       = pc->getLocalNum();

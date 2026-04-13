@@ -78,6 +78,7 @@
 #include "Elements/OpalSinusoidalTimeDependence.h"
 #include "Elements/OpalSplineTimeDependence.h"
 #include "Elements/OpalMultipoleT.h"
+#include "Elements/OpalVariableRFCavity.h"
 
 // Structure-related commands.
 #include "Lines/EmissionSourceList.h"
@@ -145,6 +146,7 @@ namespace {
         opal->create(new OpalSinusoidalTimeDependence());
         opal->create(new OpalSplineTimeDependence());
         opal->create(new OpalMultipoleT());
+        opal->create(new OpalVariableRFCavity());
     }
 };  // namespace
 
