@@ -28,6 +28,7 @@ set(_SRCS
     VerticalFFAMagnet.cpp
     Probe.cpp
     PluginElement.cpp
+    VariableRFCavity.cpp
 )
 
 set(_HDRS
@@ -54,6 +55,7 @@ set(_HDRS
     VerticalFFAMagnet.h
     Probe.h
     PluginElement.h
+    VariableRFCavity.h
 )
 
 # Add local include directory

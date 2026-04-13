@@ -50,6 +50,7 @@ public:
     void visitTravelingWave(const TravelingWave&) override {}
     void visitVerticalFFAMagnet(const VerticalFFAMagnet&) override {}
     void visitProbe(const Probe&) override {}
+    void visitVariableRFCavity(const VariableRFCavity&) override {}
 
     // Test helper functions
     double fieldAtT(const Vector_t<double, 3>& pos, const double t) {
