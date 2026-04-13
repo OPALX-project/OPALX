@@ -15,8 +15,8 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include <vector>
-#include "AbsBeamline/VariableRFCavity.h"
 #include "AbsBeamline/BeamlineVisitor.h"
+#include "AbsBeamline/VariableRFCavity.h"
 #include "AbstractObjects/OpalData.h"
 #include "Algorithms/AbstractTimeDependence.h"
 #include "Algorithms/PolynomialTimeDependence.h"
@@ -267,7 +267,8 @@ TEST_F(TestVariableRFCavity, TestApplyField) {
         const double phase     = poly3->getValue(t);
         const double amplitude = poly1->getValue(t);
         const double integralF = poly2->getIntegral(t) * Units::MHz2Hz;
-        const double e_test    = amplitude * sin(Physics::two_pi * integralF + phase);
+        const double e_test =
+                amplitude * sin(Physics::two_pi * integralF + phase) * Units::MVpm2Vpm;
         EXPECT_FALSE(cav1.apply(R, Vector_t<double, 3>(0.0), t, E, B));
         EXPECT_NEAR(0., E[0], 1.e-6);
         EXPECT_NEAR(0., E[1], 1.e-6);
@@ -363,12 +364,12 @@ TEST_F(TestVariableRFCavity, BunchFields) {
         line[i] = std::hypot(hostE(i)[0], hostE(i)[1], hostE(i)[2]);
     }
     for (size_t i = 0; i < line.size(); ++i) {
-        EXPECT_DOUBLE_EQ(line[i], 1.0);
+        EXPECT_DOUBLE_EQ(line[i], 1.0 * Units::MVpm2Vpm);
     }
     // Get the field for one of the particles
     Vector_t<double, 3> singleE{}, singleB{};
     EXPECT_FALSE(apply(0, 0.0, singleE, singleB));
-    EXPECT_DOUBLE_EQ(singleE[2], 1.0);
+    EXPECT_DOUBLE_EQ(singleE[2], 1.0 * Units::MVpm2Vpm);
     // Done
     finalise();
     EXPECT_EQ(RefPartBunch_m, nullptr);
@@ -390,7 +391,7 @@ TEST_F(TestVariableRFCavity, ReferenceParticle) {
     Vector_t<double, 3> B({0.0, 0.0, 0.0});
     Vector_t<double, 3> E({0.0, 0.0, 0.0});
     EXPECT_FALSE(applyToReferenceParticle(R, {}, 0.0, E, B));
-    EXPECT_DOUBLE_EQ(E[2], 1.0);
+    EXPECT_DOUBLE_EQ(E[2], 1.0 * Units::MVpm2Vpm);
 }
 
 TEST_F(TestVariableRFCavity, OddApis) {
