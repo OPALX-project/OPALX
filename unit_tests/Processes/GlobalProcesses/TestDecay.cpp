@@ -9,6 +9,8 @@
 
 #include "Ippl.h"
 #include "PartBunch/ParticleContainer.hpp"
+#include "Physics/MuonDecay.h"
+#include "Physics/Physics.h"
 #include "Processes/GlobalProcesses/Decay.h"
 #include "Utilities/Options.h"
 
@@ -78,6 +80,29 @@ protected:
         Kokkos::fence();
     }
 
+    void createParticlesWithPositions(std::shared_ptr<PC_t>& pc, size_t nPart, double pz) {
+        if (nPart == 0) {
+            return;
+        }
+
+        pc->create(nPart);
+        auto R_host = pc->R.getHostMirror();
+        auto P_host = pc->P.getHostMirror();
+
+        for (size_t i = 0; i < nPart; ++i) {
+            R_host(i)[0] = 0.1 * static_cast<double>(i);
+            R_host(i)[1] = 0.2 * static_cast<double>(i);
+            R_host(i)[2] = 0.3 * static_cast<double>(i);
+            P_host(i)[0] = 0.0;
+            P_host(i)[1] = 0.0;
+            P_host(i)[2] = pz;
+        }
+
+        Kokkos::deep_copy(pc->R.getView(), R_host);
+        Kokkos::deep_copy(pc->P.getView(), P_host);
+        Kokkos::fence();
+    }
+
     std::pair<size_t, size_t> runDecay(size_t nPart,
                                        double pz,
                                        int seed,
@@ -101,6 +126,10 @@ private:
     int oldSeed_m = -1;
     bool oldUseQMAttributes_m = false;
 };
+
+// =====================================================================
+// Original destroy-only tests
+// =====================================================================
 
 TEST_F(DecayTest, ApplyReturnsZeroForNonPositiveDt) {
     auto pc = makeContainer();
@@ -169,6 +198,203 @@ TEST_F(DecayTest, SameSeedAndInputsAreReproducible) {
 
     EXPECT_EQ(firstDestroyed, secondDestroyed);
     EXPECT_EQ(firstRemaining, secondRemaining);
+}
+
+// =====================================================================
+// Destroy-only mode preserved when no daughter container is set
+// =====================================================================
+
+TEST_F(DecayTest, NoDaughterContainerStillDestroysOnly) {
+    auto muons = makeContainer();
+    muons->setM(Physics::m_mu);
+    createParticles(muons, 128, 0.0);
+
+    Options::seed = 42;
+    Decay decay(1.0e-12, 0);
+    // No setDaughterContainer call.
+    const size_t destroyed = decay.apply(*muons, 1.0, 0, 0);
+    EXPECT_EQ(destroyed, 128u);
+    EXPECT_EQ(muons->getTotalNum(), 0u);
+}
+
+// =====================================================================
+// Multi-container daughter generation tests
+// =====================================================================
+
+TEST_F(DecayTest, DaughterContainerReceivesDecayedParticles) {
+    auto muons = makeContainer();
+    auto electrons = makeContainer();
+    muons->setM(Physics::m_mu);
+    electrons->setM(Physics::m_e);
+    createParticles(muons, 256, 0.0);
+
+    Options::seed = 1234;
+    Decay decay(1.0e-12, 0);  // very short lifetime
+    decay.setDaughterContainer(electrons, Physics::m_e);
+
+    const size_t destroyed = decay.apply(*muons, 1.0, 0, 0);
+    EXPECT_EQ(destroyed, 256u);
+    EXPECT_EQ(muons->getTotalNum(), 0u);
+    EXPECT_EQ(electrons->getTotalNum(), 256u);
+}
+
+TEST_F(DecayTest, DaughterPositionMatchesParent) {
+    constexpr size_t nPart = 64;
+    auto muons = makeContainer();
+    auto electrons = makeContainer();
+    muons->setM(Physics::m_mu);
+    electrons->setM(Physics::m_e);
+    createParticlesWithPositions(muons, nPart, 0.0);
+
+    // Copy muon positions before decay.
+    auto muR_host = muons->R.getHostMirror();
+    Kokkos::deep_copy(muR_host, muons->R.getView());
+
+    Options::seed = 999;
+    Decay decay(1.0e-12, 0);
+    decay.setDaughterContainer(electrons, Physics::m_e);
+
+    const size_t destroyed = decay.apply(*muons, 1.0, 0, 0);
+    ASSERT_EQ(destroyed, nPart);
+    ASSERT_EQ(electrons->getLocalNum(), nPart);
+
+    auto eR_host = electrons->R.getHostMirror();
+    Kokkos::deep_copy(eR_host, electrons->R.getView());
+
+    for (size_t i = 0; i < nPart; ++i) {
+        EXPECT_DOUBLE_EQ(eR_host(i)[0], muR_host(i)[0]);
+        EXPECT_DOUBLE_EQ(eR_host(i)[1], muR_host(i)[1]);
+        EXPECT_DOUBLE_EQ(eR_host(i)[2], muR_host(i)[2]);
+    }
+}
+
+TEST_F(DecayTest, DaughterMomentumIsPhysicalForRestMuons) {
+    constexpr size_t nPart = 1024;
+    auto muons = makeContainer();
+    auto electrons = makeContainer();
+    muons->setM(Physics::m_mu);
+    electrons->setM(Physics::m_e);
+    createParticles(muons, nPart, 0.0);  // muons at rest
+
+    Options::seed = 555;
+    Decay decay(1.0e-12, 0);
+    decay.setDaughterContainer(electrons, Physics::m_e);
+
+    const size_t destroyed = decay.apply(*muons, 1.0, 0, 0);
+    ASSERT_EQ(destroyed, nPart);
+    ASSERT_EQ(electrons->getLocalNum(), nPart);
+
+    auto eP_host = electrons->P.getHostMirror();
+    Kokkos::deep_copy(eP_host, electrons->P.getView());
+
+    const double eMax = Physics::MuonDecay::maxElectronEnergy();  // m_mu / 2
+
+    for (size_t i = 0; i < nPart; ++i) {
+        // P is stored as beta*gamma. Physical momentum = P * m_e.
+        const double bg2 = eP_host(i)[0] * eP_host(i)[0]
+                         + eP_host(i)[1] * eP_host(i)[1]
+                         + eP_host(i)[2] * eP_host(i)[2];
+        const double gamma = std::sqrt(1.0 + bg2);
+        const double energy = gamma * Physics::m_e;  // [GeV]
+
+        // Electron energy must be between m_e and m_mu/2.
+        EXPECT_GE(energy, Physics::m_e - 1.0e-12);
+        EXPECT_LE(energy, eMax + 1.0e-12);
+
+        // Verify E^2 = p^2 + m_e^2 (consistency of beta*gamma storage).
+        const double p2 = bg2 * Physics::m_e * Physics::m_e;
+        EXPECT_NEAR(energy * energy, p2 + Physics::m_e * Physics::m_e, 1.0e-15);
+    }
+}
+
+TEST_F(DecayTest, BoostedMuonsProduceBoostedElectrons) {
+    constexpr size_t nPart = 512;
+    auto muons = makeContainer();
+    auto electrons = makeContainer();
+    muons->setM(Physics::m_mu);
+    electrons->setM(Physics::m_e);
+    createParticles(muons, nPart, 5.0);  // boosted muons (pz = 5 in beta*gamma)
+
+    Options::seed = 777;
+    Decay decay(1.0e-6, 0);
+    decay.setDaughterContainer(electrons, Physics::m_e);
+
+    const size_t destroyed = decay.apply(*muons, 10.0, 0, 0);
+    ASSERT_GT(destroyed, 0u);
+    ASSERT_EQ(electrons->getLocalNum(), destroyed);
+
+    auto eP_host = electrons->P.getHostMirror();
+    Kokkos::deep_copy(eP_host, electrons->P.getView());
+
+    for (size_t i = 0; i < destroyed; ++i) {
+        const double bg2 = eP_host(i)[0] * eP_host(i)[0]
+                         + eP_host(i)[1] * eP_host(i)[1]
+                         + eP_host(i)[2] * eP_host(i)[2];
+        const double gamma = std::sqrt(1.0 + bg2);
+        const double energy = gamma * Physics::m_e;
+
+        // E^2 = p^2 + m_e^2 must hold.
+        const double p2 = bg2 * Physics::m_e * Physics::m_e;
+        EXPECT_NEAR(energy * energy, p2 + Physics::m_e * Physics::m_e, 1.0e-15);
+
+        // Electron energy should be positive and finite.
+        EXPECT_GT(energy, 0.0);
+        EXPECT_TRUE(std::isfinite(energy));
+    }
+}
+
+TEST_F(DecayTest, DaughterReproducibleWithSameSeed) {
+    auto runWithDaughter = [&](int seed) {
+        auto muons = makeContainer();
+        auto electrons = makeContainer();
+        muons->setM(Physics::m_mu);
+        electrons->setM(Physics::m_e);
+        createParticles(muons, 256, 1.0);
+
+        Options::seed = seed;
+        Decay decay(1.0e-6, 0);
+        decay.setDaughterContainer(electrons, Physics::m_e);
+        decay.apply(*muons, 1.0, 0, 0);
+
+        // Read back electron momenta.
+        auto eP_host = electrons->P.getHostMirror();
+        Kokkos::deep_copy(eP_host, electrons->P.getView());
+
+        std::vector<std::array<double, 3>> momenta(electrons->getLocalNum());
+        for (size_t i = 0; i < momenta.size(); ++i) {
+            momenta[i] = {eP_host(i)[0], eP_host(i)[1], eP_host(i)[2]};
+        }
+        return momenta;
+    };
+
+    auto first  = runWithDaughter(12345);
+    auto second = runWithDaughter(12345);
+
+    ASSERT_EQ(first.size(), second.size());
+    for (size_t i = 0; i < first.size(); ++i) {
+        EXPECT_DOUBLE_EQ(first[i][0], second[i][0]);
+        EXPECT_DOUBLE_EQ(first[i][1], second[i][1]);
+        EXPECT_DOUBLE_EQ(first[i][2], second[i][2]);
+    }
+}
+
+TEST_F(DecayTest, PartialDecayCreatesDaughtersOnlyForDecayed) {
+    constexpr size_t nPart = 1000;
+    auto muons = makeContainer();
+    auto electrons = makeContainer();
+    muons->setM(Physics::m_mu);
+    electrons->setM(Physics::m_e);
+    createParticles(muons, nPart, 0.5);
+
+    Options::seed = 303;
+    Decay decay(2.0, 0);  // long lifetime, moderate dt -> partial decay
+    decay.setDaughterContainer(electrons, Physics::m_e);
+
+    const size_t destroyed = decay.apply(*muons, 0.5, 0, 0);
+    EXPECT_GT(destroyed, 0u);
+    EXPECT_LT(destroyed, nPart);
+    EXPECT_EQ(muons->getTotalNum(), nPart - destroyed);
+    EXPECT_EQ(electrons->getTotalNum(), destroyed);
 }
 
 }  // namespace

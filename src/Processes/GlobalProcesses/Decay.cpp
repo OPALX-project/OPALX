@@ -1,6 +1,8 @@
 #include "Processes/GlobalProcesses/Decay.h"
 
 #include "PartBunch/ParticleContainer.hpp"
+#include "Physics/MuonDecay.h"
+#include "Physics/Physics.h"
 #include "Utilities/Options.h"
 
 #include <cmath>
@@ -22,6 +24,12 @@ Decay::Decay(double restLifetimeSeconds, std::size_t containerIndex)
       randPool_m(decayRngSeed(containerIndex)) {
 }
 
+void Decay::setDaughterContainer(std::shared_ptr<ParticleContainer<double, 3>> daughterPC,
+                                 double daughterMassGeV) {
+    daughterPC_m = std::move(daughterPC);
+    daughterMassGeV_m = daughterMassGeV;
+}
+
 size_t Decay::apply(ParticleContainer<double, 3>& pc,
                     double dt,
                     long long globalTrackStep,
@@ -33,7 +41,7 @@ size_t Decay::apply(ParticleContainer<double, 3>& pc,
     }
 
     const pc_size_type nLocal = pc.getLocalNum();
-    if (nLocal == 0) {
+    if (nLocal == 0 && !daughterPC_m) {
         return 0;
     }
 
@@ -42,6 +50,7 @@ size_t Decay::apply(ParticleContainer<double, 3>& pc,
 
     const auto pool = randPool_m;
 
+    // ---- Phase 1: Mark decayed particles ----
     Kokkos::View<bool*> invalid("Decay::invalid", nLocal);
     auto Pview = pc.P.getView();
     const double tau0 = tau0_m;
@@ -73,6 +82,126 @@ size_t Decay::apply(ParticleContainer<double, 3>& pc,
         return 0;
     }
 
+    // ---- Phase 2 & 3: Create daughter particles (if a daughter container is set) ----
+    if (daughterPC_m) {
+        // Phase 2: Prefix scan to collect compact indices of decayed particles.
+        Kokkos::View<pc_size_type*> compactIdx("Decay::compactIdx", nLocal);
+        Kokkos::parallel_scan(
+            "Decay::compact",
+            nLocal,
+            KOKKOS_LAMBDA(const pc_size_type i, pc_size_type& runningTotal, const bool isFinal) {
+                if (invalid(i)) {
+                    if (isFinal) {
+                        compactIdx(i) = runningTotal;
+                    }
+                    ++runningTotal;
+                }
+            });
+        Kokkos::fence();
+
+        auto Rview = pc.R.getView();
+        auto dtView = pc.dt.getView();
+
+        // Collect R, P, dt of decayed parents into compact temporary views.
+        using vector_view_type = Kokkos::View<ippl::Vector<double, 3>*>;
+        vector_view_type parentR("Decay::parentR", localDestroyNum);
+        vector_view_type parentP("Decay::parentP", localDestroyNum);
+        Kokkos::View<double*> parentDt("Decay::parentDt", localDestroyNum);
+
+        Kokkos::parallel_for(
+            "Decay::collectParents",
+            nLocal,
+            KOKKOS_LAMBDA(const pc_size_type i) {
+                if (invalid(i)) {
+                    const pc_size_type j = compactIdx(i);
+                    parentR(j) = Rview(i);
+                    parentP(j) = Pview(i);
+                    parentDt(j) = dtView(i);
+                }
+            });
+        Kokkos::fence();
+
+        // Phase 3: Create daughters and sample their momenta.
+        // create() is collective -- all MPI ranks must call it.
+        const pc_size_type oldDaughterLocal = daughterPC_m->getLocalNum();
+        daughterPC_m->create(localDestroyNum);
+
+        if (localDestroyNum > 0) {
+            auto dR = daughterPC_m->R.getView();
+            auto dP = daughterPC_m->P.getView();
+            auto dDt = daughterPC_m->dt.getView();
+
+            const double daughterMass = daughterMassGeV_m;         // [GeV]
+            const double eMax = Physics::MuonDecay::maxElectronEnergy();
+            const double xMin = Physics::MuonDecay::minElectronX();
+            const double fMax = Physics::MuonDecay::michelUpperBound();
+
+            Kokkos::parallel_for(
+                "Decay::createDaughters",
+                localDestroyNum,
+                KOKKOS_LAMBDA(const pc_size_type j) {
+                    auto gen = pool.get_state();
+
+                    // --- Sample electron energy from Michel spectrum (rejection) ---
+                    double x;
+                    do {
+                        x = xMin + (1.0 - xMin) * gen.drand(0.0, 1.0);
+                    } while (gen.drand(0.0, fMax) >= 2.0 * x * x * (3.0 - 2.0 * x));
+
+                    const double eElectron = x * eMax;                                      // [GeV]
+                    const double pMag = Kokkos::sqrt(eElectron * eElectron
+                                                     - daughterMass * daughterMass);         // [GeV/c]
+
+                    // --- Isotropic direction in parent rest frame ---
+                    const double cosTheta = 2.0 * gen.drand(0.0, 1.0) - 1.0;
+                    const double sinTheta = Kokkos::sqrt(1.0 - cosTheta * cosTheta);
+                    const double phi = 2.0 * Physics::pi * gen.drand(0.0, 1.0);
+                    const double pxRF = pMag * sinTheta * Kokkos::cos(phi);
+                    const double pyRF = pMag * sinTheta * Kokkos::sin(phi);
+                    const double pzRF = pMag * cosTheta;
+
+                    // --- Lorentz boost to lab frame ---
+                    // Parent momentum stored as beta*gamma (dimensionless).
+                    // Physical momentum [GeV/c] = beta*gamma * parentMass.
+                    const auto& muP = parentP(j);
+                    const double bg2 = muP[0] * muP[0] + muP[1] * muP[1] + muP[2] * muP[2];
+                    const double gamma = Kokkos::sqrt(1.0 + bg2);
+                    // beta = P / gamma  (since P = beta*gamma)
+                    const double betaX = muP[0] / gamma;
+                    const double betaY = muP[1] / gamma;
+                    const double betaZ = muP[2] / gamma;
+                    const double beta2 = bg2 / (gamma * gamma);
+
+                    double pxLab, pyLab, pzLab;
+                    if (beta2 > 0.0) {
+                        const double betaDotP = betaX * pxRF + betaY * pyRF + betaZ * pzRF;
+                        const double factor =
+                            (gamma - 1.0) * betaDotP / beta2 + gamma * eElectron;
+                        pxLab = pxRF + factor * betaX;
+                        pyLab = pyRF + factor * betaY;
+                        pzLab = pzRF + factor * betaZ;
+                    } else {
+                        pxLab = pxRF;
+                        pyLab = pyRF;
+                        pzLab = pzRF;
+                    }
+
+                    // --- Write daughter attributes ---
+                    // Convert physical momentum [GeV/c] to beta*gamma: p / m_daughter.
+                    const pc_size_type idx = oldDaughterLocal + j;
+                    dR(idx) = parentR(j);
+                    dP(idx)[0] = pxLab / daughterMass;
+                    dP(idx)[1] = pyLab / daughterMass;
+                    dP(idx)[2] = pzLab / daughterMass;
+                    dDt(idx) = parentDt(j);
+
+                    pool.free_state(gen);
+                });
+            Kokkos::fence();
+        }
+    }
+
+    // ---- Phase 4: Destroy decayed parent particles ----
     pc.destroy(invalid, localDestroyNum);
     return static_cast<size_t>(globalDestroyNum);
 }
