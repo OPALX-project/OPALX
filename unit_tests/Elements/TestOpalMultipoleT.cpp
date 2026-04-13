@@ -12,8 +12,6 @@
 // You should have received a copy of the GNU General License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
-#include <csignal>
-
 #include "AbsBeamline/MultipoleT.h"
 #include "Attributes/Attributes.h"
 #include "Elements/OpalMultipoleT.h"
