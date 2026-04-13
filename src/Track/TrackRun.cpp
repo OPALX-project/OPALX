@@ -62,6 +62,7 @@
 
 #include "Utilities/BiMap.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <fstream>
@@ -371,6 +372,7 @@ void TrackRun::execute() {
                             "Mismatch between number of beams and particle containers.");
     }
     setupGlobalProcesses(globalProcessesLists);
+    wireDaughterContainers(globalProcessesLists, beams);
     // BC handler
     *gmsg << level2 << *(bunch_m->getBCHandler()) << endl;
 
@@ -545,6 +547,45 @@ void TrackRun::setupGlobalProcesses(
             continue;
         }
         particleContainers[i]->setGlobalProcesses(globalProcessesLists[i]);
+    }
+}
+
+void TrackRun::wireDaughterContainers(
+    const std::vector<std::vector<std::shared_ptr<GlobalProcess>>>& globalProcessesLists,
+    const std::vector<Beam*>& beams) {
+    const auto& containers = bunch_m->getParticleContainers();
+    const std::vector<std::string> beamNames = Track::block->beamNames_m;
+
+    for (std::size_t i = 0; i < beams.size(); ++i) {
+        const std::string daughterName = beams[i]->getDaughterBeamName();
+        if (daughterName.empty()) {
+            continue;
+        }
+
+        // Find the container index whose beam name matches DAUGHTERBEAM.
+        auto it = std::find(beamNames.begin(), beamNames.end(), daughterName);
+        if (it == beamNames.end()) {
+            throw OpalException(
+                "TrackRun::wireDaughterContainers",
+                "DAUGHTERBEAM=\"" + daughterName + "\" on beam \"" + beamNames[i]
+                    + "\" does not match any beam in the TRACK.");
+        }
+        const std::size_t daughterIdx = static_cast<std::size_t>(
+            std::distance(beamNames.begin(), it));
+
+        // Use the physical rest mass from the Beam definition (in GeV), not the
+        // macro-particle mass from the container — the latter is zero when BCURRENT=0.
+        const double daughterMass = beams[daughterIdx]->getMass();
+        for (const auto& proc : globalProcessesLists[i]) {
+            auto* decayProc = dynamic_cast<Decay*>(proc.get());
+            if (decayProc) {
+                decayProc->setDaughterContainer(containers[daughterIdx], daughterMass);
+                *gmsg << level2
+                      << "* Wired decay on beam \"" << beamNames[i]
+                      << "\" to daughter beam \"" << daughterName
+                      << "\" (container " << daughterIdx << ")." << endl;
+            }
+        }
     }
 }
 

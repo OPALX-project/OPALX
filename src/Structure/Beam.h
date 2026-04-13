@@ -90,6 +90,9 @@ public:
     /// Return the configured global process names for this beam.
     std::vector<std::string> getGlobalProcessNames() const;
 
+    /// Return the name of the daughter beam (for decay products), or empty if not set.
+    std::string getDaughterBeamName() const;
+
     /// Update the BEAM data.
     virtual void update();
 

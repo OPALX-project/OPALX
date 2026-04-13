@@ -50,6 +50,7 @@ namespace {
         NPART,     // Number of particles per bunch
         SOURCES,   // Name of EMISSIONSOURCELIST
         GLOBALPROCESSES,  // Global physics processes active for this beam
+        DAUGHTERBEAM,     // Name of the beam that receives decay daughter particles
         SIZE
     };
 }
@@ -86,6 +87,9 @@ Beam::Beam()
 
     itsAttr[GLOBALPROCESSES] = Attributes::makeUpperCaseStringArray(
         "GLOBALPROCESSES", "Global physics processes active for this beam.");
+
+    itsAttr[DAUGHTERBEAM] = Attributes::makeString(
+        "DAUGHTERBEAM", "Name of the BEAM that receives decay daughter particles.");
 
     // Set up default beam.
     Beam* defBeam    = clone("UNNAMED_BEAM");
@@ -207,6 +211,10 @@ std::string Beam::getEmissionSourceListName() const {
 
 std::vector<std::string> Beam::getGlobalProcessNames() const {
     return Attributes::getStringArray(itsAttr[GLOBALPROCESSES]);
+}
+
+std::string Beam::getDaughterBeamName() const {
+    return Attributes::getString(itsAttr[DAUGHTERBEAM]);
 }
 
 Beam* Beam::find(const std::string& name) {

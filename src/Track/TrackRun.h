@@ -81,6 +81,11 @@ private:
     void setupGlobalProcesses(
         const std::vector<std::vector<std::shared_ptr<GlobalProcess>>>& globalProcessesLists);
 
+    /// Wire daughter containers to cross-container processes (e.g. muon decay -> electron).
+    void wireDaughterContainers(
+        const std::vector<std::vector<std::shared_ptr<GlobalProcess>>>& globalProcessesLists,
+        const std::vector<Beam*>& beams);
+
     /// Build samplers for all emission sources, perform initial sampling for t0 == 0
     /// sources, and populate emittingSamplers_m for time-dependent or delayed sources.
     /// Applied to particle container [index]
