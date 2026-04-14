@@ -50,7 +50,7 @@ size_t Decay::apply(ParticleContainer<double, 3>& pc,
 
     const auto pool = randPool_m;
 
-    // ---- Phase 1: Mark decayed particles ----
+    /* Phase 1: Mark decayed particles using relativistic decay probability. */
     Kokkos::View<bool*> invalid("Decay::invalid", nLocal);
     auto Pview = pc.P.getView();
     const double tau0 = tau0_m;
@@ -82,9 +82,9 @@ size_t Decay::apply(ParticleContainer<double, 3>& pc,
         return 0;
     }
 
-    // ---- Phase 2 & 3: Create daughter particles (if a daughter container is set) ----
+    /* Phase 2 & 3: Create daughter particles (if a daughter container is set). */
     if (daughterPC_m) {
-        // Phase 2: Prefix scan to collect compact indices of decayed particles.
+        /* Phase 2: Prefix scan to collect compact indices of decayed particles. */
         Kokkos::View<pc_size_type*> compactIdx("Decay::compactIdx", nLocal);
         Kokkos::parallel_scan(
             "Decay::compact",
@@ -102,7 +102,7 @@ size_t Decay::apply(ParticleContainer<double, 3>& pc,
         auto Rview = pc.R.getView();
         auto dtView = pc.dt.getView();
 
-        // Collect R, P, dt of decayed parents into compact temporary views.
+        /* Collect R, P, dt of decayed parents into compact temporary views. */
         using vector_view_type = Kokkos::View<ippl::Vector<double, 3>*>;
         vector_view_type parentR("Decay::parentR", localDestroyNum);
         vector_view_type parentP("Decay::parentP", localDestroyNum);
@@ -121,7 +121,7 @@ size_t Decay::apply(ParticleContainer<double, 3>& pc,
             });
         Kokkos::fence();
 
-        // Phase 3: Create daughters — subclass-specific momentum sampling.
+        /* Phase 3: Create daughters — subclass-specific momentum sampling. */
         const pc_size_type oldDaughterLocal = daughterPC_m->getLocalNum();
         daughterPC_m->create(localDestroyNum);
 
@@ -131,7 +131,7 @@ size_t Decay::apply(ParticleContainer<double, 3>& pc,
         }
     }
 
-    // ---- Phase 4: Destroy decayed parent particles ----
+    /* Phase 4: Destroy decayed parent particles. */
     pc.destroy(invalid, localDestroyNum);
     return static_cast<size_t>(globalDestroyNum);
 }

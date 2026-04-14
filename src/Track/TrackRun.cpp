@@ -41,8 +41,10 @@
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
 
-#include "Processes/GlobalProcesses/Decay.h"
+#include "Physics/ParticleProperties.h"
 #include "Processes/GlobalProcesses/GlobalProcess.h"
+#include "Processes/GlobalProcesses/MuonDecay.h"
+#include "Processes/GlobalProcesses/PionDecay.h"
 
 #include "Track/Track.h"
 
@@ -101,14 +103,26 @@ std::vector<std::shared_ptr<GlobalProcess>> makeGlobalProcessesForBeam(const Bea
     for (const std::string& processName : processNames) {
         if (processName == "DECAY") {
             const std::string particleName = beam.getParticleName();
-            if (particleName == "MUON") {
-                processes.push_back(std::make_shared<Decay>(Physics::tau_mu, containerIndex));
-                continue;
+            const ParticleType pType = ParticleProperties::getParticleType(particleName);
+            const double tau = ParticleProperties::getParticleLifetime(pType);
+            const double mass = ParticleProperties::getParticleMass(pType);
+
+            switch (pType) {
+                case ParticleType::MUON:
+                    processes.push_back(
+                        std::make_shared<MuonDecay>(tau, containerIndex, mass));
+                    break;
+                case ParticleType::PION:
+                    processes.push_back(
+                        std::make_shared<PionDecay>(tau, containerIndex, mass));
+                    break;
+                default:
+                    throw OpalException(
+                        "TrackRun::execute",
+                        "No decay implementation for PARTICLE=" + particleName
+                            + ". Supported: MUON, PION.");
             }
-            throw OpalException(
-                "TrackRun::execute",
-                "\"DECAY\" is currently supported only for PARTICLE=MUON. Got PARTICLE="
-                    + particleName + ".");
+            continue;
         }
 
         throw OpalException(
@@ -344,7 +358,6 @@ void TrackRun::execute() {
       This will (hopefully) be handled inside the pusher routines!
     */
 
-    // ? Need to see how this interacts with multiple containers
     initDataSink(beams.size());
 
     // Set total particles per container (beam)
@@ -575,7 +588,26 @@ void TrackRun::wireDaughterContainers(
 
         // Use the physical rest mass from the Beam definition (in GeV), not the
         // macro-particle mass from the container — the latter is zero when BCURRENT=0.
+        const double parentMass = beams[i]->getMass();
         const double daughterMass = beams[daughterIdx]->getMass();
+        if (parentMass <= daughterMass) {
+            throw OpalException(
+                "TrackRun::wireDaughterContainers",
+                "Parent mass (" + std::to_string(parentMass)
+                    + " GeV) must exceed daughter mass ("
+                    + std::to_string(daughterMass) + " GeV).");
+        }
+        const double parentCharge = beams[i]->getCharge();
+        const double daughterCharge = beams[daughterIdx]->getCharge();
+        if ((parentCharge > 0.0) != (daughterCharge > 0.0)) {
+            throw OpalException(
+                "TrackRun::wireDaughterContainers",
+                "Charge sign mismatch: parent beam \"" + beamNames[i]
+                    + "\" has charge " + std::to_string(parentCharge)
+                    + " but daughter beam \"" + daughterName
+                    + "\" has charge " + std::to_string(daughterCharge)
+                    + ". Set CHARGE on the daughter BEAM to match.");
+        }
         for (const auto& proc : globalProcessesLists[i]) {
             auto* decayProc = dynamic_cast<Decay*>(proc.get());
             if (decayProc) {

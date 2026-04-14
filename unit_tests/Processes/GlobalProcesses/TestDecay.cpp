@@ -11,7 +11,8 @@
 #include "PartBunch/ParticleContainer.hpp"
 #include "Physics/MuonDecay.h"
 #include "Physics/Physics.h"
-#include "Processes/GlobalProcesses/Decay.h"
+#include "Processes/GlobalProcesses/MuonDecay.h"
+#include "Processes/GlobalProcesses/PionDecay.h"
 #include "Utilities/Options.h"
 
 namespace {
@@ -114,7 +115,7 @@ protected:
         const size_t before = pc->getTotalNum();
 
         Options::seed = seed;
-        Decay decay(tau0, containerIndex);
+        MuonDecay decay(tau0, containerIndex, Physics::m_mu);
         const size_t destroyed = decay.apply(*pc, dt, 0, containerIndex);
         const size_t after     = pc->getTotalNum();
 
@@ -136,7 +137,7 @@ TEST_F(DecayTest, ApplyReturnsZeroForNonPositiveDt) {
     createParticles(pc, 64, 0.0);
     const size_t before = pc->getTotalNum();
 
-    Decay decay(1.0, 0);
+    MuonDecay decay(1.0, 0, Physics::m_mu);
     EXPECT_EQ(decay.apply(*pc, 0.0, 7, 2), 0u);
     EXPECT_EQ(decay.apply(*pc, -1.0, 7, 2), 0u);
     EXPECT_EQ(pc->getTotalNum(), before);
@@ -154,7 +155,7 @@ TEST_F(DecayTest, ApplyReturnsZeroForInvalidLifetime) {
         createParticles(pc, 32, 0.0);
         const size_t before = pc->getTotalNum();
 
-        Decay decay(tau0, 1);
+        MuonDecay decay(tau0, 1, Physics::m_mu);
         EXPECT_EQ(decay.apply(*pc, 1.0, 0, 1), 0u);
         EXPECT_EQ(pc->getTotalNum(), before);
     }
@@ -164,7 +165,7 @@ TEST_F(DecayTest, ApplyReturnsZeroForEmptyContainer) {
     auto pc = makeContainer();
     ASSERT_EQ(pc->getLocalNum(), 0u);
 
-    Decay decay(1.0, 0);
+    MuonDecay decay(1.0, 0, Physics::m_mu);
     EXPECT_EQ(decay.apply(*pc, 1.0, 0, 0), 0u);
     EXPECT_EQ(pc->getTotalNum(), 0u);
 }
@@ -210,7 +211,7 @@ TEST_F(DecayTest, NoDaughterContainerStillDestroysOnly) {
     createParticles(muons, 128, 0.0);
 
     Options::seed = 42;
-    Decay decay(1.0e-12, 0);
+    MuonDecay decay(1.0e-12, 0, Physics::m_mu);
     // No setDaughterContainer call.
     const size_t destroyed = decay.apply(*muons, 1.0, 0, 0);
     EXPECT_EQ(destroyed, 128u);
@@ -218,7 +219,7 @@ TEST_F(DecayTest, NoDaughterContainerStillDestroysOnly) {
 }
 
 // =====================================================================
-// Multi-container daughter generation tests
+// Multi-container daughter generation tests (muon -> electron)
 // =====================================================================
 
 TEST_F(DecayTest, DaughterContainerReceivesDecayedParticles) {
@@ -229,7 +230,7 @@ TEST_F(DecayTest, DaughterContainerReceivesDecayedParticles) {
     createParticles(muons, 256, 0.0);
 
     Options::seed = 1234;
-    Decay decay(1.0e-12, 0);  // very short lifetime
+    MuonDecay decay(1.0e-12, 0, Physics::m_mu);
     decay.setDaughterContainer(electrons, Physics::m_e);
 
     const size_t destroyed = decay.apply(*muons, 1.0, 0, 0);
@@ -251,7 +252,7 @@ TEST_F(DecayTest, DaughterPositionMatchesParent) {
     Kokkos::deep_copy(muR_host, muons->R.getView());
 
     Options::seed = 999;
-    Decay decay(1.0e-12, 0);
+    MuonDecay decay(1.0e-12, 0, Physics::m_mu);
     decay.setDaughterContainer(electrons, Physics::m_e);
 
     const size_t destroyed = decay.apply(*muons, 1.0, 0, 0);
@@ -277,7 +278,7 @@ TEST_F(DecayTest, DaughterMomentumIsPhysicalForRestMuons) {
     createParticles(muons, nPart, 0.0);  // muons at rest
 
     Options::seed = 555;
-    Decay decay(1.0e-12, 0);
+    MuonDecay decay(1.0e-12, 0, Physics::m_mu);
     decay.setDaughterContainer(electrons, Physics::m_e);
 
     const size_t destroyed = decay.apply(*muons, 1.0, 0, 0);
@@ -316,7 +317,7 @@ TEST_F(DecayTest, BoostedMuonsProduceBoostedElectrons) {
     createParticles(muons, nPart, 5.0);  // boosted muons (pz = 5 in beta*gamma)
 
     Options::seed = 777;
-    Decay decay(1.0e-6, 0);
+    MuonDecay decay(1.0e-6, 0, Physics::m_mu);
     decay.setDaughterContainer(electrons, Physics::m_e);
 
     const size_t destroyed = decay.apply(*muons, 10.0, 0, 0);
@@ -352,7 +353,7 @@ TEST_F(DecayTest, DaughterReproducibleWithSameSeed) {
         createParticles(muons, 256, 1.0);
 
         Options::seed = seed;
-        Decay decay(1.0e-6, 0);
+        MuonDecay decay(1.0e-6, 0, Physics::m_mu);
         decay.setDaughterContainer(electrons, Physics::m_e);
         decay.apply(*muons, 1.0, 0, 0);
 
@@ -387,7 +388,7 @@ TEST_F(DecayTest, PartialDecayCreatesDaughtersOnlyForDecayed) {
     createParticles(muons, nPart, 0.5);
 
     Options::seed = 303;
-    Decay decay(2.0, 0);  // long lifetime, moderate dt -> partial decay
+    MuonDecay decay(2.0, 0, Physics::m_mu);  // long lifetime, moderate dt -> partial decay
     decay.setDaughterContainer(electrons, Physics::m_e);
 
     const size_t destroyed = decay.apply(*muons, 0.5, 0, 0);
@@ -395,6 +396,109 @@ TEST_F(DecayTest, PartialDecayCreatesDaughtersOnlyForDecayed) {
     EXPECT_LT(destroyed, nPart);
     EXPECT_EQ(muons->getTotalNum(), nPart - destroyed);
     EXPECT_EQ(electrons->getTotalNum(), destroyed);
+}
+
+// =====================================================================
+// Pion decay tests (2-body: pi -> mu + nu)
+// =====================================================================
+
+TEST_F(DecayTest, PionDecayDaughterCountMatchesDestroyed) {
+    auto pions = makeContainer();
+    auto muons = makeContainer();
+    pions->setM(Physics::m_pi);
+    muons->setM(Physics::m_mu);
+    createParticles(pions, 256, 0.0);
+
+    Options::seed = 1234;
+    PionDecay decay(1.0e-12, 0, Physics::m_pi);  // very short lifetime
+    decay.setDaughterContainer(muons, Physics::m_mu);
+
+    const size_t destroyed = decay.apply(*pions, 1.0, 0, 0);
+    EXPECT_EQ(destroyed, 256u);
+    EXPECT_EQ(pions->getTotalNum(), 0u);
+    EXPECT_EQ(muons->getTotalNum(), 256u);
+}
+
+TEST_F(DecayTest, PionDecayTwoBodyFixedMomentum) {
+    constexpr size_t nPart = 512;
+    auto pions = makeContainer();
+    auto muons = makeContainer();
+    pions->setM(Physics::m_pi);
+    muons->setM(Physics::m_mu);
+    createParticles(pions, nPart, 0.0);  // pions at rest
+
+    Options::seed = 888;
+    PionDecay decay(1.0e-12, 0, Physics::m_pi);
+    decay.setDaughterContainer(muons, Physics::m_mu);
+
+    const size_t destroyed = decay.apply(*pions, 1.0, 0, 0);
+    ASSERT_EQ(destroyed, nPart);
+    ASSERT_EQ(muons->getLocalNum(), nPart);
+
+    auto muP_host = muons->P.getHostMirror();
+    Kokkos::deep_copy(muP_host, muons->P.getView());
+
+    // Expected fixed momentum in pion rest frame: p = (m_pi^2 - m_mu^2) / (2 m_pi)
+    const double pExpected = (Physics::m_pi * Physics::m_pi - Physics::m_mu * Physics::m_mu)
+                             / (2.0 * Physics::m_pi);
+    // In beta*gamma units: bg = p / m_mu
+    const double bgExpected = pExpected / Physics::m_mu;
+
+    for (size_t i = 0; i < nPart; ++i) {
+        const double bg2 = muP_host(i)[0] * muP_host(i)[0]
+                         + muP_host(i)[1] * muP_host(i)[1]
+                         + muP_host(i)[2] * muP_host(i)[2];
+        const double bg = std::sqrt(bg2);
+
+        // All daughters must have the same |beta*gamma| (monochromatic).
+        EXPECT_NEAR(bg, bgExpected, 1.0e-12);
+    }
+
+    // Verify directions are not all identical (isotropic).
+    bool foundDifferent = false;
+    for (size_t i = 1; i < nPart; ++i) {
+        if (std::abs(muP_host(i)[0] - muP_host(0)[0]) > 1.0e-14
+            || std::abs(muP_host(i)[1] - muP_host(0)[1]) > 1.0e-14) {
+            foundDifferent = true;
+            break;
+        }
+    }
+    EXPECT_TRUE(foundDifferent);
+}
+
+TEST_F(DecayTest, PionDecayBoostedConservesEnergy) {
+    constexpr size_t nPart = 512;
+    auto pions = makeContainer();
+    auto muons = makeContainer();
+    pions->setM(Physics::m_pi);
+    muons->setM(Physics::m_mu);
+    createParticles(pions, nPart, 3.0);  // boosted pions
+
+    Options::seed = 999;
+    PionDecay decay(1.0e-8, 0, Physics::m_pi);
+    decay.setDaughterContainer(muons, Physics::m_mu);
+
+    const size_t destroyed = decay.apply(*pions, 10.0, 0, 0);
+    ASSERT_GT(destroyed, 0u);
+    ASSERT_EQ(muons->getLocalNum(), destroyed);
+
+    auto muP_host = muons->P.getHostMirror();
+    Kokkos::deep_copy(muP_host, muons->P.getView());
+
+    for (size_t i = 0; i < destroyed; ++i) {
+        const double bg2 = muP_host(i)[0] * muP_host(i)[0]
+                         + muP_host(i)[1] * muP_host(i)[1]
+                         + muP_host(i)[2] * muP_host(i)[2];
+        const double gamma = std::sqrt(1.0 + bg2);
+        const double energy = gamma * Physics::m_mu;
+
+        // E^2 = p^2 + m_mu^2 must hold.
+        const double p2 = bg2 * Physics::m_mu * Physics::m_mu;
+        EXPECT_NEAR(energy * energy, p2 + Physics::m_mu * Physics::m_mu, 1.0e-15);
+
+        EXPECT_GT(energy, 0.0);
+        EXPECT_TRUE(std::isfinite(energy));
+    }
 }
 
 }  // namespace
