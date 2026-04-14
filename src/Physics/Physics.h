@@ -131,6 +131,12 @@ namespace Physics {
     /// Muon mean lifetime at rest [s] (PDG)
     constexpr double tau_mu     = 2.1969811e-6;
 
+    /// The charged pion rest mass in GeV (PDG)
+    constexpr double m_pi       = 0.13957039;
+
+    /// Charged pion mean lifetime at rest [s] (PDG)
+    constexpr double tau_pi     = 2.6033e-8;
+
     /// The deuteron rest mass in GeV
     constexpr double m_d        = 2.013553212745 * amu;
 

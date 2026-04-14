@@ -29,6 +29,7 @@ enum class ParticleType: short {
     ELECTRON,
     POSITRON,
     MUON,
+    PION,
     PROTON,
     ANTIPROTON,
     DEUTERON,
@@ -60,11 +61,15 @@ public:
     static double getParticleCharge(const ParticleType& type);
     static double getParticleChargeInCoulomb(const ParticleType& type);
 
+    /// Return the mean rest-frame lifetime [s].  Throws if the particle is stable.
+    static double getParticleLifetime(const ParticleType& type);
+
 private:
     static const BiMap<ParticleType, std::string> bmParticleType_s;
 
     static const std::map<ParticleType, double> particleMass_m;
     static const std::map<ParticleType, double> particleCharge_m;
+    static const std::map<ParticleType, double> particleLifetime_m;
 };
 
 #endif /* PARTICLEPROPERTIES_H */
