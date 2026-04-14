@@ -261,9 +261,9 @@ namespace {
                 EXPECT_NEAR(line[5], 0., tol);
                 EXPECT_NEAR(line[6], 0., tol);
             }
-            EXPECT_NEAR(line[7], -line[4], tol);
-            EXPECT_NEAR(line[8], -line[5], tol);
-            EXPECT_NEAR(line[9], -line[6], tol);
+            EXPECT_NEAR(line[7] * Units::MVpm2Vpm, -line[4], tol);
+            EXPECT_NEAR(line[8] * Units::MVpm2Vpm, -line[5], tol);
+            EXPECT_NEAR(line[9] * Units::MVpm2Vpm, -line[6], tol);
         }
         clear_files({fname1, fname2, fname3, fname4});
         DumpEMFields::clearDumps();
@@ -322,9 +322,9 @@ namespace {
                 EXPECT_NEAR(line[5], 0., tol);
                 EXPECT_NEAR(line[6], 0., tol);
             }
-            EXPECT_NEAR(line[7], -line[4], tol);
-            EXPECT_NEAR(line[8], -line[5], tol);
-            EXPECT_NEAR(line[9], -line[6], tol);
+            EXPECT_NEAR(line[7] * Units::MVpm2Vpm, -line[4], tol);
+            EXPECT_NEAR(line[8] * Units::MVpm2Vpm, -line[5], tol);
+            EXPECT_NEAR(line[9] * Units::MVpm2Vpm, -line[6], tol);
         }
         clear_files({fnameCyl});
 
