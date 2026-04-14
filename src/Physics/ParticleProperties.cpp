@@ -46,6 +46,16 @@ double ParticleProperties::getParticleChargeInCoulomb(const ParticleType& type) 
     return getParticleCharge(type) * Physics::q_e;
 }
 
+double ParticleProperties::getParticleLifetime(const ParticleType& type) {
+    auto it = particleLifetime_m.find(type);
+    if (it != particleLifetime_m.end()) {
+        return it->second;
+    }
+    throw std::runtime_error(
+        "ParticleProperties::getParticleLifetime: no lifetime for particle \""
+        + getParticleTypeString(type) + "\" (stable or unsupported).");
+}
+
 const BiMap<ParticleType, std::string> ParticleProperties::bmParticleType_s = []() {
     BiMap<ParticleType, std::string> bimap;
     bimap.insert(ParticleType::UNNAMED,    "UNNAMED");
@@ -53,6 +63,7 @@ const BiMap<ParticleType, std::string> ParticleProperties::bmParticleType_s = []
     bimap.insert(ParticleType::ELECTRON,   "ELECTRON");
     bimap.insert(ParticleType::POSITRON,   "POSITRON");
     bimap.insert(ParticleType::MUON,       "MUON");
+    bimap.insert(ParticleType::PION,       "PION");
     bimap.insert(ParticleType::PROTON,     "PROTON");
     bimap.insert(ParticleType::ANTIPROTON, "ANTIPROTON");
     bimap.insert(ParticleType::DEUTERON,   "DEUTERON");
@@ -72,6 +83,7 @@ const std::map<ParticleType, double> ParticleProperties::particleMass_m = {
     {ParticleType::ELECTRON,   Physics::m_e},
     {ParticleType::POSITRON,   Physics::m_e},
     {ParticleType::MUON,       Physics::m_mu},
+    {ParticleType::PION,       Physics::m_pi},
     {ParticleType::PROTON,     Physics::m_p},
     {ParticleType::ANTIPROTON, Physics::m_p},
     {ParticleType::DEUTERON,   Physics::m_d},
@@ -90,6 +102,7 @@ const std::map<ParticleType, double> ParticleProperties::particleCharge_m = {
     {ParticleType::ELECTRON,   -1.0},
     {ParticleType::POSITRON,    1.0},
     {ParticleType::MUON,       -1.0},
+    {ParticleType::PION,        1.0},
     {ParticleType::PROTON,      1.0},
     {ParticleType::ANTIPROTON, -1.0},
     {ParticleType::DEUTERON,    1.0},
@@ -101,4 +114,9 @@ const std::map<ParticleType, double> ParticleProperties::particleCharge_m = {
     {ParticleType::CARBON,      6.0},
     {ParticleType::XENON,      54.0},
     {ParticleType::URANIUM,    92.0}
+};
+
+const std::map<ParticleType, double> ParticleProperties::particleLifetime_m = {
+    {ParticleType::MUON, Physics::tau_mu},
+    {ParticleType::PION, Physics::tau_pi}
 };

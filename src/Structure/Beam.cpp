@@ -63,8 +63,8 @@ Beam::Beam()
       reference(1.0, Physics::m_p * Units::GeV2eV, 1.0 * Units::GeV2eV) {
     itsAttr[PARTICLE] = Attributes::makePredefinedString(
         "PARTICLE", "Name of particle to be used",
-        {"PHOTON", "ELECTRON", "POSITRON", "MUON", "PROTON", "ANTIPROTON", "DEUTERON", "HMINUS", "H2P",
-         "ALPHA", "CARBON", "XENON", "URANIUM"});
+        {"PHOTON", "ELECTRON", "POSITRON", "MUON", "PION", "PROTON", "ANTIPROTON", "DEUTERON", "HMINUS",
+         "H2P", "ALPHA", "CARBON", "XENON", "URANIUM"});
 
     itsAttr[MASS] = Attributes::makeReal("MASS", "Particle rest mass [GeV]");
 
