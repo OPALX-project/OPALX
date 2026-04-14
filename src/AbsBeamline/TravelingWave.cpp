@@ -81,7 +81,10 @@ bool TravelingWave::apply(
 
 bool TravelingWave::apply(
     const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& t,
-    Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
+    Vector_t<double, 3>& E, Vector_t<double, 3>& B) 
+    {
+    const double omega_t = frequency_m * t;
+    
     if (R(2) < -0.5 * periodLength_m || R(2) + 0.5 * periodLength_m >= getElementLength())
         return false;
 
@@ -93,8 +96,8 @@ bool TravelingWave::apply(
         if (!fieldmap_m->isInside(tmpR))
             return getFlagDeleteOnTransverseExit();
 
-        tmpcos = (scale_m + scaleError_m) * std::cos(frequency_m * t + phase_m + phaseError_m);
-        tmpsin = -(scale_m + scaleError_m) * std::sin(frequency_m * t + phase_m + phaseError_m);
+        tmpcos = (scale_m + scaleError_m) * std::cos(omega_t + phase_m + phaseError_m);
+        tmpsin = -(scale_m + scaleError_m) * std::sin(omega_t + phase_m + phaseError_m);
 
     } else if (tmpR(2) < startExitField_m) {
         Vector_t<double, 3> tmpE2({0.0, 0.0, 0.0}), tmpB2({0.0, 0.0, 0.0});
@@ -106,9 +109,9 @@ bool TravelingWave::apply(
             return getFlagDeleteOnTransverseExit();
 
         tmpcos = (scaleCore_m + scaleCoreError_m)
-                 * std::cos(frequency_m * t + phaseCore1_m + phaseError_m);
+                 * std::cos(omega_t + phaseCore1_m + phaseError_m);
         tmpsin = -(scaleCore_m + scaleCoreError_m)
-                 * std::sin(frequency_m * t + phaseCore1_m + phaseError_m);
+                 * std::sin(omega_t + phaseCore1_m + phaseError_m);
         fieldmap_m->getFieldstrength(tmpR, tmpE, tmpB);
         E += tmpcos * tmpE;
         B += tmpsin * tmpB;
@@ -121,16 +124,16 @@ bool TravelingWave::apply(
         tmpR(2) += startCoreField_m;
 
         tmpcos = (scaleCore_m + scaleCoreError_m)
-                 * std::cos(frequency_m * t + phaseCore2_m + phaseError_m);
+                 * std::cos(omega_t + phaseCore2_m + phaseError_m);
         tmpsin = -(scaleCore_m + scaleCoreError_m)
-                 * std::sin(frequency_m * t + phaseCore2_m + phaseError_m);
+                 * std::sin(omega_t + phaseCore2_m + phaseError_m);
 
     } else {
         tmpR(2) -= mappedStartExitField_m;
         if (!fieldmap_m->isInside(tmpR))
             return getFlagDeleteOnTransverseExit();
-        tmpcos = (scale_m + scaleError_m) * std::cos(frequency_m * t + phaseExit_m + phaseError_m);
-        tmpsin = -(scale_m + scaleError_m) * std::sin(frequency_m * t + phaseExit_m + phaseError_m);
+        tmpcos = (scale_m + scaleError_m) * std::cos(omega_t + phaseExit_m + phaseError_m);
+        tmpsin = -(scale_m + scaleError_m) * std::sin(omega_t + phaseExit_m + phaseError_m);
     }
 
     fieldmap_m->getFieldstrength(tmpR, tmpE, tmpB);
@@ -143,7 +146,10 @@ bool TravelingWave::apply(
 
 bool TravelingWave::applyToReferenceParticle(
     const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& t,
-    Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
+    Vector_t<double, 3>& E, Vector_t<double, 3>& B) 
+    {
+    const double omega_t = frequency_m * t;
+
     if (R(2) < -0.5 * periodLength_m || R(2) + 0.5 * periodLength_m >= getElementLength())
         return false;
 
@@ -154,8 +160,8 @@ bool TravelingWave::applyToReferenceParticle(
     if (tmpR(2) < startCoreField_m) {
         if (!fieldmap_m->isInside(tmpR))
             return true;
-        tmpcos = scale_m * std::cos(frequency_m * t + phase_m);
-        tmpsin = -scale_m * std::sin(frequency_m * t + phase_m);
+        tmpcos = scale_m * std::cos(omega_t + phase_m);
+        tmpsin = -scale_m * std::sin(omega_t + phase_m);
 
     } else if (tmpR(2) < startExitField_m) {
         Vector_t<double, 3> tmpE2({0.0, 0.0, 0.0}), tmpB2({0.0, 0.0, 0.0});
@@ -166,8 +172,8 @@ bool TravelingWave::applyToReferenceParticle(
         if (!fieldmap_m->isInside(tmpR))
             return true;
 
-        tmpcos = scaleCore_m * std::cos(frequency_m * t + phaseCore1_m);
-        tmpsin = -scaleCore_m * std::sin(frequency_m * t + phaseCore1_m);
+        tmpcos = scaleCore_m * std::cos(omega_t + phaseCore1_m);
+        tmpsin = -scaleCore_m * std::sin(omega_t + phaseCore1_m);
         fieldmap_m->getFieldstrength(tmpR, tmpE, tmpB);
         E += tmpcos * tmpE;
         B += tmpsin * tmpB;
@@ -179,16 +185,16 @@ bool TravelingWave::applyToReferenceParticle(
         tmpR(2) = tmpR(2) - periodLength_m * std::floor(tmpR(2) / periodLength_m);
         tmpR(2) += startCoreField_m;
 
-        tmpcos = scaleCore_m * std::cos(frequency_m * t + phaseCore2_m);
-        tmpsin = -scaleCore_m * std::sin(frequency_m * t + phaseCore2_m);
+        tmpcos = scaleCore_m * std::cos(omega_t + phaseCore2_m);
+        tmpsin = -scaleCore_m * std::sin(omega_t + phaseCore2_m);
 
     } else {
         tmpR(2) -= mappedStartExitField_m;
         if (!fieldmap_m->isInside(tmpR))
             return true;
 
-        tmpcos = scale_m * std::cos(frequency_m * t + phaseExit_m);
-        tmpsin = -scale_m * std::sin(frequency_m * t + phaseExit_m);
+        tmpcos = scale_m * std::cos(omega_t + phaseExit_m);
+        tmpsin = -scale_m * std::sin(omega_t + phaseExit_m);
     }
 
     fieldmap_m->getFieldstrength(tmpR, tmpE, tmpB);
