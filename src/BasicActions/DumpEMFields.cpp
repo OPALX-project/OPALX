@@ -206,9 +206,9 @@ void DumpEMFields::writeHeader(std::ofstream& fout) const {
         fout << 2 << "  y [m]\n";
         fout << 3 << "  z [m]\n";
         fout << 4 << "  t [ns]\n";
-        fout << 5 << "  Bx [kGauss]\n";
-        fout << 6 << "  By [kGauss]\n";
-        fout << 7 << "  Bz [kGauss]\n";
+        fout << 5 << "  Bx [T]\n";
+        fout << 6 << "  By [T]\n";
+        fout << 7 << "  Bz [T]\n";
         fout << 8 << "  Ex [MV/m]\n";
         fout << 9 << "  Ey [MV/m]\n";
         fout << 10 << " Ez [MV/m]\n";
@@ -217,9 +217,9 @@ void DumpEMFields::writeHeader(std::ofstream& fout) const {
         fout << 2 << "  phi [deg]\n";
         fout << 3 << "  y [m]\n";
         fout << 4 << "  t [ns]\n";
-        fout << 5 << "  Br   [kGauss]\n";
-        fout << 6 << "  Bphi [kGauss]\n";
-        fout << 7 << "  By   [kGauss]\n";
+        fout << 5 << "  Br   [T]\n";
+        fout << 6 << "  Bphi [T]\n";
+        fout << 7 << "  By   [T]\n";
         fout << 8 << "  Er   [MV/m]\n";
         fout << 9 << "  Ephi [MV/m]\n";
         fout << 10 << " Ey   [MV/m]\n";
@@ -270,7 +270,8 @@ void DumpEMFields::writeFieldLine(
         fout << point[0] << " " << point[1] << " " << point[2] << " " << time << " ";
     }
     fout << Bout[0] << " " << Bout[1] << " " << Bout[2] << " ";
-    fout << Eout[0] << " " << Eout[1] << " " << Eout[2] << "\n";
+    fout << Eout[0] * Units::Vpm2MVpm << " " << Eout[1] * Units::Vpm2MVpm << " "
+         << Eout[2] * Units::Vpm2MVpm << "\n";
 }
 
 void DumpEMFields::writeFieldThis(const std::set<std::shared_ptr<Component>>& elements) {
