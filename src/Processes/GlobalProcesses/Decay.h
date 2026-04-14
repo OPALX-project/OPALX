@@ -50,13 +50,13 @@ public:
                  long long globalTrackStep,
                  size_t containerIdx) override;
 
-protected:
-
     /**
      * @brief Create daughter particles from collected parent data.
      *
      * @note Called only when daughterPC_m is set and localDestroyNum > 0.
      *   Subclasses implement the physics-specific momentum sampling here.
+     *   Must be public because device compilers require that a Kokkos
+     *   lambda's enclosing member function has public access.
      */
     virtual void createDaughterParticles(
         std::size_t localDestroyNum,
@@ -65,6 +65,7 @@ protected:
         const Kokkos::View<ippl::Vector<double, 3>*>& parentP,
         const Kokkos::View<double*>& parentDt) = 0;
 
+protected:
     /// Mean lifetime at rest [s].
     double tau0_m;
 
