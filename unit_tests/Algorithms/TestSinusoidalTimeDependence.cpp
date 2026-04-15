@@ -15,8 +15,7 @@
 //
 #include "Algorithms/AbstractTimeDependence.h"
 #include "Algorithms/SinusoidalTimeDependence.h"
-#include "Attributes/Attributes.h"
-#include "Elements/OpalSinusoidalTimeDependence.h"
+#include "Ippl.h"
 #include "Utilities/GeneralClassicException.h"
 #include "gtest/gtest.h"
 
@@ -34,7 +33,7 @@ TEST(TestSinusoidalTimeDependence, SinusoidalTimeDependenceTest) {
     EXPECT_DOUBLE_EQ(time_dependence_3.getValue(0.1), -0.95105651629515364);
 
     // Check the phase offset
-    SinusoidalTimeDependence time_dependence_4({8.0}, {0.1}, {2.0} , {});
+    SinusoidalTimeDependence time_dependence_4({8.0}, {0.1}, {2.0}, {});
     EXPECT_DOUBLE_EQ(time_dependence_4.getValue(0.1), -0.91545497277810161);
 
     // Check the DC offset
@@ -43,14 +42,13 @@ TEST(TestSinusoidalTimeDependence, SinusoidalTimeDependenceTest) {
 
     // Check clone produces same result
     SinusoidalTimeDependence* time_dependence_clone = time_dependence_5.clone();
-    EXPECT_DOUBLE_EQ(time_dependence_clone->getValue(0.1),-1.91545497277810161);
+    EXPECT_DOUBLE_EQ(time_dependence_clone->getValue(0.1), -1.91545497277810161);
     delete time_dependence_clone;
 }
 
 TEST(TestSinusoidalTimeDependence, TDMapTest) {
     // throw on empty value
-    EXPECT_THROW(AbstractTimeDependence::getTimeDependence("name"),
-                 GeneralClassicException);
+    EXPECT_THROW(AbstractTimeDependence::getTimeDependence("name"), GeneralClassicException);
 
     // set/get time dependence
     SinusoidalTimeDependence time_dep({}, {}, {}, {});
@@ -69,8 +67,7 @@ TEST(TestSinusoidalTimeDependence, TDMapTest) {
 }
 
 TEST(TestSinusoidalTimeDependence, TDMapNameLookupTest) {
-    EXPECT_THROW(AbstractTimeDependence::getName(nullptr),
-                 GeneralClassicException);
+    EXPECT_THROW(AbstractTimeDependence::getName(nullptr), GeneralClassicException);
     SinusoidalTimeDependence time_dep({}, {}, {}, {});
     std::shared_ptr<SinusoidalTimeDependence> td1(time_dep.clone());
     std::shared_ptr<SinusoidalTimeDependence> td2(time_dep.clone());
@@ -82,9 +79,7 @@ TEST(TestSinusoidalTimeDependence, TDMapNameLookupTest) {
     EXPECT_EQ(name1, "td1");
     std::string name2 = AbstractTimeDependence::getName(td2);
     EXPECT_TRUE(name2 == "td2" || name2 == "td3");
-    EXPECT_THROW(AbstractTimeDependence::getName(td3),
-                 GeneralClassicException);
-
+    EXPECT_THROW(AbstractTimeDependence::getName(td3), GeneralClassicException);
 }
 
 TEST(TestSinusoidalTimeDependence, Integral) {
@@ -101,7 +96,7 @@ TEST(TestSinusoidalTimeDependence, Integral) {
     EXPECT_NEAR(time_dependence_3.getIntegral(0.1), 0.013746670117215259 * 2, 0.000001);
 
     // Check the phase offset
-    SinusoidalTimeDependence time_dependence_4({8.0}, {0.1}, {2.0} , {});
+    SinusoidalTimeDependence time_dependence_4({8.0}, {0.1}, {2.0}, {});
     EXPECT_NEAR(time_dependence_4.getIntegral(0.1), 0.02357815814417235, 0.000001);
 
     // Check the DC offset
@@ -109,23 +104,18 @@ TEST(TestSinusoidalTimeDependence, Integral) {
     EXPECT_NEAR(time_dependence_5.getIntegral(0.1), 0.02357815814417235 - 0.1, 0.000001);
 }
 
-TEST(TestSinusoidalTimeDependence, UserInterface) {
-    // Make the UI
-    OpalSinusoidalTimeDependence ui;
-    // Set the attributes
-    Attributes::setRealArray(ui.itsAttr[OpalSinusoidalTimeDependence::FREQUENCIES], {1,2});
-    Attributes::setRealArray(ui.itsAttr[OpalSinusoidalTimeDependence::PHASE_OFFSETS], {3,4});
-    Attributes::setRealArray(ui.itsAttr[OpalSinusoidalTimeDependence::AMPLITUDES], {5,6});
-    Attributes::setRealArray(ui.itsAttr[OpalSinusoidalTimeDependence::DC_OFFSETS], {7,8});
-    // Update the object
-    EXPECT_NO_THROW(ui.update());
-    // Check the values
-    auto* myDependency = dynamic_cast<SinusoidalTimeDependence*>(
-        AbstractTimeDependence::getTimeDependence("SINUSOIDAL_TIME_DEPENDENCE").get());
-    EXPECT_TRUE(myDependency);
-    EXPECT_TRUE((myDependency->getFrequencies() == std::vector{1.0, 2.0}));
-    EXPECT_TRUE((myDependency->getPhases() == std::vector{3.0, 4.0}));
-    EXPECT_TRUE((myDependency->getAmplitudes() == std::vector{5.0, 6.0}));
-    EXPECT_TRUE((myDependency->getOffsets() == std::vector{7.0, 8.0}));
+TEST(TestSinusoidalTimeDependence, Print) {
+    int argc    = 0;
+    char** argv = nullptr;
+    ippl::initialize(argc, argv);
+    std::stringstream ss;
+    Inform inform("Test", ss);
+    inform.setOutputLevel(5);
+    SinusoidalTimeDependence timeDep({8.0, 9.0}, {0.1, 0.2}, {2.0, 3.0}, {-1.0, -2.0});
+    inform << timeDep << endl;
+    EXPECT_STREQ(
+            "Test> f=[8.000000e+00, 9.000000e+00], p=[1.000000e-01, 2.000000e-01], "
+            "a=[2.000000e+00, 3.000000e+00], o=[-1.000000e+00, -2.000000e+00\nTest> \n",
+            ss.str().c_str());
+    ippl::finalize();
 }
-
