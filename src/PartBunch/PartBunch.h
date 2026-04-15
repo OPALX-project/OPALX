@@ -76,8 +76,9 @@ public:
     std::string integration_method_m; // integration method
     std::string solver_m; // field solver type
 
-    // Mesh 
+    // Mesh
     Vector_t<int, Dim> nr_m; // number of grid points
+    int nrZBase_m = 0;       // base z grid count (before any image-charge doubling). needed to reset nr_m later
     Vector_t<double, Dim> origin_m; // origin of the mesh
     Vector_t<double, Dim> rmin_m; // minimum extent of the mesh
     Vector_t<double, Dim> rmax_m; // maximum extent of the mesh
@@ -191,6 +192,18 @@ public:
      */
     void applyGridUpdate(
             const Vector_t<double, Dim>& lower, const Vector_t<double, Dim>& upper);
+
+    /**
+     * @brief Reinitialize the z dimension of the field grid to `nrZ` cells.
+     *
+     * Rebuilds the FieldLayout, all field arrays, the accumulation buffers, and the
+     * IPPL Poisson solver to match the new z extent. A no-op if `nrZ` equals the
+     * current z cell count. Called from `bunchUpdate` to double the z resolution
+     * while image charges are active.
+     *
+     * @param nrZ Target number of z grid cells.
+     */
+    void reinitializeGridZ(int nrZ);
 
     /**
      * @brief Set the image-charge configuration for the field solver.
