@@ -1,0 +1,225 @@
+#ifndef CLASSIC_AstraFIELDMAP1DDYNAMIC_HH
+#define CLASSIC_AstraFIELDMAP1DDYNAMIC_HH
+
+#include "Fields/Fieldmap.h"
+
+class Astra1DDynamic: public Fieldmap {
+
+public:
+    /**
+     * @brief Get the field strength at a given point.
+     * 
+     * @param R Position [m] relative to the field map origin.
+     * @param E Output Electric field [MV/m].
+     * @param B Output Magnetic field [T].
+     * @return true if R is outside of the field map, false otherwise.
+     */
+    virtual bool getFieldstrength(
+        const Vector_t<double, 3> &R, 
+        Vector_t<double, 3> &E, 
+        Vector_t<double, 3> &B) const override;
+
+    /**
+     * @brief Get the field derivative with respect to a direction.
+     * 
+     * @param R Position [m].
+     * @param E Output derivative of Electric field.
+     * @param B Output derivative of Magnetic field.
+     * @param dir Direction of derivative (DX, DY, DZ).
+     * @return true if R is outside, false otherwise.
+     */
+    virtual bool getFieldDerivative(
+        const Vector_t<double, 3> &R, 
+        Vector_t<double, 3> &E, 
+        Vector_t<double, 3> &B, 
+        const DiffDirection &dir) const override;
+
+    /**
+     * @brief Get the longitudinal dimensions of the field.
+     * @param zBegin Output start of field [m].
+     * @param zEnd Output end of field [m].
+     */
+    virtual void getFieldDimensions(double &zBegin, double &zEnd) const override;
+
+    /**
+     * @brief Get the full 3D bounding box of the field.
+     * 
+     * @param xIni Output minimum x [m].
+     * @param xFinal Output maximum x [m].
+     * @param yIni Output minimum y [m].
+     * @param yFinal Output maximum y [m].
+     * @param zIni Output minimum z [m].
+     * @param zFinal Output maximum z [m].
+     */
+    virtual void getFieldDimensions(
+        double &xIni, double &xFinal, 
+        double &yIni, double &yFinal, 
+        double &zIni, double &zFinal) const override;
+
+    /// @brief Swap coordinates
+    virtual void swap() override;
+
+    /// @brief Print info about the field map.
+    virtual void getInfo(Inform *msg) override;
+
+    /**
+     * @brief Get the frequency.
+     * @return Frequency [MHz].
+     * @note Not implemented yet
+     */
+    virtual double getFrequency() const override;
+
+    /**
+     * @brief Set the frequency.
+     * @param freq Frequency [MHz].
+     * @note Not implemented yet
+     */
+    virtual void setFrequency(double freq) override;
+
+
+    /**
+     * @brief Checks if the given coordinate is inside the volume covered by the
+     * fieldmap
+     * @param r Coordinate
+     * @note This cannot be called inside a GPU kernel (implicit capture of the
+     * 'this' pointer not allowed on device)
+     */
+    bool isInside(const Vector_t<double, 3> &r) const override {
+        return r(2) >= zbegin_m && r(2) < zend_m;
+        // && sqrt(r(0) * r(0) + r(1) * r(1)) < rend_m;
+    }
+
+    // inline bool _Astra1DDynamic::isInside(const Vector_t &r) const
+    // {
+    //     return r(2) >= zbegin_m && r(2) < zend_m;
+    // }
+    
+
+
+    // template <class ViewType>
+    // KOKKOS_INLINE_FUNCTION static void computeField(
+    //     const Vector_t<double, 3>& R,
+    //     Vector_t<double, 3>& E,
+    //     Vector_t<double, 3>& B,
+    //     const ViewType& FourCoefs,
+    //     double zbegin,
+    //     double length,
+    //     double xlrep,
+    //     int accuracy)
+    // {
+    //     const double RR2 = R(0)*R(0) + R(1)*R(1);
+
+    //     const double kz =
+    //         2.0 * M_PI * (R(2) - zbegin) / length + M_PI;
+
+    //     double ez = FourCoefs(0);
+    //     double ezp = 0.0;
+    //     double ezpp = 0.0;
+    //     double ezppp = 0.0;
+
+    //     int n = 1;
+    //     for (int l = 1; l < accuracy; ++l, n += 2) {
+    //         double base = 2.0 * M_PI / length * l;
+
+    //         double coskzl = cos(kz * l);
+    //         double sinkzl = sin(kz * l);
+
+    //         ez    += (FourCoefs(n) * coskzl - FourCoefs(n+1) * sinkzl);
+
+    //         double f1 = base;
+    //         ezp   += f1 * (-FourCoefs(n) * sinkzl - FourCoefs(n+1) * coskzl);
+
+    //         double f2 = f1 * base;
+    //         ezpp  += f2 * (-FourCoefs(n) * coskzl + FourCoefs(n+1) * sinkzl);
+
+    //         double f3 = f2 * base;
+    //         ezppp += f3 * (FourCoefs(n) * sinkzl + FourCoefs(n+1) * coskzl);
+    //     }
+
+    //     const double f  = -(ezpp  + ez * xlrep * xlrep) / 16.0;
+    //     const double fp = -(ezppp + ezp * xlrep * xlrep) / 16.0;
+
+    //     const double EfieldR = -(ezp / 2.0 + fp * RR2);
+    //     const double BfieldT = (ez / 2.0 + f * RR2) * xlrep;
+
+    //     E(0) += EfieldR * R(0);
+    //     E(1) += EfieldR * R(1);
+    //     E(2) += ez + 4.0 * f * RR2;
+
+    //     B(0) -= BfieldT * R(1);
+    //     B(1) += BfieldT * R(0);
+    // }
+
+    /**
+     * @brief Apply the FM to all the particles
+     * 
+     * @param pc Particle container
+     */
+    void applyField(std::shared_ptr<ParticleContainer_t> pc, double) override;
+
+    /**
+     * @brief Apply the RF-scaled dynamic field map to all particles.
+     *
+     * This is the device-safe path used by `TravelingWave`. It avoids calling the
+     * virtual `Fieldmap::getFieldstrength()` interface inside a Kokkos kernel.
+     *
+     * @param pc Particle container.
+     * @param electricScale Scale factor applied to the electric field.
+     * @param magneticScale Scale factor applied to the magnetic field.
+     * @param startField Begin of the active cavity region.
+     * @param endField End of the active cavity region.
+     */
+    void applyTravelingWave(
+        std::shared_ptr<ParticleContainer_t> pc,
+        double electricScale,
+        double magneticScale,
+        double startField,
+        double endField);
+
+    virtual void getOnaxisEz(std::vector<std::pair<double, double> > & F) override;
+
+private:
+    Astra1DDynamic(const std::string& filename);
+    ~Astra1DDynamic();
+
+    void readMap() override;
+    void freeMap() override;
+
+    /** 
+     * @brief Fourier coefficients of Ez(z) (device-accessible)
+     * Stored as:
+     * [a0, a1, b1, a2, b2, ..., aN, bN]
+     * Used for fast Fourier reconstruction of the longitudinal field.
+     */
+    Kokkos::View<double*> FourCoefs_m;
+
+    double frequency_m;
+
+    /// @brief Z Bounds relative to element edge
+    double zbegin_m;    /**< Start position of field map [m] */
+    double zend_m;      /**< End position of field map [m] */
+
+    /// @brief Wave number (omega / c)
+    double xlrep_m;
+
+    /// @brief Effective periodic length of the field map [m]
+    double length_m;
+
+    /// @brief Number of Fourier modes used
+    int accuracy_m;
+
+    /// @brief Number of grid points in z-direction (input sampling)
+    int num_gridpz_m;
+
+    /// @brief Allow Fieldmap factory access
+    friend class Fieldmap;
+};
+
+inline bool _Astra1DDynamic::isInside(const Vector_t &r) const
+{
+    return r(2) >= zbegin_m && r(2) < zend_m;
+}
+
+using Astra1DDynamic = std::shared_ptr<_Astra1DDynamic>;
+
+#endif
