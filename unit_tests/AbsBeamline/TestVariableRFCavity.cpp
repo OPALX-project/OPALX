@@ -22,6 +22,7 @@
 #include "Algorithms/PolynomialTimeDependence.h"
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
+#include "Structure/Beam.h"
 #include "Structure/DataSink.h"
 #include "gtest/gtest.h"
 
@@ -59,7 +60,6 @@ public:
     void visitMonitor(const Monitor&) override {}
     void visitMultipole(const Multipole&) override {}
     void visitMultipoleT(const MultipoleT&) override {}
-    void visitOffset(const Offset&) override {}
     void visitRFCavity(const RFCavity&) override {}
     void visitScalingFFAMagnet(const ScalingFFAMagnet&) override {}
     void visitRing(const Ring&) override {}
@@ -101,8 +101,12 @@ public:
         fsCmd->setBCX("PERIODIC");
         fsCmd->setBCY("PERIODIC");
         fsCmd->setBCZ("PERIODIC");
-        auto bunch = std::make_shared<PartBunch_t>(
-                /*qi=*/std::vector{1.0}, /*mi=*/std::vector{1.0}, /*num_containers=*/1,
+        auto beam    = std::make_shared<Beam>();
+        Beam* opBeam = Beam::find("UNNAMED_BEAM");
+        auto bunch   = std::make_shared<PartBunch_t>(
+                /*qi=*/std::vector{1.0}, /*mi=*/std::vector{1.0},
+                /*beams=*/std::vector<Beam*>{opBeam},
+                /*totalParticlesPerBeam=*/std::vector<size_t>{numParticles},
                 /*lbt=*/1.0, /*integration_method=*/"LF2", fsCmdBase_m, dataSink);
         bunch->getParticleContainer()->create(numParticles);
         return bunch;
@@ -347,7 +351,7 @@ TEST_F(TestVariableRFCavity, BunchFields) {
         hostR(i)  = {localR[i][0], localR[i][1], localR[i][2] + length / 2.0};
     }
     Kokkos::deep_copy(pc->R.getView(), hostR);
-    pc->setQ(bunch->getChargePerParticle());
+    pc->setQ(pc->getChargePerParticle());
     ippl::Comm->barrier();
     Kokkos::fence();
     // Register the bunch with the element
@@ -356,7 +360,7 @@ TEST_F(TestVariableRFCavity, BunchFields) {
     initialise(bunch.get(), startField, endField);
     EXPECT_NE(RefPartBunch_m, nullptr);
     // Get the fields for all particles
-    apply();
+    apply(pc);
     // Extract the fields from the GPU
     Kokkos::deep_copy(hostE, pc->E.getView());
     Kokkos::fence();

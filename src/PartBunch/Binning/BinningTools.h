@@ -3,12 +3,6 @@
 
 #include "ParallelReduceTools.h" // needed for HistoReductionMode and maxArrSize
 #include "Utilities/OpalException.h"
-#include "Utility/Inform.h"
-
-#include <cmath>
-#include <memory>
-#include <type_traits>
-#include <vector>
 
 namespace ParticleBinning {
 

@@ -4,7 +4,6 @@
 #include "Ippl.h"
 #include "BinningTools.h" // For postSum computation 
 
-#include <Kokkos_DualView.hpp>
 #include <iomanip>  // for std::setw, std::setprecision, etc. (debug output)
 
 namespace ParticleBinning {
