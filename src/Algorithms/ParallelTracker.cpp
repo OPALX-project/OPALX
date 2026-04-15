@@ -21,37 +21,39 @@
 #include <array>
 #include <cfloat>
 #include <cmath>
+#include <fstream>
 #include <iomanip>
+#include <iostream>
 #include <limits>
+#include <sstream>
 #include <string>
 #include <vector>
 
 #include "BasicActions/DumpEMFields.h"
+#include "Algorithms/Matrix.h"
 
 #include "AbstractObjects/OpalData.h"
-
 #include "Algorithms/CavityAutophaser.h"
 #include "Algorithms/OrbitThreader.h"
+#include "BasicActions/Option.h"
 
 #include "Beamlines/Beamline.h"
 #include "Beamlines/FlaggedBeamline.h"
-
 #include "Distribution/Distribution.h"
-
 #include "Physics/Units.h"
 
 #include "Structure/BoundaryGeometry.h"
 #include "Structure/BoundingBox.h"
-
 #include "Utilities/OpalException.h"
 #include "Utilities/LogicalError.h"
 #include "Utilities/Options.h"
 #include "Utilities/Timer.h"
 #include "Utilities/Util.h"
-
 #include "ValueDefinitions/RealVariable.h"
 
-#include "AbsBeamline/TravelingWave.h"
+#include "AbsBeamline/PluginElement.h"
+#include "AbsBeamline/VerticalFFAMagnet.h"
+
 extern Inform* gmsg;
 
 // --- Constructors ---

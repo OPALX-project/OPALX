@@ -22,8 +22,6 @@
 
 #include "Algorithms/DefaultVisitor.h"
 
-class Beamline;
-
 // Class AbstractTracker
 // ------------------------------------------------------------------------
 /// Track particles or bunches.

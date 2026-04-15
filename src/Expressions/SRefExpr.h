@@ -19,9 +19,7 @@
 // ------------------------------------------------------------------------
 
 #include "AbstractObjects/Expressions.h"
-#include "AbstractObjects/Attribute.h"
 #include "AbstractObjects/Invalidator.h"
-#include "AbstractObjects/Object.h"
 #include "AbstractObjects/OpalData.h"
 #include "Expressions/SValue.h"
 #include "Utilities/ParseError.h"
