@@ -91,6 +91,44 @@ public:
         // std::cout << std::endl;
     }
 
+    void grabVerticalDataLine(
+            std::vector<double>& line, const double s, const double height,
+            const Vector_t<double, 3>& elementEntry, const double elementLength,
+            const double bendAngle) {
+        // Make the bunch
+        const auto bunch = makeBunch(line.size());
+        const auto pc    = bunch->getParticleContainer();
+        // Create the local views and data
+        std::vector<Vector_t<double, 3>> localR(line.size());
+        const auto hostR = Kokkos::create_mirror_view(pc->R.getView());
+        const auto hostB = Kokkos::create_mirror_view(pc->B.getView());
+        // Set the particle positions
+        const double stepSize = height / static_cast<double>(line.size() - 1);
+        for (size_t i = 0; i < line.size(); ++i) {
+            localR[i] = {0, static_cast<double>(i) * stepSize - height / 2, s};
+            hostR(i)  = curvilinearToGlobal(localR[i], elementEntry, elementLength, bendAngle);
+        }
+        Kokkos::deep_copy(pc->R.getView(), hostR);
+        pc->setQ(bunch->getChargePerParticle());
+        ippl::Comm->barrier();
+        Kokkos::fence();
+        // Register the bunch with the element
+        bunch->setT(0.0);
+        double startField, endField;
+        initialise(bunch.get(), startField, endField);
+        // Get the fields
+        apply();
+        // Return the fields
+        Kokkos::deep_copy(hostB, pc->B.getView());
+        Kokkos::fence();
+        for (size_t i = 0; i < line.size(); ++i) {
+            line[i] = std::hypot(hostB(i)[0], hostB(i)[1], hostB(i)[2]);
+            // std::cout << i << ": Local=" << local[i] << ", Global=" << R[i]
+            //           << ", mag(B)=" << line[i] << std::endl;
+        }
+        // std::cout << std::endl;
+    }
+
     void grabLongitudinalDivCurlLine(
             std::vector<double>& fieldLine, std::vector<double>& divLine,
             std::vector<Vector_t<double, 3>>& curlLine, const double x, const double length,
@@ -444,7 +482,7 @@ TEST_F(TestMultipoleTCurvedConstRadius, BoundingBox) {
 }
 
 // Check that the field outside the aperture is not calculated
-TEST_F(TestMultipoleTCurvedConstRadius, Aperture) {
+TEST_F(TestMultipoleTCurvedConstRadius, HorzAperture) {
     std::vector<double> line(9);
     // Set up the magnet
     constexpr double length      = 4;
@@ -470,3 +508,32 @@ TEST_F(TestMultipoleTCurvedConstRadius, Aperture) {
     EXPECT_NE(line[7], 0.0);  // 3.0
     EXPECT_EQ(line[8], 0.0);  // 3.0
 }
+
+// Check that the field outside the aperture is not calculated
+TEST_F(TestMultipoleTCurvedConstRadius, VertAperture) {
+    std::vector<double> line(9);
+    // Set up the magnet
+    constexpr double length      = 4;
+    constexpr double bendAngle   = M_PI / 8.0;
+    constexpr double dipoleField = 1.0;
+    setBendAngle(bendAngle, false);
+    setElementLength(length);
+    setAperture(3.5, 3.5);
+    setFringeField(length / 2, 3, 3);
+    setRotation(0.0);
+    setEntranceAngle(0.0);
+    setMaxOrder(5, 10);
+    setTransProfile({dipoleField});
+    // Check field vanishes outside the aperture
+    grabVerticalDataLine(line, 0, 4.0, {0, 0, 0}, length, bendAngle);
+    EXPECT_EQ(line[0], 0.0);  // -4.0
+    EXPECT_NE(line[1], 0.0);  // -3.0
+    EXPECT_NE(line[2], 0.0);  // -2.0
+    EXPECT_NE(line[3], 0.0);  // -1.0
+    EXPECT_NE(line[4], 0.0);  // 0.0
+    EXPECT_NE(line[5], 0.0);  // 1.0
+    EXPECT_NE(line[6], 0.0);  // 2.0
+    EXPECT_NE(line[7], 0.0);  // 3.0
+    EXPECT_EQ(line[8], 0.0);  // 3.0
+}
+

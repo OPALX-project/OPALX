@@ -38,60 +38,63 @@ public:
     //  [/ol]
     DefaultVisitor(const Beamline& beamline, bool backBeam, bool backTrack);
 
-    virtual ~DefaultVisitor() = 0;
+    ~DefaultVisitor() override = default;
 
     /// Apply the algorithm to the top-level beamline.
-    virtual void execute();
+    void execute() override;
 
-    virtual void visitComponent(const Component&);
+    void visitComponent(const Component&) override;
 
     /// Apply the algorithm to a beam line.
-    virtual void visitBeamline(const Beamline&);
+    void visitBeamline(const Beamline&) override;
 
     /// Apply the algorithm to a constant E-field cavity element.
-    virtual void visitConstantEFieldCavity(const ConstantEFieldCavity&);
+    void visitConstantEFieldCavity(const ConstantEFieldCavity&) override;
 
     /// Apply the algorithm to a drift space.
-    virtual void visitDrift(const Drift&);
+    void visitDrift(const Drift&) override;
 
     /// Apply the algorithm to a FlaggedElmPtr.
-    virtual void visitFlaggedElmPtr(const FlaggedElmPtr&);
+    void visitFlaggedElmPtr(const FlaggedElmPtr&) override;
 
     /// Apply the algorithm to a marker.
-    virtual void visitMarker(const Marker&);
+    void visitMarker(const Marker&) override;
 
     /// Apply the algorithm to a beam position monitor.
-    virtual void visitMonitor(const Monitor&);
+    void visitMonitor(const Monitor&) override;
 
     /// Apply the algorithm to a multipole.
-    virtual void visitMultipole(const Multipole&);
+    void visitMultipole(const Multipole&) override;
 
     /// Apply the algorithm to to an arbitrary multipole.
-    virtual void visitMultipoleT(const MultipoleT&);
+    void visitMultipoleT(const MultipoleT&) override;
 
     /// Apply the algorithm to an offset (placement).
-    virtual void visitOffset(const Offset&);
+    void visitOffset(const Offset&) override;
 
     /// Apply the algorithm to a Ring.
-    virtual void visitRing(const Ring&);
+    void visitRing(const Ring&) override;
 
     /// Apply the algorithm to a RF cavity.
-    virtual void visitRFCavity(const RFCavity&);
+    void visitRFCavity(const RFCavity&) override;
 
     /// Apply the algorithm to a Solenoid.
-    virtual void visitSolenoid(const Solenoid&);
+    void visitSolenoid(const Solenoid&) override;
 
     /// Apply the algorithm to a traveling wave.
-    virtual void visitTravelingWave(const TravelingWave&);
+    void visitTravelingWave(const TravelingWave&) override;
 
     /// Apply the algorithm to a scaling FFA magnet.
-    virtual void visitScalingFFAMagnet(const ScalingFFAMagnet& spiral);
+    void visitScalingFFAMagnet(const ScalingFFAMagnet& spiral) override;
 
     /// Apply the algorithm to a vertical FFA magnet.
-    virtual void visitVerticalFFAMagnet(const VerticalFFAMagnet&);
+    void visitVerticalFFAMagnet(const VerticalFFAMagnet&) override;
+
+    /// Apply the algorithm to a variable RF cavity.
+    void visitVariableRFCavity(const VariableRFCavity&) override;
 
     /// Apply the algorithm to a Probe
-    virtual void visitProbe(const Probe& prob);
+    void visitProbe(const Probe& prob) override;
 
 protected:
     // The top level beamline.
@@ -109,9 +112,9 @@ protected:
 
 private:
     // Not implemented.
-    DefaultVisitor();
-    DefaultVisitor(const DefaultVisitor&);
-    void operator=(const DefaultVisitor&);
+    DefaultVisitor() = delete;
+    DefaultVisitor(const DefaultVisitor&) = delete;
+    void operator=(const DefaultVisitor&) = delete;
 
     // Default do-nothing routine.
     virtual void applyDefault(const ElementBase&);

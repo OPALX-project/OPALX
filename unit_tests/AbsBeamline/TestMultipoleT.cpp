@@ -50,6 +50,7 @@ public:
     void visitTravelingWave(const TravelingWave&) override {}
     void visitVerticalFFAMagnet(const VerticalFFAMagnet&) override {}
     void visitProbe(const Probe&) override {}
+    void visitVariableRFCavity(const VariableRFCavity&) override {}
 
     // Test helper functions
     double fieldAtT(const Vector_t<double, 3>& pos, const double t) {
@@ -115,6 +116,15 @@ TEST_F(TestMultipoleT, TimeDependency) {
     EXPECT_NEAR(fieldAtT({0.0, 0.0, 2.0}, 1.0), 1.0, 1e-6);
     EXPECT_NEAR(fieldAtT({0.0, 0.0, 2.0}, 1.2), 2.0, 1e-6);
     EXPECT_NEAR(fieldAtT({0.0, 0.0, 2.0}, 2.0), 2.0, 1e-6);
+    // Now clear the time dependence
+    setScalingName("");
+    // This initialises the time dependency
+    accept(*this);
+    // Test the field at the magnet center at various times
+    EXPECT_NEAR(fieldAtT({0.0, 0.0, 2.0}, 0.0), 1.0, 1e-6);
+    EXPECT_NEAR(fieldAtT({0.0, 0.0, 2.0}, 1.0), 1.0, 1e-6);
+    EXPECT_NEAR(fieldAtT({0.0, 0.0, 2.0}, 1.2), 1.0, 1e-6);
+    EXPECT_NEAR(fieldAtT({0.0, 0.0, 2.0}, 2.0), 1.0, 1e-6);
 }
 
 // Does the bends API return the correct value

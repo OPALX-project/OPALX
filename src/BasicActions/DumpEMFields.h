@@ -19,16 +19,16 @@
 #ifndef OPAL_BASICACTIONS_DUMPEMFIELDS_HH
 #define OPAL_BASICACTIONS_DUMPEMFIELDS_HH
 
+#include <memory>
+#include <set>
+#include <string>
+#include <unordered_set>
 #include "AbsBeamline/Component.h"
 #include "AbstractObjects/Action.h"
 #include "Fields/Interpolation/NDGrid.h"
-#include <string>
-#include <unordered_set>
-#include <set>
-#include <memory>
 
 namespace interpolation {
-  class NDGrid;
+    class NDGrid;
 }
 class Component;
 
@@ -52,8 +52,7 @@ class Component;
  *  and looking up the field/writing it out on each grid point.
  *
  */
-class DumpEMFields: public Action {
-
+class DumpEMFields : public Action {
 public:
     /// The common attributes of DumpEMFields.
     enum {
@@ -126,22 +125,34 @@ public:
     /** Print the attributes of DumpEMFields to standard out */
     void print(std::ostream& os) const override;
 
-private:
+    /* For use only by unit tests, simulate a grid failures */
+    static void failGrid() {
+        for (auto& g : dumpsSet_m) {
+            g->grid_m.reset();
+        }
+    }
+    /* For use only by unit tests, simulate file write failures */
+    static void failWrite() {
+        for (auto& g : dumpsSet_m) {
+            g->failWrite_m = true;
+        }
+    }
+    /* For use only by unit tests, clear the set of dump objects */
+    static void clearDumps() {
+        dumpsSet_m.clear();
+    }
 
-    enum class CoordinateSystem: unsigned short {
-        CARTESIAN,
-        CYLINDRICAL
-    };
+private:
+    enum class CoordinateSystem : unsigned short { CARTESIAN, CYLINDRICAL };
 
     virtual void writeFieldThis(const std::set<std::shared_ptr<Component>>& elements);
     virtual void buildGrid();
     void parseCoordinateSystem();
     static void checkInt(double value, const std::string& name, double tolerance = 1e-9);
     void writeHeader(std::ofstream& fout) const;
-    void writeFieldLine(const std::set<std::shared_ptr<Component>>& elements,
-                        const Vector_t<double, 3>& point,
-                        const double& time,
-                        std::ofstream& fout) const;
+    void writeFieldLine(
+            const std::set<std::shared_ptr<Component>>& elements, const Vector_t<double, 3>& point,
+            const double& time, std::ofstream& fout) const;
 
     std::unique_ptr<interpolation::NDGrid> grid_m{};
     Vector_t<double, 3> cylindricalOrigin_m{};
@@ -151,8 +162,11 @@ private:
 
     static std::unordered_set<std::unique_ptr<DumpEMFields>> dumpsSet_m;
 
-    DumpEMFields(const DumpEMFields& dump) = delete;
+    DumpEMFields(const DumpEMFields& dump)            = delete;
     DumpEMFields& operator=(const DumpEMFields& dump) = delete;
+
+    // For use only by unit tests
+    bool failWrite_m{false};
 };
 
 inline std::ostream& operator<<(std::ostream& os, const DumpEMFields& b) {
@@ -160,4 +174,4 @@ inline std::ostream& operator<<(std::ostream& os, const DumpEMFields& b) {
     return os;
 }
 
-#endif // ifdef OPAL_BASICACTIONS_DUMPEMFIELDS_HH
+#endif  // ifdef OPAL_BASICACTIONS_DUMPEMFIELDS_HH
