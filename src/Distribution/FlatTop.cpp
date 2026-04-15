@@ -177,7 +177,10 @@ void FlatTop::generateUniformDisk(size_type nlocal, size_t nNew, double dt) {
         });
     } else {
         // NONE: all "thermal" momentum applied in z direction.
-        pc_m->P = P0;
+        // pc_m->P = P0;
+        Kokkos::parallel_for("unitDisk_P_none", range, KOKKOS_LAMBDA(const size_t j) {
+            Pview(j) = P0;
+        });
     }
     Kokkos::fence();
 }
