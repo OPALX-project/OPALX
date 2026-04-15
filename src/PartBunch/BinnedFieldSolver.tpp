@@ -272,39 +272,60 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(std::shared_ptr<PartBunc
                         static_cast<long long>(binIndex),
                         static_cast<unsigned long long>(nPartGlobal), gammaBin});
 
-        // build rho for this bin and apply lab->solver corrections.
-        // Scatter and rho normalization use lab-frame mesh (bunch->hr_m).
-        prepareRhoForBin(bunch, bins, binIndex, nPartGlobal, gammaBin);
-
-        // Ensure deterministic accumulation even for solver types that do not update `E`.
-        *(this->getE()) = 0.0;
-
-        // Lorentz-stretch the z-mesh spacing by gamma so the Poisson solver
-        // operates in the rest-frame geometry (matching legacy OPAL behaviour).
-        // The Green's function and spectral gradient use these spacings,
-        // producing rest-frame E-fields that accumulateFieldToTemp then
-        // Lorentz-transforms back to the lab frame.
+        // Mesh references reused for both primary and image passes.
         auto& mesh = this->getRho()->get_mesh();
         const auto hrOrig = mesh.getMeshSpacing();
         auto hrStretched = hrOrig;
         hrStretched[Dim - 1] *= gammaBin;
-        mesh.setMeshSpacing(hrStretched);
 
-        m << level4 << "binIndex=" << static_cast<int>(binIndex) << " runSolver(true) start"
-          << " (hr_z stretched by gamma=" << gammaBin << ")" << endl;
-        this->runSolver(true);
-        m << level4 << "binIndex=" << static_cast<int>(binIndex)
-          << " runSolver(true) done; accumulate->Etmp" << endl;
+        const bool imageActive = imageScatterController_m.isEnabled();
 
-                if (!dumpedDirichletPlaneThisStep) {
-                        dumpDirichletPlaneDiagnosticsIfRequested(bunch, "binned");
-                        dumpedDirichletPlaneThisStep = true;
-                }
+        // --- Primary pass: scatter real charges, solve, accumulate with +B ---
+        {
+            const ImageScatterMode scatterMode = imageActive
+                    ? ImageScatterMode::PrimaryOnly
+                    : ImageScatterMode::PrimaryAndImage;
+            prepareRhoForBin(bunch, bins, binIndex, nPartGlobal, gammaBin, scatterMode);
 
-        accumulateFieldToTemp(gammaBin, kinematics.pmean, EtmpSP, BtmpSP);
+            *(this->getE()) = 0.0;
+            mesh.setMeshSpacing(hrStretched);
 
-        // Restore lab-frame mesh spacing for subsequent scatter/gather operations.
-        mesh.setMeshSpacing(hrOrig);
+            m << level4 << "binIndex=" << static_cast<int>(binIndex)
+              << " primary runSolver(true) start"
+              << " (hr_z stretched by gamma=" << gammaBin << ")" << endl;
+            this->runSolver(true);
+            m << level4 << "binIndex=" << static_cast<int>(binIndex)
+              << " primary runSolver(true) done; accumulate->Etmp" << endl;
+
+            if (!dumpedDirichletPlaneThisStep) {
+                dumpDirichletPlaneDiagnosticsIfRequested(bunch, "binned");
+                dumpedDirichletPlaneThisStep = true;
+            }
+
+            accumulateFieldToTemp(gammaBin, kinematics.pmean, EtmpSP, BtmpSP, +1.0);
+            mesh.setMeshSpacing(hrOrig);
+        }
+
+        // --- Image pass: scatter mirrored charges, solve, accumulate with -B ---
+        // The image charges represent induced charges on a stationary cathode plane.
+        // In the lab frame they move in the opposite z-direction to the bunch,
+        // so their B-field contribution has the opposite sign (matching old OPAL).
+        if (imageActive) {
+            prepareRhoForBin(bunch, bins, binIndex, nPartGlobal, gammaBin,
+                             ImageScatterMode::ImageOnly);
+
+            *(this->getE()) = 0.0;
+            mesh.setMeshSpacing(hrStretched);
+
+            m << level4 << "binIndex=" << static_cast<int>(binIndex)
+              << " image runSolver(true) start" << endl;
+            this->runSolver(true);
+            m << level4 << "binIndex=" << static_cast<int>(binIndex)
+              << " image runSolver(true) done; accumulate->Etmp (B negated)" << endl;
+
+            accumulateFieldToTemp(gammaBin, kinematics.pmean, EtmpSP, BtmpSP, -1.0);
+            mesh.setMeshSpacing(hrOrig);
+        }
     }
 
     // after all bins, gather the accumulated lab-frame field back to particles.
@@ -452,7 +473,8 @@ typename BinnedFieldSolver<T, Dim>::BinKinematics BinnedFieldSolver<T, Dim>::com
 template <typename T, unsigned Dim>
 void BinnedFieldSolver<T, Dim>::prepareRhoForBin(
         std::shared_ptr<PartBunch_t> bunch, std::shared_ptr<AdaptBins_t> bins,
-        const bin_index_type binIndex, const size_type nPartGlobal, const double gammaBin) {
+        const bin_index_type binIndex, const size_type nPartGlobal, const double gammaBin,
+        ImageScatterMode mode) {
     // Scatter bin charge to rho using dt-weighted deposition.
     // If the ParticleContainer supports scaleDtByCharge(), use the master approach:
     // scale dt by charge, scatter dt, then unscale.
@@ -477,8 +499,16 @@ void BinnedFieldSolver<T, Dim>::prepareRhoForBin(
 
     // Scatter bin charge to rho (with bin iteration policy and hash indexing).
     // Master approach: scale dt by Q, scatter dt, then restore dt.
-    imageScatterController_m.scatterPrimaryAndImage(
-            pc, *R, *rho, bins->getBinIterationPolicy(binIndex), bins->getHashArray());
+    if (mode == ImageScatterMode::PrimaryOnly) {
+        imageScatterController_m.scatterPrimaryOnly(
+                pc, *R, *rho, bins->getBinIterationPolicy(binIndex), bins->getHashArray());
+    } else if (mode == ImageScatterMode::ImageOnly) {
+        imageScatterController_m.scatterImageOnly(
+                pc, *R, *rho, bins->getBinIterationPolicy(binIndex), bins->getHashArray());
+    } else {
+        imageScatterController_m.scatterPrimaryAndImage(
+                pc, *R, *rho, bins->getBinIterationPolicy(binIndex), bins->getHashArray());
+    }
 
     // normalize rho for fractional time steps and mesh conventions.
     (*rho) = (*rho) / bunch->getdT();
@@ -510,7 +540,8 @@ void BinnedFieldSolver<T, Dim>::prepareRhoForBin(
 template <typename T, unsigned Dim>
 void BinnedFieldSolver<T, Dim>::accumulateFieldToTemp(
         const double gammaBin, const Vector_t<double, Dim>& pmean,
-        std::shared_ptr<VField_t<T, Dim>> EtmpSP, std::shared_ptr<VField_t<T, Dim>> BtmpSP) {
+        std::shared_ptr<VField_t<T, Dim>> EtmpSP, std::shared_ptr<VField_t<T, Dim>> BtmpSP,
+        double bFieldSign) {
     // transform rest-frame fields to lab-frame fields and accumulate.
     Inform m("BinnedFieldSolver::accumulateFieldToTemp");
     m << level4 << "accumulate: gammaBin=" << std::setprecision(10) << gammaBin << endl;
@@ -536,7 +567,7 @@ void BinnedFieldSolver<T, Dim>::accumulateFieldToTemp(
                 Vector_t<T, Dim> ePrime = apply(ePrimeView, idx);
                 const T ePrimeDotW      = ePrime.dot(w);
                 Vector_t<T, Dim> eLab   = gammaBin * ePrime - gammaMinusOne * ePrimeDotW * w;
-                Vector_t<T, Dim> bLab   = gammaOverCSq * cross(v, ePrime);
+                Vector_t<T, Dim> bLab   = bFieldSign * gammaOverCSq * cross(v, ePrime);
                 Vector_t<T, Dim> eTotal = apply(eTmpView, idx);
                 Vector_t<T, Dim> bTotal = apply(bTmpView, idx);
                 eTotal += eLab;

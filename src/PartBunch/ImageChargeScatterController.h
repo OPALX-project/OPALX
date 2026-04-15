@@ -85,6 +85,38 @@ public:
             std::shared_ptr<ParticleCtr_t> pc, PositionAttr_t& positions, RhoField_t& rho,
             const BinPolicy_t& policy, const Hash_t& hash) const;
 
+    /**
+     * @brief Scatter only the primary (real) charges for all local particles.
+     */
+    void scatterPrimaryOnly(
+            std::shared_ptr<ParticleCtr_t> pc, PositionAttr_t& positions, RhoField_t& rho) const;
+
+    /**
+     * @brief Scatter only the primary (real) charges for a bin-restricted subset.
+     */
+    void scatterPrimaryOnly(
+            std::shared_ptr<ParticleCtr_t> pc, PositionAttr_t& positions, RhoField_t& rho,
+            const BinPolicy_t& policy, const Hash_t& hash) const;
+
+    /**
+     * @brief Scatter only the image (mirrored) charges for all local particles.
+     *
+     * Applies the mirror transform, scatters, and restores. Does nothing if image
+     * charges are disabled.
+     */
+    void scatterImageOnly(
+            std::shared_ptr<ParticleCtr_t> pc, PositionAttr_t& positions, RhoField_t& rho) const;
+
+    /**
+     * @brief Scatter only the image (mirrored) charges for a bin-restricted subset.
+     *
+     * Applies the mirror transform, scatters, and restores. Does nothing if image
+     * charges are disabled.
+     */
+    void scatterImageOnly(
+            std::shared_ptr<ParticleCtr_t> pc, PositionAttr_t& positions, RhoField_t& rho,
+            const BinPolicy_t& policy, const Hash_t& hash) const;
+
 // ==== All of the following functions could be private, but need to be public for device compilation ====
 
         /**
