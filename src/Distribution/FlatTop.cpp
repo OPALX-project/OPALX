@@ -184,6 +184,31 @@ void FlatTop::generateUniformDisk(size_type nlocal, size_t nNew, double dt) {
                 "unitDisk_P_none", range, KOKKOS_LAMBDA(const size_t j) { Pview(j) = P0; });
     }
     Kokkos::fence();
+
+    // Correct z for the missed timeIntegration1 half-push.
+    //
+    // New particles are born between timeIntegration1 and timeIntegration2.
+    // They only receive the timeIntegration2 push: Δz = 0.5·β_z·c·(frac·dt).
+    // The inter-batch spacing is β_z·c·dt (a full step). Without correction the
+    // batch spread is 0.5·β_z·c·dt — half the spacing — leaving 50% gaps that
+    // appear as visible "discs" under strong acceleration.
+    //
+    // Adding the equivalent of the missed timeIntegration1 half-push at birth:
+    //   z_init += 0.5·β_z(birth)·c·(frac·dt)
+    // makes the total spread β_z·c·frac·dt ∈ [0, β_z·c·dt], exactly tiling the
+    // inter-batch gap. The approximation is that β_z is evaluated at birth
+    // momentum; residual error is O(F·dt²) (one-timestep field correction).
+    const double c = Physics::c;
+    Kokkos::parallel_for(
+            "unitDisk_Zcorr", range, KOKKOS_LAMBDA(const size_t j) {
+                double px    = Pview(j)[0];
+                double py    = Pview(j)[1];
+                double pz    = Pview(j)[2];
+                double gamma = Kokkos::sqrt(1.0 + px * px + py * py + pz * pz);
+                double beta_z = pz / gamma;
+                Rview(j)[2] += 0.5 * beta_z * c * dtView(j);
+            });
+    Kokkos::fence();
 }
 
 void FlatTop::setNr(Vector_t<double, 3> nr) { nr_m = nr; }
