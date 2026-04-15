@@ -397,7 +397,21 @@ void MultiVariateGaussian::emitParticles(double t, double dt) {
         return;
     }
 
+    const size_t nlocalBefore = pc_m->getLocalNum();
+
     hasEmittedOnce_m = true;
     Vector_t<double, 3> dummyNr(0.0);
     generateParticles(Ndist, dummyNr);
+    
+    const size_t nlocalAfter = pc_m->getLocalNum();
+    const size_t nNew        = nlocalAfter - nlocalBefore;
+    if (nNew > 0) {
+        const double fracDt = tEnd - t0_m;
+        auto dtview         = pc_m->dt.getView();
+        const size_t offset = nlocalBefore;
+        Kokkos::parallel_for(
+                "MultiVariateGaussian_setDt", nNew,
+                KOKKOS_LAMBDA(const size_t j) { dtview(offset + j) = fracDt; });
+        Kokkos::fence();
+    }
 }

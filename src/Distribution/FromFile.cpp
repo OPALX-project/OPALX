@@ -367,7 +367,26 @@ void FromFile::emitParticles(double t, double dt) {
         return;
     }
 
+    const size_t nlocalBefore = pc_m->getLocalNum();
+
     hasEmittedOnce_m = true;
     Vector_t<double, 3> dummyNr(0.0);
     generateParticles(requested, dummyNr);
+
+    // Set per-particle dt for newly created particles.
+    // switchToUnitlessPositions(use_dt_per_particle=true) in pushParticles scales
+    // R by 1/(c * dtview(i)).  New particles come with dtview = 0 (Kokkos
+    // zero-init), so that division produces inf, and the subsequent multiply by
+    // c*0 in switchOffUnitlessPositions gives inf*0 = NaN positions.
+    const size_t nlocalAfter = pc_m->getLocalNum();
+    const size_t nNew        = nlocalAfter - nlocalBefore;
+    if (nNew > 0) {
+        const double fracDt  = tEnd - t0_m;
+        auto dtview          = pc_m->dt.getView();
+        const size_t offset  = nlocalBefore;
+        Kokkos::parallel_for(
+            "FromFile_setDt", nNew,
+            KOKKOS_LAMBDA(const size_t j) { dtview(offset + j) = fracDt; });
+        Kokkos::fence();
+    }
 }
