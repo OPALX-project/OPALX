@@ -50,6 +50,7 @@ PartBunch<T, Dim>::PartBunch(
 
     nr_m = Vector_t<int, Dim>(
             OPALFieldSolver_m->getNX(), OPALFieldSolver_m->getNY(), OPALFieldSolver_m->getNZ());
+    nrZBase_m = nr_m[Dim - 1];
 
     const Vector_t<bool, 3> domainDecomposition = OPALFieldSolver_m->getDomDec();
 
@@ -399,9 +400,50 @@ Inform& PartBunch<T, Dim>::print(Inform& os) {
 }
 
 template <typename T, unsigned Dim>
+void PartBunch<T, Dim>::reinitializeGridZ(int nrZ) {
+    if (nr_m[Dim - 1] == nrZ) {
+        return;
+    }
+
+    Inform m("PartBunch::reinitializeGridZ");
+    m << level3 << "Resizing z grid: " << nr_m[Dim - 1] << " -> " << nrZ << " cells." << endl;
+
+    nr_m[Dim - 1]    = nrZ;
+    domain_m[Dim - 1] = ippl::Index(nrZ);
+
+    const bool isAllPeriodic = this->getBCHandler()->isAll(BCHandler_t::PERIODIC);
+    const auto decomp        = this->fcontainer_m->getDecomp();
+
+    // Rebuild the field layout with the new z extent.
+    this->fcontainer_m->getFL().initialize(domain_m, decomp, isAllPeriodic);
+
+    // BareField::initialize() is a no-op on already-initialized fields, so use
+    // updateLayout() to resize the underlying Kokkos views to the new domain.
+    auto& fl = this->fcontainer_m->getFL();
+    this->fcontainer_m->getRho().updateLayout(fl);
+    this->fcontainer_m->getE().updateLayout(fl);
+    if (solver_m == "CG") {
+        this->fcontainer_m->getPhi().updateLayout(fl);
+    }
+    this->getTempEField()->updateLayout(fl);
+    this->getTempBField()->updateLayout(fl);
+
+    m << level3 << "Grid z reinit complete (nrZ=" << nrZ << ")." << endl;
+}
+
+template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::bunchUpdate() {
     Inform m("PartBunch::bunchUpdate");
     m << level4 << "Updating bunch and doing repartitioning if needed." << endl;
+
+    // Double the longitudinal grid resolution while image charges are active.
+    // computeBoundsForFieldSolve already extends the z domain to include mirrored
+    // particles, so without this the z cell size would be twice as large as normal.
+    const BinnedFieldSolver_t* bsolver = this->getFieldSolver();
+    const bool imageActive =
+            bsolver && bsolver->isImageChargeActiveForStep(this->getGlobalTrackStep());
+    reinitializeGridZ(imageActive ? nrZBase_m * 2 : nrZBase_m);
+
     Vector_t<double, Dim> lower(0.0);
     Vector_t<double, Dim> upper(0.0);
     computeBoundsForFieldSolve(lower, upper);
