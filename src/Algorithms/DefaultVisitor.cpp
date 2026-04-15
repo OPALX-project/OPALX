@@ -36,6 +36,7 @@
 #include "AbsBeamline/Solenoid.h"
 #include "AbsBeamline/TravelingWave.h"
 #include "AbsBeamline/VerticalFFAMagnet.h"
+#include "AbsBeamline/VariableRFCavity.h"
 
 #include "Beamlines/Beamline.h"
 #include "Beamlines/FlaggedElmPtr.h"
@@ -45,9 +46,6 @@ DefaultVisitor::DefaultVisitor(const Beamline& beamline, bool backBeam, bool bac
     local_flip = back_path = (back_beam && !back_track) || (back_track && !back_beam);
     flip_B                 = back_beam ? -1.0 : 1.0;
     flip_s                 = back_path ? -1.0 : 1.0;
-}
-
-DefaultVisitor::~DefaultVisitor() {
 }
 
 void DefaultVisitor::execute() {
@@ -105,6 +103,10 @@ void DefaultVisitor::visitScalingFFAMagnet(const ScalingFFAMagnet& spiral) {
 
 void DefaultVisitor::visitVerticalFFAMagnet(const VerticalFFAMagnet& mag) {
     applyDefault(mag);
+}
+
+void DefaultVisitor::visitVariableRFCavity(const VariableRFCavity& cavity) {
+    applyDefault(cavity);
 }
 
 void DefaultVisitor::visitProbe(const Probe& probe) {
