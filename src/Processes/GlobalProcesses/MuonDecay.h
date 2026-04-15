@@ -15,7 +15,6 @@ class MuonDecay : public Decay {
 public:
     using Decay::Decay;
 
-protected:
     void createDaughterParticles(
         std::size_t localDestroyNum,
         std::size_t oldDaughterLocal,
