@@ -215,9 +215,36 @@ void Gaussian::emitParticles(double t, double dt) {
         return;
     }
 
+    const size_t nlocalBefore = pc_m->getLocalNum();
+
     // Mark as emitted so generateParticles will not early-return.
     hasEmittedOnce_m = true;
     Vector_t<double, 3> dummyNr(0.0);
     generateParticles(Ndist, dummyNr);
-}
 
+    // Set per-particle dt for newly created particles. Note that t0 can be in
+    // between particles, so we set the remaining fraction of the current time
+    // step for the new particles to ensure correct sub-stepping in the
+    // subsequent push.
+    //
+    // switchToUnitlessPositions(use_dt_per_particle=true) in pushParticles scales
+    // R by 1/(c * dtview(i)).  New particles come with dtview = 0 (Kokkos
+    // zero-init), so that division produces inf, and the subsequent multiply by
+    // c*0 in switchOffUnitlessPositions gives inf*0 = NaN positions.
+    // Assign the remaining fraction of the current timestep so the push in
+    // timeIntegration2 moves them by the correct sub-step distance.
+    //
+    // Note that this is not necessary inside generateParticles, since for injection at start,
+    // setTime is called before any calculations inside ParallelTracker::execute.
+    const size_t nlocalAfter = pc_m->getLocalNum();
+    const size_t nNew        = nlocalAfter - nlocalBefore;
+    if (nNew > 0) {
+        const double fracDt = tEnd - t0_m;
+        auto dtview         = pc_m->dt.getView();
+        const size_t offset = nlocalBefore;
+        Kokkos::parallel_for(
+                "Gaussian_setDt", nNew,
+                KOKKOS_LAMBDA(const size_t j) { dtview(offset + j) = fracDt; });
+        Kokkos::fence();
+    }
+}
