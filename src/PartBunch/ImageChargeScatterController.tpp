@@ -21,17 +21,52 @@ void ImageChargeScatterController<T, Dim>::scatterScaledDtSubset(
 }
 
 template <typename T, unsigned Dim>
-void ImageChargeScatterController<T, Dim>::scatterPrimaryAndImage(
+void ImageChargeScatterController<T, Dim>::scatterPrimaryOnly(
         std::shared_ptr<ParticleCtr_t> pc, PositionAttr_t& positions, RhoField_t& rho) const {
     scatterScaledDtAll(pc, positions, rho);
+}
 
+template <typename T, unsigned Dim>
+void ImageChargeScatterController<T, Dim>::scatterPrimaryOnly(
+        std::shared_ptr<ParticleCtr_t> pc,
+        PositionAttr_t& positions,
+        RhoField_t& rho,
+        const BinPolicy_t& policy,
+        const Hash_t& hash) const {
+    scatterScaledDtSubset(pc, positions, rho, policy, hash);
+}
+
+template <typename T, unsigned Dim>
+void ImageChargeScatterController<T, Dim>::scatterImageOnly(
+        std::shared_ptr<ParticleCtr_t> pc, PositionAttr_t& positions, RhoField_t& rho) const {
     if (!enabled_m) {
         return;
     }
-
     applyMirrorTransformAll(pc, positions);
     scatterScaledDtAll(pc, positions, rho);
     restoreMirrorTransformAll(pc, positions);
+}
+
+template <typename T, unsigned Dim>
+void ImageChargeScatterController<T, Dim>::scatterImageOnly(
+        std::shared_ptr<ParticleCtr_t> pc,
+        PositionAttr_t& positions,
+        RhoField_t& rho,
+        const BinPolicy_t& policy,
+        const Hash_t& hash) const {
+    if (!enabled_m) {
+        return;
+    }
+    applyMirrorTransformSubset(pc, positions, policy, hash);
+    scatterScaledDtSubset(pc, positions, rho, policy, hash);
+    restoreMirrorTransformSubset(pc, positions, policy, hash);
+}
+
+template <typename T, unsigned Dim>
+void ImageChargeScatterController<T, Dim>::scatterPrimaryAndImage(
+        std::shared_ptr<ParticleCtr_t> pc, PositionAttr_t& positions, RhoField_t& rho) const {
+    scatterPrimaryOnly(pc, positions, rho);
+    scatterImageOnly(pc, positions, rho);
 }
 
 template <typename T, unsigned Dim>
@@ -41,15 +76,8 @@ void ImageChargeScatterController<T, Dim>::scatterPrimaryAndImage(
         RhoField_t& rho,
         const BinPolicy_t& policy,
         const Hash_t& hash) const {
-    scatterScaledDtSubset(pc, positions, rho, policy, hash);
-
-    if (!enabled_m) {
-        return;
-    }
-
-    applyMirrorTransformSubset(pc, positions, policy, hash);
-    scatterScaledDtSubset(pc, positions, rho, policy, hash);
-    restoreMirrorTransformSubset(pc, positions, policy, hash);
+    scatterPrimaryOnly(pc, positions, rho, policy, hash);
+    scatterImageOnly(pc, positions, rho, policy, hash);
 }
 
 template <typename T, unsigned Dim>

@@ -60,6 +60,15 @@ public:
     enum class ScatterAttribute { ChargeQ };
 
     /**
+     * @brief Controls which charges are scattered during rho preparation.
+     *
+     * `PrimaryAndImage` scatters both (legacy combined behavior).
+     * `PrimaryOnly` scatters only the real bunch charges.
+     * `ImageOnly` scatters only the mirrored image charges.
+     */
+    enum class ImageScatterMode { PrimaryAndImage, PrimaryOnly, ImageOnly };
+
+    /**
      * @brief Which particle attribute to gather the accumulated electric field into.
      *
      * Currently only `ElectricFieldE` is implemented.
@@ -250,7 +259,8 @@ public:
                            std::shared_ptr<AdaptBins_t> bins,
                            const bin_index_type binIndex,
                            const size_type nPartGlobal,
-                           const double gammaBin);
+                           const double gammaBin,
+                           ImageScatterMode mode = ImageScatterMode::PrimaryAndImage);
 
     /**
      * @brief Accumulate Lorentz-transformed electric/magnetic fields into temporaries.
@@ -269,7 +279,8 @@ public:
     void accumulateFieldToTemp(const double gammaBin,
                                const Vector_t<double, Dim>& pmean,
                                std::shared_ptr<VField_t<T, Dim>> EtmpSP,
-                               std::shared_ptr<VField_t<T, Dim>> BtmpSP);
+                               std::shared_ptr<VField_t<T, Dim>> BtmpSP,
+                               double bFieldSign = 1.0);
 
 private:
 
