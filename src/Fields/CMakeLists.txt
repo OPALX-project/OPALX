@@ -12,6 +12,7 @@ set (_SRCS
 
     # Fieldmaps
     Fieldmap.cpp
+    Astra1DDynamic.cpp
     FM2DMagnetoStatic.cpp
     FM2DDynamic.cpp
 
@@ -27,7 +28,6 @@ set (_SRCS
     #FM1DDynamic.cpp
     #FM1DDynamic_fast.cpp
     #Astra1D_fast.cpp
-    #Astra1DDynamic.cpp
     #Astra1DDynamic_fast.cpp
     #FM1DElectroStatic.cpp
     #FM1DElectroStatic_fast.cpp
