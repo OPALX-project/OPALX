@@ -27,7 +27,7 @@
 #include "Fields/FMDummy.h"
 */
 
-// #include "Fields/Astra1DDynamic.h"
+#include "Fields/Astra1DDynamic.h"
 // #include "Fields/Astra1DDynamic_fast.h"
 #include "Fields/FM2DDynamic.h"
 #include "Fields/FM2DMagnetoStatic.h"
