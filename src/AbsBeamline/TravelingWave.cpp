@@ -70,7 +70,7 @@ void TravelingWave::accept(BeamlineVisitor& visitor) const {
     visitor.visitTravelingWave(*this);
 }
 
-bool TravelingWave::apply() {
+bool TravelingWave::apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/) {
     return false;
 }
 

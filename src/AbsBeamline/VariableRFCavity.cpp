@@ -133,8 +133,7 @@ bool VariableRFCavity::apply(
     return computeField(R, E, E0, integralF, phi, halfWidth_m, halfHeight_m);
 }
 
-bool VariableRFCavity::apply() {
-    const auto pc          = RefPartBunch_m->getParticleContainer();
+bool VariableRFCavity::apply(const std::shared_ptr<ParticleContainer_t> &pc) {
     const auto R           = pc->R.getView();
     const auto E           = pc->E.getView();
     const auto t           = RefPartBunch_m->getT();

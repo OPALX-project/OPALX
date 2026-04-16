@@ -53,7 +53,7 @@ OrbitThreader::OrbitThreader(
       zstop_m(stepSizes.getFinalZStop() + std::copysign(1.0, dt) * 2 * maxDiffZBunch),
       itsOpalBeamline_m(bl),
       errorFlag_m(0),
-      integrator_m(ref),
+      integrator_m{},
       reference_m(ref) {
     auto opal = OpalData::getInstance();
     if (ippl::Comm->rank() == 0 && !opal->isOptimizerRun()) {
@@ -243,7 +243,7 @@ void OrbitThreader::integrate(const IndexMap::value_t& activeSet, double /*maxDr
         }
 
         r_m /= Physics::c * dt_m;
-        integrator_m.kick(r_m, p_m, Ef, Bf, dt_m);
+        integrator_m.kick(r_m, p_m, Ef, Bf, dt_m, reference_m.getM(), reference_m.getQ());
         integrator_m.push(r_m, p_m, dt_m);
         r_m = r_m * Physics::c * dt_m;
 

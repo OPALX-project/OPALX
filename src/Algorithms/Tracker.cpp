@@ -61,6 +61,7 @@
 //
 #include "Algorithms/Tracker.h"
 #include "Fields/BMultipoleField.h"
+#include "Utilities/OpalException.h"
 
 // FIXME Remove headers and dynamic_cast in readOneBunchFromFile
 #include "PartBunch/PartBunch.h"
@@ -74,25 +75,23 @@
 
 Tracker::Tracker(
     const Beamline& beamline, 
-    const PartData& reference, 
     bool backBeam, 
     bool backTrack): 
-    Tracker(beamline, nullptr, reference, backBeam, backTrack){}
+    Tracker(beamline, std::shared_ptr<PartBunch_t>(), backBeam, backTrack){}
 
 Tracker::Tracker(
     const Beamline& beamline, 
-    PartBunch_t* bunch, 
-    const PartData& reference, 
+    std::shared_ptr<PartBunch_t> bunch, 
     bool backBeam,
     bool backTrack)
-    : AbstractTracker(beamline, reference, backBeam, backTrack),
+    : AbstractTracker(beamline, backBeam, backTrack),
       itsBeamline_m(beamline),
       itsBunch_m(bunch) {}
 
 Tracker::~Tracker() {
 }
 
-const PartBunch_t* Tracker::getBunch() const {
+const std::shared_ptr<PartBunch_t>& Tracker::getBunch() const {
     return itsBunch_m;
 }
 
@@ -105,5 +104,11 @@ void Tracker::addToBunch(const OpalParticle& /*part*/) {
 //~ }
 
 void Tracker::visitComponent(const Component& comp) {
-    comp.trackBunch(itsBunch_m, itsReference, back_beam, back_track);
+    if (itsBunch_m == nullptr || itsBunch_m->getParticleContainer() == nullptr
+        || itsBunch_m->getParticleContainer()->getReference() == nullptr) {
+        throw OpalException("Tracker::visitComponent",
+                            "Missing particle reference data in active particle container.");
+    }
+    comp.trackBunch(
+        itsBunch_m, *itsBunch_m->getParticleContainer()->getReference(), back_beam, back_track);
 }
