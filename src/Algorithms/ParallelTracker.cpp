@@ -165,6 +165,7 @@ void ParallelTracker::execute() {
     // (allocate-then-destroy for capacity). Initial particles are loaded later in TrackRun
     // without refreshing these flags, so reference updates must not skip all containers.
     itsBunch_m->resetPcActive();
+    activateEmittingContainers(itsBunch_m->getT());
 
     // Initialize the Boris particle pusher
     BorisPusher pusher;
@@ -307,6 +308,7 @@ void ParallelTracker::execute() {
         // Select global dt from dtCurrentTrack_m and copy to all container dt views.
         changeDT();
         itsBunch_m->resetPcActive();
+        activateEmittingContainers(itsBunch_m->getT());
 
         // Inner loop over the number of steps for the current configuration
         m << level2 << "Starting track with dt = " << Util::getTimeString(dtCurrentTrack_m) 
@@ -871,6 +873,20 @@ void ParallelTracker::changeDT() {
         }
     }
     m << level5 << "Changed particle container time step to " << newdT << "." << endl;
+}
+
+/**
+ * @copybrief ParallelTracker::activateEmittingContainers
+ */
+void ParallelTracker::activateEmittingContainers(double t) {
+    for (size_t i = 0; i < emittingSamplers_m.size(); ++i) {
+        for (const auto& sampler : emittingSamplers_m[i]) {
+            if (sampler && !sampler->isEmissionDone(t)) {
+                itsBunch_m->setPcActive(i);
+                break;
+            }
+        }
+    }
 }
 
 /**
