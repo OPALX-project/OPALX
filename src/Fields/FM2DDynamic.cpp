@@ -119,14 +119,11 @@ FM2DDynamic::FM2DDynamic(const std::string& filename)
     }
 }
 
-
 FM2DDynamic::~FM2DDynamic() {
     freeMap();
 }
 
-
 void FM2DDynamic::readMap() {
-    // if(FieldstrengthEz_m.h_view.data() == nullptr) {
     if(FieldstrengthEz_m.extent(0) == 0) {
         // declare variables and allocate memory
         std::ifstream in;
@@ -209,13 +206,12 @@ void FM2DDynamic::readMap() {
         FieldstrengthBt_m.sync<Kokkos::DefaultExecutionSpace>();
 
         *ippl::Info << level3 
-            << typeset_msg("read in fieldmap '" + Filename_m + "'", "info")
-            << endl;
+                    << typeset_msg("read in fieldmap '" + Filename_m + "'", "info")
+                    << endl;
     }
 }
 
 void FM2DDynamic::freeMap() {
-    // if(FieldstrengthEz_m.h_view.data() != nullptr) {
     if(FieldstrengthEz_m.extent(0) != 0) {
 
         FieldstrengthEz_m = Kokkos::DualView<double*>();
@@ -223,8 +219,8 @@ void FM2DDynamic::freeMap() {
         FieldstrengthBt_m = Kokkos::DualView<double*>();
 
         *ippl::Info << level3 
-            << typeset_msg("freed fieldmap '" + Filename_m + "'", "info") 
-            << endl;
+                    << typeset_msg("freed fieldmap '" + Filename_m + "'", "info") 
+                    << endl;
     }
 }
 
