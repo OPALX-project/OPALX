@@ -46,10 +46,10 @@ public:
      */
     void write(
         PartBunch_t* beam, Vector_t<double, 3> FDext[], const losses_t& losses = losses_t(),
-        const double& azimuth = -1, const size_t npOutside = 0);
+        const double& azimuth = -1, const size_t npOutside = 0, size_t particleContainerIndex = 0);
 
 private:
-    void fillHeader(const losses_t& losses = losses_t());
+    void fillHeader(const losses_t& losses = losses_t(), const std::string& species = "");
 };
 
 #endif

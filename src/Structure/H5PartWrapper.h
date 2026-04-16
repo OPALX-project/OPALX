@@ -46,7 +46,9 @@ public:
     virtual void readStep(PartBunch_t*, h5_ssize_t firstParticle, h5_ssize_t lastParticle) = 0;
 
     virtual void writeHeader()                                                 = 0;
-    virtual void writeStep(PartBunch_t*, const std::map<std::string, double>&) = 0;
+    virtual void writeStep(
+        PartBunch_t*, const std::map<std::string, double>&, size_t particleContainerIndex = 0)
+        = 0;
 
     virtual bool predecessorIsSameFlavour() const = 0;
 
