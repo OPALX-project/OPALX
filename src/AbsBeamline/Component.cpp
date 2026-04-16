@@ -43,7 +43,7 @@ const ElementBase& Component::getDesign() const {
 }
 
 void Component::trackBunch(
-    PartBunch_t*, 
+    const std::shared_ptr<PartBunch_t>&,
     const PartData&, 
     bool, 
     bool) const {
@@ -83,7 +83,7 @@ ElementType Component::getType() const {
  * 
  * @returns true if particle is out-of-bounds (lost), false otherwise
  */
-bool Component::apply(){
+bool Component::apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/) {
     return false;
 }
 

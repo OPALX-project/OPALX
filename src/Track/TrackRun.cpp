@@ -38,7 +38,6 @@
 
 #include "Distribution/FromFile.h"
 
-#include "Physics/ParticleProperties.h"
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
 
@@ -68,7 +67,28 @@
 
 #include <unistd.h>
 
+#include <filesystem>
+
 extern Inform* gmsg;
+
+namespace {
+
+/** Restart source path for container @p index when using per-container H5 names. */
+std::string h5RestartSourceForContainer(
+    const std::string& restartFile, const std::string& containerH5FileName, size_t numContainers) {
+    if (numContainers <= 1) {
+        return restartFile;
+    }
+    namespace fs = std::filesystem;
+    fs::path rf(restartFile);
+    fs::path leaf = fs::path(containerH5FileName).filename();
+    if (rf.has_parent_path()) {
+        return (rf.parent_path() / leaf).string();
+    }
+    return leaf.string();
+}
+
+}  // namespace
 
 namespace TRACKRUN {
     // The attributes of class TrackRun.
@@ -95,7 +115,7 @@ TrackRun::TrackRun()
       itsTracker_m(nullptr),
       fs_m(nullptr),
       ds_m(nullptr),
-      phaseSpaceSink_m(nullptr),
+      phaseSpaceSinks_m(),
       isFollowupTrack_m(false),
       method_m(RunMethod::NONE) {
     itsAttr[TRACKRUN::METHOD] = Attributes::makePredefinedString(
@@ -125,7 +145,7 @@ TrackRun::TrackRun(const std::string& name, TrackRun* parent)
       itsTracker_m(nullptr),
       fs_m(nullptr),
       ds_m(nullptr),
-      phaseSpaceSink_m(nullptr),
+      phaseSpaceSinks_m(),
       isFollowupTrack_m(false),
       method_m(RunMethod::NONE) {
     /*
@@ -148,7 +168,12 @@ TrackRun::TrackRun(const std::string& name, TrackRun* parent)
     }
 }
 
-TrackRun::~TrackRun() { delete phaseSpaceSink_m; }
+TrackRun::~TrackRun() {
+    for (H5PartWrapper* p : phaseSpaceSinks_m) {
+        delete p;
+    }
+    phaseSpaceSinks_m.clear();
+}
 
 TrackRun* TrackRun::clone(const std::string& name) { return new TrackRun(name, this); }
 
@@ -192,14 +217,8 @@ void TrackRun::execute() {
     if (!itsAttr[TRACKRUN::FIELDSOLVER]) {
         throw OpalException("TrackRun::execute", "\"FIELDSOLVER\" must be set in \"RUN\" command.");
     }
-    // Beam selection is resolved from TRACK::BEAM / TRACK::BEAMS.
-    // For now, we still track using only the first resolved beam.
 
     OpalData::getInstance()->setInOPALTMode();
-
-    // if (isFollowupTrack_m) {
-    //     Track::block->bunch->setLocalTrackStep(0);
-    // }
 
     // Fieldsover command
     fs_m = std::shared_ptr<FieldSolverCmd>(
@@ -211,13 +230,12 @@ void TrackRun::execute() {
 
     // Process BEAM object names
     std::vector<std::string> beamNames = Track::block->beamNames_m;
-
     if (beamNames.empty()) {
         throw OpalException(
                 "TrackRun::execute", "No beam specified: set TRACK::BEAM or TRACK::BEAMS.");
     }
 
-    // Create vector or BEAMs
+    // Create vector of BEAMs
     std::vector<Beam*> beams;
     beams.reserve(beamNames.size());
     for (const auto& name : beamNames) {
@@ -240,9 +258,6 @@ void TrackRun::execute() {
         *gmsg << beamNames[i] << (i + 1 < beamNames.size() ? ", " : "");
     }
     *gmsg << endl;
-    // For now we still use the first beam as reference beam in places that
-    // are not container-aware yet.
-    Beam* beam = beams.front();
     // Print the BEAM banner for each resolved beam.
     for (Beam* b : beams) {
         *gmsg << level1 << *b << endl;
@@ -256,6 +271,7 @@ void TrackRun::execute() {
     macromasses.reserve(beams.size());
     emissionSourcesLists.reserve(beams.size());
 
+    // Fill macro quantities and emissionSourceList per container (beam)
     for (size_t i = 0; i < beams.size(); ++i) {
         Beam* b = beams[i];
 
@@ -282,65 +298,45 @@ void TrackRun::execute() {
         }
         emissionSourcesLists.emplace_back(sources.begin(), sources.end());
     }
-    //*gmsg << "* Number of emission sources (all beams) " << totalEmissionSources << endl;
 
     /*
     Need the following units for mass and charge:
-    - Charge per macro particle in [C], this should be macrocharge_m or q_m in the bunch. This will
-    be used for the field calculations.
-    - The pusher needs consistent units: eV for mass and elementary charges for charge. This will
-    (hopefully) be handled inside the pusher routines!
+    - Charge per macro particle in [C], this should be macrocharge_m or q_m in the bunch.
+      This will be used for the field calculations.
+    - The pusher needs consistent units: eV for mass and elementary charges for charge.
+      This will (hopefully) be handled inside the pusher routines!
     */
 
-    /// \todo first 2 arguments can go!
-    initDataSink();
-    bunch_m = std::make_shared<bunch_type>(
-            macrocharges, macromasses, beams.size(), 1.0, "LF2", fs_m, ds_m);
-    bunch_m->setT(0.0);
-    bunch_m->setReference(&beam->getReference());  // TODO: do for each container
+    initDataSink(beams.size());
 
+    // Set total particles per container (beam)
     std::vector<size_t> totalParticlesPerBeam(beams.size());
     for (size_t i = 0; i < beams.size(); ++i) {
         Beam* b = beams[i];
-        // EmissionSourceList* esl = EmissionSourceList::find(b->getEmissionSourceListName());
         totalParticlesPerBeam[i] = computeTotalParticlesForBunch(b, emissionSourcesLists[i]);
     }
 
+    // Create PartBunch (PIC Manager) with multiple particle containers
+    bunch_m = std::make_shared<bunch_type>(
+        macrocharges,           // Macro charge [C]
+        macromasses,            // Macro Mass [GeV]
+        beams,                  // Beam objects per container
+        totalParticlesPerBeam,  // Per-beam particle counts for allocation
+        1.0,                    // lbt
+        "LF2",                  // Integrator
+        fs_m,                   // Fieldsolver
+        ds_m);                  // Data sink
+
+    // Validate container setup produced by constructor
     const auto& particleContainers = bunch_m->getParticleContainers();
     if (particleContainers.size() != beams.size()) {
         throw OpalException(
                 "TrackRun::execute", "Mismatch between number of beams and particle containers.");
     }
 
-    for (size_t i = 0; i < beams.size(); ++i) {
-        particleContainers[i]->Sp = static_cast<short>(
-                ParticleProperties::getParticleType(beams[i]->getParticleName()));
-    }
+    // BC handler
     *gmsg << level2 << *(bunch_m->getBCHandler()) << endl;
 
-    const double nRanks = static_cast<double>(ippl::Comm->size());
-    std::vector<size_t> maxLocalNumPerBeam(beams.size());
-    for (size_t i = 0; i < beams.size(); ++i) {
-        maxLocalNumPerBeam[i] =
-                static_cast<size_t>(totalParticlesPerBeam[i] / nRanks + 2 * nRanks + 1);
-    }
-
-    // Allocate particle memory in the container, can be done after the constructor of the bunch is
-    // done (sets up the container).
-    for (size_t i = 0; i < particleContainers.size(); ++i) {
-        particleContainers[i]->create(maxLocalNumPerBeam[i]);
-    }
-
-    // Destroy ALL particles --> result is now they are allocated in the attributes. Note that we
-    // have to destroy ALL particles, since this short circuits the internal IPPL function such that
-    // tmp_invalid does not need to be a valid view and can just be a dummy. Calling create again
-    // will then not alter the underlying view and just increment the localNum counter.
-    for (size_t i = 0; i < particleContainers.size(); ++i) {
-        Kokkos::View<bool*> tmp_invalid("tmp_invalid", maxLocalNumPerBeam[i]);
-        particleContainers[i]->destroy(tmp_invalid, maxLocalNumPerBeam[i]);
-        *gmsg << level3 << "* Container " << i << ": " << maxLocalNumPerBeam[i]
-              << " particles created and destroyed. Bunch allocated." << endl;
-    }
 
     setupBoundaryGeometry();
 
@@ -373,7 +369,7 @@ void TrackRun::execute() {
     }
 
     // Setup all distributions and samplers, perform initial sampling (t0 == 0),
-    // and prepare emittingSamplers_m for time-dependent / delayed sources.
+    // and prepare per-container emitting sampler lists for ParallelTracker.
     // Do this for each particle container
     std::vector<emittingSamplers_t> emittingSamplersList(particleContainers.size());
     for (size_t i = 0; i < particleContainers.size(); ++i) {
@@ -382,25 +378,16 @@ void TrackRun::execute() {
     }
     configureImageChargeFromSources(emissionSourcesLists);
 
-    /*
-       reset the fieldsolver with correct hr_m
-       based on the distribution
-    */
+    // Reset the field solver with correct hr_m based on the distribution.
     bunch_m->setCharge();
     bunch_m->setMass();
 
-    // TODO: CONTINUTE MULTIBUNCH WORK FROM HERE ON
+    // Calculate extents and update moments for each container
     bunch_m->bunchUpdate();
     bunch_m->print(*gmsg);
 
-    /*
-    if (!isFollowupTrack_m) {
-        *gmsg << std::scientific;
-        *gmsg << *dist_m << endl;
-    }
-    */
-
-    if (bunch_m->getTotalNum() > 0) {
+    // Set ZStart, ZStop, and dT
+    if (bunch_m->getParticleContainer()->getTotalNum() > 0) {
         double spos = Track::block->zstart;
         auto& zstop = Track::block->zstop;
         auto it     = Track::block->dT.begin();
@@ -422,12 +409,10 @@ void TrackRun::execute() {
        findPhasesForMaxEnergy();
 
     */
-    // TODO: INITIALISE WITH ALL CONTAINERS, EMITTINGSAMPLERSLIST
     itsTracker_m = new ParallelTracker(
-            *Track::block->use->fetchLine(), bunch_m.get(), ds_m, beam->getReference(), false,
-            Attributes::getBool(itsAttr[TRACKRUN::TRACKBACK]), Track::block->localTimeSteps,
-            Track::block->zstart, Track::block->zstop, Track::block->dT, emittingSamplersList[0]);
-
+            *Track::block->use->fetchLine(), bunch_m, ds_m, false,
+            Track::block->localTimeSteps,
+            Track::block->zstart, Track::block->zstop, Track::block->dT, emittingSamplersList);
     itsTracker_m->execute();
 
     /*
@@ -454,29 +439,41 @@ void TrackRun::setRunMethod() {
 
 std::string TrackRun::getRunMethodName() const { return stringMethod_s.left.at(method_m); }
 
-void TrackRun::initDataSink() {
-    if (opal_m->inRestartRun()) {
-        phaseSpaceSink_m = new H5PartWrapperForPT(
-                opal_m->getInputBasename() + std::string(".h5"), opal_m->getRestartStep(),
-                OpalData::getInstance()->getRestartFileName(), H5_O_WRONLY);
-    } else if (isFollowupTrack_m) {
-        phaseSpaceSink_m = new H5PartWrapperForPT(
-                opal_m->getInputBasename() + std::string(".h5"), -1,
-                opal_m->getInputBasename() + std::string(".h5"), H5_O_WRONLY);
-    } else {
-        phaseSpaceSink_m = new H5PartWrapperForPT(
-                opal_m->getInputBasename() + std::string(".h5"), H5_O_WRONLY);
+void TrackRun::initDataSink(size_t numParticleContainers) {
+    for (H5PartWrapper* p : phaseSpaceSinks_m) {
+        delete p;
+    }
+    phaseSpaceSinks_m.clear();
+    phaseSpaceSinks_m.reserve(numParticleContainers);
+
+    const std::string base = opal_m->getInputBasename();
+
+    for (size_t i = 0; i < numParticleContainers; ++i) {
+        const std::string stem = DataSink::diagnosticStemForContainer(base, numParticleContainers, i);
+        const std::string dest   = stem + std::string(".h5");
+        H5PartWrapper* w         = nullptr;
+
+        if (opal_m->inRestartRun()) {
+            const std::string src = h5RestartSourceForContainer(
+                OpalData::getInstance()->getRestartFileName(), dest, numParticleContainers);
+            w = new H5PartWrapperForPT(dest, opal_m->getRestartStep(), src, H5_O_WRONLY);
+        } else if (isFollowupTrack_m) {
+            w = new H5PartWrapperForPT(dest, -1, stem + std::string(".h5"), H5_O_WRONLY);
+        } else {
+            w = new H5PartWrapperForPT(dest, H5_O_WRONLY);
+        }
+        phaseSpaceSinks_m.push_back(w);
     }
 
     if (!opal_m->inRestartRun()) {
         if (!opal_m->hasDataSinkAllocated()) {
-            opal_m->setDataSink(new DataSink(phaseSpaceSink_m, false));
+            opal_m->setDataSink(new DataSink(phaseSpaceSinks_m, false, numParticleContainers));
         } else {
             DataSink* raw = opal_m->getDataSink();
-            raw->changeH5Wrapper(phaseSpaceSink_m);
+            raw->changeH5Wrappers(phaseSpaceSinks_m);
         }
     } else {
-        opal_m->setDataSink(new DataSink(phaseSpaceSink_m, true));
+        opal_m->setDataSink(new DataSink(phaseSpaceSinks_m, true, numParticleContainers));
     }
 
     // Wrap the global DataSink in a non-owning shared_ptr for local use.
