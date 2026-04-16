@@ -1,25 +1,22 @@
 #include "Fields/Astra1DDynamic.h"
 #include "Fields/Fieldmap.hpp"
+#include "PartBunch/PartBunch.h"
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
 #include "Utilities/GeneralClassicException.h"
+#include "Utilities/GSLSpline.h"
+#include "Utilities/GSLFFT.h"
 #include "Utilities/Util.h"
-
-#include "gsl/gsl_interp.h"
-#include "gsl/gsl_spline.h"
-#include "gsl/gsl_fft_real.h"
 
 #include <fstream>
 #include <ios>
 
-
 Astra1DDynamic::Astra1DDynamic(const std::string& filename)
-    : Fieldmap(filename) 
-{ //, FourCoefs_m(nullptr) {    
-
+    : Fieldmap(filename)
+{ 
     std::ifstream file;
     std::string tmpString;
-    int skippedValues = 0;
+    // int skippedValues = 0;
     double tmpDouble;
 
     Type = TAstraDynamic;
@@ -50,24 +47,58 @@ Astra1DDynamic::Astra1DDynamic(const std::string& filename)
         parsing_passed = 
             parsing_passed 
             && interpretLine<double>(file, frequency_m);
-        parsing_passed = 
-            parsing_passed 
-            && interpretLine<double, double>(file, zbegin_m, tmpDouble);
+
+        int acceptedValues = 0;
+
+        // Read first data point
+        parsing_passed =
+            parsing_passed &&
+            interpretLine<double, double>(file, zbegin_m, tmpDouble);
 
         double tmpDouble2 = zbegin_m;
 
-        while(!file.eof() && parsing_passed) {
-            parsing_passed = 
-                interpretLine<double, double>(file, zend_m, tmpDouble, false);
-            if (zend_m - tmpDouble2 > 1e-10) {
-                tmpDouble2 = zend_m;
-            } else if (parsing_passed) {
-                ++skippedValues;
-            }
+        if (parsing_passed) {
+            ++acceptedValues;
+            zend_m = zbegin_m;
         }
 
-        num_gridpz_m = lines_read_m - 3 - skippedValues;
+        // Read remaining data points
+        while (true) {
+            bool line_ok = interpretLine<double, double>(file, zend_m, tmpDouble, false);
+            if (!line_ok) {
+                break;
+            }
+
+            if (zend_m - tmpDouble2 > 1e-10) {
+                tmpDouble2 = zend_m;
+                ++acceptedValues;
+            } 
+            // else {
+            //     ++skippedValues;
+            // }
+        }
+
+        num_gridpz_m = acceptedValues;
         lines_read_m = 0;
+
+        // parsing_passed = 
+        //     parsing_passed 
+        //     && interpretLine<double, double>(file, zbegin_m, tmpDouble);
+
+        // double tmpDouble2 = zbegin_m;
+
+        // while(!file.eof() && parsing_passed) {
+        //     parsing_passed = 
+        //         interpretLine<double, double>(file, zend_m, tmpDouble, false);
+        //     if (zend_m - tmpDouble2 > 1e-10) {
+        //         tmpDouble2 = zend_m;
+        //     } else if (parsing_passed) {
+        //         ++skippedValues;
+        //     }
+        // }
+
+        // num_gridpz_m = lines_read_m - 3 - skippedValues;
+        // lines_read_m = 0;
 
         if (!parsing_passed && !file.eof()) {
             disableFieldmapWarning();
@@ -88,6 +119,14 @@ Astra1DDynamic::Astra1DDynamic(const std::string& filename)
         zbegin_m = 0.0;
         zend_m = -1e-3;
     }
+
+    // std::cerr << "zbegin_m = " << zbegin_m << "\n";
+    // std::cerr << "zend_m   = " << zend_m << "\n";
+    // std::cerr << "lines_read_m = " << lines_read_m << "\n";
+    // std::cerr << "skippedValues = " << skippedValues << "\n";
+    // std::cerr << "num_gridpz_m = " << num_gridpz_m << "\n";
+
+
 }
 
 Astra1DDynamic::~Astra1DDynamic() {
@@ -99,6 +138,13 @@ void Astra1DDynamic::readMap()
     if (FourCoefs_m.extent(0) == 0) 
     {
         bool parsing_passed = true;
+
+        // Need at least two valid points for dz, spline, and FFT setup
+        if (num_gridpz_m < 2) {
+            throw GeneralClassicException(
+                "Astra1DDynamic::readMap",
+                "Fieldmap must contain at least two valid sampling points");
+        }
 
         // declare variables and allocate memory
     	std::ifstream in;
@@ -148,6 +194,7 @@ void Astra1DDynamic::readMap()
                 ++i; // increment i only if sampling point is accepted
             }
         }
+        // std::cerr << "readMap num_gridpz_m = " << num_gridpz_m << "\n";
         in.close();
 
         // Interpolate onto equidistant grid (required for FFT)
@@ -378,7 +425,6 @@ void Astra1DDynamic::getFieldDimensions(
         "Astra1DDynamic::getFieldDimensions", "not implemented");
 }
 
-
 void Astra1DDynamic::swap()
 {
 }
@@ -400,33 +446,64 @@ void Astra1DDynamic::setFrequency(double freq)
     frequency_m = freq;
 }
 
-// This function re-reads the fieldmap file to extract the on-axis Ez values, 
-// which are stored in F as pairs of (z, Ez).
-// Not computationally optimal, but it was like that in the original 
-// OPAL implementation and the on-axis field values are needed for the 
-// `TravelingWave` element, which uses the `Astra1DDynamic` fieldmap.
 void Astra1DDynamic::getOnaxisEz(std::vector<std::pair<double, double>>& F)
 {
-    double Ez_max = 0.0;
-    double tmpDouble;
-    int tmpInt;
-    std::string tmpString;
+    // Ensure the field map coefficients are available
+    readMap();
 
     F.resize(num_gridpz_m);
 
-    std::ifstream in(Filename_m.c_str());
-    interpretLine<std::string, int>(in, tmpString, tmpInt);
-    interpretLine<double>(in, tmpDouble);
+    const auto FourCoefs = FourCoefs_m.h_view;
+
+    const double two_pi = Physics::two_pi;
+    const double pi     = Physics::pi;
+    const double dk     = two_pi / length_m;
+    const double dz     = (zend_m - zbegin_m) / (num_gridpz_m - 1);
 
     for (int i = 0; i < num_gridpz_m; ++i) {
-        interpretLine<double, double>(in, F[i].first, F[i].second);
-        if (std::abs(F[i].second) > Ez_max) {
-            Ez_max = std::abs(F[i].second);
+        const double z  = zbegin_m + i * dz;
+        const double kz = dk * (z - zbegin_m) + pi;
+
+        double ez = FourCoefs(0);
+
+        int n = 1;
+        for (int l = 1; l < accuracy_m; ++l, n += 2) {
+            ez += FourCoefs(n)     * std::cos(kz * l)
+                - FourCoefs(n + 1) * std::sin(kz * l);
         }
-    }
-    in.close();
 
-    for (int i = 0; i < num_gridpz_m; ++i) {
-        F[i].second /= Ez_max;
+        F[i].first  = z;
+        F[i].second = ez;
     }
 }
+
+// // This function re-reads the fieldmap file to extract the on-axis Ez values, 
+// // which are stored in F as pairs of (z, Ez).
+// // Not computationally optimal, but it was like that in the original 
+// // OPAL implementation and the on-axis field values are needed for the 
+// // `TravelingWave` element, which uses the `Astra1DDynamic` fieldmap.
+// void Astra1DDynamic::getOnaxisEz(std::vector<std::pair<double, double>>& F)
+// {
+//     double Ez_max = 0.0;
+//     double tmpDouble;
+//     int tmpInt;
+//     std::string tmpString;
+
+//     F.resize(num_gridpz_m);
+
+//     std::ifstream in(Filename_m.c_str());
+//     interpretLine<std::string, int>(in, tmpString, tmpInt);
+//     interpretLine<double>(in, tmpDouble);
+
+//     for (int i = 0; i < num_gridpz_m; ++i) {
+//         interpretLine<double, double>(in, F[i].first, F[i].second);
+//         if (std::abs(F[i].second) > Ez_max) {
+//             Ez_max = std::abs(F[i].second);
+//         }
+//     }
+//     in.close();
+
+//     for (int i = 0; i < num_gridpz_m; ++i) {
+//         F[i].second /= Ez_max;
+//     }
+// }

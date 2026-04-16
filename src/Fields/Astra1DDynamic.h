@@ -2,6 +2,7 @@
 #define CLASSIC_AstraFIELDMAP1DDYNAMIC_HH
 
 #include "Fields/Fieldmap.h"
+#include "Physics/Physics.h"
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_DualView.hpp>
