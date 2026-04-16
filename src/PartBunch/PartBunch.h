@@ -170,6 +170,13 @@ public:
         return i < pcActive_m.size() && pcActive_m[i];
     }
 
+    /// @brief Force container @p i active (e.g. for containers with pending emission).
+    void setPcActive(size_t i) {
+        if (i < pcActive_m.size()) {
+            pcActive_m[i] = true;
+        }
+    }
+
     /// @param i Container index.
     /// @return Whether container @p i is frozen at the current z-stop.
     bool pcAtZStop(size_t i) const {

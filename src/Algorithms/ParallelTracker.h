@@ -238,6 +238,9 @@ private:
     /// @brief Trigger binary repartition for the field solver if configured.
     void doBinaryRepartition();
 
+    /// @brief Force-activate containers whose emitting samplers have not yet finished.
+    void activateEmittingContainers(double t);
+
     /**
      * @brief Union of per-container spatial bounds over MPI.
      * @param[out] rmin Corner of the axis-aligned bounding box (min).
