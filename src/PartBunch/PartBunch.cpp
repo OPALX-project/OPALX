@@ -598,9 +598,6 @@ void PartBunch<T, Dim>::computeBoundsForFieldSolve(
     const auto& containers = this->getParticleContainers();
 
     bool hasNonEmptyContainer = false;
-    ippl::Vector<double, 3> o(0.0);
-    ippl::Vector<double, 3> e(0.0);
-
     for (const auto& pc : containers) {
         if (!pc || pc->getTotalNum() == 0) {
             continue;
@@ -611,13 +608,13 @@ void PartBunch<T, Dim>::computeBoundsForFieldSolve(
         const ippl::Vector<double, 3> maxR = pc->getMaxR();
 
         if (!hasNonEmptyContainer) {
-            o = minR;
-            e = maxR;
+            lower = minR;
+            upper = maxR;
             hasNonEmptyContainer = true;
         } else {
             for (int i = 0; i < 3; ++i) {
-                o[i] = std::min(o[i], minR[i]);
-                e[i] = std::max(e[i], maxR[i]);
+                lower[i] = std::min(lower[i], minR[i]);
+                upper[i] = std::max(upper[i], maxR[i]);
             }
         }
     }
@@ -628,11 +625,10 @@ void PartBunch<T, Dim>::computeBoundsForFieldSolve(
                                 "No valid particle container available for bunch update.");
         }
         containers[0]->computeMinMaxR();
-        o = containers[0]->getMinR();
-        e = containers[0]->getMaxR();
+        lower = containers[0]->getMinR();
+        upper = containers[0]->getMaxR();
     }
 
-    ippl::Vector<double, 3> l = e - o;
     const BinnedFieldSolver_t* bsolver = this->getFieldSolver();
 
     // Include mirrored particles in the domain envelope when image-charge mode is active for this step.
