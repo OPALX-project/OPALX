@@ -189,7 +189,7 @@ void MemoryProfiler::write(const PartBunch_t* beam) {
         return;
     }
 
-    double pathLength = beam->get_sPos();
+    double pathLength = beam->getParticleContainers()[0]->get_sPos();
 
     header();
 
