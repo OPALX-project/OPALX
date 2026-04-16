@@ -255,13 +255,9 @@ void Multipole::setSkewComponent(int n, double v, double vError)
  *  
  * @returns true if particle is out-of-bounds (lost), false otherwise
  */
-bool Multipole::apply()
+bool Multipole::apply(const std::shared_ptr<ParticleContainer_t>& pc)
 {
     std::cout << "Multipole::apply() called" <<std::endl;
-    // Get the particle container
-    std::shared_ptr<ParticleContainer_t> pc = 
-        RefPartBunch_m->getParticleContainer();
-
     // Get the views
     auto Rview = pc->R.getView();
     auto Eview = pc->E.getView();
@@ -725,7 +721,7 @@ bool Multipole::isFocusing(int component) const {
 
     // Fix: Use getNormalComponent() to safely retrieve the value from GPU memory
     return getNormalComponent(component) * std::pow(-1, component + 1)
-               * RefPartBunch_m->getChargePerParticle() > 0.0;
+               * RefPartBunch_m->getParticleContainer()->getChargePerParticle() > 0.0;
 }
 
 /* ========================================================================== */

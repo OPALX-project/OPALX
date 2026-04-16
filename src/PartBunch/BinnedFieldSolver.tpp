@@ -391,7 +391,7 @@ void BinnedFieldSolver<T, Dim>::computeLegacySelfFields(std::shared_ptr<PartBunc
             size *= bunch->rmax_m[d] - bunch->rmin_m[d];
         }
 
-        const double totalQ = bunch->getCharge();
+        const double totalQ = bunch->getParticleContainer()->getTotalCharge();
         (*rho)              = (*rho) - (totalQ / size);
     }
 
@@ -528,7 +528,8 @@ void BinnedFieldSolver<T, Dim>::prepareRhoForBin(
             size *= bunch->rmax_m[d] - bunch->rmin_m[d];
         }
 
-        const double totalQBin = bunch->getChargePerParticle() * static_cast<double>(nPartGlobal);
+        const double totalQBin =
+            bunch->getParticleContainer()->getChargePerParticle() * static_cast<double>(nPartGlobal);
         (*rho)                 = (*rho) - (totalQBin / size);
     }
 
