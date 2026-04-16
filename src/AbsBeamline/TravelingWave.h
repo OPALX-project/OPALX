@@ -55,7 +55,7 @@ public:
     virtual double getAutoPhaseEstimate(
         const double& E0, const double& t0, const double& q, const double& m) override;
 
-    virtual bool apply() override;
+    virtual bool apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
 
     virtual bool apply(
         const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;

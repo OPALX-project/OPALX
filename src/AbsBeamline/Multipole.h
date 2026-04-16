@@ -68,7 +68,7 @@ public:
      * 
      * @returns true if particle is out-of-bounds (lost), false otherwise
      */
-    virtual bool apply() override;
+    virtual bool apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
 
     /**
      * @brief Apply to particle i

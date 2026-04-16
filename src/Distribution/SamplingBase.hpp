@@ -59,6 +59,13 @@ public:
 
     virtual void emitParticles(double /*t*/, double /*dt*/) {}
 
+    /// @brief Whether this sampler has finished all emission (no more particles will be created).
+    /// @param t Current simulation time (s).
+    virtual bool isEmissionDone(double t) const {
+        (void)t;
+        return hasEmittedOnce_m;
+    }
+
     // testNumEmitParticles is purely made for testing and should be removed
     virtual void testNumEmitParticles(size_t /*nsteps*/, double /*dt*/) {}
 
