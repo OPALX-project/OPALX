@@ -48,7 +48,7 @@ public:
      *  \param B calculated magnetic field
      *  \returns true if particle is outside the field map
      */
-    inline bool apply();
+    inline bool apply(const std::shared_ptr<ParticleContainer_t>& pc);
 
     inline bool apply(
         const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B);
@@ -247,7 +247,7 @@ void VerticalFFAMagnet::setPositiveVerticalExtent(double positiveExtent) {
     zPosExtent_m = positiveExtent * mm;
 }
 
-bool VerticalFFAMagnet::apply() {
+bool VerticalFFAMagnet::apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/) {
     return false;
 }
 

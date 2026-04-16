@@ -2,6 +2,15 @@
 // Class StatWriter
 //   This class writes bunch statistics (*.stat).
 //
+//   One StatWriter instance corresponds to one output file. DataSink::init creates
+//   statWriters_m.size() == numParticleContainers writers: for a single container the
+//   file stem is the input basename (e.g. myjob -> myjob.stat); for multiple containers
+//   stems are basename + "_c" + index (run_c0.stat, run_c1.stat, ...), see
+//   DataSink::diagnosticStemForContainer. Each write() call must use the same
+//   particleContainerIndex as that writer's slot so row data comes from
+//   beam->getParticleContainer(particleContainerIndex). Shared beam-level quantities
+//   (e.g. time t, dt, rmsDensity, nBins) still come from PartBunch_t regardless of index.
+//
 // Copyright (c) 2019, Matthias Frey, Paul Scherrer Institut, Villigen PSI, Switzerland
 //                     Christof Metzger-Kraus, Open Sourcerer
 // All rights reserved
@@ -18,17 +27,21 @@
 //
 #include "StatWriter.h"
 
+#include <Kokkos_Core.hpp>
+
 #include "AbstractObjects/OpalData.h"
+#include "BuildInfo.h"
 #include "PartBunch/PartBunch.h"
 #include "Physics/Units.h"
 #include "Utilities/Timer.h"
+#include "Utilities/Util.h"
 
 #include <sstream>
 
 StatWriter::StatWriter(const std::string& fname, bool restart) : StatBaseWriter(fname, restart) {
 }
 
-void StatWriter::fillHeader(const losses_t& losses) {
+void StatWriter::fillHeader(const losses_t& losses, const std::string& species) {
     if (this->hasColumns()) {
         return;
     }
@@ -190,29 +203,40 @@ void StatWriter::fillHeader(const losses_t& losses) {
 
     this->addDescription(ss.str(), "stat parameters");
 
-    this->addDefaultParameters();
+    std::stringstream revision;
+    revision << buildinfo::project_name << " " << buildinfo::project_version << " "
+             << "git rev. #" << Util::getGitRevision();
+
+    addParameter("processors", "long", "Number of Cores used", ippl::Comm->size());
+    addParameter("revision", "string", "git revision of opal", revision.str());
+    addParameter("species", "string", "Particle species of container", species);
 
     this->addInfo("ascii", 1);
 }
 
 void StatWriter::write(
     PartBunch_t* beam, Vector_t<double, 3> FDext[], const losses_t& losses, const double& azimuth,
-    const size_t npOutside) {
+    const size_t npOutside, size_t particleContainerIndex) {
     using ParticleContainer_t = ParticleContainer<T, Dim>;
-    std::shared_ptr<ParticleContainer_t> pc = beam->getParticleContainer();
+    std::shared_ptr<ParticleContainer_t> pc = beam->getParticleContainer(particleContainerIndex);
+    if (!pc) {
+        return;
+    }
 
-    double pathLength = beam->get_sPos();
+    double pathLength = pc->get_sPos();
+    const std::string species = beam->getParticleName(particleContainerIndex);
 
-    /// Write data to files. If this is the first write to the beam statistics file, write SDDS
-    /// header information.
+    // First write to this writer's .stat file emits SDDS header via fillHeader/writeHeader.
+    // File vs. container: this object was constructed with the stem for particleContainerIndex;
+    // pc must be beam->getParticleContainer(particleContainerIndex) (caller responsibility).
 
-    double Q = beam->getCharge();
+    double Q = pc->getTotalCharge();
 
     if (ippl::Comm->rank() != 0) {
         return;
     }
 
-    fillHeader(losses);
+    fillHeader(losses, species);
 
     this->open();
 
@@ -220,9 +244,9 @@ void StatWriter::write(
 
     columns_m.addColumnValue("t", beam->getT() * Units::s2ns);      // 1
     columns_m.addColumnValue("s", pathLength);                      // 2
-    columns_m.addColumnValue("numParticles", beam->getTotalNum());  // 3
+    columns_m.addColumnValue("numParticles", pc->getTotalNum());  // 3
     columns_m.addColumnValue("charge", Q);                          // 4
-    columns_m.addColumnValue("energy", beam->get_meanKineticEnergy());                       // 5
+    columns_m.addColumnValue("energy", pc->getMeanKineticEnergy());                          // 5
 
     columns_m.addColumnValue("rms_x", pc->getRmsR()(0));  // 6
     columns_m.addColumnValue("rms_y", pc->getRmsR()(1));  // 7
@@ -232,36 +256,36 @@ void StatWriter::write(
     columns_m.addColumnValue("rms_py", pc->getRmsP()(1));  // 10
     columns_m.addColumnValue("rms_ps", pc->getRmsP()(2));  // 11
 
-    columns_m.addColumnValue("emit_x", beam->get_norm_emit()(0));  // 12
-    columns_m.addColumnValue("emit_y", beam->get_norm_emit()(1));  // 13
-    columns_m.addColumnValue("emit_s", beam->get_norm_emit()(2));  // 14
+    columns_m.addColumnValue("emit_x", pc->getNormEmit()(0));  // 12
+    columns_m.addColumnValue("emit_y", pc->getNormEmit()(1));  // 13
+    columns_m.addColumnValue("emit_s", pc->getNormEmit()(2));  // 14
 
     columns_m.addColumnValue("mean_x", pc->getMeanR()(0));  // 15
     columns_m.addColumnValue("mean_y", pc->getMeanR()(1));  // 16
     columns_m.addColumnValue("mean_s", pc->getMeanR()(2));  // 17
 
-    columns_m.addColumnValue("ref_x", beam->RefPartR_m(0));  // 18
-    columns_m.addColumnValue("ref_y", beam->RefPartR_m(1));  // 19
-    columns_m.addColumnValue("ref_z", beam->RefPartR_m(2));  // 20
+    columns_m.addColumnValue("ref_x", pc->getRefPartR()(0));  // 18
+    columns_m.addColumnValue("ref_y", pc->getRefPartR()(1));  // 19
+    columns_m.addColumnValue("ref_z", pc->getRefPartR()(2));  // 20
 
-    columns_m.addColumnValue("ref_px", beam->RefPartP_m(0));  // 21
-    columns_m.addColumnValue("ref_py", beam->RefPartP_m(1));  // 22
-    columns_m.addColumnValue("ref_pz", beam->RefPartP_m(2));  // 23
+    columns_m.addColumnValue("ref_px", pc->getRefPartP()(0));  // 21
+    columns_m.addColumnValue("ref_py", pc->getRefPartP()(1));  // 22
+    columns_m.addColumnValue("ref_pz", pc->getRefPartP()(2));  // 23
 
     columns_m.addColumnValue("max_x", pc->getMaxR()(0));  // 24
     columns_m.addColumnValue("max_y", pc->getMaxR()(1));  // 25
     columns_m.addColumnValue("max_s", pc->getMaxR()(2));  // 26
 
     // Write out Courant Snyder parameters.
-    columns_m.addColumnValue("xpx", beam->get_rprms()(0));  // 27
-    columns_m.addColumnValue("ypy", beam->get_rprms()(1));  // 28
-    columns_m.addColumnValue("zpz", beam->get_rprms()(2));  // 29
+    columns_m.addColumnValue("xpx", pc->getRmsRP()(0));  // 27
+    columns_m.addColumnValue("ypy", pc->getRmsRP()(1));  // 28
+    columns_m.addColumnValue("zpz", pc->getRmsRP()(2));  // 29
 
     // Write out dispersion.
-    columns_m.addColumnValue("Dx", beam->get_Dx());    // 30
-    columns_m.addColumnValue("DDx", beam->get_DDx());  // 31
-    columns_m.addColumnValue("Dy", beam->get_Dy());    // 32
-    columns_m.addColumnValue("DDy", beam->get_DDy());  // 33
+    columns_m.addColumnValue("Dx", pc->getDx());    // 30
+    columns_m.addColumnValue("DDx", pc->getDDx());  // 31
+    columns_m.addColumnValue("Dy", pc->getDy());    // 32
+    columns_m.addColumnValue("DDy", pc->getDDy());  // 33
 
     // Write head/reference particle/tail field information.
     columns_m.addColumnValue("Bx_ref", FDext[0](0));  // 34 B-ref x
@@ -272,13 +296,13 @@ void StatWriter::write(
     columns_m.addColumnValue("Ey_ref", FDext[1](1));  // 38 E-ref y
     columns_m.addColumnValue("Ez_ref", FDext[1](2));  // 39 E-ref z
 
-    columns_m.addColumnValue("dE", beam->getdE());                // 40 dE energy spread
+    columns_m.addColumnValue("dE", pc->getStdKineticEnergy());    // 40 dE energy spread
     columns_m.addColumnValue("dt", beam->getdT() * Units::s2ns);  // 41 dt time step size
     columns_m.addColumnValue("partsOutside", npOutside);  // 42 number of particles outside n*sigma
 
-    columns_m.addColumnValue("DebyeLength", beam->get_debyeLength()); // 43 Debye length in the boosted frame
-    columns_m.addColumnValue("plasmaParameter", beam->get_plasmaParameter()); // 43 plasma parameter
-    columns_m.addColumnValue("temperature", beam->get_temperature()); // 44 Temperature 
+    columns_m.addColumnValue("DebyeLength", pc->getDebyeLength()); // 43 Debye length in the boosted frame
+    columns_m.addColumnValue("plasmaParameter", pc->getPlasmaParameter()); // 43 plasma parameter
+    columns_m.addColumnValue("temperature", pc->getTemperature()); // 44 Temperature
     columns_m.addColumnValue("rmsDensity", beam->get_rmsDensity()); // 45 RMS number density
     columns_m.addColumnValue("nBins", beam->getCurrentNBins());
 
@@ -331,13 +355,19 @@ void StatWriter::write(
     */
     if (OpalData::getInstance()->isInOPALCyclMode()) {
         if (ippl::Comm->size() == 1) {
-            if (beam->getLocalNum() > 0) {
-                columns_m.addColumnValue("R0_x", beam->R(0)[0]);
-                columns_m.addColumnValue("R0_y", beam->R(0)[1]);
-                columns_m.addColumnValue("R0_s", beam->R(0)[2]);
-                columns_m.addColumnValue("P0_x", beam->P(0)[0]);
-                columns_m.addColumnValue("P0_y", beam->P(0)[1]);
-                columns_m.addColumnValue("P0_s", beam->P(0)[2]);
+            if (pc->getLocalNum() > 0) {
+                auto rDev = pc->R.getView();
+                auto pDev = pc->P.getView();
+                auto rHost = Kokkos::create_mirror_view(rDev);
+                auto pHost = Kokkos::create_mirror_view(pDev);
+                Kokkos::deep_copy(rHost, rDev);
+                Kokkos::deep_copy(pHost, pDev);
+                columns_m.addColumnValue("R0_x", rHost(0)[0]);
+                columns_m.addColumnValue("R0_y", rHost(0)[1]);
+                columns_m.addColumnValue("R0_s", rHost(0)[2]);
+                columns_m.addColumnValue("P0_x", pHost(0)[0]);
+                columns_m.addColumnValue("P0_y", pHost(0)[1]);
+                columns_m.addColumnValue("P0_s", pHost(0)[2]);
             } else {
                 columns_m.addColumnValue("R0_x", 0.0);
                 columns_m.addColumnValue("R0_y", 0.0);

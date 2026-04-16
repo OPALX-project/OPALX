@@ -92,9 +92,6 @@ public:
     /// Apply the algorithm to an arbitrary multipole.
     virtual void visitMultipoleT(const MultipoleT&) = 0;
 
-    /// Apply the algorithm to an offset (placement).
-    virtual void visitOffset(const Offset&) = 0;
-
     /// Apply the algorithm to a RF cavity.
     virtual void visitRFCavity(const RFCavity&) = 0;
 
