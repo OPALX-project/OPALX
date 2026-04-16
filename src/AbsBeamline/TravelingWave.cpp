@@ -70,7 +70,39 @@ void TravelingWave::accept(BeamlineVisitor& visitor) const {
     visitor.visitTravelingWave(*this);
 }
 
-bool TravelingWave::apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/) {
+/* ========================================================================== */
+/* ============================== Apply Functions =========================== */
+/**
+ * @brief Applies the Traveling Wave RF Cavity field to all particles inside the RF cavity
+ * Note: The field is applied in three regions: the core region, the exit region, and the 
+ * transition region in between. The field in the transition region is calculated as the 
+ * superposition of two fields from the core region, which are phase-shifted by 90 degrees 
+ * and spatially shifted by one cell length. This approach allows for a smooth transition 
+ * of the field from the core to the exit region, while maintaining the correct phase 
+ * relationship between the fields.
+ */
+bool TravelingWave::apply() 
+{
+    // Get the particle container
+    std::shared_ptr<ParticleContainer_t> pc = 
+        RefPartBunch_m->getParticleContainer();  
+
+    // RF parameters (copied to device)
+    double freq       = frequency_m;
+    double scaleEntry = scale_m + scaleError_m;
+    double scaleCore  = scaleCore_m + scaleCoreError_m;
+
+    
+
+    // Reference particle time
+    const double t = RefPartBunch_m->getT() + 0.5 * RefPartBunch_m->getdT(); // To be consistent with OPAL
+
+
+
+    auto Rview = pc->R.getView();
+    auto Eview = pc->E.getView();
+    auto Bview = pc->B.getView();
+
     return false;
 }
 
