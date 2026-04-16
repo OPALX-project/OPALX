@@ -29,7 +29,8 @@ H5Writer::H5Writer(H5PartWrapper* h5wrapper, bool restart)
 }
 
 
-void H5Writer::writePhaseSpace(PartBunch_t *beam, Vector_t<double, 3> FDext[]) {
+void H5Writer::writePhaseSpace(
+    PartBunch_t* beam, Vector_t<double, 3> FDext[], size_t particleContainerIndex) {
     IpplTimings::startTimer(H5PartTimer_m);
     std::map<std::string, double> additionalAttributes = {
         std::make_pair("B-ref_x", FDext[0](0)),
@@ -39,17 +40,19 @@ void H5Writer::writePhaseSpace(PartBunch_t *beam, Vector_t<double, 3> FDext[]) {
         std::make_pair("E-ref_z", FDext[1](1)),
         std::make_pair("E-ref_y", FDext[1](2))};
 
-    h5wrapper_m->writeStep(beam, additionalAttributes);
+    h5wrapper_m->writeStep(beam, additionalAttributes, particleContainerIndex);
     IpplTimings::stopTimer(H5PartTimer_m);
 }
 
 
-int H5Writer::writePhaseSpace(PartBunch_t *beam, Vector_t<double, 3> FDext[], double /*meanEnergy*/,
-                              double refPr, double refPt, double refPz,
-                              double refR, double refTheta, double refZ,
-                              double azimuth, double elevation, bool /*local*/) {
+int H5Writer::writePhaseSpace(
+    PartBunch_t* beam, Vector_t<double, 3> FDext[], double /*meanEnergy*/, double refPr, double refPt,
+    double refPz, double refR, double refTheta, double refZ, double azimuth, double elevation,
+    bool /*local*/, size_t particleContainerIndex) {
 
-    if (beam->getTotalNum() < 3) return -1; // in single particle mode and tune calculation (2 particles) we do not need h5 data
+    auto pc = beam->getParticleContainer(particleContainerIndex);
+    if (!pc || pc->getTotalNum() < 3)
+        return -1;  // single-particle / tune modes
 
     IpplTimings::startTimer(H5PartTimer_m);
     std::map<std::string, double> additionalAttributes = {
@@ -80,9 +83,9 @@ int H5Writer::writePhaseSpace(PartBunch_t *beam, Vector_t<double, 3> FDext[], do
         std::make_pair("E-tail_z", FDext[5](1)),
         std::make_pair("E-tail_y", FDext[5](2))};
 
-    h5wrapper_m->writeStep(beam, additionalAttributes);
+    h5wrapper_m->writeStep(beam, additionalAttributes, particleContainerIndex);
     IpplTimings::stopTimer(H5PartTimer_m);
 
-    ++ H5call_m;
+    ++H5call_m;
     return H5call_m - 1;
 }

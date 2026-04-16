@@ -4,15 +4,21 @@
 
 // #include <functional>
 #include <memory>
+#include <cmath>
 // #include <vector>
 
 #include "Manager/BaseManager.h"
 
 #include "Algorithms/DistributionMoments.h"
 #include "PartBunch/BunchStateHandler.h"
-#include "Utilities/OpalException.h"
+#include "Algorithms/PartData.h"
+#include "Algorithms/Quaternion.hpp"
+#include "Algorithms/CoordinateSystemTrafo.h"
 
 #include "Utilities/Options.h"
+#include "Utilities/OpalException.h"
+
+#include "Physics/Physics.h"
 
 // #include <Kokkos_Core.hpp>
 
@@ -137,6 +143,14 @@ public:
 
     void setupBCs() { setBCAllPeriodic(); }
 
+    /// Apply coordinate transform to local particles: translate R, rotate P, E, B.
+    void transformBunch(const CoordinateSystemTrafo& trafo) {
+        const size_t nLoc = this->getLocalNum();
+        trafo.transformBunchTo(this->R.getView(), nLoc);
+        trafo.rotateBunchTo(this->P.getView(), nLoc);
+        trafo.rotateBunchTo(this->E.getView(), nLoc);
+        trafo.rotateBunchTo(this->B.getView(), nLoc);
+    }
     PLayout_t<T, Dim>& getPL() { return pl_m; }
 
     void setBunchStateHandler(std::shared_ptr<BunchStateHandler> handler) {
@@ -250,6 +264,27 @@ public:
         }
     }
 
+    /// @brief Get charge per particle [Cb].
+    double getChargePerParticle() const {
+        if (qmStorageMode_m == QMStorageMode::Attributes) {
+            auto view = QAttr.getView();
+            if (view.extent(0) == 0) {
+                return 0.0;
+            }
+            double q = 0.0;
+            Kokkos::deep_copy(q, Kokkos::subview(view, 0));
+            return q;
+        }
+        double q = 0.0;
+        Kokkos::deep_copy(q, Kokkos::subview(QView_m, 0));
+        return q;
+    }
+
+    /// @brief Get total charge [Cb] in this container.
+    double getTotalCharge() const {
+        return getChargePerParticle() * this->getTotalNum();
+    }
+
     /**
      * @brief Set particle mass for the active M storage mode.
      * @param m Mass value in [GeV].
@@ -269,6 +304,136 @@ public:
         } else {
             Kokkos::deep_copy(MView_m, m);
         }
+    }
+
+    /// @brief Get mass per particle [GeV].
+    double getMassPerParticle() const {
+        if (qmStorageMode_m == QMStorageMode::Attributes) {
+            auto view = MAttr.getView();
+            if (view.extent(0) == 0) {
+                return 0.0;
+            }
+            double m = 0.0;
+            Kokkos::deep_copy(m, Kokkos::subview(view, 0));
+            return m;
+        }
+        double m = 0.0;
+        Kokkos::deep_copy(m, Kokkos::subview(MView_m, 0));
+        return m;
+    }
+
+    /// @brief Get total mass [GeV] in this container.
+    double getTotalMass() const {
+        return getMassPerParticle() * this->getTotalNum();
+    }
+
+    /// @brief Get the reference particle position (const).
+    const Vector_t<double, Dim>& getRefPartR() const {
+        return refPartR_m;
+    }
+
+    /// @brief Get the reference particle position.
+    Vector_t<double, Dim>& getRefPartR() {
+        return refPartR_m;
+    }
+
+    /// @brief Set the reference particle position.
+    void setRefPartR(const Vector_t<double, Dim>& refPartR) {
+        refPartR_m = refPartR;
+    }
+
+    /// @brief Get the reference particle momentum (const).
+    const Vector_t<double, Dim>& getRefPartP() const {
+        return refPartP_m;
+    }
+
+    /// @brief Get the reference particle momentum.
+    Vector_t<double, Dim>& getRefPartP() {
+        return refPartP_m;
+    }
+
+    /// @brief Set the reference particle momentum.
+    void setRefPartP(const Vector_t<double, Dim>& refPartP) {
+        refPartP_m = refPartP;
+    }
+
+    /// @brief Set reference particle data.
+    void setReference(const PartData* ref) {
+        reference_m = ref;
+        if (reference_m) {
+            // PartData mass is stored in eV; DistributionMoments expects GeV.
+            setEnergyReferenceMass(reference_m->getM() * Units::eV2GeV, true);
+        }
+    }
+
+    /// @brief Get reference particle data.
+    const PartData* getReference() const {
+        return reference_m;
+    }
+
+    /// @brief Set longitudinal position along design trajectory.
+    void set_sPos(double sPos) {
+        sPos_m = sPos;
+    }
+
+    /// @brief Get longitudinal position along design trajectory.
+    double get_sPos() const {
+        return sPos_m;
+    }
+
+    /// @brief Set global-to-local rotation quaternion.
+    void setGlobalToLocalQuaternion(const Quaternion_t& globalToLocalQuaternion) {
+        globalToLocalQuaternion_m = globalToLocalQuaternion;
+    }
+
+    /// @brief Get global-to-local rotation quaternion.
+    Quaternion_t getGlobalToLocalQuaternion() const {
+        return globalToLocalQuaternion_m;
+    }
+
+    /// @brief Get local-to-lab coordinate transformation (const).
+    const CoordinateSystemTrafo& getToLabTrafo() const {
+        return toLabTrafo_m;
+    }
+
+    /// @brief Get local-to-lab coordinate transformation.
+    CoordinateSystemTrafo& getToLabTrafo() {
+        return toLabTrafo_m;
+    }
+
+    /// @brief Set local-to-lab coordinate transformation.
+    void setToLabTrafo(const CoordinateSystemTrafo& toLabTrafo) {
+        toLabTrafo_m = toLabTrafo;
+    }
+
+    /// @brief Advance reference/lab transform state and map bunch accordingly.
+    void updateRefToLabCSTrafo(double bunchDT) {
+        Vector_t<double, 3> R = toLabTrafo_m.transformFrom(refPartR_m);
+        Vector_t<double, 3> P = toLabTrafo_m.rotateFrom(refPartP_m);
+
+        const double ds = std::copysign(1.0, bunchDT)
+                          * std::sqrt(R[0] * R[0] + R[1] * R[1] + R[2] * R[2]);
+        sPos_m += ds;
+
+        CoordinateSystemTrafo update(R, getQuaternion(P, Vector_t<double, 3>(0, 0, 1)));
+        transformBunch(update);
+        toLabTrafo_m = toLabTrafo_m * update.inverted();
+    }
+
+    /// @brief Apply a fractional Boris step and update reference/lab transform state.
+    template <typename Pusher>
+    void applyFractionalStep(const Pusher& pusher, double tau, double pathLengthTarget) {
+        refPartR_m /= (Physics::c * 2 * tau);
+        pusher.push(refPartR_m, refPartP_m, tau);
+        refPartR_m *= (Physics::c * 2 * tau);
+
+        sPos_m = pathLengthTarget;
+        toLabTrafo_m.transformFrom(refPartR_m);
+        Vector_t<double, 3> R = refPartR_m;
+        toLabTrafo_m.rotateFrom(refPartP_m);
+        Vector_t<double, 3> P = refPartP_m;
+        CoordinateSystemTrafo update(R, getQuaternion(P, Vector_t<double, 3>(0, 0, 1)));
+        toLabTrafo_m = toLabTrafo_m * update.inverted();
     }
 
     /**
@@ -328,6 +493,49 @@ public:
         Kokkos::fence();
     }
 
+    /**
+     * @brief Transform positions to unitless coordinates using each particle's dt[i].
+     *
+     * Applies \f$ R'_i = R_i / (c \, dt_i) \f$. Requires valid non-zero dt values per particle.
+     *
+     * @throws OpalException if this container is already in unitless positions.
+     */
+    void switchToUnitlessPositions() {
+        if (isUnitlessPositions_m) {
+            throw OpalException("ParticleContainer::switchToUnitlessPositions",
+                                "ParticleContainer is already in unitless positions!");
+        }
+        auto Rview             = this->R.getView();
+        auto dtview            = this->dt.getView();
+        const size_type nLocal = this->getLocalNum();
+        Kokkos::parallel_for(
+            "ParticleContainer::switchToUnitlessPositions", nLocal,
+            KOKKOS_LAMBDA(const size_type i) { Rview(i) *= 1.0 / (Physics::c * dtview(i)); });
+        Kokkos::fence();
+        isUnitlessPositions_m = true;
+    }
+
+    /**
+     * @brief Restore physical positions from unitless form using each particle's dt[i].
+     *
+     * Applies \f$ R_i = R'_i \, c \, dt_i \f$.
+     *
+     * @throws OpalException if this container is not currently in unitless positions.
+     */
+    void switchOffUnitlessPositions() {
+        if (!isUnitlessPositions_m) {
+            throw OpalException("ParticleContainer::switchOffUnitlessPositions",
+                                "ParticleContainer is already in physical positions!");
+        }
+        auto Rview             = this->R.getView();
+        auto dtview            = this->dt.getView();
+        const size_type nLocal = this->getLocalNum();
+        Kokkos::parallel_for(
+            "ParticleContainer::switchOffUnitlessPositions", nLocal,
+            KOKKOS_LAMBDA(const size_type i) { Rview(i) *= Physics::c * dtview(i); });
+        Kokkos::fence();
+        isUnitlessPositions_m = false;
+    }
     QMStorageMode getQMStorageMode() const { return qmStorageMode_m; }
 
     /**
@@ -409,6 +617,26 @@ private:
     // Per-particle attributes mode
     ippl::ParticleAttrib<double> QAttr;
     ippl::ParticleAttrib<double> MAttr;
+
+    // Reference particle information
+    Vector_t<double, Dim> refPartR_m;
+    Vector_t<double, Dim> refPartP_m;
+
+    // Global to local quaternion
+    Quaternion_t globalToLocalQuaternion_m;
+
+    // Reference particle to lab transformation
+    CoordinateSystemTrafo toLabTrafo_m;
+
+    // Particle reference data (!= reference particle)
+    const PartData* reference_m = nullptr;
+
+    // Distance along the beamline 
+    double sPos_m = 0.0;
+
+    /// True while R is stored in unitless form (see switchToUnitlessPositions).
+    bool isUnitlessPositions_m = false;
+
 };
 
 #endif

@@ -69,8 +69,7 @@ void ConstantEFieldCavity::setEz(double ez) {
     Ez_m = ez;
 }
 
-bool ConstantEFieldCavity::apply() {
-    std::shared_ptr<ParticleContainer_t> pc = RefPartBunch_m->getParticleContainer();
+bool ConstantEFieldCavity::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     auto Rview                              = pc->R.getView();
     auto Eview                              = pc->E.getView();
     const size_t nLocal                     = pc->getLocalNum();

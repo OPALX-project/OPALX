@@ -7,6 +7,7 @@
  */
 #include "AbsBeamline/RFCavity.h"
 
+#include "Component.h"
 #include "Utilities/BiMap.h"
 #include <filesystem>
 #include "AbsBeamline/BeamlineVisitor.h"
@@ -23,6 +24,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <memory>
 
 extern Inform* gmsg;
 
@@ -118,12 +120,8 @@ void RFCavity::accept(BeamlineVisitor& visitor) const {
  * 
  * @note TODO: Check if getFieldstrength(R, tmpE, tmpB) returns 0 outside of RF cavity to skip if statement
  */
-bool RFCavity::apply() 
+bool RFCavity::apply(const std::shared_ptr<ParticleContainer_t>& pc) 
 {
-    // Get the particle container
-    std::shared_ptr<ParticleContainer_t> pc = 
-        RefPartBunch_m->getParticleContainer();    
-
     // RF parameters (copied to device)
     double freq       = frequency_m;
     double scale      = scale_m + scaleError_m;
@@ -267,8 +265,9 @@ void RFCavity::initialise(
         }
         in >> RNormal_m[i] >> VrNormal_m[i] >> DvDr_m[i];
 
-        VrNormal_m[i] *= RefPartBunch_m->getQ();
-        DvDr_m[i] *= RefPartBunch_m->getQ();
+        const auto pc = RefPartBunch_m->getParticleContainer();
+        VrNormal_m[i] *= pc->getTotalCharge();
+        DvDr_m[i] *= pc->getTotalCharge();
     }
     sinAngle_m = std::sin(angle_m * Units::deg2rad);
     cosAngle_m = std::cos(angle_m * Units::deg2rad);
@@ -708,7 +707,8 @@ std::pair<double, double> RFCavity::trackOnAxisParticle(
     Vector_t<double, 3> p({0, 0, p0});
     double t = t0;
 
-    BorisPusher integrator(*RefPartBunch_m->getReference());
+    BorisPusher integrator;
+    const PartData& ref = *RefPartBunch_m->getParticleContainer()->getReference();
     const double cdt    = Physics::c * dt;
     const double zbegin = startField_m;
     const double zend   = getElementLength() + startField_m;
@@ -731,7 +731,7 @@ std::pair<double, double> RFCavity::trackOnAxisParticle(
             applyToReferenceParticle(z, p, t + 0.5 * dt, Ef, Bf);
         }
 
-        integrator.kick(z, p, Ef, Bf, dt);
+        integrator.kick(z, p, Ef, Bf, dt, ref.getM(), ref.getQ());
 
         dz = 0.5 * p(2) / std::sqrt(1.0 + dot(p, p)) * cdt;
         z /= cdt;

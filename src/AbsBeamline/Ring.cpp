@@ -106,7 +106,7 @@
          delete section_list_m[i];
  }
  
- bool Ring::apply() {
+ bool Ring::apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/) {
      return false;
  }
  
@@ -165,7 +165,7 @@
          // old field limits -DW
          outOfBounds &= sections[i]->getFieldValue(
              R * Vector_t<double, 3>(1000.0),
-             refPartBunch_m->get_centroid() * Vector_t<double, 3>(1000.0), t, E_temp, B_temp);
+            refPartBunch_m->getParticleContainer()->getCentroid() * Vector_t<double, 3>(1000.0), t, E_temp, B_temp);
          B += (scale_m * B_temp);
          E += (scale_m * E_temp);
      }
