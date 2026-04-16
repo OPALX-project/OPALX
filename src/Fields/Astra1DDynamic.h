@@ -3,6 +3,9 @@
 
 #include "Fields/Fieldmap.h"
 
+#include <Kokkos_Core.hpp>
+#include <Kokkos_DualView.hpp>
+
 class Astra1DDynamic: public Fieldmap {
 
 public:
@@ -15,9 +18,9 @@ public:
      * @return true if R is outside of the field map, false otherwise.
      */
     virtual bool getFieldstrength(
-        const Vector_t<double, 3> &R, 
-        Vector_t<double, 3> &E, 
-        Vector_t<double, 3> &B) const override;
+        const Vector_t<double, 3>& R, 
+        Vector_t<double, 3>& E, 
+        Vector_t<double, 3>& B) const override;
 
     /**
      * @brief Get the field derivative with respect to a direction.
@@ -29,17 +32,17 @@ public:
      * @return true if R is outside, false otherwise.
      */
     virtual bool getFieldDerivative(
-        const Vector_t<double, 3> &R, 
-        Vector_t<double, 3> &E, 
-        Vector_t<double, 3> &B, 
-        const DiffDirection &dir) const override;
+        const Vector_t<double, 3>& R, 
+        Vector_t<double, 3>& E, 
+        Vector_t<double, 3>& B, 
+        const DiffDirection& dir) const override;
 
     /**
      * @brief Get the longitudinal dimensions of the field.
      * @param zBegin Output start of field [m].
      * @param zEnd Output end of field [m].
      */
-    virtual void getFieldDimensions(double &zBegin, double &zEnd) const override;
+    virtual void getFieldDimensions(double& zBegin, double& zEnd) const override;
 
     /**
      * @brief Get the full 3D bounding box of the field.
@@ -52,9 +55,9 @@ public:
      * @param zFinal Output maximum z [m].
      */
     virtual void getFieldDimensions(
-        double &xIni, double &xFinal, 
-        double &yIni, double &yFinal, 
-        double &zIni, double &zFinal) const override;
+        double& xIni, double& xFinal, 
+        double& yIni, double& yFinal, 
+        double& zIni, double& zFinal) const override;
 
     /// @brief Swap coordinates
     virtual void swap() override;
@@ -76,7 +79,6 @@ public:
      */
     virtual void setFrequency(double freq) override;
 
-
     /**
      * @brief Checks if the given coordinate is inside the volume covered by the
      * fieldmap
@@ -89,66 +91,56 @@ public:
         // && sqrt(r(0) * r(0) + r(1) * r(1)) < rend_m;
     }
 
-    // inline bool _Astra1DDynamic::isInside(const Vector_t &r) const
-    // {
-    //     return r(2) >= zbegin_m && r(2) < zend_m;
-    // }
-    
+    template <class ViewType>
+    KOKKOS_INLINE_FUNCTION
+    static void computeField(
+        const Vector_t<double, 3>& R,
+        Vector_t<double, 3>& E,
+        Vector_t<double, 3>& B,
+        const ViewType& FourCoefs,
+        double zbegin,
+        double length,
+        double xlrep,
+        int accuracy)
+    {
+        const double RR2 = R(0) * R(0) + R(1) * R(1);
 
+        const double two_pi = Physics::two_pi;
+        const double pi     = Physics::pi;
+        const double dk     = Physics::two_pi / length;
+        const double kz     = two_pi * (R(2) - zbegin) / length + pi;
+        
+        double ez    = FourCoefs(0);
+        double ezp   = 0.0;
+        double ezpp  = 0.0;
+        double ezppp = 0.0;
 
-    // template <class ViewType>
-    // KOKKOS_INLINE_FUNCTION static void computeField(
-    //     const Vector_t<double, 3>& R,
-    //     Vector_t<double, 3>& E,
-    //     Vector_t<double, 3>& B,
-    //     const ViewType& FourCoefs,
-    //     double zbegin,
-    //     double length,
-    //     double xlrep,
-    //     int accuracy)
-    // {
-    //     const double RR2 = R(0)*R(0) + R(1)*R(1);
+        int n = 1;
+        for (int l = 1; l < accuracy; ++l, n += 2) {
+            const double base = dk * l;
 
-    //     const double kz =
-    //         2.0 * M_PI * (R(2) - zbegin) / length + M_PI;
+            const double coskzl = Kokkos::cos(kz * l);
+            const double sinkzl = Kokkos::sin(kz * l);
 
-    //     double ez = FourCoefs(0);
-    //     double ezp = 0.0;
-    //     double ezpp = 0.0;
-    //     double ezppp = 0.0;
+            ez    += FourCoefs(n)       * coskzl - FourCoefs(n + 1) * sinkzl;
+            ezp   += base               * (-FourCoefs(n) * sinkzl - FourCoefs(n + 1) * coskzl);
+            ezpp  += base * base        * (-FourCoefs(n) * coskzl + FourCoefs(n + 1) * sinkzl);
+            ezppp += base * base * base * ( FourCoefs(n) * sinkzl + FourCoefs(n + 1) * coskzl);
+        }
 
-    //     int n = 1;
-    //     for (int l = 1; l < accuracy; ++l, n += 2) {
-    //         double base = 2.0 * M_PI / length * l;
+        const double f  = -(ezpp  + ez  * xlrep * xlrep) / 16.0;
+        const double fp = -(ezppp + ezp * xlrep * xlrep) / 16.0;
 
-    //         double coskzl = cos(kz * l);
-    //         double sinkzl = sin(kz * l);
+        const double EfieldR = -(ezp / 2.0 + fp * RR2);
+        const double BfieldT = (ez / 2.0 + f * RR2) * xlrep / Physics::c;
 
-    //         ez    += (FourCoefs(n) * coskzl - FourCoefs(n+1) * sinkzl);
+        E(0) += EfieldR * R(0);
+        E(1) += EfieldR * R(1);
+        E(2) += ez + 4.0 * f * RR2;
 
-    //         double f1 = base;
-    //         ezp   += f1 * (-FourCoefs(n) * sinkzl - FourCoefs(n+1) * coskzl);
-
-    //         double f2 = f1 * base;
-    //         ezpp  += f2 * (-FourCoefs(n) * coskzl + FourCoefs(n+1) * sinkzl);
-
-    //         double f3 = f2 * base;
-    //         ezppp += f3 * (FourCoefs(n) * sinkzl + FourCoefs(n+1) * coskzl);
-    //     }
-
-    //     const double f  = -(ezpp  + ez * xlrep * xlrep) / 16.0;
-    //     const double fp = -(ezppp + ezp * xlrep * xlrep) / 16.0;
-
-    //     const double EfieldR = -(ezp / 2.0 + fp * RR2);
-    //     const double BfieldT = (ez / 2.0 + f * RR2) * xlrep;
-
-    //     E(0) += EfieldR * R(0);
-    //     E(1) += EfieldR * R(1);
-    //     E(2) += ez + 4.0 * f * RR2;
-
-    //     B(0) -= BfieldT * R(1);
-    //     B(1) += BfieldT * R(0);
-    // }
+        B(0) -= BfieldT * R(1);
+        B(1) += BfieldT * R(0);
+    }
 
     /**
      * @brief Apply the FM to all the particles
@@ -176,7 +168,7 @@ public:
         double startField,
         double endField);
 
-    virtual void getOnaxisEz(std::vector<std::pair<double, double> > & F) override;
+    virtual void getOnaxisEz(std::vector<std::pair<double, double>> & F) override;
 
 private:
     Astra1DDynamic(const std::string& filename);
@@ -191,7 +183,7 @@ private:
      * [a0, a1, b1, a2, b2, ..., aN, bN]
      * Used for fast Fourier reconstruction of the longitudinal field.
      */
-    Kokkos::View<double*> FourCoefs_m;
+    Kokkos::DualView<double*> FourCoefs_m;
 
     double frequency_m;
 
@@ -214,12 +206,5 @@ private:
     /// @brief Allow Fieldmap factory access
     friend class Fieldmap;
 };
-
-inline bool _Astra1DDynamic::isInside(const Vector_t &r) const
-{
-    return r(2) >= zbegin_m && r(2) < zend_m;
-}
-
-using Astra1DDynamic = std::shared_ptr<_Astra1DDynamic>;
 
 #endif
