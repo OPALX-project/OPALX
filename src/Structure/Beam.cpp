@@ -144,13 +144,6 @@ void Beam::execute() {
     }
 
     update();
-    // Check if energy explicitly has been set with the BEAM command
-    if (!itsAttr[GAMMA] && !(itsAttr[ENERGY]) && !(itsAttr[PC])) {
-        throw OpalException(
-            "Beam::execute()",
-            "The energy hasn't been set. "
-            "Set either \"GAMMA\", \"ENERGY\" or \"PC\".");
-    }
 
     if (!(itsAttr[PARTICLE]) && (!itsAttr[MASS] || !(itsAttr[CHARGE]))) {
         throw OpalException(
@@ -244,6 +237,10 @@ bool Beam::isPhoton() const {
 
 double Beam::getFrequency() const {
     return Attributes::getReal(itsAttr[BFREQ]);
+}
+
+bool Beam::hasExplicitEnergy() const {
+    return itsAttr[GAMMA] || itsAttr[ENERGY] || itsAttr[PC];
 }
 
 double Beam::getChargePerParticle() const {
