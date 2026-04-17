@@ -2,6 +2,7 @@
 #define OPAL_GLOBALPROCESS_PION_DECAY_H
 
 #include "Processes/GlobalProcesses/Decay.h"
+#include "Physics/ParticleProperties.h"
 
 /**
  * @brief Charged pion decay: pi -> mu + nu_mu (two-body).
@@ -12,7 +13,13 @@
  */
 class PionDecay : public Decay {
 public:
-    using Decay::Decay;
+    PionDecay(double restLifetimeSeconds,
+              std::size_t containerIndex,
+              double parentMassGeV)
+        : Decay(restLifetimeSeconds, containerIndex, parentMassGeV) {
+        allowedDaughterSpecies_m =
+            static_cast<short>(ParticleProperties::getParticleType("MUON"));
+    }
 
     void createDaughterParticles(
         std::size_t localDestroyNum,

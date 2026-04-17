@@ -588,26 +588,7 @@ void TrackRun::wireDaughterContainers(
 
         // Use the physical rest mass from the Beam definition (in GeV), not the
         // macro-particle mass from the container — the latter is zero when BCURRENT=0.
-        const double parentMass = beams[i]->getMass();
         const double daughterMass = beams[daughterIdx]->getMass();
-        if (parentMass <= daughterMass) {
-            throw OpalException(
-                "TrackRun::wireDaughterContainers",
-                "Parent mass (" + std::to_string(parentMass)
-                    + " GeV) must exceed daughter mass ("
-                    + std::to_string(daughterMass) + " GeV).");
-        }
-        const double parentCharge = beams[i]->getCharge();
-        const double daughterCharge = beams[daughterIdx]->getCharge();
-        if ((parentCharge > 0.0) != (daughterCharge > 0.0)) {
-            throw OpalException(
-                "TrackRun::wireDaughterContainers",
-                "Charge sign mismatch: parent beam \"" + beamNames[i]
-                    + "\" has charge " + std::to_string(parentCharge)
-                    + " but daughter beam \"" + daughterName
-                    + "\" has charge " + std::to_string(daughterCharge)
-                    + ". Set CHARGE on the daughter BEAM to match.");
-        }
         for (const auto& proc : globalProcessesLists[i]) {
             auto* decayProc = dynamic_cast<Decay*>(proc.get());
             if (decayProc) {

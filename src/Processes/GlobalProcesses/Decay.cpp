@@ -1,11 +1,14 @@
 #include "Processes/GlobalProcesses/Decay.h"
 
 #include "PartBunch/ParticleContainer.hpp"
+#include "Physics/ParticleProperties.h"
 #include "Physics/Physics.h"
+#include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
 
 #include <cmath>
 #include <cstdint>
+#include <string>
 
 namespace {
 
@@ -26,6 +29,16 @@ Decay::Decay(double restLifetimeSeconds, std::size_t containerIndex, double pare
 
 void Decay::setDaughterContainer(std::shared_ptr<ParticleContainer<double, 3>> daughterPC,
                                  double daughterMassGeV) {
+    if (daughterPC && daughterPC->Sp != allowedDaughterSpecies_m) {
+        const auto expected = static_cast<ParticleType>(allowedDaughterSpecies_m);
+        const auto actual   = static_cast<ParticleType>(daughterPC->Sp);
+        throw OpalException(
+            "Decay::setDaughterContainer",
+            "Daughter container species mismatch: expected \""
+                + ParticleProperties::getParticleTypeString(expected)
+                + "\" but got \""
+                + ParticleProperties::getParticleTypeString(actual) + "\".");
+    }
     daughterPC_m = std::move(daughterPC);
     daughterMassGeV_m = daughterMassGeV;
 }

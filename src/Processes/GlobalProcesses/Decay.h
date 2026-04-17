@@ -75,6 +75,10 @@ protected:
     /// Daughter container for decay products (nullptr = destroy-only mode).
     std::shared_ptr<ParticleContainer<double, 3>> daughterPC_m;
 
+    /// Physically allowed daughter species (short value of ParticleType enum).
+    /// Subclasses should set this in their constructor; default = ParticleType::UNNAMED (-1).
+    short allowedDaughterSpecies_m = -1;
+
     /// Rest mass of the daughter particle [GeV].
     double daughterMassGeV_m = 0.0;
 
