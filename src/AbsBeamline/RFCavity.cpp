@@ -1,8 +1,8 @@
 /**
  * @class RFCavity
- * @brief Interface for general multipole.
+ * @brief Interface for standing wave cavities.
  *
- * Class RFCavity defines the abstract interface for RF cavities.
+ * Class RFCavity defines the abstract interface for Standing Wave RF cavities.
  *   - SW: Standing Wave Cavity
  */
 #include "AbsBeamline/RFCavity.h"
