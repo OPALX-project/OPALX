@@ -86,6 +86,9 @@ public:
     /// Throws if `SOURCES` is not set.
     std::string getEmissionSourceListName() const;
 
+    /// True if PC, ENERGY, or GAMMA was explicitly provided by the user.
+    bool hasExplicitEnergy() const;
+
     /// Update the BEAM data.
     virtual void update();
 
