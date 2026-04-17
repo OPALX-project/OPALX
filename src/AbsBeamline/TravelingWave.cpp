@@ -1,26 +1,18 @@
-//
-// Class TravelingWave
-//   Defines the abstract interface for Traveling Wave.
-//
-// Copyright (c) 200x - 2021, Paul Scherrer Institut, Villigen PSI, Switzerland
-// All rights reserved
-//
-// This file is part of OPAL.
-//
-// OPAL is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// You should have received a copy of the GNU General Public License
-// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
-//
+/**
+ * @class TravelingWave
+ * @brief Interface for traveling wave cavities.
+ *
+ * Class TravelingWave defines the abstract interface for Traveling Wave RF cavities.
+ *   - TW: Traveling Wave Cavity
+ */
 #include "AbsBeamline/TravelingWave.h"
 
 #include "AbsBeamline/BeamlineVisitor.h"
-#include "PartBunch/PartBunch.h"
+#include "Fields/Astra1DDynamic.h"
 #include "Fields/Fieldmap.h"
+#include "PartBunch/PartBunch.h"
 #include "Physics/Units.h"
+#include "Utilities/GeneralClassicException.h"
 #include "Utilities/GSLSpline.h"
 
 #include <fstream>
@@ -81,47 +73,91 @@ void TravelingWave::accept(BeamlineVisitor& visitor) const {
  * of the field from the core to the exit region, while maintaining the correct phase 
  * relationship between the fields.
  */
-bool TravelingWave::apply() 
+bool TravelingWave::apply(const std::shared_ptr<ParticleContainer_t>& pc)
 {
-    // Get the particle container
-    std::shared_ptr<ParticleContainer_t> pc = 
-        RefPartBunch_m->getParticleContainer();  
-
     // RF parameters (copied to device)
-    double freq       = frequency_m;
-    double scaleEntry = scale_m + scaleError_m;
-    double scaleCore  = scaleCore_m + scaleCoreError_m;
+    const double freq       = frequency_m;
+    const double scaleEntry = scale_m + scaleError_m;
+    const double scaleCore  = scaleCore_m + scaleCoreError_m;
+    const double phaseError = phaseError_m;
 
-    
+    const double startField      = startField_m;
+    const double startCoreField  = startCoreField_m;
+    const double startExitField  = startExitField_m;
+    const double mappedStartExit = mappedStartExitField_m;
+    const double periodLength    = periodLength_m;
+    const double cellLength      = cellLength_m;
+    const double elementLength   = getElementLength();
 
-    // Reference particle time
-    const double t = RefPartBunch_m->getT() + 0.5 * RefPartBunch_m->getdT(); // To be consistent with OPAL
+    // Reference particle time -> to be consistent with OPAL
+    const double t = RefPartBunch_m->getT() + 0.5 * RefPartBunch_m->getdT();
+    const double omega_t = freq * t;
 
+    const double cosEntry = std::cos(omega_t + phase_m + phaseError);
+    const double sinEntry = std::sin(omega_t + phase_m + phaseError);
 
+    const double cosCore1 = std::cos(omega_t + phaseCore1_m + phaseError);
+    const double sinCore1 = std::sin(omega_t + phaseCore1_m + phaseError);
 
-    auto Rview = pc->R.getView();
-    auto Eview = pc->E.getView();
-    auto Bview = pc->B.getView();
+    const double cosCore2 = std::cos(omega_t + phaseCore2_m + phaseError);
+    const double sinCore2 = std::sin(omega_t + phaseCore2_m + phaseError);
+
+    const double cosExit = std::cos(omega_t + phaseExit_m + phaseError);
+    const double sinExit = std::sin(omega_t + phaseExit_m + phaseError);
+
+    auto* dynamicFieldmap = dynamic_cast<Astra1DDynamic*>(fieldmap_m);
+    if (dynamicFieldmap == nullptr) {
+        throw GeneralClassicException(
+            "TravelingWave::apply",
+            "TravelingWave particle application currently requires an Astra1DDynamic field map.");
+    }
+
+    dynamicFieldmap->applyTravelingWave(
+        pc,
+        scaleEntry * cosEntry,
+        -scaleEntry * sinEntry,
+        scaleCore * cosCore1,
+        -scaleCore * sinCore1,
+        scaleCore * cosCore2,
+        -scaleCore * sinCore2,
+        scaleEntry * cosExit,
+        -scaleEntry * sinExit,
+        startField,
+        startCoreField,
+        startExitField,
+        mappedStartExit,
+        periodLength,
+        cellLength,
+        elementLength);
 
     return false;
 }
 
 bool TravelingWave::apply(
-    const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
-    return apply(RefPartBunch_m->R(i), RefPartBunch_m->P(i), t, E, B);
+    const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) 
+{
+    std::shared_ptr<ParticleContainer_t> pc = RefPartBunch_m->getParticleContainer();
+    auto Rview = pc->R.getView();
+    auto Pview = pc->P.getView();
+
+    const Vector_t<double, 3> R = Rview(i);
+    const Vector_t<double, 3> P = Pview(i);
+
+    return apply(R, P, t, E, B);
 }
 
 bool TravelingWave::apply(
     const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& t,
-    Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
+    Vector_t<double, 3>& E, Vector_t<double, 3>& B) 
+{
     const double omega_t = frequency_m * t;
     
     if (R(2) < -0.5 * periodLength_m || R(2) + 0.5 * periodLength_m >= getElementLength())
         return false;
 
-    Vector_t<double, 3> tmpR = Vector_t<double, 3>({R(0), R(1), R(2) + 0.5 * periodLength_m});
-    double tmpcos, tmpsin;
+    Vector_t<double, 3> tmpR({R(0), R(1), R(2) + 0.5 * periodLength_m});
     Vector_t<double, 3> tmpE({0.0, 0.0, 0.0}), tmpB({0.0, 0.0, 0.0});
+    double tmpcos = 0.0, tmpsin = 0.0;
 
     if (tmpR(2) < startCoreField_m) {
         if (!fieldmap_m->isInside(tmpR))
@@ -131,11 +167,11 @@ bool TravelingWave::apply(
         tmpsin = -(scale_m + scaleError_m) * std::sin(omega_t + phase_m + phaseError_m);
 
     } else if (tmpR(2) < startExitField_m) {
-        Vector_t<double, 3> tmpE2({0.0, 0.0, 0.0}), tmpB2({0.0, 0.0, 0.0});
         tmpR(2) -= startCoreField_m;
         const double z = tmpR(2);
         tmpR(2)        = tmpR(2) - periodLength_m * std::floor(tmpR(2) / periodLength_m);
         tmpR(2) += startCoreField_m;
+
         if (!fieldmap_m->isInside(tmpR))
             return getFlagDeleteOnTransverseExit();
 
@@ -143,6 +179,7 @@ bool TravelingWave::apply(
                  * std::cos(omega_t + phaseCore1_m + phaseError_m);
         tmpsin = -(scaleCore_m + scaleCoreError_m)
                  * std::sin(omega_t + phaseCore1_m + phaseError_m);
+
         fieldmap_m->getFieldstrength(tmpR, tmpE, tmpB);
         E += tmpcos * tmpE;
         B += tmpsin * tmpB;
@@ -163,12 +200,12 @@ bool TravelingWave::apply(
         tmpR(2) -= mappedStartExitField_m;
         if (!fieldmap_m->isInside(tmpR))
             return getFlagDeleteOnTransverseExit();
+
         tmpcos = (scale_m + scaleError_m) * std::cos(omega_t + phaseExit_m + phaseError_m);
         tmpsin = -(scale_m + scaleError_m) * std::sin(omega_t + phaseExit_m + phaseError_m);
     }
 
     fieldmap_m->getFieldstrength(tmpR, tmpE, tmpB);
-
     E += tmpcos * tmpE;
     B += tmpsin * tmpB;
 
@@ -177,33 +214,36 @@ bool TravelingWave::apply(
 
 bool TravelingWave::applyToReferenceParticle(
     const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& t,
-    Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
+    Vector_t<double, 3>& E, Vector_t<double, 3>& B) 
+{
     const double omega_t = frequency_m * t;
 
     if (R(2) < -0.5 * periodLength_m || R(2) + 0.5 * periodLength_m >= getElementLength())
         return false;
 
-    Vector_t<double, 3> tmpR = Vector_t<double, 3>({R(0), R(1), R(2) + 0.5 * periodLength_m});
-    double tmpcos, tmpsin;
+    Vector_t<double, 3> tmpR({R(0), R(1), R(2) + 0.5 * periodLength_m});
     Vector_t<double, 3> tmpE({0.0, 0.0, 0.0}), tmpB({0.0, 0.0, 0.0});
+    double tmpcos = 0.0, tmpsin = 0.0;
 
     if (tmpR(2) < startCoreField_m) {
         if (!fieldmap_m->isInside(tmpR))
             return true;
+
         tmpcos = scale_m * std::cos(omega_t + phase_m);
         tmpsin = -scale_m * std::sin(omega_t + phase_m);
 
     } else if (tmpR(2) < startExitField_m) {
-        Vector_t<double, 3> tmpE2({0.0, 0.0, 0.0}), tmpB2({0.0, 0.0, 0.0});
         tmpR(2) -= startCoreField_m;
         const double z = tmpR(2);
         tmpR(2)        = tmpR(2) - periodLength_m * std::floor(tmpR(2) / periodLength_m);
         tmpR(2) += startCoreField_m;
+
         if (!fieldmap_m->isInside(tmpR))
             return true;
 
         tmpcos = scaleCore_m * std::cos(omega_t + phaseCore1_m);
         tmpsin = -scaleCore_m * std::sin(omega_t + phaseCore1_m);
+
         fieldmap_m->getFieldstrength(tmpR, tmpE, tmpB);
         E += tmpcos * tmpE;
         B += tmpsin * tmpB;
