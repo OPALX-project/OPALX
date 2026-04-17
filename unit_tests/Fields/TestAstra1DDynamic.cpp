@@ -14,6 +14,7 @@
  * - Uniform on-axis field correctness
  * - Static computeField() correctness for simple coefficients
  * - Reconstructed on-axis field via getOnaxisEz()
+ * - Device-safe traveling-wave application via applyTravelingWave()
  *
  * Geometry & bounds:
  * - Behaviour outside z-range
@@ -43,6 +44,7 @@
 
 #include "Fields/Astra1DDynamic.h"
 #include "Fields/Fieldmap.h"
+#include "PartBunch/PartBunch.h"
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
 #include "Utilities/GeneralClassicException.h"
@@ -506,4 +508,166 @@ TEST_F(Astra1DDynamicTest, ReadFreeCycle) {
 
     fm->getFieldstrength(R, E, B);
     EXPECT_NE(E[2], 0.0);
+}
+
+// ===========================================================================
+// Test: applyTravelingWave entry region
+// ===========================================================================
+TEST_F(Astra1DDynamicTest, ComputeTravelingWaveFieldEntryRegion) {
+    Kokkos::View<double*, Kokkos::HostSpace> coefs("coefs", 3);
+    coefs(0) = 1.0;
+    coefs(1) = 0.0;
+    coefs(2) = 0.0;
+
+    Vector_t<double, 3> R = {0.0, 0.0, -0.01};
+    Vector_t<double, 3> E = {0.0, 0.0, 0.0};
+    Vector_t<double, 3> B = {0.0, 0.0, 0.0};
+
+    Astra1DDynamic::computeTravelingWaveField(
+        R, E, B,
+        coefs,
+        0.0,   // zbegin
+        0.10,  // zend
+        0.20,  // length
+        1.0,   // xlrep
+        2,     // accuracy
+        2.0, 0.0,   // entry
+        0.0, 0.0,   // core1
+        0.0, 0.0,   // core2
+        0.0, 0.0,   // exit
+        0.05,       // startCoreField
+        0.20,       // startExitField
+        0.0,        // mappedStartExitField
+        0.10,       // periodLength
+        0.05,       // cellLength
+        0.30        // elementLength
+    );
+
+    EXPECT_NEAR(E[2], 2.0, 1e-12);
+}
+
+// ===========================================================================
+// Test: computeTravelingWaveField core region accumulates two contributions
+// ===========================================================================
+TEST_F(Astra1DDynamicTest, ComputeTravelingWaveFieldCoreRegion) {
+    Kokkos::View<double*, Kokkos::HostSpace> coefs("coefs", 3);
+    coefs(0) = 1.0;
+    coefs(1) = 0.0;
+    coefs(2) = 0.0;
+
+    Vector_t<double, 3> R = {0.0, 0.0, 0.03};
+    Vector_t<double, 3> E = {0.0, 0.0, 0.0};
+    Vector_t<double, 3> B = {0.0, 0.0, 0.0};
+
+    // Consistent geometry for a fieldmap spanning z in [0.0, 0.10)
+    const double periodLength        = 0.05;
+    const double startCoreField      = 0.025;
+    const double cellLength          = 0.05;
+    const double startExitField      = 0.125;
+    const double mappedStartExit     = 0.05;
+    const double elementLength       = 0.175;
+
+    Astra1DDynamic::computeTravelingWaveField(
+        R, E, B,
+        coefs,
+        0.0,   // zbegin
+        0.10,  // zend
+        0.20,  // length
+        1.0,   // xlrep
+        2,     // accuracy
+        0.0, 0.0,   // entry
+        1.5, 0.0,   // core1
+        2.5, 0.0,   // core2
+        0.0, 0.0,   // exit
+        startCoreField,
+        startExitField,
+        mappedStartExit,
+        periodLength,
+        cellLength,
+        elementLength
+    );
+
+    // Uniform constant coefficient => each core contribution gives Ez = 1
+    EXPECT_NEAR(E[2], 4.0, 1e-12);
+}
+
+// ===========================================================================
+// Test: computeTravelingWaveField exit region
+// ===========================================================================
+TEST_F(Astra1DDynamicTest, ComputeTravelingWaveFieldExitRegion) {
+    Kokkos::View<double*, Kokkos::HostSpace> coefs("coefs", 3);
+    coefs(0) = 1.0;
+    coefs(1) = 0.0;
+    coefs(2) = 0.0;
+
+    Vector_t<double, 3> R = {0.0, 0.0, 0.11};
+    Vector_t<double, 3> E = {0.0, 0.0, 0.0};
+    Vector_t<double, 3> B = {0.0, 0.0, 0.0};
+
+    // Same consistent TW geometry as above
+    const double periodLength        = 0.05;
+    const double startCoreField      = 0.025;
+    const double cellLength          = 0.05;
+    const double startExitField      = 0.125;
+    const double mappedStartExit     = 0.05;
+    const double elementLength       = 0.175;
+
+    Astra1DDynamic::computeTravelingWaveField(
+        R, E, B,
+        coefs,
+        0.0,   // zbegin
+        0.10,  // zend
+        0.20,  // length
+        1.0,   // xlrep
+        2,     // accuracy
+        0.0, 0.0,   // entry
+        0.0, 0.0,   // core1
+        0.0, 0.0,   // core2
+        3.0, 0.0,   // exit
+        startCoreField,
+        startExitField,
+        mappedStartExit,
+        periodLength,
+        cellLength,
+        elementLength
+    );
+
+    EXPECT_NEAR(E[2], 3.0, 1e-12);
+}
+
+// ===========================================================================
+// Test: applyTravelingWave does nothing outside TW longitudinal range
+// ===========================================================================
+TEST_F(Astra1DDynamicTest, ComputeTravelingWaveFieldOutsideRange) {
+    Kokkos::View<double*, Kokkos::HostSpace> coefs("coefs", 3);
+    coefs(0) = 1.0;
+    coefs(1) = 0.0;
+    coefs(2) = 0.0;
+
+    Vector_t<double, 3> R = {0.0, 0.0, -0.06};
+    Vector_t<double, 3> E = {1.0, 2.0, 3.0};
+    Vector_t<double, 3> B = {4.0, 5.0, 6.0};
+
+    Astra1DDynamic::computeTravelingWaveField(
+        R, E, B,
+        coefs,
+        0.0, 0.10, 0.20, 1.0, 2,
+        1.0, 1.0,
+        1.0, 1.0,
+        1.0, 1.0,
+        1.0, 1.0,
+        0.05,
+        0.20,
+        0.0,
+        0.10,
+        0.05,
+        0.30
+    );
+
+    EXPECT_NEAR(E[0], 1.0, 1e-12);
+    EXPECT_NEAR(E[1], 2.0, 1e-12);
+    EXPECT_NEAR(E[2], 3.0, 1e-12);
+    EXPECT_NEAR(B[0], 4.0, 1e-12);
+    EXPECT_NEAR(B[1], 5.0, 1e-12);
+    EXPECT_NEAR(B[2], 6.0, 1e-12);
 }
