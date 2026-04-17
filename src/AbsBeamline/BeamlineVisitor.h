@@ -48,6 +48,7 @@ class Monitor;
 class Multipole;
 class MultipoleT;
 class RFCavity;
+class VariableRFCavity;
 class TravelingWave;
 class Ring;
 class Solenoid;
@@ -93,6 +94,9 @@ public:
 
     /// Apply the algorithm to a RF cavity.
     virtual void visitRFCavity(const RFCavity&) = 0;
+
+    /// Apply the algorithm to a variable RF cavity.
+    virtual void visitVariableRFCavity(const VariableRFCavity&) = 0;
 
     virtual void visitScalingFFAMagnet(const ScalingFFAMagnet&) = 0;
 

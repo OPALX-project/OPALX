@@ -152,13 +152,6 @@ void Beam::execute() {
     }
 
     update();
-    // Check if energy explicitly has been set with the BEAM command
-    if (!itsAttr[GAMMA] && !(itsAttr[ENERGY]) && !(itsAttr[PC])) {
-        throw OpalException(
-            "Beam::execute()",
-            "The energy hasn't been set. "
-            "Set either \"GAMMA\", \"ENERGY\" or \"PC\".");
-    }
 
     if (!(itsAttr[PARTICLE]) && (!itsAttr[MASS] || !(itsAttr[CHARGE]))) {
         throw OpalException(
@@ -271,6 +264,10 @@ double Beam::getFrequency() const {
     return Attributes::getReal(itsAttr[BFREQ]);
 }
 
+bool Beam::hasExplicitEnergy() const {
+    return itsAttr[GAMMA] || itsAttr[ENERGY] || itsAttr[PC];
+}
+
 double Beam::getChargePerParticle() const {
     return std::copysign(1.0, getCharge()) * getCurrent() / (getFrequency() * Units::MHz2Hz) 
            / getNumberOfParticles();
@@ -284,8 +281,12 @@ void Beam::update() {
     if (itsAttr[PARTICLE]) {
         std::string pName  = getParticleName();
         ParticleType pType = ParticleProperties::getParticleType(pName);
-        Attributes::setReal(itsAttr[MASS], ParticleProperties::getParticleMass(pType));
-        Attributes::setReal(itsAttr[CHARGE], ParticleProperties::getParticleCharge(pType));
+        if (!itsAttr[MASS]) {
+            Attributes::setReal(itsAttr[MASS], ParticleProperties::getParticleMass(pType));
+        }
+        if (!itsAttr[CHARGE]) {
+            Attributes::setReal(itsAttr[CHARGE], ParticleProperties::getParticleCharge(pType));
+        }
     }
 
     if (isPhoton()) {

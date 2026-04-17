@@ -3,8 +3,6 @@
 
 #include <memory>
 
-#include "Manager/FieldSolverBase.h"
-#include "PartBunch/FieldContainer.hpp"
 #include "PartBunch/ParticleContainer.hpp"
 
 template <typename T, unsigned Dim>

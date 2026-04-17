@@ -677,6 +677,26 @@ void TrackRun::setupDistributionsAndSamplers(
         opalDist->setDist();
         opalDist->setAvrgPz(avrgpz);
 
+        // FROMFILE distributions carry absolute momenta — the BEAM's
+        // PC/ENERGY/GAMMA would be silently ignored, so forbid the combination.
+        if (opalDist->getType() == DistributionType::FROMFILE) {
+            if (beam->hasExplicitEnergy()) {
+                throw OpalException(
+                    "TrackRun::setupDistributionsAndSamplers()",
+                    "FROMFILE distribution \"" + src->getDistributionName()
+                    + "\" cannot be combined with PC/ENERGY/GAMMA on the BEAM. "
+                      "Remove the energy attribute from the BEAM command — "
+                      "particle momenta are read from the file.");
+            }
+        } else {
+            if (!beam->hasExplicitEnergy()) {
+                throw OpalException(
+                    "TrackRun::setupDistributionsAndSamplers()",
+                    "The energy hasn't been set. "
+                    "Set either \"GAMMA\", \"ENERGY\" or \"PC\" on the BEAM command.");
+            }
+        }
+
         distrs_m.push_back(distRaw);
 
         // Build a sampler instance for this emission source.

@@ -9,18 +9,25 @@
 #include <memory>
 #include <vector>
 
+#include "Algorithms/Matrix.h"
+#include "Algorithms/CoordinateSystemTrafo.h"
+#include "Attributes/Attributes.h"
 #include "Manager/BaseManager.h"
 #include "Manager/PicManager.h"
 #include "PartBunch/FieldContainer.hpp"
 #include "PartBunch/FieldSolver.hpp"
 #include "PartBunch/LoadBalancer.hpp"
 #include "PartBunch/ParticleContainer.hpp"
-#include "PartBunch/Binning/AdaptBins.h"
-#include "PartBunch/Binning/AdaptBins.tpp"
-
+#include "Physics/Physics.h"
+#include "Random/Distribution.h"
+#include "Random/InverseTransformSampling.h"
+#include "Random/NormalDistribution.h"
+#include "Random/Randn.h"
 #include "Utilities/OpalException.h"
 #include "BCHandler.hpp"
 #include "Structure/FieldSolverCmd.h"
+#include "Algorithms/PartData.h"
+#include "PartBunch/Binning/AdaptBins.h"
 
 class DataSink;  ///< Forward declaration; full definition only required in the .cpp translation unit.
 class Beam;
@@ -161,6 +168,13 @@ public:
     /// @return Whether container @p i participates in the current segment.
     bool isPcActive(size_t i) const {
         return i < pcActive_m.size() && pcActive_m[i];
+    }
+
+    /// @brief Force container @p i active (e.g. for containers with pending emission).
+    void setPcActive(size_t i) {
+        if (i < pcActive_m.size()) {
+            pcActive_m[i] = true;
+        }
     }
 
     /// @param i Container index.

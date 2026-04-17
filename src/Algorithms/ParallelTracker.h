@@ -23,27 +23,34 @@
 
 #include "Algorithms/StepSizeConfig.h"
 #include "Algorithms/Tracker.h"
-#include "Algorithms/OrbitThreader.h"
-
 #include "Steppers/BorisPusher.h"
-
 #include "Structure/DataSink.h"
+
+#include "BasicActions/Option.h"
+#include "Utilities/Options.h"
+
+#include "Physics/Physics.h"
+
+#include "Algorithms/IndexMap.h"
+#include "Algorithms/OrbitThreader.h"
 
 #include "AbsBeamline/ConstantEFieldCavity.h"
 #include "AbsBeamline/Drift.h"
+#include "AbsBeamline/ElementBase.h"
 #include "AbsBeamline/Marker.h"
 #include "AbsBeamline/Multipole.h"
 #include "AbsBeamline/MultipoleT.h"
 #include "AbsBeamline/RFCavity.h"
+#include "AbsBeamline/ScalingFFAMagnet.h"
 #include "AbsBeamline/Solenoid.h"
-
+#include "AbsBeamline/TravelingWave.h"
 #include "Beamlines/Beamline.h"
-
 #include "Distribution/SamplingBase.hpp"
-
 #include "Elements/OpalBeamline.h"
 
+#include <list>
 #include <memory>
+#include <tuple>
 #include <vector>
 
 class ParticleMatterInteractionHandler;
@@ -233,6 +240,9 @@ private:
 
     /// @brief Trigger binary repartition for the field solver if configured.
     void doBinaryRepartition();
+
+    /// @brief Force-activate containers whose emitting samplers have not yet finished.
+    void activateEmittingContainers(double t);
 
     /**
      * @brief Union of per-container spatial bounds over MPI.

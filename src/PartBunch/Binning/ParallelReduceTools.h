@@ -1,11 +1,6 @@
 #ifndef PARALLEL_REDUCE_TOOLS_H
 #define PARALLEL_REDUCE_TOOLS_H
 
-#include "Ippl.h"
-#include "PartBunch/FieldContainer.hpp"
-
-#include <cmath>
-#include <stdexcept>
 #include <variant> // for std::variant
 #include <utility> // for std::index_sequence
 
