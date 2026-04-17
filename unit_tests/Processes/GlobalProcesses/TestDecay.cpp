@@ -10,9 +10,11 @@
 #include "Ippl.h"
 #include "PartBunch/ParticleContainer.hpp"
 #include "Physics/MuonDecay.h"
+#include "Physics/ParticleProperties.h"
 #include "Physics/Physics.h"
 #include "Processes/GlobalProcesses/MuonDecay.h"
 #include "Processes/GlobalProcesses/PionDecay.h"
+#include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
 
 namespace {
@@ -40,7 +42,7 @@ protected:
         Options::useQMAttributes = oldUseQMAttributes_m;
     }
 
-    std::shared_ptr<PC_t> makeContainer() {
+    std::shared_ptr<PC_t> makeContainer(ParticleType species = ParticleType::UNNAMED) {
         ippl::Vector<int, 3> nr        = 8;
         ippl::Vector<double, 3> rmin   = -4.0;
         ippl::Vector<double, 3> rmax   = 4.0;
@@ -55,7 +57,9 @@ protected:
 
         Mesh_t<3> mesh(domain, hr, origin);
         FieldLayout_t<3> fl(MPI_COMM_WORLD, domain, decomp, true);
-        return std::make_shared<PC_t>(mesh, fl);
+        auto pc = std::make_shared<PC_t>(mesh, fl);
+        pc->Sp = static_cast<short>(species);
+        return pc;
     }
 
     void createParticles(std::shared_ptr<PC_t>& pc, size_t nPart, double pz) {
@@ -224,7 +228,7 @@ TEST_F(DecayTest, NoDaughterContainerStillDestroysOnly) {
 
 TEST_F(DecayTest, DaughterContainerReceivesDecayedParticles) {
     auto muons = makeContainer();
-    auto electrons = makeContainer();
+    auto electrons = makeContainer(ParticleType::ELECTRON);
     muons->setM(Physics::m_mu);
     electrons->setM(Physics::m_e);
     createParticles(muons, 256, 0.0);
@@ -242,7 +246,7 @@ TEST_F(DecayTest, DaughterContainerReceivesDecayedParticles) {
 TEST_F(DecayTest, DaughterPositionMatchesParent) {
     constexpr size_t nPart = 64;
     auto muons = makeContainer();
-    auto electrons = makeContainer();
+    auto electrons = makeContainer(ParticleType::ELECTRON);
     muons->setM(Physics::m_mu);
     electrons->setM(Physics::m_e);
     createParticlesWithPositions(muons, nPart, 0.0);
@@ -272,7 +276,7 @@ TEST_F(DecayTest, DaughterPositionMatchesParent) {
 TEST_F(DecayTest, DaughterMomentumIsPhysicalForRestMuons) {
     constexpr size_t nPart = 1024;
     auto muons = makeContainer();
-    auto electrons = makeContainer();
+    auto electrons = makeContainer(ParticleType::ELECTRON);
     muons->setM(Physics::m_mu);
     electrons->setM(Physics::m_e);
     createParticles(muons, nPart, 0.0);  // muons at rest
@@ -311,7 +315,7 @@ TEST_F(DecayTest, DaughterMomentumIsPhysicalForRestMuons) {
 TEST_F(DecayTest, BoostedMuonsProduceBoostedElectrons) {
     constexpr size_t nPart = 512;
     auto muons = makeContainer();
-    auto electrons = makeContainer();
+    auto electrons = makeContainer(ParticleType::ELECTRON);
     muons->setM(Physics::m_mu);
     electrons->setM(Physics::m_e);
     createParticles(muons, nPart, 5.0);  // boosted muons (pz = 5 in beta*gamma)
@@ -347,7 +351,7 @@ TEST_F(DecayTest, BoostedMuonsProduceBoostedElectrons) {
 TEST_F(DecayTest, DaughterReproducibleWithSameSeed) {
     auto runWithDaughter = [&](int seed) {
         auto muons = makeContainer();
-        auto electrons = makeContainer();
+        auto electrons = makeContainer(ParticleType::ELECTRON);
         muons->setM(Physics::m_mu);
         electrons->setM(Physics::m_e);
         createParticles(muons, 256, 1.0);
@@ -382,7 +386,7 @@ TEST_F(DecayTest, DaughterReproducibleWithSameSeed) {
 TEST_F(DecayTest, PartialDecayCreatesDaughtersOnlyForDecayed) {
     constexpr size_t nPart = 1000;
     auto muons = makeContainer();
-    auto electrons = makeContainer();
+    auto electrons = makeContainer(ParticleType::ELECTRON);
     muons->setM(Physics::m_mu);
     electrons->setM(Physics::m_e);
     createParticles(muons, nPart, 0.5);
@@ -404,7 +408,7 @@ TEST_F(DecayTest, PartialDecayCreatesDaughtersOnlyForDecayed) {
 
 TEST_F(DecayTest, PionDecayDaughterCountMatchesDestroyed) {
     auto pions = makeContainer();
-    auto muons = makeContainer();
+    auto muons = makeContainer(ParticleType::MUON);
     pions->setM(Physics::m_pi);
     muons->setM(Physics::m_mu);
     createParticles(pions, 256, 0.0);
@@ -422,7 +426,7 @@ TEST_F(DecayTest, PionDecayDaughterCountMatchesDestroyed) {
 TEST_F(DecayTest, PionDecayTwoBodyFixedMomentum) {
     constexpr size_t nPart = 512;
     auto pions = makeContainer();
-    auto muons = makeContainer();
+    auto muons = makeContainer(ParticleType::MUON);
     pions->setM(Physics::m_pi);
     muons->setM(Physics::m_mu);
     createParticles(pions, nPart, 0.0);  // pions at rest
@@ -469,7 +473,7 @@ TEST_F(DecayTest, PionDecayTwoBodyFixedMomentum) {
 TEST_F(DecayTest, PionDecayBoostedConservesEnergy) {
     constexpr size_t nPart = 512;
     auto pions = makeContainer();
-    auto muons = makeContainer();
+    auto muons = makeContainer(ParticleType::MUON);
     pions->setM(Physics::m_pi);
     muons->setM(Physics::m_mu);
     createParticles(pions, nPart, 3.0);  // boosted pions
@@ -499,6 +503,68 @@ TEST_F(DecayTest, PionDecayBoostedConservesEnergy) {
         EXPECT_GT(energy, 0.0);
         EXPECT_TRUE(std::isfinite(energy));
     }
+}
+
+// =====================================================================
+// Species validation in setDaughterContainer
+// =====================================================================
+
+TEST_F(DecayTest, SetDaughterContainerAcceptsCorrectSpecies) {
+    auto electrons = makeContainer(ParticleType::ELECTRON);
+    MuonDecay muonDecay(1.0e-6, 0, Physics::m_mu);
+    EXPECT_NO_THROW(muonDecay.setDaughterContainer(electrons, Physics::m_e));
+
+    auto muons = makeContainer(ParticleType::MUON);
+    PionDecay pionDecay(1.0e-8, 0, Physics::m_pi);
+    EXPECT_NO_THROW(pionDecay.setDaughterContainer(muons, Physics::m_mu));
+}
+
+TEST_F(DecayTest, SetDaughterContainerRejectsWrongSpecies) {
+    MuonDecay decay(1.0e-6, 0, Physics::m_mu);
+
+    auto protonDaughter = makeContainer(ParticleType::PROTON);
+    EXPECT_THROW(decay.setDaughterContainer(protonDaughter, Physics::m_p),
+                 OpalException);
+
+    auto photonDaughter = makeContainer(ParticleType::PHOTON);
+    EXPECT_THROW(decay.setDaughterContainer(photonDaughter, 0.0),
+                 OpalException);
+
+    auto muonDaughter = makeContainer(ParticleType::MUON);
+    EXPECT_THROW(decay.setDaughterContainer(muonDaughter, Physics::m_mu),
+                 OpalException);
+}
+
+TEST_F(DecayTest, SetDaughterContainerRejectsUnnamedSpecies) {
+    // Default-constructed container has Sp = 0 (PHOTON) via makeContainer()
+    // with UNNAMED->0 cast; use explicit UNNAMED here which is -1 (sentinel).
+    auto unnamed = makeContainer(ParticleType::UNNAMED);
+    MuonDecay decay(1.0e-6, 0, Physics::m_mu);
+    EXPECT_THROW(decay.setDaughterContainer(unnamed, Physics::m_e),
+                 OpalException);
+}
+
+TEST_F(DecayTest, PionDecayRejectsElectronDaughter) {
+    auto electrons = makeContainer(ParticleType::ELECTRON);
+    PionDecay decay(1.0e-8, 0, Physics::m_pi);
+    // PionDecay's allowed daughter is MUON, not ELECTRON.
+    EXPECT_THROW(decay.setDaughterContainer(electrons, Physics::m_e),
+                 OpalException);
+}
+
+TEST_F(DecayTest, SetDaughterContainerAcceptsNullForDestroyOnly) {
+    auto muons = makeContainer();
+    muons->setM(Physics::m_mu);
+    createParticles(muons, 16, 0.0);
+
+    MuonDecay decay(1.0e-12, 0, Physics::m_mu);
+    // Null daughter = destroy-only mode; must not throw regardless of species.
+    EXPECT_NO_THROW(decay.setDaughterContainer(nullptr, 0.0));
+
+    // Decay still runs in destroy-only mode.
+    Options::seed = 11;
+    const size_t destroyed = decay.apply(*muons, 1.0, 0, 0);
+    EXPECT_EQ(destroyed, 16u);
 }
 
 }  // namespace

@@ -2,6 +2,7 @@
 #define OPAL_GLOBALPROCESS_MUON_DECAY_H
 
 #include "Processes/GlobalProcesses/Decay.h"
+#include "Physics/ParticleProperties.h"
 
 /**
  * @brief Muon decay: mu -> e + nu_e + nu_mu (three-body).
@@ -13,7 +14,13 @@
  */
 class MuonDecay : public Decay {
 public:
-    using Decay::Decay;
+    MuonDecay(double restLifetimeSeconds,
+              std::size_t containerIndex,
+              double parentMassGeV)
+        : Decay(restLifetimeSeconds, containerIndex, parentMassGeV) {
+        allowedDaughterSpecies_m =
+            static_cast<short>(ParticleProperties::getParticleType("ELECTRON"));
+    }
 
     void createDaughterParticles(
         std::size_t localDestroyNum,
