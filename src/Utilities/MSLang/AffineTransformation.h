@@ -2,9 +2,8 @@
 #define MSLANG_AFFINETRANSFORMATION_H
 
 #include "Algorithms/Matrix.h"
-#include "VectorMath.h"
+ 
 
-#include <cmath>
 #include <iostream>
 #include <fstream>
 

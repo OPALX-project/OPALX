@@ -24,23 +24,14 @@
  *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  */
+
+#include "Fields/BMultipoleField.h"
+#include "BeamlineGeometry/PlanarArcGeometry.h"
+#include "AbsBeamline/EndFieldModel/EndFieldModel.h"
+#include "AbsBeamline/Component.h"
+
 #ifndef ABSBEAMLINE_ScalingFFAMagnet_H
 #define ABSBEAMLINE_ScalingFFAMagnet_H
-
-#include "AbsBeamline/Component.h"
-#include "BeamlineGeometry/PlanarArcGeometry.h"
-#include "Fields/BMultipoleField.h"
-#include "PartBunch/PartBunchFwd.h"
-#include "VectorMath.h"
-
-#include <cstddef>
-#include <memory>
-#include <string>
-#include <vector>
-
-namespace endfieldmodel {
-    class EndFieldModel;
-}
 
 /** Sector bending magnet with an FFA-style field index and spiral end shape
  * 

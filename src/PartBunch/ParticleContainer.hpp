@@ -7,8 +7,7 @@
 #include <cmath>
 #include <vector>
 
-#include "Ippl.h"
-#include "PartBunch/FieldContainer.hpp"
+#include "Manager/BaseManager.h"
 
 #include "Algorithms/DistributionMoments.h"
 #include "Algorithms/PartData.h"

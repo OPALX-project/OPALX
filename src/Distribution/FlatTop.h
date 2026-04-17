@@ -124,6 +124,11 @@ public:
     double getEmissionTime(){
         return emissionTime_m;
     }
+
+    /// @copydoc SamplingBase::isEmissionDone
+    bool isEmissionDone(double t) const override {
+        return (t - t0_m) >= emissionTime_m;
+    }
 private:
     using size_type = ippl::detail::size_type;
     GeneratorPool rand_pool_m;  ///< Random number generator pool.

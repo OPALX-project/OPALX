@@ -12,8 +12,6 @@
 // You should have received a copy of the GNU General License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
-#include <csignal>
-
 #include "AbsBeamline/MultipoleT.h"
 #include "Attributes/Attributes.h"
 #include "Elements/OpalMultipoleT.h"
@@ -72,8 +70,8 @@ TEST_F(TestOpalMultipoleT, UserInterface) {
     EXPECT_NEAR(myMagnet->getElementLength(), 4.1, 1e-6);
     auto tp = myMagnet->getTransProfile();
     EXPECT_EQ(tp.size(), MultipoleTConfig::NumPoles);
-    EXPECT_NEAR(tp[0], 2.0, 1e-6);
-    EXPECT_NEAR(tp[1], 3.0, 1e-6);
+    EXPECT_NEAR(tp[0], 0.2, 1e-6);
+    EXPECT_NEAR(tp[1], 0.3, 1e-6);
     auto [s0, left, right] = myMagnet->getFringeField();
     EXPECT_NEAR(s0, 4.1 / 2.0, 1e-6);
     EXPECT_NEAR(left, 0.5, 1e-6);
@@ -138,8 +136,8 @@ TEST_F(TestOpalMultipoleT, UserInterfaceClone) {
     EXPECT_NEAR(myMagnet->getElementLength(), 4.1, 1e-6);
     auto tp = myMagnet->getTransProfile();
     EXPECT_EQ(tp.size(), 6);
-    EXPECT_NEAR(tp[0], 2.0, 1e-6);
-    EXPECT_NEAR(tp[1], 3.0, 1e-6);
+    EXPECT_NEAR(tp[0], 0.2, 1e-6);
+    EXPECT_NEAR(tp[1], 0.3, 1e-6);
     EXPECT_NEAR(tp[2], 0.0, 1e-6);
     EXPECT_NEAR(tp[3], 0.0, 1e-6);
     EXPECT_NEAR(tp[4], 0.0, 1e-6);

@@ -27,7 +27,6 @@
 
 #include <cmath>
 #include "AbsBeamline/BeamlineVisitor.h"
-#include "AbsBeamline/EndFieldModel/EndFieldModel.h"
 #include "AbsBeamline/ScalingFFAMagnet.h"
 #include "PartBunch/PartBunch.h"
 #include "Physics/Units.h"

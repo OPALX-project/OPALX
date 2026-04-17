@@ -18,11 +18,8 @@
 #ifndef CLASSIC_PartPusher_H
 #define CLASSIC_PartPusher_H
 
-#include "OPALTypes.h"
 #include "Physics/Physics.h"
-#include "Utility/Inform.h"
 
-#include <algorithm>
 #include "Expression/IpplExpressions.h"
 
 /*
