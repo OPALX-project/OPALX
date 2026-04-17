@@ -151,23 +151,56 @@ public:
     void applyField(std::shared_ptr<ParticleContainer_t> pc, double) override;
 
     /**
-     * @brief Apply the RF-scaled dynamic field map to all particles.
+     * @brief Apply the traveling-wave RF field map to all particles.
      *
      * This is the device-safe path used by `TravelingWave`. It avoids calling the
-     * virtual `Fieldmap::getFieldstrength()` interface inside a Kokkos kernel.
+     * virtual `Fieldmap::getFieldstrength()` interface inside a Kokkos kernel and
+     * reproduces the traveling-wave cavity region logic directly on device.
+     *
+     * The cavity is split into three longitudinal regions:
+     * - entry region: direct field-map application with entry phase/scale
+     * - core region: superposition of two periodically shifted field contributions
+     * - exit region: remapped field-map application with exit phase/scale
      *
      * @param pc Particle container.
-     * @param electricScale Scale factor applied to the electric field.
-     * @param magneticScale Scale factor applied to the magnetic field.
-     * @param startField Begin of the active cavity region.
-     * @param endField End of the active cavity region.
+     *
+     * @param entryElectricScale Scale factor applied to E in the entry region.
+     * @param entryMagneticScale Scale factor applied to B in the entry region.
+     *
+     * @param core1ElectricScale Scale factor applied to the first core contribution in E.
+     * @param core1MagneticScale Scale factor applied to the first core contribution in B.
+     *
+     * @param core2ElectricScale Scale factor applied to the second core contribution in E.
+     * @param core2MagneticScale Scale factor applied to the second core contribution in B.
+     *
+     * @param exitElectricScale Scale factor applied to E in the exit region.
+     * @param exitMagneticScale Scale factor applied to B in the exit region.
+     *
+     * @param startField Longitudinal beginning of the full traveling-wave structure.
+     * @param startCoreField Longitudinal beginning of the periodic core region.
+     * @param startExitField Longitudinal beginning of the exit region.
+     * @param mappedStartExitField Shift used to remap the exit region into field-map coordinates.
+     * @param periodLength Period length of the base field-map cell.
+     * @param cellLength Cell-to-cell longitudinal shift in the core region.
+     * @param elementLength Total longitudinal length of the traveling-wave element.
      */
     void applyTravelingWave(
         std::shared_ptr<ParticleContainer_t> pc,
-        double electricScale,
-        double magneticScale,
+        double entryElectricScale,
+        double entryMagneticScale,
+        double core1ElectricScale,
+        double core1MagneticScale,
+        double core2ElectricScale,
+        double core2MagneticScale,
+        double exitElectricScale,
+        double exitMagneticScale,
         double startField,
-        double endField);
+        double startCoreField,
+        double startExitField,
+        double mappedStartExitField,
+        double periodLength,
+        double cellLength,
+        double elementLength);
 
     virtual void getOnaxisEz(std::vector<std::pair<double, double>> & F) override;
 
