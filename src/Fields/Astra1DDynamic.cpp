@@ -310,13 +310,23 @@ void Astra1DDynamic::applyField(std::shared_ptr<ParticleContainer_t> pc, double)
         });
 }
 
-
 void Astra1DDynamic::applyTravelingWave(
     std::shared_ptr<ParticleContainer_t> pc,
-    double electricScale,
-    double magneticScale,
-    double startField,
-    double endField)
+    double entryElectricScale,
+    double entryMagneticScale,
+    double core1ElectricScale,
+    double core1MagneticScale,
+    double core2ElectricScale,
+    double core2MagneticScale,
+    double exitElectricScale,
+    double exitMagneticScale,
+    double /*startField*/,
+    double startCoreField,
+    double startExitField,
+    double mappedStartExitField,
+    double periodLength,
+    double cellLength,
+    double elementLength)
 {
     const double zbegin = zbegin_m;
     const double zend   = zend_m;
@@ -331,18 +341,28 @@ void Astra1DDynamic::applyTravelingWave(
     auto Bview = pc->B.getView();
 
     Kokkos::parallel_for(
-        "Astra1DDynamic::applyTravelingWaveField",
+        "Astra1DDynamic::applyTravelingWave",
         ippl::getRangePolicy(Rview),
         KOKKOS_LAMBDA(const int i)
         {
             const auto& R = Rview(i);
 
-            if (R(2) >= startField && R(2) < endField &&
-                R(2) >= zbegin && R(2) < zend) {
-                Vector_t<double, 3> tmpE(0.0), tmpB(0.0);
+            // Match old TravelingWave longitudinal acceptance
+            if (R(2) < -0.5 * periodLength || R(2) + 0.5 * periodLength >= elementLength) {
+                return;
+            }
+
+            Vector_t<double, 3> tmpR({R(0), R(1), R(2) + 0.5 * periodLength});
+            Vector_t<double, 3> tmpE(0.0), tmpB(0.0);
+
+            // Entry region
+            if (tmpR(2) < startCoreField) {
+                if (!(tmpR(2) >= zbegin && tmpR(2) < zend)) {
+                    return;
+                }
 
                 computeField(
-                    R,
+                    tmpR,
                     tmpE,
                     tmpB,
                     FourCoefs_device,
@@ -351,9 +371,83 @@ void Astra1DDynamic::applyTravelingWave(
                     xlrep,
                     accuracy);
 
-                Eview(i) += electricScale * tmpE;
-                Bview(i) += magneticScale * tmpB;
+                Eview(i) += entryElectricScale * tmpE;
+                Bview(i) += entryMagneticScale * tmpB;
+                return;
             }
+
+            // Core region: sum two shifted contributions
+            if (tmpR(2) < startExitField) {
+                tmpR(2) -= startCoreField;
+                const double z = tmpR(2);
+
+                // First core contribution
+                tmpR(2) = tmpR(2) - periodLength * Kokkos::floor(tmpR(2) / periodLength);
+                tmpR(2) += startCoreField;
+
+                if (!(tmpR(2) >= zbegin && tmpR(2) < zend)) {
+                    return;
+                }
+
+                computeField(
+                    tmpR,
+                    tmpE,
+                    tmpB,
+                    FourCoefs_device,
+                    zbegin,
+                    length,
+                    xlrep,
+                    accuracy);
+
+                Eview(i) += core1ElectricScale * tmpE;
+                Bview(i) += core1MagneticScale * tmpB;
+
+                // Second core contribution
+                tmpE = 0.0;
+                tmpB = 0.0;
+
+                tmpR(2) = z + cellLength;
+                tmpR(2) = tmpR(2) - periodLength * Kokkos::floor(tmpR(2) / periodLength);
+                tmpR(2) += startCoreField;
+
+                if (!(tmpR(2) >= zbegin && tmpR(2) < zend)) {
+                    return;
+                }
+
+                computeField(
+                    tmpR,
+                    tmpE,
+                    tmpB,
+                    FourCoefs_device,
+                    zbegin,
+                    length,
+                    xlrep,
+                    accuracy);
+
+                Eview(i) += core2ElectricScale * tmpE;
+                Bview(i) += core2MagneticScale * tmpB;
+                return;
+            }
+
+            // Exit region
+            tmpR(2) -= mappedStartExitField;
+
+            if (!(tmpR(2) >= zbegin && tmpR(2) < zend)) {
+                return;
+            }
+
+            computeField(
+                tmpR,
+                tmpE,
+                tmpB,
+                FourCoefs_device,
+                zbegin,
+                length,
+                xlrep,
+                accuracy);
+
+            Eview(i) += exitElectricScale * tmpE;
+            Bview(i) += exitMagneticScale * tmpB;
         });
 }
 
