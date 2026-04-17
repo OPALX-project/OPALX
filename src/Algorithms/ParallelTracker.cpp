@@ -40,6 +40,7 @@
 #include "Beamlines/Beamline.h"
 #include "Beamlines/FlaggedBeamline.h"
 #include "Distribution/Distribution.h"
+#include "PartBunch/BinnedFieldSolver.h" 
 #include "Physics/Units.h"
 
 #include "Structure/BoundaryGeometry.h"
@@ -482,8 +483,15 @@ void ParallelTracker::execute() {
     // Ensure all Kokkos operations are complete 
     Kokkos::fence();
 
+    if (itsBunch_m->hasFieldSolver()) {
+        m << level2 << "Total FieldSolver calls: " << itsBunch_m->getFieldSolver()->getCallCounter()
+                    << endl;
+    }
+
     OPALTimer::Timer myt3;
-    *gmsg << level1 << endl << "* Done executing ParallelTracker at " << myt3.time() << endl << endl;
+    *gmsg << level1 << endl
+          << "* Done executing ParallelTracker at " << myt3.time() << endl
+          << endl;
 }
 
 

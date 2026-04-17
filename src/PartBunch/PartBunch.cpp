@@ -284,6 +284,16 @@ void PartBunch<T, Dim>::setSolver() {
  * @copybrief PartBunch::setBins
  */
 template <typename T, unsigned Dim>
+typename PartBunch<T, Dim>::BinnedFieldSolver_t* PartBunch<T, Dim>::getFieldSolver() {
+    return static_cast<BinnedFieldSolver_t*>(this->fsolver_m.get());
+}
+
+template <typename T, unsigned Dim>
+const typename PartBunch<T, Dim>::BinnedFieldSolver_t* PartBunch<T, Dim>::getFieldSolver() const {
+    return static_cast<const BinnedFieldSolver_t*>(this->fsolver_m.get());
+}
+
+template <typename T, unsigned Dim>
 std::string PartBunch<T, Dim>::getFieldSolverType() {
     return this->getFieldSolver()->getStype();
 }

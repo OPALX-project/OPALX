@@ -118,6 +118,8 @@ public:
      */
     void resetCallCounter() { call_counter_m = 0; }
 
+    size_t getCallCounter() { return call_counter_m; }
+
     /**
      * @brief Execute the field solver for the current simulation state.
      *
