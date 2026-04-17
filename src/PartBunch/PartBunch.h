@@ -655,16 +655,12 @@ public:
 
     /**
      * @brief Non-const pointer to the concrete BinnedFieldSolver.
-     * @note Uses dynamic_cast; returns nullptr if solver is not a BinnedFieldSolver.
+     * @note Definition in PartBunch.cpp; requires complete BinnedFieldSolver type.
      */
-    BinnedFieldSolver_t* getFieldSolver() {
-        return dynamic_cast<BinnedFieldSolver_t*>(this->fsolver_m.get());
-    }
+    BinnedFieldSolver_t* getFieldSolver();
 
     /// @brief Const overload of getFieldSolver().
-    const BinnedFieldSolver_t* getFieldSolver() const {
-        return dynamic_cast<const BinnedFieldSolver_t*>(this->fsolver_m.get());
-    }
+    const BinnedFieldSolver_t* getFieldSolver() const;
 
     /// @brief Backend type string (e.g. FFT, OPEN, CG, NONE).
     std::string getFieldSolverType();
