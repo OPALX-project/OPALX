@@ -143,6 +143,92 @@ public:
         B(1) += BfieldT * R(0);
     }
 
+    template <class ViewType>
+    KOKKOS_INLINE_FUNCTION
+    static void computeTravelingWaveField(
+        const Vector_t<double, 3>& R,
+        Vector_t<double, 3>& E,
+        Vector_t<double, 3>& B,
+        const ViewType& FourCoefs,
+        double zbegin,
+        double zend,
+        double length,
+        double xlrep,
+        int accuracy,
+        double entryElectricScale,
+        double entryMagneticScale,
+        double core1ElectricScale,
+        double core1MagneticScale,
+        double core2ElectricScale,
+        double core2MagneticScale,
+        double exitElectricScale,
+        double exitMagneticScale,
+        double startCoreField,
+        double startExitField,
+        double mappedStartExitField,
+        double periodLength,
+        double cellLength,
+        double elementLength)
+    {
+        if (R(2) < -0.5 * periodLength || R(2) + 0.5 * periodLength >= elementLength) {
+            return;
+        }
+
+        Vector_t<double, 3> tmpR({R(0), R(1), R(2) + 0.5 * periodLength});
+        Vector_t<double, 3> tmpE(0.0), tmpB(0.0);
+
+        if (tmpR(2) < startCoreField) {
+            if (!(tmpR(2) >= zbegin && tmpR(2) < zend)) {
+                return;
+            }
+
+            computeField(tmpR, tmpE, tmpB, FourCoefs, zbegin, length, xlrep, accuracy);
+            E += entryElectricScale * tmpE;
+            B += entryMagneticScale * tmpB;
+        }
+        else if (tmpR(2) < startExitField) {
+            tmpR(2) -= startCoreField;
+            const double z = tmpR(2);
+
+            tmpR(2) = tmpR(2) - periodLength * Kokkos::floor(tmpR(2) / periodLength);
+            tmpR(2) += startCoreField;
+
+            if (!(tmpR(2) >= zbegin && tmpR(2) < zend)) {
+                return;
+            }
+
+            computeField(tmpR, tmpE, tmpB, FourCoefs, zbegin, length, xlrep, accuracy);
+            E += core1ElectricScale * tmpE;
+            B += core1MagneticScale * tmpB;
+
+            tmpE = 0.0;
+            tmpB = 0.0;
+
+            tmpR(2) = z + cellLength;
+            tmpR(2) = tmpR(2) - periodLength * Kokkos::floor(tmpR(2) / periodLength);
+            tmpR(2) += startCoreField;
+
+            if (!(tmpR(2) >= zbegin && tmpR(2) < zend)) {
+                return;
+            }
+
+            computeField(tmpR, tmpE, tmpB, FourCoefs, zbegin, length, xlrep, accuracy);
+            E += core2ElectricScale * tmpE;
+            B += core2MagneticScale * tmpB;
+        }
+        else {
+            tmpR(2) -= mappedStartExitField;
+
+            if (!(tmpR(2) >= zbegin && tmpR(2) < zend)) {
+                return;
+            }
+
+            computeField(tmpR, tmpE, tmpB, FourCoefs, zbegin, length, xlrep, accuracy);
+            E += exitElectricScale * tmpE;
+            B += exitMagneticScale * tmpB;
+        }
+    }
+
     /**
      * @brief Apply the FM to all the particles
      * 
