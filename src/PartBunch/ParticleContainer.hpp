@@ -9,6 +9,8 @@
 
 #include "Manager/BaseManager.h"
 
+#include "PartBunch/FieldContainer.hpp"
+
 #include "Algorithms/DistributionMoments.h"
 #include "Algorithms/PartData.h"
 #include "Algorithms/Quaternion.hpp"
