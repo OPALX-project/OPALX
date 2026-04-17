@@ -256,8 +256,12 @@ void Beam::update() {
     if (itsAttr[PARTICLE]) {
         std::string pName  = getParticleName();
         ParticleType pType = ParticleProperties::getParticleType(pName);
-        Attributes::setReal(itsAttr[MASS], ParticleProperties::getParticleMass(pType));
-        Attributes::setReal(itsAttr[CHARGE], ParticleProperties::getParticleCharge(pType));
+        if (!itsAttr[MASS]) {
+            Attributes::setReal(itsAttr[MASS], ParticleProperties::getParticleMass(pType));
+        }
+        if (!itsAttr[CHARGE]) {
+            Attributes::setReal(itsAttr[CHARGE], ParticleProperties::getParticleCharge(pType));
+        }
     }
 
     if (isPhoton()) {
