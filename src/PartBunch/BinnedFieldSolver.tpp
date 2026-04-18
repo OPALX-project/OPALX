@@ -65,10 +65,30 @@ void BinnedFieldSolver<T, Dim>::computeSelfFields(std::shared_ptr<PartBunch_t> b
         imageScatterController_m.configure(false, imageScatterController_m.getZPlane());
     }
 
+    // Mirror the same step-budget toggling for the shifted Green's path.
+    const bool shiftedGreensWasEnabled   = shiftedGreensEnabled_m;
+    const bool shiftedGreensActiveThisStep =
+            isShiftedGreensActiveForStep(bunch->getGlobalTrackStep());
+    if (shiftedGreensWasEnabled && !shiftedGreensActiveThisStep) {
+        m << level3 << "ZEROFACE_MAXSTEPS reached (step=" << bunch->getGlobalTrackStep()
+          << ", maxSteps=" << zerofaceMaxSteps_m
+          << "); disabling SHIFTED_GREENS_FUNCTION correction for this step." << endl;
+        shiftedGreensEnabled_m = false;
+    }
+
     if (hasBins) {
         m << level4 << "Dispatching to computeBinnedSelfFields() (binned path)." << endl;
         computeBinnedSelfFields(bunch);
     } else {
+        // Legacy path has no separate correction pass: it scatters primary+image
+        // in one shot via ImageChargeScatterController::scatterPrimaryAndImage
+        // and does one standard solve. The shifted Green's correction is only
+        // implemented for the binned path, so warn once if the user requested it
+        // without binning.
+        if (shiftedGreensWasEnabled && shiftedGreensActiveThisStep) {
+            m << level3 << "SHIFTED_GREENS_FUNCTION is set but no binning is active; "
+              << "the legacy path does not apply the Dirichlet correction." << endl;
+        }
         m << level4 << "Dispatching to computeLegacySelfFields() (legacy path)." << endl;
         computeLegacySelfFields(bunch);
     }
@@ -76,6 +96,9 @@ void BinnedFieldSolver<T, Dim>::computeSelfFields(std::shared_ptr<PartBunch_t> b
     // Restore image-charge controller state if it was temporarily disabled.
     if (imageWasEnabled && !imageActiveThisStep) {
         imageScatterController_m.configure(true, imageScatterController_m.getZPlane());
+    }
+    if (shiftedGreensWasEnabled && !shiftedGreensActiveThisStep) {
+        shiftedGreensEnabled_m = true;
     }
 }
 
@@ -93,7 +116,25 @@ void BinnedFieldSolver<T, Dim>::setGatherAttribute(const GatherAttribute attr) {
 
 template <typename T, unsigned Dim>
 void BinnedFieldSolver<T, Dim>::setImageChargeConfiguration(bool enabled, double zPlane) {
+    if (enabled && shiftedGreensEnabled_m) {
+        throw OpalException(
+                "BinnedFieldSolver::setImageChargeConfiguration",
+                "Cannot enable image charges while SHIFTED_GREENS_FUNCTION is active: "
+                "ZEROFACE_R0Z and SHIFTED_GREENS_FUNCTION are mutually exclusive.");
+    }
     imageScatterController_m.configure(enabled, zPlane);
+}
+
+template <typename T, unsigned Dim>
+void BinnedFieldSolver<T, Dim>::setShiftedGreensConfiguration(bool enabled, double zPlane) {
+    if (enabled && imageScatterController_m.isEnabled()) {
+        throw OpalException(
+                "BinnedFieldSolver::setShiftedGreensConfiguration",
+                "Cannot enable SHIFTED_GREENS_FUNCTION while image charges are active: "
+                "ZEROFACE_R0Z and SHIFTED_GREENS_FUNCTION are mutually exclusive.");
+    }
+    shiftedGreensEnabled_m = enabled;
+    shiftedGreensPlaneZ_m  = zPlane;
 }
 
 template <typename T, unsigned Dim>
@@ -109,6 +150,17 @@ void BinnedFieldSolver<T, Dim>::setZerofaceMaxSteps(int maxSteps) {
 template <typename T, unsigned Dim>
 bool BinnedFieldSolver<T, Dim>::isImageChargeActiveForStep(size_t step) const {
     if (!imageScatterController_m.isEnabled()) {
+        return false;
+    }
+    if (zerofaceMaxSteps_m <= 0) {
+        return true;  // unlimited
+    }
+    return step < static_cast<size_t>(zerofaceMaxSteps_m);
+}
+
+template <typename T, unsigned Dim>
+bool BinnedFieldSolver<T, Dim>::isShiftedGreensActiveForStep(size_t step) const {
+    if (!shiftedGreensEnabled_m) {
         return false;
     }
     if (zerofaceMaxSteps_m <= 0) {
@@ -272,17 +324,21 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(std::shared_ptr<PartBunc
                         static_cast<long long>(binIndex),
                         static_cast<unsigned long long>(nPartGlobal), gammaBin});
 
-        // Mesh references reused for both primary and image passes.
+        // Mesh references reused for both primary and correction passes.
         auto& mesh = this->getRho()->get_mesh();
         const auto hrOrig = mesh.getMeshSpacing();
         auto hrStretched = hrOrig;
         hrStretched[Dim - 1] *= gammaBin;
 
-        const bool imageActive = imageScatterController_m.isEnabled();
+        const bool imageActive         = imageScatterController_m.isEnabled();
+        const bool shiftedGreensActive = shiftedGreensEnabled_m;
+        // Mutual exclusion enforced at config time; defensive assert.
+        assert(!(imageActive && shiftedGreensActive));
+        const bool correctionActive = imageActive || shiftedGreensActive;
 
         // --- Primary pass: scatter real charges, solve, accumulate with +B ---
         {
-            const ImageScatterMode scatterMode = imageActive
+            const ImageScatterMode scatterMode = correctionActive
                     ? ImageScatterMode::PrimaryOnly
                     : ImageScatterMode::PrimaryAndImage;
             prepareRhoForBin(bunch, bins, binIndex, nPartGlobal, gammaBin, scatterMode);
@@ -297,19 +353,50 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(std::shared_ptr<PartBunc
             m << level4 << "binIndex=" << static_cast<int>(binIndex)
               << " primary runSolver(true) done; accumulate->Etmp" << endl;
 
-            if (!dumpedDirichletPlaneThisStep) {
-                dumpDirichletPlaneDiagnosticsIfRequested(bunch, "binned");
-                dumpedDirichletPlaneThisStep = true;
-            }
+            // DEBUG: report max|E| after the primary solve AND Etmp before/after.
+            auto e_max_primary = [&](const char* tag, auto& field) {
+                double localMax = 0.0;
+                auto vE = field.getView();
+                ippl::parallel_reduce(
+                    tag, field.getFieldRangePolicy(),
+                    KOKKOS_LAMBDA(const ippl::RangePolicy<Dim>::index_array_type& idx,
+                                  double& lmax) {
+                        auto e = apply(vE, idx);
+                        const double m2 = e[0]*e[0] + e[1]*e[1] + e[2]*e[2];
+                        if (m2 > lmax) lmax = m2;
+                    },
+                    Kokkos::Max<double>(localMax));
+                double globalMax = 0.0;
+                ippl::Comm->allreduce(localMax, globalMax, 1, std::greater<double>());
+                return std::sqrt(globalMax);
+            };
+            m << level5 << "[DEBUG] binIndex=" << static_cast<int>(binIndex)
+              << " primary: max|E| = " << e_max_primary("primary |E|", *this->getE())
+              << " max|Etmp before| = " << e_max_primary("Etmp pre-primary", *EtmpSP) << endl;
 
             accumulateFieldToTemp(gammaBin, kinematics.pmean, EtmpSP, BtmpSP, +1.0);
+
+            m << level5 << "[DEBUG] binIndex=" << static_cast<int>(binIndex)
+              << " primary: max|Etmp after| = "
+              << e_max_primary("Etmp post-primary", *EtmpSP) << endl;
+
             mesh.setMeshSpacing(hrOrig);
         }
 
-        // --- Image pass: scatter mirrored charges, solve, accumulate with -B ---
-        // The image charges represent induced charges on a stationary cathode plane.
-        // In the lab frame they move in the opposite z-direction to the bunch,
-        // so their B-field contribution has the opposite sign (matching old OPAL).
+        // --- Dirichlet correction pass: one of two mutually-exclusive paths ---
+        //
+        // Path A (image charges): legacy path. Scatters mirrored particles onto
+        // the same mesh, then solves with the standard Green's function. Only
+        // correct while the mesh straddles the cathode plane; degrades silently
+        // once the bunch has drifted beyond ZEROFACE_MAXSTEPS.
+        //
+        // Path B (shifted Green's function): new path. Re-scatters the primary
+        // charges, then solves with a translated free-space kernel that encodes
+        // the image-charge contribution analytically. The component-wise z-flip
+        // + sign-flip on the solver output, baked into accumulateFieldToTemp,
+        // produces the image-charge E field directly. Works at any bunch-to-
+        // plane distance and requires the OPEN solver (checked in
+        // FieldSolver::runShiftedOpenSolver).
         if (imageActive) {
             prepareRhoForBin(bunch, bins, binIndex, nPartGlobal, gammaBin,
                              ImageScatterMode::ImageOnly);
@@ -325,6 +412,92 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(std::shared_ptr<PartBunc
 
             accumulateFieldToTemp(gammaBin, kinematics.pmean, EtmpSP, BtmpSP, -1.0);
             mesh.setMeshSpacing(hrOrig);
+
+            // Dump phi ~= 0 check on the Dirichlet plane AFTER the correction
+            // lands on the mesh. Only safe for the explicit-image path: there
+            // the cathode plane always lies inside the computational domain.
+            // For the shifted path the domain may be far from z = R0Z, so the
+            // interpolated phi on the plane would be meaningless.
+            if (!dumpedDirichletPlaneThisStep) {
+                dumpDirichletPlaneDiagnosticsIfRequested(bunch, "binned");
+                dumpedDirichletPlaneThisStep = true;
+            }
+        }
+        else if (shiftedGreensActive) {
+            // Multi-rank guard: the axis-flip source read in accumulateFieldToTemp
+            // assumes the flipped index is owned by the same rank. For now we only
+            // support single-rank; upstream validation already ensures this.
+            if (ippl::Comm->size() > 1) {
+                if (!warnedShiftedGreensMultiRankUnsupported_m) {
+                    warnedShiftedGreensMultiRankUnsupported_m = true;
+                    m << level3
+                      << "SHIFTED_GREENS_FUNCTION currently supports single-rank runs only. "
+                      << "Skipping the Dirichlet correction pass." << endl;
+                }
+            } else {
+                // Re-scatter the primary charges (solve() overwrote the RHS in the
+                // primary pass). This matches the ImageOnly path's pattern.
+                prepareRhoForBin(bunch, bins, binIndex, nPartGlobal, gammaBin,
+                                 ImageScatterMode::PrimaryOnly);
+
+                *(this->getE()) = 0.0;
+                mesh.setMeshSpacing(hrStretched);
+
+                // Shift formula in stretched (rest-frame) coordinates:
+                //   shift_z = L + 2*origin_z - 2*R0Z = 2 * (z_center_rest - R0Z).
+                // Origin is in lab-frame z; hrStretched[Dim-1] is the rest-frame
+                // z-spacing. See the TestShiftedGreensFunction derivation.
+                const auto origin = mesh.getOrigin();
+                const int    N_z  = static_cast<int>(
+                        this->getRho()->getLayout().getDomain()[Dim - 1].length());
+                const double z_center_rest =
+                        origin[Dim - 1] + 0.5 * static_cast<double>(N_z) * hrStretched[Dim - 1];
+                ippl::Vector<double, Dim> shift(0.0);
+                shift[Dim - 1] = 2.0 * (z_center_rest - shiftedGreensPlaneZ_m);
+
+                m << level4 << "binIndex=" << static_cast<int>(binIndex)
+                  << " shifted-GF runSolver start, plane=" << shiftedGreensPlaneZ_m
+                  << ", shift_z=" << shift[Dim - 1] << endl;
+                this->runShiftedOpenSolver(shift);
+                m << level4 << "binIndex=" << static_cast<int>(binIndex)
+                  << " shifted-GF runSolver done; accumulate->Etmp (B negated, z-flip)"
+                  << endl;
+
+                // DEBUG: report max|E| produced by the shifted solve AND Etmp
+                // before/after the accumulate, so we can tell whether the image
+                // correction actually lands.
+                auto e_max = [&](const char* tag, auto& field) {
+                    double localMax = 0.0;
+                    auto vE = field.getView();
+                    ippl::parallel_reduce(
+                        tag, field.getFieldRangePolicy(),
+                        KOKKOS_LAMBDA(const ippl::RangePolicy<Dim>::index_array_type& idx,
+                                      double& lmax) {
+                            auto e = apply(vE, idx);
+                            const double m2 = e[0]*e[0] + e[1]*e[1] + e[2]*e[2];
+                            if (m2 > lmax) lmax = m2;
+                        },
+                        Kokkos::Max<double>(localMax));
+                    double globalMax = 0.0;
+                    ippl::Comm->allreduce(localMax, globalMax, 1, std::greater<double>());
+                    return std::sqrt(globalMax);
+                };
+                m << level5 << "[DEBUG] binIndex=" << static_cast<int>(binIndex)
+                  << " shifted: max|E_raw| = " << e_max("shifted |E|_max", *this->getE())
+                  << " max|Etmp before| = " << e_max("Etmp pre", *EtmpSP)
+                  << " (shift_z=" << shift[Dim - 1] << ")" << endl;
+
+                // Axis-flip + component-wise sign is handled inside
+                // accumulateFieldToTemp when flipAxis >= 0 (see method doc).
+                constexpr int zFlipAxis = static_cast<int>(Dim) - 1;
+                accumulateFieldToTemp(gammaBin, kinematics.pmean, EtmpSP, BtmpSP, -1.0,
+                                      zFlipAxis);
+
+                m << level5 << "[DEBUG] binIndex=" << static_cast<int>(binIndex)
+                  << " shifted: max|Etmp after| = " << e_max("Etmp post", *EtmpSP) << endl;
+
+                mesh.setMeshSpacing(hrOrig);
+            }
         }
     }
 
@@ -542,10 +715,11 @@ template <typename T, unsigned Dim>
 void BinnedFieldSolver<T, Dim>::accumulateFieldToTemp(
         const double gammaBin, const Vector_t<double, Dim>& pmean,
         std::shared_ptr<VField_t<T, Dim>> EtmpSP, std::shared_ptr<VField_t<T, Dim>> BtmpSP,
-        double bFieldSign) {
+        double bFieldSign, int flipAxis) {
     // transform rest-frame fields to lab-frame fields and accumulate.
     Inform m("BinnedFieldSolver::accumulateFieldToTemp");
-    m << level4 << "accumulate: gammaBin=" << std::setprecision(10) << gammaBin << endl;
+    m << level4 << "accumulate: gammaBin=" << std::setprecision(10) << gammaBin
+      << ", flipAxis=" << flipAxis << endl;
 
     const double invGamma         = (gammaBin > 0.0) ? (1.0 / gammaBin) : 0.0;
     const Vector_t<double, Dim> v = Physics::c * pmean * invGamma;
@@ -561,21 +735,72 @@ void BinnedFieldSolver<T, Dim>::accumulateFieldToTemp(
     auto eTmpView                  = Etmp.getView();
     auto bTmpView                  = Btmp.getView();
 
+    const int nghost = Eprime.getNghost();
+    // Axis-flip geometry: for physical index k_phys in [0, N), the mirrored
+    // physical index is N-1-k_phys. In view (ghost-padded) coordinates that is
+    //   k_view_flipped = (N - 1 - k_phys) + nghost = 2*nghost + N - 1 - k_view.
+    // view.extent(d) equals N + 2*nghost, so (view.extent(d) - 1 - idx) gives
+    // the flipped view index directly.
+    const int capturedFlipAxis = flipAxis;
+
     // parallel element-wise transformation and accumulation into temporaries.
-    ippl::parallel_for(
-            "BinnedFieldSolver::accumulateFieldToTemp", Eprime.getFieldRangePolicy(),
-            KOKKOS_LAMBDA(const ippl::RangePolicy<Dim>::index_array_type& idx) {
-                Vector_t<T, Dim> ePrime = apply(ePrimeView, idx);
-                const T ePrimeDotW      = ePrime.dot(w);
-                Vector_t<T, Dim> eLab   = gammaBin * ePrime - gammaMinusOne * ePrimeDotW * w;
-                Vector_t<T, Dim> bLab   = bFieldSign * gammaOverCSq * cross(v, ePrime);
-                Vector_t<T, Dim> eTotal = apply(eTmpView, idx);
-                Vector_t<T, Dim> bTotal = apply(bTmpView, idx);
-                eTotal += eLab;
-                bTotal += bLab;
-                apply(eTmpView, idx) = eTotal;
-                apply(bTmpView, idx) = bTotal;
-            });
+    if (capturedFlipAxis < 0) {
+        // Fast path: no flip, original behavior.
+        ippl::parallel_for(
+                "BinnedFieldSolver::accumulateFieldToTemp", Eprime.getFieldRangePolicy(),
+                KOKKOS_LAMBDA(const ippl::RangePolicy<Dim>::index_array_type& idx) {
+                    Vector_t<T, Dim> ePrime = apply(ePrimeView, idx);
+                    const T ePrimeDotW      = ePrime.dot(w);
+                    Vector_t<T, Dim> eLab   = gammaBin * ePrime - gammaMinusOne * ePrimeDotW * w;
+                    Vector_t<T, Dim> bLab   = bFieldSign * gammaOverCSq * cross(v, ePrime);
+                    Vector_t<T, Dim> eTotal = apply(eTmpView, idx);
+                    Vector_t<T, Dim> bTotal = apply(bTmpView, idx);
+                    eTotal += eLab;
+                    bTotal += bLab;
+                    apply(eTmpView, idx) = eTotal;
+                    apply(bTmpView, idx) = bTotal;
+                });
+    } else {
+        // Axis-flipped path: read E' at the mirrored source index and apply the
+        // component-wise image-charge sign rule (flip all components except the
+        // one parallel to the flip axis) BEFORE the Lorentz transform.
+        const int flipAxisCap = capturedFlipAxis;
+        // Pre-compute view extent along the flip axis (same on all ranks for
+        // single-rank shifted path — multi-rank is guarded upstream).
+        const int viewExtentMinus1 = static_cast<int>(ePrimeView.extent(flipAxisCap)) - 1;
+        (void)nghost;  // captured implicitly via viewExtentMinus1
+
+        ippl::parallel_for(
+                "BinnedFieldSolver::accumulateFieldToTemp[flipped]",
+                Eprime.getFieldRangePolicy(),
+                KOKKOS_LAMBDA(const ippl::RangePolicy<Dim>::index_array_type& idx) {
+                    // Build the flipped source index.
+                    typename ippl::RangePolicy<Dim>::index_array_type srcIdx = idx;
+                    srcIdx[flipAxisCap] = viewExtentMinus1 - idx[flipAxisCap];
+
+                    // Read E' at the flipped location.
+                    Vector_t<T, Dim> ePrime = apply(ePrimeView, srcIdx);
+
+                    // Component-wise sign rule (derivation: phi_image(r) = -phi_shifted(R(r))
+                    // so E_image_i = -E_shifted_i(R(r)) for i != flipAxis and
+                    // E_image_i = +E_shifted_i(R(r)) for i == flipAxis).
+                    for (unsigned d = 0; d < Dim; ++d) {
+                        if (static_cast<int>(d) != flipAxisCap) {
+                            ePrime[d] = -ePrime[d];
+                        }
+                    }
+
+                    const T ePrimeDotW      = ePrime.dot(w);
+                    Vector_t<T, Dim> eLab   = gammaBin * ePrime - gammaMinusOne * ePrimeDotW * w;
+                    Vector_t<T, Dim> bLab   = bFieldSign * gammaOverCSq * cross(v, ePrime);
+                    Vector_t<T, Dim> eTotal = apply(eTmpView, idx);
+                    Vector_t<T, Dim> bTotal = apply(bTmpView, idx);
+                    eTotal += eLab;
+                    bTotal += bLab;
+                    apply(eTmpView, idx) = eTotal;
+                    apply(bTmpView, idx) = bTotal;
+                });
+    }
 }
 
 template <typename T, unsigned Dim>
