@@ -1,5 +1,9 @@
 #include "Structure/DataSink.h"
 
+#include <cstring>
+#include <utility>
+#include <vector>
+
 template <typename T, unsigned Dim>
 BinnedFieldSolver<T, Dim>::BinnedFieldSolver(
         std::string solver,
@@ -424,80 +428,46 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(std::shared_ptr<PartBunc
             }
         }
         else if (shiftedGreensActive) {
-            // Multi-rank guard: the axis-flip source read in accumulateFieldToTemp
-            // assumes the flipped index is owned by the same rank. For now we only
-            // support single-rank; upstream validation already ensures this.
-            if (ippl::Comm->size() > 1) {
-                if (!warnedShiftedGreensMultiRankUnsupported_m) {
-                    warnedShiftedGreensMultiRankUnsupported_m = true;
-                    m << level3
-                      << "SHIFTED_GREENS_FUNCTION currently supports single-rank runs only. "
-                      << "Skipping the Dirichlet correction pass." << endl;
-                }
-            } else {
-                // Re-scatter the primary charges (solve() overwrote the RHS in the
-                // primary pass). This matches the ImageOnly path's pattern.
-                prepareRhoForBin(bunch, bins, binIndex, nPartGlobal, gammaBin,
-                                 ImageScatterMode::PrimaryOnly);
+            // Shifted-Green's-function image correction. Multi-rank enabled: the
+            // axis-flip source read crosses ranks under PARFFTZ, but that is handled
+            // inside accumulateFieldToTemp (it calls buildFlippedZSlab to stage a
+            // local view populated via peer-rank MPI exchange).
+            //
+            // Re-scatter the primary charges (solve() overwrote the RHS in the
+            // primary pass). This matches the ImageOnly path's pattern.
+            prepareRhoForBin(bunch, bins, binIndex, nPartGlobal, gammaBin,
+                             ImageScatterMode::PrimaryOnly);
 
-                *(this->getE()) = 0.0;
-                mesh.setMeshSpacing(hrStretched);
+            *(this->getE()) = 0.0;
+            mesh.setMeshSpacing(hrStretched);
 
-                // Shift formula in stretched (rest-frame) coordinates:
-                //   shift_z = L + 2*origin_z - 2*R0Z = 2 * (z_center_rest - R0Z).
-                // Origin is in lab-frame z; hrStretched[Dim-1] is the rest-frame
-                // z-spacing. See the TestShiftedGreensFunction derivation.
-                const auto origin = mesh.getOrigin();
-                const int    N_z  = static_cast<int>(
-                        this->getRho()->getLayout().getDomain()[Dim - 1].length());
-                const double z_center_rest =
-                        origin[Dim - 1] + 0.5 * static_cast<double>(N_z) * hrStretched[Dim - 1];
-                ippl::Vector<double, Dim> shift(0.0);
-                shift[Dim - 1] = 2.0 * (z_center_rest - shiftedGreensPlaneZ_m);
+            // Shift formula in stretched (rest-frame) coordinates:
+            //   shift_z = L + 2*origin_z - 2*R0Z = 2 * (z_center_rest - R0Z).
+            // Origin is in lab-frame z; hrStretched[Dim-1] is the rest-frame
+            // z-spacing. See the TestShiftedGreensFunction derivation.
+            const auto origin = mesh.getOrigin();
+            const int    N_z  = static_cast<int>(
+                    this->getRho()->getLayout().getDomain()[Dim - 1].length());
+            const double z_center_rest =
+                    origin[Dim - 1] + 0.5 * static_cast<double>(N_z) * hrStretched[Dim - 1];
+            ippl::Vector<double, Dim> shift(0.0);
+            shift[Dim - 1] = 2.0 * (z_center_rest - shiftedGreensPlaneZ_m);
 
-                m << level4 << "binIndex=" << static_cast<int>(binIndex)
-                  << " shifted-GF runSolver start, plane=" << shiftedGreensPlaneZ_m
-                  << ", shift_z=" << shift[Dim - 1] << endl;
-                this->runShiftedOpenSolver(shift);
-                m << level4 << "binIndex=" << static_cast<int>(binIndex)
-                  << " shifted-GF runSolver done; accumulate->Etmp (B negated, z-flip)"
-                  << endl;
+            m << level4 << "binIndex=" << static_cast<int>(binIndex)
+              << " shifted-GF runSolver start, plane=" << shiftedGreensPlaneZ_m
+              << ", shift_z=" << shift[Dim - 1] << endl;
+            this->runShiftedOpenSolver(shift);
+            m << level4 << "binIndex=" << static_cast<int>(binIndex)
+              << " shifted-GF runSolver done; accumulate->Etmp (B negated, z-flip)"
+              << endl;
 
-                // DEBUG: report max|E| produced by the shifted solve AND Etmp
-                // before/after the accumulate, so we can tell whether the image
-                // correction actually lands.
-                auto e_max = [&](const char* tag, auto& field) {
-                    double localMax = 0.0;
-                    auto vE = field.getView();
-                    ippl::parallel_reduce(
-                        tag, field.getFieldRangePolicy(),
-                        KOKKOS_LAMBDA(const ippl::RangePolicy<Dim>::index_array_type& idx,
-                                      double& lmax) {
-                            auto e = apply(vE, idx);
-                            const double m2 = e[0]*e[0] + e[1]*e[1] + e[2]*e[2];
-                            if (m2 > lmax) lmax = m2;
-                        },
-                        Kokkos::Max<double>(localMax));
-                    double globalMax = 0.0;
-                    ippl::Comm->allreduce(localMax, globalMax, 1, std::greater<double>());
-                    return std::sqrt(globalMax);
-                };
-                m << level5 << "[DEBUG] binIndex=" << static_cast<int>(binIndex)
-                  << " shifted: max|E_raw| = " << e_max("shifted |E|_max", *this->getE())
-                  << " max|Etmp before| = " << e_max("Etmp pre", *EtmpSP)
-                  << " (shift_z=" << shift[Dim - 1] << ")" << endl;
+            // Axis-flip + component-wise sign is handled inside
+            // accumulateFieldToTemp when flipAxis >= 0 (see method doc).
+            constexpr int zFlipAxis = static_cast<int>(Dim) - 1;
+            accumulateFieldToTemp(gammaBin, kinematics.pmean, EtmpSP, BtmpSP, -1.0,
+                                  zFlipAxis);
 
-                // Axis-flip + component-wise sign is handled inside
-                // accumulateFieldToTemp when flipAxis >= 0 (see method doc).
-                constexpr int zFlipAxis = static_cast<int>(Dim) - 1;
-                accumulateFieldToTemp(gammaBin, kinematics.pmean, EtmpSP, BtmpSP, -1.0,
-                                      zFlipAxis);
-
-                m << level5 << "[DEBUG] binIndex=" << static_cast<int>(binIndex)
-                  << " shifted: max|Etmp after| = " << e_max("Etmp post", *EtmpSP) << endl;
-
-                mesh.setMeshSpacing(hrOrig);
-            }
+            mesh.setMeshSpacing(hrOrig);
         }
     }
 
@@ -761,25 +731,31 @@ void BinnedFieldSolver<T, Dim>::accumulateFieldToTemp(
                     apply(bTmpView, idx) = bTotal;
                 });
     } else {
-        // Axis-flipped path: read E' at the mirrored source index and apply the
-        // component-wise image-charge sign rule (flip all components except the
+        // Axis-flipped path: read E' at the GLOBALLY-flipped source index and apply
+        // the component-wise image-charge sign rule (flip all components except the
         // one parallel to the flip axis) BEFORE the Lorentz transform.
+        //
+        // Under PARFFTZ=true the flipped z-index generally lives on a peer rank, so
+        // we first populate flippedZSlab_m via a peer-rank MPI exchange. After the
+        // call, flippedZSlab_m(i, j, k) == ePrimeView(i, j, flipped_k_viewindex)
+        // for each local (i, j, k) — no cross-rank read required in the lambda.
         const int flipAxisCap = capturedFlipAxis;
-        // Pre-compute view extent along the flip axis (same on all ranks for
-        // single-rank shifted path — multi-rank is guarded upstream).
-        const int viewExtentMinus1 = static_cast<int>(ePrimeView.extent(flipAxisCap)) - 1;
-        (void)nghost;  // captured implicitly via viewExtentMinus1
+        if (flipAxisCap != static_cast<int>(Dim) - 1) {
+            throw OpalException(
+                    "BinnedFieldSolver::accumulateFieldToTemp",
+                    "flipAxis != Dim-1 not supported (only z-axis flip implemented).");
+        }
+        (void)nghost;
+
+        this->buildFlippedZSlab(Eprime);
+        auto flippedView = flippedZSlab_m;
 
         ippl::parallel_for(
                 "BinnedFieldSolver::accumulateFieldToTemp[flipped]",
                 Eprime.getFieldRangePolicy(),
                 KOKKOS_LAMBDA(const ippl::RangePolicy<Dim>::index_array_type& idx) {
-                    // Build the flipped source index.
-                    typename ippl::RangePolicy<Dim>::index_array_type srcIdx = idx;
-                    srcIdx[flipAxisCap] = viewExtentMinus1 - idx[flipAxisCap];
-
-                    // Read E' at the flipped location.
-                    Vector_t<T, Dim> ePrime = apply(ePrimeView, srcIdx);
+                    // Read pre-flipped E' at the local (i, j, k).
+                    Vector_t<T, Dim> ePrime = flippedView(idx[0], idx[1], idx[2]);
 
                     // Component-wise sign rule (derivation: phi_image(r) = -phi_shifted(R(r))
                     // so E_image_i = -E_shifted_i(R(r)) for i != flipAxis and
@@ -801,6 +777,163 @@ void BinnedFieldSolver<T, Dim>::accumulateFieldToTemp(
                     apply(bTmpView, idx) = bTotal;
                 });
     }
+}
+
+template <typename T, unsigned Dim>
+void BinnedFieldSolver<T, Dim>::buildFlippedZSlab(const VField_t<T, Dim>& src) {
+    // Populate flippedZSlab_m with src z-globally-flipped, staged through host mirrors
+    // for MPI. After this call:
+    //   flippedZSlab_m(i, j, k_view) == src_view(i, j, flipped_k_view)
+    // for each local (i, j) and each local k in the physical range [nghost, nghost+Nz_phys),
+    // where flipped_k_view corresponds to the GLOBAL flip k_glob -> N_z_global - 1 - k_glob.
+    // Ghost z-indices in flippedZSlab_m are zero-initialized but not used by the caller
+    // (the accumulate lambda iterates src.getFieldRangePolicy() which excludes ghosts).
+
+    const auto& layout = src.getLayout();
+    const auto& ldom   = layout.getLocalNDIndex();
+    const auto& gdom   = layout.getDomain();
+    const int   nghost = src.getNghost();
+
+    const int Nz_glob = static_cast<int>(gdom[Dim - 1].length());
+    const int k0_r    = static_cast<int>(ldom[Dim - 1].first());
+    const int Nz_phys = static_cast<int>(ldom[Dim - 1].length());
+    const int k1_r    = k0_r + Nz_phys;
+
+    auto srcView        = src.getView();
+    const size_t Xf     = srcView.extent(0);
+    const size_t Yf     = srcView.extent(1);
+    const size_t Zf     = srcView.extent(2);
+    const size_t xyCells = Xf * Yf;
+
+    // Resize scratch if needed, zero-init (only ghost z-slices will remain zero).
+    if (flippedZSlab_m.extent(0) != Xf || flippedZSlab_m.extent(1) != Yf
+        || flippedZSlab_m.extent(2) != Zf) {
+        Kokkos::realloc(flippedZSlab_m, Xf, Yf, Zf);
+    }
+    Kokkos::deep_copy(flippedZSlab_m, Vector_t<T, Dim>(0.0));
+
+    // Host mirror of src (copy from device if needed).
+    auto srcHost = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace{}, srcView);
+    // Host mirror of destination — we build on host then deep_copy back to device.
+    auto dstHost = Kokkos::create_mirror_view(Kokkos::HostSpace{}, flippedZSlab_m);
+    Kokkos::deep_copy(dstHost, Vector_t<T, Dim>(0.0));
+
+    const int P = ippl::Comm->size();
+    const int r = ippl::Comm->rank();
+
+    const MPI_Comm comm = ippl::Comm->getCommunicator();
+    const int tag       = 0x5F1F;  // "shifted-GF flip"
+
+    const auto& hDomains = layout.getHostLocalDomains();
+
+    // Pack helpers --------------------------------------------------------------------
+    // Buffer format per-slab: (Xf * Yf * slab_len) cells of Vector_t<T, Dim>.
+    const size_t bytesPerKSlab = sizeof(Vector_t<T, Dim>) * xyCells;
+
+    std::vector<MPI_Request> requests;
+    std::vector<std::vector<char>> sendBufs;
+    std::vector<std::vector<char>> recvBufs;
+    // For each recv buffer, remember (recvGlobStart, recvLen) so we can unpack into
+    // the correct dst k range after MPI_Waitall.
+    std::vector<std::pair<int, int>> recvMeta;
+
+    requests.reserve(static_cast<size_t>(2 * P));
+    sendBufs.reserve(static_cast<size_t>(P));
+    recvBufs.reserve(static_cast<size_t>(P));
+    recvMeta.reserve(static_cast<size_t>(P));
+
+    for (int p = 0; p < P; ++p) {
+        const int k0_p = static_cast<int>(hDomains(p)[Dim - 1].first());
+        const int k1_p = k0_p + static_cast<int>(hDomains(p)[Dim - 1].length());
+
+        // --- RECV: what k_glob range do I need to receive from p?
+        // I need: k_glob_src = Nz_glob - 1 - (k0_r + phys_k_target), phys_k_target in [0, Nz_phys)
+        //       = range [Nz_glob - k1_r, Nz_glob - k0_r)
+        // Intersect with p's owned range [k0_p, k1_p).
+        const int recvA = std::max(k0_p, Nz_glob - k1_r);
+        const int recvB = std::min(k1_p, Nz_glob - k0_r);
+
+        if (recvA < recvB) {
+            const int recvLen   = recvB - recvA;
+            const size_t bytes  = bytesPerKSlab * static_cast<size_t>(recvLen);
+            if (p == r) {
+                // Self-pair: local copy, no MPI. Source phys_k = k - k0_r,
+                // destination phys_k = Nz_glob - 1 - k0_r - k.
+                for (int s = 0; s < recvLen; ++s) {
+                    const int kGlob      = recvA + s;
+                    const int phys_k_src = kGlob - k0_r;
+                    const int phys_k_dst = Nz_glob - 1 - k0_r - kGlob;
+                    const size_t srcK    = static_cast<size_t>(phys_k_src + nghost);
+                    const size_t dstK    = static_cast<size_t>(phys_k_dst + nghost);
+                    for (size_t i = 0; i < Xf; ++i) {
+                        for (size_t j = 0; j < Yf; ++j) {
+                            dstHost(i, j, dstK) = srcHost(i, j, srcK);
+                        }
+                    }
+                }
+            } else {
+                recvBufs.emplace_back(bytes);
+                MPI_Request req;
+                MPI_Irecv(recvBufs.back().data(), static_cast<int>(bytes), MPI_BYTE,
+                          p, tag, comm, &req);
+                requests.push_back(req);
+                recvMeta.emplace_back(recvA, recvLen);
+            }
+        }
+
+        // --- SEND: what of my owned k_glob do I send to p? (skip self)
+        // p needs k_glob_src in [Nz_glob - k1_p, Nz_glob - k0_p). Intersect with [k0_r, k1_r).
+        if (p != r) {
+            const int sendA = std::max(k0_r, Nz_glob - k1_p);
+            const int sendB = std::min(k1_r, Nz_glob - k0_p);
+            if (sendA < sendB) {
+                const int sendLen  = sendB - sendA;
+                const size_t bytes = bytesPerKSlab * static_cast<size_t>(sendLen);
+                sendBufs.emplace_back(bytes);
+                auto* typedPtr = reinterpret_cast<Vector_t<T, Dim>*>(sendBufs.back().data());
+                for (int s = 0; s < sendLen; ++s) {
+                    const int kGlob      = sendA + s;
+                    const int phys_k_src = kGlob - k0_r;
+                    const size_t srcK    = static_cast<size_t>(phys_k_src + nghost);
+                    for (size_t i = 0; i < Xf; ++i) {
+                        for (size_t j = 0; j < Yf; ++j) {
+                            *typedPtr++ = srcHost(i, j, srcK);
+                        }
+                    }
+                }
+                MPI_Request req;
+                MPI_Isend(sendBufs.back().data(), static_cast<int>(bytes), MPI_BYTE,
+                          p, tag, comm, &req);
+                requests.push_back(req);
+            }
+        }
+    }
+
+    if (!requests.empty()) {
+        std::vector<MPI_Status> statuses(requests.size());
+        MPI_Waitall(static_cast<int>(requests.size()), requests.data(), statuses.data());
+    }
+
+    // Unpack received slabs into dstHost.
+    for (size_t b = 0; b < recvMeta.size(); ++b) {
+        const int recvA   = recvMeta[b].first;
+        const int recvLen = recvMeta[b].second;
+        const auto* typedPtr =
+                reinterpret_cast<const Vector_t<T, Dim>*>(recvBufs[b].data());
+        for (int s = 0; s < recvLen; ++s) {
+            const int kGlob      = recvA + s;
+            const int phys_k_dst = Nz_glob - 1 - k0_r - kGlob;
+            const size_t dstK    = static_cast<size_t>(phys_k_dst + nghost);
+            for (size_t i = 0; i < Xf; ++i) {
+                for (size_t j = 0; j < Yf; ++j) {
+                    dstHost(i, j, dstK) = *typedPtr++;
+                }
+            }
+        }
+    }
+
+    // Mirror back to device (no-op when device == host).
+    Kokkos::deep_copy(flippedZSlab_m, dstHost);
 }
 
 template <typename T, unsigned Dim>
