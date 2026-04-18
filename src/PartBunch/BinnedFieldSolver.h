@@ -126,12 +126,24 @@ public:
     bool isImageChargeEnabled() const { return imageScatterController_m.isEnabled(); }
     double getImageChargePlaneZ() const { return imageScatterController_m.getZPlane(); }
 
+    /// @brief Configure the shifted Green's function Dirichlet correction (alternative to
+    /// image charges). Mutually exclusive with @c setImageChargeConfiguration(true, ...).
+    /// Requires the OPEN field solver; the solver-type check happens at runtime in
+    /// @c FieldSolver::runShiftedOpenSolver when the correction pass fires.
+    void setShiftedGreensConfiguration(bool enabled, double zPlane);
+    bool isShiftedGreensEnabled() const { return shiftedGreensEnabled_m; }
+    double getShiftedGreensPlaneZ() const { return shiftedGreensPlaneZ_m; }
+
     /// @brief Set the maximum number of timesteps for which image charges are active (0 = unlimited).
     void setZerofaceMaxSteps(int maxSteps);
     int getZerofaceMaxSteps() const { return zerofaceMaxSteps_m; }
 
-    /// @brief Check whether image charges should be active for a given timestep.
+    /// @brief Check whether the explicit image-charge pass should run for a given timestep.
     bool isImageChargeActiveForStep(size_t step) const;
+
+    /// @brief Check whether the shifted Green's function correction should run for a given timestep.
+    /// Reuses the same step budget (@c zerofaceMaxSteps_m) as the image-charge path.
+    bool isShiftedGreensActiveForStep(size_t step) const;
 
     /// @brief Configure dump frequency for dirichlet-plane diagnostics (`0` disables dumps).
     void setZeroFacePlaneDumpFrequency(int frequency);
@@ -150,6 +162,13 @@ private:
     int zerofaceMaxSteps_m = 0;
     ImageChargeScatterController<T, Dim> imageScatterController_m;
     bool warnedPlaneDumpParallelUnsupported_m = false;
+
+    // Shifted Green's function Dirichlet correction (alternative to image charges).
+    // Mutually exclusive with the image-charge path (enforced at config time).
+    bool shiftedGreensEnabled_m    = false;
+    double shiftedGreensPlaneZ_m   = 0.0;
+    // Remembers whether the multi-rank warning for the shifted path was already printed.
+    bool warnedShiftedGreensMultiRankUnsupported_m = false;
 
     /**
      * @brief Row entry for the level-3 bin statistics table.
@@ -271,16 +290,33 @@ public:
      * - `B_lab = (gammaBin / c^2) * (v x E')`
      * where `v = c * pmean / gammaBin` and `w = v / |v|` (or `w = 0` if `|v| = 0`).
      *
+     * When @p flipAxis is a valid axis index (0..Dim-1), the solver output is
+     * read at an axis-flipped source index @c N-1-k (in that axis only) and the
+     * transverse E components are negated before the Lorentz transform, yielding
+     * the image-charge contribution produced by a shifted-Green's-function solve:
+     * - `E_d -> -E_d` for `d != flipAxis`
+     * - `E_d -> +E_d` for `d == flipAxis` (the component parallel to the flip).
+     * This is derived from `phi_image(x) = -phi_shifted(R(x))` and `E = -grad(phi)`.
+     * The zero-copy read from the flipped source index is the reason this is
+     * baked into @c accumulateFieldToTemp instead of an out-of-place kernel.
+     *
+     * Currently single-rank only when @p flipAxis >= 0 (an axis-flip across MPI
+     * ranks would need extra communication). The caller is expected to guard
+     * against multi-rank use upstream.
+     *
      * @param gammaBin  Global average gamma for the merged bin.
      * @param pmean     Global average normalized momentum for the merged bin.
      * @param EtmpSP    Temporary electric field buffer for accumulation.
      * @param BtmpSP    Temporary magnetic field buffer for accumulation.
+     * @param bFieldSign +1 for forward-moving charges, -1 for image charges.
+     * @param flipAxis  Axis in which to flip the read index (use -1 for no flip).
      */
     void accumulateFieldToTemp(const double gammaBin,
                                const Vector_t<double, Dim>& pmean,
                                std::shared_ptr<VField_t<T, Dim>> EtmpSP,
                                std::shared_ptr<VField_t<T, Dim>> BtmpSP,
-                               double bFieldSign = 1.0);
+                               double bFieldSign = 1.0,
+                               int flipAxis = -1);
 
 private:
 
