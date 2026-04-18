@@ -197,6 +197,17 @@ public:
     void setImageChargeConfiguration(bool enabled, double zPlane);
 
     /**
+     * @brief Set the shifted Green's function Dirichlet-correction configuration.
+     *
+     * Alternative to @c setImageChargeConfiguration. Mutually exclusive with it.
+     * Requires the OPEN field solver (checked at runtime in the correction pass).
+     *
+     * @param enabled Enable the shifted-Green's-function correction when true.
+     * @param zPlane  Dirichlet plane position in z [m].
+     */
+    void setShiftedGreensConfiguration(bool enabled, double zPlane);
+
+    /**
      * @brief Configure diagnostic dump frequency for the ZEROFACE plane potential.
      *
      * @param frequency Dump every n-th global timestep. `0` disables dumping.

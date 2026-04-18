@@ -138,6 +138,29 @@ public:
      */
     void runSolver(bool force_skip_field_dump);
 
+    /**
+     * @brief Run an Open-solver solve with a shifted free-space Green's function.
+     *
+     * Installs a translated Green's kernel @f$G(r) = -1/(4\pi|r - \texttt{shift}|)@f$
+     * on the underlying IPPL @c FFTOpenPoissonSolver via
+     * @c shiftedGreensFunction(shift), runs @c solve(), then restores the
+     * standard Green's function (@c greensFunction()) so subsequent solves in
+     * later bins are not affected.
+     *
+     * The manual restore guards against two adjacent bins whose stretched mesh
+     * spacings happen to coincide: the mesh-change detector inside the IPPL
+     * @c solve() would then @em not recompute the kernel and the next primary
+     * solve would silently reuse the shifted one. With the current binning
+     * algorithm this collision is not supposed to happen, so the extra FFT
+     * per shifted pass is defensive and can be removed once the invariant is
+     * guaranteed by the binner.
+     *
+     * @param shift  Per-axis translation of the Green's function in physical units.
+     *
+     * @throws OpalException if the configured solver is not @c "OPEN".
+     */
+    void runShiftedOpenSolver(const ippl::Vector<double, Dim>& shift);
+
     template <typename Solver>
     void initSolverWithParams(const ippl::ParameterList& sp);
 
