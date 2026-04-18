@@ -704,6 +704,11 @@ void PartBunch<T, Dim>::setImageChargeConfiguration(bool enabled, double zPlane)
 }
 
 template <typename T, unsigned Dim>
+void PartBunch<T, Dim>::setShiftedGreensConfiguration(bool enabled, double zPlane) {
+    this->getFieldSolver()->setShiftedGreensConfiguration(enabled, zPlane);
+}
+
+template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::setZeroFacePlaneDumpFrequency(int frequency) {
     this->getFieldSolver()->setZeroFacePlaneDumpFrequency(frequency);
 }

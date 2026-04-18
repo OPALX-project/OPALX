@@ -461,9 +461,45 @@ void FieldSolver<double,3>::runSolver(bool force_skip_field_dump) {
     } else if (this->getStype() == "NONE") {
         std::get<NullSolver_t<T, Dim>>(this->getSolver()).solve();
     } else {
-        throw OpalException("FieldSolver::runSolver", 
+        throw OpalException("FieldSolver::runSolver",
                             "No known solver matches the argument: " + this->getStype());
     }
+
+    call_counter_m++;
+}
+
+template<>
+void FieldSolver<double, 3>::runShiftedOpenSolver(const ippl::Vector<double, 3>& shift) {
+    if (this->getStype() != "OPEN") {
+        throw OpalException(
+            "FieldSolver::runShiftedOpenSolver",
+            "SHIFTED_GREENS_FUNCTION requires FIELDSOLVER type OPEN (got '"
+            + this->getStype() + "').");
+    }
+
+    Inform m("FieldSolver::runShiftedOpenSolver");
+    m << level4 << "Running shifted open solver with shift = " << shift << endl;
+
+    auto& openSolver = std::get<OpenSolver_t<double, 3>>(this->getSolver());
+
+    // Install the translated kernel (overwrites grntr_m inside IPPL).
+    openSolver.shiftedGreensFunction(shift);
+
+#ifdef OPALX_FIELD_DEBUG
+    this->dumpScalField("rho");
+#endif
+
+    openSolver.solve();
+
+#ifdef OPALX_FIELD_DEBUG
+    this->dumpScalField("phi");
+    this->dumpVectField("ef");
+#endif
+
+    // Restore the standard Green's function so subsequent primary solves in
+    // later bins do not silently reuse the shifted kernel. See the header
+    // doc for the defensive-guard rationale.
+    openSolver.greensFunction();
 
     call_counter_m++;
 }
