@@ -167,8 +167,13 @@ private:
     // Mutually exclusive with the image-charge path (enforced at config time).
     bool shiftedGreensEnabled_m    = false;
     double shiftedGreensPlaneZ_m   = 0.0;
-    // Remembers whether the multi-rank warning for the shifted path was already printed.
-    bool warnedShiftedGreensMultiRankUnsupported_m = false;
+
+    // Scratch view holding the z-axis-flipped local slab of E' for the shifted-GF
+    // correction pass. Populated by buildFlippedZSlab before accumulateFieldToTemp's
+    // flipped branch. Shape matches the local view of *(this->getE()) (incl. ghosts).
+    // Allocated lazily on first use; reused across bins and timesteps.
+    using FlippedView_t = Kokkos::View<Vector_t<T, Dim>***>;
+    FlippedView_t flippedZSlab_m;
 
     /**
      * @brief Row entry for the level-3 bin statistics table.
@@ -319,6 +324,18 @@ public:
                                int flipAxis = -1);
 
 private:
+    /// @brief Populate @c flippedZSlab_m with the z-axis globally-flipped version of @p src.
+    ///
+    /// Under `PARFFTZ=true` the global flip `k -> N_z_global-1-k` generally crosses MPI ranks.
+    /// This helper does one pairwise-exchange pass over `ippl::Comm`: each rank packs the z-slabs
+    /// of @p src that peers need, posts `MPI_Isend`/`MPI_Irecv`, and unpacks the received slabs
+    /// into the correct local destination indices of @c flippedZSlab_m. After the call the
+    /// lambda in `accumulateFieldToTemp` reads @c flippedZSlab_m(i, j, k) directly without any
+    /// cross-rank access.
+    ///
+    /// @param src  Source vector field (typically `*(this->getE())` after the shifted-GF solve).
+    ///             Only the z axis is flipped; x and y stay local to the rank.
+    void buildFlippedZSlab(const VField_t<T, Dim>& src);
 
     /**
      * @brief Gather the accumulated lab-frame fields from temporaries back to particles.
