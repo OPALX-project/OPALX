@@ -45,8 +45,9 @@ namespace {
         ENERGY,    // The particle energy in GeV
         PC,        // The particle momentum in GeV/c
         GAMMA,     // ENERGY / MASS
-        BCURRENT,  // Beam current in A
-        BFREQ,     // Beam frequency in MHz
+        BCURRENT,  // Legacy, unused in OPALX (holdover from OPALCycl)
+        BFREQ,     // Legacy, unused in OPALX (holdover from OPALCycl)
+        BCHARGE,   // Bunch charge in C
         NPART,     // Number of particles per bunch
         SOURCES,   // Name of EMISSIONSOURCELIST
         SIZE
@@ -74,9 +75,13 @@ Beam::Beam()
 
     itsAttr[GAMMA] = Attributes::makeReal("GAMMA", "ENERGY / MASS");
 
-    itsAttr[BCURRENT] = Attributes::makeReal("BCURRENT", "Beam current [A] (all bunches)");
+    itsAttr[BCURRENT] = Attributes::makeReal(
+        "BCURRENT", "Legacy, unused in OPALX. Use BCHARGE instead.");
 
-    itsAttr[BFREQ] = Attributes::makeReal("BFREQ", "Beam frequency [MHz] (all bunches)");
+    itsAttr[BFREQ] = Attributes::makeReal(
+        "BFREQ", "Legacy, unused in OPALX. Use BCHARGE instead.");
+
+    itsAttr[BCHARGE] = Attributes::makeReal("BCHARGE", "Bunch charge [C]");
 
     itsAttr[NPART] = Attributes::makeReal("NPART", "Number of particles in bunch");
 
@@ -141,6 +146,13 @@ void Beam::execute() {
             throw OpalException("Beam::execute()",
                                 "\"SOURCES\" is not allowed for PARTICLE=PHOTON.");
         }
+    }
+
+    if (itsAttr[BCURRENT] || itsAttr[BFREQ]) {
+        throw OpalException(
+            "Beam::execute()",
+            "\"BCURRENT\" and \"BFREQ\" are no longer used in OPALX. "
+            "Use \"BCHARGE\" [C] to specify the bunch charge directly.");
     }
 
     update();
@@ -215,6 +227,10 @@ double Beam::getCurrent() const {
     return Attributes::getReal(itsAttr[BCURRENT]);
 }
 
+double Beam::getBunchCharge() const {
+    return Attributes::getReal(itsAttr[BCHARGE]);
+}
+
 double Beam::getCharge() const {
     return Attributes::getReal(itsAttr[CHARGE]);
 }
@@ -244,8 +260,7 @@ bool Beam::hasExplicitEnergy() const {
 }
 
 double Beam::getChargePerParticle() const {
-    return std::copysign(1.0, getCharge()) * getCurrent() / (getFrequency() * Units::MHz2Hz) 
-           / getNumberOfParticles();
+    return std::copysign(1.0, getCharge()) * getBunchCharge() / getNumberOfParticles();
 }
 
 double Beam::getMassPerParticle() const {
@@ -315,8 +330,7 @@ void Beam::print(std::ostream& os) const {
        << "* CHARGE      " << (charge > 0 ? '+' : '-') << "e * " << std::abs(charge) << " \n"
        << "* MOMENTUM    " << reference.getP() << " [eV/c]\n"
        << "* MOMENTUM    " << Attributes::getReal(itsAttr[PC]) << " [GeV/c]\n"
-       << "* CURRENT     " << Attributes::getReal(itsAttr[BCURRENT]) << " [A]\n"
-       << "* FREQUENCY   " << Attributes::getReal(itsAttr[BFREQ]) << " [MHz]\n"
+       << "* BCHARGE     " << Attributes::getReal(itsAttr[BCHARGE]) << " [C]\n"
        << "* NPART       " << Attributes::getReal(itsAttr[NPART]) << '\n';
     os << "* ********************************************************************************** "
        << std::endl;
