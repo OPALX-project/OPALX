@@ -63,6 +63,7 @@
 
 // Element commands.
 #include "Elements/OpalCavity.h"
+#include "Elements/OpalTravelingWave.h"
 #include "Elements/OpalConstantEFieldCavity.h"
 #include "Elements/OpalDrift.h"
 #include "Elements/OpalLaser.h"
@@ -129,6 +130,7 @@ namespace {
     void makeElements() {
         OpalData* opal = OpalData::getInstance();
         opal->create(new OpalCavity());
+        opal->create(new OpalTravelingWave());
         opal->create(new OpalConstantEFieldCavity());
         opal->create(new OpalDrift());
         opal->create(new OpalLaser());
