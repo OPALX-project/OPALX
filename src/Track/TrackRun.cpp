@@ -654,12 +654,12 @@ Inform& TrackRun::print(Inform& os) const {
 
     if (!primaryBeamName.empty()) {
         Beam* beam = Beam::find(primaryBeamName);
-        os << "* Mass of simulation particle   = " << beam->getChargePerParticle() << " [GeV/c^2]" << '\n'
-           << "* Charge of simulation particle = " << beam->getMassPerParticle() << " [C]" << '\n';
+        os << "* Mass of simulation particle   = " << beam->getMassPerParticle() << " [GeV/c^2]" << '\n'
+           << "* Charge of simulation particle = " << beam->getChargePerParticle() << " [C]" << '\n';
     } else {
         os << "* Mass of simulation particle   = <unresolved>" << '\n'
            << "* Charge of simulation particle = <unresolved>" << '\n';
     }
     os << "* ********************************************************************************** ";
     return os;
-}
+} 
