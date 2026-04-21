@@ -388,7 +388,7 @@ void FlatTop::allocateParticles(size_t numberOfParticles){
     // Initial allocation is now handled centrally in TrackRun / PartBunch via the
     // bunch's total particle count. Here we only record the desired total number
     // of particles for this distribution. Actual per-step emission will append
-    // new particles using pc_m->create(nNew), guarded by a global BEAM::NPART
+    // new particles using pc_m->create(nNew), guarded by a global BEAM::NALLOC
     // limit in ParallelTracker.
 }
 
