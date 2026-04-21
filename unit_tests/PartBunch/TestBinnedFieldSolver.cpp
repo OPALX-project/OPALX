@@ -197,7 +197,7 @@ protected:
 
         CoordinateSelector_t selector(/*axis=*/2);
         auto bins = std::make_shared<ConcreteBins_t>(
-            pc,
+            *pc,
             selector,
             maxBins,
             alpha,

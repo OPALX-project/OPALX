@@ -210,7 +210,7 @@ protected:
                         const std::string& binningCmdName = "TEST_BINNING_CMD") {
         Selector_t selector(2);  // bin along axis 2 (z-component of P)
         adaptBins = std::make_shared<AdaptBins_t>(
-            bunch, selector, maxBins, alpha, beta, desW, binningCmdName);
+            *bunch, selector, maxBins, alpha, beta, desW, binningCmdName);
     }
 };
 
@@ -650,7 +650,7 @@ TEST_F(BinningTest, CoordinateSelectorReturnsNormalizedValues) {
     createParticles(nPart);
 
     Selector_t selector(2);  // z-axis
-    selector.updateDataArr(bunch);
+    selector.updateDataArr(*bunch);
 
     auto P_host = bunch->P.getHostMirror();
     Kokkos::deep_copy(P_host, bunch->P.getView());
