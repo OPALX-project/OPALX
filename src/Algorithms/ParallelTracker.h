@@ -65,7 +65,7 @@ class PluginElement;
 class ParallelTracker : public Tracker {
 private:
 
-    std::shared_ptr<DataSink> itsDataSink_m; ///< Beam statistics and phase-space output.
+    DataSink* itsDataSink_m;                ///< Borrowed beam statistics and phase-space output sink.
     OpalBeamline itsOpalBeamline_m;          ///< Cloned field elements and coordinate transforms.
     bool globalEOL_m;                       ///< End-of-line flag (e.g. orbit threader out of bounds).
     double zstart_m;                        ///< Path-length start position for the track (m).
@@ -99,7 +99,7 @@ public:
      * @brief Construct tracker with bunch, output sink, and step-size schedule.
      * @param bl                Beamline definition.
      * @param bunch             Particle bunch (multi-container).
-     * @param ds                Data sink for statistics and dumps.
+     * @param ds                Borrowed data sink for statistics and dumps.
      * @param revBeam           Reversed beam flag (see single-argument constructor).
      * @param maxSTEPS          Max integration steps per z-segment (parallel to zstop/dt).
      * @param zstart            Starting path length (m).
@@ -108,7 +108,7 @@ public:
      * @param emittingSamplers  Optional per-container samplers for emitParticles(t, dt).
      */
     explicit ParallelTracker(const Beamline& bl, std::shared_ptr<PartBunch_t> bunch,
-        const std::shared_ptr<DataSink>& ds, bool revBeam,
+        DataSink* ds, bool revBeam,
         const std::vector<unsigned long long>& maxSTEPS, 
         double zstart, const std::vector<double>& zstop, 
         const std::vector<double>& dt,

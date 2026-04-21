@@ -204,7 +204,7 @@ public:
                 /*qi=*/std::vector{1.0}, /*mi=*/std::vector{1.0},
                 /*beams=*/std::vector<Beam*>{opBeam},
                 /*totalParticlesPerBeam=*/std::vector<size_t>{numParticles},
-                /*lbt=*/1.0, /*integration_method=*/"LF2", fsCmdBase_m, dataSink);
+                /*lbt=*/1.0, /*integration_method=*/"LF2", fsCmdBase_m.get(), dataSink.get());
         bunch->getParticleContainer()->create(numParticles);
         return bunch;
     }
@@ -541,4 +541,3 @@ TEST_F(TestMultipoleTCurvedConstRadius, VertAperture) {
     EXPECT_NE(line[7], 0.0);  // 3.0
     EXPECT_EQ(line[8], 0.0);  // 3.0
 }
-

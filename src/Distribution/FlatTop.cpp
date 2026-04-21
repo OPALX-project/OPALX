@@ -9,7 +9,7 @@ using Dist_t = ippl::random::NormalDistribution<double, 3>;
 
 FlatTop::FlatTop(std::shared_ptr<ParticleContainer_t> pc,
                  std::shared_ptr<FieldContainer_t> fc,
-                 std::shared_ptr<Distribution_t> opalDist)
+                 Distribution_t* opalDist)
     : SamplingBase(pc, fc, opalDist), rand_pool_m(determineRandInit()) {
     setParameters(opalDist);
 }
@@ -71,7 +71,7 @@ size_t FlatTop::determineRandInit() {
     return randInit;
 }
 
-void FlatTop::setParameters(const std::shared_ptr<Distribution_t> &opalDist) {
+void FlatTop::setParameters(Distribution_t* opalDist) {
     setInternalVariables(
         opalDist->emitting_m,
         opalDist_m->getSigmaTFall(),

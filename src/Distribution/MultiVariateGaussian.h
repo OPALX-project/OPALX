@@ -33,11 +33,11 @@ public:
      * 
      * @param pc Shared pointer to the particle container.
      * @param fc Shared pointer to the field container.
-     * @param opalDist Shared pointer to the distribution.
+     * @param opalDist Borrowed distribution.
      */
     MultiVariateGaussian(std::shared_ptr<ParticleContainer_t> pc, 
                          std::shared_ptr<FieldContainer_t> fc, 
-                         std::shared_ptr<Distribution_t> opalDist);
+                         Distribution_t* opalDist);
 
     /**
      * @brief Constructor for MultiVariateGaussian with specified parameters.
@@ -211,4 +211,3 @@ private:
 };
 
 #endif // IPPL_MULTI_VARIATE_GAUSSIAN_H
-

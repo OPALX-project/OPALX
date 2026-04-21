@@ -14,7 +14,7 @@
 
 FromFile::FromFile(std::shared_ptr<ParticleContainer_t> pc,
                    std::shared_ptr<FieldContainer_t> fc,
-                   std::shared_ptr<Distribution_t> opalDist)
+                   Distribution_t* opalDist)
     : SamplingBase(pc, fc, opalDist), numParticles_m(0) {
 
     // Get filename from distribution
