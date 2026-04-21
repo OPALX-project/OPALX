@@ -18,7 +18,10 @@
 #include "Utilities/Options.h"
 #include "gtest/gtest.h"
 
+#include <cstddef>
 #include <filesystem>
+#include <stdexcept>
+#include <vector>
 
 namespace {
 std::filesystem::path referenceElectronEnergyPath() {
@@ -130,21 +133,165 @@ std::filesystem::path referenceOverlapPositronThetaPath() {
     return std::filesystem::path(OPALX_TEST_SOURCE_DIR) / "data"
         / "cain_linear_breit_wheeler_overlap_positron_theta.csv";
 }
+
+constexpr std::size_t kFastSampleCount = 10000;
+constexpr std::size_t kFastBinCount = 20;
+
+/**
+ * @brief Build the unit-test histogram configuration.
+ *
+ * The CAIN references are stored at 80 bins. The unit test intentionally uses
+ * 20 bins and rebins the references by preserving integrated probability,
+ * @f$\rho'_i \Delta x'_i = \sum_j \rho_j \Delta x_j@f$, so the test remains a
+ * shape regression while staying below the 30 s unit-test budget.
+ */
+LinearBreitWheelerBenchmark::HistogramConfig fastHistogramConfig() {
+    LinearBreitWheelerBenchmark::HistogramConfig config;
+    config.bins = kFastBinCount;
+    return config;
+}
+
+/**
+ * @brief Build the finite-photon-beam unit-test histogram configuration.
+ */
+LinearBreitWheelerBenchmark::FinitePhotonBeamConfig fastFinitePhotonBeamConfig() {
+    LinearBreitWheelerBenchmark::FinitePhotonBeamConfig config;
+    config.bins = kFastBinCount;
+    return config;
+}
+
+/**
+ * @brief Build the fixed-geometry joint unit-test histogram configuration.
+ */
+LinearBreitWheelerBenchmark::JointHistogramConfig fastJointHistogramConfig() {
+    LinearBreitWheelerBenchmark::JointHistogramConfig config;
+    config.energyBins = kFastBinCount;
+    config.thetaBins = kFastBinCount;
+    return config;
+}
+
+/**
+ * @brief Build the finite-photon-beam joint unit-test histogram configuration.
+ */
+LinearBreitWheelerBenchmark::FinitePhotonBeamJointConfig fastFinitePhotonBeamJointConfig() {
+    LinearBreitWheelerBenchmark::FinitePhotonBeamJointConfig config;
+    config.energyBins = kFastBinCount;
+    config.thetaBins = kFastBinCount;
+    return config;
+}
+
+/**
+ * @brief Coarsen a one-dimensional reference histogram while preserving area.
+ */
+LinearBreitWheelerBenchmark::Histogram coarsenHistogram(
+    const LinearBreitWheelerBenchmark::Histogram& source,
+    std::size_t targetBins) {
+    if (targetBins == 0 || source.centers.size() % targetBins != 0) {
+        throw std::runtime_error("LinearBreitWheelerSpectrum test: incompatible 1D rebinning.");
+    }
+
+    const std::size_t groupSize = source.centers.size() / targetBins;
+    LinearBreitWheelerBenchmark::Histogram result;
+    result.centers.resize(targetBins);
+    result.density.assign(targetBins, 0.0);
+    result.counts.assign(targetBins, 0.0);
+    result.binWidth = source.binWidth * static_cast<double>(groupSize);
+    result.totalWeight = source.totalWeight;
+
+    for (std::size_t i = 0; i < targetBins; ++i) {
+        const std::size_t begin = i * groupSize;
+        result.centers[i] = 0.5 * (source.centers[begin] + source.centers[begin + groupSize - 1]);
+        for (std::size_t j = 0; j < groupSize; ++j) {
+            const std::size_t sourceBin = begin + j;
+            result.density[i] += source.density[sourceBin] * source.binWidth / result.binWidth;
+            result.counts[i] += source.counts[sourceBin];
+        }
+    }
+    return result;
+}
+
+/**
+ * @brief Coarsen a joint @f$(E,\theta)@f$ reference histogram while preserving area.
+ */
+LinearBreitWheelerBenchmark::JointHistogram coarsenJointHistogram(
+    const LinearBreitWheelerBenchmark::JointHistogram& source,
+    std::size_t targetEnergyBins,
+    std::size_t targetThetaBins) {
+    if (targetEnergyBins == 0 || targetThetaBins == 0
+        || source.energyCentersGeV.size() % targetEnergyBins != 0
+        || source.thetaCentersRad.size() % targetThetaBins != 0) {
+        throw std::runtime_error("LinearBreitWheelerSpectrum test: incompatible joint rebinning.");
+    }
+
+    const std::size_t energyGroupSize = source.energyCentersGeV.size() / targetEnergyBins;
+    const std::size_t thetaGroupSize = source.thetaCentersRad.size() / targetThetaBins;
+    LinearBreitWheelerBenchmark::JointHistogram result;
+    result.energyCentersGeV.resize(targetEnergyBins);
+    result.thetaCentersRad.resize(targetThetaBins);
+    result.densityPerGeVRad.assign(targetEnergyBins,
+                                   std::vector<double>(targetThetaBins, 0.0));
+    result.counts.assign(targetEnergyBins,
+                         std::vector<double>(targetThetaBins, 0.0));
+    result.energyBinWidthGeV = source.energyBinWidthGeV * static_cast<double>(energyGroupSize);
+    result.thetaBinWidthRad = source.thetaBinWidthRad * static_cast<double>(thetaGroupSize);
+    result.totalWeight = source.totalWeight;
+
+    for (std::size_t i = 0; i < targetEnergyBins; ++i) {
+        const std::size_t energyBegin = i * energyGroupSize;
+        result.energyCentersGeV[i] = 0.5 * (source.energyCentersGeV[energyBegin]
+                                            + source.energyCentersGeV[energyBegin + energyGroupSize - 1]);
+    }
+    for (std::size_t j = 0; j < targetThetaBins; ++j) {
+        const std::size_t thetaBegin = j * thetaGroupSize;
+        result.thetaCentersRad[j] = 0.5 * (source.thetaCentersRad[thetaBegin]
+                                           + source.thetaCentersRad[thetaBegin + thetaGroupSize - 1]);
+    }
+
+    const double sourceCellArea = source.energyBinWidthGeV * source.thetaBinWidthRad;
+    const double resultCellArea = result.energyBinWidthGeV * result.thetaBinWidthRad;
+    for (std::size_t i = 0; i < targetEnergyBins; ++i) {
+        for (std::size_t j = 0; j < targetThetaBins; ++j) {
+            for (std::size_t di = 0; di < energyGroupSize; ++di) {
+                for (std::size_t dj = 0; dj < thetaGroupSize; ++dj) {
+                    const std::size_t sourceEnergyBin = i * energyGroupSize + di;
+                    const std::size_t sourceThetaBin = j * thetaGroupSize + dj;
+                    result.densityPerGeVRad[i][j] += source.densityPerGeVRad[sourceEnergyBin][sourceThetaBin]
+                        * sourceCellArea / resultCellArea;
+                    result.counts[i][j] += source.counts[sourceEnergyBin][sourceThetaBin];
+                }
+            }
+        }
+    }
+    return result;
+}
+
+LinearBreitWheelerBenchmark::Histogram readLowResolutionHistogram(
+    const std::filesystem::path& inputPath) {
+    return coarsenHistogram(LinearBreitWheelerBenchmark::readHistogramCSV(inputPath),
+                            kFastBinCount);
+}
+
+LinearBreitWheelerBenchmark::JointHistogram readLowResolutionJointHistogram(
+    const std::filesystem::path& inputPath) {
+    return coarsenJointHistogram(LinearBreitWheelerBenchmark::readJointHistogramCSV(inputPath),
+                                 kFastBinCount,
+                                 kFastBinCount);
+}
 }  // namespace
 
 TEST(TestLinearBreitWheelerSpectrum, ElectronEnergySpectrumMatchesCainReference) {
     const int previousSeed = Options::seed;
     Options::seed = 13579;
 
-    LinearBreitWheelerBenchmark::HistogramConfig config;
+    auto config = fastHistogramConfig();
     config.minValue = 0.0;
     config.maxValue = 0.5;
     const auto opalx = LinearBreitWheelerBenchmark::sampleHistogram(
         config,
         LinearBreitWheelerBenchmark::FinalState::Electron,
         LinearBreitWheelerBenchmark::Observable::Energy,
-        250000);
-    const auto cain = LinearBreitWheelerBenchmark::readHistogramCSV(referenceElectronEnergyPath());
+        kFastSampleCount);
+    const auto cain = readLowResolutionHistogram(referenceElectronEnergyPath());
 
     ASSERT_EQ(opalx.centers.size(), cain.centers.size());
     EXPECT_NEAR(LinearBreitWheelerBenchmark::histogramArea(opalx), 1.0, 1.5e-2);
@@ -161,15 +308,15 @@ TEST(TestLinearBreitWheelerSpectrum, PositronEnergySpectrumMatchesCainReference)
     const int previousSeed = Options::seed;
     Options::seed = 13579;
 
-    LinearBreitWheelerBenchmark::HistogramConfig config;
+    auto config = fastHistogramConfig();
     config.minValue = 0.0;
     config.maxValue = 0.5;
     const auto opalx = LinearBreitWheelerBenchmark::sampleHistogram(
         config,
         LinearBreitWheelerBenchmark::FinalState::Positron,
         LinearBreitWheelerBenchmark::Observable::Energy,
-        250000);
-    const auto cain = LinearBreitWheelerBenchmark::readHistogramCSV(referencePositronEnergyPath());
+        kFastSampleCount);
+    const auto cain = readLowResolutionHistogram(referencePositronEnergyPath());
 
     ASSERT_EQ(opalx.centers.size(), cain.centers.size());
     EXPECT_NEAR(LinearBreitWheelerBenchmark::histogramArea(opalx), 1.0, 1.5e-2);
@@ -186,15 +333,15 @@ TEST(TestLinearBreitWheelerSpectrum, ElectronAngularSpectrumMatchesCainReference
     const int previousSeed = Options::seed;
     Options::seed = 13579;
 
-    LinearBreitWheelerBenchmark::HistogramConfig config;
+    auto config = fastHistogramConfig();
     config.minValue = 0.0;
     config.maxValue = 0.0045;
     const auto opalx = LinearBreitWheelerBenchmark::sampleHistogram(
         config,
         LinearBreitWheelerBenchmark::FinalState::Electron,
         LinearBreitWheelerBenchmark::Observable::Theta,
-        250000);
-    const auto cain = LinearBreitWheelerBenchmark::readHistogramCSV(referenceElectronThetaPath());
+        kFastSampleCount);
+    const auto cain = readLowResolutionHistogram(referenceElectronThetaPath());
 
     ASSERT_EQ(opalx.centers.size(), cain.centers.size());
     EXPECT_NEAR(LinearBreitWheelerBenchmark::histogramArea(opalx), 1.0, 2.0e-2);
@@ -211,15 +358,15 @@ TEST(TestLinearBreitWheelerSpectrum, PositronAngularSpectrumMatchesCainReference
     const int previousSeed = Options::seed;
     Options::seed = 13579;
 
-    LinearBreitWheelerBenchmark::HistogramConfig config;
+    auto config = fastHistogramConfig();
     config.minValue = 0.0;
     config.maxValue = 0.0045;
     const auto opalx = LinearBreitWheelerBenchmark::sampleHistogram(
         config,
         LinearBreitWheelerBenchmark::FinalState::Positron,
         LinearBreitWheelerBenchmark::Observable::Theta,
-        250000);
-    const auto cain = LinearBreitWheelerBenchmark::readHistogramCSV(referencePositronThetaPath());
+        kFastSampleCount);
+    const auto cain = readLowResolutionHistogram(referencePositronThetaPath());
 
     ASSERT_EQ(opalx.centers.size(), cain.centers.size());
     EXPECT_NEAR(LinearBreitWheelerBenchmark::histogramArea(opalx), 1.0, 2.0e-2);
@@ -236,12 +383,12 @@ TEST(TestLinearBreitWheelerSpectrum, ElectronJointSpectrumMatchesCainReference) 
     const int previousSeed = Options::seed;
     Options::seed = 13579;
 
-    LinearBreitWheelerBenchmark::JointHistogramConfig config;
+    auto config = fastJointHistogramConfig();
     const auto opalx = LinearBreitWheelerBenchmark::sampleJointHistogram(
         config,
         LinearBreitWheelerBenchmark::FinalState::Electron,
-        250000);
-    const auto cain = LinearBreitWheelerBenchmark::readJointHistogramCSV(referenceElectronJointPath());
+        kFastSampleCount);
+    const auto cain = readLowResolutionJointHistogram(referenceElectronJointPath());
 
     ASSERT_EQ(opalx.energyCentersGeV.size(), cain.energyCentersGeV.size());
     ASSERT_EQ(opalx.thetaCentersRad.size(), cain.thetaCentersRad.size());
@@ -262,12 +409,12 @@ TEST(TestLinearBreitWheelerSpectrum, PositronJointSpectrumMatchesCainReference) 
     const int previousSeed = Options::seed;
     Options::seed = 13579;
 
-    LinearBreitWheelerBenchmark::JointHistogramConfig config;
+    auto config = fastJointHistogramConfig();
     const auto opalx = LinearBreitWheelerBenchmark::sampleJointHistogram(
         config,
         LinearBreitWheelerBenchmark::FinalState::Positron,
-        250000);
-    const auto cain = LinearBreitWheelerBenchmark::readJointHistogramCSV(referencePositronJointPath());
+        kFastSampleCount);
+    const auto cain = readLowResolutionJointHistogram(referencePositronJointPath());
 
     ASSERT_EQ(opalx.energyCentersGeV.size(), cain.energyCentersGeV.size());
     ASSERT_EQ(opalx.thetaCentersRad.size(), cain.thetaCentersRad.size());
@@ -288,7 +435,7 @@ TEST(TestLinearBreitWheelerSpectrum, FinitePhotonBeamElectronEnergySpectrumMatch
     const int previousSeed = Options::seed;
     Options::seed = 13579;
 
-    LinearBreitWheelerBenchmark::FinitePhotonBeamConfig config;
+    auto config = fastFinitePhotonBeamConfig();
     config.minValue = 0.0;
     config.maxValue = 0.5;
     config.sigmaThetaXRad = 1.0e-3;
@@ -297,8 +444,8 @@ TEST(TestLinearBreitWheelerSpectrum, FinitePhotonBeamElectronEnergySpectrumMatch
         config,
         LinearBreitWheelerBenchmark::FinalState::Electron,
         LinearBreitWheelerBenchmark::Observable::Energy,
-        250000);
-    const auto cain = LinearBreitWheelerBenchmark::readHistogramCSV(referenceFinitePhotonBeamElectronEnergyPath());
+        kFastSampleCount);
+    const auto cain = readLowResolutionHistogram(referenceFinitePhotonBeamElectronEnergyPath());
 
     ASSERT_EQ(opalx.centers.size(), cain.centers.size());
     EXPECT_NEAR(LinearBreitWheelerBenchmark::histogramArea(opalx), 1.0, 2.0e-2);
@@ -315,7 +462,7 @@ TEST(TestLinearBreitWheelerSpectrum, FinitePhotonBeamPositronEnergySpectrumMatch
     const int previousSeed = Options::seed;
     Options::seed = 13579;
 
-    LinearBreitWheelerBenchmark::FinitePhotonBeamConfig config;
+    auto config = fastFinitePhotonBeamConfig();
     config.minValue = 0.0;
     config.maxValue = 0.5;
     config.sigmaThetaXRad = 1.0e-3;
@@ -324,8 +471,8 @@ TEST(TestLinearBreitWheelerSpectrum, FinitePhotonBeamPositronEnergySpectrumMatch
         config,
         LinearBreitWheelerBenchmark::FinalState::Positron,
         LinearBreitWheelerBenchmark::Observable::Energy,
-        250000);
-    const auto cain = LinearBreitWheelerBenchmark::readHistogramCSV(referenceFinitePhotonBeamPositronEnergyPath());
+        kFastSampleCount);
+    const auto cain = readLowResolutionHistogram(referenceFinitePhotonBeamPositronEnergyPath());
 
     ASSERT_EQ(opalx.centers.size(), cain.centers.size());
     EXPECT_NEAR(LinearBreitWheelerBenchmark::histogramArea(opalx), 1.0, 2.0e-2);
@@ -342,7 +489,7 @@ TEST(TestLinearBreitWheelerSpectrum, FinitePhotonBeamElectronAngularSpectrumMatc
     const int previousSeed = Options::seed;
     Options::seed = 13579;
 
-    LinearBreitWheelerBenchmark::FinitePhotonBeamConfig config;
+    auto config = fastFinitePhotonBeamConfig();
     config.minValue = 0.0;
     config.maxValue = 0.0060;
     config.sigmaThetaXRad = 1.0e-3;
@@ -351,8 +498,8 @@ TEST(TestLinearBreitWheelerSpectrum, FinitePhotonBeamElectronAngularSpectrumMatc
         config,
         LinearBreitWheelerBenchmark::FinalState::Electron,
         LinearBreitWheelerBenchmark::Observable::Theta,
-        250000);
-    const auto cain = LinearBreitWheelerBenchmark::readHistogramCSV(referenceFinitePhotonBeamElectronThetaPath());
+        kFastSampleCount);
+    const auto cain = readLowResolutionHistogram(referenceFinitePhotonBeamElectronThetaPath());
 
     ASSERT_EQ(opalx.centers.size(), cain.centers.size());
     EXPECT_NEAR(LinearBreitWheelerBenchmark::histogramArea(opalx), 1.0, 2.5e-2);
@@ -369,7 +516,7 @@ TEST(TestLinearBreitWheelerSpectrum, FinitePhotonBeamPositronAngularSpectrumMatc
     const int previousSeed = Options::seed;
     Options::seed = 13579;
 
-    LinearBreitWheelerBenchmark::FinitePhotonBeamConfig config;
+    auto config = fastFinitePhotonBeamConfig();
     config.minValue = 0.0;
     config.maxValue = 0.0060;
     config.sigmaThetaXRad = 1.0e-3;
@@ -378,8 +525,8 @@ TEST(TestLinearBreitWheelerSpectrum, FinitePhotonBeamPositronAngularSpectrumMatc
         config,
         LinearBreitWheelerBenchmark::FinalState::Positron,
         LinearBreitWheelerBenchmark::Observable::Theta,
-        250000);
-    const auto cain = LinearBreitWheelerBenchmark::readHistogramCSV(referenceFinitePhotonBeamPositronThetaPath());
+        kFastSampleCount);
+    const auto cain = readLowResolutionHistogram(referenceFinitePhotonBeamPositronThetaPath());
 
     ASSERT_EQ(opalx.centers.size(), cain.centers.size());
     EXPECT_NEAR(LinearBreitWheelerBenchmark::histogramArea(opalx), 1.0, 2.5e-2);
@@ -397,7 +544,7 @@ TEST(TestLinearBreitWheelerSpectrum, FinitePhotonBeamElectronJointSpectrumMatche
     const int previousSeed = Options::seed;
     Options::seed = 13579;
 
-    LinearBreitWheelerBenchmark::FinitePhotonBeamJointConfig config;
+    auto config = fastFinitePhotonBeamJointConfig();
     config.energyMinGeV = 0.0;
     config.energyMaxGeV = 0.5;
     config.thetaMinRad = 0.0;
@@ -407,8 +554,8 @@ TEST(TestLinearBreitWheelerSpectrum, FinitePhotonBeamElectronJointSpectrumMatche
     const auto opalx = LinearBreitWheelerBenchmark::sampleFinitePhotonBeamJointHistogram(
         config,
         LinearBreitWheelerBenchmark::FinalState::Electron,
-        250000);
-    const auto cain = LinearBreitWheelerBenchmark::readJointHistogramCSV(referenceFinitePhotonBeamElectronJointPath());
+        kFastSampleCount);
+    const auto cain = readLowResolutionJointHistogram(referenceFinitePhotonBeamElectronJointPath());
 
     ASSERT_EQ(opalx.energyCentersGeV.size(), cain.energyCentersGeV.size());
     ASSERT_EQ(opalx.thetaCentersRad.size(), cain.thetaCentersRad.size());
@@ -429,7 +576,7 @@ TEST(TestLinearBreitWheelerSpectrum, FinitePhotonBeamPositronJointSpectrumMatche
     const int previousSeed = Options::seed;
     Options::seed = 13579;
 
-    LinearBreitWheelerBenchmark::FinitePhotonBeamJointConfig config;
+    auto config = fastFinitePhotonBeamJointConfig();
     config.energyMinGeV = 0.0;
     config.energyMaxGeV = 0.5;
     config.thetaMinRad = 0.0;
@@ -439,8 +586,8 @@ TEST(TestLinearBreitWheelerSpectrum, FinitePhotonBeamPositronJointSpectrumMatche
     const auto opalx = LinearBreitWheelerBenchmark::sampleFinitePhotonBeamJointHistogram(
         config,
         LinearBreitWheelerBenchmark::FinalState::Positron,
-        250000);
-    const auto cain = LinearBreitWheelerBenchmark::readJointHistogramCSV(referenceFinitePhotonBeamPositronJointPath());
+        kFastSampleCount);
+    const auto cain = readLowResolutionJointHistogram(referenceFinitePhotonBeamPositronJointPath());
 
     ASSERT_EQ(opalx.energyCentersGeV.size(), cain.energyCentersGeV.size());
     ASSERT_EQ(opalx.thetaCentersRad.size(), cain.thetaCentersRad.size());
@@ -461,7 +608,7 @@ TEST(TestLinearBreitWheelerSpectrum, FinitePhotonBeamEnergySpreadElectronEnergyS
     const int previousSeed = Options::seed;
     Options::seed = 13579;
 
-    LinearBreitWheelerBenchmark::FinitePhotonBeamConfig config;
+    auto config = fastFinitePhotonBeamConfig();
     config.minValue = 0.0;
     config.maxValue = 0.5;
     config.sigmaThetaXRad = 1.0e-3;
@@ -471,8 +618,8 @@ TEST(TestLinearBreitWheelerSpectrum, FinitePhotonBeamEnergySpreadElectronEnergyS
         config,
         LinearBreitWheelerBenchmark::FinalState::Electron,
         LinearBreitWheelerBenchmark::Observable::Energy,
-        250000);
-    const auto cain = LinearBreitWheelerBenchmark::readHistogramCSV(referenceFinitePhotonBeamEnergySpreadElectronEnergyPath());
+        kFastSampleCount);
+    const auto cain = readLowResolutionHistogram(referenceFinitePhotonBeamEnergySpreadElectronEnergyPath());
 
     ASSERT_EQ(opalx.centers.size(), cain.centers.size());
     EXPECT_NEAR(LinearBreitWheelerBenchmark::histogramArea(opalx), 1.0, 2.0e-2);
@@ -489,7 +636,7 @@ TEST(TestLinearBreitWheelerSpectrum, FinitePhotonBeamEnergySpreadPositronEnergyS
     const int previousSeed = Options::seed;
     Options::seed = 13579;
 
-    LinearBreitWheelerBenchmark::FinitePhotonBeamConfig config;
+    auto config = fastFinitePhotonBeamConfig();
     config.minValue = 0.0;
     config.maxValue = 0.5;
     config.sigmaThetaXRad = 1.0e-3;
@@ -499,8 +646,8 @@ TEST(TestLinearBreitWheelerSpectrum, FinitePhotonBeamEnergySpreadPositronEnergyS
         config,
         LinearBreitWheelerBenchmark::FinalState::Positron,
         LinearBreitWheelerBenchmark::Observable::Energy,
-        250000);
-    const auto cain = LinearBreitWheelerBenchmark::readHistogramCSV(referenceFinitePhotonBeamEnergySpreadPositronEnergyPath());
+        kFastSampleCount);
+    const auto cain = readLowResolutionHistogram(referenceFinitePhotonBeamEnergySpreadPositronEnergyPath());
 
     ASSERT_EQ(opalx.centers.size(), cain.centers.size());
     EXPECT_NEAR(LinearBreitWheelerBenchmark::histogramArea(opalx), 1.0, 2.0e-2);
@@ -517,7 +664,7 @@ TEST(TestLinearBreitWheelerSpectrum, FinitePhotonBeamEnergySpreadElectronAngular
     const int previousSeed = Options::seed;
     Options::seed = 13579;
 
-    LinearBreitWheelerBenchmark::FinitePhotonBeamConfig config;
+    auto config = fastFinitePhotonBeamConfig();
     config.minValue = 0.0;
     config.maxValue = 0.0060;
     config.sigmaThetaXRad = 1.0e-3;
@@ -527,8 +674,8 @@ TEST(TestLinearBreitWheelerSpectrum, FinitePhotonBeamEnergySpreadElectronAngular
         config,
         LinearBreitWheelerBenchmark::FinalState::Electron,
         LinearBreitWheelerBenchmark::Observable::Theta,
-        250000);
-    const auto cain = LinearBreitWheelerBenchmark::readHistogramCSV(referenceFinitePhotonBeamEnergySpreadElectronThetaPath());
+        kFastSampleCount);
+    const auto cain = readLowResolutionHistogram(referenceFinitePhotonBeamEnergySpreadElectronThetaPath());
 
     ASSERT_EQ(opalx.centers.size(), cain.centers.size());
     EXPECT_NEAR(LinearBreitWheelerBenchmark::histogramArea(opalx), 1.0, 2.5e-2);
@@ -545,7 +692,7 @@ TEST(TestLinearBreitWheelerSpectrum, FinitePhotonBeamEnergySpreadPositronAngular
     const int previousSeed = Options::seed;
     Options::seed = 13579;
 
-    LinearBreitWheelerBenchmark::FinitePhotonBeamConfig config;
+    auto config = fastFinitePhotonBeamConfig();
     config.minValue = 0.0;
     config.maxValue = 0.0060;
     config.sigmaThetaXRad = 1.0e-3;
@@ -555,8 +702,8 @@ TEST(TestLinearBreitWheelerSpectrum, FinitePhotonBeamEnergySpreadPositronAngular
         config,
         LinearBreitWheelerBenchmark::FinalState::Positron,
         LinearBreitWheelerBenchmark::Observable::Theta,
-        250000);
-    const auto cain = LinearBreitWheelerBenchmark::readHistogramCSV(referenceFinitePhotonBeamEnergySpreadPositronThetaPath());
+        kFastSampleCount);
+    const auto cain = readLowResolutionHistogram(referenceFinitePhotonBeamEnergySpreadPositronThetaPath());
 
     ASSERT_EQ(opalx.centers.size(), cain.centers.size());
     EXPECT_NEAR(LinearBreitWheelerBenchmark::histogramArea(opalx), 1.0, 2.5e-2);
@@ -574,7 +721,7 @@ TEST(TestLinearBreitWheelerSpectrum, FinitePhotonBeamEnergySpreadElectronJointSp
     const int previousSeed = Options::seed;
     Options::seed = 13579;
 
-    LinearBreitWheelerBenchmark::FinitePhotonBeamJointConfig config;
+    auto config = fastFinitePhotonBeamJointConfig();
     config.energyMinGeV = 0.0;
     config.energyMaxGeV = 0.5;
     config.thetaMinRad = 0.0;
@@ -585,8 +732,8 @@ TEST(TestLinearBreitWheelerSpectrum, FinitePhotonBeamEnergySpreadElectronJointSp
     const auto opalx = LinearBreitWheelerBenchmark::sampleFinitePhotonBeamJointHistogram(
         config,
         LinearBreitWheelerBenchmark::FinalState::Electron,
-        250000);
-    const auto cain = LinearBreitWheelerBenchmark::readJointHistogramCSV(referenceFinitePhotonBeamEnergySpreadElectronJointPath());
+        kFastSampleCount);
+    const auto cain = readLowResolutionJointHistogram(referenceFinitePhotonBeamEnergySpreadElectronJointPath());
 
     ASSERT_EQ(opalx.energyCentersGeV.size(), cain.energyCentersGeV.size());
     ASSERT_EQ(opalx.thetaCentersRad.size(), cain.thetaCentersRad.size());
@@ -607,7 +754,7 @@ TEST(TestLinearBreitWheelerSpectrum, FinitePhotonBeamEnergySpreadPositronJointSp
     const int previousSeed = Options::seed;
     Options::seed = 13579;
 
-    LinearBreitWheelerBenchmark::FinitePhotonBeamJointConfig config;
+    auto config = fastFinitePhotonBeamJointConfig();
     config.energyMinGeV = 0.0;
     config.energyMaxGeV = 0.5;
     config.thetaMinRad = 0.0;
@@ -618,8 +765,8 @@ TEST(TestLinearBreitWheelerSpectrum, FinitePhotonBeamEnergySpreadPositronJointSp
     const auto opalx = LinearBreitWheelerBenchmark::sampleFinitePhotonBeamJointHistogram(
         config,
         LinearBreitWheelerBenchmark::FinalState::Positron,
-        250000);
-    const auto cain = LinearBreitWheelerBenchmark::readJointHistogramCSV(referenceFinitePhotonBeamEnergySpreadPositronJointPath());
+        kFastSampleCount);
+    const auto cain = readLowResolutionJointHistogram(referenceFinitePhotonBeamEnergySpreadPositronJointPath());
 
     ASSERT_EQ(opalx.energyCentersGeV.size(), cain.energyCentersGeV.size());
     ASSERT_EQ(opalx.thetaCentersRad.size(), cain.thetaCentersRad.size());
@@ -640,7 +787,7 @@ TEST(TestLinearBreitWheelerSpectrum, OverlapWeightedElectronEnergySpectrumMatche
     const int previousSeed = Options::seed;
     Options::seed = 13579;
 
-    LinearBreitWheelerBenchmark::FinitePhotonBeamConfig config;
+    auto config = fastFinitePhotonBeamConfig();
     config.minValue = 0.0;
     config.maxValue = 0.5;
     config.sigmaThetaXRad = 1.0e-3;
@@ -656,8 +803,8 @@ TEST(TestLinearBreitWheelerSpectrum, OverlapWeightedElectronEnergySpectrumMatche
         config,
         LinearBreitWheelerBenchmark::FinalState::Electron,
         LinearBreitWheelerBenchmark::Observable::Energy,
-        250000);
-    const auto cain = LinearBreitWheelerBenchmark::readHistogramCSV(referenceOverlapElectronEnergyPath());
+        kFastSampleCount);
+    const auto cain = readLowResolutionHistogram(referenceOverlapElectronEnergyPath());
 
     ASSERT_EQ(opalx.centers.size(), cain.centers.size());
     EXPECT_NEAR(LinearBreitWheelerBenchmark::histogramArea(opalx), 1.0, 2.0e-2);
@@ -673,7 +820,7 @@ TEST(TestLinearBreitWheelerSpectrum, OverlapWeightedPositronEnergySpectrumMatche
     const int previousSeed = Options::seed;
     Options::seed = 13579;
 
-    LinearBreitWheelerBenchmark::FinitePhotonBeamConfig config;
+    auto config = fastFinitePhotonBeamConfig();
     config.minValue = 0.0;
     config.maxValue = 0.5;
     config.sigmaThetaXRad = 1.0e-3;
@@ -689,8 +836,8 @@ TEST(TestLinearBreitWheelerSpectrum, OverlapWeightedPositronEnergySpectrumMatche
         config,
         LinearBreitWheelerBenchmark::FinalState::Positron,
         LinearBreitWheelerBenchmark::Observable::Energy,
-        250000);
-    const auto cain = LinearBreitWheelerBenchmark::readHistogramCSV(referenceOverlapPositronEnergyPath());
+        kFastSampleCount);
+    const auto cain = readLowResolutionHistogram(referenceOverlapPositronEnergyPath());
 
     ASSERT_EQ(opalx.centers.size(), cain.centers.size());
     EXPECT_NEAR(LinearBreitWheelerBenchmark::histogramArea(opalx), 1.0, 2.0e-2);
@@ -706,7 +853,7 @@ TEST(TestLinearBreitWheelerSpectrum, OverlapWeightedElectronAngularSpectrumMatch
     const int previousSeed = Options::seed;
     Options::seed = 13579;
 
-    LinearBreitWheelerBenchmark::FinitePhotonBeamConfig config;
+    auto config = fastFinitePhotonBeamConfig();
     config.minValue = 0.0;
     config.maxValue = 0.0060;
     config.sigmaThetaXRad = 1.0e-3;
@@ -722,8 +869,8 @@ TEST(TestLinearBreitWheelerSpectrum, OverlapWeightedElectronAngularSpectrumMatch
         config,
         LinearBreitWheelerBenchmark::FinalState::Electron,
         LinearBreitWheelerBenchmark::Observable::Theta,
-        250000);
-    const auto cain = LinearBreitWheelerBenchmark::readHistogramCSV(referenceOverlapElectronThetaPath());
+        kFastSampleCount);
+    const auto cain = readLowResolutionHistogram(referenceOverlapElectronThetaPath());
 
     ASSERT_EQ(opalx.centers.size(), cain.centers.size());
     EXPECT_NEAR(LinearBreitWheelerBenchmark::histogramArea(opalx), 1.0, 2.5e-2);
@@ -739,7 +886,7 @@ TEST(TestLinearBreitWheelerSpectrum, OverlapWeightedPositronAngularSpectrumMatch
     const int previousSeed = Options::seed;
     Options::seed = 13579;
 
-    LinearBreitWheelerBenchmark::FinitePhotonBeamConfig config;
+    auto config = fastFinitePhotonBeamConfig();
     config.minValue = 0.0;
     config.maxValue = 0.0060;
     config.sigmaThetaXRad = 1.0e-3;
@@ -755,8 +902,8 @@ TEST(TestLinearBreitWheelerSpectrum, OverlapWeightedPositronAngularSpectrumMatch
         config,
         LinearBreitWheelerBenchmark::FinalState::Positron,
         LinearBreitWheelerBenchmark::Observable::Theta,
-        250000);
-    const auto cain = LinearBreitWheelerBenchmark::readHistogramCSV(referenceOverlapPositronThetaPath());
+        kFastSampleCount);
+    const auto cain = readLowResolutionHistogram(referenceOverlapPositronThetaPath());
 
     ASSERT_EQ(opalx.centers.size(), cain.centers.size());
     EXPECT_NEAR(LinearBreitWheelerBenchmark::histogramArea(opalx), 1.0, 2.5e-2);
