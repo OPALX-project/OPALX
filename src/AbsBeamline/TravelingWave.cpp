@@ -13,10 +13,10 @@
 #include "PartBunch/PartBunch.h"
 #include "Physics/Units.h"
 #include "Utilities/GeneralClassicException.h"
-#include "Utilities/GSLSpline.h"
+// #include "Utilities/GSLSpline.h"
 
-#include <fstream>
-#include <iostream>
+// #include <fstream>
+// #include <iostream>
 
 extern Inform* gmsg;
 
@@ -139,7 +139,6 @@ bool TravelingWave::apply(
     std::shared_ptr<ParticleContainer_t> pc = RefPartBunch_m->getParticleContainer();
     auto Rview = pc->R.getView();
     auto Pview = pc->P.getView();
-
     const Vector_t<double, 3> R = Rview(i);
     const Vector_t<double, 3> P = Pview(i);
 
@@ -151,7 +150,6 @@ bool TravelingWave::apply(
     Vector_t<double, 3>& E, Vector_t<double, 3>& B) 
 {
     const double omega_t = frequency_m * t;
-    
     if (R(2) < -0.5 * periodLength_m || R(2) + 0.5 * periodLength_m >= getElementLength())
         return false;
 
@@ -214,7 +212,7 @@ bool TravelingWave::apply(
 
 bool TravelingWave::applyToReferenceParticle(
     const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& t,
-    Vector_t<double, 3>& E, Vector_t<double, 3>& B) 
+    Vector_t<double, 3>& E, Vector_t<double, 3>& B)
 {
     const double omega_t = frequency_m * t;
 

@@ -8,8 +8,12 @@
 #include "Utilities/GSLFFT.h"
 #include "Utilities/Util.h"
 
+#include <algorithm>
+#include <cmath>
 #include <fstream>
 #include <ios>
+
+
 
 Astra1DDynamic::Astra1DDynamic(const std::string& filename)
     : Fieldmap(filename)
@@ -133,123 +137,184 @@ Astra1DDynamic::~Astra1DDynamic() {
     freeMap();
 }
 
-void Astra1DDynamic::readMap() 
+void Astra1DDynamic::readMap()
 {
-    if (FourCoefs_m.extent(0) == 0) 
-    {
-        bool parsing_passed = true;
+    if (FourCoefs_m.extent(0) != 0) {
+        return;
+    }
 
-        // Need at least two valid points for dz, spline, and FFT setup
-        if (num_gridpz_m < 2) {
-            throw GeneralClassicException(
-                "Astra1DDynamic::readMap",
-                "Fieldmap must contain at least two valid sampling points");
+    // Need at least two valid points for dz, spline, and FFT setup
+    if (num_gridpz_m < 2) {
+        throw GeneralClassicException(
+            "Astra1DDynamic::readMap",
+            "Fieldmap must contain at least two valid sampling points");
+    }
+
+    std::ifstream in(Filename_m.c_str());
+    if (!in.good()) {
+        throw GeneralClassicException(
+            "Astra1DDynamic::readMap",
+            "Cannot open fieldmap '" + Filename_m + "'");
+    }
+
+    const double dz = (zend_m - zbegin_m) / (num_gridpz_m - 1);
+    
+    // CPU arrays - GSL (FFT + spline) is CPU-only
+    double* RealValues = new double[2 * num_gridpz_m];
+    double* zvals      = new double[num_gridpz_m];
+
+    // Initialize to something known for easier debugging
+    for (int i = 0; i < 2 * num_gridpz_m; ++i) {
+        RealValues[i] = 0.0;
+    }
+    for (int i = 0; i < num_gridpz_m; ++i) {
+        zvals[i] = 0.0;
+    }
+
+    // GSL objects (CPU only)
+    gsl_spline* Ez_interpolant =
+        gsl_spline_alloc(gsl_interp_cspline, num_gridpz_m);
+    gsl_interp_accel* Ez_accel =
+        gsl_interp_accel_alloc();
+
+    // Future optimization candidate:
+    // gsl_fft_real_wavetable* real =
+    //     gsl_fft_real_wavetable_alloc(2 * num_gridpz_m);
+    // gsl_fft_real_workspace* work =
+    //     gsl_fft_real_workspace_alloc(2 * num_gridpz_m);
+
+    // Allocate Kokkos View (final data used on GPU)
+    const int size = 2 * accuracy_m - 1;
+    FourCoefs_m = Kokkos::DualView<double*>("FourCoefs", size);
+    auto coefs = FourCoefs_m.view_host();
+
+    // ---- read file / parse fieldmap ----
+    // Skip the first two header lines exactly like the original code
+    std::string tmpString;
+    getLine(in, tmpString);
+    getLine(in, tmpString);
+
+    double Ez_max = 0.0;
+    double lastAcceptedZ = zbegin_m - dz;
+    int accepted = 0;
+
+    while (accepted < num_gridpz_m) {
+        double ztmp = 0.0;
+        double eztmp = 0.0;
+
+        const bool ok = interpretLine<double, double>(in, ztmp, eztmp, false);
+        if (!ok) {
+            break;
         }
 
-        // declare variables and allocate memory
-    	std::ifstream in;
-        std::string tmpString;
-        double tmpDouble, Ez_max = 0.0;
-  
-        double dz = (zend_m - zbegin_m) / (num_gridpz_m - 1);
-
-        // CPU arrays - GSL (FFT + spline) is CPU-only
-        double *RealValues = new double[2 * num_gridpz_m];
-        double *zvals = new double[num_gridpz_m];
-
-        // GSL objects (CPU only)
-        gsl_spline *Ez_interpolant = 
-            gsl_spline_alloc(gsl_interp_cspline, num_gridpz_m);
-        gsl_interp_accel *Ez_accel = 
-            gsl_interp_accel_alloc();
-
-        gsl_fft_real_wavetable *real = 
-            gsl_fft_real_wavetable_alloc(2 * num_gridpz_m);
-        gsl_fft_real_workspace *work = 
-            gsl_fft_real_workspace_alloc(2 * num_gridpz_m);
-
-        // Allocate Kokkos View (final data used on GPU)
-        const int size = 2 * accuracy_m - 1;
-        FourCoefs_m = Kokkos::DualView<double*>("FourCoefs", size);
-        auto coefs = FourCoefs_m.view_host();
-
-        // ---- read file / parse fieldmap ----
-        in.open(Filename_m.c_str());
-        getLine(in, tmpString);
-        getLine(in, tmpString);
-
-        tmpDouble = zbegin_m - dz;
-
-        for (int i = 0; i < num_gridpz_m && parsing_passed;) {
-            parsing_passed = 
-                interpretLine<double, double>(in, zvals[i], RealValues[i]);
-
-            // Read z and Ez, enforce strictly increasing z
-            if (zvals[i] - tmpDouble > 1e-10) {
-                if (std::abs(RealValues[i]) > Ez_max) {
-                    // Track max field for normalization
-                    Ez_max = std::abs(RealValues[i]);
-                }
-                tmpDouble = zvals[i];
-                ++i; // increment i only if sampling point is accepted
-            }
+        if (ztmp - lastAcceptedZ > 1e-10) {
+            zvals[accepted] = ztmp;
+            RealValues[accepted] = eztmp;
+            Ez_max = std::max(Ez_max, std::abs(eztmp));
+            lastAcceptedZ = ztmp;
+            ++accepted;
         }
-        // std::cerr << "readMap num_gridpz_m = " << num_gridpz_m << "\n";
-        in.close();
+    }
+    in.close();
 
-        // Interpolate onto equidistant grid (required for FFT)
-        gsl_spline_init(Ez_interpolant, zvals, RealValues, num_gridpz_m);
-
-        int ii = num_gridpz_m;
-        for (int i = 0; i < num_gridpz_m - 1; ++i, ++ii) {
-            double z = zbegin_m + dz * i;
-            RealValues[ii] = 
-                gsl_spline_eval(Ez_interpolant, z, Ez_accel);
-        }
-
-        // Ensure periodicity by mirroring
-        RealValues[ii ++] = RealValues[num_gridpz_m - 1];
-        --ii; 
-        for (int i = 0; i < num_gridpz_m; ++i, --ii) {
-            RealValues[i] = RealValues[ii];
-        }
-
-        // FFT → Fourier coefficients
-        gsl_fft_real_transform(
-            RealValues, 1, 2 * num_gridpz_m, real, work);
-
-        // Disable normalization if requested
-        if (!normalize_m) {
-            Ez_max = 1.0;
-        }
-
-        // Copy Fourier coefficients into Kokkos View
-        coefs(0) = 
-            RealValues[0] /
-            (Ez_max * Units::Vpm2MVpm * 2.0 * num_gridpz_m);
-
-        for (int i = 1; i < size; ++i) {
-            coefs(i) =
-                RealValues[i] /
-                (Ez_max * Units::Vpm2MVpm * num_gridpz_m);
-        }
-
-        // Cleanup CPU/GSL memory
+    if (accepted != num_gridpz_m) {
         gsl_spline_free(Ez_interpolant);
         gsl_interp_accel_free(Ez_accel);
-        gsl_fft_real_workspace_free(work);
-        gsl_fft_real_wavetable_free(real);
-
         delete[] zvals;
         delete[] RealValues;
 
-        FourCoefs_m.modify<Kokkos::HostSpace>();
-        FourCoefs_m.sync<Kokkos::DefaultExecutionSpace>();
-
-        *ippl::Info << level3 
-                    << typeset_msg("read in fieldmap '" + Filename_m + "'", "info")
-                    << endl;
+        std::ostringstream os;
+        os << "Mismatch between counted and parsed fieldmap points in '"
+           << Filename_m << "': expected " << num_gridpz_m
+           << ", got " << accepted;
+        throw GeneralClassicException("Astra1DDynamic::readMap", os.str());
     }
+
+    if (Ez_max == 0.0) {
+        gsl_spline_free(Ez_interpolant);
+        gsl_interp_accel_free(Ez_accel);
+        delete[] zvals;
+        delete[] RealValues;
+
+        throw GeneralClassicException(
+            "Astra1DDynamic::readMap",
+            "Maximum on-axis field is zero in fieldmap '" + Filename_m + "'");
+    }
+
+    zRaw_m.resize(num_gridpz_m);
+    ezRaw_m.resize(num_gridpz_m);
+    for (int i = 0; i < num_gridpz_m; ++i) {
+        zRaw_m[i] = zvals[i];
+        ezRaw_m[i] = RealValues[i];
+    }
+
+    // // Interpolate onto an equidistant grid and build a mirrored periodic array
+    gsl_spline_init(Ez_interpolant, zvals, RealValues, num_gridpz_m);
+
+    int ii = num_gridpz_m;
+    for (int i = 0; i < num_gridpz_m - 1; ++i, ++ii) {
+        const double z = zbegin_m + dz * i;
+        RealValues[ii] = gsl_spline_eval(Ez_interpolant, z, Ez_accel);
+    }
+
+    // Ensure periodicity by mirroring
+    RealValues[ii++] = RealValues[num_gridpz_m - 1];
+    --ii;
+    for (int i = 0; i < num_gridpz_m; ++i, --ii) {
+        RealValues[i] = RealValues[ii];
+    }
+
+    // Disable normalization if requested
+    const double norm = normalize_m ? Ez_max : 1.0;
+
+    // Compute Fourier coefficients explicitly from the mirrored periodic samples.
+    const int M = 2 * num_gridpz_m;
+
+    double a0 = 0.0;
+    for (int j = 0; j < M; ++j) {
+        a0 += RealValues[j];
+    }
+    coefs(0) = a0 / (norm * Units::Vpm2MVpm * M);
+
+    for (int l = 1; l < accuracy_m; ++l) {
+        double a_l = 0.0;
+        double b_l = 0.0;
+
+        for (int j = 0; j < M; ++j) {
+            const double theta = Physics::two_pi * double(j) / double(M);
+            a_l += RealValues[j] * std::cos(l * theta);
+            b_l += RealValues[j] * std::sin(l * theta);
+        }
+
+        a_l *= 2.0 / double(M);
+        b_l *= 2.0 / double(M);
+
+        const int n = 2 * l - 1;
+        coefs(n)     =  a_l / (norm * Units::Vpm2MVpm);
+        coefs(n + 1) = -b_l / (norm * Units::Vpm2MVpm);
+    }
+
+    // Future optimization candidate:
+    // gsl_fft_real_transform(RealValues, 1, 2 * num_gridpz_m, real, work);
+    // coefs(0) = RealValues[0] / (norm * Units::Vpm2MVpm * 2.0 * num_gridpz_m);
+    // for (int i = 1; i < size; ++i) {
+    //     coefs(i) = RealValues[i] / (norm * Units::Vpm2MVpm * num_gridpz_m);
+    // }
+
+    gsl_spline_free(Ez_interpolant);
+    gsl_interp_accel_free(Ez_accel);
+    // gsl_fft_real_workspace_free(work);
+    // gsl_fft_real_wavetable_free(real);
+
+    delete[] zvals;
+    delete[] RealValues;
+
+    FourCoefs_m.modify<Kokkos::HostSpace>();
+    FourCoefs_m.sync<Kokkos::DefaultExecutionSpace>();
+
+    *ippl::Info << level3
+                << typeset_msg("read in fieldmap '" + Filename_m + "'", "info")
+                << endl;
 }
 
 void Astra1DDynamic::freeMap() 
@@ -571,64 +636,33 @@ void Astra1DDynamic::setFrequency(double freq)
     frequency_m = freq;
 }
 
+// This function re-reads the fieldmap file to extract the on-axis Ez values, 
+// which are stored in F as pairs of (z, Ez).
+// Not computationally optimal, but it was like that in the original 
+// OPAL implementation and the on-axis field values are needed for the 
+// `TravelingWave` element, which uses the `Astra1DDynamic` fieldmap.
 void Astra1DDynamic::getOnaxisEz(std::vector<std::pair<double, double>>& F)
 {
-    // Ensure the field map coefficients are available
-    readMap();
+    double Ez_max = 0.0;
+    double tmpDouble;
+    int tmpInt;
+    std::string tmpString;
 
     F.resize(num_gridpz_m);
 
-    const auto FourCoefs = FourCoefs_m.h_view;
-
-    const double two_pi = Physics::two_pi;
-    const double pi     = Physics::pi;
-    const double dk     = two_pi / length_m;
-    const double dz     = (zend_m - zbegin_m) / (num_gridpz_m - 1);
+    std::ifstream in(Filename_m.c_str());
+    interpretLine<std::string, int>(in, tmpString, tmpInt);
+    interpretLine<double>(in, tmpDouble);
 
     for (int i = 0; i < num_gridpz_m; ++i) {
-        const double z  = zbegin_m + i * dz;
-        const double kz = dk * (z - zbegin_m) + pi;
-
-        double ez = FourCoefs(0);
-
-        int n = 1;
-        for (int l = 1; l < accuracy_m; ++l, n += 2) {
-            ez += FourCoefs(n)     * std::cos(kz * l)
-                - FourCoefs(n + 1) * std::sin(kz * l);
+        interpretLine<double, double>(in, F[i].first, F[i].second);
+        if (std::abs(F[i].second) > Ez_max) {
+            Ez_max = std::abs(F[i].second);
         }
+    }
+    in.close();
 
-        F[i].first  = z;
-        F[i].second = ez;
+    for (int i = 0; i < num_gridpz_m; ++i) {
+        F[i].second /= Ez_max;
     }
 }
-
-// // This function re-reads the fieldmap file to extract the on-axis Ez values, 
-// // which are stored in F as pairs of (z, Ez).
-// // Not computationally optimal, but it was like that in the original 
-// // OPAL implementation and the on-axis field values are needed for the 
-// // `TravelingWave` element, which uses the `Astra1DDynamic` fieldmap.
-// void Astra1DDynamic::getOnaxisEz(std::vector<std::pair<double, double>>& F)
-// {
-//     double Ez_max = 0.0;
-//     double tmpDouble;
-//     int tmpInt;
-//     std::string tmpString;
-
-//     F.resize(num_gridpz_m);
-
-//     std::ifstream in(Filename_m.c_str());
-//     interpretLine<std::string, int>(in, tmpString, tmpInt);
-//     interpretLine<double>(in, tmpDouble);
-
-//     for (int i = 0; i < num_gridpz_m; ++i) {
-//         interpretLine<double, double>(in, F[i].first, F[i].second);
-//         if (std::abs(F[i].second) > Ez_max) {
-//             Ez_max = std::abs(F[i].second);
-//         }
-//     }
-//     in.close();
-
-//     for (int i = 0; i < num_gridpz_m; ++i) {
-//         F[i].second /= Ez_max;
-//     }
-// }
