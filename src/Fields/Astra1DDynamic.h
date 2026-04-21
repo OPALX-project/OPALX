@@ -297,13 +297,17 @@ private:
     void readMap() override;
     void freeMap() override;
 
-    /** 
+    /**
      * @brief Fourier coefficients of Ez(z) (device-accessible)
      * Stored as:
      * [a0, a1, b1, a2, b2, ..., aN, bN]
-     * Used for fast Fourier reconstruction of the longitudinal field.
+     * and used in the reconstruction
+     *   Ez(z) = a0 + sum_l [ a_l cos(l*kz) - b_l sin(l*kz) ].
      */
     Kokkos::DualView<double*> FourCoefs_m;
+
+    std::vector<double> zRaw_m;
+    std::vector<double> ezRaw_m;
 
     double frequency_m;
 
