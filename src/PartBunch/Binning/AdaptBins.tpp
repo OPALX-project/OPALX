@@ -35,7 +35,7 @@ namespace ParticleBinning {
         // Update needed if bunch->create() is called between binnings!
         var_selector_m.updateDataArr(bunch_m); 
         BinningSelector var_selector = var_selector_m;  
-        size_type nlocal             = bunch_m->getLocalNum();
+        size_type nlocal             = bunch_m.getLocalNum();
 
         // Start limit reduction if number of particles is big enough.
         IpplTimings::startTimer(bInitLimitsT);
@@ -129,7 +129,7 @@ namespace ParticleBinning {
         bin_view_type binIndex        = getBinView();
 
         IpplTimings::startTimer(bAssignUniformBinsT);
-        if (bunch_m->getLocalNum() <= 1) {
+        if (bunch_m.getLocalNum() <= 1) {
             msg << level4 << "Too few bins, assigning all bins to index 0." << endl;
             Kokkos::deep_copy(binIndex, 0);
             return;
@@ -140,7 +140,7 @@ namespace ParticleBinning {
         bin_index_type numBins = currentBins_m;
 
         // Assign the bin index to the particle 
-        Kokkos::parallel_for("assignParticleBinsConst", bunch_m->getLocalNum(), KOKKOS_LAMBDA(const size_type& i) {
+        Kokkos::parallel_for("assignParticleBinsConst", bunch_m.getLocalNum(), KOKKOS_LAMBDA(const size_type& i) {
                 value_type v = var_selector(i); 
                 
                 bin_index_type bin = getBin(v, xMin, xMax, binWidthInv, numBins);
@@ -160,7 +160,7 @@ namespace ParticleBinning {
         bin_index_type binCount       = getCurrentBinCount();
 
         // Reduce using an array-reducer object (size needs to be known at compile time for GPU kernels)
-        Kokkos::parallel_reduce("initLocalHist", bunch_m->getLocalNum(), 
+        Kokkos::parallel_reduce("initLocalHist", bunch_m.getLocalNum(),
             KOKKOS_LAMBDA(const size_type& i, ReducerType& update) {
                 bin_index_type ndx = binIndex(i);  // Determine the bin index for this particle
                 update.the_array[ndx]++;           // Increment the corresponding bin count in the reduction array
@@ -184,7 +184,7 @@ namespace ParticleBinning {
         bin_view_type binIndex            = getBinView();
         dview_type device_histo           = localBinHisto_m.template getDeviceView<dview_type>(localBinHisto_m.getHistogram());
         const bin_index_type binCount     = getCurrentBinCount();
-        const size_type localNumParticles = bunch_m->getLocalNum(); 
+        const size_type localNumParticles = bunch_m.getLocalNum();
 
         using team_policy = Kokkos::TeamPolicy<>;
         using member_type = team_policy::member_type;
@@ -322,7 +322,7 @@ namespace ParticleBinning {
         setCurrentBinCount(globalBinHisto_m.getCurrentBinCount());
 
         // Map old indices to the new histogram ("Rebin")
-        Kokkos::parallel_for("RebinParticles", bunch_m->getLocalNum(), KOKKOS_LAMBDA(const size_type& i) {
+        Kokkos::parallel_for("RebinParticles", bunch_m.getLocalNum(), KOKKOS_LAMBDA(const size_type& i) {
             bin_index_type oldBin = binIndex(i);
             binIndex(i) = adaptLookupDevice(oldBin);
         });
@@ -340,7 +340,7 @@ namespace ParticleBinning {
     VField_t<T, Dim>& AdaptBins<BunchType, BinningSelector>::LTrans(VField_t<T, Dim>& field, const bin_index_type& currentBin) {
         Inform m("AdaptBins");
         
-        position_view_type P = bunch_m->P.getView();
+        position_view_type P = bunch_m.P.getView();
         hash_type indices    = sortedIndexArr_m;
 
         // Calculate gamma factor for field back transformation 
@@ -384,7 +384,7 @@ namespace ParticleBinning {
          */
 
         bin_view_type bins          = getBinView();
-        size_type localNumParticles = bunch_m->getLocalNum();
+        size_type localNumParticles = bunch_m.getLocalNum();
         size_type numBins           = getCurrentBinCount();
         dview_type bin_counts       = localBinHisto_m.template getDeviceView<dview_type>(localBinHisto_m.getHistogram());
 
@@ -422,5 +422,4 @@ namespace ParticleBinning {
 }
 
 #endif // ADAPT_BINS_HPP
-
 

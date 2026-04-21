@@ -64,7 +64,7 @@ void LBalWriter::fillHeader() {
     this->addInfo("ascii", 1);
 }
 
-void LBalWriter::write(const PartBunch_t* beam) {
+void LBalWriter::write(const PartBunch_t& beam) {
     if (ippl::Comm->rank() != 0)
         return;
 
@@ -74,7 +74,7 @@ void LBalWriter::write(const PartBunch_t* beam) {
 
     this->writeHeader();
 
-    columns_m.addColumnValue("t", beam->getT() * Units::s2ns);  // 1
+    columns_m.addColumnValue("t", beam.getT() * Units::s2ns);  // 1
 
     size_t nProcs = ippl::Comm->size();
     

@@ -115,7 +115,7 @@ namespace ParticleBinning {
         * @note If you have your own class, you need to implement this signature and potentially
         *       update all data arrays that operator() uses (e.g. also velocity or E).
         */
-        void updateDataArr(std::shared_ptr<bunch_type> bunch) { data_arr = bunch->P.getView(); }
+        void updateDataArr(bunch_type& bunch) { data_arr = bunch.P.getView(); }
 
         /**
         * @brief Returns the value of the binning variable for a given particle index.
@@ -153,8 +153,8 @@ namespace ParticleBinning {
 
         GammaSelector(int axis_) : axis(axis_) { }
 
-        void updateDataArr(std::shared_ptr<bunch_type> bunch) {
-            data_arr = bunch->P.getView();
+        void updateDataArr(bunch_type& bunch) {
+            data_arr = bunch.P.getView();
         }
 
         KOKKOS_INLINE_FUNCTION

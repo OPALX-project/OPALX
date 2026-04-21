@@ -105,7 +105,7 @@ void DataSink::dumpH5(
             continue;
         }
         Vector_t<double, 3> fd[2] = {fdextPerContainer[i][0], fdextPerContainer[i][1]};
-        h5Writers_m[i]->writePhaseSpace(&beam, fd, i);
+        h5Writers_m[i]->writePhaseSpace(beam, fd, i);
     }
 }
 
@@ -119,7 +119,7 @@ int DataSink::dumpH5(
     }
 
     return h5Writers_m[0]->writePhaseSpace(
-        &beam, FDext, meanEnergy, refPr, refPt, refPz, refR, refTheta, refZ, azimuth, elevation,
+        beam, FDext, meanEnergy, refPr, refPt, refPz, refR, refTheta, refZ, azimuth, elevation,
         local, 0);
 }
 
@@ -164,7 +164,7 @@ void DataSink::dumpSDDS(
         }
 
         Vector_t<double, 3> fd[2] = {fdextPerContainer[i][0], fdextPerContainer[i][1]};
-        statWriters_m[i]->write(&beam, fd, losses, azimuth, npOutside, i);
+        statWriters_m[i]->write(beam, fd, losses, azimuth, npOutside, i);
     }
 
     beam.gatherLoadBalanceStatistics();
@@ -205,18 +205,18 @@ void DataSink::writeGeomToVtk(BoundaryGeometry& bg, std::string fn) {
 }
 
 void DataSink::writeImpactStatistics(
-    const PartBunch_t* beam, long long& step, size_t& impact, double& sey_num,
+    const PartBunch_t& beam, long long& step, size_t& impact, double& sey_num,
     size_t numberOfFieldEmittedParticles, bool nEmissionMode, std::string fn) {
     double charge  = 0.0;
     size_t Npart   = 0;
     double Npart_d = 0.0;
     if (!nEmissionMode) {
-        const auto pc = beam->getParticleContainers()[0];
+        const auto pc = beam.getParticleContainers()[0];
         charge = -1.0 * pc->getTotalCharge();
         // reduce(charge, charge, OpAddAssign());
         Npart_d = -1.0 * charge / pc->getChargePerParticle();
     } else {
-        Npart = beam->getParticleContainers()[0]->getTotalNum();
+        Npart = beam.getParticleContainers()[0]->getTotalNum();
     }
     if (ippl::Comm->rank() == 0) {
         std::string ffn = fn + std::string(".dat");
@@ -225,7 +225,7 @@ void DataSink::writeImpactStatistics(
         Inform& fid = *ofp;
         fid.precision(6);
         fid << std::setiosflags(std::ios::scientific);
-        double t = beam->getT() * Units::s2ns;
+        double t = beam.getT() * Units::s2ns;
         if (!nEmissionMode) {
             if (step == 0) {
                 fid << "#Time/ns" << std::setw(18) << "#Geometry impacts" << std::setw(18)
