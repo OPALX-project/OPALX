@@ -20,9 +20,9 @@
  * @tparam Dim Spatial dimensionality (currently only `Dim == 3` is supported).
  *
  * Design overview:
- * - The solver owns no particle data; it consumes a `PartBunch` via `std::shared_ptr`.
+ * - The solver owns no particle data; it borrows a `PartBunch` by reference.
  * - Runtime selection:
- *   - If adaptive bins are available (`bunch->hasBinning()` / `bunch->getBins()`),
+ *   - If adaptive bins are available (`bunch.hasBinning()` / `bunch.getBins()`),
  *     the per-bin algorithm is executed.
  *   - Otherwise, the legacy monolithic scatter/solve/gather path is used.
  * - The solver currently supports only `ChargeQ -> rho` scattering and `ElectricFieldE`
@@ -85,18 +85,18 @@ public:
     /**
      * @brief Compute space-charge self-fields for the given particle bunch.
      *
-     * If the bunch provides adaptive binning (`bunch->getBins()`), the solver executes
+     * If the bunch provides adaptive binning (`bunch.getBins()`), the solver executes
      * the per-bin algorithm:
      * `scatter rho corrections -> solve -> Lorentz scaling -> accumulate -> gather`.
      * Otherwise, it executes the legacy monolithic algorithm:
      * `scatter all particles -> solve once -> gather directly`.
      *
-     * @param bunch Pointer to the particle bunch (must not be null).
+     * @param bunch Particle bunch to update. Ownership remains with the caller.
      *
      * @throws OpalException If required internal data (particle container / temp E field)
      *                        is missing, or if unsupported scatter/gather modes are selected.
      */
-    void computeSelfFields(std::shared_ptr<PartBunch_t> bunch);
+    void computeSelfFields(PartBunch_t& bunch);
 
     /**
      * @brief Set particle scatter attribute (extensible; default is `ChargeQ`).
@@ -148,11 +148,11 @@ private:
      * @brief Compute self-fields using the binned algorithm.
      *
      * Requires that the bunch has a valid bin structure and a temporary electric field
-     * buffer (`bunch->getTempEField()`).
+     * buffer (`bunch.getTempEField()`).
      *
      * @param bunch Particle bunch for which to compute self-fields.
      */
-    void computeBinnedSelfFields(std::shared_ptr<PartBunch_t> bunch);
+    void computeBinnedSelfFields(PartBunch_t& bunch);
 
     /**
      * @brief Compute self-fields using the legacy monolithic algorithm.
@@ -162,7 +162,7 @@ private:
      *
      * @param bunch Particle bunch for which to compute self-fields.
      */
-    void computeLegacySelfFields(std::shared_ptr<PartBunch_t> bunch);
+    void computeLegacySelfFields(PartBunch_t& bunch);
 
     /**
      * @brief Build and prepare adaptive bins for the current step.
@@ -173,7 +173,7 @@ private:
      * @param bunch Bunch whose bins are updated.
      * @param bins  Adaptive bin structure owned/managed by the bunch.
      */
-    void rebinAndPrepare(std::shared_ptr<PartBunch_t> bunch,
+    void rebinAndPrepare(PartBunch_t& bunch,
                           std::shared_ptr<AdaptBins_t> bins);
 
 public:
@@ -192,7 +192,7 @@ public:
      *
      * @return Per-bin kinematics bundle (`pmean`, `gammaBin`).
      */
-    BinKinematics computeGammaBinGlobal(std::shared_ptr<PartBunch_t> bunch,
+    BinKinematics computeGammaBinGlobal(PartBunch_t& bunch,
                                         std::shared_ptr<AdaptBins_t> bins,
                                         const bin_index_type binIndex,
                                         const size_type nPartGlobal) const;
@@ -212,7 +212,7 @@ public:
      * @param nPartGlobal  Global number of particles in that merged bin.
      * @param gammaBin     Global average gamma for that merged bin.
      */
-    void prepareRhoForBin(std::shared_ptr<PartBunch_t> bunch,
+    void prepareRhoForBin(PartBunch_t& bunch,
                            std::shared_ptr<AdaptBins_t> bins,
                            const bin_index_type binIndex,
                            const size_type nPartGlobal,
@@ -246,7 +246,7 @@ private:
      * @param EtmpSP  Temporary electric field buffer holding the accumulated lab-frame field.
      * @param BtmpSP  Temporary magnetic field buffer holding the accumulated lab-frame field.
      */
-    void gatherFromTempToParticles(std::shared_ptr<PartBunch_t> bunch,
+    void gatherFromTempToParticles(PartBunch_t& bunch,
                                    std::shared_ptr<VField_t<T, Dim>> EtmpSP,
                                    std::shared_ptr<VField_t<T, Dim>> BtmpSP);
 };
@@ -255,4 +255,3 @@ private:
 extern template class BinnedFieldSolver<double, 3>;
 
 #endif  // OPALX_BINNED_FIELD_SOLVER_H
-

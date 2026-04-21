@@ -649,9 +649,7 @@ void PartBunch<T, Dim>::computeSelfFields() {
                             "Field solver is not a BinnedFieldSolver instance.");
     }
 
-    // Non-owning shared_ptr alias: solver does not manage bunch lifetime.
-    std::shared_ptr<PartBunch<T, Dim>> bunchPtr(this, [](PartBunch<T, Dim>*) { });
-    bsolver->computeSelfFields(bunchPtr);
+    bsolver->computeSelfFields(*this);
 }
 
 /**
