@@ -45,9 +45,10 @@ namespace {
         ENERGY,    // The particle energy in GeV
         PC,        // The particle momentum in GeV/c
         GAMMA,     // ENERGY / MASS
-        BCURRENT,  // Beam current in A
-        BFREQ,     // Beam frequency in MHz
-        NPART,     // Number of particles per bunch
+        BCURRENT,  // Legacy, unused in OPALX (holdover from OPALCycl)
+        BFREQ,     // Legacy, unused in OPALX (holdover from OPALCycl)
+        BCHARGE,   // Bunch charge in C
+        NALLOC,    // Allocation size (macroparticles) for this beam
         SOURCES,   // Name of EMISSIONSOURCELIST
         SIZE
     };
@@ -74,11 +75,15 @@ Beam::Beam()
 
     itsAttr[GAMMA] = Attributes::makeReal("GAMMA", "ENERGY / MASS");
 
-    itsAttr[BCURRENT] = Attributes::makeReal("BCURRENT", "Beam current [A] (all bunches)");
+    itsAttr[BCURRENT] = Attributes::makeReal(
+        "BCURRENT", "Legacy, unused in OPALX. Use BCHARGE instead.");
 
-    itsAttr[BFREQ] = Attributes::makeReal("BFREQ", "Beam frequency [MHz] (all bunches)");
+    itsAttr[BFREQ] = Attributes::makeReal(
+        "BFREQ", "Legacy, unused in OPALX. Use BCHARGE instead.");
 
-    itsAttr[NPART] = Attributes::makeReal("NPART", "Number of particles in bunch");
+    itsAttr[BCHARGE] = Attributes::makeReal("BCHARGE", "Bunch charge [C]");
+
+    itsAttr[NALLOC] = Attributes::makeReal("NALLOC", "Allocation size (macroparticles) for this beam");
 
     itsAttr[SOURCES] =
         Attributes::makeString("SOURCES", "Name of the emission sources list (EMISSIONSOURCELIST).");
@@ -143,6 +148,13 @@ void Beam::execute() {
         }
     }
 
+    if (itsAttr[BCURRENT] || itsAttr[BFREQ]) {
+        throw OpalException(
+            "Beam::execute()",
+            "\"BCURRENT\" and \"BFREQ\" are no longer used in OPALX. "
+            "Use \"BCHARGE\" [C] to specify the bunch charge directly.");
+    }
+
     update();
 
     if (!(itsAttr[PARTICLE]) && (!itsAttr[MASS] || !(itsAttr[CHARGE]))) {
@@ -152,8 +164,8 @@ void Beam::execute() {
             "Set either \"PARTICLE\" or \"MASS\" and \"CHARGE\".");
     }
 
-    if (!(itsAttr[NPART])) {
-        throw OpalException("Beam::execute()", "\"NPART\" must be set.");
+    if (!(itsAttr[NALLOC])) {
+        throw OpalException("Beam::execute()", "\"NALLOC\" must be set.");
     }
 
     if (photon) {
@@ -195,13 +207,13 @@ Beam* Beam::find(const std::string& name) {
     return beam;
 }
 
-size_t Beam::getNumberOfParticles() const {
-    if (Attributes::getReal(itsAttr[NPART]) > 0) {
-        return (size_t)Attributes::getReal(itsAttr[NPART]);
+size_t Beam::getNumAlloc() const {
+    if (Attributes::getReal(itsAttr[NALLOC]) > 0) {
+        return (size_t)Attributes::getReal(itsAttr[NALLOC]);
     } else {
         throw OpalException(
-            "Beam::getNumberOfParticles()",
-            "Wrong number of particles in beam!. \"NPART\" must be positive");
+            "Beam::getNumAlloc()",
+            "Wrong allocation size for beam! \"NALLOC\" must be positive");
     }
 }
 
@@ -213,6 +225,10 @@ const PartData& Beam::getReference() const {
 
 double Beam::getCurrent() const {
     return Attributes::getReal(itsAttr[BCURRENT]);
+}
+
+double Beam::getBunchCharge() const {
+    return Attributes::getReal(itsAttr[BCHARGE]);
 }
 
 double Beam::getCharge() const {
@@ -244,8 +260,7 @@ bool Beam::hasExplicitEnergy() const {
 }
 
 double Beam::getChargePerParticle() const {
-    return std::copysign(1.0, getCharge()) * getCurrent() / (getFrequency() * Units::MHz2Hz) 
-           / getNumberOfParticles();
+    return std::copysign(1.0, getCharge()) * getBunchCharge() / getNumAlloc();
 }
 
 double Beam::getMassPerParticle() const {
@@ -315,9 +330,8 @@ void Beam::print(std::ostream& os) const {
        << "* CHARGE      " << (charge > 0 ? '+' : '-') << "e * " << std::abs(charge) << " \n"
        << "* MOMENTUM    " << reference.getP() << " [eV/c]\n"
        << "* MOMENTUM    " << Attributes::getReal(itsAttr[PC]) << " [GeV/c]\n"
-       << "* CURRENT     " << Attributes::getReal(itsAttr[BCURRENT]) << " [A]\n"
-       << "* FREQUENCY   " << Attributes::getReal(itsAttr[BFREQ]) << " [MHz]\n"
-       << "* NPART       " << Attributes::getReal(itsAttr[NPART]) << '\n';
+       << "* BCHARGE     " << Attributes::getReal(itsAttr[BCHARGE]) << " [C]\n"
+       << "* NALLOC      " << Attributes::getReal(itsAttr[NALLOC]) << '\n';
     os << "* ********************************************************************************** "
        << std::endl;
 }

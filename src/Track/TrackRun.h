@@ -103,9 +103,9 @@ private:
     void configureImageChargeFromSources(
         const std::vector<std::vector<EmissionSource*>>& emissionSourcesLists);
 
-    /// Compute total number of macroparticles for the bunch from BEAM::NPART and
+    /// Compute total number of macroparticles for the bunch from BEAM::NALLOC and
     /// optional per-distribution NPARTDIST values on the emission sources.
-    size_t computeTotalParticlesForBunch(
+    size_t computeTotalAllocationForBunch(
         Beam* beam,
         const std::vector<EmissionSource*>& sources) const;
 
