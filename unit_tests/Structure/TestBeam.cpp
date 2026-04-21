@@ -37,14 +37,14 @@ protected:
         Attributes::setString(*beam.findAttribute("SOURCES"), value);
     }
 
-    void setNPART(Beam& beam, double value) {
-        Attributes::setReal(*beam.findAttribute("NPART"), value);
+    void setNALLOC(Beam& beam, double value) {
+        Attributes::setReal(*beam.findAttribute("NALLOC"), value);
     }
 
     void makeValidPhotonBeam(Beam& beam) {
         setParticle(beam, "PHOTON");
         setEnergy(beam, 5.0);
-        setNPART(beam, 1.0);
+        setNALLOC(beam, 1.0);
     }
 };
 
@@ -68,7 +68,7 @@ TEST_F(BeamPhotonTest, PhotonBeamAcceptsEnergyOnlyDefinition) {
 TEST_F(BeamPhotonTest, PhotonBeamRequiresEnergy) {
     Beam beam;
     setParticle(beam, "PHOTON");
-    setNPART(beam, 1.0);
+    setNALLOC(beam, 1.0);
 
     EXPECT_THROW(beam.execute(), OpalException);
 }
