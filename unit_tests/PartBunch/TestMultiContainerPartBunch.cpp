@@ -270,7 +270,7 @@ TEST_F(MultiContainerPartBunchTest, DataSink_dumpSDDS_ThrowsWhenFdextTooSmall) {
     fdTooSmall.push_back(zeroFdPair());
 
     const double azimuth = 0.0;
-    EXPECT_THROW(ds.dumpSDDS(bunch, fdTooSmall, azimuth), OpalException);
+    EXPECT_THROW(ds.dumpSDDS(*bunch, fdTooSmall, azimuth), OpalException);
 
     std::remove((DataSink::diagnosticStemForContainer("unit_test", 2, 0) + ".stat").c_str());
     std::remove((DataSink::diagnosticStemForContainer("unit_test", 2, 1) + ".stat").c_str());
@@ -287,7 +287,7 @@ TEST_F(MultiContainerPartBunchTest, DataSink_dumpSDDS_NoThrowWithMatchingFdextAn
     fd[1] = zeroFdPair();
 
     const double azimuth = 0.0;
-    EXPECT_NO_THROW(ds.dumpSDDS(bunch, fd, azimuth));
+    EXPECT_NO_THROW(ds.dumpSDDS(*bunch, fd, azimuth));
 
     std::remove((DataSink::diagnosticStemForContainer("unit_test", 2, 0) + ".stat").c_str());
     std::remove((DataSink::diagnosticStemForContainer("unit_test", 2, 1) + ".stat").c_str());
@@ -304,7 +304,7 @@ TEST_F(MultiContainerPartBunchTest, DataSink_dumpH5_NoThrowWhenHdf5OffEvenIfFdex
     std::vector<std::array<Vector_t<double, 3>, 2>> fdTooSmall;
     fdTooSmall.push_back(zeroFdPair());
 
-    EXPECT_NO_THROW(ds.dumpH5(bunch, fdTooSmall));
+    EXPECT_NO_THROW(ds.dumpH5(*bunch, fdTooSmall));
 
     std::remove((DataSink::diagnosticStemForContainer("unit_test", 2, 0) + ".stat").c_str());
     std::remove((DataSink::diagnosticStemForContainer("unit_test", 2, 1) + ".stat").c_str());
@@ -330,7 +330,7 @@ TEST_F(MultiContainerPartBunchTest, DataSink_dumpH5_ThrowsWhenFdextTooSmallAndHd
         DataSink ds(wrappers, false, 2);
         std::vector<std::array<Vector_t<double, 3>, 2>> fdTooSmall;
         fdTooSmall.push_back(zeroFdPair());
-        EXPECT_THROW(ds.dumpH5(bunch, fdTooSmall), OpalException);
+        EXPECT_THROW(ds.dumpH5(*bunch, fdTooSmall), OpalException);
     }
 
     for (H5PartWrapper* w : wrappers) {
