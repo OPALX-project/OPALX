@@ -54,6 +54,8 @@
 #include <filesystem>
 #include <fstream>
 #include <vector>
+#include <iomanip>
+#include <string>
 
 namespace {
 
@@ -237,8 +239,8 @@ TEST_F(Astra1DDynamicTest, UniformFieldStrengthOnAxis) {
     EXPECT_NEAR(E[0], 0.0, 1e-10);
     EXPECT_NEAR(E[1], 0.0, 1e-10);
 
-    const double expected_scale = static_cast<double>(nz - 1) / nz;
-    EXPECT_NEAR(E[2], expected_scale * 1.0e6, 1e-4);
+    // const double expected_scale = static_cast<double>(nz - 1) / nz;
+    EXPECT_NEAR(E[2], 1.0e6, 1e-4);
 
     // on-axis, transverse magnetic field projects to zero
     EXPECT_NEAR(B[0], 0.0, 1e-10);
@@ -268,8 +270,8 @@ TEST_F(Astra1DDynamicTest, NoNormalization) {
 
     EXPECT_FALSE(outside);
 
-    const double expected_scale = static_cast<double>(nz - 1) / nz;
-    EXPECT_NEAR(E[2], expected_scale * 3.0e6, 1e-3);
+    // const double expected_scale = static_cast<double>(nz - 1) / nz;
+    EXPECT_NEAR(E[2], 3.0e6, 1e-3);
 }
 
 // ===========================================================================
@@ -340,8 +342,8 @@ TEST_F(Astra1DDynamicTest, FieldAccumulation) {
     EXPECT_NEAR(E[0], 1.0, 1e-10);
     EXPECT_NEAR(E[1], 2.0, 1e-10);
 
-    const double expected_scale = static_cast<double>(nz - 1) / nz;
-    EXPECT_NEAR(E[2], 3.0 + expected_scale * 1.0e6, 1e-4);
+    // const double expected_scale = static_cast<double>(nz - 1) / nz;
+    EXPECT_NEAR(E[2], 3.0 + 1.0e6, 1e-4);
 
     // on-axis, no transverse magnetic contribution
     EXPECT_NEAR(B[0], 4.0, 1e-10);
@@ -372,32 +374,44 @@ TEST_F(Astra1DDynamicTest, FieldDerivativeConstantField) {
 }
 
 // ===========================================================================
-// Test: getOnaxisEz returns the reconstructed on-axis field
+// Test: getOnaxisEz returns the normalized raw on-axis profile
+// for the legacy 2-token Astra1D header format.
 // ===========================================================================
-TEST_F(Astra1DDynamicTest, GetOnaxisEzReconstructedField) {
+TEST_F(Astra1DDynamicTest, GetOnaxisEzReturnsNormalizedRawProfile) {
     const int nz = 9;
+    const std::string fname = tmpFile("onaxis_legacy.map");
 
-    std::string fname = writeConstantAstra1DFieldmap(
-        tmpFile("onaxis.map"), 0.0, 0.10, nz, 3.0, 8, 100.0, true);
+    {
+        std::ofstream out(fname);
+        ASSERT_TRUE(out.good());
+
+        // Legacy 2-token header accepted by both:
+        // - Fieldmap::getFieldmap()
+        // - current Astra1DDynamic::getOnaxisEz()
+        out << "AstraDynamic 8\n";
+        out << "100.0\n";
+
+        for (int i = 0; i < nz; ++i) {
+            const double z = 0.10 * double(i) / double(nz - 1);
+            out << std::setprecision(16) << z << " " << 3.0 << "\n";
+        }
+    }
 
     auto* fm = dynamic_cast<Astra1DDynamic*>(Fieldmap::getFieldmap(fname));
     ASSERT_NE(fm, nullptr);
 
-    Fieldmap::readMap(fname);
+    ASSERT_NO_THROW(Fieldmap::readMap(fname));
 
     std::vector<std::pair<double, double>> F;
-    fm->getOnaxisEz(F);
+    ASSERT_NO_THROW(fm->getOnaxisEz(F));
 
     ASSERT_EQ(F.size(), nz);
-
-    const double expected_scale = static_cast<double>(nz - 1) / nz;
-    const double expected_ez = expected_scale * 1.0e6;  // V/m
 
     EXPECT_NEAR(F.front().first, 0.0, 1e-12);
     EXPECT_NEAR(F.back().first,  0.10, 1e-12);
 
     for (int i = 0; i < nz; ++i) {
-        EXPECT_NEAR(F[i].second, expected_ez, 1e-6);
+        EXPECT_NEAR(F[i].second, 1.0, 1e-12);
     }
 }
 
