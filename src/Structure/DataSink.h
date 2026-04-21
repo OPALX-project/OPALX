@@ -67,24 +67,46 @@ public:
     static std::string diagnosticStemForContainer(
         const std::string& inputBasename, size_t numContainers, size_t index);
 
-    void dumpH5(const std::shared_ptr<PartBunch_t>& beam, Vector_t<double, 3> FDext[]) const;
+    /**
+     * @brief Write H5 phase-space data for all particle containers.
+     * @param beam Borrowed particle bunch; DataSink does not own or retain it.
+     * @param FDext External magnetic/electric field values reused for each container.
+     */
+    void dumpH5(PartBunch_t& beam, Vector_t<double, 3> FDext[]) const;
 
+    /**
+     * @brief Write H5 phase-space data with per-container external fields.
+     * @param beam Borrowed particle bunch; DataSink does not own or retain it.
+     * @param fdextPerContainer External field values indexed by particle container.
+     */
     void dumpH5(
-        const std::shared_ptr<PartBunch_t>& beam,
+        PartBunch_t& beam,
         const std::vector<std::array<Vector_t<double, 3>, 2>>& fdextPerContainer) const;
 
+    /**
+     * @brief Write single-container H5 phase-space data with reference quantities.
+     * @param beam Borrowed particle bunch; DataSink does not own or retain it.
+     */
     int dumpH5(
-        const std::shared_ptr<PartBunch_t>& beam, Vector_t<double, 3> FDext[], double meanEnergy, double refPr,
+        PartBunch_t& beam, Vector_t<double, 3> FDext[], double meanEnergy, double refPr,
         double refPt, double refPz, double refR, double refTheta, double refZ, double azimuth,
         double elevation, bool local) const;
 
+    /**
+     * @brief Write SDDS statistics with per-container external fields.
+     * @param beam Borrowed particle bunch; DataSink does not own or retain it.
+     */
     void dumpSDDS(
-        const std::shared_ptr<PartBunch_t>& beam,
+        PartBunch_t& beam,
         const std::vector<std::array<Vector_t<double, 3>, 2>>& fdextPerContainer,
         const double& azimuth) const;
 
+    /**
+     * @brief Write SDDS statistics and losses with per-container external fields.
+     * @param beam Borrowed particle bunch; DataSink does not own or retain it.
+     */
     void dumpSDDS(
-        const std::shared_ptr<PartBunch_t>& beam,
+        PartBunch_t& beam,
         const std::vector<std::array<Vector_t<double, 3>, 2>>& fdextPerContainer,
         const losses_t& losses,
         const double& azimuth) const;

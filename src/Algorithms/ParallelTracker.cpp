@@ -82,7 +82,7 @@ ParallelTracker::ParallelTracker(
  * @brief Construct tracker with bunch, data sink, z-segments, and optional emitters.
  */
 ParallelTracker::ParallelTracker(
-    const Beamline& beamline, std::shared_ptr<PartBunch_t> bunch, DataSink* ds,
+    const Beamline& beamline, PartBunch_t& bunch, DataSink* ds,
     bool revBeam,
     const std::vector<unsigned long long>& maxSteps, double zstart,
     const std::vector<double>& zstop, const std::vector<double>& dt,
@@ -1286,12 +1286,12 @@ void ParallelTracker::writePhaseSpace(const long long /*step*/, bool psDump, boo
     }
 
     if (statDump) {
-        itsDataSink_m->dumpSDDS(itsBunch_m, fdByContainer, -1.0);
+        itsDataSink_m->dumpSDDS(*itsBunch_m, fdByContainer, -1.0);
         *gmsg << level2 << "* Wrote beam statistics." << endl;
     }
 
     if (psDump && itsBunch_m->getTotalNumAllContainers() > 0) {
-        itsDataSink_m->dumpH5(itsBunch_m, fdByContainer);
+        itsDataSink_m->dumpH5(*itsBunch_m, fdByContainer);
 
         /*
         // Write fields to .h5 file.
@@ -1342,7 +1342,7 @@ void ParallelTracker::writePhaseSpace(const long long /*step*/, bool psDump, boo
 
             msg << *itsBunch_m << endl;
         
-        itsDataSink_m->dumpH5(itsBunch_m, FDext);
+        itsDataSink_m->dumpH5(*itsBunch_m, FDext);
         */
         
         /*

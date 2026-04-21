@@ -320,7 +320,7 @@ void TrackRun::execute() {
     }
 
     // Create PartBunch (PIC Manager) with multiple particle containers
-    bunch_m = std::make_shared<bunch_type>(
+    bunch_m = std::make_unique<bunch_type>(
         macrocharges,           // Macro charge [C]
         macromasses,            // Macro Mass [GeV]
         beams,                  // Beam objects per container
@@ -411,7 +411,7 @@ void TrackRun::execute() {
 
     */
     itsTracker_m = std::make_unique<ParallelTracker>(
-        *Track::block->use->fetchLine(), bunch_m, ds_m, false,
+        *Track::block->use->fetchLine(), *bunch_m, ds_m, false,
         Track::block->localTimeSteps,
         Track::block->zstart, Track::block->zstop, Track::block->dT, emittingSamplersList);
     itsTracker_m->execute();

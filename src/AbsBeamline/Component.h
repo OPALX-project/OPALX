@@ -203,12 +203,15 @@ public:
     //  The default version returns ``this''.
     virtual const ElementBase& getDesign() const;
 
-    /// Track particle bunch.
-    //  This catch-all method implements a hook for tracking a particle
-    //  bunch through a non-standard component.
-    //  The default version throws a LogicalError.
+    /**
+     * @brief Track a borrowed particle bunch through a non-standard component.
+     *
+     * The default implementation throws a LogicalError.
+     *
+     * @param bunch Particle bunch to track. The component does not take ownership.
+     */
     virtual void trackBunch(
-        const std::shared_ptr<PartBunch_t>& bunch,
+        PartBunch_t& bunch,
         const PartData&, 
         bool revBeam, 
         bool revTrack) const;
