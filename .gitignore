@@ -10,7 +10,6 @@
 *.dat
 optimizer/Tests/*.exe
 build
-data
 CMakeCache.txt
 CMakeFiles
 cmake_install.cmake
