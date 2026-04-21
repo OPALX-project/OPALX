@@ -254,6 +254,22 @@ std::shared_ptr<ParticleContainer<double, 3>> makeParticleContainer(const ippl::
 }
 
 /**
+ * @brief Copy generated particle momenta from the active Kokkos memory space to host memory.
+ *
+ * `MultiVariateGaussian` fills `ParticleContainer::P` in the configured IPPL/Kokkos
+ * execution space. The finite-beam benchmark then performs scalar host-side
+ * Compton sampling, so CUDA/HIP builds must not dereference the device view
+ * directly. This mirror copy is the only data movement required by the benchmark
+ * loop; the physics kernel itself remains host-only.
+ */
+auto copyMomentumViewToHost(const std::shared_ptr<ParticleContainer<double, 3>>& pc) {
+    auto pViewDevice = pc->P.getView();
+    auto pViewHost = Kokkos::create_mirror_view(pViewDevice);
+    Kokkos::deep_copy(pViewHost, pViewDevice);
+    return pViewHost;
+}
+
+/**
  * @brief Sample the finite-beam photon energy spectrum with one Compton event per electron.
  *
  * Electrons are drawn from a six-dimensional Gaussian phase-space model using
@@ -320,15 +336,13 @@ LinearComptonBenchmark::SpectrumHistogram sampleFiniteBeamEnergySpectrum(
             + (static_cast<double>(i) + 0.5) * histogram.binWidthGeV;
     }
 
-    auto rView = pc->R.getView();
-    auto pView = pc->P.getView();
+    auto pView = copyMomentumViewToHost(pc);
     auto engine = Physics::LinearCompton::makeHostRandomEngine();
     const double laserPhotonEnergyGeV = Physics::LinearCompton::photonEnergyFromWavelengthGeV(
         config.wavelength_m);
 
     histogram.totalWeight = static_cast<double>(pc->getLocalNum());
     for (std::size_t i = 0; i < pc->getLocalNum(); ++i) {
-        (void)rView;
         Vector_t<double, 3> beamDirection(0.0);
         beamDirection[0] = pView(i)[0];
         beamDirection[1] = pView(i)[1];
@@ -441,7 +455,7 @@ LinearComptonBenchmark::AngleHistogram sampleFiniteBeamAngularSpectrum(
             + (static_cast<double>(i) + 0.5) * histogram.binWidthRad;
     }
 
-    auto pView = pc->P.getView();
+    auto pView = copyMomentumViewToHost(pc);
     auto engine = Physics::LinearCompton::makeHostRandomEngine();
     const double laserPhotonEnergyGeV = Physics::LinearCompton::photonEnergyFromWavelengthGeV(
         config.wavelength_m);
@@ -560,7 +574,7 @@ LinearComptonBenchmark::JointHistogram sampleFiniteBeamJointSpectrum(
             + (static_cast<double>(j) + 0.5) * histogram.thetaBinWidthRad;
     }
 
-    auto pView = pc->P.getView();
+    auto pView = copyMomentumViewToHost(pc);
     auto engine = Physics::LinearCompton::makeHostRandomEngine();
     const double laserPhotonEnergyGeV = Physics::LinearCompton::photonEnergyFromWavelengthGeV(
         config.wavelength_m);
