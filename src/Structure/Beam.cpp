@@ -48,7 +48,7 @@ namespace {
         BCURRENT,  // Legacy, unused in OPALX (holdover from OPALCycl)
         BFREQ,     // Legacy, unused in OPALX (holdover from OPALCycl)
         BCHARGE,   // Bunch charge in C
-        NPART,     // Number of particles per bunch
+        NALLOC,    // Allocation size (macroparticles) for this beam
         SOURCES,   // Name of EMISSIONSOURCELIST
         SIZE
     };
@@ -83,7 +83,7 @@ Beam::Beam()
 
     itsAttr[BCHARGE] = Attributes::makeReal("BCHARGE", "Bunch charge [C]");
 
-    itsAttr[NPART] = Attributes::makeReal("NPART", "Number of particles in bunch");
+    itsAttr[NALLOC] = Attributes::makeReal("NALLOC", "Allocation size (macroparticles) for this beam");
 
     itsAttr[SOURCES] =
         Attributes::makeString("SOURCES", "Name of the emission sources list (EMISSIONSOURCELIST).");
@@ -164,8 +164,8 @@ void Beam::execute() {
             "Set either \"PARTICLE\" or \"MASS\" and \"CHARGE\".");
     }
 
-    if (!(itsAttr[NPART])) {
-        throw OpalException("Beam::execute()", "\"NPART\" must be set.");
+    if (!(itsAttr[NALLOC])) {
+        throw OpalException("Beam::execute()", "\"NALLOC\" must be set.");
     }
 
     if (photon) {
@@ -207,13 +207,13 @@ Beam* Beam::find(const std::string& name) {
     return beam;
 }
 
-size_t Beam::getNumberOfParticles() const {
-    if (Attributes::getReal(itsAttr[NPART]) > 0) {
-        return (size_t)Attributes::getReal(itsAttr[NPART]);
+size_t Beam::getNumAlloc() const {
+    if (Attributes::getReal(itsAttr[NALLOC]) > 0) {
+        return (size_t)Attributes::getReal(itsAttr[NALLOC]);
     } else {
         throw OpalException(
-            "Beam::getNumberOfParticles()",
-            "Wrong number of particles in beam!. \"NPART\" must be positive");
+            "Beam::getNumAlloc()",
+            "Wrong allocation size for beam! \"NALLOC\" must be positive");
     }
 }
 
@@ -260,7 +260,7 @@ bool Beam::hasExplicitEnergy() const {
 }
 
 double Beam::getChargePerParticle() const {
-    return std::copysign(1.0, getCharge()) * getBunchCharge() / getNumberOfParticles();
+    return std::copysign(1.0, getCharge()) * getBunchCharge() / getNumAlloc();
 }
 
 double Beam::getMassPerParticle() const {
@@ -331,7 +331,7 @@ void Beam::print(std::ostream& os) const {
        << "* MOMENTUM    " << reference.getP() << " [eV/c]\n"
        << "* MOMENTUM    " << Attributes::getReal(itsAttr[PC]) << " [GeV/c]\n"
        << "* BCHARGE     " << Attributes::getReal(itsAttr[BCHARGE]) << " [C]\n"
-       << "* NPART       " << Attributes::getReal(itsAttr[NPART]) << '\n';
+       << "* NALLOC      " << Attributes::getReal(itsAttr[NALLOC]) << '\n';
     os << "* ********************************************************************************** "
        << std::endl;
 }
