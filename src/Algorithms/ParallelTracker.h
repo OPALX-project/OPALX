@@ -150,18 +150,18 @@ public:
     /**
      * @brief Boris half-kick using E, B and per-particle dt on one container.
      * @param pusher Boris pusher instance.
-     * @param pc     Particle container.
+     * @param pc     Non-null particle container.
      */
     void kickParticles(const BorisPusher& pusher,
-                       const std::shared_ptr<PartBunch_t::ParticleContainer_t>& pc);
+                       PartBunch_t::ParticleContainer_t& pc);
                        
     /**
      * @brief Boris position push (unitless positions) on one container.
      * @param pusher Boris pusher instance.
-     * @param pc     Particle container.
+     * @param pc     Non-null particle container.
      */
     void pushParticles(const BorisPusher& pusher,
-                       const std::shared_ptr<PartBunch_t::ParticleContainer_t>& pc);
+                       PartBunch_t::ParticleContainer_t& pc);
 
     /// @brief First half of the leapfrog step: push all active containers.
     void timeIntegration1(BorisPusher& pusher);

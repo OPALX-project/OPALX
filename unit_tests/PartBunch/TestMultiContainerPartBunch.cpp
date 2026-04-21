@@ -237,6 +237,20 @@ TEST_F(MultiContainerPartBunchTest, Constructor_ThrowsOnNullBeam) {
         OpalException);
 }
 
+TEST_F(MultiContainerPartBunchTest, Constructor_ThrowsOnNullDataSink) {
+    EXPECT_THROW(
+        static_cast<void>(std::make_shared<PartBunch_t>(
+            std::vector<double>{1.0, 1.0},
+            std::vector<double>{1.0, 1.0},
+            std::vector<Beam*>{testBeam, testBeam},
+            std::vector<size_t>{kParticlesPerBeam, kParticlesPerBeam},
+            1.0,
+            "LF2",
+            fsCmdBase.get(),
+            nullptr)),
+        OpalException);
+}
+
 TEST_F(MultiContainerPartBunchTest, TotalNumAllContainers_SumsBoth) {
     const size_t n0 = 11u;
     const size_t n1 = 7u;
