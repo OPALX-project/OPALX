@@ -133,7 +133,7 @@ public:
      *
      */
     void writeImpactStatistics(
-        const PartBunch_t* beam, long long int& step, size_t& impact, double& sey_num,
+        const PartBunch_t& beam, long long int& step, size_t& impact, double& sey_num,
         size_t numberOfFieldEmittedParticles, bool nEmissionMode, std::string fn);
 
     /**

@@ -215,16 +215,16 @@ void StatWriter::fillHeader(const losses_t& losses, const std::string& species) 
 }
 
 void StatWriter::write(
-    PartBunch_t* beam, Vector_t<double, 3> FDext[], const losses_t& losses, const double& azimuth,
+    PartBunch_t& beam, Vector_t<double, 3> FDext[], const losses_t& losses, const double& azimuth,
     const size_t npOutside, size_t particleContainerIndex) {
     using ParticleContainer_t = ParticleContainer<T, Dim>;
-    std::shared_ptr<ParticleContainer_t> pc = beam->getParticleContainer(particleContainerIndex);
+    std::shared_ptr<ParticleContainer_t> pc = beam.getParticleContainer(particleContainerIndex);
     if (!pc) {
         return;
     }
 
     double pathLength = pc->get_sPos();
-    const std::string species = beam->getParticleName(particleContainerIndex);
+    const std::string species = beam.getParticleName(particleContainerIndex);
 
     // First write to this writer's .stat file emits SDDS header via fillHeader/writeHeader.
     // File vs. container: this object was constructed with the stem for particleContainerIndex;
@@ -242,7 +242,7 @@ void StatWriter::write(
 
     this->writeHeader();
 
-    columns_m.addColumnValue("t", beam->getT() * Units::s2ns);      // 1
+    columns_m.addColumnValue("t", beam.getT() * Units::s2ns);      // 1
     columns_m.addColumnValue("s", pathLength);                      // 2
     columns_m.addColumnValue("numParticles", pc->getTotalNum());  // 3
     columns_m.addColumnValue("charge", Q);                          // 4
@@ -297,14 +297,14 @@ void StatWriter::write(
     columns_m.addColumnValue("Ez_ref", FDext[1](2));  // 39 E-ref z
 
     columns_m.addColumnValue("dE", pc->getStdKineticEnergy());    // 40 dE energy spread
-    columns_m.addColumnValue("dt", beam->getdT() * Units::s2ns);  // 41 dt time step size
+    columns_m.addColumnValue("dt", beam.getdT() * Units::s2ns);  // 41 dt time step size
     columns_m.addColumnValue("partsOutside", npOutside);  // 42 number of particles outside n*sigma
 
     columns_m.addColumnValue("DebyeLength", pc->getDebyeLength()); // 43 Debye length in the boosted frame
     columns_m.addColumnValue("plasmaParameter", pc->getPlasmaParameter()); // 43 plasma parameter
     columns_m.addColumnValue("temperature", pc->getTemperature()); // 44 Temperature
-    columns_m.addColumnValue("rmsDensity", beam->get_rmsDensity()); // 45 RMS number density
-    columns_m.addColumnValue("nBins", beam->getCurrentNBins());
+    columns_m.addColumnValue("rmsDensity", beam.get_rmsDensity()); // 45 RMS number density
+    columns_m.addColumnValue("nBins", beam.getCurrentNBins());
 
     /*
     if (Options::computePercentiles) {
@@ -377,7 +377,7 @@ void StatWriter::write(
                 columns_m.addColumnValue("P0_s", 0.0);
             }
         }
-        Vector_t<double, 3> halo = beam->get_halo();
+        Vector_t<double, 3> halo = beam.get_halo();
         columns_m.addColumnValue("halo_x", halo(0));
         columns_m.addColumnValue("halo_y", halo(1));
         columns_m.addColumnValue("halo_z", halo(2));

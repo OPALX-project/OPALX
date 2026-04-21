@@ -176,7 +176,7 @@ void MemoryProfiler::compute(vm_t& vmMin, vm_t& vmMax, vm_t& vmAvg) {
     reduce(vmem_m.data(), vmMax.data(), vmem_m.size(), std::greater<double>());
 }
 
-void MemoryProfiler::write(const PartBunch_t* beam) {
+void MemoryProfiler::write(const PartBunch_t& beam) {
     this->update();
 
     vm_t vmMin(vmem_m.size());
@@ -189,7 +189,7 @@ void MemoryProfiler::write(const PartBunch_t* beam) {
         return;
     }
 
-    double pathLength = beam->getParticleContainers()[0]->get_sPos();
+    double pathLength = beam.getParticleContainers()[0]->get_sPos();
 
     header();
 
@@ -197,7 +197,7 @@ void MemoryProfiler::write(const PartBunch_t* beam) {
 
     this->writeHeader();
 
-    columns_m.addColumnValue("t", beam->getT() * Units::s2ns);  // 1
+    columns_m.addColumnValue("t", beam.getT() * Units::s2ns);  // 1
     columns_m.addColumnValue("s", pathLength);                  // 2
 
     // std::variant can't overload double and long double. By using a

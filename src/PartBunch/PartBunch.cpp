@@ -305,7 +305,7 @@ void PartBunch<T, Dim>::setBins() {
         case BinningParameter::VELOCITYZ:
             this->setBins(
                 std::make_shared<ParticleBinning::AdaptBins<ParticleContainer_t, CoordinateSelector_t>>(
-                    this->getParticleContainer(), 
+                    *this->getParticleContainer(),
                     CoordinateSelector_t(2), 
                     binningCmd->getMaxBins(),
                     binningCmd->getBinningAlpha(), 
@@ -318,7 +318,7 @@ void PartBunch<T, Dim>::setBins() {
         case BinningParameter::GAMMAZ:
             this->setBins(
                 std::make_shared<ParticleBinning::AdaptBins<ParticleContainer_t, GammaSelector_t>>(
-                    this->getParticleContainer(),
+                    *this->getParticleContainer(),
                     GammaSelector_t(2), 
                     binningCmd->getMaxBins(),
                     binningCmd->getBinningAlpha(), 
