@@ -54,6 +54,10 @@ PartBunch<T, Dim>::PartBunch(std::vector<double> qi,
         throw OpalException("PartBunch::PartBunch",
                             "OPALFieldSolver must not be null.");
     }
+    if (dataSink_m == nullptr) {
+        throw OpalException("PartBunch::PartBunch",
+                            "dataSink must not be null.");
+    }
     if (qi.size() != num_containers) {
         throw OpalException("PartBunch::PartBunch",
                             "qi size must match num_containers.");

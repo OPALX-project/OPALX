@@ -112,7 +112,7 @@ public:
      * @param lbt                    Load-balancer timescale.
      * @param integration_method     Integrator label (e.g. leapfrog).
      * @param OPALFieldSolver        Borrowed field solver command (mesh, BCs, optional binning).
-     * @param dataSink               Borrowed diagnostics output sink.
+     * @param dataSink               Borrowed non-null diagnostics output sink.
      */
     PartBunch(std::vector<double> qi, 
               std::vector<double> mi,
