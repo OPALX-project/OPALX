@@ -49,8 +49,8 @@ public:
     /// Find named BEAM.
     static Beam* find(const std::string& name);
 
-    /// Return the number of (macro)particles
-    size_t getNumberOfParticles() const;
+    /// Return the allocation size (macroparticles) for this beam
+    size_t getNumAlloc() const;
 
     /// Return the embedded CLASSIC PartData.
     const PartData& getReference() const;

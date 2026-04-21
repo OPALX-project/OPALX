@@ -316,7 +316,7 @@ void TrackRun::execute() {
     std::vector<size_t> totalParticlesPerBeam(beams.size());
     for (size_t i = 0; i < beams.size(); ++i) {
         Beam* b = beams[i];
-        totalParticlesPerBeam[i] = computeTotalParticlesForBunch(b, emissionSourcesLists[i]);
+        totalParticlesPerBeam[i] = computeTotalAllocationForBunch(b, emissionSourcesLists[i]);
     }
 
     // Create PartBunch (PIC Manager) with multiple particle containers
@@ -498,10 +498,10 @@ void TrackRun::setupBoundaryGeometry() {
     }
 }
 
-size_t TrackRun::computeTotalParticlesForBunch(
+size_t TrackRun::computeTotalAllocationForBunch(
     Beam* beam,
     const std::vector<EmissionSource*>& sources) const {
-    size_t beamNumParticles = beam->getNumberOfParticles();
+    size_t beamAllocSize = beam->getNumAlloc();
 
     size_t totalFromDists = 0;
     for (EmissionSource* src : sources) {
@@ -512,18 +512,19 @@ size_t TrackRun::computeTotalParticlesForBunch(
     if (totalFromDists > 0) {
         *gmsg << level3
               << "* Sum of per-distribution NPARTDIST over all emission sources = "
-              << totalFromDists << ", BEAM::NPART = " << beamNumParticles << endl;
-        if (totalFromDists != beamNumParticles) {
+              << totalFromDists << ", BEAM::NALLOC = " << beamAllocSize << endl;
+        if (totalFromDists > beamAllocSize) {
             *gmsg << level1
                   << "* WARNING: Sum of NPARTDIST over all distributions ("
                   << totalFromDists
-                  << ") does not match BEAM::NPART (" << beamNumParticles
-                  << "). Macro-charge per particle still derived from BEAM." << endl;
+                  << ") exceeds BEAM::NALLOC (" << beamAllocSize
+                  << "). Allocation baseline may be insufficient; "
+                  << "macro-charge per particle is still derived from BEAM::NALLOC." << endl;
         }
         return totalFromDists;
     }
 
-    return beamNumParticles;
+    return beamAllocSize;
 }
 
 void TrackRun::setupDistributionsAndSamplers(
