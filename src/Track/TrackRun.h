@@ -74,6 +74,7 @@ private:
     std::string getRunMethodName() const;
 
     void initDataSink(size_t numParticleContainers);
+    std::vector<H5PartWrapper*> borrowedPhaseSpaceSinks() const;
 
     void setupBoundaryGeometry();
 
@@ -105,7 +106,7 @@ private:
 
     DataSink* ds_m;
 
-    std::vector<H5PartWrapper*> phaseSpaceSinks_m;
+    std::vector<std::unique_ptr<H5PartWrapper>> phaseSpaceSinks_m;
 
     OpalData* opal_m;
 
