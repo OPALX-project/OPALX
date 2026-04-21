@@ -95,8 +95,8 @@ protected:
             std::vector<size_t>{kParticlesPerBeam, kParticlesPerBeam},
             /*lbt=*/1.0,
             /*integration_method=*/"LF2",
-            fsCmdBase,
-            dataSink);
+            fsCmdBase.get(),
+            dataSink.get());
         q0_m = q0;
         q1_m = q1;
         m0_m = m0;
@@ -218,8 +218,8 @@ TEST_F(MultiContainerPartBunchTest, Constructor_ThrowsOnQiSizeMismatch) {
             std::vector<size_t>{kParticlesPerBeam, kParticlesPerBeam},
             1.0,
             "LF2",
-            fsCmdBase,
-            dataSink)),
+            fsCmdBase.get(),
+            dataSink.get())),
         OpalException);
 }
 
@@ -232,8 +232,8 @@ TEST_F(MultiContainerPartBunchTest, Constructor_ThrowsOnNullBeam) {
             std::vector<size_t>{kParticlesPerBeam, kParticlesPerBeam},
             1.0,
             "LF2",
-            fsCmdBase,
-            dataSink)),
+            fsCmdBase.get(),
+            dataSink.get())),
         OpalException);
 }
 

@@ -108,8 +108,7 @@ protected:
         fsCmd->setBCY("PERIODIC");
         fsCmd->setBCZ("PERIODIC");
 
-        // PartBunch takes `std::shared_ptr<FieldSolverCmd>&` (non-const lvalue ref),
-        // so we must keep an lvalue `shared_ptr<FieldSolverCmd>` and not pass a temporary.
+        // Keep the concrete solver command alive; PartBunch borrows it.
         fsCmdBase = fsCmd;
 
         dataSink = std::make_shared<DataSink>();
@@ -125,8 +124,8 @@ protected:
             /*totalParticlesPerBeam=*/std::vector<size_t>{kDefaultNParticles},
             /*lbt=*/1.0,
             /*integration_method=*/"LF2",
-            fsCmdBase,
-            dataSink);
+            fsCmdBase.get(),
+            dataSink.get());
         pc = bunch->getParticleContainer();
     }
 
@@ -256,4 +255,3 @@ TEST_F(BinnedFieldSolverSmokeTest, BinnedPath_WithBins_NoThrowAndEZero) {
 }
 
 }  // namespace
-

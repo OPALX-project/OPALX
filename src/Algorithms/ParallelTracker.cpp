@@ -82,7 +82,7 @@ ParallelTracker::ParallelTracker(
  * @brief Construct tracker with bunch, data sink, z-segments, and optional emitters.
  */
 ParallelTracker::ParallelTracker(
-    const Beamline& beamline, std::shared_ptr<PartBunch_t> bunch, const std::shared_ptr<DataSink>& ds,
+    const Beamline& beamline, std::shared_ptr<PartBunch_t> bunch, DataSink* ds,
     bool revBeam,
     const std::vector<unsigned long long>& maxSteps, double zstart,
     const std::vector<double>& zstop, const std::vector<double>& dt,

@@ -63,6 +63,7 @@
 #include <cstddef>
 #include <fstream>
 #include <iomanip>
+#include <memory>
 #include <vector>
 
 #include <unistd.h>
@@ -222,9 +223,8 @@ void TrackRun::execute() {
         throw OpalException("TrackRun::execute", "\"FIELDSOLVER\" must be set in \"RUN\" command.");
     }
 
-    // Fieldsover command
-    fs_m = std::shared_ptr<FieldSolverCmd>(
-        FieldSolverCmd::find(Attributes::getString(itsAttr[TRACKRUN::FIELDSOLVER])));
+    // Field solver commands are registry-owned by OpalData; TrackRun only borrows it.
+    fs_m = FieldSolverCmd::find(Attributes::getString(itsAttr[TRACKRUN::FIELDSOLVER]));
     *gmsg << level1 << *fs_m << endl;
     if (fs_m->hasBinningCmd()) {
         *gmsg << level1 << *fs_m->getBinningCmd() << endl;
@@ -410,7 +410,7 @@ void TrackRun::execute() {
        findPhasesForMaxEnergy();
 
     */
-    itsTracker_m = new ParallelTracker(
+    itsTracker_m = std::make_unique<ParallelTracker>(
         *Track::block->use->fetchLine(), bunch_m, ds_m, false,
         Track::block->localTimeSteps,
         Track::block->zstart, Track::block->zstop, Track::block->dT, emittingSamplersList);
@@ -422,7 +422,6 @@ void TrackRun::execute() {
     opal_m->bunchIsAllocated();
     */
 
-    /// \todo do we delete here itsTracker_m;
 }
 
 void TrackRun::setRunMethod() {
@@ -479,10 +478,8 @@ void TrackRun::initDataSink(size_t numParticleContainers) {
         opal_m->setDataSink(new DataSink(phaseSpaceSinks_m, true, numParticleContainers));
     }
 
-    // Wrap the global DataSink in a non-owning shared_ptr for local use.
-    /// \todo this is a hack to avoid having to pass the DataSink to the PartBunch constructor. Refactor to completely use shared_ptr later!
-    DataSink* raw = opal_m->getDataSink();
-    ds_m          = std::shared_ptr<DataSink>(raw, [](DataSink*) {});
+    // DataSink lifetime is managed by OpalData; TrackRun only borrows it.
+    ds_m = opal_m->getDataSink();
 }
 
 void TrackRun::setupBoundaryGeometry() {
@@ -546,9 +543,8 @@ void TrackRun::setupDistributionsAndSamplers(
     distrs_m.clear();
 
     for (EmissionSource* src : sources) {
-        auto* distRaw = Distribution::find(src->getDistributionName());
-        // Do not take ownership of global Distribution objects.
-        std::shared_ptr<Distribution> opalDist(distRaw, [](Distribution*){});
+        // Distribution objects are registry-owned; samplers only borrow them.
+        Distribution* opalDist = Distribution::find(src->getDistributionName());
 
         // Ensure distribution parameters and reference momentum are up to date.
         opalDist->setDistType();
@@ -575,7 +571,7 @@ void TrackRun::setupDistributionsAndSamplers(
             }
         }
 
-        distrs_m.push_back(distRaw);
+        distrs_m.push_back(opalDist);
 
         // Build a sampler instance for this emission source.
         std::shared_ptr<SamplingBase> sampler;

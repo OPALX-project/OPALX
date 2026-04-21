@@ -27,8 +27,8 @@ PartBunch<T, Dim>::PartBunch(std::vector<double> qi,
                              /*int nt,*/
                              double lbt,
                              std::string integration_method,
-                             std::shared_ptr<FieldSolverCmd> OPALFieldSolver,
-                             std::shared_ptr<DataSink> dataSink)
+                             FieldSolverCmd* OPALFieldSolver,
+                             DataSink* dataSink)
     : ippl::PicManager<T, Dim, ParticleContainer<T, Dim>, FieldContainer<T, Dim>, LoadBalancer<T, Dim>>(),
       dt_m(0),
       it_m(0),
@@ -38,7 +38,7 @@ PartBunch<T, Dim>::PartBunch(std::vector<double> qi,
       isFirstRepartition_m(true),
       //nt_m(nt),
       OPALFieldSolver_m(OPALFieldSolver),
-      dataSink_m(std::move(dataSink)),
+      dataSink_m(dataSink),
       globalTrackStep_m(0),
       rmsDensity_m(0.0) {
 
@@ -49,6 +49,10 @@ PartBunch<T, Dim>::PartBunch(std::vector<double> qi,
     if (num_containers == 0) {
         throw OpalException("PartBunch::PartBunch",
                             "num_containers must be > 0.");
+    }
+    if (OPALFieldSolver_m == nullptr) {
+        throw OpalException("PartBunch::PartBunch",
+                            "OPALFieldSolver must not be null.");
     }
     if (qi.size() != num_containers) {
         throw OpalException("PartBunch::PartBunch",

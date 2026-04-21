@@ -28,6 +28,7 @@
 
 #include "Utilities/BiMap.h"
 
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -92,7 +93,7 @@ private:
         Beam* beam,
         const std::vector<EmissionSource*>& sources) const;
 
-    Tracker* itsTracker_m;
+    std::unique_ptr<Tracker> itsTracker_m;
 
     /// Distributions referenced by all emission sources (non-owning raw pointers).
     std::vector<Distribution*> distrs_m;
@@ -100,9 +101,9 @@ private:
     /// Samplers for time-dependent (emitting) sources; tracker calls emitParticles(t, dt) on each.
     //std::vector<std::shared_ptr<SamplingBase>> emittingSamplers_m;
 
-    std::shared_ptr<FieldSolverCmd> fs_m;
+    FieldSolverCmd* fs_m;
 
-    std::shared_ptr<DataSink> ds_m;
+    DataSink* ds_m;
 
     std::vector<H5PartWrapper*> phaseSpaceSinks_m;
 
