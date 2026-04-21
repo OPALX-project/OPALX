@@ -98,7 +98,7 @@ public:
     /**
      * @brief Construct tracker with bunch, output sink, and step-size schedule.
      * @param bl                Beamline definition.
-     * @param bunch             Particle bunch (multi-container).
+     * @param bunch             Borrowed particle bunch (multi-container).
      * @param ds                Borrowed data sink for statistics and dumps.
      * @param revBeam           Reversed beam flag (see single-argument constructor).
      * @param maxSTEPS          Max integration steps per z-segment (parallel to zstop/dt).
@@ -107,7 +107,7 @@ public:
      * @param dt                Time step per segment (s).
      * @param emittingSamplers  Optional per-container samplers for emitParticles(t, dt).
      */
-    explicit ParallelTracker(const Beamline& bl, std::shared_ptr<PartBunch_t> bunch,
+    explicit ParallelTracker(const Beamline& bl, PartBunch_t& bunch,
         DataSink* ds, bool revBeam,
         const std::vector<unsigned long long>& maxSTEPS, 
         double zstart, const std::vector<double>& zstop, 
@@ -278,31 +278,31 @@ private:
 };
 
 inline void ParallelTracker::visitConstantEFieldCavity(const ConstantEFieldCavity& cav) {
-    itsOpalBeamline_m.visit(cav, *this, itsBunch_m);
+    itsOpalBeamline_m.visit(cav, *this, *itsBunch_m);
 }
 
 inline void ParallelTracker::visitDrift(const Drift& drift) {
-    itsOpalBeamline_m.visit(drift, *this, itsBunch_m);
+    itsOpalBeamline_m.visit(drift, *this, *itsBunch_m);
 }
 
 inline void ParallelTracker::visitMarker(const Marker& marker) {
-    itsOpalBeamline_m.visit(marker, *this, itsBunch_m);
+    itsOpalBeamline_m.visit(marker, *this, *itsBunch_m);
 }
 
 inline void ParallelTracker::visitMultipole(const Multipole& mult) {
-    itsOpalBeamline_m.visit(mult, *this, itsBunch_m);
+    itsOpalBeamline_m.visit(mult, *this, *itsBunch_m);
 }
 
 inline void ParallelTracker::visitMultipoleT(const MultipoleT& mult) {
-    itsOpalBeamline_m.visit(mult, *this, itsBunch_m);
+    itsOpalBeamline_m.visit(mult, *this, *itsBunch_m);
 }
 
 inline void ParallelTracker::visitRFCavity(const RFCavity& as) {
-    itsOpalBeamline_m.visit(as, *this, itsBunch_m);
+    itsOpalBeamline_m.visit(as, *this, *itsBunch_m);
 }
 
 inline void ParallelTracker::visitSolenoid(const Solenoid& so) {
-    itsOpalBeamline_m.visit(so, *this, itsBunch_m);
+    itsOpalBeamline_m.visit(so, *this, *itsBunch_m);
 }
 
 #endif  // OPALX_ParallelTracker_HH

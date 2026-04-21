@@ -115,7 +115,7 @@ private:
     */
 
     using bunch_type = PartBunch_t;
-    std::shared_ptr<bunch_type> bunch_m;
+    std::unique_ptr<bunch_type> bunch_m;
 
     bool isFollowupTrack_m;
 

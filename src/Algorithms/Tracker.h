@@ -82,17 +82,16 @@ public:
     //  If [b]backTrack[/b] is true, we track against the beam.
     Tracker(const Beamline&, bool backBeam, bool backTrack);
 
-    /// Constructor.
-    //  The beam line to be tracked is [b]bl[/b].
-    //  The particle bunch is taken from [b]bunch[/b].
-    //  If [b]backBeam[/b] is true, the beam runs from s = C to s = 0.
-    //  If [b]backTrack[/b] is true, we track against the beam.
-    Tracker(const Beamline&, std::shared_ptr<PartBunch_t> bunch, bool backBeam, bool backTrack);
+    /**
+     * @brief Construct a tracker that borrows an existing particle bunch.
+     * @param bunch Particle bunch to track. Ownership remains with the caller.
+     */
+    Tracker(const Beamline&, PartBunch_t& bunch, bool backBeam, bool backTrack);
 
     virtual ~Tracker();
 
-    /// Return the current bunch.
-    const std::shared_ptr<PartBunch_t>& getBunch() const;
+    /// Return the currently attached borrowed bunch.
+    PartBunch_t& getBunch() const;
 
     /// Add particle to bunch.
     void addToBunch(const OpalParticle&);
@@ -118,8 +117,8 @@ public:
     const Beamline& itsBeamline_m;
 
 protected:
-    /// The bunch of particles to be tracked.
-    std::shared_ptr<PartBunch_t> itsBunch_m;
+    /// The bunch of particles to be tracked. Borrowed; lifetime is managed by TrackRun.
+    PartBunch_t* itsBunch_m;
     //  typedef PartBunch::iterator iterator;
 
 private:
