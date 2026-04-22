@@ -1,7 +1,6 @@
 #include "Fields/FM2DDynamic.h"
 #include "Fields/Fieldmap.hpp"
 #include "PartBunch/PartBunch.h"
-// #include "Physics/Physics.h" // not used? to check
 #include "Physics/Units.h"
 #include "Utilities/GeneralClassicException.h"
 #include "Utilities/Util.h"

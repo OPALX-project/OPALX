@@ -12,7 +12,7 @@
 #include <filesystem>
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Fields/Fieldmap.h"
-#include "Fields/FM2DDynamic.h" // is it needed?
+#include "Fields/FM2DDynamic.h"
 #include "PartBunch/PartBunch.h"
 #include "Physics/Units.h"
 #include "Steppers/BorisPusher.h"
