@@ -442,11 +442,12 @@ double TravelingWave::getAutoPhaseEstimate(
             }
 
             const int prevPrecision = ippl::Info->precision(8);
-            *ippl::Info << level2 << "estimated phase= " << tmp_phi
-                        << " rad = " << tmp_phi * Units::rad2deg << " deg,\n"
-                        << "Ekin= " << E[N3 - 1] << " MeV" << std::setprecision(prevPrecision)
-                        << "\n"
-                        << endl;
+            Inform m("TravelingWave::getAutoPhaseEstimate");
+            m << level2 << "estimated phase= " << tmp_phi
+            << " rad = " << tmp_phi * Units::rad2deg << " deg,\n"
+            << "Ekin= " << E[N3 - 1] << " MeV"
+            << std::setprecision(prevPrecision) << "\n"
+            << endl;
             return tmp_phi;
         }
         phi = tmp_phi - std::round(tmp_phi / Physics::two_pi) * Physics::two_pi;
@@ -495,10 +496,12 @@ double TravelingWave::getAutoPhaseEstimate(
     }
 
     const int prevPrecision = ippl::Info->precision(8);
-    *ippl::Info << level2 << "estimated phase= " << tmp_phi << " rad = " << tmp_phi * Units::rad2deg
-                << " deg,\n"
-                << "Ekin= " << E[N3 - 1] << " MeV" << std::setprecision(prevPrecision) << "\n"
-                << endl;
+    Inform m("TravelingWave::getAutoPhaseEstimate");
+    m << level2 << "estimated phase= " << tmp_phi
+    << " rad = " << tmp_phi * Units::rad2deg << " deg,\n"
+    << "Ekin= " << E[N3 - 1] << " MeV"
+    << std::setprecision(prevPrecision) << "\n"
+    << endl;
 
     return phi;
 }

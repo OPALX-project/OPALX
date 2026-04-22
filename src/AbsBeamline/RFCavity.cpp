@@ -557,10 +557,12 @@ double RFCavity::getAutoPhaseEstimateFallback(double E0, double t0, double q, do
     phimax = std::fmod(phimax, Physics::two_pi);
 
     const int prevPrecision = ippl::Info->precision(8);
-    *ippl::Info << level2 << "estimated phase= " << phimax << " rad = " << phimax * Units::rad2deg
-                << " deg \n"
-                << "Ekin= " << Emax << " MeV" << std::setprecision(prevPrecision) << "\n"
-                << endl;
+    Inform m("RFCavity::getAutoPhaseEstimateFallback");
+    m << level2 << "estimated phase= " << phimax
+    << " rad = " << phimax * Units::rad2deg << " deg\n"
+    << "Ekin= " << Emax << " MeV"
+    << std::setprecision(prevPrecision) << "\n"
+    << endl;
 
     setPhasem(origPhase);
     return phimax;
@@ -646,11 +648,12 @@ double RFCavity::getAutoPhaseEstimate(
                 E[i] += q * scale_m * getdE(i, t, dz, phi, frequency_m, F);
             }
             const int prevPrecision = ippl::Info->precision(8);
-            *ippl::Info << level2 << "estimated phase= " << tmp_phi
-                        << " rad = " << tmp_phi * Units::rad2deg << " deg \n"
-                        << "Ekin= " << E[N - 1] << " MeV" << std::setprecision(prevPrecision)
-                        << "\n"
-                        << endl;
+            Inform m("RFCavity::getAutoPhaseEstimate");
+            m << level2 << "estimated phase= " << tmp_phi
+            << " rad = " << tmp_phi * Units::rad2deg << " deg\n"
+            << "Ekin= " << E[N - 1] << " MeV"
+            << std::setprecision(prevPrecision) << "\n"
+            << endl;
 
             return tmp_phi;
         }
@@ -693,10 +696,12 @@ double RFCavity::getAutoPhaseEstimate(
     }
 
     const int prevPrecision = ippl::Info->precision(8);
-    *ippl::Info << level2 << "estimated phase= " << tmp_phi << " rad = " << tmp_phi * Units::rad2deg
-                << " deg \n"
-                << "Ekin= " << E[N - 1] << " MeV" << std::setprecision(prevPrecision) << "\n"
-                << endl;
+    Inform m("RFCavity::getAutoPhaseEstimate");
+    m << level2 << "estimated phase= " << tmp_phi
+    << " rad = " << tmp_phi * Units::rad2deg << " deg\n"
+    << "Ekin= " << E[N - 1] << " MeV"
+    << std::setprecision(prevPrecision) << "\n"
+    << endl;
 
     return phi;
 }
