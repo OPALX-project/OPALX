@@ -20,8 +20,8 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
-#ifndef CLASSIC_MacroCmd_HH
-#define CLASSIC_MacroCmd_HH
+#ifndef OPALX_MacroCmd_HH
+#define OPALX_MacroCmd_HH
 
 #include "OpalParser/Macro.h"
 #include "OpalParser/MacroStream.h"
@@ -67,4 +67,4 @@ private:
     const Parser *itsParser;
 };
 
-#endif // CLASSIC_MacroCmd_HH
+#endif // OPALX_MacroCmd_HH

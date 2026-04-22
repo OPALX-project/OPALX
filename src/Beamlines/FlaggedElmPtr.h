@@ -1,5 +1,5 @@
-#ifndef CLASSIC_FlaggedElmPtr_HH
-#define CLASSIC_FlaggedElmPtr_HH
+#ifndef OPALX_FlaggedElmPtr_HH
+#define OPALX_FlaggedElmPtr_HH
 
 // ------------------------------------------------------------------------
 // $RCSfile: FlaggedElmPtr.h,v $
@@ -122,4 +122,4 @@ inline void FlaggedElmPtr::setSelectionFlag(bool flag) const {
     isSelected = flag;
 }
 
-#endif // CLASSIC_FlaggedElmPtr_HH
+#endif // OPALX_FlaggedElmPtr_HH

@@ -20,8 +20,8 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
-#ifndef CLASSIC_Physics_HH
-#define CLASSIC_Physics_HH
+#ifndef OPALX_Physics_HH
+#define OPALX_Physics_HH
 
 #ifdef OPALX_USE_KOKKOS_MATH_CONSTANTS
 #include <Kokkos_MathematicalConstants.hpp>
@@ -160,4 +160,4 @@ namespace Physics {
     constexpr double e0mc       = e0m / c;
 };
 
-#endif // CLASSIC_Physics_HH
+#endif // OPALX_Physics_HH

@@ -1,5 +1,5 @@
-#ifndef CLASSIC_RBendGeometry_HH
-#define CLASSIC_RBendGeometry_HH
+#ifndef OPALX_RBendGeometry_HH
+#define OPALX_RBendGeometry_HH
 
 // ------------------------------------------------------------------------
 // $RCSfile: RBendGeometry.h,v $
@@ -96,4 +96,4 @@ private:
     double half_angle;
 };
 
-#endif // CLASSIC_RBendGeometry_HH
+#endif // OPALX_RBendGeometry_HH

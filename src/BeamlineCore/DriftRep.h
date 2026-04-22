@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
-#ifndef CLASSIC_DriftRep_HH
-#define CLASSIC_DriftRep_HH
+#ifndef OPALX_DriftRep_HH
+#define OPALX_DriftRep_HH
 
 #include "AbsBeamline/Drift.h"
 #include "BeamlineGeometry/StraightGeometry.h"
@@ -72,4 +72,4 @@ private:
     StraightGeometry geometry;
 };
 
-#endif // CLASSIC_DriftRep_HH
+#endif // OPALX_DriftRep_HH

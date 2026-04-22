@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
-#ifndef CLASSIC_TravelingWaveRep_HH
-#define CLASSIC_TravelingWaveRep_HH
+#ifndef OPALX_TravelingWaveRep_HH
+#define OPALX_TravelingWaveRep_HH
 
 #include "AbsBeamline/TravelingWave.h"
 #include "BeamlineGeometry/StraightGeometry.h"
@@ -105,4 +105,4 @@ private:
     static bool ignoreCavities;
 };
 
-#endif // CLASSIC_TravelingWaveRep_HH
+#endif // OPALX_TravelingWaveRep_HH

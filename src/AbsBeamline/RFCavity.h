@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
-#ifndef CLASSIC_RFCavity_HH
-#define CLASSIC_RFCavity_HH
+#ifndef OPALX_RFCavity_HH
+#define OPALX_RFCavity_HH
 
 #include "AbsBeamline/Component.h"
 #include "Algorithms/AbstractTimeDependence.h"
@@ -430,4 +430,4 @@ inline CoordinateSystemTrafo RFCavity::getEdgeToEnd() const {
     return ret;
 }
 
-#endif  // CLASSIC_RFCavity_HH
+#endif  // OPALX_RFCavity_HH

@@ -1,5 +1,5 @@
-#ifndef CLASSIC_Matrix3D_HH
-#define CLASSIC_Matrix3D_HH
+#ifndef OPALX_Matrix3D_HH
+#define OPALX_Matrix3D_HH
 
 // ------------------------------------------------------------------------
 // $RCSfile: Matrix3D.h,v $

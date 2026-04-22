@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
-#ifndef CLASSIC_PartPusher_H
-#define CLASSIC_PartPusher_H
+#ifndef OPALX_PartPusher_H
+#define OPALX_PartPusher_H
 
 #include "Physics/Physics.h"
 

@@ -30,8 +30,8 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
-#ifndef CLASSIC_BeamlineVisitor_HH
-#define CLASSIC_BeamlineVisitor_HH
+#ifndef OPALX_BeamlineVisitor_HH
+#define OPALX_BeamlineVisitor_HH
 
 // Generic element classes interacting with a BeamlineVisitor.
 class Component;
@@ -121,4 +121,4 @@ private:
     void operator=(const BeamlineVisitor&);
 };
 
-#endif  // CLASSIC_BeamlineVisitor_HH
+#endif  // OPALX_BeamlineVisitor_HH
