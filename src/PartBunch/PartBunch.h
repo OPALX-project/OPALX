@@ -96,8 +96,8 @@ private:
 
     std::shared_ptr<BCHandler_t> bcHandler_m;           ///< Field boundary conditions.
     std::shared_ptr<AdaptBins_t> bins_m;                ///< Adaptive velocity/gamma binning (optional).
-    std::shared_ptr<FieldSolverCmd> OPALFieldSolver_m;  ///< Parsed FIELD_SOLVER command.
-    std::shared_ptr<DataSink> dataSink_m;               ///< Diagnostics and dump output.
+    FieldSolverCmd* OPALFieldSolver_m;                  ///< Borrowed parsed FIELD_SOLVER command.
+    DataSink* dataSink_m;                               ///< Borrowed diagnostics and dump output sink.
 
     double t_m;                          ///< Current simulation time (s).
 
@@ -123,8 +123,8 @@ public:
      * @param totalParticlesPerBeam  Target macroparticle count per beam (for local allocation).
      * @param lbt                    Load-balancer timescale.
      * @param integration_method     Integrator label (e.g. leapfrog).
-     * @param OPALFieldSolver        Field solver command (mesh, BCs, optional binning).
-     * @param dataSink               Diagnostics output sink.
+     * @param OPALFieldSolver        Borrowed field solver command (mesh, BCs, optional binning).
+     * @param dataSink               Borrowed non-null diagnostics output sink.
      */
     PartBunch(std::vector<double> qi, 
               std::vector<double> mi,
@@ -132,8 +132,8 @@ public:
               std::vector<size_t> totalParticlesPerBeam,
               double lbt,
               std::string integration_method,
-              std::shared_ptr<FieldSolverCmd> OPALFieldSolver,
-              std::shared_ptr<DataSink> dataSink);
+              FieldSolverCmd* OPALFieldSolver,
+              DataSink* dataSink);
 
     /**
      * @brief Refresh mesh from particle extents, update layouts, and recompute moments.

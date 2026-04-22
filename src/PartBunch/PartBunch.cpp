@@ -26,8 +26,8 @@ PartBunch<T, Dim>::PartBunch(std::vector<double> qi,
                              /*int nt,*/
                              double lbt,
                              std::string integration_method,
-                             std::shared_ptr<FieldSolverCmd> OPALFieldSolver,
-                             std::shared_ptr<DataSink> dataSink)
+                             FieldSolverCmd* OPALFieldSolver,
+                             DataSink* dataSink)
     : ippl::PicManager<T, Dim, ParticleContainer<T, Dim>, FieldContainer<T, Dim>, LoadBalancer<T, Dim>>(),
       dt_m(0),
       it_m(0),
@@ -37,7 +37,7 @@ PartBunch<T, Dim>::PartBunch(std::vector<double> qi,
       isFirstRepartition_m(true),
       //nt_m(nt),
       OPALFieldSolver_m(OPALFieldSolver),
-      dataSink_m(std::move(dataSink)),
+      dataSink_m(dataSink),
       globalTrackStep_m(0),
       rmsDensity_m(0.0) {
     qi_m = qi;
@@ -50,6 +50,14 @@ PartBunch<T, Dim>::PartBunch(std::vector<double> qi,
     const size_t num_containers = beams.size();
     if (num_containers == 0) {
         throw OpalException("PartBunch::PartBunch", "num_containers must be > 0.");
+    }
+    if (OPALFieldSolver_m == nullptr) {
+        throw OpalException("PartBunch::PartBunch",
+                            "OPALFieldSolver must not be null.");
+    }
+    if (dataSink_m == nullptr) {
+        throw OpalException("PartBunch::PartBunch",
+                            "dataSink must not be null.");
     }
     if (qi.size() != num_containers) {
         throw OpalException("PartBunch::PartBunch",
@@ -317,7 +325,7 @@ void PartBunch<T, Dim>::setBins() {
             this->setBins(
                     std::make_shared<
                             ParticleBinning::AdaptBins<ParticleContainer_t, CoordinateSelector_t>>(
-                            this->getParticleContainer(), CoordinateSelector_t(2),
+                            *this->getParticleContainer(), CoordinateSelector_t(2),
                             binningCmd->getMaxBins(), binningCmd->getBinningAlpha(),
                             binningCmd->getBinningBeta(), binningCmd->getDesiredWidth(),
                             binningCmd->getOpalName()));
@@ -326,7 +334,7 @@ void PartBunch<T, Dim>::setBins() {
             this->setBins(
                     std::make_shared<
                             ParticleBinning::AdaptBins<ParticleContainer_t, GammaSelector_t>>(
-                            this->getParticleContainer(), GammaSelector_t(2),
+                            *this->getParticleContainer(), GammaSelector_t(2),
                             binningCmd->getMaxBins(), binningCmd->getBinningAlpha(),
                             binningCmd->getBinningBeta(), binningCmd->getDesiredWidth(),
                             binningCmd->getOpalName()));
@@ -725,9 +733,7 @@ template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::computeSelfFields() {
     BinnedFieldSolver_t* bsolver = this->getFieldSolver();
 
-    // Non-owning shared_ptr alias: solver does not manage bunch lifetime.
-    std::shared_ptr<PartBunch<T, Dim>> bunchPtr(this, [](PartBunch<T, Dim>*) {});
-    bsolver->computeSelfFields(bunchPtr);
+    bsolver->computeSelfFields(*this);
 }
 
 /**

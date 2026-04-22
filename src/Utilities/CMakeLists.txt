@@ -38,7 +38,6 @@ set (_SRCS
     Util.cpp
     RingSection.cpp
     SDDSParser.cpp
-    EarlyLeaveException.cpp
     OpalException.cpp
     OpalFilter.cpp
     RegularExpression.cpp
@@ -89,7 +88,6 @@ set (HDRS
     PortableGraymapReader.h
     RingSection.h  
     Util.h
-    EarlyLeaveException.h
     OpalException.h
     OpalFilter.h
     RegularExpression.h
