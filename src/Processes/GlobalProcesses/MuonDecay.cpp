@@ -48,9 +48,9 @@ void MuonDecay::createDaughterParticles(
             } while (gen.drand(0.0, fMax) >= 2.0 * x * x * (3.0 - 2.0 * x));
 
             /* Step 2: Daughter energy and momentum magnitude in rest frame. */
-            const double eDaughter = x * eMax;                                          // [GeV]
+            const double eDaughter = x * eMax; // [GeV]                                         
             const double pMag = Kokkos::sqrt(eDaughter * eDaughter
-                                              - daughterMass * daughterMass);            // [GeV/c]
+                                              - daughterMass * daughterMass);// [GeV/c]            
 
             /* Step 3: Isotropic direction in parent rest frame. */
             const double cosTheta = 2.0 * gen.drand(0.0, 1.0) - 1.0;

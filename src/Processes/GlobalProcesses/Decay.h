@@ -3,16 +3,13 @@
 
 #include "Processes/GlobalProcesses/GlobalProcess.h"
 
+#include "Ippl.h"
+
 #include <Kokkos_Core.hpp>
 #include <Kokkos_Random.hpp>
 
 #include <cstddef>
 #include <memory>
-
-namespace ippl {
-    template <typename T, unsigned Dim>
-    class Vector;
-}
 
 /**
  * @brief Abstract base class for particle decay processes.
@@ -64,6 +61,39 @@ public:
         const Kokkos::View<ippl::Vector<double, 3>*>& parentR,
         const Kokkos::View<ippl::Vector<double, 3>*>& parentP,
         const Kokkos::View<double*>& parentDt) = 0;
+
+    /// Compact views of the kinematics of parents marked for decay.
+    struct DecayedParentViews {
+        Kokkos::View<ippl::Vector<double, 3>*> R;
+        Kokkos::View<ippl::Vector<double, 3>*> P;
+        Kokkos::View<double*>                  dt;
+    };
+
+    /**
+     * @brief Mark particles for decay using the relativistic exponential law.
+     *
+     * @note `tau0_m` and `randPool_m` are copied into locals before the device
+     *   kernel so the KOKKOS_LAMBDA captures values — never `this`.
+     */
+    ippl::detail::size_type markDecayedParticles(
+        ippl::detail::size_type                nLocal,
+        double                                 dt,
+        Kokkos::View<ippl::Vector<double, 3>*> Pview,
+        Kokkos::View<bool*>                    invalid);
+
+    /**
+     * @brief Gather R/P/dt of parents marked for decay into compact views.
+     *
+     * @note Uses no class state, so no capture shields are needed; still a
+     *   member for organizational grouping with @ref markDecayedParticles.
+     */
+    DecayedParentViews collectDecayedParents(
+        ippl::detail::size_type                nLocal,
+        ippl::detail::size_type                localDestroyNum,
+        Kokkos::View<bool*>                    invalid,
+        Kokkos::View<ippl::Vector<double, 3>*> Rview,
+        Kokkos::View<ippl::Vector<double, 3>*> Pview,
+        Kokkos::View<double*>                  dtView);
 
 protected:
     /// Mean lifetime at rest [s].
