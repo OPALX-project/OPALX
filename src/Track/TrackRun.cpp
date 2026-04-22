@@ -95,9 +95,27 @@ std::string h5RestartSourceForContainer(
     return leaf.string();
 }
 
-std::vector<std::shared_ptr<GlobalProcess>> makeGlobalProcessesForBeam(const Beam& beam,
+/**
+ * @brief Enforces unit macro weight
+ * @note For now, for the moment calculation to give unbiased estimators of the
+ * true moments, the macro weight needs to be 1.
+ */
+void requireUnitMacroWeight(const Beam& beam, const std::string& role) {
+    const double partsPerMacro =
+        beam.getChargePerParticle() / (beam.getCharge() * Physics::q_e);
+    if (std::abs(partsPerMacro - 1.0) > 1e-2) {
+        throw OpalException(
+            "TrackRun::execute",
+            "DECAY requires one physical particle per macroparticle, but "
+                + role + " beam \"" + beam.getOpalName()
+                + "\" has particles-per-macro = " + std::to_string(partsPerMacro)
+                + ". Set BCHARGE = NALLOC * |CHARGE| * q_e.");
+    }
+}
+
+std::vector<std::unique_ptr<GlobalProcess>> makeGlobalProcessesForBeam(const Beam& beam,
                                                                        std::size_t containerIndex) {
-    std::vector<std::shared_ptr<GlobalProcess>> processes;
+    std::vector<std::unique_ptr<GlobalProcess>> processes;
     const std::vector<std::string> processNames = beam.getGlobalProcessNames();
     processes.reserve(processNames.size());
 
@@ -108,14 +126,16 @@ std::vector<std::shared_ptr<GlobalProcess>> makeGlobalProcessesForBeam(const Bea
             const double tau = ParticleProperties::getParticleLifetime(pType);
             const double mass = ParticleProperties::getParticleMass(pType);
 
+            requireUnitMacroWeight(beam, "parent");
+
             switch (pType) {
                 case ParticleType::MUON:
                     processes.push_back(
-                        std::make_shared<MuonDecay>(tau, containerIndex, mass));
+                        std::make_unique<MuonDecay>(tau, containerIndex, mass));
                     break;
                 case ParticleType::PION:
                     processes.push_back(
-                        std::make_shared<PionDecay>(tau, containerIndex, mass));
+                        std::make_unique<PionDecay>(tau, containerIndex, mass));
                     break;
                 default:
                     throw OpalException(
@@ -310,7 +330,7 @@ void TrackRun::execute() {
     std::vector<double> macrocharges;
     std::vector<double> macromasses;
     std::vector<std::vector<EmissionSource*>> emissionSourcesLists;
-    std::vector<std::vector<std::shared_ptr<GlobalProcess>>> globalProcessesLists;
+    std::vector<std::vector<std::unique_ptr<GlobalProcess>>> globalProcessesLists;
     macrocharges.reserve(beams.size());
     macromasses.reserve(beams.size());
     emissionSourcesLists.reserve(beams.size());
@@ -380,8 +400,8 @@ void TrackRun::execute() {
         throw OpalException("TrackRun::execute",
                             "Mismatch between number of beams and particle containers.");
     }
-    setupGlobalProcesses(globalProcessesLists);
-    wireDaughterContainers(globalProcessesLists, beams);
+    setupGlobalProcesses(std::move(globalProcessesLists));
+    wireDaughterContainers(beams);
     // BC handler
     *gmsg << level2 << *(bunch_m->getBCHandler()) << endl;
 
@@ -548,7 +568,7 @@ void TrackRun::setupBoundaryGeometry() {
 }
 
 void TrackRun::setupGlobalProcesses(
-    const std::vector<std::vector<std::shared_ptr<GlobalProcess>>>& globalProcessesLists) {
+    std::vector<std::vector<std::unique_ptr<GlobalProcess>>> globalProcessesLists) {
     const auto& particleContainers = bunch_m->getParticleContainers();
     if (particleContainers.size() != globalProcessesLists.size()) {
         throw OpalException("TrackRun::setupGlobalProcesses",
@@ -559,13 +579,11 @@ void TrackRun::setupGlobalProcesses(
         if (!particleContainers[i]) {
             continue;
         }
-        particleContainers[i]->setGlobalProcesses(globalProcessesLists[i]);
+        particleContainers[i]->setGlobalProcesses(std::move(globalProcessesLists[i]));
     }
 }
 
-void TrackRun::wireDaughterContainers(
-    const std::vector<std::vector<std::shared_ptr<GlobalProcess>>>& globalProcessesLists,
-    const std::vector<Beam*>& beams) {
+void TrackRun::wireDaughterContainers(const std::vector<Beam*>& beams) {
     const auto& containers = bunch_m->getParticleContainers();
     const std::vector<std::string> beamNames = Track::block->beamNames_m;
 
@@ -587,11 +605,12 @@ void TrackRun::wireDaughterContainers(
             std::distance(beamNames.begin(), it));
 
         // Use the physical rest mass from the Beam definition (in GeV), not the
-        // macro-particle mass from the container — the latter is zero when BCURRENT=0.
+        // macro-particle mass from the container.
         const double daughterMass = beams[daughterIdx]->getMass();
-        for (const auto& proc : globalProcessesLists[i]) {
+        for (const auto& proc : containers[i]->getGlobalProcesses()) {
             auto* decayProc = dynamic_cast<Decay*>(proc.get());
             if (decayProc) {
+                requireUnitMacroWeight(*beams[daughterIdx], "daughter");
                 decayProc->setDaughterContainer(containers[daughterIdx], daughterMass);
                 *gmsg << level2
                       << "* Wired decay on beam \"" << beamNames[i]
