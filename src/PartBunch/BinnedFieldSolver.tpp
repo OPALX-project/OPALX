@@ -352,32 +352,7 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(PartBunch_t& bunch) {
             m << level4 << "binIndex=" << static_cast<int>(binIndex)
               << " primary runSolver(true) done; accumulate->Etmp" << endl;
 
-            // DEBUG: report max|E| after the primary solve AND Etmp before/after.
-            auto e_max_primary = [&](const char* tag, VField_t<T, Dim>& field) {
-                double localMax = 0.0;
-                auto vE = field.getView();
-                ippl::parallel_reduce(
-                    tag, field.getFieldRangePolicy(),
-                    KOKKOS_LAMBDA(const ippl::RangePolicy<Dim>::index_array_type& idx,
-                                  double& lmax) {
-                        auto e = apply(vE, idx);
-                        const double m2 = e[0]*e[0] + e[1]*e[1] + e[2]*e[2];
-                        if (m2 > lmax) lmax = m2;
-                    },
-                    Kokkos::Max<double>(localMax));
-                double globalMax = 0.0;
-                ippl::Comm->allreduce(localMax, globalMax, 1, std::greater<double>());
-                return std::sqrt(globalMax);
-            };
-            m << level5 << "[DEBUG] binIndex=" << static_cast<int>(binIndex)
-              << " primary: max|E| = " << e_max_primary("primary |E|", *this->getE())
-              << " max|Etmp before| = " << e_max_primary("Etmp pre-primary", *EtmpSP) << endl;
-
             accumulateFieldToTemp(gammaBin, kinematics.pmean, EtmpSP, BtmpSP, +1.0);
-
-            m << level5 << "[DEBUG] binIndex=" << static_cast<int>(binIndex)
-              << " primary: max|Etmp after| = "
-              << e_max_primary("Etmp post-primary", *EtmpSP) << endl;
 
             mesh.setMeshSpacing(hrOrig);
         }
