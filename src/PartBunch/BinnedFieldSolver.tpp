@@ -353,7 +353,7 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(PartBunch_t& bunch) {
               << " primary runSolver(true) done; accumulate->Etmp" << endl;
 
             // DEBUG: report max|E| after the primary solve AND Etmp before/after.
-            auto e_max_primary = [&](const char* tag, auto& field) {
+            auto e_max_primary = [&](const char* tag, VField_t<T, Dim>& field) {
                 double localMax = 0.0;
                 auto vE = field.getView();
                 ippl::parallel_reduce(
