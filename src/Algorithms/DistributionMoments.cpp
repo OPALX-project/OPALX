@@ -130,16 +130,17 @@ void DistributionMoments::computeMoments(
                 "ParticleContainer outlive its slot?");
     }
 
+    // Short-circuit: nothing has mutated R or P since the last compute.
+    // Every caller that mutates particle state is required to call
+    // markMomentsDirty(), including PartBunch::bunchUpdate(), which calls
+    // pc->markMomentsDirty() immediately after IPPL's pc->update() so that
+    // domain-decomposition / particle migration is also covered.
+    if (!slot->momentsDirty) {
+        return;
+    }
+
     Np = (Np == 0) ? 1 : Np;  // Explanation: see DistributionMoments::computeMeans
                               // implementation
-
-    // NOTE: the dirty flag is NOT used to short-circuit here. `markMomentsDirty`
-    // call sites cover the common mutators (push, kick, emit, destroy), but
-    // IPPL-internal operations such as `pc->update()` (domain decomposition /
-    // particle migration) can re-index R without going through a mark site,
-    // which would leave cached moments stale. Until we can prove that every
-    // R-mutating path goes through markMomentsDirty, recompute unconditionally
-    // and treat the flag as an advisory signal only.
 
     reset();
     computeMeans(Rview, Pview, Mview, Np, Nlocal);
@@ -243,10 +244,6 @@ void DistributionMoments::computeMoments(
     double betaGamma = std::sqrt(std::pow(meanGamma_m, 2) - 1.0);
     geometricEps_m   = normalizedEps_m / Vector_t<double, 3>(betaGamma);
 
-    // Cache is now consistent with this container's particle state; update
-    // the advisory flag even though we do not use it to short-circuit (see
-    // the explanatory note at the top of this function). Reuse the strong
-    // handle locked at function entry.
     slot->markMomentsClean();
 }
 
