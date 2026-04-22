@@ -2,7 +2,6 @@
 #define OPALX_SAMPLING_BASE_H
 
 #include "Distribution.h"
-#include "PartBunch/BunchStateHandler.h"
 #include "Ippl.h"
 #include <memory>
 
@@ -17,7 +16,6 @@ protected:
     std::shared_ptr<ParticleContainer_t> pc_m;
     std::shared_ptr<FieldContainer_t> fc_m;
     Distribution_t* opalDist_m;
-    std::shared_ptr<BunchStateHandler> bunchStateHandler_m;
     std::string samplingMethod_m;
     /// Emission source offset: position R0, momentum P0, start time t0 (applied in sample step).
     Vector_t<double, 3> R0_m = 0.0;
@@ -48,10 +46,6 @@ public:
     }
     
     virtual ~SamplingBase() {}
-
-    void setBunchStateHandler(std::shared_ptr<BunchStateHandler> handler) {
-        bunchStateHandler_m = handler;
-    }
 
     void setEmissionOffsets(ippl::Vector<double, 3> R0, ippl::Vector<double, 3> P0, double t0,
                             const std::string& emissionModel = "NONE") {
