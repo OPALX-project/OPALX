@@ -13,10 +13,6 @@
 #include "PartBunch/PartBunch.h"
 #include "Physics/Units.h"
 #include "Utilities/GeneralClassicException.h"
-// #include "Utilities/GSLSpline.h"
-
-// #include <fstream>
-// #include <iostream>
 
 extern Inform* gmsg;
 
