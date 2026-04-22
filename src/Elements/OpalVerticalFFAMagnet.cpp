@@ -17,8 +17,8 @@
 //
 #include "Attributes/Attributes.h"
 
-#include "AbsBeamline/EndFieldModel/Tanh.h" // classic
-#include "AbsBeamline/VerticalFFAMagnet.h" // classic
+#include "AbsBeamline/EndFieldModel/Tanh.h" // OPALX
+#include "AbsBeamline/VerticalFFAMagnet.h" // OPALX
 #include "Elements/OpalVerticalFFAMagnet.h"
 #include "Physics/Units.h"
 

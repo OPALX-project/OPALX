@@ -4,7 +4,7 @@
 //   It implements the common behaviour of elements, it can also be used via
 //   dynamic casting to determine whether an object represents an element.
 //
-//   Each Element object contains a pointer to a CLASSIC beam line element,
+//   Each Element object contains a pointer to an OPALX beam line element,
 //   known as the ``ideal'' element.
 //
 //   If sharable flag is set, all occurrences of the element are supposed to
