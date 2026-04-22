@@ -1,17 +1,17 @@
-#include "Utilities/ClassicField.h"
+#include "Utilities/BeamlineFieldElement.h"
 
 extern Inform* gmsg;
 
-ClassicField::ClassicField(
+BeamlineFieldElement::BeamlineFieldElement(
     std::shared_ptr<Component> element, const double& start, const double& end)
     : element_m(element), start_m(start), end_m(end), is_on_m(false) {
 }
 
-ClassicField::~ClassicField() {
+BeamlineFieldElement::~BeamlineFieldElement() {
     element_m = nullptr;
 }
 
-void ClassicField::setOn(const double& kineticEnergy) {
+void BeamlineFieldElement::setOn(const double& kineticEnergy) {
     if (!is_on_m) {
         element_m->goOnline(kineticEnergy);
         *gmsg << "* " << element_m->getName() << " gone live" << endl;
@@ -19,7 +19,7 @@ void ClassicField::setOn(const double& kineticEnergy) {
     }
 }
 
-void ClassicField::setOff() {
+void BeamlineFieldElement::setOff() {
     if (is_on_m) {
         element_m->goOffline();
         *gmsg << "* " << element_m->getName() << " gone off" << endl;
