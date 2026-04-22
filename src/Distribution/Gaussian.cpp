@@ -10,11 +10,11 @@
  *
  * @param pc Shared pointer to the particle container.
  * @param fc Shared pointer to the field container.
- * @param opalDist Shared pointer to the distribution object.
+ * @param opalDist Borrowed distribution object.
  */
 Gaussian::Gaussian(std::shared_ptr<ParticleContainer_t> pc,
                    std::shared_ptr<FieldContainer_t> fc,
-                   std::shared_ptr<Distribution_t> opalDist)
+                   Distribution_t* opalDist)
     : SamplingBase(pc, fc, opalDist) {
     samperTimer_m = IpplTimings::getTimer("Sampling");
     initRandomPool();

@@ -46,7 +46,7 @@ public:
      *  - FDext[4] = B at tail particle location (in x, y, and z).
      *  - FDext[5] = E at tail particle location (in x, y, and z).
      */
-    void writePhaseSpace(PartBunch_t* beam, Vector_t<double, 3> FDext[], size_t particleContainerIndex = 0);
+    void writePhaseSpace(PartBunch_t& beam, Vector_t<double, 3> FDext[], size_t particleContainerIndex = 0);
 
     /** \brief Dumps phase space to H5 file in OPAL cyclotron calculation.
      *
@@ -63,7 +63,7 @@ public:
      *  \return Returns the number of the time step just written.
      */
     int writePhaseSpace(
-        PartBunch_t* beam, Vector_t<double, 3> FDext[], double E, double refPr, double refPt,
+        PartBunch_t& beam, Vector_t<double, 3> FDext[], double E, double refPr, double refPt,
         double refPz, double refR, double refTheta, double refZ, double azimuth, double elevation,
         bool local, size_t particleContainerIndex = 0);
 

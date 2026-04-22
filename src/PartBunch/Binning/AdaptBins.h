@@ -100,7 +100,7 @@ namespace ParticleBinning {
         /**
          * @brief Constructs an AdaptBins object with a specified maximum number of bins and a selector.
          * 
-         * @param bunch A shared pointer to the underlying particle container.
+         * @param bunch Borrowed particle container used for binning.
          * @param var_selector A function or functor that selects the variable for binning (based on attributes).
          * @param maxBins The maximum number of bins to initialize with (usually 128).
          * @param binningAlpha The alpha parameter for the adaptive binning (merging) algorithm.
@@ -111,7 +111,7 @@ namespace ParticleBinning {
          *       the AdaptBins::partialMergedCDFIntegralCost function and explained in detail
          *       in Alexander Liemen's master thesis "Adaptive Energy Binning in OPAL-X".
          */
-        AdaptBins(std::shared_ptr<BunchType> bunch, BinningSelector var_selector, bin_index_type maxBins,
+        AdaptBins(BunchType& bunch, BinningSelector var_selector, bin_index_type maxBins,
                   value_type binningAlpha, value_type binningBeta, value_type desiredWidth,
                   const std::string& binningCmdName)
             : bunch_m(bunch)
@@ -153,7 +153,7 @@ namespace ParticleBinning {
          * 
          * @note: Change this function if the name of the Bin attribute in the container is changed.
          */
-        bin_view_type getBinView() { return bunch_m->Bin.getView(); }
+        bin_view_type getBinView() { return bunch_m.Bin.getView(); }
 
         /**
          * @brief Returns the current number of bins.
@@ -387,7 +387,7 @@ namespace ParticleBinning {
          */
         size_type getNPartInBin(bin_index_type binIndex, bool global = false) override {
             // shouldn't happen..., "binIndex < 0" unnecessary, since binIndex is usually unsigned; but just in case the type is changed
-            if (binIndex < 0 || binIndex >= getCurrentBinCount()) { return bunch_m->getTotalNum(); }
+            if (binIndex < 0 || binIndex >= getCurrentBinCount()) { return bunch_m.getTotalNum(); }
 
             if (global) {
                 return globalBinHisto_m.getNPartInBin(binIndex);
@@ -529,7 +529,7 @@ namespace ParticleBinning {
         }
 
     private:
-        std::shared_ptr<BunchType> bunch_m;    ///< Shared pointer to the particle container.
+        BunchType& bunch_m;                    ///< Borrowed particle container.
         BinningSelector var_selector_m;        ///< Variable selector for binning.
         const bin_index_type maxBins_m;        ///< Maximum number of bins. 
         bin_index_type currentBins_m;          ///< Current number of bins in use.
@@ -564,5 +564,4 @@ namespace ParticleBinning {
 #include "AdaptBins.tpp"
 
 #endif  // ADAPT_BINS_H
-
 
