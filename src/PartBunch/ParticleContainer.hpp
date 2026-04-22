@@ -155,7 +155,22 @@ public:
 
     void setBunchStateHandler(std::shared_ptr<BunchStateHandler> handler) {
         bunchStateHandler_m = handler;
-        distMoments_m.setBunchStateHandler(handler);
+        containerState_m    = handler->registerContainer();
+        distMoments_m.setBunchStateHandler(handler, containerState_m);
+    }
+
+    // -- per-container state pass-throughs --------------------------------
+    // Thin wrappers around the handler's slot-taking API so callers don't
+    // need to reach into `containerState_m` directly.
+
+    bool isUnitlessPositions() const { return containerState_m->unitlessPositions; }
+
+    bool isMomentsDirty() const { return containerState_m->momentsDirty; }
+    void markMomentsDirty() {
+        bunchStateHandler_m->markMomentsDirty(*containerState_m);
+    }
+    void clearMomentsDirty() {
+        bunchStateHandler_m->clearMomentsDirty(*containerState_m);
     }
 
     void updateMoments() {
@@ -501,7 +516,7 @@ public:
      * @throws OpalException if this container is already in unitless positions.
      */
     void switchToUnitlessPositions() {
-        if (isUnitlessPositions_m) {
+        if (containerState_m->unitlessPositions) {
             throw OpalException("ParticleContainer::switchToUnitlessPositions",
                                 "ParticleContainer is already in unitless positions!");
         }
@@ -512,7 +527,7 @@ public:
             "ParticleContainer::switchToUnitlessPositions", nLocal,
             KOKKOS_LAMBDA(const size_type i) { Rview(i) *= 1.0 / (Physics::c * dtview(i)); });
         Kokkos::fence();
-        isUnitlessPositions_m = true;
+        bunchStateHandler_m->setUnitlessPositions(*containerState_m, true);
     }
 
     /**
@@ -523,7 +538,7 @@ public:
      * @throws OpalException if this container is not currently in unitless positions.
      */
     void switchOffUnitlessPositions() {
-        if (!isUnitlessPositions_m) {
+        if (!containerState_m->unitlessPositions) {
             throw OpalException("ParticleContainer::switchOffUnitlessPositions",
                                 "ParticleContainer is already in physical positions!");
         }
@@ -534,7 +549,7 @@ public:
             "ParticleContainer::switchOffUnitlessPositions", nLocal,
             KOKKOS_LAMBDA(const size_type i) { Rview(i) *= Physics::c * dtview(i); });
         Kokkos::fence();
-        isUnitlessPositions_m = false;
+        bunchStateHandler_m->setUnitlessPositions(*containerState_m, false);
     }
     QMStorageMode getQMStorageMode() const { return qmStorageMode_m; }
 
@@ -593,7 +608,7 @@ public:
 
         // Only called if globalDestroyNum > 0, i.e. if any particles were destroyed --> statistics
         // changed --> moments are dirty
-        bunchStateHandler_m->markMomentsDirty();
+        markMomentsDirty();
 
         return globalDestroyNum;
     }
@@ -609,6 +624,11 @@ private:
 
     /// BunchStateHandler necessary for bunch state tracking.
     std::shared_ptr<BunchStateHandler> bunchStateHandler_m;
+
+    /// Per-container state slot allocated by the handler at `setBunchStateHandler`.
+    /// Owned here as the only strong reference; the handler keeps a weak_ptr, so
+    /// destroying this container automatically releases the slot.
+    std::shared_ptr<BunchStateHandler::ContainerState> containerState_m;
 
     // Single shared scalar mode stored as a length-1 Kokkos view.
     qm_view_type QView_m;
@@ -631,11 +651,8 @@ private:
     // Particle reference data (!= reference particle)
     const PartData* reference_m = nullptr;
 
-    // Distance along the beamline 
+    // Distance along the beamline
     double sPos_m = 0.0;
-
-    /// True while R is stored in unitless form (see switchToUnitlessPositions).
-    bool isUnitlessPositions_m = false;
 
 };
 
