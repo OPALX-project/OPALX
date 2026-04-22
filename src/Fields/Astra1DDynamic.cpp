@@ -14,7 +14,6 @@
 #include <ios>
 
 
-
 Astra1DDynamic::Astra1DDynamic(const std::string& filename)
     : Fieldmap(filename)
 { 
@@ -77,32 +76,10 @@ Astra1DDynamic::Astra1DDynamic(const std::string& filename)
                 tmpDouble2 = zend_m;
                 ++acceptedValues;
             } 
-            // else {
-            //     ++skippedValues;
-            // }
         }
 
         num_gridpz_m = acceptedValues;
         lines_read_m = 0;
-
-        // parsing_passed = 
-        //     parsing_passed 
-        //     && interpretLine<double, double>(file, zbegin_m, tmpDouble);
-
-        // double tmpDouble2 = zbegin_m;
-
-        // while(!file.eof() && parsing_passed) {
-        //     parsing_passed = 
-        //         interpretLine<double, double>(file, zend_m, tmpDouble, false);
-        //     if (zend_m - tmpDouble2 > 1e-10) {
-        //         tmpDouble2 = zend_m;
-        //     } else if (parsing_passed) {
-        //         ++skippedValues;
-        //     }
-        // }
-
-        // num_gridpz_m = lines_read_m - 3 - skippedValues;
-        // lines_read_m = 0;
 
         if (!parsing_passed && !file.eof()) {
             disableFieldmapWarning();
@@ -123,14 +100,6 @@ Astra1DDynamic::Astra1DDynamic(const std::string& filename)
         zbegin_m = 0.0;
         zend_m = -1e-3;
     }
-
-    // std::cerr << "zbegin_m = " << zbegin_m << "\n";
-    // std::cerr << "zend_m   = " << zend_m << "\n";
-    // std::cerr << "lines_read_m = " << lines_read_m << "\n";
-    // std::cerr << "skippedValues = " << skippedValues << "\n";
-    // std::cerr << "num_gridpz_m = " << num_gridpz_m << "\n";
-
-
 }
 
 Astra1DDynamic::~Astra1DDynamic() {
@@ -248,7 +217,7 @@ void Astra1DDynamic::readMap()
         ezRaw_m[i] = RealValues[i];
     }
 
-    // // Interpolate onto an equidistant grid and build a mirrored periodic array
+    // Interpolate onto an equidistant grid and build a mirrored periodic array
     gsl_spline_init(Ez_interpolant, zvals, RealValues, num_gridpz_m);
 
     int ii = num_gridpz_m;
