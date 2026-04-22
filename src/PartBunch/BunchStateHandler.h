@@ -68,7 +68,7 @@ public:
 
         void setUnitlessPositions(bool v);
         void markMomentsDirty();
-        void clearMomentsDirty();
+        void markMomentsClean();
     };
 
     BunchStateHandler() = default;

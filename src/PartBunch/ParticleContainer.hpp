@@ -168,8 +168,8 @@ public:
     bool isUnitlessPositions() const { return containerState_m->unitlessPositions; }
 
     bool isMomentsDirty() const { return containerState_m->momentsDirty; }
-    void markMomentsDirty()          { containerState_m->markMomentsDirty(); }
-    void clearMomentsDirty()         { containerState_m->clearMomentsDirty(); }
+    void markMomentsDirty() { containerState_m->markMomentsDirty(); }
+    void markMomentsClean() { containerState_m->markMomentsClean(); }
 
     void updateMoments() {
         /*

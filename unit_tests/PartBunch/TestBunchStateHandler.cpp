@@ -49,13 +49,13 @@ TEST_F(BunchStateHandlerTest, MomentsDirtyLifecycle) {
     // Starts dirty
     EXPECT_TRUE(s->momentsDirty);
 
-    s->clearMomentsDirty();
+    s->markMomentsClean();
     EXPECT_FALSE(s->momentsDirty);
 
     s->markMomentsDirty();
     EXPECT_TRUE(s->momentsDirty);
 
-    s->clearMomentsDirty();
+    s->markMomentsClean();
     EXPECT_FALSE(s->momentsDirty);
 
     // Multiple marks are idempotent
@@ -81,8 +81,8 @@ TEST_F(BunchStateHandlerTest, PerContainerSlotsAreIndependent) {
     auto b = h.registerContainer();
     ASSERT_NE(a.get(), b.get());
 
-    a->clearMomentsDirty();
-    b->clearMomentsDirty();
+    a->markMomentsClean();
+    b->markMomentsClean();
 
     // Marking only `a` dirty must not affect `b`.
     a->markMomentsDirty();
@@ -90,7 +90,7 @@ TEST_F(BunchStateHandlerTest, PerContainerSlotsAreIndependent) {
     EXPECT_FALSE(b->momentsDirty);
 
     // And vice-versa.
-    a->clearMomentsDirty();
+    a->markMomentsClean();
     b->markMomentsDirty();
     EXPECT_FALSE(a->momentsDirty);
     EXPECT_TRUE(b->momentsDirty);
@@ -123,7 +123,7 @@ TEST_F(BunchStateHandlerTest, AggressiveSync_MomentsDirty_OrAcrossRanks) {
     Options::aggressiveStateSync = true;
     BunchStateHandler h;
     auto s = h.registerContainer();
-    s->clearMomentsDirty();  // sync'd clear: all ranks agree false -> false
+    s->markMomentsClean();  // sync'd clear: all ranks agree false -> false
     ASSERT_FALSE(s->momentsDirty);
 
     // Only rank 0 marks dirty; logical_or should propagate to every rank.
@@ -132,7 +132,7 @@ TEST_F(BunchStateHandlerTest, AggressiveSync_MomentsDirty_OrAcrossRanks) {
     } else {
         // Non-zero ranks must also call a setter so they participate in the
         // collective. Clearing locally; the OR with rank 0's "true" wins.
-        s->clearMomentsDirty();
+        s->markMomentsClean();
     }
     EXPECT_TRUE(s->momentsDirty);
 }
@@ -148,11 +148,11 @@ TEST_F(BunchStateHandlerTest, AggressiveSync_ClearOnlyWhenAllAgree) {
     s->markMomentsDirty();
     ASSERT_TRUE(s->momentsDirty);
 
-    // rank 0 -> clearMomentsDirty passes `false`
+    // rank 0 -> markMomentsClean passes `false`
     // rank i -> markMomentsDirty  passes `true`
     // => OR == true => every rank stays dirty, including rank 0.
     if (ippl::Comm->rank() == 0) {
-        s->clearMomentsDirty();
+        s->markMomentsClean();
     } else {
         s->markMomentsDirty();
     }
@@ -200,7 +200,7 @@ TEST_F(BunchStateHandlerTest, AggressiveSync_OffDoesNotSynchronize) {
     Options::aggressiveStateSync = false;
     BunchStateHandler h;
     auto s = h.registerContainer();
-    s->clearMomentsDirty();
+    s->markMomentsClean();
     ASSERT_FALSE(s->momentsDirty);
 
     // Only rank 0 marks dirty; with sync off, other ranks must stay clean.
