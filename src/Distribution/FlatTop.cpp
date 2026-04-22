@@ -419,7 +419,7 @@ void FlatTop::emitParticles(double t, double dt) {
     msgAll << level3 << "* generate particles on a disc" << endl;
     generateUniformDisk(nlocal, nNew, dt);
 
-    bunchStateHandler_m->markMomentsDirty();
+    pc_m->markMomentsDirty();
 
     msgAll << level3 << "* " << nNew << " new particles emmitted" << endl;
 }

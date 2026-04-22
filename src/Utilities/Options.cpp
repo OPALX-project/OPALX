@@ -106,4 +106,6 @@ namespace Options {
 
     bool useQMAttributes = false;  // corresponds to QM_MODE=SINGLE
 
+    bool aggressiveStateSync = false;
+
 }  // namespace Options

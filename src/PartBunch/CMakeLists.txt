@@ -2,6 +2,7 @@ set (_SRCS
     PartBunch.cpp
     FieldSolver.cpp
     BinnedFieldSolver.cpp
+    BunchStateHandler.cpp
 )
 
 set (HDRS

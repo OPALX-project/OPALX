@@ -47,6 +47,7 @@ protected:
         pc = std::make_shared<ParticleContainer<double, 3>>(mesh, fl);
 
         bunchStateHandler = std::make_shared<BunchStateHandler>();
+        pc->setBunchStateHandler(bunchStateHandler);
     }
 
     void TearDown() override {
@@ -134,7 +135,6 @@ TEST_F(MultiVariateGaussianTest, meanR_varR) {
     const Vector_t<double, 3> cutoffP_ref = 4.0;
 
     MultiVariateGaussian sampler(pc, meanR_ref, meanP_ref, sigmaR_ref, sigmaP_ref, cutoffR_ref, cutoffP_ref);
-    sampler.setBunchStateHandler(bunchStateHandler);
 
     size_t total_nparticles = 100000;
 
@@ -232,7 +232,6 @@ TEST_F(MultiVariateGaussianTest, cutoffR)
     bool fixMeanR = false;
     bool fixMeanP = false;
     MultiVariateGaussian sampler(pc, meanR_ref, meanP_ref, sigmaR_ref, sigmaP_ref, cutoffR_ref, cutoffP_ref, fixMeanR, fixMeanP);
-    sampler.setBunchStateHandler(bunchStateHandler);
 
     size_t total_nparticles = 100000;
     preallocateParticleCapacity(pc, total_nparticles);
@@ -260,7 +259,6 @@ TEST_F(MultiVariateGaussianTest, meanP_and_varP)
     bool fixMeanP = true;
 
     MultiVariateGaussian sampler(pc, meanR_ref, meanP_ref, sigmaR_ref, sigmaP_ref, cutoffR_ref, cutoffP_ref, fixMeanR, fixMeanP);
-    sampler.setBunchStateHandler(bunchStateHandler);
 
     size_t total_nparticles = 100000;
     preallocateParticleCapacity(pc, total_nparticles);
@@ -440,7 +438,6 @@ TEST_F(MultiVariateGaussianTest, FullCovarianceTest)
 
     // Construct sampler
     MultiVariateGaussian sampler(pc, meanR, meanP, covExpected, cutoffR, cutoffP);
-    sampler.setBunchStateHandler(bunchStateHandler);
 
     size_t total_nparticles = 1000000;
     preallocateParticleCapacity(pc, total_nparticles);

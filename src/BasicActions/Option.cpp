@@ -93,6 +93,7 @@ namespace {
         MINSTEPFORREBIN,
         COMPUTEPERCENTILES,
         QM_MODE,
+        AGGRESSIVE_STATE_SYNC,
         SIZE
     };
 }  // namespace
@@ -329,6 +330,15 @@ Option::Option()
             "`Q`/`M` views).",
             useQMAttributes ? std::string("ATTRIBUTES") : std::string("SINGLE"));
 
+    itsAttr[AGGRESSIVE_STATE_SYNC] = Attributes::makeBool(
+            "AGGRESSIVE_STATE_SYNC",
+            "If true, every mutation of the shared BunchStateHandler flags "
+            "(moments-dirty, unitless-positions, emitting-now, first-repartition) "
+            "performs an MPI allreduce so that all ranks converge to the same "
+            "value. Guards against rank-local divergence at the cost of an extra "
+            "collective on every state change. Default: false.",
+            aggressiveStateSync);
+
     registerOwnership(AttributeHandler::STATEMENT);
 
     FileStream::setEcho(echo);
@@ -376,6 +386,7 @@ Option::Option(const std::string& name, Option* parent) : Action(name, parent) {
     Attributes::setBool(itsAttr[COMPUTEPERCENTILES], computePercentiles);
     Attributes::setString(
             itsAttr[QM_MODE], useQMAttributes ? std::string("ATTRIBUTES") : std::string("SINGLE"));
+    Attributes::setBool(itsAttr[AGGRESSIVE_STATE_SYNC], aggressiveStateSync);
 }
 
 Option::~Option() {}
@@ -414,6 +425,8 @@ void Option::execute() {
                 "Option::execute",
                 "Unsupported QM_MODE '" + qmMode + "'. Use \"SINGLE\" or \"ATTRIBUTES\".");
     }
+
+    aggressiveStateSync = Attributes::getBool(itsAttr[AGGRESSIVE_STATE_SYNC]);
 
     /// note: rangen is used only for the random number generator in the OPAL language
     ///       not for the distributions
