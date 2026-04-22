@@ -198,8 +198,8 @@ protected:
             /*totalParticlesPerBeam=*/std::vector<size_t>{kDefaultNParticles},
             /*lbt=*/1.0,
             /*integration_method=*/"LF2",
-            fsCmdBase,
-            dataSink);
+            fsCmdBase.get(),
+            dataSink.get());
         pc = bunch->getParticleContainer();
     }
 
