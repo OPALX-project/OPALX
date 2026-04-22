@@ -281,9 +281,8 @@ void Astra1DDynamic::readMap()
     FourCoefs_m.modify<Kokkos::HostSpace>();
     FourCoefs_m.sync<Kokkos::DefaultExecutionSpace>();
 
-    *ippl::Info << level3
-                << typeset_msg("read in fieldmap '" + Filename_m + "'", "info")
-                << endl;
+    Inform m("Astra1DDynamic::readMap");
+    m << level3 << "Read in fieldmap '" << Filename_m << "'" << endl;
 }
 
 void Astra1DDynamic::freeMap() 
@@ -293,9 +292,8 @@ void Astra1DDynamic::freeMap()
         // Reset View (releases memory)
         FourCoefs_m = Kokkos::DualView<double*>();
 
-        *ippl::Info << level3
-                    << typeset_msg("freed fieldmap '" + Filename_m + "'", "info")
-                    << endl;
+        Inform m("Astra1DDynamic::freeMap");
+        m << level3 << "Freed fieldmap '" << Filename_m << "'" << endl;
     }
 }
 
