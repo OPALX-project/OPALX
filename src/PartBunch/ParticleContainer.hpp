@@ -10,6 +10,7 @@
 #include "Manager/BaseManager.h"
 
 #include "Algorithms/DistributionMoments.h"
+#include "PartBunch/BunchStateHandler.h"
 #include "Algorithms/PartData.h"
 #include "Algorithms/Quaternion.hpp"
 #include "Algorithms/CoordinateSystemTrafo.h"
@@ -152,7 +153,36 @@ public:
     }
     PLayout_t<T, Dim>& getPL() { return pl_m; }
 
+    void setBunchStateHandler(std::shared_ptr<BunchStateHandler> handler) {
+        // We only keep the slot: per-container flags own their own sync, so
+        // no back-reference to the handler is needed. The handler itself
+        // manages bunch-wide state, which ParticleContainer never touches.
+        containerState_m = handler->registerContainer();
+        distMoments_m.setContainerState(containerState_m);
+    }
+
+    // -- per-container state pass-throughs --------------------------------
+    // Thin wrappers around the slot's own API so callers don't need to reach
+    // into `containerState_m` directly.
+
+    bool isUnitlessPositions() const { return containerState_m->unitlessPositions; }
+
+    bool isMomentsDirty() const { return containerState_m->momentsDirty; }
+    void markMomentsDirty() { containerState_m->markMomentsDirty(); }
+    void markMomentsClean() { containerState_m->markMomentsClean(); }
+
     void updateMoments() {
+        /*
+        Quick check that this container was registered with a BunchStateHandler. If not, throw an
+        error. This seems to be an easy to make error when interacting (e.g. through unit tests)
+        with the ParticleContainer.
+        */
+        if (!containerState_m) {
+            throw OpalException(
+                    "ParticleContainer::updateMoments",
+                    "BunchStateHandler not set in ParticleContainer (containerState is null).");
+        }
+
         size_t Np = this->getTotalNum();
         Np = (Np == 0) ? 1 : Np;  // only used for normalization in the moments class --> avoid
                                   // division by zero
@@ -485,7 +515,7 @@ public:
      * @throws OpalException if this container is already in unitless positions.
      */
     void switchToUnitlessPositions() {
-        if (isUnitlessPositions_m) {
+        if (containerState_m->unitlessPositions) {
             throw OpalException("ParticleContainer::switchToUnitlessPositions",
                                 "ParticleContainer is already in unitless positions!");
         }
@@ -496,7 +526,7 @@ public:
             "ParticleContainer::switchToUnitlessPositions", nLocal,
             KOKKOS_LAMBDA(const size_type i) { Rview(i) *= 1.0 / (Physics::c * dtview(i)); });
         Kokkos::fence();
-        isUnitlessPositions_m = true;
+        containerState_m->setUnitlessPositions(true);
     }
 
     /**
@@ -507,7 +537,7 @@ public:
      * @throws OpalException if this container is not currently in unitless positions.
      */
     void switchOffUnitlessPositions() {
-        if (!isUnitlessPositions_m) {
+        if (!containerState_m->unitlessPositions) {
             throw OpalException("ParticleContainer::switchOffUnitlessPositions",
                                 "ParticleContainer is already in physical positions!");
         }
@@ -518,7 +548,7 @@ public:
             "ParticleContainer::switchOffUnitlessPositions", nLocal,
             KOKKOS_LAMBDA(const size_type i) { Rview(i) *= Physics::c * dtview(i); });
         Kokkos::fence();
-        isUnitlessPositions_m = false;
+        containerState_m->setUnitlessPositions(false);
     }
     QMStorageMode getQMStorageMode() const { return qmStorageMode_m; }
 
@@ -540,6 +570,10 @@ public:
         if (nLocal == 0 && this->getTotalNum() == 0) return 0;
         if (sigmasAway <= 0.0) return 0;
 
+        // Force fresh moments: cached values from bunchUpdate may not reflect the exact
+        // particle state at this point (emission/migration ordering can shift R between
+        // the last bunchUpdate and this call). Safety-critical deletion always recomputes.
+        markMomentsDirty();
         updateMoments();
 
         Vector_t<double, Dim> meanR = getMeanR();
@@ -575,6 +609,10 @@ public:
 
         this->destroy(invalid, localDestroyNum);
 
+        // Only called if globalDestroyNum > 0, i.e. if any particles were destroyed --> statistics
+        // changed --> moments are dirty
+        markMomentsDirty();
+
         return globalDestroyNum;
     }
 
@@ -586,6 +624,12 @@ private:
     QMStorageMode qmStorageMode_m = QMStorageMode::SingleValue;
 
     DistributionMoments distMoments_m;
+
+    /// Per-container state slot allocated by the handler at `setBunchStateHandler`.
+    /// Owned here as the only strong reference; the handler keeps a weak_ptr, so
+    /// destroying this container automatically releases the slot. The slot's own
+    /// methods handle MPI consistency, so no direct handler reference is needed.
+    std::shared_ptr<BunchStateHandler::ContainerState> containerState_m;
 
     // Single shared scalar mode stored as a length-1 Kokkos view.
     qm_view_type QView_m;
@@ -608,11 +652,8 @@ private:
     // Particle reference data (!= reference particle)
     const PartData* reference_m = nullptr;
 
-    // Distance along the beamline 
+    // Distance along the beamline
     double sPos_m = 0.0;
-
-    /// True while R is stored in unitless form (see switchToUnitlessPositions).
-    bool isUnitlessPositions_m = false;
 
 };
 

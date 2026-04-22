@@ -5,6 +5,7 @@
 #include <algorithm>
 
 #include "Distribution/Gaussian.h"
+#include "PartBunch/BunchStateHandler.h"
 #include "Ippl.h"
 #include "Utility/IpplTimings.h"
 
@@ -44,6 +45,9 @@ protected:
 
         // Create ParticleContainer
         pc = std::make_shared<ParticleContainer<double, 3>>(mesh, fl);
+
+        bunchStateHandler = std::make_shared<BunchStateHandler>();
+        pc->setBunchStateHandler(bunchStateHandler);
     }
 
     void TearDown() override {
@@ -51,6 +55,7 @@ protected:
     }
 
     std::shared_ptr<ParticleContainer<double, 3>> pc;
+    std::shared_ptr<BunchStateHandler> bunchStateHandler;
     ippl::Vector<int,3> nr;
     bool isAllPeriodic_m = true;
 };
@@ -251,7 +256,7 @@ TEST_F(GaussianTest, meanP_and_steddevP)
     double avrgpz = 0.1;
     const Vector_t<double, 3> cutoffR = 4.0;
 
-    Gaussian sampler(pc,sigmaR_ref, sigmaP_ref, avrgpz, cutoffR);
+    Gaussian sampler(pc, sigmaR_ref, sigmaP_ref, avrgpz, cutoffR);
 
     size_t total_nparticles = 100000;
     preallocateParticleCapacity(pc, total_nparticles);
