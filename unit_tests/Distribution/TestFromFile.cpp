@@ -44,6 +44,7 @@ protected:
         pc = std::make_shared<ParticleContainer<double, 3>>(mesh, fl);
 
         bunchStateHandler = std::make_shared<BunchStateHandler>();
+        pc->setBunchStateHandler(bunchStateHandler);
         tempFilename = "fromfile_test_input.dat";
     }
 
@@ -97,7 +98,6 @@ TEST_F(FromFileTest, GeneratesParticlesFromAsciiFile) {
 
     auto fc = std::shared_ptr<FieldContainer_t>();
     FromFile sampler(pc, fc, tempFilename);
-    sampler.setBunchStateHandler(bunchStateHandler);
 
     size_t requested = 10; // larger than available in file to test clamping
 
@@ -150,7 +150,6 @@ TEST_F(FromFileTest, ParseHeader_ReorderedColumns) {
 
     auto fc = std::shared_ptr<FieldContainer_t>();
     FromFile sampler(pc, fc, tempFilename);
-    sampler.setBunchStateHandler(bunchStateHandler);
 
     size_t requested = 1;
     sampler.generateParticles(requested, nr);
@@ -178,7 +177,6 @@ TEST_F(FromFileTest, ParseHeader_StandardOrderAndAlternateNames) {
 
     auto fc = std::shared_ptr<FieldContainer_t>();
     FromFile sampler(pc, fc, tempFilename);
-    sampler.setBunchStateHandler(bunchStateHandler);
 
     size_t requested = 1;
     sampler.generateParticles(requested, nr);
