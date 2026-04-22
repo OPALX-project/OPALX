@@ -63,7 +63,7 @@ public:
     ElementBase* clone() const override;
 
     /** Calculate the field for all particles */
-    bool apply(const std::shared_ptr<ParticleContainer_t> &pc);
+    bool apply(const std::shared_ptr<ParticleContainer_t> &pc) override;
 
     /** Calculate the field at the position of the i^th particle
      *
