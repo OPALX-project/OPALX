@@ -27,7 +27,7 @@ void BunchStateHandler::ContainerState::markMomentsDirty() {
     momentsDirty = Options::aggressiveStateSync ? syncOr(true) : true;
 }
 
-void BunchStateHandler::ContainerState::clearMomentsDirty() {
+void BunchStateHandler::ContainerState::markMomentsClean() {
     // With AGGRESSIVE_STATE_SYNC, "clear" only takes effect if every rank
     // agrees the cache is clean; any rank still dirty keeps the whole bunch
     // dirty.
