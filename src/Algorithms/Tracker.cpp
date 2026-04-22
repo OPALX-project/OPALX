@@ -76,23 +76,28 @@
 Tracker::Tracker(
     const Beamline& beamline, 
     bool backBeam, 
-    bool backTrack): 
-    Tracker(beamline, std::shared_ptr<PartBunch_t>(), backBeam, backTrack){}
+    bool backTrack)
+    : AbstractTracker(beamline, backBeam, backTrack),
+      itsBeamline_m(beamline),
+      itsBunch_m(nullptr) {}
 
 Tracker::Tracker(
     const Beamline& beamline, 
-    std::shared_ptr<PartBunch_t> bunch, 
+    PartBunch_t& bunch,
     bool backBeam,
     bool backTrack)
     : AbstractTracker(beamline, backBeam, backTrack),
       itsBeamline_m(beamline),
-      itsBunch_m(bunch) {}
+      itsBunch_m(&bunch) {}
 
 Tracker::~Tracker() {
 }
 
-const std::shared_ptr<PartBunch_t>& Tracker::getBunch() const {
-    return itsBunch_m;
+PartBunch_t& Tracker::getBunch() const {
+    if (itsBunch_m == nullptr) {
+        throw OpalException("Tracker::getBunch", "No particle bunch is attached to this tracker.");
+    }
+    return *itsBunch_m;
 }
 
 void Tracker::addToBunch(const OpalParticle& /*part*/) {
@@ -110,5 +115,5 @@ void Tracker::visitComponent(const Component& comp) {
                             "Missing particle reference data in active particle container.");
     }
     comp.trackBunch(
-        itsBunch_m, *itsBunch_m->getParticleContainer()->getReference(), back_beam, back_track);
+        *itsBunch_m, *itsBunch_m->getParticleContainer()->getReference(), back_beam, back_track);
 }
