@@ -227,6 +227,12 @@ void PartBunch<T, Dim>::refreshPcActiveAfterEmit() {
  */
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::do_binaryRepart() {
+    throw OpalException(
+            "PartBunch::do_binaryRepart",
+            "Not implemented yet. The load-balancer repartition path is still being "
+            "re-wired against the unified BunchStateHandler and multi-container "
+            "setup; callers must not invoke this until it is properly hooked up.");
+
     using FieldContainer_t               = FieldContainer<T, Dim>;
     std::shared_ptr<FieldContainer_t> fc = this->fcontainer_m;
 
