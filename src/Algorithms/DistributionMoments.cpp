@@ -119,19 +119,18 @@ void DistributionMoments::computeMoments(
         ippl::ParticleAttrib<Vector_t<double, 3>>::view_type Rview,
         ippl::ParticleAttrib<Vector_t<double, 3>>::view_type Pview,
         ippl::ParticleAttrib<double>::view_type Mview, size_t Np, size_t Nlocal) {
-    // Check that the BunchStateHandler is set. Should always be set, so throw an
-    // exception if not.
-    if (!bunchStateHandler_m) {
+    // Check that the BunchStateHandler and the container slot are set.
+    if (!bunchStateHandler_m || !containerState_m) {
         throw OpalException(
                 "DistributionMoments::computeMoments",
-                "BunchStateHandler not set, cannot use "
+                "BunchStateHandler/ContainerState not set, cannot use "
                 "DistributionMoments instance correctly.");
     }
 
     Np = (Np == 0) ? 1 : Np;  // Explanation: see DistributionMoments::computeMeans
                               // implementation
 
-    if (!bunchStateHandler_m->isMomentsDirty()) {
+    if (!containerState_m->momentsDirty) {
         return;
     }
 
@@ -236,6 +235,11 @@ void DistributionMoments::computeMoments(
 
     double betaGamma = std::sqrt(std::pow(meanGamma_m, 2) - 1.0);
     geometricEps_m   = normalizedEps_m / Vector_t<double, 3>(betaGamma);
+
+    // Cache is now consistent with this container's particle state; clearing
+    // the per-container slot here matches the contract advertised in
+    // BunchStateHandler.h.
+    bunchStateHandler_m->clearMomentsDirty(*containerState_m);
 }
 
 // ---------------------------------------------------------------------------

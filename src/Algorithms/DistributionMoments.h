@@ -40,8 +40,11 @@ class DistributionMoments {
 public:
     DistributionMoments();
 
-    void setBunchStateHandler(std::shared_ptr<BunchStateHandler> bunchStateHandler) {
+    void setBunchStateHandler(
+            std::shared_ptr<BunchStateHandler> bunchStateHandler,
+            std::shared_ptr<BunchStateHandler::ContainerState> containerState) {
         bunchStateHandler_m = std::move(bunchStateHandler);
+        containerState_m    = std::move(containerState);
     }
 
     /// Configure whether kinetic-energy moments use a reference particle mass (instead of
@@ -139,7 +142,8 @@ private:
 
     void resetPlasmaParameters();
 
-    std::shared_ptr<BunchStateHandler> bunchStateHandler_m;
+    std::shared_ptr<BunchStateHandler>                 bunchStateHandler_m;
+    std::shared_ptr<BunchStateHandler::ContainerState> containerState_m;
 
     Vector_t<double, 3> meanR_m;
     Vector_t<double, 3> meanP_m;
