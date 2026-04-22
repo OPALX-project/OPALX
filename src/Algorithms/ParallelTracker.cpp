@@ -85,7 +85,7 @@ ParallelTracker::ParallelTracker(
  * @brief Construct tracker with bunch, data sink, z-segments, and optional emitters.
  */
 ParallelTracker::ParallelTracker(
-    const Beamline& beamline, std::shared_ptr<PartBunch_t> bunch, const std::shared_ptr<DataSink>& ds,
+    const Beamline& beamline, PartBunch_t& bunch, DataSink* ds,
     bool revBeam,
     const std::vector<unsigned long long>& maxSteps, double zstart,
     const std::vector<double>& zstop, const std::vector<double>& dt,
@@ -505,7 +505,7 @@ void ParallelTracker::timeIntegration1(BorisPusher& pusher) {
         if (!pc) {
             continue;
         }
-        pushParticles(pusher, pc);
+        pushParticles(pusher, *pc);
     }
     IpplTimings::stopTimer(timeIntegrationTimer1_m);
     m << level4 << "Push particles done for all containers." << endl;
@@ -530,8 +530,8 @@ void ParallelTracker::timeIntegration2(BorisPusher& pusher) {
         if (!pc) {
             continue;
         }
-        kickParticles(pusher, pc);
-        pushParticles(pusher, pc);
+        kickParticles(pusher, *pc);
+        pushParticles(pusher, *pc);
     }
     m << level4 << "Kick/push particles done for all containers." << endl;
 
@@ -717,7 +717,7 @@ void ParallelTracker::emitFromEmissionSources(double t, double dt) {
         // itsBunch_m->bunchUpdate();
 
         // Sanity guard: the total number of macroparticles in the bunch must
-        // never exceed the globally configured BEAM::NPART value. Overshooting
+        // never exceed the globally configured BEAM::NALLOC value. Overshooting
         // this limit would trigger internal reallocations in the particle
         // container and silently drop already-tracked particles/delete their data in the particle
         // attributes. This is only a check for the number of local particles.
@@ -778,22 +778,22 @@ void ParallelTracker::resetFields() {
 /**
  * @brief Boris position push in unitless coordinates (per-particle dt via pusher internals).
  * @param pusher Boris pusher.
- * @param pc     Target particle container.
+ * @param pc     Non-null target particle container.
  */
 void ParallelTracker::pushParticles(
     const BorisPusher& pusher,
-    const std::shared_ptr<PartBunch_t::ParticleContainer_t>& pc) {
+    PartBunch_t::ParticleContainer_t& pc) {
 
     // Per-particle dt is used so that newly emitted particles with fractional dt
     // (sampled during emission) are pushed proportionally to their sub-timestep fraction.
-    pc->switchToUnitlessPositions();
+    pc.switchToUnitlessPositions();
 
-    auto Rview  = pc->R.getView();
-    auto Pview  = pc->P.getView();
-    //auto dtview = pc->dt.getView();
+    auto Rview  = pc.R.getView();
+    auto Pview  = pc.P.getView();
+    //auto dtview = pc.dt.getView();
 
     Kokkos::parallel_for(
-        "pushParticles", pc->getLocalNum(),
+        "pushParticles", pc.getLocalNum(),
         KOKKOS_LAMBDA(const size_t i) {
             // Half drift: x_{n+1/2} = x_n + (dt/2) * v; unitless form via pusher.push(..., 0).
             // TODO: verify sign convention for half-step push.
@@ -802,7 +802,7 @@ void ParallelTracker::pushParticles(
             Rview(i) = x;
         });
 
-    pc->switchOffUnitlessPositions();
+    pc.switchOffUnitlessPositions();
     // TODO: pc->update() changes results on single rank; keep disabled until investigated.
     //itsBunch_m->getParticleContainer()->update();
     Kokkos::fence();
@@ -813,26 +813,26 @@ void ParallelTracker::pushParticles(
 /**
  * @brief Boris velocity kick from E and B using per-particle dt.
  * @param pusher Boris pusher.
- * @param pc     Target particle container.
+ * @param pc     Non-null target particle container.
  */
 void ParallelTracker::kickParticles(
     const BorisPusher& pusher,
-    const std::shared_ptr<PartBunch_t::ParticleContainer_t>& pc) {
+    PartBunch_t::ParticleContainer_t& pc) {
     Inform m("ParallelTracker::kickParticles");
 
-    // auto Rview  = pc->R.getView();
-    auto Pview  = pc->P.getView();
-    auto dtview = pc->dt.getView();
-    auto Efview = pc->E.getView();
-    auto Bfview = pc->B.getView();
+    // auto Rview  = pc.R.getView();
+    auto Pview  = pc.P.getView();
+    auto dtview = pc.dt.getView();
+    auto Efview = pc.E.getView();
+    auto Bfview = pc.B.getView();
     m << level5 << "Got particle views for kick operation." << endl;
     // Mass (eV) and charge (proton charges) from this container's reference particle,
     // passed explicitly into BorisPusher::kick for GPU-safe kernels.
 
-    const PartData& ref = *pc->getReference();
+    const PartData& ref = *pc.getReference();
     const double mass = ref.getM();
     const double charge = ref.getQ();
-    Kokkos::parallel_for("kickParticles", pc->getLocalNum(),
+    Kokkos::parallel_for("kickParticles", pc.getLocalNum(),
         KOKKOS_LAMBDA(const size_t i) {
             // Boris kick: Birdsall & Langdon (1985), ch. 4-4 (non-relativistic) and ch. 15-4
             // (relativistic); scaled P = (v/c)*gamma, mass in rest energy units.
@@ -1312,12 +1312,12 @@ void ParallelTracker::writePhaseSpace(const long long /*step*/, bool psDump, boo
     }
 
     if (statDump) {
-        itsDataSink_m->dumpSDDS(itsBunch_m, fdByContainer, -1.0);
+        itsDataSink_m->dumpSDDS(*itsBunch_m, fdByContainer, -1.0);
         *gmsg << level2 << "* Wrote beam statistics." << endl;
     }
 
     if (psDump && itsBunch_m->getTotalNumAllContainers() > 0) {
-        itsDataSink_m->dumpH5(itsBunch_m, fdByContainer);
+        itsDataSink_m->dumpH5(*itsBunch_m, fdByContainer);
 
         /*
         // Write fields to .h5 file.
@@ -1368,7 +1368,7 @@ void ParallelTracker::writePhaseSpace(const long long /*step*/, bool psDump, boo
 
             msg << *itsBunch_m << endl;
         
-        itsDataSink_m->dumpH5(itsBunch_m, FDext);
+        itsDataSink_m->dumpH5(*itsBunch_m, FDext);
         */
         
         /*

@@ -66,8 +66,8 @@ public:
     /// Apply the algorithm to a multipole.
     void visitMultipole(const Multipole&) override;
 
-    /// Apply the algorithm to to an arbitrary multipole.
-    virtual void visitMultipoleT(const MultipoleT&);
+    /// Apply the algorithm to an arbitrary multipole.
+    void visitMultipoleT(const MultipoleT&) override;
 
     /// Apply the algorithm to a Ring.
     void visitRing(const Ring&) override;

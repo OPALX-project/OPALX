@@ -9,14 +9,9 @@ BinnedFieldSolver<T, Dim>::BinnedFieldSolver(
 }
 
 template <typename T, unsigned Dim>
-void BinnedFieldSolver<T, Dim>::computeSelfFields(std::shared_ptr<PartBunch_t> bunch) {
-    // validate inputs and decide between binned vs legacy solver.
-    if (!bunch) {
-        throw OpalException("BinnedFieldSolver::computeSelfFields", "Passed nullptr bunch.");
-    }
-
-    // access the particle container for trivial-case checks.
-    std::shared_ptr<ParticleCtr_t> pc = bunch->getParticleContainer();
+void BinnedFieldSolver<T, Dim>::computeSelfFields(PartBunch_t& bunch) {
+    // Validate inputs and decide between binned vs legacy solver.
+    std::shared_ptr<ParticleCtr_t> pc = bunch.getParticleContainer();
     if (!pc) {
         throw OpalException(
             "BinnedFieldSolver::computeSelfFields", "Bunch particle container is not available.");
@@ -39,7 +34,7 @@ void BinnedFieldSolver<T, Dim>::computeSelfFields(std::shared_ptr<PartBunch_t> b
     }
 
     // decide which solver path to run (binned vs legacy).
-    const bool hasBins = bunch->hasBinning();
+    const bool hasBins = bunch.hasBinning();
 
     m << level4 << "Entry: rank=" << ippl::Comm->rank() << ", localParticles=" << pc->getLocalNum()
       << ", totalParticles=" << pc->getTotalNum() << ", hasBins=" << (hasBins ? 1 : 0)
@@ -89,10 +84,10 @@ void BinnedFieldSolver<T, Dim>::printBinStatsTable(
 }
 
 template <typename T, unsigned Dim>
-void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(std::shared_ptr<PartBunch_t> bunch) {
+void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(PartBunch_t& bunch) {
     // execute full binned self-field algorithm.
     // fetch the adaptive bin structure.
-    std::shared_ptr<AdaptBins_t> bins = bunch->getBins();
+    std::shared_ptr<AdaptBins_t> bins = bunch.getBins();
     if (!bins) {
         // Defensive: runtime selection above should prevent this.
         computeLegacySelfFields(bunch);
@@ -104,13 +99,13 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(std::shared_ptr<PartBunc
     rebinAndPrepare(bunch, bins);
 
     // obtain the temporary E buffer used to accumulate bin contributions.
-    std::shared_ptr<VField_t<T, Dim>> EtmpSP = bunch->getTempEField();
+    std::shared_ptr<VField_t<T, Dim>> EtmpSP = bunch.getTempEField();
     if (!EtmpSP) {
         throw OpalException(
             "BinnedFieldSolver::computeBinnedSelfFields",
             "Temporary E field (Etmp) is not initialized.");
     }
-    std::shared_ptr<VField_t<T, Dim>> BtmpSP = bunch->getTempBField();
+    std::shared_ptr<VField_t<T, Dim>> BtmpSP = bunch.getTempBField();
     if (!BtmpSP) {
         throw OpalException(
             "BinnedFieldSolver::computeBinnedSelfFields",
@@ -183,7 +178,7 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(std::shared_ptr<PartBunc
 
     // per-call table: gammaBin / nParticles / binNumber.
     if (tablePrintFrequency_m > 0) {
-        const long long step = bunch->getGlobalTrackStep();
+        const long long step = bunch.getGlobalTrackStep();
         if (step >= 0 && (step % tablePrintFrequency_m) == 0) {
             printBinStatsTable(bins->getBinningCmdName(), binStats);
         }
@@ -191,12 +186,12 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(std::shared_ptr<PartBunc
 }
 
 template <typename T, unsigned Dim>
-void BinnedFieldSolver<T, Dim>::computeLegacySelfFields(std::shared_ptr<PartBunch_t> bunch) {
+void BinnedFieldSolver<T, Dim>::computeLegacySelfFields(PartBunch_t& bunch) {
     // This code is a direct move of the legacy implementation from
     // PartBunch::computeSelfFields (scatter/solve/gather for all particles).
 
     //  access the particle container for scattering/gathering.
-    std::shared_ptr<ParticleCtr_t> pc = bunch->getParticleContainer();
+    std::shared_ptr<ParticleCtr_t> pc = bunch.getParticleContainer();
     if (!pc) {
         throw OpalException(
             "BinnedFieldSolver::computeLegacySelfFields",
@@ -227,13 +222,13 @@ void BinnedFieldSolver<T, Dim>::computeLegacySelfFields(std::shared_ptr<PartBunc
     pc->unscaleDtByCharge();
 
     // Rho normalization for fractional time steps.
-    (*rho) = (*rho) / bunch->getdT();
+    (*rho) = (*rho) / bunch.getdT();
 
     //  apply mesh normalization, background subtraction, and rho scaling.
     const std::string stype = this->getStype();
     if (stype != "FEM" && stype != "FEM_PRECON") {
         const double cellVolume =
-            std::reduce(bunch->hr_m.begin(), bunch->hr_m.end(), 1.0, std::multiplies<double>());
+            std::reduce(bunch.hr_m.begin(), bunch.hr_m.end(), 1.0, std::multiplies<double>());
         (*rho) = (*rho) / cellVolume;
     }
 
@@ -241,10 +236,10 @@ void BinnedFieldSolver<T, Dim>::computeLegacySelfFields(std::shared_ptr<PartBunc
     if (stype != "OPEN") {
         double size = 1.0;
         for (size_t d = 0; d < Dim; ++d) {
-            size *= bunch->rmax_m[d] - bunch->rmin_m[d];
+            size *= bunch.rmax_m[d] - bunch.rmin_m[d];
         }
 
-        const double totalQ = bunch->getParticleContainer()->getTotalCharge();
+        const double totalQ = bunch.getParticleContainer()->getTotalCharge();
         (*rho)              = (*rho) - (totalQ / size);
     }
 
@@ -272,30 +267,30 @@ void BinnedFieldSolver<T, Dim>::computeLegacySelfFields(std::shared_ptr<PartBunc
 
 template <typename T, unsigned Dim>
 void BinnedFieldSolver<T, Dim>::rebinAndPrepare(
-    std::shared_ptr<PartBunch_t> bunch, std::shared_ptr<AdaptBins_t> bins) {
+    PartBunch_t& bunch, std::shared_ptr<AdaptBins_t> bins) {
     // adaptive histogram configuration.
     // execute full rebin and generate the adaptive histogram (bin merging).
     Inform m("BinnedFieldSolver::rebinAndPrepare");
     m << level4 << "Rebin start: maxBins=" << static_cast<int>(bins->getMaxBinCount()) << endl;
     bins->doFullRebin(bins->getMaxBinCount());
-    bunch->dumpBinConfig(true);
+    bunch.dumpBinConfig(true);
     bins->sortContainerByBin();
     bins->genAdaptiveHistogram();
-    bunch->dumpBinConfig(false);
+    bunch.dumpBinConfig(false);
     m << level4 << "Rebin done: currentBins=" << static_cast<int>(bins->getCurrentBinCount())
       << endl;
 }
 
 template <typename T, unsigned Dim>
 typename BinnedFieldSolver<T, Dim>::BinKinematics BinnedFieldSolver<T, Dim>::computeGammaBinGlobal(
-    std::shared_ptr<PartBunch_t> bunch, std::shared_ptr<AdaptBins_t> bins,
+    PartBunch_t& bunch, std::shared_ptr<AdaptBins_t> bins,
     const bin_index_type binIndex, const size_type nPartGlobal) const {
     // compute global mean momentum and gamma for the merged bin.
     Inform m("BinnedFieldSolver::computeGammaBinGlobal");
     m << level4 << "gammaBinGlobal: binIndex=" << static_cast<int>(binIndex)
       << ", nPartGlobal=" << static_cast<unsigned long long>(nPartGlobal) << endl;
 
-    typename particle_position_type::view_type pView = bunch->getParticleContainer()->P.getView();
+    typename particle_position_type::view_type pView = bunch.getParticleContainer()->P.getView();
     typename AdaptBins_t::hash_type indices          = bins->getHashArray();
 
     // compute local momentum sums over particles in this bin.
@@ -325,7 +320,7 @@ typename BinnedFieldSolver<T, Dim>::BinKinematics BinnedFieldSolver<T, Dim>::com
 
 template <typename T, unsigned Dim>
 void BinnedFieldSolver<T, Dim>::prepareRhoForBin(
-    std::shared_ptr<PartBunch_t> bunch, std::shared_ptr<AdaptBins_t> bins,
+    PartBunch_t& bunch, std::shared_ptr<AdaptBins_t> bins,
     const bin_index_type binIndex, const size_type nPartGlobal, const double gammaBin) {
     // Scatter bin charge to rho using dt-weighted deposition.
     // If the ParticleContainer supports scaleDtByCharge(), use the master approach:
@@ -340,7 +335,7 @@ void BinnedFieldSolver<T, Dim>::prepareRhoForBin(
     *rho              = 0.0;
 
     // access particle views and validate scatter support.
-    std::shared_ptr<ParticleCtr_t> pc                     = bunch->getParticleContainer();
+    std::shared_ptr<ParticleCtr_t> pc                     = bunch.getParticleContainer();
     typename PartBunch_t::Base::particle_position_type* R = &pc->R;
 
     if (scatterAttribute_m != ScatterAttribute::ChargeQ) {
@@ -361,12 +356,12 @@ void BinnedFieldSolver<T, Dim>::prepareRhoForBin(
     pc->unscaleDtByCharge();
 
     // normalize rho for fractional time steps and mesh conventions.
-    (*rho) = (*rho) / bunch->getdT();
+    (*rho) = (*rho) / bunch.getdT();
 
     const std::string stype = this->getStype();
     if (stype != "FEM" && stype != "FEM_PRECON") {
         const double cellVolume =
-            std::reduce(bunch->hr_m.begin(), bunch->hr_m.end(), 1.0, std::multiplies<double>());
+            std::reduce(bunch.hr_m.begin(), bunch.hr_m.end(), 1.0, std::multiplies<double>());
         (*rho) = (*rho) / cellVolume;
     }
 
@@ -375,11 +370,11 @@ void BinnedFieldSolver<T, Dim>::prepareRhoForBin(
     if (stype != "OPEN") {
         double size = 1.0;
         for (size_t d = 0; d < Dim; ++d) {
-            size *= bunch->rmax_m[d] - bunch->rmin_m[d];
+            size *= bunch.rmax_m[d] - bunch.rmin_m[d];
         }
 
         const double totalQBin =
-            bunch->getParticleContainer()->getChargePerParticle() * static_cast<double>(nPartGlobal);
+            bunch.getParticleContainer()->getChargePerParticle() * static_cast<double>(nPartGlobal);
         (*rho)                 = (*rho) - (totalQBin / size);
     }
 
@@ -431,7 +426,7 @@ void BinnedFieldSolver<T, Dim>::accumulateFieldToTemp(
 
 template <typename T, unsigned Dim>
 void BinnedFieldSolver<T, Dim>::gatherFromTempToParticles(
-    std::shared_ptr<PartBunch_t> bunch, std::shared_ptr<VField_t<T, Dim>> EtmpSP,
+    PartBunch_t& bunch, std::shared_ptr<VField_t<T, Dim>> EtmpSP,
     std::shared_ptr<VField_t<T, Dim>> BtmpSP) {
     // gather accumulated lab-frame E and B from mesh back to particles.
     Inform m("BinnedFieldSolver::gatherFromTempToParticles");
@@ -439,7 +434,7 @@ void BinnedFieldSolver<T, Dim>::gatherFromTempToParticles(
 
     VField_t<T, Dim>& Etmp            = *EtmpSP;
     VField_t<T, Dim>& Btmp            = *BtmpSP;
-    std::shared_ptr<ParticleCtr_t> pc = bunch->getParticleContainer();
+    std::shared_ptr<ParticleCtr_t> pc = bunch.getParticleContainer();
 
     // gather only the supported field attribute back to particles.
     if (gatherAttribute_m == GatherAttribute::ElectricFieldE) {
