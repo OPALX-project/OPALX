@@ -26,7 +26,6 @@
 #include "OpalParser/OpalParser.h"
 #include <memory>
 #include "OpalParser/Statement.h"
-#include "Utilities/ClassicException.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
 #include "Utilities/ParseError.h"

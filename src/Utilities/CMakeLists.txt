@@ -1,7 +1,6 @@
 set (_SRCS
     ArithmeticError.cpp
     CLRangeError.cpp
-    ClassicException.cpp
     ClassicField.cpp
     ClassicRandom.cpp
     ComplexErrorFun.cpp
@@ -9,7 +8,7 @@ set (_SRCS
     DivideError.cpp
     DomainError.cpp
     FormatError.cpp
-    GeneralClassicException.cpp
+    GeneralOpalException.cpp
     LogicalError.cpp
     Mesher.cpp
     MSLang.cpp
@@ -50,7 +49,6 @@ set (_SRCS
 set (HDRS
     ArithmeticError.h
     CLRangeError.h
-    ClassicException.h
     ClassicField.h
     ClassicRandom.h
     ComplexErrorFun.h
@@ -58,7 +56,7 @@ set (HDRS
     DivideError.h
     DomainError.h
     FormatError.h
-    GeneralClassicException.h
+    GeneralOpalException.h
     LogicalError.h
     Mesher.h
     MSLang.h

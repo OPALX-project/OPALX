@@ -34,7 +34,7 @@
 #include "Utilities/GSLComplex.h"
 #include "Utilities/GSLMatrix.h"
 
-#include "Utilities/GeneralClassicException.h"
+#include "Utilities/GeneralOpalException.h"
 
 
 namespace interpolation {
@@ -245,7 +245,7 @@ template <class Tmplt>
 gsl_vector inline* MVector<Tmplt>::get_vector(const MVector<double>&    m)
 {
   if(m._vector == nullptr)
-    throw(GeneralClassicException("MVector::get_vector", "Attempt to access uninitialised matrix"));
+    throw(GeneralOpalException("MVector::get_vector", "Attempt to access uninitialised matrix"));
   return (gsl_vector*)m._vector;
 }
 
@@ -253,7 +253,7 @@ template <class Tmplt>
 gsl_vector_complex inline* MVector<Tmplt>::get_vector(const MVector<m_complex>& m)
 {
   if(m._vector == nullptr)
-    throw(GeneralClassicException("MVector::get_vector", "Attempt to access uninitialised vector"));
+    throw(GeneralOpalException("MVector::get_vector", "Attempt to access uninitialised vector"));
   return (gsl_vector_complex*)m._vector;
 
 }

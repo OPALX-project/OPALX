@@ -1,5 +1,5 @@
-#ifndef CLASSIC_LogicalError_HH
-#define CLASSIC_LogicalError_HH
+#ifndef OPAL_LogicalError_HH
+#define OPAL_LogicalError_HH
 
 // ------------------------------------------------------------------------
 // $RCSfile: LogicalError.h,v $
@@ -20,7 +20,7 @@
 //
 // ------------------------------------------------------------------------
 
-#include "Utilities/ClassicException.h"
+#include "Utilities/OpalException.h"
 
 #include <string>
 
@@ -30,7 +30,7 @@
 //  This exception is thrown, when CLASSIC detects an inconsistent call to
 //  a routine or method.
 
-class LogicalError: public ClassicException {
+class LogicalError: public OpalException {
 
 public:
 
@@ -53,4 +53,4 @@ private:
     LogicalError();
 };
 
-#endif // CLASSIC_LogicalError_HH
+#endif // OPAL_LogicalError_HH

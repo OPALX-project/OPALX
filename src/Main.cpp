@@ -37,8 +37,6 @@ extern "C" {
 #include "Utilities/Options.h"
 #include "Utilities/Util.h"
 
-#include "Utilities/SDDSParser/SDDSParserException.h"
-
 #include "BuildInfo.h"
 
 // IPPL
@@ -406,34 +404,6 @@ int main(int argc, char* argv[]) {
             Inform errorMsg("Error", std::cerr, INFORM_ALL_NODES);
             errorMsg << "\n*** User error detected by function \"" << ex.where() << "\"\n";
             // stat->printWhere(errorMsg, true);
-            std::string what = ex.what();
-            size_t pos       = what.find_first_of('\n');
-            do {
-                errorMsg << "    " << what.substr(0, pos) << endl;
-                what = what.substr(pos + 1, std::string::npos);
-                pos  = what.find_first_of('\n');
-            } while (pos != std::string::npos);
-            errorMsg << "    " << what << endl;
-
-            MPI_Abort(MPI_COMM_WORLD, -100);
-        } catch (ClassicException& ex) {
-            Inform errorMsg("Error", std::cerr, INFORM_ALL_NODES);
-            errorMsg << "\n*** User error detected by function \"" << ex.where() << "\"\n";
-            // stat->printWhere(errorMsg, true);
-            std::string what = ex.what();
-            size_t pos       = what.find_first_of('\n');
-            do {
-                errorMsg << "    " << what.substr(0, pos) << endl;
-                what = what.substr(pos + 1, std::string::npos);
-                pos  = what.find_first_of('\n');
-            } while (pos != std::string::npos);
-            errorMsg << "    " << what << endl;
-
-            MPI_Abort(MPI_COMM_WORLD, -100);
-        } catch (SDDSParserException& ex) {
-            Inform errorMsg("Error", std::cerr, INFORM_ALL_NODES);
-
-            errorMsg << "\n*** Error detected by function \"" << ex.where() << "\"\n";
             std::string what = ex.what();
             size_t pos       = what.find_first_of('\n');
             do {

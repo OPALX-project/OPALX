@@ -211,7 +211,7 @@ void TravelingWave::initialise(PartBunch_t* bunch, double& startField, double& e
     double zBegin = 0.0, zEnd = 0.0;
     RFCavity::initialise(bunch, zBegin, zEnd);
     if (std::abs(startField_m) > 0.0) {
-        throw GeneralClassicException(
+        throw GeneralOpalException(
             "TravelingWave::initialise",
             "The field map of a traveling wave structure has to begin at 0.0");
     }
