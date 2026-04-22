@@ -712,7 +712,7 @@ void ParallelTracker::emitFromEmissionSources(double t, double dt) {
         // itsBunch_m->bunchUpdate();
 
         // Sanity guard: the total number of macroparticles in the bunch must
-        // never exceed the globally configured BEAM::NPART value. Overshooting
+        // never exceed the globally configured BEAM::NALLOC value. Overshooting
         // this limit would trigger internal reallocations in the particle
         // container and silently drop already-tracked particles/delete their data in the particle
         // attributes. This is only a check for the number of local particles.
