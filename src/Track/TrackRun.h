@@ -79,12 +79,14 @@ private:
 
     void setupBoundaryGeometry();
 
-    /// Attach prebuilt global process lists to each particle container.
+    /// @brief Attach prebuilt global process vector to each particle container.
     void setupGlobalProcesses(
         std::vector<std::vector<std::unique_ptr<GlobalProcess>>> globalProcessesLists);
 
-    /// Wire daughter containers to cross-container processes (e.g. muon decay -> electron).
-    /// Must be called after setupGlobalProcesses — reads processes from the containers.
+    /** 
+     * @brief Wire daughter containers to cross-container processes (e.g. muon decay -> electron).
+     * @note Must be called after setupGlobalProcesses — reads processes from the containers.
+     */     
     void wireDaughterContainers(const std::vector<Beam*>& beams);
 
     /// Build samplers for all emission sources, perform initial sampling for t0 == 0

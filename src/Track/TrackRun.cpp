@@ -113,6 +113,9 @@ void requireUnitMacroWeight(const Beam& beam, const std::string& role) {
     }
 }
 
+/**
+ * @brief Builds a vector of processes for the given beam object
+ */
 std::vector<std::unique_ptr<GlobalProcess>> makeGlobalProcessesForBeam(const Beam& beam,
                                                                        std::size_t containerIndex) {
     std::vector<std::unique_ptr<GlobalProcess>> processes;
@@ -400,8 +403,11 @@ void TrackRun::execute() {
         throw OpalException("TrackRun::execute",
                             "Mismatch between number of beams and particle containers.");
     }
+
+    // Global processes
     setupGlobalProcesses(std::move(globalProcessesLists));
     wireDaughterContainers(beams);
+
     // BC handler
     *gmsg << level2 << *(bunch_m->getBCHandler()) << endl;
 
