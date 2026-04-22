@@ -71,8 +71,8 @@ DataSink::DataSink(H5PartWrapper* h5wrapper, bool restart)
 DataSink::DataSink(H5PartWrapper* h5wrapper) : DataSink(h5wrapper, false) {
 }
 
-void DataSink::dumpH5(const std::shared_ptr<PartBunch_t>& beam, Vector_t<double, 3> FDext[]) const {
-    const size_t n = beam->getNumParticleContainers();
+void DataSink::dumpH5(PartBunch_t& beam, Vector_t<double, 3> FDext[]) const {
+    const size_t n = beam.getNumParticleContainers();
     std::vector<std::array<Vector_t<double, 3>, 2>> v(n);
     for (size_t i = 0; i < n; ++i) {
         v[i][0] = FDext[0];
@@ -82,13 +82,13 @@ void DataSink::dumpH5(const std::shared_ptr<PartBunch_t>& beam, Vector_t<double,
 }
 
 void DataSink::dumpH5(
-    const std::shared_ptr<PartBunch_t>& beam,
+    PartBunch_t& beam,
     const std::vector<std::array<Vector_t<double, 3>, 2>>& fdextPerContainer) const {
     if (!Options::enableHDF5) {
         return;
     }
 
-    const size_t n = beam->getNumParticleContainers();
+    const size_t n = beam.getNumParticleContainers();
     if (fdextPerContainer.size() < n) {
         throw OpalException(
             "DataSink::dumpH5",
@@ -100,17 +100,17 @@ void DataSink::dumpH5(
         if (i >= h5Writers_m.size()) {
             break;
         }
-        auto pc = beam->getParticleContainer(i);
+        auto pc = beam.getParticleContainer(i);
         if (!pc || pc->getTotalNum() == 0) {
             continue;
         }
         Vector_t<double, 3> fd[2] = {fdextPerContainer[i][0], fdextPerContainer[i][1]};
-        h5Writers_m[i]->writePhaseSpace(beam.get(), fd, i);
+        h5Writers_m[i]->writePhaseSpace(beam, fd, i);
     }
 }
 
 int DataSink::dumpH5(
-    const std::shared_ptr<PartBunch_t>& beam, Vector_t<double, 3> FDext[], double meanEnergy,
+    PartBunch_t& beam, Vector_t<double, 3> FDext[], double meanEnergy,
     double refPr, double refPt,
     double refPz, double refR, double refTheta, double refZ, double azimuth, double elevation,
     bool local) const {
@@ -119,24 +119,24 @@ int DataSink::dumpH5(
     }
 
     return h5Writers_m[0]->writePhaseSpace(
-        beam.get(), FDext, meanEnergy, refPr, refPt, refPz, refR, refTheta, refZ, azimuth, elevation,
+        beam, FDext, meanEnergy, refPr, refPt, refPz, refR, refTheta, refZ, azimuth, elevation,
         local, 0);
 }
 
 void DataSink::dumpSDDS(
-    const std::shared_ptr<PartBunch_t>& beam,
+    PartBunch_t& beam,
     const std::vector<std::array<Vector_t<double, 3>, 2>>& fdextPerContainer,
     const double& azimuth) const {
     dumpSDDS(beam, fdextPerContainer, losses_t(), azimuth);
 }
 
 void DataSink::dumpSDDS(
-    const std::shared_ptr<PartBunch_t>& beam,
+    PartBunch_t& beam,
     const std::vector<std::array<Vector_t<double, 3>, 2>>& fdextPerContainer,
     const losses_t& losses,
     const double& azimuth) const {
 
-    const size_t n = beam->getNumParticleContainers();
+    const size_t n = beam.getNumParticleContainers();
     if (fdextPerContainer.size() < n) {
         throw OpalException(
             "DataSink::dumpSDDS",
@@ -150,7 +150,7 @@ void DataSink::dumpSDDS(
         if (i >= statWriters_m.size()) {
             break;
         }
-        auto pc = beam->getParticleContainer(i);
+        auto pc = beam.getParticleContainer(i);
         if (!pc || pc->getTotalNum() == 0) {
             continue;
         }
@@ -159,16 +159,16 @@ void DataSink::dumpSDDS(
 
         size_t npOutside = 0;
         if (Options::beamHaloBoundary > 0) {
-            npOutside = beam->calcNumPartsOutside(
+            npOutside = beam.calcNumPartsOutside(
                 Options::beamHaloBoundary * pc->getRmsR());
         }
 
         Vector_t<double, 3> fd[2] = {fdextPerContainer[i][0], fdextPerContainer[i][1]};
-        statWriters_m[i]->write(beam.get(), fd, losses, azimuth, npOutside, i);
+        statWriters_m[i]->write(beam, fd, losses, azimuth, npOutside, i);
     }
 
-    beam->gatherLoadBalanceStatistics();
-    beam->calcBeamParameters();
+    beam.gatherLoadBalanceStatistics();
+    beam.calcBeamParameters();
 
     IpplTimings::stopTimer(StatMarkerTimer_m);
 }
@@ -205,18 +205,18 @@ void DataSink::writeGeomToVtk(BoundaryGeometry& bg, std::string fn) {
 }
 
 void DataSink::writeImpactStatistics(
-    const PartBunch_t* beam, long long& step, size_t& impact, double& sey_num,
+    const PartBunch_t& beam, long long& step, size_t& impact, double& sey_num,
     size_t numberOfFieldEmittedParticles, bool nEmissionMode, std::string fn) {
     double charge  = 0.0;
     size_t Npart   = 0;
     double Npart_d = 0.0;
     if (!nEmissionMode) {
-        const auto pc = beam->getParticleContainers()[0];
+        const auto pc = beam.getParticleContainers()[0];
         charge = -1.0 * pc->getTotalCharge();
         // reduce(charge, charge, OpAddAssign());
         Npart_d = -1.0 * charge / pc->getChargePerParticle();
     } else {
-        Npart = beam->getParticleContainers()[0]->getTotalNum();
+        Npart = beam.getParticleContainers()[0]->getTotalNum();
     }
     if (ippl::Comm->rank() == 0) {
         std::string ffn = fn + std::string(".dat");
@@ -225,7 +225,7 @@ void DataSink::writeImpactStatistics(
         Inform& fid = *ofp;
         fid.precision(6);
         fid << std::setiosflags(std::ios::scientific);
-        double t = beam->getT() * Units::s2ns;
+        double t = beam.getT() * Units::s2ns;
         if (!nEmissionMode) {
             if (step == 0) {
                 fid << "#Time/ns" << std::setw(18) << "#Geometry impacts" << std::setw(18)
