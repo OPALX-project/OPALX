@@ -27,7 +27,8 @@ template <typename T>
 using ParticleAttrib = ippl::ParticleAttrib<T>;
 
 using size_type = ippl::detail::size_type;
-class GlobalProcess;
+
+#include "Processes/GlobalProcesses/GlobalProcess.h"
 
 /**
  * @class ParticleContainer
@@ -525,11 +526,11 @@ public:
     }
     QMStorageMode getQMStorageMode() const { return qmStorageMode_m; }
 
-    void setGlobalProcesses(const std::vector<std::shared_ptr<GlobalProcess>>& processes) {
-        globalProcesses_m = processes;
+    void setGlobalProcesses(std::vector<std::unique_ptr<GlobalProcess>> processes) {
+        globalProcesses_m = std::move(processes);
     }
 
-    const std::vector<std::shared_ptr<GlobalProcess>>& getGlobalProcesses() const {
+    const std::vector<std::unique_ptr<GlobalProcess>>& getGlobalProcesses() const {
         return globalProcesses_m;
     }
 
@@ -626,7 +627,7 @@ private:
     bool isUnitlessPositions_m = false;
 
     /// Global physics processes attached to this container.
-    std::vector<std::shared_ptr<GlobalProcess>> globalProcesses_m;
+    std::vector<std::unique_ptr<GlobalProcess>> globalProcesses_m;
 
 };
 
