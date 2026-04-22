@@ -19,7 +19,7 @@
 #ifndef OPTIONS_HH
 #define OPTIONS_HH
 
-#include "Utilities/ClassicRandom.h"
+#include "Utilities/ExpressionRandom.h"
 
 #include <string>
 

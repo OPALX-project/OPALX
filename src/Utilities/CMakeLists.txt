@@ -2,7 +2,7 @@ set (_SRCS
     ArithmeticError.cpp
     CLRangeError.cpp
     ClassicField.cpp
-    ClassicRandom.cpp
+    ExpressionRandom.cpp
     ComplexErrorFun.cpp
     ConvergenceError.cpp
     DivideError.cpp
@@ -50,7 +50,7 @@ set (HDRS
     ArithmeticError.h
     CLRangeError.h
     ClassicField.h
-    ClassicRandom.h
+    ExpressionRandom.h
     ComplexErrorFun.h
     ConvergenceError.h
     DivideError.h
