@@ -1,5 +1,5 @@
-#ifndef CLASSIC_ConstBField_HH
-#define CLASSIC_ConstBField_HH
+#ifndef OPALX_ConstBField_HH
+#define OPALX_ConstBField_HH
 
 // ------------------------------------------------------------------------
 // $RCSfile: ConstBField.h,v $
@@ -63,4 +63,4 @@ public:
     virtual void setBz(double);
 };
 
-#endif // CLASSIC_ConstBField_HH
+#endif // OPALX_ConstBField_HH

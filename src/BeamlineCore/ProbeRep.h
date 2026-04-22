@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
-#ifndef CLASSIC_ProbeRep_HH
-#define CLASSIC_ProbeRep_HH
+#ifndef OPALX_ProbeRep_HH
+#define OPALX_ProbeRep_HH
 
 #include "AbsBeamline/Probe.h"
 #include "BeamlineGeometry/StraightGeometry.h"
@@ -87,4 +87,4 @@ private:
 
 };
 
-#endif // CLASSIC_ProbeRep_HH
+#endif // OPALX_ProbeRep_HH

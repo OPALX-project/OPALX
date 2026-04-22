@@ -1,5 +1,5 @@
-#ifndef CLASSIC_Laser_HH
-#define CLASSIC_Laser_HH
+#ifndef OPALX_Laser_HH
+#define OPALX_Laser_HH
 
 #include "AbsBeamline/Component.h"
 
@@ -159,4 +159,4 @@ inline int Laser::getRequiredNumberOfTimeSteps() const {
     return 1;
 }
 
-#endif  // CLASSIC_Laser_HH
+#endif  // OPALX_Laser_HH

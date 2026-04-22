@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
-#ifndef CLASSIC_OpalParticle_HH
-#define CLASSIC_OpalParticle_HH
+#ifndef OPALX_OpalParticle_HH
+#define OPALX_OpalParticle_HH
 
 #include "Ippl.h"
 #include "OPALTypes.h"
@@ -207,4 +207,4 @@ inline double OpalParticle::getMass() const {
     return mass_m;
 }
 
-#endif  // CLASSIC_OpalParticle_HH
+#endif  // OPALX_OpalParticle_HH

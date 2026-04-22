@@ -1,5 +1,5 @@
-#ifndef CLASSIC_IndexedChannel_HH
-#define CLASSIC_IndexedChannel_HH
+#ifndef OPALX_IndexedChannel_HH
+#define OPALX_IndexedChannel_HH
 
 // ------------------------------------------------------------------------
 // $RCSfile: IndexedChannel.h,v $
@@ -139,4 +139,4 @@ bool IndexedChannel<T>::isSettable() const {
     return (setF != 0);
 }
 
-#endif // CLASSIC_IndexedChannel_HH
+#endif // OPALX_IndexedChannel_HH

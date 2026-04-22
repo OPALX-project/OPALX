@@ -1,5 +1,5 @@
-#ifndef CLASSIC_FIELD_H
-#define CLASSIC_FIELD_H
+#ifndef OPALX_FIELD_H
+#define OPALX_FIELD_H
 
 #include <list>
 #include <memory>
@@ -78,4 +78,4 @@ inline
 BoundingBox ClassicField::getBoundingBoxInLabCoords() const {
     return element_m->getBoundingBoxInLabCoords();
 }
-#endif // CLASSIC_FIELD_H
+#endif // OPALX_FIELD_H

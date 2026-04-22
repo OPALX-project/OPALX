@@ -1,5 +1,5 @@
-#ifndef CLASSIC_PlanarArcGeometry_HH
-#define CLASSIC_PlanarArcGeometry_HH
+#ifndef OPALX_PlanarArcGeometry_HH
+#define OPALX_PlanarArcGeometry_HH
 
 // ------------------------------------------------------------------------
 // $RCSfile: PlanarArcGeometry.h,v $
@@ -168,5 +168,5 @@ inline const PlanarArcGeometry &PlanarArcGeometry::operator=
     return *this;
 }
 
-#endif // CLASSIC_PlanarArcGeometry_HH
+#endif // OPALX_PlanarArcGeometry_HH
 
