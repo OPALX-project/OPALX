@@ -205,9 +205,8 @@ void FM2DDynamic::readMap() {
         FieldstrengthBt_m.modify<Kokkos::HostSpace>();
         FieldstrengthBt_m.sync<Kokkos::DefaultExecutionSpace>();
 
-        *ippl::Info << level3 
-                    << typeset_msg("read in fieldmap '" + Filename_m + "'", "info")
-                    << endl;
+        Inform m("FM2DDynamic::readMap");
+        m << level3 << "Read in fieldmap '" << Filename_m << "'" << endl;
     }
 }
 
@@ -218,9 +217,8 @@ void FM2DDynamic::freeMap() {
         FieldstrengthEr_m = Kokkos::DualView<double*>();
         FieldstrengthBt_m = Kokkos::DualView<double*>();
 
-        *ippl::Info << level3 
-                    << typeset_msg("freed fieldmap '" + Filename_m + "'", "info") 
-                    << endl;
+        Inform m("FM2DDynamic::freeMap");
+        m << level3 << "Freed fieldmap '" << Filename_m << "'" << endl;
     }
 }
 
