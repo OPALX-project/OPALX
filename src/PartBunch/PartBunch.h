@@ -349,7 +349,7 @@ public:
         return bcHandler_m;
     }
 
-    std::shared_ptr<DataSink> getDataSink() const { return dataSink_m; }
+    DataSink* getDataSink() const { return dataSink_m; }
 
     std::shared_ptr<BunchStateHandler> getBunchStateHandler() { return bunchState_m; }
     std::shared_ptr<const BunchStateHandler> getBunchStateHandler() const { return bunchState_m; }
