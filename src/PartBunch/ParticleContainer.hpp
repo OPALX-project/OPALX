@@ -154,34 +154,33 @@ public:
     PLayout_t<T, Dim>& getPL() { return pl_m; }
 
     void setBunchStateHandler(std::shared_ptr<BunchStateHandler> handler) {
-        bunchStateHandler_m = handler;
-        containerState_m    = handler->registerContainer();
-        distMoments_m.setBunchStateHandler(handler, containerState_m);
+        // We only keep the slot: per-container flags own their own sync, so
+        // no back-reference to the handler is needed. The handler itself
+        // manages bunch-wide state, which ParticleContainer never touches.
+        containerState_m = handler->registerContainer();
+        distMoments_m.setContainerState(containerState_m);
     }
 
     // -- per-container state pass-throughs --------------------------------
-    // Thin wrappers around the handler's slot-taking API so callers don't
-    // need to reach into `containerState_m` directly.
+    // Thin wrappers around the slot's own API so callers don't need to reach
+    // into `containerState_m` directly.
 
     bool isUnitlessPositions() const { return containerState_m->unitlessPositions; }
 
     bool isMomentsDirty() const { return containerState_m->momentsDirty; }
-    void markMomentsDirty() {
-        bunchStateHandler_m->markMomentsDirty(*containerState_m);
-    }
-    void clearMomentsDirty() {
-        bunchStateHandler_m->clearMomentsDirty(*containerState_m);
-    }
+    void markMomentsDirty()          { containerState_m->markMomentsDirty(); }
+    void clearMomentsDirty()         { containerState_m->clearMomentsDirty(); }
 
     void updateMoments() {
         /*
-        Quick check if bunchStateHandler_m is set. If not, throw an error. This seems to be an easy
-        to make error when interacting (e.g. through unit tests) with the ParticleContainer.
+        Quick check that this container was registered with a BunchStateHandler. If not, throw an
+        error. This seems to be an easy to make error when interacting (e.g. through unit tests)
+        with the ParticleContainer.
         */
-        if (!bunchStateHandler_m) {
+        if (!containerState_m) {
             throw OpalException(
                     "ParticleContainer::updateMoments",
-                    "BunchStateHandler not set in ParticleContainer.");
+                    "BunchStateHandler not set in ParticleContainer (containerState is null).");
         }
 
         size_t Np = this->getTotalNum();
@@ -527,7 +526,7 @@ public:
             "ParticleContainer::switchToUnitlessPositions", nLocal,
             KOKKOS_LAMBDA(const size_type i) { Rview(i) *= 1.0 / (Physics::c * dtview(i)); });
         Kokkos::fence();
-        bunchStateHandler_m->setUnitlessPositions(*containerState_m, true);
+        containerState_m->setUnitlessPositions(true);
     }
 
     /**
@@ -549,7 +548,7 @@ public:
             "ParticleContainer::switchOffUnitlessPositions", nLocal,
             KOKKOS_LAMBDA(const size_type i) { Rview(i) *= Physics::c * dtview(i); });
         Kokkos::fence();
-        bunchStateHandler_m->setUnitlessPositions(*containerState_m, false);
+        containerState_m->setUnitlessPositions(false);
     }
     QMStorageMode getQMStorageMode() const { return qmStorageMode_m; }
 
@@ -622,12 +621,10 @@ private:
 
     DistributionMoments distMoments_m;
 
-    /// BunchStateHandler necessary for bunch state tracking.
-    std::shared_ptr<BunchStateHandler> bunchStateHandler_m;
-
     /// Per-container state slot allocated by the handler at `setBunchStateHandler`.
     /// Owned here as the only strong reference; the handler keeps a weak_ptr, so
-    /// destroying this container automatically releases the slot.
+    /// destroying this container automatically releases the slot. The slot's own
+    /// methods handle MPI consistency, so no direct handler reference is needed.
     std::shared_ptr<BunchStateHandler::ContainerState> containerState_m;
 
     // Single shared scalar mode stored as a length-1 Kokkos view.

@@ -53,11 +53,22 @@ class BunchStateHandler {
 public:
     /**
      * @brief Per-container slot of mutable flags. One per registered
-     *        ParticleContainer. Lifetime is tied to the owning container.
+     *        ParticleContainer. Lifetime is tied to the owning container
+     *        (see registerContainer() for details).
+     *
+     * Setters here own the MPI consistency logic directly; there is no need
+     * to route back through the handler, because `Options::aggressiveStateSync`
+     * is a namespace flag and `ippl::Comm` is a singleton - i.e. the allreduce
+     * helper is stateless, so the struct can call it without holding any
+     * handler reference.
      */
     struct ContainerState {
         bool unitlessPositions = false;
         bool momentsDirty      = true;
+
+        void setUnitlessPositions(bool v);
+        void markMomentsDirty();
+        void clearMomentsDirty();
     };
 
     BunchStateHandler() = default;
@@ -71,15 +82,6 @@ public:
      *        ParticleContainer) releases its shared_ptr.
      */
     std::shared_ptr<ContainerState> registerContainer();
-
-    // -- per-container setters --------------------------------------------
-    // Each takes the container's slot by reference. With AGGRESSIVE_STATE_SYNC
-    // on, the mutation is allreduced across ranks (logical_or).
-
-    void setUnitlessPositions(ContainerState& s, bool v);
-
-    void markMomentsDirty(ContainerState& s);
-    void clearMomentsDirty(ContainerState& s);
 
     // -- bunch-wide flags --------------------------------------------------
 

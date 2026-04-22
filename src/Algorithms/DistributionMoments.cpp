@@ -119,18 +119,21 @@ void DistributionMoments::computeMoments(
         ippl::ParticleAttrib<Vector_t<double, 3>>::view_type Rview,
         ippl::ParticleAttrib<Vector_t<double, 3>>::view_type Pview,
         ippl::ParticleAttrib<double>::view_type Mview, size_t Np, size_t Nlocal) {
-    // Check that the BunchStateHandler and the container slot are set.
-    if (!bunchStateHandler_m || !containerState_m) {
+    // Lock the per-container slot. Null = never bound; expired = owning
+    // ParticleContainer was destroyed before this call (a bug either way).
+    auto slot = containerState_m.lock();
+    if (!slot) {
         throw OpalException(
                 "DistributionMoments::computeMoments",
-                "BunchStateHandler/ContainerState not set, cannot use "
-                "DistributionMoments instance correctly.");
+                "ContainerState not available (expired or never bound). "
+                "Did you forget setContainerState(), or did the owning "
+                "ParticleContainer outlive its slot?");
     }
 
     Np = (Np == 0) ? 1 : Np;  // Explanation: see DistributionMoments::computeMeans
                               // implementation
 
-    if (!containerState_m->momentsDirty) {
+    if (!slot->momentsDirty) {
         return;
     }
 
@@ -237,9 +240,9 @@ void DistributionMoments::computeMoments(
     geometricEps_m   = normalizedEps_m / Vector_t<double, 3>(betaGamma);
 
     // Cache is now consistent with this container's particle state; clearing
-    // the per-container slot here matches the contract advertised in
-    // BunchStateHandler.h.
-    bunchStateHandler_m->clearMomentsDirty(*containerState_m);
+    // the slot's dirty bit matches the contract advertised in
+    // BunchStateHandler.h. Reuse the strong handle locked at function entry.
+    slot->clearMomentsDirty();
 }
 
 // ---------------------------------------------------------------------------

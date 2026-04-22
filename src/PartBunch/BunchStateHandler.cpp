@@ -17,25 +17,29 @@ namespace {
     }
 }
 
+// -- BunchStateHandler::ContainerState -------------------------------------
+
+void BunchStateHandler::ContainerState::setUnitlessPositions(bool v) {
+    unitlessPositions = Options::aggressiveStateSync ? syncOr(v) : v;
+}
+
+void BunchStateHandler::ContainerState::markMomentsDirty() {
+    momentsDirty = Options::aggressiveStateSync ? syncOr(true) : true;
+}
+
+void BunchStateHandler::ContainerState::clearMomentsDirty() {
+    // With AGGRESSIVE_STATE_SYNC, "clear" only takes effect if every rank
+    // agrees the cache is clean; any rank still dirty keeps the whole bunch
+    // dirty.
+    momentsDirty = Options::aggressiveStateSync ? syncOr(false) : false;
+}
+
+// -- BunchStateHandler -----------------------------------------------------
+
 std::shared_ptr<BunchStateHandler::ContainerState> BunchStateHandler::registerContainer() {
     auto state = std::make_shared<ContainerState>();
     registered_m.emplace_back(state);
     return state;
-}
-
-void BunchStateHandler::setUnitlessPositions(ContainerState& s, bool v) {
-    s.unitlessPositions = Options::aggressiveStateSync ? syncOr(v) : v;
-}
-
-void BunchStateHandler::markMomentsDirty(ContainerState& s) {
-    s.momentsDirty = Options::aggressiveStateSync ? syncOr(true) : true;
-}
-
-void BunchStateHandler::clearMomentsDirty(ContainerState& s) {
-    // With AGGRESSIVE_STATE_SYNC, "clear" only takes effect if every rank
-    // agrees the cache is clean; any rank still dirty keeps the whole bunch
-    // dirty.
-    s.momentsDirty = Options::aggressiveStateSync ? syncOr(false) : false;
 }
 
 void BunchStateHandler::setFirstRepartition(bool v) {
