@@ -87,7 +87,7 @@ public:
         Vector_t<double, 3>&);
 
     template <class T>
-    void visit(const T&, BeamlineVisitor&, const std::shared_ptr<PartBunch_t>&);
+    void visit(const T&, BeamlineVisitor&, PartBunch_t&);
 
     void prepareSections();
     void positionElementRelative(std::shared_ptr<ElementBase>);
@@ -112,7 +112,7 @@ private:
 
 template <class T>
 inline void OpalBeamline::visit(
-    const T& element, BeamlineVisitor&, const std::shared_ptr<PartBunch_t>& bunch) {
+    const T& element, BeamlineVisitor&, PartBunch_t& bunch) {
     Inform msg("OPAL ");
     double startField = 0.0;
     double endField   = 0.0;
@@ -123,13 +123,13 @@ inline void OpalBeamline::visit(
     if (elptr->isElementPositionSet())
         startField = elptr->getElementPosition();
 
-    elptr->initialise(bunch.get(), startField, endField);
+    elptr->initialise(&bunch, startField, endField);
     elements_m.push_back(ClassicField(elptr, startField, endField));
 }
 
 template <>
 inline void OpalBeamline::visit<Marker>(
-    const Marker& /*element*/, BeamlineVisitor&, const std::shared_ptr<PartBunch_t>&) {
+    const Marker& /*element*/, BeamlineVisitor&, PartBunch_t&) {
 }
 
 inline Vector_t<double, 3> OpalBeamline::transformTo(const Vector_t<double, 3>& r) const {
