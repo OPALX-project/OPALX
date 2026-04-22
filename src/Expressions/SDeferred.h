@@ -118,11 +118,6 @@ namespace Expressions {
                 throw LogicalError(ex.where(),
                                    "Evaluating expression \"" +
                                    this->getImage() + "\": " + ex.what());
-            } catch(ClassicException &ex) {
-                in_evaluation = false;
-                throw LogicalError(ex.where(),
-                                   "Evaluating expression \"" +
-                                   this->getImage() + "\": " + ex.what());
             } catch(std::exception &ex) {
                 in_evaluation = false;
                 throw LogicalError("SDeferred::evaluate()",

@@ -197,7 +197,7 @@ m_complex MMatrix<m_complex>::determinant() const
 {
   int signum = 1;
 
-  if(num_row() != num_col()) throw(GeneralClassicException("MMatrix::determinant()", "Attempt to get determinant of non-square matrix"));
+  if(num_row() != num_col()) throw(GeneralOpalException("MMatrix::determinant()", "Attempt to get determinant of non-square matrix"));
   gsl_permutation * p = gsl_permutation_alloc (num_row());
   MMatrix<m_complex> copy(*this);
   gsl_linalg_complex_LU_decomp ((gsl_matrix_complex*)copy._matrix, p, &signum);
@@ -209,7 +209,7 @@ template <>
 double MMatrix<double>::determinant() const
 {
   int signum = 1;
-  if(num_row() != num_col()) throw(GeneralClassicException("MMatrix::determinant()", "Attempt to get determinant of non-square matrix"));
+  if(num_row() != num_col()) throw(GeneralOpalException("MMatrix::determinant()", "Attempt to get determinant of non-square matrix"));
   gsl_permutation * p = gsl_permutation_alloc (num_row());
   MMatrix<double> copy(*this);
   gsl_linalg_LU_decomp ((gsl_matrix*)copy._matrix, p, &signum);
@@ -230,7 +230,7 @@ MMatrix<Tmplt> MMatrix<Tmplt>::inverse()     const
 template <>
 void MMatrix<m_complex>::invert()
 {
-  if(num_row() != num_col()) throw(GeneralClassicException("MMatrix::invert()", "Attempt to get inverse of non-square matrix"));
+  if(num_row() != num_col()) throw(GeneralOpalException("MMatrix::invert()", "Attempt to get inverse of non-square matrix"));
   gsl_permutation* perm = gsl_permutation_alloc(num_row());
   MMatrix<m_complex>  lu(*this); //hold LU decomposition
   int s=0;
@@ -239,13 +239,13 @@ void MMatrix<m_complex>::invert()
   gsl_permutation_free( perm );
   for(size_t i=1; i<=num_row(); i++)
     for(size_t j=1; j<=num_row(); j++)
-      if(operator()(i,j) != operator()(i,j)) throw(GeneralClassicException("MMatrix::invert()", "Failed to invert matrix - singular?"));
+      if(operator()(i,j) != operator()(i,j)) throw(GeneralOpalException("MMatrix::invert()", "Failed to invert matrix - singular?"));
 }
 
 template <>
 void MMatrix<double>::invert()
 {
-  if(num_row() != num_col()) throw(GeneralClassicException("MMatrix::invert()", "Attempt to get inverse of non-square matrix"));
+  if(num_row() != num_col()) throw(GeneralOpalException("MMatrix::invert()", "Attempt to get inverse of non-square matrix"));
   gsl_permutation* perm = gsl_permutation_alloc(num_row());
   MMatrix<double>  lu(*this); //hold LU decomposition
   int s=0;
@@ -254,7 +254,7 @@ void MMatrix<double>::invert()
   gsl_permutation_free( perm );
   for(size_t i=1; i<=num_row(); i++)
     for(size_t j=1; j<=num_row(); j++)
-      if(operator()(i,j) != operator()(i,j)) throw(GeneralClassicException("MMatrix::invert()", "Failed to invert matrix - singular?"));
+      if(operator()(i,j) != operator()(i,j)) throw(GeneralOpalException("MMatrix::invert()", "Failed to invert matrix - singular?"));
 }
 
 template <>
@@ -300,14 +300,14 @@ template m_complex MMatrix<m_complex>::trace() const;
 template <class Tmplt>
 MVector<m_complex> MMatrix<Tmplt>::eigenvalues() const
 {
-  if(num_row() != num_col()) throw(GeneralClassicException("MMatrix<double>::eigenvalues", "Attempt to get eigenvectors of non-square matrix") );
+  if(num_row() != num_col()) throw(GeneralOpalException("MMatrix<double>::eigenvalues", "Attempt to get eigenvectors of non-square matrix") );
   MMatrix<Tmplt> temp = *this;
   MVector<m_complex> evals(num_row(), m_complex_build(2.,-1.));
   gsl_eigen_nonsymm_workspace * w = gsl_eigen_nonsymm_alloc(num_row());
   gsl_eigen_nonsymm_params(0, 1, w);
   int ierr = gsl_eigen_nonsymm(get_matrix(temp), evals.get_vector(evals), w);
   gsl_eigen_nonsymm_free(w);
-  if(ierr != 0) throw(GeneralClassicException("MMatrix<Tmplt>::eigenvalues", "Failed to calculate eigenvalue"));
+  if(ierr != 0) throw(GeneralOpalException("MMatrix<Tmplt>::eigenvalues", "Failed to calculate eigenvalue"));
   return evals;
 }
 template MVector<m_complex> MMatrix<double>   ::eigenvalues() const;
@@ -315,14 +315,14 @@ template MVector<m_complex> MMatrix<double>   ::eigenvalues() const;
 template <class Tmplt>
 std::pair<MVector<m_complex>, MMatrix<m_complex> > MMatrix<Tmplt>::eigenvectors() const
 {
-  if(num_row() != num_col()) throw(GeneralClassicException("MMatrix<double>::eigenvectors", "Attempt to get eigenvectors of non-square matrix") );
+  if(num_row() != num_col()) throw(GeneralOpalException("MMatrix<double>::eigenvectors", "Attempt to get eigenvectors of non-square matrix") );
   MMatrix<Tmplt>     temp = *this;
   MVector<m_complex> evals(num_row());
   MMatrix<m_complex> evecs(num_row(), num_row());
   gsl_eigen_nonsymmv_workspace * w = gsl_eigen_nonsymmv_alloc(num_row());
   int ierr = gsl_eigen_nonsymmv(get_matrix(temp), evals.get_vector(evals), get_matrix(evecs), w);
   gsl_eigen_nonsymmv_free(w);
-  if(ierr != 0) throw(GeneralClassicException("MMatrix<Tmplt>::eigenvectors", "Failed to calculate eigenvalue"));
+  if(ierr != 0) throw(GeneralOpalException("MMatrix<Tmplt>::eigenvectors", "Failed to calculate eigenvalue"));
   return std::pair<MVector<m_complex>, MMatrix<m_complex> > (evals, evecs) ;
 }
 template std::pair<MVector<m_complex>, MMatrix<m_complex> > MMatrix<double>::eigenvectors() const;
@@ -405,7 +405,7 @@ MMatrix<m_complex> complex(MMatrix<double> real)
 MMatrix<m_complex> complex(MMatrix<double> real, MMatrix<double> imaginary)
 {
   if(real.num_row() != imaginary.num_row() || real.num_col() != imaginary.num_col())
-    throw(GeneralClassicException("MMatrix<m_complex>::complex", "Attempt to build complex matrix when real and imaginary matrix don't have the same size"));
+    throw(GeneralOpalException("MMatrix<m_complex>::complex", "Attempt to build complex matrix when real and imaginary matrix don't have the same size"));
   MMatrix<m_complex> mc(real.num_row(), real.num_col());
   for(size_t i=1; i<=mc.num_row(); i++)
     for(size_t j=1; j<=mc.num_col(); j++)

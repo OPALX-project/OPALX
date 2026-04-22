@@ -1,5 +1,5 @@
-#ifndef CLASSIC_OverflowError_HH
-#define CLASSIC_OverflowError_HH
+#ifndef OPAL_OverflowError_HH
+#define OPAL_OverflowError_HH
 
 // ------------------------------------------------------------------------
 // $RCSfile: OverflowError.h,v $
@@ -51,4 +51,4 @@ private:
     OverflowError();
 };
 
-#endif // CLASSIC_OverflowError_HH
+#endif // OPAL_OverflowError_HH

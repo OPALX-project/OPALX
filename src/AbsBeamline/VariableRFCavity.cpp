@@ -20,7 +20,7 @@
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "PartBunch.h"
 #include "Physics/Units.h"
-#include "Utilities/GeneralClassicException.h"
+#include "Utilities/GeneralOpalException.h"
 
 VariableRFCavity::VariableRFCavity(const std::string& name) : Component(name) {
     initNull();  // initialise everything to nullptr
@@ -102,11 +102,11 @@ StraightGeometry& VariableRFCavity::getGeometry() { return geometry; }
 const StraightGeometry& VariableRFCavity::getGeometry() const { return geometry; }
 
 EMField& VariableRFCavity::getField() {
-    throw GeneralClassicException("VariableRFCavity", "No field defined for VariableRFCavity");
+    throw GeneralOpalException("VariableRFCavity", "No field defined for VariableRFCavity");
 }
 
 const EMField& VariableRFCavity::getField() const {
-    throw GeneralClassicException(
+    throw GeneralOpalException(
             "VariableRFCavity::getField", "No field defined for VariableRFCavity");
 }
 
@@ -184,7 +184,7 @@ void VariableRFCavity::initialiseTimeDependencies() const {
     amplitudeTD_m = std::shared_ptr<AbstractTimeDependence>(amplitudeTD->clone());
 
     if (halfHeight_m < 1e-9 || halfWidth_m < 1e-9)
-        throw GeneralClassicException(
+        throw GeneralOpalException(
                 "VariableRFCavity::initialise", "Height or width was not set on VariableRFCavity");
 }
 

@@ -26,12 +26,12 @@
 
 
 ParseError::ParseError(const std::string &meth, const std::string &msg):
-    ClassicException(meth, msg) {
+    OpalException(meth, msg) {
 }
 
 
 ParseError::ParseError(const ParseError &rhs):
-    ClassicException(rhs)
+    OpalException(rhs)
 {}
 
 

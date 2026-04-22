@@ -14,7 +14,7 @@
 //
 
 #include "Algorithms/SplineTimeDependence.h"
-#include "Utilities/GeneralClassicException.h"
+#include "Utilities/GeneralOpalException.h"
 #include "Utilities/OpalException.h"
 #include "gtest/gtest.h"
 
@@ -63,7 +63,7 @@ TEST_F(TestSplineTimeDependence, ConstructorTest) {
         times_m  = {0., 0., 2., 3.};
         values_m = std::vector(4, 0.);
         EXPECT_THROW(SplineTimeDependence(3, times_m, values_m), std::invalid_argument);
-    } catch (GeneralClassicException& exc) {
+    } catch (GeneralOpalException& exc) {
         EXPECT_TRUE(false) << "Should not have thrown an exception:\n    " << exc.what() << "\n    "
                            << exc.where();
     }
