@@ -335,7 +335,7 @@ void FromFile::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> 
     mALL << "Rank " << rank << ": " << nlocal << " local particles" << endl;
     ippl::Comm->barrier();
 
-    bunchStateHandler_m->markMomentsDirty();
+    pc_m->markMomentsDirty();
 }
 
 void FromFile::emitParticles(double t, double dt) {
