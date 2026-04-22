@@ -7,6 +7,7 @@
 
 #include "Distribution/FromFile.h"
 #include "Distribution/Distribution.h"
+#include "PartBunch/BunchStateHandler.h"
 #include "Ippl.h"
 #include "Utility/IpplTimings.h"
 
@@ -42,6 +43,8 @@ protected:
 
         pc = std::make_shared<ParticleContainer<double, 3>>(mesh, fl);
 
+        bunchStateHandler = std::make_shared<BunchStateHandler>();
+        pc->setBunchStateHandler(bunchStateHandler);
         tempFilename = "fromfile_test_input.dat";
     }
 
@@ -84,6 +87,7 @@ protected:
     }
 
     std::shared_ptr<ParticleContainer<double, 3>> pc;
+    std::shared_ptr<BunchStateHandler> bunchStateHandler;
     ippl::Vector<int, 3> nr;
     bool isAllPeriodic_m = true;
     std::string tempFilename;
