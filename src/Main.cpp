@@ -33,7 +33,6 @@ extern "C" {
 #include "Utilities/Timer.h"
 
 #include "BasicActions/Option.h"
-#include "Utilities/EarlyLeaveException.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
 #include "Utilities/Util.h"
@@ -402,10 +401,7 @@ int main(int argc, char* argv[]) {
                 errormsg.close();
             }
 
-        } catch (EarlyLeaveException& ex) {
-            // do nothing here
-        }
-
+        } 
         catch (OpalException& ex) {
             Inform errorMsg("Error", std::cerr, INFORM_ALL_NODES);
             errorMsg << "\n*** User error detected by function \"" << ex.where() << "\"\n";
