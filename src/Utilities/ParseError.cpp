@@ -7,7 +7,7 @@
 // ------------------------------------------------------------------------
 //
 // Class: ParseError
-//   Parse error in classic parser.
+//   Parse error in the OPALX parser.
 //
 // ------------------------------------------------------------------------
 // Class category: Utilities
