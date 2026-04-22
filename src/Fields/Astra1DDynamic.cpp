@@ -313,6 +313,7 @@ void Astra1DDynamic::applyField(std::shared_ptr<ParticleContainer_t> pc, double)
     const double length   = length_m;
     const double xlrep    = xlrep_m;
     const int accuracy    = accuracy_m;
+    const size_t nLocal   = pc->getLocalNum();
 
     // Device-accessible Fourier coefficients
     auto FourCoefs_device = FourCoefs_m.view_device();
@@ -322,9 +323,8 @@ void Astra1DDynamic::applyField(std::shared_ptr<ParticleContainer_t> pc, double)
     auto Bview = pc->B.getView();
 
     Kokkos::parallel_for(
-        "Astra1DDynamic::applyField",
-        ippl::getRangePolicy(Rview),
-        KOKKOS_LAMBDA(const int i)
+        "Astra1DDynamic::applyField", nLocal,
+        KOKKOS_LAMBDA(const size_t i)
         {
             const auto& R = Rview(i);
 
@@ -367,6 +367,7 @@ void Astra1DDynamic::applyTravelingWave(
     const double length = length_m;
     const double xlrep  = xlrep_m;
     const int accuracy  = accuracy_m;
+    const size_t nLocal = pc->getLocalNum();
 
     auto FourCoefs_device = FourCoefs_m.view_device();
 
@@ -375,9 +376,8 @@ void Astra1DDynamic::applyTravelingWave(
     auto Bview = pc->B.getView();
 
     Kokkos::parallel_for(
-        "Astra1DDynamic::applyTravelingWave",
-        ippl::getRangePolicy(Rview),
-        KOKKOS_LAMBDA(const int i)
+        "Astra1DDynamic::applyTravelingWave", nLocal,
+        KOKKOS_LAMBDA(const size_t i)
         {
             computeTravelingWaveField(
                 Rview(i),
