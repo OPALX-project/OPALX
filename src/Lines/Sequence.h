@@ -1,7 +1,7 @@
 //
 // Class Sequence
 //   The SEQUENCE definition.
-//   A Sequence contains a CLASSIC TBeamline<SequenceMember> which represents
+//   A Sequence contains an OPALX TBeamline<SequenceMember> which represents
 //   the sequence of elements in the line and their positions.  The sequence
 //   definition is parsed in collaboration with a SequenceParser.
 //
@@ -84,11 +84,11 @@ public:
     /// Replace references to elements.
     virtual void replace(Object *oldObject, Object *newObject);
 
-    /// Update the embedded CLASSIC beam line.
+    /// Update the embedded OPALX beam line.
     //  Recompute drift lengths.
     virtual void update();
 
-    /// Return the embedded CLASSIC beam line.
+    /// Return the embedded OPALX beam line.
     //  The result it the ideal line.
     virtual TLine *fetchLine() const;
 

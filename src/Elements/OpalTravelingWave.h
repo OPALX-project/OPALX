@@ -48,7 +48,7 @@ public:
     /// Make clone.
     virtual OpalTravelingWave *clone(const std::string &name);
 
-    /// Update the embedded CLASSIC cavity.
+    /// Update the embedded OPALX cavity.
     virtual void update();
 
 private:

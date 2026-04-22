@@ -88,10 +88,10 @@ public:
     //  This special version handles special printing in OPAL-8 format.
     virtual void print(std::ostream&) const;
 
-    /// Update the embedded CLASSIC element.
+    /// Update the embedded OPALX element.
     virtual void update();
 
-    /// Transmit the ``unknown'' (not known to OPAL) attributes to CLASSIC.
+    /// Transmit the ``unknown'' (not known to OPALX) attributes to OPALX.
     virtual void updateUnknown(ElementBase*);
 
 protected:

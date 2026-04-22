@@ -4,7 +4,7 @@
 //   It implements the common behaviour of elements, it can also be used via
 //   dynamic casting to determine whether an object represents an element.
 //
-//   Each Element object contains a pointer to a CLASSIC beam line element,
+//   Each Element object contains a pointer to an OPALX beam line element,
 //   known as the ``ideal'' element.
 //
 //   If sharable flag is set, all occurrences of the element are supposed to
@@ -89,14 +89,14 @@ public:
     //  If true, all references to this name are to the same object.
     virtual void setShared(bool);
 
-    /// Return the embedded CLASSIC element.
-    //  Return a pointer to the embedded CLASSIC ElementBase
+    /// Return the embedded OPALX element.
+    //  Return a pointer to the embedded OPALX ElementBase
     inline ElementBase *getElement() const;
 
-    /// Return the embedded CLASSIC element as shared_ptr.
+    /// Return the embedded OPALX element as shared_ptr.
     inline std::shared_ptr<ElementBase> getElementPtr() const;
 
-    /// Assign new CLASSIC element.
+    /// Assign new OPALX element.
     inline void setElement(ElementBase *);
     inline void setElement(std::shared_ptr<ElementBase> base);
 
@@ -115,7 +115,7 @@ private:
     Element(const Element &);
     void operator=(const Element &);
 
-    // The embedded CLASSIC element.
+    // The embedded OPALX element.
     std::shared_ptr<ElementBase> itsClassicElement;
 };
 

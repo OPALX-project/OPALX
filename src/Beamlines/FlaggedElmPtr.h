@@ -78,7 +78,7 @@ protected:
 
     /// Clone counter.
     //  This value can be set and interrogated by an algorithm.
-    //  It is not used by the CLASSIC library.
+    //  It is not used by the OPALX library.
     mutable int itsCounter;
 
     /// The reflection flag.
