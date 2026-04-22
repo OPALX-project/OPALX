@@ -20,6 +20,7 @@
 
 #include "Algorithms/Matrix.h"
 #include "Ippl.h"
+#include "PartBunch/BunchStateHandler.h"
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
 
@@ -38,6 +39,14 @@ class OpalParticle;
 class DistributionMoments {
 public:
     DistributionMoments();
+
+    /// Bind this instance to the per-container slot it should query and update.
+    /// Stored as a weak_ptr: ParticleContainer is the sole strong owner of the
+    /// slot, so DistributionMoments observes but never extends its lifetime.
+    /// Implicitly converts from the caller's shared_ptr.
+    void setContainerState(std::weak_ptr<BunchStateHandler::ContainerState> containerState) {
+        containerState_m = std::move(containerState);
+    }
 
     /// Configure whether kinetic-energy moments use a reference particle mass (instead of
     /// per-particle M).
@@ -133,6 +142,8 @@ private:
     void reset();
 
     void resetPlasmaParameters();
+
+    std::weak_ptr<BunchStateHandler::ContainerState> containerState_m;
 
     Vector_t<double, 3> meanR_m;
     Vector_t<double, 3> meanP_m;
