@@ -633,6 +633,9 @@ void PartBunch<T, Dim>::bunchUpdate() {
         }
         pc->getLayout().updateLayout(*FL, *mesh);
         pc->update();
+        pc->markMomentsDirty();  // IPPL migration may have re-indexed R across ranks
+                                 /// \todo there might be a case where we can keep the moments clean
+                                 /// if we know more about what exactly was changed due to update().
         m << level5 << "Particle container " << i << " updated with new layout." << endl;
     }
 
