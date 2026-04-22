@@ -14,6 +14,7 @@
 #include "Attributes/Attributes.h"
 #include "Manager/BaseManager.h"
 #include "Manager/PicManager.h"
+#include "PartBunch/BunchStateHandler.h"
 #include "PartBunch/FieldContainer.hpp"
 #include "PartBunch/FieldSolver.hpp"
 #include "PartBunch/LoadBalancer.hpp"
@@ -83,9 +84,10 @@ private:
     std::vector<std::string> particleNames_m; ///< Per-container beam particle names.
 
     std::shared_ptr<BCHandler_t> bcHandler_m;           ///< Field boundary conditions.
-    std::shared_ptr<AdaptBins_t> bins_m;                ///< Adaptive velocity/gamma binning (optional).
+    std::shared_ptr<AdaptBins_t> bins_m;                ///< Adaptive velocity/gamma binning (optional). 
     FieldSolverCmd* OPALFieldSolver_m;                  ///< Borrowed parsed FIELD_SOLVER command.
     DataSink* dataSink_m;                               ///< Borrowed diagnostics and dump output sink.
+    std::shared_ptr<BunchStateHandler> bunchState_m;    ///< Bunch state: unitless flag, repartition flag, etc.
 
     double t_m;                          ///< Current simulation time (s).
 
@@ -251,9 +253,12 @@ public:
     }
     
     /// @param bins Adaptive binning object (or nullptr to clear).
-    void setBins(std::shared_ptr<AdaptBins_t> bins) { 
-        bins_m = bins; 
+    void setBins(std::shared_ptr<AdaptBins_t> bins) {
+        bins_m = bins;
     }
+
+    std::shared_ptr<BunchStateHandler> getBunchStateHandler() { return bunchState_m; }
+    std::shared_ptr<const BunchStateHandler> getBunchStateHandler() const { return bunchState_m; }
 
     /// @param bcHandler Boundary-condition handler for the mesh.
     void setBCHandler(std::shared_ptr<BCHandler_t> bcHandler) { 
