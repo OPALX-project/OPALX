@@ -50,14 +50,17 @@ public:
     /// Find named BEAM.
     static Beam* find(const std::string& name);
 
-    /// Return the number of (macro)particles
-    size_t getNumberOfParticles() const;
+    /// Return the allocation size (macroparticles) for this beam
+    size_t getNumAlloc() const;
 
     /// Return the embedded CLASSIC PartData.
     const PartData& getReference() const;
 
-    /// Return the beam current in A
+    /// Return the beam current in A (legacy; no longer used in OPALX)
     double getCurrent() const;
+
+    /// Return the bunch charge in C
+    double getBunchCharge() const;
 
     /// Return the charge number in elementary charge
     double getCharge() const;

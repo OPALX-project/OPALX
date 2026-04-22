@@ -9,7 +9,7 @@ using Dist_t = ippl::random::NormalDistribution<double, 3>;
 
 FlatTop::FlatTop(std::shared_ptr<ParticleContainer_t> pc,
                  std::shared_ptr<FieldContainer_t> fc,
-                 std::shared_ptr<Distribution_t> opalDist)
+                 Distribution_t* opalDist)
     : SamplingBase(pc, fc, opalDist), rand_pool_m(determineRandInit()) {
     setParameters(opalDist);
 }
@@ -71,7 +71,7 @@ size_t FlatTop::determineRandInit() {
     return randInit;
 }
 
-void FlatTop::setParameters(const std::shared_ptr<Distribution_t> &opalDist) {
+void FlatTop::setParameters(Distribution_t* opalDist) {
     setInternalVariables(
         opalDist->emitting_m,
         opalDist_m->getSigmaTFall(),
@@ -361,7 +361,7 @@ void FlatTop::allocateParticles(size_t numberOfParticles){
     // Initial allocation is now handled centrally in TrackRun / PartBunch via the
     // bunch's total particle count. Here we only record the desired total number
     // of particles for this distribution. Actual per-step emission will append
-    // new particles using pc_m->create(nNew), guarded by a global BEAM::NPART
+    // new particles using pc_m->create(nNew), guarded by a global BEAM::NALLOC
     // limit in ParallelTracker.
 }
 

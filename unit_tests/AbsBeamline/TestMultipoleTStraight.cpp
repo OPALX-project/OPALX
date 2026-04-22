@@ -184,9 +184,10 @@ public:
     };
 
     std::shared_ptr<FieldSolverCmd> fsCmdBase_m;
+    std::shared_ptr<DataSink> dataSink_m;
 
     std::shared_ptr<PartBunch_t> makeBunch(const size_t numParticles) {
-        auto dataSink    = std::make_shared<DataSink>();
+        dataSink_m       = std::make_shared<DataSink>();
         const auto fsCmd = std::make_shared<TestableFieldSolverCmd>();
         fsCmdBase_m      = fsCmd;
         fsCmd->setType("NONE");
@@ -203,7 +204,7 @@ public:
                 /*qi=*/std::vector{1.0}, /*mi=*/std::vector{1.0},
                 /*beams=*/std::vector<Beam*>{opBeam},
                 /*totalParticlesPerBeam=*/std::vector<size_t>{numParticles},
-                /*lbt=*/1.0, /*integration_method=*/"LF2", fsCmdBase_m, dataSink);
+                /*lbt=*/1.0, /*integration_method=*/"LF2", fsCmdBase_m.get(), dataSink_m.get());
         bunch->getParticleContainer()->create(numParticles);
         return bunch;
     }
