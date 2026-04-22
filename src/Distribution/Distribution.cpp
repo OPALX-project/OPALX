@@ -26,7 +26,6 @@
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
 #include "Structure/H5PartWrapper.h"
-#include "Utilities/EarlyLeaveException.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
 #include "Utilities/Util.h"
