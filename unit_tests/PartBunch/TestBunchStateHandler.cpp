@@ -36,9 +36,9 @@ TEST_F(BunchStateHandlerTest, UnitlessPositionsToggle) {
     BunchStateHandler h;
     auto s = h.registerContainer();
 
-    h.setUnitlessPositions(*s, true);
+    s->setUnitlessPositions(true);
     EXPECT_TRUE(s->unitlessPositions);
-    h.setUnitlessPositions(*s, false);
+    s->setUnitlessPositions(false);
     EXPECT_FALSE(s->unitlessPositions);
 }
 
@@ -49,18 +49,18 @@ TEST_F(BunchStateHandlerTest, MomentsDirtyLifecycle) {
     // Starts dirty
     EXPECT_TRUE(s->momentsDirty);
 
-    h.clearMomentsDirty(*s);
+    s->clearMomentsDirty();
     EXPECT_FALSE(s->momentsDirty);
 
-    h.markMomentsDirty(*s);
+    s->markMomentsDirty();
     EXPECT_TRUE(s->momentsDirty);
 
-    h.clearMomentsDirty(*s);
+    s->clearMomentsDirty();
     EXPECT_FALSE(s->momentsDirty);
 
     // Multiple marks are idempotent
-    h.markMomentsDirty(*s);
-    h.markMomentsDirty(*s);
+    s->markMomentsDirty();
+    s->markMomentsDirty();
     EXPECT_TRUE(s->momentsDirty);
 }
 
@@ -81,17 +81,17 @@ TEST_F(BunchStateHandlerTest, PerContainerSlotsAreIndependent) {
     auto b = h.registerContainer();
     ASSERT_NE(a.get(), b.get());
 
-    h.clearMomentsDirty(*a);
-    h.clearMomentsDirty(*b);
+    a->clearMomentsDirty();
+    b->clearMomentsDirty();
 
     // Marking only `a` dirty must not affect `b`.
-    h.markMomentsDirty(*a);
+    a->markMomentsDirty();
     EXPECT_TRUE(a->momentsDirty);
     EXPECT_FALSE(b->momentsDirty);
 
     // And vice-versa.
-    h.clearMomentsDirty(*a);
-    h.markMomentsDirty(*b);
+    a->clearMomentsDirty();
+    b->markMomentsDirty();
     EXPECT_FALSE(a->momentsDirty);
     EXPECT_TRUE(b->momentsDirty);
 }
@@ -123,16 +123,16 @@ TEST_F(BunchStateHandlerTest, AggressiveSync_MomentsDirty_OrAcrossRanks) {
     Options::aggressiveStateSync = true;
     BunchStateHandler h;
     auto s = h.registerContainer();
-    h.clearMomentsDirty(*s);  // sync'd clear: all ranks agree false -> false
+    s->clearMomentsDirty();  // sync'd clear: all ranks agree false -> false
     ASSERT_FALSE(s->momentsDirty);
 
     // Only rank 0 marks dirty; logical_or should propagate to every rank.
     if (ippl::Comm->rank() == 0) {
-        h.markMomentsDirty(*s);
+        s->markMomentsDirty();
     } else {
         // Non-zero ranks must also call a setter so they participate in the
         // collective. Clearing locally; the OR with rank 0's "true" wins.
-        h.clearMomentsDirty(*s);
+        s->clearMomentsDirty();
     }
     EXPECT_TRUE(s->momentsDirty);
 }
@@ -145,16 +145,16 @@ TEST_F(BunchStateHandlerTest, AggressiveSync_ClearOnlyWhenAllAgree) {
     Options::aggressiveStateSync = true;
     BunchStateHandler h;
     auto s = h.registerContainer();
-    h.markMomentsDirty(*s);
+    s->markMomentsDirty();
     ASSERT_TRUE(s->momentsDirty);
 
     // rank 0 -> clearMomentsDirty passes `false`
     // rank i -> markMomentsDirty  passes `true`
     // => OR == true => every rank stays dirty, including rank 0.
     if (ippl::Comm->rank() == 0) {
-        h.clearMomentsDirty(*s);
+        s->clearMomentsDirty();
     } else {
-        h.markMomentsDirty(*s);
+        s->markMomentsDirty();
     }
     EXPECT_TRUE(s->momentsDirty);
 }
@@ -171,7 +171,7 @@ TEST_F(BunchStateHandlerTest, AggressiveSync_UnitlessPositionsConverge) {
 
     // Only last rank flips to unitless; all ranks should converge to true.
     const bool isLast = (ippl::Comm->rank() == ippl::Comm->size() - 1);
-    h.setUnitlessPositions(*s, isLast);
+    s->setUnitlessPositions(isLast);
     EXPECT_TRUE(s->unitlessPositions);
 }
 
@@ -200,12 +200,12 @@ TEST_F(BunchStateHandlerTest, AggressiveSync_OffDoesNotSynchronize) {
     Options::aggressiveStateSync = false;
     BunchStateHandler h;
     auto s = h.registerContainer();
-    h.clearMomentsDirty(*s);
+    s->clearMomentsDirty();
     ASSERT_FALSE(s->momentsDirty);
 
     // Only rank 0 marks dirty; with sync off, other ranks must stay clean.
     if (ippl::Comm->rank() == 0) {
-        h.markMomentsDirty(*s);
+        s->markMomentsDirty();
         EXPECT_TRUE(s->momentsDirty);
     } else {
         EXPECT_FALSE(s->momentsDirty);

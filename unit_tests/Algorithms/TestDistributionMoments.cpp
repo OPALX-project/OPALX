@@ -171,7 +171,7 @@ TEST_F(DistributionMomentsTest, ComputeMoments_MeanStdEmittanceEnergyDispersion)
 
     DistributionMoments dm;
     auto containerState = bunchStateHandler->registerContainer();
-    dm.setBunchStateHandler(bunchStateHandler, containerState);
+    dm.setContainerState(containerState);
     dm.computeMoments(Rview_d, Pview_d, Mview_d, /*Np=*/N, /*Nlocal=*/N);
 
     const auto exp = computeExpected(R, P, Physics::m_e);
