@@ -209,7 +209,7 @@ private:
      * @param solveTag Label used in output file naming (`legacy`, `binned`, ...).
      */
     void dumpDirichletPlaneDiagnosticsIfRequested(
-            std::shared_ptr<PartBunch_t> bunch, const std::string& solveTag);
+            PartBunch_t& bunch, const std::string& solveTag);
 
     /**
      * @brief Compute self-fields using the binned algorithm.

@@ -56,9 +56,9 @@ void BinnedFieldSolver<T, Dim>::computeSelfFields(PartBunch_t& bunch) {
     // The controller's enabled flag gates the image scatter pass; by disabling it
     // here both the legacy and binned paths automatically perform primary-only scatter.
     const bool imageWasEnabled = imageScatterController_m.isEnabled();
-    const bool imageActiveThisStep = isImageChargeActiveForStep(bunch->getGlobalTrackStep());
+    const bool imageActiveThisStep = isImageChargeActiveForStep(bunch.getGlobalTrackStep());
     if (imageWasEnabled && !imageActiveThisStep) {
-        m << level3 << "ZEROFACE_MAXSTEPS reached (step=" << bunch->getGlobalTrackStep()
+        m << level3 << "ZEROFACE_MAXSTEPS reached (step=" << bunch.getGlobalTrackStep()
           << ", maxSteps=" << zerofaceMaxSteps_m
           << "); disabling image charges for this step." << endl;
         imageScatterController_m.configure(false, imageScatterController_m.getZPlane());
@@ -67,9 +67,9 @@ void BinnedFieldSolver<T, Dim>::computeSelfFields(PartBunch_t& bunch) {
     // Mirror the same step-budget toggling for the shifted Green's path.
     const bool shiftedGreensWasEnabled   = shiftedGreensEnabled_m;
     const bool shiftedGreensActiveThisStep =
-            isShiftedGreensActiveForStep(bunch->getGlobalTrackStep());
+            isShiftedGreensActiveForStep(bunch.getGlobalTrackStep());
     if (shiftedGreensWasEnabled && !shiftedGreensActiveThisStep) {
-        m << level3 << "ZEROFACE_MAXSTEPS reached (step=" << bunch->getGlobalTrackStep()
+        m << level3 << "ZEROFACE_MAXSTEPS reached (step=" << bunch.getGlobalTrackStep()
           << ", maxSteps=" << zerofaceMaxSteps_m
           << "); disabling SHIFTED_GREENS_FUNCTION correction for this step." << endl;
         shiftedGreensEnabled_m = false;
@@ -180,12 +180,12 @@ void BinnedFieldSolver<T, Dim>::setZeroFacePlaneDumpFrequency(int frequency) {
 
 template <typename T, unsigned Dim>
 void BinnedFieldSolver<T, Dim>::dumpDirichletPlaneDiagnosticsIfRequested(
-        std::shared_ptr<PartBunch_t> bunch, const std::string& solveTag) {
+        PartBunch_t& bunch, const std::string& solveTag) {
     if (!imageScatterController_m.isEnabled() || zeroFacePlaneDumpFrequency_m <= 0) {
         return;
     }
 
-    const long long step = bunch->getGlobalTrackStep();
+    const long long step = bunch.getGlobalTrackStep();
     if (step < 0 || (step % zeroFacePlaneDumpFrequency_m) != 0) {
         return;
     }
@@ -209,13 +209,13 @@ void BinnedFieldSolver<T, Dim>::dumpDirichletPlaneDiagnosticsIfRequested(
     }
     const double zPlane      = imageScatterController_m.getZPlane();
 
-    std::shared_ptr<DataSink> dataSink = bunch->getDataSink();
+    DataSink* dataSink = bunch.getDataSink();
     if (!dataSink) {
         return;
     }
 
     const auto diagnostics =
-            dataSink->dumpDirichletPlane(step, bunch->getT(), zPlane, *potentialField, solveTag);
+            dataSink->dumpDirichletPlane(step, bunch.getT(), zPlane, *potentialField, solveTag);
     if (diagnostics.sampleCount == 0) {
         return;
     }
