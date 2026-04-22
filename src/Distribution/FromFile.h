@@ -36,11 +36,11 @@ public:
      * @brief Constructor for FromFile.
      * @param pc Shared pointer to ParticleContainer.
      * @param fc Shared pointer to FieldContainer.
-     * @param opalDist Shared pointer to Distribution.
+     * @param opalDist Borrowed Distribution.
      */
     FromFile(std::shared_ptr<ParticleContainer_t> pc,
              std::shared_ptr<FieldContainer_t> fc,
-             std::shared_ptr<Distribution_t> opalDist);
+             Distribution_t* opalDist);
 
     /**
      * @brief Convenience constructor that takes the filename directly.
