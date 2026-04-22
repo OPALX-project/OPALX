@@ -119,21 +119,28 @@ void DistributionMoments::computeMoments(
         ippl::ParticleAttrib<Vector_t<double, 3>>::view_type Rview,
         ippl::ParticleAttrib<Vector_t<double, 3>>::view_type Pview,
         ippl::ParticleAttrib<double>::view_type Mview, size_t Np, size_t Nlocal) {
-    // Check that the BunchStateHandler is set. Should always be set, so throw an
-    // exception if not.
-    if (!bunchStateHandler_m) {
+    // Lock the per-container slot. Null = never bound; expired = owning
+    // ParticleContainer was destroyed before this call (a bug either way).
+    auto slot = containerState_m.lock();
+    if (!slot) {
         throw OpalException(
                 "DistributionMoments::computeMoments",
-                "BunchStateHandler not set, cannot use "
-                "DistributionMoments instance correctly.");
+                "ContainerState not available (expired or never bound). "
+                "Did you forget setContainerState(), or did the owning "
+                "ParticleContainer outlive its slot?");
+    }
+
+    // Short-circuit: nothing has mutated R or P since the last compute.
+    // Every caller that mutates particle state is required to call
+    // markMomentsDirty(), including PartBunch::bunchUpdate(), which calls
+    // pc->markMomentsDirty() immediately after IPPL's pc->update() so that
+    // domain-decomposition / particle migration is also covered.
+    if (!slot->momentsDirty) {
+        return;
     }
 
     Np = (Np == 0) ? 1 : Np;  // Explanation: see DistributionMoments::computeMeans
                               // implementation
-
-    if (!bunchStateHandler_m->isMomentsDirty()) {
-        return;
-    }
 
     IpplTimings::TimerRef momentsTimer = IpplTimings::getTimer("computeMoments");
     IpplTimings::startTimer(momentsTimer);
@@ -240,6 +247,7 @@ void DistributionMoments::computeMoments(
     double betaGamma = std::sqrt(std::pow(meanGamma_m, 2) - 1.0);
     geometricEps_m   = normalizedEps_m / Vector_t<double, 3>(betaGamma);
 
+    slot->markMomentsClean();
     IpplTimings::stopTimer(momentsTimer);
 }
 

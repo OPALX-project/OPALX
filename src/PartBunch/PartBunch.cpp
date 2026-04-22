@@ -163,7 +163,7 @@ PartBunch<T, Dim>::PartBunch(std::vector<double> qi,
 
     pre_run();
     this->setT(0.0);
-    
+
     globalPartPerNode_m = std::make_unique<size_t[]>(ippl::Comm->size());
 
     resetPcActive();
@@ -229,6 +229,12 @@ void PartBunch<T, Dim>::refreshPcActiveAfterEmit() {
  */
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::do_binaryRepart() {
+    throw OpalException(
+            "PartBunch::do_binaryRepart",
+            "Not implemented yet. The load-balancer repartition path is still being "
+            "re-wired against the unified BunchStateHandler and multi-container "
+            "setup; callers must not invoke this until it is properly hooked up.");
+
     using FieldContainer_t               = FieldContainer<T, Dim>;
     std::shared_ptr<FieldContainer_t> fc = this->fcontainer_m;
 
@@ -280,9 +286,9 @@ void PartBunch<T, Dim>::setSolver() {
 
     // TODO: allow constructing a load balancer when no field solver is present.
     this->setLoadBalancer(std::make_shared<LoadBalancer_t>(
-        this->lbt_m, 
-        this->fcontainer_m, 
-        this->pcontainer_m, 
+        this->lbt_m,
+        this->fcontainer_m,
+        this->pcontainer_m,
         this->fsolver_m
     ));
     m << level3 << "Solver and Load Balancer set." << endl;
@@ -461,9 +467,9 @@ void PartBunch<T, Dim>::pre_run() {
     m << level4 << "Rho initialized to zero." << endl;
 
     /*
-    Force skip field dump during pre_run/warmup by calling the concrete
-    BinnedFieldSolver overload.
-    */
+     * Skip full field dumps during warmup: runSolver(true) is implemented on the
+     * concrete solver type, not on the IPPL base class.
+     */
     this->getFieldSolver()->runSolver(true);
     m << level4 << "Field solver ran during pre_run." << endl;
     this->getFieldSolver()->resetCallCounter();
@@ -702,6 +708,9 @@ void PartBunch<T, Dim>::applyGridUpdate(
         }
         pc->getLayout().updateLayout(*FL, *mesh);
         pc->update();
+        pc->markMomentsDirty();  // IPPL migration may have re-indexed R across ranks
+                                 /// \todo there might be a case where we can keep the moments clean
+                                 /// if we know more about what exactly was changed due to update().
         m << level5 << "Particle container " << i << " updated with new layout." << endl;
     }
 }
@@ -918,5 +927,5 @@ void PartBunch<T, Dim>::performBunchSanityChecks() const {
     ms << level2 << "========= Done performing PartBunch sanity checks... =========" << endl;
 }
 
-// Explicit instantiations
+/** Explicit instantiation for 3D double (OPAL-T). */
 template class PartBunch<double, 3>;

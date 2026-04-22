@@ -170,7 +170,8 @@ TEST_F(DistributionMomentsTest, ComputeMoments_MeanStdEmittanceEnergyDispersion)
     Kokkos::deep_copy(Mview_d, Mview_h);
 
     DistributionMoments dm;
-    dm.setBunchStateHandler(bunchStateHandler);
+    auto containerState = bunchStateHandler->registerContainer();
+    dm.setContainerState(containerState);
     dm.computeMoments(Rview_d, Pview_d, Mview_d, /*Np=*/N, /*Nlocal=*/N);
 
     const auto exp = computeExpected(R, P, Physics::m_e);

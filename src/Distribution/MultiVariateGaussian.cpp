@@ -367,7 +367,7 @@ void MultiVariateGaussian::generateParticles(size_t &numberOfParticles, Vector_t
             Pview(k) += P0;
         });
 
-    bunchStateHandler_m->markMomentsDirty();
+    pc_m->markMomentsDirty();
 
     IpplTimings::stopTimer(samplerTimer_m);
 }
