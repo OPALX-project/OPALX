@@ -26,7 +26,7 @@
 // Class ParseError
 // ------------------------------------------------------------------------
 /// Parse exception.
-//  This exception is thrown by the CLASSIC parser whein it detects an
+//  This exception is thrown by the OPALX parser when it detects an
 //  input format error.
 
 class ParseError: public OpalException {
