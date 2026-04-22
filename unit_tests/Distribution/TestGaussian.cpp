@@ -47,6 +47,7 @@ protected:
         pc = std::make_shared<ParticleContainer<double, 3>>(mesh, fl);
 
         bunchStateHandler = std::make_shared<BunchStateHandler>();
+        pc->setBunchStateHandler(bunchStateHandler);
     }
 
     void TearDown() override {
@@ -191,7 +192,6 @@ TEST_F(GaussianTest, meanR_stddevR) {
     const Vector_t<double, 3> cutoffR = 4.0;
 
     Gaussian sampler(pc, sigmaR_ref, sigmaP_ref, avrgpz, cutoffR);
-    sampler.setBunchStateHandler(bunchStateHandler);
 
     size_t total_nparticles = 100000;
 
@@ -228,7 +228,6 @@ TEST_F(GaussianTest, cutoffR)
 
     bool fixMeanR = false;
     Gaussian sampler(pc, sigmaR, sigmaP, avrgpz, cutoffR, fixMeanR);
-    sampler.setBunchStateHandler(bunchStateHandler);
 
     size_t total_nparticles = 100000;
 
@@ -258,7 +257,6 @@ TEST_F(GaussianTest, meanP_and_steddevP)
     const Vector_t<double, 3> cutoffR = 4.0;
 
     Gaussian sampler(pc, sigmaR_ref, sigmaP_ref, avrgpz, cutoffR);
-    sampler.setBunchStateHandler(bunchStateHandler);
 
     size_t total_nparticles = 100000;
     preallocateParticleCapacity(pc, total_nparticles);
