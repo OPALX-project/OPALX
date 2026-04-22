@@ -305,7 +305,7 @@ inline void ParallelTracker::visitRFCavity(const RFCavity& as) {
 }
 
 inline void ParallelTracker::visitTravelingWave(const TravelingWave& tw) {
-    itsOpalBeamline_m.visit(tw, *this, itsBunch_m);
+    itsOpalBeamline_m.visit(tw, *this, *itsBunch_m);
 }
 
 inline void ParallelTracker::visitSolenoid(const Solenoid& so) {
