@@ -1,7 +1,6 @@
 #include "Fields/FM2DDynamic.h"
 #include "Fields/Fieldmap.hpp"
 #include "PartBunch/PartBunch.h"
-// #include "Physics/Physics.h" // not used? to check
 #include "Physics/Units.h"
 #include "Utilities/GeneralOpalException.h"
 #include "Utilities/Util.h"
@@ -119,14 +118,11 @@ FM2DDynamic::FM2DDynamic(const std::string& filename)
     }
 }
 
-
 FM2DDynamic::~FM2DDynamic() {
     freeMap();
 }
 
-
 void FM2DDynamic::readMap() {
-    // if(FieldstrengthEz_m.h_view.data() == nullptr) {
     if(FieldstrengthEz_m.extent(0) == 0) {
         // declare variables and allocate memory
         std::ifstream in;
@@ -208,23 +204,20 @@ void FM2DDynamic::readMap() {
         FieldstrengthBt_m.modify<Kokkos::HostSpace>();
         FieldstrengthBt_m.sync<Kokkos::DefaultExecutionSpace>();
 
-        *ippl::Info << level3 
-            << typeset_msg("read in fieldmap '" + Filename_m + "'", "info")
-            << endl;
+        Inform m("FM2DDynamic::readMap");
+        m << level3 << "Read in fieldmap '" << Filename_m << "'" << endl;
     }
 }
 
 void FM2DDynamic::freeMap() {
-    // if(FieldstrengthEz_m.h_view.data() != nullptr) {
     if(FieldstrengthEz_m.extent(0) != 0) {
 
         FieldstrengthEz_m = Kokkos::DualView<double*>();
         FieldstrengthEr_m = Kokkos::DualView<double*>();
         FieldstrengthBt_m = Kokkos::DualView<double*>();
 
-        *ippl::Info << level3 
-            << typeset_msg("freed fieldmap '" + Filename_m + "'", "info") 
-            << endl;
+        Inform m("FM2DDynamic::freeMap");
+        m << level3 << "Freed fieldmap '" << Filename_m << "'" << endl;
     }
 }
 
@@ -254,23 +247,25 @@ void FM2DDynamic::applyField(std::shared_ptr<ParticleContainer_t> pc, double)
     auto Eview = pc->E.getView();
     auto Bview = pc->B.getView();
 
-    Kokkos::parallel_for("FM2DDynamic::applyField",
-    ippl::getRangePolicy(Rview),
-    KOKKOS_LAMBDA(const int i)
-    {
-        if(Rview(i)(2) >= zbegin && Rview(i)(2) < zend &&
-            sqrt(Rview(i)(0)*Rview(i)(0) + Rview(i)(1)*Rview(i)(1)) < rend) 
+    const size_t nLocal = pc->getLocalNum();
+
+    Kokkos::parallel_for(
+        "FM2DDynamic::applyField", nLocal,
+        KOKKOS_LAMBDA(const size_t i)
         {
-            computeField(Rview(i),
-                            Eview(i),
-                            Bview(i),
-                            Ez_device,
-                            Er_device,
-                            Bt_device,
-                            hr, hz, zbegin,
-                            num_gridpr, num_gridpz);
-        }
-    });
+            if(Rview(i)(2) >= zbegin && Rview(i)(2) < zend &&
+                sqrt(Rview(i)(0)*Rview(i)(0) + Rview(i)(1)*Rview(i)(1)) < rend) 
+            {
+                computeField(Rview(i),
+                                Eview(i),
+                                Bview(i),
+                                Ez_device,
+                                Er_device,
+                                Bt_device,
+                                hr, hz, zbegin,
+                                num_gridpr, num_gridpz);
+            }
+        });
 }
 
 void FM2DDynamic::applyRFField(
@@ -296,10 +291,11 @@ void FM2DDynamic::applyRFField(
     auto Eview = pc->E.getView();
     auto Bview = pc->B.getView();
 
+    const size_t nLocal = pc->getLocalNum();
+
     Kokkos::parallel_for(
-        "FM2DDynamic::applyRFField",
-        ippl::getRangePolicy(Rview),
-        KOKKOS_LAMBDA(const int i) {
+        "FM2DDynamic::applyRFField", nLocal,
+        KOKKOS_LAMBDA(const size_t i) {
             const auto& R = Rview(i);
 
             if (R(2) >= startField && R(2) < endField &&
@@ -340,7 +336,6 @@ bool FM2DDynamic::getFieldstrength(
     Vector_t<double,3>& E,
     Vector_t<double,3>& B) const
 {
-
     if (isInside(R)) {
 
         computeField(
