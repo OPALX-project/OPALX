@@ -64,13 +64,10 @@ Solenoid::~Solenoid() {
  * @returns true if at least one particle is lost, false otherwise 
  * (not implemented, always returns false)
  */
-bool Solenoid::apply() {
+bool Solenoid::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     Inform m("Solenoid::apply");
     m << level5 << "Solenoid::apply() called." << endl;
-    
-    std::shared_ptr<ParticleContainer_t> pc = 
-        RefPartBunch_m->getParticleContainer();
-   
+
     fieldmap_m->applyField(pc, scale_m + scaleError_m);
 
     return false; 

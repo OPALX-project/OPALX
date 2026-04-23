@@ -34,7 +34,7 @@
 
 #include "BeamlineGeometry/PlanarArcGeometry.h"
 
-#include "Utilities/GeneralClassicException.h"
+#include "Utilities/GeneralOpalException.h"
 #include "Utilities/RingSection.h"
 
 class LossDataSink;
@@ -89,7 +89,7 @@ public:
      *  true. If particle is off the field maps, then set flag on the particle
      *  "Bin" data to -1 and store in LossDataSink
      */
-    virtual bool apply() override;
+    virtual bool apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
 
     virtual bool apply(
         const size_t& id, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
@@ -181,12 +181,12 @@ public:
 
     /** Not implemented, throws an exception */
     virtual EMField& getField() override {
-        throw GeneralClassicException("Ring::getField", "Not implemented");
+        throw GeneralOpalException("Ring::getField", "Not implemented");
     }
 
     /** Not implemented, throws an exception */
     virtual const EMField& getField() const override {
-        throw GeneralClassicException("Ring::getField", "Not implemented");
+        throw GeneralOpalException("Ring::getField", "Not implemented");
     }
 
     /** Not implemented */

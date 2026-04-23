@@ -53,7 +53,7 @@ public:
 
     virtual ~SDDSWriter(){};
 
-    virtual void write(const PartBunch_t* /*beam*/){};
+    virtual void write(const PartBunch_t& /*beam*/){};
 
     /** \brief
      *  delete the last 'numberOfLines' lines of the file 'fileName'

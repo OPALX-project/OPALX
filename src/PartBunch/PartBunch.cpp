@@ -1,61 +1,86 @@
+/**
+ * @file PartBunch.cpp
+ * @brief Template method definitions for PartBunch.
+ */
+
 #include "PartBunch/PartBunch.h"
-#include "PartBunch/BinnedFieldSolver.h"
 #include "Algorithms/Matrix.h"
+#include "PartBunch/BinnedFieldSolver.h"
 #include "Particle/ParticleAttrib.h"
-#include "Utilities/Util.h"
+#include "Physics/ParticleProperties.h"
+#include "Structure/Beam.h"
 #include "Structure/DataSink.h"
+#include "Utilities/Util.h"
+
+#include <algorithm>
 
 #undef doDEBUG
 
+/**
+ * @copybrief PartBunch::PartBunch
+ */
 template <typename T, unsigned Dim>
 PartBunch<T, Dim>::PartBunch(std::vector<double> qi,
                              std::vector<double> mi,
-                             size_t num_containers,
+                             const std::vector<Beam*>& beams,
+                             std::vector<size_t> totalParticlesPerBeam,
                              /*int nt,*/
                              double lbt,
                              std::string integration_method,
-                             std::shared_ptr<FieldSolverCmd> OPALFieldSolver,
-                             std::shared_ptr<DataSink> dataSink)
+                             FieldSolverCmd* OPALFieldSolver,
+                             DataSink* dataSink)
     : ippl::PicManager<T, Dim, ParticleContainer<T, Dim>, FieldContainer<T, Dim>, LoadBalancer<T, Dim>>(),
-      RefPartR_m(0.0),
-      RefPartP_m(0.0),
       dt_m(0),
       it_m(0),
-      lbt_m(lbt),
-      isFirstRepartition_m(true),
       integration_method_m(integration_method),
       solver_m(""),
+      lbt_m(lbt),
+      isFirstRepartition_m(true),
       //nt_m(nt),
-      qi_m(std::move(qi)),
-      mi_m(std::move(mi)),
       OPALFieldSolver_m(OPALFieldSolver),
-      dataSink_m(std::move(dataSink)),
+      dataSink_m(dataSink),
       globalTrackStep_m(0),
       rmsDensity_m(0.0) {
+    bunchState_m = std::make_shared<BunchStateHandler>();
 
     Inform m("PartBunch::PartBunch");
     m << level4 << "PartBunch Constructor" << endl;
 
+    const size_t num_containers = beams.size();
     if (num_containers == 0) {
-        throw OpalException("PartBunch::PartBunch",
-                            "num_containers must be > 0.");
+        throw OpalException("PartBunch::PartBunch", "num_containers must be > 0.");
     }
-    if (qi_m.size() != num_containers) {
+    if (OPALFieldSolver_m == nullptr) {
+        throw OpalException("PartBunch::PartBunch",
+                            "OPALFieldSolver must not be null.");
+    }
+    if (dataSink_m == nullptr) {
+        throw OpalException("PartBunch::PartBunch",
+                            "dataSink must not be null.");
+    }
+    if (qi.size() != num_containers) {
         throw OpalException("PartBunch::PartBunch",
                             "qi size must match num_containers.");
     }
-    if (mi_m.size() != num_containers) {
+    if (mi.size() != num_containers) {
         throw OpalException("PartBunch::PartBunch",
                             "mi size must match num_containers.");
+    }
+    if (totalParticlesPerBeam.size() != num_containers) {
+        throw OpalException("PartBunch::PartBunch",
+                            "totalParticlesPerBeam size must match num_containers.");
+    }
+    for (size_t i = 0; i < num_containers; ++i) {
+        if (beams[i] == nullptr) {
+            throw OpalException("PartBunch::PartBunch",
+                                "beams must not contain null pointers.");
+        }
     }
 
     //  get the needed information from OPAL FieldSolver command
 
     nr_m = Vector_t<int, Dim>(
-            OPALFieldSolver_m->getNX(), 
-            OPALFieldSolver_m->getNY(), 
-            OPALFieldSolver_m->getNZ()
-    );
+            OPALFieldSolver_m->getNX(), OPALFieldSolver_m->getNY(), OPALFieldSolver_m->getNZ());
 
     const Vector_t<bool, 3> domainDecomposition = OPALFieldSolver_m->getDomDec();
 
@@ -64,11 +89,9 @@ PartBunch<T, Dim>::PartBunch(std::vector<double> qi,
         this->decomp_m[i] = domainDecomposition[i];
     }
 
-    this->setBCHandler(std::make_shared<BCHandler_t>(
-        OPALFieldSolver_m->constructBCHandler()
-    ));
+    this->setBCHandler(std::make_shared<BCHandler_t>(OPALFieldSolver_m->constructBCHandler()));
 
-    /// \todo so far, we only use true for all periodic and false for all open.
+    // TODO: support mixed periodic/open per axis; currently all periodic or all open.
     bool isAllPeriodic = this->getBCHandler()->isAll(BCHandler_t::PERIODIC);
     m << level5 << "* FieldContainer set to isAllPeriodic = " << isAllPeriodic << endl;
 
@@ -76,23 +99,54 @@ PartBunch<T, Dim>::PartBunch(std::vector<double> qi,
     //      this will be reset when the correct computational
     //      domain is set
 
-    Vector_t<double, Dim> length (6.0);
-    this->hr_m = length / this->nr_m;
+    Vector_t<double, Dim> length(6.0);
+    this->hr_m     = length / this->nr_m;
     this->origin_m = -3.0;
-    this->dt_m = 0.5 / this->nr_m[2];
+    this->dt_m     = 0.5 / this->nr_m[2];
 
     rmin_m = origin_m;
     rmax_m = origin_m + length;
 
-    this->setFieldContainer(std::make_shared<FieldContainer_t>(
-        hr_m, rmin_m, rmax_m, decomp_m, domain_m, origin_m, isAllPeriodic
-    ));
+    this->setFieldContainer(
+            std::make_shared<FieldContainer_t>(
+                    hr_m, rmin_m, rmax_m, decomp_m, domain_m, origin_m, isAllPeriodic));
 
-    this->setParticleContainer(std::make_shared<ParticleContainer_t>(
-        this->fcontainer_m->getMesh(), this->fcontainer_m->getFL()));
+    this->setParticleContainer(
+            std::make_shared<ParticleContainer_t>(
+                    this->fcontainer_m->getMesh(), this->fcontainer_m->getFL()));
+    this->pcontainer_m->setBunchStateHandler(bunchState_m);
+    /// \todo if we want, we could also have a separate BunchStateHandler for each container later?
+    /// But I think it could also make sense to only have one global handler.
     for (size_t i = 1; i < num_containers; ++i) {
-        this->addParticleContainer(std::make_shared<ParticleContainer_t>(
-            this->fcontainer_m->getMesh(), this->fcontainer_m->getFL()));
+        auto pc = std::make_shared<ParticleContainer_t>(
+                this->fcontainer_m->getMesh(), this->fcontainer_m->getFL());
+        pc->setBunchStateHandler(bunchState_m);
+        this->addParticleContainer(pc);
+    }
+    const auto& containers = this->getParticleContainers();
+    particleNames_m.resize(containers.size());
+    for (size_t i = 0; i < containers.size(); ++i) {
+        containers[i]->setQ(qi[i]);
+        containers[i]->setM(mi[i]);
+        containers[i]->setReference(&beams[i]->getReference());
+        particleNames_m[i] = beams[i]->getParticleName();
+        containers[i]->Sp =
+            static_cast<short>(ParticleProperties::getParticleType(beams[i]->getParticleName()));
+    }
+
+    // Allocate enough storage per rank, then destroy all particles to keep only capacity.
+    const double nRanks = static_cast<double>(ippl::Comm->size());
+    std::vector<size_t> maxLocalNumPerBeam(num_containers);
+    for (size_t i = 0; i < num_containers; ++i) {
+        maxLocalNumPerBeam[i] =
+            static_cast<size_t>(totalParticlesPerBeam[i] / nRanks + 2 * nRanks + 1);
+        containers[i]->create(maxLocalNumPerBeam[i]);
+    }
+    for (size_t i = 0; i < num_containers; ++i) {
+        Kokkos::View<bool*> tmp_invalid("tmp_invalid", maxLocalNumPerBeam[i]);
+        containers[i]->destroy(tmp_invalid, maxLocalNumPerBeam[i]);
+        *gmsg << level3 << "* Container " << i << ": " << maxLocalNumPerBeam[i]
+              << " particles created and destroyed. Bunch allocated." << endl;
     }
 
     setSolver();
@@ -106,35 +160,106 @@ PartBunch<T, Dim>::PartBunch(std::vector<double> qi,
     // -----------------------------------------------
 
     pre_run();
-    
+    this->setT(0.0);
+
     globalPartPerNode_m = std::make_unique<size_t[]>(ippl::Comm->size());
+
+    resetPcActive();
 
     m << level5 << "* PartBunch constructor done." << endl;
 }
 
+/**
+ * @copybrief PartBunch::resetPcActive
+ */
 template <typename T, unsigned Dim>
-void PartBunch<T, Dim>::do_binaryRepart() {
-    using FieldContainer_t = FieldContainer<T, Dim>;
-    std::shared_ptr<FieldContainer_t> fc = this->fcontainer_m;
-
-    size_type totalP = this->getTotalNum();
-
-    if (this->loadbalancer_m->balance(totalP)) {
-        auto* mesh = &fc->getRho().get_mesh();
-        auto* FL = &fc->getFL();
-        this->loadbalancer_m->repartition(FL, mesh, isFirstRepartition_m);
+void PartBunch<T, Dim>::resetPcActive() {
+    const auto& containers = this->getParticleContainers();
+    const size_t n         = containers.size();
+    pcActive_m.resize(n);
+    pcAtZStop_m.resize(n);
+    for (size_t i = 0; i < n; ++i) {
+        pcAtZStop_m[i] = false;
+        const auto& pc = containers[i];
+        if (!pc || pc->getTotalNum() == 0) {
+            pcActive_m[i] = false;
+        } else {
+            pcActive_m[i] = true;
+        }
     }
 }
 
+/**
+ * @copybrief PartBunch::setPcAtZStop
+ */
+template <typename T, unsigned Dim>
+void PartBunch<T, Dim>::setPcAtZStop(size_t i) {
+    if (i >= pcActive_m.size()) {
+        return;
+    }
+    pcActive_m[i]  = false;
+    pcAtZStop_m[i] = true;
+}
+
+/**
+ * @copybrief PartBunch::refreshPcActiveAfterEmit
+ */
+template <typename T, unsigned Dim>
+void PartBunch<T, Dim>::refreshPcActiveAfterEmit() {
+    const auto& containers = this->getParticleContainers();
+    const size_t n         = containers.size();
+    if (pcActive_m.size() != n) {
+        return;
+    }
+    for (size_t i = 0; i < n; ++i) {
+        if (pcAtZStop_m[i]) {
+            continue;
+        }
+        const auto& pc = containers[i];
+        if (pc && pc->getTotalNum() > 0) {
+            pcActive_m[i] = true;
+        }
+    }
+}
+
+/**
+ * @copybrief PartBunch::do_binaryRepart
+ */
+template <typename T, unsigned Dim>
+void PartBunch<T, Dim>::do_binaryRepart() {
+    throw OpalException(
+            "PartBunch::do_binaryRepart",
+            "Not implemented yet. The load-balancer repartition path is still being "
+            "re-wired against the unified BunchStateHandler and multi-container "
+            "setup; callers must not invoke this until it is properly hooked up.");
+
+    using FieldContainer_t               = FieldContainer<T, Dim>;
+    std::shared_ptr<FieldContainer_t> fc = this->fcontainer_m;
+
+    size_type totalP = this->getParticleContainer()->getTotalNum();
+
+    if (this->loadbalancer_m->balance(totalP)) {
+        auto* mesh = &fc->getRho().get_mesh();
+        auto* FL   = &fc->getFL();
+        this->loadbalancer_m->repartition(FL, mesh, bunchState_m->isFirstRepartitionRef());
+    }
+}
+
+/**
+ * @copybrief PartBunch::gatherLoadBalanceStatistics
+ */
 template <typename T, unsigned Dim>
 void  PartBunch<T, Dim>::gatherLoadBalanceStatistics() {
         std::fill_n(globalPartPerNode_m.get(), ippl::Comm->size(), 0);  // Fill the array with zeros
-        globalPartPerNode_m[ippl::Comm->rank()] = getLocalNum();
-        ippl::Comm->allreduce(globalPartPerNode_m.get(), 
-                              ippl::Comm->size(), 
+        globalPartPerNode_m[ippl::Comm->rank()] = this->getParticleContainer()->getLocalNum();
+        ippl::Comm->allreduce(globalPartPerNode_m.get(),
+                              ippl::Comm->size(),
                               std::plus<size_t>());
 }
 
+/**
+ * @copybrief PartBunch::setSolver
+ */
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::setSolver() {
     Inform m("PartBunch::setSolver");
@@ -150,27 +275,29 @@ void PartBunch<T, Dim>::setSolver() {
     setBins();
 
     this->setFieldSolver(
-        std::make_shared<BinnedFieldSolver<T, Dim>>(
-            this->solver_m, &this->fcontainer_m->getRho(), &this->fcontainer_m->getE(),
-            &this->fcontainer_m->getPhi(), this->getBCHandler(),
-            hasBinning() ? OPALFieldSolver_m->getBinningCmd()->getTablePrintFrequency() : 0
-        )
-    );
+            std::make_shared<BinnedFieldSolver<T, Dim>>(
+                    this->solver_m, &this->fcontainer_m->getRho(), &this->fcontainer_m->getE(),
+                    &this->fcontainer_m->getPhi(), this->getBCHandler(),
+                    hasBinning() ? OPALFieldSolver_m->getBinningCmd()->getTablePrintFrequency()
+                                 : 0));
     m << level4 << "Binned field solver set (binned or legacy at runtime)." << endl;
 
     this->fsolver_m->initSolver();
     m << level4 << "Field solver initialized." << endl;
 
-    /// ADA we need to be able to set a load balancer when not having a field solver
+    // TODO: allow constructing a load balancer when no field solver is present.
     this->setLoadBalancer(std::make_shared<LoadBalancer_t>(
-        this->lbt_m, 
-        this->fcontainer_m, 
-        this->pcontainer_m, 
+        this->lbt_m,
+        this->fcontainer_m,
+        this->pcontainer_m,
         this->fsolver_m
     ));
     m << level3 << "Solver and Load Balancer set." << endl;
 }
 
+/**
+ * @copybrief PartBunch::setBins
+ */
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::setBins() {
     Inform m("PartBunch::setBins");
@@ -178,7 +305,8 @@ void PartBunch<T, Dim>::setBins() {
     BinningCmd* binningCmd = OPALFieldSolver_m->getBinningCmd();
 
     if (!OPALFieldSolver_m->hasBinningCmd()) {
-        m << level2 << "Solver " << OPALFieldSolver_m->getOpalName() << " has no binning command attached, not using binning." << endl;
+        m << level2 << "Solver " << OPALFieldSolver_m->getOpalName()
+          << " has no binning command attached, not using binning." << endl;
         return;
     }
 
@@ -188,7 +316,7 @@ void PartBunch<T, Dim>::setBins() {
         case BinningParameter::VELOCITYZ:
             this->setBins(
                 std::make_shared<ParticleBinning::AdaptBins<ParticleContainer_t, CoordinateSelector_t>>(
-                    this->getParticleContainer(), 
+                    *this->getParticleContainer(),
                     CoordinateSelector_t(2), 
                     binningCmd->getMaxBins(),
                     binningCmd->getBinningAlpha(), 
@@ -201,7 +329,7 @@ void PartBunch<T, Dim>::setBins() {
         case BinningParameter::GAMMAZ:
             this->setBins(
                 std::make_shared<ParticleBinning::AdaptBins<ParticleContainer_t, GammaSelector_t>>(
-                    this->getParticleContainer(),
+                    *this->getParticleContainer(),
                     GammaSelector_t(2), 
                     binningCmd->getMaxBins(),
                     binningCmd->getBinningAlpha(), 
@@ -213,22 +341,26 @@ void PartBunch<T, Dim>::setBins() {
             break;
         default:
             throw OpalException(
-                "PartBunch::setBins", "Binning parameter " + binningCmd->getParameter()
-                                          + " not supported yet! Only VELOCITYZ and GAMMAZ.");
+                    "PartBunch::setBins",
+                    "Binning parameter " + binningCmd->getParameter()
+                            + " not supported yet! Only VELOCITYZ and GAMMAZ.");
     }
     m << level3 << "Bins set." << endl;
     this->getBins()->debug();
 }
 
+/**
+ * @copybrief PartBunch::calcBeamParameters
+ */
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::calcBeamParameters() {
     Inform m("PartBunch::calcBeamParameters");
     std::shared_ptr<ParticleContainer_t> pc = this->pcontainer_m;
-    
-    using view_type = ippl::ParticleAttrib<Vector_t<double,3>>::view_type;
+
+    using view_type = ippl::ParticleAttrib<Vector_t<double, 3>>::view_type;
     view_type Rview = pc->R.getView();
     view_type Pview = pc->P.getView();
-    this->updateMoments();
+    this->getParticleContainer()->updateMoments();
     m << level5 << "Moments updated." << endl;
 
     ////////////////////////////////////
@@ -245,10 +377,10 @@ void PartBunch<T, Dim>::calcBeamParameters() {
     MomentsMat moment(MomentsVec(0.0));
 
     for (unsigned i = 0; i < 2 * Dim; ++i) {
-        const size_t nLocal = this->getLocalNum();
+        const size_t nLocal = this->getParticleContainer()->getLocalNum();
         Kokkos::parallel_reduce("calc moments of particle distr.", nLocal,
-            KOKKOS_LAMBDA(const size_t k, double& cent, double& mom0, double& mom1, 
-                          double& mom2, double& mom3, double& mom4, 
+            KOKKOS_LAMBDA(const size_t k, double& cent, double& mom0, double& mom1,
+                          double& mom2, double& mom3, double& mom4,
                           double& mom5) {
                 double part[2 * Dim];
                 part[0] = Rview(k)[0];
@@ -257,7 +389,7 @@ void PartBunch<T, Dim>::calcBeamParameters() {
                 part[3] = Pview(k)[1];
                 part[4] = Rview(k)[2];
                 part[5] = Pview(k)[2];
-                
+
                 cent += part[i];
                 mom0 += part[i] * part[0];
                 mom1 += part[i] * part[1];
@@ -286,15 +418,15 @@ void PartBunch<T, Dim>::calcBeamParameters() {
     ippl::Vector<double, Dim> rmax(0.0);
     ippl::Vector<double, Dim> rmin(0.0);
 
-    /// \todo do this in one step much nicer with ippl::Vector...
+    // TODO: fuse min/max reductions with ippl::Vector reductions.
     for (unsigned d = 0; d < Dim; ++d) {
-        Kokkos::parallel_reduce("rel max", this->getLocalNum(),
+        Kokkos::parallel_reduce("rel max", this->getParticleContainer()->getLocalNum(),
             KOKKOS_LAMBDA(const int i, double& mm) {
                 double tmp_vel = Rview(i)[d];
                 mm             = tmp_vel > mm ? tmp_vel : mm;
             }, Kokkos::Max<T>(rmax_loc[d]));
-        
-        Kokkos::parallel_reduce("rel min", this->getLocalNum(),
+
+        Kokkos::parallel_reduce("rel min", this->getParticleContainer()->getLocalNum(),
             KOKKOS_LAMBDA(const int i, double& mm) {
                 double tmp_vel = Rview(i)[d];
                 mm             = tmp_vel < mm ? tmp_vel : mm;
@@ -313,6 +445,9 @@ void PartBunch<T, Dim>::calcBeamParameters() {
     rmin_m = rmin;
 }
 
+/**
+ * @copybrief PartBunch::pre_run
+ */
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::pre_run() {
     Inform m("PartBunch::pre_run");
@@ -321,24 +456,18 @@ void PartBunch<T, Dim>::pre_run() {
     m << level4 << "Rho initialized to zero." << endl;
 
     /*
-    Force skip field dump during pre_run/warmup!
-    In order to call runSolver without field dump, we need to dynamic cast 
-    fsolver_m to FieldSolver_t, since this addition is not possible in the base
-    class (without changing ippl).
-    */
+     * Skip full field dumps during warmup: runSolver(true) is implemented on the
+     * concrete solver type, not on the IPPL base class.
+     */
     this->getFieldSolver()->runSolver(true);
     m << level4 << "Field solver ran during pre_run." << endl;
     this->getFieldSolver()->resetCallCounter();
     m << level4 << "Call counter reset. pre_run done." << endl;
 }
 
-template <typename T, unsigned Dim>
-double PartBunch<T, Dim>::get_meanKineticEnergy() {
-    // Single source of truth: computed in DistributionMoments during updateMoments().
-    // Unit: MeV (see DistributionMoments implementation).
-    return this->pcontainer_m->getMeanKineticEnergy();
-}
-
+/**
+ * @copybrief PartBunch::print
+ */
 template <typename T, unsigned Dim>
 Inform& PartBunch<T, Dim>::print(Inform& os) {
     // if (this->getLocalNum() != 0) {  // to suppress Nans
@@ -357,17 +486,17 @@ Inform& PartBunch<T, Dim>::print(Inform& os) {
 
         // ParticleContainer tracks charge/mass storage mode for QM attributes.
         std::string qmStorageModeStr = "SINGLE";
-        const auto qmMode             = pc->getQMStorageMode();
+        const auto qmMode            = pc->getQMStorageMode();
         if (qmMode == ParticleContainer_t::QMStorageMode::Attributes) {
             qmStorageModeStr = "ATTRIBUTES";
         }
 
         os << level1 << std::scientific << "\n"
            << "* ************** B U N C H "
-            "********************************************************* \n"
+              "********************************************************* \n"
            << "* CONTAINER       = " << ci << "\n"
            << "* PARTICLES       = " << pc->getTotalNum() << "\n"
-           << "* CHARGE          = " << this->getCharge(ci) << " (Cb) \n"
+           << "* CHARGE          = " << pc->getTotalCharge() << " (Cb) \n"
            << "* QM STORAGE MODE = " << qmStorageModeStr << "\n"
            << "* <EKIN>          = " << Util::getEnergyString(ek) << "\n"
            << "* <dEKIN>         = " << Util::getEnergyString(dek) << "\n"
@@ -378,7 +507,8 @@ Inform& PartBunch<T, Dim>::print(Inform& os) {
            << "* RMS P           = " << pc->getRmsP() << " [beta gamma]\n"
            << "* Mean R          = " << pc->getMeanR() << " [m]\n"
            << "* Mean P          = " << pc->getMeanP() << " [beta gamma]\n"
-           << "* MESH SPACING    = " << Util::getLengthString(this->fcontainer_m->getMesh().getMeshSpacing(), 5) << "\n"
+           << "* MESH SPACING    = "
+           << Util::getLengthString(this->fcontainer_m->getMesh().getMeshSpacing(), 5) << "\n"
            << "* COMPDOM INCR    = " << this->OPALFieldSolver_m->getBoxIncr() << " (%) \n"
            << "* FIELD LAYOUT    = " << this->fcontainer_m->getFL() << "\n"
            << "* Centroid : \n* ";
@@ -392,9 +522,10 @@ Inform& PartBunch<T, Dim>::print(Inform& os) {
             }
             os << level1 << "\n* ";
         }
-        os << level1 << "* "
-           "********************************************************************************"
-           "** \n"
+        os << level1
+           << "* "
+              "********************************************************************************"
+              "** \n"
            << endl;
     }
 
@@ -402,24 +533,56 @@ Inform& PartBunch<T, Dim>::print(Inform& os) {
     return os;
 }
 
+/**
+ * @copybrief PartBunch::bunchUpdate
+ */
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::bunchUpdate() {
-    Inform m ("PartBunch::bunchUpdate");
+    Inform m("PartBunch::bunchUpdate");
     m << level4 << "Updating bunch and doing repartitioning if needed." << endl;
-    /* \brief
-       1. calculates and set hr
-       2. do repartitioning
-    */
+    // Steps: union particle AABB, expand by box increment, set mesh spacing/origin,
+    // refresh layouts, update moments (repartition hooks are mostly commented).
 
-    auto *mesh = &this->fcontainer_m->getMesh();
-    auto *FL   = &this->fcontainer_m->getFL();
+    auto* mesh = &this->fcontainer_m->getMesh();
+    auto* FL   = &this->fcontainer_m->getFL();
 
-    std::shared_ptr<ParticleContainer_t> pc = this->getParticleContainer();
+    const auto& containers = this->getParticleContainers();
 
-    pc->computeMinMaxR();
+    bool hasNonEmptyContainer = false;
+    ippl::Vector<double, 3> o(0.0);
+    ippl::Vector<double, 3> e(0.0);
 
-    ippl::Vector<double, 3> o = pc->getMinR();
-    ippl::Vector<double, 3> e = pc->getMaxR();
+    for (const auto& pc : containers) {
+        if (!pc || pc->getTotalNum() == 0) {
+            continue;
+        }
+
+        pc->computeMinMaxR();
+        const ippl::Vector<double, 3> minR = pc->getMinR();
+        const ippl::Vector<double, 3> maxR = pc->getMaxR();
+
+        if (!hasNonEmptyContainer) {
+            o = minR;
+            e = maxR;
+            hasNonEmptyContainer = true;
+        } else {
+            for (int i = 0; i < 3; ++i) {
+                o[i] = std::min(o[i], minR[i]);
+                e[i] = std::max(e[i], maxR[i]);
+            }
+        }
+    }
+
+    if (!hasNonEmptyContainer) {
+        if (containers.empty() || !containers[0]) {
+            throw OpalException("PartBunch::bunchUpdate",
+                                "No valid particle container available for bunch update.");
+        }
+        containers[0]->computeMinMaxR();
+        o = containers[0]->getMinR();
+        e = containers[0]->getMaxR();
+    }
+
     ippl::Vector<double, 3> l = e - o;
 
     /*
@@ -428,10 +591,10 @@ void PartBunch<T, Dim>::bunchUpdate() {
     empty simulations - especially important for emission sources.
     */
     for (int i = 0; i < 3; i++) {
-        if (l[i] < 1e-6) { 
-            l[i] = 1e-6; 
+        if (l[i] < 1e-6) {
+            l[i] = 1e-6;
             m << level3 << "Mesh spacing in dimension " << i << " too small. Set to 1e-6." << endl;
-            //return;
+            // return;
         }
     }
 
@@ -441,8 +604,8 @@ void PartBunch<T, Dim>::bunchUpdate() {
     keeps x/y the same. But this doesn't make too much sense in my opinion...
     */
     // Update origin and extent for the FieldContainer (not for the particles!)
-    o = o - l*this->OPALFieldSolver_m->getBoxIncr()/100.;
-    e = e + l*this->OPALFieldSolver_m->getBoxIncr()/100.;
+    o = o - l * this->OPALFieldSolver_m->getBoxIncr() / 100.;
+    e = e + l * this->OPALFieldSolver_m->getBoxIncr() / 100.;
     l = e - o;
 
     hr_m = l / this->nr_m;
@@ -451,7 +614,7 @@ void PartBunch<T, Dim>::bunchUpdate() {
     mesh->setOrigin(o);
 
     /*
-    I think these in the field container should reflect mesh boundaries, not 
+    I think these in the field container should reflect mesh boundaries, not
     particle boundaries, since the field solver needs to know the mesh and solve
     */
     this->getFieldContainer()->setRMin(o);
@@ -463,39 +626,59 @@ void PartBunch<T, Dim>::bunchUpdate() {
     m << level3 << "\t\t> Mesh spacing:  " << hr_m << endl;
     m << level3 << "\t\t> Box increment: " << this->OPALFieldSolver_m->getBoxIncr() << "%" << endl;
 
-    pc->getLayout().updateLayout(*FL, *mesh);
-    pc->update();
-    m << level5 << "Particle container updated with new layout." << endl;
+    for (size_t i = 0; i < containers.size(); ++i) {
+        const auto& pc = containers[i];
+        if (!pc) {
+            continue;
+        }
+        pc->getLayout().updateLayout(*FL, *mesh);
+        pc->update();
+        pc->markMomentsDirty();  // IPPL migration may have re-indexed R across ranks
+                                 /// \todo there might be a case where we can keep the moments clean
+                                 /// if we know more about what exactly was changed due to update().
+        m << level5 << "Particle container " << i << " updated with new layout." << endl;
+    }
 
-    this->isFirstRepartition_m = true;
-    //this->loadbalancer_m->initializeORB(FL, mesh);
-    //this->loadbalancer_m->repartition(FL, mesh, this->isFirstRepartition_m);
+    bunchState_m->setFirstRepartition(true);
+    // this->loadbalancer_m->initializeORB(FL, mesh);
+    // this->loadbalancer_m->repartition(FL, mesh, bunchState_m.isFirstRepartition());
     m << level5 << "Load balancer repartitioning done." << endl;
 
-    this->updateMoments();
-    m << level5 << "Moments updated." << endl;
+    for (size_t i = 0; i < containers.size(); ++i) {
+        if (!containers[i]) {
+            continue;
+        }
+        this->getParticleContainer(i)->updateMoments();
+    }
+    m << level5 << "Moments updated for all particle containers." << endl;
 }
 
+/**
+ * @copybrief PartBunch::computeSelfFields
+ */
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::computeSelfFields() {
     using BinnedSolver_t = BinnedFieldSolver<T, Dim>;
 
     BinnedSolver_t* bsolver = dynamic_cast<BinnedSolver_t*>(this->fsolver_m.get());
     if (!bsolver) {
-        throw OpalException("PartBunch::computeSelfFields",
-                            "Field solver is not a BinnedFieldSolver instance.");
+        throw OpalException(
+                "PartBunch::computeSelfFields",
+                "Field solver is not a BinnedFieldSolver instance.");
     }
 
-    // Non-owning shared_ptr alias: solver does not manage bunch lifetime.
-    std::shared_ptr<PartBunch<T, Dim>> bunchPtr(this, [](PartBunch<T, Dim>*) { });
-    bsolver->computeSelfFields(bunchPtr);
+    bsolver->computeSelfFields(*this);
 }
 
+/**
+ * @copybrief PartBunch::dumpBinConfig
+ */
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::dumpBinConfig(bool preMerge) {
     if (!hasBinning() || !dataSink_m) {
-        throw OpalException("PartBunch::dumpBinConfig", 
-                            "No binning or data sink set, but dumpBinConfig() was called.");
+        throw OpalException(
+                "PartBunch::dumpBinConfig",
+                "No binning or data sink set, but dumpBinConfig() was called.");
     }
 
     Inform m("PartBunch::dumpBinConfig");
@@ -530,64 +713,71 @@ void PartBunch<T, Dim>::dumpBinConfig(bool preMerge) {
     std::vector<double> widths(widthsHost.begin(), widthsHost.end());
 
     m << level5 << "Dumping bin configuration (preMerge=" << (preMerge ? 1 : 0)
-      << ") at globalTrackStep=" << step
-      << " with nBins=" << counts.size()
-      << " to file \"" << binningCmd->getDumpBinsFileName() << "\"." << endl;
+      << ") at globalTrackStep=" << step << " with nBins=" << counts.size() << " to file \""
+      << binningCmd->getDumpBinsFileName() << "\"." << endl;
 
     dataSink_m->dumpBinConfig(
-        step,
-        getT(),
-        preMerge,
-        counts,
-        widths,
-        static_cast<double>(xMin),
-        binningCmd->getDumpBinsFileName());
+            step, getT(), preMerge, counts, widths, static_cast<double>(xMin),
+            binningCmd->getDumpBinsFileName());
 }
 
+/**
+ * @copybrief PartBunch::performBunchSanityChecks
+ */
 template <typename T, unsigned Dim>
-void PartBunch<T,Dim>::performBunchSanityChecks() const {
+void PartBunch<T, Dim>::performBunchSanityChecks() const {
     Inform ms("PartBunch::performBunchSanityChecks");
     ms << level4 << "========== Performing sanity checks on PartBunch... ==========" << endl;
-    /// \todo always try to add more checks here! Best practice: throw explanatory exceptions and give output when passed.
+    // TODO: extend checks; prefer throwing OpalException with clear messages.
 
     // Check if bc handler was initialized properly
     if (!this->getBCHandler()) {
-        throw OpalException("PartBunch::performBunchSanityChecks", 
-                            "BC Handler not initialized properly.");
+        throw OpalException(
+                "PartBunch::performBunchSanityChecks", "BC Handler not initialized properly.");
     }
     ms << level4 << "BC Handler initialized properly." << endl;
 
+    if (!this->getBunchStateHandler()) {
+        throw OpalException(
+                "PartBunch::performBunchSanityChecks", "BunchStateHandler not initialized.");
+    }
+    ms << level4 << "BunchStateHandler initialized." << endl;
+
     if (!hasFieldSolver()) {
-        throw OpalException("PartBunch::performBunchSanityChecks", 
-                            "Field Solver was not initialized.");
+        throw OpalException(
+                "PartBunch::performBunchSanityChecks", "Field Solver was not initialized.");
     }
     ms << level4 << "Field Solver object was initialized." << endl;
 
     // Verify we can access the concrete FieldSolver and its internals
     auto fs = std::dynamic_pointer_cast<FieldSolver_t>(this->fsolver_m);
+    if (!fs) {
+        throw OpalException(
+                "PartBunch::performBunchSanityChecks", "FieldSolver is not set in PartBunch.");
+    }
 
     // cannot use getFieldContainer, since this getter cannot be const!
     const std::shared_ptr<FieldContainer<T, Dim>> fctr = this->fcontainer_m;
     if (!fctr) {
-        throw OpalException("PartBunch::performBunchSanityChecks",
-                            "FieldContainer isn't initialized correctly.");
+        throw OpalException(
+                "PartBunch::performBunchSanityChecks",
+                "FieldContainer isn't initialized correctly.");
     }
 
     // Check internal field pointers are set
-    if (fs->getRho() == nullptr || 
-        fs->getE()   == nullptr || 
-        fs->getPhi() == nullptr) {
-        throw OpalException("PartBunch::performBunchSanityChecks",
-                            "FieldSolver internal fields (rho/E/phi) not assigned.");
+    if (fs->getRho() == nullptr || fs->getE() == nullptr || fs->getPhi() == nullptr) {
+        throw OpalException(
+                "PartBunch::performBunchSanityChecks",
+                "FieldSolver internal fields (rho/E/phi) not assigned.");
     }
     ms << level4 << "FieldSolver internal field pointers are set." << endl;
 
     // Ensure FieldSolver fields point to our FieldContainer's fields
-    if (fs->getRho() != &fctr->getRho() ||
-        fs->getE()   != &fctr->getE()   ||
-        fs->getPhi() != &fctr->getPhi()) {
-        throw OpalException("PartBunch::performBunchSanityChecks",
-                            "FieldSolver fields do not match FieldContainer.");
+    if (fs->getRho() != &fctr->getRho() || fs->getE() != &fctr->getE()
+        || fs->getPhi() != &fctr->getPhi()) {
+        throw OpalException(
+                "PartBunch::performBunchSanityChecks",
+                "FieldSolver fields do not match FieldContainer.");
     }
     ms << level4 << "FieldSolver fields match FieldContainer." << endl;
 
@@ -608,29 +798,60 @@ void PartBunch<T,Dim>::performBunchSanityChecks() const {
     // Check solver type string and that a backend was emplaced
     const std::string stype = fs->getStype();
     if (stype.empty()) {
-        throw OpalException("PartBunch::performBunchSanityChecks",
-                            "FieldSolver type string is empty.");
+        throw OpalException(
+                "PartBunch::performBunchSanityChecks", "FieldSolver type string is empty.");
     }
-    if (stype != "FFT" && 
-        stype != "OPEN" && 
-        stype != "CG" && 
-        stype != "NONE") {
-        throw OpalException("PartBunch::performBunchSanityChecks",
-                            "Unsupported FieldSolver type: " + stype);
+    if (stype != "FFT" && stype != "OPEN" && stype != "CG" && stype != "NONE") {
+        throw OpalException(
+                "PartBunch::performBunchSanityChecks", "Unsupported FieldSolver type: " + stype);
     }
     ms << level4 << "FieldSolver type: " << stype << endl;
 
     // Basic check that the E-field layout has non-zero extent
     auto Eview = fctr->getE().getView();
-    if (Eview.extent(0) == 0 || Eview.extent(1) == 0 || Eview.extent(2) == 0) {
-        throw OpalException("PartBunch::performBunchSanityChecks",
-                            "E-field layout not initialized (zero extent). ");
+    if (stype != "NONE" && (Eview.extent(0) == 0 || Eview.extent(1) == 0 || Eview.extent(2) == 0)) {
+        throw OpalException(
+                "PartBunch::performBunchSanityChecks",
+                "E-field layout not initialized (zero extent). ");
     }
     ms << level4 << "E-field layout initialized." << endl;
+
+    // Temporary E/B accumulation fields (binned solver path)
+    if (!this->Etmp_m || !this->Btmp_m) {
+        throw OpalException(
+                "PartBunch::performBunchSanityChecks",
+                "Temporary E field (Etmp) and/or B field (Btmp) not initialized.");
+    }
+    auto EtmpView = this->Etmp_m->getView();
+    auto BtmpView = this->Btmp_m->getView();
+    if (EtmpView.extent(0) == 0 || EtmpView.extent(1) == 0 || EtmpView.extent(2) == 0) {
+        throw OpalException(
+                "PartBunch::performBunchSanityChecks",
+                "Etmp field layout not initialized (zero extent). ");
+    }
+    if (BtmpView.extent(0) == 0 || BtmpView.extent(1) == 0 || BtmpView.extent(2) == 0) {
+        throw OpalException(
+                "PartBunch::performBunchSanityChecks",
+                "Btmp field layout not initialized (zero extent). ");
+    }
+    if (&this->Etmp_m->get_mesh() != &fctr->getMesh()
+        || &this->Btmp_m->get_mesh() != &fctr->getMesh()) {
+        throw OpalException(
+                "PartBunch::performBunchSanityChecks",
+                "Etmp/Btmp fields do not use the FieldContainer mesh.");
+    }
+    ms << level4 << "Etmp and Btmp fields initialized on the FieldContainer mesh." << endl;
+
+    if (!this->pcontainer_m) {
+        throw OpalException(
+                "PartBunch::performBunchSanityChecks",
+                "Primary ParticleContainer not initialized.");
+    }
+    ms << level4 << "Primary ParticleContainer present." << endl;
 
     ms << level2 << "========= Done performing PartBunch sanity checks... =========" << endl;
 }
 
 
-// Explicit instantiations
+/** Explicit instantiation for 3D double (OPAL-T). */
 template class PartBunch<double, 3>;

@@ -1,5 +1,5 @@
-#ifndef CLASSIC_EMField_HH
-#define CLASSIC_EMField_HH
+#ifndef OPALX_EMField_HH
+#define OPALX_EMField_HH
 
 // ------------------------------------------------------------------------
 // $RCSfile: EMField.h,v $
@@ -242,4 +242,4 @@ public:
     static const EBVectors ZeroEBfield;
 };
 
-#endif // CLASSIC_EMField_HH
+#endif // OPALX_EMField_HH

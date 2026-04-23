@@ -16,8 +16,8 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
-#ifndef CLASSIC_MonitorRep_HH
-#define CLASSIC_MonitorRep_HH
+#ifndef OPALX_MonitorRep_HH
+#define OPALX_MonitorRep_HH
 
 #include "AbsBeamline/Monitor.h"
 #include "BeamlineGeometry/StraightGeometry.h"
@@ -88,4 +88,4 @@ private:
     void operator=(const MonitorRep &);
 };
 
-#endif // CLASSIC_MonitorRep_HH
+#endif // OPALX_MonitorRep_HH

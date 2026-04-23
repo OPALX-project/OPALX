@@ -63,11 +63,11 @@
 
 // Element commands.
 #include "Elements/OpalCavity.h"
+#include "Elements/OpalTravelingWave.h"
 #include "Elements/OpalConstantEFieldCavity.h"
 #include "Elements/OpalDrift.h"
 #include "Elements/OpalLaser.h"
 #include "Elements/OpalMarker.h"
-#include "Elements/OpalOffset/OpalLocalCartesianOffset.h"
 #include "Elements/OpalProbe.h"
 #include "Elements/OpalMultipole.h"
 #include "Elements/OpalQuadrupole.h"
@@ -78,6 +78,7 @@
 #include "Elements/OpalSinusoidalTimeDependence.h"
 #include "Elements/OpalSplineTimeDependence.h"
 #include "Elements/OpalMultipoleT.h"
+#include "Elements/OpalVariableRFCavity.h"
 
 // Structure-related commands.
 #include "Lines/EmissionSourceList.h"
@@ -129,6 +130,7 @@ namespace {
     void makeElements() {
         OpalData* opal = OpalData::getInstance();
         opal->create(new OpalCavity());
+        opal->create(new OpalTravelingWave());
         opal->create(new OpalConstantEFieldCavity());
         opal->create(new OpalDrift());
         opal->create(new OpalLaser());
@@ -139,12 +141,12 @@ namespace {
         opal->create(new OpalSolenoid());
         opal->create(new OpalRingDefinition());
         opal->create(new Line());
-        opal->create(new OpalOffset::OpalLocalCartesianOffset());
         opal->create(new OpalVerticalFFAMagnet());
         opal->create(new OpalPolynomialTimeDependence());
         opal->create(new OpalSinusoidalTimeDependence());
         opal->create(new OpalSplineTimeDependence());
         opal->create(new OpalMultipoleT());
+        opal->create(new OpalVariableRFCavity());
     }
 };  // namespace
 

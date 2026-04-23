@@ -21,7 +21,7 @@
 
 #include "BeamlineGeometry/StraightGeometry.h"
 #include "BeamlineGeometry/Euclid3D.h"
-#include "Utilities/GeneralClassicException.h"
+#include "Utilities/GeneralOpalException.h"
 
 #include <algorithm>
 
@@ -44,7 +44,7 @@ double StraightGeometry::getElementLength() const {
 
 void StraightGeometry::setElementLength(double l) {
     if (l < 0.0) {
-        throw GeneralClassicException("StraightGeometry::setElementLength",
+        throw GeneralOpalException("StraightGeometry::setElementLength",
                                       "The length of an element has to be positive");
     }
     len = std::max(0.0, l);

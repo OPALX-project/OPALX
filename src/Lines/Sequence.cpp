@@ -1,7 +1,7 @@
 //
 // Class Sequence
 //   The SEQUENCE definition.
-//   A Sequence contains a CLASSIC TBeamline<SequenceMember> which represents
+//   A Sequence contains an OPALX TBeamline<SequenceMember> which represents
 //   the sequence of elements in the line and their positions.  The sequence
 //   definition is parsed in collaboration with a SequenceParser.
 //

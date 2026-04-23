@@ -1,5 +1,5 @@
-#ifndef CLASSIC_Parser_HH
-#define CLASSIC_Parser_HH
+#ifndef OPALX_Parser_HH
+#define OPALX_Parser_HH
 
 // ------------------------------------------------------------------------
 // $RCSfile: Parser.h,v $
@@ -60,4 +60,4 @@ inline
 Parser::~Parser()
 { }
 
-#endif // CLASSIC_Parser_HH
+#endif // OPALX_Parser_HH

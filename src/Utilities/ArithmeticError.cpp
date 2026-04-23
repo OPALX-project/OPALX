@@ -7,7 +7,7 @@
 // ------------------------------------------------------------------------
 //
 // Class: ArithmeticError
-//   The abstract base class for all CLASSIC arithmetic exceptions.
+//   The abstract base class for all OPALX arithmetic exceptions.
 //
 // ------------------------------------------------------------------------
 // Class category: Utilities
@@ -27,12 +27,12 @@
 
 ArithmeticError::ArithmeticError
 (const std::string &meth, const std::string &msg):
-    ClassicException(meth, msg)
+    OpalException(meth, msg)
 {}
 
 
 ArithmeticError::ArithmeticError(const ArithmeticError &rhs):
-    ClassicException(rhs)
+    OpalException(rhs)
 {}
 
 

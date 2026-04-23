@@ -74,6 +74,13 @@ TEST_F(CubicSplineTest, BasicInterpolation) {
     EXPECT_LT(val, 4.0);
 }
 
+TEST_F(CubicSplineTest, Uninitialised) {
+    // Uninitialised
+    CubicSpline::Accelerator accel;
+    CubicSpline spline_uninit;
+    EXPECT_THROW(spline_uninit.eval(0.0, accel), std::runtime_error);
+}
+
 TEST_F(CubicSplineTest, Extrapolation) {
     const CubicSpline spline(x_data, y_data);
     CubicSpline::Accelerator accel;

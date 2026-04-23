@@ -1,7 +1,7 @@
 //
 // Class Line
 //   The LINE definition.
-//   A Line contains a CLASSIC TBeamline<FlaggedElmPtr> which represents the
+//   A Line contains an OPALX TBeamline<FlaggedElmPtr> which represents the
 //   sequence of elements in the line.  The line is always flat in the sense
 //   that nested anonymous lines are flattened.
 //

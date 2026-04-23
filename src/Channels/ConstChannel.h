@@ -1,5 +1,5 @@
-#ifndef CLASSIC_ConstChannel_HH
-#define CLASSIC_ConstChannel_HH
+#ifndef OPALX_ConstChannel_HH
+#define OPALX_ConstChannel_HH
 
 // ------------------------------------------------------------------------
 // $RCSfile: ConstChannel.h,v $
@@ -57,4 +57,4 @@ private:
     const ConstChannel &operator=(const ConstChannel &);
 };
 
-#endif // CLASSIC_ConstChannel_HH
+#endif // OPALX_ConstChannel_HH

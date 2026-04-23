@@ -30,7 +30,6 @@
 #include "Physics/Mylar.h"
 #include "Physics/Titanium.h"
 #include "Physics/Water.h"
-#include "Utilities/GeneralClassicException.h"
 #include "Utilities/Util.h"
 
 #include <iostream>

@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL.  If not, see <https://www.gnu.org/licenses/>.
 //
-#ifndef CLASSIC_Monitor_HH
-#define CLASSIC_Monitor_HH
+#ifndef OPALX_Monitor_HH
+#define OPALX_Monitor_HH
 
 #include "AbsBeamline/Component.h"
 #include "PartBunch/PartBunch.h"
@@ -61,7 +61,7 @@ public:
     /// Get plane on which monitor observes.
     virtual Plane getPlane() const = 0;
 
-    virtual bool apply() override;
+    virtual bool apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
 
     virtual bool apply(
         const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
@@ -125,4 +125,4 @@ inline bool Monitor::isInside(const Vector_t<double, 3>& r) const {
     return std::abs(r(2)) <= 0.5 * length && isInsideTransverse(r);
 }
 
-#endif  // CLASSIC_Monitor_HH
+#endif  // OPALX_Monitor_HH

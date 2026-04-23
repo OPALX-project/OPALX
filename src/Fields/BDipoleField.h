@@ -1,5 +1,5 @@
-#ifndef CLASSIC_BDipoleField_HH
-#define CLASSIC_BDipoleField_HH
+#ifndef OPALX_BDipoleField_HH
+#define OPALX_BDipoleField_HH
 
 // ------------------------------------------------------------------------
 // $RCSfile: BDipoleField.h,v $
@@ -82,4 +82,4 @@ private:
     double Bx, By;
 };
 
-#endif // CLASSIC_BDipoleField_HH
+#endif // OPALX_BDipoleField_HH

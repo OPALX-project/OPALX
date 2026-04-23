@@ -46,7 +46,7 @@ public:
     //  Return the string "SEQUENCE".
     virtual const std::string getCategory() const;
 
-    /// Return the embedded CLASSIC beam line.
+    /// Return the embedded OPALX beam line.
     //  The result it the ideal line.
     virtual Beamline *fetchLine() const = 0;
 

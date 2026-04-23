@@ -11,13 +11,11 @@ set (PARSERPATH "${CMAKE_SOURCE_DIR}/src/Structure")
 
 include_directories (
     ${CMAKE_SOURCE_DIR}/src
-    ${CMAKE_SOURCE_DIR}/src/Classic
 )
 
 set (SRCS
   ${CMAKE_SOURCE_DIR}/src/Utilities/SDDSParser.cpp
   ${CMAKE_SOURCE_DIR}/src/Utilities/OpalException.cpp
-  ${CMAKE_SOURCE_DIR}/src/Classic/Utilities/ClassicException.cpp
 )
 
 set (LIBS

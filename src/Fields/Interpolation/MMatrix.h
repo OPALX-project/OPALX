@@ -34,7 +34,7 @@
 #include "Utilities/GSLMatrix.h"
 #include "Utilities/GSLBLAS.h"
 
-#include "Utilities/GeneralClassicException.h"
+#include "Utilities/GeneralOpalException.h"
 
 #include "Fields/Interpolation/MVector.h"
 
@@ -350,7 +350,7 @@ template <class Tmplt>
 gsl_matrix         inline* MMatrix<Tmplt>::get_matrix(const MMatrix<double>&    m)
 {
   if(m._matrix == nullptr)
-    throw(GeneralClassicException("MMatrix::get_matrix", "Attempt to access uninitialised matrix"));
+    throw(GeneralOpalException("MMatrix::get_matrix", "Attempt to access uninitialised matrix"));
   return (gsl_matrix*)m._matrix;
 }
 
@@ -358,7 +358,7 @@ template <class Tmplt>
 gsl_matrix_complex inline* MMatrix<Tmplt>::get_matrix(const MMatrix<m_complex>& m)
 {
   if(m._matrix == nullptr)
-    throw(GeneralClassicException("MMatrix::get_matrix", "Attempt to access uninitialised matrix"));
+    throw(GeneralOpalException("MMatrix::get_matrix", "Attempt to access uninitialised matrix"));
   return (gsl_matrix_complex*)m._matrix;
 
 }

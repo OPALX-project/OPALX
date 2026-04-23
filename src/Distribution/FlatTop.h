@@ -36,11 +36,11 @@ public:
      * @brief Constructor for FlatTop.
      * @param pc Shared pointer to ParticleContainer.
      * @param fc Shared pointer to FieldContainer.
-     * @param opalDist Shared pointer to Distribution.
+     * @param opalDist Borrowed Distribution.
      */
     FlatTop(std::shared_ptr<ParticleContainer_t> pc,
         std::shared_ptr<FieldContainer_t> fc,
-        std::shared_ptr<Distribution_t> opalDist);
+        Distribution_t* opalDist);
     
     /**
      * @brief Constructor for FlatTop.
@@ -124,6 +124,11 @@ public:
     double getEmissionTime(){
         return emissionTime_m;
     }
+
+    /// @copydoc SamplingBase::isEmissionDone
+    bool isEmissionDone(double t) const override {
+        return (t - t0_m) >= emissionTime_m;
+    }
 private:
     using size_type = ippl::detail::size_type;
     GeneratorPool rand_pool_m;  ///< Random number generator pool.
@@ -153,7 +158,7 @@ private:
      * @brief Sets distribution parameters.
      * @param opalDist Shared pointer to the distribution object.
      */
-    void setParameters(const std::shared_ptr<Distribution_t> &opalDist);
+    void setParameters(Distribution_t* opalDist);
 
 public:
     /**
@@ -244,4 +249,3 @@ public:
 };
 
 #endif // IPPL_FLAT_TOP_H
-

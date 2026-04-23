@@ -25,8 +25,8 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef CLASSIC_BEAMLINEGEOMETRY_Euclid3DGeometry_HH
-#define CLASSIC_BEAMLINEGEOMETRY_Euclid3DGeometry_HH
+#ifndef OPALX_BEAMLINEGEOMETRY_Euclid3DGeometry_HH
+#define OPALX_BEAMLINEGEOMETRY_Euclid3DGeometry_HH
 
 #include "BeamlineGeometry/Geometry.h"
 #include "BeamlineGeometry/Euclid3D.h"
@@ -64,7 +64,7 @@ class Euclid3DGeometry : public BGeometryBase {
     //  straight length.
     virtual void setElementLength(double length);
 
-    /// Not Implemented - raises GeneralClassicException
+    /// Not Implemented - raises GeneralOpalException
     /// Get transform.
     //  Return the transform of the local coordinate system from the
     //  position [b]fromS[/b] to the position [b]toS[/b].
@@ -79,4 +79,4 @@ class Euclid3DGeometry : public BGeometryBase {
     Euclid3D transformation_m;
 };
 
-#endif // #ifndef CLASSIC_BEAMLINEGEOMETRY_Euclid3DGeometry_HH
+#endif // #ifndef OPALX_BEAMLINEGEOMETRY_Euclid3DGeometry_HH

@@ -24,10 +24,10 @@ set(_SRCS
     ScalingFFAMagnet.cpp        
     Solenoid.cpp
     TravelingWave.cpp
-    Offset.cpp
     VerticalFFAMagnet.cpp
     Probe.cpp
     PluginElement.cpp
+    VariableRFCavity.cpp
 )
 
 set(_HDRS
@@ -50,10 +50,10 @@ set(_HDRS
     ScalingFFAMagnet.h
     Ring.h
     Solenoid.h
-    Offset.h
     VerticalFFAMagnet.h
     Probe.h
     PluginElement.h
+    VariableRFCavity.h
 )
 
 # Add local include directory

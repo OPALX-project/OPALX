@@ -1,41 +1,26 @@
-/*
- *  Copyright (c) 2018, Chris Rogers
- *  All rights reserved.
- *  Redistribution and use in source and binary forms, with or without
- *  modification, are permitted provided that the following conditions are met:
- *  1. Redistributions of source code must retain the above copyright notice,
- *     this list of conditions and the following disclaimer.
- *  2. Redistributions in binary form must reproduce the above copyright notice,
- *     this list of conditions and the following disclaimer in the documentation
- *     and/or other materials provided with the distribution.
- *  3. Neither the name of STFC nor the names of its contributors may be used to
- *     endorse or promote products derived from this software without specific
- *     prior written permission.
- *
- *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
- *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- *  POSSIBILITY OF SUCH DAMAGE.
- */
+//
+// Copyright (c) 2026, Paul Scherrer Institute, Villigen PSI, Switzerland
+// All rights reserved
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 
 #include "Algorithms/SplineTimeDependence.h"
-#include "Utility/Inform.h"
 #include <stdexcept>
+#include "Utility/Inform.h"
 
 SplineTimeDependence::SplineTimeDependence(
-    const size_t splineOrder, const std::vector<double>& times, const std::vector<double>& values) {
+        const size_t splineOrder, const std::vector<double>& times,
+        const std::vector<double>& values) {
     setSpline(splineOrder, times, values);
-}
-
-SplineTimeDependence::SplineTimeDependence(const SplineTimeDependence& rhs) {
-    setSpline(rhs.splineOrder_m, rhs.times_m, rhs.values_m);
 }
 
 SplineTimeDependence* SplineTimeDependence::clone() {
@@ -55,33 +40,34 @@ Inform& SplineTimeDependence::print(Inform& os) const {
 }
 
 void SplineTimeDependence::setSpline(
-    const size_t splineOrder, const std::vector<double>& times, const std::vector<double>& values) {
+        const size_t splineOrder, const std::vector<double>& times,
+        const std::vector<double>& values) {
     if (times.size() != values.size()) {
         throw std::invalid_argument(
-            "SplineTimeDependence::SplineTimeDependence: "
-            "Times and values should be of equal length");
+                "SplineTimeDependence::SplineTimeDependence: "
+                "Times and values should be of equal length");
     }
     if (times.size() <= splineOrder) {
         throw std::invalid_argument(
-            "SplineTimeDependence::SplineTimeDependence: "
-            "Times and values should be of length > splineOrder");
+                "SplineTimeDependence::SplineTimeDependence: "
+                "Times and values should be of length > splineOrder");
     }
     if (splineOrder != LinearInterpolation and splineOrder != CubicInterpolation) {
         throw std::invalid_argument(
-            "SplineTimeDependence::SplineTimeDependence: "
-            "Only linear or cubic interpolation is supported");
+                "SplineTimeDependence::SplineTimeDependence: "
+                "Only linear or cubic interpolation is supported");
     }
     for (size_t i = 0; i < times.size() - 1; ++i) {
         if (times[i] >= times[i + 1]) {
-        throw std::invalid_argument(
-                "SplineTimeDependence::SplineTimeDependence: "
-                "Times should increase monotonically");
+            throw std::invalid_argument(
+                    "SplineTimeDependence::SplineTimeDependence: "
+                    "Times should increase monotonically");
         }
     }
     splineOrder_m = splineOrder;
-    times_m  = times;
-    values_m = values;
-    splineAcc_m = std::make_unique<AbstractSpline::Accelerator>();
+    times_m       = times;
+    values_m      = values;
+    splineAcc_m   = std::make_unique<AbstractSpline::Accelerator>();
     if (splineOrder_m == LinearInterpolation) {
         spline_m = std::make_unique<LinearSpline>(times_m, values_m);
     } else {
