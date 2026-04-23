@@ -31,7 +31,7 @@ Astra1DDynamic::Astra1DDynamic(const std::string& filename)
         try {
             parsing_passed = 
             interpretLine<std::string, int>(file, tmpString, accuracy_m);
-        } catch (GeneralopalException &e) {
+        } catch (GeneralOpalException &e) {
             parsing_passed = 
             interpretLine<std::string, int, std::string>(
                 file, tmpString, accuracy_m, tmpString);
