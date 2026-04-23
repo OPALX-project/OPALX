@@ -1,5 +1,5 @@
-#ifndef CLASSIC_Vector3D_HH
-#define CLASSIC_Vector3D_HH
+#ifndef OPALX_Vector3D_HH
+#define OPALX_Vector3D_HH
 
 // ------------------------------------------------------------------------
 // $RCSfile: Vector3D.h,v $
@@ -164,4 +164,4 @@ inline void Vector3D::setY(double y)
 inline void Vector3D::setZ(double z)
 { v[2] = z; }
 
-#endif // CLASSIC_Vector3D_HH
+#endif // OPALX_Vector3D_HH

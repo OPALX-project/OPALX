@@ -1,5 +1,5 @@
-#ifndef CLASSIC_SimpleStatement_HH
-#define CLASSIC_SimpleStatement_HH 1
+#ifndef OPALX_SimpleStatement_HH
+#define OPALX_SimpleStatement_HH 1
 
 // ------------------------------------------------------------------------
 // $RCSfile: SimpleStatement.h,v $
@@ -51,4 +51,4 @@ public:
     virtual void execute(const Parser &);
 };
 
-#endif // CLASSIC_SimpleStatement_HH
+#endif // OPALX_SimpleStatement_HH

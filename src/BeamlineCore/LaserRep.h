@@ -1,5 +1,5 @@
-#ifndef CLASSIC_LaserRep_HH
-#define CLASSIC_LaserRep_HH
+#ifndef OPALX_LaserRep_HH
+#define OPALX_LaserRep_HH
 
 #include "AbsBeamline/Laser.h"
 #include "BeamlineGeometry/StraightGeometry.h"
@@ -26,4 +26,4 @@ private:
     StraightGeometry geometry_m;
 };
 
-#endif  // CLASSIC_LaserRep_HH
+#endif  // OPALX_LaserRep_HH

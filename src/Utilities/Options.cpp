@@ -17,7 +17,7 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "Utilities/Options.h"
-#include "Utilities/ClassicRandom.h"
+#include "Utilities/ExpressionRandom.h"
 
 #include <string>
 

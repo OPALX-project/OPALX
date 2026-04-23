@@ -1,5 +1,5 @@
-#ifndef CLASSIC_Solenoid_HH
-#define CLASSIC_Solenoid_HH
+#ifndef OPALX_Solenoid_HH
+#define OPALX_Solenoid_HH
 
 // ------------------------------------------------------------------------
 // $RCSfile: Solenoid.h,v $
@@ -207,4 +207,4 @@ inline CoordinateSystemTrafo Solenoid::getEdgeToEnd() const {
         Quaternion(1, 0, 0, 0));
     return ret;
 }
-#endif  // CLASSIC_Solenoid_HH
+#endif  // OPALX_Solenoid_HH

@@ -46,7 +46,7 @@ public:
     //  Handle printing in OPAL-8 format.
     virtual void print(std::ostream &) const;
 
-    /// Update the embedded CLASSIC multipole.
+    /// Update the embedded OPALX multipole.
     virtual void update();
 
 private:

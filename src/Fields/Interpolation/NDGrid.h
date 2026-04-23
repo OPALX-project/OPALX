@@ -25,8 +25,8 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _CLASSIC_FIELDS_NDGRID_HH_
-#define _CLASSIC_FIELDS_NDGRID_HH_
+#ifndef _OPALX_FIELDS_NDGRID_HH_
+#define _OPALX_FIELDS_NDGRID_HH_
 
 #include <algorithm>
 #include <cmath>
@@ -387,4 +387,4 @@ void NDGrid::setConstantSpacing(bool spacing) {
 
 } // namespace interpolation
 
-#endif // _CLASSIC_FIELDS_NDGRID_HH_
+#endif // _OPALX_FIELDS_NDGRID_HH_

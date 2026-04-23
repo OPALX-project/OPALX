@@ -1,5 +1,5 @@
-#ifndef CLASSIC_FlaggedBeamline_HH
-#define CLASSIC_FlaggedBeamline_HH
+#ifndef OPALX_FlaggedBeamline_HH
+#define OPALX_FlaggedBeamline_HH
 
 // ------------------------------------------------------------------------
 // $RCSfile: FlaggedBeamline.h,v $
@@ -33,4 +33,4 @@
 
 typedef TBeamline<FlaggedElmPtr> FlaggedBeamline;
 
-#endif // CLASSIC_FlaggedBeamline_HH
+#endif // OPALX_FlaggedBeamline_HH

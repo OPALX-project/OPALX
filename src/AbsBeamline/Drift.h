@@ -1,5 +1,5 @@
-#ifndef CLASSIC_Drift_HH
-#define CLASSIC_Drift_HH
+#ifndef OPALX_Drift_HH
+#define OPALX_Drift_HH
 
 // ------------------------------------------------------------------------
 // $RCSfile: Drift.h,v $
@@ -70,4 +70,4 @@ inline int Drift::getRequiredNumberOfTimeSteps() const {
     return 1;
 }
 
-#endif  // CLASSIC_Drift_HH
+#endif  // OPALX_Drift_HH

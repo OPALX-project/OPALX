@@ -70,7 +70,7 @@ private:
 
     typedef std::list<Reference> RefList;
 
-    // The type of CLASSIC beamline embedded in a Sequence.
+    // The type of OPALX beamline embedded in a Sequence.
     typedef Sequence::TLine TLine;
 
     // Not implemented.

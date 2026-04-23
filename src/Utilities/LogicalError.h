@@ -27,7 +27,7 @@
 // Class LogicalError
 // ------------------------------------------------------------------------
 /// Logical error exception.
-//  This exception is thrown, when CLASSIC detects an inconsistent call to
+//  This exception is thrown when OPALX detects an inconsistent call to
 //  a routine or method.
 
 class LogicalError: public OpalException {

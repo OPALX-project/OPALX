@@ -1,5 +1,5 @@
-#ifndef CLASSIC_Token_HH
-#define CLASSIC_Token_HH 1
+#ifndef OPALX_Token_HH
+#define OPALX_Token_HH 1
 
 // ------------------------------------------------------------------------
 // $RCSfile: Token.h,v $
@@ -164,4 +164,4 @@ private:
 // Output operator.
 std::ostream &operator<<(std::ostream &, const Token &);
 
-#endif // CLASSIC_Token_HH
+#endif // OPALX_Token_HH
