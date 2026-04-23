@@ -4,11 +4,15 @@
 #include "Algorithms/IndexMap.h"
 #include "BeamlineCore/SolenoidRep.h"
 #include "BeamlineCore/DriftRep.h"
+#include "BeamlineCore/MultipoleRep.h"
+#include "BeamlineCore/RFCavityRep.h"
+#include "BeamlineCore/TravelingWaveRep.h"
 #include "Beamlines/Beamline.h"
 #include "BeamlineGeometry/NullGeometry.h"
 #include "Elements/OpalBeamline.h"
 #include "Fields/Fieldmap.h"
 #include "Physics/Units.h"
+#include "Structure/MeshGenerator.h"
 #include "Structure/Beam.h"
 #include "Structure/DataSink.h"
 #include "Structure/FieldSolverCmd.h"
@@ -248,6 +252,8 @@ TEST_F(SolenoidPlacementTest, LatticeExportsUseFieldMapEdgesAndSolenoidMeshType)
     ASSERT_TRUE(py.is_open());
     const std::string script((std::istreambuf_iterator<char>(py)), std::istreambuf_iterator<char>());
     EXPECT_NE(script.find("color = [5]"), std::string::npos);
+    EXPECT_NE(script.find("numVertices = [432]"), std::string::npos);
+    EXPECT_NE(script.find("os.path.getmtime(script_file) > os.path.getmtime(vtk_file)"), std::string::npos);
 }
 
 TEST_F(SolenoidPlacementTest, ElementPositionsSDDSMarksSolenoidColumn) {
@@ -302,4 +308,61 @@ TEST_F(SolenoidPlacementTest, DriftMeshesAsBlueCylinderUsingFirstNonDriftReferen
     ASSERT_TRUE(py.is_open());
     const std::string script((std::istreambuf_iterator<char>(py)), std::istreambuf_iterator<char>());
     EXPECT_NE(script.find("color = [8, 5]"), std::string::npos);
+    EXPECT_NE(script.find("numVertices = [144, 432]"), std::string::npos);
+}
+
+TEST_F(SolenoidPlacementTest, QuadrupoleMeshesAsPoleBodyRatherThanGenericCylinder) {
+    MultipoleRep quadrupole("Q1");
+    quadrupole.setElementLength(0.4);
+    quadrupole.setElementPosition(0.0);
+    quadrupole.setAperture(ApertureType::ELLIPTICAL, std::vector<double>{0.02, 0.03, 1.0});
+    quadrupole.setNormalComponent(1, 1.0);
+
+    auto bunch = makeBunch(0);
+    DummyBeamline beamlineForVisitor;
+    DefaultVisitor visitor(beamlineForVisitor, false, false);
+    OpalBeamline beamline;
+    beamline.visit(quadrupole, visitor, *bunch);
+    beamline.compute3DLattice();
+    beamline.save3DLattice();
+
+    std::ifstream py(outputPath("_ElementPositions.py"));
+    ASSERT_TRUE(py.is_open());
+    const std::string script((std::istreambuf_iterator<char>(py)), std::istreambuf_iterator<char>());
+    EXPECT_NE(script.find("color = [2]"), std::string::npos);
+    EXPECT_NE(script.find("numVertices = [32]"), std::string::npos);
+}
+
+TEST_F(SolenoidPlacementTest, RFCavityMeshesAsBulgedCellStructure) {
+    RFCavityRep cavity("RFC1");
+    cavity.setElementLength(0.7);
+    cavity.setElementPosition(0.0);
+    cavity.setAperture(ApertureType::ELLIPTICAL, std::vector<double>{0.02, 0.03, 1.0});
+
+    MeshGenerator mesh;
+    mesh.add(cavity);
+    mesh.write(testStem_);
+
+    std::ifstream py(outputPath("_ElementPositions.py"));
+    ASSERT_TRUE(py.is_open());
+    const std::string script((std::istreambuf_iterator<char>(py)), std::istreambuf_iterator<char>());
+    EXPECT_NE(script.find("color = [6]"), std::string::npos);
+    EXPECT_NE(script.find("numVertices = [1008]"), std::string::npos);
+}
+
+TEST_F(SolenoidPlacementTest, TravelingWaveMeshesAsPeriodicStructure) {
+    TravelingWaveRep travelingWave("TW1");
+    travelingWave.setElementLength(0.8);
+    travelingWave.setElementPosition(0.0);
+    travelingWave.setAperture(ApertureType::ELLIPTICAL, std::vector<double>{0.02, 0.03, 1.0});
+
+    MeshGenerator mesh;
+    mesh.add(travelingWave);
+    mesh.write(testStem_);
+
+    std::ifstream py(outputPath("_ElementPositions.py"));
+    ASSERT_TRUE(py.is_open());
+    const std::string script((std::istreambuf_iterator<char>(py)), std::istreambuf_iterator<char>());
+    EXPECT_NE(script.find("color = [7]"), std::string::npos);
+    EXPECT_NE(script.find("numVertices = [1152]"), std::string::npos);
 }
