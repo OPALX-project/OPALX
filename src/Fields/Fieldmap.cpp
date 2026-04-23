@@ -33,7 +33,7 @@
 #include "Fields/FM2DMagnetoStatic.h"
 
 #include "Physics/Physics.h"
-#include "Utilities/GeneralClassicException.h"
+#include "Utilities/GeneralOpalException.h"
 #include "Utilities/Options.h"
 #include "Utilities/Util.h"
 
@@ -115,7 +115,7 @@ Fieldmap* Fieldmap::getFieldmap(std::string Filename, bool /*fast*/) {
                 break;
 
             default:
-                throw GeneralClassicException(
+                throw GeneralOpalException(
                     "Fieldmap::getFieldmap()",
                     "Couldn't determine type of fieldmap in file \"" + Filename + "\"");
         }
@@ -159,10 +159,10 @@ MapType Fieldmap::readHeader(std::string Filename) {
         return T1DProfile1;
 
     if (Filename.empty())
-        throw GeneralClassicException("Fieldmap::readHeader()", "No field map file specified");
+        throw GeneralOpalException("Fieldmap::readHeader()", "No field map file specified");
 
     if (!fs::exists(Filename))
-        throw GeneralClassicException(
+        throw GeneralOpalException(
             "Fieldmap::readHeader()", "File '" + Filename + "' doesn't exist");
 
     std::ifstream File(Filename.c_str());
@@ -379,7 +379,7 @@ void Fieldmap::checkMap(
     if (std::sqrt(error / ezSquare) > 1e-1 || maxDiff > 1e-1 * ezMax) {
         lowResolutionWarning(std::sqrt(error / ezSquare), maxDiff / ezMax);
 
-        throw GeneralClassicException(
+        throw GeneralOpalException(
             "Fieldmap::checkMap",
             "Field map can't be reproduced properly with the given number of fourier components");
     }
@@ -446,7 +446,7 @@ void Fieldmap::interpretWarning(
                  << "expecting: '" << expecting << "' on line " << lines_read_m << ",\n"
                  << "instead found: '" << found << "'." << std::endl;
     }
-    throw GeneralClassicException("Fieldmap::interpretWarning()", errormsg.str());
+    throw GeneralOpalException("Fieldmap::interpretWarning()", errormsg.str());
 }
 
 void Fieldmap::missingValuesWarning() {
@@ -455,7 +455,7 @@ void Fieldmap::missingValuesWarning() {
              << "There are only " << lines_read_m - 1 << " lines in the file, expecting more.\n"
              << "Please check the section about field maps in the user manual.";
 
-    throw GeneralClassicException("Fieldmap::missingValuesWarning()", errormsg.str());
+    throw GeneralOpalException("Fieldmap::missingValuesWarning()", errormsg.str());
 }
 
 void Fieldmap::exceedingValuesWarning() {
@@ -465,21 +465,21 @@ void Fieldmap::exceedingValuesWarning() {
              << " lines.\n"
              << "Please check the section about field maps in the user manual.";
 
-    throw GeneralClassicException("Fieldmap::exceedingValuesWarning()", errormsg.str());
+    throw GeneralOpalException("Fieldmap::exceedingValuesWarning()", errormsg.str());
 }
 
 void Fieldmap::disableFieldmapWarning() {
     std::stringstream errormsg;
     errormsg << "DISABLING FIELD MAP '" + Filename_m + "' DUE TO PARSING ERRORS.";
 
-    throw GeneralClassicException("Fieldmap::disableFieldmapsWarning()", errormsg.str());
+    throw GeneralOpalException("Fieldmap::disableFieldmapsWarning()", errormsg.str());
 }
 
 void Fieldmap::noFieldmapWarning() {
     std::stringstream errormsg;
     errormsg << "DISABLING FIELD MAP '" << Filename_m << "' SINCE FILE COULDN'T BE FOUND!";
 
-    throw GeneralClassicException("Fieldmap::noFieldmapsWarning()", errormsg.str());
+    throw GeneralOpalException("Fieldmap::noFieldmapsWarning()", errormsg.str());
 }
 
 void Fieldmap::lowResolutionWarning(double squareError, double maxError) {

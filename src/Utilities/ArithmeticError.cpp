@@ -27,12 +27,12 @@
 
 ArithmeticError::ArithmeticError
 (const std::string &meth, const std::string &msg):
-    ClassicException(meth, msg)
+    OpalException(meth, msg)
 {}
 
 
 ArithmeticError::ArithmeticError(const ArithmeticError &rhs):
-    ClassicException(rhs)
+    OpalException(rhs)
 {}
 
 

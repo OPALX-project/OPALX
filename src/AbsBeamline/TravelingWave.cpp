@@ -12,7 +12,7 @@
 #include "Fields/Fieldmap.h"
 #include "PartBunch/PartBunch.h"
 #include "Physics/Units.h"
-#include "Utilities/GeneralClassicException.h"
+#include "Utilities/GeneralOpalException.h"
 
 extern Inform* gmsg;
 
@@ -103,7 +103,7 @@ bool TravelingWave::apply(const std::shared_ptr<ParticleContainer_t>& pc)
 
     auto* dynamicFieldmap = dynamic_cast<Astra1DDynamic*>(fieldmap_m);
     if (dynamicFieldmap == nullptr) {
-        throw GeneralClassicException(
+        throw GeneralOpalException(
             "TravelingWave::apply",
             "TravelingWave particle application currently requires an Astra1DDynamic field map.");
     }
@@ -281,7 +281,7 @@ void TravelingWave::initialise(PartBunch_t* bunch, double& startField, double& e
     double zBegin = 0.0, zEnd = 0.0;
     RFCavity::initialise(bunch, zBegin, zEnd);
     if (std::abs(startField_m) > 0.0) {
-        throw GeneralClassicException(
+        throw GeneralOpalException(
             "TravelingWave::initialise",
             "The field map of a traveling wave structure has to begin at 0.0");
     }

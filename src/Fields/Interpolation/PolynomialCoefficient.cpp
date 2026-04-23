@@ -24,7 +24,7 @@ void PolynomialCoefficient::SpaceTransform(std::vector<int> space_in,
         if (mapping.find(in_variables[con]) != mapping.end())
            in_variables[con] = mapping[in_variables[con]];
       else
-          throw(GeneralClassicException(
+          throw(GeneralOpalException(
                 "PolynomialVector::PolynomialCoefficient::SpaceTransform",
                 "Input variable not found in space transform"
           ));
@@ -33,7 +33,7 @@ void PolynomialCoefficient::SpaceTransform(std::vector<int> space_in,
     if(mapping.find(_outVar) != mapping.end())
         _outVar = mapping[_outVar];
     else
-        throw(GeneralClassicException(
+        throw(GeneralOpalException(
               "PolynomialVector::PolynomialCoefficient::SpaceTransform",
               "Output variable not found in space transform"
         ));

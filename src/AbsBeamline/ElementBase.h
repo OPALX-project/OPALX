@@ -69,7 +69,7 @@
 #include "BeamlineGeometry/Euclid3D.h"
 #include "BeamlineGeometry/Geometry.h"
 #include "Structure/BoundingBox.h"
-#include "Utilities/GeneralClassicException.h"
+#include "Utilities/GeneralOpalException.h"
 
 #include <memory>
 #include <optional>
@@ -556,7 +556,7 @@ inline double ElementBase::getElementPosition() const {
     if (elemedgeSet_m)
         return elementPosition_m;
 
-    throw GeneralClassicException(
+    throw GeneralOpalException(
         "ElementBase::getElementPosition()",
         std::string("ELEMEDGE for \"") + getName() + "\" not set");
 }

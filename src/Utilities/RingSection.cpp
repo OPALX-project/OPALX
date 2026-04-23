@@ -28,7 +28,7 @@
 #include "Utilities/RingSection.h"
 
 #include "Physics/Physics.h"
-#include "Utilities/GeneralClassicException.h"
+#include "Utilities/GeneralOpalException.h"
 
 RingSection::RingSection()
   : component_m(nullptr),
@@ -55,7 +55,7 @@ RingSection& RingSection::operator=(const RingSection& rhs) {
     if (&rhs != this) {
         component_m = dynamic_cast<Component*>(rhs.component_m->clone());
         if (component_m == nullptr)
-            throw GeneralClassicException("RingSection::operator=",
+            throw GeneralOpalException("RingSection::operator=",
                                 "Failed to copy RingSection");
         componentPosition_m = rhs.componentPosition_m;
         componentOrientation_m = rhs.componentOrientation_m;

@@ -20,7 +20,7 @@
 #include "AbsBeamline/Multipole.h"
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "PartBunch/PartBunch.h"
-#include "Utilities/GeneralClassicException.h"
+#include "Utilities/GeneralOpalException.h"
 
 // Unused Headers
 #include "Physics/Physics.h"
@@ -117,7 +117,7 @@ Multipole::~Multipole() {
 double Multipole::getNormalComponent(int n) const 
 {
     if (n < 0) {
-        throw GeneralClassicException("Multipole::getNormalComponent", 
+        throw GeneralOpalException("Multipole::getNormalComponent", 
             "component index " + std::to_string(n) + " out of bounds");
     }
     else if (n < max_NormalComponent_m) {
@@ -143,7 +143,7 @@ double Multipole::getNormalComponent(int n) const
 double Multipole::getSkewComponent( int n) const 
 {
     if (n < 0) {
-        throw GeneralClassicException("Multipole::getSkewComponent", 
+        throw GeneralOpalException("Multipole::getSkewComponent", 
             "component index " + std::to_string(n) + " out of bounds");
     }
     else if (n < max_SkewComponent_m) {
@@ -170,7 +170,7 @@ double Multipole::getSkewComponent( int n) const
 void Multipole::setNormalComponent(int n, double v, double vError) 
 {
     if (n < 0) {
-        throw GeneralClassicException("Multipole::setNormalComponent", 
+        throw GeneralOpalException("Multipole::setNormalComponent", 
             "component index " + std::to_string(n) + " out of bounds");
     }
 
@@ -214,7 +214,7 @@ void Multipole::setNormalComponent(int n, double v, double vError)
 void Multipole::setSkewComponent(int n, double v, double vError) 
 {
     if (n < 0) {
-        throw GeneralClassicException("Multipole::setSkewComponent", 
+        throw GeneralOpalException("Multipole::setSkewComponent", 
             "component index " + std::to_string(n) + " out of bounds");
     }
 
@@ -715,9 +715,9 @@ bool Multipole::isInside(const Vector_t<double, 3>& r) const {
 
 bool Multipole::isFocusing(int component) const {
     if (component < 0)
-        throw GeneralClassicException("Multipole::isFocusing", "component negative");
+        throw GeneralOpalException("Multipole::isFocusing", "component negative");
     else if (static_cast<unsigned long>(component) >= NormalComponents.extent(0))
-        throw GeneralClassicException("Multipole::isFocusing", "component too big");
+        throw GeneralOpalException("Multipole::isFocusing", "component too big");
 
     // Fix: Use getNormalComponent() to safely retrieve the value from GPU memory
     return getNormalComponent(component) * std::pow(-1, component + 1)
