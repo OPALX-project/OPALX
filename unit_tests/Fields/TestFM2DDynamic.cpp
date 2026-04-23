@@ -939,7 +939,6 @@ TEST_F(FM2DDynamicTest, XZvsZXConsistency) {
     EXPECT_NEAR(B_xz[2], B_zx[2], 1e-10);
 }
 
-
 // ===========================================================================
 // Test: Er and Bt project correctly into Cartesian components (Dynamic)
 // ===========================================================================
