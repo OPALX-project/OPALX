@@ -1,5 +1,5 @@
-#ifndef CLASSIC_DivideError_HH
-#define CLASSIC_DivideError_HH
+#ifndef OPAL_DivideError_HH
+#define OPAL_DivideError_HH
 
 // ------------------------------------------------------------------------
 // $RCSfile: DivideError.h,v $
@@ -50,4 +50,4 @@ private:
     DivideError();
 };
 
-#endif // CLASSIC_DivideError_HH
+#endif // OPAL_DivideError_HH

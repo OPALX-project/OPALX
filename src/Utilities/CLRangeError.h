@@ -1,5 +1,5 @@
-#ifndef CLASSIC_CLRangeError_HH
-#define CLASSIC_CLRangeError_HH
+#ifndef OPAL_CLRangeError_HH
+#define OPAL_CLRangeError_HH
 
 // ------------------------------------------------------------------------
 // $RCSfile: CLRangeError.h,v $
@@ -54,4 +54,4 @@ private:
     CLRangeError();
 };
 
-#endif // CLASSIC_CLRangeError_HH
+#endif // OPAL_CLRangeError_HH

@@ -29,7 +29,7 @@
 
 #include "Utilities/GSLCompat.h"
 
-#include "Utilities/GeneralClassicException.h"
+#include "Utilities/GeneralOpalException.h"
 
 #include "Fields/Interpolation/PPSolveFactory.h"
 #include "Fields/Interpolation/SolveFactory.h"
@@ -49,7 +49,7 @@ SolveFactory::SolveFactory(int smoothing_order,
         ss << "Total size of positions and deriv_positions ("
            << positions.size() << "+" << deriv_positions.size() << ") should be "
            << n_poly_coeffs_;
-        throw GeneralClassicException(
+        throw GeneralOpalException(
                           "SolveFactory::SolveFactory",
                           ss.str());
     }
@@ -145,20 +145,20 @@ SquarePolynomialVector* SolveFactory::PolynomialSolve(
     int nCoeffs = values.size();
     int nDerivs = deriv_values.size();
     if (values.size()+deriv_values.size() != size_t(n_poly_coeffs_)) {
-        throw GeneralClassicException(
+        throw GeneralOpalException(
               "SolveFactory::PolynomialSolve",
               "Values and derivatives over or under constrained"
         );
     }
     for (int i = 1; i < nCoeffs && i < n_poly_coeffs_; ++i) {
         if (values[i].size() < values[0].size()) {
-            throw GeneralClassicException("SolveFactory::PolynomialSolve",
+            throw GeneralOpalException("SolveFactory::PolynomialSolve",
                                           "The vector of values is too short");
         }
     }
     for (int i = 0; i < nDerivs; ++ i) {
         if (deriv_values[i].size() < values[0].size()) {
-            throw GeneralClassicException("SolveFactory::PolynomialSolve",
+            throw GeneralOpalException("SolveFactory::PolynomialSolve",
                                           "The vector of derivative values is too short");
         }
     }

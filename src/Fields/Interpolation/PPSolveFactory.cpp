@@ -35,7 +35,7 @@
 
 #include "Utility/Inform.h" // ippl
 
-#include "Utilities/GeneralClassicException.h"
+#include "Utilities/GeneralOpalException.h"
 
 #include "Fields/Interpolation/SolveFactory.h"
 #include "Fields/Interpolation/PolynomialPatch.h"
@@ -79,7 +79,7 @@ PPSolveFactory::PPSolveFactory(Mesh* points,
     edgePoints_m(),
     smoothingPoints_m() {
     if (points == nullptr) {
-        throw GeneralClassicException(
+        throw GeneralOpalException(
                           "PPSolveFactory::Solve",
                           "nullptr Mesh input to Solve");
     }
@@ -88,18 +88,18 @@ PPSolveFactory::PPSolveFactory(Mesh* points,
         ss << "Mismatch between Mesh and values in Solve. Mesh size was "
            << points->end().toInteger() << " but field values size was "
            << values.size();
-        throw GeneralClassicException(
+        throw GeneralOpalException(
                           "PPSolveFactory::Solve",
                           ss.str());
     }
     if (smoothingOrder < polyPatchOrder) {
-        throw GeneralClassicException(
+        throw GeneralOpalException(
                 "PPSolveFactory::Solve",
                 "Polynomial order must be <= smoothing order in Solve");
     }
     polyMesh_m = points->dual();
     if (polyMesh_m == nullptr)
-        throw GeneralClassicException(
+        throw GeneralOpalException(
                           "PPSolveFactory::Solve",
                           "Dual of Mesh was nullptr");
     polyDim_m = values[0].size();
@@ -349,10 +349,10 @@ std::vector<std::vector<int> > PPSolveFactory::getNearbyPointsSquares(
                                                       int polyOrderLower,
                                                       int polyOrderUpper) {
     if (pointDim < 1)
-        throw(GeneralClassicException("PPSolveFactory::getNearbyPointsSquares",
+        throw(GeneralOpalException("PPSolveFactory::getNearbyPointsSquares",
                                       "Point dimension must be > 0"));
     if (polyOrderLower > polyOrderUpper)
-        throw(GeneralClassicException("PPSolveFactory::getNearbyPointsSquares",
+        throw(GeneralOpalException("PPSolveFactory::getNearbyPointsSquares",
                    "Polynomial lower bound must be <= polynomial upper bound"));
     // polyOrder -1 (or less) means no terms
     if (polyOrderUpper == polyOrderLower || polyOrderUpper < 0)

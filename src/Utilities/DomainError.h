@@ -1,5 +1,5 @@
-#ifndef CLASSIC_DomainError_HH
-#define CLASSIC_DomainError_HH
+#ifndef OPAL_DomainError_HH
+#define OPAL_DomainError_HH
 
 // ------------------------------------------------------------------------
 // $RCSfile: DomainError.h,v $
@@ -50,4 +50,4 @@ private:
     DomainError();
 };
 
-#endif // CLASSIC_DomainError_HH
+#endif // OPAL_DomainError_HH

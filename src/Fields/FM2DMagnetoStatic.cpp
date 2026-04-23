@@ -2,7 +2,7 @@
 #include "Fields/Fieldmap.hpp"
 #include "PartBunch/PartBunch.h"
 #include "Physics/Units.h"
-#include "Utilities/GeneralClassicException.h"
+#include "Utilities/GeneralOpalException.h"
 #include "Utilities/Util.h"
 
 #include <cmath>
@@ -33,14 +33,14 @@ FM2DMagnetoStatic::FM2DMagnetoStatic(std::string aFilename)
         try {
             parsing_passed = 
             interpretLine<std::string, std::string>(file, tmpString, tmpString);
-        } catch (GeneralClassicException& e) {
+        } catch (GeneralOpalException& e) {
             parsing_passed = 
             interpretLine<std::string, std::string, std::string>(
                 file, tmpString, tmpString, tmpString);
 
             tmpString = Util::toUpper(tmpString);
             if (tmpString != "TRUE" && tmpString != "FALSE")
-                throw GeneralClassicException(
+                throw GeneralOpalException(
                     "FM2DMagnetoStatic::FM2DMagnetoStatic",
                     "The third string on the first line of 2D field "
                     "maps has to be either TRUE or FALSE");
@@ -86,7 +86,7 @@ FM2DMagnetoStatic::FM2DMagnetoStatic(std::string aFilename)
         if (!parsing_passed) {
             disableFieldmapWarning();
             zend_m = zbegin_m - 1e-3;
-            throw GeneralClassicException(
+            throw GeneralOpalException(
                 "FM2DMagnetoStatic::FM2DMagnetoStatic",
                 "An error occured when reading the fieldmap '" + Filename_m + "'");
         } else {
@@ -281,7 +281,7 @@ bool FM2DMagnetoStatic::getFieldDerivative(
     Vector_t<double, 3>& /*E*/, 
     Vector_t<double, 3>& /*B*/,
     const DiffDirection& /*dir*/) const {
-        throw GeneralClassicException(
+        throw GeneralOpalException(
             "FM2DMagnetoStatic::getFieldDerivative","not implemented");
 }
 
@@ -293,7 +293,7 @@ void FM2DMagnetoStatic::getFieldDimensions(double& zBegin, double& zEnd) const {
 void FM2DMagnetoStatic::getFieldDimensions(
     double& /*xIni*/, double& /*xFinal*/, double& /*yIni*/, double& /*yFinal*/, double& /*zIni*/,
     double& /*zFinal*/) const {
-        throw GeneralClassicException(
+        throw GeneralOpalException(
             "FM2DMagnetoStatic::getFieldDimensions","not implemented");
 }
 
@@ -311,13 +311,13 @@ void FM2DMagnetoStatic::getInfo(Inform* msg) {
 }
 
 double FM2DMagnetoStatic::getFrequency() const {
-    throw GeneralClassicException(
+    throw GeneralOpalException(
         "FM2DMagnetoStatic::getFrequency","not implemented");
     return 0.0;
 }
 
 void FM2DMagnetoStatic::setFrequency(double /*freq*/) {
-    throw GeneralClassicException(
+    throw GeneralOpalException(
         "FM2DMagnetoStatic::setFrequency","not implemented");
     return;
 }

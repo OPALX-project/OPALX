@@ -1,5 +1,5 @@
-#ifndef CLASSIC_ParseError_HH
-#define CLASSIC_ParseError_HH
+#ifndef OPAL_ParseError_HH
+#define OPAL_ParseError_HH
 
 // ------------------------------------------------------------------------
 // $RCSfile: ParseError.h,v $
@@ -20,7 +20,7 @@
 //
 // ------------------------------------------------------------------------
 
-#include "Utilities/ClassicException.h"
+#include "Utilities/OpalException.h"
 
 
 // Class ParseError
@@ -29,7 +29,7 @@
 //  This exception is thrown by the CLASSIC parser whein it detects an
 //  input format error.
 
-class ParseError: public ClassicException {
+class ParseError: public OpalException {
 
 public:
 
@@ -53,4 +53,4 @@ private:
     ParseError();
 };
 
-#endif // CLASSIC_ParseError_HH
+#endif // OPAL_ParseError_HH
