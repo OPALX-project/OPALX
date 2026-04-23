@@ -47,6 +47,26 @@ void BinnedFieldSolver<T, Dim>::computeSelfFields(PartBunch_t& bunch) {
         return;
     }
 
+    // Fail fast on a zero per-particle charge. prepareRhoForBin scatters
+    // dt*Q via scaleDtByCharge / unscaleDtByCharge, which computes 0 / 0
+    // when Q == 0 and silently poisons the per-particle dt attribute with
+    // NaN. The first scatter then returns rho = 0 but leaves dt = NaN,
+    // and any subsequent scatter in the same timestep (e.g. the shifted-
+    // Green's correction pass) propagates NaN into rho -> E -> particles.
+    // Almost always this means BCHARGE was omitted from the BEAM
+    // definition in the input file.
+    if (pc->getTotalNum() > 0 && pc->getChargePerParticle() == 0.0) {
+        throw OpalException(
+                "BinnedFieldSolver::computeSelfFields",
+                "Per-particle charge is zero but a self-field solver is active "
+                "(type=" + this->getStype()
+                        + "). This almost always means the BEAM command in the "
+                          "input file is missing BCHARGE (bunch charge, in [C]). "
+                          "Set e.g. 'BCHARGE = 1e-9' on the BEAM definition, or "
+                          "switch the field solver to TYPE=NONE if no space "
+                          "charge is intended.");
+    }
+
     // decide which solver path to run (binned vs legacy).
     const bool hasBins = bunch.hasBinning();
 
