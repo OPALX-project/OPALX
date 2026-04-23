@@ -74,8 +74,8 @@ private:
     };
 
     static MeshData getCylinder(
-        double length, double minor, double major, double formFactor,
-        const unsigned int numSegments = 36);
+            double length, double minor, double major, double formFactor,
+            const unsigned int numSegments = 36);
 
     /**
      * @brief Build a hollow tube aligned with the local z-axis.
@@ -93,8 +93,8 @@ private:
      * @return Hollow triangulated tube mesh.
      */
     static MeshData getTube(
-        double length, double innerMinor, double innerMajor, double outerMinor, double outerMajor,
-        const unsigned int numSegments = 36);
+            double length, double innerMinor, double innerMajor, double outerMinor,
+            double outerMajor, const unsigned int numSegments = 36);
 
     /**
      * @brief Build a quadrupole-like body from four longitudinal pole blocks.

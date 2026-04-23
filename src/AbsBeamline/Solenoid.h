@@ -32,73 +32,65 @@ class Fieldmap;
  */
 class Solenoid : public Component {
 public:
-/* ============================== Constructors ============================== */
+    /* ============================== Constructors ============================== */
     explicit Solenoid(const std::string& name);
     Solenoid();
     Solenoid(const Solenoid&);
     virtual ~Solenoid();
-/* ========================================================================== */
-/* ============================== Apply Functions =========================== */
+    /* ========================================================================== */
+    /* ============================== Apply Functions =========================== */
     /**
      * @brief apply the solenoid field to all particles in the bunch
-     * 
+     *
      * @returns true if at least one particle is lost, false otherwise
      */
     virtual bool apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
 
     /**
      * @brief apply the solenoid field to particle i
-     * 
+     *
      * @param i Particle index
      * @param t Time
      * @param E Electric Field
      * @param B Magnetic Field
-     * 
+     *
      * @returns true if particle is lost, false otherwise
      */
     virtual bool apply(
-        const size_t& i, 
-        const double& t, 
-        Vector_t<double, 3>& E, 
-        Vector_t<double, 3>& B) override;
+            const size_t& i, const double& t, Vector_t<double, 3>& E,
+            Vector_t<double, 3>& B) override;
 
     /**
      * @brief Apply to particle with position R and momentum P
-     * 
+     *
      * @param R Position
      * @param P Momentum
      * @param t Time
      * @param E Electric Field
      * @param B Magnetic Field
-     * 
+     *
      * @returns true if particle is lost, false otherwise
      */
     virtual bool apply(
-        const Vector_t<double, 3>& R, 
-        const Vector_t<double, 3>& P, 
-        const double& t,
-        Vector_t<double, 3>& E, 
-        Vector_t<double, 3>& B) override;
+            const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
+            Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 
     /**
      * @brief Apply to reference particle with position R and momemtum P
-     * 
+     *
      * @param R Position
      * @param P Momentum
      * @param t Time
      * @param E Electric Field
      * @param B Magnetic Field
-     * 
+     *
      * @returns true if particle is lost, false otherwise
      */
     virtual bool applyToReferenceParticle(
-        const Vector_t<double, 3>& R, 
-        const Vector_t<double, 3>& P, 
-        const double& t,
-        Vector_t<double, 3>& E, 
-        Vector_t<double, 3>& B) override;
-/* ========================================================================== */
-/* ============================== Functions ================================= */
+            const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
+            Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
+    /* ========================================================================== */
+    /* ============================== Functions ================================= */
     /// @brief Apply visitor to Solenoid
     virtual void accept(BeamlineVisitor&) const override;
 
@@ -113,15 +105,12 @@ public:
 
     /**
      * @brief initialise the solenoid element
-     * 
+     *
      * @param bunch Particle bunch
-     * @param startField Starting position of the field 
+     * @param startField Starting position of the field
      * @param endField Ending position of the field
      */
-    virtual void initialise(
-        PartBunch_t* bunch, 
-        double& startField, 
-        double& endField) override;
+    virtual void initialise(PartBunch_t* bunch, double& startField, double& endField) override;
 
     /// @note not implemented
     virtual void finalise() override;
@@ -143,9 +132,9 @@ public:
 
     virtual ElementType getType() const override;
 
-    /// @brief Get the begin and end positions of the element 
+    /// @brief Get the begin and end positions of the element
     virtual void getDimensions(double& zBegin, double& zEnd) const override;
-    
+
     /// @brief Get the begin and end positions of the element
     virtual void getElementDimensions(double& zBegin, double& zEnd) const override;
 
@@ -173,52 +162,49 @@ public:
     virtual CoordinateSystemTrafo getEdgeToEnd() const override;
 
 private:
-/* ========================================================================== */
-/* ============================== Variables ================================= */
-    
+    /* ========================================================================== */
+    /* ============================== Variables ================================= */
+
     /// Name of the field map file
-    std::string filename_m; 
+    std::string filename_m;
 
     /// Fieldmap pointer
     Fieldmap* fieldmap_m;
 
     /// Scale multiplier
-    double scale_m; 
-    
+    double scale_m;
+
     /// Scale error multiplier
     double scaleError_m;
 
     /// Starting point of the field
-    double startField_m; 
+    double startField_m;
 
     /// Fast tracking flag @note currently not implemented
     bool fast_m;
 
-    /// @note not implemente 
+    /// @note not implemente
     void operator=(const Solenoid&);
 };
 
 /**
  * @brief Get the coordinate transformation to the start of the element
- * 
+ *
  * @returns CoordinateSystemTrafo to the begin of the element
  */
 inline CoordinateSystemTrafo Solenoid::getEdgeToBegin() const {
-    CoordinateSystemTrafo ret(
-        Vector_t<double, 3>(0, 0, startField_m), 
-        Quaternion(1, 0, 0, 0));
+    CoordinateSystemTrafo ret(Vector_t<double, 3>(0, 0, startField_m), Quaternion(1, 0, 0, 0));
     return ret;
 }
 
 /**
  * @brief Get the coordinate transformation to the end of the element
- * 
+ *
  * @returns CoordinateSystemTrafo to the end of the element
  */
 inline CoordinateSystemTrafo Solenoid::getEdgeToEnd() const {
     CoordinateSystemTrafo ret(
-        Vector_t<double, 3>(0, 0, startField_m + getElementLength()), 
-        Quaternion(1, 0, 0, 0));
+            Vector_t<double, 3>(0, 0, startField_m + getElementLength()), Quaternion(1, 0, 0, 0));
     return ret;
 }
 #endif  // OPALX_Solenoid_HH
