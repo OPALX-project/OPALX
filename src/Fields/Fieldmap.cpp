@@ -4,8 +4,6 @@
 
 #include "AbstractObjects/OpalData.h"
 /* To be ported from OPAL
-#include "Fields/Astra1DDynamic.h"
-#include "Fields/Astra1DDynamic_fast.h"
 #include "Fields/Astra1DElectroStatic.h"
 #include "Fields/Astra1DElectroStatic_fast.h"
 #include "Fields/Astra1DMagnetoStatic.h"
@@ -29,6 +27,8 @@
 #include "Fields/FMDummy.h"
 */
 
+#include "Fields/Astra1DDynamic.h"
+// #include "Fields/Astra1DDynamic_fast.h"
 #include "Fields/FM2DDynamic.h"
 #include "Fields/FM2DMagnetoStatic.h"
 
@@ -98,6 +98,19 @@ Fieldmap* Fieldmap::getFieldmap(std::string Filename, bool /*fast*/) {
                 position = FieldmapDictionary.insert(std::make_pair(
                     Filename,
                     FieldmapDescription(T2DDynamic, new FM2DDynamic(Filename))));
+                return (*position.first).second.Map;
+                break;
+
+            case TAstraDynamic:
+                // if (fast) {
+                //     position = FieldmapDictionary.insert(std::make_pair(
+                //         Filename,
+                //         FieldmapDescription(TAstraDynamic, new Astra1DDynamic_fast(Filename))));
+                // } else {
+                position = FieldmapDictionary.insert(std::make_pair(
+                    Filename,
+                    FieldmapDescription(TAstraDynamic, new Astra1DDynamic(Filename))));
+                // }   
                 return (*position.first).second.Map;
                 break;
 
