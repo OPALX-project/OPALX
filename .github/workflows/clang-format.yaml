@@ -8,18 +8,15 @@ on:
 jobs:
   clang-format:
     runs-on: ubuntu-latest
-    # continue-on-error: true
     if: |
-      github.event_name == 'merge_group' ||
-      (github.event_name == 'pull_request' &&
-       contains(github.event.pull_request.labels.*.name, 'compile-ci') &&
-       github.event.pull_request.draft == false)
+      contains(github.event.pull_request.labels.*.name, 'compile-ci') &&
+      github.event.pull_request.draft == false
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # IMPORTANT: required for git diff
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -36,7 +33,7 @@ jobs:
       - name: Get list of modified source files
         id: files
         env:
-          BASE_REF: ${{ github.base_ref || github.event.merge_group.base_ref }}
+          BASE_REF: ${{ github.base_ref }}
         run: |
           BASE_REF="${BASE_REF#refs/heads/}"
           git fetch origin "$BASE_REF"
