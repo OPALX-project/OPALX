@@ -47,7 +47,7 @@
 #include "PartBunch/PartBunch.h"
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
-#include "Utilities/GeneralClassicException.h"
+#include "Utilities/GeneralOpalException.h"
 #include "Ippl.h"
 
 #include <cmath>
@@ -479,7 +479,7 @@ TEST_F(Astra1DDynamicTest, GetInfoNoCrash) {
 // ===========================================================================
 TEST_F(Astra1DDynamicTest, MissingFile) {
     std::string fname = tmpFile("nonexistent.map");
-    EXPECT_THROW(Fieldmap::getFieldmap(fname), GeneralClassicException);
+    EXPECT_THROW(Fieldmap::getFieldmap(fname), GeneralOpalException);
 }
 
 // ===========================================================================
