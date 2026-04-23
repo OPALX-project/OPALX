@@ -12,6 +12,30 @@
 
 extern Inform* gmsg;
 
+namespace {
+    void appendMesh(MeshData& target, const MeshData& source) {
+        const unsigned int offset = target.vertices_m.size();
+        target.vertices_m.insert(target.vertices_m.end(), source.vertices_m.begin(), source.vertices_m.end());
+        for (const auto& triangle : source.triangles_m) {
+            target.triangles_m.push_back(
+                Vector_t<unsigned int, 3>(triangle(0) + offset, triangle(1) + offset, triangle(2) + offset));
+        }
+        target.decorations_m.insert(target.decorations_m.end(), source.decorations_m.begin(), source.decorations_m.end());
+    }
+
+    void translateMesh(MeshData& mesh, const double dx, const double dy, const double dz = 0.0) {
+        const Vector_t<double, 3> shift(dx, dy, dz);
+        for (auto& vertex : mesh.vertices_m) {
+            vertex += shift;
+        }
+        for (auto& decoration : mesh.decorations_m) {
+            decoration.first += shift;
+            decoration.second += shift;
+        }
+    }
+
+}
+
 MeshGenerator::MeshGenerator() : elements_m(), hasDriftReference_m(false), driftMinor_m(0.0), driftMajor_m(0.0) {
 }
 
@@ -76,7 +100,7 @@ void MeshGenerator::add(const ElementBase& element) {
             double minor = 0.0;
             double major = 0.0;
             if (getTransverseSupport(element, minor, major)) {
-                mesh = getCylinder(end - start, minor, major, 1.0);
+                mesh = getSolenoid(end - start, minor, major);
             }
         }
         mesh.type_m = SOLENOID;
@@ -86,12 +110,19 @@ void MeshGenerator::add(const ElementBase& element) {
         }
         double end = 0.0;
         element.getElementDimensions(start, end);
-        mesh = getCylinder(end - start, driftMinor_m, driftMajor_m, 1.0);
+        mesh = getTube(
+            end - start, 0.7 * driftMinor_m, 0.7 * driftMajor_m, driftMinor_m, driftMajor_m);
         mesh.type_m = DRIFT;
     } else {
         double end, length;
-        element.getElementDimensions(start, end);
-        length     = end - start;
+        if (element.getType() == ElementType::RFCAVITY
+            || element.getType() == ElementType::TRAVELINGWAVE) {
+            start = 0.0;
+            end = element.getElementLength();
+        } else {
+            element.getElementDimensions(start, end);
+        }
+        length = end - start;
         auto apert = element.getAperture();
 
         switch (apert.first) {
@@ -101,7 +132,16 @@ void MeshGenerator::add(const ElementBase& element) {
                 break;
             case ApertureType::ELLIPTICAL:
             case ApertureType::CONIC_ELLIPTICAL:
-                mesh = getCylinder(length, apert.second[0], apert.second[1], apert.second[2]);
+                if (element.getType() == ElementType::MULTIPOLE
+                    && static_cast<const Multipole*>(&element)->getMaxNormalComponentIndex() == 2) {
+                    mesh = getQuadrupole(length, apert.second[0], apert.second[1], apert.second[2]);
+                } else if (element.getType() == ElementType::RFCAVITY) {
+                    mesh = getRFCavity(length, apert.second[0], apert.second[1]);
+                } else if (element.getType() == ElementType::TRAVELINGWAVE) {
+                    mesh = getTravelingWave(length, apert.second[0], apert.second[1]);
+                } else {
+                    mesh = getCylinder(length, apert.second[0], apert.second[1], apert.second[2]);
+                }
                 break;
             default:
                 return;
@@ -358,7 +398,11 @@ void MeshGenerator::write(const std::string& fname) {
     out << indent << indent << "return 1\n\n";
 
     out << indent << "vtk_file = \"" << fname << "_ElementPositions.vtk\"\n";
-    out << indent << "if not os.path.exists(vtk_file):\n";
+    out << indent << "script_file = os.path.abspath(__file__)\n";
+    out << indent << "needs_export = not os.path.exists(vtk_file)\n";
+    out << indent << "if not needs_export:\n";
+    out << indent << indent << "needs_export = os.path.getmtime(script_file) > os.path.getmtime(vtk_file)\n";
+    out << indent << "if needs_export:\n";
     out << indent << indent << "exportVTK()\n\n";
 
     out << indent << "mesh = pv.read(vtk_file)\n";
@@ -1142,6 +1186,155 @@ MeshData MeshGenerator::getCylinder(
     mesh.decorations_m.push_back(
         std::make_pair(Vector_t<double, 3>(0.0), Vector_t<double, 3>(0, 0, length)));
 
+    return mesh;
+}
+
+MeshData MeshGenerator::getTube(
+    double length, double innerMinor, double innerMajor, double outerMinor, double outerMajor,
+    const unsigned int numSegments) {
+    double angle  = 0.0;
+    double dAngle = Physics::two_pi / numSegments;
+
+    MeshData mesh;
+    for (unsigned int i = 0; i < numSegments; ++i, angle += dAngle) {
+        mesh.vertices_m.push_back(Vector_t<double, 3>(outerMajor * cos(angle), outerMinor * sin(angle), 0.0));
+    }
+    for (unsigned int i = 0; i < numSegments; ++i, angle += dAngle) {
+        mesh.vertices_m.push_back(Vector_t<double, 3>(innerMajor * cos(angle), innerMinor * sin(angle), 0.0));
+    }
+    for (unsigned int i = 0; i < numSegments; ++i, angle += dAngle) {
+        mesh.vertices_m.push_back(Vector_t<double, 3>(outerMajor * cos(angle), outerMinor * sin(angle), length));
+    }
+    for (unsigned int i = 0; i < numSegments; ++i, angle += dAngle) {
+        mesh.vertices_m.push_back(Vector_t<double, 3>(innerMajor * cos(angle), innerMinor * sin(angle), length));
+    }
+
+    for (unsigned int i = 0; i < numSegments; ++i) {
+        const unsigned int next = (i + 1) % numSegments;
+        const unsigned int bottomOuter = i;
+        const unsigned int bottomOuterNext = next;
+        const unsigned int bottomInner = numSegments + i;
+        const unsigned int bottomInnerNext = numSegments + next;
+        const unsigned int topOuter = 2 * numSegments + i;
+        const unsigned int topOuterNext = 2 * numSegments + next;
+        const unsigned int topInner = 3 * numSegments + i;
+        const unsigned int topInnerNext = 3 * numSegments + next;
+
+        mesh.triangles_m.push_back(Vector_t<unsigned int, 3>(bottomOuter, bottomOuterNext, topOuter));
+        mesh.triangles_m.push_back(Vector_t<unsigned int, 3>(bottomOuterNext, topOuterNext, topOuter));
+
+        mesh.triangles_m.push_back(Vector_t<unsigned int, 3>(bottomInner, topInner, bottomInnerNext));
+        mesh.triangles_m.push_back(Vector_t<unsigned int, 3>(bottomInnerNext, topInner, topInnerNext));
+    }
+
+    return mesh;
+}
+
+MeshData MeshGenerator::getQuadrupole(
+    double length, double minor, double major, double formFactor) {
+    MeshData mesh;
+
+    const double poleHalfWidthX = 0.45 * major;
+    const double poleHalfHeightX = 0.75 * minor;
+    const double poleHalfWidthY = 0.75 * major;
+    const double poleHalfHeightY = 0.45 * minor;
+    const double xOffset = major + poleHalfWidthX;
+    const double yOffset = minor + poleHalfHeightY;
+
+    MeshData rightPole = getBox(length, poleHalfWidthX, poleHalfHeightX, formFactor);
+    translateMesh(rightPole, xOffset, 0.0);
+    appendMesh(mesh, rightPole);
+
+    MeshData leftPole = getBox(length, poleHalfWidthX, poleHalfHeightX, formFactor);
+    translateMesh(leftPole, -xOffset, 0.0);
+    appendMesh(mesh, leftPole);
+
+    MeshData topPole = getBox(length, poleHalfWidthY, poleHalfHeightY, formFactor);
+    translateMesh(topPole, 0.0, yOffset);
+    appendMesh(mesh, topPole);
+
+    MeshData bottomPole = getBox(length, poleHalfWidthY, poleHalfHeightY, formFactor);
+    translateMesh(bottomPole, 0.0, -yOffset);
+    appendMesh(mesh, bottomPole);
+
+    return mesh;
+}
+
+MeshData MeshGenerator::getSolenoid(double length, double minor, double major) {
+    const double boreMinor = 0.45 * minor;
+    const double boreMajor = 0.45 * major;
+    const double collarLength = std::min(0.18 * length, 0.8 * std::min(minor, major));
+
+    if (collarLength <= 1e-12 || 2.0 * collarLength >= length) {
+        return getTube(length, boreMinor, boreMajor, minor, major);
+    }
+
+    MeshData mesh;
+
+    MeshData entranceCollar = getTube(
+        collarLength, boreMinor, boreMajor, 1.18 * minor, 1.18 * major);
+    appendMesh(mesh, entranceCollar);
+
+    MeshData body = getTube(
+        length - 2.0 * collarLength, boreMinor, boreMajor, minor, major);
+    translateMesh(body, 0.0, 0.0, collarLength);
+    appendMesh(mesh, body);
+
+    MeshData exitCollar = getTube(
+        collarLength, boreMinor, boreMajor, 1.18 * minor, 1.18 * major);
+    translateMesh(exitCollar, 0.0, 0.0, length - collarLength);
+    appendMesh(mesh, exitCollar);
+
+    return mesh;
+}
+
+MeshData MeshGenerator::getRFCavity(double length, double minor, double major) {
+    const double boreMinor = 0.42 * minor;
+    const double boreMajor = 0.42 * major;
+    const std::vector<double> profile = {0.78, 1.15, 0.82, 1.25, 0.82, 1.15, 0.78};
+
+    MeshData mesh;
+    const auto appendTubeSegment = [&](const double zStart, const double segmentLength, const double scale) {
+        if (segmentLength <= 1e-12) {
+            return;
+        }
+        MeshData segment = getTube(
+            segmentLength, boreMinor, boreMajor, scale * minor, scale * major);
+        translateMesh(segment, 0.0, 0.0, zStart);
+        appendMesh(mesh, segment);
+    };
+    const double segmentLength = length / static_cast<double>(profile.size());
+    double z = 0.0;
+    for (double scale : profile) {
+        appendTubeSegment(z, segmentLength, scale);
+        z += segmentLength;
+    }
+    return mesh;
+}
+
+MeshData MeshGenerator::getTravelingWave(double length, double minor, double major) {
+    const double boreMinor = 0.48 * minor;
+    const double boreMajor = 0.48 * major;
+    const std::vector<double> profile = {
+        0.92, 1.05, 0.92, 1.05, 0.92, 1.05, 0.92, 1.05
+    };
+
+    MeshData mesh;
+    const auto appendTubeSegment = [&](const double zStart, const double segmentLength, const double scale) {
+        if (segmentLength <= 1e-12) {
+            return;
+        }
+        MeshData segment = getTube(
+            segmentLength, boreMinor, boreMajor, scale * minor, scale * major);
+        translateMesh(segment, 0.0, 0.0, zStart);
+        appendMesh(mesh, segment);
+    };
+    const double segmentLength = length / static_cast<double>(profile.size());
+    double z = 0.0;
+    for (double scale : profile) {
+        appendTubeSegment(z, segmentLength, scale);
+        z += segmentLength;
+    }
     return mesh;
 }
 

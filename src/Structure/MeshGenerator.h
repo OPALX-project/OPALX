@@ -77,6 +77,81 @@ private:
         double length, double minor, double major, double formFactor,
         const unsigned int numSegments = 36);
 
+    /**
+     * @brief Build a hollow tube aligned with the local z-axis.
+     *
+     * The tube is represented by triangulated inner and outer walls without end
+     * caps. This is used for drift sections to visualise the beam pipe rather
+     * than a solid support body.
+     *
+     * @param length Tube length along the local z-axis.
+     * @param innerMinor Inner semi-axis in the local y-direction.
+     * @param innerMajor Inner semi-axis in the local x-direction.
+     * @param outerMinor Outer semi-axis in the local y-direction.
+     * @param outerMajor Outer semi-axis in the local x-direction.
+     * @param numSegments Number of azimuthal segments.
+     * @return Hollow triangulated tube mesh.
+     */
+    static MeshData getTube(
+        double length, double innerMinor, double innerMajor, double outerMinor, double outerMajor,
+        const unsigned int numSegments = 36);
+
+    /**
+     * @brief Build a quadrupole-like body from four longitudinal pole blocks.
+     *
+     * The pole blocks are scaled from the element aperture and extruded along
+     * the full element length so that the resulting shape remains meaningful
+     * when the quadrupole length changes.
+     *
+     * @param length Body length along the local z-axis.
+     * @param minor Aperture semi-axis in the local y-direction.
+     * @param major Aperture semi-axis in the local x-direction.
+     * @param formFactor Exit scaling factor used for conic apertures.
+     * @return Triangulated quadrupole body mesh.
+     */
+    static MeshData getQuadrupole(double length, double minor, double major, double formFactor);
+
+    /**
+     * @brief Build a solenoid body as a hollow tube with short end collars.
+     *
+     * The body is scaled from the transverse support envelope and extruded over
+     * the full element length. Short end collars make the solenoid visually
+     * distinct from both drifts and plain cylindrical supports.
+     *
+     * @param length Body length along the local z-axis.
+     * @param minor Outer semi-axis in the local y-direction.
+     * @param major Outer semi-axis in the local x-direction.
+     * @return Triangulated solenoid body mesh.
+     */
+    static MeshData getSolenoid(double length, double minor, double major);
+
+    /**
+     * @brief Build a standing-wave cavity body from a sequence of bulged cells.
+     *
+     * The body is assembled from hollow tube segments with alternating neck and
+     * cell radii. This produces a programmer-facing standing-wave cavity shape
+     * while remaining purely geometric and length-scaled.
+     *
+     * @param length Body length along the local z-axis.
+     * @param minor Outer semi-axis in the local y-direction.
+     * @param major Outer semi-axis in the local x-direction.
+     * @return Triangulated standing-wave cavity mesh.
+     */
+    static MeshData getRFCavity(double length, double minor, double major);
+
+    /**
+     * @brief Build a traveling-wave structure with repeated shallow corrugations.
+     *
+     * Compared to the standing-wave cavity, the modulation is more uniform and
+     * elongated to suggest a periodic accelerating structure.
+     *
+     * @param length Body length along the local z-axis.
+     * @param minor Outer semi-axis in the local y-direction.
+     * @param major Outer semi-axis in the local x-direction.
+     * @return Triangulated traveling-wave cavity mesh.
+     */
+    static MeshData getTravelingWave(double length, double minor, double major);
+
     static MeshData getBox(double length, double width, double height, double formFactor);
 
     std::vector<MeshData> elements_m;
