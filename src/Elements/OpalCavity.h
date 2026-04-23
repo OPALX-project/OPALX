@@ -59,7 +59,7 @@ public:
     /// Make clone.
     virtual OpalCavity *clone(const std::string &name);
 
-    /// Update the embedded CLASSIC cavity.
+    /// Update the embedded OPALX cavity.
     virtual void update();
 
 private:

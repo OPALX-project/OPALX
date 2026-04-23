@@ -110,8 +110,8 @@ public:
     //  Returns the geometric length of the underlying beam line.
     virtual double getLength() = 0;
 
-    /// Return embedded CLASSIC beamline.
-    //  Returns the CLASSIC beamline representing the table.
+    /// Return embedded OPALX beamline.
+    //  Returns the OPALX beamline representing the table.
     //  The data of the table are attached to each position in the line.
     virtual const Beamline *getLine() const = 0;
 

@@ -28,6 +28,7 @@
 
 #include "Utilities/BiMap.h"
 
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -72,7 +73,8 @@ private:
     void setRunMethod();
     std::string getRunMethodName() const;
 
-    void initDataSink();
+    void initDataSink(size_t numParticleContainers);
+    std::vector<H5PartWrapper*> borrowedPhaseSpaceSinks() const;
 
     void setupBoundaryGeometry();
 
@@ -86,13 +88,13 @@ private:
         size_t index=0
     );
 
-    /// Compute total number of macroparticles for the bunch from BEAM::NPART and
+    /// Compute total number of macroparticles for the bunch from BEAM::NALLOC and
     /// optional per-distribution NPARTDIST values on the emission sources.
-    size_t computeTotalParticlesForBunch(
+    size_t computeTotalAllocationForBunch(
         Beam* beam,
         const std::vector<EmissionSource*>& sources) const;
 
-    Tracker* itsTracker_m;
+    std::unique_ptr<Tracker> itsTracker_m;
 
     /// Distributions referenced by all emission sources (non-owning raw pointers).
     std::vector<Distribution*> distrs_m;
@@ -100,11 +102,11 @@ private:
     /// Samplers for time-dependent (emitting) sources; tracker calls emitParticles(t, dt) on each.
     //std::vector<std::shared_ptr<SamplingBase>> emittingSamplers_m;
 
-    std::shared_ptr<FieldSolverCmd> fs_m;
+    FieldSolverCmd* fs_m;
 
-    std::shared_ptr<DataSink> ds_m;
+    DataSink* ds_m;
 
-    H5PartWrapper* phaseSpaceSink_m;
+    std::vector<std::unique_ptr<H5PartWrapper>> phaseSpaceSinks_m;
 
     OpalData* opal_m;
 
@@ -114,7 +116,7 @@ private:
     */
 
     using bunch_type = PartBunch_t;
-    std::shared_ptr<bunch_type> bunch_m;
+    std::unique_ptr<bunch_type> bunch_m;
 
     bool isFollowupTrack_m;
 

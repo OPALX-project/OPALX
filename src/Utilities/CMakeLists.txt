@@ -1,15 +1,14 @@
 set (_SRCS
     ArithmeticError.cpp
     CLRangeError.cpp
-    ClassicException.cpp
-    ClassicField.cpp
-    ClassicRandom.cpp
+    BeamlineFieldElement.cpp
+    ExpressionRandom.cpp
     ComplexErrorFun.cpp
     ConvergenceError.cpp
     DivideError.cpp
     DomainError.cpp
     FormatError.cpp
-    GeneralClassicException.cpp
+    GeneralOpalException.cpp
     LogicalError.cpp
     Mesher.cpp
     MSLang.cpp
@@ -38,7 +37,6 @@ set (_SRCS
     Util.cpp
     RingSection.cpp
     SDDSParser.cpp
-    EarlyLeaveException.cpp
     OpalException.cpp
     OpalFilter.cpp
     RegularExpression.cpp
@@ -51,15 +49,14 @@ set (_SRCS
 set (HDRS
     ArithmeticError.h
     CLRangeError.h
-    ClassicException.h
-    ClassicField.h
-    ClassicRandom.h
+    BeamlineFieldElement.h
+    ExpressionRandom.h
     ComplexErrorFun.h
     ConvergenceError.h
     DivideError.h
     DomainError.h
     FormatError.h
-    GeneralClassicException.h
+    GeneralOpalException.h
     LogicalError.h
     Mesher.h
     MSLang.h
@@ -89,7 +86,6 @@ set (HDRS
     PortableGraymapReader.h
     RingSection.h  
     Util.h
-    EarlyLeaveException.h
     OpalException.h
     OpalFilter.h
     RegularExpression.h

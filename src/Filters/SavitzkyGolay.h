@@ -1,5 +1,5 @@
-#ifndef CLASSIC_SAVITZKY_GOLAY_FILTER_HH
-#define CLASSIC_SAVITZKY_GOLAY_FILTER_HH
+#ifndef OPALX_SAVITZKY_GOLAY_FILTER_HH
+#define OPALX_SAVITZKY_GOLAY_FILTER_HH
 
 #include "Filters/Filter.h"
 
@@ -27,4 +27,4 @@ void convlv(const std::vector<double> &data, const std::vector<double> &respns, 
 void ludcmp(std::vector<double> &a, std::vector<int> &indx, double &d);
 void lubksb(std::vector<double> &a, std::vector<int> &indx, std::vector<double> &b);
 
-#endif // CLASSIC_SAVITZKY_GOLAY_FILTER_HH
+#endif // OPALX_SAVITZKY_GOLAY_FILTER_HH

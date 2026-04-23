@@ -38,7 +38,6 @@
 
 #include "Distribution/FromFile.h"
 
-#include "Physics/ParticleProperties.h"
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
 
@@ -64,11 +63,33 @@
 #include <cstddef>
 #include <fstream>
 #include <iomanip>
+#include <memory>
 #include <vector>
 
 #include <unistd.h>
 
+#include <filesystem>
+
 extern Inform* gmsg;
+
+namespace {
+
+/** Restart source path for container @p index when using per-container H5 names. */
+std::string h5RestartSourceForContainer(
+    const std::string& restartFile, const std::string& containerH5FileName, size_t numContainers) {
+    if (numContainers <= 1) {
+        return restartFile;
+    }
+    namespace fs = std::filesystem;
+    fs::path rf(restartFile);
+    fs::path leaf = fs::path(containerH5FileName).filename();
+    if (rf.has_parent_path()) {
+        return (rf.parent_path() / leaf).string();
+    }
+    return leaf.string();
+}
+
+}  // namespace
 
 namespace TRACKRUN {
     // The attributes of class TrackRun.
@@ -96,7 +117,7 @@ TrackRun::TrackRun()
       itsTracker_m(nullptr),
       fs_m(nullptr),
       ds_m(nullptr),
-      phaseSpaceSink_m(nullptr),
+      phaseSpaceSinks_m(),
       isFollowupTrack_m(false),
       method_m(RunMethod::NONE){
 
@@ -126,7 +147,7 @@ TrackRun::TrackRun(const std::string& name, TrackRun* parent)
       itsTracker_m(nullptr),
       fs_m(nullptr),
       ds_m(nullptr),
-      phaseSpaceSink_m(nullptr),
+      phaseSpaceSinks_m(),
       isFollowupTrack_m(false),
       method_m(RunMethod::NONE){
     /*
@@ -150,7 +171,6 @@ TrackRun::TrackRun(const std::string& name, TrackRun* parent)
 }
 
 TrackRun::~TrackRun() {
-    delete phaseSpaceSink_m;
 }
 
 TrackRun* TrackRun::clone(const std::string& name) {
@@ -198,17 +218,9 @@ void TrackRun::execute() {
     if (!itsAttr[TRACKRUN::FIELDSOLVER]) {
         throw OpalException("TrackRun::execute", "\"FIELDSOLVER\" must be set in \"RUN\" command.");
     }
-    // Beam selection is resolved from TRACK::BEAM / TRACK::BEAMS.
-    // For now, we still track using only the first resolved beam.
 
-    OpalData::getInstance()->setInOPALTMode();
-
-    //if (isFollowupTrack_m) {
-    //    Track::block->bunch->setLocalTrackStep(0);
-    //}
-
-    // Fieldsover command
-    fs_m = std::shared_ptr<FieldSolverCmd>(FieldSolverCmd::find(Attributes::getString(itsAttr[TRACKRUN::FIELDSOLVER])));
+    // Field solver commands are registry-owned by OpalData; TrackRun only borrows it.
+    fs_m = FieldSolverCmd::find(Attributes::getString(itsAttr[TRACKRUN::FIELDSOLVER]));
     *gmsg << level1 << *fs_m << endl;
     if (fs_m->hasBinningCmd()) {
         *gmsg << level1 << *fs_m->getBinningCmd() << endl;
@@ -216,13 +228,12 @@ void TrackRun::execute() {
 
     // Process BEAM object names
     std::vector<std::string> beamNames = Track::block->beamNames_m;
-
     if (beamNames.empty()) {
         throw OpalException("TrackRun::execute", 
             "No beam specified: set TRACK::BEAM or TRACK::BEAMS.");
     }
 
-    // Create vector or BEAMs
+    // Create vector of BEAMs
     std::vector<Beam*> beams;
     beams.reserve(beamNames.size());
     for (const auto& name : beamNames) {
@@ -245,9 +256,6 @@ void TrackRun::execute() {
         *gmsg << beamNames[i] << (i + 1 < beamNames.size() ? ", " : "");
     }
     *gmsg << endl;
-    // For now we still use the first beam as reference beam in places that
-    // are not container-aware yet.
-    Beam* beam = beams.front();
     // Print the BEAM banner for each resolved beam.
     for (Beam* b : beams) {
         *gmsg << level1 << *b << endl;
@@ -261,6 +269,7 @@ void TrackRun::execute() {
     macromasses.reserve(beams.size());
     emissionSourcesLists.reserve(beams.size());
 
+    // Fill macro quantities and emissionSourceList per container (beam)
     for (size_t i = 0; i < beams.size(); ++i) {
         Beam* b = beams[i];
 
@@ -287,66 +296,45 @@ void TrackRun::execute() {
         }
         emissionSourcesLists.emplace_back(sources.begin(), sources.end());
     }
-    //*gmsg << "* Number of emission sources (all beams) " << totalEmissionSources << endl;
 
     /*
     Need the following units for mass and charge:
-    - Charge per macro particle in [C], this should be macrocharge_m or q_m in the bunch. This will be used for the field calculations.
-    - The pusher needs consistent units: eV for mass and elementary charges for charge. This will (hopefully) be handled inside the pusher routines!
+    - Charge per macro particle in [C], this should be macrocharge_m or q_m in the bunch. 
+      This will be used for the field calculations.
+    - The pusher needs consistent units: eV for mass and elementary charges for charge. 
+      This will (hopefully) be handled inside the pusher routines!
     */
 
-    /// \todo first 2 arguments can go!
-    initDataSink();
-    bunch_m = std::make_shared<bunch_type>(
-        macrocharges,
-        macromasses,
-        beams.size(),
-        1.0, "LF2", fs_m, ds_m);
-    bunch_m->setT(0.0); 
-    bunch_m->setReference(&beam->getReference()); // TODO: do for each container
+    // ? Need to see how this interacts with multiple containers
+    initDataSink(beams.size());
 
+    // Set total particles per container (beam)
     std::vector<size_t> totalParticlesPerBeam(beams.size());
     for (size_t i = 0; i < beams.size(); ++i) {
         Beam* b = beams[i];
-        //EmissionSourceList* esl = EmissionSourceList::find(b->getEmissionSourceListName());
-        totalParticlesPerBeam[i] = computeTotalParticlesForBunch(b, emissionSourcesLists[i]);
+        totalParticlesPerBeam[i] = computeTotalAllocationForBunch(b, emissionSourcesLists[i]);
     }
 
+    // Create PartBunch (PIC Manager) with multiple particle containers
+    bunch_m = std::make_unique<bunch_type>(
+        macrocharges,           // Macro charge [C]
+        macromasses,            // Macro Mass [GeV]
+        beams,                  // Beam objects per container
+        totalParticlesPerBeam,  // Per-beam particle counts for allocation
+        1.0,                    // lbt
+        "LF2",                  // Integrator
+        fs_m,                   // Fieldsolver
+        ds_m);                  // Data sink
+
+    // Validate container setup produced by constructor
     const auto& particleContainers = bunch_m->getParticleContainers();
     if (particleContainers.size() != beams.size()) {
         throw OpalException("TrackRun::execute",
                             "Mismatch between number of beams and particle containers.");
     }
 
-    for (size_t i = 0; i < beams.size(); ++i) {
-        particleContainers[i]->Sp =
-            static_cast<short>(ParticleProperties::getParticleType(beams[i]->getParticleName()));
-    }
+    // BC handler
     *gmsg << level2 << *(bunch_m->getBCHandler()) << endl;
-
-    const double nRanks = static_cast<double>(ippl::Comm->size());
-    std::vector<size_t> maxLocalNumPerBeam(beams.size());
-    for (size_t i = 0; i < beams.size(); ++i) {
-        maxLocalNumPerBeam[i] =
-            static_cast<size_t>(totalParticlesPerBeam[i] / nRanks + 2 * nRanks + 1);
-    }
-
-    // Allocate particle memory in the container, can be done after the constructor of the bunch is
-    // done (sets up the container).
-    for (size_t i = 0; i < particleContainers.size(); ++i) {
-        particleContainers[i]->create(maxLocalNumPerBeam[i]);
-    }
-
-    // Destroy ALL particles --> result is now they are allocated in the attributes. Note that we
-    // have to destroy ALL particles, since this short circuits the internal IPPL function such that
-    // tmp_invalid does not need to be a valid view and can just be a dummy. Calling create again
-    // will then not alter the underlying view and just increment the localNum counter.
-    for (size_t i = 0; i < particleContainers.size(); ++i) {
-        Kokkos::View<bool*> tmp_invalid("tmp_invalid", maxLocalNumPerBeam[i]);
-        particleContainers[i]->destroy(tmp_invalid, maxLocalNumPerBeam[i]);
-        *gmsg << level3 << "* Container " << i << ": " << maxLocalNumPerBeam[i]
-              << " particles created and destroyed. Bunch allocated." << endl;
-    }
 
     setupBoundaryGeometry();
 
@@ -380,7 +368,7 @@ void TrackRun::execute() {
     }
 
     // Setup all distributions and samplers, perform initial sampling (t0 == 0),
-    // and prepare emittingSamplers_m for time-dependent / delayed sources.
+    // and prepare per-container emitting sampler lists for ParallelTracker.
     // Do this for each particle container
     std::vector<emittingSamplers_t> emittingSamplersList(particleContainers.size());
     for(size_t i=0; i<particleContainers.size(); ++i){
@@ -391,25 +379,12 @@ void TrackRun::execute() {
             i);
     }
 
-    /* 
-       reset the fieldsolver with correct hr_m
-       based on the distribution
-    */
-    bunch_m->setCharge();
-    bunch_m->setMass();
-
-    // TODO: CONTINUTE MULTIBUNCH WORK FROM HERE ON
+    // Calculate extents and update moments for each container
     bunch_m->bunchUpdate();
     bunch_m->print(*gmsg);
 
-    /*
-    if (!isFollowupTrack_m) {
-        *gmsg << std::scientific;
-        *gmsg << *dist_m << endl;
-    }
-    */
-
-    if (bunch_m->getTotalNum() > 0) {
+    // Set ZStart, ZStop, and dT
+    if (bunch_m->getParticleContainer()->getTotalNum() > 0) {
         double spos = Track::block->zstart;
         auto& zstop = Track::block->zstop;
         auto it     = Track::block->dT.begin();
@@ -431,12 +406,10 @@ void TrackRun::execute() {
        findPhasesForMaxEnergy();
 
     */
-    // TODO: INITIALISE WITH ALL CONTAINERS, EMITTINGSAMPLERSLIST
-    itsTracker_m = new ParallelTracker(
-        *Track::block->use->fetchLine(), bunch_m.get(), ds_m, beam->getReference(), false,
-        Attributes::getBool(itsAttr[TRACKRUN::TRACKBACK]), Track::block->localTimeSteps,
-        Track::block->zstart, Track::block->zstop, Track::block->dT, emittingSamplersList[0]);
-
+    itsTracker_m = std::make_unique<ParallelTracker>(
+        *Track::block->use->fetchLine(), *bunch_m, ds_m, false,
+        Track::block->localTimeSteps,
+        Track::block->zstart, Track::block->zstop, Track::block->dT, emittingSamplersList);
     itsTracker_m->execute();
 
     /*
@@ -445,7 +418,6 @@ void TrackRun::execute() {
     opal_m->bunchIsAllocated();
     */
 
-    /// \todo do we delete here itsTracker_m;
 }
 
 void TrackRun::setRunMethod() {
@@ -465,35 +437,52 @@ std::string TrackRun::getRunMethodName() const {
 }
 
 
-void TrackRun::initDataSink() {
-    if (opal_m->inRestartRun()) {
-        phaseSpaceSink_m = new H5PartWrapperForPT(
-            opal_m->getInputBasename() + std::string(".h5"), opal_m->getRestartStep(),
-            OpalData::getInstance()->getRestartFileName(), H5_O_WRONLY);
-    } else if (isFollowupTrack_m) {
-        phaseSpaceSink_m = new H5PartWrapperForPT(
-            opal_m->getInputBasename() + std::string(".h5"), -1,
-            opal_m->getInputBasename() + std::string(".h5"), H5_O_WRONLY);
-    } else {
-        phaseSpaceSink_m =
-            new H5PartWrapperForPT(opal_m->getInputBasename() + std::string(".h5"), H5_O_WRONLY);
+void TrackRun::initDataSink(size_t numParticleContainers) {
+    phaseSpaceSinks_m.clear();
+    phaseSpaceSinks_m.reserve(numParticleContainers);
+
+    const std::string base = opal_m->getInputBasename();
+
+    for (size_t i = 0; i < numParticleContainers; ++i) {
+        const std::string stem = DataSink::diagnosticStemForContainer(base, numParticleContainers, i);
+        const std::string dest   = stem + std::string(".h5");
+
+        if (opal_m->inRestartRun()) {
+            const std::string src = h5RestartSourceForContainer(
+                OpalData::getInstance()->getRestartFileName(), dest, numParticleContainers);
+            phaseSpaceSinks_m.push_back(
+                std::make_unique<H5PartWrapperForPT>(dest, opal_m->getRestartStep(), src, H5_O_WRONLY));
+        } else if (isFollowupTrack_m) {
+            phaseSpaceSinks_m.push_back(
+                std::make_unique<H5PartWrapperForPT>(dest, -1, stem + std::string(".h5"), H5_O_WRONLY));
+        } else {
+            phaseSpaceSinks_m.push_back(std::make_unique<H5PartWrapperForPT>(dest, H5_O_WRONLY));
+        }
     }
 
+    const std::vector<H5PartWrapper*> sinks = borrowedPhaseSpaceSinks();
     if (!opal_m->inRestartRun()) {
         if (!opal_m->hasDataSinkAllocated()) {
-            opal_m->setDataSink(new DataSink(phaseSpaceSink_m, false));
+            opal_m->setDataSink(new DataSink(sinks, false, numParticleContainers));
         } else {
             DataSink* raw = opal_m->getDataSink();
-            raw->changeH5Wrapper(phaseSpaceSink_m);
+            raw->changeH5Wrappers(sinks);
         }
     } else {
-        opal_m->setDataSink(new DataSink(phaseSpaceSink_m, true));
+        opal_m->setDataSink(new DataSink(sinks, true, numParticleContainers));
     }
 
-    // Wrap the global DataSink in a non-owning shared_ptr for local use.
-    /// \todo this is a hack to avoid having to pass the DataSink to the PartBunch constructor. Refactor to completely use shared_ptr later!
-    DataSink* raw = opal_m->getDataSink();
-    ds_m = std::shared_ptr<DataSink>(raw, [](DataSink*) {});
+    // DataSink lifetime is managed by OpalData; TrackRun only borrows it.
+    ds_m = opal_m->getDataSink();
+}
+
+std::vector<H5PartWrapper*> TrackRun::borrowedPhaseSpaceSinks() const {
+    std::vector<H5PartWrapper*> sinks;
+    sinks.reserve(phaseSpaceSinks_m.size());
+    for (const auto& sink : phaseSpaceSinks_m) {
+        sinks.push_back(sink.get());
+    }
+    return sinks;
 }
 
 void TrackRun::setupBoundaryGeometry() {
@@ -509,10 +498,10 @@ void TrackRun::setupBoundaryGeometry() {
     }
 }
 
-size_t TrackRun::computeTotalParticlesForBunch(
+size_t TrackRun::computeTotalAllocationForBunch(
     Beam* beam,
     const std::vector<EmissionSource*>& sources) const {
-    size_t beamNumParticles = beam->getNumberOfParticles();
+    size_t beamAllocSize = beam->getNumAlloc();
 
     size_t totalFromDists = 0;
     for (EmissionSource* src : sources) {
@@ -523,18 +512,19 @@ size_t TrackRun::computeTotalParticlesForBunch(
     if (totalFromDists > 0) {
         *gmsg << level3
               << "* Sum of per-distribution NPARTDIST over all emission sources = "
-              << totalFromDists << ", BEAM::NPART = " << beamNumParticles << endl;
-        if (totalFromDists != beamNumParticles) {
+              << totalFromDists << ", BEAM::NALLOC = " << beamAllocSize << endl;
+        if (totalFromDists > beamAllocSize) {
             *gmsg << level1
                   << "* WARNING: Sum of NPARTDIST over all distributions ("
                   << totalFromDists
-                  << ") does not match BEAM::NPART (" << beamNumParticles
-                  << "). Macro-charge per particle still derived from BEAM." << endl;
+                  << ") exceeds BEAM::NALLOC (" << beamAllocSize
+                  << "). Allocation baseline may be insufficient; "
+                  << "macro-charge per particle is still derived from BEAM::NALLOC." << endl;
         }
         return totalFromDists;
     }
 
-    return beamNumParticles;
+    return beamAllocSize;
 }
 
 void TrackRun::setupDistributionsAndSamplers(
@@ -556,16 +546,35 @@ void TrackRun::setupDistributionsAndSamplers(
     distrs_m.clear();
 
     for (EmissionSource* src : sources) {
-        auto* distRaw = Distribution::find(src->getDistributionName());
-        // Do not take ownership of global Distribution objects.
-        std::shared_ptr<Distribution> opalDist(distRaw, [](Distribution*){});
+        // Distribution objects are registry-owned; samplers only borrow them.
+        Distribution* opalDist = Distribution::find(src->getDistributionName());
 
         // Ensure distribution parameters and reference momentum are up to date.
         opalDist->setDistType();
         opalDist->setDist();
         opalDist->setAvrgPz(avrgpz);
 
-        distrs_m.push_back(distRaw);
+        // FROMFILE distributions carry absolute momenta — the BEAM's
+        // PC/ENERGY/GAMMA would be silently ignored, so forbid the combination.
+        if (opalDist->getType() == DistributionType::FROMFILE) {
+            if (beam->hasExplicitEnergy()) {
+                throw OpalException(
+                    "TrackRun::setupDistributionsAndSamplers()",
+                    "FROMFILE distribution \"" + src->getDistributionName()
+                    + "\" cannot be combined with PC/ENERGY/GAMMA on the BEAM. "
+                      "Remove the energy attribute from the BEAM command — "
+                      "particle momenta are read from the file.");
+            }
+        } else {
+            if (!beam->hasExplicitEnergy()) {
+                throw OpalException(
+                    "TrackRun::setupDistributionsAndSamplers()",
+                    "The energy hasn't been set. "
+                    "Set either \"GAMMA\", \"ENERGY\" or \"PC\" on the BEAM command.");
+            }
+        }
+
+        distrs_m.push_back(opalDist);
 
         // Build a sampler instance for this emission source.
         std::shared_ptr<SamplingBase> sampler;
@@ -645,8 +654,8 @@ Inform& TrackRun::print(Inform& os) const {
 
     if (!primaryBeamName.empty()) {
         Beam* beam = Beam::find(primaryBeamName);
-        os << "* Mass of simulation particle   = " << beam->getChargePerParticle() << " [GeV/c^2]" << '\n'
-           << "* Charge of simulation particle = " << beam->getMassPerParticle() << " [C]" << '\n';
+        os << "* Mass of simulation particle   = " << beam->getMassPerParticle() << " [GeV/c^2]" << '\n'
+           << "* Charge of simulation particle = " << beam->getChargePerParticle() << " [C]" << '\n';
     } else {
         os << "* Mass of simulation particle   = <unresolved>" << '\n'
            << "* Charge of simulation particle = <unresolved>" << '\n';

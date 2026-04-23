@@ -1,5 +1,5 @@
-#ifndef CLASSIC_Multipole_HH
-#define CLASSIC_Multipole_HH
+#ifndef OPALX_Multipole_HH
+#define OPALX_Multipole_HH
 
 #include "AbsBeamline/Component.h"
 #include "BeamlineGeometry/StraightGeometry.h"
@@ -68,7 +68,7 @@ public:
      * 
      * @returns true if particle is out-of-bounds (lost), false otherwise
      */
-    virtual bool apply() override;
+    virtual bool apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
 
     /**
      * @brief Apply to particle i
@@ -246,4 +246,4 @@ inline size_t Multipole::getMaxSkewComponentIndex() const {
     return SkewComponents.size();
 }
 /* ========================================================================== */
-#endif  // CLASSIC_Multipole_HH
+#endif  // OPALX_Multipole_HH

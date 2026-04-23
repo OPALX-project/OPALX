@@ -64,7 +64,6 @@
  */
 #include <vector>
 #include "AbsBeamline/Component.h"
-#include "AbsBeamline/EndFieldModel/Tanh.h"
 #include "Algorithms/AbstractTimeDependence.h"
 #include "Fields/BMultipoleField.h"
 #include "MultipoleTBase.h"
@@ -93,7 +92,7 @@ public:
     /** Return a dummy field value */
     const EMField& getField() const override { return dummy; }
     /** Calculate the field for all particles */
-    bool apply() override;
+    bool apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
     /** Calculate the field at some arbitrary position \n
      *  If particle is outside field map true is returned,
      *  otherwise false is returned
@@ -109,6 +108,8 @@ public:
     /** Calculate the field at the position of the ith particle
      *  \param i -> Index of the particle event; field is calculated at this
      *  position
+     *  This overload is single-container only. In multi-container tracking,
+     *  use apply(const std::shared_ptr<ParticleContainer_t>& pc).
      *  If particle is outside field map true is returned,
      *  otherwise false is returned
      *  \param t -> Time at which the field is to be calculated

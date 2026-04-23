@@ -25,8 +25,8 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _CLASSIC_FIELDS_VECTORMAP_HH_
-#define _CLASSIC_FIELDS_VECTORMAP_HH_
+#ifndef _OPALX_FIELDS_VECTORMAP_HH_
+#define _OPALX_FIELDS_VECTORMAP_HH_
 
 #include <vector>
 
@@ -116,4 +116,4 @@ void VectorMap::functionAppend
   }
 }
 }
-#endif  // _CLASSIC_FIELDS_VECTORMAP_HH_
+#endif  // _OPALX_FIELDS_VECTORMAP_HH_

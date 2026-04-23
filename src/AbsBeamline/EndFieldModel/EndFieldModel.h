@@ -82,7 +82,7 @@ class EndFieldModel {
    *  @param name: name of the EndFieldModel
    * 
    *  @returns shared_ptr to the appropriate EndFieldModel.
-   *  @throws GeneralClassicException if name is not recognised
+   *  @throws GeneralOpalException if name is not recognised
    */
   static std::shared_ptr<EndFieldModel> getEndFieldModel(std::string name);
 
@@ -100,7 +100,7 @@ class EndFieldModel {
    *
    *  @returns name corresponding to the EndFieldModel. Note that this
    *  just does a dumb loop over the stored map values; so O(N).
-   *  @throws GeneralClassicException if efm is not recognised
+   *  @throws GeneralOpalException if efm is not recognised
    */
   static std::string getName(std::shared_ptr<EndFieldModel> efm);
 

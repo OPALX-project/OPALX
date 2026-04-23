@@ -1,38 +1,26 @@
-/*
- *  Copyright (c) 2018, Chris Rogers
- *  All rights reserved.
- *  Redistribution and use in source and binary forms, with or without
- *  modification, are permitted provided that the following conditions are met:
- *  1. Redistributions of source code must retain the above copyright notice,
- *     this list of conditions and the following disclaimer.
- *  2. Redistributions in binary form must reproduce the above copyright notice,
- *     this list of conditions and the following disclaimer in the documentation
- *     and/or other materials provided with the distribution.
- *  3. Neither the name of STFC nor the names of its contributors may be used to
- *     endorse or promote products derived from this software without specific
- *     prior written permission.
- *
- *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
- *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- *  POSSIBILITY OF SUCH DAMAGE.
- */
+//
+// Copyright (c) 2026, Paul Scherrer Institute, Villigen PSI, Switzerland
+// All rights reserved
+//
+// This file is part of OPAL.
+//
+// OPAL is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// You should have received a copy of the GNU General License
+// along with OPAL. If not, see <https://www.gnu.org/licenses/>.
+//
 
-#ifndef CLASSIC_SRC_ALGORITHMS_SPLINETIMEDEPENDENCE_H_
-#define CLASSIC_SRC_ALGORITHMS_SPLINETIMEDEPENDENCE_H_
+#ifndef ALGORITHMS_SPLINETIMEDEPENDENCE_H_
+#define ALGORITHMS_SPLINETIMEDEPENDENCE_H_
 
 #include <vector>
 
 #include "Algorithms/AbstractTimeDependence.h"
-#include "Utilities/LinearSpline.h"
 #include "Utilities/CubicSpline.h"
+#include "Utilities/LinearSpline.h"
 
 class Inform;
 
@@ -61,10 +49,8 @@ public:
      *  monotonically.
      */
     SplineTimeDependence(
-        size_t splineOrder, const std::vector<double>& times, const std::vector<double>& values);
-
-    /** Copy Constructor */
-    SplineTimeDependence(const SplineTimeDependence& rhs);
+            size_t splineOrder, const std::vector<double>& times,
+            const std::vector<double>& values);
 
     /** Default Constructor makes a dependence of length 2 with values 0*/
     SplineTimeDependence() = default;
@@ -107,7 +93,8 @@ public:
      * @param values a list of values corresponding to the times
      */
     void setSpline(
-        size_t splineOrder, const std::vector<double>& times, const std::vector<double>& values);
+            size_t splineOrder, const std::vector<double>& times,
+            const std::vector<double>& values);
 
     /* Getters for the test case use */
     [[nodiscard]] const std::vector<double>& getTimes() const { return times_m; }
@@ -116,7 +103,7 @@ public:
 
     // Spline order constants
     static constexpr size_t LinearInterpolation = 1;
-    static constexpr size_t CubicInterpolation = 3;
+    static constexpr size_t CubicInterpolation  = 3;
 
 private:
     std::unique_ptr<AbstractSpline> spline_m;
@@ -126,8 +113,6 @@ private:
     std::vector<double> values_m;
 };
 
-inline Inform& operator<<(Inform& os, const SplineTimeDependence& p) {
-    return p.print(os);
-}
+inline Inform& operator<<(Inform& os, const SplineTimeDependence& p) { return p.print(os); }
 
 #endif

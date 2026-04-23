@@ -30,8 +30,8 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
-#ifndef CLASSIC_BeamlineVisitor_HH
-#define CLASSIC_BeamlineVisitor_HH
+#ifndef OPALX_BeamlineVisitor_HH
+#define OPALX_BeamlineVisitor_HH
 
 // Generic element classes interacting with a BeamlineVisitor.
 class Component;
@@ -48,6 +48,7 @@ class Monitor;
 class Multipole;
 class MultipoleT;
 class RFCavity;
+class VariableRFCavity;
 class TravelingWave;
 class Ring;
 class Solenoid;
@@ -91,11 +92,11 @@ public:
     /// Apply the algorithm to an arbitrary multipole.
     virtual void visitMultipoleT(const MultipoleT&) = 0;
 
-    /// Apply the algorithm to an offset (placement).
-    virtual void visitOffset(const Offset&) = 0;
-
     /// Apply the algorithm to a RF cavity.
     virtual void visitRFCavity(const RFCavity&) = 0;
+
+    /// Apply the algorithm to a variable RF cavity.
+    virtual void visitVariableRFCavity(const VariableRFCavity&) = 0;
 
     virtual void visitScalingFFAMagnet(const ScalingFFAMagnet&) = 0;
 
@@ -120,4 +121,4 @@ private:
     void operator=(const BeamlineVisitor&);
 };
 
-#endif  // CLASSIC_BeamlineVisitor_HH
+#endif  // OPALX_BeamlineVisitor_HH

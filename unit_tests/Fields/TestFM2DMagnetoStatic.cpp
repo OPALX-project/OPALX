@@ -21,7 +21,7 @@
 #include "Fields/Fieldmap.h"
 #include "Fields/FM2DMagnetoStatic.h"
 #include "Physics/Units.h"
-#include "Utilities/GeneralClassicException.h"
+#include "Utilities/GeneralOpalException.h"
 #include "Ippl.h"
 
 #include <cmath>
@@ -488,7 +488,7 @@ TEST_F(FM2DMagnetoStaticTest, GetFieldDerivativeThrows) {
     Vector_t<double, 3> E = {0.0, 0.0, 0.0};
     Vector_t<double, 3> B = {0.0, 0.0, 0.0};
 
-    EXPECT_THROW(fm->getFieldDerivative(R, E, B, DX), GeneralClassicException);
+    EXPECT_THROW(fm->getFieldDerivative(R, E, B, DX), GeneralOpalException);
 }
 
 // ===========================================================================
@@ -503,7 +503,7 @@ TEST_F(FM2DMagnetoStaticTest, GetFieldDimensions6ArgThrows) {
     Fieldmap* fm = Fieldmap::getFieldmap(fname);
 
     double a, b, c, d, e, f;
-    EXPECT_THROW(fm->getFieldDimensions(a, b, c, d, e, f), GeneralClassicException);
+    EXPECT_THROW(fm->getFieldDimensions(a, b, c, d, e, f), GeneralOpalException);
 }
 
 // ===========================================================================
@@ -517,8 +517,8 @@ TEST_F(FM2DMagnetoStaticTest, FrequencyThrows) {
     std::string fname = writeXZFieldmap(tmpFile("freq.map"), zb, ze, nz, rb, re, nr);
     Fieldmap* fm = Fieldmap::getFieldmap(fname);
 
-    EXPECT_THROW(fm->getFrequency(), GeneralClassicException);
-    EXPECT_THROW(fm->setFrequency(100.0), GeneralClassicException);
+    EXPECT_THROW(fm->getFrequency(), GeneralOpalException);
+    EXPECT_THROW(fm->setFrequency(100.0), GeneralOpalException);
 }
 
 // ===========================================================================
@@ -541,7 +541,7 @@ TEST_F(FM2DMagnetoStaticTest, GetInfoNoCrash) {
 // ===========================================================================
 TEST_F(FM2DMagnetoStaticTest, MissingFile) {
     std::string fname = tmpFile("nonexistent.map");
-    EXPECT_THROW(Fieldmap::getFieldmap(fname), GeneralClassicException);
+    EXPECT_THROW(Fieldmap::getFieldmap(fname), GeneralOpalException);
 }
 
 // ===========================================================================

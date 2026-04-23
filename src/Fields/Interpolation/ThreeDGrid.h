@@ -25,8 +25,8 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _CLASSIC_FIELDS_THREEDGRID_HH_
-#define _CLASSIC_FIELDS_THREEDGRID_HH_
+#ifndef _OPALX_FIELDS_THREEDGRID_HH_
+#define _OPALX_FIELDS_THREEDGRID_HH_
 
 #include <algorithm>
 #include <cmath>

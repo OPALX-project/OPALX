@@ -49,7 +49,7 @@ public:
     /// Make clone.
     virtual OpalVacuum* clone(const std::string& name);
 
-    /// Update the embedded CLASSIC vacuum.
+    /// Update the embedded OPALX vacuum.
     virtual void update();
 
 private:

@@ -56,6 +56,13 @@ TEST_F(LinearSplineTest, BasicInterpolation) {
     EXPECT_NEAR(spline.eval(1.5, acc), 2.5, 1e-10);
 }
 
+TEST_F(LinearSplineTest, Uninitialised) {
+    // Uninitialised
+    LinearSpline::Accelerator accel;
+    LinearSpline spline_uninit;
+    EXPECT_THROW(spline_uninit.eval(0.0, accel), std::runtime_error);
+}
+
 TEST_F(LinearSplineTest, Extrapolation) {
     const LinearSpline spline(x_data, y_data);
     LinearSpline::Accelerator acc;

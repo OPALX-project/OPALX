@@ -16,8 +16,8 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
-#ifndef CLASSIC_PluginElement_HH
-#define CLASSIC_PluginElement_HH
+#ifndef OPALX_PluginElement_HH
+#define OPALX_PluginElement_HH
 
 #include <memory>
 #include <string>
@@ -44,7 +44,7 @@ public:
     virtual void getDimensions(double& zBegin, double& zEnd) const override;
     ///@}
     ///@{ Virtual implementation of Component
-    virtual bool apply() override;
+    virtual bool apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
 
     virtual bool apply(
         const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
@@ -132,4 +132,4 @@ protected:
     int numPassages_m = 0;  ///< Number of turns (number of times save() method is called)
 };
 
-#endif  // CLASSIC_PluginElement_HH
+#endif  // OPALX_PluginElement_HH

@@ -29,7 +29,6 @@
 #include "AbsBeamline/Degrader.h"
 #include "AbsBeamline/ElementBase.h"
 #include "AbsBeamline/FlexibleCollimator.h"
-#include "AbsBeamline/Offset.h"
 #include "AbsBeamline/Marker.h"
 #include "AbsBeamline/Monitor.h"
 #include "AbsBeamline/Multipole.h"
@@ -136,9 +135,6 @@ public:
 
     /// Apply the algorithm to an arbitrary curved multipole of variable radius.
     virtual void visitMultipoleTCurvedVarRadius(const MultipoleTCurvedVarRadius &);
-
-    /// Apply the algorithm to an offset (placement).
-    virtual void visitOffset(const Offset &);
 
     /// Apply the algorithm to a probe.
     virtual void visitProbe(const Probe &prob);
@@ -316,11 +312,6 @@ void SpecificElementVisitor<ELEM>::visitMultipoleTCurvedConstRadius(const Multip
 template<class ELEM>
 void SpecificElementVisitor<ELEM>::visitMultipoleTCurvedVarRadius(const MultipoleTCurvedVarRadius &element) {
     CastsTrait<ELEM, MultipoleTCurvedVarRadius>::apply(allElementsOfTypeE, element);
-}
-
-template<class ELEM>
-void SpecificElementVisitor<ELEM>::visitOffset(const Offset &element) {
-    CastsTrait<ELEM, Offset>::apply(allElementsOfTypeE, element);
 }
 
 template<class ELEM>

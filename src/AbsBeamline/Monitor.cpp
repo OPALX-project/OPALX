@@ -61,7 +61,7 @@ void Monitor::accept(BeamlineVisitor& visitor) const {
     visitor.visitMonitor(*this);
 }
 
-bool Monitor::apply() {
+bool Monitor::apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/) {
     return false;
 }
 

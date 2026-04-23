@@ -16,9 +16,9 @@
 //
 
 #include <vector>
-#include "AbsBeamline/Component.h"
 #include "AbsBeamline/MultipoleT.h"
 #include "AbstractObjects/OpalData.h"
+#include "Structure/Beam.h"
 #include "Structure/DataSink.h"
 #include "gtest/gtest.h"
 
@@ -72,7 +72,7 @@ public:
             hostR(i)  = curvilinearToGlobal(localR[i], elementEntry, elementLength);
         }
         Kokkos::deep_copy(pc->R.getView(), hostR);
-        pc->setQ(bunch->getChargePerParticle());
+        pc->setQ(pc->getChargePerParticle());
         ippl::Comm->barrier();
         Kokkos::fence();
         // Register the bunch with the element
@@ -80,7 +80,44 @@ public:
         double startField, endField;
         initialise(bunch.get(), startField, endField);
         // Get the fields
-        apply();
+        apply(pc);
+        // Return the fields
+        Kokkos::deep_copy(hostB, pc->B.getView());
+        Kokkos::fence();
+        for (size_t i = 0; i < line.size(); ++i) {
+            line[i] = std::hypot(hostB(i)[0], hostB(i)[1], hostB(i)[2]);
+            //    std::cout << i << ": Local=" << localR[i] << ", Global=" << hostR[i]
+            //              << ", mag(B)=" << line[i] << std::endl;
+        }
+        // std::cout << std::endl;
+    }
+
+    void grabVerticalDataLine(
+            std::vector<double>& line, const double s, const double height,
+            const Vector_t<double, 3>& elementEntry, const double elementLength) {
+        // Make the bunch
+        const auto bunch = makeBunch(line.size());
+        const auto pc    = bunch->getParticleContainer();
+        // Create the local views and data
+        std::vector<Vector_t<double, 3>> localR(line.size());
+        const auto hostR = Kokkos::create_mirror_view(pc->R.getView());
+        const auto hostB = Kokkos::create_mirror_view(pc->B.getView());
+        // Set the particle positions
+        const double stepSize = height / static_cast<double>(line.size() - 1);
+        for (size_t i = 0; i < line.size(); ++i) {
+            localR[i] = {0, static_cast<double>(i) * stepSize - height / 2, s};
+            hostR(i)  = curvilinearToGlobal(localR[i], elementEntry, elementLength);
+        }
+        Kokkos::deep_copy(pc->R.getView(), hostR);
+        pc->setQ(pc->getChargePerParticle());
+        ippl::Comm->barrier();
+        Kokkos::fence();
+        // Register the bunch with the element
+        bunch->setT(0.0);
+        double startField, endField;
+        initialise(bunch.get(), startField, endField);
+        // Get the fields
+        apply(pc);
         // Return the fields
         Kokkos::deep_copy(hostB, pc->B.getView());
         Kokkos::fence();
@@ -147,9 +184,10 @@ public:
     };
 
     std::shared_ptr<FieldSolverCmd> fsCmdBase_m;
+    std::shared_ptr<DataSink> dataSink_m;
 
     std::shared_ptr<PartBunch_t> makeBunch(const size_t numParticles) {
-        auto dataSink    = std::make_shared<DataSink>();
+        dataSink_m       = std::make_shared<DataSink>();
         const auto fsCmd = std::make_shared<TestableFieldSolverCmd>();
         fsCmdBase_m      = fsCmd;
         fsCmd->setType("NONE");
@@ -159,9 +197,14 @@ public:
         fsCmd->setBCX("PERIODIC");
         fsCmd->setBCY("PERIODIC");
         fsCmd->setBCZ("PERIODIC");
+        auto beam    = std::make_shared<Beam>();
+        Beam* opBeam = Beam::find("UNNAMED_BEAM");
+        EXPECT_NE(opBeam, nullptr);
         auto bunch = std::make_shared<PartBunch_t>(
-                /*qi=*/std::vector{1.0}, /*mi=*/std::vector{1.0}, /*num_containers=*/1,
-                /*lbt=*/1.0, /*integration_method=*/"LF2", fsCmdBase_m, dataSink);
+                /*qi=*/std::vector{1.0}, /*mi=*/std::vector{1.0},
+                /*beams=*/std::vector<Beam*>{opBeam},
+                /*totalParticlesPerBeam=*/std::vector<size_t>{numParticles},
+                /*lbt=*/1.0, /*integration_method=*/"LF2", fsCmdBase_m.get(), dataSink_m.get());
         bunch->getParticleContainer()->create(numParticles);
         return bunch;
     }
@@ -443,7 +486,7 @@ TEST_F(TestMultipoleTStraight, BoundingBox) {
 }
 
 // Check that the field outside the aperture is not calculated
-TEST_F(TestMultipoleTStraight, Aperture) {
+TEST_F(TestMultipoleTStraight, HorzAperture) {
     std::vector<double> line(9);
     // Set up the magnet
     constexpr double length      = 4;
@@ -459,6 +502,34 @@ TEST_F(TestMultipoleTStraight, Aperture) {
     setTransProfile({dipoleField});
     // Check field vanishes outside the aperture
     grabTransverseDataLine(line, 0, 4.0, {0, 0, 0}, length);
+    EXPECT_EQ(line[0], 0.0);  // -4.0
+    EXPECT_NE(line[1], 0.0);  // -3.0
+    EXPECT_NE(line[2], 0.0);  // -2.0
+    EXPECT_NE(line[3], 0.0);  // -1.0
+    EXPECT_NE(line[4], 0.0);  // 0.0
+    EXPECT_NE(line[5], 0.0);  // 1.0
+    EXPECT_NE(line[6], 0.0);  // 2.0
+    EXPECT_NE(line[7], 0.0);  // 3.0
+    EXPECT_EQ(line[8], 0.0);  // 3.0
+}
+
+// Check that the field outside the aperture is not calculated
+TEST_F(TestMultipoleTStraight, VertAperture) {
+    std::vector<double> line(9);
+    // Set up the magnet
+    constexpr double length      = 4;
+    constexpr double bendAngle   = M_PI / 8.0;
+    constexpr double dipoleField = 1.0;
+    setBendAngle(bendAngle, false);
+    setElementLength(length);
+    setAperture(3.5, 3.5);
+    setFringeField(length / 2, 3, 3);
+    setRotation(0.0);
+    setEntranceAngle(0.0);
+    setMaxOrder(5, 10);
+    setTransProfile({dipoleField});
+    // Check field vanishes outside the aperture
+    grabVerticalDataLine(line, 0, 4.0, {0, 0, 0}, length);
     EXPECT_EQ(line[0], 0.0);  // -4.0
     EXPECT_NE(line[1], 0.0);  // -3.0
     EXPECT_NE(line[2], 0.0);  // -2.0
@@ -495,7 +566,7 @@ TEST_F(TestMultipoleTStraight, FieldAtSingleParticlePosition) {
     localR[0] = {0, 0, 0};
     hostR(0)  = curvilinearToGlobal(localR[0], {0, 0, 0}, length);
     Kokkos::deep_copy(pc->R.getView(), hostR);
-    pc->setQ(bunch->getChargePerParticle());
+    pc->setQ(pc->getChargePerParticle());
     ippl::Comm->barrier();
     Kokkos::fence();
     // Register the bunch with the element
