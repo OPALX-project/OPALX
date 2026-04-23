@@ -168,12 +168,12 @@ private:
     bool shiftedGreensEnabled_m    = false;
     double shiftedGreensPlaneZ_m   = 0.0;
 
-    // Scratch view holding the z-axis-flipped local slab of E' for the shifted-GF
-    // correction pass. Populated by buildFlippedZSlab before accumulateFieldToTemp's
-    // flipped branch. Shape matches the local view of *(this->getE()) (incl. ghosts).
-    // Allocated lazily on first use; reused across bins and timesteps.
-    using FlippedView_t = Kokkos::View<Vector_t<T, Dim>***>;
-    FlippedView_t flippedZSlab_m;
+    // Scratch field holding the axis-flipped version of E' for the shifted-GF
+    // correction pass. Populated by buildFlippedZSlab (which delegates to
+    // opalx::detail::mirrorField) before accumulateFieldToTemp's flipped branch.
+    // Same layout/mesh/ghost count as *(this->getE()). Allocated lazily on first
+    // use; reused across bins and timesteps.
+    std::shared_ptr<VField_t<T, Dim>> flippedZSlabField_m;
 
     /**
      * @brief Row entry for the level-3 bin statistics table.
