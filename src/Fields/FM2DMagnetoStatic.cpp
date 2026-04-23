@@ -291,10 +291,15 @@ void FM2DMagnetoStatic::getFieldDimensions(double& zBegin, double& zEnd) const {
 }
 
 void FM2DMagnetoStatic::getFieldDimensions(
-    double& /*xIni*/, double& /*xFinal*/, double& /*yIni*/, double& /*yFinal*/, double& /*zIni*/,
-    double& /*zFinal*/) const {
-        throw GeneralOpalException(
-            "FM2DMagnetoStatic::getFieldDimensions","not implemented");
+    double& xIni, double& xFinal, double& yIni, double& yFinal, double& zIni,
+    double& zFinal) const {
+    const double radius = std::max(std::abs(rbegin_m), std::abs(rend_m));
+    xIni                = -radius;
+    xFinal              = radius;
+    yIni                = -radius;
+    yFinal              = radius;
+    zIni                = zbegin_m;
+    zFinal              = zend_m;
 }
 
 void FM2DMagnetoStatic::swap() {

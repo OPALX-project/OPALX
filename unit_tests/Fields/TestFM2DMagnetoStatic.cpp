@@ -492,9 +492,9 @@ TEST_F(FM2DMagnetoStaticTest, GetFieldDerivativeThrows) {
 }
 
 // ===========================================================================
-// Test: getFieldDimensions 6-arg throws
+// Test: getFieldDimensions 6-arg returns the full cylindrical bounding box
 // ===========================================================================
-TEST_F(FM2DMagnetoStaticTest, GetFieldDimensions6ArgThrows) {
+TEST_F(FM2DMagnetoStaticTest, GetFieldDimensions6ArgReturnsBoundingBox) {
     const double zb = 0.0, ze = 10.0;
     const double rb = 0.0, re = 5.0;
     const int nz = 4, nr = 2;
@@ -502,8 +502,15 @@ TEST_F(FM2DMagnetoStaticTest, GetFieldDimensions6ArgThrows) {
     std::string fname = writeXZFieldmap(tmpFile("dim6.map"), zb, ze, nz, rb, re, nr);
     Fieldmap* fm = Fieldmap::getFieldmap(fname);
 
-    double a, b, c, d, e, f;
-    EXPECT_THROW(fm->getFieldDimensions(a, b, c, d, e, f), GeneralOpalException);
+    double xIni = 0.0, xFinal = 0.0, yIni = 0.0, yFinal = 0.0, zIni = 0.0, zFinal = 0.0;
+    fm->getFieldDimensions(xIni, xFinal, yIni, yFinal, zIni, zFinal);
+
+    EXPECT_NEAR(xIni, -re * Units::cm2m, 1e-12);
+    EXPECT_NEAR(xFinal, re * Units::cm2m, 1e-12);
+    EXPECT_NEAR(yIni, -re * Units::cm2m, 1e-12);
+    EXPECT_NEAR(yFinal, re * Units::cm2m, 1e-12);
+    EXPECT_NEAR(zIni, zb * Units::cm2m, 1e-12);
+    EXPECT_NEAR(zFinal, ze * Units::cm2m, 1e-12);
 }
 
 // ===========================================================================

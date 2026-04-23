@@ -30,12 +30,48 @@ class MeshGenerator {
 public:
     MeshGenerator();
 
+    /**
+     * @brief Extract a transverse support size suitable for placement/export meshes.
+     *
+     * The returned radii are in the element-local transverse frame. This is used
+     * both for direct meshing and for deriving a representative drift radius from
+     * the first non-drift element in the lattice.
+     *
+     * @param element Beamline element to inspect.
+     * @param minor Output minor transverse radius.
+     * @param major Output major transverse radius.
+     * @return true if a finite support size is available, false otherwise.
+     */
+    static bool getTransverseSupport(const ElementBase& element, double& minor, double& major);
+
+    /**
+     * @brief Set the drift support radius used when meshing drift spaces.
+     *
+     * Drifts do not carry their own physical support envelope. For visualisation
+     * we derive a representative cylindrical radius from the first non-drift
+     * element in the beamline and reuse it for all drifts.
+     *
+     * @param minor Minor transverse radius.
+     * @param major Major transverse radius.
+     */
+    void setDriftReference(double minor, double major);
+
     void add(const ElementBase& element);
 
     void write(const std::string& fname);
 
 private:
-    enum MeshType { OTHER = 0, DIPOLE, QUADRUPOLE, SEXTUPOLE, OCTUPOLE, SOLENOID, RFCAVITY };
+    enum MeshType {
+        OTHER = 0,
+        DIPOLE,
+        QUADRUPOLE,
+        SEXTUPOLE,
+        OCTUPOLE,
+        SOLENOID,
+        RFCAVITY,
+        TRAVELINGWAVE,
+        DRIFT
+    };
 
     static MeshData getCylinder(
         double length, double minor, double major, double formFactor,
@@ -44,6 +80,9 @@ private:
     static MeshData getBox(double length, double width, double height, double formFactor);
 
     std::vector<MeshData> elements_m;
+    bool hasDriftReference_m;
+    double driftMinor_m;
+    double driftMajor_m;
 };
 
 #endif

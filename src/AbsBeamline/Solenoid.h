@@ -149,6 +149,20 @@ public:
     /// @brief Get the begin and end positions of the element
     virtual void getElementDimensions(double& zBegin, double& zEnd) const override;
 
+    /**
+     * @brief Get a finite transverse support envelope for placement/export.
+     *
+     * The tracking aperture of generic components defaults to a very large
+     * ellipse. For solenoids, placement/export code instead needs a physically
+     * meaningful support radius. This method first prefers a finite configured
+     * aperture and otherwise falls back to the loaded field-map bounding box.
+     *
+     * @param horizontalRadius Output half-width in x [m].
+     * @param verticalRadius Output half-width in y [m].
+     * @return true if a finite support envelope is available.
+     */
+    bool getSupportEnvelope(double& horizontalRadius, double& verticalRadius) const;
+
     /// @brief Check if position r is inside the field map
     virtual bool isInside(const Vector_t<double, 3>& r) const override;
 

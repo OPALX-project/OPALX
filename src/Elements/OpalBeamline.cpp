@@ -351,6 +351,20 @@ void OpalBeamline::save3DLattice() {
     }
 
     MeshGenerator mesh;
+    for (auto scan = it; scan != end; ++scan) {
+        const std::shared_ptr<Component> scanElement = (*scan).getElement();
+        if (scanElement->getType() == ElementType::DRIFT) {
+            continue;
+        }
+
+        double minor = 0.0;
+        double major = 0.0;
+        if (MeshGenerator::getTransverseSupport(*scanElement, minor, major)) {
+            mesh.setDriftReference(0.5 * minor, 0.5 * major);
+            break;
+        }
+    }
+
     for (; it != end; ++it) {
         std::shared_ptr<Component> element = (*it).getElement();
         CoordinateSystemTrafo toBegin =
