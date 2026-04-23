@@ -1,0 +1,64 @@
+name: clang-format
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, ready_for_review]
+    branches: ["master"]
+
+jobs:
+  clang-format:
+    runs-on: ubuntu-latest
+    if: |
+      contains(github.event.pull_request.labels.*.name, 'compile-ci') &&
+      github.event.pull_request.draft == false
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install clang-format 21.1.8 (Python wheel in venv)
+        run: |
+          python -m venv .venv
+          . .venv/bin/activate
+          pip install "clang-format==21.1.8"
+          .venv/bin/clang-format --version
+
+      - name: Get list of modified source files
+        id: files
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          BASE_REF="${BASE_REF#refs/heads/}"
+          git fetch origin "$BASE_REF"
+
+          FILES="$(
+            git diff --name-only -z "origin/${BASE_REF}...HEAD" \
+              | tr '\0' '\n' \
+              | grep -E '^(src|unit_tests)/.*\.(h|hpp|tpp|cpp)$' || true
+          )"
+
+          echo "$FILES"
+          echo "files<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$FILES" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+      - name: Run clang-format check
+        if: steps.files.outputs.files != ''
+        run: |
+          echo "Checking files:"
+          echo "${{ steps.files.outputs.files }}"
+
+          while IFS= read -r file; do
+            [ -z "$file" ] && continue
+            .venv/bin/clang-format --dry-run --Werror "$file"
+          done <<'EOF'
+          ${{ steps.files.outputs.files }}
+          EOF
+
