@@ -1,5 +1,5 @@
-#ifndef CLASSIC_RELATIVE_LOW_PASS_FFT_HH
-#define CLASSIC_RELATIVE_LOW_PASS_FFT_HH
+#ifndef OPALX_RELATIVE_LOW_PASS_FFT_HH
+#define OPALX_RELATIVE_LOW_PASS_FFT_HH
 
 #include "Filters/Filter.h"
 
@@ -13,4 +13,4 @@ private:
     double threshold_m;
 };
 
-#endif // CLASSIC_RELATIVE_LOW_PASS_FFT_HH
+#endif // OPALX_RELATIVE_LOW_PASS_FFT_HH

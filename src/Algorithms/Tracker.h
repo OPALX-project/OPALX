@@ -67,7 +67,7 @@
 
 #include <memory>
 
-#include "Utilities/ClassicField.h"
+#include "Utilities/BeamlineFieldElement.h"
 
 class BMultipoleField;
 class Euclid3D;
@@ -104,12 +104,10 @@ public:
     virtual void visitComponent(const Component&);
 
     /// set total number of tracked bunches
-    virtual void setNumBunch(short){};
+    virtual void setNumBunch(short) {};
 
     /// get total number of tracked bunches
-    virtual short getNumBunch() {
-        return 0;
-    }
+    virtual short getNumBunch() { return 0; }
 
     // standing wave structures
     FieldList cavities_m;

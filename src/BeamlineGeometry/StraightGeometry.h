@@ -1,5 +1,5 @@
-#ifndef CLASSIC_StraightGeometry_HH
-#define CLASSIC_StraightGeometry_HH
+#ifndef OPALX_StraightGeometry_HH
+#define OPALX_StraightGeometry_HH
 
 // ------------------------------------------------------------------------
 // $RCSfile: StraightGeometry.h,v $
@@ -119,4 +119,4 @@ inline const StraightGeometry &StraightGeometry::operator=
     return *this;
 }
 
-#endif // CLASSIC_StraightGeometry_HH
+#endif // OPALX_StraightGeometry_HH

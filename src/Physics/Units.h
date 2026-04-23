@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
-#ifndef CLASSIC_Units_HH
-#define CLASSIC_Units_HH
+#ifndef OPALX_Units_HH
+#define OPALX_Units_HH
 
 #include "Physics.h"
 
@@ -146,4 +146,4 @@ namespace Units {
     constexpr double rad2deg = 1 / deg2rad;
 };
 
-#endif // CLASSIC_Units_HH
+#endif // OPALX_Units_HH

@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
-#ifndef CLASSIC_Probe_HH
-#define CLASSIC_Probe_HH
+#ifndef OPALX_Probe_HH
+#define OPALX_Probe_HH
 
 #include "AbsBeamline/PluginElement.h"
 
@@ -60,4 +60,4 @@ private:
     std::unique_ptr<PeakFinder> peakfinder_m; ///< Pointer to Peakfinder instance
 };
 
-#endif // CLASSIC_Probe_HH
+#endif // OPALX_Probe_HH

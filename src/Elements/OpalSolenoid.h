@@ -42,7 +42,7 @@ public:
     /// Make clone.
     virtual OpalSolenoid *clone(const std::string &name);
 
-    /// Update the embedded CLASSIC solenoid.
+    /// Update the embedded OPALX solenoid.
     virtual void update();
 
 private:

@@ -7,7 +7,7 @@
 // ------------------------------------------------------------------------
 //
 // Class: ArithmeticError
-//   The abstract base class for all CLASSIC arithmetic exceptions.
+//   The abstract base class for all OPALX arithmetic exceptions.
 //
 // ------------------------------------------------------------------------
 // Class category: Utilities

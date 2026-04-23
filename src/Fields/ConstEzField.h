@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
-#ifndef CLASSIC_ConstEzField_HH
-#define CLASSIC_ConstEzField_HH
+#ifndef OPALX_ConstEzField_HH
+#define OPALX_ConstEzField_HH
 
 #include "Fields/StaticElectricField.h"
 
@@ -56,4 +56,4 @@ private:
     double Ez;
 };
 
-#endif // CLASSIC_ConstEzField_HH
+#endif // OPALX_ConstEzField_HH

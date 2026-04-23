@@ -27,7 +27,7 @@
 // Class CLRangeError
 // ------------------------------------------------------------------------
 /// Range error.
-//  This exception is thrown, when a CLASSIC routine or method detects an
+//  This exception is thrown when an OPALX routine or method detects an
 //  index out of range.
 
 class CLRangeError: public ArithmeticError {

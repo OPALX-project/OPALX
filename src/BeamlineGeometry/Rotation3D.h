@@ -1,5 +1,5 @@
-#ifndef CLASSIC_Rotation3D_HH
-#define CLASSIC_Rotation3D_HH
+#ifndef OPALX_Rotation3D_HH
+#define OPALX_Rotation3D_HH
 
 // ------------------------------------------------------------------------
 // $RCSfile: Rotation3D.h,v $
@@ -161,4 +161,4 @@ inline bool Rotation3D::isIdentity() const {
     return R.isIdentity();
 }
 
-#endif // CLASSIC_Rotation3D_HH
+#endif // OPALX_Rotation3D_HH

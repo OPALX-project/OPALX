@@ -1,5 +1,5 @@
-#ifndef CLASSIC_Marker_HH
-#define CLASSIC_Marker_HH
+#ifndef OPALX_Marker_HH
+#define OPALX_Marker_HH
 
 // ------------------------------------------------------------------------
 // $RCSfile: Marker.h,v $
@@ -67,4 +67,4 @@ int Marker::getRequiredNumberOfTimeSteps() const
     return 1;
 }
 
-#endif // CLASSIC_Marker_HH
+#endif // OPALX_Marker_HH

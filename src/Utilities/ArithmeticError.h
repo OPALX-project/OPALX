@@ -26,7 +26,7 @@
 
 // Class ArithmeticError
 // ------------------------------------------------------------------------
-/// The abstract base class for all CLASSIC arithmetic exceptions.
+/// The abstract base class for all OPALX arithmetic exceptions.
 //  An object derived from this class is thrown when an arithmetic error
 //  occurs.
 

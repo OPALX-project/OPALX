@@ -60,8 +60,8 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
-#ifndef CLASSIC_ElementBase_HH
-#define CLASSIC_ElementBase_HH
+#ifndef OPALX_ElementBase_HH
+#define OPALX_ElementBase_HH
 
 #include "AbsBeamline/AttributeSet.h"
 #include "Algorithms/CoordinateSystemTrafo.h"
@@ -577,4 +577,4 @@ inline bool ElementBase::getFlagDeleteOnTransverseExit() const {
     return deleteOnTransverseExit_m;
 }
 
-#endif  // CLASSIC_ElementBase_HH
+#endif  // OPALX_ElementBase_HH
