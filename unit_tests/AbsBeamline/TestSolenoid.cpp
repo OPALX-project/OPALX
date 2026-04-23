@@ -2,20 +2,20 @@
 #include "AbstractObjects/OpalData.h"
 #include "Algorithms/DefaultVisitor.h"
 #include "Algorithms/IndexMap.h"
-#include "BeamlineCore/SolenoidRep.h"
 #include "BeamlineCore/DriftRep.h"
 #include "BeamlineCore/MultipoleRep.h"
 #include "BeamlineCore/RFCavityRep.h"
+#include "BeamlineCore/SolenoidRep.h"
 #include "BeamlineCore/TravelingWaveRep.h"
-#include "Beamlines/Beamline.h"
 #include "BeamlineGeometry/NullGeometry.h"
+#include "Beamlines/Beamline.h"
 #include "Elements/OpalBeamline.h"
 #include "Fields/Fieldmap.h"
 #include "Physics/Units.h"
-#include "Structure/MeshGenerator.h"
 #include "Structure/Beam.h"
 #include "Structure/DataSink.h"
 #include "Structure/FieldSolverCmd.h"
+#include "Structure/MeshGenerator.h"
 
 #include "gtest/gtest.h"
 
@@ -31,7 +31,7 @@ protected:
         int argc    = 0;
         char** argv = nullptr;
         ippl::initialize(argc, argv);
-        gmsg = new Inform(nullptr, -1);
+        gmsg                = new Inform(nullptr, -1);
         Options::enableHDF5 = false;
         std::filesystem::create_directories("data");
     }
@@ -44,7 +44,7 @@ protected:
 
     void SetUp() override {
         const auto* info = ::testing::UnitTest::GetInstance()->current_test_info();
-        testStem_         = std::string("solenoid_") + info->name();
+        testStem_        = std::string("solenoid_") + info->name();
         OpalData::getInstance()->storeInputFn(testStem_ + ".opal");
         OpalData::getInstance()->setOpenMode(OpalData::OpenMode::WRITE);
         cleanupOutputs();
@@ -250,10 +250,13 @@ TEST_F(SolenoidPlacementTest, LatticeExportsUseFieldMapEdgesAndSolenoidMeshType)
 
     std::ifstream py(outputPath("_ElementPositions.py"));
     ASSERT_TRUE(py.is_open());
-    const std::string script((std::istreambuf_iterator<char>(py)), std::istreambuf_iterator<char>());
+    const std::string script(
+            (std::istreambuf_iterator<char>(py)), std::istreambuf_iterator<char>());
     EXPECT_NE(script.find("color = [5]"), std::string::npos);
     EXPECT_NE(script.find("numVertices = [432]"), std::string::npos);
-    EXPECT_NE(script.find("os.path.getmtime(script_file) > os.path.getmtime(vtk_file)"), std::string::npos);
+    EXPECT_NE(
+            script.find("os.path.getmtime(script_file) > os.path.getmtime(vtk_file)"),
+            std::string::npos);
 }
 
 TEST_F(SolenoidPlacementTest, ElementPositionsSDDSMarksSolenoidColumn) {
@@ -306,7 +309,8 @@ TEST_F(SolenoidPlacementTest, DriftMeshesAsBlueCylinderUsingFirstNonDriftReferen
 
     std::ifstream py(outputPath("_ElementPositions.py"));
     ASSERT_TRUE(py.is_open());
-    const std::string script((std::istreambuf_iterator<char>(py)), std::istreambuf_iterator<char>());
+    const std::string script(
+            (std::istreambuf_iterator<char>(py)), std::istreambuf_iterator<char>());
     EXPECT_NE(script.find("color = [8, 5]"), std::string::npos);
     EXPECT_NE(script.find("numVertices = [144, 432]"), std::string::npos);
 }
@@ -328,7 +332,8 @@ TEST_F(SolenoidPlacementTest, QuadrupoleMeshesAsPoleBodyRatherThanGenericCylinde
 
     std::ifstream py(outputPath("_ElementPositions.py"));
     ASSERT_TRUE(py.is_open());
-    const std::string script((std::istreambuf_iterator<char>(py)), std::istreambuf_iterator<char>());
+    const std::string script(
+            (std::istreambuf_iterator<char>(py)), std::istreambuf_iterator<char>());
     EXPECT_NE(script.find("color = [2]"), std::string::npos);
     EXPECT_NE(script.find("numVertices = [32]"), std::string::npos);
 }
@@ -345,7 +350,8 @@ TEST_F(SolenoidPlacementTest, RFCavityMeshesAsBulgedCellStructure) {
 
     std::ifstream py(outputPath("_ElementPositions.py"));
     ASSERT_TRUE(py.is_open());
-    const std::string script((std::istreambuf_iterator<char>(py)), std::istreambuf_iterator<char>());
+    const std::string script(
+            (std::istreambuf_iterator<char>(py)), std::istreambuf_iterator<char>());
     EXPECT_NE(script.find("color = [6]"), std::string::npos);
     EXPECT_NE(script.find("numVertices = [1008]"), std::string::npos);
 }
@@ -362,7 +368,8 @@ TEST_F(SolenoidPlacementTest, TravelingWaveMeshesAsPeriodicStructure) {
 
     std::ifstream py(outputPath("_ElementPositions.py"));
     ASSERT_TRUE(py.is_open());
-    const std::string script((std::istreambuf_iterator<char>(py)), std::istreambuf_iterator<char>());
+    const std::string script(
+            (std::istreambuf_iterator<char>(py)), std::istreambuf_iterator<char>());
     EXPECT_NE(script.find("color = [7]"), std::string::npos);
     EXPECT_NE(script.find("numVertices = [1152]"), std::string::npos);
 }

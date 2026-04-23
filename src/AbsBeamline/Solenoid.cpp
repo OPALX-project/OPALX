@@ -31,8 +31,7 @@
 extern Inform* gmsg;
 
 /* ============================== Constructors ============================== */
-Solenoid::Solenoid() : Solenoid("") {
-}
+Solenoid::Solenoid() : Solenoid("") {}
 
 Solenoid::Solenoid(const Solenoid& right)
     : Component(right),
@@ -41,8 +40,7 @@ Solenoid::Solenoid(const Solenoid& right)
       scale_m(right.scale_m),
       scaleError_m(right.scaleError_m),
       startField_m(right.startField_m),
-      fast_m(right.fast_m) {
-}
+      fast_m(right.fast_m) {}
 
 Solenoid::Solenoid(const std::string& name)
     : Component(name),
@@ -51,8 +49,7 @@ Solenoid::Solenoid(const std::string& name)
       scale_m(1.0),
       scaleError_m(0.0),
       startField_m(0.0),
-      fast_m(true) {
-}
+      fast_m(true) {}
 
 Solenoid::~Solenoid() {
     //    _Fieldmap::deleteFieldmap(filename_m);
@@ -62,7 +59,7 @@ Solenoid::~Solenoid() {
 /**
  * @brief apply the solenoid field to all particles in the bunch
  * @note currently not implemented
- * @returns true if at least one particle is lost, false otherwise 
+ * @returns true if at least one particle is lost, false otherwise
  * (not implemented, always returns false)
  */
 bool Solenoid::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
@@ -71,28 +68,24 @@ bool Solenoid::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
 
     fieldmap_m->applyField(pc, scale_m + scaleError_m);
 
-    return false; 
+    return false;
 }
 
 /**
  * @brief apply the solenoid field to particle i
- * 
+ *
  * @param i Particle index
  * @param t Time
  * @param E Electric Field
  * @param B Magnetic Field
- *  
+ *
  * @returns true if particle is lost, false otherwise
  */
 bool Solenoid::apply(
-    const size_t& i, 
-    const double& t, 
-    Vector_t<double, 3>& E, 
-    Vector_t<double, 3>& B) 
-{
+        const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
     std::shared_ptr<ParticleContainer_t> pc = RefPartBunch_m->getParticleContainer();
-    auto Rview = pc->R.getView();
-    auto Pview = pc->P.getView();
+    auto Rview                              = pc->R.getView();
+    auto Pview                              = pc->P.getView();
 
     const Vector_t<double, 3> R = Rview(i);
     const Vector_t<double, 3> P = Pview(i);
@@ -101,21 +94,18 @@ bool Solenoid::apply(
 
 /**
  * @brief Apply to particle with position R and momentum P
- * 
+ *
  * @param R Position
  * @param P Momentum
  * @param t Time
  * @param E Electric Field
  * @param B Magnetic Field
- * 
- * @returns true if particle is lost, false otherwise  
+ *
+ * @returns true if particle is lost, false otherwise
  */
 bool Solenoid::apply(
-    const Vector_t<double, 3>& R, 
-    const Vector_t<double, 3>& /*P*/, 
-    const double& /*t*/,
-    Vector_t<double, 3>& /*E*/, 
-    Vector_t<double, 3>& B) {
+        const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
+        Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B) {
     if (R(2) >= startField_m && R(2) < startField_m + getElementLength()) {
         Vector_t<double, 3> tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
 
@@ -132,24 +122,23 @@ bool Solenoid::apply(
 
 /**
  * @brief Apply to reference particle with position R and momemtum P
- * 
+ *
  * @param R Position
  * @param P Momentum
  * @param t Time
  * @param E Electric Field
  * @param B Magnetic Field
- * 
+ *
  * @returns true if particle is lost, false otherwise
  */
 bool Solenoid::applyToReferenceParticle(
-    const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
-    Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B) {
+        const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
+        Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B) {
     if (R(2) >= startField_m && R(2) < startField_m + getElementLength()) {
         Vector_t<double, 3> tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
 
         const bool outOfBounds = fieldmap_m->getFieldstrength(R, tmpE, tmpB);
-        if (outOfBounds)
-            return true;
+        if (outOfBounds) return true;
 
         B += scale_m * tmpB;
     }
@@ -159,26 +148,20 @@ bool Solenoid::applyToReferenceParticle(
 /* ========================================================================== */
 /* ============================== Functions ================================= */
 /// @brief Apply visitor to Solenoid
-void Solenoid::accept(BeamlineVisitor& visitor) const {
-    visitor.visitSolenoid(*this);
-}
+void Solenoid::accept(BeamlineVisitor& visitor) const { visitor.visitSolenoid(*this); }
 
 /// @brief Set the strength scaling factor ks
-void Solenoid::setKS(double ks) {
-    scale_m = ks;
-}
+void Solenoid::setKS(double ks) { scale_m = ks; }
 
 /// @brief Set the strength scaling error dks
-void Solenoid::setDKS(double ks) {
-    scaleError_m = ks;
-}
+void Solenoid::setDKS(double ks) { scaleError_m = ks; }
 
 /**
- * @brief Initialises the solenoid elements by reading the header of the 
+ * @brief Initialises the solenoid elements by reading the header of the
  * fieldmap, saving the start and endpoints of the fieldmaps.
- * 
+ *
  * @param bunch Particle bunch
- * @param startField Starting position of the field 
+ * @param startField Starting position of the field
  * @param endField Ending position of the field
  */
 void Solenoid::initialise(PartBunch_t* bunch, double& startField, double& endField) {
@@ -203,12 +186,9 @@ void Solenoid::initialise(PartBunch_t* bunch, double& startField, double& endFie
     }
 }
 
-void Solenoid::finalise() {
-}
+void Solenoid::finalise() {}
 
-bool Solenoid::bends() const {
-    return false;
-}
+bool Solenoid::bends() const { return false; }
 
 /// @brief Read field map and go online
 void Solenoid::goOnline(const double&) {
@@ -223,19 +203,13 @@ void Solenoid::goOffline() {
 }
 
 /// @brief Assign the field filename
-void Solenoid::setFieldMapFN(std::string fn) {
-    filename_m = fn;
-}
+void Solenoid::setFieldMapFN(std::string fn) { filename_m = fn; }
 
 /// @brief Set the fast flag
-void Solenoid::setFast(bool fast) {
-    fast_m = fast;
-}
+void Solenoid::setFast(bool fast) { fast_m = fast; }
 
 /// @brief Get the fast flag
-bool Solenoid::getFast() const {
-    return fast_m;
-}
+bool Solenoid::getFast() const { return fast_m; }
 
 /// @brief Get the dimensions of the solenoid
 /// @param zBegin Start position
@@ -247,9 +221,7 @@ void Solenoid::getDimensions(double& zBegin, double& zEnd) const {
 
 /// @brief Get the element type
 /// @returns ElementType::SOLENOID
-ElementType Solenoid::getType() const {
-    return ElementType::SOLENOID;
-}
+ElementType Solenoid::getType() const { return ElementType::SOLENOID; }
 
 /// @brief Check if a point is inside the solenoid
 /// @param r Position
