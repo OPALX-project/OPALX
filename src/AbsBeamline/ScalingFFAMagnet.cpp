@@ -77,7 +77,7 @@ const EMField& ScalingFFAMagnet::getField() const {
     return dummy;
 }
 
-bool ScalingFFAMagnet::apply() {
+bool ScalingFFAMagnet::apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/) {
     return false;
 }
 

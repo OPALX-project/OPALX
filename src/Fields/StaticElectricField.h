@@ -1,5 +1,5 @@
-#ifndef CLASSIC_StaticElectricField_HH
-#define CLASSIC_StaticElectricField_HH
+#ifndef OPALX_StaticElectricField_HH
+#define OPALX_StaticElectricField_HH
 
 // ------------------------------------------------------------------------
 // $RCSfile: StaticElectricField.h,v $
@@ -35,4 +35,4 @@ public:
     virtual ~StaticElectricField();
 };
 
-#endif // CLASSIC_StaticElectricField_HH
+#endif // OPALX_StaticElectricField_HH

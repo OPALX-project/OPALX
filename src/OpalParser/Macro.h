@@ -1,5 +1,5 @@
-#ifndef CLASSIC_Macro_HH
-#define CLASSIC_Macro_HH
+#ifndef OPALX_Macro_HH
+#define OPALX_Macro_HH
 
 // ------------------------------------------------------------------------
 // $RCSfile: Macro.h,v $
@@ -89,4 +89,4 @@ private:
     void operator=(const Macro &);
 };
 
-#endif // CLASSIC_Macro_HH
+#endif // OPALX_Macro_HH

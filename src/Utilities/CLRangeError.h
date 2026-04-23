@@ -1,5 +1,5 @@
-#ifndef CLASSIC_CLRangeError_HH
-#define CLASSIC_CLRangeError_HH
+#ifndef OPAL_CLRangeError_HH
+#define OPAL_CLRangeError_HH
 
 // ------------------------------------------------------------------------
 // $RCSfile: CLRangeError.h,v $
@@ -27,7 +27,7 @@
 // Class CLRangeError
 // ------------------------------------------------------------------------
 /// Range error.
-//  This exception is thrown, when a CLASSIC routine or method detects an
+//  This exception is thrown when an OPALX routine or method detects an
 //  index out of range.
 
 class CLRangeError: public ArithmeticError {
@@ -54,4 +54,4 @@ private:
     CLRangeError();
 };
 
-#endif // CLASSIC_CLRangeError_HH
+#endif // OPAL_CLRangeError_HH

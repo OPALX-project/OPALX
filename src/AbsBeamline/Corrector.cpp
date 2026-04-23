@@ -22,7 +22,7 @@
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "PartBunch/PartBunch.h"
 #include "Physics/Physics.h"
-#include "Utilities/GeneralClassicException.h"
+#include "Utilities/GeneralOpalException.h"
 #include "Utilities/Util.h"
 
 // Class Corrector
@@ -102,7 +102,7 @@ void Corrector::goOnline(const double&) {
     const double pathLength = getGeometry().getElementLength();
     const double minLength  = Physics::c * RefPartBunch_m->getdT();
     if (pathLength < minLength) {
-        throw GeneralClassicException(
+        throw GeneralOpalException(
             "Corrector::goOnline",
             "length of corrector, L= " + std::to_string(pathLength)
                 + ", shorter than distance covered during one time step, dS= "
@@ -110,11 +110,12 @@ void Corrector::goOnline(const double&) {
     }
 
     if (!kickFieldSet_m) {
+        const auto pc = RefPartBunch_m->getParticleContainer();
         const double momentum = std::sqrt(
-            std::pow(designEnergy_m, 2.0) + 2.0 * designEnergy_m * RefPartBunch_m->getM());
+            std::pow(designEnergy_m, 2.0) + 2.0 * designEnergy_m * pc->getTotalMass());
         const double magnitude = momentum / (Physics::c * pathLength);
         kickField_m =
-            magnitude * RefPartBunch_m->getQ() * Vector_t<double, 3>(kickY_m, -kickX_m, 0.0);
+            magnitude * pc->getTotalCharge() * Vector_t<double, 3>(kickY_m, -kickX_m, 0.0);
     }
 
     online_m = true;
@@ -127,12 +128,13 @@ void Corrector::setDesignEnergy(const double& ekin, bool changeable) {
     }
     if (RefPartBunch_m) {
         if (!kickFieldSet_m) {
+            const auto pc = RefPartBunch_m->getParticleContainer();
             const double pathLength = getGeometry().getElementLength();
             const double momentum   = std::sqrt(
-                std::pow(designEnergy_m, 2.0) + 2.0 * designEnergy_m * RefPartBunch_m->getM());
+                std::pow(designEnergy_m, 2.0) + 2.0 * designEnergy_m * pc->getTotalMass());
             const double magnitude = momentum / (Physics::c * pathLength);
             kickField_m =
-                magnitude * RefPartBunch_m->getQ() * Vector_t<double, 3>(kickY_m, -kickX_m, 0.0);
+                magnitude * pc->getTotalCharge() * Vector_t<double, 3>(kickY_m, -kickX_m, 0.0);
         }
     }
 }

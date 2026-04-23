@@ -9,12 +9,14 @@
  * A component is the basic element in the accelerator model, such as a dipole, 
  * quadrupole, etc.
  */
-#ifndef CLASSIC_Component_HH
-#define CLASSIC_Component_HH
+#ifndef OPALX_Component_HH
+#define OPALX_Component_HH
 
 #include "AbsBeamline/ElementBase.h"
 #include "Fields/EMField.h"
 #include "OPALTypes.h"
+
+#include <memory>
 
 using ParticleContainer_t = ParticleContainer<double, 3>;
 
@@ -89,7 +91,7 @@ public:
      * 
      * @returns true if particle is out-of-bounds (lost), false otherwise
      */
-    virtual bool apply();
+    virtual bool apply(const std::shared_ptr<ParticleContainer_t>& pc);
 
     /**
      * @brief Apply to particle i
@@ -201,12 +203,15 @@ public:
     //  The default version returns ``this''.
     virtual const ElementBase& getDesign() const;
 
-    /// Track particle bunch.
-    //  This catch-all method implements a hook for tracking a particle
-    //  bunch through a non-standard component.
-    //  The default version throws a LogicalError.
+    /**
+     * @brief Track a borrowed particle bunch through a non-standard component.
+     *
+     * The default implementation throws a LogicalError.
+     *
+     * @param bunch Particle bunch to track. The component does not take ownership.
+     */
     virtual void trackBunch(
-        PartBunch_t* bunch, 
+        PartBunch_t& bunch,
         const PartData&, 
         bool revBeam, 
         bool revTrack) const;
@@ -274,4 +279,4 @@ inline double Component::getDesignEnergy() const {
     return -1.0;
 }
 
-#endif  // CLASSIC_Component_HH
+#endif  // OPALX_Component_HH

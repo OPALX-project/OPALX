@@ -1,5 +1,5 @@
-#ifndef CLASSIC_Euclid3D_HH
-#define CLASSIC_Euclid3D_HH
+#ifndef OPALX_Euclid3D_HH
+#define OPALX_Euclid3D_HH
 
 // ------------------------------------------------------------------------
 // $RCSfile: Euclid3D.h,v $
@@ -234,4 +234,4 @@ inline bool Euclid3D::isIdentity() const {
     return is_identity;
 }
 
-#endif // CLASSIC_Euclid3D_HH
+#endif // OPALX_Euclid3D_HH

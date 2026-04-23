@@ -113,11 +113,7 @@ void OpalMultipoleT::update() {
                 "OpalMultipoleT::Update",
                 "The ENTRYOFFSET is only supported for variable radius curved magnets");
     }
-    // Convert pole strengths from Tesla to internal units which are kGauss
     auto tp = Attributes::getRealArray(itsAttr[TP]);
-    for (auto& i : tp) {
-        i *= Units::T2kG;
-    }
     // Set the attributes
     const auto length = Attributes::getReal(itsAttr[LENGTH]);
     auto* multT       = dynamic_cast<MultipoleT*>(getElement());

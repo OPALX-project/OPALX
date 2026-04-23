@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
-#ifndef CLASSIC_SolenoidRep_HH
-#define CLASSIC_SolenoidRep_HH
+#ifndef OPALX_SolenoidRep_HH
+#define OPALX_SolenoidRep_HH
 
 #include "AbsBeamline/Solenoid.h"
 #include "BeamlineGeometry/StraightGeometry.h"
@@ -80,4 +80,4 @@ private:
     ConstBzField field;
 };
 
-#endif // CLASSIC_SolenoidRep_HH
+#endif // OPALX_SolenoidRep_HH

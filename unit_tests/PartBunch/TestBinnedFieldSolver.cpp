@@ -36,6 +36,7 @@
 #include "Attributes/Attributes.h"
 #include "Ippl.h"
 #include "PartBunch/PartBunch.h"
+#include "Structure/Beam.h"
 #include "Structure/DataSink.h"
 #include "Structure/FieldSolverCmd.h"
 #include "Utility/Inform.h"
@@ -107,22 +108,24 @@ protected:
         fsCmd->setBCY("PERIODIC");
         fsCmd->setBCZ("PERIODIC");
 
-        // PartBunch takes `std::shared_ptr<FieldSolverCmd>&` (non-const lvalue ref),
-        // so we must keep an lvalue `shared_ptr<FieldSolverCmd>` and not pass a temporary.
+        // Keep the concrete solver command alive; PartBunch borrows it.
         fsCmdBase = fsCmd;
 
         dataSink = std::make_shared<DataSink>();
+        beam = std::make_shared<Beam>();
+        Beam* testBeam = Beam::find("UNNAMED_BEAM");
 
         // qi/mi/lbt are used by rho scaling; but with NullSolver we mostly validate
         // "no-throw" and deterministic zero E behavior.
         bunch = std::make_shared<PartBunch_t>(
             /*qi=*/std::vector<double>{1.0},
             /*mi=*/std::vector<double>{1.0},
-            /*num_containers=*/1,
+            /*beams=*/std::vector<Beam*>{testBeam},
+            /*totalParticlesPerBeam=*/std::vector<size_t>{kDefaultNParticles},
             /*lbt=*/1.0,
             /*integration_method=*/"LF2",
-            fsCmdBase,
-            dataSink);
+            fsCmdBase.get(),
+            dataSink.get());
         pc = bunch->getParticleContainer();
     }
 
@@ -155,7 +158,7 @@ protected:
         std::uniform_real_distribution<double> unifP_z(pzMin, pzMax);
 
         const double dt = bunch->getdT();
-        const double qi = bunch->getChargePerParticle();
+        const double qi = pc->getChargePerParticle();
 
         for (size_t i = 0; i < nPart; ++i) {
             R_host(i)[0] = unifR_x(eng);
@@ -194,7 +197,7 @@ protected:
 
         CoordinateSelector_t selector(/*axis=*/2);
         auto bins = std::make_shared<ConcreteBins_t>(
-            pc,
+            *pc,
             selector,
             maxBins,
             alpha,
@@ -222,6 +225,7 @@ protected:
     std::shared_ptr<TestableFieldSolverCmd> fsCmd;
     std::shared_ptr<FieldSolverCmd> fsCmdBase;
     std::shared_ptr<DataSink> dataSink;
+    std::shared_ptr<Beam> beam;
     std::shared_ptr<PartBunch_t> bunch;
     std::shared_ptr<ParticleContainer_t> pc;
 };
@@ -251,4 +255,3 @@ TEST_F(BinnedFieldSolverSmokeTest, BinnedPath_WithBins_NoThrowAndEZero) {
 }
 
 }  // namespace
-

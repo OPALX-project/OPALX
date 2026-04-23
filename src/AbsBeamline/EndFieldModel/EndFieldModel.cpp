@@ -28,7 +28,7 @@
 #include <algorithm>
 #include <sstream>
 #include <map>
-#include "Utilities/GeneralClassicException.h"
+#include "Utilities/GeneralOpalException.h"
 #include "AbsBeamline/EndFieldModel/EndFieldModel.h"
 
 namespace endfieldmodel {
@@ -64,7 +64,7 @@ std::shared_ptr<EndFieldModel> EndFieldModel::getEndFieldModel(std::string name)
     try {
         return efm_map.at(name);
     } catch (std::exception& exc) {
-        throw GeneralClassicException("EndFieldModel::getEndFieldModel",
+        throw GeneralOpalException("EndFieldModel::getEndFieldModel",
               "Could not find EndFieldModel with name '"+name+"'");
     }
 }
@@ -83,7 +83,7 @@ std::string EndFieldModel::getName(std::shared_ptr<EndFieldModel> efm) {
     }
     std::stringstream ss;
     ss << efm;
-    throw GeneralClassicException("EndFieldModel::getName",
+    throw GeneralOpalException("EndFieldModel::getName",
                         "Could not find EndFieldModel with address "+ss.str());
 }
 

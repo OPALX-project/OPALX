@@ -28,8 +28,8 @@
 #include <ostream>
 #include <vector>
 
-#ifndef _CLASSIC_FIELDS_MESH_H_
-#define _CLASSIC_FIELDS_MESH_H_
+#ifndef _OPALX_FIELDS_MESH_H_
+#define _OPALX_FIELDS_MESH_H_
 
 namespace interpolation {
 

@@ -128,7 +128,7 @@ void OpalBeamline::prepareSections() {
         prepared_m = true;
         return;
     }
-    elements_m.sort(ClassicField::SortAsc);
+    elements_m.sort(BeamlineFieldElement::SortAsc);
     prepared_m = true;
 }
 
@@ -332,7 +332,7 @@ void OpalBeamline::save3DLattice() {
     if (ippl::Comm->rank() != 0 || OpalData::getInstance()->isOptimizerRun())
         return;
 
-    elements_m.sort([](const ClassicField& a, const ClassicField& b) {
+    elements_m.sort([](const BeamlineFieldElement& a, const BeamlineFieldElement& b) {
         return a.order_m < b.order_m;
     });
 
@@ -423,7 +423,7 @@ void OpalBeamline::save3DLattice() {
                 << exit3D(0) << std::setw(18) << std::setprecision(10) << exit3D(1) << std::endl;
         }
     }
-    elements_m.sort(ClassicField::SortAsc);
+    elements_m.sort(BeamlineFieldElement::SortAsc);
     mesh.write(OpalData::getInstance()->getInputBasename());
 }
 

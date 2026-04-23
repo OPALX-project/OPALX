@@ -60,8 +60,8 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
-#ifndef CLASSIC_ElementBase_HH
-#define CLASSIC_ElementBase_HH
+#ifndef OPALX_ElementBase_HH
+#define OPALX_ElementBase_HH
 
 #include "AbsBeamline/AttributeSet.h"
 #include "Algorithms/CoordinateSystemTrafo.h"
@@ -69,7 +69,7 @@
 #include "BeamlineGeometry/Euclid3D.h"
 #include "BeamlineGeometry/Geometry.h"
 #include "Structure/BoundingBox.h"
-#include "Utilities/GeneralClassicException.h"
+#include "Utilities/GeneralOpalException.h"
 
 #include <memory>
 #include <optional>
@@ -556,7 +556,7 @@ inline double ElementBase::getElementPosition() const {
     if (elemedgeSet_m)
         return elementPosition_m;
 
-    throw GeneralClassicException(
+    throw GeneralOpalException(
         "ElementBase::getElementPosition()",
         std::string("ELEMEDGE for \"") + getName() + "\" not set");
 }
@@ -577,4 +577,4 @@ inline bool ElementBase::getFlagDeleteOnTransverseExit() const {
     return deleteOnTransverseExit_m;
 }
 
-#endif  // CLASSIC_ElementBase_HH
+#endif  // OPALX_ElementBase_HH

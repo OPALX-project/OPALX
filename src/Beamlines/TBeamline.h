@@ -17,8 +17,8 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
-#ifndef CLASSIC_TBeamline_HH
-#define CLASSIC_TBeamline_HH
+#ifndef OPALX_TBeamline_HH
+#define OPALX_TBeamline_HH
 
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Beamlines/Beamline.h"
@@ -434,4 +434,4 @@ size_t TBeamline<T>::size() const {
     return blSize;
 }
 
-#endif  // CLASSIC_TBeamline_HH
+#endif  // OPALX_TBeamline_HH
