@@ -12,7 +12,7 @@
 #include "Fields/Fieldmap.h"
 #include "PartBunch/PartBunch.h"
 #include "Physics/Units.h"
-#include "Utilities/GeneralOPALXException.h"
+#include "Utilities/GeneralOpalException.h"
 
 extern Inform* gmsg;
 
@@ -103,7 +103,7 @@ bool TravelingWave::apply(const std::shared_ptr<ParticleContainer_t>& pc)
 
     auto* dynamicFieldmap = dynamic_cast<Astra1DDynamic*>(fieldmap_m);
     if (dynamicFieldmap == nullptr) {
-        throw GeneralOPALXException(
+        throw GeneralOpalException(
             "TravelingWave::apply",
             "TravelingWave particle application currently requires an Astra1DDynamic field map.");
     }
