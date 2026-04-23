@@ -24,6 +24,7 @@
 #include "PartBunch/PartBunch.h"
 #include "Physics/Physics.h"
 
+#include <cmath>
 #include <fstream>
 #include <iostream>
 
@@ -263,4 +264,28 @@ bool Solenoid::isInside(const Vector_t<double, 3>& r) const {
 void Solenoid::getElementDimensions(double& begin, double& end) const {
     begin = startField_m;
     end   = begin + getElementLength();
+}
+
+bool Solenoid::getSupportEnvelope(double& horizontalRadius, double& verticalRadius) const {
+    const auto aperture = getAperture();
+    if (aperture.second.size() >= 2 && std::abs(aperture.second[0]) < 1e5
+        && std::abs(aperture.second[1]) < 1e5) {
+        horizontalRadius = std::abs(aperture.second[0]);
+        verticalRadius   = std::abs(aperture.second[1]);
+        return horizontalRadius > 0.0 && verticalRadius > 0.0;
+    }
+
+    if (fieldmap_m == nullptr) {
+        return false;
+    }
+
+    try {
+        double xIni = 0.0, xFinal = 0.0, yIni = 0.0, yFinal = 0.0, zIni = 0.0, zFinal = 0.0;
+        fieldmap_m->getFieldDimensions(xIni, xFinal, yIni, yFinal, zIni, zFinal);
+        horizontalRadius = 0.5 * std::abs(xFinal - xIni);
+        verticalRadius   = 0.5 * std::abs(yFinal - yIni);
+        return horizontalRadius > 0.0 && verticalRadius > 0.0;
+    } catch (...) {
+        return false;
+    }
 }

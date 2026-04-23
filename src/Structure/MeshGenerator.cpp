@@ -1,5 +1,6 @@
 #include "Structure/MeshGenerator.h"
 #include "AbsBeamline/Multipole.h"
+#include "AbsBeamline/Solenoid.h"
 #include "AbstractObjects/OpalData.h"
 #include "Physics/Physics.h"
 #include "Utilities/Util.h"
@@ -11,7 +12,48 @@
 
 extern Inform* gmsg;
 
-MeshGenerator::MeshGenerator() : elements_m() {
+MeshGenerator::MeshGenerator() : elements_m(), hasDriftReference_m(false), driftMinor_m(0.0), driftMajor_m(0.0) {
+}
+
+bool MeshGenerator::getTransverseSupport(const ElementBase& element, double& minor, double& major) {
+    if (element.getType() == ElementType::SOLENOID) {
+        const auto* solenoid = dynamic_cast<const Solenoid*>(&element);
+        double horizontalRadius = 0.0;
+        double verticalRadius = 0.0;
+        if (solenoid == nullptr || !solenoid->getSupportEnvelope(horizontalRadius, verticalRadius)) {
+            return false;
+        }
+        minor = verticalRadius;
+        major = horizontalRadius;
+        return true;
+    }
+
+    if (element.getType() == ElementType::DRIFT) {
+        return false;
+    }
+
+    const auto apert = element.getAperture();
+    if (apert.second.size() < 3) {
+        return false;
+    }
+
+    switch (apert.first) {
+        case ApertureType::RECTANGULAR:
+        case ApertureType::CONIC_RECTANGULAR:
+        case ApertureType::ELLIPTICAL:
+        case ApertureType::CONIC_ELLIPTICAL:
+            minor = apert.second[0];
+            major = apert.second[1];
+            return true;
+        default:
+            return false;
+    }
+}
+
+void MeshGenerator::setDriftReference(const double minor, const double major) {
+    hasDriftReference_m = minor > 0.0 && major > 0.0;
+    driftMinor_m = minor;
+    driftMajor_m = major;
 }
 
 void MeshGenerator::add(const ElementBase& element) {
@@ -26,8 +68,26 @@ void MeshGenerator::add(const ElementBase& element) {
         // const RBend3D* dipole = static_cast<const RBend3D*>(&element);
         // mesh = dipole->getSurfaceMesh();
         mesh.type_m = DIPOLE;
+    } else if (element.getType() == ElementType::SOLENOID) {
+        double end = 0.0;
+        element.getElementDimensions(start, end);
+        mesh        = getCylinder(end - start, driftMinor_m, driftMajor_m, 1.0);
+        {
+            double minor = 0.0;
+            double major = 0.0;
+            if (getTransverseSupport(element, minor, major)) {
+                mesh = getCylinder(end - start, minor, major, 1.0);
+            }
+        }
+        mesh.type_m = SOLENOID;
     } else if (element.getType() == ElementType::DRIFT) {
-        return;
+        if (!hasDriftReference_m) {
+            return;
+        }
+        double end = 0.0;
+        element.getElementDimensions(start, end);
+        mesh = getCylinder(end - start, driftMinor_m, driftMajor_m, 1.0);
+        mesh.type_m = DRIFT;
     } else {
         double end, length;
         element.getElementDimensions(start, end);
@@ -67,8 +127,13 @@ void MeshGenerator::add(const ElementBase& element) {
                 }
                 break;
             case ElementType::RFCAVITY:
-            case ElementType::TRAVELINGWAVE:
                 mesh.type_m = RFCAVITY;
+                break;
+            case ElementType::TRAVELINGWAVE:
+                mesh.type_m = TRAVELINGWAVE;
+                break;
+            case ElementType::SOLENOID:
+                mesh.type_m = SOLENOID;
                 break;
             default:
                 mesh.type_m = OTHER;
@@ -278,6 +343,66 @@ void MeshGenerator::write(const std::string& fname) {
     out << indent << indent << indent << "k += 8\n";
     out << indent << indent << "vertices.append(current)\n\n";
 
+    out << "def showVTK():\n";
+    out << indent << "try:\n";
+    out << indent << indent << "import numpy as np\n";
+    out << indent << indent << "import pyvista as pv\n";
+    out << indent << "except ModuleNotFoundError:\n";
+    out << indent << indent << "sys.stderr.write(\"PyVista is not installed.\\n\")\n";
+    out << indent << indent
+        << "sys.stderr.write(\"Install it in the local virtual environment with:\\n\")\n";
+    out << indent << indent
+        << "sys.stderr.write(\"  source /Users/adelmann/git/opalx/.venv-h6/bin/activate\\n\")\n";
+    out << indent << indent
+        << "sys.stderr.write(\"  python -m pip install pyvista\\n\")\n";
+    out << indent << indent << "return 1\n\n";
+
+    out << indent << "vtk_file = \"" << fname << "_ElementPositions.vtk\"\n";
+    out << indent << "if not os.path.exists(vtk_file):\n";
+    out << indent << indent << "exportVTK()\n\n";
+
+    out << indent << "mesh = pv.read(vtk_file)\n";
+    out << indent << "plotter = pv.Plotter()\n";
+    out << indent << "add_mesh_kwargs = {}\n";
+    out << indent << "active_scalars_name = mesh.active_scalars_name\n";
+    out << indent << "if active_scalars_name is not None:\n";
+    out << indent << indent << "active_scalars = mesh.active_scalars\n";
+    out << indent << indent
+        << "if getattr(active_scalars, 'ndim', 0) == 2 and active_scalars.shape[1] in (3, 4):\n";
+    out << indent << indent << indent << "add_mesh_kwargs['scalars'] = active_scalars_name\n";
+    out << indent << indent << indent << "add_mesh_kwargs['rgb'] = True\n";
+    out << indent << indent << indent << "add_mesh_kwargs['preference'] = 'cell'\n";
+    out << indent << indent << indent << "unique_colors = active_scalars[:, :3].astype(float)\n";
+    out << indent << indent << indent << "if np.nanmax(unique_colors) > 1.0:\n";
+    out << indent << indent << indent << indent << "unique_colors /= 255.0\n";
+    out << indent << indent << indent << "unique_colors = np.unique(unique_colors, axis=0)\n";
+    out << indent << indent << indent << "legend = [\n";
+    out << indent << indent << indent << indent << "('Other', (0.5, 0.5, 0.5)),\n";
+    out << indent << indent << indent << indent << "('Dipole', (1.0, 0.847, 0.0)),\n";
+    out << indent << indent << indent << indent << "('Quadrupole', (1.0, 0.0, 0.0)),\n";
+    out << indent << indent << indent << indent << "('Sextupole', (0.537, 0.745, 0.525)),\n";
+    out << indent << indent << indent << indent << "('Octupole', (0.5, 0.5, 0.0)),\n";
+    out << indent << indent << indent << indent << "('Solenoid', (1.0, 138.0 / 255.0, 0.0)),\n";
+    out << indent << indent << indent << indent << "('RFCavity', (1.0, 1.0, 0.0)),\n";
+    out << indent << indent << indent << indent << "('TravelingWave', (0.0, 0.6, 0.0)),\n";
+    out << indent << indent << indent << indent << "('Drift', (0.0, 0.0, 1.0)),\n";
+    out << indent << indent << indent << "]\n";
+    out << indent << indent << indent << "present = []\n";
+    out << indent << indent << indent << "for label, color in legend:\n";
+    out << indent << indent << indent << indent << "color_arr = np.asarray(color, dtype=float)\n";
+    out << indent << indent << indent
+        << indent << "if np.any(np.all(np.isclose(unique_colors, color_arr, atol=5e-3), axis=1)):\n";
+    out << indent << indent << indent << indent << indent << "present.append((label, color))\n";
+    out << indent << indent << indent << "if present:\n";
+    out << indent << indent << indent << indent
+        << "plotter.add_legend(present, bcolor=(1.0, 1.0, 1.0), face='circle', border=True, "
+           "size=(0.2, 0.24))\n";
+    out << indent << "plotter.add_mesh(mesh, **add_mesh_kwargs)\n";
+    out << indent << "plotter.add_axes()\n";
+    out << indent << "plotter.show_grid()\n";
+    out << indent << "plotter.show()\n";
+    out << indent << "return 0\n\n";
+
     out << "def dot(a, b):\n";
     out << indent << "return sum(a[i]*b[i] for i in range(len(a)))\n\n";
 
@@ -378,7 +503,9 @@ void MeshGenerator::write(const std::string& fname) {
     out << indent << "lookup_table.append([1.0, 0.0, 0.0, 1.0])\n";
     out << indent << "lookup_table.append([0.537, 0.745, 0.525, 1.0])\n";
     out << indent << "lookup_table.append([0.5, 0.5, 0.0, 1.0])\n";
-    out << indent << "lookup_table.append([1.0, 0.541, 0.0, 1.0])\n";
+    out << indent << "lookup_table.append([1.0, 0.5411764706, 0.0, 1.0])\n";
+    out << indent << "lookup_table.append([1.0, 1.0, 0.0, 1.0])\n";
+    out << indent << "lookup_table.append([0.0, 0.6, 0.0, 1.0])\n";
     out << indent << "lookup_table.append([0.0, 0.0, 1.0, 1.0])\n\n";
 
     out << indent << "decodeVertices()\n\n";
@@ -440,7 +567,9 @@ void MeshGenerator::write(const std::string& fname) {
     out << indent << "lookup_table.append([1.0, 0.0, 0.0])\n";
     out << indent << "lookup_table.append([0.537, 0.745, 0.525])\n";
     out << indent << "lookup_table.append([0.5, 0.5, 0.0])\n";
-    out << indent << "lookup_table.append([1.0, 0.541, 0.0])\n";
+    out << indent << "lookup_table.append([1.0, 0.5411764706, 0.0])\n";
+    out << indent << "lookup_table.append([1.0, 1.0, 0.0])\n";
+    out << indent << "lookup_table.append([0.0, 0.6, 0.0])\n";
     out << indent << "lookup_table.append([0.0, 0.0, 1.0])\n\n";
 
     out << indent << "decodeVertices()\n\n";
@@ -939,6 +1068,7 @@ void MeshGenerator::write(const std::string& fname) {
     out << indent << "parser = argparse.ArgumentParser()\n";
     out << indent << "parser.add_argument('--export-vtk', action='store_true')\n";
     out << indent << "parser.add_argument('--export-web', action='store_true')\n";
+    out << indent << "parser.add_argument('--show', action='store_true')\n";
     out << indent << "parser.add_argument('--background', nargs=3, type=float)\n";
     out << indent << "parser.add_argument('--project-to-plane', action='store_true')\n";
     out << indent << "parser.add_argument('--normal', nargs=3, type=float)\n";
@@ -960,6 +1090,9 @@ void MeshGenerator::write(const std::string& fname) {
     out << indent << indent << indent << indent << "bgcolor = args.background\n";
     out << indent << indent << "exportWeb(bgcolor)\n";
     out << indent << indent << "sys.exit()\n\n";
+
+    out << indent << "if (args.show):\n";
+    out << indent << indent << "sys.exit(showVTK())\n\n";
 
     out << indent << "if (args.project_to_plane):\n";
     out << indent << indent << "normal = [0.0, 1.0, 0.0]\n";
