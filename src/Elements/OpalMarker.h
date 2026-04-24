@@ -41,7 +41,7 @@ public:
     //  Handle printing in OPAL-8 format.
     virtual void print(std::ostream &) const;
 
-    /// Update the embedded CLASSIC marker.
+    /// Update the embedded OPALX marker.
     virtual void update();
 
 private:

@@ -1,5 +1,5 @@
-#ifndef CLASSIC_ConstantEFieldCavity_HH
-#define CLASSIC_ConstantEFieldCavity_HH
+#ifndef OPALX_ConstantEFieldCavity_HH
+#define OPALX_ConstantEFieldCavity_HH
 
 #include "AbsBeamline/Component.h"
 
@@ -55,5 +55,5 @@ private:
     void operator=(const ConstantEFieldCavity&);
 };
 
-#endif  // CLASSIC_ConstantEFieldCavity_HH
+#endif  // OPALX_ConstantEFieldCavity_HH
 

@@ -1,5 +1,5 @@
-#ifndef CLASSIC_TokenStream_HH
-#define CLASSIC_TokenStream_HH
+#ifndef OPALX_TokenStream_HH
+#define OPALX_TokenStream_HH
 
 // ------------------------------------------------------------------------
 // $RCSfile: TokenStream.h,v $
@@ -72,4 +72,4 @@ private:
     void operator=(const TokenStream &);
 };
 
-#endif // CLASSIC_TokenStream_HH
+#endif // OPALX_TokenStream_HH

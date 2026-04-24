@@ -32,7 +32,7 @@ public:
     /// Make clone.
     virtual OpalMonitor* clone(const std::string& name);
 
-    /// Update the embedded CLASSIC monitor.
+    /// Update the embedded OPALX monitor.
     virtual void update();
 
 private:

@@ -1,5 +1,5 @@
-#ifndef CLASSIC_FlaggedElmPtr_HH
-#define CLASSIC_FlaggedElmPtr_HH
+#ifndef OPALX_FlaggedElmPtr_HH
+#define OPALX_FlaggedElmPtr_HH
 
 // ------------------------------------------------------------------------
 // $RCSfile: FlaggedElmPtr.h,v $
@@ -78,7 +78,7 @@ protected:
 
     /// Clone counter.
     //  This value can be set and interrogated by an algorithm.
-    //  It is not used by the CLASSIC library.
+    //  It is not used by the OPALX library.
     mutable int itsCounter;
 
     /// The reflection flag.
@@ -122,4 +122,4 @@ inline void FlaggedElmPtr::setSelectionFlag(bool flag) const {
     isSelected = flag;
 }
 
-#endif // CLASSIC_FlaggedElmPtr_HH
+#endif // OPALX_FlaggedElmPtr_HH

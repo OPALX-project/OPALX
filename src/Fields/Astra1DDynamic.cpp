@@ -3,7 +3,7 @@
 #include "PartBunch/PartBunch.h"
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
-#include "Utilities/GeneralClassicException.h"
+#include "Utilities/GeneralOpalException.h"
 #include "Utilities/GSLSpline.h"
 #include "Utilities/GSLFFT.h"
 #include "Utilities/Util.h"
@@ -31,7 +31,7 @@ Astra1DDynamic::Astra1DDynamic(const std::string& filename)
         try {
             parsing_passed = 
             interpretLine<std::string, int>(file, tmpString, accuracy_m);
-        } catch (GeneralClassicException &e) {
+        } catch (GeneralOpalException &e) {
             parsing_passed = 
             interpretLine<std::string, int, std::string>(
                 file, tmpString, accuracy_m, tmpString);
@@ -39,7 +39,7 @@ Astra1DDynamic::Astra1DDynamic(const std::string& filename)
             tmpString = Util::toUpper(tmpString);
             if (tmpString != "TRUE" &&
                 tmpString != "FALSE")
-                throw GeneralClassicException(
+                throw GeneralOpalException(
                     "Astra1DDynamic::Astra1DDynamic",     
                     "The third string on the first line of 1D field "
                     "maps has to be either TRUE or FALSE");
@@ -84,7 +84,7 @@ Astra1DDynamic::Astra1DDynamic(const std::string& filename)
         if (!parsing_passed && !file.eof()) {
             disableFieldmapWarning();
             zend_m = zbegin_m - 1e-3;
-            throw GeneralClassicException(
+            throw GeneralOpalException(
                 "Astra1DDynamic::Astra1DDynamic",
                 "Error reading fieldmap '" + Filename_m + "'");
         } else {
@@ -114,14 +114,14 @@ void Astra1DDynamic::readMap()
 
     // Need at least two valid points for dz, spline, and FFT setup
     if (num_gridpz_m < 2) {
-        throw GeneralClassicException(
+        throw GeneralOpalException(
             "Astra1DDynamic::readMap",
             "Fieldmap must contain at least two valid sampling points");
     }
 
     std::ifstream in(Filename_m.c_str());
     if (!in.good()) {
-        throw GeneralClassicException(
+        throw GeneralOpalException(
             "Astra1DDynamic::readMap",
             "Cannot open fieldmap '" + Filename_m + "'");
     }
@@ -196,7 +196,7 @@ void Astra1DDynamic::readMap()
         os << "Mismatch between counted and parsed fieldmap points in '"
            << Filename_m << "': expected " << num_gridpz_m
            << ", got " << accepted;
-        throw GeneralClassicException("Astra1DDynamic::readMap", os.str());
+        throw GeneralOpalException("Astra1DDynamic::readMap", os.str());
     }
 
     if (Ez_max == 0.0) {
@@ -205,7 +205,7 @@ void Astra1DDynamic::readMap()
         delete[] zvals;
         delete[] RealValues;
 
-        throw GeneralClassicException(
+        throw GeneralOpalException(
             "Astra1DDynamic::readMap",
             "Maximum on-axis field is zero in fieldmap '" + Filename_m + "'");
     }
@@ -468,7 +468,7 @@ void Astra1DDynamic::getFieldDimensions(
     double& /*yIni*/, double& /*yFinal*/,
     double& /*zIni*/, double& /*zFinal*/) const
 {
-    throw GeneralClassicException(
+    throw GeneralOpalException(
         "Astra1DDynamic::getFieldDimensions", "not implemented");
 }
 

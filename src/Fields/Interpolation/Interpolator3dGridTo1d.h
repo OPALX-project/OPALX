@@ -25,8 +25,8 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _CLASSIC_FIELDS_INTERPOLATOR3DGRIDTO1D_H_
-#define _CLASSIC_FIELDS_INTERPOLATOR3DGRIDTO1D_H_
+#ifndef _OPALX_FIELDS_INTERPOLATOR3DGRIDTO1D_H_
+#define _OPALX_FIELDS_INTERPOLATOR3DGRIDTO1D_H_
 
 #include "Fields/Interpolation/VectorMap.h"
 #include "Fields/Interpolation/ThreeDGrid.h"
@@ -219,4 +219,4 @@ void Interpolator3dGridTo1d::clear() {
 }
 
 }
-#endif  // _CLASSIC_FIELDS_INTERPOLATOR3DGRIDTO1D_HH_
+#endif  // _OPALX_FIELDS_INTERPOLATOR3DGRIDTO1D_HH_

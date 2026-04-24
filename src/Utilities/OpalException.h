@@ -18,14 +18,17 @@
 //
 // ------------------------------------------------------------------------
 
-#include "Utilities/ClassicException.h"
+#include <string>
 
 
 // Class OpalException
 // ------------------------------------------------------------------------
 /// The base class for all OPAL exceptions.
-
-class OpalException: public ClassicException {
+///
+/// Stores the detecting method and diagnostic message used by the top-level
+/// OPAL error handler. Concrete subclasses should keep domain-specific type
+/// information and derive from this class directly or indirectly.
+class OpalException {
 
 public:
 
@@ -43,15 +46,19 @@ public:
     virtual ~OpalException();
 
     /// Return the message string for the exception.
-    using ClassicException::what;
+    virtual const std::string &what() const;
 
     /// Return the name of the method or function which detected the exception.
-    using ClassicException::where;
+    virtual const std::string &where() const;
 
 private:
 
     // Not implemented.
     OpalException();
+
+    // The method detecting the exception and the message.
+    const std::string message;
+    const std::string method;
 };
 
 #endif // OPAL_OpalException_HH

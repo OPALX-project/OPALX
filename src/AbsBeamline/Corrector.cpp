@@ -22,7 +22,7 @@
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "PartBunch/PartBunch.h"
 #include "Physics/Physics.h"
-#include "Utilities/GeneralClassicException.h"
+#include "Utilities/GeneralOpalException.h"
 #include "Utilities/Util.h"
 
 // Class Corrector
@@ -102,7 +102,7 @@ void Corrector::goOnline(const double&) {
     const double pathLength = getGeometry().getElementLength();
     const double minLength  = Physics::c * RefPartBunch_m->getdT();
     if (pathLength < minLength) {
-        throw GeneralClassicException(
+        throw GeneralOpalException(
             "Corrector::goOnline",
             "length of corrector, L= " + std::to_string(pathLength)
                 + ", shorter than distance covered during one time step, dS= "

@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
-#ifndef CLASSIC_RFCavityRep_HH
-#define CLASSIC_RFCavityRep_HH
+#ifndef OPALX_RFCavityRep_HH
+#define OPALX_RFCavityRep_HH
 
 #include "AbsBeamline/RFCavity.h"
 #include "BeamlineGeometry/StraightGeometry.h"
@@ -105,4 +105,4 @@ private:
     static bool ignoreCavities;
 };
 
-#endif // CLASSIC_RFCavityRep_HH
+#endif // OPALX_RFCavityRep_HH

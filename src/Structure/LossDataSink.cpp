@@ -19,7 +19,7 @@
 #include "AbstractObjects/OpalData.h"
 #include "Algorithms/DistributionMoments.h"
 #include "BuildInfo.h"
-#include "Utilities/GeneralClassicException.h"
+#include "Utilities/GeneralOpalException.h"
 #include "Utilities/Options.h"
 #include "Utilities/Util.h"
 #include "Utility/IpplInfo.h"
@@ -36,7 +36,7 @@ extern Inform* gmsg;
         if (h5err <= H5_ERR) {                                                                   \
             std::stringstream ss;                                                                \
             ss << "failed to write string attribute " << attribute << " to file " << fileName_m; \
-            throw GeneralClassicException(std::string(__func__), ss.str());                      \
+            throw GeneralOpalException(std::string(__func__), ss.str());                      \
         }                                                                                        \
     }
 #define WRITE_STEPATTRIB_FLOAT64(attribute, value, size)                                          \
@@ -45,7 +45,7 @@ extern Inform* gmsg;
         if (h5err <= H5_ERR) {                                                                    \
             std::stringstream ss;                                                                 \
             ss << "failed to write float64 attribute " << attribute << " to file " << fileName_m; \
-            throw GeneralClassicException(std::string(__func__), ss.str());                       \
+            throw GeneralOpalException(std::string(__func__), ss.str());                       \
         }                                                                                         \
     }
 #define WRITE_STEPATTRIB_INT64(attribute, value, size)                                          \
@@ -54,7 +54,7 @@ extern Inform* gmsg;
         if (h5err <= H5_ERR) {                                                                  \
             std::stringstream ss;                                                               \
             ss << "failed to write int64 attribute " << attribute << " to file " << fileName_m; \
-            throw GeneralClassicException(std::string(__func__), ss.str());                     \
+            throw GeneralOpalException(std::string(__func__), ss.str());                     \
         }                                                                                       \
     }
 #define WRITE_DATA_FLOAT64(name, value)                                                 \
@@ -63,7 +63,7 @@ extern Inform* gmsg;
         if (h5err <= H5_ERR) {                                                          \
             std::stringstream ss;                                                       \
             ss << "failed to write float64 data " << name << " to file " << fileName_m; \
-            throw GeneralClassicException(std::string(__func__), ss.str());             \
+            throw GeneralOpalException(std::string(__func__), ss.str());             \
         }                                                                               \
     }
 #define WRITE_DATA_INT64(name, value)                                                 \
@@ -72,7 +72,7 @@ extern Inform* gmsg;
         if (h5err <= H5_ERR) {                                                        \
             std::stringstream ss;                                                     \
             ss << "failed to write int64 data " << name << " to file " << fileName_m; \
-            throw GeneralClassicException(std::string(__func__), ss.str());           \
+            throw GeneralOpalException(std::string(__func__), ss.str());           \
         }                                                                             \
     }
 #define SET_STEP()                                                                \
@@ -81,7 +81,7 @@ extern Inform* gmsg;
         if (h5err <= H5_ERR) {                                                    \
             std::stringstream ss;                                                 \
             ss << "failed to set step " << H5call_m << " in file " << fileName_m; \
-            throw GeneralClassicException(std::string(__func__), ss.str());       \
+            throw GeneralOpalException(std::string(__func__), ss.str());       \
         }                                                                         \
     }
 #define GET_NUM_STEPS()                                                     \
@@ -90,7 +90,7 @@ extern Inform* gmsg;
         if (H5call_m <= H5_ERR) {                                           \
             std::stringstream ss;                                           \
             ss << "failed to get number of steps of file " << fileName_m;   \
-            throw GeneralClassicException(std::string(__func__), ss.str()); \
+            throw GeneralOpalException(std::string(__func__), ss.str()); \
         }                                                                   \
     }
 #define SET_NUM_PARTICLES(num)                                                              \
@@ -100,7 +100,7 @@ extern Inform* gmsg;
             std::stringstream ss;                                                           \
             ss << "failed to set number of particles to " << num << " in step " << H5call_m \
                << " in file " << fileName_m;                                                \
-            throw GeneralClassicException(std::string(__func__), ss.str());                 \
+            throw GeneralOpalException(std::string(__func__), ss.str());                 \
         }                                                                                   \
     }
 
@@ -110,7 +110,7 @@ extern Inform* gmsg;
         if (H5file_m == (h5_file_t)H5_ERR) {                                \
             std::stringstream ss;                                           \
             ss << "failed to open file " << fileName_m;                     \
-            throw GeneralClassicException(std::string(__func__), ss.str()); \
+            throw GeneralOpalException(std::string(__func__), ss.str()); \
         }                                                                   \
     }
 #define CLOSE_FILE()                                                        \
@@ -119,7 +119,7 @@ extern Inform* gmsg;
         if (h5err <= H5_ERR) {                                              \
             std::stringstream ss;                                           \
             ss << "failed to close file " << fileName_m;                    \
-            throw GeneralClassicException(std::string(__func__), ss.str()); \
+            throw GeneralOpalException(std::string(__func__), ss.str()); \
         }                                                                   \
     }
 
@@ -186,7 +186,7 @@ LossDataSink::LossDataSink(std::string outfn, bool hdf5Save, CollectionType coll
     bunchNumber_m.clear();
 
     if (h5hut_mode_m && !Options::enableHDF5) {
-        throw GeneralClassicException(
+        throw GeneralOpalException(
             "LossDataSink::LossDataSink",
             "You must select an OPTION to save Loss data files\n"
             "Please, choose 'ENABLEHDF5=TRUE' or 'ASCIIDUMP=TRUE'");
@@ -315,7 +315,7 @@ void LossDataSink::addParticle(
     const OpalParticle& particle, const std::optional<std::pair<int, short>>& turnBunchNumPair) {
     if (turnBunchNumPair) {
         if (!particles_m.empty() && turnNumber_m.empty()) {
-            throw GeneralClassicException(
+            throw GeneralOpalException(
                 "LossDataSink::addParticle",
                 "Either no particle or all have turn number and bunch number");
         }
