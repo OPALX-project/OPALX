@@ -20,6 +20,7 @@ public:
     using container_type = std::vector<ReferencePathSegment>;
 
     void addSegment(const ReferencePathSegment& segment) { segments_m.push_back(segment); }
+    void clear() { segments_m.clear(); }
     size_t size() const { return segments_m.size(); }
     bool empty() const { return segments_m.empty(); }
     const container_type& getSegments() const { return segments_m; }
