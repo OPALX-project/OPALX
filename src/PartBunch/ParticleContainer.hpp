@@ -580,7 +580,7 @@ public:
                     bool outside = (Rview(i)[0] < lb0 || Rview(i)[0] > ub0)
                                    || (Rview(i)[1] < lb1 || Rview(i)[1] > ub1)
                                    || (Rview(i)[2] < lb2 || Rview(i)[2] > ub2);
-                    invalid(i)   = outside;
+                    invalid(i) = outside;
                     count += outside ? 1 : 0;
                 },
                 localDestroyNum);
