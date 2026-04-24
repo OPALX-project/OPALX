@@ -51,7 +51,7 @@
 #include "Fields/Fieldmap.h"
 #include "Fields/FM2DDynamic.h"
 #include "Physics/Units.h"
-#include "Utilities/GeneralClassicException.h"
+#include "Utilities/GeneralOpalException.h"
 #include "Ippl.h"
 
 #include <cmath>
@@ -723,7 +723,7 @@ TEST_F(FM2DDynamicTest, GetFieldDerivativeThrows) {
     Vector_t<double, 3> B = {0.0, 0.0, 0.0};
 
     EXPECT_THROW(fm->getFieldDerivative(R, E, B, DX),
-                 GeneralClassicException);
+                 GeneralOpalException);
 }
 
 // ===========================================================================
@@ -746,7 +746,7 @@ TEST_F(FM2DDynamicTest, GetFieldDimensions6ArgThrows) {
     double a, b, c, d, e, f;
 
     EXPECT_THROW(fm->getFieldDimensions(a, b, c, d, e, f),
-                 GeneralClassicException);
+                 GeneralOpalException);
 }
 
 // ===========================================================================
@@ -776,7 +776,7 @@ TEST_F(FM2DDynamicTest, GetInfoNoCrash) {
 TEST_F(FM2DDynamicTest, MissingFile) {
     std::string fname = tmpFile("nonexistent.map");
     EXPECT_THROW(Fieldmap::getFieldmap(fname),
-                 GeneralClassicException);
+                 GeneralOpalException);
 }
 
 // ===========================================================================

@@ -1,5 +1,5 @@
-#ifndef CLASSIC_FILTER_HH
-#define CLASSIC_FILTER_HH
+#ifndef OPALX_FILTER_HH
+#define OPALX_FILTER_HH
 
 //#include <iostream>
 #include <vector>
@@ -15,4 +15,4 @@ public:
 
 };
 
-#endif //CLASSIC_FILTER_HH
+#endif //OPALX_FILTER_HH

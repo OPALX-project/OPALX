@@ -23,7 +23,7 @@
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
 #include "OpalParser/FileStream.h"
-#include "Utilities/ClassicRandom.h"
+#include "Utilities/ExpressionRandom.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
 

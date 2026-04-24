@@ -50,7 +50,7 @@ public:
     /// Print the object.
     virtual void print(std::ostream &) const;
 
-    /// Update the embedded CLASSIC multipole.
+    /// Update the embedded OPALX multipole.
     virtual void update();
 
 private:

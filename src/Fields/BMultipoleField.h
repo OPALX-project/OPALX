@@ -1,5 +1,5 @@
-#ifndef CLASSIC_BMultipoleField_HH
-#define CLASSIC_BMultipoleField_HH
+#ifndef OPALX_BMultipoleField_HH
+#define OPALX_BMultipoleField_HH
 
 #include "Fields/StaticMagneticField.h"
 
@@ -179,4 +179,4 @@ inline double BMultipoleField::normal(int n) const
 inline double BMultipoleField::skew(int n) const
 { return pairs[n].A; }
 
-#endif // CLASSIC_BMultipoleField_HH
+#endif // OPALX_BMultipoleField_HH

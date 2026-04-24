@@ -1,5 +1,5 @@
-#ifndef CLASSIC_NullGeometry_HH
-#define CLASSIC_NullGeometry_HH
+#ifndef OPALX_NullGeometry_HH
+#define OPALX_NullGeometry_HH
 
 // ------------------------------------------------------------------------
 // $RCSfile: NullGeometry.h,v $
@@ -74,4 +74,4 @@ NullGeometry::operator=(const NullGeometry &) {
     return *this;
 }
 
-#endif // CLASSIC_NullGeometry_HH
+#endif // OPALX_NullGeometry_HH

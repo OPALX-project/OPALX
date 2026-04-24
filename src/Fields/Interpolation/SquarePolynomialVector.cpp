@@ -33,7 +33,7 @@
 
 #include "Utilities/GSLCompat.h"
 
-#include "Utilities/GeneralClassicException.h"
+#include "Utilities/GeneralOpalException.h"
 
 #include "Fields/Interpolation/MMatrix.h"
 #include "Fields/Interpolation/MVector.h"
@@ -163,7 +163,7 @@ void SquarePolynomialVector::IndexByPowerRecursive(std::vector<int> check, size_
 
 std::vector<int> SquarePolynomialVector::IndexByPower(int index, int point_dim) {
     if (point_dim < 1)
-        throw(GeneralClassicException(
+        throw(GeneralOpalException(
             "SquarePolynomialVector::IndexByPower",
             "Point dimension must be > 0"
         ));
@@ -258,7 +258,7 @@ unsigned int SquarePolynomialVector::PolynomialOrder() const {
 
 SquarePolynomialVector SquarePolynomialVector::Deriv(const int* derivPower) const {
     if (derivPower == nullptr) {
-        throw(GeneralClassicException(
+        throw(GeneralOpalException(
             "SquarePolynomialVector::Deriv",
             "Derivative points to nullptr"
         ));

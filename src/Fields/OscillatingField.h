@@ -1,5 +1,5 @@
-#ifndef CLASSIC_OscillatingField_HH
-#define CLASSIC_OscillatingField_HH
+#ifndef OPALX_OscillatingField_HH
+#define OPALX_OscillatingField_HH
 
 // ------------------------------------------------------------------------
 // $RCSfile: OscillatingField.h,v $
@@ -132,4 +132,4 @@ template < class Field >
 BVector OscillatingField<Field>::Bfield(const Point3D &p, double t) const
 { return Field::Bfield(p) * cos(t * frequency - phase); }
 
-#endif // CLASSIC_OscillatingField_HH
+#endif // OPALX_OscillatingField_HH

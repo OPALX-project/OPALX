@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL.  If not, see <https://www.gnu.org/licenses/>.
 //
-#ifndef CLASSIC_Monitor_HH
-#define CLASSIC_Monitor_HH
+#ifndef OPALX_Monitor_HH
+#define OPALX_Monitor_HH
 
 #include "AbsBeamline/Component.h"
 #include "PartBunch/PartBunch.h"
@@ -125,4 +125,4 @@ inline bool Monitor::isInside(const Vector_t<double, 3>& r) const {
     return std::abs(r(2)) <= 0.5 * length && isInsideTransverse(r);
 }
 
-#endif  // CLASSIC_Monitor_HH
+#endif  // OPALX_Monitor_HH

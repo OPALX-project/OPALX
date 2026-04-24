@@ -1,5 +1,5 @@
-#ifndef CLASSIC_AttributeSet_HH
-#define CLASSIC_AttributeSet_HH
+#ifndef OPALX_AttributeSet_HH
+#define OPALX_AttributeSet_HH
 
 // ------------------------------------------------------------------------
 // $RCSfile: AttributeSet.h,v $
@@ -108,4 +108,4 @@ inline AttributeSet::const_iterator AttributeSet::begin() const
 inline AttributeSet::const_iterator AttributeSet::end() const
 { return itsMap.end(); }
 
-#endif // CLASSIC_AttributeSet_HH
+#endif // OPALX_AttributeSet_HH

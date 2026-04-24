@@ -1,5 +1,5 @@
-#ifndef CLASSIC_MarkerRep_HH
-#define CLASSIC_MarkerRep_HH
+#ifndef OPALX_MarkerRep_HH
+#define OPALX_MarkerRep_HH
 
 // ------------------------------------------------------------------------
 // $RCSfile: MarkerRep.h,v $
@@ -82,4 +82,4 @@ private:
     void operator=(const MarkerRep &);
 };
 
-#endif // CLASSIC_MarkerRep_HH
+#endif // OPALX_MarkerRep_HH

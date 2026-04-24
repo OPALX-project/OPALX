@@ -1,5 +1,5 @@
-#ifndef CLASSIC_AbsFileStream_HH
-#define CLASSIC_AbsFileStream_HH
+#ifndef OPALX_AbsFileStream_HH
+#define OPALX_AbsFileStream_HH
 
 // ------------------------------------------------------------------------
 // $RCSfile: AbsFileStream.h,v $
@@ -71,4 +71,4 @@ private:
     void operator=(const AbsFileStream &);
 };
 
-#endif // CLASSIC_AbsFileStream_HH
+#endif // OPALX_AbsFileStream_HH

@@ -1,5 +1,5 @@
-#ifndef MAD_PartData_HH
-#define MAD_PartData_HH
+#ifndef OPALX_PartData_HH
+#define OPALX_PartData_HH
 
 // ------------------------------------------------------------------------
 // $RCSfile: PartData.h,v $
@@ -35,9 +35,7 @@
 #include <Kokkos_Core.hpp>
 
 class PartData {
-
 public:
-
     /// Constructor.
     //  Inputs are:
     //  [DL]
@@ -83,53 +81,33 @@ public:
     //  Input is the relativistic gamma = E/(m*c*c).
     void setGamma(double gamma);
 
-
     /// Set reference mass expressed in eV/c^2
-    inline void setM(double m){mass = m;}
+    inline void setM(double m) { mass = m; }
 
-    /// Set reference charge expressed in proton charges,  
-    inline void setQ(double q) {charge = q;}
+    /// Set reference charge expressed in proton charges,
+    inline void setQ(double q) { charge = q; }
 
 protected:
-
     // The reference information.
-    double charge;   // Particle charge.
-    double mass;     // Particle mass.
-    double beta;     // particle velocity divided by c.
-    double gamma;    // particle energy divided by particle mass
+    double charge;  // Particle charge.
+    double mass;    // Particle mass.
+    double beta;    // particle velocity divided by c.
+    double gamma;   // particle energy divided by particle mass
 };
-
 
 // Inline functions.
 // ------------------------------------------------------------------------
 
-KOKKOS_INLINE_FUNCTION double PartData::getQ() const {
-    return charge;
-}
+KOKKOS_INLINE_FUNCTION double PartData::getQ() const { return charge; }
 
+KOKKOS_INLINE_FUNCTION double PartData::getM() const { return mass; }
 
-KOKKOS_INLINE_FUNCTION double PartData::getM() const {
-    return mass;
-}
+inline double PartData::getP() const { return beta * gamma * mass; }
 
+inline double PartData::getE() const { return gamma * mass; }
 
-inline double PartData::getP() const {
-    return beta * gamma * mass;
-}
+inline double PartData::getBeta() const { return beta; }
 
+inline double PartData::getGamma() const { return gamma; }
 
-inline double PartData::getE() const {
-    return gamma * mass;
-}
-
-
-inline double PartData::getBeta() const {
-    return beta;
-}
-
-
-inline double PartData::getGamma() const {
-    return gamma;
-}
-
-#endif // MAD_PartData_HH
+#endif  // OPALX_PartData_HH

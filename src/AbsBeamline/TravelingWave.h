@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
-#ifndef CLASSIC_TravelingWave_HH
-#define CLASSIC_TravelingWave_HH
+#ifndef OPALX_TravelingWave_HH
+#define OPALX_TravelingWave_HH
 
 #include "AbsBeamline/RFCavity.h"
 #include "Physics/Physics.h"
@@ -225,4 +225,4 @@ inline CoordinateSystemTrafo TravelingWave::getEdgeToEnd() const {
     return ret;
 }
 
-#endif  // CLASSIC_TravelingWave_HH
+#endif  // OPALX_TravelingWave_HH
