@@ -430,6 +430,15 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(PartBunch_t& bunch) {
             prepareRhoForBin(bunch, bins, binIndex, nPartGlobal, gammaBin,
                              ImageScatterMode::PrimaryOnly);
 
+            // Invert the charge density for the image pass: image charges have
+            // opposite polarity to the real bunch, which is the whole point of
+            // the Dirichlet correction (phi = 0 at the cathode plane). This is
+            // the equivalent of OPAL's `imgrho2tr_m = -rho2tr_m * grntr_m` in
+            // FFTPoissonSolver.cpp:242 (applied at the rho level here because
+            // IPPL's shiftedGreensFunction + solve path doesn't carry an image-
+            // sign multiplier of its own).
+            *(this->getRho()) = -(*(this->getRho()));
+
             *(this->getE()) = 0.0;
             mesh.setMeshSpacing(hrStretched);
 
