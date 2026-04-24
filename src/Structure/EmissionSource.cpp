@@ -46,13 +46,13 @@ EmissionSource::EmissionSource()
             "After this many steps, the solver continues without image charges. "
             "0 means unlimited (image charges always active).",
             0.0);
-    
+
     itsAttr[EMISSIONMODEL] = Attributes::makePredefinedString(
-        "EMISSIONMODEL",
-        "Emission model for cathode emission. "
-        "NONE: thermal momentum applied in z only. "
-        "ASTRA: 3D isotropic thermal emission on forward half-sphere.",
-        {"NONE", "ASTRA"}, "NONE");
+            "EMISSIONMODEL",
+            "Emission model for cathode emission. "
+            "NONE: thermal momentum applied in z only. "
+            "ASTRA: 3D isotropic thermal emission on forward half-sphere.",
+            {"NONE", "ASTRA"}, "NONE");
 
     registerOwnership(AttributeHandler::STATEMENT);
 }
@@ -107,7 +107,7 @@ bool EmissionSource::getShiftedGreensFunction() const {
 
 int EmissionSource::getZeroFacePlaneDumpFrequency() const {
     const double rawFrequency = Attributes::getReal(itsAttr[ZEROFACEPLANEDUMP]);
-    const int frequency = static_cast<int>(rawFrequency);
+    const int frequency       = static_cast<int>(rawFrequency);
     if (rawFrequency < 0.0 || std::floor(rawFrequency) != rawFrequency) {
         throw OpalException(
                 "EmissionSource::getZeroFacePlaneDumpFrequency",
@@ -118,7 +118,7 @@ int EmissionSource::getZeroFacePlaneDumpFrequency() const {
 
 int EmissionSource::getZerofaceMaxSteps() const {
     const double rawValue = Attributes::getReal(itsAttr[ZEROFACE_MAXSTEPS]);
-    const int value = static_cast<int>(rawValue);
+    const int value       = static_cast<int>(rawValue);
     if (rawValue < 0.0 || std::floor(rawValue) != rawValue) {
         throw OpalException(
                 "EmissionSource::getZerofaceMaxSteps",

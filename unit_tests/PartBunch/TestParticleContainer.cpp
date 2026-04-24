@@ -378,12 +378,12 @@ namespace {
     }
 
     TEST_F(ParticleContainerTest, ImageChargeMirrorTransform_AllParticles_RoundTrip) {
-        Options::useQMAttributes = false;
-        auto pc                  = makeContainer();
+        Options::useQMAttributes                     = false;
+        auto pc                                      = makeContainer();
         std::vector<std::array<double, 3>> positions = {
                 {0.1, -0.2, 0.0}, {0.0, 0.3, 0.4}, {-0.2, 0.1, -0.5}};
         const double dtOrig = 2.5e-12;
-        const double qOrig = 1.6e-19;
+        const double qOrig  = 1.6e-19;
         createParticlesAt(pc, positions, dtOrig);
         pc->setQ(qOrig);
 
@@ -405,15 +405,18 @@ namespace {
         rhoBaseline.initialize(mesh, fl);
         rhoImage.initialize(mesh, fl);
         rhoBaseline = 0.0;
-        rhoImage = 0.0;
+        rhoImage    = 0.0;
 
         constexpr double zPlane = 0.125;
         ImageChargeScatterController<double, 3> baselineController(false, zPlane);
         ImageChargeScatterController<double, 3> imageController(true, zPlane);
 
-        auto R_before_view = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->R.getView());
-        auto dt_before_view = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->dt.getView());
-        auto q_before_view = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->getQView());
+        auto R_before_view =
+                Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->R.getView());
+        auto dt_before_view =
+                Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->dt.getView());
+        auto q_before_view =
+                Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->getQView());
         std::vector<std::array<double, 3>> R_before(pc->getLocalNum());
         std::vector<double> dt_before(pc->getLocalNum(), 0.0);
         for (size_t i = 0; i < pc->getLocalNum(); ++i) {
@@ -430,9 +433,9 @@ namespace {
         Kokkos::fence();
 
         // Particle state must be restored after image scatter.
-        auto R_after = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->R.getView());
+        auto R_after  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->R.getView());
         auto dt_after = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->dt.getView());
-        auto q_after = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->getQView());
+        auto q_after  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->getQView());
         for (size_t i = 0; i < pc->getLocalNum(); ++i) {
             for (unsigned d = 0; d < 3; ++d) {
                 EXPECT_NEAR(R_after(i)[d], R_before[i][d], 1e-14);
@@ -442,8 +445,10 @@ namespace {
         EXPECT_NEAR(q_after(0), q_before, 1e-30);
 
         // Verify image scatter actually changes deposited rho versus baseline.
-        auto rhoBaseHost = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), rhoBaseline.getView());
-        auto rhoImgHost = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), rhoImage.getView());
+        auto rhoBaseHost =
+                Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), rhoBaseline.getView());
+        auto rhoImgHost =
+                Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), rhoImage.getView());
         bool rhoDiffers = false;
         for (size_t i = 0; i < rhoBaseHost.extent(0) && !rhoDiffers; ++i) {
             for (size_t j = 0; j < rhoBaseHost.extent(1) && !rhoDiffers; ++j) {

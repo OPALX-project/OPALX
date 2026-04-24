@@ -43,10 +43,10 @@ class BinnedFieldSolver : public FieldSolver<T, Dim> {
     static_assert(Dim == 3, "BinnedFieldSolver currently supports Dim == 3 only.");
 
 public:
-    using PartBunch_t   = PartBunch<T, Dim>;
-    using ParticleCtr_t = typename PartBunch_t::ParticleContainer_t;
-    using AdaptBins_t   = typename PartBunch_t::AdaptBins_t;
-    using BCHandler_t   = BCHandler<Dim>;
+    using PartBunch_t    = PartBunch<T, Dim>;
+    using ParticleCtr_t  = typename PartBunch_t::ParticleContainer_t;
+    using AdaptBins_t    = typename PartBunch_t::AdaptBins_t;
+    using BCHandler_t    = BCHandler<Dim>;
     using bin_index_type = typename AdaptBins_t::bin_index_type;
     using size_type      = typename AdaptBins_t::size_type;
 
@@ -86,12 +86,9 @@ public:
      * @param tablePrintFrequency Global timestep frequency of printing the bin stats table
      *                             to console in binned mode. If `0`, printing is disabled.
      */
-    BinnedFieldSolver(std::string solver,
-                       Field_t<Dim>* rho,
-                       VField_t<T, Dim>* E,
-                       Field_t<Dim>* phi,
-                       std::shared_ptr<BCHandler_t> bcHandler,
-                       int tablePrintFrequency);
+    BinnedFieldSolver(
+            std::string solver, Field_t<Dim>* rho, VField_t<T, Dim>* E, Field_t<Dim>* phi,
+            std::shared_ptr<BCHandler_t> bcHandler, int tablePrintFrequency);
 
     /**
      * @brief Compute space-charge self-fields for the given particle bunch.
@@ -134,15 +131,16 @@ public:
     bool isShiftedGreensEnabled() const { return shiftedGreensEnabled_m; }
     double getShiftedGreensPlaneZ() const { return shiftedGreensPlaneZ_m; }
 
-    /// @brief Set the maximum number of timesteps for which image charges are active (0 = unlimited).
+    /// @brief Set the maximum number of timesteps for which image charges are active (0 =
+    /// unlimited).
     void setZerofaceMaxSteps(int maxSteps);
     int getZerofaceMaxSteps() const { return zerofaceMaxSteps_m; }
 
     /// @brief Check whether the explicit image-charge pass should run for a given timestep.
     bool isImageChargeActiveForStep(size_t step) const;
 
-    /// @brief Check whether the shifted Green's function correction should run for a given timestep.
-    /// Reuses the same step budget (@c zerofaceMaxSteps_m) as the image-charge path.
+    /// @brief Check whether the shifted Green's function correction should run for a given
+    /// timestep. Reuses the same step budget (@c zerofaceMaxSteps_m) as the image-charge path.
     bool isShiftedGreensActiveForStep(size_t step) const;
 
     /// @brief Configure dump frequency for dirichlet-plane diagnostics (`0` disables dumps).
@@ -157,16 +155,16 @@ public:
 private:
     ScatterAttribute scatterAttribute_m;
     GatherAttribute gatherAttribute_m;
-    int tablePrintFrequency_m = 0;
+    int tablePrintFrequency_m        = 0;
     int zeroFacePlaneDumpFrequency_m = 0;
-    int zerofaceMaxSteps_m = 0;
+    int zerofaceMaxSteps_m           = 0;
     ImageChargeScatterController<T, Dim> imageScatterController_m;
     bool warnedPlaneDumpParallelUnsupported_m = false;
 
     // Shifted Green's function Dirichlet correction (alternative to image charges).
     // Mutually exclusive with the image-charge path (enforced at config time).
-    bool shiftedGreensEnabled_m    = false;
-    double shiftedGreensPlaneZ_m   = 0.0;
+    bool shiftedGreensEnabled_m  = false;
+    double shiftedGreensPlaneZ_m = 0.0;
 
     // Scratch field holding the axis-flipped version of E' for the shifted-GF
     // correction pass. Populated by buildFlippedZSlab (which delegates to
@@ -195,8 +193,8 @@ private:
      * @param nBinsOrZero  Number of bins (for header metadata). Use `0` for legacy mode.
      * @param rows         Table rows to print.
      */
-    void printBinStatsTable(const std::string& binningCmdName,
-                             const std::vector<BinStatsRow>& rows);
+    void printBinStatsTable(
+            const std::string& binningCmdName, const std::vector<BinStatsRow>& rows);
 
 private:
     /**
@@ -208,8 +206,7 @@ private:
      * @param bunch   Particle bunch context for time/step and DataSink access.
      * @param solveTag Label used in output file naming (`legacy`, `binned`, ...).
      */
-    void dumpDirichletPlaneDiagnosticsIfRequested(
-            PartBunch_t& bunch, const std::string& solveTag);
+    void dumpDirichletPlaneDiagnosticsIfRequested(PartBunch_t& bunch, const std::string& solveTag);
 
     /**
      * @brief Compute self-fields using the binned algorithm.
@@ -240,11 +237,9 @@ private:
      * @param bunch Bunch whose bins are updated.
      * @param bins  Adaptive bin structure owned/managed by the bunch.
      */
-    void rebinAndPrepare(PartBunch_t& bunch,
-                          std::shared_ptr<AdaptBins_t> bins);
+    void rebinAndPrepare(PartBunch_t& bunch, std::shared_ptr<AdaptBins_t> bins);
 
 public:
-
     /**
      * @brief Compute per-bin global mean momentum and gamma.
      *
@@ -259,10 +254,9 @@ public:
      *
      * @return Per-bin kinematics bundle (`pmean`, `gammaBin`).
      */
-    BinKinematics computeGammaBinGlobal(PartBunch_t& bunch,
-                                        std::shared_ptr<AdaptBins_t> bins,
-                                        const bin_index_type binIndex,
-                                        const size_type nPartGlobal) const;
+    BinKinematics computeGammaBinGlobal(
+            PartBunch_t& bunch, std::shared_ptr<AdaptBins_t> bins, const bin_index_type binIndex,
+            const size_type nPartGlobal) const;
 
     /**
      * @brief Build mesh `rho` for a specific merged bin and apply all corrections.
@@ -279,12 +273,10 @@ public:
      * @param nPartGlobal  Global number of particles in that merged bin.
      * @param gammaBin     Global average gamma for that merged bin.
      */
-    void prepareRhoForBin(PartBunch_t& bunch,
-                           std::shared_ptr<AdaptBins_t> bins,
-                           const bin_index_type binIndex,
-                           const size_type nPartGlobal,
-                           const double gammaBin,
-                           ImageScatterMode mode = ImageScatterMode::PrimaryAndImage);
+    void prepareRhoForBin(
+            PartBunch_t& bunch, std::shared_ptr<AdaptBins_t> bins, const bin_index_type binIndex,
+            const size_type nPartGlobal, const double gammaBin,
+            ImageScatterMode mode = ImageScatterMode::PrimaryAndImage);
 
     /**
      * @brief Accumulate Lorentz-transformed electric/magnetic fields into temporaries.
@@ -316,12 +308,10 @@ public:
      * @param bFieldSign +1 for forward-moving charges, -1 for image charges.
      * @param flipAxis  Axis in which to flip the read index (use -1 for no flip).
      */
-    void accumulateFieldToTemp(const double gammaBin,
-                               const Vector_t<double, Dim>& pmean,
-                               std::shared_ptr<VField_t<T, Dim>> EtmpSP,
-                               std::shared_ptr<VField_t<T, Dim>> BtmpSP,
-                               double bFieldSign = 1.0,
-                               int flipAxis = -1);
+    void accumulateFieldToTemp(
+            const double gammaBin, const Vector_t<double, Dim>& pmean,
+            std::shared_ptr<VField_t<T, Dim>> EtmpSP, std::shared_ptr<VField_t<T, Dim>> BtmpSP,
+            double bFieldSign = 1.0, int flipAxis = -1);
 
 private:
     /// @brief Populate @c flippedZSlab_m with the z-axis globally-flipped version of @p src.
@@ -344,9 +334,9 @@ private:
      * @param EtmpSP  Temporary electric field buffer holding the accumulated lab-frame field.
      * @param BtmpSP  Temporary magnetic field buffer holding the accumulated lab-frame field.
      */
-    void gatherFromTempToParticles(PartBunch_t& bunch,
-                                   std::shared_ptr<VField_t<T, Dim>> EtmpSP,
-                                   std::shared_ptr<VField_t<T, Dim>> BtmpSP);
+    void gatherFromTempToParticles(
+            PartBunch_t& bunch, std::shared_ptr<VField_t<T, Dim>> EtmpSP,
+            std::shared_ptr<VField_t<T, Dim>> BtmpSP);
 };
 
 // Reduce compile-time churn: instantiate the only supported concrete solver in one TU.
