@@ -8,12 +8,8 @@
 
 template <typename T, unsigned Dim>
 BinnedFieldSolver<T, Dim>::BinnedFieldSolver(
-        std::string solver,
-        Field_t<Dim>* rho,
-        VField_t<T, Dim>* E,
-        Field_t<Dim>* phi,
-        std::shared_ptr<BCHandler_t> bcHandler,
-        int tablePrintFrequency)
+        std::string solver, Field_t<Dim>* rho, VField_t<T, Dim>* E, Field_t<Dim>* phi,
+        std::shared_ptr<BCHandler_t> bcHandler, int tablePrintFrequency)
     : FieldSolver<T, Dim>(solver, rho, E, phi, bcHandler) {
     scatterAttribute_m    = ScatterAttribute::ChargeQ;
     gatherAttribute_m     = GatherAttribute::ElectricFieldE;
@@ -77,17 +73,17 @@ void BinnedFieldSolver<T, Dim>::computeSelfFields(PartBunch_t& bunch) {
     // Temporarily disable image charges if the step limit has been reached.
     // The controller's enabled flag gates the image scatter pass; by disabling it
     // here both the legacy and binned paths automatically perform primary-only scatter.
-    const bool imageWasEnabled = imageScatterController_m.isEnabled();
+    const bool imageWasEnabled     = imageScatterController_m.isEnabled();
     const bool imageActiveThisStep = isImageChargeActiveForStep(bunch.getGlobalTrackStep());
     if (imageWasEnabled && !imageActiveThisStep) {
         m << level3 << "ZEROFACE_MAXSTEPS reached (step=" << bunch.getGlobalTrackStep()
-          << ", maxSteps=" << zerofaceMaxSteps_m
-          << "); disabling image charges for this step." << endl;
+          << ", maxSteps=" << zerofaceMaxSteps_m << "); disabling image charges for this step."
+          << endl;
         imageScatterController_m.configure(false, imageScatterController_m.getZPlane());
     }
 
     // Mirror the same step-budget toggling for the shifted Green's path.
-    const bool shiftedGreensWasEnabled   = shiftedGreensEnabled_m;
+    const bool shiftedGreensWasEnabled = shiftedGreensEnabled_m;
     const bool shiftedGreensActiveThisStep =
             isShiftedGreensActiveForStep(bunch.getGlobalTrackStep());
     if (shiftedGreensWasEnabled && !shiftedGreensActiveThisStep) {
@@ -162,8 +158,7 @@ template <typename T, unsigned Dim>
 void BinnedFieldSolver<T, Dim>::setZerofaceMaxSteps(int maxSteps) {
     if (maxSteps < 0) {
         throw OpalException(
-                "BinnedFieldSolver::setZerofaceMaxSteps",
-                "ZEROFACE_MAXSTEPS must be >= 0.");
+                "BinnedFieldSolver::setZerofaceMaxSteps", "ZEROFACE_MAXSTEPS must be >= 0.");
     }
     zerofaceMaxSteps_m = maxSteps;
 }
@@ -217,19 +212,17 @@ void BinnedFieldSolver<T, Dim>::dumpDirichletPlaneDiagnosticsIfRequested(
     if (ippl::Comm->size() != 1) {
         if (!warnedPlaneDumpParallelUnsupported_m) {
             warnedPlaneDumpParallelUnsupported_m = true;
-            m << level3
-              << "Dirichlet-plane diagnostics currently support only single-rank runs. "
+            m << level3 << "Dirichlet-plane diagnostics currently support only single-rank runs. "
               << "Skipping dump and statistics output." << endl;
         }
         return;
     }
 
-    Field_t<Dim>* potentialField =
-            (this->getStype() == "CG") ? this->getPhi() : this->getRho();
+    Field_t<Dim>* potentialField = (this->getStype() == "CG") ? this->getPhi() : this->getRho();
     if (!potentialField) {
         return;
     }
-    const double zPlane      = imageScatterController_m.getZPlane();
+    const double zPlane = imageScatterController_m.getZPlane();
 
     DataSink* dataSink = bunch.getDataSink();
     if (!dataSink) {
@@ -346,9 +339,9 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(PartBunch_t& bunch) {
                         static_cast<unsigned long long>(nPartGlobal), gammaBin});
 
         // Mesh references reused for both primary and correction passes.
-        auto& mesh = this->getRho()->get_mesh();
+        auto& mesh        = this->getRho()->get_mesh();
         const auto hrOrig = mesh.getMeshSpacing();
-        auto hrStretched = hrOrig;
+        auto hrStretched  = hrOrig;
         hrStretched[Dim - 1] *= gammaBin;
 
         const bool imageActive         = imageScatterController_m.isEnabled();
@@ -360,8 +353,8 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(PartBunch_t& bunch) {
         // --- Primary pass: scatter real charges, solve, accumulate with +B ---
         {
             const ImageScatterMode scatterMode = correctionActive
-                    ? ImageScatterMode::PrimaryOnly
-                    : ImageScatterMode::PrimaryAndImage;
+                                                         ? ImageScatterMode::PrimaryOnly
+                                                         : ImageScatterMode::PrimaryAndImage;
             prepareRhoForBin(bunch, bins, binIndex, nPartGlobal, gammaBin, scatterMode);
 
             *(this->getE()) = 0.0;
@@ -394,8 +387,8 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(PartBunch_t& bunch) {
         // plane distance and requires the OPEN solver (checked in
         // FieldSolver::runShiftedOpenSolver).
         if (imageActive) {
-            prepareRhoForBin(bunch, bins, binIndex, nPartGlobal, gammaBin,
-                             ImageScatterMode::ImageOnly);
+            prepareRhoForBin(
+                    bunch, bins, binIndex, nPartGlobal, gammaBin, ImageScatterMode::ImageOnly);
 
             *(this->getE()) = 0.0;
             mesh.setMeshSpacing(hrStretched);
@@ -418,8 +411,7 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(PartBunch_t& bunch) {
                 dumpDirichletPlaneDiagnosticsIfRequested(bunch, "binned");
                 dumpedDirichletPlaneThisStep = true;
             }
-        }
-        else if (shiftedGreensActive) {
+        } else if (shiftedGreensActive) {
             // Shifted-Green's-function image correction. Multi-rank enabled: the
             // axis-flip source read crosses ranks under PARFFTZ, but that is handled
             // inside accumulateFieldToTemp (it calls buildFlippedZSlab to stage a
@@ -427,8 +419,8 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(PartBunch_t& bunch) {
             //
             // Re-scatter the primary charges (solve() overwrote the RHS in the
             // primary pass). This matches the ImageOnly path's pattern.
-            prepareRhoForBin(bunch, bins, binIndex, nPartGlobal, gammaBin,
-                             ImageScatterMode::PrimaryOnly);
+            prepareRhoForBin(
+                    bunch, bins, binIndex, nPartGlobal, gammaBin, ImageScatterMode::PrimaryOnly);
 
             // Invert the charge density for the image pass: image charges have
             // opposite polarity to the real bunch, which is the whole point of
@@ -447,8 +439,8 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(PartBunch_t& bunch) {
             // Origin is in lab-frame z; hrStretched[Dim-1] is the rest-frame
             // z-spacing. See the TestShiftedGreensFunction derivation.
             const auto origin = mesh.getOrigin();
-            const int    N_z  = static_cast<int>(
-                    this->getRho()->getLayout().getDomain()[Dim - 1].length());
+            const int N_z =
+                    static_cast<int>(this->getRho()->getLayout().getDomain()[Dim - 1].length());
             const double z_center_rest =
                     origin[Dim - 1] + 0.5 * static_cast<double>(N_z) * hrStretched[Dim - 1];
             ippl::Vector<double, Dim> shift(0.0);
@@ -459,14 +451,12 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(PartBunch_t& bunch) {
               << ", shift_z=" << shift[Dim - 1] << endl;
             this->runShiftedOpenSolver(shift);
             m << level4 << "binIndex=" << static_cast<int>(binIndex)
-              << " shifted-GF runSolver done; accumulate->Etmp (B negated, z-flip)"
-              << endl;
+              << " shifted-GF runSolver done; accumulate->Etmp (B negated, z-flip)" << endl;
 
             // Axis-flip + component-wise sign is handled inside
             // accumulateFieldToTemp when flipAxis >= 0 (see method doc).
             constexpr int zFlipAxis = static_cast<int>(Dim) - 1;
-            accumulateFieldToTemp(gammaBin, kinematics.pmean, EtmpSP, BtmpSP, -1.0,
-                                  zFlipAxis);
+            accumulateFieldToTemp(gammaBin, kinematics.pmean, EtmpSP, BtmpSP, -1.0, zFlipAxis);
 
             mesh.setMeshSpacing(hrOrig);
         }
@@ -671,9 +661,9 @@ void BinnedFieldSolver<T, Dim>::prepareRhoForBin(
             size *= bunch.rmax_m[d] - bunch.rmin_m[d];
         }
 
-        const double totalQBin =
-            bunch.getParticleContainer()->getChargePerParticle() * static_cast<double>(nPartGlobal);
-        (*rho)                 = (*rho) - (totalQBin / size);
+        const double totalQBin = bunch.getParticleContainer()->getChargePerParticle()
+                                 * static_cast<double>(nPartGlobal);
+        (*rho) = (*rho) - (totalQBin / size);
     }
 
     // Lorentz transform of charge density to the bin rest frame (thesis Eq. step 7).
@@ -751,8 +741,7 @@ void BinnedFieldSolver<T, Dim>::accumulateFieldToTemp(
         auto flippedView = flippedZSlabField_m->getView();
 
         ippl::parallel_for(
-                "BinnedFieldSolver::accumulateFieldToTemp[flipped]",
-                Eprime.getFieldRangePolicy(),
+                "BinnedFieldSolver::accumulateFieldToTemp[flipped]", Eprime.getFieldRangePolicy(),
                 KOKKOS_LAMBDA(const ippl::RangePolicy<Dim>::index_array_type& idx) {
                     // Read pre-flipped E' at the local (i, j, k).
                     Vector_t<T, Dim> ePrime = flippedView(idx[0], idx[1], idx[2]);
@@ -791,13 +780,11 @@ void BinnedFieldSolver<T, Dim>::buildFlippedZSlab(const VField_t<T, Dim>& src) {
 
     // Lazy-allocate the scratch field with the same layout / mesh / ghost count
     // as src. Reinitialise if src is rebuilt on a different layout across calls.
-    auto& layout        = src.getLayout();
-    auto& mesh          = src.get_mesh();
-    const int srcNghost = src.getNghost();
-    const bool needsInit =
-        !flippedZSlabField_m
-        || &flippedZSlabField_m->getLayout() != &layout
-        || flippedZSlabField_m->getNghost() != srcNghost;
+    auto& layout         = src.getLayout();
+    auto& mesh           = src.get_mesh();
+    const int srcNghost  = src.getNghost();
+    const bool needsInit = !flippedZSlabField_m || &flippedZSlabField_m->getLayout() != &layout
+                           || flippedZSlabField_m->getNghost() != srcNghost;
     if (!flippedZSlabField_m) {
         flippedZSlabField_m = std::make_shared<VField_t<T, Dim>>();
     }

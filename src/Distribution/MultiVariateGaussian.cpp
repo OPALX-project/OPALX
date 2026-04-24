@@ -1,8 +1,8 @@
 #include "MultiVariateGaussian.h"
-#include "Utilities/OpalException.h"
-#include <Kokkos_Core.hpp>
 #include <mpi.h>
+#include <Kokkos_Core.hpp>
 #include <algorithm>
+#include "Utilities/OpalException.h"
 
 /**
  * @brief Constructs the MultiVariateGaussian class.
@@ -10,50 +10,45 @@
  * @param fc Shared pointer to the field container.
  * @param opalDist Borrowed distribution.
  */
-MultiVariateGaussian::MultiVariateGaussian(std::shared_ptr<ParticleContainer_t> pc, 
-                                           std::shared_ptr<FieldContainer_t> fc, 
-                                           Distribution_t* opalDist)
+MultiVariateGaussian::MultiVariateGaussian(
+        std::shared_ptr<ParticleContainer_t> pc, std::shared_ptr<FieldContainer_t> fc,
+        Distribution_t* opalDist)
     : SamplingBase(pc, fc, opalDist) {
-
-        // Initialize covariance matrix from the distribution.
-        for (unsigned int i = 0; i < 6; i++) {
-            for (unsigned int j = 0; j < 6; j++) {
-                cov_m[i][j] = opalDist_m->correlationMatrix_m[i][j];
-            }
+    // Initialize covariance matrix from the distribution.
+    for (unsigned int i = 0; i < 6; i++) {
+        for (unsigned int j = 0; j < 6; j++) {
+            cov_m[i][j] = opalDist_m->correlationMatrix_m[i][j];
         }
-
-        setSigmaR(opalDist_m->getSigmaR());
-        setSigmaP(opalDist_m->getSigmaP());
-        setCutoffR(opalDist_m->getCutoffR());
-        setCutoffP(opalDist_m->getCutoffP());
-
-        meanR_m = 0.0;
-        meanP_m = 0.0;
-        meanP_m[2] = opalDist_m->getAvrgpz();
-
-        samplerTimer_m = IpplTimings::getTimer("Sampling");
-        initRandomPool();
     }
 
-MultiVariateGaussian::MultiVariateGaussian(std::shared_ptr<ParticleContainer_t> pc,
-                   const Vector_t<double, 3>& meanR,
-                   const Vector_t<double, 3>& meanP,
-                   const Vector_t<double, 3>& sigmaR,
-                   const Vector_t<double, 3>& sigmaP,
-                   const Vector_t<double, 3>& cutoffR,
-                   const Vector_t<double, 3>& cutoffP,
-                   bool fixMeanR,
-                   bool fixMeanP)
+    setSigmaR(opalDist_m->getSigmaR());
+    setSigmaP(opalDist_m->getSigmaP());
+    setCutoffR(opalDist_m->getCutoffR());
+    setCutoffP(opalDist_m->getCutoffP());
+
+    meanR_m    = 0.0;
+    meanP_m    = 0.0;
+    meanP_m[2] = opalDist_m->getAvrgpz();
+
+    samplerTimer_m = IpplTimings::getTimer("Sampling");
+    initRandomPool();
+}
+
+MultiVariateGaussian::MultiVariateGaussian(
+        std::shared_ptr<ParticleContainer_t> pc, const Vector_t<double, 3>& meanR,
+        const Vector_t<double, 3>& meanP, const Vector_t<double, 3>& sigmaR,
+        const Vector_t<double, 3>& sigmaP, const Vector_t<double, 3>& cutoffR,
+        const Vector_t<double, 3>& cutoffP, bool fixMeanR, bool fixMeanP)
     : SamplingBase(pc) {
     // Initialize covariance matrix from the distribution.
     for (unsigned int i = 0; i < 6; i++) {
         for (unsigned int j = 0; j < 6; j++) {
             cov_m[i][j] = 0.0;
-            if(i==j && i%2==0){
-                cov_m[i][j] = sigmaR[i/2]*sigmaR[i/2];
+            if (i == j && i % 2 == 0) {
+                cov_m[i][j] = sigmaR[i / 2] * sigmaR[i / 2];
             }
-            if(i==j && i%2==1){
-                cov_m[i][j] = sigmaP[i/2]*sigmaP[i/2];
+            if (i == j && i % 2 == 1) {
+                cov_m[i][j] = sigmaP[i / 2] * sigmaP[i / 2];
             }
         }
     }
@@ -70,28 +65,24 @@ MultiVariateGaussian::MultiVariateGaussian(std::shared_ptr<ParticleContainer_t> 
     initRandomPool();
 }
 
-
-MultiVariateGaussian::MultiVariateGaussian(std::shared_ptr<ParticleContainer_t> pc,
-                   const Vector_t<double, 3>& meanR,
-                   const Vector_t<double, 3>& meanP,
-                   const Matrix_t &cov,
-                   const Vector_t<double, 3>& cutoffR,
-                   const Vector_t<double, 3>& cutoffP,
-                   bool fixMeanR,
-                   bool fixMeanP)
+MultiVariateGaussian::MultiVariateGaussian(
+        std::shared_ptr<ParticleContainer_t> pc, const Vector_t<double, 3>& meanR,
+        const Vector_t<double, 3>& meanP, const Matrix_t& cov, const Vector_t<double, 3>& cutoffR,
+        const Vector_t<double, 3>& cutoffP, bool fixMeanR, bool fixMeanP)
     : SamplingBase(pc) {
-
     cov_m = cov;
 
     setMeanR(meanR);
     setMeanP(meanP);
-    setSigmaR(ippl::Vector<double,3>(Kokkos::sqrt(cov_m[0][0]),
-                                     Kokkos::sqrt(cov_m[2][2]),
-                                     Kokkos::sqrt(cov_m[4][4])));
+    setSigmaR(
+            ippl::Vector<double, 3>(
+                    Kokkos::sqrt(cov_m[0][0]), Kokkos::sqrt(cov_m[2][2]),
+                    Kokkos::sqrt(cov_m[4][4])));
 
-    setSigmaP(ippl::Vector<double,3>(Kokkos::sqrt(cov_m[1][1]),
-                                     Kokkos::sqrt(cov_m[3][3]),
-                                     Kokkos::sqrt(cov_m[5][5])));
+    setSigmaP(
+            ippl::Vector<double, 3>(
+                    Kokkos::sqrt(cov_m[1][1]), Kokkos::sqrt(cov_m[3][3]),
+                    Kokkos::sqrt(cov_m[5][5])));
     setCutoffR(cutoffR);
     setCutoffP(cutoffP);
     setFixMeanR(fixMeanR);
@@ -150,9 +141,9 @@ void MultiVariateGaussian::ComputeCholeskyFactorization() {
  */
 void MultiVariateGaussian::ComputeCenteredBounds() {
     rmin_m = -cutoffR_m;
-    rmax_m =  cutoffR_m;
+    rmax_m = cutoffR_m;
     pmin_m = -cutoffP_m;
-    pmax_m =  cutoffP_m;
+    pmax_m = cutoffP_m;
 
     for (int i = 0; i < 3; i++) {
         rmin_m(i) *= sigmaR_m(i);
@@ -160,8 +151,8 @@ void MultiVariateGaussian::ComputeCenteredBounds() {
         pmin_m(i) *= sigmaP_m(i);
         pmax_m(i) *= sigmaP_m(i);
 
-        min_m(i * 2) = rmin_m(i);
-        max_m(i * 2) = rmax_m(i);
+        min_m(i * 2)     = rmin_m(i);
+        max_m(i * 2)     = rmax_m(i);
         min_m(i * 2 + 1) = pmin_m(i);
         max_m(i * 2 + 1) = pmax_m(i);
     }
@@ -169,22 +160,22 @@ void MultiVariateGaussian::ComputeCenteredBounds() {
     normMin_m = 0.0;
     normMax_m = 0.0;
     double sumMin, sumMax;
-    for(int i=0; i<6; i++){
+    for (int i = 0; i < 6; i++) {
         sumMin = 0.0;
         sumMax = 0.0;
-        for(int j=0; j<i; j++){
-           sumMin += -L_m[i][j]*normMin_m(j);
-           sumMax += -L_m[i][j]*normMax_m(j);
+        for (int j = 0; j < i; j++) {
+            sumMin += -L_m[i][j] * normMin_m(j);
+            sumMax += -L_m[i][j] * normMax_m(j);
         }
-        normMin_m(i) = (min_m(i)-sumMin)/L_m[i][i];
-        normMax_m(i) = (max_m(i)-sumMax)/L_m[i][i];
+        normMin_m(i) = (min_m(i) - sumMin) / L_m[i][i];
+        normMax_m(i) = (max_m(i) - sumMax) / L_m[i][i];
     }
 
-    for(int i=0; i<3; i++){
-        normRmin_m(i) = min_m(2*i)/sigmaR_m(i);
-        normRmax_m(i) = max_m(2*i)/sigmaR_m(i);
-        normPmin_m(i) = min_m(2*i+1)/sigmaP_m(i);
-        normPmax_m(i) = max_m(2*i+1)/sigmaP_m(i);
+    for (int i = 0; i < 3; i++) {
+        normRmin_m(i) = min_m(2 * i) / sigmaR_m(i);
+        normRmax_m(i) = max_m(2 * i) / sigmaR_m(i);
+        normPmin_m(i) = min_m(2 * i + 1) / sigmaP_m(i);
+        normPmax_m(i) = max_m(2 * i + 1) / sigmaP_m(i);
 
         rmin_m(i) /= sigmaR_m(i);
         rmax_m(i) /= sigmaR_m(i);
@@ -196,10 +187,13 @@ void MultiVariateGaussian::ComputeCenteredBounds() {
 /**
  * @brief Generates particles following a multivariate Gaussian distribution.
  */
-void MultiVariateGaussian::generateParticles(size_t &numberOfParticles, Vector_t<double, 3> /*nr*/) {
+void MultiVariateGaussian::generateParticles(
+        size_t& numberOfParticles, Vector_t<double, 3> /*nr*/) {
     if (emissionModel_m != "NONE")
-        throw OpalException("MultiVariateGaussian::generateParticles",
-                            "EMISSIONMODEL '" + emissionModel_m + "' is not supported for MULTIVARIATEGAUSS distributions");
+        throw OpalException(
+                "MultiVariateGaussian::generateParticles",
+                "EMISSIONMODEL '" + emissionModel_m
+                        + "' is not supported for MULTIVARIATEGAUSS distributions");
 
     // Only generate during initial sampling (t0 <= 0). For t0 > 0, this
     // distribution is time-independent and should not contribute here unless
@@ -217,15 +211,20 @@ void MultiVariateGaussian::generateParticles(size_t &numberOfParticles, Vector_t
     ComputeCenteredBounds();
 
     const double par[6] = {0.0, 1.0, 0.0, 1.0, 0.0, 1.0};
-    using Dist_t = ippl::random::NormalDistribution<double, 3>;
-    using sampling_t = ippl::random::InverseTransformSampling<double, 3, Kokkos::DefaultExecutionSpace, Dist_t>;
+    using Dist_t        = ippl::random::NormalDistribution<double, 3>;
+    using sampling_t    = ippl::random::InverseTransformSampling<
+               double, 3, Kokkos::DefaultExecutionSpace, Dist_t>;
     Dist_t dist(par);
 
     const int nranks = std::max(1, ippl::Comm->size());
     // Use computeLocalEmitCount to distribute particles across ranks or uniform fallback.
-    size_t nlocal   = pc_m ? computeLocalEmitCount(static_cast<size_t>(numberOfParticles))
-                           : static_cast<size_t>(floor(numberOfParticles / nranks)
-                                 + (ippl::Comm->rank() < static_cast<int>(numberOfParticles % static_cast<size_t>(nranks)) ? 1 : 0));
+    size_t nlocal = pc_m ? computeLocalEmitCount(static_cast<size_t>(numberOfParticles))
+                         : static_cast<size_t>(
+                                   floor(numberOfParticles / nranks)
+                                   + (ippl::Comm->rank() < static_cast<int>(
+                                              numberOfParticles % static_cast<size_t>(nranks))
+                                              ? 1
+                                              : 0));
 
     sampling_t sampling(dist, normRmax_m, normRmin_m, normRmax_m, normRmin_m, nlocal);
 
@@ -252,22 +251,22 @@ void MultiVariateGaussian::generateParticles(size_t &numberOfParticles, Vector_t
 
     // Apply Cholesky transformation
     Kokkos::parallel_for(
-        nlocal, KOKKOS_LAMBDA(const size_t k) {
-            double vec_old[6], vec[6] = {0.0};
-            for (unsigned i = 0; i < 3; ++i) {
-                vec_old[2 * i]     = Rview(k)[i];
-                vec_old[2 * i + 1] = Pview(k)[i];
-            }
-            for (unsigned i = 0; i < 6; ++i) {
-                for (unsigned j = 0; j < i + 1; ++j) {
-                    vec[i] += L[i][j] * vec_old[j];
+            nlocal, KOKKOS_LAMBDA(const size_t k) {
+                double vec_old[6], vec[6] = {0.0};
+                for (unsigned i = 0; i < 3; ++i) {
+                    vec_old[2 * i]     = Rview(k)[i];
+                    vec_old[2 * i + 1] = Pview(k)[i];
                 }
-            }
-            for (unsigned i = 0; i < 3; ++i) {
-                Rview(k)[i] = vec[2 * i];
-                Pview(k)[i] = vec[2 * i + 1];
-            }
-        });
+                for (unsigned i = 0; i < 6; ++i) {
+                    for (unsigned j = 0; j < i + 1; ++j) {
+                        vec[i] += L[i][j] * vec_old[j];
+                    }
+                }
+                for (unsigned i = 0; i < 3; ++i) {
+                    Rview(k)[i] = vec[2 * i];
+                    Pview(k)[i] = vec[2 * i + 1];
+                }
+            });
 
     Kokkos::fence();
 
@@ -281,14 +280,14 @@ void MultiVariateGaussian::generateParticles(size_t &numberOfParticles, Vector_t
         }
 
         Kokkos::parallel_reduce(
-            "calc moments of particle distr.", nlocal,
-            KOKKOS_LAMBDA(const size_t k, double& cent0, double& cent1, double& cent2) {
-                cent0 += Rview(k)[0];
-                cent1 += Rview(k)[1];
-                cent2 += Rview(k)[2];
-            },
-            Kokkos::Sum<double>(loc_meanR[0]), Kokkos::Sum<double>(loc_meanR[1]),
-            Kokkos::Sum<double>(loc_meanR[2]));
+                "calc moments of particle distr.", nlocal,
+                KOKKOS_LAMBDA(const size_t k, double& cent0, double& cent1, double& cent2) {
+                    cent0 += Rview(k)[0];
+                    cent1 += Rview(k)[1];
+                    cent2 += Rview(k)[2];
+                },
+                Kokkos::Sum<double>(loc_meanR[0]), Kokkos::Sum<double>(loc_meanR[1]),
+                Kokkos::Sum<double>(loc_meanR[2]));
         Kokkos::fence();
 
         MPI_Allreduce(loc_meanR, meanR, 3, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
@@ -299,11 +298,11 @@ void MultiVariateGaussian::generateParticles(size_t &numberOfParticles, Vector_t
         }
 
         Kokkos::parallel_for(
-            nlocal, KOKKOS_LAMBDA(const size_t k) {
-                Rview(k)[0] -= meanR[0];
-                Rview(k)[1] -= meanR[1];
-                Rview(k)[2] -= meanR[2];
-            });
+                nlocal, KOKKOS_LAMBDA(const size_t k) {
+                    Rview(k)[0] -= meanR[0];
+                    Rview(k)[1] -= meanR[1];
+                    Rview(k)[2] -= meanR[2];
+                });
         Kokkos::fence();
     }
 
@@ -315,14 +314,14 @@ void MultiVariateGaussian::generateParticles(size_t &numberOfParticles, Vector_t
             loc_meanP[i] = 0.0;
         }
         Kokkos::parallel_reduce(
-            "calc moments of particle distr.", nlocal,
-            KOKKOS_LAMBDA(const size_t k, double& cent0, double& cent1, double& cent2) {
-                cent0 += Pview(k)[0];
-                cent1 += Pview(k)[1];
-                cent2 += Pview(k)[2];
-            },
-            Kokkos::Sum<double>(loc_meanP[0]), Kokkos::Sum<double>(loc_meanP[1]),
-            Kokkos::Sum<double>(loc_meanP[2]));
+                "calc moments of particle distr.", nlocal,
+                KOKKOS_LAMBDA(const size_t k, double& cent0, double& cent1, double& cent2) {
+                    cent0 += Pview(k)[0];
+                    cent1 += Pview(k)[1];
+                    cent2 += Pview(k)[2];
+                },
+                Kokkos::Sum<double>(loc_meanP[0]), Kokkos::Sum<double>(loc_meanP[1]),
+                Kokkos::Sum<double>(loc_meanP[2]));
         Kokkos::fence();
 
         MPI_Allreduce(loc_meanP, meanP, 3, MPI_DOUBLE, MPI_SUM, ippl::Comm->getCommunicator());
@@ -333,11 +332,11 @@ void MultiVariateGaussian::generateParticles(size_t &numberOfParticles, Vector_t
         }
 
         Kokkos::parallel_for(
-            nlocal, KOKKOS_LAMBDA(const size_t k) {
-                Pview(k)[0] -= meanP[0];
-                Pview(k)[1] -= meanP[1];
-                Pview(k)[2] -= meanP[2];
-            });
+                nlocal, KOKKOS_LAMBDA(const size_t k) {
+                    Pview(k)[0] -= meanP[0];
+                    Pview(k)[1] -= meanP[1];
+                    Pview(k)[2] -= meanP[2];
+                });
         Kokkos::fence();
     }
 
@@ -348,12 +347,12 @@ void MultiVariateGaussian::generateParticles(size_t &numberOfParticles, Vector_t
     }
 
     Kokkos::parallel_for(
-        nlocal, KOKKOS_LAMBDA(const size_t k) {
-            for (size_t i = 0; i < 3; i++) {
-                Rview(k)[i] += meanR[i];
-                Pview(k)[i] += meanP[i];
-            }
-        });
+            nlocal, KOKKOS_LAMBDA(const size_t k) {
+                for (size_t i = 0; i < 3; i++) {
+                    Rview(k)[i] += meanR[i];
+                    Pview(k)[i] += meanP[i];
+                }
+            });
     Kokkos::fence();
 
     // Apply per-emission-source offsets after all mean-fixing/corrections.
@@ -362,10 +361,10 @@ void MultiVariateGaussian::generateParticles(size_t &numberOfParticles, Vector_t
     const Vector_t<double, 3> R0 = R0_m;
     const Vector_t<double, 3> P0 = P0_m;
     Kokkos::parallel_for(
-        nlocal, KOKKOS_LAMBDA(const size_t k) {
-            Rview(k) += R0;
-            Pview(k) += P0;
-        });
+            nlocal, KOKKOS_LAMBDA(const size_t k) {
+                Rview(k) += R0;
+                Pview(k) += P0;
+            });
 
     pc_m->markMomentsDirty();
 
@@ -402,7 +401,7 @@ void MultiVariateGaussian::emitParticles(double t, double dt) {
     hasEmittedOnce_m = true;
     Vector_t<double, 3> dummyNr(0.0);
     generateParticles(Ndist, dummyNr);
-    
+
     const size_t nlocalAfter = pc_m->getLocalNum();
     const size_t nNew        = nlocalAfter - nlocalBefore;
     if (nNew > 0) {

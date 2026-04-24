@@ -40,11 +40,12 @@ public:
 
     virtual ~SamplingBase() {}
 
-    void setEmissionOffsets(ippl::Vector<double, 3> R0, ippl::Vector<double, 3> P0, double t0,
-                            const std::string& emissionModel = "NONE") {
-        R0_m = R0;
-        P0_m = P0;
-        t0_m = t0;
+    void setEmissionOffsets(
+            ippl::Vector<double, 3> R0, ippl::Vector<double, 3> P0, double t0,
+            const std::string& emissionModel = "NONE") {
+        R0_m            = R0;
+        P0_m            = P0;
+        t0_m            = t0;
         emissionModel_m = emissionModel;
     }
 

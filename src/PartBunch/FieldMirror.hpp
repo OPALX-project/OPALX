@@ -116,7 +116,7 @@ namespace opalx {
                 // p will unpack the buffer with the mirror-axis flip flag, placing
                 // the data at the reflected dst range.
                 ippl::detail::solver_send_field<value_type, value_type, Dim>(
-                    base_tag, 0, p, intersect, ldom_r, nghost, srcView, fd_send, requests);
+                        base_tag, 0, p, intersect, ldom_r, nghost, srcView, fd_send, requests);
             }
 
             // Phase 2: blocking recvs + unpack-with-flip on the mirror axis.
@@ -131,8 +131,8 @@ namespace opalx {
                 ippl::NDIndex<Dim> intersect = ldom_r.intersect(ldom_p_mirror);
 
                 ippl::detail::solver_recv<value_type, value_type, Dim>(
-                    base_tag, 0, p, intersect, ldom_r, nghost, dstView, fd_recv, flipX, flipY,
-                    flipZ);
+                        base_tag, 0, p, intersect, ldom_r, nghost, dstView, fd_recv, flipX, flipY,
+                        flipZ);
             }
 
             // Self overlap: r holds both src and dst cells that participate in its
@@ -153,19 +153,20 @@ namespace opalx {
                     //   dst_global[a] = dst_local[a] - nghost + ldom_r[a].first()
                     //   src_global[a] = N_glob - 1 - dst_global[a]
                     //   src_local[a]  = src_global[a] - ldom_r[a].first() + nghost
-                    //                 = N_glob - 1 - dst_local[a] + 2 * (nghost - ldom_r[a].first())
+                    //                 = N_glob - 1 - dst_local[a] + 2 * (nghost -
+                    //                 ldom_r[a].first())
                     const int k_shift = (N_glob - 1) + 2 * (nghost - ldom_r[axis].first());
                     const int axis_c  = static_cast<int>(axis);
 
                     using mdrange_type = Kokkos::MDRangePolicy<Kokkos::Rank<3>>;
                     Kokkos::parallel_for(
-                        "opalx::mirrorField::self",
-                        mdrange_type({first0, first1, first2}, {last0, last1, last2}),
-                        KOKKOS_LAMBDA(const size_t i, const size_t j, const size_t k) {
-                            size_t idx[3] = {i, j, k};
-                            idx[axis_c]   = static_cast<size_t>(k_shift) - idx[axis_c];
-                            dstView(i, j, k) = srcView(idx[0], idx[1], idx[2]);
-                        });
+                            "opalx::mirrorField::self",
+                            mdrange_type({first0, first1, first2}, {last0, last1, last2}),
+                            KOKKOS_LAMBDA(const size_t i, const size_t j, const size_t k) {
+                                size_t idx[3]    = {i, j, k};
+                                idx[axis_c]      = static_cast<size_t>(k_shift) - idx[axis_c];
+                                dstView(i, j, k) = srcView(idx[0], idx[1], idx[2]);
+                            });
                     Kokkos::fence();
                 }
             }

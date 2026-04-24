@@ -22,8 +22,8 @@
 #include <Kokkos_Core.hpp>
 
 #include <algorithm>
-#include <cstddef>
 #include <cmath>
+#include <cstddef>
 #include <filesystem>
 #include <string>
 #include <vector>
@@ -39,8 +39,8 @@
 class DirichletPlaneWriter {
 public:
     struct PlaneDiagnostics {
-        double mean            = 0.0;
-        double variance        = 0.0;
+        double mean             = 0.0;
+        double variance         = 0.0;
         std::size_t sampleCount = 0;
     };
 
@@ -48,15 +48,10 @@ public:
     explicit DirichletPlaneWriter(const std::string& outputDirectory);
 
     /// @brief Write one plane snapshot.
-    void writePlane(long long step,
-                    double time,
-                    double zPlane,
-                    const std::vector<double>& xCoords,
-                    const std::vector<double>& yCoords,
-                    const std::vector<double>& phiValues,
-                    std::size_t nx,
-                    std::size_t ny,
-                    const std::string& solveTag);
+    void writePlane(
+            long long step, double time, double zPlane, const std::vector<double>& xCoords,
+            const std::vector<double>& yCoords, const std::vector<double>& phiValues,
+            std::size_t nx, std::size_t ny, const std::string& solveTag);
 
     /**
      * @brief Interpolate a z-plane from a 3D field on device and write it to disk.
@@ -75,11 +70,9 @@ public:
      * @return Mean/variance statistics of the sampled plane.
      */
     template <typename FieldType>
-    PlaneDiagnostics dumpInterpolatedPlane(long long step,
-                                           double time,
-                                           double zPlane,
-                                           const FieldType& field,
-                                           const std::string& solveTag);
+    PlaneDiagnostics dumpInterpolatedPlane(
+            long long step, double time, double zPlane, const FieldType& field,
+            const std::string& solveTag);
 
 private:
     std::filesystem::path outputDirectory_m;
@@ -87,10 +80,7 @@ private:
 
 template <typename FieldType>
 DirichletPlaneWriter::PlaneDiagnostics DirichletPlaneWriter::dumpInterpolatedPlane(
-        long long step,
-        double time,
-        double zPlane,
-        const FieldType& field,
+        long long step, double time, double zPlane, const FieldType& field,
         const std::string& solveTag) {
     const auto lDom    = field.getLayout().getLocalNDIndex();
     const int nghost   = field.getNghost();
@@ -117,9 +107,8 @@ DirichletPlaneWriter::PlaneDiagnostics DirichletPlaneWriter::dumpInterpolatedPla
     const int kMaxGlobal = lDom[2].last();
 
     const double kFloatRaw = (zPlane - origin[2]) / spacing[2] - 0.5;
-    const double kFloat = std::min(
-            std::max(kFloatRaw, static_cast<double>(kMinGlobal)),
-            static_cast<double>(kMaxGlobal));
+    const double kFloat    = std::min(
+            std::max(kFloatRaw, static_cast<double>(kMinGlobal)), static_cast<double>(kMaxGlobal));
 
     int k0Global = static_cast<int>(std::floor(kFloat));
     int k1Global = k0Global + 1;
@@ -139,8 +128,7 @@ DirichletPlaneWriter::PlaneDiagnostics DirichletPlaneWriter::dumpInterpolatedPla
     auto fieldView = field.getView();
 
     Kokkos::parallel_for(
-            "DirichletPlaneWriter::interpolatePlane",
-            Kokkos::RangePolicy<exec_space>(0, nxy),
+            "DirichletPlaneWriter::interpolatePlane", Kokkos::RangePolicy<exec_space>(0, nxy),
             KOKKOS_LAMBDA(const std::size_t idx) {
                 const std::size_t ii = idx / ny;
                 const std::size_t jj = idx - ii * ny;
@@ -148,15 +136,14 @@ DirichletPlaneWriter::PlaneDiagnostics DirichletPlaneWriter::dumpInterpolatedPla
                 const int iLocal = static_cast<int>(ii) + nghost;
                 const int jLocal = static_cast<int>(jj) + nghost;
 
-                const double phi0 = fieldView(iLocal, jLocal, k0Local);
-                const double phi1 = fieldView(iLocal, jLocal, k1Local);
+                const double phi0   = fieldView(iLocal, jLocal, k0Local);
+                const double phi1   = fieldView(iLocal, jLocal, k1Local);
                 planeDevice(ii, jj) = (1.0 - alpha) * phi0 + alpha * phi1;
             });
 
     double sum = 0.0;
     Kokkos::parallel_reduce(
-            "DirichletPlaneWriter::sumPlane",
-            Kokkos::RangePolicy<exec_space>(0, nxy),
+            "DirichletPlaneWriter::sumPlane", Kokkos::RangePolicy<exec_space>(0, nxy),
             KOKKOS_LAMBDA(const std::size_t idx, double& acc) {
                 const std::size_t ii = idx / ny;
                 const std::size_t jj = idx - ii * ny;
@@ -166,8 +153,7 @@ DirichletPlaneWriter::PlaneDiagnostics DirichletPlaneWriter::dumpInterpolatedPla
 
     double sumSq = 0.0;
     Kokkos::parallel_reduce(
-            "DirichletPlaneWriter::sumSqPlane",
-            Kokkos::RangePolicy<exec_space>(0, nxy),
+            "DirichletPlaneWriter::sumSqPlane", Kokkos::RangePolicy<exec_space>(0, nxy),
             KOKKOS_LAMBDA(const std::size_t idx, double& acc) {
                 const std::size_t ii = idx / ny;
                 const std::size_t jj = idx - ii * ny;
@@ -203,7 +189,7 @@ DirichletPlaneWriter::PlaneDiagnostics DirichletPlaneWriter::dumpInterpolatedPla
     PlaneDiagnostics diagnostics;
     diagnostics.sampleCount = nxy;
     diagnostics.mean        = sum / static_cast<double>(nxy);
-    diagnostics.variance    = sumSq / static_cast<double>(nxy) - diagnostics.mean * diagnostics.mean;
+    diagnostics.variance = sumSq / static_cast<double>(nxy) - diagnostics.mean * diagnostics.mean;
     if (diagnostics.variance < 0.0) {
         diagnostics.variance = 0.0;
     }
