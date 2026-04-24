@@ -49,9 +49,9 @@
 
 // Table-related commands.
 #include "Structure/Beam.h"
+#include "Structure/BinningCmd.h"
 #include "Structure/EmissionSource.h"
 #include "Structure/FieldSolverCmd.h"
-#include "Structure/BinningCmd.h"
 // #include "Tables/List.h"
 
 // Value definitions commands.
@@ -63,22 +63,24 @@
 
 // Element commands.
 #include "Elements/OpalCavity.h"
-#include "Elements/OpalTravelingWave.h"
 #include "Elements/OpalConstantEFieldCavity.h"
 #include "Elements/OpalDrift.h"
 #include "Elements/OpalLaser.h"
 #include "Elements/OpalMarker.h"
-#include "Elements/OpalProbe.h"
 #include "Elements/OpalMultipole.h"
-#include "Elements/OpalQuadrupole.h"
-#include "Elements/OpalRingDefinition.h"
-#include "Elements/OpalSolenoid.h"
-#include "Elements/OpalVerticalFFAMagnet.h"
-#include "Elements/OpalPolynomialTimeDependence.h"
-#include "Elements/OpalSinusoidalTimeDependence.h"
-#include "Elements/OpalSplineTimeDependence.h"
 #include "Elements/OpalMultipoleT.h"
+#include "Elements/OpalPolynomialTimeDependence.h"
+#include "Elements/OpalProbe.h"
+#include "Elements/OpalQuadrupole.h"
+#include "Elements/OpalRBend.h"
+#include "Elements/OpalRingDefinition.h"
+#include "Elements/OpalSBend.h"
+#include "Elements/OpalSinusoidalTimeDependence.h"
+#include "Elements/OpalSolenoid.h"
+#include "Elements/OpalSplineTimeDependence.h"
+#include "Elements/OpalTravelingWave.h"
 #include "Elements/OpalVariableRFCavity.h"
+#include "Elements/OpalVerticalFFAMagnet.h"
 
 // Structure-related commands.
 #include "Lines/EmissionSourceList.h"
@@ -138,6 +140,8 @@ namespace {
         opal->create(new OpalProbe());
         opal->create(new OpalMultipole());
         opal->create(new OpalQuadrupole());
+        opal->create(new OpalRBend());
+        opal->create(new OpalSBend());
         opal->create(new OpalSolenoid());
         opal->create(new OpalRingDefinition());
         opal->create(new Line());
