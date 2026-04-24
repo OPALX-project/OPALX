@@ -1,5 +1,5 @@
-#ifndef CLASSIC_FileStream_HH
-#define CLASSIC_FileStream_HH
+#ifndef OPALX_FileStream_HH
+#define OPALX_FileStream_HH
 
 // ------------------------------------------------------------------------
 // $RCSfile: FileStream.h,v $
@@ -66,4 +66,4 @@ private:
     static bool echoFlag;
 };
 
-#endif // CLASSIC_FileStream_HH
+#endif // OPALX_FileStream_HH

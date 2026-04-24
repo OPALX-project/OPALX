@@ -1,5 +1,5 @@
-#ifndef CLASSIC_IndirectChannel_HH
-#define CLASSIC_IndirectChannel_HH
+#ifndef OPALX_IndirectChannel_HH
+#define OPALX_IndirectChannel_HH
 
 // ------------------------------------------------------------------------
 // $RCSfile: IndirectChannel.h,v $
@@ -127,4 +127,4 @@ bool IndirectChannel<T>::isSettable() const {
     return (setF != 0);
 }
 
-#endif // CLASSIC_IndirectChannel_HH
+#endif // OPALX_IndirectChannel_HH

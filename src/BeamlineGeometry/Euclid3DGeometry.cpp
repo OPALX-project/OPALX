@@ -27,7 +27,7 @@
 
 #include "BeamlineGeometry/Euclid3DGeometry.h"
 
-#include "Utilities/GeneralClassicException.h"
+#include "Utilities/GeneralOpalException.h"
 #include <cmath>
 #include <algorithm>
 
@@ -59,7 +59,7 @@ double Euclid3DGeometry::getElementLength() const {
 
 void Euclid3DGeometry::setElementLength(double length) {
     if (length < 0.0) {
-        throw GeneralClassicException("Euclid3DGeometry::setElementLength",
+        throw GeneralOpalException("Euclid3DGeometry::setElementLength",
                                       "The length of an element has to be positive");
     }
     Vector3D newVector = transformation_m.getVector()*(length/getArcLength());
@@ -67,11 +67,11 @@ void Euclid3DGeometry::setElementLength(double length) {
 }
 
 Euclid3D Euclid3DGeometry::getTransform(double /*fromS*/, double /*toS*/) const {
-    throw GeneralClassicException("Euclid3DGeometry::getTransform", "Not implemented");
+    throw GeneralOpalException("Euclid3DGeometry::getTransform", "Not implemented");
 }
 
 Euclid3D Euclid3DGeometry::getTransform(double /*fromS*/) const {
-    throw GeneralClassicException("Euclid3DGeometry::getTransform", "Not implemented");
+    throw GeneralOpalException("Euclid3DGeometry::getTransform", "Not implemented");
 }
 
 Euclid3D Euclid3DGeometry::getTotalTransform() const {

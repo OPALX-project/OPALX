@@ -1,7 +1,7 @@
 //
 // Class Line
 //   The LINE definition.
-//   A Line contains a CLASSIC TBeamline<FlaggedElmPtr> which represents the
+//   A Line contains an OPALX TBeamline<FlaggedElmPtr> which represents the
 //   sequence of elements in the line.  The line is always flat in the sense
 //   that nested anonymous lines are flattened.
 //
@@ -71,7 +71,7 @@ private:
     // Clone constructor.
     Line(const std::string &name, Line *parent);
 
-    // Return the embedded CLASSIC beam line.
+    // Return the embedded OPALX beam line.
     // The result it the ideal line.
     virtual FlaggedBeamline *fetchLine() const;
 

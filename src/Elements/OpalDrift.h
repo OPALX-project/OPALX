@@ -42,7 +42,7 @@ public:
     //  Return true.
     virtual bool isDrift() const;
 
-    /// Update the embedded CLASSIC drift.
+    /// Update the embedded OPALX drift.
     virtual void update();
 
 private:

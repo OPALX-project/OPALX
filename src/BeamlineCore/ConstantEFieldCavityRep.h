@@ -1,5 +1,5 @@
-#ifndef CLASSIC_ConstantEFieldCavityRep_HH
-#define CLASSIC_ConstantEFieldCavityRep_HH
+#ifndef OPALX_ConstantEFieldCavityRep_HH
+#define OPALX_ConstantEFieldCavityRep_HH
 
 #include "AbsBeamline/ConstantEFieldCavity.h"
 #include "BeamlineGeometry/StraightGeometry.h"
@@ -32,4 +32,4 @@ private:
     ConstEzField field;
 };
 
-#endif  // CLASSIC_ConstantEFieldCavityRep_HH
+#endif  // OPALX_ConstantEFieldCavityRep_HH

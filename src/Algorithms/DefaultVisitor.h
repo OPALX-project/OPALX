@@ -20,8 +20,8 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
-#ifndef CLASSIC_DefaultVisitor_HH
-#define CLASSIC_DefaultVisitor_HH
+#ifndef OPALX_DefaultVisitor_HH
+#define OPALX_DefaultVisitor_HH
 
 #include "AbsBeamline/BeamlineVisitor.h"
 
@@ -121,4 +121,4 @@ private:
     bool local_flip;
 };
 
-#endif  // CLASSIC_DefaultVisitor_HH
+#endif  // OPALX_DefaultVisitor_HH

@@ -16,7 +16,7 @@
 #include "Algorithms/PolynomialTimeDependence.h"
 #include "Attributes/Attributes.h"
 #include "Ippl.h"
-#include "Utilities/GeneralClassicException.h"
+#include "Utilities/GeneralOpalException.h"
 #include "gtest/gtest.h"
 
 TEST(TestPolynomialTimeDependence, PolynomialTimeDependenceTest) {
@@ -44,7 +44,7 @@ TEST(TestPolynomialTimeDependence, PolynomialTimeDependenceTest) {
 
 TEST(TestPolynomialTimeDependence, TDMapTest) {
     // throw on empty value
-    EXPECT_THROW(AbstractTimeDependence::getTimeDependence("name"), GeneralClassicException);
+    EXPECT_THROW(AbstractTimeDependence::getTimeDependence("name"), GeneralOpalException);
     // set/get time dependence
     PolynomialTimeDependence time_dep(std::vector<double>{});
     const std::shared_ptr<PolynomialTimeDependence> td1(time_dep.clone());
@@ -62,7 +62,7 @@ TEST(TestPolynomialTimeDependence, TDMapTest) {
 }
 
 TEST(TestPolynomialTimeDependence, TDMapNameLookupTest) {
-    EXPECT_THROW(AbstractTimeDependence::getName(nullptr), GeneralClassicException);
+    EXPECT_THROW(AbstractTimeDependence::getName(nullptr), GeneralOpalException);
     PolynomialTimeDependence time_dep(std::vector<double>(1, 1));
     std::shared_ptr<PolynomialTimeDependence> td1(time_dep.clone());
     std::shared_ptr<PolynomialTimeDependence> td2(time_dep.clone());
@@ -74,7 +74,7 @@ TEST(TestPolynomialTimeDependence, TDMapNameLookupTest) {
     EXPECT_EQ(name1, "td1");
     std::string name2 = AbstractTimeDependence::getName(td2);
     EXPECT_TRUE(name2 == "td2" || name2 == "td3");
-    EXPECT_THROW(AbstractTimeDependence::getName(td3), GeneralClassicException);
+    EXPECT_THROW(AbstractTimeDependence::getName(td3), GeneralOpalException);
 }
 
 TEST(TestPolynomialTimeDependence, Integral) {

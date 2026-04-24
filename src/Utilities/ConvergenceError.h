@@ -1,5 +1,5 @@
-#ifndef CLASSIC_ConvergenceError_HH
-#define CLASSIC_ConvergenceError_HH
+#ifndef OPAL_ConvergenceError_HH
+#define OPAL_ConvergenceError_HH
 
 // ------------------------------------------------------------------------
 // $RCSfile: ConvergenceError.h,v $
@@ -52,4 +52,4 @@ private:
     ConvergenceError();
 };
 
-#endif // CLASSIC_ConvergenceError_HH
+#endif // OPAL_ConvergenceError_HH

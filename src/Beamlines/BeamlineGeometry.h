@@ -1,5 +1,5 @@
-#ifndef CLASSIC_BeamlineGeometry_HH
-#define CLASSIC_BeamlineGeometry_HH
+#ifndef OPALX_BeamlineGeometry_HH
+#define OPALX_BeamlineGeometry_HH
 
 // ------------------------------------------------------------------------
 // $RCSfile: BeamlineGeometry.h,v $
@@ -102,4 +102,4 @@ private:
     const Beamline &itsLine;
 };
 
-#endif // CLASSIC_BeamlineGeometry_HH
+#endif // OPALX_BeamlineGeometry_HH

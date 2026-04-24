@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
-#ifndef CLASSIC_MultipoleRep_HH
-#define CLASSIC_MultipoleRep_HH
+#ifndef OPALX_MultipoleRep_HH
+#define OPALX_MultipoleRep_HH
 
 #include "AbsBeamline/Multipole.h"
 #include "BeamlineGeometry/StraightGeometry.h"
@@ -75,4 +75,4 @@ private:
     void operator=(const MultipoleRep &);
 };
 
-#endif // CLASSIC_MultipoleRep_HH
+#endif // OPALX_MultipoleRep_HH

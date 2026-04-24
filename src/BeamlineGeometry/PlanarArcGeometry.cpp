@@ -20,7 +20,7 @@
 
 #include "BeamlineGeometry/PlanarArcGeometry.h"
 #include "BeamlineGeometry/Euclid3D.h"
-#include "Utilities/GeneralClassicException.h"
+#include "Utilities/GeneralOpalException.h"
 
 #include <cmath>
 #include <algorithm>
@@ -84,7 +84,7 @@ void PlanarArcGeometry::setCurvature(double hh) {
 
 void PlanarArcGeometry::setElementLength(double l) {
     if (l < 0.0) {
-        throw GeneralClassicException("PlanarArcGeometry::setElementLength",
+        throw GeneralOpalException("PlanarArcGeometry::setElementLength",
                                       "The length of an element has to be positive");
     }
     len = l;

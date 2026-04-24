@@ -1,5 +1,5 @@
-#ifndef CLASSIC_Beamline_HH
-#define CLASSIC_Beamline_HH
+#ifndef OPALX_Beamline_HH
+#define OPALX_Beamline_HH
 
 // ------------------------------------------------------------------------
 // $RCSfile: Beamline.h,v $
@@ -55,4 +55,4 @@ private:
     void operator=(const Beamline&);
 };
 
-#endif  // CLASSIC_Beamline_HH
+#endif  // OPALX_Beamline_HH

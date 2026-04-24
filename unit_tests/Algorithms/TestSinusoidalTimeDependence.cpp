@@ -16,7 +16,7 @@
 #include "Algorithms/AbstractTimeDependence.h"
 #include "Algorithms/SinusoidalTimeDependence.h"
 #include "Ippl.h"
-#include "Utilities/GeneralClassicException.h"
+#include "Utilities/GeneralOpalException.h"
 #include "gtest/gtest.h"
 
 TEST(TestSinusoidalTimeDependence, SinusoidalTimeDependenceTest) {
@@ -48,7 +48,7 @@ TEST(TestSinusoidalTimeDependence, SinusoidalTimeDependenceTest) {
 
 TEST(TestSinusoidalTimeDependence, TDMapTest) {
     // throw on empty value
-    EXPECT_THROW(AbstractTimeDependence::getTimeDependence("name"), GeneralClassicException);
+    EXPECT_THROW(AbstractTimeDependence::getTimeDependence("name"), GeneralOpalException);
 
     // set/get time dependence
     SinusoidalTimeDependence time_dep({}, {}, {}, {});
@@ -67,7 +67,7 @@ TEST(TestSinusoidalTimeDependence, TDMapTest) {
 }
 
 TEST(TestSinusoidalTimeDependence, TDMapNameLookupTest) {
-    EXPECT_THROW(AbstractTimeDependence::getName(nullptr), GeneralClassicException);
+    EXPECT_THROW(AbstractTimeDependence::getName(nullptr), GeneralOpalException);
     SinusoidalTimeDependence time_dep({}, {}, {}, {});
     std::shared_ptr<SinusoidalTimeDependence> td1(time_dep.clone());
     std::shared_ptr<SinusoidalTimeDependence> td2(time_dep.clone());
@@ -79,7 +79,7 @@ TEST(TestSinusoidalTimeDependence, TDMapNameLookupTest) {
     EXPECT_EQ(name1, "td1");
     std::string name2 = AbstractTimeDependence::getName(td2);
     EXPECT_TRUE(name2 == "td2" || name2 == "td3");
-    EXPECT_THROW(AbstractTimeDependence::getName(td3), GeneralClassicException);
+    EXPECT_THROW(AbstractTimeDependence::getName(td3), GeneralOpalException);
 }
 
 TEST(TestSinusoidalTimeDependence, Integral) {

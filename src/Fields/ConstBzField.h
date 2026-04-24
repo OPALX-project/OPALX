@@ -1,5 +1,5 @@
-#ifndef CLASSIC_ConstBzField_HH
-#define CLASSIC_ConstBzField_HH
+#ifndef OPALX_ConstBzField_HH
+#define OPALX_ConstBzField_HH
 
 // ------------------------------------------------------------------------
 // $RCSfile: ConstBzField.h,v $
@@ -65,4 +65,4 @@ private:
     double Bz;
 };
 
-#endif // CLASSIC_ConstBzField_HH
+#endif // OPALX_ConstBzField_HH

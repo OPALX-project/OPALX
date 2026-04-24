@@ -17,7 +17,7 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "Utilities/Options.h"
-#include "Utilities/ClassicRandom.h"
+#include "Utilities/ExpressionRandom.h"
 
 #include <string>
 
@@ -105,5 +105,7 @@ namespace Options {
     bool computePercentiles = false;
 
     bool useQMAttributes = false;  // corresponds to QM_MODE=SINGLE
+
+    bool aggressiveStateSync = false;
 
 }  // namespace Options

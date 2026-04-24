@@ -311,7 +311,7 @@ void Beam::update() {
         return;
     }
 
-    // Set up particle reference; convert all to eV for CLASSIC.
+    // Set up particle reference; convert all to eV for OPALX.
     double mass   = (itsAttr[MASS] ? getMass() : Physics::m_p) * Units::GeV2eV;
     double charge = itsAttr[CHARGE] ? getCharge() : 1.0;
 

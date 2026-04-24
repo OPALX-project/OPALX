@@ -92,7 +92,7 @@
        section_list_m(ring.section_list_m.size()) {
      setRefPartBunch(ring.refPartBunch_m);
      if (ring.lossDS_m != nullptr)
-         throw GeneralClassicException(
+         throw GeneralOpalException(
              "Ring::Ring(const Ring&)",
              "Can't copy construct LossDataSink so copy constructor fails");
      for (size_t i = 0; i < section_list_m.size(); ++i) {
@@ -178,7 +178,7 @@
  }
  
  void Ring::getDimensions(double& /*zBegin*/, double& /*zEnd*/) const {
-     throw GeneralClassicException("Ring::getDimensions", "Cannot get s-dimension of a ring");
+     throw GeneralOpalException("Ring::getDimensions", "Cannot get s-dimension of a ring");
  }
  
  void Ring::initialise(PartBunch_t* bunch) {
@@ -221,7 +221,7 @@
      if (std::abs(delta.getVector()(2)) > lengthTolerance_m
          || std::abs(delta.getRotation().getAxis()(0)) > angleTolerance_m
          || std::abs(delta.getRotation().getAxis()(1)) > angleTolerance_m) {
-         throw GeneralClassicException(
+         throw GeneralOpalException(
              "Ring::checkMidplane",
              std::string("Placement of elements out of the ") + "midplane is not supported by Ring");
      }
@@ -255,7 +255,7 @@
  
  void Ring::appendElement(const Component& element) {
      if (isLocked_m) {
-         throw GeneralClassicException(
+         throw GeneralOpalException(
              "Ring::appendElement",
              "Attempt to append element " + element.getName() + " when ring is locked");
      }
@@ -310,13 +310,13 @@
  void Ring::lockRing() {
      Inform msg("OPAL ");
      if (isLocked_m) {
-         throw GeneralClassicException(
+         throw GeneralOpalException(
              "Ring::lockRing", "Attempt to lock ring when it is already locked");
      }
      // check for any elements at all
      size_t sectionListSize = section_list_m.size();
      if (sectionListSize == 0) {
-         throw GeneralClassicException("Ring::lockRing", "Failed to find any elements in Ring");
+         throw GeneralOpalException("Ring::lockRing", "Failed to find any elements in Ring");
      }
      // Apply symmetry properties; I think it is fastest to just duplicate
      // elements rather than try to do some angle manipulations when we do field
@@ -360,7 +360,7 @@
      for (int i = 0; i < 3; ++i) {
          if (std::abs(first_pos(i) - last_pos(i)) > lengthTolerance_m
              || std::abs(first_norm(i) - last_norm(i)) > angleTolerance_m)
-             throw GeneralClassicException("Ring::lockRing", "Ring is not closed");
+             throw GeneralOpalException("Ring::lockRing", "Ring is not closed");
      }
      section_list_m.back()->setEndPosition(first_pos);
      section_list_m.back()->setEndNormal(first_norm);
@@ -393,7 +393,7 @@
  
  void Ring::setRingAperture(double minR, double maxR) {
      if (minR < 0 || maxR < 0) {
-         throw GeneralClassicException(
+         throw GeneralOpalException(
              "Ring::setRingAperture", "Could not parse negative or undefined aperture limit");
      }
  
