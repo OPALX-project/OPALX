@@ -16,7 +16,7 @@
  *    - amplitude / frequency / phase setters and getters
  *
  * 2. Geometry
- *    - getDimensions()
+ *    - getFieldExtend()
  *
  * 3. Spatial behavior
  *    - apply() inside the element
@@ -57,9 +57,9 @@
  */
 #include <gtest/gtest.h>
 
-#include "Fields/Fieldmap.h"
 #include "AbsBeamline/ElementBase.h"
 #include "BeamlineCore/RFCavityRep.h"
+#include "Fields/Fieldmap.h"
 
 #include <cmath>
 #include <memory>
@@ -70,14 +70,14 @@ public:
 
     void setOutOfBounds(bool v) { outOfBounds_ = v; }
 
-    bool getFieldstrength(const Vector_t<double,3>&,
-                          Vector_t<double,3>& E,
-                          Vector_t<double,3>& B) const override {
-        if (outOfBounds_) return true;      
+    bool getFieldstrength(
+            const Vector_t<double, 3>&, Vector_t<double, 3>& E,
+            Vector_t<double, 3>& B) const override {
+        if (outOfBounds_) return true;
 
         E = {1.0, 0.0, 0.0};
         B = {0.0, 1.0, 0.0};
-        return false; // inside
+        return false;  // inside
     }
 
     void getFieldDimensions(double& zBegin, double& zEnd) const override {
@@ -85,22 +85,21 @@ public:
         zEnd   = 1.0;
     }
 
-    void getFieldDimensions(double& zBegin, double& zEnd,
-                            double&, double&, double&, double&) const override {
+    void getFieldDimensions(
+            double& zBegin, double& zEnd, double&, double&, double&, double&) const override {
         zBegin = 0.0;
         zEnd   = 1.0;
     }
 
-    bool isInside(const Vector_t<double,3>&) const override {
-        return true;
-    }
+    bool isInside(const Vector_t<double, 3>&) const override { return true; }
 
     // --- required no-op implementations ---
     void applyField(std::shared_ptr<ParticleContainer_t>, double = 1.0) override {}
-    bool getFieldDerivative(const Vector_t<double,3>&,
-                            Vector_t<double,3>&,
-                            Vector_t<double,3>&,
-                            const DiffDirection&) const override { return false; }
+    bool getFieldDerivative(
+            const Vector_t<double, 3>&, Vector_t<double, 3>&, Vector_t<double, 3>&,
+            const DiffDirection&) const override {
+        return false;
+    }
 
     void swap() override {}
     void getInfo(Inform*) override {}
@@ -121,9 +120,7 @@ public:
     double getArcLength() const override { return 0.0; }
     double getElementLength() const override { return 0.0; }
 
-    Euclid3D getTransform(double, double) const override {
-        return Euclid3D();
-    }
+    Euclid3D getTransform(double, double) const override { return Euclid3D(); }
 };
 
 // ---------------------------------------------------------------------------
@@ -146,9 +143,7 @@ public:
     double getFrequency() const override { return frequency_; }
     double getPhase() const override { return phase_; }
 
-    ElementBase* clone() const override {
-        return new TestRFCavity(*this);
-    }
+    ElementBase* clone() const override { return new TestRFCavity(*this); }
 
     BGeometryBase& getGeometry() override { return geom_; }
     const BGeometryBase& getGeometry() const override { return geom_; }
@@ -167,6 +162,7 @@ public:
 
     void setFieldmap(Fieldmap* fmap) { fieldmap_m = fmap; }
     void setStartField(double val) { startField_m = val; }
+    void setEndField(double val) { endField_m = val; }
 
 private:
     double amplitude_ = 0.0;
@@ -175,7 +171,6 @@ private:
 
     DummyGeometry geom_;
     DummyField field_;
-    
 };
 
 // ---------------------------------------------------------------------------
@@ -190,6 +185,7 @@ protected:
         // --- Geometry ---
         cav_->setFieldmap(fmap_.get());
         cav_->setStartField(0.0);
+        cav_->setEndField(1.0);
         cav_->setElementLength(1.0);
 
         // --- RF defaults ---
@@ -204,13 +200,9 @@ protected:
 // ---------------------------------------------------------------------------
 // Basic API
 // ---------------------------------------------------------------------------
-TEST_F(RFCavityTest, GetType) {
-    EXPECT_EQ(cav_->getType(), ElementType::RFCAVITY);
-}
+TEST_F(RFCavityTest, GetType) { EXPECT_EQ(cav_->getType(), ElementType::RFCAVITY); }
 
-TEST_F(RFCavityTest, Bends) {
-    EXPECT_FALSE(cav_->bends());
-}
+TEST_F(RFCavityTest, Bends) { EXPECT_FALSE(cav_->bends()); }
 
 TEST_F(RFCavityTest, GetSetAmplitudeFrequencyPhase) {
     cav_->setAmplitude(5.0);
@@ -228,20 +220,44 @@ TEST_F(RFCavityTest, GetSetAmplitudeFrequencyPhase) {
 TEST_F(RFCavityTest, GetDimensions) {
     double zBegin = -1.0, zEnd = -1.0;
 
-    cav_->getDimensions(zBegin, zEnd);
+    cav_->getFieldExtend(zBegin, zEnd);
 
     EXPECT_EQ(zBegin, 0.0);
-    EXPECT_EQ(zEnd, 0.0);
+    EXPECT_EQ(zEnd, 1.0);
+}
+
+TEST_F(RFCavityTest, BodyExtentCanDifferFromFieldSupport) {
+    cav_->setStartField(0.2);
+    cav_->setEndField(0.8);
+    cav_->setElementLength(1.0);
+
+    double bodyBegin = -1.0, bodyEnd = -1.0;
+    cav_->getElementDimensions(bodyBegin, bodyEnd);
+    EXPECT_EQ(bodyBegin, 0.0);
+    EXPECT_EQ(bodyEnd, 1.0);
+
+    const auto entry = cav_->getEdgeToBegin();
+    const auto exit  = cav_->getEdgeToEnd();
+    EXPECT_EQ(entry.getOrigin()(2), 0.0);
+    EXPECT_EQ(exit.getOrigin()(2), 1.0);
+
+    Vector_t<double, 3> E = {0.0, 0.0, 0.0};
+    Vector_t<double, 3> B = {0.0, 0.0, 0.0};
+    EXPECT_FALSE(cav_->apply({0.0, 0.0, 0.1}, {0.0, 0.0, 1.0}, 0.0, E, B));
+    EXPECT_DOUBLE_EQ(E(0), 0.0);
+
+    EXPECT_FALSE(cav_->apply({0.0, 0.0, 0.5}, {0.0, 0.0, 1.0}, 0.0, E, B));
+    EXPECT_DOUBLE_EQ(E(0), 1.0);
 }
 
 // ---------------------------------------------------------------------------
 // apply(): spatial behavior
 // ---------------------------------------------------------------------------
 TEST_F(RFCavityTest, ApplyInside) {
-    Vector_t<double,3> R = {0.0, 0.0, 0.5};
-    Vector_t<double,3> P = {0.0, 0.0, 1.0};
-    Vector_t<double,3> E = {1.0, 2.0, 3.0};
-    Vector_t<double,3> B = {1.0, 2.0, 3.0};
+    Vector_t<double, 3> R = {0.0, 0.0, 0.5};
+    Vector_t<double, 3> P = {0.0, 0.0, 1.0};
+    Vector_t<double, 3> E = {1.0, 2.0, 3.0};
+    Vector_t<double, 3> B = {1.0, 2.0, 3.0};
 
     cav_->apply(R, P, 0.0, E, B);
 
@@ -257,10 +273,10 @@ TEST_F(RFCavityTest, ApplyInside) {
 }
 
 TEST_F(RFCavityTest, ApplyBefore) {
-    Vector_t<double,3> R = {0.0, 0.0, -0.1};
-    Vector_t<double,3> P = {0.0, 0.0, 1.0};
-    Vector_t<double,3> E = {1.0, 2.0, 3.0};
-    Vector_t<double,3> B = {1.0, 2.0, 3.0};
+    Vector_t<double, 3> R = {0.0, 0.0, -0.1};
+    Vector_t<double, 3> P = {0.0, 0.0, 1.0};
+    Vector_t<double, 3> E = {1.0, 2.0, 3.0};
+    Vector_t<double, 3> B = {1.0, 2.0, 3.0};
 
     cav_->apply(R, P, 0.0, E, B);
 
@@ -275,10 +291,10 @@ TEST_F(RFCavityTest, ApplyBefore) {
 }
 
 TEST_F(RFCavityTest, ApplyAfter) {
-    Vector_t<double,3> R = {0.0, 0.0, 1.5};
-    Vector_t<double,3> P = {0.0, 0.0, 1.0};
-    Vector_t<double,3> E = {1.0, 2.0, 3.0};
-    Vector_t<double,3> B = {1.0, 2.0, 3.0};
+    Vector_t<double, 3> R = {0.0, 0.0, 1.5};
+    Vector_t<double, 3> P = {0.0, 0.0, 1.0};
+    Vector_t<double, 3> E = {1.0, 2.0, 3.0};
+    Vector_t<double, 3> B = {1.0, 2.0, 3.0};
 
     cav_->apply(R, P, 0.0, E, B);
 
@@ -309,7 +325,7 @@ TEST_F(RFCavityTest, ApplyPhaseZero) {
 
     cav_->apply(R, P, 0.0, E, B);
 
-    EXPECT_NE(E(0), 0.0);   // x-component exists
+    EXPECT_NE(E(0), 0.0);  // x-component exists
     EXPECT_DOUBLE_EQ(E(1), 0.0);
     EXPECT_DOUBLE_EQ(E(2), 0.0);
 
@@ -321,12 +337,12 @@ TEST_F(RFCavityTest, ApplyPhaseZero) {
 
 TEST_F(RFCavityTest, ApplyPhaseShift) {
     // φ = π/2 → cos = 0, sin = 1
-    cav_->setPhasem(M_PI / 2.0); 
+    cav_->setPhasem(M_PI / 2.0);
 
-    Vector_t<double,3> R = {0.0, 0.0, 0.5};
-    Vector_t<double,3> P = {0.0, 0.0, 1.0};
-    Vector_t<double,3> E = {0.0, 0.0, 0.0};
-    Vector_t<double,3> B = {0.0, 0.0, 0.0};
+    Vector_t<double, 3> R = {0.0, 0.0, 0.5};
+    Vector_t<double, 3> P = {0.0, 0.0, 1.0};
+    Vector_t<double, 3> E = {0.0, 0.0, 0.0};
+    Vector_t<double, 3> B = {0.0, 0.0, 0.0};
 
     cav_->apply(R, P, 0.0, E, B);
 
@@ -353,7 +369,7 @@ TEST_F(RFCavityTest, ApplyPhasePi) {
     EXPECT_NEAR(E(0), -1.0, 1e-12);
     EXPECT_DOUBLE_EQ(E(1), 0.0);
     EXPECT_DOUBLE_EQ(E(2), 0.0);
-  
+
     // sin(π)=0 → no B
     EXPECT_DOUBLE_EQ(B(0), 0.0);
     EXPECT_NEAR(B(1), 0.0, 1e-12);
@@ -378,7 +394,7 @@ TEST_F(RFCavityTest, PhaseIndependentOfFrequencyAtT0) {
     cav_->setFrequencym(10.0);
     cav_->apply(R, P, 0.0, E2, B2);
 
-    EXPECT_NEAR(E1(0), 0.0, 1e-12); 
+    EXPECT_NEAR(E1(0), 0.0, 1e-12);
     EXPECT_NEAR(E2(0), 0.0, 1e-12);
 
     EXPECT_NEAR(B1(1), -1.0, 1e-12);
@@ -393,11 +409,11 @@ TEST_F(RFCavityTest, ApplyScaling) {
     Vector_t<double, 3> P = {0.0, 0.0, 1.0};
 
     // Baseline
-    Vector_t<double, 3> E1 = {0,0,0}, B1 = {0,0,0};
+    Vector_t<double, 3> E1 = {0, 0, 0}, B1 = {0, 0, 0};
     cav_->apply(R, P, 0.0, E1, B1);
 
     // Scaled
-    Vector_t<double, 3> E2 = {0,0,0}, B2 = {0,0,0};
+    Vector_t<double, 3> E2 = {0, 0, 0}, B2 = {0, 0, 0};
     cav_->setScale(2.0);
     cav_->apply(R, P, 0.0, E2, B2);
 
@@ -420,25 +436,25 @@ TEST_F(RFCavityTest, TimeDependence) {
     Vector_t<double, 3> E0 = {0.0, 0.0, 0.0};
     Vector_t<double, 3> B0 = {0.0, 0.0, 0.0};
 
-    cav_->apply(R, P, 0.0, E0, B0); // phi = 0
+    cav_->apply(R, P, 0.0, E0, B0);  // phi = 0
 
     Vector_t<double, 3> E1 = {0.0, 0.0, 0.0};
     Vector_t<double, 3> B1 = {0.0, 0.0, 0.0};
 
-    cav_->apply(R, P, M_PI/2.0, E1, B1); // phi = pi/2
+    cav_->apply(R, P, M_PI / 2.0, E1, B1);  // phi = pi/2
 
-    EXPECT_NEAR(E0(0), 1.0, 1e-12);   // cos(0)
-    EXPECT_NEAR(E1(0), 0.0, 1e-12);   // cos(pi/2)
+    EXPECT_NEAR(E0(0), 1.0, 1e-12);  // cos(0)
+    EXPECT_NEAR(E1(0), 0.0, 1e-12);  // cos(pi/2)
 }
 
 // ---------------------------------------------------------------------------
 // Fieldmap interaction
 // ---------------------------------------------------------------------------
 TEST_F(RFCavityTest, ApplyToReferenceParticle) {
-    Vector_t<double,3> R = {0.0, 0.0, 0.5};
-    Vector_t<double,3> P = {0.0, 0.0, 1.0};
-    Vector_t<double,3> E = {0.0, 0.0, 0.0};
-    Vector_t<double,3> B = {0.0, 0.0, 0.0};
+    Vector_t<double, 3> R = {0.0, 0.0, 0.5};
+    Vector_t<double, 3> P = {0.0, 0.0, 1.0};
+    Vector_t<double, 3> E = {0.0, 0.0, 0.0};
+    Vector_t<double, 3> B = {0.0, 0.0, 0.0};
 
     // Should behave like apply() for reference particle
     cav_->applyToReferenceParticle(R, P, 0.0, E, B);

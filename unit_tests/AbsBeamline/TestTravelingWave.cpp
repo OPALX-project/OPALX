@@ -16,7 +16,7 @@
  *    - amplitude / frequency / phase setters and getters
  *
  * 2. Geometry
- *    - getDimensions()
+ *    - getFieldExtend()
  *    - getElementDimensions()
  *    - getEdgeToBegin()
  *    - getEdgeToEnd()
@@ -57,8 +57,8 @@
 #include "AbsBeamline/TravelingWave.h"
 #undef private
 
-#include "Fields/Fieldmap.h"
 #include "AbsBeamline/ElementBase.h"
+#include "Fields/Fieldmap.h"
 
 #include <cmath>
 #include <memory>
@@ -72,9 +72,9 @@ public:
 
     void setOutOfBounds(bool v) { outOfBounds_ = v; }
 
-    bool getFieldstrength(const Vector_t<double,3>&,
-                          Vector_t<double,3>& E,
-                          Vector_t<double,3>& B) const override {
+    bool getFieldstrength(
+            const Vector_t<double, 3>&, Vector_t<double, 3>& E,
+            Vector_t<double, 3>& B) const override {
         if (outOfBounds_) return true;
 
         E = {1.0, 0.0, 0.0};
@@ -87,25 +87,24 @@ public:
         zEnd   = 2.0;
     }
 
-    void getFieldDimensions(double& xIni, double& xFinal,
-                            double& yIni, double& yFinal,
-                            double& zIni, double& zFinal) const override {
+    void getFieldDimensions(
+            double& xIni, double& xFinal, double& yIni, double& yFinal, double& zIni,
+            double& zFinal) const override {
         xIni = yIni = 0.0;
         xFinal = yFinal = 0.0;
-        zIni = 0.0;
-        zFinal = 2.0;
+        zIni            = 0.0;
+        zFinal          = 2.0;
     }
 
-    bool isInside(const Vector_t<double,3>&) const override {
-        return !outOfBounds_;
-    }
+    bool isInside(const Vector_t<double, 3>&) const override { return !outOfBounds_; }
 
     // --- required no-op implementations ---
     void applyField(std::shared_ptr<ParticleContainer_t>, double = 1.0) override {}
-    bool getFieldDerivative(const Vector_t<double,3>&,
-                            Vector_t<double,3>&,
-                            Vector_t<double,3>&,
-                            const DiffDirection&) const override { return false; }
+    bool getFieldDerivative(
+            const Vector_t<double, 3>&, Vector_t<double, 3>&, Vector_t<double, 3>&,
+            const DiffDirection&) const override {
+        return false;
+    }
 
     void swap() override {}
     void getInfo(Inform*) override {}
@@ -132,9 +131,7 @@ public:
     double getArcLength() const override { return 0.0; }
     double getElementLength() const override { return 0.0; }
 
-    Euclid3D getTransform(double, double) const override {
-        return Euclid3D();
-    }
+    Euclid3D getTransform(double, double) const override { return Euclid3D(); }
 };
 
 // ---------------------------------------------------------------------------
@@ -156,17 +153,11 @@ public:
     double getFrequency() const override { return frequency_; }
     double getPhase() const override { return phase_; }
 
-    ElementBase* clone() const override {
-        return new TestTravelingWave(*this);
-    }
+    ElementBase* clone() const override { return new TestTravelingWave(*this); }
 
-    double getElementLength() const override {
-    return elementLength_;
-    }
+    double getElementLength() const override { return elementLength_; }
 
-    void setTestElementLength(double v) {
-        elementLength_ = v;
-    }
+    void setTestElementLength(double v) { elementLength_ = v; }
 
     BGeometryBase& getGeometry() override { return geom_; }
     const BGeometryBase& getGeometry() const override { return geom_; }
@@ -189,11 +180,12 @@ public:
 
     void setFieldmap(Fieldmap* fmap) { fieldmap_m = fmap; }
     void setStartField(double v) { startField_m = v; }
+    void setEndField(double v) { endField_m = v; }
 
 private:
-    double amplitude_ = 0.0;
-    double frequency_ = 0.0;
-    double phase_     = 0.0;
+    double amplitude_     = 0.0;
+    double frequency_     = 0.0;
+    double phase_         = 0.0;
     double elementLength_ = 0.0;
 
     DummyGeometryTW geom_;
@@ -212,14 +204,15 @@ protected:
         tw_->setFieldmap(fmap_.get());
 
         // Stable default TW geometry for tests
-        tw_->periodLength_m       = 2.0;
-        tw_->cellLength_m         = 1.0;
-        tw_->numCells_m           = 3;
-        tw_->mode_m               = 0.5;
+        tw_->periodLength_m = 2.0;
+        tw_->cellLength_m   = 1.0;
+        tw_->numCells_m     = 3;
+        tw_->mode_m         = 0.5;
 
         tw_->setStartField(-1.0);
-        tw_->startCoreField_m     = 1.0;
-        tw_->startExitField_m     = 3.0;
+        tw_->setEndField(3.0);
+        tw_->startCoreField_m       = 1.0;
+        tw_->startExitField_m       = 3.0;
         tw_->mappedStartExitField_m = 1.0;
 
         tw_->setTestElementLength(4.0);
@@ -246,13 +239,9 @@ protected:
 // ---------------------------------------------------------------------------
 // Basic API
 // ---------------------------------------------------------------------------
-TEST_F(TravelingWaveTest, GetType) {
-    EXPECT_EQ(tw_->getType(), ElementType::TRAVELINGWAVE);
-}
+TEST_F(TravelingWaveTest, GetType) { EXPECT_EQ(tw_->getType(), ElementType::TRAVELINGWAVE); }
 
-TEST_F(TravelingWaveTest, Bends) {
-    EXPECT_FALSE(tw_->bends());
-}
+TEST_F(TravelingWaveTest, Bends) { EXPECT_FALSE(tw_->bends()); }
 
 TEST_F(TravelingWaveTest, GetSetAmplitudeFrequencyPhase) {
     tw_->setAmplitude(5.0);
@@ -269,33 +258,33 @@ TEST_F(TravelingWaveTest, GetSetAmplitudeFrequencyPhase) {
 // ---------------------------------------------------------------------------
 TEST_F(TravelingWaveTest, GetDimensions) {
     double zBegin = 0.0, zEnd = 0.0;
-    tw_->getDimensions(zBegin, zEnd);
+    tw_->getFieldExtend(zBegin, zEnd);
 
     EXPECT_DOUBLE_EQ(zBegin, -1.0);  // -0.5 * periodLength
-    EXPECT_DOUBLE_EQ(zEnd,   3.0);   // zBegin + elementLength
+    EXPECT_DOUBLE_EQ(zEnd, 3.0);     // zBegin + elementLength
 }
 
 TEST_F(TravelingWaveTest, GetElementDimensions) {
     double begin = 0.0, end = 0.0;
     tw_->getElementDimensions(begin, end);
 
-    EXPECT_DOUBLE_EQ(begin, -1.0);
-    EXPECT_DOUBLE_EQ(end,   3.0);
+    EXPECT_DOUBLE_EQ(begin, 0.0);
+    EXPECT_DOUBLE_EQ(end, 4.0);
 }
 
 TEST_F(TravelingWaveTest, EdgeTransforms) {
     auto beg = tw_->getEdgeToBegin();
     auto end = tw_->getEdgeToEnd();
 
-    EXPECT_DOUBLE_EQ(beg.getOrigin()(2), -1.0);
-    EXPECT_DOUBLE_EQ(end.getOrigin()(2),  3.0);
+    EXPECT_DOUBLE_EQ(beg.getOrigin()(2), 0.0);
+    EXPECT_DOUBLE_EQ(end.getOrigin()(2), 4.0);
 }
 
 // ---------------------------------------------------------------------------
 // setPhasem updates internal TW phases
 // ---------------------------------------------------------------------------
 TEST_F(TravelingWaveTest, SetPhasemUpdatesInternalPhases) {
-    tw_->mode_m = 0.5;
+    tw_->mode_m     = 0.5;
     tw_->numCells_m = 3;
 
     tw_->setPhasem(0.2);
@@ -304,8 +293,7 @@ TEST_F(TravelingWaveTest, SetPhasemUpdatesInternalPhases) {
     EXPECT_NEAR(tw_->phaseCore1_m, 0.2 + Physics::pi * 0.5 / 2.0, 1e-12);
     EXPECT_NEAR(tw_->phaseCore2_m, 0.2 + Physics::pi * 0.5 * 1.5, 1e-12);
 
-    const double expectedExit =
-        0.2 - Physics::two_pi * ((3 - 1) * 0.5 - std::floor((3 - 1) * 0.5));
+    const double expectedExit = 0.2 - Physics::two_pi * ((3 - 1) * 0.5 - std::floor((3 - 1) * 0.5));
     EXPECT_NEAR(tw_->phaseExit_m, expectedExit, 1e-12);
 }
 
@@ -314,10 +302,10 @@ TEST_F(TravelingWaveTest, SetPhasemUpdatesInternalPhases) {
 // ---------------------------------------------------------------------------
 TEST_F(TravelingWaveTest, ApplyEntryRegion) {
     // Entry: tmpR(2) = R(2) + 1.0 < startCoreField_m (=1.0)
-    Vector_t<double,3> R = {0.0, 0.0, -0.5};
-    Vector_t<double,3> P = {0.0, 0.0, 1.0};
-    Vector_t<double,3> E = {0.0, 0.0, 0.0};
-    Vector_t<double,3> B = {0.0, 0.0, 0.0};
+    Vector_t<double, 3> R = {0.0, 0.0, -0.5};
+    Vector_t<double, 3> P = {0.0, 0.0, 1.0};
+    Vector_t<double, 3> E = {0.0, 0.0, 0.0};
+    Vector_t<double, 3> B = {0.0, 0.0, 0.0};
 
     tw_->apply(R, P, 0.0, E, B);
 
@@ -333,10 +321,10 @@ TEST_F(TravelingWaveTest, ApplyEntryRegion) {
 
 TEST_F(TravelingWaveTest, ApplyCoreRegionAccumulatesTwoContributions) {
     // Core: tmpR(2) = R(2) + 1.0 in [1.0, 3.0)
-    Vector_t<double,3> R = {0.0, 0.0, 0.5};
-    Vector_t<double,3> P = {0.0, 0.0, 1.0};
-    Vector_t<double,3> E = {0.0, 0.0, 0.0};
-    Vector_t<double,3> B = {0.0, 0.0, 0.0};
+    Vector_t<double, 3> R = {0.0, 0.0, 0.5};
+    Vector_t<double, 3> P = {0.0, 0.0, 1.0};
+    Vector_t<double, 3> E = {0.0, 0.0, 0.0};
+    Vector_t<double, 3> B = {0.0, 0.0, 0.0};
 
     tw_->setScaleCore(1.0);
     tw_->phaseCore1_m = 0.0;
@@ -356,10 +344,10 @@ TEST_F(TravelingWaveTest, ApplyCoreRegionAccumulatesTwoContributions) {
 
 TEST_F(TravelingWaveTest, ApplyExitRegion) {
     // Exit: tmpR(2) = R(2) + 1.0 >= startExitField_m (=3.0)
-    Vector_t<double,3> R = {0.0, 0.0, 2.2};
-    Vector_t<double,3> P = {0.0, 0.0, 1.0};
-    Vector_t<double,3> E = {0.0, 0.0, 0.0};
-    Vector_t<double,3> B = {0.0, 0.0, 0.0};
+    Vector_t<double, 3> R = {0.0, 0.0, 2.2};
+    Vector_t<double, 3> P = {0.0, 0.0, 1.0};
+    Vector_t<double, 3> E = {0.0, 0.0, 0.0};
+    Vector_t<double, 3> B = {0.0, 0.0, 0.0};
 
     tw_->phaseExit_m = 0.0;
 
@@ -371,10 +359,10 @@ TEST_F(TravelingWaveTest, ApplyExitRegion) {
 }
 
 TEST_F(TravelingWaveTest, ApplyOutsideBefore) {
-    Vector_t<double,3> R = {0.0, 0.0, -1.1};
-    Vector_t<double,3> P = {0.0, 0.0, 1.0};
-    Vector_t<double,3> E = {1.0, 2.0, 3.0};
-    Vector_t<double,3> B = {4.0, 5.0, 6.0};
+    Vector_t<double, 3> R = {0.0, 0.0, -1.1};
+    Vector_t<double, 3> P = {0.0, 0.0, 1.0};
+    Vector_t<double, 3> E = {1.0, 2.0, 3.0};
+    Vector_t<double, 3> B = {4.0, 5.0, 6.0};
 
     tw_->apply(R, P, 0.0, E, B);
 
@@ -387,10 +375,10 @@ TEST_F(TravelingWaveTest, ApplyOutsideBefore) {
 }
 
 TEST_F(TravelingWaveTest, ApplyOutsideAfter) {
-    Vector_t<double,3> R = {0.0, 0.0, 3.0};
-    Vector_t<double,3> P = {0.0, 0.0, 1.0};
-    Vector_t<double,3> E = {1.0, 2.0, 3.0};
-    Vector_t<double,3> B = {4.0, 5.0, 6.0};
+    Vector_t<double, 3> R = {0.0, 0.0, 3.0};
+    Vector_t<double, 3> P = {0.0, 0.0, 1.0};
+    Vector_t<double, 3> E = {1.0, 2.0, 3.0};
+    Vector_t<double, 3> B = {4.0, 5.0, 6.0};
 
     tw_->apply(R, P, 0.0, E, B);
 
@@ -406,10 +394,10 @@ TEST_F(TravelingWaveTest, ApplyOutsideAfter) {
 // RF phase behavior
 // ---------------------------------------------------------------------------
 TEST_F(TravelingWaveTest, ApplyPhasePiOverTwoGivesMagneticField) {
-    Vector_t<double,3> R = {0.0, 0.0, -0.5}; // entry region
-    Vector_t<double,3> P = {0.0, 0.0, 1.0};
-    Vector_t<double,3> E = {0.0, 0.0, 0.0};
-    Vector_t<double,3> B = {0.0, 0.0, 0.0};
+    Vector_t<double, 3> R = {0.0, 0.0, -0.5};  // entry region
+    Vector_t<double, 3> P = {0.0, 0.0, 1.0};
+    Vector_t<double, 3> E = {0.0, 0.0, 0.0};
+    Vector_t<double, 3> B = {0.0, 0.0, 0.0};
 
     tw_->setPhasem(Physics::pi / 2.0);
     tw_->phaseCore1_m = Physics::pi / 2.0;
@@ -426,10 +414,10 @@ TEST_F(TravelingWaveTest, ApplyPhasePiOverTwoGivesMagneticField) {
 // applyToReferenceParticle
 // ---------------------------------------------------------------------------
 TEST_F(TravelingWaveTest, ApplyToReferenceParticleEntry) {
-    Vector_t<double,3> R = {0.0, 0.0, -0.5};
-    Vector_t<double,3> P = {0.0, 0.0, 1.0};
-    Vector_t<double,3> E = {0.0, 0.0, 0.0};
-    Vector_t<double,3> B = {0.0, 0.0, 0.0};
+    Vector_t<double, 3> R = {0.0, 0.0, -0.5};
+    Vector_t<double, 3> P = {0.0, 0.0, 1.0};
+    Vector_t<double, 3> E = {0.0, 0.0, 0.0};
+    Vector_t<double, 3> B = {0.0, 0.0, 0.0};
 
     tw_->applyToReferenceParticle(R, P, 0.0, E, B);
 
@@ -442,18 +430,18 @@ TEST_F(TravelingWaveTest, ApplyToReferenceParticleEntry) {
 TEST_F(TravelingWaveTest, FieldmapOutOfBounds) {
     fmap_->setOutOfBounds(true);
 
-    Vector_t<double,3> R = {0.0, 0.0, -0.5};
-    Vector_t<double,3> P = {0.0, 0.0, 1.0};
-    Vector_t<double,3> E = {0.0, 0.0, 0.0};
-    Vector_t<double,3> B = {0.0, 0.0, 0.0};
+    Vector_t<double, 3> R = {0.0, 0.0, -0.5};
+    Vector_t<double, 3> P = {0.0, 0.0, 1.0};
+    Vector_t<double, 3> E = {0.0, 0.0, 0.0};
+    Vector_t<double, 3> B = {0.0, 0.0, 0.0};
 
     bool out = tw_->apply(R, P, 0.0, E, B);
     EXPECT_TRUE(out);
 }
 
 TEST_F(TravelingWaveTest, IsInside) {
-    EXPECT_TRUE (tw_->isInside({0.0, 0.0, 0.0}));
-    EXPECT_TRUE (tw_->isInside({0.0, 0.0, 2.5}));
+    EXPECT_TRUE(tw_->isInside({0.0, 0.0, 0.0}));
+    EXPECT_TRUE(tw_->isInside({0.0, 0.0, 2.5}));
     EXPECT_FALSE(tw_->isInside({0.0, 0.0, -1.1}));
     EXPECT_FALSE(tw_->isInside({0.0, 0.0, 3.0}));
 }

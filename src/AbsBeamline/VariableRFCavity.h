@@ -63,7 +63,7 @@ public:
     ElementBase* clone() const override;
 
     /** Calculate the field for all particles */
-    bool apply(const std::shared_ptr<ParticleContainer_t> &pc) override;
+    bool apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
 
     /** Calculate the field at the position of the i^th particle
      *
@@ -121,7 +121,7 @@ public:
     bool bends() const override { return false; }
 
     /** Not used (does nothing) */
-    void getDimensions(double& /*zBegin*/, double& /*zEnd*/) const override {}
+    void getFieldExtend(double& /*zBegin*/, double& /*zEnd*/) const override {}
 
     /** Get the amplitude at a given time
      *

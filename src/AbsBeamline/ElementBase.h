@@ -163,6 +163,16 @@ public:
     //  This may be the arc length or the straight length.
     virtual void setElementLength(double length);
 
+    /**
+     * @brief Return the nominal body extent of the element.
+     *
+     * The first placement redesign stage distinguishes between the nominal body
+     * extent and the field-support extent. The body extent is the canonical
+     * longitudinal interval of the placed hardware,
+     * \f$[z_\mathrm{body}^{\mathrm{begin}}, z_\mathrm{body}^{\mathrm{end}}]\f$,
+     * and therefore drives ports, placement, and visualization. By default it
+     * coincides with the geometry length \f$[0, L]\f$ in the local chart.
+     */
     virtual void getElementDimensions(double& begin, double& end) const {
         begin = 0.0;
         end   = getElementLength();

@@ -641,7 +641,7 @@ void Multipole::finalise() { online_m = false; }
 
 bool Multipole::bends() const { return false; }
 
-void Multipole::getDimensions(double& zBegin, double& zEnd) const {
+void Multipole::getFieldExtend(double& zBegin, double& zEnd) const {
     zBegin = 0.0;
     zEnd   = getElementLength();
 }

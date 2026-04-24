@@ -21,50 +21,27 @@
 #include "AbsBeamline/Marker.h"
 #include "AbsBeamline/BeamlineVisitor.h"
 
-
 // Class Marker
 // ------------------------------------------------------------------------
 
+Marker::Marker() : Component() {}
 
-Marker::Marker():
-    Component()
-{ }
+Marker::Marker(const Marker& right) : Component(right) {}
 
+Marker::Marker(const std::string& name) : Component(name) {}
 
-Marker::Marker(const Marker &right):
-    Component(right)
-{ }
+Marker::~Marker() {}
 
+void Marker::accept(BeamlineVisitor& visitor) const { visitor.visitMarker(*this); }
 
-Marker::Marker(const std::string &name):
-    Component(name)
-{ }
-
-
-Marker::~Marker()
-{ }
-
-
-void Marker::accept(BeamlineVisitor &visitor) const {
-    visitor.visitMarker(*this);
-}
-
-void Marker::initialise(PartBunch_t *bunch, double &/*startField*/, double &/*endField*/) {
+void Marker::initialise(PartBunch_t* bunch, double& /*startField*/, double& /*endField*/) {
     RefPartBunch_m = bunch;
 }
 
-void Marker::finalise()
-{ }
+void Marker::finalise() {}
 
-bool Marker::bends() const {
-    return false;
-}
+bool Marker::bends() const { return false; }
 
+void Marker::getFieldExtend(double& /*zBegin*/, double& /*zEnd*/) const {}
 
-void Marker::getDimensions(double &/*zBegin*/, double &/*zEnd*/) const {
-}
-
-ElementType Marker::getType() const {
-    return ElementType::MARKER;
-}
-
+ElementType Marker::getType() const { return ElementType::MARKER; }

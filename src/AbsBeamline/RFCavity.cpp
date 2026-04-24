@@ -7,15 +7,15 @@
  */
 #include "AbsBeamline/RFCavity.h"
 
-#include "Component.h"
-#include "Utilities/BiMap.h"
 #include <filesystem>
 #include "AbsBeamline/BeamlineVisitor.h"
-#include "Fields/Fieldmap.h"
+#include "Component.h"
 #include "Fields/FM2DDynamic.h"
+#include "Fields/Fieldmap.h"
 #include "PartBunch/PartBunch.h"
 #include "Physics/Units.h"
 #include "Steppers/BorisPusher.h"
+#include "Utilities/BiMap.h"
 #include "Utilities/GeneralOpalException.h"
 #include "Utilities/Util.h"
 #include "Utility/IpplInfo.h"
@@ -35,8 +35,7 @@ const BiMap<CavityType, std::string> RFCavity::bmCavityTypeString_s = []() {
     return bimap;
 }();
 
-RFCavity::RFCavity() : RFCavity("") {
-}
+RFCavity::RFCavity() : RFCavity("") {}
 
 RFCavity::RFCavity(const RFCavity& right)
     : Component(right),
@@ -70,8 +69,7 @@ RFCavity::RFCavity(const RFCavity& right)
       RNormal_m(nullptr),
       VrNormal_m(nullptr),
       DvDr_m(nullptr),
-      num_points_m(right.num_points_m) {
-}
+      num_points_m(right.num_points_m) {}
 
 RFCavity::RFCavity(const std::string& name)
     : Component(name),
@@ -102,61 +100,52 @@ RFCavity::RFCavity(const std::string& name)
       RNormal_m(nullptr),
       VrNormal_m(nullptr),
       DvDr_m(nullptr),
-      num_points_m(0) {
-}
+      num_points_m(0) {}
 
-RFCavity::~RFCavity() {
-}
+RFCavity::~RFCavity() {}
 
-void RFCavity::accept(BeamlineVisitor& visitor) const {
-    visitor.visitRFCavity(*this);
-}
-
+void RFCavity::accept(BeamlineVisitor& visitor) const { visitor.visitRFCavity(*this); }
 
 /* ========================================================================== */
 /* ============================== Apply Functions =========================== */
 /**
  * @brief Applies the Standing Wave RF Cavity field to all particles inside the RF cavity
- * 
- * @note TODO: Check if getFieldstrength(R, tmpE, tmpB) returns 0 outside of RF cavity to skip if statement
+ *
+ * @note TODO: Check if getFieldstrength(R, tmpE, tmpB) returns 0 outside of RF cavity to skip if
+ * statement
  */
-bool RFCavity::apply(const std::shared_ptr<ParticleContainer_t>& pc) 
-{
+bool RFCavity::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     // RF parameters (copied to device)
-    double freq       = frequency_m;
-    double scale      = scale_m + scaleError_m;
-    double phase      = phase_m + phaseError_m;
+    double freq  = frequency_m;
+    double scale = scale_m + scaleError_m;
+    double phase = phase_m + phaseError_m;
 
-    double startField = startField_m;
-    double endField   = startField_m + getElementLength();
-    
+    const double startField = startField_m;
+    const double endField   = endField_m;
+
     // Reference particle time
-    const double t = RefPartBunch_m->getT() + 0.5 * RefPartBunch_m->getdT(); // To be consistent with OPAL
+    const double t =
+            RefPartBunch_m->getT() + 0.5 * RefPartBunch_m->getdT();  // To be consistent with OPAL
 
     // RF phase for all particles at this step
-    const double phi    = freq * t + phase; 
+    const double phi    = freq * t + phase;
     const double cosphi = Kokkos::cos(phi);
     const double sinphi = Kokkos::sin(phi);
 
     auto* dynamicFieldmap = dynamic_cast<FM2DDynamic*>(fieldmap_m);
     if (dynamicFieldmap == nullptr) {
         throw GeneralOpalException(
-            "RFCavity::apply",
-            "RFCavity particle application currently requires an FM2DDynamic field map.");
+                "RFCavity::apply",
+                "RFCavity particle application currently requires an FM2DDynamic field map.");
     }
 
-    dynamicFieldmap->applyRFField(
-        pc,
-        scale * cosphi,
-        -scale * sinphi,
-        startField,
-        endField);
+    dynamicFieldmap->applyRFField(pc, scale * cosphi, -scale * sinphi, startField, endField);
 
     return false;
 }
 
 bool RFCavity::apply(
-    const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
+        const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
     std::shared_ptr<ParticleContainer_t> pc = RefPartBunch_m->getParticleContainer();
     auto Rview                              = pc->R.getView();
     auto Pview                              = pc->P.getView();
@@ -168,14 +157,13 @@ bool RFCavity::apply(
 }
 
 bool RFCavity::apply(
-    const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& t,
-    Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
-    if (R(2) >= startField_m && R(2) < startField_m + getElementLength()) {
+        const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& t,
+        Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
+    if (R(2) >= startField_m && R(2) < endField_m) {
         Vector_t<double, 3> tmpE({0.0, 0.0, 0.0}), tmpB({0.0, 0.0, 0.0});
 
         bool outOfBounds = fieldmap_m->getFieldstrength(R, tmpE, tmpB);
-        if (outOfBounds)
-            return getFlagDeleteOnTransverseExit();
+        if (outOfBounds) return getFlagDeleteOnTransverseExit();
 
         E += (scale_m + scaleError_m) * std::cos(frequency_m * t + phase_m + phaseError_m) * tmpE;
         B -= (scale_m + scaleError_m) * std::sin(frequency_m * t + phase_m + phaseError_m) * tmpB;
@@ -184,14 +172,13 @@ bool RFCavity::apply(
 }
 
 bool RFCavity::applyToReferenceParticle(
-    const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& t,
-    Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
-    if (R(2) >= startField_m && R(2) < startField_m + getElementLength()) {
+        const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& t,
+        Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
+    if (R(2) >= startField_m && R(2) < endField_m) {
         Vector_t<double, 3> tmpE({0.0, 0.0, 0.0}), tmpB({0.0, 0.0, 0.0});
 
         bool outOfBounds = fieldmap_m->getFieldstrength(R, tmpE, tmpB);
-        if (outOfBounds)
-            return true;
+        if (outOfBounds) return true;
 
         E += scale_m * std::cos(frequency_m * t + phase_m) * tmpE;
         B -= scale_m * std::sin(frequency_m * t + phase_m) * tmpB;
@@ -202,8 +189,6 @@ bool RFCavity::applyToReferenceParticle(
 void RFCavity::initialise(PartBunch_t* bunch, double& startField, double& endField) {
     startField_m = endField_m = 0.0;
     if (bunch == nullptr) {
-        startField = startField_m;
-        endField   = endField_m;
         return;
     }
 
@@ -212,11 +197,11 @@ void RFCavity::initialise(PartBunch_t* bunch, double& startField, double& endFie
     RefPartBunch_m = bunch;
 
     fieldmap_m = Fieldmap::getFieldmap(filename_m, fast_m);
-    fieldmap_m->getFieldDimensions(startField_m, endField);
-    if (endField <= startField_m) {
+    fieldmap_m->getFieldDimensions(startField_m, endField_m);
+    if (endField_m <= startField_m) {
         throw GeneralOpalException(
-            "RFCavity::initialise",
-            "The length of the field map '" + filename_m + "' is zero or negative");
+                "RFCavity::initialise",
+                "The length of the field map '" + filename_m + "' is zero or negative");
     }
 
     msg << level2 << getName() << " using file ";
@@ -235,14 +220,16 @@ void RFCavity::initialise(PartBunch_t* bunch, double& startField, double& endFie
         }
         frequency_m = fieldmap_m->getFrequency();
     }
-    setElementLength(endField - startField_m);
+    const double bodyBegin = startField;
+    startField             = bodyBegin + startField_m;
+    endField               = bodyBegin + endField_m;
 }
 
 // In current version ,this function reads in the cavity voltage profile data from file.
 void RFCavity::initialise(
-    PartBunch_t* bunch, std::shared_ptr<AbstractTimeDependence> freq_atd,
-    std::shared_ptr<AbstractTimeDependence> ampl_atd,
-    std::shared_ptr<AbstractTimeDependence> phase_atd) {
+        PartBunch_t* bunch, std::shared_ptr<AbstractTimeDependence> freq_atd,
+        std::shared_ptr<AbstractTimeDependence> ampl_atd,
+        std::shared_ptr<AbstractTimeDependence> phase_atd) {
     RefPartBunch_m = bunch;
 
     /// set the time dependent models
@@ -260,8 +247,8 @@ void RFCavity::initialise(
     for (int i = 0; i < num_points_m; i++) {
         if (in.eof()) {
             throw GeneralOpalException(
-                "RFCavity::initialise",
-                "Not enough data in file '" + filename_m + "', please check the data format");
+                    "RFCavity::initialise",
+                    "Not enough data in file '" + filename_m + "', please check the data format");
         }
         in >> RNormal_m[i] >> VrNormal_m[i] >> DvDr_m[i];
 
@@ -279,12 +266,9 @@ void RFCavity::initialise(
     *gmsg << "* Cavity voltage data read successfully!" << endl;
 }
 
-void RFCavity::finalise() {
-}
+void RFCavity::finalise() {}
 
-bool RFCavity::bends() const {
-    return false;
-}
+bool RFCavity::bends() const { return false; }
 
 void RFCavity::goOnline(const double&) {
     Fieldmap::readMap(filename_m);
@@ -298,61 +282,33 @@ void RFCavity::goOffline() {
     online_m = false;
 }
 
-void RFCavity::setRmin(double rmin) {
-    rmin_m = rmin;
-}
+void RFCavity::setRmin(double rmin) { rmin_m = rmin; }
 
-void RFCavity::setRmax(double rmax) {
-    rmax_m = rmax;
-}
+void RFCavity::setRmax(double rmax) { rmax_m = rmax; }
 
-void RFCavity::setAzimuth(double angle) {
-    angle_m = angle;
-}
+void RFCavity::setAzimuth(double angle) { angle_m = angle; }
 
-void RFCavity::setPerpenDistance(double pdis) {
-    pdis_m = pdis;
-}
+void RFCavity::setPerpenDistance(double pdis) { pdis_m = pdis; }
 
-void RFCavity::setGapWidth(double gapwidth) {
-    gapwidth_m = gapwidth;
-}
+void RFCavity::setGapWidth(double gapwidth) { gapwidth_m = gapwidth; }
 
-void RFCavity::setPhi0(double phi0) {
-    phi0_m = phi0;
-}
+void RFCavity::setPhi0(double phi0) { phi0_m = phi0; }
 
-double RFCavity::getRmin() const {
-    return rmin_m;
-}
+double RFCavity::getRmin() const { return rmin_m; }
 
-double RFCavity::getRmax() const {
-    return rmax_m;
-}
+double RFCavity::getRmax() const { return rmax_m; }
 
-double RFCavity::getAzimuth() const {
-    return angle_m;
-}
+double RFCavity::getAzimuth() const { return angle_m; }
 
-double RFCavity::getSinAzimuth() const {
-    return sinAngle_m;
-}
+double RFCavity::getSinAzimuth() const { return sinAngle_m; }
 
-double RFCavity::getCosAzimuth() const {
-    return cosAngle_m;
-}
+double RFCavity::getCosAzimuth() const { return cosAngle_m; }
 
-double RFCavity::getPerpenDistance() const {
-    return pdis_m;
-}
+double RFCavity::getPerpenDistance() const { return pdis_m; }
 
-double RFCavity::getGapWidth() const {
-    return gapwidth_m;
-}
+double RFCavity::getGapWidth() const { return gapwidth_m; }
 
-double RFCavity::getPhi0() const {
-    return phi0_m;
-}
+double RFCavity::getPhi0() const { return phi0_m; }
 
 void RFCavity::setCavityType(const std::string& name) {
     auto it = bmCavityTypeString_s.right.find(name);
@@ -363,28 +319,24 @@ void RFCavity::setCavityType(const std::string& name) {
     }
 }
 
-std::string RFCavity::getCavityTypeString() const {
-    return bmCavityTypeString_s.left.at(type_m);
-}
+std::string RFCavity::getCavityTypeString() const { return bmCavityTypeString_s.left.at(type_m); }
 
 std::string RFCavity::getFieldMapFN() const {
     if (filename_m.empty()) {
         throw GeneralOpalException(
-            "RFCavity::getFieldMapFN",
-            "The attribute \"FMAPFN\" isn't set "
-            "for the \"RFCAVITY\" element!");
+                "RFCavity::getFieldMapFN",
+                "The attribute \"FMAPFN\" isn't set "
+                "for the \"RFCAVITY\" element!");
     } else if (std::filesystem::exists(filename_m)) {
         return filename_m;
     } else {
         throw GeneralOpalException(
-            "RFCavity::getFieldMapFN",
-            "Failed to open file '" + filename_m + "', please check if it exists");
+                "RFCavity::getFieldMapFN",
+                "Failed to open file '" + filename_m + "', please check if it exists");
     }
 }
 
-double RFCavity::getCycFrequency() const {
-    return frequency_m;
-}
+double RFCavity::getCycFrequency() const { return frequency_m; }
 
 /**
    \brief used in OPAL-cycl
@@ -397,12 +349,12 @@ double RFCavity::getCycFrequency() const {
 
  */
 void RFCavity::getMomentaKick(
-    const double normalRadius, double momentum[], const double t, const double dtCorrt,
-    const int PID, const double restMass, const int chargenumber) {
+        const double normalRadius, double momentum[], const double t, const double dtCorrt,
+        const int PID, const double restMass, const int chargenumber) {
     double derivate;
 
     double momentum2 =
-        momentum[0] * momentum[0] + momentum[1] * momentum[1] + momentum[2] * momentum[2];
+            momentum[0] * momentum[0] + momentum[1] * momentum[1] + momentum[2] * momentum[2];
     double betgam = std::sqrt(momentum2);
 
     double gamma = std::sqrt(1.0 + momentum2);
@@ -425,8 +377,7 @@ void RFCavity::getMomentaKick(
     double dgam   = Voltage * std::cos(nphase) / (restMass);
 
     double tempdegree = std::fmod(nphase * Units::rad2deg, 360.0);
-    if (tempdegree > 270.0)
-        tempdegree -= 360.0;
+    if (tempdegree > 270.0) tempdegree -= 360.0;
 
     gamma += dgam;
 
@@ -516,14 +467,12 @@ double RFCavity::spline(double z, double* za) {
     return splint;
 }
 
-void RFCavity::getDimensions(double& zBegin, double& zEnd) const {
+void RFCavity::getFieldExtend(double& zBegin, double& zEnd) const {
     zBegin = startField_m;
     zEnd   = endField_m;
 }
 
-ElementType RFCavity::getType() const {
-    return ElementType::RFCAVITY;
-}
+ElementType RFCavity::getType() const { return ElementType::RFCAVITY; }
 
 double RFCavity::getAutoPhaseEstimateFallback(double E0, double t0, double q, double mass) {
     const double dt        = 1e-13;
@@ -558,18 +507,16 @@ double RFCavity::getAutoPhaseEstimateFallback(double E0, double t0, double q, do
 
     const int prevPrecision = ippl::Info->precision(8);
     Inform m("RFCavity::getAutoPhaseEstimateFallback");
-    m << level2 << "estimated phase= " << phimax
-    << " rad = " << phimax * Units::rad2deg << " deg\n"
-    << "Ekin= " << Emax << " MeV"
-    << std::setprecision(prevPrecision) << "\n"
-    << endl;
+    m << level2 << "estimated phase= " << phimax << " rad = " << phimax * Units::rad2deg << " deg\n"
+      << "Ekin= " << Emax << " MeV" << std::setprecision(prevPrecision) << "\n"
+      << endl;
 
     setPhasem(origPhase);
     return phimax;
 }
 
 double RFCavity::getAutoPhaseEstimate(
-    const double& E0, const double& t0, const double& q, const double& mass) {
+        const double& E0, const double& t0, const double& q, const double& mass) {
     std::vector<double> t, E, t2, E2;
     std::vector<double> F;
     std::vector<std::pair<double, double> > G;
@@ -579,8 +526,7 @@ double RFCavity::getAutoPhaseEstimate(
     double phi = 0.0, tmp_phi, dphi = 0.5 * Units::deg2rad;
     double dz = 1.0, length = 0.0;
     fieldmap_m->getOnaxisEz(G);
-    if (G.size() == 0)
-        return 0.0;
+    if (G.size() == 0) return 0.0;
     double begin = (G.front()).first;
     double end   = (G.back()).first;
     std::unique_ptr<double[]> zvals(new double[G.size()]);
@@ -649,11 +595,10 @@ double RFCavity::getAutoPhaseEstimate(
             }
             const int prevPrecision = ippl::Info->precision(8);
             Inform m("RFCavity::getAutoPhaseEstimate");
-            m << level2 << "estimated phase= " << tmp_phi
-            << " rad = " << tmp_phi * Units::rad2deg << " deg\n"
-            << "Ekin= " << E[N - 1] << " MeV"
-            << std::setprecision(prevPrecision) << "\n"
-            << endl;
+            m << level2 << "estimated phase= " << tmp_phi << " rad = " << tmp_phi * Units::rad2deg
+              << " deg\n"
+              << "Ekin= " << E[N - 1] << " MeV" << std::setprecision(prevPrecision) << "\n"
+              << endl;
 
             return tmp_phi;
         }
@@ -697,18 +642,17 @@ double RFCavity::getAutoPhaseEstimate(
 
     const int prevPrecision = ippl::Info->precision(8);
     Inform m("RFCavity::getAutoPhaseEstimate");
-    m << level2 << "estimated phase= " << tmp_phi
-    << " rad = " << tmp_phi * Units::rad2deg << " deg\n"
-    << "Ekin= " << E[N - 1] << " MeV"
-    << std::setprecision(prevPrecision) << "\n"
-    << endl;
+    m << level2 << "estimated phase= " << tmp_phi << " rad = " << tmp_phi * Units::rad2deg
+      << " deg\n"
+      << "Ekin= " << E[N - 1] << " MeV" << std::setprecision(prevPrecision) << "\n"
+      << endl;
 
     return phi;
 }
 
 std::pair<double, double> RFCavity::trackOnAxisParticle(
-    const double& p0, const double& t0, const double& dt, const double& /*q*/, const double& mass,
-    std::ofstream* out) {
+        const double& p0, const double& t0, const double& dt, const double& /*q*/,
+        const double& mass, std::ofstream* out) {
     Vector_t<double, 3> p({0, 0, p0});
     double t = t0;
 
@@ -716,7 +660,7 @@ std::pair<double, double> RFCavity::trackOnAxisParticle(
     const PartData& ref = *RefPartBunch_m->getParticleContainer()->getReference();
     const double cdt    = Physics::c * dt;
     const double zbegin = startField_m;
-    const double zend   = getElementLength() + startField_m;
+    const double zend   = endField_m;
 
     Vector_t<double, 3> z({0.0, 0.0, zbegin});
     double dz = 0.5 * p(2) / Util::getGamma(p) * cdt;
@@ -756,7 +700,7 @@ std::pair<double, double> RFCavity::trackOnAxisParticle(
 }
 
 bool RFCavity::isInside(const Vector_t<double, 3>& r) const {
-    if (isInsideTransverse(r)) {
+    if (fieldmap_m != nullptr && isInsideTransverse(r)) {
         return fieldmap_m->isInside(r);
     }
 
@@ -775,5 +719,6 @@ double RFCavity::getElementLength() const {
 }
 
 void RFCavity::getElementDimensions(double& begin, double& end) const {
-    fieldmap_m->getFieldDimensions(begin, end);
+    begin = 0.0;
+    end   = getElementLength();
 }

@@ -92,7 +92,8 @@ public:
     virtual bool apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
 
     virtual bool apply(
-        const size_t& id, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
+            const size_t& id, const double& t, Vector_t<double, 3>& E,
+            Vector_t<double, 3>& B) override;
 
     /** Overwrite data in vector E and B with electromagnetic field at point R
      *
@@ -111,8 +112,8 @@ public:
      *  "Bin" data to -1
      */
     virtual bool apply(
-        const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-        Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
+            const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
+            Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 
     /** Initialise the Ring
      *
@@ -138,9 +139,7 @@ public:
     virtual void finalise() override;
 
     /** Returns true - Ring is assumed to bend particles, being a ring */
-    virtual bool bends() const override {
-        return true;
-    }
+    virtual bool bends() const override { return true; }
 
     /** Accept the BeamlineVisitor
      *
@@ -151,12 +150,10 @@ public:
     virtual void accept(BeamlineVisitor& visitor) const override;
 
     /** Not implemented - always throws an exception */
-    virtual void getDimensions(double& zBegin, double& zEnd) const override;
+    virtual void getFieldExtend(double& zBegin, double& zEnd) const override;
 
     /** Inherited copy constructor */
-    virtual ElementBase* clone() const override {
-        return new Ring(*this);
-    }
+    virtual ElementBase* clone() const override { return new Ring(*this); }
 
     /** Add element to the ring
      *
@@ -190,14 +187,10 @@ public:
     }
 
     /** Not implemented */
-    virtual PlanarArcGeometry& getGeometry() override {
-        return planarArcGeometry_m;
-    }
+    virtual PlanarArcGeometry& getGeometry() override { return planarArcGeometry_m; }
 
     /** Not implemented */
-    virtual const PlanarArcGeometry& getGeometry() const override {
-        return planarArcGeometry_m;
-    }
+    virtual const PlanarArcGeometry& getGeometry() const override { return planarArcGeometry_m; }
 
     /** Set LossDataSink to sink.
      *
@@ -228,75 +221,47 @@ public:
     PartBunch_t* getRefPartBunch() const;
 
     /** Set the harmonic number for RF (number of bunches in the ring) */
-    void setHarmonicNumber(double cyclHarm) {
-        cyclHarm_m = cyclHarm;
-    }
+    void setHarmonicNumber(double cyclHarm) { cyclHarm_m = cyclHarm; }
 
     /** Get the harmonic number for RF (number of bunches in the ring) */
-    double getHarmonicNumber() {
-        return cyclHarm_m;
-    }
+    double getHarmonicNumber() { return cyclHarm_m; }
     // note this is not a const method to follow parent
 
     /** Set the nominal RF frequency */
-    void setRFFreq(double rfFreq) {
-        rfFreq_m = rfFreq;
-    }
+    void setRFFreq(double rfFreq) { rfFreq_m = rfFreq; }
 
     /** Get the nominal RF frequency */
-    double getRFFreq() const {
-        return rfFreq_m;
-    }
+    double getRFFreq() const { return rfFreq_m; }
 
     /** Set the initial beam radius */
-    void setBeamRInit(double rInit) {
-        beamRInit_m = rInit;
-    }
+    void setBeamRInit(double rInit) { beamRInit_m = rInit; }
 
     /** Get the initial beam radius */
-    double getBeamRInit() const {
-        return beamRInit_m;
-    }
+    double getBeamRInit() const { return beamRInit_m; }
 
     /** Set the initial beam azimuthal angle */
-    void setBeamPhiInit(double phiInit) {
-        beamPhiInit_m = phiInit;
-    }
+    void setBeamPhiInit(double phiInit) { beamPhiInit_m = phiInit; }
 
     /** Get the initial beam azimuthal angle */
-    double getBeamPhiInit() const {
-        return beamPhiInit_m;
-    }
+    double getBeamPhiInit() const { return beamPhiInit_m; }
 
     /** Set the initial beam radial momentum */
-    void setBeamPRInit(double pRInit) {
-        beamPRInit_m = pRInit;
-    }
+    void setBeamPRInit(double pRInit) { beamPRInit_m = pRInit; }
 
     /** Get the initial beam radial momentum */
-    double getBeamPRInit() const {
-        return beamPRInit_m;
-    }
+    double getBeamPRInit() const { return beamPRInit_m; }
 
     /** Set the initial element's radius */
-    void setLatticeRInit(double rInit) {
-        latticeRInit_m = rInit;
-    }
+    void setLatticeRInit(double rInit) { latticeRInit_m = rInit; }
 
     /** Get the initial element's radius */
-    double getLatticeRInit() const {
-        return latticeRInit_m;
-    }
+    double getLatticeRInit() const { return latticeRInit_m; }
 
     /** Set the initial element's azimuthal angle */
-    void setLatticePhiInit(double phiInit) {
-        latticePhiInit_m = phiInit;
-    }
+    void setLatticePhiInit(double phiInit) { latticePhiInit_m = phiInit; }
 
     /** Get the initial  element's azimuthal angle */
-    double getLatticePhiInit() const {
-        return latticePhiInit_m;
-    }
+    double getLatticePhiInit() const { return latticePhiInit_m; }
 
     /** Get the initial element's start position in cartesian coordinates */
     Vector_t<double, 3> getNextPosition() const;
@@ -308,42 +273,28 @@ public:
      *
      *  Set the angle in the ring plane with respect to the tangent vector
      */
-    void setLatticeThetaInit(double thetaInit) {
-        latticeThetaInit_m = thetaInit;
-    }
+    void setLatticeThetaInit(double thetaInit) { latticeThetaInit_m = thetaInit; }
 
     /** Get the first element's horizontal angle
      *
      *  Get the angle in the ring plane with respect to the tangent vector
      */
-    double getLatticeThetaInit() const {
-        return latticeThetaInit_m;
-    }
+    double getLatticeThetaInit() const { return latticeThetaInit_m; }
 
     /** Set the rotational symmetry of the ring (number of cells) */
-    void setSymmetry(double symmetry) {
-        symmetry_m = symmetry;
-    }
+    void setSymmetry(double symmetry) { symmetry_m = symmetry; }
 
     /** Set the scaling factor for the fields */
-    void setScale(double scale) {
-        scale_m = scale;
-    }
+    void setScale(double scale) { scale_m = scale; }
 
     /** Get the rotational symmetry of the ring (number of cells) */
-    double getSymmetry() const {
-        return symmetry_m;
-    }
+    double getSymmetry() const { return symmetry_m; }
 
     /** Set flag for closure checking */
-    void setIsClosed(bool isClosed) {
-        isClosed_m = isClosed;
-    }
+    void setIsClosed(bool isClosed) { isClosed_m = isClosed; }
 
     /** Get flag for closure checking */
-    double getIsClosed() const {
-        return isClosed_m;
-    }
+    double getIsClosed() const { return isClosed_m; }
 
     /** Set the ring aperture limits
      *  - minR; the minimum radius allowed during tracking. Throws if minR < 0
@@ -352,14 +303,10 @@ public:
     void setRingAperture(double minR, double maxR);
 
     /** Get the ring minimum */
-    double getRingMinR() const {
-        return std::sqrt(minR2_m);
-    }
+    double getRingMinR() const { return std::sqrt(minR2_m); }
 
     /** Get the ring maximum */
-    double getRingMaxR() const {
-        return std::sqrt(maxR2_m);
-    }
+    double getRingMaxR() const { return std::sqrt(maxR2_m); }
 
     /** Lock the ring
      *

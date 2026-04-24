@@ -403,7 +403,7 @@ TEST_F(TestVariableRFCavity, OddApis) {
     const VariableRFCavity cav1;
     // Dimensions dummy override
     double a{}, b{};
-    EXPECT_NO_THROW(cav1.getDimensions(a, b));
+    EXPECT_NO_THROW(cav1.getFieldExtend(a, b));
     // The cavity does not make a bend
     EXPECT_FALSE(cav1.bends());
     // Self assignment
