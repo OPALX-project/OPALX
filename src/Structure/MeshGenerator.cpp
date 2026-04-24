@@ -1,5 +1,6 @@
 #include "Structure/MeshGenerator.h"
 #include "AbsBeamline/Multipole.h"
+#include "AbsBeamline/Solenoid.h"
 #include "AbstractObjects/OpalData.h"
 #include "Physics/Physics.h"
 #include "Utilities/Util.h"
@@ -7,11 +8,80 @@
 #include <fstream>
 #include <iostream>
 #include <vector>
-#include <vector>
 
 extern Inform* gmsg;
 
-MeshGenerator::MeshGenerator() : elements_m() {
+namespace {
+    void appendMesh(MeshData& target, const MeshData& source) {
+        const unsigned int offset = target.vertices_m.size();
+        target.vertices_m.insert(
+                target.vertices_m.end(), source.vertices_m.begin(), source.vertices_m.end());
+        for (const auto& triangle : source.triangles_m) {
+            target.triangles_m.push_back(
+                    Vector_t<unsigned int, 3>(
+                            triangle(0) + offset, triangle(1) + offset, triangle(2) + offset));
+        }
+        target.decorations_m.insert(
+                target.decorations_m.end(), source.decorations_m.begin(),
+                source.decorations_m.end());
+    }
+
+    void translateMesh(MeshData& mesh, const double dx, const double dy, const double dz = 0.0) {
+        const Vector_t<double, 3> shift(dx, dy, dz);
+        for (auto& vertex : mesh.vertices_m) {
+            vertex += shift;
+        }
+        for (auto& decoration : mesh.decorations_m) {
+            decoration.first += shift;
+            decoration.second += shift;
+        }
+    }
+
+}  // namespace
+
+MeshGenerator::MeshGenerator()
+    : elements_m(), hasDriftReference_m(false), driftMinor_m(0.0), driftMajor_m(0.0) {}
+
+bool MeshGenerator::getTransverseSupport(const ElementBase& element, double& minor, double& major) {
+    if (element.getType() == ElementType::SOLENOID) {
+        const auto* solenoid    = dynamic_cast<const Solenoid*>(&element);
+        double horizontalRadius = 0.0;
+        double verticalRadius   = 0.0;
+        if (solenoid == nullptr
+            || !solenoid->getSupportEnvelope(horizontalRadius, verticalRadius)) {
+            return false;
+        }
+        minor = verticalRadius;
+        major = horizontalRadius;
+        return true;
+    }
+
+    if (element.getType() == ElementType::DRIFT) {
+        return false;
+    }
+
+    const auto apert = element.getAperture();
+    if (apert.second.size() < 3) {
+        return false;
+    }
+
+    switch (apert.first) {
+        case ApertureType::RECTANGULAR:
+        case ApertureType::CONIC_RECTANGULAR:
+        case ApertureType::ELLIPTICAL:
+        case ApertureType::CONIC_ELLIPTICAL:
+            minor = apert.second[0];
+            major = apert.second[1];
+            return true;
+        default:
+            return false;
+    }
+}
+
+void MeshGenerator::setDriftReference(const double minor, const double major) {
+    hasDriftReference_m = minor > 0.0 && major > 0.0;
+    driftMinor_m        = minor;
+    driftMajor_m        = major;
 }
 
 void MeshGenerator::add(const ElementBase& element) {
@@ -26,11 +96,36 @@ void MeshGenerator::add(const ElementBase& element) {
         // const RBend3D* dipole = static_cast<const RBend3D*>(&element);
         // mesh = dipole->getSurfaceMesh();
         mesh.type_m = DIPOLE;
+    } else if (element.getType() == ElementType::SOLENOID) {
+        double end = 0.0;
+        element.getElementDimensions(start, end);
+        mesh = getCylinder(end - start, driftMinor_m, driftMajor_m, 1.0);
+        {
+            double minor = 0.0;
+            double major = 0.0;
+            if (getTransverseSupport(element, minor, major)) {
+                mesh = getSolenoid(end - start, minor, major);
+            }
+        }
+        mesh.type_m = SOLENOID;
     } else if (element.getType() == ElementType::DRIFT) {
-        return;
+        if (!hasDriftReference_m) {
+            return;
+        }
+        double end = 0.0;
+        element.getElementDimensions(start, end);
+        mesh = getTube(
+                end - start, 0.7 * driftMinor_m, 0.7 * driftMajor_m, driftMinor_m, driftMajor_m);
+        mesh.type_m = DRIFT;
     } else {
         double end, length;
-        element.getElementDimensions(start, end);
+        if (element.getType() == ElementType::RFCAVITY
+            || element.getType() == ElementType::TRAVELINGWAVE) {
+            start = 0.0;
+            end   = element.getElementLength();
+        } else {
+            element.getElementDimensions(start, end);
+        }
         length     = end - start;
         auto apert = element.getAperture();
 
@@ -41,7 +136,16 @@ void MeshGenerator::add(const ElementBase& element) {
                 break;
             case ApertureType::ELLIPTICAL:
             case ApertureType::CONIC_ELLIPTICAL:
-                mesh = getCylinder(length, apert.second[0], apert.second[1], apert.second[2]);
+                if (element.getType() == ElementType::MULTIPOLE
+                    && static_cast<const Multipole*>(&element)->getMaxNormalComponentIndex() == 2) {
+                    mesh = getQuadrupole(length, apert.second[0], apert.second[1], apert.second[2]);
+                } else if (element.getType() == ElementType::RFCAVITY) {
+                    mesh = getRFCavity(length, apert.second[0], apert.second[1]);
+                } else if (element.getType() == ElementType::TRAVELINGWAVE) {
+                    mesh = getTravelingWave(length, apert.second[0], apert.second[1]);
+                } else {
+                    mesh = getCylinder(length, apert.second[0], apert.second[1], apert.second[2]);
+                }
                 break;
             default:
                 return;
@@ -67,8 +171,13 @@ void MeshGenerator::add(const ElementBase& element) {
                 }
                 break;
             case ElementType::RFCAVITY:
-            case ElementType::TRAVELINGWAVE:
                 mesh.type_m = RFCAVITY;
+                break;
+            case ElementType::TRAVELINGWAVE:
+                mesh.type_m = TRAVELINGWAVE;
+                break;
+            case ElementType::SOLENOID:
+                mesh.type_m = SOLENOID;
                 break;
             default:
                 mesh.type_m = OTHER;
@@ -94,7 +203,8 @@ void MeshGenerator::add(const ElementBase& element) {
 
 void MeshGenerator::write(const std::string& fname) {
     std::string filename = Util::combineFilePath(
-        {OpalData::getInstance()->getAuxiliaryOutputDirectory(), fname + "_ElementPositions.py"});
+            {OpalData::getInstance()->getAuxiliaryOutputDirectory(),
+             fname + "_ElementPositions.py"});
     std::ofstream out(filename);
     const char* buffer;
     const std::string indent("    ");
@@ -121,13 +231,15 @@ void MeshGenerator::write(const std::string& fname) {
     out << "]\n";
 
     {
-        std::string data = vertices_ascii.str();
+        std::string data       = vertices_ascii.str();
         uLongf compressed_size = compressBound(data.size());
         std::vector<Bytef> compressed_data(compressed_size);
-        int result = compress(compressed_data.data(), &compressed_size,
-                             reinterpret_cast<const Bytef*>(data.data()), data.size());
+        int result = compress(
+                compressed_data.data(), &compressed_size,
+                reinterpret_cast<const Bytef*>(data.data()), data.size());
         if (result == Z_OK) {
-            vertices_compressed.write(reinterpret_cast<const char*>(compressed_data.data()), compressed_size);
+            vertices_compressed.write(
+                    reinterpret_cast<const char*>(compressed_data.data()), compressed_size);
         }
     }
 
@@ -154,12 +266,10 @@ void MeshGenerator::write(const std::string& fname) {
                 << (decoration.first)(2) << ", " << (decoration.second)(0) << ", "
                 << (decoration.second)(1) << ", " << (decoration.second)(2) << ", ";
         }
-        if (!element.decorations_m.empty())
-            out.seekp(-2, std::ios_base::end);
+        if (!element.decorations_m.empty()) out.seekp(-2, std::ios_base::end);
         out << "], ";
     }
-    if (!elements_m.empty())
-        out.seekp(-2, std::ios_base::end);
+    if (!elements_m.empty()) out.seekp(-2, std::ios_base::end);
     out << "]\n\n";
 
     out << "color = [";
@@ -172,96 +282,101 @@ void MeshGenerator::write(const std::string& fname) {
     std::stringstream index_ascii;
     std::ostringstream index_compressed;
     index_ascii
-        << "<!DOCTYPE html>\n"
-        << "<html>\n"
-        << "    <head>\n"
-        << "        <meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\" />\n"
-        << "\n"
-        << "        <title>Babylon.js sample code</title>\n"
-        << "        <!-- Babylon.js -->\n"
-        << "        <script src=\"http://cdn.babylonjs.com/hand.minified-1.2.js\"></script>\n"
-        << "        <script src=\"http://cdn.babylonjs.com/cannon.js\"></script>\n"
-        << "        <script src=\"http://cdn.babylonjs.com/oimo.js\"></script>\n"
-        << "        <script src=\"http://cdn.babylonjs.com/babylon.js\"></script>\n"
-        << "        <style>\n"
-        << "            html, body {\n"
-        << "                overflow: hidden;\n"
-        << "                width: 100%;\n"
-        << "                height: 100%;\n"
-        << "                margin: 0;\n"
-        << "                padding: 0;\n"
-        << "            }\n"
-        << "\n"
-        << "            #renderCanvas {\n"
-        << "                width: 100%;\n"
-        << "                height: 100%;\n"
-        << "                touch-action: none;\n"
-        << "            }\n"
-        << "        </style>\n"
-        << "    </head>\n"
-        << "<body>\n"
-        << "    <canvas id=\"renderCanvas\"></canvas>\n"
-        << "    <script>\n"
-        << "        var canvas = document.getElementById(\"renderCanvas\");\n"
-        << "        var engine = new BABYLON.Engine(canvas, true);\n"
-        << "\n"
-        << "        var createScene = function () {\n"
-        << "            var scene = new BABYLON.Scene(engine);\n"
-        << "\n"
-        << "            //Adding a light\n"
-        << "                var light = new BABYLON.PointLight(\"Omni\", new BABYLON.Vector3(0, "
-           "-100, 0), scene);\n"
-        << "                //light.diffuse = new BABYLON.Color3(0.8, 0.8, 0.8);\n"
-        << "                light.specular = new BABYLON.Color3(0.1, 0.1, 0.1);\n"
-        << "                //light.groundColor = new BABYLON.Color3(0, 0, 0);\n"
-        << "\n"
-        << "            //Adding an Arc Rotate Camera\n"
-        << "                var camera = new BABYLON.ArcRotateCamera(\"Camera\", 0.0, Math.PI, 50, "
-           "BABYLON.Vector3.Zero(), scene);\n"
-        << "            camera.attachControl(canvas, false);\n"
-        << "                camera.wheelPrecision = 20;\n"
-        << "\n"
-        << "            var mymesh = ##DATA##;\n"
-        << "            // The first parameter can be used to specify which mesh to import. Here "
-           "we import all meshes\n"
-        << "            BABYLON.SceneLoader.ImportMesh(\"\", \"\", mymesh, scene, function "
-           "(newMeshes) {\n"
-        << "                // Set the target of the camera to the first imported mesh\n"
-        << "                camera.target = newMeshes[0];\n"
-        << "\n"
-        << "                        var material1 = new BABYLON.StandardMaterial(\"texture1\", "
-           "scene);\n"
-        << "                        //material1.wireframe = true;\n"
-        << "                newMeshes[0].material = material1;\n"
-        << "                newMeshes[0].material.emissiveColor = new BABYLON.Color3(0.2, 0.2, "
-           "0.2);\n"
-        << "            });\n"
-        << "\n"
-        << "            return scene;\n"
-        << "        }\n"
-        << "\n"
-        << "\n"
-        << "        var scene = createScene();\n"
-        << "\n"
-        << "        engine.runRenderLoop(function () {\n"
-        << "            scene.render();\n"
-        << "        });\n"
-        << "\n"
-        << "        // Resize\n"
-        << "        window.addEventListener(\"resize\", function () {\n"
-        << "            engine.resize();\n"
-        << "        });\n"
-        << "    </script>\n"
-        << "</body>\n"
-        << "</html>";
+            << "<!DOCTYPE html>\n"
+            << "<html>\n"
+            << "    <head>\n"
+            << "        <meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\" />\n"
+            << "\n"
+            << "        <title>Babylon.js sample code</title>\n"
+            << "        <!-- Babylon.js -->\n"
+            << "        <script src=\"http://cdn.babylonjs.com/hand.minified-1.2.js\"></script>\n"
+            << "        <script src=\"http://cdn.babylonjs.com/cannon.js\"></script>\n"
+            << "        <script src=\"http://cdn.babylonjs.com/oimo.js\"></script>\n"
+            << "        <script src=\"http://cdn.babylonjs.com/babylon.js\"></script>\n"
+            << "        <style>\n"
+            << "            html, body {\n"
+            << "                overflow: hidden;\n"
+            << "                width: 100%;\n"
+            << "                height: 100%;\n"
+            << "                margin: 0;\n"
+            << "                padding: 0;\n"
+            << "            }\n"
+            << "\n"
+            << "            #renderCanvas {\n"
+            << "                width: 100%;\n"
+            << "                height: 100%;\n"
+            << "                touch-action: none;\n"
+            << "            }\n"
+            << "        </style>\n"
+            << "    </head>\n"
+            << "<body>\n"
+            << "    <canvas id=\"renderCanvas\"></canvas>\n"
+            << "    <script>\n"
+            << "        var canvas = document.getElementById(\"renderCanvas\");\n"
+            << "        var engine = new BABYLON.Engine(canvas, true);\n"
+            << "\n"
+            << "        var createScene = function () {\n"
+            << "            var scene = new BABYLON.Scene(engine);\n"
+            << "\n"
+            << "            //Adding a light\n"
+            << "                var light = new BABYLON.PointLight(\"Omni\", new "
+               "BABYLON.Vector3(0, "
+               "-100, 0), scene);\n"
+            << "                //light.diffuse = new BABYLON.Color3(0.8, 0.8, 0.8);\n"
+            << "                light.specular = new BABYLON.Color3(0.1, 0.1, 0.1);\n"
+            << "                //light.groundColor = new BABYLON.Color3(0, 0, 0);\n"
+            << "\n"
+            << "            //Adding an Arc Rotate Camera\n"
+            << "                var camera = new BABYLON.ArcRotateCamera(\"Camera\", 0.0, Math.PI, "
+               "50, "
+               "BABYLON.Vector3.Zero(), scene);\n"
+            << "            camera.attachControl(canvas, false);\n"
+            << "                camera.wheelPrecision = 20;\n"
+            << "\n"
+            << "            var mymesh = ##DATA##;\n"
+            << "            // The first parameter can be used to specify which mesh to import. "
+               "Here "
+               "we import all meshes\n"
+            << "            BABYLON.SceneLoader.ImportMesh(\"\", \"\", mymesh, scene, function "
+               "(newMeshes) {\n"
+            << "                // Set the target of the camera to the first imported mesh\n"
+            << "                camera.target = newMeshes[0];\n"
+            << "\n"
+            << "                        var material1 = new BABYLON.StandardMaterial(\"texture1\", "
+               "scene);\n"
+            << "                        //material1.wireframe = true;\n"
+            << "                newMeshes[0].material = material1;\n"
+            << "                newMeshes[0].material.emissiveColor = new BABYLON.Color3(0.2, 0.2, "
+               "0.2);\n"
+            << "            });\n"
+            << "\n"
+            << "            return scene;\n"
+            << "        }\n"
+            << "\n"
+            << "\n"
+            << "        var scene = createScene();\n"
+            << "\n"
+            << "        engine.runRenderLoop(function () {\n"
+            << "            scene.render();\n"
+            << "        });\n"
+            << "\n"
+            << "        // Resize\n"
+            << "        window.addEventListener(\"resize\", function () {\n"
+            << "            engine.resize();\n"
+            << "        });\n"
+            << "    </script>\n"
+            << "</body>\n"
+            << "</html>";
     {
-        std::string data = index_ascii.str();
+        std::string data       = index_ascii.str();
         uLongf compressed_size = compressBound(data.size());
         std::vector<Bytef> compressed_data(compressed_size);
-        int result = compress(compressed_data.data(), &compressed_size,
-                             reinterpret_cast<const Bytef*>(data.data()), data.size());
+        int result = compress(
+                compressed_data.data(), &compressed_size,
+                reinterpret_cast<const Bytef*>(data.data()), data.size());
         if (result == Z_OK) {
-            index_compressed.write(reinterpret_cast<const char*>(compressed_data.data()), compressed_size);
+            index_compressed.write(
+                    reinterpret_cast<const char*>(compressed_data.data()), compressed_size);
         }
     }
 
@@ -277,6 +392,70 @@ void MeshGenerator::write(const std::string& fname) {
         << "current.append(float(struct.unpack('=d', vertices_binary[k:k+8])[0]))\n";
     out << indent << indent << indent << "k += 8\n";
     out << indent << indent << "vertices.append(current)\n\n";
+
+    out << "def showVTK():\n";
+    out << indent << "try:\n";
+    out << indent << indent << "import numpy as np\n";
+    out << indent << indent << "import pyvista as pv\n";
+    out << indent << "except ModuleNotFoundError:\n";
+    out << indent << indent << "sys.stderr.write(\"PyVista is not installed.\\n\")\n";
+    out << indent << indent
+        << "sys.stderr.write(\"Install it in the local virtual environment with:\\n\")\n";
+    out << indent << indent
+        << "sys.stderr.write(\"  source /Users/adelmann/git/opalx/.venv-h6/bin/activate\\n\")\n";
+    out << indent << indent << "sys.stderr.write(\"  python -m pip install pyvista\\n\")\n";
+    out << indent << indent << "return 1\n\n";
+
+    out << indent << "vtk_file = \"" << fname << "_ElementPositions.vtk\"\n";
+    out << indent << "script_file = os.path.abspath(__file__)\n";
+    out << indent << "needs_export = not os.path.exists(vtk_file)\n";
+    out << indent << "if not needs_export:\n";
+    out << indent << indent
+        << "needs_export = os.path.getmtime(script_file) > os.path.getmtime(vtk_file)\n";
+    out << indent << "if needs_export:\n";
+    out << indent << indent << "exportVTK()\n\n";
+
+    out << indent << "mesh = pv.read(vtk_file)\n";
+    out << indent << "plotter = pv.Plotter()\n";
+    out << indent << "add_mesh_kwargs = {}\n";
+    out << indent << "active_scalars_name = mesh.active_scalars_name\n";
+    out << indent << "if active_scalars_name is not None:\n";
+    out << indent << indent << "active_scalars = mesh.active_scalars\n";
+    out << indent << indent
+        << "if getattr(active_scalars, 'ndim', 0) == 2 and active_scalars.shape[1] in (3, 4):\n";
+    out << indent << indent << indent << "add_mesh_kwargs['scalars'] = active_scalars_name\n";
+    out << indent << indent << indent << "add_mesh_kwargs['rgb'] = True\n";
+    out << indent << indent << indent << "add_mesh_kwargs['preference'] = 'cell'\n";
+    out << indent << indent << indent << "unique_colors = active_scalars[:, :3].astype(float)\n";
+    out << indent << indent << indent << "if np.nanmax(unique_colors) > 1.0:\n";
+    out << indent << indent << indent << indent << "unique_colors /= 255.0\n";
+    out << indent << indent << indent << "unique_colors = np.unique(unique_colors, axis=0)\n";
+    out << indent << indent << indent << "legend = [\n";
+    out << indent << indent << indent << indent << "('Other', (0.5, 0.5, 0.5)),\n";
+    out << indent << indent << indent << indent << "('Dipole', (1.0, 0.847, 0.0)),\n";
+    out << indent << indent << indent << indent << "('Quadrupole', (1.0, 0.0, 0.0)),\n";
+    out << indent << indent << indent << indent << "('Sextupole', (0.537, 0.745, 0.525)),\n";
+    out << indent << indent << indent << indent << "('Octupole', (0.5, 0.5, 0.0)),\n";
+    out << indent << indent << indent << indent << "('Solenoid', (1.0, 138.0 / 255.0, 0.0)),\n";
+    out << indent << indent << indent << indent << "('RFCavity', (1.0, 1.0, 0.0)),\n";
+    out << indent << indent << indent << indent << "('TravelingWave', (0.0, 0.6, 0.0)),\n";
+    out << indent << indent << indent << indent << "('Drift', (0.0, 0.0, 1.0)),\n";
+    out << indent << indent << indent << "]\n";
+    out << indent << indent << indent << "present = []\n";
+    out << indent << indent << indent << "for label, color in legend:\n";
+    out << indent << indent << indent << indent << "color_arr = np.asarray(color, dtype=float)\n";
+    out << indent << indent << indent << indent
+        << "if np.any(np.all(np.isclose(unique_colors, color_arr, atol=5e-3), axis=1)):\n";
+    out << indent << indent << indent << indent << indent << "present.append((label, color))\n";
+    out << indent << indent << indent << "if present:\n";
+    out << indent << indent << indent << indent
+        << "plotter.add_legend(present, bcolor=(1.0, 1.0, 1.0), face='circle', border=True, "
+           "size=(0.2, 0.24))\n";
+    out << indent << "plotter.add_mesh(mesh, **add_mesh_kwargs)\n";
+    out << indent << "plotter.add_axes()\n";
+    out << indent << "plotter.show_grid()\n";
+    out << indent << "plotter.show()\n";
+    out << indent << "return 0\n\n";
 
     out << "def dot(a, b):\n";
     out << indent << "return sum(a[i]*b[i] for i in range(len(a)))\n\n";
@@ -378,7 +557,9 @@ void MeshGenerator::write(const std::string& fname) {
     out << indent << "lookup_table.append([1.0, 0.0, 0.0, 1.0])\n";
     out << indent << "lookup_table.append([0.537, 0.745, 0.525, 1.0])\n";
     out << indent << "lookup_table.append([0.5, 0.5, 0.0, 1.0])\n";
-    out << indent << "lookup_table.append([1.0, 0.541, 0.0, 1.0])\n";
+    out << indent << "lookup_table.append([1.0, 0.5411764706, 0.0, 1.0])\n";
+    out << indent << "lookup_table.append([1.0, 1.0, 0.0, 1.0])\n";
+    out << indent << "lookup_table.append([0.0, 0.6, 0.0, 1.0])\n";
     out << indent << "lookup_table.append([0.0, 0.0, 1.0, 1.0])\n\n";
 
     out << indent << "decodeVertices()\n\n";
@@ -440,7 +621,9 @@ void MeshGenerator::write(const std::string& fname) {
     out << indent << "lookup_table.append([1.0, 0.0, 0.0])\n";
     out << indent << "lookup_table.append([0.537, 0.745, 0.525])\n";
     out << indent << "lookup_table.append([0.5, 0.5, 0.0])\n";
-    out << indent << "lookup_table.append([1.0, 0.541, 0.0])\n";
+    out << indent << "lookup_table.append([1.0, 0.5411764706, 0.0])\n";
+    out << indent << "lookup_table.append([1.0, 1.0, 0.0])\n";
+    out << indent << "lookup_table.append([0.0, 0.6, 0.0])\n";
     out << indent << "lookup_table.append([0.0, 0.0, 1.0])\n\n";
 
     out << indent << "decodeVertices()\n\n";
@@ -939,6 +1122,7 @@ void MeshGenerator::write(const std::string& fname) {
     out << indent << "parser = argparse.ArgumentParser()\n";
     out << indent << "parser.add_argument('--export-vtk', action='store_true')\n";
     out << indent << "parser.add_argument('--export-web', action='store_true')\n";
+    out << indent << "parser.add_argument('--show', action='store_true')\n";
     out << indent << "parser.add_argument('--background', nargs=3, type=float)\n";
     out << indent << "parser.add_argument('--project-to-plane', action='store_true')\n";
     out << indent << "parser.add_argument('--normal', nargs=3, type=float)\n";
@@ -961,6 +1145,9 @@ void MeshGenerator::write(const std::string& fname) {
     out << indent << indent << "exportWeb(bgcolor)\n";
     out << indent << indent << "sys.exit()\n\n";
 
+    out << indent << "if (args.show):\n";
+    out << indent << indent << "sys.exit(showVTK())\n\n";
+
     out << indent << "if (args.project_to_plane):\n";
     out << indent << indent << "normal = [0.0, 1.0, 0.0]\n";
     out << indent << indent << "if (args.normal):\n";
@@ -972,7 +1159,8 @@ void MeshGenerator::write(const std::string& fname) {
 }
 
 MeshData MeshGenerator::getCylinder(
-    double length, double minor, double major, double formFactor, const unsigned int numSegments) {
+        double length, double minor, double major, double formFactor,
+        const unsigned int numSegments) {
     double angle  = 0;
     double dAngle = Physics::two_pi / numSegments;
 
@@ -990,25 +1178,180 @@ MeshData MeshGenerator::getCylinder(
         mesh.triangles_m.push_back(sideTriangle1);
 
         Vector_t<unsigned int, 3> sideTriangle2(
-            next + 1, next + numSegments + 2, i + numSegments + 2);
+                next + 1, next + numSegments + 2, i + numSegments + 2);
         mesh.triangles_m.push_back(sideTriangle2);
     }
 
     mesh.vertices_m.push_back(Vector_t<double, 3>(0.0, 0.0, length));
     for (unsigned int i = 0; i < numSegments; ++i, angle += dAngle) {
         Vector_t<double, 3> node(
-            formFactor * major * cos(angle), formFactor * minor * sin(angle), length);
+                formFactor * major * cos(angle), formFactor * minor * sin(angle), length);
         mesh.vertices_m.push_back(node);
 
         unsigned int next = (i + 1) % numSegments;
         Vector_t<unsigned int, 3> topTriangle(
-            numSegments + 1, i + numSegments + 2, next + numSegments + 2);
+                numSegments + 1, i + numSegments + 2, next + numSegments + 2);
         mesh.triangles_m.push_back(topTriangle);
     }
 
     mesh.decorations_m.push_back(
-        std::make_pair(Vector_t<double, 3>(0.0), Vector_t<double, 3>(0, 0, length)));
+            std::make_pair(Vector_t<double, 3>(0.0), Vector_t<double, 3>(0, 0, length)));
 
+    return mesh;
+}
+
+MeshData MeshGenerator::getTube(
+        double length, double innerMinor, double innerMajor, double outerMinor, double outerMajor,
+        const unsigned int numSegments) {
+    double angle  = 0.0;
+    double dAngle = Physics::two_pi / numSegments;
+
+    MeshData mesh;
+    for (unsigned int i = 0; i < numSegments; ++i, angle += dAngle) {
+        mesh.vertices_m.push_back(
+                Vector_t<double, 3>(outerMajor * cos(angle), outerMinor * sin(angle), 0.0));
+    }
+    for (unsigned int i = 0; i < numSegments; ++i, angle += dAngle) {
+        mesh.vertices_m.push_back(
+                Vector_t<double, 3>(innerMajor * cos(angle), innerMinor * sin(angle), 0.0));
+    }
+    for (unsigned int i = 0; i < numSegments; ++i, angle += dAngle) {
+        mesh.vertices_m.push_back(
+                Vector_t<double, 3>(outerMajor * cos(angle), outerMinor * sin(angle), length));
+    }
+    for (unsigned int i = 0; i < numSegments; ++i, angle += dAngle) {
+        mesh.vertices_m.push_back(
+                Vector_t<double, 3>(innerMajor * cos(angle), innerMinor * sin(angle), length));
+    }
+
+    for (unsigned int i = 0; i < numSegments; ++i) {
+        const unsigned int next            = (i + 1) % numSegments;
+        const unsigned int bottomOuter     = i;
+        const unsigned int bottomOuterNext = next;
+        const unsigned int bottomInner     = numSegments + i;
+        const unsigned int bottomInnerNext = numSegments + next;
+        const unsigned int topOuter        = 2 * numSegments + i;
+        const unsigned int topOuterNext    = 2 * numSegments + next;
+        const unsigned int topInner        = 3 * numSegments + i;
+        const unsigned int topInnerNext    = 3 * numSegments + next;
+
+        mesh.triangles_m.push_back(
+                Vector_t<unsigned int, 3>(bottomOuter, bottomOuterNext, topOuter));
+        mesh.triangles_m.push_back(
+                Vector_t<unsigned int, 3>(bottomOuterNext, topOuterNext, topOuter));
+
+        mesh.triangles_m.push_back(
+                Vector_t<unsigned int, 3>(bottomInner, topInner, bottomInnerNext));
+        mesh.triangles_m.push_back(
+                Vector_t<unsigned int, 3>(bottomInnerNext, topInner, topInnerNext));
+    }
+
+    return mesh;
+}
+
+MeshData MeshGenerator::getQuadrupole(
+        double length, double minor, double major, double formFactor) {
+    MeshData mesh;
+
+    const double poleHalfWidthX  = 0.45 * major;
+    const double poleHalfHeightX = 0.75 * minor;
+    const double poleHalfWidthY  = 0.75 * major;
+    const double poleHalfHeightY = 0.45 * minor;
+    const double xOffset         = major + poleHalfWidthX;
+    const double yOffset         = minor + poleHalfHeightY;
+
+    MeshData rightPole = getBox(length, poleHalfWidthX, poleHalfHeightX, formFactor);
+    translateMesh(rightPole, xOffset, 0.0);
+    appendMesh(mesh, rightPole);
+
+    MeshData leftPole = getBox(length, poleHalfWidthX, poleHalfHeightX, formFactor);
+    translateMesh(leftPole, -xOffset, 0.0);
+    appendMesh(mesh, leftPole);
+
+    MeshData topPole = getBox(length, poleHalfWidthY, poleHalfHeightY, formFactor);
+    translateMesh(topPole, 0.0, yOffset);
+    appendMesh(mesh, topPole);
+
+    MeshData bottomPole = getBox(length, poleHalfWidthY, poleHalfHeightY, formFactor);
+    translateMesh(bottomPole, 0.0, -yOffset);
+    appendMesh(mesh, bottomPole);
+
+    return mesh;
+}
+
+MeshData MeshGenerator::getSolenoid(double length, double minor, double major) {
+    const double boreMinor    = 0.45 * minor;
+    const double boreMajor    = 0.45 * major;
+    const double collarLength = std::min(0.18 * length, 0.8 * std::min(minor, major));
+
+    if (collarLength <= 1e-12 || 2.0 * collarLength >= length) {
+        return getTube(length, boreMinor, boreMajor, minor, major);
+    }
+
+    MeshData mesh;
+
+    MeshData entranceCollar =
+            getTube(collarLength, boreMinor, boreMajor, 1.18 * minor, 1.18 * major);
+    appendMesh(mesh, entranceCollar);
+
+    MeshData body = getTube(length - 2.0 * collarLength, boreMinor, boreMajor, minor, major);
+    translateMesh(body, 0.0, 0.0, collarLength);
+    appendMesh(mesh, body);
+
+    MeshData exitCollar = getTube(collarLength, boreMinor, boreMajor, 1.18 * minor, 1.18 * major);
+    translateMesh(exitCollar, 0.0, 0.0, length - collarLength);
+    appendMesh(mesh, exitCollar);
+
+    return mesh;
+}
+
+MeshData MeshGenerator::getRFCavity(double length, double minor, double major) {
+    const double boreMinor            = 0.42 * minor;
+    const double boreMajor            = 0.42 * major;
+    const std::vector<double> profile = {0.78, 1.15, 0.82, 1.25, 0.82, 1.15, 0.78};
+
+    MeshData mesh;
+    const auto appendTubeSegment = [&](const double zStart, const double segmentLength,
+                                       const double scale) {
+        if (segmentLength <= 1e-12) {
+            return;
+        }
+        MeshData segment =
+                getTube(segmentLength, boreMinor, boreMajor, scale * minor, scale * major);
+        translateMesh(segment, 0.0, 0.0, zStart);
+        appendMesh(mesh, segment);
+    };
+    const double segmentLength = length / static_cast<double>(profile.size());
+    double z                   = 0.0;
+    for (double scale : profile) {
+        appendTubeSegment(z, segmentLength, scale);
+        z += segmentLength;
+    }
+    return mesh;
+}
+
+MeshData MeshGenerator::getTravelingWave(double length, double minor, double major) {
+    const double boreMinor            = 0.48 * minor;
+    const double boreMajor            = 0.48 * major;
+    const std::vector<double> profile = {0.92, 1.05, 0.92, 1.05, 0.92, 1.05, 0.92, 1.05};
+
+    MeshData mesh;
+    const auto appendTubeSegment = [&](const double zStart, const double segmentLength,
+                                       const double scale) {
+        if (segmentLength <= 1e-12) {
+            return;
+        }
+        MeshData segment =
+                getTube(segmentLength, boreMinor, boreMajor, scale * minor, scale * major);
+        translateMesh(segment, 0.0, 0.0, zStart);
+        appendMesh(mesh, segment);
+    };
+    const double segmentLength = length / static_cast<double>(profile.size());
+    double z                   = 0.0;
+    for (double scale : profile) {
+        appendTubeSegment(z, segmentLength, scale);
+        z += segmentLength;
+    }
     return mesh;
 }
 
@@ -1021,11 +1364,11 @@ MeshData MeshGenerator::getBox(double length, double width, double height, doubl
 
     mesh.vertices_m.push_back(Vector_t<double, 3>(formFactor * width, formFactor * height, length));
     mesh.vertices_m.push_back(
-        Vector_t<double, 3>(-formFactor * width, formFactor * height, length));
+            Vector_t<double, 3>(-formFactor * width, formFactor * height, length));
     mesh.vertices_m.push_back(
-        Vector_t<double, 3>(-formFactor * width, -formFactor * height, length));
+            Vector_t<double, 3>(-formFactor * width, -formFactor * height, length));
     mesh.vertices_m.push_back(
-        Vector_t<double, 3>(formFactor * width, -formFactor * height, length));
+            Vector_t<double, 3>(formFactor * width, -formFactor * height, length));
 
     mesh.triangles_m.push_back(Vector_t<unsigned int, 3>(0, 2, 1));
     mesh.triangles_m.push_back(Vector_t<unsigned int, 3>(0, 3, 2));
@@ -1043,7 +1386,7 @@ MeshData MeshGenerator::getBox(double length, double width, double height, doubl
     mesh.triangles_m.push_back(Vector_t<unsigned int, 3>(4, 6, 7));
 
     mesh.decorations_m.push_back(
-        std::make_pair(Vector_t<double, 3>(0.0), Vector_t<double, 3>(0, 0, length)));
+            std::make_pair(Vector_t<double, 3>(0.0), Vector_t<double, 3>(0, 0, length)));
 
     return mesh;
 }
