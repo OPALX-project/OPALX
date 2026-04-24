@@ -212,7 +212,7 @@ public:
      */
     void setBoundingBoxLength(double boundingBoxLength);
     /** Not implemented */
-    void getDimensions(double& /*zBegin*/, double& /*zEnd*/) const override {}
+    void getFieldExtend(double& /*zBegin*/, double& /*zEnd*/) const override {}
 
     void setScalingName(const std::string& name);
     std::string getScalingName() const { return scalingName_m; }

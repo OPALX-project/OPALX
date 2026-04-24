@@ -86,32 +86,33 @@ public:
     virtual bool getAutophaseVeto() const;
 
     virtual double getAutoPhaseEstimate(
-        const double& E0, const double& t0, const double& q, const double& m);
+            const double& E0, const double& t0, const double& q, const double& m);
     virtual double getAutoPhaseEstimateFallback(double E0, double t0, double q, double m);
 
     virtual std::pair<double, double> trackOnAxisParticle(
-        const double& p0, const double& t0, const double& dt, const double& q, const double& mass,
-        std::ofstream* out = nullptr);
+            const double& p0, const double& t0, const double& dt, const double& q,
+            const double& mass, std::ofstream* out = nullptr);
 
     virtual bool apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
 
     virtual bool apply(
-        const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
+            const size_t& i, const double& t, Vector_t<double, 3>& E,
+            Vector_t<double, 3>& B) override;
 
     virtual bool apply(
-        const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-        Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
+            const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
+            Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 
     virtual bool applyToReferenceParticle(
-        const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-        Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
+            const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
+            Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 
     virtual void initialise(PartBunch_t* bunch, double& startField, double& endField) override;
 
     virtual void initialise(
-        PartBunch_t* bunch, std::shared_ptr<AbstractTimeDependence> freq_atd,
-        std::shared_ptr<AbstractTimeDependence> ampl_atd,
-        std::shared_ptr<AbstractTimeDependence> phase_atd);
+            PartBunch_t* bunch, std::shared_ptr<AbstractTimeDependence> freq_atd,
+            std::shared_ptr<AbstractTimeDependence> ampl_atd,
+            std::shared_ptr<AbstractTimeDependence> phase_atd);
 
     virtual void finalise() override;
 
@@ -149,14 +150,23 @@ public:
     virtual double getCycFrequency() const;
 
     void getMomentaKick(
-        const double normalRadius, double momentum[], const double t, const double dtCorrt,
-        const int PID, const double restMass, const int chargenumber);
+            const double normalRadius, double momentum[], const double t, const double dtCorrt,
+            const int PID, const double restMass, const int chargenumber);
 
     double spline(double z, double* za);
 
     virtual ElementType getType() const override;
 
-    virtual void getDimensions(double& zBegin, double& zEnd) const override;
+    /**
+     * @brief Return the field-support interval of the cavity.
+     *
+     * The field-support extent is the local interval
+     * \f$[z_\mathrm{field}^{\mathrm{begin}}, z_\mathrm{field}^{\mathrm{end}}]\f$
+     * on which the RF field map is defined. In the placement redesign this may
+     * differ from the nominal body extent returned by
+     * `getElementDimensions()`.
+     */
+    virtual void getFieldExtend(double& zBegin, double& zEnd) const override;
 
     virtual bool isInside(const Vector_t<double, 3>& r) const override;
 
@@ -172,6 +182,13 @@ public:
     void setFrequencyModelName(std::string name);
     std::string getFrequencyModelName();
 
+    /**
+     * @brief Return the nominal body length of the cavity.
+     *
+     * The body length is the placed hardware extent. If no explicit body
+     * length was configured, a backward-compatible fallback uses the current
+     * field-support length.
+     */
     virtual double getElementLength() const override;
     virtual void getElementDimensions(double& begin, double& end) const override;
 
@@ -201,10 +218,9 @@ protected:
 
     Fieldmap* fieldmap_m;
     double startField_m; /**< starting point of field(m)*/
+    double endField_m;   /**< end point of field support(m)*/
 
 private:
-    double endField_m;
-
     CavityType type_m;
 
     static const BiMap<CavityType, std::string> bmCavityTypeString_s;
@@ -224,37 +240,38 @@ private:
     int num_points_m;
 
     double getdE(
-        const int& i, const std::vector<double>& t, const double& dz, const double& phi,
-        const double& frequency, const std::vector<double>& F) const;
+            const int& i, const std::vector<double>& t, const double& dz, const double& phi,
+            const double& frequency, const std::vector<double>& F) const;
 
     double getdT(
-        const int& i, const std::vector<double>& E, const double& dz, const double mass) const;
+            const int& i, const std::vector<double>& E, const double& dz, const double mass) const;
 
     double getdA(
-        const int& i, const std::vector<double>& t, const double& dz, const double& frequency,
-        const std::vector<double>& F) const;
+            const int& i, const std::vector<double>& t, const double& dz, const double& frequency,
+            const std::vector<double>& F) const;
 
     double getdB(
-        const int& i, const std::vector<double>& t, const double& dz, const double& frequency,
-        const std::vector<double>& F) const;
+            const int& i, const std::vector<double>& t, const double& dz, const double& frequency,
+            const std::vector<double>& F) const;
 
     // Not implemented.
     void operator=(const RFCavity&);
 };
 
 inline double RFCavity::getdE(
-    const int& i, const std::vector<double>& t, const double& dz, const double& phi,
-    const double& frequency, const std::vector<double>& F) const {
+        const int& i, const std::vector<double>& t, const double& dz, const double& phi,
+        const double& frequency, const std::vector<double>& F) const {
     return dz / (frequency * frequency * (t[i] - t[i - 1]) * (t[i] - t[i - 1]))
            * (frequency * (t[i] - t[i - 1])
-                  * (F[i] * std::sin(frequency * t[i] + phi)
-                     - F[i - 1] * std::sin(frequency * t[i - 1] + phi))
+                      * (F[i] * std::sin(frequency * t[i] + phi)
+                         - F[i - 1] * std::sin(frequency * t[i - 1] + phi))
               + (F[i] - F[i - 1])
-                    * (std::cos(frequency * t[i] + phi) - std::cos(frequency * t[i - 1] + phi)));
+                        * (std::cos(frequency * t[i] + phi)
+                           - std::cos(frequency * t[i - 1] + phi)));
 }
 
 inline double RFCavity::getdT(
-    const int& i, const std::vector<double>& E, const double& dz, const double mass) const {
+        const int& i, const std::vector<double>& E, const double& dz, const double mass) const {
     double gamma1  = 1. + (19. * E[i - 1] + 1. * E[i]) / (20. * mass);
     double gamma2  = 1. + (17. * E[i - 1] + 3. * E[i]) / (20. * mass);
     double gamma3  = 1. + (15. * E[i - 1] + 5. * E[i]) / (20. * mass);
@@ -280,153 +297,101 @@ inline double RFCavity::getdT(
 }
 
 inline double RFCavity::getdA(
-    const int& i, const std::vector<double>& t, const double& dz, const double& frequency,
-    const std::vector<double>& F) const {
+        const int& i, const std::vector<double>& t, const double& dz, const double& frequency,
+        const std::vector<double>& F) const {
     double dt = t[i] - t[i - 1];
     return dz / (frequency * frequency * dt * dt)
            * (frequency * dt
-                  * (F[i] * std::cos(frequency * t[i]) - F[i - 1] * std::cos(frequency * t[i - 1]))
+                      * (F[i] * std::cos(frequency * t[i])
+                         - F[i - 1] * std::cos(frequency * t[i - 1]))
               - (F[i] - F[i - 1]) * (std::sin(frequency * t[i]) - std::sin(frequency * t[i - 1])));
 }
 
 inline double RFCavity::getdB(
-    const int& i, const std::vector<double>& t, const double& dz, const double& frequency,
-    const std::vector<double>& F) const {
+        const int& i, const std::vector<double>& t, const double& dz, const double& frequency,
+        const std::vector<double>& F) const {
     double dt = t[i] - t[i - 1];
     return dz / (frequency * frequency * dt * dt)
            * (frequency * dt
-                  * (F[i] * std::sin(frequency * t[i]) - F[i - 1] * std::sin(frequency * t[i - 1]))
+                      * (F[i] * std::sin(frequency * t[i])
+                         - F[i - 1] * std::sin(frequency * t[i - 1]))
               + (F[i] - F[i - 1]) * (std::cos(frequency * t[i]) - std::cos(frequency * t[i - 1])));
 }
 
-inline void RFCavity::setDesignEnergy(const double& ekin, bool) {
-    designEnergy_m = ekin;
-}
+inline void RFCavity::setDesignEnergy(const double& ekin, bool) { designEnergy_m = ekin; }
 
-inline double RFCavity::getDesignEnergy() const {
-    return designEnergy_m;
-}
+inline double RFCavity::getDesignEnergy() const { return designEnergy_m; }
 
-inline void RFCavity::dropFieldmaps() {
-    fieldmap_m = nullptr;
-}
+inline void RFCavity::dropFieldmaps() { fieldmap_m = nullptr; }
 
-inline void RFCavity::setFieldMapFN(const std::string& fn) {
-    filename_m = fn;
-}
+inline void RFCavity::setFieldMapFN(const std::string& fn) { filename_m = fn; }
 
-inline void RFCavity::setAmplitudem(double vPeak) {
-    scale_m = vPeak;
-}
+inline void RFCavity::setAmplitudem(double vPeak) { scale_m = vPeak; }
 
-inline double RFCavity::getAmplitudem() const {
-    return scale_m;
-}
+inline double RFCavity::getAmplitudem() const { return scale_m; }
 
-inline void RFCavity::setAmplitudeError(double vPeakError) {
-    scaleError_m = vPeakError;
-}
+inline void RFCavity::setAmplitudeError(double vPeakError) { scaleError_m = vPeakError; }
 
-inline double RFCavity::getAmplitudeError() const {
-    return scaleError_m;
-}
+inline double RFCavity::getAmplitudeError() const { return scaleError_m; }
 
-inline void RFCavity::setFrequency(double freq) {
-    frequency_m = freq;
-}
+inline void RFCavity::setFrequency(double freq) { frequency_m = freq; }
 
-inline void RFCavity::setFrequencym(double freq) {
-    frequency_m = freq;
-}
+inline void RFCavity::setFrequencym(double freq) { frequency_m = freq; }
 
-inline double RFCavity::getFrequencym() const {
-    return frequency_m;
-}
+inline double RFCavity::getFrequencym() const { return frequency_m; }
 
-inline void RFCavity::setPhasem(double phase) {
-    phase_m = phase;
-}
+inline void RFCavity::setPhasem(double phase) { phase_m = phase; }
 
-inline double RFCavity::getPhasem() const {
-    return phase_m;
-}
+inline double RFCavity::getPhasem() const { return phase_m; }
 
-inline double RFCavity::getPhasem(double t) const {
-    return phase_m + t * frequency_m;
-}
+inline double RFCavity::getPhasem(double t) const { return phase_m + t * frequency_m; }
 
-inline void RFCavity::setPhaseError(double phaseError) {
-    phaseError_m = phaseError;
-}
+inline void RFCavity::setPhaseError(double phaseError) { phaseError_m = phaseError; }
 
-inline double RFCavity::getPhaseError() const {
-    return phaseError_m;
-}
+inline double RFCavity::getPhaseError() const { return phaseError_m; }
 
-inline CavityType RFCavity::getCavityType() const {
-    return type_m;
-}
+inline CavityType RFCavity::getCavityType() const { return type_m; }
 
-inline void RFCavity::setFast(bool fast) {
-    fast_m = fast;
-}
+inline void RFCavity::setFast(bool fast) { fast_m = fast; }
 
-inline bool RFCavity::getFast() const {
-    return fast_m;
-}
+inline bool RFCavity::getFast() const { return fast_m; }
 
-inline void RFCavity::setAutophaseVeto(bool veto) {
-    autophaseVeto_m = veto;
-}
+inline void RFCavity::setAutophaseVeto(bool veto) { autophaseVeto_m = veto; }
 
-inline bool RFCavity::getAutophaseVeto() const {
-    return autophaseVeto_m;
-}
+inline bool RFCavity::getAutophaseVeto() const { return autophaseVeto_m; }
 
 inline void RFCavity::setAmplitudeModel(std::shared_ptr<AbstractTimeDependence> amplitudeTD) {
     amplitudeTD_m = amplitudeTD;
 }
 
-inline void RFCavity::setAmplitudeModelName(std::string name) {
-    amplitudeName_m = name;
-}
+inline void RFCavity::setAmplitudeModelName(std::string name) { amplitudeName_m = name; }
 
-inline std::string RFCavity::getAmplitudeModelName() {
-    return amplitudeName_m;
-}
+inline std::string RFCavity::getAmplitudeModelName() { return amplitudeName_m; }
 
 inline void RFCavity::setPhaseModel(std::shared_ptr<AbstractTimeDependence> phaseTD) {
     phaseTD_m = phaseTD;
 }
 
-inline void RFCavity::setPhaseModelName(std::string name) {
-    phaseName_m = name;
-}
+inline void RFCavity::setPhaseModelName(std::string name) { phaseName_m = name; }
 
-inline std::string RFCavity::getPhaseModelName() {
-    return phaseName_m;
-}
+inline std::string RFCavity::getPhaseModelName() { return phaseName_m; }
 
 inline void RFCavity::setFrequencyModel(std::shared_ptr<AbstractTimeDependence> frequencyTD) {
     frequencyTD_m = frequencyTD;
 }
 
-inline void RFCavity::setFrequencyModelName(std::string name) {
-    frequencyName_m = name;
-}
+inline void RFCavity::setFrequencyModelName(std::string name) { frequencyName_m = name; }
 
-inline std::string RFCavity::getFrequencyModelName() {
-    return frequencyName_m;
-}
+inline std::string RFCavity::getFrequencyModelName() { return frequencyName_m; }
 
 inline CoordinateSystemTrafo RFCavity::getEdgeToBegin() const {
-    CoordinateSystemTrafo ret(Vector_t<double, 3>({0, 0, startField_m}), Quaternion(1, 0, 0, 0));
+    CoordinateSystemTrafo ret(Vector_t<double, 3>({0, 0, 0}), Quaternion(1, 0, 0, 0));
     return ret;
 }
 
 inline CoordinateSystemTrafo RFCavity::getEdgeToEnd() const {
     CoordinateSystemTrafo ret(
-        Vector_t<double, 3>({0, 0, startField_m + getElementLength()}), Quaternion(1, 0, 0, 0));
+            Vector_t<double, 3>({0, 0, getElementLength()}), Quaternion(1, 0, 0, 0));
     return ret;
 }
 

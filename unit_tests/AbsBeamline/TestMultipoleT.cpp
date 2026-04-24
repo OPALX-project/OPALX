@@ -15,9 +15,9 @@
 //
 
 #include <csignal>
-#include "AbstractObjects/OpalData.h"
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "AbsBeamline/MultipoleT.h"
+#include "AbstractObjects/OpalData.h"
 #include "Algorithms/SplineTimeDependence.h"
 #include "Attributes/Attributes.h"
 #include "Structure/Beam.h"
@@ -207,7 +207,7 @@ TEST_F(TestMultipoleT, OddApis) {
     // Just make sure these functions do not throw
     EXPECT_NO_THROW(finalise());
     double a, b;
-    EXPECT_NO_THROW(getDimensions(a, b));
+    EXPECT_NO_THROW(getFieldExtend(a, b));
 }
 
 TEST_F(TestMultipoleT, ApplySingleParticleThrowsForMultiContainerBunch) {
@@ -226,8 +226,8 @@ TEST_F(TestMultipoleT, ApplySingleParticleThrowsForMultiContainerBunch) {
     ASSERT_NE(testBeam, nullptr);
     const auto bunch = std::make_shared<PartBunch_t>(
             std::vector<double>{1.0e-9, 2.0e-9}, std::vector<double>{0.511e-3, 0.938},
-            std::vector<Beam*>{testBeam, testBeam}, std::vector<size_t>{1, 1}, 1.0, "LF2", fsCmd.get(),
-            dataSink.get());
+            std::vector<Beam*>{testBeam, testBeam}, std::vector<size_t>{1, 1}, 1.0, "LF2",
+            fsCmd.get(), dataSink.get());
     ASSERT_EQ(bunch->getNumParticleContainers(), 2u);
 
     // Register bunch and verify per-particle apply() rejects ambiguous container context.
