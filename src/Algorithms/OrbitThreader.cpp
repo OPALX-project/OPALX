@@ -401,7 +401,7 @@ void OrbitThreader::processElementRegister() {
         set.insert(ep);
     }
 
-    elementRegistryModel_m.clear();
+    actionRangeRegistrationModel_m.clear();
     std::vector<ReferencePathSegment> registeredSegments;
     for (auto& [element, set] : tmpRegistry) {
         std::queue<std::pair<double, double>> range;
@@ -428,7 +428,7 @@ void OrbitThreader::processElementRegister() {
             });
 
     for (const auto& segment : registeredSegments) {
-        elementRegistryModel_m.addSegment(segment);
+        actionRangeRegistrationModel_m.addSegment(segment);
     }
 }
 

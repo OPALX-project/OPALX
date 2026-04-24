@@ -51,6 +51,27 @@ public:
 
     BoundingBox getBoundingBox() const;
 
+    /**
+     * @brief Return the threader-owned reference-path model.
+     *
+     * This model stores the ordered active-element sets on the reporting
+     * coordinate \f$s\f$ that are traced by the reference particle through the
+     * summed fields. In other words, it is the occupancy model derived from
+     * the reference-particle integration, not a privileged-element ownership
+     * model. The returned reference remains owned by the `OrbitThreader`.
+     */
+    const ReferencePathModel& getReferencePathModel() const;
+
+    /**
+     * @brief Return the action-range registration model.
+     *
+     * This model is distinct from the traced reference-path occupancy model.
+     * It records the element passages that are later converted into
+     * backward-compatible action ranges and legacy `ELEMEDGE`-anchored
+     * intervals on the elements.
+     */
+    const ReferencePathModel& getActionRangeRegistrationModel() const;
+
 private:
     /// position of reference particle in lab coordinates
     Vector_t<double, 3> r_m;
@@ -102,7 +123,7 @@ private:
             std::shared_ptr<Component>, elementPosition,
             std::owner_less<std::shared_ptr<Component>>>
             elementRegistry_m;
-    ReferencePathModel elementRegistryModel_m;
+    ReferencePathModel actionRangeRegistrationModel_m;
 
     void trackBack();
     void integrate(const IndexMap::value_t& activeSet, double maxDrift = 10.0);
@@ -140,4 +161,12 @@ inline IndexMap::value_t OrbitThreader::getTouchingElements(const IndexMap::key_
 }
 
 inline BoundingBox OrbitThreader::getBoundingBox() const { return globalBoundingBox_m; }
+
+inline const ReferencePathModel& OrbitThreader::getReferencePathModel() const {
+    return imap_m.getReferencePathModel();
+}
+
+inline const ReferencePathModel& OrbitThreader::getActionRangeRegistrationModel() const {
+    return actionRangeRegistrationModel_m;
+}
 #endif
