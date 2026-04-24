@@ -807,6 +807,7 @@ void ParallelTracker::pushParticles(
     //itsBunch_m->getParticleContainer()->update();
     Kokkos::fence();
     ippl::Comm->barrier();
+    pc.markMomentsDirty();
     // itsBunch_m->bunchUpdate();
 }
 
@@ -848,6 +849,7 @@ void ParallelTracker::kickParticles(
     */
     Kokkos::fence();
     ippl::Comm->barrier();
+    pc.markMomentsDirty();
 
     m << level5 << "Completed parallel kick operation." << endl;
 }

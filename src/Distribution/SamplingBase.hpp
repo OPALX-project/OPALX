@@ -1,5 +1,5 @@
-#ifndef IPPL_SAMPLING_BASE_H
-#define IPPL_SAMPLING_BASE_H
+#ifndef OPALX_SAMPLING_BASE_H
+#define OPALX_SAMPLING_BASE_H
 
 #include "Distribution.h"
 #include "Ippl.h"
@@ -84,4 +84,5 @@ public:
      */
     size_t computeLocalEmitCount(size_t totalToSample) const;
 };
-#endif
+#endif // OPALX_SAMPLING_BASE_H
+

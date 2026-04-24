@@ -1,5 +1,5 @@
-#ifndef CLASSIC_Channel_HH
-#define CLASSIC_Channel_HH
+#ifndef OPALX_Channel_HH
+#define OPALX_Channel_HH
 
 // ------------------------------------------------------------------------
 // $RCSfile: Channel.h,v $
@@ -68,4 +68,4 @@ private:
     const Channel &operator=(const Channel &);
 };
 
-#endif // CLASSIC_Channel_HH
+#endif // OPALX_Channel_HH

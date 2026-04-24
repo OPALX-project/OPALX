@@ -1,5 +1,5 @@
-#ifndef CLASSIC_StaticMagneticField_HH
-#define CLASSIC_StaticMagneticField_HH
+#ifndef OPALX_StaticMagneticField_HH
+#define OPALX_StaticMagneticField_HH
 
 // ------------------------------------------------------------------------
 // $RCSfile: StaticMagneticField.h,v $
@@ -35,4 +35,4 @@ public:
     virtual ~StaticMagneticField();
 };
 
-#endif // CLASSIC_StaticMagneticField_HH
+#endif // OPALX_StaticMagneticField_HH

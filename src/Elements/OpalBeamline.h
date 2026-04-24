@@ -27,7 +27,7 @@
 
 #include "AbsBeamline/Marker.h"
 #include "Beamlines/Beamline.h"
-#include "Utilities/ClassicField.h"
+#include "Utilities/BeamlineFieldElement.h"
 
 #include "Algorithms/CoordinateSystemTrafo.h"
 
@@ -124,7 +124,7 @@ inline void OpalBeamline::visit(
         startField = elptr->getElementPosition();
 
     elptr->initialise(&bunch, startField, endField);
-    elements_m.push_back(ClassicField(elptr, startField, endField));
+    elements_m.push_back(BeamlineFieldElement(elptr, startField, endField));
 }
 
 template <>

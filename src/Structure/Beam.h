@@ -53,7 +53,7 @@ public:
     /// Return the allocation size (macroparticles) for this beam
     size_t getNumAlloc() const;
 
-    /// Return the embedded CLASSIC PartData.
+    /// Return the embedded OPALX PartData.
     const PartData& getReference() const;
 
     /// Return the beam current in A (legacy; no longer used in OPALX)

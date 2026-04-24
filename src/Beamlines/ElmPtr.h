@@ -1,5 +1,5 @@
-#ifndef CLASSIC_ElmPtr_HH
-#define CLASSIC_ElmPtr_HH
+#ifndef OPALX_ElmPtr_HH
+#define OPALX_ElmPtr_HH
 
 // ------------------------------------------------------------------------
 // $RCSfile: ElmPtr.h,v $
@@ -84,4 +84,4 @@ inline void ElmPtr::setElement(std::shared_ptr<ElementBase> elem) {
     itsElement = std::move(elem);
 }
 
-#endif // CLASSIC_ElmPtr_HH
+#endif // OPALX_ElmPtr_HH

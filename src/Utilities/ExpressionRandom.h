@@ -1,8 +1,8 @@
-#ifndef MAD_Random_HH
-#define MAD_Random_HH
+#ifndef OPALX_ExpressionRandom_HH
+#define OPALX_ExpressionRandom_HH
 
 // ------------------------------------------------------------------------
-// $RCSfile: ClassicRandom.h,v $
+// $RCSfile: ExpressionRandom.h,v $
 // ------------------------------------------------------------------------
 // $Revision: 1.1.1.1 $
 // ------------------------------------------------------------------------
@@ -27,7 +27,7 @@ const int nr = 55;
 // the random integers are generated in the range [0, MAXRAN)
 static const int maxran = 1000000000;
 
-/// The CLASSIC random generator.
+/// The OPALX expression random generator.
 // This generator is based on:
 // [center]
 // D. Knuth: The Art of Computer Programming, Vol. 2, 2nd edition.
@@ -78,4 +78,4 @@ private:
     int next;
 };
 
-#endif // MAD_Random_HH
+#endif // OPALX_ExpressionRandom_HH

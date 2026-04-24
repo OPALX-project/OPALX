@@ -1,5 +1,5 @@
-#ifndef CLASSIC_ComplexErrorFun_HH
-#define CLASSIC_ComplexErrorFun_HH
+#ifndef OPALX_ComplexErrorFun_HH
+#define OPALX_ComplexErrorFun_HH
 
 // ------------------------------------------------------------------------
 // $RCSfile: ComplexErrorFun.h,v $
@@ -36,4 +36,4 @@
 
 extern std::complex<double> Werrf(std::complex<double> z);
 
-#endif // CLASSIC_ComplexErrorFun_HH
+#endif // OPALX_ComplexErrorFun_HH

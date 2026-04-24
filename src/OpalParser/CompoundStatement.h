@@ -1,5 +1,5 @@
-#ifndef CLASSIC_CompoundStatement_HH
-#define CLASSIC_CompoundStatement_HH 1
+#ifndef OPALX_CompoundStatement_HH
+#define OPALX_CompoundStatement_HH 1
 
 // ------------------------------------------------------------------------
 // $RCSfile: CompoundStatement.h,v $
@@ -60,4 +60,4 @@ private:
     std::shared_ptr<MacroStream> tokens;
 };
 
-#endif // CLASSIC_CompoundStatement_HH
+#endif // OPALX_CompoundStatement_HH

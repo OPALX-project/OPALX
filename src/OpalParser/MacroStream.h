@@ -1,5 +1,5 @@
-#ifndef CLASSIC_MacroStream_HH
-#define CLASSIC_MacroStream_HH
+#ifndef OPALX_MacroStream_HH
+#define OPALX_MacroStream_HH
 
 // ------------------------------------------------------------------------
 // $RCSfile: MacroStream.h,v $
@@ -60,4 +60,4 @@ private:
     TokenList::iterator curr;
 };
 
-#endif // CLASSIC_MacroStream_HH
+#endif // OPALX_MacroStream_HH

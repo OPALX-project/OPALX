@@ -9,8 +9,8 @@
  * A component is the basic element in the accelerator model, such as a dipole, 
  * quadrupole, etc.
  */
-#ifndef CLASSIC_Component_HH
-#define CLASSIC_Component_HH
+#ifndef OPALX_Component_HH
+#define OPALX_Component_HH
 
 #include "AbsBeamline/ElementBase.h"
 #include "Fields/EMField.h"
@@ -279,4 +279,4 @@ inline double Component::getDesignEnergy() const {
     return -1.0;
 }
 
-#endif  // CLASSIC_Component_HH
+#endif  // OPALX_Component_HH

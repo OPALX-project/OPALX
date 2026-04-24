@@ -1,5 +1,5 @@
-#ifndef CLASSIC_Corrector_HH
-#define CLASSIC_Corrector_HH
+#ifndef OPALX_Corrector_HH
+#define OPALX_Corrector_HH
 
 // ------------------------------------------------------------------------
 // $RCSfile: Corrector.h,v $
@@ -153,4 +153,4 @@ void Corrector::setKickField(const Vector_t<double, 3> &k0) {
     kickField_m = k0;
     kickFieldSet_m = true;
 }
-#endif // CLASSIC_Corrector_HH
+#endif // OPALX_Corrector_HH

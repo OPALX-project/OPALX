@@ -141,6 +141,9 @@ public:
     /// @brief Apply the algorithm to an RF cavity.
     virtual void visitRFCavity(const RFCavity&);
 
+    /// @brief Apply the algorithm to a traveling wave cavity.
+    virtual void visitTravelingWave(const TravelingWave&);
+
     /// @brief Apply the algorithm to a solenoid.
     virtual void visitSolenoid(const Solenoid&);
 
@@ -302,6 +305,10 @@ inline void ParallelTracker::visitMultipoleT(const MultipoleT& mult) {
 
 inline void ParallelTracker::visitRFCavity(const RFCavity& as) {
     itsOpalBeamline_m.visit(as, *this, *itsBunch_m);
+}
+
+inline void ParallelTracker::visitTravelingWave(const TravelingWave& tw) {
+    itsOpalBeamline_m.visit(tw, *this, *itsBunch_m);
 }
 
 inline void ParallelTracker::visitSolenoid(const Solenoid& so) {

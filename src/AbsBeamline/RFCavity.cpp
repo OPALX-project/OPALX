@@ -1,8 +1,8 @@
 /**
  * @class RFCavity
- * @brief Interface for general multipole.
+ * @brief Interface for standing wave cavities.
  *
- * Class RFCavity defines the abstract interface for RF cavities.
+ * Class RFCavity defines the abstract interface for Standing Wave RF cavities.
  *   - SW: Standing Wave Cavity
  */
 #include "AbsBeamline/RFCavity.h"
@@ -16,7 +16,7 @@
 #include "PartBunch/PartBunch.h"
 #include "Physics/Units.h"
 #include "Steppers/BorisPusher.h"
-#include "Utilities/GeneralClassicException.h"
+#include "Utilities/GeneralOpalException.h"
 #include "Utilities/Util.h"
 #include "Utility/IpplInfo.h"
 
@@ -140,7 +140,7 @@ bool RFCavity::apply(const std::shared_ptr<ParticleContainer_t>& pc)
 
     auto* dynamicFieldmap = dynamic_cast<FM2DDynamic*>(fieldmap_m);
     if (dynamicFieldmap == nullptr) {
-        throw GeneralClassicException(
+        throw GeneralOpalException(
             "RFCavity::apply",
             "RFCavity particle application currently requires an FM2DDynamic field map.");
     }
@@ -214,7 +214,7 @@ void RFCavity::initialise(PartBunch_t* bunch, double& startField, double& endFie
     fieldmap_m = Fieldmap::getFieldmap(filename_m, fast_m);
     fieldmap_m->getFieldDimensions(startField_m, endField);
     if (endField <= startField_m) {
-        throw GeneralClassicException(
+        throw GeneralOpalException(
             "RFCavity::initialise",
             "The length of the field map '" + filename_m + "' is zero or negative");
     }
@@ -259,7 +259,7 @@ void RFCavity::initialise(
 
     for (int i = 0; i < num_points_m; i++) {
         if (in.eof()) {
-            throw GeneralClassicException(
+            throw GeneralOpalException(
                 "RFCavity::initialise",
                 "Not enough data in file '" + filename_m + "', please check the data format");
         }
@@ -369,14 +369,14 @@ std::string RFCavity::getCavityTypeString() const {
 
 std::string RFCavity::getFieldMapFN() const {
     if (filename_m.empty()) {
-        throw GeneralClassicException(
+        throw GeneralOpalException(
             "RFCavity::getFieldMapFN",
             "The attribute \"FMAPFN\" isn't set "
             "for the \"RFCAVITY\" element!");
     } else if (std::filesystem::exists(filename_m)) {
         return filename_m;
     } else {
-        throw GeneralClassicException(
+        throw GeneralOpalException(
             "RFCavity::getFieldMapFN",
             "Failed to open file '" + filename_m + "', please check if it exists");
     }
@@ -462,7 +462,7 @@ double RFCavity::spline(double z, double* za) {
 
     // domain-test and handling of case "1-support-point"
     if (num_points_m < 1) {
-        throw GeneralClassicException("RFCavity::spline", "no support points!");
+        throw GeneralOpalException("RFCavity::spline", "no support points!");
     }
     if (num_points_m == 1) {
         splint = RNormal_m[0];
@@ -557,10 +557,12 @@ double RFCavity::getAutoPhaseEstimateFallback(double E0, double t0, double q, do
     phimax = std::fmod(phimax, Physics::two_pi);
 
     const int prevPrecision = ippl::Info->precision(8);
-    *ippl::Info << level2 << "estimated phase= " << phimax << " rad = " << phimax * Units::rad2deg
-                << " deg \n"
-                << "Ekin= " << Emax << " MeV" << std::setprecision(prevPrecision) << "\n"
-                << endl;
+    Inform m("RFCavity::getAutoPhaseEstimateFallback");
+    m << level2 << "estimated phase= " << phimax
+    << " rad = " << phimax * Units::rad2deg << " deg\n"
+    << "Ekin= " << Emax << " MeV"
+    << std::setprecision(prevPrecision) << "\n"
+    << endl;
 
     setPhasem(origPhase);
     return phimax;
@@ -646,11 +648,12 @@ double RFCavity::getAutoPhaseEstimate(
                 E[i] += q * scale_m * getdE(i, t, dz, phi, frequency_m, F);
             }
             const int prevPrecision = ippl::Info->precision(8);
-            *ippl::Info << level2 << "estimated phase= " << tmp_phi
-                        << " rad = " << tmp_phi * Units::rad2deg << " deg \n"
-                        << "Ekin= " << E[N - 1] << " MeV" << std::setprecision(prevPrecision)
-                        << "\n"
-                        << endl;
+            Inform m("RFCavity::getAutoPhaseEstimate");
+            m << level2 << "estimated phase= " << tmp_phi
+            << " rad = " << tmp_phi * Units::rad2deg << " deg\n"
+            << "Ekin= " << E[N - 1] << " MeV"
+            << std::setprecision(prevPrecision) << "\n"
+            << endl;
 
             return tmp_phi;
         }
@@ -693,10 +696,12 @@ double RFCavity::getAutoPhaseEstimate(
     }
 
     const int prevPrecision = ippl::Info->precision(8);
-    *ippl::Info << level2 << "estimated phase= " << tmp_phi << " rad = " << tmp_phi * Units::rad2deg
-                << " deg \n"
-                << "Ekin= " << E[N - 1] << " MeV" << std::setprecision(prevPrecision) << "\n"
-                << endl;
+    Inform m("RFCavity::getAutoPhaseEstimate");
+    m << level2 << "estimated phase= " << tmp_phi
+    << " rad = " << tmp_phi * Units::rad2deg << " deg\n"
+    << "Ekin= " << E[N - 1] << " MeV"
+    << std::setprecision(prevPrecision) << "\n"
+    << endl;
 
     return phi;
 }

@@ -1,5 +1,5 @@
-#ifndef CLASSIC_ArithmeticError_HH
-#define CLASSIC_ArithmeticError_HH
+#ifndef OPAL_ArithmeticError_HH
+#define OPAL_ArithmeticError_HH
 
 // ------------------------------------------------------------------------
 // $RCSfile: ArithmeticError.h,v $
@@ -20,17 +20,17 @@
 //
 // ------------------------------------------------------------------------
 
-#include "Utilities/ClassicException.h"
+#include "Utilities/OpalException.h"
 
 #include <string>
 
 // Class ArithmeticError
 // ------------------------------------------------------------------------
-/// The abstract base class for all CLASSIC arithmetic exceptions.
+/// The abstract base class for all OPALX arithmetic exceptions.
 //  An object derived from this class is thrown when an arithmetic error
 //  occurs.
 
-class ArithmeticError: public ClassicException {
+class ArithmeticError: public OpalException {
 
 protected:
 
@@ -53,4 +53,4 @@ private:
     ArithmeticError();
 };
 
-#endif // CLASSIC_ArithmeticError_HH
+#endif // OPAL_ArithmeticError_HH

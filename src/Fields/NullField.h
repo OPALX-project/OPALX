@@ -1,5 +1,5 @@
-#ifndef CLASSIC_NullField_HH
-#define CLASSIC_NullField_HH
+#ifndef OPALX_NullField_HH
+#define OPALX_NullField_HH
 
 // ------------------------------------------------------------------------
 // $RCSfile: NullField.h,v $
@@ -42,4 +42,4 @@ public:
     virtual void scale(double scalar);
 };
 
-#endif // CLASSIC_NullField_HH
+#endif // OPALX_NullField_HH

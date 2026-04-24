@@ -1,5 +1,5 @@
-#ifndef CLASSIC_StringStream_HH
-#define CLASSIC_StringStream_HH
+#ifndef OPALX_StringStream_HH
+#define OPALX_StringStream_HH
 
 // ------------------------------------------------------------------------
 // $RCSfile: StringStream.h,v $
@@ -62,4 +62,4 @@ private:
     std::string::size_type currentChar_m;
 };
 
-#endif // CLASSIC_StringStream_HH
+#endif // OPALX_StringStream_HH
