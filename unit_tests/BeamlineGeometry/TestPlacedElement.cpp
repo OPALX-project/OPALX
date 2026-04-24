@@ -103,3 +103,19 @@ TEST_F(PlacedElementTest, ElementBaseBridgeUsesExistingPlacementAndEdgeState) {
     EXPECT_EQ(placed.getGeometry().getEntry().getName(), "entry");
     EXPECT_EQ(placed.getGeometry().getExit().getName(), "exit");
 }
+
+TEST_F(PlacedElementTest, ElementBaseExposesExplicitStraightElementPortContract) {
+    DriftRep drift("D2");
+    drift.setElementLength(1.5);
+
+    const Port entry = drift.getEntryPort();
+    const Port body  = drift.getBodyPort();
+    const Port exit  = drift.getExitPort();
+
+    EXPECT_EQ(entry.getName(), "entry");
+    EXPECT_EQ(body.getName(), "body");
+    EXPECT_EQ(exit.getName(), "exit");
+    expectVectorNear(entry.getBodyToPort().getOrigin(), Vector3(0.0, 0.0, 0.0));
+    expectVectorNear(body.getBodyToPort().getOrigin(), Vector3(0.0, 0.0, 0.0));
+    expectVectorNear(exit.getBodyToPort().getOrigin(), Vector3(0.0, 0.0, 1.5));
+}

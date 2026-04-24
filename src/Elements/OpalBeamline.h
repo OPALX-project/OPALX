@@ -18,6 +18,7 @@
 #ifndef OPAL_BEAMLINE_H
 #define OPAL_BEAMLINE_H
 
+#include <map>
 #include <memory>
 #include <set>
 #include <string>
@@ -127,6 +128,8 @@ public:
     void merge(OpalBeamline& rhs);
 
 private:
+    using PlacementAssembly = std::map<const ElementBase*, PlacedElement>;
+
     /**
      * @brief Update the nominal rigid placement transform of one element.
      *
@@ -138,8 +141,31 @@ private:
     void setNominalPlacement(
             const std::shared_ptr<ElementBase>& element, const CoordinateSystemTrafo& parentToBody);
 
+    /**
+     * @brief Refresh the beamline-owned placed-element assembly record.
+     *
+     * Beamline assembly owns a snapshot of the geometric placement records used
+     * by placement/export queries. This keeps the assembled placement model
+     * distinct from the legacy storage that still lives on ElementBase during
+     * the bridge stage.
+     */
+    void storePlacedElement(const std::shared_ptr<ElementBase>& element);
+
+    /**
+     * @brief Compile legacy reference-order placement into explicit nominal poses.
+     *
+     * This setup-stage bridge consumes the compatibility placement encoded via
+     * `ELEMEDGE` and converts it once into nominal rigid placement transforms
+     * \f$T_i\f$ stored on the elements. Existing callers may still invoke
+     * `compute3DLattice()`, but new code should treat this as a setup
+     * conversion, not as a runtime geometry query.
+     */
+    void compileCompatibilityPlacement();
+
     FieldList elements_m;
+    PlacementAssembly placementAssembly_m;
     bool prepared_m;
+    bool compatibilityPlacementCompiled_m;
 
     CoordinateSystemTrafo coordTransformationTo_m;
 };
@@ -157,6 +183,9 @@ inline void OpalBeamline::visit(const T& element, BeamlineVisitor&, PartBunch_t&
 
     elptr->initialise(&bunch, startField, endField);
     elements_m.push_back(BeamlineFieldElement(elptr, startField, endField));
+    placementAssembly_m.insert_or_assign(elptr.get(), elptr->getPlacedElement());
+    prepared_m                       = false;
+    compatibilityPlacementCompiled_m = false;
 }
 
 template <>
@@ -200,6 +229,10 @@ inline Vector_t<double, 3> OpalBeamline::rotateFromLocalCS(
 }
 
 inline PlacedElement OpalBeamline::getPlacedElement(const std::shared_ptr<Component>& comp) const {
+    const auto found = placementAssembly_m.find(comp.get());
+    if (found != placementAssembly_m.end()) {
+        return found->second;
+    }
     return comp->getPlacedElement();
 }
 

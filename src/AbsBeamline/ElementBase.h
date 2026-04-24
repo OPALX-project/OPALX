@@ -319,6 +319,35 @@ public:
     virtual CoordinateSystemTrafo getEdgeToEnd() const;
 
     /**
+     * @brief Return the entrance port of the canonical local chart.
+     *
+     * In the placement-note language, this is the marked entrance port
+     * \f$p_{i,\mathrm{entry}}\f$ of element \f$i\f$. For straight elements in
+     * the bridge stage, the body-to-entry transform is taken from the legacy
+     * `getEdgeToBegin()` result.
+     */
+    virtual Port getEntryPort() const;
+
+    /**
+     * @brief Return the body port of the canonical local chart.
+     *
+     * The body port \f$p_{i,\mathrm{body}}\f$ is the identity port of the
+     * element's canonical local chart. Its rigid transform is therefore the
+     * identity element of \f$SE(3)\f$ in the first redesign stage.
+     */
+    virtual Port getBodyPort() const;
+
+    /**
+     * @brief Return the exit port of the canonical local chart.
+     *
+     * In the placement-note language, this is the marked exit port
+     * \f$p_{i,\mathrm{exit}}\f$. For straight elements in the bridge stage,
+     * the body-to-exit transform is taken from the legacy `getEdgeToEnd()`
+     * result.
+     */
+    virtual Port getExitPort() const;
+
+    /**
      * @brief Return the nominal rigid placement transform of the element.
      *
      * This is the bridge from the legacy stored `CoordinateSystemTrafo` to the
@@ -341,10 +370,13 @@ public:
     /**
      * @brief Return the bridge geometry ports assembled from legacy edge state.
      *
-     * The default bridge interprets `getEdgeToBegin()` and `getEdgeToEnd()` as
-     * the body-relative entrance and exit ports, with the body port equal to
-     * identity. This preserves current OPALX behavior while moving the API
-     * toward explicit ports.
+     * The first redesign stage defines a minimal explicit port contract with
+     * three named body-relative ports:
+     * \f$p_{i,\mathrm{entry}}\f$, \f$p_{i,\mathrm{body}}\f$,
+     * \f$p_{i,\mathrm{exit}}\f$. The default bridge preserves current OPALX
+     * behavior by deriving those ports from `getEntryPort()`, `getBodyPort()`,
+     * and `getExitPort()`, whose straight-element implementations are backed by
+     * the legacy `getEdgeToBegin()` and `getEdgeToEnd()` methods.
      */
     ElementGeometry getPlacementGeometry() const;
 
@@ -498,6 +530,12 @@ inline CoordinateSystemTrafo ElementBase::getEdgeToEnd() const {
     return ret;
 }
 
+inline Port ElementBase::getEntryPort() const { return Port("entry", getEdgeToBegin()); }
+
+inline Port ElementBase::getBodyPort() const { return Port("body", CoordinateSystemTrafo()); }
+
+inline Port ElementBase::getExitPort() const { return Port("exit", getEdgeToEnd()); }
+
 inline PlacementPose ElementBase::getPlacementPose() const {
     return PlacementPose(getCSTrafoGlobal2Local());
 }
@@ -511,9 +549,7 @@ inline Misalignment ElementBase::getPlacementMisalignment() const {
 }
 
 inline ElementGeometry ElementBase::getPlacementGeometry() const {
-    return ElementGeometry(
-            Port("entry", getEdgeToBegin()), Port("body", CoordinateSystemTrafo()),
-            Port("exit", getEdgeToEnd()));
+    return ElementGeometry(getEntryPort(), getBodyPort(), getExitPort());
 }
 
 inline SupportPlacement ElementBase::getPlacementSupport() const {
