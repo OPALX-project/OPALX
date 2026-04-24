@@ -286,8 +286,8 @@ namespace {
 
         for (size_t i = 0; i < nPart; ++i) {
             // P is stored as beta*gamma. Physical momentum = P * m_e.
-            const double bg2    = eP_host(i)[0] * eP_host(i)[0] + eP_host(i)[1] * eP_host(i)[1]
-                                  + eP_host(i)[2] * eP_host(i)[2];
+            const double bg2 = eP_host(i)[0] * eP_host(i)[0] + eP_host(i)[1] * eP_host(i)[1]
+                               + eP_host(i)[2] * eP_host(i)[2];
             const double gamma  = std::sqrt(1.0 + bg2);
             const double energy = gamma * Physics::m_e;  // [GeV]
 
@@ -321,8 +321,8 @@ namespace {
         Kokkos::deep_copy(eP_host, electrons->P.getView());
 
         for (size_t i = 0; i < destroyed; ++i) {
-            const double bg2    = eP_host(i)[0] * eP_host(i)[0] + eP_host(i)[1] * eP_host(i)[1]
-                                  + eP_host(i)[2] * eP_host(i)[2];
+            const double bg2 = eP_host(i)[0] * eP_host(i)[0] + eP_host(i)[1] * eP_host(i)[1]
+                               + eP_host(i)[2] * eP_host(i)[2];
             const double gamma  = std::sqrt(1.0 + bg2);
             const double energy = gamma * Physics::m_e;
 
@@ -439,7 +439,7 @@ namespace {
         for (size_t i = 0; i < nPart; ++i) {
             const double bg2 = muP_host(i)[0] * muP_host(i)[0] + muP_host(i)[1] * muP_host(i)[1]
                                + muP_host(i)[2] * muP_host(i)[2];
-            const double bg  = std::sqrt(bg2);
+            const double bg = std::sqrt(bg2);
 
             // All daughters must have the same |beta*gamma| (monochromatic).
             EXPECT_NEAR(bg, bgExpected, 1.0e-12);
@@ -477,8 +477,8 @@ namespace {
         Kokkos::deep_copy(muP_host, muons->P.getView());
 
         for (size_t i = 0; i < destroyed; ++i) {
-            const double bg2    = muP_host(i)[0] * muP_host(i)[0] + muP_host(i)[1] * muP_host(i)[1]
-                                  + muP_host(i)[2] * muP_host(i)[2];
+            const double bg2 = muP_host(i)[0] * muP_host(i)[0] + muP_host(i)[1] * muP_host(i)[1]
+                               + muP_host(i)[2] * muP_host(i)[2];
             const double gamma  = std::sqrt(1.0 + bg2);
             const double energy = gamma * Physics::m_mu;
 

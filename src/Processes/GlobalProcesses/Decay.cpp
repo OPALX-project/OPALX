@@ -83,9 +83,9 @@ ippl::detail::size_type Decay::markDecayedParticles(
     Kokkos::parallel_reduce(
             "Decay::mark", nLocal,
             KOKKOS_LAMBDA(const pc_size_type i, pc_size_type& count) {
-                auto generator      = pool.get_state();
-                const double p2     = Pview(i)[0] * Pview(i)[0] + Pview(i)[1] * Pview(i)[1]
-                                      + Pview(i)[2] * Pview(i)[2];
+                auto generator  = pool.get_state();
+                const double p2 = Pview(i)[0] * Pview(i)[0] + Pview(i)[1] * Pview(i)[1]
+                                  + Pview(i)[2] * Pview(i)[2];
                 const double gamma  = Kokkos::sqrt(1.0 + p2);
                 const double tauLab = gamma * tau0;
                 const double pDecay = 1.0 - Kokkos::exp(-dt / tauLab);

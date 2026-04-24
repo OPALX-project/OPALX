@@ -65,12 +65,12 @@ void MuonDecay::createDaughterParticles(
                  *   p_lab = p_RF + [(gamma-1)(beta . p_RF)/beta^2 + gamma*E] * beta */
                 const auto& parentMom = parentP(j);
                 const double bg2      = parentMom[0] * parentMom[0] + parentMom[1] * parentMom[1]
-                                        + parentMom[2] * parentMom[2];
-                const double gamma    = Kokkos::sqrt(1.0 + bg2);
-                const double betaX    = parentMom[0] / gamma;
-                const double betaY    = parentMom[1] / gamma;
-                const double betaZ    = parentMom[2] / gamma;
-                const double beta2    = bg2 / (gamma * gamma);
+                                   + parentMom[2] * parentMom[2];
+                const double gamma = Kokkos::sqrt(1.0 + bg2);
+                const double betaX = parentMom[0] / gamma;
+                const double betaY = parentMom[1] / gamma;
+                const double betaZ = parentMom[2] / gamma;
+                const double beta2 = bg2 / (gamma * gamma);
 
                 double pxLab, pyLab, pzLab;
                 if (beta2 > 0.0) {
