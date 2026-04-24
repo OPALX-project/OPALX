@@ -349,7 +349,7 @@ TEST_F(TestVariableRFCavity, BunchFields) {
     const double stepSize = width / static_cast<double>(line.size() - 1);
     for (size_t i = 0; i < line.size(); ++i) {
         localR[i] = {static_cast<double>(i) * stepSize - width / 2.0, 0.0, length / 2.0};
-        hostR(i)  = {localR[i][0], localR[i][1], localR[i][2] + length / 2.0};
+        hostR(i)  = localR[i];
     }
     Kokkos::deep_copy(pc->R.getView(), hostR);
     pc->setQ(pc->getChargePerParticle());
@@ -401,9 +401,16 @@ TEST_F(TestVariableRFCavity, ReferenceParticle) {
 
 TEST_F(TestVariableRFCavity, OddApis) {
     const VariableRFCavity cav1;
-    // Dimensions dummy override
+    // The field-support interval follows the body length.
     double a{}, b{};
     EXPECT_NO_THROW(cav1.getFieldExtend(a, b));
+    EXPECT_DOUBLE_EQ(a, 0.0);
+    EXPECT_DOUBLE_EQ(b, 0.0);
+    VariableRFCavity cavWithLength;
+    cavWithLength.setLength(3.0);
+    EXPECT_NO_THROW(cavWithLength.getFieldExtend(a, b));
+    EXPECT_DOUBLE_EQ(a, 0.0);
+    EXPECT_DOUBLE_EQ(b, 3.0);
     // The cavity does not make a bend
     EXPECT_FALSE(cav1.bends());
     // Self assignment
@@ -416,4 +423,29 @@ TEST_F(TestVariableRFCavity, OddApis) {
     // No implementation of field
     EXPECT_ANY_THROW(cav1.getField());
     EXPECT_ANY_THROW(cav2.getField());
+}
+
+TEST_F(TestVariableRFCavity, FieldSupportMatchesBodyLength) {
+    const auto amplPoly = std::make_shared<PolynomialTimeDependence>(std::vector{1.0});
+    const auto freqPoly = std::make_shared<PolynomialTimeDependence>(std::vector{1.0});
+    const auto phasePoly =
+            std::make_shared<PolynomialTimeDependence>(std::vector{Physics::pi / 2.0});
+    setAmplitudeModel(amplPoly);
+    setFrequencyModel(freqPoly);
+    setPhaseModel(phasePoly);
+    setLength(10.0);
+    setHeight(2.0);
+    setWidth(2.0);
+
+    double zBegin = -1.0;
+    double zEnd   = -1.0;
+    getFieldExtend(zBegin, zEnd);
+    EXPECT_DOUBLE_EQ(zBegin, 0.0);
+    EXPECT_DOUBLE_EQ(zEnd, 10.0);
+
+    Vector_t<double, 3> E{}, B{};
+    EXPECT_FALSE(apply({0.0, 0.0, -0.1}, {}, 0.0, E, B));
+    EXPECT_DOUBLE_EQ(E[2], 0.0);
+    EXPECT_FALSE(apply({0.0, 0.0, 5.0}, {}, 0.0, E, B));
+    EXPECT_DOUBLE_EQ(E[2], 1.0 * Units::MVpm2Vpm);
 }

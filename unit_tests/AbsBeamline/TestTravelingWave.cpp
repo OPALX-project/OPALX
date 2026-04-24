@@ -129,9 +129,13 @@ private:
 class DummyGeometryTW : public BGeometryBase {
 public:
     double getArcLength() const override { return 0.0; }
-    double getElementLength() const override { return 0.0; }
+    double getElementLength() const override { return length_m; }
+    void setElementLength(double length) override { length_m = length; }
 
     Euclid3D getTransform(double, double) const override { return Euclid3D(); }
+
+private:
+    double length_m = 0.0;
 };
 
 // ---------------------------------------------------------------------------
@@ -155,9 +159,7 @@ public:
 
     ElementBase* clone() const override { return new TestTravelingWave(*this); }
 
-    double getElementLength() const override { return elementLength_; }
-
-    void setTestElementLength(double v) { elementLength_ = v; }
+    void setTestElementLength(double v) { geom_.setElementLength(v); }
 
     BGeometryBase& getGeometry() override { return geom_; }
     const BGeometryBase& getGeometry() const override { return geom_; }
@@ -183,10 +185,9 @@ public:
     void setEndField(double v) { endField_m = v; }
 
 private:
-    double amplitude_     = 0.0;
-    double frequency_     = 0.0;
-    double phase_         = 0.0;
-    double elementLength_ = 0.0;
+    double amplitude_ = 0.0;
+    double frequency_ = 0.0;
+    double phase_     = 0.0;
 
     DummyGeometryTW geom_;
     DummyFieldTW field_;

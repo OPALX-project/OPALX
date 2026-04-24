@@ -204,10 +204,13 @@ TEST_F(TestMultipoleT, OddApis) {
     auto* constField = &const_cast<const MultipoleT*>(magnet)->getField();
     EXPECT_NE(constField, nullptr);
     EXPECT_EQ(field, constField);
-    // Just make sure these functions do not throw
+    // The field-support interval follows the body length.
     EXPECT_NO_THROW(finalise());
-    double a, b;
+    setElementLength(4.0);
+    double a = -1.0, b = -1.0;
     EXPECT_NO_THROW(getFieldExtend(a, b));
+    EXPECT_DOUBLE_EQ(a, 0.0);
+    EXPECT_DOUBLE_EQ(b, 4.0);
 }
 
 TEST_F(TestMultipoleT, ApplySingleParticleThrowsForMultiContainerBunch) {

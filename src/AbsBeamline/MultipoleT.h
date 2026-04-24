@@ -211,8 +211,16 @@ public:
      *  \param boundingBoxLength -> Distance between centre and entrance
      */
     void setBoundingBoxLength(double boundingBoxLength);
-    /** Not implemented */
-    void getFieldExtend(double& /*zBegin*/, double& /*zEnd*/) const override {}
+    /** Return the longitudinal field-support extent.
+     *
+     *  For the current MultipoleT implementation the field support is defined
+     *  on the full local body interval
+     *  latexmath:[z \in [0, L)].
+     */
+    void getFieldExtend(double& zBegin, double& zEnd) const override {
+        zBegin = 0.0;
+        zEnd   = getElementLength();
+    }
 
     void setScalingName(const std::string& name);
     std::string getScalingName() const { return scalingName_m; }
