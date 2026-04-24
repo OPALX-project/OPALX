@@ -46,7 +46,7 @@ public:
      *
      * The inverse is
      * \f[
-     * q^{-1} = \frac{q^\ast}{\lVert q \rVert^2}.
+     * q^{-1} = \frac{q^\ast}{\| q \|^2}.
      * \f]
      */
     Quaternion inverse() const;
@@ -73,10 +73,10 @@ public:
     Quaternion& operator*=(const Quaternion&);
     Quaternion operator/(const double&) const;
 
-    /// Return \f$\lVert q \rVert^2 = w^2 + x^2 + y^2 + z^2\f$.
+    /// Return \f$\| q \|^2 = w^2 + x^2 + y^2 + z^2\f$.
     double Norm() const;
 
-    /// Return the Euclidean norm \f$\lVert q \rVert\f$.
+    /// Return the Euclidean norm \f$\| q \|\f$.
     double length() const;
 
     /**
@@ -84,12 +84,12 @@ public:
      *
      * After normalization,
      * \f[
-     * \lVert q \rVert = 1.
+     * \| q \| = 1.
      * \f]
      */
     Quaternion& normalize();
 
-    /// Return true if \f$\lVert q \rVert^2 \approx 1\f$ within a fixed tolerance.
+    /// Return true if \f$\| q \|^2 \approx 1\f$ within a fixed tolerance.
     bool isUnit() const;
 
     /// Return true if the scalar part is approximately zero.
