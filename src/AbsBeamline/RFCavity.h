@@ -185,9 +185,9 @@ public:
     /**
      * @brief Return the nominal body length of the cavity.
      *
-     * The body length is the placed hardware extent. If no explicit body
-     * length was configured, a backward-compatible fallback uses the current
-     * field-support length.
+     * The body length is the placed hardware extent configured on the cavity
+     * geometry. It is independent of the field-support extent returned by
+     * `getFieldExtend()`.
      */
     virtual double getElementLength() const override;
     virtual void getElementDimensions(double& begin, double& end) const override;

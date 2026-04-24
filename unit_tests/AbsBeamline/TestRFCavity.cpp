@@ -118,9 +118,13 @@ private:
 class DummyGeometry : public BGeometryBase {
 public:
     double getArcLength() const override { return 0.0; }
-    double getElementLength() const override { return 0.0; }
+    double getElementLength() const override { return length_m; }
+    void setElementLength(double length) override { length_m = length; }
 
     Euclid3D getTransform(double, double) const override { return Euclid3D(); }
+
+private:
+    double length_m = 0.0;
 };
 
 // ---------------------------------------------------------------------------
@@ -248,6 +252,22 @@ TEST_F(RFCavityTest, BodyExtentCanDifferFromFieldSupport) {
 
     EXPECT_FALSE(cav_->apply({0.0, 0.0, 0.5}, {0.0, 0.0, 1.0}, 0.0, E, B));
     EXPECT_DOUBLE_EQ(E(0), 1.0);
+}
+
+TEST_F(RFCavityTest, ZeroBodyLengthDoesNotFallBackToFieldmapLength) {
+    cav_->setElementLength(0.0);
+
+    EXPECT_DOUBLE_EQ(cav_->getElementLength(), 0.0);
+
+    double bodyBegin = -1.0, bodyEnd = -1.0;
+    cav_->getElementDimensions(bodyBegin, bodyEnd);
+    EXPECT_DOUBLE_EQ(bodyBegin, 0.0);
+    EXPECT_DOUBLE_EQ(bodyEnd, 0.0);
+
+    double fieldBegin = -1.0, fieldEnd = -1.0;
+    cav_->getFieldExtend(fieldBegin, fieldEnd);
+    EXPECT_DOUBLE_EQ(fieldBegin, 0.0);
+    EXPECT_DOUBLE_EQ(fieldEnd, 1.0);
 }
 
 // ---------------------------------------------------------------------------
