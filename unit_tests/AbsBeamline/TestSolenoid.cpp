@@ -222,6 +222,14 @@ TEST_F(SolenoidPlacementTest, LatticeExportsUseFieldMapEdgesAndSolenoidMeshType)
         FAIL() << "non-OPAL exception";
     }
     ASSERT_NO_THROW(beamline.compute3DLattice());
+
+    const auto elements = beamline.getElements();
+    ASSERT_EQ(elements.size(), 1u);
+    const auto& placedComponent = *elements.begin();
+    const PlacedElement placed  = beamline.getPlacedElement(placedComponent);
+    EXPECT_NEAR(placed.getNominalEntryTransform().getOrigin()(2), 0.95, 1e-12);
+    EXPECT_NEAR(placed.getNominalExitTransform().getOrigin()(2), 1.15, 1e-12);
+
     ASSERT_NO_THROW(beamline.save3DLattice());
 
     std::ifstream txt(outputPath("_ElementPositions.txt"));
@@ -233,15 +241,17 @@ TEST_F(SolenoidPlacementTest, LatticeExportsUseFieldMapEdgesAndSolenoidMeshType)
     while (std::getline(txt, textLine)) {
         if (textLine.find("\"BEGIN: SOL1\"") != std::string::npos) {
             const auto [z, x, y] = parsePositionLine(textLine);
-            EXPECT_NEAR(z, 0.95, 1e-12);
-            EXPECT_NEAR(x, 0.0, 1e-12);
-            EXPECT_NEAR(y, 0.0, 1e-12);
+            const auto entry     = placed.getNominalEntryTransform().getOrigin();
+            EXPECT_NEAR(z, entry(2), 1e-12);
+            EXPECT_NEAR(x, entry(0), 1e-12);
+            EXPECT_NEAR(y, entry(1), 1e-12);
             foundBegin = true;
         } else if (textLine.find("\"END: SOL1\"") != std::string::npos) {
             const auto [z, x, y] = parsePositionLine(textLine);
-            EXPECT_NEAR(z, 1.15, 1e-12);
-            EXPECT_NEAR(x, 0.0, 1e-12);
-            EXPECT_NEAR(y, 0.0, 1e-12);
+            const auto exit      = placed.getNominalExitTransform().getOrigin();
+            EXPECT_NEAR(z, exit(2), 1e-12);
+            EXPECT_NEAR(x, exit(0), 1e-12);
+            EXPECT_NEAR(y, exit(1), 1e-12);
             foundEnd = true;
         }
     }

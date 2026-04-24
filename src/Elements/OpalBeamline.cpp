@@ -39,7 +39,7 @@ std::set<std::shared_ptr<Component>> OpalBeamline::getElements(const Vector_t<do
     const FieldList::iterator end = elements_m.end();
     for (; it != end; ++it) {
         std::shared_ptr<Component> element = (*it).getElement();
-        Vector_t<double, 3> r              = element->getCSTrafoGlobal2Local().transformTo(x);
+        Vector_t<double, 3> r              = getCSTrafoLab2Local(element).transformTo(x);
 
         if (element->isInside(r)) {
             elementSet.insert(element);
@@ -161,11 +161,16 @@ void OpalBeamline::positionElementRelative(std::shared_ptr<ElementBase> element)
     }
 
     element->releasePosition();
-    CoordinateSystemTrafo toElement = element->getCSTrafoGlobal2Local();
+    CoordinateSystemTrafo toElement = element->getPlacedElement().getNominalBodyTransform();
     toElement *= coordTransformationTo_m;
 
-    element->setCSTrafoGlobal2Local(toElement);
+    setNominalPlacement(element, toElement);
     element->fixPosition();
+}
+
+void OpalBeamline::setNominalPlacement(
+        const std::shared_ptr<ElementBase>& element, const CoordinateSystemTrafo& parentToBody) {
+    element->setPlacementPose(PlacementPose(parentToBody));
 }
 
 void OpalBeamline::compute3DLattice() {
@@ -238,7 +243,7 @@ void OpalBeamline::compute3DLattice() {
                     beginThis3D, (entryFaceRotation * rotationAboutZ).conjugate());
             CoordinateSystemTrafo fromEndLastToEndThis(endThis3D, rotationAboutAxis.conjugate());
 
-            element->setCSTrafoGlobal2Local(fromEndLastToBeginThis * currentCoordTrafo);
+            setNominalPlacement(element, fromEndLastToBeginThis * currentCoordTrafo);
 
             currentCoordTrafo = (fromEndLastToEndThis * currentCoordTrafo);
 
@@ -316,7 +321,7 @@ void OpalBeamline::compute3DLattice() {
 
             CoordinateSystemTrafo fromLastToThis(beginThis3D, rotationAboutZ);
 
-            element->setCSTrafoGlobal2Local(fromLastToThis * currentCoordTrafo);
+            setNominalPlacement(element, fromLastToThis * currentCoordTrafo);
         }
 
         element->fixPosition();
@@ -361,11 +366,11 @@ void OpalBeamline::save3DLattice() {
 
     for (; it != end; ++it) {
         std::shared_ptr<Component> element = (*it).getElement();
-        CoordinateSystemTrafo toBegin =
-                element->getEdgeToBegin() * element->getCSTrafoGlobal2Local();
-        CoordinateSystemTrafo toEnd = element->getEdgeToEnd() * element->getCSTrafoGlobal2Local();
-        Vector_t<double, 3> entry3D = toBegin.getOrigin();
-        Vector_t<double, 3> exit3D  = toEnd.getOrigin();
+        PlacedElement placedElement        = getPlacedElement(element);
+        CoordinateSystemTrafo toBegin      = getNominalEntryTransform(element);
+        CoordinateSystemTrafo toEnd        = getNominalExitTransform(element);
+        Vector_t<double, 3> entry3D        = toBegin.getOrigin();
+        Vector_t<double, 3> exit3D         = toEnd.getOrigin();
 
         mesh.add(*(element.get()));
 
@@ -390,7 +395,7 @@ void OpalBeamline::save3DLattice() {
                 << entry3D(1) << "\n";
 
             Vector_t<double, 3> position =
-                    element->getCSTrafoGlobal2Local().transformFrom(designPath.front());
+                    placedElement.getNominalBodyTransform().transformFrom(designPath.front());
             pos << std::setw(30) << std::left
                 << std::string("\"BEGIN: ") + element->getName() + std::string("\"")
                 << std::setw(18) << std::setprecision(10) << position(2) << std::setw(18)
@@ -398,7 +403,7 @@ void OpalBeamline::save3DLattice() {
                 << position(1) << std::endl;
 
             for (unsigned int i = frequency; i + 1 < size; i += frequency) {
-                position = element->getCSTrafoGlobal2Local().transformFrom(designPath[i]);
+                position = placedElement.getNominalBodyTransform().transformFrom(designPath[i]);
                 pos << std::setw(30) << std::left
                     << std::string("\"MID: ") + element->getName() + std::string("\"")
                     << std::setw(18) << std::setprecision(10) << position(2) << std::setw(18)
@@ -406,7 +411,7 @@ void OpalBeamline::save3DLattice() {
                     << std::setprecision(10) << position(1) << std::endl;
             }
 
-            position = element->getCSTrafoGlobal2Local().transformFrom(designPath.back());
+            position = placedElement.getNominalBodyTransform().transformFrom(designPath.back());
             pos << std::setw(30) << std::left
                 << std::string("\"END: ") + element->getName() + std::string("\"") << std::setw(18)
                 << std::setprecision(10) << position(2) << std::setw(18) << std::setprecision(10)
@@ -534,7 +539,7 @@ void OpalBeamline::save3DInput() {
         const std::regex replaceELEMEDGE(
                 "(" + elementName + "\\s*:[^\\n]*)ELEMEDGE\\s*=[^,;]*(.)", std::regex::icase);
 
-        CoordinateSystemTrafo cst  = element->getCSTrafoGlobal2Local();
+        CoordinateSystemTrafo cst  = getCSTrafoLab2Local(element);
         Vector_t<double, 3> origin = cst.getOrigin();
         Vector_t<double, 3> orient =
                 Util::getTaitBryantAngles(cst.getRotation().conjugate(), elementName);
