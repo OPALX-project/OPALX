@@ -39,33 +39,33 @@ namespace {
     constexpr const char* photonParticleName = "PHOTON";
 
     enum {
-        PARTICLE,  // The particle name
-        MASS,      // The particle rest mass in GeV
-        CHARGE,    // The particle charge in proton charges
-        ENERGY,    // The particle energy in GeV
-        PC,        // The particle momentum in GeV/c
-        GAMMA,     // ENERGY / MASS
-        BCURRENT,  // Legacy, unused in OPALX (holdover from OPALCycl)
-        BFREQ,     // Legacy, unused in OPALX (holdover from OPALCycl)
-        BCHARGE,   // Bunch charge in C
-        NALLOC,    // Allocation size (macroparticles) for this beam
-        SOURCES,   // Name of EMISSIONSOURCELIST
+        PARTICLE,         // The particle name
+        MASS,             // The particle rest mass in GeV
+        CHARGE,           // The particle charge in proton charges
+        ENERGY,           // The particle energy in GeV
+        PC,               // The particle momentum in GeV/c
+        GAMMA,            // ENERGY / MASS
+        BCURRENT,         // Legacy, unused in OPALX (holdover from OPALCycl)
+        BFREQ,            // Legacy, unused in OPALX (holdover from OPALCycl)
+        BCHARGE,          // Bunch charge in C
+        NALLOC,           // Allocation size (macroparticles) for this beam
+        SOURCES,          // Name of EMISSIONSOURCELIST
         GLOBALPROCESSES,  // Global physics processes active for this beam
         DAUGHTERBEAM,     // Name of the beam that receives decay daughter particles
         SIZE
     };
-}
+}  // namespace
 
 Beam::Beam()
     : Definition(
-        SIZE, "BEAM",
-        "The \"BEAM\" statement defines data for the particles "
-        "in a beam."),
+              SIZE, "BEAM",
+              "The \"BEAM\" statement defines data for the particles "
+              "in a beam."),
       reference(1.0, Physics::m_p * Units::GeV2eV, 1.0 * Units::GeV2eV) {
     itsAttr[PARTICLE] = Attributes::makePredefinedString(
-        "PARTICLE", "Name of particle to be used",
-        {"PHOTON", "ELECTRON", "POSITRON", "MUON", "PION", "PROTON", "ANTIPROTON", "DEUTERON", "HMINUS",
-         "H2P", "ALPHA", "CARBON", "XENON", "URANIUM"});
+            "PARTICLE", "Name of particle to be used",
+            {"PHOTON", "ELECTRON", "POSITRON", "MUON", "PION", "PROTON", "ANTIPROTON", "DEUTERON",
+             "HMINUS", "H2P", "ALPHA", "CARBON", "XENON", "URANIUM"});
 
     itsAttr[MASS] = Attributes::makeReal("MASS", "Particle rest mass [GeV]");
 
@@ -77,24 +77,24 @@ Beam::Beam()
 
     itsAttr[GAMMA] = Attributes::makeReal("GAMMA", "ENERGY / MASS");
 
-    itsAttr[BCURRENT] = Attributes::makeReal(
-        "BCURRENT", "Legacy, unused in OPALX. Use BCHARGE instead.");
+    itsAttr[BCURRENT] =
+            Attributes::makeReal("BCURRENT", "Legacy, unused in OPALX. Use BCHARGE instead.");
 
-    itsAttr[BFREQ] = Attributes::makeReal(
-        "BFREQ", "Legacy, unused in OPALX. Use BCHARGE instead.");
+    itsAttr[BFREQ] = Attributes::makeReal("BFREQ", "Legacy, unused in OPALX. Use BCHARGE instead.");
 
     itsAttr[BCHARGE] = Attributes::makeReal("BCHARGE", "Bunch charge [C]");
 
-    itsAttr[NALLOC] = Attributes::makeReal("NALLOC", "Allocation size (macroparticles) for this beam");
+    itsAttr[NALLOC] =
+            Attributes::makeReal("NALLOC", "Allocation size (macroparticles) for this beam");
 
-    itsAttr[SOURCES] =
-        Attributes::makeString("SOURCES", "Name of the emission sources list (EMISSIONSOURCELIST).");
+    itsAttr[SOURCES] = Attributes::makeString(
+            "SOURCES", "Name of the emission sources list (EMISSIONSOURCELIST).");
 
     itsAttr[GLOBALPROCESSES] = Attributes::makeUpperCaseStringArray(
-        "GLOBALPROCESSES", "Global physics processes active for this beam.");
+            "GLOBALPROCESSES", "Global physics processes active for this beam.");
 
     itsAttr[DAUGHTERBEAM] = Attributes::makeString(
-        "DAUGHTERBEAM", "Name of the BEAM that receives decay daughter particles.");
+            "DAUGHTERBEAM", "Name of the BEAM that receives decay daughter particles.");
 
     // Set up default beam.
     Beam* defBeam    = clone("UNNAMED_BEAM");
@@ -111,65 +111,63 @@ Beam::Beam()
 }
 
 Beam::Beam(const std::string& name, Beam* parent)
-    : Definition(name, parent), reference(parent->reference) {
-}
+    : Definition(name, parent), reference(parent->reference) {}
 
-Beam::~Beam() {
-}
+Beam::~Beam() {}
 
 bool Beam::canReplaceBy(Object* object) {
     // Can replace only by another BEAM.
     return dynamic_cast<Beam*>(object) != 0;
 }
 
-Beam* Beam::clone(const std::string& name) {
-    return new Beam(name, this);
-}
+Beam* Beam::clone(const std::string& name) { return new Beam(name, this); }
 
 void Beam::execute() {
     const bool photon = itsAttr[PARTICLE] && getParticleName() == photonParticleName;
 
     if (photon) {
         if (!itsAttr[ENERGY]) {
-            throw OpalException("Beam::execute()",
-                                "\"ENERGY\" must be set for PARTICLE=PHOTON.");
+            throw OpalException("Beam::execute()", "\"ENERGY\" must be set for PARTICLE=PHOTON.");
         }
         if (itsAttr[MASS]) {
-            throw OpalException("Beam::execute()",
-                                "\"MASS\" is not allowed for PARTICLE=PHOTON. Use \"ENERGY\".");
+            throw OpalException(
+                    "Beam::execute()",
+                    "\"MASS\" is not allowed for PARTICLE=PHOTON. Use \"ENERGY\".");
         }
         if (itsAttr[CHARGE]) {
-            throw OpalException("Beam::execute()",
-                                "\"CHARGE\" is not allowed for PARTICLE=PHOTON.");
+            throw OpalException(
+                    "Beam::execute()", "\"CHARGE\" is not allowed for PARTICLE=PHOTON.");
         }
         if (itsAttr[PC]) {
-            throw OpalException("Beam::execute()",
-                                "\"PC\" is not allowed for PARTICLE=PHOTON. Use \"ENERGY\".");
+            throw OpalException(
+                    "Beam::execute()",
+                    "\"PC\" is not allowed for PARTICLE=PHOTON. Use \"ENERGY\".");
         }
         if (itsAttr[GAMMA]) {
-            throw OpalException("Beam::execute()",
-                                "\"GAMMA\" is not allowed for PARTICLE=PHOTON. Use \"ENERGY\".");
+            throw OpalException(
+                    "Beam::execute()",
+                    "\"GAMMA\" is not allowed for PARTICLE=PHOTON. Use \"ENERGY\".");
         }
         if (itsAttr[SOURCES]) {
-            throw OpalException("Beam::execute()",
-                                "\"SOURCES\" is not allowed for PARTICLE=PHOTON.");
+            throw OpalException(
+                    "Beam::execute()", "\"SOURCES\" is not allowed for PARTICLE=PHOTON.");
         }
     }
 
     if (itsAttr[BCURRENT] || itsAttr[BFREQ]) {
         throw OpalException(
-            "Beam::execute()",
-            "\"BCURRENT\" and \"BFREQ\" are no longer used in OPALX. "
-            "Use \"BCHARGE\" [C] to specify the bunch charge directly.");
+                "Beam::execute()",
+                "\"BCURRENT\" and \"BFREQ\" are no longer used in OPALX. "
+                "Use \"BCHARGE\" [C] to specify the bunch charge directly.");
     }
 
     update();
 
     if (!(itsAttr[PARTICLE]) && (!itsAttr[MASS] || !(itsAttr[CHARGE]))) {
         throw OpalException(
-            "Beam::execute()",
-            "The beam particle hasn't been set. "
-            "Set either \"PARTICLE\" or \"MASS\" and \"CHARGE\".");
+                "Beam::execute()",
+                "The beam particle hasn't been set. "
+                "Set either \"PARTICLE\" or \"MASS\" and \"CHARGE\".");
     }
 
     if (!(itsAttr[NALLOC])) {
@@ -179,8 +177,8 @@ void Beam::execute() {
     if (photon) {
         const double energy = Attributes::getReal(itsAttr[ENERGY]);
         if (energy <= 0.0) {
-            throw OpalException("Beam::execute()",
-                                "\"ENERGY\" should be greater than 0 for PARTICLE=PHOTON.");
+            throw OpalException(
+                    "Beam::execute()", "\"ENERGY\" should be greater than 0 for PARTICLE=PHOTON.");
         }
         return;
     }
@@ -191,9 +189,9 @@ void Beam::execute() {
     // Currently supported global process names (extend as new processes are implemented).
     for (const std::string& name : getGlobalProcessNames()) {
         if (name != "DECAY") {
-            throw OpalException("Beam::execute()",
-                                "Unsupported entry in \"GLOBALPROCESSES\": \"" + name +
-                                "\". Supported values: DECAY.");
+            throw OpalException(
+                    "Beam::execute()", "Unsupported entry in \"GLOBALPROCESSES\": \"" + name
+                                               + "\". Supported values: DECAY.");
         }
     }
 }
@@ -201,15 +199,15 @@ void Beam::execute() {
 std::string Beam::getEmissionSourceListName() const {
     if (!itsAttr[SOURCES]) {
         throw OpalException(
-            "Beam::getEmissionSourceListName()",
-            "\"SOURCES\" must be set for a beam (name of EMISSIONSOURCELIST).");
+                "Beam::getEmissionSourceListName()",
+                "\"SOURCES\" must be set for a beam (name of EMISSIONSOURCELIST).");
     }
 
     const std::string name = Attributes::getString(itsAttr[SOURCES]);
     if (name.empty()) {
         throw OpalException(
-            "Beam::getEmissionSourceListName()",
-            "\"SOURCES\" must not be empty for a beam (name of EMISSIONSOURCELIST).");
+                "Beam::getEmissionSourceListName()",
+                "\"SOURCES\" must not be empty for a beam (name of EMISSIONSOURCELIST).");
     }
     return name;
 }
@@ -237,8 +235,8 @@ size_t Beam::getNumAlloc() const {
         return (size_t)Attributes::getReal(itsAttr[NALLOC]);
     } else {
         throw OpalException(
-            "Beam::getNumAlloc()",
-            "Wrong allocation size for beam! \"NALLOC\" must be positive");
+                "Beam::getNumAlloc()",
+                "Wrong allocation size for beam! \"NALLOC\" must be positive");
     }
 }
 
@@ -248,41 +246,23 @@ const PartData& Beam::getReference() const {
     return reference;
 }
 
-double Beam::getCurrent() const {
-    return Attributes::getReal(itsAttr[BCURRENT]);
-}
+double Beam::getCurrent() const { return Attributes::getReal(itsAttr[BCURRENT]); }
 
-double Beam::getBunchCharge() const {
-    return Attributes::getReal(itsAttr[BCHARGE]);
-}
+double Beam::getBunchCharge() const { return Attributes::getReal(itsAttr[BCHARGE]); }
 
-double Beam::getCharge() const {
-    return Attributes::getReal(itsAttr[CHARGE]);
-}
+double Beam::getCharge() const { return Attributes::getReal(itsAttr[CHARGE]); }
 
-double Beam::getMass() const {
-    return Attributes::getReal(itsAttr[MASS]);
-}
+double Beam::getMass() const { return Attributes::getReal(itsAttr[MASS]); }
 
-double Beam::getMomentum() const {
-    return reference.getP()/1.e9;
-}
+double Beam::getMomentum() const { return reference.getP() / 1.e9; }
 
-std::string Beam::getParticleName() const {
-    return Attributes::getString(itsAttr[PARTICLE]);
-}
+std::string Beam::getParticleName() const { return Attributes::getString(itsAttr[PARTICLE]); }
 
-bool Beam::isPhoton() const {
-    return itsAttr[PARTICLE] && getParticleName() == photonParticleName;
-}
+bool Beam::isPhoton() const { return itsAttr[PARTICLE] && getParticleName() == photonParticleName; }
 
-double Beam::getFrequency() const {
-    return Attributes::getReal(itsAttr[BFREQ]);
-}
+double Beam::getFrequency() const { return Attributes::getReal(itsAttr[BFREQ]); }
 
-bool Beam::hasExplicitEnergy() const {
-    return itsAttr[GAMMA] || itsAttr[ENERGY] || itsAttr[PC];
-}
+bool Beam::hasExplicitEnergy() const { return itsAttr[GAMMA] || itsAttr[ENERGY] || itsAttr[PC]; }
 
 double Beam::getChargePerParticle() const {
     return std::copysign(1.0, getCharge()) * getBunchCharge() / getNumAlloc();
@@ -341,8 +321,7 @@ void Beam::update() {
     }
 
     // Set default name.
-    if (getOpalName().empty())
-        setOpalName("UNNAMED_BEAM");
+    if (getOpalName().empty()) setOpalName("UNNAMED_BEAM");
 }
 
 void Beam::print(std::ostream& os) const {

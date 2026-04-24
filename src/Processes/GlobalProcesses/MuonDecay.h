@@ -1,8 +1,8 @@
 #ifndef OPAL_GLOBALPROCESS_MUON_DECAY_H
 #define OPAL_GLOBALPROCESS_MUON_DECAY_H
 
-#include "Processes/GlobalProcesses/Decay.h"
 #include "Physics/ParticleProperties.h"
+#include "Processes/GlobalProcesses/Decay.h"
 
 /**
  * @brief Muon decay: mu -> e + nu_e + nu_mu (three-body).
@@ -14,20 +14,17 @@
  */
 class MuonDecay : public Decay {
 public:
-    MuonDecay(double restLifetimeSeconds,
-              std::size_t containerIndex,
-              double parentMassGeV)
+    MuonDecay(double restLifetimeSeconds, std::size_t containerIndex, double parentMassGeV)
         : Decay(restLifetimeSeconds, containerIndex, parentMassGeV) {
         allowedDaughterSpecies_m =
-            static_cast<short>(ParticleProperties::getParticleType("ELECTRON"));
+                static_cast<short>(ParticleProperties::getParticleType("ELECTRON"));
     }
 
     void createDaughterParticles(
-        std::size_t localDestroyNum,
-        std::size_t oldDaughterLocal,
-        const Kokkos::View<ippl::Vector<double, 3>*>& parentR,
-        const Kokkos::View<ippl::Vector<double, 3>*>& parentP,
-        const Kokkos::View<double*>& parentDt) override;
+            std::size_t localDestroyNum, std::size_t oldDaughterLocal,
+            const Kokkos::View<ippl::Vector<double, 3>*>& parentR,
+            const Kokkos::View<ippl::Vector<double, 3>*>& parentP,
+            const Kokkos::View<double*>& parentDt) override;
 };
 
 #endif

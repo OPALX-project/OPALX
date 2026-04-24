@@ -10,10 +10,9 @@ class GlobalProcess {
 public:
     virtual ~GlobalProcess() = default;
 
-    virtual size_t apply(ParticleContainer<double, 3>& pc,
-                         double dt,
-                         long long globalTrackStep,
-                         size_t containerIdx) = 0;
+    virtual size_t apply(
+            ParticleContainer<double, 3>& pc, double dt, long long globalTrackStep,
+            size_t containerIdx) = 0;
 };
 
 #endif
