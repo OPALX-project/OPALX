@@ -326,6 +326,72 @@ TEST_F(OpalBeamlinePlacementTest, PrintPlacementSummaryReportsBodyPoseOnOneLineP
     EXPECT_LT(text.find("D7"), text.find("B1"));
 }
 
+TEST_F(OpalBeamlinePlacementTest, ReportPortContinuityDiagnosticsFlagsGapToFollowingElement) {
+    DriftRep drift("D7");
+    drift.setElementLength(0.3);
+    drift.setPlacementPose(
+            PlacementPose(CoordinateSystemTrafo(Vector3(0.0, 0.0, 0.0), Quaternion())));
+    drift.fixPosition();
+
+    DriftRep drift2("D8");
+    drift2.setElementLength(0.4);
+    drift2.setPlacementPose(
+            PlacementPose(CoordinateSystemTrafo(Vector3(0.0, 0.0, 0.5), Quaternion())));
+    drift2.fixPosition();
+
+    auto bunch = makeBunch(0);
+    DummyBeamline beamlineForVisitor;
+    DefaultVisitor visitor(beamlineForVisitor, false, false);
+
+    OpalBeamline beamline;
+    beamline.visit(drift, visitor, *bunch);
+    beamline.visit(drift2, visitor, *bunch);
+    beamline.prepareSections();
+
+    std::ostringstream diagnostics;
+    EXPECT_TRUE(beamline.reportPortContinuityDiagnostics(diagnostics));
+
+    const std::string text = diagnostics.str();
+    EXPECT_NE(text.find("Adjacent element port discontinuities:"), std::string::npos);
+    EXPECT_NE(text.find("D7 -> D8"), std::string::npos);
+    EXPECT_NE(text.find("|gap|=0.2"), std::string::npos);
+    EXPECT_NE(text.find("dTHETA=0.0 deg, dPHI=0.0 deg, dPSI=0.0 deg"), std::string::npos);
+    EXPECT_NE(text.find("adjust D8 body pose by dX=-0.0, dY=-0.0, dZ=-0.2"), std::string::npos);
+}
+
+TEST_F(OpalBeamlinePlacementTest,
+       ReportPortContinuityDiagnosticsNormalizesPsiMismatchToSignedAngle) {
+    DriftRep drift("D7");
+    drift.setElementLength(0.3);
+    drift.setPlacementPose(
+            PlacementPose(CoordinateSystemTrafo(Vector3(0.0, 0.0, 0.0), Quaternion())));
+    drift.fixPosition();
+
+    DriftRep drift2("D8");
+    drift2.setElementLength(0.4);
+    drift2.setPlacementPose(PlacementPose(CoordinateSystemTrafo(
+            Vector3(0.0, 0.0, 0.3),
+            Quaternion(std::cos(Physics::pi / 8.0), 0.0, 0.0, std::sin(Physics::pi / 8.0)))));
+    drift2.fixPosition();
+
+    auto bunch = makeBunch(0);
+    DummyBeamline beamlineForVisitor;
+    DefaultVisitor visitor(beamlineForVisitor, false, false);
+
+    OpalBeamline beamline;
+    beamline.visit(drift, visitor, *bunch);
+    beamline.visit(drift2, visitor, *bunch);
+    beamline.prepareSections();
+
+    std::ostringstream diagnostics;
+    EXPECT_TRUE(beamline.reportPortContinuityDiagnostics(diagnostics));
+
+    const std::string text = diagnostics.str();
+    EXPECT_NE(text.find("dTHETA=0.0 deg, dPHI=0.0 deg, dPSI="), std::string::npos);
+    EXPECT_EQ(text.find("315.0 deg"), std::string::npos);
+    EXPECT_NE(text.find("adjust D8 body pose by"), std::string::npos);
+}
+
 TEST_F(OpalBeamlinePlacementTest, BendMeshesAsPinkCurvedTubeInElementPositionsExport) {
     auto bunch = makeBunch(0);
     DummyBeamline beamlineForVisitor;

@@ -24,6 +24,7 @@
 #include "Utilities/Options.h"
 #include "Utilities/Util.h"
 
+#include <algorithm>
 #include <filesystem>
 #include <fstream>
 #include <iomanip>
@@ -33,12 +34,14 @@
 
 OpalBeamline::OpalBeamline()
     : elements_m(),
+      declaredOrder_m(),
       placementAssembly_m(),
       prepared_m(false),
       compatibilityPlacementCompiled_m(false) {}
 
 OpalBeamline::OpalBeamline(const Vector_t<double, 3>& origin, const Quaternion& rotation)
     : elements_m(),
+      declaredOrder_m(),
       placementAssembly_m(),
       prepared_m(false),
       compatibilityPlacementCompiled_m(false),
@@ -149,6 +152,7 @@ void OpalBeamline::print(Inform& /*msg*/) const {}
 
 void OpalBeamline::swap(OpalBeamline& rhs) {
     std::swap(elements_m, rhs.elements_m);
+    std::swap(declaredOrder_m, rhs.declaredOrder_m);
     std::swap(placementAssembly_m, rhs.placementAssembly_m);
     std::swap(prepared_m, rhs.prepared_m);
     std::swap(compatibilityPlacementCompiled_m, rhs.compatibilityPlacementCompiled_m);
@@ -157,6 +161,8 @@ void OpalBeamline::swap(OpalBeamline& rhs) {
 
 void OpalBeamline::merge(OpalBeamline& rhs) {
     elements_m.insert(elements_m.end(), rhs.elements_m.begin(), rhs.elements_m.end());
+    declaredOrder_m.insert(
+            declaredOrder_m.end(), rhs.declaredOrder_m.begin(), rhs.declaredOrder_m.end());
     placementAssembly_m.clear();
     prepared_m                       = false;
     compatibilityPlacementCompiled_m = false;
@@ -667,10 +673,67 @@ void OpalBeamline::printPlacementSummary(std::ostream& out) const {
     out << " ------------------------------------------------------------------------\n";
     for (const auto& row : rows) {
         appendFirstColumn(out, row.name);
-        out << round2string(row.origin(0), 10) << '\t' << round2string(row.origin(1), 10) << '\t'
-            << round2string(row.origin(2), 10) << '\t' << round2string(row.orient(0), 6) << '\t'
-            << round2string(row.orient(1), 6) << '\t' << round2string(row.orient(2), 6) << '\n';
+        out << round2string(row.origin(0), 4) << '\t' << round2string(row.origin(1), 4) << '\t'
+            << round2string(row.origin(2), 4) << '\t' << round2string(row.orient(0), 4) << '\t'
+            << round2string(row.orient(1), 4) << '\t' << round2string(row.orient(2), 4) << '\n';
     }
+}
+
+bool OpalBeamline::reportPortContinuityDiagnostics(
+        std::ostream& out, double positionTolerance, double angleToleranceDeg) const {
+    if (declaredOrder_m.size() < 2) {
+        return false;
+    }
+
+    auto normalizeAngleDeg = [](double angleDeg) {
+        return std::remainder(angleDeg, 360.0);
+    };
+
+    bool foundDiscontinuity = false;
+    for (std::size_t i = 1; i < declaredOrder_m.size(); ++i) {
+        const std::shared_ptr<Component> previousElement = declaredOrder_m[i - 1];
+        const std::shared_ptr<Component> currentElement  = declaredOrder_m[i];
+
+        const CoordinateSystemTrafo previousExit = getNominalExitTransform(previousElement);
+        const CoordinateSystemTrafo currentEntry = getNominalEntryTransform(currentElement);
+
+        const Vector_t<double, 3> gap = currentEntry.getOrigin() - previousExit.getOrigin();
+        const double gapNorm          = euclidean_norm(gap);
+
+        CoordinateSystemTrafo relativeFace = currentEntry * previousExit.inverted();
+        Vector_t<double, 3> angleMismatch  = Util::getTaitBryantAngles(
+                relativeFace.getRotation().conjugate(), currentElement->getName());
+        for (unsigned int d = 0; d < 3; ++d) {
+            angleMismatch(d) = normalizeAngleDeg(angleMismatch(d) * Units::rad2deg);
+        }
+        const double maxAngleMismatchDegrees = std::max(
+                {std::abs(angleMismatch(0)), std::abs(angleMismatch(1)),
+                 std::abs(angleMismatch(2))});
+
+        if (gapNorm <= positionTolerance && maxAngleMismatchDegrees <= angleToleranceDeg) {
+            continue;
+        }
+
+        if (!foundDiscontinuity) {
+            out << "Adjacent element port discontinuities:\n";
+        }
+        foundDiscontinuity = true;
+
+        out << "  " << previousElement->getName() << " -> " << currentElement->getName()
+            << ": gap=(" << round2string(gap(0), 10) << ", " << round2string(gap(1), 10) << ", "
+            << round2string(gap(2), 10) << "), |gap|=" << round2string(gapNorm, 10)
+            << ", dTHETA=" << round2string(angleMismatch(0), 6)
+            << " deg, dPHI=" << round2string(angleMismatch(1), 6)
+            << " deg, dPSI=" << round2string(angleMismatch(2), 6) << " deg\n";
+        out << "    adjust " << currentElement->getName()
+            << " body pose by dX=" << round2string(-gap(0), 10)
+            << ", dY=" << round2string(-gap(1), 10) << ", dZ=" << round2string(-gap(2), 10)
+            << ", dTHETA=" << round2string(-angleMismatch(0), 6)
+            << " deg, dPHI=" << round2string(-angleMismatch(1), 6)
+            << " deg, dPSI=" << round2string(-angleMismatch(2), 6) << " deg\n";
+    }
+
+    return foundDiscontinuity;
 }
 
 void OpalBeamline::activateElements() {

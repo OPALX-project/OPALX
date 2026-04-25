@@ -145,6 +145,25 @@ public:
      * space and Tait-Bryant angles are printed in degrees.
      */
     void printPlacementSummary(std::ostream& out) const;
+
+    /**
+     * @brief Report discontinuities between adjacent element ports.
+     *
+     * The check follows the declared beam-line order and compares the nominal
+     * exit port of element \f$i\f$ with the nominal entry port of element
+     * \f$i+1\f$. A discontinuity is reported if either the translation gap
+     * \f[
+     * \Delta \mathbf{r} =
+     * \mathbf{r}_{i,\mathrm{exit}} - \mathbf{r}_{i+1,\mathrm{entry}}
+     * \f]
+     * exceeds @p positionTolerance or the relative face rotation angle exceeds
+     * @p angleToleranceDeg.
+     *
+     * @return true if at least one discontinuity is reported.
+     */
+    bool reportPortContinuityDiagnostics(
+            std::ostream& out, double positionTolerance = 1e-9,
+            double angleToleranceDeg = 1e-6) const;
     void print(Inform&) const;
     void apply(
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& t,
@@ -191,6 +210,7 @@ private:
     void compileCompatibilityPlacement();
 
     FieldList elements_m;
+    std::vector<std::shared_ptr<Component>> declaredOrder_m;
     PlacementAssembly placementAssembly_m;
     bool prepared_m;
     bool compatibilityPlacementCompiled_m;
@@ -211,6 +231,7 @@ inline void OpalBeamline::visit(const T& element, BeamlineVisitor&, PartBunch_t&
 
     elptr->initialise(&bunch, startField, endField);
     elements_m.push_back(BeamlineFieldElement(elptr, startField, endField));
+    declaredOrder_m.push_back(elptr);
     placementAssembly_m.insert_or_assign(elptr.get(), elptr->getPlacedElement());
     prepared_m                       = false;
     compatibilityPlacementCompiled_m = false;

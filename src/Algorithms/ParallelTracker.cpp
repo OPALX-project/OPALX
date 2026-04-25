@@ -875,6 +875,15 @@ void ParallelTracker::prepareSections() {
                 std::cout << "ParallelTracker> " << line << '\n';
             }
         }
+        std::ostringstream continuityDiagnostics;
+        if (itsOpalBeamline_m.reportPortContinuityDiagnostics(continuityDiagnostics)) {
+            std::istringstream continuityLines(continuityDiagnostics.str());
+            while (std::getline(continuityLines, line)) {
+                if (!line.empty()) {
+                    std::cout << "ParallelTracker> " << line << '\n';
+                }
+            }
+        }
         std::cout.flush();
     }
 }

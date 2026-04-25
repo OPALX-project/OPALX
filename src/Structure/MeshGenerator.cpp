@@ -7,6 +7,8 @@
 #include "Physics/Physics.h"
 #include "Utilities/Util.h"
 
+#include <algorithm>
+#include <cmath>
 #include <fstream>
 #include <iostream>
 #include <vector>
@@ -145,26 +147,32 @@ void MeshGenerator::add(const ElementBase& element) {
         length     = end - start;
         auto apert = element.getAperture();
 
-        switch (apert.first) {
-            case ApertureType::RECTANGULAR:
-            case ApertureType::CONIC_RECTANGULAR:
-                mesh = getBox(length, apert.second[0], apert.second[1], apert.second[2]);
-                break;
-            case ApertureType::ELLIPTICAL:
-            case ApertureType::CONIC_ELLIPTICAL:
-                if (element.getType() == ElementType::MULTIPOLE
-                    && static_cast<const Multipole*>(&element)->getMaxNormalComponentIndex() == 2) {
-                    mesh = getQuadrupole(length, apert.second[0], apert.second[1], apert.second[2]);
-                } else if (element.getType() == ElementType::RFCAVITY) {
-                    mesh = getRFCavity(length, apert.second[0], apert.second[1]);
-                } else if (element.getType() == ElementType::TRAVELINGWAVE) {
-                    mesh = getTravelingWave(length, apert.second[0], apert.second[1]);
-                } else {
-                    mesh = getCylinder(length, apert.second[0], apert.second[1], apert.second[2]);
-                }
-                break;
-            default:
-                return;
+        const bool isQuadrupoleBody =
+                element.getType() == ElementType::MULTIPOLE
+                && static_cast<const Multipole*>(&element)->getMaxNormalComponentIndex() == 2;
+
+        if (isQuadrupoleBody && apert.second.size() >= 3) {
+            mesh = getQuadrupole(length, apert.second[0], apert.second[1], apert.second[2]);
+        } else {
+            switch (apert.first) {
+                case ApertureType::RECTANGULAR:
+                case ApertureType::CONIC_RECTANGULAR:
+                    mesh = getBox(length, apert.second[0], apert.second[1], apert.second[2]);
+                    break;
+                case ApertureType::ELLIPTICAL:
+                case ApertureType::CONIC_ELLIPTICAL:
+                    if (element.getType() == ElementType::RFCAVITY) {
+                        mesh = getRFCavity(length, apert.second[0], apert.second[1]);
+                    } else if (element.getType() == ElementType::TRAVELINGWAVE) {
+                        mesh = getTravelingWave(length, apert.second[0], apert.second[1]);
+                    } else {
+                        mesh = getCylinder(
+                                length, apert.second[0], apert.second[1], apert.second[2]);
+                    }
+                    break;
+                default:
+                    return;
+            }
         }
 
         switch (element.getType()) {
@@ -454,7 +462,8 @@ void MeshGenerator::write(const std::string& fname) {
     out << indent << indent << indent << indent << "('Sextupole', (0.537, 0.745, 0.525)),\n";
     out << indent << indent << indent << indent << "('Octupole', (0.5, 0.5, 0.0)),\n";
     out << indent << indent << indent << indent << "('Solenoid', (1.0, 138.0 / 255.0, 0.0)),\n";
-    out << indent << indent << indent << indent << "('RFCavity', (1.0, 1.0, 0.0)),\n";
+    out << indent << indent << indent << indent
+        << "('RFCavity', (64.0 / 255.0, 224.0 / 255.0, 208.0 / 255.0)),\n";
     out << indent << indent << indent << indent << "('TravelingWave', (0.0, 0.6, 0.0)),\n";
     out << indent << indent << indent << indent << "('Drift', (0.0, 0.0, 1.0)),\n";
     out << indent << indent << indent << "]\n";
@@ -575,7 +584,7 @@ void MeshGenerator::write(const std::string& fname) {
     out << indent << "lookup_table.append([0.537, 0.745, 0.525, 1.0])\n";
     out << indent << "lookup_table.append([0.5, 0.5, 0.0, 1.0])\n";
     out << indent << "lookup_table.append([1.0, 0.5411764706, 0.0, 1.0])\n";
-    out << indent << "lookup_table.append([1.0, 1.0, 0.0, 1.0])\n";
+    out << indent << "lookup_table.append([64.0 / 255.0, 224.0 / 255.0, 208.0 / 255.0, 1.0])\n";
     out << indent << "lookup_table.append([0.0, 0.6, 0.0, 1.0])\n";
     out << indent << "lookup_table.append([0.0, 0.0, 1.0, 1.0])\n\n";
 
@@ -639,7 +648,7 @@ void MeshGenerator::write(const std::string& fname) {
     out << indent << "lookup_table.append([0.537, 0.745, 0.525])\n";
     out << indent << "lookup_table.append([0.5, 0.5, 0.0])\n";
     out << indent << "lookup_table.append([1.0, 0.5411764706, 0.0])\n";
-    out << indent << "lookup_table.append([1.0, 1.0, 0.0])\n";
+    out << indent << "lookup_table.append([64.0 / 255.0, 224.0 / 255.0, 208.0 / 255.0])\n";
     out << indent << "lookup_table.append([0.0, 0.6, 0.0])\n";
     out << indent << "lookup_table.append([0.0, 0.0, 1.0])\n\n";
 
@@ -1323,28 +1332,150 @@ MeshData MeshGenerator::getQuadrupole(
         double length, double minor, double major, double formFactor) {
     MeshData mesh;
 
-    const double poleHalfWidthX  = 0.45 * major;
-    const double poleHalfHeightX = 0.75 * minor;
-    const double poleHalfWidthY  = 0.75 * major;
-    const double poleHalfHeightY = 0.45 * minor;
-    const double xOffset         = major + poleHalfWidthX;
-    const double yOffset         = minor + poleHalfHeightY;
+    const double poleHalfWidthX  = 0.44 * major;
+    const double poleHalfHeightX = 0.76 * minor;
+    const double poleHalfWidthY  = 0.76 * major;
+    const double poleHalfHeightY = 0.44 * minor;
+    const double xOffset         = major + 0.82 * poleHalfWidthX;
+    const double yOffset         = minor + 0.82 * poleHalfHeightY;
+    const double tipReachX       = 2.0 * std::max(0.24 * major, 0.45 * minor);
+    const double tipReachY       = 2.0 * std::max(0.24 * minor, 0.45 * major);
+    const double tipRadiusX      = 0.24 * poleHalfHeightX;
+    const double tipRadiusY      = 0.24 * poleHalfWidthY;
 
-    MeshData rightPole = getBox(length, poleHalfWidthX, poleHalfHeightX, formFactor);
+    MeshData rightPole = getSuperellipsePrism(length, poleHalfWidthX, poleHalfHeightX, formFactor);
     translateMesh(rightPole, xOffset, 0.0);
     appendMesh(mesh, rightPole);
 
-    MeshData leftPole = getBox(length, poleHalfWidthX, poleHalfHeightX, formFactor);
+    MeshData rightTip = getPoleTipPrism(
+            length, tipReachX, 0.62 * poleHalfHeightX, 0.82 * tipReachX, tipRadiusX, formFactor);
+    translateMesh(rightTip, major + 0.10 * tipReachX, 0.0);
+    appendMesh(mesh, rightTip);
+
+    MeshData leftPole = getSuperellipsePrism(length, poleHalfWidthX, poleHalfHeightX, formFactor);
     translateMesh(leftPole, -xOffset, 0.0);
     appendMesh(mesh, leftPole);
 
-    MeshData topPole = getBox(length, poleHalfWidthY, poleHalfHeightY, formFactor);
+    MeshData leftTip = getPoleTipPrism(
+            length, tipReachX, 0.62 * poleHalfHeightX, 0.82 * tipReachX, tipRadiusX, formFactor);
+    for (auto& vertex : leftTip.vertices_m) {
+        vertex(0) *= -1.0;
+    }
+    translateMesh(leftTip, -(major + 0.10 * tipReachX), 0.0);
+    appendMesh(mesh, leftTip);
+
+    MeshData topPole = getSuperellipsePrism(length, poleHalfWidthY, poleHalfHeightY, formFactor);
     translateMesh(topPole, 0.0, yOffset);
     appendMesh(mesh, topPole);
 
-    MeshData bottomPole = getBox(length, poleHalfWidthY, poleHalfHeightY, formFactor);
+    MeshData topTip = getPoleTipPrism(
+            length, 0.62 * poleHalfWidthY, tipReachY, 0.82 * tipReachY, tipRadiusY, formFactor);
+    for (auto& vertex : topTip.vertices_m) {
+        std::swap(vertex(0), vertex(1));
+    }
+    translateMesh(topTip, 0.0, minor + 0.10 * tipReachY);
+    appendMesh(mesh, topTip);
+
+    MeshData bottomPole = getSuperellipsePrism(length, poleHalfWidthY, poleHalfHeightY, formFactor);
     translateMesh(bottomPole, 0.0, -yOffset);
     appendMesh(mesh, bottomPole);
+
+    MeshData bottomTip = getPoleTipPrism(
+            length, 0.62 * poleHalfWidthY, tipReachY, 0.82 * tipReachY, tipRadiusY, formFactor);
+    for (auto& vertex : bottomTip.vertices_m) {
+        std::swap(vertex(0), vertex(1));
+        vertex(1) *= -1.0;
+    }
+    translateMesh(bottomTip, 0.0, -(minor + 0.10 * tipReachY));
+    appendMesh(mesh, bottomTip);
+
+    return mesh;
+}
+
+MeshData MeshGenerator::getSuperellipsePrism(
+        double length, double halfWidth, double halfHeight, double formFactor, double exponent,
+        unsigned int numSegments) {
+    MeshData mesh;
+    if (length <= 0.0 || halfWidth <= 0.0 || halfHeight <= 0.0 || numSegments < 8) {
+        return mesh;
+    }
+
+    const double dAngle = Physics::two_pi / static_cast<double>(numSegments);
+    const double power  = 2.0 / std::max(exponent, 2.01);
+    auto evaluatePoint  = [&](const double angle, const double scale, const double z) {
+        const double cosAngle = std::cos(angle);
+        const double sinAngle = std::sin(angle);
+        const double x =
+                scale * halfWidth * std::copysign(std::pow(std::abs(cosAngle), power), cosAngle);
+        const double y =
+                scale * halfHeight * std::copysign(std::pow(std::abs(sinAngle), power), sinAngle);
+        return Vector_t<double, 3>(x, y, z);
+    };
+
+    mesh.vertices_m.push_back(Vector_t<double, 3>(0.0));
+    double angle = 0.0;
+    for (unsigned int i = 0; i < numSegments; ++i, angle += dAngle) {
+        mesh.vertices_m.push_back(evaluatePoint(angle, 1.0, 0.0));
+
+        const unsigned int next = (i + 1) % numSegments;
+        mesh.triangles_m.push_back(Vector_t<unsigned int, 3>(0u, next + 1, i + 1));
+        mesh.triangles_m.push_back(Vector_t<unsigned int, 3>(i + 1, next + 1, i + numSegments + 2));
+        mesh.triangles_m.push_back(
+                Vector_t<unsigned int, 3>(next + 1, next + numSegments + 2, i + numSegments + 2));
+    }
+
+    mesh.vertices_m.push_back(Vector_t<double, 3>(0.0, 0.0, length));
+    angle = 0.0;
+    for (unsigned int i = 0; i < numSegments; ++i, angle += dAngle) {
+        mesh.vertices_m.push_back(evaluatePoint(angle, formFactor, length));
+
+        const unsigned int next = (i + 1) % numSegments;
+        mesh.triangles_m.push_back(
+                Vector_t<unsigned int, 3>(
+                        numSegments + 1, i + numSegments + 2, next + numSegments + 2));
+    }
+
+    return mesh;
+}
+
+MeshData MeshGenerator::getPoleTipPrism(
+        double length, double baseHalfWidth, double baseHalfHeight, double tipReach,
+        double tipRadius, double formFactor) {
+    MeshData mesh;
+    if (length <= 0.0 || baseHalfWidth <= 0.0 || baseHalfHeight <= 0.0 || tipReach <= 0.0
+        || tipRadius <= 0.0) {
+        return mesh;
+    }
+
+    const double noseX                             = -0.92 * tipReach;
+    const double rootX                             = 0.28 * tipReach;
+    const std::vector<Vector_t<double, 2>> profile = {
+            Vector_t<double, 2>(noseX, 0.0),
+            Vector_t<double, 2>(-0.60 * tipReach, tipRadius),
+            Vector_t<double, 2>(0.0, 0.82 * baseHalfHeight),
+            Vector_t<double, 2>(rootX, baseHalfHeight),
+            Vector_t<double, 2>(rootX, -baseHalfHeight),
+            Vector_t<double, 2>(0.0, -0.82 * baseHalfHeight),
+            Vector_t<double, 2>(-0.60 * tipReach, -tipRadius)};
+
+    const unsigned int n = profile.size();
+    mesh.vertices_m.push_back(Vector_t<double, 3>(0.0, 0.0, 0.0));
+    for (const auto& vertex : profile) {
+        mesh.vertices_m.push_back(Vector_t<double, 3>(vertex(0), vertex(1), 0.0));
+    }
+    mesh.vertices_m.push_back(Vector_t<double, 3>(0.0, 0.0, length));
+    for (const auto& vertex : profile) {
+        mesh.vertices_m.push_back(
+                Vector_t<double, 3>(formFactor * vertex(0), formFactor * vertex(1), length));
+    }
+
+    for (unsigned int i = 0; i < n; ++i) {
+        const unsigned int next = (i + 1) % n;
+        mesh.triangles_m.push_back(Vector_t<unsigned int, 3>(0u, next + 1, i + 1));
+        mesh.triangles_m.push_back(Vector_t<unsigned int, 3>(i + 1, next + 1, n + 2 + i));
+        mesh.triangles_m.push_back(Vector_t<unsigned int, 3>(next + 1, n + 2 + next, n + 2 + i));
+        mesh.triangles_m.push_back(Vector_t<unsigned int, 3>(n + 1, n + 2 + i, n + 2 + next));
+    }
 
     return mesh;
 }
@@ -1376,27 +1507,91 @@ MeshData MeshGenerator::getSolenoid(double length, double minor, double major) {
 }
 
 MeshData MeshGenerator::getRFCavity(double length, double minor, double major) {
-    const double boreMinor            = 0.42 * minor;
-    const double boreMajor            = 0.42 * major;
-    const std::vector<double> profile = {0.78, 1.15, 0.82, 1.25, 0.82, 1.15, 0.78};
+    const double boreMinor                                  = 0.40 * minor;
+    const double boreMajor                                  = 0.40 * major;
+    const std::vector<std::pair<double, double>> keyProfile = {
+            {0.00, 0.78}, {0.10, 0.78}, {0.18, 0.96}, {0.28, 1.26}, {0.38, 0.86}, {0.46, 0.72},
+            {0.54, 1.08}, {0.62, 0.72}, {0.70, 0.86}, {0.80, 1.26}, {0.90, 0.96}, {1.00, 0.78}};
 
-    MeshData mesh;
-    const auto appendTubeSegment = [&](const double zStart, const double segmentLength,
-                                       const double scale) {
-        if (segmentLength <= 1e-12) {
-            return;
+    std::vector<std::pair<double, double>> profile;
+    profile.reserve(1 + 3 * keyProfile.size());
+    const unsigned int interpolationSteps = 3;
+    for (std::size_t i = 0; i + 1 < keyProfile.size(); ++i) {
+        if (i == 0) {
+            profile.push_back(keyProfile[i]);
         }
-        MeshData segment =
-                getTube(segmentLength, boreMinor, boreMajor, scale * minor, scale * major);
-        translateMesh(segment, 0.0, 0.0, zStart);
-        appendMesh(mesh, segment);
-    };
-    const double segmentLength = length / static_cast<double>(profile.size());
-    double z                   = 0.0;
-    for (double scale : profile) {
-        appendTubeSegment(z, segmentLength, scale);
-        z += segmentLength;
+        const double z0 = keyProfile[i].first;
+        const double z1 = keyProfile[i + 1].first;
+        const double s0 = keyProfile[i].second;
+        const double s1 = keyProfile[i + 1].second;
+        for (unsigned int step = 1; step <= interpolationSteps; ++step) {
+            const double u            = static_cast<double>(step) / (interpolationSteps + 1);
+            const double blend        = 0.5 - 0.5 * std::cos(Physics::pi * u);
+            const double z            = z0 + u * (z1 - z0);
+            const double profileScale = s0 + blend * (s1 - s0);
+            profile.emplace_back(z, profileScale);
+        }
+        profile.push_back(keyProfile[i + 1]);
     }
+
+    return getProfiledTube(length, boreMinor, boreMajor, profile);
+}
+
+MeshData MeshGenerator::getProfiledTube(
+        double length, double innerMinor, double innerMajor,
+        const std::vector<std::pair<double, double>>& profile, unsigned int numSegments) {
+    MeshData mesh;
+    if (length <= 0.0 || innerMinor <= 0.0 || innerMajor <= 0.0 || numSegments < 3
+        || profile.size() < 2) {
+        return mesh;
+    }
+
+    const double dAngle = Physics::two_pi / static_cast<double>(numSegments);
+    for (const auto& station : profile) {
+        const double z     = std::clamp(station.first, 0.0, 1.0) * length;
+        const double scale = std::max(station.second, 1.02);
+        double angle       = 0.0;
+        for (unsigned int i = 0; i < numSegments; ++i, angle += dAngle) {
+            mesh.vertices_m.push_back(
+                    Vector_t<double, 3>(
+                            scale * innerMajor * std::cos(angle),
+                            scale * innerMinor * std::sin(angle), z));
+        }
+        angle = 0.0;
+        for (unsigned int i = 0; i < numSegments; ++i, angle += dAngle) {
+            mesh.vertices_m.push_back(
+                    Vector_t<double, 3>(
+                            innerMajor * std::cos(angle), innerMinor * std::sin(angle), z));
+        }
+    }
+
+    const unsigned int ringsPerStation = 2 * numSegments;
+    for (unsigned int station = 0; station + 1 < profile.size(); ++station) {
+        const unsigned int outerRing     = station * ringsPerStation;
+        const unsigned int innerRing     = outerRing + numSegments;
+        const unsigned int nextOuterRing = outerRing + ringsPerStation;
+        const unsigned int nextInnerRing = innerRing + ringsPerStation;
+        for (unsigned int i = 0; i < numSegments; ++i) {
+            const unsigned int next = (i + 1) % numSegments;
+            mesh.triangles_m.push_back(
+                    Vector_t<unsigned int, 3>(outerRing + i, outerRing + next, nextOuterRing + i));
+            mesh.triangles_m.push_back(
+                    Vector_t<unsigned int, 3>(
+                            outerRing + next, nextOuterRing + next, nextOuterRing + i));
+
+            mesh.triangles_m.push_back(
+                    Vector_t<unsigned int, 3>(innerRing + i, nextInnerRing + i, innerRing + next));
+            mesh.triangles_m.push_back(
+                    Vector_t<unsigned int, 3>(
+                            innerRing + next, nextInnerRing + i, nextInnerRing + next));
+        }
+
+        mesh.decorations_m.push_back(
+                std::make_pair(
+                        Vector_t<double, 3>(0.0, 0.0, profile[station].first * length),
+                        Vector_t<double, 3>(0.0, 0.0, profile[station + 1].first * length)));
+    }
+
     return mesh;
 }
 
