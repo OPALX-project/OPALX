@@ -33,9 +33,11 @@
 #include <filesystem>
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <iostream>
 #include <limits>
+#include <sstream>
 #include <vector>
 
 #define HITMATERIAL 0x80000000
@@ -187,6 +189,7 @@ void OrbitThreader::execute() {
 
     imap_m.tidyUp(zstop_m);
     *gmsg << level1 << "\n" << imap_m << endl;
+    validateVisitedElements(allElements, visitedElements, initialPathLength);
     imap_m.saveSDDS(initialPathLength);
     processElementRegister();
 }
@@ -208,8 +211,8 @@ void OrbitThreader::integrate(const IndexMap::value_t& activeSet, double /*maxDr
         Vector_t<double, 3> Ef(0.0), Bf(0.0);
         std::string names("\t");
         for (; it != end; ++it) {
-            Vector_t<double, 3> localR = itsOpalBeamline_m.transformToLocalCS(*it, r_m);
-            Vector_t<double, 3> localP = itsOpalBeamline_m.rotateToLocalCS(*it, p_m);
+            Vector_t<double, 3> localR = itsOpalBeamline_m.transformToFieldLocalCS(*it, r_m);
+            Vector_t<double, 3> localP = itsOpalBeamline_m.rotateToFieldLocalCS(*it, p_m);
             Vector_t<double, 3> localE(0.0), localB(0.0);
 
             if ((*it)->applyToReferenceParticle(
@@ -296,8 +299,8 @@ void OrbitThreader::autophaseCavities(
         if (((*it)->getType() == ElementType::TRAVELINGWAVE
              || (*it)->getType() == ElementType::RFCAVITY)
             && visitedElements.find((*it)->getName()) == visitedElements.end()) {
-            Vector_t<double, 3> initialR = itsOpalBeamline_m.transformToLocalCS(*it, r_m);
-            Vector_t<double, 3> initialP = itsOpalBeamline_m.rotateToLocalCS(*it, p_m);
+            Vector_t<double, 3> initialR = itsOpalBeamline_m.transformToFieldLocalCS(*it, r_m);
+            Vector_t<double, 3> initialP = itsOpalBeamline_m.rotateToFieldLocalCS(*it, p_m);
 
             CavityAutophaser ap(reference_m, *it);
             ap.getPhaseAtMaxEnergy(initialR, initialP, time_m, dt_m);
@@ -369,8 +372,8 @@ void OrbitThreader::registerElement(
 
         if (found) continue;
 
-        Vector_t<double, 3> initialR = itsOpalBeamline_m.transformToLocalCS(*it, R);
-        Vector_t<double, 3> initialP = itsOpalBeamline_m.rotateToLocalCS(*it, P);
+        Vector_t<double, 3> initialR = itsOpalBeamline_m.transformToFieldLocalCS(*it, R);
+        Vector_t<double, 3> initialP = itsOpalBeamline_m.rotateToFieldLocalCS(*it, P);
         double elementEdge           = start - initialR(2) * euclidean_norm(initialP) / initialP(2);
 
         elementPosition ep = {start, pathLength_m, elementEdge};
@@ -445,6 +448,78 @@ void OrbitThreader::setDesignEnergy(
                  || element->getType() == ElementType::TRAVELINGWAVE)) {
             element->setDesignEnergy(kineticEnergyeV);
         }
+    }
+}
+
+void OrbitThreader::validateVisitedElements(
+        const FieldList& allElements, const std::set<std::string>& visitedElements,
+        double initialPathLength) const {
+    const double lowerTrackedPathLength = std::min(initialPathLength, zstop_m) - 1.0e-9;
+    const double upperTrackedPathLength = std::max(initialPathLength, zstop_m) + 1.0e-9;
+
+    auto requiresReferencePathVisit = [](const std::shared_ptr<const Component>& element) {
+        switch (element->getType()) {
+            case ElementType::BEAMLINE:
+            case ElementType::MARKER:
+            case ElementType::PROBE:
+            case ElementType::SOURCE:
+            case ElementType::VACUUM:
+                return false;
+            default:
+                break;
+        }
+
+        double fieldBegin = 0.0;
+        double fieldEnd   = 0.0;
+        element->getFieldExtend(fieldBegin, fieldEnd);
+        return std::abs(fieldEnd - fieldBegin) > 1.0e-12
+               || std::abs(element->getElementLength()) > 1.0e-12;
+    };
+
+    std::ostringstream diagnostic;
+    bool foundUnvisitedElement = false;
+
+    for (auto it = allElements.begin(); it != allElements.end(); ++it) {
+        const std::shared_ptr<const Component> element = (*it).getElement();
+        if (!requiresReferencePathVisit(element)
+            || visitedElements.find(element->getName()) != visitedElements.end()) {
+            continue;
+        }
+
+        const PlacedElement placed =
+                itsOpalBeamline_m.getPlacedElement(std::const_pointer_cast<Component>(element));
+        const Vector_t<double, 3> entry = placed.getNominalEntryTransform().getOrigin();
+        const Vector_t<double, 3> body  = placed.getNominalBodyTransform().getOrigin();
+        const Vector_t<double, 3> exit  = placed.getNominalExitTransform().getOrigin();
+
+        const std::array<double, 3> zCoordinates = {entry(2), body(2), exit(2)};
+        const bool intersectsTrackedWindow =
+                std::any_of(zCoordinates.begin(), zCoordinates.end(), [&](double z) {
+                    return z >= lowerTrackedPathLength && z <= upperTrackedPathLength;
+                });
+        if (!intersectsTrackedWindow) {
+            continue;
+        }
+
+        foundUnvisitedElement = true;
+        diagnostic << "Element '" << element->getName() << "' (" << element->getTypeString()
+                   << ") is part of the beam line but is never reached by the traced reference "
+                      "path.\n"
+                   << "  nominal entry = (" << entry(0) << ", " << entry(1) << ", " << entry(2)
+                   << ")\n"
+                   << "  nominal body  = (" << body(0) << ", " << body(1) << ", " << body(2)
+                   << ")\n"
+                   << "  nominal exit  = (" << exit(0) << ", " << exit(1) << ", " << exit(2)
+                   << ")\n";
+    }
+
+    if (foundUnvisitedElement) {
+        throw OpalException(
+                "OrbitThreader::validateVisitedElements",
+                "One or more placed elements are not intersected by the traced reference path.\n"
+                "Adjust the input placement so the design trajectory reaches the element body or "
+                "field support.\n"
+                        + diagnostic.str());
     }
 }
 

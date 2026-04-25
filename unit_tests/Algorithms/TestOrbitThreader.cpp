@@ -4,14 +4,18 @@
 #include "Algorithms/DefaultVisitor.h"
 #include "Algorithms/OrbitThreader.h"
 #include "Algorithms/PartData.h"
+#include "BeamlineCore/DriftRep.h"
 #include "BeamlineCore/MultipoleRep.h"
+#include "BeamlineCore/SBendRep.h"
 #include "BeamlineGeometry/NullGeometry.h"
 #include "BeamlineGeometry/PlacementPose.h"
+#include "BeamlineGeometry/PlanarArcGeometry.h"
 #include "Beamlines/Beamline.h"
 #include "Elements/OpalBeamline.h"
 #include "Structure/Beam.h"
 #include "Structure/DataSink.h"
 #include "Structure/FieldSolverCmd.h"
+#include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
 #include "Utility/Inform.h"
 
@@ -118,6 +122,14 @@ protected:
     std::shared_ptr<DataSink> dataSink_m;
 };
 
+namespace {
+    class TestableOrbitThreader : public OrbitThreader {
+    public:
+        using OrbitThreader::OrbitThreader;
+        using OrbitThreader::validateVisitedElements;
+    };
+}  // namespace
+
 TEST_F(OrbitThreaderTest, ExposesEmptyReferencePathModelBeforeExecution) {
     StepSizeConfig stepSizes;
     stepSizes.push_back(1.0e-12, 1.0, 8);
@@ -190,4 +202,57 @@ TEST_F(OrbitThreaderTest, ExecutesOverlapAndBuildsTracedAndRegistrationModels) {
         registeredNames.insert((*segment.getActiveElements().begin())->getName());
     }
     EXPECT_EQ(registeredNames, (std::set<std::string>{"Q_LONG", "Q_SHORT"}));
+}
+
+TEST_F(OrbitThreaderTest, ThrowsDiagnosticForPlacedElementOutsideTracedReferencePath) {
+    auto bunch = makeBunch(0);
+
+    DummyBeamline beamlineForVisitor;
+    DefaultVisitor visitor(beamlineForVisitor, false, false);
+
+    OpalBeamline beamline;
+    auto drift = std::make_shared<DriftRep>("D0");
+    drift->setElementLength(3.292883);
+    drift->setPlacementPose(
+            PlacementPose(CoordinateSystemTrafo(Vector_t<double, 3>(0.0, 0.0, 0.0), Quaternion())));
+    drift->fixPosition();
+    beamline.visit(*drift, visitor, *bunch);
+
+    auto bend           = std::make_shared<SBendRep>("B1");
+    bend->getGeometry() = PlanarArcGeometry(0.5, Physics::pi / 4.0);
+    bend->setElementLength(0.5);
+    bend->setBendAngle(Physics::pi / 8.0);
+    bend->setPlacementPose(
+            PlacementPose(CoordinateSystemTrafo(Vector_t<double, 3>(0.0, 0.0, 3.3), Quaternion())));
+    bend->fixPosition();
+    beamline.visit(*bend, visitor, *bunch);
+    beamline.prepareSections();
+
+    StepSizeConfig stepSizes;
+    stepSizes.push_back(1.0e-11, 5.0, 4096);
+    stepSizes.resetIterator();
+
+    PartData reference(1.0, 9.382720813e8, 1.0e6);
+    TestableOrbitThreader threader(
+            reference, Vector_t<double, 3>(0.0), Vector_t<double, 3>(0.0, 0.0, 1.0), 0.0, 0.0, 0.0,
+            1.0e-11, stepSizes, beamline);
+
+    const FieldList allElements = beamline.getElementByType(ElementType::ANY);
+    ASSERT_EQ(allElements.size(), 2u);
+
+    EXPECT_THROW(
+            {
+                try {
+                    threader.validateVisitedElements(allElements, std::set<std::string>{"D0"}, 0.0);
+                } catch (const OpalException& ex) {
+                    const std::string what = ex.what();
+                    EXPECT_NE(what.find("B1"), std::string::npos);
+                    EXPECT_NE(
+                            what.find("never reached by the traced reference path"),
+                            std::string::npos);
+                    EXPECT_NE(what.find("nominal entry"), std::string::npos);
+                    throw;
+                }
+            },
+            OpalException);
 }

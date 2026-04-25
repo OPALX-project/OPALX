@@ -42,14 +42,21 @@ OpalRBend* OpalRBend::clone(const std::string& name) { return new OpalRBend(name
 void OpalRBend::update() {
     OpalElement::update();
 
+    // OpalData updates all registered objects, including the exemplar
+    // "RBEND" definition. The exemplar carries parser metadata only and
+    // must not be forced to satisfy analytic bend input constraints.
+    if (getParent() == nullptr && getOpalName() == "RBEND") {
+        return;
+    }
+
     RBendRep* bend          = dynamic_cast<RBendRep*>(getElement());
     double length           = Attributes::getReal(itsAttr[LENGTH]);
     double angle            = Attributes::getReal(itsAttr[ANGLE]);
     double e1               = Attributes::getReal(itsAttr[E1]);
     RBendGeometry& geometry = bend->getGeometry();
     validateAnalyticBendDefinition(
-            "OpalRBend::update", itsAttr[ANGLE], itsAttr[K0], length, angle,
-            Attributes::getReal(itsAttr[K0]));
+            "OpalRBend::update(" + getOpalName() + ")", !itsAttr[ANGLE].defaultUsed(),
+            !itsAttr[K0].defaultUsed(), length, angle, Attributes::getReal(itsAttr[K0]));
     geometry.setElementLength(length);
     geometry.setBendAngle(angle);
 
@@ -116,7 +123,10 @@ void OpalRBend::update() {
 
     if (itsAttr[HAPERT]) {
         double hapert = Attributes::getReal(itsAttr[HAPERT]);
-        bend->setAperture(ApertureType::RECTANGULAR, std::vector<double>({hapert, hapert, 1.0}));
+        if (hapert > 0.0) {
+            bend->setAperture(
+                    ApertureType::RECTANGULAR, std::vector<double>({hapert, hapert, 1.0}));
+        }
     }
 
     if (itsAttr[LENGTH])

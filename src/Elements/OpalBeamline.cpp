@@ -26,7 +26,10 @@
 
 #include <filesystem>
 #include <fstream>
+#include <iomanip>
 #include <regex>
+#include <sstream>
+#include <vector>
 
 OpalBeamline::OpalBeamline()
     : elements_m(),
@@ -49,7 +52,7 @@ std::set<std::shared_ptr<Component>> OpalBeamline::getElements(const Vector_t<do
     const FieldList::iterator end = elements_m.end();
     for (; it != end; ++it) {
         std::shared_ptr<Component> element = (*it).getElement();
-        Vector_t<double, 3> r              = getCSTrafoLab2Local(element).transformTo(x);
+        Vector_t<double, 3> r              = getFieldCSTrafoLab2Local(element).transformTo(x);
 
         if (element->isInside(r)) {
             elementSet.insert(element);
@@ -89,14 +92,14 @@ unsigned long OpalBeamline::getFieldAt(
         ElementType type = (*it)->getType();
         if (type == ElementType::MARKER) continue;
 
-        Vector_t<double, 3> localR = transformToLocalCS(*it, position);
-        Vector_t<double, 3> localP = rotateToLocalCS(*it, momentum);
+        Vector_t<double, 3> localR = transformToFieldLocalCS(*it, position);
+        Vector_t<double, 3> localP = rotateToFieldLocalCS(*it, momentum);
         Vector_t<double, 3> localE(0.0), localB(0.0);
 
         (*it)->applyToReferenceParticle(localR, localP, t, localE, localB);
 
-        Ef += rotateFromLocalCS(*it, localE);
-        Bf += rotateFromLocalCS(*it, localB);
+        Ef += rotateFromFieldLocalCS(*it, localE);
+        Bf += rotateFromFieldLocalCS(*it, localB);
     }
 
     //         if(section.hasWake()) {
@@ -545,6 +548,39 @@ namespace {
 
         return std::string(buf);
     }
+
+    std::string stripPlacementAttributes(std::string declaration) {
+        for (const char* attribute : {"ELEMEDGE", "X", "Y", "Z", "THETA", "PHI", "PSI"}) {
+            const std::regex attributeExpr(
+                    std::string(",?\\s*") + attribute + "\\s*=\\s*[^,;]*", std::regex::icase);
+            declaration = std::regex_replace(declaration, attributeExpr, "");
+        }
+
+        declaration = std::regex_replace(
+                declaration, std::regex(",\\s*,"), ", ", std::regex_constants::format_default);
+        declaration = std::regex_replace(
+                declaration, std::regex("\\s+,"), ",", std::regex_constants::format_default);
+        declaration = std::regex_replace(
+                declaration, std::regex(",\\s*$"), "", std::regex_constants::format_default);
+
+        return declaration;
+    }
+
+    void replacePlacementSpecification(
+            std::string& input, const std::string& elementName, const std::string& coordTrafo) {
+        const std::regex elementExpr(elementName + "\\s*:[^;]*;", std::regex::icase);
+        std::smatch match;
+        if (!std::regex_search(input, match, elementExpr)) {
+            return;
+        }
+
+        std::string declaration = match.str();
+        declaration.pop_back();
+        declaration = stripPlacementAttributes(declaration);
+        declaration += ", " + coordTrafo + ";";
+
+        input.replace(static_cast<std::size_t>(match.position()), match.length(), declaration);
+    }
 }  // namespace
 
 void OpalBeamline::save3DInput() {
@@ -562,12 +598,6 @@ void OpalBeamline::save3DInput() {
     for (; it != end; ++it) {
         std::shared_ptr<Component> element = (*it).getElement();
         std::string elementName            = element->getName();
-        const std::regex replacePSI(
-                "(" + elementName + "\\s*:[^\\n]*)PSI\\s*=[^,;]*,?", std::regex::icase);
-        input = std::regex_replace(input, replacePSI, "\\1\\2");
-
-        const std::regex replaceELEMEDGE(
-                "(" + elementName + "\\s*:[^\\n]*)ELEMEDGE\\s*=[^,;]*(.)", std::regex::icase);
 
         CoordinateSystemTrafo cst  = getCSTrafoLab2Local(element);
         Vector_t<double, 3> origin = cst.getOrigin();
@@ -576,28 +606,13 @@ void OpalBeamline::save3DInput() {
         for (unsigned int d = 0; d < 3; ++d)
             orient(d) *= Units::rad2deg;
 
-        std::string x =
-                (std::abs(origin(0)) > 1e-10 ? "X = " + round2string(origin(0), 10) + ", " : "");
-        std::string y =
-                (std::abs(origin(1)) > 1e-10 ? "Y = " + round2string(origin(1), 10) + ", " : "");
-        std::string z =
-                (std::abs(origin(2)) > 1e-10 ? "Z = " + round2string(origin(2), 10) + ", " : "");
+        const std::string coordTrafo =
+                "X = " + round2string(origin(0), 10) + ", Y = " + round2string(origin(1), 10)
+                + ", Z = " + round2string(origin(2), 10) + ", THETA = " + round2string(orient(0), 6)
+                + " * PI / 180, PHI = " + round2string(orient(1), 6)
+                + " * PI / 180, PSI = " + round2string(orient(2), 6) + " * PI / 180";
 
-        std::string theta =
-                (orient(0) > 1e-10 ? "THETA = " + round2string(orient(0), 6) + " * PI / 180, "
-                                   : "");
-        std::string phi =
-                (orient(1) > 1e-10 ? "PHI = " + round2string(orient(1), 6) + " * PI / 180, " : "");
-        std::string psi =
-                (orient(2) > 1e-10 ? "PSI = " + round2string(orient(2), 6) + " * PI / 180, " : "");
-        std::string coordTrafo = x + y + z + theta + phi + psi;
-        if (coordTrafo.length() > 2) {
-            coordTrafo = coordTrafo.substr(0, coordTrafo.length() - 2);  // remove last ', '
-        }
-
-        std::string position = ("\\1" + coordTrafo + "\\2");
-
-        input = std::regex_replace(input, replaceELEMEDGE, position);
+        replacePlacementSpecification(input, elementName, coordTrafo);
     }
 
     const std::regex empty("##EMPTY_LINE##");
@@ -605,6 +620,57 @@ void OpalBeamline::save3DInput() {
     input = std::regex_replace(input, empty, emptyFormat);
 
     pos << input << std::endl;
+}
+
+void OpalBeamline::printPlacementSummary(std::ostream& out) const {
+    constexpr int firstColumnWidth = 24;
+    auto appendFirstColumn         = [](std::ostream& stream, const std::string& label) {
+        stream << std::left << std::setw(firstColumnWidth) << label << '\t' << std::right;
+    };
+
+    struct PlacementSummaryRow {
+        std::string name;
+        Vector_t<double, 3> origin;
+        Vector_t<double, 3> orient;
+    };
+
+    std::vector<PlacementSummaryRow> rows;
+    rows.reserve(elements_m.size());
+    for (const auto& item : elements_m) {
+        const std::shared_ptr<Component> element =
+                std::const_pointer_cast<Component>(item.getElement());
+        const CoordinateSystemTrafo cst  = getCSTrafoLab2Local(element);
+        const Vector_t<double, 3> origin = cst.getOrigin();
+        Vector_t<double, 3> orient =
+                Util::getTaitBryantAngles(cst.getRotation().conjugate(), element->getName());
+        for (unsigned int d = 0; d < 3; ++d) {
+            orient(d) *= Units::rad2deg;
+        }
+        rows.push_back({element->getName(), origin, orient});
+    }
+
+    std::sort(rows.begin(), rows.end(), [](const auto& lhs, const auto& rhs) {
+        if (lhs.origin(2) != rhs.origin(2)) {
+            return lhs.origin(2) < rhs.origin(2);
+        }
+        if (lhs.origin(0) != rhs.origin(0)) {
+            return lhs.origin(0) < rhs.origin(0);
+        }
+        if (lhs.origin(1) != rhs.origin(1)) {
+            return lhs.origin(1) < rhs.origin(1);
+        }
+        return lhs.name < rhs.name;
+    });
+
+    appendFirstColumn(out, "Element");
+    out << "X\tY\tZ\tTHETA\tPHI\tPSI\n";
+    out << " ------------------------------------------------------------------------\n";
+    for (const auto& row : rows) {
+        appendFirstColumn(out, row.name);
+        out << round2string(row.origin(0), 10) << '\t' << round2string(row.origin(1), 10) << '\t'
+            << round2string(row.origin(2), 10) << '\t' << round2string(row.orient(0), 6) << '\t'
+            << round2string(row.orient(1), 6) << '\t' << round2string(row.orient(2), 6) << '\n';
+    }
 }
 
 void OpalBeamline::activateElements() {

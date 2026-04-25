@@ -674,7 +674,7 @@ void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
         for (; it != end; ++it) {
             CoordinateSystemTrafo refToLocalCSTrafo =
                     (itsOpalBeamline_m.getMisalignment((*it))
-                     * (itsOpalBeamline_m.getCSTrafoLab2Local((*it)) * pc->getToLabTrafo()));
+                     * (itsOpalBeamline_m.getFieldCSTrafoLab2Local((*it)) * pc->getToLabTrafo()));
 
             CoordinateSystemTrafo localToRefCSTrafo = refToLocalCSTrafo.inverted();
 
@@ -863,6 +863,20 @@ void ParallelTracker::prepareSections() {
     // Write 3D Lattice
     itsOpalBeamline_m.save3DLattice();
     itsOpalBeamline_m.save3DInput();
+
+    if (ippl::Comm->rank() == 0) {
+        std::ostringstream placementSummary;
+        itsOpalBeamline_m.printPlacementSummary(placementSummary);
+        std::cout << "ParallelTracker> Placed element body poses:\n";
+        std::istringstream lines(placementSummary.str());
+        std::string line;
+        while (std::getline(lines, line)) {
+            if (!line.empty()) {
+                std::cout << "ParallelTracker> " << line << '\n';
+            }
+        }
+        std::cout.flush();
+    }
 }
 
 /**
@@ -1026,8 +1040,8 @@ void ParallelTracker::updateReferenceParticles(const BorisPusher& pusher) {
         const IndexMap::value_t::const_iterator end = elements.end();
 
         for (; it != end; ++it) {
-            const CoordinateSystemTrafo& refToLocalCSTrafo =
-                    itsOpalBeamline_m.getCSTrafoLab2Local((*it));
+            const CoordinateSystemTrafo refToLocalCSTrafo =
+                    itsOpalBeamline_m.getFieldCSTrafoLab2Local((*it));
 
             Vector_t<double, 3> localR = refToLocalCSTrafo.transformTo(pc.getRefPartR());
             Vector_t<double, 3> localP = refToLocalCSTrafo.rotateTo(pc.getRefPartP());
@@ -1437,9 +1451,9 @@ void ParallelTracker::autophaseCavities(const BorisPusher& pusher) {
             if (!TWelement->getAutophaseVeto()) {
                 CavityAutophaser ap(ref, element);
                 ap.getPhaseAtMaxEnergy(
-                        itsOpalBeamline_m.transformToLocalCS(
+                        itsOpalBeamline_m.transformToFieldLocalCS(
                                 element, itsBunch_m->getParticleContainer()->getRefPartR()),
-                        itsOpalBeamline_m.rotateToLocalCS(
+                        itsOpalBeamline_m.rotateToFieldLocalCS(
                                 element, itsBunch_m->getParticleContainer()->getRefPartP()),
                         t, itsBunch_m->getdT());
             }
@@ -1449,9 +1463,9 @@ void ParallelTracker::autophaseCavities(const BorisPusher& pusher) {
             if (!RFelement->getAutophaseVeto()) {
                 CavityAutophaser ap(ref, element);
                 ap.getPhaseAtMaxEnergy(
-                        itsOpalBeamline_m.transformToLocalCS(
+                        itsOpalBeamline_m.transformToFieldLocalCS(
                                 element, itsBunch_m->getParticleContainer()->getRefPartR()),
-                        itsOpalBeamline_m.rotateToLocalCS(
+                        itsOpalBeamline_m.rotateToFieldLocalCS(
                                 element, itsBunch_m->getParticleContainer()->getRefPartP()),
                         t, itsBunch_m->getdT());
             }

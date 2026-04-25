@@ -1,7 +1,9 @@
 #include "Structure/MeshGenerator.h"
+#include "AbsBeamline/BendBase.h"
 #include "AbsBeamline/Multipole.h"
 #include "AbsBeamline/Solenoid.h"
 #include "AbstractObjects/OpalData.h"
+#include "Algorithms/Quaternion.hpp"
 #include "Physics/Physics.h"
 #include "Utilities/Util.h"
 
@@ -89,8 +91,22 @@ void MeshGenerator::add(const ElementBase& element) {
 
     MeshData mesh;
     if (element.getType() == ElementType::SBEND || element.getType() == ElementType::RBEND) {
-        // const Bend2D* dipole = static_cast<const Bend2D*>(&element);
-        // mesh = dipole->getSurfaceMesh();
+        double minor     = 0.0;
+        double major     = 0.0;
+        const auto* bend = dynamic_cast<const BendBase*>(&element);
+        if (bend == nullptr) {
+            return;
+        }
+        if (!getTransverseSupport(element, minor, major)) {
+            if (hasDriftReference_m) {
+                minor = driftMinor_m;
+                major = driftMajor_m;
+            } else {
+                minor = 0.05;
+                major = 0.05;
+            }
+        }
+        mesh        = getBendTube(bend->getDesignPath(), minor, major);
         mesh.type_m = DIPOLE;
     } else if (element.getType() == ElementType::RBEND3D) {
         // const RBend3D* dipole = static_cast<const RBend3D*>(&element);
@@ -253,7 +269,7 @@ void MeshGenerator::write(const std::string& fname) {
         for (unsigned int i = 0; i < triangles.size(); ++i) {
             out << triangles[i](0) << ", " << triangles[i](1) << ", " << triangles[i](2) << ", ";
         }
-        out.seekp(-2, std::ios_base::end);
+        if (!triangles.empty()) out.seekp(-2, std::ios_base::end);
         out << "], ";
     }
     out.seekp(-2, std::ios_base::end);
@@ -433,7 +449,7 @@ void MeshGenerator::write(const std::string& fname) {
     out << indent << indent << indent << "unique_colors = np.unique(unique_colors, axis=0)\n";
     out << indent << indent << indent << "legend = [\n";
     out << indent << indent << indent << indent << "('Other', (0.5, 0.5, 0.5)),\n";
-    out << indent << indent << indent << indent << "('Dipole', (1.0, 0.847, 0.0)),\n";
+    out << indent << indent << indent << indent << "('Dipole', (1.0, 0.4, 0.7)),\n";
     out << indent << indent << indent << indent << "('Quadrupole', (1.0, 0.0, 0.0)),\n";
     out << indent << indent << indent << indent << "('Sextupole', (0.537, 0.745, 0.525)),\n";
     out << indent << indent << indent << indent << "('Octupole', (0.5, 0.5, 0.0)),\n";
@@ -554,7 +570,7 @@ void MeshGenerator::write(const std::string& fname) {
     out << indent << "cellCounter = 0\n";
     out << indent << "lookup_table = []\n";
     out << indent << "lookup_table.append([0.5, 0.5, 0.5, 0.5])\n";
-    out << indent << "lookup_table.append([1.0, 0.847, 0.0, 1.0])\n";
+    out << indent << "lookup_table.append([1.0, 0.4, 0.7, 1.0])\n";
     out << indent << "lookup_table.append([1.0, 0.0, 0.0, 1.0])\n";
     out << indent << "lookup_table.append([0.537, 0.745, 0.525, 1.0])\n";
     out << indent << "lookup_table.append([0.5, 0.5, 0.0, 1.0])\n";
@@ -618,7 +634,7 @@ void MeshGenerator::write(const std::string& fname) {
 
     out << indent << "lookup_table = []\n";
     out << indent << "lookup_table.append([0.5, 0.5, 0.5])\n";
-    out << indent << "lookup_table.append([1.0, 0.847, 0.0])\n";
+    out << indent << "lookup_table.append([1.0, 0.4, 0.7])\n";
     out << indent << "lookup_table.append([1.0, 0.0, 0.0])\n";
     out << indent << "lookup_table.append([0.537, 0.745, 0.525])\n";
     out << indent << "lookup_table.append([0.5, 0.5, 0.0])\n";
@@ -1245,6 +1261,59 @@ MeshData MeshGenerator::getTube(
                 Vector_t<unsigned int, 3>(bottomInner, topInner, bottomInnerNext));
         mesh.triangles_m.push_back(
                 Vector_t<unsigned int, 3>(bottomInnerNext, topInner, topInnerNext));
+    }
+
+    return mesh;
+}
+
+MeshData MeshGenerator::getBendTube(
+        const std::vector<Vector_t<double, 3>>& centerline, const double minor, const double major,
+        const unsigned int numSegments) {
+    MeshData mesh;
+    if (centerline.size() < 2 || minor <= 0.0 || major <= 0.0 || numSegments < 3) {
+        return mesh;
+    }
+
+    const double dAngle = Physics::two_pi / static_cast<double>(numSegments);
+    for (std::size_t ring = 0; ring < centerline.size(); ++ring) {
+        Vector_t<double, 3> tangent(0.0);
+        if (ring == 0) {
+            tangent = centerline[1] - centerline[0];
+        } else if (ring + 1 == centerline.size()) {
+            tangent = centerline[ring] - centerline[ring - 1];
+        } else {
+            tangent = centerline[ring + 1] - centerline[ring - 1];
+        }
+
+        const double tangentNorm = euclidean_norm(tangent);
+        if (tangentNorm <= 1.0e-14) {
+            tangent = Vector_t<double, 3>(0.0, 0.0, 1.0);
+        } else {
+            tangent /= tangentNorm;
+        }
+
+        const Quaternion orientation = getQuaternion(Vector_t<double, 3>(0.0, 0.0, 1.0), tangent);
+        double angle                 = 0.0;
+        for (unsigned int i = 0; i < numSegments; ++i, angle += dAngle) {
+            const Vector_t<double, 3> ringPoint(
+                    major * std::cos(angle), minor * std::sin(angle), 0.0);
+            mesh.vertices_m.push_back(centerline[ring] + orientation.rotate(ringPoint));
+        }
+    }
+
+    for (std::size_t ring = 0; ring + 1 < centerline.size(); ++ring) {
+        const unsigned int ringOffset     = static_cast<unsigned int>(ring * numSegments);
+        const unsigned int nextRingOffset = static_cast<unsigned int>((ring + 1) * numSegments);
+        for (unsigned int i = 0; i < numSegments; ++i) {
+            const unsigned int next = (i + 1) % numSegments;
+            mesh.triangles_m.push_back(
+                    Vector_t<unsigned int, 3>(
+                            ringOffset + i, ringOffset + next, nextRingOffset + i));
+            mesh.triangles_m.push_back(
+                    Vector_t<unsigned int, 3>(
+                            ringOffset + next, nextRingOffset + next, nextRingOffset + i));
+        }
+        mesh.decorations_m.push_back(std::make_pair(centerline[ring], centerline[ring + 1]));
     }
 
     return mesh;

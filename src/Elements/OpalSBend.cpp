@@ -42,6 +42,13 @@ OpalSBend* OpalSBend::clone(const std::string& name) { return new OpalSBend(name
 void OpalSBend::update() {
     OpalElement::update();
 
+    // OpalData updates all registered objects, including the exemplar
+    // "SBEND" definition. The exemplar carries parser metadata only and
+    // must not be forced to satisfy analytic bend input constraints.
+    if (getParent() == nullptr && getOpalName() == "SBEND") {
+        return;
+    }
+
     SBendRep* bend              = dynamic_cast<SBendRep*>(getElement());
     double length               = Attributes::getReal(itsAttr[LENGTH]);
     double angle                = Attributes::getReal(itsAttr[ANGLE]);
@@ -50,8 +57,8 @@ void OpalSBend::update() {
     PlanarArcGeometry& geometry = bend->getGeometry();
 
     validateAnalyticBendDefinition(
-            "OpalSBend::update", itsAttr[ANGLE], itsAttr[K0], length, angle,
-            Attributes::getReal(itsAttr[K0]));
+            "OpalSBend::update(" + getOpalName() + ")", !itsAttr[ANGLE].defaultUsed(),
+            !itsAttr[K0].defaultUsed(), length, angle, Attributes::getReal(itsAttr[K0]));
 
     if (length) {
         geometry = PlanarArcGeometry(length, angle / length);
@@ -131,7 +138,10 @@ void OpalSBend::update() {
 
     if (itsAttr[HAPERT]) {
         double hapert = Attributes::getReal(itsAttr[HAPERT]);
-        bend->setAperture(ApertureType::RECTANGULAR, std::vector<double>({hapert, hapert, 1.0}));
+        if (hapert > 0.0) {
+            bend->setAperture(
+                    ApertureType::RECTANGULAR, std::vector<double>({hapert, hapert, 1.0}));
+        }
     }
 
     if (itsAttr[LENGTH])

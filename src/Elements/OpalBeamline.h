@@ -20,6 +20,7 @@
 
 #include <map>
 #include <memory>
+#include <ostream>
 #include <set>
 #include <string>
 
@@ -65,6 +66,25 @@ public:
     Vector_t<double, 3> rotateToLocalCS(
             const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r) const;
     Vector_t<double, 3> rotateFromLocalCS(
+            const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r) const;
+
+    /**
+     * @brief Return the runtime field-frame transform used for tracking queries.
+     *
+     * The placement bridge distinguishes the nominal body frame used for
+     * geometry/export from the local field chart used by runtime field
+     * evaluation. Most straight elements use the body frame directly. Analytic
+     * bends currently keep an entrance-based field chart, so their runtime
+     * field transform is the nominal entry-frame placement.
+     */
+    CoordinateSystemTrafo getFieldCSTrafoLab2Local(const std::shared_ptr<Component>& comp) const;
+    Vector_t<double, 3> transformToFieldLocalCS(
+            const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r) const;
+    Vector_t<double, 3> transformFromFieldLocalCS(
+            const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r) const;
+    Vector_t<double, 3> rotateToFieldLocalCS(
+            const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r) const;
+    Vector_t<double, 3> rotateFromFieldLocalCS(
             const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r) const;
 
     /**
@@ -117,6 +137,14 @@ public:
     void compute3DLattice();
     void save3DLattice();
     void save3DInput();
+    /**
+     * @brief Print a concise body-pose summary for all placed elements.
+     *
+     * The reported pose is the nominal body placement used by the placement
+     * bridge and by `_3D.opal` export. Coordinates are printed in laboratory
+     * space and Tait-Bryant angles are printed in degrees.
+     */
+    void printPlacementSummary(std::ostream& out) const;
     void print(Inform&) const;
     void apply(
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& t,
@@ -226,6 +254,36 @@ inline Vector_t<double, 3> OpalBeamline::rotateToLocalCS(
 inline Vector_t<double, 3> OpalBeamline::rotateFromLocalCS(
         const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r) const {
     return getPlacedElement(comp).getNominalBodyTransform().rotateFrom(r);
+}
+
+inline CoordinateSystemTrafo OpalBeamline::getFieldCSTrafoLab2Local(
+        const std::shared_ptr<Component>& comp) const {
+    const ElementType type = comp->getType();
+    if (type == ElementType::SBEND || type == ElementType::RBEND || type == ElementType::RBEND3D) {
+        return getPlacedElement(comp).getNominalEntryTransform();
+    }
+
+    return getPlacedElement(comp).getNominalBodyTransform();
+}
+
+inline Vector_t<double, 3> OpalBeamline::transformToFieldLocalCS(
+        const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r) const {
+    return getFieldCSTrafoLab2Local(comp).transformTo(r);
+}
+
+inline Vector_t<double, 3> OpalBeamline::transformFromFieldLocalCS(
+        const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r) const {
+    return getFieldCSTrafoLab2Local(comp).transformFrom(r);
+}
+
+inline Vector_t<double, 3> OpalBeamline::rotateToFieldLocalCS(
+        const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r) const {
+    return getFieldCSTrafoLab2Local(comp).rotateTo(r);
+}
+
+inline Vector_t<double, 3> OpalBeamline::rotateFromFieldLocalCS(
+        const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r) const {
+    return getFieldCSTrafoLab2Local(comp).rotateFrom(r);
 }
 
 inline PlacedElement OpalBeamline::getPlacedElement(const std::shared_ptr<Component>& comp) const {

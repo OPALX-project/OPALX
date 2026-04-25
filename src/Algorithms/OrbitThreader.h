@@ -72,7 +72,7 @@ public:
      */
     const ReferencePathModel& getActionRangeRegistrationModel() const;
 
-private:
+protected:
     /// position of reference particle in lab coordinates
     Vector_t<double, 3> r_m;
     /// momentum of reference particle
@@ -137,6 +137,20 @@ private:
             const Vector_t<double, 3>& p);
     void processElementRegister();
     void setDesignEnergy(FieldList& allElements, const std::set<std::string>& visitedElements);
+    /**
+     * @brief Stop if a placed line element is never intersected by the traced path.
+     *
+     * Explicit placement can create geometrically disconnected input decks. The
+     * reference particle then never activates the affected element, even though
+     * it is listed in the line. This diagnostic checks all nontrivial placed
+     * elements within the tracked longitudinal window and raises a user-facing
+     * error that reports their nominal entry/body/exit placement.
+     */
+    void validateVisitedElements(
+            const FieldList& allElements, const std::set<std::string>& visitedElements,
+            double initialPathLength) const;
+
+private:
     void computeBoundingBox();
     void updateBoundingBoxWithCurrentPosition();
     double computeDriftLengthToBoundingBox(

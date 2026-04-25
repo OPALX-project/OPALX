@@ -1,18 +1,27 @@
 #include "Algorithms/DefaultVisitor.h"
 #include "gtest/gtest.h"
 
+#include "AbsBeamline/BendBase.h"
 #include "AbstractObjects/OpalData.h"
 #include "BeamlineCore/DriftRep.h"
+#include "BeamlineCore/SBendRep.h"
 #include "BeamlineGeometry/NullGeometry.h"
+#include "BeamlineGeometry/PlacementPose.h"
 #include "Beamlines/Beamline.h"
 #include "Elements/OpalBeamline.h"
+#include "Physics/Physics.h"
 #include "Structure/Beam.h"
 #include "Structure/DataSink.h"
 #include "Structure/FieldSolverCmd.h"
+#include "Structure/MeshGenerator.h"
 #include "Utilities/Options.h"
 #include "Utility/Inform.h"
 
 #include <cmath>
+#include <cstdlib>
+#include <filesystem>
+#include <fstream>
+#include <sstream>
 
 extern Inform* gmsg;
 
@@ -31,6 +40,11 @@ namespace {
         EXPECT_NEAR(actual(2), expected(2), tol);
     }
 
+    std::filesystem::path outputPath(const std::string& suffix) {
+        return std::filesystem::path(OpalData::getInstance()->getAuxiliaryOutputDirectory())
+               / ("TestOpalBeamlinePlacement" + suffix);
+    }
+
     class DummyBeamline final : public Beamline {
     public:
         DummyBeamline() : Beamline("dummy") {}
@@ -41,6 +55,23 @@ namespace {
         void accept(BeamlineVisitor& visitor) const override { visitor.visitBeamline(*this); }
         ElementBase* clone() const override { return new DummyBeamline(*this); }
         void iterate(BeamlineVisitor&, bool) const override {}
+
+    private:
+        NullGeometry geometry_;
+    };
+
+    class EmptyRBend3D final : public ElementBase {
+    public:
+        explicit EmptyRBend3D(const std::string& name) : ElementBase(name) {
+            setPlacementPose(
+                    PlacementPose(CoordinateSystemTrafo(Vector3(0.0, 0.0, 0.0), Quaternion())));
+        }
+
+        ElementType getType() const override { return ElementType::RBEND3D; }
+        BGeometryBase& getGeometry() override { return geometry_; }
+        const BGeometryBase& getGeometry() const override { return geometry_; }
+        void accept(BeamlineVisitor&) const override {}
+        ElementBase* clone() const override { return new EmptyRBend3D(*this); }
 
     private:
         NullGeometry geometry_;
@@ -67,6 +98,8 @@ protected:
     void SetUp() override {
         OpalData::getInstance()->storeInputFn("TestOpalBeamlinePlacement.opal");
         OpalData::getInstance()->setOpenMode(OpalData::OpenMode::WRITE);
+        std::filesystem::create_directories(OpalData::getInstance()->getAuxiliaryOutputDirectory());
+        std::filesystem::remove(outputPath("_ElementPositions.py"));
     }
 
     class TestableFieldSolverCmd : public FieldSolverCmd {
@@ -177,9 +210,9 @@ TEST_F(OpalBeamlinePlacementTest, PrepareSectionsCompilesElementPositionIntoNomi
     auto bunch = makeBunch(0);
     DummyBeamline beamlineForVisitor;
     DefaultVisitor visitor(beamlineForVisitor, false, false);
+
     OpalBeamline beamline;
     beamline.visit(drift, visitor, *bunch);
-
     beamline.prepareSections();
 
     const auto elements = beamline.getElements();
@@ -217,4 +250,161 @@ TEST_F(OpalBeamlinePlacementTest, BeamlineOwnsPlacedElementAssemblySnapshot) {
     expectVectorNear(
             beamline.getPlacedElement(component).getNominalBodyTransform().getOrigin(),
             assembledOrigin);
+}
+
+TEST_F(OpalBeamlinePlacementTest, Save3DInputNormalizesExplicitBodyPoseAndAngles) {
+    std::ofstream input("TestOpalBeamlinePlacement.opal");
+    ASSERT_TRUE(input.is_open());
+    input << "D6: Drift, L = 0.3, ELEMEDGE = 0.75;\n";
+    input << "Line1: Line = (D6);\n";
+    input.close();
+
+    auto bunch = makeBunch(0);
+    DummyBeamline beamlineForVisitor;
+    DefaultVisitor visitor(beamlineForVisitor, false, false);
+
+    DriftRep drift("D6");
+    drift.setElementLength(0.3);
+    drift.setPlacementPose(PlacementPose(CoordinateSystemTrafo(
+            Vector3(1.0, 2.0, 3.0),
+            Quaternion(std::cos(Physics::pi / 8.0), 0.0, 0.0, std::sin(Physics::pi / 8.0)))));
+    drift.fixPosition();
+
+    OpalBeamline beamline;
+    beamline.visit(drift, visitor, *bunch);
+    beamline.save3DInput();
+
+    std::ifstream output(outputPath("_3D.opal"));
+    ASSERT_TRUE(output.is_open());
+    const std::string rewritten(
+            (std::istreambuf_iterator<char>(output)), std::istreambuf_iterator<char>());
+
+    EXPECT_EQ(rewritten.find("ELEMEDGE"), std::string::npos);
+    EXPECT_NE(rewritten.find("X = 1"), std::string::npos);
+    EXPECT_NE(rewritten.find("Y = 2"), std::string::npos);
+    EXPECT_NE(rewritten.find("Z = 3"), std::string::npos);
+    EXPECT_NE(rewritten.find("THETA = 0.0 * PI / 180"), std::string::npos);
+    EXPECT_NE(rewritten.find("PHI = 0.0 * PI / 180"), std::string::npos);
+    EXPECT_NE(rewritten.find("PSI = 315.0 * PI / 180"), std::string::npos);
+}
+
+TEST_F(OpalBeamlinePlacementTest, PrintPlacementSummaryReportsBodyPoseOnOneLinePerElement) {
+    DriftRep drift("D7");
+    drift.setElementLength(0.3);
+    drift.setPlacementPose(PlacementPose(CoordinateSystemTrafo(
+            Vector3(1.0, 2.0, 3.0),
+            Quaternion(std::cos(Physics::pi / 8.0), 0.0, 0.0, std::sin(Physics::pi / 8.0)))));
+    drift.fixPosition();
+
+    auto bunch = makeBunch(0);
+    DummyBeamline beamlineForVisitor;
+    DefaultVisitor visitor(beamlineForVisitor, false, false);
+
+    SBendRep bend("B1");
+    bend.getGeometry() = PlanarArcGeometry(0.5, Physics::pi / 8.0);
+    bend.setElementLength(0.5);
+    bend.setBendAngle(Physics::pi / 8.0);
+    bend.setElementPosition(10.0);
+
+    OpalBeamline beamline;
+    beamline.visit(drift, visitor, *bunch);
+    beamline.visit(bend, visitor, *bunch);
+    beamline.prepareSections();
+
+    std::ostringstream summary;
+    beamline.printPlacementSummary(summary);
+    const std::string text = summary.str();
+
+    EXPECT_NE(text.find("Element"), std::string::npos);
+    EXPECT_NE(text.find("X\tY\tZ\tTHETA\tPHI\tPSI"), std::string::npos);
+    EXPECT_NE(text.find("------------------------"), std::string::npos);
+    EXPECT_NE(text.find("D7"), std::string::npos);
+    EXPECT_NE(text.find("1.0\t2.0\t3.0\t0.0\t0.0\t315.0"), std::string::npos);
+    EXPECT_NE(text.find("B1"), std::string::npos);
+    EXPECT_NE(text.find("0.0\t0.0\t10.0"), std::string::npos);
+    EXPECT_NE(text.find("B1"), std::string::npos);
+    EXPECT_LT(text.find("D7"), text.find("B1"));
+}
+
+TEST_F(OpalBeamlinePlacementTest, BendMeshesAsPinkCurvedTubeInElementPositionsExport) {
+    auto bunch = makeBunch(0);
+    DummyBeamline beamlineForVisitor;
+    DefaultVisitor visitor(beamlineForVisitor, false, false);
+
+    SBendRep bend("B1");
+    bend.getGeometry() = PlanarArcGeometry(1.0, Physics::pi / 4.0);
+    bend.setElementLength(1.0);
+    bend.setBendAngle(Physics::pi / 4.0);
+    bend.setAperture(ApertureType::ELLIPTICAL, std::vector<double>{0.03, 0.04, 1.0});
+    bend.setElementPosition(0.0);
+
+    OpalBeamline beamline;
+    beamline.visit(bend, visitor, *bunch);
+    beamline.compute3DLattice();
+    beamline.save3DLattice();
+
+    std::ifstream py(outputPath("_ElementPositions.py"));
+    ASSERT_TRUE(py.is_open());
+    const std::string script(
+            (std::istreambuf_iterator<char>(py)), std::istreambuf_iterator<char>());
+    EXPECT_NE(script.find("color = [1]"), std::string::npos);
+    EXPECT_NE(script.find("numVertices = [2424]"), std::string::npos);
+    EXPECT_NE(script.find("('Dipole', (1.0, 0.4, 0.7))"), std::string::npos);
+    EXPECT_NE(script.find("lookup_table.append([1.0, 0.4, 0.7, 1.0])"), std::string::npos);
+}
+
+TEST_F(OpalBeamlinePlacementTest, RuntimeElementQueryRecognizesBendOnExportedCenterline) {
+    auto bunch = makeBunch(0);
+    DummyBeamline beamlineForVisitor;
+    DefaultVisitor visitor(beamlineForVisitor, false, false);
+
+    SBendRep bend("B1");
+    bend.getGeometry() = PlanarArcGeometry(1.0, Physics::pi / 4.0);
+    bend.setElementLength(1.0);
+    bend.setBendAngle(Physics::pi / 4.0);
+    bend.setElementPosition(0.0);
+
+    OpalBeamline beamline;
+    beamline.visit(bend, visitor, *bunch);
+    beamline.prepareSections();
+
+    const auto allElements = beamline.getElements();
+    ASSERT_EQ(allElements.size(), 1u);
+    const auto component    = *allElements.begin();
+    const auto* bendElement = dynamic_cast<const BendBase*>(component.get());
+    ASSERT_NE(bendElement, nullptr);
+
+    const std::vector<Vector3> designPath = bendElement->getDesignPath(9);
+    ASSERT_GE(designPath.size(), 9u);
+    const Vector3 labPoint =
+            beamline.getPlacedElement(component).getNominalBodyTransform().transformFrom(
+                    designPath[4]);
+
+    const auto active = beamline.getElements(labPoint);
+    EXPECT_EQ(active.size(), 1u);
+    EXPECT_EQ((*active.begin())->getName(), "B1");
+}
+
+TEST_F(OpalBeamlinePlacementTest, ElementPositionsScriptStaysValidWithEmptyTriangleMeshBlocks) {
+    MeshGenerator generator;
+
+    SBendRep bend("B1");
+    bend.getGeometry() = PlanarArcGeometry(1.0, Physics::pi / 4.0);
+    bend.setElementLength(1.0);
+    bend.setBendAngle(Physics::pi / 4.0);
+    bend.setAperture(ApertureType::ELLIPTICAL, std::vector<double>{0.03, 0.04, 1.0});
+    bend.setPlacementPose(
+            PlacementPose(CoordinateSystemTrafo(Vector3(0.0, 0.0, 0.0), Quaternion())));
+
+    EmptyRBend3D empty("B3D");
+
+    generator.add(bend);
+    generator.add(empty);
+    generator.write("TestOpalBeamlinePlacementSyntax");
+
+    const std::filesystem::path scriptPath = outputPath("Syntax_ElementPositions.py");
+    ASSERT_TRUE(std::filesystem::exists(scriptPath));
+
+    const std::string command = "python3 -m py_compile " + scriptPath.string();
+    EXPECT_EQ(std::system(command.c_str()), 0);
 }

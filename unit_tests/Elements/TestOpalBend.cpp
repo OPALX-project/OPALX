@@ -17,6 +17,7 @@
 #include "BeamlineCore/SBendRep.h"
 #include "Elements/OpalRBend.h"
 #include "Elements/OpalSBend.h"
+#include "Physics/Physics.h"
 #include "Utilities/OpalException.h"
 #include "ValueDefinitions/RealVariable.h"
 #include "gtest/gtest.h"
@@ -52,30 +53,33 @@ std::unique_ptr<RealVariable> TestOpalBend::realVariableFactory_m;
 
 TEST_F(TestOpalBend, SBendRejectsK0OnlyDefinition) {
     OpalSBend ui;
-    Attributes::setReal(ui.itsAttr[OpalSBend::LENGTH], 2.0);
-    Attributes::setReal(ui.itsAttr[OpalSBend::K0], 0.2);
+    std::unique_ptr<OpalSBend> instance(ui.clone("SB1"));
+    Attributes::setReal(instance->itsAttr[OpalSBend::LENGTH], 2.0);
+    Attributes::setReal(instance->itsAttr[OpalSBend::K0], 0.2);
 
-    EXPECT_THROW(ui.update(), OpalException);
+    EXPECT_THROW(instance->update(), OpalException);
 }
 
 TEST_F(TestOpalBend, SBendRejectsInconsistentK0) {
     OpalSBend ui;
-    Attributes::setReal(ui.itsAttr[OpalSBend::LENGTH], 2.0);
-    Attributes::setReal(ui.itsAttr[OpalSBend::ANGLE], 0.4);
-    Attributes::setReal(ui.itsAttr[OpalSBend::K0], 0.25);
+    std::unique_ptr<OpalSBend> instance(ui.clone("SB1"));
+    Attributes::setReal(instance->itsAttr[OpalSBend::LENGTH], 2.0);
+    Attributes::setReal(instance->itsAttr[OpalSBend::ANGLE], 0.4);
+    Attributes::setReal(instance->itsAttr[OpalSBend::K0], 0.25);
 
-    EXPECT_THROW(ui.update(), OpalException);
+    EXPECT_THROW(instance->update(), OpalException);
 }
 
 TEST_F(TestOpalBend, SBendAcceptsConsistentK0ButUsesAngleAsPrimaryDefinition) {
     OpalSBend ui;
-    Attributes::setReal(ui.itsAttr[OpalSBend::LENGTH], 2.0);
-    Attributes::setReal(ui.itsAttr[OpalSBend::ANGLE], 0.4);
-    Attributes::setReal(ui.itsAttr[OpalSBend::K0], 0.2);
+    std::unique_ptr<OpalSBend> instance(ui.clone("SB1"));
+    Attributes::setReal(instance->itsAttr[OpalSBend::LENGTH], 2.0);
+    Attributes::setReal(instance->itsAttr[OpalSBend::ANGLE], 0.4);
+    Attributes::setReal(instance->itsAttr[OpalSBend::K0], 0.2);
 
-    EXPECT_NO_THROW(ui.update());
+    EXPECT_NO_THROW(instance->update());
 
-    const auto* bend = dynamic_cast<const SBendRep*>(ui.getElement());
+    const auto* bend = dynamic_cast<const SBendRep*>(instance->getElement());
     ASSERT_NE(bend, nullptr);
     EXPECT_NEAR(bend->getGeometry().getElementLength(), 2.0, 1.0e-12);
     EXPECT_NEAR(bend->getGeometry().getBendAngle(), 0.4, 1.0e-12);
@@ -83,21 +87,62 @@ TEST_F(TestOpalBend, SBendAcceptsConsistentK0ButUsesAngleAsPrimaryDefinition) {
 }
 
 TEST_F(TestOpalBend, RBendRequiresAngleAndUsesAngleOverK0) {
-    OpalRBend invalidUi;
-    Attributes::setReal(invalidUi.itsAttr[OpalRBend::LENGTH], 1.5);
-    Attributes::setReal(invalidUi.itsAttr[OpalRBend::K0], 0.3);
-    EXPECT_THROW(invalidUi.update(), OpalException);
+    OpalRBend ui;
+    std::unique_ptr<OpalRBend> invalidInstance(ui.clone("RB1"));
+    Attributes::setReal(invalidInstance->itsAttr[OpalRBend::LENGTH], 1.5);
+    Attributes::setReal(invalidInstance->itsAttr[OpalRBend::K0], 0.3);
+    EXPECT_THROW(invalidInstance->update(), OpalException);
 
-    OpalRBend validUi;
-    Attributes::setReal(validUi.itsAttr[OpalRBend::LENGTH], 1.5);
-    Attributes::setReal(validUi.itsAttr[OpalRBend::ANGLE], 0.3);
-    Attributes::setReal(validUi.itsAttr[OpalRBend::K0], 0.2);
+    std::unique_ptr<OpalRBend> validInstance(ui.clone("RB2"));
+    Attributes::setReal(validInstance->itsAttr[OpalRBend::LENGTH], 1.5);
+    Attributes::setReal(validInstance->itsAttr[OpalRBend::ANGLE], 0.3);
+    Attributes::setReal(validInstance->itsAttr[OpalRBend::K0], 0.2);
 
-    EXPECT_NO_THROW(validUi.update());
+    EXPECT_NO_THROW(validInstance->update());
 
-    const auto* bend = dynamic_cast<const RBendRep*>(validUi.getElement());
+    const auto* bend = dynamic_cast<const RBendRep*>(validInstance->getElement());
     ASSERT_NE(bend, nullptr);
     EXPECT_NEAR(bend->getGeometry().getElementLength(), 1.5, 1.0e-12);
     EXPECT_NEAR(bend->getGeometry().getBendAngle(), 0.3, 1.0e-12);
     EXPECT_NEAR(bend->getFieldAmplitude(), 0.2, 1.0e-12);
+}
+
+TEST_F(TestOpalBend, ExemplarUpdateDoesNotEnforceInstanceOnlyAngleChecks) {
+    OpalSBend sbendExemplar;
+    OpalRBend rbendExemplar;
+
+    EXPECT_NO_THROW(sbendExemplar.update());
+    EXPECT_NO_THROW(rbendExemplar.update());
+}
+
+TEST_F(TestOpalBend, SBendWithoutHapertKeepsNonzeroFallbackAperture) {
+    OpalSBend ui;
+    std::unique_ptr<OpalSBend> instance(ui.clone("SB3"));
+    Attributes::setReal(instance->itsAttr[OpalSBend::LENGTH], 0.5);
+    Attributes::setReal(instance->itsAttr[OpalSBend::ANGLE], Physics::pi / 8.0);
+
+    EXPECT_NO_THROW(instance->update());
+
+    const auto* bend = dynamic_cast<const SBendRep*>(instance->getElement());
+    ASSERT_NE(bend, nullptr);
+    const auto aperture = bend->getAperture();
+    EXPECT_GT(aperture.second.size(), 1u);
+    EXPECT_GT(aperture.second[0], 0.0);
+    EXPECT_GT(aperture.second[1], 0.0);
+}
+
+TEST_F(TestOpalBend, RBendWithoutHapertKeepsNonzeroFallbackAperture) {
+    OpalRBend ui;
+    std::unique_ptr<OpalRBend> instance(ui.clone("RB3"));
+    Attributes::setReal(instance->itsAttr[OpalRBend::LENGTH], 0.5);
+    Attributes::setReal(instance->itsAttr[OpalRBend::ANGLE], Physics::pi / 8.0);
+
+    EXPECT_NO_THROW(instance->update());
+
+    const auto* bend = dynamic_cast<const RBendRep*>(instance->getElement());
+    ASSERT_NE(bend, nullptr);
+    const auto aperture = bend->getAperture();
+    EXPECT_GT(aperture.second.size(), 1u);
+    EXPECT_GT(aperture.second[0], 0.0);
+    EXPECT_GT(aperture.second[1], 0.0);
 }

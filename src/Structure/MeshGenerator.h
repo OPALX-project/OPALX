@@ -97,6 +97,24 @@ private:
             double outerMajor, const unsigned int numSegments = 36);
 
     /**
+     * @brief Build a curved bend body by sweeping an elliptical ring along a centerline.
+     *
+     * The generated surface follows the sampled bend design path and keeps a
+     * constant transverse support ellipse. This is the first visualization mesh
+     * for analytic bends and therefore models the bend body as a smooth curved
+     * tube without end caps.
+     *
+     * @param centerline Sampled bend centerline in the local body chart.
+     * @param minor Outer semi-axis in the local y-direction.
+     * @param major Outer semi-axis in the local x-direction.
+     * @param numSegments Number of azimuthal segments per ring.
+     * @return Triangulated curved bend body mesh.
+     */
+    static MeshData getBendTube(
+            const std::vector<Vector_t<double, 3>>& centerline, double minor, double major,
+            const unsigned int numSegments = 24);
+
+    /**
      * @brief Build a quadrupole-like body from four longitudinal pole blocks.
      *
      * The pole blocks are scaled from the element aperture and extruded along
