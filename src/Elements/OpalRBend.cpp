@@ -42,15 +42,15 @@ OpalRBend* OpalRBend::clone(const std::string& name) { return new OpalRBend(name
 void OpalRBend::update() {
     OpalElement::update();
 
-    // Define geometry.
     RBendRep* bend          = dynamic_cast<RBendRep*>(getElement());
     double length           = Attributes::getReal(itsAttr[LENGTH]);
     double angle            = Attributes::getReal(itsAttr[ANGLE]);
     double e1               = Attributes::getReal(itsAttr[E1]);
     RBendGeometry& geometry = bend->getGeometry();
+    validateAnalyticBendDefinition(
+            "OpalRBend::update", itsAttr[ANGLE], itsAttr[K0], length, angle,
+            Attributes::getReal(itsAttr[K0]));
     geometry.setElementLength(length);
-    if (angle < 0) {
-    }
     geometry.setBendAngle(angle);
 
     // Define number of slices for map tracking
@@ -69,13 +69,9 @@ void OpalRBend::update() {
     // Define field.
     double factor = OpalData::getInstance()->getP0() / Physics::c;
     BMultipoleField field;
-    double k0  = itsAttr[K0] ? Attributes::getReal(itsAttr[K0])
-                 : length    ? 2 * sin(angle / 2) / length
-                             : angle;
+    double k0  = deriveAnalyticDipoleCoefficient(length, angle);
     double k0s = itsAttr[K0S] ? Attributes::getReal(itsAttr[K0S]) : 0.0;
-    // JMJ 4/10/2000: above line replaced
-    //     length ? angle / length : angle;
-    //  to avoid closed orbit created by RBEND with defalt K0.
+
     field.setNormalComponent(0, factor * k0);
     field.setSkewComponent(0, factor * Attributes::getReal(itsAttr[K0S]));
     field.setNormalComponent(1, factor * Attributes::getReal(itsAttr[K1]));
@@ -86,23 +82,19 @@ void OpalRBend::update() {
     field.setSkewComponent(3, factor * Attributes::getReal(itsAttr[K3S]) / 6.0);
     bend->setField(field);
 
-    // Set field amplitude or bend angle.
-    if (itsAttr[ANGLE]) {
-        if (bend->isPositioned() && angle < 0.0) {
-            e1    = -e1;
-            angle = -angle;
+    if (bend->isPositioned() && angle < 0.0) {
+        e1    = -e1;
+        angle = -angle;
 
-            Quaternion rotAboutZ(0, 0, 0, 1);
-            CoordinateSystemTrafo g2l = bend->getCSTrafoGlobal2Local();
-            bend->releasePosition();
-            bend->setCSTrafoGlobal2Local(
-                    CoordinateSystemTrafo(g2l.getOrigin(), rotAboutZ * g2l.getRotation()));
-            bend->fixPosition();
-        }
-        bend->setBendAngle(angle);
-    } else {
-        bend->setFieldAmplitude(k0, k0s);
+        Quaternion rotAboutZ(0, 0, 0, 1);
+        CoordinateSystemTrafo g2l = bend->getCSTrafoGlobal2Local();
+        bend->releasePosition();
+        bend->setCSTrafoGlobal2Local(
+                CoordinateSystemTrafo(g2l.getOrigin(), rotAboutZ * g2l.getRotation()));
+        bend->fixPosition();
     }
+    bend->setBendAngle(angle);
+    bend->setFieldAmplitude(k0, k0s);
     bend->setEntranceAngle(e1);
 
     if (itsAttr[ROTATION])

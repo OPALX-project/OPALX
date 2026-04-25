@@ -19,16 +19,22 @@
 // ------------------------------------------------------------------------
 
 #include "Elements/OpalBend.h"
-#include <iostream>
+
 #include "Attributes/Attributes.h"
+#include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
+
+#include <cmath>
+#include <iostream>
+#include <limits>
 
 // Class OpalBend
 // ------------------------------------------------------------------------
 
 OpalBend::OpalBend(const char* name, const char* help) : OpalElement(SIZE, name, help) {
-    itsAttr[ANGLE]    = Attributes::makeReal("ANGLE", "Upright dipole coefficient in m^(-1)");
-    itsAttr[K0]       = Attributes::makeReal("K0", "Normal dipole coefficient in m^(-1)");
+    itsAttr[ANGLE] = Attributes::makeReal("ANGLE", "Total analytic bend angle in rad");
+    itsAttr[K0]    = Attributes::makeReal(
+            "K0", "Deprecated normal dipole coefficient in m^(-1), checked against ANGLE / L");
     itsAttr[K0S]      = Attributes::makeReal("K0S", "Skew dipole coefficient in m^(-1)");
     itsAttr[K1]       = Attributes::makeReal("K1", "Upright quadrupole coefficient in m^(-2)");
     itsAttr[K1S]      = Attributes::makeReal("K1S", "Skew quadrupole coefficient in m^(-2)");
@@ -61,3 +67,42 @@ OpalBend::OpalBend(const std::string& name, OpalBend* parent) : OpalElement(name
 OpalBend::~OpalBend() {}
 
 void OpalBend::print(std::ostream& os) const { OpalElement::print(os); }
+
+double OpalBend::deriveAnalyticDipoleCoefficient(const double arcLength, const double angle) {
+    if (std::abs(arcLength) <= std::numeric_limits<double>::epsilon()) {
+        return angle;
+    }
+
+    return angle / arcLength;
+}
+
+void OpalBend::validateAnalyticBendDefinition(
+        const std::string& elementName, const bool hasAngle, const bool hasK0,
+        const double arcLength, const double angle, const double k0Input) {
+    if (!hasAngle) {
+        throw OpalException(
+                elementName,
+                "ANGLE is mandatory for analytic bend geometry. K0 is only supported as a "
+                "consistency-check quantity.");
+    }
+
+    if (!hasK0) {
+        return;
+    }
+
+    if (arcLength <= 0.0) {
+        throw OpalException(
+                elementName,
+                "K0 consistency checking requires a positive LENGTH so that K0 can be compared "
+                "against ANGLE / L.");
+    }
+
+    const double derivedK0 = deriveAnalyticDipoleCoefficient(arcLength, angle);
+    const double tolerance = 1.0e-12 + 1.0e-9 * std::max(std::abs(derivedK0), std::abs(k0Input));
+    if (std::abs(k0Input - derivedK0) > tolerance) {
+        throw OpalException(
+                elementName,
+                "Inconsistent analytic bend definition: K0 must satisfy K0 = ANGLE / L within "
+                "tolerance for SBEND/RBEND without fringe fields.");
+    }
+}

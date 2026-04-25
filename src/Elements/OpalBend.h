@@ -71,6 +71,44 @@ protected:
     /// Clone constructor.
     OpalBend(const std::string& name, OpalBend* parent);
 
+    /**
+     * @brief Return the dipole coefficient implied by an analytic bend angle.
+     *
+     * For the first OPALX-native analytic bend model the geometry is defined by
+     * the total bend angle \f$\theta\f$ and the arc length \f$L\f$. The
+     * corresponding ideal dipole coefficient is therefore
+     * \f[
+     * k_0 = \frac{\theta}{L}.
+     * \f]
+     *
+     * When no positive body length is available, the angle itself is returned
+     * as the legacy zero-length fallback used by the historical OPAL parser.
+     *
+     * @param arcLength Nominal bend arc length.
+     * @param angle Total bend angle in radians.
+     * @return Ideal analytic dipole coefficient.
+     */
+    static double deriveAnalyticDipoleCoefficient(double arcLength, double angle);
+
+    /**
+     * @brief Validate the analytic bend-definition inputs.
+     *
+     * The OPALX analytic `SBEND`/`RBEND` model uses `ANGLE` as the primary
+     * geometric quantity. `K0` is treated as a secondary quantity that may be
+     * supplied only for consistency checking against
+     * \f$k_0 = \theta / L\f$.
+     *
+     * @param elementName Name used in exception messages.
+     * @param hasAngle True if the input explicitly defines `ANGLE`.
+     * @param hasK0 True if the input explicitly defines `K0`.
+     * @param arcLength Nominal bend arc length.
+     * @param angle Total bend angle in radians.
+     * @param k0Input User-provided dipole coefficient.
+     */
+    static void validateAnalyticBendDefinition(
+            const std::string& elementName, bool hasAngle, bool hasK0, double arcLength,
+            double angle, double k0Input);
+
 private:
     // Not implemented.
     OpalBend(const OpalBend&);
