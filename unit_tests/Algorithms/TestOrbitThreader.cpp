@@ -9,6 +9,7 @@
 #include "BeamlineGeometry/PlacementPose.h"
 #include "Beamlines/Beamline.h"
 #include "Elements/OpalBeamline.h"
+#include "Fields/NullField.h"
 #include "Structure/Beam.h"
 #include "Structure/DataSink.h"
 #include "Structure/FieldSolverCmd.h"
@@ -34,6 +35,64 @@ namespace {
 
     private:
         NullGeometry geometry_;
+    };
+
+    /**
+     * @brief Mock component with zero body extent but finite field-support extent.
+     *
+     * This models the post-redesign case where placement/geometry uses the body
+     * extent while tracking constraints must use the field-support interval.
+     */
+    class FieldSupportOnlyComponent final : public Component {
+    public:
+        FieldSupportOnlyComponent(
+                const std::string& name, const double fieldBegin, const double fieldEnd)
+            : Component(name), fieldBegin_m(fieldBegin), fieldEnd_m(fieldEnd) {}
+
+        void accept(BeamlineVisitor&) const override {}
+        ElementBase* clone() const override { return new FieldSupportOnlyComponent(*this); }
+
+        EMField& getField() override { return field_m; }
+        const EMField& getField() const override { return field_m; }
+
+        bool apply(const std::shared_ptr<ParticleContainer_t>&) override { return false; }
+
+        bool apply(
+                const size_t&, const double&, Vector_t<double, 3>&, Vector_t<double, 3>&) override {
+            return false;
+        }
+
+        bool apply(
+                const Vector_t<double, 3>&, const Vector_t<double, 3>&, const double&,
+                Vector_t<double, 3>&, Vector_t<double, 3>&) override {
+            return false;
+        }
+
+        bool applyToReferenceParticle(
+                const Vector_t<double, 3>&, const Vector_t<double, 3>&, const double&,
+                Vector_t<double, 3>&, Vector_t<double, 3>&) override {
+            return false;
+        }
+
+        void initialise(PartBunch_t*, double&, double&) override {}
+        void finalise() override {}
+        bool bends() const override { return false; }
+
+        void getFieldExtend(double& zBegin, double& zEnd) const override {
+            zBegin = fieldBegin_m;
+            zEnd   = fieldEnd_m;
+        }
+
+        ElementType getType() const override { return ElementType::ANY; }
+
+        BGeometryBase& getGeometry() override { return geometry_m; }
+        const BGeometryBase& getGeometry() const override { return geometry_m; }
+
+    private:
+        double fieldBegin_m;
+        double fieldEnd_m;
+        NullGeometry geometry_m;
+        NullField field_m;
     };
 }  // namespace
 
@@ -114,6 +173,16 @@ protected:
         return quadrupole;
     }
 
+    std::shared_ptr<FieldSupportOnlyComponent> makePlacedFieldSupportOnlyComponent(
+            const std::string& name, const double entryPosition, const double fieldLength) {
+        auto component = std::make_shared<FieldSupportOnlyComponent>(name, 0.0, fieldLength);
+        component->setElementLength(0.0);
+        component->setPlacementPose(PlacementPose(
+                CoordinateSystemTrafo(Vector_t<double, 3>(0.0, 0.0, entryPosition), Quaternion())));
+        component->fixPosition();
+        return component;
+    }
+
     std::shared_ptr<FieldSolverCmd> fsCmdBase_m;
     std::shared_ptr<DataSink> dataSink_m;
 };
@@ -190,4 +259,27 @@ TEST_F(OrbitThreaderTest, ExecutesOverlapAndBuildsTracedAndRegistrationModels) {
         registeredNames.insert((*segment.getActiveElements().begin())->getName());
     }
     EXPECT_EQ(registeredNames, (std::set<std::string>{"Q_LONG", "Q_SHORT"}));
+}
+
+TEST_F(OrbitThreaderTest, UsesFieldSupportExtentForLengthCheck) {
+    auto bunch = makeBunch(0);
+
+    DummyBeamline beamlineForVisitor;
+    DefaultVisitor visitor(beamlineForVisitor, false, false);
+
+    OpalBeamline beamline;
+    auto component = makePlacedFieldSupportOnlyComponent("TW_LIKE", 0.0, 0.1);
+    beamline.visit(*component, visitor, *bunch);
+    beamline.prepareSections();
+
+    StepSizeConfig stepSizes;
+    stepSizes.push_back(1.0e-12, 0.2, 64);
+    stepSizes.resetIterator();
+
+    PartData reference(1.0, 9.382720813e8, 1.0e6);
+    OrbitThreader threader(
+            reference, Vector_t<double, 3>(0.0), Vector_t<double, 3>(0.0, 0.0, 1.0), 0.0, 0.0, 0.0,
+            1.0e-12, stepSizes, beamline);
+
+    EXPECT_NO_THROW(threader.execute());
 }
