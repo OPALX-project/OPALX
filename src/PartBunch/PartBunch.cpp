@@ -21,10 +21,8 @@
 template <typename T, unsigned Dim>
 PartBunch<T, Dim>::PartBunch(
         std::vector<double> qi, std::vector<double> mi, const std::vector<Beam*>& beams,
-        std::vector<size_t> totalParticlesPerBeam,
-        /*int nt,*/
-        double lbt, std::string integration_method, FieldSolverCmd* OPALFieldSolver,
-        DataSink* dataSink)
+        std::vector<size_t> totalParticlesPerBeam, double lbt, std::string integration_method,
+        FieldSolverCmd* OPALFieldSolver, DataSink* dataSink)
     : ippl::PicManager<
               T, Dim, ParticleContainer<T, Dim>, FieldContainer<T, Dim>, LoadBalancer<T, Dim>>(),
       dt_m(0),
@@ -33,7 +31,6 @@ PartBunch<T, Dim>::PartBunch(
       solver_m(""),
       lbt_m(lbt),
       isFirstRepartition_m(true),
-      // nt_m(nt),
       OPALFieldSolver_m(OPALFieldSolver),
       dataSink_m(dataSink),
       globalTrackStep_m(0),
