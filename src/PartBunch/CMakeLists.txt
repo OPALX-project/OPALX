@@ -11,6 +11,7 @@ set (HDRS
     BunchStateHandler.h
     FieldSolver.hpp
     FieldContainer.hpp
+    FieldMirror.hpp
     LoadBalancer.hpp
     ParticleContainer.hpp
     BCHandler.hpp
