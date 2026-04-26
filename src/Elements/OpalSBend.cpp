@@ -17,7 +17,6 @@
 //
 #include "Elements/OpalSBend.h"
 #include <cmath>
-#include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/SBendRep.h"
 #include "Fields/BMultipoleField.h"
@@ -92,20 +91,19 @@ void OpalSBend::update() {
     bend->setStepsize(Attributes::getReal(itsAttr[STEPSIZE]));
 
     // Define field.
-    double factor = OpalData::getInstance()->getP0() / Physics::c;
     BMultipoleField field;
     double k0  = deriveAnalyticDipoleCoefficient(bend->getEffectiveFieldLength(), angle);
     double k0s = itsAttr[K0S] ? Attributes::getReal(itsAttr[K0S]) : 0.0;
 
-    field.setNormalComponent(0, factor * k0);
-    field.setSkewComponent(0, factor * Attributes::getReal(itsAttr[K0S]));
-    field.setNormalComponent(1, factor * Attributes::getReal(itsAttr[K1]));
-    field.setSkewComponent(1, factor * Attributes::getReal(itsAttr[K1S]));
-    field.setNormalComponent(2, factor * Attributes::getReal(itsAttr[K2]) / 2.0);
-    field.setSkewComponent(2, factor * Attributes::getReal(itsAttr[K2S]) / 2.0);
-    field.setNormalComponent(3, factor * Attributes::getReal(itsAttr[K3]) / 6.0);
-    field.setSkewComponent(3, factor * Attributes::getReal(itsAttr[K3S]) / 6.0);
-    bend->setField(field);
+    field.setNormalComponent(0, k0);
+    field.setSkewComponent(0, Attributes::getReal(itsAttr[K0S]));
+    field.setNormalComponent(1, Attributes::getReal(itsAttr[K1]));
+    field.setSkewComponent(1, Attributes::getReal(itsAttr[K1S]));
+    field.setNormalComponent(2, Attributes::getReal(itsAttr[K2]) / 2.0);
+    field.setSkewComponent(2, Attributes::getReal(itsAttr[K2S]) / 2.0);
+    field.setNormalComponent(3, Attributes::getReal(itsAttr[K3]) / 6.0);
+    field.setSkewComponent(3, Attributes::getReal(itsAttr[K3S]) / 6.0);
+    bend->setNormalizedField(field);
 
     if (bend->isPositioned() && angle < 0.0) {
         e1    = -e1;

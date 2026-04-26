@@ -55,7 +55,7 @@ std::set<std::shared_ptr<Component>> OpalBeamline::getElements(const Vector_t<do
     const FieldList::iterator end = elements_m.end();
     for (; it != end; ++it) {
         std::shared_ptr<Component> element = (*it).getElement();
-        Vector_t<double, 3> r              = getFieldCSTrafoLab2Local(element).transformTo(x);
+        Vector_t<double, 3> r              = transformToFieldLocalCS(element, x);
 
         if (element->isInside(r)) {
             elementSet.insert(element);
@@ -278,8 +278,10 @@ void OpalBeamline::compileCompatibilityPlacement() {
             CoordinateSystemTrafo fromEndLastToBeginThis(
                     beginThis3D, (entryFaceRotation * rotationAboutZ).conjugate());
             CoordinateSystemTrafo fromEndLastToEndThis(endThis3D, rotationAboutAxis.conjugate());
-
-            setNominalPlacement(element, fromEndLastToBeginThis * currentCoordTrafo);
+            const CoordinateSystemTrafo desiredEntryPose =
+                    fromEndLastToBeginThis * currentCoordTrafo;
+            const CoordinateSystemTrafo bodyFromEntry = element->getEdgeToBegin().inverted();
+            setNominalPlacement(element, bodyFromEntry * desiredEntryPose);
 
             currentCoordTrafo = (fromEndLastToEndThis * currentCoordTrafo);
 

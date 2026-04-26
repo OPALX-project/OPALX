@@ -32,9 +32,10 @@ public:
         ippl::initialize(argc, argv);
         gmsg = new Inform(nullptr, -1);
 
-        // Analytic bend field coefficients are scaled by the OPAL reference
-        // momentum P0. Construct the standard REAL variable environment so P0
-        // exists during parser/update tests.
+        // Construct the standard REAL variable environment used by parser-
+        // driven element updates. The analytic bend runtime normalization no
+        // longer depends on parser-global P0, but the surrounding attribute
+        // infrastructure still expects the REAL variable registry to exist.
         realVariableFactory_m = std::make_unique<RealVariable>();
     }
 
@@ -116,9 +117,12 @@ TEST_F(TestOpalBend, RBendRequiresAngleAndUsesAngleOverK0) {
     EXPECT_THROW(invalidInstance->update(), OpalException);
 
     std::unique_ptr<OpalRBend> validInstance(ui.clone("RB2"));
+    const double length       = 1.5;
+    const double angle        = 0.3;
+    const double consistentK0 = angle / (length * (angle / 2.0) / std::sin(angle / 2.0));
     Attributes::setReal(validInstance->itsAttr[OpalRBend::LENGTH], 1.5);
     Attributes::setReal(validInstance->itsAttr[OpalRBend::ANGLE], 0.3);
-    Attributes::setReal(validInstance->itsAttr[OpalRBend::K0], 0.2);
+    Attributes::setReal(validInstance->itsAttr[OpalRBend::K0], consistentK0);
 
     EXPECT_NO_THROW(validInstance->update());
 
@@ -126,7 +130,7 @@ TEST_F(TestOpalBend, RBendRequiresAngleAndUsesAngleOverK0) {
     ASSERT_NE(bend, nullptr);
     EXPECT_NEAR(bend->getGeometry().getElementLength(), 1.5, 1.0e-12);
     EXPECT_NEAR(bend->getGeometry().getBendAngle(), 0.3, 1.0e-12);
-    EXPECT_NEAR(bend->getFieldAmplitude(), 0.2, 1.0e-12);
+    EXPECT_NEAR(bend->getFieldAmplitude(), consistentK0, 1.0e-12);
 }
 
 TEST_F(TestOpalBend, RBendFringeSupportUsesGapFallbackForHalfGap) {

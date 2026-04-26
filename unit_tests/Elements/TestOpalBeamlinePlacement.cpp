@@ -4,6 +4,7 @@
 #include "AbsBeamline/BendBase.h"
 #include "AbstractObjects/OpalData.h"
 #include "BeamlineCore/DriftRep.h"
+#include "BeamlineCore/RBendRep.h"
 #include "BeamlineCore/SBendRep.h"
 #include "BeamlineGeometry/NullGeometry.h"
 #include "BeamlineGeometry/PlacementPose.h"
@@ -323,7 +324,6 @@ TEST_F(OpalBeamlinePlacementTest, PrintPlacementSummaryReportsBodyPoseOnOneLineP
     EXPECT_NE(text.find("D7"), std::string::npos);
     EXPECT_NE(text.find("1.0\t2.0\t3.0\t0.0\t0.0\t315.0"), std::string::npos);
     EXPECT_NE(text.find("B1"), std::string::npos);
-    EXPECT_NE(text.find("0.0\t0.0\t10.0"), std::string::npos);
     EXPECT_NE(text.find("Local body/field extents:"), std::string::npos);
     EXPECT_NE(text.find("BODY_BEGIN\tBODY_END\tFIELD_BEGIN\tFIELD_END"), std::string::npos);
     EXPECT_NE(text.find("B1"), std::string::npos);
@@ -356,6 +356,35 @@ TEST_F(OpalBeamlinePlacementTest, Save3DLatticeExportsFieldExtentMarkersWhenSupp
 
     EXPECT_NE(content.find("\"FIELD BEGIN: B2\""), std::string::npos);
     EXPECT_NE(content.find("\"FIELD END: B2\""), std::string::npos);
+}
+
+TEST_F(OpalBeamlinePlacementTest, PrepareSectionsPlacesCompatibilitySBendByEntryEdge) {
+    auto bunch = makeBunch(0);
+    DummyBeamline beamlineForVisitor;
+    DefaultVisitor visitor(beamlineForVisitor, false, false);
+
+    SBendRep bend("B3");
+    bend.getGeometry() = PlanarArcGeometry(1.0, Physics::pi / 4.0);
+    bend.setElementLength(1.0);
+    bend.setBendAngle(Physics::pi / 4.0);
+    bend.setElementPosition(0.0);
+
+    OpalBeamline beamline;
+    beamline.visit(bend, visitor, *bunch);
+    beamline.prepareSections();
+
+    const auto elements = beamline.getElements();
+    ASSERT_EQ(elements.size(), 1u);
+    const auto component = *elements.begin();
+
+    expectVectorNear(
+            beamline.getNominalEntryTransform(component).getOrigin(), Vector3(0.0, 0.0, 0.0));
+
+    const Vector3 bodyOrigin =
+            beamline.getPlacedElement(component).getNominalBodyTransform().getOrigin();
+    EXPECT_NEAR(bodyOrigin(0), -0.09691958937035704, 1.0e-12);
+    EXPECT_NEAR(bodyOrigin(1), 0.0, 1.0e-12);
+    EXPECT_NEAR(bodyOrigin(2), 0.48724767920221634, 1.0e-12);
 }
 
 TEST_F(OpalBeamlinePlacementTest, ReportPortContinuityDiagnosticsFlagsGapToFollowingElement) {
@@ -481,6 +510,84 @@ TEST_F(OpalBeamlinePlacementTest, RuntimeElementQueryRecognizesBendOnExportedCen
     const auto active = beamline.getElements(labPoint);
     EXPECT_EQ(active.size(), 1u);
     EXPECT_EQ((*active.begin())->getName(), "B1");
+}
+
+TEST_F(OpalBeamlinePlacementTest, SBendFieldChartMapsDesignArcToArcLengthCoordinate) {
+    auto bunch = makeBunch(0);
+    DummyBeamline beamlineForVisitor;
+    DefaultVisitor visitor(beamlineForVisitor, false, false);
+
+    SBendRep bend("B4");
+    bend.getGeometry() = PlanarArcGeometry(1.0, Physics::pi / 4.0);
+    bend.setElementLength(1.0);
+    bend.setBendAngle(Physics::pi / 4.0);
+    bend.setElementPosition(0.0);
+
+    OpalBeamline beamline;
+    beamline.visit(bend, visitor, *bunch);
+    beamline.prepareSections();
+
+    const auto elements = beamline.getElements();
+    ASSERT_EQ(elements.size(), 1u);
+    const auto component    = *elements.begin();
+    const auto* bendElement = dynamic_cast<const BendBase*>(component.get());
+    ASSERT_NE(bendElement, nullptr);
+
+    const std::vector<Vector3> designPath = bendElement->getDesignPath(9);
+    ASSERT_GE(designPath.size(), 9u);
+    const std::size_t midIndex = designPath.size() / 2u;
+
+    const Vector3 entryLab =
+            beamline.getPlacedElement(component).getNominalBodyTransform().transformFrom(
+                    designPath.front());
+    const Vector3 midLab =
+            beamline.getPlacedElement(component).getNominalBodyTransform().transformFrom(
+                    designPath[midIndex]);
+    const Vector3 exitLab =
+            beamline.getPlacedElement(component).getNominalBodyTransform().transformFrom(
+                    designPath.back());
+
+    const Vector3 entryLocal = beamline.transformToFieldLocalCS(component, entryLab);
+    const Vector3 midLocal   = beamline.transformToFieldLocalCS(component, midLab);
+    const Vector3 exitLocal  = beamline.transformToFieldLocalCS(component, exitLab);
+
+    EXPECT_NEAR(entryLocal(2), 0.0, 1.0e-12);
+    EXPECT_NEAR(midLocal(2), 0.5, 1.0e-12);
+    EXPECT_NEAR(exitLocal(2), 1.0, 1.0e-12);
+}
+
+TEST_F(OpalBeamlinePlacementTest, RBendFieldChartMapsChordCoordinatesToBodyLength) {
+    auto bunch = makeBunch(0);
+    DummyBeamline beamlineForVisitor;
+    DefaultVisitor visitor(beamlineForVisitor, false, false);
+
+    RBendRep bend("RB4");
+    bend.getGeometry().setElementLength(1.0);
+    bend.getGeometry().setBendAngle(Physics::pi / 4.0);
+    bend.setElementLength(1.0);
+    bend.setBendAngle(Physics::pi / 4.0);
+    bend.setElementPosition(0.0);
+
+    OpalBeamline beamline;
+    beamline.visit(bend, visitor, *bunch);
+    beamline.prepareSections();
+
+    const auto elements = beamline.getElements();
+    ASSERT_EQ(elements.size(), 1u);
+    const auto component = *elements.begin();
+
+    const Vector3 entryLab = beamline.getNominalEntryTransform(component).getOrigin();
+    const Vector3 bodyLab =
+            beamline.getPlacedElement(component).getNominalBodyTransform().getOrigin();
+    const Vector3 exitLab = beamline.getNominalExitTransform(component).getOrigin();
+
+    const Vector3 entryLocal = beamline.transformToFieldLocalCS(component, entryLab);
+    const Vector3 bodyLocal  = beamline.transformToFieldLocalCS(component, bodyLab);
+    const Vector3 exitLocal  = beamline.transformToFieldLocalCS(component, exitLab);
+
+    EXPECT_NEAR(entryLocal(2), 0.0, 1.0e-12);
+    EXPECT_NEAR(bodyLocal(2), 0.5, 1.0e-12);
+    EXPECT_NEAR(exitLocal(2), 1.0, 1.0e-12);
 }
 
 TEST_F(OpalBeamlinePlacementTest, ElementPositionsScriptStaysValidWithEmptyTriangleMeshBlocks) {

@@ -27,6 +27,17 @@ public:
     const RBendGeometry& getGeometry() const override = 0;
 
     double getExitAngle() const override;
+
+protected:
+    /**
+     * @brief Return the rectangular-bend design-path body length.
+     *
+     * For an `RBEND` the placed hardware body is straight, but the analytic
+     * dipole field is normalized on the curved design reference path tangent to
+     * the rotated entrance and exit faces. The corresponding path length is the
+     * arc-equivalent length reported by `RBendGeometry`.
+     */
+    double getReferencePathLength() const override;
 };
 
 #endif  // OPALX_RBend_HH

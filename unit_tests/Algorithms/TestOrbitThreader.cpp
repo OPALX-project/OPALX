@@ -12,6 +12,8 @@
 #include "BeamlineGeometry/PlanarArcGeometry.h"
 #include "Beamlines/Beamline.h"
 #include "Elements/OpalBeamline.h"
+#include "Physics/Physics.h"
+#include "Physics/Units.h"
 #include "Structure/Beam.h"
 #include "Structure/DataSink.h"
 #include "Structure/FieldSolverCmd.h"
@@ -20,7 +22,9 @@
 #include "Utility/Inform.h"
 
 #include <filesystem>
+#include <fstream>
 #include <set>
+#include <sstream>
 
 extern Inform* gmsg;
 
@@ -39,6 +43,72 @@ namespace {
     private:
         NullGeometry geometry_;
     };
+
+    struct DesignPathRow {
+        double s;
+        double rx;
+        double ry;
+        double rz;
+        double px;
+        double py;
+        double pz;
+        double efx;
+        double efy;
+        double efz;
+        double bfx;
+        double bfy;
+        double bfz;
+        double ekin;
+        double time;
+    };
+
+    DesignPathRow readLastDesignPathRow(const std::filesystem::path& path) {
+        std::ifstream stream(path);
+        EXPECT_TRUE(stream.is_open());
+
+        DesignPathRow lastRow{};
+        std::string line;
+        bool foundRow = false;
+        while (std::getline(stream, line)) {
+            if (line.empty() || line.front() == '#') {
+                continue;
+            }
+
+            std::istringstream row(line);
+            row >> lastRow.s >> lastRow.rx >> lastRow.ry >> lastRow.rz >> lastRow.px >> lastRow.py
+                    >> lastRow.pz >> lastRow.efx >> lastRow.efy >> lastRow.efz >> lastRow.bfx
+                    >> lastRow.bfy >> lastRow.bfz >> lastRow.ekin >> lastRow.time;
+            EXPECT_FALSE(row.fail());
+            foundRow = true;
+        }
+
+        EXPECT_TRUE(foundRow);
+        return lastRow;
+    }
+
+    DesignPathRow readFirstDesignPathRow(const std::filesystem::path& path) {
+        std::ifstream stream(path);
+        EXPECT_TRUE(stream.is_open());
+
+        DesignPathRow firstRow{};
+        std::string line;
+        while (std::getline(stream, line)) {
+            if (line.empty() || line.front() == '#') {
+                continue;
+            }
+
+            std::istringstream row(line);
+            row >> firstRow.s >> firstRow.rx >> firstRow.ry >> firstRow.rz >> firstRow.px
+                    >> firstRow.py >> firstRow.pz >> firstRow.efx >> firstRow.efy >> firstRow.efz
+                    >> firstRow.bfx >> firstRow.bfy >> firstRow.bfz >> firstRow.ekin
+                    >> firstRow.time;
+            EXPECT_FALSE(row.fail());
+            return firstRow;
+        }
+
+        ADD_FAILURE() << "No data rows found in design-path file: " << path;
+        return firstRow;
+    }
 }  // namespace
 
 class OrbitThreaderTest : public ::testing::Test {
@@ -255,4 +325,66 @@ TEST_F(OrbitThreaderTest, ThrowsDiagnosticForPlacedElementOutsideTracedReference
                 }
             },
             OpalException);
+}
+
+TEST_F(OrbitThreaderTest, LogsPostStepDesignPathStateAtZStopForSimpleDrift) {
+    constexpr double dt     = 1.0e-11;
+    const double stepLength = Physics::c * dt / std::sqrt(2.0);
+    const double zStop      = 4.0 * stepLength;
+
+    StepSizeConfig stepSizes;
+    stepSizes.push_back(dt, zStop, 64);
+    stepSizes.resetIterator();
+
+    PartData reference(1.0, 9.382720813e8, 1.0e6);
+    OpalBeamline beamline;
+
+    {
+        OrbitThreader threader(
+                reference, Vector_t<double, 3>(0.0), Vector_t<double, 3>(0.0, 0.0, 1.0), 0.0, 0.0,
+                0.0, dt, stepSizes, beamline);
+        threader.execute();
+    }
+
+    const std::filesystem::path designPathFile =
+            std::filesystem::path(OpalData::getInstance()->getAuxiliaryOutputDirectory())
+            / "TestOrbitThreader_DesignPath.dat";
+    const DesignPathRow firstRow = readFirstDesignPathRow(designPathFile);
+    const DesignPathRow lastRow  = readLastDesignPathRow(designPathFile);
+
+    EXPECT_NEAR(firstRow.s, 0.0, 1.0e-14);
+    EXPECT_NEAR(firstRow.rz, 0.0, 1.0e-14);
+    EXPECT_NEAR(firstRow.time, 0.0, 1.0e-14);
+    EXPECT_NEAR(lastRow.s, zStop, 1.0e-10);
+    EXPECT_NEAR(lastRow.rz, zStop, 1.0e-10);
+    EXPECT_NEAR(lastRow.time, 4.0 * dt * Units::s2ns, 1.0e-10);
+}
+
+TEST_F(OrbitThreaderTest, LogsInterpolatedTerminalPointWhenSimpleDriftOvershootsZStop) {
+    constexpr double dt     = 1.0e-11;
+    const double stepLength = Physics::c * dt / std::sqrt(2.0);
+    const double zStop      = 3.25 * stepLength;
+
+    StepSizeConfig stepSizes;
+    stepSizes.push_back(dt, zStop, 64);
+    stepSizes.resetIterator();
+
+    PartData reference(1.0, 9.382720813e8, 1.0e6);
+    OpalBeamline beamline;
+
+    {
+        OrbitThreader threader(
+                reference, Vector_t<double, 3>(0.0), Vector_t<double, 3>(0.0, 0.0, 1.0), 0.0, 0.0,
+                0.0, dt, stepSizes, beamline);
+        threader.execute();
+    }
+
+    const std::filesystem::path designPathFile =
+            std::filesystem::path(OpalData::getInstance()->getAuxiliaryOutputDirectory())
+            / "TestOrbitThreader_DesignPath.dat";
+    const DesignPathRow lastRow = readLastDesignPathRow(designPathFile);
+
+    EXPECT_NEAR(lastRow.s, zStop, 1.0e-10);
+    EXPECT_NEAR(lastRow.rz, zStop, 1.0e-10);
+    EXPECT_NEAR(lastRow.time, 3.25 * dt * Units::s2ns, 1.0e-10);
 }

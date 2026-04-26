@@ -4,6 +4,7 @@
 #include "AbsBeamline/Component.h"
 #include "Fields/BMultipoleField.h"
 
+#include <cmath>
 #include <cstddef>
 #include <string>
 #include <vector>
@@ -40,8 +41,13 @@
  * The corresponding effective integrated field length of the linear-ramp
  * hard-edge model is
  * \f[
- * L_\mathrm{eff} = L + \frac{\ell_\mathrm{entry} + \ell_\mathrm{exit}}{2}.
+ * L_\mathrm{eff} = L_\mathrm{ref}
+ *                + \frac{\ell_\mathrm{entry} + \ell_\mathrm{exit}}{2},
  * \f]
+ * where \f$L_\mathrm{ref}\f$ is the body length measured along the design
+ * reference path. For sector bends this equals the placed arc length, while
+ * for rectangular bends it is the reference-path length between the rotated
+ * entrance and exit faces rather than the straight body chord.
  *
  * The first optics-level fringe model starts from the standard hard-edge
  * edge-focusing relations
@@ -61,6 +67,14 @@
  * OPALX realizes these first-order optics effects through an equivalent
  * distributed fringe-field correction across the entry and exit support
  * regions while keeping the bend body-placement semantics unchanged.
+ *
+ * The analytic multipole strengths are stored internally in the normalized
+ * lattice convention \f$k_n\f$ and converted to physical Tesla coefficients
+ * only when a reference rigidity is available. If `DESIGNENERGY` is provided,
+ * the runtime scaling uses that kinetic energy together with the bunch species
+ * mass and charge. Otherwise the scaling uses the bunch reference momentum
+ * directly. This avoids coupling bend tracking strength to the parser-global
+ * variable \f$P_0\f$.
  */
 class BendBase : public Component {
 public:
@@ -164,6 +178,38 @@ public:
     void setFieldAmplitude(double k0, double k0s);
     double getFieldAmplitude() const;
 
+    /**
+     * @brief Store the normalized analytic multipole strengths.
+     *
+     * The coefficients are stored in lattice convention and later converted to
+     * physical Tesla strengths from either the explicit design energy or the
+     * runtime bunch reference momentum.
+     */
+    void setNormalizedField(const BMultipoleField& field);
+
+    /**
+     * @brief Resolve the reference momentum used for runtime field scaling.
+     *
+     * If `DESIGNENERGY` is set, the bend uses the corresponding momentum for
+     * the given particle mass. Otherwise it uses the bunch reference momentum.
+     *
+     * @param bunchReferenceMomentumEV Bunch reference momentum in eV/c.
+     * @param massEV Particle rest mass in eV.
+     * @return Selected reference momentum in eV/c.
+     */
+    double resolveReferenceMomentumEV(double bunchReferenceMomentumEV, double massEV) const;
+
+    /**
+     * @brief Convert the stored normalized multipole strengths to Tesla units.
+     *
+     * The supplied momentum is interpreted as the reference momentum in eV/c.
+     * The physical multipole coefficients are obtained from
+     * \f[
+     * B_n = \frac{p_0}{q c} k_n.
+     * \f]
+     */
+    void updatePhysicalFieldFromMomentumEV(double referenceMomentumEV, double charge);
+
     void setFieldMapFN(std::string fileName);
     std::string getFieldMapFN() const;
 
@@ -208,6 +254,12 @@ public:
 
     /**
      * @brief Return the effective integrated field length of the fringe model.
+     *
+     * The effective length is defined on the design reference path used to
+     * normalize the analytic dipole field. For sector bends this is the arc
+     * length of the body. For rectangular bends it is the design-path length
+     * between the rotated entrance and exit faces, which differs from the
+     * straight body length.
      */
     double getEffectiveFieldLength() const;
 
@@ -237,10 +289,22 @@ protected:
     double getEntryEdgeVerticalStrength() const;
     double getExitEdgeVerticalStrength() const;
     void updateFieldSupportExtent();
+    void updatePhysicalFieldFromReference();
+    /**
+     * @brief Return the hard-edge design-path body length used for curvature.
+     *
+     * This is the longitudinal extent of the bend body measured along the
+     * reference path used to define the nominal deflection angle. The default
+     * implementation uses the nominal body length itself; `RBEND` overrides
+     * this with its arc-equivalent design-path length through the rotated
+     * faces.
+     */
+    virtual double getReferencePathLength() const;
 
 private:
     static void computeFieldHost(
             const Vector_t<double, 3>& R, const BMultipoleField& field, Vector_t<double, 3>& B);
+    double getReferenceMomentumEV() const;
 
     double startField_m;
     double endField_m;
@@ -257,6 +321,8 @@ private:
     double fieldAmplitudeX_m;
     double fieldAmplitudeY_m;
     double fieldAmplitude_m;
+    BMultipoleField normalizedField_m;
+    bool hasNormalizedField_m;
     std::string fileName_m;
     double entryFaceRotation_m;
     double exitFaceRotation_m;
@@ -331,6 +397,21 @@ inline void BendBase::setFieldAmplitude(double k0, double k0s) {
 
 inline double BendBase::getFieldAmplitude() const { return fieldAmplitude_m; }
 
+inline void BendBase::setNormalizedField(const BMultipoleField& field) {
+    normalizedField_m    = field;
+    hasNormalizedField_m = true;
+}
+
+inline double BendBase::resolveReferenceMomentumEV(
+        const double bunchReferenceMomentumEV, const double massEV) const {
+    if (designEnergy_m > 0.0) {
+        const double gamma = designEnergy_m / massEV + 1.0;
+        return std::sqrt(gamma * gamma - 1.0) * massEV;
+    }
+
+    return bunchReferenceMomentumEV;
+}
+
 inline void BendBase::setFieldMapFN(std::string fileName) { fileName_m = std::move(fileName); }
 
 inline std::string BendBase::getFieldMapFN() const { return fileName_m; }
@@ -379,8 +460,10 @@ inline double BendBase::getExitFringeSupportLength() const {
     return std::max(0.0, fieldEnd_m - getElementLength());
 }
 
+inline double BendBase::getReferencePathLength() const { return getElementLength(); }
+
 inline double BendBase::getEffectiveFieldLength() const {
-    return getElementLength()
+    return getReferencePathLength()
            + 0.5 * (getEntryFringeSupportLength() + getExitFringeSupportLength());
 }
 

@@ -71,6 +71,8 @@ BendBase::BendBase(const BendBase& right)
       fieldAmplitudeX_m(right.fieldAmplitudeX_m),
       fieldAmplitudeY_m(right.fieldAmplitudeY_m),
       fieldAmplitude_m(right.fieldAmplitude_m),
+      normalizedField_m(right.normalizedField_m),
+      hasNormalizedField_m(right.hasNormalizedField_m),
       fileName_m(right.fileName_m),
       entryFaceRotation_m(right.entryFaceRotation_m),
       exitFaceRotation_m(right.exitFaceRotation_m),
@@ -98,6 +100,8 @@ BendBase::BendBase(const std::string& name)
       fieldAmplitudeX_m(0.0),
       fieldAmplitudeY_m(0.0),
       fieldAmplitude_m(0.0),
+      normalizedField_m(),
+      hasNormalizedField_m(false),
       fileName_m(),
       entryFaceRotation_m(0.0),
       exitFaceRotation_m(0.0),
@@ -113,6 +117,7 @@ BendBase::~BendBase() = default;
 void BendBase::initialise(PartBunch_t* bunch, double& startField, double& endField) {
     RefPartBunch_m = bunch;
     updateFieldSupportExtent();
+    updatePhysicalFieldFromReference();
     startField_m = startField + fieldBegin_m;
     endField_m   = startField + fieldEnd_m;
     endField     = endField_m;
@@ -392,7 +397,8 @@ std::vector<Vector_t<double, 3>> BendBase::getDesignPath(std::size_t minSamples)
 double BendBase::calcDesignRadius(double fieldAmplitude) const {
     const auto& reference  = *RefPartBunch_m->getParticleContainer()->getReference();
     const double mass      = reference.getM();
-    const double betaGamma = calcBetaGamma();
+    const double momentum  = getReferenceMomentumEV();
+    const double betaGamma = momentum / mass;
     const double charge    = reference.getQ();
     return std::abs(betaGamma * mass / (Physics::c * fieldAmplitude * charge));
 }
@@ -400,7 +406,8 @@ double BendBase::calcDesignRadius(double fieldAmplitude) const {
 double BendBase::calcFieldAmplitude(double radius) const {
     const auto& reference  = *RefPartBunch_m->getParticleContainer()->getReference();
     const double mass      = reference.getM();
-    const double betaGamma = calcBetaGamma();
+    const double momentum  = getReferenceMomentumEV();
+    const double betaGamma = momentum / mass;
     const double charge    = reference.getQ();
     return betaGamma * mass / (Physics::c * radius * charge);
 }
@@ -416,12 +423,59 @@ double BendBase::calcDesignRadius(double chordLength, double angle) const {
 double BendBase::calcGamma() const {
     const auto& reference = *RefPartBunch_m->getParticleContainer()->getReference();
     const double mass     = reference.getM();
-    return designEnergy_m / mass + 1.0;
+    if (designEnergy_m > 0.0) {
+        return designEnergy_m / mass + 1.0;
+    }
+
+    const double betaGamma = reference.getP() / mass;
+    return std::sqrt(1.0 + betaGamma * betaGamma);
 }
 
 double BendBase::calcBetaGamma() const {
     const double gamma = calcGamma();
     return std::sqrt(gamma * gamma - 1.0);
+}
+
+double BendBase::getReferenceMomentumEV() const {
+    const auto container  = RefPartBunch_m ? RefPartBunch_m->getParticleContainer()
+                                           : std::shared_ptr<ParticleContainer_t>();
+    const auto* reference = container ? container->getReference() : nullptr;
+    if (reference == nullptr) {
+        return 0.0;
+    }
+
+    if (designEnergy_m <= 0.0 && container->getTotalNum() > 0) {
+        const Vector_t<double, 3> meanP = container->getMeanP();
+        return std::sqrt(dot(meanP, meanP)) * reference->getM();
+    }
+
+    return resolveReferenceMomentumEV(reference->getP(), reference->getM());
+}
+
+void BendBase::updatePhysicalFieldFromMomentumEV(
+        const double referenceMomentumEV, const double charge) {
+    if (!hasNormalizedField_m || referenceMomentumEV <= 0.0 || std::abs(charge) <= 1.0e-15) {
+        return;
+    }
+
+    const double factor = referenceMomentumEV / (charge * Physics::c);
+    BMultipoleField field;
+    const int order = normalizedField_m.order();
+    for (int i = 0; i < order; ++i) {
+        field.setNormalComponent(i, factor * normalizedField_m.getNormalComponent(i));
+        field.setSkewComponent(i, factor * normalizedField_m.getSkewComponent(i));
+    }
+    getField() = field;
+}
+
+void BendBase::updatePhysicalFieldFromReference() {
+    const auto container  = RefPartBunch_m ? RefPartBunch_m->getParticleContainer()
+                                           : std::shared_ptr<ParticleContainer_t>();
+    const auto* reference = container ? container->getReference() : nullptr;
+    if (reference == nullptr) {
+        return;
+    }
+    updatePhysicalFieldFromMomentumEV(getReferenceMomentumEV(), reference->getQ());
 }
 
 double BendBase::getFieldScale(const double z) const {

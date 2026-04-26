@@ -18,6 +18,7 @@
 #ifndef OPAL_BEAMLINE_H
 #define OPAL_BEAMLINE_H
 
+#include <cmath>
 #include <map>
 #include <memory>
 #include <ostream>
@@ -29,6 +30,7 @@
 
 #include "AbsBeamline/Marker.h"
 #include "BeamlineGeometry/PlacedElement.h"
+#include "BeamlineGeometry/PlanarArcGeometry.h"
 #include "Beamlines/Beamline.h"
 #include "Utilities/BeamlineFieldElement.h"
 
@@ -69,13 +71,14 @@ public:
             const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r) const;
 
     /**
-     * @brief Return the runtime field-frame transform used for tracking queries.
+     * @brief Return the rigid runtime field-frame transform used for tracking queries.
      *
      * The placement bridge distinguishes the nominal body frame used for
      * geometry/export from the local field chart used by runtime field
      * evaluation. Most straight elements use the body frame directly. Analytic
-     * bends currently keep an entrance-based field chart, so their runtime
-     * field transform is the nominal entry-frame placement.
+     * bends use this rigid transform only as an auxiliary frame; the actual
+     * longitudinal coordinate used for runtime field queries may be
+     * curvilinear, as implemented in `transformToFieldLocalCS()`.
      */
     CoordinateSystemTrafo getFieldCSTrafoLab2Local(const std::shared_ptr<Component>& comp) const;
     Vector_t<double, 3> transformToFieldLocalCS(
@@ -292,6 +295,26 @@ inline CoordinateSystemTrafo OpalBeamline::getFieldCSTrafoLab2Local(
 
 inline Vector_t<double, 3> OpalBeamline::transformToFieldLocalCS(
         const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r) const {
+    if (comp->getType() == ElementType::SBEND) {
+        const Vector_t<double, 3> body =
+                getPlacedElement(comp).getNominalBodyTransform().transformTo(r);
+        const auto& geometry = dynamic_cast<const PlanarArcGeometry&>(comp->getGeometry());
+        const double h       = geometry.getCurvature();
+        if (std::abs(h) > 1.0e-15) {
+            const double radius         = 1.0 / h;
+            const double phi            = std::atan2(body(2), body(0) + radius);
+            const double s              = (phi - geometry.getEntrance() * h) / h;
+            const double radialDistance = std::hypot(body(0) + radius, body(2)) - std::abs(radius);
+            return Vector_t<double, 3>(radialDistance, body(1), s);
+        }
+    }
+    if (comp->getType() == ElementType::RBEND) {
+        const Vector_t<double, 3> body =
+                getPlacedElement(comp).getNominalBodyTransform().transformTo(r);
+        const double bodyLength = comp->getElementLength();
+        return Vector_t<double, 3>(body(0), body(1), body(2) + 0.5 * bodyLength);
+    }
+
     return getFieldCSTrafoLab2Local(comp).transformTo(r);
 }
 

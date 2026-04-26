@@ -15,3 +15,5 @@ void RBend::accept(BeamlineVisitor& visitor) const { visitor.visitComponent(*thi
 ElementType RBend::getType() const { return ElementType::RBEND; }
 
 double RBend::getExitAngle() const { return getBendAngle() - getEntranceAngle(); }
+
+double RBend::getReferencePathLength() const { return getGeometry().getArcLength(); }

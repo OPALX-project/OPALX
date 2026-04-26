@@ -9,6 +9,7 @@
 
 #include <gtest/gtest.h>
 
+#include "Attributes/Attributes.h"
 #include "BeamlineCore/RBendRep.h"
 #include "BeamlineCore/SBendRep.h"
 #include "Channels/Channel.h"
@@ -20,7 +21,6 @@
 #include <stdexcept>
 
 namespace {
-
     struct ReferenceState {
         Vector_t<double, 3> r;
         Vector_t<double, 3> p;
@@ -215,6 +215,36 @@ namespace {
         EXPECT_NEAR(copy->getB(), 0.9, 1e-12);
     }
 
+    TEST(RBendRep, EffectiveFieldLengthUsesReferencePathInsteadOfStraightBody) {
+        constexpr double bodyLength     = 1.0;
+        constexpr double bendAngle      = Physics::pi / 4.0;
+        constexpr double fringeHalfGap  = 0.02;
+        constexpr double fringeIntegral = 0.5;
+
+        RBendRep bend("RBEND");
+        bend.getGeometry().setElementLength(bodyLength);
+        bend.getGeometry().setBendAngle(bendAngle);
+        bend.setLength(bodyLength);
+        bend.setBendAngle(bendAngle);
+        bend.setFringeHalfGap(fringeHalfGap);
+        bend.setFringeIntegral(fringeIntegral);
+
+        const double referencePathLength =
+                bodyLength * (bendAngle / 2.0) / std::sin(bendAngle / 2.0);
+        const double expectedEntrySupport = fringeHalfGap * fringeIntegral;
+        const double expectedExitSupport =
+                fringeHalfGap * fringeIntegral / std::cos(bend.getExitAngle());
+        const double expectedEffectiveLength =
+                referencePathLength + 0.5 * (expectedEntrySupport + expectedExitSupport);
+
+        EXPECT_NEAR(bend.getChordLength(), bodyLength, 1.0e-12);
+        EXPECT_NEAR(bend.getGeometry().getArcLength(), referencePathLength, 1.0e-12);
+        EXPECT_NEAR(bend.getEntryFringeSupportLength(), expectedEntrySupport, 1.0e-12);
+        EXPECT_NEAR(bend.getExitFringeSupportLength(), expectedExitSupport, 1.0e-12);
+        EXPECT_NEAR(bend.getEffectiveFieldLength(), expectedEffectiveLength, 1.0e-12);
+        EXPECT_GT(bend.getEffectiveFieldLength(), bend.getElementLength());
+    }
+
     TEST(SBendRep, ProtonOnAxisIntegratesToFortyFiveDegreeDeflection) {
         constexpr double angle           = Physics::pi / 4.0;
         constexpr double arcLength       = 1.0;
@@ -243,6 +273,73 @@ namespace {
         EXPECT_NEAR(deflection, angle, 5.0e-5);
         EXPECT_NEAR(state.r(0), radius * (1.0 - std::cos(angle)), 1.0e-6);
         EXPECT_NEAR(state.r(2), radius * std::sin(angle), 1.0e-6);
+    }
+
+    TEST(SBendRep, RuntimeNormalizationUsesBunchReferenceMomentumWhenDesignEnergyIsUnset) {
+        constexpr double angle           = Physics::pi / 4.0;
+        constexpr double length          = 1.0;
+        constexpr double kineticEnergyEV = 590.0 * Units::MeV2eV;
+        constexpr double massEV          = Physics::m_p * Units::GeV2eV;
+
+        SBendRep bend("SBEND");
+        bend.getGeometry() = PlanarArcGeometry(length, angle / length);
+        bend.setElementLength(length);
+        bend.setBendAngle(angle);
+        bend.setFieldAmplitude(angle / length, 0.0);
+
+        BMultipoleField normalizedField;
+        normalizedField.setNormalComponent(0, angle / length);
+        bend.setNormalizedField(normalizedField);
+
+        const double momentumEV = betaGammaFromKineticEnergy(kineticEnergyEV, massEV) * massEV;
+        bend.updatePhysicalFieldFromMomentumEV(momentumEV, 1.0);
+
+        const double expectedBy = momentumEV / Physics::c * (angle / length);
+        EXPECT_NEAR(bend.getB(), expectedBy, 1.0e-9 * std::abs(expectedBy));
+    }
+
+    TEST(RBendRep, RuntimeNormalizationUsesReferenceChargeSign) {
+        constexpr double angle           = Physics::pi / 4.0;
+        constexpr double chordLength     = 1.0;
+        constexpr double kineticEnergyEV = 1.0 * Units::GeV2eV;
+        constexpr double massEV          = Physics::m_e * Units::GeV2eV;
+        constexpr double charge          = -1.0;
+
+        RBendRep bend("RBEND");
+        bend.getGeometry().setElementLength(chordLength);
+        bend.getGeometry().setBendAngle(angle);
+        bend.setElementLength(chordLength);
+        bend.setBendAngle(angle);
+        bend.setFieldAmplitude(angle / chordLength, 0.0);
+
+        BMultipoleField normalizedField;
+        normalizedField.setNormalComponent(0, angle / chordLength);
+        bend.setNormalizedField(normalizedField);
+
+        const double momentumEV = betaGammaFromKineticEnergy(kineticEnergyEV, massEV) * massEV;
+        bend.updatePhysicalFieldFromMomentumEV(momentumEV, charge);
+
+        const double expectedBy = momentumEV / (charge * Physics::c) * (angle / chordLength);
+        EXPECT_NEAR(bend.getB(), expectedBy, 1.0e-9 * std::abs(expectedBy));
+        EXPECT_LT(bend.getB(), 0.0);
+    }
+
+    TEST(SBendRep, ReferenceMomentumResolutionPrefersDesignEnergyWhenProvided) {
+        constexpr double bunchKineticEnergyEV   = 300.0 * Units::MeV2eV;
+        constexpr double designKineticEnergyMeV = 590.0;
+        constexpr double designKineticEnergyEV  = designKineticEnergyMeV * Units::MeV2eV;
+        constexpr double massEV                 = Physics::m_p * Units::GeV2eV;
+
+        SBendRep bend("SBEND");
+        bend.setDesignEnergy(designKineticEnergyMeV, false);
+
+        const double bunchMomentumEV =
+                betaGammaFromKineticEnergy(bunchKineticEnergyEV, massEV) * massEV;
+        const double designMomentumEV =
+                betaGammaFromKineticEnergy(designKineticEnergyEV, massEV) * massEV;
+        EXPECT_NEAR(
+                bend.resolveReferenceMomentumEV(bunchMomentumEV, massEV), designMomentumEV,
+                1.0e-12 * designMomentumEV);
     }
 
     TEST(RBendRep, ElectronOnAxisIntegratesToFortyFiveDegreeDeflection) {

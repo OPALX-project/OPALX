@@ -151,6 +151,19 @@ protected:
             double initialPathLength) const;
 
 private:
+    /**
+     * @brief Write one design-path sample to the auxiliary trajectory file.
+     *
+     * The sampled state is written exactly as supplied. This is used for the
+     * initial point, regular post-step states, and interpolated terminal
+     * points at \f$s = z_{\mathrm{stop}}\f$.
+     */
+    void logDesignPathRow(
+            double pathLength, const Vector_t<double, 3>& position,
+            const Vector_t<double, 3>& momentum, const Vector_t<double, 3>& electricField,
+            const Vector_t<double, 3>& magneticField, double time,
+            const std::string& activeElementNames);
+
     void computeBoundingBox();
     void updateBoundingBoxWithCurrentPosition();
     double computeDriftLengthToBoundingBox(

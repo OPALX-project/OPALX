@@ -92,6 +92,25 @@ OrbitThreader::OrbitThreader(
     computeBoundingBox();
 }
 
+void OrbitThreader::logDesignPathRow(
+        double pathLength, const Vector_t<double, 3>& position, const Vector_t<double, 3>& momentum,
+        const Vector_t<double, 3>& electricField, const Vector_t<double, 3>& magneticField,
+        double time, const std::string& activeElementNames) {
+    logger_m << std::setw(18) << std::setprecision(8) << pathLength << std::setw(18)
+             << std::setprecision(8) << position(0) << std::setw(18) << std::setprecision(8)
+             << position(1) << std::setw(18) << std::setprecision(8) << position(2) << std::setw(18)
+             << std::setprecision(8) << momentum(0) << std::setw(18) << std::setprecision(8)
+             << momentum(1) << std::setw(18) << std::setprecision(8) << momentum(2) << std::setw(18)
+             << std::setprecision(8) << electricField(0) << std::setw(18) << std::setprecision(8)
+             << electricField(1) << std::setw(18) << std::setprecision(8) << electricField(2)
+             << std::setw(18) << std::setprecision(8) << magneticField(0) << std::setw(18)
+             << std::setprecision(8) << magneticField(1) << std::setw(18) << std::setprecision(8)
+             << magneticField(2) << std::setw(18) << std::setprecision(8)
+             << reference_m.getM() * (sqrt(dot(momentum, momentum) + 1) - 1) * Units::eV2MeV
+             << std::setw(18) << std::setprecision(8) << time * Units::s2ns << activeElementNames
+             << std::endl;
+}
+
 void OrbitThreader::checkElementLengths(const std::set<std::shared_ptr<Component>>& fields) {
     while (!stepSizes_m.reachedEnd() && pathLength_m > stepSizes_m.getZStop()) {
         ++stepSizes_m;
@@ -137,6 +156,23 @@ void OrbitThreader::execute() {
     auto elementSet = itsOpalBeamline_m.getElements(nextR);
     std::set<std::shared_ptr<Component>> intersection, currentSet;
     errorFlag_m = EVERYTHINGFINE;
+
+    if (ippl::Comm->rank() == 0 && !OpalData::getInstance()->isOptimizerRun()) {
+        Vector_t<double, 3> Ef(0.0), Bf(0.0);
+        std::string names("\t");
+        for (const auto& element : elementSet) {
+            Vector_t<double, 3> localR = itsOpalBeamline_m.transformToFieldLocalCS(element, r_m);
+            Vector_t<double, 3> localP = itsOpalBeamline_m.rotateToFieldLocalCS(element, p_m);
+            Vector_t<double, 3> localE(0.0), localB(0.0);
+
+            if (!element->applyToReferenceParticle(localR, localP, time_m, localE, localB)) {
+                names += element->getName() + ", ";
+                Ef += itsOpalBeamline_m.rotateFromLocalCS(element, localE);
+                Bf += itsOpalBeamline_m.rotateFromLocalCS(element, localB);
+            }
+        }
+        logDesignPathRow(pathLength_m, r_m, p_m, Ef, Bf, time_m, names);
+    }
 
     *gmsg << "* OrbitThreader dt_m= " << dt_m << endl;
 
@@ -206,6 +242,9 @@ void OrbitThreader::integrate(const IndexMap::value_t& activeSet, double /*maxDr
         IndexMap::value_t::const_iterator it        = activeSet.begin();
         const IndexMap::value_t::const_iterator end = activeSet.end();
         Vector_t<double, 3> oldR                    = r_m;
+        Vector_t<double, 3> oldP                    = p_m;
+        const double oldTime                        = time_m;
+        const double oldPathLength                  = pathLength_m;
 
         r_m /= Physics::c * dt_m;
         integrator_m.push(r_m, p_m, dt_m);
@@ -229,26 +268,8 @@ void OrbitThreader::integrate(const IndexMap::value_t& activeSet, double /*maxDr
             Bf += itsOpalBeamline_m.rotateFromLocalCS(*it, localB);
         }
 
-        if (((pathLength_m > 0.0 && pathLength_m < zstop_m) || dt_m < 0.0)
-            && currentStep_m % loggingFrequency_m == 0 && ippl::Comm->rank() == 0
-            && !OpalData::getInstance()->isOptimizerRun()) {
-            const Vector<double, 3> d = r_m - oldR;
-
-            logger_m << std::setw(18) << std::setprecision(8)
-                     << pathLength_m + std::copysign(euclidean_norm(d), dt_m) << std::setw(18)
-                     << std::setprecision(8) << r_m(0) << std::setw(18) << std::setprecision(8)
-                     << r_m(1) << std::setw(18) << std::setprecision(8) << r_m(2) << std::setw(18)
-                     << std::setprecision(8) << p_m(0) << std::setw(18) << std::setprecision(8)
-                     << p_m(1) << std::setw(18) << std::setprecision(8) << p_m(2) << std::setw(18)
-                     << std::setprecision(8) << Ef(0) << std::setw(18) << std::setprecision(8)
-                     << Ef(1) << std::setw(18) << std::setprecision(8) << Ef(2) << std::setw(18)
-                     << std::setprecision(8) << Bf(0) << std::setw(18) << std::setprecision(8)
-                     << Bf(1) << std::setw(18) << std::setprecision(8) << Bf(2) << std::setw(18)
-                     << std::setprecision(8)
-                     << reference_m.getM() * (sqrt(dot(p_m, p_m) + 1) - 1) * Units::eV2MeV
-                     << std::setw(18) << std::setprecision(8) << (time_m + 0.5 * dt_m) * Units::s2ns
-                     << names << std::endl;
-        }
+        const bool shouldLog = currentStep_m % loggingFrequency_m == 0 && ippl::Comm->rank() == 0
+                               && !OpalData::getInstance()->isOptimizerRun();
 
         r_m /= Physics::c * dt_m;
         integrator_m.kick(r_m, p_m, Ef, Bf, dt_m, reference_m.getM(), reference_m.getQ());
@@ -258,6 +279,17 @@ void OrbitThreader::integrate(const IndexMap::value_t& activeSet, double /*maxDr
         const Vector<double, 3> d = r_m - oldR;
 
         pathLength_m += std::copysign(euclidean_norm(d), dt_m);
+
+        if (shouldLog) {
+            if (dt_m > 0.0 && oldPathLength < zstop_m && pathLength_m > zstop_m) {
+                const double alpha = (zstop_m - oldPathLength) / (pathLength_m - oldPathLength);
+                logDesignPathRow(
+                        zstop_m, oldR + alpha * (r_m - oldR), oldP + alpha * (p_m - oldP), Ef, Bf,
+                        oldTime + alpha * dt_m, names);
+            } else if ((pathLength_m > 0.0 && pathLength_m <= zstop_m) || dt_m < 0.0) {
+                logDesignPathRow(pathLength_m, r_m, p_m, Ef, Bf, time_m + dt_m, names);
+            }
+        }
 
         ++currentStep_m;
         time_m += dt_m;
