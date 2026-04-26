@@ -25,9 +25,42 @@
  * with design radius \f$\rho\f$, rest mass \f$m\f$, charge \f$q\f$, and
  * reference relativistic factor \f$\beta \gamma\f$.
  *
- * The first implementation keeps the nominal body extent and the field-support
- * extent identical. Fringe-field support will extend this model later without
- * changing the body-placement semantics.
+ * The bend body extent remains the nominal placed hardware extent \f$[0, L]\f$
+ * in the local chart, while the analytic field support may extend beyond the
+ * body through hard-edge fringe regions
+ * \f[
+ * z \in [-\ell_\mathrm{entry},\, L + \ell_\mathrm{exit}] .
+ * \f]
+ * The fringe support lengths are modeled from the half gap \f$h\f$, fringe
+ * integral \f$F_\mathrm{int}\f$, and pole-face angles \f$E_1, E_2\f$ as
+ * \f[
+ * \ell_\mathrm{entry} = \frac{h F_\mathrm{int}}{|\cos E_1|}, \qquad
+ * \ell_\mathrm{exit} = \frac{h F_\mathrm{int}}{|\cos E_2|}.
+ * \f]
+ * The corresponding effective integrated field length of the linear-ramp
+ * hard-edge model is
+ * \f[
+ * L_\mathrm{eff} = L + \frac{\ell_\mathrm{entry} + \ell_\mathrm{exit}}{2}.
+ * \f]
+ *
+ * The first optics-level fringe model starts from the standard hard-edge
+ * edge-focusing relations
+ * \f[
+ * x'_\mathrm{out} = x'_\mathrm{in} + h \tan(E)\,x, \qquad
+ * y'_\mathrm{out} = y'_\mathrm{in} - h \tan(E)\,y,
+ * \f]
+ * with signed curvature \f$h = \theta / L_\mathrm{eff}\f$. The fringe
+ * integral modifies the vertical edge focusing through the standard effective
+ * edge-angle correction
+ * \f[
+ * \psi = h\,h_\mathrm{gap}\,F_\mathrm{int}\,
+ *        \frac{1 + \sin^2(E)}{\cos(E)},
+ * \qquad
+ * y'_\mathrm{out} = y'_\mathrm{in} - h \tan(E - \psi)\,y.
+ * \f]
+ * OPALX realizes these first-order optics effects through an equivalent
+ * distributed fringe-field correction across the entry and exit support
+ * regions while keeping the bend body-placement semantics unchanged.
  */
 class BendBase : public Component {
 public:
@@ -87,6 +120,26 @@ public:
     void setFullGap(double gap);
     double getFullGap() const;
 
+    /**
+     * @brief Set the half gap used for analytic fringe support.
+     *
+     * The half gap \f$h\f$ determines the extent of the hard-edge fringe
+     * support together with the fringe integral and pole-face angles.
+     */
+    void setFringeHalfGap(double halfGap);
+    double getFringeHalfGap() const;
+
+    /**
+     * @brief Set the hard-edge fringe integral used for support extension.
+     *
+     * The analytic fringe model uses the thin-lens hard-edge convention
+     * \f[
+     * \ell = \frac{h F_\mathrm{int}}{|\cos E|}.
+     * \f]
+     */
+    void setFringeIntegral(double fringeIntegral);
+    double getFringeIntegral() const;
+
     void setDesignEnergy(const double& energy, bool changeable = true) override;
     double getDesignEnergy() const override;
 
@@ -143,6 +196,30 @@ public:
 
     int getRequiredNumberOfTimeSteps() const override;
 
+    /**
+     * @brief Return the local hard-edge fringe support in front of the body.
+     */
+    double getEntryFringeSupportLength() const;
+
+    /**
+     * @brief Return the local hard-edge fringe support behind the body.
+     */
+    double getExitFringeSupportLength() const;
+
+    /**
+     * @brief Return the effective integrated field length of the fringe model.
+     */
+    double getEffectiveFieldLength() const;
+
+    /**
+     * @brief Return the local field scale for the hard-edge fringe model.
+     *
+     * The scale is zero outside the field support, ramps linearly from zero to
+     * one across the entry fringe, remains one on the body interval, and ramps
+     * linearly back to zero across the exit fringe.
+     */
+    double getFieldScale(double z) const;
+
     virtual BMultipoleField& getField() override             = 0;
     virtual const BMultipoleField& getField() const override = 0;
 
@@ -154,6 +231,12 @@ protected:
     double calcGamma() const;
     double calcBetaGamma() const;
     double getStoredExitAngle() const;
+    double getSignedCurvature() const;
+    double getEntryEdgeHorizontalStrength() const;
+    double getExitEdgeHorizontalStrength() const;
+    double getEntryEdgeVerticalStrength() const;
+    double getExitEdgeVerticalStrength() const;
+    void updateFieldSupportExtent();
 
 private:
     static void computeFieldHost(
@@ -161,10 +244,14 @@ private:
 
     double startField_m;
     double endField_m;
+    double fieldBegin_m;
+    double fieldEnd_m;
     double angle_m;
     double entranceAngle_m;
     double exitAngle_m;
     double gap_m;
+    double fringeHalfGap_m;
+    double fringeIntegral_m;
     double designEnergy_m;
     bool designEnergyChangeable_m;
     double fieldAmplitudeX_m;
@@ -183,23 +270,49 @@ private:
 
 inline bool BendBase::bends() const { return true; }
 
-inline void BendBase::setLength(double length) { setElementLength(std::abs(length)); }
+inline void BendBase::setLength(double length) {
+    setElementLength(std::abs(length));
+    updateFieldSupportExtent();
+}
 
 inline double BendBase::getLength() const { return getElementLength(); }
 
-inline void BendBase::setBendAngle(double angle) { angle_m = angle; }
+inline void BendBase::setBendAngle(double angle) {
+    angle_m = angle;
+    updateFieldSupportExtent();
+}
 
 inline double BendBase::getBendAngle() const { return angle_m; }
 
-inline void BendBase::setEntranceAngle(double entranceAngle) { entranceAngle_m = entranceAngle; }
+inline void BendBase::setEntranceAngle(double entranceAngle) {
+    entranceAngle_m = entranceAngle;
+    updateFieldSupportExtent();
+}
 
 inline double BendBase::getEntranceAngle() const { return entranceAngle_m; }
 
-inline void BendBase::setExitAngle(double exitAngle) { exitAngle_m = exitAngle; }
+inline void BendBase::setExitAngle(double exitAngle) {
+    exitAngle_m = exitAngle;
+    updateFieldSupportExtent();
+}
 
 inline void BendBase::setFullGap(double gap) { gap_m = std::abs(gap); }
 
 inline double BendBase::getFullGap() const { return gap_m; }
+
+inline void BendBase::setFringeHalfGap(double halfGap) {
+    fringeHalfGap_m = std::abs(halfGap);
+    updateFieldSupportExtent();
+}
+
+inline double BendBase::getFringeHalfGap() const { return fringeHalfGap_m; }
+
+inline void BendBase::setFringeIntegral(double fringeIntegral) {
+    fringeIntegral_m = std::abs(fringeIntegral);
+    updateFieldSupportExtent();
+}
+
+inline double BendBase::getFringeIntegral() const { return fringeIntegral_m; }
 
 inline void BendBase::setDesignEnergy(const double& energy, bool changeable) {
     if (designEnergyChangeable_m) {
@@ -259,6 +372,17 @@ inline void BendBase::setK1(double k1) { k1_m = k1; }
 inline double BendBase::getK1() const { return k1_m; }
 
 inline int BendBase::getRequiredNumberOfTimeSteps() const { return 10; }
+
+inline double BendBase::getEntryFringeSupportLength() const { return -fieldBegin_m; }
+
+inline double BendBase::getExitFringeSupportLength() const {
+    return std::max(0.0, fieldEnd_m - getElementLength());
+}
+
+inline double BendBase::getEffectiveFieldLength() const {
+    return getElementLength()
+           + 0.5 * (getEntryFringeSupportLength() + getExitFringeSupportLength());
+}
 
 inline double BendBase::getStoredExitAngle() const { return exitAngle_m; }
 

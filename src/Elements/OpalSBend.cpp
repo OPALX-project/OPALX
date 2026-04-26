@@ -49,22 +49,35 @@ void OpalSBend::update() {
         return;
     }
 
-    SBendRep* bend              = dynamic_cast<SBendRep*>(getElement());
-    double length               = Attributes::getReal(itsAttr[LENGTH]);
-    double angle                = Attributes::getReal(itsAttr[ANGLE]);
-    double e1                   = Attributes::getReal(itsAttr[E1]);
-    double e2                   = Attributes::getReal(itsAttr[E2]);
+    SBendRep* bend       = dynamic_cast<SBendRep*>(getElement());
+    double length        = Attributes::getReal(itsAttr[LENGTH]);
+    double angle         = Attributes::getReal(itsAttr[ANGLE]);
+    double e1            = Attributes::getReal(itsAttr[E1]);
+    double e2            = Attributes::getReal(itsAttr[E2]);
+    const double fullGap = Attributes::getReal(itsAttr[GAP]);
+    const double halfGap =
+            itsAttr[HGAP] ? Attributes::getReal(itsAttr[HGAP]) : 0.5 * std::abs(fullGap);
+    const double fringeIntegral = Attributes::getReal(itsAttr[FINT]);
     PlanarArcGeometry& geometry = bend->getGeometry();
-
-    validateAnalyticBendDefinition(
-            "OpalSBend::update(" + getOpalName() + ")", !itsAttr[ANGLE].defaultUsed(),
-            !itsAttr[K0].defaultUsed(), length, angle, Attributes::getReal(itsAttr[K0]));
 
     if (length) {
         geometry = PlanarArcGeometry(length, angle / length);
     } else {
         geometry = PlanarArcGeometry(angle);
     }
+
+    bend->setLength(length);
+    bend->setBendAngle(angle);
+    bend->setEntranceAngle(e1);
+    bend->setExitAngle(e2);
+    bend->setFullGap(fullGap);
+    bend->setFringeHalfGap(halfGap);
+    bend->setFringeIntegral(fringeIntegral);
+
+    validateAnalyticBendDefinition(
+            "OpalSBend::update(" + getOpalName() + ")", !itsAttr[ANGLE].defaultUsed(),
+            !itsAttr[K0].defaultUsed(), bend->getEffectiveFieldLength(), angle,
+            Attributes::getReal(itsAttr[K0]));
 
     bend->setNSlices(Attributes::getReal(itsAttr[NSLICES]));
 
@@ -81,7 +94,7 @@ void OpalSBend::update() {
     // Define field.
     double factor = OpalData::getInstance()->getP0() / Physics::c;
     BMultipoleField field;
-    double k0  = deriveAnalyticDipoleCoefficient(length, angle);
+    double k0  = deriveAnalyticDipoleCoefficient(bend->getEffectiveFieldLength(), angle);
     double k0s = itsAttr[K0S] ? Attributes::getReal(itsAttr[K0S]) : 0.0;
 
     field.setNormalComponent(0, factor * k0);
@@ -130,8 +143,6 @@ void OpalSBend::update() {
         bend->setDesignEnergy(Attributes::getReal(itsAttr[DESIGNENERGY]), false);
     }
 
-    bend->setFullGap(Attributes::getReal(itsAttr[GAP]));
-
     if (itsAttr[APERT])
         throw OpalException(
                 "OpalRBend::update", "APERTURE in RBEND not supported; use GAP and HAPERT instead");
@@ -143,11 +154,6 @@ void OpalSBend::update() {
                     ApertureType::RECTANGULAR, std::vector<double>({hapert, hapert, 1.0}));
         }
     }
-
-    if (itsAttr[LENGTH])
-        bend->setLength(Attributes::getReal(itsAttr[LENGTH]));
-    else
-        bend->setLength(0.0);
 
     if (itsAttr[WAKEF]) {
         throw OpalException(

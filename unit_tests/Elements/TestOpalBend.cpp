@@ -86,6 +86,28 @@ TEST_F(TestOpalBend, SBendAcceptsConsistentK0ButUsesAngleAsPrimaryDefinition) {
     EXPECT_NEAR(bend->getFieldAmplitude(), 0.2, 1.0e-12);
 }
 
+TEST_F(TestOpalBend, SBendFringeSupportExtendsFieldExtentAndRenormalizesDipoleCoefficient) {
+    OpalSBend ui;
+    std::unique_ptr<OpalSBend> instance(ui.clone("SB4"));
+    Attributes::setReal(instance->itsAttr[OpalSBend::LENGTH], 1.0);
+    Attributes::setReal(instance->itsAttr[OpalSBend::ANGLE], 0.4);
+    Attributes::setReal(instance->itsAttr[OpalSBend::HGAP], 0.02);
+    Attributes::setReal(instance->itsAttr[OpalSBend::FINT], 0.5);
+
+    EXPECT_NO_THROW(instance->update());
+
+    const auto* bend = dynamic_cast<const SBendRep*>(instance->getElement());
+    ASSERT_NE(bend, nullptr);
+
+    double zBegin = 0.0;
+    double zEnd   = 0.0;
+    bend->getFieldExtend(zBegin, zEnd);
+    EXPECT_NEAR(zBegin, -0.01, 1.0e-12);
+    EXPECT_NEAR(zEnd, 1.01, 1.0e-12);
+    EXPECT_NEAR(bend->getEffectiveFieldLength(), 1.01, 1.0e-12);
+    EXPECT_NEAR(bend->getFieldAmplitude(), 0.4 / 1.01, 1.0e-12);
+}
+
 TEST_F(TestOpalBend, RBendRequiresAngleAndUsesAngleOverK0) {
     OpalRBend ui;
     std::unique_ptr<OpalRBend> invalidInstance(ui.clone("RB1"));
@@ -105,6 +127,28 @@ TEST_F(TestOpalBend, RBendRequiresAngleAndUsesAngleOverK0) {
     EXPECT_NEAR(bend->getGeometry().getElementLength(), 1.5, 1.0e-12);
     EXPECT_NEAR(bend->getGeometry().getBendAngle(), 0.3, 1.0e-12);
     EXPECT_NEAR(bend->getFieldAmplitude(), 0.2, 1.0e-12);
+}
+
+TEST_F(TestOpalBend, RBendFringeSupportUsesGapFallbackForHalfGap) {
+    OpalRBend ui;
+    std::unique_ptr<OpalRBend> instance(ui.clone("RB4"));
+    Attributes::setReal(instance->itsAttr[OpalRBend::LENGTH], 1.2);
+    Attributes::setReal(instance->itsAttr[OpalRBend::ANGLE], 0.3);
+    Attributes::setReal(instance->itsAttr[OpalRBend::GAP], 0.06);
+    Attributes::setReal(instance->itsAttr[OpalRBend::FINT], 0.5);
+
+    EXPECT_NO_THROW(instance->update());
+
+    const auto* bend = dynamic_cast<const RBendRep*>(instance->getElement());
+    ASSERT_NE(bend, nullptr);
+
+    double zBegin = 0.0;
+    double zEnd   = 0.0;
+    bend->getFieldExtend(zBegin, zEnd);
+    EXPECT_LT(zBegin, 0.0);
+    EXPECT_GT(zEnd, 1.2);
+    EXPECT_NEAR(bend->getFringeHalfGap(), 0.03, 1.0e-12);
+    EXPECT_NEAR(bend->getFieldAmplitude(), 0.3 / bend->getEffectiveFieldLength(), 1.0e-12);
 }
 
 TEST_F(TestOpalBend, ExemplarUpdateDoesNotEnforceInstanceOnlyAngleChecks) {

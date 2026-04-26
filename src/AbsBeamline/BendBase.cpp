@@ -27,6 +27,29 @@ namespace {
 
         return CoordinateSystemTrafo(origin, Quaternion(rotation).conjugate());
     }
+
+    double evaluateFieldScale(
+            const double z, const double fieldBegin, const double bodyLength,
+            const double fieldEnd) {
+        if (z < fieldBegin || z > fieldEnd) {
+            return 0.0;
+        }
+        if (z <= 0.0) {
+            const double entryFringe = -fieldBegin;
+            if (entryFringe <= 0.0) {
+                return 1.0;
+            }
+            return std::clamp((z - fieldBegin) / entryFringe, 0.0, 1.0);
+        }
+        if (z >= bodyLength) {
+            const double exitFringe = fieldEnd - bodyLength;
+            if (exitFringe <= 0.0) {
+                return 1.0;
+            }
+            return std::clamp((fieldEnd - z) / exitFringe, 0.0, 1.0);
+        }
+        return 1.0;
+    }
 }  // namespace
 
 BendBase::BendBase() : BendBase("") {}
@@ -35,10 +58,14 @@ BendBase::BendBase(const BendBase& right)
     : Component(right),
       startField_m(right.startField_m),
       endField_m(right.endField_m),
+      fieldBegin_m(right.fieldBegin_m),
+      fieldEnd_m(right.fieldEnd_m),
       angle_m(right.angle_m),
       entranceAngle_m(right.entranceAngle_m),
       exitAngle_m(right.exitAngle_m),
       gap_m(right.gap_m),
+      fringeHalfGap_m(right.fringeHalfGap_m),
+      fringeIntegral_m(right.fringeIntegral_m),
       designEnergy_m(right.designEnergy_m),
       designEnergyChangeable_m(true),
       fieldAmplitudeX_m(right.fieldAmplitudeX_m),
@@ -58,10 +85,14 @@ BendBase::BendBase(const std::string& name)
     : Component(name),
       startField_m(0.0),
       endField_m(0.0),
+      fieldBegin_m(0.0),
+      fieldEnd_m(0.0),
       angle_m(0.0),
       entranceAngle_m(0.0),
       exitAngle_m(0.0),
       gap_m(0.0),
+      fringeHalfGap_m(0.0),
+      fringeIntegral_m(0.5),
       designEnergy_m(0.0),
       designEnergyChangeable_m(true),
       fieldAmplitudeX_m(0.0),
@@ -81,10 +112,11 @@ BendBase::~BendBase() = default;
 
 void BendBase::initialise(PartBunch_t* bunch, double& startField, double& endField) {
     RefPartBunch_m = bunch;
-    startField_m   = startField;
-    endField_m     = startField + getElementLength();
-    endField       = endField_m;
-    online_m       = true;
+    updateFieldSupportExtent();
+    startField_m = startField + fieldBegin_m;
+    endField_m   = startField + fieldEnd_m;
+    endField     = endField_m;
+    online_m     = true;
 }
 
 void BendBase::finalise() { online_m = false; }
@@ -108,31 +140,88 @@ bool BendBase::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     Kokkos::deep_copy(normal, normalHost);
     Kokkos::deep_copy(skew, skewHost);
 
-    const double elemLength = getElementLength();
+    const double fieldBegin       = fieldBegin_m;
+    const double elemLength       = getElementLength();
+    const double fieldEnd         = fieldEnd_m;
+    const double entryFringe      = -fieldBegin;
+    const double exitFringe       = fieldEnd - elemLength;
+    const double signedCurvature  = getSignedCurvature();
+    const double dipoleFieldTesla = getField().getNormalComponent(0);
+    const double bendRigidityScale =
+            (std::abs(signedCurvature) > 1.0e-15) ? dipoleFieldTesla / signedCurvature : 0.0;
+    const double entryEdgeHorizontalGradient =
+            (entryFringe > 0.0) ? bendRigidityScale * getEntryEdgeHorizontalStrength() / entryFringe
+                                : 0.0;
+    const double exitEdgeHorizontalGradient =
+            (exitFringe > 0.0) ? bendRigidityScale * getExitEdgeHorizontalStrength() / exitFringe
+                               : 0.0;
+    const double entryEdgeVerticalGradient =
+            (entryFringe > 0.0) ? -bendRigidityScale * getEntryEdgeVerticalStrength() / entryFringe
+                                : 0.0;
+    const double exitEdgeVerticalGradient =
+            (exitFringe > 0.0) ? -bendRigidityScale * getExitEdgeVerticalStrength() / exitFringe
+                               : 0.0;
 
     Kokkos::parallel_for(
             "BendBase::apply", nLocal, KOKKOS_LAMBDA(const size_t i) {
-                if (Rview(i)(2) < 0.0 || Rview(i)(2) > elemLength) {
+                const double z = Rview(i)(2);
+                if (z < fieldBegin || z > fieldEnd) {
                     return;
                 }
 
                 Vector_t<double, 3> Bf(0.0);
                 const double x = Rview(i)(0);
                 const double y = Rview(i)(1);
+                double scale   = 1.0;
+                if (z <= 0.0) {
+                    const double entryFringe = -fieldBegin;
+                    if (entryFringe > 0.0) {
+                        scale = (z - fieldBegin) / entryFringe;
+                        if (scale < 0.0) {
+                            scale = 0.0;
+                        } else if (scale > 1.0) {
+                            scale = 1.0;
+                        }
+                    }
+                } else if (z >= elemLength) {
+                    const double exitFringe = fieldEnd - elemLength;
+                    if (exitFringe > 0.0) {
+                        scale = (fieldEnd - z) / exitFringe;
+                        if (scale < 0.0) {
+                            scale = 0.0;
+                        } else if (scale > 1.0) {
+                            scale = 1.0;
+                        }
+                    }
+                }
 
                 if (normal.extent(0) > 0) {
-                    Bf(1) += normal(0);
+                    Bf(1) += scale * normal(0);
                 }
                 if (skew.extent(0) > 0) {
-                    Bf(0) -= skew(0);
+                    Bf(0) -= scale * skew(0);
                 }
                 if (normal.extent(0) > 1) {
-                    Bf(0) += normal(1) * y;
-                    Bf(1) += normal(1) * x;
+                    Bf(0) += scale * normal(1) * y;
+                    Bf(1) += scale * normal(1) * x;
                 }
                 if (skew.extent(0) > 1) {
-                    Bf(0) -= skew(1) * x;
-                    Bf(1) += skew(1) * y;
+                    Bf(0) -= scale * skew(1) * x;
+                    Bf(1) += scale * skew(1) * y;
+                }
+
+                double horizontalGradient = 0.0;
+                double verticalGradient   = 0.0;
+                if (z <= 0.0 && entryFringe > 0.0) {
+                    horizontalGradient = entryEdgeHorizontalGradient;
+                    verticalGradient   = entryEdgeVerticalGradient;
+                } else if (z >= elemLength && exitFringe > 0.0) {
+                    horizontalGradient = exitEdgeHorizontalGradient;
+                    verticalGradient   = exitEdgeVerticalGradient;
+                }
+                if (horizontalGradient != 0.0 || verticalGradient != 0.0) {
+                    Bf(0) += verticalGradient * y;
+                    Bf(1) += horizontalGradient * x;
                 }
 
                 for (unsigned d = 0; d < 3; ++d) {
@@ -157,6 +246,27 @@ bool BendBase::apply(
     }
 
     computeFieldHost(R, getField(), B);
+    B *= getFieldScale(R(2));
+    const double entryFringe   = getEntryFringeSupportLength();
+    const double exitFringe    = getExitFringeSupportLength();
+    const double rigidityScale = (std::abs(getSignedCurvature()) > 1.0e-15)
+                                         ? getField().getNormalComponent(0) / getSignedCurvature()
+                                         : 0.0;
+    if (R(2) <= 0.0 && entryFringe > 0.0) {
+        const double horizontalGradient =
+                rigidityScale * (getEntryEdgeHorizontalStrength() / entryFringe);
+        const double verticalGradient =
+                -rigidityScale * (getEntryEdgeVerticalStrength() / entryFringe);
+        B(0) += verticalGradient * R(1);
+        B(1) += horizontalGradient * R(0);
+    } else if (R(2) >= getElementLength() && exitFringe > 0.0) {
+        const double horizontalGradient =
+                rigidityScale * (getExitEdgeHorizontalStrength() / exitFringe);
+        const double verticalGradient =
+                -rigidityScale * (getExitEdgeVerticalStrength() / exitFringe);
+        B(0) += verticalGradient * R(1);
+        B(1) += horizontalGradient * R(0);
+    }
     (void)E;
     return false;
 }
@@ -172,6 +282,27 @@ bool BendBase::apply(
     }
 
     computeFieldHost(R, getField(), B);
+    B *= getFieldScale(R(2));
+    const double entryFringe   = getEntryFringeSupportLength();
+    const double exitFringe    = getExitFringeSupportLength();
+    const double rigidityScale = (std::abs(getSignedCurvature()) > 1.0e-15)
+                                         ? getField().getNormalComponent(0) / getSignedCurvature()
+                                         : 0.0;
+    if (R(2) <= 0.0 && entryFringe > 0.0) {
+        const double horizontalGradient =
+                rigidityScale * (getEntryEdgeHorizontalStrength() / entryFringe);
+        const double verticalGradient =
+                -rigidityScale * (getEntryEdgeVerticalStrength() / entryFringe);
+        B(0) += verticalGradient * R(1);
+        B(1) += horizontalGradient * R(0);
+    } else if (R(2) >= getElementLength() && exitFringe > 0.0) {
+        const double horizontalGradient =
+                rigidityScale * (getExitEdgeHorizontalStrength() / exitFringe);
+        const double verticalGradient =
+                -rigidityScale * (getExitEdgeVerticalStrength() / exitFringe);
+        B(0) += verticalGradient * R(1);
+        B(1) += horizontalGradient * R(0);
+    }
     (void)E;
     return false;
 }
@@ -187,17 +318,38 @@ bool BendBase::applyToReferenceParticle(
     }
 
     computeFieldHost(R, getField(), B);
+    B *= getFieldScale(R(2));
+    const double entryFringe   = getEntryFringeSupportLength();
+    const double exitFringe    = getExitFringeSupportLength();
+    const double rigidityScale = (std::abs(getSignedCurvature()) > 1.0e-15)
+                                         ? getField().getNormalComponent(0) / getSignedCurvature()
+                                         : 0.0;
+    if (R(2) <= 0.0 && entryFringe > 0.0) {
+        const double horizontalGradient =
+                rigidityScale * (getEntryEdgeHorizontalStrength() / entryFringe);
+        const double verticalGradient =
+                -rigidityScale * (getEntryEdgeVerticalStrength() / entryFringe);
+        B(0) += verticalGradient * R(1);
+        B(1) += horizontalGradient * R(0);
+    } else if (R(2) >= getElementLength() && exitFringe > 0.0) {
+        const double horizontalGradient =
+                rigidityScale * (getExitEdgeHorizontalStrength() / exitFringe);
+        const double verticalGradient =
+                -rigidityScale * (getExitEdgeVerticalStrength() / exitFringe);
+        B(0) += verticalGradient * R(1);
+        B(1) += horizontalGradient * R(0);
+    }
     (void)E;
     return false;
 }
 
 void BendBase::getFieldExtend(double& zBegin, double& zEnd) const {
-    zBegin = 0.0;
-    zEnd   = getElementLength();
+    zBegin = fieldBegin_m;
+    zEnd   = fieldEnd_m;
 }
 
 bool BendBase::isInside(const Vector_t<double, 3>& r) const {
-    return r(2) >= 0.0 && r(2) < getElementLength() && isInsideTransverse(r);
+    return r(2) >= fieldBegin_m && r(2) < fieldEnd_m && isInsideTransverse(r);
 }
 
 CoordinateSystemTrafo BendBase::getEdgeToBegin() const {
@@ -270,6 +422,56 @@ double BendBase::calcGamma() const {
 double BendBase::calcBetaGamma() const {
     const double gamma = calcGamma();
     return std::sqrt(gamma * gamma - 1.0);
+}
+
+double BendBase::getFieldScale(const double z) const {
+    return evaluateFieldScale(z, fieldBegin_m, getElementLength(), fieldEnd_m);
+}
+
+double BendBase::getSignedCurvature() const {
+    const double effectiveLength = getEffectiveFieldLength();
+    if (std::abs(effectiveLength) <= 1.0e-15) {
+        return 0.0;
+    }
+    return getBendAngle() / effectiveLength;
+}
+
+double BendBase::getEntryEdgeHorizontalStrength() const {
+    return getSignedCurvature() * std::tan(getEntranceAngle());
+}
+
+double BendBase::getExitEdgeHorizontalStrength() const {
+    return getSignedCurvature() * std::tan(getExitAngle());
+}
+
+double BendBase::getEntryEdgeVerticalStrength() const {
+    const double edgeAngle = getEntranceAngle();
+    const double cosEdge   = std::cos(edgeAngle);
+    const double safeCos = (std::abs(cosEdge) > 1.0e-6) ? cosEdge : std::copysign(1.0e-6, cosEdge);
+    const double sinEdge = std::sin(edgeAngle);
+    const double psi     = getSignedCurvature() * getFringeHalfGap() * getFringeIntegral()
+                       * (1.0 + sinEdge * sinEdge) / safeCos;
+    return -getSignedCurvature() * std::tan(edgeAngle - psi);
+}
+
+double BendBase::getExitEdgeVerticalStrength() const {
+    const double edgeAngle = getExitAngle();
+    const double cosEdge   = std::cos(edgeAngle);
+    const double safeCos = (std::abs(cosEdge) > 1.0e-6) ? cosEdge : std::copysign(1.0e-6, cosEdge);
+    const double sinEdge = std::sin(edgeAngle);
+    const double psi     = getSignedCurvature() * getFringeHalfGap() * getFringeIntegral()
+                       * (1.0 + sinEdge * sinEdge) / safeCos;
+    return -getSignedCurvature() * std::tan(edgeAngle - psi);
+}
+
+void BendBase::updateFieldSupportExtent() {
+    const double cosFloor         = 1.0e-6;
+    const double entryDenominator = std::max(std::abs(std::cos(getEntranceAngle())), cosFloor);
+    const double exitDenominator  = std::max(std::abs(std::cos(getExitAngle())), cosFloor);
+    const double entryFringe      = fringeHalfGap_m * fringeIntegral_m / entryDenominator;
+    const double exitFringe       = fringeHalfGap_m * fringeIntegral_m / exitDenominator;
+    fieldBegin_m                  = -entryFringe;
+    fieldEnd_m                    = getElementLength() + exitFringe;
 }
 
 void BendBase::computeFieldHost(

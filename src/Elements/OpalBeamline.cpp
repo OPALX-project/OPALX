@@ -412,6 +412,14 @@ void OpalBeamline::save3DLattice() {
         CoordinateSystemTrafo toEnd        = getNominalExitTransform(element);
         Vector_t<double, 3> entry3D        = toBegin.getOrigin();
         Vector_t<double, 3> exit3D         = toEnd.getOrigin();
+        double bodyBegin                   = 0.0;
+        double bodyEnd                     = 0.0;
+        double fieldBegin                  = 0.0;
+        double fieldEnd                    = 0.0;
+        element->getElementDimensions(bodyBegin, bodyEnd);
+        element->getFieldExtend(fieldBegin, fieldEnd);
+        const bool fieldExtentDiffers = std::abs(fieldBegin - bodyBegin) > 1.0e-12
+                                        || std::abs(fieldEnd - bodyEnd) > 1.0e-12;
 
         mesh.add(*(element.get()));
 
@@ -473,6 +481,25 @@ void OpalBeamline::save3DLattice() {
                 << std::string("\"END: ") + element->getName() + std::string("\"") << std::setw(18)
                 << std::setprecision(10) << exit3D(2) << std::setw(18) << std::setprecision(10)
                 << exit3D(0) << std::setw(18) << std::setprecision(10) << exit3D(1) << std::endl;
+        }
+
+        if (fieldExtentDiffers) {
+            const CoordinateSystemTrafo fieldTrafo = getFieldCSTrafoLab2Local(element);
+            const Vector_t<double, 3> fieldBegin3D =
+                    fieldTrafo.transformFrom(Vector_t<double, 3>(0.0, 0.0, fieldBegin));
+            const Vector_t<double, 3> fieldEnd3D =
+                    fieldTrafo.transformFrom(Vector_t<double, 3>(0.0, 0.0, fieldEnd));
+
+            pos << std::setw(30) << std::left
+                << std::string("\"FIELD BEGIN: ") + element->getName() + std::string("\"")
+                << std::setw(18) << std::setprecision(10) << fieldBegin3D(2) << std::setw(18)
+                << std::setprecision(10) << fieldBegin3D(0) << std::setw(18)
+                << std::setprecision(10) << fieldBegin3D(1) << "\n";
+            pos << std::setw(30) << std::left
+                << std::string("\"FIELD END: ") + element->getName() + std::string("\"")
+                << std::setw(18) << std::setprecision(10) << fieldEnd3D(2) << std::setw(18)
+                << std::setprecision(10) << fieldEnd3D(0) << std::setw(18) << std::setprecision(10)
+                << fieldEnd3D(1) << std::endl;
         }
     }
     elements_m.sort(BeamlineFieldElement::SortAsc);
@@ -638,6 +665,10 @@ void OpalBeamline::printPlacementSummary(std::ostream& out) const {
         std::string name;
         Vector_t<double, 3> origin;
         Vector_t<double, 3> orient;
+        double bodyBegin;
+        double bodyEnd;
+        double fieldBegin;
+        double fieldEnd;
     };
 
     std::vector<PlacementSummaryRow> rows;
@@ -652,7 +683,14 @@ void OpalBeamline::printPlacementSummary(std::ostream& out) const {
         for (unsigned int d = 0; d < 3; ++d) {
             orient(d) *= Units::rad2deg;
         }
-        rows.push_back({element->getName(), origin, orient});
+        double bodyBegin  = 0.0;
+        double bodyEnd    = 0.0;
+        double fieldBegin = 0.0;
+        double fieldEnd   = 0.0;
+        element->getElementDimensions(bodyBegin, bodyEnd);
+        element->getFieldExtend(fieldBegin, fieldEnd);
+        rows.push_back(
+                {element->getName(), origin, orient, bodyBegin, bodyEnd, fieldBegin, fieldEnd});
     }
 
     std::sort(rows.begin(), rows.end(), [](const auto& lhs, const auto& rhs) {
@@ -676,6 +714,16 @@ void OpalBeamline::printPlacementSummary(std::ostream& out) const {
         out << round2string(row.origin(0), 4) << '\t' << round2string(row.origin(1), 4) << '\t'
             << round2string(row.origin(2), 4) << '\t' << round2string(row.orient(0), 4) << '\t'
             << round2string(row.orient(1), 4) << '\t' << round2string(row.orient(2), 4) << '\n';
+    }
+
+    out << "Local body/field extents:\n";
+    appendFirstColumn(out, "Element");
+    out << "BODY_BEGIN\tBODY_END\tFIELD_BEGIN\tFIELD_END\n";
+    out << " ------------------------------------------------------------------------\n";
+    for (const auto& row : rows) {
+        appendFirstColumn(out, row.name);
+        out << round2string(row.bodyBegin, 4) << '\t' << round2string(row.bodyEnd, 4) << '\t'
+            << round2string(row.fieldBegin, 4) << '\t' << round2string(row.fieldEnd, 4) << '\n';
     }
 }
 

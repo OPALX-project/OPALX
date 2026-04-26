@@ -304,6 +304,8 @@ TEST_F(OpalBeamlinePlacementTest, PrintPlacementSummaryReportsBodyPoseOnOneLineP
     bend.getGeometry() = PlanarArcGeometry(0.5, Physics::pi / 8.0);
     bend.setElementLength(0.5);
     bend.setBendAngle(Physics::pi / 8.0);
+    bend.setFringeHalfGap(0.02);
+    bend.setFringeIntegral(0.5);
     bend.setElementPosition(10.0);
 
     OpalBeamline beamline;
@@ -322,8 +324,38 @@ TEST_F(OpalBeamlinePlacementTest, PrintPlacementSummaryReportsBodyPoseOnOneLineP
     EXPECT_NE(text.find("1.0\t2.0\t3.0\t0.0\t0.0\t315.0"), std::string::npos);
     EXPECT_NE(text.find("B1"), std::string::npos);
     EXPECT_NE(text.find("0.0\t0.0\t10.0"), std::string::npos);
+    EXPECT_NE(text.find("Local body/field extents:"), std::string::npos);
+    EXPECT_NE(text.find("BODY_BEGIN\tBODY_END\tFIELD_BEGIN\tFIELD_END"), std::string::npos);
     EXPECT_NE(text.find("B1"), std::string::npos);
+    EXPECT_NE(text.find("0.0\t0.5\t-0.01\t0.51"), std::string::npos);
     EXPECT_LT(text.find("D7"), text.find("B1"));
+}
+
+TEST_F(OpalBeamlinePlacementTest, Save3DLatticeExportsFieldExtentMarkersWhenSupportDiffers) {
+    auto bunch = makeBunch(0);
+    DummyBeamline beamlineForVisitor;
+    DefaultVisitor visitor(beamlineForVisitor, false, false);
+
+    SBendRep bend("B2");
+    bend.getGeometry() = PlanarArcGeometry(0.5, Physics::pi / 8.0);
+    bend.setElementLength(0.5);
+    bend.setBendAngle(Physics::pi / 8.0);
+    bend.setFringeHalfGap(0.02);
+    bend.setFringeIntegral(0.5);
+    bend.setElementPosition(0.0);
+
+    OpalBeamline beamline;
+    beamline.visit(bend, visitor, *bunch);
+    beamline.compute3DLattice();
+    beamline.save3DLattice();
+
+    std::ifstream txt(outputPath("_ElementPositions.txt"));
+    ASSERT_TRUE(txt.is_open());
+    const std::string content(
+            (std::istreambuf_iterator<char>(txt)), std::istreambuf_iterator<char>());
+
+    EXPECT_NE(content.find("\"FIELD BEGIN: B2\""), std::string::npos);
+    EXPECT_NE(content.find("\"FIELD END: B2\""), std::string::npos);
 }
 
 TEST_F(OpalBeamlinePlacementTest, ReportPortContinuityDiagnosticsFlagsGapToFollowingElement) {

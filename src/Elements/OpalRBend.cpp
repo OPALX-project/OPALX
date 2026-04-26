@@ -49,16 +49,29 @@ void OpalRBend::update() {
         return;
     }
 
-    RBendRep* bend          = dynamic_cast<RBendRep*>(getElement());
-    double length           = Attributes::getReal(itsAttr[LENGTH]);
-    double angle            = Attributes::getReal(itsAttr[ANGLE]);
-    double e1               = Attributes::getReal(itsAttr[E1]);
-    RBendGeometry& geometry = bend->getGeometry();
-    validateAnalyticBendDefinition(
-            "OpalRBend::update(" + getOpalName() + ")", !itsAttr[ANGLE].defaultUsed(),
-            !itsAttr[K0].defaultUsed(), length, angle, Attributes::getReal(itsAttr[K0]));
+    RBendRep* bend       = dynamic_cast<RBendRep*>(getElement());
+    double length        = Attributes::getReal(itsAttr[LENGTH]);
+    double angle         = Attributes::getReal(itsAttr[ANGLE]);
+    double e1            = Attributes::getReal(itsAttr[E1]);
+    const double fullGap = Attributes::getReal(itsAttr[GAP]);
+    const double halfGap =
+            itsAttr[HGAP] ? Attributes::getReal(itsAttr[HGAP]) : 0.5 * std::abs(fullGap);
+    const double fringeIntegral = Attributes::getReal(itsAttr[FINT]);
+    RBendGeometry& geometry     = bend->getGeometry();
     geometry.setElementLength(length);
     geometry.setBendAngle(angle);
+
+    bend->setLength(length);
+    bend->setBendAngle(angle);
+    bend->setEntranceAngle(e1);
+    bend->setFullGap(fullGap);
+    bend->setFringeHalfGap(halfGap);
+    bend->setFringeIntegral(fringeIntegral);
+
+    validateAnalyticBendDefinition(
+            "OpalRBend::update(" + getOpalName() + ")", !itsAttr[ANGLE].defaultUsed(),
+            !itsAttr[K0].defaultUsed(), bend->getEffectiveFieldLength(), angle,
+            Attributes::getReal(itsAttr[K0]));
 
     // Define number of slices for map tracking
     bend->setNSlices(Attributes::getReal(itsAttr[NSLICES]));
@@ -76,7 +89,7 @@ void OpalRBend::update() {
     // Define field.
     double factor = OpalData::getInstance()->getP0() / Physics::c;
     BMultipoleField field;
-    double k0  = deriveAnalyticDipoleCoefficient(length, angle);
+    double k0  = deriveAnalyticDipoleCoefficient(bend->getEffectiveFieldLength(), angle);
     double k0s = itsAttr[K0S] ? Attributes::getReal(itsAttr[K0S]) : 0.0;
 
     field.setNormalComponent(0, factor * k0);
@@ -119,8 +132,6 @@ void OpalRBend::update() {
         bend->setDesignEnergy(Attributes::getReal(itsAttr[DESIGNENERGY]), false);
     }
 
-    bend->setFullGap(Attributes::getReal(itsAttr[GAP]));
-
     if (itsAttr[HAPERT]) {
         double hapert = Attributes::getReal(itsAttr[HAPERT]);
         if (hapert > 0.0) {
@@ -128,11 +139,6 @@ void OpalRBend::update() {
                     ApertureType::RECTANGULAR, std::vector<double>({hapert, hapert, 1.0}));
         }
     }
-
-    if (itsAttr[LENGTH])
-        bend->setLength(Attributes::getReal(itsAttr[LENGTH]));
-    else
-        bend->setLength(0.0);
 
     if (itsAttr[WAKEF]) {
         throw OpalException(

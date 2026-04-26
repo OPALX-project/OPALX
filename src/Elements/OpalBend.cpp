@@ -68,17 +68,18 @@ OpalBend::~OpalBend() {}
 
 void OpalBend::print(std::ostream& os) const { OpalElement::print(os); }
 
-double OpalBend::deriveAnalyticDipoleCoefficient(const double arcLength, const double angle) {
-    if (std::abs(arcLength) <= std::numeric_limits<double>::epsilon()) {
+double OpalBend::deriveAnalyticDipoleCoefficient(
+        const double effectiveFieldLength, const double angle) {
+    if (std::abs(effectiveFieldLength) <= std::numeric_limits<double>::epsilon()) {
         return angle;
     }
 
-    return angle / arcLength;
+    return angle / effectiveFieldLength;
 }
 
 void OpalBend::validateAnalyticBendDefinition(
         const std::string& elementName, const bool hasAngle, const bool hasK0,
-        const double arcLength, const double angle, const double k0Input) {
+        const double effectiveFieldLength, const double angle, const double k0Input) {
     if (!hasAngle) {
         throw OpalException(
                 elementName,
@@ -90,19 +91,19 @@ void OpalBend::validateAnalyticBendDefinition(
         return;
     }
 
-    if (arcLength <= 0.0) {
+    if (effectiveFieldLength <= 0.0) {
         throw OpalException(
                 elementName,
-                "K0 consistency checking requires a positive LENGTH so that K0 can be compared "
-                "against ANGLE / L.");
+                "K0 consistency checking requires a positive effective field length so that K0 "
+                "can be compared against ANGLE / L_eff.");
     }
 
-    const double derivedK0 = deriveAnalyticDipoleCoefficient(arcLength, angle);
+    const double derivedK0 = deriveAnalyticDipoleCoefficient(effectiveFieldLength, angle);
     const double tolerance = 1.0e-12 + 1.0e-9 * std::max(std::abs(derivedK0), std::abs(k0Input));
     if (std::abs(k0Input - derivedK0) > tolerance) {
         throw OpalException(
                 elementName,
-                "Inconsistent analytic bend definition: K0 must satisfy K0 = ANGLE / L within "
-                "tolerance for SBEND/RBEND without fringe fields.");
+                "Inconsistent analytic bend definition: K0 must satisfy K0 = ANGLE / L_eff "
+                "within tolerance for the current analytic SBEND/RBEND fringe model.");
     }
 }

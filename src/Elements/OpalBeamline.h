@@ -142,7 +142,10 @@ public:
      *
      * The reported pose is the nominal body placement used by the placement
      * bridge and by `_3D.opal` export. Coordinates are printed in laboratory
-     * space and Tait-Bryant angles are printed in degrees.
+     * space and Tait-Bryant angles are printed in degrees. A second table
+     * reports the local nominal body extent and the local field-support extent
+     * so that bends and other fringe-field elements expose their geometric and
+     * tracking spans explicitly.
      */
     void printPlacementSummary(std::ostream& out) const;
 

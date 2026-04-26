@@ -76,11 +76,43 @@ namespace {
 
     ReferenceState integrateReferenceParticle(
             BendBase& bend, const double massEV, const double charge, const double kineticEnergyEV,
-            const double integrationTime, const std::size_t steps) {
+            const double integrationTime, const std::size_t steps, const double initialZ = 0.0) {
         ReferenceState state{};
-        state.r = Vector_t<double, 3>(0.0);
+        state.r = Vector_t<double, 3>(0.0, 0.0, initialZ);
         state.p =
                 Vector_t<double, 3>(0.0, 0.0, betaGammaFromKineticEnergy(kineticEnergyEV, massEV));
+
+        const double dt = integrationTime / static_cast<double>(steps);
+        for (std::size_t i = 0; i < steps; ++i) {
+            const ReferenceState k1 = evaluateDerivative(bend, state, massEV, charge);
+
+            ReferenceState tmp = state;
+            tmp.r += 0.5 * dt * k1.r;
+            tmp.p += 0.5 * dt * k1.p;
+            const ReferenceState k2 = evaluateDerivative(bend, tmp, massEV, charge);
+
+            tmp = state;
+            tmp.r += 0.5 * dt * k2.r;
+            tmp.p += 0.5 * dt * k2.p;
+            const ReferenceState k3 = evaluateDerivative(bend, tmp, massEV, charge);
+
+            tmp = state;
+            tmp.r += dt * k3.r;
+            tmp.p += dt * k3.p;
+            const ReferenceState k4 = evaluateDerivative(bend, tmp, massEV, charge);
+
+            state.r += dt / 6.0 * (k1.r + 2.0 * k2.r + 2.0 * k3.r + k4.r);
+            state.p += dt / 6.0 * (k1.p + 2.0 * k2.p + 2.0 * k3.p + k4.p);
+        }
+
+        return state;
+    }
+
+    ReferenceState integrateReferenceParticle(
+            BendBase& bend, const double massEV, const double charge,
+            const ReferenceState& initialState, const double integrationTime,
+            const std::size_t steps) {
+        ReferenceState state = initialState;
 
         const double dt = integrationTime / static_cast<double>(steps);
         for (std::size_t i = 0; i < steps; ++i) {
@@ -243,6 +275,302 @@ namespace {
         EXPECT_NEAR(deflection, angle, 5.0e-5);
         EXPECT_NEAR(state.r(0), radius * (1.0 - std::cos(angle)), 1.0e-6);
         EXPECT_NEAR(state.r(2), radius * std::sin(angle), 1.0e-6);
+    }
+
+    TEST(SBendRep, FringeSupportProducesExpectedLinearFieldRamp) {
+        constexpr double bodyLength = 1.0;
+        constexpr double angle      = Physics::pi / 4.0;
+        SBendRep bend("SBEND");
+        bend.getGeometry() = PlanarArcGeometry(bodyLength, angle / bodyLength);
+        bend.setLength(bodyLength);
+        bend.setBendAngle(angle);
+        bend.setFringeHalfGap(0.02);
+        bend.setFringeIntegral(0.5);
+        bend.setB(-1.0);
+
+        double fieldBegin = 0.0;
+        double fieldEnd   = 0.0;
+        bend.getFieldExtend(fieldBegin, fieldEnd);
+
+        Vector_t<double, 3> E(0.0);
+        Vector_t<double, 3> B(0.0);
+        EXPECT_NEAR(fieldBegin, -0.01, 1.0e-12);
+        EXPECT_NEAR(fieldEnd, 1.01, 1.0e-12);
+
+        EXPECT_FALSE(bend.applyToReferenceParticle(
+                Vector_t<double, 3>(0.0, 0.0, -0.02), Vector_t<double, 3>(0.0), 0.0, E, B));
+        EXPECT_NEAR(B(1), 0.0, 1.0e-12);
+
+        B = Vector_t<double, 3>(0.0);
+        EXPECT_FALSE(bend.applyToReferenceParticle(
+                Vector_t<double, 3>(0.0, 0.0, -0.005), Vector_t<double, 3>(0.0), 0.0, E, B));
+        EXPECT_NEAR(B(1), -0.5, 1.0e-12);
+
+        B = Vector_t<double, 3>(0.0);
+        EXPECT_FALSE(bend.applyToReferenceParticle(
+                Vector_t<double, 3>(0.0, 0.0, 0.5), Vector_t<double, 3>(0.0), 0.0, E, B));
+        EXPECT_NEAR(B(1), -1.0, 1.0e-12);
+
+        B = Vector_t<double, 3>(0.0);
+        EXPECT_FALSE(bend.applyToReferenceParticle(
+                Vector_t<double, 3>(0.0, 0.0, 1.005), Vector_t<double, 3>(0.0), 0.0, E, B));
+        EXPECT_NEAR(B(1), -0.5, 1.0e-12);
+    }
+
+    TEST(SBendRep, EntryFringeProducesEdgeFocusingKick) {
+        constexpr double bodyLength      = 1.0;
+        constexpr double bendAngle       = 0.2;
+        constexpr double entryAngle      = 0.15;
+        constexpr double fringeHalfGap   = 0.02;
+        constexpr double fringeIntegral  = 0.5;
+        constexpr double kineticEnergyEV = 590.0 * Units::MeV2eV;
+        constexpr double massEV          = Physics::m_p * Units::GeV2eV;
+        constexpr double charge          = 1.0;
+        constexpr std::size_t steps      = 20000;
+        constexpr double xOffset         = 1.0e-4;
+        constexpr double yOffset         = 1.0e-4;
+
+        SBendRep bend("SBEND");
+        bend.getGeometry() = PlanarArcGeometry(bodyLength, bendAngle / bodyLength);
+        bend.setLength(bodyLength);
+        bend.setBendAngle(bendAngle);
+        bend.setEntranceAngle(entryAngle);
+        bend.setExitAngle(0.0);
+        bend.setFringeHalfGap(fringeHalfGap);
+        bend.setFringeIntegral(fringeIntegral);
+
+        const double effectiveLength = bend.getEffectiveFieldLength();
+        const double radius          = effectiveLength / bendAngle;
+        const double betaGamma       = betaGammaFromKineticEnergy(kineticEnergyEV, massEV);
+        const double by              = -dipoleFieldMagnitude(betaGamma, massEV, charge, radius);
+        bend.setB(by);
+        bend.setFieldAmplitude(bendAngle / effectiveLength, 0.0);
+
+        double fieldBegin = 0.0;
+        double fieldEnd   = 0.0;
+        bend.getFieldExtend(fieldBegin, fieldEnd);
+        const double beta            = betaGamma / std::sqrt(1.0 + betaGamma * betaGamma);
+        const double integrationTime = (-fieldBegin) / (beta * Physics::c);
+
+        const ReferenceState base = integrateReferenceParticle(
+                bend, massEV, charge, kineticEnergyEV, integrationTime, steps, fieldBegin);
+
+        ReferenceState xState{};
+        xState.r = Vector_t<double, 3>(xOffset, 0.0, fieldBegin);
+        xState.p = Vector_t<double, 3>(0.0, 0.0, betaGamma);
+        const ReferenceState xFocused =
+                integrateReferenceParticle(bend, massEV, charge, xState, integrationTime, steps);
+
+        ReferenceState yState{};
+        yState.r = Vector_t<double, 3>(0.0, yOffset, fieldBegin);
+        yState.p = Vector_t<double, 3>(0.0, 0.0, betaGamma);
+        const ReferenceState yFocused =
+                integrateReferenceParticle(bend, massEV, charge, yState, integrationTime, steps);
+
+        const double signedCurvature = bendAngle / effectiveLength;
+        const double psi             = signedCurvature * fringeHalfGap * fringeIntegral
+                           * (1.0 + std::sin(entryAngle) * std::sin(entryAngle))
+                           / std::cos(entryAngle);
+        const double expectedHorizontal = signedCurvature * std::tan(entryAngle);
+        const double expectedVertical   = -signedCurvature * std::tan(entryAngle - psi);
+        const double deltaXP            = (xFocused.p(0) - base.p(0)) / betaGamma;
+        const double deltaYP            = (yFocused.p(1) - base.p(1)) / betaGamma;
+
+        EXPECT_NEAR(deltaXP / xOffset, expectedHorizontal, 5.0e-4);
+        EXPECT_NEAR(deltaYP / yOffset, expectedVertical, 5.0e-4);
+        EXPECT_LT(std::abs(expectedVertical), std::abs(expectedHorizontal));
+    }
+
+    TEST(SBendRep, ExitFringeProducesEdgeFocusingKick) {
+        constexpr double bodyLength      = 1.0;
+        constexpr double bendAngle       = 0.2;
+        constexpr double exitAngle       = 0.14;
+        constexpr double fringeHalfGap   = 0.02;
+        constexpr double fringeIntegral  = 0.5;
+        constexpr double kineticEnergyEV = 590.0 * Units::MeV2eV;
+        constexpr double massEV          = Physics::m_p * Units::GeV2eV;
+        constexpr double charge          = 1.0;
+        constexpr std::size_t steps      = 20000;
+        constexpr double xOffset         = 1.0e-4;
+        constexpr double yOffset         = 1.0e-4;
+
+        SBendRep bend("SBEND");
+        bend.getGeometry() = PlanarArcGeometry(bodyLength, bendAngle / bodyLength);
+        bend.setLength(bodyLength);
+        bend.setBendAngle(bendAngle);
+        bend.setEntranceAngle(0.0);
+        bend.setExitAngle(exitAngle);
+        bend.setFringeHalfGap(fringeHalfGap);
+        bend.setFringeIntegral(fringeIntegral);
+
+        const double effectiveLength = bend.getEffectiveFieldLength();
+        const double radius          = effectiveLength / bendAngle;
+        const double betaGamma       = betaGammaFromKineticEnergy(kineticEnergyEV, massEV);
+        const double by              = -dipoleFieldMagnitude(betaGamma, massEV, charge, radius);
+        bend.setB(by);
+        bend.setFieldAmplitude(bendAngle / effectiveLength, 0.0);
+
+        double fieldBegin = 0.0;
+        double fieldEnd   = 0.0;
+        bend.getFieldExtend(fieldBegin, fieldEnd);
+        const double beta            = betaGamma / std::sqrt(1.0 + betaGamma * betaGamma);
+        const double integrationTime = (fieldEnd - bodyLength) / (beta * Physics::c);
+
+        const ReferenceState base = integrateReferenceParticle(
+                bend, massEV, charge, kineticEnergyEV, integrationTime, steps, bodyLength);
+
+        ReferenceState xState{};
+        xState.r = Vector_t<double, 3>(xOffset, 0.0, bodyLength);
+        xState.p = Vector_t<double, 3>(0.0, 0.0, betaGamma);
+        const ReferenceState xFocused =
+                integrateReferenceParticle(bend, massEV, charge, xState, integrationTime, steps);
+
+        ReferenceState yState{};
+        yState.r = Vector_t<double, 3>(0.0, yOffset, bodyLength);
+        yState.p = Vector_t<double, 3>(0.0, 0.0, betaGamma);
+        const ReferenceState yFocused =
+                integrateReferenceParticle(bend, massEV, charge, yState, integrationTime, steps);
+
+        const double signedCurvature = bendAngle / effectiveLength;
+        const double psi             = signedCurvature * fringeHalfGap * fringeIntegral
+                           * (1.0 + std::sin(exitAngle) * std::sin(exitAngle))
+                           / std::cos(exitAngle);
+        const double expectedHorizontal = signedCurvature * std::tan(exitAngle);
+        const double expectedVertical   = -signedCurvature * std::tan(exitAngle - psi);
+        const double deltaXP            = (xFocused.p(0) - base.p(0)) / betaGamma;
+        const double deltaYP            = (yFocused.p(1) - base.p(1)) / betaGamma;
+
+        EXPECT_NEAR(deltaXP / xOffset, expectedHorizontal, 5.0e-4);
+        EXPECT_NEAR(deltaYP / yOffset, expectedVertical, 5.0e-4);
+        EXPECT_LT(std::abs(expectedVertical), std::abs(expectedHorizontal));
+    }
+
+    TEST(RBendRep, EntryFringeProducesEdgeFocusingKick) {
+        constexpr double bodyLength      = 1.0;
+        constexpr double bendAngle       = 0.2;
+        constexpr double entryAngle      = 0.12;
+        constexpr double fringeHalfGap   = 0.02;
+        constexpr double fringeIntegral  = 0.5;
+        constexpr double kineticEnergyEV = 1.0 * Units::GeV2eV;
+        constexpr double massEV          = Physics::m_e * Units::GeV2eV;
+        constexpr double charge          = -1.0;
+        constexpr std::size_t steps      = 20000;
+        constexpr double xOffset         = 1.0e-4;
+        constexpr double yOffset         = 1.0e-4;
+
+        RBendRep bend("RBEND");
+        bend.getGeometry().setElementLength(bodyLength);
+        bend.getGeometry().setBendAngle(bendAngle);
+        bend.setLength(bodyLength);
+        bend.setBendAngle(bendAngle);
+        bend.setEntranceAngle(entryAngle);
+        bend.setFringeHalfGap(fringeHalfGap);
+        bend.setFringeIntegral(fringeIntegral);
+
+        const double effectiveLength = bend.getEffectiveFieldLength();
+        const double radius          = effectiveLength / bendAngle;
+        const double betaGamma       = betaGammaFromKineticEnergy(kineticEnergyEV, massEV);
+        const double by              = dipoleFieldMagnitude(betaGamma, massEV, charge, radius);
+        bend.setB(by);
+        bend.setFieldAmplitude(bendAngle / effectiveLength, 0.0);
+
+        double fieldBegin = 0.0;
+        double fieldEnd   = 0.0;
+        bend.getFieldExtend(fieldBegin, fieldEnd);
+        const double beta            = betaGamma / std::sqrt(1.0 + betaGamma * betaGamma);
+        const double integrationTime = (-fieldBegin) / (beta * Physics::c);
+
+        const ReferenceState base = integrateReferenceParticle(
+                bend, massEV, charge, kineticEnergyEV, integrationTime, steps, fieldBegin);
+
+        ReferenceState xState{};
+        xState.r = Vector_t<double, 3>(xOffset, 0.0, fieldBegin);
+        xState.p = Vector_t<double, 3>(0.0, 0.0, betaGamma);
+        const ReferenceState xFocused =
+                integrateReferenceParticle(bend, massEV, charge, xState, integrationTime, steps);
+
+        ReferenceState yState{};
+        yState.r = Vector_t<double, 3>(0.0, yOffset, fieldBegin);
+        yState.p = Vector_t<double, 3>(0.0, 0.0, betaGamma);
+        const ReferenceState yFocused =
+                integrateReferenceParticle(bend, massEV, charge, yState, integrationTime, steps);
+
+        const double signedCurvature = bendAngle / effectiveLength;
+        const double psi             = signedCurvature * fringeHalfGap * fringeIntegral
+                           * (1.0 + std::sin(entryAngle) * std::sin(entryAngle))
+                           / std::cos(entryAngle);
+        const double expectedHorizontal = signedCurvature * std::tan(entryAngle);
+        const double expectedVertical   = -signedCurvature * std::tan(entryAngle - psi);
+        const double deltaXP            = (xFocused.p(0) - base.p(0)) / betaGamma;
+        const double deltaYP            = (yFocused.p(1) - base.p(1)) / betaGamma;
+
+        EXPECT_NEAR(deltaXP / xOffset, expectedHorizontal, 5.0e-4);
+        EXPECT_NEAR(deltaYP / yOffset, expectedVertical, 5.0e-4);
+        EXPECT_LT(std::abs(expectedVertical), std::abs(expectedHorizontal));
+    }
+
+    TEST(RBendRep, ExitFringeProducesEdgeFocusingKick) {
+        constexpr double bodyLength      = 1.0;
+        constexpr double bendAngle       = 0.2;
+        constexpr double exitAngle       = 0.11;
+        constexpr double fringeHalfGap   = 0.02;
+        constexpr double fringeIntegral  = 0.5;
+        constexpr double kineticEnergyEV = 1.0 * Units::GeV2eV;
+        constexpr double massEV          = Physics::m_e * Units::GeV2eV;
+        constexpr double charge          = -1.0;
+        constexpr std::size_t steps      = 20000;
+        constexpr double xOffset         = 1.0e-4;
+        constexpr double yOffset         = 1.0e-4;
+
+        RBendRep bend("RBEND");
+        bend.getGeometry().setElementLength(bodyLength);
+        bend.getGeometry().setBendAngle(bendAngle);
+        bend.setLength(bodyLength);
+        bend.setBendAngle(bendAngle);
+        bend.setEntranceAngle(bendAngle - exitAngle);
+        bend.setFringeHalfGap(fringeHalfGap);
+        bend.setFringeIntegral(fringeIntegral);
+
+        const double effectiveLength = bend.getEffectiveFieldLength();
+        const double radius          = effectiveLength / bendAngle;
+        const double betaGamma       = betaGammaFromKineticEnergy(kineticEnergyEV, massEV);
+        const double by              = dipoleFieldMagnitude(betaGamma, massEV, charge, radius);
+        bend.setB(by);
+        bend.setFieldAmplitude(bendAngle / effectiveLength, 0.0);
+
+        double fieldBegin = 0.0;
+        double fieldEnd   = 0.0;
+        bend.getFieldExtend(fieldBegin, fieldEnd);
+        const double beta            = betaGamma / std::sqrt(1.0 + betaGamma * betaGamma);
+        const double integrationTime = (fieldEnd - bodyLength) / (beta * Physics::c);
+
+        const ReferenceState base = integrateReferenceParticle(
+                bend, massEV, charge, kineticEnergyEV, integrationTime, steps, bodyLength);
+
+        ReferenceState xState{};
+        xState.r = Vector_t<double, 3>(xOffset, 0.0, bodyLength);
+        xState.p = Vector_t<double, 3>(0.0, 0.0, betaGamma);
+        const ReferenceState xFocused =
+                integrateReferenceParticle(bend, massEV, charge, xState, integrationTime, steps);
+
+        ReferenceState yState{};
+        yState.r = Vector_t<double, 3>(0.0, yOffset, bodyLength);
+        yState.p = Vector_t<double, 3>(0.0, 0.0, betaGamma);
+        const ReferenceState yFocused =
+                integrateReferenceParticle(bend, massEV, charge, yState, integrationTime, steps);
+
+        const double signedCurvature = bendAngle / effectiveLength;
+        const double psi             = signedCurvature * fringeHalfGap * fringeIntegral
+                           * (1.0 + std::sin(exitAngle) * std::sin(exitAngle))
+                           / std::cos(exitAngle);
+        const double expectedHorizontal = signedCurvature * std::tan(exitAngle);
+        const double expectedVertical   = -signedCurvature * std::tan(exitAngle - psi);
+        const double deltaXP            = (xFocused.p(0) - base.p(0)) / betaGamma;
+        const double deltaYP            = (yFocused.p(1) - base.p(1)) / betaGamma;
+
+        EXPECT_NEAR(deltaXP / xOffset, expectedHorizontal, 5.0e-4);
+        EXPECT_NEAR(deltaYP / yOffset, expectedVertical, 5.0e-4);
+        EXPECT_LT(std::abs(expectedVertical), std::abs(expectedHorizontal));
     }
 
 }  // namespace
