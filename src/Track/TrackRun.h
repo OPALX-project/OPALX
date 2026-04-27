@@ -23,6 +23,7 @@
 #include "AbstractObjects/Action.h"
 #include "Distribution/SamplingBase.hpp"
 #include "PartBunch/PartBunch.h"
+#include "PartBunch/PartBunch.h"
 
 #include "Structure/FieldSolverCmd.h"
 
@@ -45,6 +46,7 @@ class Tracker;
 class TrackRun : public Action {
     using emittingSamplers_t = std::vector<std::shared_ptr<SamplingBase>>;
 
+
 public:
     /// Exemplar constructor.
     TrackRun();
@@ -59,6 +61,7 @@ public:
 
     // Bring base class print into scope to avoid hiding warning
     using Object::print;
+
 
     Inform& print(Inform& os) const;
 
@@ -96,6 +99,23 @@ private:
     void setupDistributionsAndSamplers(
             const std::vector<EmissionSource*>& sources, Beam* beam,
             emittingSamplers_t& emittingSamplers, size_t index = 0);
+
+    /**
+     * @brief Configure image-charge mode from all configured emission sources.
+     *
+     * Scans all sources across all selected beams for `ZEROFACE_R0Z=true`.
+     * If exactly one source requests zero-face handling, image-charge mode is enabled
+     * and the mirror plane is set to that source's `R0Z`.
+     * The same source also provides `ZEROFACEPLANEDUMP`, which controls
+     * diagnostic potential-plane dumping frequency (`0` disables dumping).
+     * If none request it, image-charge mode is disabled.
+     *
+     * @param emissionSourcesLists Per-beam source lists assembled during `RUN` setup.
+     *
+     * @throws OpalException If more than one source requests `ZEROFACE_R0Z=true`.
+     */
+    void configureImageChargeFromSources(
+            const std::vector<std::vector<EmissionSource*>>& emissionSourcesLists);
 
     /// Compute total number of macroparticles for the bunch from BEAM::NALLOC and
     /// optional per-distribution NPARTDIST values on the emission sources.
