@@ -115,19 +115,12 @@ ParallelTracker::~ParallelTracker() {}
 /**
  * @copybrief ParallelTracker::visitComponent
  */
-void ParallelTracker::visitComponent(const Component& comp) {
-    if (comp.getType() == ElementType::LASER) {
-        throw LogicalError(
-                "ParallelTracker::visitComponent()",
-                "Tracking of the \"LASER\" element is not implemented yet.");
-    }
+void ParallelTracker::visitComponent(const Component& comp) { Tracker::visitComponent(comp); }
 
-    if (comp.getType() == ElementType::SBEND || comp.getType() == ElementType::RBEND) {
-        itsOpalBeamline_m.visit(comp, *this, *itsBunch_m);
-        return;
-    }
-
-    Tracker::visitComponent(comp);
+void ParallelTracker::visitLaser(const Laser&) {
+    throw LogicalError(
+            "ParallelTracker::visitLaser()",
+            "Tracking of the \"LASER\" element is not implemented yet.");
 }
 
 /**

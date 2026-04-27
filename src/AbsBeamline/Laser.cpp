@@ -29,7 +29,7 @@ Laser::Laser(const Laser& right)
 
 Laser::~Laser() {}
 
-void Laser::accept(BeamlineVisitor& visitor) const { visitor.visitComponent(*this); }
+void Laser::accept(BeamlineVisitor& visitor) const { visitor.visitLaser(*this); }
 
 void Laser::initialise(PartBunch_t* bunch, double& startField, double& endField) {
     endField       = startField + getElementLength();
