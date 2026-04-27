@@ -18,6 +18,10 @@ public:
         P0Y,
         P0Z,
         T0,
+        ZEROFACE_R0Z,
+        SHIFTED_GREENS_FUNCTION,
+        ZEROFACEPLANEDUMP,
+        ZEROFACE_MAXSTEPS,
         EMISSIONMODEL,
         SIZE
     };
@@ -37,6 +41,10 @@ public:
     ippl::Vector<double, 3> getR0() const;
     ippl::Vector<double, 3> getP0() const;
     double getT0() const;
+    bool getZeroFaceR0Z() const;
+    bool getShiftedGreensFunction() const;
+    int getZeroFacePlaneDumpFrequency() const;
+    int getZerofaceMaxSteps() const;
     std::string getEmissionModel() const;
 
 private:
