@@ -2,7 +2,8 @@
  * @file ParallelTracker.h
  * @brief Visitor-based parallel tracker with time as the independent variable.
  *
- * @copyright Copyright (c) 200x - 2014, Christof Kraus, Paul Scherrer Institut, Villigen PSI, Switzerland
+ * @copyright Copyright (c) 200x - 2014, Christof Kraus, Paul Scherrer Institut, Villigen PSI,
+ * Switzerland
  * @copyright 2015 - 2016, Christof Metzger-Kraus, Helmholtz-Zentrum Berlin, Germany
  * @copyright 2017 - 2020, Christof Metzger-Kraus
  * @copyright 2025 - present, Ryan Ammann, Paul Scherrer Institut, Villigen PSI, Switzerland
@@ -37,10 +38,13 @@
 #include "AbsBeamline/ConstantEFieldCavity.h"
 #include "AbsBeamline/Drift.h"
 #include "AbsBeamline/ElementBase.h"
+#include "AbsBeamline/Laser.h"
 #include "AbsBeamline/Marker.h"
 #include "AbsBeamline/Multipole.h"
 #include "AbsBeamline/MultipoleT.h"
+#include "AbsBeamline/RBend.h"
 #include "AbsBeamline/RFCavity.h"
+#include "AbsBeamline/SBend.h"
 #include "AbsBeamline/ScalingFFAMagnet.h"
 #include "AbsBeamline/Solenoid.h"
 #include "AbsBeamline/TravelingWave.h"
@@ -64,18 +68,18 @@ class PluginElement;
  */
 class ParallelTracker : public Tracker {
 private:
-
-    DataSink* itsDataSink_m;                ///< Borrowed beam statistics and phase-space output sink.
-    OpalBeamline itsOpalBeamline_m;          ///< Cloned field elements and coordinate transforms.
-    bool globalEOL_m;                       ///< End-of-line flag (e.g. orbit threader out of bounds).
-    double zstart_m;                        ///< Path-length start position for the track (m).
+    DataSink* itsDataSink_m;         ///< Borrowed beam statistics and phase-space output sink.
+    OpalBeamline itsOpalBeamline_m;  ///< Cloned field elements and coordinate transforms.
+    bool globalEOL_m;                ///< End-of-line flag (e.g. orbit threader out of bounds).
+    double zstart_m;                 ///< Path-length start position for the track (m).
 
     /** Step-size segments: z-stop, dt, and steps per segment. */
     StepSizeConfig stepSizes_m;
 
-    double dtCurrentTrack_m;                ///< Global @f$\Delta t@f$ for the current track segment.
-    unsigned long long repartFreq_m;       ///< Space-charge repartition period (steps); off on one rank.
-    std::vector<std::vector<std::shared_ptr<SamplingBase>>> emittingSamplers_m; ///< Per-container emitters.
+    double dtCurrentTrack_m;          ///< Global @f$\Delta t@f$ for the current track segment.
+    unsigned long long repartFreq_m;  ///< Space-charge repartition period (steps); off on one rank.
+    std::vector<std::vector<std::shared_ptr<SamplingBase>>>
+            emittingSamplers_m;  ///< Per-container emitters.
 
     // --- Timers ---
     IpplTimings::TimerRef timeIntegrationTimer1_m;
@@ -107,20 +111,20 @@ public:
      * @param dt                Time step per segment (s).
      * @param emittingSamplers  Optional per-container samplers for emitParticles(t, dt).
      */
-    explicit ParallelTracker(const Beamline& bl, PartBunch_t& bunch,
-        DataSink* ds, bool revBeam,
-        const std::vector<unsigned long long>& maxSTEPS, 
-        double zstart, const std::vector<double>& zstop, 
-        const std::vector<double>& dt,
-        const std::vector<std::vector<std::shared_ptr<SamplingBase>>>& emittingSamplers = {});
+    explicit ParallelTracker(
+            const Beamline& bl, PartBunch_t& bunch, DataSink* ds, bool revBeam,
+            const std::vector<unsigned long long>& maxSTEPS, double zstart,
+            const std::vector<double>& zstop, const std::vector<double>& dt,
+            const std::vector<std::vector<std::shared_ptr<SamplingBase>>>& emittingSamplers = {});
 
     /// @brief Destructor; releases tracker resources.
     virtual ~ParallelTracker();
 
-    /// @brief Visit the full beamline (iterates elements into OpalBeamline). Overrides DefaultVisitor.
+    /// @brief Visit the full beamline (iterates elements into OpalBeamline). Overrides
+    /// DefaultVisitor.
     virtual void visitBeamline(const Beamline&);
 
-    /// @brief Visit a generic component; rejects LASER (not implemented).
+    /// @brief Visit a generic component using the base tracker behavior.
     virtual void visitComponent(const Component&);
 
     /// @brief Apply the algorithm to a constant E-field cavity.
@@ -128,6 +132,9 @@ public:
 
     /// @brief Apply the algorithm to a drift.
     virtual void visitDrift(const Drift&);
+
+    /// @brief Reject laser tracking until dedicated laser tracking is implemented.
+    virtual void visitLaser(const Laser&);
 
     /// @brief Apply the algorithm to a marker.
     virtual void visitMarker(const Marker&);
@@ -138,8 +145,14 @@ public:
     /// @brief Apply the algorithm to a multipole (templated type).
     virtual void visitMultipoleT(const MultipoleT&);
 
+    /// @brief Apply the algorithm to a rectangular bend.
+    virtual void visitRBend(const RBend&);
+
     /// @brief Apply the algorithm to an RF cavity.
     virtual void visitRFCavity(const RFCavity&);
+
+    /// @brief Apply the algorithm to a sector bend.
+    virtual void visitSBend(const SBend&);
 
     /// @brief Apply the algorithm to a traveling wave cavity.
     virtual void visitTravelingWave(const TravelingWave&);
@@ -155,16 +168,14 @@ public:
      * @param pusher Boris pusher instance.
      * @param pc     Non-null particle container.
      */
-    void kickParticles(const BorisPusher& pusher,
-                       PartBunch_t::ParticleContainer_t& pc);
-                       
+    void kickParticles(const BorisPusher& pusher, PartBunch_t::ParticleContainer_t& pc);
+
     /**
      * @brief Boris position push (unitless positions) on one container.
      * @param pusher Boris pusher instance.
      * @param pc     Non-null particle container.
      */
-    void pushParticles(const BorisPusher& pusher,
-                       PartBunch_t::ParticleContainer_t& pc);
+    void pushParticles(const BorisPusher& pusher, PartBunch_t::ParticleContainer_t& pc);
 
     /// @brief First half of the leapfrog step: push all active containers.
     void timeIntegration1(BorisPusher& pusher);
@@ -197,7 +208,6 @@ public:
     void setTime();
 
 private:
-
     /// @brief Update reference trajectories and lab/reference coordinate transforms.
     void updateReference(const BorisPusher& pusher);
 
@@ -300,8 +310,16 @@ inline void ParallelTracker::visitMultipoleT(const MultipoleT& mult) {
     itsOpalBeamline_m.visit(mult, *this, *itsBunch_m);
 }
 
+inline void ParallelTracker::visitRBend(const RBend& bend) {
+    itsOpalBeamline_m.visit(bend, *this, *itsBunch_m);
+}
+
 inline void ParallelTracker::visitRFCavity(const RFCavity& as) {
     itsOpalBeamline_m.visit(as, *this, *itsBunch_m);
+}
+
+inline void ParallelTracker::visitSBend(const SBend& bend) {
+    itsOpalBeamline_m.visit(bend, *this, *itsBunch_m);
 }
 
 inline void ParallelTracker::visitTravelingWave(const TravelingWave& tw) {
