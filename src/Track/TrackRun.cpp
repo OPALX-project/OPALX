@@ -95,21 +95,6 @@ namespace {
         }
         return leaf.string();
     }
-    /** Restart source path for container @p index when using per-container H5 names. */
-    std::string h5RestartSourceForContainer(
-            const std::string& restartFile, const std::string& containerH5FileName,
-            size_t numContainers) {
-        if (numContainers <= 1) {
-            return restartFile;
-        }
-        namespace fs = std::filesystem;
-        fs::path rf(restartFile);
-        fs::path leaf = fs::path(containerH5FileName).filename();
-        if (rf.has_parent_path()) {
-            return (rf.parent_path() / leaf).string();
-        }
-        return leaf.string();
-    }
 
     /**
      * @brief Enforces unit macro weight
