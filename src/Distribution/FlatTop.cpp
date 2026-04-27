@@ -1,63 +1,36 @@
+#include "FlatTop.h"
+#include <cmath>
+#include <memory>
 #include "Distribution.h"
 #include "SamplingBase.hpp"
-#include "FlatTop.h"
-#include <memory>
-#include <cmath>
 
 using GeneratorPool = typename Kokkos::Random_XorShift64_Pool<>;
-using Dist_t = ippl::random::NormalDistribution<double, 3>;
+using Dist_t        = ippl::random::NormalDistribution<double, 3>;
 
-FlatTop::FlatTop(std::shared_ptr<ParticleContainer_t> pc,
-                 std::shared_ptr<FieldContainer_t> fc,
-                 Distribution_t* opalDist)
+FlatTop::FlatTop(
+        std::shared_ptr<ParticleContainer_t> pc, std::shared_ptr<FieldContainer_t> fc,
+        Distribution_t* opalDist)
     : SamplingBase(pc, fc, opalDist), rand_pool_m(determineRandInit()) {
     setParameters(opalDist);
 }
 
 FlatTop::FlatTop(
-    std::shared_ptr<ParticleContainer_t> pc,
-    std::shared_ptr<FieldContainer_t> fc,
-    bool emitting, 
-    double sigmaTFall,
-    double sigmaTRise,
-    Vector_t<double, 3> cutoff,
-    double tPulseLengthFWHM,
-    Vector_t<double, 3> sigmaR
-)
+        std::shared_ptr<ParticleContainer_t> pc, std::shared_ptr<FieldContainer_t> fc,
+        bool emitting, double sigmaTFall, double sigmaTRise, Vector_t<double, 3> cutoff,
+        double tPulseLengthFWHM, Vector_t<double, 3> sigmaR)
     : SamplingBase(pc, fc), rand_pool_m(determineRandInit()) {
-        setInternalVariables(
-            emitting, 
-            sigmaTFall,
-            sigmaTRise,
-            cutoff,
-            tPulseLengthFWHM,
-            sigmaR
-        );
+    setInternalVariables(emitting, sigmaTFall, sigmaTRise, cutoff, tPulseLengthFWHM, sigmaR);
 }
 
 FlatTop::FlatTop(
-    std::shared_ptr<ParticleContainer_t> pc,
-    bool emitting, 
-    double sigmaTFall,
-    double sigmaTRise,
-    Vector_t<double, 3> cutoff,
-    double tPulseLengthFWHM,
-    Vector_t<double, 3> sigmaR
-)
+        std::shared_ptr<ParticleContainer_t> pc, bool emitting, double sigmaTFall,
+        double sigmaTRise, Vector_t<double, 3> cutoff, double tPulseLengthFWHM,
+        Vector_t<double, 3> sigmaR)
     : SamplingBase(pc), rand_pool_m(determineRandInit()) {
-        setInternalVariables(
-            emitting, 
-            sigmaTFall,
-            sigmaTRise,
-            cutoff,
-            tPulseLengthFWHM,
-            sigmaR
-        );
+    setInternalVariables(emitting, sigmaTFall, sigmaTRise, cutoff, tPulseLengthFWHM, sigmaR);
 }
 
-void FlatTop::setWithDomainDecomp(bool withDomainDecomp) {
-    withDomainDecomp_m = withDomainDecomp;
-}
+void FlatTop::setWithDomainDecomp(bool withDomainDecomp) { withDomainDecomp_m = withDomainDecomp; }
 
 size_t FlatTop::determineRandInit() {
     extern Inform* gmsg;
@@ -73,36 +46,27 @@ size_t FlatTop::determineRandInit() {
 
 void FlatTop::setParameters(Distribution_t* opalDist) {
     setInternalVariables(
-        opalDist->emitting_m,
-        opalDist_m->getSigmaTFall(),
-        opalDist_m->getSigmaTRise(),
-        opalDist_m->getCutoffR(),
-        opalDist->getTPulseLengthFWHM(),
-        opalDist_m->getSigmaR()
-    );
-    
+            opalDist->emitting_m, opalDist_m->getSigmaTFall(), opalDist_m->getSigmaTRise(),
+            opalDist_m->getCutoffR(), opalDist->getTPulseLengthFWHM(), opalDist_m->getSigmaR());
+
     opalDist_m->setTEmission(emissionTime_m);
 
     // make sure only z direction is decomposed
     fc_m->setDecomp({false, false, true});
 }
 
-void FlatTop::setInternalVariables(bool emitting, 
-                        double sigmaTFall,
-                        double sigmaTRise,
-                        Vector_t<double, 3> cutoff,
-                        double tPulseLengthFWHM,
-                        Vector_t<double, 3> sigmaR
-                        ) {
+void FlatTop::setInternalVariables(
+        bool emitting, double sigmaTFall, double sigmaTRise, Vector_t<double, 3> cutoff,
+        double tPulseLengthFWHM, Vector_t<double, 3> sigmaR) {
     emitting_m = emitting;
     // time span of fall is [0, riseTime, riseTime+flattopTime, fallTime+flattopTime+riseTime ]
     sigmaTFall_m = sigmaTFall;
     sigmaTRise_m = sigmaTRise;
-    cutoffR_m = cutoff;
+    cutoffR_m    = cutoff;
 
-    fallTime_m = sigmaTFall_m * cutoffR_m[2]; // fall is [0, fallTime]
-    flattopTime_m = tPulseLengthFWHM
-            - std::sqrt(2.0 * std::log(2.0)) * (sigmaTRise_m + sigmaTFall_m);
+    fallTime_m = sigmaTFall_m * cutoffR_m[2];  // fall is [0, fallTime]
+    flattopTime_m =
+            tPulseLengthFWHM - std::sqrt(2.0 * std::log(2.0)) * (sigmaTRise_m + sigmaTFall_m);
     if (flattopTime_m < 0.0) {
         flattopTime_m = 0.0;
     }
@@ -114,14 +78,17 @@ void FlatTop::setInternalVariables(bool emitting,
     // I think normalizedFlankArea is int_0^{cutoff} exp(-(x/sigma)^2/2 ) / sigma
     // Instead of int_0^{cutoff} exp(-(x/sigma)^2/2 ) / sqrt(2*pi) / sigma, which is strange!
     // So the distribution of tails are exp(-(x/sigma)^2/2 ) and not Gaussian!
-    normalizedFlankArea_m = 0.5 * std::sqrt(Physics::two_pi) * std::erf(cutoffR_m[2] / std::sqrt(2.0));
+    normalizedFlankArea_m =
+            0.5 * std::sqrt(Physics::two_pi) * std::erf(cutoffR_m[2] / std::sqrt(2.0));
     distArea_m = flattopTime_m + (sigmaTRise_m + sigmaTFall_m) * normalizedFlankArea_m;
 
     sigmaR_m = sigmaR;
 }
 
 void FlatTop::generateUniformDisk(size_type nlocal, size_t nNew, double dt) {
-    if (nNew == 0) { return; }
+    if (nNew == 0) {
+        return;
+    }
 
     GeneratorPool rand_pool = rand_pool_m;
     view_type Rview         = pc_m->R.getView();
@@ -136,25 +103,27 @@ void FlatTop::generateUniformDisk(size_type nlocal, size_t nNew, double dt) {
     auto range = Kokkos::RangePolicy<>(nlocal, nlocal + nNew);
 
     // Position sampling is shared: uniform on elliptical disk + R0 offset.
-    Kokkos::parallel_for("unitDisk_R", range, KOKKOS_LAMBDA(const size_t j) {
-        auto generator = rand_pool.get_state();
-        double r       = Kokkos::sqrt(generator.drand(0., 1.));
-        double theta   = 2.0 * pi * generator.drand(0., 1.);
-        double frac    = generator.drand(0., 1.);
-        rand_pool.free_state(generator);
+    Kokkos::parallel_for(
+            "unitDisk_R", range, KOKKOS_LAMBDA(const size_t j) {
+                auto generator = rand_pool.get_state();
+                double r       = Kokkos::sqrt(generator.drand(0., 1.));
+                double theta   = 2.0 * pi * generator.drand(0., 1.);
+                double frac    = generator.drand(0., 1.);
+                rand_pool.free_state(generator);
 
-        Rview(j)[0] = r * Kokkos::cos(theta) * sigmaR[0] + R0[0];
-        Rview(j)[1] = r * Kokkos::sin(theta) * sigmaR[1] + R0[1];
-        Rview(j)[2] = 0.0 + R0[2];
+                Rview(j)[0] = r * Kokkos::cos(theta) * sigmaR[0] + R0[0];
+                Rview(j)[1] = r * Kokkos::sin(theta) * sigmaR[1] + R0[1];
+                Rview(j)[2] = 0.0 + R0[2];
 
-        // Each particle is assigned a fractional timestep dt_i = f * dt where f ~ U(0,1).
-        // This represents the fraction of the next integration step the particle will experience,
-        // as if the particle were born at a random time within [t, t+dt]. The per-particle dt is
-        // used by the Boris integrator (push/kick) and by scaleDtByCharge for field deposition,
-        // so the fractional dt naturally spreads particles in z and gives fractional charge
-        // contribution without needing to sample Rz explicitly.
-        dtView(j) = frac * dt;
-    });
+                // Each particle is assigned a fractional timestep dt_i = f * dt where f ~ U(0,1).
+                // This represents the fraction of the next integration step the particle will
+                // experience, as if the particle were born at a random time within [t, t+dt]. The
+                // per-particle dt is used by the Boris integrator (push/kick) and by
+                // scaleDtByCharge for field deposition, so the fractional dt naturally spreads
+                // particles in z and gives fractional charge contribution without needing to sample
+                // Rz explicitly.
+                dtView(j) = frac * dt;
+            });
 
     // Momentum sampling depends on the emission model chosen in EMISSIONSOURCE.
     // BEAM reference momentum (avrgpz) is intentionally NOT applied:
@@ -162,32 +131,56 @@ void FlatTop::generateUniformDisk(size_type nlocal, size_t nNew, double dt) {
     if (emissionModel_m == "ASTRA") {
         // ASTRA: 3D isotropic thermal emission on forward half-sphere.
         const double pTot = euclidean_norm(P0);
-        Kokkos::parallel_for("unitDisk_P_astra", range, KOKKOS_LAMBDA(const size_t j) {
-            auto generator = rand_pool.get_state();
-            double rand1   = generator.drand(0., 1.);
-            double rand2   = generator.drand(0., 1.);
-            rand_pool.free_state(generator);
+        Kokkos::parallel_for(
+                "unitDisk_P_astra", range, KOKKOS_LAMBDA(const size_t j) {
+                    auto generator = rand_pool.get_state();
+                    double rand1   = generator.drand(0., 1.);
+                    double rand2   = generator.drand(0., 1.);
+                    rand_pool.free_state(generator);
 
-            double phi   = 2.0 * Kokkos::acos(Kokkos::sqrt(rand1));
-            double theta = 2.0 * pi * rand2;
+                    double phi   = 2.0 * Kokkos::acos(Kokkos::sqrt(rand1));
+                    double theta = 2.0 * pi * rand2;
 
-            Pview(j)[0] = pTot * Kokkos::sin(phi) * Kokkos::cos(theta);
-            Pview(j)[1] = pTot * Kokkos::sin(phi) * Kokkos::sin(theta);
-            Pview(j)[2] = pTot * Kokkos::fabs(Kokkos::cos(phi));
-        });
+                    Pview(j)[0] = pTot * Kokkos::sin(phi) * Kokkos::cos(theta);
+                    Pview(j)[1] = pTot * Kokkos::sin(phi) * Kokkos::sin(theta);
+                    Pview(j)[2] = pTot * Kokkos::fabs(Kokkos::cos(phi));
+                });
     } else {
         // NONE: all "thermal" momentum applied in z direction.
-        pc_m->P = P0;
+        Kokkos::parallel_for(
+                "unitDisk_P_none", range, KOKKOS_LAMBDA(const size_t j) { Pview(j) = P0; });
     }
+    Kokkos::fence();
+
+    // Correct z for the missed timeIntegration1 half-push.
+    //
+    // New particles are born between timeIntegration1 and timeIntegration2.
+    // They only receive the timeIntegration2 push: Δz = 0.5·β_z·c·(frac·dt).
+    // The inter-batch spacing is β_z·c·dt (a full step). Without correction the
+    // batch spread is 0.5·β_z·c·dt — half the spacing — leaving 50% gaps that
+    // appear as visible "discs" under strong acceleration.
+    //
+    // Adding the equivalent of the missed timeIntegration1 half-push at birth:
+    //   z_init += 0.5·β_z(birth)·c·(frac·dt)
+    // makes the total spread β_z·c·frac·dt ∈ [0, β_z·c·dt], exactly tiling the
+    // inter-batch gap. The approximation is that β_z is evaluated at birth
+    // momentum; residual error is O(F·dt²) (one-timestep field correction).
+    const double c = Physics::c;
+    Kokkos::parallel_for(
+            "unitDisk_Zcorr", range, KOKKOS_LAMBDA(const size_t j) {
+                double px     = Pview(j)[0];
+                double py     = Pview(j)[1];
+                double pz     = Pview(j)[2];
+                double gamma  = Kokkos::sqrt(1.0 + px * px + py * py + pz * pz);
+                double beta_z = pz / gamma;
+                Rview(j)[2] += 0.5 * beta_z * c * dtView(j);
+            });
     Kokkos::fence();
 }
 
-void FlatTop::setNr(Vector_t<double, 3> nr){
-    nr_m = nr;
-}
+void FlatTop::setNr(Vector_t<double, 3> nr) { nr_m = nr; }
 
 void FlatTop::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> nr) {
-
     setNr(nr);
 
     // initial allocation is similar for both emitting and non-emitting cases
@@ -199,9 +192,8 @@ void FlatTop::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> n
         //pc_m->setLocalNum(0);
 
         Kokkos::View<bool*> tmp_invalid("tmp_invalid", 0);
-        // \todo might be abuse of semantics: maybe think about new pc_m->setTotalNum or pc_m->updateTotal function instead?
-        pc_m->destroy(tmp_invalid, pc_m->getLocalNum());
-    } else {
+        // \todo might be abuse of semantics: maybe think about new pc_m->setTotalNum or
+    pc_m->updateTotal function instead? pc_m->destroy(tmp_invalid, pc_m->getLocalNum()); } else {
         throw OpalException(
             "FlatTop::generateParticles",
             "FlatTop does not support generating particles without emitting. Set EMITTED = true in "
@@ -209,31 +201,30 @@ void FlatTop::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> n
     }*/
 }
 
-double FlatTop::FlatTopProfile(double t){
+double FlatTop::FlatTopProfile(double t) {
     double t0;
-    if(t<riseTime_m){
-            t0 = riseTime_m;
-            return exp( -pow((t-t0)/sigmaTRise_m,2) /2. );
-            //  In the old opal, tails seem to be exp(-x^2/sigma^2/2) rather than Gaussian with normalizing factor.
-    }
-    else if( t>riseTime_m && t<riseTime_m + flattopTime_m){
-            return 1.;
-    }
-    else if(t>riseTime_m + flattopTime_m && t < fallTime_m + flattopTime_m + riseTime_m){
+    if (t < riseTime_m) {
+        t0 = riseTime_m;
+        return exp(-pow((t - t0) / sigmaTRise_m, 2) / 2.);
+        //  In the old opal, tails seem to be exp(-x^2/sigma^2/2) rather than Gaussian with
+        //  normalizing factor.
+    } else if (t > riseTime_m && t < riseTime_m + flattopTime_m) {
+        return 1.;
+    } else if (t > riseTime_m + flattopTime_m && t < fallTime_m + flattopTime_m + riseTime_m) {
         t0 = fallTime_m + flattopTime_m;
-        return exp( -pow((t-t0)/sigmaTFall_m,2)/2. );
-        //  In the old opal, tails seem to be exp(-x^2/sigma^2/2) rather than Gaussian with normalizing factor.
-    }
-    else
+        return exp(-pow((t - t0) / sigmaTFall_m, 2) / 2.);
+        //  In the old opal, tails seem to be exp(-x^2/sigma^2/2) rather than Gaussian with
+        //  normalizing factor.
+    } else
         return 0.;
 }
 
-size_t FlatTop::computeNlocalUniformly(size_t nglobal){
+size_t FlatTop::computeNlocalUniformly(size_t nglobal) {
     // Use ippl::Comm so we match the communicator used for allocation in TrackRun (maxLocalNum).
     const int nranks = ippl::Comm->size();
     const int rank   = ippl::Comm->rank();
 
-    const size_t nranks_u = static_cast<size_t>(nranks > 0 ? nranks : 1);
+    const size_t nranks_u  = static_cast<size_t>(nranks > 0 ? nranks : 1);
     const size_type nlocal = nglobal / nranks_u;
     const size_t remaining = nglobal - nlocal * nranks_u;
 
@@ -244,42 +235,43 @@ size_t FlatTop::computeNlocalUniformly(size_t nglobal){
     return nlocal;
 }
 
-double FlatTop::integrateTrapezoidal(double x1, double x2, double y1, double y2){
-    return 0.5 * (y1+y2) * fabs(x2-x1);
+double FlatTop::integrateTrapezoidal(double x1, double x2, double y1, double y2) {
+    return 0.5 * (y1 + y2) * fabs(x2 - x1);
 }
 
 void FlatTop::initDomainDecomp(double BoxIncr) {
-    auto *mesh = &fc_m->getMesh();
-    auto *FL   = &fc_m->getFL();
+    auto* mesh                 = &fc_m->getMesh();
+    auto* FL                   = &fc_m->getFL();
     Vector_t<double, 3> sigmaR = sigmaR_m;
     ippl::Vector<double, 3> o;
     ippl::Vector<double, 3> e;
-    double tol = 1e-15; // enlarge grid by tol to avoid missing particles on boundaries
-    o[0] = -sigmaR[0] - tol;
-    e[0] =  sigmaR[0] + tol;
-    o[1] = -sigmaR[1] - tol;
-    e[1] =  sigmaR[1] + tol;
-    o[2] = 0.0 - tol;
-    e[2] = Physics::c * emissionTime_m + tol;
+    double tol = 1e-15;  // enlarge grid by tol to avoid missing particles on boundaries
+    o[0]       = -sigmaR[0] - tol;
+    e[0]       = sigmaR[0] + tol;
+    o[1]       = -sigmaR[1] - tol;
+    e[1]       = sigmaR[1] + tol;
+    o[2]       = 0.0 - tol;
+    e[2]       = Physics::c * emissionTime_m + tol;
 
     ippl::Vector<double, 3> l = e - o;
-    hr_m = (1.0+BoxIncr/100.)*(l / nr_m);
+    hr_m                      = (1.0 + BoxIncr / 100.) * (l / nr_m);
     mesh->setMeshSpacing(hr_m);
-    mesh->setOrigin(o-0.5*hr_m*BoxIncr/100.);
+    mesh->setOrigin(o - 0.5 * hr_m * BoxIncr / 100.);
     pc_m->getLayout().updateLayout(*FL, *mesh);
 }
 
-FlatTop::size_type FlatTop::countEnteringParticlesPerRank(double t0, double tf){
+FlatTop::size_type FlatTop::countEnteringParticlesPerRank(double t0, double tf) {
     const double tArea = integrateTrapezoidal(t0, tf, FlatTopProfile(t0), FlatTopProfile(tf));
-    // Integer-safe: floor to avoid over-counting, then clamp to totalN_m (avoids fp overflow into size_type)
+    // Integer-safe: floor to avoid over-counting, then clamp to totalN_m (avoids fp overflow into
+    // size_type)
     const double totalNewD = std::floor(static_cast<double>(totalN_m) * tArea / distArea_m);
-    size_type totalNew = static_cast<size_type>(totalNewD);
+    size_type totalNew     = static_cast<size_type>(totalNewD);
     if (totalNew > totalN_m) {
         totalNew = totalN_m;
     }
 
     return pc_m ? static_cast<size_type>(computeLocalEmitCount(static_cast<size_t>(totalNew)))
-                 : computeNlocalUniformly(totalNew);
+                : computeNlocalUniformly(totalNew);
 
     // The following code is unnecessarily complicated in my opinion as a load balancer will be
     // called anyways. Apart from that it will mitigate errors in the allocated number of particles
@@ -355,7 +347,7 @@ FlatTop::size_type FlatTop::countEnteringParticlesPerRank(double t0, double tf){
     }*/
 }
 
-void FlatTop::allocateParticles(size_t numberOfParticles){
+void FlatTop::allocateParticles(size_t numberOfParticles) {
     totalN_m = numberOfParticles;
 
     // Initial allocation is now handled centrally in TrackRun / PartBunch via the
@@ -369,7 +361,7 @@ void FlatTop::emitParticles(double t, double dt) {
     Inform msgAll = Inform("FlatTop::emitParticles", INFORM_ALL_NODES);
 
     // Time profile uses (t - t0) so sampling begins at t0.
-    double tShift = t - t0_m;
+    double tShift  = t - t0_m;
     double dtShift = dt;
     // Count number of new particles to be emitted in [tShift, tShift+dtShift].
     size_type nNew = countEnteringParticlesPerRank(tShift, tShift + dtShift);
@@ -414,7 +406,7 @@ void FlatTop::testNumEmitParticles(size_type nsteps, double dt) {
         throw std::runtime_error("Failed to open file: " + filename);
     }
 
-    for(size_type i=0; i<nsteps; i++){
+    for (size_type i = 0; i < nsteps; i++) {
         nNew = countEnteringParticlesPerRank(t, t + dt);
 
         // current number of particles per rank
@@ -427,12 +419,13 @@ void FlatTop::testNumEmitParticles(size_type nsteps, double dt) {
         generateUniformDisk(nlocal, nNew, dt);
 
         // write to a file
-        auto rViewDevice  = pc_m->R.getView();
-        auto rView = Kokkos::create_mirror_view(rViewDevice);
-        Kokkos::deep_copy(rView,rViewDevice);
+        auto rViewDevice = pc_m->R.getView();
+        auto rView       = Kokkos::create_mirror_view(rViewDevice);
+        Kokkos::deep_copy(rView, rViewDevice);
 
-        for(size_type j=nlocal; j<nlocal+nNew; j++){
-            file << t << " " << (emissionTime_m-t)*c << " " << rView(j)[0] << " " << rView(j)[1] << "\n";
+        for (size_type j = nlocal; j < nlocal + nNew; j++) {
+            file << t << " " << (emissionTime_m - t) * c << " " << rView(j)[0] << " " << rView(j)[1]
+                 << "\n";
         }
         file.flush();  // Ensure data is written to disk
 
@@ -445,7 +438,7 @@ void FlatTop::testNumEmitParticles(size_type nsteps, double dt) {
 void FlatTop::testEmitParticles(size_type nsteps, double dt) {
     double t = 0.0;
 
-    for(size_type i=0; i<nsteps; i++){
+    for (size_type i = 0; i < nsteps; i++) {
         emitParticles(t, dt);
 
         t = t + dt;

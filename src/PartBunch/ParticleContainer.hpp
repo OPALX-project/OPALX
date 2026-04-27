@@ -3,20 +3,22 @@
 #define OPAL_PARTICLE_CONTAINER_H
 
 // #include <functional>
-#include <memory>
 #include <cmath>
-// #include <vector>
+#include <memory>
+#include <vector>
 
 #include "Manager/BaseManager.h"
 
+#include "PartBunch/FieldContainer.hpp"
+
+#include "Algorithms/CoordinateSystemTrafo.h"
 #include "Algorithms/DistributionMoments.h"
-#include "PartBunch/BunchStateHandler.h"
 #include "Algorithms/PartData.h"
 #include "Algorithms/Quaternion.hpp"
-#include "Algorithms/CoordinateSystemTrafo.h"
+#include "PartBunch/BunchStateHandler.h"
 
-#include "Utilities/Options.h"
 #include "Utilities/OpalException.h"
+#include "Utilities/Options.h"
 
 #include "Physics/Physics.h"
 
@@ -26,6 +28,8 @@ template <typename T>
 using ParticleAttrib = ippl::ParticleAttrib<T>;
 
 using size_type = ippl::detail::size_type;
+
+#include "Processes/GlobalProcesses/GlobalProcess.h"
 
 /**
  * @class ParticleContainer
@@ -295,9 +299,7 @@ public:
     }
 
     /// @brief Get total charge [Cb] in this container.
-    double getTotalCharge() const {
-        return getChargePerParticle() * this->getTotalNum();
-    }
+    double getTotalCharge() const { return getChargePerParticle() * this->getTotalNum(); }
 
     /**
      * @brief Set particle mass for the active M storage mode.
@@ -337,39 +339,25 @@ public:
     }
 
     /// @brief Get total mass [GeV] in this container.
-    double getTotalMass() const {
-        return getMassPerParticle() * this->getTotalNum();
-    }
+    double getTotalMass() const { return getMassPerParticle() * this->getTotalNum(); }
 
     /// @brief Get the reference particle position (const).
-    const Vector_t<double, Dim>& getRefPartR() const {
-        return refPartR_m;
-    }
+    const Vector_t<double, Dim>& getRefPartR() const { return refPartR_m; }
 
     /// @brief Get the reference particle position.
-    Vector_t<double, Dim>& getRefPartR() {
-        return refPartR_m;
-    }
+    Vector_t<double, Dim>& getRefPartR() { return refPartR_m; }
 
     /// @brief Set the reference particle position.
-    void setRefPartR(const Vector_t<double, Dim>& refPartR) {
-        refPartR_m = refPartR;
-    }
+    void setRefPartR(const Vector_t<double, Dim>& refPartR) { refPartR_m = refPartR; }
 
     /// @brief Get the reference particle momentum (const).
-    const Vector_t<double, Dim>& getRefPartP() const {
-        return refPartP_m;
-    }
+    const Vector_t<double, Dim>& getRefPartP() const { return refPartP_m; }
 
     /// @brief Get the reference particle momentum.
-    Vector_t<double, Dim>& getRefPartP() {
-        return refPartP_m;
-    }
+    Vector_t<double, Dim>& getRefPartP() { return refPartP_m; }
 
     /// @brief Set the reference particle momentum.
-    void setRefPartP(const Vector_t<double, Dim>& refPartP) {
-        refPartP_m = refPartP;
-    }
+    void setRefPartP(const Vector_t<double, Dim>& refPartP) { refPartP_m = refPartP; }
 
     /// @brief Set reference particle data.
     void setReference(const PartData* ref) {
@@ -381,19 +369,13 @@ public:
     }
 
     /// @brief Get reference particle data.
-    const PartData* getReference() const {
-        return reference_m;
-    }
+    const PartData* getReference() const { return reference_m; }
 
     /// @brief Set longitudinal position along design trajectory.
-    void set_sPos(double sPos) {
-        sPos_m = sPos;
-    }
+    void set_sPos(double sPos) { sPos_m = sPos; }
 
     /// @brief Get longitudinal position along design trajectory.
-    double get_sPos() const {
-        return sPos_m;
-    }
+    double get_sPos() const { return sPos_m; }
 
     /// @brief Set global-to-local rotation quaternion.
     void setGlobalToLocalQuaternion(const Quaternion_t& globalToLocalQuaternion) {
@@ -401,32 +383,24 @@ public:
     }
 
     /// @brief Get global-to-local rotation quaternion.
-    Quaternion_t getGlobalToLocalQuaternion() const {
-        return globalToLocalQuaternion_m;
-    }
+    Quaternion_t getGlobalToLocalQuaternion() const { return globalToLocalQuaternion_m; }
 
     /// @brief Get local-to-lab coordinate transformation (const).
-    const CoordinateSystemTrafo& getToLabTrafo() const {
-        return toLabTrafo_m;
-    }
+    const CoordinateSystemTrafo& getToLabTrafo() const { return toLabTrafo_m; }
 
     /// @brief Get local-to-lab coordinate transformation.
-    CoordinateSystemTrafo& getToLabTrafo() {
-        return toLabTrafo_m;
-    }
+    CoordinateSystemTrafo& getToLabTrafo() { return toLabTrafo_m; }
 
     /// @brief Set local-to-lab coordinate transformation.
-    void setToLabTrafo(const CoordinateSystemTrafo& toLabTrafo) {
-        toLabTrafo_m = toLabTrafo;
-    }
+    void setToLabTrafo(const CoordinateSystemTrafo& toLabTrafo) { toLabTrafo_m = toLabTrafo; }
 
     /// @brief Advance reference/lab transform state and map bunch accordingly.
     void updateRefToLabCSTrafo(double bunchDT) {
         Vector_t<double, 3> R = toLabTrafo_m.transformFrom(refPartR_m);
         Vector_t<double, 3> P = toLabTrafo_m.rotateFrom(refPartP_m);
 
-        const double ds = std::copysign(1.0, bunchDT)
-                          * std::sqrt(R[0] * R[0] + R[1] * R[1] + R[2] * R[2]);
+        const double ds =
+                std::copysign(1.0, bunchDT) * std::sqrt(R[0] * R[0] + R[1] * R[1] + R[2] * R[2]);
         sPos_m += ds;
 
         CoordinateSystemTrafo update(R, getQuaternion(P, Vector_t<double, 3>(0, 0, 1)));
@@ -516,15 +490,16 @@ public:
      */
     void switchToUnitlessPositions() {
         if (containerState_m->unitlessPositions) {
-            throw OpalException("ParticleContainer::switchToUnitlessPositions",
-                                "ParticleContainer is already in unitless positions!");
+            throw OpalException(
+                    "ParticleContainer::switchToUnitlessPositions",
+                    "ParticleContainer is already in unitless positions!");
         }
         auto Rview             = this->R.getView();
         auto dtview            = this->dt.getView();
         const size_type nLocal = this->getLocalNum();
         Kokkos::parallel_for(
-            "ParticleContainer::switchToUnitlessPositions", nLocal,
-            KOKKOS_LAMBDA(const size_type i) { Rview(i) *= 1.0 / (Physics::c * dtview(i)); });
+                "ParticleContainer::switchToUnitlessPositions", nLocal,
+                KOKKOS_LAMBDA(const size_type i) { Rview(i) *= 1.0 / (Physics::c * dtview(i)); });
         Kokkos::fence();
         containerState_m->setUnitlessPositions(true);
     }
@@ -538,19 +513,28 @@ public:
      */
     void switchOffUnitlessPositions() {
         if (!containerState_m->unitlessPositions) {
-            throw OpalException("ParticleContainer::switchOffUnitlessPositions",
-                                "ParticleContainer is already in physical positions!");
+            throw OpalException(
+                    "ParticleContainer::switchOffUnitlessPositions",
+                    "ParticleContainer is already in physical positions!");
         }
         auto Rview             = this->R.getView();
         auto dtview            = this->dt.getView();
         const size_type nLocal = this->getLocalNum();
         Kokkos::parallel_for(
-            "ParticleContainer::switchOffUnitlessPositions", nLocal,
-            KOKKOS_LAMBDA(const size_type i) { Rview(i) *= Physics::c * dtview(i); });
+                "ParticleContainer::switchOffUnitlessPositions", nLocal,
+                KOKKOS_LAMBDA(const size_type i) { Rview(i) *= Physics::c * dtview(i); });
         Kokkos::fence();
         containerState_m->setUnitlessPositions(false);
     }
     QMStorageMode getQMStorageMode() const { return qmStorageMode_m; }
+
+    void setGlobalProcesses(std::vector<std::unique_ptr<GlobalProcess>> processes) {
+        globalProcesses_m = std::move(processes);
+    }
+
+    const std::vector<std::unique_ptr<GlobalProcess>>& getGlobalProcesses() const {
+        return globalProcesses_m;
+    }
 
     /**
      * @brief Delete particles whose position is more than sigmasAway standard deviations
@@ -655,6 +639,8 @@ private:
     // Distance along the beamline
     double sPos_m = 0.0;
 
+    /// Global physics processes attached to this container.
+    std::vector<std::unique_ptr<GlobalProcess>> globalProcesses_m;
 };
 
 #endif
