@@ -198,6 +198,9 @@ public:
     /// @param dt Global time step (s).
     void emitFromEmissionSources(double t, double dt);
 
+    /// @brief Apply global processes
+    void applyGlobalProcesses(double dt);
+
     /// @brief Zero E and B on all active particle containers.
     void resetFields();
 
