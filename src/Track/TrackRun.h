@@ -23,7 +23,6 @@
 #include "AbstractObjects/Action.h"
 #include "Distribution/SamplingBase.hpp"
 #include "PartBunch/PartBunch.h"
-#include "PartBunch/PartBunch.h"
 
 #include "Structure/FieldSolverCmd.h"
 
@@ -46,7 +45,6 @@ class Tracker;
 class TrackRun : public Action {
     using emittingSamplers_t = std::vector<std::shared_ptr<SamplingBase>>;
 
-
 public:
     /// Exemplar constructor.
     TrackRun();
@@ -61,7 +59,6 @@ public:
 
     // Bring base class print into scope to avoid hiding warning
     using Object::print;
-
 
     Inform& print(Inform& os) const;
 
