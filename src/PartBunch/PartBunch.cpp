@@ -4,6 +4,7 @@
  */
 
 #include "PartBunch/PartBunch.h"
+#include <algorithm>
 #include "Algorithms/Matrix.h"
 #include "PartBunch/BinnedFieldSolver.h"
 #include "Particle/ParticleAttrib.h"
@@ -12,35 +13,30 @@
 #include "Structure/DataSink.h"
 #include "Utilities/Util.h"
 
-#include <algorithm>
-
 #undef doDEBUG
 
 /**
  * @copybrief PartBunch::PartBunch
  */
 template <typename T, unsigned Dim>
-PartBunch<T, Dim>::PartBunch(std::vector<double> qi,
-                             std::vector<double> mi,
-                             const std::vector<Beam*>& beams,
-                             std::vector<size_t> totalParticlesPerBeam,
-                             /*int nt,*/
-                             double lbt,
-                             std::string integration_method,
-                             FieldSolverCmd* OPALFieldSolver,
-                             DataSink* dataSink)
-    : ippl::PicManager<T, Dim, ParticleContainer<T, Dim>, FieldContainer<T, Dim>, LoadBalancer<T, Dim>>(),
+PartBunch<T, Dim>::PartBunch(
+        std::vector<double> qi, std::vector<double> mi, const std::vector<Beam*>& beams,
+        std::vector<size_t> totalParticlesPerBeam, double lbt, std::string integration_method,
+        FieldSolverCmd* OPALFieldSolver, DataSink* dataSink)
+    : ippl::PicManager<
+              T, Dim, ParticleContainer<T, Dim>, FieldContainer<T, Dim>, LoadBalancer<T, Dim>>(),
       dt_m(0),
       it_m(0),
       integration_method_m(integration_method),
       solver_m(""),
       lbt_m(lbt),
       isFirstRepartition_m(true),
-      //nt_m(nt),
       OPALFieldSolver_m(OPALFieldSolver),
       dataSink_m(dataSink),
       globalTrackStep_m(0),
       rmsDensity_m(0.0) {
+    qi_m         = qi;
+    mi_m         = mi;
     bunchState_m = std::make_shared<BunchStateHandler>();
 
     Inform m("PartBunch::PartBunch");
@@ -51,29 +47,24 @@ PartBunch<T, Dim>::PartBunch(std::vector<double> qi,
         throw OpalException("PartBunch::PartBunch", "num_containers must be > 0.");
     }
     if (OPALFieldSolver_m == nullptr) {
-        throw OpalException("PartBunch::PartBunch",
-                            "OPALFieldSolver must not be null.");
+        throw OpalException("PartBunch::PartBunch", "OPALFieldSolver must not be null.");
     }
     if (dataSink_m == nullptr) {
-        throw OpalException("PartBunch::PartBunch",
-                            "dataSink must not be null.");
+        throw OpalException("PartBunch::PartBunch", "dataSink must not be null.");
     }
     if (qi.size() != num_containers) {
-        throw OpalException("PartBunch::PartBunch",
-                            "qi size must match num_containers.");
+        throw OpalException("PartBunch::PartBunch", "qi size must match num_containers.");
     }
     if (mi.size() != num_containers) {
-        throw OpalException("PartBunch::PartBunch",
-                            "mi size must match num_containers.");
+        throw OpalException("PartBunch::PartBunch", "mi size must match num_containers.");
     }
     if (totalParticlesPerBeam.size() != num_containers) {
-        throw OpalException("PartBunch::PartBunch",
-                            "totalParticlesPerBeam size must match num_containers.");
+        throw OpalException(
+                "PartBunch::PartBunch", "totalParticlesPerBeam size must match num_containers.");
     }
     for (size_t i = 0; i < num_containers; ++i) {
         if (beams[i] == nullptr) {
-            throw OpalException("PartBunch::PartBunch",
-                                "beams must not contain null pointers.");
+            throw OpalException("PartBunch::PartBunch", "beams must not contain null pointers.");
         }
     }
 
@@ -81,6 +72,7 @@ PartBunch<T, Dim>::PartBunch(std::vector<double> qi,
 
     nr_m = Vector_t<int, Dim>(
             OPALFieldSolver_m->getNX(), OPALFieldSolver_m->getNY(), OPALFieldSolver_m->getNZ());
+    nrZBase_m = nr_m[Dim - 1];
 
     const Vector_t<bool, 3> domainDecomposition = OPALFieldSolver_m->getDomDec();
 
@@ -130,8 +122,8 @@ PartBunch<T, Dim>::PartBunch(std::vector<double> qi,
         containers[i]->setM(mi[i]);
         containers[i]->setReference(&beams[i]->getReference());
         particleNames_m[i] = beams[i]->getParticleName();
-        containers[i]->Sp =
-            static_cast<short>(ParticleProperties::getParticleType(beams[i]->getParticleName()));
+        containers[i]->Sp  = static_cast<short>(
+                ParticleProperties::getParticleType(beams[i]->getParticleName()));
     }
 
     // Allocate enough storage per rank, then destroy all particles to keep only capacity.
@@ -139,7 +131,7 @@ PartBunch<T, Dim>::PartBunch(std::vector<double> qi,
     std::vector<size_t> maxLocalNumPerBeam(num_containers);
     for (size_t i = 0; i < num_containers; ++i) {
         maxLocalNumPerBeam[i] =
-            static_cast<size_t>(totalParticlesPerBeam[i] / nRanks + 2 * nRanks + 1);
+                static_cast<size_t>(totalParticlesPerBeam[i] / nRanks + 2 * nRanks + 1);
         containers[i]->create(maxLocalNumPerBeam[i]);
     }
     for (size_t i = 0; i < num_containers; ++i) {
@@ -241,7 +233,7 @@ void PartBunch<T, Dim>::do_binaryRepart() {
     if (this->loadbalancer_m->balance(totalP)) {
         auto* mesh = &fc->getRho().get_mesh();
         auto* FL   = &fc->getFL();
-        this->loadbalancer_m->repartition(FL, mesh, bunchState_m->isFirstRepartitionRef());
+        this->loadbalancer_m->repartition(FL, mesh, isFirstRepartition_m);
     }
 }
 
@@ -249,12 +241,10 @@ void PartBunch<T, Dim>::do_binaryRepart() {
  * @copybrief PartBunch::gatherLoadBalanceStatistics
  */
 template <typename T, unsigned Dim>
-void  PartBunch<T, Dim>::gatherLoadBalanceStatistics() {
-        std::fill_n(globalPartPerNode_m.get(), ippl::Comm->size(), 0);  // Fill the array with zeros
-        globalPartPerNode_m[ippl::Comm->rank()] = this->getParticleContainer()->getLocalNum();
-        ippl::Comm->allreduce(globalPartPerNode_m.get(),
-                              ippl::Comm->size(),
-                              std::plus<size_t>());
+void PartBunch<T, Dim>::gatherLoadBalanceStatistics() {
+    std::fill_n(globalPartPerNode_m.get(), ippl::Comm->size(), 0);  // Fill the array with zeros
+    globalPartPerNode_m[ippl::Comm->rank()] = this->getParticleContainer()->getLocalNum();
+    ippl::Comm->allreduce(globalPartPerNode_m.get(), ippl::Comm->size(), std::plus<size_t>());
 }
 
 /**
@@ -274,30 +264,41 @@ void PartBunch<T, Dim>::setSolver() {
     // Needs to happen before setting the field solver, since the field solver needs the bins.
     setBins();
 
-    this->setFieldSolver(
-            std::make_shared<BinnedFieldSolver<T, Dim>>(
-                    this->solver_m, &this->fcontainer_m->getRho(), &this->fcontainer_m->getE(),
-                    &this->fcontainer_m->getPhi(), this->getBCHandler(),
-                    hasBinning() ? OPALFieldSolver_m->getBinningCmd()->getTablePrintFrequency()
-                                 : 0));
+    auto binnedSolver = std::make_shared<BinnedFieldSolver<T, Dim>>(
+            this->solver_m, &this->fcontainer_m->getRho(), &this->fcontainer_m->getE(),
+            &this->fcontainer_m->getPhi(), this->getBCHandler(),
+            hasBinning() ? OPALFieldSolver_m->getBinningCmd()->getTablePrintFrequency() : 0);
+    this->setFieldSolver(binnedSolver);
     m << level4 << "Binned field solver set (binned or legacy at runtime)." << endl;
 
     this->fsolver_m->initSolver();
     m << level4 << "Field solver initialized." << endl;
 
     // TODO: allow constructing a load balancer when no field solver is present.
-    this->setLoadBalancer(std::make_shared<LoadBalancer_t>(
-        this->lbt_m,
-        this->fcontainer_m,
-        this->pcontainer_m,
-        this->fsolver_m
-    ));
+    this->setLoadBalancer(
+            std::make_shared<LoadBalancer_t>(
+                    this->lbt_m, this->fcontainer_m, this->pcontainer_m, this->fsolver_m));
     m << level3 << "Solver and Load Balancer set." << endl;
 }
 
 /**
  * @copybrief PartBunch::setBins
  */
+template <typename T, unsigned Dim>
+typename PartBunch<T, Dim>::BinnedFieldSolver_t* PartBunch<T, Dim>::getFieldSolver() {
+    return static_cast<BinnedFieldSolver_t*>(this->fsolver_m.get());
+}
+
+template <typename T, unsigned Dim>
+const typename PartBunch<T, Dim>::BinnedFieldSolver_t* PartBunch<T, Dim>::getFieldSolver() const {
+    return static_cast<const BinnedFieldSolver_t*>(this->fsolver_m.get());
+}
+
+template <typename T, unsigned Dim>
+std::string PartBunch<T, Dim>::getFieldSolverType() {
+    return this->getFieldSolver()->getStype();
+}
+
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::setBins() {
     Inform m("PartBunch::setBins");
@@ -315,29 +316,21 @@ void PartBunch<T, Dim>::setBins() {
     switch (binningCmd->getParameterType()) {
         case BinningParameter::VELOCITYZ:
             this->setBins(
-                std::make_shared<ParticleBinning::AdaptBins<ParticleContainer_t, CoordinateSelector_t>>(
-                    *this->getParticleContainer(),
-                    CoordinateSelector_t(2), 
-                    binningCmd->getMaxBins(),
-                    binningCmd->getBinningAlpha(), 
-                    binningCmd->getBinningBeta(),
-                    binningCmd->getDesiredWidth(), 
-                    binningCmd->getOpalName()
-                )
-            );
+                    std::make_shared<
+                            ParticleBinning::AdaptBins<ParticleContainer_t, CoordinateSelector_t>>(
+                            *this->getParticleContainer(), CoordinateSelector_t(2),
+                            binningCmd->getMaxBins(), binningCmd->getBinningAlpha(),
+                            binningCmd->getBinningBeta(), binningCmd->getDesiredWidth(),
+                            binningCmd->getOpalName()));
             break;
         case BinningParameter::GAMMAZ:
             this->setBins(
-                std::make_shared<ParticleBinning::AdaptBins<ParticleContainer_t, GammaSelector_t>>(
-                    *this->getParticleContainer(),
-                    GammaSelector_t(2), 
-                    binningCmd->getMaxBins(),
-                    binningCmd->getBinningAlpha(), 
-                    binningCmd->getBinningBeta(),
-                    binningCmd->getDesiredWidth(), 
-                    binningCmd->getOpalName()
-                )
-            );
+                    std::make_shared<
+                            ParticleBinning::AdaptBins<ParticleContainer_t, GammaSelector_t>>(
+                            *this->getParticleContainer(), GammaSelector_t(2),
+                            binningCmd->getMaxBins(), binningCmd->getBinningAlpha(),
+                            binningCmd->getBinningBeta(), binningCmd->getDesiredWidth(),
+                            binningCmd->getOpalName()));
             break;
         default:
             throw OpalException(
@@ -377,31 +370,32 @@ void PartBunch<T, Dim>::calcBeamParameters() {
     MomentsMat moment(MomentsVec(0.0));
 
     for (unsigned i = 0; i < 2 * Dim; ++i) {
-        const size_t nLocal = this->getParticleContainer()->getLocalNum();
-        Kokkos::parallel_reduce("calc moments of particle distr.", nLocal,
-            KOKKOS_LAMBDA(const size_t k, double& cent, double& mom0, double& mom1,
-                          double& mom2, double& mom3, double& mom4,
-                          double& mom5) {
-                double part[2 * Dim];
-                part[0] = Rview(k)[0];
-                part[1] = Pview(k)[0];
-                part[2] = Rview(k)[1];
-                part[3] = Pview(k)[1];
-                part[4] = Rview(k)[2];
-                part[5] = Pview(k)[2];
+        const size_t nLocal = pc->getLocalNum();
+        Kokkos::parallel_reduce(
+                "calc moments of particle distr.", nLocal,
+                KOKKOS_LAMBDA(
+                        const size_t k, double& cent, double& mom0, double& mom1, double& mom2,
+                        double& mom3, double& mom4, double& mom5) {
+                    double part[2 * Dim];
+                    part[0] = Rview(k)[0];
+                    part[1] = Pview(k)[0];
+                    part[2] = Rview(k)[1];
+                    part[3] = Pview(k)[1];
+                    part[4] = Rview(k)[2];
+                    part[5] = Pview(k)[2];
 
-                cent += part[i];
-                mom0 += part[i] * part[0];
-                mom1 += part[i] * part[1];
-                mom2 += part[i] * part[2];
-                mom3 += part[i] * part[3];
-                mom4 += part[i] * part[4];
-                mom5 += part[i] * part[5];
-            },
-            Kokkos::Sum<T>(loc_centroid[i]), Kokkos::Sum<T>(loc_moment[i][0]),
-            Kokkos::Sum<T>(loc_moment[i][1]), Kokkos::Sum<T>(loc_moment[i][2]),
-            Kokkos::Sum<T>(loc_moment[i][3]), Kokkos::Sum<T>(loc_moment[i][4]),
-            Kokkos::Sum<T>(loc_moment[i][5]));
+                    cent += part[i];
+                    mom0 += part[i] * part[0];
+                    mom1 += part[i] * part[1];
+                    mom2 += part[i] * part[2];
+                    mom3 += part[i] * part[3];
+                    mom4 += part[i] * part[4];
+                    mom5 += part[i] * part[5];
+                },
+                Kokkos::Sum<T>(loc_centroid[i]), Kokkos::Sum<T>(loc_moment[i][0]),
+                Kokkos::Sum<T>(loc_moment[i][1]), Kokkos::Sum<T>(loc_moment[i][2]),
+                Kokkos::Sum<T>(loc_moment[i][3]), Kokkos::Sum<T>(loc_moment[i][4]),
+                Kokkos::Sum<T>(loc_moment[i][5]));
         Kokkos::fence();
     }
     m << level5 << "Local moments calculated." << endl;
@@ -420,17 +414,21 @@ void PartBunch<T, Dim>::calcBeamParameters() {
 
     // TODO: fuse min/max reductions with ippl::Vector reductions.
     for (unsigned d = 0; d < Dim; ++d) {
-        Kokkos::parallel_reduce("rel max", this->getParticleContainer()->getLocalNum(),
-            KOKKOS_LAMBDA(const int i, double& mm) {
-                double tmp_vel = Rview(i)[d];
-                mm             = tmp_vel > mm ? tmp_vel : mm;
-            }, Kokkos::Max<T>(rmax_loc[d]));
+        Kokkos::parallel_reduce(
+                "rel max", pc->getLocalNum(),
+                KOKKOS_LAMBDA(const int i, double& mm) {
+                    double tmp_vel = Rview(i)[d];
+                    mm             = tmp_vel > mm ? tmp_vel : mm;
+                },
+                Kokkos::Max<T>(rmax_loc[d]));
 
-        Kokkos::parallel_reduce("rel min", this->getParticleContainer()->getLocalNum(),
-            KOKKOS_LAMBDA(const int i, double& mm) {
-                double tmp_vel = Rview(i)[d];
-                mm             = tmp_vel < mm ? tmp_vel : mm;
-            }, Kokkos::Min<T>(rmin_loc[d]));
+        Kokkos::parallel_reduce(
+                "rel min", pc->getLocalNum(),
+                KOKKOS_LAMBDA(const int i, double& mm) {
+                    double tmp_vel = Rview(i)[d];
+                    mm             = tmp_vel < mm ? tmp_vel : mm;
+                },
+                Kokkos::Min<T>(rmin_loc[d]));
     }
     m << level5 << "Local min/max calculated." << endl;
     Kokkos::fence();
@@ -470,7 +468,7 @@ void PartBunch<T, Dim>::pre_run() {
  */
 template <typename T, unsigned Dim>
 Inform& PartBunch<T, Dim>::print(Inform& os) {
-    // if (this->getLocalNum() != 0) {  // to suppress Nans
+    // if (pc->getLocalNum() != 0) {  // to suppress Nans
     Inform::FmtFlags_t ff = os.flags();
 
     const auto& containers = this->getParticleContainers();
@@ -537,21 +535,80 @@ Inform& PartBunch<T, Dim>::print(Inform& os) {
  * @copybrief PartBunch::bunchUpdate
  */
 template <typename T, unsigned Dim>
+void PartBunch<T, Dim>::reinitializeGridZ(int nrZ) {
+    if (nr_m[Dim - 1] == nrZ) {
+        return;
+    }
+
+    Inform m("PartBunch::reinitializeGridZ");
+    m << level3 << "Resizing z grid: " << nr_m[Dim - 1] << " -> " << nrZ << " cells." << endl;
+
+    nr_m[Dim - 1]     = nrZ;
+    domain_m[Dim - 1] = ippl::Index(nrZ);
+
+    const bool isAllPeriodic = this->getBCHandler()->isAll(BCHandler_t::PERIODIC);
+    const auto decomp        = this->fcontainer_m->getDecomp();
+
+    // Rebuild the field layout with the new z extent.
+    this->fcontainer_m->getFL().initialize(domain_m, decomp, isAllPeriodic);
+
+    // BareField::initialize() is a no-op on already-initialized fields, so use
+    // updateLayout() to resize the underlying Kokkos views to the new domain.
+    auto& fl = this->fcontainer_m->getFL();
+    this->fcontainer_m->getRho().updateLayout(fl);
+    this->fcontainer_m->getE().updateLayout(fl);
+    if (solver_m == "CG") {
+        this->fcontainer_m->getPhi().updateLayout(fl);
+    }
+    this->getTempEField()->updateLayout(fl);
+    this->getTempBField()->updateLayout(fl);
+
+    m << level3 << "Grid z reinit complete (nrZ=" << nrZ << ")." << endl;
+}
+
+template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::bunchUpdate() {
     Inform m("PartBunch::bunchUpdate");
     m << level4 << "Updating bunch and doing repartitioning if needed." << endl;
-    // Steps: union particle AABB, expand by box increment, set mesh spacing/origin,
-    // refresh layouts, update moments (repartition hooks are mostly commented).
 
-    auto* mesh = &this->fcontainer_m->getMesh();
-    auto* FL   = &this->fcontainer_m->getFL();
+    // Double the longitudinal grid resolution while image charges are active.
+    // computeBoundsForFieldSolve already extends the z domain to include mirrored
+    // particles, so without this the z cell size would be twice as large as normal.
+    const BinnedFieldSolver_t* bsolver = this->getFieldSolver();
+    const bool imageActive =
+            bsolver && bsolver->isImageChargeActiveForStep(this->getGlobalTrackStep());
+    reinitializeGridZ(imageActive ? nrZBase_m * 2 : nrZBase_m);
+
+    Vector_t<double, Dim> lower(0.0);
+    Vector_t<double, Dim> upper(0.0);
+    computeBoundsForFieldSolve(lower, upper);
+    applyGridUpdate(lower, upper);
+
+    isFirstRepartition_m = true;
+    // this->loadbalancer_m->initializeORB(FL, mesh);
+    // this->loadbalancer_m->repartition(FL, mesh, isFirstRepartition_m);
+    m << level5 << "Load balancer repartitioning done." << endl;
+
+    // Always request moments update; DistributionMoments decides whether it
+    // actually needs to recompute based on the dirty flag.
+    const auto& containers = this->getParticleContainers();
+    for (size_t i = 0; i < containers.size(); ++i) {
+        if (!containers[i]) {
+            continue;
+        }
+        this->getParticleContainer(i)->updateMoments();
+    }
+    m << level5 << "Moments updated for all particle containers." << endl;
+}
+
+template <typename T, unsigned Dim>
+void PartBunch<T, Dim>::computeBoundsForFieldSolve(
+        Vector_t<double, Dim>& lower, Vector_t<double, Dim>& upper) {
+    Inform m("PartBunch::computeBoundsForFieldSolve");
 
     const auto& containers = this->getParticleContainers();
 
     bool hasNonEmptyContainer = false;
-    ippl::Vector<double, 3> o(0.0);
-    ippl::Vector<double, 3> e(0.0);
-
     for (const auto& pc : containers) {
         if (!pc || pc->getTotalNum() == 0) {
             continue;
@@ -562,63 +619,69 @@ void PartBunch<T, Dim>::bunchUpdate() {
         const ippl::Vector<double, 3> maxR = pc->getMaxR();
 
         if (!hasNonEmptyContainer) {
-            o = minR;
-            e = maxR;
+            lower                = minR;
+            upper                = maxR;
             hasNonEmptyContainer = true;
         } else {
             for (int i = 0; i < 3; ++i) {
-                o[i] = std::min(o[i], minR[i]);
-                e[i] = std::max(e[i], maxR[i]);
+                lower[i] = std::min(lower[i], minR[i]);
+                upper[i] = std::max(upper[i], maxR[i]);
             }
         }
     }
 
     if (!hasNonEmptyContainer) {
         if (containers.empty() || !containers[0]) {
-            throw OpalException("PartBunch::bunchUpdate",
-                                "No valid particle container available for bunch update.");
+            throw OpalException(
+                    "PartBunch::bunchUpdate",
+                    "No valid particle container available for bunch update.");
         }
         containers[0]->computeMinMaxR();
-        o = containers[0]->getMinR();
-        e = containers[0]->getMaxR();
+        lower = containers[0]->getMinR();
+        upper = containers[0]->getMaxR();
     }
 
-    ippl::Vector<double, 3> l = e - o;
+    const BinnedFieldSolver_t* bsolver = this->getFieldSolver();
 
-    /*
-    If a coordinate of l is too close to zero, set it to 1e-12.
-    This avoids having a mesh spacing of zero, which would crash ippl and allows
-    empty simulations - especially important for emission sources.
-    */
-    for (int i = 0; i < 3; i++) {
-        if (l[i] < 1e-6) {
-            l[i] = 1e-6;
+    // Include mirrored particles in the domain envelope when image-charge mode is active for this
+    // step.
+    if (bsolver && bsolver->isImageChargeActiveForStep(this->getGlobalTrackStep())) {
+        const double planeZ       = bsolver->getImageChargePlaneZ();
+        const double mirroredMinZ = 2.0 * planeZ - upper[2];
+        const double mirroredMaxZ = 2.0 * planeZ - lower[2];
+        lower[2]                  = std::min(lower[2], mirroredMinZ);
+        upper[2]                  = std::max(upper[2], mirroredMaxZ);
+        m << level4 << "Image-charge bounds enabled at zPlane=" << planeZ << endl;
+    }
+
+    Vector_t<double, Dim> span = upper - lower;
+    for (unsigned i = 0; i < Dim; ++i) {
+        if (span[i] < 1e-6) {
+            span[i] = 1e-6;
             m << level3 << "Mesh spacing in dimension " << i << " too small. Set to 1e-6." << endl;
-            // return;
         }
     }
 
-    /*
-    Now matches OPAL: domain + incr% on each side.
-    Note that there is still a mismatch: OPAL only resizes in z direction and
-    keeps x/y the same. But this doesn't make too much sense in my opinion...
-    */
-    // Update origin and extent for the FieldContainer (not for the particles!)
-    o = o - l * this->OPALFieldSolver_m->getBoxIncr() / 100.;
-    e = e + l * this->OPALFieldSolver_m->getBoxIncr() / 100.;
-    l = e - o;
+    lower = lower - span * this->OPALFieldSolver_m->getBoxIncr() / 100.0;
+    upper = upper + span * this->OPALFieldSolver_m->getBoxIncr() / 100.0;
+}
 
-    hr_m = l / this->nr_m;
+template <typename T, unsigned Dim>
+void PartBunch<T, Dim>::applyGridUpdate(
+        const Vector_t<double, Dim>& lower, const Vector_t<double, Dim>& upper) {
+    Inform m("PartBunch::applyGridUpdate");
+    auto* mesh                              = &this->fcontainer_m->getMesh();
+    auto* FL                                = &this->fcontainer_m->getFL();
+    std::shared_ptr<ParticleContainer_t> pc = this->getParticleContainer();
+
+    const Vector_t<double, Dim> span = upper - lower;
+    hr_m                             = span / this->nr_m;
 
     mesh->setMeshSpacing(hr_m);
-    mesh->setOrigin(o);
+    mesh->setOrigin(lower);
 
-    /*
-    I think these in the field container should reflect mesh boundaries, not
-    particle boundaries, since the field solver needs to know the mesh and solve
-    */
-    this->getFieldContainer()->setRMin(o);
-    this->getFieldContainer()->setRMax(e);
+    this->getFieldContainer()->setRMin(lower);
+    this->getFieldContainer()->setRMax(upper);
     this->getFieldContainer()->setHr(hr_m);
 
     m << level3 << "Field Container updated with new mesh boundaries and spacing:" << endl;
@@ -626,6 +689,7 @@ void PartBunch<T, Dim>::bunchUpdate() {
     m << level3 << "\t\t> Mesh spacing:  " << hr_m << endl;
     m << level3 << "\t\t> Box increment: " << this->OPALFieldSolver_m->getBoxIncr() << "%" << endl;
 
+    const auto& containers = this->getParticleContainers();
     for (size_t i = 0; i < containers.size(); ++i) {
         const auto& pc = containers[i];
         if (!pc) {
@@ -638,19 +702,26 @@ void PartBunch<T, Dim>::bunchUpdate() {
                                  /// if we know more about what exactly was changed due to update().
         m << level5 << "Particle container " << i << " updated with new layout." << endl;
     }
+}
 
-    bunchState_m->setFirstRepartition(true);
-    // this->loadbalancer_m->initializeORB(FL, mesh);
-    // this->loadbalancer_m->repartition(FL, mesh, bunchState_m.isFirstRepartition());
-    m << level5 << "Load balancer repartitioning done." << endl;
+template <typename T, unsigned Dim>
+void PartBunch<T, Dim>::setImageChargeConfiguration(bool enabled, double zPlane) {
+    this->getFieldSolver()->setImageChargeConfiguration(enabled, zPlane);
+}
 
-    for (size_t i = 0; i < containers.size(); ++i) {
-        if (!containers[i]) {
-            continue;
-        }
-        this->getParticleContainer(i)->updateMoments();
-    }
-    m << level5 << "Moments updated for all particle containers." << endl;
+template <typename T, unsigned Dim>
+void PartBunch<T, Dim>::setShiftedGreensConfiguration(bool enabled, double zPlane) {
+    this->getFieldSolver()->setShiftedGreensConfiguration(enabled, zPlane);
+}
+
+template <typename T, unsigned Dim>
+void PartBunch<T, Dim>::setZeroFacePlaneDumpFrequency(int frequency) {
+    this->getFieldSolver()->setZeroFacePlaneDumpFrequency(frequency);
+}
+
+template <typename T, unsigned Dim>
+void PartBunch<T, Dim>::setZerofaceMaxSteps(int maxSteps) {
+    this->getFieldSolver()->setZerofaceMaxSteps(maxSteps);
 }
 
 /**
@@ -658,14 +729,7 @@ void PartBunch<T, Dim>::bunchUpdate() {
  */
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::computeSelfFields() {
-    using BinnedSolver_t = BinnedFieldSolver<T, Dim>;
-
-    BinnedSolver_t* bsolver = dynamic_cast<BinnedSolver_t*>(this->fsolver_m.get());
-    if (!bsolver) {
-        throw OpalException(
-                "PartBunch::computeSelfFields",
-                "Field solver is not a BinnedFieldSolver instance.");
-    }
+    BinnedFieldSolver_t* bsolver = this->getFieldSolver();
 
     bsolver->computeSelfFields(*this);
 }
@@ -749,8 +813,8 @@ void PartBunch<T, Dim>::performBunchSanityChecks() const {
     }
     ms << level4 << "Field Solver object was initialized." << endl;
 
-    // Verify we can access the concrete FieldSolver and its internals
-    auto fs = std::dynamic_pointer_cast<FieldSolver_t>(this->fsolver_m);
+    // Verify we can access the concrete FieldSolver and its internals.
+    auto fs = std::dynamic_pointer_cast<BinnedFieldSolver_t>(this->fsolver_m);
     if (!fs) {
         throw OpalException(
                 "PartBunch::performBunchSanityChecks", "FieldSolver is not set in PartBunch.");
@@ -851,7 +915,6 @@ void PartBunch<T, Dim>::performBunchSanityChecks() const {
 
     ms << level2 << "========= Done performing PartBunch sanity checks... =========" << endl;
 }
-
 
 /** Explicit instantiation for 3D double (OPAL-T). */
 template class PartBunch<double, 3>;

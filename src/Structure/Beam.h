@@ -25,11 +25,11 @@
 
 #include <ostream>
 #include <string>
+#include <vector>
 
 class Inform;
 
-class Beam: public Definition {
-
+class Beam : public Definition {
 public:
     /// Exemplar constructor.
     Beam();
@@ -89,6 +89,12 @@ public:
     /// Throws if `SOURCES` is not set.
     std::string getEmissionSourceListName() const;
 
+    /// Return the configured global process names for this beam.
+    std::vector<std::string> getGlobalProcessNames() const;
+
+    /// Return the name of the daughter beam (for decay products), or empty if not set.
+    std::string getDaughterBeamName() const;
+
     /// True if PC, ENERGY, or GAMMA was explicitly provided by the user.
     bool hasExplicitEnergy() const;
 
@@ -112,9 +118,9 @@ private:
     static const double energy_scale;
 };
 
-inline std::ostream &operator<<(std::ostream& os, const Beam& b) {
+inline std::ostream& operator<<(std::ostream& os, const Beam& b) {
     b.print(os);
     return os;
 }
 
-#endif // OPAL_Beam_HH
+#endif  // OPAL_Beam_HH

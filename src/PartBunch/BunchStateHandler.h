@@ -23,6 +23,10 @@
  *   reference; the handler keeps a `std::weak_ptr` so the slot is released
  *   automatically when the container is destroyed (no unregister needed).
  *
+ * - **emittingNow** (aka "isEmitting"): managed by the emitting
+ *   distribution itself (e.g. FlatTop sets it when t > t0 and
+ *   particles are being created).
+ *
  * ### Invariants
  *
  * - **unitlessPositions**: true while the container's positions are in the

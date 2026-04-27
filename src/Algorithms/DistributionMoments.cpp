@@ -142,6 +142,9 @@ void DistributionMoments::computeMoments(
     Np = (Np == 0) ? 1 : Np;  // Explanation: see DistributionMoments::computeMeans
                               // implementation
 
+    IpplTimings::TimerRef momentsTimer = IpplTimings::getTimer("computeMoments");
+    IpplTimings::startTimer(momentsTimer);
+
     reset();
     computeMeans(Rview, Pview, Mview, Np, Nlocal);
 
@@ -245,6 +248,7 @@ void DistributionMoments::computeMoments(
     geometricEps_m   = normalizedEps_m / Vector_t<double, 3>(betaGamma);
 
     slot->markMomentsClean();
+    IpplTimings::stopTimer(momentsTimer);
 }
 
 // ---------------------------------------------------------------------------

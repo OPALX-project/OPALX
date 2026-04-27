@@ -16,6 +16,8 @@ target_include_directories(LinearComptonSpectrumBenchmark PRIVATE ${CMAKE_CURREN
 
 add_opalx_test(TestLinearBreitWheeler USE_GTEST_MAIN)
 
+add_opalx_test(TestMuonDecay USE_GTEST_MAIN)
+
 #add_opalx_test(TestLinearBreitWheelerSpectrum USE_GTEST_MAIN NO_MPI)
 
 add_executable(LinearBreitWheelerBenchmark LinearBreitWheelerBenchmark.cpp)

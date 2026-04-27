@@ -23,12 +23,13 @@
 #include <map>
 #include <string>
 
-enum class ParticleType: short {
+enum class ParticleType : short {
     UNNAMED = -1,
     PHOTON,
     ELECTRON,
     POSITRON,
     MUON,
+    PION,
     PROTON,
     ANTIPROTON,
     DEUTERON,
@@ -42,16 +43,11 @@ enum class ParticleType: short {
     URANIUM
 };
 
-enum class ParticleOrigin: unsigned short {
-    REGULAR,
-    SECONDARY,
-    STRIPPED
-};
-
+enum class ParticleOrigin : unsigned short { REGULAR, SECONDARY, STRIPPED };
 
 class ParticleProperties {
 public:
-    static ParticleType getParticleType (const std::string& str);
+    static ParticleType getParticleType(const std::string& str);
 
     static std::string getParticleTypeString(const ParticleType& type);
 
@@ -60,11 +56,15 @@ public:
     static double getParticleCharge(const ParticleType& type);
     static double getParticleChargeInCoulomb(const ParticleType& type);
 
+    /// Return the mean rest-frame lifetime [s].  Throws if the particle is stable.
+    static double getParticleLifetime(const ParticleType& type);
+
 private:
     static const BiMap<ParticleType, std::string> bmParticleType_s;
 
     static const std::map<ParticleType, double> particleMass_m;
     static const std::map<ParticleType, double> particleCharge_m;
+    static const std::map<ParticleType, double> particleLifetime_m;
 };
 
 #endif /* PARTICLEPROPERTIES_H */

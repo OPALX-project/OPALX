@@ -19,6 +19,7 @@
  */
 #include "Algorithms/ParallelTracker.h"
 
+#include <algorithm>
 #include <array>
 #include <cfloat>
 #include <cmath>
@@ -41,7 +42,10 @@
 #include "Beamlines/Beamline.h"
 #include "Beamlines/FlaggedBeamline.h"
 #include "Distribution/Distribution.h"
+#include "PartBunch/BinnedFieldSolver.h"
 #include "Physics/Units.h"
+
+#include "Processes/GlobalProcesses/GlobalProcess.h"
 
 #include "Structure/BoundaryGeometry.h"
 #include "Structure/BoundingBox.h"
@@ -115,7 +119,12 @@ ParallelTracker::~ParallelTracker() {}
 /**
  * @copybrief ParallelTracker::visitComponent
  */
-void ParallelTracker::visitComponent(const Component& comp) { Tracker::visitComponent(comp); }
+void ParallelTracker::visitComponent(const Component& comp) {
+    if (comp.getType() == ElementType::LASER) {
+        throw LogicalError(
+                "ParallelTracker::visitComponent()",
+                "Tracking of the \"LASER\" element is not implemented yet.");
+    }
 
 void ParallelTracker::visitLaser(const Laser&) {
     throw LogicalError(
@@ -317,6 +326,10 @@ void ParallelTracker::execute() {
             // Particle R and mesh are in REFERENCE frame for the whole step except inside
             // computeSpaceChargeFields (beam frame only during computeSelfFields).
 
+            // Reset EOL flag each step: transient OutOfBounds (e.g. from invalid mesh
+            // bounds immediately after first emission) must not persist across steps.
+            globalEOL_m = false;
+
             // Get the bunch spatial bounds across all containers.
             Vector_t<double, 3> rmin(0.0), rmax(0.0);
             if (itsBunch_m->getTotalNumAllContainers() > 0) {
@@ -342,26 +355,13 @@ void ParallelTracker::execute() {
             m << level4 << "Space charge field computation done at step " << step << "." << endl;
             //}
 
-            // External field computation
-            computeExternalFields(oth);
-            m << level4 << "External field computation done at step " << step << "." << endl;
-
-            // Second half of the time integration
-            timeIntegration2(pusher);
-            m << level4 << "timeIntegration2 done at step " << step << "." << endl;
-            itsBunch_m->bunchUpdate();
-            m << level5 << "Bunch updated after timeIntegration2." << endl;
-
-            if (itsBunch_m->getTotalNumAllContainers() == 0) {
-                m << level5 << "WARNING: No particles in the bunch at step " << step << " on rank "
-                  << ippl::Comm->rank() << ". This has no effect on the simulation." << endl;
-            }
+            // Emission is placed BETWEEN space-charge and external-field evaluation
+            // to match the legacy OPAL ordering (ParallelTTracker): newly emitted
+            // particles experience external fields in their creation step.
+            selectDT();
 
             // Reset per-particle dt for all existing particles BEFORE emission, so that
             // newly emitted particles retain their fractional dt (sampled in generateUniformDisk).
-            // In the next integration step, particles with fractional dt naturally drift/kick
-            // proportionally, spreading them in z and giving fractional charge contribution via
-            // scaleDtByCharge. After that step, setTime() resets them to the full dt.
             setTime();
             m << level5 << "Set time view of particle bunch to dt = "
               << Util::getTimeString(itsBunch_m->getdT()) << "." << endl;
@@ -371,13 +371,29 @@ void ParallelTracker::execute() {
             emitFromEmissionSources(itsBunch_m->getT(), itsBunch_m->getdT());
             m << level4 << "Emit particles from emission sources done at step " << step << "."
               << endl;
-            itsBunch_m
-                    ->bunchUpdate();  // mesh from current R so stays REFERENCE frame for next step
+            itsBunch_m->bunchUpdate();
             m << level5 << "Bunch updated after emission." << endl;
 
-            // Optional: refresh dt each sub-step (currently commented out).
-            // selectDT();
-            // m << level5 << "Selected new time step for next iteration." << endl;
+            // selectDT(back_track);
+            // m << level5 << "Selected new time step for next iteration, back_track = " <<
+            // back_track << "." << endl;
+
+            // External field computation
+            computeExternalFields(oth);
+            m << level4 << "External field computation done at step " << step << "." << endl;
+
+            // Second half of the time integration
+            timeIntegration2(pusher);
+            m << level4 << "timeIntegration2 done at step " << step << "." << endl;
+            itsBunch_m->bunchUpdate();
+            m << level5 << "Bunch updated after timeIntegration2." << endl;
+            applyGlobalProcesses(itsBunch_m->getdT());
+            m << level5 << "Applied global processes at step " << step << "." << endl;
+
+            if (itsBunch_m->getTotalNumAllContainers() == 0) {
+                m << level5 << "WARNING: No particles in the bunch at step " << step << " on rank "
+                  << ippl::Comm->rank() << ". This has no effect on the simulation." << endl;
+            }
 
             // Update the bunch time
             itsBunch_m->incrementT();
@@ -430,8 +446,8 @@ void ParallelTracker::execute() {
             itsBunch_m->incTrackSteps();
             m << level5 << "Track steps incremented." << endl;
 
-            for (size_t i = 0; i < particleContainersStep.size(); ++i) {
-                const auto& pc = particleContainersStep[i];
+            for (size_t i = 0; i < particleContainers.size(); ++i) {
+                const auto& pc = particleContainers[i];
                 if (!pc || !itsBunch_m->isPcActive(i)) {
                     continue;
                 }
@@ -459,6 +475,11 @@ void ParallelTracker::execute() {
             }
         }
 
+        // globalEOL_m is reset at the start of each step, so if it is still true
+        // here the last step genuinely ended with an out-of-bounds or reference
+        // particle hitting an element. Synchronize across ranks before deciding.
+        ippl::Comm->allreduce(globalEOL_m, 1, std::logical_and<bool>());
+
         if (globalEOL_m) break;
         ++stepSizes_m;
     }
@@ -477,6 +498,11 @@ void ParallelTracker::execute() {
 
     // Ensure all Kokkos operations are complete
     Kokkos::fence();
+
+    if (itsBunch_m->hasFieldSolver()) {
+        m << level2 << "Total FieldSolver calls: " << itsBunch_m->getFieldSolver()->getCallCounter()
+          << endl;
+    }
 
     OPALTimer::Timer myt3;
     *gmsg << level1 << endl
@@ -650,6 +676,15 @@ void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
             pc->computeMinMaxR();
             rmin = pc->getMinR();
             rmax = pc->getMaxR();
+
+            // get_bounds returns cached mesh extents (rmin_m/rmax_m). These are
+            // sentinel values (DBL_MAX / DBL_MIN) when the mesh hasn't been
+            // computed yet — e.g. immediately after the first particles are emitted
+            // before calcBeamParameters() has run.  Fall back to zero so the query
+            // uses pathLength_m as the centre with zero half-width.
+            if (!std::isfinite(rmin(2)) || !std::isfinite(rmax(2))) {
+                rmin = rmax = 0.0;
+            }
         }
 
         // Get elements at bunch position.
@@ -704,6 +739,9 @@ void ParallelTracker::emitFromEmissionSources(double t, double dt) {
         // emission, the extent of R will change and we can flag this as an error.
         const size_t extentBeforeEmission = pc->R.getView().extent(0);
 
+        CoordinateSystemTrafo refToGun =
+                itsOpalBeamline_m.getCSTrafoLab2Local() * pc->getToLabTrafo();
+        pc->transformBunch(refToGun);
         if (ci < emittingSamplers_m.size()) {
             for (const auto& sampler : emittingSamplers_m[ci]) {
                 if (sampler) {
@@ -711,6 +749,7 @@ void ParallelTracker::emitFromEmissionSources(double t, double dt) {
                 }
             }
         }
+        pc->transformBunch(refToGun.inverted());
 
         pc->setM(pc->getMassPerParticle());
         pc->setQ(pc->getChargePerParticle());
@@ -735,6 +774,27 @@ void ParallelTracker::emitFromEmissionSources(double t, double dt) {
         }
     }
     itsBunch_m->refreshPcActiveAfterEmit();
+}
+
+void ParallelTracker::applyGlobalProcesses(double dt) {
+    const size_t nContainers        = itsBunch_m->getNumParticleContainers();
+    const long long globalTrackStep = itsBunch_m->getGlobalTrackStep();
+
+    for (size_t ci = 0; ci < nContainers; ++ci) {
+        auto pc = itsBunch_m->getParticleContainer(ci);
+        if (!pc) {
+            continue;
+        }
+        const auto& processes = pc->getGlobalProcesses();
+        if (processes.empty()) {
+            continue;
+        }
+        for (const auto& process : processes) {
+            if (process) {
+                process->apply(*pc, dt, globalTrackStep, ci);
+            }
+        }
+    }
 }
 
 /**
@@ -1232,8 +1292,10 @@ void ParallelTracker::setOptionalVariables() {
  * @copybrief ParallelTracker::hasEndOfLineReached
  */
 bool ParallelTracker::hasEndOfLineReached(const BoundingBox& globalBoundingBox) {
-    // TODO: verify reduce API vs IPPL 1.0 OpBitwiseAndAssign().
-    ippl::Comm->reduce(globalEOL_m, globalEOL_m, 1, std::logical_and<bool>());
+    // Old IPPL used OpBitwiseAndAssign() via reduce(); new IPPL needs allreduce
+    // so that all ranks receive the result (reduce sends only to root).
+    // In-place allreduce avoids the aliased-buffer error of MPI_Reduce.
+    ippl::Comm->allreduce(globalEOL_m, 1, std::logical_and<bool>());
     globalEOL_m = globalEOL_m
                   || globalBoundingBox.isOutside(itsBunch_m->getParticleContainer()->getRefPartR());
     return globalEOL_m;
