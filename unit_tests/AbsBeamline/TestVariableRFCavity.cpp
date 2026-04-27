@@ -56,13 +56,16 @@ public:
     void visitConstantEFieldCavity(const ConstantEFieldCavity&) override {}
     void visitDrift(const Drift&) override {}
     void visitFlaggedElmPtr(const FlaggedElmPtr&) override {}
+    void visitLaser(const Laser&) override {}
     void visitMarker(const Marker&) override {}
     void visitMonitor(const Monitor&) override {}
     void visitMultipole(const Multipole&) override {}
     void visitMultipoleT(const MultipoleT&) override {}
+    void visitRBend(const RBend&) override {}
     void visitRFCavity(const RFCavity&) override {}
     void visitScalingFFAMagnet(const ScalingFFAMagnet&) override {}
     void visitRing(const Ring&) override {}
+    void visitSBend(const SBend&) override {}
     void visitSolenoid(const Solenoid&) override {}
     void visitTravelingWave(const TravelingWave&) override {}
     void visitVerticalFFAMagnet(const VerticalFFAMagnet&) override {}

@@ -36,7 +36,7 @@ public:
     /** @brief Destroy the laser element. */
     ~Laser() override;
 
-    /** @brief Accept a beamline visitor through the generic component interface. */
+    /** @brief Accept a beamline visitor through the laser-specific interface. */
     void accept(BeamlineVisitor&) const override;
 
     /**
