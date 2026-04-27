@@ -19,6 +19,7 @@
  */
 #include "Algorithms/ParallelTracker.h"
 
+#include <algorithm>
 #include <array>
 #include <cfloat>
 #include <cmath>
@@ -43,6 +44,8 @@
 #include "Distribution/Distribution.h"
 #include "PartBunch/BinnedFieldSolver.h"
 #include "Physics/Units.h"
+
+#include "Processes/GlobalProcesses/GlobalProcess.h"
 
 #include "Structure/BoundaryGeometry.h"
 #include "Structure/BoundingBox.h"
@@ -381,6 +384,8 @@ void ParallelTracker::execute() {
             m << level4 << "timeIntegration2 done at step " << step << "." << endl;
             itsBunch_m->bunchUpdate();
             m << level5 << "Bunch updated after timeIntegration2." << endl;
+            applyGlobalProcesses(itsBunch_m->getdT());
+            m << level5 << "Applied global processes at step " << step << "." << endl;
 
             if (itsBunch_m->getTotalNumAllContainers() == 0) {
                 m << level5 << "WARNING: No particles in the bunch at step " << step << " on rank "
@@ -400,24 +405,30 @@ void ParallelTracker::execute() {
 
             double sigmas = static_cast<double>(Options::boundpDestroy);
             // if (sigmas > 0.0) {
-            size_t nDeleted = itsBunch_m->getParticleContainer()->deleteParticlesOutside(sigmas);
-            if (nDeleted > 0) {
-                m << level2 << "Deleted " << nDeleted << " particles outside " << sigmas
-                  << "-sigma boundary, " << itsBunch_m->getTotalNumAllContainers() << " remaining."
-                  << endl;
+            const auto& particleContainersStep = itsBunch_m->getParticleContainers();
+            for (size_t i = 0; i < particleContainersStep.size(); ++i) {
+                const auto& pc  = particleContainersStep[i];
+                size_t nDeleted = 0;
+                if (!pc || !itsBunch_m->isPcActive(i)) {
+                    continue;
+                }
+                nDeleted = pc->deleteParticlesOutside(sigmas);
+                if (nDeleted > 0) {
+                    m << level2 << "Deleted " << nDeleted << " particles outside " << sigmas
+                      << "-sigma boundary, " << pc->getTotalNum() << " remaining (container " << i
+                      << ")." << endl;
+                }
             }
-            // }
-            // deletedParticles_m = false;
-            //}
 
-            // Update the path length
-            // itsBunch_m->set_sPos(pathLength_m);
-            // m << level4 << "Updated path length to " << pathLength_m << "." << endl;
+            for (size_t i = 0; i < particleContainersStep.size(); ++i) {
+                const auto& pc = particleContainersStep[i];
+                if (!pc || !itsBunch_m->isPcActive(i)) {
+                    continue;
+                }
+                m << level4 << "Current path length (container " << i << ") is " << pc->get_sPos()
+                  << "." << endl;
+            }
 
-            // hasEndOfLineReached uses isOutside(RefPartR_m) with a lab-frame
-            // bounding box, but RefPartR_m lives in the reference frame in OPALX
-            // (near origin), so the check always fails.  Disabled until the
-            // coordinate mismatch is resolved.
             // if (hasEndOfLineReached(globalBoundingBox)) break;
 
             // Dump phase space and statistics at configured intervals
@@ -760,6 +771,27 @@ void ParallelTracker::emitFromEmissionSources(double t, double dt) {
         }
     }
     itsBunch_m->refreshPcActiveAfterEmit();
+}
+
+void ParallelTracker::applyGlobalProcesses(double dt) {
+    const size_t nContainers        = itsBunch_m->getNumParticleContainers();
+    const long long globalTrackStep = itsBunch_m->getGlobalTrackStep();
+
+    for (size_t ci = 0; ci < nContainers; ++ci) {
+        auto pc = itsBunch_m->getParticleContainer(ci);
+        if (!pc) {
+            continue;
+        }
+        const auto& processes = pc->getGlobalProcesses();
+        if (processes.empty()) {
+            continue;
+        }
+        for (const auto& process : processes) {
+            if (process) {
+                process->apply(*pc, dt, globalTrackStep, ci);
+            }
+        }
+    }
 }
 
 /**

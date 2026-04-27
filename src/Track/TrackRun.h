@@ -37,6 +37,7 @@ class OpalData;
 class DataSink;
 class Distribution;
 class EmissionSource;
+class GlobalProcess;
 class H5PartWrapper;
 class Inform;
 class Tracker;
@@ -78,6 +79,16 @@ private:
     std::vector<H5PartWrapper*> borrowedPhaseSpaceSinks() const;
 
     void setupBoundaryGeometry();
+
+    /// @brief Attach prebuilt global process vector to each particle container.
+    void setupGlobalProcesses(
+            std::vector<std::vector<std::unique_ptr<GlobalProcess>>> globalProcessesLists);
+
+    /**
+     * @brief Wire daughter containers to cross-container processes (e.g. muon decay -> electron).
+     * @note Must be called after setupGlobalProcesses — reads processes from the containers.
+     */
+    void wireDaughterContainers(const std::vector<Beam*>& beams);
 
     /// Build samplers for all emission sources, perform initial sampling for t0 == 0
     /// sources, and populate emittingSamplers_m for time-dependent or delayed sources.
