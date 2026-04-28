@@ -56,6 +56,8 @@ class ScalingFFAMagnet;
 class Offset;
 class VerticalFFAMagnet;
 class Probe;
+class RBend;
+class SBend;
 
 class BeamlineVisitor {
 public:
@@ -95,6 +97,9 @@ public:
     /// Apply the algorithm to a RF cavity.
     virtual void visitRFCavity(const RFCavity&) = 0;
 
+    /// Apply the algorithm to a rectangular bend.
+    virtual void visitRBend(const RBend&) = 0;
+
     /// Apply the algorithm to a variable RF cavity.
     virtual void visitVariableRFCavity(const VariableRFCavity&) = 0;
 
@@ -105,6 +110,9 @@ public:
 
     /// Apply the algorithm to a Solenoid element.
     virtual void visitSolenoid(const Solenoid&) = 0;
+
+    /// Apply the algorithm to a sector bend.
+    virtual void visitSBend(const SBend&) = 0;
 
     /// Apply the algorithm to a traveling wave.
     virtual void visitTravelingWave(const TravelingWave&) = 0;

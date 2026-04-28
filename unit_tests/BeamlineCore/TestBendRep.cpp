@@ -8,14 +8,21 @@
  */
 
 #include <gtest/gtest.h>
+#include <mpi.h>
 
+#include "AbsBeamline/BeamlineVisitor.h"
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/RBendRep.h"
 #include "BeamlineCore/SBendRep.h"
 #include "Channels/Channel.h"
+#include "Ippl.h"
+#include "PartBunch/BunchStateHandler.h"
+#include "PartBunch/FieldContainer.hpp"
+#include "PartBunch/ParticleContainer.hpp"
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
 
+#include <array>
 #include <cmath>
 #include <memory>
 #include <stdexcept>
@@ -24,6 +31,88 @@ namespace {
     struct ReferenceState {
         Vector_t<double, 3> r;
         Vector_t<double, 3> p;
+    };
+
+    using ParticleContainer_t = ParticleContainer<double, 3>;
+
+    class BendRepParticleContainerTest : public ::testing::Test {
+    protected:
+        static void SetUpTestSuite() {
+            int argc    = 0;
+            char** argv = nullptr;
+            ippl::initialize(argc, argv);
+        }
+
+        static void TearDownTestSuite() { ippl::finalize(); }
+
+        std::shared_ptr<ParticleContainer_t> makeContainer(const std::array<double, 3>& position) {
+            ippl::Vector<int, 3> nr        = 8;
+            ippl::Vector<double, 3> rmin   = -4.0;
+            ippl::Vector<double, 3> rmax   = 4.0;
+            ippl::Vector<double, 3> origin = rmin;
+            ippl::Vector<double, 3> hr     = (rmax - rmin) / ippl::Vector<double, 3>(nr);
+            std::array<bool, 3> decomp     = {true, true, true};
+
+            ippl::NDIndex<3> domain;
+            for (unsigned i = 0; i < 3; ++i) {
+                domain[i] = ippl::Index(nr[i]);
+            }
+
+            Mesh_t<3> mesh(domain, hr, origin);
+            FieldLayout_t<3> fl(MPI_COMM_WORLD, domain, decomp, true);
+
+            auto pc = std::make_shared<ParticleContainer_t>(mesh, fl);
+            pc->setBunchStateHandler(std::make_shared<BunchStateHandler>());
+            pc->create(1);
+
+            auto Rhost = pc->R.getHostMirror();
+            auto Phost = pc->P.getHostMirror();
+            auto Ehost = pc->E.getHostMirror();
+            auto Bhost = pc->B.getHostMirror();
+
+            Rhost(0)[0] = position[0];
+            Rhost(0)[1] = position[1];
+            Rhost(0)[2] = position[2];
+            Phost(0)    = Vector_t<double, 3>(0.0);
+            Ehost(0)    = Vector_t<double, 3>(0.0);
+            Bhost(0)    = Vector_t<double, 3>(0.0);
+
+            Kokkos::deep_copy(pc->R.getView(), Rhost);
+            Kokkos::deep_copy(pc->P.getView(), Phost);
+            Kokkos::deep_copy(pc->E.getView(), Ehost);
+            Kokkos::deep_copy(pc->B.getView(), Bhost);
+            Kokkos::fence();
+
+            return pc;
+        }
+    };
+
+    class BendDispatchVisitor : public BeamlineVisitor {
+    public:
+        void execute() override {}
+        void visitBeamline(const Beamline&) override {}
+        void visitComponent(const Component&) override { visitedComponent = true; }
+        void visitConstantEFieldCavity(const ConstantEFieldCavity&) override {}
+        void visitDrift(const Drift&) override {}
+        void visitFlaggedElmPtr(const FlaggedElmPtr&) override {}
+        void visitMarker(const Marker&) override {}
+        void visitMonitor(const Monitor&) override {}
+        void visitMultipole(const Multipole&) override {}
+        void visitMultipoleT(const MultipoleT&) override {}
+        void visitRFCavity(const RFCavity&) override {}
+        void visitRBend(const RBend&) override { visitedRBend = true; }
+        void visitVariableRFCavity(const VariableRFCavity&) override {}
+        void visitScalingFFAMagnet(const ScalingFFAMagnet&) override {}
+        void visitRing(const Ring&) override {}
+        void visitSolenoid(const Solenoid&) override {}
+        void visitSBend(const SBend&) override { visitedSBend = true; }
+        void visitTravelingWave(const TravelingWave&) override {}
+        void visitVerticalFFAMagnet(const VerticalFFAMagnet&) override {}
+        void visitProbe(const Probe&) override {}
+
+        bool visitedComponent = false;
+        bool visitedSBend     = false;
+        bool visitedRBend     = false;
     };
 
     /**
@@ -179,6 +268,15 @@ namespace {
         delete by;
     }
 
+    TEST(SBendRep, AcceptDispatchesToVisitSBend) {
+        SBendRep bend("SBEND");
+        BendDispatchVisitor visitor;
+        bend.accept(visitor);
+        EXPECT_TRUE(visitor.visitedSBend);
+        EXPECT_FALSE(visitor.visitedRBend);
+        EXPECT_FALSE(visitor.visitedComponent);
+    }
+
     TEST(RBendRep, ExitAngleTracksRectangularBendConvention) {
         RBendRep bend("RBEND");
         bend.getGeometry().setElementLength(1.2);
@@ -215,6 +313,15 @@ namespace {
         EXPECT_NEAR(copy->getB(), 0.9, 1e-12);
     }
 
+    TEST(RBendRep, AcceptDispatchesToVisitRBend) {
+        RBendRep bend("RBEND");
+        BendDispatchVisitor visitor;
+        bend.accept(visitor);
+        EXPECT_TRUE(visitor.visitedRBend);
+        EXPECT_FALSE(visitor.visitedSBend);
+        EXPECT_FALSE(visitor.visitedComponent);
+    }
+
     TEST(RBendRep, EffectiveFieldLengthUsesReferencePathInsteadOfStraightBody) {
         constexpr double bodyLength     = 1.0;
         constexpr double bendAngle      = Physics::pi / 4.0;
@@ -243,6 +350,110 @@ namespace {
         EXPECT_NEAR(bend.getExitFringeSupportLength(), expectedExitSupport, 1.0e-12);
         EXPECT_NEAR(bend.getEffectiveFieldLength(), expectedEffectiveLength, 1.0e-12);
         EXPECT_GT(bend.getEffectiveFieldLength(), bend.getElementLength());
+    }
+
+    TEST(SBendRep, TrackingSlicesCoverBodyAndFringeSupport) {
+        constexpr double bodyLength     = 1.0;
+        constexpr double bendAngle      = Physics::pi / 4.0;
+        constexpr double fringeHalfGap  = 0.02;
+        constexpr double fringeIntegral = 0.5;
+        constexpr double e1             = Physics::pi / 10.0;
+        constexpr double e2             = Physics::pi / 12.0;
+        constexpr std::size_t nSlices   = 6;
+
+        SBendRep bend("SBEND");
+        bend.getGeometry() = PlanarArcGeometry(bodyLength, bendAngle / bodyLength);
+        bend.setElementLength(bodyLength);
+        bend.setBendAngle(bendAngle);
+        bend.setEntranceAngle(e1);
+        bend.setExitAngle(e2);
+        bend.setFringeHalfGap(fringeHalfGap);
+        bend.setFringeIntegral(fringeIntegral);
+        bend.setNSlices(nSlices);
+
+        const auto slices = bend.buildTrackingSlices();
+        ASSERT_EQ(slices.size(), nSlices);
+
+        const double supportBegin = -bend.getEntryFringeSupportLength();
+        const double supportEnd   = bodyLength + bend.getExitFringeSupportLength();
+        const double ds           = (supportEnd - supportBegin) / static_cast<double>(nSlices);
+
+        EXPECT_NEAR(slices.front().sBegin, supportBegin, 1.0e-12);
+        EXPECT_NEAR(slices.back().sEnd, supportEnd, 1.0e-12);
+        EXPECT_NEAR(slices.front().sCenter, supportBegin + 0.5 * ds, 1.0e-12);
+        EXPECT_NEAR(slices.back().sCenter, supportEnd - 0.5 * ds, 1.0e-12);
+    }
+
+    TEST(RBendRep, TrackingSlicesUseReferenceArcLengthInsteadOfBodyChord) {
+        constexpr double bodyLength     = 1.0;
+        constexpr double bendAngle      = Physics::pi / 4.0;
+        constexpr double fringeHalfGap  = 0.02;
+        constexpr double fringeIntegral = 0.5;
+        constexpr std::size_t nSlices   = 5;
+
+        RBendRep bend("RBEND");
+        bend.getGeometry().setElementLength(bodyLength);
+        bend.getGeometry().setBendAngle(bendAngle);
+        bend.setElementLength(bodyLength);
+        bend.setBendAngle(bendAngle);
+        bend.setFringeHalfGap(fringeHalfGap);
+        bend.setFringeIntegral(fringeIntegral);
+        bend.setNSlices(nSlices);
+
+        const auto slices = bend.buildTrackingSlices();
+        ASSERT_EQ(slices.size(), nSlices);
+
+        const double supportBegin = -bend.getEntryFringeSupportLength();
+        const double supportEnd =
+                bend.getGeometry().getArcLength() + bend.getExitFringeSupportLength();
+
+        EXPECT_NEAR(slices.front().sBegin, supportBegin, 1.0e-12);
+        EXPECT_NEAR(slices.back().sEnd, supportEnd, 1.0e-12);
+        EXPECT_GT(slices.back().sEnd, bodyLength);
+    }
+
+    TEST_F(BendRepParticleContainerTest,
+           SliceKernelMatchesHostFieldAtEquivalentReferenceCoordinate) {
+        constexpr double bodyLength     = 1.0;
+        constexpr double bendAngle      = Physics::pi / 4.0;
+        constexpr double fringeHalfGap  = 0.02;
+        constexpr double fringeIntegral = 0.5;
+        constexpr std::size_t nSlices   = 8;
+
+        SBendRep bend("SBEND");
+        bend.getGeometry() = PlanarArcGeometry(bodyLength, bendAngle / bodyLength);
+        bend.setElementLength(bodyLength);
+        bend.setBendAngle(bendAngle);
+        bend.setEntranceAngle(Physics::pi / 8.0);
+        bend.setExitAngle(Physics::pi / 8.0);
+        bend.setFringeHalfGap(fringeHalfGap);
+        bend.setFringeIntegral(fringeIntegral);
+        bend.setNSlices(nSlices);
+        bend.setB(1.2);
+        bend.getField().setNormalComponent(1, 0.4);
+        bend.getField().setSkewComponent(1, -0.2);
+
+        const auto slices = bend.buildTrackingSlices();
+        ASSERT_FALSE(slices.empty());
+        const BendBase::TrackingSlice& slice = slices.front();
+        const double localZ                  = 0.0;
+        const double x                       = 1.5e-3;
+        const double y                       = -0.8e-3;
+
+        auto pc = makeContainer({x, y, localZ});
+        bend.applySlice(pc, slice);
+
+        auto BhostView = pc->B.getHostMirror();
+        Kokkos::deep_copy(BhostView, pc->B.getView());
+
+        Vector_t<double, 3> Eexpected(0.0);
+        Vector_t<double, 3> Bexpected(0.0);
+        const Vector_t<double, 3> entryChartPosition(x, y, slice.sCenter + localZ);
+        bend.apply(entryChartPosition, Vector_t<double, 3>(0.0), 0.0, Eexpected, Bexpected);
+
+        EXPECT_NEAR(BhostView(0)(0), Bexpected(0), 1.0e-12);
+        EXPECT_NEAR(BhostView(0)(1), Bexpected(1), 1.0e-12);
+        EXPECT_NEAR(BhostView(0)(2), Bexpected(2), 1.0e-12);
     }
 
     TEST(SBendRep, ProtonOnAxisIntegratesToFortyFiveDegreeDeflection) {

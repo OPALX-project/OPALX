@@ -243,6 +243,50 @@ public:
     int getRequiredNumberOfTimeSteps() const override;
 
     /**
+     * @brief Rigid tracking slice used by many-particle bend tracking.
+     *
+     * The slice coordinate system is attached to the design reference path at
+     * longitudinal coordinate \f$s_\mathrm{center}\f$ measured from the bend
+     * entry face. The stored transform maps entry-frame coordinates into the
+     * slice-local tangent frame. The slice interval itself is
+     * \f$[s_\mathrm{begin}, s_\mathrm{end}]\f$ on the same entry-based
+     * reference-path coordinate.
+     */
+    struct TrackingSlice {
+        CoordinateSystemTrafo entryToSliceLocal;
+        double sBegin;
+        double sCenter;
+        double sEnd;
+    };
+
+    /**
+     * @brief Build the rigid tangent-frame slices used for many-particle tracking.
+     *
+     * The slice decomposition is defined on the entry-based design-path
+     * coordinate and covers the full field-support extent
+     * \f$[-\ell_\mathrm{entry}, L_\mathrm{ref} + \ell_\mathrm{exit}]\f$.
+     * The slices are uniform in \f$s\f$ and are used only for the many-particle
+     * tracking path. The reference-particle path remains field-based and
+     * unsliced.
+     */
+    std::vector<TrackingSlice> buildTrackingSlices() const;
+
+    /**
+     * @brief Apply the analytic bend field to particles already expressed in one slice frame.
+     *
+     * The particles are assumed to be in the slice-local tangent frame
+     * associated with `slice`. The kernel evaluates the existing analytic bend
+     * multipole field at the approximated global reference-path coordinate
+     * \f$s = s_\mathrm{center} + z_\mathrm{local}\f$ and accumulates the field
+     * contribution for particles inside the slice support.
+     *
+     * @note This path is used only for many-particle tracking. It does not
+     * alter the reference-particle field evaluation.
+     */
+    bool applySlice(
+            const std::shared_ptr<ParticleContainer_t>& pc, const TrackingSlice& slice) const;
+
+    /**
      * @brief Return the local hard-edge fringe support in front of the body.
      */
     double getEntryFringeSupportLength() const;

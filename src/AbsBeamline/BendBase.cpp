@@ -50,6 +50,20 @@ namespace {
         }
         return 1.0;
     }
+
+    Euclid3D makeReferencePathTransformFromEntry(const double s, const double curvature) {
+        Euclid3D transform;
+        if (std::abs(curvature) > 1.0e-15) {
+            const double phi = curvature * s;
+            transform        = Euclid3D::YRotation(-phi);
+            transform.setX((std::cos(phi) - 1.0) / curvature);
+            transform.setZ(std::sin(phi) / curvature);
+        } else {
+            transform.setZ(s);
+        }
+        return transform;
+    }
+
 }  // namespace
 
 BendBase::BendBase() : BendBase("") {}
@@ -221,6 +235,144 @@ bool BendBase::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
                     horizontalGradient = entryEdgeHorizontalGradient;
                     verticalGradient   = entryEdgeVerticalGradient;
                 } else if (z >= elemLength && exitFringe > 0.0) {
+                    horizontalGradient = exitEdgeHorizontalGradient;
+                    verticalGradient   = exitEdgeVerticalGradient;
+                }
+                if (horizontalGradient != 0.0 || verticalGradient != 0.0) {
+                    Bf(0) += verticalGradient * y;
+                    Bf(1) += horizontalGradient * x;
+                }
+
+                for (unsigned d = 0; d < 3; ++d) {
+                    Eview(i)(d) += 0.0;
+                    Bview(i)(d) += Bf(d);
+                }
+            });
+
+    return false;
+}
+
+std::vector<BendBase::TrackingSlice> BendBase::buildTrackingSlices() const {
+    const double bodyLength  = getReferencePathLength();
+    const double sBegin      = -getEntryFringeSupportLength();
+    const double sEnd        = bodyLength + getExitFringeSupportLength();
+    const double totalLength = std::max(0.0, sEnd - sBegin);
+    std::size_t nSlices      = 1u;
+    if (getStepsize() > 1.0e-15) {
+        nSlices = std::max<std::size_t>(
+                1u, static_cast<std::size_t>(std::ceil(totalLength / getStepsize())));
+    } else if (getNSlices() > 1) {
+        nSlices = getNSlices();
+    } else if (getSlices() > 1.0) {
+        nSlices = std::max<std::size_t>(1u, static_cast<std::size_t>(std::ceil(getSlices())));
+    } else {
+        const std::size_t lengthDriven =
+                std::max<std::size_t>(1u, static_cast<std::size_t>(std::ceil(totalLength / 0.05)));
+        const std::size_t angleDriven = std::max<std::size_t>(
+                1u, static_cast<std::size_t>(
+                            std::ceil(std::abs(getBendAngle()) / (Physics::pi / 32.0))));
+        nSlices = std::max<std::size_t>(8u, std::max(lengthDriven, angleDriven));
+    }
+    const double ds        = (nSlices > 0) ? (sEnd - sBegin) / static_cast<double>(nSlices) : 0.0;
+    const double curvature = getSignedCurvature();
+
+    std::vector<TrackingSlice> slices;
+    slices.reserve(nSlices);
+    for (std::size_t i = 0; i < nSlices; ++i) {
+        const double sliceBegin  = sBegin + static_cast<double>(i) * ds;
+        const double sliceEnd    = sBegin + static_cast<double>(i + 1) * ds;
+        const double sliceCenter = 0.5 * (sliceBegin + sliceEnd);
+        slices.push_back(
+                TrackingSlice{
+                        toCoordinateSystemTrafo(
+                                makeReferencePathTransformFromEntry(sliceCenter, curvature)),
+                        sliceBegin, sliceCenter, sliceEnd});
+    }
+    return slices;
+}
+
+bool BendBase::applySlice(
+        const std::shared_ptr<ParticleContainer_t>& pc, const TrackingSlice& slice) const {
+    auto Rview          = pc->R.getView();
+    auto Eview          = pc->E.getView();
+    auto Bview          = pc->B.getView();
+    const size_t nLocal = pc->getLocalNum();
+
+    const BMultipoleField& field = getField();
+    const int order              = field.order();
+    Kokkos::View<double*> normal("BendBase::sliceNormal", order);
+    Kokkos::View<double*> skew("BendBase::sliceSkew", order);
+    auto normalHost = Kokkos::create_mirror_view(normal);
+    auto skewHost   = Kokkos::create_mirror_view(skew);
+    for (int i = 0; i < order; ++i) {
+        normalHost(i) = field.getNormalComponent(i);
+        skewHost(i)   = field.getSkewComponent(i);
+    }
+    Kokkos::deep_copy(normal, normalHost);
+    Kokkos::deep_copy(skew, skewHost);
+
+    const double bodyLength       = getReferencePathLength();
+    const double fieldBegin       = -getEntryFringeSupportLength();
+    const double fieldEnd         = bodyLength + getExitFringeSupportLength();
+    const double entryFringe      = getEntryFringeSupportLength();
+    const double exitFringe       = getExitFringeSupportLength();
+    const double sliceCenter      = slice.sCenter;
+    const double sliceHalfLength  = 0.5 * (slice.sEnd - slice.sBegin);
+    const double signedCurvature  = getSignedCurvature();
+    const double dipoleFieldTesla = getField().getNormalComponent(0);
+    const double bendRigidityScale =
+            (std::abs(signedCurvature) > 1.0e-15) ? dipoleFieldTesla / signedCurvature : 0.0;
+    const double entryEdgeHorizontalGradient =
+            (entryFringe > 0.0) ? bendRigidityScale * getEntryEdgeHorizontalStrength() / entryFringe
+                                : 0.0;
+    const double exitEdgeHorizontalGradient =
+            (exitFringe > 0.0) ? bendRigidityScale * getExitEdgeHorizontalStrength() / exitFringe
+                               : 0.0;
+    const double entryEdgeVerticalGradient =
+            (entryFringe > 0.0) ? -bendRigidityScale * getEntryEdgeVerticalStrength() / entryFringe
+                                : 0.0;
+    const double exitEdgeVerticalGradient =
+            (exitFringe > 0.0) ? -bendRigidityScale * getExitEdgeVerticalStrength() / exitFringe
+                               : 0.0;
+
+    Kokkos::parallel_for(
+            "BendBase::applySlice", nLocal, KOKKOS_LAMBDA(const size_t i) {
+                const double zLocal = Rview(i)(2);
+                if (zLocal < -sliceHalfLength || zLocal > sliceHalfLength) {
+                    return;
+                }
+
+                const double s = sliceCenter + zLocal;
+                if (s < fieldBegin || s > fieldEnd) {
+                    return;
+                }
+
+                Vector_t<double, 3> Bf(0.0);
+                const double x     = Rview(i)(0);
+                const double y     = Rview(i)(1);
+                const double scale = evaluateFieldScale(s, fieldBegin, bodyLength, fieldEnd);
+
+                if (normal.extent(0) > 0) {
+                    Bf(1) += scale * normal(0);
+                }
+                if (skew.extent(0) > 0) {
+                    Bf(0) -= scale * skew(0);
+                }
+                if (normal.extent(0) > 1) {
+                    Bf(0) += scale * normal(1) * y;
+                    Bf(1) += scale * normal(1) * x;
+                }
+                if (skew.extent(0) > 1) {
+                    Bf(0) -= scale * skew(1) * x;
+                    Bf(1) += scale * skew(1) * y;
+                }
+
+                double horizontalGradient = 0.0;
+                double verticalGradient   = 0.0;
+                if (s <= 0.0 && entryFringe > 0.0) {
+                    horizontalGradient = entryEdgeHorizontalGradient;
+                    verticalGradient   = entryEdgeVerticalGradient;
+                } else if (s >= bodyLength && exitFringe > 0.0) {
                     horizontalGradient = exitEdgeHorizontalGradient;
                     verticalGradient   = exitEdgeVerticalGradient;
                 }

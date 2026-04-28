@@ -56,6 +56,7 @@
 #include "Utilities/Util.h"
 #include "ValueDefinitions/RealVariable.h"
 
+#include "AbsBeamline/BendBase.h"
 #include "AbsBeamline/PluginElement.h"
 #include "AbsBeamline/VerticalFFAMagnet.h"
 
@@ -124,11 +125,6 @@ void ParallelTracker::visitComponent(const Component& comp) {
         throw LogicalError(
                 "ParallelTracker::visitComponent()",
                 "Tracking of the \"LASER\" element is not implemented yet.");
-    }
-
-    if (comp.getType() == ElementType::SBEND || comp.getType() == ElementType::RBEND) {
-        itsOpalBeamline_m.visit(comp, *this, *itsBunch_m);
-        return;
     }
 
     Tracker::visitComponent(comp);
@@ -700,19 +696,43 @@ void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
         IndexMap::value_t::const_iterator it        = elements.begin();
         const IndexMap::value_t::const_iterator end = elements.end();
         for (; it != end; ++it) {
+            (*it)->setCurrentSCoordinate(pc->get_sPos() + rmin(2));
+
+            if ((*it)->getType() == ElementType::SBEND || (*it)->getType() == ElementType::RBEND) {
+                BendBase* bend = dynamic_cast<BendBase*>((*it).get());
+                if (bend == nullptr) {
+                    throw OpalException(
+                            "ParallelTracker::computeExternalFields",
+                            "Encountered bend element without BendBase runtime type.");
+                }
+
+                const CoordinateSystemTrafo nominalEntryToLocal =
+                        itsOpalBeamline_m.getNominalEntryTransform((*it));
+                const CoordinateSystemTrafo nominalToActual =
+                        itsOpalBeamline_m.getMisalignment((*it));
+                const auto slices = bend->buildTrackingSlices();
+
+                for (const auto& slice : slices) {
+                    CoordinateSystemTrafo refToSliceLocal =
+                            slice.entryToSliceLocal
+                            * (nominalToActual * (nominalEntryToLocal * pc->getToLabTrafo()));
+                    CoordinateSystemTrafo sliceLocalToRef = refToSliceLocal.inverted();
+
+                    pc->transformBunch(refToSliceLocal);
+                    bend->applySlice(pc, slice);
+                    pc->transformBunch(sliceLocalToRef);
+                }
+                continue;
+            }
+
             CoordinateSystemTrafo refToLocalCSTrafo =
                     (itsOpalBeamline_m.getMisalignment((*it))
                      * (itsOpalBeamline_m.getFieldCSTrafoLab2Local((*it)) * pc->getToLabTrafo()));
 
             CoordinateSystemTrafo localToRefCSTrafo = refToLocalCSTrafo.inverted();
 
-            (*it)->setCurrentSCoordinate(pc->get_sPos() + rmin(2));
-
             pc->transformBunch(refToLocalCSTrafo);
-
-            // Apply element to this iteration's particle container.
             (*it)->apply(pc);
-
             pc->transformBunch(localToRefCSTrafo);
         }
     }

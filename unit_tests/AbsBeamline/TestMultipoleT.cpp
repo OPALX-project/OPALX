@@ -91,8 +91,10 @@ public:
     void visitMultipole(const Multipole&) override {}
     void visitMultipoleT(const MultipoleT&) override {}
     void visitRFCavity(const RFCavity&) override {}
+    void visitRBend(const RBend&) override {}
     void visitScalingFFAMagnet(const ScalingFFAMagnet&) override {}
     void visitRing(const Ring&) override {}
+    void visitSBend(const SBend&) override {}
     void visitSolenoid(const Solenoid&) override {}
     void visitTravelingWave(const TravelingWave&) override {}
     void visitVerticalFFAMagnet(const VerticalFFAMagnet&) override {}

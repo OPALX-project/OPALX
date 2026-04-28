@@ -10,7 +10,7 @@ RBend::RBend(const std::string& name) : BendBase(name) {}
 
 RBend::~RBend() = default;
 
-void RBend::accept(BeamlineVisitor& visitor) const { visitor.visitComponent(*this); }
+void RBend::accept(BeamlineVisitor& visitor) const { visitor.visitRBend(*this); }
 
 ElementType RBend::getType() const { return ElementType::RBEND; }
 

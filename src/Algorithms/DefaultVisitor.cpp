@@ -30,13 +30,15 @@
 #include "AbsBeamline/Multipole.h"
 #include "AbsBeamline/MultipoleT.h"
 #include "AbsBeamline/Probe.h"
+#include "AbsBeamline/RBend.h"
 #include "AbsBeamline/RFCavity.h"
 #include "AbsBeamline/Ring.h"
+#include "AbsBeamline/SBend.h"
 #include "AbsBeamline/ScalingFFAMagnet.h"
 #include "AbsBeamline/Solenoid.h"
 #include "AbsBeamline/TravelingWave.h"
-#include "AbsBeamline/VerticalFFAMagnet.h"
 #include "AbsBeamline/VariableRFCavity.h"
+#include "AbsBeamline/VerticalFFAMagnet.h"
 
 #include "Beamlines/Beamline.h"
 #include "Beamlines/FlaggedElmPtr.h"
@@ -53,65 +55,41 @@ void DefaultVisitor::execute() {
     itsLine.accept(*this);
 }
 
-void DefaultVisitor::visitComponent(const Component& comp) {
-    applyDefault(comp);
-}
+void DefaultVisitor::visitComponent(const Component& comp) { applyDefault(comp); }
 
 void DefaultVisitor::visitConstantEFieldCavity(const ConstantEFieldCavity& cav) {
     applyDefault(cav);
 }
 
-void DefaultVisitor::visitDrift(const Drift& drf) {
-    applyDefault(drf);
-}
+void DefaultVisitor::visitDrift(const Drift& drf) { applyDefault(drf); }
 
-void DefaultVisitor::visitMarker(const Marker& mark) {
-    applyDefault(mark);
-}
+void DefaultVisitor::visitMarker(const Marker& mark) { applyDefault(mark); }
 
-void DefaultVisitor::visitMonitor(const Monitor& mon) {
-    applyDefault(mon);
-}
+void DefaultVisitor::visitMonitor(const Monitor& mon) { applyDefault(mon); }
 
-void DefaultVisitor::visitMultipole(const Multipole& mult) {
-    applyDefault(mult);
-}
+void DefaultVisitor::visitMultipole(const Multipole& mult) { applyDefault(mult); }
 
-void DefaultVisitor::visitMultipoleT(const MultipoleT& multT) {
-    applyDefault(multT);
-}
+void DefaultVisitor::visitMultipoleT(const MultipoleT& multT) { applyDefault(multT); }
 
-void DefaultVisitor::visitRing(const Ring& ring) {
-    applyDefault(ring);
-}
+void DefaultVisitor::visitRing(const Ring& ring) { applyDefault(ring); }
 
-void DefaultVisitor::visitRFCavity(const RFCavity& cav) {
-    applyDefault(cav);
-}
+void DefaultVisitor::visitRFCavity(const RFCavity& cav) { applyDefault(cav); }
 
-void DefaultVisitor::visitSolenoid(const Solenoid& so) {
-    applyDefault(so);
-}
+void DefaultVisitor::visitRBend(const RBend& bend) { applyDefault(bend); }
 
-void DefaultVisitor::visitTravelingWave(const TravelingWave& trw) {
-    applyDefault(trw);
-}
+void DefaultVisitor::visitSolenoid(const Solenoid& so) { applyDefault(so); }
 
-void DefaultVisitor::visitScalingFFAMagnet(const ScalingFFAMagnet& spiral) {
-    applyDefault(spiral);
-}
+void DefaultVisitor::visitSBend(const SBend& bend) { applyDefault(bend); }
 
-void DefaultVisitor::visitVerticalFFAMagnet(const VerticalFFAMagnet& mag) {
-    applyDefault(mag);
-}
+void DefaultVisitor::visitTravelingWave(const TravelingWave& trw) { applyDefault(trw); }
 
-void DefaultVisitor::visitVariableRFCavity(const VariableRFCavity& cavity) {
-    applyDefault(cavity);
-}
+void DefaultVisitor::visitScalingFFAMagnet(const ScalingFFAMagnet& spiral) { applyDefault(spiral); }
 
-void DefaultVisitor::visitProbe(const Probe& probe) {
-    applyDefault(probe);
-}
+void DefaultVisitor::visitVerticalFFAMagnet(const VerticalFFAMagnet& mag) { applyDefault(mag); }
+
+void DefaultVisitor::visitVariableRFCavity(const VariableRFCavity& cavity) { applyDefault(cavity); }
+
+void DefaultVisitor::visitProbe(const Probe& probe) { applyDefault(probe); }
 
 void DefaultVisitor::visitBeamline(const Beamline& bl) {
     // Default behaviour: Apply algorithm to all beamline members.
@@ -129,5 +107,4 @@ void DefaultVisitor::visitFlaggedElmPtr(const FlaggedElmPtr& fep) {
     }
 }
 
-void DefaultVisitor::applyDefault(const ElementBase&) {
-}
+void DefaultVisitor::applyDefault(const ElementBase&) {}

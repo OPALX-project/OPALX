@@ -75,8 +75,14 @@ public:
     /// Apply the algorithm to a RF cavity.
     void visitRFCavity(const RFCavity&) override;
 
+    /// Apply the algorithm to a rectangular bend.
+    void visitRBend(const RBend&) override;
+
     /// Apply the algorithm to a Solenoid.
     void visitSolenoid(const Solenoid&) override;
+
+    /// Apply the algorithm to a sector bend.
+    void visitSBend(const SBend&) override;
 
     /// Apply the algorithm to a traveling wave.
     void visitTravelingWave(const TravelingWave&) override;
@@ -109,7 +115,7 @@ protected:
 
 private:
     // Not implemented.
-    DefaultVisitor() = delete;
+    DefaultVisitor()                      = delete;
     DefaultVisitor(const DefaultVisitor&) = delete;
     void operator=(const DefaultVisitor&) = delete;
 
