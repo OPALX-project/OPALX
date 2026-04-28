@@ -54,6 +54,9 @@ public:
     /// Apply the algorithm to a drift space.
     void visitDrift(const Drift&) override;
 
+    /// Apply the algorithm to a laser.
+    void visitLaser(const Laser&) override;
+
     /// Apply the algorithm to a FlaggedElmPtr.
     void visitFlaggedElmPtr(const FlaggedElmPtr&) override;
 
@@ -69,20 +72,20 @@ public:
     /// Apply the algorithm to an arbitrary multipole.
     void visitMultipoleT(const MultipoleT&) override;
 
+    /// Apply the algorithm to a rectangular bend.
+    void visitRBend(const RBend&) override;
+
     /// Apply the algorithm to a Ring.
     void visitRing(const Ring&) override;
+
+    /// Apply the algorithm to a sector bend.
+    void visitSBend(const SBend&) override;
 
     /// Apply the algorithm to a RF cavity.
     void visitRFCavity(const RFCavity&) override;
 
-    /// Apply the algorithm to a rectangular bend.
-    void visitRBend(const RBend&) override;
-
     /// Apply the algorithm to a Solenoid.
     void visitSolenoid(const Solenoid&) override;
-
-    /// Apply the algorithm to a sector bend.
-    void visitSBend(const SBend&) override;
 
     /// Apply the algorithm to a traveling wave.
     void visitTravelingWave(const TravelingWave&) override;

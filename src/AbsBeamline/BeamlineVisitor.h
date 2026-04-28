@@ -43,21 +43,22 @@ class FlaggedElmPtr;
 
 // Specific element classes interacting with a BeamlineVisitor
 class Drift;
+class Laser;
 class Marker;
 class Monitor;
 class Multipole;
 class MultipoleT;
+class RBend;
 class RFCavity;
 class VariableRFCavity;
 class TravelingWave;
 class Ring;
+class SBend;
 class Solenoid;
 class ScalingFFAMagnet;
 class Offset;
 class VerticalFFAMagnet;
 class Probe;
-class RBend;
-class SBend;
 
 class BeamlineVisitor {
 public:
@@ -79,6 +80,9 @@ public:
     /// Apply the algorithm to a drift space.
     virtual void visitDrift(const Drift&) = 0;
 
+    /// Apply the algorithm to a laser element.
+    virtual void visitLaser(const Laser&) = 0;
+
     /// Apply the algorithm to a FlaggedElmPtr.
     virtual void visitFlaggedElmPtr(const FlaggedElmPtr&) = 0;
 
@@ -94,11 +98,11 @@ public:
     /// Apply the algorithm to an arbitrary multipole.
     virtual void visitMultipoleT(const MultipoleT&) = 0;
 
-    /// Apply the algorithm to a RF cavity.
-    virtual void visitRFCavity(const RFCavity&) = 0;
-
     /// Apply the algorithm to a rectangular bend.
     virtual void visitRBend(const RBend&) = 0;
+
+    /// Apply the algorithm to a RF cavity.
+    virtual void visitRFCavity(const RFCavity&) = 0;
 
     /// Apply the algorithm to a variable RF cavity.
     virtual void visitVariableRFCavity(const VariableRFCavity&) = 0;
@@ -108,11 +112,11 @@ public:
     /// Apply the algorithm to a Ring element.
     virtual void visitRing(const Ring&) = 0;
 
-    /// Apply the algorithm to a Solenoid element.
-    virtual void visitSolenoid(const Solenoid&) = 0;
-
     /// Apply the algorithm to a sector bend.
     virtual void visitSBend(const SBend&) = 0;
+
+    /// Apply the algorithm to a Solenoid element.
+    virtual void visitSolenoid(const Solenoid&) = 0;
 
     /// Apply the algorithm to a traveling wave.
     virtual void visitTravelingWave(const TravelingWave&) = 0;

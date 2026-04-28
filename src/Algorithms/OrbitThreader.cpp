@@ -124,14 +124,15 @@ void OrbitThreader::checkElementLengths(const std::set<std::shared_ptr<Component
         double fieldBegin = 0.0;
         double fieldEnd   = 0.0;
         field->getFieldExtend(fieldBegin, fieldEnd);
-        double length = fieldEnd - fieldBegin;
-        int numSteps  = field->getRequiredNumberOfTimeSteps();
+        const double length = std::abs(fieldEnd - fieldBegin);
+        const int numSteps  = field->getRequiredNumberOfTimeSteps();
 
         if (length < numSteps * driftLength) {
             throw OpalException("OrbitThreader::checkElementLengths",
                                 "The time step is too long compared to the field-support extent of the\n"
                                 "element '" + field->getName() + "'\n" +
-                                "The field-support extent is: " + std::to_string(length) + "\n"
+                                "The field-support extent of the element is: "
+                                        + std::to_string(length) + "\n"
                                 "The distance the particles drift in " + std::to_string(numSteps) +
                                 " time step(s) is: " + std::to_string(numSteps * driftLength));
         }

@@ -38,6 +38,7 @@
 #include "AbsBeamline/ConstantEFieldCavity.h"
 #include "AbsBeamline/Drift.h"
 #include "AbsBeamline/ElementBase.h"
+#include "AbsBeamline/Laser.h"
 #include "AbsBeamline/Marker.h"
 #include "AbsBeamline/Multipole.h"
 #include "AbsBeamline/MultipoleT.h"
@@ -123,7 +124,7 @@ public:
     /// DefaultVisitor.
     virtual void visitBeamline(const Beamline&);
 
-    /// @brief Visit a generic component; rejects LASER (not implemented).
+    /// @brief Visit a generic component using the base tracker behavior.
     virtual void visitComponent(const Component&);
 
     /// @brief Apply the algorithm to a constant E-field cavity.
@@ -131,6 +132,9 @@ public:
 
     /// @brief Apply the algorithm to a drift.
     virtual void visitDrift(const Drift&);
+
+    /// @brief Reject laser tracking until dedicated laser tracking is implemented.
+    virtual void visitLaser(const Laser&);
 
     /// @brief Apply the algorithm to a marker.
     virtual void visitMarker(const Marker&);
