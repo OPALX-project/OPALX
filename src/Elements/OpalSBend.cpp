@@ -132,7 +132,7 @@ void OpalSBend::update() {
 
     if (itsAttr[APERT])
         throw OpalException(
-                "OpalRBend::update", "APERTURE in RBEND not supported; use GAP and HAPERT instead");
+                "OpalSBend::update", "APERTURE in SBEND not supported; use GAP and HAPERT instead");
 
     if (itsAttr[HAPERT]) {
         double hapert = Attributes::getReal(itsAttr[HAPERT]);
