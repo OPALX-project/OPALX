@@ -65,25 +65,60 @@ bool Monitor::apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/) {
     return false;
 }
 
+
+// bool Monitor::apply(
+//     const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B)
+// {
+//     auto pc = RefPartBunch_m->getParticleContainer();
+//     auto Rview  = pc->R.getView();
+//     auto Pview  = pc->P.getView();
+//     auto dtview = pc->dt.getView();
+
+//     const Vector_t<double, 3> R = Rview(i);
+//     const Vector_t<double, 3> P = Pview(i);
+//     const double dt = dtview(i);
+
+//     // monitor is field-free
+//     (void)E; (void)B;
+
+//     if (!online_m || type_m != CollectionType::SPATIAL) {
+//         return false;
+//     }
+
+//     const Vector_t<double, 3> beta       = Util::getBeta(P);
+//     const Vector_t<double, 3> singleStep = Physics::c * dt * beta;
+
+//     if (dt * R(2) < 0.0 && dt * (R(2) + singleStep(2)) > 0.0) {
+//         const double frac = -R(2) / singleStep(2);
+
+//         // host-side sink insertion only
+//         // ID handling still needs a decision in OPALX
+//         // Q/M should come from pc->getChargePerParticle(), pc->getMassPerParticle()
+//     }
+
+//     return false;
+// }
+
+
 bool Monitor::apply(
-    const size_t& /*i*/, const double& /*t*/, Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/) {
-    // const Vector_t<double, 3>& R         = RefPartBunch_m->R(i);
-    // const Vector_t<double, 3>& P         = RefPartBunch_m->P(i);
-    // const double& dt                     = RefPartBunch_m->dt(i);
-    // const Vector_t<double, 3> singleStep = Physics::c * dt * Util::getBeta(P);
-    // if (online_m && type_m == CollectionType::SPATIAL) {
-    //     if (dt * R(2) < 0.0 && dt * (R(2) + singleStep(2)) > 0.0) {
-    //         // if R(2) is negative then frac should be positive and vice versa
-    //         double frac = -R(2) / singleStep(2);
+   const size_t& /*i*/, const double& /*t*/, Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/) {
+//     const Vector_t<double, 3>& R         = RefPartBunch_m->R(i);
+//     const Vector_t<double, 3>& P         = RefPartBunch_m->P(i);
+//     const double& dt                     = RefPartBunch_m->dt(i);
+//     const Vector_t<double, 3> singleStep = Physics::c * dt * Util::getBeta(P);
+//     if (online_m && type_m == CollectionType::SPATIAL) {
+//         if (dt * R(2) < 0.0 && dt * (R(2) + singleStep(2)) > 0.0) {
+//             // if R(2) is negative then frac should be positive and vice versa
+//             double frac = -R(2) / singleStep(2);
 
-    //         lossDs_m->addParticle(OpalParticle(
-    //             RefPartBunch_m->ID[i], R + frac * singleStep, P, t + frac * dt,
-    //             RefPartBunch_m->Q[i], RefPartBunch_m->M[i]));
-    //     }
-    // }
+//             lossDs_m->addParticle(OpalParticle(
+//                 RefPartBunch_m->ID[i], R + frac * singleStep, P, t + frac * dt,
+//                 RefPartBunch_m->Q[i], RefPartBunch_m->M[i]));
+//         }
+//     }
 
-    throw std::runtime_error("Fix this function please");
-    return false;
+   throw std::runtime_error("Fix this function please");
+   return false;
 }
 
 bool Monitor::apply(
@@ -113,6 +148,9 @@ void Monitor::driftToCorrectPositionAndSave(
     // }
     throw std::runtime_error("Fix this function please");
 }
+
+//  maybe it
+
 
 bool Monitor::applyToReferenceParticle(
     const Vector_t<double, 3>& /*R*/, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
@@ -156,34 +194,38 @@ bool Monitor::applyToReferenceParticle(
 
 void Monitor::initialise(PartBunch_t* bunch, double& startField, double& endField) {
     RefPartBunch_m = bunch;
-    endField       = startField + halfLength_s;
+    
+    endField   = startField + halfLength_s;
     startField -= halfLength_s;
 
-    //const size_t totalNum  = bunch->getTotalNum();
-    //double currentPosition = endField;
-    //if (totalNum > 0) {
-    //    currentPosition = bunch->get_sPos();
-    //}
+    double currentPosition = endField;
+    if (bunch != nullptr) {
+        std::shared_ptr<ParticleContainer_t> pc = bunch->getParticleContainer();
+        if (pc) {
+            currentPosition = pc->get_sPos();
+        }
+    }
 
     filename_m = getOutputFN();
 
-    // if (OpalData::getInstance()->getOpenMode() == OpalData::OpenMode::WRITE
-    //     || currentPosition < startField) {
-    //     namespace fs = std::filesystem;
+    if (OpalData::getInstance()->getOpenMode() == OpalData::OpenMode::WRITE
+        || currentPosition < startField) {
+        namespace fs = std::filesystem;
 
-    //     fs::path lossFileName = fs::path(filename_m + ".h5");
-    //     if (fs::exists(lossFileName)) {
-    //         Ippl::Comm->barrier();
-    //         if (ippl::Comm->rank() == 0) {
-    //             fs::remove(lossFileName);
-    //         }
-    //         Ippl::Comm->barrier();
-    //     }
-    // }
+        const fs::path lossFileName(filename_m + ".h5");
+        if (fs::exists(lossFileName)) {
+            ippl::Comm->barrier();
+            if (ippl::Comm->rank() == 0) {
+                fs::remove(lossFileName);
+            }
+            ippl::Comm->barrier();
+        }
+    }
 
-    // lossDs_m =
-    //     std::unique_ptr<LossDataSink>(new LossDataSink(filename_m, !Options::asciidump, type_m));
-    throw std::runtime_error("Fix this function please");
+    lossDs_m = std::make_unique<LossDataSink>(
+        filename_m,
+        !Options::asciidump,
+        type_m);
 }
 
 void Monitor::finalise() {
