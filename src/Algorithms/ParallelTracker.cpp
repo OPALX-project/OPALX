@@ -125,6 +125,8 @@ void ParallelTracker::visitComponent(const Component& comp) {
                 "ParallelTracker::visitComponent()",
                 "Tracking of the \"LASER\" element is not implemented yet.");
     }
+    Tracker::visitComponent(comp);
+}
 
 void ParallelTracker::visitLaser(const Laser&) {
     throw LogicalError(
