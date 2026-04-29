@@ -19,6 +19,7 @@
 
 #include "Algorithms/OrbitThreader.h"
 
+#include "AbsBeamline/BendBase.h"
 #include "AbsBeamline/RFCavity.h"
 #include "AbsBeamline/TravelingWave.h"
 #include "AbstractObjects/OpalData.h"
@@ -257,6 +258,17 @@ void OrbitThreader::integrate(const IndexMap::value_t& activeSet, double /*maxDr
             Vector_t<double, 3> localR = itsOpalBeamline_m.transformToFieldLocalCS(*it, r_m);
             Vector_t<double, 3> localP = itsOpalBeamline_m.rotateToFieldLocalCS(*it, p_m);
             Vector_t<double, 3> localE(0.0), localB(0.0);
+            BendBase* bend = nullptr;
+
+            if ((*it)->getType() == ElementType::SBEND || (*it)->getType() == ElementType::RBEND) {
+                bend = dynamic_cast<BendBase*>((*it).get());
+                if (bend == nullptr) {
+                    throw OpalException(
+                            "OrbitThreader::integrate",
+                            "Encountered bend element without BendBase runtime type.");
+                }
+                localP = bend->rotateEntryCartesianVectorToFieldLocal(localP, localR(2));
+            }
 
             if ((*it)->applyToReferenceParticle(
                         localR, localP, time_m + 0.5 * dt_m, localE, localB)) {
@@ -265,8 +277,13 @@ void OrbitThreader::integrate(const IndexMap::value_t& activeSet, double /*maxDr
             }
             names += (*it)->getName() + ", ";
 
-            Ef += itsOpalBeamline_m.rotateFromLocalCS(*it, localE);
-            Bf += itsOpalBeamline_m.rotateFromLocalCS(*it, localB);
+            if (bend != nullptr) {
+                localE = bend->rotateFieldLocalVectorToEntryCartesian(localE, localR(2));
+                localB = bend->rotateFieldLocalVectorToEntryCartesian(localB, localR(2));
+            }
+
+            Ef += itsOpalBeamline_m.rotateFromFieldLocalCS(*it, localE);
+            Bf += itsOpalBeamline_m.rotateFromFieldLocalCS(*it, localB);
         }
 
         const bool shouldLog = currentStep_m % loggingFrequency_m == 0 && ippl::Comm->rank() == 0
@@ -446,10 +463,26 @@ void OrbitThreader::processElementRegister() {
         std::queue<std::pair<double, double>> range;
 
         for (auto sit = set.begin(); sit != set.end(); ++sit) {
-            range.push(std::make_pair((*sit).elementEdge_m, (*sit).endField_m));
+            double startField  = (*sit).startField_m;
+            double endField    = (*sit).endField_m;
+            double elementEdge = (*sit).elementEdge_m;
+
+            if (const auto* bend = dynamic_cast<const BendBase*>(element.get())) {
+                double fieldBegin = 0.0;
+                double fieldEnd   = 0.0;
+                bend->getFieldExtend(fieldBegin, fieldEnd);
+                if (bend->isElementPositionSet()) {
+                    elementEdge = bend->getElementPosition();
+                }
+
+                startField = elementEdge + fieldBegin;
+                endField   = elementEdge + fieldEnd;
+            }
+
+            range.push(std::make_pair(elementEdge, endField));
             registeredSegments.push_back(ReferencePathSegment(
-                    (*sit).startField_m, (*sit).endField_m,
-                    ReferencePathSegment::element_set_t{element}, (*sit).elementEdge_m));
+                    startField, endField, ReferencePathSegment::element_set_t{element},
+                    elementEdge));
         }
         element->setActionRange(range);
     }

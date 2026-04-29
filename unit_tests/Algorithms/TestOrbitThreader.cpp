@@ -257,6 +257,25 @@ protected:
         return component;
     }
 
+    std::shared_ptr<SBendRep> makePlacedLinearEdgeSBend(
+            const std::string& name, const double entryPosition, const double length,
+            const double bendAngle, const double edgeAngle, const double halfGap,
+            const double fringeIntegral) {
+        auto bend           = std::make_shared<SBendRep>(name);
+        bend->getGeometry() = PlanarArcGeometry(length, bendAngle);
+        bend->setElementLength(length);
+        bend->setBendAngle(bendAngle);
+        bend->setEntranceAngle(edgeAngle);
+        bend->setExitAngle(edgeAngle);
+        bend->setFringeHalfGap(halfGap);
+        bend->setFringeIntegral(fringeIntegral);
+        bend->setElementPosition(entryPosition);
+        bend->setPlacementPose(PlacementPose(
+                CoordinateSystemTrafo(Vector_t<double, 3>(0.0, 0.0, entryPosition), Quaternion())));
+        bend->fixPosition();
+        return bend;
+    }
+
     std::shared_ptr<FieldSolverCmd> fsCmdBase_m;
     std::shared_ptr<DataSink> dataSink_m;
 };
@@ -419,6 +438,90 @@ TEST_F(OrbitThreaderTest, ThrowsDiagnosticForPlacedElementOutsideTracedReference
             OpalException);
 }
 
+TEST_F(OrbitThreaderTest, RegistersSBendActionRangeFromFieldSupportExtent) {
+    auto bunch = makeBunch(0);
+
+    DummyBeamline beamlineForVisitor;
+    DefaultVisitor visitor(beamlineForVisitor, false, false);
+
+    OpalBeamline beamline;
+    auto bend = makePlacedLinearEdgeSBend(
+            "B1", 0.0, 1.0, Physics::pi / 4.0, Physics::pi / 8.0, 0.015, 0.50);
+    beamline.visit(*bend, visitor, *bunch);
+    beamline.prepareSections();
+
+    StepSizeConfig stepSizes;
+    stepSizes.push_back(5.0e-12, 1.2, 4096);
+    stepSizes.resetIterator();
+
+    PartData reference(1.0, 9.382720813e8, 5.90e8);
+    OrbitThreader threader(
+            reference, Vector_t<double, 3>(0.0), Vector_t<double, 3>(0.0, 0.0, 1.0), 0.0, 0.0, 0.0,
+            5.0e-12, stepSizes, beamline);
+
+    ASSERT_NO_THROW(threader.execute());
+
+    const ReferencePathModel& registrationModel = threader.getActionRangeRegistrationModel();
+    ASSERT_EQ(registrationModel.size(), 1u);
+
+    const auto& segment              = registrationModel.getSegments().front();
+    const double expectedEntryFringe = 0.015 * 0.50 / std::abs(std::cos(Physics::pi / 8.0));
+    EXPECT_TRUE(segment.hasLegacyElementEdge());
+    ASSERT_TRUE(segment.getLegacyElementEdge().has_value());
+    EXPECT_NEAR(segment.getLegacyElementEdge().value(), 0.0, 1.0e-12);
+    EXPECT_NEAR(segment.getBegin(), -expectedEntryFringe, 1.0e-6);
+    EXPECT_NEAR(segment.getEnd(), 1.0 + expectedEntryFringe, 1.0e-6);
+}
+
+TEST_F(OrbitThreaderTest, RegistersExplicitPositionedSBendActionRangeWithoutElementEdge) {
+    auto bunch = makeBunch(0);
+
+    DummyBeamline beamlineForVisitor;
+    DefaultVisitor visitor(beamlineForVisitor, false, false);
+
+    constexpr double length         = 1.0;
+    constexpr double bendAngle      = Physics::pi / 4.0;
+    constexpr double edgeAngle      = Physics::pi / 8.0;
+    constexpr double halfGap        = 0.015;
+    constexpr double fringeIntegral = 0.50;
+
+    auto bend           = std::make_shared<SBendRep>("B1");
+    bend->getGeometry() = PlanarArcGeometry(length, bendAngle);
+    bend->setElementLength(length);
+    bend->setBendAngle(bendAngle);
+    bend->setEntranceAngle(edgeAngle);
+    bend->setExitAngle(edgeAngle);
+    bend->setFringeHalfGap(halfGap);
+    bend->setFringeIntegral(fringeIntegral);
+    bend->setPlacementPose(
+            PlacementPose(CoordinateSystemTrafo(Vector_t<double, 3>(0.0, 0.0, 0.0), Quaternion())));
+    bend->fixPosition();
+
+    OpalBeamline beamline;
+    beamline.visit(*bend, visitor, *bunch);
+    beamline.prepareSections();
+
+    StepSizeConfig stepSizes;
+    stepSizes.push_back(5.0e-12, 1.2, 4096);
+    stepSizes.resetIterator();
+
+    PartData reference(1.0, 9.382720813e8, 5.90e8);
+    OrbitThreader threader(
+            reference, Vector_t<double, 3>(0.0), Vector_t<double, 3>(0.0, 0.0, 1.0), 0.0, 0.0, 0.0,
+            5.0e-12, stepSizes, beamline);
+
+    ASSERT_NO_THROW(threader.execute());
+
+    const ReferencePathModel& registrationModel = threader.getActionRangeRegistrationModel();
+    ASSERT_EQ(registrationModel.size(), 1u);
+
+    const auto& segment              = registrationModel.getSegments().front();
+    const double expectedEntryFringe = halfGap * fringeIntegral / std::abs(std::cos(edgeAngle));
+    ASSERT_EQ(segment.getActiveElements().size(), 1u);
+    EXPECT_EQ((*segment.getActiveElements().begin())->getName(), "B1");
+    EXPECT_NEAR(segment.getEnd() - segment.getBegin(), length + 2.0 * expectedEntryFringe, 1.0e-6);
+}
+
 TEST_F(OrbitThreaderTest, LogsPostStepDesignPathStateAtZStopForSimpleDrift) {
     constexpr double dt     = 1.0e-11;
     const double stepLength = Physics::c * dt / std::sqrt(2.0);
@@ -436,6 +539,10 @@ TEST_F(OrbitThreaderTest, LogsPostStepDesignPathStateAtZStopForSimpleDrift) {
                 reference, Vector_t<double, 3>(0.0), Vector_t<double, 3>(0.0, 0.0, 1.0), 0.0, 0.0,
                 0.0, dt, stepSizes, beamline);
         threader.execute();
+    }
+
+    if (ippl::Comm->rank() != 0) {
+        return;
     }
 
     const std::filesystem::path designPathFile =
@@ -469,6 +576,10 @@ TEST_F(OrbitThreaderTest, LogsInterpolatedTerminalPointWhenSimpleDriftOvershoots
                 reference, Vector_t<double, 3>(0.0), Vector_t<double, 3>(0.0, 0.0, 1.0), 0.0, 0.0,
                 0.0, dt, stepSizes, beamline);
         threader.execute();
+    }
+
+    if (ippl::Comm->rank() != 0) {
+        return;
     }
 
     const std::filesystem::path designPathFile =

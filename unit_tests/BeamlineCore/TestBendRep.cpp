@@ -21,6 +21,7 @@
 #include "PartBunch/ParticleContainer.hpp"
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
+#include "Steppers/BorisPusher.h"
 
 #include <array>
 #include <cmath>
@@ -45,7 +46,16 @@ namespace {
 
         static void TearDownTestSuite() { ippl::finalize(); }
 
-        std::shared_ptr<ParticleContainer_t> makeContainer(const std::array<double, 3>& position) {
+        /**
+         * @brief Create a deterministic particle container with fixed local coordinates.
+         *
+         * The helper constructs a small particle container in the bend-local chart
+         * and populates it with the supplied positions. Momenta and fields are
+         * initialized to zero so the bend field evaluation can be compared
+         * particle-by-particle against the scalar host path.
+         */
+        std::shared_ptr<ParticleContainer_t> makeContainer(
+                const std::vector<std::array<double, 3>>& positions) {
             ippl::Vector<int, 3> nr        = 8;
             ippl::Vector<double, 3> rmin   = -4.0;
             ippl::Vector<double, 3> rmax   = 4.0;
@@ -63,19 +73,21 @@ namespace {
 
             auto pc = std::make_shared<ParticleContainer_t>(mesh, fl);
             pc->setBunchStateHandler(std::make_shared<BunchStateHandler>());
-            pc->create(1);
+            pc->create(positions.size());
 
             auto Rhost = pc->R.getHostMirror();
             auto Phost = pc->P.getHostMirror();
             auto Ehost = pc->E.getHostMirror();
             auto Bhost = pc->B.getHostMirror();
 
-            Rhost(0)[0] = position[0];
-            Rhost(0)[1] = position[1];
-            Rhost(0)[2] = position[2];
-            Phost(0)    = Vector_t<double, 3>(0.0);
-            Ehost(0)    = Vector_t<double, 3>(0.0);
-            Bhost(0)    = Vector_t<double, 3>(0.0);
+            for (std::size_t i = 0; i < positions.size(); ++i) {
+                Rhost(i)[0] = positions[i][0];
+                Rhost(i)[1] = positions[i][1];
+                Rhost(i)[2] = positions[i][2];
+                Phost(i)    = Vector_t<double, 3>(0.0);
+                Ehost(i)    = Vector_t<double, 3>(0.0);
+                Bhost(i)    = Vector_t<double, 3>(0.0);
+            }
 
             Kokkos::deep_copy(pc->R.getView(), Rhost);
             Kokkos::deep_copy(pc->P.getView(), Phost);
@@ -84,6 +96,10 @@ namespace {
             Kokkos::fence();
 
             return pc;
+        }
+
+        std::shared_ptr<ParticleContainer_t> makeContainer(const std::array<double, 3>& position) {
+            return makeContainer(std::vector<std::array<double, 3>>{position});
         }
     };
 
@@ -145,6 +161,45 @@ namespace {
     double dipoleFieldMagnitude(
             const double betaGamma, const double massEV, const double charge, const double radius) {
         return betaGamma * massEV / (Physics::c * std::abs(charge) * radius);
+    }
+
+    Vector_t<double, 3> fieldLocalToEntryCartesian(
+            const Vector_t<double, 3>& fieldLocal, const double curvature) {
+        if (std::abs(curvature) <= 1.0e-15) {
+            return fieldLocal;
+        }
+
+        const double radius = 1.0 / curvature;
+        const double phi    = curvature * fieldLocal(2);
+        return Vector_t<double, 3>(
+                (radius + fieldLocal(0)) * std::cos(phi) - radius, fieldLocal(1),
+                (radius + fieldLocal(0)) * std::sin(phi));
+    }
+
+    Vector_t<double, 3> fieldLocalVectorToEntryCartesian(
+            const Vector_t<double, 3>& fieldVector, const double curvature, const double s) {
+        if (std::abs(curvature) <= 1.0e-15) {
+            return fieldVector;
+        }
+
+        const double phi = curvature * s;
+        return Vector_t<double, 3>(
+                std::cos(phi) * fieldVector(0) - std::sin(phi) * fieldVector(2), fieldVector(1),
+                std::sin(phi) * fieldVector(0) + std::cos(phi) * fieldVector(2));
+    }
+
+    Vector_t<double, 3> entryCartesianToFieldLocal(
+            const Vector_t<double, 3>& entryCartesian, const double curvature) {
+        if (std::abs(curvature) <= 1.0e-15) {
+            return entryCartesian;
+        }
+
+        const double radius = 1.0 / curvature;
+        const double phi    = std::atan2(entryCartesian(2), entryCartesian(0) + radius);
+        const double s      = phi / curvature;
+        const double radialDistance =
+                std::hypot(entryCartesian(0) + radius, entryCartesian(2)) - std::abs(radius);
+        return Vector_t<double, 3>(radialDistance, entryCartesian(1), s);
     }
 
     ReferenceState evaluateDerivative(
@@ -360,7 +415,7 @@ namespace {
         constexpr double fringeIntegral = 0.5;
         constexpr double e1             = Physics::pi / 10.0;
         constexpr double e2             = Physics::pi / 12.0;
-        constexpr std::size_t nSlices   = 6;
+        constexpr std::size_t nSlices   = 64;
 
         SBendRep bend("SBEND");
         bend.getGeometry() = PlanarArcGeometry(bodyLength, bendAngle / bodyLength);
@@ -383,6 +438,20 @@ namespace {
         EXPECT_NEAR(slices.back().sEnd, supportEnd, 1.0e-12);
         EXPECT_NEAR(slices.front().sCenter, supportBegin + 0.5 * ds, 1.0e-12);
         EXPECT_NEAR(slices.back().sCenter, supportEnd - 0.5 * ds, 1.0e-12);
+
+        const Vector_t<double, 3> frontTangent =
+                slices.front().entryToSliceLocal.rotateFrom(Vector_t<double, 3>(0.0, 0.0, 1.0));
+        EXPECT_NEAR(frontTangent(0), 0.0, 1.0e-12);
+        EXPECT_NEAR(frontTangent(1), 0.0, 1.0e-12);
+        EXPECT_NEAR(frontTangent(2), 1.0, 1.0e-12);
+        EXPECT_NEAR(slices.front().entryOrigin(0), 0.0, 1.0e-12);
+        EXPECT_NEAR(slices.front().entryOrigin(2), slices.front().sCenter, 1.0e-12);
+
+        const Vector_t<double, 3> backTangent =
+                slices.back().entryToSliceLocal.rotateFrom(Vector_t<double, 3>(0.0, 0.0, 1.0));
+        EXPECT_NEAR(backTangent(0), -std::sin(bendAngle), 1.0e-12);
+        EXPECT_NEAR(backTangent(1), 0.0, 1.0e-12);
+        EXPECT_NEAR(backTangent(2), std::cos(bendAngle), 1.0e-12);
     }
 
     TEST(RBendRep, TrackingSlicesUseReferenceArcLengthInsteadOfBodyChord) {
@@ -433,15 +502,19 @@ namespace {
         bend.setB(1.2);
         bend.getField().setNormalComponent(1, 0.4);
         bend.getField().setSkewComponent(1, -0.2);
+        const double curvature = bendAngle / bodyLength;
 
         const auto slices = bend.buildTrackingSlices();
         ASSERT_FALSE(slices.empty());
         const BendBase::TrackingSlice& slice = slices.front();
-        const double localZ                  = 0.0;
-        const double x                       = 1.5e-3;
-        const double y                       = -0.8e-3;
+        const Vector_t<double, 3> fieldLocalPosition(1.5e-3, -0.8e-3, slice.sCenter);
+        const Vector_t<double, 3> entryCartesian =
+                fieldLocalToEntryCartesian(fieldLocalPosition, curvature);
+        const Vector_t<double, 3> sliceLocalPosition =
+                slice.entryToSliceLocal.transformTo(entryCartesian);
 
-        auto pc = makeContainer({x, y, localZ});
+        auto pc = makeContainer(
+                {sliceLocalPosition(0), sliceLocalPosition(1), sliceLocalPosition(2)});
         bend.applySlice(pc, slice);
 
         auto BhostView = pc->B.getHostMirror();
@@ -449,12 +522,899 @@ namespace {
 
         Vector_t<double, 3> Eexpected(0.0);
         Vector_t<double, 3> Bexpected(0.0);
-        const Vector_t<double, 3> entryChartPosition(x, y, slice.sCenter + localZ);
-        bend.apply(entryChartPosition, Vector_t<double, 3>(0.0), 0.0, Eexpected, Bexpected);
+        bend.apply(fieldLocalPosition, Vector_t<double, 3>(0.0), 0.0, Eexpected, Bexpected);
+        const Vector_t<double, 3> BexpectedEntry =
+                fieldLocalVectorToEntryCartesian(Bexpected, curvature, fieldLocalPosition(2));
+        const Vector_t<double, 3> BexpectedSlice = slice.entryToSliceLocal.rotateTo(BexpectedEntry);
 
-        EXPECT_NEAR(BhostView(0)(0), Bexpected(0), 1.0e-12);
-        EXPECT_NEAR(BhostView(0)(1), Bexpected(1), 1.0e-12);
-        EXPECT_NEAR(BhostView(0)(2), Bexpected(2), 1.0e-12);
+        EXPECT_NEAR(BhostView(0)(0), BexpectedSlice(0), 1.0e-12);
+        EXPECT_NEAR(BhostView(0)(1), BexpectedSlice(1), 1.0e-12);
+        EXPECT_NEAR(BhostView(0)(2), BexpectedSlice(2), 1.0e-12);
+    }
+
+    TEST_F(BendRepParticleContainerTest,
+           SliceKernelMatchesHostFieldForDeterministicManyParticleOffsetSet) {
+        constexpr double bodyLength     = 1.0;
+        constexpr double bendAngle      = Physics::pi / 4.0;
+        constexpr double fringeHalfGap  = 0.02;
+        constexpr double fringeIntegral = 0.5;
+        constexpr std::size_t nSlices   = 10;
+
+        SBendRep bend("SBEND");
+        bend.getGeometry() = PlanarArcGeometry(bodyLength, bendAngle / bodyLength);
+        bend.setElementLength(bodyLength);
+        bend.setBendAngle(bendAngle);
+        bend.setEntranceAngle(Physics::pi / 8.0);
+        bend.setExitAngle(Physics::pi / 8.0);
+        bend.setFringeHalfGap(fringeHalfGap);
+        bend.setFringeIntegral(fringeIntegral);
+        bend.setNSlices(nSlices);
+        bend.setB(1.2);
+        bend.getField().setNormalComponent(1, 0.4);
+        bend.getField().setSkewComponent(1, -0.2);
+        const double curvature = bendAngle / bodyLength;
+
+        const auto slices = bend.buildTrackingSlices();
+        ASSERT_GE(slices.size(), 3u);
+        const BendBase::TrackingSlice& slice                       = slices.at(2);
+        const std::vector<Vector_t<double, 3>> fieldLocalPositions = {
+                {0.0, 0.0, slice.sCenter},
+                {1.0e-3, 0.0, slice.sCenter},
+                {-1.0e-3, 0.0, slice.sCenter},
+                {0.0, 1.0e-3, slice.sCenter},
+                {0.0, -1.0e-3, slice.sCenter}};
+        std::vector<std::array<double, 3>> sliceLocalPositions;
+        for (const auto& fieldLocalPosition : fieldLocalPositions) {
+            const Vector_t<double, 3> entryCartesian =
+                    fieldLocalToEntryCartesian(fieldLocalPosition, curvature);
+            const Vector_t<double, 3> sliceLocal =
+                    slice.entryToSliceLocal.transformTo(entryCartesian);
+            sliceLocalPositions.push_back({sliceLocal(0), sliceLocal(1), sliceLocal(2)});
+        }
+
+        auto pc = makeContainer(sliceLocalPositions);
+        bend.applySlice(pc, slice);
+
+        auto BhostView = pc->B.getHostMirror();
+        Kokkos::deep_copy(BhostView, pc->B.getView());
+
+        for (std::size_t i = 0; i < fieldLocalPositions.size(); ++i) {
+            Vector_t<double, 3> Eexpected(0.0);
+            Vector_t<double, 3> Bexpected(0.0);
+            bend.apply(fieldLocalPositions[i], Vector_t<double, 3>(0.0), 0.0, Eexpected, Bexpected);
+            const Vector_t<double, 3> BexpectedEntry = fieldLocalVectorToEntryCartesian(
+                    Bexpected, curvature, fieldLocalPositions[i](2));
+            const Vector_t<double, 3> BexpectedSlice =
+                    slice.entryToSliceLocal.rotateTo(BexpectedEntry);
+
+            EXPECT_NEAR(BhostView(i)(0), BexpectedSlice(0), 1.0e-12) << "particle " << i;
+            EXPECT_NEAR(BhostView(i)(1), BexpectedSlice(1), 1.0e-12) << "particle " << i;
+            EXPECT_NEAR(BhostView(i)(2), BexpectedSlice(2), 1.0e-12) << "particle " << i;
+        }
+    }
+
+    TEST_F(BendRepParticleContainerTest,
+           EntryFringeVerticalOffsetProducesExpectedHorizontalFieldComponent) {
+        constexpr double bodyLength     = 1.0;
+        constexpr double bendAngle      = Physics::pi / 4.0;
+        constexpr double fringeHalfGap  = 0.02;
+        constexpr double fringeIntegral = 0.5;
+        constexpr std::size_t nSlices   = 32;
+
+        SBendRep bend("SBEND");
+        bend.getGeometry() = PlanarArcGeometry(bodyLength, bendAngle / bodyLength);
+        bend.setElementLength(bodyLength);
+        bend.setBendAngle(bendAngle);
+        bend.setEntranceAngle(Physics::pi / 8.0);
+        bend.setExitAngle(Physics::pi / 8.0);
+        bend.setFringeHalfGap(fringeHalfGap);
+        bend.setFringeIntegral(fringeIntegral);
+        bend.setNSlices(nSlices);
+        bend.setB(1.2);
+
+        const double curvature   = bendAngle / bodyLength;
+        const double entryFringe = bend.getEntryFringeSupportLength();
+        const auto slices        = bend.buildTrackingSlices();
+        ASSERT_FALSE(slices.empty());
+
+        const Vector_t<double, 3> fieldLocalPosition(0.0, 1.0e-3, -0.5 * entryFringe);
+        const Vector_t<double, 3> entryCartesian =
+                fieldLocalToEntryCartesian(fieldLocalPosition, curvature);
+
+        const BendBase::TrackingSlice* containingSlice = nullptr;
+        for (const auto& slice : slices) {
+            if (fieldLocalPosition(2) >= slice.sBegin && fieldLocalPosition(2) <= slice.sEnd) {
+                containingSlice = &slice;
+                break;
+            }
+        }
+        ASSERT_NE(containingSlice, nullptr);
+
+        const Vector_t<double, 3> sliceLocalPosition =
+                containingSlice->entryToSliceLocal.transformTo(entryCartesian);
+        auto pc = makeContainer(
+                {sliceLocalPosition(0), sliceLocalPosition(1), sliceLocalPosition(2)});
+
+        bend.applySlice(pc, *containingSlice);
+
+        auto BhostView = pc->B.getHostMirror();
+        Kokkos::deep_copy(BhostView, pc->B.getView());
+
+        Vector_t<double, 3> Eexpected(0.0);
+        Vector_t<double, 3> Bexpected(0.0);
+        bend.apply(fieldLocalPosition, Vector_t<double, 3>(0.0), 0.0, Eexpected, Bexpected);
+        const Vector_t<double, 3> BexpectedEntry =
+                fieldLocalVectorToEntryCartesian(Bexpected, curvature, fieldLocalPosition(2));
+        const Vector_t<double, 3> BexpectedSlice =
+                containingSlice->entryToSliceLocal.rotateTo(BexpectedEntry);
+
+        EXPECT_GT(std::abs(BexpectedSlice(0)), 1.0e-12);
+        EXPECT_NEAR(BhostView(0)(0), BexpectedSlice(0), 1.0e-12);
+        EXPECT_NEAR(BhostView(0)(1), BexpectedSlice(1), 1.0e-12);
+        EXPECT_NEAR(BhostView(0)(2), BexpectedSlice(2), 1.0e-12);
+    }
+
+    TEST_F(BendRepParticleContainerTest,
+           ProtonLikeEntryFringeVerticalOffsetProducesNegativeHorizontalFieldComponent) {
+        constexpr double bodyLength     = 1.0;
+        constexpr double bendAngle      = Physics::pi / 4.0;
+        constexpr double fringeHalfGap  = 0.015;
+        constexpr double fringeIntegral = 0.5;
+        constexpr std::size_t nSlices   = 64;
+
+        SBendRep bend("SBEND");
+        bend.getGeometry() = PlanarArcGeometry(bodyLength, bendAngle / bodyLength);
+        bend.setElementLength(bodyLength);
+        bend.setBendAngle(bendAngle);
+        bend.setEntranceAngle(Physics::pi / 8.0);
+        bend.setExitAngle(Physics::pi / 8.0);
+        bend.setFringeHalfGap(fringeHalfGap);
+        bend.setFringeIntegral(fringeIntegral);
+        bend.setNSlices(nSlices);
+        bend.setB(-1.2);
+
+        const double curvature   = bendAngle / bodyLength;
+        const double entryFringe = bend.getEntryFringeSupportLength();
+        const auto slices        = bend.buildTrackingSlices();
+        ASSERT_FALSE(slices.empty());
+
+        const Vector_t<double, 3> fieldLocalPosition(0.0, 1.0e-3, -0.5 * entryFringe);
+        const Vector_t<double, 3> entryCartesian =
+                fieldLocalToEntryCartesian(fieldLocalPosition, curvature);
+
+        const BendBase::TrackingSlice* containingSlice = nullptr;
+        for (const auto& slice : slices) {
+            if (fieldLocalPosition(2) >= slice.sBegin && fieldLocalPosition(2) <= slice.sEnd) {
+                containingSlice = &slice;
+                break;
+            }
+        }
+        ASSERT_NE(containingSlice, nullptr);
+
+        const Vector_t<double, 3> sliceLocalPosition =
+                containingSlice->entryToSliceLocal.transformTo(entryCartesian);
+        auto pc = makeContainer(
+                {sliceLocalPosition(0), sliceLocalPosition(1), sliceLocalPosition(2)});
+
+        bend.applySlice(pc, *containingSlice);
+
+        auto BhostView = pc->B.getHostMirror();
+        Kokkos::deep_copy(BhostView, pc->B.getView());
+
+        Vector_t<double, 3> Eexpected(0.0);
+        Vector_t<double, 3> Bexpected(0.0);
+        bend.apply(fieldLocalPosition, Vector_t<double, 3>(0.0), 0.0, Eexpected, Bexpected);
+        const Vector_t<double, 3> BexpectedEntry =
+                fieldLocalVectorToEntryCartesian(Bexpected, curvature, fieldLocalPosition(2));
+        const Vector_t<double, 3> BexpectedSlice =
+                containingSlice->entryToSliceLocal.rotateTo(BexpectedEntry);
+
+        EXPECT_LT(BexpectedSlice(0), 0.0);
+        EXPECT_LT(BhostView(0)(0), 0.0);
+        EXPECT_NEAR(BhostView(0)(0), BexpectedSlice(0), 1.0e-12);
+        EXPECT_NEAR(BhostView(0)(1), BexpectedSlice(1), 1.0e-12);
+        EXPECT_NEAR(BhostView(0)(2), BexpectedSlice(2), 1.0e-12);
+    }
+
+    TEST_F(BendRepParticleContainerTest,
+           TrackerStyleSliceCompositionPreservesFringeFieldForVerticalOffset) {
+        constexpr double bodyLength     = 1.0;
+        constexpr double bendAngle      = Physics::pi / 4.0;
+        constexpr double fringeHalfGap  = 0.02;
+        constexpr double fringeIntegral = 0.5;
+        constexpr std::size_t nSlices   = 64;
+
+        SBendRep bend("SBEND");
+        bend.getGeometry() = PlanarArcGeometry(bodyLength, bendAngle / bodyLength);
+        bend.setElementLength(bodyLength);
+        bend.setBendAngle(bendAngle);
+        bend.setEntranceAngle(Physics::pi / 8.0);
+        bend.setExitAngle(Physics::pi / 8.0);
+        bend.setFringeHalfGap(fringeHalfGap);
+        bend.setFringeIntegral(fringeIntegral);
+        bend.setNSlices(nSlices);
+        bend.setB(1.2);
+
+        const double curvature   = bendAngle / bodyLength;
+        const double entryFringe = bend.getEntryFringeSupportLength();
+        const double referenceS  = -0.5 * entryFringe;
+        const Vector_t<double, 3> localReferenceParticle(0.0, 1.0e-3, 0.0);
+
+        const Vector_t<double, 3> referenceOrigin =
+                fieldLocalToEntryCartesian(Vector_t<double, 3>(0.0, 0.0, referenceS), curvature);
+        const Vector_t<double, 3> tangentInEntry = fieldLocalVectorToEntryCartesian(
+                Vector_t<double, 3>(0.0, 0.0, 1.0), curvature, referenceS);
+        CoordinateSystemTrafo entryToReference(
+                referenceOrigin, getQuaternion(tangentInEntry, Vector_t<double, 3>(0.0, 0.0, 1.0)));
+        CoordinateSystemTrafo referenceToEntry = entryToReference.inverted();
+
+        auto pc = makeContainer(
+                {localReferenceParticle(0), localReferenceParticle(1), localReferenceParticle(2)});
+        pc->setToLabTrafo(referenceToEntry);
+
+        const auto slices = bend.buildTrackingSlices();
+        for (const auto& slice : slices) {
+            CoordinateSystemTrafo refToSliceLocal = slice.entryToSliceLocal * pc->getToLabTrafo();
+            CoordinateSystemTrafo sliceLocalToRef = refToSliceLocal.inverted();
+            pc->transformBunch(refToSliceLocal);
+            bend.applySlice(pc, slice);
+            pc->transformBunch(sliceLocalToRef);
+        }
+
+        auto BhostView = pc->B.getHostMirror();
+        Kokkos::deep_copy(BhostView, pc->B.getView());
+
+        const Vector_t<double, 3> entryCartesian =
+                pc->getToLabTrafo().transformTo(localReferenceParticle);
+        const Vector_t<double, 3> fieldLocalPosition =
+                entryCartesianToFieldLocal(entryCartesian, curvature);
+        Vector_t<double, 3> Eexpected(0.0);
+        Vector_t<double, 3> Bexpected(0.0);
+        bend.apply(fieldLocalPosition, Vector_t<double, 3>(0.0), 0.0, Eexpected, Bexpected);
+        const Vector_t<double, 3> BexpectedEntry =
+                fieldLocalVectorToEntryCartesian(Bexpected, curvature, fieldLocalPosition(2));
+        const Vector_t<double, 3> BexpectedRef = pc->getToLabTrafo().rotateFrom(BexpectedEntry);
+
+        EXPECT_GT(std::abs(BexpectedRef(0)), 1.0e-12);
+        EXPECT_NEAR(BhostView(0)(0), BexpectedRef(0), 1.0e-12);
+        EXPECT_NEAR(BhostView(0)(1), BexpectedRef(1), 1.0e-12);
+        EXPECT_NEAR(BhostView(0)(2), BexpectedRef(2), 1.0e-12);
+    }
+
+    TEST_F(BendRepParticleContainerTest,
+           FullSliceSequenceMatchesHostFieldForDeterministicManyParticleSet) {
+        constexpr double bodyLength     = 1.0;
+        constexpr double bendAngle      = Physics::pi / 4.0;
+        constexpr double fringeHalfGap  = 0.02;
+        constexpr double fringeIntegral = 0.5;
+        constexpr std::size_t nSlices   = 64;
+
+        SBendRep bend("SBEND");
+        bend.getGeometry() = PlanarArcGeometry(bodyLength, bendAngle / bodyLength);
+        bend.setElementLength(bodyLength);
+        bend.setBendAngle(bendAngle);
+        bend.setEntranceAngle(Physics::pi / 8.0);
+        bend.setExitAngle(Physics::pi / 8.0);
+        bend.setFringeHalfGap(fringeHalfGap);
+        bend.setFringeIntegral(fringeIntegral);
+        bend.setNSlices(nSlices);
+        bend.setB(1.2);
+        bend.getField().setNormalComponent(1, 0.4);
+        bend.getField().setSkewComponent(1, -0.2);
+        const double curvature = bendAngle / bodyLength;
+
+        const double entryFringe = bend.getEntryFringeSupportLength();
+        const double exitFringe  = bend.getExitFringeSupportLength();
+        const std::vector<Vector_t<double, 3>> fieldLocalPositions = {
+                {0.0, 0.0, -0.5 * entryFringe},
+                {1.0e-3, 0.0, 0.05 * bodyLength},
+                {-1.0e-3, 0.0, 0.35 * bodyLength},
+                {0.0, 1.0e-3, 0.65 * bodyLength},
+                {0.0, -1.0e-3, 0.75 * bodyLength},
+                {0.8e-3, -0.6e-3, bodyLength + 0.5 * exitFringe}};
+        std::vector<std::array<double, 3>> entryPositions;
+        for (const auto& fieldLocalPosition : fieldLocalPositions) {
+            const Vector_t<double, 3> entryCartesian =
+                    fieldLocalToEntryCartesian(fieldLocalPosition, curvature);
+            entryPositions.push_back({entryCartesian(0), entryCartesian(1), entryCartesian(2)});
+        }
+        auto pc = makeContainer(entryPositions);
+
+        const auto slices = bend.buildTrackingSlices();
+        for (const auto& slice : slices) {
+            pc->transformBunch(slice.entryToSliceLocal);
+            bend.applySlice(pc, slice);
+            pc->transformBunch(slice.entryToSliceLocal.inverted());
+        }
+
+        auto BhostView = pc->B.getHostMirror();
+        Kokkos::deep_copy(BhostView, pc->B.getView());
+
+        for (std::size_t i = 0; i < fieldLocalPositions.size(); ++i) {
+            Vector_t<double, 3> Eexpected(0.0);
+            Vector_t<double, 3> Bexpected(0.0);
+            bend.apply(fieldLocalPositions[i], Vector_t<double, 3>(0.0), 0.0, Eexpected, Bexpected);
+            const Vector_t<double, 3> BexpectedEntry = fieldLocalVectorToEntryCartesian(
+                    Bexpected, curvature, fieldLocalPositions[i](2));
+
+            EXPECT_NEAR(BhostView(i)(0), BexpectedEntry(0), 1.0e-12) << "particle " << i;
+            EXPECT_NEAR(BhostView(i)(1), BexpectedEntry(1), 1.0e-12) << "particle " << i;
+            EXPECT_NEAR(BhostView(i)(2), BexpectedEntry(2), 1.0e-12) << "particle " << i;
+        }
+    }
+
+    TEST_F(BendRepParticleContainerTest,
+           FullSliceSequenceBorisUpdateMatchesScalarHostUpdateForDeterministicManyParticleSet) {
+        constexpr double bodyLength     = 1.0;
+        constexpr double bendAngle      = Physics::pi / 4.0;
+        constexpr double fringeHalfGap  = 0.02;
+        constexpr double fringeIntegral = 0.5;
+        constexpr std::size_t nSlices   = 64;
+        constexpr double dt             = 1.0e-11;
+        constexpr double massEV         = Physics::m_p * Units::GeV2eV;
+        constexpr double charge         = 1.0;
+
+        SBendRep bend("SBEND");
+        bend.getGeometry() = PlanarArcGeometry(bodyLength, bendAngle / bodyLength);
+        bend.setElementLength(bodyLength);
+        bend.setBendAngle(bendAngle);
+        bend.setEntranceAngle(Physics::pi / 8.0);
+        bend.setExitAngle(Physics::pi / 8.0);
+        bend.setFringeHalfGap(fringeHalfGap);
+        bend.setFringeIntegral(fringeIntegral);
+        bend.setNSlices(nSlices);
+        bend.setB(1.2);
+        bend.getField().setNormalComponent(1, 0.4);
+        bend.getField().setSkewComponent(1, -0.2);
+        const double curvature = bendAngle / bodyLength;
+
+        const double entryFringe = bend.getEntryFringeSupportLength();
+        const double exitFringe  = bend.getExitFringeSupportLength();
+        const std::vector<Vector_t<double, 3>> fieldLocalPositions = {
+                {0.0, 0.0, -0.5 * entryFringe},
+                {1.0e-3, 0.0, 0.05 * bodyLength},
+                {-1.0e-3, 0.0, 0.35 * bodyLength},
+                {0.0, 1.0e-3, 0.65 * bodyLength},
+                {0.0, -1.0e-3, 0.75 * bodyLength},
+                {0.8e-3, -0.6e-3, bodyLength + 0.5 * exitFringe}};
+        const Vector_t<double, 3> initialMomentum(1.0e-3, -2.0e-3, 1.2);
+        std::vector<std::array<double, 3>> entryPositions;
+        for (const auto& fieldLocalPosition : fieldLocalPositions) {
+            const Vector_t<double, 3> entryCartesian =
+                    fieldLocalToEntryCartesian(fieldLocalPosition, curvature);
+            entryPositions.push_back({entryCartesian(0), entryCartesian(1), entryCartesian(2)});
+        }
+        auto pc = makeContainer(entryPositions);
+
+        auto Phost  = pc->P.getHostMirror();
+        auto dthost = pc->dt.getHostMirror();
+        for (std::size_t i = 0; i < fieldLocalPositions.size(); ++i) {
+            Phost(i)  = initialMomentum;
+            dthost(i) = dt;
+        }
+        Kokkos::deep_copy(pc->P.getView(), Phost);
+        Kokkos::deep_copy(pc->dt.getView(), dthost);
+        Kokkos::fence();
+
+        const auto slices = bend.buildTrackingSlices();
+        for (const auto& slice : slices) {
+            pc->transformBunch(slice.entryToSliceLocal);
+            bend.applySlice(pc, slice);
+            pc->transformBunch(slice.entryToSliceLocal.inverted());
+        }
+
+        BorisPusher pusher;
+        auto Pview  = pc->P.getView();
+        auto dtview = pc->dt.getView();
+        auto Eview  = pc->E.getView();
+        auto Bview  = pc->B.getView();
+        Kokkos::parallel_for(
+                "BendRepParticleContainerTest::kickDeterministicSet", pc->getLocalNum(),
+                KOKKOS_LAMBDA(const size_t i) {
+                    Vector_t<double, 3> p = Pview(i);
+                    pusher.kick(
+                            Vector_t<double, 3>(0.0), p, Eview(i), Bview(i), dtview(i), massEV,
+                            charge);
+                    Pview(i) = p;
+                });
+        Kokkos::fence();
+
+        pc->switchToUnitlessPositions();
+        auto Rview = pc->R.getView();
+        Kokkos::parallel_for(
+                "BendRepParticleContainerTest::pushDeterministicSet", pc->getLocalNum(),
+                KOKKOS_LAMBDA(const size_t i) {
+                    Vector_t<double, 3> r = Rview(i);
+                    pusher.push(r, Pview(i), 0.0);
+                    Rview(i) = r;
+                });
+        Kokkos::fence();
+        pc->switchOffUnitlessPositions();
+
+        auto RhostView = pc->R.getHostMirror();
+        auto Pafter    = pc->P.getHostMirror();
+        Kokkos::deep_copy(RhostView, pc->R.getView());
+        Kokkos::deep_copy(Pafter, pc->P.getView());
+
+        for (std::size_t i = 0; i < fieldLocalPositions.size(); ++i) {
+            Vector_t<double, 3> Eexpected(0.0);
+            Vector_t<double, 3> Bexpected(0.0);
+            bend.apply(fieldLocalPositions[i], initialMomentum, 0.0, Eexpected, Bexpected);
+            const Vector_t<double, 3> BexpectedEntry = fieldLocalVectorToEntryCartesian(
+                    Bexpected, curvature, fieldLocalPositions[i](2));
+            const Vector_t<double, 3> initialPositionEntry(
+                    entryPositions[i][0], entryPositions[i][1], entryPositions[i][2]);
+
+            Vector_t<double, 3> pExpected = initialMomentum;
+            pusher.kick(
+                    Vector_t<double, 3>(0.0), pExpected, Eexpected, BexpectedEntry, dt, massEV,
+                    charge);
+
+            Vector_t<double, 3> rExpected = initialPositionEntry * (1.0 / (Physics::c * dt));
+            pusher.push(rExpected, pExpected, 0.0);
+            rExpected *= Physics::c * dt;
+
+            EXPECT_NEAR(Pafter(i)(0), pExpected(0), 1.0e-12) << "particle " << i;
+            EXPECT_NEAR(Pafter(i)(1), pExpected(1), 1.0e-12) << "particle " << i;
+            EXPECT_NEAR(Pafter(i)(2), pExpected(2), 1.0e-12) << "particle " << i;
+            EXPECT_NEAR(RhostView(i)(0), rExpected(0), 1.0e-12) << "particle " << i;
+            EXPECT_NEAR(RhostView(i)(1), rExpected(1), 1.0e-12) << "particle " << i;
+            EXPECT_NEAR(RhostView(i)(2), rExpected(2), 1.0e-12) << "particle " << i;
+        }
+    }
+
+    TEST_F(BendRepParticleContainerTest,
+           ProtonLikeEntryFringeBorisKickProducesNegativeVerticalMomentumChange) {
+        constexpr double bodyLength     = 1.0;
+        constexpr double bendAngle      = Physics::pi / 4.0;
+        constexpr double fringeHalfGap  = 0.015;
+        constexpr double fringeIntegral = 0.5;
+        constexpr std::size_t nSlices   = 64;
+        constexpr double dt             = 5.0e-12;
+        constexpr double massEV         = Physics::m_p * Units::GeV2eV;
+        constexpr double charge         = 1.0;
+        constexpr double betaGamma      = 1.2857059679563454;
+
+        SBendRep bend("SBEND");
+        bend.getGeometry() = PlanarArcGeometry(bodyLength, bendAngle / bodyLength);
+        bend.setElementLength(bodyLength);
+        bend.setBendAngle(bendAngle);
+        bend.setEntranceAngle(Physics::pi / 8.0);
+        bend.setExitAngle(Physics::pi / 8.0);
+        bend.setFringeHalfGap(fringeHalfGap);
+        bend.setFringeIntegral(fringeIntegral);
+        bend.setNSlices(nSlices);
+        bend.setB(-1.2);
+
+        const double curvature   = bendAngle / bodyLength;
+        const double entryFringe = bend.getEntryFringeSupportLength();
+        const Vector_t<double, 3> fieldLocalPosition(0.0, 1.0e-3, -0.5 * entryFringe);
+        const Vector_t<double, 3> entryCartesian =
+                fieldLocalToEntryCartesian(fieldLocalPosition, curvature);
+        const Vector_t<double, 3> initialMomentum(0.0, 0.0, betaGamma);
+
+        auto pc     = makeContainer({entryCartesian(0), entryCartesian(1), entryCartesian(2)});
+        auto Phost  = pc->P.getHostMirror();
+        auto dthost = pc->dt.getHostMirror();
+        Phost(0)    = initialMomentum;
+        dthost(0)   = dt;
+        Kokkos::deep_copy(pc->P.getView(), Phost);
+        Kokkos::deep_copy(pc->dt.getView(), dthost);
+        Kokkos::fence();
+
+        const auto slices = bend.buildTrackingSlices();
+        for (const auto& slice : slices) {
+            pc->transformBunch(slice.entryToSliceLocal);
+            bend.applySlice(pc, slice);
+            pc->transformBunch(slice.entryToSliceLocal.inverted());
+        }
+
+        BorisPusher pusher;
+        auto Pview  = pc->P.getView();
+        auto dtview = pc->dt.getView();
+        auto Eview  = pc->E.getView();
+        auto Bview  = pc->B.getView();
+        Kokkos::parallel_for(
+                "BendRepParticleContainerTest::protonLikeEntryFringeKick", 1,
+                KOKKOS_LAMBDA(const size_t i) {
+                    Vector_t<double, 3> p = Pview(i);
+                    pusher.kick(
+                            Vector_t<double, 3>(0.0), p, Eview(i), Bview(i), dtview(i), massEV,
+                            charge);
+                    Pview(i) = p;
+                });
+        Kokkos::fence();
+
+        auto Pafter = pc->P.getHostMirror();
+        Kokkos::deep_copy(Pafter, pc->P.getView());
+
+        EXPECT_LT(Pafter(0)(1), 0.0);
+    }
+
+    TEST_F(BendRepParticleContainerTest,
+           RuntimeNormalizedEntryFringeSliceKickProducesPositiveVerticalMomentumChange) {
+        constexpr double bodyLength      = 1.0;
+        constexpr double bendAngle       = Physics::pi / 4.0;
+        constexpr double fringeHalfGap   = 0.015;
+        constexpr double fringeIntegral  = 0.5;
+        constexpr std::size_t nSlices    = 64;
+        constexpr double dt              = 5.0e-12;
+        constexpr double massEV          = Physics::m_p * Units::GeV2eV;
+        constexpr double charge          = 1.0;
+        constexpr double betaGamma       = 1.2857059679563454;
+        constexpr double kineticEnergyEV = 590.0 * Units::MeV2eV;
+
+        SBendRep bend("SBEND");
+        bend.getGeometry() = PlanarArcGeometry(bodyLength, bendAngle / bodyLength);
+        bend.setElementLength(bodyLength);
+        bend.setBendAngle(bendAngle);
+        bend.setEntranceAngle(Physics::pi / 8.0);
+        bend.setExitAngle(Physics::pi / 8.0);
+        bend.setFringeHalfGap(fringeHalfGap);
+        bend.setFringeIntegral(fringeIntegral);
+        bend.setNSlices(nSlices);
+
+        BMultipoleField normalizedField;
+        normalizedField.setNormalComponent(0, bendAngle / bend.getEffectiveFieldLength());
+        bend.setNormalizedField(normalizedField);
+        const double momentumEV = betaGammaFromKineticEnergy(kineticEnergyEV, massEV) * massEV;
+        bend.updatePhysicalFieldFromMomentumEV(momentumEV, charge);
+
+        const double entryFringe = bend.getEntryFringeSupportLength();
+        const Vector_t<double, 3> fieldLocalPosition(0.0, 1.0e-3, -0.5 * entryFringe);
+        const Vector_t<double, 3> entryCartesian =
+                fieldLocalToEntryCartesian(fieldLocalPosition, bendAngle / bodyLength);
+        const Vector_t<double, 3> initialMomentum(0.0, 0.0, betaGamma);
+
+        auto pc     = makeContainer({entryCartesian(0), entryCartesian(1), entryCartesian(2)});
+        auto Phost  = pc->P.getHostMirror();
+        auto dthost = pc->dt.getHostMirror();
+        Phost(0)    = initialMomentum;
+        dthost(0)   = dt;
+        Kokkos::deep_copy(pc->P.getView(), Phost);
+        Kokkos::deep_copy(pc->dt.getView(), dthost);
+        Kokkos::fence();
+
+        const auto slices = bend.buildTrackingSlices();
+        for (const auto& slice : slices) {
+            pc->transformBunch(slice.entryToSliceLocal);
+            bend.applySlice(pc, slice);
+            pc->transformBunch(slice.entryToSliceLocal.inverted());
+        }
+
+        BorisPusher pusher;
+        auto Pview  = pc->P.getView();
+        auto dtview = pc->dt.getView();
+        auto Eview  = pc->E.getView();
+        auto Bview  = pc->B.getView();
+        Kokkos::parallel_for(
+                "BendRepParticleContainerTest::runtimeNormalizedEntryFringeKick", 1,
+                KOKKOS_LAMBDA(const size_t i) {
+                    Vector_t<double, 3> p = Pview(i);
+                    pusher.kick(
+                            Vector_t<double, 3>(0.0), p, Eview(i), Bview(i), dtview(i), massEV,
+                            charge);
+                    Pview(i) = p;
+                });
+        Kokkos::fence();
+
+        auto Pafter = pc->P.getHostMirror();
+        Kokkos::deep_copy(Pafter, pc->P.getView());
+
+        EXPECT_GT(Pafter(0)(1), 0.0);
+    }
+
+    TEST_F(BendRepParticleContainerTest,
+           BenchmarkStyleLineStartFrameKickProducesNegativeVerticalMomentumChange) {
+        constexpr double bodyLength     = 1.0;
+        constexpr double bendAngle      = Physics::pi / 4.0;
+        constexpr double fringeHalfGap  = 0.015;
+        constexpr double fringeIntegral = 0.5;
+        constexpr std::size_t nSlices   = 64;
+        constexpr double dt             = 5.0e-12;
+        constexpr double massEV         = Physics::m_p * Units::GeV2eV;
+        constexpr double charge         = 1.0;
+        constexpr double betaGamma      = 1.2857059679563454;
+
+        SBendRep bend("SBEND");
+        bend.getGeometry() = PlanarArcGeometry(bodyLength, bendAngle / bodyLength);
+        bend.setElementLength(bodyLength);
+        bend.setBendAngle(bendAngle);
+        bend.setEntranceAngle(Physics::pi / 8.0);
+        bend.setExitAngle(Physics::pi / 8.0);
+        bend.setFringeHalfGap(fringeHalfGap);
+        bend.setFringeIntegral(fringeIntegral);
+        bend.setNSlices(nSlices);
+        bend.setB(-1.2);
+
+        const double entryFringe = bend.getEntryFringeSupportLength();
+        auto pc                  = makeContainer({0.0, 1.0e-3, 0.0});
+        auto Phost               = pc->P.getHostMirror();
+        auto dthost              = pc->dt.getHostMirror();
+        Phost(0)                 = Vector_t<double, 3>(0.0, 0.0, betaGamma);
+        dthost(0)                = dt;
+        Kokkos::deep_copy(pc->P.getView(), Phost);
+        Kokkos::deep_copy(pc->dt.getView(), dthost);
+        Kokkos::fence();
+
+        const CoordinateSystemTrafo lineStartToEntryLocal(
+                Vector_t<double, 3>(0.0, 0.0, entryFringe), Quaternion());
+        const auto slices = bend.buildTrackingSlices();
+        for (const auto& slice : slices) {
+            CoordinateSystemTrafo refToSliceLocal = slice.entryToSliceLocal * lineStartToEntryLocal;
+            CoordinateSystemTrafo sliceLocalToRef = refToSliceLocal.inverted();
+            pc->transformBunch(refToSliceLocal);
+            bend.applySlice(pc, slice);
+            pc->transformBunch(sliceLocalToRef);
+        }
+
+        BorisPusher pusher;
+        auto Pview  = pc->P.getView();
+        auto dtview = pc->dt.getView();
+        auto Eview  = pc->E.getView();
+        auto Bview  = pc->B.getView();
+        Kokkos::parallel_for(
+                "BendRepParticleContainerTest::benchmarkStyleLineStartKick", 1,
+                KOKKOS_LAMBDA(const size_t i) {
+                    Vector_t<double, 3> p = Pview(i);
+                    pusher.kick(
+                            Vector_t<double, 3>(0.0), p, Eview(i), Bview(i), dtview(i), massEV,
+                            charge);
+                    Pview(i) = p;
+                });
+        Kokkos::fence();
+
+        auto Pafter = pc->P.getHostMirror();
+        Kokkos::deep_copy(Pafter, pc->P.getView());
+
+        EXPECT_LT(Pafter(0)(1), 0.0);
+    }
+
+    TEST_F(BendRepParticleContainerTest,
+           BenchmarkStyleHalfStepKickProducesNegativeVerticalMomentumChange) {
+        constexpr double bodyLength     = 1.0;
+        constexpr double bendAngle      = Physics::pi / 4.0;
+        constexpr double fringeHalfGap  = 0.015;
+        constexpr double fringeIntegral = 0.5;
+        constexpr std::size_t nSlices   = 64;
+        constexpr double dt             = 5.0e-12;
+        constexpr double massEV         = Physics::m_p * Units::GeV2eV;
+        constexpr double charge         = 1.0;
+        constexpr double betaGamma      = 1.2857059679563454;
+
+        SBendRep bend("SBEND");
+        bend.getGeometry() = PlanarArcGeometry(bodyLength, bendAngle / bodyLength);
+        bend.setElementLength(bodyLength);
+        bend.setBendAngle(bendAngle);
+        bend.setEntranceAngle(Physics::pi / 8.0);
+        bend.setExitAngle(Physics::pi / 8.0);
+        bend.setFringeHalfGap(fringeHalfGap);
+        bend.setFringeIntegral(fringeIntegral);
+        bend.setNSlices(nSlices);
+        bend.setB(-1.2);
+
+        const double entryFringe = bend.getEntryFringeSupportLength();
+        const double beta        = betaGamma / std::sqrt(1.0 + betaGamma * betaGamma);
+        const double halfStepZ   = 0.5 * beta * Physics::c * dt;
+        auto pc                  = makeContainer({0.0, 1.0e-3, halfStepZ});
+        auto Phost               = pc->P.getHostMirror();
+        auto dthost              = pc->dt.getHostMirror();
+        Phost(0)                 = Vector_t<double, 3>(0.0, 0.0, betaGamma);
+        dthost(0)                = dt;
+        Kokkos::deep_copy(pc->P.getView(), Phost);
+        Kokkos::deep_copy(pc->dt.getView(), dthost);
+        Kokkos::fence();
+
+        const CoordinateSystemTrafo lineStartToEntryLocal(
+                Vector_t<double, 3>(0.0, 0.0, entryFringe), Quaternion());
+        const auto slices = bend.buildTrackingSlices();
+        for (const auto& slice : slices) {
+            CoordinateSystemTrafo refToSliceLocal = slice.entryToSliceLocal * lineStartToEntryLocal;
+            CoordinateSystemTrafo sliceLocalToRef = refToSliceLocal.inverted();
+            pc->transformBunch(refToSliceLocal);
+            bend.applySlice(pc, slice);
+            pc->transformBunch(sliceLocalToRef);
+        }
+
+        BorisPusher pusher;
+        auto Pview  = pc->P.getView();
+        auto dtview = pc->dt.getView();
+        auto Eview  = pc->E.getView();
+        auto Bview  = pc->B.getView();
+        Kokkos::parallel_for(
+                "BendRepParticleContainerTest::benchmarkStyleHalfStepKick", 1,
+                KOKKOS_LAMBDA(const size_t i) {
+                    Vector_t<double, 3> p = Pview(i);
+                    pusher.kick(
+                            Vector_t<double, 3>(0.0), p, Eview(i), Bview(i), dtview(i), massEV,
+                            charge);
+                    Pview(i) = p;
+                });
+        Kokkos::fence();
+
+        auto Pafter = pc->P.getHostMirror();
+        Kokkos::deep_copy(Pafter, pc->P.getView());
+
+        EXPECT_LT(Pafter(0)(1), 0.0);
+    }
+
+    TEST_F(BendRepParticleContainerTest,
+           BenchmarkExplicitPlacementHalfStepKickUsesNegativeVerticalMomentumChange) {
+        constexpr double bodyLength     = 1.0;
+        constexpr double bendAngle      = Physics::pi / 4.0;
+        constexpr double fringeHalfGap  = 0.015;
+        constexpr double fringeIntegral = 0.5;
+        constexpr std::size_t nSlices   = 64;
+        constexpr double dt             = 5.0e-12;
+        constexpr double massEV         = Physics::m_p * Units::GeV2eV;
+        constexpr double charge         = 1.0;
+        constexpr double betaGamma      = 1.2857059679563454;
+        constexpr double theta          = -Physics::pi / 4.0;
+        constexpr double bodyX          = -2.760036392e-01;
+        constexpr double bodyZNominal   = 4.130686370e-01;
+
+        SBendRep bend("SBEND");
+        bend.getGeometry() = PlanarArcGeometry(bodyLength, bendAngle / bodyLength);
+        bend.setElementLength(bodyLength);
+        bend.setBendAngle(bendAngle);
+        bend.setEntranceAngle(Physics::pi / 8.0);
+        bend.setExitAngle(Physics::pi / 8.0);
+        bend.setFringeHalfGap(fringeHalfGap);
+        bend.setFringeIntegral(fringeIntegral);
+        bend.setNSlices(nSlices);
+        bend.setB(-1.2);
+
+        Quaternion rotTheta(std::cos(0.5 * theta), 0.0, std::sin(0.5 * theta), 0.0);
+        CoordinateSystemTrafo globalToLocal(
+                Vector_t<double, 3>(bodyX, 0.0, bodyZNominal + bend.getEntryFringeSupportLength()),
+                rotTheta.conjugate());
+        bend.setCSTrafoGlobal2Local(globalToLocal);
+        bend.fixPosition();
+
+        const double beta      = betaGamma / std::sqrt(1.0 + betaGamma * betaGamma);
+        const double halfStepZ = 0.5 * beta * Physics::c * dt;
+        auto pc                = makeContainer({0.0, 1.0e-3, halfStepZ});
+        auto Phost             = pc->P.getHostMirror();
+        auto dthost            = pc->dt.getHostMirror();
+        Phost(0)               = Vector_t<double, 3>(0.0, 0.0, betaGamma);
+        dthost(0)              = dt;
+        Kokkos::deep_copy(pc->P.getView(), Phost);
+        Kokkos::deep_copy(pc->dt.getView(), dthost);
+        Kokkos::fence();
+
+        const CoordinateSystemTrafo lineStartToEntryLocal =
+                bend.getPlacedElement().getNominalEntryTransform();
+        const auto slices = bend.buildTrackingSlices();
+        for (const auto& slice : slices) {
+            CoordinateSystemTrafo refToSliceLocal = slice.entryToSliceLocal * lineStartToEntryLocal;
+            CoordinateSystemTrafo sliceLocalToRef = refToSliceLocal.inverted();
+            pc->transformBunch(refToSliceLocal);
+            bend.applySlice(pc, slice);
+            pc->transformBunch(sliceLocalToRef);
+        }
+
+        BorisPusher pusher;
+        auto Pview  = pc->P.getView();
+        auto dtview = pc->dt.getView();
+        auto Eview  = pc->E.getView();
+        auto Bview  = pc->B.getView();
+        Kokkos::parallel_for(
+                "BendRepParticleContainerTest::benchmarkExplicitPlacementHalfStepKick", 1,
+                KOKKOS_LAMBDA(const size_t i) {
+                    Vector_t<double, 3> p = Pview(i);
+                    pusher.kick(
+                            Vector_t<double, 3>(0.0), p, Eview(i), Bview(i), dtview(i), massEV,
+                            charge);
+                    Pview(i) = p;
+                });
+        Kokkos::fence();
+
+        auto Pafter = pc->P.getHostMirror();
+        Kokkos::deep_copy(Pafter, pc->P.getView());
+
+        EXPECT_LT(Pafter(0)(1), 0.0);
+    }
+
+    TEST_F(BendRepParticleContainerTest,
+           BenchmarkExplicitPlacementFullPicStepUsesNegativeVerticalMomentumChange) {
+        constexpr double bodyLength     = 1.0;
+        constexpr double bendAngle      = Physics::pi / 4.0;
+        constexpr double fringeHalfGap  = 0.015;
+        constexpr double fringeIntegral = 0.5;
+        constexpr std::size_t nSlices   = 64;
+        constexpr double dt             = 5.0e-12;
+        constexpr double massEV         = Physics::m_p * Units::GeV2eV;
+        constexpr double charge         = 1.0;
+        constexpr double betaGamma      = 1.2857059679563454;
+        constexpr double theta          = -Physics::pi / 4.0;
+        constexpr double bodyX          = -2.760036392e-01;
+        constexpr double bodyZNominal   = 4.130686370e-01;
+
+        SBendRep bend("SBEND");
+        bend.getGeometry() = PlanarArcGeometry(bodyLength, bendAngle / bodyLength);
+        bend.setElementLength(bodyLength);
+        bend.setBendAngle(bendAngle);
+        bend.setEntranceAngle(Physics::pi / 8.0);
+        bend.setExitAngle(Physics::pi / 8.0);
+        bend.setFringeHalfGap(fringeHalfGap);
+        bend.setFringeIntegral(fringeIntegral);
+        bend.setNSlices(nSlices);
+        bend.setB(-1.2);
+
+        Quaternion rotTheta(std::cos(0.5 * theta), 0.0, std::sin(0.5 * theta), 0.0);
+        CoordinateSystemTrafo globalToLocal(
+                Vector_t<double, 3>(bodyX, 0.0, bodyZNominal + bend.getEntryFringeSupportLength()),
+                rotTheta.conjugate());
+        bend.setCSTrafoGlobal2Local(globalToLocal);
+        bend.fixPosition();
+
+        auto pc = makeContainer(
+                std::vector<std::array<double, 3>>{{0.0, 0.0, 0.0}, {0.0, 1.0e-3, 0.0}});
+        auto Phost  = pc->P.getHostMirror();
+        auto dthost = pc->dt.getHostMirror();
+        for (std::size_t i = 0; i < 2; ++i) {
+            Phost(i)  = Vector_t<double, 3>(0.0, 0.0, betaGamma);
+            dthost(i) = dt;
+        }
+        Kokkos::deep_copy(pc->P.getView(), Phost);
+        Kokkos::deep_copy(pc->dt.getView(), dthost);
+        Kokkos::fence();
+
+        BorisPusher pusher;
+        pc->switchToUnitlessPositions();
+        auto Rview = pc->R.getView();
+        auto Pview = pc->P.getView();
+        Kokkos::parallel_for(
+                "BendRepParticleContainerTest::benchmarkExplicitPlacementHalfDrift", 2,
+                KOKKOS_LAMBDA(const size_t i) {
+                    Vector_t<double, 3> r = Rview(i);
+                    pusher.push(r, Pview(i), 0.0);
+                    Rview(i) = r;
+                });
+        Kokkos::fence();
+        pc->switchOffUnitlessPositions();
+
+        const CoordinateSystemTrafo lineStartToEntryLocal =
+                bend.getPlacedElement().getNominalEntryTransform();
+        const auto slices = bend.buildTrackingSlices();
+        for (const auto& slice : slices) {
+            CoordinateSystemTrafo refToSliceLocal = slice.entryToSliceLocal * lineStartToEntryLocal;
+            CoordinateSystemTrafo sliceLocalToRef = refToSliceLocal.inverted();
+            pc->transformBunch(refToSliceLocal);
+            bend.applySlice(pc, slice);
+            pc->transformBunch(sliceLocalToRef);
+        }
+
+        auto dtview = pc->dt.getView();
+        auto Eview  = pc->E.getView();
+        auto Bview  = pc->B.getView();
+        Kokkos::parallel_for(
+                "BendRepParticleContainerTest::benchmarkExplicitPlacementKick", 2,
+                KOKKOS_LAMBDA(const size_t i) {
+                    Vector_t<double, 3> p = Pview(i);
+                    pusher.kick(
+                            Vector_t<double, 3>(0.0), p, Eview(i), Bview(i), dtview(i), massEV,
+                            charge);
+                    Pview(i) = p;
+                });
+        Kokkos::fence();
+
+        pc->switchToUnitlessPositions();
+        Kokkos::parallel_for(
+                "BendRepParticleContainerTest::benchmarkExplicitPlacementSecondHalfDrift", 2,
+                KOKKOS_LAMBDA(const size_t i) {
+                    Vector_t<double, 3> r = Rview(i);
+                    pusher.push(r, Pview(i), 0.0);
+                    Rview(i) = r;
+                });
+        Kokkos::fence();
+        pc->switchOffUnitlessPositions();
+
+        auto Pafter = pc->P.getHostMirror();
+        Kokkos::deep_copy(Pafter, pc->P.getView());
+
+        EXPECT_NEAR(Pafter(0)(1), 0.0, 1.0e-15);
+        EXPECT_LT(Pafter(1)(1), 0.0);
     }
 
     TEST(SBendRep, ProtonOnAxisIntegratesToFortyFiveDegreeDeflection) {
@@ -508,6 +1468,59 @@ namespace {
 
         const double expectedBy = momentumEV / Physics::c * (angle / length);
         EXPECT_NEAR(bend.getB(), expectedBy, 1.0e-9 * std::abs(expectedBy));
+        EXPECT_GT(bend.getB(), 0.0);
+    }
+
+    TEST(SBendRep, RuntimeNormalizedProtonEntryFringeProducesExpectedVerticalKickSign) {
+        constexpr double bodyLength      = 1.0;
+        constexpr double bendAngle       = 0.2;
+        constexpr double entryAngle      = 0.15;
+        constexpr double fringeHalfGap   = 0.02;
+        constexpr double fringeIntegral  = 0.5;
+        constexpr double kineticEnergyEV = 590.0 * Units::MeV2eV;
+        constexpr double massEV          = Physics::m_p * Units::GeV2eV;
+        constexpr double charge          = 1.0;
+        constexpr std::size_t steps      = 20000;
+        constexpr double yOffset         = 1.0e-4;
+
+        SBendRep bend("SBEND");
+        bend.getGeometry() = PlanarArcGeometry(bodyLength, bendAngle / bodyLength);
+        bend.setLength(bodyLength);
+        bend.setBendAngle(bendAngle);
+        bend.setEntranceAngle(entryAngle);
+        bend.setExitAngle(0.0);
+        bend.setFringeHalfGap(fringeHalfGap);
+        bend.setFringeIntegral(fringeIntegral);
+
+        BMultipoleField normalizedField;
+        normalizedField.setNormalComponent(0, bendAngle / bend.getEffectiveFieldLength());
+        bend.setNormalizedField(normalizedField);
+        const double momentumEV = betaGammaFromKineticEnergy(kineticEnergyEV, massEV) * massEV;
+        bend.updatePhysicalFieldFromMomentumEV(momentumEV, charge);
+
+        double fieldBegin = 0.0;
+        double fieldEnd   = 0.0;
+        bend.getFieldExtend(fieldBegin, fieldEnd);
+        const double beta = momentumEV / std::sqrt(momentumEV * momentumEV + massEV * massEV);
+        const double integrationTime = (-fieldBegin) / (beta * Physics::c);
+
+        const ReferenceState base = integrateReferenceParticle(
+                bend, massEV, charge, kineticEnergyEV, integrationTime, steps, fieldBegin);
+
+        ReferenceState yState{};
+        yState.r = Vector_t<double, 3>(0.0, yOffset, fieldBegin);
+        yState.p = Vector_t<double, 3>(0.0, 0.0, momentumEV / massEV);
+        const ReferenceState yFocused =
+                integrateReferenceParticle(bend, massEV, charge, yState, integrationTime, steps);
+
+        const double signedCurvature = bendAngle / bend.getEffectiveFieldLength();
+        const double psi             = signedCurvature * fringeHalfGap * fringeIntegral
+                           * (1.0 + std::sin(entryAngle) * std::sin(entryAngle))
+                           / std::cos(entryAngle);
+        const double expectedVertical = signedCurvature * std::tan(entryAngle - psi);
+        const double deltaYP          = (yFocused.p(1) - base.p(1)) / (momentumEV / massEV);
+
+        EXPECT_NEAR(deltaYP / yOffset, expectedVertical, 5.0e-4);
     }
 
     TEST(RBendRep, RuntimeNormalizationUsesReferenceChargeSign) {

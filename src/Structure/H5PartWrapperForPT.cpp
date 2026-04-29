@@ -32,12 +32,40 @@
 #include <set>
 #include <sstream>
 
+namespace {
+    /**
+     * @brief Return true when the current H5 step contains attribute @p name.
+     *
+     * This helper is used to keep restart handling backward compatible while allowing newer
+     * OPALX dumps to carry the full moving-frame rigid transform.
+     */
+    bool hasStepAttribute(h5_file_t file, const std::string& name) {
+        const h5_int64_t numStepAttributes  = H5GetNumStepAttribs(file);
+        const h5_size_t lengthAttributeName = 256;
+        char attributeName[lengthAttributeName];
+        h5_int64_t attributeType       = 0;
+        h5_size_t numAttributeElements = 0;
+
+        for (h5_int64_t i = 0; i < numStepAttributes; ++i) {
+            const h5_int64_t rc = H5GetStepAttribInfo(
+                    file, i, attributeName, lengthAttributeName, &attributeType,
+                    &numAttributeElements);
+            if (rc != H5_SUCCESS) {
+                return false;
+            }
+            if (name == attributeName) {
+                return true;
+            }
+        }
+        return false;
+    }
+}  // namespace
+
 H5PartWrapperForPT::H5PartWrapperForPT(const std::string& fileName, h5_int32_t flags)
-    : H5PartWrapper(fileName, flags) {
-}
+    : H5PartWrapper(fileName, flags) {}
 
 H5PartWrapperForPT::H5PartWrapperForPT(
-    const std::string& fileName, int restartStep, std::string sourceFile, h5_int32_t flags)
+        const std::string& fileName, int restartStep, std::string sourceFile, h5_int32_t flags)
     : H5PartWrapper(fileName, restartStep, sourceFile, flags) {
     if (restartStep == -1) {
         restartStep = H5GetNumSteps(file_m) - 1;
@@ -45,8 +73,7 @@ H5PartWrapperForPT::H5PartWrapperForPT(
     }
 }
 
-H5PartWrapperForPT::~H5PartWrapperForPT() {
-}
+H5PartWrapperForPT::~H5PartWrapperForPT() {}
 
 void H5PartWrapperForPT::readHeader() {
     h5_int64_t numFileAttributes = H5GetNumFileAttribs(file_m);
@@ -59,7 +86,8 @@ void H5PartWrapperForPT::readHeader() {
 
     for (h5_int64_t i = 0; i < numFileAttributes; ++i) {
         REPORTONERROR(H5GetFileAttribInfo(
-            file_m, i, attributeName, lengthAttributeName, &attributeType, &numAttributeElements));
+                file_m, i, attributeName, lengthAttributeName, &attributeType,
+                &numAttributeElements));
 
         attributeNames.insert(attributeName);
     }
@@ -82,7 +110,7 @@ void H5PartWrapperForPT::readHeader() {
         h5_int64_t numAutoPhaseCavities = 0;
         if (!H5HasFileAttrib(file_m, "nAutoPhaseCavities")
             || H5ReadFileAttribInt64(file_m, "nAutoPhaseCavities", &numAutoPhaseCavities)
-                   != H5_SUCCESS) {
+                       != H5_SUCCESS) {
             numAutoPhaseCavities = 0;
         } else {
             for (long i = 0; i < numAutoPhaseCavities; ++i) {
@@ -100,7 +128,7 @@ void H5PartWrapperForPT::readHeader() {
 }
 
 void H5PartWrapperForPT::readStep(
-    PartBunch_t* bunch, h5_ssize_t firstParticle, h5_ssize_t lastParticle) {
+        PartBunch_t* bunch, h5_ssize_t firstParticle, h5_ssize_t lastParticle) {
     h5_ssize_t numStepsInSource = H5GetNumSteps(file_m);
     h5_ssize_t readStep         = numStepsInSource - 1;
     REPORTONERROR(H5SetStep(file_m, readStep));
@@ -119,9 +147,9 @@ void H5PartWrapperForPT::readStepHeader(PartBunch_t* bunch) {
     READSTEPATTRIB(Float64, file_m, "SPOS", &spos);
     pc->set_sPos(spos);
 
-    //h5_int64_t ltstep;
-    //READSTEPATTRIB(Int64, file_m, "LocalTrackStep", &ltstep);
-    //bunch->setLocalTrackStep((long long)(ltstep + 1));
+    // h5_int64_t ltstep;
+    // READSTEPATTRIB(Int64, file_m, "LocalTrackStep", &ltstep);
+    // bunch->setLocalTrackStep((long long)(ltstep + 1));
 
     h5_int64_t gtstep;
     READSTEPATTRIB(Int64, file_m, "GlobalTrackStep", &gtstep);
@@ -141,17 +169,26 @@ void H5PartWrapperForPT::readStepHeader(PartBunch_t* bunch) {
     Quaternion rotPhi(std::cos(0.5 * TaitBryant[1]), std::sin(0.5 * TaitBryant[1]), 0, 0);
     Quaternion rotPsi(std::cos(0.5 * TaitBryant[2]), 0, 0, std::sin(0.5 * TaitBryant[2]));
     Quaternion rotation = rotTheta * (rotPhi * rotPsi);
-    // ADA bunch->toLabTrafo_m = CoordinateSystemTrafo(-rotation.conjugate().rotate(RefPartR),
-    // rotation);
+
+    if (hasStepAttribute(file_m, "ToLabOrigin") && hasStepAttribute(file_m, "ToLabQuaternion")) {
+        Vector_t<double, 3> toLabOrigin;
+        Quaternion toLabRotation;
+        READSTEPATTRIB(Float64, file_m, "ToLabOrigin", (h5_float64_t*)&toLabOrigin);
+        READSTEPATTRIB(Float64, file_m, "ToLabQuaternion", (h5_float64_t*)&toLabRotation);
+        pc->setToLabTrafo(CoordinateSystemTrafo(toLabOrigin, toLabRotation));
+    } else {
+        // Legacy restart fallback for files that only stored Tait-Bryant angles.
+        pc->setToLabTrafo(CoordinateSystemTrafo(-rotation.conjugate().rotate(RefPartR), rotation));
+    }
 }
 
 void H5PartWrapperForPT::readStepData(
-    PartBunch_t* /*bunch*/, h5_ssize_t firstParticle, h5_ssize_t lastParticle) {
+        PartBunch_t* /*bunch*/, h5_ssize_t firstParticle, h5_ssize_t lastParticle) {
     h5_ssize_t numParticles = getNumParticles();
     if (lastParticle >= numParticles || firstParticle > lastParticle) {
         throw OpalException(
-            "H5PartWrapperForPT::readStepData",
-            "the provided particle numbers don't match the number of particles in the file");
+                "H5PartWrapperForPT::readStepData",
+                "the provided particle numbers don't match the number of particles in the file");
     }
 
     REPORTONERROR(H5PartSetView(file_m, firstParticle, lastParticle));
@@ -205,7 +242,8 @@ void H5PartWrapperForPT::readStepData(
     }
 
     REPORTONERROR(H5PartSetView(file_m, -1, -1));
-    *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__ << " function: " << __func__ << endl;
+    *gmsg << "not implemented:: file: " << __FILE__ << " line: " << __LINE__
+          << " function: " << __func__ << endl;
 }
 
 void H5PartWrapperForPT::writeHeader() {
@@ -277,6 +315,8 @@ void H5PartWrapperForPT::writeHeader() {
 
     WRITESTRINGFILEATTRIB(file_m, "RefPartRUnit", "m");
     WRITESTRINGFILEATTRIB(file_m, "RefPartPUnit", "#beta#gamma");
+    WRITESTRINGFILEATTRIB(file_m, "ToLabOriginUnit", "m");
+    WRITESTRINGFILEATTRIB(file_m, "ToLabQuaternionUnit", "1");
     WRITESTRINGFILEATTRIB(file_m, "SteptoLastInjUnit", "1");
 
     WRITESTRINGFILEATTRIB(file_m, "dump frequencyUnit", "1")
@@ -292,12 +332,10 @@ void H5PartWrapperForPT::writeHeader() {
 }
 
 void H5PartWrapperForPT::writeStep(
-    PartBunch_t* bunch, const std::map<std::string, double>& additionalStepAttributes,
-    size_t particleContainerIndex) {
-
+        PartBunch_t* bunch, const std::map<std::string, double>& additionalStepAttributes,
+        size_t particleContainerIndex) {
     auto pc = bunch->getParticleContainer(particleContainerIndex);
-    if (!pc || pc->getTotalNum() == 0)
-        return;
+    if (!pc || pc->getTotalNum() == 0) return;
 
     open(H5_O_APPENDONLY);
     pc->updateMoments();
@@ -307,8 +345,8 @@ void H5PartWrapperForPT::writeStep(
 }
 
 void H5PartWrapperForPT::writeStepHeader(
-    PartBunch_t* bunch, const std::map<std::string, double>& additionalStepAttributes,
-    size_t particleContainerIndex) {
+        PartBunch_t* bunch, const std::map<std::string, double>& additionalStepAttributes,
+        size_t particleContainerIndex) {
     auto pc                      = bunch->getParticleContainer(particleContainerIndex);
     double actPos                = pc->get_sPos();
     double t                     = bunch->getT();
@@ -319,25 +357,28 @@ void H5PartWrapperForPT::writeStepHeader(
     Vector_t<double, 3> maxP(0.0);
     Vector_t<double, 3> minP(0.0);
 
-    Vector_t<double, 3> xsigma     = pc->getRmsR();
-    Vector_t<double, 3> psigma     = pc->getRmsP();
-    Vector_t<double, 3> vareps     = pc->getNormEmit();
-    Vector_t<double, 3> geomvareps = pc->getGeometricEmit();
-    Vector_t<double, 3> RefPartR   = pc->getRefPartR();
-    Vector_t<double, 3> RefPartP   = pc->getRefPartP();
-    Vector_t<double, 3>
-        TaitBryant;  // ADA = Util::getTaitBryantAngles(bunch->toLabTrafo_m.getRotation());
+    Vector_t<double, 3> xsigma              = pc->getRmsR();
+    Vector_t<double, 3> psigma              = pc->getRmsP();
+    Vector_t<double, 3> vareps              = pc->getNormEmit();
+    Vector_t<double, 3> geomvareps          = pc->getGeometricEmit();
+    Vector_t<double, 3> RefPartR            = pc->getRefPartR();
+    Vector_t<double, 3> RefPartP            = pc->getRefPartP();
+    const CoordinateSystemTrafo& toLabTrafo = pc->getToLabTrafo();
+    const Vector_t<double, 3> toLabOrigin   = toLabTrafo.getOrigin();
+    const Quaternion toLabRotation          = toLabTrafo.getRotation();
+    Vector_t<double, 3> TaitBryant =
+            Util::getTaitBryantAngles(toLabRotation.conjugate(), "H5PartWrapperForPT");
     Vector_t<double, 3> pmean = pc->getMeanP();
 
     double meanEnergy   = pc->getMeanKineticEnergy();
     double energySpread = pc->getStdKineticEnergy();
-    double I_0 =
-        4.0 * Physics::pi * Physics::epsilon_0 * Physics::c * pc->getTotalMass() / pc->getTotalCharge();
+    double I_0          = 4.0 * Physics::pi * Physics::epsilon_0 * Physics::c * pc->getTotalMass()
+                 / pc->getTotalCharge();
     double sigma = ((xsigma[0] * xsigma[0]) + (xsigma[1] * xsigma[1]))
                    / (2.0 * pc->getMeanGammaZ() * I_0
                       * (geomvareps[0] * geomvareps[0] + geomvareps[1] * geomvareps[1]));
 
-    //h5_int64_t localTrackStep  = (h5_int64_t)bunch->getLocalTrackStep();
+    // h5_int64_t localTrackStep  = (h5_int64_t)bunch->getLocalTrackStep();
     h5_int64_t globalTrackStep = (h5_int64_t)bunch->getGlobalTrackStep();
 
     double mass   = Units::eV2GeV * pc->getTotalMass();
@@ -363,6 +404,8 @@ void H5PartWrapperForPT::writeStepHeader(
     WRITESTEPATTRIB(Float64, file_m, "MEANP", (h5_float64_t*)&pmean, 3);
     WRITESTEPATTRIB(Float64, file_m, "RMSP", (h5_float64_t*)&psigma, 3);
     WRITESTEPATTRIB(Float64, file_m, "TaitBryantAngles", (h5_float64_t*)&TaitBryant, 3);
+    WRITESTEPATTRIB(Float64, file_m, "ToLabOrigin", (h5_float64_t*)&toLabOrigin, 3);
+    WRITESTEPATTRIB(Float64, file_m, "ToLabQuaternion", (h5_float64_t*)&toLabRotation, 4);
 
     WRITESTEPATTRIB(Float64, file_m, "#varepsilon", (h5_float64_t*)&vareps, 3);
     WRITESTEPATTRIB(Float64, file_m, "#varepsilon-geom", (h5_float64_t*)&geomvareps, 3);
@@ -374,7 +417,7 @@ void H5PartWrapperForPT::writeStepHeader(
     WRITESTEPATTRIB(Float64, file_m, "maxP", (h5_float64_t*)&maxP, 3);
 
     WRITESTEPATTRIB(Int64, file_m, "Step", &numSteps_m, 1);
-    //WRITESTEPATTRIB(Int64, file_m, "LocalTrackStep", &localTrackStep, 1);
+    // WRITESTEPATTRIB(Int64, file_m, "LocalTrackStep", &localTrackStep, 1);
     WRITESTEPATTRIB(Int64, file_m, "GlobalTrackStep", &globalTrackStep, 1);
 
     WRITESTEPATTRIB(Float64, file_m, "#sigma", &sigma, 1);
@@ -395,11 +438,11 @@ void H5PartWrapperForPT::writeStepHeader(
 
     try {
         Vector_t<double, 3> referenceB(
-            additionalStepAttributes.at("B-ref_x"), additionalStepAttributes.at("B-ref_z"),
-            additionalStepAttributes.at("B-ref_y"));
+                additionalStepAttributes.at("B-ref_x"), additionalStepAttributes.at("B-ref_z"),
+                additionalStepAttributes.at("B-ref_y"));
         Vector_t<double, 3> referenceE(
-            additionalStepAttributes.at("E-ref_x"), additionalStepAttributes.at("E-ref_z"),
-            additionalStepAttributes.at("E-ref_y"));
+                additionalStepAttributes.at("E-ref_x"), additionalStepAttributes.at("E-ref_z"),
+                additionalStepAttributes.at("E-ref_y"));
 
         WRITESTEPATTRIB(Float64, file_m, "B-ref", (h5_float64_t*)&referenceB, 3);
         WRITESTEPATTRIB(Float64, file_m, "E-ref", (h5_float64_t*)&referenceE, 3);
@@ -407,27 +450,26 @@ void H5PartWrapperForPT::writeStepHeader(
         *ippl::Error << m.what() << endl;
 
         throw OpalException(
-            "H5PartWrapperForPC::writeStepHeader", "some additional step attribute not found");
+                "H5PartWrapperForPC::writeStepHeader", "some additional step attribute not found");
     }
 
     ++numSteps_m;
 }
 
 void H5PartWrapperForPT::writeStepData(PartBunch_t* bunch, size_t particleContainerIndex) {
-
     auto pc                  = bunch->getParticleContainer(particleContainerIndex);
     size_t numLocalParticles = pc->getLocalNum();
 
     auto rViewDevice = pc->R.getView();
-    auto rView = Kokkos::create_mirror_view(rViewDevice);
-    Kokkos::deep_copy(rView,rViewDevice);
-    
+    auto rView       = Kokkos::create_mirror_view(rViewDevice);
+    Kokkos::deep_copy(rView, rViewDevice);
+
     REPORTONERROR(H5PartSetNumParticles(file_m, (h5_size_t)numLocalParticles));
     std::vector<char> buffer(numLocalParticles * sizeof(h5_float64_t));
     char* buffer_ptr        = Util::c_data(buffer);
     h5_float64_t* f64buffer = reinterpret_cast<h5_float64_t*>(buffer_ptr);
     //    h5_int64_t* i64buffer   = reinterpret_cast<h5_int64_t*>(buffer_ptr);
-    h5_int32_t* i32buffer   = reinterpret_cast<h5_int32_t*>(buffer_ptr);
+    h5_int32_t* i32buffer = reinterpret_cast<h5_int32_t*>(buffer_ptr);
 
     for (size_t i = 0; i < numLocalParticles; ++i)
         f64buffer[i] = rView(i)(0);
@@ -442,10 +484,10 @@ void H5PartWrapperForPT::writeStepData(PartBunch_t* bunch, size_t particleContai
     WRITEDATA(Float64, file_m, "z", f64buffer);
 
     auto pViewDevice = pc->P.getView();
-    auto pView = Kokkos::create_mirror_view(pViewDevice);
-    Kokkos::deep_copy(pView,pViewDevice);
- 
-    for (long unsigned i = 0; i < numLocalParticles; i++) 
+    auto pView       = Kokkos::create_mirror_view(pViewDevice);
+    Kokkos::deep_copy(pView, pViewDevice);
+
+    for (long unsigned i = 0; i < numLocalParticles; i++)
         f64buffer[i] = pView(i)(0);
     WRITEDATA(Float64, file_m, "px", f64buffer);
 
@@ -473,21 +515,20 @@ void H5PartWrapperForPT::writeStepData(PartBunch_t* bunch, size_t particleContai
     }
     WRITEDATA(Float64, file_m, "q", f64buffer);
 
-
-    /*   
+    /*
 
     auto idViewDevice  = bunch->getParticleContainer()->ID.getView();
     auto idView = Kokkos::create_mirror_view(idViewDevice);
     Kokkos::deep_copy(idView,idViewDevice);
-      
+
     for (long unsigned i = 0; i < numLocalParticles; i++)
         i64buffer[i] = idView(i);
     WRITEDATA(Int64, file_m, "id", i64buffer);
     */
-    
+
     auto binViewDevice = pc->Bin.getView();
-    auto binView = Kokkos::create_mirror_view(binViewDevice);
-    Kokkos::deep_copy(binView,binViewDevice);
+    auto binView       = Kokkos::create_mirror_view(binViewDevice);
+    Kokkos::deep_copy(binView, binViewDevice);
 
     for (size_t i = 0; i < numLocalParticles; ++i)
         i32buffer[i] = binView(i);
@@ -497,12 +538,11 @@ void H5PartWrapperForPT::writeStepData(PartBunch_t* bunch, size_t particleContai
     for (size_t i = 0; i < numLocalParticles; ++i)
         i32buffer[i] = sp;
     WRITEDATA(Int32, file_m, "sp", i32buffer);
-    
+
     if (Options::ebDump) {
-        
         auto EViewDevice = pc->E.getView();
-        auto EView = Kokkos::create_mirror_view(EViewDevice);
-        Kokkos::deep_copy(EView,EViewDevice);
+        auto EView       = Kokkos::create_mirror_view(EViewDevice);
+        Kokkos::deep_copy(EView, EViewDevice);
 
         for (size_t i = 0; i < numLocalParticles; ++i)
             f64buffer[i] = EView(i)(0);
@@ -517,8 +557,8 @@ void H5PartWrapperForPT::writeStepData(PartBunch_t* bunch, size_t particleContai
         WRITEDATA(Float64, file_m, "Ez", f64buffer);
 
         auto BViewDevice = pc->B.getView();
-        auto BView = Kokkos::create_mirror_view(BViewDevice);
-        Kokkos::deep_copy(BView,BViewDevice);
+        auto BView       = Kokkos::create_mirror_view(BViewDevice);
+        Kokkos::deep_copy(BView, BViewDevice);
 
         for (size_t i = 0; i < numLocalParticles; ++i)
             f64buffer[i] = BView(i)(0);
@@ -532,7 +572,7 @@ void H5PartWrapperForPT::writeStepData(PartBunch_t* bunch, size_t particleContai
             f64buffer[i] = BView(i)(2);
         WRITEDATA(Float64, file_m, "Bz", f64buffer);
     }
-    
+
     /*
     /// Write space charge field map if asked for.
     if (Options::rhoDump) {

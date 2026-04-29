@@ -25,6 +25,7 @@
 #include <set>
 #include <string>
 
+#include "AbsBeamline/BendBase.h"
 #include "AbsBeamline/Component.h"
 #include "PartBunch/PartBunch.h"
 
@@ -215,6 +216,27 @@ private:
      */
     void compileCompatibilityPlacement();
 
+    /**
+     * @brief Return true when an unplaced element still requires `ELEMEDGE`.
+     *
+     * Analytic `SBEND` and `RBEND` elements need either an explicit reference
+     * path coordinate from `ELEMEDGE` or an explicit body pose from `Z`. Without
+     * either one, the compatibility bridge has no longitudinal start coordinate
+     * for the bend field support.
+     */
+    static bool requiresElementEdgeWithoutExplicitPosition(const ElementBase& element);
+
+    /**
+     * @brief Resolve the longitudinal field interval start used during visit().
+     *
+     * If `ELEMEDGE` is set, this returns that value. Otherwise, explicitly
+     * positioned elements, including analytic bends, use the nominal body-origin
+     * coordinate \f$Z_\mathrm{body}\f$ as the start of their active interval.
+     * Unplaced `SBEND` and `RBEND` elements remain strict and throw without
+     * `ELEMEDGE`.
+     */
+    double resolveVisitStartField(const std::shared_ptr<ElementBase>& element) const;
+
     FieldList elements_m;
     std::vector<std::shared_ptr<Component>> declaredOrder_m;
     PlacementAssembly placementAssembly_m;
@@ -233,7 +255,7 @@ inline void OpalBeamline::visit(const T& element, BeamlineVisitor&, PartBunch_t&
 
     positionElementRelative(elptr);
 
-    if (elptr->isElementPositionSet()) startField = elptr->getElementPosition();
+    startField = resolveVisitStartField(elptr);
 
     elptr->initialise(&bunch, startField, endField);
     elements_m.push_back(BeamlineFieldElement(elptr, startField, endField));
@@ -295,24 +317,14 @@ inline CoordinateSystemTrafo OpalBeamline::getFieldCSTrafoLab2Local(
 
 inline Vector_t<double, 3> OpalBeamline::transformToFieldLocalCS(
         const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r) const {
-    if (comp->getType() == ElementType::SBEND) {
-        const Vector_t<double, 3> body =
-                getPlacedElement(comp).getNominalBodyTransform().transformTo(r);
-        const auto& geometry = dynamic_cast<const PlanarArcGeometry&>(comp->getGeometry());
-        const double h       = geometry.getCurvature();
-        if (std::abs(h) > 1.0e-15) {
-            const double radius         = 1.0 / h;
-            const double phi            = std::atan2(body(2), body(0) + radius);
-            const double s              = (phi - geometry.getEntrance() * h) / h;
-            const double radialDistance = std::hypot(body(0) + radius, body(2)) - std::abs(radius);
-            return Vector_t<double, 3>(radialDistance, body(1), s);
+    const ElementType type = comp->getType();
+    if (type == ElementType::SBEND || type == ElementType::RBEND) {
+        const auto* bend = dynamic_cast<const BendBase*>(comp.get());
+        if (bend != nullptr) {
+            const Vector_t<double, 3> entryCartesian =
+                    getPlacedElement(comp).getNominalEntryTransform().transformTo(r);
+            return bend->convertEntryCartesianToFieldLocal(entryCartesian);
         }
-    }
-    if (comp->getType() == ElementType::RBEND) {
-        const Vector_t<double, 3> body =
-                getPlacedElement(comp).getNominalBodyTransform().transformTo(r);
-        const double bodyLength = comp->getElementLength();
-        return Vector_t<double, 3>(body(0), body(1), body(2) + 0.5 * bodyLength);
     }
 
     return getFieldCSTrafoLab2Local(comp).transformTo(r);

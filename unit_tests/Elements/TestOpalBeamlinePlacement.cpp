@@ -15,6 +15,7 @@
 #include "Structure/DataSink.h"
 #include "Structure/FieldSolverCmd.h"
 #include "Structure/MeshGenerator.h"
+#include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
 #include "Utility/Inform.h"
 
@@ -225,6 +226,97 @@ TEST_F(OpalBeamlinePlacementTest, PrepareSectionsCompilesElementPositionIntoNomi
     expectVectorNear(placed.getNominalExitTransform().getOrigin(), Vector3(0.0, 0.0, 1.65));
 }
 
+TEST_F(OpalBeamlinePlacementTest, ExplicitZPositionedDriftDoesNotRequireElementEdge) {
+    DriftRep drift("D4Z");
+    drift.setElementLength(0.4);
+    drift.setPlacementPose(
+            PlacementPose(CoordinateSystemTrafo(Vector3(1.0, 2.0, 3.5), Quaternion())));
+    drift.fixPosition();
+
+    auto bunch = makeBunch(0);
+    DummyBeamline beamlineForVisitor;
+    DefaultVisitor visitor(beamlineForVisitor, false, false);
+
+    OpalBeamline beamline;
+    beamline.visit(drift, visitor, *bunch);
+    beamline.prepareSections();
+
+    const auto elements = beamline.getElements();
+    ASSERT_EQ(elements.size(), 1u);
+    const auto component = *elements.begin();
+
+    double fieldBegin = 0.0;
+    double fieldEnd   = 0.0;
+    component->getFieldExtend(fieldBegin, fieldEnd);
+
+    EXPECT_NEAR(fieldBegin, 3.5, tol);
+    EXPECT_NEAR(fieldEnd, 3.9, tol);
+    expectVectorNear(
+            beamline.getPlacedElement(component).getNominalBodyTransform().getOrigin(),
+            Vector3(1.0, 2.0, 3.5));
+}
+
+TEST_F(OpalBeamlinePlacementTest, ExplicitZPositionedAnalyticBendsDoNotRequireElementEdge) {
+    auto bunch = makeBunch(0);
+    DummyBeamline beamlineForVisitor;
+    DefaultVisitor visitor(beamlineForVisitor, false, false);
+
+    SBendRep sbend("SBEND_NO_EDGE");
+    sbend.getGeometry() = PlanarArcGeometry(0.5, Physics::pi / 8.0);
+    sbend.setElementLength(0.5);
+    sbend.setBendAngle(Physics::pi / 8.0);
+    sbend.setPlacementPose(
+            PlacementPose(CoordinateSystemTrafo(Vector3(0.0, 0.0, 2.0), Quaternion())));
+    sbend.fixPosition();
+
+    OpalBeamline sbendBeamline;
+    EXPECT_NO_THROW(sbendBeamline.visit(sbend, visitor, *bunch));
+    {
+        const auto elements = sbendBeamline.getElements();
+        ASSERT_EQ(elements.size(), 1u);
+        expectVectorNear(
+                sbendBeamline.getPlacedElement(*elements.begin())
+                        .getNominalBodyTransform()
+                        .getOrigin(),
+                Vector3(0.0, 0.0, 2.0));
+    }
+
+    RBendRep rbend("RBEND_NO_EDGE");
+    rbend.getGeometry().setElementLength(0.5);
+    rbend.getGeometry().setBendAngle(Physics::pi / 8.0);
+    rbend.setElementLength(0.5);
+    rbend.setBendAngle(Physics::pi / 8.0);
+    rbend.setPlacementPose(
+            PlacementPose(CoordinateSystemTrafo(Vector3(0.0, 0.0, 2.0), Quaternion())));
+    rbend.fixPosition();
+
+    OpalBeamline rbendBeamline;
+    EXPECT_NO_THROW(rbendBeamline.visit(rbend, visitor, *bunch));
+    {
+        const auto elements = rbendBeamline.getElements();
+        ASSERT_EQ(elements.size(), 1u);
+        expectVectorNear(
+                rbendBeamline.getPlacedElement(*elements.begin())
+                        .getNominalBodyTransform()
+                        .getOrigin(),
+                Vector3(0.0, 0.0, 2.0));
+    }
+}
+
+TEST_F(OpalBeamlinePlacementTest, UnpositionedAnalyticBendsStillRequireElementEdge) {
+    auto bunch = makeBunch(0);
+    DummyBeamline beamlineForVisitor;
+    DefaultVisitor visitor(beamlineForVisitor, false, false);
+
+    SBendRep sbend("SBEND_NO_POSITION");
+    sbend.getGeometry() = PlanarArcGeometry(0.5, Physics::pi / 8.0);
+    sbend.setElementLength(0.5);
+    sbend.setBendAngle(Physics::pi / 8.0);
+
+    OpalBeamline sbendBeamline;
+    EXPECT_THROW(sbendBeamline.visit(sbend, visitor, *bunch), OpalException);
+}
+
 TEST_F(OpalBeamlinePlacementTest, BeamlineOwnsPlacedElementAssemblySnapshot) {
     DriftRep drift("D5");
     drift.setElementLength(0.3);
@@ -346,6 +438,11 @@ TEST_F(OpalBeamlinePlacementTest, Save3DLatticeExportsFieldExtentMarkersWhenSupp
 
     OpalBeamline beamline;
     beamline.visit(bend, visitor, *bunch);
+
+    if (ippl::Comm->rank() != 0) {
+        return;
+    }
+
     beamline.compute3DLattice();
     beamline.save3DLattice();
 
@@ -467,6 +564,11 @@ TEST_F(OpalBeamlinePlacementTest, BendMeshesAsPinkCurvedTubeInElementPositionsEx
 
     OpalBeamline beamline;
     beamline.visit(bend, visitor, *bunch);
+
+    if (ippl::Comm->rank() != 0) {
+        return;
+    }
+
     beamline.compute3DLattice();
     beamline.save3DLattice();
 
@@ -585,9 +687,10 @@ TEST_F(OpalBeamlinePlacementTest, RBendFieldChartMapsChordCoordinatesToBodyLengt
     const Vector3 bodyLocal  = beamline.transformToFieldLocalCS(component, bodyLab);
     const Vector3 exitLocal  = beamline.transformToFieldLocalCS(component, exitLab);
 
+    const double referenceLength = bend.getGeometry().getArcLength();
     EXPECT_NEAR(entryLocal(2), 0.0, 1.0e-12);
-    EXPECT_NEAR(bodyLocal(2), 0.5, 1.0e-12);
-    EXPECT_NEAR(exitLocal(2), 1.0, 1.0e-12);
+    EXPECT_NEAR(bodyLocal(2), 0.5 * referenceLength, 1.0e-12);
+    EXPECT_NEAR(exitLocal(2), referenceLength, 1.0e-12);
 }
 
 TEST_F(OpalBeamlinePlacementTest, ElementPositionsScriptStaysValidWithEmptyTriangleMeshBlocks) {
@@ -605,11 +708,19 @@ TEST_F(OpalBeamlinePlacementTest, ElementPositionsScriptStaysValidWithEmptyTrian
 
     generator.add(bend);
     generator.add(empty);
+
+    if (ippl::Comm->rank() != 0) {
+        return;
+    }
+
     generator.write("TestOpalBeamlinePlacementSyntax");
 
     const std::filesystem::path scriptPath = outputPath("Syntax_ElementPositions.py");
     ASSERT_TRUE(std::filesystem::exists(scriptPath));
 
-    const std::string command = "python3 -m py_compile " + scriptPath.string();
+    const std::filesystem::path pycachePath = outputPath("_pycache");
+    std::filesystem::create_directories(pycachePath);
+    const std::string command = "PYTHONPYCACHEPREFIX=\"" + pycachePath.string()
+                                + "\" python3 -m py_compile \"" + scriptPath.string() + "\"";
     EXPECT_EQ(std::system(command.c_str()), 0);
 }

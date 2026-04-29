@@ -24,7 +24,6 @@
 #include <cfloat>
 #include <cmath>
 #include <fstream>
-#include <iomanip>
 #include <iostream>
 #include <limits>
 #include <sstream>
@@ -681,12 +680,37 @@ void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
             }
         }
 
+        const double queryCenter    = pc->get_sPos() + 0.5 * (rmax(2) + rmin(2));
+        const double queryHalfWidth = rmax(2) - rmin(2);
+        const double queryBegin     = queryCenter - queryHalfWidth;
+        const double queryEnd       = queryCenter + queryHalfWidth;
+
         // Get elements at bunch position.
         IndexMap::value_t elements;
+        bool indexMapOutOfBounds = false;
         try {
-            elements = oth.query(pc->get_sPos() + 0.5 * (rmax(2) + rmin(2)), rmax(2) - rmin(2));
+            elements = oth.query(queryCenter, queryHalfWidth);
         } catch (IndexMap::OutOfBounds& e) {
-            globalEOL_m = true;
+            indexMapOutOfBounds = true;
+        }
+
+        for (const auto& segment : oth.getActionRangeRegistrationModel().getSegments()) {
+            if (segment.getEnd() < queryBegin || segment.getBegin() > queryEnd) {
+                continue;
+            }
+
+            for (const auto& element : segment.getActiveElements()) {
+                if (element->getType() == ElementType::SBEND
+                    || element->getType() == ElementType::RBEND) {
+                    elements.insert(element);
+                }
+            }
+        }
+
+        if (elements.empty()) {
+            if (indexMapOutOfBounds) {
+                globalEOL_m = true;
+            }
             continue;
         }
 
@@ -1120,12 +1144,21 @@ void ParallelTracker::updateReferenceParticles(const BorisPusher& pusher) {
         const IndexMap::value_t::const_iterator end = elements.end();
 
         for (; it != end; ++it) {
-            const CoordinateSystemTrafo refToLocalCSTrafo =
-                    itsOpalBeamline_m.getFieldCSTrafoLab2Local((*it));
-
-            Vector_t<double, 3> localR = refToLocalCSTrafo.transformTo(pc.getRefPartR());
-            Vector_t<double, 3> localP = refToLocalCSTrafo.rotateTo(pc.getRefPartP());
+            Vector_t<double, 3> localR =
+                    itsOpalBeamline_m.transformToFieldLocalCS((*it), pc.getRefPartR());
+            Vector_t<double, 3> localP =
+                    itsOpalBeamline_m.rotateToFieldLocalCS((*it), pc.getRefPartP());
             Vector_t<double, 3> localE(0.0), localB(0.0);
+            BendBase* bend = nullptr;
+            if ((*it)->getType() == ElementType::SBEND || (*it)->getType() == ElementType::RBEND) {
+                bend = dynamic_cast<BendBase*>((*it).get());
+                if (bend == nullptr) {
+                    throw OpalException(
+                            "ParallelTracker::updateReferenceParticles",
+                            "Encountered bend element without BendBase runtime type.");
+                }
+                localP = bend->rotateEntryCartesianVectorToFieldLocal(localP, localR(2));
+            }
 
             if ((*it)->applyToReferenceParticle(
                         localR, localP, itsBunch_m->getT() - 0.5 * dt, localE, localB)) {
@@ -1133,8 +1166,13 @@ void ParallelTracker::updateReferenceParticles(const BorisPusher& pusher) {
                 globalEOL_m = true;
             }
 
-            Ef += refToLocalCSTrafo.rotateFrom(localE);
-            Bf += refToLocalCSTrafo.rotateFrom(localB);
+            if (bend != nullptr) {
+                localE = bend->rotateFieldLocalVectorToEntryCartesian(localE, localR(2));
+                localB = bend->rotateFieldLocalVectorToEntryCartesian(localB, localR(2));
+            }
+
+            Ef += itsOpalBeamline_m.rotateFromFieldLocalCS((*it), localE);
+            Bf += itsOpalBeamline_m.rotateFromFieldLocalCS((*it), localB);
         }
 
         pusher.kick(pc.getRefPartR(), pc.getRefPartP(), Ef, Bf, dt, refKick.getM(), refKick.getQ());

@@ -228,16 +228,62 @@ public:
     void setExitFaceCurvature(double curvature);
     double getExitFaceCurvature() const;
 
+    /**
+     * @brief Set the legacy bend slice-count hint.
+     *
+     * This scalar is preserved for parser compatibility. When no explicit
+     * `STEPSIZE` or integral `NSLICES` is provided, the sliced many-particle
+     * bend tracker interprets values larger than one as a requested number of
+     * rigid body slices after rounding upward.
+     */
     void setSlices(double slices);
+
+    /**
+     * @brief Return the legacy bend slice-count hint.
+     */
     double getSlices() const;
 
+    /**
+     * @brief Set the target path-length step used to build bend body slices.
+     *
+     * If positive, the many-particle bend tracker constructs
+     * \f$N = \lceil L_\mathrm{support} / \Delta s \rceil\f$ rigid slices over
+     * the full bend field-support interval, where \f$L_\mathrm{support}\f$
+     * denotes the entry-fringe, body, and exit-fringe support combined.
+     */
     void setStepsize(double stepSize);
+
+    /**
+     * @brief Return the target path-length step used for bend slice construction.
+     */
     double getStepsize() const;
 
+    /**
+     * @brief Set the explicit number of rigid body slices for many-particle tracking.
+     *
+     * This takes precedence over the legacy floating-point `SLICES` hint but
+     * is overridden by a positive `STEPSIZE`, which defines the slice count
+     * geometrically from the bend support span.
+     */
     void setNSlices(const std::size_t& nSlices);
+
+    /**
+     * @brief Return the explicit number of rigid body slices.
+     */
     std::size_t getNSlices() const;
 
+    /**
+     * @brief Set the normalized normal quadrupole component \f$k_1\f$.
+     *
+     * For analytic bends this is stored alongside the dipole term in the local
+     * multipole expansion and contributes only on the bend body slices unless a
+     * separate thin-edge kick is applied at the faces.
+     */
     void setK1(double k1);
+
+    /**
+     * @brief Return the stored normalized normal quadrupole component \f$k_1\f$.
+     */
     double getK1() const;
 
     int getRequiredNumberOfTimeSteps() const override;
@@ -254,6 +300,8 @@ public:
      */
     struct TrackingSlice {
         CoordinateSystemTrafo entryToSliceLocal;
+        matrix3x3_t entryToSliceRotation;
+        Vector_t<double, 3> entryOrigin;
         double sBegin;
         double sCenter;
         double sEnd;
@@ -272,13 +320,52 @@ public:
     std::vector<TrackingSlice> buildTrackingSlices() const;
 
     /**
+     * @brief Convert a rigid entry-frame Cartesian point into the bend field chart.
+     *
+     * The analytic bend field is evaluated in the piecewise entry-based chart
+     * \f$(x, y, s)\f$, where \f$s\f$ follows the design reference path. This
+     * helper maps a point from the rigid entry frame into that chart, including
+     * the straight entry and exit tangent extensions outside the body interval.
+     */
+    Vector_t<double, 3> convertEntryCartesianToFieldLocal(
+            const Vector_t<double, 3>& entryCartesian) const;
+
+    /**
+     * @brief Rotate a vector from the rigid entry frame into the local tangent frame.
+     *
+     * The analytic bend field is expressed in a tangent basis that follows the
+     * reference path. If \f$s\f$ denotes the reference-path coordinate and
+     * \f$h_\mathrm{geom}\f$ the geometric curvature, the local tangent frame is
+     * obtained from the rigid entry frame by a rotation about \f$y\f$ through
+     * \f$\phi = h_\mathrm{geom} s\f$:
+     * \f[
+     * \mathbf{v}_\mathrm{field} = R_y(\phi)\,\mathbf{v}_\mathrm{entry}.
+     * \f]
+     */
+    Vector_t<double, 3> rotateEntryCartesianVectorToFieldLocal(
+            const Vector_t<double, 3>& entryVector, double s) const;
+
+    /**
+     * @brief Rotate a vector from the local tangent frame back into the rigid entry frame.
+     *
+     * This applies the inverse of rotateEntryCartesianVectorToFieldLocal():
+     * \f[
+     * \mathbf{v}_\mathrm{entry} = R_y(-\phi)\,\mathbf{v}_\mathrm{field},
+     * \qquad \phi = h_\mathrm{geom} s.
+     * \f]
+     */
+    Vector_t<double, 3> rotateFieldLocalVectorToEntryCartesian(
+            const Vector_t<double, 3>& fieldVector, double s) const;
+
+    /**
      * @brief Apply the analytic bend field to particles already expressed in one slice frame.
      *
      * The particles are assumed to be in the slice-local tangent frame
-     * associated with `slice`. The kernel evaluates the existing analytic bend
-     * multipole field at the approximated global reference-path coordinate
-     * \f$s = s_\mathrm{center} + z_\mathrm{local}\f$ and accumulates the field
-     * contribution for particles inside the slice support.
+     * associated with `slice`. The kernel reconstructs the corresponding
+     * entry-frame position, maps it into the bend field chart
+     * \f$(x, y, s)\f$, evaluates the analytic bend multipole field there, and
+     * rotates the resulting field back into the slice-local frame before
+     * accumulation.
      *
      * @note This path is used only for many-particle tracking. It does not
      * alter the reference-particle field evaluation.
@@ -327,10 +414,61 @@ protected:
     double calcGamma() const;
     double calcBetaGamma() const;
     double getStoredExitAngle() const;
+
+    /**
+     * @brief Return the geometric curvature of the design reference path.
+     *
+     * The sliced many-particle tracker uses rigid tangent frames built on the
+     * geometric reference path of the bend. That path is defined by the bend
+     * angle \f$\theta\f$ and the reference-path body length \f$L_\mathrm{ref}\f$,
+     * so the geometric curvature is
+     * \f[
+     * h_\mathrm{geom} = \frac{\theta}{L_\mathrm{ref}}.
+     * \f]
+     *
+     * This quantity is distinct from the effective curvature
+     * \f$\theta / L_\mathrm{eff}\f$ used to normalize the integrated field
+     * strength when fringe support extends the effective field length.
+     */
+    double getReferencePathCurvature() const;
+
     double getSignedCurvature() const;
     double getEntryEdgeHorizontalStrength() const;
     double getExitEdgeHorizontalStrength() const;
+    /**
+     * @brief Return the signed entry-edge vertical kick strength.
+     *
+     * The implemented hard-edge fringe optics model uses the first-order kick
+     * law
+     * \f[
+     *   y' \mathrel{+}= k_{y,\mathrm{entry}}\,y,
+     *   \qquad
+     *   k_{y,\mathrm{entry}} = -h \tan(E_1 - \psi_1),
+     * \f]
+     * where \f$h\f$ is the effective curvature and
+     * \f[
+     *   \psi_1 = h \, \mathrm{HGAP} \, \mathrm{FINT}
+     *          \frac{1 + \sin^2(E_1)}{\cos(E_1)}.
+     * \f]
+     *
+     * This quantity is a kick coefficient, not a magnetic-field gradient. The
+     * distributed fringe-field model converts it into \f$B_x\f$ using the local
+     * reference rigidity, which introduces the additional sign implied by the
+     * Lorentz force law.
+     */
     double getEntryEdgeVerticalStrength() const;
+    /**
+     * @brief Return the signed exit-edge vertical kick strength.
+     *
+     * This is the exit-face counterpart of
+     * `getEntryEdgeVerticalStrength()`,
+     * \f[
+     *   k_{y,\mathrm{exit}} = -h \tan(E_2 - \psi_2),
+     * \f]
+     * with the same \f$\mathrm{HGAP}\f$/\f$\mathrm{FINT}\f$ correction model.
+     * As for the entry face, the returned value is a kick coefficient that must
+     * be converted to a field gradient through the local rigidity.
+     */
     double getExitEdgeVerticalStrength() const;
     void updateFieldSupportExtent();
     void updatePhysicalFieldFromReference();

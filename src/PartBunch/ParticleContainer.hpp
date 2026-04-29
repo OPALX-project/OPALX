@@ -394,7 +394,21 @@ public:
     /// @brief Set local-to-lab coordinate transformation.
     void setToLabTrafo(const CoordinateSystemTrafo& toLabTrafo) { toLabTrafo_m = toLabTrafo; }
 
-    /// @brief Advance reference/lab transform state and map bunch accordingly.
+    /**
+     * @brief Advance the moving reference frame after the reference particle was updated in lab
+     * coordinates.
+     *
+     * The stored reference particle state `refPartR_m`, `refPartP_m` lives in the lab frame.
+     * The bunch coordinates `R`, `P`, `E`, `B` live in the current moving local frame defined by
+     * `toLabTrafo_m`, which maps local coordinates into the lab frame. To construct the rigid frame
+     * update, the lab-space reference state must therefore be mapped back into the current local
+     * frame with `transformFrom()` / `rotateFrom()`:
+     * \f[
+     * \mathbf{r}_{\mathrm{ref,local}} = T_{\mathrm{toLab}}^{-1}(\mathbf{r}_{\mathrm{ref,lab}}),
+     * \qquad
+     * \mathbf{p}_{\mathrm{ref,local}} = R_{\mathrm{toLab}}^{-1}\mathbf{p}_{\mathrm{ref,lab}}.
+     * \f]
+     */
     void updateRefToLabCSTrafo(double bunchDT) {
         Vector_t<double, 3> R = toLabTrafo_m.transformFrom(refPartR_m);
         Vector_t<double, 3> P = toLabTrafo_m.rotateFrom(refPartP_m);
@@ -415,12 +429,11 @@ public:
         pusher.push(refPartR_m, refPartP_m, tau);
         refPartR_m *= (Physics::c * 2 * tau);
 
-        sPos_m = pathLengthTarget;
-        toLabTrafo_m.transformFrom(refPartR_m);
-        Vector_t<double, 3> R = refPartR_m;
-        toLabTrafo_m.rotateFrom(refPartP_m);
-        Vector_t<double, 3> P = refPartP_m;
+        sPos_m                = pathLengthTarget;
+        Vector_t<double, 3> R = toLabTrafo_m.transformFrom(refPartR_m);
+        Vector_t<double, 3> P = toLabTrafo_m.rotateFrom(refPartP_m);
         CoordinateSystemTrafo update(R, getQuaternion(P, Vector_t<double, 3>(0, 0, 1)));
+        transformBunch(update);
         toLabTrafo_m = toLabTrafo_m * update.inverted();
     }
 

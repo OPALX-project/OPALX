@@ -21,6 +21,7 @@
 #include "AbstractObjects/OpalData.h"
 #include "Physics/Units.h"
 #include "Structure/MeshGenerator.h"
+#include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
 #include "Utilities/Util.h"
 
@@ -203,6 +204,30 @@ void OpalBeamline::setNominalPlacement(
 
 void OpalBeamline::storePlacedElement(const std::shared_ptr<ElementBase>& element) {
     placementAssembly_m.insert_or_assign(element.get(), element->getPlacedElement());
+}
+
+bool OpalBeamline::requiresElementEdgeWithoutExplicitPosition(const ElementBase& element) {
+    const ElementType type = element.getType();
+    return type == ElementType::SBEND || type == ElementType::RBEND;
+}
+
+double OpalBeamline::resolveVisitStartField(const std::shared_ptr<ElementBase>& element) const {
+    if (element->isElementPositionSet()) {
+        return element->getElementPosition();
+    }
+
+    if (element->isPositioned()) {
+        return element->getPlacedElement().getNominalBodyTransform().getOrigin()(2);
+    }
+
+    if (requiresElementEdgeWithoutExplicitPosition(*element)) {
+        throw OpalException(
+                "OpalBeamline::visit",
+                "ELEMEDGE is required for analytic SBEND/RBEND element \"" + element->getName()
+                        + "\" unless the element has an explicit position from Z.");
+    }
+
+    return 0.0;
 }
 
 void OpalBeamline::compileCompatibilityPlacement() {

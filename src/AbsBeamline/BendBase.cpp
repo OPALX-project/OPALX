@@ -51,16 +51,32 @@ namespace {
         return 1.0;
     }
 
-    Euclid3D makeReferencePathTransformFromEntry(const double s, const double curvature) {
+    Euclid3D makeReferencePathTransformFromEntry(
+            const double s, const double bodyLength, const double curvature) {
         Euclid3D transform;
-        if (std::abs(curvature) > 1.0e-15) {
-            const double phi = curvature * s;
-            transform        = Euclid3D::YRotation(-phi);
-            transform.setX((std::cos(phi) - 1.0) / curvature);
-            transform.setZ(std::sin(phi) / curvature);
-        } else {
+        if (std::abs(curvature) <= 1.0e-15) {
             transform.setZ(s);
+            return transform;
         }
+
+        if (s <= 0.0) {
+            transform.setZ(s);
+            return transform;
+        }
+
+        if (s >= bodyLength) {
+            const double exitPhi = curvature * bodyLength;
+            transform            = Euclid3D::YRotation(-exitPhi);
+            transform.setX(
+                    (std::cos(exitPhi) - 1.0) / curvature - std::sin(exitPhi) * (s - bodyLength));
+            transform.setZ(std::sin(exitPhi) / curvature + std::cos(exitPhi) * (s - bodyLength));
+            return transform;
+        }
+
+        const double phi = curvature * s;
+        transform        = Euclid3D::YRotation(-phi);
+        transform.setX((std::cos(phi) - 1.0) / curvature);
+        transform.setZ(std::sin(phi) / curvature);
         return transform;
     }
 
@@ -274,21 +290,101 @@ std::vector<BendBase::TrackingSlice> BendBase::buildTrackingSlices() const {
         nSlices = std::max<std::size_t>(8u, std::max(lengthDriven, angleDriven));
     }
     const double ds        = (nSlices > 0) ? (sEnd - sBegin) / static_cast<double>(nSlices) : 0.0;
-    const double curvature = getSignedCurvature();
+    const double curvature = getReferencePathCurvature();
 
     std::vector<TrackingSlice> slices;
     slices.reserve(nSlices);
     for (std::size_t i = 0; i < nSlices; ++i) {
-        const double sliceBegin  = sBegin + static_cast<double>(i) * ds;
-        const double sliceEnd    = sBegin + static_cast<double>(i + 1) * ds;
-        const double sliceCenter = 0.5 * (sliceBegin + sliceEnd);
+        const double sliceBegin                       = sBegin + static_cast<double>(i) * ds;
+        const double sliceEnd                         = sBegin + static_cast<double>(i + 1) * ds;
+        const double sliceCenter                      = 0.5 * (sliceBegin + sliceEnd);
+        const CoordinateSystemTrafo entryToSliceLocal = toCoordinateSystemTrafo(
+                makeReferencePathTransformFromEntry(sliceCenter, bodyLength, curvature));
         slices.push_back(
                 TrackingSlice{
-                        toCoordinateSystemTrafo(
-                                makeReferencePathTransformFromEntry(sliceCenter, curvature)),
-                        sliceBegin, sliceCenter, sliceEnd});
+                        entryToSliceLocal, entryToSliceLocal.getRotationMatrix(),
+                        entryToSliceLocal.getOrigin(), sliceBegin, sliceCenter, sliceEnd});
     }
     return slices;
+}
+
+Vector_t<double, 3> BendBase::convertEntryCartesianToFieldLocal(
+        const Vector_t<double, 3>& entryCartesian) const {
+    const double bodyLength = getReferencePathLength();
+    const double curvature  = getReferencePathCurvature();
+    if (std::abs(curvature) <= 1.0e-15) {
+        return entryCartesian;
+    }
+
+    if (entryCartesian(2) <= 0.0) {
+        return entryCartesian;
+    }
+
+    const CoordinateSystemTrafo entryToExitLocal = toCoordinateSystemTrafo(
+            makeReferencePathTransformFromEntry(bodyLength, bodyLength, curvature));
+    const Vector_t<double, 3> exitLocal = entryToExitLocal.transformTo(entryCartesian);
+    if (exitLocal(2) >= 0.0) {
+        return Vector_t<double, 3>(exitLocal(0), exitLocal(1), bodyLength + exitLocal(2));
+    }
+
+    const double radius = 1.0 / curvature;
+    const double phi    = std::atan2(entryCartesian(2), entryCartesian(0) + radius);
+    const double s      = phi / curvature;
+    const double radialDistance =
+            std::hypot(entryCartesian(0) + radius, entryCartesian(2)) - std::abs(radius);
+    return Vector_t<double, 3>(radialDistance, entryCartesian(1), s);
+}
+
+Vector_t<double, 3> BendBase::rotateEntryCartesianVectorToFieldLocal(
+        const Vector_t<double, 3>& entryVector, const double s) const {
+    const double bodyLength = getReferencePathLength();
+    const double curvature  = getReferencePathCurvature();
+    if (std::abs(curvature) <= 1.0e-15) {
+        return entryVector;
+    }
+
+    if (s <= 0.0) {
+        return entryVector;
+    }
+
+    if (s >= bodyLength) {
+        const CoordinateSystemTrafo entryToExitLocal = toCoordinateSystemTrafo(
+                makeReferencePathTransformFromEntry(bodyLength, bodyLength, curvature));
+        return entryToExitLocal.rotateTo(entryVector);
+    }
+
+    const double phi  = curvature * s;
+    const double cphi = std::cos(phi);
+    const double sphi = std::sin(phi);
+    return Vector_t<double, 3>(
+            cphi * entryVector(0) + sphi * entryVector(2), entryVector(1),
+            -sphi * entryVector(0) + cphi * entryVector(2));
+}
+
+Vector_t<double, 3> BendBase::rotateFieldLocalVectorToEntryCartesian(
+        const Vector_t<double, 3>& fieldVector, const double s) const {
+    const double bodyLength = getReferencePathLength();
+    const double curvature  = getReferencePathCurvature();
+    if (std::abs(curvature) <= 1.0e-15) {
+        return fieldVector;
+    }
+
+    if (s <= 0.0) {
+        return fieldVector;
+    }
+
+    if (s >= bodyLength) {
+        const CoordinateSystemTrafo entryToExitLocal = toCoordinateSystemTrafo(
+                makeReferencePathTransformFromEntry(bodyLength, bodyLength, curvature));
+        return entryToExitLocal.rotateFrom(fieldVector);
+    }
+
+    const double phi  = curvature * s;
+    const double cphi = std::cos(phi);
+    const double sphi = std::sin(phi);
+    return Vector_t<double, 3>(
+            cphi * fieldVector(0) - sphi * fieldVector(2), fieldVector(1),
+            sphi * fieldVector(0) + cphi * fieldVector(2));
 }
 
 bool BendBase::applySlice(
@@ -311,15 +407,14 @@ bool BendBase::applySlice(
     Kokkos::deep_copy(normal, normalHost);
     Kokkos::deep_copy(skew, skewHost);
 
-    const double bodyLength       = getReferencePathLength();
-    const double fieldBegin       = -getEntryFringeSupportLength();
-    const double fieldEnd         = bodyLength + getExitFringeSupportLength();
-    const double entryFringe      = getEntryFringeSupportLength();
-    const double exitFringe       = getExitFringeSupportLength();
-    const double sliceCenter      = slice.sCenter;
-    const double sliceHalfLength  = 0.5 * (slice.sEnd - slice.sBegin);
-    const double signedCurvature  = getSignedCurvature();
-    const double dipoleFieldTesla = getField().getNormalComponent(0);
+    const double bodyLength         = getReferencePathLength();
+    const double fieldBegin         = -getEntryFringeSupportLength();
+    const double fieldEnd           = bodyLength + getExitFringeSupportLength();
+    const double entryFringe        = getEntryFringeSupportLength();
+    const double exitFringe         = getExitFringeSupportLength();
+    const double referenceCurvature = getReferencePathCurvature();
+    const double signedCurvature    = getSignedCurvature();
+    const double dipoleFieldTesla   = getField().getNormalComponent(0);
     const double bendRigidityScale =
             (std::abs(signedCurvature) > 1.0e-15) ? dipoleFieldTesla / signedCurvature : 0.0;
     const double entryEdgeHorizontalGradient =
@@ -334,23 +429,38 @@ bool BendBase::applySlice(
     const double exitEdgeVerticalGradient =
             (exitFringe > 0.0) ? -bendRigidityScale * getExitEdgeVerticalStrength() / exitFringe
                                : 0.0;
+    const matrix3x3_t entryToSliceRotation = slice.entryToSliceRotation;
+    const Vector_t<double, 3> entryOrigin  = slice.entryOrigin;
 
     Kokkos::parallel_for(
             "BendBase::applySlice", nLocal, KOKKOS_LAMBDA(const size_t i) {
-                const double zLocal = Rview(i)(2);
-                if (zLocal < -sliceHalfLength || zLocal > sliceHalfLength) {
-                    return;
+                const Vector_t<double, 3> entryCartesian =
+                        prod_vector_transpose(entryToSliceRotation, Rview(i)) + entryOrigin;
+                Vector_t<double, 3> entryChartPosition = entryCartesian;
+                if (std::abs(referenceCurvature) > 1.0e-15) {
+                    const double radius = 1.0 / referenceCurvature;
+                    const double phi    = std::atan2(entryCartesian(2), entryCartesian(0) + radius);
+                    const double s      = phi / referenceCurvature;
+                    const double radialDistance =
+                            std::hypot(entryCartesian(0) + radius, entryCartesian(2))
+                            - std::abs(radius);
+                    entryChartPosition(0) = radialDistance;
+                    entryChartPosition(1) = entryCartesian(1);
+                    entryChartPosition(2) = s;
                 }
 
-                const double s = sliceCenter + zLocal;
-                if (s < fieldBegin || s > fieldEnd) {
+                const double zEntry = entryChartPosition(2);
+                if (zEntry < slice.sBegin || zEntry > slice.sEnd) {
+                    return;
+                }
+                if (zEntry < fieldBegin || zEntry > fieldEnd) {
                     return;
                 }
 
                 Vector_t<double, 3> Bf(0.0);
-                const double x     = Rview(i)(0);
-                const double y     = Rview(i)(1);
-                const double scale = evaluateFieldScale(s, fieldBegin, bodyLength, fieldEnd);
+                const double x     = entryChartPosition(0);
+                const double y     = entryChartPosition(1);
+                const double scale = evaluateFieldScale(zEntry, fieldBegin, bodyLength, fieldEnd);
 
                 if (normal.extent(0) > 0) {
                     Bf(1) += scale * normal(0);
@@ -369,10 +479,10 @@ bool BendBase::applySlice(
 
                 double horizontalGradient = 0.0;
                 double verticalGradient   = 0.0;
-                if (s <= 0.0 && entryFringe > 0.0) {
+                if (zEntry <= 0.0 && entryFringe > 0.0) {
                     horizontalGradient = entryEdgeHorizontalGradient;
                     verticalGradient   = entryEdgeVerticalGradient;
-                } else if (s >= bodyLength && exitFringe > 0.0) {
+                } else if (zEntry >= bodyLength && exitFringe > 0.0) {
                     horizontalGradient = exitEdgeHorizontalGradient;
                     verticalGradient   = exitEdgeVerticalGradient;
                 }
@@ -381,9 +491,21 @@ bool BendBase::applySlice(
                     Bf(1) += horizontalGradient * x;
                 }
 
+                Vector_t<double, 3> Bentry = Bf;
+                if (std::abs(referenceCurvature) > 1.0e-15) {
+                    const double phi  = referenceCurvature * zEntry;
+                    const double cphi = std::cos(phi);
+                    const double sphi = std::sin(phi);
+                    Bentry(0)         = cphi * Bf(0) - sphi * Bf(2);
+                    Bentry(1)         = Bf(1);
+                    Bentry(2)         = sphi * Bf(0) + cphi * Bf(2);
+                }
+
+                const Vector_t<double, 3> Bslice = prod_vector(entryToSliceRotation, Bentry);
+
                 for (unsigned d = 0; d < 3; ++d) {
                     Eview(i)(d) += 0.0;
-                    Bview(i)(d) += Bf(d);
+                    Bview(i)(d) += Bslice(d);
                 }
             });
 
@@ -610,6 +732,10 @@ void BendBase::updatePhysicalFieldFromMomentumEV(
         return;
     }
 
+    // For a positive bend angle the placed design path curves toward negative
+    // entry-frame x. With OPALX's local field convention this requires
+    // q v_z B_y to point toward the reference-path center of curvature, giving
+    // the usual rigidity scaling B_y = p h / (q c).
     const double factor = referenceMomentumEV / (charge * Physics::c);
     BMultipoleField field;
     const int order = normalizedField_m.order();
@@ -632,6 +758,14 @@ void BendBase::updatePhysicalFieldFromReference() {
 
 double BendBase::getFieldScale(const double z) const {
     return evaluateFieldScale(z, fieldBegin_m, getElementLength(), fieldEnd_m);
+}
+
+double BendBase::getReferencePathCurvature() const {
+    const double referenceLength = getReferencePathLength();
+    if (std::abs(referenceLength) <= 1.0e-15) {
+        return 0.0;
+    }
+    return getBendAngle() / referenceLength;
 }
 
 double BendBase::getSignedCurvature() const {
