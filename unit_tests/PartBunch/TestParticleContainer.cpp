@@ -72,7 +72,7 @@ namespace {
             const size_t n = positions.size();
             if (n == 0) return;
 
-            pc->create(n);
+            pc->createParticles(n);
 
             auto R_host  = pc->R.getHostMirror();
             auto P_host  = pc->P.getHostMirror();
@@ -135,7 +135,7 @@ namespace {
         ASSERT_EQ(pc->getQMStorageMode(), PC_t::QMStorageMode::Attributes);
 
         constexpr size_t nPart = 8;
-        pc->create(nPart);
+        pc->createParticles(nPart);
         Kokkos::fence();
 
         const double qExpected = -1.6e-19;

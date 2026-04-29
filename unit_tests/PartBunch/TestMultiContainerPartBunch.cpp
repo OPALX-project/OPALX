@@ -116,7 +116,7 @@ protected:
         const int mpiRank   = ippl::Comm->rank();
         std::mt19937_64 eng(1000u + containerIndex * 97u + static_cast<unsigned>(mpiRank));
 
-        pc->create(nPart);
+        pc->createParticles(nPart);
 
         auto R_host  = pc->R.getHostMirror();
         auto P_host  = pc->P.getHostMirror();

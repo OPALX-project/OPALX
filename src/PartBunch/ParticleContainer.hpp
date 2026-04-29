@@ -5,6 +5,7 @@
 // #include <functional>
 #include <cmath>
 #include <memory>
+#include <string>
 #include <vector>
 
 #include "Manager/BaseManager.h"
@@ -58,6 +59,16 @@ using size_type = ippl::detail::size_type;
 template <typename T, unsigned Dim = 3>
 class ParticleContainer : public ippl::ParticleBase<ippl::ParticleSpatialLayout<T, Dim>> {
     using Base = ippl::ParticleBase<ippl::ParticleSpatialLayout<T, Dim>>;
+
+private:
+    /**
+     * Forbid access of the following functions outside of the ParticleContainer wrappers! This is
+     * for safety, since it might lead to undefined behaviour. The idea is to handle particle count
+     * changes completely through the ParticleContainer!
+     */
+    using Base::alloc;
+    using Base::create;
+    using Base::destroy;
 
 public:
     enum class QMStorageMode { SingleValue, Attributes };
@@ -591,7 +602,7 @@ public:
 
         if (globalDestroyNum == 0) return 0;
 
-        this->destroy(invalid, localDestroyNum);
+        destroyParticles(invalid, localDestroyNum);
 
         // Only called if globalDestroyNum > 0, i.e. if any particles were destroyed --> statistics
         // changed --> moments are dirty
@@ -657,6 +668,51 @@ public:
         m << level4 << std::left << std::setw(32) << "Requested allocation:" << numParticles
           << " particles" << endl
           << std::setw(32) << "Size of underlying view:" << this->R.size() << endl;
+    }
+
+    /**
+     * @brief Destroy the particles marked invalid in this container.
+     *
+     * Wraps `ippl::ParticleBase::destroy` with input validation: throws if
+     * `localDestroyNum` exceeds the local particle count, or if the `invalid`
+     * mask is smaller than the local particle count. The underlying call is
+     * collective (allreduce of `localNum_m`) so all MPI ranks must call this
+     * function, even with `localDestroyNum == 0`.
+     *
+     * @note Does NOT mark moments dirty automatically. Callers that depend on
+     * moment freshness must call `markMomentsDirty()` themselves.
+     *
+     * @tparam Properties Kokkos view properties of the invalid mask.
+     * @param invalid Boolean mask of length >= getLocalNum(); true entries are removed.
+     * @param localDestroyNum Number of true entries in `invalid` on this rank.
+     */
+    template <typename... Properties>
+    void destroyParticles(
+            const Kokkos::View<bool*, Properties...>& invalid, size_type localDestroyNum) {
+        Inform m("ParticleContainer::destroyParticles");
+
+        const size_type nLocal = this->getLocalNum();
+        if (localDestroyNum > nLocal) {
+            throw OpalException(
+                    "ParticleContainer::destroyParticles",
+                    "localDestroyNum (" + std::to_string(localDestroyNum)
+                            + ") exceeds local particle count (" + std::to_string(nLocal) + ").");
+        }
+        if (invalid.extent(0) < nLocal) {
+            throw OpalException(
+                    "ParticleContainer::destroyParticles",
+                    "invalid mask extent (" + std::to_string(invalid.extent(0))
+                            + ") is smaller than local particle count ("
+                            + std::to_string(nLocal) + ").");
+        }
+
+        this->destroy(invalid, localDestroyNum);
+
+        constexpr int labelWidth = 32;
+        m << level4 << std::left << std::setw(labelWidth)
+          << "Requested destruction:" << localDestroyNum << " particles" << endl
+          << std::setw(labelWidth) << "New total number:" << this->getTotalNum()
+          << " (local: " << this->getLocalNum() << ")" << endl;
     }
 
 private:
