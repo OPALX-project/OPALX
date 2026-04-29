@@ -38,6 +38,7 @@
 #include "AbsBeamline/ConstantEFieldCavity.h"
 #include "AbsBeamline/Drift.h"
 #include "AbsBeamline/ElementBase.h"
+#include "AbsBeamline/Monitor.h"
 #include "AbsBeamline/Marker.h"
 #include "AbsBeamline/Multipole.h"
 #include "AbsBeamline/MultipoleT.h"
@@ -129,6 +130,9 @@ public:
 
     /// @brief Apply the algorithm to a drift.
     virtual void visitDrift(const Drift&);
+
+    /// @brief Apply the algorithm to a monitor.
+    virtual void visitMonitor(const Monitor&);
 
     /// @brief Apply the algorithm to a marker.
     virtual void visitMarker(const Marker&);
@@ -287,6 +291,10 @@ inline void ParallelTracker::visitConstantEFieldCavity(const ConstantEFieldCavit
 
 inline void ParallelTracker::visitDrift(const Drift& drift) {
     itsOpalBeamline_m.visit(drift, *this, *itsBunch_m);
+}
+
+inline void ParallelTracker::visitMonitor(const Monitor& monitor) {
+    itsOpalBeamline_m.visit(monitor, *this, *itsBunch_m);
 }
 
 inline void ParallelTracker::visitMarker(const Marker& marker) {
