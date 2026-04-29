@@ -729,7 +729,7 @@ void MeshGenerator::write(const std::string& fname) {
     out << indent << "mesh += \"}'\"\n";
 
     out << indent << "index_compressed = base64.b64decode(index_base64)\n";
-    out << indent << "index = str(zlib.decompress(index_compressed))\n";
+    out << indent << "index = zlib.decompress(index_compressed).decode('utf-8')\n";
     out << indent << "if (len(bgcolor) == 3):\n";
     out << indent << indent << "mesh += \";\\n            \"\n";
     out << indent << indent
