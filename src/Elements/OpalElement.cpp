@@ -19,19 +19,15 @@
 
 #include "AbstractObjects/Attribute.h"
 #include "AbstractObjects/Expressions.h"
-#include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
 #include "OpalParser/Statement.h"
 #include "Physics/Physics.h"
 #include "Utilities/OpalException.h"
-#include "Utilities/Options.h"
 #include "Utilities/ParseError.h"
-#include "Utilities/Util.h"
 
-#include <regex>
-
-#include <cctype>
 #include <cmath>
+#include <exception>
+#include <regex>
 #include <sstream>
 #include <vector>
 
