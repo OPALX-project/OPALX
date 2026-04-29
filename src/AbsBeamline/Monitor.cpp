@@ -155,7 +155,7 @@ bool Monitor::applyToReferenceParticle(
     const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
     Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/) {
 
-    if (!online_m || OpalData::getInstance()->isInPrepState()) {
+    if (!online_m || lossDs_m == nullptr || OpalData::getInstance()->isInPrepState()) {
         return false;
     }
 
@@ -167,16 +167,18 @@ bool Monitor::applyToReferenceParticle(
         const double frac = -R(2) / singleStep(2);
         const double time = t + frac * dt;
         const Vector_t<double, 3> dR = frac * singleStep;
+
         const Vector_t<double, 3> dsVec = dR + 0.5 * singleStep;
         const double ds = euclidean_norm(dsVec);
+
+        std::shared_ptr<ParticleContainer_t> pc = RefPartBunch_m->getParticleContainer();
 
         lossDs_m->addReferenceParticle(
             csTrafoGlobal2Local_m.transformFrom(R + dR),
             csTrafoGlobal2Local_m.rotateFrom(P),
             time,
-            RefPartBunch_m->getParticleContainer()->get_sPos() + ds,
+            pc->get_sPos() + ds,
             RefPartBunch_m->getGlobalTrackStep());
-
 
         if (type_m == CollectionType::TEMPORAL) {
             driftToCorrectPositionAndSave(R, P);
