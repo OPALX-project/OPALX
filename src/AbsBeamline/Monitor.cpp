@@ -128,28 +128,99 @@ bool Monitor::apply(
     return false;
 }
 
+// void Monitor::driftToCorrectPositionAndSave(
+//     const Vector_t<double, 3>& /*refR*/, const Vector_t<double, 3>& /*refP*/) {
+//     // const double cdt                           = Physics::c * RefPartBunch_m->getdT();
+//     // const Vector_t<double, 3> driftPerTimeStep = cdt * Util::getBeta(refP);
+//     // const double tau                           = -refR(2) / driftPerTimeStep(2);
+//     // const CoordinateSystemTrafo update(
+//     //     refR + tau * driftPerTimeStep, getQuaternion(refP, Vector_t<double, 3>(0, 0, 1)));
+//     // const CoordinateSystemTrafo refToLocalCSTrafo =
+//     //     update * (getCSTrafoGlobal2Local() * RefPartBunch_m->toLabTrafo_m);
+
+//     // for (OpalParticle particle : *RefPartBunch_m) {
+//     //     Vector_t<double, 3> beta = refToLocalCSTrafo.rotateTo(Util::getBeta(particle.getP()));
+//     //     Vector_t<double, 3> dS =
+//     //         (tau - 0.5) * cdt
+//     //         * beta;  // the particles are half a step ahead relative to the reference particle
+//     //     particle.setR(refToLocalCSTrafo.transformTo(particle.getR()) + dS);
+//     //     lossDs_m->addParticle(particle);
+//     // }
+//     throw std::runtime_error("Fix this function please");
+// }
+
+
 void Monitor::driftToCorrectPositionAndSave(
-    const Vector_t<double, 3>& /*refR*/, const Vector_t<double, 3>& /*refP*/) {
-    // const double cdt                           = Physics::c * RefPartBunch_m->getdT();
-    // const Vector_t<double, 3> driftPerTimeStep = cdt * Util::getBeta(refP);
-    // const double tau                           = -refR(2) / driftPerTimeStep(2);
-    // const CoordinateSystemTrafo update(
-    //     refR + tau * driftPerTimeStep, getQuaternion(refP, Vector_t<double, 3>(0, 0, 1)));
-    // const CoordinateSystemTrafo refToLocalCSTrafo =
-    //     update * (getCSTrafoGlobal2Local() * RefPartBunch_m->toLabTrafo_m);
+    const Vector_t<double, 3>& refR, const Vector_t<double, 3>& refP) {
 
-    // for (OpalParticle particle : *RefPartBunch_m) {
-    //     Vector_t<double, 3> beta = refToLocalCSTrafo.rotateTo(Util::getBeta(particle.getP()));
-    //     Vector_t<double, 3> dS =
-    //         (tau - 0.5) * cdt
-    //         * beta;  // the particles are half a step ahead relative to the reference particle
-    //     particle.setR(refToLocalCSTrafo.transformTo(particle.getR()) + dS);
-    //     lossDs_m->addParticle(particle);
-    // }
-    throw std::runtime_error("Fix this function please");
+    if (lossDs_m == nullptr || RefPartBunch_m == nullptr) {
+        return;
+    }
+
+    auto pc = RefPartBunch_m->getParticleContainer();
+    if (!pc) {
+        return;
+    }
+
+    const double cdt = Physics::c * RefPartBunch_m->getdT();
+    const Vector_t<double, 3> driftPerTimeStep = cdt * Util::getBeta(refP);
+
+    if (driftPerTimeStep(2) == 0.0) {
+        return;
+    }
+
+    const double tau = -refR(2) / driftPerTimeStep(2);
+
+    const CoordinateSystemTrafo update(
+        refR + tau * driftPerTimeStep,
+        getQuaternion(refP, Vector_t<double, 3>(0.0, 0.0, 1.0)));
+
+    const CoordinateSystemTrafo refToLocalCSTrafo =
+        update * (getCSTrafoGlobal2Local() * pc->getToLabTrafo());
+
+    auto Rview  = pc->R.getView();
+    auto Pview  = pc->P.getView();
+    auto Qview  = pc->getQView();
+    auto Mview  = pc->getMView();
+    auto IDview = pc->ID.getView();
+
+    auto hR  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), Rview);
+    auto hP  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), Pview);
+    auto hQ  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), Qview);
+    auto hM  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), Mview);
+    auto hID = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), IDview);
+
+    const auto nLoc = pc->getLocalNum();
+    const bool qmAreAttributes =
+        (pc->getQMStorageMode() == ParticleContainer_t::QMStorageMode::Attributes);
+
+    const double crossingTime =
+        RefPartBunch_m->getT() + tau * RefPartBunch_m->getdT();
+
+    for (size_t i = 0; i < nLoc; ++i) {
+        const Vector_t<double, 3> globalR = hR(i);
+        const Vector_t<double, 3> globalP = hP(i);
+
+        const Vector_t<double, 3> beta =
+            refToLocalCSTrafo.rotateTo(Util::getBeta(globalP));
+
+        const Vector_t<double, 3> dS =
+            (tau - 0.5) * cdt * beta;
+
+        const Vector_t<double, 3> localR =
+            refToLocalCSTrafo.transformTo(globalR) + dS;
+        const Vector_t<double, 3> localP =
+            refToLocalCSTrafo.rotateTo(globalP);
+
+        const double q = qmAreAttributes ? hQ(i) : hQ(0);
+        const double m = qmAreAttributes ? hM(i) : hM(0);
+
+        const std::size_t id = static_cast<std::size_t>(hID(i));
+
+        lossDs_m->addParticle(
+            OpalParticle(id, localR, localP, crossingTime, q, m));
+    }
 }
-
-
 
 bool Monitor::applyToReferenceParticle(
     const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
