@@ -61,43 +61,70 @@ void Monitor::accept(BeamlineVisitor& visitor) const {
     visitor.visitMonitor(*this);
 }
 
-bool Monitor::apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/) {
+
+
+bool Monitor::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
+    if (!online_m || lossDs_m == nullptr || pc == nullptr) {
+        return false;
+    }
+
+    if (type_m != CollectionType::SPATIAL) {
+        return false;
+    }
+
+    const auto nLoc = pc->getLocalNum();
+    if (nLoc == 0) {
+        return false;
+    }
+
+    auto Rview  = pc->R.getView();
+    auto Pview  = pc->P.getView();
+    auto dtview = pc->dt.getView();
+    auto IDview = pc->ID.getView();
+    auto Qview  = pc->getQView();
+    auto Mview  = pc->getMView();
+
+    auto hR  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), Rview);
+    auto hP  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), Pview);
+    auto hdt = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), dtview);
+    auto hID = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), IDview);
+    auto hQ  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), Qview);
+    auto hM  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), Mview);
+
+    const bool qmAreAttributes =
+        (pc->getQMStorageMode() == ParticleContainer_t::QMStorageMode::Attributes);
+
+    const double bunchTime = RefPartBunch_m->getT();
+
+    for (size_t i = 0; i < nLoc; ++i) {
+        const Vector_t<double, 3> R = hR(i);
+        const Vector_t<double, 3> P = hP(i);
+        const double dt = hdt(i);
+
+        const Vector_t<double, 3> singleStep = Physics::c * dt * Util::getBeta(P);
+
+        if (singleStep(2) == 0.0) {
+            continue;
+        }
+
+        if (dt * R(2) < 0.0 && dt * (R(2) + singleStep(2)) > 0.0) {
+            const double frac = -R(2) / singleStep(2);
+
+            const Vector_t<double, 3> crossingR = R + frac * singleStep;
+            const double crossingTime = bunchTime + frac * dt;
+
+            const std::size_t id = static_cast<std::size_t>(hID(i));
+            const double q = qmAreAttributes ? hQ(i) : hQ(0);
+            const double m = qmAreAttributes ? hM(i) : hM(0);
+
+            lossDs_m->addParticle(
+                OpalParticle(id, crossingR, P, crossingTime, q, m));
+        }
+    }
+
     return false;
 }
 
-
-// bool Monitor::apply(
-//     const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B)
-// {
-//     auto pc = RefPartBunch_m->getParticleContainer();
-//     auto Rview  = pc->R.getView();
-//     auto Pview  = pc->P.getView();
-//     auto dtview = pc->dt.getView();
-
-//     const Vector_t<double, 3> R = Rview(i);
-//     const Vector_t<double, 3> P = Pview(i);
-//     const double dt = dtview(i);
-
-//     // monitor is field-free
-//     (void)E; (void)B;
-
-//     if (!online_m || type_m != CollectionType::SPATIAL) {
-//         return false;
-//     }
-
-//     const Vector_t<double, 3> beta       = Util::getBeta(P);
-//     const Vector_t<double, 3> singleStep = Physics::c * dt * beta;
-
-//     if (dt * R(2) < 0.0 && dt * (R(2) + singleStep(2)) > 0.0) {
-//         const double frac = -R(2) / singleStep(2);
-
-//         // host-side sink insertion only
-//         // ID handling still needs a decision in OPALX
-//         // Q/M should come from pc->getChargePerParticle(), pc->getMassPerParticle()
-//     }
-
-//     return false;
-// }
 
 
 bool Monitor::apply(
@@ -117,38 +144,15 @@ bool Monitor::apply(
 //         }
 //     }
 
-   throw std::runtime_error("Fix this function please");
+//    throw std::runtime_error("Fix this function please");
    return false;
 }
 
 bool Monitor::apply(
     const Vector_t<double, 3>& /*R*/, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
     Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/) {
-    throw std::runtime_error("Fix this function please");
     return false;
 }
-
-// void Monitor::driftToCorrectPositionAndSave(
-//     const Vector_t<double, 3>& /*refR*/, const Vector_t<double, 3>& /*refP*/) {
-//     // const double cdt                           = Physics::c * RefPartBunch_m->getdT();
-//     // const Vector_t<double, 3> driftPerTimeStep = cdt * Util::getBeta(refP);
-//     // const double tau                           = -refR(2) / driftPerTimeStep(2);
-//     // const CoordinateSystemTrafo update(
-//     //     refR + tau * driftPerTimeStep, getQuaternion(refP, Vector_t<double, 3>(0, 0, 1)));
-//     // const CoordinateSystemTrafo refToLocalCSTrafo =
-//     //     update * (getCSTrafoGlobal2Local() * RefPartBunch_m->toLabTrafo_m);
-
-//     // for (OpalParticle particle : *RefPartBunch_m) {
-//     //     Vector_t<double, 3> beta = refToLocalCSTrafo.rotateTo(Util::getBeta(particle.getP()));
-//     //     Vector_t<double, 3> dS =
-//     //         (tau - 0.5) * cdt
-//     //         * beta;  // the particles are half a step ahead relative to the reference particle
-//     //     particle.setR(refToLocalCSTrafo.transformTo(particle.getR()) + dS);
-//     //     lossDs_m->addParticle(particle);
-//     // }
-//     throw std::runtime_error("Fix this function please");
-// }
-
 
 void Monitor::driftToCorrectPositionAndSave(
     const Vector_t<double, 3>& refR, const Vector_t<double, 3>& refP) {
@@ -180,15 +184,15 @@ void Monitor::driftToCorrectPositionAndSave(
 
     auto Rview  = pc->R.getView();
     auto Pview  = pc->P.getView();
+    auto IDview = pc->ID.getView();
     auto Qview  = pc->getQView();
     auto Mview  = pc->getMView();
-    auto IDview = pc->ID.getView();
 
     auto hR  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), Rview);
     auto hP  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), Pview);
+    auto hID = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), IDview);
     auto hQ  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), Qview);
     auto hM  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), Mview);
-    auto hID = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), IDview);
 
     const auto nLoc = pc->getLocalNum();
     const bool qmAreAttributes =
