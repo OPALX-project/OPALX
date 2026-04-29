@@ -600,6 +600,44 @@ public:
         return globalDestroyNum;
     }
 
+    /**
+     * @brief Create/allocate a specified number of particles.
+     *
+     * This function creates a given number of particles in the container. It's a wrapper around the
+     * non destructive IPPL particle create function, but will print out a warning if the create
+     * call led to unnecessary reallocation (i.e. if the new total number of particles exceeds the
+     * previous capacity).
+     *
+     * @note The underlying `create` is a collective call, so all MPI ranks must call this function.
+     * IPPL automatically handles the short-circuit if internal capacity is sufficient.
+     *
+     * @param numParticles The number of particles to create.
+     */
+    void createParticles(size_type numParticles) {
+        Inform m("ParticleContainer::createParticles");
+
+        // Total allocated capacity of the underlying view
+        size_type oldCapacity = this->R.size();
+        this->create(numParticles, true);  // non_destructive = true
+        size_type newCapacity = this->R.size();
+
+        // Pretty print numParticles, newCapacity and new totalNum + localNum after creation
+        constexpr int labelWidth = 32;
+        m << level4 << std::left << std::setw(labelWidth) << "Requested creation:" << numParticles
+          << " particles" << endl
+          << std::setw(labelWidth) << "New total number:" << this->getTotalNum()
+          << " (local: " << this->getLocalNum() << ")" << endl
+          << std::setw(labelWidth) << "Underlying view capacity:" << newCapacity << endl;
+
+        if (newCapacity != oldCapacity) {
+            m << level1
+              << "WARNING: createParticles triggered a reallocation of the underlying particle "
+                 "views! This can be a costly operation. To avoid this, consider increasing "
+                 "preallocation (BEAM::NALLOC) or the overallocation factor."
+              << endl;
+        }
+    }
+
 private:
     void setBCAllPeriodic() { this->setParticleBC(ippl::BC::PERIODIC); }
 
