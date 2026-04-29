@@ -638,6 +638,27 @@ public:
         }
     }
 
+    void allocateParticles(size_type numParticles) {
+        Inform m("ParticleContainer::allocateParticles");
+
+        // Total allocated capacity of the underlying view
+        size_type oldCapacity = this->R.size();
+        if (oldCapacity != 0) {
+            throw OpalException(
+                    "ParticleContainer::allocateParticles",
+                    "Underlying views already allocated. This function is meant to be called on an "
+                    "empty container, since it is destructive on existing particles. If you want "
+                    "to create particles without deallocating existing ones, use createParticles() "
+                    "instead.");
+        }
+
+        this->alloc(numParticles);  // alloc is always destructive
+
+        m << level4 << std::left << std::setw(32) << "Requested allocation:" << numParticles
+          << " particles" << endl
+          << std::setw(32) << "Size of underlying view:" << this->R.size() << endl;
+    }
+
 private:
     void setBCAllPeriodic() { this->setParticleBC(ippl::BC::PERIODIC); }
 
