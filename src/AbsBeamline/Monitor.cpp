@@ -256,8 +256,7 @@ void Monitor::getDimensions(double& zBegin, double& zEnd) const {
 }
 
 ElementType Monitor::getType() const {
-    // return ElementType::MONITOR;
-    throw std::runtime_error("Fix this function please");
+    return ElementType::MONITOR;
 }
 
 void Monitor::writeStatistics() {
