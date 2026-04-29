@@ -375,9 +375,9 @@ void FlatTop::emitParticles(double t, double dt) {
     // Intended design: fill only into pre-allocated slice [nextEmitIndex, nextEmitIndex+nNew)
     // (no create), when ParticleContainer supports reserve(total) + setActiveSize. Until then
     // we extend the container each step.
-    // Note that create can be safely called with nNew=0 (no-op), but it NEEDS to be called, since
-    // other ranks might have != 0 leading to a MPI_Allreduce.
-    pc_m->create(nNew);
+    // Note that createParticles can be safely called with nNew=0 (no-op), but it NEEDS to be
+    // called, since other ranks might have != 0 leading to a MPI_Allreduce.
+    pc_m->createParticles(nNew);
 
     // Generate new particles on uniform disc (sample into [nlocal, nlocal+nNew)).
     // Each particle receives a fractional per-particle dt for sub-timestep spreading.
@@ -413,7 +413,7 @@ void FlatTop::testNumEmitParticles(size_type nsteps, double dt) {
         size_type nlocal = pc_m->getLocalNum();
 
         // extend particle container to accomodate new particles
-        pc_m->create(nNew);
+        pc_m->createParticles(nNew);
 
         // generate new particles on uniform disc
         generateUniformDisk(nlocal, nNew, dt);

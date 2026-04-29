@@ -281,9 +281,7 @@ TEST_F(FlatTopTest, CountEnteringParticles_NoDomainDecomp) {
     const size_t nranksU = static_cast<size_t>(nranksConst);
     const size_t maxLocalNum =
         totalN / nranksU + 2 * nranksU + 1;
-    pc->create(maxLocalNum);
-    Kokkos::View<bool*> tmp_invalid("tmp_invalid", maxLocalNum);
-    pc->destroy(tmp_invalid, maxLocalNum);
+    pc->allocateParticles(maxLocalNum);
 
     const double t0 = 2.0;
     const double tf = 2.1;

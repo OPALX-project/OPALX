@@ -107,9 +107,7 @@ TEST_F(FromFileTest, GeneratesParticlesFromAsciiFile) {
     const size_t nranksU = static_cast<size_t>(nranks);
     const size_t maxLocalNum =
         requested / nranksU + 2 * nranksU + 1;
-    pc->create(maxLocalNum);
-    Kokkos::View<bool*> tmp_invalid("tmp_invalid", maxLocalNum);
-    pc->destroy(tmp_invalid, maxLocalNum);
+    pc->allocateParticles(maxLocalNum);
 
     sampler.generateParticles(requested, nr);
 

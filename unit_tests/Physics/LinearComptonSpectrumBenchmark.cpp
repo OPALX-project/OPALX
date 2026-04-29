@@ -159,9 +159,7 @@ void preallocateParticleCapacity(const std::shared_ptr<ParticleContainer<double,
     const std::size_t nranksU = static_cast<std::size_t>(nranks);
     const std::size_t maxLocalNum = totalParticles / nranksU + 2 * nranksU + 1;
 
-    pc->create(maxLocalNum);
-    Kokkos::View<bool*> tmpInvalid("tmp_invalid", maxLocalNum);
-    pc->destroy(tmpInvalid, maxLocalNum);
+    pc->allocateParticles(maxLocalNum);
 }
 
 /**

@@ -215,9 +215,7 @@ static void preallocateParticleCapacity(
     const size_t maxLocalNum =
         totalParticles / nranksU + 2 * nranksU + 1;
 
-    pc->create(maxLocalNum);
-    Kokkos::View<bool*> tmp_invalid("tmp_invalid", maxLocalNum);
-    pc->destroy(tmp_invalid, maxLocalNum);
+    pc->allocateParticles(maxLocalNum);
 }
 
 TEST_F(MultiVariateGaussianTest, cutoffR)
