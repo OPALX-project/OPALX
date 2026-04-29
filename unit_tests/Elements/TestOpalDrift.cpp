@@ -24,21 +24,21 @@
 
 namespace {
 
-class TestOpalDrift: public testing::Test {
-public:
-    TestOpalDrift() = default;
-};
+    class TestOpalDrift : public testing::Test {
+    public:
+        TestOpalDrift() = default;
+    };
 
-std::unique_ptr<OpalDrift> makeDrift(const std::optional<std::string>& aperture) {
-    auto drift = std::make_unique<OpalDrift>();
-    Attributes::setReal(*drift->findAttribute("L"), 2.0);
-    Attributes::setReal(*drift->findAttribute("ELEMEDGE"), 0.0);
-    if (aperture.has_value()) {
-        Attributes::setString(*drift->findAttribute("APERTURE"), aperture.value());
+    std::unique_ptr<OpalDrift> makeDrift(const std::optional<std::string>& aperture) {
+        auto drift = std::make_unique<OpalDrift>();
+        Attributes::setReal(*drift->findAttribute("L"), 2.0);
+        Attributes::setReal(*drift->findAttribute("ELEMEDGE"), 0.0);
+        if (aperture.has_value()) {
+            Attributes::setString(*drift->findAttribute("APERTURE"), aperture.value());
+        }
+        drift->update();
+        return drift;
     }
-    drift->update();
-    return drift;
-}
 
 }  // namespace
 
@@ -56,22 +56,14 @@ TEST_F(TestOpalDrift, CircleDefaultsMatchDefaultApertureBehaviour) {
     ASSERT_NE(conicCircleElement, nullptr);
 
     const std::vector<Vector_t<double, 3>> probes = {
-        {0.00, 0.00, 0.20},
-        {0.20, 0.10, 1.00},
-        {0.49, 0.00, 0.20},
-        {0.49, 0.00, 1.00},
-        {0.49, 0.00, 1.80},
-        {0.50, 0.00, 1.00},
-        {0.00, 0.50, 1.00},
-        {0.36, 0.36, 1.00},
-        {0.40, 0.40, 1.00},
-        {0.00, 0.00, -0.10},
-        {0.00, 0.00, 2.00}
-    };
+            {0.00, 0.00, 0.20}, {0.20, 0.10, 1.00},  {0.49, 0.00, 0.20}, {0.49, 0.00, 1.00},
+            {0.49, 0.00, 1.80}, {0.50, 0.00, 1.00},  {0.00, 0.50, 1.00}, {0.36, 0.36, 1.00},
+            {0.40, 0.40, 1.00}, {0.00, 0.00, -0.10}, {0.00, 0.00, 2.00}};
 
-    for (const Vector_t<double, 3>& r: probes) {
-        SCOPED_TRACE(::testing::Message()
-                     << "Probe point (" << r[0] << ", " << r[1] << ", " << r[2] << ")");
+    for (const Vector_t<double, 3>& r : probes) {
+        SCOPED_TRACE(
+                ::testing::Message()
+                << "Probe point (" << r[0] << ", " << r[1] << ", " << r[2] << ")");
         EXPECT_EQ(noApertureElement->isInside(r), circleElement->isInside(r));
         EXPECT_EQ(noApertureElement->isInside(r), conicCircleElement->isInside(r));
     }
@@ -94,21 +86,14 @@ TEST_F(TestOpalDrift, SquareAndRectangleEquivalentBehaviour) {
     ASSERT_NE(conicSquareElement, nullptr);
 
     const std::vector<Vector_t<double, 3>> probes = {
-        {0.00, 0.00, 0.20},
-        {0.49, 0.49, 1.00},
-        {0.49, 0.10, 1.80},
-        {0.10, 0.49, 0.20},
-        {0.50, 0.10, 1.00},
-        {0.10, 0.50, 1.00},
-        {0.60, 0.40, 1.00},
-        {0.40, 0.60, 1.00},
-        {0.00, 0.00, -0.10},
-        {0.00, 0.00, 2.00}
-    };
+            {0.00, 0.00, 0.20},  {0.49, 0.49, 1.00}, {0.49, 0.10, 1.80}, {0.10, 0.49, 0.20},
+            {0.50, 0.10, 1.00},  {0.10, 0.50, 1.00}, {0.60, 0.40, 1.00}, {0.40, 0.60, 1.00},
+            {0.00, 0.00, -0.10}, {0.00, 0.00, 2.00}};
 
-    for (const Vector_t<double, 3>& r: probes) {
-        SCOPED_TRACE(::testing::Message()
-                     << "Probe point (" << r[0] << ", " << r[1] << ", " << r[2] << ")");
+    for (const Vector_t<double, 3>& r : probes) {
+        SCOPED_TRACE(
+                ::testing::Message()
+                << "Probe point (" << r[0] << ", " << r[1] << ", " << r[2] << ")");
         const bool expected = rectangleElement->isInside(r);
         EXPECT_EQ(expected, conicRectangleElement->isInside(r));
         EXPECT_EQ(expected, squareElement->isInside(r));
@@ -117,7 +102,7 @@ TEST_F(TestOpalDrift, SquareAndRectangleEquivalentBehaviour) {
 }
 
 TEST_F(TestOpalDrift, ConicCircleOpeningBehaviour) {
-    auto conicCircle = makeDrift("CIRCLE(1,2)");
+    auto conicCircle                = makeDrift("CIRCLE(1,2)");
     ElementBase* conicCircleElement = conicCircle->getElement();
 
     ASSERT_NE(conicCircleElement, nullptr);
@@ -125,9 +110,9 @@ TEST_F(TestOpalDrift, ConicCircleOpeningBehaviour) {
     const Vector_t<double, 3> centerline = {0.00, 0.00, 1.00};
     EXPECT_TRUE(conicCircleElement->isInside(centerline));
 
-    const Vector_t<double, 3> startProbe = {0.75, 0.00, 0.10};
+    const Vector_t<double, 3> startProbe  = {0.75, 0.00, 0.10};
     const Vector_t<double, 3> middleProbe = {0.75, 0.00, 1.00};
-    const Vector_t<double, 3> endProbe = {0.75, 0.00, 1.90};
+    const Vector_t<double, 3> endProbe    = {0.75, 0.00, 1.90};
 
     EXPECT_FALSE(conicCircleElement->isInside(startProbe));
     EXPECT_FALSE(conicCircleElement->isInside(middleProbe));
@@ -135,14 +120,14 @@ TEST_F(TestOpalDrift, ConicCircleOpeningBehaviour) {
 }
 
 TEST_F(TestOpalDrift, ConicCircleClosingBehaviour) {
-    auto conicCircle = makeDrift("CIRCLE(1,0.5)");
+    auto conicCircle                = makeDrift("CIRCLE(1,0.5)");
     ElementBase* conicCircleElement = conicCircle->getElement();
 
     ASSERT_NE(conicCircleElement, nullptr);
 
-    const Vector_t<double, 3> startProbe = {0.40, 0.00, 0.10};
+    const Vector_t<double, 3> startProbe  = {0.40, 0.00, 0.10};
     const Vector_t<double, 3> middleProbe = {0.40, 0.00, 1.00};
-    const Vector_t<double, 3> endProbe = {0.40, 0.00, 1.90};
+    const Vector_t<double, 3> endProbe    = {0.40, 0.00, 1.90};
 
     EXPECT_TRUE(conicCircleElement->isInside(startProbe));
     EXPECT_FALSE(conicCircleElement->isInside(middleProbe));
@@ -150,26 +135,20 @@ TEST_F(TestOpalDrift, ConicCircleClosingBehaviour) {
 }
 
 TEST_F(TestOpalDrift, CircleConstantAlongLengthAndLongitudinalBounds) {
-    auto circle = makeDrift("CIRCLE(1)");
+    auto circle                = makeDrift("CIRCLE(1)");
     ElementBase* circleElement = circle->getElement();
 
     ASSERT_NE(circleElement, nullptr);
 
     const std::vector<Vector_t<double, 3>> insideTransverseInsideLength = {
-        {0.49, 0.00, 0.10},
-        {0.49, 0.00, 1.00},
-        {0.49, 0.00, 1.90}
-    };
-    for (const Vector_t<double, 3>& r: insideTransverseInsideLength) {
+            {0.49, 0.00, 0.10}, {0.49, 0.00, 1.00}, {0.49, 0.00, 1.90}};
+    for (const Vector_t<double, 3>& r : insideTransverseInsideLength) {
         EXPECT_TRUE(circleElement->isInside(r));
     }
 
     const std::vector<Vector_t<double, 3>> outsideTransverseInsideLength = {
-        {0.51, 0.00, 0.10},
-        {0.51, 0.00, 1.00},
-        {0.51, 0.00, 1.90}
-    };
-    for (const Vector_t<double, 3>& r: outsideTransverseInsideLength) {
+            {0.51, 0.00, 0.10}, {0.51, 0.00, 1.00}, {0.51, 0.00, 1.90}};
+    for (const Vector_t<double, 3>& r : outsideTransverseInsideLength) {
         EXPECT_FALSE(circleElement->isInside(r));
     }
 
