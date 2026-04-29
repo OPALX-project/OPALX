@@ -159,9 +159,18 @@ bool Monitor::applyToReferenceParticle(
         return false;
     }
 
-    const double dt  = RefPartBunch_m->getdT();
+    std::shared_ptr<ParticleContainer_t> pc = RefPartBunch_m->getParticleContainer();
+    if (!pc) {
+        return false;
+    }
+
+    const double dt = RefPartBunch_m->getdT();
     const double cdt = Physics::c * dt;
     const Vector_t<double, 3> singleStep = cdt * Util::getBeta(P);
+
+    if (singleStep(2) == 0.0) {
+        return false;
+    }
 
     if (dt * R(2) < 0.0 && dt * (R(2) + singleStep(2)) > 0.0) {
         const double frac = -R(2) / singleStep(2);
@@ -170,8 +179,6 @@ bool Monitor::applyToReferenceParticle(
 
         const Vector_t<double, 3> dsVec = dR + 0.5 * singleStep;
         const double ds = euclidean_norm(dsVec);
-
-        std::shared_ptr<ParticleContainer_t> pc = RefPartBunch_m->getParticleContainer();
 
         lossDs_m->addReferenceParticle(
             csTrafoGlobal2Local_m.transformFrom(R + dR),
