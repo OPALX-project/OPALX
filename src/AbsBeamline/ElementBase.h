@@ -70,13 +70,14 @@
 #include "BeamlineGeometry/Geometry.h"
 #include "Structure/BoundingBox.h"
 #include "Utilities/GeneralOpalException.h"
-
-#include <memory>
-#include <optional>
+#include "VectorMath.h"
 
 #include <map>
+#include <memory>
 #include <queue>
 #include <string>
+#include <utility>
+#include <vector>
 
 class BeamlineVisitor;
 class BoundaryGeometry;
@@ -391,89 +392,52 @@ private:
 // Inline functions.
 // ------------------------------------------------------------------------
 
-inline double ElementBase::getArcLength() const {
-    return getGeometry().getArcLength();
-}
+inline double ElementBase::getArcLength() const { return getGeometry().getArcLength(); }
 
-inline double ElementBase::getElementLength() const {
-    return getGeometry().getElementLength();
-}
+inline double ElementBase::getElementLength() const { return getGeometry().getElementLength(); }
 
-inline void ElementBase::setElementLength(double length) {
-    getGeometry().setElementLength(length);
-}
+inline void ElementBase::setElementLength(double length) { getGeometry().setElementLength(length); }
 
-inline double ElementBase::getOrigin() const {
-    return getGeometry().getOrigin();
-}
+inline double ElementBase::getOrigin() const { return getGeometry().getOrigin(); }
 
-inline double ElementBase::getEntrance() const {
-    return getGeometry().getEntrance();
-}
+inline double ElementBase::getEntrance() const { return getGeometry().getEntrance(); }
 
-inline double ElementBase::getExit() const {
-    return getGeometry().getExit();
-}
+inline double ElementBase::getExit() const { return getGeometry().getExit(); }
 
 inline Euclid3D ElementBase::getTransform(double fromS, double toS) const {
     return getGeometry().getTransform(fromS, toS);
 }
 
-inline Euclid3D ElementBase::getTotalTransform() const {
-    return getGeometry().getTotalTransform();
-}
+inline Euclid3D ElementBase::getTotalTransform() const { return getGeometry().getTotalTransform(); }
 
-inline Euclid3D ElementBase::getTransform(double s) const {
-    return getGeometry().getTransform(s);
-}
+inline Euclid3D ElementBase::getTransform(double s) const { return getGeometry().getTransform(s); }
 
-inline Euclid3D ElementBase::getEntranceFrame() const {
-    return getGeometry().getEntranceFrame();
-}
+inline Euclid3D ElementBase::getEntranceFrame() const { return getGeometry().getEntranceFrame(); }
 
-inline Euclid3D ElementBase::getExitFrame() const {
-    return getGeometry().getExitFrame();
-}
+inline Euclid3D ElementBase::getExitFrame() const { return getGeometry().getExitFrame(); }
 
-inline Euclid3D ElementBase::getEntrancePatch() const {
-    return getGeometry().getEntrancePatch();
-}
+inline Euclid3D ElementBase::getEntrancePatch() const { return getGeometry().getEntrancePatch(); }
 
-inline Euclid3D ElementBase::getExitPatch() const {
-    return getGeometry().getExitPatch();
-}
+inline Euclid3D ElementBase::getExitPatch() const { return getGeometry().getExitPatch(); }
 
-inline bool ElementBase::isSharable() const {
-    return shareFlag;
-}
+inline bool ElementBase::isSharable() const { return shareFlag; }
 
-inline WakeFunction* ElementBase::getWake() const {
-    return wake_m;
-}
+inline WakeFunction* ElementBase::getWake() const { return wake_m; }
 
-inline bool ElementBase::hasWake() const {
-    return wake_m != nullptr;
-}
+inline bool ElementBase::hasWake() const { return wake_m != nullptr; }
 
-inline BoundaryGeometry* ElementBase::getBoundaryGeometry() const {
-    return bgeometry_m;
-}
+inline BoundaryGeometry* ElementBase::getBoundaryGeometry() const { return bgeometry_m; }
 
-inline bool ElementBase::hasBoundaryGeometry() const {
-    return bgeometry_m != nullptr;
-}
+inline bool ElementBase::hasBoundaryGeometry() const { return bgeometry_m != nullptr; }
 
 inline ParticleMatterInteractionHandler* ElementBase::getParticleMatterInteraction() const {
     return parmatint_m;
 }
 
-inline bool ElementBase::hasParticleMatterInteraction() const {
-    return parmatint_m != nullptr;
-}
+inline bool ElementBase::hasParticleMatterInteraction() const { return parmatint_m != nullptr; }
 
 inline void ElementBase::setCSTrafoGlobal2Local(const CoordinateSystemTrafo& trafo) {
-    if (positionIsFixed)
-        return;
+    if (positionIsFixed) return;
 
     csTrafoGlobal2Local_m = trafo;
 }
@@ -489,7 +453,7 @@ inline CoordinateSystemTrafo ElementBase::getEdgeToBegin() const {
 
 inline CoordinateSystemTrafo ElementBase::getEdgeToEnd() const {
     CoordinateSystemTrafo ret(
-        Vector_t<double, 3>({0, 0, getElementLength()}), Quaternion(1, 0, 0, 0));
+            Vector_t<double, 3>({0, 0, getElementLength()}), Quaternion(1, 0, 0, 0));
 
     return ret;
 }
@@ -508,44 +472,27 @@ inline bool ElementBase::isInside(const Vector_t<double, 3>& r) const {
     return r(2) >= 0.0 && r(2) < length && isInsideTransverse(r);
 }
 
-inline void ElementBase::setMisalignment(const CoordinateSystemTrafo& cst) {
-    misalignment_m = cst;
-}
+inline void ElementBase::setMisalignment(const CoordinateSystemTrafo& cst) { misalignment_m = cst; }
 
-inline CoordinateSystemTrafo ElementBase::getMisalignment() const {
-    return misalignment_m;
-}
+inline CoordinateSystemTrafo ElementBase::getMisalignment() const { return misalignment_m; }
 
-inline void ElementBase::releasePosition() {
-    positionIsFixed = false;
-}
+inline void ElementBase::releasePosition() { positionIsFixed = false; }
 
-inline void ElementBase::fixPosition() {
-    positionIsFixed = true;
-}
+inline void ElementBase::fixPosition() { positionIsFixed = true; }
 
-inline bool ElementBase::isPositioned() const {
-    return positionIsFixed;
-}
+inline bool ElementBase::isPositioned() const { return positionIsFixed; }
 
 inline void ElementBase::setActionRange(const std::queue<std::pair<double, double> >& range) {
     actionRange_m = range;
 
-    if (!actionRange_m.empty())
-        elementEdge_m = actionRange_m.front().first;
+    if (!actionRange_m.empty()) elementEdge_m = actionRange_m.front().first;
 }
 
-inline void ElementBase::setRotationAboutZ(double rotation) {
-    rotationZAxis_m = rotation;
-}
+inline void ElementBase::setRotationAboutZ(double rotation) { rotationZAxis_m = rotation; }
 
-inline double ElementBase::getRotationAboutZ() const {
-    return rotationZAxis_m;
-}
+inline double ElementBase::getRotationAboutZ() const { return rotationZAxis_m; }
 
-inline std::string ElementBase::getTypeString() const {
-    return getTypeString(getType());
-}
+inline std::string ElementBase::getTypeString() const { return getTypeString(getType()); }
 
 inline void ElementBase::setElementPosition(double elemedge) {
     elementPosition_m = elemedge;
@@ -553,28 +500,21 @@ inline void ElementBase::setElementPosition(double elemedge) {
 }
 
 inline double ElementBase::getElementPosition() const {
-    if (elemedgeSet_m)
-        return elementPosition_m;
+    if (elemedgeSet_m) return elementPosition_m;
 
     throw GeneralOpalException(
-        "ElementBase::getElementPosition()",
-        std::string("ELEMEDGE for \"") + getName() + "\" not set");
+            "ElementBase::getElementPosition()",
+            std::string("ELEMEDGE for \"") + getName() + "\" not set");
 }
 
-inline bool ElementBase::isElementPositionSet() const {
-    return elemedgeSet_m;
-}
+inline bool ElementBase::isElementPositionSet() const { return elemedgeSet_m; }
 
-inline int ElementBase::getRequiredNumberOfTimeSteps() const {
-    return 10;
-}
+inline int ElementBase::getRequiredNumberOfTimeSteps() const { return 10; }
 
 inline void ElementBase::setFlagDeleteOnTransverseExit(bool flag) {
     deleteOnTransverseExit_m = flag;
 }
 
-inline bool ElementBase::getFlagDeleteOnTransverseExit() const {
-    return deleteOnTransverseExit_m;
-}
+inline bool ElementBase::getFlagDeleteOnTransverseExit() const { return deleteOnTransverseExit_m; }
 
 #endif  // OPALX_ElementBase_HH

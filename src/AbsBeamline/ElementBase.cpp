@@ -64,7 +64,11 @@
 
 #include "Channels/Channel.h"
 
+#include <algorithm>
+#include <cmath>
 #include <filesystem>
+#include <iostream>
+#include <vector>
 
 const std::map<ElementType, std::string> ElementBase::elementTypeToString_s = {
         {ElementType::ANY, "Any"},
