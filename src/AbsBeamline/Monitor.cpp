@@ -328,6 +328,10 @@ void Monitor::goOnline(const double&) {
 }
 
 void Monitor::goOffline() {
+    if (!lossDs_m) {
+        return;
+    }
+
     auto stats = lossDs_m->computeStatistics(numPassages_m);
     for (auto& stat : stats) {
         statFileEntries_sm.insert(std::make_pair(stat.spos_m, stat));
