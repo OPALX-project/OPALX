@@ -67,7 +67,7 @@ size_t Decay::apply(
     }
 
     /* Phase 4: Destroy decayed parent particles. */
-    pc.destroy(invalid, localDestroyNum);
+    pc.destroyParticles(invalid, localDestroyNum);
     return static_cast<size_t>(globalDestroyNum);
 }
 
