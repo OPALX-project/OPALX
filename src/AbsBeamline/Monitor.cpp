@@ -149,46 +149,54 @@ void Monitor::driftToCorrectPositionAndSave(
     throw std::runtime_error("Fix this function please");
 }
 
-//  maybe it
 
 
 bool Monitor::applyToReferenceParticle(
-    const Vector_t<double, 3>& /*R*/, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
+    const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
     Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/) {
-    // if (!OpalData::getInstance()->isInPrepState()) {
-    //     const double dt                      = RefPartBunch_m->getdT();
-    //     const double cdt                     = Physics::c * dt;
-    //     const Vector_t<double, 3> singleStep = cdt * Util::getBeta(P);
 
-    //     if (dt * R(2) < 0.0 && dt * (R(2) + singleStep(2)) > 0.0) {
-    //         double frac            = -R(2) / singleStep(2);
-    //         double time            = t + frac * dt;
-    //         Vector_t<double, 3> dR = frac * singleStep;
-    //         double ds              = euclidean_norm(dR + 0.5 * singleStep);
-    //         lossDs_m->addReferenceParticle(
-    //             csTrafoGlobal2Local_m.transformFrom(R + dR), csTrafoGlobal2Local_m.rotateFrom(P),
-    //             time, RefPartBunch_m->get_sPos() + ds, RefPartBunch_m->getGlobalTrackStep());
+    if (!online_m || OpalData::getInstance()->isInPrepState()) {
+        return false;
+    }
 
-    //         if (type_m == CollectionType::TEMPORAL) {
-    //             driftToCorrectPositionAndSave(R, P);
-    //             auto stats = lossDs_m->computeStatistics(1);
-    //             if (!stats.empty()) {
-    //                 statFileEntries_sm.insert(
-    //                     std::make_pair(stats.begin()->spos_m, *stats.begin()));
-    //                 OpalData::OpenMode openMode;
-    //                 if (numPassages_m > 0) {
-    //                     openMode = OpalData::OpenMode::APPEND;
-    //                 } else {
-    //                     openMode = OpalData::getInstance()->getOpenMode();
-    //                 }
-    //                 lossDs_m->save(1, openMode);
-    //             }
-    //         }
+    const double dt  = RefPartBunch_m->getdT();
+    const double cdt = Physics::c * dt;
+    const Vector_t<double, 3> singleStep = cdt * Util::getBeta(P);
 
-    //         ++numPassages_m;
-    //     }
-    // }
-    throw std::runtime_error("Fix this function please");
+    if (dt * R(2) < 0.0 && dt * (R(2) + singleStep(2)) > 0.0) {
+        const double frac = -R(2) / singleStep(2);
+        const double time = t + frac * dt;
+        const Vector_t<double, 3> dR = frac * singleStep;
+        const Vector_t<double, 3> dsVec = dR + 0.5 * singleStep;
+        const double ds = euclidean_norm(dsVec);
+
+        lossDs_m->addReferenceParticle(
+            csTrafoGlobal2Local_m.transformFrom(R + dR),
+            csTrafoGlobal2Local_m.rotateFrom(P),
+            time,
+            RefPartBunch_m->getParticleContainer()->get_sPos() + ds,
+            RefPartBunch_m->getGlobalTrackStep());
+
+
+        if (type_m == CollectionType::TEMPORAL) {
+            driftToCorrectPositionAndSave(R, P);
+
+            auto stats = lossDs_m->computeStatistics(1);
+            if (!stats.empty()) {
+                statFileEntries_sm.insert(std::make_pair(stats.begin()->spos_m, *stats.begin()));
+
+                OpalData::OpenMode openMode =
+                    (numPassages_m > 0)
+                        ? OpalData::OpenMode::APPEND
+                        : OpalData::getInstance()->getOpenMode();
+
+                lossDs_m->save(1, openMode);
+            }
+        }
+
+        ++numPassages_m;
+    }
+
     return false;
 }
 
@@ -255,6 +263,9 @@ void Monitor::getDimensions(double& zBegin, double& zEnd) const {
     zEnd   = halfLength_s;
 }
 
+// One small thing to keep in mind: if there are any switch statements 
+// over ElementType elsewhere in OPALX, they may need a MONITOR case 
+// later, even if the compiler does not complain yet.
 ElementType Monitor::getType() const {
     return ElementType::MONITOR;
 }
