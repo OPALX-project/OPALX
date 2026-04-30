@@ -30,7 +30,7 @@ jobs:
           mkdir -p build_smoke
           cd build_smoke
           cmake .. \
-            -DBUILD_TYPE=Release \
+            -DBUILD_TYPE=Debug \
             -DPLATFORMS=SERIAL
 
       - name: Build
