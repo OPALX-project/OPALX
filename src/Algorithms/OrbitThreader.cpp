@@ -530,6 +530,7 @@ void OrbitThreader::validateVisitedElements(
         switch (element->getType()) {
             case ElementType::BEAMLINE:
             case ElementType::MARKER:
+            case ElementType::MONITOR:
             case ElementType::PROBE:
             case ElementType::SOURCE:
             case ElementType::VACUUM:

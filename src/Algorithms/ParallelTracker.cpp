@@ -489,6 +489,7 @@ void ParallelTracker::execute() {
     *gmsg << level2 << "* Dump phase space of last step" << endl;
 
     itsOpalBeamline_m.switchElementsOff();
+    Monitor::writeStatistics();
 
     // Ensure all Kokkos operations are complete
     Kokkos::fence();
@@ -1140,6 +1141,12 @@ void ParallelTracker::updateReferenceParticles(const BorisPusher& pusher) {
         pc.getRefPartR() *= scaleFactor;
 
         IndexMap::value_t elements           = itsOpalBeamline_m.getElements(pc.getRefPartR());
+        const auto allElements              = itsOpalBeamline_m.getElements();
+        for (const auto& element : allElements) {
+            if (element->getType() == ElementType::MONITOR && element->Online()) {
+                elements.insert(element);
+            }
+        }
         IndexMap::value_t::const_iterator it = elements.begin();
         const IndexMap::value_t::const_iterator end = elements.end();
 

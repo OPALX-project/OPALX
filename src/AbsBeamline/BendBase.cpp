@@ -5,7 +5,6 @@
 #include "BeamlineGeometry/Vector3D.h"
 #include "PartBunch/PartBunch.h"
 #include "Physics/Physics.h"
-
 #include <Kokkos_Core.hpp>
 
 #include <algorithm>
@@ -843,19 +842,19 @@ void BendBase::updatePhysicalFieldFromMomentumEV(
         return;
     }
 
-    // OPALX's bend tracking chart is defined so that a positive horizontal bend
-    // angle deflects the design trajectory toward positive local x. The
-    // required dipole sign therefore satisfies
+    // OPALX's bend reference geometry is defined so that a positive horizontal
+    // bend angle deflects the design trajectory toward negative entry-frame x.
+    // The required dipole sign therefore satisfies
     // \f[
-    // q v_z B_y = - \frac{p_0 c}{\rho},
+    // q v_z B_y = \frac{p_0 c}{\rho},
     // \qquad
-    // B_y = -\frac{p_0}{q c} h,
+    // B_y = \frac{p_0}{q c} h,
     // \f]
     // with signed curvature \f$h = 1/\rho\f$. This sign convention is shared
     // by both `SBEND` and `RBEND` runtime normalization and is verified by the
-    // reference-particle bend regression tests for positive and negative bend
-    // angles.
-    const double factor = -referenceMomentumEV / (charge * Physics::c);
+    // reference-particle bend regression tests expressed in the entry/lab
+    // geometry chart for positive and negative bend angles.
+    const double factor = referenceMomentumEV / (charge * Physics::c);
     BMultipoleField field;
     const int order = normalizedField_m.order();
     for (int i = 0; i < order; ++i) {

@@ -23,6 +23,7 @@
 #include "PartBunch/PartBunch.h"
 #include "Structure/LossDataSink.h"
 
+#include <algorithm>
 #include <map>
 #include <string>
 
@@ -117,9 +118,29 @@ inline void Monitor::setCollectionType(CollectionType type) { type_m = type; }
 
 inline int Monitor::getRequiredNumberOfTimeSteps() const { return 1; }
 
+/**
+ * @brief Check whether a field-local point lies inside the monitor support.
+ *
+ * MONITOR behaves as a zero-body-length diagnostic by default, but it still
+ * owns a finite longitudinal sampling support of half-width
+ * @f$h_\mathrm{mon} =@ref halfLength_s@f$ so the tracker can activate it when
+ * the reference trajectory crosses the monitor plane.
+ *
+ * The longitudinal acceptance therefore uses
+ * @f[
+ * |z_\mathrm{local}| \le \max\!\left(\tfrac{L}{2}, h_\mathrm{mon}\right),
+ * @f]
+ * where @f$L@f$ is the explicit body length. Setting `L = 0` removes any
+ * geometric gap in the beam line while preserving a thin diagnostic support
+ * interval for activation and sampling.
+ *
+ * A monitor samples the full transverse phase space at its plane, so it does
+ * not use the generic element aperture test here.
+ */
 inline bool Monitor::isInside(const Vector_t<double, 3>& r) const {
-    const double length = getElementLength();
-    return std::abs(r(2)) <= 0.5 * length && isInsideTransverse(r);
+    const double halfBodyLength = 0.5 * getElementLength();
+    const double halfSupport = std::max(halfBodyLength, halfLength_s);
+    return std::abs(r(2)) <= halfSupport;
 }
 
 #endif  // OPALX_Monitor_HH

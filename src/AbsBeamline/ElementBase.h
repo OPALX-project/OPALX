@@ -96,6 +96,7 @@ enum class ElementType : unsigned short {
     DRIFT,
     LASER,
     MARKER,
+    MONITOR,
     MULTIPOLE,
     MULTIPOLET,
     RFCAVITY,

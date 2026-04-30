@@ -59,6 +59,20 @@ public:
     }
     bool getRescaleEnergyToReference() const { return rescaleToReference_m; }
     double getEnergyReferenceMassGeV() const { return referenceMassGeV_m; }
+    /**
+     * @brief Compute bunch moments from sampled monitor particles.
+     *
+     * Monitor and loss diagnostics store particles as explicit `OpalParticle`
+     * samples rather than in an IPPL particle container. This overload
+     * computes the same first and second moments from an iterator range,
+     * including the centered covariance matrix
+     * @f[
+     *   \Sigma_{ij} = \frac{1}{N} \sum_{k=1}^{N}
+     *   (u_{k,i} - \langle u_i \rangle)(u_{k,j} - \langle u_j \rangle),
+     * @f]
+     * for the six-dimensional phase-space vector
+     * @f$u = (x, p_x, y, p_y, z, p_z)@f$.
+     */
     void compute(
             const std::vector<OpalParticle>::const_iterator&,
             const std::vector<OpalParticle>::const_iterator&);

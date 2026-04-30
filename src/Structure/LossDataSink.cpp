@@ -385,9 +385,22 @@ void LossDataSink::save(unsigned int numSets, OpalData::OpenMode openMode) {
 // nodes HAVE to participate, otherwise H5 waits endlessly for a response from
 // the nodes that didn't enter the saveH5 function. -DW
 bool LossDataSink::hasNoParticlesToDump() const {
-    size_t nLoc = particles_m.size();
-    ippl::Comm->reduce(nLoc, nLoc, 1, std::plus<size_t>());
-    return nLoc == 0;
+    /**
+     * The monitor/diagnostic path may call save() while tracing the reference
+     * particle only. In that case many ranks, including the serial build, can
+     * arrive here with zero sampled particles. The global emptiness check must
+     * therefore use a well-defined collective reduction
+     * \f[
+     *   N_\mathrm{glob} = \sum_r N_r
+     * \f]
+     * with distinct input/output buffers. Reusing the same variable for both
+     * arguments trips MPI_Reduce on some MPI stacks because OPALX does not use
+     * MPI_IN_PLACE here.
+     */
+    const size_t nLoc = particles_m.size();
+    size_t nGlob      = 0;
+    ippl::Comm->allreduce(nLoc, nGlob, 1, std::plus<size_t>());
+    return nGlob == 0;
 }
 
 bool LossDataSink::hasTurnInformations() const {
@@ -406,17 +419,6 @@ void LossDataSink::saveH5(unsigned int setIdx) {
         endIdx   = startSet_m[setIdx + 1];
         nLoc     = endIdx - startIdx;
     }
-
-    std::unique_ptr<size_t[]> locN(new size_t[ippl::Comm->size()]);
-    std::unique_ptr<size_t[]> globN(new size_t[ippl::Comm->size()]);
-
-    for (int i = 0; i < ippl::Comm->size(); i++) {
-        globN[i] = locN[i] = 0;
-    }
-
-    locN[ippl::Comm->rank()] = nLoc;
-
-    reduce(locN.get(), globN.get(), ippl::Comm->size(), std::plus<size_t>());
 
     DistributionMoments engine;
     engine.compute(particles_m.begin() + startIdx, particles_m.begin() + endIdx);

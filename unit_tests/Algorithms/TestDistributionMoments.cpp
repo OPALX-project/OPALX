@@ -1,9 +1,11 @@
 #include <gtest/gtest.h>
 
 #include <cmath>
+#include <numeric>
 #include <vector>
 
 #include "Algorithms/DistributionMoments.h"
+#include "AbstractObjects/OpalParticle.h"
 #include "Ippl.h"
 #include "PartBunch/BunchStateHandler.h"
 #include "Physics/Physics.h"
@@ -203,4 +205,56 @@ TEST_F(DistributionMomentsTest, ComputeMoments_MeanStdEmittanceEnergyDispersion)
     EXPECT_NEAR(dm.getDDx(), exp.DDx, 1e-15);
     EXPECT_NEAR(dm.getDy(), exp.Dy, 1e-15);
     EXPECT_NEAR(dm.getDDy(), exp.DDy, 1e-15);
+}
+
+TEST_F(DistributionMomentsTest, ComputeFromOpalParticleIteratorsMatchesContainerMoments) {
+    const std::vector<Vec3> R = {
+            Vec3(1.0e-3, 2.0e-3, -1.0e-3), Vec3(-2.0e-3, 0.5e-3, 3.0e-3),
+            Vec3(0.0e-3, -1.5e-3, 2.0e-3), Vec3(1.5e-3, -0.5e-3, -2.5e-3),
+            Vec3(-0.5e-3, 1.0e-3, 0.0e-3),
+    };
+    const std::vector<Vec3> P = {
+            Vec3(0.02, -0.01, 0.10), Vec3(-0.03, 0.02, 0.08), Vec3(0.01, 0.01, 0.11),
+            Vec3(0.00, -0.02, 0.09), Vec3(0.04, 0.00, 0.105),
+    };
+    const std::vector<double> T = {0.0, 1.0e-11, 2.0e-11, 3.0e-11, 4.0e-11};
+    const double charge         = -1.602176634e-19;
+    const double massGeV        = Physics::m_e;
+
+    std::vector<OpalParticle> particles;
+    particles.reserve(R.size());
+    for (std::size_t i = 0; i < R.size(); ++i) {
+        particles.emplace_back(static_cast<int64_t>(i), R[i], P[i], T[i], charge, massGeV);
+    }
+
+    DistributionMoments dm;
+    EXPECT_NO_THROW(dm.compute(particles.begin(), particles.end()));
+
+    const auto exp = computeExpected(R, P, massGeV);
+
+    for (int d = 0; d < 3; ++d) {
+        EXPECT_NEAR(dm.getMeanPosition()(d), exp.meanR(d), 1e-15);
+        EXPECT_NEAR(dm.getMeanMomentum()(d), exp.meanP(d), 1e-15);
+        EXPECT_NEAR(dm.getStandardDeviationPosition()(d), exp.stdR(d), 1e-15);
+        EXPECT_NEAR(dm.getStandardDeviationMomentum()(d), exp.stdP(d), 1e-15);
+        EXPECT_NEAR(dm.getNormalizedEmittance()(d), exp.epsN(d), 1e-15);
+        EXPECT_NEAR(dm.getGeometricEmittance()(d), exp.epsGeo(d), 1e-15);
+    }
+
+    const double meanTime = std::accumulate(T.begin(), T.end(), 0.0) / static_cast<double>(T.size());
+    double timeVariance   = 0.0;
+    for (double t : T) {
+        timeVariance += (t - meanTime) * (t - meanTime);
+    }
+    timeVariance /= static_cast<double>(T.size());
+
+    EXPECT_NEAR(dm.getMeanTime(), meanTime, 1e-18);
+    EXPECT_NEAR(dm.getStdTime(), std::sqrt(timeVariance), 1e-18);
+    EXPECT_NEAR(dm.getMeanGamma(), exp.meanGamma, 1e-15);
+    EXPECT_NEAR(dm.getMeanGammaZ(), exp.meanGammaZ, 1e-15);
+    EXPECT_NEAR(dm.getMeanKineticEnergy(), exp.meanEkinMeV, 1e-15);
+    EXPECT_NEAR(dm.getStdKineticEnergy(), exp.stdEkinMeV_likeImplementation, 1e-15);
+    EXPECT_NEAR(dm.getTotalCharge(), charge * static_cast<double>(particles.size()), 1e-30);
+    EXPECT_NEAR(dm.getTotalMass(), massGeV * Units::GeV2MeV * static_cast<double>(particles.size()), 1e-12);
+    EXPECT_DOUBLE_EQ(dm.getTotalNumParticles(), static_cast<double>(particles.size()));
 }

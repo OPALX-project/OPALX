@@ -299,10 +299,177 @@ void DistributionMoments::computeMinMaxPosition(
 // ---------------------------------------------------------------------------
 
 void DistributionMoments::compute(
-        const std::vector<OpalParticle>::const_iterator& /*first*/,
-        const std::vector<OpalParticle>::const_iterator& /*last*/) {
-    throw OpalException(
-            "DistributionMoments::compute", "OpalParticle-iterator interface is not implemented.");
+        const std::vector<OpalParticle>::const_iterator& first,
+        const std::vector<OpalParticle>::const_iterator& last) {
+    reset();
+    resetPlasmaParameters();
+    moments_m        = matrix6x6_t(0.0);
+    notCentMoments_m = matrix6x6_t(0.0);
+
+    const std::size_t nLocal = static_cast<std::size_t>(std::distance(first, last));
+    const double localCount  = static_cast<double>(nLocal);
+    double globalCount       = 0.0;
+
+    std::array<double, 12> localSums = {};
+    std::array<double, 12> globalSums = {};
+    std::array<double, 3> localMax = {
+            std::numeric_limits<double>::lowest(), std::numeric_limits<double>::lowest(),
+            std::numeric_limits<double>::lowest()};
+    std::array<double, 3> localMin = {std::numeric_limits<double>::max(),
+                                      std::numeric_limits<double>::max(),
+                                      std::numeric_limits<double>::max()};
+    std::array<double, 3> globalMax = {};
+    std::array<double, 3> globalMin = {};
+
+    /**
+     * Accumulate the six phase-space centroids, time moments, charge/mass
+     * totals, and kinetic-energy moments. For monitor particles the stored
+     * momentum components are the local \f$\beta\gamma\f$ coordinates, so
+     * \f$\gamma = \sqrt{1 + |\mathbf{p}|^2}\f$ and
+     * \f$E_\mathrm{kin} = (\gamma - 1) m c^2\f$.
+     */
+    for (auto it = first; it != last; ++it) {
+        const OpalParticle& particle = *it;
+        const Vector_t<double, 3>& r = particle.getR();
+        const Vector_t<double, 3>& p = particle.getP();
+        const double time            = particle.getTime();
+        const double gamma           = std::sqrt(dot(p, p) + 1.0);
+        const double kineticEnergyMeV =
+                (gamma - 1.0) * particle.getMass() * Units::GeV2MeV;
+
+        localSums[0] += r(0);
+        localSums[1] += p(0);
+        localSums[2] += r(1);
+        localSums[3] += p(1);
+        localSums[4] += r(2);
+        localSums[5] += p(2);
+        localSums[6] += time;
+        localSums[7] += time * time;
+        localSums[8] += particle.getCharge();
+        localSums[9] += particle.getMass() * Units::GeV2MeV;
+        localSums[10] += kineticEnergyMeV;
+        localSums[11] += gamma;
+
+        for (std::size_t d = 0; d < 3; ++d) {
+            localMax[d] = std::max(localMax[d], r(d));
+            localMin[d] = std::min(localMin[d], r(d));
+        }
+    }
+
+    ippl::Comm->allreduce(
+            localSums.data(), globalSums.data(), globalSums.size(), std::plus<double>());
+    ippl::Comm->allreduce(&localCount, &globalCount, 1, std::plus<double>());
+    ippl::Comm->allreduce(
+            localMax.data(), globalMax.data(), globalMax.size(), std::greater<double>());
+    ippl::Comm->allreduce(localMin.data(), globalMin.data(), globalMin.size(), std::less<double>());
+
+    totalNumParticles_m      = static_cast<unsigned int>(std::llround(globalCount));
+    if (totalNumParticles_m == 0u) {
+        meanTime_m = 0.0;
+        stdTime_m  = 0.0;
+        return;
+    }
+
+    const double invCount = 1.0 / globalCount;
+    centroid_m(0)         = globalSums[0];
+    centroid_m(1)         = globalSums[1];
+    centroid_m(2)         = globalSums[2];
+    centroid_m(3)         = globalSums[3];
+    centroid_m(4)         = globalSums[4];
+    centroid_m(5)         = globalSums[5];
+    for (std::size_t i = 0; i < 6; ++i) {
+        means_m(i) = centroid_m(i) * invCount;
+    }
+
+    for (std::size_t d = 0; d < 3; ++d) {
+        meanR_m(d) = means_m(2 * d);
+        meanP_m(d) = means_m(2 * d + 1);
+        minR_m(d)  = globalMin[d];
+        maxR_m(d)  = globalMax[d];
+    }
+
+    meanTime_m          = globalSums[6] * invCount;
+    stdTime_m           = std::sqrt(std::max(0.0, globalSums[7] * invCount - meanTime_m * meanTime_m));
+    totalCharge_m       = globalSums[8];
+    totalMass_m         = globalSums[9];
+    meanKineticEnergy_m = globalSums[10] * invCount;
+    meanGamma_m         = globalSums[11] * invCount;
+    meanGammaZ_m        = std::sqrt(meanP_m(2) * meanP_m(2) + 1.0);
+
+    std::array<double, 36> localCentral = {};
+    std::array<double, 36> localRaw = {};
+    std::array<double, 1> localEkinVar = {};
+    std::array<double, 36> globalCentral = {};
+    std::array<double, 36> globalRaw = {};
+    std::array<double, 1> globalEkinVar = {};
+
+    for (auto it = first; it != last; ++it) {
+        const OpalParticle& particle = *it;
+        const Vector_t<double, 3>& r = particle.getR();
+        const Vector_t<double, 3>& p = particle.getP();
+        const double gamma           = std::sqrt(dot(p, p) + 1.0);
+        const double kineticEnergyMeV =
+                (gamma - 1.0) * particle.getMass() * Units::GeV2MeV;
+        const double raw[6] = {r(0), p(0), r(1), p(1), r(2), p(2)};
+        const double centered[6] = {r(0) - meanR_m(0), p(0) - meanP_m(0), r(1) - meanR_m(1),
+                                    p(1) - meanP_m(1), r(2) - meanR_m(2), p(2) - meanP_m(2)};
+
+        for (std::size_t i = 0; i < 6; ++i) {
+            for (std::size_t j = 0; j < 6; ++j) {
+                localCentral[i * 6 + j] += centered[i] * centered[j];
+                localRaw[i * 6 + j] += raw[i] * raw[j];
+            }
+        }
+        localEkinVar[0] += (kineticEnergyMeV - meanKineticEnergy_m)
+                           * (kineticEnergyMeV - meanKineticEnergy_m);
+    }
+
+    ippl::Comm->allreduce(
+            localCentral.data(), globalCentral.data(), globalCentral.size(), std::plus<double>());
+    ippl::Comm->allreduce(localRaw.data(), globalRaw.data(), globalRaw.size(), std::plus<double>());
+    ippl::Comm->allreduce(
+            localEkinVar.data(), globalEkinVar.data(), globalEkinVar.size(), std::plus<double>());
+
+    for (std::size_t i = 0; i < 6; ++i) {
+        for (std::size_t j = 0; j < 6; ++j) {
+            moments_m(i, j)        = globalCentral[i * 6 + j] * invCount;
+            notCentMoments_m(i, j) = globalRaw[i * 6 + j];
+        }
+    }
+
+    stdKineticEnergy_m = std::sqrt(globalEkinVar[0] * invCount);
+
+    Vector_t<double, 3> squaredEps;
+    Vector_t<double, 3> sumRP;
+    for (std::size_t d = 0; d < 3; ++d) {
+        stdR_m(d)   = std::sqrt(std::max(0.0, moments_m(2 * d, 2 * d)));
+        stdP_m(d)   = std::sqrt(std::max(0.0, moments_m(2 * d + 1, 2 * d + 1)));
+        sumRP(d)    = notCentMoments_m(2 * d, 2 * d + 1) * invCount - meanR_m(d) * meanP_m(d);
+        stdRP_m(d)  = (stdR_m(d) * stdP_m(d) == 0.0) ? 0.0 : sumRP(d) / (stdR_m(d) * stdP_m(d));
+        squaredEps(d) = std::pow(stdR_m(d) * stdP_m(d), 2) - std::pow(sumRP(d), 2);
+        normalizedEps_m(d) = std::sqrt(std::max(squaredEps(d), 0.0));
+
+        const double rawSecondMoment = notCentMoments_m(2 * d, 2 * d) * invCount;
+        const double variance        = moments_m(2 * d, 2 * d);
+        if (variance > 0.0) {
+            halo_m(d) = (notCentMoments_m(2 * d + 1, 2 * d + 1) * invCount
+                         + meanR_m(d) * (-4.0 * rawSecondMoment
+                                         + 3.0 * meanR_m(d) * (variance + rawSecondMoment)))
+                        / variance
+                        - Options::haloShift;
+        } else {
+            halo_m(d) = 0.0;
+        }
+    }
+
+    const double betaGamma = std::sqrt(std::max(meanGamma_m * meanGamma_m - 1.0, 0.0));
+    if (betaGamma > 0.0) {
+        geometricEps_m = normalizedEps_m / Vector_t<double, 3>(betaGamma);
+    } else {
+        geometricEps_m = 0.0;
+    }
+
+    computePercentiles(first, last);
 }
 
 template <class InputIt>

@@ -53,7 +53,9 @@ void OpalMonitor::update() {
     MonitorRep* mon =
         dynamic_cast<MonitorRep*>(getElement());
 
-    double length = std::max(0.01, Attributes::getReal(itsAttr[LENGTH]));
+    // Allow zero-body-length monitors so they can sit exactly on a sampling
+    // plane without introducing an artificial geometric gap.
+    double length = std::max(0.0, Attributes::getReal(itsAttr[LENGTH]));
     mon->setElementLength(length);
     mon->setOutputFN(Attributes::getString(itsAttr[OUTFN]));
 

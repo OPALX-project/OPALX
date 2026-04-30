@@ -44,6 +44,11 @@ CASES = [
     Case("RBEND", -math.pi / 2.0, "-pi/2", "rb90m"),
 ]
 
+SBEND_DT_SWEEP_CASE = Case("SBEND", math.pi / 4.0, "+pi/4", "sb45p")
+SBEND_DT_VALUES = [1.0e-11, 5.0e-12, 1.0e-12, 5.0e-13]
+RBEND_DT_SWEEP_CASE = Case("RBEND", math.pi / 4.0, "+pi/4", "rb45p")
+RBEND_DT_VALUES = [1.0e-11, 5.0e-12, 1.0e-12, 5.0e-13]
+
 
 def write_text(path: Path, text: str) -> None:
     path.write_text(text, encoding="utf-8")
@@ -114,14 +119,20 @@ def analytic_reference(case: Case) -> dict[str, float]:
     }
 
 
-def make_opalx_deck(case: Case) -> str:
+def dt_label(dt: float) -> str:
+    mantissa, exponent = f"{dt:.1e}".split("e")
+    return f"{mantissa}e{int(exponent)}"
+
+
+def make_opalx_deck(case: Case, *, dt: float = 1.0e-12, title_stem: str | None = None) -> str:
     bend = case.family
+    title_name = title_stem or case.opalx_stem
     return f"""OPTION, PSDUMPFREQ = 50000;
 OPTION, STATDUMPFREQ = 1;
 OPTION, BOUNDPDESTROY = 10;
 OPTION, VERSION = 10900;
 
-Title, string = "{case.opalx_stem} {case.family} ANGLE={case.angle_label} E1=0 PSI=0";
+Title, string = "{title_name} {case.family} ANGLE={case.angle_label} E1=0 PSI=0";
 
 B1: {bend},
     L = 1.0,
@@ -165,7 +176,7 @@ TRACK,
     LINE = Line1,
     BEAM = BEAM0,
     MAXSTEPS = 20000,
-    DT = 1e-12,
+    DT = {dt:.1e},
     ZSTOP = 1.5;
 
 RUN,
@@ -241,6 +252,19 @@ def generate_inputs() -> None:
         write_text(ROOT / f"{case.bmad_stem}_geometry.in", make_bmad_geometry_init(case))
         write_text(ROOT / f"{case.bmad_stem}_track.init", make_bmad_track_init(case))
 
+    for dt in SBEND_DT_VALUES:
+        stem = f"{SBEND_DT_SWEEP_CASE.opalx_stem}_dt_{dt_label(dt)}"
+        write_text(
+            ROOT / f"{stem}.in",
+            make_opalx_deck(SBEND_DT_SWEEP_CASE, dt=dt, title_stem=stem),
+        )
+    for dt in RBEND_DT_VALUES:
+        stem = f"{RBEND_DT_SWEEP_CASE.opalx_stem}_dt_{dt_label(dt)}"
+        write_text(
+            ROOT / f"{stem}.in",
+            make_opalx_deck(RBEND_DT_SWEEP_CASE, dt=dt, title_stem=stem),
+        )
+
 
 def run_and_log(cmd: list[str], log_path: Path, cwd: Path) -> None:
     proc = subprocess.run(
@@ -276,6 +300,25 @@ def cleanup_case_outputs(case: Case) -> None:
         ROOT / f"{case.opalx_stem}.log",
         ROOT / f"{case.bmad_stem}_geometry.log",
         ROOT / f"{case.bmad_stem}_track.log",
+    ]
+    for path in paths:
+        path.unlink(missing_ok=True)
+
+
+def cleanup_opalx_stem_outputs(stem: str) -> None:
+    paths = [
+        ROOT / "reference_frame.dat",
+        ROOT / "element_frame.dat",
+        ROOT / "timing.dat",
+        ROOT / f"{stem}.stat",
+        ROOT / f"{stem}.h5",
+        ROOT / f"{stem}.lbal",
+        ROOT / "data" / f"{stem}_DesignPath.dat",
+        ROOT / "data" / f"{stem}_ElementPositions.py",
+        ROOT / "data" / f"{stem}_ElementPositions.txt",
+        ROOT / "data" / f"{stem}_ElementPositions.sdds",
+        ROOT / "data" / f"{stem}_3D.opal",
+        ROOT / f"{stem}.log",
     ]
     for path in paths:
         path.unlink(missing_ok=True)
@@ -449,14 +492,114 @@ def read_opalx_track_local(h5_path: Path, stat_path: Path) -> dict[str, float]:
     }
 
 
+def read_opalx_stat_local(stat_path: Path) -> dict[str, float]:
+    stat = read_opalx_stat_row(stat_path)
+    return {
+        "<x>": stat["mean_x"],
+        "<s>": stat["mean_s"],
+        "rms_x": stat["rms_x"],
+        "rms_s": stat["rms_s"],
+        "rms_px": stat["rms_px"],
+        "rms_ps": stat["rms_ps"],
+    }
+
+
+def read_opalx_stat_observables(stat_path: Path) -> dict[str, float]:
+    stat = read_opalx_stat_row(stat_path)
+    return {
+        "t": stat["t"],
+        "s_path": stat["s"],
+        "rms_x": stat["rms_x"],
+        "rms_s": stat["rms_s"],
+        "<x>": stat["mean_x"],
+        "<s>": stat["mean_s"],
+        "ref_x": stat["ref_x"],
+        "ref_z": stat["ref_z"],
+        "ref_px": stat["ref_px"],
+        "ref_pz": stat["ref_pz"],
+    }
+
+
+def normalize_2d(x: float, z: float) -> tuple[float, float]:
+    norm = math.hypot(x, z)
+    if norm == 0.0:
+        return 0.0, 0.0
+    return x / norm, z / norm
+
+
+def local_to_global_planar(
+        origin_x: float,
+        origin_z: float,
+        tangent_x: float,
+        tangent_z: float,
+        x_local: float,
+        z_local: float,
+) -> tuple[float, float]:
+    tangent_x, tangent_z = normalize_2d(tangent_x, tangent_z)
+    normal_x, normal_z = tangent_z, -tangent_x
+    global_x = origin_x + x_local * normal_x + z_local * tangent_x
+    global_z = origin_z + x_local * normal_z + z_local * tangent_z
+    return global_x, global_z
+
+
+def read_bmad_track_global(case: Case, geometry: dict[str, float]) -> dict[str, float]:
+    local = read_bmad_track_local(ROOT / "output" / f"{case.bmad_stem}_track.dat")
+    global_x, global_z = local_to_global_planar(
+            geometry["final_x"],
+            geometry["final_z"],
+            geometry["tx"],
+            geometry["tz"],
+            local["x_local"],
+            local["z_local"],
+    )
+    return {
+        "global_x": global_x,
+        "global_z": global_z,
+        "global_tx": geometry["tx"],
+        "global_tz": geometry["tz"],
+    }
+
+
+def read_opalx_track_global(
+        geometry: dict[str, float],
+        h5_path: Path,
+        stat_path: Path,
+) -> dict[str, float]:
+    x_local = read_single_value_h5(h5_path, "/Step#0/x")
+    z_local = read_single_value_h5(h5_path, "/Step#0/z")
+    px = read_single_value_h5(h5_path, "/Step#0/px")
+    pz = read_single_value_h5(h5_path, "/Step#0/pz")
+    global_x, global_z = local_to_global_planar(
+            geometry["final_x"],
+            geometry["final_z"],
+            geometry["tx"],
+            geometry["tz"],
+            x_local,
+            z_local,
+    )
+    global_tx, global_tz = local_to_global_planar(0.0, 0.0, geometry["tx"], geometry["tz"], px, pz)
+    global_tx, global_tz = normalize_2d(global_tx, global_tz)
+    return {
+        "global_x": global_x,
+        "global_z": global_z,
+        "global_tx": global_tx,
+        "global_tz": global_tz,
+    }
+
+
 def rows_to_markdown(columns: list[str], rows: list[dict[str, object]]) -> str:
+    def fmt_value(value: object) -> str:
+        if isinstance(value, float):
+            return f"{value:.5f}"
+        return str(value)
+
     widths = []
     for col in columns:
-        values = [str(col)] + [str(r[col]) for r in rows]
+        values = [str(col)] + [fmt_value(r[col]) for r in rows]
         widths.append(max(len(v) for v in values))
 
     def fmt_row(values: list[object]) -> str:
-        return "| " + " | ".join(str(v).ljust(w) for v, w in zip(values, widths)) + " |"
+        return "| " + " | ".join(fmt_value(v).ljust(w) for v, w in zip(values, widths)) + " |"
 
     header = fmt_row(columns)
     sep = "| " + " | ".join("-" * w for w in widths) + " |"
@@ -471,16 +614,24 @@ def main() -> None:
 
     geometry_rows: list[dict[str, object]] = []
     dynamics_rows: list[dict[str, object]] = []
+    dynamics_global_rows: list[dict[str, object]] = []
+    sbend_dt_local_rows: list[dict[str, object]] = []
+    sbend_dt_global_rows: list[dict[str, object]] = []
+    sbend_dt_stat_rows: list[dict[str, object]] = []
+    rbend_dt_stat_rows: list[dict[str, object]] = []
+    sbend_dt_stat_raw_rows: list[dict[str, object]] = []
+    rbend_dt_stat_raw_rows: list[dict[str, object]] = []
     for case in CASES:
         cleanup_case_outputs(case)
 
+        analytic_geometry = analytic_reference(case)
         geometry_rows.append(
             {
                 "family": case.family,
                 "code": "ANALYTIC",
                 "angle": case.angle_label,
                 "e1": 0,
-                **analytic_reference(case),
+                **analytic_geometry,
             }
         )
         dynamics_rows.append(
@@ -493,6 +644,18 @@ def main() -> None:
                 "z_local": 0.0,
                 "dpx_local": 0.0,
                 "dpz_local": 0.0,
+            }
+        )
+        dynamics_global_rows.append(
+            {
+                "family": case.family,
+                "code": "ANALYTIC",
+                "angle": case.angle_label,
+                "e1": 0,
+                "global_x": analytic_geometry["final_x"],
+                "global_z": analytic_geometry["final_z"],
+                "global_tx": analytic_geometry["tx"],
+                "global_tz": analytic_geometry["tz"],
             }
         )
 
@@ -517,23 +680,37 @@ def main() -> None:
             ROOT,
         )
 
+        bmad_geometry = read_bmad_reference(ROOT / "output" / f"{case.bmad_stem}_reference_frame.dat")
         geometry_rows.append(
             {
                 "family": case.family,
                 "code": "BMAD",
                 "angle": case.angle_label,
                 "e1": "0",
-                **read_bmad_reference(ROOT / "output" / f"{case.bmad_stem}_reference_frame.dat"),
+                **bmad_geometry,
             }
         )
+        bmad_local = read_bmad_track_local(ROOT / "output" / f"{case.bmad_stem}_track.dat")
         dynamics_rows.append(
             {
                 "family": case.family,
                 "code": "BMAD",
                 "angle": case.angle_label,
                 "e1": "0",
-                **read_bmad_track_local(ROOT / "output" / f"{case.bmad_stem}_track.dat"),
+                **bmad_local,
             }
+        )
+        dynamics_global_rows.append(
+            {
+                "family": case.family,
+                "code": "BMAD",
+                "angle": case.angle_label,
+                "e1": "0",
+                **read_bmad_track_global(case, bmad_geometry),
+            }
+        )
+        opalx_geometry = read_opalx_geometry(
+                case, ROOT / "data" / f"{case.opalx_stem}_ElementPositions.txt"
         )
         geometry_rows.append(
             {
@@ -541,18 +718,183 @@ def main() -> None:
                 "code": "OPALX",
                 "angle": case.angle_label,
                 "e1": "0",
-                **read_opalx_geometry(
-                    case, ROOT / "data" / f"{case.opalx_stem}_ElementPositions.txt"
+                **opalx_geometry,
+            }
+        )
+        opalx_local = read_opalx_track_local(ROOT / f"{case.opalx_stem}.h5", ROOT / f"{case.opalx_stem}.stat")
+        dynamics_rows.append(
+            {
+                "family": case.family,
+                "code": "OPALX",
+                "angle": case.angle_label,
+                "e1": "0",
+                **opalx_local,
+            }
+        )
+        dynamics_global_rows.append(
+            {
+                "family": case.family,
+                "code": "OPALX",
+                "angle": case.angle_label,
+                "e1": "0",
+                **read_opalx_track_global(
+                    opalx_geometry,
+                    ROOT / f"{case.opalx_stem}.h5",
+                    ROOT / f"{case.opalx_stem}.stat",
                 ),
             }
         )
-        dynamics_rows.append(
+
+    sbend_bmad_geometry = read_bmad_reference(ROOT / "output" / f"{SBEND_DT_SWEEP_CASE.bmad_stem}_reference_frame.dat")
+    sbend_geometry = read_opalx_geometry(
+            SBEND_DT_SWEEP_CASE,
+            ROOT / "data" / f"{SBEND_DT_SWEEP_CASE.opalx_stem}_ElementPositions.txt",
+    )
+    sbend_dt_global_rows.append(
+        {
+            "case": "SBEND +pi/4",
+            "code": "BMAD",
+            "dt": "runge_kutta",
+            **read_bmad_track_global(SBEND_DT_SWEEP_CASE, sbend_bmad_geometry),
+        }
+    )
+    sbend_dt_local_rows.append(
+        {
+            "case": "SBEND +pi/4",
+            "code": "BMAD",
+            "dt": "runge_kutta",
+            **read_bmad_track_local(ROOT / "output" / f"{SBEND_DT_SWEEP_CASE.bmad_stem}_track.dat"),
+        }
+    )
+    sbend_dt_stat_rows.append(
+        {
+            "case": "SBEND +pi/4",
+            "code": "BMAD",
+            "dt": "runge_kutta",
+            "<x>": 0.0,
+            "<s>": 0.0,
+            "rms_x": 0.0,
+            "rms_s": 0.0,
+            "rms_px": 0.0,
+            "rms_ps": 0.0,
+        }
+    )
+    sbend_dt_stat_raw_rows.append(
+        {
+            "case": "SBEND +pi/4",
+            "code": "BMAD",
+            "dt": "runge_kutta",
+            "t": "-",
+            "s_path": "-",
+            "rms_x": 0.0,
+            "rms_s": 0.0,
+            "<x>": 0.0,
+            "<s>": 0.0,
+            "ref_x": "-",
+            "ref_z": "-",
+            "ref_px": "-",
+            "ref_pz": "-",
+        }
+    )
+
+    for dt in SBEND_DT_VALUES:
+        stem = f"{SBEND_DT_SWEEP_CASE.opalx_stem}_dt_{dt_label(dt)}"
+        cleanup_opalx_stem_outputs(stem)
+        run_and_log(
+            [str(OPALX_EXE), "--info", "2", f"{stem}.in"],
+            ROOT / f"{stem}.log",
+            ROOT,
+        )
+        local = read_opalx_track_local(ROOT / f"{stem}.h5", ROOT / f"{stem}.stat")
+        sbend_dt_local_rows.append(
             {
-                "family": case.family,
+                "case": "SBEND +pi/4",
                 "code": "OPALX",
-                "angle": case.angle_label,
-                "e1": "0",
-                **read_opalx_track_local(ROOT / f"{case.opalx_stem}.h5", ROOT / f"{case.opalx_stem}.stat"),
+                "dt": dt_label(dt),
+                **local,
+            }
+        )
+        sbend_dt_stat_rows.append(
+            {
+                "case": "SBEND +pi/4",
+                "code": "OPALX",
+                "dt": dt_label(dt),
+                **read_opalx_stat_local(ROOT / f"{stem}.stat"),
+            }
+        )
+        sbend_dt_stat_raw_rows.append(
+            {
+                "case": "SBEND +pi/4",
+                "code": "OPALX",
+                "dt": dt_label(dt),
+                **read_opalx_stat_observables(ROOT / f"{stem}.stat"),
+            }
+        )
+        sbend_dt_global_rows.append(
+            {
+                "case": "SBEND +pi/4",
+                "code": "OPALX",
+                "dt": dt_label(dt),
+                **read_opalx_track_global(
+                    sbend_geometry,
+                    ROOT / f"{stem}.h5",
+                    ROOT / f"{stem}.stat",
+                ),
+            }
+        )
+
+    rbend_dt_stat_rows.append(
+        {
+            "case": "RBEND +pi/4",
+            "code": "BMAD",
+            "dt": "runge_kutta",
+            "<x>": 0.0,
+            "<s>": 0.0,
+            "rms_x": 0.0,
+            "rms_s": 0.0,
+            "rms_px": 0.0,
+            "rms_ps": 0.0,
+        }
+    )
+    rbend_dt_stat_raw_rows.append(
+        {
+            "case": "RBEND +pi/4",
+            "code": "BMAD",
+            "dt": "runge_kutta",
+            "t": "-",
+            "s_path": "-",
+            "rms_x": 0.0,
+            "rms_s": 0.0,
+            "<x>": 0.0,
+            "<s>": 0.0,
+            "ref_x": "-",
+            "ref_z": "-",
+            "ref_px": "-",
+            "ref_pz": "-",
+        }
+    )
+    for dt in RBEND_DT_VALUES:
+        stem = f"{RBEND_DT_SWEEP_CASE.opalx_stem}_dt_{dt_label(dt)}"
+        cleanup_opalx_stem_outputs(stem)
+        run_and_log(
+            [str(OPALX_EXE), "--info", "2", f"{stem}.in"],
+            ROOT / f"{stem}.log",
+            ROOT,
+        )
+        rbend_dt_stat_rows.append(
+            {
+                "case": "RBEND +pi/4",
+                "code": "OPALX",
+                "dt": dt_label(dt),
+                **read_opalx_stat_local(ROOT / f"{stem}.stat"),
+            }
+        )
+        rbend_dt_stat_raw_rows.append(
+            {
+                "case": "RBEND +pi/4",
+                "code": "OPALX",
+                "dt": dt_label(dt),
+                **read_opalx_stat_observables(ROOT / f"{stem}.stat"),
             }
         )
 
@@ -572,6 +914,73 @@ def main() -> None:
         writer.writerows(dynamics_rows)
     (ROOT / "exp1-dynamics-summary.md").write_text(
         rows_to_markdown(dynamics_columns, dynamics_rows) + "\n", encoding="utf-8"
+    )
+
+    dynamics_global_columns = ["family", "code", "angle", "e1", "global_x", "global_z", "global_tx", "global_tz"]
+    with (ROOT / "exp1-dynamics-global-summary.csv").open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=dynamics_global_columns)
+        writer.writeheader()
+        writer.writerows(dynamics_global_rows)
+    (ROOT / "exp1-dynamics-global-summary.md").write_text(
+        rows_to_markdown(dynamics_global_columns, dynamics_global_rows) + "\n", encoding="utf-8"
+    )
+
+    sbend_dt_local_columns = ["case", "code", "dt", "x_local", "z_local", "dpx_local", "dpz_local"]
+    with (ROOT / "sbend-dt-local-summary.csv").open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=sbend_dt_local_columns)
+        writer.writeheader()
+        writer.writerows(sbend_dt_local_rows)
+    (ROOT / "sbend-dt-local-summary.md").write_text(
+        rows_to_markdown(sbend_dt_local_columns, sbend_dt_local_rows) + "\n", encoding="utf-8"
+    )
+
+    sbend_dt_global_columns = ["case", "code", "dt", "global_x", "global_z", "global_tx", "global_tz"]
+    with (ROOT / "sbend-dt-global-summary.csv").open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=sbend_dt_global_columns)
+        writer.writeheader()
+        writer.writerows(sbend_dt_global_rows)
+    (ROOT / "sbend-dt-global-summary.md").write_text(
+        rows_to_markdown(sbend_dt_global_columns, sbend_dt_global_rows) + "\n", encoding="utf-8"
+    )
+
+    sbend_dt_stat_columns = ["case", "code", "dt", "<x>", "<s>", "rms_x", "rms_s", "rms_px", "rms_ps"]
+    with (ROOT / "sbend-dt-stat-summary.csv").open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=sbend_dt_stat_columns)
+        writer.writeheader()
+        writer.writerows(sbend_dt_stat_rows)
+    (ROOT / "sbend-dt-stat-summary.md").write_text(
+        rows_to_markdown(sbend_dt_stat_columns, sbend_dt_stat_rows) + "\n", encoding="utf-8"
+    )
+
+    sbend_dt_stat_raw_columns = [
+        "case", "code", "dt", "t", "s_path", "rms_x", "rms_s", "<x>", "<s>", "ref_x", "ref_z", "ref_px", "ref_pz"
+    ]
+    with (ROOT / "sbend-dt-stat-raw-summary.csv").open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=sbend_dt_stat_raw_columns)
+        writer.writeheader()
+        writer.writerows(sbend_dt_stat_raw_rows)
+    (ROOT / "sbend-dt-stat-raw-summary.md").write_text(
+        rows_to_markdown(sbend_dt_stat_raw_columns, sbend_dt_stat_raw_rows) + "\n", encoding="utf-8"
+    )
+
+    rbend_dt_stat_columns = ["case", "code", "dt", "<x>", "<s>", "rms_x", "rms_s", "rms_px", "rms_ps"]
+    with (ROOT / "rbend-dt-stat-summary.csv").open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=rbend_dt_stat_columns)
+        writer.writeheader()
+        writer.writerows(rbend_dt_stat_rows)
+    (ROOT / "rbend-dt-stat-summary.md").write_text(
+        rows_to_markdown(rbend_dt_stat_columns, rbend_dt_stat_rows) + "\n", encoding="utf-8"
+    )
+
+    rbend_dt_stat_raw_columns = [
+        "case", "code", "dt", "t", "s_path", "rms_x", "rms_s", "<x>", "<s>", "ref_x", "ref_z", "ref_px", "ref_pz"
+    ]
+    with (ROOT / "rbend-dt-stat-raw-summary.csv").open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=rbend_dt_stat_raw_columns)
+        writer.writeheader()
+        writer.writerows(rbend_dt_stat_raw_rows)
+    (ROOT / "rbend-dt-stat-raw-summary.md").write_text(
+        rows_to_markdown(rbend_dt_stat_raw_columns, rbend_dt_stat_raw_rows) + "\n", encoding="utf-8"
     )
 
     (ROOT / "exp1-summary.csv").write_text(

@@ -1103,7 +1103,7 @@ namespace {
         auto Pafter = pc->P.getHostMirror();
         Kokkos::deep_copy(Pafter, pc->P.getView());
 
-        EXPECT_LT(Pafter(0)(1), 0.0);
+        EXPECT_GT(Pafter(0)(1), 0.0);
     }
 
     TEST_F(BendRepParticleContainerTest,
@@ -1419,7 +1419,7 @@ namespace {
         EXPECT_LT(Pafter(1)(1), 0.0);
     }
 
-    TEST(SBendRep, ProtonOnAxisIntegratesToFortyFiveDegreeDeflection) {
+    TEST(SBendRep, ProtonOnAxisIntegratesToNegativeFortyFiveDegreeDeflection) {
         constexpr double angle           = Physics::pi / 4.0;
         constexpr double arcLength       = 1.0;
         constexpr double kineticEnergyEV = 590.0 * Units::MeV2eV;
@@ -1434,7 +1434,7 @@ namespace {
 
         const double radius    = arcLength / angle;
         const double betaGamma = betaGammaFromKineticEnergy(kineticEnergyEV, massEV);
-        const double by        = -dipoleFieldMagnitude(betaGamma, massEV, charge, radius);
+        const double by        = dipoleFieldMagnitude(betaGamma, massEV, charge, radius);
         bend.setB(by);
         bend.setFieldAmplitude(by, 0.0);
 
@@ -1444,13 +1444,13 @@ namespace {
                 bend, massEV, charge, kineticEnergyEV, integrationTime, steps);
 
         const double deflection = std::atan2(state.p(0), state.p(2));
-        EXPECT_NEAR(deflection, angle, 5.0e-5);
+        EXPECT_NEAR(deflection, -angle, 5.0e-5);
         EXPECT_NEAR(
-                state.r(0), std::copysign(radius * (1.0 - std::cos(angle)), angle), 1.0e-6);
+                state.r(0), -std::copysign(radius * (1.0 - std::cos(angle)), angle), 1.0e-6);
         EXPECT_NEAR(state.r(2), radius * std::sin(std::abs(angle)), 1.0e-6);
     }
 
-    TEST(SBendRep, RuntimeNormalizedElectronOnAxisIntegratesToNegativeFortyFiveDegreeDeflection) {
+    TEST(SBendRep, RuntimeNormalizedElectronOnAxisIntegratesToPositiveFortyFiveDegreeDeflection) {
         constexpr double angle           = -Physics::pi / 4.0;
         constexpr double arcLength       = 1.0;
         constexpr double kineticEnergyEV = 1.0 * Units::GeV2eV;
@@ -1476,9 +1476,9 @@ namespace {
                 bend, massEV, charge, kineticEnergyEV, integrationTime, steps);
 
         const double deflection = std::atan2(state.p(0), state.p(2));
-        EXPECT_NEAR(deflection, angle, 5.0e-5);
+        EXPECT_NEAR(deflection, -angle, 5.0e-5);
         EXPECT_NEAR(
-                state.r(0), std::copysign(radius * (1.0 - std::cos(angle)), angle), 1.0e-6);
+                state.r(0), -std::copysign(radius * (1.0 - std::cos(angle)), angle), 1.0e-6);
         EXPECT_NEAR(state.r(2), radius * std::sin(std::abs(angle)), 1.0e-6);
     }
 
@@ -1501,9 +1501,9 @@ namespace {
         const double momentumEV = betaGammaFromKineticEnergy(kineticEnergyEV, massEV) * massEV;
         bend.updatePhysicalFieldFromMomentumEV(momentumEV, 1.0);
 
-        const double expectedBy = -momentumEV / Physics::c * (angle / length);
+        const double expectedBy = momentumEV / Physics::c * (angle / length);
         EXPECT_NEAR(bend.getB(), expectedBy, 1.0e-9 * std::abs(expectedBy));
-        EXPECT_LT(bend.getB(), 0.0);
+        EXPECT_GT(bend.getB(), 0.0);
     }
 
     TEST(SBendRep, RuntimeNormalizedProtonEntryFringeProducesExpectedVerticalKickSign) {
@@ -1552,7 +1552,7 @@ namespace {
         const double psi             = signedCurvature * fringeHalfGap * fringeIntegral
                            * (1.0 + std::sin(entryAngle) * std::sin(entryAngle))
                            / std::cos(entryAngle);
-        const double expectedVertical = -signedCurvature * std::tan(entryAngle - psi);
+        const double expectedVertical = signedCurvature * std::tan(entryAngle - psi);
         const double deltaYP          = (yFocused.p(1) - base.p(1)) / (momentumEV / massEV);
 
         EXPECT_NEAR(deltaYP / yOffset, expectedVertical, 5.0e-4);
@@ -1579,9 +1579,9 @@ namespace {
         const double momentumEV = betaGammaFromKineticEnergy(kineticEnergyEV, massEV) * massEV;
         bend.updatePhysicalFieldFromMomentumEV(momentumEV, charge);
 
-        const double expectedBy = -momentumEV / (charge * Physics::c) * (angle / chordLength);
+        const double expectedBy = momentumEV / (charge * Physics::c) * (angle / chordLength);
         EXPECT_NEAR(bend.getB(), expectedBy, 1.0e-9 * std::abs(expectedBy));
-        EXPECT_GT(bend.getB(), 0.0);
+        EXPECT_LT(bend.getB(), 0.0);
     }
 
     TEST(SBendRep, ReferenceMomentumResolutionPrefersDesignEnergyWhenProvided) {
@@ -1602,7 +1602,7 @@ namespace {
                 1.0e-12 * designMomentumEV);
     }
 
-    TEST(RBendRep, ElectronOnAxisIntegratesToFortyFiveDegreeDeflection) {
+    TEST(RBendRep, ElectronOnAxisIntegratesToNegativeFortyFiveDegreeDeflection) {
         constexpr double angle           = Physics::pi / 4.0;
         constexpr double chordLength     = 1.0;
         constexpr double kineticEnergyEV = 1.0 * Units::GeV2eV;
@@ -1619,7 +1619,7 @@ namespace {
         const double radius    = chordLength / (2.0 * std::sin(angle / 2.0));
         const double arcLength = radius * angle;
         const double betaGamma = betaGammaFromKineticEnergy(kineticEnergyEV, massEV);
-        const double by        = dipoleFieldMagnitude(betaGamma, massEV, charge, radius);
+        const double by        = -dipoleFieldMagnitude(betaGamma, massEV, charge, radius);
         bend.setB(by);
         bend.setFieldAmplitude(by, 0.0);
 
@@ -1629,8 +1629,8 @@ namespace {
                 bend, massEV, charge, kineticEnergyEV, integrationTime, steps);
 
         const double deflection = std::atan2(state.p(0), state.p(2));
-        EXPECT_NEAR(deflection, angle, 5.0e-5);
-        EXPECT_NEAR(state.r(0), radius * (1.0 - std::cos(angle)), 1.0e-6);
+        EXPECT_NEAR(deflection, -angle, 5.0e-5);
+        EXPECT_NEAR(state.r(0), -radius * (1.0 - std::cos(angle)), 1.0e-6);
         EXPECT_NEAR(state.r(2), radius * std::sin(angle), 1.0e-6);
     }
 
@@ -1699,7 +1699,7 @@ namespace {
         const double effectiveLength = bend.getEffectiveFieldLength();
         const double radius          = effectiveLength / bendAngle;
         const double betaGamma       = betaGammaFromKineticEnergy(kineticEnergyEV, massEV);
-        const double by              = -dipoleFieldMagnitude(betaGamma, massEV, charge, radius);
+        const double by              = dipoleFieldMagnitude(betaGamma, massEV, charge, radius);
         bend.setB(by);
         bend.setFieldAmplitude(bendAngle / effectiveLength, 0.0);
 
@@ -1728,8 +1728,8 @@ namespace {
         const double psi             = signedCurvature * fringeHalfGap * fringeIntegral
                            * (1.0 + std::sin(entryAngle) * std::sin(entryAngle))
                            / std::cos(entryAngle);
-        const double expectedHorizontal = signedCurvature * std::tan(entryAngle);
-        const double expectedVertical   = -signedCurvature * std::tan(entryAngle - psi);
+        const double expectedHorizontal = -signedCurvature * std::tan(entryAngle);
+        const double expectedVertical   = signedCurvature * std::tan(entryAngle - psi);
         const double deltaXP            = (xFocused.p(0) - base.p(0)) / betaGamma;
         const double deltaYP            = (yFocused.p(1) - base.p(1)) / betaGamma;
 
@@ -1763,7 +1763,7 @@ namespace {
         const double effectiveLength = bend.getEffectiveFieldLength();
         const double radius          = effectiveLength / bendAngle;
         const double betaGamma       = betaGammaFromKineticEnergy(kineticEnergyEV, massEV);
-        const double by              = -dipoleFieldMagnitude(betaGamma, massEV, charge, radius);
+        const double by              = dipoleFieldMagnitude(betaGamma, massEV, charge, radius);
         bend.setB(by);
         bend.setFieldAmplitude(bendAngle / effectiveLength, 0.0);
 
@@ -1792,8 +1792,8 @@ namespace {
         const double psi             = signedCurvature * fringeHalfGap * fringeIntegral
                            * (1.0 + std::sin(exitAngle) * std::sin(exitAngle))
                            / std::cos(exitAngle);
-        const double expectedHorizontal = signedCurvature * std::tan(exitAngle);
-        const double expectedVertical   = -signedCurvature * std::tan(exitAngle - psi);
+        const double expectedHorizontal = -signedCurvature * std::tan(exitAngle);
+        const double expectedVertical   = signedCurvature * std::tan(exitAngle - psi);
         const double deltaXP            = (xFocused.p(0) - base.p(0)) / betaGamma;
         const double deltaYP            = (yFocused.p(1) - base.p(1)) / betaGamma;
 
@@ -1827,7 +1827,7 @@ namespace {
         const double effectiveLength = bend.getEffectiveFieldLength();
         const double radius          = effectiveLength / bendAngle;
         const double betaGamma       = betaGammaFromKineticEnergy(kineticEnergyEV, massEV);
-        const double by              = dipoleFieldMagnitude(betaGamma, massEV, charge, radius);
+        const double by              = -dipoleFieldMagnitude(betaGamma, massEV, charge, radius);
         bend.setB(by);
         bend.setFieldAmplitude(bendAngle / effectiveLength, 0.0);
 
@@ -1856,8 +1856,8 @@ namespace {
         const double psi             = signedCurvature * fringeHalfGap * fringeIntegral
                            * (1.0 + std::sin(entryAngle) * std::sin(entryAngle))
                            / std::cos(entryAngle);
-        const double expectedHorizontal = signedCurvature * std::tan(entryAngle);
-        const double expectedVertical   = -signedCurvature * std::tan(entryAngle - psi);
+        const double expectedHorizontal = -signedCurvature * std::tan(entryAngle);
+        const double expectedVertical   = signedCurvature * std::tan(entryAngle - psi);
         const double deltaXP            = (xFocused.p(0) - base.p(0)) / betaGamma;
         const double deltaYP            = (yFocused.p(1) - base.p(1)) / betaGamma;
 
@@ -1891,7 +1891,7 @@ namespace {
         const double effectiveLength = bend.getEffectiveFieldLength();
         const double radius          = effectiveLength / bendAngle;
         const double betaGamma       = betaGammaFromKineticEnergy(kineticEnergyEV, massEV);
-        const double by              = dipoleFieldMagnitude(betaGamma, massEV, charge, radius);
+        const double by              = -dipoleFieldMagnitude(betaGamma, massEV, charge, radius);
         bend.setB(by);
         bend.setFieldAmplitude(bendAngle / effectiveLength, 0.0);
 
@@ -1920,8 +1920,8 @@ namespace {
         const double psi             = signedCurvature * fringeHalfGap * fringeIntegral
                            * (1.0 + std::sin(exitAngle) * std::sin(exitAngle))
                            / std::cos(exitAngle);
-        const double expectedHorizontal = signedCurvature * std::tan(exitAngle);
-        const double expectedVertical   = -signedCurvature * std::tan(exitAngle - psi);
+        const double expectedHorizontal = -signedCurvature * std::tan(exitAngle);
+        const double expectedVertical   = signedCurvature * std::tan(exitAngle - psi);
         const double deltaXP            = (xFocused.p(0) - base.p(0)) / betaGamma;
         const double deltaYP            = (yFocused.p(1) - base.p(1)) / betaGamma;
 

@@ -40,6 +40,7 @@
 #include "AbsBeamline/ElementBase.h"
 #include "AbsBeamline/Laser.h"
 #include "AbsBeamline/Marker.h"
+#include "AbsBeamline/Monitor.h"
 #include "AbsBeamline/Multipole.h"
 #include "AbsBeamline/MultipoleT.h"
 #include "AbsBeamline/RBend.h"
@@ -138,6 +139,9 @@ public:
 
     /// @brief Apply the algorithm to a marker.
     virtual void visitMarker(const Marker&);
+
+    /// @brief Apply the algorithm to a monitor.
+    virtual void visitMonitor(const Monitor&);
 
     /// @brief Apply the algorithm to a multipole.
     virtual void visitMultipole(const Multipole&);
@@ -303,6 +307,10 @@ inline void ParallelTracker::visitDrift(const Drift& drift) {
 
 inline void ParallelTracker::visitMarker(const Marker& marker) {
     itsOpalBeamline_m.visit(marker, *this, *itsBunch_m);
+}
+
+inline void ParallelTracker::visitMonitor(const Monitor& mon) {
+    itsOpalBeamline_m.visit(mon, *this, *itsBunch_m);
 }
 
 inline void ParallelTracker::visitMultipole(const Multipole& mult) {
