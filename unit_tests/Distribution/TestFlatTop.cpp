@@ -1,35 +1,33 @@
 #include <gtest/gtest.h>
 #include <mpi.h>
-#include <memory>
-#include <cmath>
 #include <algorithm>
+#include <cmath>
+#include <memory>
 
 #include "Distribution/FlatTop.h"
-#include "PartBunch/BunchStateHandler.h"
 #include "Ippl.h"
+#include "PartBunch/BunchStateHandler.h"
 #include "Utility/IpplTimings.h"
 
 class FlatTopTest : public ::testing::Test {
 protected:
     static void SetUpTestSuite() {
-        int argc = 0;
+        int argc    = 0;
         char** argv = nullptr;
 
         ippl::initialize(argc, argv);
     }
 
-    static void TearDownTestSuite() {
-        ippl::finalize();
-    }
+    static void TearDownTestSuite() { ippl::finalize(); }
 
     void SetUp() override {
         // Minimal 3D grid parameters
-        nr = 64;
-        ippl::Vector<double,3> rmin = -4.0;
-        ippl::Vector<double,3> rmax = 4.0;
-        ippl::Vector<double,3> origin = rmin;
-        ippl::Vector<double,3> hr = (rmax - rmin) / ippl::Vector<double,3>(nr);
-        std::array<bool,3> decomp = {false, false, true};
+        nr                             = 64;
+        ippl::Vector<double, 3> rmin   = -4.0;
+        ippl::Vector<double, 3> rmax   = 4.0;
+        ippl::Vector<double, 3> origin = rmin;
+        ippl::Vector<double, 3> hr     = (rmax - rmin) / ippl::Vector<double, 3>(nr);
+        std::array<bool, 3> decomp     = {false, false, true};
 
         ippl::NDIndex<3> domain;
         for (unsigned i = 0; i < 3; i++) {
@@ -37,7 +35,8 @@ protected:
         }
 
         // Create FieldContainer
-        fc = std::make_shared<FieldContainer_t>(hr, rmin, rmax, decomp, domain, origin, this->isAllPeriodic_m);
+        fc = std::make_shared<FieldContainer_t>(
+                hr, rmin, rmax, decomp, domain, origin, this->isAllPeriodic_m);
 
         // Create mesh and fieldlayout
         Mesh_t<3> mesh(domain, hr, origin);
@@ -57,7 +56,7 @@ protected:
     std::shared_ptr<ParticleContainer<double, 3>> pc;
     std::shared_ptr<FieldContainer_t> fc;
     std::shared_ptr<BunchStateHandler> bunchStateHandler;
-    ippl::Vector<int,3> nr;
+    ippl::Vector<int, 3> nr;
     bool isAllPeriodic_m = true;
 };
 
@@ -103,24 +102,21 @@ protected:
  * using a finite-sample tolerance.
  */
 TEST_F(FlatTopTest, UniformDiskStatisticsAndBounds) {
-    const Vector_t<double,3> sigmaR = {0.5, 1.0, 0.0};
-    const Vector_t<double,3> cutoff = 4.0;
+    const Vector_t<double, 3> sigmaR = {0.5, 1.0, 0.0};
+    const Vector_t<double, 3> cutoff = 4.0;
 
     // Minimal FlatTop constructor usage
     FlatTop sampler(
-        pc,
-        /*emitting=*/false,
-        /*sigmaTFall=*/1.0,
-        /*sigmaTRise=*/1.0,
-        cutoff,
-        /*tPulseLengthFWHM=*/1.0,
-        sigmaR
-    );
+            pc,
+            /*emitting=*/false,
+            /*sigmaTFall=*/1.0,
+            /*sigmaTRise=*/1.0, cutoff,
+            /*tPulseLengthFWHM=*/1.0, sigmaR);
 
     const size_t nlocal = 0;
     const size_t nNew   = 100000;
 
-    pc->create(nNew);
+    pc->createParticles(nNew);
     sampler.generateUniformDisk(nlocal, nNew, 1.0e-12);
 
     auto Rview_d = pc->R.getView();
@@ -148,16 +144,14 @@ TEST_F(FlatTopTest, UniformDiskStatisticsAndBounds) {
         EXPECT_DOUBLE_EQ(Pview(i)[2], 0.0);
 
         // inside ellipse
-        const double r2 =
-            (x*x)/(sigmaR[0]*sigmaR[0]) +
-            (y*y)/(sigmaR[1]*sigmaR[1]);
+        const double r2 = (x * x) / (sigmaR[0] * sigmaR[0]) + (y * y) / (sigmaR[1] * sigmaR[1]);
 
         EXPECT_LE(r2, 1.0 + 1e-14);
 
-        sumx  += x;
-        sumy  += y;
-        sumx2 += x*x;
-        sumy2 += y*y;
+        sumx += x;
+        sumy += y;
+        sumx2 += x * x;
+        sumy2 += y * y;
     }
 
     const double meanx = sumx / nNew;
@@ -171,10 +165,9 @@ TEST_F(FlatTopTest, UniformDiskStatisticsAndBounds) {
 
     // Uniform disk second moments:
     // E[x^2] = σx^2 / 4, E[y^2] = σy^2 / 4
-    EXPECT_NEAR(varx, sigmaR[0]*sigmaR[0] / 4.0, 1e-2);
-    EXPECT_NEAR(vary, sigmaR[1]*sigmaR[1] / 4.0, 1e-2);
+    EXPECT_NEAR(varx, sigmaR[0] * sigmaR[0] / 4.0, 1e-2);
+    EXPECT_NEAR(vary, sigmaR[1] * sigmaR[1] / 4.0, 1e-2);
 }
-
 
 /**
  * @brief This test counts the number of particles entering the domain per rank for a FlatTop pulse.
@@ -237,7 +230,7 @@ TEST_F(FlatTopTest, UniformDiskStatisticsAndBounds) {
  * @f]
  *
  * and @f$N_{\mathrm{new,local}}^{(r)} = N_{\mathrm{new,local}}@f$ for @f$r > 0@f$.
- * 
+ *
  * The total number of particles entering the domain is therefore
  *
  * @f[
@@ -257,18 +250,15 @@ TEST_F(FlatTopTest, UniformDiskStatisticsAndBounds) {
  * this analytic expectation exactly.
  */
 TEST_F(FlatTopTest, CountEnteringParticles_NoDomainDecomp) {
-    const Vector_t<double,3> sigmaR = {1.0, 1.0, 0.0};
-    const Vector_t<double,3> cutoff = {4.0, 4.0, 4.0};
+    const Vector_t<double, 3> sigmaR = {1.0, 1.0, 0.0};
+    const Vector_t<double, 3> cutoff = {4.0, 4.0, 4.0};
 
     FlatTop sampler(
-        pc,
-        /*emitting=*/true,
-        /*sigmaTFall=*/1.0,
-        /*sigmaTRise=*/1.0,
-        cutoff,
-        /*tPulseLengthFWHM=*/10.0,
-        sigmaR
-    );
+            pc,
+            /*emitting=*/true,
+            /*sigmaTFall=*/1.0,
+            /*sigmaTRise=*/1.0, cutoff,
+            /*tPulseLengthFWHM=*/10.0, sigmaR);
 
     sampler.setWithDomainDecomp(false);
 
@@ -277,13 +267,10 @@ TEST_F(FlatTopTest, CountEnteringParticles_NoDomainDecomp) {
     sampler.allocateParticles(totalN);
 
     // Preallocate capacity so computeLocalEmitCount can distribute totalN.
-    const int nranksConst     = std::max(1, ippl::Comm->size());
-    const size_t nranksU = static_cast<size_t>(nranksConst);
-    const size_t maxLocalNum =
-        totalN / nranksU + 2 * nranksU + 1;
-    pc->create(maxLocalNum);
-    Kokkos::View<bool*> tmp_invalid("tmp_invalid", maxLocalNum);
-    pc->destroy(tmp_invalid, maxLocalNum);
+    const int nranksConst    = std::max(1, ippl::Comm->size());
+    const size_t nranksU     = static_cast<size_t>(nranksConst);
+    const size_t maxLocalNum = totalN / nranksU + 2 * nranksU + 1;
+    pc->allocateParticles(maxLocalNum);
 
     const double t0 = 2.0;
     const double tf = 2.1;
@@ -291,14 +278,12 @@ TEST_F(FlatTopTest, CountEnteringParticles_NoDomainDecomp) {
     size_t nlocal = sampler.countEnteringParticlesPerRank(t0, tf);
 
     // --- compute expected result ---
-    double f0 = sampler.FlatTopProfile(t0);
-    double f1 = sampler.FlatTopProfile(tf);
+    double f0    = sampler.FlatTopProfile(t0);
+    double f1    = sampler.FlatTopProfile(tf);
     double tArea = 0.5 * (f0 + f1) * (tf - t0);
 
-    double expectedTotalNewD =
-        std::floor(totalN * tArea / sampler.getDistArea());
-    const size_t expectedTotalNew =
-        static_cast<size_t>(expectedTotalNewD);
+    double expectedTotalNewD      = std::floor(totalN * tArea / sampler.getDistArea());
+    const size_t expectedTotalNew = static_cast<size_t>(expectedTotalNewD);
 
     int nranks;
     MPI_Comm_size(MPI_COMM_WORLD, &nranks);
@@ -308,21 +293,14 @@ TEST_F(FlatTopTest, CountEnteringParticles_NoDomainDecomp) {
 
     // Mirror SamplingBase::computeLocalEmitCount for equal capacities:
     // first 'rem' ranks get one extra particle.
-    size_t base = expectedTotalNew / static_cast<size_t>(nranks);
-    size_t rem  = expectedTotalNew % static_cast<size_t>(nranks);
+    size_t base          = expectedTotalNew / static_cast<size_t>(nranks);
+    size_t rem           = expectedTotalNew % static_cast<size_t>(nranks);
     size_t expectedLocal = base + ((static_cast<size_t>(rank) < rem) ? 1 : 0);
 
     EXPECT_EQ(nlocal, expectedLocal);
 
     size_t globalEmitted = 0;
-    MPI_Allreduce(
-        &nlocal,
-        &globalEmitted,
-        1,
-        MPI_UNSIGNED_LONG,
-        MPI_SUM,
-        MPI_COMM_WORLD
-    );
+    MPI_Allreduce(&nlocal, &globalEmitted, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
 
     EXPECT_EQ(globalEmitted, expectedTotalNew);
 }

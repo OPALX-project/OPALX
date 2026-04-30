@@ -110,7 +110,7 @@ void Gaussian::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> 
     nlocal = sampling.getLocalSamplesNum();
 
     const size_t nlocalCurrent = pc_m->getLocalNum();
-    pc_m->create(nlocal);
+    pc_m->createParticles(nlocal);
 
     view_type RviewFull = pc_m->R.getView();
     auto Rview = Kokkos::subview(RviewFull, std::make_pair(nlocalCurrent, nlocalCurrent + nlocal));

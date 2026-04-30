@@ -22,65 +22,40 @@
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "PartBunch/PartBunch.h"
 
-extern Inform *gmsg;
+extern Inform* gmsg;
 
 // Class Drift
 // ------------------------------------------------------------------------
 
-Drift::Drift():
-    Drift("")
-{ }
+Drift::Drift() : Drift("") {}
 
+Drift::Drift(const Drift& right) : Component(right), nSlices_m(right.nSlices_m) {}
 
-Drift::Drift(const Drift &right):
-    Component(right),
-    nSlices_m(right.nSlices_m)
-{ }
+Drift::Drift(const std::string& name) : Component(name), nSlices_m(1) {}
 
+Drift::~Drift() {}
 
-Drift::Drift(const std::string &name):
-    Component(name),
-    nSlices_m(1)
-{ }
+void Drift::accept(BeamlineVisitor& visitor) const { visitor.visitDrift(*this); }
 
-
-Drift::~Drift()
-{ }
-
-
-void Drift::accept(BeamlineVisitor &visitor) const {
-    visitor.visitDrift(*this);
-}
-
-void Drift::initialise(PartBunch_t *bunch, double &startField, double &endField) {
-    endField = startField + getElementLength();
+void Drift::initialise(PartBunch_t* bunch, double& startField, double& endField) {
+    endField       = startField + getElementLength();
     RefPartBunch_m = bunch;
-    startField_m = startField;
+    startField_m   = startField;
 }
 
+// set the number of slices for map tracking
+void Drift::setNSlices(const std::size_t& nSlices) { nSlices_m = nSlices; }
 
-//set the number of slices for map tracking
-void Drift::setNSlices(const std::size_t& nSlices) { 
-    nSlices_m = nSlices;
-}
+// get the number of slices for map tracking
+std::size_t Drift::getNSlices() const { return nSlices_m; }
 
-//get the number of slices for map tracking
-std::size_t Drift::getNSlices() const {
-    return nSlices_m;
-}
+void Drift::finalise() {}
 
-void Drift::finalise() {
-}
+bool Drift::bends() const { return false; }
 
-bool Drift::bends() const {
-    return false;
-}
-
-void Drift::getDimensions(double &zBegin, double &zEnd) const {
+void Drift::getFieldExtend(double& zBegin, double& zEnd) const {
     zBegin = startField_m;
-    zEnd = startField_m + getElementLength();
+    zEnd   = startField_m + getElementLength();
 }
 
-ElementType Drift::getType() const {
-    return ElementType::DRIFT;
-}
+ElementType Drift::getType() const { return ElementType::DRIFT; }

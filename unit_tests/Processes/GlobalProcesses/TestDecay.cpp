@@ -67,7 +67,7 @@ namespace {
                 return;
             }
 
-            pc->create(nPart);
+            pc->createParticles(nPart);
             auto R_host = pc->R.getHostMirror();
             auto P_host = pc->P.getHostMirror();
 
@@ -90,7 +90,7 @@ namespace {
                 return;
             }
 
-            pc->create(nPart);
+            pc->createParticles(nPart);
             auto R_host = pc->R.getHostMirror();
             auto P_host = pc->P.getHostMirror();
 

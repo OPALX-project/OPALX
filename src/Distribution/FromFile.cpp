@@ -286,7 +286,7 @@ void FromFile::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> 
 
     // Allocate particles, appending after any existing ones.
     const size_t nlocalCurrent = pc_m->getLocalNum();
-    pc_m->create(nlocal);
+    pc_m->createParticles(nlocal);
 
     // Use subviews over the newly created slots, matching the Gaussian pattern.
     view_type RviewFull = pc_m->R.getView();
