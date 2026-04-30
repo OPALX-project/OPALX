@@ -349,8 +349,10 @@ namespace {
         ASSERT_GE(path.size(), 5u);
         const auto entry = bend.getEdgeToBegin().getOrigin();
         const auto exit  = bend.getEdgeToEnd().getOrigin();
-        EXPECT_NEAR(path.front()(0), entry(0), 1e-12);
-        EXPECT_NEAR(path.back()(0), exit(0), 1e-12);
+        EXPECT_NEAR(path.front()(0), 0.0, 1e-12);
+        EXPECT_NEAR(path.back()(0), 0.0, 1e-12);
+        EXPECT_NEAR(entry(0), exit(0), 1e-12);
+        EXPECT_LT(entry(0), 0.0);
     }
 
     TEST(RBendRep, ClonePreservesGeometryAndField) {

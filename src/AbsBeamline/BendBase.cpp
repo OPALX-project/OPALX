@@ -366,6 +366,51 @@ Vector_t<double, 3> BendBase::convertBodyCartesianToFieldLocal(
     const double bodyLength = getReferencePathLength();
     const double curvature  = getReferencePathCurvature();
 
+    if (getType() == ElementType::RBEND) {
+        const double entryZ = getEdgeToBegin().getOrigin()(2);
+        const double exitZ  = getEdgeToEnd().getOrigin()(2);
+        const CoordinateSystemTrafo entryLocal = toCoordinateSystemTrafo(getEntranceFrame());
+        const Vector_t<double, 3> entryCartesian = entryLocal.transformTo(bodyCartesian);
+        if (std::abs(curvature) <= 1.0e-15 || bodyCartesian(2) < 0.0) {
+            return entryCartesian;
+        }
+
+        const CoordinateSystemTrafo exitLocal = toCoordinateSystemTrafo(getExitFrame());
+        const Vector_t<double, 3> exitCartesian = exitLocal.transformTo(bodyCartesian);
+        if (bodyCartesian(2) > exitZ + 1.0e-12) {
+            return Vector_t<double, 3>(
+                    exitCartesian(0), exitCartesian(1), bodyLength + exitCartesian(2));
+        }
+
+        /**
+         * For an RBEND the hardware body remains straight while the design
+         * reference path is curved. The placed body chart is therefore matched
+         * to the actual rectangular-bend body origin, entry port, and exit port
+         * coordinates \f$(0, z_\mathrm{entry}, z_\mathrm{exit})\f$. The
+         * longitudinal field coordinate is interpolated through the three
+         * physically distinguished points
+         * \f[
+         *   (0, L_\mathrm{ref}/2), \qquad (z_\mathrm{entry}, 0), \qquad
+         *   (z_\mathrm{exit}, L_\mathrm{ref}),
+         * \f]
+         * which yields a quadratic map in the body longitudinal coordinate.
+         * This keeps the entry and exit ports exact while preserving the
+         * midpoint-body convention used by placement/export.
+         */
+        const double z = bodyCartesian(2);
+        double s = 0.5 * bodyLength * (z - entryZ) * (z - exitZ) / (entryZ * exitZ)
+                   + bodyLength * z * (z - entryZ) / (exitZ * (exitZ - entryZ));
+        if (std::abs(z - entryZ) <= 1.0e-12) {
+            s = 0.0;
+        } else if (std::abs(z - exitZ) <= 1.0e-12) {
+            s = bodyLength;
+        }
+        const CoordinateSystemTrafo entryToSliceLocal = toCoordinateSystemTrafo(
+                makeReferencePathTransformFromEntry(s, bodyLength, curvature));
+        const Vector_t<double, 3> sliceLocal = entryToSliceLocal.transformTo(entryCartesian);
+        return Vector_t<double, 3>(sliceLocal(0), sliceLocal(1), s);
+    }
+
     const CoordinateSystemTrafo entryLocal = toCoordinateSystemTrafo(getEntranceFrame());
     const Vector_t<double, 3> entryCartesian = entryLocal.transformTo(bodyCartesian);
     if (std::abs(curvature) <= 1.0e-15 || entryCartesian(2) <= 0.0) {

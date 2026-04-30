@@ -321,6 +321,11 @@ inline Vector_t<double, 3> OpalBeamline::transformToFieldLocalCS(
     if (type == ElementType::SBEND || type == ElementType::RBEND) {
         const auto* bend = dynamic_cast<const BendBase*>(comp.get());
         if (bend != nullptr) {
+            if (type == ElementType::RBEND) {
+                const Vector_t<double, 3> bodyCartesian =
+                        getPlacedElement(comp).getNominalBodyTransform().transformTo(r);
+                return bend->convertBodyCartesianToFieldLocal(bodyCartesian);
+            }
             const Vector_t<double, 3> entryCartesian =
                     getPlacedElement(comp).getNominalEntryTransform().transformTo(r);
             return bend->convertEntryCartesianToFieldLocal(entryCartesian);

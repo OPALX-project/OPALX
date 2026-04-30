@@ -280,7 +280,7 @@ void OpalBeamline::compileCompatibilityPlacement() {
             Quaternion_t entryFaceRotation(
                     cos(0.5 * entranceAngle), sin(0.5 * entranceAngle) * effectiveRotationAxis);
 
-            if (!Options::idealized) {
+            if (!Options::idealized && element->getType() == ElementType::SBEND) {
                 std::vector<Vector_t<double, 3>> truePath = bendElement->getDesignPath();
                 Quaternion_t directionExitHardEdge(
                         cos(0.5 * (0.5 * bendAngle - entranceAngle)),

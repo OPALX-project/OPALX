@@ -26,6 +26,9 @@ public:
     RBendGeometry& getGeometry() override             = 0;
     const RBendGeometry& getGeometry() const override = 0;
 
+    CoordinateSystemTrafo getEdgeToBegin() const override;
+    CoordinateSystemTrafo getEdgeToEnd() const override;
+
     double getExitAngle() const override;
 
 protected:

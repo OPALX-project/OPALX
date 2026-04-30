@@ -527,7 +527,7 @@ TEST_F(OpalBeamlinePlacementTest, CompatibilitySBendExitMatchesAnalyticLabGeomet
     expectVectorNear(tangentLab, analyticExitTangent(angle));
 }
 
-TEST_F(OpalBeamlinePlacementTest, DISABLED_CompatibilityRBendExitMatchesAnalyticLabGeometry) {
+TEST_F(OpalBeamlinePlacementTest, CompatibilityRBendExitMatchesAnalyticLabGeometry) {
     auto bunch = makeBunch(0);
     DummyBeamline beamlineForVisitor;
     DefaultVisitor visitor(beamlineForVisitor, false, false);

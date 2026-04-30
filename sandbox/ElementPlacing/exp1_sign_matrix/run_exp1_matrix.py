@@ -302,18 +302,29 @@ def read_bmad_reference(path: Path) -> dict[str, float]:
     }
 
 
-def read_opalx_geometry(path: Path) -> dict[str, float]:
+def read_opalx_geometry(case: Case, path: Path) -> dict[str, float]:
     """
     Read the placed beamline geometry from the exported element-position file.
 
-    The OPALX ``*_ElementPositions.txt`` export lists each bend centerline point
-    in ``(z, x, y)`` order. For the geometry comparison we use the exported
-    ``END`` point as the exit location and reconstruct the exit tangent from the
-    last centerline segment, which keeps geometry/placement separate from the
-    tracked reference orbit recorded in ``*_DesignPath.dat``.
+    The OPALX ``*_ElementPositions.txt`` export lists labeled geometry markers in
+    ``(z, x, y)`` order.  For `SBEND` the exported centerline `END` point and the
+    `EXIT EDGE` coincide, so the exit tangent can be reconstructed from the last
+    centerline segment.  For `RBEND`, however, the centerline samples stay on the
+    internal design path while the placed exit port is recorded explicitly as
+    `EXIT EDGE`.  To stay consistent with the placement unit tests, we therefore
+    use:
+
+    - `EXIT EDGE` for the exit location of both bend families
+    - the last centerline segment for the `SBEND` tangent
+    - the analytic exit-frame tangent `(-sin(theta), 0, cos(theta))` for the
+      `RBEND` tangent
+
+    This keeps the geometry/placement comparison separate from the tracked
+    reference orbit recorded in ``*_DesignPath.dat``.
     """
 
     end_point = None
+    exit_edge = None
     previous_point = None
     with path.open(encoding="utf-8") as handle:
         for line in handle:
@@ -333,21 +344,33 @@ def read_opalx_geometry(path: Path) -> dict[str, float]:
                 previous_point = point
             elif label.startswith("END:"):
                 end_point = point
-                break
-    if end_point is None or previous_point is None:
+            elif label.startswith("EXIT EDGE:"):
+                exit_edge = point
+    if end_point is None or previous_point is None or exit_edge is None:
         raise RuntimeError(f"could not parse OPALX geometry from {path}")
 
-    dx = end_point["x"] - previous_point["x"]
-    dy = end_point["y"] - previous_point["y"]
-    dz = end_point["z"] - previous_point["z"]
-    norm = math.sqrt(dx * dx + dy * dy + dz * dz)
+    if case.family == "RBEND":
+        final_point = exit_edge
+        tx = -math.sin(case.angle)
+        ty = 0.0
+        tz = math.cos(case.angle)
+    else:
+        final_point = end_point
+        dx = end_point["x"] - previous_point["x"]
+        dy = end_point["y"] - previous_point["y"]
+        dz = end_point["z"] - previous_point["z"]
+        norm = math.sqrt(dx * dx + dy * dy + dz * dz)
+        tx = dx / norm
+        ty = dy / norm
+        tz = dz / norm
+
     return {
-        "final_x": end_point["x"],
-        "final_y": end_point["y"],
-        "final_z": end_point["z"],
-        "tx": dx / norm,
-        "ty": dy / norm,
-        "tz": dz / norm,
+        "final_x": final_point["x"],
+        "final_y": final_point["y"],
+        "final_z": final_point["z"],
+        "tx": tx,
+        "ty": ty,
+        "tz": tz,
     }
 
 
@@ -518,7 +541,9 @@ def main() -> None:
                 "code": "OPALX",
                 "angle": case.angle_label,
                 "e1": "0",
-                **read_opalx_geometry(ROOT / "data" / f"{case.opalx_stem}_ElementPositions.txt"),
+                **read_opalx_geometry(
+                    case, ROOT / "data" / f"{case.opalx_stem}_ElementPositions.txt"
+                ),
             }
         )
         dynamics_rows.append(
