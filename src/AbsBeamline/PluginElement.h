@@ -36,27 +36,27 @@ public:
 
     ///@{ Pure virtual implementation of Component
     virtual void initialise(
-        PartBunch_t* bunch, double& startField, double& endField) override;  // not used?
+            PartBunch_t* bunch, double& startField, double& endField) override;  // not used?
     void initialise(PartBunch_t* bunch);  // replacement for virtual initialise
     virtual void finalise() final;        // final since virtual hook doFinalise
     virtual void goOffline() final;       // final since virtual hook doGoOffline
     virtual bool bends() const override;
-    virtual void getDimensions(double& zBegin, double& zEnd) const override;
+    virtual void getFieldExtend(double& zBegin, double& zEnd) const override;
     ///@}
     ///@{ Virtual implementation of Component
     virtual bool apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
 
     virtual bool apply(
-        const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
+            const size_t& i, const double& t, Vector_t<double, 3>& E,
+            Vector_t<double, 3>& B) override;
 
     virtual bool apply(
-        const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-        Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
+            const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
+            Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 
-    
     virtual bool applyToReferenceParticle(
-        const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-        Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
+            const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
+            Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
     ///@}
 
     /// Set dimensions and consistency checks
@@ -85,33 +85,26 @@ protected:
 
 private:
     /// Check if bunch is close to element
-    bool preCheck(PartBunch_t* bunch) {
-        return doPreCheck(bunch);
-    }
+    bool preCheck(PartBunch_t* bunch) { return doPreCheck(bunch); }
     /// Finalise call after check
     bool finaliseCheck(PartBunch_t* bunch, bool flagNeedUpdate) {
         return doFinaliseCheck(bunch, flagNeedUpdate);
     }
     /// Pure virtual hook for initialise
-    virtual void doInitialise(PartBunch_t* /*bunch*/) {
-    }
+    virtual void doInitialise(PartBunch_t* /*bunch*/) {}
     /// Pure virtual hook for check
     virtual bool doCheck(
-        PartBunch_t* bunch, const int turnnumber, const double t, const double tstep) = 0;
+            PartBunch_t* bunch, const int turnnumber, const double t, const double tstep) = 0;
     /// Virtual hook for setGeom
-    virtual void doSetGeom(){};
+    virtual void doSetGeom() {};
     /// Virtual hook for preCheck
-    virtual bool doPreCheck(PartBunch_t*) {
-        return true;
-    }
+    virtual bool doPreCheck(PartBunch_t*) { return true; }
     /// Virtual hook for finaliseCheck
-    virtual bool doFinaliseCheck(PartBunch_t*, bool flagNeedUpdate) {
-        return flagNeedUpdate;
-    }
+    virtual bool doFinaliseCheck(PartBunch_t*, bool flagNeedUpdate) { return flagNeedUpdate; }
     /// Virtual hook for finalise
-    virtual void doFinalise(){};
+    virtual void doFinalise() {};
     /// Virtual hook for goOffline
-    virtual void doGoOffline(){};
+    virtual void doGoOffline() {};
 
 protected:
     /* Members */

@@ -184,8 +184,9 @@ void MeshGenerator::add(const ElementBase& element) {
         }
     }
 
-    CoordinateSystemTrafo trafo = element.getCSTrafoGlobal2Local().inverted();
-    Vector_t<double, 3> z       = trafo.rotateTo(Vector_t<double, 3>(0, 0, 1));
+    const CoordinateSystemTrafo trafo =
+            element.getPlacedElement().getNominalBodyTransform().inverted();
+    Vector_t<double, 3> z = trafo.rotateTo(Vector_t<double, 3>(0, 0, 1));
     for (unsigned int i = 0; i < mesh.vertices_m.size(); ++i) {
         mesh.vertices_m[i] = trafo.transformTo(mesh.vertices_m[i]) + start * z;
     }

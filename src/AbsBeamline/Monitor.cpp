@@ -35,38 +35,31 @@
 std::map<double, SetStatistics> Monitor::statFileEntries_sm;
 const double Monitor::halfLength_s = 0.005;
 
-Monitor::Monitor() : Monitor("") {
-}
+Monitor::Monitor() : Monitor("") {}
 
 Monitor::Monitor(const Monitor& right)
     : Component(right),
       filename_m(right.filename_m),
       plane_m(right.plane_m),
       type_m(right.type_m),
-      numPassages_m(0) {
-}
+      numPassages_m(0) {}
 
 Monitor::Monitor(const std::string& name)
     : Component(name),
       filename_m(""),
       plane_m(OFF),
       type_m(CollectionType::SPATIAL),
-      numPassages_m(0) {
-}
+      numPassages_m(0) {}
 
-Monitor::~Monitor() {
-}
+Monitor::~Monitor() {}
 
-void Monitor::accept(BeamlineVisitor& visitor) const {
-    visitor.visitMonitor(*this);
-}
+void Monitor::accept(BeamlineVisitor& visitor) const { visitor.visitMonitor(*this); }
 
-bool Monitor::apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/) {
-    return false;
-}
+bool Monitor::apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/) { return false; }
 
 bool Monitor::apply(
-    const size_t& /*i*/, const double& /*t*/, Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/) {
+        const size_t& /*i*/, const double& /*t*/, Vector_t<double, 3>& /*E*/,
+        Vector_t<double, 3>& /*B*/) {
     // const Vector_t<double, 3>& R         = RefPartBunch_m->R(i);
     // const Vector_t<double, 3>& P         = RefPartBunch_m->P(i);
     // const double& dt                     = RefPartBunch_m->dt(i);
@@ -87,14 +80,14 @@ bool Monitor::apply(
 }
 
 bool Monitor::apply(
-    const Vector_t<double, 3>& /*R*/, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
-    Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/) {
+        const Vector_t<double, 3>& /*R*/, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
+        Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/) {
     throw std::runtime_error("Fix this function please");
     return false;
 }
 
 void Monitor::driftToCorrectPositionAndSave(
-    const Vector_t<double, 3>& /*refR*/, const Vector_t<double, 3>& /*refP*/) {
+        const Vector_t<double, 3>& /*refR*/, const Vector_t<double, 3>& /*refP*/) {
     // const double cdt                           = Physics::c * RefPartBunch_m->getdT();
     // const Vector_t<double, 3> driftPerTimeStep = cdt * Util::getBeta(refP);
     // const double tau                           = -refR(2) / driftPerTimeStep(2);
@@ -115,8 +108,8 @@ void Monitor::driftToCorrectPositionAndSave(
 }
 
 bool Monitor::applyToReferenceParticle(
-    const Vector_t<double, 3>& /*R*/, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
-    Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/) {
+        const Vector_t<double, 3>& /*R*/, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
+        Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/) {
     // if (!OpalData::getInstance()->isInPrepState()) {
     //     const double dt                      = RefPartBunch_m->getdT();
     //     const double cdt                     = Physics::c * dt;
@@ -159,11 +152,11 @@ void Monitor::initialise(PartBunch_t* bunch, double& startField, double& endFiel
     endField       = startField + halfLength_s;
     startField -= halfLength_s;
 
-    //const size_t totalNum  = bunch->getTotalNum();
-    //double currentPosition = endField;
-    //if (totalNum > 0) {
-    //    currentPosition = bunch->get_sPos();
-    //}
+    // const size_t totalNum  = bunch->getTotalNum();
+    // double currentPosition = endField;
+    // if (totalNum > 0) {
+    //     currentPosition = bunch->get_sPos();
+    // }
 
     filename_m = getOutputFN();
 
@@ -186,12 +179,9 @@ void Monitor::initialise(PartBunch_t* bunch, double& startField, double& endFiel
     throw std::runtime_error("Fix this function please");
 }
 
-void Monitor::finalise() {
-}
+void Monitor::finalise() {}
 
-void Monitor::goOnline(const double&) {
-    online_m = true;
-}
+void Monitor::goOnline(const double&) { online_m = true; }
 
 void Monitor::goOffline() {
     auto stats = lossDs_m->computeStatistics(numPassages_m);
@@ -204,11 +194,9 @@ void Monitor::goOffline() {
     }
 }
 
-bool Monitor::bends() const {
-    return false;
-}
+bool Monitor::bends() const { return false; }
 
-void Monitor::getDimensions(double& zBegin, double& zEnd) const {
+void Monitor::getFieldExtend(double& zBegin, double& zEnd) const {
     zBegin = -halfLength_s;
     zEnd   = halfLength_s;
 }
@@ -219,11 +207,10 @@ ElementType Monitor::getType() const {
 }
 
 void Monitor::writeStatistics() {
-    if (statFileEntries_sm.size() == 0)
-        return;
+    if (statFileEntries_sm.size() == 0) return;
 
     std::string fileName =
-        OpalData::getInstance()->getInputBasename() + std::string("_Monitors.stat");
+            OpalData::getInstance()->getInputBasename() + std::string("_Monitors.stat");
     auto instance      = OpalData::getInstance();
     bool hasPriorTrack = instance->hasPriorTrack();
     bool inRestartRun  = instance->inRestartRun();

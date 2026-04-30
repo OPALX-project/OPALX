@@ -5,7 +5,9 @@ set (_SRCS
     MarkerRep.cpp
     MonitorRep.cpp
     MultipoleRep.cpp
+    RBendRep.cpp
     RFCavityRep.cpp
+    SBendRep.cpp
     TravelingWaveRep.cpp
     SolenoidRep.cpp
     ProbeRep.cpp
@@ -18,7 +20,9 @@ set (HDRS
     MarkerRep.h
     MonitorRep.h
     MultipoleRep.h
+    RBendRep.h
     RFCavityRep.h
+    SBendRep.h
     TravelingWaveRep.h
     SolenoidRep.h
     ProbeRep.h

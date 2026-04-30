@@ -66,8 +66,13 @@
 #include "AbsBeamline/AttributeSet.h"
 #include "Algorithms/CoordinateSystemTrafo.h"
 #include "Algorithms/Quaternion.hpp"
+#include "BeamlineGeometry/ElementGeometry.h"
 #include "BeamlineGeometry/Euclid3D.h"
 #include "BeamlineGeometry/Geometry.h"
+#include "BeamlineGeometry/Misalignment.h"
+#include "BeamlineGeometry/PlacedElement.h"
+#include "BeamlineGeometry/PlacementPose.h"
+#include "BeamlineGeometry/SupportPlacement.h"
 #include "Structure/BoundingBox.h"
 #include "Utilities/GeneralOpalException.h"
 
@@ -158,6 +163,16 @@ public:
     //  This may be the arc length or the straight length.
     virtual void setElementLength(double length);
 
+    /**
+     * @brief Return the nominal body extent of the element.
+     *
+     * The first placement redesign stage distinguishes between the nominal body
+     * extent and the field-support extent. The body extent is the canonical
+     * longitudinal interval of the placed hardware,
+     * \f$[z_\mathrm{body}^{\mathrm{begin}}, z_\mathrm{body}^{\mathrm{end}}]\f$,
+     * and therefore drives ports, placement, and visualization. By default it
+     * coincides with the geometry length \f$[0, L]\f$ in the local chart.
+     */
     virtual void getElementDimensions(double& begin, double& end) const {
         begin = 0.0;
         end   = getElementLength();
@@ -313,6 +328,74 @@ public:
     virtual CoordinateSystemTrafo getEdgeToBegin() const;
     virtual CoordinateSystemTrafo getEdgeToEnd() const;
 
+    /**
+     * @brief Return the entrance port of the canonical local chart.
+     *
+     * In the placement-note language, this is the marked entrance port
+     * \f$p_{i,\mathrm{entry}}\f$ of element \f$i\f$. For straight elements in
+     * the bridge stage, the body-to-entry transform is taken from the legacy
+     * `getEdgeToBegin()` result.
+     */
+    virtual Port getEntryPort() const;
+
+    /**
+     * @brief Return the body port of the canonical local chart.
+     *
+     * The body port \f$p_{i,\mathrm{body}}\f$ is the identity port of the
+     * element's canonical local chart. Its rigid transform is therefore the
+     * identity element of \f$SE(3)\f$ in the first redesign stage.
+     */
+    virtual Port getBodyPort() const;
+
+    /**
+     * @brief Return the exit port of the canonical local chart.
+     *
+     * In the placement-note language, this is the marked exit port
+     * \f$p_{i,\mathrm{exit}}\f$. For straight elements in the bridge stage,
+     * the body-to-exit transform is taken from the legacy `getEdgeToEnd()`
+     * result.
+     */
+    virtual Port getExitPort() const;
+
+    /**
+     * @brief Return the nominal rigid placement transform of the element.
+     *
+     * This is the bridge from the legacy stored `CoordinateSystemTrafo` to the
+     * new placement vocabulary. It preserves current nominal placement
+     * semantics and does not apply misalignment.
+     */
+    PlacementPose getPlacementPose() const;
+
+    /**
+     * @brief Set the nominal rigid placement transform of the element.
+     *
+     * This bridge setter preserves the existing storage model by delegating to
+     * `setCSTrafoGlobal2Local()`.
+     */
+    void setPlacementPose(const PlacementPose& pose);
+
+    /// Return the local nominal-to-actual correction stored for the element.
+    Misalignment getPlacementMisalignment() const;
+
+    /**
+     * @brief Return the bridge geometry ports assembled from legacy edge state.
+     *
+     * The first redesign stage defines a minimal explicit port contract with
+     * three named body-relative ports:
+     * \f$p_{i,\mathrm{entry}}\f$, \f$p_{i,\mathrm{body}}\f$,
+     * \f$p_{i,\mathrm{exit}}\f$. The default bridge preserves current OPALX
+     * behavior by deriving those ports from `getEntryPort()`, `getBodyPort()`,
+     * and `getExitPort()`, whose straight-element implementations are backed by
+     * the legacy `getEdgeToBegin()` and `getEdgeToEnd()` methods.
+     */
+    ElementGeometry getPlacementGeometry() const;
+
+    /// Return the support-frame bridge object. The default is the body frame.
+    SupportPlacement getPlacementSupport() const;
+
+    /// Return a placed-element view assembled from the current bridge objects.
+    PlacedElement getPlacedElement() const;
+
     void setAperture(const ApertureType& type, const std::vector<double>& args);
     std::pair<ApertureType, std::vector<double> > getAperture() const;
 
@@ -391,89 +474,52 @@ private:
 // Inline functions.
 // ------------------------------------------------------------------------
 
-inline double ElementBase::getArcLength() const {
-    return getGeometry().getArcLength();
-}
+inline double ElementBase::getArcLength() const { return getGeometry().getArcLength(); }
 
-inline double ElementBase::getElementLength() const {
-    return getGeometry().getElementLength();
-}
+inline double ElementBase::getElementLength() const { return getGeometry().getElementLength(); }
 
-inline void ElementBase::setElementLength(double length) {
-    getGeometry().setElementLength(length);
-}
+inline void ElementBase::setElementLength(double length) { getGeometry().setElementLength(length); }
 
-inline double ElementBase::getOrigin() const {
-    return getGeometry().getOrigin();
-}
+inline double ElementBase::getOrigin() const { return getGeometry().getOrigin(); }
 
-inline double ElementBase::getEntrance() const {
-    return getGeometry().getEntrance();
-}
+inline double ElementBase::getEntrance() const { return getGeometry().getEntrance(); }
 
-inline double ElementBase::getExit() const {
-    return getGeometry().getExit();
-}
+inline double ElementBase::getExit() const { return getGeometry().getExit(); }
 
 inline Euclid3D ElementBase::getTransform(double fromS, double toS) const {
     return getGeometry().getTransform(fromS, toS);
 }
 
-inline Euclid3D ElementBase::getTotalTransform() const {
-    return getGeometry().getTotalTransform();
-}
+inline Euclid3D ElementBase::getTotalTransform() const { return getGeometry().getTotalTransform(); }
 
-inline Euclid3D ElementBase::getTransform(double s) const {
-    return getGeometry().getTransform(s);
-}
+inline Euclid3D ElementBase::getTransform(double s) const { return getGeometry().getTransform(s); }
 
-inline Euclid3D ElementBase::getEntranceFrame() const {
-    return getGeometry().getEntranceFrame();
-}
+inline Euclid3D ElementBase::getEntranceFrame() const { return getGeometry().getEntranceFrame(); }
 
-inline Euclid3D ElementBase::getExitFrame() const {
-    return getGeometry().getExitFrame();
-}
+inline Euclid3D ElementBase::getExitFrame() const { return getGeometry().getExitFrame(); }
 
-inline Euclid3D ElementBase::getEntrancePatch() const {
-    return getGeometry().getEntrancePatch();
-}
+inline Euclid3D ElementBase::getEntrancePatch() const { return getGeometry().getEntrancePatch(); }
 
-inline Euclid3D ElementBase::getExitPatch() const {
-    return getGeometry().getExitPatch();
-}
+inline Euclid3D ElementBase::getExitPatch() const { return getGeometry().getExitPatch(); }
 
-inline bool ElementBase::isSharable() const {
-    return shareFlag;
-}
+inline bool ElementBase::isSharable() const { return shareFlag; }
 
-inline WakeFunction* ElementBase::getWake() const {
-    return wake_m;
-}
+inline WakeFunction* ElementBase::getWake() const { return wake_m; }
 
-inline bool ElementBase::hasWake() const {
-    return wake_m != nullptr;
-}
+inline bool ElementBase::hasWake() const { return wake_m != nullptr; }
 
-inline BoundaryGeometry* ElementBase::getBoundaryGeometry() const {
-    return bgeometry_m;
-}
+inline BoundaryGeometry* ElementBase::getBoundaryGeometry() const { return bgeometry_m; }
 
-inline bool ElementBase::hasBoundaryGeometry() const {
-    return bgeometry_m != nullptr;
-}
+inline bool ElementBase::hasBoundaryGeometry() const { return bgeometry_m != nullptr; }
 
 inline ParticleMatterInteractionHandler* ElementBase::getParticleMatterInteraction() const {
     return parmatint_m;
 }
 
-inline bool ElementBase::hasParticleMatterInteraction() const {
-    return parmatint_m != nullptr;
-}
+inline bool ElementBase::hasParticleMatterInteraction() const { return parmatint_m != nullptr; }
 
 inline void ElementBase::setCSTrafoGlobal2Local(const CoordinateSystemTrafo& trafo) {
-    if (positionIsFixed)
-        return;
+    if (positionIsFixed) return;
 
     csTrafoGlobal2Local_m = trafo;
 }
@@ -489,9 +535,41 @@ inline CoordinateSystemTrafo ElementBase::getEdgeToBegin() const {
 
 inline CoordinateSystemTrafo ElementBase::getEdgeToEnd() const {
     CoordinateSystemTrafo ret(
-        Vector_t<double, 3>({0, 0, getElementLength()}), Quaternion(1, 0, 0, 0));
+            Vector_t<double, 3>({0, 0, getElementLength()}), Quaternion(1, 0, 0, 0));
 
     return ret;
+}
+
+inline Port ElementBase::getEntryPort() const { return Port("entry", getEdgeToBegin()); }
+
+inline Port ElementBase::getBodyPort() const { return Port("body", CoordinateSystemTrafo()); }
+
+inline Port ElementBase::getExitPort() const { return Port("exit", getEdgeToEnd()); }
+
+inline PlacementPose ElementBase::getPlacementPose() const {
+    return PlacementPose(getCSTrafoGlobal2Local());
+}
+
+inline void ElementBase::setPlacementPose(const PlacementPose& pose) {
+    setCSTrafoGlobal2Local(pose.getParentToNominal());
+}
+
+inline Misalignment ElementBase::getPlacementMisalignment() const {
+    return Misalignment(getMisalignment());
+}
+
+inline ElementGeometry ElementBase::getPlacementGeometry() const {
+    return ElementGeometry(getEntryPort(), getBodyPort(), getExitPort());
+}
+
+inline SupportPlacement ElementBase::getPlacementSupport() const {
+    return SupportPlacement(CoordinateSystemTrafo());
+}
+
+inline PlacedElement ElementBase::getPlacedElement() const {
+    return PlacedElement(
+            this, getPlacementPose(), getPlacementMisalignment(), getPlacementGeometry(),
+            getPlacementSupport());
 }
 
 inline void ElementBase::setAperture(const ApertureType& type, const std::vector<double>& args) {
@@ -508,44 +586,27 @@ inline bool ElementBase::isInside(const Vector_t<double, 3>& r) const {
     return r(2) >= 0.0 && r(2) < length && isInsideTransverse(r);
 }
 
-inline void ElementBase::setMisalignment(const CoordinateSystemTrafo& cst) {
-    misalignment_m = cst;
-}
+inline void ElementBase::setMisalignment(const CoordinateSystemTrafo& cst) { misalignment_m = cst; }
 
-inline CoordinateSystemTrafo ElementBase::getMisalignment() const {
-    return misalignment_m;
-}
+inline CoordinateSystemTrafo ElementBase::getMisalignment() const { return misalignment_m; }
 
-inline void ElementBase::releasePosition() {
-    positionIsFixed = false;
-}
+inline void ElementBase::releasePosition() { positionIsFixed = false; }
 
-inline void ElementBase::fixPosition() {
-    positionIsFixed = true;
-}
+inline void ElementBase::fixPosition() { positionIsFixed = true; }
 
-inline bool ElementBase::isPositioned() const {
-    return positionIsFixed;
-}
+inline bool ElementBase::isPositioned() const { return positionIsFixed; }
 
 inline void ElementBase::setActionRange(const std::queue<std::pair<double, double> >& range) {
     actionRange_m = range;
 
-    if (!actionRange_m.empty())
-        elementEdge_m = actionRange_m.front().first;
+    if (!actionRange_m.empty()) elementEdge_m = actionRange_m.front().first;
 }
 
-inline void ElementBase::setRotationAboutZ(double rotation) {
-    rotationZAxis_m = rotation;
-}
+inline void ElementBase::setRotationAboutZ(double rotation) { rotationZAxis_m = rotation; }
 
-inline double ElementBase::getRotationAboutZ() const {
-    return rotationZAxis_m;
-}
+inline double ElementBase::getRotationAboutZ() const { return rotationZAxis_m; }
 
-inline std::string ElementBase::getTypeString() const {
-    return getTypeString(getType());
-}
+inline std::string ElementBase::getTypeString() const { return getTypeString(getType()); }
 
 inline void ElementBase::setElementPosition(double elemedge) {
     elementPosition_m = elemedge;
@@ -553,28 +614,21 @@ inline void ElementBase::setElementPosition(double elemedge) {
 }
 
 inline double ElementBase::getElementPosition() const {
-    if (elemedgeSet_m)
-        return elementPosition_m;
+    if (elemedgeSet_m) return elementPosition_m;
 
     throw GeneralOpalException(
-        "ElementBase::getElementPosition()",
-        std::string("ELEMEDGE for \"") + getName() + "\" not set");
+            "ElementBase::getElementPosition()",
+            std::string("ELEMEDGE for \"") + getName() + "\" not set");
 }
 
-inline bool ElementBase::isElementPositionSet() const {
-    return elemedgeSet_m;
-}
+inline bool ElementBase::isElementPositionSet() const { return elemedgeSet_m; }
 
-inline int ElementBase::getRequiredNumberOfTimeSteps() const {
-    return 10;
-}
+inline int ElementBase::getRequiredNumberOfTimeSteps() const { return 10; }
 
 inline void ElementBase::setFlagDeleteOnTransverseExit(bool flag) {
     deleteOnTransverseExit_m = flag;
 }
 
-inline bool ElementBase::getFlagDeleteOnTransverseExit() const {
-    return deleteOnTransverseExit_m;
-}
+inline bool ElementBase::getFlagDeleteOnTransverseExit() const { return deleteOnTransverseExit_m; }
 
 #endif  // OPALX_ElementBase_HH
