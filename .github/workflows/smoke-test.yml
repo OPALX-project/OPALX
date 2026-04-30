@@ -10,7 +10,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  smoke-test:
+  # ===== BUILD =====
+  build:
     runs-on: ubuntu-latest
     if: contains(github.event.pull_request.labels.*.name, 'compile-ci') && github.event.pull_request.draft == false
 
@@ -25,7 +26,7 @@ jobs:
             build-essential cmake git \
             libopenmpi-dev openmpi-bin
 
-      - name: Configure CMake (Release, Serial)
+      - name: Configure CMake (Debug, Serial)
         run: |
           mkdir -p build_smoke
           cd build_smoke
@@ -38,23 +39,66 @@ jobs:
           cd build_smoke
           make -j$(nproc)
 
+      - name: Upload binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: opalx-binary
+          path: build_smoke/src/opalx
+
+  # ===== RUN TESTS =====
+  # Edit the list below to add or remove smoke tests.
+  # Each entry must be a folder name under RegressionTests/ in the
+  # regression-tests-x repository. The folder must contain:
+  #   <name>.in        — OPALX input file
+  #   <name>.rt        — assertions in the form: stat "col" last <tol>
+  #   reference/       — reference outputs including <name>.stat
+  run-tests:
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        test:
+          - Drift-1-fromfile
+          - Drift-4-multi-emit-open
+          - FodoCell-fromfile
+
+    steps:
+      - name: Install MPI
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libopenmpi-dev openmpi-bin
+
+      - name: Download binary
+        uses: actions/download-artifact@v4
+        with:
+          name: opalx-binary
+          path: bin
+
+      - name: Make binary executable
+        run: chmod +x bin/opalx
+
       - name: Get regression test inputs
         run: |
           git clone --depth=1 https://github.com/OPALX-project/regression-tests-x.git
 
-      - name: Run Drift-1-fromfile
+      - name: Run ${{ matrix.test }}
         run: |
-          TEST=regression-tests-x/RegressionTests/Drift-1-fromfile
-          mkdir -p smoke_run
-          cp "$TEST/Drift-1-fromfile.in" smoke_run/
-          cp "$TEST/distr-gauss.txt" smoke_run/
-          cd smoke_run
-          mpirun -np 1 "$GITHUB_WORKSPACE/build_smoke/src/opalx" Drift-1-fromfile.in --info 2
+          TEST_DIR=regression-tests-x/RegressionTests/${{ matrix.test }}
+          RUN_DIR=run_${{ matrix.test }}
+          mkdir -p "$RUN_DIR"
+          find "$TEST_DIR" -maxdepth 1 -type f -exec cp {} "$RUN_DIR/" \;
+          cd "$RUN_DIR"
+          mpirun -np 1 "$GITHUB_WORKSPACE/bin/opalx" ${{ matrix.test }}.in --info 2
 
-      - name: Compare stat output to reference
+      - name: Compare stat output to reference (${{ matrix.test }})
+        env:
+          TEST_NAME: ${{ matrix.test }}
         run: |
           python3 << 'PYEOF'
-          import sys
+          import sys, os
+
+          test = os.environ['TEST_NAME']
 
           def parse_sdds(path):
               with open(path) as f:
@@ -79,19 +123,28 @@ jobs:
               ]
               return dict(zip(cols, [v.strip() for v in data_rows[-1]]))
 
-          ref = parse_sdds('regression-tests-x/RegressionTests/Drift-1-fromfile/reference/Drift-1-fromfile.stat')
-          got = parse_sdds('smoke_run/Drift-1-fromfile.stat')
+          def parse_rt(path):
+              checks = []
+              with open(path) as f:
+                  for line in f:
+                      parts = line.strip().split()
+                      if len(parts) >= 4 and parts[0] == 'stat' and parts[2] == 'last':
+                          checks.append((parts[1].strip('"'), float(parts[3])))
+              return checks
 
-          checks = ['rms_x', 'rms_y', 'rms_s', 'rms_px', 'rms_py', 'rms_ps', 'energy']
-          tol = 1e-6
+          ref = parse_sdds(f'regression-tests-x/RegressionTests/{test}/reference/{test}.stat')
+          got = parse_sdds(f'run_{test}/{test}.stat')
+          checks = parse_rt(f'regression-tests-x/RegressionTests/{test}/{test}.rt')
+
+          print(f'Checking {len(checks)} assertion(s) from {test}.rt')
           failed = False
-          for col in checks:
+          for col, tol in checks:
               r, g = float(ref[col]), float(got[col])
               rel_err = abs(g - r) / (abs(r) + 1e-30)
               status = 'PASS' if rel_err < tol else 'FAIL'
               if status == 'FAIL':
                   failed = True
-              print(f'[{status}] {col}: ref={r:.15e}  got={g:.15e}  rel_err={rel_err:.2e}')
+              print(f'  [{status}] {col}: ref={r:.15e}  got={g:.15e}  rel_err={rel_err:.2e}  tol={tol:.0e}')
 
           sys.exit(1 if failed else 0)
           PYEOF
