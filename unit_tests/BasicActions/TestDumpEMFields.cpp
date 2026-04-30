@@ -77,7 +77,7 @@ namespace {
         void initialise(PartBunch_t*, double&, double&) override {}
         void finalise() override {}
         bool bends() const override { return true; }
-        void getDimensions(double&, double&) const override {}
+        void getFieldExtend(double&, double&) const override {}
 
         BGeometryBase& getGeometry() override { return geometry_m; }
         const BGeometryBase& getGeometry() const override { return geometry_m; }

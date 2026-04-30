@@ -63,7 +63,7 @@ public:
     ElementBase* clone() const override;
 
     /** Calculate the field for all particles */
-    bool apply(const std::shared_ptr<ParticleContainer_t> &pc) override;
+    bool apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
 
     /** Calculate the field at the position of the i^th particle
      *
@@ -120,8 +120,16 @@ public:
     /** @returns false (cavity does not bend the trajectory) */
     bool bends() const override { return false; }
 
-    /** Not used (does nothing) */
-    void getDimensions(double& /*zBegin*/, double& /*zEnd*/) const override {}
+    /** Return the longitudinal field-support extent.
+     *
+     *  For a VariableRFCavity the field support coincides with the nominal
+     *  body extent, i.e. the interval
+     *  latexmath:[z \in [0, L)] in the local element frame.
+     */
+    void getFieldExtend(double& zBegin, double& zEnd) const override {
+        zBegin = 0.0;
+        zEnd   = getElementLength();
+    }
 
     /** Get the amplitude at a given time
      *
@@ -227,12 +235,16 @@ protected:
     /* The host/device compute function */
     static KOKKOS_INLINE_FUNCTION bool computeField(
             const Vector_t<double, 3>& R, Vector_t<double, 3>& E, double E0, double integralF,
-            double phi, double halfWidth, double halfHeight);
+            double phi, double halfWidth, double halfHeight, double length);
 };
 
 KOKKOS_INLINE_FUNCTION bool VariableRFCavity::computeField(
         const Vector_t<double, 3>& R, Vector_t<double, 3>& E, const double E0,
-        const double integralF, const double phi, const double halfWidth, const double halfHeight) {
+        const double integralF, const double phi, const double halfWidth, const double halfHeight,
+        const double length) {
+    if (R[2] < 0.0 || R[2] >= length) {
+        return false;
+    }
     E[2] += E0 * Kokkos::sin(Physics::two_pi * integralF + phi);
     const bool outsideAperture = Kokkos::abs(R[0]) > halfWidth || Kokkos::abs(R[1]) > halfHeight;
     return outsideAperture;

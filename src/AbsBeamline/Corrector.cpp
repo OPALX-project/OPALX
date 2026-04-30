@@ -28,8 +28,7 @@
 // Class Corrector
 // ------------------------------------------------------------------------
 
-Corrector::Corrector() : Corrector("") {
-}
+Corrector::Corrector() : Corrector("") {}
 
 Corrector::Corrector(const Corrector& right)
     : Component(right),
@@ -38,8 +37,7 @@ Corrector::Corrector(const Corrector& right)
       designEnergy_m(right.designEnergy_m),
       designEnergyChangeable_m(right.designEnergyChangeable_m),
       kickFieldSet_m(right.kickFieldSet_m),
-      kickField_m(right.kickField_m) {
-}
+      kickField_m(right.kickField_m) {}
 
 Corrector::Corrector(const std::string& name)
     : Component(name),
@@ -48,18 +46,14 @@ Corrector::Corrector(const std::string& name)
       designEnergy_m(0.0),
       designEnergyChangeable_m(true),
       kickFieldSet_m(false),
-      kickField_m(0.0) {
-}
+      kickField_m(0.0) {}
 
-Corrector::~Corrector() {
-}
+Corrector::~Corrector() {}
 
-void Corrector::accept(BeamlineVisitor& visitor) const {
-    visitor.visitCorrector(*this);
-}
+void Corrector::accept(BeamlineVisitor& visitor) const { visitor.visitCorrector(*this); }
 
 bool Corrector::apply(
-    const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
+        const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
     Vector_t<double, 3>& R = RefPartBunch_m->R[i];
     Vector_t<double, 3>& P = RefPartBunch_m->P[i];
 
@@ -67,11 +61,10 @@ bool Corrector::apply(
 }
 
 bool Corrector::apply(
-    const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& /*t*/,
-    Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B) {
+        const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& /*t*/,
+        Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B) {
     if (R(2) >= 0.0 && R(2) < getElementLength()) {
-        if (!isInsideTransverse(R))
-            return getFlagDeleteOnTransverseExit();
+        if (!isInsideTransverse(R)) return getFlagDeleteOnTransverseExit();
 
         double tau            = 1.0;
         const double& dt      = RefPartBunch_m->getdT();
@@ -95,27 +88,26 @@ void Corrector::initialise(PartBunch_t* bunch, double& startField, double& endFi
     RefPartBunch_m = bunch;
 }
 
-void Corrector::finalise() {
-}
+void Corrector::finalise() {}
 
 void Corrector::goOnline(const double&) {
     const double pathLength = getGeometry().getElementLength();
     const double minLength  = Physics::c * RefPartBunch_m->getdT();
     if (pathLength < minLength) {
         throw GeneralOpalException(
-            "Corrector::goOnline",
-            "length of corrector, L= " + std::to_string(pathLength)
-                + ", shorter than distance covered during one time step, dS= "
-                + std::to_string(minLength));
+                "Corrector::goOnline",
+                "length of corrector, L= " + std::to_string(pathLength)
+                        + ", shorter than distance covered during one time step, dS= "
+                        + std::to_string(minLength));
     }
 
     if (!kickFieldSet_m) {
-        const auto pc = RefPartBunch_m->getParticleContainer();
+        const auto pc         = RefPartBunch_m->getParticleContainer();
         const double momentum = std::sqrt(
-            std::pow(designEnergy_m, 2.0) + 2.0 * designEnergy_m * pc->getTotalMass());
+                std::pow(designEnergy_m, 2.0) + 2.0 * designEnergy_m * pc->getTotalMass());
         const double magnitude = momentum / (Physics::c * pathLength);
         kickField_m =
-            magnitude * pc->getTotalCharge() * Vector_t<double, 3>(kickY_m, -kickX_m, 0.0);
+                magnitude * pc->getTotalCharge() * Vector_t<double, 3>(kickY_m, -kickX_m, 0.0);
     }
 
     online_m = true;
@@ -128,26 +120,22 @@ void Corrector::setDesignEnergy(const double& ekin, bool changeable) {
     }
     if (RefPartBunch_m) {
         if (!kickFieldSet_m) {
-            const auto pc = RefPartBunch_m->getParticleContainer();
+            const auto pc           = RefPartBunch_m->getParticleContainer();
             const double pathLength = getGeometry().getElementLength();
             const double momentum   = std::sqrt(
-                std::pow(designEnergy_m, 2.0) + 2.0 * designEnergy_m * pc->getTotalMass());
+                    std::pow(designEnergy_m, 2.0) + 2.0 * designEnergy_m * pc->getTotalMass());
             const double magnitude = momentum / (Physics::c * pathLength);
             kickField_m =
-                magnitude * pc->getTotalCharge() * Vector_t<double, 3>(kickY_m, -kickX_m, 0.0);
+                    magnitude * pc->getTotalCharge() * Vector_t<double, 3>(kickY_m, -kickX_m, 0.0);
         }
     }
 }
 
-bool Corrector::bends() const {
-    return false;
-}
+bool Corrector::bends() const { return false; }
 
-void Corrector::getDimensions(double& zBegin, double& zEnd) const {
+void Corrector::getFieldExtend(double& zBegin, double& zEnd) const {
     zBegin = 0.0;
     zEnd   = getElementLength();
 }
 
-ElementType Corrector::getType() const {
-    return ElementType::CORRECTOR;
-}
+ElementType Corrector::getType() const { return ElementType::CORRECTOR; }
