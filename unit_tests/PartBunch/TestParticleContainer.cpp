@@ -72,7 +72,7 @@ namespace {
             const size_t n = positions.size();
             if (n == 0) return;
 
-            pc->create(n);
+            pc->createParticles(n);
 
             auto R_host  = pc->R.getHostMirror();
             auto P_host  = pc->P.getHostMirror();
@@ -135,7 +135,7 @@ namespace {
         ASSERT_EQ(pc->getQMStorageMode(), PC_t::QMStorageMode::Attributes);
 
         constexpr size_t nPart = 8;
-        pc->create(nPart);
+        pc->createParticles(nPart);
         Kokkos::fence();
 
         const double qExpected = -1.6e-19;
@@ -461,6 +461,109 @@ namespace {
             }
         }
         EXPECT_TRUE(rhoDiffers);
+    }
+
+    // ================================================================
+    // allocateParticles — pre-allocates capacity, throws on non-empty container
+    // ================================================================
+
+    TEST_F(ParticleContainerTest, AllocateParticles_ReservesCapacityAndKeepsLocalNumZero) {
+        Options::useQMAttributes = false;
+        auto pc                  = makeContainer();
+        ASSERT_EQ(pc->R.size(), 0u);
+
+        constexpr size_t nReserve = 1024;
+        pc->allocateParticles(nReserve);
+
+        // Logical particle count stays at 0 — alloc only reserves underlying capacity.
+        EXPECT_EQ(pc->getLocalNum(), 0u);
+        // Underlying view capacity is at least the requested size (overalloc may give more).
+        EXPECT_GE(pc->R.size(), nReserve);
+        EXPECT_GE(pc->P.size(), nReserve);
+        EXPECT_GE(pc->dt.size(), nReserve);
+
+        // Calling allocateParticles on a non-empty container must throw — alloc is destructive.
+        EXPECT_THROW(pc->allocateParticles(nReserve), OpalException);
+    }
+
+    // ================================================================
+    // createParticles — non-destructive grow preserves existing data
+    // ================================================================
+
+    TEST_F(ParticleContainerTest, CreateParticles_GrowPreservesExistingData) {
+        Options::useQMAttributes = false;
+        auto pc                  = makeContainer();
+
+        // Step 1: pre-allocate a small capacity, fill with a known pattern.
+        constexpr size_t nFirst = 8;
+        pc->allocateParticles(nFirst);
+        pc->createParticles(nFirst);
+        ASSERT_EQ(pc->getLocalNum(), nFirst);
+
+        auto P_host = pc->P.getHostMirror();
+        for (size_t i = 0; i < nFirst; ++i) {
+            P_host(i) = ippl::Vector<double, 3>(double(i), double(2 * i), double(3 * i));
+        }
+        Kokkos::deep_copy(pc->P.getView(), P_host);
+        Kokkos::fence();
+
+        // Step 2: force a capacity grow by adding more particles than the buffer holds.
+        const size_t capBefore = pc->R.size();
+        const size_t nSecond   = capBefore + 16;
+        pc->createParticles(nSecond);
+
+        EXPECT_EQ(pc->getLocalNum(), nFirst + nSecond);
+        EXPECT_GE(pc->R.size(), nFirst + nSecond);
+
+        // Step 3: verify the original pattern in the first nFirst slots survived the grow.
+        auto P_after = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->P.getView());
+        for (size_t i = 0; i < nFirst; ++i) {
+            EXPECT_DOUBLE_EQ(P_after(i)[0], double(i)) << "particle " << i;
+            EXPECT_DOUBLE_EQ(P_after(i)[1], double(2 * i)) << "particle " << i;
+            EXPECT_DOUBLE_EQ(P_after(i)[2], double(3 * i)) << "particle " << i;
+        }
+    }
+
+    // ================================================================
+    // destroyParticles — removes marked entries and validates inputs
+    // ================================================================
+
+    TEST_F(ParticleContainerTest, DestroyParticles_RemovesMarkedAndThrowsOnInvalidInput) {
+        Options::useQMAttributes = false;
+        auto pc                  = makeContainer();
+
+        constexpr size_t nPart = 10;
+        std::vector<std::array<double, 3>> positions(nPart);
+        for (size_t i = 0; i < nPart; ++i) {
+            positions[i] = {double(i) * 0.1, 0.0, 0.0};
+        }
+        createParticlesAt(pc, positions);
+        ASSERT_EQ(pc->getLocalNum(), nPart);
+
+        // Mark every other particle invalid (5 of 10) — kill those at even indices.
+        Kokkos::View<bool*> invalid("DestroyParticlesTest::invalid", nPart);
+        auto invalid_host         = Kokkos::create_mirror_view(invalid);
+        size_type expectedDestroy = 0;
+        for (size_t i = 0; i < nPart; ++i) {
+            const bool kill = (i % 2 == 0);
+            invalid_host(i) = kill;
+            if (kill) ++expectedDestroy;
+        }
+        Kokkos::deep_copy(invalid, invalid_host);
+
+        pc->destroyParticles(invalid, expectedDestroy);
+        EXPECT_EQ(pc->getLocalNum(), nPart - expectedDestroy);
+
+        // localDestroyNum exceeding the local particle count must throw.
+        Kokkos::View<bool*> oversize_invalid(
+                "DestroyParticlesTest::oversize_invalid", pc->getLocalNum());
+        EXPECT_THROW(pc->destroyParticles(oversize_invalid, pc->getLocalNum() + 1u), OpalException);
+
+        // invalid mask smaller than the local particle count must throw.
+        ASSERT_GT(pc->getLocalNum(), 0u);
+        Kokkos::View<bool*> short_invalid(
+                "DestroyParticlesTest::short_invalid", pc->getLocalNum() - 1);
+        EXPECT_THROW(pc->destroyParticles(short_invalid, 0u), OpalException);
     }
 
 }  // namespace

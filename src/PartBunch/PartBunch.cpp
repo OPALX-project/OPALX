@@ -126,19 +126,15 @@ PartBunch<T, Dim>::PartBunch(
                 ParticleProperties::getParticleType(beams[i]->getParticleName()));
     }
 
-    // Allocate enough storage per rank, then destroy all particles to keep only capacity.
+    // Pre-allocate per-rank capacity without bumping localNum_m. Subsequent emission /
+    // distribution loaders call createParticles() to fill the buffer non-destructively.
     const double nRanks = static_cast<double>(ippl::Comm->size());
-    std::vector<size_t> maxLocalNumPerBeam(num_containers);
     for (size_t i = 0; i < num_containers; ++i) {
-        maxLocalNumPerBeam[i] =
+        const size_t maxLocalNum =
                 static_cast<size_t>(totalParticlesPerBeam[i] / nRanks + 2 * nRanks + 1);
-        containers[i]->create(maxLocalNumPerBeam[i]);
-    }
-    for (size_t i = 0; i < num_containers; ++i) {
-        Kokkos::View<bool*> tmp_invalid("tmp_invalid", maxLocalNumPerBeam[i]);
-        containers[i]->destroy(tmp_invalid, maxLocalNumPerBeam[i]);
-        *gmsg << level3 << "* Container " << i << ": " << maxLocalNumPerBeam[i]
-              << " particles created and destroyed. Bunch allocated." << endl;
+        containers[i]->allocateParticles(maxLocalNum);
+        *gmsg << level3 << "* Container " << i << ": capacity for " << maxLocalNum
+              << " particles allocated." << endl;
     }
 
     setSolver();
