@@ -557,8 +557,7 @@ namespace {
         // localDestroyNum exceeding the local particle count must throw.
         Kokkos::View<bool*> oversize_invalid(
                 "DestroyParticlesTest::oversize_invalid", pc->getLocalNum());
-        EXPECT_THROW(
-                pc->destroyParticles(oversize_invalid, pc->getLocalNum() + 1u), OpalException);
+        EXPECT_THROW(pc->destroyParticles(oversize_invalid, pc->getLocalNum() + 1u), OpalException);
 
         // invalid mask smaller than the local particle count must throw.
         ASSERT_GT(pc->getLocalNum(), 0u);
