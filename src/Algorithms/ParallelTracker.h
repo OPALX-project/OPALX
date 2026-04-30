@@ -287,9 +287,6 @@ private:
      */
     void updateRFElement(std::string elName, double maxPhi);
 
-    /// @brief Print RF phases (debug/diagnostic hook).
-    void printRFPhases();
-
     /// @brief Persist cavity phases to the data sink.
     void saveCavityPhases();
 

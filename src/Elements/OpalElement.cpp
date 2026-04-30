@@ -354,7 +354,7 @@ void OpalElement::print(std::ostream& os) const {
     }
 
     os << head;
-    os << ';'; // << "JMJdebug OPALElement.cc" ;
+    os << ';';
     os << std::endl;
 }
 
@@ -383,7 +383,6 @@ void OpalElement::printMultipoleStrength(std::ostream& os,
             flag += 3;
         }
     }
-    //  cout << "JMJdebug, OpalElement.cc: flag=" << flag << endl ;
     // Now do the output.
     int div = 2 * (order + 1);
 

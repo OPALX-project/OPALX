@@ -341,8 +341,6 @@ void ParallelTracker::execute() {
             resetFields();
             m << level4 << "E and B fields reset at step " << step << "." << endl;
 
-            // std::cout << "local num: " << itsBunch_m->getLocalNum() << std::endl;
-
             // Space charge field computation
             // if (itsBunch_m->getLocalNum() > 1) {
             // Otherwise no interaction, can skip (and for some reason seg-fault...)
@@ -960,28 +958,6 @@ void ParallelTracker::prepareSections() {
     itsOpalBeamline_m.save3DLattice();
     itsOpalBeamline_m.save3DInput();
 
-    if (ippl::Comm->rank() == 0) {
-        std::ostringstream placementSummary;
-        itsOpalBeamline_m.printPlacementSummary(placementSummary);
-        std::cout << "ParallelTracker> Placed element body poses:\n";
-        std::istringstream lines(placementSummary.str());
-        std::string line;
-        while (std::getline(lines, line)) {
-            if (!line.empty()) {
-                std::cout << "ParallelTracker> " << line << '\n';
-            }
-        }
-        std::ostringstream continuityDiagnostics;
-        if (itsOpalBeamline_m.reportPortContinuityDiagnostics(continuityDiagnostics)) {
-            std::istringstream continuityLines(continuityDiagnostics.str());
-            while (std::getline(continuityLines, line)) {
-                if (!line.empty()) {
-                    std::cout << "ParallelTracker> " << line << '\n';
-                }
-            }
-        }
-        std::cout.flush();
-    }
 }
 
 /**

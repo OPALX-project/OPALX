@@ -141,36 +141,6 @@ public:
     void compute3DLattice();
     void save3DLattice();
     void save3DInput();
-    /**
-     * @brief Print a concise body-pose summary for all placed elements.
-     *
-     * The reported pose is the nominal body placement used by the placement
-     * bridge and by `_3D.opal` export. Coordinates are printed in laboratory
-     * space and Tait-Bryant angles are printed in degrees. A second table
-     * reports the local nominal body extent and the local field-support extent
-     * so that bends and other fringe-field elements expose their geometric and
-     * tracking spans explicitly.
-     */
-    void printPlacementSummary(std::ostream& out) const;
-
-    /**
-     * @brief Report discontinuities between adjacent element ports.
-     *
-     * The check follows the declared beam-line order and compares the nominal
-     * exit port of element \f$i\f$ with the nominal entry port of element
-     * \f$i+1\f$. A discontinuity is reported if either the translation gap
-     * \f[
-     * \Delta \mathbf{r} =
-     * \mathbf{r}_{i,\mathrm{exit}} - \mathbf{r}_{i+1,\mathrm{entry}}
-     * \f]
-     * exceeds @p positionTolerance or the relative face rotation angle exceeds
-     * @p angleToleranceDeg.
-     *
-     * @return true if at least one discontinuity is reported.
-     */
-    bool reportPortContinuityDiagnostics(
-            std::ostream& out, double positionTolerance = 1e-9,
-            double angleToleranceDeg = 1e-6) const;
     void print(Inform&) const;
     void apply(
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& t,
