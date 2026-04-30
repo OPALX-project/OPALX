@@ -40,6 +40,7 @@ Solenoid::Solenoid(const Solenoid& right)
       scale_m(right.scale_m),
       scaleError_m(right.scaleError_m),
       startField_m(right.startField_m),
+      endField_m(right.endField_m),
       fast_m(right.fast_m) {}
 
 Solenoid::Solenoid(const std::string& name)
@@ -49,6 +50,7 @@ Solenoid::Solenoid(const std::string& name)
       scale_m(1.0),
       scaleError_m(0.0),
       startField_m(0.0),
+      endField_m(0.0),
       fast_m(true) {}
 
 Solenoid::~Solenoid() {
@@ -106,7 +108,7 @@ bool Solenoid::apply(
 bool Solenoid::apply(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
         Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B) {
-    if (R(2) >= startField_m && R(2) < startField_m + getElementLength()) {
+    if (R(2) >= startField_m && R(2) < endField_m) {
         Vector_t<double, 3> tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
 
         const bool outOfBounds = fieldmap_m->getFieldstrength(R, tmpE, tmpB);
@@ -134,7 +136,7 @@ bool Solenoid::apply(
 bool Solenoid::applyToReferenceParticle(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
         Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B) {
-    if (R(2) >= startField_m && R(2) < startField_m + getElementLength()) {
+    if (R(2) >= startField_m && R(2) < endField_m) {
         Vector_t<double, 3> tmpE(0.0, 0.0, 0.0), tmpB(0.0, 0.0, 0.0);
 
         const bool outOfBounds = fieldmap_m->getFieldstrength(R, tmpE, tmpB);
@@ -179,10 +181,15 @@ void Solenoid::initialise(PartBunch_t* bunch, double& startField, double& endFie
         fieldmap_m->getFieldDimensions(zBegin, zEnd);
 
         startField_m = zBegin;
-        setElementLength(zEnd - zBegin);
-        endField = startField + getElementLength();
+        endField_m   = zEnd;
+
+        const double bodyBegin = startField;
+        startField             = bodyBegin + startField_m;
+        endField               = bodyBegin + endField_m;
     } else {
-        endField = startField;
+        startField_m = 0.0;
+        endField_m   = 0.0;
+        endField     = startField;
     }
 }
 
@@ -214,9 +221,9 @@ bool Solenoid::getFast() const { return fast_m; }
 /// @brief Get the dimensions of the solenoid
 /// @param zBegin Start position
 /// @param zEnd End position
-void Solenoid::getDimensions(double& zBegin, double& zEnd) const {
+void Solenoid::getFieldExtend(double& zBegin, double& zEnd) const {
     zBegin = startField_m;
-    zEnd   = startField_m + getElementLength();
+    zEnd   = endField_m;
 }
 
 /// @brief Get the element type
@@ -227,15 +234,15 @@ ElementType Solenoid::getType() const { return ElementType::SOLENOID; }
 /// @param r Position
 /// @returns true if inside, false otherwise
 bool Solenoid::isInside(const Vector_t<double, 3>& r) const {
-    return isInsideTransverse(r) && fieldmap_m->isInside(r);
+    return fieldmap_m != nullptr && isInsideTransverse(r) && fieldmap_m->isInside(r);
 }
 
 /// @brief Get the dimensions of the solenoid
 /// @param begin Start position
 /// @param end End position
 void Solenoid::getElementDimensions(double& begin, double& end) const {
-    begin = startField_m;
-    end   = begin + getElementLength();
+    begin = 0.0;
+    end   = getElementLength();
 }
 
 bool Solenoid::getSupportEnvelope(double& horizontalRadius, double& verticalRadius) const {

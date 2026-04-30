@@ -51,7 +51,7 @@ public:
     inline bool apply(const std::shared_ptr<ParticleContainer_t>& pc);
 
     inline bool apply(
-        const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B);
+            const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B);
 
     /** Calculate the field at some arbitrary position
      *
@@ -63,8 +63,8 @@ public:
      *  \returns true if particle is outside the field map, else false
      */
     inline bool apply(
-        const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-        Vector_t<double, 3>& E, Vector_t<double, 3>& B);
+            const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
+            Vector_t<double, 3>& E, Vector_t<double, 3>& B);
 
     /** Calculate the field at some arbitrary position in cartesian coordinates
      *
@@ -98,13 +98,10 @@ public:
      *  Nb: the VerticalFFAMagnet geometry is straight even though trajectories
      *      are not
      */
-    inline bool bends() const {
-        return false;
-    }
+    inline bool bends() const { return false; }
 
     /** Not implemented */
-    void getDimensions(double& /*zBegin*/, double& /*zEnd*/) const {
-    }
+    void getFieldExtend(double& /*zBegin*/, double& /*zEnd*/) const {}
 
     /** Return the cell geometry */
     BGeometryBase& getGeometry();
@@ -126,9 +123,7 @@ public:
      *  Returns the fringe field model; VerticalFFAMagnet retains ownership of
      *  the returned memory.
      */
-    endfieldmodel::EndFieldModel* getEndField() const {
-        return endField_m.get();
-    }
+    endfieldmodel::EndFieldModel* getEndField() const { return endField_m.get(); }
 
     /** Set the fringe field
      *
@@ -139,69 +134,47 @@ public:
 
     /** Get the maximum power of x used in the off-midplane expansion;
      */
-    size_t getMaxOrder() const {
-        return maxOrder_m;
-    }
+    size_t getMaxOrder() const { return maxOrder_m; }
 
     /** Set the maximum power of x used in the off-midplane expansion;
      */
     void setMaxOrder(size_t maxOrder);
 
     /** Get the centre field at z=0 */
-    double getB0() const {
-        return Bz_m / Tesla;
-    }
+    double getB0() const { return Bz_m / Tesla; }
 
     /** Set the centre field at z=0 */
-    void setB0(double Bz) {
-        Bz_m = Bz * Tesla;
-    }
+    void setB0(double Bz) { Bz_m = Bz * Tesla; }
 
     /** Get the field index */
-    double getFieldIndex() const {
-        return k_m * mm;
-    }  // units are [m^{-1}]
+    double getFieldIndex() const { return k_m * mm; }  // units are [m^{-1}]
 
     /** Set the field index */
-    void setFieldIndex(double index) {
-        k_m = index / mm;
-    }
+    void setFieldIndex(double index) { k_m = index / mm; }
 
     /** Get the maximum extent below z = 0 */
-    double getNegativeVerticalExtent() const {
-        return zNegExtent_m / mm;
-    }
+    double getNegativeVerticalExtent() const { return zNegExtent_m / mm; }
 
     /** Set the maximum extent below z = 0 */
     inline void setNegativeVerticalExtent(double negativeExtent);
 
     /** Get the maximum extent above z = 0 */
-    double getPositiveVerticalExtent() const {
-        return zPosExtent_m / mm;
-    }
+    double getPositiveVerticalExtent() const { return zPosExtent_m / mm; }
 
     /** set the maximum extent above z = 0 */
     inline void setPositiveVerticalExtent(double positiveExtent);
 
     /** Get the length of the bounding box (centred on magnet centre) */
-    double getBBLength() const {
-        return bbLength_m / mm;
-    }
+    double getBBLength() const { return bbLength_m / mm; }
 
     /** Set the length of the bounding box (centred on magnet centre) */
-    void setBBLength(double bbLength) {
-        bbLength_m = bbLength * mm;
-    }
+    void setBBLength(double bbLength) { bbLength_m = bbLength * mm; }
 
     /** Get the full width of the bounding box (centred on magnet centre) */
-    double getWidth() const {
-        return halfWidth_m / mm * 2.;
-    }
+    double getWidth() const { return halfWidth_m / mm * 2.; }
 
     /** Set the full width of the bounding box (centred on magnet centre) */
-    void setWidth(double width) {
-        halfWidth_m = width / 2 * mm;
-    }
+    void setWidth(double width) { halfWidth_m = width / 2 * mm; }
 
     /** Get the coefficients used for the field expansion
      *
@@ -247,12 +220,10 @@ void VerticalFFAMagnet::setPositiveVerticalExtent(double positiveExtent) {
     zPosExtent_m = positiveExtent * mm;
 }
 
-bool VerticalFFAMagnet::apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/) {
-    return false;
-}
+bool VerticalFFAMagnet::apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/) { return false; }
 
 bool VerticalFFAMagnet::apply(
-    const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
+        const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) {
     std::shared_ptr<ParticleContainer_t> pc = RefPartBunch_m->getParticleContainer();
     auto Rview                              = pc->R.getView();
     auto Pview                              = pc->P.getView();
@@ -262,8 +233,8 @@ bool VerticalFFAMagnet::apply(
 }
 
 bool VerticalFFAMagnet::apply(
-    const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double&,
-    Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B) {
+        const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double&,
+        Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B) {
     return getFieldValue(R, B);
 }
 

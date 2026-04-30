@@ -38,10 +38,13 @@
 #include "AbsBeamline/ConstantEFieldCavity.h"
 #include "AbsBeamline/Drift.h"
 #include "AbsBeamline/ElementBase.h"
+#include "AbsBeamline/Laser.h"
 #include "AbsBeamline/Marker.h"
 #include "AbsBeamline/Multipole.h"
 #include "AbsBeamline/MultipoleT.h"
+#include "AbsBeamline/RBend.h"
 #include "AbsBeamline/RFCavity.h"
+#include "AbsBeamline/SBend.h"
 #include "AbsBeamline/ScalingFFAMagnet.h"
 #include "AbsBeamline/Solenoid.h"
 #include "AbsBeamline/TravelingWave.h"
@@ -121,7 +124,7 @@ public:
     /// DefaultVisitor.
     virtual void visitBeamline(const Beamline&);
 
-    /// @brief Visit a generic component; rejects LASER (not implemented).
+    /// @brief Visit a generic component using the base tracker behavior.
     virtual void visitComponent(const Component&);
 
     /// @brief Apply the algorithm to a constant E-field cavity.
@@ -129,6 +132,9 @@ public:
 
     /// @brief Apply the algorithm to a drift.
     virtual void visitDrift(const Drift&);
+
+    /// @brief Reject laser tracking until dedicated laser tracking is implemented.
+    virtual void visitLaser(const Laser&);
 
     /// @brief Apply the algorithm to a marker.
     virtual void visitMarker(const Marker&);
@@ -139,8 +145,14 @@ public:
     /// @brief Apply the algorithm to a multipole (templated type).
     virtual void visitMultipoleT(const MultipoleT&);
 
+    /// @brief Apply the algorithm to a rectangular bend.
+    virtual void visitRBend(const RBend&);
+
     /// @brief Apply the algorithm to an RF cavity.
     virtual void visitRFCavity(const RFCavity&);
+
+    /// @brief Apply the algorithm to a sector bend.
+    virtual void visitSBend(const SBend&);
 
     /// @brief Apply the algorithm to a traveling wave cavity.
     virtual void visitTravelingWave(const TravelingWave&);
@@ -301,8 +313,16 @@ inline void ParallelTracker::visitMultipoleT(const MultipoleT& mult) {
     itsOpalBeamline_m.visit(mult, *this, *itsBunch_m);
 }
 
+inline void ParallelTracker::visitRBend(const RBend& bend) {
+    itsOpalBeamline_m.visit(bend, *this, *itsBunch_m);
+}
+
 inline void ParallelTracker::visitRFCavity(const RFCavity& as) {
     itsOpalBeamline_m.visit(as, *this, *itsBunch_m);
+}
+
+inline void ParallelTracker::visitSBend(const SBend& bend) {
+    itsOpalBeamline_m.visit(bend, *this, *itsBunch_m);
 }
 
 inline void ParallelTracker::visitTravelingWave(const TravelingWave& tw) {
