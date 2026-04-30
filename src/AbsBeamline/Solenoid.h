@@ -132,10 +132,26 @@ public:
 
     virtual ElementType getType() const override;
 
-    /// @brief Get the begin and end positions of the element
-    virtual void getDimensions(double& zBegin, double& zEnd) const override;
+    /**
+     * @brief Return the local field-support interval of the solenoid.
+     *
+     * For the extent split used in the element-placement redesign, this method
+     * returns the interval on which the solenoid field map is defined,
+     * \f$[z_\mathrm{field}^{\mathrm{begin}}, z_\mathrm{field}^{\mathrm{end}}]\f$.
+     * It may differ from the nominal body extent and therefore also from the
+     * entry/exit ports used for placement and visualization.
+     */
+    virtual void getFieldExtend(double& zBegin, double& zEnd) const override;
 
-    /// @brief Get the begin and end positions of the element
+    /**
+     * @brief Return the nominal body extent of the solenoid.
+     *
+     * The nominal body extent is the hardware interval
+     * \f$[0, L_\mathrm{body}]\f$ in the canonical local chart. It is driven by
+     * the configured solenoid length and is intentionally kept separate from
+     * the field-support interval so that body placement and fringe-field
+     * support can differ.
+     */
     virtual void getElementDimensions(double& zBegin, double& zEnd) const override;
 
     /**
@@ -180,6 +196,9 @@ private:
     /// Starting point of the field
     double startField_m;
 
+    /// End point of the field support in the local chart
+    double endField_m;
+
     /// Fast tracking flag @note currently not implemented
     bool fast_m;
 
@@ -193,7 +212,7 @@ private:
  * @returns CoordinateSystemTrafo to the begin of the element
  */
 inline CoordinateSystemTrafo Solenoid::getEdgeToBegin() const {
-    CoordinateSystemTrafo ret(Vector_t<double, 3>(0, 0, startField_m), Quaternion(1, 0, 0, 0));
+    CoordinateSystemTrafo ret(Vector_t<double, 3>(0, 0, 0), Quaternion(1, 0, 0, 0));
     return ret;
 }
 
@@ -204,7 +223,7 @@ inline CoordinateSystemTrafo Solenoid::getEdgeToBegin() const {
  */
 inline CoordinateSystemTrafo Solenoid::getEdgeToEnd() const {
     CoordinateSystemTrafo ret(
-            Vector_t<double, 3>(0, 0, startField_m + getElementLength()), Quaternion(1, 0, 0, 0));
+            Vector_t<double, 3>(0, 0, getElementLength()), Quaternion(1, 0, 0, 0));
     return ret;
 }
 #endif  // OPALX_Solenoid_HH

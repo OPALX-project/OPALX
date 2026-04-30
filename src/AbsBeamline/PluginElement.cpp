@@ -26,8 +26,7 @@
 #include "Utilities/Options.h"
 #include "Utilities/Util.h"
 
-PluginElement::PluginElement() : PluginElement("") {
-}
+PluginElement::PluginElement() : PluginElement("") {}
 
 PluginElement::PluginElement(const std::string& name) : Component(name) {
     setDimensions(0.0, 0.0, 0.0, 0.0);
@@ -38,13 +37,10 @@ PluginElement::PluginElement(const PluginElement& right) : Component(right) {
 }
 
 PluginElement::~PluginElement() {
-    if (online_m)
-        goOffline();
+    if (online_m) goOffline();
 }
 
-void PluginElement::initialise(PartBunch_t* bunch, double&, double&) {
-    initialise(bunch);
-}
+void PluginElement::initialise(PartBunch_t* bunch, double&, double&) { initialise(bunch); }
 
 void PluginElement::initialise(PartBunch_t* bunch) {
     RefPartBunch_m = bunch;
@@ -56,28 +52,22 @@ void PluginElement::initialise(PartBunch_t* bunch) {
 
 void PluginElement::finalise() {
     doFinalise();
-    if (online_m)
-        goOffline();
+    if (online_m) goOffline();
 }
 
 void PluginElement::goOffline() {
-    if (online_m && lossDs_m)
-        lossDs_m->save();
+    if (online_m && lossDs_m) lossDs_m->save();
     lossDs_m.reset(nullptr);
     doGoOffline();
     online_m = false;
 }
 
-bool PluginElement::bends() const {
-    return false;
-}
+bool PluginElement::bends() const { return false; }
 
-bool PluginElement::apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/) {
-    return false;
-}
+bool PluginElement::apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/) { return false; }
 
 bool PluginElement::apply(
-    const size_t& /*i*/, const double&, Vector_t<double, 3>&, Vector_t<double, 3>&) {
+        const size_t& /*i*/, const double&, Vector_t<double, 3>&, Vector_t<double, 3>&) {
     return false;
 }
 
@@ -88,11 +78,9 @@ bool PluginElement::apply(
     return false;
 }
 
-
-
 bool PluginElement::applyToReferenceParticle(
-    const Vector_t<double, 3>&, const Vector_t<double, 3>&, const double&, Vector_t<double, 3>&,
-    Vector_t<double, 3>&) {
+        const Vector_t<double, 3>&, const Vector_t<double, 3>&, const double&, Vector_t<double, 3>&,
+        Vector_t<double, 3>&) {
     return false;
 }
 
@@ -117,8 +105,7 @@ void PluginElement::setDimensions(double xstart, double xend, double ystart, dou
     // element equation: A*X + B*Y + C = 0
     // point closest to origin https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line
     double x_close = 0.0;
-    if (R_m > 0.0)
-        x_close = -A_m * C_m / (R_m * R_m);
+    if (R_m > 0.0) x_close = -A_m * C_m / (R_m * R_m);
 
     if (x_close > std::min(xstart_m, xend_m) && x_close < std::max(xstart_m, xend_m))
         rmin_m = std::abs(C_m) / std::hypot(A_m, B_m);
@@ -155,7 +142,7 @@ void PluginElement::setGeom(const double dist) {
 }
 
 void PluginElement::changeWidth(
-    PartBunch_t* bunch, int i, const double tstep, const double tangle) {
+        PartBunch_t* bunch, int i, const double tstep, const double tangle) {
     constexpr double c_mtns = Physics::c / Units::s2ns;  // m/s --> m/ns
 
     const double tmp = std::sqrt(dot(bunch->P(i), bunch->P(i)));
@@ -189,24 +176,16 @@ double PluginElement::calculateIncidentAngle(double xp, double yp) const {
     return tangle;
 }
 
-double PluginElement::getXStart() const {
-    return xstart_m;
-}
+double PluginElement::getXStart() const { return xstart_m; }
 
-double PluginElement::getXEnd() const {
-    return xend_m;
-}
+double PluginElement::getXEnd() const { return xend_m; }
 
-double PluginElement::getYStart() const {
-    return ystart_m;
-}
+double PluginElement::getYStart() const { return ystart_m; }
 
-double PluginElement::getYEnd() const {
-    return yend_m;
-}
+double PluginElement::getYEnd() const { return yend_m; }
 
 bool PluginElement::check(
-    PartBunch_t* bunch, const int turnnumber, const double t, const double tstep) {
+        PartBunch_t* bunch, const int turnnumber, const double t, const double tstep) {
     bool flag = false;
     // check if bunch close
     bool bunchClose = preCheck(bunch);
@@ -220,7 +199,7 @@ bool PluginElement::check(
     return flag;
 }
 
-void PluginElement::getDimensions(double& zBegin, double& zEnd) const {
+void PluginElement::getFieldExtend(double& zBegin, double& zEnd) const {
     zBegin = -0.005;
     zEnd   = 0.005;
 }
@@ -231,8 +210,7 @@ int PluginElement::checkPoint(const double& x, const double& y) const {
         if (((geom_m[i].y <= y) && (geom_m[i + 1].y > y))
             || ((geom_m[i].y > y) && (geom_m[i + 1].y <= y))) {
             float vt = (float)(y - geom_m[i].y) / (geom_m[i + 1].y - geom_m[i].y);
-            if (x < geom_m[i].x + vt * (geom_m[i + 1].x - geom_m[i].x))
-                ++cn;
+            if (x < geom_m[i].x + vt * (geom_m[i + 1].x - geom_m[i].x)) ++cn;
         }
     }
     return (cn & 1);  // 0 if even (out), and 1 if odd (in)

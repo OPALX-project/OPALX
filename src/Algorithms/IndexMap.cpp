@@ -40,7 +40,12 @@ namespace {
     void insertFlags(std::vector<double>& flags, std::shared_ptr<Component> element);
 }
 
-IndexMap::IndexMap() : mapRange2Element_m(), mapElement2Range_m(), totalPathLength_m(0.0) {}
+IndexMap::IndexMap()
+    : mapRange2Element_m(),
+      mapElement2Range_m(),
+      referencePathModel_m(),
+      referencePathModelDirty_m(false),
+      totalPathLength_m(0.0) {}
 
 void IndexMap::print(std::ostream& out) const {
     if (mapRange2Element_m.empty()) return;
@@ -110,7 +115,8 @@ void IndexMap::add(key_t::first_type initialS, key_t::second_type finalS, const 
     key_t key{initialS, finalS * oneMinusEpsilon_m};
 
     mapRange2Element_m.insert(std::pair<key_t, value_t>(key, val));
-    totalPathLength_m = (*mapRange2Element_m.rbegin()).first.end;
+    totalPathLength_m         = (*mapRange2Element_m.rbegin()).first.end;
+    referencePathModelDirty_m = true;
 
     value_t::iterator setIt        = val.begin();
     const value_t::iterator setEnd = val.end();
@@ -147,7 +153,16 @@ void IndexMap::tidyUp(double zstop) {
 
         mapRange2Element_m.erase(std::next(rit).base());
         mapRange2Element_m.insert(std::pair<key_t, value_t>(key, val));
+        referencePathModelDirty_m = true;
     }
+}
+
+void IndexMap::rebuildReferencePathModel() const {
+    referencePathModel_m.clear();
+    for (const auto& [range, elements] : mapRange2Element_m) {
+        referencePathModel_m.addSegment(ReferencePathSegment(range.begin, range.end, elements));
+    }
+    referencePathModelDirty_m = false;
 }
 
 enum elements {
@@ -177,16 +192,12 @@ void IndexMap::saveSDDS(double initialPathLength) const {
     // to the file, where
     // s_i is the start of the range and
     // s_f is the end of the range.
-    auto mapIti = mapRange2Element_m.begin();
-    auto mapItf = mapRange2Element_m.end();
-    for (; mapIti != mapItf; mapIti++) {
-        const auto& sectorElements = (*mapIti).second;
+    for (const auto& segment : getReferencePathModel().getSegments()) {
+        const auto& sectorElements = segment.getActiveElements();
         if (sectorElements.empty()) continue;
 
-        const auto& sectorRange = (*mapIti).first;
-
-        double sectorBegin = sectorRange.begin;
-        double sectorEnd   = sectorRange.end;
+        double sectorBegin = segment.getBegin();
+        double sectorEnd   = segment.getEnd();
 
         std::vector<std::tuple<double, std::vector<double>, std::string> > currentSector(4);
         std::get<0>(currentSector[0]) = sectorBegin;

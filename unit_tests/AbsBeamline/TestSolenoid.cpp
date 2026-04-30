@@ -175,6 +175,7 @@ TEST_F(SolenoidPlacementTest, FieldMapEdgesAndSupportEnvelopeFollowFieldMap) {
     const auto mapFile = writeXZFieldmap("solenoid_edges.map", -5.0, 15.0, 4, 0.0, 3.0, 3);
 
     SolenoidRep solenoid("SOL1");
+    solenoid.setElementLength(1.0);
     solenoid.setFieldMapFN(mapFile.string());
     solenoid.setElementPosition(1.0);
 
@@ -188,10 +189,24 @@ TEST_F(SolenoidPlacementTest, FieldMapEdgesAndSupportEnvelopeFollowFieldMap) {
         FAIL() << "non-OPAL exception";
     }
 
-    EXPECT_NEAR(solenoid.getElementLength(), 0.20, 1e-12);
-    EXPECT_NEAR(endField, 1.20, 1e-12);
-    EXPECT_NEAR(solenoid.getEdgeToBegin().getOrigin()(2), -0.05, 1e-12);
-    EXPECT_NEAR(solenoid.getEdgeToEnd().getOrigin()(2), 0.15, 1e-12);
+    double fieldBegin = 0.0, fieldEnd = 0.0;
+    solenoid.getFieldExtend(fieldBegin, fieldEnd);
+
+    double bodyBegin = 0.0, bodyEnd = 0.0;
+    solenoid.getElementDimensions(bodyBegin, bodyEnd);
+
+    EXPECT_NEAR(startField, 0.95, 1e-12);
+    EXPECT_NEAR(endField, 1.15, 1e-12);
+    EXPECT_NEAR(solenoid.getElementLength(), 1.0, 1e-12);
+    EXPECT_NEAR(fieldBegin, -0.05, 1e-12);
+    EXPECT_NEAR(fieldEnd, 0.15, 1e-12);
+    EXPECT_NEAR(bodyBegin, 0.0, 1e-12);
+    EXPECT_NEAR(bodyEnd, 1.0, 1e-12);
+    EXPECT_NEAR(solenoid.getEdgeToBegin().getOrigin()(2), 0.0, 1e-12);
+    EXPECT_NEAR(solenoid.getEdgeToEnd().getOrigin()(2), 1.0, 1e-12);
+    EXPECT_TRUE(solenoid.isInside({0.0, 0.0, 0.00}));
+    EXPECT_TRUE(solenoid.isInside({0.0, 0.0, 0.14}));
+    EXPECT_FALSE(solenoid.isInside({0.0, 0.0, 0.20}));
 
     double horizontalRadius = 0.0;
     double verticalRadius   = 0.0;
@@ -207,6 +222,7 @@ TEST_F(SolenoidPlacementTest, LatticeExportsUseFieldMapEdgesAndSolenoidMeshType)
     const auto mapFile = writeXZFieldmap("solenoid_lattice.map", -5.0, 15.0, 4, 0.0, 3.0, 3);
 
     SolenoidRep solenoid("SOL1");
+    solenoid.setElementLength(1.0);
     solenoid.setFieldMapFN(mapFile.string());
     solenoid.setElementPosition(1.0);
 
@@ -222,6 +238,16 @@ TEST_F(SolenoidPlacementTest, LatticeExportsUseFieldMapEdgesAndSolenoidMeshType)
         FAIL() << "non-OPAL exception";
     }
     ASSERT_NO_THROW(beamline.compute3DLattice());
+
+    const auto elements = beamline.getElements();
+    ASSERT_EQ(elements.size(), 1u);
+    const auto& placedComponent = *elements.begin();
+    const PlacedElement placed  = beamline.getPlacedElement(placedComponent);
+    EXPECT_NEAR(placed.getNominalEntryTransform().getOrigin()(2), 1.0, 1e-12);
+    EXPECT_NEAR(placed.getNominalExitTransform().getOrigin()(2), 2.0, 1e-12);
+    EXPECT_EQ(beamline.getElements(Vector_t<double, 3>(0.0, 0.0, 1.10)).size(), 1u);
+    EXPECT_TRUE(beamline.getElements(Vector_t<double, 3>(0.0, 0.0, 1.30)).empty());
+
     ASSERT_NO_THROW(beamline.save3DLattice());
 
     std::ifstream txt(outputPath("_ElementPositions.txt"));
@@ -233,15 +259,17 @@ TEST_F(SolenoidPlacementTest, LatticeExportsUseFieldMapEdgesAndSolenoidMeshType)
     while (std::getline(txt, textLine)) {
         if (textLine.find("\"BEGIN: SOL1\"") != std::string::npos) {
             const auto [z, x, y] = parsePositionLine(textLine);
-            EXPECT_NEAR(z, 0.95, 1e-12);
-            EXPECT_NEAR(x, 0.0, 1e-12);
-            EXPECT_NEAR(y, 0.0, 1e-12);
+            const auto entry     = placed.getNominalEntryTransform().getOrigin();
+            EXPECT_NEAR(z, entry(2), 1e-12);
+            EXPECT_NEAR(x, entry(0), 1e-12);
+            EXPECT_NEAR(y, entry(1), 1e-12);
             foundBegin = true;
         } else if (textLine.find("\"END: SOL1\"") != std::string::npos) {
             const auto [z, x, y] = parsePositionLine(textLine);
-            EXPECT_NEAR(z, 1.15, 1e-12);
-            EXPECT_NEAR(x, 0.0, 1e-12);
-            EXPECT_NEAR(y, 0.0, 1e-12);
+            const auto exit      = placed.getNominalExitTransform().getOrigin();
+            EXPECT_NEAR(z, exit(2), 1e-12);
+            EXPECT_NEAR(x, exit(0), 1e-12);
+            EXPECT_NEAR(y, exit(1), 1e-12);
             foundEnd = true;
         }
     }
@@ -295,6 +323,7 @@ TEST_F(SolenoidPlacementTest, DriftMeshesAsBlueCylinderUsingFirstNonDriftReferen
     drift.setElementPosition(0.0);
 
     SolenoidRep solenoid("SOL1");
+    solenoid.setElementLength(1.0);
     solenoid.setFieldMapFN(mapFile.string());
     solenoid.setElementPosition(0.5);
 
