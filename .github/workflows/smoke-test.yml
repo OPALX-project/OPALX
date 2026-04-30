@@ -1,0 +1,97 @@
+name: Smoke Test
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, ready_for_review]
+    branches: ["master"]
+
+concurrency:
+  group: ${{ github.workflow }}-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+    if: contains(github.event.pull_request.labels.*.name, 'compile-ci') && github.event.pull_request.draft == false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential cmake git \
+            libopenmpi-dev openmpi-bin
+
+      - name: Configure CMake (Release, Serial)
+        run: |
+          mkdir -p build_smoke
+          cd build_smoke
+          cmake .. \
+            -DBUILD_TYPE=Release \
+            -DPLATFORMS=SERIAL
+
+      - name: Build
+        run: |
+          cd build_smoke
+          make -j$(nproc)
+
+      - name: Get regression test inputs
+        run: |
+          git clone --depth=1 https://github.com/OPALX-project/regression-tests-x.git
+
+      - name: Run Drift-1-fromfile
+        run: |
+          TEST=regression-tests-x/RegressionTests/Drift-1-fromfile
+          mkdir -p smoke_run
+          cp "$TEST/Drift-1-fromfile.in" smoke_run/
+          cp "$TEST/distr-gauss.txt" smoke_run/
+          cd smoke_run
+          mpirun -np 1 "$GITHUB_WORKSPACE/build_smoke/src/opalx" Drift-1-fromfile.in --info 2
+
+      - name: Compare stat output to reference
+        run: |
+          python3 << 'PYEOF'
+          import sys
+
+          def parse_sdds(path):
+              with open(path) as f:
+                  lines = f.readlines()
+              cols, n_params, data_end_idx, section = [], 0, None, None
+              for i, line in enumerate(lines):
+                  s = line.strip()
+                  if s.startswith('&') and s != '&end':
+                      section = s[1:]
+                      if section == 'parameter':
+                          n_params += 1
+                  elif s == '&end':
+                      if section == 'data':
+                          data_end_idx = i + 1
+                      section = None
+                  elif section == 'column' and s.startswith('name='):
+                      cols.append(s.split('name=')[1].split(',')[0].strip().strip('"'))
+              data_rows = [
+                  l.strip().split('\t')
+                  for l in lines[data_end_idx + n_params:]
+                  if l.strip()
+              ]
+              return dict(zip(cols, [v.strip() for v in data_rows[-1]]))
+
+          ref = parse_sdds('regression-tests-x/RegressionTests/Drift-1-fromfile/reference/Drift-1-fromfile.stat')
+          got = parse_sdds('smoke_run/Drift-1-fromfile.stat')
+
+          checks = ['rms_x', 'rms_y', 'rms_s', 'rms_px', 'rms_py', 'rms_ps', 'energy']
+          tol = 1e-6
+          failed = False
+          for col in checks:
+              r, g = float(ref[col]), float(got[col])
+              rel_err = abs(g - r) / (abs(r) + 1e-30)
+              status = 'PASS' if rel_err < tol else 'FAIL'
+              if status == 'FAIL':
+                  failed = True
+              print(f'[{status}] {col}: ref={r:.15e}  got={g:.15e}  rel_err={rel_err:.2e}')
+
+          sys.exit(1 if failed else 0)
+          PYEOF
