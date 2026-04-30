@@ -107,7 +107,7 @@ protected:
         auto bunch = std::make_shared<PartBunch_t>(
                 std::vector{1.0}, std::vector{1.0}, std::vector<Beam*>{opBeam},
                 std::vector<size_t>{numParticles}, 1.0, "LF2", fsCmdBase_m.get(), dataSink_m.get());
-        bunch->getParticleContainer()->create(numParticles);
+        bunch->getParticleContainer()->createParticles(numParticles);
         return bunch;
     }
 

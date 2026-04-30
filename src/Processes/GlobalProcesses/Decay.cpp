@@ -56,8 +56,9 @@ size_t Decay::apply(
                 nLocal, localDestroyNum, invalid, pc.R.getView(), pc.P.getView(), pc.dt.getView());
 
         /* Phase 3: Create daughters — subclass-specific momentum sampling. */
+        // createParticles() is non-destructive and warns if the daughter buffer must grow.
         const pc_size_type oldDaughterLocal = daughterPC_m->getLocalNum();
-        daughterPC_m->create(localDestroyNum);
+        daughterPC_m->createParticles(localDestroyNum);
 
         if (localDestroyNum > 0) {
             createDaughterParticles(
@@ -66,7 +67,7 @@ size_t Decay::apply(
     }
 
     /* Phase 4: Destroy decayed parent particles. */
-    pc.destroy(invalid, localDestroyNum);
+    pc.destroyParticles(invalid, localDestroyNum);
     return static_cast<size_t>(globalDestroyNum);
 }
 
