@@ -32,6 +32,8 @@ set (HDRS
     ParallelTracker.h
     PartData.h
     PolynomialTimeDependence.h
+    ReferencePathModel.h
+    ReferencePathSegment.h
     SplineTimeDependence.h
     SinusoidalTimeDependence.h
     StepSizeConfig.h
