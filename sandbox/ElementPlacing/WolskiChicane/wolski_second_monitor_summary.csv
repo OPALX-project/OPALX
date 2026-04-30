@@ -1,0 +1,3 @@
+row,source,numParticles,rms_x,rms_y,rms_z,rms_px_can,rms_py_can,rms_delta
+SECOND,BMAD-exit,5000,0.01913,0.00000,0.00042,0.01082,0.00000,0.02600
+SECOND,OPALX-monitor,4978,0.01936,0.00000,0.00202,0.01241,0.00000,0.02559

@@ -1,0 +1,1207 @@
+OPAL-X>               ____  _____        _       __   __
+OPAL-X> [1;32m
+OPAL-X> 
+OPAL-X>   ██████  ██████   █████  ██      ██   ██
+OPAL-X>  ██    ██ ██   ██ ██   ██ ██       ██ ██
+OPAL-X>  ██    ██ ██████  ███████ ██        ███
+OPAL-X>  ██    ██ ██      ██   ██ ██       ██ ██
+OPAL-X>   ██████  ██      ██   ██ ███████ ██   ██
+OPAL-X> 
+OPAL-X>          This is OPALX (Object Oriented Parallel Accelerator Library for Exascale)
+OPAL-X> 
+OPAL-X> [0m
+OPAL-X> 
+OPAL-X> OPALX is the performance portable version of OPAL :: Version 0.9
+OPAL-X>             git rev. 686966888105ef1d79b79580d9e468f177a70cde
+OPAL-X> 
+OPAL-X> 
+OPAL-X>              (c) PSI, https://github.com/OPALX-project/OPALX
+OPAL-X> 
+OPAL-X> 
+OPAL-X> Please send cookies, goodies or other motivations (wine and beer ... ) 
+OPAL-X> to the OPAL developers https://github.com/OPALX-project/OPALX/issues
+OPAL-X> 
+OPAL-X> Time: 21:08:37 date: 30/04/2026
+OPAL-X> 
+OPAL-X> * Host:   Serial
+OPAL-X> * Device: Serial execution
+OPAL-X> 
+OPAL-X> * Reading input stream 'sbend_exit_monitor_sb45m_e10_p_opalx.in'
+OPAL-X> * ************* F I E L D S O L V E R ********************************************** 
+OPAL-X> * FIELDSOLVER  FS0
+OPAL-X> * BINS         NONE
+OPAL-X> * TYPE         NONE
+OPAL-X> * RANKS        1
+OPAL-X> * NX           16
+OPAL-X> * NY           16
+OPAL-X> * NZ           16
+OPAL-X> * BBOXINCR     1
+OPAL-X> * GREENSF      INTEGRATED
+OPAL-X> * XDIM         serial  
+OPAL-X> * YDIM         serial  
+OPAL-X> * ZDIM         parallel  
+OPAL-X> * ********************************************************************************** 
+OPAL-X> 
+OPAL-X> * RUN resolved beams: BEAM0
+OPAL-X> * ************* B E A M ************************************************************ 
+OPAL-X> * BEAM        BEAM0
+OPAL-X> * PARTICLE    ELECTRON
+OPAL-X> * REST MASS   0.000510999 [GeV]
+OPAL-X> * CHARGE      -e * 1 
+OPAL-X> * MOMENTUM    1 [eV/c]
+OPAL-X> * MOMENTUM    0 [GeV/c]
+OPAL-X> * BCHARGE     1.60218e-19 [C]
+OPAL-X> * NALLOC      1000
+OPAL-X> * ********************************************************************************** 
+OPAL-X> 
+OPAL-X[2]> * Beam[0] BEAM0 macro charge per particle [C]: -1.60218e-22
+OPAL-X[2]> * Beam[0] BEAM0 macro mass per particle [GeV/c^2]: 5.10999e-07
+OPAL-X[2]> * Beam[0] BEAM0 particles per macro particle: 0.001
+OPAL-X> 
+OPAL-X> * Creating new file for data: 'sbend_exit_monitor_sb45m_e10_p_opalx.stat'
+OPAL-X> * Creating new file for data: 'sbend_exit_monitor_sb45m_e10_p_opalx.lbal'
+PartBunch::setSolver[2]> Initializing solver: NONE
+PartBunch::setBins[2]> Solver FS0 has no binning command attached, not using binning.
+PartBunch::pre_run[2]> Starting pre_run...
+OPAL-X[2]> * BCHandler<3>: [OPEN, OPEN, OPEN]
+FromFile::generateParticles> FromFile: Loaded 1000 particles from file 'sbend_exit_monitor_sb45m_e10_p_opalx_distribution.txt'
+FromFile::generateParticles> Rank 0: 1000 local particles
+OPAL-X[2]> * Particle sampling / sampler setup for all emission sources done.
+OPAL-X> 
+OPAL-X> * ************** B U N C H ********************************************************* 
+OPAL-X> * CONTAINER       = 0
+OPAL-X> * PARTICLES       = 1000
+OPAL-X> * CHARGE          = -1.602177e-19 (Cb) 
+OPAL-X> * QM STORAGE MODE = SINGLE
+OPAL-X> * <EKIN>          = 1.000 [GeV]
+OPAL-X> * <dEKIN>         = 1.001 [MeV]
+OPAL-X> * INTEGRATOR      = LF2
+OPAL-X> * MIN R (origin)  = (     -2.80740 ,     -3.20357 ,     -3.11961 ) [mm]
+OPAL-X> * MAX R (max ext) = (      3.90202 ,      3.20895 ,      3.72110 ) [mm]
+OPAL-X> * RMS R           = (      0.98972 ,      0.98657 ,      1.01449 ) [mm]
+OPAL-X> * RMS P           = ( 2.047227e+00 , 2.002009e+00 , 1.958628e+00 ) [beta gamma]
+OPAL-X> * Mean R          = ( 1.237226e-06 , -3.141135e-05 , 8.607648e-06 ) [m]
+OPAL-X> * Mean P          = ( 7.142758e-02 , -2.253019e-02 , 1.957975e+03 ) [beta gamma]
+OPAL-X> * MESH SPACING    = (    427.72495 ,    408.79815 ,    436.09504 ) [um]
+OPAL-X> * COMPDOM INCR    = 1.000000e+00 (%) 
+OPAL-X> * FIELD LAYOUT    = Domain = {[0:15:1],[0:15:1],[0:15:1]}
+OPAL-X> Total number of boxes = 1
+OPAL-X>     Box 0 {[0:15:1],[0:15:1],[0:15:1]}
+OPAL-X> 
+OPAL-X> * Centroid : 
+OPAL-X> * 1.237226e-03 7.142758e+01 -3.141135e-02 -2.253019e+01 8.607648e-03 1.957975e+06 
+OPAL-X> * Cov Matrix : 
+OPAL-X> * 9.795437e-07 -3.910143e-06 -5.196992e-08 7.296873e-05 1.494173e-09 1.609110e-04 
+OPAL-X> * -3.910143e-06 4.191140e+00 6.543181e-05 4.685758e-02 7.236978e-05 1.109557e-01 
+OPAL-X> * -5.196992e-08 6.543181e-05 9.733282e-07 7.955206e-05 3.575163e-08 -1.078941e-04 
+OPAL-X> * 7.296873e-05 4.685758e-02 7.955206e-05 4.008040e+00 2.967841e-05 7.156139e-02 
+OPAL-X> * 1.494173e-09 7.236978e-05 3.575163e-08 2.967841e-05 1.029183e-06 -1.511926e-04 
+OPAL-X> * 1.609110e-04 1.109557e-01 -1.078941e-04 7.156139e-02 -1.511926e-04 3.836223e+00 
+OPAL-X> * * ********************************************************************************** 
+OPAL-X> 
+ParallelTracker> Placed element body poses:
+ParallelTracker> Element                 	X	Y	Z	THETA	PHI	PSI
+ParallelTracker>  ------------------------------------------------------------------------
+ParallelTracker> B1                      	0.0108	0.0	0.4967	12.5	0.0	0.0
+ParallelTracker> MEXIT                   	0.3729	0.0	0.9003	45.0	0.0	0.0
+ParallelTracker> Local body/field extents:
+ParallelTracker> Element                 	BODY_BEGIN	BODY_END	FIELD_BEGIN	FIELD_END
+ParallelTracker>  ------------------------------------------------------------------------
+ParallelTracker> B1                      	0.0	1.0	-0.0	1.0
+ParallelTracker> MEXIT                   	0.0	0.0	-0.005	0.005
+ParallelTracker> Adjacent element port discontinuities:
+ParallelTracker>   B1 -> MEXIT: gap=(0.1620038294, 0.0, -0.0510796112), |gap|=0.1698657335, dTHETA=10.0 deg, dPHI=0.0 deg, dPSI=0.0 deg
+ParallelTracker>     adjust MEXIT body pose by dX=-0.1620038294, dY=-0.0, dZ=0.0510796112, dTHETA=-10.0 deg, dPHI=-0.0 deg, dPSI=-0.0 deg
+OPAL-X> * B1 gone live
+OPAL-X> * MEXIT gone live
+ParallelTracker::execute[2]> Dump initial phase space done.
+OPAL-X> * OrbitThreader dt_m= 1e-11
+OPAL-X> * OrbitThreader maxDistance= 1.79769e+308
+OPAL-X> * OrbitThreader #elements  = 1
+OPAL-X> * OrbitThreader maxDistance= 10
+OPAL-X> * OrbitThreader #elements  = 0
+OPAL-X[2]> Save 'sbend_exit_monitor_sb45m_e10_p_monitor.h5'
+OPAL-X> * OrbitThreader maxDistance= 1.79769e+308
+OPAL-X> * OrbitThreader #elements  = 1
+OPAL-X> * OrbitThreader maxDistance= 10
+OPAL-X> * OrbitThreader #elements  = 0
+OPAL-X> 
+OPAL-X> * Size of map 4 sections 
+OPAL-X> * Key: (0.000000 - 0.947343) number of overlapping elements 1
+OPAL-X> *                            B1
+OPAL-X> * Key: (0.947343 - 0.995310) number of overlapping elements 0
+OPAL-X> * Key: (0.995310 - 1.004304) number of overlapping elements 1
+OPAL-X> *                            MEXIT
+OPAL-X> * Key: (1.004304 - 1.506239) number of overlapping elements 0
+OPAL-X> 
+OPAL-X> * Creating new file for data: 'data/sbend_exit_monitor_sb45m_e10_p_opalx_ElementPositions.sdds'
+OPAL-X> * Track start at: 21:08:37, t= 0.000 [fs]; zstart at: 0.000 [um]
+OPAL-X> * Initial dt = 10.000 [ps]
+OPAL-X> * Max integration steps = 20000, next step = 0
+OPAL-X>                dt [ns]           zStop [m]        num Steps [1]
+OPAL-X> ->         1.000000e-11        1.500000e+00               20000
+PartBunch::performBunchSanityChecks[2]> ========= Done performing PartBunch sanity checks... =========
+ParallelTracker::execute[2]> Starting track with dt = 10.000 [ps], track steps = 0 to 20000.
+OPAL-X> * 21:08:38 Step      0 container[0] at 2.998 [mm], t= 10.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:38 Step      1 container[0] at 5.996 [mm], t= 20.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:38 Step      2 container[0] at 8.994 [mm], t= 30.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:38 Step      3 container[0] at 11.992 [mm], t= 40.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:38 Step      4 container[0] at 14.990 [mm], t= 50.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:38 Step      5 container[0] at 17.988 [mm], t= 60.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:38 Step      6 container[0] at 20.985 [mm], t= 70.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:38 Step      7 container[0] at 23.983 [mm], t= 80.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:38 Step      8 container[0] at 26.981 [mm], t= 90.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:38 Step      9 container[0] at 29.979 [mm], t= 100.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:38 Step     10 container[0] at 32.977 [mm], t= 110.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:38 Step     11 container[0] at 35.975 [mm], t= 120.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:38 Step     12 container[0] at 38.973 [mm], t= 130.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:38 Step     13 container[0] at 41.971 [mm], t= 140.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:38 Step     14 container[0] at 44.969 [mm], t= 150.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:38 Step     15 container[0] at 47.967 [mm], t= 160.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:38 Step     16 container[0] at 50.965 [mm], t= 170.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:38 Step     17 container[0] at 53.963 [mm], t= 180.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:38 Step     18 container[0] at 56.961 [mm], t= 190.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:38 Step     19 container[0] at 59.958 [mm], t= 200.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:38 Step     20 container[0] at 62.956 [mm], t= 210.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:38 Step     21 container[0] at 65.954 [mm], t= 220.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:38 Step     22 container[0] at 68.952 [mm], t= 230.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:38 Step     23 container[0] at 71.950 [mm], t= 240.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:38 Step     24 container[0] at 74.948 [mm], t= 250.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:38 Step     25 container[0] at 77.946 [mm], t= 260.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:38 Step     26 container[0] at 80.944 [mm], t= 270.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:38 Step     27 container[0] at 83.942 [mm], t= 280.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:38 Step     28 container[0] at 86.940 [mm], t= 290.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:38 Step     29 container[0] at 89.938 [mm], t= 300.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:38 Step     30 container[0] at 92.936 [mm], t= 310.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:38 Step     31 container[0] at 95.934 [mm], t= 320.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:38 Step     32 container[0] at 98.931 [mm], t= 330.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:38 Step     33 container[0] at 101.929 [mm], t= 340.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:38 Step     34 container[0] at 104.927 [mm], t= 350.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:38 Step     35 container[0] at 107.925 [mm], t= 360.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:38 Step     36 container[0] at 110.923 [mm], t= 370.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:38 Step     37 container[0] at 113.921 [mm], t= 380.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:38 Step     38 container[0] at 116.919 [mm], t= 390.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:38 Step     39 container[0] at 119.917 [mm], t= 400.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:38 Step     40 container[0] at 122.915 [mm], t= 410.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:38 Step     41 container[0] at 125.913 [mm], t= 420.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:38 Step     42 container[0] at 128.911 [mm], t= 430.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:38 Step     43 container[0] at 131.909 [mm], t= 440.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:38 Step     44 container[0] at 134.906 [mm], t= 450.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:38 Step     45 container[0] at 137.904 [mm], t= 460.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:38 Step     46 container[0] at 140.902 [mm], t= 470.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:38 Step     47 container[0] at 143.900 [mm], t= 480.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:38 Step     48 container[0] at 146.898 [mm], t= 490.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:38 Step     49 container[0] at 149.896 [mm], t= 500.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:39 Step     50 container[0] at 152.894 [mm], t= 510.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:39 Step     51 container[0] at 155.892 [mm], t= 520.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:39 Step     52 container[0] at 158.890 [mm], t= 530.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:39 Step     53 container[0] at 161.888 [mm], t= 540.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:39 Step     54 container[0] at 164.886 [mm], t= 550.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:39 Step     55 container[0] at 167.884 [mm], t= 560.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:39 Step     56 container[0] at 170.882 [mm], t= 570.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:39 Step     57 container[0] at 173.879 [mm], t= 580.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:39 Step     58 container[0] at 176.877 [mm], t= 590.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:39 Step     59 container[0] at 179.875 [mm], t= 600.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:39 Step     60 container[0] at 182.873 [mm], t= 610.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:39 Step     61 container[0] at 185.871 [mm], t= 620.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:39 Step     62 container[0] at 188.869 [mm], t= 630.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:39 Step     63 container[0] at 191.867 [mm], t= 640.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:39 Step     64 container[0] at 194.865 [mm], t= 650.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:39 Step     65 container[0] at 197.863 [mm], t= 660.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:39 Step     66 container[0] at 200.861 [mm], t= 670.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:39 Step     67 container[0] at 203.859 [mm], t= 680.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:39 Step     68 container[0] at 206.857 [mm], t= 690.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:39 Step     69 container[0] at 209.855 [mm], t= 700.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:39 Step     70 container[0] at 212.852 [mm], t= 710.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:39 Step     71 container[0] at 215.850 [mm], t= 720.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:39 Step     72 container[0] at 218.848 [mm], t= 730.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:39 Step     73 container[0] at 221.846 [mm], t= 740.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:39 Step     74 container[0] at 224.844 [mm], t= 750.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:39 Step     75 container[0] at 227.842 [mm], t= 760.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:39 Step     76 container[0] at 230.840 [mm], t= 770.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:39 Step     77 container[0] at 233.838 [mm], t= 780.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:39 Step     78 container[0] at 236.836 [mm], t= 790.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:39 Step     79 container[0] at 239.834 [mm], t= 800.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:39 Step     80 container[0] at 242.832 [mm], t= 810.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:39 Step     81 container[0] at 245.830 [mm], t= 820.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:39 Step     82 container[0] at 248.828 [mm], t= 830.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:39 Step     83 container[0] at 251.825 [mm], t= 840.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:39 Step     84 container[0] at 254.823 [mm], t= 850.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:39 Step     85 container[0] at 257.821 [mm], t= 860.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:39 Step     86 container[0] at 260.819 [mm], t= 870.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:39 Step     87 container[0] at 263.817 [mm], t= 880.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:39 Step     88 container[0] at 266.815 [mm], t= 890.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:39 Step     89 container[0] at 269.813 [mm], t= 900.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:39 Step     90 container[0] at 272.811 [mm], t= 910.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:39 Step     91 container[0] at 275.809 [mm], t= 920.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:39 Step     92 container[0] at 278.807 [mm], t= 930.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:39 Step     93 container[0] at 281.805 [mm], t= 940.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:39 Step     94 container[0] at 284.803 [mm], t= 950.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:39 Step     95 container[0] at 287.801 [mm], t= 960.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:39 Step     96 container[0] at 290.798 [mm], t= 970.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:39 Step     97 container[0] at 293.796 [mm], t= 980.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:39 Step     98 container[0] at 296.794 [mm], t= 990.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:39 Step     99 container[0] at 299.792 [mm], t= 1000.000 [ps], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:39 Step    100 container[0] at 302.790 [mm], t= 1.010 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:39 Step    101 container[0] at 305.788 [mm], t= 1.020 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:40 Step    102 container[0] at 308.786 [mm], t= 1.030 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:40 Step    103 container[0] at 311.784 [mm], t= 1.040 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:40 Step    104 container[0] at 314.782 [mm], t= 1.050 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:40 Step    105 container[0] at 317.780 [mm], t= 1.060 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:40 Step    106 container[0] at 320.778 [mm], t= 1.070 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:40 Step    107 container[0] at 323.776 [mm], t= 1.080 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:40 Step    108 container[0] at 326.774 [mm], t= 1.090 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:40 Step    109 container[0] at 329.771 [mm], t= 1.100 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:40 Step    110 container[0] at 332.769 [mm], t= 1.110 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:40 Step    111 container[0] at 335.767 [mm], t= 1.120 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:40 Step    112 container[0] at 338.765 [mm], t= 1.130 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:40 Step    113 container[0] at 341.763 [mm], t= 1.140 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:40 Step    114 container[0] at 344.761 [mm], t= 1.150 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:40 Step    115 container[0] at 347.759 [mm], t= 1.160 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:40 Step    116 container[0] at 350.757 [mm], t= 1.170 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:40 Step    117 container[0] at 353.755 [mm], t= 1.180 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:40 Step    118 container[0] at 356.753 [mm], t= 1.190 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:40 Step    119 container[0] at 359.751 [mm], t= 1.200 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:40 Step    120 container[0] at 362.749 [mm], t= 1.210 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:40 Step    121 container[0] at 365.746 [mm], t= 1.220 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:40 Step    122 container[0] at 368.744 [mm], t= 1.230 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:40 Step    123 container[0] at 371.742 [mm], t= 1.240 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:40 Step    124 container[0] at 374.740 [mm], t= 1.250 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:40 Step    125 container[0] at 377.738 [mm], t= 1.260 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:40 Step    126 container[0] at 380.736 [mm], t= 1.270 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:40 Step    127 container[0] at 383.734 [mm], t= 1.280 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:40 Step    128 container[0] at 386.732 [mm], t= 1.290 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:40 Step    129 container[0] at 389.730 [mm], t= 1.300 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:40 Step    130 container[0] at 392.728 [mm], t= 1.310 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:40 Step    131 container[0] at 395.726 [mm], t= 1.320 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:40 Step    132 container[0] at 398.724 [mm], t= 1.330 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:40 Step    133 container[0] at 401.722 [mm], t= 1.340 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:40 Step    134 container[0] at 404.719 [mm], t= 1.350 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:40 Step    135 container[0] at 407.717 [mm], t= 1.360 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:40 Step    136 container[0] at 410.715 [mm], t= 1.370 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:40 Step    137 container[0] at 413.713 [mm], t= 1.380 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:40 Step    138 container[0] at 416.711 [mm], t= 1.390 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:40 Step    139 container[0] at 419.709 [mm], t= 1.400 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:40 Step    140 container[0] at 422.707 [mm], t= 1.410 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:40 Step    141 container[0] at 425.705 [mm], t= 1.420 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:40 Step    142 container[0] at 428.703 [mm], t= 1.430 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:40 Step    143 container[0] at 431.701 [mm], t= 1.440 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:40 Step    144 container[0] at 434.699 [mm], t= 1.450 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:40 Step    145 container[0] at 437.697 [mm], t= 1.460 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:40 Step    146 container[0] at 440.695 [mm], t= 1.470 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:40 Step    147 container[0] at 443.692 [mm], t= 1.480 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:40 Step    148 container[0] at 446.690 [mm], t= 1.490 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:40 Step    149 container[0] at 449.688 [mm], t= 1.500 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:40 Step    150 container[0] at 452.686 [mm], t= 1.510 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:40 Step    151 container[0] at 455.684 [mm], t= 1.520 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:40 Step    152 container[0] at 458.682 [mm], t= 1.530 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:40 Step    153 container[0] at 461.680 [mm], t= 1.540 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:41 Step    154 container[0] at 464.678 [mm], t= 1.550 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:41 Step    155 container[0] at 467.676 [mm], t= 1.560 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:41 Step    156 container[0] at 470.674 [mm], t= 1.570 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:41 Step    157 container[0] at 473.672 [mm], t= 1.580 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:41 Step    158 container[0] at 476.670 [mm], t= 1.590 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:41 Step    159 container[0] at 479.668 [mm], t= 1.600 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:41 Step    160 container[0] at 482.665 [mm], t= 1.610 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:41 Step    161 container[0] at 485.663 [mm], t= 1.620 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:41 Step    162 container[0] at 488.661 [mm], t= 1.630 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:41 Step    163 container[0] at 491.659 [mm], t= 1.640 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:41 Step    164 container[0] at 494.657 [mm], t= 1.650 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:41 Step    165 container[0] at 497.655 [mm], t= 1.660 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:41 Step    166 container[0] at 500.653 [mm], t= 1.670 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:41 Step    167 container[0] at 503.651 [mm], t= 1.680 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:41 Step    168 container[0] at 506.649 [mm], t= 1.690 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:41 Step    169 container[0] at 509.647 [mm], t= 1.700 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:41 Step    170 container[0] at 512.645 [mm], t= 1.710 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:41 Step    171 container[0] at 515.643 [mm], t= 1.720 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:41 Step    172 container[0] at 518.641 [mm], t= 1.730 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:41 Step    173 container[0] at 521.638 [mm], t= 1.740 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:41 Step    174 container[0] at 524.636 [mm], t= 1.750 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:41 Step    175 container[0] at 527.634 [mm], t= 1.760 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:41 Step    176 container[0] at 530.632 [mm], t= 1.770 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:41 Step    177 container[0] at 533.630 [mm], t= 1.780 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:41 Step    178 container[0] at 536.628 [mm], t= 1.790 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:41 Step    179 container[0] at 539.626 [mm], t= 1.800 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:41 Step    180 container[0] at 542.624 [mm], t= 1.810 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:41 Step    181 container[0] at 545.622 [mm], t= 1.820 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:41 Step    182 container[0] at 548.620 [mm], t= 1.830 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:41 Step    183 container[0] at 551.618 [mm], t= 1.840 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:41 Step    184 container[0] at 554.616 [mm], t= 1.850 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:41 Step    185 container[0] at 557.614 [mm], t= 1.860 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:41 Step    186 container[0] at 560.611 [mm], t= 1.870 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:41 Step    187 container[0] at 563.609 [mm], t= 1.880 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:41 Step    188 container[0] at 566.607 [mm], t= 1.890 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:41 Step    189 container[0] at 569.605 [mm], t= 1.900 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:41 Step    190 container[0] at 572.603 [mm], t= 1.910 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:41 Step    191 container[0] at 575.601 [mm], t= 1.920 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:41 Step    192 container[0] at 578.599 [mm], t= 1.930 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:41 Step    193 container[0] at 581.597 [mm], t= 1.940 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:41 Step    194 container[0] at 584.595 [mm], t= 1.950 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:41 Step    195 container[0] at 587.593 [mm], t= 1.960 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:41 Step    196 container[0] at 590.591 [mm], t= 1.970 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:41 Step    197 container[0] at 593.589 [mm], t= 1.980 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:41 Step    198 container[0] at 596.587 [mm], t= 1.990 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:41 Step    199 container[0] at 599.584 [mm], t= 2.000 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:41 Step    200 container[0] at 602.582 [mm], t= 2.010 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:41 Step    201 container[0] at 605.580 [mm], t= 2.020 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:41 Step    202 container[0] at 608.578 [mm], t= 2.030 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:42 Step    203 container[0] at 611.576 [mm], t= 2.040 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:42 Step    204 container[0] at 614.574 [mm], t= 2.050 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:42 Step    205 container[0] at 617.572 [mm], t= 2.060 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:42 Step    206 container[0] at 620.570 [mm], t= 2.070 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:42 Step    207 container[0] at 623.568 [mm], t= 2.080 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:42 Step    208 container[0] at 626.566 [mm], t= 2.090 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:42 Step    209 container[0] at 629.564 [mm], t= 2.100 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:42 Step    210 container[0] at 632.562 [mm], t= 2.110 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:42 Step    211 container[0] at 635.559 [mm], t= 2.120 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:42 Step    212 container[0] at 638.557 [mm], t= 2.130 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:42 Step    213 container[0] at 641.555 [mm], t= 2.140 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:42 Step    214 container[0] at 644.553 [mm], t= 2.150 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:42 Step    215 container[0] at 647.551 [mm], t= 2.160 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:42 Step    216 container[0] at 650.549 [mm], t= 2.170 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:42 Step    217 container[0] at 653.547 [mm], t= 2.180 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:42 Step    218 container[0] at 656.545 [mm], t= 2.190 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:42 Step    219 container[0] at 659.543 [mm], t= 2.200 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:42 Step    220 container[0] at 662.541 [mm], t= 2.210 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:42 Step    221 container[0] at 665.539 [mm], t= 2.220 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:42 Step    222 container[0] at 668.537 [mm], t= 2.230 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:42 Step    223 container[0] at 671.535 [mm], t= 2.240 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:42 Step    224 container[0] at 674.532 [mm], t= 2.250 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:42 Step    225 container[0] at 677.530 [mm], t= 2.260 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:42 Step    226 container[0] at 680.528 [mm], t= 2.270 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:42 Step    227 container[0] at 683.526 [mm], t= 2.280 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:42 Step    228 container[0] at 686.524 [mm], t= 2.290 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:42 Step    229 container[0] at 689.522 [mm], t= 2.300 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:42 Step    230 container[0] at 692.520 [mm], t= 2.310 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:42 Step    231 container[0] at 695.518 [mm], t= 2.320 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:42 Step    232 container[0] at 698.516 [mm], t= 2.330 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:42 Step    233 container[0] at 701.514 [mm], t= 2.340 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:42 Step    234 container[0] at 704.512 [mm], t= 2.350 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:42 Step    235 container[0] at 707.510 [mm], t= 2.360 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:43 Step    236 container[0] at 710.508 [mm], t= 2.370 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:43 Step    237 container[0] at 713.505 [mm], t= 2.380 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:43 Step    238 container[0] at 716.503 [mm], t= 2.390 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:43 Step    239 container[0] at 719.501 [mm], t= 2.400 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:43 Step    240 container[0] at 722.499 [mm], t= 2.410 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:43 Step    241 container[0] at 725.497 [mm], t= 2.420 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:43 Step    242 container[0] at 728.495 [mm], t= 2.430 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:43 Step    243 container[0] at 731.493 [mm], t= 2.440 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:43 Step    244 container[0] at 734.491 [mm], t= 2.450 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:43 Step    245 container[0] at 737.489 [mm], t= 2.460 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:43 Step    246 container[0] at 740.487 [mm], t= 2.470 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:43 Step    247 container[0] at 743.485 [mm], t= 2.480 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:43 Step    248 container[0] at 746.483 [mm], t= 2.490 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:43 Step    249 container[0] at 749.481 [mm], t= 2.500 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:43 Step    250 container[0] at 752.478 [mm], t= 2.510 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:43 Step    251 container[0] at 755.476 [mm], t= 2.520 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:43 Step    252 container[0] at 758.474 [mm], t= 2.530 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:43 Step    253 container[0] at 761.472 [mm], t= 2.540 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:43 Step    254 container[0] at 764.470 [mm], t= 2.550 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:43 Step    255 container[0] at 767.468 [mm], t= 2.560 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:43 Step    256 container[0] at 770.466 [mm], t= 2.570 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:43 Step    257 container[0] at 773.464 [mm], t= 2.580 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:43 Step    258 container[0] at 776.462 [mm], t= 2.590 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:43 Step    259 container[0] at 779.460 [mm], t= 2.600 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:43 Step    260 container[0] at 782.458 [mm], t= 2.610 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:43 Step    261 container[0] at 785.456 [mm], t= 2.620 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:43 Step    262 container[0] at 788.454 [mm], t= 2.630 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:43 Step    263 container[0] at 791.451 [mm], t= 2.640 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:43 Step    264 container[0] at 794.449 [mm], t= 2.650 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:43 Step    265 container[0] at 797.447 [mm], t= 2.660 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:43 Step    266 container[0] at 800.445 [mm], t= 2.670 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:43 Step    267 container[0] at 803.443 [mm], t= 2.680 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:43 Step    268 container[0] at 806.441 [mm], t= 2.690 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:43 Step    269 container[0] at 809.439 [mm], t= 2.700 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:43 Step    270 container[0] at 812.437 [mm], t= 2.710 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:43 Step    271 container[0] at 815.435 [mm], t= 2.720 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:43 Step    272 container[0] at 818.433 [mm], t= 2.730 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:43 Step    273 container[0] at 821.431 [mm], t= 2.740 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:43 Step    274 container[0] at 824.429 [mm], t= 2.750 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:43 Step    275 container[0] at 827.427 [mm], t= 2.760 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:43 Step    276 container[0] at 830.424 [mm], t= 2.770 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:43 Step    277 container[0] at 833.422 [mm], t= 2.780 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:43 Step    278 container[0] at 836.420 [mm], t= 2.790 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:43 Step    279 container[0] at 839.418 [mm], t= 2.800 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:43 Step    280 container[0] at 842.416 [mm], t= 2.810 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:43 Step    281 container[0] at 845.414 [mm], t= 2.820 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:43 Step    282 container[0] at 848.412 [mm], t= 2.830 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:43 Step    283 container[0] at 851.410 [mm], t= 2.840 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:43 Step    284 container[0] at 854.408 [mm], t= 2.850 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:43 Step    285 container[0] at 857.406 [mm], t= 2.860 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:43 Step    286 container[0] at 860.404 [mm], t= 2.870 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:44 Step    287 container[0] at 863.402 [mm], t= 2.880 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:44 Step    288 container[0] at 866.399 [mm], t= 2.890 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:44 Step    289 container[0] at 869.397 [mm], t= 2.900 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:44 Step    290 container[0] at 872.395 [mm], t= 2.910 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:44 Step    291 container[0] at 875.393 [mm], t= 2.920 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:44 Step    292 container[0] at 878.391 [mm], t= 2.930 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:44 Step    293 container[0] at 881.389 [mm], t= 2.940 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:44 Step    294 container[0] at 884.387 [mm], t= 2.950 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:44 Step    295 container[0] at 887.385 [mm], t= 2.960 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:44 Step    296 container[0] at 890.383 [mm], t= 2.970 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:44 Step    297 container[0] at 893.381 [mm], t= 2.980 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:44 Step    298 container[0] at 896.379 [mm], t= 2.990 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:44 Step    299 container[0] at 899.377 [mm], t= 3.000 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:44 Step    300 container[0] at 902.375 [mm], t= 3.010 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:44 Step    301 container[0] at 905.372 [mm], t= 3.020 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:44 Step    302 container[0] at 908.370 [mm], t= 3.030 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:44 Step    303 container[0] at 911.368 [mm], t= 3.040 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:44 Step    304 container[0] at 914.366 [mm], t= 3.050 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:44 Step    305 container[0] at 917.364 [mm], t= 3.060 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:44 Step    306 container[0] at 920.362 [mm], t= 3.070 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:44 Step    307 container[0] at 923.360 [mm], t= 3.080 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:44 Step    308 container[0] at 926.358 [mm], t= 3.090 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:44 Step    309 container[0] at 929.356 [mm], t= 3.100 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:44 Step    310 container[0] at 932.354 [mm], t= 3.110 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:44 Step    311 container[0] at 935.352 [mm], t= 3.120 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:44 Step    312 container[0] at 938.350 [mm], t= 3.130 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:44 Step    313 container[0] at 941.348 [mm], t= 3.140 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:44 Step    314 container[0] at 944.345 [mm], t= 3.150 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:44 Step    315 container[0] at 947.343 [mm], t= 3.160 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:44 Step    316 container[0] at 950.341 [mm], t= 3.170 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:44 Step    317 container[0] at 953.339 [mm], t= 3.180 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:44 Step    318 container[0] at 956.337 [mm], t= 3.190 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:44 Step    319 container[0] at 959.335 [mm], t= 3.200 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:44 Step    320 container[0] at 962.333 [mm], t= 3.210 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:44 Step    321 container[0] at 965.331 [mm], t= 3.220 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:44 Step    322 container[0] at 968.329 [mm], t= 3.230 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:44 Step    323 container[0] at 971.327 [mm], t= 3.240 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:44 Step    324 container[0] at 974.325 [mm], t= 3.250 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:44 Step    325 container[0] at 977.323 [mm], t= 3.260 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:44 Step    326 container[0] at 980.321 [mm], t= 3.270 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:44 Step    327 container[0] at 983.318 [mm], t= 3.280 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:44 Step    328 container[0] at 986.316 [mm], t= 3.290 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:44 Step    329 container[0] at 989.314 [mm], t= 3.300 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:44 Step    330 container[0] at 992.312 [mm], t= 3.310 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:44 Step    331 container[0] at 995.310 [mm], t= 3.320 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:44 Step    332 container[0] at 998.308 [mm], t= 3.330 [ns], E=1.000 [GeV]
+OPAL-X[2]> Save 'sbend_exit_monitor_sb45m_e10_p_monitor.h5'
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X[2]> Save 'sbend_exit_monitor_sb45m_e10_p_monitor.h5'
+OPAL-X> * 21:08:44 Step    333 container[0] at 1.001 [m], t= 3.340 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:44 Step    334 container[0] at 1.004 [m], t= 3.350 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:44 Step    335 container[0] at 1.007 [m], t= 3.360 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:44 Step    336 container[0] at 1.010 [m], t= 3.370 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:44 Step    337 container[0] at 1.013 [m], t= 3.380 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:44 Step    338 container[0] at 1.016 [m], t= 3.390 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:44 Step    339 container[0] at 1.019 [m], t= 3.400 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:44 Step    340 container[0] at 1.022 [m], t= 3.410 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:44 Step    341 container[0] at 1.025 [m], t= 3.420 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:44 Step    342 container[0] at 1.028 [m], t= 3.430 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:44 Step    343 container[0] at 1.031 [m], t= 3.440 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:44 Step    344 container[0] at 1.034 [m], t= 3.450 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    345 container[0] at 1.037 [m], t= 3.460 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    346 container[0] at 1.040 [m], t= 3.470 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    347 container[0] at 1.043 [m], t= 3.480 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    348 container[0] at 1.046 [m], t= 3.490 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    349 container[0] at 1.049 [m], t= 3.500 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    350 container[0] at 1.052 [m], t= 3.510 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    351 container[0] at 1.055 [m], t= 3.520 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    352 container[0] at 1.058 [m], t= 3.530 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    353 container[0] at 1.061 [m], t= 3.540 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    354 container[0] at 1.064 [m], t= 3.550 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    355 container[0] at 1.067 [m], t= 3.560 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    356 container[0] at 1.070 [m], t= 3.570 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    357 container[0] at 1.073 [m], t= 3.580 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    358 container[0] at 1.076 [m], t= 3.590 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    359 container[0] at 1.079 [m], t= 3.600 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    360 container[0] at 1.082 [m], t= 3.610 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    361 container[0] at 1.085 [m], t= 3.620 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    362 container[0] at 1.088 [m], t= 3.630 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    363 container[0] at 1.091 [m], t= 3.640 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    364 container[0] at 1.094 [m], t= 3.650 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    365 container[0] at 1.097 [m], t= 3.660 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    366 container[0] at 1.100 [m], t= 3.670 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    367 container[0] at 1.103 [m], t= 3.680 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    368 container[0] at 1.106 [m], t= 3.690 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    369 container[0] at 1.109 [m], t= 3.700 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    370 container[0] at 1.112 [m], t= 3.710 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    371 container[0] at 1.115 [m], t= 3.720 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    372 container[0] at 1.118 [m], t= 3.730 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    373 container[0] at 1.121 [m], t= 3.740 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    374 container[0] at 1.124 [m], t= 3.750 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    375 container[0] at 1.127 [m], t= 3.760 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    376 container[0] at 1.130 [m], t= 3.770 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    377 container[0] at 1.133 [m], t= 3.780 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    378 container[0] at 1.136 [m], t= 3.790 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    379 container[0] at 1.139 [m], t= 3.800 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    380 container[0] at 1.142 [m], t= 3.810 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    381 container[0] at 1.145 [m], t= 3.820 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    382 container[0] at 1.148 [m], t= 3.830 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    383 container[0] at 1.151 [m], t= 3.840 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    384 container[0] at 1.154 [m], t= 3.850 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    385 container[0] at 1.157 [m], t= 3.860 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    386 container[0] at 1.160 [m], t= 3.870 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    387 container[0] at 1.163 [m], t= 3.880 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    388 container[0] at 1.166 [m], t= 3.890 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    389 container[0] at 1.169 [m], t= 3.900 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    390 container[0] at 1.172 [m], t= 3.910 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    391 container[0] at 1.175 [m], t= 3.920 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    392 container[0] at 1.178 [m], t= 3.930 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    393 container[0] at 1.181 [m], t= 3.940 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    394 container[0] at 1.184 [m], t= 3.950 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    395 container[0] at 1.187 [m], t= 3.960 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    396 container[0] at 1.190 [m], t= 3.970 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    397 container[0] at 1.193 [m], t= 3.980 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    398 container[0] at 1.196 [m], t= 3.990 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    399 container[0] at 1.199 [m], t= 4.000 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    400 container[0] at 1.202 [m], t= 4.010 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    401 container[0] at 1.205 [m], t= 4.020 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    402 container[0] at 1.208 [m], t= 4.030 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    403 container[0] at 1.211 [m], t= 4.040 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    404 container[0] at 1.214 [m], t= 4.050 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    405 container[0] at 1.217 [m], t= 4.060 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    406 container[0] at 1.220 [m], t= 4.070 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    407 container[0] at 1.223 [m], t= 4.080 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    408 container[0] at 1.226 [m], t= 4.090 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    409 container[0] at 1.229 [m], t= 4.100 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    410 container[0] at 1.232 [m], t= 4.110 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    411 container[0] at 1.235 [m], t= 4.120 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    412 container[0] at 1.238 [m], t= 4.130 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    413 container[0] at 1.241 [m], t= 4.140 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    414 container[0] at 1.244 [m], t= 4.150 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    415 container[0] at 1.247 [m], t= 4.160 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    416 container[0] at 1.250 [m], t= 4.170 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    417 container[0] at 1.253 [m], t= 4.180 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    418 container[0] at 1.256 [m], t= 4.190 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    419 container[0] at 1.259 [m], t= 4.200 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    420 container[0] at 1.262 [m], t= 4.210 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    421 container[0] at 1.265 [m], t= 4.220 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    422 container[0] at 1.268 [m], t= 4.230 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    423 container[0] at 1.271 [m], t= 4.240 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    424 container[0] at 1.274 [m], t= 4.250 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    425 container[0] at 1.277 [m], t= 4.260 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    426 container[0] at 1.280 [m], t= 4.270 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    427 container[0] at 1.283 [m], t= 4.280 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    428 container[0] at 1.286 [m], t= 4.290 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    429 container[0] at 1.289 [m], t= 4.300 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    430 container[0] at 1.292 [m], t= 4.310 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    431 container[0] at 1.295 [m], t= 4.320 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    432 container[0] at 1.298 [m], t= 4.330 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    433 container[0] at 1.301 [m], t= 4.340 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    434 container[0] at 1.304 [m], t= 4.350 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    435 container[0] at 1.307 [m], t= 4.360 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    436 container[0] at 1.310 [m], t= 4.370 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    437 container[0] at 1.313 [m], t= 4.380 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    438 container[0] at 1.316 [m], t= 4.390 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    439 container[0] at 1.319 [m], t= 4.400 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    440 container[0] at 1.322 [m], t= 4.410 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    441 container[0] at 1.325 [m], t= 4.420 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    442 container[0] at 1.328 [m], t= 4.430 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    443 container[0] at 1.331 [m], t= 4.440 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    444 container[0] at 1.334 [m], t= 4.450 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    445 container[0] at 1.337 [m], t= 4.460 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    446 container[0] at 1.340 [m], t= 4.470 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    447 container[0] at 1.343 [m], t= 4.480 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    448 container[0] at 1.346 [m], t= 4.490 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    449 container[0] at 1.349 [m], t= 4.500 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    450 container[0] at 1.352 [m], t= 4.510 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    451 container[0] at 1.355 [m], t= 4.520 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    452 container[0] at 1.358 [m], t= 4.530 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    453 container[0] at 1.361 [m], t= 4.540 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    454 container[0] at 1.364 [m], t= 4.550 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    455 container[0] at 1.367 [m], t= 4.560 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    456 container[0] at 1.370 [m], t= 4.570 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    457 container[0] at 1.373 [m], t= 4.580 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    458 container[0] at 1.376 [m], t= 4.590 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    459 container[0] at 1.379 [m], t= 4.600 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    460 container[0] at 1.382 [m], t= 4.610 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    461 container[0] at 1.385 [m], t= 4.620 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    462 container[0] at 1.388 [m], t= 4.630 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    463 container[0] at 1.391 [m], t= 4.640 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    464 container[0] at 1.394 [m], t= 4.650 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    465 container[0] at 1.397 [m], t= 4.660 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    466 container[0] at 1.400 [m], t= 4.670 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    467 container[0] at 1.403 [m], t= 4.680 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    468 container[0] at 1.406 [m], t= 4.690 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    469 container[0] at 1.409 [m], t= 4.700 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    470 container[0] at 1.412 [m], t= 4.710 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    471 container[0] at 1.415 [m], t= 4.720 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    472 container[0] at 1.418 [m], t= 4.730 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    473 container[0] at 1.421 [m], t= 4.740 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    474 container[0] at 1.424 [m], t= 4.750 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    475 container[0] at 1.427 [m], t= 4.760 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    476 container[0] at 1.430 [m], t= 4.770 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    477 container[0] at 1.433 [m], t= 4.780 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    478 container[0] at 1.436 [m], t= 4.790 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    479 container[0] at 1.439 [m], t= 4.800 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    480 container[0] at 1.442 [m], t= 4.810 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    481 container[0] at 1.445 [m], t= 4.820 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    482 container[0] at 1.448 [m], t= 4.830 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    483 container[0] at 1.451 [m], t= 4.840 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    484 container[0] at 1.454 [m], t= 4.850 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    485 container[0] at 1.457 [m], t= 4.860 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    486 container[0] at 1.460 [m], t= 4.870 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    487 container[0] at 1.463 [m], t= 4.880 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    488 container[0] at 1.466 [m], t= 4.890 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    489 container[0] at 1.469 [m], t= 4.900 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    490 container[0] at 1.472 [m], t= 4.910 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    491 container[0] at 1.475 [m], t= 4.920 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    492 container[0] at 1.478 [m], t= 4.930 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    493 container[0] at 1.481 [m], t= 4.940 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    494 container[0] at 1.484 [m], t= 4.950 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    495 container[0] at 1.487 [m], t= 4.960 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    496 container[0] at 1.490 [m], t= 4.970 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    497 container[0] at 1.493 [m], t= 4.980 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    498 container[0] at 1.496 [m], t= 4.990 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+OPAL-X> * 21:08:45 Step    499 container[0] at 1.499 [m], t= 5.000 [ns], E=1.000 [GeV]
+OPAL-X[2]> * Wrote beam statistics.
+ParallelTracker::execute[2]> Approaching end of current step size configuration for container 0 (zstop = 1.500 [m], path length = 1.499 [m]).
+ParallelTracker::execute[2]> All active containers reached current zstop. Preparing to switch to next configuration.
+OPAL-X[2]> * Dump phase space of last step
+OPAL-X> * B1 gone off
+OPAL-X> * MEXIT gone off
+OPAL-X> * Creating new file for data: 'sbend_exit_monitor_sb45m_e10_p_opalx_Monitors.stat'
+ParallelTracker::execute[2]> Total FieldSolver calls: 0
+OPAL-X> 
+OPAL-X> * Done executing ParallelTracker at 21:08:45
+OPAL-X> 
+OPAL-X> * End of input stream 'sbend_exit_monitor_sb45m_e10_p_opalx.in'
+Timings> ---------------------------------------------
+Timings>      Timing results for 1 rank(s):
+Timings> ---------------------------------------------
+Timings> mainTimer........... Wall tot =    7.87703
+Timings> 
+Timings> Write Stat.......... Wall max =   0.705869
+Timings>                      Wall avg =   0.705869
+Timings>                      Wall min =   0.705869
+Timings> 
+Timings> Write H5-File....... Wall max = 0.00300192
+Timings>                      Wall avg = 0.00300192
+Timings>                      Wall min = 0.00300192
+Timings> 
+Timings> samplingTime........ Wall max = 0.00639979
+Timings>                      Wall avg = 0.00639979
+Timings>                      Wall min = 0.00639979
+Timings> 
+Timings> particleBC.......... Wall max =  0.0779838
+Timings>                      Wall avg =  0.0779838
+Timings>                      Wall min =  0.0779838
+Timings> 
+Timings> updateParticle...... Wall max =          0
+Timings>                      Wall avg =          0
+Timings>                      Wall min =          0
+Timings> 
+Timings> computeMoments...... Wall max =   0.790174
+Timings>                      Wall avg =   0.790174
+Timings>                      Wall min =   0.790174
+Timings> 
+Timings> TIntegration1....... Wall max =   0.069652
+Timings>                      Wall avg =   0.069652
+Timings>                      Wall min =   0.069652
+Timings> 
+Timings> TIntegration2....... Wall max =   0.234501
+Timings>                      Wall avg =   0.234501
+Timings>                      Wall min =   0.234501
+Timings> 
+Timings> External field eval. Wall max =    4.81038
+Timings>                      Wall avg =    4.81038
+Timings>                      Wall min =    4.81038
+Timings> 
+Timings> Binaryrepart........ Wall max =          0
+Timings>                      Wall avg =          0
+Timings>                      Wall min =          0
+Timings> 
+Timings> OrbThreader......... Wall max =  0.0145452
+Timings>                      Wall avg =  0.0145452
+Timings>                      Wall min =  0.0145452
+Timings> 
+Timings> ---------------------------------------------

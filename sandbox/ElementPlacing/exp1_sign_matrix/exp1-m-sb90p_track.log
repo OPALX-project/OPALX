@@ -1,0 +1,8 @@
+ Using lattice: "exp1-m-sb90p.bmad"
+[INFO] bmad_parser:
+    Parsing lattice file(s). This might take a minute or so...
+[INFO] bmad_parser:
+    Found in file: "NO_DIGESTED". No digested file will be created
+[MESSAGE | 2026-APR-30 21:25:16] bmad_parser:
+    Lattice parse time(min): 0.00
+ Written: output/exp1-m-sb90p_track.dat

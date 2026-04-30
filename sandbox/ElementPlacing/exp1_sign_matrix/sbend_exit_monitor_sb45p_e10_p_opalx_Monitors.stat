@@ -1,0 +1,227 @@
+SDDS1
+&description
+        text="Statistics data of monitors",
+        contents="stat parameters"
+&end
+&parameter
+        name=processors,
+        type=long,
+        description="Number of Cores used"
+&end
+&parameter
+        name=revision,
+        type=string,
+        description="git revision of opal"
+&end
+&parameter
+        name=flavor,
+        type=string,
+        description="OPAL flavor that wrote file"
+&end
+&column
+        name=name,
+        type=string,
+        description="1 Monitor name"
+&end
+&column
+        name=s,
+        type=double,
+        units=m,
+        description="2 Longitudinal Position"
+&end
+&column
+        name=t,
+        type=double,
+        units=ns,
+        description="3 Passage Time Reference Particle"
+&end
+&column
+        name=numParticles,
+        type=long,
+        units=1,
+        description="4 Number of Macro Particles"
+&end
+&column
+        name=rms_x,
+        type=double,
+        units=m,
+        description="5 RMS Beamsize in x"
+&end
+&column
+        name=rms_y,
+        type=double,
+        units=m,
+        description="6 RMS Beamsize in y"
+&end
+&column
+        name=rms_s,
+        type=double,
+        units=m,
+        description="7 RMS Beamsize in s"
+&end
+&column
+        name=rms_t,
+        type=double,
+        units=ns,
+        description="8 RMS Passage Time"
+&end
+&column
+        name=rms_px,
+        type=double,
+        units=1,
+        description="9 RMS Momenta in x"
+&end
+&column
+        name=rms_py,
+        type=double,
+        units=1,
+        description="10 RMS Momenta in y"
+&end
+&column
+        name=rms_ps,
+        type=double,
+        units=1,
+        description="11 RMS Momenta in s"
+&end
+&column
+        name=emit_x,
+        type=double,
+        units=m,
+        description="12 Normalized Emittance x"
+&end
+&column
+        name=emit_y,
+        type=double,
+        units=m,
+        description="13 Normalized Emittance y"
+&end
+&column
+        name=emit_s,
+        type=double,
+        units=m,
+        description="14 Normalized Emittance s"
+&end
+&column
+        name=mean_x,
+        type=double,
+        units=m,
+        description="15 Mean Beam Position in x"
+&end
+&column
+        name=mean_y,
+        type=double,
+        units=m,
+        description="16 Mean Beam Position in y"
+&end
+&column
+        name=mean_s,
+        type=double,
+        units=m,
+        description="17 Mean Beam Position in s"
+&end
+&column
+        name=mean_t,
+        type=double,
+        units=ns,
+        description="18 Mean Passage Time"
+&end
+&column
+        name=ref_x,
+        type=double,
+        units=m,
+        description="19 x coordinate of reference particle in lab cs"
+&end
+&column
+        name=ref_y,
+        type=double,
+        units=m,
+        description="20 y coordinate of reference particle in lab cs"
+&end
+&column
+        name=ref_z,
+        type=double,
+        units=m,
+        description="21 z coordinate of reference particle in lab cs"
+&end
+&column
+        name=ref_px,
+        type=double,
+        units=1,
+        description="22 x momentum of reference particle in lab cs"
+&end
+&column
+        name=ref_py,
+        type=double,
+        units=1,
+        description="23 y momentum of reference particle in lab cs"
+&end
+&column
+        name=ref_pz,
+        type=double,
+        units=1,
+        description="24 z momentum of reference particle in lab cs"
+&end
+&column
+        name=min_x,
+        type=double,
+        units=m,
+        description="25 Min Beamsize in x"
+&end
+&column
+        name=min_y,
+        type=double,
+        units=m,
+        description="26 Min Beamsize in y"
+&end
+&column
+        name=min_s,
+        type=double,
+        units=m,
+        description="27 Min Beamsize in s"
+&end
+&column
+        name=max_x,
+        type=double,
+        units=m,
+        description="28 Max Beamsize in x"
+&end
+&column
+        name=max_y,
+        type=double,
+        units=m,
+        description="29 Max Beamsize in y"
+&end
+&column
+        name=max_s,
+        type=double,
+        units=m,
+        description="30 Max Beamsize in s"
+&end
+&column
+        name=xpx,
+        type=double,
+        units=1,
+        description="31 Correlation xpx"
+&end
+&column
+        name=ypy,
+        type=double,
+        units=1,
+        description="32 Correlation ypy"
+&end
+&column
+        name=zpz,
+        type=double,
+        units=1,
+        description="33 Correlation zpz"
+&end
+&data
+        mode=ascii,
+        no_row_counts=1
+&end
+1
+OPALX 0.9 git rev. #686966888105ef1d79b79580d9e468f177a70cde
+opal-map
+sbend_exit_monitor_sb45p_e10_p_monitor         	1.705312352246233e-03         	3.335688310459983e-09         	1000         	1.002868784566550e-03         	9.865223563463191e-04         	1.001492278221128e-03         	0.000000000000000e+00         	2.047227337677760e+00         	2.002009105510364e+00         	1.958627830374531e+00         	2.052576558182545e-03         	1.973528849159594e-03         	1.949103453803643e-03         	-3.726336507218495e-01         	-3.026263926660107e-05         	-9.017346229263766e-01         	0.000000000000000e+00         	-3.728991968481340e-01         	-1.150704580711992e-05         	9.003403478870284e-01         	-1.382605806541839e+03         	-2.253018673513386e-02         	1.386385879456180e+03         	-3.762586704433875e-01         	-3.203014069908729e-03         	-9.048091103023619e-01         	0.000000000000000e+00         	3.210225317437709e-03         	0.000000000000000e+00         	2.258805896447463e-02         	3.893913134908243e-02         	-1.124762708785935e-01         	
+sbend_exit_monitor_sb45p_e10_p_monitor         	1.000013375465517e+00         	3.335688310460035e-09         	1000         	1.448679349344440e-03         	1.449119776257000e-03         	1.206112616229435e-03         	0.000000000000000e+00         	2.915324941562773e+00         	2.002009965958977e+00         	1.962299146015069e+00         	2.948217739759534e-03         	1.973490206305880e-03         	2.322351136386067e-03         	1.754228134620146e-04         	-3.143073738579276e-05         	-6.587800537542371e-05         	0.000000000000000e+00         	-3.728991968481407e-01         	-1.150704580712002e-05         	9.003403478870217e-01         	-1.382605806541839e+03         	-2.253018673513386e-02         	1.386385879456180e+03         	-4.188959928506169e-03         	-4.995464904914537e-03         	-4.109781738304055e-03         	4.449031952339587e-03         	5.362112962957279e-03         	3.810301856537005e-03         	7.160274162602437e-01         	7.329861256171033e-01         	-1.927951920537768e-01         	
+sbend_exit_monitor_sb45p_e10_p_monitor         	1.001512337560017e+00         	3.330688310460034e-09         	1000         	1.447081997370624e-03         	1.447996802606792e-03         	1.206112250710591e-03         	0.000000000000000e+00         	2.915330585682854e+00         	2.002009964614419e+00         	1.958434549463622e+00         	2.948223278206303e-03         	1.973490260577673e-03         	2.318528408923310e-03         	1.756263226791307e-04         	-3.143070943750493e-05         	-1.564837147428132e-03         	0.000000000000000e+00         	-3.728991968481407e-01         	-1.150704580712002e-05         	9.003403478870217e-01         	-1.382605806541839e+03         	-2.253018673513386e-02         	1.386385879456180e+03         	-4.185991284162752e-03         	-4.992165891644708e-03         	-5.608733461920052e-03         	4.443513181107805e-03         	5.358873122763912e-03         	2.311342179077616e-03         	7.152754063269094e-01         	7.324961612843517e-01         	-1.911684703632100e-01         	

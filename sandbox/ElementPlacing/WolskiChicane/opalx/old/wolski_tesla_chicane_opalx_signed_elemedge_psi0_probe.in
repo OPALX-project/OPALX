@@ -1,0 +1,64 @@
+OPTION, PSDUMPFREQ = 50000;
+OPTION, STATDUMPFREQ = 1;
+OPTION, BOUNDPDESTROY = 10;
+OPTION, VERSION = 10900;
+
+Title, string = "Wolski TESLA four-bend chicane signed edge probe with psi0 outer bends";
+
+REAL n_particles       = 1;
+REAL beam_bunch_charge = 1.602176634e-19;
+
+D1A: DRIFT, L = 3.6, ELEMEDGE = 0.0;
+B1: SBEND, L = 0.2, ANGLE = 18.8 * PI / 180.0, E1 = 0.0, PSI = 0.0, ELEMEDGE = 3.6;
+NDA: DRIFT, L = 1.0, ELEMEDGE = 3.8;
+B2: SBEND, L = 0.2, ANGLE = -18.8 * PI / 180.0, E1 = -18.8 * PI / 180.0, PSI = 0.0, ELEMEDGE = 4.8;
+D1B: DRIFT, L = 3.6, ELEMEDGE = 5.0;
+B3: SBEND, L = 0.2, ANGLE = -18.8 * PI / 180.0, E1 = 0.0, PSI = 0.0, ELEMEDGE = 8.6;
+NDB: DRIFT, L = 1.0, ELEMEDGE = 8.8;
+B4: SBEND, L = 0.2, ANGLE = 18.8 * PI / 180.0, E1 = 18.8 * PI / 180.0, PSI = 0.0, ELEMEDGE = 9.8;
+
+Line1: LINE = (D1A, B1, NDA, B2, D1B, B3, NDB, B4);
+
+Dist0: DISTRIBUTION,
+    TYPE = FROMFILE,
+    FNAME = "wolski_tesla_chicane_distribution_negchirp.txt",
+    NPARTDIST = n_particles;
+
+ES0: EMISSIONSOURCE, DISTRIBUTION = Dist0;
+Sources0: EMISSIONSOURCELIST = (ES0);
+
+FS0: FIELDSOLVER,
+    TYPE = NONE,
+    NX = 16,
+    NY = 16,
+    NZ = 16,
+    PARFFTX = false,
+    PARFFTY = false,
+    PARFFTZ = true,
+    BCFFTX = open,
+    BCFFTY = open,
+    BCFFTZ = open,
+    BBOXINCR = 1,
+    GREENSF = INTEGRATED;
+
+BEAM0: BEAM,
+    PARTICLE = ELECTRON,
+    NALLOC = n_particles,
+    BCHARGE = beam_bunch_charge,
+    SOURCES = Sources0,
+    CHARGE = -1;
+
+TRACK,
+    LINE = Line1,
+    BEAM = BEAM0,
+    MAXSTEPS = 0,
+    DT = 1e-11,
+    ZSTOP = 10.0;
+
+RUN,
+    METHOD = "PARALLEL",
+    FIELDSOLVER = FS0;
+
+ENDTRACK;
+
+QUIT;

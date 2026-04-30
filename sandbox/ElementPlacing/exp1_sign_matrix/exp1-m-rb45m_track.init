@@ -1,0 +1,15 @@
+&params
+  lat_file = 'exp1-m-rb45m.bmad'
+  dat_file = 'output/exp1-m-rb45m_track.dat'
+  ix_branch = 0
+  n_turn = 1
+  start_orbit%vec = 0, 0, 0, 0, 0, 0
+  start_orbit%spin = 0, 0, 1
+  ran_seed = 1234
+  write_track_at = 'ALL'
+  bmad_com%radiation_damping_on = .false.
+  bmad_com%radiation_fluctuations_on = .false.
+  bmad_com%spin_tracking_on = .false.
+  convert_from_prime_coords = .false.
+  output_prime_coords = .false.
+/

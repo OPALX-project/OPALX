@@ -1,0 +1,38 @@
+parameter[particle] = electron
+parameter[geometry] = open
+
+! Beam kinetic energy = 5 GeV
+! Total energy = m_e c^2 + E_kin
+beginning[e_tot] = 5.00051099895e9
+
+beginning[beta_a] = 10.0
+beginning[alpha_a] = 0.0
+beginning[beta_b] = 10.0
+beginning[alpha_b] = 0.0
+beginning[eta_x] = 0.0
+beginning[etap_x] = 0.0
+
+! Zero pole-face-angle variant of the Wolski-inspired chicane benchmark.
+rf: lcavity, l = 1.0, voltage = 7.94229541e8, rf_frequency = 1.3e9, phi0 = -0.296
+
+chicane_in: marker
+d1: drift, l = 3.6
+nd: drift, l = 1.0
+chicane_out: marker
+
+! Physical four-bend chicane body-angle sign pattern: (+, -, -, +).
+! The zero-face variant keeps the same body-angle convention.
+b1: sbend, l = 0.2, angle = 18.8*pi/180, e1 = 0.0, e2 = 0.0, &
+    fiducial_pt = entrance_end, fringe_type = none, tracking_method = runge_kutta, num_steps = 200
+b2: sbend, l = 0.2, angle = -18.8*pi/180, e1 = 0.0, e2 = 0.0, &
+    fiducial_pt = entrance_end, fringe_type = none, tracking_method = runge_kutta, num_steps = 200
+b3: sbend, l = 0.2, angle = -18.8*pi/180, e1 = 0.0, e2 = 0.0, &
+    fiducial_pt = entrance_end, fringe_type = none, tracking_method = runge_kutta, num_steps = 200
+b4: sbend, l = 0.2, angle = 18.8*pi/180, e1 = 0.0, e2 = 0.0, &
+    fiducial_pt = entrance_end, fringe_type = none, tracking_method = runge_kutta, num_steps = 200
+
+line1: line = (rf, chicane_in, d1, b1, nd, b2, d1, b3, nd, b4, chicane_out)
+use, line1
+
+no_digested
+end_file
