@@ -155,6 +155,105 @@ TEST_F(TestOpalBend, RBendFringeSupportUsesGapFallbackForHalfGap) {
     EXPECT_NEAR(bend->getFieldAmplitude(), 0.3 / bend->getEffectiveFieldLength(), 1.0e-12);
 }
 
+TEST_F(TestOpalBend, PositionedNegativeSBendPreservesSignedBendAndPlacementPose) {
+    OpalSBend ui;
+    std::unique_ptr<OpalSBend> instance(ui.clone("SBNEG"));
+    Attributes::setReal(instance->itsAttr[OpalSBend::LENGTH], 0.2);
+    Attributes::setReal(instance->itsAttr[OpalSBend::ANGLE], -Physics::pi / 9.574468085106382);
+    Attributes::setReal(instance->itsAttr[OpalSBend::E1], -Physics::pi / 9.574468085106382);
+    Attributes::setReal(instance->itsAttr[OpalSBend::X], 0.3791187376840999);
+    Attributes::setReal(instance->itsAttr[OpalSBend::Y], 0.0);
+    Attributes::setReal(instance->itsAttr[OpalSBend::Z], 4.839958197517368);
+    Attributes::setReal(instance->itsAttr[OpalSBend::THETA], Physics::pi / 19.148936170212764);
+    Attributes::setReal(instance->itsAttr[OpalSBend::PSI], 0.0);
+
+    EXPECT_NO_THROW(instance->update());
+
+    const auto* bend = dynamic_cast<const SBendRep*>(instance->getElement());
+    ASSERT_NE(bend, nullptr);
+    EXPECT_TRUE(bend->isPositioned());
+    EXPECT_NEAR(bend->getBendAngle(), -Physics::pi / 9.574468085106382, 1.0e-12);
+    EXPECT_NEAR(bend->getEntranceAngle(), -Physics::pi / 9.574468085106382, 1.0e-12);
+    EXPECT_NEAR(bend->getPlacementPose().getParentToNominal().getOrigin()(0), 0.3791187376840999, 1.0e-12);
+    EXPECT_NEAR(bend->getPlacementPose().getParentToNominal().getOrigin()(2), 4.839958197517368, 1.0e-12);
+    EXPECT_NEAR(bend->getRotationAboutZ(), 0.0, 1.0e-12);
+}
+
+TEST_F(TestOpalBend, PositionedNegativeRBendPreservesSignedBendAndPlacementPose) {
+    OpalRBend ui;
+    std::unique_ptr<OpalRBend> instance(ui.clone("RBNEG"));
+    Attributes::setReal(instance->itsAttr[OpalRBend::LENGTH], 0.2);
+    Attributes::setReal(instance->itsAttr[OpalRBend::ANGLE], -Physics::pi / 9.574468085106382);
+    Attributes::setReal(instance->itsAttr[OpalRBend::E1], -Physics::pi / 9.574468085106382);
+    Attributes::setReal(instance->itsAttr[OpalRBend::X], 0.3791187376840999);
+    Attributes::setReal(instance->itsAttr[OpalRBend::Y], 0.0);
+    Attributes::setReal(instance->itsAttr[OpalRBend::Z], 4.839958197517368);
+    Attributes::setReal(instance->itsAttr[OpalRBend::THETA], Physics::pi / 19.148936170212764);
+    Attributes::setReal(instance->itsAttr[OpalRBend::PSI], 0.0);
+
+    EXPECT_NO_THROW(instance->update());
+
+    const auto* bend = dynamic_cast<const RBendRep*>(instance->getElement());
+    ASSERT_NE(bend, nullptr);
+    EXPECT_TRUE(bend->isPositioned());
+    EXPECT_NEAR(bend->getBendAngle(), -Physics::pi / 9.574468085106382, 1.0e-12);
+    EXPECT_NEAR(bend->getEntranceAngle(), -Physics::pi / 9.574468085106382, 1.0e-12);
+    EXPECT_NEAR(bend->getPlacementPose().getParentToNominal().getOrigin()(0), 0.3791187376840999, 1.0e-12);
+    EXPECT_NEAR(bend->getPlacementPose().getParentToNominal().getOrigin()(2), 4.839958197517368, 1.0e-12);
+    EXPECT_NEAR(bend->getRotationAboutZ(), 0.0, 1.0e-12);
+}
+
+TEST_F(TestOpalBend, NegativeSBendRecoversReferencePathCoordinateFromEntryCartesianPoint) {
+    OpalSBend ui;
+    std::unique_ptr<OpalSBend> instance(ui.clone("SBNEGCHART"));
+    const double length = 0.2;
+    const double angle  = -Physics::pi / 9.574468085106382;
+    Attributes::setReal(instance->itsAttr[OpalSBend::LENGTH], length);
+    Attributes::setReal(instance->itsAttr[OpalSBend::ANGLE], angle);
+
+    EXPECT_NO_THROW(instance->update());
+
+    const auto* bend = dynamic_cast<const SBendRep*>(instance->getElement());
+    ASSERT_NE(bend, nullptr);
+
+    const double curvature = angle / length;
+    const double s         = 0.1;
+    const double phi       = curvature * s;
+    const Vector_t<double, 3> entryCartesian(
+            (std::cos(phi) - 1.0) / curvature, 0.0, std::sin(phi) / curvature);
+
+    const Vector_t<double, 3> fieldLocal = bend->convertEntryCartesianToFieldLocal(entryCartesian);
+    EXPECT_NEAR(fieldLocal(0), 0.0, 1.0e-12);
+    EXPECT_NEAR(fieldLocal(1), 0.0, 1.0e-12);
+    EXPECT_NEAR(fieldLocal(2), s, 1.0e-12);
+}
+
+TEST_F(TestOpalBend, NegativeSBendRecoversDownstreamDriftCoordinateBeyondExitFrame) {
+    OpalSBend ui;
+    std::unique_ptr<OpalSBend> instance(ui.clone("SBNEGEXIT"));
+    const double length = 0.2;
+    const double angle  = -Physics::pi / 9.574468085106382;
+    Attributes::setReal(instance->itsAttr[OpalSBend::LENGTH], length);
+    Attributes::setReal(instance->itsAttr[OpalSBend::ANGLE], angle);
+
+    EXPECT_NO_THROW(instance->update());
+
+    const auto* bend = dynamic_cast<const SBendRep*>(instance->getElement());
+    ASSERT_NE(bend, nullptr);
+
+    const double curvature = angle / length;
+    const double ds        = 0.01;
+    const double exitPhi   = curvature * length;
+    const Vector_t<double, 3> entryCartesian(
+            (std::cos(exitPhi) - 1.0) / curvature - std::sin(exitPhi) * ds, 0.0,
+            std::sin(exitPhi) / curvature + std::cos(exitPhi) * ds);
+
+    const Vector_t<double, 3> fieldLocal = bend->convertEntryCartesianToFieldLocal(entryCartesian);
+    EXPECT_NEAR(fieldLocal(0), 0.0, 1.0e-12);
+    EXPECT_NEAR(fieldLocal(1), 0.0, 1.0e-12);
+    EXPECT_NEAR(fieldLocal(2), length + ds, 1.0e-12);
+}
+
 TEST_F(TestOpalBend, ExemplarUpdateDoesNotEnforceInstanceOnlyAngleChecks) {
     OpalSBend sbendExemplar;
     OpalRBend rbendExemplar;

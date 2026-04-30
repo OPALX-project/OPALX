@@ -293,13 +293,15 @@ public:
      *
      * The slice coordinate system is attached to the design reference path at
      * longitudinal coordinate \f$s_\mathrm{center}\f$ measured from the bend
-     * entry face. The stored transform maps entry-frame coordinates into the
-     * slice-local tangent frame. The slice interval itself is
+     * entry face. The stored transforms map either entry-frame coordinates or
+     * the explicit body frame used by placed sector bends into the slice-local
+     * tangent frame. The slice interval itself is
      * \f$[s_\mathrm{begin}, s_\mathrm{end}]\f$ on the same entry-based
      * reference-path coordinate.
      */
     struct TrackingSlice {
         CoordinateSystemTrafo entryToSliceLocal;
+        CoordinateSystemTrafo bodyToSliceLocal;
         matrix3x3_t entryToSliceRotation;
         Vector_t<double, 3> entryOrigin;
         double sBegin;
@@ -329,6 +331,48 @@ public:
      */
     Vector_t<double, 3> convertEntryCartesianToFieldLocal(
             const Vector_t<double, 3>& entryCartesian) const;
+
+    /**
+     * @brief Convert a midpoint-body Cartesian point into the bend field chart.
+     *
+     * Explicitly placed sector bends are rendered and positioned through the
+     * rigid body frame located at the reference-path midpoint. For those
+     * placement queries the point first has to be transported from the midpoint
+     * body frame back into the rigid entry frame before the curvilinear field
+     * chart \f$(x, y, s)\f$ can be recovered. If \f$T_{e\rightarrow m}\f$
+     * denotes the reference-path transform from the entry frame to the midpoint
+     * frame, the conversion is
+     * \f[
+     * \mathbf{r}_\mathrm{entry}
+     *   = T_{e\rightarrow m}^{-1}\,\mathbf{r}_\mathrm{body},
+     * \qquad
+     * \mathbf{r}_\mathrm{field}
+     *   = \mathcal{C}\!\left(\mathbf{r}_\mathrm{entry}\right),
+     * \f]
+     * where \f$\mathcal{C}\f$ is convertEntryCartesianToFieldLocal().
+     */
+    Vector_t<double, 3> convertBodyCartesianToFieldLocal(
+            const Vector_t<double, 3>& bodyCartesian) const;
+
+    /**
+     * @brief Rotate a body-frame Cartesian vector into the local tangent frame.
+     *
+     * Explicitly placed sector bends expose a rigid body frame for placement
+     * and rendering, but the runtime field chart is attached to the entrance
+     * tangent and extended past the body through the exit tangent. To keep
+     * momentum rotation consistent with convertBodyCartesianToFieldLocal(), the
+     * vector is first re-expressed in the rigid entrance or exit frame defined
+     * by the actual bend geometry:
+     * \f[
+     * \mathbf{v}_\mathrm{entry} = R_{b\rightarrow e}\,\mathbf{v}_\mathrm{body},
+     * \qquad
+     * \mathbf{v}_\mathrm{exit} = R_{b\rightarrow x}\,\mathbf{v}_\mathrm{body},
+     * \f]
+     * and only the interior interval \f$0 < s < L\f$ is transported through
+     * the curvilinear tangent basis.
+     */
+    Vector_t<double, 3> rotateBodyCartesianVectorToFieldLocal(
+            const Vector_t<double, 3>& bodyVector, double s) const;
 
     /**
      * @brief Rotate a vector from the rigid entry frame into the local tangent frame.

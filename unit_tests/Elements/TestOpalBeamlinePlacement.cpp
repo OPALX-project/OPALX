@@ -42,6 +42,19 @@ namespace {
         EXPECT_NEAR(actual(2), expected(2), tol);
     }
 
+    Vector3 analyticSbendExit(const double length, const double angle) {
+        return Vector3(
+                -(length / angle) * (1.0 - std::cos(angle)), 0.0, (length / angle) * std::sin(angle));
+    }
+
+    Vector3 analyticRbendExit(const double length, const double angle) {
+        return Vector3(-length * std::tan(0.5 * angle), 0.0, length);
+    }
+
+    Vector3 analyticExitTangent(const double angle) {
+        return Vector3(-std::sin(angle), 0.0, std::cos(angle));
+    }
+
     std::filesystem::path outputPath(const std::string& suffix) {
         return std::filesystem::path(OpalData::getInstance()->getAuxiliaryOutputDirectory())
                / ("TestOpalBeamlinePlacement" + suffix);
@@ -482,6 +495,67 @@ TEST_F(OpalBeamlinePlacementTest, PrepareSectionsPlacesCompatibilitySBendByEntry
     EXPECT_NEAR(bodyOrigin(0), -0.09691958937035704, 1.0e-12);
     EXPECT_NEAR(bodyOrigin(1), 0.0, 1.0e-12);
     EXPECT_NEAR(bodyOrigin(2), 0.48724767920221634, 1.0e-12);
+}
+
+TEST_F(OpalBeamlinePlacementTest, CompatibilitySBendExitMatchesAnalyticLabGeometry) {
+    auto bunch = makeBunch(0);
+    DummyBeamline beamlineForVisitor;
+    DefaultVisitor visitor(beamlineForVisitor, false, false);
+
+    constexpr double length = 1.0;
+    constexpr double angle  = Physics::pi / 4.0;
+
+    SBendRep bend("B3_EXIT");
+    bend.getGeometry() = PlanarArcGeometry(length, angle);
+    bend.setElementLength(length);
+    bend.setBendAngle(angle);
+    bend.setElementPosition(0.0);
+
+    OpalBeamline beamline;
+    beamline.visit(bend, visitor, *bunch);
+    beamline.prepareSections();
+
+    const auto elements = beamline.getElements();
+    ASSERT_EQ(elements.size(), 1u);
+    const auto component = *elements.begin();
+
+    const Vector3 exitLab = beamline.getNominalExitTransform(component).getOrigin();
+    const Vector3 tangentLab =
+            beamline.getNominalExitTransform(component).rotateFrom(Vector3(0.0, 0.0, 1.0));
+
+    expectVectorNear(exitLab, analyticSbendExit(length, angle));
+    expectVectorNear(tangentLab, analyticExitTangent(angle));
+}
+
+TEST_F(OpalBeamlinePlacementTest, DISABLED_CompatibilityRBendExitMatchesAnalyticLabGeometry) {
+    auto bunch = makeBunch(0);
+    DummyBeamline beamlineForVisitor;
+    DefaultVisitor visitor(beamlineForVisitor, false, false);
+
+    constexpr double length = 1.0;
+    constexpr double angle  = Physics::pi / 4.0;
+
+    RBendRep bend("RB3_EXIT");
+    bend.getGeometry().setElementLength(length);
+    bend.getGeometry().setBendAngle(angle);
+    bend.setElementLength(length);
+    bend.setBendAngle(angle);
+    bend.setElementPosition(0.0);
+
+    OpalBeamline beamline;
+    beamline.visit(bend, visitor, *bunch);
+    beamline.prepareSections();
+
+    const auto elements = beamline.getElements();
+    ASSERT_EQ(elements.size(), 1u);
+    const auto component = *elements.begin();
+
+    const Vector3 exitLab = beamline.getNominalExitTransform(component).getOrigin();
+    const Vector3 tangentLab =
+            beamline.getNominalExitTransform(component).rotateFrom(Vector3(0.0, 0.0, 1.0));
+
+    expectVectorNear(exitLab, analyticRbendExit(length, angle));
+    expectVectorNear(tangentLab, analyticExitTangent(angle));
 }
 
 TEST_F(OpalBeamlinePlacementTest, ReportPortContinuityDiagnosticsFlagsGapToFollowingElement) {

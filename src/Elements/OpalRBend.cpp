@@ -100,17 +100,6 @@ void OpalRBend::update() {
     field.setSkewComponent(3, Attributes::getReal(itsAttr[K3S]) / 6.0);
     bend->setNormalizedField(field);
 
-    if (bend->isPositioned() && angle < 0.0) {
-        e1    = -e1;
-        angle = -angle;
-
-        Quaternion rotAboutZ(0, 0, 0, 1);
-        CoordinateSystemTrafo g2l = bend->getCSTrafoGlobal2Local();
-        bend->releasePosition();
-        bend->setCSTrafoGlobal2Local(
-                CoordinateSystemTrafo(g2l.getOrigin(), rotAboutZ * g2l.getRotation()));
-        bend->fixPosition();
-    }
     bend->setBendAngle(angle);
     bend->setFieldAmplitude(k0, k0s);
     bend->setEntranceAngle(e1);

@@ -1101,7 +1101,7 @@ namespace {
         auto Pafter = pc->P.getHostMirror();
         Kokkos::deep_copy(Pafter, pc->P.getView());
 
-        EXPECT_GT(Pafter(0)(1), 0.0);
+        EXPECT_LT(Pafter(0)(1), 0.0);
     }
 
     TEST_F(BendRepParticleContainerTest,
@@ -1443,8 +1443,41 @@ namespace {
 
         const double deflection = std::atan2(state.p(0), state.p(2));
         EXPECT_NEAR(deflection, angle, 5.0e-5);
-        EXPECT_NEAR(state.r(0), radius * (1.0 - std::cos(angle)), 1.0e-6);
-        EXPECT_NEAR(state.r(2), radius * std::sin(angle), 1.0e-6);
+        EXPECT_NEAR(
+                state.r(0), std::copysign(radius * (1.0 - std::cos(angle)), angle), 1.0e-6);
+        EXPECT_NEAR(state.r(2), radius * std::sin(std::abs(angle)), 1.0e-6);
+    }
+
+    TEST(SBendRep, RuntimeNormalizedElectronOnAxisIntegratesToNegativeFortyFiveDegreeDeflection) {
+        constexpr double angle           = -Physics::pi / 4.0;
+        constexpr double arcLength       = 1.0;
+        constexpr double kineticEnergyEV = 1.0 * Units::GeV2eV;
+        constexpr double massEV          = Physics::m_e * Units::GeV2eV;
+        constexpr double charge          = -1.0;
+        constexpr std::size_t steps      = 20000;
+
+        SBendRep bend("SBENDNEG");
+        bend.getGeometry() = PlanarArcGeometry(arcLength, angle / arcLength);
+        bend.setElementLength(arcLength);
+        bend.setBendAngle(angle);
+
+        const double radius    = std::abs(arcLength / angle);
+        const double betaGamma = betaGammaFromKineticEnergy(kineticEnergyEV, massEV);
+        BMultipoleField normalizedField;
+        normalizedField.setNormalComponent(0, angle / arcLength);
+        bend.setNormalizedField(normalizedField);
+        bend.updatePhysicalFieldFromMomentumEV(betaGamma * massEV, charge);
+
+        const double beta            = betaGamma / std::sqrt(1.0 + betaGamma * betaGamma);
+        const double integrationTime = arcLength / (beta * Physics::c);
+        const ReferenceState state   = integrateReferenceParticle(
+                bend, massEV, charge, kineticEnergyEV, integrationTime, steps);
+
+        const double deflection = std::atan2(state.p(0), state.p(2));
+        EXPECT_NEAR(deflection, angle, 5.0e-5);
+        EXPECT_NEAR(
+                state.r(0), std::copysign(radius * (1.0 - std::cos(angle)), angle), 1.0e-6);
+        EXPECT_NEAR(state.r(2), radius * std::sin(std::abs(angle)), 1.0e-6);
     }
 
     TEST(SBendRep, RuntimeNormalizationUsesBunchReferenceMomentumWhenDesignEnergyIsUnset) {
@@ -1466,9 +1499,9 @@ namespace {
         const double momentumEV = betaGammaFromKineticEnergy(kineticEnergyEV, massEV) * massEV;
         bend.updatePhysicalFieldFromMomentumEV(momentumEV, 1.0);
 
-        const double expectedBy = momentumEV / Physics::c * (angle / length);
+        const double expectedBy = -momentumEV / Physics::c * (angle / length);
         EXPECT_NEAR(bend.getB(), expectedBy, 1.0e-9 * std::abs(expectedBy));
-        EXPECT_GT(bend.getB(), 0.0);
+        EXPECT_LT(bend.getB(), 0.0);
     }
 
     TEST(SBendRep, RuntimeNormalizedProtonEntryFringeProducesExpectedVerticalKickSign) {
@@ -1517,7 +1550,7 @@ namespace {
         const double psi             = signedCurvature * fringeHalfGap * fringeIntegral
                            * (1.0 + std::sin(entryAngle) * std::sin(entryAngle))
                            / std::cos(entryAngle);
-        const double expectedVertical = signedCurvature * std::tan(entryAngle - psi);
+        const double expectedVertical = -signedCurvature * std::tan(entryAngle - psi);
         const double deltaYP          = (yFocused.p(1) - base.p(1)) / (momentumEV / massEV);
 
         EXPECT_NEAR(deltaYP / yOffset, expectedVertical, 5.0e-4);
@@ -1544,9 +1577,9 @@ namespace {
         const double momentumEV = betaGammaFromKineticEnergy(kineticEnergyEV, massEV) * massEV;
         bend.updatePhysicalFieldFromMomentumEV(momentumEV, charge);
 
-        const double expectedBy = momentumEV / (charge * Physics::c) * (angle / chordLength);
+        const double expectedBy = -momentumEV / (charge * Physics::c) * (angle / chordLength);
         EXPECT_NEAR(bend.getB(), expectedBy, 1.0e-9 * std::abs(expectedBy));
-        EXPECT_LT(bend.getB(), 0.0);
+        EXPECT_GT(bend.getB(), 0.0);
     }
 
     TEST(SBendRep, ReferenceMomentumResolutionPrefersDesignEnergyWhenProvided) {

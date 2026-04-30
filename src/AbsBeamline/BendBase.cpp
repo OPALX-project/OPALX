@@ -28,6 +28,27 @@ namespace {
         return CoordinateSystemTrafo(origin, Quaternion(rotation).conjugate());
     }
 
+    /**
+     * Recover the signed reference-path phase from entry-frame Cartesian bend coordinates.
+     *
+     * For the circular reference-path parameterization
+     * \f[
+     * x + \rho = \rho \cos\phi, \qquad z = \rho \sin\phi,
+     * \f]
+     * the geometric phase must satisfy \f$\phi = h s\f$ for both positive and
+     * negative curvature \f$h = 1/\rho\f$. When \f$\rho < 0\f$, applying
+     * `atan2(z, x + \rho)` directly shifts the phase by \f$\pi\f$ because both
+     * arguments change sign simultaneously. Multiplying both arguments by the
+     * sign of \f$\rho\f$ keeps the branch consistent with the signed bend
+     * curvature and therefore recovers the correct local path coordinate.
+     */
+    double recoverReferencePhaseFromEntryCartesian(
+            const Vector_t<double, 3>& entryCartesian, const double curvature) {
+        const double radius = 1.0 / curvature;
+        const double sign   = std::copysign(1.0, radius);
+        return std::atan2(sign * entryCartesian(2), sign * (entryCartesian(0) + radius));
+    }
+
     double evaluateFieldScale(
             const double z, const double fieldBegin, const double bodyLength,
             const double fieldEnd) {
@@ -291,6 +312,9 @@ std::vector<BendBase::TrackingSlice> BendBase::buildTrackingSlices() const {
     }
     const double ds        = (nSlices > 0) ? (sEnd - sBegin) / static_cast<double>(nSlices) : 0.0;
     const double curvature = getReferencePathCurvature();
+    const CoordinateSystemTrafo entryToBodyLocal = toCoordinateSystemTrafo(
+            makeReferencePathTransformFromEntry(0.5 * bodyLength, bodyLength, curvature));
+    const CoordinateSystemTrafo bodyToEntryLocal = entryToBodyLocal.inverted();
 
     std::vector<TrackingSlice> slices;
     slices.reserve(nSlices);
@@ -300,9 +324,11 @@ std::vector<BendBase::TrackingSlice> BendBase::buildTrackingSlices() const {
         const double sliceCenter                      = 0.5 * (sliceBegin + sliceEnd);
         const CoordinateSystemTrafo entryToSliceLocal = toCoordinateSystemTrafo(
                 makeReferencePathTransformFromEntry(sliceCenter, bodyLength, curvature));
+        const CoordinateSystemTrafo bodyToSliceLocal =
+                entryToSliceLocal * bodyToEntryLocal;
         slices.push_back(
                 TrackingSlice{
-                        entryToSliceLocal, entryToSliceLocal.getRotationMatrix(),
+                        entryToSliceLocal, bodyToSliceLocal, entryToSliceLocal.getRotationMatrix(),
                         entryToSliceLocal.getOrigin(), sliceBegin, sliceCenter, sliceEnd});
     }
     return slices;
@@ -328,11 +354,50 @@ Vector_t<double, 3> BendBase::convertEntryCartesianToFieldLocal(
     }
 
     const double radius = 1.0 / curvature;
-    const double phi    = std::atan2(entryCartesian(2), entryCartesian(0) + radius);
+    const double phi    = recoverReferencePhaseFromEntryCartesian(entryCartesian, curvature);
     const double s      = phi / curvature;
     const double radialDistance =
             std::hypot(entryCartesian(0) + radius, entryCartesian(2)) - std::abs(radius);
     return Vector_t<double, 3>(radialDistance, entryCartesian(1), s);
+}
+
+Vector_t<double, 3> BendBase::convertBodyCartesianToFieldLocal(
+        const Vector_t<double, 3>& bodyCartesian) const {
+    const double bodyLength = getReferencePathLength();
+    const double curvature  = getReferencePathCurvature();
+
+    const CoordinateSystemTrafo entryLocal = toCoordinateSystemTrafo(getEntranceFrame());
+    const Vector_t<double, 3> entryCartesian = entryLocal.transformTo(bodyCartesian);
+    if (std::abs(curvature) <= 1.0e-15 || entryCartesian(2) <= 0.0) {
+        return entryCartesian;
+    }
+
+    const CoordinateSystemTrafo exitLocal = toCoordinateSystemTrafo(getExitFrame());
+    const Vector_t<double, 3> exitCartesian = exitLocal.transformTo(bodyCartesian);
+    if (exitCartesian(2) >= 0.0) {
+        return Vector_t<double, 3>(
+                exitCartesian(0), exitCartesian(1), bodyLength + exitCartesian(2));
+    }
+
+    return convertEntryCartesianToFieldLocal(entryCartesian);
+}
+
+Vector_t<double, 3> BendBase::rotateBodyCartesianVectorToFieldLocal(
+        const Vector_t<double, 3>& bodyVector, const double s) const {
+    const double bodyLength = getReferencePathLength();
+    const double curvature  = getReferencePathCurvature();
+    const CoordinateSystemTrafo entryLocal = toCoordinateSystemTrafo(getEntranceFrame());
+    const Vector_t<double, 3> entryVector  = entryLocal.rotateTo(bodyVector);
+    if (std::abs(curvature) <= 1.0e-15 || s <= 0.0) {
+        return entryVector;
+    }
+
+    const CoordinateSystemTrafo exitLocal = toCoordinateSystemTrafo(getExitFrame());
+    if (s >= bodyLength) {
+        return exitLocal.rotateTo(bodyVector);
+    }
+
+    return rotateEntryCartesianVectorToFieldLocal(entryVector, s);
 }
 
 Vector_t<double, 3> BendBase::rotateEntryCartesianVectorToFieldLocal(
@@ -356,9 +421,9 @@ Vector_t<double, 3> BendBase::rotateEntryCartesianVectorToFieldLocal(
     const double phi  = curvature * s;
     const double cphi = std::cos(phi);
     const double sphi = std::sin(phi);
-    return Vector_t<double, 3>(
-            cphi * entryVector(0) + sphi * entryVector(2), entryVector(1),
-            -sphi * entryVector(0) + cphi * entryVector(2));
+        return Vector_t<double, 3>(
+                cphi * entryVector(0) + sphi * entryVector(2), entryVector(1),
+                -sphi * entryVector(0) + cphi * entryVector(2));
 }
 
 Vector_t<double, 3> BendBase::rotateFieldLocalVectorToEntryCartesian(
@@ -382,9 +447,9 @@ Vector_t<double, 3> BendBase::rotateFieldLocalVectorToEntryCartesian(
     const double phi  = curvature * s;
     const double cphi = std::cos(phi);
     const double sphi = std::sin(phi);
-    return Vector_t<double, 3>(
-            cphi * fieldVector(0) - sphi * fieldVector(2), fieldVector(1),
-            sphi * fieldVector(0) + cphi * fieldVector(2));
+        return Vector_t<double, 3>(
+                cphi * fieldVector(0) - sphi * fieldVector(2), fieldVector(1),
+                sphi * fieldVector(0) + cphi * fieldVector(2));
 }
 
 bool BendBase::applySlice(
@@ -439,7 +504,8 @@ bool BendBase::applySlice(
                 Vector_t<double, 3> entryChartPosition = entryCartesian;
                 if (std::abs(referenceCurvature) > 1.0e-15) {
                     const double radius = 1.0 / referenceCurvature;
-                    const double phi    = std::atan2(entryCartesian(2), entryCartesian(0) + radius);
+                    const double phi = recoverReferencePhaseFromEntryCartesian(
+                            entryCartesian, referenceCurvature);
                     const double s      = phi / referenceCurvature;
                     const double radialDistance =
                             std::hypot(entryCartesian(0) + radius, entryCartesian(2))
@@ -732,11 +798,19 @@ void BendBase::updatePhysicalFieldFromMomentumEV(
         return;
     }
 
-    // For a positive bend angle the placed design path curves toward negative
-    // entry-frame x. With OPALX's local field convention this requires
-    // q v_z B_y to point toward the reference-path center of curvature, giving
-    // the usual rigidity scaling B_y = p h / (q c).
-    const double factor = referenceMomentumEV / (charge * Physics::c);
+    // OPALX's bend tracking chart is defined so that a positive horizontal bend
+    // angle deflects the design trajectory toward positive local x. The
+    // required dipole sign therefore satisfies
+    // \f[
+    // q v_z B_y = - \frac{p_0 c}{\rho},
+    // \qquad
+    // B_y = -\frac{p_0}{q c} h,
+    // \f]
+    // with signed curvature \f$h = 1/\rho\f$. This sign convention is shared
+    // by both `SBEND` and `RBEND` runtime normalization and is verified by the
+    // reference-particle bend regression tests for positive and negative bend
+    // angles.
+    const double factor = -referenceMomentumEV / (charge * Physics::c);
     BMultipoleField field;
     const int order = normalizedField_m.order();
     for (int i = 0; i < order; ++i) {
