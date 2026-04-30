@@ -3,6 +3,7 @@
 #define OPAL_PARTICLE_CONTAINER_H
 
 // #include <functional>
+#include <algorithm>
 #include <cmath>
 #include <memory>
 #include <string>
@@ -66,7 +67,6 @@ private:
      * for safety, since it might lead to undefined behaviour. The idea is to handle particle count
      * changes completely through the ParticleContainer!
      */
-    using Base::alloc;
     using Base::create;
     using Base::destroy;
 
@@ -625,24 +625,33 @@ public:
     }
 
     /**
-     * @brief Create/allocate a specified number of particles.
+     * @brief Append particles to the container without invalidating existing data.
      *
-     * This function creates a given number of particles in the container. It's a wrapper around the
-     * non destructive IPPL particle create function, but will print out a warning if the create
-     * call led to unnecessary reallocation (i.e. if the new total number of particles exceeds the
-     * previous capacity).
+     * This wraps the current IPPL particle-creation API. New particles are appended after the
+     * existing valid region, and IPPL preserves the values stored in already-existing particle
+     * attributes. If the append exceeds the current capacity, the underlying Kokkos views may be
+     * reallocated.
      *
-     * @note The underlying `create` is a collective call, so all MPI ranks must call this function.
-     * IPPL automatically handles the short-circuit if internal capacity is sufficient.
+     * @note The underlying `create` is a collective call, so all MPI ranks must call this
+     * function.
      *
-     * @param numParticles The number of particles to create.
+     * @param numParticles Number of new particles appended to the local container.
      */
     void createParticles(size_type numParticles) {
         Inform m("ParticleContainer::createParticles");
 
         // Total allocated capacity of the underlying view
         size_type oldCapacity = this->R.size();
-        this->create(numParticles, true);  // non_destructive = true
+        size_type required    = this->getLocalNum() + numParticles;
+        if (oldCapacity < required) {
+            double overalloc = ippl::Comm->getDefaultOverallocation();
+            if (overalloc < 1.0) {
+                overalloc = 1.0;
+            }
+            size_type requestedCapacity = static_cast<size_type>(std::ceil(required * overalloc));
+            resizeParticleStoragePreserveData(requestedCapacity);
+        }
+        this->create(numParticles);
         size_type newCapacity = this->R.size();
 
         // Pretty print numParticles, newCapacity and new totalNum + localNum after creation
@@ -662,12 +671,29 @@ public:
         }
     }
 
+    /**
+     * @brief Reserve storage for particle attributes while keeping the valid particle count zero.
+     *
+     * IPPL no longer exposes the old destructive `alloc(...)` helper on `ParticleBase`. OPALX
+     * still relies on the corresponding reservation semantics during bunch setup: allocate storage
+     * for every registered particle attribute, but do not create any valid particles yet. This
+     * method therefore performs an explicit `realloc` on each particle attribute owned by the
+     * container.
+     *
+     * The reservation is destructive with respect to any already-created particles and is
+     * therefore restricted to empty containers. Local and global particle counts are preserved,
+     * which keeps the distinction between reserved capacity and the valid particle region intact.
+     *
+     * @param numParticles Requested minimum capacity for all particle attributes.
+     *
+     * @throws OpalException if the container already has reserved storage or valid particles.
+     */
     void allocateParticles(size_type numParticles) {
         Inform m("ParticleContainer::allocateParticles");
 
         // Total allocated capacity of the underlying view
         size_type oldCapacity = this->R.size();
-        if (oldCapacity != 0) {
+        if (oldCapacity != 0 || this->getLocalNum() != 0 || this->getTotalNum() != 0) {
             throw OpalException(
                     "ParticleContainer::allocateParticles",
                     "Underlying views already allocated. This function is meant to be called on an "
@@ -676,7 +702,18 @@ public:
                     "instead.");
         }
 
-        this->alloc(numParticles);  // alloc is always destructive
+        this->R.realloc(numParticles);
+        this->ID.realloc(numParticles);
+        dt.realloc(numParticles);
+        Phi.realloc(numParticles);
+        Bin.realloc(numParticles);
+        P.realloc(numParticles);
+        E.realloc(numParticles);
+        B.realloc(numParticles);
+        if (qmStorageMode_m == QMStorageMode::Attributes) {
+            QAttr.realloc(numParticles);
+            MAttr.realloc(numParticles);
+        }
 
         m << level4 << std::left << std::setw(32) << "Requested allocation:" << numParticles
           << " particles" << endl
@@ -729,6 +766,30 @@ public:
     }
 
 private:
+    /**
+     * @brief Grow all registered particle attributes while preserving existing values.
+     *
+     * This helper restores the old OPALX `createParticles()` semantics on top of the current IPPL
+     * API. It performs a `Kokkos::resize` on every per-particle attribute so the valid particle
+     * region remains intact when the container grows beyond its current capacity.
+     *
+     * @param capacity Requested common capacity for all particle attributes.
+     */
+    void resizeParticleStoragePreserveData(size_type capacity) {
+        this->R.resize(capacity);
+        this->ID.resize(capacity);
+        dt.resize(capacity);
+        Phi.resize(capacity);
+        Bin.resize(capacity);
+        P.resize(capacity);
+        E.resize(capacity);
+        B.resize(capacity);
+        if (qmStorageMode_m == QMStorageMode::Attributes) {
+            QAttr.resize(capacity);
+            MAttr.resize(capacity);
+        }
+    }
+
     void setBCAllPeriodic() { this->setParticleBC(ippl::BC::PERIODIC); }
 
     PLayout_t<T, Dim> pl_m;

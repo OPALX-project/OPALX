@@ -73,7 +73,7 @@ namespace {
 
             auto pc = std::make_shared<ParticleContainer_t>(mesh, fl);
             pc->setBunchStateHandler(std::make_shared<BunchStateHandler>());
-            pc->create(positions.size());
+            pc->createParticles(positions.size());
 
             auto Rhost = pc->R.getHostMirror();
             auto Phost = pc->P.getHostMirror();
