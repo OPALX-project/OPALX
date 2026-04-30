@@ -290,10 +290,8 @@ void MeshGenerator::write(const std::string& fname) {
             << "\n"
             << "        <title>Babylon.js sample code</title>\n"
             << "        <!-- Babylon.js -->\n"
-            << "        <script src=\"http://cdn.babylonjs.com/hand.minified-1.2.js\"></script>\n"
-            << "        <script src=\"http://cdn.babylonjs.com/cannon.js\"></script>\n"
-            << "        <script src=\"http://cdn.babylonjs.com/oimo.js\"></script>\n"
-            << "        <script src=\"http://cdn.babylonjs.com/babylon.js\"></script>\n"
+            << "        <script src=\"https://cdn.babylonjs.com/cannon.js\"></script>\n"
+            << "        <script src=\"https://cdn.babylonjs.com/babylon.js\"></script>\n"
             << "        <style>\n"
             << "            html, body {\n"
             << "                overflow: hidden;\n"
@@ -320,12 +318,12 @@ void MeshGenerator::write(const std::string& fname) {
             << "            var scene = new BABYLON.Scene(engine);\n"
             << "\n"
             << "            //Adding a light\n"
-            << "                var light = new BABYLON.PointLight(\"Omni\", new "
-               "BABYLON.Vector3(0, "
-               "-100, 0), scene);\n"
-            << "                //light.diffuse = new BABYLON.Color3(0.8, 0.8, 0.8);\n"
+            << "                var light = new BABYLON.HemisphericLight(\"Hemi\", new "
+               "BABYLON.Vector3(0, 1, 0), scene);\n"
+            << "                light.intensity = 0.8;\n"
+            << "                light.diffuse = new BABYLON.Color3(1.0, 1.0, 1.0);\n"
+            << "                light.groundColor = new BABYLON.Color3(0.7, 0.7, 0.7);\n"
             << "                light.specular = new BABYLON.Color3(0.1, 0.1, 0.1);\n"
-            << "                //light.groundColor = new BABYLON.Color3(0, 0, 0);\n"
             << "\n"
             << "            //Adding an Arc Rotate Camera\n"
             << "                var camera = new BABYLON.ArcRotateCamera(\"Camera\", 0.0, Math.PI, "
@@ -730,7 +728,7 @@ void MeshGenerator::write(const std::string& fname) {
     out << indent << "mesh += \"}'\"\n";
 
     out << indent << "index_compressed = base64.b64decode(index_base64)\n";
-    out << indent << "index = str(zlib.decompress(index_compressed))\n";
+    out << indent << "index = zlib.decompress(index_compressed).decode('utf-8')\n";
     out << indent << "if (len(bgcolor) == 3):\n";
     out << indent << indent << "mesh += \";\\n            \"\n";
     out << indent << indent
