@@ -229,7 +229,7 @@ void MultiVariateGaussian::generateParticles(
     sampling_t sampling(dist, normRmax_m, normRmin_m, normRmax_m, normRmin_m, nlocal);
 
     const size_t nlocalCurrent = pc_m->getLocalNum();
-    pc_m->create(nlocal);
+    pc_m->createParticles(nlocal);
 
     view_type RviewFull = pc_m->R.getView();
     view_type PviewFull = pc_m->P.getView();

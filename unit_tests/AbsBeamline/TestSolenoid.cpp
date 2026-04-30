@@ -95,7 +95,7 @@ protected:
                 /*beams=*/std::vector<Beam*>{opBeam},
                 /*totalParticlesPerBeam=*/std::vector<size_t>{numParticles},
                 /*lbt=*/1.0, /*integration_method=*/"LF2", fsCmdBase_m.get(), dataSink_m.get());
-        bunch->getParticleContainer()->create(numParticles);
+        bunch->getParticleContainer()->createParticles(numParticles);
         return bunch;
     }
 

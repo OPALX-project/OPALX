@@ -119,7 +119,14 @@ ParallelTracker::~ParallelTracker() {}
 /**
  * @copybrief ParallelTracker::visitComponent
  */
-void ParallelTracker::visitComponent(const Component& comp) { Tracker::visitComponent(comp); }
+void ParallelTracker::visitComponent(const Component& comp) {
+    if (comp.getType() == ElementType::LASER) {
+        throw LogicalError(
+                "ParallelTracker::visitComponent()",
+                "Tracking of the \"LASER\" element is not implemented yet.");
+    }
+    Tracker::visitComponent(comp);
+}
 
 void ParallelTracker::visitLaser(const Laser&) {
     throw LogicalError(

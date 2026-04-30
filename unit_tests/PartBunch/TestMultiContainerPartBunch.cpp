@@ -116,7 +116,7 @@ namespace {
             const int mpiRank = ippl::Comm->rank();
             std::mt19937_64 eng(1000u + containerIndex * 97u + static_cast<unsigned>(mpiRank));
 
-            pc->create(nPart);
+            pc->createParticles(nPart);
 
             auto R_host  = pc->R.getHostMirror();
             auto P_host  = pc->P.getHostMirror();
@@ -245,7 +245,7 @@ namespace {
         createParticlesInContainer(0, n0, 0.1, 0.5);
         createParticlesInContainer(1, n1, 0.2, 0.6);
 
-        EXPECT_EQ(bunch->getTotalNumAllContainers(), (n0 + n1) * ippl::Comm->size());
+        EXPECT_EQ(bunch->getTotalNumAllContainers(), n0 + n1);
     }
 
     // --- DataSink stems and writers ---
@@ -347,7 +347,6 @@ namespace {
 
         Options::enableHDF5 = savedH5;
     }
-
     TEST_F(MultiContainerPartBunchTest, DataSink_dumpH5_WritesToLabTransformMetadata) {
         createParticlesInContainer(0, 4u, 0.1, 0.2);
 
