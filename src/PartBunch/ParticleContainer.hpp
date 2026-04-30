@@ -702,8 +702,8 @@ public:
             throw OpalException(
                     "ParticleContainer::destroyParticles",
                     "invalid mask extent (" + std::to_string(invalid.extent(0))
-                            + ") is smaller than local particle count ("
-                            + std::to_string(nLocal) + ").");
+                            + ") is smaller than local particle count (" + std::to_string(nLocal)
+                            + ").");
         }
 
         this->destroy(invalid, localDestroyNum);
