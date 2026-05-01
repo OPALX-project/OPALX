@@ -11,7 +11,7 @@ concurrency:
 
 jobs:
   # ===== BUILD + UNIT TESTS =====
-  build-cpu-openmp-debug:
+  build:
     name: Build & Unit Tests
     runs-on: ubuntu-latest
     if: contains(github.event.pull_request.labels.*.name, 'compile-ci') && github.event.pull_request.draft == false
