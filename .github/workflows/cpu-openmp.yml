@@ -12,6 +12,7 @@ concurrency:
 jobs:
   # ===== BUILD =====
   build:
+    name: Build
     runs-on: ubuntu-latest
     if: contains(github.event.pull_request.labels.*.name, 'compile-ci') && github.event.pull_request.draft == false
 
@@ -51,6 +52,7 @@ jobs:
 
   # ===== UNIT TESTS =====
   unit-tests:
+    name: Unit Tests
     needs: build
     runs-on: ubuntu-latest
 
