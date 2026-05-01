@@ -137,7 +137,7 @@ namespace {
         }
 
         void createParticles(size_t nPart, double pzMin, double pzMax) {
-            pc->create(nPart);
+            pc->createParticles(nPart);
 
             std::mt19937_64 eng(42 + ippl::Comm->rank());
 

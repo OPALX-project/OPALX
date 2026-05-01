@@ -5,6 +5,7 @@
 // #include <functional>
 #include <cmath>
 #include <memory>
+#include <string>
 #include <vector>
 
 #include "Manager/BaseManager.h"
@@ -58,6 +59,16 @@ using size_type = ippl::detail::size_type;
 template <typename T, unsigned Dim = 3>
 class ParticleContainer : public ippl::ParticleBase<ippl::ParticleSpatialLayout<T, Dim>> {
     using Base = ippl::ParticleBase<ippl::ParticleSpatialLayout<T, Dim>>;
+
+private:
+    /**
+     * Forbid access of the following functions outside of the ParticleContainer wrappers! This is
+     * for safety, since it might lead to undefined behaviour. The idea is to handle particle count
+     * changes completely through the ParticleContainer!
+     */
+    using Base::alloc;
+    using Base::create;
+    using Base::destroy;
 
 public:
     enum class QMStorageMode { SingleValue, Attributes };
@@ -591,13 +602,117 @@ public:
 
         if (globalDestroyNum == 0) return 0;
 
-        this->destroy(invalid, localDestroyNum);
+        destroyParticles(invalid, localDestroyNum);
 
         // Only called if globalDestroyNum > 0, i.e. if any particles were destroyed --> statistics
         // changed --> moments are dirty
         markMomentsDirty();
 
         return globalDestroyNum;
+    }
+
+    /**
+     * @brief Create/allocate a specified number of particles.
+     *
+     * This function creates a given number of particles in the container. It's a wrapper around the
+     * non destructive IPPL particle create function, but will print out a warning if the create
+     * call led to unnecessary reallocation (i.e. if the new total number of particles exceeds the
+     * previous capacity).
+     *
+     * @note The underlying `create` is a collective call, so all MPI ranks must call this function.
+     * IPPL automatically handles the short-circuit if internal capacity is sufficient.
+     *
+     * @param numParticles The number of particles to create.
+     */
+    void createParticles(size_type numParticles) {
+        Inform m("ParticleContainer::createParticles");
+
+        // Total allocated capacity of the underlying view
+        size_type oldCapacity = this->R.size();
+        this->create(numParticles, true);  // non_destructive = true
+        size_type newCapacity = this->R.size();
+
+        // Pretty print numParticles, newCapacity and new totalNum + localNum after creation
+        constexpr int labelWidth = 32;
+        m << level4 << std::left << std::setw(labelWidth) << "Requested creation:" << numParticles
+          << " particles" << endl
+          << std::setw(labelWidth) << "New total number:" << this->getTotalNum()
+          << " (local: " << this->getLocalNum() << ")" << endl
+          << std::setw(labelWidth) << "Underlying view capacity:" << newCapacity << endl;
+
+        if (newCapacity != oldCapacity) {
+            m << level1
+              << "WARNING: createParticles triggered a reallocation of the underlying particle "
+                 "views! This can be a costly operation. To avoid this, consider increasing "
+                 "preallocation (BEAM::NALLOC) or the overallocation factor."
+              << endl;
+        }
+    }
+
+    void allocateParticles(size_type numParticles) {
+        Inform m("ParticleContainer::allocateParticles");
+
+        // Total allocated capacity of the underlying view
+        size_type oldCapacity = this->R.size();
+        if (oldCapacity != 0) {
+            throw OpalException(
+                    "ParticleContainer::allocateParticles",
+                    "Underlying views already allocated. This function is meant to be called on an "
+                    "empty container, since it is destructive on existing particles. If you want "
+                    "to create particles without deallocating existing ones, use createParticles() "
+                    "instead.");
+        }
+
+        this->alloc(numParticles);  // alloc is always destructive
+
+        m << level4 << std::left << std::setw(32) << "Requested allocation:" << numParticles
+          << " particles" << endl
+          << std::setw(32) << "Size of underlying view:" << this->R.size() << endl;
+    }
+
+    /**
+     * @brief Destroy the particles marked invalid in this container.
+     *
+     * Wraps `ippl::ParticleBase::destroy` with input validation: throws if
+     * `localDestroyNum` exceeds the local particle count, or if the `invalid`
+     * mask is smaller than the local particle count. The underlying call is
+     * collective (allreduce of `localNum_m`) so all MPI ranks must call this
+     * function, even with `localDestroyNum == 0`.
+     *
+     * @note Does NOT mark moments dirty automatically. Callers that depend on
+     * moment freshness must call `markMomentsDirty()` themselves.
+     *
+     * @tparam Properties Kokkos view properties of the invalid mask.
+     * @param invalid Boolean mask of length >= getLocalNum(); true entries are removed.
+     * @param localDestroyNum Number of true entries in `invalid` on this rank.
+     */
+    template <typename... Properties>
+    void destroyParticles(
+            const Kokkos::View<bool*, Properties...>& invalid, size_type localDestroyNum) {
+        Inform m("ParticleContainer::destroyParticles");
+
+        const size_type nLocal = this->getLocalNum();
+        if (localDestroyNum > nLocal) {
+            throw OpalException(
+                    "ParticleContainer::destroyParticles",
+                    "localDestroyNum (" + std::to_string(localDestroyNum)
+                            + ") exceeds local particle count (" + std::to_string(nLocal) + ").");
+        }
+        if (invalid.extent(0) < nLocal) {
+            throw OpalException(
+                    "ParticleContainer::destroyParticles",
+                    "invalid mask extent (" + std::to_string(invalid.extent(0))
+                            + ") is smaller than local particle count (" + std::to_string(nLocal)
+                            + ").");
+        }
+
+        this->destroy(invalid, localDestroyNum);
+
+        constexpr int labelWidth = 32;
+        m << level4 << std::left << std::setw(labelWidth)
+          << "Requested destruction:" << localDestroyNum << " particles" << endl
+          << std::setw(labelWidth) << "New total number:" << this->getTotalNum()
+          << " (local: " << this->getLocalNum() << ")" << endl;
     }
 
 private:
