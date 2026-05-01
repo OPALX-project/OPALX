@@ -381,7 +381,14 @@ void FlatTop::emitParticles(double t, double dt) {
 
     // Generate new particles on uniform disc (sample into [nlocal, nlocal+nNew)).
     // Each particle receives a fractional per-particle dt for sub-timestep spreading.
-    msgAll << level3 << "* generate particles on a disc" << endl;
+    msgAll
+
+    << level3 << "* generate particles on a disc" <<
+
+
+            endl
+
+            ;
     generateUniformDisk(nlocal, nNew, dt);
 
     pc_m->markMomentsDirty();
