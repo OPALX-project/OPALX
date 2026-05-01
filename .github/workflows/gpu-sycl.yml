@@ -1,0 +1,58 @@
+name: GPU SYCL
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, ready_for_review]
+    branches: ["master"]
+
+concurrency:
+  group: ${{ github.workflow }}-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  # ===== BUILD =====
+  # No unit tests or smoke tests: GPU code cannot be executed on the CI runner.
+  build:
+    name: Compile
+    runs-on: ubuntu-latest
+    if: contains(github.event.pull_request.labels.*.name, 'compile-ci') && github.event.pull_request.draft == false
+
+    container:
+      image: intel/oneapi-basekit:latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: |
+          apt-get update
+          apt-get install -y build-essential git wget p7zip-full unzip locales libopenmpi-dev openmpi-bin
+          # Set UTF-8 locale to avoid zip extraction issues
+          locale-gen en_US.UTF-8
+          update-locale LANG=en_US.UTF-8
+          export LANG=en_US.UTF-8
+          export LC_ALL=en_US.UTF-8
+          # Install CMake 4.1.1 (consistent with other GPU workflows)
+          wget https://cmake.org/files/v4.1/cmake-4.1.1-linux-x86_64.sh
+          bash cmake-4.1.1-linux-x86_64.sh --skip-license --prefix=/usr/local
+          cmake --version
+          icpx --version
+
+      - name: Configure CMake
+        run: |
+          mkdir -p build_sycl
+          cd build_sycl
+          cmake .. \
+            -DBUILD_TYPE=Debug \
+            -DCMAKE_CXX_COMPILER=icpx \
+            -DPLATFORMS=SYCL \
+            -DARCH=INTEL_PVC \
+            -DKokkos_ARCH_INTEL_PVC=ON \
+            -DIPPL_GIT_TAG=test-sycl-platform-temp \
+            -DOPALX_ENABLE_UNIT_TESTS=ON
+
+      - name: Build
+        run: |
+          cd build_sycl
+          make -j$(nproc)
