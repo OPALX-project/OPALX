@@ -87,7 +87,7 @@ public:
     /// Apply the algorithm to a FlaggedElmPtr.
     virtual void visitFlaggedElmPtr(const FlaggedElmPtr&) = 0;
 
-    /// Apply the algorithm to a drift space.
+    /// Apply the algorithm to a beam-beam interaction point.
     virtual void visitBeamBeam(const BeamBeam&) = 0;
   
     /// Apply the algorithm to a marker.

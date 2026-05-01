@@ -3,7 +3,10 @@
 #include "Utilities/OpalException.h"
 #include "Utility/PAssert.h"
 
+#include <algorithm>
+#include <cmath>
 #include <filesystem>
+#include <limits>
 
 namespace {
     constexpr char kWhere[] = "H5BeamBeamDiagnosticsWriter";
@@ -23,6 +26,26 @@ void H5BeamBeamDiagnosticsWriter::close() {
         reportOnError(H5CloseFile(file_m), "close");
         file_m = 0;
     }
+}
+
+double H5BeamBeamDiagnosticsWriter::normalizeParticleMeanS(const StepMetadata& meta) {
+    const double rzPhysicalS = meta.particleMeanR[2];
+    const double legacyValue = meta.pathLengthS + rzPhysicalS;
+
+    if (!std::isfinite(meta.particleMeanS) || !std::isfinite(meta.pathLengthS)
+        || !std::isfinite(rzPhysicalS)) {
+        return meta.particleMeanS;
+    }
+
+    const double scale = std::max(
+            {1.0, std::abs(meta.particleMeanS), std::abs(legacyValue), std::abs(rzPhysicalS)});
+    const double tolerance = 64.0 * std::numeric_limits<double>::epsilon() * scale;
+
+    if (std::abs(meta.particleMeanS - legacyValue) <= tolerance) {
+        return rzPhysicalS;
+    }
+
+    return meta.particleMeanS;
 }
 
 void H5BeamBeamDiagnosticsWriter::beginStep(
@@ -201,6 +224,7 @@ void H5BeamBeamDiagnosticsWriter::writeHeader() {
 void H5BeamBeamDiagnosticsWriter::writeStepMetadata(const StepMetadata& meta) {
     const h5_int64_t globalStep = static_cast<h5_int64_t>(meta.globalStep);
     const h5_int64_t active     = meta.interactionWindowActive ? 1 : 0;
+    const double particleMeanS  = normalizeParticleMeanS(meta);
 
     reportOnError(H5WriteStepAttribInt64(file_m, "global_step", &globalStep, 1), "global_step");
     reportOnError(H5WriteStepAttribFloat64(file_m, "time", &meta.time, 1), "time");
@@ -242,7 +266,7 @@ void H5BeamBeamDiagnosticsWriter::writeStepMetadata(const StepMetadata& meta) {
                     meta.particleMeanR.size()),
             "particle_mean_r");
     reportOnError(
-            H5WriteStepAttribFloat64(file_m, "particle_mean_s", &meta.particleMeanS, 1),
+            H5WriteStepAttribFloat64(file_m, "particle_mean_s", &particleMeanS, 1),
             "particle_mean_s");
 }
 

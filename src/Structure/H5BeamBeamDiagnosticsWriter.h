@@ -44,7 +44,24 @@ public:
         std::array<double, 2> beamBeamSRange = {0.0, 0.0};
 
         double particleTotalCharge        = 0.0;
+        /**
+         * @brief Bunch centroid in the diagnostic coordinate frame [m].
+         *
+         * For the current BeamBeam diagnostics this frame stores the longitudinal
+         * component as the physical laboratory/reference-coordinate @f$s@f$ of the
+         * bunch center. It must therefore not be shifted again by pathLengthS when
+         * producing particleMeanS.
+         */
         std::array<double, 3> particleMeanR = {0.0, 0.0, 0.0};
+        /**
+         * @brief Physical longitudinal bunch centroid @f$\langle s\rangle@f$ [m].
+         *
+         * This is a position, not an offset from the reference particle. Legacy
+         * diagnostics accidentally wrote @f$s_\mathrm{ref} + \langle r_z\rangle@f$
+         * even though @f$\langle r_z\rangle@f$ was already in the physical
+         * longitudinal coordinate. normalizeParticleMeanS() keeps writer output
+         * consistent with this definition.
+         */
         double particleMeanS              = 0.0;
     };
 
@@ -52,6 +69,18 @@ public:
     ~H5BeamBeamDiagnosticsWriter();
 
     void close();
+
+    /**
+     * @brief Return the physical @f$\langle s\rangle@f$ that should be written.
+     *
+     * BeamBeam diagnostics historically had one producer that filled
+     * StepMetadata::particleMeanS as @f$s_\mathrm{ref} + \langle r_z\rangle@f$,
+     * while StepMetadata::particleMeanR[2] was already the physical longitudinal
+     * centroid. That makes the table appear to advance at roughly
+     * @f$2\beta c@f$. The writer fixes only that recognizable legacy value and
+     * otherwise preserves the caller-provided physical centroid.
+     */
+    static double normalizeParticleMeanS(const StepMetadata& meta);
 
     void beginStep(const StepMetadata& meta, const Field_t<3>& rhoDensity);
     void endStep(const Field_t<3>& phiField, const VField_t<double, 3>& efield);

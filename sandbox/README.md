@@ -7,7 +7,7 @@ This directory contains local BeamBeam analysis tools and test inputs.
 Use the Tk-capable MacPorts Python 3.11 environment:
 
 ```bash
-cd /Users/adelmann/git/opalx
+cd /Users/adelmann/git/opalx-beambeam
 
 /opt/local/bin/python3.11 -m venv --system-site-packages .venv-h6
 source .venv-h6/bin/activate
@@ -51,12 +51,15 @@ Expected:
 Combined GUI front-end:
 
 ```bash
-cd /Users/adelmann/git/opalx
+cd /Users/adelmann/git/opalx-beambeam
 source .venv-h6/bin/activate
 python sandbox/beambeam_analysis.py gui
 ```
 
-On systems where Tk is unavailable, the tool falls back to a local browser UI.
+On systems where Tk is unavailable, or when the process is launched from a
+sandbox that cannot create macOS GUI windows, the tool falls back to a local
+browser UI. In this checkout `.venv-h6` is based on MacPorts Python 3.11 and
+imports Tk 8.6 correctly; use a normal terminal session for the native Tk GUI.
 
 ## Notes
 
@@ -89,7 +92,7 @@ export MPLCONFIGDIR=/tmp/mpl
 Typical usage:
 
 ```bash
-cd /Users/adelmann/git/opalx
+cd /Users/adelmann/git/opalx-beambeam
 source .venv-h6/bin/activate
 
 python sandbox/read_beambeam_h5.py \

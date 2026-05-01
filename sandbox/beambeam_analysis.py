@@ -1835,7 +1835,7 @@ def build_web_gui_page(
 """
 
 
-def run_web_gui() -> None:
+def run_web_gui(reason: BaseException | None = None) -> None:
     def temp_output_path(stem: str, suffix: str) -> Path:
         return Path(tempfile.gettempdir()) / f"{stem}{suffix}"
 
@@ -2020,7 +2020,13 @@ def run_web_gui() -> None:
     server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
     host, port = server.server_address
     url = f"http://{host}:{port}/"
-    print("Tk GUI unavailable on this Python/Tk build; falling back to local browser UI.")
+    if reason is None:
+        print(f"Tk GUI unavailable for {sys.executable}; falling back to local browser UI.")
+    else:
+        print(
+            f"Tk GUI unavailable for {sys.executable}: "
+            f"{type(reason).__name__}: {reason}; falling back to local browser UI."
+        )
     print(f"Open: {url}")
     try:
         webbrowser.open(url)
@@ -2043,14 +2049,14 @@ def create_gui() -> None:
                 raise RuntimeError(f"Tcl/Tk {tk.TkVersion} is too old for a reliable macOS GUI")
             create_tk_gui()
             return
-        except Exception:
-            run_web_gui()
+        except Exception as exc:
+            run_web_gui(exc)
             return
 
     try:
         create_tk_gui()
-    except Exception:
-        run_web_gui()
+    except Exception as exc:
+        run_web_gui(exc)
 
 
 def parse_args() -> argparse.Namespace:

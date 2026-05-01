@@ -48,7 +48,7 @@ public:
 
     virtual ElementType getType() const override;
 
-    virtual void getDimensions(double& zBegin, double& zEnd) const override;
+    virtual void getFieldExtend(double& zBegin, double& zEnd) const override;
 
     // set number of slices for map tracking
     void setNSlices(const std::size_t& nSlices);  // Philippe was here

@@ -66,7 +66,7 @@ bool BeamBeam::bends() const {
     return false;
 }
 
-void BeamBeam::getDimensions(double& zBegin, double& zEnd) const {
+void BeamBeam::getFieldExtend(double& zBegin, double& zEnd) const {
     zBegin = startField_m;
     zEnd   = startField_m + getElementLength();
 }

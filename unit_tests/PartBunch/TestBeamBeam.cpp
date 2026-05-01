@@ -3,9 +3,13 @@
 #include "Ippl.h"
 #include "Utility/Inform.h"
 
+#include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
 #include "PartBunch/PartBunch.h"
+#include "Structure/Beam.h"
+#include "Structure/DataSink.h"
 #include "Structure/FieldSolverCmd.h"
+#include "Utilities/Options.h"
 
 #include <memory>
 #include <string>
@@ -42,7 +46,11 @@ public:
     }
 };
 
-std::shared_ptr<FieldSolverCmd> makeFieldSolverCmd() {
+std::shared_ptr<TestableFieldSolverCmd> fieldSolverForBunch;
+std::shared_ptr<DataSink> dataSinkForBunch;
+std::shared_ptr<Beam> beamForBunch;
+
+std::shared_ptr<TestableFieldSolverCmd> makeFieldSolverCmd() {
     auto fieldSolver = std::make_shared<TestableFieldSolverCmd>();
     fieldSolver->setType("OPEN");
     fieldSolver->setNX(8);
@@ -54,11 +62,20 @@ std::shared_ptr<FieldSolverCmd> makeFieldSolverCmd() {
 }
 
 std::shared_ptr<Bunch_t> makeBunch() {
-    auto fieldSolver = makeFieldSolverCmd();
-    auto dataSink    = std::shared_ptr<DataSink>();
+    Beam* beam = Beam::find("UNNAMED_BEAM");
+    if (beam == nullptr) {
+        beam = beamForBunch.get();
+    }
 
     return std::make_shared<Bunch_t>(
-        -1.0e-15, 5.10999e-4, 16, 1.0, "LF2", fieldSolver, dataSink);
+        std::vector<double>{-1.0e-15},
+        std::vector<double>{5.10999e-4},
+        std::vector<Beam*>{beam},
+        std::vector<size_t>{16},
+        1.0,
+        "LF2",
+        fieldSolverForBunch.get(),
+        dataSinkForBunch.get());
 }
 
 void setParticlePositions(
@@ -66,7 +83,7 @@ void setParticlePositions(
     const std::vector<Vector3d>& positions) {
     auto pc = bunch->getParticleContainer();
     if (pc->getLocalNum() == 0) {
-        pc->create(positions.size());
+        pc->createParticles(positions.size());
     } else {
         ASSERT_EQ(pc->getLocalNum(), positions.size());
     }
@@ -99,14 +116,23 @@ protected:
         int argc    = 0;
         char** argv = nullptr;
         ippl::initialize(argc, argv);
+        OpalData::getInstance()->storeInputFn("unit_test.opal");
         // PartBunch teardown writes through the global OPAL Inform stream.
         // The regular `tests/` binary creates this in its custom main(), but
         // the unit_tests tree uses gtest_main, so this fixture must provide
         // the minimal global setup needed by a standalone PartBunch instance.
         gmsg = new Inform("UnitTests: ", std::cerr);
+        Options::enableHDF5 = false;
+
+        fieldSolverForBunch = makeFieldSolverCmd();
+        dataSinkForBunch    = std::make_shared<DataSink>();
+        beamForBunch        = std::make_shared<Beam>();
     }
 
     static void TearDownTestSuite() {
+        beamForBunch.reset();
+        dataSinkForBunch.reset();
+        fieldSolverForBunch.reset();
         delete gmsg;
         gmsg = nullptr;
         ippl::finalize();
