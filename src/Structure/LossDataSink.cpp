@@ -385,9 +385,13 @@ void LossDataSink::save(unsigned int numSets, OpalData::OpenMode openMode) {
 // nodes HAVE to participate, otherwise H5 waits endlessly for a response from
 // the nodes that didn't enter the saveH5 function. -DW
 bool LossDataSink::hasNoParticlesToDump() const {
-    size_t nLoc = particles_m.size();
-    ippl::Comm->reduce(nLoc, nLoc, 1, std::plus<size_t>());
-    return nLoc == 0;
+    // size_t nLoc = particles_m.size();
+    // ippl::Comm->reduce(nLoc, nLoc, 1, std::plus<size_t>());
+    // return nLoc == 0;
+    unsigned long long nLoc = static_cast<unsigned long long>(particles_m.size());
+    unsigned long long nGlobal = 0;
+    ippl::Comm->reduce(nLoc, nGlobal, 1, std::plus<unsigned long long>());
+    return nGlobal == 0;
 }
 
 bool LossDataSink::hasTurnInformations() const {
@@ -399,27 +403,45 @@ bool LossDataSink::hasTurnInformations() const {
 }
 
 void LossDataSink::saveH5(unsigned int setIdx) {
-    size_t nLoc     = particles_m.size();
+    // size_t nLoc     = particles_m.size();
+    // size_t startIdx = 0, endIdx = nLoc;
+    // if (setIdx + 1 < startSet_m.size()) {
+    //     startIdx = startSet_m[setIdx];
+    //     endIdx   = startSet_m[setIdx + 1];
+    //     nLoc     = endIdx - startIdx;
+    // }
+
+    // std::unique_ptr<size_t[]> locN(new size_t[ippl::Comm->size()]);
+    // std::unique_ptr<size_t[]> globN(new size_t[ippl::Comm->size()]);
+
+    // for (int i = 0; i < ippl::Comm->size(); i++) {
+    //     globN[i] = locN[i] = 0;
+    // }
+
+    // locN[ippl::Comm->rank()] = nLoc;
+
+    // reduce(locN.get(), globN.get(), ippl::Comm->size(), std::plus<size_t>());
+
+    // DistributionMoments engine;
+    // engine.compute(particles_m.begin() + startIdx, particles_m.begin() + endIdx);
+
+    size_t nLoc = particles_m.size();
     size_t startIdx = 0, endIdx = nLoc;
     if (setIdx + 1 < startSet_m.size()) {
         startIdx = startSet_m[setIdx];
-        endIdx   = startSet_m[setIdx + 1];
-        nLoc     = endIdx - startIdx;
+        endIdx = startSet_m[setIdx + 1];
+        nLoc = endIdx - startIdx;
     }
 
-    std::unique_ptr<size_t[]> locN(new size_t[ippl::Comm->size()]);
-    std::unique_ptr<size_t[]> globN(new size_t[ippl::Comm->size()]);
+    std::vector<unsigned long long> locN(ippl::Comm->size(), 0);
+    std::vector<unsigned long long> globN(ippl::Comm->size(), 0);
 
-    for (int i = 0; i < ippl::Comm->size(); i++) {
-        globN[i] = locN[i] = 0;
-    }
-
-    locN[ippl::Comm->rank()] = nLoc;
-
-    reduce(locN.get(), globN.get(), ippl::Comm->size(), std::plus<size_t>());
+    locN[ippl::Comm->rank()] = static_cast<unsigned long long>(nLoc);
+    reduce(locN.data(), globN.data(), ippl::Comm->size(), std::plus<unsigned long long>());
 
     DistributionMoments engine;
-    engine.compute(particles_m.begin() + startIdx, particles_m.begin() + endIdx);
+    // engine.compute(particles_m.begin() + startIdx, particles_m.begin() + endIdx);
+
 
     /// Set current record/time step.
     SET_STEP();
