@@ -46,7 +46,7 @@ jobs:
           mkdir -p build_sycl
           cd build_sycl
           cmake .. \
-            -DBUILD_TYPE=Release \ # needs MUCH less memory
+            -DBUILD_TYPE=Release \
             -DCMAKE_CXX_COMPILER=icpx \
             -DPLATFORMS=SYCL \
             -DARCH=INTEL_PVC \
