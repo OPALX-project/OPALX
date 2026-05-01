@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import math
+import re
 import sys
 from pathlib import Path
 
@@ -37,6 +38,14 @@ def load_matplotlib():
             "  source .venv-h5/bin/activate"
         ) from exc
     return plt
+
+
+def load_pandas():
+    try:
+        import pandas as pd  # type: ignore
+    except ModuleNotFoundError as exc:
+        raise SystemExit("pandas is not installed.") from exc
+    return pd
 
 
 def decode_value(value):
@@ -142,14 +151,15 @@ def gaussian_pair_fields(np, x, y, z, sigma, charge, centers):
     }
 
 
-def build_grid(np, origin, spacing, shape):
+def build_grid(np, origin, spacing, shape, cell_centered=True):
     nx = int(shape[0])
     ny = int(shape[1])
     nz = int(shape[2])
 
-    x = origin[0] + (np.arange(nx) + 0.5) * spacing[0]
-    y = origin[1] + (np.arange(ny) + 0.5) * spacing[1]
-    z = origin[2] + (np.arange(nz) + 0.5) * spacing[2]
+    offset = 0.5 if cell_centered else 0.0
+    x = origin[0] + (np.arange(nx) + offset) * spacing[0]
+    y = origin[1] + (np.arange(ny) + offset) * spacing[1]
+    z = origin[2] + (np.arange(nz) + offset) * spacing[2]
 
     X = x[None, None, :]
     Y = y[None, :, None]
@@ -218,6 +228,132 @@ def read_h5_scalar_field(np, step, name):
     origin = np.asarray(field_group.attrs["__Origin__"], dtype=float)
     spacing = np.asarray(field_group.attrs["__Spacing__"], dtype=float)
     return field, origin, spacing
+
+
+def parse_header_value(text):
+    text = text.strip()
+    if text.startswith("(") and text.endswith(")"):
+        return [float(item.strip()) for item in text[1:-1].split(",") if item.strip()]
+    try:
+        return float(text)
+    except ValueError:
+        return text
+
+
+def read_ascii_field_dump(np, path: Path):
+    pd = load_pandas()
+    metadata = {}
+    data_start = None
+    column_count = None
+
+    with path.open("r", encoding="utf-8") as stream:
+        for line_number, raw_line in enumerate(stream):
+            line = raw_line.rstrip("\n")
+            if not line.startswith("#"):
+                data_start = line_number
+                column_count = len(line.split())
+                break
+
+            header = line[1:].strip()
+            if header.startswith("origin="):
+                match = re.match(r"origin=\s*(\([^)]+\))\s+h=\s*(\([^)]+\))(?:\s+nghosts=(\S+))?", header)
+                if match:
+                    metadata["mesh_origin"] = parse_header_value(match.group(1))
+                    metadata["mesh_spacing"] = parse_header_value(match.group(2))
+                    if match.group(3) is not None:
+                        metadata["nghosts"] = int(float(match.group(3)))
+                continue
+            if "=" in header:
+                key, value = header.split("=", 1)
+                metadata[key.strip()] = parse_header_value(value.strip())
+
+    if data_start is None or column_count is None:
+        raise SystemExit(f"no field rows found in {path}")
+
+    if column_count == 7:
+        columns = ["i", "j", "k", "x", "y", "z", "value"]
+    elif column_count == 9:
+        columns = ["i", "j", "k", "x", "y", "z", "x_value", "y_value", "z_value"]
+    else:
+        raise SystemExit(f"unsupported field row width {column_count} in {path}")
+
+    frame = pd.read_csv(
+        path,
+        sep=r"\s+",
+        comment="#",
+        header=None,
+        names=columns,
+        engine="python",
+    )
+
+    i_values = sorted(frame["i"].unique())
+    j_values = sorted(frame["j"].unique())
+    k_values = sorted(frame["k"].unique())
+    shape = (len(i_values), len(j_values), len(k_values))
+    i_map = {value: index for index, value in enumerate(i_values)}
+    j_map = {value: index for index, value in enumerate(j_values)}
+    k_map = {value: index for index, value in enumerate(k_values)}
+
+    if column_count == 7:
+        field = np.zeros((shape[2], shape[1], shape[0]), dtype=float)
+        for row in frame.itertuples(index=False):
+            field[k_map[row.k], j_map[row.j], i_map[row.i]] = row.value
+    else:
+        field = {
+            "Ex": np.zeros((shape[2], shape[1], shape[0]), dtype=float),
+            "Ey": np.zeros((shape[2], shape[1], shape[0]), dtype=float),
+            "Ez": np.zeros((shape[2], shape[1], shape[0]), dtype=float),
+        }
+        for row in frame.itertuples(index=False):
+            iz = k_map[row.k]
+            iy = j_map[row.j]
+            ix = i_map[row.i]
+            field["Ex"][iz, iy, ix] = row.x_value
+            field["Ey"][iz, iy, ix] = row.y_value
+            field["Ez"][iz, iy, ix] = row.z_value
+
+    origin = np.asarray(metadata["mesh_origin"], dtype=float)
+    spacing = np.asarray(metadata["mesh_spacing"], dtype=float)
+    return {"metadata": metadata, "field": field, "origin": origin, "spacing": spacing, "shape": shape}
+
+
+def manufactured_setup_from_ascii(np, rho_path: Path, phi_path: Path, e_path: Path):
+    rho_dump = read_ascii_field_dump(np, rho_path)
+    phi_dump = read_ascii_field_dump(np, phi_path)
+    e_dump = read_ascii_field_dump(np, e_path)
+
+    metadata = rho_dump["metadata"]
+    mean_r = metadata.get("particle_mean_r")
+    if not (isinstance(mean_r, list) and len(mean_r) >= 3):
+        raise SystemExit("particle_mean_r missing or invalid in ASCII dump.")
+
+    primary_center = (float(mean_r[0]), float(mean_r[1]), float(mean_r[2]))
+    centers = [primary_center]
+
+    snapshot_kind = str(metadata.get("snapshot_kind", ""))
+    if snapshot_kind == "active_beambeam_field_diagnostics":
+        if "interaction_point_local_z" in metadata:
+            ip_local_z = float(metadata["interaction_point_local_z"])
+        else:
+            ip_local_z = float(metadata["interaction_point_s"]) - float(metadata["path_length_s"])
+        centers.append((primary_center[0], primary_center[1], 2.0 * ip_local_z - primary_center[2]))
+
+    return {
+        "snapshot_kind": snapshot_kind,
+        "origin": rho_dump["origin"],
+        "spacing": rho_dump["spacing"],
+        "shape": rho_dump["shape"],
+        "charge": float(metadata["particle_total_charge"]),
+        "interaction_point_local_z": float(metadata.get("interaction_point_local_z", "nan")),
+        "centers": centers,
+        "opalx": {
+            "rho": rho_dump["field"],
+            "phi": phi_dump["field"],
+            "Ex": e_dump["field"]["Ex"],
+            "Ey": e_dump["field"]["Ey"],
+            "Ez": e_dump["field"]["Ez"],
+        },
+    }
 
 
 def manufactured_setup_from_h5(np, h5_path: Path, step_number: int, state_raw: str | None):
@@ -694,6 +830,9 @@ def parse_args():
         type=Path,
         help="Compare against one OPALX HDF5 BeamBeam diagnostics file (OPEN solver case)",
     )
+    parser.add_argument("--compare-rho-dump", type=Path, help="Compare an OPALX ASCII rho dump.")
+    parser.add_argument("--compare-phi-dump", type=Path, help="Companion OPALX ASCII phi dump.")
+    parser.add_argument("--compare-e-dump", type=Path, help="Companion OPALX ASCII E-vector dump.")
     parser.add_argument("--step", type=int, help="Global step to read from --compare-h5")
     parser.add_argument(
         "--state",
@@ -710,9 +849,52 @@ def parse_args():
 def main() -> int:
     args = parse_args()
     np = load_numpy()
-    plt = load_matplotlib()
+
+    if args.compare_rho_dump is not None:
+        if args.compare_phi_dump is None or args.compare_e_dump is None:
+            raise SystemExit("--compare-rho-dump requires --compare-phi-dump and --compare-e-dump")
+
+        setup = manufactured_setup_from_ascii(
+            np, args.compare_rho_dump, args.compare_phi_dump, args.compare_e_dump)
+        origin = setup["origin"]
+        spacing = setup["spacing"]
+        shape = setup["shape"]
+        charge = setup["charge"]
+        centers = setup["centers"]
+
+        X, Y, Z = build_grid(np, origin, spacing, shape)
+        analytic = gaussian_pair_fields(np, X, Y, Z, args.sigma, charge, centers)
+
+        print(f"rho dump: {args.compare_rho_dump}")
+        print(f"phi dump: {args.compare_phi_dump}")
+        print(f"E dump: {args.compare_e_dump}")
+        print(f"state: {setup['snapshot_kind']}")
+        print(f"charge per bunch: {charge:.6e} C")
+        for index, center in enumerate(centers, start=1):
+            print(
+                f"center{index} (beam-local frame): "
+                f"({center[0]:.6e}, {center[1]:.6e}, {center[2]:.6e})"
+            )
+
+        for name in ("rho", "phi", "Ex", "Ey", "Ez"):
+            metrics = compute_error_metrics(np, analytic[name], setup["opalx"][name])
+            print(
+                f"{name}: max|Δ|={metrics['max_abs']:.6e}, "
+                f"L2={metrics['l2']:.6e}, relL2={metrics['rel_l2']:.6e}"
+            )
+
+        ip_local_z = setup["interaction_point_local_z"]
+        z_coords, analytic_ez_line = central_z_axis_line(np, analytic["Ez"], origin, spacing)
+        _, opalx_ez_line = central_z_axis_line(np, setup["opalx"]["Ez"], origin, spacing)
+        ip_index = int(np.argmin(np.abs(z_coords - ip_local_z)))
+        print(
+            f"Ez(nearest grid sample to IP) on axis: analytic={analytic_ez_line[ip_index]:.6e}, "
+            f"OPALX={opalx_ez_line[ip_index]:.6e} [V/m]"
+        )
+        return 0
 
     if args.compare_h5 is not None:
+        plt = load_matplotlib()
         if args.step is None:
             raise SystemExit("--step is required with --compare-h5")
 
@@ -857,6 +1039,7 @@ def main() -> int:
         )
         return 0
 
+    plt = load_matplotlib()
     origin, spacing, shape = default_grid(args)
     X, Y, Z = build_grid(np, origin, spacing, shape)
     centers = [

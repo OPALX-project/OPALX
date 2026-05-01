@@ -1,0 +1,55 @@
+OPTION, PSDUMPFREQ    = -1; // 6d data written every 300000 time steps (h5).
+OPTION, STATDUMPFREQ  = 1;  // Beam Stats written every 10 time steps (stat).
+OPTION, BOUNDPDESTROY =10;  // Delete lost particles, if any
+OPTION, AUTOPHASE=4;        // Autophase is on, and phase of max energy
+                            // gain will be found automatically for cavities
+OPTION, VERSION=900;
+
+TITLE, STRING="BeamBeam static Gaussian 1 V/m analytic validation ";
+
+//----------------------------------------------------------------------------
+//Global Parameters
+
+REAL N                   = 32;
+REAL rf_freq             = 1.3e3;    // RF frequency. (Hz)
+REAL n_particles         = 8*N*N*N;  // Number of particles in simulation.
+REAL beam_bunch_charge   = 1.112650055e-14; // Charge magnitude for 1 V/m reference. (C)
+
+//Initial Kinetic Calculation
+REAL Edes    = 0.25;                // energy in GeV
+REAL gamma   = (Edes+EMASS)/EMASS;
+REAL beta    = sqrt(1-(1/gamma^2));
+REAL P0      = gamma*beta*EMASS;    // z momentum
+
+//Printing initial energy and momentum to terminal output.
+value , {Edes, P0, OPALVERSION, n_particles};
+
+// Initialize DRIFT and be BEAMBEAM element
+DR1: DRIFT,    L = 0.008425397, ELEMEDGE = 0.0;
+BB1: BEAMBEAM, L = 0.02, ELEMEDGE = 0.008425397, VISUALIZE=FALSE, COPY=TRUE;
+DR2: DRIFT,    L = 0.031574603, ELEMEDGE = 0.028425397;
+
+myLine: Line = (DR1,BB1,DR2);
+
+FS1: FIELDSOLVER, TYPE=OPEN,
+    NX=N, NY=N, NZ=N,
+    PARFFTX=TRUE, PARFFTY=TRUE, PARFFTZ=FALSE,
+    BCFFTX=OPEN, BCFFTY=OPEN, BCFFTZ=OPEN,
+    BBOXINCR = 1, GREENSF = STANDARD;
+
+Dist1: DISTRIBUTION, TYPE=GAUSS,
+    SIGMAX=1e-3,  SIGMAY=1e-3,  SIGMAZ=1e-3,
+    SIGMAPX=1e-12, SIGMAPY=1e-12, SIGMAPZ=1e-12,
+    NPARTDIST = n_particles;
+
+ES1: EMISSIONSOURCE, DISTRIBUTION = Dist1;
+
+mySources: EMISSIONSOURCELIST = (ES1);
+
+BEAM1:  BEAM, PARTICLE = ELECTRON, pc = P0, NALLOC = n_particles, SOURCES = mySources,
+        BCHARGE = beam_bunch_charge, CHARGE = -1;
+
+TRACK, LINE = myLine, BEAM = BEAM1, MAXSTEPS = {4,15,3}, DT = {1e-11,3e-12,1e-11};
+ RUN, METHOD = "PARALLEL",  FIELDSOLVER = FS1;
+ENDTRACK;
+QUIT;

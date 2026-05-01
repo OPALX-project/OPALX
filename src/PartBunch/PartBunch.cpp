@@ -789,6 +789,7 @@ std::vector<std::string> PartBunch<T, Dim>::buildScalarDumpHeaders(
 
     const auto meshOrigin = this->fcontainer_m->getMesh().getOrigin();
     headers.push_back("coordinate_frame=" + coordinateFrame);
+    const auto pc = this->pcontainer_m;
 
     std::ostringstream globalStepHeader;
     globalStepHeader << "global_step=" << globalTrackStep_m;
@@ -797,6 +798,12 @@ std::vector<std::string> PartBunch<T, Dim>::buildScalarDumpHeaders(
     std::ostringstream timeHeader;
     timeHeader << std::setprecision(12) << "time=" << getT();
     headers.push_back(timeHeader.str());
+
+    if (pc) {
+        std::ostringstream pathHeader;
+        pathHeader << std::setprecision(12) << "path_length_s=" << pc->get_sPos();
+        headers.push_back(pathHeader.str());
+    }
 
     std::ostringstream snapshotHeader;
     snapshotHeader << "snapshot_kind=" << snapshotKind;
@@ -839,6 +846,14 @@ std::vector<std::string> PartBunch<T, Dim>::buildScalarDumpHeaders(
         ipHeader << std::setprecision(12) << "interaction_point_s=" << geometry->interactionPointS;
         headers.push_back(ipHeader.str());
 
+        if (pc) {
+            std::ostringstream localIpHeader;
+            localIpHeader << std::setprecision(12)
+                          << "interaction_point_local_z="
+                          << (geometry->interactionPointS - pc->get_sPos());
+            headers.push_back(localIpHeader.str());
+        }
+
         std::ostringstream rangeHeader;
         rangeHeader << std::setprecision(12) << "ip_element_s_range=(" << geometry->windowBeginS
                     << "," << geometry->windowEndS << ")";
@@ -848,6 +863,24 @@ std::vector<std::string> PartBunch<T, Dim>::buildScalarDumpHeaders(
     std::ostringstream totalNumHeader;
     totalNumHeader << "particle_total_num=" << getTotalNumAllContainers();
     headers.push_back(totalNumHeader.str());
+
+    if (pc) {
+        const auto meanR = pc->getMeanR();
+
+        std::ostringstream chargeHeader;
+        chargeHeader << std::setprecision(12) << "particle_total_charge=" << pc->getTotalCharge();
+        headers.push_back(chargeHeader.str());
+
+        std::ostringstream meanRHeader;
+        meanRHeader << std::setprecision(12) << "particle_mean_r=(" << meanR[0] << ","
+                    << meanR[1] << "," << meanR[2] << ")";
+        headers.push_back(meanRHeader.str());
+
+        std::ostringstream meanSHeader;
+        meanSHeader << std::setprecision(12) << "particle_mean_s="
+                    << (pc->get_sPos() + meanR[2]);
+        headers.push_back(meanSHeader.str());
+    }
 
     return headers;
 }

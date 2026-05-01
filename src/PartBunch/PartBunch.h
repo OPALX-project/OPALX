@@ -638,7 +638,7 @@ public:
 
     std::vector<std::string> buildScalarDumpHeaders(
             const std::string& snapshotKind,
-            const std::string& coordinateFrame = "beam",
+            const std::string& coordinateFrame = "beam_local",
             const std::optional<BeamBeamWindowConfig>& geometryOverride = std::nullopt,
             std::optional<bool> activeOverride = std::nullopt) const;
 

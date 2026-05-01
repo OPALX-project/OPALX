@@ -568,6 +568,17 @@ void BinnedFieldSolver<T, Dim>::computeLegacySelfFields(PartBunch_t& bunch) {
         (*rho)              = (*rho) - (totalQ / size);
     }
 
+    const bool dumpBeamBeamFieldDiagnostics = bunch.hasBeamBeamWindowConfig();
+    std::vector<std::string> beamBeamFieldHeaders;
+    if (dumpBeamBeamFieldDiagnostics) {
+        pc->updateMoments();
+        beamBeamFieldHeaders = bunch.buildScalarDumpHeaders("active_beambeam_field_diagnostics");
+
+        std::vector<std::string> rhoHeaders = beamBeamFieldHeaders;
+        rhoHeaders.emplace_back("field_stage=rho_before_coupling");
+        this->dumpScalField("RHO", "beambeam_rho_pre", rhoHeaders);
+    }
+
     (*rho) = (*rho) * this->getCouplingConstant();
 
     // Ensure deterministic output even for solver types that do not update `E`.
@@ -575,7 +586,16 @@ void BinnedFieldSolver<T, Dim>::computeLegacySelfFields(PartBunch_t& bunch) {
 
     // run the solver once and gather mesh E back to particles.
     m << level4 << "Legacy mode: runSolver() start" << endl;
-    this->runSolver();
+    this->runSolver(dumpBeamBeamFieldDiagnostics);
+    if (dumpBeamBeamFieldDiagnostics) {
+        std::vector<std::string> phiHeaders = beamBeamFieldHeaders;
+        phiHeaders.emplace_back("field_stage=phi_after_solve");
+        this->dumpScalField("PHI", "beambeam_phi", phiHeaders);
+
+        std::vector<std::string> eHeaders = beamBeamFieldHeaders;
+        eHeaders.emplace_back("field_stage=e_after_solve");
+        this->dumpVectField("EF", "beambeam_e", eHeaders);
+    }
     dumpDirichletPlaneDiagnosticsIfRequested(bunch, "legacy");
     m << level4 << "Legacy mode: gather E->particles" << endl;
 
