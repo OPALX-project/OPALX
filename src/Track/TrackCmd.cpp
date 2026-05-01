@@ -213,7 +213,8 @@ void TrackCmd::execute() {
         beams.push_back(Beam::find(name));  // fail fast
     }
 
-    // Current tracker supports only a single beam; use the first one for now.
+    // The first beam supplies the reference particle; TrackRun resolves and
+    // tracks the full selected beam list.
     Beam* beam = beams.front();
 
     // std::cout << "TrackCmd::execute" << std::endl;
