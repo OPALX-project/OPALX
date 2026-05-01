@@ -11,7 +11,7 @@ concurrency:
 
 jobs:
   # ===== BUILD + UNIT TESTS =====
-  build:
+  build-cpu-serial-debug:
     name: Build & Unit Tests
     runs-on: ubuntu-latest
     if: contains(github.event.pull_request.labels.*.name, 'compile-ci') && github.event.pull_request.draft == false
@@ -61,7 +61,7 @@ jobs:
   #   reference/       — reference outputs including <name>.stat
   smoke-tests:
     name: Smoke Test (${{ matrix.test }})
-    needs: build
+    needs: build-cpu-serial-debug
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
