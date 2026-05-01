@@ -36,7 +36,7 @@ public:
     /** @brief Destroy the laser element. */
     ~Laser() override;
 
-    /** @brief Accept a beamline visitor through the generic component interface. */
+    /** @brief Accept a beamline visitor through the laser-specific interface. */
     void accept(BeamlineVisitor&) const override;
 
     /**
@@ -54,7 +54,7 @@ public:
     bool bends() const override;
 
     /** @brief Get the longitudinal element extent in the current lattice traversal. */
-    void getDimensions(double& zBegin, double& zEnd) const override;
+    void getFieldExtend(double& zBegin, double& zEnd) const override;
 
     /** @brief Return the OPALX element type identifier. */
     ElementType getType() const override;
@@ -124,8 +124,8 @@ public:
      * @throws OpalException If the electron energy is below rest energy or if either
      *         direction vector is zero.
      */
-    double getLinearComptonInvariantX(double electronTotalEnergyGeV,
-                                      const Vector_t<double, 3>& beamDirection) const;
+    double getLinearComptonInvariantX(
+            double electronTotalEnergyGeV, const Vector_t<double, 3>& beamDirection) const;
 
     /**
      * @brief Compute the forward scattered photon energy for linear Compton scattering.
@@ -141,8 +141,7 @@ public:
      *         direction vector is zero.
      */
     double getLinearComptonForwardPhotonEnergyGeV(
-        double electronTotalEnergyGeV,
-        const Vector_t<double, 3>& beamDirection) const;
+            double electronTotalEnergyGeV, const Vector_t<double, 3>& beamDirection) const;
 
 private:
     double startField_m;
@@ -155,8 +154,6 @@ private:
     Vector_t<double, 3> stokes_m;
 };
 
-inline int Laser::getRequiredNumberOfTimeSteps() const {
-    return 1;
-}
+inline int Laser::getRequiredNumberOfTimeSteps() const { return 1; }
 
 #endif  // OPALX_Laser_HH
