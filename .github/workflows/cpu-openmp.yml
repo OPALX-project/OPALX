@@ -10,9 +10,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # ===== BUILD =====
+  # ===== BUILD + UNIT TESTS =====
   build:
-    name: Build
+    name: Build & Unit Tests
     runs-on: ubuntu-latest
     if: contains(github.event.pull_request.labels.*.name, 'compile-ci') && github.event.pull_request.draft == false
 
@@ -41,32 +41,6 @@ jobs:
         run: |
           cd build_openmp
           make -j$(nproc)
-
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-openmp-debug
-          path: |
-            build_openmp/CTestTestfile.cmake
-            build_openmp/unit_tests/
-
-  # ===== UNIT TESTS =====
-  unit-tests:
-    name: Unit Tests
-    needs: build
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Install MPI runtime
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libopenmpi-dev openmpi-bin
-
-      - name: Download build artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: build-openmp-debug
-          path: .
 
       - name: Run unit tests
         run: |

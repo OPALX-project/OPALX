@@ -10,9 +10,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # ===== BUILD =====
+  # ===== BUILD + UNIT TESTS =====
   build:
-    name: Build
+    name: Build & Unit Tests
     runs-on: ubuntu-latest
     if: contains(github.event.pull_request.labels.*.name, 'compile-ci') && github.event.pull_request.draft == false
 
@@ -41,37 +41,16 @@ jobs:
           cd build_serial
           make -j$(nproc)
 
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-serial-debug
-          path: |
-            build_serial/src/opalx
-            build_serial/CTestTestfile.cmake
-            build_serial/unit_tests/
-
-  # ===== UNIT TESTS =====
-  unit-tests:
-    name: Unit Tests
-    needs: build
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Install MPI runtime
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libopenmpi-dev openmpi-bin
-
-      - name: Download build artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: build-serial-debug
-          path: .
-
       - name: Run unit tests
         run: |
           cd build_serial
           ctest --output-on-failure -j $(nproc)
+
+      - name: Upload binary for smoke tests
+        uses: actions/upload-artifact@v4
+        with:
+          name: opalx-serial-debug
+          path: build_serial/src/opalx
 
   # ===== SMOKE REGRESSION TESTS =====
   # Edit the list below to add or remove tests.
@@ -98,14 +77,14 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libopenmpi-dev openmpi-bin
 
-      - name: Download build artifacts
+      - name: Download binary
         uses: actions/download-artifact@v4
         with:
-          name: build-serial-debug
-          path: .
+          name: opalx-serial-debug
+          path: bin
 
       - name: Make binary executable
-        run: chmod +x build_serial/src/opalx
+        run: chmod +x bin/opalx
 
       - name: Get regression test inputs
         run: |
@@ -118,7 +97,7 @@ jobs:
           mkdir -p "$RUN_DIR"
           find "$TEST_DIR" -maxdepth 1 -type f -exec cp {} "$RUN_DIR/" \;
           cd "$RUN_DIR"
-          mpirun -np 1 "$GITHUB_WORKSPACE/build_serial/src/opalx" ${{ matrix.test }}.in --info 2
+          mpirun -np 1 "$GITHUB_WORKSPACE/bin/opalx" ${{ matrix.test }}.in --info 2
 
       - name: Compare stat output to reference (${{ matrix.test }})
         env:
