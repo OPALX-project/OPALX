@@ -12,7 +12,7 @@ concurrency:
 jobs:
   # ===== BUILD =====
   # No unit tests or smoke tests: GPU code cannot be executed on the CI runner.
-  build-cuda-debug:
+  build:
     name: Compile
     runs-on: ubuntu-latest
     if: contains(github.event.pull_request.labels.*.name, 'compile-ci') && github.event.pull_request.draft == false
