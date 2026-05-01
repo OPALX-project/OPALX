@@ -5,7 +5,6 @@ set (_SRCS
     Euclid3DGeometry.cpp
     NullGeometry.cpp
     PlanarArcGeometry.cpp
-    VarRadiusGeometry.cpp
     RBendGeometry.cpp
     Rotation3D.cpp
     StraightGeometry.cpp
@@ -13,16 +12,21 @@ set (_SRCS
     )
 
 set (HDRS
+    ElementGeometry.h
     Euclid3DGeometry.h
     Euclid3D.h
     Geometry.h
     Matrix3D.h
+    Misalignment.h
     NullGeometry.h
+    PlacedElement.h
     PlanarArcGeometry.h
-    VarRadiusGeometry.h
+    PlacementPose.h
+    Port.h
     RBendGeometry.h
     Rotation3D.h
     StraightGeometry.h
+    SupportPlacement.h
     Vector3D.h
     )
 

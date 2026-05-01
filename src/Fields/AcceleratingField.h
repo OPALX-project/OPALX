@@ -1,5 +1,5 @@
-#ifndef CLASSIC_AcceleratingField_HH
-#define CLASSIC_AcceleratingField_HH
+#ifndef OPALX_AcceleratingField_HH
+#define OPALX_AcceleratingField_HH
 
 // ------------------------------------------------------------------------
 // $RCSfile: AcceleratingField.h,v $
@@ -32,4 +32,4 @@
 
 typedef OscillatingField<ConstEzField> AcceleratingField;
 
-#endif // CLASSIC_AcceleratingField_HH
+#endif // OPALX_AcceleratingField_HH

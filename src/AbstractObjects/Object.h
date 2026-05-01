@@ -134,7 +134,7 @@ public:
     //  Called for all defined objects, before an action command is executed.
     //  This default version does nothing.
     //  Derived classes may use this call to update their internal state.
-    //  The beam line elements can update their CLASSIC counterpart.
+    //  The beam line elements can update their OPALX counterpart.
     virtual void update();
 
     /// True, if [b]this[/b] is a built-in object.

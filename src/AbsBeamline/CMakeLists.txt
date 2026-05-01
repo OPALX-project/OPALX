@@ -2,17 +2,18 @@
 
 # Include subdirectories
 add_subdirectory(EndFieldModel)
-add_subdirectory(MultipoleTFunctions)
 
 # List local source and header files
 set(_SRCS
     AttributeSet.cpp
     BeamlineVisitor.cpp
+    BendBase.cpp
     Component.cpp
     ConstantEFieldCavity.cpp
     Drift.cpp
     ElementBase.cpp
     BeamBeam.cpp
+    Laser.cpp
     Marker.cpp
     Monitor.cpp
     Multipole.cpp
@@ -20,44 +21,48 @@ set(_SRCS
     MultipoleTBase.cpp
     MultipoleTStraight.cpp
     MultipoleTCurvedConstRadius.cpp
-    MultipoleTCurvedVarRadius.cpp
     RFCavity.cpp
     Ring.cpp
     ScalingFFAMagnet.cpp        
     Solenoid.cpp
     TravelingWave.cpp
-    Offset.cpp
     VerticalFFAMagnet.cpp
     Probe.cpp
     PluginElement.cpp
+    RBend.cpp
+    VariableRFCavity.cpp
+    SBend.cpp
 )
 
 set(_HDRS
     AttributeSet.h
     BeamlineVisitor.h
+    BendBase.h
     Component.h
     ConstantEFieldCavity.h
     Drift.h
     ElementBase.h
     BeamBeam.h
     BeamBeamDefinitions.h
+    Laser.h
     Marker.h
     Multipole.h
     MultipoleT.h
     MultipoleTBase.h
     MultipoleTStraight.h
     MultipoleTCurvedConstRadius.h
-    MultipoleTCurvedVarRadius.h
     RFCavity.h
     TravelingWave.h
     SpecificElementVisitor.h
     ScalingFFAMagnet.h
     Ring.h
     Solenoid.h
-    Offset.h
     VerticalFFAMagnet.h
     Probe.h
     PluginElement.h
+    RBend.h
+    SBend.h
+    VariableRFCavity.h
 )
 
 # Add local include directory

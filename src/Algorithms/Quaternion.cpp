@@ -4,7 +4,7 @@
 #include "Algorithms/Matrix.h"
 #include "OPALTypes.h"
 #include "Physics/Physics.h"
-#include "Utilities/GeneralClassicException.h"
+#include "Utilities/GeneralOpalException.h"
 
 namespace {
     ippl::Vector<double, 3> normalize(const ippl::Vector<double, 3>& vec) {
@@ -12,7 +12,7 @@ namespace {
 
 #ifndef NOPAssert
         if (length < 1e-12)
-            throw GeneralClassicException("normalize()", "length of vector less than 1e-12");
+            throw GeneralOpalException("normalize()", "length of vector less than 1e-12");
 #endif
 
         return vec / length;
@@ -100,7 +100,7 @@ Quaternion Quaternion::operator/(const double& d) const {
 Quaternion& Quaternion::normalize() {
 #ifndef NOPAssert
     if (this->Norm() < 1e-12)
-        throw GeneralClassicException(
+        throw GeneralOpalException(
             "Quaternion::normalize()", "length of quaternion less than 1e-12");
 #endif
 
@@ -114,7 +114,7 @@ Quaternion Quaternion::inverse() const {
 
     #ifndef NOPAssert
     if (this->Norm() < 1e-12)
-        throw GeneralClassicException(
+        throw GeneralOpalException(
             "Quaternion::inverse()", "length of quaternion less than 1e-12");
     #endif
 
@@ -126,7 +126,7 @@ Quaternion Quaternion::inverse() const {
 ippl::Vector<double, 3> Quaternion::rotate(const ippl::Vector<double, 3>& vec) const {
 #ifndef NOPAssert
     if (!this->isUnit())
-        throw GeneralClassicException(
+        throw GeneralOpalException(
             "Quaternion::rotate()",
             "quaternion isn't unit quaternion. Norm: " + std::to_string(this->Norm()));
 #endif

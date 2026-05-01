@@ -20,7 +20,6 @@
 // ------------------------------------------------------------------------
 
 #include "Algorithms/AbstractTracker.h"
-#include "Algorithms/PartData.h"
 
 
 //: Abstract tracker class.
@@ -34,10 +33,8 @@
 
 
 AbstractTracker::AbstractTracker(const Beamline &beamline,
-                                 const PartData &reference,
                                  bool backBeam, bool backTrack):
-    DefaultVisitor(beamline, backBeam, backTrack),
-    itsReference(reference)
+    DefaultVisitor(beamline, backBeam, backTrack)
 {}
 
 

@@ -27,12 +27,12 @@
 
 
 FormatError::FormatError(const std::string &meth, const std::string &msg):
-    ClassicException(meth, msg)
+    OpalException(meth, msg)
 {}
 
 
 FormatError::FormatError(const FormatError &rhs):
-    ClassicException(rhs)
+    OpalException(rhs)
 {}
 
 

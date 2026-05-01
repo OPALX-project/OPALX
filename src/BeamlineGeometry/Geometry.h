@@ -1,5 +1,5 @@
-#ifndef CLASSIC_BGeometryBase_HH
-#define CLASSIC_BGeometryBase_HH
+#ifndef OPALX_BGeometryBase_HH
+#define OPALX_BGeometryBase_HH
 
 // ------------------------------------------------------------------------
 // $RCSfile: BGeometryBase.h,v $
@@ -135,4 +135,4 @@ inline BGeometryBase::BGeometryBase(const BGeometryBase &)
 inline const BGeometryBase &BGeometryBase::operator=(const BGeometryBase &)
 { return *this; }
 
-#endif // CLASSIC_BGeometryBase_HH
+#endif // OPALX_BGeometryBase_HH

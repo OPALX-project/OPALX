@@ -1,5 +1,5 @@
-#ifndef CLASSIC_ConstantEFieldCavity_HH
-#define CLASSIC_ConstantEFieldCavity_HH
+#ifndef OPALX_ConstantEFieldCavity_HH
+#define OPALX_ConstantEFieldCavity_HH
 
 #include "AbsBeamline/Component.h"
 
@@ -23,19 +23,18 @@ public:
     virtual void finalise() override;
     virtual bool bends() const override;
     virtual ElementType getType() const override;
-    virtual void getDimensions(double& zBegin, double& zEnd) const override;
+    virtual void getFieldExtend(double& zBegin, double& zEnd) const override;
 
-    virtual bool apply() override;
-    virtual bool apply(const size_t& i, const double& t,
-                       Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
-    virtual bool apply(const Vector_t<double, 3>& R, const Vector_t<double, 3>& P,
-                       const double& t, Vector_t<double, 3>& E,
-                       Vector_t<double, 3>& B) override;
-    virtual bool applyToReferenceParticle(const Vector_t<double, 3>& R,
-                                          const Vector_t<double, 3>& P,
-                                          const double& t,
-                                          Vector_t<double, 3>& E,
-                                          Vector_t<double, 3>& B) override;
+    virtual bool apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
+    virtual bool apply(
+            const size_t& i, const double& t, Vector_t<double, 3>& E,
+            Vector_t<double, 3>& B) override;
+    virtual bool apply(
+            const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
+            Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
+    virtual bool applyToReferenceParticle(
+            const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
+            Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 
     double getEx() const;
     double getEy() const;
@@ -55,5 +54,4 @@ private:
     void operator=(const ConstantEFieldCavity&);
 };
 
-#endif  // CLASSIC_ConstantEFieldCavity_HH
-
+#endif  // OPALX_ConstantEFieldCavity_HH

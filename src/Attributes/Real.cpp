@@ -24,7 +24,6 @@
 #include "OpalParser/SimpleStatement.h"
 #include "OpalParser/StringStream.h"
 #include "OpalParser/Token.h"
-#include "Utilities/ClassicException.h"
 #include "Utilities/ParseError.h"
 
 using namespace Expressions;

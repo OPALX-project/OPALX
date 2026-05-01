@@ -36,11 +36,11 @@ public:
      * @brief Constructor for FlatTop.
      * @param pc Shared pointer to ParticleContainer.
      * @param fc Shared pointer to FieldContainer.
-     * @param opalDist Shared pointer to Distribution.
+     * @param opalDist Borrowed Distribution.
      */
     FlatTop(std::shared_ptr<ParticleContainer_t> pc,
         std::shared_ptr<FieldContainer_t> fc,
-        std::shared_ptr<Distribution_t> opalDist);
+        Distribution_t* opalDist);
     
     /**
      * @brief Constructor for FlatTop.
@@ -124,6 +124,11 @@ public:
     double getEmissionTime(){
         return emissionTime_m;
     }
+
+    /// @copydoc SamplingBase::isEmissionDone
+    bool isEmissionDone(double t) const override {
+        return (t - t0_m) >= emissionTime_m;
+    }
 private:
     using size_type = ippl::detail::size_type;
     GeneratorPool rand_pool_m;  ///< Random number generator pool.
@@ -153,15 +158,22 @@ private:
      * @brief Sets distribution parameters.
      * @param opalDist Shared pointer to the distribution object.
      */
-    void setParameters(const std::shared_ptr<Distribution_t> &opalDist);
+    void setParameters(Distribution_t* opalDist);
 
 public:
     /**
      * @brief Generates particles (x,y) uniformly on a disk distribution.
+     *
+     * Each new particle is assigned a fractional per-particle dt sampled
+     * uniformly in (0, dt), representing the fraction of the next integration
+     * step the particle will experience (as if born at a random time within
+     * the current emission interval).
+     *
      * @param nlocal Number of local particles.
      * @param nNew Number of new particles to generate.
+     * @param dt Global timestep; used to sample fractional per-particle dt.
      */
-    void generateUniformDisk(size_type nlocal, size_t nNew);
+    void generateUniformDisk(size_type nlocal, size_t nNew, double dt);
 
     /**
      * @brief Sets the number of grid points per direction.
@@ -237,4 +249,3 @@ public:
 };
 
 #endif // IPPL_FLAT_TOP_H
-

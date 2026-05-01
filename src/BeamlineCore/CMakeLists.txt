@@ -2,10 +2,13 @@ set (_SRCS
     ConstantEFieldCavityRep.cpp
     DriftRep.cpp
     BeamBeamRep.cpp
+    LaserRep.cpp
     MarkerRep.cpp
     MonitorRep.cpp
     MultipoleRep.cpp
+    RBendRep.cpp
     RFCavityRep.cpp
+    SBendRep.cpp
     TravelingWaveRep.cpp
     SolenoidRep.cpp
     ProbeRep.cpp
@@ -15,10 +18,13 @@ set (HDRS
     ConstantEFieldCavityRep.h
     DriftRep.h
     BeamBeamRep.h
+    LaserRep.h
     MarkerRep.h
     MonitorRep.h
     MultipoleRep.h
+    RBendRep.h
     RFCavityRep.h
+    SBendRep.h
     TravelingWaveRep.h
     SolenoidRep.h
     ProbeRep.h

@@ -1,5 +1,5 @@
-#ifndef CLASSIC_DirectChannel_HH
-#define CLASSIC_DirectChannel_HH
+#ifndef OPALX_DirectChannel_HH
+#define OPALX_DirectChannel_HH
 
 // ------------------------------------------------------------------------
 // $RCSfile: DirectChannel.h,v $
@@ -98,4 +98,4 @@ inline bool DirectChannel::get(double &value) const {
 }
 
 
-#endif // CLASSIC_DirectChannel_HH
+#endif // OPALX_DirectChannel_HH

@@ -23,14 +23,24 @@
 // ------------------------------------------------------------------------
 
 OpalException::OpalException(const std::string &meth, const std::string &msg):
-    ClassicException(meth, msg)
+    message(msg), method(meth)
 {}
 
 
 OpalException::OpalException(const OpalException &rhs):
-    ClassicException(rhs)
+    message(rhs.message), method(rhs.method)
 {}
 
 
 OpalException::~OpalException()
 {}
+
+
+const std::string &OpalException::what() const {
+    return message;
+}
+
+
+const std::string &OpalException::where() const {
+    return method;
+}

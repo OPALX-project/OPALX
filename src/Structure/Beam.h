@@ -25,11 +25,11 @@
 
 #include <ostream>
 #include <string>
+#include <vector>
 
 class Inform;
 
-class Beam: public Definition {
-
+class Beam : public Definition {
 public:
     /// Exemplar constructor.
     Beam();
@@ -49,14 +49,17 @@ public:
     /// Find named BEAM.
     static Beam* find(const std::string& name);
 
-    /// Return the number of (macro)particles
-    size_t getNumberOfParticles() const;
+    /// Return the allocation size (macroparticles) for this beam
+    size_t getNumAlloc() const;
 
-    /// Return the embedded CLASSIC PartData.
+    /// Return the embedded OPALX PartData.
     const PartData& getReference() const;
 
-    /// Return the beam current in A
+    /// Return the beam current in A (legacy; no longer used in OPALX)
     double getCurrent() const;
+
+    /// Return the bunch charge in C
+    double getBunchCharge() const;
 
     /// Return the charge number in elementary charge
     double getCharge() const;
@@ -66,6 +69,9 @@ public:
 
     /// Return Particle's name
     std::string getParticleName() const;
+
+    /// True if this beam is configured as a photon beam.
+    bool isPhoton() const;
 
     /// Return Particle's rest mass in GeV
     double getMass() const;
@@ -82,6 +88,15 @@ public:
     /// Return the name of the EMISSIONSOURCELIST linked to this beam.
     /// Throws if `SOURCES` is not set.
     std::string getEmissionSourceListName() const;
+
+    /// Return the configured global process names for this beam.
+    std::vector<std::string> getGlobalProcessNames() const;
+
+    /// Return the name of the daughter beam (for decay products), or empty if not set.
+    std::string getDaughterBeamName() const;
+
+    /// True if PC, ENERGY, or GAMMA was explicitly provided by the user.
+    bool hasExplicitEnergy() const;
 
     /// Update the BEAM data.
     virtual void update();
@@ -103,9 +118,9 @@ private:
     static const double energy_scale;
 };
 
-inline std::ostream &operator<<(std::ostream& os, const Beam& b) {
+inline std::ostream& operator<<(std::ostream& os, const Beam& b) {
     b.print(os);
     return os;
 }
 
-#endif // OPAL_Beam_HH
+#endif  // OPAL_Beam_HH

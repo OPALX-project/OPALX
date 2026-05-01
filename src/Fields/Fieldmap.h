@@ -1,5 +1,5 @@
-#ifndef CLASSIC_FIELDMAP_HH
-#define CLASSIC_FIELDMAP_HH
+#ifndef OPALX_FIELDMAP_HH
+#define OPALX_FIELDMAP_HH
 
 #define READ_BUFFER_LENGTH 256
 
@@ -118,10 +118,11 @@ public:
 /* =========================== Field Functions=============================== */
     /**
      * @brief Apply the FM to all the particles
-     * 
+     *
      * @param pc Particle container
+     * @param scale Scaling factor applied to the field (default 1.0)
      */
-    virtual void applyField(std::shared_ptr<ParticleContainer_t> pc) = 0;
+    virtual void applyField(std::shared_ptr<ParticleContainer_t> pc, double scale = 1.0) = 0;
 
     /**
      * @brief Get the field strength at a given point.

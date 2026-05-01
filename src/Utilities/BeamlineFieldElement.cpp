@@ -1,0 +1,28 @@
+#include "Utilities/BeamlineFieldElement.h"
+
+extern Inform* gmsg;
+
+BeamlineFieldElement::BeamlineFieldElement(
+    std::shared_ptr<Component> element, const double& start, const double& end)
+    : element_m(element), start_m(start), end_m(end), is_on_m(false) {
+}
+
+BeamlineFieldElement::~BeamlineFieldElement() {
+    element_m = nullptr;
+}
+
+void BeamlineFieldElement::setOn(const double& kineticEnergy) {
+    if (!is_on_m) {
+        element_m->goOnline(kineticEnergy);
+        *gmsg << "* " << element_m->getName() << " gone live" << endl;
+        is_on_m = true;
+    }
+}
+
+void BeamlineFieldElement::setOff() {
+    if (is_on_m) {
+        element_m->goOffline();
+        *gmsg << "* " << element_m->getName() << " gone off" << endl;
+        is_on_m = false;
+    }
+}

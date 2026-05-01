@@ -1,5 +1,5 @@
-#ifndef CLASSIC_FIELDMAP_ICC
-#define CLASSIC_FIELDMAP_ICC
+#ifndef OPALX_FIELDMAP_ICC
+#define OPALX_FIELDMAP_ICC
 
 
 #include <string>

@@ -2,29 +2,31 @@ set (_SRCS
     OpalCavity.cpp
     OpalConstantEFieldCavity.cpp
     OpalTravelingWave.cpp
+    OpalBend.cpp
     OpalDrift.cpp
     OpalBeamBeam.cpp
     OpalElement.cpp
+    OpalLaser.cpp
     OpalMarker.cpp
     OpalMultipole.cpp
     OpalMultipoleT.cpp
     OpalQuadrupole.cpp
+    OpalRBend.cpp
+    OpalSBend.cpp
     OpalSolenoid.cpp
     OpalBeamline.cpp
     OpalRingDefinition.cpp      
-    OpalOffset/OpalLocalCylindricalOffset.cpp
-    OpalOffset/OpalLocalCartesianOffset.cpp
-    OpalOffset/OpalGlobalCylindricalOffset.cpp
-    OpalOffset/OpalGlobalCartesianOffset.cpp
     OpalVerticalFFAMagnet.cpp
     OpalProbe.cpp
     OpalPolynomialTimeDependence.cpp
     OpalSplineTimeDependence.cpp
     OpalSinusoidalTimeDependence.cpp
+    OpalVariableRFCavity.cpp
 )
 
 set (HDRS
     OpalBeamline.h
+    OpalBend.h
     OpalCavity.h
     OpalConstantEFieldCavity.h
     OpalDrift.h
@@ -34,19 +36,19 @@ set (HDRS
     OpalMultipole.h
     OpalMultipoleT.h
     OpalQuadrupole.h
+    OpalRBend.h
+    OpalSBend.h
     OpalSource.h
     OpalSolenoid.h
     OpalTravelingWave.h
     OpalRingDefinition.h
-    OpalOffset/OpalGlobalCartesianOffset.h
-    OpalOffset/OpalGlobalCylindricalOffset.h
-    OpalOffset/OpalLocalCartesianOffset.h
-    OpalOffset/OpalLocalCylindricalOffset.h
+    OpalLaser.h
     OpalVerticalFFAMagnet.h
     OpalProbe.h
     OpalPolynomialTimeDependence.h
     OpalSplineTimeDependence.h
     OpalSinusoidalTimeDependence.h
+    OpalVariableRFCavity.h
 )
 
 target_include_directories(opalx PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

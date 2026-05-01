@@ -4,6 +4,7 @@ set (_SRCS
   BoundingBox.cpp
   BoundaryGeometry.cpp
   BinConfigWriter.cpp
+  DirichletPlaneWriter.cpp
   DataSink.cpp
   ElementPositionWriter.cpp
   FieldSolverCmd.cpp
@@ -31,6 +32,7 @@ set (HDRS
     BoundaryGeometry.h
     BoundingBox.h
     BinConfigWriter.h
+    DirichletPlaneWriter.h
     DataSink.h
     ElementPositionWriter.h
     FieldSolverCmd.h

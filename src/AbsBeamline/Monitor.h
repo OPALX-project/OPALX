@@ -15,12 +15,12 @@
 // You should have received a copy of the GNU General Public License
 // along with OPAL.  If not, see <https://www.gnu.org/licenses/>.
 //
-#ifndef CLASSIC_Monitor_HH
-#define CLASSIC_Monitor_HH
+#ifndef OPALX_Monitor_HH
+#define OPALX_Monitor_HH
 
 #include "AbsBeamline/Component.h"
-#include "PartBunch/PartBunch.h"
 #include "BeamlineGeometry/StraightGeometry.h"
+#include "PartBunch/PartBunch.h"
 #include "Structure/LossDataSink.h"
 
 #include <map>
@@ -61,18 +61,19 @@ public:
     /// Get plane on which monitor observes.
     virtual Plane getPlane() const = 0;
 
-    virtual bool apply() override;
+    virtual bool apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
 
     virtual bool apply(
-        const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
+            const size_t& i, const double& t, Vector_t<double, 3>& E,
+            Vector_t<double, 3>& B) override;
 
     virtual bool apply(
-        const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-	Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
+            const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
+            Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 
     virtual bool applyToReferenceParticle(
-        const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
-        Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
+            const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
+            Vector_t<double, 3>& E, Vector_t<double, 3>& B) override;
 
     virtual void initialise(PartBunch_t* bunch, double& startField, double& endField) override;
 
@@ -86,7 +87,7 @@ public:
 
     virtual ElementType getType() const override;
 
-    virtual void getDimensions(double& zBegin, double& zEnd) const override;
+    virtual void getFieldExtend(double& zBegin, double& zEnd) const override;
 
     void setCollectionType(CollectionType type);
 
@@ -112,17 +113,13 @@ private:
     static const double halfLength_s;
 };
 
-inline void Monitor::setCollectionType(CollectionType type) {
-    type_m = type;
-}
+inline void Monitor::setCollectionType(CollectionType type) { type_m = type; }
 
-inline int Monitor::getRequiredNumberOfTimeSteps() const {
-    return 1;
-}
+inline int Monitor::getRequiredNumberOfTimeSteps() const { return 1; }
 
 inline bool Monitor::isInside(const Vector_t<double, 3>& r) const {
     const double length = getElementLength();
     return std::abs(r(2)) <= 0.5 * length && isInsideTransverse(r);
 }
 
-#endif  // CLASSIC_Monitor_HH
+#endif  // OPALX_Monitor_HH

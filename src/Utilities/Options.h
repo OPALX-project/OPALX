@@ -19,7 +19,7 @@
 #ifndef OPTIONS_HH
 #define OPTIONS_HH
 
-#include "Utilities/ClassicRandom.h"
+#include "Utilities/ExpressionRandom.h"
 
 #include <string>
 
@@ -155,6 +155,13 @@ namespace Options {
     extern unsigned int delPartFreq;
 
     extern bool computePercentiles;
+
+    /// If true, every `BunchStateHandler` setter performs an `ippl::Comm->allreduce`
+    /// so that the flag is guaranteed to be consistent across MPI ranks, even if the
+    /// caller set it on a subset of ranks. Off by default because the extra
+    /// collective on every state change has a noticeable cost in tight loops; enable
+    /// it only for debugging or in contexts where rank-local divergence is possible.
+    extern bool aggressiveStateSync;
 }  // namespace Options
 
 #endif  // OPAL_Options_HH

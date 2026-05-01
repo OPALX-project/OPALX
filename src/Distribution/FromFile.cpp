@@ -1,30 +1,30 @@
-#include "Distribution.h"
-#include "SamplingBase.hpp"
 #include "FromFile.h"
-#include "Utilities/OpalException.h"
-#include "AbstractObjects/OpalData.h"
-#include "Utility/Inform.h"
 #include <Kokkos_Core.hpp>
-#include <memory>
-#include <fstream>
-#include <sstream>
 #include <algorithm>
 #include <cctype>
 #include <filesystem>
+#include <fstream>
+#include <memory>
+#include <sstream>
+#include "AbstractObjects/OpalData.h"
+#include "Distribution.h"
+#include "SamplingBase.hpp"
+#include "Utilities/OpalException.h"
+#include "Utility/Inform.h"
 
-FromFile::FromFile(std::shared_ptr<ParticleContainer_t> pc,
-                   std::shared_ptr<FieldContainer_t> fc,
-                   std::shared_ptr<Distribution_t> opalDist)
+FromFile::FromFile(
+        std::shared_ptr<ParticleContainer_t> pc, std::shared_ptr<FieldContainer_t> fc,
+        Distribution_t* opalDist)
     : SamplingBase(pc, fc, opalDist), numParticles_m(0) {
-
     // Get filename from distribution
     filename_m = opalDist->getFilename();
-    
+
     if (filename_m.empty()) {
-        throw OpalException("FromFile::FromFile",
-                            "FNAME attribute must be set for FROMFILE distribution type.");
+        throw OpalException(
+                "FromFile::FromFile",
+                "FNAME attribute must be set for FROMFILE distribution type.");
     }
-    
+
     // Resolve file path (check relative to input file directory)
     namespace fs = std::filesystem;
     if (!fs::exists(filename_m)) {
@@ -38,21 +38,19 @@ FromFile::FromFile(std::shared_ptr<ParticleContainer_t> pc,
             }
         }
     }
-    
+
     // Read and parse the file
     readFile(filename_m);
 }
 
-FromFile::FromFile(std::shared_ptr<ParticleContainer_t> pc,
-                   std::shared_ptr<FieldContainer_t> fc,
-                   const std::string& filename)
+FromFile::FromFile(
+        std::shared_ptr<ParticleContainer_t> pc, std::shared_ptr<FieldContainer_t> fc,
+        const std::string& filename)
     : SamplingBase(pc, fc), numParticles_m(0) {
-
     filename_m = filename;
 
     if (filename_m.empty()) {
-        throw OpalException("FromFile::FromFile",
-                            "Filename must not be empty.");
+        throw OpalException("FromFile::FromFile", "Filename must not be empty.");
     }
 
     // Read and parse the file
@@ -62,8 +60,7 @@ FromFile::FromFile(std::shared_ptr<ParticleContainer_t> pc,
 void FromFile::readFile(const std::string& filename) {
     std::ifstream file(filename);
     if (!file.is_open()) {
-        throw OpalException("FromFile::readFile",
-                            "Couldn't open file '" + filename + "'.");
+        throw OpalException("FromFile::readFile", "Couldn't open file '" + filename + "'.");
     }
 
     // Helper to read next non-empty, non-comment line; returns false if none left
@@ -71,12 +68,10 @@ void FromFile::readFile(const std::string& filename) {
         std::string line;
         while (std::getline(file, line)) {
             auto first = line.find_first_not_of(" \t\r\n");
-            if (first == std::string::npos)
-                continue;
+            if (first == std::string::npos) continue;
             auto last = line.find_last_not_of(" \t\r\n");
-            line = line.substr(first, last - first + 1);
-            if (line.empty() || line[0] == '#')
-                continue;
+            line      = line.substr(first, last - first + 1);
+            if (line.empty() || line[0] == '#') continue;
             out = line;
             return true;
         }
@@ -122,7 +117,7 @@ void FromFile::readFile(const std::string& filename) {
             continue;
         }
         auto last = line.find_last_not_of(" \t\r\n");
-        line = line.substr(first, last - first + 1);
+        line      = line.substr(first, last - first + 1);
         if (line.empty() || line[0] == '#') {
             ++lineNumber;
             continue;
@@ -136,10 +131,11 @@ void FromFile::readFile(const std::string& filename) {
 
         size_t maxColIdx = *std::max_element(columnIndices_m.begin(), columnIndices_m.end());
         if (values.size() <= maxColIdx) {
-            throw OpalException("FromFile::readFile",
-                                "Line " + std::to_string(lineNumber) + " in '" + filename +
-                                "' has fewer columns (" + std::to_string(values.size()) +
-                                ") than required (index " + std::to_string(maxColIdx) + ").");
+            throw OpalException(
+                    "FromFile::readFile",
+                    "Line " + std::to_string(lineNumber) + " in '" + filename
+                            + "' has fewer columns (" + std::to_string(values.size())
+                            + ") than required (index " + std::to_string(maxColIdx) + ").");
         }
 
         std::vector<double> phaseSpace(6);
@@ -157,14 +153,16 @@ void FromFile::readFile(const std::string& filename) {
     numParticles_m = particleData_m.size();
 
     if (numParticles_m == 0) {
-        throw OpalException("FromFile::readFile",
-                            "No valid particle data found in '" + filename + "'.");
+        throw OpalException(
+                "FromFile::readFile", "No valid particle data found in '" + filename + "'.");
     }
 
     if (numParticles_m != expectedNumParticles) {
-        throw OpalException("FromFile::readFile",
-                            "Number of data lines (" + std::to_string(numParticles_m) +
-                            ") does not match declared count (" + std::to_string(expectedNumParticles) + ") in '" + filename + "'.");
+        throw OpalException(
+                "FromFile::readFile", "Number of data lines (" + std::to_string(numParticles_m)
+                                              + ") does not match declared count ("
+                                              + std::to_string(expectedNumParticles) + ") in '"
+                                              + filename + "'.");
     }
 }
 
@@ -172,17 +170,17 @@ std::vector<size_t> FromFile::parseHeader(const std::string& headerLine) {
     std::istringstream headerStream(headerLine);
     std::vector<std::string> columnNames;
     std::string token;
-    
+
     while (headerStream >> token) {
         columnNames.push_back(token);
     }
-    
+
     // Map column names to indices
     std::vector<size_t> indices(6, SIZE_MAX);
-    
+
     for (size_t i = 0; i < columnNames.size(); ++i) {
         std::string normalized = normalizeColumnName(columnNames[i]);
-        
+
         if (normalized == "x" && indices[0] == SIZE_MAX) {
             indices[0] = i;
         } else if (normalized == "y" && indices[1] == SIZE_MAX) {
@@ -197,14 +195,16 @@ std::vector<size_t> FromFile::parseHeader(const std::string& headerLine) {
             indices[5] = i;
         }
     }
-    
+
     // Require all six phase-space columns in the header
     for (size_t i = 0; i < 6; ++i) {
         if (indices[i] == SIZE_MAX) {
             const char* names[] = {"x", "y", "z", "px", "py", "pz"};
-            throw OpalException("FromFile::parseHeader",
-                                "Header must contain all column names (x, y, z, px, py, pz). "
-                                "Missing or unrecognized: '" + std::string(names[i]) + "'.");
+            throw OpalException(
+                    "FromFile::parseHeader",
+                    "Header must contain all column names (x, y, z, px, py, pz). "
+                    "Missing or unrecognized: '"
+                            + std::string(names[i]) + "'.");
         }
     }
 
@@ -213,20 +213,31 @@ std::vector<size_t> FromFile::parseHeader(const std::string& headerLine) {
 
 std::string FromFile::normalizeColumnName(const std::string& name) {
     std::string normalized = name;
-    
+
     // Convert to lowercase
-    std::transform(normalized.begin(), normalized.end(), normalized.begin(),
-                   [](unsigned char c) { return std::tolower(c); });
-    
+    std::transform(normalized.begin(), normalized.end(), normalized.begin(), [](unsigned char c) {
+        return std::tolower(c);
+    });
+
     // Remove whitespace
-    normalized.erase(std::remove_if(normalized.begin(), normalized.end(),
-                                    [](unsigned char c) { return std::isspace(c); }),
-                     normalized.end());
-    
+    normalized.erase(
+            std::remove_if(
+                    normalized.begin(), normalized.end(),
+                    [](unsigned char c) {
+                        return std::isspace(c);
+                    }),
+            normalized.end());
+
     return normalized;
 }
 
 void FromFile::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> /*nr*/) {
+    if (emissionModel_m != "NONE")
+        throw OpalException(
+                "FromFile::generateParticles",
+                "EMISSIONMODEL '" + emissionModel_m
+                        + "' is not supported for FROMFILE distributions");
+
     // Only generate during initial sampling (t0 <= 0). For t0 > 0, this
     // distribution is time-independent and should not contribute here unless
     // explicitly triggered via emitParticles (which sets hasEmittedOnce_m).
@@ -237,36 +248,37 @@ void FromFile::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> 
 
     // Use number of particles from file if available, otherwise use requested number
     size_t totalParticles = (numParticles_m > 0) ? numParticles_m : numberOfParticles;
-    
+
     // If file has fewer particles than requested, use file count
     if (numParticles_m > 0 && numParticles_m < numberOfParticles) {
-        m << "Warning: File contains " << numParticles_m 
-          << " particles, but " << numberOfParticles << " were requested." << endl;
+        m << "Warning: File contains " << numParticles_m << " particles, but " << numberOfParticles
+          << " were requested." << endl;
         m << "Using " << numParticles_m << " particles from file." << endl;
         totalParticles = numParticles_m;
     }
-    
+
     // If file has more particles than requested, use requested count
     if (numParticles_m > numberOfParticles) {
         totalParticles = numberOfParticles;
     }
-    
+
     numberOfParticles = totalParticles;
-    
+
     // Distribute particles across MPI ranks (capacity-aware)
-    const int rank = ippl::Comm->rank();
-    const int nranks = std::max(1, ippl::Comm->size());
+    const int rank        = ippl::Comm->rank();
+    const int nranks      = std::max(1, ippl::Comm->size());
     const size_t nranks_u = static_cast<size_t>(nranks);
-    size_t nlocal = pc_m ? computeLocalEmitCount(totalParticles)
-                         : (totalParticles / nranks_u
+    size_t nlocal         = pc_m ? computeLocalEmitCount(totalParticles)
+                                 : (totalParticles / nranks_u
                             + (static_cast<size_t>(rank) < (totalParticles % nranks_u) ? 1 : 0));
     // Use Mpi scan to get the start index for each rank (since they are all potentially different!)
     size_t startIdx = 0;
     if (pc_m && ippl::Comm->size() > 0) {
-        unsigned long nlocalUL = static_cast<unsigned long>(nlocal);
+        unsigned long nlocalUL   = static_cast<unsigned long>(nlocal);
         unsigned long startIdxUL = 0;
-        MPI_Exscan(&nlocalUL, &startIdxUL, 1, MPI_UNSIGNED_LONG, MPI_SUM,
-                   ippl::Comm->getCommunicator());
+        MPI_Exscan(
+                &nlocalUL, &startIdxUL, 1, MPI_UNSIGNED_LONG, MPI_SUM,
+                ippl::Comm->getCommunicator());
         if (rank > 0) {
             startIdx = static_cast<size_t>(startIdxUL);
         }
@@ -274,43 +286,42 @@ void FromFile::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> 
 
     // Allocate particles, appending after any existing ones.
     const size_t nlocalCurrent = pc_m->getLocalNum();
-    pc_m->create(nlocal);
-    
-    // Get Kokkos views
-    view_type Rview = pc_m->R.getView();
-    view_type Pview = pc_m->P.getView();
-    
+    pc_m->createParticles(nlocal);
+
+    // Use subviews over the newly created slots, matching the Gaussian pattern.
+    view_type RviewFull = pc_m->R.getView();
+    auto Rview = Kokkos::subview(RviewFull, std::make_pair(nlocalCurrent, nlocalCurrent + nlocal));
+    view_type PviewFull = pc_m->P.getView();
+    auto Pview = Kokkos::subview(PviewFull, std::make_pair(nlocalCurrent, nlocalCurrent + nlocal));
+
     // Create Kokkos view for particle data (host accessible)
     using HostView = Kokkos::View<double**, Kokkos::HostSpace>;
     HostView hostParticleData("hostParticleData", totalParticles, 6);
-    
+
     // Copy data to host view
     for (size_t i = 0; i < totalParticles && i < particleData_m.size(); ++i) {
         for (int j = 0; j < 6; ++j) {
             hostParticleData(i, j) = particleData_m[i][j];
         }
     }
-    
+
     // Create device mirror with layout compatible for Host->Device deep_copy
     // (required when no common execution space, e.g. Host vs Cuda)
     auto deviceParticleData =
-        Kokkos::create_mirror(Kokkos::DefaultExecutionSpace::memory_space(), hostParticleData);
+            Kokkos::create_mirror(Kokkos::DefaultExecutionSpace::memory_space(), hostParticleData);
     Kokkos::deep_copy(deviceParticleData, hostParticleData);
-    
-    // Copy particle data into Kokkos views, appending into
-    // [nlocalCurrent, nlocalCurrent + nlocal)
-    Kokkos::parallel_for("FromFile::generateParticles", nlocal,
-        KOKKOS_LAMBDA(const size_t k) {
-            const size_t j       = nlocalCurrent + k;
-            const size_t dataIdx = startIdx + k;
-            Rview(j)[0] = deviceParticleData(dataIdx, 0); // x
-            Rview(j)[1] = deviceParticleData(dataIdx, 1); // y
-            Rview(j)[2] = deviceParticleData(dataIdx, 2); // z
-            Pview(j)[0] = deviceParticleData(dataIdx, 3); // px
-            Pview(j)[1] = deviceParticleData(dataIdx, 4); // py
-            Pview(j)[2] = deviceParticleData(dataIdx, 5); // pz
-        }
-    );
+
+    // Copy particle data into the subview [0, nlocal).
+    Kokkos::parallel_for(
+            "FromFile::generateParticles", nlocal, KOKKOS_LAMBDA(const size_t k) {
+                const size_t dataIdx = startIdx + k;
+                Rview(k)[0]          = deviceParticleData(dataIdx, 0);  // x
+                Rview(k)[1]          = deviceParticleData(dataIdx, 1);  // y
+                Rview(k)[2]          = deviceParticleData(dataIdx, 2);  // z
+                Pview(k)[0]          = deviceParticleData(dataIdx, 3);  // px
+                Pview(k)[1]          = deviceParticleData(dataIdx, 4);  // py
+                Pview(k)[2]          = deviceParticleData(dataIdx, 5);  // pz
+            });
     Kokkos::fence();
 
     // Apply per-emission-source offsets after all mean-fixing/corrections.
@@ -319,17 +330,19 @@ void FromFile::generateParticles(size_t& numberOfParticles, Vector_t<double, 3> 
     const Vector_t<double, 3> R0 = R0_m;
     const Vector_t<double, 3> P0 = P0_m;
     Kokkos::parallel_for(
-        nlocal, KOKKOS_LAMBDA(const size_t k) {
-            Rview(k) += R0;
-            Pview(k) += P0;
-        });
+            nlocal, KOKKOS_LAMBDA(const size_t k) {
+                Rview(k) += R0;
+                Pview(k) += P0;
+            });
 
     Inform mALL("FromFile::generateParticles", INFORM_ALL_NODES);
-    mALL << "FromFile: Loaded " << totalParticles << " particles from file '" 
-         << filename_m << "'" << endl;
+    mALL << "FromFile: Loaded " << totalParticles << " particles from file '" << filename_m << "'"
+         << endl;
     ippl::Comm->barrier();
     mALL << "Rank " << rank << ": " << nlocal << " local particles" << endl;
     ippl::Comm->barrier();
+
+    pc_m->markMomentsDirty();
 }
 
 void FromFile::emitParticles(double t, double dt) {
@@ -361,7 +374,26 @@ void FromFile::emitParticles(double t, double dt) {
         return;
     }
 
+    const size_t nlocalBefore = pc_m->getLocalNum();
+
     hasEmittedOnce_m = true;
     Vector_t<double, 3> dummyNr(0.0);
     generateParticles(requested, dummyNr);
+
+    // Set per-particle dt for newly created particles.
+    // switchToUnitlessPositions(use_dt_per_particle=true) in pushParticles scales
+    // R by 1/(c * dtview(i)).  New particles come with dtview = 0 (Kokkos
+    // zero-init), so that division produces inf, and the subsequent multiply by
+    // c*0 in switchOffUnitlessPositions gives inf*0 = NaN positions.
+    const size_t nlocalAfter = pc_m->getLocalNum();
+    const size_t nNew        = nlocalAfter - nlocalBefore;
+    if (nNew > 0) {
+        const double fracDt = tEnd - t0_m;
+        auto dtview         = pc_m->dt.getView();
+        const size_t offset = nlocalBefore;
+        Kokkos::parallel_for(
+                "FromFile_setDt", nNew,
+                KOKKOS_LAMBDA(const size_t j) { dtview(offset + j) = fracDt; });
+        Kokkos::fence();
+    }
 }

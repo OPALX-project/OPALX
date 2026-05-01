@@ -36,7 +36,8 @@ public:
 
     virtual void writeHeader();
     virtual void writeStep(
-        PartBunch_t*, const std::map<std::string, double>& additionalStepAttributes);
+        PartBunch_t*, const std::map<std::string, double>& additionalStepAttributes,
+        size_t particleContainerIndex = 0);
 
     virtual bool predecessorIsSameFlavour() const;
 
@@ -44,8 +45,9 @@ private:
     void readStepHeader(PartBunch_t*);
     void readStepData(PartBunch_t*, h5_ssize_t, h5_ssize_t);
 
-    void writeStepHeader(PartBunch_t*, const std::map<std::string, double>&);
-    void writeStepData(PartBunch_t*);
+    void writeStepHeader(
+        PartBunch_t*, const std::map<std::string, double>&, size_t particleContainerIndex);
+    void writeStepData(PartBunch_t*, size_t particleContainerIndex);
 };
 
 inline bool H5PartWrapperForPT::predecessorIsSameFlavour() const {

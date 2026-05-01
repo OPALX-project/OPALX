@@ -20,6 +20,7 @@ cmake_install.cmake
 config.h
 Makefile
 revision.h
+src/OPALrevision.h
 src/OPALXrevision.h
 src/opal
 tests/tools/gtest
@@ -43,3 +44,5 @@ input-files/OPAL-X-STAT0.csv
 input-files/timing.dat
 build_*
 *.json
+coverage_html/
+.idea
