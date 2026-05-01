@@ -1,4 +1,4 @@
-name: Smoke Test
+name: CPU Serial
 
 on:
   pull_request:
@@ -23,36 +23,62 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            build-essential cmake git \
-            libopenmpi-dev openmpi-bin
+            build-essential cmake git lcov \
+            libopenmpi-dev openmpi-bin gcovr
 
-      - name: Configure CMake (Debug, Serial)
+      - name: Configure CMake
         run: |
-          mkdir -p build_smoke
-          cd build_smoke
+          mkdir -p build_serial
+          cd build_serial
           cmake .. \
             -DBUILD_TYPE=Debug \
-            -DPLATFORMS=SERIAL
+            -DPLATFORMS=SERIAL \
+            -DOPALX_ENABLE_UNIT_TESTS=ON
 
       - name: Build
         run: |
-          cd build_smoke
+          cd build_serial
           make -j$(nproc)
 
-      - name: Upload binary
+      - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: opalx-binary
-          path: build_smoke/src/opalx
+          name: build-serial-debug
+          path: |
+            build_serial/src/opalx
+            build_serial/CTestTestfile.cmake
+            build_serial/unit_tests/
 
-  # ===== RUN TESTS =====
-  # Edit the list below to add or remove smoke tests.
+  # ===== UNIT TESTS =====
+  unit-tests:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Install MPI runtime
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libopenmpi-dev openmpi-bin
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-serial-debug
+          path: .
+
+      - name: Run unit tests
+        run: |
+          cd build_serial
+          ctest --output-on-failure -j $(nproc)
+
+  # ===== SMOKE REGRESSION TESTS =====
+  # Edit the list below to add or remove tests.
   # Each entry must be a folder name under RegressionTests/ in the
   # regression-tests-x repository. The folder must contain:
   #   <name>.in        — OPALX input file
-  #   <name>.rt        — assertions in the form: stat "col" last <tol>
+  #   <name>.rt        — assertions: stat "col" last|avg <tol>
   #   reference/       — reference outputs including <name>.stat
-  run-tests:
+  smoke-tests:
     needs: build
     runs-on: ubuntu-latest
     strategy:
@@ -64,19 +90,19 @@ jobs:
           - FodoCell-fromfile
 
     steps:
-      - name: Install MPI
+      - name: Install MPI runtime
         run: |
           sudo apt-get update
           sudo apt-get install -y libopenmpi-dev openmpi-bin
 
-      - name: Download binary
+      - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
-          name: opalx-binary
-          path: bin
+          name: build-serial-debug
+          path: .
 
       - name: Make binary executable
-        run: chmod +x bin/opalx
+        run: chmod +x build_serial/src/opalx
 
       - name: Get regression test inputs
         run: |
@@ -89,7 +115,7 @@ jobs:
           mkdir -p "$RUN_DIR"
           find "$TEST_DIR" -maxdepth 1 -type f -exec cp {} "$RUN_DIR/" \;
           cd "$RUN_DIR"
-          mpirun -np 1 "$GITHUB_WORKSPACE/bin/opalx" ${{ matrix.test }}.in --info 2
+          mpirun -np 1 "$GITHUB_WORKSPACE/build_serial/src/opalx" ${{ matrix.test }}.in --info 2
 
       - name: Compare stat output to reference (${{ matrix.test }})
         env:
@@ -116,35 +142,46 @@ jobs:
                       section = None
                   elif section == 'column' and s.startswith('name='):
                       cols.append(s.split('name=')[1].split(',')[0].strip().strip('"'))
-              data_rows = [
-                  l.strip().split('\t')
+              rows = [
+                  [v.strip() for v in l.strip().split('\t')]
                   for l in lines[data_end_idx + n_params:]
                   if l.strip()
               ]
-              return dict(zip(cols, [v.strip() for v in data_rows[-1]]))
+              return cols, rows
+
+          def stat_value(cols, rows, col, agg):
+              j = cols.index(col)
+              vals = [float(row[j]) for row in rows]
+              if agg == 'last':
+                  return vals[-1]
+              if agg == 'avg':
+                  return sum(vals) / len(vals)
+              raise ValueError(f'Unknown aggregation type: {agg}')
 
           def parse_rt(path):
               checks = []
               with open(path) as f:
                   for line in f:
-                      parts = line.strip().split()
-                      if len(parts) >= 4 and parts[0] == 'stat' and parts[2] == 'last':
-                          checks.append((parts[1].strip('"'), float(parts[3])))
+                      line = line.split('#')[0].strip()
+                      parts = line.split()
+                      if len(parts) >= 4 and parts[0] == 'stat':
+                          checks.append((parts[1].strip('"'), parts[2], float(parts[3])))
               return checks
 
-          ref = parse_sdds(f'regression-tests-x/RegressionTests/{test}/reference/{test}.stat')
-          got = parse_sdds(f'run_{test}/{test}.stat')
+          ref_cols, ref_rows = parse_sdds(f'regression-tests-x/RegressionTests/{test}/reference/{test}.stat')
+          got_cols, got_rows = parse_sdds(f'run_{test}/{test}.stat')
           checks = parse_rt(f'regression-tests-x/RegressionTests/{test}/{test}.rt')
 
-          print(f'Checking {len(checks)} assertion(s) from {test}.rt')
+          print(f'Checking {len(checks)} assertion(s) from {test}.rt ({len(got_rows)} time steps)')
           failed = False
-          for col, tol in checks:
-              r, g = float(ref[col]), float(got[col])
+          for col, agg, tol in checks:
+              r = stat_value(ref_cols, ref_rows, col, agg)
+              g = stat_value(got_cols, got_rows, col, agg)
               rel_err = abs(g - r) / (abs(r) + 1e-30)
               status = 'PASS' if rel_err < tol else 'FAIL'
               if status == 'FAIL':
                   failed = True
-              print(f'  [{status}] {col}: ref={r:.15e}  got={g:.15e}  rel_err={rel_err:.2e}  tol={tol:.0e}')
+              print(f'  [{status}] {col} ({agg}): ref={r:.15e}  got={g:.15e}  rel_err={rel_err:.2e}  tol={tol:.0e}')
 
           sys.exit(1 if failed else 0)
           PYEOF
