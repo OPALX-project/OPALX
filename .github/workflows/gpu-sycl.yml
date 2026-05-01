@@ -51,8 +51,8 @@ jobs:
             -DPLATFORMS=SYCL \
             -DARCH=INTEL_PVC \
             -DKokkos_ARCH_INTEL_PVC=ON \
-            -DIPPL_GIT_TAG=test-sycl-platform-temp \
-            -DOPALX_ENABLE_UNIT_TESTS=ON
+            -DIPPL_GIT_TAG=test-sycl-platform-temp # \
+            # -DOPALX_ENABLE_UNIT_TESTS=ON # not enough space on the runner for that 
 
       - name: Build
         run: |
