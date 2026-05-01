@@ -70,9 +70,8 @@ namespace {
                 std::shared_ptr<PC_t>& pc, const std::vector<std::array<double, 3>>& positions,
                 double dtVal = 1e-12, double pz = 0.1) {
             const size_t n = positions.size();
-            if (n == 0) return;
-
             pc->createParticles(n);
+            if (n == 0) return;
 
             auto R_host  = pc->R.getHostMirror();
             auto P_host  = pc->P.getHostMirror();
