@@ -77,17 +77,24 @@ bool Monitor::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
         return false;
     }
 
+    Inform msg("Monitor::apply(pc)");
+    msg << "online=" << online_m
+        << " lossDs_m=" << (lossDs_m != nullptr)
+        << " nLoc=" << pc->getLocalNum()
+        << " type=" << static_cast<int>(type_m)
+        << endl;
+
     auto Rview  = pc->R.getView();
     auto Pview  = pc->P.getView();
     auto dtview = pc->dt.getView();
-    auto IDview = pc->ID.getView();
+    // auto IDview = pc->ID.getView();
     auto Qview  = pc->getQView();
     auto Mview  = pc->getMView();
 
     auto hR  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), Rview);
     auto hP  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), Pview);
     auto hdt = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), dtview);
-    auto hID = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), IDview);
+    // auto hID = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), IDview);
     auto hQ  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), Qview);
     auto hM  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), Mview);
 
@@ -113,9 +120,18 @@ bool Monitor::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
             const Vector_t<double, 3> crossingR = R + frac * singleStep;
             const double crossingTime = bunchTime + frac * dt;
 
-            const std::size_t id = static_cast<std::size_t>(hID(i));
+            const std::size_t id = i;
+            // const std::size_t id = static_cast<std::size_t>(hID(i));
             const double q = qmAreAttributes ? hQ(i) : hQ(0);
             const double m = qmAreAttributes ? hM(i) : hM(0);
+
+            Inform msg2("Monitor::apply(pc)");
+            msg2 << "hit i=" << i
+                << " frac=" << frac
+                << " crossingR=(" << crossingR(0) << "," << crossingR(1) << "," << crossingR(2) << ")"
+                << " q=" << q
+                << " m=" << m
+                << endl;
 
             lossDs_m->addParticle(
                 OpalParticle(id, crossingR, P, crossingTime, q, m));
@@ -124,8 +140,6 @@ bool Monitor::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
 
     return false;
 }
-
-
 
 bool Monitor::apply(
     const size_t& i, const double& t, Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/) {
@@ -138,7 +152,7 @@ bool Monitor::apply(
         return false;
     }
 
-    auto pc = RefPartBunch_m->getParticleContainer();
+    const std::shared_ptr<ParticleContainer_t> pc = RefPartBunch_m->getParticleContainer();
     if (!pc) {
         return false;
     }
@@ -196,7 +210,7 @@ void Monitor::driftToCorrectPositionAndSave(
         return;
     }
 
-    auto pc = RefPartBunch_m->getParticleContainer();
+    const std::shared_ptr<ParticleContainer_t> pc = RefPartBunch_m->getParticleContainer();
     if (!pc) {
         return;
     }
@@ -219,13 +233,13 @@ void Monitor::driftToCorrectPositionAndSave(
 
     auto Rview  = pc->R.getView();
     auto Pview  = pc->P.getView();
-    auto IDview = pc->ID.getView();
+    // auto IDview = pc->ID.getView();
     auto Qview  = pc->getQView();
     auto Mview  = pc->getMView();
 
     auto hR  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), Rview);
     auto hP  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), Pview);
-    auto hID = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), IDview);
+    // auto hID = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), IDview);
     auto hQ  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), Qview);
     auto hM  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), Mview);
 
@@ -254,7 +268,8 @@ void Monitor::driftToCorrectPositionAndSave(
         const double q = qmAreAttributes ? hQ(i) : hQ(0);
         const double m = qmAreAttributes ? hM(i) : hM(0);
 
-        const std::size_t id = static_cast<std::size_t>(hID(i));
+        // const std::size_t id = static_cast<std::size_t>(hID(i));
+        const std::size_t id = i;
 
         lossDs_m->addParticle(
             OpalParticle(id, localR, localP, crossingTime, q, m));
@@ -269,7 +284,7 @@ bool Monitor::applyToReferenceParticle(
         return false;
     }
 
-    std::shared_ptr<ParticleContainer_t> pc = RefPartBunch_m->getParticleContainer();
+    const std::shared_ptr<ParticleContainer_t> pc = RefPartBunch_m->getParticleContainer();
     if (!pc) {
         return false;
     }
@@ -327,7 +342,7 @@ void Monitor::initialise(PartBunch_t* bunch, double& startField, double& endFiel
 
     double currentPosition = endField;
     if (bunch != nullptr) {
-        std::shared_ptr<ParticleContainer_t> pc = bunch->getParticleContainer();
+        const std::shared_ptr<ParticleContainer_t> pc = bunch->getParticleContainer();
         if (pc) {
             currentPosition = pc->get_sPos();
         }
