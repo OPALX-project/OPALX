@@ -191,11 +191,17 @@ void PartBunch<T, Dim>::restoreFieldDomainState(const SavedFieldDomainState& sta
 
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::enableBeamBeamWindowMesh(
-        double interactionPointLocalZ, double beamBeamWindowLength) {
+        double interactionPointLocalZ, double beamBeamWindowLength,
+        std::optional<double> xAperture, std::optional<double> yAperture) {
     Inform m("PartBunch::enableBeamBeamWindowMesh");
     if (beamBeamWindowLength <= 0.0) {
         throw OpalException(
                 "PartBunch::enableBeamBeamWindowMesh", "beamBeamWindowLength must be > 0");
+    }
+    if ((xAperture.has_value() && *xAperture <= 0.0)
+        || (yAperture.has_value() && *yAperture <= 0.0)) {
+        throw OpalException(
+                "PartBunch::enableBeamBeamWindowMesh", "BeamBeam apertures must be > 0");
     }
 
     auto* mesh = &this->fcontainer_m->getMesh();
@@ -203,6 +209,14 @@ void PartBunch<T, Dim>::enableBeamBeamWindowMesh(
 
     Vector_t<double, Dim> lower = this->fcontainer_m->getRMin();
     Vector_t<double, Dim> upper = this->fcontainer_m->getRMax();
+    if (xAperture.has_value()) {
+        lower[0] = -*xAperture;
+        upper[0] = *xAperture;
+    }
+    if (yAperture.has_value()) {
+        lower[1] = -*yAperture;
+        upper[1] = *yAperture;
+    }
     lower[2]                    = interactionPointLocalZ - 0.5 * beamBeamWindowLength;
     upper[2]                    = interactionPointLocalZ + 0.5 * beamBeamWindowLength;
 
@@ -226,6 +240,11 @@ void PartBunch<T, Dim>::enableBeamBeamWindowMesh(
     }
     beamBeamWindowParticleLayoutInitialized_m = true;
 
+    if (gmsg != nullptr) {
+        *gmsg << level2 << "BeamBeam window mesh: lower=" << lower << ", upper=" << upper
+              << ", nr=" << nr_m << ", hr=" << hr_m
+              << ", total_charge=" << getTotalCharge() << " C" << endl;
+    }
     m << level3 << "Enabled beam-beam-window mesh: origin=" << lower << ", rmax=" << upper
       << ", hr=" << hr_m << endl;
 }

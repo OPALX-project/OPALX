@@ -139,7 +139,19 @@ public:
 
     SavedFieldDomainState saveFieldDomainState() const;
     void restoreFieldDomainState(const SavedFieldDomainState& state);
-    void enableBeamBeamWindowMesh(double interactionPointLocalZ, double beamBeamWindowLength);
+    /**
+     * @brief Replace the active field mesh by the fixed BeamBeam interaction-window mesh.
+     *
+     * The longitudinal domain is always fixed around the interaction point,
+     * @f$z \in [z_\mathrm{IP}-L/2, z_\mathrm{IP}+L/2]@f$.  If explicit
+     * BeamBeam apertures are provided, the transverse domain is also fixed to
+     * @f$x \in [-a_x,a_x]@f$ and @f$y \in [-a_y,a_y]@f$; otherwise the current
+     * transverse field bounds are preserved for backward compatibility.
+     */
+    void enableBeamBeamWindowMesh(
+            double interactionPointLocalZ, double beamBeamWindowLength,
+            std::optional<double> xAperture = std::nullopt,
+            std::optional<double> yAperture = std::nullopt);
 
     /**
      * @brief Bunch-side geometry and model switches for the active BeamBeam window.
@@ -150,6 +162,8 @@ public:
         double windowBeginS         = 0.0;
         double windowEndS           = 0.0;
         bool copyModel              = false;
+        std::optional<double> xAperture;
+        std::optional<double> yAperture;
     };
 
     struct BeamBeamWindowVisualizationTail {
@@ -588,9 +602,11 @@ public:
 
     void setBeamBeamWindowConfig(
             double beamBeamWindowLength, double interactionPointS, double windowBeginS,
-            double windowEndS, bool copyModel) {
+            double windowEndS, bool copyModel, std::optional<double> xAperture = std::nullopt,
+            std::optional<double> yAperture = std::nullopt) {
         beamBeamWindowConfig_m = BeamBeamWindowConfig{
-                beamBeamWindowLength, interactionPointS, windowBeginS, windowEndS, copyModel};
+                beamBeamWindowLength, interactionPointS, windowBeginS, windowEndS, copyModel,
+                xAperture, yAperture};
         beamBeamWindowParticleLayoutInitialized_m = false;
     }
 

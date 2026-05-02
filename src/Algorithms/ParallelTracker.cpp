@@ -27,6 +27,7 @@
 #include <iomanip>
 #include <iostream>
 #include <limits>
+#include <optional>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -767,6 +768,13 @@ std::optional<BEAMBEAM::ActualGeometry> ParallelTracker::detectBeamBeamWindow(
 
         const IndexMap::key_t ipRange = oth.getRange(element, bunchS);
         const double interactionPointS = 0.5 * (ipRange.begin + ipRange.end);
+        std::optional<double> xAperture;
+        std::optional<double> yAperture;
+        const auto aperture = element->getAperture();
+        if (element->getAttribute("APERTURE_SET") != 0.0 && aperture.second.size() >= 2) {
+            xAperture = std::abs(aperture.second[0]);
+            yAperture = std::abs(aperture.second[1]);
+        }
         return BEAMBEAM::ActualGeometry{
                 interactionPointS,
                 interactionPointS - 0.5 * beamBeamWindowLength,
@@ -774,7 +782,9 @@ std::optional<BEAMBEAM::ActualGeometry> ParallelTracker::detectBeamBeamWindow(
                 beamBeamWindowLength,
                 BEAMBEAM::Config{
                         element->getAttribute("COPY") != 0.0,
-                        element->getAttribute("VISUALIZE") != 0.0}};
+                        element->getAttribute("VISUALIZE") != 0.0,
+                        xAperture,
+                        yAperture}};
     }
 
     return std::nullopt;
@@ -787,13 +797,25 @@ void ParallelTracker::enterBeamBeamWindow(const BEAMBEAM::ActualGeometry& geomet
     beamBeamDiagnostics_m.entryRhoSnapshotDumped = false;
     itsBunch_m->clearBeamBeamWindowVisualizationTail();
     applyBeamBeamWindowConfig(geometry);
+    if (gmsg != nullptr) {
+        *gmsg << level2 << "Entering BeamBeam window: interaction_point_s="
+              << geometry.interactionPointS << " m, s_range=(" << geometry.beginS << ", "
+              << geometry.endS << ") m, length=" << geometry.length << " m";
+        if (geometry.config.xAperture.has_value() && geometry.config.yAperture.has_value()) {
+            *gmsg << ", aperture_half_width=(" << *geometry.config.xAperture << ", "
+                  << *geometry.config.yAperture << ") m";
+        } else {
+            *gmsg << ", aperture_half_width=(not set; preserving transverse field bounds)";
+        }
+        *gmsg << endl;
+    }
     m << level5 << "start beam-beam-window mode" << endl;
 }
 
 void ParallelTracker::applyBeamBeamWindowConfig(const BEAMBEAM::ActualGeometry& geometry) {
     itsBunch_m->setBeamBeamWindowConfig(
             geometry.length, geometry.interactionPointS, geometry.beginS, geometry.endS,
-            geometry.config.copyModel);
+            geometry.config.copyModel, geometry.config.xAperture, geometry.config.yAperture);
 }
 
 std::optional<double> ParallelTracker::performBeamBeamWindowEntryTransition(
@@ -902,7 +924,9 @@ void ParallelTracker::computeBeamBeamWindowSelfFields(
     const std::optional<double> preEnlargePrimaryCharge =
             performBeamBeamWindowEntryTransition(geometry, physicalRMin, physicalRMax);
 
-    itsBunch_m->enableBeamBeamWindowMesh(interactionPointBeamZ, geometry.length);
+    itsBunch_m->enableBeamBeamWindowMesh(
+            interactionPointBeamZ, geometry.length, geometry.config.xAperture,
+            geometry.config.yAperture);
     itsBunch_m->computeSelfFields();
     if (preEnlargePrimaryCharge.has_value() && geometry.config.copyModel) {
         validateBeamBeamCopiedCharge(*preEnlargePrimaryCharge);
