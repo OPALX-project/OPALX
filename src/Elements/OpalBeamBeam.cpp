@@ -61,6 +61,7 @@ void OpalBeamBeam::update() {
     beamBeam->setElementLength(Attributes::getReal(itsAttr[LENGTH]));
     beamBeam->setAttribute("COPY", Attributes::getBool(itsAttr[COPY]) ? 1.0 : 0.0);
     beamBeam->setAttribute("VISUALIZE", Attributes::getBool(itsAttr[VISUALIZE]) ? 1.0 : 0.0);
+    beamBeam->setAttribute("APERTURE_SET", itsAttr[APERT] ? 1.0 : 0.0);
 
     // Transmit "unknown" attributes.
     OpalElement::updateUnknown(beamBeam);

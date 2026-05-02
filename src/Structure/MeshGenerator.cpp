@@ -132,7 +132,9 @@ void MeshGenerator::add(const ElementBase& element) {
         switch (apert.first) {
             case ApertureType::RECTANGULAR:
             case ApertureType::CONIC_RECTANGULAR:
-                mesh = getBox(length, apert.second[0], apert.second[1], apert.second[2]);
+                mesh = getBox(
+                        length, apert.second[0], apert.second[1],
+                        element.getType() == ElementType::BEAMBEAM ? 1.0 : apert.second[2]);
                 break;
             case ApertureType::ELLIPTICAL:
             case ApertureType::CONIC_ELLIPTICAL:
@@ -179,6 +181,9 @@ void MeshGenerator::add(const ElementBase& element) {
             case ElementType::SOLENOID:
                 mesh.type_m = SOLENOID;
                 break;
+            case ElementType::BEAMBEAM:
+                mesh.type_m = BEAMBEAM;
+                break;
             default:
                 mesh.type_m = OTHER;
         }
@@ -212,9 +217,153 @@ void MeshGenerator::write(const std::string& fname) {
 
     out << std::fixed << std::setprecision(6);
 
-    out << "import os, sys, argparse, math, base64, zlib, struct\n\n";
+    out << "import os, sys, argparse, math, base64, zlib, struct, re\n\n";
     out << "if sys.version_info < (3,0):\n";
     out << "    range = xrange\n\n";
+
+    out << R"PY(def stripComment(line):
+    in_quote = False
+    for i, char in enumerate(line):
+        if char == '"':
+            in_quote = not in_quote
+        elif char == '!' and not in_quote:
+            return line[:i]
+    return line
+
+def splitTopLevel(text, separator=','):
+    parts = []
+    start = 0
+    depth = 0
+    in_quote = False
+    for i, char in enumerate(text):
+        if char == '"':
+            in_quote = not in_quote
+        elif not in_quote:
+            if char == '(':
+                depth += 1
+            elif char == ')':
+                depth -= 1
+            elif char == separator and depth == 0:
+                parts.append(text[start:i].strip())
+                start = i + 1
+    parts.append(text[start:].strip())
+    return parts
+
+def evalExpr(expr, variables):
+    cleaned = expr.strip().strip('"')
+    try:
+        return float(cleaned)
+    except ValueError:
+        pass
+
+    allowed = dict((name.lower(), value) for name, value in variables.items())
+    allowed.update({
+        'pi': math.pi,
+        'twopi': 2.0 * math.pi,
+        'sqrt': math.sqrt,
+        'sin': math.sin,
+        'cos': math.cos,
+        'tan': math.tan,
+        'abs': abs,
+    })
+    return float(eval(cleaned.lower(), {"__builtins__": {}}, allowed))
+
+def readInputVariables(input_file):
+    variables = {}
+    with open(input_file) as fh:
+        for line in fh:
+            line = stripComment(line).strip()
+            if not line:
+                continue
+            match = re.match(r'^(?:REAL|INT|BOOL|STRING)\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?);',
+                             line, flags=re.IGNORECASE)
+            if match is None:
+                continue
+            name = match.group(1).lower()
+            value = match.group(2).strip()
+            try:
+                variables[name] = evalExpr(value, variables)
+            except Exception:
+                pass
+    return variables
+
+def parseElementBody(body):
+    values = {}
+    for item in splitTopLevel(body):
+        if '=' not in item:
+            continue
+        key, value = item.split('=', 1)
+        values[key.strip().upper()] = value.strip()
+    return values
+
+def parseAperture(aperture_expr, variables):
+    aperture_expr = aperture_expr.strip().strip('"')
+    match = re.match(r'([A-Za-z]+)\s*\((.*)\)\s*$', aperture_expr)
+    if match is None:
+        return None
+
+    shape = match.group(1).upper()
+    args = [evalExpr(arg, variables) for arg in splitTopLevel(match.group(2))]
+    if shape == 'SQUARE' and len(args) in (1, 2):
+        return {'shape': 'RECTANGLE', 'x_half': 0.5 * args[0], 'y_half': 0.5 * args[0],
+                'end_scale': args[1] if len(args) == 2 else 1.0}
+    if shape == 'RECTANGLE' and len(args) in (2, 3):
+        return {'shape': 'RECTANGLE', 'x_half': 0.5 * args[0], 'y_half': 0.5 * args[1],
+                'end_scale': args[2] if len(args) == 3 else 1.0}
+
+    return None
+
+def findInputFile():
+    candidates = [
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', ')PY"
+        << fname << R"PY(.in'),
+        os.path.join(os.getcwd(), ')PY"
+        << fname << R"PY(.in'),
+    ]
+    for candidate in candidates:
+        candidate = os.path.abspath(candidate)
+        if os.path.exists(candidate):
+            return candidate
+    return None
+
+def getBeamBeamApertureVolume():
+    input_file = findInputFile()
+    if input_file is None:
+        return None
+
+    variables = readInputVariables(input_file)
+    with open(input_file) as fh:
+        content = "\n".join(stripComment(line) for line in fh)
+
+    for match in re.finditer(r'([A-Za-z_][A-Za-z0-9_]*)\s*:\s*BEAMBEAM\s*,(.*?);',
+                             content, flags=re.IGNORECASE | re.DOTALL):
+        name = match.group(1)
+        values = parseElementBody(match.group(2))
+        if 'APERTURE' not in values:
+            continue
+
+        aperture = parseAperture(values['APERTURE'], variables)
+        if aperture is None or aperture['shape'] != 'RECTANGLE':
+            continue
+
+        z_min = evalExpr(values.get('ELEMEDGE', '0.0'), variables)
+        length = evalExpr(values.get('L', '0.0'), variables)
+        z_max = z_min + length
+        x0 = aperture['x_half']
+        y0 = aperture['y_half']
+        points = [
+            [-x0, -y0, z_min], [ x0, -y0, z_min], [ x0,  y0, z_min], [-x0,  y0, z_min],
+            [-x0, -y0, z_max], [ x0, -y0, z_max], [ x0,  y0, z_max], [-x0,  y0, z_max],
+        ]
+        return {
+            'name': name + ' aperture',
+            'points': points,
+            'cell': [0, 1, 2, 3, 4, 5, 6, 7],
+        }
+
+    return None
+
+)PY";
 
     std::stringstream vertices_ascii;
     std::ostringstream vertices_compressed;
@@ -415,6 +564,8 @@ void MeshGenerator::write(const std::string& fname) {
     out << indent << indent << "exportVTK()\n\n";
 
     out << indent << "mesh = pv.read(vtk_file)\n";
+    out << indent << "display_scale = 1.0e3\n";
+    out << indent << "mesh.points *= display_scale\n";
     out << indent << "plotter = pv.Plotter()\n";
     out << indent << "add_mesh_kwargs = {}\n";
     out << indent << "active_scalars_name = mesh.active_scalars_name\n";
@@ -439,6 +590,8 @@ void MeshGenerator::write(const std::string& fname) {
     out << indent << indent << indent << indent << "('RFCavity', (1.0, 1.0, 0.0)),\n";
     out << indent << indent << indent << indent << "('TravelingWave', (0.0, 0.6, 0.0)),\n";
     out << indent << indent << indent << indent << "('Drift', (0.0, 0.0, 1.0)),\n";
+    out << indent << indent << indent << indent << "('BeamBeam', (0.0, 0.7, 0.9)),\n";
+    out << indent << indent << indent << indent << "('BeamBeam aperture', (0.65, 0.65, 0.65)),\n";
     out << indent << indent << indent << "]\n";
     out << indent << indent << indent << "present = []\n";
     out << indent << indent << indent << "for label, color in legend:\n";
@@ -451,8 +604,22 @@ void MeshGenerator::write(const std::string& fname) {
         << "plotter.add_legend(present, bcolor=(1.0, 1.0, 1.0), face='circle', border=True, "
            "size=(0.2, 0.24))\n";
     out << indent << "plotter.add_mesh(mesh, **add_mesh_kwargs)\n";
+    out << indent << "aperture = getBeamBeamApertureVolume()\n";
+    out << indent << "if aperture is not None:\n";
+    out << indent << indent << "points = np.asarray(aperture['points'], dtype=float)\n";
+    out << indent << indent << "points *= display_scale\n";
+    out << indent << indent << "cells = np.asarray([8] + aperture['cell'], dtype=int)\n";
+    out << indent << indent << "celltypes = np.asarray([pv.CellType.HEXAHEDRON], dtype=np.uint8)\n";
+    out << indent << indent << "aperture_grid = pv.UnstructuredGrid(cells, celltypes, points)\n";
+    out << indent << indent
+        << "plotter.add_mesh(aperture_grid, color=(0.65, 0.65, 0.65), opacity=0.28, show_edges=True, "
+           "label=aperture['name'])\n";
     out << indent << "plotter.add_axes()\n";
-    out << indent << "plotter.show_grid()\n";
+    out << indent << "try:\n";
+    out << indent << indent
+        << "plotter.show_grid(xlabel='X [mm]', ylabel='Y [mm]', zlabel='Z [mm]')\n";
+    out << indent << "except TypeError:\n";
+    out << indent << indent << "plotter.show_grid()\n";
     out << indent << "plotter.show()\n";
     out << indent << "return 0\n\n";
 
@@ -560,6 +727,7 @@ void MeshGenerator::write(const std::string& fname) {
     out << indent << "lookup_table.append([1.0, 1.0, 0.0, 1.0])\n";
     out << indent << "lookup_table.append([0.0, 0.6, 0.0, 1.0])\n";
     out << indent << "lookup_table.append([0.0, 0.0, 1.0, 1.0])\n\n";
+    out << indent << "lookup_table.append([0.0, 0.7, 0.9, 1.0])\n\n";
 
     out << indent << "decodeVertices()\n\n";
 
@@ -583,14 +751,33 @@ void MeshGenerator::write(const std::string& fname) {
 
     out << indent << indent << "startIdx = vertexCounter\n\n";
 
+    out << indent << "aperture = getBeamBeamApertureVolume()\n";
+    out << indent << "if aperture is not None:\n";
+    out << indent << indent << "aperture_start = vertexCounter\n";
+    out << indent << indent << "for point in aperture['points']:\n";
+    out << indent << indent << indent
+        << "vertices_str += (\"%f %f %f\\n\" % (point[0], point[1], point[2]))\n";
+    out << indent << indent << indent << "vertexCounter += 1\n";
+    out << indent << indent
+        << "triangles_str += (\"8 %d %d %d %d %d %d %d %d\\n\" %\n";
+    out << indent << indent << indent
+        << "tuple(aperture_start + idx for idx in aperture['cell']))\n";
+    out << indent << indent << "cellTypes_str += \"12\\n\"\n";
+    out << indent << indent
+        << "color_str += \"0.650000 0.650000 0.650000 0.280000\\n\"\n";
+    out << indent << indent << "cellCounter += 1\n\n";
+
     out << indent << "fh = open('" << fname << "_ElementPositions.vtk','w')\n";
     out << indent << "fh.write(\"# vtk DataFile Version 2.0\\n\")\n";
     out << indent << "fh.write(\"test\\nASCII\\n\\n\")\n";
     out << indent << "fh.write(\"DATASET UNSTRUCTURED_GRID\\n\")\n";
     out << indent << "fh.write(\"POINTS \" + str(vertexCounter) + \" float\\n\")\n";
     out << indent << "fh.write(vertices_str)\n";
+    out << indent << "cell_size = (cellCounter - (1 if aperture is not None else 0)) * 4\n";
+    out << indent << "if aperture is not None:\n";
+    out << indent << indent << "cell_size += 9\n";
     out << indent
-        << "fh.write(\"CELLS \" + str(cellCounter) + \" \" + str(cellCounter * 4) + \"\\n\")\n";
+        << "fh.write(\"CELLS \" + str(cellCounter) + \" \" + str(cell_size) + \"\\n\")\n";
     out << indent << "fh.write(triangles_str)\n";
     out << indent << "fh.write(\"CELL_TYPES \" + str(cellCounter) + \"\\n\")\n";
     out << indent << "fh.write(cellTypes_str)\n";
@@ -624,6 +811,7 @@ void MeshGenerator::write(const std::string& fname) {
     out << indent << "lookup_table.append([1.0, 1.0, 0.0])\n";
     out << indent << "lookup_table.append([0.0, 0.6, 0.0])\n";
     out << indent << "lookup_table.append([0.0, 0.0, 1.0])\n\n";
+    out << indent << "lookup_table.append([0.0, 0.7, 0.9])\n\n";
 
     out << indent << "decodeVertices()\n\n";
 

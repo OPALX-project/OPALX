@@ -23,6 +23,8 @@ enum class WindowState { Inactive, Active, Completed };
 struct Config {
     bool copyModel = false;
     bool visualize = false;
+    std::optional<double> xAperture;
+    std::optional<double> yAperture;
 };
 
 /**
