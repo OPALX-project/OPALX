@@ -4,6 +4,7 @@ void ImageChargeScatterController<T, Dim>::scatterScaledDtAll(
     pc->scaleDtByCharge();
     ippl::ParticleAttrib<T>* dtAttrib = &pc->dt;
     scatter(*dtAttrib, rho, positions);
+    Kokkos::fence();
     pc->unscaleDtByCharge();
 }
 
@@ -14,6 +15,7 @@ void ImageChargeScatterController<T, Dim>::scatterScaledDtSubset(
     pc->scaleDtByCharge();
     ippl::ParticleAttrib<T>* dtAttrib = &pc->dt;
     scatter(*dtAttrib, rho, positions, policy, hash);
+    Kokkos::fence();
     pc->unscaleDtByCharge();
 }
 
@@ -78,6 +80,7 @@ void ImageChargeScatterController<T, Dim>::applyMirrorTransformAll(
             "ImageChargeScatterController::applyMirrorTransformAll", nLoc,
             KOKKOS_LAMBDA(const size_t i) { rView(i)[2] = 2.0 * planeZ - rView(i)[2]; });
     flipChargeSignAll(pc);
+    Kokkos::fence();
 }
 
 template <typename T, unsigned Dim>
@@ -99,6 +102,7 @@ void ImageChargeScatterController<T, Dim>::applyMirrorTransformSubset(
                 rView(idx)[2]    = 2.0 * planeZ - rView(idx)[2];
             });
     flipChargeSignSubset(pc, policy, hash);
+    Kokkos::fence();
 }
 
 template <typename T, unsigned Dim>
