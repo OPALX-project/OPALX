@@ -147,10 +147,10 @@ void Astra1DDynamic::readMap()
         gsl_interp_accel_alloc();
 
     // Future optimization candidate:
-    // gsl_fft_real_wavetable* real =
-    //     gsl_fft_real_wavetable_alloc(2 * num_gridpz_m);
-    // gsl_fft_real_workspace* work =
-    //     gsl_fft_real_workspace_alloc(2 * num_gridpz_m);
+    gsl_fft_real_wavetable* real =
+        gsl_fft_real_wavetable_alloc(2 * num_gridpz_m);
+    gsl_fft_real_workspace* work =
+        gsl_fft_real_workspace_alloc(2 * num_gridpz_m);
 
     // Allocate Kokkos View (final data used on GPU)
     const int size = 2 * accuracy_m - 1;
@@ -210,13 +210,6 @@ void Astra1DDynamic::readMap()
             "Maximum on-axis field is zero in fieldmap '" + Filename_m + "'");
     }
 
-    zRaw_m.resize(num_gridpz_m);
-    ezRaw_m.resize(num_gridpz_m);
-    for (int i = 0; i < num_gridpz_m; ++i) {
-        zRaw_m[i] = zvals[i];
-        ezRaw_m[i] = RealValues[i];
-    }
-
     // Interpolate onto an equidistant grid and build a mirrored periodic array
     gsl_spline_init(Ez_interpolant, zvals, RealValues, num_gridpz_m);
 
@@ -236,44 +229,48 @@ void Astra1DDynamic::readMap()
     // Disable normalization if requested
     const double norm = normalize_m ? Ez_max : 1.0;
 
-    // Compute Fourier coefficients explicitly from the mirrored periodic samples.
-    const int M = 2 * num_gridpz_m;
+    // // Compute Fourier coefficients explicitly from the mirrored periodic samples.
+    // const int M = 2 * num_gridpz_m;
 
-    double a0 = 0.0;
-    for (int j = 0; j < M; ++j) {
-        a0 += RealValues[j];
-    }
-    coefs(0) = a0 / (norm * Units::Vpm2MVpm * M);
+    // double a0 = 0.0;
+    // for (int j = 0; j < M; ++j) {
+    //     a0 += RealValues[j];
+    // }
+    // coefs(0) = a0 / (norm * Units::Vpm2MVpm * M);
 
-    for (int l = 1; l < accuracy_m; ++l) {
-        double a_l = 0.0;
-        double b_l = 0.0;
+    // for (int l = 1; l < accuracy_m; ++l) {
+    //     double a_l = 0.0;
+    //     double b_l = 0.0;
 
-        for (int j = 0; j < M; ++j) {
-            const double theta = Physics::two_pi * double(j) / double(M);
-            a_l += RealValues[j] * std::cos(l * theta);
-            b_l += RealValues[j] * std::sin(l * theta);
-        }
+    //     for (int j = 0; j < M; ++j) {
+    //         const double theta = Physics::two_pi * double(j) / double(M);
+    //         a_l += RealValues[j] * std::cos(l * theta);
+    //         b_l += RealValues[j] * std::sin(l * theta);
+    //     }
 
-        a_l *= 2.0 / double(M);
-        b_l *= 2.0 / double(M);
+    //     a_l *= 2.0 / double(M);
+    //     b_l *= 2.0 / double(M);
 
-        const int n = 2 * l - 1;
-        coefs(n)     =  a_l / (norm * Units::Vpm2MVpm);
-        coefs(n + 1) = -b_l / (norm * Units::Vpm2MVpm);
-    }
+    //     const int n = 2 * l - 1;
+    //     coefs(n)     =  a_l / (norm * Units::Vpm2MVpm);
+    //     coefs(n + 1) = -b_l / (norm * Units::Vpm2MVpm);
+    // }
 
     // Future optimization candidate:
-    // gsl_fft_real_transform(RealValues, 1, 2 * num_gridpz_m, real, work);
-    // coefs(0) = RealValues[0] / (norm * Units::Vpm2MVpm * 2.0 * num_gridpz_m);
-    // for (int i = 1; i < size; ++i) {
-    //     coefs(i) = RealValues[i] / (norm * Units::Vpm2MVpm * num_gridpz_m);
-    // }
+    gsl_fft_real_transform(RealValues, 1, 2 * num_gridpz_m, real, work);
+    coefs(0) = 
+        RealValues[0] / 
+        (norm * Units::Vpm2MVpm * 2.0 * num_gridpz_m);
+    for (int i = 1; i < size; ++i) {
+        coefs(i) = 
+            RealValues[i] / 
+            (norm * Units::Vpm2MVpm * num_gridpz_m);
+    }
 
     gsl_spline_free(Ez_interpolant);
     gsl_interp_accel_free(Ez_accel);
-    // gsl_fft_real_workspace_free(work);
-    // gsl_fft_real_wavetable_free(real);
+    gsl_fft_real_workspace_free(work);
+    gsl_fft_real_wavetable_free(real);
 
     delete[] zvals;
     delete[] RealValues;
