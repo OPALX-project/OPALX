@@ -57,8 +57,11 @@ using size_type = ippl::detail::size_type;
  * They automatically select the correct underlying storage mode.
  */
 template <typename T, unsigned Dim = 3>
-class ParticleContainer : public ippl::ParticleBase<ippl::ParticleSpatialLayout<T, Dim>> {
-    using Base = ippl::ParticleBase<ippl::ParticleSpatialLayout<T, Dim>>;
+class ParticleContainer
+    : public ippl::ParticleBase<
+              ippl::ParticleSpatialLayout<T, Dim>, Kokkos::DefaultExecutionSpace::memory_space> {
+    using Base = ippl::ParticleBase<
+            ippl::ParticleSpatialLayout<T, Dim>, Kokkos::DefaultExecutionSpace::memory_space>;
 
 private:
     /**
