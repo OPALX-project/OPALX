@@ -19,6 +19,7 @@
 
 #include <array>
 #include <cmath>
+#include <cstdint>
 #include <memory>
 #include <vector>
 
@@ -564,6 +565,29 @@ namespace {
         Kokkos::View<bool*> short_invalid(
                 "DestroyParticlesTest::short_invalid", pc->getLocalNum() - 1);
         EXPECT_THROW(pc->destroyParticles(short_invalid, 0u), OpalException);
+    }
+
+    // ================================================================
+    // ID assignment — IDs follow the IPPL strided rank-interleave scheme
+    // ================================================================
+
+    TEST_F(ParticleContainerTest, CreateParticles_AssignsStridedIDs) {
+        Options::useQMAttributes = false;
+        auto pc                  = makeContainer();
+
+        constexpr size_t nPart = 32;
+        pc->createParticles(nPart);
+        ASSERT_EQ(pc->getLocalNum(), nPart);
+
+        auto idHost = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->ID.getView());
+
+        const auto rank   = static_cast<std::int64_t>(ippl::Comm->rank());
+        const auto nRanks = static_cast<std::int64_t>(ippl::Comm->size());
+
+        for (size_t i = 0; i < nPart; ++i) {
+            EXPECT_EQ(idHost(i), rank + nRanks * static_cast<std::int64_t>(i))
+                    << "particle " << i;
+        }
     }
 
 }  // namespace
