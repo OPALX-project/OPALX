@@ -66,7 +66,7 @@ namespace ParticleBinning {
         return sumCountNorm * log(sumCountNorm) * sumWidth  // minimize shannon entropy as a basis
                + wideBinPenalty * pow(sumWidth, 2)          // >0 wants smallest possible bin
                                                             // <0 wants largest possible bin
-                                                    // Use ^2 to make it reasonably sensitive
+               // Use ^2 to make it reasonably sensitive
                + binSizeBias * pow(penalty, 2)  // bias towards desiredWidth
                + sparse_penalty;  // penalty for too few particles (specifically "distribution
                                   // tails")
