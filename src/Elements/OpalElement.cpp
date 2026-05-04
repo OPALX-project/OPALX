@@ -150,12 +150,12 @@ std::pair<ApertureType, std::vector<double>> OpalElement::getApert() const {
                 retvalue.second[0] = width2HalfWidth * std::stod(match[1]);
                 retvalue.second[1] = retvalue.second[0];
                 retvalue.second[2] = std::stod(match[2]);
-                validateConicScale(retvalue.second[2], arguments);
             } catch (const std::exception& ex) {
                 throw OpalException(
                         "OpalElement::getApert()",
                         "could not convert '" + arguments + "' to doubles");
             }
+            validateConicScale(retvalue.second[2], arguments);
         }
 
         return retvalue;
@@ -187,12 +187,12 @@ std::pair<ApertureType, std::vector<double>> OpalElement::getApert() const {
                 retvalue.second[0] = width2HalfWidth * std::stod(match[1]);
                 retvalue.second[1] = width2HalfWidth * std::stod(match[2]);
                 retvalue.second[2] = std::stod(match[3]);
-                validateConicScale(retvalue.second[2], arguments);
             } catch (const std::exception& ex) {
                 throw OpalException(
                         "OpalElement::getApert()",
                         "could not convert '" + arguments + "' to doubles");
             }
+            validateConicScale(retvalue.second[2], arguments);
         }
 
         return retvalue;
@@ -219,12 +219,12 @@ std::pair<ApertureType, std::vector<double>> OpalElement::getApert() const {
                 retvalue.second[0] = width2HalfWidth * std::stod(match[1]);
                 retvalue.second[1] = retvalue.second[0];
                 retvalue.second[2] = std::stod(match[2]);
-                validateConicScale(retvalue.second[2], arguments);
             } catch (const std::exception& ex) {
                 throw OpalException(
                         "OpalElement::getApert()",
                         "could not convert '" + arguments + "' to doubles");
             }
+            validateConicScale(retvalue.second[2], arguments);
         }
 
         return retvalue;
@@ -256,12 +256,12 @@ std::pair<ApertureType, std::vector<double>> OpalElement::getApert() const {
                 retvalue.second[0] = width2HalfWidth * std::stod(match[1]);
                 retvalue.second[1] = width2HalfWidth * std::stod(match[2]);
                 retvalue.second[2] = std::stod(match[3]);
-                validateConicScale(retvalue.second[2], arguments);
             } catch (const std::exception& ex) {
                 throw OpalException(
                         "OpalElement::getApert()",
                         "could not convert '" + arguments + "' to doubles");
             }
+            validateConicScale(retvalue.second[2], arguments);
         }
 
         return retvalue;
@@ -336,7 +336,7 @@ void OpalElement::print(std::ostream& os) const {
     }
 
     os << head;
-    os << ';';  // << "JMJdebug OPALElement.cc" ;
+    os << ';';
     os << std::endl;
 }
 
@@ -360,7 +360,6 @@ void OpalElement::printMultipoleStrength(
             flag += 3;
         }
     }
-    //  cout << "JMJdebug, OpalElement.cc: flag=" << flag << endl ;
     // Now do the output.
     int div = 2 * (order + 1);
 
