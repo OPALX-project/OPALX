@@ -50,8 +50,6 @@ extern Inform* gmsg;
 
 using GeneratorPool = typename Kokkos::Random_XorShift64_Pool<>;
 
-using Base = ippl::ParticleBase<ippl::ParticleSpatialLayout<T, Dim>>;
-
 using view_type = typename ippl::detail::ViewType<ippl::Vector<double, Dim>, 1>::view_type;
 
 namespace DISTRIBUTION {

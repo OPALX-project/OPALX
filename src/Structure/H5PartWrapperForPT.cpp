@@ -423,8 +423,8 @@ void H5PartWrapperForPT::writeStepData(PartBunch_t* bunch, size_t particleContai
     std::vector<char> buffer(numLocalParticles * sizeof(h5_float64_t));
     char* buffer_ptr        = Util::c_data(buffer);
     h5_float64_t* f64buffer = reinterpret_cast<h5_float64_t*>(buffer_ptr);
-    //    h5_int64_t* i64buffer   = reinterpret_cast<h5_int64_t*>(buffer_ptr);
-    h5_int32_t* i32buffer = reinterpret_cast<h5_int32_t*>(buffer_ptr);
+    h5_int64_t* i64buffer   = reinterpret_cast<h5_int64_t*>(buffer_ptr);
+    h5_int32_t* i32buffer   = reinterpret_cast<h5_int32_t*>(buffer_ptr);
 
     for (size_t i = 0; i < numLocalParticles; ++i)
         f64buffer[i] = rView(i)(0);
@@ -470,16 +470,13 @@ void H5PartWrapperForPT::writeStepData(PartBunch_t* bunch, size_t particleContai
     }
     WRITEDATA(Float64, file_m, "q", f64buffer);
 
-    /*
-
-    auto idViewDevice  = bunch->getParticleContainer()->ID.getView();
-    auto idView = Kokkos::create_mirror_view(idViewDevice);
-    Kokkos::deep_copy(idView,idViewDevice);
+    auto idViewDevice = bunch->getParticleContainer()->ID.getView();
+    auto idView       = Kokkos::create_mirror_view(idViewDevice);
+    Kokkos::deep_copy(idView, idViewDevice);
 
     for (long unsigned i = 0; i < numLocalParticles; i++)
         i64buffer[i] = idView(i);
     WRITEDATA(Int64, file_m, "id", i64buffer);
-    */
 
     auto binViewDevice = pc->Bin.getView();
     auto binView       = Kokkos::create_mirror_view(binViewDevice);
