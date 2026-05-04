@@ -18,34 +18,17 @@
 
 #include "AbstractObjects/Definition.h"
 
-
 // Class Definition
 // ------------------------------------------------------------------------
 
-Definition::~Definition()
-{}
+Definition::~Definition() {}
 
+const std::string Definition::getCategory() const { return "DEFINITION"; }
 
-const std::string Definition::getCategory() const {
-    return "DEFINITION";
-}
+bool Definition::shouldTrace() const { return false; }
 
+bool Definition::shouldUpdate() const { return false; }
 
-bool Definition::shouldTrace() const {
-    return false;
+Definition::Definition(int size, const char* name, const char* help) : Object(size, name, help) {}
 
-}
-
-bool Definition::shouldUpdate() const {
-    return false;
-}
-
-
-Definition::Definition(int size, const char *name, const char *help):
-    Object(size, name, help)
-{}
-
-
-Definition::Definition(const std::string &name, Definition *parent):
-    Object(name, parent)
-{}
+Definition::Definition(const std::string& name, Definition* parent) : Object(name, parent) {}

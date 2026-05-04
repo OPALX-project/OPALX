@@ -19,8 +19,8 @@
 
 #ifndef OPAL_Track_HH
 #define OPAL_Track_HH
-#include "PartBunch/PartBunch.h"
 #include "Algorithms/PartData.h"
+#include "PartBunch/PartBunch.h"
 #include "Steppers/Steppers.h"
 #include "Track/TrackCmd.h"
 #include "Track/TrackParser.h"
@@ -34,13 +34,11 @@ class EmissionSourceList;
 
 class Track {
 public:
-    Track(
-        BeamSequence*, const PartData&, const std::vector<double>& dt,
-        const std::vector<unsigned long long>& maxtsteps, int stepsperturn, double zStart,
-        const std::vector<double>& zStop, Steppers::TimeIntegrator timeintegrator, double t0,
-        double dtScInit, double deltaTau,
-        EmissionSourceList* emissionSourcesList = nullptr,
-        const std::vector<std::string>& beamNames = {});
+    Track(BeamSequence*, const PartData&, const std::vector<double>& dt,
+          const std::vector<unsigned long long>& maxtsteps, int stepsperturn, double zStart,
+          const std::vector<double>& zStop, Steppers::TimeIntegrator timeintegrator, double t0,
+          double dtScInit, double deltaTau, EmissionSourceList* emissionSourcesList = nullptr,
+          const std::vector<std::string>& beamNames = {});
     ~Track();
 
     /// The particle bunch to be tracked.

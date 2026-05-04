@@ -23,7 +23,6 @@
 struct SetStatistics;
 
 class MonitorStatisticsWriter : public SDDSWriter {
-
 public:
     MonitorStatisticsWriter(const std::string& fname, bool restart);
 

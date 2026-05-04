@@ -25,11 +25,11 @@ Quaternion::Quaternion(const matrix3x3_t& M) : ippl::Vector<double, 4>(0.0) {
     (*this)(2) = std::sqrt(std::max(0.0, 1 - M(0, 0) + M(1, 1) - M(2, 2))) / 2;
     (*this)(3) = std::sqrt(std::max(0.0, 1 - M(0, 0) - M(1, 1) + M(2, 2))) / 2;
     (*this)(1) =
-        std::abs(M(2, 1) - M(1, 2)) > 0 ? std::copysign((*this)(1), M(2, 1) - M(1, 2)) : 0.0;
+            std::abs(M(2, 1) - M(1, 2)) > 0 ? std::copysign((*this)(1), M(2, 1) - M(1, 2)) : 0.0;
     (*this)(2) =
-        std::abs(M(0, 2) - M(2, 0)) > 0 ? std::copysign((*this)(2), M(0, 2) - M(2, 0)) : 0.0;
+            std::abs(M(0, 2) - M(2, 0)) > 0 ? std::copysign((*this)(2), M(0, 2) - M(2, 0)) : 0.0;
     (*this)(3) =
-        std::abs(M(1, 0) - M(0, 1)) > 0 ? std::copysign((*this)(3), M(1, 0) - M(0, 1)) : 0.0;
+            std::abs(M(1, 0) - M(0, 1)) > 0 ? std::copysign((*this)(3), M(1, 0) - M(0, 1)) : 0.0;
 }
 
 Quaternion getQuaternion(ippl::Vector<double, 3> u, ippl::Vector<double, 3> ref) {
@@ -86,8 +86,8 @@ Quaternion& Quaternion::operator*=(const Quaternion& other) {
     double res = imagThis.dot(imagOther);
 
     *this = Quaternion(
-        (*this)(0) * other(0) - res,
-        (*this)(0) * imagOther + other(0) * imagThis + cross(imagThis, imagOther));
+            (*this)(0) * other(0) - res,
+            (*this)(0) * imagOther + other(0) * imagThis + cross(imagThis, imagOther));
     return *this;
 }
 
@@ -101,7 +101,7 @@ Quaternion& Quaternion::normalize() {
 #ifndef NOPAssert
     if (this->Norm() < 1e-12)
         throw GeneralOpalException(
-            "Quaternion::normalize()", "length of quaternion less than 1e-12");
+                "Quaternion::normalize()", "length of quaternion less than 1e-12");
 #endif
 
     (*this) /= this->length();
@@ -112,11 +112,10 @@ Quaternion& Quaternion::normalize() {
 Quaternion Quaternion::inverse() const {
     Quaternion returnValue = conjugate();
 
-    #ifndef NOPAssert
+#ifndef NOPAssert
     if (this->Norm() < 1e-12)
-        throw GeneralOpalException(
-            "Quaternion::inverse()", "length of quaternion less than 1e-12");
-    #endif
+        throw GeneralOpalException("Quaternion::inverse()", "length of quaternion less than 1e-12");
+#endif
 
     returnValue /= returnValue.Norm();
 
@@ -127,8 +126,8 @@ ippl::Vector<double, 3> Quaternion::rotate(const ippl::Vector<double, 3>& vec) c
 #ifndef NOPAssert
     if (!this->isUnit())
         throw GeneralOpalException(
-            "Quaternion::rotate()",
-            "quaternion isn't unit quaternion. Norm: " + std::to_string(this->Norm()));
+                "Quaternion::rotate()",
+                "quaternion isn't unit quaternion. Norm: " + std::to_string(this->Norm()));
 #endif
 
     Quaternion quat(vec);

@@ -20,56 +20,27 @@
 
 #include "BeamlineCore/MarkerRep.h"
 
-
 // Class MarkerRep
 // ------------------------------------------------------------------------
 
-MarkerRep::MarkerRep():
-    Marker()
-{}
+MarkerRep::MarkerRep() : Marker() {}
 
-MarkerRep::MarkerRep(const MarkerRep &right):
-    Marker(right)
-{}
+MarkerRep::MarkerRep(const MarkerRep& right) : Marker(right) {}
 
+MarkerRep::MarkerRep(const std::string& name) : Marker(name) {}
 
-MarkerRep::MarkerRep(const std::string &name):
-    Marker(name)
-{}
+MarkerRep::~MarkerRep() {}
 
+ElementBase* MarkerRep::clone() const { return new MarkerRep(*this); }
 
-MarkerRep::~MarkerRep()
-{}
+NullField& MarkerRep::getField() { return field; }
 
+const NullField& MarkerRep::getField() const { return field; }
 
-ElementBase *MarkerRep::clone() const {
-    return new MarkerRep(*this);
-}
+NullGeometry& MarkerRep::getGeometry() { return geometry; }
 
+const NullGeometry& MarkerRep::getGeometry() const { return geometry; }
 
-NullField &MarkerRep::getField() {
-    return field;
-}
+double MarkerRep::getArcLength() const { return 0.0; }
 
-const NullField &MarkerRep::getField() const {
-    return field;
-}
-
-
-NullGeometry &MarkerRep::getGeometry() {
-    return geometry;
-}
-
-const NullGeometry &MarkerRep::getGeometry() const {
-    return geometry;
-}
-
-
-double MarkerRep::getArcLength() const {
-    return 0.0;
-}
-
-
-double MarkerRep::getElementLength() const {
-    return 0.0;
-}
+double MarkerRep::getElementLength() const { return 0.0; }

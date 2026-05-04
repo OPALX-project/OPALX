@@ -22,34 +22,30 @@
 #include "AbstractObjects/Attribute.h"
 #include "AbstractObjects/AttributeHandler.h"
 
-
 namespace Attributes {
 
     /// Parser for an attribute of type string.
-    class UpperCaseString: public AttributeHandler {
-
+    class UpperCaseString : public AttributeHandler {
     public:
-
         /// Constructor.
         //  Assign attribute name and help string.
-        UpperCaseString(const std::string &name, const std::string &help);
+        UpperCaseString(const std::string& name, const std::string& help);
 
         virtual ~UpperCaseString();
 
         /// Return attribute type string ``string''.
-        virtual const std::string &getType() const;
+        virtual const std::string& getType() const;
 
         /// Parse the attribute.
-        virtual void parse(Attribute &, Statement &, bool) const;
+        virtual void parse(Attribute&, Statement&, bool) const;
 
     private:
-
         // Not implemented.
         UpperCaseString();
-        UpperCaseString(const UpperCaseString &);
-        void operator=(const UpperCaseString &);
+        UpperCaseString(const UpperCaseString&);
+        void operator=(const UpperCaseString&);
     };
 
-};
+};  // namespace Attributes
 
 #endif

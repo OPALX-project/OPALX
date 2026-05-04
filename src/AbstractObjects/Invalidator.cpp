@@ -19,10 +19,8 @@
 
 #include "AbstractObjects/Invalidator.h"
 
-
 // Class Invalidator
 // ------------------------------------------------------------------------
-
 
 void Invalidator::invalidate() {
     // Default action: do nothing

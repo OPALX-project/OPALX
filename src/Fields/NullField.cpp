@@ -19,26 +19,15 @@
 
 #include "Fields/NullField.h"
 
-
 // Class NullField
 // ------------------------------------------------------------------------
 
-NullField::NullField()
-{}
+NullField::NullField() {}
 
+NullField::NullField(const NullField& rhs) : EMField(rhs) {}
 
-NullField::NullField(const NullField & rhs):
-  EMField(rhs)
-{}
+NullField::~NullField() {}
 
+const NullField& NullField::operator=(const NullField&) { return *this; }
 
-NullField::~NullField()
-{}
-
-
-const NullField &NullField::operator=(const NullField &)
-{ return *this; }
-
-
-void NullField::scale(double)
-{}
+void NullField::scale(double) {}
