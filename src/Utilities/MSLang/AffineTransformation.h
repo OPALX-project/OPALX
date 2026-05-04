@@ -2,9 +2,7 @@
 #define MSLANG_AFFINETRANSFORMATION_H
 
 #include "Algorithms/Matrix.h"
-
-#include <fstream>
-#include <iostream>
+#include "VectorMath.h"
 
 namespace mslang {
     struct AffineTransformation {
