@@ -20,11 +20,8 @@
 
 #include "AbstractObjects/Action.h"
 
-
-class Echo: public Action {
-
+class Echo : public Action {
 public:
-
     /// Exemplar constructor.
     Echo();
 
@@ -40,7 +37,6 @@ public:
     virtual void parse(Statement&);
 
 private:
-
     // Not implemented.
     Echo(const Echo&);
     void operator=(const Echo&);
@@ -49,4 +45,4 @@ private:
     Echo(const std::string& name, Echo* parent);
 };
 
-#endif // OPAL_Echo_HH
+#endif  // OPAL_Echo_HH

@@ -26,9 +26,7 @@
 #include <memory>
 #include <vector>
 
-
-class OpalFilter: public Definition {
-
+class OpalFilter : public Definition {
 public:
     /// Exemplar constructor.
     OpalFilter();
@@ -61,7 +59,7 @@ public:
     Filter* filter_m;
 
 private:
-    enum class FilterType: unsigned short {
+    enum class FilterType : unsigned short {
         SAVITZKYGOLAY,
         FIXEDFFTLOWPASS,
         RELATIVEFFTLOWPASS,
@@ -73,17 +71,15 @@ private:
     void operator=(const OpalFilter&);
 
     // Clone constructor.
-    OpalFilter(const std::string &name, OpalFilter* parent);
+    OpalFilter(const std::string& name, OpalFilter* parent);
 };
 
 void OpalFilter::apply(std::vector<double>& histogram) {
-    if (filter_m)
-        filter_m->apply(histogram);
+    if (filter_m) filter_m->apply(histogram);
 }
 
 void OpalFilter::calc_derivative(std::vector<double>& histogram, const double& hz) {
-    if (filter_m)
-        filter_m->calc_derivative(histogram, hz);
+    if (filter_m) filter_m->calc_derivative(histogram, hz);
 }
 
 inline std::ostream& operator<<(std::ostream& os, const OpalFilter& b) {
@@ -91,4 +87,4 @@ inline std::ostream& operator<<(std::ostream& os, const OpalFilter& b) {
     return os;
 }
 
-#endif // OPAL_FILTER_HH
+#endif  // OPAL_FILTER_HH

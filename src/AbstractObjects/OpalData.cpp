@@ -28,11 +28,11 @@
 #include "AbstractObjects/ObjectFunction.h"
 #include "AbstractObjects/Table.h"
 #include "AbstractObjects/ValueDefinition.h"
-#include "PartBunch/PartBunch.h"
 #include "Attributes/Attributes.h"
 #include "OpalParser/FileStream.h"
 #include "OpalParser/OpalParser.h"
 #include "OpalParser/StringStream.h"
+#include "PartBunch/PartBunch.h"
 #include "Physics/Units.h"
 #include "Structure/BoundaryGeometry.h"
 #include "Structure/DataSink.h"
@@ -49,9 +49,7 @@
 
 #define MAX_NUM_INSTANCES 10
 
-void OpalData::ClearReference::operator()(Object* object) const {
-    object->clear();
-}
+void OpalData::ClearReference::operator()(Object* object) const { object->clear(); }
 
 // Struct OpalDataImpl.
 // ------------------------------------------------------------------------
@@ -209,8 +207,7 @@ void OpalData::deleteInstance() {
 }
 
 void OpalData::stashInstance() {
-    if (!isInstantiated)
-        return;
+    if (!isInstantiated) return;
     if (stashedInstances.size() + 1 > MAX_NUM_INSTANCES) {
         throw OpalException("OpalData::stashInstance()", "too many OpalData instances stashed");
     }
@@ -223,8 +220,7 @@ OpalData* OpalData::popInstance() {
     if (stashedInstances.size() == 0) {
         throw OpalException("OpalData::popInstance()", "no OpalData instances stashed");
     }
-    if (isInstantiated)
-        deleteInstance();
+    if (isInstantiated) deleteInstance();
     instance       = stashedInstances.top();
     isInstantiated = true;
     stashedInstances.pop();
@@ -232,25 +228,15 @@ OpalData* OpalData::popInstance() {
     return instance;
 }
 
-unsigned long long OpalData::getMaxTrackSteps() {
-    return p->maxTrackSteps_m;
-}
+unsigned long long OpalData::getMaxTrackSteps() { return p->maxTrackSteps_m; }
 
-void OpalData::setMaxTrackSteps(unsigned long long s) {
-    p->maxTrackSteps_m = s;
-}
+void OpalData::setMaxTrackSteps(unsigned long long s) { p->maxTrackSteps_m = s; }
 
-void OpalData::incMaxTrackSteps(unsigned long long s) {
-    p->maxTrackSteps_m += s;
-}
+void OpalData::incMaxTrackSteps(unsigned long long s) { p->maxTrackSteps_m += s; }
 
-OpalData::OpalData() {
-    p = new OpalDataImpl();
-}
+OpalData::OpalData() { p = new OpalDataImpl(); }
 
-OpalData::~OpalData() {
-    delete p;
-}
+OpalData::~OpalData() { delete p; }
 
 void OpalData::reset() {
     delete p;
@@ -268,155 +254,89 @@ void OpalData::reset() {
     p->isOptimizerFlag_m  = false;
 }
 
-bool OpalData::isInOPALCyclMode() {
-    return p->isInOPALCyclMode_m;
-}
+bool OpalData::isInOPALCyclMode() { return p->isInOPALCyclMode_m; }
 
-bool OpalData::isInOPALTMode() {
-    return p->isInOPALTMode_m;
-}
+bool OpalData::isInOPALTMode() { return p->isInOPALTMode_m; }
 
-bool OpalData::isOptimizerRun() {
-    return p->isOptimizerFlag_m;
-}
+bool OpalData::isOptimizerRun() { return p->isOptimizerFlag_m; }
 
-void OpalData::setInOPALCyclMode() {
-    p->isInOPALCyclMode_m = true;
-}
+void OpalData::setInOPALCyclMode() { p->isInOPALCyclMode_m = true; }
 
-void OpalData::setInOPALTMode() {
-    p->isInOPALTMode_m = true;
-}
+void OpalData::setInOPALTMode() { p->isInOPALTMode_m = true; }
 
-void OpalData::setOptimizerFlag() {
-    p->isOptimizerFlag_m = true;
-}
+void OpalData::setOptimizerFlag() { p->isOptimizerFlag_m = true; }
 
-bool OpalData::isInPrepState() {
-    return p->isInPrepState_m;
-}
+bool OpalData::isInPrepState() { return p->isInPrepState_m; }
 
-void OpalData::setInPrepState(bool state) {
-    p->isInPrepState_m = state;
-}
+void OpalData::setInPrepState(bool state) { p->isInPrepState_m = state; }
 
-bool OpalData::hasPriorTrack() {
-    return p->hasPriorRun_m;
-}
+bool OpalData::hasPriorTrack() { return p->hasPriorRun_m; }
 
-void OpalData::setPriorTrack(const bool& value) {
-    p->hasPriorRun_m = value;
-}
+void OpalData::setPriorTrack(const bool& value) { p->hasPriorRun_m = value; }
 
-bool OpalData::inRestartRun() {
-    return p->isRestart_m;
-}
+bool OpalData::inRestartRun() { return p->isRestart_m; }
 
-void OpalData::setRestartRun(const bool& value) {
-    p->isRestart_m = value;
-}
+void OpalData::setRestartRun(const bool& value) { p->isRestart_m = value; }
 
-void OpalData::setRestartStep(int s) {
-    p->restartStep_m = s;
-}
+void OpalData::setRestartStep(int s) { p->restartStep_m = s; }
 
-int OpalData::getRestartStep() {
-    return p->restartStep_m;
-}
+int OpalData::getRestartStep() { return p->restartStep_m; }
 
-std::string OpalData::getRestartFileName() {
-    return p->restartFn_m;
-}
+std::string OpalData::getRestartFileName() { return p->restartFn_m; }
 
 void OpalData::setRestartFileName(std::string s) {
     p->restartFn_m      = s;
     p->hasRestartFile_m = true;
 }
 
-bool OpalData::hasRestartFile() {
-    return p->hasRestartFile_m;
-}
+bool OpalData::hasRestartFile() { return p->hasRestartFile_m; }
 
-void OpalData::setRestartDumpFreq(const int& N) {
-    p->restart_dump_freq_m = N;
-}
+void OpalData::setRestartDumpFreq(const int& N) { p->restart_dump_freq_m = N; }
 
-int OpalData::getRestartDumpFreq() const {
-    return p->restart_dump_freq_m;
-}
+int OpalData::getRestartDumpFreq() const { return p->restart_dump_freq_m; }
 
-void OpalData::setOpenMode(OpenMode openMode) {
-    p->openMode_m = openMode;
-}
+void OpalData::setOpenMode(OpenMode openMode) { p->openMode_m = openMode; }
 
-OpalData::OpenMode OpalData::getOpenMode() const {
-    return p->openMode_m;
-}
+OpalData::OpenMode OpalData::getOpenMode() const { return p->openMode_m; }
 
-void OpalData::setLastStep(const int& step) {
-    p->last_step_m = step;
-}
+void OpalData::setLastStep(const int& step) { p->last_step_m = step; }
 
-int OpalData::getLastStep() const {
-    return p->last_step_m;
-}
+int OpalData::getLastStep() const { return p->last_step_m; }
 
-bool OpalData::hasBunchAllocated() {
-    return p->hasBunchAllocated_m;
-}
+bool OpalData::hasBunchAllocated() { return p->hasBunchAllocated_m; }
 
-void OpalData::bunchIsAllocated() {
-    p->hasBunchAllocated_m = true;
-}
+void OpalData::bunchIsAllocated() { p->hasBunchAllocated_m = true; }
 
-void OpalData::setPartBunch(PartBunch_t* b) {
-    p->bunch_m = b;
-}
+void OpalData::setPartBunch(PartBunch_t* b) { p->bunch_m = b; }
 
-PartBunch_t* OpalData::getPartBunch() {
-    return p->bunch_m;
-}
+PartBunch_t* OpalData::getPartBunch() { return p->bunch_m; }
 
-bool OpalData::hasDataSinkAllocated() {
-    return p->hasDataSinkAllocated_m;
-}
+bool OpalData::hasDataSinkAllocated() { return p->hasDataSinkAllocated_m; }
 
 void OpalData::setDataSink(DataSink* s) {
     p->dataSink_m             = s;
     p->hasDataSinkAllocated_m = true;
 }
 
-DataSink* OpalData::getDataSink() {
-    return p->dataSink_m;
-}
+DataSink* OpalData::getDataSink() { return p->dataSink_m; }
 
 void OpalData::setMaxPhase(std::string elName, double phi) {
     p->maxPhases_m.push_back(MaxPhasesT(elName, phi));
 }
 
-std::vector<MaxPhasesT>::iterator OpalData::getFirstMaxPhases() {
-    return p->maxPhases_m.begin();
-}
+std::vector<MaxPhasesT>::iterator OpalData::getFirstMaxPhases() { return p->maxPhases_m.begin(); }
 
-std::vector<MaxPhasesT>::iterator OpalData::getLastMaxPhases() {
-    return p->maxPhases_m.end();
-}
+std::vector<MaxPhasesT>::iterator OpalData::getLastMaxPhases() { return p->maxPhases_m.end(); }
 
-int OpalData::getNumberOfMaxPhases() {
-    return p->maxPhases_m.size();
-}
+int OpalData::getNumberOfMaxPhases() { return p->maxPhases_m.size(); }
 
 void OpalData::addEnergyData(double spos, double ekin) {
     p->energyEvolution_m.insert(std::make_pair(spos, ekin));
 }
 
-energyEvolution_t::iterator OpalData::getFirstEnergyData() {
-    return p->energyEvolution_m.begin();
-}
+energyEvolution_t::iterator OpalData::getFirstEnergyData() { return p->energyEvolution_m.begin(); }
 
-energyEvolution_t::iterator OpalData::getLastEnergyData() {
-    return p->energyEvolution_m.end();
-}
+energyEvolution_t::iterator OpalData::getLastEnergyData() { return p->energyEvolution_m.end(); }
 
 // Mesh_t* OpalData::getMesh() {
 //  return p->mesh_m;
@@ -452,17 +372,11 @@ double OpalData::getGlobalPhaseShift() {
     return p->gPhaseShift_m;
 }
 
-void OpalData::setGlobalGeometry(BoundaryGeometry* bg) {
-    p->bg_m = bg;
-}
+void OpalData::setGlobalGeometry(BoundaryGeometry* bg) { p->bg_m = bg; }
 
-BoundaryGeometry* OpalData::getGlobalGeometry() {
-    return p->bg_m;
-}
+BoundaryGeometry* OpalData::getGlobalGeometry() { return p->bg_m; }
 
-bool OpalData::hasGlobalGeometry() {
-    return p->bg_m != nullptr;
-}
+bool OpalData::hasGlobalGeometry() { return p->bg_m != nullptr; }
 
 void OpalData::apply(const ObjectFunction& fun) {
     for (ObjectDir::iterator i = p->mainDirectory.begin(); i != p->mainDirectory.end(); ++i) {
@@ -477,7 +391,7 @@ void OpalData::create(Object* newObject) {
 
     if (oldObject != nullptr) {
         throw OpalException(
-            "OpalData::create()", "You cannot replace the object \"" + name + "\".");
+                "OpalData::create()", "You cannot replace the object \"" + name + "\".");
     } else {
         p->mainDirectory.insert(name, newObject);
     }
@@ -492,7 +406,7 @@ void OpalData::define(Object* newObject) {
         // Attempt to replace an object.
         if (oldObject->isBuiltin() || !oldObject->canReplaceBy(newObject)) {
             throw OpalException(
-                "OpalData::define()", "You cannot replace the object \"" + name + "\".");
+                    "OpalData::define()", "You cannot replace the object \"" + name + "\".");
         } else {
             if (Options::info) {
                 *ippl::Info << "Replacing the object \"" << name << "\"." << endl;
@@ -560,18 +474,13 @@ void OpalData::erase(const std::string& name) {
     }
 }
 
-Object* OpalData::find(const std::string& name) {
-    return p->mainDirectory.find(name);
-}
+Object* OpalData::find(const std::string& name) { return p->mainDirectory.find(name); }
 
-double OpalData::getP0() const {
-    return p->referenceMomentum->getReal() * Units::GeV2eV;
-}
+double OpalData::getP0() const { return p->referenceMomentum->getReal() * Units::GeV2eV; }
 
 void OpalData::makeDirty(Object* obj) {
     p->modified = true;
-    if (obj)
-        obj->setDirty(true);
+    if (obj) obj->setDirty(true);
 }
 
 void OpalData::printAllNames(std::ostream& os) {
@@ -599,8 +508,7 @@ void OpalData::printAllNames(std::ostream& os) {
         */
     }
 
-    if (column)
-        os << std::endl;
+    if (column) os << std::endl;
     os << std::endl;
 }
 void OpalData::printNames(std::ostream& os, const std::string& pattern) {
@@ -629,58 +537,36 @@ void OpalData::printNames(std::ostream& os, const std::string& pattern) {
         }
     }
 
-    if (column)
-        os << std::endl;
+    if (column) os << std::endl;
     os << std::endl;
 }
 
-void OpalData::registerTable(Table* table) {
-    p->tableDirectory.push_back(table);
-}
+void OpalData::registerTable(Table* table) { p->tableDirectory.push_back(table); }
 
 void OpalData::unregisterTable(Table* table) {
     for (OpalDataImpl::tableIterator i = p->tableDirectory.begin(); i != p->tableDirectory.end();) {
         OpalDataImpl::tableIterator j = i++;
-        if (*j == table)
-            p->tableDirectory.erase(j);
+        if (*j == table) p->tableDirectory.erase(j);
     }
 }
 
-void OpalData::registerExpression(AttributeBase* expr) {
-    p->exprDirectory.insert(expr);
-}
+void OpalData::registerExpression(AttributeBase* expr) { p->exprDirectory.insert(expr); }
 
-void OpalData::unregisterExpression(AttributeBase* expr) {
-    p->exprDirectory.erase(expr);
-}
+void OpalData::unregisterExpression(AttributeBase* expr) { p->exprDirectory.erase(expr); }
 
-void OpalData::setP0(ValueDefinition* p0) {
-    p->referenceMomentum = p0;
-}
+void OpalData::setP0(ValueDefinition* p0) { p->referenceMomentum = p0; }
 
-void OpalData::storeTitle(const std::string& title) {
-    p->itsTitle_m = title;
-}
+void OpalData::storeTitle(const std::string& title) { p->itsTitle_m = title; }
 
-void OpalData::storeInputFn(const std::string& fn) {
-    p->inputFn_m = fn;
-}
+void OpalData::storeInputFn(const std::string& fn) { p->inputFn_m = fn; }
 
-void OpalData::printTitle(std::ostream& os) {
-    os << p->itsTitle_m;
-}
+void OpalData::printTitle(std::ostream& os) { os << p->itsTitle_m; }
 
-std::string OpalData::getTitle() {
-    return p->itsTitle_m;
-}
+std::string OpalData::getTitle() { return p->itsTitle_m; }
 
-std::string OpalData::getAuxiliaryOutputDirectory() const {
-    return "data";
-}
+std::string OpalData::getAuxiliaryOutputDirectory() const { return "data"; }
 
-std::string OpalData::getInputFn() {
-    return p->inputFn_m;
-}
+std::string OpalData::getInputFn() { return p->inputFn_m; }
 
 std::string OpalData::getInputBasename() {
     std::string& fn = p->inputFn_m;
@@ -693,8 +579,8 @@ void OpalData::checkAndAddOutputFileName(const std::string& outfn) {
         p->outFiles_m.insert(outfn);
     } else if (!hasBunchAllocated()) {
         throw OpalException(
-            "OpalData::checkAndAddOutputFileName",
-            "Duplicate file name for output, '" + outfn + "', detected");
+                "OpalData::checkAndAddOutputFileName",
+                "Duplicate file name for output, '" + outfn + "', detected");
     }
 }
 
@@ -730,11 +616,11 @@ std::map<std::string, std::string> OpalData::getVariableData() {
         Object* tmpObject = OpalData::getInstance()->find(uvar);
         if (dynamic_cast<RealVariable*>(tmpObject)) {
             RealVariable* variable =
-                dynamic_cast<RealVariable*>(OpalData::getInstance()->find(uvar));
+                    dynamic_cast<RealVariable*>(OpalData::getInstance()->find(uvar));
             udata[uvar] = std::to_string(variable->getReal());
         } else if (dynamic_cast<StringConstant*>(tmpObject)) {
             StringConstant* variable =
-                dynamic_cast<StringConstant*>(OpalData::getInstance()->find(uvar));
+                    dynamic_cast<StringConstant*>(OpalData::getInstance()->find(uvar));
             udata[uvar] = variable->getString();
         } else {
             throw OpalException("OpalData::getVariableData()",
@@ -754,8 +640,7 @@ std::vector<std::string> OpalData::getVariableNames() {
         if (!tmpName.empty()) {
             Object* tmpObject = OpalData::getInstance()->find(tmpName);
             if (tmpObject) {
-                if (!tmpObject || tmpObject->isBuiltin())
-                    continue;
+                if (!tmpObject || tmpObject->isBuiltin()) continue;
                 if (tmpObject->getCategory() == "VARIABLE") {
                     result.push_back(tmpName);
                 }
@@ -784,6 +669,4 @@ void OpalData::storeArguments(int argc, char* argv[]) {
     }
 }
 
-std::vector<std::string> OpalData::getArguments() {
-    return p->arguments_m;
-}
+std::vector<std::string> OpalData::getArguments() { return p->arguments_m; }

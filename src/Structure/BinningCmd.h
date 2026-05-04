@@ -32,24 +32,19 @@
 class Inform;
 
 /// The parameter that is used for binning.
-enum class BinningParameter : short {
-    VELOCITYZ = 0,
-    POSITIONZ = 1,
-    PZ        = 2,
-    GAMMAZ    = 3
-};
+enum class BinningParameter : short { VELOCITYZ = 0, POSITIONZ = 1, PZ = 2, GAMMAZ = 3 };
 
 // The attributes of class BinningCmd.
 namespace BINNING {
     enum {
-        MAXBINS,      // Maximum number of bins for adaptive binning
-        DESIREDWIDTH, // Target / bias for bin width
-        BINNINGALPHA, // Aggressiveness of bin-number reduction
-        BINNINGBETA,  // Aggressiveness of using wider bins
-        PARAMETER,    // Which bunch attribute is used for binning
-        DUMPBINSFILE, // File name for dumping bins
-        DUMPBINSFREQ, // Frequency of dumping bins to a file (only used if DUMPBINSFILE is set)
-        TABLEPRINTFREQ, // Frequency of printing bin stats table to console (binned mode only)
+        MAXBINS,         // Maximum number of bins for adaptive binning
+        DESIREDWIDTH,    // Target / bias for bin width
+        BINNINGALPHA,    // Aggressiveness of bin-number reduction
+        BINNINGBETA,     // Aggressiveness of using wider bins
+        PARAMETER,       // Which bunch attribute is used for binning
+        DUMPBINSFILE,    // File name for dumping bins
+        DUMPBINSFREQ,    // Frequency of dumping bins to a file (only used if DUMPBINSFILE is set)
+        TABLEPRINTFREQ,  // Frequency of printing bin stats table to console (binned mode only)
         SIZE
     };
 }
@@ -111,9 +106,6 @@ private:
     BinningParameter parameterType_m;
 };
 
-inline Inform& operator<<(Inform& os, const BinningCmd& bc) {
-    return bc.printInfo(os);
-}
+inline Inform& operator<<(Inform& os, const BinningCmd& bc) { return bc.printInfo(os); }
 
 #endif  // OPALX_BinningCmd_HH
-

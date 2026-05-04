@@ -37,12 +37,9 @@ public:
 
     ~BinConfigWriter();
 
-    void writeEntry(long long step,
-                    double time,
-                    bool preMerge,
-                    const std::vector<std::size_t>& binCounts,
-                    const std::vector<double>& binWidths,
-                    double xMin);
+    void writeEntry(
+            long long step, double time, bool preMerge, const std::vector<std::size_t>& binCounts,
+            const std::vector<double>& binWidths, double xMin);
 
 private:
     std::ofstream os_;
@@ -50,4 +47,3 @@ private:
 };
 
 #endif  // OPAL_BIN_CONFIG_WRITER_H
-

@@ -19,8 +19,8 @@
 #include "Structure/SDDSWriter.h"
 
 #include "AbstractObjects/OpalData.h"
-#include "PartBunch/PartBunch.h"
 #include "BuildInfo.h"
+#include "PartBunch/PartBunch.h"
 #include "Utilities/SDDSParser.h"
 #include "Utilities/Util.h"
 
@@ -36,7 +36,7 @@ SDDSWriter::SDDSWriter(const std::string& fname, bool restart)
 
     if (fs::exists(fname_m) && restart) {
         mode_m = std::ios::app;
-        *gmsg<< "* Appending data to existing data file: '" << fname_m << "'" << endl;
+        *gmsg << "* Appending data to existing data file: '" << fname_m << "'" << endl;
     } else {
         *gmsg << "* Creating new file for data: '" << fname_m << "'" << endl;
     }
@@ -53,8 +53,7 @@ void SDDSWriter::rewindLines(size_t numberOfLines) {
 
     fs.open(fname_m.c_str(), std::fstream::in);
 
-    if (!fs.is_open())
-        return;
+    if (!fs.is_open()) return;
 
     while (getline(fs, line)) {
         allLines.push(line);
@@ -63,8 +62,7 @@ void SDDSWriter::rewindLines(size_t numberOfLines) {
 
     fs.open(fname_m.c_str(), std::fstream::out);
 
-    if (!fs.is_open())
-        return;
+    if (!fs.is_open()) return;
 
     while (allLines.size() > numberOfLines) {
         fs << allLines.front() << "\n";
@@ -74,8 +72,7 @@ void SDDSWriter::rewindLines(size_t numberOfLines) {
 }
 
 void SDDSWriter::replaceVersionString() {
-    if (ippl::Comm->rank() != 0)
-        return;
+    if (ippl::Comm->rank() != 0) return;
 
     std::string versionFile;
     SDDS::SDDSParser parser(fname_m);
@@ -88,8 +85,7 @@ void SDDSWriter::replaceVersionString() {
 
     fs.open(fname_m.c_str(), std::fstream::in);
 
-    if (!fs.is_open())
-        return;
+    if (!fs.is_open()) return;
 
     while (getline(fs, line)) {
         allLines.push(line);
@@ -98,8 +94,7 @@ void SDDSWriter::replaceVersionString() {
 
     fs.open(fname_m.c_str(), std::fstream::out);
 
-    if (!fs.is_open())
-        return;
+    if (!fs.is_open()) return;
 
     while (!allLines.empty()) {
         line = allLines.front();
@@ -126,8 +121,7 @@ double SDDSWriter::getLastValue(const std::string& column) {
 }
 
 void SDDSWriter::open() {
-    if (ippl::Comm->rank() != 0 || os_m.is_open())
-        return;
+    if (ippl::Comm->rank() != 0 || os_m.is_open()) return;
 
     os_m.open(fname_m.c_str(), mode_m);
     os_m.precision(precision_m);
@@ -141,8 +135,7 @@ void SDDSWriter::close() {
 }
 
 void SDDSWriter::writeHeader() {
-    if (ippl::Comm->rank() != 0 || mode_m == std::ios::app)
-        return;
+    if (ippl::Comm->rank() != 0 || mode_m == std::ios::app) return;
 
     this->writeDescription();
 
@@ -177,9 +170,7 @@ void SDDSWriter::writeParameters() {
     }
 }
 
-void SDDSWriter::writeColumns() {
-    columns_m.writeHeader(os_m, indent_m);
-}
+void SDDSWriter::writeColumns() { columns_m.writeHeader(os_m, indent_m); }
 
 void SDDSWriter::writeInfo() {
     os_m << "&data\n"

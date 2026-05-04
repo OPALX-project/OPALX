@@ -38,8 +38,7 @@
 
 #include <sstream>
 
-StatWriter::StatWriter(const std::string& fname, bool restart) : StatBaseWriter(fname, restart) {
-}
+StatWriter::StatWriter(const std::string& fname, bool restart) : StatBaseWriter(fname, restart) {}
 
 void StatWriter::fillHeader(const losses_t& losses, const std::string& species) {
     if (this->hasColumns()) {
@@ -101,12 +100,16 @@ void StatWriter::fillHeader(const losses_t& losses, const std::string& species) 
     columns_m.addColumn("dt", "double", "ns", "time step size");
     columns_m.addColumn("partsOutside", "double", "1", "outside n*sigma of the beam");
 
-    columns_m.addColumn("DebyeLength", "double",  "m", "Debye length in the boosted frame");
-    columns_m.addColumn("plasmaParameter", "double",  "1", "Plasma parameter that gives no. of particles in a Debye sphere");
-    columns_m.addColumn("temperature", "double",  "K", "Temperature of the beam");
-    columns_m.addColumn("rmsDensity", "double",  "1", "RMS number density of the beam");
+    columns_m.addColumn("DebyeLength", "double", "m", "Debye length in the boosted frame");
+    columns_m.addColumn(
+            "plasmaParameter", "double", "1",
+            "Plasma parameter that gives no. of particles in a Debye sphere");
+    columns_m.addColumn("temperature", "double", "K", "Temperature of the beam");
+    columns_m.addColumn("rmsDensity", "double", "1", "RMS number density of the beam");
 
-    columns_m.addColumn("nBins", "int", "1", "Number of field solver bins, potentially after adaptive binning.");
+    columns_m.addColumn(
+            "nBins", "int", "1",
+            "Number of field solver bins, potentially after adaptive binning.");
 
     /// \todo Options::computePercentiles needs to be brought back
     /*
@@ -190,8 +193,7 @@ void StatWriter::fillHeader(const losses_t& losses, const std::string& species) 
         columns_m.addColumn(losses[i].first, "long", "1", "Number of lost particles in element");
     }
 
-    if (mode_m == std::ios::app)
-        return;
+    if (mode_m == std::ios::app) return;
 
     OPALTimer::Timer simtimer;
     std::string dateStr(simtimer.date());
@@ -215,15 +217,15 @@ void StatWriter::fillHeader(const losses_t& losses, const std::string& species) 
 }
 
 void StatWriter::write(
-    PartBunch_t& beam, Vector_t<double, 3> FDext[], const losses_t& losses, const double& azimuth,
-    const size_t npOutside, size_t particleContainerIndex) {
-    using ParticleContainer_t = ParticleContainer<T, Dim>;
+        PartBunch_t& beam, Vector_t<double, 3> FDext[], const losses_t& losses,
+        const double& azimuth, const size_t npOutside, size_t particleContainerIndex) {
+    using ParticleContainer_t               = ParticleContainer<T, Dim>;
     std::shared_ptr<ParticleContainer_t> pc = beam.getParticleContainer(particleContainerIndex);
     if (!pc) {
         return;
     }
 
-    double pathLength = pc->get_sPos();
+    double pathLength         = pc->get_sPos();
     const std::string species = beam.getParticleName(particleContainerIndex);
 
     // First write to this writer's .stat file emits SDDS header via fillHeader/writeHeader.
@@ -242,11 +244,11 @@ void StatWriter::write(
 
     this->writeHeader();
 
-    columns_m.addColumnValue("t", beam.getT() * Units::s2ns);      // 1
-    columns_m.addColumnValue("s", pathLength);                      // 2
-    columns_m.addColumnValue("numParticles", pc->getTotalNum());  // 3
-    columns_m.addColumnValue("charge", Q);                          // 4
-    columns_m.addColumnValue("energy", pc->getMeanKineticEnergy());                          // 5
+    columns_m.addColumnValue("t", beam.getT() * Units::s2ns);        // 1
+    columns_m.addColumnValue("s", pathLength);                       // 2
+    columns_m.addColumnValue("numParticles", pc->getTotalNum());     // 3
+    columns_m.addColumnValue("charge", Q);                           // 4
+    columns_m.addColumnValue("energy", pc->getMeanKineticEnergy());  // 5
 
     columns_m.addColumnValue("rms_x", pc->getRmsR()(0));  // 6
     columns_m.addColumnValue("rms_y", pc->getRmsR()(1));  // 7
@@ -296,14 +298,15 @@ void StatWriter::write(
     columns_m.addColumnValue("Ey_ref", FDext[1](1));  // 38 E-ref y
     columns_m.addColumnValue("Ez_ref", FDext[1](2));  // 39 E-ref z
 
-    columns_m.addColumnValue("dE", pc->getStdKineticEnergy());    // 40 dE energy spread
+    columns_m.addColumnValue("dE", pc->getStdKineticEnergy());   // 40 dE energy spread
     columns_m.addColumnValue("dt", beam.getdT() * Units::s2ns);  // 41 dt time step size
     columns_m.addColumnValue("partsOutside", npOutside);  // 42 number of particles outside n*sigma
 
-    columns_m.addColumnValue("DebyeLength", pc->getDebyeLength()); // 43 Debye length in the boosted frame
-    columns_m.addColumnValue("plasmaParameter", pc->getPlasmaParameter()); // 43 plasma parameter
-    columns_m.addColumnValue("temperature", pc->getTemperature()); // 44 Temperature
-    columns_m.addColumnValue("rmsDensity", beam.get_rmsDensity()); // 45 RMS number density
+    columns_m.addColumnValue(
+            "DebyeLength", pc->getDebyeLength());  // 43 Debye length in the boosted frame
+    columns_m.addColumnValue("plasmaParameter", pc->getPlasmaParameter());  // 43 plasma parameter
+    columns_m.addColumnValue("temperature", pc->getTemperature());          // 44 Temperature
+    columns_m.addColumnValue("rmsDensity", beam.get_rmsDensity());          // 45 RMS number density
     columns_m.addColumnValue("nBins", beam.getCurrentNBins());
 
     /*
@@ -356,8 +359,8 @@ void StatWriter::write(
     if (OpalData::getInstance()->isInOPALCyclMode()) {
         if (ippl::Comm->size() == 1) {
             if (pc->getLocalNum() > 0) {
-                auto rDev = pc->R.getView();
-                auto pDev = pc->P.getView();
+                auto rDev  = pc->R.getView();
+                auto pDev  = pc->P.getView();
                 auto rHost = Kokkos::create_mirror_view(rDev);
                 auto pHost = Kokkos::create_mirror_view(pDev);
                 Kokkos::deep_copy(rHost, rDev);
