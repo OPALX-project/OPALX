@@ -15,6 +15,7 @@
 #include "AbsBeamline/ElementBase.h"
 #include "Attributes/Attributes.h"
 #include "Elements/OpalDrift.h"
+#include "Utilities/OpalException.h"
 #include "gtest/gtest.h"
 
 #include <memory>
@@ -154,4 +155,30 @@ TEST_F(TestOpalDrift, CircleConstantAlongLengthAndLongitudinalBounds) {
 
     EXPECT_FALSE(circleElement->isInside(Vector_t<double, 3>({0.00, 0.00, -0.10})));
     EXPECT_FALSE(circleElement->isInside(Vector_t<double, 3>({0.00, 0.00, 2.00})));
+}
+
+TEST_F(TestOpalDrift, InvalidConicScaleThrowsOpalException) {
+    EXPECT_THROW(makeDrift("RECTANGLE(1,1,-1)"), OpalException);
+    EXPECT_THROW(makeDrift("CIRCLE(1,0)"), OpalException);
+    EXPECT_THROW(makeDrift("ELLIPSE(1,1,nan)"), OpalException);
+}
+
+TEST_F(TestOpalDrift, MalformedRectangleArgumentsThrow) {
+    EXPECT_THROW(makeDrift("RECTANGLE(1,)"), OpalException);
+    EXPECT_THROW(makeDrift("RECTANGLE(,1)"), OpalException);
+}
+
+TEST_F(TestOpalDrift, ConicEllipseOpeningBehaviour) {
+    auto conicEllipse                = makeDrift("ELLIPSE(1,1,2)");
+    ElementBase* conicEllipseElement = conicEllipse->getElement();
+
+    ASSERT_NE(conicEllipseElement, nullptr);
+
+    const Vector_t<double, 3> startProbe  = {0.75, 0.00, 0.10};
+    const Vector_t<double, 3> middleProbe = {0.75, 0.00, 1.00};
+    const Vector_t<double, 3> endProbe    = {0.75, 0.00, 1.90};
+
+    EXPECT_FALSE(conicEllipseElement->isInside(startProbe));
+    EXPECT_FALSE(conicEllipseElement->isInside(middleProbe));
+    EXPECT_TRUE(conicEllipseElement->isInside(endProbe));
 }
