@@ -231,6 +231,10 @@ void Monitor::driftToCorrectPositionAndSave(
     auto Qview  = pc->getQView();
     auto Mview  = pc->getMView();
 
+    // get_host_mirror
+    // deep_copy
+
+    // remove Kokkos::HostSpace()
     auto hR  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), Rview);
     auto hP  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), Pview);
     // auto hID = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), IDview);
