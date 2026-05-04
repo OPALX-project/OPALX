@@ -3,25 +3,24 @@
 #define OPAL_PARTICLE_CONTAINER_H
 
 // #include <functional>
+#include <algorithm>
 #include <cmath>
-#include <iomanip>
 #include <memory>
 #include <string>
-#include <utility>
 #include <vector>
 
 #include "Manager/BaseManager.h"
-#include "Manager/datatypes.h"
+
+#include "PartBunch/FieldContainer.hpp"
 
 #include "Algorithms/CoordinateSystemTrafo.h"
 #include "Algorithms/DistributionMoments.h"
 #include "Algorithms/PartData.h"
 #include "Algorithms/Quaternion.hpp"
 #include "PartBunch/BunchStateHandler.h"
-#include "Processes/GlobalProcesses/GlobalProcess.h"
 
-#include "Utilities/Options.h"
 #include "Utilities/OpalException.h"
+#include "Utilities/Options.h"
 
 #include "Physics/Physics.h"
 
@@ -31,6 +30,8 @@ template <typename T>
 using ParticleAttrib = ippl::ParticleAttrib<T>;
 
 using size_type = ippl::detail::size_type;
+
+#include "Processes/GlobalProcesses/GlobalProcess.h"
 
 /**
  * @class ParticleContainer
@@ -62,11 +63,10 @@ class ParticleContainer : public ippl::ParticleBase<ippl::ParticleSpatialLayout<
 
 private:
     /**
-     * Keep particle-count mutations behind ParticleContainer wrappers. IPPL's
-     * `alloc()` is destructive and intentionally dumb; OPALX callers must go
-     * through `allocateParticles()` so it is only used on empty containers.
+     * Forbid access of the following functions outside of the ParticleContainer wrappers! This is
+     * for safety, since it might lead to undefined behaviour. The idea is to handle particle count
+     * changes completely through the ParticleContainer!
      */
-    using Base::alloc;
     using Base::create;
     using Base::destroy;
 
@@ -310,9 +310,7 @@ public:
     }
 
     /// @brief Get total charge [Cb] in this container.
-    double getTotalCharge() const {
-        return getChargePerParticle() * this->getTotalNum();
-    }
+    double getTotalCharge() const { return getChargePerParticle() * this->getTotalNum(); }
 
     /**
      * @brief Set particle mass for the active M storage mode.
@@ -352,39 +350,25 @@ public:
     }
 
     /// @brief Get total mass [GeV] in this container.
-    double getTotalMass() const {
-        return getMassPerParticle() * this->getTotalNum();
-    }
+    double getTotalMass() const { return getMassPerParticle() * this->getTotalNum(); }
 
     /// @brief Get the reference particle position (const).
-    const Vector_t<double, Dim>& getRefPartR() const {
-        return refPartR_m;
-    }
+    const Vector_t<double, Dim>& getRefPartR() const { return refPartR_m; }
 
     /// @brief Get the reference particle position.
-    Vector_t<double, Dim>& getRefPartR() {
-        return refPartR_m;
-    }
+    Vector_t<double, Dim>& getRefPartR() { return refPartR_m; }
 
     /// @brief Set the reference particle position.
-    void setRefPartR(const Vector_t<double, Dim>& refPartR) {
-        refPartR_m = refPartR;
-    }
+    void setRefPartR(const Vector_t<double, Dim>& refPartR) { refPartR_m = refPartR; }
 
     /// @brief Get the reference particle momentum (const).
-    const Vector_t<double, Dim>& getRefPartP() const {
-        return refPartP_m;
-    }
+    const Vector_t<double, Dim>& getRefPartP() const { return refPartP_m; }
 
     /// @brief Get the reference particle momentum.
-    Vector_t<double, Dim>& getRefPartP() {
-        return refPartP_m;
-    }
+    Vector_t<double, Dim>& getRefPartP() { return refPartP_m; }
 
     /// @brief Set the reference particle momentum.
-    void setRefPartP(const Vector_t<double, Dim>& refPartP) {
-        refPartP_m = refPartP;
-    }
+    void setRefPartP(const Vector_t<double, Dim>& refPartP) { refPartP_m = refPartP; }
 
     /// @brief Set reference particle data.
     void setReference(const PartData* ref) {
@@ -396,19 +380,13 @@ public:
     }
 
     /// @brief Get reference particle data.
-    const PartData* getReference() const {
-        return reference_m;
-    }
+    const PartData* getReference() const { return reference_m; }
 
     /// @brief Set longitudinal position along design trajectory.
-    void set_sPos(double sPos) {
-        sPos_m = sPos;
-    }
+    void set_sPos(double sPos) { sPos_m = sPos; }
 
     /// @brief Get longitudinal position along design trajectory.
-    double get_sPos() const {
-        return sPos_m;
-    }
+    double get_sPos() const { return sPos_m; }
 
     /// @brief Set global-to-local rotation quaternion.
     void setGlobalToLocalQuaternion(const Quaternion_t& globalToLocalQuaternion) {
@@ -416,24 +394,16 @@ public:
     }
 
     /// @brief Get global-to-local rotation quaternion.
-    Quaternion_t getGlobalToLocalQuaternion() const {
-        return globalToLocalQuaternion_m;
-    }
+    Quaternion_t getGlobalToLocalQuaternion() const { return globalToLocalQuaternion_m; }
 
     /// @brief Get local-to-lab coordinate transformation (const).
-    const CoordinateSystemTrafo& getToLabTrafo() const {
-        return toLabTrafo_m;
-    }
+    const CoordinateSystemTrafo& getToLabTrafo() const { return toLabTrafo_m; }
 
     /// @brief Get local-to-lab coordinate transformation.
-    CoordinateSystemTrafo& getToLabTrafo() {
-        return toLabTrafo_m;
-    }
+    CoordinateSystemTrafo& getToLabTrafo() { return toLabTrafo_m; }
 
     /// @brief Set local-to-lab coordinate transformation.
-    void setToLabTrafo(const CoordinateSystemTrafo& toLabTrafo) {
-        toLabTrafo_m = toLabTrafo;
-    }
+    void setToLabTrafo(const CoordinateSystemTrafo& toLabTrafo) { toLabTrafo_m = toLabTrafo; }
 
     /**
      * @brief Advance the moving reference frame after the reference particle was updated in lab
@@ -544,15 +514,16 @@ public:
      */
     void switchToUnitlessPositions() {
         if (containerState_m->unitlessPositions) {
-            throw OpalException("ParticleContainer::switchToUnitlessPositions",
-                                "ParticleContainer is already in unitless positions!");
+            throw OpalException(
+                    "ParticleContainer::switchToUnitlessPositions",
+                    "ParticleContainer is already in unitless positions!");
         }
         auto Rview             = this->R.getView();
         auto dtview            = this->dt.getView();
         const size_type nLocal = this->getLocalNum();
         Kokkos::parallel_for(
-            "ParticleContainer::switchToUnitlessPositions", nLocal,
-            KOKKOS_LAMBDA(const size_type i) { Rview(i) *= 1.0 / (Physics::c * dtview(i)); });
+                "ParticleContainer::switchToUnitlessPositions", nLocal,
+                KOKKOS_LAMBDA(const size_type i) { Rview(i) *= 1.0 / (Physics::c * dtview(i)); });
         Kokkos::fence();
         containerState_m->setUnitlessPositions(true);
     }
@@ -566,15 +537,16 @@ public:
      */
     void switchOffUnitlessPositions() {
         if (!containerState_m->unitlessPositions) {
-            throw OpalException("ParticleContainer::switchOffUnitlessPositions",
-                                "ParticleContainer is already in physical positions!");
+            throw OpalException(
+                    "ParticleContainer::switchOffUnitlessPositions",
+                    "ParticleContainer is already in physical positions!");
         }
         auto Rview             = this->R.getView();
         auto dtview            = this->dt.getView();
         const size_type nLocal = this->getLocalNum();
         Kokkos::parallel_for(
-            "ParticleContainer::switchOffUnitlessPositions", nLocal,
-            KOKKOS_LAMBDA(const size_type i) { Rview(i) *= Physics::c * dtview(i); });
+                "ParticleContainer::switchOffUnitlessPositions", nLocal,
+                KOKKOS_LAMBDA(const size_type i) { Rview(i) *= Physics::c * dtview(i); });
         Kokkos::fence();
         containerState_m->setUnitlessPositions(false);
     }
@@ -653,28 +625,36 @@ public:
     }
 
     /**
-     * @brief Append particles to the container through IPPL's particle creation API.
+     * @brief Append particles to the container without invalidating existing data.
      *
-     * New particles are appended after the existing valid region. Capacity growth and
-     * over-allocation are owned by IPPL; OPALX does not inspect or resize individual
-     * attributes here. Passing `nonDestructiveGrow=true` asks IPPL to preserve existing
-     * particle data if the backing views must grow:
-     * \f[
-     * N_\mathrm{valid,new} = N_\mathrm{valid,old} + N_\mathrm{append}.
-     * \f]
+     * This wraps the current IPPL particle-creation API. New particles are appended after the
+     * existing valid region, and IPPL preserves the values stored in already-existing particle
+     * attributes. If the append exceeds the current capacity, the underlying Kokkos views may be
+     * reallocated.
      *
-     * @note This is a collective call; all MPI ranks must call it.
+     * @note The underlying `create` is a collective call, so all MPI ranks must call this
+     * function.
      *
-     * @param numParticles Number of local particles to append.
-     * @param nonDestructiveGrow Preserve existing particles if IPPL grows storage.
+     * @param numParticles Number of new particles appended to the local container.
      */
-    void createParticles(size_type numParticles, bool nonDestructiveGrow = true) {
+    void createParticles(size_type numParticles) {
         Inform m("ParticleContainer::createParticles");
 
-        const size_type oldCapacity = this->R.size();
-        this->create(numParticles, nonDestructiveGrow);
-        const size_type newCapacity = this->R.size();
+        // Total allocated capacity of the underlying view
+        size_type oldCapacity = this->R.size();
+        size_type required    = this->getLocalNum() + numParticles;
+        if (oldCapacity < required) {
+            double overalloc = ippl::Comm->getDefaultOverallocation();
+            if (overalloc < 1.0) {
+                overalloc = 1.0;
+            }
+            size_type requestedCapacity = static_cast<size_type>(std::ceil(required * overalloc));
+            resizeParticleStoragePreserveData(requestedCapacity);
+        }
+        this->create(numParticles);
+        size_type newCapacity = this->R.size();
 
+        // Pretty print numParticles, newCapacity and new totalNum + localNum after creation
         constexpr int labelWidth = 32;
         m << level4 << std::left << std::setw(labelWidth) << "Requested creation:" << numParticles
           << " particles" << endl
@@ -683,44 +663,61 @@ public:
           << std::setw(labelWidth) << "Underlying view capacity:" << newCapacity << endl;
 
         if (newCapacity != oldCapacity) {
-            m << level2
-              << "IPPL grew the underlying particle views during createParticles(). "
-                 "Prefer sizing BEAM::NALLOC so normal tracking only needs the initial alloc."
+            m << level1
+              << "WARNING: createParticles triggered a reallocation of the underlying particle "
+                 "views! This can be a costly operation. To avoid this, consider increasing "
+                 "preallocation (BEAM::NALLOC) or the overallocation factor."
               << endl;
         }
     }
 
     /**
-     * @brief Allocate particle storage on an empty container without creating valid particles.
+     * @brief Reserve storage for particle attributes while keeping the valid particle count zero.
      *
-     * This delegates to IPPL's destructive `alloc()` API. IPPL manages over-allocation internally
-     * and intentionally does not check whether the operation shrinks existing storage. OPALX
-     * therefore exposes allocation only through this wrapper and rejects calls unless both the
-     * logical particle count and existing capacity are zero.
+     * IPPL no longer exposes the old destructive `alloc(...)` helper on `ParticleBase`. OPALX
+     * still relies on the corresponding reservation semantics during bunch setup: allocate storage
+     * for every registered particle attribute, but do not create any valid particles yet. This
+     * method therefore performs an explicit `realloc` on each particle attribute owned by the
+     * container.
      *
-     * @note This is a collective call; all MPI ranks must call it.
+     * The reservation is destructive with respect to any already-created particles and is
+     * therefore restricted to empty containers. Local and global particle counts are preserved,
+     * which keeps the distinction between reserved capacity and the valid particle region intact.
      *
-     * @param numParticles Requested local particle capacity before IPPL's over-allocation factor.
+     * @param numParticles Requested minimum capacity for all particle attributes.
      *
-     * @throws OpalException if storage or valid particles already exist.
+     * @throws OpalException if the container already has reserved storage or valid particles.
      */
     void allocateParticles(size_type numParticles) {
         Inform m("ParticleContainer::allocateParticles");
 
-        if (this->R.size() != 0 || this->getLocalNum() != 0 || this->getTotalNum() != 0) {
+        // Total allocated capacity of the underlying view
+        size_type oldCapacity = this->R.size();
+        if (oldCapacity != 0 || this->getLocalNum() != 0 || this->getTotalNum() != 0) {
             throw OpalException(
                     "ParticleContainer::allocateParticles",
-                    "IPPL alloc is destructive and may resize storage blindly. It must only be "
-                    "called through ParticleContainer on an empty container. Use createParticles() "
-                    "to append particles to a non-empty container.");
+                    "Underlying views already allocated. This function is meant to be called on an "
+                    "empty container, since it is destructive on existing particles. If you want "
+                    "to create particles without deallocating existing ones, use createParticles() "
+                    "instead.");
         }
 
-        this->alloc(numParticles);
+        this->R.realloc(numParticles);
+        this->ID.realloc(numParticles);
+        dt.realloc(numParticles);
+        Phi.realloc(numParticles);
+        Bin.realloc(numParticles);
+        P.realloc(numParticles);
+        E.realloc(numParticles);
+        B.realloc(numParticles);
+        if (qmStorageMode_m == QMStorageMode::Attributes) {
+            QAttr.realloc(numParticles);
+            MAttr.realloc(numParticles);
+        }
 
-        constexpr int labelWidth = 32;
-        m << level4 << std::left << std::setw(labelWidth) << "Requested allocation:"
-          << numParticles << " particles" << endl
-          << std::setw(labelWidth) << "Underlying view capacity:" << this->R.size() << endl;
+        m << level4 << std::left << std::setw(32) << "Requested allocation:" << numParticles
+          << " particles" << endl
+          << std::setw(32) << "Size of underlying view:" << this->R.size() << endl;
     }
 
     /**
@@ -729,14 +726,14 @@ public:
      * Wraps `ippl::ParticleBase::destroy` with input validation: throws if
      * `localDestroyNum` exceeds the local particle count, or if the `invalid`
      * mask is smaller than the local particle count. The underlying call is
-     * collective, so all MPI ranks must call this function, even with
-     * `localDestroyNum == 0`.
+     * collective (allreduce of `localNum_m`) so all MPI ranks must call this
+     * function, even with `localDestroyNum == 0`.
      *
-     * @note Does not mark moments dirty automatically. Callers that depend on
-     * moment freshness must call `markMomentsDirty()`.
+     * @note Does NOT mark moments dirty automatically. Callers that depend on
+     * moment freshness must call `markMomentsDirty()` themselves.
      *
      * @tparam Properties Kokkos view properties of the invalid mask.
-     * @param invalid Boolean mask of length at least `getLocalNum()`.
+     * @param invalid Boolean mask of length >= getLocalNum(); true entries are removed.
      * @param localDestroyNum Number of true entries in `invalid` on this rank.
      */
     template <typename... Properties>
@@ -769,6 +766,30 @@ public:
     }
 
 private:
+    /**
+     * @brief Grow all registered particle attributes while preserving existing values.
+     *
+     * This helper restores the old OPALX `createParticles()` semantics on top of the current IPPL
+     * API. It performs a `Kokkos::resize` on every per-particle attribute so the valid particle
+     * region remains intact when the container grows beyond its current capacity.
+     *
+     * @param capacity Requested common capacity for all particle attributes.
+     */
+    void resizeParticleStoragePreserveData(size_type capacity) {
+        this->R.resize(capacity);
+        this->ID.resize(capacity);
+        dt.resize(capacity);
+        Phi.resize(capacity);
+        Bin.resize(capacity);
+        P.resize(capacity);
+        E.resize(capacity);
+        B.resize(capacity);
+        if (qmStorageMode_m == QMStorageMode::Attributes) {
+            QAttr.resize(capacity);
+            MAttr.resize(capacity);
+        }
+    }
+
     void setBCAllPeriodic() { this->setParticleBC(ippl::BC::PERIODIC); }
 
     PLayout_t<T, Dim> pl_m;

@@ -245,7 +245,7 @@ namespace {
         createParticlesInContainer(0, n0, 0.1, 0.5);
         createParticlesInContainer(1, n1, 0.2, 0.6);
 
-        EXPECT_EQ(bunch->getTotalNumAllContainers(), (n0 + n1) * ippl::Comm->size());
+        EXPECT_EQ(bunch->getTotalNumAllContainers(), n0 + n1);
     }
 
     // --- DataSink stems and writers ---
