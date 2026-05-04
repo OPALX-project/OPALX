@@ -585,8 +585,7 @@ namespace {
         const auto nRanks = static_cast<std::int64_t>(ippl::Comm->size());
 
         for (size_t i = 0; i < nPart; ++i) {
-            EXPECT_EQ(idHost(i), rank + nRanks * static_cast<std::int64_t>(i))
-                    << "particle " << i;
+            EXPECT_EQ(idHost(i), rank + nRanks * static_cast<std::int64_t>(i)) << "particle " << i;
         }
     }
 
