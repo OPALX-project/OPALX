@@ -30,10 +30,8 @@
 //  This exception is thrown when OPALX detects an inconsistent call to
 //  a routine or method.
 
-class LogicalError: public OpalException {
-
+class LogicalError : public OpalException {
 public:
-
     /// The usual constructor.
     // Arguments:
     // [DL]
@@ -42,15 +40,14 @@ public:
     // [DT][b]msg [/b]
     // [DD]the message string identifying the exception
     // [/DL]
-    LogicalError(const std::string &meth, const std::string &msg);
+    LogicalError(const std::string& meth, const std::string& msg);
 
-    LogicalError(const LogicalError &);
+    LogicalError(const LogicalError&);
     virtual ~LogicalError();
 
 private:
-
     // Not implemented.
     LogicalError();
 };
 
-#endif // OPAL_LogicalError_HH
+#endif  // OPAL_LogicalError_HH

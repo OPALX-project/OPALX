@@ -3,11 +3,11 @@
 
 #include "Filters/Filter.h"
 
-class StencilFilter: public Filter {
+class StencilFilter : public Filter {
 public:
-    StencilFilter() { ;}
-    void apply(std::vector<double> &histogram);
-    void calc_derivative(std::vector<double> &histogram, const double &h);
+    StencilFilter() { ; }
+    void apply(std::vector<double>& histogram);
+    void calc_derivative(std::vector<double>& histogram, const double& h);
 };
 
-#endif // OPALX_STENCIL_HH
+#endif  // OPALX_STENCIL_HH

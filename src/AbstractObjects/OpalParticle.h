@@ -21,7 +21,7 @@
 #include "Ippl.h"
 #include "OPALTypes.h"
 
-//  
+//
 #include <Kokkos_MathematicalConstants.hpp>
 #include <Kokkos_MathematicalFunctions.hpp>
 
@@ -33,12 +33,12 @@ public:
     /// Constructor.
     //  Construct particle with the given coordinates.
     OpalParticle(
-        int64_t id, double x, double px, double y, double py, double z, double pz, double time,
-        double q, double m);
+            int64_t id, double x, double px, double y, double py, double z, double pz, double time,
+            double q, double m);
 
     OpalParticle(
-        int64_t id, Vector_t<double, 3> const& R, Vector_t<double, 3> const& P, double time,
-        double q, double m);
+            int64_t id, Vector_t<double, 3> const& R, Vector_t<double, 3> const& P, double time,
+            double q, double m);
 
     OpalParticle();
 
@@ -118,93 +118,51 @@ private:
     double mass_m;
 };
 
-inline void OpalParticle::setX(double val) {
-    R_m[X] = val;
-}
+inline void OpalParticle::setX(double val) { R_m[X] = val; }
 
-inline void OpalParticle::setY(double val) {
-    R_m[Y] = val;
-}
+inline void OpalParticle::setY(double val) { R_m[Y] = val; }
 
-inline void OpalParticle::setZ(double val) {
-    R_m[L] = val;
-}
+inline void OpalParticle::setZ(double val) { R_m[L] = val; }
 
-inline void OpalParticle::setPx(double val) {
-    P_m[X] = val;
-}
+inline void OpalParticle::setPx(double val) { P_m[X] = val; }
 
-inline void OpalParticle::setPy(double val) {
-    P_m[Y] = val;
-}
+inline void OpalParticle::setPy(double val) { P_m[Y] = val; }
 
-inline void OpalParticle::setPz(double val) {
-    P_m[L] = val;
-}
+inline void OpalParticle::setPz(double val) { P_m[L] = val; }
 
-inline void OpalParticle::setR(Vector_t<double, 3> const& R) {
-    R_m = R;
-}
+inline void OpalParticle::setR(Vector_t<double, 3> const& R) { R_m = R; }
 
-inline void OpalParticle::setP(Vector_t<double, 3> const& P) {
-    P_m = P;
-}
+inline void OpalParticle::setP(Vector_t<double, 3> const& P) { P_m = P; }
 
-inline void OpalParticle::setTime(double t) {
-    time_m = t;
-}
+inline void OpalParticle::setTime(double t) { time_m = t; }
 
-inline int64_t OpalParticle::getId() const {
-    return id_m;
-}
+inline int64_t OpalParticle::getId() const { return id_m; }
 
 inline double OpalParticle::operator[](unsigned int i) const {
     PAssert_LT(i, 6u);
     return i % 2 == 0 ? R_m[i / 2] : P_m[i / 2];
 }
 
-inline double OpalParticle::getX() const {
-    return R_m[X];
-}
+inline double OpalParticle::getX() const { return R_m[X]; }
 
-inline double OpalParticle::getY() const {
-    return R_m[Y];
-}
+inline double OpalParticle::getY() const { return R_m[Y]; }
 
-inline double OpalParticle::getZ() const {
-    return R_m[L];
-}
+inline double OpalParticle::getZ() const { return R_m[L]; }
 
-inline double OpalParticle::getPx() const {
-    return P_m[X];
-}
+inline double OpalParticle::getPx() const { return P_m[X]; }
 
-inline double OpalParticle::getPy() const {
-    return P_m[Y];
-}
+inline double OpalParticle::getPy() const { return P_m[Y]; }
 
-inline double OpalParticle::getPz() const {
-    return P_m[L];
-}
+inline double OpalParticle::getPz() const { return P_m[L]; }
 
-inline const Vector_t<double, 3>& OpalParticle::getR() const {
-    return R_m;
-}
+inline const Vector_t<double, 3>& OpalParticle::getR() const { return R_m; }
 
-inline const Vector_t<double, 3>& OpalParticle::getP() const {
-    return P_m;
-}
+inline const Vector_t<double, 3>& OpalParticle::getP() const { return P_m; }
 
-inline double OpalParticle::getTime() const {
-    return time_m;
-}
+inline double OpalParticle::getTime() const { return time_m; }
 
-inline double OpalParticle::getCharge() const {
-    return charge_m;
-}
+inline double OpalParticle::getCharge() const { return charge_m; }
 
-inline double OpalParticle::getMass() const {
-    return mass_m;
-}
+inline double OpalParticle::getMass() const { return mass_m; }
 
 #endif  // OPALX_OpalParticle_HH

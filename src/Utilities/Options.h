@@ -66,8 +66,9 @@ namespace Options {
     //  - REFERENCE, in Cartesian frame of the reference (0) particle
     extern DumpFrame psDumpFrame;
 
-    /// If true, store `Q`/`M` as per-particle attributes (accessible via `getQView()`/`getMView()`).
-    /// If false (default), use a single shared value per container to save memory.
+    /// If true, store `Q`/`M` as per-particle attributes (accessible via
+    /// `getQView()`/`getMView()`). If false (default), use a single shared value per container to
+    /// save memory.
     extern bool useQMAttributes;
 
     /// The frequency to dump single particle trajectory of particles with ID = 0 & 1

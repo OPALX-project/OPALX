@@ -18,9 +18,9 @@
 #ifndef OPAL_GSL_INTEGRATION_HH
 #define OPAL_GSL_INTEGRATION_HH
 
-#include <vector>
 #include <cmath>
 #include <functional>
+#include <vector>
 
 /// \see Documentation on https://www.gnu.org/software/gsl/doc/html/integration.html
 /// \see Implementation on https://www.gnu.org/software/gsl/
@@ -36,7 +36,7 @@ struct gsl_integration_workspace {
     size_t nrmax;
     size_t i;
     size_t maximum_level;
-    
+
     gsl_integration_workspace() : limit(0), size(0), nrmax(0), i(0), maximum_level(0) {}
 };
 
@@ -46,7 +46,7 @@ struct gsl_integration_workspace {
 /// \return Output: pointer to newly allocated workspace.
 inline gsl_integration_workspace* gsl_integration_workspace_alloc(size_t n) {
     gsl_integration_workspace* w = new gsl_integration_workspace();
-    w->limit = n;
+    w->limit                     = n;
     w->alist.resize(n);
     w->blist.resize(n);
     w->rlist.resize(n);
@@ -58,9 +58,7 @@ inline gsl_integration_workspace* gsl_integration_workspace_alloc(size_t n) {
 /// \see https://www.gnu.org/software/gsl/doc/html/integration.html
 /// \brief Free a workspace allocated by \c gsl_integration_workspace_alloc.
 /// \param w Input: workspace to release (can be null).
-inline void gsl_integration_workspace_free(gsl_integration_workspace* w) {
-    delete w;
-}
+inline void gsl_integration_workspace_free(gsl_integration_workspace* w) { delete w; }
 
 /// \see https://www.gnu.org/software/gsl/doc/html/roots.html
 /// \brief Function wrapper used by integration routines.
@@ -74,37 +72,36 @@ struct gsl_function {
 // Helper function for adaptive integration.
 namespace {
     std::pair<double, double> adaptive_integrate(
-        const std::function<double(double)>& func,
-        double a, double b, double tol, size_t max_depth, size_t depth) {
-        
+            const std::function<double(double)>& func, double a, double b, double tol,
+            size_t max_depth, size_t depth) {
         if (depth > max_depth) {
             return {0.0, tol};
         }
-        
+
         // Simpson's rule
         auto simpson = [&func](double a, double b) -> double {
-            double h = (b - a) / 2.0;
+            double h  = (b - a) / 2.0;
             double fa = func(a);
             double fm = func(a + h);
             double fb = func(b);
             return (h / 3.0) * (fa + 4.0 * fm + fb);
         };
-        
-        double c = (a + b) / 2.0;
-        double sab = simpson(a, b);
-        double sac = simpson(a, c);
-        double scb = simpson(c, b);
+
+        double c     = (a + b) / 2.0;
+        double sab   = simpson(a, b);
+        double sac   = simpson(a, c);
+        double scb   = simpson(c, b);
         double error = std::abs(sab - sac - scb) / 15.0;
-        
+
         if (error < tol) {
             return {sac + scb, error};
         } else {
-            auto left = adaptive_integrate(func, a, c, tol / 2.0, max_depth, depth + 1);
+            auto left  = adaptive_integrate(func, a, c, tol / 2.0, max_depth, depth + 1);
             auto right = adaptive_integrate(func, c, b, tol / 2.0, max_depth, depth + 1);
             return {left.first + right.first, left.second + right.second};
         }
     }
-}
+}  // namespace
 
 /// \see https://www.gnu.org/software/gsl/doc/html/integration.html
 /// \brief Adaptive integration on \f$[a,b]\f$ using Simpson refinement.
@@ -121,22 +118,21 @@ namespace {
 /// \param result Output: estimated integral value.
 /// \param abserr Output: estimated absolute error.
 /// \return Output: 0 on success.
-inline int gsl_integration_qag(const gsl_function* f, double a, double b,
-                               double epsabs, double epsrel, size_t /* limit */,
-                               int /* key */, gsl_integration_workspace* /* workspace */,
-                               double* result, double* abserr) {
+inline int gsl_integration_qag(
+        const gsl_function* f, double a, double b, double epsabs, double epsrel, size_t /* limit */,
+        int /* key */, gsl_integration_workspace* /* workspace */, double* result, double* abserr) {
     // Simple adaptive Simpson's rule
     const size_t max_depth = 20;
-    double tolerance = std::max(epsabs, epsrel * std::abs(b - a));
-    
+    double tolerance       = std::max(epsabs, epsrel * std::abs(b - a));
+
     std::function<double(double)> func = [f](double x) {
         return f->function(x, f->params);
     };
-    
+
     auto res = adaptive_integrate(func, a, b, tolerance, max_depth, 0);
-    *result = res.first;
-    *abserr = res.second;
-    
+    *result  = res.first;
+    *abserr  = res.second;
+
     return 0;  // Success
 }
 
@@ -148,5 +144,4 @@ constexpr int GSL_INTEG_GAUSS41 = 4;
 constexpr int GSL_INTEG_GAUSS51 = 5;
 constexpr int GSL_INTEG_GAUSS61 = 6;
 
-#endif // OPAL_GSL_INTEGRATION_HH
-
+#endif  // OPAL_GSL_INTEGRATION_HH

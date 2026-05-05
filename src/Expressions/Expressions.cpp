@@ -31,7 +31,6 @@
 #include "AbstractObjects/RangeRep.h"
 #include "AbstractObjects/Table.h"
 #include "AbstractObjects/TableRowRep.h"
-#include "PartBunch/PartBunch.h"
 #include "Expressions/ABinary.h"
 #include "Expressions/AColumn.h"
 #include "Expressions/AList.h"
@@ -55,6 +54,7 @@
 #include "Expressions/TFunction1.h"
 #include "Expressions/TFunction2.h"
 #include "OpalParser/Statement.h"
+#include "PartBunch/PartBunch.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
 #include "Utilities/ParseError.h"
@@ -69,58 +69,38 @@ namespace Expressions {
     // Boolean operators.
     // ----------------------------------------------------------------------
 
-    bool Or(bool a, bool b) {
-        return a || b;
-    }
+    bool Or(bool a, bool b) { return a || b; }
     static const TFunction2<bool, bool> logOr = {"||", 1, Or};
 
-    bool And(bool a, bool b) {
-        return a && b;
-    }
+    bool And(bool a, bool b) { return a && b; }
     static const TFunction2<bool, bool> logAnd = {"&&", 2, And};
 
-    bool Le(double a, double b) {
-        return a <= b;
-    }
+    bool Le(double a, double b) { return a <= b; }
     static const TFunction2<bool, double> lessEqual = {"<=", 3, Le};
 
-    bool Lt(double a, double b) {
-        return a < b;
-    }
+    bool Lt(double a, double b) { return a < b; }
     static const TFunction2<bool, double> less = {"<", 3, Lt};
 
-    bool Ge(double a, double b) {
-        return a >= b;
-    }
+    bool Ge(double a, double b) { return a >= b; }
     static const TFunction2<bool, double> greaterEqual = {">=", 3, Ge};
 
-    bool Gt(double a, double b) {
-        return a > b;
-    }
+    bool Gt(double a, double b) { return a > b; }
     static const TFunction2<bool, double> greater = {">", 3, Gt};
 
-    bool Eq(double a, double b) {
-        return a == b;
-    }
+    bool Eq(double a, double b) { return a == b; }
     static const TFunction2<bool, double> equal = {"==", 3, Eq};
 
-    bool Ne(double a, double b) {
-        return a != b;
-    }
+    bool Ne(double a, double b) { return a != b; }
     static const TFunction2<bool, double> notEqual = {"!=", 3, Ne};
 
     // Real operators with one or two operands.
     // ----------------------------------------------------------------------
 
-    double Neg(double a) {
-        return -a;
-    }
+    double Neg(double a) { return -a; }
 
     static const TFunction1<double, double> negate = {"-", 5, Neg};
 
-    double Sign(double a) {
-        return (a > 0.) ? 1. : (a < 0.) ? -1. : 0.;
-    }
+    double Sign(double a) { return (a > 0.) ? 1. : (a < 0.) ? -1. : 0.; }
 
     double Tgauss(double a) {
         double x, y;
@@ -130,21 +110,15 @@ namespace Expressions {
         return x;
     }
 
-    double Add(double a, double b) {
-        return a + b;
-    }
+    double Add(double a, double b) { return a + b; }
 
     static const TFunction2<double, double> plus = {"+", 4, Add};
 
-    double Sub(double a, double b) {
-        return a - b;
-    }
+    double Sub(double a, double b) { return a - b; }
 
     static const TFunction2<double, double> minus = {"-", 4, Sub};
 
-    double Mpy(double a, double b) {
-        return a * b;
-    }
+    double Mpy(double a, double b) { return a * b; }
 
     static TFunction2<double, double> times = {"*", 5, Mpy};
 
@@ -170,16 +144,13 @@ namespace Expressions {
         else
             std::cout << "PartBuch not valid" << std::endl;
 
-        if (p)
-            return 0.0;
+        if (p) return 0.0;
         // return p->get_meanKineticEnergy();
         else
             return -1.0;
     }
 
-    double ranf() {
-        return Options::rangen.uniform();
-    }
+    double ranf() { return Options::rangen.uniform(); }
 
     double gauss() {
         double x, y;
@@ -188,39 +159,34 @@ namespace Expressions {
     }
 
     static TFunction0<double> table0[] = {
-        {"GETEKIN", -2, getEkin},
-        {"RANF", -2, ranf},
-        {"GAUSS", -2, gauss},
-        {"SI", -2, SFunction::arcIn},
-        {"SC", -2, SFunction::arcCtr},
-        {"SO", -2, SFunction::arcOut},
-        {0, -1, 0}};
+            {"GETEKIN", -2, getEkin},
+            {"RANF", -2, ranf},
+            {"GAUSS", -2, gauss},
+            {"SI", -2, SFunction::arcIn},
+            {"SC", -2, SFunction::arcCtr},
+            {"SO", -2, SFunction::arcOut},
+            {0, -1, 0}};
 
     // Real functions with two arguments.
     // ----------------------------------------------------------------------
 
     static const TFunction1<double, double> table1[] = {
-        {"TRUNC", -1, std::trunc}, {"ROUND", -1, std::round}, {"FLOOR", -1, std::floor},
-        {"CEIL", -1, std::ceil},   {"SIGN", -1, Sign},        {"SQRT", -1, std::sqrt},
-        {"LOG", -1, std::log},     {"EXP", -1, std::exp},     {"SIN", -1, std::sin},
-        {"COS", -1, std::cos},     {"ABS", -1, std::abs},     {"TAN", -1, std::tan},
-        {"ASIN", -1, std::asin},   {"ACOS", -1, std::acos},   {"ATAN", -1, std::atan},
-        {"TGAUSS", -2, Tgauss},    {"ERF", -1, std::erf},     {0, -1, 0}};
+            {"TRUNC", -1, std::trunc}, {"ROUND", -1, std::round}, {"FLOOR", -1, std::floor},
+            {"CEIL", -1, std::ceil},   {"SIGN", -1, Sign},        {"SQRT", -1, std::sqrt},
+            {"LOG", -1, std::log},     {"EXP", -1, std::exp},     {"SIN", -1, std::sin},
+            {"COS", -1, std::cos},     {"ABS", -1, std::abs},     {"TAN", -1, std::tan},
+            {"ASIN", -1, std::asin},   {"ACOS", -1, std::acos},   {"ATAN", -1, std::atan},
+            {"TGAUSS", -2, Tgauss},    {"ERF", -1, std::erf},     {0, -1, 0}};
 
     // Real functions with two arguments.
     // ----------------------------------------------------------------------
 
-    double Max(double a, double b) {
-        return std::max(a, b);
-    }
+    double Max(double a, double b) { return std::max(a, b); }
 
-    double Min(double a, double b) {
-        return std::min(a, b);
-    }
+    double Min(double a, double b) { return std::min(a, b); }
 
     double Mod(double a, double b) {
-        if (b <= 0.0)
-            errno = EDOM;
+        if (b <= 0.0) errno = EDOM;
         return fmod(a, b);
     }
 
@@ -287,11 +253,11 @@ namespace Expressions {
 
     typedef TFunction1<double, const std::vector<double>&> ArrayFun;
     static const ArrayFun tablea[] = {
-        {"VMIN", -1, Mina},
-        {"VMAX", -1, Maxa},
-        {"VRMS", -1, Rmsa},
-        {"VABSMAX", -1, AbsMax},
-        {0, -1, 0}};
+            {"VMIN", -1, Mina},
+            {"VMAX", -1, Maxa},
+            {"VRMS", -1, Rmsa},
+            {"VABSMAX", -1, AbsMax},
+            {0, -1, 0}};
 
     // Internal variables.
     const Table* currentTable = 0;
@@ -404,8 +370,7 @@ namespace Expressions {
                 result += temp;
             }
 
-            if (!stat.delimiter('&'))
-                break;
+            if (!stat.delimiter('&')) break;
             isWord = stat.word(temp);
         }
 
@@ -549,16 +514,16 @@ namespace Expressions {
     void parseDelimiter(Statement& stat, char delim) {
         if (!stat.delimiter(delim)) {
             throw ParseError(
-                "Expressions::parseDelimiter()",
-                std::string("Delimiter '") + delim + "' expected.");
+                    "Expressions::parseDelimiter()",
+                    std::string("Delimiter '") + delim + "' expected.");
         }
     }
 
     void parseDelimiter(Statement& stat, const char delim[2]) {
         if (!stat.delimiter(delim)) {
             throw ParseError(
-                "Expressions::parseDelimiter()",
-                std::string("Delimiter '") + delim + "' expected.");
+                    "Expressions::parseDelimiter()",
+                    std::string("Delimiter '") + delim + "' expected.");
         }
     }
 
@@ -588,8 +553,8 @@ namespace Expressions {
 
                         if (occurrence <= 0) {
                             throw ParseError(
-                                "Expressions::parsePlace()",
-                                "Occurrence counter must be positive.");
+                                    "Expressions::parsePlace()",
+                                    "Occurrence counter must be positive.");
                         }
                     }
                     pos.append(name, occurrence);
@@ -606,8 +571,7 @@ namespace Expressions {
         } else {
             PlaceRep first = parsePlace(stat);
             PlaceRep last  = first;
-            if (stat.delimiter('/'))
-                last = parsePlace(stat);
+            if (stat.delimiter('/')) last = parsePlace(stat);
             return RangeRep(first, last);
         }
     }
@@ -779,7 +743,8 @@ namespace Expressions {
                     result = new AList<double>(array);
                 } else {
                     throw ParseError(
-                        "parseArrayPrimary()", "Invalid array function name \"" + frstName + "\".");
+                            "parseArrayPrimary()",
+                            "Invalid array function name \"" + frstName + "\".");
                 }
                 parseDelimiter(stat, ')');
             } else if (stat.delimiter("->")) {
@@ -825,8 +790,8 @@ namespace Expressions {
         while (true) {
             if (stat.atEnd() || stat.delimiter(';')) {
                 throw ParseError(
-                    "Expressions::parseBracketList()",
-                    "Parentheses, brackets or braces do not nest.");
+                        "Expressions::parseBracketList()",
+                        "Parentheses, brackets or braces do not nest.");
             }
 
             Token token = stat.getCurrent();
@@ -895,7 +860,7 @@ namespace Expressions {
                     result                  = new ASUnary<double>(*fun, arg1);
                 } else {
                     throw ParseError(
-                        "parsePrimary()", "Unknown function name \"" + frstName + "\".");
+                            "parsePrimary()", "Unknown function name \"" + frstName + "\".");
                 }
                 parseDelimiter(stat, ')');
             } else if (stat.delimiter("->")) {
@@ -1076,7 +1041,7 @@ namespace Expressions {
             parseDelimiter(stat, ',');
         } else {
             throw ParseError(
-                "Expressions::parseTableGenerator()", "Index set incorrect or missing.");
+                    "Expressions::parseTableGenerator()", "Index set incorrect or missing.");
         }
 
         // Check the array index set.
