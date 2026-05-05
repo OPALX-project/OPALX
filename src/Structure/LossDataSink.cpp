@@ -16,13 +16,15 @@
 // along with OPAL. If not, see <https://www.gnu.org/licenses/>.
 //
 #include "Structure/LossDataSink.h"
+
 #include "AbstractObjects/OpalData.h"
-#include "Algorithms/DistributionMoments.h"
 #include "BuildInfo.h"
 #include "Utilities/GeneralOpalException.h"
 #include "Utilities/Options.h"
 #include "Utilities/Util.h"
 #include "Utility/IpplInfo.h"
+
+// #include "Algorithms/DistributionMoments.h"
 
 #include <filesystem>
 
@@ -156,6 +158,10 @@ SetStatistics::SetStatistics()
       refTime_m(0.0),
       tmean_m(0.0),
       trms_m(0.0),
+      totalCharge_m(0.0),
+      totalMass_m(0.0),
+      meanKineticEnergy_m(0.0),
+      stdKineticEnergy_m(0.0),
       nTotal_m(0),
       RefPartR_m(0.0),
       RefPartP_m(0.0),
@@ -167,6 +173,8 @@ SetStatistics::SetStatistics()
       prms_m(0.0),
       rprms_m(0.0),
       normEmit_m(0.0),
+      geomEmit_m(0.0),
+      maxR_m(0.0),
       rsqsum_m(0.0),
       psqsum_m(0.0),
       rpsum_m(0.0),
@@ -403,13 +411,14 @@ bool LossDataSink::hasTurnInformations() const {
 }
 
 void LossDataSink::saveH5(unsigned int setIdx) {
-    // size_t nLoc     = particles_m.size();
-    // size_t startIdx = 0, endIdx = nLoc;
-    // if (setIdx + 1 < startSet_m.size()) {
-    //     startIdx = startSet_m[setIdx];
-    //     endIdx   = startSet_m[setIdx + 1];
-    //     nLoc     = endIdx - startIdx;
-    // }
+    size_t nLoc     = particles_m.size();
+    size_t startIdx = 0;
+    size_t endIdx   = nLoc;
+    if (setIdx + 1 < startSet_m.size()) {
+        startIdx = startSet_m[setIdx];
+        endIdx   = startSet_m[setIdx + 1];
+        nLoc     = endIdx - startIdx;
+    }
 
     // std::unique_ptr<size_t[]> locN(new size_t[ippl::Comm->size()]);
     // std::unique_ptr<size_t[]> globN(new size_t[ippl::Comm->size()]);
@@ -420,28 +429,14 @@ void LossDataSink::saveH5(unsigned int setIdx) {
 
     // locN[ippl::Comm->rank()] = nLoc;
 
-    // reduce(locN.get(), globN.get(), ippl::Comm->size(), std::plus<size_t>());
-
-    // DistributionMoments engine;
-    // engine.compute(particles_m.begin() + startIdx, particles_m.begin() + endIdx);
-
-    size_t nLoc = particles_m.size();
-    size_t startIdx = 0, endIdx = nLoc;
-    if (setIdx + 1 < startSet_m.size()) {
-        startIdx = startSet_m[setIdx];
-        endIdx = startSet_m[setIdx + 1];
-        nLoc = endIdx - startIdx;
-    }
-
     std::vector<unsigned long long> locN(ippl::Comm->size(), 0);
     std::vector<unsigned long long> globN(ippl::Comm->size(), 0);
 
     locN[ippl::Comm->rank()] = static_cast<unsigned long long>(nLoc);
     reduce(locN.data(), globN.data(), ippl::Comm->size(), std::plus<unsigned long long>());
 
-    DistributionMoments engine;
-    // engine.compute(particles_m.begin() + startIdx, particles_m.begin() + endIdx);
 
+    SetStatistics stat = computeSetStatistics(setIdx);
 
     /// Set current record/time step.
     SET_STEP();
@@ -455,16 +450,17 @@ void LossDataSink::saveH5(unsigned int setIdx) {
         WRITE_STEPATTRIB_INT64("GlobalTrackStep", &(globalTrackStep_m[setIdx]), 1);
     }
 
+
+
     Vector_t<double, 3> tmpVector;
     double tmpDouble;
     WRITE_STEPATTRIB_FLOAT64("centroid", (tmpVector = engine.getMeanPosition(), &tmpVector[0]), 3);
-    WRITE_STEPATTRIB_FLOAT64(
-        "RMSX", (tmpVector = engine.getStandardDeviationPosition(), &tmpVector[0]), 3);
+    WRITE_STEPATTRIB_FLOAT64("RMSX", (tmpVector = engine.getStandardDeviationPosition(), &tmpVector[0]), 3);
     WRITE_STEPATTRIB_FLOAT64("MEANP", (tmpVector = engine.getMeanMomentum(), &tmpVector[0]), 3);
-    WRITE_STEPATTRIB_FLOAT64(
-        "RMSP", (tmpVector = engine.getStandardDeviationMomentum(), &tmpVector[0]), 3);
-    WRITE_STEPATTRIB_FLOAT64(
-        "#varepsilon", (tmpVector = engine.getNormalizedEmittance(), &tmpVector[0]), 3);
+    WRITE_STEPATTRIB_FLOAT64("RMSP", (tmpVector = engine.getStandardDeviationMomentum(), &tmpVector[0]), 3);
+    WRITE_STEPATTRIB_FLOAT64("#varepsilon", (tmpVector = engine.getNormalizedEmittance(), &tmpVector[0]), 3);
+
+
     WRITE_STEPATTRIB_FLOAT64(
         "#varepsilon-geom", (tmpVector = engine.getGeometricEmittance(), &tmpVector[0]), 3);
     WRITE_STEPATTRIB_FLOAT64("ENERGY", (tmpDouble = engine.getMeanKineticEnergy(), &tmpDouble), 1);
@@ -725,9 +721,21 @@ SetStatistics LossDataSink::computeSetStatistics(unsigned int setIdx) {
     SetStatistics stat;
     double part[6];
 
-    const unsigned int totalSize = 45;
-    double plainData[totalSize];
+    // Layout:
+    // 0      : particle count
+    // 1..6   : centroid sums, x, px, y, py, z, pz
+    // 7..42  : 6x6 second moments
+    // 43     : time sum
+    // 44     : time^2 sum
+    // 45     : total charge
+    // 46     : total mass
+    // 47     : kinetic energy sum
+    // 48     : kinetic energy^2 sum
+    const unsigned int totalSize = 49; //45;
+
+    double plainData[totalSize] = {};
     double rminmax[6] = {};
+    double maxR[3] = {};
 
     Util::KahanAccumulation data[totalSize];
     Util::KahanAccumulation* localCentroid = data + 1;
@@ -736,15 +744,16 @@ SetStatistics LossDataSink::computeSetStatistics(unsigned int setIdx) {
 
     size_t startIdx = 0;
     size_t nLoc     = particles_m.size();
+
     if (setIdx + 1 < startSet_m.size()) {
         startIdx = startSet_m[setIdx];
         nLoc     = startSet_m[setIdx + 1] - startSet_m[setIdx];
     }
 
-    data[0].sum = nLoc;
+    data[0].sum = static_cast<double>(nLoc);
 
-    unsigned int idx = startIdx;
-    for (unsigned long k = 0; k < nLoc; ++k, ++idx) {
+    size_t idx = startIdx;
+      for (size_t k = 0; k < nLoc; ++k, ++idx) {
         const OpalParticle& particle = particles_m[idx];
 
         part[0] = particle.getX();
@@ -754,22 +763,45 @@ SetStatistics LossDataSink::computeSetStatistics(unsigned int setIdx) {
         part[4] = particle.getZ();
         part[5] = particle.getPz();
 
-        for (int i = 0; i < 6; i++) {
+        for (int i = 0; i < 6; ++i) {
             localCentroid[i] += part[i];
-            for (int j = 0; j <= i; j++) {
+
+            for (int j = 0; j <= i; ++j) {
                 localMoments[i * 6 + j] += part[i] * part[j];
             }
         }
-        localOthers[0] += particle.getTime();
-        localOthers[1] += std::pow(particle.getTime(), 2);
+
+        const double time = particle.getTime();
+        
+        localOthers[0] += time;
+        localOthers[1] += time * time;
+        localOthers[2] += particle.getCharge();
+        localOthers[3] += particle.getMass();
+
+        const double px = particle.getPx();
+        const double py = particle.getPy();
+        const double pz = particle.getPz();
+        const double p2 = px * px + py * py + pz * pz;
+
+        // In OPAL these momenta are beta*gamma, so gamma = sqrt(1 + |beta gamma|^2).
+        // particle.getMass() appears to be in MeV.
+        const double kineticEnergy = particle.getMass() * (std::sqrt(1.0 + p2) - 1.0);
+
+        localOthers[4] += kineticEnergy;
+        localOthers[5] += kineticEnergy * kineticEnergy;
 
         ::cminmax(rminmax[0], rminmax[1], particle.getX());
         ::cminmax(rminmax[2], rminmax[3], particle.getY());
         ::cminmax(rminmax[4], rminmax[5], particle.getZ());
+
+        maxR[0] = std::max(maxR[0], std::abs(particle.getX()));
+        maxR[1] = std::max(maxR[1], std::abs(particle.getY()));
+        maxR[2] = std::max(maxR[2], std::abs(particle.getZ()));
     }
 
-    for (int i = 0; i < 6; i++) {
-        for (int j = 0; j < i; j++) {
+
+    for (int i = 0; i < 6; ++i) {
+        for (int j = 0; j < i; ++j) {
             localMoments[j * 6 + i] = localMoments[i * 6 + j];
         }
     }
@@ -780,50 +812,99 @@ SetStatistics LossDataSink::computeSetStatistics(unsigned int setIdx) {
 
     ippl::Comm->allreduce(plainData, totalSize, std::plus<double>());
     ippl::Comm->allreduce(rminmax, 6, std::greater<double>());
+    ippl::Comm->allreduce(maxR, 3, std::greater<double>());
 
-    if (plainData[0] == 0.0)
+    if (plainData[0] == 0.0) {
         return stat;
+    }
 
     double* centroid = plainData + 1;
     double* moments  = plainData + 7;
     double* others   = plainData + 43;
 
     stat.outputName_m = outputName_m;
-    stat.spos_m       = spos_m[setIdx];
-    stat.refTime_m    = refTime_m[setIdx];
-    stat.RefPartR_m   = RefPartR_m[setIdx];
-    stat.RefPartP_m   = RefPartP_m[setIdx];
-    stat.nTotal_m     = (unsigned long)std::round(plainData[0]);
 
-    for (unsigned int i = 0; i < 3u; i++) {
+    if (setIdx < spos_m.size()) {
+        stat.spos_m = spos_m[setIdx];
+    }
+
+    if (setIdx < refTime_m.size()) {
+        stat.refTime_m = refTime_m[setIdx];
+    }
+
+    if (setIdx < RefPartR_m.size()) {
+        stat.RefPartR_m = RefPartR_m[setIdx];
+    }
+
+    if (setIdx < RefPartP_m.size()) {
+        stat.RefPartP_m = RefPartP_m[setIdx];
+    }
+
+    stat.nTotal_m = static_cast<unsigned long>(std::round(plainData[0]));
+
+    for (unsigned int i = 0; i < 3u; ++i) {
         stat.rmean_m(i) = centroid[2 * i] / stat.nTotal_m;
         stat.pmean_m(i) = centroid[(2 * i) + 1] / stat.nTotal_m;
+
         stat.rsqsum_m(i) =
-            (moments[2 * i * 6 + 2 * i] - stat.nTotal_m * std::pow(stat.rmean_m(i), 2));
-        stat.psqsum_m(i) = std::max(
-            0.0,
-            moments[(2 * i + 1) * 6 + (2 * i) + 1] - stat.nTotal_m * std::pow(stat.pmean_m(i), 2));
+            moments[(2 * i) * 6 + (2 * i)]
+            - stat.nTotal_m * std::pow(stat.rmean_m(i), 2);
+
+        stat.psqsum_m(i) =
+            moments[(2 * i + 1) * 6 + (2 * i + 1)]
+            - stat.nTotal_m * std::pow(stat.pmean_m(i), 2);
+
+        stat.psqsum_m(i) = std::max(0.0, stat.psqsum_m(i));
+
         stat.rpsum_m(i) =
-            (moments[(2 * i) * 6 + (2 * i) + 1]
-             - stat.nTotal_m * stat.rmean_m(i) * stat.pmean_m(i));
+            moments[(2 * i) * 6 + (2 * i + 1)]
+            - stat.nTotal_m * stat.rmean_m(i) * stat.pmean_m(i);
     }
+
     stat.tmean_m = others[0] / stat.nTotal_m;
-    stat.trms_m = std::sqrt(std::max(0.0, (others[1] / stat.nTotal_m - std::pow(stat.tmean_m, 2))));
+    stat.trms_m  = std::sqrt(
+        std::max(0.0, others[1] / stat.nTotal_m - std::pow(stat.tmean_m, 2)));
+
+    stat.totalCharge_m = others[2];
+    stat.totalMass_m   = others[3];
+
+    stat.meanKineticEnergy_m = others[4] / stat.nTotal_m;
+    stat.stdKineticEnergy_m  = std::sqrt(
+        std::max(
+            0.0,
+            others[5] / stat.nTotal_m
+                - stat.meanKineticEnergy_m * stat.meanKineticEnergy_m));
 
     stat.eps2_m =
-        ((stat.rsqsum_m * stat.psqsum_m - stat.rpsum_m * stat.rpsum_m)
-         / (1.0 * stat.nTotal_m * stat.nTotal_m));
+        (stat.rsqsum_m * stat.psqsum_m - stat.rpsum_m * stat.rpsum_m)
+        / (1.0 * stat.nTotal_m * stat.nTotal_m);
 
     stat.rpsum_m /= stat.nTotal_m;
 
-    for (unsigned int i = 0; i < 3u; i++) {
-        stat.rrms_m(i)     = std::sqrt(std::max(0.0, stat.rsqsum_m(i)) / stat.nTotal_m);
-        stat.prms_m(i)     = std::sqrt(std::max(0.0, stat.psqsum_m(i)) / stat.nTotal_m);
+    const double meanMomentumMagnitude = std::sqrt(
+        stat.pmean_m(0) * stat.pmean_m(0)
+        + stat.pmean_m(1) * stat.pmean_m(1)
+        + stat.pmean_m(2) * stat.pmean_m(2));
+
+    for (unsigned int i = 0; i < 3u; ++i) {
+        stat.rrms_m(i) = std::sqrt(std::max(0.0, stat.rsqsum_m(i)) / stat.nTotal_m);
+        stat.prms_m(i) = std::sqrt(std::max(0.0, stat.psqsum_m(i)) / stat.nTotal_m);
+        
         stat.eps_norm_m(i) = std::sqrt(std::max(0.0, stat.eps2_m(i)));
-        double tmp         = stat.rrms_m(i) * stat.prms_m(i);
-        stat.fac_m(i)      = (tmp == 0) ? 0.0 : 1.0 / tmp;
-        stat.rmin_m(i)     = -rminmax[2 * i];
-        stat.rmax_m(i)     = rminmax[2 * i + 1];
+
+        // Approximate geometric emittance from normalized emittance.
+        // This assumes momentum units are beta*gamma.
+        stat.geomEmit_m(i) =
+            meanMomentumMagnitude > 0.0
+                ? stat.eps_norm_m(i) / meanMomentumMagnitude
+                : 0.0;
+
+        const double tmp = stat.rrms_m(i) * stat.prms_m(i);
+
+        stat.fac_m(i)  = tmp == 0.0 ? 0.0 : 1.0 / tmp;
+        stat.rmin_m(i) = -rminmax[2 * i];
+        stat.rmax_m(i) = rminmax[2 * i + 1];
+        stat.maxR_m(i) = maxR[i];
     }
 
     stat.rprms_m = stat.rpsum_m * stat.fac_m;
