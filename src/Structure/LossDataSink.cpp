@@ -20,16 +20,13 @@
 #include "AbstractObjects/OpalData.h"
 #include "BuildInfo.h"
 #include "Utilities/GeneralOpalException.h"
+#include "Utilities/GSLHistogram.h"
 #include "Utilities/Options.h"
 #include "Utilities/Util.h"
 #include "Utility/IpplInfo.h"
 
-// #include "Algorithms/DistributionMoments.h"
-
-// #include "boost/numeric/conversion/cast.hpp?
-// #include "gsl/gsl_histogram.h"
-
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <filesystem>
 #include <limits>
@@ -163,7 +160,7 @@ namespace {
         return static_cast<int>(value);
     }
 
-    using OneDPhaseSpace_t = Vektor<double, 2>;
+    using OneDPhaseSpace_t = std::array<double, 2>;
     using OneDIterator_t   = std::vector<OneDPhaseSpace_t>::iterator;
 
     void f64transform(
@@ -289,9 +286,9 @@ namespace {
         for (OneDIterator_t it = begin; it < end; ++it) {
             const OneDPhaseSpace_t& rp = *it;
 
-            localStatistics[1] += rp(0);
-            localStatistics[2] += rp(1);
-            localStatistics[3] += rp(0) * rp(1);
+            localStatistics[1] += rp[0];
+            localStatistics[2] += rp[1];
+            localStatistics[3] += rp[0] * rp[1];
         }
 
         ippl::Comm->allreduce(localStatistics, 4, std::plus<double>());
@@ -312,8 +309,8 @@ namespace {
         for (OneDIterator_t it = begin; it < end; ++it) {
             const OneDPhaseSpace_t& rp = *it;
 
-            varianceStatistics[0] += std::pow(rp(0) - meanR, 2);
-            varianceStatistics[1] += std::pow(rp(1) - meanP, 2);
+            varianceStatistics[0] += std::pow(rp[0] - meanR, 2);
+            varianceStatistics[1] += std::pow(rp[1] - meanP, 2);
         }
 
         ippl::Comm->allreduce(varianceStatistics, 2, std::plus<double>());
@@ -407,8 +404,8 @@ namespace {
             for (size_t k = 0; k < nLoc; ++k) {
                 const OpalParticle& particle = particles[startIdx + k];
 
-                oneDPhaseSpace.at(k)(0) = particle[2 * d];
-                oneDPhaseSpace.at(k)(1) = particle[2 * d + 1];
+                oneDPhaseSpace[k][0] = particle[2 * d];
+                oneDPhaseSpace[k][1] = particle[2 * d + 1];
             }
 
             std::sort(
