@@ -435,7 +435,6 @@ void LossDataSink::saveH5(unsigned int setIdx) {
     locN[ippl::Comm->rank()] = static_cast<unsigned long long>(nLoc);
     reduce(locN.data(), globN.data(), ippl::Comm->size(), std::plus<unsigned long long>());
 
-
     SetStatistics stat = computeSetStatistics(setIdx);
 
     /// Set current record/time step.
@@ -450,50 +449,122 @@ void LossDataSink::saveH5(unsigned int setIdx) {
         WRITE_STEPATTRIB_INT64("GlobalTrackStep", &(globalTrackStep_m[setIdx]), 1);
     }
 
-
-
     Vector_t<double, 3> tmpVector;
     double tmpDouble;
-    WRITE_STEPATTRIB_FLOAT64("centroid", (tmpVector = engine.getMeanPosition(), &tmpVector[0]), 3);
-    WRITE_STEPATTRIB_FLOAT64("RMSX", (tmpVector = engine.getStandardDeviationPosition(), &tmpVector[0]), 3);
-    WRITE_STEPATTRIB_FLOAT64("MEANP", (tmpVector = engine.getMeanMomentum(), &tmpVector[0]), 3);
-    WRITE_STEPATTRIB_FLOAT64("RMSP", (tmpVector = engine.getStandardDeviationMomentum(), &tmpVector[0]), 3);
-    WRITE_STEPATTRIB_FLOAT64("#varepsilon", (tmpVector = engine.getNormalizedEmittance(), &tmpVector[0]), 3);
-
 
     WRITE_STEPATTRIB_FLOAT64(
-        "#varepsilon-geom", (tmpVector = engine.getGeometricEmittance(), &tmpVector[0]), 3);
-    WRITE_STEPATTRIB_FLOAT64("ENERGY", (tmpDouble = engine.getMeanKineticEnergy(), &tmpDouble), 1);
-    WRITE_STEPATTRIB_FLOAT64("dE", (tmpDouble = engine.getStdKineticEnergy(), &tmpDouble), 1);
-    WRITE_STEPATTRIB_FLOAT64("TotalCharge", (tmpDouble = engine.getTotalCharge(), &tmpDouble), 1);
-    WRITE_STEPATTRIB_FLOAT64("TotalMass", (tmpDouble = engine.getTotalMass(), &tmpDouble), 1);
-    WRITE_STEPATTRIB_FLOAT64("meanTime", (tmpDouble = engine.getMeanTime(), &tmpDouble), 1);
-    WRITE_STEPATTRIB_FLOAT64("rmsTime", (tmpDouble = engine.getStdTime(), &tmpDouble), 1);
-    if (Options::computePercentiles) {
-        WRITE_STEPATTRIB_FLOAT64(
-            "68-percentile", (tmpVector = engine.get68Percentile(), &tmpVector[0]), 3);
-        WRITE_STEPATTRIB_FLOAT64(
-            "95-percentile", (tmpVector = engine.get95Percentile(), &tmpVector[0]), 3);
-        WRITE_STEPATTRIB_FLOAT64(
-            "99-percentile", (tmpVector = engine.get99Percentile(), &tmpVector[0]), 3);
-        WRITE_STEPATTRIB_FLOAT64(
-            "99_99-percentile", (tmpVector = engine.get99_99Percentile(), &tmpVector[0]), 3);
+        "centroid",
+        (tmpVector = stat.rmean_m, &tmpVector[0]),
+        3);
 
-        WRITE_STEPATTRIB_FLOAT64(
-            "normalizedEps68Percentile",
-            (tmpVector = engine.getNormalizedEmittance68Percentile(), &tmpVector[0]), 3);
-        WRITE_STEPATTRIB_FLOAT64(
-            "normalizedEps95Percentile",
-            (tmpVector = engine.getNormalizedEmittance95Percentile(), &tmpVector[0]), 3);
-        WRITE_STEPATTRIB_FLOAT64(
-            "normalizedEps99Percentile",
-            (tmpVector = engine.getNormalizedEmittance99Percentile(), &tmpVector[0]), 3);
-        WRITE_STEPATTRIB_FLOAT64(
-            "normalizedEps99_99Percentile",
-            (tmpVector = engine.getNormalizedEmittance99_99Percentile(), &tmpVector[0]), 3);
+    WRITE_STEPATTRIB_FLOAT64(
+        "RMSX",
+        (tmpVector = stat.rrms_m, &tmpVector[0]),
+        3);
+
+    WRITE_STEPATTRIB_FLOAT64(
+        "MEANP",
+        (tmpVector = stat.pmean_m, &tmpVector[0]),
+        3);
+
+    WRITE_STEPATTRIB_FLOAT64(
+        "RMSP",
+        (tmpVector = stat.prms_m, &tmpVector[0]),
+        3);
+
+    WRITE_STEPATTRIB_FLOAT64(
+        "#varepsilon",
+        (tmpVector = stat.eps_norm_m, &tmpVector[0]),
+        3);
+
+    WRITE_STEPATTRIB_FLOAT64(
+        "#varepsilon-geom",
+        (tmpVector = stat.geomEmit_m, &tmpVector[0]),
+        3);
+
+    WRITE_STEPATTRIB_FLOAT64(
+        "ENERGY",
+        (tmpDouble = stat.meanKineticEnergy_m, &tmpDouble),
+        1);
+
+    WRITE_STEPATTRIB_FLOAT64(
+        "dE",
+        (tmpDouble = stat.stdKineticEnergy_m, &tmpDouble),
+        1);
+
+    WRITE_STEPATTRIB_FLOAT64(
+        "TotalCharge",
+        (tmpDouble = stat.totalCharge_m, &tmpDouble),
+        1);
+
+    WRITE_STEPATTRIB_FLOAT64(
+        "TotalMass",
+        (tmpDouble = stat.totalMass_m, &tmpDouble),
+        1);
+
+    WRITE_STEPATTRIB_FLOAT64(
+        "meanTime",
+        (tmpDouble = stat.tmean_m, &tmpDouble),
+        1);
+
+    WRITE_STEPATTRIB_FLOAT64(
+        "rmsTime",
+        (tmpDouble = stat.trms_m, &tmpDouble),
+        1);
+
+    // WRITE_STEPATTRIB_FLOAT64("centroid", (tmpVector = engine.getMeanPosition(), &tmpVector[0]), 3);
+    // WRITE_STEPATTRIB_FLOAT64("RMSX", (tmpVector = engine.getStandardDeviationPosition(), &tmpVector[0]), 3);
+    // WRITE_STEPATTRIB_FLOAT64("MEANP", (tmpVector = engine.getMeanMomentum(), &tmpVector[0]), 3);
+    // WRITE_STEPATTRIB_FLOAT64("RMSP", (tmpVector = engine.getStandardDeviationMomentum(), &tmpVector[0]), 3);
+    // WRITE_STEPATTRIB_FLOAT64("#varepsilon", (tmpVector = engine.getNormalizedEmittance(), &tmpVector[0]), 3);
+
+    // WRITE_STEPATTRIB_FLOAT64("#varepsilon-geom", (tmpVector = engine.getGeometricEmittance(), &tmpVector[0]), 3);
+    // WRITE_STEPATTRIB_FLOAT64("ENERGY", (tmpDouble = engine.getMeanKineticEnergy(), &tmpDouble), 1);
+    // WRITE_STEPATTRIB_FLOAT64("dE", (tmpDouble = engine.getStdKineticEnergy(), &tmpDouble), 1);
+    // WRITE_STEPATTRIB_FLOAT64("TotalCharge", (tmpDouble = engine.getTotalCharge(), &tmpDouble), 1);
+    // WRITE_STEPATTRIB_FLOAT64("TotalMass", (tmpDouble = engine.getTotalMass(), &tmpDouble), 1);
+    // WRITE_STEPATTRIB_FLOAT64("meanTime", (tmpDouble = engine.getMeanTime(), &tmpDouble), 1);
+    // WRITE_STEPATTRIB_FLOAT64("rmsTime", (tmpDouble = engine.getStdTime(), &tmpDouble), 1);
+
+    if (Options::computePercentiles) {
+        throw GeneralOpalException(
+            "LossDataSink::saveH5",
+            "Percentile loss-file statistics are not implemented in the OPAL-X LossDataSink path "
+            "after removing DistributionMoments.");
     }
 
-    WRITE_STEPATTRIB_FLOAT64("maxR", (tmpVector = engine.getMaxR(), &tmpVector[0]), 3);
+    WRITE_STEPATTRIB_FLOAT64(
+        "maxR",
+        (tmpVector = stat.maxR_m, &tmpVector[0]),
+        3);
+
+
+
+    // if (Options::computePercentiles) {
+    //     WRITE_STEPATTRIB_FLOAT64(
+    //         "68-percentile", (tmpVector = engine.get68Percentile(), &tmpVector[0]), 3);
+    //     WRITE_STEPATTRIB_FLOAT64(
+    //         "95-percentile", (tmpVector = engine.get95Percentile(), &tmpVector[0]), 3);
+    //     WRITE_STEPATTRIB_FLOAT64(
+    //         "99-percentile", (tmpVector = engine.get99Percentile(), &tmpVector[0]), 3);
+    //     WRITE_STEPATTRIB_FLOAT64(
+    //         "99_99-percentile", (tmpVector = engine.get99_99Percentile(), &tmpVector[0]), 3);
+
+    //     WRITE_STEPATTRIB_FLOAT64(
+    //         "normalizedEps68Percentile",
+    //         (tmpVector = engine.getNormalizedEmittance68Percentile(), &tmpVector[0]), 3);
+    //     WRITE_STEPATTRIB_FLOAT64(
+    //         "normalizedEps95Percentile",
+    //         (tmpVector = engine.getNormalizedEmittance95Percentile(), &tmpVector[0]), 3);
+    //     WRITE_STEPATTRIB_FLOAT64(
+    //         "normalizedEps99Percentile",
+    //         (tmpVector = engine.getNormalizedEmittance99Percentile(), &tmpVector[0]), 3);
+    //     WRITE_STEPATTRIB_FLOAT64(
+    //         "normalizedEps99_99Percentile",
+    //         (tmpVector = engine.getNormalizedEmittance99_99Percentile(), &tmpVector[0]), 3);
+    // }
+
+    // WRITE_STEPATTRIB_FLOAT64("maxR", (tmpVector = engine.getMaxR(), &tmpVector[0]), 3);
 
     // Write all data
     std::vector<char> buffer(nLoc * sizeof(h5_float64_t));
