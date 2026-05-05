@@ -45,6 +45,7 @@ struct SetStatistics {
     double totalMass_m;
     double meanKineticEnergy_m;
     double stdKineticEnergy_m;
+    double meanGamma_m;
     unsigned long nTotal_m;
     Vector_t<double, 3> RefPartR_m;
     Vector_t<double, 3> RefPartP_m;
@@ -64,7 +65,16 @@ struct SetStatistics {
     Vector_t<double, 3> eps2_m;
     Vector_t<double, 3> eps_norm_m;
     Vector_t<double, 3> fac_m;
+    
+    Vector_t<double, 3> sixtyEightPercentile_m;
+    Vector_t<double, 3> ninetyFivePercentile_m;
+    Vector_t<double, 3> ninetyNinePercentile_m;
+    Vector_t<double, 3> ninetyNine_NinetyNinePercentile_m;
 
+    Vector_t<double, 3> normalizedEps68Percentile_m;
+    Vector_t<double, 3> normalizedEps95Percentile_m;
+    Vector_t<double, 3> normalizedEps99Percentile_m;
+    Vector_t<double, 3> normalizedEps99_99Percentile_m;
 };
 
 namespace std {
