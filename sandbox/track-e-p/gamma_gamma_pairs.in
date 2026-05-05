@@ -1,0 +1,106 @@
+OPTION, PSDUMPFREQ = 1;
+OPTION, STATDUMPFREQ = 1;
+OPTION, BOUNDPDESTROY = 10;
+OPTION, VERSION = 10900;
+
+TITLE, STRING = "Gamma-gamma low-energy e-/e+ pair tracking from IP";
+
+// ---------------------------------------------------------------------------
+// Primary 245 MeV electron beam.
+REAL primary_kinetic_energy = 0.245;     // GeV
+REAL primary_gamma = (primary_kinetic_energy + EMASS) / EMASS;
+REAL primary_beta = sqrt(1.0 - 1.0 / (primary_gamma^2));
+REAL primary_p0 = primary_gamma * primary_beta * EMASS;  // GeV/c
+REAL primary_beta_gamma = primary_p0 / EMASS;
+
+REAL primary_geometric_emittance = 5.2e-9;  // m rad
+REAL primary_beta_function = 0.727e-3;      // m
+REAL primary_sigma_xy = sqrt(primary_geometric_emittance * primary_beta_function);
+REAL primary_sigma_xyp = sqrt(primary_geometric_emittance / primary_beta_function);
+REAL primary_sigma_pxy = primary_beta_gamma * primary_sigma_xyp;
+REAL primary_sigma_z = 0.6e-3;              // m
+
+REAL primary_electrons_per_bunch = 1.25e10;
+REAL primary_macroparticles = 10000; // 262144;
+REAL elementary_charge = 1.602176634e-19;
+REAL primary_bunch_charge = primary_electrons_per_bunch * elementary_charge;
+
+// ---------------------------------------------------------------------------
+// Pair data converted from fort98.txt.
+// FROMFILE momenta are beta*gamma = p/(m_e c); weight and creation time are
+// ignored in the current converter.
+REAL n_pairs_per_species = 1297;
+REAL pair_bunch_charge = n_pairs_per_species * elementary_charge;
+
+// time when e- and e+ are injected into the IP region
+REAL tinj = 100e-12;
+
+// Interaction point and short tracking line.
+REAL ip_s = 0.0;
+REAL drift_length = 0.01;
+REAL bb_length = 0.05;
+REAL bb_ip_s = drift_length + 0.5*bb_length;
+
+// Fieldsolver configuration
+REAL N = 16;
+
+DR_UP: DRIFT,  L = drift_length, ELEMEDGE = 0.0;
+IP1: BEAMBEAM, L = bb_length,    ELEMEDGE = drift_length, VISUALIZE = FALSE, COPY = TRUE, WITNESS_CONTAINERS = "NONE", APERTURE="RECTANGLE(0.02, 0.02, 0.05)";
+DR_DN: DRIFT,  L = drift_length, ELEMEDGE = drift_length + bb_length;
+
+pairLine: LINE = (DR_UP, IP1, DR_DN);
+
+FS1: FIELDSOLVER, TYPE = OPEN,
+    NX = N, NY = N, NZ = N,
+    PARFFTX = FALSE, PARFFTY = FALSE, PARFFTZ = FALSE,
+    BCFFTX = OPEN, BCFFTY = OPEN, BCFFTZ = OPEN;
+
+DistPrimaryElectrons: DISTRIBUTION, TYPE = GAUSS,
+    SIGMAX = primary_sigma_xy, SIGMAY = primary_sigma_xy, SIGMAZ = primary_sigma_z,
+    SIGMAPX = primary_sigma_pxy, SIGMAPY = primary_sigma_pxy, SIGMAPZ = 1.0e-12,
+    NPARTDIST = primary_macroparticles;
+
+DistElectrons: DISTRIBUTION, TYPE = FROMFILE,
+    FNAME = "gamma_gamma_electrons.fromfile",
+    NPARTDIST = n_pairs_per_species;
+
+DistPositrons: DISTRIBUTION, TYPE = FROMFILE,
+    FNAME = "gamma_gamma_positrons.fromfile",
+    NPARTDIST = n_pairs_per_species;
+
+SourcePrimaryElectrons: EMISSIONSOURCE, DISTRIBUTION = DistPrimaryElectrons;
+SourceElectrons: EMISSIONSOURCE, DISTRIBUTION = DistElectrons, T0=tinj, R0Z=bb_ip_s;
+SourcePositrons: EMISSIONSOURCE, DISTRIBUTION = DistPositrons, T0=tinj, R0Z=bb_ip_s;
+
+PrimaryElectronSources: EMISSIONSOURCELIST = (SourcePrimaryElectrons);
+ElectronSources: EMISSIONSOURCELIST = (SourceElectrons);
+PositronSources: EMISSIONSOURCELIST = (SourcePositrons);
+
+PrimaryElectrons: BEAM,
+    PARTICLE = ELECTRON,
+    PC = primary_p0,
+    NALLOC = primary_macroparticles,
+    BCHARGE = primary_bunch_charge,
+    SOURCES = PrimaryElectronSources;
+
+GammaGammaElectrons: BEAM,
+    PARTICLE = ELECTRON,
+    NALLOC = n_pairs_per_species,
+    BCHARGE = pair_bunch_charge,
+    SOURCES = ElectronSources;
+
+GammaGammaPositrons: BEAM,
+    PARTICLE = POSITRON,
+    NALLOC = n_pairs_per_species,
+    BCHARGE = pair_bunch_charge,
+    SOURCES = PositronSources;
+
+TRACK, LINE = pairLine,
+    BEAMS = {PrimaryElectrons, GammaGammaElectrons, GammaGammaPositrons},
+    MAXSTEPS = 130,
+    ZSTOP = 2*drift_length + bb_length,
+    DT = 1.0e-12;
+ RUN, METHOD = "PARALLEL", FIELDSOLVER = FS1;
+ENDTRACK;
+
+QUIT;
