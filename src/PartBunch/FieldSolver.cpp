@@ -53,8 +53,7 @@ void FieldSolver<double, 3>::initSolverWithParams(const ippl::ParameterList& sp)
 
 template <>
 void FieldSolver<double, 3>::dumpVectField(
-        std::string what,
-        const std::string& tag,
+        std::string what, const std::string& tag,
         const std::vector<std::string>& extraHeaderLines) {
     /*
       what == ef
@@ -158,8 +157,7 @@ void FieldSolver<double, 3>::dumpVectField(
 
 template <>
 void FieldSolver<double, 3>::dumpScalField(
-        std::string what,
-        const std::string& tag,
+        std::string what, const std::string& tag,
         const std::vector<std::string>& extraHeaderLines) {
     /*
       what == phi | rho
@@ -216,7 +214,7 @@ void FieldSolver<double, 3>::dumpScalField(
     auto spacing = mesh_mp->getMeshSpacing();
     auto origin  = mesh_mp->getOrigin();
 
-    Field_t<3>::view_type fieldV = field->getView();
+    Field_t<3>::view_type fieldV             = field->getView();
     Field_t<3>::host_mirror_type field_hostV = field->getHostMirror();
     Kokkos::deep_copy(field_hostV, fieldV);
 
@@ -235,21 +233,15 @@ void FieldSolver<double, 3>::dumpScalField(
     fout << std::setprecision(9);
 
     fout << "# " << Util::toUpper(what) << " " << type << " data on grid" << std::endl
-         << "# origin= " << std::fixed << origin
-         << " h= " << std::fixed << spacing
+         << "# origin= " << std::fixed << origin << " h= " << std::fixed << spacing
          << " nghosts=" << nghost << std::endl;
 
     for (const std::string& headerLine : extraHeaderLines) {
         fout << "# " << headerLine << std::endl;
     }
 
-    fout << "#"
-         << std::setw(4)  << "i"
-         << std::setw(5)  << "j"
-         << std::setw(5)  << "k"
-         << std::setw(17) << "x [m]"
-         << std::setw(17) << "y [m]"
-         << std::setw(17) << "z [m]";
+    fout << "#" << std::setw(4) << "i" << std::setw(5) << "j" << std::setw(5) << "k"
+         << std::setw(17) << "x [m]" << std::setw(17) << "y [m]" << std::setw(17) << "z [m]";
 
     if (isVectorField) {
         fout << std::setw(10) << what << "x [" << unit << "]" << std::setw(10) << what << "y ["

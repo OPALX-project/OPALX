@@ -27,21 +27,15 @@ extern Inform* gmsg;
 // Class BeamBeam
 // ------------------------------------------------------------------------
 
-BeamBeam::BeamBeam() : BeamBeam("") {
-}
+BeamBeam::BeamBeam() : BeamBeam("") {}
 
-BeamBeam::BeamBeam(const BeamBeam& right) : Component(right), nSlices_m(right.nSlices_m) {
-}
+BeamBeam::BeamBeam(const BeamBeam& right) : Component(right), nSlices_m(right.nSlices_m) {}
 
-BeamBeam::BeamBeam(const std::string& name) : Component(name), nSlices_m(1) {
-}
+BeamBeam::BeamBeam(const std::string& name) : Component(name), nSlices_m(1) {}
 
-BeamBeam::~BeamBeam() {
-}
+BeamBeam::~BeamBeam() {}
 
-void BeamBeam::accept(BeamlineVisitor& visitor) const {
-    visitor.visitBeamBeam(*this);
-}
+void BeamBeam::accept(BeamlineVisitor& visitor) const { visitor.visitBeamBeam(*this); }
 
 void BeamBeam::initialise(PartBunch_t* bunch, double& startField, double& endField) {
     endField       = startField + getElementLength();
@@ -50,27 +44,18 @@ void BeamBeam::initialise(PartBunch_t* bunch, double& startField, double& endFie
 }
 
 // set the number of slices for map tracking
-void BeamBeam::setNSlices(const std::size_t& nSlices) {
-    nSlices_m = nSlices;
-}
+void BeamBeam::setNSlices(const std::size_t& nSlices) { nSlices_m = nSlices; }
 
 // get the number of slices for map tracking
-std::size_t BeamBeam::getNSlices() const {
-    return nSlices_m;
-}
+std::size_t BeamBeam::getNSlices() const { return nSlices_m; }
 
-void BeamBeam::finalise() {
-}
+void BeamBeam::finalise() {}
 
-bool BeamBeam::bends() const {
-    return false;
-}
+bool BeamBeam::bends() const { return false; }
 
 void BeamBeam::getFieldExtend(double& zBegin, double& zEnd) const {
     zBegin = startField_m;
     zEnd   = startField_m + getElementLength();
 }
 
-ElementType BeamBeam::getType() const {
-    return ElementType::BEAMBEAM;
-}
+ElementType BeamBeam::getType() const { return ElementType::BEAMBEAM; }

@@ -293,8 +293,12 @@ TEST_F(SolenoidPlacementTest, LatticeExportsUseFieldMapEdgesAndSolenoidMeshType)
     EXPECT_NE(script.find("mesh.points *= display_scale"), std::string::npos);
     EXPECT_NE(script.find("zlabel='Z [mm]'"), std::string::npos);
     EXPECT_NE(script.find("def addParticleVisualization("), std::string::npos);
-    EXPECT_NE(script.find("parser.add_argument('--part-vis', action='store_true')"), std::string::npos);
-    EXPECT_NE(script.find("parser.add_argument('--part-debug', action='store_true')"), std::string::npos);
+    EXPECT_NE(
+            script.find("parser.add_argument('--part-vis', action='store_true')"),
+            std::string::npos);
+    EXPECT_NE(
+            script.find("parser.add_argument('--part-debug', action='store_true')"),
+            std::string::npos);
     EXPECT_NE(script.find("args.part_max_primary"), std::string::npos);
     EXPECT_NE(script.find("ref_part_r = np.asarray(group.attrs.get('RefPartR'"), std::string::npos);
     EXPECT_NE(script.find("plotter.reset_camera()"), std::string::npos);
@@ -420,8 +424,7 @@ TEST_F(SolenoidPlacementTest, BeamBeamMeshesAsNamedBox) {
     BeamBeamRep beamBeam("BB1");
     beamBeam.setElementLength(0.05);
     beamBeam.setElementPosition(0.0);
-    beamBeam.setAperture(
-            ApertureType::CONIC_RECTANGULAR, std::vector<double>{0.005, 0.005, 0.05});
+    beamBeam.setAperture(ApertureType::CONIC_RECTANGULAR, std::vector<double>{0.005, 0.005, 0.05});
 
     MeshGenerator mesh;
     mesh.add(beamBeam);

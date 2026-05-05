@@ -62,10 +62,10 @@
 #include "ValueDefinitions/StringConstant.h"
 
 // Element commands.
+#include "Elements/OpalBeamBeam.h"
 #include "Elements/OpalCavity.h"
 #include "Elements/OpalConstantEFieldCavity.h"
 #include "Elements/OpalDrift.h"
-#include "Elements/OpalBeamBeam.h"
 #include "Elements/OpalLaser.h"
 #include "Elements/OpalMarker.h"
 #include "Elements/OpalMultipole.h"

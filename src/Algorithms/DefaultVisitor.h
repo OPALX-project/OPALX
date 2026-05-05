@@ -62,7 +62,7 @@ public:
 
     /// Apply the algorithm to an interaction point.
     void visitBeamBeam(const BeamBeam&) override;
-  
+
     /// Apply the algorithm to a marker.
     void visitMarker(const Marker&) override;
 

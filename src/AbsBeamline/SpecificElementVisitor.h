@@ -20,6 +20,7 @@
 
 #include <list>
 
+#include "AbsBeamline/BeamBeam.h"
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "AbsBeamline/CCollimator.h"
 #include "AbsBeamline/ConstantEFieldCavity.h"
@@ -29,7 +30,6 @@
 #include "AbsBeamline/Drift.h"
 #include "AbsBeamline/ElementBase.h"
 #include "AbsBeamline/FlexibleCollimator.h"
-#include "AbsBeamline/BeamBeam.h"
 #include "AbsBeamline/Laser.h"
 #include "AbsBeamline/Marker.h"
 #include "AbsBeamline/Monitor.h"
@@ -119,8 +119,8 @@ public:
     virtual void visitFlexibleCollimator(const FlexibleCollimator&);
 
     /// Apply the algorithm to a interaction point.
-    virtual void visitBeamBeam(const BeamBeam &);
-  
+    virtual void visitBeamBeam(const BeamBeam&);
+
     /// Apply the algorithm to a marker.
     virtual void visitMarker(const Marker&);
 

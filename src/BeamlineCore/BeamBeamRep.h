@@ -22,48 +22,44 @@
 #include "BeamlineGeometry/StraightGeometry.h"
 #include "Fields/NullField.h"
 
-
-class BeamBeamRep: public BeamBeam {
-
+class BeamBeamRep : public BeamBeam {
 public:
-
     /// Constructor with given name.
-    explicit BeamBeamRep(const std::string &name);
+    explicit BeamBeamRep(const std::string& name);
 
     BeamBeamRep();
-    BeamBeamRep(const BeamBeamRep &);
+    BeamBeamRep(const BeamBeamRep&);
     virtual ~BeamBeamRep();
 
     /// Return clone.
     //  Return an identical deep copy of the element.
-    virtual ElementBase *clone() const;
+    virtual ElementBase* clone() const;
 
     /// Construct a read/write channel.
     //  This method constructs a Channel permitting read/write access to
     //  the attribute [b]aKey[/b] and returns it.
     //  If the attribute does not exist, it returns nullptr.
-    virtual Channel *getChannel(const std::string &aKey, bool = false);
+    virtual Channel* getChannel(const std::string& aKey, bool = false);
 
     /// Get field.
     //  Version for non-constant object.
-    virtual NullField &getField();
+    virtual NullField& getField();
 
     /// Get field.
     //  Version for constant object.
-    virtual const NullField &getField() const;
+    virtual const NullField& getField() const;
 
     /// Get geometry.
     //  Version for non-constant object.
-    virtual StraightGeometry &getGeometry();
+    virtual StraightGeometry& getGeometry();
 
     /// Get geometry.
     //  Version for constant object.
-    virtual const StraightGeometry &getGeometry() const;
+    virtual const StraightGeometry& getGeometry() const;
 
 private:
-
     // Not implemented.
-    void operator=(const BeamBeamRep &);
+    void operator=(const BeamBeamRep&);
 
     /// The zero magnetic field.
     NullField field;
@@ -72,4 +68,4 @@ private:
     StraightGeometry geometry;
 };
 
-#endif // CLASSIC_BeamBeamRep_HH
+#endif  // CLASSIC_BeamBeamRep_HH

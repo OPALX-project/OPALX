@@ -20,15 +20,14 @@
 
 #include "Elements/OpalElement.h"
 
-class OpalBeamBeam: public OpalElement {
-
+class OpalBeamBeam : public OpalElement {
 public:
-
     enum {
-         GEOMETRY = COMMON,  // geometry of boundary, one more enum member besides the common ones in OpalElement.
-         COPY,               // Enable mirrored-bunch copy model
-         VISUALIZE,          // Enable ASCII beam-beam-window visualization
-         SIZE
+        GEOMETRY = COMMON,  // geometry of boundary, one more enum member besides the common ones in
+                            // OpalElement.
+        COPY,               // Enable mirrored-bunch copy model
+        VISUALIZE,          // Enable ASCII beam-beam-window visualization
+        SIZE
     };
 
     /// Exemplar constructor.
@@ -47,14 +46,12 @@ public:
     virtual void update();
 
 private:
-
     // Not implemented.
     OpalBeamBeam(const OpalBeamBeam&);
     void operator=(const OpalBeamBeam&);
 
     // Clone constructor.
     OpalBeamBeam(const std::string& name, OpalBeamBeam* parent);
-
 };
 
-#endif // OPAL_OpalBeamBeam_HH
+#endif  // OPAL_OpalBeamBeam_HH

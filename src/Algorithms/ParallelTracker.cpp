@@ -50,8 +50,8 @@
 
 #include "Structure/BoundaryGeometry.h"
 #include "Structure/BoundingBox.h"
-#include "Utilities/LogicalError.h"
 #include "Utilities/BeamBeamWindowAnimation.h"
+#include "Utilities/LogicalError.h"
 #include "Utilities/OpalException.h"
 #include "Utilities/Options.h"
 #include "Utilities/Timer.h"
@@ -692,10 +692,9 @@ void ParallelTracker::checkInBBRegion(OrbitThreader& oth) {
     itsBunch_m->calcBeamParameters();
     itsBunch_m->get_bounds(rmin, rmax);
 
-    auto pc             = itsBunch_m->getParticleContainer();
-    const double bunchS = pc->get_sPos();
-    BeamBeamLongitudinalExtent bunchExtent =
-            computeBeamBeamLongitudinalExtent(bunchS, rmin, rmax);
+    auto pc                                = itsBunch_m->getParticleContainer();
+    const double bunchS                    = pc->get_sPos();
+    BeamBeamLongitudinalExtent bunchExtent = computeBeamBeamLongitudinalExtent(bunchS, rmin, rmax);
 
     std::optional<BEAMBEAM::ActualGeometry> geometry = detectBeamBeamWindow(oth, rmin, rmax);
     if (!geometry.has_value() && beamBeamState_m.state == BEAMBEAM::WindowState::Active
@@ -707,19 +706,17 @@ void ParallelTracker::checkInBBRegion(OrbitThreader& oth) {
         return;
     }
 
-    const auto& activeGeometry = *geometry;
-    beamBeamDiagnostics_m.frameObserved =
-            activeGeometry.config.visualize
-            && (bunchExtent.head >= activeGeometry.beginS)
-            && (bunchExtent.tail <= activeGeometry.endS);
+    const auto& activeGeometry          = *geometry;
+    beamBeamDiagnostics_m.frameObserved = activeGeometry.config.visualize
+                                          && (bunchExtent.head >= activeGeometry.beginS)
+                                          && (bunchExtent.tail <= activeGeometry.endS);
     beamBeamState_m.geometry = activeGeometry;
 
     const double beamBeamCellHalfWidth =
             0.5 * activeGeometry.length / static_cast<double>(itsBunch_m->nr_m[2]);
 
-    const bool leavingBeamBeamWindow =
-            beamBeamState_m.state == BEAMBEAM::WindowState::Active
-            && (bunchExtent.head > activeGeometry.endS);
+    const bool leavingBeamBeamWindow = beamBeamState_m.state == BEAMBEAM::WindowState::Active
+                                       && (bunchExtent.head > activeGeometry.endS);
 
     if (leavingBeamBeamWindow) {
         leaveBeamBeamWindow(m);
@@ -763,7 +760,7 @@ std::optional<BEAMBEAM::ActualGeometry> ParallelTracker::detectBeamBeamWindow(
             return std::nullopt;
         }
 
-        const IndexMap::key_t ipRange = oth.getRange(element, bunchS);
+        const IndexMap::key_t ipRange  = oth.getRange(element, bunchS);
         const double interactionPointS = 0.5 * (ipRange.begin + ipRange.end);
         std::optional<double> xAperture;
         std::optional<double> yAperture;
@@ -773,24 +770,20 @@ std::optional<BEAMBEAM::ActualGeometry> ParallelTracker::detectBeamBeamWindow(
             yAperture = std::abs(aperture.second[1]);
         }
         return BEAMBEAM::ActualGeometry{
-                interactionPointS,
-                interactionPointS - 0.5 * beamBeamWindowLength,
-                interactionPointS + 0.5 * beamBeamWindowLength,
-                beamBeamWindowLength,
+                interactionPointS, interactionPointS - 0.5 * beamBeamWindowLength,
+                interactionPointS + 0.5 * beamBeamWindowLength, beamBeamWindowLength,
                 BEAMBEAM::Config{
                         element->getAttribute("COPY") != 0.0,
-                        element->getAttribute("VISUALIZE") != 0.0,
-                        xAperture,
-                        yAperture}};
+                        element->getAttribute("VISUALIZE") != 0.0, xAperture, yAperture}};
     }
 
     return std::nullopt;
 }
 
 void ParallelTracker::enterBeamBeamWindow(const BEAMBEAM::ActualGeometry& geometry, Inform& m) {
-    beamBeamState_m.state            = BEAMBEAM::WindowState::Active;
-    beamBeamState_m.geometry         = geometry;
-    beamBeamState_m.savedFieldDomain = itsBunch_m->saveFieldDomainState();
+    beamBeamState_m.state                        = BEAMBEAM::WindowState::Active;
+    beamBeamState_m.geometry                     = geometry;
+    beamBeamState_m.savedFieldDomain             = itsBunch_m->saveFieldDomainState();
     beamBeamDiagnostics_m.entryRhoSnapshotDumped = false;
     itsBunch_m->clearBeamBeamWindowVisualizationTail();
     applyBeamBeamWindowConfig(geometry);
@@ -832,8 +825,7 @@ std::optional<double> ParallelTracker::performBeamBeamWindowEntryTransition(
                 "Missing deposited-charge diagnostics for the pre-enlarge BeamBeam solve.");
     }
 
-    const double referenceCharge =
-            std::abs(itsBunch_m->getLastDepositedChargeBeforeBackground());
+    const double referenceCharge = std::abs(itsBunch_m->getLastDepositedChargeBeforeBackground());
     dumpBeamBeamTransitionSnapshot("before_interaction_window_mesh_enlarge");
     applyBeamBeamWindowConfig(geometry);
     itsBunch_m->setPhysicalBounds(physicalRMin, physicalRMax);
@@ -848,8 +840,7 @@ void ParallelTracker::validateBeamBeamCopiedCharge(double referenceCharge) const
                 "Missing deposited-charge diagnostics for the enlarged BeamBeam solve.");
     }
 
-    const double enlargedCharge =
-            std::abs(itsBunch_m->getLastDepositedChargeBeforeBackground());
+    const double enlargedCharge = std::abs(itsBunch_m->getLastDepositedChargeBeforeBackground());
     const double expectedCharge = 2.0 * referenceCharge;
     const double tolerance      = std::max(1.0e-18, 1.0e-2 * expectedCharge);
     if (std::abs(enlargedCharge - expectedCharge) > tolerance) {
@@ -866,7 +857,7 @@ void ParallelTracker::dumpBeamBeamTransitionSnapshot(const std::string& snapshot
 }
 
 void ParallelTracker::leaveBeamBeamWindow(Inform& m) {
-    beamBeamState_m.state = BEAMBEAM::WindowState::Completed;
+    beamBeamState_m.state                        = BEAMBEAM::WindowState::Completed;
     beamBeamDiagnostics_m.entryRhoSnapshotDumped = false;
 
     if (beamBeamState_m.geometry.has_value()) {
@@ -899,8 +890,7 @@ void ParallelTracker::renderBeamBeamWindowFrame(
 
     beamBeamWindowAnimation_m->render(
             bunchCenterS, meshBeginS, meshEndS, geometry.beginS, geometry.endS,
-            geometry.interactionPointS,
-            beamBeamState_m.state == BEAMBEAM::WindowState::Active,
+            geometry.interactionPointS, beamBeamState_m.state == BEAMBEAM::WindowState::Active,
             useFrozenBeamBeamWindowMesh);
 }
 

@@ -89,7 +89,7 @@ public:
 
     /// Apply the algorithm to a beam-beam interaction point.
     virtual void visitBeamBeam(const BeamBeam&) = 0;
-  
+
     /// Apply the algorithm to a marker.
     virtual void visitMarker(const Marker&) = 0;
 

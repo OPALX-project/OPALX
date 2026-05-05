@@ -39,13 +39,11 @@ public:
     ~FieldSolver() override = default;
 
     void dumpScalField(
-        std::string what,
-        const std::string& tag = "",
-        const std::vector<std::string>& extraHeaderLines = {});
+            std::string what, const std::string& tag = "",
+            const std::vector<std::string>& extraHeaderLines = {});
     void dumpVectField(
-        std::string what,
-        const std::string& tag = "",
-        const std::vector<std::string>& extraHeaderLines = {});
+            std::string what, const std::string& tag = "",
+            const std::vector<std::string>& extraHeaderLines = {});
 
     Field_t<Dim>* getRho() { return rho_m; }
     void setRho(Field_t<Dim>* rho) { rho_m = rho; }

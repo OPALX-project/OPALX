@@ -132,9 +132,9 @@ void MeshGenerator::add(const ElementBase& element) {
         switch (apert.first) {
             case ApertureType::RECTANGULAR:
             case ApertureType::CONIC_RECTANGULAR:
-                mesh = getBox(
-                        length, apert.second[0], apert.second[1],
-                        element.getType() == ElementType::BEAMBEAM ? 1.0 : apert.second[2]);
+                mesh =
+                        getBox(length, apert.second[0], apert.second[1],
+                               element.getType() == ElementType::BEAMBEAM ? 1.0 : apert.second[2]);
                 break;
             case ApertureType::ELLIPTICAL:
             case ApertureType::CONIC_ELLIPTICAL:
@@ -723,7 +723,8 @@ def addParticleStepSlider(plotter, pv, np, display_scale, initial_step, max_prim
 
 )PY";
 
-    out << "def showVTK(part_vis=False, part_step='latest', max_primary=50000, max_pairs=20000, part_debug=False, part_slider=False):\n";
+    out << "def showVTK(part_vis=False, part_step='latest', max_primary=50000, max_pairs=20000, "
+           "part_debug=False, part_slider=False):\n";
     out << indent << "try:\n";
     out << indent << indent << "import numpy as np\n";
     out << indent << indent << "import pyvista as pv\n";
@@ -794,15 +795,18 @@ def addParticleStepSlider(plotter, pv, np, display_scale, initial_step, max_prim
     out << indent << indent << "celltypes = np.asarray([pv.CellType.HEXAHEDRON], dtype=np.uint8)\n";
     out << indent << indent << "aperture_grid = pv.UnstructuredGrid(cells, celltypes, points)\n";
     out << indent << indent
-        << "plotter.add_mesh(aperture_grid, color=(0.65, 0.65, 0.65), opacity=0.28, show_edges=True, "
+        << "plotter.add_mesh(aperture_grid, color=(0.65, 0.65, 0.65), opacity=0.28, "
+           "show_edges=True, "
            "label=aperture['name'])\n";
     out << indent << "if part_vis:\n";
     out << indent << indent << "if part_slider:\n";
     out << indent << indent << indent
-        << "addParticleStepSlider(plotter, pv, np, display_scale, part_step, max_primary, max_pairs, part_debug)\n";
+        << "addParticleStepSlider(plotter, pv, np, display_scale, part_step, max_primary, "
+           "max_pairs, part_debug)\n";
     out << indent << indent << "else:\n";
     out << indent << indent << indent
-        << "addParticleVisualization(plotter, pv, np, display_scale, part_step, max_primary, max_pairs, part_debug)\n";
+        << "addParticleVisualization(plotter, pv, np, display_scale, part_step, max_primary, "
+           "max_pairs, part_debug)\n";
     out << indent << indent << "plotter.reset_camera()\n";
     out << indent << "plotter.add_axes()\n";
     out << indent << "try:\n";
@@ -948,13 +952,11 @@ def addParticleStepSlider(plotter, pv, np, display_scale, initial_step, max_prim
     out << indent << indent << indent
         << "vertices_str += (\"%f %f %f\\n\" % (point[0], point[1], point[2]))\n";
     out << indent << indent << indent << "vertexCounter += 1\n";
-    out << indent << indent
-        << "triangles_str += (\"8 %d %d %d %d %d %d %d %d\\n\" %\n";
+    out << indent << indent << "triangles_str += (\"8 %d %d %d %d %d %d %d %d\\n\" %\n";
     out << indent << indent << indent
         << "tuple(aperture_start + idx for idx in aperture['cell']))\n";
     out << indent << indent << "cellTypes_str += \"12\\n\"\n";
-    out << indent << indent
-        << "color_str += \"0.650000 0.650000 0.650000 0.280000\\n\"\n";
+    out << indent << indent << "color_str += \"0.650000 0.650000 0.650000 0.280000\\n\"\n";
     out << indent << indent << "cellCounter += 1\n\n";
 
     out << indent << "fh = open('" << fname << "_ElementPositions.vtk','w')\n";
@@ -966,8 +968,7 @@ def addParticleStepSlider(plotter, pv, np, display_scale, initial_step, max_prim
     out << indent << "cell_size = (cellCounter - (1 if aperture is not None else 0)) * 4\n";
     out << indent << "if aperture is not None:\n";
     out << indent << indent << "cell_size += 9\n";
-    out << indent
-        << "fh.write(\"CELLS \" + str(cellCounter) + \" \" + str(cell_size) + \"\\n\")\n";
+    out << indent << "fh.write(\"CELLS \" + str(cellCounter) + \" \" + str(cell_size) + \"\\n\")\n";
     out << indent << "fh.write(triangles_str)\n";
     out << indent << "fh.write(\"CELL_TYPES \" + str(cellCounter) + \"\\n\")\n";
     out << indent << "fh.write(cellTypes_str)\n";

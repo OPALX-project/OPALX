@@ -21,38 +21,34 @@
 
 OpalBeamBeam::OpalBeamBeam()
     : OpalElement(
-          SIZE,
-          "BEAMBEAM",
-          "The \"BEAMBEAM\" element defines a beam-beam interaction point for colliding beams.") {
-    itsAttr[GEOMETRY] = Attributes::makeString("GEOMETRY", "BoundaryGeometry for beam-beam elements");
+              SIZE, "BEAMBEAM",
+              "The \"BEAMBEAM\" element defines a beam-beam interaction point for colliding "
+              "beams.") {
+    itsAttr[GEOMETRY] =
+            Attributes::makeString("GEOMETRY", "BoundaryGeometry for beam-beam elements");
     itsAttr[COPY] = Attributes::makeBool(
-        "COPY",
-        "If true, enable the future mirrored-bunch copy model for the beam-beam window.",
-        false);
+            "COPY",
+            "If true, enable the future mirrored-bunch copy model for the beam-beam window.",
+            false);
     itsAttr[VISUALIZE] = Attributes::makeBool(
-        "VISUALIZE",
-        "If true, emit the ASCII beam-beam-window visualization during tracking.",
-        false);
+            "VISUALIZE", "If true, emit the ASCII beam-beam-window visualization during tracking.",
+            false);
 
     registerOwnership();
 
     setElement(new BeamBeamRep("DRIFT"));
 }
 
-OpalBeamBeam::OpalBeamBeam(const std::string& name, OpalBeamBeam* parent) : OpalElement(name, parent) {
+OpalBeamBeam::OpalBeamBeam(const std::string& name, OpalBeamBeam* parent)
+    : OpalElement(name, parent) {
     setElement(new BeamBeamRep(name));
 }
 
-OpalBeamBeam::~OpalBeamBeam() {
-}
+OpalBeamBeam::~OpalBeamBeam() {}
 
-OpalBeamBeam* OpalBeamBeam::clone(const std::string& name) {
-    return new OpalBeamBeam(name, this);
-}
+OpalBeamBeam* OpalBeamBeam::clone(const std::string& name) { return new OpalBeamBeam(name, this); }
 
-bool OpalBeamBeam::isBeamBeam() const {
-    return true;
-}
+bool OpalBeamBeam::isBeamBeam() const { return true; }
 
 void OpalBeamBeam::update() {
     OpalElement::update();

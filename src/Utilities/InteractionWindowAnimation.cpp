@@ -6,59 +6,55 @@
 #include <utility>
 
 InteractionWindowAnimation::InteractionWindowAnimation(
-    const std::string& outputPath, std::size_t width)
+        const std::string& outputPath, std::size_t width)
     : dump_m(outputPath),
       width_m(std::max<std::size_t>(width, 3)),
       firstFrame_m(true),
       frameId_m(0),
-      prevLineCount_m(0) {
-}
+      prevLineCount_m(0) {}
 
 void InteractionWindowAnimation::render(
-    double bunchCenterS, double meshBeginS, double meshEndS,
-    double interactionWindowBeginS, double interactionWindowEndS,
-    double interactionPointS, bool mirroredBeamActive,
-    bool useFrozenInteractionWindowMesh) {
+        double bunchCenterS, double meshBeginS, double meshEndS, double interactionWindowBeginS,
+        double interactionWindowEndS, double interactionPointS, bool mirroredBeamActive,
+        bool useFrozenInteractionWindowMesh) {
     std::vector<std::string> lines{
-        renderMeshEnvelope(
-            meshBeginS, meshEndS, interactionWindowBeginS, interactionWindowEndS),
-        renderCenters(
-            bunchCenterS, meshBeginS, meshEndS,
-            interactionWindowBeginS, interactionWindowEndS, interactionPointS,
-            mirroredBeamActive),
+            renderMeshEnvelope(
+                    meshBeginS, meshEndS, interactionWindowBeginS, interactionWindowEndS),
+            renderCenters(
+                    bunchCenterS, meshBeginS, meshEndS, interactionWindowBeginS,
+                    interactionWindowEndS, interactionPointS, mirroredBeamActive),
     };
 
     if (!useFrozenInteractionWindowMesh) {
         lines.push_back(renderMeshEnvelope(
-            meshBeginS, meshEndS, interactionWindowBeginS, interactionWindowEndS));
+                meshBeginS, meshEndS, interactionWindowBeginS, interactionWindowEndS));
     }
 
     lines.push_back(renderLabels(
-        interactionWindowBeginS, interactionWindowEndS, interactionPointS,
-        useFrozenInteractionWindowMesh));
+            interactionWindowBeginS, interactionWindowEndS, interactionPointS,
+            useFrozenInteractionWindowMesh));
 
     writeToTerminal(lines);
     writeToFile(lines);
 }
 
 std::pair<double, double> InteractionWindowAnimation::getDisplayRange(
-    double interactionWindowBeginS, double interactionWindowEndS) const {
-    const double interactionWindowLength =
-        interactionWindowEndS - interactionWindowBeginS;
-    const double margin = 0.5 * interactionWindowLength;
+        double interactionWindowBeginS, double interactionWindowEndS) const {
+    const double interactionWindowLength = interactionWindowEndS - interactionWindowBeginS;
+    const double margin                  = 0.5 * interactionWindowLength;
     return {
-        interactionWindowBeginS - margin,
-        interactionWindowEndS + margin,
+            interactionWindowBeginS - margin,
+            interactionWindowEndS + margin,
     };
 }
 
 bool InteractionWindowAnimation::isInsideDisplay(
-    double z, double displayMinZ, double displayMaxZ) const {
+        double z, double displayMinZ, double displayMaxZ) const {
     return z >= displayMinZ && z <= displayMaxZ;
 }
 
 std::size_t InteractionWindowAnimation::mapToDisplayIndex(
-    double z, double displayMinZ, double displayMaxZ) const {
+        double z, double displayMinZ, double displayMaxZ) const {
     const double span = displayMaxZ - displayMinZ;
     if (span <= 0.0 || width_m < 3) {
         return 1;
@@ -67,13 +63,12 @@ std::size_t InteractionWindowAnimation::mapToDisplayIndex(
     double u = (z - displayMinZ) / span;
     u        = std::clamp(u, 0.0, 1.0);
 
-    std::size_t idx =
-        static_cast<std::size_t>(std::llround(u * static_cast<double>(width_m - 1)));
+    std::size_t idx = static_cast<std::size_t>(std::llround(u * static_cast<double>(width_m - 1)));
     return std::clamp<std::size_t>(idx, 1, width_m - 2);
 }
 
 void InteractionWindowAnimation::placeLabel(
-    std::string& line, std::size_t pos, const std::string& label) const {
+        std::string& line, std::size_t pos, const std::string& label) const {
     if (line.empty() || label.empty()) {
         return;
     }
@@ -93,7 +88,7 @@ bool InteractionWindowAnimation::isMarkerBackground(char ch) const {
 }
 
 void InteractionWindowAnimation::placeMarker(
-    std::string& line, std::size_t idx, char marker) const {
+        std::string& line, std::size_t idx, char marker) const {
     if (idx >= line.size()) {
         return;
     }
@@ -131,10 +126,10 @@ void InteractionWindowAnimation::placeMarker(
 }
 
 std::string InteractionWindowAnimation::renderMeshEnvelope(
-    double meshBeginS, double meshEndS, double interactionWindowBeginS,
-    double interactionWindowEndS) const {
+        double meshBeginS, double meshEndS, double interactionWindowBeginS,
+        double interactionWindowEndS) const {
     const auto [displayMinS, displayMaxS] =
-        getDisplayRange(interactionWindowBeginS, interactionWindowEndS);
+            getDisplayRange(interactionWindowBeginS, interactionWindowEndS);
 
     std::string line(width_m, ' ');
 
@@ -151,20 +146,18 @@ std::string InteractionWindowAnimation::renderMeshEnvelope(
 }
 
 std::string InteractionWindowAnimation::renderCenters(
-    double bunchCenterS, double meshBeginS, double meshEndS,
-    double interactionWindowBeginS, double interactionWindowEndS,
-    double interactionPointS, bool mirroredBeamActive) const {
+        double bunchCenterS, double meshBeginS, double meshEndS, double interactionWindowBeginS,
+        double interactionWindowEndS, double interactionPointS, bool mirroredBeamActive) const {
     const auto [displayMinS, displayMaxS] =
-        getDisplayRange(interactionWindowBeginS, interactionWindowEndS);
+            getDisplayRange(interactionWindowBeginS, interactionWindowEndS);
 
     std::string line(width_m, '-');
     line.front() = '[';
     line.back()  = ']';
 
     const std::size_t startIdx =
-        mapToDisplayIndex(interactionWindowBeginS, displayMinS, displayMaxS);
-    const std::size_t endIdx =
-        mapToDisplayIndex(interactionWindowEndS, displayMinS, displayMaxS);
+            mapToDisplayIndex(interactionWindowBeginS, displayMinS, displayMaxS);
+    const std::size_t endIdx = mapToDisplayIndex(interactionWindowEndS, displayMinS, displayMaxS);
 
     line[startIdx] = '[';
     line[endIdx]   = ']';
@@ -195,8 +188,7 @@ std::string InteractionWindowAnimation::renderCenters(
         const double mirroredCenterS = 2.0 * interactionPointS - bunchCenterS;
 
         if (isInsideDisplay(mirroredCenterS, displayMinS, displayMaxS)) {
-            placeMarker(
-                line, mapToDisplayIndex(mirroredCenterS, displayMinS, displayMaxS), '+');
+            placeMarker(line, mapToDisplayIndex(mirroredCenterS, displayMinS, displayMaxS), '+');
         } else if (mirroredCenterS < displayMinS) {
             placeMarker(line, 1, '<');
         } else {
@@ -208,19 +200,17 @@ std::string InteractionWindowAnimation::renderCenters(
 }
 
 std::string InteractionWindowAnimation::renderLabels(
-    double interactionWindowBeginS, double interactionWindowEndS,
-    double interactionPointS, bool useFrozenInteractionWindowMesh) const {
+        double interactionWindowBeginS, double interactionWindowEndS, double interactionPointS,
+        bool useFrozenInteractionWindowMesh) const {
     const auto [displayMinS, displayMaxS] =
-        getDisplayRange(interactionWindowBeginS, interactionWindowEndS);
+            getDisplayRange(interactionWindowBeginS, interactionWindowEndS);
 
     std::string labels(width_m, ' ');
 
     const std::size_t startIdx =
-        mapToDisplayIndex(interactionWindowBeginS, displayMinS, displayMaxS);
-    const std::size_t ipIdx =
-        mapToDisplayIndex(interactionPointS, displayMinS, displayMaxS);
-    const std::size_t endIdx =
-        mapToDisplayIndex(interactionWindowEndS, displayMinS, displayMaxS);
+            mapToDisplayIndex(interactionWindowBeginS, displayMinS, displayMaxS);
+    const std::size_t ipIdx  = mapToDisplayIndex(interactionPointS, displayMinS, displayMaxS);
+    const std::size_t endIdx = mapToDisplayIndex(interactionWindowEndS, displayMinS, displayMaxS);
 
     placeLabel(labels, startIdx, "S");
     placeLabel(labels, ipIdx, "IP");

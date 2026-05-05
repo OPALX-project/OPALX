@@ -179,8 +179,8 @@ private:
     std::optional<BeamBeamWindowVisualizationTail> beamBeamWindowVisualizationTail_m;
     bool beamBeamWindowParticleLayoutInitialized_m = false;
     std::unique_ptr<H5BeamBeamDiagnosticsWriter> beamBeamDiagnosticsWriter_m;
-    double lastDepositedChargeBeforeBackground_m      = 0.0;
-    bool lastDepositedChargeBeforeBackgroundValid_m   = false;
+    double lastDepositedChargeBeforeBackground_m    = 0.0;
+    bool lastDepositedChargeBeforeBackgroundValid_m = false;
 
 public:
     /**
@@ -605,9 +605,13 @@ public:
             double beamBeamWindowLength, double interactionPointS, double windowBeginS,
             double windowEndS, bool copyModel, std::optional<double> xAperture = std::nullopt,
             std::optional<double> yAperture = std::nullopt) {
-        beamBeamWindowConfig_m = BeamBeamWindowConfig{
-                beamBeamWindowLength, interactionPointS, windowBeginS, windowEndS, copyModel,
-                xAperture, yAperture};
+        beamBeamWindowConfig_m                    = BeamBeamWindowConfig{beamBeamWindowLength,
+                                                      interactionPointS,
+                                                      windowBeginS,
+                                                      windowEndS,
+                                                      copyModel,
+                                                      xAperture,
+                                                      yAperture};
         beamBeamWindowParticleLayoutInitialized_m = false;
     }
 
@@ -618,9 +622,7 @@ public:
 
     bool hasBeamBeamWindowConfig() const { return beamBeamWindowConfig_m.has_value(); }
 
-    const BeamBeamWindowConfig& getBeamBeamWindowConfig() const {
-        return *beamBeamWindowConfig_m;
-    }
+    const BeamBeamWindowConfig& getBeamBeamWindowConfig() const { return *beamBeamWindowConfig_m; }
 
     void setBeamBeamWindowVisualizationTail(
             double interactionPointS, double windowBeginS, double windowEndS, int steps) {
@@ -654,10 +656,9 @@ public:
     }
 
     std::vector<std::string> buildScalarDumpHeaders(
-            const std::string& snapshotKind,
-            const std::string& coordinateFrame = "beam_local",
+            const std::string& snapshotKind, const std::string& coordinateFrame = "beam_local",
             const std::optional<BeamBeamWindowConfig>& geometryOverride = std::nullopt,
-            std::optional<bool> activeOverride = std::nullopt) const;
+            std::optional<bool> activeOverride                          = std::nullopt) const;
 
     void setPhysicalBounds(const Vector_t<double, Dim>& rmin, const Vector_t<double, Dim>& rmax) {
         rmin_m = rmin;

@@ -33,17 +33,17 @@ public:
         double time          = 0.0;
         double pathLengthS   = 0.0;
 
-        std::array<h5_int64_t, 3> shape   = {0, 0, 0};
-        std::array<double, 3> origin      = {0.0, 0.0, 0.0};
-        std::array<double, 3> spacing     = {0.0, 0.0, 0.0};
-        std::string coordinateFrame       = "beam";
-        std::string snapshotKind          = "active_beambeam";
+        std::array<h5_int64_t, 3> shape = {0, 0, 0};
+        std::array<double, 3> origin    = {0.0, 0.0, 0.0};
+        std::array<double, 3> spacing   = {0.0, 0.0, 0.0};
+        std::string coordinateFrame     = "beam";
+        std::string snapshotKind        = "active_beambeam";
 
-        bool interactionWindowActive      = false;
-        double interactionPointS          = 0.0;
+        bool interactionWindowActive         = false;
+        double interactionPointS             = 0.0;
         std::array<double, 2> beamBeamSRange = {0.0, 0.0};
 
-        double particleTotalCharge        = 0.0;
+        double particleTotalCharge = 0.0;
         /**
          * @brief Bunch centroid in the diagnostic coordinate frame [m].
          *
@@ -62,7 +62,7 @@ public:
          * longitudinal coordinate. normalizeParticleMeanS() keeps writer output
          * consistent with this definition.
          */
-        double particleMeanS              = 0.0;
+        double particleMeanS = 0.0;
     };
 
     explicit H5BeamBeamDiagnosticsWriter(const std::string& fileName);
@@ -94,24 +94,19 @@ private:
 
     static void reportOnError(h5_int64_t rc, const char* where);
     static std::vector<h5_float64_t> flattenScalarField(
-        const Field_t<3>& field,
-        const ippl::NDIndex<3>& localIndex);
+            const Field_t<3>& field, const ippl::NDIndex<3>& localIndex);
     static void flattenVectorField(
-        const VField_t<double, 3>& field,
-        const ippl::NDIndex<3>& localIndex,
-        std::vector<h5_float64_t>& x,
-        std::vector<h5_float64_t>& y,
-        std::vector<h5_float64_t>& z);
+            const VField_t<double, 3>& field, const ippl::NDIndex<3>& localIndex,
+            std::vector<h5_float64_t>& x, std::vector<h5_float64_t>& y,
+            std::vector<h5_float64_t>& z);
 
     void open();
     void writeHeader();
     void writeStepMetadata(const StepMetadata& meta);
     void writeScalarField(
-        const std::string& name,
-        const std::vector<h5_float64_t>& data,
-        const ippl::NDIndex<3>& localIndex,
-        const std::array<double, 3>& origin,
-        const std::array<double, 3>& spacing);
+            const std::string& name, const std::vector<h5_float64_t>& data,
+            const ippl::NDIndex<3>& localIndex, const std::array<double, 3>& origin,
+            const std::array<double, 3>& spacing);
 
     h5_file_t file_m;
     std::string fileName_m;

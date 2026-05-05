@@ -19,288 +19,275 @@ extern Inform* gmsg;
 
 namespace {
 
-using Bunch_t  = PartBunch<double, 3>;
-using Vector3d = ippl::Vector<double, 3>;
+    using Bunch_t  = PartBunch<double, 3>;
+    using Vector3d = ippl::Vector<double, 3>;
 
-/**
- * @brief Test-only FieldSolverCmd helper exposing the minimal attribute setters
- * needed to construct a real PartBunch.
- *
- * The BeamBeam-window unit tests intentionally use the real PartBunch type,
- * because the bugs we fixed were caused by the coupling between:
- * - cached physical bunch bounds,
- * - field-domain bounds, and
- * - the temporary BeamBeam-window mesh replacement.
- *
- * Using a real bunch here gives coverage over those interfaces without pulling
- * in the full ParallelTracker machinery.
- */
-class TestableFieldSolverCmd : public FieldSolverCmd {
-public:
-    void setType(const std::string& value) {
-        Attributes::setPredefinedString(itsAttr[FIELDSOLVER::TYPE], value);
+    /**
+     * @brief Test-only FieldSolverCmd helper exposing the minimal attribute setters
+     * needed to construct a real PartBunch.
+     *
+     * The BeamBeam-window unit tests intentionally use the real PartBunch type,
+     * because the bugs we fixed were caused by the coupling between:
+     * - cached physical bunch bounds,
+     * - field-domain bounds, and
+     * - the temporary BeamBeam-window mesh replacement.
+     *
+     * Using a real bunch here gives coverage over those interfaces without pulling
+     * in the full ParallelTracker machinery.
+     */
+    class TestableFieldSolverCmd : public FieldSolverCmd {
+    public:
+        void setType(const std::string& value) {
+            Attributes::setPredefinedString(itsAttr[FIELDSOLVER::TYPE], value);
+        }
+
+        void setBoxIncr(double value) {
+            Attributes::setReal(itsAttr[FIELDSOLVER::BBOXINCR], value);
+        }
+    };
+
+    std::shared_ptr<TestableFieldSolverCmd> fieldSolverForBunch;
+    std::shared_ptr<DataSink> dataSinkForBunch;
+    std::shared_ptr<Beam> beamForBunch;
+
+    std::shared_ptr<TestableFieldSolverCmd> makeFieldSolverCmd() {
+        auto fieldSolver = std::make_shared<TestableFieldSolverCmd>();
+        fieldSolver->setType("OPEN");
+        fieldSolver->setNX(8);
+        fieldSolver->setNY(8);
+        fieldSolver->setNZ(8);
+        fieldSolver->setBoxIncr(1.0);
+        fieldSolver->execute();
+        return fieldSolver;
     }
 
-    void setBoxIncr(double value) {
-        Attributes::setReal(itsAttr[FIELDSOLVER::BBOXINCR], value);
-    }
-};
+    std::shared_ptr<Bunch_t> makeBunch() {
+        Beam* beam = Beam::find("UNNAMED_BEAM");
+        if (beam == nullptr) {
+            beam = beamForBunch.get();
+        }
 
-std::shared_ptr<TestableFieldSolverCmd> fieldSolverForBunch;
-std::shared_ptr<DataSink> dataSinkForBunch;
-std::shared_ptr<Beam> beamForBunch;
-
-std::shared_ptr<TestableFieldSolverCmd> makeFieldSolverCmd() {
-    auto fieldSolver = std::make_shared<TestableFieldSolverCmd>();
-    fieldSolver->setType("OPEN");
-    fieldSolver->setNX(8);
-    fieldSolver->setNY(8);
-    fieldSolver->setNZ(8);
-    fieldSolver->setBoxIncr(1.0);
-    fieldSolver->execute();
-    return fieldSolver;
-}
-
-std::shared_ptr<Bunch_t> makeBunch() {
-    Beam* beam = Beam::find("UNNAMED_BEAM");
-    if (beam == nullptr) {
-        beam = beamForBunch.get();
+        return std::make_shared<Bunch_t>(
+                std::vector<double>{-1.0e-15}, std::vector<double>{5.10999e-4},
+                std::vector<Beam*>{beam}, std::vector<size_t>{16}, 1.0, "LF2",
+                fieldSolverForBunch.get(), dataSinkForBunch.get());
     }
 
-    return std::make_shared<Bunch_t>(
-        std::vector<double>{-1.0e-15},
-        std::vector<double>{5.10999e-4},
-        std::vector<Beam*>{beam},
-        std::vector<size_t>{16},
-        1.0,
-        "LF2",
-        fieldSolverForBunch.get(),
-        dataSinkForBunch.get());
-}
+    void setParticlePositions(
+            const std::shared_ptr<Bunch_t>& bunch, const std::vector<Vector3d>& positions) {
+        auto pc = bunch->getParticleContainer();
+        if (pc->getLocalNum() == 0) {
+            pc->createParticles(positions.size());
+        } else {
+            ASSERT_EQ(pc->getLocalNum(), positions.size());
+        }
 
-void setParticlePositions(
-    const std::shared_ptr<Bunch_t>& bunch,
-    const std::vector<Vector3d>& positions) {
-    auto pc = bunch->getParticleContainer();
-    if (pc->getLocalNum() == 0) {
-        pc->createParticles(positions.size());
-    } else {
-        ASSERT_EQ(pc->getLocalNum(), positions.size());
+        auto R_host = pc->R.getHostMirror();
+        auto P_host = pc->P.getHostMirror();
+        for (size_t i = 0; i < positions.size(); ++i) {
+            R_host(i) = positions[i];
+            P_host(i) = Vector3d(0.0);
+        }
+
+        Kokkos::deep_copy(pc->R.getView(), R_host);
+        Kokkos::deep_copy(pc->P.getView(), P_host);
+        Kokkos::fence();
+        pc->update();
     }
 
-    auto R_host = pc->R.getHostMirror();
-    auto P_host = pc->P.getHostMirror();
-    for (size_t i = 0; i < positions.size(); ++i) {
-        R_host(i) = positions[i];
-        P_host(i) = Vector3d(0.0);
+    void expectVectorNear(const Vector3d& actual, const Vector3d& expected, double tolerance) {
+        for (unsigned d = 0; d < 3; ++d) {
+            EXPECT_NEAR(actual[d], expected[d], tolerance) << "Mismatch in component " << d;
+        }
     }
 
-    Kokkos::deep_copy(pc->R.getView(), R_host);
-    Kokkos::deep_copy(pc->P.getView(), P_host);
-    Kokkos::fence();
-    pc->update();
-}
+    class BeamBeamPartBunchTest : public ::testing::Test {
+    protected:
+        static void SetUpTestSuite() {
+            int argc    = 0;
+            char** argv = nullptr;
+            ippl::initialize(argc, argv);
+            OpalData::getInstance()->storeInputFn("unit_test.opal");
+            // PartBunch teardown writes through the global OPAL Inform stream.
+            // The regular `tests/` binary creates this in its custom main(), but
+            // the unit_tests tree uses gtest_main, so this fixture must provide
+            // the minimal global setup needed by a standalone PartBunch instance.
+            gmsg                = new Inform("UnitTests: ", std::cerr);
+            Options::enableHDF5 = false;
 
-void expectVectorNear(
-    const Vector3d& actual,
-    const Vector3d& expected,
-    double tolerance) {
-    for (unsigned d = 0; d < 3; ++d) {
-        EXPECT_NEAR(actual[d], expected[d], tolerance) << "Mismatch in component " << d;
+            fieldSolverForBunch = makeFieldSolverCmd();
+            dataSinkForBunch    = std::make_shared<DataSink>();
+            beamForBunch        = std::make_shared<Beam>();
+        }
+
+        static void TearDownTestSuite() {
+            beamForBunch.reset();
+            dataSinkForBunch.reset();
+            fieldSolverForBunch.reset();
+            delete gmsg;
+            gmsg = nullptr;
+            ippl::finalize();
+        }
+    };
+
+    // ----------------------------------------------------------------------------
+    // BeamBeamWindowConfig lifecycle
+    // ----------------------------------------------------------------------------
+
+    // Verifies that the bunch-side BeamBeam-window configuration behaves like a
+    // narrow geometry input only: absent by default, present after configuration,
+    // and removable again without affecting unrelated state.
+    TEST_F(BeamBeamPartBunchTest, BeamBeamWindowConfigLifecycle) {
+        auto bunch = makeBunch();
+
+        ASSERT_FALSE(bunch->hasBeamBeamWindowConfig());
+
+        bunch->setBeamBeamWindowConfig(0.50, 1.25, 1.00, 1.50, false);
+        ASSERT_TRUE(bunch->hasBeamBeamWindowConfig());
+
+        const auto& config = bunch->getBeamBeamWindowConfig();
+        EXPECT_DOUBLE_EQ(config.interactionPointS, 1.25);
+        EXPECT_DOUBLE_EQ(config.windowBeginS, 1.00);
+        EXPECT_DOUBLE_EQ(config.windowEndS, 1.50);
+        EXPECT_FALSE(config.copyModel);
+
+        bunch->clearBeamBeamWindowConfig();
+        EXPECT_FALSE(bunch->hasBeamBeamWindowConfig());
     }
-}
 
-class BeamBeamPartBunchTest : public ::testing::Test {
-protected:
-    static void SetUpTestSuite() {
-        int argc    = 0;
-        char** argv = nullptr;
-        ippl::initialize(argc, argv);
-        OpalData::getInstance()->storeInputFn("unit_test.opal");
-        // PartBunch teardown writes through the global OPAL Inform stream.
-        // The regular `tests/` binary creates this in its custom main(), but
-        // the unit_tests tree uses gtest_main, so this fixture must provide
-        // the minimal global setup needed by a standalone PartBunch instance.
-        gmsg = new Inform("UnitTests: ", std::cerr);
-        Options::enableHDF5 = false;
+    // ----------------------------------------------------------------------------
+    // enableBeamBeamWindowMesh
+    // ----------------------------------------------------------------------------
 
-        fieldSolverForBunch = makeFieldSolverCmd();
-        dataSinkForBunch    = std::make_shared<DataSink>();
-        beamForBunch        = std::make_shared<Beam>();
+    // The BeamBeam-window mesh switch should keep the transverse field domain
+    // unchanged while replacing only the longitudinal mesh extent. This is the
+    // explicit Lagrangian-to-Eulerian transition in z that the current model relies on.
+    TEST_F(BeamBeamPartBunchTest, EnableBeamBeamWindowMeshOnlyChangesLongitudinalDomain) {
+        auto bunch          = makeBunch();
+        auto fieldContainer = bunch->getFieldContainer();
+
+        const Vector3d initialRMin = fieldContainer->getRMin();
+        const Vector3d initialRMax = fieldContainer->getRMax();
+        const Vector3d initialHr   = fieldContainer->getHr();
+
+        bunch->enableBeamBeamWindowMesh(1.25, 0.50);
+
+        const Vector3d updatedRMin = fieldContainer->getRMin();
+        const Vector3d updatedRMax = fieldContainer->getRMax();
+        const Vector3d updatedHr   = fieldContainer->getHr();
+        const Vector3d meshOrigin  = fieldContainer->getMesh().getOrigin();
+
+        EXPECT_DOUBLE_EQ(updatedRMin[0], initialRMin[0]);
+        EXPECT_DOUBLE_EQ(updatedRMin[1], initialRMin[1]);
+        EXPECT_DOUBLE_EQ(updatedRMax[0], initialRMax[0]);
+        EXPECT_DOUBLE_EQ(updatedRMax[1], initialRMax[1]);
+        EXPECT_DOUBLE_EQ(updatedHr[0], initialHr[0]);
+        EXPECT_DOUBLE_EQ(updatedHr[1], initialHr[1]);
+
+        EXPECT_DOUBLE_EQ(updatedRMin[2], 1.00);
+        EXPECT_DOUBLE_EQ(updatedRMax[2], 1.50);
+        EXPECT_DOUBLE_EQ(updatedHr[2], 0.50 / 8.0);
+
+        expectVectorNear(meshOrigin, updatedRMin, 1.0e-14);
     }
 
-    static void TearDownTestSuite() {
-        beamForBunch.reset();
-        dataSinkForBunch.reset();
-        fieldSolverForBunch.reset();
-        delete gmsg;
-        gmsg = nullptr;
-        ippl::finalize();
+    TEST_F(BeamBeamPartBunchTest, EnableBeamBeamWindowMeshUsesExplicitTransverseAperture) {
+        auto bunch          = makeBunch();
+        auto fieldContainer = bunch->getFieldContainer();
+
+        bunch->enableBeamBeamWindowMesh(1.25, 0.50, 2.0e-3, 3.0e-3);
+
+        const Vector3d updatedRMin = fieldContainer->getRMin();
+        const Vector3d updatedRMax = fieldContainer->getRMax();
+        const Vector3d updatedHr   = fieldContainer->getHr();
+        const Vector3d meshOrigin  = fieldContainer->getMesh().getOrigin();
+
+        EXPECT_DOUBLE_EQ(updatedRMin[0], -2.0e-3);
+        EXPECT_DOUBLE_EQ(updatedRMax[0], 2.0e-3);
+        EXPECT_DOUBLE_EQ(updatedRMin[1], -3.0e-3);
+        EXPECT_DOUBLE_EQ(updatedRMax[1], 3.0e-3);
+        EXPECT_DOUBLE_EQ(updatedRMin[2], 1.00);
+        EXPECT_DOUBLE_EQ(updatedRMax[2], 1.50);
+
+        EXPECT_DOUBLE_EQ(updatedHr[0], 4.0e-3 / 8.0);
+        EXPECT_DOUBLE_EQ(updatedHr[1], 6.0e-3 / 8.0);
+        EXPECT_DOUBLE_EQ(updatedHr[2], 0.50 / 8.0);
+
+        expectVectorNear(meshOrigin, updatedRMin, 1.0e-14);
     }
-};
 
-// ----------------------------------------------------------------------------
-// BeamBeamWindowConfig lifecycle
-// ----------------------------------------------------------------------------
+    // ----------------------------------------------------------------------------
+    // save/restore field-domain state
+    // ----------------------------------------------------------------------------
 
-// Verifies that the bunch-side BeamBeam-window configuration behaves like a
-// narrow geometry input only: absent by default, present after configuration,
-// and removable again without affecting unrelated state.
-TEST_F(BeamBeamPartBunchTest, BeamBeamWindowConfigLifecycle) {
-    auto bunch = makeBunch();
+    // The field-domain state roundtrip must restore both:
+    // - the mesh-aligned field-domain quantities, and
+    // - the cached physical bunch bounds returned by get_bounds().
+    //
+    // This test covers the exact contract that the BeamBeam-window mode relies on
+    // when it temporarily swaps in an Eulerian longitudinal mesh and later returns to
+    // the original bunch-following state.
+    TEST_F(BeamBeamPartBunchTest, RestoreFieldDomainStateRestoresMeshAndPhysicalBounds) {
+        auto bunch          = makeBunch();
+        auto fieldContainer = bunch->getFieldContainer();
 
-    ASSERT_FALSE(bunch->hasBeamBeamWindowConfig());
+        const Vector3d physicalRMin(-0.2, -0.3, -0.4);
+        const Vector3d physicalRMax(0.5, 0.6, 0.7);
+        bunch->setPhysicalBounds(physicalRMin, physicalRMax);
 
-    bunch->setBeamBeamWindowConfig(0.50, 1.25, 1.00, 1.50, false);
-    ASSERT_TRUE(bunch->hasBeamBeamWindowConfig());
+        const auto savedState = bunch->saveFieldDomainState();
+        bunch->enableBeamBeamWindowMesh(1.25, 0.50);
+        bunch->setPhysicalBounds(Vector3d(10.0), Vector3d(11.0));
 
-    const auto& config = bunch->getBeamBeamWindowConfig();
-    EXPECT_DOUBLE_EQ(config.interactionPointS, 1.25);
-    EXPECT_DOUBLE_EQ(config.windowBeginS, 1.00);
-    EXPECT_DOUBLE_EQ(config.windowEndS, 1.50);
-    EXPECT_FALSE(config.copyModel);
+        bunch->restoreFieldDomainState(savedState);
 
-    bunch->clearBeamBeamWindowConfig();
-    EXPECT_FALSE(bunch->hasBeamBeamWindowConfig());
-}
+        Vector3d restoredPhysicalRMin(0.0);
+        Vector3d restoredPhysicalRMax(0.0);
+        bunch->get_bounds(restoredPhysicalRMin, restoredPhysicalRMax);
 
-// ----------------------------------------------------------------------------
-// enableBeamBeamWindowMesh
-// ----------------------------------------------------------------------------
+        expectVectorNear(fieldContainer->getRMin(), savedState.rmin, 1.0e-14);
+        expectVectorNear(fieldContainer->getRMax(), savedState.rmax, 1.0e-14);
+        expectVectorNear(fieldContainer->getHr(), savedState.hr, 1.0e-14);
+        expectVectorNear(fieldContainer->getMesh().getOrigin(), savedState.origin, 1.0e-14);
+        expectVectorNear(restoredPhysicalRMin, savedState.partrmin, 1.0e-14);
+        expectVectorNear(restoredPhysicalRMax, savedState.partrmax, 1.0e-14);
+    }
 
-// The BeamBeam-window mesh switch should keep the transverse field domain
-// unchanged while replacing only the longitudinal mesh extent. This is the
-// explicit Lagrangian-to-Eulerian transition in z that the current model relies on.
-TEST_F(BeamBeamPartBunchTest, EnableBeamBeamWindowMeshOnlyChangesLongitudinalDomain) {
-    auto bunch = makeBunch();
-    auto fieldContainer = bunch->getFieldContainer();
+    // ----------------------------------------------------------------------------
+    // bunchUpdate() in BeamBeam-window mode
+    // ----------------------------------------------------------------------------
 
-    const Vector3d initialRMin = fieldContainer->getRMin();
-    const Vector3d initialRMax = fieldContainer->getRMax();
-    const Vector3d initialHr   = fieldContainer->getHr();
+    // Once the BeamBeam-window configuration is active, bunchUpdate() must keep
+    // the longitudinal field domain frozen while still allowing the transverse
+    // field domain to follow the physical bunch. This is the key invariant behind
+    // the frozen Eulerian-in-z mesh used during the BeamBeam solve.
+    TEST_F(BeamBeamPartBunchTest, BunchUpdateKeepsLongitudinalFieldDomainFrozen) {
+        auto bunch          = makeBunch();
+        auto fieldContainer = bunch->getFieldContainer();
 
-    bunch->enableBeamBeamWindowMesh(1.25, 0.50);
+        setParticlePositions(bunch, {Vector3d(-0.20, -0.10, -0.05), Vector3d(0.10, 0.20, 0.05)});
+        bunch->bunchUpdate();
 
-    const Vector3d updatedRMin = fieldContainer->getRMin();
-    const Vector3d updatedRMax = fieldContainer->getRMax();
-    const Vector3d updatedHr   = fieldContainer->getHr();
-    const Vector3d meshOrigin  = fieldContainer->getMesh().getOrigin();
+        bunch->setBeamBeamWindowConfig(0.50, 1.25, 1.00, 1.50, false);
+        bunch->enableBeamBeamWindowMesh(1.25, 0.50);
 
-    EXPECT_DOUBLE_EQ(updatedRMin[0], initialRMin[0]);
-    EXPECT_DOUBLE_EQ(updatedRMin[1], initialRMin[1]);
-    EXPECT_DOUBLE_EQ(updatedRMax[0], initialRMax[0]);
-    EXPECT_DOUBLE_EQ(updatedRMax[1], initialRMax[1]);
-    EXPECT_DOUBLE_EQ(updatedHr[0], initialHr[0]);
-    EXPECT_DOUBLE_EQ(updatedHr[1], initialHr[1]);
+        const Vector3d frozenRMin = fieldContainer->getRMin();
+        const Vector3d frozenRMax = fieldContainer->getRMax();
+        const Vector3d frozenHr   = fieldContainer->getHr();
 
-    EXPECT_DOUBLE_EQ(updatedRMin[2], 1.00);
-    EXPECT_DOUBLE_EQ(updatedRMax[2], 1.50);
-    EXPECT_DOUBLE_EQ(updatedHr[2], 0.50 / 8.0);
+        setParticlePositions(bunch, {Vector3d(-0.60, -0.30, -0.20), Vector3d(0.50, 0.40, 0.20)});
+        bunch->bunchUpdate();
 
-    expectVectorNear(meshOrigin, updatedRMin, 1.0e-14);
-}
+        const Vector3d updatedRMin = fieldContainer->getRMin();
+        const Vector3d updatedRMax = fieldContainer->getRMax();
+        const Vector3d updatedHr   = fieldContainer->getHr();
 
-TEST_F(BeamBeamPartBunchTest, EnableBeamBeamWindowMeshUsesExplicitTransverseAperture) {
-    auto bunch = makeBunch();
-    auto fieldContainer = bunch->getFieldContainer();
+        EXPECT_DOUBLE_EQ(updatedRMin[2], frozenRMin[2]);
+        EXPECT_DOUBLE_EQ(updatedRMax[2], frozenRMax[2]);
+        EXPECT_DOUBLE_EQ(updatedHr[2], frozenHr[2]);
 
-    bunch->enableBeamBeamWindowMesh(1.25, 0.50, 2.0e-3, 3.0e-3);
-
-    const Vector3d updatedRMin = fieldContainer->getRMin();
-    const Vector3d updatedRMax = fieldContainer->getRMax();
-    const Vector3d updatedHr   = fieldContainer->getHr();
-    const Vector3d meshOrigin  = fieldContainer->getMesh().getOrigin();
-
-    EXPECT_DOUBLE_EQ(updatedRMin[0], -2.0e-3);
-    EXPECT_DOUBLE_EQ(updatedRMax[0], 2.0e-3);
-    EXPECT_DOUBLE_EQ(updatedRMin[1], -3.0e-3);
-    EXPECT_DOUBLE_EQ(updatedRMax[1], 3.0e-3);
-    EXPECT_DOUBLE_EQ(updatedRMin[2], 1.00);
-    EXPECT_DOUBLE_EQ(updatedRMax[2], 1.50);
-
-    EXPECT_DOUBLE_EQ(updatedHr[0], 4.0e-3 / 8.0);
-    EXPECT_DOUBLE_EQ(updatedHr[1], 6.0e-3 / 8.0);
-    EXPECT_DOUBLE_EQ(updatedHr[2], 0.50 / 8.0);
-
-    expectVectorNear(meshOrigin, updatedRMin, 1.0e-14);
-}
-
-// ----------------------------------------------------------------------------
-// save/restore field-domain state
-// ----------------------------------------------------------------------------
-
-// The field-domain state roundtrip must restore both:
-// - the mesh-aligned field-domain quantities, and
-// - the cached physical bunch bounds returned by get_bounds().
-//
-// This test covers the exact contract that the BeamBeam-window mode relies on
-// when it temporarily swaps in an Eulerian longitudinal mesh and later returns to
-// the original bunch-following state.
-TEST_F(BeamBeamPartBunchTest, RestoreFieldDomainStateRestoresMeshAndPhysicalBounds) {
-    auto bunch = makeBunch();
-    auto fieldContainer = bunch->getFieldContainer();
-
-    const Vector3d physicalRMin(-0.2, -0.3, -0.4);
-    const Vector3d physicalRMax(0.5, 0.6, 0.7);
-    bunch->setPhysicalBounds(physicalRMin, physicalRMax);
-
-    const auto savedState = bunch->saveFieldDomainState();
-    bunch->enableBeamBeamWindowMesh(1.25, 0.50);
-    bunch->setPhysicalBounds(Vector3d(10.0), Vector3d(11.0));
-
-    bunch->restoreFieldDomainState(savedState);
-
-    Vector3d restoredPhysicalRMin(0.0);
-    Vector3d restoredPhysicalRMax(0.0);
-    bunch->get_bounds(restoredPhysicalRMin, restoredPhysicalRMax);
-
-    expectVectorNear(fieldContainer->getRMin(), savedState.rmin, 1.0e-14);
-    expectVectorNear(fieldContainer->getRMax(), savedState.rmax, 1.0e-14);
-    expectVectorNear(fieldContainer->getHr(), savedState.hr, 1.0e-14);
-    expectVectorNear(fieldContainer->getMesh().getOrigin(), savedState.origin, 1.0e-14);
-    expectVectorNear(restoredPhysicalRMin, savedState.partrmin, 1.0e-14);
-    expectVectorNear(restoredPhysicalRMax, savedState.partrmax, 1.0e-14);
-}
-
-// ----------------------------------------------------------------------------
-// bunchUpdate() in BeamBeam-window mode
-// ----------------------------------------------------------------------------
-
-// Once the BeamBeam-window configuration is active, bunchUpdate() must keep
-// the longitudinal field domain frozen while still allowing the transverse
-// field domain to follow the physical bunch. This is the key invariant behind
-// the frozen Eulerian-in-z mesh used during the BeamBeam solve.
-TEST_F(BeamBeamPartBunchTest, BunchUpdateKeepsLongitudinalFieldDomainFrozen) {
-    auto bunch = makeBunch();
-    auto fieldContainer = bunch->getFieldContainer();
-
-    setParticlePositions(
-        bunch,
-        {Vector3d(-0.20, -0.10, -0.05), Vector3d(0.10, 0.20, 0.05)});
-    bunch->bunchUpdate();
-
-    bunch->setBeamBeamWindowConfig(0.50, 1.25, 1.00, 1.50, false);
-    bunch->enableBeamBeamWindowMesh(1.25, 0.50);
-
-    const Vector3d frozenRMin = fieldContainer->getRMin();
-    const Vector3d frozenRMax = fieldContainer->getRMax();
-    const Vector3d frozenHr   = fieldContainer->getHr();
-
-    setParticlePositions(
-        bunch,
-        {Vector3d(-0.60, -0.30, -0.20), Vector3d(0.50, 0.40, 0.20)});
-    bunch->bunchUpdate();
-
-    const Vector3d updatedRMin = fieldContainer->getRMin();
-    const Vector3d updatedRMax = fieldContainer->getRMax();
-    const Vector3d updatedHr   = fieldContainer->getHr();
-
-    EXPECT_DOUBLE_EQ(updatedRMin[2], frozenRMin[2]);
-    EXPECT_DOUBLE_EQ(updatedRMax[2], frozenRMax[2]);
-    EXPECT_DOUBLE_EQ(updatedHr[2], frozenHr[2]);
-
-    EXPECT_LT(updatedRMin[0], frozenRMin[0]);
-    EXPECT_GT(updatedRMax[0], frozenRMax[0]);
-}
+        EXPECT_LT(updatedRMin[0], frozenRMin[0]);
+        EXPECT_GT(updatedRMax[0], frozenRMax[0]);
+    }
 
 }  // namespace

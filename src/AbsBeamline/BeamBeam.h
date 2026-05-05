@@ -66,8 +66,6 @@ private:
     void operator=(const BeamBeam&);
 };
 
-inline int BeamBeam::getRequiredNumberOfTimeSteps() const {
-    return 1;
-}
+inline int BeamBeam::getRequiredNumberOfTimeSteps() const { return 1; }
 
 #endif  // CLASSIC_BeamBeam_HH

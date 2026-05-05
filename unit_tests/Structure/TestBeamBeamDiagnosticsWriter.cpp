@@ -15,8 +15,7 @@ TEST(BeamBeamDiagnosticsWriterTest, PreservesPhysicalParticleMeanS) {
     meta.particleMeanR[2] = 0.0133407366;
     meta.particleMeanS    = 0.0133407366;
 
-    EXPECT_DOUBLE_EQ(H5BeamBeamDiagnosticsWriter::normalizeParticleMeanS(meta),
-                     meta.particleMeanS);
+    EXPECT_DOUBLE_EQ(H5BeamBeamDiagnosticsWriter::normalizeParticleMeanS(meta), meta.particleMeanS);
 }
 
 TEST(BeamBeamDiagnosticsWriterTest, CorrectsLegacyDoubleCountedParticleMeanS) {
@@ -25,8 +24,8 @@ TEST(BeamBeamDiagnosticsWriterTest, CorrectsLegacyDoubleCountedParticleMeanS) {
     meta.particleMeanR[2] = 0.0133407366;
     meta.particleMeanS    = meta.pathLengthS + meta.particleMeanR[2];
 
-    EXPECT_DOUBLE_EQ(H5BeamBeamDiagnosticsWriter::normalizeParticleMeanS(meta),
-                     meta.particleMeanR[2]);
+    EXPECT_DOUBLE_EQ(
+            H5BeamBeamDiagnosticsWriter::normalizeParticleMeanS(meta), meta.particleMeanR[2]);
 }
 
 TEST(BeamBeamDiagnosticsWriterTest, PreservesNonFiniteDiagnosticsForCallerVisibility) {

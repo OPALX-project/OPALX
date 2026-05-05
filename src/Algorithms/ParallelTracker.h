@@ -35,9 +35,9 @@
 #include "Algorithms/IndexMap.h"
 #include "Algorithms/OrbitThreader.h"
 
-#include "AbsBeamline/ConstantEFieldCavity.h"
 #include "AbsBeamline/BeamBeam.h"
 #include "AbsBeamline/BeamBeamDefinitions.h"
+#include "AbsBeamline/ConstantEFieldCavity.h"
 #include "AbsBeamline/Drift.h"
 #include "AbsBeamline/ElementBase.h"
 #include "AbsBeamline/Laser.h"
@@ -303,7 +303,8 @@ private:
             const CoordinateSystemTrafo& referenceToBeamCSTrafo,
             const CoordinateSystemTrafo& beamToReferenceCSTrafo, Inform& m);
     void computeDefaultSelfFields(const CoordinateSystemTrafo& beamToReferenceCSTrafo, Inform& m);
-    void transformFieldsToReferenceFrame(const CoordinateSystemTrafo& beamToReferenceCSTrafo, Inform& m);
+    void transformFieldsToReferenceFrame(
+            const CoordinateSystemTrafo& beamToReferenceCSTrafo, Inform& m);
 
     /**
      * @brief Log reference state for each container at track start.

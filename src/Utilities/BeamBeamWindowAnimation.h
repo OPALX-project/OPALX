@@ -52,8 +52,8 @@ public:
      * @param width Number of ASCII columns used for the longitudinal display.
      */
     explicit BeamBeamWindowAnimation(
-        const std::string& outputPath = "data/collision_ascii_frames.txt",
-        std::size_t width             = 100);
+            const std::string& outputPath = "data/collision_ascii_frames.txt",
+            std::size_t width             = 100);
 
     /**
      * @brief Render one beam-beam-window frame.
@@ -72,19 +72,18 @@ public:
      * over the beam-beam window, false if it is bunch-following.
      */
     void render(
-        double bunchCenterS, double meshBeginS, double meshEndS, double beamBeamWindowBeginS,
-        double beamBeamWindowEndS, double interactionPointS, bool mirroredBeamActive,
-        bool useFrozenBeamBeamWindowMesh);
+            double bunchCenterS, double meshBeginS, double meshEndS, double beamBeamWindowBeginS,
+            double beamBeamWindowEndS, double interactionPointS, bool mirroredBeamActive,
+            bool useFrozenBeamBeamWindowMesh);
 
 private:
     /// Return the displayed `s` interval, including a symmetric margin around the beam-beam window.
     std::pair<double, double> getDisplayRange(
-        double beamBeamWindowBeginS, double beamBeamWindowEndS) const;
+            double beamBeamWindowBeginS, double beamBeamWindowEndS) const;
     /// Test whether a longitudinal position lies inside the displayed `s` interval.
     bool isInsideDisplay(double z, double displayMinZ, double displayMaxZ) const;
     /// Map a longitudinal coordinate to an ASCII column index.
-    std::size_t mapToDisplayIndex(
-        double z, double displayMinZ, double displayMaxZ) const;
+    std::size_t mapToDisplayIndex(double z, double displayMinZ, double displayMaxZ) const;
     /// Write a short label such as `S`, `IP`, or `E` into a line buffer.
     void placeLabel(std::string& line, std::size_t pos, const std::string& label) const;
     /// Return true if a character cell may be overwritten by a marker.
@@ -93,17 +92,16 @@ private:
     void placeMarker(std::string& line, std::size_t idx, char marker) const;
     /// Render the dotted mesh envelope shown above, and optionally below, the main axis.
     std::string renderMeshEnvelope(
-        double meshBeginS, double meshEndS, double beamBeamWindowBeginS,
-        double beamBeamWindowEndS) const;
+            double meshBeginS, double meshEndS, double beamBeamWindowBeginS,
+            double beamBeamWindowEndS) const;
     /// Render the main axis with `S`, `IP`, `E`, the physical bunch, and the mirrored bunch.
     std::string renderCenters(
-        double bunchCenterS, double meshBeginS, double meshEndS,
-        double beamBeamWindowBeginS, double beamBeamWindowEndS,
-        double interactionPointS, bool mirroredBeamActive) const;
+            double bunchCenterS, double meshBeginS, double meshEndS, double beamBeamWindowBeginS,
+            double beamBeamWindowEndS, double interactionPointS, bool mirroredBeamActive) const;
     /// Render the label line for the beam-beam-window geometry.
     std::string renderLabels(
-        double beamBeamWindowBeginS, double beamBeamWindowEndS,
-        double interactionPointS, bool useFrozenBeamBeamWindowMesh) const;
+            double beamBeamWindowBeginS, double beamBeamWindowEndS, double interactionPointS,
+            bool useFrozenBeamBeamWindowMesh) const;
     /// Update the live terminal animation.
     void writeToTerminal(const std::vector<std::string>& lines);
     /// Append one frame to the ASCII dump file used by the movie script.

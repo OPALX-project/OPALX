@@ -191,8 +191,8 @@ void PartBunch<T, Dim>::restoreFieldDomainState(const SavedFieldDomainState& sta
 
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::enableBeamBeamWindowMesh(
-        double interactionPointLocalZ, double beamBeamWindowLength,
-        std::optional<double> xAperture, std::optional<double> yAperture) {
+        double interactionPointLocalZ, double beamBeamWindowLength, std::optional<double> xAperture,
+        std::optional<double> yAperture) {
     Inform m("PartBunch::enableBeamBeamWindowMesh");
     if (beamBeamWindowLength <= 0.0) {
         throw OpalException(
@@ -217,8 +217,8 @@ void PartBunch<T, Dim>::enableBeamBeamWindowMesh(
         lower[1] = -*yAperture;
         upper[1] = *yAperture;
     }
-    lower[2]                    = interactionPointLocalZ - 0.5 * beamBeamWindowLength;
-    upper[2]                    = interactionPointLocalZ + 0.5 * beamBeamWindowLength;
+    lower[2] = interactionPointLocalZ - 0.5 * beamBeamWindowLength;
+    upper[2] = interactionPointLocalZ + 0.5 * beamBeamWindowLength;
 
     hr_m = (upper - lower) / nr_m;
     mesh->setOrigin(lower);
@@ -242,9 +242,8 @@ void PartBunch<T, Dim>::enableBeamBeamWindowMesh(
 
     if (gmsg != nullptr) {
         std::ostringstream diagnostics;
-        diagnostics << std::fixed << std::setprecision(3)
-                    << "BeamBeam window mesh: lower=" << lower << ", upper=" << upper
-                    << ", nr=" << nr_m << ", hr=" << hr_m
+        diagnostics << std::fixed << std::setprecision(3) << "BeamBeam window mesh: lower=" << lower
+                    << ", upper=" << upper << ", nr=" << nr_m << ", hr=" << hr_m
                     << ", total_charge=" << Util::getChargeString(getTotalCharge(), 3);
         *gmsg << level2 << diagnostics.str() << endl;
     }
@@ -870,8 +869,7 @@ std::vector<std::string> PartBunch<T, Dim>::buildScalarDumpHeaders(
 
         if (pc) {
             std::ostringstream localIpHeader;
-            localIpHeader << std::setprecision(12)
-                          << "interaction_point_local_z="
+            localIpHeader << std::setprecision(12) << "interaction_point_local_z="
                           << (geometry->interactionPointS - pc->get_sPos());
             headers.push_back(localIpHeader.str());
         }
@@ -894,13 +892,12 @@ std::vector<std::string> PartBunch<T, Dim>::buildScalarDumpHeaders(
         headers.push_back(chargeHeader.str());
 
         std::ostringstream meanRHeader;
-        meanRHeader << std::setprecision(12) << "particle_mean_r=(" << meanR[0] << ","
-                    << meanR[1] << "," << meanR[2] << ")";
+        meanRHeader << std::setprecision(12) << "particle_mean_r=(" << meanR[0] << "," << meanR[1]
+                    << "," << meanR[2] << ")";
         headers.push_back(meanRHeader.str());
 
         std::ostringstream meanSHeader;
-        meanSHeader << std::setprecision(12) << "particle_mean_s="
-                    << (pc->get_sPos() + meanR[2]);
+        meanSHeader << std::setprecision(12) << "particle_mean_s=" << (pc->get_sPos() + meanR[2]);
         headers.push_back(meanSHeader.str());
     }
 
