@@ -240,13 +240,6 @@ void PartBunch<T, Dim>::enableBeamBeamWindowMesh(
     }
     beamBeamWindowParticleLayoutInitialized_m = true;
 
-    if (gmsg != nullptr) {
-        std::ostringstream diagnostics;
-        diagnostics << std::fixed << std::setprecision(3) << "BeamBeam window mesh: lower=" << lower
-                    << ", upper=" << upper << ", nr=" << nr_m << ", hr=" << hr_m
-                    << ", total_charge=" << Util::getChargeString(getTotalCharge(), 3);
-        *gmsg << level2 << diagnostics.str() << endl;
-    }
     m << level3 << "Enabled beam-beam-window mesh: origin=" << lower << ", rmax=" << upper
       << ", hr=" << hr_m << endl;
 }
