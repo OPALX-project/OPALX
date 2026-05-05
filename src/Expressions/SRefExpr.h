@@ -18,15 +18,14 @@
 //
 // ------------------------------------------------------------------------
 
+#include <iosfwd>
+#include <sstream>
 #include "AbstractObjects/Expressions.h"
 #include "AbstractObjects/Invalidator.h"
 #include "AbstractObjects/OpalData.h"
 #include "Expressions/SValue.h"
-#include "Utilities/ParseError.h"
 #include "Utilities/Options.h"
-#include <iosfwd>
-#include <sstream>
-
+#include "Utilities/ParseError.h"
 
 namespace Expressions {
 
@@ -38,20 +37,18 @@ namespace Expressions {
     //  containing expression.
 
     template <class T>
-    class SRefExpr: public Scalar<T>, public Invalidator {
-
+    class SRefExpr : public Scalar<T>, public Invalidator {
     public:
-
         /// Constructor.
         //  Use [b]objName[/b] to identify the object containg the array, and
         //  [b]attName[/b] to identify the array itself.
-        SRefExpr(const std::string &objName, const std::string &attName);
+        SRefExpr(const std::string& objName, const std::string& attName);
 
-        SRefExpr(const SRefExpr<T> &rhs);
+        SRefExpr(const SRefExpr<T>& rhs);
         virtual ~SRefExpr();
 
         /// Make clone.
-        virtual Scalar<T> *clone() const;
+        virtual Scalar<T>* clone() const;
 
         /// Evaluate.
         virtual T evaluate() const;
@@ -61,12 +58,11 @@ namespace Expressions {
         virtual void invalidate();
 
         /// Print expression.
-        virtual void print(std::ostream &os, int precedence = 99) const;
+        virtual void print(std::ostream& os, int precedence = 99) const;
 
     private:
-
         // Not implemented.
-        void operator=(const SRefExpr &);
+        void operator=(const SRefExpr&);
 
         // Fill in the reference.
         void fill() const;
@@ -79,58 +75,52 @@ namespace Expressions {
         const std::string att_name;
 
         // The object and attribute referred to.
-        mutable Object    *itsObject;
-        mutable Attribute *itsAttr;
+        mutable Object* itsObject;
+        mutable Attribute* itsAttr;
     };
-
 
     // Implementation
     // ------------------------------------------------------------------------
 
     template <class T>
-    SRefExpr<T>::SRefExpr
-    (const std::string &objName, const std::string &attName):
-        obj_name(objName), att_name(attName),
-        itsObject(0), itsAttr(0)
-    {}
-
+    SRefExpr<T>::SRefExpr(const std::string& objName, const std::string& attName)
+        : obj_name(objName), att_name(attName), itsObject(0), itsAttr(0) {}
 
     template <class T>
-    SRefExpr<T>::SRefExpr(const SRefExpr<T> &rhs):
-        Scalar<T>(rhs),Invalidator(rhs),
-        obj_name(rhs.obj_name), att_name(rhs.att_name),
-        itsObject(rhs.itsObject), itsAttr(rhs.itsAttr)
-    {}
-
+    SRefExpr<T>::SRefExpr(const SRefExpr<T>& rhs)
+        : Scalar<T>(rhs),
+          Invalidator(rhs),
+          obj_name(rhs.obj_name),
+          att_name(rhs.att_name),
+          itsObject(rhs.itsObject),
+          itsAttr(rhs.itsAttr) {}
 
     template <class T>
     SRefExpr<T>::~SRefExpr() {
-        if(itsObject) itsObject->unregisterReference(this);
+        if (itsObject) itsObject->unregisterReference(this);
     }
-
 
     template <class T>
-    Scalar<T> *SRefExpr<T>::clone() const {
+    Scalar<T>* SRefExpr<T>::clone() const {
         return new SRefExpr<T>(*this);
     }
-
 
     template <class T>
     inline T SRefExpr<T>::evaluate() const {
         fill();
 
-        if(AttributeBase *base = &itsAttr->getBase()) {
-            if(SValue<T> *value = dynamic_cast<SValue<T>*>(base)) {
+        if (AttributeBase* base = &itsAttr->getBase()) {
+            if (SValue<T>* value = dynamic_cast<SValue<T>*>(base)) {
                 return value->evaluate();
             } else {
-                throw ParseError("SRefExpr::evaluate()", "Reference \"" +
-                                 getImage() + "\" is not a variable.");
+                throw ParseError(
+                        "SRefExpr::evaluate()",
+                        "Reference \"" + getImage() + "\" is not a variable.");
             }
         }
 
         return T(0);
     }
-
 
     template <class T>
     const std::string SRefExpr<T>::getImage() const {
@@ -140,33 +130,30 @@ namespace Expressions {
         return os.str();
     }
 
-
     template <class T>
     void SRefExpr<T>::invalidate() {
         itsObject = 0;
-        itsAttr = 0;
+        itsAttr   = 0;
     }
 
-
     template <class T>
-    void SRefExpr<T>::print(std::ostream &os, int) const {
+    void SRefExpr<T>::print(std::ostream& os, int) const {
         os << obj_name;
-        if(! att_name.empty()) os << "->" << att_name;
+        if (!att_name.empty()) os << "->" << att_name;
         return;
     }
 
-
     template <class T>
     void SRefExpr<T>::fill() const {
-        if(itsObject == 0) {
+        if (itsObject == 0) {
             itsObject = OpalData::getInstance()->find(obj_name);
-            if(itsObject == 0) {
-                if(att_name.empty()) {
-                    throw ParseError("SRefExpr::fill()",
-                                     "\nThe <variable> \"" + obj_name + "\" is unknown.\n");
+            if (itsObject == 0) {
+                if (att_name.empty()) {
+                    throw ParseError(
+                            "SRefExpr::fill()",
+                            "\nThe <variable> \"" + obj_name + "\" is unknown.\n");
                 } else {
-                    throw ParseError("SRefExpr::fill()",
-                                     "Object \"" + obj_name + "\" is unknown.");
+                    throw ParseError("SRefExpr::fill()", "Object \"" + obj_name + "\" is unknown.");
                 }
             }
 
@@ -174,22 +161,24 @@ namespace Expressions {
             // when the object is deleted.
             itsObject->registerReference(const_cast<SRefExpr<T>*>(this));
 
-            if(att_name.empty()) {
+            if (att_name.empty()) {
                 itsAttr = itsObject->findAttribute("VALUE");
-                if(itsAttr == 0) {
-                    throw ParseError("SRefExpr::fill()", "Object \"" + obj_name +
-                                     "\" is not a variable, constant or vector.");
+                if (itsAttr == 0) {
+                    throw ParseError(
+                            "SRefExpr::fill()",
+                            "Object \"" + obj_name + "\" is not a variable, constant or vector.");
                 }
             } else {
                 itsAttr = itsObject->findAttribute(att_name);
-                if(itsAttr == 0) {
-                    throw ParseError("SRefExpr::fill()", "Attribute \"" + obj_name +
-                                     "->" + att_name + "\" is unknown.");
+                if (itsAttr == 0) {
+                    throw ParseError(
+                            "SRefExpr::fill()",
+                            "Attribute \"" + obj_name + "->" + att_name + "\" is unknown.");
                 }
             }
         }
     }
 
-}
+}  // namespace Expressions
 
-#endif // OPAL_SRefExpr_HH
+#endif  // OPAL_SRefExpr_HH

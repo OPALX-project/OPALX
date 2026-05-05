@@ -54,33 +54,33 @@ namespace {
 
 OpalFilter::OpalFilter()
     : Definition(
-        SIZE, "FILTER",
-        "The \"FILTER\" statement defines a 1 dimensional filter to be "
-        "applied on histogram."),
+              SIZE, "FILTER",
+              "The \"FILTER\" statement defines a 1 dimensional filter to be "
+              "applied on histogram."),
       filter_m(0) {
     itsAttr[TYPE] = Attributes::makePredefinedString(
-        "TYPE", "Specifies the type of filter.",
-        {"SAVITZKY-GOLAY", "FIXEDFFTLOWPASS", "RELATIVEFFTLOWPASS", "STENCIL"});
+            "TYPE", "Specifies the type of filter.",
+            {"SAVITZKY-GOLAY", "FIXEDFFTLOWPASS", "RELATIVEFFTLOWPASS", "STENCIL"});
 
-    itsAttr[NFREQ] =
-        Attributes::makeReal("NFREQ", "Number of frequencies to use in fixedFFTLowPass filter", 9.);
+    itsAttr[NFREQ] = Attributes::makeReal(
+            "NFREQ", "Number of frequencies to use in fixedFFTLowPass filter", 9.);
 
     itsAttr[THRESHOLD] = Attributes::makeReal(
-        "THRESHOLD", "Relative threshold for amplitude of frequencies in relativeFFTLowPass filter",
-        1.e-6);
+            "THRESHOLD",
+            "Relative threshold for amplitude of frequencies in relativeFFTLowPass filter", 1.e-6);
 
     itsAttr[NPOINTS] = Attributes::makeReal(
-        "NPOINTS", "Number of points in Savitzky-Golay filter", NPOINTS_DEFAULT);
+            "NPOINTS", "Number of points in Savitzky-Golay filter", NPOINTS_DEFAULT);
 
     itsAttr[NLEFT] = Attributes::makeReal(
-        "NLEFT", "Number of points to the left in Savitzky-Golay filter", NLEFT_DEFAULT);
+            "NLEFT", "Number of points to the left in Savitzky-Golay filter", NLEFT_DEFAULT);
 
     itsAttr[NRIGHT] = Attributes::makeReal(
-        "NRIGHT", "Number of points to the right in Savitzky-Golay filter", NRIGHT_DEFAULT);
+            "NRIGHT", "Number of points to the right in Savitzky-Golay filter", NRIGHT_DEFAULT);
 
     itsAttr[POLYORDER] = Attributes::makeReal(
-        "POLYORDER", "Polynomial order for local fit-function in Savitzky-Golay filter",
-        POLYORDER_DEFAULT);
+            "POLYORDER", "Polynomial order for local fit-function in Savitzky-Golay filter",
+            POLYORDER_DEFAULT);
 
     registerOwnership(AttributeHandler::STATEMENT);
 
@@ -96,12 +96,10 @@ OpalFilter::OpalFilter()
 }
 
 OpalFilter::OpalFilter(const std::string& name, OpalFilter* parent)
-    : Definition(name, parent), filter_m(0) {
-}
+    : Definition(name, parent), filter_m(0) {}
 
 OpalFilter::~OpalFilter() {
-    if (filter_m)
-        delete filter_m;
+    if (filter_m) delete filter_m;
 }
 
 bool OpalFilter::canReplaceBy(Object* object) {
@@ -109,13 +107,9 @@ bool OpalFilter::canReplaceBy(Object* object) {
     return dynamic_cast<OpalFilter*>(object) != 0;
 }
 
-OpalFilter* OpalFilter::clone(const std::string& name) {
-    return new OpalFilter(name, this);
-}
+OpalFilter* OpalFilter::clone(const std::string& name) { return new OpalFilter(name, this); }
 
-void OpalFilter::execute() {
-    update();
-}
+void OpalFilter::execute() { update(); }
 
 OpalFilter* OpalFilter::find(const std::string& name) {
     OpalFilter* filter = dynamic_cast<OpalFilter*>(OpalData::getInstance()->find(name));
@@ -128,8 +122,7 @@ OpalFilter* OpalFilter::find(const std::string& name) {
 
 void OpalFilter::update() {
     // Set default name.
-    if (getOpalName().empty())
-        setOpalName("UNNAMED_FILTER");
+    if (getOpalName().empty()) setOpalName("UNNAMED_FILTER");
 }
 
 void OpalFilter::initOpalFilter() {
@@ -138,16 +131,16 @@ void OpalFilter::initOpalFilter() {
                  "************************************************************"
               << endl;
         *gmsg << "OpalFilter::initOpalFilterfunction " << endl;
-        *gmsg
-            << "* "
-               "**********************************************************************************"
-            << endl;
+        *gmsg << "* "
+                 "*********************************************************************************"
+                 "*"
+              << endl;
 
         static const std::unordered_map<std::string, FilterType> stringFilterType_s = {
-            {"SAVITZKY-GOLAY", FilterType::SAVITZKYGOLAY},
-            {"FIXEDFFTLOWPASS", FilterType::FIXEDFFTLOWPASS},
-            {"RELATIVEFFTLOWPASS", FilterType::RELATIVEFFTLOWPASS},
-            {"STENCIL", FilterType::STENCIL}};
+                {"SAVITZKY-GOLAY", FilterType::SAVITZKYGOLAY},
+                {"FIXEDFFTLOWPASS", FilterType::FIXEDFFTLOWPASS},
+                {"RELATIVEFFTLOWPASS", FilterType::RELATIVEFFTLOWPASS},
+                {"STENCIL", FilterType::STENCIL}};
 
         FilterType type = stringFilterType_s.at(Attributes::getString(itsAttr[TYPE]));
         switch (type) {
@@ -182,17 +175,17 @@ void OpalFilter::initOpalFilter() {
                 }
 
                 filter_m = new SavitzkyGolayFilter(
-                    num_points, num_points_left, num_points_right, polynomial_order);
+                        num_points, num_points_left, num_points_right, polynomial_order);
                 break;
             }
             case FilterType::FIXEDFFTLOWPASS: {
-                filter_m =
-                    new FixedFFTLowPassFilter(std::abs((int)(Attributes::getReal(itsAttr[NFREQ]))));
+                filter_m = new FixedFFTLowPassFilter(
+                        std::abs((int)(Attributes::getReal(itsAttr[NFREQ]))));
                 break;
             }
             case FilterType::RELATIVEFFTLOWPASS: {
-                filter_m =
-                    new RelativeFFTLowPassFilter(std::abs(Attributes::getReal(itsAttr[THRESHOLD])));
+                filter_m = new RelativeFFTLowPassFilter(
+                        std::abs(Attributes::getReal(itsAttr[THRESHOLD])));
                 break;
             }
             case FilterType::STENCIL: {

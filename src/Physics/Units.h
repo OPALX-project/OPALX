@@ -34,40 +34,40 @@ namespace Units {
     // centimeter to meter
     constexpr double cm2m = 1 / m2cm;
 
-    //seconds to micro seconds
+    // seconds to micro seconds
     constexpr double s2us = 1e+6;
 
-    //micro seconds to seconds
+    // micro seconds to seconds
     constexpr double us2s = 1 / s2us;
 
-    //seconds to nano seconds
+    // seconds to nano seconds
     constexpr double s2ns = 1e+9;
 
-    //nano seconds to seconds
+    // nano seconds to seconds
     constexpr double ns2s = 1 / s2ns;
 
-    //seconds to pico seconds
+    // seconds to pico seconds
     constexpr double s2ps = 1e+12;
 
-    //pico seconds to seconds
+    // pico seconds to seconds
     constexpr double ps2s = 1 / s2ps;
 
-    //Tesla to kilo Gauss
+    // Tesla to kilo Gauss
     constexpr double T2kG = 1e+1;
 
-    //kilo Gauss to Tesla
+    // kilo Gauss to Tesla
     constexpr double kG2T = 1 / T2kG;
 
-    //kilo volts to volts
+    // kilo volts to volts
     constexpr double kV2V = 1e+3;
 
-    //volts to kilo volts
+    // volts to kilo volts
     constexpr double V2kV = 1 / kV2V;
 
-    //GeV to eV
+    // GeV to eV
     constexpr double GeV2eV = 1e+9;
 
-    //eV to GeV
+    // eV to GeV
     constexpr double eV2GeV = 1 / GeV2eV;
 
     // MeV to eV
@@ -100,37 +100,37 @@ namespace Units {
     // keV to MeV
     constexpr double keV2MeV = 1 / MeV2keV;
 
-    //GeV/c^2 to V*C*s^2/m^2 (ie GeV/c^2 to kg conversion)
+    // GeV/c^2 to V*C*s^2/m^2 (ie GeV/c^2 to kg conversion)
     constexpr double GeV2kg = 1.0e+9 * Physics::q_e / Physics::c / Physics::c;
 
-    //V*C*s^2/m^2 to GeV/c^2 (ie GeV/c^2 to kg conversion)
+    // V*C*s^2/m^2 to GeV/c^2 (ie GeV/c^2 to kg conversion)
     constexpr double kg2GeV = 1 / GeV2kg;
 
-    //eV to kg
+    // eV to kg
     constexpr double eV2kg = 1.782661921e-36;
 
-    //MHz to Hz
+    // MHz to Hz
     constexpr double MHz2Hz = 1e+6;
 
-    //Hz to MHz
+    // Hz to MHz
     constexpr double Hz2MHz = 1 / MHz2Hz;
 
-    //GHz to Hz
+    // GHz to Hz
     constexpr double GHz2Hz = 1e+9;
 
-    //Hz to GHz
+    // Hz to GHz
     constexpr double Hz2GHz = 1 / GHz2Hz;
 
-    //V/m to MV/m
+    // V/m to MV/m
     constexpr double Vpm2MVpm = 1e-6;
 
-    //MV/m to V/m
+    // MV/m to V/m
     constexpr double MVpm2Vpm = 1 / Vpm2MVpm;
 
-    //A to mA
+    // A to mA
     constexpr double A2mA = 1e+3;
 
-    //mA to A
+    // mA to A
     constexpr double mA2A = 1 / A2mA;
 
     // rad to mrad
@@ -144,6 +144,6 @@ namespace Units {
 
     // rad to deg
     constexpr double rad2deg = 1 / deg2rad;
-};
+};  // namespace Units
 
-#endif // OPALX_Units_HH
+#endif  // OPALX_Units_HH

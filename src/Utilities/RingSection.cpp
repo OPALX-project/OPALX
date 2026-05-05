@@ -31,23 +31,28 @@
 #include "Utilities/GeneralOpalException.h"
 
 RingSection::RingSection()
-  : component_m(nullptr),
-    componentPosition_m(0.), componentOrientation_m(0.),
-    startPosition_m(0.), startOrientation_m(0.),
-    endPosition_m(0.), endOrientation_m(0.) {
-}
+    : component_m(nullptr),
+      componentPosition_m(0.),
+      componentOrientation_m(0.),
+      startPosition_m(0.),
+      startOrientation_m(0.),
+      endPosition_m(0.),
+      endOrientation_m(0.) {}
 
 RingSection::RingSection(const RingSection& rhs)
-  : component_m(nullptr),
-    componentPosition_m(0.), componentOrientation_m(0.),
-    startPosition_m(0.), startOrientation_m(0.),
-    endPosition_m(0.), endOrientation_m(0.) {
+    : component_m(nullptr),
+      componentPosition_m(0.),
+      componentOrientation_m(0.),
+      startPosition_m(0.),
+      startOrientation_m(0.),
+      endPosition_m(0.),
+      endOrientation_m(0.) {
     *this = rhs;
 }
 
 RingSection::~RingSection() {
-    //if (component_m != nullptr)
-    //    delete component_m;
+    // if (component_m != nullptr)
+    //     delete component_m;
 }
 
 // Assignment operator
@@ -55,48 +60,45 @@ RingSection& RingSection::operator=(const RingSection& rhs) {
     if (&rhs != this) {
         component_m = dynamic_cast<Component*>(rhs.component_m->clone());
         if (component_m == nullptr)
-            throw GeneralOpalException("RingSection::operator=",
-                                "Failed to copy RingSection");
-        componentPosition_m = rhs.componentPosition_m;
+            throw GeneralOpalException("RingSection::operator=", "Failed to copy RingSection");
+        componentPosition_m    = rhs.componentPosition_m;
         componentOrientation_m = rhs.componentOrientation_m;
-        startPosition_m = rhs.startPosition_m;
-        startOrientation_m = rhs.startOrientation_m;
-        endPosition_m = rhs.endPosition_m;
-        endOrientation_m = rhs.endOrientation_m;
+        startPosition_m        = rhs.startPosition_m;
+        startOrientation_m     = rhs.startOrientation_m;
+        endPosition_m          = rhs.endPosition_m;
+        endOrientation_m       = rhs.endOrientation_m;
     }
     return *this;
 }
 
 bool RingSection::isOnOrPastStartPlane(const Vector_t<double, 3>& pos) const {
-    Vector_t<double, 3> posTransformed = pos-startPosition_m;
+    Vector_t<double, 3> posTransformed = pos - startPosition_m;
     // check that pos-startPosition_m is in front of startOrientation_m
-    double normProd = posTransformed(0)*startOrientation_m(0)+
-                      posTransformed(1)*startOrientation_m(1)+
-                      posTransformed(2)*startOrientation_m(2);
+    double normProd = posTransformed(0) * startOrientation_m(0)
+                      + posTransformed(1) * startOrientation_m(1)
+                      + posTransformed(2) * startOrientation_m(2);
     // check that pos and startPosition_m are on the same side of the ring
-    double posProd = pos(0)*startPosition_m(0)+
-                     pos(1)*startPosition_m(1)+
-                     pos(2)*startPosition_m(2);
+    double posProd =
+            pos(0) * startPosition_m(0) + pos(1) * startPosition_m(1) + pos(2) * startPosition_m(2);
     return normProd >= 0. && posProd >= 0.;
 }
 
 bool RingSection::isPastEndPlane(const Vector_t<double, 3>& pos) const {
-    Vector_t<double, 3> posTransformed = pos-endPosition_m;
-    double normProd = posTransformed(0)*endOrientation_m(0)+
-                      posTransformed(1)*endOrientation_m(1)+
-                      posTransformed(2)*endOrientation_m(2);
+    Vector_t<double, 3> posTransformed = pos - endPosition_m;
+    double normProd                    = posTransformed(0) * endOrientation_m(0)
+                      + posTransformed(1) * endOrientation_m(1)
+                      + posTransformed(2) * endOrientation_m(2);
     // check that pos and startPosition_m are on the same side of the ring
-    double posProd = pos(0)*endPosition_m(0)+
-                     pos(1)*endPosition_m(1)+
-                     pos(2)*endPosition_m(2);
+    double posProd =
+            pos(0) * endPosition_m(0) + pos(1) * endPosition_m(1) + pos(2) * endPosition_m(2);
     return normProd > 0. && posProd > 0.;
 }
 
-bool RingSection::getFieldValue(const Vector_t<double, 3>& pos,
-                                const Vector_t<double, 3>& /*centroid*/, const double& t,
-                                Vector_t<double, 3>& E, Vector_t<double, 3>& B) const {
+bool RingSection::getFieldValue(
+        const Vector_t<double, 3>& pos, const Vector_t<double, 3>& /*centroid*/, const double& t,
+        Vector_t<double, 3>& E, Vector_t<double, 3>& B) const {
     // transform position into local coordinate system
-    Vector_t<double, 3> pos_local = pos-componentPosition_m;
+    Vector_t<double, 3> pos_local = pos - componentPosition_m;
     rotate(pos_local);
     rotateToTCoordinates(pos_local);
     bool outOfBounds = component_m->apply(pos_local, Vector_t<double, 3>(0.0), t, E, B);
@@ -121,15 +123,17 @@ std::vector<Vector_t<double, 3>> RingSection::getVirtualBoundingBox() const {
     Vector_t<double, 3> endParallel(getEndNormal()(1), -getEndNormal()(0), 0);
     normalise(startParallel);
     normalise(endParallel);
-    double startRadius = 0.99*sqrt(getStartPosition()(0)*getStartPosition()(0)+
-                                   getStartPosition()(1)*getStartPosition()(1));
-    double endRadius = 0.99*sqrt(getEndPosition()(0)*getEndPosition()(0)+
-                                 getEndPosition()(1)*getEndPosition()(1));
+    double startRadius = 0.99
+                         * sqrt(getStartPosition()(0) * getStartPosition()(0)
+                                + getStartPosition()(1) * getStartPosition()(1));
+    double endRadius = 0.99
+                       * sqrt(getEndPosition()(0) * getEndPosition()(0)
+                              + getEndPosition()(1) * getEndPosition()(1));
     std::vector<Vector_t<double, 3>> bb;
-    bb.push_back(getStartPosition()-startParallel*startRadius);
-    bb.push_back(getStartPosition()+startParallel*startRadius);
-    bb.push_back(getEndPosition()-endParallel*endRadius);
-    bb.push_back(getEndPosition()+endParallel*endRadius);
+    bb.push_back(getStartPosition() - startParallel * startRadius);
+    bb.push_back(getStartPosition() + startParallel * startRadius);
+    bb.push_back(getEndPosition() - endParallel * endRadius);
+    bb.push_back(getEndPosition() + endParallel * endRadius);
     return bb;
 }
 
@@ -138,48 +142,38 @@ bool RingSection::doesOverlap(double phiStart, double phiEnd) const {
     RingSection phiVirtualORS;
     // phiStart -= Physics::pi;
     // phiEnd -= Physics::pi;
-    phiVirtualORS.setStartPosition(Vector_t<double, 3>(sin(phiStart),
-                                            cos(phiStart),
-                                            0.));
-    phiVirtualORS.setStartNormal(Vector_t<double, 3>(cos(phiStart),
-                                          -sin(phiStart),
-                                          0.));
-    phiVirtualORS.setEndPosition(Vector_t<double, 3>(sin(phiEnd),
-                                          cos(phiEnd),
-                                          0.));
-    phiVirtualORS.setEndNormal(Vector_t<double, 3>(cos(phiEnd),
-                                        -sin(phiEnd),
-                                        0.));
+    phiVirtualORS.setStartPosition(Vector_t<double, 3>(sin(phiStart), cos(phiStart), 0.));
+    phiVirtualORS.setStartNormal(Vector_t<double, 3>(cos(phiStart), -sin(phiStart), 0.));
+    phiVirtualORS.setEndPosition(Vector_t<double, 3>(sin(phiEnd), cos(phiEnd), 0.));
+    phiVirtualORS.setEndNormal(Vector_t<double, 3>(cos(phiEnd), -sin(phiEnd), 0.));
     std::vector<Vector_t<double, 3>> virtualBB = getVirtualBoundingBox();
     // at least one of the bounding box coordinates is in the defined sector
     // std::cerr << "RingSection::doesOverlap " << phiStart << " " << phiEnd << " "
     //          << phiVirtualORS.getStartPosition() << " " << phiVirtualORS.getStartNormal() << " "
-    //          << phiVirtualORS.getEndPosition() << " " << phiVirtualORS.getEndNormal() << " " << std::endl
-    //          << "    Component " << this << " " << getStartPosition() << " " << getStartNormal() << " "
+    //          << phiVirtualORS.getEndPosition() << " " << phiVirtualORS.getEndNormal() << " " <<
+    //          std::endl
+    //          << "    Component " << this << " " << getStartPosition() << " " << getStartNormal()
+    //          << " "
     //          << getEndPosition() << " " << getEndNormal() << " " << std::endl;
     for (size_t i = 0; i < virtualBB.size(); ++i) {
         // std::cerr << "    VBB " << i << " " << virtualBB[i] << std::endl;
-        if (phiVirtualORS.isOnOrPastStartPlane(virtualBB[i]) &&
-            !phiVirtualORS.isPastEndPlane(virtualBB[i]))
+        if (phiVirtualORS.isOnOrPastStartPlane(virtualBB[i])
+            && !phiVirtualORS.isPastEndPlane(virtualBB[i]))
             return true;
     }
     // the bounding box coordinates span the defined sector and the sector
     // sits inside the bb
-    bool hasBefore = false; // some elements in bb are before phiVirtualORS
-    bool hasAfter = false; // some elements in bb are after phiVirtualORS
+    bool hasBefore = false;  // some elements in bb are before phiVirtualORS
+    bool hasAfter  = false;  // some elements in bb are after phiVirtualORS
     for (size_t i = 0; i < virtualBB.size(); ++i) {
-        hasBefore = hasBefore ||
-                    !phiVirtualORS.isOnOrPastStartPlane(virtualBB[i]);
-        hasAfter = hasAfter ||
-                   phiVirtualORS.isPastEndPlane(virtualBB[i]);
+        hasBefore = hasBefore || !phiVirtualORS.isOnOrPastStartPlane(virtualBB[i]);
+        hasAfter  = hasAfter || phiVirtualORS.isPastEndPlane(virtualBB[i]);
         // std::cerr << "    " << hasBefore << " " << hasAfter << std::endl;
     }
-    if (hasBefore && hasAfter)
-        return true;
+    if (hasBefore && hasAfter) return true;
     // std::cerr << "DOES NOT OVERLAP" << std::endl;
     return false;
 }
-
 
 void RingSection::rotate(Vector_t<double, 3>& vector) const {
     const Vector_t<double, 3> temp(vector);

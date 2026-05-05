@@ -30,10 +30,8 @@
 //  This exception is thrown when an OPALX routine or method detects an
 //  index out of range.
 
-class CLRangeError: public ArithmeticError {
-
+class CLRangeError : public ArithmeticError {
 public:
-
     /// The usual constructor.
     // Arguments:
     // [DL]
@@ -43,15 +41,14 @@ public:
     // [DD]the message string identifying the exception
     // [/DL]
     // Construction/destruction.
-    CLRangeError(const std::string &meth, const std::string &msg);
+    CLRangeError(const std::string& meth, const std::string& msg);
 
-    CLRangeError(const CLRangeError &);
+    CLRangeError(const CLRangeError&);
     virtual ~CLRangeError();
 
 private:
-
     // Not implemented.
     CLRangeError();
 };
 
-#endif // OPAL_CLRangeError_HH
+#endif  // OPAL_CLRangeError_HH

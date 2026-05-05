@@ -20,20 +20,12 @@
 
 #include "Utilities/LogicalError.h"
 
-
 // Class LogicalError
 // ------------------------------------------------------------------------
 
+LogicalError::LogicalError(const std::string& meth, const std::string& msg)
+    : OpalException(meth, msg) {}
 
-LogicalError::LogicalError(const std::string &meth, const std::string &msg):
-    OpalException(meth, msg)
-{}
+LogicalError::LogicalError(const LogicalError& rhs) : OpalException(rhs) {}
 
-
-LogicalError::LogicalError(const LogicalError &rhs):
-    OpalException(rhs)
-{}
-
-
-LogicalError::~LogicalError()
-{}
+LogicalError::~LogicalError() {}
