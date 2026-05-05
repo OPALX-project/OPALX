@@ -34,7 +34,6 @@ public:
         gmsg = nullptr;
         ippl::finalize();
     }
-
 };
 
 // Does the user interface affect the correct magnet configuration
@@ -97,7 +96,7 @@ TEST_F(TestOpalMultipoleT, UserInterface) {
     Attributes::setReal(ui.itsAttr[OpalMultipoleT::ANGLE], 0.5);
     Attributes::setReal(ui.itsAttr[OpalMultipoleT::ENTRYOFFSET], 1.2);
     Attributes::setBool(ui.itsAttr[OpalMultipoleT::VARRADIUS], true);
-    EXPECT_ANY_THROW(ui.update());   // Currently throws 'cos var radius not yet supported
+    EXPECT_ANY_THROW(ui.update());  // Currently throws 'cos var radius not yet supported
     // Check time dependency
     Attributes::setReal(ui.itsAttr[OpalMultipoleT::ENTRYOFFSET], 0.0);
     Attributes::setBool(ui.itsAttr[OpalMultipoleT::VARRADIUS], false);

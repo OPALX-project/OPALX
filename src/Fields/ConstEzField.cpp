@@ -17,35 +17,16 @@
 //
 #include "Fields/ConstEzField.h"
 
+ConstEzField::ConstEzField() {}
 
-ConstEzField::ConstEzField()
-{}
+ConstEzField::~ConstEzField() {}
 
+EVector ConstEzField::Efield(const Point3D&) const { return EVector(0.0, 0.0, Ez); }
 
-ConstEzField::~ConstEzField()
-{}
+EVector ConstEzField::Efield(const Point3D& /*P*/, double) const { return EVector(0.0, 0.0, Ez); }
 
+double ConstEzField::getEz() const { return Ez; }
 
-EVector ConstEzField::Efield(const Point3D &) const {
-    return EVector(0.0, 0.0, Ez);
-}
+void ConstEzField::setEz(double value) { Ez = value; }
 
-
-EVector ConstEzField::Efield(const Point3D &/*P*/, double) const {
-    return EVector(0.0, 0.0, Ez);
-}
-
-
-double ConstEzField::getEz() const {
-    return Ez;
-}
-
-
-void ConstEzField::setEz(double value) {
-    Ez = value;
-}
-
-
-void ConstEzField::scale(double scalar) {
-    Ez *= scalar;
-}
+void ConstEzField::scale(double scalar) { Ez *= scalar; }

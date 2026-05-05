@@ -22,7 +22,6 @@
 
 #include <complex>
 
-
 // ------------------------------------------------------------------------
 /// Complex error function.
 //  The algorithms is based on:
@@ -36,4 +35,4 @@
 
 extern std::complex<double> Werrf(std::complex<double> z);
 
-#endif // OPALX_ComplexErrorFun_HH
+#endif  // OPALX_ComplexErrorFun_HH

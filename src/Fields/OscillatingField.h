@@ -20,8 +20,8 @@
 //
 // ------------------------------------------------------------------------
 
-#include "Fields/EMField.h"
 #include <cmath>
+#include "Fields/EMField.h"
 
 // Template class OscillatingField<Field>
 // ------------------------------------------------------------------------
@@ -34,10 +34,9 @@
 //  Note that this class is derived from its template parameter,
 //  it inherits the methods and data from that class as well.
 
-template < class Field > class OscillatingField: public Field {
-
+template <class Field>
+class OscillatingField : public Field {
 public:
-
     /// Default constructor.
     //  Constructs a null field.
     OscillatingField();
@@ -58,78 +57,73 @@ public:
 
     /// Get field.
     //  Return the constant part of the electric field in point [b]P[/b].
-    virtual EVector Efield(const Point3D &point) const;
+    virtual EVector Efield(const Point3D& point) const;
 
     /// Get field.
     //  Return the electric field at time [b]t[/b] in point [b]P[/b].
-    virtual EVector Efield(const Point3D &point, double time) const;
+    virtual EVector Efield(const Point3D& point, double time) const;
 
     /// Get field.
     //  Return the constant part of the magnetic field in point [b]P[/b].
-    virtual BVector Bfield(const Point3D &point) const;
+    virtual BVector Bfield(const Point3D& point) const;
 
     /// Get field.
     //  Return the magnetic field at time [b]t[/b] in point [b]P[/b].
-    virtual BVector Bfield(const Point3D &point, double time) const;
+    virtual BVector Bfield(const Point3D& point, double time) const;
 
 private:
-
     // The frequency, and phase.
     double frequency;
     double phase;
 };
 
-
 // Implementation of template class OscillatingField
 // ------------------------------------------------------------------------
 
-template < class Field >
-OscillatingField<Field>::OscillatingField(): Field()
-{}
+template <class Field>
+OscillatingField<Field>::OscillatingField() : Field() {}
 
+template <class Field>
+OscillatingField<Field>::~OscillatingField() {}
 
-template < class Field >
-OscillatingField<Field>::~OscillatingField()
-{}
+template <class Field>
+inline double OscillatingField<Field>::getFrequency() const {
+    return frequency;
+}
 
+template <class Field>
+inline double OscillatingField<Field>::getPhase() const {
+    return phase;
+}
 
-template < class Field > inline
-double OscillatingField<Field>::getFrequency() const
-{ return frequency; }
+template <class Field>
+inline void OscillatingField<Field>::setFrequency(double freq) {
+    frequency = freq;
+}
 
+template <class Field>
+inline void OscillatingField<Field>::setPhase(double phi) {
+    phase = phi;
+}
 
-template < class Field > inline
-double OscillatingField<Field>::getPhase() const
-{ return phase; }
+template <class Field>
+EVector OscillatingField<Field>::Efield(const Point3D& p) const {
+    return Field::Efield(p);
+}
 
+template <class Field>
+EVector OscillatingField<Field>::Efield(const Point3D& p, double t) const {
+    return Field::Efield(p) * cos(t * frequency - phase);
+}
 
-template < class Field > inline
-void OscillatingField<Field>::setFrequency(double freq)
-{ frequency = freq; }
+template <class Field>
+BVector OscillatingField<Field>::Bfield(const Point3D& p) const {
+    return Field::Bfield(p);
+}
 
+template <class Field>
+BVector OscillatingField<Field>::Bfield(const Point3D& p, double t) const {
+    return Field::Bfield(p) * cos(t * frequency - phase);
+}
 
-template < class Field > inline
-void OscillatingField<Field>::setPhase(double phi)
-{ phase = phi; }
-
-
-template < class Field >
-EVector OscillatingField<Field>::Efield(const Point3D &p) const
-{ return Field::Efield(p); }
-
-
-template < class Field >
-EVector OscillatingField<Field>::Efield(const Point3D &p, double t) const
-{ return Field::Efield(p) * cos(t * frequency - phase); }
-
-
-template < class Field >
-BVector OscillatingField<Field>::Bfield(const Point3D &p) const
-{ return Field::Bfield(p); }
-
-
-template < class Field >
-BVector OscillatingField<Field>::Bfield(const Point3D &p, double t) const
-{ return Field::Bfield(p) * cos(t * frequency - phase); }
-
-#endif // OPALX_OscillatingField_HH
+#endif  // OPALX_OscillatingField_HH

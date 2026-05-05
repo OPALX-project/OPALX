@@ -18,12 +18,11 @@
 //
 // ------------------------------------------------------------------------
 
-#include "OpalParser/Statement.h"
 #include "AbstractObjects/Attribute.h"
+#include "OpalParser/Statement.h"
 
 class Parser;
 class TokenStream;
-
 
 // class "IfStatement":
 // ------------------------------------------------------------------------
@@ -32,29 +31,26 @@ class TokenStream;
 //  The condition is stored in the Token list inherited from Statement,
 //  the then and else blocks are stored in two Statements.
 
-class IfStatement: public Statement {
-
+class IfStatement : public Statement {
 public:
-
     /// Constructor.
     //  Parse the statement on the given token stream, using the given parser.
-    IfStatement(const Parser &, TokenStream &);
+    IfStatement(const Parser&, TokenStream&);
 
     virtual ~IfStatement();
 
     /// Execute.
     //  Use the given parser to execute the controlled statements.
-    virtual void execute(const Parser &);
+    virtual void execute(const Parser&);
 
 private:
-
     // Not implemented.
     IfStatement();
-    IfStatement(const IfStatement &);
-    void operator=(const IfStatement &);
+    IfStatement(const IfStatement&);
+    void operator=(const IfStatement&);
 
-    Statement *then_block;
-    Statement *else_block;
+    Statement* then_block;
+    Statement* else_block;
 };
 
-#endif // OPAL_IfStatement_HH
+#endif  // OPAL_IfStatement_HH

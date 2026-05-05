@@ -20,35 +20,35 @@
 #include "AbstractObjects/Attribute.h"
 #include "Attributes/Bool.h"
 #include "Attributes/BoolArray.h"
+#include "Attributes/OpalString.h"
 #include "Attributes/Place.h"
+#include "Attributes/PredefinedString.h"
 #include "Attributes/Range.h"
 #include "Attributes/Real.h"
 #include "Attributes/RealArray.h"
 #include "Attributes/Reference.h"
-#include "Attributes/OpalString.h"
 #include "Attributes/StringArray.h"
-#include "Attributes/PredefinedString.h"
-#include "Attributes/UpperCaseString.h"
-#include "Attributes/UpperCaseStringArray.h"
 #include "Attributes/TableRow.h"
 #include "Attributes/TokenList.h"
 #include "Attributes/TokenListArray.h"
+#include "Attributes/UpperCaseString.h"
+#include "Attributes/UpperCaseStringArray.h"
 #include "Expressions/AValue.h"
 #include "Expressions/SRefAttr.h"
 #include "Expressions/SValue.h"
 #include "Utilities/OpalException.h"
 
 #include "AbstractObjects/OpalData.h"
-#include "ValueDefinitions/RealVariable.h"
 #include "Utilities/Util.h"
+#include "ValueDefinitions/RealVariable.h"
 
 #include <regex>
 
 using namespace Expressions;
 
 namespace {
-    std::string stringifyVariable(Object *obj) {
-        ValueDefinition *value = dynamic_cast<ValueDefinition*>(obj);
+    std::string stringifyVariable(Object* obj) {
+        ValueDefinition* value = dynamic_cast<ValueDefinition*>(obj);
 
         if (value) {
             std::ostringstream valueStream;
@@ -73,11 +73,12 @@ namespace {
             }
         }
 
-        throw OpalException("Attributes::stringifyVariable",
-                            "The variable '" + obj->getOpalName() + "' isn't of type REAL, STRING or BOOL");
+        throw OpalException(
+                "Attributes::stringifyVariable",
+                "The variable '" + obj->getOpalName() + "' isn't of type REAL, STRING or BOOL");
         return "";
     }
-}
+}  // namespace
 
 // Namespace Attributes.
 // ------------------------------------------------------------------------
@@ -87,274 +88,260 @@ namespace Attributes {
     // ----------------------------------------------------------------------
     // Boolean value.
 
-    Attribute makeBool(const std::string &name, const std::string &help) {
+    Attribute makeBool(const std::string& name, const std::string& help) {
         return Attribute(new Bool(name, help), nullptr);
     }
 
-
-    Attribute makeBool(const std::string &name, const std::string &help, bool ini) {
+    Attribute makeBool(const std::string& name, const std::string& help, bool ini) {
         return Attribute(new Bool(name, help), new SValue<bool>(ini));
     }
 
-
-    bool getBool(const Attribute &attr) {
-        if(attr.isBaseAllocated()) {
-            AttributeBase *base = &attr.getBase();
-            if(dynamic_cast<Bool *>(&attr.getHandler())) {
-                return dynamic_cast<SValue<bool> *>(base)->evaluate();
-            } else if(SValue<SRefAttr<bool> > *ref =
-                          dynamic_cast<SValue<SRefAttr<bool> > *>(base)) {
-                const SRefAttr<bool> &value = ref->evaluate();
+    bool getBool(const Attribute& attr) {
+        if (attr.isBaseAllocated()) {
+            AttributeBase* base = &attr.getBase();
+            if (dynamic_cast<Bool*>(&attr.getHandler())) {
+                return dynamic_cast<SValue<bool>*>(base)->evaluate();
+            } else if (
+                    SValue<SRefAttr<bool> >* ref = dynamic_cast<SValue<SRefAttr<bool> >*>(base)) {
+                const SRefAttr<bool>& value = ref->evaluate();
                 return value.evaluate();
             } else {
-                throw OpalException("Attributes::getBool()", "Attribute \"" +
-                                    attr.getName() + "\" is not logical.");
+                throw OpalException(
+                        "Attributes::getBool()",
+                        "Attribute \"" + attr.getName() + "\" is not logical.");
             }
         } else {
             return false;
         }
     }
 
-
-    void setBool(Attribute &attr, bool val) {
-        SValue<SRefAttr<bool> > *ref;
-        if(dynamic_cast<const Bool *>(&attr.getHandler())) {
+    void setBool(Attribute& attr, bool val) {
+        SValue<SRefAttr<bool> >* ref;
+        if (dynamic_cast<const Bool*>(&attr.getHandler())) {
             attr.set(new SValue<bool>(val));
-        } else if((attr.isBaseAllocated() == true) &&
-                  (ref = dynamic_cast<SValue<SRefAttr<bool> >*>(&attr.getBase()))) {
-            const SRefAttr<bool> &value = ref->evaluate();
+        } else if (
+                (attr.isBaseAllocated() == true)
+                && (ref = dynamic_cast<SValue<SRefAttr<bool> >*>(&attr.getBase()))) {
+            const SRefAttr<bool>& value = ref->evaluate();
             value.set(val);
         } else {
-            throw OpalException("Attributes::setBool()", "Attribute \"" +
-                                attr.getName() + "\" is not logical.");
+            throw OpalException(
+                    "Attributes::setBool()",
+                    "Attribute \"" + attr.getName() + "\" is not logical.");
         }
     }
 
-
     // ----------------------------------------------------------------------
     // Boolean array value.
-    Attribute makeBoolArray(const std::string &name, const std::string &help) {
+    Attribute makeBoolArray(const std::string& name, const std::string& help) {
         return Attribute(new BoolArray(name, help), nullptr);
     }
 
-
-    std::vector<bool> getBoolArray(const Attribute &attr) {
-        if(attr.isBaseAllocated()) {
-            AttributeBase *base = &attr.getBase();
-            if(AValue<bool> *value =
-                   dynamic_cast<AValue<bool>*>(base)) {
+    std::vector<bool> getBoolArray(const Attribute& attr) {
+        if (attr.isBaseAllocated()) {
+            AttributeBase* base = &attr.getBase();
+            if (AValue<bool>* value = dynamic_cast<AValue<bool>*>(base)) {
                 return value->evaluate();
             } else {
-                throw OpalException("Attributes::getBoolArray()", "Attribute \"" +
-                                    attr.getName() + "\" is not a logical array.");
+                throw OpalException(
+                        "Attributes::getBoolArray()",
+                        "Attribute \"" + attr.getName() + "\" is not a logical array.");
             }
         } else {
             return std::vector<bool>();
         }
     }
 
-
-    void setBoolArray(Attribute &attr, const std::vector<bool> &value) {
-        if(dynamic_cast<const BoolArray *>(&attr.getHandler())) {
+    void setBoolArray(Attribute& attr, const std::vector<bool>& value) {
+        if (dynamic_cast<const BoolArray*>(&attr.getHandler())) {
             // Use ADeferred here, since a component may be overridden later
             // by an expression.
             attr.set(new ADeferred<bool>(value));
         } else {
-            throw OpalException("Attributes::setBoolArray()", "Attribute \"" +
-                                attr.getName() + "\" is not a logical array");
+            throw OpalException(
+                    "Attributes::setBoolArray()",
+                    "Attribute \"" + attr.getName() + "\" is not a logical array");
         }
     }
-
 
     // ----------------------------------------------------------------------
     // Place value.
 
-    Attribute makePlace(const std::string &name, const std::string &help) {
-        return Attribute(new Place(name, help),
-                         new SValue<PlaceRep>(PlaceRep("#S")));
+    Attribute makePlace(const std::string& name, const std::string& help) {
+        return Attribute(new Place(name, help), new SValue<PlaceRep>(PlaceRep("#S")));
     }
 
-
-    PlaceRep getPlace(const Attribute &attr) {
-        if(attr.isBaseAllocated()) {
-            if(SValue<PlaceRep> *place =
-                   dynamic_cast<SValue<PlaceRep> *>(&attr.getBase())) {
+    PlaceRep getPlace(const Attribute& attr) {
+        if (attr.isBaseAllocated()) {
+            if (SValue<PlaceRep>* place = dynamic_cast<SValue<PlaceRep>*>(&attr.getBase())) {
                 return place->evaluate();
             } else {
-                throw OpalException("Attributes::getPlace()", "Attribute \"" +
-                                    attr.getName() + "\" is not a place reference.");
+                throw OpalException(
+                        "Attributes::getPlace()",
+                        "Attribute \"" + attr.getName() + "\" is not a place reference.");
             }
         } else {
             return PlaceRep();
         }
     }
 
-
-    void setPlace(Attribute &attr, const PlaceRep &rep) {
-        if(dynamic_cast<const Place *>(&attr.getHandler())) {
+    void setPlace(Attribute& attr, const PlaceRep& rep) {
+        if (dynamic_cast<const Place*>(&attr.getHandler())) {
             attr.set(new SValue<PlaceRep>(rep));
         } else {
-            throw OpalException("Attributes::setPlace()", "Attribute \"" +
-                                attr.getName() + "\" is not a place reference.");
+            throw OpalException(
+                    "Attributes::setPlace()",
+                    "Attribute \"" + attr.getName() + "\" is not a place reference.");
         }
     }
-
 
     // ----------------------------------------------------------------------
     // Range value.
 
-    Attribute makeRange(const std::string &name, const std::string &help) {
-        return Attribute(new Range(name, help),
-                         new SValue<RangeRep>(RangeRep()));
+    Attribute makeRange(const std::string& name, const std::string& help) {
+        return Attribute(new Range(name, help), new SValue<RangeRep>(RangeRep()));
     }
 
-
-    RangeRep getRange(const Attribute &attr) {
-        if(attr.isBaseAllocated()) {
-            if(SValue<RangeRep> *range =
-                   dynamic_cast<SValue<RangeRep> *>(&attr.getBase())) {
+    RangeRep getRange(const Attribute& attr) {
+        if (attr.isBaseAllocated()) {
+            if (SValue<RangeRep>* range = dynamic_cast<SValue<RangeRep>*>(&attr.getBase())) {
                 return range->evaluate();
             } else {
-                throw OpalException("Attributes::getRange()", "Attribute \"" +
-                                    attr.getName() + "\" is not a range reference.");
+                throw OpalException(
+                        "Attributes::getRange()",
+                        "Attribute \"" + attr.getName() + "\" is not a range reference.");
             }
         } else {
             return RangeRep();
         }
     }
 
-
-    void setRange(Attribute &attr, const RangeRep &rep) {
-        if(dynamic_cast<const Range *>(&attr.getHandler())) {
+    void setRange(Attribute& attr, const RangeRep& rep) {
+        if (dynamic_cast<const Range*>(&attr.getHandler())) {
             attr.set(new SValue<RangeRep>(rep));
         } else {
-            throw OpalException("Attributes::setRange()", "Attribute \"" +
-                                attr.getName() + "\" is not a range reference.");
+            throw OpalException(
+                    "Attributes::setRange()",
+                    "Attribute \"" + attr.getName() + "\" is not a range reference.");
         }
     }
-
 
     // ----------------------------------------------------------------------
     // Real value.
 
-    Attribute makeReal(const std::string &name, const std::string &help) {
+    Attribute makeReal(const std::string& name, const std::string& help) {
         return Attribute(new Real(name, help), nullptr);
     }
 
-
-    Attribute
-    makeReal(const std::string &name, const std::string &help, double initial) {
-        return Attribute(new Real(name, help),
-                         new SValue<double>(initial));
+    Attribute makeReal(const std::string& name, const std::string& help, double initial) {
+        return Attribute(new Real(name, help), new SValue<double>(initial));
     }
 
-
-    double getReal(const Attribute &attr) {
-        if(attr.isBaseAllocated()) {
-            AttributeBase *base = &attr.getBase();
-            if(dynamic_cast<Real *>(&attr.getHandler())) {
-                return dynamic_cast<SValue<double> *>(base)->evaluate();
-            } else if(SValue<SRefAttr<double> > *ref =
-                          dynamic_cast<SValue<SRefAttr<double> > *>(base)) {
-                const SRefAttr<double> &value = ref->evaluate();
+    double getReal(const Attribute& attr) {
+        if (attr.isBaseAllocated()) {
+            AttributeBase* base = &attr.getBase();
+            if (dynamic_cast<Real*>(&attr.getHandler())) {
+                return dynamic_cast<SValue<double>*>(base)->evaluate();
+            } else if (
+                    SValue<SRefAttr<double> >* ref =
+                            dynamic_cast<SValue<SRefAttr<double> >*>(base)) {
+                const SRefAttr<double>& value = ref->evaluate();
                 return value.evaluate();
             } else {
-                throw OpalException("Attributes::getReal()", "Attribute \"" +
-                                    attr.getName() + "\" is not real.");
+                throw OpalException(
+                        "Attributes::getReal()",
+                        "Attribute \"" + attr.getName() + "\" is not real.");
             }
         } else {
             return 0.0;
         }
     }
 
-
-    void setReal(Attribute &attr, double val) {
-        SValue<SRefAttr<double> > *ref;
-        if(dynamic_cast<const Real *>(&attr.getHandler())) {
+    void setReal(Attribute& attr, double val) {
+        SValue<SRefAttr<double> >* ref;
+        if (dynamic_cast<const Real*>(&attr.getHandler())) {
             attr.set(new SValue<double>(val));
-        } else if((attr.isBaseAllocated() == true) &&
-                  (ref = dynamic_cast<SValue<SRefAttr<double> >*>(&attr.getBase()))) {
-            const SRefAttr<double> &value = ref->evaluate();
+        } else if (
+                (attr.isBaseAllocated() == true)
+                && (ref = dynamic_cast<SValue<SRefAttr<double> >*>(&attr.getBase()))) {
+            const SRefAttr<double>& value = ref->evaluate();
             value.set(val);
         } else {
-            throw OpalException("Attributes::setReal()", "Attribute \"" +
-                                attr.getName() + "\" is not real.");
+            throw OpalException(
+                    "Attributes::setReal()", "Attribute \"" + attr.getName() + "\" is not real.");
         }
     }
-
 
     // ----------------------------------------------------------------------
     // Real array value.
 
-    Attribute makeRealArray(const std::string &name, const std::string &help) {
+    Attribute makeRealArray(const std::string& name, const std::string& help) {
         return Attribute(new RealArray(name, help), nullptr);
     }
 
-
-    std::vector<double> getRealArray(const Attribute &attr) {
-        if(attr.isBaseAllocated()) {
-            if(dynamic_cast<RealArray *>(&attr.getHandler())) {
-                AttributeBase *base = &attr.getBase();
+    std::vector<double> getRealArray(const Attribute& attr) {
+        if (attr.isBaseAllocated()) {
+            if (dynamic_cast<RealArray*>(&attr.getHandler())) {
+                AttributeBase* base = &attr.getBase();
                 return dynamic_cast<AValue<double>*>(base)->evaluate();
             } else {
-                throw OpalException("Attributes::getRealArray()", "Attribute \"" +
-                                    attr.getName() + "\" is not a real array.");
+                throw OpalException(
+                        "Attributes::getRealArray()",
+                        "Attribute \"" + attr.getName() + "\" is not a real array.");
             }
         } else {
             return std::vector<double>();
         }
     }
 
-
-    void setRealArray(Attribute &attr, const std::vector<double> &value) {
-        if(dynamic_cast<const RealArray *>(&attr.getHandler())) {
+    void setRealArray(Attribute& attr, const std::vector<double>& value) {
+        if (dynamic_cast<const RealArray*>(&attr.getHandler())) {
             // Use ADeferred here, since a component may be overridden later
             // by an expression.
             attr.set(new ADeferred<double>(value));
         } else {
-            throw OpalException("Attributes::setRealArray()", "Attribute \"" +
-                                attr.getName() + "\" is not a real array.");
+            throw OpalException(
+                    "Attributes::setRealArray()",
+                    "Attribute \"" + attr.getName() + "\" is not a real array.");
         }
     }
-
 
     // ----------------------------------------------------------------------
     // Reference value.
 
-    Attribute makeReference(const std::string &name, const std::string &help) {
+    Attribute makeReference(const std::string& name, const std::string& help) {
         return Attribute(new Reference(name, help), nullptr);
     }
-
 
     // ----------------------------------------------------------------------
     // String value.
 
-    Attribute makeString(const std::string &name, const std::string &help) {
+    Attribute makeString(const std::string& name, const std::string& help) {
         return Attribute(new String(name, help), nullptr);
     }
 
-
-    Attribute
-    makeString(const std::string &name, const std::string &help, const std::string &initial) {
+    Attribute makeString(
+            const std::string& name, const std::string& help, const std::string& initial) {
         return Attribute(new String(name, help), new SValue<std::string>(initial));
     }
 
-
-    std::string getString(const Attribute &attr) {
-        if(attr.isBaseAllocated()) {
-            AttributeBase *base = &attr.getBase();
+    std::string getString(const Attribute& attr) {
+        if (attr.isBaseAllocated()) {
+            AttributeBase* base = &attr.getBase();
             std::string expr;
-            if(dynamic_cast<String *>(&attr.getHandler())
-               || dynamic_cast<UpperCaseString *>(&attr.getHandler())
-               || dynamic_cast<PredefinedString *>(&attr.getHandler())) {
-                expr = dynamic_cast<SValue<std::string> *>(base)->evaluate();
-            } else if(SValue<SRefAttr<std::string> > *ref =
-                          dynamic_cast<SValue<SRefAttr<std::string> > *>(base)) {
-                const SRefAttr<std::string> &value = ref->evaluate();
-                expr = value.evaluate();
+            if (dynamic_cast<String*>(&attr.getHandler())
+                || dynamic_cast<UpperCaseString*>(&attr.getHandler())
+                || dynamic_cast<PredefinedString*>(&attr.getHandler())) {
+                expr = dynamic_cast<SValue<std::string>*>(base)->evaluate();
+            } else if (
+                    SValue<SRefAttr<std::string> >* ref =
+                            dynamic_cast<SValue<SRefAttr<std::string> >*>(base)) {
+                const SRefAttr<std::string>& value = ref->evaluate();
+                expr                               = value.evaluate();
             } else {
-                throw OpalException("Attributes::getString()", "Attribute \"" +
-                                    attr.getName() + "\" is not string.");
+                throw OpalException(
+                        "Attributes::getString()",
+                        "Attribute \"" + attr.getName() + "\" is not string.");
             }
 
             auto opal = OpalData::getInstance();
@@ -364,17 +351,19 @@ namespace Attributes {
 
             std::string exprDeref;
             std::string::const_iterator start = expr.begin();
-            std::string::const_iterator end = expr.end();
+            std::string::const_iterator end   = expr.end();
 
-            while (std::regex_search(start, end, what, variableRE, std::regex_constants::match_default)) {
+            while (std::regex_search(
+                    start, end, what, variableRE, std::regex_constants::match_default)) {
                 exprDeref += std::string(start, what[0].first);
                 std::string variable = Util::toUpper(std::string(what[1].first, what[1].second));
 
-                if (Object *obj = opal->find(variable)) {
+                if (Object* obj = opal->find(variable)) {
                     exprDeref += ::stringifyVariable(obj);
                 } else {
-                    throw OpalException("Attributes::getString",
-                                        "Can't find variable '" + variable + "' in string \"" + expr + "\"");
+                    throw OpalException(
+                            "Attributes::getString",
+                            "Can't find variable '" + variable + "' in string \"" + expr + "\"");
                 }
 
                 start = what[0].second;
@@ -387,118 +376,119 @@ namespace Attributes {
         }
     }
 
-
-    void setString(Attribute &attr, const std::string &val) {
-        SValue<SRefAttr<std::string> > *ref;
-        if(dynamic_cast<const String *>(&attr.getHandler())) {
+    void setString(Attribute& attr, const std::string& val) {
+        SValue<SRefAttr<std::string> >* ref;
+        if (dynamic_cast<const String*>(&attr.getHandler())) {
             attr.set(new SValue<std::string>(val));
-        } else if((attr.isBaseAllocated() == true) &&
-                  (ref = dynamic_cast<SValue<SRefAttr<std::string> >*>(&attr.getBase()))) {
-            const SRefAttr<std::string> &value = ref->evaluate();
+        } else if (
+                (attr.isBaseAllocated() == true)
+                && (ref = dynamic_cast<SValue<SRefAttr<std::string> >*>(&attr.getBase()))) {
+            const SRefAttr<std::string>& value = ref->evaluate();
             value.set(val);
         } else {
-            throw OpalException("Attributes::setString()", "Attribute \"" +
-                                attr.getName() + "\" is not a string.");
+            throw OpalException(
+                    "Attributes::setString()",
+                    "Attribute \"" + attr.getName() + "\" is not a string.");
         }
     }
-
 
     // ----------------------------------------------------------------------
     // Predefined string value.
 
-    Attribute makePredefinedString(const std::string &name,
-                                   const std::string &help,
-                                   const std::initializer_list<std::string>& predefinedStrings) {
+    Attribute makePredefinedString(
+            const std::string& name, const std::string& help,
+            const std::initializer_list<std::string>& predefinedStrings) {
         return Attribute(new PredefinedString(name, help, predefinedStrings), nullptr);
     }
 
-
-    Attribute
-    makePredefinedString(const std::string &name,
-                         const std::string &help,
-                         const std::initializer_list<std::string>& predefinedStrings,
-                         const std::string &initial) {
-        return Attribute(new PredefinedString(name, help, predefinedStrings, initial),
-                         new SValue<std::string>(Util::toUpper(initial)));
+    Attribute makePredefinedString(
+            const std::string& name, const std::string& help,
+            const std::initializer_list<std::string>& predefinedStrings,
+            const std::string& initial) {
+        return Attribute(
+                new PredefinedString(name, help, predefinedStrings, initial),
+                new SValue<std::string>(Util::toUpper(initial)));
     }
 
-
-    void setPredefinedString(Attribute &attr, const std::string &val) {
-        SValue<SRefAttr<std::string> > *ref;
+    void setPredefinedString(Attribute& attr, const std::string& val) {
+        SValue<SRefAttr<std::string> >* ref;
         std::string upperCaseVal = Util::toUpper(val);
-        if(dynamic_cast<const PredefinedString *>(&attr.getHandler())) {
+        if (dynamic_cast<const PredefinedString*>(&attr.getHandler())) {
             attr.set(new SValue<std::string>(upperCaseVal));
-        } else if((attr.isBaseAllocated() == true) &&
-                  (ref = dynamic_cast<SValue<SRefAttr<std::string> >*>(&attr.getBase()))) {
-            const SRefAttr<std::string> &value = ref->evaluate();
+        } else if (
+                (attr.isBaseAllocated() == true)
+                && (ref = dynamic_cast<SValue<SRefAttr<std::string> >*>(&attr.getBase()))) {
+            const SRefAttr<std::string>& value = ref->evaluate();
             value.set(upperCaseVal);
         } else {
-            throw OpalException("Attributes::setPredefinedString()", "Attribute \"" +
-                                attr.getName() + "\" is not a supported string.");
+            throw OpalException(
+                    "Attributes::setPredefinedString()",
+                    "Attribute \"" + attr.getName() + "\" is not a supported string.");
         }
     }
-
 
     // ----------------------------------------------------------------------
     // Upper case string value.
 
-    Attribute makeUpperCaseString(const std::string &name, const std::string &help) {
+    Attribute makeUpperCaseString(const std::string& name, const std::string& help) {
         return Attribute(new UpperCaseString(name, help), nullptr);
     }
 
-
-    Attribute
-    makeUpperCaseString(const std::string &name, const std::string &help, const std::string &initial) {
-        return Attribute(new UpperCaseString(name, help), new SValue<std::string>(Util::toUpper(initial)));
+    Attribute makeUpperCaseString(
+            const std::string& name, const std::string& help, const std::string& initial) {
+        return Attribute(
+                new UpperCaseString(name, help), new SValue<std::string>(Util::toUpper(initial)));
     }
 
-
-    void setUpperCaseString(Attribute &attr, const std::string &val) {
-        SValue<SRefAttr<std::string> > *ref;
-        if(dynamic_cast<const UpperCaseString *>(&attr.getHandler())) {
+    void setUpperCaseString(Attribute& attr, const std::string& val) {
+        SValue<SRefAttr<std::string> >* ref;
+        if (dynamic_cast<const UpperCaseString*>(&attr.getHandler())) {
             attr.set(new SValue<std::string>(Util::toUpper(val)));
-        } else if((attr.isBaseAllocated() == true) &&
-                  (ref = dynamic_cast<SValue<SRefAttr<std::string> >*>(&attr.getBase()))) {
-            const SRefAttr<std::string> &value = ref->evaluate();
+        } else if (
+                (attr.isBaseAllocated() == true)
+                && (ref = dynamic_cast<SValue<SRefAttr<std::string> >*>(&attr.getBase()))) {
+            const SRefAttr<std::string>& value = ref->evaluate();
             value.set(Util::toUpper(val));
         } else {
-            throw OpalException("Attributes::setUpperCaseString()", "Attribute \"" +
-                                attr.getName() + "\" is not an upper case string.");
+            throw OpalException(
+                    "Attributes::setUpperCaseString()",
+                    "Attribute \"" + attr.getName() + "\" is not an upper case string.");
         }
     }
 
-
     // ----------------------------------------------------------------------
     // String array value.
-    Attribute makeStringArray(const std::string &name, const std::string &help) {
+    Attribute makeStringArray(const std::string& name, const std::string& help) {
         return Attribute(new StringArray(name, help), nullptr);
     }
 
-
-    std::vector<std::string> getStringArray(const Attribute &attr) {
-        if(attr.isBaseAllocated()) {
-            AttributeBase *base = &attr.getBase();
-            if(dynamic_cast<StringArray *>(&attr.getHandler())
-                || dynamic_cast<UpperCaseStringArray *>(&attr.getHandler())) {
+    std::vector<std::string> getStringArray(const Attribute& attr) {
+        if (attr.isBaseAllocated()) {
+            AttributeBase* base = &attr.getBase();
+            if (dynamic_cast<StringArray*>(&attr.getHandler())
+                || dynamic_cast<UpperCaseStringArray*>(&attr.getHandler())) {
                 auto opal = OpalData::getInstance();
 
                 std::regex variableRE("\\$\\{(.*?)\\}");
                 std::smatch what;
 
-                std::vector<std::string> value = dynamic_cast<AValue<std::string>*>(base)->evaluate();
-                for (auto expr: value) {
+                std::vector<std::string> value =
+                        dynamic_cast<AValue<std::string>*>(base)->evaluate();
+                for (auto expr : value) {
                     std::string exprDeref;
                     std::string::const_iterator start = expr.begin();
-                    std::string::const_iterator end = expr.end();
+                    std::string::const_iterator end   = expr.end();
 
-                    while (std::regex_search(start, end, what, variableRE, std::regex_constants::match_default)) {
+                    while (std::regex_search(
+                            start, end, what, variableRE, std::regex_constants::match_default)) {
                         exprDeref += std::string(start, what[0].first);
-                        std::string variable = Util::toUpper(std::string(what[1].first, what[1].second));
+                        std::string variable =
+                                Util::toUpper(std::string(what[1].first, what[1].second));
 
-                        if (Object *obj = opal->find(variable)) {
+                        if (Object* obj = opal->find(variable)) {
                             std::ostringstream value;
 
-                            RealVariable *real = static_cast<RealVariable*>(obj);
+                            RealVariable* real = static_cast<RealVariable*>(obj);
                             real->printValue(value);
                             exprDeref += value.str();
                         } else {
@@ -512,140 +502,136 @@ namespace Attributes {
 
                 return value;
             } else {
-                throw OpalException("Attributes::getStringArray()", "Attribute \"" +
-                                    attr.getName() + "\" is not a string array.");
+                throw OpalException(
+                        "Attributes::getStringArray()",
+                        "Attribute \"" + attr.getName() + "\" is not a string array.");
             }
         } else {
             return std::vector<std::string>();
         }
     }
 
-
-    void setStringArray(Attribute &attr, const std::vector<std::string> &value) {
-        if(dynamic_cast<const StringArray *>(&attr.getHandler())) {
+    void setStringArray(Attribute& attr, const std::vector<std::string>& value) {
+        if (dynamic_cast<const StringArray*>(&attr.getHandler())) {
             // Strings are never expressions, so AValue will do here.
             attr.set(new AValue<std::string>(value));
         } else {
-            throw OpalException("Attributes::setStringArray()", "Attribute \"" +
-                                attr.getName() + "\" is not a string array.");
+            throw OpalException(
+                    "Attributes::setStringArray()",
+                    "Attribute \"" + attr.getName() + "\" is not a string array.");
         }
     }
 
     // ----------------------------------------------------------------------
     // Upper case string array value.
-    Attribute makeUpperCaseStringArray(const std::string &name, const std::string &help) {
+    Attribute makeUpperCaseStringArray(const std::string& name, const std::string& help) {
         return Attribute(new UpperCaseStringArray(name, help), nullptr);
     }
 
-    void setUpperCaseStringArray(Attribute &attr, const std::vector<std::string> &value) {
-        if(dynamic_cast<const UpperCaseStringArray *>(&attr.getHandler())) {
+    void setUpperCaseStringArray(Attribute& attr, const std::vector<std::string>& value) {
+        if (dynamic_cast<const UpperCaseStringArray*>(&attr.getHandler())) {
             // Strings are never expressions, so AValue will do here.
             std::vector<std::string> uppercase(value.size());
-            std::transform(value.begin(), value.end(), uppercase.begin(),
-                           [](std::string val) -> std::string { return Util::toUpper(val); });
+            std::transform(
+                    value.begin(), value.end(), uppercase.begin(),
+                    [](std::string val) -> std::string {
+                        return Util::toUpper(val);
+                    });
             attr.set(new AValue<std::string>(uppercase));
         } else {
-            throw OpalException("Attributes::setUpperCaseStringArray()", "Attribute \"" +
-                                attr.getName() + "\" is not an upper case string array.");
+            throw OpalException(
+                    "Attributes::setUpperCaseStringArray()",
+                    "Attribute \"" + attr.getName() + "\" is not an upper case string array.");
         }
     }
-
 
     // ----------------------------------------------------------------------
     // Table row reference value.
 
-    Attribute makeTableRow(const std::string &name, const std::string &help) {
+    Attribute makeTableRow(const std::string& name, const std::string& help) {
         return Attribute(new TableRow(name, help), nullptr);
     }
 
-
-    TableRowRep getTableRow(const Attribute &attr) {
-        if(attr.isBaseAllocated()) {
-            if(SValue<TableRowRep> *row =
-                   dynamic_cast<SValue<TableRowRep> *>(&attr.getBase())) {
+    TableRowRep getTableRow(const Attribute& attr) {
+        if (attr.isBaseAllocated()) {
+            if (SValue<TableRowRep>* row = dynamic_cast<SValue<TableRowRep>*>(&attr.getBase())) {
                 return row->evaluate();
             } else {
-                throw OpalException("Attributes::getTableRow()", "Attribute \"" +
-                                    attr.getName() +
-                                    "\" is not a table row reference.");
+                throw OpalException(
+                        "Attributes::getTableRow()",
+                        "Attribute \"" + attr.getName() + "\" is not a table row reference.");
             }
         } else {
             return TableRowRep();
         }
     }
 
-
-    void setTableRow(Attribute &attr, const TableRowRep &rep) {
-        if(dynamic_cast<const TableRow *>(&attr.getHandler())) {
+    void setTableRow(Attribute& attr, const TableRowRep& rep) {
+        if (dynamic_cast<const TableRow*>(&attr.getHandler())) {
             attr.set(new SValue<TableRowRep>(rep));
         } else {
-            throw OpalException("Attributes::setTableRow()", "Attribute \"" +
-                                attr.getName() +
-                                "\" is not a table row reference.");
+            throw OpalException(
+                    "Attributes::setTableRow()",
+                    "Attribute \"" + attr.getName() + "\" is not a table row reference.");
         }
     }
-
 
     // ----------------------------------------------------------------------
     // Token list value.
 
-    Attribute makeTokenList(const std::string &name, const std::string &help) {
+    Attribute makeTokenList(const std::string& name, const std::string& help) {
         return Attribute(new TokenList(name, help), nullptr);
     }
 
-
-    std::list<Token> getTokenList(const Attribute &attr) {
-        if(attr.isBaseAllocated()) {
-            AttributeBase *base = &attr.getBase();
-            if(dynamic_cast<TokenList *>(&attr.getHandler())) {
-                return dynamic_cast<SValue<std::list<Token> > *>(base)->evaluate();
+    std::list<Token> getTokenList(const Attribute& attr) {
+        if (attr.isBaseAllocated()) {
+            AttributeBase* base = &attr.getBase();
+            if (dynamic_cast<TokenList*>(&attr.getHandler())) {
+                return dynamic_cast<SValue<std::list<Token> >*>(base)->evaluate();
             } else {
-                throw OpalException("Attributes::getTokenList()", "Attribute \"" +
-                                    attr.getName() + "\" is not a token list.");
+                throw OpalException(
+                        "Attributes::getTokenList()",
+                        "Attribute \"" + attr.getName() + "\" is not a token list.");
             }
         } else {
             return std::list<Token>();
         }
     }
 
-
-    void setTokenList(Attribute &attr, const std::list<Token> &val) {
-        if(dynamic_cast<const TokenList *>(&attr.getHandler())) {
+    void setTokenList(Attribute& attr, const std::list<Token>& val) {
+        if (dynamic_cast<const TokenList*>(&attr.getHandler())) {
             attr.set(new SValue<std::list<Token> >(val));
         } else {
-            throw OpalException("Attributes::setTokenList()", "Attribute \"" + attr.getName() +
-                                "\" is not a token list.");
+            throw OpalException(
+                    "Attributes::setTokenList()",
+                    "Attribute \"" + attr.getName() + "\" is not a token list.");
         }
     }
-
 
     // ----------------------------------------------------------------------
     // Token list array value.
 
-    Attribute makeTokenListArray(const std::string &name, const std::string &help) {
+    Attribute makeTokenListArray(const std::string& name, const std::string& help) {
         return Attribute(new TokenListArray(name, help), nullptr);
     }
 
-
-    std::vector<std::list<Token> > getTokenListArray(const Attribute &attr) {
-        if(attr.isBaseAllocated()) {
-            AttributeBase *base = &attr.getBase();
-            if(dynamic_cast<TokenListArray *>(&attr.getHandler())) {
-                return dynamic_cast<AValue<std::list<Token> > *>(base)->evaluate();
+    std::vector<std::list<Token> > getTokenListArray(const Attribute& attr) {
+        if (attr.isBaseAllocated()) {
+            AttributeBase* base = &attr.getBase();
+            if (dynamic_cast<TokenListArray*>(&attr.getHandler())) {
+                return dynamic_cast<AValue<std::list<Token> >*>(base)->evaluate();
             } else {
-                throw OpalException("Attributes::getTokenListArray()", "Attribute \"" +
-                                    attr.getName() + "\" is not a token list array.");
+                throw OpalException(
+                        "Attributes::getTokenListArray()",
+                        "Attribute \"" + attr.getName() + "\" is not a token list array.");
             }
         } else {
             return std::vector<std::list<Token> >();
         }
     }
 
-
-    void
-    setTokenListArray(Attribute &attr,
-                      const std::vector<std::list<Token> > &value) {
+    void setTokenListArray(Attribute& attr, const std::vector<std::list<Token> >& value) {
         // Token lists are never expressions, so AValue will do here.
         attr.set(new AValue<std::list<Token> >(value));
     }
-}
+}  // namespace Attributes

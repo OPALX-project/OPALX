@@ -138,9 +138,7 @@ public:
         }
     }
     /* For use only by unit tests, clear the set of dump objects */
-    static void clearDumps() {
-        dumpsSet_m.clear();
-    }
+    static void clearDumps() { dumpsSet_m.clear(); }
 
 private:
     enum class CoordinateSystem : unsigned short { CARTESIAN, CYLINDRICAL };

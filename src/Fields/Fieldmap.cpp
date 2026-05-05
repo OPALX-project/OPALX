@@ -57,18 +57,18 @@ namespace fs = std::filesystem;
 
 /**
  * @brief Factory method to obtain a Fieldmap instance.
- * 
+ *
  * Checks the FieldmapDictionary cache to see if the file is already loaded.
- * If not, it calls readHeader() to determine the map type, instantiates the 
+ * If not, it calls readHeader() to determine the map type, instantiates the
  * corresponding subclass, and adds it to the dictionary.
- * 
+ *
  * @param Filename Absolute path to the fieldmap file.
  * @param fast Not implemented. Previously attempted to load a "fast" version.
  * @return Fieldmap* Pointer to the managed fieldmap instance.
  */
 Fieldmap* Fieldmap::getFieldmap(std::string Filename, bool /*fast*/) {
     std::map<std::string, FieldmapDescription>::iterator position =
-        FieldmapDictionary.find(Filename);
+            FieldmapDictionary.find(Filename);
     /// Found matching entry?
     if (position != FieldmapDictionary.end()) {
         (*position).second.RefCounter++;
@@ -88,16 +88,19 @@ Fieldmap* Fieldmap::getFieldmap(std::string Filename, bool /*fast*/) {
          */
         switch (type) {
             case T2DMagnetoStatic:
-                position = FieldmapDictionary.insert(std::make_pair(
-                    Filename,
-                    FieldmapDescription(T2DMagnetoStatic, new FM2DMagnetoStatic(Filename))));
+                position = FieldmapDictionary.insert(
+                        std::make_pair(
+                                Filename,
+                                FieldmapDescription(
+                                        T2DMagnetoStatic, new FM2DMagnetoStatic(Filename))));
                 return (*position.first).second.Map;
                 break;
- 
-            case T2DDynamic: 
-                position = FieldmapDictionary.insert(std::make_pair(
-                    Filename,
-                    FieldmapDescription(T2DDynamic, new FM2DDynamic(Filename))));
+
+            case T2DDynamic:
+                position = FieldmapDictionary.insert(
+                        std::make_pair(
+                                Filename,
+                                FieldmapDescription(T2DDynamic, new FM2DDynamic(Filename))));
                 return (*position.first).second.Map;
                 break;
 
@@ -107,17 +110,18 @@ Fieldmap* Fieldmap::getFieldmap(std::string Filename, bool /*fast*/) {
                 //         Filename,
                 //         FieldmapDescription(TAstraDynamic, new Astra1DDynamic_fast(Filename))));
                 // } else {
-                position = FieldmapDictionary.insert(std::make_pair(
-                    Filename,
-                    FieldmapDescription(TAstraDynamic, new Astra1DDynamic(Filename))));
-                // }   
+                position = FieldmapDictionary.insert(
+                        std::make_pair(
+                                Filename,
+                                FieldmapDescription(TAstraDynamic, new Astra1DDynamic(Filename))));
+                // }
                 return (*position.first).second.Map;
                 break;
 
             default:
                 throw GeneralOpalException(
-                    "Fieldmap::getFieldmap()",
-                    "Couldn't determine type of fieldmap in file \"" + Filename + "\"");
+                        "Fieldmap::getFieldmap()",
+                        "Couldn't determine type of fieldmap in file \"" + Filename + "\"");
         }
     }
 }
@@ -131,9 +135,7 @@ std::vector<std::string> Fieldmap::getListFieldmapNames() {
     return name_list;
 }
 
-void Fieldmap::deleteFieldmap(std::string Filename) {
-    freeMap(Filename);
-}
+void Fieldmap::deleteFieldmap(std::string Filename) { freeMap(Filename); }
 
 void Fieldmap::clearDictionary() {
     std::map<std::string, FieldmapDescription>::iterator it = FieldmapDictionary.begin();
@@ -146,7 +148,7 @@ void Fieldmap::clearDictionary() {
 
 /**
  * @brief Determines the fieldmap type
- * 
+ *
  * @return MapType
  */
 MapType Fieldmap::readHeader(std::string Filename) {
@@ -155,15 +157,14 @@ MapType Fieldmap::readHeader(std::string Filename) {
     int lines_read_m = 0;
 
     // Check for default map(s).
-    if (Filename == "1DPROFILE1-DEFAULT")
-        return T1DProfile1;
+    if (Filename == "1DPROFILE1-DEFAULT") return T1DProfile1;
 
     if (Filename.empty())
         throw GeneralOpalException("Fieldmap::readHeader()", "No field map file specified");
 
     if (!fs::exists(Filename))
         throw GeneralOpalException(
-            "Fieldmap::readHeader()", "File '" + Filename + "' doesn't exist");
+                "Fieldmap::readHeader()", "File '" + Filename + "' doesn't exist");
 
     std::ifstream File(Filename.c_str());
     if (!File.good()) {
@@ -176,8 +177,7 @@ MapType Fieldmap::readHeader(std::string Filename) {
 
     interpreter.read(magicnumber, 4);
 
-    if (std::strcmp(magicnumber, "3DDy") == 0)
-        return T3DDynamic;
+    if (std::strcmp(magicnumber, "3DDy") == 0) return T3DDynamic;
 
     if (std::strcmp(magicnumber, "3DMa") == 0) {
         char tmpString[21] = "                    ";
@@ -189,8 +189,7 @@ MapType Fieldmap::readHeader(std::string Filename) {
             return T3DMagnetoStatic;
     }
 
-    if (std::strcmp(magicnumber, "3DEl") == 0)
-        return T3DElectroStatic;
+    if (std::strcmp(magicnumber, "3DEl") == 0) return T3DElectroStatic;
 
     if (std::strcmp(magicnumber, "2DDy") == 0) {
         // char tmpString[14] = "             ";
@@ -210,11 +209,9 @@ MapType Fieldmap::readHeader(std::string Filename) {
         return T2DElectroStatic;
     }
 
-    if (std::strcmp(magicnumber, "1DDy") == 0)
-        return T1DDynamic;
+    if (std::strcmp(magicnumber, "1DDy") == 0) return T1DDynamic;
 
-    if (std::strcmp(magicnumber, "1DMa") == 0)
-        return T1DMagnetoStatic;
+    if (std::strcmp(magicnumber, "1DMa") == 0) return T1DMagnetoStatic;
 
     if (std::strcmp(magicnumber, "1DPr") == 0) {
         // char tmpString[7] = "      ";
@@ -225,8 +222,7 @@ MapType Fieldmap::readHeader(std::string Filename) {
         //     return T1DProfile2;
     }
 
-    if (std::strcmp(magicnumber, "1DEl") == 0)
-        return T1DElectroStatic;
+    if (std::strcmp(magicnumber, "1DEl") == 0) return T1DElectroStatic;
 
     if (std::strcmp(magicnumber, "\211HDF") == 0) {
         h5_err_t h5err [[maybe_unused]] = 0;
@@ -249,7 +245,7 @@ MapType Fieldmap::readHeader(std::string Filename) {
 
         for (h5_ssize_t i = 0; i < num_fields; ++i) {
             h5err = H5BlockGetFieldInfo(
-                file, (h5_size_t)i, name, len_name, nullptr, nullptr, nullptr, nullptr);
+                    file, (h5_size_t)i, name, len_name, nullptr, nullptr, nullptr, nullptr);
             PAssert(h5err != H5_ERR);
             // using field name "Bfield" and "Hfield" to distinguish the type
             if (std::strcmp(name, "Bfield") == 0) {
@@ -262,8 +258,7 @@ MapType Fieldmap::readHeader(std::string Filename) {
         }
         h5err = H5CloseFile(file);
         PAssert(h5err != H5_ERR);
-        if (maptype != UNKNOWN)
-            return maptype;
+        if (maptype != UNKNOWN) return maptype;
     }
 
     if (std::strcmp(magicnumber, "Astr") == 0) {
@@ -285,7 +280,7 @@ MapType Fieldmap::readHeader(std::string Filename) {
 
 void Fieldmap::readMap(std::string Filename) {
     std::map<std::string, FieldmapDescription>::iterator position =
-        FieldmapDictionary.find(Filename);
+            FieldmapDictionary.find(Filename);
     if (position != FieldmapDictionary.end())
         if (!(*position).second.read) {
             (*position).second.Map->readMap();
@@ -295,7 +290,7 @@ void Fieldmap::readMap(std::string Filename) {
 
 void Fieldmap::freeMap(std::string Filename) {
     std::map<std::string, FieldmapDescription>::iterator position =
-        FieldmapDictionary.find(Filename);
+            FieldmapDictionary.find(Filename);
     /*
       FIXME: find( ) make problem, crashes
     */
@@ -313,9 +308,9 @@ void Fieldmap::freeMap(std::string Filename) {
 }
 
 void Fieldmap::checkMap(
-    unsigned int accuracy, std::pair<double, double> fieldDimensions, double deltaZ,
-    const std::vector<double>& fourierCoefficients, gsl_spline* splineCoefficients,
-    gsl_interp_accel* splineAccelerator) {
+        unsigned int accuracy, std::pair<double, double> fieldDimensions, double deltaZ,
+        const std::vector<double>& fourierCoefficients, gsl_spline* splineCoefficients,
+        gsl_interp_accel* splineAccelerator) {
     double length             = fieldDimensions.second - fieldDimensions.first;
     unsigned int sizeSampling = std::round(length / deltaZ);
     std::vector<double> zSampling(sizeSampling);
@@ -324,13 +319,14 @@ void Fieldmap::checkMap(
         zSampling[i] = zSampling[i - 1] + deltaZ;
     }
     checkMap(
-        accuracy, length, zSampling, fourierCoefficients, splineCoefficients, splineAccelerator);
+            accuracy, length, zSampling, fourierCoefficients, splineCoefficients,
+            splineAccelerator);
 }
 
 void Fieldmap::checkMap(
-    unsigned int accuracy, double length, const std::vector<double>& zSampling,
-    const std::vector<double>& fourierCoefficients, gsl_spline* splineCoefficients,
-    gsl_interp_accel* splineAccelerator) {
+        unsigned int accuracy, double length, const std::vector<double>& zSampling,
+        const std::vector<double>& fourierCoefficients, gsl_spline* splineCoefficients,
+        gsl_interp_accel* splineAccelerator) {
     double error     = 0.0;
     double maxDiff   = 0.0;
     double ezMax     = 0.0;
@@ -343,8 +339,8 @@ void Fieldmap::checkMap(
     std::ofstream out;
     if (ippl::Comm->rank() == 0 && !opal->isOptimizerRun()) {
         std::string fname = Util::combineFilePath(
-            {opal->getAuxiliaryOutputDirectory(),
-             Filename_m.substr(lastSlash, lastDot) + ".check"});
+                {opal->getAuxiliaryOutputDirectory(),
+                 Filename_m.substr(lastSlash, lastDot) + ".check"});
         out.open(fname);
         out << "# z  original reproduced\n";
     }
@@ -359,7 +355,7 @@ void Fieldmap::checkMap(
             double sinkzl = std::sin(kz * l);
 
             onAxisFieldCheck +=
-                (fourierCoefficients[n] * coskzl - fourierCoefficients[n + 1] * sinkzl);
+                    (fourierCoefficients[n] * coskzl - fourierCoefficients[n + 1] * sinkzl);
         }
         double ez         = gsl_spline_eval(splineCoefficients, *it, splineAccelerator);
         double difference = std::abs(ez - onAxisFieldCheck);
@@ -380,8 +376,9 @@ void Fieldmap::checkMap(
         lowResolutionWarning(std::sqrt(error / ezSquare), maxDiff / ezMax);
 
         throw GeneralOpalException(
-            "Fieldmap::checkMap",
-            "Field map can't be reproduced properly with the given number of fourier components");
+                "Fieldmap::checkMap",
+                "Field map can't be reproduced properly with the given number of fourier "
+                "components");
     }
     if (std::sqrt(error / ezSquare) > 1e-2 || maxDiff > 1e-2 * ezMax) {
         lowResolutionWarning(std::sqrt(error / ezSquare), maxDiff / ezMax);
@@ -389,9 +386,10 @@ void Fieldmap::checkMap(
 }
 
 void Fieldmap::setEdgeConstants(
-    const double& /*bendAngle*/, const double& /*entranceAngle*/, const double& /*exitAngle*/){};
+        const double& /*bendAngle*/, const double& /*entranceAngle*/, const double& /*exitAngle*/) {
+};
 
-void Fieldmap::setFieldLength(const double&){};
+void Fieldmap::setFieldLength(const double&) {};
 
 void Fieldmap::getLine(std::ifstream& in, int& lines_read, std::string& buffer) {
     size_t firstof = 0;
@@ -432,8 +430,8 @@ bool Fieldmap::interpreteEOF(std::ifstream& in) {
 }
 
 void Fieldmap::interpretWarning(
-    const std::ios_base::iostate& state, const bool& read_all, const std::string& expecting,
-    const std::string& found) {
+        const std::ios_base::iostate& state, const bool& read_all, const std::string& expecting,
+        const std::string& found) {
     std::stringstream errormsg;
     errormsg << "THERE SEEMS TO BE SOMETHING WRONG WITH YOUR FIELD MAP '" << Filename_m << "'.\n";
     if (!read_all) {
@@ -508,10 +506,10 @@ void Fieldmap::lowResolutionWarning(double squareError, double maxError) {
 
 std::string Fieldmap::typeset_msg(const std::string& msg, const std::string& title) {
     static std::string frame(
-        "* ******************************************************************************\n");
+            "* ******************************************************************************\n");
     static unsigned int frame_width = frame.length() - 5;
     static std::string closure(
-        "                                                                               *\n");
+            "                                                                               *\n");
 
     std::string return_string("\n" + frame);
 
@@ -567,40 +565,32 @@ std::string Fieldmap::typeset_msg(const std::string& msg, const std::string& tit
     return return_string;
 }
 
-void Fieldmap::getOnaxisEz(std::vector<std::pair<double, double>>& /*onaxis*/) {
-}
+void Fieldmap::getOnaxisEz(std::vector<std::pair<double, double>>& /*onaxis*/) {}
 
 void Fieldmap::get1DProfile1EngeCoeffs(
-    std::vector<double>& /*engeCoeffsEntry*/, std::vector<double>& /*engeCoeffsExit*/) {
-}
+        std::vector<double>& /*engeCoeffsEntry*/, std::vector<double>& /*engeCoeffsExit*/) {}
 
 void Fieldmap::get1DProfile1EntranceParam(
-    double& /*entranceParameter1*/, double& /*entranceParameter2*/,
-    double& /*entranceParameter3*/) {
-}
+        double& /*entranceParameter1*/, double& /*entranceParameter2*/,
+        double& /*entranceParameter3*/) {}
 
 void Fieldmap::get1DProfile1ExitParam(
-    double& /*exitParameter1*/, double& /*exitParameter2*/, double& /*exitParameter3*/) {
-}
+        double& /*exitParameter1*/, double& /*exitParameter2*/, double& /*exitParameter3*/) {}
 
-double Fieldmap::getFieldGap() {
-    return 0.0;
-}
+double Fieldmap::getFieldGap() { return 0.0; }
 
-void Fieldmap::setFieldGap(double /*gap*/) {
-}
+void Fieldmap::setFieldGap(double /*gap*/) {}
 
 void Fieldmap::write3DField(
-    unsigned int nx, unsigned int ny, unsigned int nz, const std::pair<double, double>& xrange,
-    const std::pair<double, double>& yrange, const std::pair<double, double>& zrange,
-    const std::vector<Vector_t<double, 3>>& ef, const std::vector<Vector_t<double, 3>>& bf) {
+        unsigned int nx, unsigned int ny, unsigned int nz, const std::pair<double, double>& xrange,
+        const std::pair<double, double>& yrange, const std::pair<double, double>& zrange,
+        const std::vector<Vector_t<double, 3>>& ef, const std::vector<Vector_t<double, 3>>& bf) {
     const size_t numpoints = nx * ny * nz;
-    if (ippl::Comm->rank() != 0 || (ef.size() != numpoints && bf.size() != numpoints))
-        return;
+    if (ippl::Comm->rank() != 0 || (ef.size() != numpoints && bf.size() != numpoints)) return;
 
     std::filesystem::path p(Filename_m);
     std::string fname = Util::combineFilePath(
-        {OpalData::getInstance()->getAuxiliaryOutputDirectory(), p.stem().string() + ".vtk"});
+            {OpalData::getInstance()->getAuxiliaryOutputDirectory(), p.stem().string() + ".vtk"});
     std::ofstream of;
     of.open(fname);
     PAssert(of.is_open());
@@ -664,7 +654,7 @@ REGISTER_PARSE_TYPE(double);
 REGISTER_PARSE_TYPE(std::string);
 
 std::string Fieldmap::alpha_numeric(
-    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.-+\211");
+        "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.-+\211");
 std::map<std::string, Fieldmap::FieldmapDescription> Fieldmap::FieldmapDictionary =
-    std::map<std::string, Fieldmap::FieldmapDescription>();
+        std::map<std::string, Fieldmap::FieldmapDescription>();
 char Fieldmap::buffer_m[READ_BUFFER_LENGTH];
