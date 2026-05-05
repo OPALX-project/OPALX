@@ -19,58 +19,42 @@
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/DriftRep.h"
 
-OpalDrift::OpalDrift():
-    OpalElement(SIZE, "DRIFT",
-                "The \"DRIFT\" element defines a drift space.")
-{
-    itsAttr[GEOMETRY] = Attributes::makeString
-                        ("GEOMETRY", "BoundaryGeometry for Drifts");
+OpalDrift::OpalDrift()
+    : OpalElement(SIZE, "DRIFT", "The \"DRIFT\" element defines a drift space.") {
+    itsAttr[GEOMETRY] = Attributes::makeString("GEOMETRY", "BoundaryGeometry for Drifts");
 
-    itsAttr[NSLICES]  = Attributes::makeReal
-                        ("NSLICES", "The number of slices/ steps for this element in Map Tracking", 1);
+    itsAttr[NSLICES] = Attributes::makeReal(
+            "NSLICES", "The number of slices/ steps for this element in Map Tracking", 1);
 
     registerOwnership();
 
     setElement(new DriftRep("DRIFT"));
 }
 
-
-OpalDrift::OpalDrift(const std::string& name, OpalDrift* parent):
-    OpalElement(name, parent)
-{
+OpalDrift::OpalDrift(const std::string& name, OpalDrift* parent) : OpalElement(name, parent) {
     setElement(new DriftRep(name));
 }
 
+OpalDrift::~OpalDrift() {}
 
-OpalDrift::~OpalDrift() {
-}
+OpalDrift* OpalDrift::clone(const std::string& name) { return new OpalDrift(name, this); }
 
-
-OpalDrift* OpalDrift::clone(const std::string& name) {
-    return new OpalDrift(name, this);
-}
-
-
-bool OpalDrift::isDrift() const {
-    return true;
-}
-
+bool OpalDrift::isDrift() const { return true; }
 
 void OpalDrift::update() {
     OpalElement::update();
 
     //    DriftRep* drf = static_cast<DriftRep*>(getElement());
 
-    //drf->setElementLength(Attributes::getReal(itsAttr[LENGTH]));
+    // drf->setElementLength(Attributes::getReal(itsAttr[LENGTH]));
 
     auto drf = getElement();
     if (drf) {
-        auto  L = Attributes::getReal(itsAttr[LENGTH]);
+        auto L = Attributes::getReal(itsAttr[LENGTH]);
         drf->setElementLength(L);
-    }
-    else
+    } else
         std::cout << "error drf->setElementLength " << std::endl;
-    
+
     // Transmit "unknown" attributes.
     OpalElement::updateUnknown(drf);
 }

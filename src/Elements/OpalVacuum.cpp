@@ -24,52 +24,40 @@
 #include "BeamlineCore/VacuumRep.h"
 #include "Structure/ParticleMatterInteraction.h"
 
+OpalVacuum::OpalVacuum()
+    : OpalElement(
+              SIZE, "VACUUM",
+              "The \"VACUUM\" element defines the vacuum conditions "
+              "for beam stripping interactions."),
+      parmatint_m(nullptr) {
+    itsAttr[GAS] = Attributes::makePredefinedString(
+            "GAS", "The composition of residual gas", {"AIR", "H2"});
 
-OpalVacuum::OpalVacuum():
-    OpalElement(SIZE, "VACUUM",
-                "The \"VACUUM\" element defines the vacuum conditions "
-                "for beam stripping interactions."),
-    parmatint_m(nullptr) {
-    itsAttr[GAS] = Attributes::makePredefinedString
-         ("GAS", "The composition of residual gas", {"AIR", "H2"});
+    itsAttr[PRESSURE] = Attributes::makeReal("PRESSURE", " Pressure in the accelerator, [mbar]");
 
-    itsAttr[PRESSURE] = Attributes::makeReal
-        ("PRESSURE", " Pressure in the accelerator, [mbar]");
+    itsAttr[PMAPFN] = Attributes::makeString("PMAPFN", "Filename for the Pressure fieldmap");
 
-    itsAttr[PMAPFN] = Attributes::makeString
-        ("PMAPFN", "Filename for the Pressure fieldmap");
+    itsAttr[PSCALE] = Attributes::makeReal("PSCALE", "Scale factor for the P-field", 1.0);
 
-    itsAttr[PSCALE] = Attributes::makeReal
-        ("PSCALE", "Scale factor for the P-field", 1.0);
+    itsAttr[TEMPERATURE] =
+            Attributes::makeReal("TEMPERATURE", " Temperature of the accelerator, [K]");
 
-    itsAttr[TEMPERATURE] = Attributes::makeReal
-        ("TEMPERATURE", " Temperature of the accelerator, [K]");
-
-    itsAttr[STOP] = Attributes::makeBool
-        ("STOP", "Option whether stop tracking after beam stripping. Default: true", true);
+    itsAttr[STOP] = Attributes::makeBool(
+            "STOP", "Option whether stop tracking after beam stripping. Default: true", true);
 
     registerOwnership();
 
     setElement(new VacuumRep("VACUUM"));
 }
 
-
-OpalVacuum::OpalVacuum(const std::string& name, OpalVacuum* parent):
-    OpalElement(name, parent),
-    parmatint_m(nullptr) {
+OpalVacuum::OpalVacuum(const std::string& name, OpalVacuum* parent)
+    : OpalElement(name, parent), parmatint_m(nullptr) {
     setElement(new VacuumRep(name));
 }
 
+OpalVacuum::~OpalVacuum() { delete parmatint_m; }
 
-OpalVacuum::~OpalVacuum() {
-    delete parmatint_m;
-}
-
-
-OpalVacuum* OpalVacuum::clone(const std::string& name) {
-    return new OpalVacuum(name, this);
-}
-
+OpalVacuum* OpalVacuum::clone(const std::string& name) { return new OpalVacuum(name, this); }
 
 void OpalVacuum::update() {
     OpalElement::update();
@@ -82,7 +70,7 @@ void OpalVacuum::update() {
     std::string pmap   = Attributes::getString(itsAttr[PMAPFN]);
     double pscale      = Attributes::getReal(itsAttr[PSCALE]);
     double temperature = Attributes::getReal(itsAttr[TEMPERATURE]);
-    bool   stop        = Attributes::getBool(itsAttr[STOP]);
+    bool stop          = Attributes::getBool(itsAttr[STOP]);
 
     vac->setElementLength(length);
     vac->setResidualGas(gas);

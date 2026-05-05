@@ -21,37 +21,25 @@
 #include "BeamlineCore/MonitorRep.h"
 #include "Utilities/Util.h"
 
-
-OpalMonitor::OpalMonitor():
-    OpalElement(COMMON, "MONITOR",
-                "The \"MONITOR\" element defines a monitor for both planes.") {
-
+OpalMonitor::OpalMonitor()
+    : OpalElement(COMMON, "MONITOR", "The \"MONITOR\" element defines a monitor for both planes.") {
     registerOwnership();
 
     setElement(new MonitorRep("MONITOR"));
 }
 
-
-OpalMonitor::OpalMonitor(const std::string& name, OpalMonitor* parent):
-    OpalElement(name, parent) {
+OpalMonitor::OpalMonitor(const std::string& name, OpalMonitor* parent) : OpalElement(name, parent) {
     setElement(new MonitorRep(name));
 }
 
+OpalMonitor::~OpalMonitor() {}
 
-OpalMonitor::~OpalMonitor()
-{}
-
-
-OpalMonitor* OpalMonitor::clone(const std::string& name) {
-    return new OpalMonitor(name, this);
-}
-
+OpalMonitor* OpalMonitor::clone(const std::string& name) { return new OpalMonitor(name, this); }
 
 void OpalMonitor::update() {
     OpalElement::update();
 
-    MonitorRep* mon =
-        dynamic_cast<MonitorRep*>(getElement());
+    MonitorRep* mon = dynamic_cast<MonitorRep*>(getElement());
 
     double length = std::max(0.01, Attributes::getReal(itsAttr[LENGTH]));
     mon->setElementLength(length);

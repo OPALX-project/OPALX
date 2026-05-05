@@ -25,17 +25,14 @@
 
 #include "Elements/OpalElement.h"
 
-
-class OpalQuadrupole: public OpalElement {
-
+class OpalQuadrupole : public OpalElement {
 public:
-
     /// The attributes of class OpalQuadrupole.
     enum {
-        K1 = COMMON,   // Normalised quadrupole strength in m^(-2).
-        DK1,           // Normalised quadrupole strength error in m^(-2).
-        K1S,           // Normalised skew quadrupole strength in m^(-2).
-        DK1S,          // Normalised skew quadrupole strength error in m^(-2).
+        K1 = COMMON,  // Normalised quadrupole strength in m^(-2).
+        DK1,          // Normalised quadrupole strength error in m^(-2).
+        K1S,          // Normalised skew quadrupole strength in m^(-2).
+        DK1S,         // Normalised skew quadrupole strength error in m^(-2).
         SIZE
     };
 
@@ -45,22 +42,21 @@ public:
     virtual ~OpalQuadrupole();
 
     /// Make clone.
-    virtual OpalQuadrupole *clone(const std::string &name);
+    virtual OpalQuadrupole* clone(const std::string& name);
 
     /// Print the object.
-    virtual void print(std::ostream &) const;
+    virtual void print(std::ostream&) const;
 
     /// Update the embedded OPALX multipole.
     virtual void update();
 
 private:
-
     // Not implemented.
-    OpalQuadrupole(const OpalQuadrupole &);
-    void operator=(const OpalQuadrupole &);
+    OpalQuadrupole(const OpalQuadrupole&);
+    void operator=(const OpalQuadrupole&);
 
     // Clone constructor.
-    OpalQuadrupole(const std::string &name, OpalQuadrupole *parent);
+    OpalQuadrupole(const std::string& name, OpalQuadrupole* parent);
 };
 
-#endif // OPAL_OpalQuadrupole_HH
+#endif  // OPAL_OpalQuadrupole_HH

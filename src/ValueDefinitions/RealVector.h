@@ -20,11 +20,8 @@
 
 #include "AbstractObjects/ValueDefinition.h"
 
-
-class RealVector: public ValueDefinition {
-
+class RealVector : public ValueDefinition {
 public:
-
     /// Exemplar constructor.
     RealVector();
 
@@ -32,28 +29,27 @@ public:
 
     /// Test for allowed replacement.
     //  True, if [b]rhs[/b] is a real vector.
-    virtual bool canReplaceBy(Object *rhs);
+    virtual bool canReplaceBy(Object* rhs);
 
     /// Make clone.
-    virtual RealVector *clone(const std::string &name);
+    virtual RealVector* clone(const std::string& name);
 
     /// Print the vector.
-    virtual void print(std::ostream &) const;
+    virtual void print(std::ostream&) const;
 
     /// Print its value
-    virtual void printValue(std::ostream &os) const;
+    virtual void printValue(std::ostream& os) const;
 
     /// Return indexed value.
     virtual double getRealComponent(int) const;
 
 private:
-
     // Not implemented.
-    RealVector(const RealVector &);
-    void operator=(const RealVector &);
+    RealVector(const RealVector&);
+    void operator=(const RealVector&);
 
     // Clone constructor.
-    RealVector(const std::string &name, RealVector *parent);
+    RealVector(const std::string& name, RealVector* parent);
 };
 
-#endif // OPAL_RealVector_HH
+#endif  // OPAL_RealVector_HH

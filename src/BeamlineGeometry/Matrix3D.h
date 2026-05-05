@@ -22,7 +22,6 @@
 
 class Vector3D;
 
-
 // Class Matrix3D
 // ------------------------------------------------------------------------
 /// 3-dimensional matrix.
@@ -31,45 +30,43 @@ class Vector3D;
 //  are not implemented.
 
 class Matrix3D {
-
 public:
-
     /// Default constructor.
     //  Constructs identity.
     Matrix3D();
 
     /// Constructor.
     //  Use the three vectors (a,b,c) as column vectors.
-    Matrix3D(const Vector3D &a, const Vector3D &b, const Vector3D &c);
+    Matrix3D(const Vector3D& a, const Vector3D& b, const Vector3D& c);
 
     /// Constructor.
     //  Use the elements as matrix elements by rows.
-    Matrix3D(double x11, double x12, double x13,
-             double x21, double x22, double x23,
-             double x31, double x32, double x33);
+    Matrix3D(
+            double x11, double x12, double x13, double x21, double x22, double x23, double x31,
+            double x32, double x33);
 
-    bool operator==(const Matrix3D &) const;
-    bool operator!=(const Matrix3D &) const;
+    bool operator==(const Matrix3D&) const;
+    bool operator!=(const Matrix3D&) const;
 
     /// Get element.
     //  Return reference to matrix element (i,k).
-    double &operator()(int i, int k)      ;
+    double& operator()(int i, int k);
 
     /// Get element.
     //  Return value of matrix element (i,k).
     double operator()(int i, int k) const;
 
     /// Add and assign.
-    Matrix3D &operator+=(const Matrix3D &rhs);
+    Matrix3D& operator+=(const Matrix3D& rhs);
 
     /// Subtract and assign.
-    Matrix3D &operator-=(const Matrix3D &rhs);
+    Matrix3D& operator-=(const Matrix3D& rhs);
 
     /// Multiply and assign.
-    Matrix3D &operator*=(const Matrix3D &rhs);
+    Matrix3D& operator*=(const Matrix3D& rhs);
 
     /// Multiply and assign.
-    Matrix3D &operator*=(double factor)      ;
+    Matrix3D& operator*=(double factor);
 
     /// Make identity.
     static Matrix3D Identity();
@@ -85,27 +82,24 @@ public:
     Matrix3D transpose() const;
 
 private:
-
     // matrix elements
     double m[3][3];
 };
-
 
 // Global operators.
 // ------------------------------------------------------------------------
 
 /// Add.
-Matrix3D operator+(const Matrix3D &lhs, const Matrix3D &rhs);
+Matrix3D operator+(const Matrix3D& lhs, const Matrix3D& rhs);
 
 /// Subtract.
-Matrix3D operator-(const Matrix3D &lhs, const Matrix3D &rhs);
+Matrix3D operator-(const Matrix3D& lhs, const Matrix3D& rhs);
 
 /// Multiply.
-Matrix3D operator*(const Matrix3D &lhs, const Matrix3D &rhs);
+Matrix3D operator*(const Matrix3D& lhs, const Matrix3D& rhs);
 
 /// Multiply.
-Vector3D operator*(const Matrix3D &lhs, const Vector3D &rhs);
-
+Vector3D operator*(const Matrix3D& lhs, const Vector3D& rhs);
 
 // Inline functions.
 // ------------------------------------------------------------------------
@@ -122,12 +116,8 @@ inline Matrix3D::Matrix3D() {
     m[2][2] = 1.0;
 }
 
+inline double& Matrix3D::operator()(int i, int k) { return m[i][k]; }
 
-inline double &Matrix3D::operator()(int i, int k)
-{ return m[i][k]; }
+inline double Matrix3D::operator()(int i, int k) const { return m[i][k]; }
 
-
-inline double Matrix3D::operator()(int i, int k) const
-{ return m[i][k]; }
-
-#endif // __Matrix3D_HH
+#endif  // __Matrix3D_HH

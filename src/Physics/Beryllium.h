@@ -2,7 +2,7 @@
 // Class Beryllium
 //   Defines Beryllium as a material for particle-matter interactions
 //
-//   Data taken from Standard Atomic Weight 2019 (https://www.qmul.ac.uk/sbcs/iupac/AtWt/), 
+//   Data taken from Standard Atomic Weight 2019 (https://www.qmul.ac.uk/sbcs/iupac/AtWt/),
 //   atomic properties from PDG database (https://pdg.lbl.gov/2020/AtomicNuclearProperties)
 //   and fit coefficients from ICRU Report 49.
 //
@@ -25,17 +25,13 @@
 #include "Physics/Material.h"
 
 namespace Physics {
-    class Beryllium: public Material {
+    class Beryllium : public Material {
     public:
-        Beryllium():
-            Material(4,
-                     9.0121831,
-                     1.848,
-                     65.19,
-                     63.7,
-                     {{2.248, 2.590, 9.660e2, 1.538e2, 3.475e-2,
-                       2.1895, 0.47183, 7.2362, 134.30, 197.96}})
-        { }
+        Beryllium()
+            : Material(
+                      4, 9.0121831, 1.848, 65.19, 63.7,
+                      {{2.248, 2.590, 9.660e2, 1.538e2, 3.475e-2, 2.1895, 0.47183, 7.2362, 134.30,
+                        197.96}}) {}
     };
-}
+}  // namespace Physics
 #endif

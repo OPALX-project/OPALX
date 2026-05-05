@@ -19,13 +19,10 @@
 
 #include "Utilities/OpalException.h"
 
-class SDDSParserException: public OpalException {
-
+class SDDSParserException : public OpalException {
 public:
-
-    SDDSParserException(const std::string &meth, const std::string &descr):
-        OpalException(meth, descr)
-    {}
+    SDDSParserException(const std::string& meth, const std::string& descr)
+        : OpalException(meth, descr) {}
 };
 
 #endif
