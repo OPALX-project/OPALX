@@ -20,7 +20,6 @@
 
 #include "AbstractObjects/Object.h"
 
-
 // Class ValueDefinition
 // ------------------------------------------------------------------------
 /// The base class for all OPAL value definitions.
@@ -28,10 +27,8 @@
 //  it can also be used via dynamic casting to determine whether an object
 //  represents a variable.
 
-class ValueDefinition: public Object {
-
+class ValueDefinition : public Object {
 public:
-
     virtual ~ValueDefinition();
 
     /// Return the object category as a string.
@@ -47,7 +44,6 @@ public:
     //  If true, the data structure should be updated before calling execute().
     //  Always false for value definitions.
     virtual bool shouldUpdate() const;
-
 
     /// Return logical value.
     //  The default version throws OpalException.
@@ -75,19 +71,18 @@ public:
 
     /// Return the attribute representing the value of the definition.
     //  Version for non-constant object.
-    Attribute &value();
+    Attribute& value();
 
     /// Return the attribute representing the value of the definition.
     //  Version for constant object.
-    const Attribute &value() const;
+    const Attribute& value() const;
 
 protected:
-
     /// Constructor for exemplars.
-    ValueDefinition(int size, const char *name, const char *help);
+    ValueDefinition(int size, const char* name, const char* help);
 
     /// Constructor for clones.
-    ValueDefinition(const std::string &name, ValueDefinition *parent);
+    ValueDefinition(const std::string& name, ValueDefinition* parent);
 
     /// The declaration prefix.
     //  A string representing the value type in OPAL-9 input format:
@@ -95,11 +90,10 @@ protected:
     const std::string itsPrefix;
 
 private:
-
     // Not implemented.
     ValueDefinition();
-    ValueDefinition(const ValueDefinition &);
-    void operator=(const ValueDefinition &);
+    ValueDefinition(const ValueDefinition&);
+    void operator=(const ValueDefinition&);
 };
 
-#endif // OPAL_ValueDefinition_HH
+#endif  // OPAL_ValueDefinition_HH

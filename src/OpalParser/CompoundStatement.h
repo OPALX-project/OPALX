@@ -18,14 +18,13 @@
 //
 // ------------------------------------------------------------------------
 
-#include "OpalParser/Statement.h"
-#include "OpalParser/MacroStream.h"
-#include <memory>
 #include <iosfwd>
+#include <memory>
+#include "OpalParser/MacroStream.h"
+#include "OpalParser/Statement.h"
 
 class TokenStream;
 class Parser;
-
 
 // class CompoundStatement
 // ------------------------------------------------------------------------
@@ -35,29 +34,26 @@ class Parser;
 //  The compound statement is stored as a MacroStream which is sent to
 //  the parser for execution.
 
-class CompoundStatement: public Statement {
-
+class CompoundStatement : public Statement {
 public:
-
     /// Constructor.
     //  Parse the statement on the given token stream.
-    CompoundStatement(TokenStream &);
+    CompoundStatement(TokenStream&);
 
     virtual ~CompoundStatement();
 
     /// Execute.
     //  Use the given parser to execute the contained statements.
-    virtual void execute(const Parser &);
+    virtual void execute(const Parser&);
 
 private:
-
     // Not implemented.
     CompoundStatement();
-    CompoundStatement(const CompoundStatement &);
-    void operator=(const CompoundStatement &);
+    CompoundStatement(const CompoundStatement&);
+    void operator=(const CompoundStatement&);
 
     // Token list contained in this compound.
     std::shared_ptr<MacroStream> tokens;
 };
 
-#endif // OPALX_CompoundStatement_HH
+#endif  // OPALX_CompoundStatement_HH

@@ -29,10 +29,8 @@
 /// Format error exception.
 //  This exception is thrown, when an input routine detects a format error.
 
-class FormatError: public OpalException {
-
+class FormatError : public OpalException {
 public:
-
     /// The usual constructor.
     // Arguments:
     // [DL]
@@ -41,15 +39,14 @@ public:
     // [DT][b]msg [/b]
     // [DD]the message string identifying the exception
     // [/DL]
-    FormatError(const std::string &meth, const std::string &msg);
+    FormatError(const std::string& meth, const std::string& msg);
 
-    FormatError(const FormatError &);
+    FormatError(const FormatError&);
     virtual ~FormatError();
 
 private:
-
     // Not implemented.
     FormatError();
 };
 
-#endif // OPAL_FormatError_HH
+#endif  // OPAL_FormatError_HH

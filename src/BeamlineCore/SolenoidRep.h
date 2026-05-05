@@ -22,43 +22,40 @@
 #include "BeamlineGeometry/StraightGeometry.h"
 #include "Fields/ConstBzField.h"
 
-
-class SolenoidRep: public Solenoid {
-
+class SolenoidRep : public Solenoid {
 public:
-
     /// Constructor with given name.
-    explicit SolenoidRep(const std::string &name);
+    explicit SolenoidRep(const std::string& name);
 
     SolenoidRep();
-    SolenoidRep(const SolenoidRep &);
+    SolenoidRep(const SolenoidRep&);
     virtual ~SolenoidRep();
 
     /// Return clone.
     //  Return an identical deep copy of the element.
-    virtual ElementBase *clone() const;
+    virtual ElementBase* clone() const;
 
     /// Construct a read/write channel.
     //  This method constructs a Channel permitting read/write access to
     //  the attribute [b]aKey[/b] and returns it.
     //  If the attribute does not exist, it returns nullptr.
-    virtual Channel *getChannel(const std::string &aKey, bool = false);
+    virtual Channel* getChannel(const std::string& aKey, bool = false);
 
     /// Get field.
     //  Version for non-constant object.
-    virtual ConstBzField &getField();
+    virtual ConstBzField& getField();
 
     /// Get field.
     //  Version for constant object.
-    virtual const ConstBzField &getField() const;
+    virtual const ConstBzField& getField() const;
 
     /// Get geometry.
     //  Version for non-constant object.
-    virtual StraightGeometry &getGeometry();
+    virtual StraightGeometry& getGeometry();
 
     /// Get geometry.
     //  Version for constant object.
-    virtual const StraightGeometry &getGeometry() const;
+    virtual const StraightGeometry& getGeometry() const;
 
     /// Get field.
     //  Return the solenoid field in Teslas.
@@ -69,9 +66,8 @@ public:
     virtual void setBz(double Bz);
 
 private:
-
     // Not implemented.
-    void operator=(const SolenoidRep &);
+    void operator=(const SolenoidRep&);
 
     /// The solenoid geometry.
     StraightGeometry geometry;
@@ -80,4 +76,4 @@ private:
     ConstBzField field;
 };
 
-#endif // OPALX_SolenoidRep_HH
+#endif  // OPALX_SolenoidRep_HH

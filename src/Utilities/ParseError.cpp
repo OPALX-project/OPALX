@@ -20,20 +20,12 @@
 
 #include "Utilities/ParseError.h"
 
-
 // Class ParseError
 // ------------------------------------------------------------------------
 
+ParseError::ParseError(const std::string& meth, const std::string& msg)
+    : OpalException(meth, msg) {}
 
-ParseError::ParseError(const std::string &meth, const std::string &msg):
-    OpalException(meth, msg) {
-}
+ParseError::ParseError(const ParseError& rhs) : OpalException(rhs) {}
 
-
-ParseError::ParseError(const ParseError &rhs):
-    OpalException(rhs)
-{}
-
-
-ParseError::~ParseError()
-{}
+ParseError::~ParseError() {}

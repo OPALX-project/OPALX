@@ -29,9 +29,7 @@
 #include <queue>
 
 namespace Util {
-    std::string getGitRevision() {
-        return std::string(GIT_VERSION);
-    }
+    std::string getGitRevision() { return std::string(GIT_VERSION); }
 
 #define erfinv_a3 -0.140543331
 #define erfinv_a2 0.914624893
@@ -58,11 +56,9 @@ namespace Util {
         double r;
         int sign_x;
 
-        if (x < -1 || x > 1)
-            return NAN;
+        if (x < -1 || x > 1) return NAN;
 
-        if (x == 0)
-            return 0;
+        if (x == 0) return 0;
 
         if (x > 0)
             sign_x = 1;
@@ -74,8 +70,8 @@ namespace Util {
         if (x <= 0.7) {
             double x2 = x * x;
             r         = x * (((erfinv_a3 * x2 + erfinv_a2) * x2 + erfinv_a1) * x2 + erfinv_a0);
-            r /=
-                (((erfinv_b4 * x2 + erfinv_b3) * x2 + erfinv_b2) * x2 + erfinv_b1) * x2 + erfinv_b0;
+            r /= (((erfinv_b4 * x2 + erfinv_b3) * x2 + erfinv_b2) * x2 + erfinv_b1) * x2
+                 + erfinv_b0;
         } else {
             double y = std::sqrt(-std::log((1 - x) / 2));
             r        = (((erfinv_c3 * y + erfinv_c2) * y + erfinv_c1) * y + erfinv_c0);
@@ -112,7 +108,7 @@ namespace Util {
 #undef erfinv_d0
 
     Vector_t<double, 3> getTaitBryantAngles(
-        Quaternion rotation, const std::string& /*elementName*/) {
+            Quaternion rotation, const std::string& /*elementName*/) {
         Quaternion rotationBAK = rotation;
 
         // y axis
@@ -202,8 +198,7 @@ namespace Util {
         return path.string();
     }
 
-    KahanAccumulation::KahanAccumulation() : sum(0.0), correction(0.0) {
-    }
+    KahanAccumulation::KahanAccumulation() : sum(0.0), correction(0.0) {}
 
     KahanAccumulation& KahanAccumulation::operator+=(double value) {
         long double y    = value - this->correction;
@@ -217,12 +212,10 @@ namespace Util {
      *  rewind the SDDS file such that the spos of the last step is less or equal to maxSPos
      */
     unsigned int rewindLinesSDDS(const std::string& fileName, double maxSPos, bool checkForTime) {
-        if (ippl::Comm->rank() > 0)
-            return 0;
+        if (ippl::Comm->rank() > 0) return 0;
 
         std::fstream fs(fileName.c_str(), std::fstream::in);
-        if (!fs.is_open())
-            return 0;
+        if (!fs.is_open()) return 0;
 
         std::string line;
         std::queue<std::string> allLines;
@@ -249,8 +242,7 @@ namespace Util {
 
         fs.open(fileName.c_str(), std::fstream::out);
 
-        if (!fs.is_open())
-            return 0;
+        if (!fs.is_open()) return 0;
 
         do {
             line = allLines.front();
@@ -310,13 +302,11 @@ namespace Util {
                 linestream >> spos;
             }
 
-            if ((spos - maxSPos) > 1e-20 * Physics::c)
-                break;
+            if ((spos - maxSPos) > 1e-20 * Physics::c) break;
 
             allLines.pop();
 
-            if (!checkForTime || (time - lastTime) > 1e-20)
-                fs << line << "\n";
+            if (!checkForTime || (time - lastTime) > 1e-20) fs << line << "\n";
 
             lastTime = time;
         }
@@ -358,9 +348,9 @@ namespace Util {
     */
 
     static const std::string base64_chars =
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-        "abcdefghijklmnopqrstuvwxyz"
-        "0123456789+/";
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+            "abcdefghijklmnopqrstuvwxyz"
+            "0123456789+/";
 
     static inline bool is_base64(unsigned char c) {
         return (std::isalnum(c) || (c == '+') || (c == '/'));

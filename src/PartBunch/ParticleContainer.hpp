@@ -57,8 +57,22 @@ using size_type = ippl::detail::size_type;
  * They automatically select the correct underlying storage mode.
  */
 template <typename T, unsigned Dim = 3>
-class ParticleContainer : public ippl::ParticleBase<ippl::ParticleSpatialLayout<T, Dim>> {
-    using Base = ippl::ParticleBase<ippl::ParticleSpatialLayout<T, Dim>>;
+class ParticleContainer
+    : public ippl::ParticleBase<
+              ippl::ParticleSpatialLayout<T, Dim>, Kokkos::DefaultExecutionSpace::memory_space> {
+    /**
+     * @brief Alias for the `ippl::ParticleBase` specialization this container inherits from.
+     *
+     * The second template argument is a parameter pack of Kokkos view properties forwarded to
+     * the optional `ID` attribute's storage. IPPL gates the `ID` attribute on
+     * `sizeof...(IDProperties) > 0`, so passing any property here turns IDs ON; an empty pack
+     * would leave them disabled. We pass `Kokkos::DefaultExecutionSpace::memory_space` so the
+     * ID view lives in the same space as the rest of the bunch (host or device, matching the
+     * build backend). With IDs enabled, IPPL auto-assigns globally unique `std::int64_t` IDs in
+     * `Base::create()`.
+     */
+    using Base = ippl::ParticleBase<
+            ippl::ParticleSpatialLayout<T, Dim>, Kokkos::DefaultExecutionSpace::memory_space>;
 
 private:
     /**

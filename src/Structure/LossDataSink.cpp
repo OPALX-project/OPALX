@@ -172,8 +172,7 @@ SetStatistics::SetStatistics()
       rpsum_m(0.0),
       eps2_m(0.0),
       eps_norm_m(0.0),
-      fac_m(0.0) {
-}
+      fac_m(0.0) {}
 
 LossDataSink::LossDataSink(std::string outfn, bool hdf5Save, CollectionType collectionType)
     : h5hut_mode_m(hdf5Save),
@@ -312,7 +311,8 @@ void LossDataSink::addReferenceParticle(
 }
 
 void LossDataSink::addParticle(
-    const OpalParticle& particle, const std::optional<std::pair<int, short>>& turnBunchNumPair) {
+        const OpalParticle& particle,
+        const std::optional<std::pair<int, short>>& turnBunchNumPair) {
     if (turnBunchNumPair) {
         if (!particles_m.empty() && turnNumber_m.empty()) {
             throw GeneralOpalException(
@@ -327,10 +327,8 @@ void LossDataSink::addParticle(
 }
 
 void LossDataSink::save(unsigned int numSets, OpalData::OpenMode openMode) {
-    if (outputName_m.empty())
-        return;
-    if (hasNoParticlesToDump())
-        return;
+    if (outputName_m.empty()) return;
+    if (hasNoParticlesToDump()) return;
 
     if (openMode == OpalData::OpenMode::UNDEFINED) {
         openMode = OpalData::getInstance()->getOpenMode();
@@ -527,7 +525,8 @@ void LossDataSink::saveH5(unsigned int setIdx) {
         WRITE_DATA_INT64("turn", i64buffer);
 
         std::copy(
-            bunchNumber_m.begin() + startIdx, bunchNumber_m.begin() + startIdx + nLoc, i64buffer);
+                bunchNumber_m.begin() + startIdx, bunchNumber_m.begin() + startIdx + nLoc,
+                i64buffer);
         WRITE_DATA_INT64("bunchNumber", i64buffer);
     }
 
@@ -643,8 +642,7 @@ void LossDataSink::saveASCII() {
  *
  */
 void LossDataSink::splitSets(unsigned int numSets) {
-    if (numSets <= 1 || particles_m.size() == 0)
-        return;
+    if (numSets <= 1 || particles_m.size() == 0) return;
 
     const size_t nLoc   = particles_m.size();
     size_t avgNumPerSet = nLoc / numSets;
@@ -761,8 +759,7 @@ SetStatistics LossDataSink::computeSetStatistics(unsigned int setIdx) {
     ippl::Comm->allreduce(plainData, totalSize, std::plus<double>());
     ippl::Comm->allreduce(rminmax, 6, std::greater<double>());
 
-    if (plainData[0] == 0.0)
-        return stat;
+    if (plainData[0] == 0.0) return stat;
 
     double* centroid = plainData + 1;
     double* moments  = plainData + 7;
@@ -781,8 +778,8 @@ SetStatistics LossDataSink::computeSetStatistics(unsigned int setIdx) {
         stat.rsqsum_m(i) =
             (moments[2 * i * 6 + 2 * i] - stat.nTotal_m * std::pow(stat.rmean_m(i), 2));
         stat.psqsum_m(i) = std::max(
-            0.0,
-            moments[(2 * i + 1) * 6 + (2 * i) + 1] - stat.nTotal_m * std::pow(stat.pmean_m(i), 2));
+                0.0, moments[(2 * i + 1) * 6 + (2 * i) + 1]
+                             - stat.nTotal_m * std::pow(stat.pmean_m(i), 2));
         stat.rpsum_m(i) =
             (moments[(2 * i) * 6 + (2 * i) + 1]
              - stat.nTotal_m * stat.rmean_m(i) * stat.pmean_m(i));

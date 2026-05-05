@@ -18,55 +18,30 @@
 #include "BeamlineCore/DriftRep.h"
 #include "Channels/IndirectChannel.h"
 
-
 namespace {
     struct Entry {
-        const char *name;
-        double(DriftRep::*get)() const;
+        const char* name;
+        double (DriftRep::*get)() const;
         void (DriftRep::*set)(double);
     };
 
     const Entry entries[] = {
-        {
-            "L",
-            &DriftRep::getElementLength,
-            &DriftRep::setElementLength
-        },
-        { 0, 0, 0 }
-    };
-}
+            {"L", &DriftRep::getElementLength, &DriftRep::setElementLength}, {0, 0, 0}};
+}  // namespace
 
+DriftRep::DriftRep() : Drift(), geometry(0.0) {}
 
-DriftRep::DriftRep():
-    Drift(),
-    geometry(0.0)
-{}
+DriftRep::DriftRep(const DriftRep& right) : Drift(right), geometry(right.geometry) {}
 
+DriftRep::DriftRep(const std::string& name) : Drift(name), geometry() {}
 
-DriftRep::DriftRep(const DriftRep &right):
-    Drift(right),
-    geometry(right.geometry)
-{}
+DriftRep::~DriftRep() {}
 
+ElementBase* DriftRep::clone() const { return new DriftRep(*this); }
 
-DriftRep::DriftRep(const std::string &name):
-    Drift(name),
-    geometry()
-{}
-
-
-DriftRep::~DriftRep()
-{}
-
-
-ElementBase *DriftRep::clone() const {
-    return new DriftRep(*this);
-}
-
-
-Channel *DriftRep::getChannel(const std::string &aKey, bool create) {
-    for(const Entry *entry = entries; entry->name != 0; ++entry) {
-        if(aKey == entry->name) {
+Channel* DriftRep::getChannel(const std::string& aKey, bool create) {
+    for (const Entry* entry = entries; entry->name != 0; ++entry) {
+        if (aKey == entry->name) {
             return new IndirectChannel<DriftRep>(*this, entry->get, entry->set);
         }
     }
@@ -74,20 +49,10 @@ Channel *DriftRep::getChannel(const std::string &aKey, bool create) {
     return ElementBase::getChannel(aKey, create);
 }
 
+NullField& DriftRep::getField() { return field; }
 
-NullField &DriftRep::getField() {
-    return field;
-}
+const NullField& DriftRep::getField() const { return field; }
 
-const NullField &DriftRep::getField() const {
-    return field;
-}
+StraightGeometry& DriftRep::getGeometry() { return geometry; }
 
-
-StraightGeometry &DriftRep::getGeometry() {
-    return geometry;
-}
-
-const StraightGeometry &DriftRep::getGeometry() const {
-    return geometry;
-}
+const StraightGeometry& DriftRep::getGeometry() const { return geometry; }

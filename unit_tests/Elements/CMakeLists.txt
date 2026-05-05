@@ -3,6 +3,7 @@ message(STATUS "Adding unit tests found in ${_relPath}")
 
 add_opalx_test(TestOpalMultipoleT USE_GTEST_MAIN)
 add_opalx_test(TestOpalBend USE_GTEST_MAIN)
+add_opalx_test(TestOpalDrift USE_GTEST_MAIN)
 add_opalx_test(TestOpalBeamlinePlacement USE_GTEST_MAIN)
 add_opalx_test(TestOpalMonitor USE_GTEST_MAIN)
 add_opalx_test(TestOpalPolynomialTimeDependence USE_GTEST_MAIN)

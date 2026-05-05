@@ -48,111 +48,101 @@
 
 #include <gtest/gtest.h>
 
-#include "Fields/Fieldmap.h"
 #include "Fields/FM2DDynamic.h"
+#include "Fields/Fieldmap.h"
+#include "Ippl.h"
 #include "Physics/Units.h"
 #include "Utilities/GeneralOpalException.h"
-#include "Ippl.h"
 
 #include <cmath>
-#include <fstream>
 #include <filesystem>
+#include <fstream>
 #include <vector>
 
 namespace {
 
-// ---------------------------------------------------------------------------
-// Helper: write dynamic XZ fieldmap
-// Format:
-// 2DDynamic XZ
-// zbegin zend nz
-// freq (MHz)
-// rbegin rend nr
-// data: Ez Er dummy Bt
-// ---------------------------------------------------------------------------
-std::string writeXZFieldmap(const std::string& path,
-                            double zbegin_cm, double zend_cm, int nz,
-                            double rbegin_cm, double rend_cm, int nr,
-                            double freq_MHz = 100.0,
-                            double uniformEz = 1.0,
-                            double uniformEr = 0.0,
-                            double uniformBt = 0.0)
-{
-    std::ofstream f(path);
-    f << "2DDynamic XZ\n";
-    f << zbegin_cm << " " << zend_cm << " " << nz << "\n";
-    f << freq_MHz << "\n";
-    f << rbegin_cm << " " << rend_cm << " " << nr << "\n";
+    // ---------------------------------------------------------------------------
+    // Helper: write dynamic XZ fieldmap
+    // Format:
+    // 2DDynamic XZ
+    // zbegin zend nz
+    // freq (MHz)
+    // rbegin rend nr
+    // data: Ez Er dummy Bt
+    // ---------------------------------------------------------------------------
+    std::string writeXZFieldmap(
+            const std::string& path, double zbegin_cm, double zend_cm, int nz, double rbegin_cm,
+            double rend_cm, int nr, double freq_MHz = 100.0, double uniformEz = 1.0,
+            double uniformEr = 0.0, double uniformBt = 0.0) {
+        std::ofstream f(path);
+        f << "2DDynamic XZ\n";
+        f << zbegin_cm << " " << zend_cm << " " << nz << "\n";
+        f << freq_MHz << "\n";
+        f << rbegin_cm << " " << rend_cm << " " << nr << "\n";
 
-    for (int jr = 0; jr <= nr; ++jr) {
-        for (int iz = 0; iz <= nz; ++iz) {
-            f << uniformEz << " " << uniformEr << " 0.0 " << uniformBt << "\n";
+        for (int jr = 0; jr <= nr; ++jr) {
+            for (int iz = 0; iz <= nz; ++iz) {
+                f << uniformEz << " " << uniformEr << " 0.0 " << uniformBt << "\n";
+            }
         }
+        return path;
     }
-    return path;
-}
 
-// ---------------------------------------------------------------------------
-// Helper: write dynamic fieldmap in ZX orientation
-// Format:
-// 2DDynamic ZX
-// rbegin rend nr
-// freq
-// zbegin zend nz
-// data: Er Ez Bt dummy
-// ---------------------------------------------------------------------------
-std::string writeZXFieldmap(const std::string& path,
-                            double zbegin_cm, double zend_cm, int nz,
-                            double rbegin_cm, double rend_cm, int nr,
-                            double freq_MHz = 100.0,
-                            double uniformEz = 1.0,
-                            double uniformEr = 0.0,
-                            double uniformBt = 0.0)
-{
-    std::ofstream f(path);
-    f << "2DDynamic ZX\n";
-    f << rbegin_cm << " " << rend_cm << " " << nr << "\n";
-    f << freq_MHz << "\n";
-    f << zbegin_cm << " " << zend_cm << " " << nz << "\n";
+    // ---------------------------------------------------------------------------
+    // Helper: write dynamic fieldmap in ZX orientation
+    // Format:
+    // 2DDynamic ZX
+    // rbegin rend nr
+    // freq
+    // zbegin zend nz
+    // data: Er Ez Bt dummy
+    // ---------------------------------------------------------------------------
+    std::string writeZXFieldmap(
+            const std::string& path, double zbegin_cm, double zend_cm, int nz, double rbegin_cm,
+            double rend_cm, int nr, double freq_MHz = 100.0, double uniformEz = 1.0,
+            double uniformEr = 0.0, double uniformBt = 0.0) {
+        std::ofstream f(path);
+        f << "2DDynamic ZX\n";
+        f << rbegin_cm << " " << rend_cm << " " << nr << "\n";
+        f << freq_MHz << "\n";
+        f << zbegin_cm << " " << zend_cm << " " << nz << "\n";
 
-    for (int i = 0; i <= nz; ++i) {
-        for (int j = 0; j <= nr; ++j) {
-            f << uniformEr << " " << uniformEz << " " << uniformBt << " 0.0\n";
+        for (int i = 0; i <= nz; ++i) {
+            for (int j = 0; j <= nr; ++j) {
+                f << uniformEr << " " << uniformEz << " " << uniformBt << " 0.0\n";
+            }
         }
+        return path;
     }
-    return path;
-}
 
-// ---------------------------------------------------------------------------
-// Helper: Write a fieldmap with spatially varying field for interpolation tests.
-// Uses XZ orientation. Field: Ez = z [MV/m], Er = r [MV/m], Bt = r [T], 
-// where r and z are in meters.
-// ---------------------------------------------------------------------------
-std::string writeVaryingXZFieldmap(const std::string& path, 
-                                   double zbegin_cm, double zend_cm, int nz,
-                                   double rbegin_cm, double rend_cm, int nr,
-                                   double freq_MHz)
-{
-    const double hz_cm = (zend_cm - zbegin_cm) / nz;
-    const double hr_cm = (rend_cm - rbegin_cm) / nr;
+    // ---------------------------------------------------------------------------
+    // Helper: Write a fieldmap with spatially varying field for interpolation tests.
+    // Uses XZ orientation. Field: Ez = z [MV/m], Er = r [MV/m], Bt = r [T],
+    // where r and z are in meters.
+    // ---------------------------------------------------------------------------
+    std::string writeVaryingXZFieldmap(
+            const std::string& path, double zbegin_cm, double zend_cm, int nz, double rbegin_cm,
+            double rend_cm, int nr, double freq_MHz) {
+        const double hz_cm = (zend_cm - zbegin_cm) / nz;
+        const double hr_cm = (rend_cm - rbegin_cm) / nr;
 
-    std::ofstream f(path);
-    f << "2DDynamic XZ\n";
-    f << zbegin_cm << " " << zend_cm << " " << nz << "\n";
-    f << freq_MHz << "\n";
-    f << rbegin_cm << " " << rend_cm << " " << nr << "\n";
+        std::ofstream f(path);
+        f << "2DDynamic XZ\n";
+        f << zbegin_cm << " " << zend_cm << " " << nz << "\n";
+        f << freq_MHz << "\n";
+        f << rbegin_cm << " " << rend_cm << " " << nr << "\n";
 
-    for (int jr = 0; jr <= nr; ++jr) {
-        double r_m = (rbegin_cm + jr * hr_cm) * Units::cm2m;
-        for (int iz = 0; iz <= nz; ++iz) {
-            double z_m = (zbegin_cm + iz * hz_cm) * Units::cm2m;
-            f << z_m << " " << r_m << " 0.0 " << r_m << "\n";
+        for (int jr = 0; jr <= nr; ++jr) {
+            double r_m = (rbegin_cm + jr * hr_cm) * Units::cm2m;
+            for (int iz = 0; iz <= nz; ++iz) {
+                double z_m = (zbegin_cm + iz * hz_cm) * Units::cm2m;
+                f << z_m << " " << r_m << " 0.0 " << r_m << "\n";
+            }
         }
+        return path;
     }
-    return path;
-}
 
-} // namespace
+}  // namespace
 
 // ===========================================================================
 // Fixture
@@ -180,9 +170,7 @@ protected:
         std::filesystem::remove_all(tmpDir_);
     }
 
-    std::string tmpFile(const std::string& name) const {
-        return (tmpDir_ / name).string();
-    }
+    std::string tmpFile(const std::string& name) const { return (tmpDir_ / name).string(); }
 
     std::filesystem::path tmpDir_;
 };
@@ -196,10 +184,7 @@ TEST_F(FM2DDynamicTest, ParseXZOrientation) {
     const double freq = 100.0;         // MHz
     const int nz = 4, nr = 2;
 
-    std::string fname = writeXZFieldmap(tmpFile("xz.map"), 
-                                        zb, ze, nz, 
-                                        rb, re, nr, 
-                                        freq);
+    std::string fname = writeXZFieldmap(tmpFile("xz.map"), zb, ze, nz, rb, re, nr, freq);
 
     Fieldmap* fm = Fieldmap::getFieldmap(fname);
     ASSERT_NE(fm, nullptr);
@@ -211,7 +196,7 @@ TEST_F(FM2DDynamicTest, ParseXZOrientation) {
     fm->getFieldDimensions(zBegin, zEnd);
 
     EXPECT_NEAR(zBegin, zb * Units::cm2m, 1e-12);
-    EXPECT_NEAR(zEnd,   ze * Units::cm2m, 1e-12);
+    EXPECT_NEAR(zEnd, ze * Units::cm2m, 1e-12);
 }
 
 // ===========================================================================
@@ -219,14 +204,11 @@ TEST_F(FM2DDynamicTest, ParseXZOrientation) {
 // ===========================================================================
 TEST_F(FM2DDynamicTest, ParseZXOrientation) {
     const double zb = -5.0, ze = 15.0;  // cm
-    const double rb = 0.0,  re = 3.0;   // cm
+    const double rb = 0.0, re = 3.0;    // cm
     const double freq = 100.0;          // MHz
     const int nz = 3, nr = 2;
 
-    std::string fname = writeZXFieldmap(tmpFile("zx.map"), 
-                                        zb, ze, nz, 
-                                        rb, re, nr, 
-                                        freq);
+    std::string fname = writeZXFieldmap(tmpFile("zx.map"), zb, ze, nz, rb, re, nr, freq);
 
     Fieldmap* fm = Fieldmap::getFieldmap(fname);
     ASSERT_NE(fm, nullptr);
@@ -237,7 +219,7 @@ TEST_F(FM2DDynamicTest, ParseZXOrientation) {
     fm->getFieldDimensions(zBegin, zEnd);
 
     EXPECT_NEAR(zBegin, zb * Units::cm2m, 1e-12);
-    EXPECT_NEAR(zEnd,   ze * Units::cm2m, 1e-12);
+    EXPECT_NEAR(zEnd, ze * Units::cm2m, 1e-12);
 }
 
 // ===========================================================================
@@ -249,8 +231,7 @@ TEST_F(FM2DDynamicTest, FrequencyParsing) {
     const double freq = 100.0;         // MHz
     const int nz = 4, nr = 2;
 
-    std::string fname = writeXZFieldmap(
-        tmpFile("freq.map"), zb, ze, nz, rb, re, nr, freq);
+    std::string fname = writeXZFieldmap(tmpFile("freq.map"), zb, ze, nz, rb, re, nr, freq);
 
     auto* fm = dynamic_cast<FM2DDynamic*>(Fieldmap::getFieldmap(fname));
     ASSERT_NE(fm, nullptr);
@@ -258,7 +239,8 @@ TEST_F(FM2DDynamicTest, FrequencyParsing) {
     Fieldmap::readMap(fname);
 
     // Constructor converts: MHz → Hz → angular frequency
-    double expected = freq * Physics::two_pi * Units::MHz2Hz; // Should be angular frequency in rad/s
+    double expected =
+            freq * Physics::two_pi * Units::MHz2Hz;  // Should be angular frequency in rad/s
 
     EXPECT_NEAR(fm->getFrequency(), expected, 1e-6);
 }
@@ -276,11 +258,8 @@ TEST_F(FM2DDynamicTest, UniformFieldStrength) {
     const double Er_val = 0.0;
     const double Bt_val = 0.0;
 
-    std::string fname = writeXZFieldmap(tmpFile("uni.map"), 
-                                        zb, ze, nz, 
-                                        rb, re, nr, 
-                                        freq, 
-                                        Ez_val, Er_val, Bt_val);
+    std::string fname = writeXZFieldmap(
+            tmpFile("uni.map"), zb, ze, nz, rb, re, nr, freq, Ez_val, Er_val, Bt_val);
 
     Fieldmap* fm = Fieldmap::getFieldmap(fname);
     ASSERT_NE(fm, nullptr);
@@ -318,10 +297,7 @@ TEST_F(FM2DDynamicTest, OutsideZRange) {
     const double freq = 100.0;
     const int nz = 4, nr = 2;
 
-    std::string fname = writeXZFieldmap(tmpFile("oz.map"), 
-                                        zb, ze, nz, 
-                                        rb, re, nr, 
-                                        freq);
+    std::string fname = writeXZFieldmap(tmpFile("oz.map"), zb, ze, nz, rb, re, nr, freq);
 
     Fieldmap* fm = Fieldmap::getFieldmap(fname);
     ASSERT_NE(fm, nullptr);
@@ -377,10 +353,7 @@ TEST_F(FM2DDynamicTest, OutsideRadialRange) {
     const double freq = 100.0;
     const int nz = 4, nr = 2;
 
-    std::string fname = writeXZFieldmap(tmpFile("or.map"), 
-                                        zb, ze, nz, 
-                                        rb, re, nr, 
-                                        freq);
+    std::string fname = writeXZFieldmap(tmpFile("or.map"), zb, ze, nz, rb, re, nr, freq);
 
     Fieldmap* fm = Fieldmap::getFieldmap(fname);
     ASSERT_NE(fm, nullptr);
@@ -405,7 +378,6 @@ TEST_F(FM2DDynamicTest, OutsideRadialRange) {
     EXPECT_NEAR(B[2], 0.0, 1e-15);
 }
 
-
 // ===========================================================================
 // Test: isInside() helper
 // ===========================================================================
@@ -415,10 +387,7 @@ TEST_F(FM2DDynamicTest, IsInside) {
     const double freq = 100.0;
     const int nz = 4, nr = 2;
 
-    std::string fname = writeXZFieldmap(tmpFile("ins.map"),
-                                        zb, ze, nz,
-                                        rb, re, nr, 
-                                        freq);
+    std::string fname = writeXZFieldmap(tmpFile("ins.map"), zb, ze, nz, rb, re, nr, freq);
 
     auto* fm = dynamic_cast<FM2DDynamic*>(Fieldmap::getFieldmap(fname));
     ASSERT_NE(fm, nullptr);
@@ -451,17 +420,14 @@ TEST_F(FM2DDynamicTest, SwapToggle) {
     const double freq = 100.0;
     const int nz = 4, nr = 2;
 
-    std::string fname = writeXZFieldmap(tmpFile("sw.map"),
-                                       zb, ze, nz,
-                                       rb, re, nr, 
-                                       freq);
+    std::string fname = writeXZFieldmap(tmpFile("sw.map"), zb, ze, nz, rb, re, nr, freq);
 
     auto* fm = dynamic_cast<FM2DDynamic*>(Fieldmap::getFieldmap(fname));
     ASSERT_NE(fm, nullptr);
 
     // swap_m starts false for XZ
-    fm->swap();   // now true
-    fm->swap();   // back to false
+    fm->swap();  // now true
+    fm->swap();  // back to false
 
     // No crash – just verify the toggle doesn't explode
 }
@@ -479,15 +445,13 @@ TEST_F(FM2DDynamicTest, Normalization) {
     const double freq = 100.0;
     const int nz = 4, nr = 2;
 
-    const double Ez_val = 3.0; // MV/m
+    const double Ez_val = 3.0;  // MV/m
 
-    std::string fname = writeXZFieldmap(tmpFile("norm.map"),
-                                        zb, ze, nz,
-                                        rb, re, nr,
-                                        freq,
-                                        /*Ez=*/Ez_val,
-                                        /*Er=*/0.0,
-                                        /*Bt=*/0.0);
+    std::string fname = writeXZFieldmap(
+            tmpFile("norm.map"), zb, ze, nz, rb, re, nr, freq,
+            /*Ez=*/Ez_val,
+            /*Er=*/0.0,
+            /*Bt=*/0.0);
 
     Fieldmap* fm = Fieldmap::getFieldmap(fname);
     Fieldmap::readMap(fname);
@@ -516,18 +480,15 @@ TEST_F(FM2DDynamicTest, BilinearInterpolation) {
     // Er = (r / Ezmax) * 1e6
     // Bt = (r / Ezmax) * mu0
 
-    const double zb = 0.0, ze = 10.0;   // cm
-    const double rb = 0.0, re = 5.0;    // cm
+    const double zb = 0.0, ze = 10.0;  // cm
+    const double rb = 0.0, re = 5.0;   // cm
     const double freq = 100.0;
     const int nz = 4, nr = 4;
 
     const double zend_m = ze * Units::cm2m;  // 0.10 m
     const double Ezmax  = zend_m;            // same logic as magnetostatic
 
-    std::string fname = writeVaryingXZFieldmap(tmpFile("var.map"), 
-                                               zb, ze, nz, 
-                                               rb, re, nr, 
-                                               freq);
+    std::string fname = writeVaryingXZFieldmap(tmpFile("var.map"), zb, ze, nz, rb, re, nr, freq);
 
     Fieldmap* fm = Fieldmap::getFieldmap(fname);
     Fieldmap::readMap(fname);
@@ -553,7 +514,7 @@ TEST_F(FM2DDynamicTest, BilinearInterpolation) {
     // Off-axis along x
     // ----------------------------------------------------------------------
     {
-        double r_m = 0.025;  // 2.5 cm
+        double r_m            = 0.025;  // 2.5 cm
         Vector_t<double, 3> R = {r_m, 0.0, 0.05};
         Vector_t<double, 3> E = {0.0, 0.0, 0.0};
         Vector_t<double, 3> B = {0.0, 0.0, 0.0};
@@ -574,7 +535,7 @@ TEST_F(FM2DDynamicTest, BilinearInterpolation) {
     // Off-axis along y
     // ----------------------------------------------------------------------
     {
-        double r_m = 0.025;
+        double r_m            = 0.025;
         Vector_t<double, 3> R = {0.0, r_m, 0.05};
         Vector_t<double, 3> E = {0.0, 0.0, 0.0};
         Vector_t<double, 3> B = {0.0, 0.0, 0.0};
@@ -633,8 +594,7 @@ TEST_F(FM2DDynamicTest, ComputeFieldStatic) {
         Vector_t<double, 3> E = {0.0, 0.0, 0.0};
         Vector_t<double, 3> B = {0.0, 0.0, 0.0};
 
-        FM2DDynamic::computeField(R, E, B, Ez, Er, Bt,
-                                  hr, hz, zbegin, npr, npz);
+        FM2DDynamic::computeField(R, E, B, Ez, Er, Bt, hr, hz, zbegin, npr, npz);
 
         EXPECT_NEAR(E[2], 1.0, 1e-10);
 
@@ -653,8 +613,7 @@ TEST_F(FM2DDynamicTest, ComputeFieldStatic) {
         Vector_t<double, 3> E = {0.0, 0.0, 0.0};
         Vector_t<double, 3> B = {0.0, 0.0, 0.0};
 
-        FM2DDynamic::computeField(R, E, B, Ez, Er, Bt,
-                                  hr, hz, zbegin, npr, npz);
+        FM2DDynamic::computeField(R, E, B, Ez, Er, Bt, hr, hz, zbegin, npr, npz);
 
         EXPECT_NEAR(E[2], 1.0, 1e-10);
 
@@ -675,8 +634,7 @@ TEST_F(FM2DDynamicTest, ComputeFieldStatic) {
         Vector_t<double, 3> E = {0.0, 0.0, 0.0};
         Vector_t<double, 3> B = {0.0, 0.0, 0.0};
 
-        FM2DDynamic::computeField(R, E, B, Ez, Er, Bt,
-                                  hr, hz, zbegin, npr, npz);
+        FM2DDynamic::computeField(R, E, B, Ez, Er, Bt, hr, hz, zbegin, npr, npz);
 
         EXPECT_NEAR(E[2], 0.0, 1e-15);
         EXPECT_NEAR(B[0], 0.0, 1e-15);
@@ -690,8 +648,7 @@ TEST_F(FM2DDynamicTest, ComputeFieldStatic) {
         Vector_t<double, 3> E = {0.0, 0.0, 0.0};
         Vector_t<double, 3> B = {0.0, 0.0, 0.0};
 
-        FM2DDynamic::computeField(R, E, B, Ez, Er, Bt,
-                                  hr, hz, zbegin, npr, npz);
+        FM2DDynamic::computeField(R, E, B, Ez, Er, Bt, hr, hz, zbegin, npr, npz);
 
         EXPECT_NEAR(E[0], 0.0, 1e-15);
         EXPECT_NEAR(E[1], 0.0, 1e-15);
@@ -710,10 +667,7 @@ TEST_F(FM2DDynamicTest, GetFieldDerivativeThrows) {
     const double freq = 100.0;
     const int nz = 4, nr = 2;
 
-    std::string fname = writeXZFieldmap(tmpFile("deriv.map"),
-                                        zb, ze, nz,
-                                        rb, re, nr,
-                                        freq);
+    std::string fname = writeXZFieldmap(tmpFile("deriv.map"), zb, ze, nz, rb, re, nr, freq);
 
     Fieldmap* fm = Fieldmap::getFieldmap(fname);
     ASSERT_NE(fm, nullptr);
@@ -722,8 +676,7 @@ TEST_F(FM2DDynamicTest, GetFieldDerivativeThrows) {
     Vector_t<double, 3> E = {0.0, 0.0, 0.0};
     Vector_t<double, 3> B = {0.0, 0.0, 0.0};
 
-    EXPECT_THROW(fm->getFieldDerivative(R, E, B, DX),
-                 GeneralOpalException);
+    EXPECT_THROW(fm->getFieldDerivative(R, E, B, DX), GeneralOpalException);
 }
 
 // ===========================================================================
@@ -735,18 +688,14 @@ TEST_F(FM2DDynamicTest, GetFieldDimensions6ArgThrows) {
     const double freq = 100.0;
     const int nz = 4, nr = 2;
 
-    std::string fname = writeXZFieldmap(tmpFile("dim6.map"),
-                                        zb, ze, nz,
-                                        rb, re, nr, 
-                                        freq);
+    std::string fname = writeXZFieldmap(tmpFile("dim6.map"), zb, ze, nz, rb, re, nr, freq);
 
     Fieldmap* fm = Fieldmap::getFieldmap(fname);
     ASSERT_NE(fm, nullptr);
 
     double a, b, c, d, e, f;
 
-    EXPECT_THROW(fm->getFieldDimensions(a, b, c, d, e, f),
-                 GeneralOpalException);
+    EXPECT_THROW(fm->getFieldDimensions(a, b, c, d, e, f), GeneralOpalException);
 }
 
 // ===========================================================================
@@ -758,10 +707,7 @@ TEST_F(FM2DDynamicTest, GetInfoNoCrash) {
     const double freq = 100.0;
     const int nz = 4, nr = 2;
 
-    std::string fname = writeXZFieldmap(tmpFile("info.map"), 
-                                        zb, ze, nz,
-                                        rb, re, nr,
-                                        freq);
+    std::string fname = writeXZFieldmap(tmpFile("info.map"), zb, ze, nz, rb, re, nr, freq);
 
     Fieldmap* fm = Fieldmap::getFieldmap(fname);
     ASSERT_NE(fm, nullptr);
@@ -775,8 +721,7 @@ TEST_F(FM2DDynamicTest, GetInfoNoCrash) {
 // ===========================================================================
 TEST_F(FM2DDynamicTest, MissingFile) {
     std::string fname = tmpFile("nonexistent.map");
-    EXPECT_THROW(Fieldmap::getFieldmap(fname),
-                 GeneralOpalException);
+    EXPECT_THROW(Fieldmap::getFieldmap(fname), GeneralOpalException);
 }
 
 // ===========================================================================
@@ -788,10 +733,7 @@ TEST_F(FM2DDynamicTest, DictionaryCaching) {
     const double freq = 100.0;
     const int nz = 4, nr = 2;
 
-    std::string fname = writeXZFieldmap(tmpFile("cache.map"),
-                                        zb, ze, nz,
-                                        rb, re, nr,
-                                        freq);
+    std::string fname = writeXZFieldmap(tmpFile("cache.map"), zb, ze, nz, rb, re, nr, freq);
 
     Fieldmap* fm1 = Fieldmap::getFieldmap(fname);
     Fieldmap* fm2 = Fieldmap::getFieldmap(fname);
@@ -808,11 +750,7 @@ TEST_F(FM2DDynamicTest, ReadFreeCycle) {
     const double freq = 100.0;
     const int nz = 4, nr = 2;
 
-
-    std::string fname = writeXZFieldmap(tmpFile("cycle.map"),
-                                        zb, ze, nz,
-                                        rb, re, nr,
-                                        freq);
+    std::string fname = writeXZFieldmap(tmpFile("cycle.map"), zb, ze, nz, rb, re, nr, freq);
 
     Fieldmap* fm = Fieldmap::getFieldmap(fname);
     ASSERT_NE(fm, nullptr);
@@ -854,21 +792,18 @@ TEST_F(FM2DDynamicTest, GridPointAccuracy) {
 
     const double zb_m = zb * Units::cm2m;
     const double ze_m = ze * Units::cm2m;
-    //const double zend_m = ze_m;
+    // const double zend_m = ze_m;
 
-    std::string fname = writeVaryingXZFieldmap(tmpFile("grid.map"),
-                                               zb, ze, nz,
-                                               rb, re, nr,
-                                               freq);
+    std::string fname = writeVaryingXZFieldmap(tmpFile("grid.map"), zb, ze, nz, rb, re, nr, freq);
 
     Fieldmap* fm = Fieldmap::getFieldmap(fname);
     ASSERT_NE(fm, nullptr);
 
     Fieldmap::readMap(fname);
 
-    const double hz_m = (ze_m - zb_m) / nz; 
+    const double hz_m = (ze_m - zb_m) / nz;
 
-    double Ezmax = 1.0;
+    double Ezmax  = 1.0;
     double scaleE = 1e6 / Ezmax;
 
     for (int iz = 0; iz < nz; ++iz) {
@@ -881,8 +816,7 @@ TEST_F(FM2DDynamicTest, GridPointAccuracy) {
         fm->getFieldstrength(R, E, B);
 
         // Dynamic: electric field carries the longitudinal component
-        EXPECT_NEAR(E[2], (z / ze_m) * scaleE, 1e-9)
-            << "Mismatch at iz=" << iz << " z=" << z;
+        EXPECT_NEAR(E[2], (z / ze_m) * scaleE, 1e-9) << "Mismatch at iz=" << iz << " z=" << z;
 
         // No transverse components on-axis
         EXPECT_NEAR(E[0], 0.0, 1e-12);
@@ -902,16 +836,8 @@ TEST_F(FM2DDynamicTest, XZvsZXConsistency) {
     const int nz = 4, nr = 2;
     const double Ez_val = 2.0;
 
-    std::string fnameXZ = writeXZFieldmap(tmpFile("xz2.map"), 
-                                          zb, ze, nz, 
-                                          rb, re, nr,
-                                          freq,
-                                          Ez_val);
-    std::string fnameZX = writeZXFieldmap(tmpFile("zx2.map"), 
-                                          zb, ze, nz, 
-                                          rb, re, nr,
-                                          freq,
-                                          Ez_val);
+    std::string fnameXZ = writeXZFieldmap(tmpFile("xz2.map"), zb, ze, nz, rb, re, nr, freq, Ez_val);
+    std::string fnameZX = writeZXFieldmap(tmpFile("zx2.map"), zb, ze, nz, rb, re, nr, freq, Ez_val);
 
     Fieldmap* fmXZ = Fieldmap::getFieldmap(fnameXZ);
     Fieldmap* fmZX = Fieldmap::getFieldmap(fnameZX);
@@ -953,11 +879,8 @@ TEST_F(FM2DDynamicTest, FieldProjection) {
     const double Er_val = 1.0;
     const double Bt_val = 1.0;
 
-    std::string fname = writeXZFieldmap(tmpFile("proj_dyn.map"), 
-                                        zb, ze, nz, 
-                                        rb, re, nr, 
-                                        freq,
-                                        Ez_val, Er_val, Bt_val);
+    std::string fname = writeXZFieldmap(
+            tmpFile("proj_dyn.map"), zb, ze, nz, rb, re, nr, freq, Ez_val, Er_val, Bt_val);
 
     Fieldmap* fm = dynamic_cast<FM2DDynamic*>(Fieldmap::getFieldmap(fname));
     ASSERT_NE(fm, nullptr);
@@ -975,7 +898,7 @@ TEST_F(FM2DDynamicTest, FieldProjection) {
 
     fm->getFieldstrength(R, E, B);
 
-    double Ezmax = Ez_val; // uniform field → max = value
+    double Ezmax  = Ez_val;  // uniform field → max = value
     double scaleE = 1e6 / Ezmax;
     double scaleB = Physics::mu_0 / Ezmax;
 
@@ -993,7 +916,7 @@ TEST_F(FM2DDynamicTest, FieldProjection) {
     // --- Magnetic field (from Bt) ---
     // Note the rotation!
     EXPECT_NEAR(B[0], -expected_Bt, 1e-10);  // -Bt * y/R
-    EXPECT_NEAR(B[1],  expected_Bt, 1e-10);  // +Bt * x/R
+    EXPECT_NEAR(B[1], expected_Bt, 1e-10);   // +Bt * x/R
 
     // No longitudinal magnetic component
     EXPECT_NEAR(B[2], 0.0, 1e-10);
@@ -1013,11 +936,8 @@ TEST_F(FM2DDynamicTest, FieldAccumulation) {
     const double Er_val = 0.0;
     const double Bt_val = 0.0;
 
-    std::string fname = writeXZFieldmap(tmpFile("accum_dyn.map"),
-                                        zb, ze, nz,
-                                        rb, re, nr,
-                                        freq,
-                                        Ez_val, Er_val, Bt_val);
+    std::string fname = writeXZFieldmap(
+            tmpFile("accum_dyn.map"), zb, ze, nz, rb, re, nr, freq, Ez_val, Er_val, Bt_val);
 
     Fieldmap* fm = dynamic_cast<FM2DDynamic*>(Fieldmap::getFieldmap(fname));
     ASSERT_NE(fm, nullptr);
@@ -1025,13 +945,13 @@ TEST_F(FM2DDynamicTest, FieldAccumulation) {
     Fieldmap::readMap(fname);
 
     Vector_t<double, 3> R = {0.0, 0.0, 0.05};
-    Vector_t<double, 3> E = {0.0, 0.0, 5.0}; // Pre-existing Efields
-    Vector_t<double, 3> B = {0.0, 0.0, 3.0}; // Pre-existing Bfields
+    Vector_t<double, 3> E = {0.0, 0.0, 5.0};  // Pre-existing Efields
+    Vector_t<double, 3> B = {0.0, 0.0, 3.0};  // Pre-existing Bfields
 
     fm->getFieldstrength(R, E, B);
 
     // --- Expected scaling ---
-    double Ezmax = Ez_val;
+    double Ezmax  = Ez_val;
     double scaleE = 1e6 / Ezmax;
 
     // Only Ez contributes here
