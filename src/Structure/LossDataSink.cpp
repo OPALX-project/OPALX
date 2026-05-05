@@ -26,9 +26,17 @@
 
 // #include "Algorithms/DistributionMoments.h"
 
-#include <filesystem>
+// #include "boost/numeric/conversion/cast.hpp?
+// #include "gsl/gsl_histogram.h"
 
+#include <algorithm>
 #include <cmath>
+#include <filesystem>
+#include <limits>
+#include <numeric>
+#include <sstream>
+#include <tuple>
+
 
 extern Inform* gmsg;
 
@@ -126,31 +134,352 @@ extern Inform* gmsg;
     }
 
 namespace {
+    constexpr double percentileOneSigmaNormalDist =
+        0.6826894921370859;
+
+    constexpr double percentileTwoSigmasNormalDist =
+        0.9544997361036416;
+
+    constexpr double percentileThreeSigmasNormalDist =
+        0.9973002039367398;
+
+    constexpr double percentileFourSigmasNormalDist =
+        0.9999366575163338;
+
+    int percentileParticleCount(unsigned long nTotal, double fraction) {
+        const double value =
+            std::floor(static_cast<double>(nTotal) * fraction + 0.5);
+
+        if (value > static_cast<double>(std::numeric_limits<int>::max())) {
+            std::stringstream ss;
+            ss << "Percentile particle count " << value
+               << " does not fit into int.";
+
+            throw GeneralOpalException(
+                "LossDataSink::computeSetPercentiles",
+                ss.str());
+        }
+
+        return static_cast<int>(value);
+    }
+
+    using OneDPhaseSpace_t = Vektor<double, 2>;
+    using OneDIterator_t   = std::vector<OneDPhaseSpace_t>::iterator;
+
     void f64transform(
-        const std::vector<OpalParticle>& particles, unsigned int startIdx,
-        unsigned int numParticles, h5_float64_t* buffer,
+        const std::vector<OpalParticle>& particles,
+        size_t startIdx,
+        size_t numParticles,
+        h5_float64_t* buffer,
         std::function<h5_float64_t(const OpalParticle&)> select) {
         std::transform(
-            particles.begin() + startIdx, particles.begin() + startIdx + numParticles, buffer,
-            select);
-    }
-    void i64transform(
-        const std::vector<OpalParticle>& particles, unsigned int startIdx,
-        unsigned int numParticles, h5_int64_t* buffer,
-        std::function<h5_int64_t(const OpalParticle&)> select) {
-        std::transform(
-            particles.begin() + startIdx, particles.begin() + startIdx + numParticles, buffer,
+            particles.begin() + startIdx, 
+            particles.begin() + startIdx + numParticles, 
+            buffer,
             select);
     }
 
-    void cminmax(double& min, double& max, double val) {
-        if (-val > min) {
-            min = -val;
-        } else if (val > max) {
-            max = val;
+    void i64transform(
+        const std::vector<OpalParticle>& particles,
+        size_t startIdx,
+        size_t numParticles,
+        h5_int64_t* buffer,
+        std::function<h5_int64_t(const OpalParticle&)> select) {
+        std::transform(
+            particles.begin() + startIdx, 
+            particles.begin() + startIdx + numParticles, 
+            buffer,
+            select);
+    }
+
+    std::pair<double, OneDIterator_t> determinePercentileRange(
+        const OneDIterator_t& begin,
+        const OneDIterator_t& end,
+        const std::vector<int>& globalAccumulatedHistogram,
+        const std::vector<int>& localAccumulatedHistogram,
+        unsigned int dimension,
+        int numRequiredParticles,
+        double meanR) {
+        const unsigned int numBins = globalAccumulatedHistogram.size() / 3;
+
+        double percentile = 0.0;
+        OneDIterator_t endPercentile = end;
+
+        for (unsigned int i = 1; i < numBins; ++i) {
+            const unsigned int idx = dimension * numBins + i;
+
+            if (globalAccumulatedHistogram[idx] > numRequiredParticles) {
+                OneDIterator_t beginBin = begin + localAccumulatedHistogram[idx - 1];
+                OneDIterator_t endBin   = begin + localAccumulatedHistogram[idx];
+
+                int numMissingParticles =
+                    numRequiredParticles - globalAccumulatedHistogram[idx - 1];
+
+                unsigned int shift = 2;
+                while (numMissingParticles == 0 && idx >= shift) {
+                    beginBin = begin + localAccumulatedHistogram[idx - shift];
+                    numMissingParticles =
+                        numRequiredParticles - globalAccumulatedHistogram[idx - shift];
+                    ++shift;
+                }
+
+                std::vector<unsigned int> numParticlesInBin(ippl::Comm->size() + 1, 0);
+                numParticlesInBin[ippl::Comm->rank() + 1] =
+                    static_cast<unsigned int>(endBin - beginBin);
+
+                ippl::Comm->allreduce(
+                    &(numParticlesInBin[1]),
+                    ippl::Comm->size(),
+                    std::plus<unsigned int>());
+
+                std::partial_sum(
+                    numParticlesInBin.begin(),
+                    numParticlesInBin.end(),
+                    numParticlesInBin.begin());
+
+                std::vector<double> positions(numParticlesInBin.back(), 0.0);
+
+                std::transform(
+                    beginBin,
+                    endBin,
+                    positions.begin() + numParticlesInBin[ippl::Comm->rank()],
+                    [meanR](const OneDPhaseSpace_t& particle) {
+                        return std::abs(particle[0] - meanR);
+                    });
+
+                if (!positions.empty()) {
+                    ippl::Comm->allreduce(
+                        positions.data(),
+                        positions.size(),
+                        std::plus<double>());
+
+                    std::sort(positions.begin(), positions.end());
+
+                    const auto rhs = static_cast<std::size_t>(
+                        std::min<int>(
+                            numMissingParticles,
+                            static_cast<int>(positions.size()) - 1));
+
+                    const auto lhs = rhs == 0 ? 0 : rhs - 1;
+
+                    percentile = 0.5 * (positions[lhs] + positions[rhs]);
+                }
+
+                for (OneDIterator_t it = beginBin; it != endBin; ++it) {
+                    if (std::abs((*it)[0] - meanR) > percentile) {
+                        return std::make_pair(percentile, it);
+                    }
+                }
+
+                endPercentile = endBin;
+                break;
+            }
+        }
+
+        return std::make_pair(percentile, endPercentile);
+    }
+
+    double computeNormalizedEmittance(
+        const OneDIterator_t& begin,
+        const OneDIterator_t& end) {
+        double localStatistics[] = {0.0, 0.0, 0.0, 0.0};
+
+        localStatistics[0] = static_cast<double>(end - begin);
+
+        for (OneDIterator_t it = begin; it < end; ++it) {
+            const OneDPhaseSpace_t& rp = *it;
+
+            localStatistics[1] += rp(0);
+            localStatistics[2] += rp(1);
+            localStatistics[3] += rp(0) * rp(1);
+        }
+
+        ippl::Comm->allreduce(localStatistics, 4, std::plus<double>());
+
+        const double numParticles = localStatistics[0];
+
+        if (numParticles == 0.0) {
+            return 0.0;
+        }
+
+        const double perParticle = 1.0 / numParticles;
+        const double meanR       = localStatistics[1] * perParticle;
+        const double meanP       = localStatistics[2] * perParticle;
+        const double RP          = localStatistics[3] * perParticle;
+
+        double varianceStatistics[] = {0.0, 0.0};
+
+        for (OneDIterator_t it = begin; it < end; ++it) {
+            const OneDPhaseSpace_t& rp = *it;
+
+            varianceStatistics[0] += std::pow(rp(0) - meanR, 2);
+            varianceStatistics[1] += std::pow(rp(1) - meanP, 2);
+        }
+
+        ippl::Comm->allreduce(varianceStatistics, 2, std::plus<double>());
+
+        const double stdR = std::sqrt(varianceStatistics[0] / numParticles);
+        const double stdP = std::sqrt(varianceStatistics[1] / numParticles);
+
+        const double sumRP      = RP - meanR * meanP;
+        const double squaredEps = std::pow(stdR * stdP, 2) - std::pow(sumRP, 2);
+
+        return std::sqrt(std::max(squaredEps, 0.0));
+    }
+
+    void computeSetPercentiles(
+        const std::vector<OpalParticle>& particles,
+        size_t startIdx,
+        size_t nLoc,
+        SetStatistics& stat) {
+        if (!Options::computePercentiles || stat.nTotal_m < 100) {
+            return;
+        }
+
+        unsigned int numBins = static_cast<unsigned int>(
+            3.5 * std::pow(3.0, std::log10(static_cast<double>(stat.nTotal_m))));
+
+        numBins = std::max(1u, numBins);
+
+        std::vector<gsl_histogram*> histograms(3, nullptr);
+
+        Vector_t<double, 3> maxR(0.0);
+
+        for (unsigned int d = 0; d < 3; ++d) {
+            maxR(d) = 1.0000001
+                * std::max(
+                    stat.rmax_m(d) - stat.rmean_m(d),
+                    stat.rmean_m(d) - stat.rmin_m(d));
+
+            if (maxR(d) <= 0.0) {
+                maxR(d) = 1.0e-30;
+            }
+
+            histograms[d] = gsl_histogram_alloc(numBins);
+            gsl_histogram_set_ranges_uniform(histograms[d], 0.0, maxR(d));
+        }
+
+        for (size_t k = 0; k < nLoc; ++k) {
+            const OpalParticle& particle = particles[startIdx + k];
+
+            for (unsigned int d = 0; d < 3; ++d) {
+                gsl_histogram_increment(
+                    histograms[d],
+                    std::abs(particle[2 * d] - stat.rmean_m(d)));
+            }
+        }
+
+        std::vector<int> localHistogramValues(3 * (numBins + 1), 0);
+        std::vector<int> globalHistogramValues(3 * (numBins + 1), 0);
+
+        for (unsigned int d = 0; d < 3; ++d) {
+            int accumulated = 0;
+
+            for (unsigned int j = 0; j < numBins; ++j) {
+                accumulated += static_cast<int>(gsl_histogram_get(histograms[d], j));
+                localHistogramValues[d * (numBins + 1) + j + 1] = accumulated;
+            }
+
+            gsl_histogram_free(histograms[d]);
+        }
+
+        ippl::Comm->allreduce(
+            localHistogramValues.data(),
+            globalHistogramValues.data(),
+            3 * (numBins + 1),
+            std::plus<int>());
+
+        const int numParticles68 =
+            percentileParticleCount(stat.nTotal_m, percentileOneSigmaNormalDist);
+
+        const int numParticles95 =
+            percentileParticleCount(stat.nTotal_m, percentileTwoSigmasNormalDist);
+
+        const int numParticles99 =
+            percentileParticleCount(stat.nTotal_m, percentileThreeSigmasNormalDist);
+
+        const int numParticles99_99 =
+            percentileParticleCount(stat.nTotal_m, percentileFourSigmasNormalDist);
+
+        for (unsigned int d = 0; d < 3; ++d) {
+            std::vector<OneDPhaseSpace_t> oneDPhaseSpace(nLoc);
+
+            for (size_t k = 0; k < nLoc; ++k) {
+                const OpalParticle& particle = particles[startIdx + k];
+
+                oneDPhaseSpace.at(k)(0) = particle[2 * d];
+                oneDPhaseSpace.at(k)(1) = particle[2 * d + 1];
+            }
+
+            std::sort(
+                oneDPhaseSpace.begin(),
+                oneDPhaseSpace.end(),
+                [d, &stat](const OneDPhaseSpace_t& left, const OneDPhaseSpace_t& right) {
+                    return std::abs(left[0] - stat.rmean_m(d))
+                         < std::abs(right[0] - stat.rmean_m(d));
+                });
+
+            OneDIterator_t endSixtyEight = oneDPhaseSpace.end();
+            OneDIterator_t endNinetyFive = oneDPhaseSpace.end();
+            OneDIterator_t endNinetyNine = oneDPhaseSpace.end();
+            OneDIterator_t endNinetyNine_NinetyNine = oneDPhaseSpace.end();
+
+            std::tie(stat.sixtyEightPercentile_m(d), endSixtyEight) =
+                determinePercentileRange(
+                    oneDPhaseSpace.begin(),
+                    oneDPhaseSpace.end(),
+                    globalHistogramValues,
+                    localHistogramValues,
+                    d,
+                    numParticles68,
+                    stat.rmean_m(d));
+
+            std::tie(stat.ninetyFivePercentile_m(d), endNinetyFive) =
+                determinePercentileRange(
+                    oneDPhaseSpace.begin(),
+                    oneDPhaseSpace.end(),
+                    globalHistogramValues,
+                    localHistogramValues,
+                    d,
+                    numParticles95,
+                    stat.rmean_m(d));
+
+            std::tie(stat.ninetyNinePercentile_m(d), endNinetyNine) =
+                determinePercentileRange(
+                    oneDPhaseSpace.begin(),
+                    oneDPhaseSpace.end(),
+                    globalHistogramValues,
+                    localHistogramValues,
+                    d,
+                    numParticles99,
+                    stat.rmean_m(d));
+
+            std::tie(stat.ninetyNine_NinetyNinePercentile_m(d), endNinetyNine_NinetyNine) =
+                determinePercentileRange(
+                    oneDPhaseSpace.begin(),
+                    oneDPhaseSpace.end(),
+                    globalHistogramValues,
+                    localHistogramValues,
+                    d,
+                    numParticles99_99,
+                    stat.rmean_m(d));
+
+            stat.normalizedEps68Percentile_m(d) =
+                computeNormalizedEmittance(oneDPhaseSpace.begin(), endSixtyEight);
+
+            stat.normalizedEps95Percentile_m(d) =
+                computeNormalizedEmittance(oneDPhaseSpace.begin(), endNinetyFive);
+
+            stat.normalizedEps99Percentile_m(d) =
+                computeNormalizedEmittance(oneDPhaseSpace.begin(), endNinetyNine);
+
+            stat.normalizedEps99_99Percentile_m(d) =
+                computeNormalizedEmittance(oneDPhaseSpace.begin(), endNinetyNine_NinetyNine);
         }
     }
-}  // namespace
+
+} // namespace
+
 
 SetStatistics::SetStatistics()
     : outputName_m(""),
@@ -162,6 +491,7 @@ SetStatistics::SetStatistics()
       totalMass_m(0.0),
       meanKineticEnergy_m(0.0),
       stdKineticEnergy_m(0.0),
+      meanGamma_m(0.0),
       nTotal_m(0),
       RefPartR_m(0.0),
       RefPartP_m(0.0),
@@ -180,7 +510,15 @@ SetStatistics::SetStatistics()
       rpsum_m(0.0),
       eps2_m(0.0),
       eps_norm_m(0.0),
-      fac_m(0.0) {
+      fac_m(0.0),
+      sixtyEightPercentile_m(0.0),
+      ninetyFivePercentile_m(0.0),
+      ninetyNinePercentile_m(0.0),
+      ninetyNine_NinetyNinePercentile_m(0.0),
+      normalizedEps68Percentile_m(0.0),
+      normalizedEps95Percentile_m(0.0),
+      normalizedEps99Percentile_m(0.0),
+      normalizedEps99_99Percentile_m(0.0) {
 }
 
 LossDataSink::LossDataSink(std::string outfn, bool hdf5Save, CollectionType collectionType)
@@ -320,15 +658,25 @@ void LossDataSink::addReferenceParticle(
 }
 
 void LossDataSink::addParticle(
-    const OpalParticle& particle, const std::optional<std::pair<int, short>>& turnBunchNumPair) {
+    const OpalParticle& particle,
+    const std::optional<std::pair<int, short>>& turnBunchNumPair) {
+
     if (turnBunchNumPair) {
-        if (!particles_m.empty() && turnNumber_m.empty()) {
+        if (turnNumber_m.size() != particles_m.size()) {
             throw GeneralOpalException(
                 "LossDataSink::addParticle",
-                "Either no particle or all have turn number and bunch number");
+                "Either all particles or no particles must have turn number and bunch number");
         }
+
         turnNumber_m.push_back(turnBunchNumPair.value().first);
         bunchNumber_m.push_back(turnBunchNumPair.value().second);
+
+    } else {
+        if (!turnNumber_m.empty()) {
+            throw GeneralOpalException(
+                "LossDataSink::addParticle",
+                "Either all particles or no particles must have turn number and bunch number");
+        }
     }
 
     particles_m.push_back(particle);
@@ -354,6 +702,8 @@ void LossDataSink::save(unsigned int numSets, OpalData::OpenMode openMode) {
             openH5(H5_O_APPENDONLY);
             GET_NUM_STEPS();
         }
+
+        splitSets(numSets);
 
         for (unsigned int i = 0; i < numSets; ++i) {
             saveH5(i);
@@ -384,6 +734,7 @@ void LossDataSink::save(unsigned int numSets, OpalData::OpenMode openMode) {
     RefPartR_m.clear();
     RefPartP_m.clear();
     globalTrackStep_m.clear();
+    startSet_m.clear();
 }
 
 // Note: This was changed to calculate the global number of dumped particles
@@ -393,12 +744,11 @@ void LossDataSink::save(unsigned int numSets, OpalData::OpenMode openMode) {
 // nodes HAVE to participate, otherwise H5 waits endlessly for a response from
 // the nodes that didn't enter the saveH5 function. -DW
 bool LossDataSink::hasNoParticlesToDump() const {
-    // size_t nLoc = particles_m.size();
-    // ippl::Comm->reduce(nLoc, nLoc, 1, std::plus<size_t>());
-    // return nLoc == 0;
-    unsigned long long nLoc = static_cast<unsigned long long>(particles_m.size());
-    unsigned long long nGlobal = 0;
-    ippl::Comm->reduce(nLoc, nGlobal, 1, std::plus<unsigned long long>());
+    unsigned long long nGlobal =
+        static_cast<unsigned long long>(particles_m.size());
+
+    ippl::Comm->allreduce(&nGlobal, 1, std::plus<unsigned long long>());
+
     return nGlobal == 0;
 }
 
@@ -420,22 +770,17 @@ void LossDataSink::saveH5(unsigned int setIdx) {
         nLoc     = endIdx - startIdx;
     }
 
-    // std::unique_ptr<size_t[]> locN(new size_t[ippl::Comm->size()]);
-    // std::unique_ptr<size_t[]> globN(new size_t[ippl::Comm->size()]);
+    // std::vector<unsigned long long> locN(ippl::Comm->size(), 0);
+    // std::vector<unsigned long long> globN(ippl::Comm->size(), 0);
 
-    // for (int i = 0; i < ippl::Comm->size(); i++) {
-    //     globN[i] = locN[i] = 0;
-    // }
-
-    // locN[ippl::Comm->rank()] = nLoc;
-
-    std::vector<unsigned long long> locN(ippl::Comm->size(), 0);
-    std::vector<unsigned long long> globN(ippl::Comm->size(), 0);
-
-    locN[ippl::Comm->rank()] = static_cast<unsigned long long>(nLoc);
-    reduce(locN.data(), globN.data(), ippl::Comm->size(), std::plus<unsigned long long>());
+    // locN[ippl::Comm->rank()] = static_cast<unsigned long long>(nLoc);
+    // reduce(locN.data(), globN.data(), ippl::Comm->size(), std::plus<unsigned long long>());
 
     SetStatistics stat = computeSetStatistics(setIdx);
+
+    if (stat.nTotal_m == 0) {
+        return;
+    }
 
     /// Set current record/time step.
     SET_STEP();
@@ -512,25 +857,46 @@ void LossDataSink::saveH5(unsigned int setIdx) {
         (tmpDouble = stat.trms_m, &tmpDouble),
         1);
 
-    // WRITE_STEPATTRIB_FLOAT64("centroid", (tmpVector = engine.getMeanPosition(), &tmpVector[0]), 3);
-    // WRITE_STEPATTRIB_FLOAT64("RMSX", (tmpVector = engine.getStandardDeviationPosition(), &tmpVector[0]), 3);
-    // WRITE_STEPATTRIB_FLOAT64("MEANP", (tmpVector = engine.getMeanMomentum(), &tmpVector[0]), 3);
-    // WRITE_STEPATTRIB_FLOAT64("RMSP", (tmpVector = engine.getStandardDeviationMomentum(), &tmpVector[0]), 3);
-    // WRITE_STEPATTRIB_FLOAT64("#varepsilon", (tmpVector = engine.getNormalizedEmittance(), &tmpVector[0]), 3);
-
-    // WRITE_STEPATTRIB_FLOAT64("#varepsilon-geom", (tmpVector = engine.getGeometricEmittance(), &tmpVector[0]), 3);
-    // WRITE_STEPATTRIB_FLOAT64("ENERGY", (tmpDouble = engine.getMeanKineticEnergy(), &tmpDouble), 1);
-    // WRITE_STEPATTRIB_FLOAT64("dE", (tmpDouble = engine.getStdKineticEnergy(), &tmpDouble), 1);
-    // WRITE_STEPATTRIB_FLOAT64("TotalCharge", (tmpDouble = engine.getTotalCharge(), &tmpDouble), 1);
-    // WRITE_STEPATTRIB_FLOAT64("TotalMass", (tmpDouble = engine.getTotalMass(), &tmpDouble), 1);
-    // WRITE_STEPATTRIB_FLOAT64("meanTime", (tmpDouble = engine.getMeanTime(), &tmpDouble), 1);
-    // WRITE_STEPATTRIB_FLOAT64("rmsTime", (tmpDouble = engine.getStdTime(), &tmpDouble), 1);
-
     if (Options::computePercentiles) {
-        throw GeneralOpalException(
-            "LossDataSink::saveH5",
-            "Percentile loss-file statistics are not implemented in the OPAL-X LossDataSink path "
-            "after removing DistributionMoments.");
+        WRITE_STEPATTRIB_FLOAT64(
+            "68-percentile",
+            (tmpVector = stat.sixtyEightPercentile_m, &tmpVector[0]),
+            3);
+
+        WRITE_STEPATTRIB_FLOAT64(
+            "95-percentile",
+            (tmpVector = stat.ninetyFivePercentile_m, &tmpVector[0]),
+            3);
+
+        WRITE_STEPATTRIB_FLOAT64(
+            "99-percentile",
+            (tmpVector = stat.ninetyNinePercentile_m, &tmpVector[0]),
+            3);
+
+        WRITE_STEPATTRIB_FLOAT64(
+            "99_99-percentile",
+            (tmpVector = stat.ninetyNine_NinetyNinePercentile_m, &tmpVector[0]),
+            3);
+
+        WRITE_STEPATTRIB_FLOAT64(
+            "normalizedEps68Percentile",
+            (tmpVector = stat.normalizedEps68Percentile_m, &tmpVector[0]),
+            3);
+
+        WRITE_STEPATTRIB_FLOAT64(
+            "normalizedEps95Percentile",
+            (tmpVector = stat.normalizedEps95Percentile_m, &tmpVector[0]),
+            3);
+
+        WRITE_STEPATTRIB_FLOAT64(
+            "normalizedEps99Percentile",
+            (tmpVector = stat.normalizedEps99Percentile_m, &tmpVector[0]),
+            3);
+
+        WRITE_STEPATTRIB_FLOAT64(
+            "normalizedEps99_99Percentile",
+            (tmpVector = stat.normalizedEps99_99Percentile_m, &tmpVector[0]),
+            3);
     }
 
     WRITE_STEPATTRIB_FLOAT64(
@@ -538,38 +904,12 @@ void LossDataSink::saveH5(unsigned int setIdx) {
         (tmpVector = stat.maxR_m, &tmpVector[0]),
         3);
 
-
-
-    // if (Options::computePercentiles) {
-    //     WRITE_STEPATTRIB_FLOAT64(
-    //         "68-percentile", (tmpVector = engine.get68Percentile(), &tmpVector[0]), 3);
-    //     WRITE_STEPATTRIB_FLOAT64(
-    //         "95-percentile", (tmpVector = engine.get95Percentile(), &tmpVector[0]), 3);
-    //     WRITE_STEPATTRIB_FLOAT64(
-    //         "99-percentile", (tmpVector = engine.get99Percentile(), &tmpVector[0]), 3);
-    //     WRITE_STEPATTRIB_FLOAT64(
-    //         "99_99-percentile", (tmpVector = engine.get99_99Percentile(), &tmpVector[0]), 3);
-
-    //     WRITE_STEPATTRIB_FLOAT64(
-    //         "normalizedEps68Percentile",
-    //         (tmpVector = engine.getNormalizedEmittance68Percentile(), &tmpVector[0]), 3);
-    //     WRITE_STEPATTRIB_FLOAT64(
-    //         "normalizedEps95Percentile",
-    //         (tmpVector = engine.getNormalizedEmittance95Percentile(), &tmpVector[0]), 3);
-    //     WRITE_STEPATTRIB_FLOAT64(
-    //         "normalizedEps99Percentile",
-    //         (tmpVector = engine.getNormalizedEmittance99Percentile(), &tmpVector[0]), 3);
-    //     WRITE_STEPATTRIB_FLOAT64(
-    //         "normalizedEps99_99Percentile",
-    //         (tmpVector = engine.getNormalizedEmittance99_99Percentile(), &tmpVector[0]), 3);
-    // }
-
-    // WRITE_STEPATTRIB_FLOAT64("maxR", (tmpVector = engine.getMaxR(), &tmpVector[0]), 3);
-
     // Write all data
-    std::vector<char> buffer(nLoc * sizeof(h5_float64_t));
-    h5_float64_t* f64buffer = nLoc > 0 ? reinterpret_cast<h5_float64_t*>(&buffer[0]) : nullptr;
-    h5_int64_t* i64buffer   = nLoc > 0 ? reinterpret_cast<h5_int64_t*>(&buffer[0]) : nullptr;
+    std::vector<h5_float64_t> f64bufferStorage(std::max<size_t>(nLoc, 1));
+    std::vector<h5_int64_t> i64bufferStorage(std::max<size_t>(nLoc, 1));
+
+    h5_float64_t* f64buffer = f64bufferStorage.data();
+    h5_int64_t* i64buffer   = i64bufferStorage.data();
 
     ::i64transform(particles_m, startIdx, nLoc, i64buffer, [](const OpalParticle& particle) {
         return particle.getId();
@@ -730,8 +1070,11 @@ void LossDataSink::saveASCII() {
  *
  */
 void LossDataSink::splitSets(unsigned int numSets) {
-    if (numSets <= 1 || particles_m.size() == 0)
+    startSet_m.clear();
+
+    if (numSets <= 1 || particles_m.empty()) {
         return;
+    }
 
     const size_t nLoc   = particles_m.size();
     size_t avgNumPerSet = nLoc / numSets;
@@ -793,8 +1136,8 @@ SetStatistics LossDataSink::computeSetStatistics(unsigned int setIdx) {
     double part[6];
 
     // Layout:
-    // 0      : particle count
-    // 1..6   : centroid sums, x, px, y, py, z, pz
+    // 0      : number of particles
+    // 1..6   : sums of x, px, y, py, z, pz
     // 7..42  : 6x6 second moments
     // 43     : time sum
     // 44     : time^2 sum
@@ -802,13 +1145,17 @@ SetStatistics LossDataSink::computeSetStatistics(unsigned int setIdx) {
     // 46     : total mass
     // 47     : kinetic energy sum
     // 48     : kinetic energy^2 sum
-    const unsigned int totalSize = 49; //45;
+    // 49     : gamma sum
+    const unsigned int totalSize = 50;
 
     double plainData[totalSize] = {};
-    double rminmax[6] = {};
-    double maxR[3] = {};
+    double rMinMax[6];
 
-    Util::KahanAccumulation data[totalSize];
+    for (unsigned int i = 0; i < 6; ++i) {
+        rMinMax[i] = std::numeric_limits<double>::lowest();
+    }
+
+    Util::KahanAccumulation data[totalSize] = {};
     Util::KahanAccumulation* localCentroid = data + 1;
     Util::KahanAccumulation* localMoments  = data + 7;
     Util::KahanAccumulation* localOthers   = data + 43;
@@ -824,7 +1171,8 @@ SetStatistics LossDataSink::computeSetStatistics(unsigned int setIdx) {
     data[0].sum = static_cast<double>(nLoc);
 
     size_t idx = startIdx;
-      for (size_t k = 0; k < nLoc; ++k, ++idx) {
+
+    for (size_t k = 0; k < nLoc; ++k, ++idx) {
         const OpalParticle& particle = particles_m[idx];
 
         part[0] = particle.getX();
@@ -836,40 +1184,31 @@ SetStatistics LossDataSink::computeSetStatistics(unsigned int setIdx) {
 
         for (int i = 0; i < 6; ++i) {
             localCentroid[i] += part[i];
-
             for (int j = 0; j <= i; ++j) {
                 localMoments[i * 6 + j] += part[i] * part[j];
             }
         }
 
+        for (unsigned int d = 0; d < 3; ++d) {
+            const double r = part[2 * d];
+
+            rMinMax[2 * d]     = std::max(rMinMax[2 * d], -r);
+            rMinMax[2 * d + 1] = std::max(rMinMax[2 * d + 1], r);
+        }
+
         const double time = particle.getTime();
-        
+
+        const double gamma = Util::getGamma(particle.getP());
+        const double eKin  = Util::getKineticEnergy(particle.getP(), particle.getMass());
+
         localOthers[0] += time;
         localOthers[1] += time * time;
         localOthers[2] += particle.getCharge();
         localOthers[3] += particle.getMass();
-
-        const double px = particle.getPx();
-        const double py = particle.getPy();
-        const double pz = particle.getPz();
-        const double p2 = px * px + py * py + pz * pz;
-
-        // In OPAL these momenta are beta*gamma, so gamma = sqrt(1 + |beta gamma|^2).
-        // particle.getMass() appears to be in MeV.
-        const double kineticEnergy = particle.getMass() * (std::sqrt(1.0 + p2) - 1.0);
-
-        localOthers[4] += kineticEnergy;
-        localOthers[5] += kineticEnergy * kineticEnergy;
-
-        ::cminmax(rminmax[0], rminmax[1], particle.getX());
-        ::cminmax(rminmax[2], rminmax[3], particle.getY());
-        ::cminmax(rminmax[4], rminmax[5], particle.getZ());
-
-        maxR[0] = std::max(maxR[0], std::abs(particle.getX()));
-        maxR[1] = std::max(maxR[1], std::abs(particle.getY()));
-        maxR[2] = std::max(maxR[2], std::abs(particle.getZ()));
+        localOthers[4] += eKin;
+        localOthers[5] += eKin * eKin;
+        localOthers[6] += gamma;
     }
-
 
     for (int i = 0; i < 6; ++i) {
         for (int j = 0; j < i; ++j) {
@@ -882,8 +1221,7 @@ SetStatistics LossDataSink::computeSetStatistics(unsigned int setIdx) {
     }
 
     ippl::Comm->allreduce(plainData, totalSize, std::plus<double>());
-    ippl::Comm->allreduce(rminmax, 6, std::greater<double>());
-    ippl::Comm->allreduce(maxR, 3, std::greater<double>());
+    ippl::Comm->allreduce(rMinMax, 6, std::greater<double>());
 
     if (plainData[0] == 0.0) {
         return stat;
@@ -915,20 +1253,20 @@ SetStatistics LossDataSink::computeSetStatistics(unsigned int setIdx) {
 
     for (unsigned int i = 0; i < 3u; ++i) {
         stat.rmean_m(i) = centroid[2 * i] / stat.nTotal_m;
-        stat.pmean_m(i) = centroid[(2 * i) + 1] / stat.nTotal_m;
+        stat.pmean_m(i) = centroid[2 * i + 1] / stat.nTotal_m;
 
         stat.rsqsum_m(i) =
-            moments[(2 * i) * 6 + (2 * i)]
+            moments[(2 * i) * 6 + 2 * i]
             - stat.nTotal_m * std::pow(stat.rmean_m(i), 2);
 
         stat.psqsum_m(i) =
-            moments[(2 * i + 1) * 6 + (2 * i + 1)]
+            moments[(2 * i + 1) * 6 + 2 * i + 1]
             - stat.nTotal_m * std::pow(stat.pmean_m(i), 2);
 
         stat.psqsum_m(i) = std::max(0.0, stat.psqsum_m(i));
 
         stat.rpsum_m(i) =
-            moments[(2 * i) * 6 + (2 * i + 1)]
+            moments[(2 * i) * 6 + 2 * i + 1]
             - stat.nTotal_m * stat.rmean_m(i) * stat.pmean_m(i);
     }
 
@@ -946,39 +1284,37 @@ SetStatistics LossDataSink::computeSetStatistics(unsigned int setIdx) {
             others[5] / stat.nTotal_m
                 - stat.meanKineticEnergy_m * stat.meanKineticEnergy_m));
 
+    stat.meanGamma_m = others[6] / stat.nTotal_m;
+
     stat.eps2_m =
         (stat.rsqsum_m * stat.psqsum_m - stat.rpsum_m * stat.rpsum_m)
         / (1.0 * stat.nTotal_m * stat.nTotal_m);
 
     stat.rpsum_m /= stat.nTotal_m;
 
-    const double meanMomentumMagnitude = std::sqrt(
-        stat.pmean_m(0) * stat.pmean_m(0)
-        + stat.pmean_m(1) * stat.pmean_m(1)
-        + stat.pmean_m(2) * stat.pmean_m(2));
+    const double betaGamma =
+        std::sqrt(std::max(0.0, stat.meanGamma_m * stat.meanGamma_m - 1.0));
 
     for (unsigned int i = 0; i < 3u; ++i) {
         stat.rrms_m(i) = std::sqrt(std::max(0.0, stat.rsqsum_m(i)) / stat.nTotal_m);
         stat.prms_m(i) = std::sqrt(std::max(0.0, stat.psqsum_m(i)) / stat.nTotal_m);
-        
+
         stat.eps_norm_m(i) = std::sqrt(std::max(0.0, stat.eps2_m(i)));
 
-        // Approximate geometric emittance from normalized emittance.
-        // This assumes momentum units are beta*gamma.
         stat.geomEmit_m(i) =
-            meanMomentumMagnitude > 0.0
-                ? stat.eps_norm_m(i) / meanMomentumMagnitude
-                : 0.0;
+            betaGamma > 0.0 ? stat.eps_norm_m(i) / betaGamma : 0.0;
 
         const double tmp = stat.rrms_m(i) * stat.prms_m(i);
+        stat.fac_m(i) = tmp == 0.0 ? 0.0 : 1.0 / tmp;
 
-        stat.fac_m(i)  = tmp == 0.0 ? 0.0 : 1.0 / tmp;
-        stat.rmin_m(i) = -rminmax[2 * i];
-        stat.rmax_m(i) = rminmax[2 * i + 1];
-        stat.maxR_m(i) = maxR[i];
+        stat.rmin_m(i) = -rMinMax[2 * i];
+        stat.rmax_m(i) =  rMinMax[2 * i + 1];
+        stat.maxR_m(i) =  stat.rmax_m(i);
     }
 
     stat.rprms_m = stat.rpsum_m * stat.fac_m;
+
+    computeSetPercentiles(particles_m, startIdx, nLoc, stat);
 
     return stat;
 }
