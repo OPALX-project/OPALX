@@ -18,10 +18,14 @@
 #ifndef OPAL_OpalElement_HH
 #define OPAL_OpalElement_HH
 
-#include <map>
-#include <string>
 #include "AbstractObjects/Element.h"
 
+#include <iosfwd>
+#include <string>
+#include <utility>
+#include <vector>
+
+class Attribute;
 class Statement;
 
 class OpalElement : public Element {
@@ -62,7 +66,7 @@ public:
     const std::string getTypeName() const;
 
     // return the element aperture vector
-    std::pair<ApertureType, std::vector<double> > getApert() const;
+    std::pair<ApertureType, std::vector<double>> getApert() const;
 
     /// Return the element's type name.
     const std::string getWakeF() const;
