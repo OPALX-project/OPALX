@@ -23,10 +23,8 @@
 class OpalWake;
 class BoundaryGeometry;
 
-class OpalCavity: public OpalElement {
-
+class OpalCavity : public OpalElement {
 public:
-
     /// The attributes of class OpalCavity.
     enum {
         VOLT = COMMON,  // The peak voltage.
@@ -41,13 +39,13 @@ public:
         RMIN,           // Minimal Radius
         RMAX,           // Maximal Radius
         ANGLE,          // the azimuth position of the cavity
-        PDIS,           // perpendicular distance from symmetric line of cavity gap to machine center
-        GAPWIDTH,       // constant gap width of cavity
-        PHI0,           // initial phase of cavity
-        DESIGNENERGY,   // The mean kinetic energy at exit
-        PHASE_MODEL,    // time dependent phase
-        AMPLITUDE_MODEL,// time dependent amplitude
-        FREQUENCY_MODEL,// time dependent frequency
+        PDIS,          // perpendicular distance from symmetric line of cavity gap to machine center
+        GAPWIDTH,      // constant gap width of cavity
+        PHI0,          // initial phase of cavity
+        DESIGNENERGY,  // The mean kinetic energy at exit
+        PHASE_MODEL,   // time dependent phase
+        AMPLITUDE_MODEL,  // time dependent amplitude
+        FREQUENCY_MODEL,  // time dependent frequency
         SIZE
     };
 
@@ -57,23 +55,20 @@ public:
     virtual ~OpalCavity();
 
     /// Make clone.
-    virtual OpalCavity *clone(const std::string &name);
+    virtual OpalCavity* clone(const std::string& name);
 
     /// Update the embedded OPALX cavity.
     virtual void update();
 
 private:
-
     // Not implemented.
-    OpalCavity(const OpalCavity &);
-    void operator=(const OpalCavity &);
+    OpalCavity(const OpalCavity&);
+    void operator=(const OpalCavity&);
 
     // Clone constructor.
-    OpalCavity(const std::string &name, OpalCavity *parent);
+    OpalCavity(const std::string& name, OpalCavity* parent);
 
-    BoundaryGeometry *obgeo_m;
-
-
+    BoundaryGeometry* obgeo_m;
 };
 
-#endif // OPAL_OpalCavity_HH
+#endif  // OPAL_OpalCavity_HH

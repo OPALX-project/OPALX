@@ -75,13 +75,14 @@
 #include "BeamlineGeometry/SupportPlacement.h"
 #include "Structure/BoundingBox.h"
 #include "Utilities/GeneralOpalException.h"
-
-#include <memory>
-#include <optional>
+#include "VectorMath.h"
 
 #include <map>
+#include <memory>
 #include <queue>
 #include <string>
+#include <utility>
+#include <vector>
 
 class BeamlineVisitor;
 class BoundaryGeometry;

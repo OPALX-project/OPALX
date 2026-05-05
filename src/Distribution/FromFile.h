@@ -6,16 +6,16 @@
 #ifndef OPALX_FROM_FILE_H
 #define OPALX_FROM_FILE_H
 
-#include "Distribution.h"
-#include "SamplingBase.hpp"
-#include "Ippl.h"
-#include "OPALTypes.h"
-#include "Utilities/OpalException.h"
+#include <fstream>
 #include <memory>
+#include <sstream>
 #include <string>
 #include <vector>
-#include <fstream>
-#include <sstream>
+#include "Distribution.h"
+#include "Ippl.h"
+#include "OPALTypes.h"
+#include "SamplingBase.hpp"
+#include "Utilities/OpalException.h"
 
 /**
  * @class FromFile
@@ -38,9 +38,9 @@ public:
      * @param fc Shared pointer to FieldContainer.
      * @param opalDist Borrowed Distribution.
      */
-    FromFile(std::shared_ptr<ParticleContainer_t> pc,
-             std::shared_ptr<FieldContainer_t> fc,
-             Distribution_t* opalDist);
+    FromFile(
+            std::shared_ptr<ParticleContainer_t> pc, std::shared_ptr<FieldContainer_t> fc,
+            Distribution_t* opalDist);
 
     /**
      * @brief Convenience constructor that takes the filename directly.
@@ -49,9 +49,9 @@ public:
      * OPALX Distribution object is unnecessary. It behaves like the main
      * constructor but skips querying the Distribution for the filename.
      */
-    FromFile(std::shared_ptr<ParticleContainer_t> pc,
-             std::shared_ptr<FieldContainer_t> fc,
-             const std::string& filename);
+    FromFile(
+            std::shared_ptr<ParticleContainer_t> pc, std::shared_ptr<FieldContainer_t> fc,
+            const std::string& filename);
 
     /**
      * @brief Generates particles by reading from file.
@@ -106,4 +106,4 @@ private:
     std::vector<size_t> columnIndices_m;
 };
 
-#endif // OPALX_FROM_FILE_H
+#endif  // OPALX_FROM_FILE_H

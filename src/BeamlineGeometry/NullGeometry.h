@@ -24,18 +24,16 @@
 
 class Euclid3D;
 
-
 // Class NullGeometry
 // ------------------------------------------------------------------------
 /// Geometry representing an identity transform.
 
-class NullGeometry: public BGeometryBase {
+class NullGeometry : public BGeometryBase {
 public:
-
     NullGeometry();
-    NullGeometry(const NullGeometry &);
+    NullGeometry(const NullGeometry&);
     virtual ~NullGeometry();
-    const NullGeometry &operator=(const NullGeometry &);
+    const NullGeometry& operator=(const NullGeometry&);
 
     /// Get arc length.
     //  Always zero for this class.
@@ -61,17 +59,11 @@ public:
     virtual Euclid3D getTransform(double s) const;
 };
 
-
 // inlined (trivial) member functions
-inline NullGeometry::NullGeometry()
-{}
+inline NullGeometry::NullGeometry() {}
 
-inline NullGeometry::NullGeometry(const NullGeometry & o) : BGeometryBase(o)
-{}
+inline NullGeometry::NullGeometry(const NullGeometry& o) : BGeometryBase(o) {}
 
-inline const NullGeometry &
-NullGeometry::operator=(const NullGeometry &) {
-    return *this;
-}
+inline const NullGeometry& NullGeometry::operator=(const NullGeometry&) { return *this; }
 
-#endif // OPALX_NullGeometry_HH
+#endif  // OPALX_NullGeometry_HH

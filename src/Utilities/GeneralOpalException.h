@@ -9,16 +9,14 @@
 /// Prefer dedicated subclasses such as parse, format, or fieldmap errors when
 /// adding new code. This type preserves existing generic error semantics while
 /// keeping the hierarchy rooted in OpalException.
-class GeneralOpalException: public OpalException
-{
+class GeneralOpalException : public OpalException {
 public:
-    GeneralOpalException(const std::string &meth, const std::string &msg);
+    GeneralOpalException(const std::string& meth, const std::string& msg);
 
-    GeneralOpalException(const GeneralOpalException &);
+    GeneralOpalException(const GeneralOpalException&);
     ~GeneralOpalException() override;
 
 private:
-
     // Not implemented.
     GeneralOpalException();
 };

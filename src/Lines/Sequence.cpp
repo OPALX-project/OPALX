@@ -51,28 +51,28 @@ namespace {
 
 Sequence::Sequence()
     : BeamSequence(
-        SIZE, "SEQUENCE",
-        "The \"SEQUENCE\" statement initiates parsing of an "
-        "element sequence.\n"
-        "\t<label>: SEQUENCE,L=<length>,REFER=<reference>\n"
-        "\t\t...\n"
-        "\t\t<object>: <class>,AT=<real>{,<attribute>=<value>}\n"
-        "\t\t<object>: <class>,DRIFT=<real>{,<attribute>=<value>}\n"
-        "\t\t...\n"
-        "\tEND;") {
+              SIZE, "SEQUENCE",
+              "The \"SEQUENCE\" statement initiates parsing of an "
+              "element sequence.\n"
+              "\t<label>: SEQUENCE,L=<length>,REFER=<reference>\n"
+              "\t\t...\n"
+              "\t\t<object>: <class>,AT=<real>{,<attribute>=<value>}\n"
+              "\t\t<object>: <class>,DRIFT=<real>{,<attribute>=<value>}\n"
+              "\t\t...\n"
+              "\tEND;") {
     itsAttr[TYPE]   = Attributes::makeString("TYPE", "The design type");
     itsAttr[LENGTH] = Attributes::makeReal("L", "Total length of sequence in m");
 
     itsAttr[REFER] = Attributes::makeString(
-        "REFER",
-        "Reference position for members:\n"
-        "\tENTRY | EXIT | CENTRE (default is CENTRE)",
-        "CENTRE");
+            "REFER",
+            "Reference position for members:\n"
+            "\tENTRY | EXIT | CENTRE (default is CENTRE)",
+            "CENTRE");
     itsAttr[REFPOS] = Attributes::makeString(
-        "REFPOS",
-        "Element giving reference position for this sequence"
-        "\t(if given, this position is used instead of the centre, when the"
-        "\tsequence is nested in another sequence with \"REFER=CENTRE\")");
+            "REFPOS",
+            "Element giving reference position for this sequence"
+            "\t(if given, this position is used instead of the centre, when the"
+            "\tsequence is nested in another sequence with \"REFER=CENTRE\")");
 
     setElement(new TLine("SEQUENCE"));
 
@@ -88,12 +88,9 @@ Sequence::Sequence(const std::string& name, Sequence* parent)
     setElement(new TLine(name));
 }
 
-Sequence::~Sequence() {
-}
+Sequence::~Sequence() {}
 
-Sequence* Sequence::clone(const std::string& name) {
-    return new Sequence(name, this);
-}
+Sequence* Sequence::clone(const std::string& name) { return new Sequence(name, this); }
 
 Sequence* Sequence::copy(const std::string& name) {
     TLine* oldLine = fetchLine();
@@ -128,8 +125,8 @@ Sequence::TLine::iterator Sequence::findNamedPosition(TLine& line, const std::st
                 while (++test != line.end()) {
                     if (test->getElement()->getName() == name) {
                         throw OpalException(
-                            "Sequence::findNamedPosition()",
-                            "Element \"" + name + "\" is not unique in sequence.");
+                                "Sequence::findNamedPosition()",
+                                "Element \"" + name + "\" is not unique in sequence.");
                     }
                 }
 
@@ -139,12 +136,10 @@ Sequence::TLine::iterator Sequence::findNamedPosition(TLine& line, const std::st
     }
 
     throw OpalException(
-        "Sequence::findNamedPosition()", "Element \"" + name + "\" not found in sequence.");
+            "Sequence::findNamedPosition()", "Element \"" + name + "\" not found in sequence.");
 }
 
-double Sequence::getLength() const {
-    return Attributes::getReal(itsAttr[LENGTH]);
-}
+double Sequence::getLength() const { return Attributes::getReal(itsAttr[LENGTH]); }
 
 double Sequence::getEntrance(ReferenceType ref) const {
     if (itsRefPoint.empty()) {
@@ -199,16 +194,14 @@ void Sequence::parse(Statement& statement) {
     // Set up to parse members.
     SequenceParser parser(this);
     parser.run();
-    if (itsAttr[REFPOS])
-        itsRefPoint = Attributes::getString(itsAttr[REFPOS]);
+    if (itsAttr[REFPOS]) itsRefPoint = Attributes::getString(itsAttr[REFPOS]);
 }
 
 void Sequence::print(std::ostream& os) const {
     TLine* line              = fetchLine();
     std::streamsize old_prec = os.precision(12);
 
-    if (isShared())
-        os << "SHARED ";
+    if (isShared()) os << "SHARED ";
     os << getOpalName() << ":SEQUENCE";
 
     for (const Attribute& i : itsAttr) {
@@ -227,8 +220,7 @@ void Sequence::print(std::ostream& os) const {
             if (name[0] != '#') {
                 // Name of current element.
                 os << "  ";
-                if (member.getReflectionFlag())
-                    os << '-';
+                if (member.getReflectionFlag()) os << '-';
                 os << name;
 
                 // Position of current element.
@@ -255,13 +247,10 @@ void Sequence::replace(Object* oldObject, Object* newObject) {
 
 void Sequence::update() {
     TLine* line = fetchLine();
-    if (!line->empty())
-        updateList(this, line);
+    if (!line->empty()) updateList(this, line);
 }
 
-Sequence::TLine* Sequence::fetchLine() const {
-    return dynamic_cast<TLine*>(getElement());
-}
+Sequence::TLine* Sequence::fetchLine() const { return dynamic_cast<TLine*>(getElement()); }
 
 void Sequence::storeLine(TLine& newLine) {
     // Remove any old line and assign new one.
@@ -348,8 +337,7 @@ void Sequence::insertDrifts(Sequence::TLine& line) {
     TLine::iterator i = line.begin();
     while (true) {
         ++i;
-        if (i == line.end())
-            break;
+        if (i == line.end()) break;
         SequenceMember member;
         DriftRep* drift = new DriftRep();
         drift->setName("[DRIFT]");
@@ -365,23 +353,21 @@ void Sequence::updateList(Sequence* seq, TLine* line) {
 
     while (true) {
         // Recursive call for nested beam non-shared sequence.
-        if (iter == last)
-            break;
+        if (iter == last) break;
         ElementBase* base = iter->getElement();
         if (!base->isSharable()) {
             TLine* sub_line = dynamic_cast<TLine*>(base);
             if (sub_line != 0) {
                 const std::string& sub_name = sub_line->getName();
                 Sequence* sub_seq =
-                    dynamic_cast<Sequence*>(OpalData::getInstance()->find(sub_name));
+                        dynamic_cast<Sequence*>(OpalData::getInstance()->find(sub_name));
                 updateList(sub_seq, sub_line);
             }
         }
         ++iter;
 
         // Fill in drift length.
-        if (iter == last)
-            break;
+        if (iter == last) break;
         double driftLength = seq->findDriftLength(iter);
         iter->setLength(driftLength);
         ++iter;

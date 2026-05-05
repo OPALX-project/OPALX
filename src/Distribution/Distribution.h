@@ -26,8 +26,8 @@
 
 #include <memory>
 
-#include "Algorithms/Matrix.h"
 #include "Algorithms/CoordinateSystemTrafo.h"
+#include "Algorithms/Matrix.h"
 #include "Attributes/Attributes.h"
 #include "Distribution/Distribution.h"
 #include "Manager/BaseManager.h"
@@ -56,7 +56,7 @@ class H5PartWrapper;
 enum class DistributionType : short { NODIST = -1, GAUSS, MULTIVARIATEGAUSS, FLATTOP, FROMFILE };
 
 using ParticleContainer_t = ParticleContainer<double, 3>;
-using FieldContainer_t = FieldContainer<double, 3>;
+using FieldContainer_t    = FieldContainer<double, 3>;
 
 class Distribution : public Definition {
 public:
@@ -64,7 +64,7 @@ public:
 
     virtual ~Distribution();
 
-    using Matrix_t = ippl::Vector< ippl::Vector<double, 6>, 6>;
+    using Matrix_t = ippl::Vector<ippl::Vector<double, 6>, 6>;
 
     virtual bool canReplaceBy(Object* object);
     virtual Distribution* clone(const std::string& name);
@@ -115,8 +115,8 @@ public:
 
     Matrix_t correlationMatrix_m;
 
-    bool emitting_m;                     /// Distribution is an emitted, and is currently
-                                         /// emitting, rather than an injected, beam.
+    bool emitting_m;  /// Distribution is an emitted, and is currently
+                      /// emitting, rather than an injected, beam.
 
     double getTEmission() const;
     void setTEmission(double tEmission);
@@ -148,7 +148,7 @@ private:
      * @param massIneV particle charge in eV
      * @param charge of the particle type in elementary charge
      */
-    //void create(size_t& numberOfParticles, double massIneV, double charge, auto R);
+    // void create(size_t& numberOfParticles, double massIneV, double charge, auto R);
     void calcPartPerDist(size_t numberOfParticles);
     void checkParticleNumber(size_t& numberOfParticles);
 
@@ -157,20 +157,16 @@ private:
 
     class BinomialBehaviorSplitter {
     public:
-        virtual ~BinomialBehaviorSplitter() {
-        }
+        virtual ~BinomialBehaviorSplitter() {}
 
         virtual double get(double rand) = 0;
     };
 
     class MDependentBehavior : public BinomialBehaviorSplitter {
     public:
-        MDependentBehavior(const MDependentBehavior& rhs) : ami_m(rhs.ami_m) {
-        }
+        MDependentBehavior(const MDependentBehavior& rhs) : ami_m(rhs.ami_m) {}
 
-        MDependentBehavior(double a) {
-            ami_m = 1.0 / a;
-        }
+        MDependentBehavior(double a) { ami_m = 1.0 / a; }
 
         virtual double get(double rand);
 
@@ -231,71 +227,39 @@ private:
     double tEmission_m;
 };
 
-inline Inform& operator<<(Inform& os, const Distribution& d) {
-    return d.printInfo(os);
-}
+inline Inform& operator<<(Inform& os, const Distribution& d) { return d.printInfo(os); }
 
-inline ippl::Vector<double, 3> Distribution::getSigmaR() const {
-    return sigmaR_m;
-}
+inline ippl::Vector<double, 3> Distribution::getSigmaR() const { return sigmaR_m; }
 
-inline ippl::Vector<double, 3> Distribution::getSigmaP() const {
-    return sigmaP_m;
-}
+inline ippl::Vector<double, 3> Distribution::getSigmaP() const { return sigmaP_m; }
 
-inline ippl::Vector<double, 3> Distribution::get_pmean() const {
-    return pmean_m;
-}
+inline ippl::Vector<double, 3> Distribution::get_pmean() const { return pmean_m; }
 
-inline ippl::Vector<double, 3> Distribution::get_xmean() const {
-    return xmean_m;
-}
+inline ippl::Vector<double, 3> Distribution::get_xmean() const { return xmean_m; }
 
-inline ippl::Vector<double, 3> Distribution::getCutoffR() const {
-    return cutoffR_m;
-}
+inline ippl::Vector<double, 3> Distribution::getCutoffR() const { return cutoffR_m; }
 
-inline ippl::Vector<double, 3> Distribution::getCutoffP() const {
-    return cutoffP_m;
-}
+inline ippl::Vector<double, 3> Distribution::getCutoffP() const { return cutoffP_m; }
 
-inline double Distribution::getSigmaTRise() const {
-    return sigmaTRise_m;
-}
+inline double Distribution::getSigmaTRise() const { return sigmaTRise_m; }
 
-inline double Distribution::getSigmaTFall() const {
-    return sigmaTFall_m;
-}
+inline double Distribution::getSigmaTFall() const { return sigmaTFall_m; }
 
-inline double Distribution::getTPulseLengthFWHM() const {
-    return tPulseLengthFWHM_m;
-}
+inline double Distribution::getTPulseLengthFWHM() const { return tPulseLengthFWHM_m; }
 
-inline double Distribution::getFTOSCAmplitude() const {
-    return FTOSCAmplitude_m;
-}
+inline double Distribution::getFTOSCAmplitude() const { return FTOSCAmplitude_m; }
 
-inline double Distribution::getFTOSCPeriods() const {
-    return FTOSCPeriods_m;
-}
+inline double Distribution::getFTOSCPeriods() const { return FTOSCPeriods_m; }
 
-inline DistributionType Distribution::getType() const {
-    return distrTypeT_m;
-}
+inline DistributionType Distribution::getType() const { return distrTypeT_m; }
 
-inline double Distribution::getAvrgpz() const {
-    return avrgpz_m;
-}
+inline double Distribution::getAvrgpz() const { return avrgpz_m; }
 
-inline size_t Distribution::getNumParticles() const {
-    return totalNumberParticles_m;
-}
+inline size_t Distribution::getNumParticles() const { return totalNumberParticles_m; }
 
-inline std::string Distribution::getTypeofDistribution() {
-    return distT_m;
-}
+inline std::string Distribution::getTypeofDistribution() { return distT_m; }
 
-#endif  
+#endif
 /*
 // OPAL_Distribution_HH
 //
@@ -346,7 +310,8 @@ class H5PartWrapper;
 enum class DistributionType : short { NODIST = -1, GAUSS };
 
 namespace DISTRIBUTION {
-    enum { TYPE, FNAME, SIGMAX, SIGMAY, SIGMAZ, SIGMAPX, SIGMAPY, SIGMAPZ, SIZE, CUTOFFPX, CUTOFFPY, CUTOFFPZ, CUTOFFR };
+    enum { TYPE, FNAME, SIGMAX, SIGMAY, SIGMAZ, SIGMAPX, SIGMAPY, SIGMAPZ, SIZE, CUTOFFPX, CUTOFFPY,
+CUTOFFPZ, CUTOFFR };
 }
 
 class Distribution : public Definition {
@@ -460,9 +425,9 @@ private:
     void setSigmaP_m();
 
 
-    
+
       //private member of Distribution
-    
+
 
     std::string distT_m;  /// Distribution type strings.
 

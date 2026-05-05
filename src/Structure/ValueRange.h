@@ -25,41 +25,31 @@
 #include <algorithm>
 #include <limits>
 
-template<class T>
+template <class T>
 class ValueRange {
 public:
-    ValueRange():
-        minValue_m(std::numeric_limits<T>::max()),
-        maxValue_m(std::numeric_limits<T>::lowest())
-    {}
+    ValueRange()
+        : minValue_m(std::numeric_limits<T>::max()), maxValue_m(std::numeric_limits<T>::lowest()) {}
 
-    void enlargeIfOutside(T value)
-    {
+    void enlargeIfOutside(T value) {
         minValue_m = std::min(minValue_m, value);
         maxValue_m = std::max(maxValue_m, value);
     }
-    bool isInside(T value) const
-    {
-        return minValue_m < value && value < maxValue_m;
-    }
+    bool isInside(T value) const { return minValue_m < value && value < maxValue_m; }
 
-    bool isOutside(T value) const
-    {
-        return !isInside(value);
-    }
+    bool isOutside(T value) const { return !isInside(value); }
 
-    void print(Inform& out) const
-    {
+    void print(Inform& out) const {
         out << "Value range between " << minValue_m << " and " << maxValue_m;
     }
+
 private:
     T minValue_m;
     T maxValue_m;
 };
 
-template<class T>
-Inform& operator<<(Inform& out, ValueRange<T> const& range)
-{
+template <class T>
+Inform& operator<<(Inform& out, ValueRange<T> const& range) {
     range.print(out);
     return out;
 }

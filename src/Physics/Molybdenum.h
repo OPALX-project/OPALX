@@ -2,7 +2,7 @@
 // Class Molybdenum
 //   Defines Molybdenum as a material for particle-matter interactions
 //
-//   Data taken from Standard Atomic Weight 2019 (https://www.qmul.ac.uk/sbcs/iupac/AtWt/), 
+//   Data taken from Standard Atomic Weight 2019 (https://www.qmul.ac.uk/sbcs/iupac/AtWt/),
 //   atomic properties from PDG database (https://pdg.lbl.gov/2020/AtomicNuclearProperties)
 //   and fit coefficients from ICRU Report 49.
 //
@@ -27,17 +27,13 @@
 #include <cmath>
 
 namespace Physics {
-    class Molybdenum: public Material {
+    class Molybdenum : public Material {
     public:
-        Molybdenum():
-            Material(42,
-                     95.95,
-                     10.22,
-                     9.80,
-                     424.0,
-                     {{6.424, 7.248, 9.545e3, 4.802e2, 5.376e-3,
-                       9.276, 0.418, 157.1, 8.038, 1.29}})
-        { }
+        Molybdenum()
+            : Material(
+                      42, 95.95, 10.22, 9.80, 424.0,
+                      {{6.424, 7.248, 9.545e3, 4.802e2, 5.376e-3, 9.276, 0.418, 157.1, 8.038,
+                        1.29}}) {}
     };
-}
+}  // namespace Physics
 #endif

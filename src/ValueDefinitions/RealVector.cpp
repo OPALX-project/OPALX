@@ -23,49 +23,37 @@
 #include <iostream>
 #include <vector>
 
-
-RealVector::RealVector():
-    ValueDefinition(1, "REAL_VECTOR",
-                    "The \"REAL VECTOR\" statement defines a global "
-                    "real vector.\n"
-                    "\tREAL VECTOR<name>=<real-vector-expression>;\n") {
+RealVector::RealVector()
+    : ValueDefinition(
+              1, "REAL_VECTOR",
+              "The \"REAL VECTOR\" statement defines a global "
+              "real vector.\n"
+              "\tREAL VECTOR<name>=<real-vector-expression>;\n") {
     itsAttr[0] = Attributes::makeRealArray("VALUE", "The vector value");
 
     registerOwnership(AttributeHandler::STATEMENT);
 }
 
+RealVector::RealVector(const std::string& name, RealVector* parent)
+    : ValueDefinition(name, parent) {}
 
-RealVector::RealVector(const std::string &name, RealVector *parent):
-    ValueDefinition(name, parent)
-{}
+RealVector::~RealVector() {}
 
-
-RealVector::~RealVector()
-{}
-
-
-bool RealVector::canReplaceBy(Object *object) {
+bool RealVector::canReplaceBy(Object* object) {
     // Replace only by another vector.
-    return (dynamic_cast<RealVector *>(object) != 0);
+    return (dynamic_cast<RealVector*>(object) != 0);
 }
 
+RealVector* RealVector::clone(const std::string& name) { return new RealVector(name, this); }
 
-RealVector *RealVector::clone(const std::string &name) {
-    return new RealVector(name, this);
-}
-
-
-void RealVector::print(std::ostream &os) const {
+void RealVector::print(std::ostream& os) const {
     // WARNING: Cannot print in OPAL-8 format.
-    os << "REAL VECTOR " << getOpalName() << ":="
-       << itsAttr[0] << ';' << std::endl;
+    os << "REAL VECTOR " << getOpalName() << ":=" << itsAttr[0] << ';' << std::endl;
 }
 
-void RealVector::printValue(std::ostream &os) const {
-    os << itsAttr[0];
-}
+void RealVector::printValue(std::ostream& os) const { os << itsAttr[0]; }
 
 double RealVector::getRealComponent(int index) const {
     std::vector<double> array = Attributes::getRealArray(itsAttr[0]);
-    return array[index-1];
+    return array[index - 1];
 }

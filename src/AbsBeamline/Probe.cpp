@@ -25,42 +25,31 @@
 
 extern Inform* gmsg;
 
-Probe::Probe() : Probe("") {
-}
+Probe::Probe() : Probe("") {}
 
-Probe::Probe(const std::string& name) : PluginElement(name), step_m(0.0) {
-}
+Probe::Probe(const std::string& name) : PluginElement(name), step_m(0.0) {}
 
-Probe::Probe(const Probe& right) : PluginElement(right), step_m(right.step_m) {
-}
+Probe::Probe(const Probe& right) : PluginElement(right), step_m(right.step_m) {}
 
-Probe::~Probe() {
-}
+Probe::~Probe() {}
 
-void Probe::accept(BeamlineVisitor& visitor) const {
-    visitor.visitProbe(*this);
-}
+void Probe::accept(BeamlineVisitor& visitor) const { visitor.visitProbe(*this); }
 
 void Probe::doInitialise(PartBunch_t* bunch) {
     bool singlemode = (bunch->getParticleContainer()->getTotalNum() == 1) ? true : false;
     peakfinder_m    = std::unique_ptr<PeakFinder>(
-        new PeakFinder(getOutputFN(), rmin_m, rend_m, step_m, singlemode));
+            new PeakFinder(getOutputFN(), rmin_m, rend_m, step_m, singlemode));
 }
 
 void Probe::doGoOffline() {
     *gmsg << "* Probe " << getName() << " goes offline" << endl;
-    if (online_m && peakfinder_m)
-        peakfinder_m->save();
+    if (online_m && peakfinder_m) peakfinder_m->save();
     peakfinder_m.reset(nullptr);
 }
 
-void Probe::setStep(double step) {
-    step_m = step;
-}
+void Probe::setStep(double step) { step_m = step; }
 
-double Probe::getStep() const {
-    return step_m;
-}
+double Probe::getStep() const { return step_m; }
 
 bool Probe::doPreCheck(PartBunch_t* bunch) {
     Vector_t<double, 3> rmin, rmax;
@@ -79,7 +68,8 @@ bool Probe::doPreCheck(PartBunch_t* bunch) {
     return false;
 }
 
-bool Probe::doCheck(PartBunch_t* bunch, const int turnnumber, const double /*t*/, const double tstep) {
+bool Probe::doCheck(
+        PartBunch_t* bunch, const int turnnumber, const double /*t*/, const double tstep) {
     *gmsg << "passed t argument not used in Probe::doCheck" << endl;
     Vector_t<double, 3> probepoint;
     size_t tempnum = bunch->getParticleContainer()->getLocalNum();
@@ -88,8 +78,7 @@ bool Probe::doCheck(PartBunch_t* bunch, const int turnnumber, const double /*t*/
         double tangle = calculateIncidentAngle(bunch->P(i)(0), bunch->P(i)(1));
         changeWidth(bunch, i, tstep, tangle);
         int pflag = checkPoint(bunch->R(i)(0), bunch->R(i)(1));
-        if (pflag == 0)
-            continue;
+        if (pflag == 0) continue;
         // calculate closest point at probe -> better to use momentum direction
         // probe: y = -A/B * x - C/B or A*X + B*Y + C = 0
         // perpendicular line through R: y = B/A * x + R(1) - B/A * R(0)
@@ -100,8 +89,8 @@ bool Probe::doCheck(PartBunch_t* bunch, const int turnnumber, const double /*t*/
         // dist1 > 0, right hand, dt > 0; dist1 < 0, left hand, dt < 0
         double dist1 = (A_m * bunch->R(i)(0) + B_m * bunch->R(i)(1) + C_m) / R_m;  // [m]
         double dist2 = dist1 * std::sqrt(1.0 + 1.0 / tangle / tangle);
-        //double dt =
-        //  dist2 / (std::sqrt(1.0 - 1.0 / (1.0 + dot(bunch->P(i), bunch->P(i)))) * Physics::c);
+        // double dt =
+        //   dist2 / (std::sqrt(1.0 - 1.0 / (1.0 + dot(bunch->P(i), bunch->P(i)))) * Physics::c);
 
         // ADA probepoint = bunch->R(i) + dist2 * bunch->P(i) / euclidean_norm(bunch->P(i));
         probepoint = bunch->R(i) + dist2 * bunch->P(i) / std::sqrt(dot(bunch->P(i), bunch->P(i)));
@@ -122,6 +111,4 @@ bool Probe::doCheck(PartBunch_t* bunch, const int turnnumber, const double /*t*/
     return false;
 }
 
-ElementType Probe::getType() const {
-    return ElementType::PROBE;
-}
+ElementType Probe::getType() const { return ElementType::PROBE; }

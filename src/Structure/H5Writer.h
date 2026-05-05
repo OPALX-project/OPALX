@@ -18,8 +18,8 @@
 #ifndef OPAL_H5_WRITER_H
 #define OPAL_H5_WRITER_H
 
-#include "PartBunch/PartBunch.h"
 #include "H5hut.h"
+#include "PartBunch/PartBunch.h"
 #include "Structure/H5PartWrapper.h"
 
 class H5Writer {
@@ -46,7 +46,8 @@ public:
      *  - FDext[4] = B at tail particle location (in x, y, and z).
      *  - FDext[5] = E at tail particle location (in x, y, and z).
      */
-    void writePhaseSpace(PartBunch_t& beam, Vector_t<double, 3> FDext[], size_t particleContainerIndex = 0);
+    void writePhaseSpace(
+            PartBunch_t& beam, Vector_t<double, 3> FDext[], size_t particleContainerIndex = 0);
 
     /** \brief Dumps phase space to H5 file in OPAL cyclotron calculation.
      *
@@ -63,9 +64,9 @@ public:
      *  \return Returns the number of the time step just written.
      */
     int writePhaseSpace(
-        PartBunch_t& beam, Vector_t<double, 3> FDext[], double E, double refPr, double refPt,
-        double refPz, double refR, double refTheta, double refZ, double azimuth, double elevation,
-        bool local, size_t particleContainerIndex = 0);
+            PartBunch_t& beam, Vector_t<double, 3> FDext[], double E, double refPr, double refPt,
+            double refPz, double refR, double refTheta, double refZ, double azimuth,
+            double elevation, bool local, size_t particleContainerIndex = 0);
 
 private:
     /// Timer to track particle data/H5 file write time.
@@ -77,20 +78,12 @@ private:
     int H5call_m;
 };
 
-inline void H5Writer::close() {
-    h5wrapper_m->close();
-}
+inline void H5Writer::close() { h5wrapper_m->close(); }
 
-inline void H5Writer::changeH5Wrapper(H5PartWrapper* h5wrapper) {
-    h5wrapper_m = h5wrapper;
-}
+inline void H5Writer::changeH5Wrapper(H5PartWrapper* h5wrapper) { h5wrapper_m = h5wrapper; }
 
-inline void H5Writer::storeCavityInformation() {
-    h5wrapper_m->storeCavityInformation();
-}
+inline void H5Writer::storeCavityInformation() { h5wrapper_m->storeCavityInformation(); }
 
-inline double H5Writer::getLastPosition() {
-    return h5wrapper_m->getLastPosition();
-}
+inline double H5Writer::getLastPosition() { return h5wrapper_m->getLastPosition(); }
 
 #endif

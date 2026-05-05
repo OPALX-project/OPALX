@@ -8,71 +8,62 @@
 
 BinningCmd::BinningCmd()
     : Definition(
-          BINNING::SIZE,
-          "BINNING",
-          "The \"BINNING\" statement defines adaptive binning parameters.")
-    , parameterName_m("VELOCITYZ")
-    , parameterType_m(BinningParameter::VELOCITYZ) {
-
+              BINNING::SIZE, "BINNING",
+              "The \"BINNING\" statement defines adaptive binning parameters."),
+      parameterName_m("VELOCITYZ"),
+      parameterType_m(BinningParameter::VELOCITYZ) {
     itsAttr[BINNING::MAXBINS] = Attributes::makeReal(
-        "MAXBINS",
-        "The maximum number of bins used for adaptive binning. "
-        "Default: 128.",
-        128);
+            "MAXBINS",
+            "The maximum number of bins used for adaptive binning. "
+            "Default: 128.",
+            128);
 
     itsAttr[BINNING::DESIREDWIDTH] = Attributes::makeReal(
-        "DESIREDWIDTH",
-        "A bias [0, 1] that tries to steer the bin size to the given variable. "
-        "Default: 0.1.",
-        0.1);
+            "DESIREDWIDTH",
+            "A bias [0, 1] that tries to steer the bin size to the given variable. "
+            "Default: 0.1.",
+            0.1);
 
     itsAttr[BINNING::BINNINGALPHA] = Attributes::makeReal(
-        "BINNINGALPHA",
-        "A value [0, 1] that determines how aggressive the algorithm tries to "
-        "reduce the number of bins. Default: 1.0.",
-        1.0);
+            "BINNINGALPHA",
+            "A value [0, 1] that determines how aggressive the algorithm tries to "
+            "reduce the number of bins. Default: 1.0.",
+            1.0);
 
     itsAttr[BINNING::BINNINGBETA] = Attributes::makeReal(
-        "BINNINGBETA",
-        "A value [0, 1] that determines how aggressive the algorithm tries to "
-        "use wider bins. Default: 1.5.",
-        1.5);
+            "BINNINGBETA",
+            "A value [0, 1] that determines how aggressive the algorithm tries to "
+            "use wider bins. Default: 1.5.",
+            1.5);
 
     itsAttr[BINNING::PARAMETER] = Attributes::makePredefinedString(
-        "PARAMETER",
-        "The bunch attribute used for binning.",
-        {"VELOCITYZ", "POSITIONZ", "PZ", "GAMMAZ"},
-        "VELOCITYZ");
+            "PARAMETER", "The bunch attribute used for binning.",
+            {"VELOCITYZ", "POSITIONZ", "PZ", "GAMMAZ"}, "VELOCITYZ");
 
     itsAttr[BINNING::DUMPBINSFILE] = Attributes::makeString(
-        "DUMPBINSFILE",
-        "The json file name for dumping bin configuration to a file. Default: \"NONE\" (no dumping).",
-        "NONE");
+            "DUMPBINSFILE",
+            "The json file name for dumping bin configuration to a file. Default: \"NONE\" (no "
+            "dumping).",
+            "NONE");
 
     itsAttr[BINNING::DUMPBINSFREQ] = Attributes::makeReal(
-        "DUMPBINSFREQ",
-        "The frequency in timesteps of dumping bins to a file. Default: 1.",
-        1);
+            "DUMPBINSFREQ", "The frequency in timesteps of dumping bins to a file. Default: 1.", 1);
 
     itsAttr[BINNING::TABLEPRINTFREQ] = Attributes::makeReal(
-        "TABLEPRINTFREQ",
-        "The frequency in global timesteps of printing bin statistics to console. "
-        "If 0, printing is disabled. Default: 10.",
-        10);
+            "TABLEPRINTFREQ",
+            "The frequency in global timesteps of printing bin statistics to console. "
+            "If 0, printing is disabled. Default: 10.",
+            10);
 }
 
 BinningCmd::BinningCmd(const std::string& name, BinningCmd* parent)
-    : Definition(name, parent)
-    , parameterName_m(parent->parameterName_m)
-    , parameterType_m(parent->parameterType_m) {
-}
+    : Definition(name, parent),
+      parameterName_m(parent->parameterName_m),
+      parameterType_m(parent->parameterType_m) {}
 
-BinningCmd::~BinningCmd() {
-}
+BinningCmd::~BinningCmd() {}
 
-BinningCmd* BinningCmd::clone(const std::string& name) {
-    return new BinningCmd(name, this);
-}
+BinningCmd* BinningCmd::clone(const std::string& name) { return new BinningCmd(name, this); }
 
 BinningCmd* BinningCmd::find(const std::string& name) {
     BinningCmd* bc = dynamic_cast<BinningCmd*>(OpalData::getInstance()->find(name));
@@ -113,19 +104,17 @@ void BinningCmd::update() {
             int freq = static_cast<int>(Attributes::getReal(itsAttr[BINNING::DUMPBINSFREQ]));
             if (freq < 1) {
                 throw OpalException(
-                    "BinningCmd::update",
-                    "DUMPBINSFREQ must be >= 1 when DUMPBINSFILE is set.");
+                        "BinningCmd::update",
+                        "DUMPBINSFREQ must be >= 1 when DUMPBINSFILE is set.");
             }
         }
     }
 
     // Validate console table print frequency (used in binned mode).
     {
-        const int freq =
-            static_cast<int>(Attributes::getReal(itsAttr[BINNING::TABLEPRINTFREQ]));
+        const int freq = static_cast<int>(Attributes::getReal(itsAttr[BINNING::TABLEPRINTFREQ]));
         if (freq < 0) {
-            throw OpalException("BinningCmd::update",
-                                "TABLEPRINTFREQ must be >= 0.");
+            throw OpalException("BinningCmd::update", "TABLEPRINTFREQ must be >= 0.");
         }
     }
 }
@@ -135,16 +124,16 @@ void BinningCmd::setParameterType() {
     parameterName_m = getParameter();
 
     static const std::map<std::string, BinningParameter> stringToParam = {
-        {"VELOCITYZ", BinningParameter::VELOCITYZ},
-        {"POSITIONZ", BinningParameter::POSITIONZ},
-        {"PZ",        BinningParameter::PZ},
-        {"GAMMAZ",    BinningParameter::GAMMAZ}
-    };
+            {"VELOCITYZ", BinningParameter::VELOCITYZ},
+            {"POSITIONZ", BinningParameter::POSITIONZ},
+            {"PZ", BinningParameter::PZ},
+            {"GAMMAZ", BinningParameter::GAMMAZ}};
 
     auto it = stringToParam.find(parameterName_m);
     if (it == stringToParam.end()) {
-        throw OpalException("BinningCmd::setParameterType",
-                            "Unknown binning PARAMETER \"" + parameterName_m + "\"");
+        throw OpalException(
+                "BinningCmd::setParameterType",
+                "Unknown binning PARAMETER \"" + parameterName_m + "\"");
     }
 
     parameterType_m = it->second;
@@ -197,18 +186,17 @@ std::string BinningCmd::getDumpBinsFileName() const {
 int BinningCmd::getDumpBinsFrequency() const {
     int freq = static_cast<int>(Attributes::getReal(itsAttr[BINNING::DUMPBINSFREQ]));
     if (dumpBinsToFile() && freq < 1) {
-        throw OpalException("BinningCmd::getDumpBinsFrequency",
-                            "DUMPBINSFREQ must be >= 1 if dumping bins to a file.");
+        throw OpalException(
+                "BinningCmd::getDumpBinsFrequency",
+                "DUMPBINSFREQ must be >= 1 if dumping bins to a file.");
     }
     return freq;
 }
 
 int BinningCmd::getTablePrintFrequency() const {
-    const int freq =
-        static_cast<int>(Attributes::getReal(itsAttr[BINNING::TABLEPRINTFREQ]));
+    const int freq = static_cast<int>(Attributes::getReal(itsAttr[BINNING::TABLEPRINTFREQ]));
     if (freq < 0) {
-        throw OpalException("BinningCmd::getTablePrintFrequency",
-                            "TABLEPRINTFREQ must be >= 0.");
+        throw OpalException("BinningCmd::getTablePrintFrequency", "TABLEPRINTFREQ must be >= 0.");
     }
     return freq;
 }
@@ -218,7 +206,4 @@ bool BinningCmd::dumpBinsToFile() const {
     return !filename.empty() && filename != "NONE";
 }
 
-BinningParameter BinningCmd::getParameterType() const {
-    return parameterType_m;
-}
-
+BinningParameter BinningCmd::getParameterType() const { return parameterType_m; }
