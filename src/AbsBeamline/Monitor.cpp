@@ -81,14 +81,14 @@ bool Monitor::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     auto Rview  = pc->R.getView();
     auto Pview  = pc->P.getView();
     auto dtview = pc->dt.getView();
-    // auto IDview = pc->ID.getView();
+    auto IDview = pc->ID.getView();
     auto Qview  = pc->getQView();
     auto Mview  = pc->getMView();
 
     auto hR  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), Rview);
     auto hP  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), Pview);
     auto hdt = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), dtview);
-    // auto hID = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), IDview);
+    auto hID = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), IDview);
     auto hQ  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), Qview);
     auto hM  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), Mview);
 
@@ -114,13 +114,14 @@ bool Monitor::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
             const Vector_t<double, 3> crossingR = R + frac * singleStep;
             const double crossingTime = bunchTime + frac * dt;
 
-            const std::size_t id = i;
-            // const std::size_t id = static_cast<std::size_t>(hID(i));
+            // const std::size_t id = i;
+            const std::size_t id = static_cast<std::size_t>(hID(i));
             const double q = qmAreAttributes ? hQ(i) : hQ(0);
             const double m = qmAreAttributes ? hM(i) : hM(0);
 
             Inform msg2("Monitor::apply(pc)");
             msg2 << "hit i=" << i
+                << " id=" << id
                 << " frac=" << frac
                 << " crossingR=(" << crossingR(0) << "," << crossingR(1) << "," << crossingR(2) << ")"
                 << " q=" << q
@@ -227,7 +228,7 @@ void Monitor::driftToCorrectPositionAndSave(
 
     auto Rview  = pc->R.getView();
     auto Pview  = pc->P.getView();
-    // auto IDview = pc->ID.getView();
+    auto IDview = pc->ID.getView();
     auto Qview  = pc->getQView();
     auto Mview  = pc->getMView();
 
@@ -237,7 +238,7 @@ void Monitor::driftToCorrectPositionAndSave(
     // remove Kokkos::HostSpace()
     auto hR  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), Rview);
     auto hP  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), Pview);
-    // auto hID = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), IDview);
+    auto hID = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), IDview);
     auto hQ  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), Qview);
     auto hM  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), Mview);
 
@@ -266,8 +267,8 @@ void Monitor::driftToCorrectPositionAndSave(
         const double q = qmAreAttributes ? hQ(i) : hQ(0);
         const double m = qmAreAttributes ? hM(i) : hM(0);
 
-        // const std::size_t id = static_cast<std::size_t>(hID(i));
-        const std::size_t id = i;
+        const std::size_t id = static_cast<std::size_t>(hID(i));
+        // const std::size_t id = i;
 
         lossDs_m->addParticle(
             OpalParticle(id, localR, localP, crossingTime, q, m));
