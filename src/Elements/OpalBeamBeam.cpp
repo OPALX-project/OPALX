@@ -18,6 +18,86 @@
 #include "Elements/OpalBeamBeam.h"
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/BeamBeamRep.h"
+#include "Utilities/OpalException.h"
+
+#include <algorithm>
+#include <cctype>
+#include <cstddef>
+#include <exception>
+#include <sstream>
+#include <string>
+
+namespace {
+
+    std::string normalizeWitnessContainerSpec(std::string value) {
+        value.erase(
+                std::remove_if(
+                        value.begin(), value.end(),
+                        [](unsigned char ch) {
+                            return std::isspace(ch) != 0;
+                        }),
+                value.end());
+        std::transform(value.begin(), value.end(), value.begin(), [](unsigned char ch) {
+            return static_cast<char>(std::toupper(ch));
+        });
+        return value;
+    }
+
+    double parseWitnessContainerMask(const std::string& rawValue) {
+        const std::string normalized = normalizeWitnessContainerSpec(rawValue);
+        if (normalized == "NONE") {
+            return 0.0;
+        }
+        if (normalized.empty()) {
+            throw OpalException(
+                    "OpalBeamBeam::parseWitnessContainerMask",
+                    "WITNESS_CONTAINERS must be \"NONE\" or a comma-separated list such as "
+                    "\"1,2\".");
+        }
+
+        unsigned long long mask = 0ULL;
+        std::stringstream stream(normalized);
+        std::string token;
+        while (std::getline(stream, token, ',')) {
+            if (token.empty()) {
+                throw OpalException(
+                        "OpalBeamBeam::parseWitnessContainerMask",
+                        "WITNESS_CONTAINERS contains an empty container index.");
+            }
+            for (const char ch : token) {
+                if (std::isdigit(static_cast<unsigned char>(ch)) == 0) {
+                    throw OpalException(
+                            "OpalBeamBeam::parseWitnessContainerMask",
+                            "WITNESS_CONTAINERS contains non-integer entry \"" + token + "\".");
+                }
+            }
+
+            std::size_t index = 0;
+            try {
+                index = std::stoull(token);
+            } catch (const std::exception&) {
+                throw OpalException(
+                        "OpalBeamBeam::parseWitnessContainerMask",
+                        "WITNESS_CONTAINERS entry \"" + token + "\" is out of range.");
+            }
+            if (index == 0) {
+                throw OpalException(
+                        "OpalBeamBeam::parseWitnessContainerMask",
+                        "container[0] is the BeamBeam source and cannot be a witness container.");
+            }
+            if (index >= 53) {
+                throw OpalException(
+                        "OpalBeamBeam::parseWitnessContainerMask",
+                        "WITNESS_CONTAINERS supports indices below 53 when encoded as a scalar "
+                        "mask.");
+            }
+            mask |= (1ULL << index);
+        }
+
+        return static_cast<double>(mask);
+    }
+
+}  // namespace
 
 OpalBeamBeam::OpalBeamBeam()
     : OpalElement(
@@ -33,6 +113,10 @@ OpalBeamBeam::OpalBeamBeam()
     itsAttr[VISUALIZE] = Attributes::makeBool(
             "VISUALIZE", "If true, emit the ASCII beam-beam-window visualization during tracking.",
             false);
+    itsAttr[WITNESS_CONTAINERS] = Attributes::makeString(
+            "WITNESS_CONTAINERS",
+            "Passive particle-container indices that gather the source BeamBeam field, or NONE.",
+            "NONE");
 
     registerOwnership();
 
@@ -57,6 +141,9 @@ void OpalBeamBeam::update() {
     beamBeam->setElementLength(Attributes::getReal(itsAttr[LENGTH]));
     beamBeam->setAttribute("COPY", Attributes::getBool(itsAttr[COPY]) ? 1.0 : 0.0);
     beamBeam->setAttribute("VISUALIZE", Attributes::getBool(itsAttr[VISUALIZE]) ? 1.0 : 0.0);
+    beamBeam->setAttribute(
+            "WITNESS_CONTAINERS_MASK",
+            parseWitnessContainerMask(Attributes::getString(itsAttr[WITNESS_CONTAINERS])));
     beamBeam->setAttribute("APERTURE_SET", itsAttr[APERT] ? 1.0 : 0.0);
 
     // Transmit "unknown" attributes.

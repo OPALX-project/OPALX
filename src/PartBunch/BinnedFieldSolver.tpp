@@ -120,6 +120,38 @@ void BinnedFieldSolver<T, Dim>::computeSelfFields(PartBunch_t& bunch) {
 }
 
 template <typename T, unsigned Dim>
+void BinnedFieldSolver<T, Dim>::gatherCurrentFieldsToContainer(
+        PartBunch_t& bunch, ParticleCtr_t& target) {
+    if (this->getStype() == "NONE") {
+        target.E = 0.0;
+        target.B = 0.0;
+        return;
+    }
+
+    if (gatherAttribute_m != GatherAttribute::ElectricFieldE) {
+        throw OpalException(
+                "BinnedFieldSolver::gatherCurrentFieldsToContainer",
+                "Unsupported gather attribute in witness field gather.");
+    }
+
+    if (bunch.hasBinning()) {
+        auto EtmpSP = bunch.getTempEField();
+        auto BtmpSP = bunch.getTempBField();
+        if (!EtmpSP || !BtmpSP) {
+            throw OpalException(
+                    "BinnedFieldSolver::gatherCurrentFieldsToContainer",
+                    "Binned witness field gather requires temporary E and B field buffers.");
+        }
+        gather(target.E, *EtmpSP, target.R);
+        gather(target.B, *BtmpSP, target.R);
+    } else {
+        gather(target.E, *this->getE(), target.R);
+        target.B = 0.0;
+    }
+    Kokkos::fence();
+}
+
+template <typename T, unsigned Dim>
 void BinnedFieldSolver<T, Dim>::setScatterAttribute(const ScatterAttribute attr) {
     // store the scatter attribute selection.
     scatterAttribute_m = attr;

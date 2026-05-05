@@ -11,6 +11,9 @@ __pycache__
 *.h5
 #*#
 *.dat
+\#*\#
+.\#*
+*.~*~
 optimizer/Tests/*.exe
 build
 data

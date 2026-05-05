@@ -96,6 +96,7 @@ private:
 
     BEAMBEAM::Runtime<PartBunch_t::SavedFieldDomainState> beamBeamState_m;
     BEAMBEAM::Diagnostics beamBeamDiagnostics_m;
+    std::optional<CoordinateSystemTrafo> beamBeamReferenceToBeamCSTrafo_m;
     static constexpr int postBeamBeamWindowVisualizationSteps_m = 4;
     std::unique_ptr<BeamBeamWindowAnimation> beamBeamWindowAnimation_m;
 
@@ -302,6 +303,15 @@ private:
     void computeBeamBeamWindowSelfFields(
             const CoordinateSystemTrafo& referenceToBeamCSTrafo,
             const CoordinateSystemTrafo& beamToReferenceCSTrafo, Inform& m);
+    /**
+     * @brief Gather the active BeamBeam source field to passive witness containers.
+     *
+     * Witness particle positions are temporarily shifted from their own container frame into the
+     * source-beam frame using @f$z_s=z_t+s_t-s_s@f$, sampled on the active BeamBeam mesh, and then
+     * restored to the witness frame. Only @c E/@c B receive the sampled field; witness charge is
+     * not deposited back onto the source mesh.
+     */
+    void gatherBeamBeamFieldsToWitnessContainers(Inform& m);
     void computeDefaultSelfFields(const CoordinateSystemTrafo& beamToReferenceCSTrafo, Inform& m);
     void transformFieldsToReferenceFrame(
             const CoordinateSystemTrafo& beamToReferenceCSTrafo, Inform& m);

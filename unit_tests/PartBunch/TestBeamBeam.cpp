@@ -3,6 +3,7 @@
 #include "Ippl.h"
 #include "Utility/Inform.h"
 
+#include "AbsBeamline/BeamBeamDefinitions.h"
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
 #include "PartBunch/PartBunch.h"
@@ -153,6 +154,26 @@ namespace {
 
         bunch->clearBeamBeamWindowConfig();
         EXPECT_FALSE(bunch->hasBeamBeamWindowConfig());
+    }
+
+    TEST_F(BeamBeamPartBunchTest, WitnessContainerMaskDecodesConfiguredContainers) {
+        EXPECT_TRUE(BEAMBEAM::decodeWitnessContainerMask(0.0).empty());
+
+        const auto witnesses = BEAMBEAM::decodeWitnessContainerMask((1ULL << 1U) | (1ULL << 2U));
+        ASSERT_EQ(witnesses.size(), 2u);
+        EXPECT_EQ(witnesses[0], 1u);
+        EXPECT_EQ(witnesses[1], 2u);
+    }
+
+    TEST_F(BeamBeamPartBunchTest, WitnessLongitudinalOffsetMapsIpToSourceFrame) {
+        const double sourceS  = 30.0e-3;
+        const double witnessS = 0.0;
+        const double witnessZ = 35.0e-3;
+
+        const double sourceFrameZ =
+                witnessZ + BEAMBEAM::longitudinalOffsetToSourceFrame(sourceS, witnessS);
+
+        EXPECT_NEAR(sourceFrameZ, 5.0e-3, 1.0e-15);
     }
 
     // ----------------------------------------------------------------------------

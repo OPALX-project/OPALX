@@ -663,19 +663,37 @@ def loadParticlePointClouds(pv, np, display_scale, part_step, max_primary, max_p
             clouds.append({'spec': spec, 'cloud': cloud})
     return clouds
 
-def addParticleVisualization(plotter, pv, np, display_scale, part_step, max_primary, max_pairs, part_debug=False):
-    actors = []
+def updateParticleActors(plotter, pv, np, display_scale, part_step, max_primary, max_pairs,
+                         actor_by_label=None, part_debug=False):
+    if actor_by_label is None:
+        actor_by_label = {}
+    seen_labels = set()
     for item in loadParticlePointClouds(pv, np, display_scale, part_step, max_primary, max_pairs, part_debug):
         spec = item['spec']
-        actor = plotter.add_mesh(
-            item['cloud'],
-            color=spec['color'],
-            opacity=spec['opacity'],
-            point_size=spec['point_size'],
-            render_points_as_spheres=True,
-            label=spec['label'])
-        actors.append({'actor': actor, 'spec': spec})
-    return actors
+        seen_labels.add(spec['label'])
+        actor = actor_by_label.get(spec['label'])
+        if actor is None:
+            actor = plotter.add_mesh(
+                item['cloud'],
+                color=spec['color'],
+                opacity=spec['opacity'],
+                point_size=spec['point_size'],
+                render_points_as_spheres=True,
+                label=spec['label'])
+            actor_by_label[spec['label']] = actor
+        else:
+            actor.mapper.SetInputData(item['cloud'])
+
+    if actor_by_label:
+        empty_cloud = pv.PolyData(np.empty((0, 3)))
+        for label, actor in actor_by_label.items():
+            if label not in seen_labels:
+                actor.mapper.SetInputData(empty_cloud)
+    return actor_by_label
+
+def addParticleVisualization(plotter, pv, np, display_scale, part_step, max_primary, max_pairs, part_debug=False):
+    return updateParticleActors(
+        plotter, pv, np, display_scale, part_step, max_primary, max_pairs, None, part_debug)
 
 def addParticleStepSlider(plotter, pv, np, display_scale, initial_step, max_primary, max_pairs, part_debug=False):
     steps = getAvailableParticleSteps(part_debug)
@@ -689,27 +707,16 @@ def addParticleStepSlider(plotter, pv, np, display_scale, initial_step, max_prim
         requested = int(initial_step)
         initial_index = min(range(len(steps)), key=lambda i: abs(steps[i] - requested))
 
-    actor_by_label = {}
-    for item in loadParticlePointClouds(
-            pv, np, display_scale, steps[initial_index], max_primary, max_pairs, part_debug):
-        spec = item['spec']
-        actor = plotter.add_mesh(
-            item['cloud'],
-            color=spec['color'],
-            opacity=spec['opacity'],
-            point_size=spec['point_size'],
-            render_points_as_spheres=True,
-            label=spec['label'])
-        actor_by_label[spec['label']] = actor
+    actor_by_label = updateParticleActors(
+        plotter, pv, np, display_scale, steps[initial_index], max_primary, max_pairs,
+        None, part_debug)
 
     def update_particle_step(value):
         index = int(round(value))
         index = max(0, min(index, len(steps) - 1))
-        for item in loadParticlePointClouds(
-                pv, np, display_scale, steps[index], max_primary, max_pairs, part_debug):
-            actor = actor_by_label.get(item['spec']['label'])
-            if actor is not None:
-                actor.mapper.SetInputData(item['cloud'])
+        updateParticleActors(
+            plotter, pv, np, display_scale, steps[index], max_primary, max_pairs,
+            actor_by_label, part_debug)
         plotter.add_text('Step %d' % steps[index], name='particle_step_label',
                          position='lower_left', font_size=10)
         plotter.render()
@@ -724,7 +731,8 @@ def addParticleStepSlider(plotter, pv, np, display_scale, initial_step, max_prim
 )PY";
 
     out << "def showVTK(part_vis=False, part_step='latest', max_primary=50000, max_pairs=20000, "
-           "part_debug=False, part_slider=False):\n";
+           "part_debug=False, part_slider=False, movie_file=None, movie_fps=12, "
+           "movie_step_stride=1):\n";
     out << indent << "try:\n";
     out << indent << indent << "import numpy as np\n";
     out << indent << indent << "import pyvista as pv\n";
@@ -736,6 +744,21 @@ def addParticleStepSlider(plotter, pv, np, display_scale, initial_step, max_prim
         << "sys.stderr.write(\"  source /Users/adelmann/git/opalx/.venv-h6/bin/activate\\n\")\n";
     out << indent << indent << "sys.stderr.write(\"  python -m pip install pyvista\\n\")\n";
     out << indent << indent << "return 1\n\n";
+
+    out << indent << "if movie_file is not None:\n";
+    out << indent << indent << "import importlib.util\n";
+    out << indent << indent << "if importlib.util.find_spec('imageio') is None:\n";
+    out << indent << indent << indent
+        << "sys.stderr.write(\"Movie output needs imageio for PyVista's movie writers.\\n\")\n";
+    out << indent << indent << indent
+        << "sys.stderr.write(\"Install it for the Python you are running, for example:\\n\")\n";
+    out << indent << indent << indent
+        << "sys.stderr.write(\"  python3 -m pip install --user imageio\\n\")\n";
+    out << indent << indent << indent
+        << "sys.stderr.write(\"For MP4 output you may also need:\\n\")\n";
+    out << indent << indent << indent
+        << "sys.stderr.write(\"  python3 -m pip install --user imageio-ffmpeg\\n\")\n";
+    out << indent << indent << indent << "return 1\n\n";
 
     out << indent << "vtk_file = \"" << fname << "_ElementPositions.vtk\"\n";
     out << indent << "script_file = os.path.abspath(__file__)\n";
@@ -749,7 +772,7 @@ def addParticleStepSlider(plotter, pv, np, display_scale, initial_step, max_prim
     out << indent << "mesh = pv.read(vtk_file)\n";
     out << indent << "display_scale = 1.0e3\n";
     out << indent << "mesh.points *= display_scale\n";
-    out << indent << "plotter = pv.Plotter()\n";
+    out << indent << "plotter = pv.Plotter(off_screen=movie_file is not None)\n";
     out << indent << "add_mesh_kwargs = {}\n";
     out << indent << "active_scalars_name = mesh.active_scalars_name\n";
     out << indent << "if active_scalars_name is not None:\n";
@@ -798,22 +821,66 @@ def addParticleStepSlider(plotter, pv, np, display_scale, initial_step, max_prim
         << "plotter.add_mesh(aperture_grid, color=(0.65, 0.65, 0.65), opacity=0.28, "
            "show_edges=True, "
            "label=aperture['name'])\n";
-    out << indent << "if part_vis:\n";
+    out << indent << "if part_vis or movie_file is not None:\n";
     out << indent << indent << "if part_slider:\n";
-    out << indent << indent << indent
+    out << indent << indent << indent << "if movie_file is not None:\n";
+    out << indent << indent << indent << indent
+        << "sys.stderr.write(\"particle slider is disabled while writing a movie.\\n\")\n";
+    out << indent << indent << indent << "else:\n";
+    out << indent << indent << indent << indent
         << "addParticleStepSlider(plotter, pv, np, display_scale, part_step, max_primary, "
            "max_pairs, part_debug)\n";
-    out << indent << indent << "else:\n";
+    out << indent << indent << "elif movie_file is None:\n";
     out << indent << indent << indent
         << "addParticleVisualization(plotter, pv, np, display_scale, part_step, max_primary, "
            "max_pairs, part_debug)\n";
-    out << indent << indent << "plotter.reset_camera()\n";
+    out << indent << indent << "if movie_file is None:\n";
+    out << indent << indent << indent << "plotter.reset_camera()\n";
     out << indent << "plotter.add_axes()\n";
     out << indent << "try:\n";
     out << indent << indent
-        << "plotter.show_grid(xlabel='X [mm]', ylabel='Y [mm]', zlabel='Z [mm]')\n";
+        << "plotter.show_grid(xtitle='X [mm]', ytitle='Y [mm]', ztitle='Z [mm]')\n";
     out << indent << "except TypeError:\n";
-    out << indent << indent << "plotter.show_grid()\n";
+    out << indent << indent << "try:\n";
+    out << indent << indent << indent
+        << "plotter.show_grid(xlabel='X [mm]', ylabel='Y [mm]', zlabel='Z [mm]')\n";
+    out << indent << indent << "except TypeError:\n";
+    out << indent << indent << indent << "plotter.show_grid()\n";
+    out << indent << "if movie_file is not None:\n";
+    out << indent << indent << "steps = getAvailableParticleSteps(part_debug)\n";
+    out << indent << indent << "if not steps:\n";
+    out << indent << indent << indent
+        << "sys.stderr.write(\"no particle H5 steps available for movie output.\\n\")\n";
+    out << indent << indent << indent << "plotter.close()\n";
+    out << indent << indent << indent << "return 1\n";
+    out << indent << indent << "movie_step_stride = max(1, int(movie_step_stride))\n";
+    out << indent << indent << "movie_fps = max(1, int(movie_fps))\n";
+    out << indent << indent << "steps = steps[::movie_step_stride]\n";
+    out << indent << indent << "actor_by_label = {}\n";
+    out << indent << indent << "writer_open = False\n";
+    out << indent << indent << "for step in steps:\n";
+    out << indent << indent << indent
+        << "updateParticleActors(plotter, pv, np, display_scale, step, max_primary, max_pairs, "
+           "actor_by_label, part_debug)\n";
+    out << indent << indent << indent
+        << "plotter.add_text('Step %d' % step, name='particle_step_label', "
+           "position='lower_left', font_size=10)\n";
+    out << indent << indent << indent << "if not writer_open:\n";
+    out << indent << indent << indent << indent << "plotter.reset_camera()\n";
+    out << indent << indent << indent << indent << "if movie_file.lower().endswith('.gif'):\n";
+    out << indent << indent << indent << indent << indent << "try:\n";
+    out << indent << indent << indent << indent << indent << indent
+        << "plotter.open_gif(movie_file, fps=movie_fps)\n";
+    out << indent << indent << indent << indent << indent << "except TypeError:\n";
+    out << indent << indent << indent << indent << indent << indent
+        << "plotter.open_gif(movie_file)\n";
+    out << indent << indent << indent << indent << "else:\n";
+    out << indent << indent << indent << indent << indent
+        << "plotter.open_movie(movie_file, framerate=movie_fps)\n";
+    out << indent << indent << indent << indent << "writer_open = True\n";
+    out << indent << indent << indent << "plotter.write_frame()\n";
+    out << indent << indent << "plotter.close()\n";
+    out << indent << indent << "return 0\n";
     out << indent << "plotter.show()\n";
     out << indent << "return 0\n\n";
 
@@ -1507,6 +1574,9 @@ def addParticleStepSlider(plotter, pv, np, display_scale, initial_step, max_prim
     out << indent << "parser.add_argument('--part-max-pairs', type=int, default=20000)\n";
     out << indent << "parser.add_argument('--part-debug', action='store_true')\n";
     out << indent << "parser.add_argument('--part-slider', action='store_true')\n";
+    out << indent << "parser.add_argument('--part-movie')\n";
+    out << indent << "parser.add_argument('--movie-fps', type=int, default=12)\n";
+    out << indent << "parser.add_argument('--movie-step-stride', type=int, default=1)\n";
     out << indent << "parser.add_argument('--background', nargs=3, type=float)\n";
     out << indent << "parser.add_argument('--project-to-plane', action='store_true')\n";
     out << indent << "parser.add_argument('--normal', nargs=3, type=float)\n";
@@ -1528,6 +1598,12 @@ def addParticleStepSlider(plotter, pv, np, display_scale, initial_step, max_prim
     out << indent << indent << indent << indent << "bgcolor = args.background\n";
     out << indent << indent << "exportWeb(bgcolor)\n";
     out << indent << indent << "sys.exit()\n\n";
+
+    out << indent << "if (args.part_movie):\n";
+    out << indent << indent
+        << "sys.exit(showVTK(True, args.part_step, args.part_max_primary, args.part_max_pairs, "
+           "args.part_debug, False, args.part_movie, args.movie_fps, "
+           "args.movie_step_stride))\n\n";
 
     out << indent << "if (args.show):\n";
     out << indent << indent

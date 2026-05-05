@@ -27,6 +27,7 @@ public:
                             // OpalElement.
         COPY,               // Enable mirrored-bunch copy model
         VISUALIZE,          // Enable ASCII beam-beam-window visualization
+        WITNESS_CONTAINERS,  // Passive containers that gather source BeamBeam fields
         SIZE
     };
 

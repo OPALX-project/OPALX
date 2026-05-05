@@ -107,6 +107,21 @@ public:
     void computeSelfFields(PartBunch_t& bunch);
 
     /**
+     * @brief Gather the most recently solved source field to a passive witness container.
+     *
+     * The caller must place @p target positions in the same field frame used for
+     * the source solve before calling this method. No charge is deposited from
+     * @p target; the method only samples the current mesh field and writes the
+     * result into @p target.E and @p target.B. For the binned solver path the
+     * accumulated temporary E/B fields are gathered. For the legacy path the
+     * electrostatic solver E field is gathered and B is set to zero.
+     *
+     * @param bunch  Bunch that owns the field solver and temporary field buffers.
+     * @param target Passive witness particle container to receive fields.
+     */
+    void gatherCurrentFieldsToContainer(PartBunch_t& bunch, ParticleCtr_t& target);
+
+    /**
      * @brief Set particle scatter attribute (extensible; default is `ChargeQ`).
      * @param attr Attribute to scatter from.
      */

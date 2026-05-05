@@ -383,6 +383,7 @@ void ParallelTracker::execute() {
             emitFromEmissionSources(itsBunch_m->getT(), itsBunch_m->getdT());
             m << level4 << "Emit particles from emission sources done at step " << step << "."
               << endl;
+            gatherBeamBeamFieldsToWitnessContainers(m);
             if (!usesFrozenBeamBeamWindowMesh()) {
                 itsBunch_m->bunchUpdate();
                 m << level5 << "Bunch updated after emission." << endl;
@@ -625,11 +626,11 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step, OrbitThr
     }
     Quaternion alignment = getQuaternion(pmean, Vector_t<double, 3>(0, 0, 1));
 
-    CoordinateSystemTrafo beamToReferenceCSTrafo(
-            Vector_t<double, 3>(0, 0, itsBunch_m->getParticleContainer()->get_sPos()),
-            alignment.conjugate());
-
-    CoordinateSystemTrafo referenceToBeamCSTrafo = beamToReferenceCSTrafo.inverted();
+    // Particle coordinates are stored relative to the container reference path. Space-charge
+    // evaluation only needs the beam-alignment rotation here; translating by s would double-count
+    // the path length in BeamBeam window tests.
+    CoordinateSystemTrafo referenceToBeamCSTrafo(Vector_t<double, 3>(0.0), alignment);
+    CoordinateSystemTrafo beamToReferenceCSTrafo = referenceToBeamCSTrafo.inverted();
 
     // Transform particle positions to the beam frame.
     referenceToBeamCSTrafo.transformBunchTo(
@@ -653,8 +654,10 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step, OrbitThr
 
     checkInBBRegion(oth);
     if (beamBeamState_m.state == BEAMBEAM::WindowState::Active) {
+        beamBeamReferenceToBeamCSTrafo_m = referenceToBeamCSTrafo;
         computeBeamBeamWindowSelfFields(referenceToBeamCSTrafo, beamToReferenceCSTrafo, m);
     } else {
+        beamBeamReferenceToBeamCSTrafo_m.reset();
         computeDefaultSelfFields(beamToReferenceCSTrafo, m);
     }
 }
@@ -774,7 +777,9 @@ std::optional<BEAMBEAM::ActualGeometry> ParallelTracker::detectBeamBeamWindow(
                 interactionPointS + 0.5 * beamBeamWindowLength, beamBeamWindowLength,
                 BEAMBEAM::Config{
                         element->getAttribute("COPY") != 0.0,
-                        element->getAttribute("VISUALIZE") != 0.0, xAperture, yAperture}};
+                        element->getAttribute("VISUALIZE") != 0.0, xAperture, yAperture,
+                        BEAMBEAM::decodeWitnessContainerMask(
+                                element->getAttribute("WITNESS_CONTAINERS_MASK"))}};
     }
 
     return std::nullopt;
@@ -798,6 +803,19 @@ void ParallelTracker::enterBeamBeamWindow(const BEAMBEAM::ActualGeometry& geomet
                         << *geometry.config.yAperture << ") m";
         } else {
             diagnostics << ", aperture_half_width=(not set; preserving transverse field bounds)";
+        }
+        diagnostics << ", witness_containers=";
+        if (geometry.config.witnessContainers.empty()) {
+            diagnostics << "NONE";
+        } else {
+            diagnostics << "(";
+            for (std::size_t i = 0; i < geometry.config.witnessContainers.size(); ++i) {
+                if (i != 0) {
+                    diagnostics << ",";
+                }
+                diagnostics << geometry.config.witnessContainers[i];
+            }
+            diagnostics << ")";
         }
         *gmsg << level2 << diagnostics.str() << endl;
     }
@@ -950,6 +968,79 @@ void ParallelTracker::computeBeamBeamWindowSelfFields(
     transformFieldsToReferenceFrame(beamToReferenceCSTrafo, m);
     m << level5 << "Compute self fields on beam-beam-window mesh done." << endl;
     itsBunch_m->calcBeamParameters();
+}
+
+void ParallelTracker::gatherBeamBeamFieldsToWitnessContainers(Inform& m) {
+    if (beamBeamState_m.state != BEAMBEAM::WindowState::Active
+        || !beamBeamState_m.geometry.has_value()) {
+        return;
+    }
+
+    const auto& witnessContainers = beamBeamState_m.geometry->config.witnessContainers;
+    if (witnessContainers.empty()) {
+        return;
+    }
+    if (!beamBeamReferenceToBeamCSTrafo_m.has_value()) {
+        throw OpalException(
+                "ParallelTracker::gatherBeamBeamFieldsToWitnessContainers",
+                "BeamBeam witness containers are configured, but the source-frame transforms are "
+                "not available for the current step.");
+    }
+
+    auto* solver = itsBunch_m->getFieldSolver();
+    if (solver == nullptr) {
+        throw OpalException(
+                "ParallelTracker::gatherBeamBeamFieldsToWitnessContainers",
+                "BeamBeam witness containers require an active field solver.");
+    }
+
+    const size_t nContainers = itsBunch_m->getNumParticleContainers();
+    const double sourceS     = itsBunch_m->getParticleContainer()->get_sPos();
+    for (const size_t ci : witnessContainers) {
+        if (ci == 0) {
+            throw OpalException(
+                    "ParallelTracker::gatherBeamBeamFieldsToWitnessContainers",
+                    "container[0] is the BeamBeam source and cannot be a witness container.");
+        }
+        if (ci >= nContainers) {
+            throw OpalException(
+                    "ParallelTracker::gatherBeamBeamFieldsToWitnessContainers",
+                    "Configured BeamBeam witness container[" + std::to_string(ci)
+                            + "] is out of range for the current TRACK BEAMS list.");
+        }
+        if (!itsBunch_m->isPcActive(ci)) {
+            continue;
+        }
+        auto pc = itsBunch_m->getParticleContainer(ci);
+        if (!pc || pc->getTotalNum() == 0) {
+            continue;
+        }
+
+        const size_t nLoc = pc->getLocalNum();
+        if (nLoc == 0) {
+            continue;
+        }
+
+        const double longitudinalOffset =
+                BEAMBEAM::longitudinalOffsetToSourceFrame(sourceS, pc->get_sPos());
+        CoordinateSystemTrafo witnessToBeamCSTrafo(
+                Vector_t<double, 3>(0.0, 0.0, -longitudinalOffset),
+                beamBeamReferenceToBeamCSTrafo_m->getRotation());
+
+        witnessToBeamCSTrafo.transformBunchTo(pc->R.getView(), nLoc);
+        Kokkos::fence();
+
+        solver->gatherCurrentFieldsToContainer(*itsBunch_m, *pc);
+        Kokkos::fence();
+
+        witnessToBeamCSTrafo.transformBunchFrom(pc->R.getView(), nLoc);
+        witnessToBeamCSTrafo.rotateBunchFrom(pc->E.getView(), nLoc);
+        witnessToBeamCSTrafo.rotateBunchFrom(pc->B.getView(), nLoc);
+        Kokkos::fence();
+
+        m << level4 << "Gathered BeamBeam source fields to witness container[" << ci << "] ("
+          << pc->getTotalNum() << " particles)." << endl;
+    }
 }
 
 /**
