@@ -41,6 +41,10 @@ struct SetStatistics {
     double refTime_m;  // ns
     double tmean_m;    // ns
     double trms_m;     // ns
+    double totalCharge_m;
+    double totalMass_m;
+    double meanKineticEnergy_m;
+    double stdKineticEnergy_m;
     unsigned long nTotal_m;
     Vector_t<double, 3> RefPartR_m;
     Vector_t<double, 3> RefPartP_m;
@@ -52,12 +56,15 @@ struct SetStatistics {
     Vector_t<double, 3> prms_m;
     Vector_t<double, 3> rprms_m;
     Vector_t<double, 3> normEmit_m;
+    Vector_t<double, 3> geomEmit_m;
+    Vector_t<double, 3> maxR_m;
     Vector_t<double, 3> rsqsum_m;
     Vector_t<double, 3> psqsum_m;
     Vector_t<double, 3> rpsum_m;
     Vector_t<double, 3> eps2_m;
     Vector_t<double, 3> eps_norm_m;
     Vector_t<double, 3> fac_m;
+
 };
 
 namespace std {
