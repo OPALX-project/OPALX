@@ -289,8 +289,11 @@ namespace {
         setParticlePositions(bunch, {Vector3d(-0.20, -0.10, -0.05), Vector3d(0.10, 0.20, 0.05)});
         bunch->bunchUpdate();
 
-        bunch->setBeamBeamWindowConfig(0.50, 1.25, 1.00, 1.50, false);
-        bunch->enableBeamBeamWindowMesh(1.25, 0.50);
+        // Keep the test particles inside the frozen longitudinal window.  The
+        // invariant under test is transverse growth with fixed z bounds; placing
+        // particles outside z would exercise undefined MPI layout migration instead.
+        bunch->setBeamBeamWindowConfig(0.50, 0.0, -0.25, 0.25, false);
+        bunch->enableBeamBeamWindowMesh(0.0, 0.50);
 
         const Vector3d frozenRMin = fieldContainer->getRMin();
         const Vector3d frozenRMax = fieldContainer->getRMax();
