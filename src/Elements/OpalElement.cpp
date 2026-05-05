@@ -19,19 +19,15 @@
 
 #include "AbstractObjects/Attribute.h"
 #include "AbstractObjects/Expressions.h"
-#include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
 #include "OpalParser/Statement.h"
 #include "Physics/Physics.h"
 #include "Utilities/OpalException.h"
-#include "Utilities/Options.h"
 #include "Utilities/ParseError.h"
-#include "Utilities/Util.h"
 
-#include <regex>
-
-#include <cctype>
 #include <cmath>
+#include <exception>
+#include <regex>
 #include <sstream>
 #include <vector>
 
@@ -104,10 +100,12 @@ OpalElement::OpalElement(const std::string& name, OpalElement* parent)
 
 OpalElement::~OpalElement() {}
 
-std::pair<ApertureType, std::vector<double> > OpalElement::getApert() const {
-    std::pair<ApertureType, std::vector<double> > retvalue(
+std::pair<ApertureType, std::vector<double>> OpalElement::getApert() const {
+    std::pair<ApertureType, std::vector<double>> retvalue(
             ApertureType::ELLIPTICAL, std::vector<double>({0.5, 0.5, 1.0}));
-    if (!itsAttr[APERT]) return retvalue;
+    if (!itsAttr[APERT]) {
+        return retvalue;
+    }
 
     std::string aperture = Attributes::getString(itsAttr[APERT]);
 
@@ -116,12 +114,20 @@ std::pair<ApertureType, std::vector<double> > OpalElement::getApert() const {
     std::regex circle("circle *\\((.*)\\)", std::regex::icase);
     std::regex ellipse("ellipse *\\((.*)\\)", std::regex::icase);
 
-    std::regex twoArguments("([^,]*),([^,]*)");
-    std::regex threeArguments("([^,]*),([^,]*),([^,]*)");
+    std::regex twoArguments("^\\s*([^,]+)\\s*,\\s*([^,]+)\\s*$");
+    std::regex threeArguments("^\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)\\s*$");
 
     std::smatch match;
 
     const double width2HalfWidth = 0.5;
+
+    auto validateConicScale = [&](double scale, const std::string& arguments) {
+        if (!(scale > 0.0)) {
+            throw OpalException(
+                    "OpalElement::getApert()", "invalid conic aperture scale in '" + arguments
+                                                       + "': expected positive real value");
+        }
+    };
 
     if (std::regex_search(aperture, match, square)) {
         std::string arguments = match[1];
@@ -149,6 +155,7 @@ std::pair<ApertureType, std::vector<double> > OpalElement::getApert() const {
                         "OpalElement::getApert()",
                         "could not convert '" + arguments + "' to doubles");
             }
+            validateConicScale(retvalue.second[2], arguments);
         }
 
         return retvalue;
@@ -185,6 +192,7 @@ std::pair<ApertureType, std::vector<double> > OpalElement::getApert() const {
                         "OpalElement::getApert()",
                         "could not convert '" + arguments + "' to doubles");
             }
+            validateConicScale(retvalue.second[2], arguments);
         }
 
         return retvalue;
@@ -216,6 +224,7 @@ std::pair<ApertureType, std::vector<double> > OpalElement::getApert() const {
                         "OpalElement::getApert()",
                         "could not convert '" + arguments + "' to doubles");
             }
+            validateConicScale(retvalue.second[2], arguments);
         }
 
         return retvalue;
@@ -252,6 +261,7 @@ std::pair<ApertureType, std::vector<double> > OpalElement::getApert() const {
                         "OpalElement::getApert()",
                         "could not convert '" + arguments + "' to doubles");
             }
+            validateConicScale(retvalue.second[2], arguments);
         }
 
         return retvalue;
@@ -326,7 +336,7 @@ void OpalElement::print(std::ostream& os) const {
     }
 
     os << head;
-    os << ';';  // << "JMJdebug OPALElement.cc" ;
+    os << ';';
     os << std::endl;
 }
 
@@ -350,7 +360,6 @@ void OpalElement::printMultipoleStrength(
             flag += 3;
         }
     }
-    //  cout << "JMJdebug, OpalElement.cc: flag=" << flag << endl ;
     // Now do the output.
     int div = 2 * (order + 1);
 
