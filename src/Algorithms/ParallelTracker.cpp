@@ -738,9 +738,6 @@ void ParallelTracker::checkInBBRegion(OrbitThreader& oth) {
 ParallelTracker::BeamBeamLongitudinalExtent ParallelTracker::computeBeamBeamLongitudinalExtent(
         double bunchS, const ippl::Vector<double, 3>& rmin,
         const ippl::Vector<double, 3>& rmax) const {
-    if (beamBeamState_m.state == BEAMBEAM::WindowState::Active) {
-        return {2.0 * bunchS + rmin[2], 2.0 * bunchS + rmax[2]};
-    }
     return {bunchS + rmin[2], bunchS + rmax[2]};
 }
 
@@ -798,16 +795,18 @@ void ParallelTracker::enterBeamBeamWindow(const BEAMBEAM::ActualGeometry& geomet
     itsBunch_m->clearBeamBeamWindowVisualizationTail();
     applyBeamBeamWindowConfig(geometry);
     if (gmsg != nullptr) {
-        *gmsg << level2 << "Entering BeamBeam window: interaction_point_s="
-              << geometry.interactionPointS << " m, s_range=(" << geometry.beginS << ", "
-              << geometry.endS << ") m, length=" << geometry.length << " m";
+        std::ostringstream diagnostics;
+        diagnostics << std::fixed << std::setprecision(3)
+                    << "Entering BeamBeam window: interaction_point_s="
+                    << geometry.interactionPointS << " m, s_range=(" << geometry.beginS << ", "
+                    << geometry.endS << ") m, length=" << geometry.length << " m";
         if (geometry.config.xAperture.has_value() && geometry.config.yAperture.has_value()) {
-            *gmsg << ", aperture_half_width=(" << *geometry.config.xAperture << ", "
-                  << *geometry.config.yAperture << ") m";
+            diagnostics << ", aperture_half_width=(" << *geometry.config.xAperture << ", "
+                        << *geometry.config.yAperture << ") m";
         } else {
-            *gmsg << ", aperture_half_width=(not set; preserving transverse field bounds)";
+            diagnostics << ", aperture_half_width=(not set; preserving transverse field bounds)";
         }
-        *gmsg << endl;
+        *gmsg << level2 << diagnostics.str() << endl;
     }
     m << level5 << "start beam-beam-window mode" << endl;
 }
@@ -921,6 +920,28 @@ void ParallelTracker::computeBeamBeamWindowSelfFields(
     Vector_t<double, 3> physicalRMin(0.0), physicalRMax(0.0);
     itsBunch_m->calcBeamParameters();
     itsBunch_m->get_bounds(physicalRMin, physicalRMax);
+    if (geometry.config.xAperture.has_value()
+        && (physicalRMin[0] < -*geometry.config.xAperture
+            || physicalRMax[0] > *geometry.config.xAperture)) {
+        std::ostringstream msg;
+        msg << "BeamBeam APERTURE x half-width " << *geometry.config.xAperture
+            << " m does not contain the bunch x extent [" << physicalRMin[0] << ", "
+            << physicalRMax[0]
+            << "] m in the beam-beam frame. Increase the BeamBeam APERTURE or reduce the "
+               "transverse bunch extent before using the fixed BeamBeam mesh.";
+        throw OpalException("ParallelTracker::computeBeamBeamWindowSelfFields", msg.str());
+    }
+    if (geometry.config.yAperture.has_value()
+        && (physicalRMin[1] < -*geometry.config.yAperture
+            || physicalRMax[1] > *geometry.config.yAperture)) {
+        std::ostringstream msg;
+        msg << "BeamBeam APERTURE y half-width " << *geometry.config.yAperture
+            << " m does not contain the bunch y extent [" << physicalRMin[1] << ", "
+            << physicalRMax[1]
+            << "] m in the beam-beam frame. Increase the BeamBeam APERTURE or reduce the "
+               "transverse bunch extent before using the fixed BeamBeam mesh.";
+        throw OpalException("ParallelTracker::computeBeamBeamWindowSelfFields", msg.str());
+    }
     const std::optional<double> preEnlargePrimaryCharge =
             performBeamBeamWindowEntryTransition(geometry, physicalRMin, physicalRMax);
 

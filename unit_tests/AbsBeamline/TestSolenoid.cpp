@@ -2,6 +2,7 @@
 #include "AbstractObjects/OpalData.h"
 #include "Algorithms/DefaultVisitor.h"
 #include "Algorithms/IndexMap.h"
+#include "BeamlineCore/BeamBeamRep.h"
 #include "BeamlineCore/DriftRep.h"
 #include "BeamlineCore/MultipoleRep.h"
 #include "BeamlineCore/RFCavityRep.h"
@@ -285,6 +286,18 @@ TEST_F(SolenoidPlacementTest, LatticeExportsUseFieldMapEdgesAndSolenoidMeshType)
     EXPECT_NE(
             script.find("os.path.getmtime(script_file) > os.path.getmtime(vtk_file)"),
             std::string::npos);
+    EXPECT_NE(script.find("def getBeamBeamApertureVolume():"), std::string::npos);
+    EXPECT_NE(script.find("pv.CellType.HEXAHEDRON"), std::string::npos);
+    EXPECT_NE(script.find("0.650000 0.650000 0.650000 0.280000"), std::string::npos);
+    EXPECT_NE(script.find("display_scale = 1.0e3"), std::string::npos);
+    EXPECT_NE(script.find("mesh.points *= display_scale"), std::string::npos);
+    EXPECT_NE(script.find("zlabel='Z [mm]'"), std::string::npos);
+    EXPECT_NE(script.find("def addParticleVisualization("), std::string::npos);
+    EXPECT_NE(script.find("parser.add_argument('--part-vis', action='store_true')"), std::string::npos);
+    EXPECT_NE(script.find("parser.add_argument('--part-debug', action='store_true')"), std::string::npos);
+    EXPECT_NE(script.find("args.part_max_primary"), std::string::npos);
+    EXPECT_NE(script.find("ref_part_r = np.asarray(group.attrs.get('RefPartR'"), std::string::npos);
+    EXPECT_NE(script.find("plotter.reset_camera()"), std::string::npos);
 }
 
 TEST_F(SolenoidPlacementTest, ElementPositionsSDDSMarksSolenoidColumn) {
@@ -401,4 +414,24 @@ TEST_F(SolenoidPlacementTest, TravelingWaveMeshesAsPeriodicStructure) {
             (std::istreambuf_iterator<char>(py)), std::istreambuf_iterator<char>());
     EXPECT_NE(script.find("color = [7]"), std::string::npos);
     EXPECT_NE(script.find("numVertices = [1152]"), std::string::npos);
+}
+
+TEST_F(SolenoidPlacementTest, BeamBeamMeshesAsNamedBox) {
+    BeamBeamRep beamBeam("BB1");
+    beamBeam.setElementLength(0.05);
+    beamBeam.setElementPosition(0.0);
+    beamBeam.setAperture(
+            ApertureType::CONIC_RECTANGULAR, std::vector<double>{0.005, 0.005, 0.05});
+
+    MeshGenerator mesh;
+    mesh.add(beamBeam);
+    mesh.write(testStem_);
+
+    std::ifstream py(outputPath("_ElementPositions.py"));
+    ASSERT_TRUE(py.is_open());
+    const std::string script(
+            (std::istreambuf_iterator<char>(py)), std::istreambuf_iterator<char>());
+    EXPECT_NE(script.find("color = [9]"), std::string::npos);
+    EXPECT_NE(script.find("numVertices = [8]"), std::string::npos);
+    EXPECT_NE(script.find("('BeamBeam', (0.0, 0.7, 0.9))"), std::string::npos);
 }

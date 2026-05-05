@@ -200,6 +200,31 @@ TEST_F(BeamBeamPartBunchTest, EnableBeamBeamWindowMeshOnlyChangesLongitudinalDom
     expectVectorNear(meshOrigin, updatedRMin, 1.0e-14);
 }
 
+TEST_F(BeamBeamPartBunchTest, EnableBeamBeamWindowMeshUsesExplicitTransverseAperture) {
+    auto bunch = makeBunch();
+    auto fieldContainer = bunch->getFieldContainer();
+
+    bunch->enableBeamBeamWindowMesh(1.25, 0.50, 2.0e-3, 3.0e-3);
+
+    const Vector3d updatedRMin = fieldContainer->getRMin();
+    const Vector3d updatedRMax = fieldContainer->getRMax();
+    const Vector3d updatedHr   = fieldContainer->getHr();
+    const Vector3d meshOrigin  = fieldContainer->getMesh().getOrigin();
+
+    EXPECT_DOUBLE_EQ(updatedRMin[0], -2.0e-3);
+    EXPECT_DOUBLE_EQ(updatedRMax[0], 2.0e-3);
+    EXPECT_DOUBLE_EQ(updatedRMin[1], -3.0e-3);
+    EXPECT_DOUBLE_EQ(updatedRMax[1], 3.0e-3);
+    EXPECT_DOUBLE_EQ(updatedRMin[2], 1.00);
+    EXPECT_DOUBLE_EQ(updatedRMax[2], 1.50);
+
+    EXPECT_DOUBLE_EQ(updatedHr[0], 4.0e-3 / 8.0);
+    EXPECT_DOUBLE_EQ(updatedHr[1], 6.0e-3 / 8.0);
+    EXPECT_DOUBLE_EQ(updatedHr[2], 0.50 / 8.0);
+
+    expectVectorNear(meshOrigin, updatedRMin, 1.0e-14);
+}
+
 // ----------------------------------------------------------------------------
 // save/restore field-domain state
 // ----------------------------------------------------------------------------
