@@ -1445,8 +1445,7 @@ namespace {
 
         const double deflection = std::atan2(state.p(0), state.p(2));
         EXPECT_NEAR(deflection, -angle, 5.0e-5);
-        EXPECT_NEAR(
-                state.r(0), -std::copysign(radius * (1.0 - std::cos(angle)), angle), 1.0e-6);
+        EXPECT_NEAR(state.r(0), -std::copysign(radius * (1.0 - std::cos(angle)), angle), 1.0e-6);
         EXPECT_NEAR(state.r(2), radius * std::sin(std::abs(angle)), 1.0e-6);
     }
 
@@ -1477,8 +1476,7 @@ namespace {
 
         const double deflection = std::atan2(state.p(0), state.p(2));
         EXPECT_NEAR(deflection, -angle, 5.0e-5);
-        EXPECT_NEAR(
-                state.r(0), -std::copysign(radius * (1.0 - std::cos(angle)), angle), 1.0e-6);
+        EXPECT_NEAR(state.r(0), -std::copysign(radius * (1.0 - std::cos(angle)), angle), 1.0e-6);
         EXPECT_NEAR(state.r(2), radius * std::sin(std::abs(angle)), 1.0e-6);
     }
 

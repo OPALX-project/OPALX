@@ -44,7 +44,8 @@ namespace {
 
     Vector3 analyticSbendExit(const double length, const double angle) {
         return Vector3(
-                -(length / angle) * (1.0 - std::cos(angle)), 0.0, (length / angle) * std::sin(angle));
+                -(length / angle) * (1.0 - std::cos(angle)), 0.0,
+                (length / angle) * std::sin(angle));
     }
 
     Vector3 analyticRbendExit(const double length, const double angle) {

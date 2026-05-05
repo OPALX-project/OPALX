@@ -90,7 +90,7 @@ OpalElement::OpalElement(int size, const char* name, const char* help)
             true);
 
     const unsigned int end = COMMON;
-    for (unsigned int i = 0; i < end; ++ i) {
+    for (unsigned int i = 0; i < end; ++i) {
         AttributeHandler::addAttributeOwner("Any", AttributeHandler::ELEMENT, itsAttr[i].getName());
     }
 }
@@ -100,7 +100,7 @@ OpalElement::OpalElement(const std::string& name, OpalElement* parent)
 
 OpalElement::~OpalElement() {}
 
-std::pair<ApertureType, std::vector<double> > OpalElement::getApert() const {
+std::pair<ApertureType, std::vector<double>> OpalElement::getApert() const {
     std::pair<ApertureType, std::vector<double>> retvalue(
             ApertureType::ELLIPTICAL, std::vector<double>({0.5, 0.5, 1.0}));
     if (!itsAttr[APERT]) {
@@ -137,10 +137,10 @@ std::pair<ApertureType, std::vector<double> > OpalElement::getApert() const {
             try {
                 retvalue.second[0] = width2HalfWidth * std::stod(arguments);
                 retvalue.second[1] = retvalue.second[0];
-            } catch (const std::exception &ex) {
+            } catch (const std::exception& ex) {
                 throw OpalException(
                         "OpalElement::getApert()",
-                                    "could not convert '" + arguments + "' to double");
+                        "could not convert '" + arguments + "' to double");
             }
 
         } else {
@@ -150,10 +150,10 @@ std::pair<ApertureType, std::vector<double> > OpalElement::getApert() const {
                 retvalue.second[0] = width2HalfWidth * std::stod(match[1]);
                 retvalue.second[1] = retvalue.second[0];
                 retvalue.second[2] = std::stod(match[2]);
-            } catch (const std::exception &ex) {
+            } catch (const std::exception& ex) {
                 throw OpalException(
                         "OpalElement::getApert()",
-                                    "could not convert '" + arguments + "' to doubles");
+                        "could not convert '" + arguments + "' to doubles");
             }
             validateConicScale(retvalue.second[2], arguments);
         }
@@ -171,13 +171,13 @@ std::pair<ApertureType, std::vector<double> > OpalElement::getApert() const {
                 size_t sz = 0;
 
                 retvalue.second[0] = width2HalfWidth * std::stod(arguments, &sz);
-                sz = arguments.find_first_of(",", sz) + 1;
+                sz                 = arguments.find_first_of(",", sz) + 1;
                 retvalue.second[1] = width2HalfWidth * std::stod(arguments.substr(sz));
 
-            } catch (const std::exception &ex) {
+            } catch (const std::exception& ex) {
                 throw OpalException(
                         "OpalElement::getApert()",
-                                    "could not convert '" + arguments + "' to doubles");
+                        "could not convert '" + arguments + "' to doubles");
             }
 
         } else {
@@ -187,10 +187,10 @@ std::pair<ApertureType, std::vector<double> > OpalElement::getApert() const {
                 retvalue.second[0] = width2HalfWidth * std::stod(match[1]);
                 retvalue.second[1] = width2HalfWidth * std::stod(match[2]);
                 retvalue.second[2] = std::stod(match[3]);
-            } catch (const std::exception &ex) {
+            } catch (const std::exception& ex) {
                 throw OpalException(
                         "OpalElement::getApert()",
-                                    "could not convert '" + arguments + "' to doubles");
+                        "could not convert '" + arguments + "' to doubles");
             }
             validateConicScale(retvalue.second[2], arguments);
         }
@@ -206,10 +206,10 @@ std::pair<ApertureType, std::vector<double> > OpalElement::getApert() const {
             try {
                 retvalue.second[0] = width2HalfWidth * std::stod(arguments);
                 retvalue.second[1] = retvalue.second[0];
-            } catch (const std::exception &ex) {
+            } catch (const std::exception& ex) {
                 throw OpalException(
                         "OpalElement::getApert()",
-                                    "could not convert '" + arguments + "' to double");
+                        "could not convert '" + arguments + "' to double");
             }
 
         } else {
@@ -219,10 +219,10 @@ std::pair<ApertureType, std::vector<double> > OpalElement::getApert() const {
                 retvalue.second[0] = width2HalfWidth * std::stod(match[1]);
                 retvalue.second[1] = retvalue.second[0];
                 retvalue.second[2] = std::stod(match[2]);
-            } catch (const std::exception &ex) {
+            } catch (const std::exception& ex) {
                 throw OpalException(
                         "OpalElement::getApert()",
-                                    "could not convert '" + arguments + "' to doubles");
+                        "could not convert '" + arguments + "' to doubles");
             }
             validateConicScale(retvalue.second[2], arguments);
         }
@@ -240,13 +240,13 @@ std::pair<ApertureType, std::vector<double> > OpalElement::getApert() const {
                 size_t sz = 0;
 
                 retvalue.second[0] = width2HalfWidth * std::stod(arguments, &sz);
-                sz = arguments.find_first_of(",", sz) + 1;
+                sz                 = arguments.find_first_of(",", sz) + 1;
                 retvalue.second[1] = width2HalfWidth * std::stod(arguments.substr(sz));
 
-            } catch (const std::exception &ex) {
+            } catch (const std::exception& ex) {
                 throw OpalException(
                         "OpalElement::getApert()",
-                                    "could not convert '" + arguments + "' to doubles");
+                        "could not convert '" + arguments + "' to doubles");
             }
 
         } else {
@@ -256,10 +256,10 @@ std::pair<ApertureType, std::vector<double> > OpalElement::getApert() const {
                 retvalue.second[0] = width2HalfWidth * std::stod(match[1]);
                 retvalue.second[1] = width2HalfWidth * std::stod(match[2]);
                 retvalue.second[2] = std::stod(match[3]);
-            } catch (const std::exception &ex) {
+            } catch (const std::exception& ex) {
                 throw OpalException(
                         "OpalElement::getApert()",
-                                    "could not convert '" + arguments + "' to doubles");
+                        "could not convert '" + arguments + "' to doubles");
             }
             validateConicScale(retvalue.second[2], arguments);
         }
@@ -297,7 +297,7 @@ const std::string OpalElement::getParticleMatterInteraction() const {
 void OpalElement::parse(Statement& stat) {
     while (stat.delimiter(',')) {
         std::string name = Expressions::parseString(stat, "Attribute name expected.");
-        Attribute *attr = findAttribute(name);
+        Attribute* attr  = findAttribute(name);
 
         if (attr == 0) {
             throw OpalException("OpalElement::parse", "unknown attribute \"" + name + "\"");
@@ -330,8 +330,8 @@ void OpalElement::print(std::ostream& os) const {
     std::string head = getOpalName();
 
     Object* parent = getParent();
-    if (parent != 0  &&  ! parent->getOpalName().empty()) {
-        if (! getOpalName().empty()) head += ':';
+    if (parent != 0 && !parent->getOpalName().empty()) {
+        if (!getOpalName().empty()) head += ':';
         head += parent->getOpalName();
     }
 
@@ -371,74 +371,74 @@ void OpalElement::printMultipoleStrength(
         case 1:
         case 2:
             // Pure normal component.
-        {
-            std::string normImage = sNorm.getImage();
-            if (length) {
-                normImage = "(" + normImage + ")*(" + length.getImage() + ")";
+            {
+                std::string normImage = sNorm.getImage();
+                if (length) {
+                    normImage = "(" + normImage + ")*(" + length.getImage() + ")";
+                }
+                printAttribute(os, sName, normImage, len);
             }
-            printAttribute(os, sName, normImage, len);
-        }
-        break;
+            break;
 
         case 3:
         case 6:
             // Pure skew component.
-        {
-            std::string skewImage = sSkew.getImage();
-            if (length) {
-                skewImage = "(" + skewImage + ")*(" + length.getImage() + ")";
+            {
+                std::string skewImage = sSkew.getImage();
+                if (length) {
+                    skewImage = "(" + skewImage + ")*(" + length.getImage() + ")";
+                }
+                printAttribute(os, sName, skewImage, len);
+                double tilt = Physics::pi / double(div);
+                printAttribute(os, tName, tilt, len);
             }
-            printAttribute(os, sName, skewImage, len);
-            double tilt = Physics::pi / double(div);
-            printAttribute(os, tName, tilt, len);
-        }
-        break;
+            break;
 
         case 4:
             // Both components are non-zero constants.
-        {
-            double sn = Attributes::getReal(sNorm);
-            double ss = Attributes::getReal(sSkew);
-            double strength = std::sqrt(sn * sn + ss * ss);
-            if (strength) {
-                std::ostringstream ts;
-                ts << strength;
-                std::string image = ts.str();
-                if (length) {
-                    image = "(" + image + ")*(" + length.getImage() + ")";
+            {
+                double sn       = Attributes::getReal(sNorm);
+                double ss       = Attributes::getReal(sSkew);
+                double strength = std::sqrt(sn * sn + ss * ss);
+                if (strength) {
+                    std::ostringstream ts;
+                    ts << strength;
+                    std::string image = ts.str();
+                    if (length) {
+                        image = "(" + image + ")*(" + length.getImage() + ")";
+                    }
+                    printAttribute(os, sName, image, len);
+                    double tilt = -std::atan2(ss, sn) / double(div);
+                    if (tilt) printAttribute(os, tName, tilt, len);
                 }
-                printAttribute(os, sName, image, len);
-                double tilt = - std::atan2(ss, sn) / double(div);
-                if (tilt) printAttribute(os, tName, tilt, len);
             }
-        }
-        break;
+            break;
 
         case 5:
         case 7:
         case 8:
             // One or both components is/are expressions.
-        {
-            std::string normImage = sNorm.getImage();
-            std::string skewImage = sSkew.getImage();
+            {
+                std::string normImage = sNorm.getImage();
+                std::string skewImage = sSkew.getImage();
                 std::string image     = "SQRT((" + normImage + ")^2+(" + skewImage + ")^2)";
-            printAttribute(os, sName, image, len);
-            if (length) {
-                image = "(" + image + ")*(" + length.getImage() + ")";
+                printAttribute(os, sName, image, len);
+                if (length) {
+                    image = "(" + image + ")*(" + length.getImage() + ")";
+                }
+                std::string divisor;
+                if (div < 9) {
+                    divisor = "0";
+                    divisor[0] += div;
+                } else {
+                    divisor = "00";
+                    divisor[0] += div / 10;
+                    divisor[1] += div % 10;
+                }
+                image = "-ATAN2(" + skewImage + ',' + normImage + ")/" + divisor;
+                printAttribute(os, tName, image, len);
+                break;
             }
-            std::string divisor;
-            if (div < 9) {
-                divisor = "0";
-                divisor[0] += div;
-            } else {
-                divisor = "00";
-                divisor[0] += div / 10;
-                divisor[1] += div % 10;
-            }
-            image = "-ATAN2(" + skewImage + ',' + normImage + ")/" + divisor;
-            printAttribute(os, tName, image, len);
-            break;
-        }
     }
 }
 
@@ -455,9 +455,9 @@ void OpalElement::update() {
         Quaternion rotation;
 
         if (dir.size() == 3) {
-            Quaternion rotTheta(std::cos(0.5 * dir[0]), 0,                 std::sin(0.5 * dir[0]), 0);
-            Quaternion rotPhi(std::cos(0.5 * dir[1]),   std::sin(0.5 * dir[1]), 0,                 0);
-            Quaternion rotPsi(std::cos(0.5 * dir[2]),   0,                 0,                 std::sin(0.5 * dir[2]));
+            Quaternion rotTheta(std::cos(0.5 * dir[0]), 0, std::sin(0.5 * dir[0]), 0);
+            Quaternion rotPhi(std::cos(0.5 * dir[1]), std::sin(0.5 * dir[1]), 0, 0);
+            Quaternion rotPsi(std::cos(0.5 * dir[2]), 0, 0, std::sin(0.5 * dir[2]));
             rotation = rotTheta * (rotPhi * rotPsi);
         } else {
             if (itsAttr[ORIENTATION]) {
@@ -494,15 +494,15 @@ void OpalElement::update() {
             || !itsAttr[PSI].defaultUsed()) {
         const Vector_t<double, 3> origin(
                 Attributes::getReal(itsAttr[X]), Attributes::getReal(itsAttr[Y]),
-                              Attributes::getReal(itsAttr[Z]));
+                Attributes::getReal(itsAttr[Z]));
 
         const double theta = Attributes::getReal(itsAttr[THETA]);
-        const double phi = Attributes::getReal(itsAttr[PHI]);
-        const double psi = Attributes::getReal(itsAttr[PSI]);
+        const double phi   = Attributes::getReal(itsAttr[PHI]);
+        const double psi   = Attributes::getReal(itsAttr[PSI]);
 
-        Quaternion rotTheta(std::cos(0.5 * theta), 0,              std::sin(0.5 * theta), 0);
-        Quaternion rotPhi(std::cos(0.5 * phi),     std::sin(0.5 * phi), 0,                0);
-        Quaternion rotPsi(std::cos(0.5 * psi),     0,              0,                std::sin(0.5 * psi));
+        Quaternion rotTheta(std::cos(0.5 * theta), 0, std::sin(0.5 * theta), 0);
+        Quaternion rotPhi(std::cos(0.5 * phi), std::sin(0.5 * phi), 0, 0);
+        Quaternion rotPsi(std::cos(0.5 * psi), 0, 0, std::sin(0.5 * psi));
         Quaternion rotation = rotTheta * (rotPhi * rotPsi);
 
         CoordinateSystemTrafo global2local(origin, rotation.conjugate());
@@ -513,13 +513,13 @@ void OpalElement::update() {
 
     Vector_t<double, 3> misalignmentShift(
             Attributes::getReal(itsAttr[DX]), Attributes::getReal(itsAttr[DY]),
-                               Attributes::getReal(itsAttr[DZ]));
+            Attributes::getReal(itsAttr[DZ]));
     double dtheta = Attributes::getReal(itsAttr[DTHETA]);
-    double dphi = Attributes::getReal(itsAttr[DPHI]);
-    double dpsi = Attributes::getReal(itsAttr[DPSI]);
-    Quaternion rotationY(std::cos(0.5 * dtheta), 0,               std::sin(0.5 * dtheta), 0);
-    Quaternion rotationX(std::cos(0.5 * dphi),   std::sin(0.5 * dphi), 0,                 0);
-    Quaternion rotationZ(std::cos(0.5 * dpsi),   0,               0,                 std::sin(0.5 * dpsi));
+    double dphi   = Attributes::getReal(itsAttr[DPHI]);
+    double dpsi   = Attributes::getReal(itsAttr[DPSI]);
+    Quaternion rotationY(std::cos(0.5 * dtheta), 0, std::sin(0.5 * dtheta), 0);
+    Quaternion rotationX(std::cos(0.5 * dphi), std::sin(0.5 * dphi), 0, 0);
+    Quaternion rotationZ(std::cos(0.5 * dpsi), 0, 0, std::sin(0.5 * dpsi));
     Quaternion misalignmentRotation = rotationY * rotationX * rotationZ;
     CoordinateSystemTrafo misalignment(misalignmentShift, misalignmentRotation.conjugate());
 
@@ -532,7 +532,7 @@ void OpalElement::update() {
 
 void OpalElement::updateUnknown(ElementBase* base) {
     for (std::vector<Attribute>::size_type i = itsSize; i < itsAttr.size(); ++i) {
-        Attribute &attr = itsAttr[i];
+        Attribute& attr = itsAttr[i];
         base->setAttribute(attr.getName(), Attributes::getReal(attr));
     }
 }
@@ -561,7 +561,7 @@ void OpalElement::registerOwnership() const {
 
     const unsigned int end = itsSize;
     const std::string name = getOpalName();
-    for (unsigned int i = COMMON; i < end; ++ i) {
+    for (unsigned int i = COMMON; i < end; ++i) {
         AttributeHandler::addAttributeOwner(name, AttributeHandler::ELEMENT, itsAttr[i].getName());
     }
 }

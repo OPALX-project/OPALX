@@ -419,8 +419,8 @@ TEST_F(OrbitThreaderTest, PrintsOnlyFinalThreadingSummary) {
     {
         ScopedInformRedirect redirect(output);
         OrbitThreader threader(
-                reference, Vector_t<double, 3>(0.0), Vector_t<double, 3>(0.0, 0.0, 1.0), 0.0,
-                0.0, 0.0, 1.0e-11, stepSizes, beamline);
+                reference, Vector_t<double, 3>(0.0), Vector_t<double, 3>(0.0, 0.0, 1.0), 0.0, 0.0,
+                0.0, 1.0e-11, stepSizes, beamline);
         ASSERT_NO_THROW(threader.execute());
     }
 
@@ -547,8 +547,8 @@ TEST_F(OrbitThreaderTest, DoesNotReportUnvisitedElementsBeyondTracedStepLimit) {
             1.0e-11, stepSizes, beamline);
 
     const FieldList allElements = beamline.getElementByType(ElementType::ANY);
-    ASSERT_NO_THROW(threader.validateVisitedElements(
-            allElements, std::set<std::string>{"D0"}, 0.0, 0.01));
+    ASSERT_NO_THROW(
+            threader.validateVisitedElements(allElements, std::set<std::string>{"D0"}, 0.0, 0.01));
 }
 
 TEST_F(OrbitThreaderTest, RegistersSBendActionRangeFromFieldSupportExtent) {

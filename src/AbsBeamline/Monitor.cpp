@@ -72,8 +72,7 @@ bool Monitor::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
 }
 
 bool Monitor::apply(
-        const size_t& i, const double& t, Vector_t<double, 3>& /*E*/,
-        Vector_t<double, 3>& /*B*/) {
+        const size_t& i, const double& t, Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/) {
     const auto pc = RefPartBunch_m->getParticleContainer();
     if (!pc) {
         return false;
@@ -86,16 +85,16 @@ bool Monitor::apply(
     auto qHost  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->getQView());
     auto mHost  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->getMView());
 
-    const Vector_t<double, 3> R = Rhost(i);
-    const Vector_t<double, 3> P = Phost(i);
-    const double dt             = dthost(i);
+    const Vector_t<double, 3> R  = Rhost(i);
+    const Vector_t<double, 3> P  = Phost(i);
+    const double dt              = dthost(i);
     const Vector_t<double, 3> ds = Physics::c * dt * Util::getBeta(P);
-    const double q = (qHost.extent(0) == 1) ? qHost(0) : qHost(i);
-    const double m = (mHost.extent(0) == 1) ? mHost(0) : mHost(i);
-    const int64_t id = (idHost.extent(0) > i) ? idHost(i) : static_cast<int64_t>(i);
+    const double q               = (qHost.extent(0) == 1) ? qHost(0) : qHost(i);
+    const double m               = (mHost.extent(0) == 1) ? mHost(0) : mHost(i);
+    const int64_t id             = (idHost.extent(0) > i) ? idHost(i) : static_cast<int64_t>(i);
 
     if (online_m && type_m == CollectionType::SPATIAL
-            && std::abs(ds(2)) > std::numeric_limits<double>::epsilon()) {
+        && std::abs(ds(2)) > std::numeric_limits<double>::epsilon()) {
         const double z0 = R(2);
         const double z1 = R(2) + ds(2);
         if (z0 * z1 <= 0.0) {
@@ -170,32 +169,34 @@ bool Monitor::applyToReferenceParticle(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
         Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/) {
     if (!OpalData::getInstance()->isInPrepState()) {
-        const double dt                       = RefPartBunch_m->getdT();
-        const double cdt                      = Physics::c * dt;
+        const double dt                      = RefPartBunch_m->getdT();
+        const double cdt                     = Physics::c * dt;
         const Vector_t<double, 3> singleStep = cdt * Util::getBeta(P);
 
         if (std::abs(singleStep(2)) > std::numeric_limits<double>::epsilon()) {
-            const double frac             = -R(2) / singleStep(2);
-            const double z0               = R(2);
-            const double z1               = R(2) + singleStep(2);
+            const double frac = -R(2) / singleStep(2);
+            const double z0   = R(2);
+            const double z1   = R(2) + singleStep(2);
             if (z0 * z1 <= 0.0 && frac >= 0.0 && frac <= 1.0) {
                 const double time             = t + frac * dt;
                 const Vector_t<double, 3> dR  = frac * singleStep;
                 const Vector_t<double, 3> dsR = dR + 0.5 * singleStep;
                 const double ds               = euclidean_norm(dsR);
                 lossDs_m->addReferenceParticle(
-                        csTrafoGlobal2Local_m.transformFrom(R + dR), csTrafoGlobal2Local_m.rotateFrom(P),
-                        time, RefPartBunch_m->getParticleContainer()->get_sPos() + ds,
+                        csTrafoGlobal2Local_m.transformFrom(R + dR),
+                        csTrafoGlobal2Local_m.rotateFrom(P), time,
+                        RefPartBunch_m->getParticleContainer()->get_sPos() + ds,
                         RefPartBunch_m->getGlobalTrackStep());
 
                 if (type_m == CollectionType::TEMPORAL) {
                     driftToCorrectPositionAndSave(R, P);
                     auto stats = lossDs_m->computeStatistics(1);
                     if (!stats.empty()) {
-                        statFileEntries_sm.insert(std::make_pair(stats.begin()->spos_m, *stats.begin()));
-                        OpalData::OpenMode openMode = numPassages_m > 0
-                                                             ? OpalData::OpenMode::APPEND
-                                                             : OpalData::getInstance()->getOpenMode();
+                        statFileEntries_sm.insert(
+                                std::make_pair(stats.begin()->spos_m, *stats.begin()));
+                        OpalData::OpenMode openMode =
+                                numPassages_m > 0 ? OpalData::OpenMode::APPEND
+                                                  : OpalData::getInstance()->getOpenMode();
                         lossDs_m->save(1, openMode);
                     }
                 }
@@ -212,7 +213,7 @@ void Monitor::initialise(PartBunch_t* bunch, double& startField, double& endFiel
     endField       = startField + halfLength_s;
     startField -= halfLength_s;
 
-    filename_m = getOutputFN();
+    filename_m            = getOutputFN();
     const auto pc         = bunch->getParticleContainer();
     const size_t totalNum = pc ? pc->getTotalNum() : 0;
     double currentPos     = endField;
@@ -221,8 +222,8 @@ void Monitor::initialise(PartBunch_t* bunch, double& startField, double& endFiel
     }
 
     if (OpalData::getInstance()->getOpenMode() == OpalData::OpenMode::WRITE
-            || currentPos < startField) {
-        namespace fs = std::filesystem;
+        || currentPos < startField) {
+        namespace fs          = std::filesystem;
         fs::path lossFileName = fs::path(filename_m + ".h5");
         if (fs::exists(lossFileName)) {
             ippl::Comm->barrier();
@@ -258,9 +259,7 @@ void Monitor::getFieldExtend(double& zBegin, double& zEnd) const {
     zEnd   = halfLength_s;
 }
 
-ElementType Monitor::getType() const {
-    return ElementType::MONITOR;
-}
+ElementType Monitor::getType() const { return ElementType::MONITOR; }
 
 void Monitor::writeStatistics() {
     if (statFileEntries_sm.size() == 0) return;

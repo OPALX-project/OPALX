@@ -1,11 +1,11 @@
 #include "AbsBeamline/BendBase.h"
 
+#include <Kokkos_Core.hpp>
 #include "BeamlineGeometry/Euclid3D.h"
 #include "BeamlineGeometry/Rotation3D.h"
 #include "BeamlineGeometry/Vector3D.h"
 #include "PartBunch/PartBunch.h"
 #include "Physics/Physics.h"
-#include <Kokkos_Core.hpp>
 
 #include <algorithm>
 #include <cmath>
@@ -323,8 +323,7 @@ std::vector<BendBase::TrackingSlice> BendBase::buildTrackingSlices() const {
         const double sliceCenter                      = 0.5 * (sliceBegin + sliceEnd);
         const CoordinateSystemTrafo entryToSliceLocal = toCoordinateSystemTrafo(
                 makeReferencePathTransformFromEntry(sliceCenter, bodyLength, curvature));
-        const CoordinateSystemTrafo bodyToSliceLocal =
-                entryToSliceLocal * bodyToEntryLocal;
+        const CoordinateSystemTrafo bodyToSliceLocal = entryToSliceLocal * bodyToEntryLocal;
         slices.push_back(
                 TrackingSlice{
                         entryToSliceLocal, bodyToSliceLocal, entryToSliceLocal.getRotationMatrix(),
@@ -366,15 +365,15 @@ Vector_t<double, 3> BendBase::convertBodyCartesianToFieldLocal(
     const double curvature  = getReferencePathCurvature();
 
     if (getType() == ElementType::RBEND) {
-        const double entryZ = getEdgeToBegin().getOrigin()(2);
-        const double exitZ  = getEdgeToEnd().getOrigin()(2);
-        const CoordinateSystemTrafo entryLocal = toCoordinateSystemTrafo(getEntranceFrame());
+        const double entryZ                      = getEdgeToBegin().getOrigin()(2);
+        const double exitZ                       = getEdgeToEnd().getOrigin()(2);
+        const CoordinateSystemTrafo entryLocal   = toCoordinateSystemTrafo(getEntranceFrame());
         const Vector_t<double, 3> entryCartesian = entryLocal.transformTo(bodyCartesian);
         if (std::abs(curvature) <= 1.0e-15 || bodyCartesian(2) < 0.0) {
             return entryCartesian;
         }
 
-        const CoordinateSystemTrafo exitLocal = toCoordinateSystemTrafo(getExitFrame());
+        const CoordinateSystemTrafo exitLocal   = toCoordinateSystemTrafo(getExitFrame());
         const Vector_t<double, 3> exitCartesian = exitLocal.transformTo(bodyCartesian);
         if (bodyCartesian(2) > exitZ + 1.0e-12) {
             return Vector_t<double, 3>(
@@ -397,7 +396,7 @@ Vector_t<double, 3> BendBase::convertBodyCartesianToFieldLocal(
          * midpoint-body convention used by placement/export.
          */
         const double z = bodyCartesian(2);
-        double s = 0.5 * bodyLength * (z - entryZ) * (z - exitZ) / (entryZ * exitZ)
+        double s       = 0.5 * bodyLength * (z - entryZ) * (z - exitZ) / (entryZ * exitZ)
                    + bodyLength * z * (z - entryZ) / (exitZ * (exitZ - entryZ));
         if (std::abs(z - entryZ) <= 1.0e-12) {
             s = 0.0;
@@ -410,13 +409,13 @@ Vector_t<double, 3> BendBase::convertBodyCartesianToFieldLocal(
         return Vector_t<double, 3>(sliceLocal(0), sliceLocal(1), s);
     }
 
-    const CoordinateSystemTrafo entryLocal = toCoordinateSystemTrafo(getEntranceFrame());
+    const CoordinateSystemTrafo entryLocal   = toCoordinateSystemTrafo(getEntranceFrame());
     const Vector_t<double, 3> entryCartesian = entryLocal.transformTo(bodyCartesian);
     if (std::abs(curvature) <= 1.0e-15 || entryCartesian(2) <= 0.0) {
         return entryCartesian;
     }
 
-    const CoordinateSystemTrafo exitLocal = toCoordinateSystemTrafo(getExitFrame());
+    const CoordinateSystemTrafo exitLocal   = toCoordinateSystemTrafo(getExitFrame());
     const Vector_t<double, 3> exitCartesian = exitLocal.transformTo(bodyCartesian);
     if (exitCartesian(2) >= 0.0) {
         return Vector_t<double, 3>(
@@ -428,8 +427,8 @@ Vector_t<double, 3> BendBase::convertBodyCartesianToFieldLocal(
 
 Vector_t<double, 3> BendBase::rotateBodyCartesianVectorToFieldLocal(
         const Vector_t<double, 3>& bodyVector, const double s) const {
-    const double bodyLength = getReferencePathLength();
-    const double curvature  = getReferencePathCurvature();
+    const double bodyLength                = getReferencePathLength();
+    const double curvature                 = getReferencePathCurvature();
     const CoordinateSystemTrafo entryLocal = toCoordinateSystemTrafo(getEntranceFrame());
     const Vector_t<double, 3> entryVector  = entryLocal.rotateTo(bodyVector);
     if (std::abs(curvature) <= 1.0e-15 || s <= 0.0) {
@@ -465,9 +464,9 @@ Vector_t<double, 3> BendBase::rotateEntryCartesianVectorToFieldLocal(
     const double phi  = curvature * s;
     const double cphi = std::cos(phi);
     const double sphi = std::sin(phi);
-        return Vector_t<double, 3>(
-                cphi * entryVector(0) + sphi * entryVector(2), entryVector(1),
-                -sphi * entryVector(0) + cphi * entryVector(2));
+    return Vector_t<double, 3>(
+            cphi * entryVector(0) + sphi * entryVector(2), entryVector(1),
+            -sphi * entryVector(0) + cphi * entryVector(2));
 }
 
 Vector_t<double, 3> BendBase::rotateFieldLocalVectorToEntryCartesian(
@@ -491,9 +490,9 @@ Vector_t<double, 3> BendBase::rotateFieldLocalVectorToEntryCartesian(
     const double phi  = curvature * s;
     const double cphi = std::cos(phi);
     const double sphi = std::sin(phi);
-        return Vector_t<double, 3>(
-                cphi * fieldVector(0) - sphi * fieldVector(2), fieldVector(1),
-                sphi * fieldVector(0) + cphi * fieldVector(2));
+    return Vector_t<double, 3>(
+            cphi * fieldVector(0) - sphi * fieldVector(2), fieldVector(1),
+            sphi * fieldVector(0) + cphi * fieldVector(2));
 }
 
 bool BendBase::applySlice(
@@ -548,9 +547,9 @@ bool BendBase::applySlice(
                 Vector_t<double, 3> entryChartPosition = entryCartesian;
                 if (std::abs(referenceCurvature) > 1.0e-15) {
                     const double radius = 1.0 / referenceCurvature;
-                    const double phi = recoverReferencePhaseFromEntryCartesian(
+                    const double phi    = recoverReferencePhaseFromEntryCartesian(
                             entryCartesian, referenceCurvature);
-                    const double s      = phi / referenceCurvature;
+                    const double s = phi / referenceCurvature;
                     const double radialDistance =
                             std::hypot(entryCartesian(0) + radius, entryCartesian(2))
                             - std::abs(radius);

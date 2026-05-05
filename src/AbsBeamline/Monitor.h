@@ -139,7 +139,7 @@ inline int Monitor::getRequiredNumberOfTimeSteps() const { return 1; }
  */
 inline bool Monitor::isInside(const Vector_t<double, 3>& r) const {
     const double halfBodyLength = 0.5 * getElementLength();
-    const double halfSupport = std::max(halfBodyLength, halfLength_s);
+    const double halfSupport    = std::max(halfBodyLength, halfLength_s);
     return std::abs(r(2)) <= halfSupport;
 }
 

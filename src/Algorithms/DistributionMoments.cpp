@@ -310,14 +310,14 @@ void DistributionMoments::compute(
     const double localCount  = static_cast<double>(nLocal);
     double globalCount       = 0.0;
 
-    std::array<double, 12> localSums = {};
+    std::array<double, 12> localSums  = {};
     std::array<double, 12> globalSums = {};
-    std::array<double, 3> localMax = {
+    std::array<double, 3> localMax    = {
             std::numeric_limits<double>::lowest(), std::numeric_limits<double>::lowest(),
             std::numeric_limits<double>::lowest()};
-    std::array<double, 3> localMin = {std::numeric_limits<double>::max(),
-                                      std::numeric_limits<double>::max(),
-                                      std::numeric_limits<double>::max()};
+    std::array<double, 3> localMin = {
+            std::numeric_limits<double>::max(), std::numeric_limits<double>::max(),
+            std::numeric_limits<double>::max()};
     std::array<double, 3> globalMax = {};
     std::array<double, 3> globalMin = {};
 
@@ -329,13 +329,12 @@ void DistributionMoments::compute(
      * \f$E_\mathrm{kin} = (\gamma - 1) m c^2\f$.
      */
     for (auto it = first; it != last; ++it) {
-        const OpalParticle& particle = *it;
-        const Vector_t<double, 3>& r = particle.getR();
-        const Vector_t<double, 3>& p = particle.getP();
-        const double time            = particle.getTime();
-        const double gamma           = std::sqrt(dot(p, p) + 1.0);
-        const double kineticEnergyMeV =
-                (gamma - 1.0) * particle.getMass() * Units::GeV2MeV;
+        const OpalParticle& particle  = *it;
+        const Vector_t<double, 3>& r  = particle.getR();
+        const Vector_t<double, 3>& p  = particle.getP();
+        const double time             = particle.getTime();
+        const double gamma            = std::sqrt(dot(p, p) + 1.0);
+        const double kineticEnergyMeV = (gamma - 1.0) * particle.getMass() * Units::GeV2MeV;
 
         localSums[0] += r(0);
         localSums[1] += p(0);
@@ -363,7 +362,7 @@ void DistributionMoments::compute(
             localMax.data(), globalMax.data(), globalMax.size(), std::greater<double>());
     ippl::Comm->allreduce(localMin.data(), globalMin.data(), globalMin.size(), std::less<double>());
 
-    totalNumParticles_m      = static_cast<unsigned int>(std::llround(globalCount));
+    totalNumParticles_m = static_cast<unsigned int>(std::llround(globalCount));
     if (totalNumParticles_m == 0u) {
         meanTime_m = 0.0;
         stdTime_m  = 0.0;
@@ -388,31 +387,30 @@ void DistributionMoments::compute(
         maxR_m(d)  = globalMax[d];
     }
 
-    meanTime_m          = globalSums[6] * invCount;
-    stdTime_m           = std::sqrt(std::max(0.0, globalSums[7] * invCount - meanTime_m * meanTime_m));
-    totalCharge_m       = globalSums[8];
-    totalMass_m         = globalSums[9];
+    meanTime_m    = globalSums[6] * invCount;
+    stdTime_m     = std::sqrt(std::max(0.0, globalSums[7] * invCount - meanTime_m * meanTime_m));
+    totalCharge_m = globalSums[8];
+    totalMass_m   = globalSums[9];
     meanKineticEnergy_m = globalSums[10] * invCount;
     meanGamma_m         = globalSums[11] * invCount;
     meanGammaZ_m        = std::sqrt(meanP_m(2) * meanP_m(2) + 1.0);
 
-    std::array<double, 36> localCentral = {};
-    std::array<double, 36> localRaw = {};
-    std::array<double, 1> localEkinVar = {};
+    std::array<double, 36> localCentral  = {};
+    std::array<double, 36> localRaw      = {};
+    std::array<double, 1> localEkinVar   = {};
     std::array<double, 36> globalCentral = {};
-    std::array<double, 36> globalRaw = {};
-    std::array<double, 1> globalEkinVar = {};
+    std::array<double, 36> globalRaw     = {};
+    std::array<double, 1> globalEkinVar  = {};
 
     for (auto it = first; it != last; ++it) {
-        const OpalParticle& particle = *it;
-        const Vector_t<double, 3>& r = particle.getR();
-        const Vector_t<double, 3>& p = particle.getP();
-        const double gamma           = std::sqrt(dot(p, p) + 1.0);
-        const double kineticEnergyMeV =
-                (gamma - 1.0) * particle.getMass() * Units::GeV2MeV;
-        const double raw[6] = {r(0), p(0), r(1), p(1), r(2), p(2)};
-        const double centered[6] = {r(0) - meanR_m(0), p(0) - meanP_m(0), r(1) - meanR_m(1),
-                                    p(1) - meanP_m(1), r(2) - meanR_m(2), p(2) - meanP_m(2)};
+        const OpalParticle& particle  = *it;
+        const Vector_t<double, 3>& r  = particle.getR();
+        const Vector_t<double, 3>& p  = particle.getP();
+        const double gamma            = std::sqrt(dot(p, p) + 1.0);
+        const double kineticEnergyMeV = (gamma - 1.0) * particle.getMass() * Units::GeV2MeV;
+        const double raw[6]           = {r(0), p(0), r(1), p(1), r(2), p(2)};
+        const double centered[6]      = {r(0) - meanR_m(0), p(0) - meanP_m(0), r(1) - meanR_m(1),
+                                         p(1) - meanP_m(1), r(2) - meanR_m(2), p(2) - meanP_m(2)};
 
         for (std::size_t i = 0; i < 6; ++i) {
             for (std::size_t j = 0; j < 6; ++j) {
@@ -420,8 +418,8 @@ void DistributionMoments::compute(
                 localRaw[i * 6 + j] += raw[i] * raw[j];
             }
         }
-        localEkinVar[0] += (kineticEnergyMeV - meanKineticEnergy_m)
-                           * (kineticEnergyMeV - meanKineticEnergy_m);
+        localEkinVar[0] +=
+                (kineticEnergyMeV - meanKineticEnergy_m) * (kineticEnergyMeV - meanKineticEnergy_m);
     }
 
     ippl::Comm->allreduce(
@@ -442,10 +440,10 @@ void DistributionMoments::compute(
     Vector_t<double, 3> squaredEps;
     Vector_t<double, 3> sumRP;
     for (std::size_t d = 0; d < 3; ++d) {
-        stdR_m(d)   = std::sqrt(std::max(0.0, moments_m(2 * d, 2 * d)));
-        stdP_m(d)   = std::sqrt(std::max(0.0, moments_m(2 * d + 1, 2 * d + 1)));
-        sumRP(d)    = notCentMoments_m(2 * d, 2 * d + 1) * invCount - meanR_m(d) * meanP_m(d);
-        stdRP_m(d)  = (stdR_m(d) * stdP_m(d) == 0.0) ? 0.0 : sumRP(d) / (stdR_m(d) * stdP_m(d));
+        stdR_m(d)     = std::sqrt(std::max(0.0, moments_m(2 * d, 2 * d)));
+        stdP_m(d)     = std::sqrt(std::max(0.0, moments_m(2 * d + 1, 2 * d + 1)));
+        sumRP(d)      = notCentMoments_m(2 * d, 2 * d + 1) * invCount - meanR_m(d) * meanP_m(d);
+        stdRP_m(d)    = (stdR_m(d) * stdP_m(d) == 0.0) ? 0.0 : sumRP(d) / (stdR_m(d) * stdP_m(d));
         squaredEps(d) = std::pow(stdR_m(d) * stdP_m(d), 2) - std::pow(sumRP(d), 2);
         normalizedEps_m(d) = std::sqrt(std::max(squaredEps(d), 0.0));
 
@@ -453,9 +451,10 @@ void DistributionMoments::compute(
         const double variance        = moments_m(2 * d, 2 * d);
         if (variance > 0.0) {
             halo_m(d) = (notCentMoments_m(2 * d + 1, 2 * d + 1) * invCount
-                         + meanR_m(d) * (-4.0 * rawSecondMoment
-                                         + 3.0 * meanR_m(d) * (variance + rawSecondMoment)))
-                        / variance
+                         + meanR_m(d)
+                                   * (-4.0 * rawSecondMoment
+                                      + 3.0 * meanR_m(d) * (variance + rawSecondMoment)))
+                                / variance
                         - Options::haloShift;
         } else {
             halo_m(d) = 0.0;

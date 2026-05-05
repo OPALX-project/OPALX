@@ -174,8 +174,12 @@ TEST_F(TestOpalBend, PositionedNegativeSBendPreservesSignedBendAndPlacementPose)
     EXPECT_TRUE(bend->isPositioned());
     EXPECT_NEAR(bend->getBendAngle(), -Physics::pi / 9.574468085106382, 1.0e-12);
     EXPECT_NEAR(bend->getEntranceAngle(), -Physics::pi / 9.574468085106382, 1.0e-12);
-    EXPECT_NEAR(bend->getPlacementPose().getParentToNominal().getOrigin()(0), 0.3791187376840999, 1.0e-12);
-    EXPECT_NEAR(bend->getPlacementPose().getParentToNominal().getOrigin()(2), 4.839958197517368, 1.0e-12);
+    EXPECT_NEAR(
+            bend->getPlacementPose().getParentToNominal().getOrigin()(0), 0.3791187376840999,
+            1.0e-12);
+    EXPECT_NEAR(
+            bend->getPlacementPose().getParentToNominal().getOrigin()(2), 4.839958197517368,
+            1.0e-12);
     EXPECT_NEAR(bend->getRotationAboutZ(), 0.0, 1.0e-12);
 }
 
@@ -198,8 +202,12 @@ TEST_F(TestOpalBend, PositionedNegativeRBendPreservesSignedBendAndPlacementPose)
     EXPECT_TRUE(bend->isPositioned());
     EXPECT_NEAR(bend->getBendAngle(), -Physics::pi / 9.574468085106382, 1.0e-12);
     EXPECT_NEAR(bend->getEntranceAngle(), -Physics::pi / 9.574468085106382, 1.0e-12);
-    EXPECT_NEAR(bend->getPlacementPose().getParentToNominal().getOrigin()(0), 0.3791187376840999, 1.0e-12);
-    EXPECT_NEAR(bend->getPlacementPose().getParentToNominal().getOrigin()(2), 4.839958197517368, 1.0e-12);
+    EXPECT_NEAR(
+            bend->getPlacementPose().getParentToNominal().getOrigin()(0), 0.3791187376840999,
+            1.0e-12);
+    EXPECT_NEAR(
+            bend->getPlacementPose().getParentToNominal().getOrigin()(2), 4.839958197517368,
+            1.0e-12);
     EXPECT_NEAR(bend->getRotationAboutZ(), 0.0, 1.0e-12);
 }
 

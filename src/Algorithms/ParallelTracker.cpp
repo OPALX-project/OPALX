@@ -964,7 +964,6 @@ void ParallelTracker::prepareSections() {
     // Write 3D Lattice
     itsOpalBeamline_m.save3DLattice();
     itsOpalBeamline_m.save3DInput();
-
 }
 
 /**
@@ -1123,14 +1122,14 @@ void ParallelTracker::updateReferenceParticles(const BorisPusher& pusher) {
         pusher.push(pc.getRefPartR(), pc.getRefPartP(), dt);
         pc.getRefPartR() *= scaleFactor;
 
-        IndexMap::value_t elements           = itsOpalBeamline_m.getElements(pc.getRefPartR());
-        const auto allElements              = itsOpalBeamline_m.getElements();
+        IndexMap::value_t elements = itsOpalBeamline_m.getElements(pc.getRefPartR());
+        const auto allElements     = itsOpalBeamline_m.getElements();
         for (const auto& element : allElements) {
             if (element->getType() == ElementType::MONITOR && element->Online()) {
                 elements.insert(element);
             }
         }
-        IndexMap::value_t::const_iterator it = elements.begin();
+        IndexMap::value_t::const_iterator it        = elements.begin();
         const IndexMap::value_t::const_iterator end = elements.end();
 
         for (; it != end; ++it) {

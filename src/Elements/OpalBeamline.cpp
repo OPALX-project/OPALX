@@ -44,13 +44,9 @@ namespace {
         return angle - pi;
     }
 
-    double radiansToDegrees(double angle) {
-        return angle * 180.0 / std::acos(-1.0);
-    }
+    double radiansToDegrees(double angle) { return angle * 180.0 / std::acos(-1.0); }
 
-    double cleanAngleDegrees(double value) {
-        return std::abs(value) < 5.0e-13 ? 0.0 : value;
-    }
+    double cleanAngleDegrees(double value) { return std::abs(value) < 5.0e-13 ? 0.0 : value; }
 
     std::string fixedOneDecimal(double value) {
         std::ostringstream out;
@@ -181,12 +177,13 @@ bool OpalBeamline::reportPortContinuityDiagnostics(std::ostream& out) const {
     std::vector<std::shared_ptr<Component>> orderedElements = declaredOrder_m;
     if (orderedElements.empty()) {
         for (const auto& fieldElement : elements_m) {
-            orderedElements.push_back(std::const_pointer_cast<Component>(fieldElement.getElement()));
+            orderedElements.push_back(
+                    std::const_pointer_cast<Component>(fieldElement.getElement()));
         }
     }
 
-    bool foundDiscontinuity = false;
-    constexpr double gapTolerance = 1.0e-9;
+    bool foundDiscontinuity                = false;
+    constexpr double gapTolerance          = 1.0e-9;
     constexpr double angleToleranceDegrees = 1.0e-9;
 
     for (std::size_t i = 1; i < orderedElements.size(); ++i) {
@@ -199,7 +196,7 @@ bool OpalBeamline::reportPortContinuityDiagnostics(std::ostream& out) const {
                 getPlacedElement(current).getNominalEntryTransform();
 
         const Vector_t<double, 3> gap = currentEntry.getOrigin() - previousExit.getOrigin();
-        const double gapNorm = euclidean_norm(gap);
+        const double gapNorm          = euclidean_norm(gap);
 
         Quaternion rotationDelta =
                 previousExit.getRotation().conjugate() * currentEntry.getRotation();
@@ -209,11 +206,10 @@ bool OpalBeamline::reportPortContinuityDiagnostics(std::ostream& out) const {
             angles(d) = cleanAngleDegrees(radiansToDegrees(normalizeSignedRadians(angles(d))));
         }
 
-        const bool hasGap = gapNorm > gapTolerance;
-        const bool hasRotation =
-                std::abs(angles(0)) > angleToleranceDegrees
-                || std::abs(angles(1)) > angleToleranceDegrees
-                || std::abs(angles(2)) > angleToleranceDegrees;
+        const bool hasGap      = gapNorm > gapTolerance;
+        const bool hasRotation = std::abs(angles(0)) > angleToleranceDegrees
+                                 || std::abs(angles(1)) > angleToleranceDegrees
+                                 || std::abs(angles(2)) > angleToleranceDegrees;
         if (!hasGap && !hasRotation) {
             continue;
         }
@@ -224,14 +220,14 @@ bool OpalBeamline::reportPortContinuityDiagnostics(std::ostream& out) const {
         }
 
         out << previous->getName() << " -> " << current->getName()
-            << ": |gap|=" << fixedOneDecimal(gapNorm)
-            << ", dTHETA=" << fixedOneDecimal(angles(0)) << " deg"
+            << ": |gap|=" << fixedOneDecimal(gapNorm) << ", dTHETA=" << fixedOneDecimal(angles(0))
+            << " deg"
             << ", dPHI=" << fixedOneDecimal(angles(1)) << " deg"
             << ", dPSI=" << fixedOneDecimal(angles(2)) << " deg\n";
 
         const Vector_t<double, 3> bodyAdjustment = -gap;
-        out << "  adjust " << current->getName() << " body pose by dX="
-            << fixedOneDecimal(bodyAdjustment(0))
+        out << "  adjust " << current->getName()
+            << " body pose by dX=" << fixedOneDecimal(bodyAdjustment(0))
             << ", dY=" << fixedOneDecimal(bodyAdjustment(1))
             << ", dZ=" << fixedOneDecimal(bodyAdjustment(2)) << "\n";
     }

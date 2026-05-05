@@ -215,8 +215,8 @@ void OrbitThreader::execute() {
 
     auto elementSet = itsOpalBeamline_m.getElements(nextR);
     std::set<std::shared_ptr<Component>> intersection, currentSet;
-    errorFlag_m = EVERYTHINGFINE;
-    double maximumReportedDistance = 0.0;
+    errorFlag_m                     = EVERYTHINGFINE;
+    double maximumReportedDistance  = 0.0;
     bool hasMaximumReportedDistance = false;
 
     if (ippl::Comm->rank() == 0 && !OpalData::getInstance()->isOptimizerRun()) {

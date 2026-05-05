@@ -71,34 +71,34 @@
 #include <vector>
 
 const std::map<ElementType, std::string> ElementBase::elementTypeToString_s = {
-    {ElementType::ANY, "Any"},
-    {ElementType::BEAMLINE, "Beamline"},
-    {ElementType::DRIFT, "Drift"},
-    {ElementType::LASER, "Laser"},
-    {ElementType::MARKER, "Marker"},
-    {ElementType::MONITOR, "Monitor"},
-    {ElementType::MULTIPOLE, "Multipole"},
-    {ElementType::RFCAVITY, "RFCavity"},
-    {ElementType::TRAVELINGWAVE, "TravelingWave"},
-    {ElementType::SBEND, "SBEND"},
-    {ElementType::RBEND, "RBEND"},
-    {ElementType::RBEND3D, "RBEND3D"},
-    {ElementType::RING, "Ring"},
-    {ElementType::SOURCE, "SOURCE"},
-    {ElementType::SOLENOID, "SOLENOID"},
-    {ElementType::PROBE, "Probe"},
-    {ElementType::VACUUM, "Vacuum"},
-    {ElementType::CONSTANTEFIELDCAVITY, "ConstantEFieldCavity"}};
+        {ElementType::ANY, "Any"},
+        {ElementType::BEAMLINE, "Beamline"},
+        {ElementType::DRIFT, "Drift"},
+        {ElementType::LASER, "Laser"},
+        {ElementType::MARKER, "Marker"},
+        {ElementType::MONITOR, "Monitor"},
+        {ElementType::MULTIPOLE, "Multipole"},
+        {ElementType::RFCAVITY, "RFCavity"},
+        {ElementType::TRAVELINGWAVE, "TravelingWave"},
+        {ElementType::SBEND, "SBEND"},
+        {ElementType::RBEND, "RBEND"},
+        {ElementType::RBEND3D, "RBEND3D"},
+        {ElementType::RING, "Ring"},
+        {ElementType::SOURCE, "SOURCE"},
+        {ElementType::SOLENOID, "SOLENOID"},
+        {ElementType::PROBE, "Probe"},
+        {ElementType::VACUUM, "Vacuum"},
+        {ElementType::CONSTANTEFIELDCAVITY, "ConstantEFieldCavity"}};
 
 ElementBase::ElementBase() : ElementBase("") {}
 
 ElementBase::ElementBase(const ElementBase& right)
-        : std::enable_shared_from_this<ElementBase>(),
-            shareFlag(true),
-            csTrafoGlobal2Local_m(right.csTrafoGlobal2Local_m),
-            misalignment_m(right.misalignment_m),
-            aperture_m(right.aperture_m),
-            elementEdge_m(right.elementEdge_m),
+    : std::enable_shared_from_this<ElementBase>(),
+      shareFlag(true),
+      csTrafoGlobal2Local_m(right.csTrafoGlobal2Local_m),
+      misalignment_m(right.misalignment_m),
+      aperture_m(right.aperture_m),
+      elementEdge_m(right.elementEdge_m),
       rotationZAxis_m(right.rotationZAxis_m),
       elementID(right.elementID),
       userAttribs(right.userAttribs),
@@ -238,7 +238,7 @@ bool ElementBase::isInsideTransverse(const Vector_t<double, 3>& r) const {
         || aperture_m.first == ApertureType::CONIC_ELLIPTICAL) {
         const double length = getElementLength();
         if (length > 0.0) {
-        Vector_t<double, 3> rRelativeToBegin = getEdgeToBegin().transformTo(r);
+            Vector_t<double, 3> rRelativeToBegin = getEdgeToBegin().transformTo(r);
             double fractionLength                = rRelativeToBegin(2) / length;
             fractionLength                       = std::clamp(fractionLength, 0.0, 1.0);
             // Interpolate aperture scaling from begin (1.0) to end (aperture_m.second[2]).
@@ -255,7 +255,7 @@ bool ElementBase::isInsideTransverse(const Vector_t<double, 3>& r) const {
             return (std::abs(r[0]) < factor * xLimit && std::abs(r[1]) < factor * yLimit);
         case ApertureType::CONIC_ELLIPTICAL:
             return (std::pow(r[0] / (factor * xLimit), 2) + std::pow(r[1] / (factor * yLimit), 2)
-                < 1.0);
+                    < 1.0);
         default:
             return false;
     }
@@ -275,7 +275,7 @@ BoundingBox ElementBase::getBoundingBoxInLabCoords() const {
             unsigned int idx = (i + 1) / 2 + (j + 1);
             corners[idx]     = toBegin.transformFrom(Vector_t<double, 3>({i * x, j * y, 0.0}));
             corners[idx + 4] =
-                toEnd.transformFrom(Vector_t<double, 3>({i * f * x, j * f * y, 0.0}));
+                    toEnd.transformFrom(Vector_t<double, 3>({i * f * x, j * f * y, 0.0}));
         }
     }
 

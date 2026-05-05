@@ -4,8 +4,8 @@
 #include <numeric>
 #include <vector>
 
-#include "Algorithms/DistributionMoments.h"
 #include "AbstractObjects/OpalParticle.h"
+#include "Algorithms/DistributionMoments.h"
 #include "Ippl.h"
 #include "PartBunch/BunchStateHandler.h"
 #include "Physics/Physics.h"
@@ -236,8 +236,9 @@ TEST_F(DistributionMomentsTest, ComputeFromOpalParticleIteratorsMatchesContainer
         EXPECT_NEAR(dm.getGeometricEmittance()(d), exp.epsGeo(d), 1e-15);
     }
 
-    const double meanTime = std::accumulate(T.begin(), T.end(), 0.0) / static_cast<double>(T.size());
-    double timeVariance   = 0.0;
+    const double meanTime =
+            std::accumulate(T.begin(), T.end(), 0.0) / static_cast<double>(T.size());
+    double timeVariance = 0.0;
     for (double t : T) {
         timeVariance += (t - meanTime) * (t - meanTime);
     }
@@ -250,6 +251,8 @@ TEST_F(DistributionMomentsTest, ComputeFromOpalParticleIteratorsMatchesContainer
     EXPECT_NEAR(dm.getMeanKineticEnergy(), exp.meanEkinMeV, 1e-15);
     EXPECT_NEAR(dm.getStdKineticEnergy(), exp.stdEkinMeV_likeImplementation, 1e-15);
     EXPECT_NEAR(dm.getTotalCharge(), charge * static_cast<double>(particles.size()), 1e-30);
-    EXPECT_NEAR(dm.getTotalMass(), massGeV * Units::GeV2MeV * static_cast<double>(particles.size()), 1e-12);
+    EXPECT_NEAR(
+            dm.getTotalMass(), massGeV * Units::GeV2MeV * static_cast<double>(particles.size()),
+            1e-12);
     EXPECT_DOUBLE_EQ(dm.getTotalNumParticles(), static_cast<double>(particles.size()));
 }
