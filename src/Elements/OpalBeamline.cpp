@@ -30,7 +30,34 @@
 #include <fstream>
 #include <iomanip>
 #include <regex>
+#include <sstream>
 #include <vector>
+
+namespace {
+    double normalizeSignedRadians(double angle) {
+        const double pi    = std::acos(-1.0);
+        const double twoPi = 2.0 * pi;
+        angle              = std::fmod(angle + pi, twoPi);
+        if (angle < 0.0) {
+            angle += twoPi;
+        }
+        return angle - pi;
+    }
+
+    double radiansToDegrees(double angle) {
+        return angle * 180.0 / std::acos(-1.0);
+    }
+
+    double cleanAngleDegrees(double value) {
+        return std::abs(value) < 5.0e-13 ? 0.0 : value;
+    }
+
+    std::string fixedOneDecimal(double value) {
+        std::ostringstream out;
+        out << std::fixed << std::setprecision(1) << value;
+        return out.str();
+    }
+}  // namespace
 
 OpalBeamline::OpalBeamline()
     : elements_m(),
@@ -149,6 +176,68 @@ void OpalBeamline::prepareSections() {
 }
 
 void OpalBeamline::print(Inform& /*msg*/) const {}
+
+bool OpalBeamline::reportPortContinuityDiagnostics(std::ostream& out) const {
+    std::vector<std::shared_ptr<Component>> orderedElements = declaredOrder_m;
+    if (orderedElements.empty()) {
+        for (const auto& fieldElement : elements_m) {
+            orderedElements.push_back(std::const_pointer_cast<Component>(fieldElement.getElement()));
+        }
+    }
+
+    bool foundDiscontinuity = false;
+    constexpr double gapTolerance = 1.0e-9;
+    constexpr double angleToleranceDegrees = 1.0e-9;
+
+    for (std::size_t i = 1; i < orderedElements.size(); ++i) {
+        const std::shared_ptr<Component>& previous = orderedElements[i - 1];
+        const std::shared_ptr<Component>& current  = orderedElements[i];
+
+        const CoordinateSystemTrafo previousExit =
+                getPlacedElement(previous).getNominalExitTransform();
+        const CoordinateSystemTrafo currentEntry =
+                getPlacedElement(current).getNominalEntryTransform();
+
+        const Vector_t<double, 3> gap = currentEntry.getOrigin() - previousExit.getOrigin();
+        const double gapNorm = euclidean_norm(gap);
+
+        Quaternion rotationDelta =
+                previousExit.getRotation().conjugate() * currentEntry.getRotation();
+        rotationDelta.normalize();
+        Vector_t<double, 3> angles = Util::getTaitBryantAngles(rotationDelta);
+        for (unsigned int d = 0; d < 3; ++d) {
+            angles(d) = cleanAngleDegrees(radiansToDegrees(normalizeSignedRadians(angles(d))));
+        }
+
+        const bool hasGap = gapNorm > gapTolerance;
+        const bool hasRotation =
+                std::abs(angles(0)) > angleToleranceDegrees
+                || std::abs(angles(1)) > angleToleranceDegrees
+                || std::abs(angles(2)) > angleToleranceDegrees;
+        if (!hasGap && !hasRotation) {
+            continue;
+        }
+
+        if (!foundDiscontinuity) {
+            out << "Adjacent element port discontinuities:\n";
+            foundDiscontinuity = true;
+        }
+
+        out << previous->getName() << " -> " << current->getName()
+            << ": |gap|=" << fixedOneDecimal(gapNorm)
+            << ", dTHETA=" << fixedOneDecimal(angles(0)) << " deg"
+            << ", dPHI=" << fixedOneDecimal(angles(1)) << " deg"
+            << ", dPSI=" << fixedOneDecimal(angles(2)) << " deg\n";
+
+        const Vector_t<double, 3> bodyAdjustment = -gap;
+        out << "  adjust " << current->getName() << " body pose by dX="
+            << fixedOneDecimal(bodyAdjustment(0))
+            << ", dY=" << fixedOneDecimal(bodyAdjustment(1))
+            << ", dZ=" << fixedOneDecimal(bodyAdjustment(2)) << "\n";
+    }
+
+    return foundDiscontinuity;
+}
 
 void OpalBeamline::swap(OpalBeamline& rhs) {
     std::swap(elements_m, rhs.elements_m);

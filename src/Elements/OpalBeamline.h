@@ -141,6 +141,7 @@ public:
     void compute3DLattice();
     void save3DLattice();
     void save3DInput();
+    bool reportPortContinuityDiagnostics(std::ostream& out) const;
     void print(Inform&) const;
     void apply(
             const Vector_t<double, 3>& R, const Vector_t<double, 3>& /*P*/, const double& t,

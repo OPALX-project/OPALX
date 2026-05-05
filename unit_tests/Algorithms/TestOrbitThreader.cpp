@@ -111,6 +111,32 @@ namespace {
         return firstRow;
     }
 
+    std::size_t countOccurrences(const std::string& text, const std::string& needle) {
+        std::size_t count    = 0;
+        std::size_t position = 0;
+        while ((position = text.find(needle, position)) != std::string::npos) {
+            ++count;
+            position += needle.size();
+        }
+        return count;
+    }
+
+    class ScopedInformRedirect {
+    public:
+        explicit ScopedInformRedirect(std::ostream& stream) : previous_(gmsg) {
+            gmsg = new Inform("OPAL-X", stream);
+            gmsg->setOutputLevel(5);
+        }
+
+        ~ScopedInformRedirect() {
+            delete gmsg;
+            gmsg = previous_;
+        }
+
+    private:
+        Inform* previous_;
+    };
+
     /**
      * @brief Mock component with zero body extent but finite field-support extent.
      *
@@ -362,6 +388,54 @@ TEST_F(OrbitThreaderTest, ExecutesOverlapAndBuildsTracedAndRegistrationModels) {
     EXPECT_EQ(registeredNames, (std::set<std::string>{"Q_LONG", "Q_SHORT"}));
 }
 
+TEST_F(OrbitThreaderTest, PrintsOnlyFinalThreadingSummary) {
+    auto bunch = makeBunch(0);
+
+    DummyBeamline beamlineForVisitor;
+    DefaultVisitor visitor(beamlineForVisitor, false, false);
+
+    OpalBeamline beamline;
+    auto firstDrift = std::make_shared<DriftRep>("D0");
+    firstDrift->setElementLength(0.2);
+    firstDrift->setPlacementPose(
+            PlacementPose(CoordinateSystemTrafo(Vector_t<double, 3>(0.0, 0.0, 0.0), Quaternion())));
+    firstDrift->fixPosition();
+    beamline.visit(*firstDrift, visitor, *bunch);
+
+    auto secondDrift = std::make_shared<DriftRep>("D1");
+    secondDrift->setElementLength(0.2);
+    secondDrift->setPlacementPose(
+            PlacementPose(CoordinateSystemTrafo(Vector_t<double, 3>(0.0, 0.0, 0.4), Quaternion())));
+    secondDrift->fixPosition();
+    beamline.visit(*secondDrift, visitor, *bunch);
+    beamline.prepareSections();
+
+    StepSizeConfig stepSizes;
+    stepSizes.push_back(1.0e-11, 0.8, 512);
+    stepSizes.resetIterator();
+
+    PartData reference(1.0, 9.382720813e8, 1.0e6);
+    std::stringstream output;
+    {
+        ScopedInformRedirect redirect(output);
+        OrbitThreader threader(
+                reference, Vector_t<double, 3>(0.0), Vector_t<double, 3>(0.0, 0.0, 1.0), 0.0,
+                0.0, 0.0, 1.0e-11, stepSizes, beamline);
+        ASSERT_NO_THROW(threader.execute());
+    }
+
+    if (ippl::Comm->rank() != 0) {
+        return;
+    }
+
+    const std::string text = output.str();
+    EXPECT_EQ(countOccurrences(text, "OrbitThreader maxDistance="), 1u);
+    EXPECT_EQ(countOccurrences(text, "OrbitThreader #visited elements"), 1u);
+    EXPECT_EQ(countOccurrences(text, "OrbitThreader #elements"), 0u);
+    EXPECT_EQ(text.find("1.79769e+308"), std::string::npos);
+    EXPECT_NE(text.find("OrbitThreader #visited elements = 2"), std::string::npos);
+}
+
 TEST_F(OrbitThreaderTest, UsesFieldSupportExtentForLengthCheck) {
     auto bunch = makeBunch(0);
 
@@ -424,7 +498,8 @@ TEST_F(OrbitThreaderTest, ThrowsDiagnosticForPlacedElementOutsideTracedReference
     EXPECT_THROW(
             {
                 try {
-                    threader.validateVisitedElements(allElements, std::set<std::string>{"D0"}, 0.0);
+                    threader.validateVisitedElements(
+                            allElements, std::set<std::string>{"D0"}, 0.0, 5.0);
                 } catch (const OpalException& ex) {
                     const std::string what = ex.what();
                     EXPECT_NE(what.find("B1"), std::string::npos);
@@ -436,6 +511,44 @@ TEST_F(OrbitThreaderTest, ThrowsDiagnosticForPlacedElementOutsideTracedReference
                 }
             },
             OpalException);
+}
+
+TEST_F(OrbitThreaderTest, DoesNotReportUnvisitedElementsBeyondTracedStepLimit) {
+    auto bunch = makeBunch(0);
+
+    DummyBeamline beamlineForVisitor;
+    DefaultVisitor visitor(beamlineForVisitor, false, false);
+
+    OpalBeamline beamline;
+    auto drift = std::make_shared<DriftRep>("D0");
+    drift->setElementLength(3.0);
+    drift->setPlacementPose(
+            PlacementPose(CoordinateSystemTrafo(Vector_t<double, 3>(0.0, 0.0, 0.0), Quaternion())));
+    drift->fixPosition();
+    beamline.visit(*drift, visitor, *bunch);
+
+    auto bend           = std::make_shared<SBendRep>("B1");
+    bend->getGeometry() = PlanarArcGeometry(0.5, Physics::pi / 4.0);
+    bend->setElementLength(0.5);
+    bend->setBendAngle(Physics::pi / 8.0);
+    bend->setPlacementPose(
+            PlacementPose(CoordinateSystemTrafo(Vector_t<double, 3>(0.0, 0.0, 3.3), Quaternion())));
+    bend->fixPosition();
+    beamline.visit(*bend, visitor, *bunch);
+    beamline.prepareSections();
+
+    StepSizeConfig stepSizes;
+    stepSizes.push_back(1.0e-11, 5.0, 1);
+    stepSizes.resetIterator();
+
+    PartData reference(1.0, 9.382720813e8, 1.0e6);
+    TestableOrbitThreader threader(
+            reference, Vector_t<double, 3>(0.0), Vector_t<double, 3>(0.0, 0.0, 1.0), 0.0, 0.0, 0.0,
+            1.0e-11, stepSizes, beamline);
+
+    const FieldList allElements = beamline.getElementByType(ElementType::ANY);
+    ASSERT_NO_THROW(threader.validateVisitedElements(
+            allElements, std::set<std::string>{"D0"}, 0.0, 0.01));
 }
 
 TEST_F(OrbitThreaderTest, RegistersSBendActionRangeFromFieldSupportExtent) {

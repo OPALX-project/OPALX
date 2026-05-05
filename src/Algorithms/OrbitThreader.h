@@ -148,7 +148,7 @@ protected:
      */
     void validateVisitedElements(
             const FieldList& allElements, const std::set<std::string>& visitedElements,
-            double initialPathLength) const;
+            double initialPathLength, double finalPathLength) const;
 
 private:
     /**

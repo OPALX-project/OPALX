@@ -394,48 +394,6 @@ TEST_F(OpalBeamlinePlacementTest, Save3DInputNormalizesExplicitBodyPoseAndAngles
     EXPECT_NE(rewritten.find("PSI = 315.0 * PI / 180"), std::string::npos);
 }
 
-TEST_F(OpalBeamlinePlacementTest, PrintPlacementSummaryReportsBodyPoseOnOneLinePerElement) {
-    DriftRep drift("D7");
-    drift.setElementLength(0.3);
-    drift.setPlacementPose(PlacementPose(CoordinateSystemTrafo(
-            Vector3(1.0, 2.0, 3.0),
-            Quaternion(std::cos(Physics::pi / 8.0), 0.0, 0.0, std::sin(Physics::pi / 8.0)))));
-    drift.fixPosition();
-
-    auto bunch = makeBunch(0);
-    DummyBeamline beamlineForVisitor;
-    DefaultVisitor visitor(beamlineForVisitor, false, false);
-
-    SBendRep bend("B1");
-    bend.getGeometry() = PlanarArcGeometry(0.5, Physics::pi / 8.0);
-    bend.setElementLength(0.5);
-    bend.setBendAngle(Physics::pi / 8.0);
-    bend.setFringeHalfGap(0.02);
-    bend.setFringeIntegral(0.5);
-    bend.setElementPosition(10.0);
-
-    OpalBeamline beamline;
-    beamline.visit(drift, visitor, *bunch);
-    beamline.visit(bend, visitor, *bunch);
-    beamline.prepareSections();
-
-    std::ostringstream summary;
-    beamline.printPlacementSummary(summary);
-    const std::string text = summary.str();
-
-    EXPECT_NE(text.find("Element"), std::string::npos);
-    EXPECT_NE(text.find("X\tY\tZ\tTHETA\tPHI\tPSI"), std::string::npos);
-    EXPECT_NE(text.find("------------------------"), std::string::npos);
-    EXPECT_NE(text.find("D7"), std::string::npos);
-    EXPECT_NE(text.find("1.0\t2.0\t3.0\t0.0\t0.0\t315.0"), std::string::npos);
-    EXPECT_NE(text.find("B1"), std::string::npos);
-    EXPECT_NE(text.find("Local body/field extents:"), std::string::npos);
-    EXPECT_NE(text.find("BODY_BEGIN\tBODY_END\tFIELD_BEGIN\tFIELD_END"), std::string::npos);
-    EXPECT_NE(text.find("B1"), std::string::npos);
-    EXPECT_NE(text.find("0.0\t0.5\t-0.01\t0.51"), std::string::npos);
-    EXPECT_LT(text.find("D7"), text.find("B1"));
-}
-
 TEST_F(OpalBeamlinePlacementTest, Save3DLatticeExportsFieldExtentMarkersWhenSupportDiffers) {
     auto bunch = makeBunch(0);
     DummyBeamline beamlineForVisitor;

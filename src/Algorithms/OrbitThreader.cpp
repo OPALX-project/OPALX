@@ -46,6 +46,64 @@
 #define EVERYTHINGFINE 0x00000000
 extern Inform* gmsg;
 
+namespace {
+    bool isDriftTransparentForThreading(const ElementType type) {
+        switch (type) {
+            case ElementType::BEAMLINE:
+            case ElementType::DRIFT:
+            case ElementType::MARKER:
+            case ElementType::MONITOR:
+            case ElementType::PROBE:
+            case ElementType::SOURCE:
+            case ElementType::VACUUM:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    bool isDiagnosticForThreaderCount(const ElementType type) {
+        switch (type) {
+            case ElementType::BEAMLINE:
+            case ElementType::MARKER:
+            case ElementType::MONITOR:
+            case ElementType::PROBE:
+            case ElementType::SOURCE:
+            case ElementType::VACUUM:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    void updateMaximumReportedDistance(
+            const double candidate, double& maximumDistance, bool& hasMaximumDistance) {
+        if (!std::isfinite(candidate) || candidate == std::numeric_limits<double>::max()) {
+            return;
+        }
+
+        if (!hasMaximumDistance || candidate > maximumDistance) {
+            maximumDistance    = candidate;
+            hasMaximumDistance = true;
+        }
+    }
+
+    std::size_t countVisitedNonDiagnosticElements(
+            const FieldList& allElements, const std::set<std::string>& visitedElements) {
+        std::set<std::string> countedElements;
+
+        for (auto it = allElements.begin(); it != allElements.end(); ++it) {
+            const auto element = (*it).getElement();
+            if (!isDiagnosticForThreaderCount(element->getType())
+                && visitedElements.find(element->getName()) != visitedElements.end()) {
+                countedElements.insert(element->getName());
+            }
+        }
+
+        return countedElements.size();
+    }
+}  // namespace
+
 OrbitThreader::OrbitThreader(
         const PartData& ref, const Vector_t<double, 3>& r, const Vector_t<double, 3>& p, double s,
         double maxDiffZBunch, double t, double dt, StepSizeConfig stepSizes, OpalBeamline& bl)
@@ -158,6 +216,8 @@ void OrbitThreader::execute() {
     auto elementSet = itsOpalBeamline_m.getElements(nextR);
     std::set<std::shared_ptr<Component>> intersection, currentSet;
     errorFlag_m = EVERYTHINGFINE;
+    double maximumReportedDistance = 0.0;
+    bool hasMaximumReportedDistance = false;
 
     if (ippl::Comm->rank() == 0 && !OpalData::getInstance()->isOptimizerRun()) {
         Vector_t<double, 3> Ef(0.0), Bf(0.0);
@@ -188,11 +248,10 @@ void OrbitThreader::execute() {
         Vector_t<double, 3> initialR = r_m;
         Vector_t<double, 3> initialP = p_m;
         double maxDistance           = computeDriftLengthToBoundingBox(elementSet, r_m, p_m);
+        updateMaximumReportedDistance(
+                maxDistance, maximumReportedDistance, hasMaximumReportedDistance);
 
         integrate(elementSet, maxDistance);
-
-        *gmsg << "* OrbitThreader maxDistance= " << maxDistance << endl;
-        *gmsg << "* OrbitThreader #elements  = " << elementSet.size() << endl;
 
         registerElement(elementSet, initialS, initialR, initialP);
 
@@ -228,9 +287,14 @@ void OrbitThreader::execute() {
              && !(pathLengthRange_m.isOutside(pathLength_m) && intersection.empty()
                   && !(elementSet.empty() || currentSet.empty())));
 
+    *gmsg << "* OrbitThreader maxDistance= "
+          << (hasMaximumReportedDistance ? maximumReportedDistance : 0.0) << endl;
+    *gmsg << "* OrbitThreader #visited elements = "
+          << countVisitedNonDiagnosticElements(allElements, visitedElements) << endl;
+
     imap_m.tidyUp(zstop_m);
     *gmsg << level1 << "\n" << imap_m << endl;
-    validateVisitedElements(allElements, visitedElements, initialPathLength);
+    validateVisitedElements(allElements, visitedElements, initialPathLength, pathLength_m);
     imap_m.saveSDDS(initialPathLength);
     processElementRegister();
 }
@@ -522,9 +586,9 @@ void OrbitThreader::setDesignEnergy(
 
 void OrbitThreader::validateVisitedElements(
         const FieldList& allElements, const std::set<std::string>& visitedElements,
-        double initialPathLength) const {
-    const double lowerTrackedPathLength = std::min(initialPathLength, zstop_m) - 1.0e-9;
-    const double upperTrackedPathLength = std::max(initialPathLength, zstop_m) + 1.0e-9;
+        double initialPathLength, double finalPathLength) const {
+    const double lowerTrackedPathLength = std::min(initialPathLength, finalPathLength) - 1.0e-9;
+    const double upperTrackedPathLength = std::max(initialPathLength, finalPathLength) + 1.0e-9;
 
     auto requiresReferencePathVisit = [](const std::shared_ptr<const Component>& element) {
         switch (element->getType()) {
@@ -619,8 +683,12 @@ void OrbitThreader::updateBoundingBoxWithCurrentPosition() {
 double OrbitThreader::computeDriftLengthToBoundingBox(
         const std::set<std::shared_ptr<Component>>& elements, const Vector_t<double, 3>& position,
         const Vector_t<double, 3>& direction) const {
-    if (elements.empty()
-        || (elements.size() == 1 && (*elements.begin())->getType() == ElementType::DRIFT)) {
+    const bool onlyDriftTransparentElements =
+            std::all_of(elements.begin(), elements.end(), [](const auto& element) {
+                return isDriftTransparentForThreading(element->getType());
+            });
+
+    if (elements.empty() || onlyDriftTransparentElements) {
         std::optional<Vector_t<double, 3>> intersectionPoint =
                 globalBoundingBox_m.getIntersectionPoint(position, direction);
         if (intersectionPoint) {
