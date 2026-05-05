@@ -71,24 +71,24 @@
 #include <vector>
 
 const std::map<ElementType, std::string> ElementBase::elementTypeToString_s = {
-    {ElementType::ANY, "Any"},
-    {ElementType::BEAMLINE, "Beamline"},
-    {ElementType::DRIFT, "Drift"},
-    {ElementType::LASER, "Laser"},
-    {ElementType::MARKER, "Marker"},
-    {ElementType::MONITOR, "Monitor"},
-    {ElementType::MULTIPOLE, "Multipole"},
-    {ElementType::RFCAVITY, "RFCavity"},
-    {ElementType::TRAVELINGWAVE, "TravelingWave"},
-    {ElementType::SBEND, "SBEND"},
-    {ElementType::RBEND, "RBEND"},
-    {ElementType::RBEND3D, "RBEND3D"},
-    {ElementType::RING, "Ring"},
-    {ElementType::SOURCE, "SOURCE"},
-    {ElementType::SOLENOID, "SOLENOID"},
-    {ElementType::PROBE, "Probe"},
-    {ElementType::VACUUM, "Vacuum"},
-    {ElementType::CONSTANTEFIELDCAVITY, "ConstantEFieldCavity"}};
+        {ElementType::ANY, "Any"},
+        {ElementType::BEAMLINE, "Beamline"},
+        {ElementType::DRIFT, "Drift"},
+        {ElementType::LASER, "Laser"},
+        {ElementType::MARKER, "Marker"},
+        {ElementType::MONITOR, "Monitor"},
+        {ElementType::MULTIPOLE, "Multipole"},
+        {ElementType::RFCAVITY, "RFCavity"},
+        {ElementType::TRAVELINGWAVE, "TravelingWave"},
+        {ElementType::SBEND, "SBEND"},
+        {ElementType::RBEND, "RBEND"},
+        {ElementType::RBEND3D, "RBEND3D"},
+        {ElementType::RING, "Ring"},
+        {ElementType::SOURCE, "SOURCE"},
+        {ElementType::SOLENOID, "SOLENOID"},
+        {ElementType::PROBE, "Probe"},
+        {ElementType::VACUUM, "Vacuum"},
+        {ElementType::CONSTANTEFIELDCAVITY, "ConstantEFieldCavity"}};
 
 ElementBase::ElementBase() : ElementBase("") {}
 
