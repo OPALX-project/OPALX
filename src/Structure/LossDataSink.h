@@ -23,15 +23,13 @@
 #include "AbstractObjects/OpalData.h"
 #include "AbstractObjects/OpalParticle.h"
  
+#include "H5hut.h"
 
-#include <optional>
 #include <fstream>
-#include <functional>
+#include <optional>
 #include <set>
 #include <string>
 #include <vector>
-
-#include "H5hut.h"
 
 struct SetStatistics {
     SetStatistics();
@@ -65,7 +63,7 @@ struct SetStatistics {
     Vector_t<double, 3> eps2_m;
     Vector_t<double, 3> eps_norm_m;
     Vector_t<double, 3> fac_m;
-    
+
     Vector_t<double, 3> sixtyEightPercentile_m;
     Vector_t<double, 3> ninetyFivePercentile_m;
     Vector_t<double, 3> ninetyNinePercentile_m;
@@ -100,7 +98,7 @@ public:
     LossDataSink(const LossDataSink& rsh);
     ~LossDataSink() noexcept(false);
 
-    bool inH5Mode() {
+    bool inH5Mode() const {
         return h5hut_mode_m;
     }
 
@@ -120,6 +118,19 @@ public:
     std::set<SetStatistics> computeStatistics(unsigned int numSets);
 
 private:
+    void writeFileAttribString(const char* attribute, const char* value);
+    void writeStepAttribFloat64(const char* attribute, const h5_float64_t* value, h5_int64_t size);
+    void writeStepAttribInt64(const char* attribute, const h5_int64_t* value, h5_int64_t size);
+    void writeDataFloat64(const char* name, const h5_float64_t* value);
+    void writeDataInt64(const char* name, const h5_int64_t* value);
+
+    void setStep();
+    void getNumSteps();
+    void setNumParticles(h5_int64_t num);
+
+    void openFile(const char* fname, h5_int32_t mode, h5_prop_t props);
+    void closeFile();
+
     void openASCII() {
         if (ippl::Comm->rank() == 0) {
             os_m.open(fileName_m.c_str(), std::ios::out);
@@ -148,7 +159,7 @@ private:
     bool hasNoParticlesToDump() const;
     bool hasTurnInformations() const;
 
-    void reportOnError(h5_int64_t rc, const char* file, int line);
+    // void reportOnError(h5_int64_t rc, const char* file, int line);
 
     void splitSets(unsigned int numSets);
     SetStatistics computeSetStatistics(unsigned int setIdx);
@@ -157,18 +168,18 @@ private:
     std::string fileName_m;
 
     // write either in ASCII or H5hut format
-    bool h5hut_mode_m;
+    bool h5hut_mode_m = false;
 
     // used to write out data in ASCII mode
     std::ofstream os_m;
 
     /// used to write out data in H5hut mode
-    h5_file_t H5file_m;
+    h5_file_t H5file_m = 0;
 
     std::string outputName_m;
 
     /// Current record, or time step, of H5 file.
-    h5_int64_t H5call_m;
+    h5_int64_t H5call_m = 0;
 
     std::vector<OpalParticle> particles_m;
     std::vector<size_t> bunchNumber_m;
@@ -182,7 +193,7 @@ private:
 
     std::vector<unsigned long> startSet_m;
 
-    CollectionType collectionType_m;
+    CollectionType collectionType_m = CollectionType::TEMPORAL;
 };
 
 inline size_t LossDataSink::size() const {
