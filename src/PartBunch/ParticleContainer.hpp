@@ -638,6 +638,7 @@ public:
 
         // Total allocated capacity of the underlying view
         size_type oldCapacity = this->R.size();
+        size_type oldLocalNum = this->getLocalNum();
         this->create(numParticles, true);  // non_destructive = true
         size_type newCapacity = this->R.size();
         
@@ -646,8 +647,9 @@ public:
         Kokkos::parallel_for(
             "ParticleContainer::createParticles::resetInvalidMask", numParticles,
             KOKKOS_LAMBDA(const size_type i) {
-                invalid(numParticles + i) = false;
+                invalid(oldLocalNum + i) = false;
             });
+        Kokkos::fence();
 
         // Pretty print numParticles, newCapacity and new totalNum + localNum after creation
         constexpr int labelWidth = 32;
