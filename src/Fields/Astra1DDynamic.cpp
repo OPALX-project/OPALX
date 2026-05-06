@@ -210,13 +210,6 @@ void Astra1DDynamic::readMap()
             "Maximum on-axis field is zero in fieldmap '" + Filename_m + "'");
     }
 
-    zRaw_m.resize(num_gridpz_m);
-    ezRaw_m.resize(num_gridpz_m);
-    for (int i = 0; i < num_gridpz_m; ++i) {
-        zRaw_m[i] = zvals[i];
-        ezRaw_m[i] = RealValues[i];
-    }
-
     // Interpolate onto an equidistant grid and build a mirrored periodic array
     gsl_spline_init(Ez_interpolant, zvals, RealValues, num_gridpz_m);
 
