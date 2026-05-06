@@ -376,10 +376,6 @@ void ParallelTracker::execute() {
             itsBunch_m->bunchUpdate();
             m << level5 << "Bunch updated after emission." << endl;
 
-            // selectDT(back_track);
-            // m << level5 << "Selected new time step for next iteration, back_track = " <<
-            // back_track << "." << endl;
-
             // External field computation
             computeExternalFields(oth);
             m << level4 << "External field computation done at step " << step << "." << endl;
@@ -389,9 +385,15 @@ void ParallelTracker::execute() {
             m << level4 << "timeIntegration2 done at step " << step << "." << endl;
             itsBunch_m->bunchUpdate();
             m << level5 << "Bunch updated after timeIntegration2." << endl;
-            applyGlobalProcesses(itsBunch_m->getdT());
-            m << level5 << "Applied global processes at step " << step << "." << endl;
 
+            // Apply global processes (e.g. decay) and mark afftected particles for deletion
+            const size_t nProcessMarked = applyGlobalProcesses(itsBunch_m->getdT());
+            m << level5 << "Applied global processes at step " << step << "." << endl;
+            if (nProcessMarked > 0) {
+                deleteInvalidParticles(false, m, "global processes");
+            }
+
+            // Small sanity check
             if (itsBunch_m->getTotalNumAllContainers() == 0) {
                 m << level5 << "WARNING: No particles in the bunch at step " << step << " on rank "
                   << ippl::Comm->rank() << ". This has no effect on the simulation." << endl;
@@ -408,21 +410,27 @@ void ParallelTracker::execute() {
                 m << level4 << "Updated reference particle at step " << step << "." << endl;
             }
 
+            // Mark particles outside boundpdestroy invalid for deletion for every container.
             double sigmas = static_cast<double>(Options::boundpDestroy);
-            // if (sigmas > 0.0) {
             const auto& particleContainersStep = itsBunch_m->getParticleContainers();
+            size_t nBoundpMarked               = 0;
             for (size_t i = 0; i < particleContainersStep.size(); ++i) {
                 const auto& pc  = particleContainersStep[i];
-                size_t nDeleted = 0;
+                size_t nMarked  = 0;
                 if (!pc || !itsBunch_m->isPcActive(i)) {
                     continue;
                 }
-                nDeleted = pc->deleteParticlesOutside(sigmas);
-                if (nDeleted > 0) {
-                    m << level2 << "Deleted " << nDeleted << " particles outside " << sigmas
-                      << "-sigma boundary, " << pc->getTotalNum() << " remaining (container " << i
-                      << ")." << endl;
+                nMarked = pc->markParticlesOutside(sigmas);
+                nBoundpMarked += nMarked;
+                if (nMarked > 0) {
+                    m << level2 << "Marked " << nMarked << " particles outside " << sigmas
+                      << "-sigma boundary for deletion (container " << i << ")." << endl;
                 }
+            }
+
+            // Then immediately delete all marked particles before they can interact with the fields or be counted in diagnostics.
+            if (nBoundpMarked > 0) {
+                deleteInvalidParticles(true, m, std::to_string(sigmas) + "-sigma boundary");
             }
 
             for (size_t i = 0; i < particleContainersStep.size(); ++i) {
@@ -445,9 +453,11 @@ void ParallelTracker::execute() {
                      == Options::statDumpFreq);
             dumpStats(step, psDump, statDump);
 
+            // Increment the global track step counter at the end of the step
             itsBunch_m->incTrackSteps();
             m << level5 << "Track steps incremented." << endl;
 
+            // Check if active containers have reached the end of the current step size configuration (zstop), and if so prepare to switch to the next configuration on the next iteration.
             for (size_t i = 0; i < particleContainers.size(); ++i) {
                 const auto& pc = particleContainers[i];
                 if (!pc || !itsBunch_m->isPcActive(i)) {
@@ -778,9 +788,10 @@ void ParallelTracker::emitFromEmissionSources(double t, double dt) {
     itsBunch_m->refreshPcActiveAfterEmit();
 }
 
-void ParallelTracker::applyGlobalProcesses(double dt) {
+size_t ParallelTracker::applyGlobalProcesses(double dt) {
     const size_t nContainers        = itsBunch_m->getNumParticleContainers();
     const long long globalTrackStep = itsBunch_m->getGlobalTrackStep();
+    size_t nMarked                  = 0;
 
     for (size_t ci = 0; ci < nContainers; ++ci) {
         auto pc = itsBunch_m->getParticleContainer(ci);
@@ -793,10 +804,36 @@ void ParallelTracker::applyGlobalProcesses(double dt) {
         }
         for (const auto& process : processes) {
             if (process) {
-                process->apply(*pc, dt, globalTrackStep, ci);
+                nMarked += process->apply(*pc, dt, globalTrackStep, ci);
             }
         }
     }
+    return nMarked;
+}
+
+size_t ParallelTracker::deleteInvalidParticles(
+        bool activeOnly, Inform& m, const std::string& reason) {
+    const size_t nContainers = itsBunch_m->getNumParticleContainers();
+    size_t nDeleted          = 0;
+
+    for (size_t ci = 0; ci < nContainers; ++ci) {
+        if (activeOnly && !itsBunch_m->isPcActive(ci)) {
+            continue;
+        }
+        auto pc = itsBunch_m->getParticleContainer(ci);
+        if (!pc) {
+            continue;
+        }
+
+        const size_t nContainerDeleted = pc->deleteInvalidParticles();
+        nDeleted += nContainerDeleted;
+        if (nContainerDeleted > 0) {
+            m << level2 << "Deleted " << nContainerDeleted << " particles marked by " << reason
+              << ", " << pc->getTotalNum() << " remaining (container " << ci << ")." << endl;
+        }
+    }
+
+    return nDeleted;
 }
 
 /**
@@ -1415,7 +1452,6 @@ void ParallelTracker::writePhaseSpace(const long long /*step*/, bool psDump, boo
         if (driftToCorrectPosition) {
             if (localNum > 0) {
                 itsBunch_m->R = stashedR;
-                stashedR.destroy(localNum, 0);
             }
 
             itsBunch_m->RefPartR_m = stashedRefPartR;
