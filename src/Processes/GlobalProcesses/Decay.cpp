@@ -8,6 +8,7 @@
 
 #include <cmath>
 #include <cstdint>
+#include <functional>
 #include <string>
 
 namespace {
@@ -36,13 +37,19 @@ size_t Decay::apply(
     }
 
     const pc_size_type nLocal = pc.getLocalNum();
-    if (nLocal == 0 && !daughterPC_m) {
-        return 0;
-    }
 
     /* Phase 1: Mark decayed particles using relativistic decay probability. */
-    Kokkos::View<bool*> invalid("Decay::invalid", nLocal);
-    const pc_size_type localDestroyNum = markDecayedParticles(nLocal, dt, pc.P.getView(), invalid);
+    Kokkos::View<bool*> decayed("Decay::decayed", nLocal);
+    const pc_size_type localDestroyNum =
+            markDecayedParticles(nLocal, dt, pc.P.getView(), decayed);
+
+    auto invalidMask = pc.InvalidMask.getView();
+    Kokkos::parallel_for(
+            "Decay::orInvalidMask", nLocal,
+            KOKKOS_LAMBDA(const pc_size_type i) {
+                invalidMask(i) = invalidMask(i) || decayed(i);
+            });
+    Kokkos::fence();
 
     pc_size_type globalDestroyNum = 0;
     ippl::Comm->allreduce(localDestroyNum, globalDestroyNum, 1, std::plus<pc_size_type>());
@@ -53,7 +60,8 @@ size_t Decay::apply(
     if (daughterPC_m) {
         /* Phase 2: Gather kinematics of decayed parents into compact views. */
         const DecayedParentViews parents = collectDecayedParents(
-                nLocal, localDestroyNum, invalid, pc.R.getView(), pc.P.getView(), pc.dt.getView());
+                nLocal, localDestroyNum, decayed, pc.R.getView(), pc.P.getView(),
+                pc.dt.getView());
 
         /* Phase 3: Create daughters — subclass-specific momentum sampling. */
         // createParticles() is non-destructive and warns if the daughter buffer must grow.
@@ -66,14 +74,12 @@ size_t Decay::apply(
         }
     }
 
-    /* Phase 4: Destroy decayed parent particles. */
-    pc.destroyParticles(invalid, localDestroyNum);
     return static_cast<size_t>(globalDestroyNum);
 }
 
 ippl::detail::size_type Decay::markDecayedParticles(
         ippl::detail::size_type nLocal, double dt, Kokkos::View<ippl::Vector<double, 3>*> Pview,
-        Kokkos::View<bool*> invalid) {
+        Kokkos::View<bool*> decayed) {
     using pc_size_type = ippl::detail::size_type;
 
     // Local copies — KOKKOS_LAMBDA captures these, not `this`.
@@ -90,9 +96,9 @@ ippl::detail::size_type Decay::markDecayedParticles(
                 const double gamma  = Kokkos::sqrt(1.0 + p2);
                 const double tauLab = gamma * tau0;
                 const double pDecay = 1.0 - Kokkos::exp(-dt / tauLab);
-                const bool decayed  = generator.drand(0.0, 1.0) < pDecay;
-                invalid(i)          = decayed;
-                count += decayed;
+                const bool didDecay = generator.drand(0.0, 1.0) < pDecay;
+                decayed(i)          = didDecay;
+                count += didDecay ? 1 : 0;
                 pool.free_state(generator);
             },
             localDestroyNum);
@@ -102,7 +108,7 @@ ippl::detail::size_type Decay::markDecayedParticles(
 
 Decay::DecayedParentViews Decay::collectDecayedParents(
         ippl::detail::size_type nLocal, ippl::detail::size_type localDestroyNum,
-        Kokkos::View<bool*> invalid, Kokkos::View<ippl::Vector<double, 3>*> Rview,
+        Kokkos::View<bool*> decayed, Kokkos::View<ippl::Vector<double, 3>*> Rview,
         Kokkos::View<ippl::Vector<double, 3>*> Pview, Kokkos::View<double*> dtView) {
     using pc_size_type = ippl::detail::size_type;
 
@@ -110,7 +116,7 @@ Decay::DecayedParentViews Decay::collectDecayedParents(
     Kokkos::parallel_scan(
             "Decay::compact", nLocal,
             KOKKOS_LAMBDA(const pc_size_type i, pc_size_type& runningTotal, const bool isFinal) {
-                if (invalid(i)) {
+                if (decayed(i)) {
                     if (isFinal) {
                         compactIdx(i) = runningTotal;
                     }
@@ -126,7 +132,7 @@ Decay::DecayedParentViews Decay::collectDecayedParents(
 
     Kokkos::parallel_for(
             "Decay::collectParents", nLocal, KOKKOS_LAMBDA(const pc_size_type i) {
-                if (invalid(i)) {
+                if (decayed(i)) {
                     const pc_size_type j = compactIdx(i);
                     out.R(j)             = Rview(i);
                     out.P(j)             = Pview(i);
