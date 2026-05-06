@@ -571,7 +571,7 @@ namespace {
         constexpr size_t nPart = 6;
         pc->createParticles(nPart);
         const size_t totalBeforeDelete = pc->getTotalNum();
-        pc->InvalidMask = true;
+        pc->InvalidMask                = true;
         Kokkos::fence();
         ASSERT_EQ(pc->deleteInvalidParticles(), totalBeforeDelete);
         ASSERT_EQ(pc->getLocalNum(), 0u);

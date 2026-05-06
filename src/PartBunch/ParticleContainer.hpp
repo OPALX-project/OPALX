@@ -613,7 +613,7 @@ public:
                     count += newlyMarked ? 1 : 0;
                 },
                 localMarkedNum);
-        Kokkos::fence(); // not needed, but also doesn't hurt
+        Kokkos::fence();  // not needed, but also doesn't hurt
 
         size_type globalMarkedNum = 0;
         ippl::Comm->allreduce(localMarkedNum, globalMarkedNum, 1, std::plus<size_type>());
@@ -641,14 +641,13 @@ public:
         size_type oldLocalNum = this->getLocalNum();
         this->create(numParticles, true);  // non_destructive = true
         size_type newCapacity = this->R.size();
-        
-        // If numParticles > 0, reset the InvalidMask for the newly created particles to false (valid).
+
+        // If numParticles > 0, reset the InvalidMask for the newly created particles to false
+        // (valid).
         auto invalid = InvalidMask.getView();
         Kokkos::parallel_for(
-            "ParticleContainer::createParticles::resetInvalidMask", numParticles,
-            KOKKOS_LAMBDA(const size_type i) {
-                invalid(oldLocalNum + i) = false;
-            });
+                "ParticleContainer::createParticles::resetInvalidMask", numParticles,
+                KOKKOS_LAMBDA(const size_type i) { invalid(oldLocalNum + i) = false; });
         Kokkos::fence();
 
         // Pretty print numParticles, newCapacity and new totalNum + localNum after creation
@@ -713,9 +712,7 @@ public:
         size_type localDestroyNum = 0;
         Kokkos::parallel_reduce(
                 "ParticleContainer::deleteInvalidParticles::count", nLocal,
-                KOKKOS_LAMBDA(const size_type i, size_type& count) {
-                    count += invalid(i) ? 1 : 0;
-                },
+                KOKKOS_LAMBDA(const size_type i, size_type& count) { count += invalid(i) ? 1 : 0; },
                 localDestroyNum);
         Kokkos::fence();
 

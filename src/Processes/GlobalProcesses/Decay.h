@@ -74,8 +74,8 @@ public:
      *   kernel so the KOKKOS_LAMBDA captures values — never `this`.
      */
     ippl::detail::size_type markDecayedParticles(
-            ippl::detail::size_type nLocal, double dt,
-            Kokkos::View<ippl::Vector<double, 3>*> Pview, Kokkos::View<bool*> decayed);
+            ippl::detail::size_type nLocal, double dt, Kokkos::View<ippl::Vector<double, 3>*> Pview,
+            Kokkos::View<bool*> decayed);
 
     /**
      * @brief Gather R/P/dt of parents marked for decay into compact views.

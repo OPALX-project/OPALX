@@ -411,12 +411,12 @@ void ParallelTracker::execute() {
             }
 
             // Mark particles outside boundpdestroy invalid for deletion for every container.
-            double sigmas = static_cast<double>(Options::boundpDestroy);
+            double sigmas                      = static_cast<double>(Options::boundpDestroy);
             const auto& particleContainersStep = itsBunch_m->getParticleContainers();
             size_t nBoundpMarked               = 0;
             for (size_t i = 0; i < particleContainersStep.size(); ++i) {
-                const auto& pc  = particleContainersStep[i];
-                size_t nMarked  = 0;
+                const auto& pc = particleContainersStep[i];
+                size_t nMarked = 0;
                 if (!pc || !itsBunch_m->isPcActive(i)) {
                     continue;
                 }
@@ -428,7 +428,8 @@ void ParallelTracker::execute() {
                 }
             }
 
-            // Then immediately delete all marked particles before they can interact with the fields or be counted in diagnostics.
+            // Then immediately delete all marked particles before they can interact with the fields
+            // or be counted in diagnostics.
             if (nBoundpMarked > 0) {
                 deleteInvalidParticles(true, m, std::to_string(sigmas) + "-sigma boundary");
             }
@@ -457,7 +458,9 @@ void ParallelTracker::execute() {
             itsBunch_m->incTrackSteps();
             m << level5 << "Track steps incremented." << endl;
 
-            // Check if active containers have reached the end of the current step size configuration (zstop), and if so prepare to switch to the next configuration on the next iteration.
+            // Check if active containers have reached the end of the current step size
+            // configuration (zstop), and if so prepare to switch to the next configuration on the
+            // next iteration.
             for (size_t i = 0; i < particleContainers.size(); ++i) {
                 const auto& pc = particleContainers[i];
                 if (!pc || !itsBunch_m->isPcActive(i)) {
