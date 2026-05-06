@@ -29,6 +29,7 @@
 #include <array>
 #include <cmath>
 #include <filesystem>
+#include <functional>
 #include <limits>
 #include <numeric>
 #include <sstream>
@@ -37,98 +38,114 @@
 
 extern Inform* gmsg;
 
-#define WRITE_FILEATTRIB_STRING(attribute, value)                                                \
-    {                                                                                            \
-        h5_int64_t h5err = H5WriteFileAttribString(H5file_m, attribute, value);                  \
-        if (h5err <= H5_ERR) {                                                                   \
-            std::stringstream ss;                                                                \
-            ss << "failed to write string attribute " << attribute << " to file " << fileName_m; \
-            throw GeneralOpalException(std::string(__func__), ss.str());                      \
-        }                                                                                        \
+void LossDataSink::writeFileAttribString(const char* attribute, const char* value) {
+    const h5_int64_t h5err = H5WriteFileAttribString(H5file_m, attribute, value);
+
+    if (h5err <= H5_ERR) {
+        std::stringstream ss;
+        ss << "failed to write string attribute " << attribute << " to file " << fileName_m;
+        throw GeneralOpalException("LossDataSink::writeFileAttribString", ss.str());
     }
-#define WRITE_STEPATTRIB_FLOAT64(attribute, value, size)                                          \
-    {                                                                                             \
-        h5_int64_t h5err = H5WriteStepAttribFloat64(H5file_m, attribute, value, size);            \
-        if (h5err <= H5_ERR) {                                                                    \
-            std::stringstream ss;                                                                 \
-            ss << "failed to write float64 attribute " << attribute << " to file " << fileName_m; \
-            throw GeneralOpalException(std::string(__func__), ss.str());                       \
-        }                                                                                         \
+}
+
+void LossDataSink::writeStepAttribFloat64(
+    const char* attribute,
+    const h5_float64_t* value,
+    h5_int64_t size) {
+    const h5_int64_t h5err = H5WriteStepAttribFloat64(H5file_m, attribute, value, size);
+
+    if (h5err <= H5_ERR) {
+        std::stringstream ss;
+        ss << "failed to write float64 attribute " << attribute << " to file " << fileName_m;
+        throw GeneralOpalException("LossDataSink::writeStepAttribFloat64", ss.str());
     }
-#define WRITE_STEPATTRIB_INT64(attribute, value, size)                                          \
-    {                                                                                           \
-        h5_int64_t h5err = H5WriteStepAttribInt64(H5file_m, attribute, value, size);            \
-        if (h5err <= H5_ERR) {                                                                  \
-            std::stringstream ss;                                                               \
-            ss << "failed to write int64 attribute " << attribute << " to file " << fileName_m; \
-            throw GeneralOpalException(std::string(__func__), ss.str());                     \
-        }                                                                                       \
+}
+
+void LossDataSink::writeStepAttribInt64(
+    const char* attribute,
+    const h5_int64_t* value,
+    h5_int64_t size) {
+    const h5_int64_t h5err = H5WriteStepAttribInt64(H5file_m, attribute, value, size);
+
+    if (h5err <= H5_ERR) {
+        std::stringstream ss;
+        ss << "failed to write int64 attribute " << attribute << " to file " << fileName_m;
+        throw GeneralOpalException("LossDataSink::writeStepAttribInt64", ss.str());
     }
-#define WRITE_DATA_FLOAT64(name, value)                                                 \
-    {                                                                                   \
-        h5_int64_t h5err = H5PartWriteDataFloat64(H5file_m, name, value);               \
-        if (h5err <= H5_ERR) {                                                          \
-            std::stringstream ss;                                                       \
-            ss << "failed to write float64 data " << name << " to file " << fileName_m; \
-            throw GeneralOpalException(std::string(__func__), ss.str());             \
-        }                                                                               \
+}
+
+void LossDataSink::writeDataFloat64(const char* name, const h5_float64_t* value) {
+    const h5_int64_t h5err = H5PartWriteDataFloat64(H5file_m, name, value);
+
+    if (h5err <= H5_ERR) {
+        std::stringstream ss;
+        ss << "failed to write float64 data " << name << " to file " << fileName_m;
+        throw GeneralOpalException("LossDataSink::writeDataFloat64", ss.str());
     }
-#define WRITE_DATA_INT64(name, value)                                                 \
-    {                                                                                 \
-        h5_int64_t h5err = H5PartWriteDataInt64(H5file_m, name, value);               \
-        if (h5err <= H5_ERR) {                                                        \
-            std::stringstream ss;                                                     \
-            ss << "failed to write int64 data " << name << " to file " << fileName_m; \
-            throw GeneralOpalException(std::string(__func__), ss.str());           \
-        }                                                                             \
+}
+
+void LossDataSink::writeDataInt64(const char* name, const h5_int64_t* value) {
+    const h5_int64_t h5err = H5PartWriteDataInt64(H5file_m, name, value);
+
+    if (h5err <= H5_ERR) {
+        std::stringstream ss;
+        ss << "failed to write int64 data " << name << " to file " << fileName_m;
+        throw GeneralOpalException("LossDataSink::writeDataInt64", ss.str());
     }
-#define SET_STEP()                                                                \
-    {                                                                             \
-        h5_int64_t h5err = H5SetStep(H5file_m, H5call_m);                         \
-        if (h5err <= H5_ERR) {                                                    \
-            std::stringstream ss;                                                 \
-            ss << "failed to set step " << H5call_m << " in file " << fileName_m; \
-            throw GeneralOpalException(std::string(__func__), ss.str());       \
-        }                                                                         \
+}
+
+void LossDataSink::setStep() {
+    const h5_int64_t h5err = H5SetStep(H5file_m, H5call_m);
+
+    if (h5err <= H5_ERR) {
+        std::stringstream ss;
+        ss << "failed to set step " << H5call_m << " in file " << fileName_m;
+        throw GeneralOpalException("LossDataSink::setStep", ss.str());
     }
-#define GET_NUM_STEPS()                                                     \
-    {                                                                       \
-        H5call_m = H5GetNumSteps(H5file_m);                                 \
-        if (H5call_m <= H5_ERR) {                                           \
-            std::stringstream ss;                                           \
-            ss << "failed to get number of steps of file " << fileName_m;   \
-            throw GeneralOpalException(std::string(__func__), ss.str()); \
-        }                                                                   \
+}
+
+void LossDataSink::getNumSteps() {
+    H5call_m = H5GetNumSteps(H5file_m);
+
+    if (H5call_m <= H5_ERR) {
+        std::stringstream ss;
+        ss << "failed to get number of steps of file " << fileName_m;
+        throw GeneralOpalException("LossDataSink::getNumSteps", ss.str());
     }
-#define SET_NUM_PARTICLES(num)                                                              \
-    {                                                                                       \
-        h5_int64_t h5err = H5PartSetNumParticles(H5file_m, num);                            \
-        if (h5err <= H5_ERR) {                                                              \
-            std::stringstream ss;                                                           \
-            ss << "failed to set number of particles to " << num << " in step " << H5call_m \
-               << " in file " << fileName_m;                                                \
-            throw GeneralOpalException(std::string(__func__), ss.str());                 \
-        }                                                                                   \
+}
+
+void LossDataSink::setNumParticles(h5_int64_t num) {
+    const h5_int64_t h5err = H5PartSetNumParticles(H5file_m, num);
+
+    if (h5err <= H5_ERR) {
+        std::stringstream ss;
+        ss << "failed to set number of particles to " << num << " in step " << H5call_m
+           << " in file " << fileName_m;
+        throw GeneralOpalException("LossDataSink::setNumParticles", ss.str());
+    }
+}
+
+void LossDataSink::openFile(const char* fname, h5_int32_t mode, h5_prop_t props) {
+    H5file_m = H5OpenFile(fname, mode, props);
+
+    if (H5file_m == static_cast<h5_file_t>(H5_ERR)) {
+        std::stringstream ss;
+        ss << "failed to open file " << fileName_m;
+        throw GeneralOpalException("LossDataSink::openFile", ss.str());
+    }
+}
+
+void LossDataSink::closeFile() {
+    const h5_int64_t h5err = H5CloseFile(H5file_m);
+
+    if (h5err <= H5_ERR) {
+        std::stringstream ss;
+        ss << "failed to close file " << fileName_m;
+        throw GeneralOpalException("LossDataSink::closeFile", ss.str());
     }
 
-#define OPEN_FILE(fname, mode, props)                                       \
-    {                                                                       \
-        H5file_m = H5OpenFile(fname, mode, props);                          \
-        if (H5file_m == (h5_file_t)H5_ERR) {                                \
-            std::stringstream ss;                                           \
-            ss << "failed to open file " << fileName_m;                     \
-            throw GeneralOpalException(std::string(__func__), ss.str()); \
-        }                                                                   \
-    }
-#define CLOSE_FILE()                                                        \
-    {                                                                       \
-        h5_int64_t h5err = H5CloseFile(H5file_m);                           \
-        if (h5err <= H5_ERR) {                                              \
-            std::stringstream ss;                                           \
-            ss << "failed to close file " << fileName_m;                    \
-            throw GeneralOpalException(std::string(__func__), ss.str()); \
-        }                                                                   \
-    }
+    H5file_m = 0;
+}
 
 namespace {
     constexpr double percentileOneSigmaNormalDist =
@@ -544,7 +561,7 @@ LossDataSink::LossDataSink(std::string outfn, bool hdf5Save, CollectionType coll
 
 LossDataSink::LossDataSink(const LossDataSink& rhs)
     : h5hut_mode_m(rhs.h5hut_mode_m),
-      H5file_m(rhs.H5file_m),
+      H5file_m(0),
       outputName_m(rhs.outputName_m),
       H5call_m(rhs.H5call_m),
       RefPartR_m(rhs.RefPartR_m),
@@ -560,8 +577,8 @@ LossDataSink::LossDataSink(const LossDataSink& rhs)
 
 LossDataSink::~LossDataSink() noexcept(false) {
     if (H5file_m) {
-        CLOSE_FILE();
-        H5file_m = 0;
+        closeFile();
+        // H5file_m = 0;
     }
     ippl::Comm->barrier();
 }
@@ -570,7 +587,7 @@ void LossDataSink::openH5(h5_int32_t mode) {
     h5_prop_t props = H5CreateFileProp();
     MPI_Comm comm   = ippl::Comm->getCommunicator();
     H5SetPropFileMPIOCollective(props, &comm);
-    OPEN_FILE(fileName_m.c_str(), mode, props);
+    openFile(fileName_m.c_str(), mode, props);
     H5CloseProp(props);
 }
 
@@ -579,57 +596,57 @@ void LossDataSink::writeHeaderH5() {
     std::stringstream OPAL_version;
     OPAL_version << buildinfo::project_name << " " << buildinfo::project_version << " # git rev. "
                  << Util::getGitRevision();
-    WRITE_FILEATTRIB_STRING("OPAL_version", OPAL_version.str().c_str());
+    writeFileAttribString("OPAL_version", OPAL_version.str().c_str());
 
-    WRITE_FILEATTRIB_STRING("SPOSUnit", "m");
-    WRITE_FILEATTRIB_STRING("TIMEUnit", "s");
-    WRITE_FILEATTRIB_STRING("RefPartRUnit", "m");
-    WRITE_FILEATTRIB_STRING("RefPartPUnit", "#beta#gamma");
-    WRITE_FILEATTRIB_STRING("GlobalTrackStepUnit", "1");
+    writeFileAttribString("SPOSUnit", "m");
+    writeFileAttribString("TIMEUnit", "s");
+    writeFileAttribString("RefPartRUnit", "m");
+    writeFileAttribString("RefPartPUnit", "#beta#gamma");
+    writeFileAttribString("GlobalTrackStepUnit", "1");
 
-    WRITE_FILEATTRIB_STRING("centroidUnit", "m");
-    WRITE_FILEATTRIB_STRING("RMSXUnit", "m");
-    WRITE_FILEATTRIB_STRING("MEANPUnit", "#beta#gamma");
-    WRITE_FILEATTRIB_STRING("RMSPUnit", "#beta#gamma");
-    WRITE_FILEATTRIB_STRING("#varepsilonUnit", "m rad");
-    WRITE_FILEATTRIB_STRING("#varepsilon-geomUnit", "m rad");
-    WRITE_FILEATTRIB_STRING("ENERGYUnit", "MeV");
-    WRITE_FILEATTRIB_STRING("dEUnit", "MeV");
-    WRITE_FILEATTRIB_STRING("TotalChargeUnit", "C");
-    WRITE_FILEATTRIB_STRING("TotalMassUnit", "MeV");
+    writeFileAttribString("centroidUnit", "m");
+    writeFileAttribString("RMSXUnit", "m");
+    writeFileAttribString("MEANPUnit", "#beta#gamma");
+    writeFileAttribString("RMSPUnit", "#beta#gamma");
+    writeFileAttribString("#varepsilonUnit", "m rad");
+    writeFileAttribString("#varepsilon-geomUnit", "m rad");
+    writeFileAttribString("ENERGYUnit", "MeV");
+    writeFileAttribString("dEUnit", "MeV");
+    writeFileAttribString("TotalChargeUnit", "C");
+    writeFileAttribString("TotalMassUnit", "MeV");
 
-    WRITE_FILEATTRIB_STRING("idUnit", "1");
-    WRITE_FILEATTRIB_STRING("xUnit", "m");
-    WRITE_FILEATTRIB_STRING("yUnit", "m");
-    WRITE_FILEATTRIB_STRING("zUnit", "m");
-    WRITE_FILEATTRIB_STRING("pxUnit", "#beta#gamma");
-    WRITE_FILEATTRIB_STRING("pyUnit", "#beta#gamma");
-    WRITE_FILEATTRIB_STRING("pzUnit", "#beta#gamma");
-    WRITE_FILEATTRIB_STRING("qUnit", "C");
-    WRITE_FILEATTRIB_STRING("mUnit", "MeV");
+    writeFileAttribString("idUnit", "1");
+    writeFileAttribString("xUnit", "m");
+    writeFileAttribString("yUnit", "m");
+    writeFileAttribString("zUnit", "m");
+    writeFileAttribString("pxUnit", "#beta#gamma");
+    writeFileAttribString("pyUnit", "#beta#gamma");
+    writeFileAttribString("pzUnit", "#beta#gamma");
+    writeFileAttribString("qUnit", "C");
+    writeFileAttribString("mUnit", "MeV");
 
-    WRITE_FILEATTRIB_STRING("turnUnit", "1");
-    WRITE_FILEATTRIB_STRING("bunchNumUnit", "1");
+    writeFileAttribString("turnUnit", "1");
+    writeFileAttribString("bunchNumUnit", "1");
 
-    WRITE_FILEATTRIB_STRING("timeUnit", "s");
-    WRITE_FILEATTRIB_STRING("meanTimeUnit", "s");
-    WRITE_FILEATTRIB_STRING("rmsTimeUnit", "s");
+    writeFileAttribString("timeUnit", "s");
+    writeFileAttribString("meanTimeUnit", "s");
+    writeFileAttribString("rmsTimeUnit", "s");
 
     if (Options::computePercentiles) {
-        WRITE_FILEATTRIB_STRING("68-percentileUnit", "m");
-        WRITE_FILEATTRIB_STRING("95-percentileUnit", "m");
-        WRITE_FILEATTRIB_STRING("99-percentileUnit", "m");
-        WRITE_FILEATTRIB_STRING("99_99-percentileUnit", "m");
-        WRITE_FILEATTRIB_STRING("normalizedEps68PercentileUnit", "m rad");
-        WRITE_FILEATTRIB_STRING("normalizedEps95PercentileUnit", "m rad");
-        WRITE_FILEATTRIB_STRING("normalizedEps99PercentileUnit", "m rad");
-        WRITE_FILEATTRIB_STRING("normalizedEps99_99PercentileUnit", "m rad");
+        writeFileAttribString("68-percentileUnit", "m");
+        writeFileAttribString("95-percentileUnit", "m");
+        writeFileAttribString("99-percentileUnit", "m");
+        writeFileAttribString("99_99-percentileUnit", "m");
+        writeFileAttribString("normalizedEps68PercentileUnit", "m rad");
+        writeFileAttribString("normalizedEps95PercentileUnit", "m rad");
+        writeFileAttribString("normalizedEps99PercentileUnit", "m rad");
+        writeFileAttribString("normalizedEps99_99PercentileUnit", "m rad");
     }
 
     if (collectionType_m == CollectionType::TEMPORAL) {
-        WRITE_FILEATTRIB_STRING("type", "temporal");
+        writeFileAttribString("type", "temporal");
     } else {
-        WRITE_FILEATTRIB_STRING("type", "spatial");
+        writeFileAttribString("type", "spatial");
     }
 }
 
@@ -697,7 +714,7 @@ void LossDataSink::save(unsigned int numSets, OpalData::OpenMode openMode) {
             writeHeaderH5();
         } else {
             openH5(H5_O_APPENDONLY);
-            GET_NUM_STEPS();
+            getNumSteps();
         }
 
         splitSets(numSets);
@@ -705,8 +722,8 @@ void LossDataSink::save(unsigned int numSets, OpalData::OpenMode openMode) {
         for (unsigned int i = 0; i < numSets; ++i) {
             saveH5(i);
         }
-        CLOSE_FILE();
-        H5file_m = 0;
+        closeFile();
+        // H5file_m = 0;
 
     } else {
         fileName_m = outputName_m + std::string(".loss");
@@ -779,127 +796,110 @@ void LossDataSink::saveH5(unsigned int setIdx) {
         return;
     }
 
+    const bool hasTurn = hasTurnInformations();
+
+    if (hasTurn
+        && (turnNumber_m.size() < startIdx + nLoc
+            || bunchNumber_m.size() < startIdx + nLoc)) {
+        throw GeneralOpalException(
+            "LossDataSink::saveH5",
+            "Turn/bunch information is globally present, but this rank does not have "
+            "turn/bunch data for all particles in this loss set.");
+    }
+
     /// Set current record/time step.
-    SET_STEP();
-    SET_NUM_PARTICLES(nLoc);
+    setStep();
+    setNumParticles(static_cast<h5_int64_t>(nLoc));
 
     if (setIdx < spos_m.size()) {
-        WRITE_STEPATTRIB_FLOAT64("SPOS", &(spos_m[setIdx]), 1);
-        WRITE_STEPATTRIB_FLOAT64("TIME", &(refTime_m[setIdx]), 1);
-        WRITE_STEPATTRIB_FLOAT64("RefPartR", (h5_float64_t*)&(RefPartR_m[setIdx]), 3);
-        WRITE_STEPATTRIB_FLOAT64("RefPartP", (h5_float64_t*)&(RefPartP_m[setIdx]), 3);
-        WRITE_STEPATTRIB_INT64("GlobalTrackStep", &(globalTrackStep_m[setIdx]), 1);
+        writeStepAttribFloat64("SPOS", &(spos_m[setIdx]), 1);
+    }
+
+    if (setIdx < refTime_m.size()) {
+        writeStepAttribFloat64("TIME", &(refTime_m[setIdx]), 1);
+    }
+
+    if (setIdx < RefPartR_m.size()) {
+        Vector_t<double, 3> refPartR = RefPartR_m[setIdx];
+        writeStepAttribFloat64("RefPartR", &refPartR[0], 3);
+    }
+
+    if (setIdx < RefPartP_m.size()) {
+        Vector_t<double, 3> refPartP = RefPartP_m[setIdx];
+        writeStepAttribFloat64("RefPartP", &refPartP[0], 3);
+    }
+
+    if (setIdx < globalTrackStep_m.size()) {
+        writeStepAttribInt64("GlobalTrackStep", &(globalTrackStep_m[setIdx]), 1);
     }
 
     Vector_t<double, 3> tmpVector;
     double tmpDouble;
 
-    WRITE_STEPATTRIB_FLOAT64(
-        "centroid",
-        (tmpVector = stat.rmean_m, &tmpVector[0]),
-        3);
+    tmpVector = stat.rmean_m;
+    writeStepAttribFloat64("centroid", &tmpVector[0], 3);
 
-    WRITE_STEPATTRIB_FLOAT64(
-        "RMSX",
-        (tmpVector = stat.rrms_m, &tmpVector[0]),
-        3);
+    tmpVector = stat.rrms_m;
+    writeStepAttribFloat64("RMSX", &tmpVector[0], 3);
 
-    WRITE_STEPATTRIB_FLOAT64(
-        "MEANP",
-        (tmpVector = stat.pmean_m, &tmpVector[0]),
-        3);
+    tmpVector = stat.pmean_m;
+    writeStepAttribFloat64("MEANP", &tmpVector[0], 3);
 
-    WRITE_STEPATTRIB_FLOAT64(
-        "RMSP",
-        (tmpVector = stat.prms_m, &tmpVector[0]),
-        3);
+    tmpVector = stat.prms_m;
+    writeStepAttribFloat64("RMSP", &tmpVector[0], 3);
 
-    WRITE_STEPATTRIB_FLOAT64(
-        "#varepsilon",
-        (tmpVector = stat.eps_norm_m, &tmpVector[0]),
-        3);
+    tmpVector = stat.eps_norm_m;
+    writeStepAttribFloat64("#varepsilon", &tmpVector[0], 3);
 
-    WRITE_STEPATTRIB_FLOAT64(
-        "#varepsilon-geom",
-        (tmpVector = stat.geomEmit_m, &tmpVector[0]),
-        3);
+    tmpVector = stat.geomEmit_m;
+    writeStepAttribFloat64("#varepsilon-geom", &tmpVector[0], 3);
 
-    WRITE_STEPATTRIB_FLOAT64(
-        "ENERGY",
-        (tmpDouble = stat.meanKineticEnergy_m, &tmpDouble),
-        1);
+    tmpDouble = stat.meanKineticEnergy_m;
+    writeStepAttribFloat64("ENERGY", &tmpDouble, 1);
 
-    WRITE_STEPATTRIB_FLOAT64(
-        "dE",
-        (tmpDouble = stat.stdKineticEnergy_m, &tmpDouble),
-        1);
+    tmpDouble = stat.stdKineticEnergy_m;
+    writeStepAttribFloat64("dE", &tmpDouble, 1);
 
-    WRITE_STEPATTRIB_FLOAT64(
-        "TotalCharge",
-        (tmpDouble = stat.totalCharge_m, &tmpDouble),
-        1);
+    tmpDouble = stat.totalCharge_m;
+    writeStepAttribFloat64("TotalCharge", &tmpDouble, 1);
 
-    WRITE_STEPATTRIB_FLOAT64(
-        "TotalMass",
-        (tmpDouble = stat.totalMass_m, &tmpDouble),
-        1);
+    tmpDouble = stat.totalMass_m;
+    writeStepAttribFloat64("TotalMass", &tmpDouble, 1);
 
-    WRITE_STEPATTRIB_FLOAT64(
-        "meanTime",
-        (tmpDouble = stat.tmean_m, &tmpDouble),
-        1);
+    tmpDouble = stat.tmean_m;
+    writeStepAttribFloat64("meanTime", &tmpDouble, 1);
 
-    WRITE_STEPATTRIB_FLOAT64(
-        "rmsTime",
-        (tmpDouble = stat.trms_m, &tmpDouble),
-        1);
+    tmpDouble = stat.trms_m;
+    writeStepAttribFloat64("rmsTime", &tmpDouble, 1);
 
     if (Options::computePercentiles) {
-        WRITE_STEPATTRIB_FLOAT64(
-            "68-percentile",
-            (tmpVector = stat.sixtyEightPercentile_m, &tmpVector[0]),
-            3);
+        tmpVector = stat.sixtyEightPercentile_m;
+        writeStepAttribFloat64("68-percentile", &tmpVector[0], 3);
 
-        WRITE_STEPATTRIB_FLOAT64(
-            "95-percentile",
-            (tmpVector = stat.ninetyFivePercentile_m, &tmpVector[0]),
-            3);
+        tmpVector = stat.ninetyFivePercentile_m;
+        writeStepAttribFloat64("95-percentile", &tmpVector[0], 3);
 
-        WRITE_STEPATTRIB_FLOAT64(
-            "99-percentile",
-            (tmpVector = stat.ninetyNinePercentile_m, &tmpVector[0]),
-            3);
+        tmpVector = stat.ninetyNinePercentile_m;
+        writeStepAttribFloat64("99-percentile", &tmpVector[0], 3);
 
-        WRITE_STEPATTRIB_FLOAT64(
-            "99_99-percentile",
-            (tmpVector = stat.ninetyNine_NinetyNinePercentile_m, &tmpVector[0]),
-            3);
+        tmpVector = stat.ninetyNine_NinetyNinePercentile_m;
+        writeStepAttribFloat64("99_99-percentile", &tmpVector[0], 3);
 
-        WRITE_STEPATTRIB_FLOAT64(
-            "normalizedEps68Percentile",
-            (tmpVector = stat.normalizedEps68Percentile_m, &tmpVector[0]),
-            3);
+        tmpVector = stat.normalizedEps68Percentile_m;
+        writeStepAttribFloat64("normalizedEps68Percentile", &tmpVector[0], 3);
 
-        WRITE_STEPATTRIB_FLOAT64(
-            "normalizedEps95Percentile",
-            (tmpVector = stat.normalizedEps95Percentile_m, &tmpVector[0]),
-            3);
+        tmpVector = stat.normalizedEps95Percentile_m;
+        writeStepAttribFloat64("normalizedEps95Percentile", &tmpVector[0], 3);
 
-        WRITE_STEPATTRIB_FLOAT64(
-            "normalizedEps99Percentile",
-            (tmpVector = stat.normalizedEps99Percentile_m, &tmpVector[0]),
-            3);
+        tmpVector = stat.normalizedEps99Percentile_m;
+        writeStepAttribFloat64("normalizedEps99Percentile", &tmpVector[0], 3);
 
-        WRITE_STEPATTRIB_FLOAT64(
-            "normalizedEps99_99Percentile",
-            (tmpVector = stat.normalizedEps99_99Percentile_m, &tmpVector[0]),
-            3);
+        tmpVector = stat.normalizedEps99_99Percentile_m;
+        writeStepAttribFloat64("normalizedEps99_99Percentile", &tmpVector[0], 3);
     }
 
-    WRITE_STEPATTRIB_FLOAT64(
-        "maxR",
-        (tmpVector = stat.maxR_m, &tmpVector[0]),
-        3);
+    tmpVector = stat.maxR_m;
+    writeStepAttribFloat64("maxR", &tmpVector[0], 3);
 
     // Write all data
     std::vector<h5_float64_t> f64bufferStorage(std::max<size_t>(nLoc, 1));
@@ -911,54 +911,66 @@ void LossDataSink::saveH5(unsigned int setIdx) {
     ::i64transform(particles_m, startIdx, nLoc, i64buffer, [](const OpalParticle& particle) {
         return particle.getId();
     });
-    WRITE_DATA_INT64("id", i64buffer);
+    writeDataInt64("id", i64buffer);
+
     ::f64transform(particles_m, startIdx, nLoc, f64buffer, [](const OpalParticle& particle) {
         return particle.getX();
     });
-    WRITE_DATA_FLOAT64("x", f64buffer);
+    writeDataFloat64("x", f64buffer);
+
     ::f64transform(particles_m, startIdx, nLoc, f64buffer, [](const OpalParticle& particle) {
         return particle.getY();
     });
-    WRITE_DATA_FLOAT64("y", f64buffer);
+    writeDataFloat64("y", f64buffer);
+
     ::f64transform(particles_m, startIdx, nLoc, f64buffer, [](const OpalParticle& particle) {
         return particle.getZ();
     });
-    WRITE_DATA_FLOAT64("z", f64buffer);
+    writeDataFloat64("z", f64buffer);
+
     ::f64transform(particles_m, startIdx, nLoc, f64buffer, [](const OpalParticle& particle) {
         return particle.getPx();
     });
-    WRITE_DATA_FLOAT64("px", f64buffer);
+    writeDataFloat64("px", f64buffer);
+
     ::f64transform(particles_m, startIdx, nLoc, f64buffer, [](const OpalParticle& particle) {
         return particle.getPy();
     });
-    WRITE_DATA_FLOAT64("py", f64buffer);
+    writeDataFloat64("py", f64buffer);
+
     ::f64transform(particles_m, startIdx, nLoc, f64buffer, [](const OpalParticle& particle) {
         return particle.getPz();
     });
-    WRITE_DATA_FLOAT64("pz", f64buffer);
+    writeDataFloat64("pz", f64buffer);
+
     ::f64transform(particles_m, startIdx, nLoc, f64buffer, [](const OpalParticle& particle) {
         return particle.getCharge();
     });
-    WRITE_DATA_FLOAT64("q", f64buffer);
+    writeDataFloat64("q", f64buffer);
+
     ::f64transform(particles_m, startIdx, nLoc, f64buffer, [](const OpalParticle& particle) {
         return particle.getMass();
     });
-    WRITE_DATA_FLOAT64("m", f64buffer);
+    writeDataFloat64("m", f64buffer);
 
-    if (hasTurnInformations()) {
+    if (hasTurn) {
         std::copy(
-            turnNumber_m.begin() + startIdx, turnNumber_m.begin() + startIdx + nLoc, i64buffer);
-        WRITE_DATA_INT64("turn", i64buffer);
+            turnNumber_m.begin() + startIdx, 
+            turnNumber_m.begin() + startIdx + nLoc, 
+            i64buffer);
+        writeDataInt64("turn", i64buffer);
 
         std::copy(
-            bunchNumber_m.begin() + startIdx, bunchNumber_m.begin() + startIdx + nLoc, i64buffer);
-        WRITE_DATA_INT64("bunchNumber", i64buffer);
+            bunchNumber_m.begin() + startIdx, 
+            bunchNumber_m.begin() + startIdx + nLoc, 
+            i64buffer);
+        writeDataInt64("bunchNumber", i64buffer);
     }
 
     ::f64transform(particles_m, startIdx, nLoc, f64buffer, [](const OpalParticle& particle) {
         return particle.getTime();
     });
-    WRITE_DATA_FLOAT64("time", f64buffer);
+    writeDataFloat64("time", f64buffer);
 
     ++H5call_m;
 }
