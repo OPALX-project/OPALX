@@ -2,7 +2,7 @@
 // Class Monitor
 //   Defines the abstract interface for a beam position monitor.
 //
-// Copyright (c) 2000 - 2021, Paul Scherrer Institut, Villigen PSI, Switzerland
+// Copyright (c) 2026, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved.
 //
 // This file is part of OPAL.
@@ -23,7 +23,9 @@
 #include "PartBunch/PartBunch.h"
 #include "Structure/LossDataSink.h"
 
+#include <cmath>
 #include <map>
+#include <memory>
 #include <string>
 
 class BeamlineVisitor;
@@ -47,10 +49,10 @@ public:
 
     Monitor();
     Monitor(const Monitor&);
-    virtual ~Monitor();
+    ~Monitor() override;
 
     /// Apply visitor to Monitor.
-    virtual void accept(BeamlineVisitor&) const override;
+    void accept(BeamlineVisitor&) const override;
 
     /// Get geometry.
     virtual StraightGeometry& getGeometry() override = 0;
@@ -100,9 +102,9 @@ public:
 private:
     void driftToCorrectPositionAndSave(const Vector_t<double, 3>& R, const Vector_t<double, 3>& P);
 
-    // Not implemented.
-    void operator=(const Monitor&);
-    std::string filename_m; /**< The name of the outputfile*/
+    Monitor& operator=(const Monitor&) = delete;
+
+    std::string filename_m; /**< The name of the output file */
     Plane plane_m;
     CollectionType type_m;
     unsigned int numPassages_m;
