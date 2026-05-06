@@ -2,7 +2,7 @@
 // Class LossDataSink
 //   This class writes file attributes to describe phase space of loss files
 //
-// Copyright (c) 200x - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// Copyright (c) 2026, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved
 //
 // This file is part of OPAL.
@@ -610,6 +610,7 @@ void LossDataSink::writeHeaderH5() {
     writeFileAttribString("RMSPUnit", "#beta#gamma");
     writeFileAttribString("#varepsilonUnit", "m rad");
     writeFileAttribString("#varepsilon-geomUnit", "m rad");
+    writeFileAttribString("maxRUnit", "m");
     writeFileAttribString("ENERGYUnit", "MeV");
     writeFileAttribString("dEUnit", "MeV");
     writeFileAttribString("TotalChargeUnit", "C");

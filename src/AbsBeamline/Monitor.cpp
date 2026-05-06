@@ -2,7 +2,7 @@
 // Class Monitor
 //   Defines the abstract interface for a beam position monitor.
 //
-// Copyright (c) 2000 - 2021, Paul Scherrer Institut, Villigen PSI, Switzerland
+// Copyright (c) 2026, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved.
 //
 // This file is part of OPAL.
@@ -27,8 +27,8 @@
 #include "Utilities/Options.h"
 #include "Utilities/Util.h"
 
+#include <cmath>
 #include <filesystem>
-
 #include <fstream>
 #include <memory>
 
@@ -58,7 +58,7 @@ void Monitor::accept(BeamlineVisitor& visitor) const { visitor.visitMonitor(*thi
 
 
 bool Monitor::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
-    if (!online_m || lossDs_m == nullptr || pc == nullptr) {
+    if (!online_m || lossDs_m == nullptr || pc == nullptr || RefPartBunch_m == nullptr) {
         return false;
     }
 
@@ -70,13 +70,6 @@ bool Monitor::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     if (nLoc == 0) {
         return false;
     }
-
-    Inform msg("Monitor::apply(pc)");
-    msg << "online=" << online_m
-        << " lossDs_m=" << (lossDs_m != nullptr)
-        << " nLoc=" << pc->getLocalNum()
-        << " type=" << static_cast<int>(type_m)
-        << endl;
 
     auto Rview  = pc->R.getView();
     auto Pview  = pc->P.getView();
@@ -114,22 +107,11 @@ bool Monitor::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
             const Vector_t<double, 3> crossingR = R + frac * singleStep;
             const double crossingTime = bunchTime + frac * dt;
 
-            // const std::size_t id = i;
             const std::size_t id = static_cast<std::size_t>(hID(i));
             const double q = qmAreAttributes ? hQ(i) : hQ(0);
             const double m = qmAreAttributes ? hM(i) : hM(0);
 
-            Inform msg2("Monitor::apply(pc)");
-            msg2 << "hit i=" << i
-                << " id=" << id
-                << " frac=" << frac
-                << " crossingR=(" << crossingR(0) << "," << crossingR(1) << "," << crossingR(2) << ")"
-                << " q=" << q
-                << " m=" << m
-                << endl;
-
-            lossDs_m->addParticle(
-                OpalParticle(id, crossingR, P, crossingTime, q, m));
+            lossDs_m->addParticle(OpalParticle(id, crossingR, P, crossingTime, q, m));
         }
     }
 
@@ -232,10 +214,6 @@ void Monitor::driftToCorrectPositionAndSave(
     auto Qview  = pc->getQView();
     auto Mview  = pc->getMView();
 
-    // get_host_mirror
-    // deep_copy
-
-    // remove Kokkos::HostSpace()
     auto hR  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), Rview);
     auto hP  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), Pview);
     auto hID = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), IDview);
@@ -268,7 +246,6 @@ void Monitor::driftToCorrectPositionAndSave(
         const double m = qmAreAttributes ? hM(i) : hM(0);
 
         const std::size_t id = static_cast<std::size_t>(hID(i));
-        // const std::size_t id = i;
 
         lossDs_m->addParticle(
             OpalParticle(id, localR, localP, crossingTime, q, m));
@@ -279,7 +256,8 @@ bool Monitor::applyToReferenceParticle(
         const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
         Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/) {
 
-    if (!online_m || lossDs_m == nullptr || OpalData::getInstance()->isInPrepState()) {
+    if (!online_m || lossDs_m == nullptr || RefPartBunch_m == nullptr
+        || OpalData::getInstance()->isInPrepState()) {
         return false;
     }
 
@@ -297,6 +275,21 @@ bool Monitor::applyToReferenceParticle(
     }
 
     if (dt * R(2) < 0.0 && dt * (R(2) + singleStep(2)) > 0.0) {
+        const long long globalStep = RefPartBunch_m->getGlobalTrackStep();
+        const double sPos = pc->get_sPos();
+
+        if (type_m == CollectionType::TEMPORAL
+            && globalStep == 0
+            && std::abs(sPos) < 1.0e-14) {
+            Inform msg("Monitor::applyToReferenceParticle");
+            msg << level5
+                << "Ignoring pre-tracking temporal reference crossing"
+                << " globalStep=" << globalStep
+                << " pc_spos=" << sPos
+                << endl;
+            return false;
+        }
+
         const double frac = -R(2) / singleStep(2);
         const double time = t + frac * dt;
         const Vector_t<double, 3> dR = frac * singleStep;
