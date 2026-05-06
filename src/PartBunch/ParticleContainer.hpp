@@ -138,6 +138,9 @@ public:
     /// magnetic field at particle position
     typename Base::particle_position_type B;
 
+    /// particle deletion mask (indicates which particles are deleted every timestep)
+    ippl::ParticleAttrib<bool> InvalidMask;
+
     ParticleContainer(Mesh_t<Dim>& mesh, FieldLayout_t<Dim>& FL)
         : pl_m(FL, mesh),
           qmStorageMode_m(
@@ -163,7 +166,7 @@ public:
         this->addAttribute(P);
         this->addAttribute(E);
         this->addAttribute(B);
-
+        this->addAttribute(InvalidMask);
         if (qmStorageMode_m == QMStorageMode::Attributes) {
             this->addAttribute(QAttr);
             this->addAttribute(MAttr);
