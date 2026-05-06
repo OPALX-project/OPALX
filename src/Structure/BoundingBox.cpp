@@ -26,8 +26,7 @@
 
 BoundingBox::BoundingBox()
     : lowerLeftCorner_m(std::numeric_limits<double>::max()),
-      upperRightCorner_m(std::numeric_limits<double>::lowest()) {
-}
+      upperRightCorner_m(std::numeric_limits<double>::lowest()) {}
 
 BoundingBox BoundingBox::getBoundingBox(const std::vector<Vector_t<double, 3>>& positions) {
     BoundingBox boundingBox;
@@ -53,18 +52,17 @@ void BoundingBox::enlargeToContainBoundingBox(const BoundingBox& boundingBox) {
 }
 
 std::optional<Vector_t<double, 3>> BoundingBox::getIntersectionPoint(
-    const Vector_t<double, 3>& position,
-    const Vector_t<double, 3>& direction) const
-{
+        const Vector_t<double, 3>& position, const Vector_t<double, 3>& direction) const {
     std::optional<Vector_t<double, 3>> result = std::nullopt;
-    double minDistance = std::numeric_limits<double>::max();
-    const Vector_t<double, 3> dimensions = upperRightCorner_m - lowerLeftCorner_m;
+    double minDistance                        = std::numeric_limits<double>::max();
+    const Vector_t<double, 3> dimensions      = upperRightCorner_m - lowerLeftCorner_m;
     Vector_t<double, 3> normal(1, 0, 0);
 
     for (unsigned int d = 0; d < 3; ++d) {
         double sign = -1;
 
-        Vector_t<double, 3> upperCorner = lowerLeftCorner_m + dot(normal, upperRightCorner_m) * normal;
+        Vector_t<double, 3> upperCorner =
+                lowerLeftCorner_m + dot(normal, upperRightCorner_m) * normal;
 
         for (const Vector_t<double, 3>& p0 : {lowerLeftCorner_m, upperCorner}) {
             normal *= sign;
@@ -74,7 +72,7 @@ std::optional<Vector_t<double, 3>> BoundingBox::getIntersectionPoint(
             if (tau < 0.0) continue;
 
             Vector_t<double, 3> pointOnPlane = position + tau * direction;
-            Vector_t<double, 3> relativeP = pointOnPlane - p0;
+            Vector_t<double, 3> relativeP    = pointOnPlane - p0;
 
             bool isOnFace = true;
             for (unsigned int i = 1; i < 3; ++i) {
@@ -86,11 +84,11 @@ std::optional<Vector_t<double, 3>> BoundingBox::getIntersectionPoint(
             }
 
             if (isOnFace) {
-                Vector_t<double,3> delta = pointOnPlane - position;
-                double distance = euclidean_norm(delta);
+                Vector_t<double, 3> delta = pointOnPlane - position;
+                double distance           = euclidean_norm(delta);
                 if (distance < minDistance) {
                     minDistance = distance;
-                    result = pointOnPlane;
+                    result      = pointOnPlane;
                 }
             }
 
@@ -106,8 +104,7 @@ bool BoundingBox::isInside(const Vector_t<double, 3>& position) const {
     Vector_t<double, 3> relPosition = position - lowerLeftCorner_m;
     Vector_t<double, 3> dimensions  = upperRightCorner_m - lowerLeftCorner_m;
     for (unsigned int d = 0; d < 3; ++d) {
-        if (relPosition[d] < 0 || relPosition[d] > dimensions[d])
-            return false;
+        if (relPosition[d] < 0 || relPosition[d] > dimensions[d]) return false;
     }
     return true;
 }

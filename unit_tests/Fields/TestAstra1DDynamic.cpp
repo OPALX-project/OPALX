@@ -9,7 +9,7 @@
  * - Frequency parsing and conversion (MHz -> angular frequency)
  * - Field dimension retrieval (z-bounds)
  *
-  * Field evaluation:
+ * Field evaluation:
  * - Point field evaluation via getFieldstrength()
  * - Uniform on-axis field correctness
  * - Static computeField() correctness for simple coefficients
@@ -33,7 +33,7 @@
  *
  * Semantics:
  * - Field accumulation: E and B are accumulated, not overwritten
- * 
+ *
  *  * Notes:
  * - The current Astra1DDynamic preprocessing / Fourier reconstruction yields
  *   an amplitude factor of (nz - 1) / nz for uniform input fields. The tests
@@ -44,77 +44,68 @@
 
 #include "Fields/Astra1DDynamic.h"
 #include "Fields/Fieldmap.h"
+#include "Ippl.h"
 #include "PartBunch/PartBunch.h"
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
 #include "Utilities/GeneralOpalException.h"
-#include "Ippl.h"
 
 #include <cmath>
 #include <filesystem>
 #include <fstream>
-#include <vector>
 #include <iomanip>
 #include <string>
+#include <vector>
 
 namespace {
 
-// ---------------------------------------------------------------------------
-// Helper: write 1D Astra dynamic fieldmap
-// Format:
-// 1DDynamic accuracy [TRUE|FALSE]
-// freq_MHz
-// z Ez
-// z Ez
-// ...
-//
-// z is written in meters.
-// Ez is written in MV/m.
-// ---------------------------------------------------------------------------
-std::string writeAstra1DFieldmap(const std::string& path,
-                                 const std::vector<double>& z_m,
-                                 const std::vector<double>& ez_MVpm,
-                                 int accuracy = 8,
-                                 double freq_MHz = 100.0,
-                                 bool normalize = true)
-{
-    EXPECT_EQ(z_m.size(), ez_MVpm.size());
+    // ---------------------------------------------------------------------------
+    // Helper: write 1D Astra dynamic fieldmap
+    // Format:
+    // 1DDynamic accuracy [TRUE|FALSE]
+    // freq_MHz
+    // z Ez
+    // z Ez
+    // ...
+    //
+    // z is written in meters.
+    // Ez is written in MV/m.
+    // ---------------------------------------------------------------------------
+    std::string writeAstra1DFieldmap(
+            const std::string& path, const std::vector<double>& z_m,
+            const std::vector<double>& ez_MVpm, int accuracy = 8, double freq_MHz = 100.0,
+            bool normalize = true) {
+        EXPECT_EQ(z_m.size(), ez_MVpm.size());
 
-    std::ofstream f(path);
-    f << "AstraDynamic " << accuracy << " " << (normalize ? "TRUE" : "FALSE") << "\n";
-    f << freq_MHz << "\n";
+        std::ofstream f(path);
+        f << "AstraDynamic " << accuracy << " " << (normalize ? "TRUE" : "FALSE") << "\n";
+        f << freq_MHz << "\n";
 
-    for (size_t i = 0; i < z_m.size(); ++i) {
-        f << z_m[i] << " " << ez_MVpm[i] << "\n";
+        for (size_t i = 0; i < z_m.size(); ++i) {
+            f << z_m[i] << " " << ez_MVpm[i] << "\n";
+        }
+
+        return path;
     }
 
-    return path;
-}
+    // ---------------------------------------------------------------------------
+    // Helper: constant 1D map
+    // ---------------------------------------------------------------------------
+    std::string writeConstantAstra1DFieldmap(
+            const std::string& path, double zbegin_m, double zend_m, int nz, double ez_MVpm,
+            int accuracy = 8, double freq_MHz = 100.0, bool normalize = true) {
+        std::vector<double> z(nz);
+        std::vector<double> ez(nz, ez_MVpm);
 
-// ---------------------------------------------------------------------------
-// Helper: constant 1D map
-// ---------------------------------------------------------------------------
-std::string writeConstantAstra1DFieldmap(const std::string& path,
-                                         double zbegin_m,
-                                         double zend_m,
-                                         int nz,
-                                         double ez_MVpm,
-                                         int accuracy = 8,
-                                         double freq_MHz = 100.0,
-                                         bool normalize = true)
-{
-    std::vector<double> z(nz);
-    std::vector<double> ez(nz, ez_MVpm);
+        const double dz = (zend_m - zbegin_m) / (nz - 1);
+        for (int i = 0; i < nz; ++i) {
+            z[i] = zbegin_m + i * dz;
+        }
 
-    const double dz = (zend_m - zbegin_m) / (nz - 1);
-    for (int i = 0; i < nz; ++i) {
-        z[i] = zbegin_m + i * dz;
+        return writeAstra1DFieldmap(path, z, ez, accuracy, freq_MHz, normalize);
     }
 
-    return writeAstra1DFieldmap(path, z, ez, accuracy, freq_MHz, normalize);
-}
-
-} // namespace
+}  // namespace
 
 // ===========================================================================
 // Fixture
@@ -122,7 +113,7 @@ std::string writeConstantAstra1DFieldmap(const std::string& path,
 class Astra1DDynamicTest : public ::testing::Test {
 protected:
     static void SetUpTestSuite() {
-        int argc = 0;
+        int argc    = 0;
         char** argv = nullptr;
         ippl::initialize(argc, argv);
     }
@@ -142,9 +133,7 @@ protected:
         std::filesystem::remove_all(tmpDir_);
     }
 
-    std::string tmpFile(const std::string& name) const {
-        return (tmpDir_ / name).string();
-    }
+    std::string tmpFile(const std::string& name) const { return (tmpDir_ / name).string(); }
 
     std::filesystem::path tmpDir_;
 };
@@ -153,13 +142,13 @@ protected:
 // Test: Parse fieldmap and verify field dimensions
 // ===========================================================================
 TEST_F(Astra1DDynamicTest, ParseAndDimensions) {
-    const double zb = 0.0;
-    const double ze = 0.10;
+    const double zb   = 0.0;
+    const double ze   = 0.10;
     const double freq = 100.0;
-    const int nz = 5;
+    const int nz      = 5;
 
-    std::string fname = writeConstantAstra1DFieldmap(
-        tmpFile("parse.map"), zb, ze, nz, 1.0, 8, freq, true);
+    std::string fname =
+            writeConstantAstra1DFieldmap(tmpFile("parse.map"), zb, ze, nz, 1.0, 8, freq, true);
 
     Fieldmap* fm = Fieldmap::getFieldmap(fname);
     ASSERT_NE(fm, nullptr);
@@ -171,9 +160,8 @@ TEST_F(Astra1DDynamicTest, ParseAndDimensions) {
     fm->getFieldDimensions(zBegin, zEnd);
 
     EXPECT_NEAR(zBegin, zb, 1e-12);
-    EXPECT_NEAR(zEnd,   ze, 1e-12);
+    EXPECT_NEAR(zEnd, ze, 1e-12);
 }
-
 
 // ===========================================================================
 // Test: Frequency parsing and conversion
@@ -181,8 +169,8 @@ TEST_F(Astra1DDynamicTest, ParseAndDimensions) {
 TEST_F(Astra1DDynamicTest, FrequencyParsing) {
     const double freq = 100.0;
 
-    std::string fname = writeConstantAstra1DFieldmap(
-        tmpFile("freq.map"), 0.0, 0.10, 5, 1.0, 8, freq, true);
+    std::string fname =
+            writeConstantAstra1DFieldmap(tmpFile("freq.map"), 0.0, 0.10, 5, 1.0, 8, freq, true);
 
     auto* fm = dynamic_cast<Astra1DDynamic*>(Fieldmap::getFieldmap(fname));
     ASSERT_NE(fm, nullptr);
@@ -197,14 +185,14 @@ TEST_F(Astra1DDynamicTest, FrequencyParsing) {
 // Test: isInside() helper
 // ===========================================================================
 TEST_F(Astra1DDynamicTest, IsInside) {
-    std::string fname = writeConstantAstra1DFieldmap(
-        tmpFile("inside.map"), 0.0, 0.10, 5, 1.0, 8, 100.0, true);
+    std::string fname =
+            writeConstantAstra1DFieldmap(tmpFile("inside.map"), 0.0, 0.10, 5, 1.0, 8, 100.0, true);
 
     auto* fm = dynamic_cast<Astra1DDynamic*>(Fieldmap::getFieldmap(fname));
     ASSERT_NE(fm, nullptr);
 
-    EXPECT_TRUE (fm->isInside({0.0, 0.0, 0.00}));
-    EXPECT_TRUE (fm->isInside({0.0, 0.0, 0.05}));
+    EXPECT_TRUE(fm->isInside({0.0, 0.0, 0.00}));
+    EXPECT_TRUE(fm->isInside({0.0, 0.0, 0.05}));
     EXPECT_FALSE(fm->isInside({0.0, 0.0, 0.10}));
     EXPECT_FALSE(fm->isInside({0.0, 0.0, -0.01}));
 }
@@ -221,7 +209,7 @@ TEST_F(Astra1DDynamicTest, UniformFieldStrengthOnAxis) {
     const int nz = 9;
 
     std::string fname = writeConstantAstra1DFieldmap(
-        tmpFile("uniform.map"), 0.0, 0.10, nz, 3.0, 8, 100.0, true);
+            tmpFile("uniform.map"), 0.0, 0.10, nz, 3.0, 8, 100.0, true);
 
     Fieldmap* fm = Fieldmap::getFieldmap(fname);
     ASSERT_NE(fm, nullptr);
@@ -255,7 +243,7 @@ TEST_F(Astra1DDynamicTest, NoNormalization) {
     const int nz = 9;
 
     std::string fname = writeConstantAstra1DFieldmap(
-        tmpFile("nonorm.map"), 0.0, 0.10, nz, 3.0, 8, 100.0, false);
+            tmpFile("nonorm.map"), 0.0, 0.10, nz, 3.0, 8, 100.0, false);
 
     Fieldmap* fm = Fieldmap::getFieldmap(fname);
     ASSERT_NE(fm, nullptr);
@@ -278,8 +266,8 @@ TEST_F(Astra1DDynamicTest, NoNormalization) {
 // Test: Outside z range returns outside flag and no modification
 // ===========================================================================
 TEST_F(Astra1DDynamicTest, OutsideZRange) {
-    std::string fname = writeConstantAstra1DFieldmap(
-        tmpFile("outside.map"), 0.0, 0.10, 9, 1.0, 8, 100.0, true);
+    std::string fname =
+            writeConstantAstra1DFieldmap(tmpFile("outside.map"), 0.0, 0.10, 9, 1.0, 8, 100.0, true);
 
     Fieldmap* fm = Fieldmap::getFieldmap(fname);
     ASSERT_NE(fm, nullptr);
@@ -325,8 +313,8 @@ TEST_F(Astra1DDynamicTest, OutsideZRange) {
 TEST_F(Astra1DDynamicTest, FieldAccumulation) {
     const int nz = 9;
 
-    std::string fname = writeConstantAstra1DFieldmap(
-        tmpFile("accum.map"), 0.0, 0.10, nz, 1.0, 8, 100.0, true);
+    std::string fname =
+            writeConstantAstra1DFieldmap(tmpFile("accum.map"), 0.0, 0.10, nz, 1.0, 8, 100.0, true);
 
     Fieldmap* fm = Fieldmap::getFieldmap(fname);
     ASSERT_NE(fm, nullptr);
@@ -355,8 +343,8 @@ TEST_F(Astra1DDynamicTest, FieldAccumulation) {
 // Test: getFieldDerivative for constant field should be zero on-axis
 // ===========================================================================
 TEST_F(Astra1DDynamicTest, FieldDerivativeConstantField) {
-    std::string fname = writeConstantAstra1DFieldmap(
-        tmpFile("deriv.map"), 0.0, 0.10, 9, 2.0, 8, 100.0, true);
+    std::string fname =
+            writeConstantAstra1DFieldmap(tmpFile("deriv.map"), 0.0, 0.10, 9, 2.0, 8, 100.0, true);
 
     auto* fm = dynamic_cast<Astra1DDynamic*>(Fieldmap::getFieldmap(fname));
     ASSERT_NE(fm, nullptr);
@@ -378,7 +366,7 @@ TEST_F(Astra1DDynamicTest, FieldDerivativeConstantField) {
 // for the legacy 2-token Astra1D header format.
 // ===========================================================================
 TEST_F(Astra1DDynamicTest, GetOnaxisEzReturnsNormalizedRawProfile) {
-    const int nz = 9;
+    const int nz            = 9;
     const std::string fname = tmpFile("onaxis_legacy.map");
 
     {
@@ -408,7 +396,7 @@ TEST_F(Astra1DDynamicTest, GetOnaxisEzReturnsNormalizedRawProfile) {
     ASSERT_EQ(F.size(), nz);
 
     EXPECT_NEAR(F.front().first, 0.0, 1e-12);
-    EXPECT_NEAR(F.back().first,  0.10, 1e-12);
+    EXPECT_NEAR(F.back().first, 0.10, 1e-12);
 
     for (int i = 0; i < nz; ++i) {
         EXPECT_NEAR(F[i].second, 1.0, 1e-12);
@@ -431,12 +419,11 @@ TEST_F(Astra1DDynamicTest, ComputeFieldStaticConstantCoefficient) {
     Vector_t<double, 3> B = {0.0, 0.0, 0.0};
 
     Astra1DDynamic::computeField(
-        R, E, B,
-        coefs,
-        0.0,     // zbegin
-        0.20,    // length
-        1.0,     // xlrep
-        2        // accuracy
+            R, E, B, coefs,
+            0.0,   // zbegin
+            0.20,  // length
+            1.0,   // xlrep
+            2      // accuracy
     );
 
     EXPECT_NEAR(E[0], 0.0, 1e-12);
@@ -451,8 +438,8 @@ TEST_F(Astra1DDynamicTest, ComputeFieldStaticConstantCoefficient) {
 // Test: swap() does not crash
 // ===========================================================================
 TEST_F(Astra1DDynamicTest, SwapNoCrash) {
-    std::string fname = writeConstantAstra1DFieldmap(
-        tmpFile("swap.map"), 0.0, 0.10, 5, 1.0, 8, 100.0, true);
+    std::string fname =
+            writeConstantAstra1DFieldmap(tmpFile("swap.map"), 0.0, 0.10, 5, 1.0, 8, 100.0, true);
 
     auto* fm = dynamic_cast<Astra1DDynamic*>(Fieldmap::getFieldmap(fname));
     ASSERT_NE(fm, nullptr);
@@ -464,8 +451,8 @@ TEST_F(Astra1DDynamicTest, SwapNoCrash) {
 // Test: getInfo does not crash
 // ===========================================================================
 TEST_F(Astra1DDynamicTest, GetInfoNoCrash) {
-    std::string fname = writeConstantAstra1DFieldmap(
-        tmpFile("info.map"), 0.0, 0.10, 5, 1.0, 8, 100.0, true);
+    std::string fname =
+            writeConstantAstra1DFieldmap(tmpFile("info.map"), 0.0, 0.10, 5, 1.0, 8, 100.0, true);
 
     Fieldmap* fm = Fieldmap::getFieldmap(fname);
     ASSERT_NE(fm, nullptr);
@@ -486,8 +473,8 @@ TEST_F(Astra1DDynamicTest, MissingFile) {
 // Test: Dictionary caching
 // ===========================================================================
 TEST_F(Astra1DDynamicTest, DictionaryCaching) {
-    std::string fname = writeConstantAstra1DFieldmap(
-        tmpFile("cache.map"), 0.0, 0.10, 5, 1.0, 8, 100.0, true);
+    std::string fname =
+            writeConstantAstra1DFieldmap(tmpFile("cache.map"), 0.0, 0.10, 5, 1.0, 8, 100.0, true);
 
     Fieldmap* fm1 = Fieldmap::getFieldmap(fname);
     Fieldmap* fm2 = Fieldmap::getFieldmap(fname);
@@ -499,8 +486,8 @@ TEST_F(Astra1DDynamicTest, DictionaryCaching) {
 // Test: readMap / freeMap cycle
 // ===========================================================================
 TEST_F(Astra1DDynamicTest, ReadFreeCycle) {
-    std::string fname = writeConstantAstra1DFieldmap(
-        tmpFile("cycle.map"), 0.0, 0.10, 9, 1.0, 8, 100.0, true);
+    std::string fname =
+            writeConstantAstra1DFieldmap(tmpFile("cycle.map"), 0.0, 0.10, 9, 1.0, 8, 100.0, true);
 
     Fieldmap* fm = Fieldmap::getFieldmap(fname);
     ASSERT_NE(fm, nullptr);
@@ -538,23 +525,22 @@ TEST_F(Astra1DDynamicTest, ComputeTravelingWaveFieldEntryRegion) {
     Vector_t<double, 3> B = {0.0, 0.0, 0.0};
 
     Astra1DDynamic::computeTravelingWaveField(
-        R, E, B,
-        coefs,
-        0.0,   // zbegin
-        0.10,  // zend
-        0.20,  // length
-        1.0,   // xlrep
-        2,     // accuracy
-        2.0, 0.0,   // entry
-        0.0, 0.0,   // core1
-        0.0, 0.0,   // core2
-        0.0, 0.0,   // exit
-        0.05,       // startCoreField
-        0.20,       // startExitField
-        0.0,        // mappedStartExitField
-        0.10,       // periodLength
-        0.05,       // cellLength
-        0.30        // elementLength
+            R, E, B, coefs,
+            0.0,       // zbegin
+            0.10,      // zend
+            0.20,      // length
+            1.0,       // xlrep
+            2,         // accuracy
+            2.0, 0.0,  // entry
+            0.0, 0.0,  // core1
+            0.0, 0.0,  // core2
+            0.0, 0.0,  // exit
+            0.05,      // startCoreField
+            0.20,      // startExitField
+            0.0,       // mappedStartExitField
+            0.10,      // periodLength
+            0.05,      // cellLength
+            0.30       // elementLength
     );
 
     EXPECT_NEAR(E[2], 2.0, 1e-12);
@@ -574,32 +560,26 @@ TEST_F(Astra1DDynamicTest, ComputeTravelingWaveFieldCoreRegion) {
     Vector_t<double, 3> B = {0.0, 0.0, 0.0};
 
     // Consistent geometry for a fieldmap spanning z in [0.0, 0.10)
-    const double periodLength        = 0.05;
-    const double startCoreField      = 0.025;
-    const double cellLength          = 0.05;
-    const double startExitField      = 0.125;
-    const double mappedStartExit     = 0.05;
-    const double elementLength       = 0.175;
+    const double periodLength    = 0.05;
+    const double startCoreField  = 0.025;
+    const double cellLength      = 0.05;
+    const double startExitField  = 0.125;
+    const double mappedStartExit = 0.05;
+    const double elementLength   = 0.175;
 
     Astra1DDynamic::computeTravelingWaveField(
-        R, E, B,
-        coefs,
-        0.0,   // zbegin
-        0.10,  // zend
-        0.20,  // length
-        1.0,   // xlrep
-        2,     // accuracy
-        0.0, 0.0,   // entry
-        1.5, 0.0,   // core1
-        2.5, 0.0,   // core2
-        0.0, 0.0,   // exit
-        startCoreField,
-        startExitField,
-        mappedStartExit,
-        periodLength,
-        cellLength,
-        elementLength
-    );
+            R, E, B, coefs,
+            0.0,       // zbegin
+            0.10,      // zend
+            0.20,      // length
+            1.0,       // xlrep
+            2,         // accuracy
+            0.0, 0.0,  // entry
+            1.5, 0.0,  // core1
+            2.5, 0.0,  // core2
+            0.0, 0.0,  // exit
+            startCoreField, startExitField, mappedStartExit, periodLength, cellLength,
+            elementLength);
 
     // Uniform constant coefficient => each core contribution gives Ez = 1
     EXPECT_NEAR(E[2], 4.0, 1e-12);
@@ -619,32 +599,26 @@ TEST_F(Astra1DDynamicTest, ComputeTravelingWaveFieldExitRegion) {
     Vector_t<double, 3> B = {0.0, 0.0, 0.0};
 
     // Same consistent TW geometry as above
-    const double periodLength        = 0.05;
-    const double startCoreField      = 0.025;
-    const double cellLength          = 0.05;
-    const double startExitField      = 0.125;
-    const double mappedStartExit     = 0.05;
-    const double elementLength       = 0.175;
+    const double periodLength    = 0.05;
+    const double startCoreField  = 0.025;
+    const double cellLength      = 0.05;
+    const double startExitField  = 0.125;
+    const double mappedStartExit = 0.05;
+    const double elementLength   = 0.175;
 
     Astra1DDynamic::computeTravelingWaveField(
-        R, E, B,
-        coefs,
-        0.0,   // zbegin
-        0.10,  // zend
-        0.20,  // length
-        1.0,   // xlrep
-        2,     // accuracy
-        0.0, 0.0,   // entry
-        0.0, 0.0,   // core1
-        0.0, 0.0,   // core2
-        3.0, 0.0,   // exit
-        startCoreField,
-        startExitField,
-        mappedStartExit,
-        periodLength,
-        cellLength,
-        elementLength
-    );
+            R, E, B, coefs,
+            0.0,       // zbegin
+            0.10,      // zend
+            0.20,      // length
+            1.0,       // xlrep
+            2,         // accuracy
+            0.0, 0.0,  // entry
+            0.0, 0.0,  // core1
+            0.0, 0.0,  // core2
+            3.0, 0.0,  // exit
+            startCoreField, startExitField, mappedStartExit, periodLength, cellLength,
+            elementLength);
 
     EXPECT_NEAR(E[2], 3.0, 1e-12);
 }
@@ -663,20 +637,8 @@ TEST_F(Astra1DDynamicTest, ComputeTravelingWaveFieldOutsideRange) {
     Vector_t<double, 3> B = {4.0, 5.0, 6.0};
 
     Astra1DDynamic::computeTravelingWaveField(
-        R, E, B,
-        coefs,
-        0.0, 0.10, 0.20, 1.0, 2,
-        1.0, 1.0,
-        1.0, 1.0,
-        1.0, 1.0,
-        1.0, 1.0,
-        0.05,
-        0.20,
-        0.0,
-        0.10,
-        0.05,
-        0.30
-    );
+            R, E, B, coefs, 0.0, 0.10, 0.20, 1.0, 2, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.05,
+            0.20, 0.0, 0.10, 0.05, 0.30);
 
     EXPECT_NEAR(E[0], 1.0, 1e-12);
     EXPECT_NEAR(E[1], 2.0, 1e-12);

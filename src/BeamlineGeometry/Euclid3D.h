@@ -23,7 +23,6 @@
 #include "BeamlineGeometry/Rotation3D.h"
 #include "BeamlineGeometry/Vector3D.h"
 
-
 // Class Euclid3D
 // ------------------------------------------------------------------------
 /// Displacement and rotation in space.
@@ -67,26 +66,24 @@
 
 class Euclid3D {
 public:
-
     /// Default constructor.
     //  Construct identity.
     Euclid3D();
 
     /// Constructor/
     //  Use displacement [b]V[/b] and rotation [b]R[/b].
-    Euclid3D(const Vector3D &V, const Rotation3D &R);
+    Euclid3D(const Vector3D& V, const Rotation3D& R);
 
     /// Constructor.
     //  Use displacement (x,y,z) and rotation (vx,vy,vz).
     Euclid3D(double x, double y, double z, double vx, double vy, double vz);
 
-    bool operator==(const Euclid3D &) const;
-    bool operator!=(const Euclid3D &) const;
+    bool operator==(const Euclid3D&) const;
+    bool operator!=(const Euclid3D&) const;
 
     /// Unpack.
     //  Return the displacement in (x,y,z) and the rotation axis in (vx,vy,vz).
-    void getAll(double &x, double &y, double &z,
-                double &vx, double &vy, double &vz) const;
+    void getAll(double& x, double& y, double& z, double& vx, double& vy, double& vz) const;
 
     /// Get displacement.
     //  Return x-component of displacement.
@@ -102,11 +99,11 @@ public:
 
     /// Get displacement.
     //  Return displacement as a vector.
-    const Vector3D &getVector() const;
+    const Vector3D& getVector() const;
 
     /// Get rotation.
     //  Return rotation as an orthogonal matrix.
-    const Rotation3D &getRotation() const;
+    const Rotation3D& getRotation() const;
 
     /// Get component.
     //  Return the component (row,col) of the rotation matrix.
@@ -126,26 +123,26 @@ public:
 
     /// Set displacement.
     //  Assign displacement as a vector.
-    void setDisplacement(const Vector3D &V);
+    void setDisplacement(const Vector3D& V);
 
     /// Set rotation.
     //  Assign rotation as an orthogonal matrix.
-    void setRotation(const Rotation3D &R);
+    void setRotation(const Rotation3D& R);
 
     /// Dot product.
     //  Return composition of [b]this[/b] with [b]rhs[/b].
-    Euclid3D dot(const Euclid3D &rhs) const;
+    Euclid3D dot(const Euclid3D& rhs) const;
 
     /// Dot product with assign.
     //  Return composition of [b]this[/b] with [b]rhs[/b].
-    const Euclid3D &dotBy(const Euclid3D &rhs);
+    const Euclid3D& dotBy(const Euclid3D& rhs);
 
     /// Dot product.
     //  Return composition of [b]this[/b] with [b]rhs[/b].
-    Euclid3D operator*(const Euclid3D &rhs) const;
+    Euclid3D operator*(const Euclid3D& rhs) const;
 
     /// Dot product with assign.
-    const Euclid3D &operator*=(const Euclid3D &rhs);
+    const Euclid3D& operator*=(const Euclid3D& rhs);
 
     /// Inverse.
     Euclid3D inverse() const;
@@ -189,49 +186,31 @@ public:
     static Euclid3D ZRotation(double angle);
 
 private:
-
     // Implementation.
     Vector3D V;                // The displacement.
     Rotation3D R;              // The rotation.
     mutable bool is_identity;  // True, when [b]this[/b] is identity.
 };
 
-
 // Global Function.
 // ------------------------------------------------------------------------
 
 /// Euclidean inverse.
-inline Euclid3D Inverse(const Euclid3D &t) {
-    return t.inverse();
-}
-
+inline Euclid3D Inverse(const Euclid3D& t) { return t.inverse(); }
 
 // Trivial functions are inlined.
 // ------------------------------------------------------------------------
 
-inline Euclid3D::Euclid3D():
-    V(), R(), is_identity(true)
-{}
+inline Euclid3D::Euclid3D() : V(), R(), is_identity(true) {}
 
-inline double Euclid3D::getX() const {
-    return V.getX();
-}
+inline double Euclid3D::getX() const { return V.getX(); }
 
-inline double Euclid3D::getY() const {
-    return V.getY();
-}
+inline double Euclid3D::getY() const { return V.getY(); }
 
-inline double Euclid3D::getZ() const {
-    return V.getZ();
-}
+inline double Euclid3D::getZ() const { return V.getZ(); }
 
-inline double Euclid3D::M(int row, int col) const {
-    return R(row, col);
-}
+inline double Euclid3D::M(int row, int col) const { return R(row, col); }
 
+inline bool Euclid3D::isIdentity() const { return is_identity; }
 
-inline bool Euclid3D::isIdentity() const {
-    return is_identity;
-}
-
-#endif // OPALX_Euclid3D_HH
+#endif  // OPALX_Euclid3D_HH

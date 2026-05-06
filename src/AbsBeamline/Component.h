@@ -1,12 +1,12 @@
 /**
  * @file Component.h
- * @brief Defines the abstract interface for a single beamline component in the 
+ * @brief Defines the abstract interface for a single beamline component in the
  * accelerator model.
  *
  * @details
- * The Component class provides an abstract interface for an arbitrary single 
+ * The Component class provides an abstract interface for an arbitrary single
  * component in a beam line.
- * A component is the basic element in the accelerator model, such as a dipole, 
+ * A component is the basic element in the accelerator model, such as a dipole,
  * quadrupole, etc.
  */
 #ifndef OPALX_Component_HH
@@ -32,13 +32,13 @@ struct Point {
 
 class Component : public ElementBase {
 public:
-/* ============================== Constructors ============================== */
+    /* ============================== Constructors ============================== */
     explicit Component(const std::string& name);
     Component();
     Component(const Component& right);
     virtual ~Component();
-/* ========================================================================== */
-/* ============================== Field Functions =========================== */
+    /* ========================================================================== */
+    /* ============================== Field Functions =========================== */
     /// Return field.
     //  The representation of the electro-magnetic field of the component
     //  (version for non-constant object).
@@ -78,77 +78,68 @@ public:
     //  Return the value of the time-dependent part of both electric
     //  and magnetic fields at point [b]P[/b] for time [b]t[/b].
     EBVectors EBfield(const Point3D& P, double t) const;
-/* ========================================================================== */
-/* ============================== Apply Functions =========================== */
+    /* ========================================================================== */
+    /* ============================== Apply Functions =========================== */
     /**
-     * Apply functions apply the components electromagnetic field to the 
-     * particles. 
+     * Apply functions apply the components electromagnetic field to the
+     * particles.
      * They are called inside ParalleTracker::computeExternalFields()
      */
 
     /**
-     * @brief Apply to all particles. Kernel launch moved inside the function. 
-     * 
+     * @brief Apply to all particles. Kernel launch moved inside the function.
+     *
      * @returns true if particle is out-of-bounds (lost), false otherwise
      */
     virtual bool apply(const std::shared_ptr<ParticleContainer_t>& pc);
 
     /**
      * @brief Apply to particle i
-     * 
+     *
      * @param i Particle index
      * @param t Time
      * @param E Electric Field
      * @param B Magnetic Field
-     * 
+     *
      * @returns true if particle is out-of-bounds (lost), false otherwise
      */
     virtual bool apply(
-        const size_t& i, 
-        const double& t, 
-        Vector_t<double, 3>& E, 
-        Vector_t<double, 3>& B);
+            const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B);
 
     /**
      * @brief Apply to particle with position R and momentum P
-     * 
-     * @param R Position 
+     *
+     * @param R Position
      * @param P Momentum
      * @param t Time
      * @param E Electric Field
      * @param B Magnetic Field
-     * 
+     *
      * @returns true if particle is out-of-bounds (lost), false otherwise
      */
     virtual bool apply(
-        const Vector_t<double, 3>& R, 
-        const Vector_t<double, 3>& P, 
-        const double& t,
-        Vector_t<double, 3>& E, 
-        Vector_t<double, 3>& B);
-    
+            const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
+            Vector_t<double, 3>& E, Vector_t<double, 3>& B);
+
     /**
      * @brief Apply to reference particle with position R and momemtum P
-     * 
-     * @param R Position 
+     *
+     * @param R Position
      * @param P Momentum
      * @param t Time
      * @param E Electric Field
      * @param B Magnetic Field
-     * 
+     *
      * @returns true if particle is out-of-bounds (lost), false otherwise
      */
     virtual bool applyToReferenceParticle(
-        const Vector_t<double, 3>& R, 
-        const Vector_t<double, 3>& P, 
-        const double& t,
-        Vector_t<double, 3>& E, 
-        Vector_t<double, 3>& B);
+            const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
+            Vector_t<double, 3>& E, Vector_t<double, 3>& B);
 
-/* ========================================================================== */
-/* ============================== Functions ================================= */
-    /** 
-     * @brief Calculate the four-potential at some position relative to the 
+    /* ========================================================================== */
+    /* ============================== Functions ================================= */
+    /**
+     * @brief Calculate the four-potential at some position relative to the
      * component
      *
      * @param R position in the local coordinate system of the component
@@ -162,10 +153,8 @@ public:
      * Default for component is to return false and make no change to A and phi
      */
     virtual bool getPotential(
-        const Vector_t<double, 3>& /*R*/, 
-        const double& /*t*/, 
-        Vector_t<double, 3>& /*A*/,
-        double& /*phi*/) {
+            const Vector_t<double, 3>& /*R*/, const double& /*t*/, Vector_t<double, 3>& /*A*/,
+            double& /*phi*/) {
         return false;
     }
 
@@ -174,10 +163,7 @@ public:
     virtual void setDesignEnergy(const double& energy, bool changeable = true);
 
     // Setup
-    virtual void initialise(
-        PartBunch_t* bunch, 
-        double& startField, 
-        double& endField) = 0;
+    virtual void initialise(PartBunch_t* bunch, double& startField, double& endField) = 0;
 
     // Clean-up
     virtual void finalise() = 0;
@@ -192,8 +178,18 @@ public:
     // Is the component online (been initialised)?
     virtual bool Online();
 
-    // Gets the size (along Z) of the component
-    virtual void getDimensions(double& zBegin, double& zEnd) const = 0;
+    /**
+     * @brief Return the field-support extent of the component.
+     *
+     * This is the longitudinal interval
+     * \f$[z_\mathrm{field}^{\mathrm{begin}}, z_\mathrm{field}^{\mathrm{end}}]\f$
+     * on which the external field model is evaluated in the element-local
+     * chart. In the first extent model this may differ from the nominal body
+     * extent returned by `getElementDimensions()`, for example when fringe
+     * fields extend beyond the hardware body or when a field map occupies only
+     * part of the body.
+     */
+    virtual void getFieldExtend(double& zBegin, double& zEnd) const = 0;
 
     // Gets the element type defined in ElementBase
     virtual ElementType getType() const;
@@ -210,24 +206,16 @@ public:
      *
      * @param bunch Particle bunch to track. The component does not take ownership.
      */
-    virtual void trackBunch(
-        PartBunch_t& bunch,
-        const PartData&, 
-        bool revBeam, 
-        bool revTrack) const;
+    virtual void trackBunch(PartBunch_t& bunch, const PartData&, bool revBeam, bool revTrack) const;
 
     /// Track a map.
     //  This catch-all method implements a hook for tracking a transfer
     //  map through a non-standard component.
     //  The default version throws a LogicalError.
-    virtual void trackMap(
-        FVps<double, 6>& map, 
-        const PartData&, 
-        bool revBeam, 
-        bool revTrack) const;
+    virtual void trackMap(FVps<double, 6>& map, const PartData&, bool revBeam, bool revTrack) const;
 
     void setExitFaceSlope(const double&);
-/* ========================================================================== */
+    /* ========================================================================== */
 protected:
     // Aperture - Needs to be changed to Kokkos::View
     static const std::vector<double> defaultAperture_m;
@@ -241,13 +229,9 @@ protected:
 // Inline access functions to fields.
 // ------------------------------------------------------------------------
 
-inline EVector Component::Efield(const Point3D& P) const {
-    return getField().Efield(P);
-}
+inline EVector Component::Efield(const Point3D& P) const { return getField().Efield(P); }
 
-inline BVector Component::Bfield(const Point3D& P) const {
-    return getField().Bfield(P);
-}
+inline BVector Component::Bfield(const Point3D& P) const { return getField().Bfield(P); }
 
 inline EVector Component::Efield(const Point3D& P, double t) const {
     return getField().Efield(P, t);
@@ -257,26 +241,16 @@ inline BVector Component::Bfield(const Point3D& P, double t) const {
     return getField().Bfield(P, t);
 }
 
-inline EBVectors Component::EBfield(const Point3D& P) const {
-    return getField().EBfield(P);
-}
+inline EBVectors Component::EBfield(const Point3D& P) const { return getField().EBfield(P); }
 
 inline EBVectors Component::EBfield(const Point3D& P, double t) const {
     return getField().EBfield(P, t);
 }
 
-inline void Component::setExitFaceSlope(const double& m) {
-    exit_face_slope_m = m;
-}
+inline void Component::setExitFaceSlope(const double& m) { exit_face_slope_m = m; }
 
-inline void Component::setDesignEnergy(
-    const double& /*energy*/, 
-    bool /*changeable*/) {
-        return;
-}
+inline void Component::setDesignEnergy(const double& /*energy*/, bool /*changeable*/) { return; }
 
-inline double Component::getDesignEnergy() const {
-    return -1.0;
-}
+inline double Component::getDesignEnergy() const { return -1.0; }
 
 #endif  // OPALX_Component_HH

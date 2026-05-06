@@ -18,15 +18,14 @@
 //
 // ------------------------------------------------------------------------
 
-#include "OpalParser/OpalParser.h"
-#include "Lines/Sequence.h"
 #include <list>
+#include "Lines/Sequence.h"
+#include "OpalParser/OpalParser.h"
 
 class Element;
 class Sequence;
 class SequenceMember;
 class Statement;
-
 
 // Class SequenceParser
 // ------------------------------------------------------------------------
@@ -37,35 +36,32 @@ class Statement;
 //  when it sees ENDSEQUENCE.  Before returning it makes sure that all
 //  sequence members are placed correctly.
 
-class SequenceParser: public OpalParser {
-
+class SequenceParser : public OpalParser {
 public:
-
     /// Constructor.
     //  Assign the current sequence being parsed.
-    SequenceParser(Sequence *);
+    SequenceParser(Sequence*);
 
     virtual ~SequenceParser();
 
     /// Parse sequence member.
-    virtual void parse(Statement &) const;
+    virtual void parse(Statement&) const;
 
 private:
-
     // The data structure for relative position definitions.
     struct Reference {
-        Reference(): fromName()
-        { fromPosition = 0; }
+        Reference() : fromName() { fromPosition = 0; }
 
-        Reference(std::string name, SequenceMember *member): fromName(name)
-        { fromPosition = 0; itsList.push_back(member); }
+        Reference(std::string name, SequenceMember* member) : fromName(name) {
+            fromPosition = 0;
+            itsList.push_back(member);
+        }
 
-        ~Reference()
-        { }
+        ~Reference() {}
 
         std::string fromName;
-        SequenceMember *fromPosition;
-        std::list<SequenceMember *> itsList;
+        SequenceMember* fromPosition;
+        std::list<SequenceMember*> itsList;
     };
 
     typedef std::list<Reference> RefList;
@@ -75,8 +71,8 @@ private:
 
     // Not implemented.
     SequenceParser();
-    SequenceParser(const SequenceParser &);
-    void operator=(const SequenceParser &);
+    SequenceParser(const SequenceParser&);
+    void operator=(const SequenceParser&);
 
     // Fill in relative positions and convert to absolute.
     void fillPositions() const;
@@ -88,10 +84,10 @@ private:
     void findNeighbourPositions() const;
 
     // Parse single member.
-    void parseMember(Statement &) const;
+    void parseMember(Statement&) const;
 
     // Parse element position.
-    void parsePosition(Statement &, Object &, bool defined) const;
+    void parsePosition(Statement&, Object&, bool defined) const;
 
     // The sequence being parsed.
     Sequence* itsSequence;
@@ -106,4 +102,4 @@ private:
     mutable TLine itsLine;
 };
 
-#endif // OPAL_SequenceParser_HH
+#endif  // OPAL_SequenceParser_HH

@@ -15,9 +15,9 @@
 //
 
 #include <csignal>
-#include "AbstractObjects/OpalData.h"
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "AbsBeamline/MultipoleT.h"
+#include "AbstractObjects/OpalData.h"
 #include "Algorithms/SplineTimeDependence.h"
 #include "Attributes/Attributes.h"
 #include "Structure/Beam.h"
@@ -86,13 +86,16 @@ public:
     void visitConstantEFieldCavity(const ConstantEFieldCavity&) override {}
     void visitDrift(const Drift&) override {}
     void visitFlaggedElmPtr(const FlaggedElmPtr&) override {}
+    void visitLaser(const Laser&) override {}
     void visitMarker(const Marker&) override {}
     void visitMonitor(const Monitor&) override {}
     void visitMultipole(const Multipole&) override {}
     void visitMultipoleT(const MultipoleT&) override {}
+    void visitRBend(const RBend&) override {}
     void visitRFCavity(const RFCavity&) override {}
     void visitScalingFFAMagnet(const ScalingFFAMagnet&) override {}
     void visitRing(const Ring&) override {}
+    void visitSBend(const SBend&) override {}
     void visitSolenoid(const Solenoid&) override {}
     void visitTravelingWave(const TravelingWave&) override {}
     void visitVerticalFFAMagnet(const VerticalFFAMagnet&) override {}
@@ -204,10 +207,13 @@ TEST_F(TestMultipoleT, OddApis) {
     auto* constField = &const_cast<const MultipoleT*>(magnet)->getField();
     EXPECT_NE(constField, nullptr);
     EXPECT_EQ(field, constField);
-    // Just make sure these functions do not throw
+    // The field-support interval follows the body length.
     EXPECT_NO_THROW(finalise());
-    double a, b;
-    EXPECT_NO_THROW(getDimensions(a, b));
+    setElementLength(4.0);
+    double a = -1.0, b = -1.0;
+    EXPECT_NO_THROW(getFieldExtend(a, b));
+    EXPECT_DOUBLE_EQ(a, 0.0);
+    EXPECT_DOUBLE_EQ(b, 4.0);
 }
 
 TEST_F(TestMultipoleT, ApplySingleParticleThrowsForMultiContainerBunch) {
@@ -226,8 +232,8 @@ TEST_F(TestMultipoleT, ApplySingleParticleThrowsForMultiContainerBunch) {
     ASSERT_NE(testBeam, nullptr);
     const auto bunch = std::make_shared<PartBunch_t>(
             std::vector<double>{1.0e-9, 2.0e-9}, std::vector<double>{0.511e-3, 0.938},
-            std::vector<Beam*>{testBeam, testBeam}, std::vector<size_t>{1, 1}, 1.0, "LF2", fsCmd.get(),
-            dataSink.get());
+            std::vector<Beam*>{testBeam, testBeam}, std::vector<size_t>{1, 1}, 1.0, "LF2",
+            fsCmd.get(), dataSink.get());
     ASSERT_EQ(bunch->getNumParticleContainers(), 2u);
 
     // Register bunch and verify per-particle apply() rejects ambiguous container context.

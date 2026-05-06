@@ -2,6 +2,7 @@ set (_SRCS
     OpalCavity.cpp
     OpalConstantEFieldCavity.cpp
     OpalTravelingWave.cpp
+    OpalBend.cpp
     OpalDrift.cpp
     OpalElement.cpp
     OpalLaser.cpp
@@ -9,6 +10,8 @@ set (_SRCS
     OpalMultipole.cpp
     OpalMultipoleT.cpp
     OpalQuadrupole.cpp
+    OpalRBend.cpp
+    OpalSBend.cpp
     OpalSolenoid.cpp
     OpalBeamline.cpp
     OpalRingDefinition.cpp      
@@ -22,6 +25,7 @@ set (_SRCS
 
 set (HDRS
     OpalBeamline.h
+    OpalBend.h
     OpalCavity.h
     OpalConstantEFieldCavity.h
     OpalDrift.h
@@ -30,6 +34,8 @@ set (HDRS
     OpalMultipole.h
     OpalMultipoleT.h
     OpalQuadrupole.h
+    OpalRBend.h
+    OpalSBend.h
     OpalSource.h
     OpalSolenoid.h
     OpalTravelingWave.h

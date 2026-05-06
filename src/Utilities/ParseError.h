@@ -22,17 +22,14 @@
 
 #include "Utilities/OpalException.h"
 
-
 // Class ParseError
 // ------------------------------------------------------------------------
 /// Parse exception.
 //  This exception is thrown by the OPALX parser when it detects an
 //  input format error.
 
-class ParseError: public OpalException {
-
+class ParseError : public OpalException {
 public:
-
     /// The usual constructor.
     // Arguments:
     // [DL]
@@ -42,15 +39,14 @@ public:
     // [DD]the message string identifying the exception
     // [/DL]
     // Construction/destruction.
-    ParseError(const std::string &meth, const std::string &msg);
+    ParseError(const std::string& meth, const std::string& msg);
 
-    ParseError(const ParseError &);
+    ParseError(const ParseError&);
     virtual ~ParseError();
 
 private:
-
     // Not implemented.
     ParseError();
 };
 
-#endif // OPAL_ParseError_HH
+#endif  // OPAL_ParseError_HH

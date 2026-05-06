@@ -29,25 +29,22 @@
 /// Domain error exception.
 //  This exception is thrown, when a domain error is detected in a function.
 
-class DomainError: public ArithmeticError {
-
+class DomainError : public ArithmeticError {
 public:
-
     /// The usual constructor.
     // Arguments:
     // [DL]
     // [DT][b]meth[/b]
     // [DD]the name of the method or function detecting the exception
     // [/DL]
-    DomainError(const std::string &meth);
+    DomainError(const std::string& meth);
 
-    DomainError(const DomainError &);
+    DomainError(const DomainError&);
     virtual ~DomainError();
 
 private:
-
     // Not implemented.
     DomainError();
 };
 
-#endif // OPAL_DomainError_HH
+#endif  // OPAL_DomainError_HH

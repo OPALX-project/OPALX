@@ -40,14 +40,13 @@
 
 class RBendGeometry : public StraightGeometry {
 public:
-
     /// Constructor.
     //  Construct an RBendGeometry from [b]length[/b] and [b]angle[/b].
     RBendGeometry(double length, double angle);
 
-    RBendGeometry(const RBendGeometry &);
+    RBendGeometry(const RBendGeometry&);
     virtual ~RBendGeometry();
-    const RBendGeometry &operator=(const RBendGeometry &);
+    const RBendGeometry& operator=(const RBendGeometry&);
 
     /// Get arc length.
     //  Return the length measured along a circular arc tangent to the
@@ -89,11 +88,10 @@ public:
     /// Get patch.
     //  Returns the entrance patch (transformation) which is used to transform
     //  the local geometry to the global geometry at exit.
-    Euclid3D getExitPatch()     const;
+    Euclid3D getExitPatch() const;
 
 private:
-
     double half_angle;
 };
 
-#endif // OPALX_RBendGeometry_HH
+#endif  // OPALX_RBendGeometry_HH

@@ -1,6 +1,9 @@
+#include "Algorithms/DefaultVisitor.h"
 #include "Algorithms/ParallelTracker.h"
 #include "Attributes/Attributes.h"
 #include "BeamlineCore/LaserRep.h"
+#include "BeamlineCore/RBendRep.h"
+#include "BeamlineCore/SBendRep.h"
 #include "Beamlines/FlaggedElmPtr.h"
 #include "Beamlines/TBeamline.h"
 #include "Elements/OpalLaser.h"
@@ -21,7 +24,23 @@ namespace {
         Attributes::setReal(laser.itsAttr[OpalLaser::WAISTY], 6.0e-6);
         Attributes::setRealArray(laser.itsAttr[OpalLaser::DIR], {0.0, 0.0, -2.0});
     }
-}
+
+    class DispatchRecordingVisitor : public DefaultVisitor {
+    public:
+        explicit DispatchRecordingVisitor(const Beamline& beamline)
+            : DefaultVisitor(beamline, false, false) {}
+
+        void visitComponent(const Component&) override { sawComponent = true; }
+        void visitLaser(const Laser&) override { sawLaser = true; }
+        void visitSBend(const SBend&) override { sawSBend = true; }
+        void visitRBend(const RBend&) override { sawRBend = true; }
+
+        bool sawComponent = false;
+        bool sawLaser     = false;
+        bool sawSBend     = false;
+        bool sawRBend     = false;
+    };
+}  // namespace
 
 TEST(TestLaser, UpdateStoresValidatedParameters) {
     OpalLaser laser;
@@ -159,32 +178,55 @@ TEST(TestLaser, LinearComptonForwardPhotonEnergyMatchesExactNinetyDegreeKinemati
     beamDirection(2) = 1.0;
 
     const double electronTotalEnergyGeV = 1.0;
-    const double laserPhotonEnergyGeV = rep->getPhotonEnergyGeV();
-    const double electronMomentumGeV = std::sqrt(
-        electronTotalEnergyGeV * electronTotalEnergyGeV - Physics::m_e * Physics::m_e);
+    const double laserPhotonEnergyGeV   = rep->getPhotonEnergyGeV();
+    const double electronMomentumGeV    = std::sqrt(
+            electronTotalEnergyGeV * electronTotalEnergyGeV - Physics::m_e * Physics::m_e);
     const double expectedInvariantX =
-        2.0 * laserPhotonEnergyGeV * electronTotalEnergyGeV / (Physics::m_e * Physics::m_e);
+            2.0 * laserPhotonEnergyGeV * electronTotalEnergyGeV / (Physics::m_e * Physics::m_e);
     const double stableEnergyMinusMomentum =
-        Physics::m_e * Physics::m_e / (electronTotalEnergyGeV + electronMomentumGeV);
+            Physics::m_e * Physics::m_e / (electronTotalEnergyGeV + electronMomentumGeV);
     const double expectedForwardPhotonEnergyGeV =
-        laserPhotonEnergyGeV * electronTotalEnergyGeV
-        / (stableEnergyMinusMomentum + laserPhotonEnergyGeV);
+            laserPhotonEnergyGeV * electronTotalEnergyGeV
+            / (stableEnergyMinusMomentum + laserPhotonEnergyGeV);
 
-    EXPECT_NEAR(rep->getLinearComptonInvariantX(electronTotalEnergyGeV, beamDirection),
-                expectedInvariantX,
-                expectedInvariantX * 1.0e-12);
-    EXPECT_NEAR(rep->getLinearComptonForwardPhotonEnergyGeV(electronTotalEnergyGeV, beamDirection),
-                expectedForwardPhotonEnergyGeV,
-                expectedForwardPhotonEnergyGeV * 1.0e-12);
+    EXPECT_NEAR(
+            rep->getLinearComptonInvariantX(electronTotalEnergyGeV, beamDirection),
+            expectedInvariantX, expectedInvariantX * 1.0e-12);
+    EXPECT_NEAR(
+            rep->getLinearComptonForwardPhotonEnergyGeV(electronTotalEnergyGeV, beamDirection),
+            expectedForwardPhotonEnergyGeV, expectedForwardPhotonEnergyGeV * 1.0e-12);
 }
 
-/* TODO: Change to match new ParallelTracker constructor
-TEST(TestLaser, ParallelTrackerRejectsLaserComponent) {
+TEST(TestLaser, BeamlineVisitorDispatchesLaserAndBendsToSpecificHooks) {
     TBeamline<FlaggedElmPtr> beamline("LINE");
-    PartData reference(0.0, 1.0, 1.0);
-    ParallelTracker tracker(beamline, reference, false, false);
-    LaserRep laser("LASER");
 
-    EXPECT_THROW(tracker.visitComponent(laser), LogicalError);
+    {
+        DispatchRecordingVisitor visitor(beamline);
+        LaserRep laser("LASER");
+        laser.accept(visitor);
+        EXPECT_TRUE(visitor.sawLaser);
+        EXPECT_FALSE(visitor.sawSBend);
+        EXPECT_FALSE(visitor.sawRBend);
+        EXPECT_FALSE(visitor.sawComponent);
+    }
+
+    {
+        DispatchRecordingVisitor visitor(beamline);
+        SBendRep sbend("SBEND");
+        sbend.accept(visitor);
+        EXPECT_FALSE(visitor.sawLaser);
+        EXPECT_TRUE(visitor.sawSBend);
+        EXPECT_FALSE(visitor.sawRBend);
+        EXPECT_FALSE(visitor.sawComponent);
+    }
+
+    {
+        DispatchRecordingVisitor visitor(beamline);
+        RBendRep rbend("RBEND");
+        rbend.accept(visitor);
+        EXPECT_FALSE(visitor.sawLaser);
+        EXPECT_FALSE(visitor.sawSBend);
+        EXPECT_TRUE(visitor.sawRBend);
+        EXPECT_FALSE(visitor.sawComponent);
+    }
 }
-*/

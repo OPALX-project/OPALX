@@ -85,7 +85,8 @@ namespace {
                 ncent[a][b] /= static_cast<double>(N);
             }
         }
-        e.stdEkinMeV_likeImplementation = std::sqrt(e.stdEkinMeV_likeImplementation / static_cast<double>(N));
+        e.stdEkinMeV_likeImplementation =
+                std::sqrt(e.stdEkinMeV_likeImplementation / static_cast<double>(N));
 
         // stdR/stdP from central cov
         for (int d = 0; d < 3; ++d) {
@@ -121,19 +122,13 @@ protected:
         ippl::initialize(argc, argv);
     }
 
-    static void TearDownTestSuite() {
-        ippl::finalize();
-    }
+    static void TearDownTestSuite() { ippl::finalize(); }
 
-    void SetUp() override {
-        bunchStateHandler = std::make_shared<BunchStateHandler>();
-    }
+    void SetUp() override { bunchStateHandler = std::make_shared<BunchStateHandler>(); }
 
     std::shared_ptr<BunchStateHandler> bunchStateHandler;
 
-    void TearDown() override {
-        bunchStateHandler.reset();
-    }
+    void TearDown() override { bunchStateHandler.reset(); }
 };
 
 TEST_F(DistributionMomentsTest, ComputeMoments_MeanStdEmittanceEnergyDispersion) {
