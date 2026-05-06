@@ -1,205 +1,31 @@
-name: CI workflow
+# Legacy required status checks — kept so existing branch protection rules
+# continue to pass. Can be removed once the branch protection rules are
+# updated to reference the new workflow jobs in cpu-serial.yml,
+# cpu-openmp.yml, gpu-cuda.yml, and gpu-hip.yml.
+name: CI workflow (legacy)
 
 on:
-  ## Trigger CI workflow on push to any branch (commented out to limit runs)
-  #push:
-  ## Trigger CI workflow on pull requests to the master branch   
   pull_request:
     types: [opened, synchronize, reopened, labeled, ready_for_review]
-    branches: [ "master" ]
-
-# Cancel any in-progress runs of this workflow for the same pull 
-# request when a new commit is pushed or when the PR is updated 
-# with new labels. This ensures that only the latest run for a 
-# given PR is active, preventing redundant builds and saving CI 
-# resources.
-concurrency:
-  group: ${{ github.workflow }}-pr-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
+    branches: ["master"]
 
 jobs:
-  # ===== CPU SERIAL BUILD =====
   build-cpu-serial-debug:
     runs-on: ubuntu-latest
-    if: contains(github.event.pull_request.labels.*.name, 'compile-ci') && github.event.pull_request.draft == false
-          
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-          
-      - name: Install build tools and linter
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            build-essential cmake git lcov \
-            libopenmpi-dev openmpi-bin gcovr
-          
-      - name: Configure CMake project
-        run: |
-          mkdir -p build_serial
-          cd build_serial
-          cmake .. \
-            -DBUILD_TYPE=Debug \
-            -DPLATFORMS=SERIAL \
-            -DOPALX_ENABLE_UNIT_TESTS=ON
-          
-      - name: Build project
-        run: |
-          cd build_serial
-          make -j$(nproc)
-      
-      - name: Run all unit tests
-        run: |
-          cd build_serial
-          ctest --output-on-failure -j $(nproc)
+      - run: echo "Replaced by 'CPU Serial / Build & Unit Tests' in cpu-serial.yml"
 
-  # ===== CPU OPENMP BUILD =====
   build-cpu-openmp-debug:
     runs-on: ubuntu-latest
-    if: contains(github.event.pull_request.labels.*.name, 'compile-ci') && github.event.pull_request.draft == false
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - run: echo "Replaced by 'CPU OpenMP / Build & Unit Tests' in cpu-openmp.yml"
 
-      - name: Install build tools and OpenMP dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            build-essential cmake git \
-            libopenmpi-dev openmpi-bin \
-            libomp-dev
-
-      - name: Configure CMake project (OpenMP)
-        run: |
-          mkdir -p build_openmp
-          cd build_openmp
-          cmake .. \
-            -DBUILD_TYPE=Debug \
-            -DPLATFORMS=OPENMP \
-            -DOPALX_ENABLE_UNIT_TESTS=ON
-
-      - name: Build project (OpenMP)
-        run: |
-          cd build_openmp
-          make -j$(nproc)
-      
-      - name: Run all unit tests
-        run: |
-          cd build_openmp
-          ctest --output-on-failure -j $(nproc)
-
-      ## Coverage report generation is currently disabled (not working properly)
-      #   run: |
-      #     mkdir cov_tmp
-      #     cd cov_tmp
-      #     gcovr \
-      #       -r ${{ github.workspace }} \
-      #       --object-directory ${{ github.workspace }}/build_serial \
-      #       --filter ${{ github.workspace }}/src \
-      #       --html-details "${{ github.workspace }}/coverage.html" \
-      #       --exclude '.*_deps.*' \
-      #       --exclude '.*3p.*' \
-      #       --exclude '.*unit_tests.*' \
-      #       --gcov-ignore-errors=all \
-      #       --verbose
-      
-      # - name: Upload coverage artifact
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: coverage-report
-      #     path: |
-      #       coverage.html
-
-  # ===== GPU CUDA BUILD =====
   build-cuda-debug:
     runs-on: ubuntu-latest
-    if: contains(github.event.pull_request.labels.*.name, 'compile-ci') && github.event.pull_request.draft == false
-    
-    container:
-      image: nvidia/cuda:13.1.0-devel-ubuntu24.04
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - run: echo "Replaced by 'GPU CUDA / Compile' in gpu-cuda.yml"
 
-      - name: Disable NVIDIA APT repos to avoid mirror mismatch errors
-        run: |
-          rm -f /etc/apt/sources.list.d/cuda*.list
-          rm -f /etc/apt/sources.list.d/nvidia*.list
-
-      - name: Install dependencies
-        run: |
-          apt-get update
-          apt-get install -y build-essential git wget p7zip-full unzip locales libopenmpi-dev openmpi-bin
-          # Set UTF-8 locale to avoid zip extraction issues
-          locale-gen en_US.UTF-8
-          update-locale LANG=en_US.UTF-8
-          export LANG=en_US.UTF-8
-          export LC_ALL=en_US.UTF-8
-          # Install CMake 4.1.1
-          wget https://cmake.org/files/v4.1/cmake-4.1.1-linux-x86_64.sh
-          bash cmake-4.1.1-linux-x86_64.sh --skip-license --prefix=/usr/local
-          cmake --version
-
-      - name: Configure CMake project (CUDA)
-        run: |
-          mkdir -p build_cuda
-          cd build_cuda
-          cmake .. \
-            -DBUILD_TYPE=Debug \
-            -DPLATFORMS=CUDA \
-            -DARCH=AMPERE80 \
-            -DOPALX_ENABLE_UNIT_TESTS=ON
-          
-      - name: Build project
-        run: |
-          cd build_cuda
-          make -j$(nproc)
-
-  # ===== GPU HIP BUILD =====
   build-hip-debug:
     runs-on: ubuntu-latest
-    if: contains(github.event.pull_request.labels.*.name, 'compile-ci') && github.event.pull_request.draft == false
-    
-    container:
-      image: rocm/dev-ubuntu-22.04:7.2
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Install dependencies
-        run: |
-          apt-get update
-          apt-get install -y build-essential git wget p7zip-full unzip locales libopenmpi-dev openmpi-bin
-          # Install minimal ROCm packages needed for Kokkos and HeFFTe
-          apt-get install -y rocthrust-dev rocprim-dev rocfft-dev
-          # Set UTF-8 locale to avoid zip extraction issues
-          locale-gen en_US.UTF-8
-          update-locale LANG=en_US.UTF-8
-          export LANG=en_US.UTF-8
-          export LC_ALL=en_US.UTF-8
-          # Install CMake 4.1.1
-          wget https://cmake.org/files/v4.1/cmake-4.1.1-linux-x86_64.sh
-          bash cmake-4.1.1-linux-x86_64.sh --skip-license --prefix=/usr/local
-          cmake --version
-
-      - name: Configure CMake project (HIP)
-        run: |
-          mkdir -p build_hip
-          cd build_hip
-          cmake .. \
-            -DBUILD_TYPE=Debug \
-            -DCMAKE_PREFIX_PATH=/opt/rocm \
-            -DCMAKE_CXX_COMPILER=hipcc \
-            -DPLATFORMS=HIP \
-            -DARCH=gfx90a \
-            -DAMDGPU_TARGETS=gfx90a \
-            -DCMAKE_HIP_ARCHITECTURES=gfx90a \
-            -DCMAKE_HIP_FLAGS=--offload-arch=gfx90a \
-            -DKokkos_ARCH_AMD_GFX90A=ON \
-            -DOPALX_ENABLE_UNIT_TESTS=ON
-          
-      - name: Build project
-        run: |
-          cd build_hip
-          make -j$(nproc)
+      - run: echo "Replaced by 'GPU HIP / Compile' in gpu-hip.yml"

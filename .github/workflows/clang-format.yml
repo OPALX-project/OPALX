@@ -1,4 +1,4 @@
-name: clang-format
+name: Check clang-format
 
 on:
   pull_request:
@@ -7,6 +7,7 @@ on:
 
 jobs:
   clang-format:
+    name: Check
     runs-on: ubuntu-latest
     if: |
       contains(github.event.pull_request.labels.*.name, 'compile-ci') &&
