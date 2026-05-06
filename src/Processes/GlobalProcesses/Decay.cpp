@@ -40,15 +40,12 @@ size_t Decay::apply(
 
     /* Phase 1: Mark decayed particles using relativistic decay probability. */
     Kokkos::View<bool*> decayed("Decay::decayed", nLocal);
-    const pc_size_type localDestroyNum =
-            markDecayedParticles(nLocal, dt, pc.P.getView(), decayed);
+    const pc_size_type localDestroyNum = markDecayedParticles(nLocal, dt, pc.P.getView(), decayed);
 
     auto invalidMask = pc.InvalidMask.getView();
     Kokkos::parallel_for(
             "Decay::orInvalidMask", nLocal,
-            KOKKOS_LAMBDA(const pc_size_type i) {
-                invalidMask(i) = invalidMask(i) || decayed(i);
-            });
+            KOKKOS_LAMBDA(const pc_size_type i) { invalidMask(i) = invalidMask(i) || decayed(i); });
     Kokkos::fence();
 
     pc_size_type globalDestroyNum = 0;
@@ -60,8 +57,7 @@ size_t Decay::apply(
     if (daughterPC_m) {
         /* Phase 2: Gather kinematics of decayed parents into compact views. */
         const DecayedParentViews parents = collectDecayedParents(
-                nLocal, localDestroyNum, decayed, pc.R.getView(), pc.P.getView(),
-                pc.dt.getView());
+                nLocal, localDestroyNum, decayed, pc.R.getView(), pc.P.getView(), pc.dt.getView());
 
         /* Phase 3: Create daughters — subclass-specific momentum sampling. */
         // createParticles() is non-destructive and warns if the daughter buffer must grow.
