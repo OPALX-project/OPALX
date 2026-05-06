@@ -2,7 +2,7 @@
 // Class LossDataSink
 //   This class writes file attributes to describe phase space of loss files
 //
-// Copyright (c) 200x - 2020, Paul Scherrer Institut, Villigen PSI, Switzerland
+// Copyright (c) 2026, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved
 //
 // This file is part of OPAL.
@@ -18,17 +18,19 @@
 #ifndef LOSSDATASINK_H_
 #define LOSSDATASINK_H_
 
-//////////////////////////////////////////////////////////////
 #include "AbsBeamline/ElementBase.h"
 #include "AbstractObjects/OpalData.h"
 #include "AbstractObjects/OpalParticle.h"
- 
+
 #include "H5hut.h"
 
+#include <cstddef>
 #include <fstream>
+#include <functional>
 #include <optional>
 #include <set>
 #include <string>
+#include <utility>
 #include <vector>
 
 struct SetStatistics {
