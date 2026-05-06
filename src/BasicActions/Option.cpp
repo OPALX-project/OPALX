@@ -512,10 +512,10 @@ void Option::execute() {
     if (itsAttr[BOUNDPDESTROY]) {
         /*
          * Historically, BOUNDPDESTROYFQ was used as a positive frequency and
-         * clamped to values >= 1 here. In OPAL-X, the same parameter now also
+         * clamped to values >= 1 here. In OPALX, the same parameter now also
          * encodes the N-sigma boundary used in ParticleContainer::
-         * deleteParticlesOutside(N). A value <= 0 is treated as "disabled"
-         * by deleteParticlesOutside, so we must *not* clamp it to 1 anymore.
+         * markParticlesOutside(N). A value <= 0 is treated as "disabled"
+         * by markParticlesOutside, so we must *not* clamp it to 1 anymore.
          */
         boundpDestroy = Attributes::getReal(itsAttr[BOUNDPDESTROY]);
     }
