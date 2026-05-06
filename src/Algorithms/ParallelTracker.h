@@ -198,8 +198,8 @@ public:
     /// @param dt Global time step (s).
     void emitFromEmissionSources(double t, double dt);
 
-    /// @brief Apply global processes
-    void applyGlobalProcesses(double dt);
+    /// @brief Apply global processes and return the global number of particles marked invalid.
+    size_t applyGlobalProcesses(double dt);
 
     /// @brief Zero E and B on all active particle containers.
     void resetFields();
@@ -253,6 +253,9 @@ private:
 
     /// @brief Trigger binary repartition for the field solver if configured.
     void doBinaryRepartition();
+
+    /// @brief Delete particles marked invalid by the central per-container mask.
+    size_t deleteInvalidParticles(bool activeOnly, Inform& m, const std::string& reason);
 
     /// @brief Force-activate containers whose emitting samplers have not yet finished.
     void activateEmittingContainers(double t);
