@@ -578,7 +578,6 @@ LossDataSink::LossDataSink(const LossDataSink& rhs)
 LossDataSink::~LossDataSink() noexcept(false) {
     if (H5file_m) {
         closeFile();
-        // H5file_m = 0;
     }
     ippl::Comm->barrier();
 }
@@ -724,7 +723,6 @@ void LossDataSink::save(unsigned int numSets, OpalData::OpenMode openMode) {
             saveH5(i);
         }
         closeFile();
-        // H5file_m = 0;
 
     } else {
         fileName_m = outputName_m + std::string(".loss");
@@ -759,10 +757,11 @@ void LossDataSink::save(unsigned int numSets, OpalData::OpenMode openMode) {
 // nodes HAVE to participate, otherwise H5 waits endlessly for a response from
 // the nodes that didn't enter the saveH5 function. -DW
 bool LossDataSink::hasNoParticlesToDump() const {
-    unsigned long long nGlobal =
+    const unsigned long long nLocal =
         static_cast<unsigned long long>(particles_m.size());
 
-    ippl::Comm->allreduce(&nGlobal, 1, std::plus<unsigned long long>());
+    unsigned long long nGlobal = 0;
+    ippl::Comm->allreduce(&nLocal, &nGlobal, 1, std::plus<unsigned long long>());
 
     return nGlobal == 0;
 }
@@ -784,12 +783,6 @@ void LossDataSink::saveH5(unsigned int setIdx) {
         endIdx   = startSet_m[setIdx + 1];
         nLoc     = endIdx - startIdx;
     }
-
-    // std::vector<unsigned long long> locN(ippl::Comm->size(), 0);
-    // std::vector<unsigned long long> globN(ippl::Comm->size(), 0);
-
-    // locN[ippl::Comm->rank()] = static_cast<unsigned long long>(nLoc);
-    // reduce(locN.data(), globN.data(), ippl::Comm->size(), std::plus<unsigned long long>());
 
     SetStatistics stat = computeSetStatistics(setIdx);
 
@@ -1088,33 +1081,44 @@ void LossDataSink::splitSets(unsigned int numSets) {
 
     const size_t nLoc   = particles_m.size();
     size_t avgNumPerSet = nLoc / numSets;
+
     std::vector<size_t> numPartsInSet(numSets, avgNumPerSet);
     for (unsigned int j = 0; j < (nLoc - numSets * avgNumPerSet); ++j) {
         ++numPartsInSet[j];
     }
+
     startSet_m.resize(numSets + 1, 0);
 
     std::vector<double> data(2 * numSets, 0.0);
-    double* meanT        = &data[0];
-    double* numParticles = &data[numSets];
+    double* meanT        = data.data();
+    double* numParticles = data.data() + numSets;
+
     std::vector<double> timeRange(numSets, 0.0);
-    double maxT = particles_m[0].getTime();
 
     for (unsigned int iteration = 0; iteration < 2; ++iteration) {
+        std::fill(data.begin(), data.end(), 0.0);
+        std::fill(timeRange.begin(), timeRange.end(), 0.0);
+
+        double maxT = particles_m[0].getTime();
+
         size_t partIdx = 0;
         for (unsigned int j = 0; j < numSets; ++j) {
-            const size_t& numThisSet = numPartsInSet[j];
-            for (size_t k = 0; k < numThisSet; ++k, ++partIdx) {
+            const size_t numThisSet = numPartsInSet[j];
+
+            for (size_t k = 0; k < numThisSet && partIdx < nLoc; ++k, ++partIdx) {
                 meanT[j] += particles_m[partIdx].getTime();
                 maxT = std::max(maxT, particles_m[partIdx].getTime());
             }
-            numParticles[j] = numThisSet;
+
+            numParticles[j] = static_cast<double>(numThisSet);
         }
 
-        ippl::Comm->allreduce(&(data[0]), 2 * numSets, std::plus<double>());
+        ippl::Comm->allreduce(data.data(), 2 * numSets, std::plus<double>());
 
         for (unsigned int j = 0; j < numSets; ++j) {
-            meanT[j] /= numParticles[j];
+            if (numParticles[j] > 0.0) {
+                meanT[j] /= numParticles[j];
+            }
         }
 
         for (unsigned int j = 0; j < numSets - 1; ++j) {
@@ -1126,13 +1130,15 @@ void LossDataSink::splitSets(unsigned int numSets) {
 
         size_t setNum   = 0;
         size_t idxPrior = 0;
-        for (size_t idx = 0; idx < nLoc; ++idx) {
+
+        for (size_t idx = 0; idx < nLoc && setNum + 1 < numSets; ++idx) {
             if (particles_m[idx].getTime() > timeRange[setNum]) {
                 numPartsInSet[setNum] = idx - idxPrior;
                 idxPrior              = idx;
                 ++setNum;
             }
         }
+
         numPartsInSet[numSets - 1] = nLoc - idxPrior;
     }
 
