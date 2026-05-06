@@ -18,12 +18,12 @@
  *   1. Mark particles as decayed (exponential law with time dilation)
  *   2. Collect parent kinematics into compact temporary views
  *   3. Delegate daughter creation to the subclass via createDaughterParticles()
- *   4. Destroy decayed parent particles
+ *   4. Leave parent deletion to ParticleContainer::deleteInvalidParticles()
  *
  *   Subclasses implement the physics-specific daughter momentum sampling
  *   (e.g. Michel spectrum for muon decay, fixed two-body kinematics for pion
  *   decay). If no daughter container is set, decayed particles are simply
- *   destroyed.
+ *   marked for deletion.
  */
 class Decay : public GlobalProcess {
 public:
@@ -37,7 +37,7 @@ public:
      * @param daughterMassGeV  Rest mass of the daughter particle [GeV].
      *
      * @note When set, decayed particles spawn a daughter in @p daughterPC.
-     *   When not set (default), decayed particles are simply destroyed.
+     *   When not set (default), decayed particles are marked for deletion.
      */
     void setDaughterContainer(
             std::shared_ptr<ParticleContainer<double, 3>> daughterPC, double daughterMassGeV);
@@ -74,8 +74,8 @@ public:
      *   kernel so the KOKKOS_LAMBDA captures values — never `this`.
      */
     ippl::detail::size_type markDecayedParticles(
-            ippl::detail::size_type nLocal, double dt, Kokkos::View<ippl::Vector<double, 3>*> Pview,
-            Kokkos::View<bool*> invalid);
+            ippl::detail::size_type nLocal, double dt,
+            Kokkos::View<ippl::Vector<double, 3>*> Pview, Kokkos::View<bool*> decayed);
 
     /**
      * @brief Gather R/P/dt of parents marked for decay into compact views.
@@ -85,7 +85,7 @@ public:
      */
     DecayedParentViews collectDecayedParents(
             ippl::detail::size_type nLocal, ippl::detail::size_type localDestroyNum,
-            Kokkos::View<bool*> invalid, Kokkos::View<ippl::Vector<double, 3>*> Rview,
+            Kokkos::View<bool*> decayed, Kokkos::View<ippl::Vector<double, 3>*> Rview,
             Kokkos::View<ippl::Vector<double, 3>*> Pview, Kokkos::View<double*> dtView);
 
 protected:
