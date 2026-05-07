@@ -195,7 +195,8 @@ bool Monitor::apply(
 }
 
 void Monitor::driftToCorrectPositionAndSave(
-        const Vector_t<double, 3>& refR, const Vector_t<double, 3>& refP) {
+        const Vector_t<double, 3>& refR, 
+        const Vector_t<double, 3>& refP) {
 
     if (lossDs_m == nullptr || RefPartBunch_m == nullptr) {
         return;
@@ -206,7 +207,9 @@ void Monitor::driftToCorrectPositionAndSave(
         return;
     }
 
-    const double cdt = Physics::c * RefPartBunch_m->getdT();
+    const double dt  = RefPartBunch_m->getdT();
+    const double cdt = Physics::c * dt;
+
     const Vector_t<double, 3> driftPerTimeStep = cdt * Util::getBeta(refP);
 
     if (driftPerTimeStep(2) == 0.0) {
@@ -235,11 +238,13 @@ void Monitor::driftToCorrectPositionAndSave(
     auto hM  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), Mview);
 
     const auto nLoc = pc->getLocalNum();
+
     const bool qmAreAttributes =
         (pc->getQMStorageMode() == ParticleContainer_t::QMStorageMode::Attributes);
 
-    const double crossingTime =
-        RefPartBunch_m->getT() + tau * RefPartBunch_m->getdT();
+    // const double crossingTime =
+    //     RefPartBunch_m->getT() + tau * RefPartBunch_m->getdT();
+    const double particleTime = RefPartBunch_m->getT();
 
     for (size_t i = 0; i < nLoc; ++i) {
         const Vector_t<double, 3> globalR = hR(i);
@@ -253,16 +258,27 @@ void Monitor::driftToCorrectPositionAndSave(
 
         const Vector_t<double, 3> localR =
             refToLocalCSTrafo.transformTo(globalR) + dS;
-        const Vector_t<double, 3> localP =
-            refToLocalCSTrafo.rotateTo(globalP);
-
-        const double q = qmAreAttributes ? hQ(i) : hQ(0);
-        const double m = qmAreAttributes ? hM(i) : hM(0);
+        // const Vector_t<double, 3> localP =
+        //     refToLocalCSTrafo.rotateTo(globalP);
 
         const std::size_t id = static_cast<std::size_t>(hID(i));
 
+        const double q = qmAreAttributes ? hQ(i) : hQ(0);
+        // const double m = qmAreAttributes ? hM(i) : hM(0);
+
+        const double macroMassGeV = qmAreAttributes ? hM(i) : hM(0);
+        const double macroWeight =
+            std::abs(q) / std::abs(Physics::q_e);
+
+        const double m =
+            macroWeight > 0.0
+                ? macroMassGeV * Units::GeV2MeV / macroWeight
+                : macroMassGeV * Units::GeV2MeV;
+
+        // lossDs_m->addParticle(
+        //     OpalParticle(id, localR, localP, crossingTime, q, m));
         lossDs_m->addParticle(
-            OpalParticle(id, localR, localP, crossingTime, q, m));
+            OpalParticle(id, localR, globalP, particleTime, q, m));
     }
 }
 
