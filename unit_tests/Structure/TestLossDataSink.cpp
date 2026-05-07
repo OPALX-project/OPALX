@@ -325,4 +325,21 @@ namespace {
         EXPECT_EQ(sink.startSet_m[1], 2u);
     }
 
+    TEST_F(LossDataSinkTest, KineticEnergyUsesParticleMass) {
+        LossDataSink sink;
+
+        const auto r = makeVector(0.0, 0.0, 0.0);
+        const auto p = makeVector(0.0, 0.0, 13.87990113);
+
+        sink.addParticle(makeParticle(1, r, p, 1.0, -1.0e-17, 0.51099895));
+
+        const auto stats = sink.computeStatistics(1);
+        ASSERT_EQ(stats.size(), 1u);
+
+        const SetStatistics& stat = *stats.begin();
+
+        EXPECT_NEAR(stat.meanKineticEnergy_m, 6.6, 1.0e-6);
+        EXPECT_NEAR(stat.totalMass_m, 0.51099895, 1.0e-12);
+    }
+
 }  // namespace
