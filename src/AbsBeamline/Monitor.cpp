@@ -379,9 +379,7 @@ void Monitor::getFieldExtend(double& zBegin, double& zEnd) const {
     zEnd   = halfLength_s;
 }
 
-// One small thing to keep in mind: if there are any switch statements
-// over ElementType elsewhere in OPALX, they may need a MONITOR case
-// later, even if the compiler does not complain yet.
+/// \todo Check switch statements over ElementType and add a MONITOR case where needed.
 ElementType Monitor::getType() const { return ElementType::MONITOR; }
 
 void Monitor::writeStatistics() {
