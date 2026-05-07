@@ -66,6 +66,19 @@ bool Monitor::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
         return false;
     }
 
+    const long long globalStep = RefPartBunch_m->getGlobalTrackStep();
+    const double sPos = pc->get_sPos();
+
+    if (globalStep == 0 && std::abs(sPos) < 1.0e-14) {
+        Inform msg("Monitor::apply(pc)");
+        msg << level5
+            << "Ignoring pre-tracking spatial particle crossing"
+            << " globalStep=" << globalStep
+            << " pc_spos=" << sPos
+            << endl;
+        return false;
+    }
+
     const auto nLoc = pc->getLocalNum();
     if (nLoc == 0) {
         return false;
@@ -105,7 +118,8 @@ bool Monitor::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
             const double frac = -R(2) / singleStep(2);
 
             const Vector_t<double, 3> crossingR = R + frac * singleStep;
-            const double crossingTime = bunchTime + frac * dt;
+            const double crossingTime = 
+                        bunchTime + 0.5 * RefPartBunch_m->getdT() + frac * dt;
 
             const std::size_t id = static_cast<std::size_t>(hID(i));
             const double q = qmAreAttributes ? hQ(i) : hQ(0);
@@ -278,12 +292,10 @@ bool Monitor::applyToReferenceParticle(
         const long long globalStep = RefPartBunch_m->getGlobalTrackStep();
         const double sPos = pc->get_sPos();
 
-        if (type_m == CollectionType::TEMPORAL
-            && globalStep == 0
-            && std::abs(sPos) < 1.0e-14) {
+        if (globalStep == 0 && std::abs(sPos) < 1.0e-14) {
             Inform msg("Monitor::applyToReferenceParticle");
             msg << level5
-                << "Ignoring pre-tracking temporal reference crossing"
+                << "Ignoring pre-tracking reference crossing"
                 << " globalStep=" << globalStep
                 << " pc_spos=" << sPos
                 << endl;
