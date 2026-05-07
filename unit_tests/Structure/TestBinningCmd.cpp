@@ -27,8 +27,8 @@
 
 #include "Ippl.h"
 
-#include "Structure/BinningCmd.h"
 #include "Attributes/Attributes.h"
+#include "Structure/BinningCmd.h"
 #include "Utilities/OpalException.h"
 
 #include <memory>
@@ -49,9 +49,7 @@ public:
         Attributes::setReal(itsAttr[BINNING::BINNINGALPHA], value);
     }
 
-    void setBinningBeta(double value) {
-        Attributes::setReal(itsAttr[BINNING::BINNINGBETA], value);
-    }
+    void setBinningBeta(double value) { Attributes::setReal(itsAttr[BINNING::BINNINGBETA], value); }
 
     void setParameterString(const std::string& value) {
         // PARAMETER is declared as a predefined string; this helper mirrors normal usage.
@@ -74,14 +72,12 @@ public:
 class BinningCmdTest : public ::testing::Test {
 protected:
     static void SetUpTestSuite() {
-        int argc = 0;
+        int argc    = 0;
         char** argv = nullptr;
         ippl::initialize(argc, argv);
     }
 
-    static void TearDownTestSuite() {
-        ippl::finalize();
-    }
+    static void TearDownTestSuite() { ippl::finalize(); }
 };
 
 // UpdateAppendsJsonExtensionAndValidatesFreq:
@@ -184,11 +180,10 @@ TEST_F(BinningCmdTest, ExecuteMapsKnownParameters) {
         const char* name;
         BinningParameter expected;
     } cases[] = {
-        {"VELOCITYZ", BinningParameter::VELOCITYZ},
-        {"POSITIONZ", BinningParameter::POSITIONZ},
-        {"PZ",        BinningParameter::PZ},
-        {"GAMMAZ",    BinningParameter::GAMMAZ}
-    };
+            {"VELOCITYZ", BinningParameter::VELOCITYZ},
+            {"POSITIONZ", BinningParameter::POSITIONZ},
+            {"PZ", BinningParameter::PZ},
+            {"GAMMAZ", BinningParameter::GAMMAZ}};
 
     for (const auto& c : cases) {
         TestableBinningCmd cmd;
@@ -211,10 +206,7 @@ TEST_F(BinningCmdTest, ExecuteThrowsOnUnknownParameter) {
     // This value is not present in the BinningParameter mapping table.
     cmd.setParameterString("FOO");
 
-    EXPECT_THROW(
-        cmd.execute(),
-        OpalException
-    );
+    EXPECT_THROW(cmd.execute(), OpalException);
 }
 
 // CloneCopiesState:
@@ -227,7 +219,7 @@ TEST_F(BinningCmdTest, CloneCopiesState) {
     original.setBinningBeta(1.2);
     original.setParameterString("POSITIONZ");
 
-    original.execute(); // ensure parameterType_m is updated
+    original.execute();  // ensure parameterType_m is updated
 
     std::unique_ptr<BinningCmd> copy(original.clone("BINNING_COPY"));
 
@@ -252,8 +244,5 @@ TEST_F(BinningCmdTest, PrintInfoDoesNotThrow) {
     // to exercise the printing path.
     Inform os("BinningCmd::printInfo");
 
-    EXPECT_NO_THROW({
-        cmd.printInfo(os);
-    });
+    EXPECT_NO_THROW({ cmd.printInfo(os); });
 }
-

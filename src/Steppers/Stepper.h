@@ -36,12 +36,11 @@
 template <typename FieldFunction, typename... Arguments>
 class Stepper {
 public:
-    Stepper(const FieldFunction& fieldfunc) : fieldfunc_m(fieldfunc) {
-    }
+    Stepper(const FieldFunction& fieldfunc) : fieldfunc_m(fieldfunc) {}
 
     virtual bool advance(
-        PartBunch_t* bunch, const size_t& i, const double& t, const double dt,
-        Arguments&... args) const {
+            PartBunch_t* bunch, const size_t& i, const double& t, const double dt,
+            Arguments&... args) const {
         bool isGood = doAdvance_m(bunch, i, t, dt, args...);
 
         bool isNaN = false;
@@ -59,15 +58,15 @@ public:
         }
         return isBad;
     };
-    virtual ~Stepper(){};
+    virtual ~Stepper() {};
 
 protected:
     const FieldFunction& fieldfunc_m;
 
 private:
     virtual bool doAdvance_m(
-        PartBunch_t* bunch, const size_t& i, const double& t, const double dt,
-        Arguments&... args) const = 0;
+            PartBunch_t* bunch, const size_t& i, const double& t, const double dt,
+            Arguments&... args) const = 0;
 };
 
 #endif

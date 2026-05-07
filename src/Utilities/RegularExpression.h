@@ -20,7 +20,6 @@
 
 #include <string>
 
-
 // Class RegularExpression
 // ------------------------------------------------------------------------
 /// A regular expression.
@@ -29,27 +28,24 @@
 //  regcomp/regexec package.
 
 class RegularExpression {
-
 public:
-
     /// Constructor.
     //  Construct regular expression from [b]pattern[/b].
     //  If [b]ignore[/b] is true, the expression ignores upper/lower case.
-    RegularExpression(const std::string &pattern, bool ignore = false);
+    RegularExpression(const std::string& pattern, bool ignore = false);
 
-    RegularExpression(const RegularExpression &);
+    RegularExpression(const RegularExpression&);
     ~RegularExpression();
 
     /// Match a string against the pattern.
-    bool match(const std::string &s) const;
+    bool match(const std::string& s) const;
 
     /// Check the regular expression for sanity.
     bool OK() const;
 
 private:
-
     // Not implemented.
-    void operator = (const RegularExpression &);
+    void operator=(const RegularExpression&);
 
     // Initialise.
     void init();
@@ -62,10 +58,10 @@ private:
 
     // The compiled regular expression.
     class Expression;
-    Expression *expr;
+    Expression* expr;
 
     // The state flag, indicating any error condition.
     int state;
 };
 
-#endif // OPAL_RegularExpressions_HH
+#endif  // OPAL_RegularExpressions_HH

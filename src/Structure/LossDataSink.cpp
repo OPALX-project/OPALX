@@ -547,9 +547,9 @@ LossDataSink::LossDataSink(std::string outfn, bool hdf5Save, CollectionType coll
 
     if (h5hut_mode_m && !Options::enableHDF5) {
         throw GeneralOpalException(
-            "LossDataSink::LossDataSink",
-            "You must select an OPTION to save Loss data files\n"
-            "Please, choose 'ENABLEHDF5=TRUE' or 'ASCIIDUMP=TRUE'");
+                "LossDataSink::LossDataSink",
+                "You must select an OPTION to save Loss data files\n"
+                "Please, choose 'ENABLEHDF5=TRUE' or 'ASCIIDUMP=TRUE'");
     }
 
     OpalData::getInstance()->checkAndAddOutputFileName(outputName_m);
@@ -662,8 +662,8 @@ void LossDataSink::writeHeaderASCII() {
 }
 
 void LossDataSink::addReferenceParticle(
-    const Vector_t<double, 3>& x, const Vector_t<double, 3>& p, double time, double spos,
-    long long globalTrackStep) {
+        const Vector_t<double, 3>& x, const Vector_t<double, 3>& p, double time, double spos,
+        long long globalTrackStep) {
     RefPartR_m.push_back(x);
     RefPartP_m.push_back(p);
     globalTrackStep_m.push_back((h5_int64_t)globalTrackStep);
@@ -697,10 +697,8 @@ void LossDataSink::addParticle(
 }
 
 void LossDataSink::save(unsigned int numSets, OpalData::OpenMode openMode) {
-    if (outputName_m.empty())
-        return;
-    if (hasNoParticlesToDump())
-        return;
+    if (outputName_m.empty()) return;
+    if (hasNoParticlesToDump()) return;
 
     if (openMode == OpalData::OpenMode::UNDEFINED) {
         openMode = OpalData::getInstance()->getOpenMode();

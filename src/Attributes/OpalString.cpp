@@ -24,31 +24,24 @@
 
 using namespace Expressions;
 
-
 // Class String
 // ------------------------------------------------------------------------
 
 namespace Attributes {
 
-    String::String(const std::string &name, const std::string &help):
-        AttributeHandler(name, help, 0)
-    {}
+    String::String(const std::string& name, const std::string& help)
+        : AttributeHandler(name, help, 0) {}
 
+    String::~String() {}
 
-    String::~String()
-    {}
-
-
-    const std::string &String::getType() const {
+    const std::string& String::getType() const {
         static const std::string type("string");
         return type;
     }
 
-
-    void String::parse(Attribute &attr, Statement &stat, bool) const {
-
+    void String::parse(Attribute& attr, Statement& stat, bool) const {
         std::string result = parseStringValue(stat, "String value expected.");
         attr.set(new SValue<std::string>(result));
     }
 
-};
+};  // namespace Attributes

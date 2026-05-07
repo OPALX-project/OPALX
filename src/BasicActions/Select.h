@@ -22,11 +22,8 @@
 
 class Beamline;
 
-
-class Select: public Action {
-
+class Select : public Action {
 public:
-
     /// Exemplar constructor.
     Select();
 
@@ -39,7 +36,6 @@ public:
     virtual void execute();
 
 private:
-
     // Not implemented.
     Select(const Select&);
     void operator=(const Select&);
@@ -51,4 +47,4 @@ private:
     void select(const Beamline&);
 };
 
-#endif // OPAL_Select_H
+#endif  // OPAL_Select_H

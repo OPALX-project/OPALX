@@ -25,24 +25,19 @@
 #include <iostream>
 
 Help::Help()
-    : Action(
-        1, "HELP",
-        "The \"HELP\" statement displays the purpose and attribute "
-        "types of an object.") {
+    : Action(1, "HELP",
+             "The \"HELP\" statement displays the purpose and attribute "
+             "types of an object.") {
     itsAttr[0] = Attributes::makeString("NAME", "Name of object for which help is wanted");
 
     registerOwnership(AttributeHandler::STATEMENT);
 }
 
-Help::Help(const std::string& name, Help* parent) : Action(name, parent) {
-}
+Help::Help(const std::string& name, Help* parent) : Action(name, parent) {}
 
-Help::~Help() {
-}
+Help::~Help() {}
 
-Help* Help::clone(const std::string& name) {
-    return new Help(name, this);
-}
+Help* Help::clone(const std::string& name) { return new Help(name, this); }
 
 void Help::execute() {
     if (itsAttr[0]) {
@@ -58,6 +53,4 @@ void Help::execute() {
     }
 }
 
-void Help::parse(Statement& statement) {
-    parseShortcut(statement);
-}
+void Help::parse(Statement& statement) { parseShortcut(statement); }

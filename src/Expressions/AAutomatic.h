@@ -18,10 +18,9 @@
 //
 // ------------------------------------------------------------------------
 
-#include "Expressions/ADeferred.h"
 #include "AbstractObjects/Expressions.h"
 #include "AbstractObjects/OpalData.h"
-
+#include "Expressions/ADeferred.h"
 
 namespace Expressions {
 
@@ -36,10 +35,8 @@ namespace Expressions {
     //  exoression is used the next time.
 
     template <class T>
-    class AAutomatic: public ADeferred<T> {
-
+    class AAutomatic : public ADeferred<T> {
     public:
-
         /// Constructor.
         //  From array of expressions.
         explicit AAutomatic(PtrToArray<T> expr);
@@ -48,11 +45,11 @@ namespace Expressions {
         //  From array expression.
         explicit AAutomatic(ArrayOfPtrs<T> expr);
 
-        AAutomatic(const AAutomatic &);
+        AAutomatic(const AAutomatic&);
         virtual ~AAutomatic();
 
         /// Make a clone.
-        virtual AAutomatic<T> *clone() const;
+        virtual AAutomatic<T>* clone() const;
 
         /// Evaluate.
         //  The resulting value is cached.
@@ -63,42 +60,31 @@ namespace Expressions {
         virtual void invalidate();
 
     private:
-
         // Not implemented.
         AAutomatic();
-        void operator=(const AAutomatic &);
+        void operator=(const AAutomatic&);
 
         // Is the expression known ?
         mutable bool is_known;
     };
 
-
     // Implementation
     // ----------------------------------------------------------------------
 
     template <class T>
-    AAutomatic<T>::AAutomatic(const AAutomatic<T> &rhs):
-        ADeferred<T>(rhs),
-        is_known(false) {
+    AAutomatic<T>::AAutomatic(const AAutomatic<T>& rhs) : ADeferred<T>(rhs), is_known(false) {
         OpalData::getInstance()->registerExpression(this);
     }
-
 
     template <class T>
-    AAutomatic<T>::AAutomatic(PtrToArray<T> expr):
-        ADeferred<T>(expr),
-        is_known(false) {
+    AAutomatic<T>::AAutomatic(PtrToArray<T> expr) : ADeferred<T>(expr), is_known(false) {
         OpalData::getInstance()->registerExpression(this);
     }
-
 
     template <class T>
-    AAutomatic<T>::AAutomatic(ArrayOfPtrs<T> expr):
-        ADeferred<T>(expr),
-        is_known(false) {
+    AAutomatic<T>::AAutomatic(ArrayOfPtrs<T> expr) : ADeferred<T>(expr), is_known(false) {
         OpalData::getInstance()->registerExpression(this);
     }
-
 
     template <class T>
     AAutomatic<T>::~AAutomatic() {
@@ -106,16 +92,14 @@ namespace Expressions {
         OpalData::getInstance()->unregisterExpression(this);
     }
 
-
     template <class T>
-    AAutomatic<T> *AAutomatic<T>::clone() const {
+    AAutomatic<T>* AAutomatic<T>::clone() const {
         return new AAutomatic<T>(*this);
     }
 
-
     template <class T>
     std::vector<T> AAutomatic<T>::evaluate() {
-        if(! is_known) {
+        if (!is_known) {
             ADeferred<T>::evaluate();
             is_known = true;
         }
@@ -123,13 +107,11 @@ namespace Expressions {
         return this->value;
     }
 
-
     template <class T>
     void AAutomatic<T>::invalidate() {
         is_known = false;
     }
 
-}
+}  // namespace Expressions
 
-#endif // OPAL_AAutomatic_HH
-
+#endif  // OPAL_AAutomatic_HH

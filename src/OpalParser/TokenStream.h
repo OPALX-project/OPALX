@@ -20,40 +20,35 @@
 //
 // ------------------------------------------------------------------------
 
-
-#include "OpalParser/Token.h"
 #include <string>
+#include "OpalParser/Token.h"
 
 // Class TokenStream
 // ------------------------------------------------------------------------
 /// Abstract interface for a stream of input tokens.
 
-
 class TokenStream {
-
 public:
-
     /// Constructor.
     //  Store the stream name.
-    TokenStream(const std::string &name);
+    TokenStream(const std::string& name);
 
     virtual ~TokenStream();
 
     /// Put token back to stream.
     //  This allows to reparse the token.
-    void putBack(const Token &token);
+    void putBack(const Token& token);
 
     /// Read single token from stream.
     virtual Token readToken() = 0;
 
     /// Return stream name.
-    const std::string &getName() const;
+    const std::string& getName() const;
 
     /// Return line number.
     int getLine() const;
 
 protected:
-
     // Current stream name.
     std::string stream_name;
 
@@ -65,11 +60,10 @@ protected:
     Token put_back;
 
 private:
-
     // Not implemented.
     TokenStream();
-    TokenStream(const TokenStream &);
-    void operator=(const TokenStream &);
+    TokenStream(const TokenStream&);
+    void operator=(const TokenStream&);
 };
 
-#endif // OPALX_TokenStream_HH
+#endif  // OPALX_TokenStream_HH

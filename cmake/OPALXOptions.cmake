@@ -30,8 +30,8 @@ message(STATUS "🔧 OPALX unit tests: ${OPALX_ENABLE_UNIT_TESTS}")
 # -----------------------------------------------------------------------------
 
 set(PLATFORMS "" CACHE STRING
-    "Execution backends: SERIAL, OPENMP, CUDA, HIP")
-set_property(CACHE PLATFORMS PROPERTY STRINGS SERIAL OPENMP CUDA HIP)
+    "Execution backends: SERIAL, OPENMP, CUDA, HIP, SYCL")
+set_property(CACHE PLATFORMS PROPERTY STRINGS SERIAL OPENMP CUDA HIP SYCL)
 
 # Only set default if user didn't specify anything
 if(NOT PLATFORMS)
@@ -45,7 +45,7 @@ set(OPALX_PLATFORMS "${PLATFORMS}" CACHE STRING "" FORCE)
 # platforms we do support (internal, set based on user selections)
 # -----------------------------------------------------------------------------
 
-set(OPALX_SUPPORTED_PLATFORMS "SERIAL;OPENMP;CUDA;HIP")
+set(OPALX_SUPPORTED_PLATFORMS "SERIAL;OPENMP;CUDA;HIP;SYCL")
 
 # === Normalize to uppercase ===
 string(TOUPPER "${OPALX_PLATFORMS}" OPALX_PLATFORMS)
@@ -132,11 +132,11 @@ endif()
 # -----------------------------------------------------------------------------
 
 set(ARCH "" CACHE STRING
-    "Kokkos architecture (CMAKE_CUDA_ARCHITECTURES is auto-configured from this): HOPPER90, AMPERE80, AMPERE86, AMPERE87, VOLTA70, VOLTA72, PASCAL61, PASCAL60, ADA102, BDW, SKX, CNL, ZEN, ZEN2, ZEN3, ARM80, ARM81")
-set_property(CACHE ARCH PROPERTY STRINGS "" HOPPER90 AMPERE80 AMPERE86 AMPERE87 VOLTA70 VOLTA72 PASCAL61 PASCAL60 ADA102 BDW SKX CNL ZEN ZEN2 ZEN3 ARM80 ARM81)
+    "Kokkos architecture (CMAKE_CUDA_ARCHITECTURES is auto-configured from this): HOPPER90, AMPERE80, AMPERE86, AMPERE87, VOLTA70, VOLTA72, PASCAL61, PASCAL60, ADA102, BDW, SKX, CNL, ZEN, ZEN2, ZEN3, ARM80, ARM81, INTEL_GEN9, INTEL_GEN11, INTEL_GEN12LP, INTEL_DG1, INTEL_XEHP, INTEL_PVC")
+set_property(CACHE ARCH PROPERTY STRINGS "" HOPPER90 AMPERE80 AMPERE86 AMPERE87 VOLTA70 VOLTA72 PASCAL61 PASCAL60 ADA102 BDW SKX CNL ZEN ZEN2 ZEN3 ARM80 ARM81 INTEL_GEN9 INTEL_GEN11 INTEL_GEN12LP INTEL_DG1 INTEL_XEHP INTEL_PVC)
 
 # Clear all architecture flags (include new ones for future-proofing)
-foreach(a HOPPER90 AMPERE80 AMPERE86 AMPERE87 VOLTA70 VOLTA72 PASCAL61 PASCAL60 ADA102 BDW SKX CNL ZEN ZEN2 ZEN3 ARM80 ARM81)
+foreach(a HOPPER90 AMPERE80 AMPERE86 AMPERE87 VOLTA70 VOLTA72 PASCAL61 PASCAL60 ADA102 BDW SKX CNL ZEN ZEN2 ZEN3 ARM80 ARM81 INTEL_GEN9 INTEL_GEN11 INTEL_GEN12LP INTEL_DG1 INTEL_XEHP INTEL_PVC)
     set(Kokkos_ARCH_${a} OFF CACHE BOOL "" FORCE)
 endforeach()
 
@@ -172,11 +172,9 @@ if("HIP" IN_LIST OPALX_PLATFORMS)
 endif()
 
 if("SYCL" IN_LIST OPALX_PLATFORMS)
-    # SYCL architecture configuration is a bit different and varies by compiler
-    # (Intel DPC++, ComputeCpp, hipSYCL). The user needs to ensure that the
-    # correct flags are set: just print out a warning message here for now. 
-    # Note that we currently do not allow SYCL for OPALX, so this is just
-    # a precaution for now. 
+    # SYCL architecture configuration is compiler-dependent (Intel DPC++/icpx is
+    # the supported toolchain). Use -DARCH=INTEL_PVC (or another INTEL_* arch
+    # listed above) to enable the corresponding Kokkos_ARCH_INTEL_* flag.
     colour_message(STATUS ${Yellow} "⚠️  SYCL backend: Architecture configuration is compiler-dependent.")
     colour_message(STATUS ${Yellow} "   Ensure your SYCL compiler has GPU support enabled via environment or compiler flags.")
 endif()

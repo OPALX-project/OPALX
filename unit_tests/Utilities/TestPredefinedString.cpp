@@ -27,8 +27,7 @@ TEST(PredefinedStringTest, TestDistributionType) {
     }
 
     {
-        Token token("PredefinedStringTest.in", 1, Token::IS_STRING,
-                     "MULTIVARIATEGAUSS");
+        Token token("PredefinedStringTest.in", 1, Token::IS_STRING, "MULTIVARIATEGAUSS");
         Statement::TokenList tokenList({token});
         SimpleStatement statement("PredefinedString", tokenList);
 
@@ -77,8 +76,7 @@ TEST(PredefinedStringTest, TestDistributionType) {
         Statement::TokenList tokenList({token});
         SimpleStatement statement("PredefinedString", tokenList);
 
-        EXPECT_THROW(typeAttribute->parse(*typeAttr, statement, true),
-                     ParseError);
+        EXPECT_THROW(typeAttribute->parse(*typeAttr, statement, true), ParseError);
     }
 
     {
@@ -89,4 +87,3 @@ TEST(PredefinedStringTest, TestDistributionType) {
         EXPECT_THROW(typeAttribute->parse(*typeAttr, statement, true), ParseError);
     }
 }
-

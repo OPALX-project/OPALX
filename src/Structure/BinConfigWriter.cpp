@@ -7,20 +7,20 @@
 
 #include "Structure/BinConfigWriter.h"
 
-#include "Utilities/OpalException.h"
 #include "Ippl.h"
+#include "Utilities/OpalException.h"
 
 #include <iomanip>
 
 BinConfigWriter::BinConfigWriter(const std::string& fileName)
-    : os_(fileName.c_str(), std::ios::out | std::ios::trunc)
-    , first_(true) {
+    : os_(fileName.c_str(), std::ios::out | std::ios::trunc), first_(true) {
     Inform m("BinConfigWriter::BinConfigWriter");
 
     if (!os_) {
         m << level4 << "Failed to open bin configuration file \"" << fileName << "\"." << endl;
-        throw OpalException("BinConfigWriter::BinConfigWriter",
-                            "Failed to open bin configuration file \"" + fileName + "\"");
+        throw OpalException(
+                "BinConfigWriter::BinConfigWriter",
+                "Failed to open bin configuration file \"" + fileName + "\"");
     }
 
     m << level4 << "Opened bin configuration JSON file \"" << fileName << "\" for writing." << endl;
@@ -36,24 +36,18 @@ BinConfigWriter::~BinConfigWriter() {
     }
 }
 
-void BinConfigWriter::writeEntry(long long step,
-                                 double time,
-                                 bool preMerge,
-                                 const std::vector<std::size_t>& binCounts,
-                                 const std::vector<double>& binWidths,
-                                 double xMin) {
+void BinConfigWriter::writeEntry(
+        long long step, double time, bool preMerge, const std::vector<std::size_t>& binCounts,
+        const std::vector<double>& binWidths, double xMin) {
     if (!os_) {
         return;
     }
 
     Inform m("BinConfigWriter::writeEntry");
-    m << level5
-      << "Writing bin configuration entry: step=" << step
-      << ", time=" << std::setprecision(17) << time
-      << ", preMerge=" << (preMerge ? 1 : 0)
-      << ", nBins=" << binCounts.size()
-      << ", xMin=" << std::setprecision(17) << xMin << endl;
-    
+    m << level5 << "Writing bin configuration entry: step=" << step
+      << ", time=" << std::setprecision(17) << time << ", preMerge=" << (preMerge ? 1 : 0)
+      << ", nBins=" << binCounts.size() << ", xMin=" << std::setprecision(17) << xMin << endl;
+
     // We maintain a *closed* top-level JSON array on disk after each call:
     //   [ <obj1>,\n  <obj2>,\n ... <objN>\n]
     //
@@ -122,4 +116,3 @@ void BinConfigWriter::writeEntry(long long step,
     // file always ends with a complete, closed JSON array).
     os_.flush();
 }
-

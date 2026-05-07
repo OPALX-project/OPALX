@@ -1,19 +1,19 @@
 #include "Utilities/MSLang/Polygon.h"
+#include "Physics/Physics.h"
 #include "Utilities/MSLang/ArgumentExtractor.h"
 #include "Utilities/MSLang/matheval.h"
 #include "Utilities/Mesher.h"
-#include "Physics/Physics.h"
 
 #include <regex>
 
 namespace mslang {
-    void Polygon::triangulize(std::vector<Vector_t<double, 3>> &nodes) {
+    void Polygon::triangulize(std::vector<Vector_t<double, 3>>& nodes) {
         Mesher mesher(nodes);
         triangles_m = mesher.getTriangles();
     }
 
-    bool Polygon::parse_detail(iterator &it, const iterator &end, Function* &fun) {
-        Polygon *poly = static_cast<Polygon*>(fun);
+    bool Polygon::parse_detail(iterator& it, const iterator& end, Function*& fun) {
+        Polygon* poly = static_cast<Polygon*>(fun);
 
         ArgumentExtractor arguments(std::string(it, end));
         std::vector<Vector_t<double, 3>> nodes;
@@ -23,7 +23,7 @@ namespace mslang {
                 double x = parseMathExpression(arguments.get(i));
                 double y = parseMathExpression(arguments.get(i + 1));
                 nodes.push_back(Vector_t<double, 3>(x, y, 1.0));
-            } catch (std::runtime_error &e) {
+            } catch (std::runtime_error& e) {
                 std::cout << e.what() << std::endl;
                 return false;
             }
@@ -41,8 +41,8 @@ namespace mslang {
         // for (auto pix: pixels_m) pix.print(ident);
     }
 
-    void Polygon::apply(std::vector<std::shared_ptr<Base> > &bfuncs) {
-        for (Triangle &tri: triangles_m)
+    void Polygon::apply(std::vector<std::shared_ptr<Base>>& bfuncs) {
+        for (Triangle& tri : triangles_m)
             bfuncs.push_back(std::shared_ptr<Base>(tri.clone()));
     }
-}
+}  // namespace mslang
