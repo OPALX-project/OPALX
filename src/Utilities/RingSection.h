@@ -108,8 +108,8 @@ public:
      *  component_m (using setComponent) before calling this function.
      */
     bool getFieldValue(
-        const Vector_t<double, 3>& pos, const Vector_t<double, 3>& centroid, const double& t,
-        Vector_t<double, 3>& E, Vector_t<double, 3>& B) const;
+            const Vector_t<double, 3>& pos, const Vector_t<double, 3>& centroid, const double& t,
+            Vector_t<double, 3>& E, Vector_t<double, 3>& B) const;
 
     /** Get the "Virtual" bounding box for the RingSection
      *
@@ -131,53 +131,37 @@ public:
      *
      *  This borrows the Component* pointer (caller is responsible for cleanup)
      */
-    inline void setComponent(Component* component) {
-        component_m = component;
-    }
+    inline void setComponent(Component* component) { component_m = component; }
 
     /** Get the component wrapped by RingSection
      *
      *  Component* is not owned by caller or RingSection
      */
-    inline Component* getComponent() const {
-        return component_m;
-    }
+    inline Component* getComponent() const { return component_m; }
 
     /** Set a position on the plane of the section start */
-    inline void setStartPosition(Vector_t<double, 3> pos) {
-        startPosition_m = pos;
-    }
+    inline void setStartPosition(Vector_t<double, 3> pos) { startPosition_m = pos; }
 
     /** Get a position on the plane of the section start */
-    inline Vector_t<double, 3> getStartPosition() const {
-        return startPosition_m;
-    }
+    inline Vector_t<double, 3> getStartPosition() const { return startPosition_m; }
 
     /** Set the normal vector to the section start plane */
     inline void setStartNormal(Vector_t<double, 3> orientation);
 
     /** Get the normal vector to the section start plane */
-    inline Vector_t<double, 3> getStartNormal() const {
-        return startOrientation_m;
-    }
+    inline Vector_t<double, 3> getStartNormal() const { return startOrientation_m; }
 
     /** Set a position on the section end plane */
-    inline void setEndPosition(Vector_t<double, 3> pos) {
-        endPosition_m = pos;
-    }
+    inline void setEndPosition(Vector_t<double, 3> pos) { endPosition_m = pos; }
 
     /** Get a position on the section end plane */
-    inline Vector_t<double, 3> getEndPosition() const {
-        return endPosition_m;
-    }
+    inline Vector_t<double, 3> getEndPosition() const { return endPosition_m; }
 
     /** Set the normal vector to the section end plane  */
     inline void setEndNormal(Vector_t<double, 3> orientation);
 
     /** Get the normal vector to the section end plane */
-    inline Vector_t<double, 3> getEndNormal() const {
-        return endOrientation_m;
-    }
+    inline Vector_t<double, 3> getEndNormal() const { return endOrientation_m; }
 
     /** Set the displacement for the component relative to the section start */
     inline void setComponentPosition(Vector_t<double, 3> position) {
@@ -185,17 +169,13 @@ public:
     }
 
     /** Get the displacement for the component relative to the section start */
-    inline Vector_t<double, 3> getComponentPosition() const {
-        return componentPosition_m;
-    }
+    inline Vector_t<double, 3> getComponentPosition() const { return componentPosition_m; }
 
     /** Set the rotation for the component relative to the section start */
     inline void setComponentOrientation(Vector_t<double, 3> orientation);
 
     /** Get the rotation for the component relative to the section start */
-    inline Vector_t<double, 3> getComponentOrientation() const {
-        return componentOrientation_m;
-    }
+    inline Vector_t<double, 3> getComponentOrientation() const { return componentOrientation_m; }
 
 private:
     void rotate(Vector_t<double, 3>& vector) const;
@@ -236,11 +216,10 @@ inline void RingSection::setEndNormal(Vector_t<double, 3> orientation) {
 }
 
 inline Vector_t<double, 3>& RingSection::normalise(Vector_t<double, 3>& orientation) const {
-    double magnitude = sqrt(
-        orientation(0) * orientation(0) + orientation(1) * orientation(1)
-        + orientation(2) * orientation(2));
-    if (magnitude > 0.)
-        orientation = orientation / magnitude;
+    double magnitude =
+            sqrt(orientation(0) * orientation(0) + orientation(1) * orientation(1)
+                 + orientation(2) * orientation(2));
+    if (magnitude > 0.) orientation = orientation / magnitude;
     return orientation;
 }
 

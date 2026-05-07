@@ -105,15 +105,15 @@ public:
     }
 
     void save(
-        unsigned int numSets = 1, OpalData::OpenMode openMode = OpalData::OpenMode::UNDEFINED);
+            unsigned int numSets = 1, OpalData::OpenMode openMode = OpalData::OpenMode::UNDEFINED);
 
     void addReferenceParticle(
-        const Vector_t<double, 3>& x, const Vector_t<double, 3>& p, double time, double spos,
-        long long globalTrackStep);
+            const Vector_t<double, 3>& x, const Vector_t<double, 3>& p, double time, double spos,
+            long long globalTrackStep);
 
     void addParticle(
-        const OpalParticle&,
-        const std::optional<std::pair<int, short int>>& turnBunchNumPair = std::nullopt);
+            const OpalParticle&,
+            const std::optional<std::pair<int, short int>>& turnBunchNumPair = std::nullopt);
 
     size_t size() const;
 
@@ -198,9 +198,7 @@ private:
     CollectionType collectionType_m = CollectionType::TEMPORAL;
 };
 
-inline size_t LossDataSink::size() const {
-    return particles_m.size();
-}
+inline size_t LossDataSink::size() const { return particles_m.size(); }
 
 inline std::set<SetStatistics> LossDataSink::computeStatistics(unsigned int numStatistics) {
     std::set<SetStatistics> stats;

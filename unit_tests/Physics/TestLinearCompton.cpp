@@ -37,27 +37,25 @@
 #include <cmath>
 
 namespace {
-    double integrateSpectrumCompositeSimpson(double incomingPhotonEnergyERFGeV,
-                                             double minEnergy,
-                                             double maxEnergy,
-                                             int panels) {
+    double integrateSpectrumCompositeSimpson(
+            double incomingPhotonEnergyERFGeV, double minEnergy, double maxEnergy, int panels) {
         const double h = (maxEnergy - minEnergy) / panels;
-        double sum = Physics::LinearCompton::differentialCrossSectionOmegaERF(incomingPhotonEnergyERFGeV,
-                                                                               minEnergy)
-            + Physics::LinearCompton::differentialCrossSectionOmegaERF(incomingPhotonEnergyERFGeV,
-                                                                       maxEnergy);
+        double sum     = Physics::LinearCompton::differentialCrossSectionOmegaERF(
+                             incomingPhotonEnergyERFGeV, minEnergy)
+                     + Physics::LinearCompton::differentialCrossSectionOmegaERF(
+                             incomingPhotonEnergyERFGeV, maxEnergy);
 
         for (int i = 1; i < panels; ++i) {
             const double energy = minEnergy + i * h;
             const double weight = (i % 2 == 0) ? 2.0 : 4.0;
-            sum += weight * Physics::LinearCompton::differentialCrossSectionOmegaERF(
-                incomingPhotonEnergyERFGeV,
-                energy);
+            sum += weight
+                   * Physics::LinearCompton::differentialCrossSectionOmegaERF(
+                           incomingPhotonEnergyERFGeV, energy);
         }
 
         return sum * h / 3.0;
     }
-}
+}  // namespace
 
 TEST(TestLinearCompton, ThomsonLimitRecoveredAtLowEnergy) {
     const double incomingPhotonEnergyERFGeV = 1.0e-9;
@@ -69,31 +67,29 @@ TEST(TestLinearCompton, ThomsonLimitRecoveredAtLowEnergy) {
 
 TEST(TestLinearCompton, EnergySupportMatchesComptonEndpoints) {
     const double incomingPhotonEnergyERFGeV = 2.5e-4;
-    const double minEnergy = Physics::LinearCompton::scatteredPhotonEnergyMinERFGeV(
-        incomingPhotonEnergyERFGeV);
-    const double maxEnergy = Physics::LinearCompton::scatteredPhotonEnergyMaxERFGeV(
-        incomingPhotonEnergyERFGeV);
+    const double minEnergy =
+            Physics::LinearCompton::scatteredPhotonEnergyMinERFGeV(incomingPhotonEnergyERFGeV);
+    const double maxEnergy =
+            Physics::LinearCompton::scatteredPhotonEnergyMaxERFGeV(incomingPhotonEnergyERFGeV);
 
     EXPECT_DOUBLE_EQ(maxEnergy, incomingPhotonEnergyERFGeV);
-    EXPECT_NEAR(Physics::LinearCompton::scatteredPhotonEnergyERFGeV(incomingPhotonEnergyERFGeV, 1.0),
-                maxEnergy,
-                1.0e-15);
-    EXPECT_NEAR(Physics::LinearCompton::scatteredPhotonEnergyERFGeV(incomingPhotonEnergyERFGeV, -1.0),
-                minEnergy,
-                1.0e-15);
+    EXPECT_NEAR(
+            Physics::LinearCompton::scatteredPhotonEnergyERFGeV(incomingPhotonEnergyERFGeV, 1.0),
+            maxEnergy, 1.0e-15);
+    EXPECT_NEAR(
+            Physics::LinearCompton::scatteredPhotonEnergyERFGeV(incomingPhotonEnergyERFGeV, -1.0),
+            minEnergy, 1.0e-15);
     EXPECT_LT(minEnergy, maxEnergy);
 }
 
 TEST(TestLinearCompton, DifferentialSpectrumIntegratesToTotalCrossSection) {
     const double incomingPhotonEnergyERFGeV = 2.0e-4;
-    const double minEnergy = Physics::LinearCompton::scatteredPhotonEnergyMinERFGeV(
-        incomingPhotonEnergyERFGeV);
-    const double maxEnergy = Physics::LinearCompton::scatteredPhotonEnergyMaxERFGeV(
-        incomingPhotonEnergyERFGeV);
-    const double integral = integrateSpectrumCompositeSimpson(incomingPhotonEnergyERFGeV,
-                                                              minEnergy,
-                                                              maxEnergy,
-                                                              20000);
+    const double minEnergy =
+            Physics::LinearCompton::scatteredPhotonEnergyMinERFGeV(incomingPhotonEnergyERFGeV);
+    const double maxEnergy =
+            Physics::LinearCompton::scatteredPhotonEnergyMaxERFGeV(incomingPhotonEnergyERFGeV);
+    const double integral = integrateSpectrumCompositeSimpson(
+            incomingPhotonEnergyERFGeV, minEnergy, maxEnergy, 20000);
 
     const double sigmaKN = Physics::LinearCompton::totalCrossSection(incomingPhotonEnergyERFGeV);
     EXPECT_NEAR(integral, sigmaKN, sigmaKN * 2.0e-6);
@@ -101,8 +97,9 @@ TEST(TestLinearCompton, DifferentialSpectrumIntegratesToTotalCrossSection) {
 
 TEST(TestLinearCompton, NinetyDegreeLabForwardBenchmarkMatchesExactFormula) {
     const double electronTotalEnergyGeV = 1.0;
-    const double wavelength_m = 1.03e-6;
-    const double laserPhotonEnergyGeV = Physics::LinearCompton::photonEnergyFromWavelengthGeV(wavelength_m);
+    const double wavelength_m           = 1.03e-6;
+    const double laserPhotonEnergyGeV =
+            Physics::LinearCompton::photonEnergyFromWavelengthGeV(wavelength_m);
 
     Vector_t<double, 3> beamDirection(0.0);
     beamDirection(2) = 1.0;
@@ -110,34 +107,30 @@ TEST(TestLinearCompton, NinetyDegreeLabForwardBenchmarkMatchesExactFormula) {
     laserDirection(0) = 1.0;
 
     const double electronMomentumGeV = std::sqrt(
-        electronTotalEnergyGeV * electronTotalEnergyGeV - Physics::m_e * Physics::m_e);
+            electronTotalEnergyGeV * electronTotalEnergyGeV - Physics::m_e * Physics::m_e);
     const double expectedInvariantX =
-        2.0 * laserPhotonEnergyGeV * electronTotalEnergyGeV / (Physics::m_e * Physics::m_e);
+            2.0 * laserPhotonEnergyGeV * electronTotalEnergyGeV / (Physics::m_e * Physics::m_e);
     const double stableEnergyMinusMomentum =
-        Physics::m_e * Physics::m_e / (electronTotalEnergyGeV + electronMomentumGeV);
+            Physics::m_e * Physics::m_e / (electronTotalEnergyGeV + electronMomentumGeV);
     const double expectedForwardPhotonEnergyGeV =
-        laserPhotonEnergyGeV * electronTotalEnergyGeV
-        / (stableEnergyMinusMomentum + laserPhotonEnergyGeV);
+            laserPhotonEnergyGeV * electronTotalEnergyGeV
+            / (stableEnergyMinusMomentum + laserPhotonEnergyGeV);
 
-    EXPECT_NEAR(Physics::LinearCompton::invariantX(electronTotalEnergyGeV,
-                                                   laserPhotonEnergyGeV,
-                                                   beamDirection,
-                                                   laserDirection),
-                expectedInvariantX,
-                expectedInvariantX * 1.0e-12);
-    EXPECT_NEAR(Physics::LinearCompton::labForwardPhotonEnergyGeV(electronTotalEnergyGeV,
-                                                                  laserPhotonEnergyGeV,
-                                                                  beamDirection,
-                                                                  laserDirection),
-                expectedForwardPhotonEnergyGeV,
-                expectedForwardPhotonEnergyGeV * 1.0e-12);
+    EXPECT_NEAR(
+            Physics::LinearCompton::invariantX(
+                    electronTotalEnergyGeV, laserPhotonEnergyGeV, beamDirection, laserDirection),
+            expectedInvariantX, expectedInvariantX * 1.0e-12);
+    EXPECT_NEAR(
+            Physics::LinearCompton::labForwardPhotonEnergyGeV(
+                    electronTotalEnergyGeV, laserPhotonEnergyGeV, beamDirection, laserDirection),
+            expectedForwardPhotonEnergyGeV, expectedForwardPhotonEnergyGeV * 1.0e-12);
 }
-
 
 TEST(TestLinearCompton, ExplicitLabPhotonEnergyMatchesForwardHelper) {
     const double electronTotalEnergyGeV = 1.0;
-    const double wavelength_m = 1.03e-6;
-    const double laserPhotonEnergyGeV = Physics::LinearCompton::photonEnergyFromWavelengthGeV(wavelength_m);
+    const double wavelength_m           = 1.03e-6;
+    const double laserPhotonEnergyGeV =
+            Physics::LinearCompton::photonEnergyFromWavelengthGeV(wavelength_m);
 
     Vector_t<double, 3> beamDirection(0.0);
     beamDirection(2) = 1.0;
@@ -145,50 +138,43 @@ TEST(TestLinearCompton, ExplicitLabPhotonEnergyMatchesForwardHelper) {
     laserDirection(0) = 1.0;
 
     const double scatteringCosine =
-        Physics::LinearCompton::restFrameScatteringCosineForLabForwardPhoton(electronTotalEnergyGeV,
-                                                                             beamDirection,
-                                                                             laserDirection);
+            Physics::LinearCompton::restFrameScatteringCosineForLabForwardPhoton(
+                    electronTotalEnergyGeV, beamDirection, laserDirection);
 
-    EXPECT_NEAR(Physics::LinearCompton::labPhotonEnergyGeV(electronTotalEnergyGeV,
-                                                           laserPhotonEnergyGeV,
-                                                           beamDirection,
-                                                           laserDirection,
-                                                           scatteringCosine,
-                                                           0.0),
-                Physics::LinearCompton::labForwardPhotonEnergyGeV(electronTotalEnergyGeV,
-                                                                  laserPhotonEnergyGeV,
-                                                                  beamDirection,
-                                                                  laserDirection),
-                1.0e-12);
+    EXPECT_NEAR(
+            Physics::LinearCompton::labPhotonEnergyGeV(
+                    electronTotalEnergyGeV, laserPhotonEnergyGeV, beamDirection, laserDirection,
+                    scatteringCosine, 0.0),
+            Physics::LinearCompton::labForwardPhotonEnergyGeV(
+                    electronTotalEnergyGeV, laserPhotonEnergyGeV, beamDirection, laserDirection),
+            1.0e-12);
 }
-
 
 TEST(TestLinearCompton, SampledEventsRespectKinematicBounds) {
     const int previousSeed = Options::seed;
-    Options::seed = 20260403;
+    Options::seed          = 20260403;
 
     const double electronTotalEnergyGeV = 1.0;
-    const double wavelength_m = 1.03e-6;
-    const double laserPhotonEnergyGeV = Physics::LinearCompton::photonEnergyFromWavelengthGeV(wavelength_m);
+    const double wavelength_m           = 1.03e-6;
+    const double laserPhotonEnergyGeV =
+            Physics::LinearCompton::photonEnergyFromWavelengthGeV(wavelength_m);
 
     Vector_t<double, 3> beamDirection(0.0);
     beamDirection(2) = 1.0;
     Vector_t<double, 3> laserDirection(0.0);
     laserDirection(0) = 1.0;
 
-    const auto kernel = Physics::LinearCompton::makeSamplingKernel(electronTotalEnergyGeV,
-                                                                   laserPhotonEnergyGeV,
-                                                                   beamDirection,
-                                                                   laserDirection);
-    auto engine = Physics::LinearCompton::makeHostRandomEngine();
+    const auto kernel = Physics::LinearCompton::makeSamplingKernel(
+            electronTotalEnergyGeV, laserPhotonEnergyGeV, beamDirection, laserDirection);
+    auto engine      = Physics::LinearCompton::makeHostRandomEngine();
     const auto event = Physics::LinearCompton::sampleEvent(kernel, engine);
 
     const double minERF = Physics::LinearCompton::scatteredPhotonEnergyMinERFGeV(
-        kernel.incomingPhotonEnergyERFGeV);
+            kernel.incomingPhotonEnergyERFGeV);
     const double maxERF = Physics::LinearCompton::scatteredPhotonEnergyMaxERFGeV(
-        kernel.incomingPhotonEnergyERFGeV);
-    const double directionNorm = std::sqrt(dot(event.scatteredPhotonDirectionLab,
-                                               event.scatteredPhotonDirectionLab));
+            kernel.incomingPhotonEnergyERFGeV);
+    const double directionNorm =
+            std::sqrt(dot(event.scatteredPhotonDirectionLab, event.scatteredPhotonDirectionLab));
 
     EXPECT_GE(event.scatteringCosineERF, -1.0);
     EXPECT_LE(event.scatteringCosineERF, 1.0);
@@ -204,21 +190,20 @@ TEST(TestLinearCompton, SampledEventsRespectKinematicBounds) {
 
 TEST(TestLinearCompton, FixedSeedProducesDeterministicSampleSequence) {
     const int previousSeed = Options::seed;
-    Options::seed = 424242;
+    Options::seed          = 424242;
 
     const double electronTotalEnergyGeV = 1.0;
-    const double wavelength_m = 1.03e-6;
-    const double laserPhotonEnergyGeV = Physics::LinearCompton::photonEnergyFromWavelengthGeV(wavelength_m);
+    const double wavelength_m           = 1.03e-6;
+    const double laserPhotonEnergyGeV =
+            Physics::LinearCompton::photonEnergyFromWavelengthGeV(wavelength_m);
 
     Vector_t<double, 3> beamDirection(0.0);
     beamDirection(2) = 1.0;
     Vector_t<double, 3> laserDirection(0.0);
     laserDirection(0) = 1.0;
 
-    const auto kernel = Physics::LinearCompton::makeSamplingKernel(electronTotalEnergyGeV,
-                                                                   laserPhotonEnergyGeV,
-                                                                   beamDirection,
-                                                                   laserDirection);
+    const auto kernel = Physics::LinearCompton::makeSamplingKernel(
+            electronTotalEnergyGeV, laserPhotonEnergyGeV, beamDirection, laserDirection);
     auto engine1 = Physics::LinearCompton::makeHostRandomEngine();
     auto engine2 = Physics::LinearCompton::makeHostRandomEngine();
 
@@ -230,8 +215,9 @@ TEST(TestLinearCompton, FixedSeedProducesDeterministicSampleSequence) {
         EXPECT_DOUBLE_EQ(event1.scatteredPhotonEnergyERFGeV, event2.scatteredPhotonEnergyERFGeV);
         EXPECT_DOUBLE_EQ(event1.scatteredPhotonEnergyLabGeV, event2.scatteredPhotonEnergyLabGeV);
         for (int axis = 0; axis < 3; ++axis) {
-            EXPECT_DOUBLE_EQ(event1.scatteredPhotonDirectionLab(axis),
-                             event2.scatteredPhotonDirectionLab(axis));
+            EXPECT_DOUBLE_EQ(
+                    event1.scatteredPhotonDirectionLab(axis),
+                    event2.scatteredPhotonDirectionLab(axis));
         }
     }
 

@@ -7,7 +7,7 @@
  * - Round-trip `scaleDtByCharge` / `unscaleDtByCharge` in both QM modes.
  * - Moment computation stability (empty and known-data cases).
  * - Min / max position computation.
- * - `deleteParticlesOutside` edge cases and known-outlier removal.
+ * - `markParticlesOutside` and `deleteInvalidParticles` mask-driven deletion.
  *
  * The fixture constructs a lightweight `ParticleContainer` on a minimal 8^3
  * periodic mesh without a full `PartBunch`, so no field-solver or DataSink
@@ -300,27 +300,10 @@ namespace {
     }
 
     // ================================================================
-    // deleteParticlesOutside – edge cases
+    // markParticlesOutside – edge cases
     // ================================================================
 
-    TEST_F(ParticleContainerTest, DeleteParticlesOutside_NegativeSigma_ReturnsZero) {
-        Options::useQMAttributes = false;
-        auto pc                  = makeContainer();
-
-        // Every rank gets a particle to avoid mismatched collectives inside
-        // deleteParticlesOutside (getTotalNum is an allreduce).
-        std::vector<std::array<double, 3>> positions = {{{0.0, 0.0, 0.0}}};
-        createParticlesAt(pc, positions);
-        pc->setM(1.0);
-
-        size_t localBefore = pc->getLocalNum();
-        auto destroyed     = pc->deleteParticlesOutside(-1.0);
-
-        EXPECT_EQ(destroyed, 0u);
-        EXPECT_EQ(pc->getLocalNum(), localBefore);
-    }
-
-    TEST_F(ParticleContainerTest, DeleteParticlesOutside_ZeroSigma_ReturnsZero) {
+    TEST_F(ParticleContainerTest, MarkParticlesOutside_NegativeSigma_ReturnsZero) {
         Options::useQMAttributes = false;
         auto pc                  = makeContainer();
 
@@ -329,26 +312,41 @@ namespace {
         pc->setM(1.0);
 
         size_t localBefore = pc->getLocalNum();
-        auto destroyed     = pc->deleteParticlesOutside(0.0);
+        auto marked        = pc->markParticlesOutside(-1.0);
 
-        EXPECT_EQ(destroyed, 0u);
+        EXPECT_EQ(marked, 0u);
         EXPECT_EQ(pc->getLocalNum(), localBefore);
     }
 
-    TEST_F(ParticleContainerTest, DeleteParticlesOutside_EmptyContainer_ReturnsZero) {
+    TEST_F(ParticleContainerTest, MarkParticlesOutside_ZeroSigma_ReturnsZero) {
+        Options::useQMAttributes = false;
+        auto pc                  = makeContainer();
+
+        std::vector<std::array<double, 3>> positions = {{{0.0, 0.0, 0.0}}};
+        createParticlesAt(pc, positions);
+        pc->setM(1.0);
+
+        size_t localBefore = pc->getLocalNum();
+        auto marked        = pc->markParticlesOutside(0.0);
+
+        EXPECT_EQ(marked, 0u);
+        EXPECT_EQ(pc->getLocalNum(), localBefore);
+    }
+
+    TEST_F(ParticleContainerTest, MarkParticlesOutside_EmptyContainer_ReturnsZero) {
         Options::useQMAttributes = false;
         auto pc                  = makeContainer();
 
         ASSERT_EQ(pc->getLocalNum(), 0u);
-        auto destroyed = pc->deleteParticlesOutside(3.0);
-        EXPECT_EQ(destroyed, 0u);
+        auto marked = pc->markParticlesOutside(3.0);
+        EXPECT_EQ(marked, 0u);
     }
 
     // ================================================================
-    // deleteParticlesOutside – known outlier removal
+    // markParticlesOutside + deleteInvalidParticles – known outlier removal
     // ================================================================
 
-    TEST_F(ParticleContainerTest, DeleteParticlesOutside_KnownOutlierRemoval) {
+    TEST_F(ParticleContainerTest, MarkAndDeleteInvalidParticles_KnownOutlierRemoval) {
         Options::useQMAttributes = false;
         auto pc                  = makeContainer();
 
@@ -370,9 +368,12 @@ namespace {
         pc->setM(1.0);
 
         size_t totalBefore = pc->getTotalNum();
-        auto destroyed     = pc->deleteParticlesOutside(2.0);
+        auto marked        = pc->markParticlesOutside(2.0);
 
-        EXPECT_EQ(destroyed, 1u);
+        EXPECT_EQ(marked, 1u);
+
+        auto destroyed = pc->deleteInvalidParticles();
+        EXPECT_EQ(destroyed, marked);
 
         size_t totalAfter = pc->getTotalNum();
         EXPECT_EQ(totalAfter + destroyed, totalBefore);
@@ -526,10 +527,10 @@ namespace {
     }
 
     // ================================================================
-    // destroyParticles — removes marked entries and validates inputs
+    // deleteInvalidParticles — removes marked InvalidMask entries and resets the mask
     // ================================================================
 
-    TEST_F(ParticleContainerTest, DestroyParticles_RemovesMarkedAndThrowsOnInvalidInput) {
+    TEST_F(ParticleContainerTest, DeleteInvalidParticles_RemovesMarkedAndResetsMask) {
         Options::useQMAttributes = false;
         auto pc                  = makeContainer();
 
@@ -542,29 +543,45 @@ namespace {
         ASSERT_EQ(pc->getLocalNum(), nPart);
 
         // Mark every other particle invalid (5 of 10) — kill those at even indices.
-        Kokkos::View<bool*> invalid("DestroyParticlesTest::invalid", nPart);
-        auto invalid_host         = Kokkos::create_mirror_view(invalid);
+        auto invalid_host         = pc->InvalidMask.getHostMirror();
         size_type expectedDestroy = 0;
         for (size_t i = 0; i < nPart; ++i) {
             const bool kill = (i % 2 == 0);
             invalid_host(i) = kill;
             if (kill) ++expectedDestroy;
         }
-        Kokkos::deep_copy(invalid, invalid_host);
+        Kokkos::deep_copy(pc->InvalidMask.getView(), invalid_host);
 
-        pc->destroyParticles(invalid, expectedDestroy);
+        const size_type expectedGlobalDestroy = pc->getTotalNum() / 2;
+        const size_type destroyed             = pc->deleteInvalidParticles();
+        EXPECT_EQ(destroyed, expectedGlobalDestroy);
         EXPECT_EQ(pc->getLocalNum(), nPart - expectedDestroy);
 
-        // localDestroyNum exceeding the local particle count must throw.
-        Kokkos::View<bool*> oversize_invalid(
-                "DestroyParticlesTest::oversize_invalid", pc->getLocalNum());
-        EXPECT_THROW(pc->destroyParticles(oversize_invalid, pc->getLocalNum() + 1u), OpalException);
+        auto resetHost =
+                Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->InvalidMask.getView());
+        for (size_t i = 0; i < pc->getLocalNum(); ++i) {
+            EXPECT_FALSE(resetHost(i));
+        }
+    }
 
-        // invalid mask smaller than the local particle count must throw.
-        ASSERT_GT(pc->getLocalNum(), 0u);
-        Kokkos::View<bool*> short_invalid(
-                "DestroyParticlesTest::short_invalid", pc->getLocalNum() - 1);
-        EXPECT_THROW(pc->destroyParticles(short_invalid, 0u), OpalException);
+    TEST_F(ParticleContainerTest, CreateParticles_ResetsInvalidMaskForNewParticles) {
+        Options::useQMAttributes = false;
+        auto pc                  = makeContainer();
+
+        constexpr size_t nPart = 6;
+        pc->createParticles(nPart);
+        const size_t totalBeforeDelete = pc->getTotalNum();
+        pc->InvalidMask                = true;
+        Kokkos::fence();
+        ASSERT_EQ(pc->deleteInvalidParticles(), totalBeforeDelete);
+        ASSERT_EQ(pc->getLocalNum(), 0u);
+
+        pc->createParticles(nPart);
+        auto invalidHost =
+                Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), pc->InvalidMask.getView());
+        for (size_t i = 0; i < pc->getLocalNum(); ++i) {
+            EXPECT_FALSE(invalidHost(i));
+        }
     }
 
     // ================================================================

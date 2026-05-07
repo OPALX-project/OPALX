@@ -5,82 +5,72 @@
 #include "Utilities/GeneralOpalException.h"
 #include "Utilities/Util.h"
 
+#include <cmath>
 #include <fstream>
 #include <ios>
-#include <cmath>
 
-
-FM2DDynamic::FM2DDynamic(const std::string& filename)
-    : Fieldmap(filename)
-{
+FM2DDynamic::FM2DDynamic(const std::string& filename) : Fieldmap(filename) {
     std::ifstream file;
     std::string tmpString;
     double tmpDouble;
 
-    Type = T2DDynamic; // I can put ut also as Type(T2DDynamic) in the header file.
+    Type = T2DDynamic;  // I can put ut also as Type(T2DDynamic) in the header file.
 
     // open field map, parse it and disable element on error
     file.open(Filename_m.c_str());
-    if(file.good()) {
+    if (file.good()) {
         bool parsing_passed = true;
         try {
-            parsing_passed = 
-            interpretLine<std::string, std::string>(file, tmpString, tmpString);
-        } catch (GeneralOpalException &e) {
-            parsing_passed = 
-            interpretLine<std::string, std::string, std::string>(
-                file, tmpString, tmpString, tmpString);
+            parsing_passed = interpretLine<std::string, std::string>(file, tmpString, tmpString);
+        } catch (GeneralOpalException& e) {
+            parsing_passed = interpretLine<std::string, std::string, std::string>(
+                    file, tmpString, tmpString, tmpString);
 
             tmpString = Util::toUpper(tmpString);
             if (tmpString != "TRUE" && tmpString != "FALSE")
                 throw GeneralOpalException(
-                    "FM2DDynamic::FM2DDynamic", 
-                    "The third string on the first line of 2D field "
-                    "maps has to be either TRUE or FALSE");
+                        "FM2DDynamic::FM2DDynamic",
+                        "The third string on the first line of 2D field "
+                        "maps has to be either TRUE or FALSE");
 
             normalize_m = (tmpString == "TRUE");
         }
 
-        if(tmpString == "ZX") {
+        if (tmpString == "ZX") {
             swap_m = true;
             /// Parse rbegin_m, rend_m and num_gridpr_m(-1)
-            parsing_passed = 
-                parsing_passed
-                && interpretLine<double, double, int>(file, rbegin_m, rend_m, num_gridpr_m);
+            parsing_passed =
+                    parsing_passed
+                    && interpretLine<double, double, int>(file, rbegin_m, rend_m, num_gridpr_m);
             /// Parse frequency_m
-            parsing_passed = 
-                parsing_passed
-                && interpretLine<double>(file, frequency_m);
+            parsing_passed = parsing_passed && interpretLine<double>(file, frequency_m);
             /// Parse rbegin_m, zend_m and num_gridpz_m(-1)
-            parsing_passed = 
-                parsing_passed
-                && interpretLine<double, double, int>(file, zbegin_m, zend_m, num_gridpz_m);
-        } else if(tmpString == "XZ") {
+            parsing_passed =
+                    parsing_passed
+                    && interpretLine<double, double, int>(file, zbegin_m, zend_m, num_gridpz_m);
+        } else if (tmpString == "XZ") {
             swap_m = false;
             /// Parse rbegin_m, zend_m and num_gridpz_m(-1)
-            parsing_passed = 
-                parsing_passed
-                && interpretLine<double, double, int>(file, zbegin_m, zend_m, num_gridpz_m);
+            parsing_passed =
+                    parsing_passed
+                    && interpretLine<double, double, int>(file, zbegin_m, zend_m, num_gridpz_m);
             /// Parse frequency_m
-            parsing_passed = 
-                parsing_passed
-                && interpretLine<double>(file, frequency_m);
+            parsing_passed = parsing_passed && interpretLine<double>(file, frequency_m);
             /// Parse rbegin_m, rend_m and num_gridpr_m(-1)
-            parsing_passed = 
-                parsing_passed
-                && interpretLine<double, double, int>(file, rbegin_m, rend_m, num_gridpr_m);
+            parsing_passed =
+                    parsing_passed
+                    && interpretLine<double, double, int>(file, rbegin_m, rend_m, num_gridpr_m);
         } else {
             std::cerr << "unknown orientation of 2D dynamic fieldmap" << std::endl;
             parsing_passed = false;
-            zbegin_m = 0.0;
-            zend_m = -1e-3;
+            zbegin_m       = 0.0;
+            zend_m         = -1e-3;
         }
 
-        for(long i = 0; (i < (num_gridpz_m + 1) * (num_gridpr_m + 1)) && parsing_passed; ++ i) {
-            parsing_passed = 
-                parsing_passed 
-                && interpretLine<double, double, double, double>(
-                    file, tmpDouble, tmpDouble, tmpDouble, tmpDouble);
+        for (long i = 0; (i < (num_gridpz_m + 1) * (num_gridpr_m + 1)) && parsing_passed; ++i) {
+            parsing_passed = parsing_passed
+                             && interpretLine<double, double, double, double>(
+                                     file, tmpDouble, tmpDouble, tmpDouble, tmpDouble);
         }
 
         parsing_passed = parsing_passed && interpreteEOF(file);
@@ -88,21 +78,21 @@ FM2DDynamic::FM2DDynamic(const std::string& filename)
         file.close();
         lines_read_m = 0;
 
-        if(!parsing_passed) {
+        if (!parsing_passed) {
             disableFieldmapWarning();
             zend_m = zbegin_m - 1e-3;
             throw GeneralOpalException(
-                "FM2DDynamic::FM2DDynamic",
-                "An error occured when reading the fieldmap '" + Filename_m + "'");
+                    "FM2DDynamic::FM2DDynamic",
+                    "An error occured when reading the fieldmap '" + Filename_m + "'");
         } else {
             // convert MHz to Hz and frequency to angular frequency
             frequency_m *= Physics::two_pi * Units::MHz2Hz;
 
             // convert cm to m
             rbegin_m *= Units::cm2m;
-            rend_m   *= Units::cm2m;
+            rend_m *= Units::cm2m;
             zbegin_m *= Units::cm2m;
-            zend_m   *= Units::cm2m;
+            zend_m *= Units::cm2m;
 
             hr_m = (rend_m - rbegin_m) / num_gridpr_m;
             hz_m = (zend_m - zbegin_m) / num_gridpz_m;
@@ -114,16 +104,14 @@ FM2DDynamic::FM2DDynamic(const std::string& filename)
     } else {
         noFieldmapWarning();
         zbegin_m = 0.0;
-        zend_m = -1e-3;
+        zend_m   = -1e-3;
     }
 }
 
-FM2DDynamic::~FM2DDynamic() {
-    freeMap();
-}
+FM2DDynamic::~FM2DDynamic() { freeMap(); }
 
 void FM2DDynamic::readMap() {
-    if(FieldstrengthEz_m.extent(0) == 0) {
+    if (FieldstrengthEz_m.extent(0) == 0) {
         // declare variables and allocate memory
         std::ifstream in;
         std::string tmpString;
@@ -145,29 +133,20 @@ void FM2DDynamic::readMap() {
         getLine(in, tmpString);
         getLine(in, tmpString);
 
-        if(swap_m) {
-            for(int i = 0; i < num_gridpz_m; i++) {
-                for(int j = 0; j < num_gridpr_m; j++) {
+        if (swap_m) {
+            for (int i = 0; i < num_gridpz_m; i++) {
+                for (int j = 0; j < num_gridpr_m; j++) {
                     interpretLine<double, double, double, double>(
-                        in,
-                        Er(j * num_gridpz_m + i),
-                        Ez(j * num_gridpz_m + i),
-                        Bt(j * num_gridpz_m + i),
-                        tmpDouble
-                    );
+                            in, Er(j * num_gridpz_m + i), Ez(j * num_gridpz_m + i),
+                            Bt(j * num_gridpz_m + i), tmpDouble);
                 }
             }
         } else {
-            for(int j = 0; j < num_gridpr_m; j++) {
-                for(int i = 0; i < num_gridpz_m; i++) {
+            for (int j = 0; j < num_gridpr_m; j++) {
+                for (int i = 0; i < num_gridpz_m; i++) {
                     interpretLine<double, double, double, double>(
-                        in,
-                        Ez(j * num_gridpz_m + i),
-                        Er(j * num_gridpz_m + i),
-                        tmpDouble,
-                        Bt(j * num_gridpz_m + i)
-                    );
-
+                            in, Ez(j * num_gridpz_m + i), Er(j * num_gridpz_m + i), tmpDouble,
+                            Bt(j * num_gridpz_m + i));
                 }
             }
         }
@@ -176,8 +155,8 @@ void FM2DDynamic::readMap() {
         if (normalize_m) {
             // find maximum field
             // Is (i < num_gridpz_m) enough or should it be (i < size)?
-            for(size_t i = 0; i < size; ++ i) {    
-                if(std::abs(Ez(i)) > Ezmax) {
+            for (size_t i = 0; i < size; ++i) {
+                if (std::abs(Ez(i)) > Ezmax) {
                     Ezmax = std::abs(Ez(i));
                 }
             }
@@ -186,13 +165,13 @@ void FM2DDynamic::readMap() {
         }
 
         // Precompute scaling factor once
-        double const scaleE = 1.e6 / Ezmax;          // MV/m -> V/m conversion
-        double const scaleB = Physics::mu_0 / Ezmax; // H -> B conversion
+        double const scaleE = 1.e6 / Ezmax;           // MV/m -> V/m conversion
+        double const scaleB = Physics::mu_0 / Ezmax;  // H -> B conversion
 
-        for(size_t i = 0; i < size; i++) {
-            Ez(i) *= scaleE; 
+        for (size_t i = 0; i < size; i++) {
+            Ez(i) *= scaleE;
             Er(i) *= scaleE;
-            Bt(i) *= scaleB; 
+            Bt(i) *= scaleB;
         }
 
         FieldstrengthEz_m.modify<Kokkos::HostSpace>();
@@ -210,8 +189,7 @@ void FM2DDynamic::readMap() {
 }
 
 void FM2DDynamic::freeMap() {
-    if(FieldstrengthEz_m.extent(0) != 0) {
-
+    if (FieldstrengthEz_m.extent(0) != 0) {
         FieldstrengthEz_m = Kokkos::DualView<double*>();
         FieldstrengthEr_m = Kokkos::DualView<double*>();
         FieldstrengthBt_m = Kokkos::DualView<double*>();
@@ -223,18 +201,17 @@ void FM2DDynamic::freeMap() {
 
 /**
  * @brief Apply the FM to all the particles.
- * 
+ *
  * @param pc Particle container
  * param scale Scaling factor for the field (currently not used)
  */
-void FM2DDynamic::applyField(std::shared_ptr<ParticleContainer_t> pc, double)
-{
+void FM2DDynamic::applyField(std::shared_ptr<ParticleContainer_t> pc, double) {
     // Local copies of member variables for use in the lambda function
-    double zbegin = zbegin_m;
-    double zend = zend_m;
-    double rend = rend_m;
-    double hr = hr_m;
-    double hz = hz_m;
+    double zbegin  = zbegin_m;
+    double zend    = zend_m;
+    double rend    = rend_m;
+    double hr      = hr_m;
+    double hz      = hz_m;
     int num_gridpr = num_gridpr_m;
     int num_gridpz = num_gridpz_m;
 
@@ -250,36 +227,24 @@ void FM2DDynamic::applyField(std::shared_ptr<ParticleContainer_t> pc, double)
     const size_t nLocal = pc->getLocalNum();
 
     Kokkos::parallel_for(
-        "FM2DDynamic::applyField", nLocal,
-        KOKKOS_LAMBDA(const size_t i)
-        {
-            if(Rview(i)(2) >= zbegin && Rview(i)(2) < zend &&
-                sqrt(Rview(i)(0)*Rview(i)(0) + Rview(i)(1)*Rview(i)(1)) < rend) 
-            {
-                computeField(Rview(i),
-                                Eview(i),
-                                Bview(i),
-                                Ez_device,
-                                Er_device,
-                                Bt_device,
-                                hr, hz, zbegin,
-                                num_gridpr, num_gridpz);
-            }
-        });
+            "FM2DDynamic::applyField", nLocal, KOKKOS_LAMBDA(const size_t i) {
+                if (Rview(i)(2) >= zbegin && Rview(i)(2) < zend
+                    && sqrt(Rview(i)(0) * Rview(i)(0) + Rview(i)(1) * Rview(i)(1)) < rend) {
+                    computeField(
+                            Rview(i), Eview(i), Bview(i), Ez_device, Er_device, Bt_device, hr, hz,
+                            zbegin, num_gridpr, num_gridpz);
+                }
+            });
 }
 
 void FM2DDynamic::applyRFField(
-    std::shared_ptr<ParticleContainer_t> pc,
-    double electricScale,
-    double magneticScale,
-    double startField,
-    double endField)
-{
-    double zbegin = zbegin_m;
-    double zend = zend_m;
-    double rend = rend_m;
-    double hr = hr_m;
-    double hz = hz_m;
+        std::shared_ptr<ParticleContainer_t> pc, double electricScale, double magneticScale,
+        double startField, double endField) {
+    double zbegin  = zbegin_m;
+    double zend    = zend_m;
+    double rend    = rend_m;
+    double hr      = hr_m;
+    double hz      = hz_m;
     int num_gridpr = num_gridpr_m;
     int num_gridpz = num_gridpz_m;
 
@@ -294,88 +259,59 @@ void FM2DDynamic::applyRFField(
     const size_t nLocal = pc->getLocalNum();
 
     Kokkos::parallel_for(
-        "FM2DDynamic::applyRFField", nLocal,
-        KOKKOS_LAMBDA(const size_t i) {
-            const auto& R = Rview(i);
+            "FM2DDynamic::applyRFField", nLocal, KOKKOS_LAMBDA(const size_t i) {
+                const auto& R = Rview(i);
 
-            if (R(2) >= startField && R(2) < endField &&
-                R(2) >= zbegin && R(2) < zend &&
-                sqrt(R(0) * R(0) + R(1) * R(1)) < rend) {
-                Vector_t<double, 3> tmpE(0.0), tmpB(0.0);
+                if (R(2) >= startField && R(2) < endField && R(2) >= zbegin && R(2) < zend
+                    && sqrt(R(0) * R(0) + R(1) * R(1)) < rend) {
+                    Vector_t<double, 3> tmpE(0.0), tmpB(0.0);
 
-                computeField(
-                    R,
-                    tmpE,
-                    tmpB,
-                    Ez_device,
-                    Er_device,
-                    Bt_device,
-                    hr,
-                    hz,
-                    zbegin,
-                    num_gridpr,
-                    num_gridpz);
+                    computeField(
+                            R, tmpE, tmpB, Ez_device, Er_device, Bt_device, hr, hz, zbegin,
+                            num_gridpr, num_gridpz);
 
-                Eview(i) += electricScale * tmpE;
-                Bview(i) += magneticScale * tmpB;
-            }
-        });
+                    Eview(i) += electricScale * tmpE;
+                    Bview(i) += magneticScale * tmpB;
+                }
+            });
 }
 
 /**
  * @brief Get the fieldstrength at position R
- * 
+ *
  * @param R Position
  * @param E Electric Field
  * @param B Magnetic Field
- * 
+ *
  * @return true if R is outside of the field map, false otherwise.
  */
 bool FM2DDynamic::getFieldstrength(
-    const Vector_t<double,3>& R,
-    Vector_t<double,3>& E,
-    Vector_t<double,3>& B) const
-{
+        const Vector_t<double, 3>& R, Vector_t<double, 3>& E, Vector_t<double, 3>& B) const {
     if (isInside(R)) {
-
         computeField(
-            R,
-            E,
-            B,
-            FieldstrengthEz_m.h_view,
-            FieldstrengthEr_m.h_view,
-            FieldstrengthBt_m.h_view,
-            hr_m,
-            hz_m,
-            zbegin_m,
-            num_gridpr_m,
-            num_gridpz_m
-        );
+                R, E, B, FieldstrengthEz_m.h_view, FieldstrengthEr_m.h_view,
+                FieldstrengthBt_m.h_view, hr_m, hz_m, zbegin_m, num_gridpr_m, num_gridpz_m);
 
         return false;
-    }
-    else{
+    } else {
         return true;
     }
 }
 
 /**
  * @brief Get the derivative of the field at position R
- * 
+ *
  * @param R Position
  * @param E Electric Field (unused)
  * @param B Derivate of the magnetic field
- * 
+ *
  * @note Not implemented yet
- * 
+ *
  */
 bool FM2DDynamic::getFieldDerivative(
-    const Vector_t<double, 3>& /*R*/, 
-    Vector_t<double, 3>& /*E*/, 
-    Vector_t<double, 3>& /*B*/,
-    const DiffDirection &/*dir*/) const {
-       throw GeneralOpalException(
-            "FM2DDynamic::getFieldDerivative","not implemented");
+        const Vector_t<double, 3>& /*R*/, Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/,
+        const DiffDirection& /*dir*/) const {
+    throw GeneralOpalException("FM2DDynamic::getFieldDerivative", "not implemented");
 }
 
 void FM2DDynamic::getFieldDimensions(double& zBegin, double& zEnd) const {
@@ -384,29 +320,21 @@ void FM2DDynamic::getFieldDimensions(double& zBegin, double& zEnd) const {
 }
 
 void FM2DDynamic::getFieldDimensions(
-    double& /*xIni*/, double& /*xFinal*/, double& /*yIni*/, double& /*yFinal*/, 
-    double& /*zIni*/, double& /*zFinal*/) const {
-        throw GeneralOpalException(
-            "FM2DDynamic::getFieldDimensions","not implemented");
-    }
-
-void FM2DDynamic::swap() {
-    swap_m = !swap_m;
+        double& /*xIni*/, double& /*xFinal*/, double& /*yIni*/, double& /*yFinal*/,
+        double& /*zIni*/, double& /*zFinal*/) const {
+    throw GeneralOpalException("FM2DDynamic::getFieldDimensions", "not implemented");
 }
+
+void FM2DDynamic::swap() { swap_m = !swap_m; }
 
 void FM2DDynamic::getInfo(Inform* msg) {
-    (*msg) << Filename_m << " (2D dynamic); zini= " 
-           << zbegin_m << " m; zfinal= " << zend_m 
-           << " m;" << endl;
+    (*msg) << Filename_m << " (2D dynamic); zini= " << zbegin_m << " m; zfinal= " << zend_m << " m;"
+           << endl;
 }
 
-double FM2DDynamic::getFrequency() const {
-    return frequency_m;
-}
+double FM2DDynamic::getFrequency() const { return frequency_m; }
 
-void FM2DDynamic::setFrequency(double freq) {
-    frequency_m = freq;
-}
+void FM2DDynamic::setFrequency(double freq) { frequency_m = freq; }
 
 void FM2DDynamic::getOnaxisEz(std::vector<std::pair<double, double>>& F) {
     double dz = (zend_m - zbegin_m) / (num_gridpz_m - 1);

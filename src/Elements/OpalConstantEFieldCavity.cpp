@@ -4,9 +4,10 @@
 #include "Physics/Units.h"
 
 OpalConstantEFieldCavity::OpalConstantEFieldCavity()
-    : OpalElement(SIZE, "CONSTANTEFIELDCAVITY",
-                  "The \"CONSTANTEFIELDCAVITY\" element defines a constant accelerating "
-                  "electric field in z-direction.") {
+    : OpalElement(
+              SIZE, "CONSTANTEFIELDCAVITY",
+              "The \"CONSTANTEFIELDCAVITY\" element defines a constant accelerating "
+              "electric field in z-direction.") {
     itsAttr[EX] = Attributes::makeReal("EX", "Electric field strength Ex in MV/m", 0.0);
     itsAttr[EY] = Attributes::makeReal("EY", "Electric field strength Ey in MV/m", 0.0);
     itsAttr[EZ] = Attributes::makeReal("EZ", "Electric field strength Ez in MV/m", 0.0);
@@ -16,8 +17,8 @@ OpalConstantEFieldCavity::OpalConstantEFieldCavity()
     setElement(new ConstantEFieldCavityRep("CONSTANTEFIELDCAVITY"));
 }
 
-OpalConstantEFieldCavity::OpalConstantEFieldCavity(const std::string& name,
-                                                   OpalConstantEFieldCavity* parent)
+OpalConstantEFieldCavity::OpalConstantEFieldCavity(
+        const std::string& name, OpalConstantEFieldCavity* parent)
     : OpalElement(name, parent) {
     setElement(new ConstantEFieldCavityRep(name));
 }
@@ -45,4 +46,3 @@ void OpalConstantEFieldCavity::update() {
 
     OpalElement::updateUnknown(getElement());
 }
-

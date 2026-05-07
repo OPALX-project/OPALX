@@ -18,11 +18,11 @@
 #ifndef OPAL_GSL_LINALG_HH
 #define OPAL_GSL_LINALG_HH
 
-#include "Utilities/GSLMatrix.h"
-#include "Utilities/GSLComplex.h"
-#include <vector>
 #include <algorithm>
 #include <cmath>
+#include <vector>
+#include "Utilities/GSLComplex.h"
+#include "Utilities/GSLMatrix.h"
 
 /// \see Documentation on https://www.gnu.org/software/gsl/doc/html/linalg.htm
 /// \see Implementation on https://www.gnu.org/software/gsl/
@@ -30,7 +30,7 @@
 struct gsl_permutation {
     size_t size;
     size_t* data;
-    
+
     gsl_permutation() : size(0), data(nullptr) {}
 };
 
@@ -39,8 +39,8 @@ struct gsl_permutation {
 /// \return Output: pointer to newly allocated permutation.
 inline gsl_permutation* gsl_permutation_alloc(size_t n) {
     gsl_permutation* p = new gsl_permutation();
-    p->size = n;
-    p->data = new size_t[n];
+    p->size            = n;
+    p->data            = new size_t[n];
     for (size_t i = 0; i < n; ++i) {
         p->data[i] = i;
     }
@@ -67,15 +67,15 @@ inline int gsl_linalg_LU_decomp(gsl_matrix* A, gsl_permutation* p, int* signum) 
     if (A->size1 != A->size2) {
         return -1;  // Error: not square
     }
-    
+
     size_t n = A->size1;
-    *signum = 1;
-    
+    *signum  = 1;
+
     // Initialize permutation
     for (size_t i = 0; i < n; ++i) {
         p->data[i] = i;
     }
-    
+
     // Perform LU decomposition with partial pivoting
     for (size_t k = 0; k < n - 1; ++k) {
         // Find pivot
@@ -88,7 +88,7 @@ inline int gsl_linalg_LU_decomp(gsl_matrix* A, gsl_permutation* p, int* signum) 
                 max_row = i;
             }
         }
-        
+
         // Swap rows if needed
         if (max_row != k) {
             *signum = -*signum;
@@ -97,22 +97,22 @@ inline int gsl_linalg_LU_decomp(gsl_matrix* A, gsl_permutation* p, int* signum) 
                 std::swap(*gsl_matrix_ptr(A, k, j), *gsl_matrix_ptr(A, max_row, j));
             }
         }
-        
+
         // Check for singularity
         if (std::abs(*gsl_matrix_ptr(A, k, k)) < 1e-15) {
             return -1;  // Singular matrix
         }
-        
+
         // Eliminate
         for (size_t i = k + 1; i < n; ++i) {
-            double factor = *gsl_matrix_ptr(A, i, k) / *gsl_matrix_ptr(A, k, k);
+            double factor            = *gsl_matrix_ptr(A, i, k) / *gsl_matrix_ptr(A, k, k);
             *gsl_matrix_ptr(A, i, k) = factor;
             for (size_t j = k + 1; j < n; ++j) {
                 *gsl_matrix_ptr(A, i, j) -= factor * *gsl_matrix_ptr(A, k, j);
             }
         }
     }
-    
+
     return 0;  // Success
 }
 
@@ -122,7 +122,7 @@ inline int gsl_linalg_LU_decomp(gsl_matrix* A, gsl_permutation* p, int* signum) 
 /// \param signum Input: sign from \c gsl_linalg_LU_decomp.
 /// \return Output: determinant value.
 inline double gsl_linalg_LU_det(const gsl_matrix* LU, int signum) {
-    size_t n = LU->size1;
+    size_t n   = LU->size1;
     double det = static_cast<double>(signum);
     for (size_t i = 0; i < n; ++i) {
         det *= *gsl_matrix_ptr(LU, i, i);
@@ -136,19 +136,20 @@ inline double gsl_linalg_LU_det(const gsl_matrix* LU, int signum) {
 /// \param p Input: permutation from \c gsl_linalg_LU_decomp.
 /// \param inverse Output: matrix to receive \f$A^{-1}\f$.
 /// \return Output: 0 on success, -1 on size mismatch.
-inline int gsl_linalg_LU_invert(const gsl_matrix* LU, const gsl_permutation* p, gsl_matrix* inverse) {
+inline int gsl_linalg_LU_invert(
+        const gsl_matrix* LU, const gsl_permutation* p, gsl_matrix* inverse) {
     size_t n = LU->size1;
     if (inverse->size1 != n || inverse->size2 != n) {
         return -1;
     }
-    
+
     // Initialize inverse as permuted identity: P*I
     for (size_t j = 0; j < n; ++j) {
         for (size_t i = 0; i < n; ++i) {
             *gsl_matrix_ptr(inverse, i, j) = (p->data[i] == j) ? 1.0 : 0.0;
         }
     }
-    
+
     // Forward substitution: L*y = P*I (solve for y)
     // L is unit lower triangular stored in LU below diagonal
     for (size_t j = 0; j < n; ++j) {
@@ -160,7 +161,7 @@ inline int gsl_linalg_LU_invert(const gsl_matrix* LU, const gsl_permutation* p, 
             *gsl_matrix_ptr(inverse, i, j) -= sum;
         }
     }
-    
+
     // Back substitution: U*x = y (solve for x, which is the inverse)
     // U is upper triangular stored in LU on and above diagonal
     for (int i = static_cast<int>(n) - 1; i >= 0; --i) {
@@ -169,10 +170,11 @@ inline int gsl_linalg_LU_invert(const gsl_matrix* LU, const gsl_permutation* p, 
             for (size_t k = i + 1; k < n; ++k) {
                 sum += *gsl_matrix_ptr(LU, i, k) * *gsl_matrix_ptr(inverse, k, j);
             }
-            *gsl_matrix_ptr(inverse, i, j) = (*gsl_matrix_ptr(inverse, i, j) - sum) / *gsl_matrix_ptr(LU, i, i);
+            *gsl_matrix_ptr(inverse, i, j) =
+                    (*gsl_matrix_ptr(inverse, i, j) - sum) / *gsl_matrix_ptr(LU, i, i);
         }
     }
-    
+
     return 0;
 }
 
@@ -186,15 +188,15 @@ inline int gsl_linalg_complex_LU_decomp(gsl_matrix_complex* A, gsl_permutation* 
     if (A->size1 != A->size2) {
         return -1;
     }
-    
+
     size_t n = A->size1;
-    *signum = 1;
-    
+    *signum  = 1;
+
     // Initialize permutation
     for (size_t i = 0; i < n; ++i) {
         p->data[i] = i;
     }
-    
+
     // Perform LU decomposition with partial pivoting
     for (size_t k = 0; k < n - 1; ++k) {
         // Find pivot
@@ -207,7 +209,7 @@ inline int gsl_linalg_complex_LU_decomp(gsl_matrix_complex* A, gsl_permutation* 
                 max_row = i;
             }
         }
-        
+
         // Swap rows if needed
         if (max_row != k) {
             *signum = -*signum;
@@ -216,24 +218,25 @@ inline int gsl_linalg_complex_LU_decomp(gsl_matrix_complex* A, gsl_permutation* 
                 std::swap(*gsl_matrix_complex_ptr(A, k, j), *gsl_matrix_complex_ptr(A, max_row, j));
             }
         }
-        
+
         // Check for singularity
         if (gsl_complex_abs(*gsl_matrix_complex_ptr(A, k, k)) < 1e-15) {
             return -1;
         }
-        
+
         // Eliminate
         for (size_t i = k + 1; i < n; ++i) {
-            gsl_complex factor = gsl_complex_div(*gsl_matrix_complex_ptr(A, i, k), 
-                                                 *gsl_matrix_complex_ptr(A, k, k));
+            gsl_complex factor = gsl_complex_div(
+                    *gsl_matrix_complex_ptr(A, i, k), *gsl_matrix_complex_ptr(A, k, k));
             *gsl_matrix_complex_ptr(A, i, k) = factor;
             for (size_t j = k + 1; j < n; ++j) {
-                *gsl_matrix_complex_ptr(A, i, j) = gsl_complex_sub(*gsl_matrix_complex_ptr(A, i, j),
-                                                                    gsl_complex_mul(factor, *gsl_matrix_complex_ptr(A, k, j)));
+                *gsl_matrix_complex_ptr(A, i, j) = gsl_complex_sub(
+                        *gsl_matrix_complex_ptr(A, i, j),
+                        gsl_complex_mul(factor, *gsl_matrix_complex_ptr(A, k, j)));
             }
         }
     }
-    
+
     return 0;
 }
 
@@ -243,7 +246,7 @@ inline int gsl_linalg_complex_LU_decomp(gsl_matrix_complex* A, gsl_permutation* 
 /// \param signum Input: sign from \c gsl_linalg_complex_LU_decomp.
 /// \return Output: determinant value.
 inline gsl_complex gsl_linalg_complex_LU_det(const gsl_matrix_complex* LU, int signum) {
-    size_t n = LU->size1;
+    size_t n        = LU->size1;
     gsl_complex det = gsl_complex(static_cast<double>(signum), 0.0);
     for (size_t i = 0; i < n; ++i) {
         det = gsl_complex_mul(det, *gsl_matrix_complex_ptr(LU, i, i));
@@ -257,46 +260,54 @@ inline gsl_complex gsl_linalg_complex_LU_det(const gsl_matrix_complex* LU, int s
 /// \param p Input: permutation from \c gsl_linalg_complex_LU_decomp.
 /// \param inverse Output: matrix to receive \f$A^{-1}\f$.
 /// \return Output: 0 on success, -1 on size mismatch.
-inline int gsl_linalg_complex_LU_invert(const gsl_matrix_complex* LU, const gsl_permutation* p, gsl_matrix_complex* inverse) {
+inline int gsl_linalg_complex_LU_invert(
+        const gsl_matrix_complex* LU, const gsl_permutation* p, gsl_matrix_complex* inverse) {
     size_t n = LU->size1;
     if (inverse->size1 != n || inverse->size2 != n) {
         return -1;
     }
-    
+
     // Initialize inverse as permuted identity: P*I
     for (size_t j = 0; j < n; ++j) {
         for (size_t i = 0; i < n; ++i) {
-            *gsl_matrix_complex_ptr(inverse, i, j) = (p->data[i] == j) ? gsl_complex(1.0, 0.0) : gsl_complex(0.0, 0.0);
+            *gsl_matrix_complex_ptr(inverse, i, j) =
+                    (p->data[i] == j) ? gsl_complex(1.0, 0.0) : gsl_complex(0.0, 0.0);
         }
     }
-    
+
     // Forward substitution: L*y = P*I (solve for y)
     // L is unit lower triangular stored in LU below diagonal
     for (size_t j = 0; j < n; ++j) {
         for (size_t i = 0; i < n; ++i) {
             gsl_complex sum = gsl_complex(0.0, 0.0);
             for (size_t k = 0; k < i; ++k) {
-                sum = gsl_complex_add(sum, gsl_complex_mul(*gsl_matrix_complex_ptr(LU, i, k), 
-                                                           *gsl_matrix_complex_ptr(inverse, k, j)));
+                sum = gsl_complex_add(
+                        sum, gsl_complex_mul(
+                                     *gsl_matrix_complex_ptr(LU, i, k),
+                                     *gsl_matrix_complex_ptr(inverse, k, j)));
             }
-            *gsl_matrix_complex_ptr(inverse, i, j) = gsl_complex_sub(*gsl_matrix_complex_ptr(inverse, i, j), sum);
+            *gsl_matrix_complex_ptr(inverse, i, j) =
+                    gsl_complex_sub(*gsl_matrix_complex_ptr(inverse, i, j), sum);
         }
     }
-    
+
     // Back substitution: U*x = y (solve for x, which is the inverse)
     // U is upper triangular stored in LU on and above diagonal
     for (int i = static_cast<int>(n) - 1; i >= 0; --i) {
         for (size_t j = 0; j < n; ++j) {
             gsl_complex sum = gsl_complex(0.0, 0.0);
             for (size_t k = i + 1; k < n; ++k) {
-                sum = gsl_complex_add(sum, gsl_complex_mul(*gsl_matrix_complex_ptr(LU, i, k), 
-                                                           *gsl_matrix_complex_ptr(inverse, k, j)));
+                sum = gsl_complex_add(
+                        sum, gsl_complex_mul(
+                                     *gsl_matrix_complex_ptr(LU, i, k),
+                                     *gsl_matrix_complex_ptr(inverse, k, j)));
             }
-            *gsl_matrix_complex_ptr(inverse, i, j) = gsl_complex_div(gsl_complex_sub(*gsl_matrix_complex_ptr(inverse, i, j), sum),
-                                                                      *gsl_matrix_complex_ptr(LU, i, i));
+            *gsl_matrix_complex_ptr(inverse, i, j) = gsl_complex_div(
+                    gsl_complex_sub(*gsl_matrix_complex_ptr(inverse, i, j), sum),
+                    *gsl_matrix_complex_ptr(LU, i, i));
         }
     }
-    
+
     return 0;
 }
 
@@ -322,9 +333,9 @@ inline gsl_complex gsl_linalg_LU_det_complex(const gsl_matrix_complex* LU, int s
 /// \param p Input: permutation from decomposition.
 /// \param inverse Output: matrix to receive \f$A^{-1}\f$.
 /// \return Output: 0 on success, -1 on size mismatch.
-inline int gsl_linalg_LU_invert_complex(const gsl_matrix_complex* LU, const gsl_permutation* p, gsl_matrix_complex* inverse) {
+inline int gsl_linalg_LU_invert_complex(
+        const gsl_matrix_complex* LU, const gsl_permutation* p, gsl_matrix_complex* inverse) {
     return gsl_linalg_complex_LU_invert(LU, p, inverse);
 }
 
-#endif // OPAL_GSL_LINALG_HH
-
+#endif  // OPAL_GSL_LINALG_HH
