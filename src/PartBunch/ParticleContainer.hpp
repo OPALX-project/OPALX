@@ -653,10 +653,10 @@ public:
         // Pretty print numParticles, newCapacity and new totalNum + localNum after creation
         constexpr int labelWidth = 32;
         m << level4 << std::left << std::setw(labelWidth) << "Requested creation:" << numParticles
-          << " particles" << endl
-          << std::setw(labelWidth) << "New total number:" << this->getTotalNum()
-          << " (local: " << this->getLocalNum() << ")" << endl
-          << std::setw(labelWidth) << "Underlying view capacity:" << newCapacity << endl;
+          << " particles" << endl;
+        m << level4 << std::setw(labelWidth) << "New total number:" << this->getTotalNum()
+          << " (local: " << this->getLocalNum() << ")" << endl;
+        m << level4 << std::setw(labelWidth) << "Underlying view capacity:" << newCapacity << endl;
 
         if (newCapacity != oldCapacity) {
             m << level1
@@ -684,8 +684,8 @@ public:
         this->alloc(numParticles);  // alloc is always destructive
 
         m << level4 << std::left << std::setw(32) << "Requested allocation:" << numParticles
-          << " particles" << endl
-          << std::setw(32) << "Size of underlying view:" << this->R.size() << endl;
+          << " particles" << endl;
+        m << level4 << std::setw(32) << "Size of underlying view:" << this->R.size() << endl;
     }
 
     /**

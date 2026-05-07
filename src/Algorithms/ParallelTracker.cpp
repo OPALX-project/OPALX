@@ -752,7 +752,7 @@ void ParallelTracker::emitFromEmissionSources(double t, double dt) {
         // Record the extent of the position array and the current local particle count
         // before emission. If an internal resize (Kokkos::realloc) happens during
         // emission, the extent of R will change and we can flag this as an error.
-        const size_t extentBeforeEmission = pc->R.getView().extent(0);
+        const size_t extentBeforeEmission = pc->R.size();
 
         CoordinateSystemTrafo refToGun =
                 itsOpalBeamline_m.getCSTrafoLab2Local() * pc->getToLabTrafo();
@@ -776,7 +776,7 @@ void ParallelTracker::emitFromEmissionSources(double t, double dt) {
         // this limit would trigger internal reallocations in the particle
         // container and silently drop already-tracked particles/delete their data in the particle
         // attributes. This is only a check for the number of local particles.
-        const size_t extentAfterEmission = pc->R.getView().extent(0);
+        const size_t extentAfterEmission = pc->R.size();
         if (extentAfterEmission != extentBeforeEmission) {
             throw OpalException(
                     "ParallelTracker::emitFromEmissionSources",
