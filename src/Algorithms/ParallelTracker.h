@@ -135,7 +135,6 @@ public:
     virtual void visitDrift(const Drift&);
 
     /// @brief Reject laser tracking until dedicated laser tracking is implemented.
-    /// @brief Apply the algorithm to a laser.
     virtual void visitLaser(const Laser&);
 
     /// @brief Apply the algorithm to a monitor.
