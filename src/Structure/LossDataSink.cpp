@@ -19,8 +19,8 @@
 
 #include "AbstractObjects/OpalData.h"
 #include "BuildInfo.h"
-#include "Utilities/GeneralOpalException.h"
 #include "Utilities/GSLHistogram.h"
+#include "Utilities/GeneralOpalException.h"
 #include "Utilities/Options.h"
 #include "Utilities/Util.h"
 #include "Utility/IpplInfo.h"
@@ -35,7 +35,6 @@
 #include <sstream>
 #include <tuple>
 
-
 extern Inform* gmsg;
 
 void LossDataSink::writeFileAttribString(const char* attribute, const char* value) {
@@ -49,9 +48,7 @@ void LossDataSink::writeFileAttribString(const char* attribute, const char* valu
 }
 
 void LossDataSink::writeStepAttribFloat64(
-    const char* attribute,
-    const h5_float64_t* value,
-    h5_int64_t size) {
+        const char* attribute, const h5_float64_t* value, h5_int64_t size) {
     const h5_int64_t h5err = H5WriteStepAttribFloat64(H5file_m, attribute, value, size);
 
     if (h5err <= H5_ERR) {
@@ -62,9 +59,7 @@ void LossDataSink::writeStepAttribFloat64(
 }
 
 void LossDataSink::writeStepAttribInt64(
-    const char* attribute,
-    const h5_int64_t* value,
-    h5_int64_t size) {
+        const char* attribute, const h5_int64_t* value, h5_int64_t size) {
     const h5_int64_t h5err = H5WriteStepAttribInt64(H5file_m, attribute, value, size);
 
     if (h5err <= H5_ERR) {
@@ -148,30 +143,22 @@ void LossDataSink::closeFile() {
 }
 
 namespace {
-    constexpr double percentileOneSigmaNormalDist =
-        0.6826894921370859;
+    constexpr double percentileOneSigmaNormalDist = 0.6826894921370859;
 
-    constexpr double percentileTwoSigmasNormalDist =
-        0.9544997361036416;
+    constexpr double percentileTwoSigmasNormalDist = 0.9544997361036416;
 
-    constexpr double percentileThreeSigmasNormalDist =
-        0.9973002039367398;
+    constexpr double percentileThreeSigmasNormalDist = 0.9973002039367398;
 
-    constexpr double percentileFourSigmasNormalDist =
-        0.9999366575163338;
+    constexpr double percentileFourSigmasNormalDist = 0.9999366575163338;
 
     int percentileParticleCount(unsigned long nTotal, double fraction) {
-        const double value =
-            std::floor(static_cast<double>(nTotal) * fraction + 0.5);
+        const double value = std::floor(static_cast<double>(nTotal) * fraction + 0.5);
 
         if (value > static_cast<double>(std::numeric_limits<int>::max())) {
             std::stringstream ss;
-            ss << "Percentile particle count " << value
-               << " does not fit into int.";
+            ss << "Percentile particle count " << value << " does not fit into int.";
 
-            throw GeneralOpalException(
-                "LossDataSink::computeSetPercentiles",
-                ss.str());
+            throw GeneralOpalException("LossDataSink::computeSetPercentiles", ss.str());
         }
 
         return static_cast<int>(value);
@@ -181,42 +168,29 @@ namespace {
     using OneDIterator_t   = std::vector<OneDPhaseSpace_t>::iterator;
 
     void f64transform(
-        const std::vector<OpalParticle>& particles,
-        size_t startIdx,
-        size_t numParticles,
-        h5_float64_t* buffer,
-        std::function<h5_float64_t(const OpalParticle&)> select) {
+            const std::vector<OpalParticle>& particles, size_t startIdx, size_t numParticles,
+            h5_float64_t* buffer, std::function<h5_float64_t(const OpalParticle&)> select) {
         std::transform(
-            particles.begin() + startIdx, 
-            particles.begin() + startIdx + numParticles, 
-            buffer,
-            select);
+                particles.begin() + startIdx, particles.begin() + startIdx + numParticles, buffer,
+                select);
     }
 
     void i64transform(
-        const std::vector<OpalParticle>& particles,
-        size_t startIdx,
-        size_t numParticles,
-        h5_int64_t* buffer,
-        std::function<h5_int64_t(const OpalParticle&)> select) {
+            const std::vector<OpalParticle>& particles, size_t startIdx, size_t numParticles,
+            h5_int64_t* buffer, std::function<h5_int64_t(const OpalParticle&)> select) {
         std::transform(
-            particles.begin() + startIdx, 
-            particles.begin() + startIdx + numParticles, 
-            buffer,
-            select);
+                particles.begin() + startIdx, particles.begin() + startIdx + numParticles, buffer,
+                select);
     }
 
     std::pair<double, OneDIterator_t> determinePercentileRange(
-        const OneDIterator_t& begin,
-        const OneDIterator_t& end,
-        const std::vector<int>& globalAccumulatedHistogram,
-        const std::vector<int>& localAccumulatedHistogram,
-        unsigned int dimension,
-        int numRequiredParticles,
-        double meanR) {
+            const OneDIterator_t& begin, const OneDIterator_t& end,
+            const std::vector<int>& globalAccumulatedHistogram,
+            const std::vector<int>& localAccumulatedHistogram, unsigned int dimension,
+            int numRequiredParticles, double meanR) {
         const unsigned int numBins = globalAccumulatedHistogram.size() / 3;
 
-        double percentile = 0.0;
+        double percentile            = 0.0;
         OneDIterator_t endPercentile = end;
 
         for (unsigned int i = 1; i < numBins; ++i) {
@@ -227,52 +201,42 @@ namespace {
                 OneDIterator_t endBin   = begin + localAccumulatedHistogram[idx];
 
                 int numMissingParticles =
-                    numRequiredParticles - globalAccumulatedHistogram[idx - 1];
+                        numRequiredParticles - globalAccumulatedHistogram[idx - 1];
 
                 unsigned int shift = 2;
                 while (numMissingParticles == 0 && idx >= shift) {
                     beginBin = begin + localAccumulatedHistogram[idx - shift];
                     numMissingParticles =
-                        numRequiredParticles - globalAccumulatedHistogram[idx - shift];
+                            numRequiredParticles - globalAccumulatedHistogram[idx - shift];
                     ++shift;
                 }
 
                 std::vector<unsigned int> numParticlesInBin(ippl::Comm->size() + 1, 0);
                 numParticlesInBin[ippl::Comm->rank() + 1] =
-                    static_cast<unsigned int>(endBin - beginBin);
+                        static_cast<unsigned int>(endBin - beginBin);
 
                 ippl::Comm->allreduce(
-                    &(numParticlesInBin[1]),
-                    ippl::Comm->size(),
-                    std::plus<unsigned int>());
+                        &(numParticlesInBin[1]), ippl::Comm->size(), std::plus<unsigned int>());
 
                 std::partial_sum(
-                    numParticlesInBin.begin(),
-                    numParticlesInBin.end(),
-                    numParticlesInBin.begin());
+                        numParticlesInBin.begin(), numParticlesInBin.end(),
+                        numParticlesInBin.begin());
 
                 std::vector<double> positions(numParticlesInBin.back(), 0.0);
 
                 std::transform(
-                    beginBin,
-                    endBin,
-                    positions.begin() + numParticlesInBin[ippl::Comm->rank()],
-                    [meanR](const OneDPhaseSpace_t& particle) {
-                        return std::abs(particle[0] - meanR);
-                    });
+                        beginBin, endBin, positions.begin() + numParticlesInBin[ippl::Comm->rank()],
+                        [meanR](const OneDPhaseSpace_t& particle) {
+                            return std::abs(particle[0] - meanR);
+                        });
 
                 if (!positions.empty()) {
-                    ippl::Comm->allreduce(
-                        positions.data(),
-                        positions.size(),
-                        std::plus<double>());
+                    ippl::Comm->allreduce(positions.data(), positions.size(), std::plus<double>());
 
                     std::sort(positions.begin(), positions.end());
 
-                    const auto rhs = static_cast<std::size_t>(
-                        std::min<int>(
-                            numMissingParticles,
-                            static_cast<int>(positions.size()) - 1));
+                    const auto rhs = static_cast<std::size_t>(std::min<int>(
+                            numMissingParticles, static_cast<int>(positions.size()) - 1));
 
                     const auto lhs = rhs == 0 ? 0 : rhs - 1;
 
@@ -293,9 +257,7 @@ namespace {
         return std::make_pair(percentile, endPercentile);
     }
 
-    double computeNormalizedEmittance(
-        const OneDIterator_t& begin,
-        const OneDIterator_t& end) {
+    double computeNormalizedEmittance(const OneDIterator_t& begin, const OneDIterator_t& end) {
         double localStatistics[] = {0.0, 0.0, 0.0, 0.0};
 
         localStatistics[0] = static_cast<double>(end - begin);
@@ -342,16 +304,14 @@ namespace {
     }
 
     void computeSetPercentiles(
-        const std::vector<OpalParticle>& particles,
-        size_t startIdx,
-        size_t nLoc,
-        SetStatistics& stat) {
+            const std::vector<OpalParticle>& particles, size_t startIdx, size_t nLoc,
+            SetStatistics& stat) {
         if (!Options::computePercentiles || stat.nTotal_m < 100) {
             return;
         }
 
         unsigned int numBins = static_cast<unsigned int>(
-            3.5 * std::pow(3.0, std::log10(static_cast<double>(stat.nTotal_m))));
+                3.5 * std::pow(3.0, std::log10(static_cast<double>(stat.nTotal_m))));
 
         numBins = std::max(1u, numBins);
 
@@ -360,10 +320,9 @@ namespace {
         Vector_t<double, 3> maxR(0.0);
 
         for (unsigned int d = 0; d < 3; ++d) {
-            maxR(d) = 1.0000001
-                * std::max(
-                    stat.rmax_m(d) - stat.rmean_m(d),
-                    stat.rmean_m(d) - stat.rmin_m(d));
+            maxR(d) =
+                    1.0000001
+                    * std::max(stat.rmax_m(d) - stat.rmean_m(d), stat.rmean_m(d) - stat.rmin_m(d));
 
             if (maxR(d) <= 0.0) {
                 maxR(d) = 1.0e-30;
@@ -377,9 +336,7 @@ namespace {
             const OpalParticle& particle = particles[startIdx + k];
 
             for (unsigned int d = 0; d < 3; ++d) {
-                gsl_histogram_increment(
-                    histograms[d],
-                    std::abs(particle[2 * d] - stat.rmean_m(d)));
+                gsl_histogram_increment(histograms[d], std::abs(particle[2 * d] - stat.rmean_m(d)));
             }
         }
 
@@ -398,22 +355,20 @@ namespace {
         }
 
         ippl::Comm->allreduce(
-            localHistogramValues.data(),
-            globalHistogramValues.data(),
-            3 * (numBins + 1),
-            std::plus<int>());
+                localHistogramValues.data(), globalHistogramValues.data(), 3 * (numBins + 1),
+                std::plus<int>());
 
         const int numParticles68 =
-            percentileParticleCount(stat.nTotal_m, percentileOneSigmaNormalDist);
+                percentileParticleCount(stat.nTotal_m, percentileOneSigmaNormalDist);
 
         const int numParticles95 =
-            percentileParticleCount(stat.nTotal_m, percentileTwoSigmasNormalDist);
+                percentileParticleCount(stat.nTotal_m, percentileTwoSigmasNormalDist);
 
         const int numParticles99 =
-            percentileParticleCount(stat.nTotal_m, percentileThreeSigmasNormalDist);
+                percentileParticleCount(stat.nTotal_m, percentileThreeSigmasNormalDist);
 
         const int numParticles99_99 =
-            percentileParticleCount(stat.nTotal_m, percentileFourSigmasNormalDist);
+                percentileParticleCount(stat.nTotal_m, percentileFourSigmasNormalDist);
 
         for (unsigned int d = 0; d < 3; ++d) {
             std::vector<OneDPhaseSpace_t> oneDPhaseSpace(nLoc);
@@ -426,74 +381,49 @@ namespace {
             }
 
             std::sort(
-                oneDPhaseSpace.begin(),
-                oneDPhaseSpace.end(),
-                [d, &stat](const OneDPhaseSpace_t& left, const OneDPhaseSpace_t& right) {
-                    return std::abs(left[0] - stat.rmean_m(d))
-                         < std::abs(right[0] - stat.rmean_m(d));
-                });
+                    oneDPhaseSpace.begin(), oneDPhaseSpace.end(),
+                    [d, &stat](const OneDPhaseSpace_t& left, const OneDPhaseSpace_t& right) {
+                        return std::abs(left[0] - stat.rmean_m(d))
+                               < std::abs(right[0] - stat.rmean_m(d));
+                    });
 
-            OneDIterator_t endSixtyEight = oneDPhaseSpace.end();
-            OneDIterator_t endNinetyFive = oneDPhaseSpace.end();
-            OneDIterator_t endNinetyNine = oneDPhaseSpace.end();
+            OneDIterator_t endSixtyEight            = oneDPhaseSpace.end();
+            OneDIterator_t endNinetyFive            = oneDPhaseSpace.end();
+            OneDIterator_t endNinetyNine            = oneDPhaseSpace.end();
             OneDIterator_t endNinetyNine_NinetyNine = oneDPhaseSpace.end();
 
-            std::tie(stat.sixtyEightPercentile_m(d), endSixtyEight) =
-                determinePercentileRange(
-                    oneDPhaseSpace.begin(),
-                    oneDPhaseSpace.end(),
-                    globalHistogramValues,
-                    localHistogramValues,
-                    d,
-                    numParticles68,
-                    stat.rmean_m(d));
+            std::tie(stat.sixtyEightPercentile_m(d), endSixtyEight) = determinePercentileRange(
+                    oneDPhaseSpace.begin(), oneDPhaseSpace.end(), globalHistogramValues,
+                    localHistogramValues, d, numParticles68, stat.rmean_m(d));
 
-            std::tie(stat.ninetyFivePercentile_m(d), endNinetyFive) =
-                determinePercentileRange(
-                    oneDPhaseSpace.begin(),
-                    oneDPhaseSpace.end(),
-                    globalHistogramValues,
-                    localHistogramValues,
-                    d,
-                    numParticles95,
-                    stat.rmean_m(d));
+            std::tie(stat.ninetyFivePercentile_m(d), endNinetyFive) = determinePercentileRange(
+                    oneDPhaseSpace.begin(), oneDPhaseSpace.end(), globalHistogramValues,
+                    localHistogramValues, d, numParticles95, stat.rmean_m(d));
 
-            std::tie(stat.ninetyNinePercentile_m(d), endNinetyNine) =
-                determinePercentileRange(
-                    oneDPhaseSpace.begin(),
-                    oneDPhaseSpace.end(),
-                    globalHistogramValues,
-                    localHistogramValues,
-                    d,
-                    numParticles99,
-                    stat.rmean_m(d));
+            std::tie(stat.ninetyNinePercentile_m(d), endNinetyNine) = determinePercentileRange(
+                    oneDPhaseSpace.begin(), oneDPhaseSpace.end(), globalHistogramValues,
+                    localHistogramValues, d, numParticles99, stat.rmean_m(d));
 
             std::tie(stat.ninetyNine_NinetyNinePercentile_m(d), endNinetyNine_NinetyNine) =
-                determinePercentileRange(
-                    oneDPhaseSpace.begin(),
-                    oneDPhaseSpace.end(),
-                    globalHistogramValues,
-                    localHistogramValues,
-                    d,
-                    numParticles99_99,
-                    stat.rmean_m(d));
+                    determinePercentileRange(
+                            oneDPhaseSpace.begin(), oneDPhaseSpace.end(), globalHistogramValues,
+                            localHistogramValues, d, numParticles99_99, stat.rmean_m(d));
 
             stat.normalizedEps68Percentile_m(d) =
-                computeNormalizedEmittance(oneDPhaseSpace.begin(), endSixtyEight);
+                    computeNormalizedEmittance(oneDPhaseSpace.begin(), endSixtyEight);
 
             stat.normalizedEps95Percentile_m(d) =
-                computeNormalizedEmittance(oneDPhaseSpace.begin(), endNinetyFive);
+                    computeNormalizedEmittance(oneDPhaseSpace.begin(), endNinetyFive);
 
             stat.normalizedEps99Percentile_m(d) =
-                computeNormalizedEmittance(oneDPhaseSpace.begin(), endNinetyNine);
+                    computeNormalizedEmittance(oneDPhaseSpace.begin(), endNinetyNine);
 
             stat.normalizedEps99_99Percentile_m(d) =
-                computeNormalizedEmittance(oneDPhaseSpace.begin(), endNinetyNine_NinetyNine);
+                    computeNormalizedEmittance(oneDPhaseSpace.begin(), endNinetyNine_NinetyNine);
         }
     }
 
-} // namespace
-
+}  // namespace
 
 SetStatistics::SetStatistics()
     : outputName_m(""),
@@ -532,8 +462,7 @@ SetStatistics::SetStatistics()
       normalizedEps68Percentile_m(0.0),
       normalizedEps95Percentile_m(0.0),
       normalizedEps99Percentile_m(0.0),
-      normalizedEps99_99Percentile_m(0.0) {
-}
+      normalizedEps99_99Percentile_m(0.0) {}
 
 LossDataSink::LossDataSink(std::string outfn, bool hdf5Save, CollectionType collectionType)
     : h5hut_mode_m(hdf5Save),
@@ -675,14 +604,13 @@ void LossDataSink::addReferenceParticle(
 }
 
 void LossDataSink::addParticle(
-    const OpalParticle& particle,
-    const std::optional<std::pair<int, short>>& turnBunchNumPair) {
-
+        const OpalParticle& particle,
+        const std::optional<std::pair<int, short>>& turnBunchNumPair) {
     if (turnBunchNumPair) {
         if (turnNumber_m.size() != particles_m.size()) {
             throw GeneralOpalException(
-                "LossDataSink::addParticle",
-                "Either all particles or no particles must have turn number and bunch number");
+                    "LossDataSink::addParticle",
+                    "Either all particles or no particles must have turn number and bunch number");
         }
 
         turnNumber_m.push_back(turnBunchNumPair.value().first);
@@ -691,8 +619,8 @@ void LossDataSink::addParticle(
     } else {
         if (!turnNumber_m.empty()) {
             throw GeneralOpalException(
-                "LossDataSink::addParticle",
-                "Either all particles or no particles must have turn number and bunch number");
+                    "LossDataSink::addParticle",
+                    "Either all particles or no particles must have turn number and bunch number");
         }
     }
 
@@ -758,8 +686,7 @@ void LossDataSink::save(unsigned int numSets, OpalData::OpenMode openMode) {
 // nodes HAVE to participate, otherwise H5 waits endlessly for a response from
 // the nodes that didn't enter the saveH5 function. -DW
 bool LossDataSink::hasNoParticlesToDump() const {
-    const unsigned long long nLocal =
-        static_cast<unsigned long long>(particles_m.size());
+    const unsigned long long nLocal = static_cast<unsigned long long>(particles_m.size());
 
     unsigned long long nGlobal = 0;
     ippl::Comm->allreduce(&nLocal, &nGlobal, 1, std::plus<unsigned long long>());
@@ -794,12 +721,11 @@ void LossDataSink::saveH5(unsigned int setIdx) {
     const bool hasTurn = hasTurnInformations();
 
     if (hasTurn
-        && (turnNumber_m.size() < startIdx + nLoc
-            || bunchNumber_m.size() < startIdx + nLoc)) {
+        && (turnNumber_m.size() < startIdx + nLoc || bunchNumber_m.size() < startIdx + nLoc)) {
         throw GeneralOpalException(
-            "LossDataSink::saveH5",
-            "Turn/bunch information is globally present, but this rank does not have "
-            "turn/bunch data for all particles in this loss set.");
+                "LossDataSink::saveH5",
+                "Turn/bunch information is globally present, but this rank does not have "
+                "turn/bunch data for all particles in this loss set.");
     }
 
     /// Set current record/time step.
@@ -950,15 +876,12 @@ void LossDataSink::saveH5(unsigned int setIdx) {
 
     if (hasTurn) {
         std::copy(
-            turnNumber_m.begin() + startIdx, 
-            turnNumber_m.begin() + startIdx + nLoc, 
-            i64buffer);
+                turnNumber_m.begin() + startIdx, turnNumber_m.begin() + startIdx + nLoc, i64buffer);
         writeDataInt64("turn", i64buffer);
 
         std::copy(
-            bunchNumber_m.begin() + startIdx, 
-            bunchNumber_m.begin() + startIdx + nLoc, 
-            i64buffer);
+                bunchNumber_m.begin() + startIdx, bunchNumber_m.begin() + startIdx + nLoc,
+                i64buffer);
         writeDataInt64("bunchNumber", i64buffer);
     }
 
@@ -977,9 +900,9 @@ void LossDataSink::saveASCII() {
         && (turnNumber_m.size() != particles_m.size()
             || bunchNumber_m.size() != particles_m.size())) {
         throw GeneralOpalException(
-            "LossDataSink::saveASCII",
-            "Turn/bunch information is globally present, but this rank does not have "
-            "turn/bunch data for all particles.");
+                "LossDataSink::saveASCII",
+                "Turn/bunch information is globally present, but this rank does not have "
+                "turn/bunch data for all particles.");
     }
 
     constexpr int tagCount  = 43001;
@@ -991,7 +914,7 @@ void LossDataSink::saveASCII() {
     const int rank = ippl::Comm->rank();
     const int size = ippl::Comm->size();
 
-    const std::size_t nLoc = particles_m.size();
+    const std::size_t nLoc        = particles_m.size();
     const std::size_t nIntColumns = hasTurn ? 3 : 1;
 
     auto packDoubleData = [&]() {
@@ -1018,45 +941,40 @@ void LossDataSink::saveASCII() {
         for (std::size_t i = 0; i < nLoc; ++i) {
             const OpalParticle& particle = particles_m[i];
 
-            data[nIntColumns * i + 0] =
-                static_cast<long long>(particle.getId());
+            data[nIntColumns * i + 0] = static_cast<long long>(particle.getId());
 
             if (hasTurn) {
-                data[nIntColumns * i + 1] =
-                    static_cast<long long>(turnNumber_m[i]);
+                data[nIntColumns * i + 1] = static_cast<long long>(turnNumber_m[i]);
 
-                data[nIntColumns * i + 2] =
-                    static_cast<long long>(bunchNumber_m[i]);
+                data[nIntColumns * i + 2] = static_cast<long long>(bunchNumber_m[i]);
             }
         }
 
         return data;
     };
 
-    auto writeRecords =
-        [&](const std::vector<double>& doubleData,
-            const std::vector<long long>& integerData,
-            std::size_t count) {
-            for (std::size_t i = 0; i < count; ++i) {
-                os_m << doubleData[7 * i + 0] << "   ";
-                os_m << doubleData[7 * i + 1] << "   ";
-                os_m << doubleData[7 * i + 2] << "   ";
-                os_m << doubleData[7 * i + 3] << "   ";
-                os_m << doubleData[7 * i + 4] << "   ";
-                os_m << doubleData[7 * i + 5] << "   ";
-                os_m << integerData[nIntColumns * i + 0] << "   ";
+    auto writeRecords = [&](const std::vector<double>& doubleData,
+                            const std::vector<long long>& integerData, std::size_t count) {
+        for (std::size_t i = 0; i < count; ++i) {
+            os_m << doubleData[7 * i + 0] << "   ";
+            os_m << doubleData[7 * i + 1] << "   ";
+            os_m << doubleData[7 * i + 2] << "   ";
+            os_m << doubleData[7 * i + 3] << "   ";
+            os_m << doubleData[7 * i + 4] << "   ";
+            os_m << doubleData[7 * i + 5] << "   ";
+            os_m << integerData[nIntColumns * i + 0] << "   ";
 
-                if (hasTurn) {
-                    os_m << integerData[nIntColumns * i + 1] << "   ";
-                    os_m << integerData[nIntColumns * i + 2] << "   ";
-                }
-
-                os_m << doubleData[7 * i + 6] << std::endl;
+            if (hasTurn) {
+                os_m << integerData[nIntColumns * i + 1] << "   ";
+                os_m << integerData[nIntColumns * i + 2] << "   ";
             }
-        };
+
+            os_m << doubleData[7 * i + 6] << std::endl;
+        }
+    };
 
     if (rank == 0) {
-        std::vector<double> localDoubleData = packDoubleData();
+        std::vector<double> localDoubleData     = packDoubleData();
         std::vector<long long> localIntegerData = packIntegerData();
 
         writeRecords(localDoubleData, localIntegerData, nLoc);
@@ -1065,70 +983,40 @@ void LossDataSink::saveASCII() {
             unsigned long long remoteCount = 0;
 
             MPI_Recv(
-                &remoteCount,
-                1,
-                MPI_UNSIGNED_LONG_LONG,
-                src,
-                tagCount,
-                comm,
-                MPI_STATUS_IGNORE);
+                    &remoteCount, 1, MPI_UNSIGNED_LONG_LONG, src, tagCount, comm,
+                    MPI_STATUS_IGNORE);
 
             std::vector<double> remoteDoubleData(7 * remoteCount);
             std::vector<long long> remoteIntegerData(nIntColumns * remoteCount);
 
             if (remoteCount > 0) {
                 MPI_Recv(
-                    remoteDoubleData.data(),
-                    static_cast<int>(remoteDoubleData.size()),
-                    MPI_DOUBLE,
-                    src,
-                    tagDouble,
-                    comm,
-                    MPI_STATUS_IGNORE);
+                        remoteDoubleData.data(), static_cast<int>(remoteDoubleData.size()),
+                        MPI_DOUBLE, src, tagDouble, comm, MPI_STATUS_IGNORE);
 
                 MPI_Recv(
-                    remoteIntegerData.data(),
-                    static_cast<int>(remoteIntegerData.size()),
-                    MPI_LONG_LONG,
-                    src,
-                    tagInt,
-                    comm,
-                    MPI_STATUS_IGNORE);
+                        remoteIntegerData.data(), static_cast<int>(remoteIntegerData.size()),
+                        MPI_LONG_LONG, src, tagInt, comm, MPI_STATUS_IGNORE);
             }
 
             writeRecords(remoteDoubleData, remoteIntegerData, remoteCount);
         }
     } else {
-        const unsigned long long localCount =
-            static_cast<unsigned long long>(nLoc);
+        const unsigned long long localCount = static_cast<unsigned long long>(nLoc);
 
-        MPI_Send(
-            &localCount,
-            1,
-            MPI_UNSIGNED_LONG_LONG,
-            0,
-            tagCount,
-            comm);
+        MPI_Send(&localCount, 1, MPI_UNSIGNED_LONG_LONG, 0, tagCount, comm);
 
         if (localCount > 0) {
-            std::vector<double> localDoubleData = packDoubleData();
+            std::vector<double> localDoubleData     = packDoubleData();
             std::vector<long long> localIntegerData = packIntegerData();
 
             MPI_Send(
-                localDoubleData.data(),
-                static_cast<int>(localDoubleData.size()),
-                MPI_DOUBLE,
-                0,
-                tagDouble,
-                comm);
+                    localDoubleData.data(), static_cast<int>(localDoubleData.size()), MPI_DOUBLE, 0,
+                    tagDouble, comm);
 
             MPI_Send(
-                localIntegerData.data(),
-                static_cast<int>(localIntegerData.size()),
-                MPI_LONG_LONG,
-                0,
-                tagInt,
-                comm);
+                    localIntegerData.data(), static_cast<int>(localIntegerData.size()),
+                    MPI_LONG_LONG, 0, tagInt, comm);
         }
     }
 
@@ -1254,9 +1142,9 @@ SetStatistics LossDataSink::computeSetStatistics(unsigned int setIdx) {
     }
 
     Util::KahanAccumulation data[totalSize] = {};
-    Util::KahanAccumulation* localCentroid = data + 1;
-    Util::KahanAccumulation* localMoments  = data + 7;
-    Util::KahanAccumulation* localOthers   = data + 43;
+    Util::KahanAccumulation* localCentroid  = data + 1;
+    Util::KahanAccumulation* localMoments   = data + 7;
+    Util::KahanAccumulation* localOthers    = data + 43;
 
     size_t startIdx = 0;
     size_t nLoc     = particles_m.size();
@@ -1354,23 +1242,19 @@ SetStatistics LossDataSink::computeSetStatistics(unsigned int setIdx) {
         stat.pmean_m(i) = centroid[2 * i + 1] / stat.nTotal_m;
 
         stat.rsqsum_m(i) =
-            moments[(2 * i) * 6 + 2 * i]
-            - stat.nTotal_m * std::pow(stat.rmean_m(i), 2);
+                moments[(2 * i) * 6 + 2 * i] - stat.nTotal_m * std::pow(stat.rmean_m(i), 2);
 
         stat.psqsum_m(i) =
-            moments[(2 * i + 1) * 6 + 2 * i + 1]
-            - stat.nTotal_m * std::pow(stat.pmean_m(i), 2);
+                moments[(2 * i + 1) * 6 + 2 * i + 1] - stat.nTotal_m * std::pow(stat.pmean_m(i), 2);
 
         stat.psqsum_m(i) = std::max(0.0, stat.psqsum_m(i));
 
-        stat.rpsum_m(i) =
-            moments[(2 * i) * 6 + 2 * i + 1]
-            - stat.nTotal_m * stat.rmean_m(i) * stat.pmean_m(i);
+        stat.rpsum_m(i) = moments[(2 * i) * 6 + 2 * i + 1]
+                          - stat.nTotal_m * stat.rmean_m(i) * stat.pmean_m(i);
     }
 
     stat.tmean_m = others[0] / stat.nTotal_m;
-    stat.trms_m  = std::sqrt(
-        std::max(0.0, others[1] / stat.nTotal_m - std::pow(stat.tmean_m, 2)));
+    stat.trms_m  = std::sqrt(std::max(0.0, others[1] / stat.nTotal_m - std::pow(stat.tmean_m, 2)));
 
     stat.totalCharge_m = others[2];
     stat.totalMass_m   = others[3];
@@ -1383,32 +1267,26 @@ SetStatistics LossDataSink::computeSetStatistics(unsigned int setIdx) {
     for (size_t k = 0; k < nLoc; ++k, ++varianceIdx) {
         const OpalParticle& particle = particles_m[varianceIdx];
 
-        const double eKin =
-            Util::getKineticEnergy(particle.getP(), particle.getMass());
+        const double eKin = Util::getKineticEnergy(particle.getP(), particle.getMass());
 
         const double diff = eKin - stat.meanKineticEnergy_m;
         localKineticEnergyVariance += diff * diff;
     }
 
-    double kineticEnergyVariance[] = {
-        static_cast<double>(localKineticEnergyVariance.sum)
-    };
+    double kineticEnergyVariance[] = {static_cast<double>(localKineticEnergyVariance.sum)};
 
     ippl::Comm->allreduce(kineticEnergyVariance, 1, std::plus<double>());
 
-    stat.stdKineticEnergy_m =
-        std::sqrt(std::max(0.0, kineticEnergyVariance[0] / stat.nTotal_m));
+    stat.stdKineticEnergy_m = std::sqrt(std::max(0.0, kineticEnergyVariance[0] / stat.nTotal_m));
 
     stat.meanGamma_m = others[6] / stat.nTotal_m;
 
-    stat.eps2_m =
-        (stat.rsqsum_m * stat.psqsum_m - stat.rpsum_m * stat.rpsum_m)
-        / (1.0 * stat.nTotal_m * stat.nTotal_m);
+    stat.eps2_m = (stat.rsqsum_m * stat.psqsum_m - stat.rpsum_m * stat.rpsum_m)
+                  / (1.0 * stat.nTotal_m * stat.nTotal_m);
 
     stat.rpsum_m /= stat.nTotal_m;
 
-    const double betaGamma =
-        std::sqrt(std::max(0.0, stat.meanGamma_m * stat.meanGamma_m - 1.0));
+    const double betaGamma = std::sqrt(std::max(0.0, stat.meanGamma_m * stat.meanGamma_m - 1.0));
 
     for (unsigned int i = 0; i < 3u; ++i) {
         stat.rrms_m(i) = std::sqrt(std::max(0.0, stat.rsqsum_m(i)) / stat.nTotal_m);
@@ -1416,15 +1294,15 @@ SetStatistics LossDataSink::computeSetStatistics(unsigned int setIdx) {
 
         stat.eps_norm_m(i) = std::sqrt(std::max(0.0, stat.eps2_m(i)));
 
-        stat.geomEmit_m(i) =
-            betaGamma > 0.0 ? stat.eps_norm_m(i) / betaGamma : 0.0;
+        stat.geomEmit_m(i) = betaGamma > 0.0 ? stat.eps_norm_m(i) / betaGamma : 0.0;
 
         const double tmp = stat.rrms_m(i) * stat.prms_m(i);
-        stat.fac_m(i) = tmp == 0.0 ? 0.0 : 1.0 / tmp;
+        stat.fac_m(i)    = tmp == 0.0 ? 0.0 : 1.0 / tmp;
 
         stat.rmin_m(i) = -rMinMax[2 * i];
-        stat.rmax_m(i) =  rMinMax[2 * i + 1];
-        stat.maxR_m(i) =  std::max(std::abs(stat.rmin_m(i)), std::abs(stat.rmax_m(i))); //stat.rmax_m(i);
+        stat.rmax_m(i) = rMinMax[2 * i + 1];
+        stat.maxR_m(i) =
+                std::max(std::abs(stat.rmin_m(i)), std::abs(stat.rmax_m(i)));  // stat.rmax_m(i);
     }
 
     stat.rprms_m = stat.rpsum_m * stat.fac_m;

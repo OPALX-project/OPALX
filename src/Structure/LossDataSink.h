@@ -100,9 +100,7 @@ public:
     LossDataSink(const LossDataSink& rsh);
     ~LossDataSink() noexcept(false);
 
-    bool inH5Mode() const {
-        return h5hut_mode_m;
-    }
+    bool inH5Mode() const { return h5hut_mode_m; }
 
     void save(
             unsigned int numSets = 1, OpalData::OpenMode openMode = OpalData::OpenMode::UNDEFINED);
@@ -160,8 +158,6 @@ private:
 
     bool hasNoParticlesToDump() const;
     bool hasTurnInformations() const;
-
-    // void reportOnError(h5_int64_t rc, const char* file, int line);
 
     void splitSets(unsigned int numSets);
     SetStatistics computeSetStatistics(unsigned int setIdx);
