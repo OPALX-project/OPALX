@@ -968,87 +968,168 @@ void LossDataSink::saveH5(unsigned int setIdx) {
 }
 
 void LossDataSink::saveASCII() {
-    /*
-      ASCII output
+    const bool hasTurn = hasTurnInformations();
 
-    int tag      = Ippl::Comm->next_tag(IPPL_APP_TAG3, IPPL_APP_CYCLE);
-    bool hasTurn = hasTurnInformations();
-    if (ippl::Comm->rank == 0) {
-        const unsigned partCount = particles_m.size();
+    if (hasTurn
+        && (turnNumber_m.size() != particles_m.size()
+            || bunchNumber_m.size() != particles_m.size())) {
+        throw GeneralOpalException(
+            "LossDataSink::saveASCII",
+            "Turn/bunch information is globally present, but this rank does not have "
+            "turn/bunch data for all particles.");
+    }
 
-        for (unsigned i = 0; i < partCount; i++) {
+    constexpr int tagCount  = 43001;
+    constexpr int tagDouble = 43002;
+    constexpr int tagInt    = 43003;
+
+    MPI_Comm comm = ippl::Comm->getCommunicator();
+
+    const int rank = ippl::Comm->rank();
+    const int size = ippl::Comm->size();
+
+    const std::size_t nLoc = particles_m.size();
+    const std::size_t nIntColumns = hasTurn ? 3 : 1;
+
+    auto packDoubleData = [&]() {
+        std::vector<double> data(7 * nLoc);
+
+        for (std::size_t i = 0; i < nLoc; ++i) {
             const OpalParticle& particle = particles_m[i];
-            os_m << particle.getX() << "   ";
-            os_m << particle.getY() << "   ";
-            os_m << particle.getZ() << "   ";
-            os_m << particle.getPx() << "   ";
-            os_m << particle.getPy() << "   ";
-            os_m << particle.getPz() << "   ";
-            os_m << particle.getId() << "   ";
-            if (hasTurn) {
-                os_m << turnNumber_m[i] << "   ";
-                os_m << bunchNumber_m[i] << "   ";
-            }
-            os_m << particle.getTime() << std::endl;
+
+            data[7 * i + 0] = particle.getX();
+            data[7 * i + 1] = particle.getY();
+            data[7 * i + 2] = particle.getZ();
+            data[7 * i + 3] = particle.getPx();
+            data[7 * i + 4] = particle.getPy();
+            data[7 * i + 5] = particle.getPz();
+            data[7 * i + 6] = particle.getTime();
         }
 
-        int notReceived = ippl::Comm->size() - 1;
-        while (notReceived > 0) {
-            unsigned dataBlocks = 0;
-            int node            = COMM_ANY_NODE;
-            Message* rmsg       = Ippl::Comm->receive_block(node, tag);
-            if (rmsg == 0) {
-                *ippl::Error << "LossDataSink: Could not receive from client nodes output." << endl;
-            }
-            notReceived--;
-            rmsg->get(&dataBlocks);
-            rmsg->get(&hasTurn);
-            for (unsigned i = 0; i < dataBlocks; i++) {
-                long id;
-                size_t bunchNum, turn;
-                double rx, ry, rz, px, py, pz, time;
+        return data;
+    };
 
-                os_m << (rmsg->get(&rx), rx) << "   ";
-                os_m << (rmsg->get(&ry), ry) << "   ";
-                os_m << (rmsg->get(&rz), rz) << "   ";
-                os_m << (rmsg->get(&px), px) << "   ";
-                os_m << (rmsg->get(&py), py) << "   ";
-                os_m << (rmsg->get(&pz), pz) << "   ";
-                os_m << (rmsg->get(&id), id) << "   ";
-                if (hasTurn) {
-                    os_m << (rmsg->get(&turn), turn) << "   ";
-                    os_m << (rmsg->get(&bunchNum), bunchNum) << "   ";
-                }
-                os_m << (rmsg->get(&time), time) << std::endl;
+    auto packIntegerData = [&]() {
+        std::vector<long long> data(nIntColumns * nLoc);
+
+        for (std::size_t i = 0; i < nLoc; ++i) {
+            const OpalParticle& particle = particles_m[i];
+
+            data[nIntColumns * i + 0] =
+                static_cast<long long>(particle.getId());
+
+            if (hasTurn) {
+                data[nIntColumns * i + 1] =
+                    static_cast<long long>(turnNumber_m[i]);
+
+                data[nIntColumns * i + 2] =
+                    static_cast<long long>(bunchNumber_m[i]);
             }
-            delete rmsg;
+        }
+
+        return data;
+    };
+
+    auto writeRecords =
+        [&](const std::vector<double>& doubleData,
+            const std::vector<long long>& integerData,
+            std::size_t count) {
+            for (std::size_t i = 0; i < count; ++i) {
+                os_m << doubleData[7 * i + 0] << "   ";
+                os_m << doubleData[7 * i + 1] << "   ";
+                os_m << doubleData[7 * i + 2] << "   ";
+                os_m << doubleData[7 * i + 3] << "   ";
+                os_m << doubleData[7 * i + 4] << "   ";
+                os_m << doubleData[7 * i + 5] << "   ";
+                os_m << integerData[nIntColumns * i + 0] << "   ";
+
+                if (hasTurn) {
+                    os_m << integerData[nIntColumns * i + 1] << "   ";
+                    os_m << integerData[nIntColumns * i + 2] << "   ";
+                }
+
+                os_m << doubleData[7 * i + 6] << std::endl;
+            }
+        };
+
+    if (rank == 0) {
+        std::vector<double> localDoubleData = packDoubleData();
+        std::vector<long long> localIntegerData = packIntegerData();
+
+        writeRecords(localDoubleData, localIntegerData, nLoc);
+
+        for (int src = 1; src < size; ++src) {
+            unsigned long long remoteCount = 0;
+
+            MPI_Recv(
+                &remoteCount,
+                1,
+                MPI_UNSIGNED_LONG_LONG,
+                src,
+                tagCount,
+                comm,
+                MPI_STATUS_IGNORE);
+
+            std::vector<double> remoteDoubleData(7 * remoteCount);
+            std::vector<long long> remoteIntegerData(nIntColumns * remoteCount);
+
+            if (remoteCount > 0) {
+                MPI_Recv(
+                    remoteDoubleData.data(),
+                    static_cast<int>(remoteDoubleData.size()),
+                    MPI_DOUBLE,
+                    src,
+                    tagDouble,
+                    comm,
+                    MPI_STATUS_IGNORE);
+
+                MPI_Recv(
+                    remoteIntegerData.data(),
+                    static_cast<int>(remoteIntegerData.size()),
+                    MPI_LONG_LONG,
+                    src,
+                    tagInt,
+                    comm,
+                    MPI_STATUS_IGNORE);
+            }
+
+            writeRecords(remoteDoubleData, remoteIntegerData, remoteCount);
         }
     } else {
-        Message* smsg          = new Message();
-        const unsigned msgsize = particles_m.size();
-        smsg->put(msgsize);
-        smsg->put(hasTurn);
-        for (unsigned i = 0; i < msgsize; i++) {
-            const OpalParticle& particle = particles_m[i];
-            smsg->put(particle.getX());
-            smsg->put(particle.getY());
-            smsg->put(particle.getZ());
-            smsg->put(particle.getPx());
-            smsg->put(particle.getPy());
-            smsg->put(particle.getPz());
-            smsg->put(particle.getId());
-            if (hasTurn) {
-                smsg->put(turnNumber_m[i]);
-                smsg->put(bunchNumber_m[i]);
-            }
-            smsg->put(particle.getTime());
-        }
-        bool res = Ippl::Comm->send(smsg, 0, tag);
-        if (!res) {
-            *ippl::Error << "LossDataSink Ippl::Comm->send(smsg, 0, tag) failed " << endl;
+        const unsigned long long localCount =
+            static_cast<unsigned long long>(nLoc);
+
+        MPI_Send(
+            &localCount,
+            1,
+            MPI_UNSIGNED_LONG_LONG,
+            0,
+            tagCount,
+            comm);
+
+        if (localCount > 0) {
+            std::vector<double> localDoubleData = packDoubleData();
+            std::vector<long long> localIntegerData = packIntegerData();
+
+            MPI_Send(
+                localDoubleData.data(),
+                static_cast<int>(localDoubleData.size()),
+                MPI_DOUBLE,
+                0,
+                tagDouble,
+                comm);
+
+            MPI_Send(
+                localIntegerData.data(),
+                static_cast<int>(localIntegerData.size()),
+                MPI_LONG_LONG,
+                0,
+                tagInt,
+                comm);
         }
     }
-    */
+
+    ippl::Comm->barrier();
 }
 
 /**
@@ -1309,7 +1390,7 @@ SetStatistics LossDataSink::computeSetStatistics(unsigned int setIdx) {
     double kineticEnergyVariance[] = {
         static_cast<double>(localKineticEnergyVariance.sum)
     };
-    
+
     ippl::Comm->allreduce(kineticEnergyVariance, 1, std::plus<double>());
 
     stat.stdKineticEnergy_m =
