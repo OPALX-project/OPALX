@@ -2,7 +2,7 @@
 // Class Monitor
 //   Defines the abstract interface for a beam position monitor.
 //
-// Copyright (c) 2000 - 2021, Paul Scherrer Institut, Villigen PSI, Switzerland
+// Copyright (c) 2026, Paul Scherrer Institut, Villigen PSI, Switzerland
 // All rights reserved.
 //
 // This file is part of OPAL.
@@ -27,8 +27,8 @@
 #include "Utilities/Options.h"
 #include "Utilities/Util.h"
 
+#include <cmath>
 #include <filesystem>
-
 #include <fstream>
 #include <memory>
 
@@ -55,128 +55,302 @@ Monitor::~Monitor() {}
 
 void Monitor::accept(BeamlineVisitor& visitor) const { visitor.visitMonitor(*this); }
 
-bool Monitor::apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/) { return false; }
+bool Monitor::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
+    if (!online_m || lossDs_m == nullptr || pc == nullptr || RefPartBunch_m == nullptr) {
+        return false;
+    }
+
+    if (type_m != CollectionType::SPATIAL) {
+        return false;
+    }
+
+    const long long globalStep = RefPartBunch_m->getGlobalTrackStep();
+    const double sPos          = pc->get_sPos();
+
+    if (globalStep == 0 && std::abs(sPos) < 1.0e-14) {
+        Inform msg("Monitor::apply(pc)");
+        msg << level5 << "Ignoring pre-tracking spatial particle crossing"
+            << " globalStep=" << globalStep << " pc_spos=" << sPos << endl;
+        return false;
+    }
+
+    const auto nLoc = pc->getLocalNum();
+    if (nLoc == 0) {
+        return false;
+    }
+
+    auto Rview  = pc->R.getView();
+    auto Pview  = pc->P.getView();
+    auto dtview = pc->dt.getView();
+    auto IDview = pc->ID.getView();
+    auto Qview  = pc->getQView();
+    auto Mview  = pc->getMView();
+
+    auto hR  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), Rview);
+    auto hP  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), Pview);
+    auto hdt = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), dtview);
+    auto hID = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), IDview);
+    auto hQ  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), Qview);
+    auto hM  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), Mview);
+
+    const bool qmAreAttributes =
+            (pc->getQMStorageMode() == ParticleContainer_t::QMStorageMode::Attributes);
+
+    const double bunchTime = RefPartBunch_m->getT();
+
+    for (size_t i = 0; i < nLoc; ++i) {
+        const Vector_t<double, 3> R = hR(i);
+        const Vector_t<double, 3> P = hP(i);
+        const double dt             = hdt(i);
+
+        const Vector_t<double, 3> singleStep = Physics::c * dt * Util::getBeta(P);
+
+        if (singleStep(2) == 0.0) {
+            continue;
+        }
+
+        if (dt * R(2) < 0.0 && dt * (R(2) + singleStep(2)) > 0.0) {
+            const double frac = -R(2) / singleStep(2);
+
+            const Vector_t<double, 3> crossingR = R + frac * singleStep;
+            const double crossingTime = bunchTime + 0.5 * RefPartBunch_m->getdT() + frac * dt;
+
+            const std::size_t id = static_cast<std::size_t>(hID(i));
+            const double q       = qmAreAttributes ? hQ(i) : hQ(0);
+            const double m       = qmAreAttributes ? hM(i) : hM(0);
+
+            lossDs_m->addParticle(OpalParticle(id, crossingR, P, crossingTime, q, m));
+        }
+    }
+
+    return false;
+}
 
 bool Monitor::apply(
-        const size_t& /*i*/, const double& /*t*/, Vector_t<double, 3>& /*E*/,
-        Vector_t<double, 3>& /*B*/) {
-    // const Vector_t<double, 3>& R         = RefPartBunch_m->R(i);
-    // const Vector_t<double, 3>& P         = RefPartBunch_m->P(i);
-    // const double& dt                     = RefPartBunch_m->dt(i);
-    // const Vector_t<double, 3> singleStep = Physics::c * dt * Util::getBeta(P);
-    // if (online_m && type_m == CollectionType::SPATIAL) {
-    //     if (dt * R(2) < 0.0 && dt * (R(2) + singleStep(2)) > 0.0) {
-    //         // if R(2) is negative then frac should be positive and vice versa
-    //         double frac = -R(2) / singleStep(2);
+        const size_t& i, const double& t, Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/) {
+    if (!online_m || lossDs_m == nullptr || RefPartBunch_m == nullptr) {
+        return false;
+    }
 
-    //         lossDs_m->addParticle(OpalParticle(
-    //             RefPartBunch_m->ID[i], R + frac * singleStep, P, t + frac * dt,
-    //             RefPartBunch_m->Q[i], RefPartBunch_m->M[i]));
-    //     }
-    // }
+    if (type_m != CollectionType::SPATIAL) {
+        return false;
+    }
 
-    throw std::runtime_error("Fix this function please");
+    const std::shared_ptr<ParticleContainer_t> pc = RefPartBunch_m->getParticleContainer();
+    if (!pc) {
+        return false;
+    }
+
+    auto Rview  = pc->R.getView();
+    auto Pview  = pc->P.getView();
+    auto dtview = pc->dt.getView();
+    auto IDview = pc->ID.getView();
+    auto Qview  = pc->getQView();
+    auto Mview  = pc->getMView();
+
+    const Vector_t<double, 3> R = Rview(i);
+    const Vector_t<double, 3> P = Pview(i);
+    const double dt             = dtview(i);
+
+    const Vector_t<double, 3> singleStep = Physics::c * dt * Util::getBeta(P);
+
+    if (singleStep(2) == 0.0) {
+        return false;
+    }
+
+    if (dt * R(2) < 0.0 && dt * (R(2) + singleStep(2)) > 0.0) {
+        const double frac                   = -R(2) / singleStep(2);
+        const Vector_t<double, 3> crossingR = R + frac * singleStep;
+        const double crossingTime           = t + frac * dt;
+
+        const bool qmAreAttributes =
+                (pc->getQMStorageMode() == ParticleContainer_t::QMStorageMode::Attributes);
+
+        const std::size_t id = static_cast<std::size_t>(IDview(i));
+        const double q       = qmAreAttributes ? Qview(i) : Qview(0);
+        const double m       = qmAreAttributes ? Mview(i) : Mview(0);
+
+        lossDs_m->addParticle(OpalParticle(id, crossingR, P, crossingTime, q, m));
+    }
+
     return false;
 }
 
 bool Monitor::apply(
         const Vector_t<double, 3>& /*R*/, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
         Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/) {
-    throw std::runtime_error("Fix this function please");
+    // Monitor is field-free.
+    // This overload does not provide particle ID and may not provide the correct
+    // per-particle dt/q/m information, so it cannot safely save monitor hits.
     return false;
 }
 
 void Monitor::driftToCorrectPositionAndSave(
-        const Vector_t<double, 3>& /*refR*/, const Vector_t<double, 3>& /*refP*/) {
-    // const double cdt                           = Physics::c * RefPartBunch_m->getdT();
-    // const Vector_t<double, 3> driftPerTimeStep = cdt * Util::getBeta(refP);
-    // const double tau                           = -refR(2) / driftPerTimeStep(2);
-    // const CoordinateSystemTrafo update(
-    //     refR + tau * driftPerTimeStep, getQuaternion(refP, Vector_t<double, 3>(0, 0, 1)));
-    // const CoordinateSystemTrafo refToLocalCSTrafo =
-    //     update * (getCSTrafoGlobal2Local() * RefPartBunch_m->toLabTrafo_m);
+        const Vector_t<double, 3>& refR, const Vector_t<double, 3>& refP) {
+    if (lossDs_m == nullptr || RefPartBunch_m == nullptr) {
+        return;
+    }
 
-    // for (OpalParticle particle : *RefPartBunch_m) {
-    //     Vector_t<double, 3> beta = refToLocalCSTrafo.rotateTo(Util::getBeta(particle.getP()));
-    //     Vector_t<double, 3> dS =
-    //         (tau - 0.5) * cdt
-    //         * beta;  // the particles are half a step ahead relative to the reference particle
-    //     particle.setR(refToLocalCSTrafo.transformTo(particle.getR()) + dS);
-    //     lossDs_m->addParticle(particle);
-    // }
-    throw std::runtime_error("Fix this function please");
+    const std::shared_ptr<ParticleContainer_t> pc = RefPartBunch_m->getParticleContainer();
+    if (!pc) {
+        return;
+    }
+
+    const double dt  = RefPartBunch_m->getdT();
+    const double cdt = Physics::c * dt;
+
+    const Vector_t<double, 3> driftPerTimeStep = cdt * Util::getBeta(refP);
+
+    if (driftPerTimeStep(2) == 0.0) {
+        return;
+    }
+
+    const double tau = -refR(2) / driftPerTimeStep(2);
+
+    const CoordinateSystemTrafo update(
+            refR + tau * driftPerTimeStep, getQuaternion(refP, Vector_t<double, 3>(0.0, 0.0, 1.0)));
+
+    const CoordinateSystemTrafo refToLocalCSTrafo =
+            update * (getCSTrafoGlobal2Local() * pc->getToLabTrafo());
+
+    auto Rview  = pc->R.getView();
+    auto Pview  = pc->P.getView();
+    auto IDview = pc->ID.getView();
+    auto Qview  = pc->getQView();
+    auto Mview  = pc->getMView();
+
+    auto hR  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), Rview);
+    auto hP  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), Pview);
+    auto hID = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), IDview);
+    auto hQ  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), Qview);
+    auto hM  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), Mview);
+
+    const auto nLoc = pc->getLocalNum();
+
+    const bool qmAreAttributes =
+            (pc->getQMStorageMode() == ParticleContainer_t::QMStorageMode::Attributes);
+
+    const double particleTime = RefPartBunch_m->getT();
+
+    for (size_t i = 0; i < nLoc; ++i) {
+        const Vector_t<double, 3> globalR = hR(i);
+        const Vector_t<double, 3> globalP = hP(i);
+
+        const Vector_t<double, 3> beta = refToLocalCSTrafo.rotateTo(Util::getBeta(globalP));
+
+        const Vector_t<double, 3> dS = (tau - 0.5) * cdt * beta;
+
+        const Vector_t<double, 3> localR = refToLocalCSTrafo.transformTo(globalR) + dS;
+
+        const std::size_t id = static_cast<std::size_t>(hID(i));
+
+        const double q = qmAreAttributes ? hQ(i) : hQ(0);
+
+        const double macroMassGeV = qmAreAttributes ? hM(i) : hM(0);
+        const double macroWeight  = std::abs(q) / std::abs(Physics::q_e);
+
+        const double m = macroWeight > 0.0 ? macroMassGeV * Units::GeV2MeV / macroWeight
+                                           : macroMassGeV * Units::GeV2MeV;
+
+        lossDs_m->addParticle(OpalParticle(id, localR, globalP, particleTime, q, m));
+    }
 }
 
 bool Monitor::applyToReferenceParticle(
-        const Vector_t<double, 3>& /*R*/, const Vector_t<double, 3>& /*P*/, const double& /*t*/,
+        const Vector_t<double, 3>& R, const Vector_t<double, 3>& P, const double& t,
         Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/) {
-    // if (!OpalData::getInstance()->isInPrepState()) {
-    //     const double dt                      = RefPartBunch_m->getdT();
-    //     const double cdt                     = Physics::c * dt;
-    //     const Vector_t<double, 3> singleStep = cdt * Util::getBeta(P);
+    if (!online_m || lossDs_m == nullptr || RefPartBunch_m == nullptr
+        || OpalData::getInstance()->isInPrepState()) {
+        return false;
+    }
 
-    //     if (dt * R(2) < 0.0 && dt * (R(2) + singleStep(2)) > 0.0) {
-    //         double frac            = -R(2) / singleStep(2);
-    //         double time            = t + frac * dt;
-    //         Vector_t<double, 3> dR = frac * singleStep;
-    //         double ds              = euclidean_norm(dR + 0.5 * singleStep);
-    //         lossDs_m->addReferenceParticle(
-    //             csTrafoGlobal2Local_m.transformFrom(R + dR), csTrafoGlobal2Local_m.rotateFrom(P),
-    //             time, RefPartBunch_m->get_sPos() + ds, RefPartBunch_m->getGlobalTrackStep());
+    const std::shared_ptr<ParticleContainer_t> pc = RefPartBunch_m->getParticleContainer();
+    if (!pc) {
+        return false;
+    }
 
-    //         if (type_m == CollectionType::TEMPORAL) {
-    //             driftToCorrectPositionAndSave(R, P);
-    //             auto stats = lossDs_m->computeStatistics(1);
-    //             if (!stats.empty()) {
-    //                 statFileEntries_sm.insert(
-    //                     std::make_pair(stats.begin()->spos_m, *stats.begin()));
-    //                 OpalData::OpenMode openMode;
-    //                 if (numPassages_m > 0) {
-    //                     openMode = OpalData::OpenMode::APPEND;
-    //                 } else {
-    //                     openMode = OpalData::getInstance()->getOpenMode();
-    //                 }
-    //                 lossDs_m->save(1, openMode);
-    //             }
-    //         }
+    const double dt                      = RefPartBunch_m->getdT();
+    const double cdt                     = Physics::c * dt;
+    const Vector_t<double, 3> singleStep = cdt * Util::getBeta(P);
 
-    //         ++numPassages_m;
-    //     }
-    // }
-    throw std::runtime_error("Fix this function please");
+    if (singleStep(2) == 0.0) {
+        return false;
+    }
+
+    if (dt * R(2) < 0.0 && dt * (R(2) + singleStep(2)) > 0.0) {
+        const long long globalStep = RefPartBunch_m->getGlobalTrackStep();
+        const double sPos          = pc->get_sPos();
+
+        if (globalStep == 0 && std::abs(sPos) < 1.0e-14) {
+            Inform msg("Monitor::applyToReferenceParticle");
+            msg << level5 << "Ignoring pre-tracking reference crossing"
+                << " globalStep=" << globalStep << " pc_spos=" << sPos << endl;
+            return false;
+        }
+
+        const double frac            = -R(2) / singleStep(2);
+        const double time            = t + frac * dt;
+        const Vector_t<double, 3> dR = frac * singleStep;
+
+        const Vector_t<double, 3> dsVec = dR + 0.5 * singleStep;
+        const double ds                 = euclidean_norm(dsVec);
+
+        lossDs_m->addReferenceParticle(
+                csTrafoGlobal2Local_m.transformFrom(R + dR), csTrafoGlobal2Local_m.rotateFrom(P),
+                time, pc->get_sPos() + ds, RefPartBunch_m->getGlobalTrackStep());
+
+        if (type_m == CollectionType::TEMPORAL) {
+            driftToCorrectPositionAndSave(R, P);
+
+            auto stats = lossDs_m->computeStatistics(1);
+            if (!stats.empty()) {
+                statFileEntries_sm.insert(std::make_pair(stats.begin()->spos_m, *stats.begin()));
+
+                OpalData::OpenMode openMode = (numPassages_m > 0)
+                                                      ? OpalData::OpenMode::APPEND
+                                                      : OpalData::getInstance()->getOpenMode();
+
+                lossDs_m->save(1, openMode);
+            }
+        }
+
+        ++numPassages_m;
+    }
+
     return false;
 }
 
 void Monitor::initialise(PartBunch_t* bunch, double& startField, double& endField) {
     RefPartBunch_m = bunch;
-    endField       = startField + halfLength_s;
+
+    endField = startField + halfLength_s;
     startField -= halfLength_s;
 
-    // const size_t totalNum  = bunch->getTotalNum();
-    // double currentPosition = endField;
-    // if (totalNum > 0) {
-    //     currentPosition = bunch->get_sPos();
-    // }
+    double currentPosition = endField;
+    if (bunch != nullptr) {
+        const std::shared_ptr<ParticleContainer_t> pc = bunch->getParticleContainer();
+        if (pc) {
+            currentPosition = pc->get_sPos();
+        }
+    }
 
     filename_m = getOutputFN();
 
-    // if (OpalData::getInstance()->getOpenMode() == OpalData::OpenMode::WRITE
-    //     || currentPosition < startField) {
-    //     namespace fs = std::filesystem;
+    if (OpalData::getInstance()->getOpenMode() == OpalData::OpenMode::WRITE
+        || currentPosition < startField) {
+        namespace fs = std::filesystem;
 
-    //     fs::path lossFileName = fs::path(filename_m + ".h5");
-    //     if (fs::exists(lossFileName)) {
-    //         Ippl::Comm->barrier();
-    //         if (ippl::Comm->rank() == 0) {
-    //             fs::remove(lossFileName);
-    //         }
-    //         Ippl::Comm->barrier();
-    //     }
-    // }
+        const fs::path lossFileName(filename_m + ".h5");
+        if (fs::exists(lossFileName)) {
+            ippl::Comm->barrier();
+            if (ippl::Comm->rank() == 0) {
+                fs::remove(lossFileName);
+            }
+            ippl::Comm->barrier();
+        }
+    }
 
-    // lossDs_m =
-    //     std::unique_ptr<LossDataSink>(new LossDataSink(filename_m, !Options::asciidump, type_m));
-    throw std::runtime_error("Fix this function please");
+    lossDs_m = std::make_unique<LossDataSink>(filename_m, !Options::asciidump, type_m);
 }
 
 void Monitor::finalise() {}
@@ -184,6 +358,10 @@ void Monitor::finalise() {}
 void Monitor::goOnline(const double&) { online_m = true; }
 
 void Monitor::goOffline() {
+    if (!lossDs_m) {
+        return;
+    }
+
     auto stats = lossDs_m->computeStatistics(numPassages_m);
     for (auto& stat : stats) {
         statFileEntries_sm.insert(std::make_pair(stat.spos_m, stat));
@@ -201,10 +379,8 @@ void Monitor::getFieldExtend(double& zBegin, double& zEnd) const {
     zEnd   = halfLength_s;
 }
 
-ElementType Monitor::getType() const {
-    // return ElementType::MONITOR;
-    throw std::runtime_error("Fix this function please");
-}
+/// \todo Check switch statements over ElementType and add a MONITOR case where needed.
+ElementType Monitor::getType() const { return ElementType::MONITOR; }
 
 void Monitor::writeStatistics() {
     if (statFileEntries_sm.size() == 0) return;
