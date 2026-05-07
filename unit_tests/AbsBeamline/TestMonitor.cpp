@@ -67,45 +67,25 @@ public:
 // ---------------------------------------------------------------------------
 class TestMonitor : public Monitor {
 public:
-    TestMonitor() : Monitor("test_monitor") {
-        geom_.setElementLength(0.01);
-    }
+    TestMonitor() : Monitor("test_monitor") { geom_.setElementLength(0.01); }
 
-    explicit TestMonitor(const std::string& name) : Monitor(name) {
-        geom_.setElementLength(0.01);
-    }
+    explicit TestMonitor(const std::string& name) : Monitor(name) { geom_.setElementLength(0.01); }
 
-    ElementBase* clone() const override {
-        return new TestMonitor(*this);
-    }
+    ElementBase* clone() const override { return new TestMonitor(*this); }
 
-    StraightGeometry& getGeometry() override {
-        return geom_;
-    }
+    StraightGeometry& getGeometry() override { return geom_; }
 
-    const StraightGeometry& getGeometry() const override {
-        return geom_;
-    }
+    const StraightGeometry& getGeometry() const override { return geom_; }
 
-    EMField& getField() override {
-        return field_;
-    }
+    EMField& getField() override { return field_; }
 
-    const EMField& getField() const override {
-        return field_;
-    }
+    const EMField& getField() const override { return field_; }
 
-    Plane getPlane() const override {
-        return plane_;
-    }
+    Plane getPlane() const override { return plane_; }
 
-    void setPlane(Plane plane) {
-        plane_ = plane;
-    }
+    void setPlane(Plane plane) { plane_ = plane; }
 
-    void setLength(double length) {
-        geom_.setElementLength(length);
-    }
+    void setLength(double length) { geom_.setElementLength(length); }
 
 private:
     StraightGeometry geom_;
@@ -113,21 +93,18 @@ private:
     Plane plane_ = OFF;
 };
 
-
 // ---------------------------------------------------------------------------
 // Fixture
 // ---------------------------------------------------------------------------
 class MonitorTest : public ::testing::Test {
 protected:
     static void SetUpTestSuite() {
-        int argc = 0;
+        int argc    = 0;
         char** argv = nullptr;
         ippl::initialize(argc, argv);
     }
 
-    static void TearDownTestSuite() {
-        ippl::finalize();
-    }
+    static void TearDownTestSuite() { ippl::finalize(); }
 };
 
 // ---------------------------------------------------------------------------
@@ -155,7 +132,7 @@ TEST_F(MonitorTest, GetFieldExtendUsesMonitorHalfLength) {
     TestMonitor monitor;
 
     double zBegin = 0.0;
-    double zEnd = 0.0;
+    double zEnd   = 0.0;
 
     monitor.getFieldExtend(zBegin, zEnd);
 
@@ -275,4 +252,3 @@ TEST_F(MonitorTest, GoOfflineWithoutLossDataSinkIsSafe) {
 
     EXPECT_NO_THROW(monitor.goOffline());
 }
-

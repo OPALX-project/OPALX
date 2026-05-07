@@ -1,4 +1,4 @@
- /**
+/**
  * \file TestLossDataSink.cpp
  * \brief Unit tests for LossDataSink statistics and bookkeeping.
  *
@@ -80,35 +80,27 @@ namespace {
     }
 
     OpalParticle makeParticle(
-            std::size_t id,
-            const Vector_t<double, 3>& r,
-            const Vector_t<double, 3>& p,
-            double time = 0.0,
-            double charge = -1.0e-17,
-            double mass = 0.51099895) {
+            std::size_t id, const Vector_t<double, 3>& r, const Vector_t<double, 3>& p,
+            double time = 0.0, double charge = -1.0e-17, double mass = 0.51099895) {
         return OpalParticle(id, r, p, time, charge, mass);
     }
 
     class LossDataSinkTest : public ::testing::Test {
     protected:
         static void SetUpTestSuite() {
-            int argc = 0;
+            int argc    = 0;
             char** argv = nullptr;
             ippl::initialize(argc, argv);
         }
 
-        static void TearDownTestSuite() {
-            ippl::finalize();
-        }
+        static void TearDownTestSuite() { ippl::finalize(); }
 
         void SetUp() override {
-            oldComputePercentiles_m = Options::computePercentiles;
+            oldComputePercentiles_m     = Options::computePercentiles;
             Options::computePercentiles = false;
         }
 
-        void TearDown() override {
-            Options::computePercentiles = oldComputePercentiles_m;
-        }
+        void TearDown() override { Options::computePercentiles = oldComputePercentiles_m; }
 
     private:
         bool oldComputePercentiles_m = false;
@@ -117,37 +109,26 @@ namespace {
     TEST_F(LossDataSinkTest, AddParticleRejectsTurnInformationAfterPlainParticle) {
         LossDataSink sink;
 
-        sink.addParticle(makeParticle(
-            1,
-            makeVector(0.0, 0.0, 0.0),
-            makeVector(0.0, 0.0, 1.0)));
+        sink.addParticle(makeParticle(1, makeVector(0.0, 0.0, 0.0), makeVector(0.0, 0.0, 1.0)));
 
         EXPECT_THROW(
-            sink.addParticle(
-                makeParticle(
-                    2,
-                    makeVector(0.0, 0.0, 0.0),
-                    makeVector(0.0, 0.0, 1.0)),
-                std::make_pair(3, static_cast<short>(4))),
-            GeneralOpalException);
+                sink.addParticle(
+                        makeParticle(2, makeVector(0.0, 0.0, 0.0), makeVector(0.0, 0.0, 1.0)),
+                        std::make_pair(3, static_cast<short>(4))),
+                GeneralOpalException);
     }
 
     TEST_F(LossDataSinkTest, AddParticleRejectsPlainParticleAfterTurnInformation) {
         LossDataSink sink;
 
         sink.addParticle(
-            makeParticle(
-                1,
-                makeVector(0.0, 0.0, 0.0),
-                makeVector(0.0, 0.0, 1.0)),
-            std::make_pair(3, static_cast<short>(4)));
+                makeParticle(1, makeVector(0.0, 0.0, 0.0), makeVector(0.0, 0.0, 1.0)),
+                std::make_pair(3, static_cast<short>(4)));
 
         EXPECT_THROW(
-            sink.addParticle(makeParticle(
-                2,
-                makeVector(0.0, 0.0, 0.0),
-                makeVector(0.0, 0.0, 1.0))),
-            GeneralOpalException);
+                sink.addParticle(
+                        makeParticle(2, makeVector(0.0, 0.0, 0.0), makeVector(0.0, 0.0, 1.0))),
+                GeneralOpalException);
     }
 
     TEST_F(LossDataSinkTest, ComputeStatisticsSingleParticle) {
@@ -192,15 +173,9 @@ namespace {
     TEST_F(LossDataSinkTest, MaxRUsesMaximumAbsoluteExtent) {
         LossDataSink sink;
 
-        sink.addParticle(makeParticle(
-            1,
-            makeVector(-2.0, 5.0, -7.0),
-            makeVector(0.0, 0.0, 1.0)));
+        sink.addParticle(makeParticle(1, makeVector(-2.0, 5.0, -7.0), makeVector(0.0, 0.0, 1.0)));
 
-        sink.addParticle(makeParticle(
-            2,
-            makeVector(1.0, -6.0, 4.0),
-            makeVector(0.0, 0.0, 1.0)));
+        sink.addParticle(makeParticle(2, makeVector(1.0, -6.0, 4.0), makeVector(0.0, 0.0, 1.0)));
 
         const auto stats = sink.computeStatistics(1);
 
@@ -224,17 +199,11 @@ namespace {
     TEST_F(LossDataSinkTest, MeanAndRmsTimeAreComputedCorrectly) {
         LossDataSink sink;
 
-        sink.addParticle(makeParticle(
-            1,
-            makeVector(0.0, 0.0, 0.0),
-            makeVector(0.0, 0.0, 1.0),
-            1.0));
+        sink.addParticle(
+                makeParticle(1, makeVector(0.0, 0.0, 0.0), makeVector(0.0, 0.0, 1.0), 1.0));
 
-        sink.addParticle(makeParticle(
-            2,
-            makeVector(0.0, 0.0, 0.0),
-            makeVector(0.0, 0.0, 1.0),
-            3.0));
+        sink.addParticle(
+                makeParticle(2, makeVector(0.0, 0.0, 0.0), makeVector(0.0, 0.0, 1.0), 3.0));
 
         const auto stats = sink.computeStatistics(1);
 
@@ -274,11 +243,8 @@ namespace {
 
         sink.startSet_m = {0, 1, 2};
 
-        sink.addParticle(makeParticle(
-            1,
-            makeVector(0.0, 0.0, 0.0),
-            makeVector(0.0, 0.0, 1.0),
-            1.0));
+        sink.addParticle(
+                makeParticle(1, makeVector(0.0, 0.0, 0.0), makeVector(0.0, 0.0, 1.0), 1.0));
 
         sink.splitSets(1);
 
@@ -288,29 +254,17 @@ namespace {
     TEST_F(LossDataSinkTest, SplitSetsCreatesMonotonicBoundaries) {
         LossDataSink sink;
 
-        sink.addParticle(makeParticle(
-            1,
-            makeVector(0.0, 0.0, 0.0),
-            makeVector(0.0, 0.0, 1.0),
-            0.0));
+        sink.addParticle(
+                makeParticle(1, makeVector(0.0, 0.0, 0.0), makeVector(0.0, 0.0, 1.0), 0.0));
 
-        sink.addParticle(makeParticle(
-            2,
-            makeVector(0.0, 0.0, 0.0),
-            makeVector(0.0, 0.0, 1.0),
-            1.0));
+        sink.addParticle(
+                makeParticle(2, makeVector(0.0, 0.0, 0.0), makeVector(0.0, 0.0, 1.0), 1.0));
 
-        sink.addParticle(makeParticle(
-            3,
-            makeVector(0.0, 0.0, 0.0),
-            makeVector(0.0, 0.0, 1.0),
-            10.0));
+        sink.addParticle(
+                makeParticle(3, makeVector(0.0, 0.0, 0.0), makeVector(0.0, 0.0, 1.0), 10.0));
 
-        sink.addParticle(makeParticle(
-            4,
-            makeVector(0.0, 0.0, 0.0),
-            makeVector(0.0, 0.0, 1.0),
-            11.0));
+        sink.addParticle(
+                makeParticle(4, makeVector(0.0, 0.0, 0.0), makeVector(0.0, 0.0, 1.0), 11.0));
 
         sink.splitSets(2);
 
