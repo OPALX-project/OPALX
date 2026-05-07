@@ -289,8 +289,8 @@ bool FM2DDynamic::getFieldstrength(
         const Vector_t<double, 3>& R, Vector_t<double, 3>& E, Vector_t<double, 3>& B) const {
     if (isInside(R)) {
         computeField(
-                R, E, B, FieldstrengthEz_m.h_view, FieldstrengthEr_m.h_view,
-                FieldstrengthBt_m.h_view, hr_m, hz_m, zbegin_m, num_gridpr_m, num_gridpz_m);
+                R, E, B, FieldstrengthEz_m.view_host(), FieldstrengthEr_m.view_host(),
+                FieldstrengthBt_m.view_host(), hr_m, hz_m, zbegin_m, num_gridpr_m, num_gridpz_m);
 
         return false;
     } else {
