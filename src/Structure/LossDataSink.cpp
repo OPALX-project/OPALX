@@ -1323,7 +1323,7 @@ SetStatistics LossDataSink::computeSetStatistics(unsigned int setIdx) {
 
         stat.rmin_m(i) = -rMinMax[2 * i];
         stat.rmax_m(i) =  rMinMax[2 * i + 1];
-        stat.maxR_m(i) =  stat.rmax_m(i);
+        stat.maxR_m(i) =  std::max(std::abs(stat.rmin_m(i)), std::abs(stat.rmax_m(i))); //stat.rmax_m(i);
     }
 
     stat.rprms_m = stat.rpsum_m * stat.fac_m;

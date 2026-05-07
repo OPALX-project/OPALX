@@ -195,7 +195,7 @@ private:
 
     std::vector<unsigned long> startSet_m;
 
-    CollectionType collectionType_m = CollectionType::TEMPORAL;
+    CollectionType collectionType_m = CollectionType::SPATIAL;
 };
 
 inline size_t LossDataSink::size() const { return particles_m.size(); }
