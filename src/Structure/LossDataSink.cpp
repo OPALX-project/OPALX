@@ -579,7 +579,10 @@ LossDataSink::~LossDataSink() noexcept(false) {
     if (H5file_m) {
         closeFile();
     }
-    ippl::Comm->barrier();
+
+    if (ippl::Comm != nullptr) {
+        ippl::Comm->barrier();
+    }
 }
 
 void LossDataSink::openH5(h5_int32_t mode) {
