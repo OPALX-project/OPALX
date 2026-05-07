@@ -1292,11 +1292,28 @@ SetStatistics LossDataSink::computeSetStatistics(unsigned int setIdx) {
     stat.totalMass_m   = others[3];
 
     stat.meanKineticEnergy_m = others[4] / stat.nTotal_m;
-    stat.stdKineticEnergy_m  = std::sqrt(
-        std::max(
-            0.0,
-            others[5] / stat.nTotal_m
-                - stat.meanKineticEnergy_m * stat.meanKineticEnergy_m));
+
+    Util::KahanAccumulation localKineticEnergyVariance = {};
+
+    size_t varianceIdx = startIdx;
+    for (size_t k = 0; k < nLoc; ++k, ++varianceIdx) {
+        const OpalParticle& particle = particles_m[varianceIdx];
+
+        const double eKin =
+            Util::getKineticEnergy(particle.getP(), particle.getMass());
+
+        const double diff = eKin - stat.meanKineticEnergy_m;
+        localKineticEnergyVariance += diff * diff;
+    }
+
+    double kineticEnergyVariance[] = {
+        static_cast<double>(localKineticEnergyVariance.sum)
+    };
+    
+    ippl::Comm->allreduce(kineticEnergyVariance, 1, std::plus<double>());
+
+    stat.stdKineticEnergy_m =
+        std::sqrt(std::max(0.0, kineticEnergyVariance[0] / stat.nTotal_m));
 
     stat.meanGamma_m = others[6] / stat.nTotal_m;
 
