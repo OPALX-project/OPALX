@@ -129,7 +129,7 @@ KOKKOS_INLINE_FUNCTION bool MultipoleTCurvedConstRadius::computeBField(
         Kokkos::Array<double, MaxPowerInteger> rhoPowers{};
         Kokkos::Array<double, MaxPowerInteger> hsPowers{};
         calcTransverseDerivatives(
-                config.transverseProfile_m, config.maxFOrder_m * 2 + 1, RPrime[0], dt);
+                config.transverseProfile_m, config.maxFOrder_m * 2 + 2, RPrime[0], dt);
         calcFringeDerivatives(
                 config.fringeS0_m, config.fringeLambdaLeft_m, config.fringeLambdaRight_m, RPrime[2],
                 tanhCoefficients, ds);
