@@ -340,7 +340,7 @@ void Astra1DDynamic::applyTravelingWave(
 bool Astra1DDynamic::getFieldstrength(
         const Vector_t<double, 3>& R, Vector_t<double, 3>& E, Vector_t<double, 3>& B) const {
     if (isInside(R)) {
-        computeField(R, E, B, FourCoefs_m.h_view, zbegin_m, length_m, xlrep_m, accuracy_m);
+        computeField(R, E, B, FourCoefs_m.view_host(), zbegin_m, length_m, xlrep_m, accuracy_m);
 
         return false;
     } else {
@@ -362,7 +362,7 @@ bool Astra1DDynamic::getFieldDerivative(
     const double kz = Physics::two_pi * (R(2) - zbegin_m) / length_m + Physics::pi;
     double ezp      = 0.0;
 
-    auto FourCoefs = FourCoefs_m.h_view;
+    auto FourCoefs = FourCoefs_m.view_host();
 
     int n = 1;
     for (int l = 1; l < accuracy_m; ++l, n += 2) {
