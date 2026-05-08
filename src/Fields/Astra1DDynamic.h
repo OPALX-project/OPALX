@@ -263,9 +263,6 @@ private:
      */
     Kokkos::DualView<double*> FourCoefs_m;
 
-    std::vector<double> zRaw_m;
-    std::vector<double> ezRaw_m;
-
     double frequency_m;
 
     /// @brief Z Bounds relative to element edge
