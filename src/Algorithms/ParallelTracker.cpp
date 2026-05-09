@@ -1259,10 +1259,9 @@ void ParallelTracker::findStartPositions(const BorisPusher& pusher) {
  */
 void ParallelTracker::dumpStats(long long step, bool psDump, bool statDump) {
     OPALTimer::Timer myt2;
-    const size_t totalAll = itsBunch_m->getTotalNumAllContainers();
+    const size_t totalAll      = itsBunch_m->getTotalNumAllContainers();
     const long long globalStep = itsBunch_m->getGlobalTrackStep();
-    const bool printStepInfo =
-            Options::stepInfoFreq > 0 && globalStep % Options::stepInfoFreq == 0;
+    const bool printStepInfo = Options::stepInfoFreq > 0 && globalStep % Options::stepInfoFreq == 0;
 
     if (totalAll == 0) {
         if (printStepInfo) {
