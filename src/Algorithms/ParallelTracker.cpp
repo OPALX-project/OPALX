@@ -641,7 +641,7 @@ void ParallelTracker::computeSpaceChargeFields(unsigned long long step) {
     // TODO: itsBunch_m->boundp() not implemented yet.
     // itsBunch_m->boundp();
 
-    if (step % repartFreq_m + 1 == repartFreq_m) {
+    if (repartFreq_m > 0 && step % repartFreq_m + 1 == repartFreq_m) {
         doBinaryRepartition();
         m << level4 << "Binary repartition done." << endl;
     }
@@ -999,17 +999,10 @@ void ParallelTracker::activateEmittingContainers(double t) {
  */
 void ParallelTracker::doBinaryRepartition() {
     Inform m("ParallelTracker::doBinaryRepartition");
-    if (itsBunch_m->hasFieldSolver()) {
-        m << level4 << "*****************************************************************" << endl;
-        m << level4 << "do repartition because of repartFreq_m" << endl;
-        m << level4 << "*****************************************************************" << endl;
-        itsBunch_m->do_binaryRepart();
-        ippl::Comm->barrier();
-        IpplTimings::stopTimer(BinRepartTimer_m);
-        m << level4 << "*****************************************************************" << endl;
-        m << level3 << "do repartition done" << endl;
-        m << level4 << "*****************************************************************" << endl;
-    }
+    m << level2
+      << "Binary load-balancer repartition is disabled while the ORB path is "
+         "not wired for the current multi-container bunch state; skipping."
+      << endl;
 }
 
 /**
@@ -1267,12 +1260,17 @@ void ParallelTracker::findStartPositions(const BorisPusher& pusher) {
 void ParallelTracker::dumpStats(long long step, bool psDump, bool statDump) {
     OPALTimer::Timer myt2;
     const size_t totalAll = itsBunch_m->getTotalNumAllContainers();
+    const long long globalStep = itsBunch_m->getGlobalTrackStep();
+    const bool printStepInfo =
+            Options::stepInfoFreq > 0 && globalStep % Options::stepInfoFreq == 0;
 
     if (totalAll == 0) {
-        *gmsg << level1 << "* " << myt2.time() << " "
-              << "Step " << std::setw(6) << itsBunch_m->getGlobalTrackStep() << "; "
-              << "   -- no emission yet --     "
-              << "t= " << Util::getTimeString(itsBunch_m->getT()) << endl;
+        if (printStepInfo) {
+            *gmsg << level1 << "* " << myt2.time() << " "
+                  << "Step " << std::setw(6) << globalStep << "; "
+                  << "   -- no emission yet --     "
+                  << "t= " << Util::getTimeString(itsBunch_m->getT()) << endl;
+        }
         return;
     }
 
@@ -1290,12 +1288,14 @@ void ParallelTracker::dumpStats(long long step, bool psDump, bool statDump) {
                     "ParallelTracker::dumpStats()",
                     "invalid path length s for particle container " + std::to_string(ci));
         }
-        *gmsg << level1 << "* " << myt2.time() << " "
-              << "Step " << std::setw(6) << itsBunch_m->getGlobalTrackStep() << " "
-              << "container[" << ci << "] "
-              << "at " << Util::getLengthString(sPos) << ", "
-              << "t= " << Util::getTimeString(itsBunch_m->getT()) << ", "
-              << "E=" << Util::getEnergyString(pc->getMeanKineticEnergy()) << endl;
+        if (printStepInfo) {
+            *gmsg << level1 << "* " << myt2.time() << " "
+                  << "Step " << std::setw(6) << globalStep << " "
+                  << "container[" << ci << "] "
+                  << "at " << Util::getLengthString(sPos) << ", "
+                  << "t= " << Util::getTimeString(itsBunch_m->getT()) << ", "
+                  << "E=" << Util::getEnergyString(pc->getMeanKineticEnergy()) << endl;
+        }
         anyLogged = true;
     }
 
@@ -1318,15 +1318,26 @@ void ParallelTracker::setOptionalVariables() {
     */
     Inform m("ParallelTracker::setOptionalVariables");
 
-    // there is no point to do repartitioning with one node
+    repartFreq_m = 0;
+
+    // The ORB load-balancer path is not currently wired to the unified
+    // multi-container bunch state. Keep REPARTFREQ accepted for input
+    // compatibility, but do not schedule the disabled path.
     if (ippl::Comm->size() == 1) {
-        repartFreq_m = std::numeric_limits<unsigned long long>::max();
+        m << level3 << "Binary load-balancer repartition disabled on one rank." << endl;
     } else {
-        repartFreq_m = Options::repartFreq * 100;
+        long long requestedRepartFreq = static_cast<long long>(Options::repartFreq) * 100;
         RealVariable* rep =
                 dynamic_cast<RealVariable*>(OpalData::getInstance()->find("REPARTFREQ"));
-        if (rep) repartFreq_m = static_cast<int>(rep->getReal());
-        m << level3 << "REPARTFREQ set to " << repartFreq_m << "." << endl;
+        if (rep) {
+            requestedRepartFreq = static_cast<long long>(rep->getReal());
+        }
+        if (requestedRepartFreq > 0) {
+            m << level2 << "REPARTFREQ = " << requestedRepartFreq
+              << " requested, but binary load-balancer repartition is disabled." << endl;
+        } else {
+            m << level3 << "Binary load-balancer repartition disabled." << endl;
+        }
     }
 }
 
@@ -1392,7 +1403,7 @@ void ParallelTracker::writePhaseSpace(const long long /*step*/, bool psDump, boo
 
     if (statDump) {
         itsDataSink_m->dumpSDDS(*itsBunch_m, fdByContainer, -1.0);
-        *gmsg << level2 << "* Wrote beam statistics." << endl;
+        *gmsg << level3 << "* Wrote beam statistics." << endl;
     }
 
     if (psDump && itsBunch_m->getTotalNumAllContainers() > 0) {

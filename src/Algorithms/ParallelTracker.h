@@ -78,7 +78,7 @@ private:
     StepSizeConfig stepSizes_m;
 
     double dtCurrentTrack_m;          ///< Global @f$\Delta t@f$ for the current track segment.
-    unsigned long long repartFreq_m;  ///< Space-charge repartition period (steps); off on one rank.
+    unsigned long long repartFreq_m;  ///< Space-charge repartition period (steps); 0 disables it.
     std::vector<std::vector<std::shared_ptr<SamplingBase>>>
             emittingSamplers_m;  ///< Per-container emitters.
 
