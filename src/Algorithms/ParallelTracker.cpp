@@ -1319,9 +1319,10 @@ void ParallelTracker::setOptionalVariables() {
 
     repartFreq_m = 0;
 
-    // The ORB load-balancer path is not currently wired to the unified
-    // multi-container bunch state. Keep REPARTFREQ accepted for input
-    // compatibility, but do not schedule the disabled path.
+    // ORB repartitioning is a per-container operation, but PartBunch currently
+    // only passes the primary container to LoadBalancer. Until the load
+    // balancer handles every particle container, keep REPARTFREQ accepted for
+    // input compatibility but do not schedule the disabled repartition operation.
     if (ippl::Comm->size() == 1) {
         m << level3 << "Binary load-balancer repartition disabled on one rank." << endl;
     } else {
