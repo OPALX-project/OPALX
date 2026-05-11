@@ -1,3 +1,15 @@
+.venv-h6/
+NightlyBuildX/
+PYTHON_SCRIPTS.md
+h5hut-source-warning-fixes-pr.txt
+h5hut-source-warning-fixes.patch
+opalx-manual/
+pyOPALTools/
+*.tgz
+*.fls
+*.log
+*.out
+*.synctex.gz
 __pycache__
 *.png
 *.stat
