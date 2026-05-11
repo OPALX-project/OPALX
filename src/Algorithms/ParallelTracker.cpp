@@ -194,7 +194,8 @@ void ParallelTracker::execute() {
     // Per-container: lab transform and reference orbit state (each beam's PartData for P0
     // fallback).
     const auto& particleContainers = itsBunch_m->getParticleContainers();
-    for (const auto& pc : particleContainers) {
+    for (size_t ci = 0; ci < particleContainers.size(); ++ci) {
+        const auto& pc = particleContainers[ci];
         if (!pc) {
             continue;
         }
@@ -208,9 +209,30 @@ void ParallelTracker::execute() {
         if (pc->getTotalNum() > 0) {
             pc->getRefPartP() = beamlineToLab.rotateTo(pc->getMeanP());
         } else {
-            const PartData& pref = *pc->getReference();
-            const double P0      = pref.getP() / pref.getM();  // beta*gamma from BEAM pc
-            pc->getRefPartP()    = beamlineToLab.rotateTo(Vector_t<double, 3>(0.0, 0.0, P0));
+            bool useSamplerReference        = false;
+            Vector_t<double, 3> samplerRefP = 0.0;
+            if (ci < emittingSamplers_m.size()) {
+                for (const auto& sampler : emittingSamplers_m[ci]) {
+                    if (sampler && sampler->hasInitialReferenceMomentum()) {
+                        samplerRefP          = sampler->getInitialReferenceMomentum();
+                        useSamplerReference = true;
+                        break;
+                    }
+                }
+            }
+
+            if (useSamplerReference) {
+                if (dot(samplerRefP, samplerRefP) <= 0.0) {
+                    throw OpalException(
+                            "ParallelTracker::execute",
+                            "Sampler-provided initial reference momentum is zero.");
+                }
+                pc->getRefPartP() = beamlineToLab.rotateTo(samplerRefP);
+            } else {
+                const PartData& pref = *pc->getReference();
+                const double P0      = pref.getP() / pref.getM();  // beta*gamma from BEAM pc
+                pc->getRefPartP()    = beamlineToLab.rotateTo(Vector_t<double, 3>(0.0, 0.0, P0));
+            }
         }
     }
 
@@ -571,6 +593,7 @@ void ParallelTracker::timeIntegration2(BorisPusher& pusher) {
         }
         kickParticles(pusher, *pc);
         pushParticles(pusher, *pc);
+        pc->dt = itsBunch_m->getdT();
     }
     m << level4 << "Kick/push particles done for all containers." << endl;
 
@@ -965,7 +988,30 @@ void ParallelTracker::prepareSections() {
 /**
  * @copybrief ParallelTracker::selectDT
  */
-void ParallelTracker::selectDT() { itsBunch_m->setdT(dtCurrentTrack_m); }
+void ParallelTracker::selectDT() {
+    double selectedDt       = dtCurrentTrack_m;
+    double emissionDt       = std::numeric_limits<double>::max();
+    bool hasEmissionDt      = false;
+    const double currentTime = itsBunch_m->getT();
+
+    for (const auto& samplers : emittingSamplers_m) {
+        for (const auto& sampler : samplers) {
+            if (!sampler || sampler->isEmissionDone(currentTime)) {
+                continue;
+            }
+            const double samplerDt = sampler->getEmissionTimeStep();
+            if (samplerDt > 0.0) {
+                emissionDt  = std::min(emissionDt, samplerDt);
+                hasEmissionDt = true;
+            }
+        }
+    }
+
+    if (hasEmissionDt) {
+        selectedDt = emissionDt;
+    }
+    itsBunch_m->setdT(selectedDt);
+}
 
 /**
  * @copybrief ParallelTracker::changeDT

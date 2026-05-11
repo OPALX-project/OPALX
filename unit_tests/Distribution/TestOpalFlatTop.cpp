@@ -11,6 +11,7 @@
 #include "Ippl.h"
 #include "PartBunch/BunchStateHandler.h"
 #include "Physics/Physics.h"
+#include "Utilities/OpalException.h"
 
 class OpalFlatTopTest : public ::testing::Test {
 protected:
@@ -82,6 +83,7 @@ TEST_F(OpalFlatTopTest, BuildsSortedInventoryWithExactSizeAndEmissionBounds) {
     EXPECT_GE(birthTimes.front(), -0.5 * sampler.getEmissionTime() - 1.0e-15);
     EXPECT_LE(birthTimes.back(), 0.5 * sampler.getEmissionTime() + 1.0e-15);
     EXPECT_DOUBLE_EQ(sampler.getGlobalTimeShift(), 0.5 * sampler.getEmissionTime());
+    EXPECT_DOUBLE_EQ(sampler.getEmissionTimeStep(), sampler.getEmissionTime() / 100.0);
 
     EXPECT_EQ(sampler.getNextGlobalIndex(), 0u);
     EXPECT_EQ(globalLocalNum(), 0u);
@@ -105,7 +107,7 @@ TEST_F(OpalFlatTopTest, EmitsAllInventoryWithVariableDtAndNoRemainderLoss) {
     size_t mutableTotal = totalParticles;
     sampler.generateParticles(mutableTotal, nr);
 
-    double t = 0.0;
+    double t = -sampler.getGlobalTimeShift();
     const double dts[] = {0.07, 0.11, 0.05, 0.13};
     for (int step = 0; step < 1000 && !sampler.isEmissionDone(t); ++step) {
         const double dt = dts[step % 4];
@@ -118,7 +120,7 @@ TEST_F(OpalFlatTopTest, EmitsAllInventoryWithVariableDtAndNoRemainderLoss) {
     EXPECT_EQ(globalLocalNum(), totalParticles);
 }
 
-TEST_F(OpalFlatTopTest, EmitsOverdueBirthTimesAfterSpaceChargeWithCurrentStepDt) {
+TEST_F(OpalFlatTopTest, RejectsOverdueBirthTimesInsteadOfPreAgingParticles) {
     const Vector_t<double, 3> sigmaR = {0.5, 0.5, 0.0};
     const Vector_t<double, 3> cutoff = {4.0, 4.0, 4.0};
     OpalFlatTop sampler(
@@ -135,37 +137,9 @@ TEST_F(OpalFlatTopTest, EmitsOverdueBirthTimesAfterSpaceChargeWithCurrentStepDt)
     const size_t nranks = static_cast<size_t>(std::max(1, ippl::Comm->size()));
     pc->allocateParticles(4 / nranks + 2 * nranks + 8);
 
-    sampler.emitParticles(0.0, 5.0e-13);
-
-    const size_t totalNew = 3;
-    const size_t rank     = static_cast<size_t>(ippl::Comm->rank());
-    const size_t base     = totalNew / nranks;
-    const size_t rem      = totalNew % nranks;
-    const size_t nlocalExpected = base + (rank < rem ? 1 : 0);
-    const size_t localOffset    = rank * base + std::min(rank, rem);
-
-    ASSERT_EQ(pc->getLocalNum(), nlocalExpected);
-
-    auto RviewDevice  = pc->R.getView();
-    auto dtviewDevice = pc->dt.getView();
-    auto Rview        = Kokkos::create_mirror_view(RviewDevice);
-    auto dtview       = Kokkos::create_mirror_view(dtviewDevice);
-    Kokkos::deep_copy(Rview, RviewDevice);
-    Kokkos::deep_copy(dtview, dtviewDevice);
-
-    const std::vector<double> expectedDt  = {5.0e-13, 4.0e-13, 1.0e-13};
-    const std::vector<double> expectedAge = {6.5e-13, 2.0e-13, 0.5e-13};
-    const double gamma                    = std::sqrt(1.0 + P0[2] * P0[2]);
-    const double betaZ                    = P0[2] / gamma;
-
-    for (size_t i = 0; i < nlocalExpected; ++i) {
-        EXPECT_NEAR(dtview(i), expectedDt[localOffset + i], 1.0e-18);
-        EXPECT_NEAR(
-                Rview(i)[2], betaZ * Physics::c * expectedAge[localOffset + i], 1.0e-12);
-    }
-
-    EXPECT_EQ(sampler.getNextGlobalIndex(), totalNew);
-    EXPECT_EQ(globalLocalNum(), totalNew);
+    EXPECT_THROW(sampler.emitParticles(0.0, 5.0e-13), OpalException);
+    EXPECT_EQ(sampler.getNextGlobalIndex(), 0u);
+    EXPECT_EQ(globalLocalNum(), 0u);
 }
 
 TEST_F(OpalFlatTopTest, UsesStoredBirthTimesForParticleDtAndZCorrection) {
@@ -221,4 +195,28 @@ TEST_F(OpalFlatTopTest, UsesStoredBirthTimesForParticleDtAndZCorrection) {
 
     EXPECT_EQ(sampler.getNextGlobalIndex(), totalNew);
     EXPECT_EQ(globalLocalNum(), totalNew);
+}
+
+TEST_F(OpalFlatTopTest, ProvidesOldOpalInitialReferenceMomentum) {
+    const Vector_t<double, 3> sigmaR = {0.5, 0.5, 0.0};
+    const Vector_t<double, 3> cutoff = {4.0, 4.0, 4.0};
+    OpalFlatTop sampler(
+            pc, fc,
+            /*emitting=*/true,
+            /*sigmaTFall=*/1.0e-12,
+            /*sigmaTRise=*/1.0e-12, cutoff,
+            /*tPulseLengthFWHM=*/4.0e-12, sigmaR);
+
+    const Vector_t<double, 3> P0 = {0.01, 0.02, 0.1};
+    sampler.setEmissionOffsets(0.0, P0, 0.0, "NONE");
+    EXPECT_TRUE(sampler.hasInitialReferenceMomentum());
+    EXPECT_DOUBLE_EQ(sampler.getInitialReferenceMomentum()[0], P0[0]);
+    EXPECT_DOUBLE_EQ(sampler.getInitialReferenceMomentum()[1], P0[1]);
+    EXPECT_DOUBLE_EQ(sampler.getInitialReferenceMomentum()[2], P0[2]);
+
+    sampler.setEmissionOffsets(0.0, P0, 0.0, "ASTRA");
+    const Vector_t<double, 3> refP = sampler.getInitialReferenceMomentum();
+    EXPECT_DOUBLE_EQ(refP[0], 0.0);
+    EXPECT_DOUBLE_EQ(refP[1], 0.0);
+    EXPECT_DOUBLE_EQ(refP[2], 0.5 * std::sqrt(dot(P0, P0)));
 }

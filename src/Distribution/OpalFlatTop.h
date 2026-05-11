@@ -42,6 +42,11 @@ public:
     double getGlobalTimeShift() const override {
         return std::max(0.0, 0.5 * emissionTime_m - t0_m);
     }
+    bool hasInitialReferenceMomentum() const override { return true; }
+    Vector_t<double, 3> getInitialReferenceMomentum() const override;
+    double getEmissionTimeStep() const override {
+        return emissionSteps_m > 0 ? emissionTime_m / static_cast<double>(emissionSteps_m) : 0.0;
+    }
 
     void initDomainDecomp(double BoxIncr) override;
     void setWithDomainDecomp(bool withDomainDecomp) override;
@@ -77,6 +82,7 @@ private:
     Vector_t<double, 3> sigmaR_m;
     double ftOscAmplitude_m = 0.0;
     double ftOscPeriods_m   = 0.0;
+    size_t emissionSteps_m  = 100;
 
     std::vector<double> birthTimes_m;
     size_t nextGlobalIndex_m = 0;

@@ -105,6 +105,7 @@ public:
     double getSigmaTRise() const;
     double getSigmaTFall() const;
     double getTPulseLengthFWHM() const;
+    size_t getEmissionSteps() const;
 
     double getFTOSCAmplitude() const;
     double getFTOSCPeriods() const;

@@ -55,6 +55,7 @@ void OpalFlatTop::setParameters(Distribution_t* opalDist) {
             opalDist->getCutoffR(), opalDist->getTPulseLengthFWHM(), opalDist->getSigmaR(),
             opalDist->getFTOSCAmplitude(), opalDist->getFTOSCPeriods());
 
+    emissionSteps_m = opalDist->getEmissionSteps();
     opalDist->setTEmission(emissionTime_m);
 
     if (fc_m) {
@@ -198,6 +199,13 @@ double OpalFlatTop::toBirthTime(double opalPulseTime) const {
     return t0_m + 0.5 * emissionTime_m - opalPulseTime;
 }
 
+Vector_t<double, 3> OpalFlatTop::getInitialReferenceMomentum() const {
+    if (emissionModel_m == "ASTRA") {
+        return Vector_t<double, 3>({0.0, 0.0, 0.5 * euclidean_norm(P0_m)});
+    }
+    return P0_m;
+}
+
 std::pair<size_t, size_t> OpalFlatTop::computeLocalEmitRange(size_t totalToEmit) const {
     if (!pc_m || totalToEmit == 0) {
         return {0, 0};
@@ -277,6 +285,15 @@ void OpalFlatTop::emitParticles(double t, double dt) {
         return;
     }
 
+    const double overdueTolerance = std::max(1.0e-18, std::abs(dt) * 1.0e-12);
+    if (birthTimes_m[nextGlobalIndex_m] < t - overdueTolerance) {
+        throw OpalException(
+                "OpalFlatTop::emitParticles",
+                "OPALFLATTOP found an overdue birth time. This means the tracker "
+                "time shift or emission dt skipped particles that should have been "
+                "emitted in an earlier step.");
+    }
+
     const auto [localOffset, nNew] = computeLocalEmitRange(totalNew);
     const size_type nlocalBefore   = pc_m->getLocalNum();
     pc_m->createParticles(static_cast<size_type>(nNew));
@@ -292,23 +309,22 @@ void OpalFlatTop::generateLocalParticles(
     }
 
     Kokkos::View<double*> stepDt("OpalFlatTop_stepDt", nNew);
-    Kokkos::View<double*> positionAge("OpalFlatTop_positionAge", nNew);
     auto hStepDt      = Kokkos::create_mirror_view(stepDt);
-    auto hPositionAge = Kokkos::create_mirror_view(positionAge);
     const double tEnd = tStart + dt;
+    const double overdueTolerance = std::max(1.0e-18, std::abs(dt) * 1.0e-12);
     for (size_t i = 0; i < nNew; ++i) {
-        const double birthTime    = birthTimes_m[globalBegin + i];
-        const double elapsedToEnd = tEnd - birthTime;
-        if (birthTime <= tStart) {
-            hStepDt(i)      = dt;
-            hPositionAge(i) = tStart - birthTime + 0.5 * dt;
-        } else {
-            hStepDt(i)      = elapsedToEnd;
-            hPositionAge(i) = 0.5 * elapsedToEnd;
+        const double birthTime = birthTimes_m[globalBegin + i];
+        if (birthTime < tStart - overdueTolerance) {
+            throw OpalException(
+                    "OpalFlatTop::generateLocalParticles",
+                    "OPALFLATTOP would need to pre-age a particle born before the "
+                    "current step. Old OPAL emits these particles in earlier tracker "
+                    "steps, so this indicates an inconsistent tracker time shift.");
         }
+        const double effectiveBirthTime = birthTime < tStart ? tStart : birthTime;
+        hStepDt(i)                      = tEnd - effectiveBirthTime;
     }
     Kokkos::deep_copy(stepDt, hStepDt);
-    Kokkos::deep_copy(positionAge, hPositionAge);
 
     auto randPool = rand_pool_m;
     auto Rview    = pc_m->R.getView();
@@ -357,7 +373,7 @@ void OpalFlatTop::generateLocalParticles(
                 dtView(j)      = stepDt(i);
 
                 const double gamma  = Kokkos::sqrt(1.0 + p[0] * p[0] + p[1] * p[1] + p[2] * p[2]);
-                const double drift  = c * positionAge(i) / gamma;
+                const double drift  = 0.5 * c * stepDt(i) / gamma;
                 Rview(j)[0] += p[0] * drift;
                 Rview(j)[1] += p[1] * drift;
                 Rview(j)[2] += p[2] * drift;
