@@ -37,9 +37,12 @@ void BinnedFieldSolver<T, Dim>::computeSelfFields(PartBunch_t& bunch) {
         return;
     }
 
-    // trivial case where self-field has no effect.
-    if (ippl::Comm->size() == 1 && pc->getLocalNum() <= 1) {
-        pc->E = 0.0;
+    // Trivial global case where self-field has no physical effect. This must be
+    // based on the global particle count, because early emission can leave some
+    // MPI ranks empty while another rank owns the single emitted particle.
+    if (pc->getTotalNum() <= 1) {
+        Kokkos::deep_copy(pc->E.getView(), Vector_t<T, Dim>(0.0));
+        Kokkos::deep_copy(pc->B.getView(), Vector_t<T, Dim>(0.0));
         return;
     }
 
