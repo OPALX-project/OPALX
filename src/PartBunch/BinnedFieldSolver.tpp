@@ -318,8 +318,8 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(PartBunch_t& bunch) {
     VField_t<T, Dim>& Etmp = *EtmpSP;
     VField_t<T, Dim>& Btmp = *BtmpSP;
     // clear the accumulation buffer.
-    Etmp = 0.0;
-    Btmp = 0.0;
+    setVectorField(Etmp, Vector_t<T, Dim>(0.0));
+    setVectorField(Btmp, Vector_t<T, Dim>(0.0));
 
     // determine the number of bins used for this step.
     const bin_index_type nBins = bins->getCurrentBinCount();
@@ -527,6 +527,7 @@ void BinnedFieldSolver<T, Dim>::computeLegacySelfFields(PartBunch_t& bunch) {
 
     Field_t<Dim>& rho = *(this->getRho());
     setScalarField(rho, 0.0);
+    m << level5 << "Legacy mode: rho cleared." << endl;
 
     // Scatter charge to mesh rho using dt-weighted deposition (master approach):
     // scale dt by Q, scatter dt, then restore dt.
@@ -643,6 +644,7 @@ void BinnedFieldSolver<T, Dim>::prepareRhoForBin(
 
     Field_t<Dim>& rho = *(this->getRho());
     setScalarField(rho, 0.0);
+    m << level5 << "prepareRho: rho cleared." << endl;
 
     // access particle views and validate scatter support.
     std::shared_ptr<ParticleCtr_t> pc                     = bunch.getParticleContainer();
@@ -666,6 +668,7 @@ void BinnedFieldSolver<T, Dim>::prepareRhoForBin(
         imageScatterController_m.scatterPrimaryAndImage(
                 pc, *R, rho, bins->getBinIterationPolicy(binIndex), bins->getHashArray());
     }
+    m << level5 << "prepareRho: scatter done." << endl;
 
     // normalize rho for fractional time steps and mesh conventions.
     const std::string stype = this->getStype();
@@ -693,6 +696,7 @@ void BinnedFieldSolver<T, Dim>::prepareRhoForBin(
     // Lorentz transform of charge density to the bin rest frame (thesis Eq. step 7).
     normalizer *= gammaBin;
     scaleAndShiftScalarField(rho, this->getCouplingConstant() / normalizer, shift);
+    m << level5 << "prepareRho: normalization done." << endl;
 }
 
 template <typename T, unsigned Dim>
