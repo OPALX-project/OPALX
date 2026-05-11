@@ -108,7 +108,8 @@ Distribution::Distribution()
       distrTypeT_m(DistributionType::NODIST),
       avrgpz_m(0.0) {
     itsAttr[DISTRIBUTION::TYPE] = Attributes::makePredefinedString(
-            "TYPE", "Distribution type.", {"GAUSS", "MULTIVARIATEGAUSS", "FLATTOP", "FROMFILE"});
+            "TYPE", "Distribution type.",
+            {"GAUSS", "MULTIVARIATEGAUSS", "FLATTOP", "OPALFLATTOP", "FROMFILE"});
 
     itsAttr[DISTRIBUTION::FNAME] =
             Attributes::makeString("FNAME", "File for reading in 6D particle coordinates.", "");
@@ -244,6 +245,7 @@ Inform& Distribution::printInfo(Inform& os) const {
                 printDistMultiVariateGauss(os);
                 break;
             case DistributionType::FLATTOP:
+            case DistributionType::OPALFLATTOP:
                 printDistFlatTop(os);
                 break;
             case DistributionType::FROMFILE:
@@ -443,7 +445,7 @@ void Distribution::printDistMultiVariateGauss(Inform& os) const {
 }
 
 void Distribution::printDistFlatTop(Inform& os) const {
-    os << "* Distribution type: FLATTOP" << endl;
+    os << "* Distribution type: " << distT_m << endl;
     os << "* " << endl;
     os << "* SIGMAX     = " << sigmaR_m[0] << " [m]" << endl;
     os << "* SIGMAY     = " << sigmaR_m[1] << " [m]" << endl;
@@ -503,6 +505,7 @@ void Distribution::setDist() {
             setDistParametersMultiVariateGauss();
             break;
         case DistributionType::FLATTOP:
+        case DistributionType::OPALFLATTOP:
             setDistParametersFlatTop();
             break;
         case DistributionType::FROMFILE:
@@ -520,6 +523,7 @@ void Distribution::setDistType() {
             {"GAUSS", DistributionType::GAUSS},
             {"MULTIVARIATEGAUSS", DistributionType::MULTIVARIATEGAUSS},
             {"FLATTOP", DistributionType::FLATTOP},
+            {"OPALFLATTOP", DistributionType::OPALFLATTOP},
             {"FROMFILE", DistributionType::FROMFILE}};
 
     distT_m = Attributes::getString(itsAttr[DISTRIBUTION::TYPE]);

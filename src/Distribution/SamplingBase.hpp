@@ -62,6 +62,9 @@ public:
         return hasEmittedOnce_m;
     }
 
+    /// @brief Optional tracker time shift needed before the first emitted particles are born.
+    virtual double getGlobalTimeShift() const { return 0.0; }
+
     // testNumEmitParticles is purely made for testing and should be removed
     virtual void testNumEmitParticles(size_t /*nsteps*/, double /*dt*/) {}
 

@@ -275,8 +275,10 @@ void ParallelTracker::execute() {
     setTime();
     m << level4 << "Set time view of particle bunch." << endl;
 
-    // Reset the bunch time?
-    double time = itsBunch_m->getT();
+    // Legacy OPAL emission starts the tracker before the RF reference time for centered
+    // flat-top pulses, so the early half is accelerated before statistics reach t = 0.
+    const double globalTimeShift = OpalData::getInstance()->getGlobalPhaseShift();
+    double time                  = itsBunch_m->getT() - globalTimeShift;
     itsBunch_m->setT(time);
     m << level4 << "Reset bunch time to " << time << "." << endl;
 

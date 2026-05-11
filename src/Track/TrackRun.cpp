@@ -38,6 +38,8 @@
 
 #include "Distribution/FromFile.h"
 
+#include "Distribution/OpalFlatTop.h"
+
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
 
@@ -438,6 +440,7 @@ void TrackRun::execute() {
     // Setup all distributions and samplers, perform initial sampling (t0 == 0),
     // and prepare per-container emitting sampler lists for ParallelTracker.
     // Do this for each particle container
+    OpalData::getInstance()->setGlobalPhaseShift(0.0);
     std::vector<emittingSamplers_t> emittingSamplersList(particleContainers.size());
     for (size_t i = 0; i < particleContainers.size(); ++i) {
         setupDistributionsAndSamplers(
@@ -705,6 +708,9 @@ void TrackRun::setupDistributionsAndSamplers(
             case DistributionType::FLATTOP:
                 sampler = std::make_shared<FlatTop>(pc, fc, opalDist);
                 break;
+            case DistributionType::OPALFLATTOP:
+                sampler = std::make_shared<OpalFlatTop>(pc, fc, opalDist);
+                break;
             case DistributionType::FROMFILE:
                 sampler = std::make_shared<FromFile>(pc, fc, opalDist);
                 break;
@@ -725,6 +731,11 @@ void TrackRun::setupDistributionsAndSamplers(
         // will internally early-return when t0 > 0, while FlatTop will set up its
         // emission structures irrespective of t0.
         sampler->generateParticles(Nmutable, nr);
+
+        const double globalShift =
+                std::max(OpalData::getInstance()->getGlobalPhaseShift(),
+                         sampler->getGlobalTimeShift());
+        OpalData::getInstance()->setGlobalPhaseShift(globalShift);
 
         // Time-dependent (emitted) distributions (e.g. FlatTop) and delayed
         // one-shot injectors (t0 > 0) participate in emitParticles(t, dt)
