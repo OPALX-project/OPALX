@@ -435,7 +435,8 @@ template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::pre_run() {
     Inform m("PartBunch::pre_run");
     m << level2 << "Starting pre_run..." << endl;
-    this->fcontainer_m->getRho() = 0.0;
+    auto rhoView = this->fcontainer_m->getRho().getView();
+    Kokkos::deep_copy(rhoView, 0.0);
     m << level4 << "Rho initialized to zero." << endl;
 
     /*
