@@ -6,7 +6,7 @@ on:
     branches: ["master"]
 
 concurrency:
-  group: ${{ github.workflow }}-pr-${{ github.event.pull_request.number }}
+  group: ${{ github.workflow }}-pr-${{ github.event.pull_request.number }}-${{ contains(github.event.pull_request.labels.*.name, 'compile-ci') && github.event.pull_request.draft == false && (github.event.action != 'labeled' || github.event.label.name == 'compile-ci') && 'ci' || github.run_id }}
   cancel-in-progress: true
 
 jobs:
@@ -14,7 +14,10 @@ jobs:
   build:
     name: Build & Unit Tests
     runs-on: ubuntu-latest
-    if: contains(github.event.pull_request.labels.*.name, 'compile-ci') && github.event.pull_request.draft == false
+    if: >
+      contains(github.event.pull_request.labels.*.name, 'compile-ci') &&
+      github.event.pull_request.draft == false &&
+      (github.event.action != 'labeled' || github.event.label.name == 'compile-ci')
 
     steps:
       - name: Checkout code
