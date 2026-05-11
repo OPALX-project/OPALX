@@ -56,6 +56,9 @@ namespace Options {
     /// The frequency to dump statistical values, e.e. dump data when step%statDumpFreq==0
     extern int statDumpFreq;
 
+    /// The frequency to print per-step tracking status lines; 0 disables them.
+    extern int stepInfoFreq;
+
     /// phase space dump flag for OPAL-cycl
     //  if true, dump phase space after each turn
     extern bool psDumpEachTurn;
