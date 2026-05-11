@@ -53,7 +53,14 @@ class Beam;
 class Beamline;
 class H5PartWrapper;
 
-enum class DistributionType : short { NODIST = -1, GAUSS, MULTIVARIATEGAUSS, FLATTOP, FROMFILE };
+enum class DistributionType : short {
+    NODIST = -1,
+    GAUSS,
+    MULTIVARIATEGAUSS,
+    FLATTOP,
+    OPALFLATTOP,
+    FROMFILE
+};
 
 using ParticleContainer_t = ParticleContainer<double, 3>;
 using FieldContainer_t    = FieldContainer<double, 3>;
