@@ -101,6 +101,8 @@ private:
     double sampleTruncatedHalfGaussian(double sigma, double limit);
     double toBirthTime(double opalPulseTime) const;
     std::pair<size_t, size_t> computeLocalEmitRange(size_t totalToEmit) const;
+
+public:
     void generateLocalParticles(
             size_type nlocalBefore, size_t globalBegin, size_t nNew, double tStart, double dt);
 };
