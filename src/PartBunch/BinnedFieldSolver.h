@@ -196,6 +196,7 @@ private:
     void printBinStatsTable(
             const std::string& binningCmdName, const std::vector<BinStatsRow>& rows);
 
+public:
     /**
      * @brief Set all scalar field entries, including ghosts, without IPPL expression templates.
      */
