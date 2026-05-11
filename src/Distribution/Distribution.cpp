@@ -80,6 +80,7 @@ namespace DISTRIBUTION {
         FTOSCAMPLITUDE,
         FTOSCPERIODS,
         EMITTED,
+        EMISSIONSTEPS,
         /// Optional per-distribution particle count (macroparticles).
         /// If <= 0, this distribution does not specify its own N and
         /// TrackRun/BEAM logic is used instead.
@@ -176,6 +177,11 @@ Distribution::Distribution()
             "an injected beam.",
             false);
 
+    itsAttr[DISTRIBUTION::EMISSIONSTEPS] = Attributes::makeReal(
+            "EMISSIONSTEPS",
+            "Number of OPAL-like time steps to use during OPALFLATTOP emission.",
+            100.0);
+
     itsAttr[DISTRIBUTION::NPARTDIST] = Attributes::makeReal(
             "NPARTDIST",
             "Number of macroparticles for this DISTRIBUTION. "
@@ -269,6 +275,14 @@ void Distribution::setAvrgPz(double avrgpz) { avrgpz_m = avrgpz; }
 void Distribution::setTEmission(double tEmission) { tEmission_m = tEmission; }
 
 double Distribution::getTEmission() const { return tEmission_m; }
+
+size_t Distribution::getEmissionSteps() const {
+    const double raw = Attributes::getReal(itsAttr[DISTRIBUTION::EMISSIONSTEPS]);
+    if (raw <= 0.0) {
+        return 100;
+    }
+    return static_cast<size_t>(std::ceil(raw));
+}
 
 void Distribution::setDistParametersGauss() {
     /*
