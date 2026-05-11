@@ -262,6 +262,31 @@ void BinnedFieldSolver<T, Dim>::printBinStatsTable(
 }
 
 template <typename T, unsigned Dim>
+void BinnedFieldSolver<T, Dim>::setScalarField(Field_t<Dim>& field, double value) {
+    auto view = field.getView();
+    Kokkos::deep_copy(view, value);
+}
+
+template <typename T, unsigned Dim>
+void BinnedFieldSolver<T, Dim>::scaleAndShiftScalarField(
+        Field_t<Dim>& field, double scale, double shift) {
+    auto view = field.getView();
+
+    ippl::parallel_for(
+            "BinnedFieldSolver::scaleAndShiftScalarField", field.getFieldRangePolicy(),
+            KOKKOS_LAMBDA(const typename ippl::RangePolicy<Dim>::index_array_type& idx) {
+                apply(view, idx) = apply(view, idx) * scale + shift;
+            });
+}
+
+template <typename T, unsigned Dim>
+void BinnedFieldSolver<T, Dim>::setVectorField(
+        VField_t<T, Dim>& field, const Vector_t<T, Dim>& value) {
+    auto view = field.getView();
+    Kokkos::deep_copy(view, value);
+}
+
+template <typename T, unsigned Dim>
 void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(PartBunch_t& bunch) {
     // execute full binned self-field algorithm.
     // fetch the adaptive bin structure.
@@ -357,7 +382,7 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(PartBunch_t& bunch) {
                                                          : ImageScatterMode::PrimaryAndImage;
             prepareRhoForBin(bunch, bins, binIndex, nPartGlobal, gammaBin, scatterMode);
 
-            *(this->getE()) = 0.0;
+            setVectorField(*(this->getE()), Vector_t<T, Dim>(0.0));
             mesh.setMeshSpacing(hrStretched);
 
             m << level4 << "binIndex=" << static_cast<int>(binIndex)
@@ -390,7 +415,7 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(PartBunch_t& bunch) {
             prepareRhoForBin(
                     bunch, bins, binIndex, nPartGlobal, gammaBin, ImageScatterMode::ImageOnly);
 
-            *(this->getE()) = 0.0;
+            setVectorField(*(this->getE()), Vector_t<T, Dim>(0.0));
             mesh.setMeshSpacing(hrStretched);
 
             m << level4 << "binIndex=" << static_cast<int>(binIndex)
@@ -429,9 +454,9 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(PartBunch_t& bunch) {
             // FFTPoissonSolver.cpp:242 (applied at the rho level here because
             // IPPL's shiftedGreensFunction + solve path doesn't carry an image-
             // sign multiplier of its own).
-            *(this->getRho()) = -(*(this->getRho()));
+            scaleAndShiftScalarField(*(this->getRho()), -1.0, 0.0);
 
-            *(this->getE()) = 0.0;
+            setVectorField(*(this->getE()), Vector_t<T, Dim>(0.0));
             mesh.setMeshSpacing(hrStretched);
 
             // Shift formula in stretched (rest-frame) coordinates:
@@ -500,25 +525,24 @@ void BinnedFieldSolver<T, Dim>::computeLegacySelfFields(PartBunch_t& bunch) {
 
     typename PartBunch_t::Base::particle_position_type* R = &pc->R;
 
-    Field_t<Dim>* rho = this->getRho();
-    *rho              = 0.0;
+    Field_t<Dim>& rho = *(this->getRho());
+    setScalarField(rho, 0.0);
 
     // Scatter charge to mesh rho using dt-weighted deposition (master approach):
     // scale dt by Q, scatter dt, then restore dt.
-    imageScatterController_m.scatterPrimaryAndImage(pc, *R, *rho);
-
-    // Rho normalization for fractional time steps.
-    (*rho) = (*rho) / bunch.getdT();
+    imageScatterController_m.scatterPrimaryAndImage(pc, *R, rho);
 
     //  apply mesh normalization, background subtraction, and rho scaling.
     const std::string stype = this->getStype();
+    double normalizer       = bunch.getdT();
     if (stype != "FEM" && stype != "FEM_PRECON") {
         const double cellVolume =
                 std::reduce(bunch.hr_m.begin(), bunch.hr_m.end(), 1.0, std::multiplies<double>());
-        (*rho) = (*rho) / cellVolume;
+        normalizer *= cellVolume;
     }
 
     // Alpine uses net-0 charge for non-OPEN solvers (periodic BCs).
+    double shift = 0.0;
     if (stype != "OPEN") {
         double size = 1.0;
         for (size_t d = 0; d < Dim; ++d) {
@@ -526,13 +550,13 @@ void BinnedFieldSolver<T, Dim>::computeLegacySelfFields(PartBunch_t& bunch) {
         }
 
         const double totalQ = bunch.getParticleContainer()->getTotalCharge();
-        (*rho)              = (*rho) - (totalQ / size);
+        shift               = -(totalQ / size) * this->getCouplingConstant();
     }
 
-    (*rho) = (*rho) * this->getCouplingConstant();
+    scaleAndShiftScalarField(rho, this->getCouplingConstant() / normalizer, shift);
 
     // Ensure deterministic output even for solver types that do not update `E`.
-    *(this->getE()) = 0.0;
+    setVectorField(*(this->getE()), Vector_t<T, Dim>(0.0));
 
     // run the solver once and gather mesh E back to particles.
     m << level4 << "Legacy mode: runSolver() start" << endl;
@@ -617,8 +641,8 @@ void BinnedFieldSolver<T, Dim>::prepareRhoForBin(
       << ", nPartGlobal=" << static_cast<unsigned long long>(nPartGlobal)
       << ", gammaBin=" << std::setprecision(10) << gammaBin << endl;
 
-    Field_t<Dim>* rho = this->getRho();
-    *rho              = 0.0;
+    Field_t<Dim>& rho = *(this->getRho());
+    setScalarField(rho, 0.0);
 
     // access particle views and validate scatter support.
     std::shared_ptr<ParticleCtr_t> pc                     = bunch.getParticleContainer();
@@ -634,27 +658,27 @@ void BinnedFieldSolver<T, Dim>::prepareRhoForBin(
     // Master approach: scale dt by Q, scatter dt, then restore dt.
     if (mode == ImageScatterMode::PrimaryOnly) {
         imageScatterController_m.scatterPrimaryOnly(
-                pc, *R, *rho, bins->getBinIterationPolicy(binIndex), bins->getHashArray());
+                pc, *R, rho, bins->getBinIterationPolicy(binIndex), bins->getHashArray());
     } else if (mode == ImageScatterMode::ImageOnly) {
         imageScatterController_m.scatterImageOnly(
-                pc, *R, *rho, bins->getBinIterationPolicy(binIndex), bins->getHashArray());
+                pc, *R, rho, bins->getBinIterationPolicy(binIndex), bins->getHashArray());
     } else {
         imageScatterController_m.scatterPrimaryAndImage(
-                pc, *R, *rho, bins->getBinIterationPolicy(binIndex), bins->getHashArray());
+                pc, *R, rho, bins->getBinIterationPolicy(binIndex), bins->getHashArray());
     }
 
     // normalize rho for fractional time steps and mesh conventions.
-    (*rho) = (*rho) / bunch.getdT();
-
     const std::string stype = this->getStype();
+    double normalizer       = bunch.getdT();
     if (stype != "FEM" && stype != "FEM_PRECON") {
         const double cellVolume =
                 std::reduce(bunch.hr_m.begin(), bunch.hr_m.end(), 1.0, std::multiplies<double>());
-        (*rho) = (*rho) / cellVolume;
+        normalizer *= cellVolume;
     }
 
     // subtract non-OPEN background and apply Lorentz rest-frame scaling.
     // Background subtraction for non-OPEN solvers. Here we subtract only the bin's charge.
+    double shift = 0.0;
     if (stype != "OPEN") {
         double size = 1.0;
         for (size_t d = 0; d < Dim; ++d) {
@@ -663,12 +687,12 @@ void BinnedFieldSolver<T, Dim>::prepareRhoForBin(
 
         const double totalQBin = bunch.getParticleContainer()->getChargePerParticle()
                                  * static_cast<double>(nPartGlobal);
-        (*rho) = (*rho) - (totalQBin / size);
+        shift = -(totalQBin / size) * this->getCouplingConstant() / gammaBin;
     }
 
     // Lorentz transform of charge density to the bin rest frame (thesis Eq. step 7).
-    (*rho) = (*rho) / gammaBin;
-    (*rho) = (*rho) * this->getCouplingConstant();
+    normalizer *= gammaBin;
+    scaleAndShiftScalarField(rho, this->getCouplingConstant() / normalizer, shift);
 }
 
 template <typename T, unsigned Dim>
