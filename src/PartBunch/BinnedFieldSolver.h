@@ -196,6 +196,21 @@ private:
     void printBinStatsTable(
             const std::string& binningCmdName, const std::vector<BinStatsRow>& rows);
 
+    /**
+     * @brief Set all scalar field entries, including ghosts, without IPPL expression templates.
+     */
+    static void setScalarField(Field_t<Dim>& field, double value);
+
+    /**
+     * @brief Apply @c field = field * scale + shift on owned cells without expression templates.
+     */
+    static void scaleAndShiftScalarField(Field_t<Dim>& field, double scale, double shift);
+
+    /**
+     * @brief Set all vector field entries, including ghosts, without IPPL expression templates.
+     */
+    static void setVectorField(VField_t<T, Dim>& field, const Vector_t<T, Dim>& value);
+
 private:
     /**
      * @brief Dump and report potential values interpolated on the image-charge plane.
