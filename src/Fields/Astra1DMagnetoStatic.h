@@ -8,26 +8,21 @@
 #include <Kokkos_DualView.hpp>
 
 class Astra1DMagnetoStatic : public Fieldmap {
-
 public:
     bool getFieldstrength(
-            const Vector_t<double, 3>& R,
-            Vector_t<double, 3>& E,
+            const Vector_t<double, 3>& R, Vector_t<double, 3>& E,
             Vector_t<double, 3>& B) const override;
 
     void getFieldDimensions(double& zBegin, double& zEnd) const override;
 
     void getFieldDimensions(
-            double& xIni, double& xFinal,
-            double& yIni, double& yFinal,
-            double& zIni, double& zFinal) const override;
+            double& xIni, double& xFinal, double& yIni, double& yFinal, double& zIni,
+            double& zFinal) const override;
 
     bool getFieldDerivative(
-            const Vector_t<double, 3>& R,
-            Vector_t<double, 3>& E,
-            Vector_t<double, 3>& B,
+            const Vector_t<double, 3>& R, Vector_t<double, 3>& E, Vector_t<double, 3>& B,
             const DiffDirection& dir) const override;
-    
+
     void swap() override;
 
     void getInfo(Inform* msg) override;
@@ -41,16 +36,9 @@ public:
     }
 
     template <class ViewType>
-    KOKKOS_INLINE_FUNCTION
-    static void computeField(
-            const Vector_t<double, 3>& R,
-            Vector_t<double, 3>& /*E*/,
-            Vector_t<double, 3>& B,
-            const ViewType& FourCoefs,
-            double zbegin,
-            double length,
-            int accuracy)
-    {
+    KOKKOS_INLINE_FUNCTION static void computeField(
+            const Vector_t<double, 3>& R, Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B,
+            const ViewType& FourCoefs, double zbegin, double length, int accuracy) {
         const double RR2 = R(0) * R(0) + R(1) * R(1);
 
         const double two_pi = Physics::two_pi;
@@ -70,10 +58,10 @@ public:
             const double coskzl = Kokkos::cos(kz * l);
             const double sinkzl = Kokkos::sin(kz * l);
 
-            bz    += FourCoefs(n)       * coskzl - FourCoefs(n + 1) * sinkzl;
-            bzp   += base               * (-FourCoefs(n) * sinkzl - FourCoefs(n + 1) * coskzl);
-            bzpp  += base * base        * (-FourCoefs(n) * coskzl + FourCoefs(n + 1) * sinkzl);
-            bzppp += base * base * base * ( FourCoefs(n) * sinkzl + FourCoefs(n + 1) * coskzl);
+            bz += FourCoefs(n) * coskzl - FourCoefs(n + 1) * sinkzl;
+            bzp += base * (-FourCoefs(n) * sinkzl - FourCoefs(n + 1) * coskzl);
+            bzpp += base * base * (-FourCoefs(n) * coskzl + FourCoefs(n + 1) * sinkzl);
+            bzppp += base * base * base * (FourCoefs(n) * sinkzl + FourCoefs(n + 1) * coskzl);
         }
 
         const double BfieldR = -bzp / 2.0 + bzppp * RR2 / 16.0;
