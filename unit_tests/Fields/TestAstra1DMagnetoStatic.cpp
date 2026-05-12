@@ -53,118 +53,83 @@
 
 namespace {
 
-constexpr const char* kAstra1DMagnetoStaticType = "AstraMagnetoStatic";
+    constexpr const char* kAstra1DMagnetoStaticType = "AstraMagnetoStatic";
 
-std::string writeAstra1DMagnetoStaticFieldmap(
-        const std::string& path,
-        const std::vector<double>& z_m,
-        const std::vector<double>& bz,
-        int accuracy = 8,
-        bool normalize = true)
-{
-    EXPECT_EQ(z_m.size(), bz.size());
+    std::string writeAstra1DMagnetoStaticFieldmap(
+            const std::string& path, const std::vector<double>& z_m, const std::vector<double>& bz,
+            int accuracy = 8, bool normalize = true) {
+        EXPECT_EQ(z_m.size(), bz.size());
 
-    std::ofstream f(path);
+        std::ofstream f(path);
 
-    f << kAstra1DMagnetoStaticType << " " << accuracy << " "
-      << (normalize ? "TRUE" : "FALSE") << "\n";
+        f << kAstra1DMagnetoStaticType << " " << accuracy << " " << (normalize ? "TRUE" : "FALSE")
+          << "\n";
 
-    for (std::size_t i = 0; i < z_m.size(); ++i) {
-        f << std::setprecision(16)
-          << z_m[i] << " "
-          << bz[i] << "\n";
+        for (std::size_t i = 0; i < z_m.size(); ++i) {
+            f << std::setprecision(16) << z_m[i] << " " << bz[i] << "\n";
+        }
+
+        return path;
     }
 
-    return path;
-}
+    std::string writeConstantAstra1DMagnetoStaticFieldmap(
+            const std::string& path, double zbegin_m, double zend_m, int nz, double bz,
+            int accuracy = 8, bool normalize = true) {
+        std::vector<double> z(nz);
+        std::vector<double> b(nz, bz);
 
-std::string writeConstantAstra1DMagnetoStaticFieldmap(
-        const std::string& path,
-        double zbegin_m,
-        double zend_m,
-        int nz,
-        double bz,
-        int accuracy = 8,
-        bool normalize = true)
-{
-    std::vector<double> z(nz);
-    std::vector<double> b(nz, bz);
+        const double dz = (zend_m - zbegin_m) / double(nz - 1);
 
-    const double dz = (zend_m - zbegin_m) / double(nz - 1);
+        for (int i = 0; i < nz; ++i) {
+            z[i] = zbegin_m + i * dz;
+        }
 
-    for (int i = 0; i < nz; ++i) {
-        z[i] = zbegin_m + i * dz;
+        return writeAstra1DMagnetoStaticFieldmap(path, z, b, accuracy, normalize);
     }
 
-    return writeAstra1DMagnetoStaticFieldmap(
-            path,
-            z,
-            b,
-            accuracy,
-            normalize);
-}
+    std::string writeRampAstra1DMagnetoStaticFieldmap(
+            const std::string& path, double zbegin_m, double zend_m, int nz, int accuracy = 8,
+            bool normalize = false) {
+        std::vector<double> z(nz);
+        std::vector<double> b(nz);
 
-std::string writeRampAstra1DMagnetoStaticFieldmap(
-        const std::string& path,
-        double zbegin_m,
-        double zend_m,
-        int nz,
-        int accuracy = 8,
-        bool normalize = false)
-{
-    std::vector<double> z(nz);
-    std::vector<double> b(nz);
+        const double dz = (zend_m - zbegin_m) / double(nz - 1);
 
-    const double dz = (zend_m - zbegin_m) / double(nz - 1);
+        for (int i = 0; i < nz; ++i) {
+            z[i] = zbegin_m + i * dz;
+            b[i] = 1.0 + z[i] / zend_m;
+        }
 
-    for (int i = 0; i < nz; ++i) {
-        z[i] = zbegin_m + i * dz;
-        b[i] = 1.0 + z[i] / zend_m;
+        return writeAstra1DMagnetoStaticFieldmap(path, z, b, accuracy, normalize);
     }
 
-    return writeAstra1DMagnetoStaticFieldmap(
-            path,
-            z,
-            b,
-            accuracy,
-            normalize);
-}
-
-} // namespace
+}  // namespace
 
 class Astra1DMagnetoStaticTest : public ::testing::Test {
 protected:
-    static void SetUpTestSuite()
-    {
-        int argc = 0;
+    static void SetUpTestSuite() {
+        int argc    = 0;
         char** argv = nullptr;
         ippl::initialize(argc, argv);
     }
 
-    static void TearDownTestSuite()
-    {
+    static void TearDownTestSuite() {
         Fieldmap::clearDictionary();
         ippl::finalize();
     }
 
-    void SetUp() override
-    {
-        tmpDir_ = std::filesystem::temp_directory_path()
-                / "opalx_astra1dmagnetostatic_test";
+    void SetUp() override {
+        tmpDir_ = std::filesystem::temp_directory_path() / "opalx_astra1dmagnetostatic_test";
 
         std::filesystem::create_directories(tmpDir_);
     }
 
-    void TearDown() override
-    {
+    void TearDown() override {
         Fieldmap::clearDictionary();
         std::filesystem::remove_all(tmpDir_);
     }
 
-    std::string tmpFile(const std::string& name) const
-    {
-        return (tmpDir_ / name).string();
-    }
+    std::string tmpFile(const std::string& name) const { return (tmpDir_ / name).string(); }
 
     std::filesystem::path tmpDir_;
 };
@@ -172,18 +137,13 @@ protected:
 // ===========================================================================
 // Test: Parse fieldmap and verify field dimensions
 // ===========================================================================
-TEST_F(Astra1DMagnetoStaticTest, ParseAndDimensions)
-{
+TEST_F(Astra1DMagnetoStaticTest, ParseAndDimensions) {
     const double zb = 0.0;
     const double ze = 0.10;
-    const int nz = 5;
+    const int nz    = 5;
 
-    std::string fname = writeConstantAstra1DMagnetoStaticFieldmap(
-            tmpFile("parse.map"),
-            zb,
-            ze,
-            nz,
-            1.0);
+    std::string fname =
+            writeConstantAstra1DMagnetoStaticFieldmap(tmpFile("parse.map"), zb, ze, nz, 1.0);
 
     Fieldmap* fm = Fieldmap::getFieldmap(fname);
 
@@ -193,7 +153,7 @@ TEST_F(Astra1DMagnetoStaticTest, ParseAndDimensions)
     Fieldmap::readMap(fname);
 
     double zBegin = 0.0;
-    double zEnd = 0.0;
+    double zEnd   = 0.0;
 
     fm->getFieldDimensions(zBegin, zEnd);
 
@@ -204,17 +164,11 @@ TEST_F(Astra1DMagnetoStaticTest, ParseAndDimensions)
 // ===========================================================================
 // Test: isInside() helper
 // ===========================================================================
-TEST_F(Astra1DMagnetoStaticTest, IsInside)
-{
-    std::string fname = writeConstantAstra1DMagnetoStaticFieldmap(
-            tmpFile("inside.map"),
-            0.0,
-            0.10,
-            5,
-            1.0);
+TEST_F(Astra1DMagnetoStaticTest, IsInside) {
+    std::string fname =
+            writeConstantAstra1DMagnetoStaticFieldmap(tmpFile("inside.map"), 0.0, 0.10, 5, 1.0);
 
-    auto* fm = dynamic_cast<Astra1DMagnetoStatic*>(
-            Fieldmap::getFieldmap(fname));
+    auto* fm = dynamic_cast<Astra1DMagnetoStatic*>(Fieldmap::getFieldmap(fname));
 
     ASSERT_NE(fm, nullptr);
 
@@ -227,18 +181,11 @@ TEST_F(Astra1DMagnetoStaticTest, IsInside)
 // ===========================================================================
 // Test: Uniform field with normalization, on-axis Bz
 // ===========================================================================
-TEST_F(Astra1DMagnetoStaticTest, UniformFieldStrengthOnAxis)
-{
+TEST_F(Astra1DMagnetoStaticTest, UniformFieldStrengthOnAxis) {
     const int nz = 9;
 
     std::string fname = writeConstantAstra1DMagnetoStaticFieldmap(
-            tmpFile("uniform.map"),
-            0.0,
-            0.10,
-            nz,
-            3.0,
-            8,
-            true);
+            tmpFile("uniform.map"), 0.0, 0.10, nz, 3.0, 8, true);
 
     Fieldmap* fm = Fieldmap::getFieldmap(fname);
 
@@ -266,18 +213,11 @@ TEST_F(Astra1DMagnetoStaticTest, UniformFieldStrengthOnAxis)
 // ===========================================================================
 // Test: Uniform field without normalization
 // ===========================================================================
-TEST_F(Astra1DMagnetoStaticTest, NoNormalization)
-{
+TEST_F(Astra1DMagnetoStaticTest, NoNormalization) {
     const int nz = 9;
 
     std::string fname = writeConstantAstra1DMagnetoStaticFieldmap(
-            tmpFile("nonorm.map"),
-            0.0,
-            0.10,
-            nz,
-            3.0,
-            8,
-            false);
+            tmpFile("nonorm.map"), 0.0, 0.10, nz, 3.0, 8, false);
 
     Fieldmap* fm = Fieldmap::getFieldmap(fname);
 
@@ -301,14 +241,9 @@ TEST_F(Astra1DMagnetoStaticTest, NoNormalization)
 // ===========================================================================
 // Test: Outside z range returns outside flag and does not modify fields
 // ===========================================================================
-TEST_F(Astra1DMagnetoStaticTest, OutsideZRange)
-{
-    std::string fname = writeConstantAstra1DMagnetoStaticFieldmap(
-            tmpFile("outside.map"),
-            0.0,
-            0.10,
-            9,
-            1.0);
+TEST_F(Astra1DMagnetoStaticTest, OutsideZRange) {
+    std::string fname =
+            writeConstantAstra1DMagnetoStaticFieldmap(tmpFile("outside.map"), 0.0, 0.10, 9, 1.0);
 
     Fieldmap* fm = Fieldmap::getFieldmap(fname);
 
@@ -356,14 +291,9 @@ TEST_F(Astra1DMagnetoStaticTest, OutsideZRange)
 // ===========================================================================
 // Test: Accumulation semantics — B is accumulated, not overwritten
 // ===========================================================================
-TEST_F(Astra1DMagnetoStaticTest, FieldAccumulation)
-{
-    std::string fname = writeConstantAstra1DMagnetoStaticFieldmap(
-            tmpFile("accum.map"),
-            0.0,
-            0.10,
-            9,
-            1.0);
+TEST_F(Astra1DMagnetoStaticTest, FieldAccumulation) {
+    std::string fname =
+            writeConstantAstra1DMagnetoStaticFieldmap(tmpFile("accum.map"), 0.0, 0.10, 9, 1.0);
 
     Fieldmap* fm = Fieldmap::getFieldmap(fname);
 
@@ -385,8 +315,7 @@ TEST_F(Astra1DMagnetoStaticTest, FieldAccumulation)
 // ===========================================================================
 // Test: computeField static function directly with a constant coefficient
 // ===========================================================================
-TEST_F(Astra1DMagnetoStaticTest, ComputeFieldStaticConstantCoefficient)
-{
+TEST_F(Astra1DMagnetoStaticTest, ComputeFieldStaticConstantCoefficient) {
     Kokkos::View<double*, Kokkos::HostSpace> coefs("coefs", 3);
 
     coefs(0) = 1.0;
@@ -397,14 +326,7 @@ TEST_F(Astra1DMagnetoStaticTest, ComputeFieldStaticConstantCoefficient)
     Vector_t<double, 3> E = {0.0, 0.0, 0.0};
     Vector_t<double, 3> B = {0.0, 0.0, 0.0};
 
-    Astra1DMagnetoStatic::computeField(
-            R,
-            E,
-            B,
-            coefs,
-            0.0,
-            0.20,
-            2);
+    Astra1DMagnetoStatic::computeField(R, E, B, coefs, 0.0, 0.20, 2);
 
     EXPECT_NEAR(E[0], 0.0, 1e-12);
     EXPECT_NEAR(E[1], 0.0, 1e-12);
@@ -418,8 +340,7 @@ TEST_F(Astra1DMagnetoStaticTest, ComputeFieldStaticConstantCoefficient)
 // ===========================================================================
 // Test: computeField off-axis with a constant coefficient
 // ===========================================================================
-TEST_F(Astra1DMagnetoStaticTest, ComputeFieldStaticOffAxisConstantCoefficient)
-{
+TEST_F(Astra1DMagnetoStaticTest, ComputeFieldStaticOffAxisConstantCoefficient) {
     Kokkos::View<double*, Kokkos::HostSpace> coefs("coefs", 3);
 
     coefs(0) = 2.0;
@@ -430,14 +351,7 @@ TEST_F(Astra1DMagnetoStaticTest, ComputeFieldStaticOffAxisConstantCoefficient)
     Vector_t<double, 3> E = {0.0, 0.0, 0.0};
     Vector_t<double, 3> B = {0.0, 0.0, 0.0};
 
-    Astra1DMagnetoStatic::computeField(
-            R,
-            E,
-            B,
-            coefs,
-            0.0,
-            0.20,
-            2);
+    Astra1DMagnetoStatic::computeField(R, E, B, coefs, 0.0, 0.20, 2);
 
     EXPECT_NEAR(B[0], 0.0, 1e-12);
     EXPECT_NEAR(B[1], 0.0, 1e-12);
@@ -447,8 +361,7 @@ TEST_F(Astra1DMagnetoStaticTest, ComputeFieldStaticOffAxisConstantCoefficient)
 // ===========================================================================
 // Test: computeField off-axis with one Fourier mode
 // ===========================================================================
-TEST_F(Astra1DMagnetoStaticTest, ComputeFieldStaticSingleModeOffAxis)
-{
+TEST_F(Astra1DMagnetoStaticTest, ComputeFieldStaticSingleModeOffAxis) {
     Kokkos::View<double*, Kokkos::HostSpace> coefs("coefs", 3);
 
     coefs(0) = 0.0;
@@ -457,25 +370,18 @@ TEST_F(Astra1DMagnetoStaticTest, ComputeFieldStaticSingleModeOffAxis)
 
     const double zbegin = 0.0;
     const double length = 0.20;
-    const int accuracy = 2;
-    const double base = Physics::two_pi / length;
+    const int accuracy  = 2;
+    const double base   = Physics::two_pi / length;
 
     Vector_t<double, 3> R = {0.01, 0.0, 0.05};
     Vector_t<double, 3> E = {0.0, 0.0, 0.0};
     Vector_t<double, 3> B = {0.0, 0.0, 0.0};
 
-    Astra1DMagnetoStatic::computeField(
-            R,
-            E,
-            B,
-            coefs,
-            zbegin,
-            length,
-            accuracy);
+    Astra1DMagnetoStatic::computeField(R, E, B, coefs, zbegin, length, accuracy);
 
-    const double rr2 = R(0) * R(0) + R(1) * R(1);
-    const double bzp = base;
-    const double bzpp = 0.0;
+    const double rr2   = R(0) * R(0) + R(1) * R(1);
+    const double bzp   = base;
+    const double bzpp  = 0.0;
     const double bzppp = -base * base * base;
 
     const double expectedBfieldR = -bzp / 2.0 + bzppp * rr2 / 16.0;
@@ -488,15 +394,9 @@ TEST_F(Astra1DMagnetoStaticTest, ComputeFieldStaticSingleModeOffAxis)
 // ===========================================================================
 // Test: Non-uniform fieldmap produces different Bz values at different z
 // ===========================================================================
-TEST_F(Astra1DMagnetoStaticTest, NonUniformMapProducesNonUniformField)
-{
-    std::string fname = writeRampAstra1DMagnetoStaticFieldmap(
-            tmpFile("ramp.map"),
-            0.0,
-            0.10,
-            17,
-            12,
-            false);
+TEST_F(Astra1DMagnetoStaticTest, NonUniformMapProducesNonUniformField) {
+    std::string fname =
+            writeRampAstra1DMagnetoStaticFieldmap(tmpFile("ramp.map"), 0.0, 0.10, 17, 12, false);
 
     Fieldmap* fm = Fieldmap::getFieldmap(fname);
 
@@ -518,17 +418,11 @@ TEST_F(Astra1DMagnetoStaticTest, NonUniformMapProducesNonUniformField)
 // ===========================================================================
 // Test: getFieldDerivative current no-op behaviour
 // ===========================================================================
-TEST_F(Astra1DMagnetoStaticTest, FieldDerivativeNoOp)
-{
-    std::string fname = writeConstantAstra1DMagnetoStaticFieldmap(
-            tmpFile("deriv.map"),
-            0.0,
-            0.10,
-            9,
-            2.0);
+TEST_F(Astra1DMagnetoStaticTest, FieldDerivativeNoOp) {
+    std::string fname =
+            writeConstantAstra1DMagnetoStaticFieldmap(tmpFile("deriv.map"), 0.0, 0.10, 9, 2.0);
 
-    auto* fm = dynamic_cast<Astra1DMagnetoStatic*>(
-            Fieldmap::getFieldmap(fname));
+    auto* fm = dynamic_cast<Astra1DMagnetoStatic*>(Fieldmap::getFieldmap(fname));
 
     ASSERT_NE(fm, nullptr);
 
@@ -554,14 +448,9 @@ TEST_F(Astra1DMagnetoStaticTest, FieldDerivativeNoOp)
 // ===========================================================================
 // Test: getFrequency / setFrequency throw for magnetostatic fieldmap
 // ===========================================================================
-TEST_F(Astra1DMagnetoStaticTest, FrequencyThrows)
-{
-    std::string fname = writeConstantAstra1DMagnetoStaticFieldmap(
-            tmpFile("freq.map"),
-            0.0,
-            0.10,
-            5,
-            1.0);
+TEST_F(Astra1DMagnetoStaticTest, FrequencyThrows) {
+    std::string fname =
+            writeConstantAstra1DMagnetoStaticFieldmap(tmpFile("freq.map"), 0.0, 0.10, 5, 1.0);
 
     Fieldmap* fm = Fieldmap::getFieldmap(fname);
 
@@ -574,51 +463,33 @@ TEST_F(Astra1DMagnetoStaticTest, FrequencyThrows)
 // ===========================================================================
 // Test: getFieldDimensions 6-arg overload throws
 // ===========================================================================
-TEST_F(Astra1DMagnetoStaticTest, GetFieldDimensions6ArgThrows)
-{
-    std::string fname = writeConstantAstra1DMagnetoStaticFieldmap(
-            tmpFile("dim6.map"),
-            0.0,
-            0.10,
-            5,
-            1.0);
+TEST_F(Astra1DMagnetoStaticTest, GetFieldDimensions6ArgThrows) {
+    std::string fname =
+            writeConstantAstra1DMagnetoStaticFieldmap(tmpFile("dim6.map"), 0.0, 0.10, 5, 1.0);
 
     Fieldmap* fm = Fieldmap::getFieldmap(fname);
 
     ASSERT_NE(fm, nullptr);
 
-    double xIni = 0.0;
+    double xIni   = 0.0;
     double xFinal = 0.0;
-    double yIni = 0.0;
+    double yIni   = 0.0;
     double yFinal = 0.0;
-    double zIni = 0.0;
+    double zIni   = 0.0;
     double zFinal = 0.0;
 
     EXPECT_THROW(
-            fm->getFieldDimensions(
-                    xIni,
-                    xFinal,
-                    yIni,
-                    yFinal,
-                    zIni,
-                    zFinal),
-            GeneralOpalException);
+            fm->getFieldDimensions(xIni, xFinal, yIni, yFinal, zIni, zFinal), GeneralOpalException);
 }
 
 // ===========================================================================
 // Test: swap() does not crash
 // ===========================================================================
-TEST_F(Astra1DMagnetoStaticTest, SwapNoCrash)
-{
-    std::string fname = writeConstantAstra1DMagnetoStaticFieldmap(
-            tmpFile("swap.map"),
-            0.0,
-            0.10,
-            5,
-            1.0);
+TEST_F(Astra1DMagnetoStaticTest, SwapNoCrash) {
+    std::string fname =
+            writeConstantAstra1DMagnetoStaticFieldmap(tmpFile("swap.map"), 0.0, 0.10, 5, 1.0);
 
-    auto* fm = dynamic_cast<Astra1DMagnetoStatic*>(
-            Fieldmap::getFieldmap(fname));
+    auto* fm = dynamic_cast<Astra1DMagnetoStatic*>(Fieldmap::getFieldmap(fname));
 
     ASSERT_NE(fm, nullptr);
 
@@ -628,14 +499,9 @@ TEST_F(Astra1DMagnetoStaticTest, SwapNoCrash)
 // ===========================================================================
 // Test: getInfo() does not crash
 // ===========================================================================
-TEST_F(Astra1DMagnetoStaticTest, GetInfoNoCrash)
-{
-    std::string fname = writeConstantAstra1DMagnetoStaticFieldmap(
-            tmpFile("info.map"),
-            0.0,
-            0.10,
-            5,
-            1.0);
+TEST_F(Astra1DMagnetoStaticTest, GetInfoNoCrash) {
+    std::string fname =
+            writeConstantAstra1DMagnetoStaticFieldmap(tmpFile("info.map"), 0.0, 0.10, 5, 1.0);
 
     Fieldmap* fm = Fieldmap::getFieldmap(fname);
 
@@ -649,8 +515,7 @@ TEST_F(Astra1DMagnetoStaticTest, GetInfoNoCrash)
 // ===========================================================================
 // Test: Missing file
 // ===========================================================================
-TEST_F(Astra1DMagnetoStaticTest, MissingFile)
-{
+TEST_F(Astra1DMagnetoStaticTest, MissingFile) {
     std::string fname = tmpFile("nonexistent.map");
 
     EXPECT_THROW(Fieldmap::getFieldmap(fname), GeneralOpalException);
@@ -659,14 +524,9 @@ TEST_F(Astra1DMagnetoStaticTest, MissingFile)
 // ===========================================================================
 // Test: Fieldmap dictionary caching
 // ===========================================================================
-TEST_F(Astra1DMagnetoStaticTest, DictionaryCaching)
-{
-    std::string fname = writeConstantAstra1DMagnetoStaticFieldmap(
-            tmpFile("cache.map"),
-            0.0,
-            0.10,
-            5,
-            1.0);
+TEST_F(Astra1DMagnetoStaticTest, DictionaryCaching) {
+    std::string fname =
+            writeConstantAstra1DMagnetoStaticFieldmap(tmpFile("cache.map"), 0.0, 0.10, 5, 1.0);
 
     Fieldmap* fm1 = Fieldmap::getFieldmap(fname);
     Fieldmap* fm2 = Fieldmap::getFieldmap(fname);
@@ -677,14 +537,9 @@ TEST_F(Astra1DMagnetoStaticTest, DictionaryCaching)
 // ===========================================================================
 // Test: readMap / freeMap cycle
 // ===========================================================================
-TEST_F(Astra1DMagnetoStaticTest, ReadFreeCycle)
-{
-    std::string fname = writeConstantAstra1DMagnetoStaticFieldmap(
-            tmpFile("cycle.map"),
-            0.0,
-            0.10,
-            9,
-            1.0);
+TEST_F(Astra1DMagnetoStaticTest, ReadFreeCycle) {
+    std::string fname =
+            writeConstantAstra1DMagnetoStaticFieldmap(tmpFile("cycle.map"), 0.0, 0.10, 9, 1.0);
 
     Fieldmap* fm = Fieldmap::getFieldmap(fname);
 
@@ -713,8 +568,7 @@ TEST_F(Astra1DMagnetoStaticTest, ReadFreeCycle)
 // ===========================================================================
 // Test: Invalid fieldmap with fewer than two valid samples
 // ===========================================================================
-TEST_F(Astra1DMagnetoStaticTest, RejectsTooFewSamples)
-{
+TEST_F(Astra1DMagnetoStaticTest, RejectsTooFewSamples) {
     const std::string fname = tmpFile("too_few.map");
 
     {
@@ -729,14 +583,9 @@ TEST_F(Astra1DMagnetoStaticTest, RejectsTooFewSamples)
 // ===========================================================================
 // Test: Zero-amplitude map is rejected during readMap()
 // ===========================================================================
-TEST_F(Astra1DMagnetoStaticTest, RejectsZeroAmplitudeMap)
-{
-    std::string fname = writeConstantAstra1DMagnetoStaticFieldmap(
-            tmpFile("zero.map"),
-            0.0,
-            0.10,
-            5,
-            0.0);
+TEST_F(Astra1DMagnetoStaticTest, RejectsZeroAmplitudeMap) {
+    std::string fname =
+            writeConstantAstra1DMagnetoStaticFieldmap(tmpFile("zero.map"), 0.0, 0.10, 5, 0.0);
 
     Fieldmap* fm = Fieldmap::getFieldmap(fname);
 
