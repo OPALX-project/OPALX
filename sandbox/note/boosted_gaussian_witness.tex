@@ -19,24 +19,37 @@
 \newcommand{\Pmom}{\vect{P}}
 \newcommand{\betav}{\boldsymbol{\beta}}
 \newcommand{\gammal}{\gamma}
+\numberwithin{equation}{section}
 
 \begin{document}
 \maketitle
 
 \section{Purpose}
 
-This note defines a manufactured solution for a  low-energy witness
-e-/e+ pair, kicked by the electromagnetic field of two highly relativistic
-and colliding Gaussian electron bunches.  The goal is to guide an OPALX implementation and
-establish a order of magnitude estimate.
+This note defines a manufactured solution for a low-energy witness
+\(e^-/e^+\) pair, kicked by the electromagnetic field of two highly
+relativistic colliding Gaussian electron bunches.  The goal is to guide an
+OPALX implementation and establish an order-of-magnitude estimate.
 
 It is understood that for the detector design, of a $\gamma\text{-}\gamma$ collider, a full self-consistent model is essential. 
 
-Each source bunch is prescribed as a uniformly (non accelerated) moving,
-spherical Gaussian charge distribution in its own rest frame. The rest-frame
+The terminology used below is:
+\begin{itemize}
+  \item \emph{colliding Gaussian beams}: the two prescribed high-energy
+        electron bunches representing the beams at the interaction point;
+  \item \emph{source}: a field-producing bunch.  In the present OPALX witness
+        implementation this is particle container 0, which defines the mesh and
+        field solve.  In the manufactured model the source index \(j\) labels
+        one of the prescribed colliding Gaussian bunches;
+  \item \emph{witness}: the low-energy \(e^-/e^+\) particles.  They sample the
+        source fields but do not deposit charge in the present model.
+\end{itemize}
+
+Each source Gaussian bunch is prescribed as a uniformly, non-accelerated moving
+spherical Gaussian charge distribution in its own rest frame.  The rest-frame
 Coulomb field is known analytically and is Lorentz-transformed to the lab frame
-at the witness event. The resulting lab-frame field is then applied to one
-witness electron with the same Boris kick convention used by OPALX.
+at the witness event.  The resulting lab-frame field is then applied to the
+witness particles with the same Boris kick convention used by OPALX.
 
 \section{Current OPALX Witness Model}
 
@@ -49,63 +62,69 @@ kick.
 
 In this approximation the witness is represented only by its spatial coordinate
 in the active tracking step.  The relevant mapping is geometric,
-\[
+\begin{equation}
   \vect r_s = R_s\left(\vect r_w + (s_w-s_s)\hat{\vect z}\right),
-\]
+\end{equation}
 where \(s_s\) and \(s_w\) are the source and witness path lengths and \(R_s\)
-is the rigid rotation into the source beam frame.  The sampled fields are then
-\[
+is the rigid rotation from the tracking reference coordinates into the local
+source-beam coordinates used by the \texttt{BeamBeam} field mesh.  It is an
+orthonormal \(3\times3\) spatial rotation, not a Lorentz boost.  In the straight
+coordinate system used by the present tests, with no crossing angle and no
+curved reference trajectory, the two frames are aligned and \(R_s=I\).  It is
+kept explicitly because the implementation also has to support a rotated source
+reference frame.  The sampled fields are then
+\begin{equation}
   \E_{\mathrm{used}} = R_s^T \E_s(\vect r_s),
   \qquad
   \B_{\mathrm{used}} = R_s^T \B_s(\vect r_s).
-\]
+\end{equation}
 This is useful as a first implementation because it reuses the \texttt{BeamBeam} mesh,
 but it does not treat the field evaluation as a Lorentz-covariant event
 calculation.
 
-The full relativistic reference model will eventually starts from the witness event
-\[
+The full relativistic reference model will eventually start from the witness event
+\begin{equation}
   x_w^\mu=(c t_w,\vect x_w)
-\]
+\end{equation}
 and evaluates the contribution of each source bunch \(j\) at that event.  Let
-the source move with almost constant \texttt{BeamBeam} velocity
-\[
+the source Gaussian bunch move with almost constant \texttt{BeamBeam} velocity
+\begin{equation}
   \vect v_j = c\betav_j,
   \qquad
   \gamma_j = \frac{1}{\sqrt{1-\betav_j^2}},
-\]
+\end{equation}
 and define the event relative to the source centroid by
-\[
+\begin{equation}
   \Delta t_j = t_w - t_{j0},
   \qquad
   \Delta \vect x_j = \vect x_w-\vect X_{j0}.
-\]
+\end{equation}
 With the decomposition into components parallel and transverse to
 \(\betav_j\), the Lorentz transformation into the source rest frame is
-\[
+\begin{equation}
   c t'_j =
   \gamma_j\left(c\Delta t_j-\betav_j\cdot\Delta\vect x_j\right),
-\]
-\[
+\end{equation}
+\begin{equation}
   \Delta \vect x'_{j,\parallel}
   =
   \gamma_j\left(\Delta \vect x_{j,\parallel}
   - c\betav_j\Delta t_j\right),
   \qquad
   \Delta \vect x'_{j,\perp}=\Delta \vect x_{j,\perp}.
-\]
+\end{equation}
 The term \(\betav_j\cdot\Delta\vect x_j/c\) is the relativity-of-simultaneity
 piece that is absent in the current geometric sampling model.
 
 For the manufactured Gaussian reference used here, the source rest-frame
 charge density is
-\[
+\begin{equation}
   \rho'_j(r') =
   \frac{Q_j}{(2\pi)^{3/2}\sigma_j^3}
   \exp\left(-\frac{r'^2}{2\sigma_j^2}\right),
-\]
+\end{equation}
 and the electrostatic field is
-\[
+\begin{equation}
   \E'_j(\vect r') =
   \frac{Q_j}{4\pi\epsilon_0}
   \frac{\vect r'}{r'^3}
@@ -117,42 +136,43 @@ and the electrostatic field is
   \right],
   \qquad
   \B'_j=0.
-\]
+\end{equation}
 More generally, the source rest-frame field tensor is transformed back to the
 lab/reference frame,
-\[
+\begin{equation}
   F^{\mu\nu}_{j,\mathrm{lab}}(x_w)
   =
   \Lambda^\mu{}_{\alpha}(\betav_j)
   F_j^{\prime\,\alpha\beta}(x'_j)
   \Lambda^\nu{}_{\beta}(\betav_j).
-\]
-In vector form this is
-\[
+\end{equation}
+The tensor expression above is the compact matrix form.  For comparison with
+the code paths below, the same transformation is kept in component form as
+\begin{equation}
   \E_j =
   \gamma_j(\E'_j-\vect v_j\times\B'_j)
   -
   \frac{\gamma_j^2}{\gamma_j+1}
   \frac{\vect v_j}{c^2}
   (\vect v_j\cdot\E'_j),
-\]
-\[
+\end{equation}
+\begin{equation}
   \B_j =
   \gamma_j\left(\B'_j+\frac{\vect v_j\times\E'_j}{c^2}\right)
   -
   \frac{\gamma_j^2}{\gamma_j+1}
   \frac{\vect v_j}{c^2}
   (\vect v_j\cdot\B'_j).
-\]
+\end{equation}
 The fields acting on the witness are the superposition
-\[
+\begin{equation}
   \E(x_w)=\sum_j \E_j(x_w),
   \qquad
   \B(x_w)=\sum_j \B_j(x_w).
-\]
+\end{equation}
 For the OPALX normalized momentum
 \(\Pmom=\gamma_w\betav_w\), the corresponding witness equations of motion are
-\[
+\begin{equation}
   \frac{\dd \vect x_w}{\dd t}
   =
   c\frac{\Pmom}{\sqrt{1+\Pmom^2}},
@@ -165,7 +185,7 @@ For the OPALX normalized momentum
     +
     c\frac{\Pmom}{\sqrt{1+\Pmom^2}}\times\B(x_w)
   \right].
-\]
+\end{equation}
 This is the model the manufactured solution is meant to test against: event
 transformation into each source rest frame, field evaluation there, field-tensor
 transformation back to the lab/reference frame, and then the witness kick.
@@ -179,46 +199,45 @@ container 0.
 Let the source container path length be \(s_s\), the witness container path
 length be \(s_w\), and the witness particle coordinate in its own container frame
 be
-\[
+\begin{equation}
   \vect r_w = (x_w,y_w,z_w).
-\]
+\end{equation}
 The implemented longitudinal mapping into the source frame is
-\[
+\begin{equation}
   \Delta s = s_w-s_s,
   \qquad
   z_s = z_w + \Delta s .
-\]
-With \(R_s\) the rigid rotation from the reference frame into the source beam
-frame, the sampled source-frame coordinate is
-\[
+\end{equation}
+With the same \(R_s\) defined above, the sampled source-frame coordinate is
+\begin{equation}
   \vect r_s
   =
   R_s\left(\vect r_w + \Delta s\,\hat{\vect z}\right).
-\]
+\end{equation}
 OPALX then gathers the current source mesh fields at this point:
-\[
+\begin{equation}
   \E_s(\vect r_s), \qquad \B_s(\vect r_s).
-\]
+\end{equation}
 After gathering, the witness particle positions are restored and the fields are
 rotated back with the inverse rigid rotation,
-\[
+\begin{equation}
   \E_{\mathrm{used}} = R_s^T \E_s,
   \qquad
   \B_{\mathrm{used}} = R_s^T \B_s.
-\]
+\end{equation}
 Those fields are passed to the normal per-container Boris kick.  In OPALX units
 the particle momentum is
-\[
+\begin{equation}
   \Pmom = \betav_w \gamma_w,
-\]
+\end{equation}
 and the continuous Lorentz-force equation represented by the kick is
-\[
+\begin{equation}
   \frac{\dd \Pmom}{\dd t}
   =
-  \frac{q c}{m c^2}\E
+  \frac{q c}{m c^2}\E_{\mathrm{used}}
   +
-  \frac{q c^2}{m c^2}\betav_w \times \B.
-\]
+  \frac{q c^2}{m c^2}\betav_w \times \B_{\mathrm{used}}.
+\end{equation}
 
 \subsection{Source Field Currently Available in OPALX}
 
@@ -229,39 +248,84 @@ dispatches to \texttt{computeBinnedSelfFields()} and applies the same
 quasi-static Lorentz correction to that single bin.
 
 For a source bin \(b\), OPALX computes the global mean normalized momentum
-\[
+\begin{equation}
   \bar{\Pmom}_b = \langle \betav\gamma\rangle_b,
-\]
+\end{equation}
 and the bin Lorentz factor and mean velocity
-\[
+\begin{equation}
   \gamma_b = \sqrt{1+\bar{\Pmom}_b^2},
   \qquad
   \vect v_b = c\,\frac{\bar{\Pmom}_b}{\gamma_b}.
-\]
+\end{equation}
+Equivalently, the bin normalized velocity and its unit direction are
+\begin{equation}
+  \label{eq:opalx-bin-beta}
+  \betav_b =
+  \frac{\vect v_b}{c}
+  =
+  \frac{\bar{\Pmom}_b}{\gamma_b},
+  \qquad
+  \hat{\betav}_b =
+  \frac{\betav_b}{|\betav_b|}.
+\end{equation}
 Before the Poisson solve, the mesh density is transformed to the approximate bin
 rest frame by
-\[
+\begin{equation}
   \rho'_b = \frac{\rho_b}{\gamma_b},
-\]
+\end{equation}
 and the longitudinal mesh spacing is stretched by
-\[
+\begin{equation}
   \Delta z' = \gamma_b \Delta z .
-\]
+\end{equation}
 After solving the electrostatic problem in this stretched frame, the code
 accumulates the lab-frame fields
-\[
+\begin{equation}
+\label{eq:opalx-bin-e-field}
   \E_b =
   \gamma_b \E'_b
   -
   (\gamma_b-1)
-  (\E'_b\cdot \hat{\vect w}_b)\hat{\vect w}_b,
-\]
-\[
+  (\E'_b\cdot \hat{\betav}_b)\hat{\betav}_b,
+\end{equation}
+\begin{equation}
+\label{eq:opalx-bin-b-field}
   \B_b =
-  \frac{\gamma_b}{c^2}\vect v_b \times \E'_b,
+  \frac{\gamma_b}{c}\betav_b \times \E'_b.
+\end{equation}
+The electric-field transformation could equivalently be written in matrix form
+as
+\begin{equation}
+  \label{eq:opalx-bin-e-matrix}
+  \E_b =
+  \left[
+    \gamma_b I
+    -
+    (\gamma_b-1)\hat{\betav}_b\hat{\betav}_b^T
+  \right]\E'_b,
+\end{equation}
+and the magnetic field can be written in the same operator style by introducing
+the skew-symmetric cross-product matrix
+\begin{equation}
+  \label{eq:opalx-bin-cross-matrix}
+  [\betav_b]_\times =
+  \begin{pmatrix}
+    0 & -\beta_{b,z} & \beta_{b,y}\\
+    \beta_{b,z} & 0 & -\beta_{b,x}\\
+    -\beta_{b,y} & \beta_{b,x} & 0
+  \end{pmatrix},
   \qquad
-  \hat{\vect w}_b = \frac{\vect v_b}{|\vect v_b|}.
-\]
+  [\betav_b]_\times \vect a = \betav_b\times\vect a.
+\end{equation}
+Then Eq.~\eqref{eq:opalx-bin-b-field} is equivalently
+\begin{equation}
+  \label{eq:opalx-bin-b-matrix}
+  \B_b =
+  \frac{\gamma_b}{c}
+  [\betav_b]_\times \E'_b.
+\end{equation}
+The component forms in Eqs.~\eqref{eq:opalx-bin-e-field} and
+\eqref{eq:opalx-bin-b-field} are still kept because they make the parallel and
+transverse parts visible and mirror the implementation.
 The accumulated fields are then gathered to source particles, and the current
 mesh fields can also be sampled by witness containers.
 
@@ -273,19 +337,19 @@ mesh, and rotates the sampled vectors back.  It does not evaluate the
 electromagnetic field tensor at the witness event.
 
 A covariant treatment would start from a witness event
-\[
+\begin{equation}
   x^\mu_w = (c t_w,\vect x_w)
-\]
+\end{equation}
 and transform that event into the rest frame of each source bunch.  For a source
 with velocity \(\vect v_s=c\betav_s\), the parallel part of the event transform is
-\[
+\begin{equation}
   t'_s =
   \gamma_s
   \left(
     t_w - \frac{\betav_s\cdot \vect x_w}{c}
   \right),
-\]
-\[
+\end{equation}
+\begin{equation}
   \vect x'_{s,\parallel}
   =
   \gamma_s
@@ -294,34 +358,34 @@ with velocity \(\vect v_s=c\betav_s\), the parallel part of the event transform 
   \right),
   \qquad
   \vect x'_{s,\perp}=\vect x_{w,\perp}.
-\]
+\end{equation}
 The field tensor would then be transformed back to the lab/reference frame,
-\[
+\begin{equation}
   F^{\mu\nu}_{\mathrm{lab}}
   =
   \Lambda^\mu{}_\alpha
   F'^{\alpha\beta}_s
   \Lambda^\nu{}_\beta .
-\]
+\end{equation}
 
 In vector notation, for a source rest-frame field \(\E'\), \(\B'\), the lab field
 is
-\[
+\begin{equation}
   \E =
   \gamma_s(\E' - \vect v_s\times \B')
   -
   \frac{\gamma_s^2}{\gamma_s+1}
   \frac{\vect v_s}{c^2}
   (\vect v_s\cdot \E'),
-\]
-\[
+\end{equation}
+\begin{equation}
   \B =
   \gamma_s\left(\B' + \frac{\vect v_s\times \E'}{c^2}\right)
   -
   \frac{\gamma_s^2}{\gamma_s+1}
   \frac{\vect v_s}{c^2}
   (\vect v_s\cdot \B').
-\]
+\end{equation}
 The current witness gather does not perform this per-source or per-witness event
 transformation.
 
@@ -340,21 +404,21 @@ The missing physics and numerical pieces are:
 \section{Manufactured Boosted-Gaussian Model}
 
 For a controlled implementation target, prescribe each source bunch \(j\) by
-\[
+\begin{equation}
   Q_j,\qquad \sigma'_j,\qquad \betav_j,\qquad
   \gamma_j = \frac{1}{\sqrt{1-\betav_j^2}},
-\]
+\end{equation}
 and by the lab-frame center worldline
-\[
+\begin{equation}
   \vect R_j(t) = \vect R_{j0} + \betav_j c(t-t_0).
-\]
+\end{equation}
 At the witness event \((t,\vect r_w)\), define the lab-frame displacement from
 the source center,
-\[
+\begin{equation}
   \boldsymbol{\ell}_j = \vect r_w - \vect R_j(t).
-\]
+\end{equation}
 Split it into parts parallel and perpendicular to the source velocity,
-\[
+\begin{equation}
   \boldsymbol{\ell}_{j,\parallel}
   =
   (\boldsymbol{\ell}_j\cdot\hat{\betav}_j)\hat{\betav}_j,
@@ -362,34 +426,34 @@ Split it into parts parallel and perpendicular to the source velocity,
   \boldsymbol{\ell}_{j,\perp}
   =
   \boldsymbol{\ell}_j-\boldsymbol{\ell}_{j,\parallel}.
-\]
+\end{equation}
 For a uniformly moving source, the corresponding source-rest coordinate at the
 same lab event is
-\[
+\begin{equation}
   \vect r'_j
   =
   \boldsymbol{\ell}_{j,\perp}
   +
   \gamma_j \boldsymbol{\ell}_{j,\parallel}.
-\]
+\end{equation}
 
 The rest-frame charge density is a spherical Gaussian,
-\[
+\begin{equation}
   \rho'_j(\vect r')
   =
   \frac{Q_j}{(2\pi)^{3/2}{\sigma'_j}^3}
   \exp\left(-\frac{r'^2}{2{\sigma'_j}^2}\right).
-\]
+\end{equation}
 The analytic rest-frame electrostatic potential and electric field are
-\[
+\begin{equation}
   \phi'_j(\vect r')
   =
   \frac{Q_j}{4\pi\epsilon_0}
   \frac{\operatorname{erf}(u)}{r'},
   \qquad
   u = \frac{r'}{\sqrt{2}\sigma'_j},
-\]
-\[
+\end{equation}
+\begin{equation}
   \E'_j(\vect r')
   =
   \frac{Q_j}{4\pi\epsilon_0}
@@ -400,63 +464,73 @@ The analytic rest-frame electrostatic potential and electric field are
     \exp[-r'^2/(2{\sigma'_j}^2)]
   }{r'^3}
   \vect r',
-\]
+\end{equation}
 with the regular limit \(\E'_j(0)=0\).  Since the source is electrostatic in its
 own rest frame,
-\[
+\begin{equation}
   \B'_j = 0.
-\]
+\end{equation}
 
 Boosting this field into the lab gives the simpler component form
-\[
+\begin{equation}
   \E_{j,\parallel} = \E'_{j,\parallel},
   \qquad
   \E_{j,\perp} = \gamma_j \E'_{j,\perp},
-\]
-\[
+\end{equation}
+\begin{equation}
   \B_j = \frac{1}{c^2}\vect v_j \times \E_j.
-\]
-The total manufactured lab field is
-\[
-  \E = \sum_j \E_j,
+\end{equation}
+The total manufactured lab field at the witness event is
+\begin{equation}
+  \label{eq:manufactured-total-field}
+  \E_w(t,\vect r_w) = \sum_j \E_j(t,\vect r_w),
   \qquad
-  \B = \sum_j \B_j.
-\]
+  \B_w(t,\vect r_w) = \sum_j \B_j(t,\vect r_w).
+\end{equation}
 
 \subsection{Witness Kick}
 
 The manufactured witness uses the same normalized momentum convention as OPALX,
-\[
+\begin{equation}
   \Pmom = \betav_w\gamma_w .
-\]
-The Python prototype applies the same Boris kick sequence used in OPALX:
+\end{equation}
+The fields used by the kick are exactly the total manufactured lab-frame fields
+from Eq.~\eqref{eq:manufactured-total-field}, evaluated at the current witness
+event:
+\begin{equation}
+  \E_w^n = \E_w(t^n,\vect r_w^n),
+  \qquad
+  \B_w^n = \B_w(t^n,\vect r_w^n).
+\end{equation}
+They are therefore not the source-frame mesh fields
+\(\E_s(\vect r_s),\B_s(\vect r_s)\) used in the current OPALX sampling
+approximation.  The Python prototype applies the same Boris kick sequence used
+in OPALX:
 
-\begin{eqnarray}
- \Pmom^- &=&
+\begin{align}
+ \Pmom^- &=
   \Pmom^n
   +
-  \frac{1}{2}\Delta t\,\frac{q c}{m c^2}\E, \\
-\vect t &=&
-  \frac{1}{2}\Delta t\,\frac{q c^2}{\gamma^- m c^2}\B,
+  \frac{1}{2}\Delta t\,\frac{q c}{m c^2}\E_w^n, \\
+\vect t &=
+  \frac{1}{2}\Delta t\,\frac{q c^2}{\gamma^- m c^2}\B_w^n,
   \qquad
   \vect s =
   \frac{2\vect t}{1+\vect t\cdot\vect t}, \\
-\Pmom' &=& \Pmom^- + \Pmom^- \times \vect t \\
-\Pmom^+ &=& \Pmom^- + \Pmom' \times \vect s, \\
-\Pmom^{n+1} &=& 
+\Pmom' &= \Pmom^- + \Pmom^- \times \vect t, \\
+\Pmom^+ &= \Pmom^- + \Pmom' \times \vect s, \\
+\Pmom^{n+1} &=
   \Pmom^+
   +
-  \frac{1}{2}\Delta t\,\frac{q c}{m c^2}\E .
-\end{eqnarray}
+  \frac{1}{2}\Delta t\,\frac{q c}{m c^2}\E_w^n .
+\end{align}
 
 \subsection{Initial Manufactured Cases}
 
 The first Python prototype is
-\[
-  \texttt{sandbox/python/boosted\_gaussian\_witness.py}.
-\]
+\texttt{sandbox/python/boosted\_gaussian\_witness.py}.
 The table below was generated with
-\[
+\begin{equation}
 \begin{split}
   K_s &= 245~\mathrm{MeV},\\
   \gamma_s &= 480.453039976,\\
@@ -466,7 +540,7 @@ The table below was generated with
   \Delta t &= 1~\mathrm{ps},\\
   \Pmom_w^0 &= (0,0,0).
 \end{split}
-\]
+\end{equation}
 The two symmetric source centers are both at the IP at \(t=0\), moving in
 opposite \(z\)-directions.  The witness charge is an electron charge.
 
@@ -478,9 +552,9 @@ opposite \(z\)-directions.  The witness charge is an electron charge.
 \end{center}
 
 The central symmetric case is intentionally a null test:
-\[
+\begin{equation}
   \E(0)=0,\qquad \B(0)=0,\qquad \Delta\Pmom=0.
-\]
+\end{equation}
 The off-axis symmetric case checks the transverse electric kick while the two
 magnetic fields cancel.  The single-source and asymmetric cases give nonzero
 magnetic fields and therefore exercise the full \((\E,\B)\) Boris path.
@@ -490,15 +564,15 @@ magnetic fields and therefore exercise the full \((\E,\B)\) Boris path.
 The Python prototype also contains a two-particle witness test intended to be a
 minimal model for a low-energy Breit-Wheeler pair born at the interaction point.
 The electron and positron are initialized at the same lab event,
-\[
+\begin{equation}
   \vect r_{e^-}(0)=\vect r_{e^+}(0)=\vect 0,
-\]
+\end{equation}
 with equal kinetic energy
-\[
+\begin{equation}
   K_{e^-}=K_{e^+}=313~\mathrm{keV}.
-\]
+\end{equation}
 The corresponding normalized momentum magnitude is
-\[
+\begin{equation}
   |\Pmom|
   =
   \sqrt{
@@ -508,13 +582,13 @@ The corresponding normalized momentum magnitude is
   1.26500561229,
   \qquad
   \beta = 0.784487091427.
-\]
+\end{equation}
 For the default test direction \(\hat{\vect u}=\hat{\vect x}\),
-\[
+\begin{equation}
   \Pmom_{e^-}(0)=|\Pmom|\hat{\vect u},
   \qquad
   \Pmom_{e^+}(0)=-|\Pmom|\hat{\vect u}.
-\]
+\end{equation}
 
 Three trajectories are integrated with identical initial conditions and timestep:
 \begin{itemize}
@@ -529,17 +603,17 @@ All cases are written into the same trajectory CSV with a \texttt{scenario}
 column.
 
 For the physical-charge illustration
-\[
+\begin{equation}
   Q=-2.002721~\mathrm{nC},\qquad
   \Delta t=0.005~\mathrm{ps},\qquad
   T=50~\mathrm{ps},
-\]
+\end{equation}
 the exact creation point is a symmetry null:
-\[
+\begin{equation}
   \E(0,\vect 0)=\vect 0,
   \qquad
   \B(0,\vect 0)=\vect 0.
-\]
+\end{equation}
 In the symmetric collision with the default pure transverse launch, both
 particles remain in the \(z=0\) symmetry plane, so the magnetic fields from the
 two equal and opposite source bunches cancel along the trajectory.  The
@@ -554,19 +628,26 @@ summary is:
 }
 \end{center}
 
+Figure~\ref{fig:manufactured-field-t0} shows the magnitude of the initial
+manufactured electric field for the symmetric and asymmetric source
+configurations.  Figure~\ref{fig:manufactured-pair-paths} shows the resulting
+pair trajectories and their deviation from free propagation.
+
 \begin{figure}[!htp]
   \centering
-  \includegraphics[width=\textwidth]{../data/boosted_gaussian_witness_physical_field_t0.png}
+  \includegraphics[width=\textwidth]{./figs/boosted_gaussian_witness_physical_field_t0.png}
   \caption{Magnitude of the manufactured boosted-Gaussian electric field at
   pair creation.  The white marker is the interaction point.}
+  \label{fig:manufactured-field-t0}
 \end{figure}
 
 \begin{figure}[!htp]
   \centering
-  \includegraphics[width=\textwidth]{../data/boosted_gaussian_witness_physical_paths.png}
+  \includegraphics[width=\textwidth]{./figs/boosted_gaussian_witness_physical_paths.png}
   \caption{Back-to-back \(e^-/e^+\) propagation with and without the colliding
   source fields.  The lower-right panel shows the field-on trajectory minus the
   free trajectory.}
+  \label{fig:manufactured-pair-paths}
 \end{figure}
 
 \section{Implementation Use in OPALX}
