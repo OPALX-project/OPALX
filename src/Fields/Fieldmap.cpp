@@ -123,16 +123,17 @@ Fieldmap* Fieldmap::getFieldmap(std::string Filename, bool /*fast*/) {
                 //     position = FieldmapDictionary.insert(
                 //             std::make_pair(
                 //                 Filename,
-                //                 FieldmapDescription(TAstraMagnetoStatic, Astra1DMagnetoStatic_fast(Filename))));
+                //                 FieldmapDescription(TAstraMagnetoStatic,
+                //                 Astra1DMagnetoStatic_fast(Filename))));
                 // } else {
                 position = FieldmapDictionary.insert(
                         std::make_pair(
-                            Filename,
-                            FieldmapDescription(TAstraMagnetoStatic, new Astra1DMagnetoStatic(Filename))));
+                                Filename,
+                                FieldmapDescription(
+                                        TAstraMagnetoStatic, new Astra1DMagnetoStatic(Filename))));
                 // }
-            return (*position.first).second.Map;
-            break;
-
+                return (*position.first).second.Map;
+                break;
 
             default:
                 throw GeneralOpalException(
