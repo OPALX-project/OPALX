@@ -348,6 +348,10 @@ void Astra1DMagnetoStatic::getInfo(Inform* msg) {
            << " m;" << endl;
 }
 
-double Astra1DMagnetoStatic::getFrequency() const { return 0.0; }
+double Astra1DMagnetoStatic::getFrequency() const {
+    throw GeneralOpalException("Astra1DMagnetoStatic::getFrequency", "not implemented");
+}
 
-void Astra1DMagnetoStatic::setFrequency(double /*freq*/) {}
+void Astra1DMagnetoStatic::setFrequency(double /*freq*/) {
+    throw GeneralOpalException("Astra1DMagnetoStatic::setFrequency", "not implemented");
+}
