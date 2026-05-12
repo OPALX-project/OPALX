@@ -6,8 +6,8 @@
 /* To be ported from OPAL
 #include "Fields/Astra1DElectroStatic.h"
 #include "Fields/Astra1DElectroStatic_fast.h"
-#include "Fields/Astra1DMagnetoStatic.h"
 #include "Fields/Astra1DMagnetoStatic_fast.h"
+#include "Fields/Astra1DDynamic_fast.h"
 #include "Fields/FM1DDynamic.h"
 #include "Fields/FM1DDynamic_fast.h"
 #include "Fields/FM1DElectroStatic.h"
@@ -28,7 +28,7 @@
 */
 
 #include "Fields/Astra1DDynamic.h"
-// #include "Fields/Astra1DDynamic_fast.h"
+#include "Fields/Astra1DMagnetoStatic.h"
 #include "Fields/FM2DDynamic.h"
 #include "Fields/FM2DMagnetoStatic.h"
 
@@ -117,6 +117,22 @@ Fieldmap* Fieldmap::getFieldmap(std::string Filename, bool /*fast*/) {
                 // }
                 return (*position.first).second.Map;
                 break;
+
+            case TAstraMagnetoStatic:
+                // if (fast) {
+                //     position = FieldmapDictionary.insert(
+                //             std::make_pair(
+                //                 Filename,
+                //                 FieldmapDescription(TAstraMagnetoStatic, Astra1DMagnetoStatic_fast(Filename))));
+                // } else {
+                position = FieldmapDictionary.insert(
+                        std::make_pair(
+                            Filename,
+                            FieldmapDescription(TAstraMagnetoStatic, new Astra1DMagnetoStatic(Filename))));
+                // }
+            return (*position.first).second.Map;
+            break;
+
 
             default:
                 throw GeneralOpalException(
