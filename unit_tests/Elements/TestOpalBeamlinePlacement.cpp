@@ -42,10 +42,29 @@ namespace {
         EXPECT_NEAR(actual(2), expected(2), tol);
     }
 
+    Vector3 analyticSbendPointAtS(const double length, const double angle, const double s) {
+        const double curvature = angle / length;
+        if (std::abs(curvature) <= 1.0e-15) {
+            return Vector3(0.0, 0.0, s);
+        }
+
+        // Sector bend design orbit: h = theta / L, phi = h s.
+        const double phi = curvature * s;
+        return Vector3((std::cos(phi) - 1.0) / curvature, 0.0, std::sin(phi) / curvature);
+    }
+
+    Vector3 analyticSbendTangentAtS(const double length, const double angle, const double s) {
+        const double curvature = angle / length;
+        if (std::abs(curvature) <= 1.0e-15) {
+            return Vector3(0.0, 0.0, 1.0);
+        }
+
+        const double phi = curvature * s;
+        return Vector3(-std::sin(phi), 0.0, std::cos(phi));
+    }
+
     Vector3 analyticSbendExit(const double length, const double angle) {
-        return Vector3(
-                -(length / angle) * (1.0 - std::cos(angle)), 0.0,
-                (length / angle) * std::sin(angle));
+        return analyticSbendPointAtS(length, angle, length);
     }
 
     Vector3 analyticRbendExit(const double length, const double angle) {
@@ -484,6 +503,165 @@ TEST_F(OpalBeamlinePlacementTest, CompatibilitySBendExitMatchesAnalyticLabGeomet
 
     expectVectorNear(exitLab, analyticSbendExit(length, angle));
     expectVectorNear(tangentLab, analyticExitTangent(angle));
+}
+
+/**
+ * Analytic SBEND placement matrix used by
+ * `SBendAnalyticSectorOrbitMapsToFieldArcLengthForPoleFaces`.
+ *
+ * Fixed parameters:
+ * \f$L = 1\,\mathrm{m}\f$, \f$\mathrm{HGAP} = 0.02\,\mathrm{m}\f$,
+ * \f$\mathrm{FINT} = 0.5\f$.
+ *
+ * Sector-bend design orbit:
+ * \f[
+ *   h = \theta / L, \quad \phi = h s, \quad
+ *   r(s) = \left(\frac{\cos\phi - 1}{h}, 0, \frac{\sin\phi}{h}\right),
+ *   \quad t(s)=(-\sin\phi,0,\cos\phi).
+ * \f]
+ *
+ * Pole-face support model:
+ * \f[
+ *   \ell_1 = \frac{\mathrm{HGAP}\,\mathrm{FINT}}{|\cos E_1|}, \quad
+ *   \ell_2 = \frac{\mathrm{HGAP}\,\mathrm{FINT}}{|\cos E_2|}, \quad
+ *   L_\mathrm{eff} = L + \frac{\ell_1 + \ell_2}{2}.
+ * \f]
+ *
+ * Expected sector geometry for the four bend angles:
+ *
+ * | theta [deg] | rho [m]     | x_exit [m] | z_exit [m] | t_x_exit  | t_z_exit  |
+ * |------------:|------------:|-----------:|-----------:|----------:|----------:|
+ * | -45         | -1.273239545 |  0.372923229 | 0.900316316 |  0.707106781 | 0.707106781 |
+ * | -15         | -3.819718634 |  0.130153756 | 0.988615929 |  0.258819045 | 0.965925826 |
+ * |  15         |  3.819718634 | -0.130153756 | 0.988615929 | -0.258819045 | 0.965925826 |
+ * |  45         |  1.273239545 | -0.372923229 | 0.900316316 | -0.707106781 | 0.707106781 |
+ *
+ * Expected pole-face support for the four face-angle pairs:
+ *
+ * | case | E1 [deg] | E2 [deg] | ell_entry [m] | ell_exit [m] | L_eff [m]  |
+ * |:-----|---------:|---------:|--------------:|-------------:|-----------:|
+ * | F0   |   0.0    |   0.0    | 0.010000000   | 0.010000000  | 1.010000000 |
+ * | F1   |   5.0    |   5.0    | 0.010038198   | 0.010038198  | 1.010038198 |
+ * | F2   |  10.0    |   5.0    | 0.010154266   | 0.010038198  | 1.010096232 |
+ * | F3   |  -7.5    |  12.5    | 0.010086290   | 0.010242795  | 1.010164542 |
+ *
+ * Combined effective curvature \f$h_\mathrm{eff}=\theta/L_\mathrm{eff}\f$:
+ *
+ * | theta [deg] | F0 [1/m]    | F1 [1/m]    | F2 [1/m]    | F3 [1/m]    |
+ * |------------:|------------:|------------:|------------:|------------:|
+ * | -45         | -0.777621944 | -0.777592535 | -0.777547860 | -0.777495280 |
+ * | -15         | -0.259207315 | -0.259197512 | -0.259182620 | -0.259165093 |
+ * |  15         |  0.259207315 |  0.259197512 |  0.259182620 |  0.259165093 |
+ * |  45         |  0.777621944 |  0.777592535 |  0.777547860 |  0.777495280 |
+ *
+ * In the current OPALX compatibility placement, \f$E_1\f$ rotates the entry
+ * face frame and therefore the placed body frame; \f$E_2\f$ affects the exit
+ * fringe support and exit edge optics. The sector reference arc itself remains
+ * the same in the local chart recovered by `transformToFieldLocalCS()`.
+ */
+TEST_F(OpalBeamlinePlacementTest, SBendAnalyticSectorOrbitMapsToFieldArcLengthForPoleFaces) {
+    struct PoleFaceCase {
+        const char* name;
+        double entryAngle;
+        double exitAngle;
+    };
+
+    constexpr double length         = 1.0;
+    constexpr double fringeHalfGap  = 0.02;
+    constexpr double fringeIntegral = 0.5;
+    const double deg                = Physics::pi / 180.0;
+    const double angles[]           = {
+            -Physics::pi / 4.0, -Physics::pi / 12.0, Physics::pi / 12.0, Physics::pi / 4.0};
+    const PoleFaceCase poleFaces[] = {
+            {"F0", 0.0, 0.0},
+            {"F1", 5.0 * deg, 5.0 * deg},
+            {"F2", 10.0 * deg, 5.0 * deg},
+            {"F3", -7.5 * deg, 12.5 * deg}};
+    const double samples[] = {0.0, 0.25 * length, 0.5 * length, 0.75 * length, length};
+
+    for (const double angle : angles) {
+        for (const PoleFaceCase& poleFace : poleFaces) {
+            SCOPED_TRACE(
+                    ::testing::Message() << "angle=" << angle << " poleFace=" << poleFace.name);
+
+            auto bunch = makeBunch(0);
+            DummyBeamline beamlineForVisitor;
+            DefaultVisitor visitor(beamlineForVisitor, false, false);
+
+            SBendRep bend(angle > 0.0 ? "SB_POS" : "SB_NEG");
+            bend.getGeometry() = PlanarArcGeometry(length, angle / length);
+            bend.setElementLength(length);
+            bend.setBendAngle(angle);
+            bend.setEntranceAngle(poleFace.entryAngle);
+            bend.setExitAngle(poleFace.exitAngle);
+            bend.setFringeHalfGap(fringeHalfGap);
+            bend.setFringeIntegral(fringeIntegral);
+            bend.setElementPosition(0.0);
+
+            OpalBeamline beamline;
+            beamline.visit(bend, visitor, *bunch);
+            beamline.prepareSections();
+
+            const auto elements = beamline.getElements();
+            ASSERT_EQ(elements.size(), 1u);
+            const auto component    = *elements.begin();
+            const auto* bendElement = dynamic_cast<const BendBase*>(component.get());
+            ASSERT_NE(bendElement, nullptr);
+
+            const double expectedEntryFringe =
+                    fringeHalfGap * fringeIntegral / std::abs(std::cos(poleFace.entryAngle));
+            const double expectedExitFringe =
+                    fringeHalfGap * fringeIntegral / std::abs(std::cos(poleFace.exitAngle));
+            const double expectedEffectiveLength =
+                    length + 0.5 * (expectedEntryFringe + expectedExitFringe);
+            EXPECT_NEAR(bendElement->getEntryFringeSupportLength(), expectedEntryFringe, tol);
+            EXPECT_NEAR(bendElement->getExitFringeSupportLength(), expectedExitFringe, tol);
+            EXPECT_NEAR(bendElement->getEffectiveFieldLength(), expectedEffectiveLength, tol);
+
+            EXPECT_NEAR(bendElement->getFieldScale(-expectedEntryFringe), 0.0, tol);
+            EXPECT_NEAR(bendElement->getFieldScale(-0.5 * expectedEntryFringe), 0.5, tol);
+            EXPECT_NEAR(bendElement->getFieldScale(0.5 * length), 1.0, tol);
+            EXPECT_NEAR(bendElement->getFieldScale(length + 0.5 * expectedExitFringe), 0.5, tol);
+            EXPECT_NEAR(bendElement->getFieldScale(length + expectedExitFringe), 0.0, tol);
+
+            const CoordinateSystemTrafo entryTransform =
+                    beamline.getNominalEntryTransform(component);
+            const Vector3 exitPoint   = analyticSbendPointAtS(length, angle, length);
+            const Vector3 exitTangent = analyticSbendTangentAtS(length, angle, length);
+
+            expectVectorNear(entryTransform.getOrigin(), analyticSbendPointAtS(length, angle, 0.0));
+            expectVectorNear(
+                    entryTransform.rotateFrom(Vector3(0.0, 0.0, 1.0)),
+                    analyticExitTangent(poleFace.entryAngle));
+            expectVectorNear(
+                    beamline.getNominalExitTransform(component).getOrigin(),
+                    entryTransform.transformFrom(exitPoint));
+            expectVectorNear(
+                    beamline.getNominalExitTransform(component).rotateFrom(Vector3(0.0, 0.0, 1.0)),
+                    entryTransform.rotateFrom(exitTangent));
+
+            for (const double s : samples) {
+                SCOPED_TRACE(::testing::Message() << "s=" << s);
+                const Vector3 labPoint =
+                        entryTransform.transformFrom(analyticSbendPointAtS(length, angle, s));
+                const Vector3 fieldLocal = beamline.transformToFieldLocalCS(component, labPoint);
+                expectVectorNear(fieldLocal, Vector3(0.0, 0.0, s));
+            }
+
+            const Vector3 entryFringePoint(0.0, 0.0, -0.5 * expectedEntryFringe);
+            const Vector3 entryFringeLocal = beamline.transformToFieldLocalCS(
+                    component, entryTransform.transformFrom(entryFringePoint));
+            expectVectorNear(entryFringeLocal, entryFringePoint);
+
+            const Vector3 exitFringePoint(
+                    exitPoint(0) + 0.5 * expectedExitFringe * exitTangent(0),
+                    exitPoint(1) + 0.5 * expectedExitFringe * exitTangent(1),
+                    exitPoint(2) + 0.5 * expectedExitFringe * exitTangent(2));
+            const Vector3 exitFringeLocal = beamline.transformToFieldLocalCS(
+                    component, entryTransform.transformFrom(exitFringePoint));
+            expectVectorNear(exitFringeLocal, Vector3(0.0, 0.0, length + 0.5 * expectedExitFringe));
+        }
+    }
 }
 
 TEST_F(OpalBeamlinePlacementTest, CompatibilityRBendExitMatchesAnalyticLabGeometry) {
