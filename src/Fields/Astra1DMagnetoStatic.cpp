@@ -12,7 +12,6 @@
 #include <ios>
 #include <sstream>
 
-
 /**
  * @brief Constructor for 1D magnetostatic field map.
  *
@@ -43,7 +42,7 @@ Astra1DMagnetoStatic::Astra1DMagnetoStatic(const std::string& filename) : Fieldm
             parsing_passed = interpretLine<std::string, int>(file, tmpString, accuracy_m);
         } catch (GeneralOpalException& e) {
             parsing_passed = interpretLine<std::string, int, std::string>(
-                file, tmpString, accuracy_m, tmpString);
+                    file, tmpString, accuracy_m, tmpString);
 
             tmpString = Util::toUpper(tmpString);
             if (tmpString != "TRUE" && tmpString != "FALSE")
@@ -177,7 +176,7 @@ void Astra1DMagnetoStatic::readMap() {
         delete[] RealValues;
 
         std::ostringstream os;
-        os << "Mismatch between counted and parsed fieldmap points in '" << Filename_m 
+        os << "Mismatch between counted and parsed fieldmap points in '" << Filename_m
            << "': expected " << num_gridpz_m << ", got " << accepted;
         throw GeneralOpalException("Astra1DMagnetoStatic::readMap", os.str());
     }
@@ -201,7 +200,7 @@ void Astra1DMagnetoStatic::readMap() {
         RealValues[ii] = gsl_spline_eval(Bz_interpolant, z, Bz_accel);
     }
 
-     // Ensure periodicity by mirroring
+    // Ensure periodicity by mirroring
     RealValues[ii++] = RealValues[num_gridpz_m - 1];
     --ii;
     for (int i = 0; i < num_gridpz_m; ++i, --ii) {
@@ -235,7 +234,7 @@ void Astra1DMagnetoStatic::readMap() {
 
         const int n = 2 * l - 1;
 
-        coefs(n)     =  a_l / norm;
+        coefs(n)     = a_l / norm;
         coefs(n + 1) = -b_l / norm;
     }
 
@@ -252,8 +251,7 @@ void Astra1DMagnetoStatic::readMap() {
     m << level3 << "Read in fieldmap '" << Filename_m << "'" << endl;
 }
 
-void Astra1DMagnetoStatic::freeMap()
-{
+void Astra1DMagnetoStatic::freeMap() {
     if (FourCoefs_m.extent(0) != 0) {
         FourCoefs_m = Kokkos::DualView<double*>();
 
@@ -282,20 +280,18 @@ void Astra1DMagnetoStatic::applyField(std::shared_ptr<ParticleContainer_t> pc, d
 
     Kokkos::parallel_for(
             "Astra1DMagnetoStatic::applyField", nLocal, KOKKOS_LAMBDA(const size_t i) {
-            const auto& R = Rview(i);
+                const auto& R = Rview(i);
 
-            if (R(2) >= zbegin && R(2) < zend) {
-                Vector_t<double, 3> localE(0.0);
-                Vector_t<double, 3> localB(0.0);
+                if (R(2) >= zbegin && R(2) < zend) {
+                    Vector_t<double, 3> localE(0.0);
+                    Vector_t<double, 3> localB(0.0);
 
-                computeField(
-                        R, localE, localB, FourCoefs_device, zbegin, length,
-                        accuracy);
+                    computeField(R, localE, localB, FourCoefs_device, zbegin, length, accuracy);
 
-                Eview(i) += scale * localE;
-                Bview(i) += scale * localB;
-            }
-        });
+                    Eview(i) += scale * localE;
+                    Bview(i) += scale * localB;
+                }
+            });
 }
 
 /**
@@ -330,8 +326,7 @@ bool Astra1DMagnetoStatic::getFieldstrength(
  */
 bool Astra1DMagnetoStatic::getFieldDerivative(
         const Vector_t<double, 3>& /*R*/, Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& /*B*/,
-        const DiffDirection& /*dir*/) const
-{
+        const DiffDirection& /*dir*/) const {
     return false;
 }
 
