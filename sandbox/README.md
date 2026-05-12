@@ -172,14 +172,19 @@ sandbox/.beambeam_analysis_state.json
 `checkCollWin.py` renders OPALX collision-window scalar dumps.  Give a seed dump
 and a step range; a multi-step range writes a GIF.
 
+For the current `BeamBeam-static-1V.in` example, OPALX normally writes only the
+two active-window dumps at steps 5 and 6.  If the input is run from the repository
+root as `sandbox/BeamBeam-static-1V.in`, those files are under `data/sandbox/`:
+
 ```bash
 cd /path/to/opalx-beambeam
 source .venv-h6/bin/activate
 
 python sandbox/python/checkCollWin.py \
-  sandbox/data/BeamBeam-2-RHO_scalar-collwin_vis-000006.dat \
-  --start 6 --end 20 \
-  --output sandbox/data/BeamBeam-2-RHO_scalar-collwin_vis-000006-000020.gif \
+  data/sandbox/BeamBeam-static-1V-RHO_scalar-collwin_vis-000005.dat \
+  --start 5 --end 6 \
+  --output data/sandbox/BeamBeam-static-1V-collwin.gif \
+  --input sandbox/BeamBeam-static-1V.in \
   --duration 120
 ```
 
@@ -188,28 +193,36 @@ Useful options:
 - `--physical`: plot physical coordinates instead of grid indices.
 - `--no-geometry`: hide BeamBeam/window overlays.
 - `--save-frames`: also write one PNG per movie frame.
-- `--input sandbox/BeamBeam-2.in`: explicitly provide the OPALX input file used
-  to infer BeamBeam geometry.
+- `--input path/to/input.in`: explicitly provide the OPALX input file used to
+  infer BeamBeam geometry.
 
 The combined front-end can run the same path:
 
 ```bash
 python sandbox/python/beambeam_analysis.py collwin \
-  sandbox/data/BeamBeam-2-RHO_scalar-collwin_vis-000006.dat \
-  --start 6 --end 20 \
-  --output sandbox/data/BeamBeam-2-collwin.gif \
-  --input sandbox/BeamBeam-2.in
+  data/sandbox/BeamBeam-static-1V-RHO_scalar-collwin_vis-000005.dat \
+  --start 5 --end 6 \
+  --output data/sandbox/BeamBeam-static-1V-collwin.gif \
+  --input sandbox/BeamBeam-static-1V.in
 ```
 
-## Diagnostics HDF5 Movies
+If OPALX is run from inside `sandbox/` instead, replace `data/sandbox/` in the
+commands above with `sandbox/data/` or with the directory where the dumps were
+written.
 
-`read_beambeam_h5.py` is still the simplest command-line tool for quick HDF5
-checks:
+## Optional Diagnostics HDF5
+
+Recent simple BeamBeam examples may not write a `*-beambeam_diagnostics.h5`
+file.  The `read_beambeam_h5.py` helper is still useful for older runs or inputs
+where that diagnostics file is explicitly produced, but it is not required for
+the collision-window dump workflow above.
+
+When such an HDF5 file exists, use:
 
 ```bash
 python sandbox/python/read_beambeam_h5.py \
   --overview --table \
-  sandbox/data/BeamBeam-2-beambeam_diagnostics.h5
+  path/to/example-beambeam_diagnostics.h5
 ```
 
 Line-density GIF:
@@ -219,8 +232,8 @@ python sandbox/python/read_beambeam_h5.py \
   --line-density-z \
   --start 6 --end 57 \
   --bins 64 \
-  --gif sandbox/data/BeamBeam-2-line-density-z.gif \
-  sandbox/data/BeamBeam-2-beambeam_diagnostics.h5
+  --gif path/to/example-line-density-z.gif \
+  path/to/example-beambeam_diagnostics.h5
 ```
 
 Static projected gallery:
@@ -230,7 +243,7 @@ python sandbox/python/read_beambeam_h5.py \
   --gallery-xz \
   --start 6 --end 20 \
   --gallery-cols 5 \
-  sandbox/data/BeamBeam-2-beambeam_diagnostics.h5
+  path/to/example-beambeam_diagnostics.h5
 ```
 
 ## Manufactured Witness Note
@@ -325,6 +338,7 @@ cd sandbox/track-e-p
 source ../../.venv-h6/bin/activate
 
 python data/gamma_gamma_pairs-2_ElementPositions.py \
+  --show \
   --part-vis \
   --part-slider \
   --part-max-primary 20000 \
@@ -335,6 +349,7 @@ Static latest-step view:
 
 ```bash
 python data/gamma_gamma_pairs-2_ElementPositions.py \
+  --show \
   --part-vis \
   --part-step latest
 ```
@@ -343,6 +358,7 @@ Specific global step:
 
 ```bash
 python data/gamma_gamma_pairs-2_ElementPositions.py \
+  --show \
   --part-vis \
   --part-step 100
 ```
@@ -360,6 +376,8 @@ python data/gamma_gamma_pairs-2_ElementPositions.py \
 
 Notes:
 
+- `--show` is required for interactive/static visualization.  Without it, the
+  generated script prints help and exits.
 - `--part-slider` is interactive only and is disabled while writing a movie.
 - `--part-step latest` is the default for static particle views.
 - `--movie-fps` sets playback rate.
