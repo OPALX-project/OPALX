@@ -661,15 +661,54 @@ void BinnedFieldSolver<T, Dim>::prepareRhoForBin(
 
     // Scatter bin charge to rho (with bin iteration policy and hash indexing).
     // Master approach: scale dt by Q, scatter dt, then restore dt.
+    const auto policy       = bins->getBinIterationPolicy(binIndex);
+    const auto hash         = bins->getHashArray();
+    const size_type pBegin  = static_cast<size_type>(policy.begin());
+    const size_type pEnd    = static_cast<size_type>(policy.end());
+    const size_type hExtent = static_cast<size_type>(hash.extent(0));
+    const size_type nLocal  = pc->getLocalNum();
+    const char* modeName    = mode == ImageScatterMode::PrimaryOnly
+                                   ? "PrimaryOnly"
+                                   : (mode == ImageScatterMode::ImageOnly ? "ImageOnly"
+                                                                          : "PrimaryAndImage");
+
+    m << level5 << "prepareRho: scatter setup mode=" << modeName << ", localP="
+      << static_cast<unsigned long long>(nLocal) << ", policy=[" << pBegin << "," << pEnd
+      << "), hashExtent=" << static_cast<unsigned long long>(hExtent) << endl;
+
+    if (pEnd > hExtent) {
+        throw OpalException(
+                "BinnedFieldSolver::prepareRhoForBin",
+                "Bin scatter policy exceeds hash extent: policyEnd=" + std::to_string(pEnd)
+                        + ", hashExtent=" + std::to_string(hExtent) + ".");
+    }
+
+    // If the selected bin spans every local particle, the hashed subset scatter is
+    // equivalent to the all-local scatter. Prefer the all-local path here: it avoids
+    // dereferencing the bin hash view in the hot scatter kernel and is the common
+    // AWAGun early-emission case after 128 bins merge down to one bin.
+    const bool scatterAllLocal = (pBegin == 0 && pEnd == nLocal);
     if (mode == ImageScatterMode::PrimaryOnly) {
-        imageScatterController_m.scatterPrimaryOnly(
-                pc, *R, rho, bins->getBinIterationPolicy(binIndex), bins->getHashArray());
+        if (scatterAllLocal) {
+            m << level5 << "prepareRho: using all-local primary scatter." << endl;
+            imageScatterController_m.scatterPrimaryOnly(pc, *R, rho);
+        } else {
+            imageScatterController_m.scatterPrimaryOnly(pc, *R, rho, policy, hash);
+        }
     } else if (mode == ImageScatterMode::ImageOnly) {
-        imageScatterController_m.scatterImageOnly(
-                pc, *R, rho, bins->getBinIterationPolicy(binIndex), bins->getHashArray());
+        if (scatterAllLocal) {
+            m << level5 << "prepareRho: using all-local image scatter." << endl;
+            imageScatterController_m.scatterImageOnly(pc, *R, rho);
+        } else {
+            imageScatterController_m.scatterImageOnly(pc, *R, rho, policy, hash);
+        }
     } else {
-        imageScatterController_m.scatterPrimaryAndImage(
-                pc, *R, rho, bins->getBinIterationPolicy(binIndex), bins->getHashArray());
+        if (scatterAllLocal) {
+            m << level5 << "prepareRho: using all-local primary+image scatter." << endl;
+            imageScatterController_m.scatterPrimaryAndImage(pc, *R, rho);
+        } else {
+            imageScatterController_m.scatterPrimaryAndImage(pc, *R, rho, policy, hash);
+        }
     }
     m << level5 << "prepareRho: scatter done." << endl;
 

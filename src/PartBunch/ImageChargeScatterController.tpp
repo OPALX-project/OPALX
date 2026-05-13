@@ -1,20 +1,31 @@
 template <typename T, unsigned Dim>
 void ImageChargeScatterController<T, Dim>::scatterScaledDtAll(
         std::shared_ptr<ParticleCtr_t> pc, PositionAttr_t& positions, RhoField_t& rho) const {
+    Inform m("ImageChargeScatterController::scatterScaledDtAll");
+    m << level5 << "all-local scatter entry: localP=" << pc->getLocalNum() << endl;
     pc->scaleDtByCharge();
+    m << level5 << "all-local scatter: dt scaled by charge." << endl;
     ippl::ParticleAttrib<T>* dtAttrib = &pc->dt;
     scatter(*dtAttrib, rho, positions);
+    m << level5 << "all-local scatter: scatter+halo done." << endl;
     pc->unscaleDtByCharge();
+    m << level5 << "all-local scatter: dt restored." << endl;
 }
 
 template <typename T, unsigned Dim>
 void ImageChargeScatterController<T, Dim>::scatterScaledDtSubset(
         std::shared_ptr<ParticleCtr_t> pc, PositionAttr_t& positions, RhoField_t& rho,
         const BinPolicy_t& policy, const Hash_t& hash) const {
+    Inform m("ImageChargeScatterController::scatterScaledDtSubset");
+    m << level5 << "subset scatter entry: localP=" << pc->getLocalNum() << ", policy=["
+      << policy.begin() << "," << policy.end() << "), hashExtent=" << hash.extent(0) << endl;
     pc->scaleDtByCharge();
+    m << level5 << "subset scatter: dt scaled by charge." << endl;
     ippl::ParticleAttrib<T>* dtAttrib = &pc->dt;
     scatter(*dtAttrib, rho, positions, policy, hash);
+    m << level5 << "subset scatter: scatter+halo done." << endl;
     pc->unscaleDtByCharge();
+    m << level5 << "subset scatter: dt restored." << endl;
 }
 
 template <typename T, unsigned Dim>
