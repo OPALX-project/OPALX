@@ -66,12 +66,105 @@ void ImageChargeScatterController<T, Dim>::scatterScaledDtAll(
     Kokkos::fence();
     m << level5 << "all-local scatter: CIC kernel done." << endl;
 
-    m << level5 << "all-local scatter: accumulateHalo start." << endl;
-    rho.accumulateHalo();
-    m << level5 << "all-local scatter: accumulateHalo done." << endl;
+    m << level5 << "all-local scatter: host-staged accumulateHalo start." << endl;
+    accumulateScalarHaloHostStaged(rho);
+    m << level5 << "all-local scatter: host-staged accumulateHalo done." << endl;
 
     pc->unscaleDtByCharge();
     m << level5 << "all-local scatter: dt restored." << endl;
+}
+
+template <typename T, unsigned Dim>
+void ImageChargeScatterController<T, Dim>::accumulateScalarHaloHostStaged(RhoField_t& rho) const {
+    static_assert(Dim == 3, "Host-staged scalar halo accumulation currently supports Dim == 3.");
+
+    Inform m("ImageChargeScatterController::accumulateScalarHaloHostStaged");
+
+    auto rhoView = rho.getView();
+    auto host    = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), rhoView);
+
+    auto& layout          = rho.getLayout();
+    const auto& neighbors = layout.getNeighbors();
+    const auto& sendRange = layout.getNeighborsSendRange();
+    const auto& recvRange = layout.getNeighborsRecvRange();
+    MPI_Comm comm         = ippl::Comm->getCommunicator();
+
+    const auto packRange = [&](const typename RhoField_t::Layout_t::bound_type& range) {
+        std::vector<T> buffer(static_cast<size_t>(range.size()));
+        size_t n = 0;
+        for (long k = range.lo[2]; k < range.hi[2]; ++k) {
+            for (long j = range.lo[1]; j < range.hi[1]; ++j) {
+                for (long i = range.lo[0]; i < range.hi[0]; ++i) {
+                    buffer[n++] = host(i, j, k);
+                }
+            }
+        }
+        return buffer;
+    };
+
+    const auto addRange =
+            [&](const typename RhoField_t::Layout_t::bound_type& range,
+                const std::vector<T>& buffer) {
+                size_t n = 0;
+                for (long k = range.lo[2]; k < range.hi[2]; ++k) {
+                    for (long j = range.lo[1]; j < range.hi[1]; ++j) {
+                        for (long i = range.lo[0]; i < range.hi[0]; ++i) {
+                            host(i, j, k) += buffer[n++];
+                        }
+                    }
+                }
+            };
+
+    size_t totalRequests = 0;
+    for (const auto& componentNeighbors : neighbors) {
+        totalRequests += componentNeighbors.size();
+    }
+    m << level5 << "host-staged halo: neighbor exchanges=" << totalRequests << endl;
+
+    std::vector<std::vector<T>> sendBuffers;
+    std::vector<MPI_Request> requests;
+    sendBuffers.reserve(totalRequests);
+    requests.reserve(totalRequests);
+
+    constexpr size_t cubeCount = ippl::detail::countHypercubes(Dim) - 1;
+    for (size_t index = 0; index < cubeCount; ++index) {
+        const int tag = ippl::mpi::tag::HALO + static_cast<int>(index);
+        const auto& componentNeighbors = neighbors[index];
+        for (size_t i = 0; i < componentNeighbors.size(); ++i) {
+            const int targetRank = componentNeighbors[i];
+            sendBuffers.push_back(packRange(recvRange[index][i]));
+            MPI_Request request;
+            const auto& buffer = sendBuffers.back();
+            MPI_Isend(
+                    const_cast<T*>(buffer.data()),
+                    static_cast<int>(buffer.size() * sizeof(T)),
+                    MPI_BYTE, targetRank, tag, comm, &request);
+            requests.push_back(request);
+        }
+    }
+
+    for (size_t index = 0; index < cubeCount; ++index) {
+        const int tag = ippl::mpi::tag::HALO
+                        + static_cast<int>(RhoField_t::Layout_t::getMatchingIndex(index));
+        const auto& componentNeighbors = neighbors[index];
+        for (size_t i = 0; i < componentNeighbors.size(); ++i) {
+            const int sourceRank = componentNeighbors[i];
+            const auto& range    = sendRange[index][i];
+            std::vector<T> recvBuffer(static_cast<size_t>(range.size()));
+            MPI_Status status;
+            MPI_Recv(
+                    recvBuffer.data(),
+                    static_cast<int>(recvBuffer.size() * sizeof(T)),
+                    MPI_BYTE, sourceRank, tag, comm, &status);
+            addRange(range, recvBuffer);
+        }
+    }
+
+    if (!requests.empty()) {
+        MPI_Waitall(static_cast<int>(requests.size()), requests.data(), MPI_STATUSES_IGNORE);
+    }
+
+    Kokkos::deep_copy(rhoView, host);
 }
 
 template <typename T, unsigned Dim>
