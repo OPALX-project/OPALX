@@ -34,17 +34,20 @@
 
 #include "Physics/Physics.h"
 #include "Utilities/GeneralOpalException.h"
-#include "Utilities/Options.h"
 #include "Utilities/Util.h"
 
 #include "H5hut.h"
 
 #include <filesystem>
 
+#include <cctype>
 #include <cmath>
+#include <cstring>
 #include <fstream>
+#include <iomanip>
 #include <ios>
 #include <iostream>
+#include <sstream>
 
 namespace fs = std::filesystem;
 
