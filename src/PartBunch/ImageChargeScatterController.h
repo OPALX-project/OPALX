@@ -2,8 +2,11 @@
 #define OPALX_IMAGE_CHARGE_SCATTER_CONTROLLER_H
 
 #include "Ippl.h"
+#include "Interpolation/CIC.h"
 #include "PartBunch/Binning/AdaptBins.h"
 #include "PartBunch/ParticleContainer.hpp"
+
+#include <utility>
 
 /**
  * @brief Orchestrates primary and image-charge scatter deposition.

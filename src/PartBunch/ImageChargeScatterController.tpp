@@ -2,12 +2,74 @@ template <typename T, unsigned Dim>
 void ImageChargeScatterController<T, Dim>::scatterScaledDtAll(
         std::shared_ptr<ParticleCtr_t> pc, PositionAttr_t& positions, RhoField_t& rho) const {
     Inform m("ImageChargeScatterController::scatterScaledDtAll");
-    m << level5 << "all-local scatter entry: localP=" << pc->getLocalNum() << endl;
+    const size_t nLocal = pc->getLocalNum();
+    m << level5 << "all-local scatter entry: localP=" << nLocal << endl;
     pc->scaleDtByCharge();
     m << level5 << "all-local scatter: dt scaled by charge." << endl;
-    ippl::ParticleAttrib<T>* dtAttrib = &pc->dt;
-    scatter(*dtAttrib, rho, positions);
-    m << level5 << "all-local scatter: scatter+halo done." << endl;
+
+    using view_type    = typename RhoField_t::view_type;
+    view_type rhoView  = rho.getView();
+    auto dtView        = pc->dt.getView();
+    auto rView         = positions.getView();
+    const auto& mesh   = rho.get_mesh();
+    const auto& dx     = mesh.getMeshSpacing();
+    const auto& origin = mesh.getOrigin();
+    const auto invdx   = 1.0 / dx;
+    const auto& layout = rho.getLayout();
+    const auto& lDom   = layout.getLocalNDIndex();
+    const int nghost   = rho.getNghost();
+
+    int outOfBounds = 0;
+    Kokkos::parallel_reduce(
+            "ImageChargeScatterController::validateScatterBounds", nLocal,
+            KOKKOS_LAMBDA(const size_t i, int& update) {
+                const auto l = (rView(i) - origin) * invdx + 0.5;
+                ippl::Vector<int, Dim> index = l;
+                ippl::Vector<int, Dim> args  = index - lDom.first() + nghost;
+                bool inBounds                = true;
+                for (unsigned d = 0; d < Dim; ++d) {
+                    inBounds = inBounds && args[d] > 0
+                               && args[d] < static_cast<int>(rhoView.extent(d));
+                }
+                if (!inBounds) {
+                    update += 1;
+                }
+            },
+            outOfBounds);
+    m << level5 << "all-local scatter: out-of-bounds CIC particles=" << outOfBounds << endl;
+
+    m << level5 << "all-local scatter: CIC kernel start." << endl;
+    Kokkos::parallel_for(
+            "ImageChargeScatterController::scatterScaledDtAllCIC", nLocal,
+            KOKKOS_LAMBDA(const size_t i) {
+                const auto l = (rView(i) - origin) * invdx + 0.5;
+                ippl::Vector<int, Dim> index = l;
+                ippl::Vector<T, Dim> whi     = l - index;
+                ippl::Vector<T, Dim> wlo     = 1.0 - whi;
+
+                ippl::Vector<int, Dim> args = index - lDom.first() + nghost;
+                bool inBounds               = true;
+                for (unsigned d = 0; d < Dim; ++d) {
+                    // CIC touches args[d] and args[d] - 1, so valid args are
+                    // [1, extent - 1]. Anything outside would underflow or
+                    // overrun the field view on device.
+                    inBounds = inBounds && args[d] > 0
+                               && args[d] < static_cast<int>(rhoView.extent(d));
+                }
+                if (inBounds) {
+                    ippl::Vector<size_t, Dim> viewArgs = args;
+                    ippl::detail::scatterToField(
+                            std::make_index_sequence<1 << Dim>{}, rhoView, wlo, whi, viewArgs,
+                            dtView(i));
+                }
+            });
+    Kokkos::fence();
+    m << level5 << "all-local scatter: CIC kernel done." << endl;
+
+    m << level5 << "all-local scatter: accumulateHalo start." << endl;
+    rho.accumulateHalo();
+    m << level5 << "all-local scatter: accumulateHalo done." << endl;
+
     pc->unscaleDtByCharge();
     m << level5 << "all-local scatter: dt restored." << endl;
 }
