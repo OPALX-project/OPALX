@@ -249,10 +249,12 @@ void PartBunch<T, Dim>::setSolver() {
     // Needs to happen before setting the field solver, since the field solver needs the bins.
     setBins();
 
+    BinningCmd* binningCmd = OPALFieldSolver_m->getBinningCmd();
     auto binnedSolver = std::make_shared<BinnedFieldSolver<T, Dim>>(
             this->solver_m, &this->fcontainer_m->getRho(), &this->fcontainer_m->getE(),
             &this->fcontainer_m->getPhi(), this->getBCHandler(),
-            hasBinning() ? OPALFieldSolver_m->getBinningCmd()->getTablePrintFrequency() : 0);
+            binningCmd ? binningCmd->getTablePrintFrequency() : 0,
+            binningCmd ? binningCmd->getAdaptiveBinning() : true);
     this->setFieldSolver(binnedSolver);
     m << level4 << "Binned field solver set (binned or legacy at runtime)." << endl;
 

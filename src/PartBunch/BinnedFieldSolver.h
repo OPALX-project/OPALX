@@ -85,10 +85,13 @@ public:
      * @param bcHandler  Shared pointer to the boundary-condition handler.
      * @param tablePrintFrequency Global timestep frequency of printing the bin stats table
      *                             to console in binned mode. If `0`, printing is disabled.
+     * @param adaptiveBinning If true, merge uniform bins adaptively after rebinning. If false,
+     *                        keep the uniform MAXBINS histogram.
      */
     BinnedFieldSolver(
             std::string solver, Field_t<Dim>* rho, VField_t<T, Dim>* E, Field_t<Dim>* phi,
-            std::shared_ptr<BCHandler_t> bcHandler, int tablePrintFrequency);
+            std::shared_ptr<BCHandler_t> bcHandler, int tablePrintFrequency,
+            bool adaptiveBinning);
 
     /**
      * @brief Compute space-charge self-fields for the given particle bunch.
@@ -156,6 +159,7 @@ private:
     ScatterAttribute scatterAttribute_m;
     GatherAttribute gatherAttribute_m;
     int tablePrintFrequency_m        = 0;
+    bool adaptiveBinning_m           = true;
     int zeroFacePlaneDumpFrequency_m = 0;
     int zerofaceMaxSteps_m           = 0;
     ImageChargeScatterController<T, Dim> imageScatterController_m;
