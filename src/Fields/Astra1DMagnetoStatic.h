@@ -4,6 +4,8 @@
 #include "Fields/Fieldmap.h"
 #include "Physics/Physics.h"
 
+#include <memory>
+
 #include <Kokkos_Core.hpp>
 #include <Kokkos_DualView.hpp>
 
