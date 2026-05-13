@@ -325,16 +325,9 @@ void Astra1DDynamic::applyRFField(
 
     Kokkos::parallel_for(
             "Astra1DDynamic::applyRFField", nLocal, KOKKOS_LAMBDA(const size_t i) {
-                const auto& R = Rview(i);
-
-                if (R(2) >= startField && R(2) < endField && R(2) >= zbegin && R(2) < zend) {
-                    Vector_t<double, 3> tmpE(0.0), tmpB(0.0);
-
-                    computeField(R, tmpE, tmpB, FourCoefs_device, zbegin, length, xlrep, accuracy);
-
-                    Eview(i) += electricScale * tmpE;
-                    Bview(i) += magneticScale * tmpB;
-                }
+                computeRFField(
+                        Rview(i), Eview(i), Bview(i), FourCoefs_device, zbegin, zend, length, xlrep,
+                        accuracy, electricScale, magneticScale, startField, endField);
             });
 }
 
