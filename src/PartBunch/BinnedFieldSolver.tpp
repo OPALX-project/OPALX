@@ -9,11 +9,12 @@
 template <typename T, unsigned Dim>
 BinnedFieldSolver<T, Dim>::BinnedFieldSolver(
         std::string solver, Field_t<Dim>* rho, VField_t<T, Dim>* E, Field_t<Dim>* phi,
-        std::shared_ptr<BCHandler_t> bcHandler, int tablePrintFrequency)
+        std::shared_ptr<BCHandler_t> bcHandler, int tablePrintFrequency, bool adaptiveBinning)
     : FieldSolver<T, Dim>(solver, rho, E, phi, bcHandler) {
     scatterAttribute_m    = ScatterAttribute::ChargeQ;
     gatherAttribute_m     = GatherAttribute::ElectricFieldE;
     tablePrintFrequency_m = tablePrintFrequency;
+    adaptiveBinning_m     = adaptiveBinning;
 }
 
 template <typename T, unsigned Dim>
@@ -583,15 +584,16 @@ void BinnedFieldSolver<T, Dim>::computeLegacySelfFields(PartBunch_t& bunch) {
 template <typename T, unsigned Dim>
 void BinnedFieldSolver<T, Dim>::rebinAndPrepare(
         PartBunch_t& bunch, std::shared_ptr<AdaptBins_t> bins) {
-    // adaptive histogram configuration.
-    // execute full rebin and generate the adaptive histogram (bin merging).
     Inform m("BinnedFieldSolver::rebinAndPrepare");
-    m << level4 << "Rebin start: maxBins=" << static_cast<int>(bins->getMaxBinCount()) << endl;
+    m << level4 << "Rebin start: maxBins=" << static_cast<int>(bins->getMaxBinCount())
+      << ", adaptiveBinning=" << (adaptiveBinning_m ? 1 : 0) << endl;
     bins->doFullRebin(bins->getMaxBinCount());
     bunch.dumpBinConfig(true);
+    if (adaptiveBinning_m) {
+        bins->genAdaptiveHistogram();
+        bunch.dumpBinConfig(false);
+    }
     bins->sortContainerByBin();
-    bins->genAdaptiveHistogram();
-    bunch.dumpBinConfig(false);
     m << level4 << "Rebin done: currentBins=" << static_cast<int>(bins->getCurrentBinCount())
       << endl;
 }

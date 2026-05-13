@@ -40,6 +40,12 @@ BinningCmd::BinningCmd()
             "PARAMETER", "The bunch attribute used for binning.",
             {"VELOCITYZ", "POSITIONZ", "PZ", "GAMMAZ"}, "VELOCITYZ");
 
+    itsAttr[BINNING::ADAPTIVEBINNING] = Attributes::makeBool(
+            "ADAPTIVEBINNING",
+            "If true, merge the initial uniform bins using the adaptive binning algorithm. "
+            "If false, keep the uniform MAXBINS histogram. Default: true.",
+            true);
+
     itsAttr[BINNING::DUMPBINSFILE] = Attributes::makeString(
             "DUMPBINSFILE",
             "The json file name for dumping bin configuration to a file. Default: \"NONE\" (no "
@@ -147,6 +153,7 @@ Inform& BinningCmd::printInfo(Inform& os) const {
        << "* DESIREDWIDTH   " << getDesiredWidth() << '\n'
        << "* BINNINGALPHA   " << getBinningAlpha() << '\n'
        << "* BINNINGBETA    " << getBinningBeta() << '\n'
+       << "* ADAPTIVEBINNING " << (getAdaptiveBinning() ? "TRUE" : "FALSE") << '\n'
        << "* PARAMETER      " << parameterName_m << endl;
     if (dumpBinsToFile()) {
         os << "* DUMPBINSFILE   " << getDumpBinsFileName() << '\n'
@@ -173,6 +180,10 @@ double BinningCmd::getBinningAlpha() const {
 
 double BinningCmd::getBinningBeta() const {
     return Attributes::getReal(itsAttr[BINNING::BINNINGBETA]);
+}
+
+bool BinningCmd::getAdaptiveBinning() const {
+    return Attributes::getBool(itsAttr[BINNING::ADAPTIVEBINNING]);
 }
 
 std::string BinningCmd::getParameter() {

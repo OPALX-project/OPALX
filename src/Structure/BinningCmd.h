@@ -42,6 +42,7 @@ namespace BINNING {
         BINNINGALPHA,    // Aggressiveness of bin-number reduction
         BINNINGBETA,     // Aggressiveness of using wider bins
         PARAMETER,       // Which bunch attribute is used for binning
+        ADAPTIVEBINNING, // Enable adaptive bin merging after uniform rebinning
         DUMPBINSFILE,    // File name for dumping bins
         DUMPBINSFREQ,    // Frequency of dumping bins to a file (only used if DUMPBINSFILE is set)
         TABLEPRINTFREQ,  // Frequency of printing bin stats table to console (binned mode only)
@@ -66,6 +67,7 @@ public:
     double getDesiredWidth() const;
     double getBinningAlpha() const;
     double getBinningBeta() const;
+    bool getAdaptiveBinning() const;
 
     std::string getParameter();
     BinningParameter getParameterType() const;
