@@ -131,6 +131,28 @@ public:
     }
 
     template <class ViewType>
+    KOKKOS_INLINE_FUNCTION static void computeRFField(
+            const Vector_t<double, 3>& R, Vector_t<double, 3>& E, Vector_t<double, 3>& B,
+            const ViewType& FourCoefs, double zbegin, double zend, double length, double xlrep,
+            int accuracy, double electricScale, double magneticScale, double startField,
+            double endField) {
+        if (R(2) < startField || R(2) >= endField) {
+            return;
+        }
+
+        if (R(2) < zbegin || R(2) >= zend) {
+            return;
+        }
+
+        Vector_t<double, 3> tmpE(0.0), tmpB(0.0);
+
+        computeField(R, tmpE, tmpB, FourCoefs, zbegin, length, xlrep, accuracy);
+
+        E += electricScale * tmpE;
+        B += magneticScale * tmpB;
+    }
+
+    template <class ViewType>
     KOKKOS_INLINE_FUNCTION static void computeTravelingWaveField(
             const Vector_t<double, 3>& R, Vector_t<double, 3>& E, Vector_t<double, 3>& B,
             const ViewType& FourCoefs, double zbegin, double zend, double length, double xlrep,
