@@ -30,6 +30,8 @@
 
 #include "Distribution/Distribution.h"
 
+#include "Distribution/EmittedFromFile.h"
+
 #include "Distribution/Gaussian.h"
 
 #include "Distribution/MultiVariateGaussian.h"
@@ -674,15 +676,19 @@ void TrackRun::setupDistributionsAndSamplers(
         opalDist->setDist();
         opalDist->setAvrgPz(avrgpz);
 
-        // FROMFILE distributions carry absolute momenta — the BEAM's
+        // File-based distributions carry absolute momenta - the BEAM's
         // PC/ENERGY/GAMMA would be silently ignored, so forbid the combination.
-        if (opalDist->getType() == DistributionType::FROMFILE) {
+        const bool usesFileMomentum =
+                opalDist->getType() == DistributionType::FROMFILE
+                || opalDist->getType() == DistributionType::EMITTEDFROMFILE;
+        if (usesFileMomentum) {
             if (beam->hasExplicitEnergy()) {
                 throw OpalException(
                     "TrackRun::setupDistributionsAndSamplers()",
-                    "FROMFILE distribution \"" + src->getDistributionName()
+                    opalDist->getTypeofDistribution() + " distribution \""
+                    + src->getDistributionName()
                     + "\" cannot be combined with PC/ENERGY/GAMMA on the BEAM. "
-                      "Remove the energy attribute from the BEAM command — "
+                      "Remove the energy attribute from the BEAM command - "
                       "particle momenta are read from the file.");
             }
         } else {
@@ -714,6 +720,9 @@ void TrackRun::setupDistributionsAndSamplers(
             case DistributionType::FROMFILE:
                 sampler = std::make_shared<FromFile>(pc, fc, opalDist);
                 break;
+            case DistributionType::EMITTEDFROMFILE:
+                sampler = std::make_shared<EmittedFromFile>(pc, fc, opalDist);
+                break;
             default:
                 throw OpalException("Distribution::create", "Unknown \"TYPE\" of \"DISTRIBUTION\"");
         }
@@ -740,7 +749,8 @@ void TrackRun::setupDistributionsAndSamplers(
         // Time-dependent (emitted) distributions (e.g. FlatTop) and delayed
         // one-shot injectors (t0 > 0) participate in emitParticles(t, dt)
         // during tracking.
-        if (opalDist->emitting_m || src->getT0() > 0.0) {
+        if (opalDist->emitting_m || src->getT0() > 0.0
+            || opalDist->getType() == DistributionType::EMITTEDFROMFILE) {
             emittingSamplers.push_back(sampler);
             *gmsg << level2 << "* Configured emitting source of type "
                   << opalDist->getTypeofDistribution() << " with NPARTDIST = " << Ndist

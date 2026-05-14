@@ -16,7 +16,7 @@ class SamplingBase {
 protected:
     std::shared_ptr<ParticleContainer_t> pc_m;
     std::shared_ptr<FieldContainer_t> fc_m;
-    Distribution_t* opalDist_m;
+    Distribution_t* opalDist_m = nullptr;
     std::string samplingMethod_m;
     /// Emission source offset: position R0, momentum P0, start time t0 (applied in sample step).
     Vector_t<double, 3> R0_m    = 0.0;

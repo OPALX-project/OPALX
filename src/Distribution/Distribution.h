@@ -59,7 +59,8 @@ enum class DistributionType : short {
     MULTIVARIATEGAUSS,
     FLATTOP,
     OPALFLATTOP,
-    FROMFILE
+    FROMFILE,
+    EMITTEDFROMFILE
 };
 
 using ParticleContainer_t = ParticleContainer<double, 3>;
