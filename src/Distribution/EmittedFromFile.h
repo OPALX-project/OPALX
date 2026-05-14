@@ -61,6 +61,9 @@ public:
 
     double getEmissionTime() const { return emissionTime_m; }
 
+    void generateLocalParticles(
+            size_type nlocalBefore, size_t globalBegin, size_t nNew, double tStart, double dt);
+
 private:
     struct RawRecord {
         double x        = 0.0;
@@ -83,9 +86,6 @@ private:
     void buildInventory(size_t requested);
 
     std::pair<size_t, size_t> computeLocalEmitRange(size_t totalToEmit) const;
-
-    void generateLocalParticles(
-            size_type nlocalBefore, size_t globalBegin, size_t nNew, double tStart, double dt);
 
     std::string filename_m;
     std::vector<RawRecord> rawRecords_m;
