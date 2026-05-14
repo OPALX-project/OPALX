@@ -110,7 +110,8 @@ Distribution::Distribution()
       avrgpz_m(0.0) {
     itsAttr[DISTRIBUTION::TYPE] = Attributes::makePredefinedString(
             "TYPE", "Distribution type.",
-            {"GAUSS", "MULTIVARIATEGAUSS", "FLATTOP", "OPALFLATTOP", "FROMFILE"});
+            {"GAUSS", "MULTIVARIATEGAUSS", "FLATTOP", "OPALFLATTOP", "FROMFILE",
+             "EMITTEDFROMFILE"});
 
     itsAttr[DISTRIBUTION::FNAME] =
             Attributes::makeString("FNAME", "File for reading in 6D particle coordinates.", "");
@@ -179,7 +180,8 @@ Distribution::Distribution()
 
     itsAttr[DISTRIBUTION::EMISSIONSTEPS] = Attributes::makeReal(
             "EMISSIONSTEPS",
-            "Number of OPAL-like time steps to use during OPALFLATTOP emission.",
+            "Number of OPAL-like time steps to use during OPALFLATTOP or EMITTEDFROMFILE "
+            "emission.",
             100.0);
 
     itsAttr[DISTRIBUTION::NPARTDIST] = Attributes::makeReal(
@@ -255,6 +257,7 @@ Inform& Distribution::printInfo(Inform& os) const {
                 printDistFlatTop(os);
                 break;
             case DistributionType::FROMFILE:
+            case DistributionType::EMITTEDFROMFILE:
                 printDistFromFile(os);
                 break;
             default:
@@ -482,7 +485,7 @@ void Distribution::printDistFlatTop(Inform& os) const {
 }
 
 void Distribution::printDistFromFile(Inform& os) const {
-    os << "* Distribution type: FROMFILE" << endl;
+    os << "* Distribution type: " << distT_m << endl;
     os << "* " << endl;
     std::string fname = getFilename();
     if (!fname.empty()) {
@@ -523,8 +526,8 @@ void Distribution::setDist() {
             setDistParametersFlatTop();
             break;
         case DistributionType::FROMFILE:
-            // FROMFILE doesn't need special parameter setting
-            // File will be read by FromFile class
+        case DistributionType::EMITTEDFROMFILE:
+            // File-based distributions read their records in the sampler class.
             break;
         default:
             throw OpalException("Distribution Param", "Unknown \"TYPE\" of \"DISTRIBUTION\"");
@@ -538,7 +541,8 @@ void Distribution::setDistType() {
             {"MULTIVARIATEGAUSS", DistributionType::MULTIVARIATEGAUSS},
             {"FLATTOP", DistributionType::FLATTOP},
             {"OPALFLATTOP", DistributionType::OPALFLATTOP},
-            {"FROMFILE", DistributionType::FROMFILE}};
+            {"FROMFILE", DistributionType::FROMFILE},
+            {"EMITTEDFROMFILE", DistributionType::EMITTEDFROMFILE}};
 
     distT_m = Attributes::getString(itsAttr[DISTRIBUTION::TYPE]);
 
