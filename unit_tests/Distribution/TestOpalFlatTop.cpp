@@ -107,7 +107,7 @@ TEST_F(OpalFlatTopTest, EmitsAllInventoryWithVariableDtAndNoRemainderLoss) {
     size_t mutableTotal = totalParticles;
     sampler.generateParticles(mutableTotal, nr);
 
-    double t = -sampler.getGlobalTimeShift();
+    double t           = -sampler.getGlobalTimeShift();
     const double dts[] = {0.07, 0.11, 0.05, 0.13};
     for (int step = 0; step < 1000 && !sampler.isEmissionDone(t); ++step) {
         const double dt = dts[step % 4];
@@ -161,10 +161,10 @@ TEST_F(OpalFlatTopTest, UsesStoredBirthTimesForParticleDtAndZCorrection) {
 
     sampler.emitParticles(0.0, 5.0e-13);
 
-    const size_t totalNew = 2;
-    const size_t rank     = static_cast<size_t>(ippl::Comm->rank());
-    const size_t base     = totalNew / nranks;
-    const size_t rem      = totalNew % nranks;
+    const size_t totalNew       = 2;
+    const size_t rank           = static_cast<size_t>(ippl::Comm->rank());
+    const size_t base           = totalNew / nranks;
+    const size_t rem            = totalNew % nranks;
     const size_t nlocalExpected = base + (rank < rem ? 1 : 0);
     const size_t localOffset    = rank * base + std::min(rank, rem);
 

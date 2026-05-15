@@ -90,11 +90,11 @@ private:
     std::string filename_m;
     std::vector<RawRecord> rawRecords_m;
     std::vector<Record> records_m;
-    size_t nextGlobalIndex_m  = 0;
-    bool inventoryBuilt_m     = false;
+    size_t nextGlobalIndex_m          = 0;
+    bool inventoryBuilt_m             = false;
     Vector_t<double, 3> initialRefP_m = 0.0;
-    double emissionTime_m     = 0.0;
-    size_t emissionSteps_m    = 100;
+    double emissionTime_m             = 0.0;
+    size_t emissionSteps_m            = 100;
 };
 
 #endif  // OPALX_EMITTED_FROM_FILE_H

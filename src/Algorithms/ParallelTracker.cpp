@@ -215,7 +215,7 @@ void ParallelTracker::execute() {
             if (ci < emittingSamplers_m.size()) {
                 for (const auto& sampler : emittingSamplers_m[ci]) {
                     if (sampler && sampler->hasInitialReferenceMomentum()) {
-                        samplerRefP          = sampler->getInitialReferenceMomentum();
+                        samplerRefP         = sampler->getInitialReferenceMomentum();
                         useSamplerReference = true;
                         break;
                     }
@@ -878,7 +878,8 @@ size_t ParallelTracker::deleteInvalidParticles(
 }
 
 size_t ParallelTracker::markBackwardParticlesAtSourcePlane() {
-    /// \todo this function should probably be integrated as a GunSource element similar to old OPAL!!!
+    /// \todo this function should probably be integrated as a GunSource element similar to old
+    /// OPAL!!!
     auto* bsolver = itsBunch_m->getFieldSolver();
     if (!bsolver) {
         return 0;
@@ -890,11 +891,11 @@ size_t ParallelTracker::markBackwardParticlesAtSourcePlane() {
         return 0;
     }
 
-    const double sourcePlaneZ =
-            imageChargeConfigured ? bsolver->getImageChargePlaneZ() : bsolver->getShiftedGreensPlaneZ();
+    const double sourcePlaneZ = imageChargeConfigured ? bsolver->getImageChargePlaneZ()
+                                                      : bsolver->getShiftedGreensPlaneZ();
 
     size_type localTotalMarked = 0;
-    const size_t nContainers = itsBunch_m->getNumParticleContainers();
+    const size_t nContainers   = itsBunch_m->getNumParticleContainers();
     for (size_t ci = 0; ci < nContainers; ++ci) {
         if (!itsBunch_m->isPcActive(ci)) {
             continue;
@@ -907,16 +908,15 @@ size_t ParallelTracker::markBackwardParticlesAtSourcePlane() {
 
         const CoordinateSystemTrafo refToSource =
                 itsOpalBeamline_m.getCSTrafoLab2Local() * pc->getToLabTrafo();
-        const matrix3x3_t rotation = refToSource.getRotationMatrix();
+        const matrix3x3_t rotation       = refToSource.getRotationMatrix();
         const Vector_t<double, 3> origin = refToSource.getOrigin();
 
         auto Rview   = pc->R.getView();
         auto Pview   = pc->P.getView();
         auto invalid = pc->InvalidMask.getView();
 
-        size_type localMarked = 0;
-        const size_type nLocal =
-                static_cast<size_type>(pc->getLocalNum());
+        size_type localMarked  = 0;
+        const size_type nLocal = static_cast<size_type>(pc->getLocalNum());
         Kokkos::parallel_reduce(
                 "ParallelTracker::markBackwardParticlesAtSourcePlane", nLocal,
                 KOKKOS_LAMBDA(const size_type i, size_type& count) {
@@ -926,9 +926,9 @@ size_t ParallelTracker::markBackwardParticlesAtSourcePlane() {
                     }
                     const Vector_t<double, 3> localR = prod_vector(rotation, delta);
                     const Vector_t<double, 3> localP = prod_vector(rotation, Pview(i));
-                    const bool backwards = localR[2] < sourcePlaneZ && localP[2] < 0.0;
-                    const bool newlyMarked = backwards && !invalid(i);
-                    invalid(i) = invalid(i) || backwards;
+                    const bool backwards             = localR[2] < sourcePlaneZ && localP[2] < 0.0;
+                    const bool newlyMarked           = backwards && !invalid(i);
+                    invalid(i)                       = invalid(i) || backwards;
                     count += newlyMarked ? 1 : 0;
                 },
                 localMarked);
@@ -938,11 +938,7 @@ size_t ParallelTracker::markBackwardParticlesAtSourcePlane() {
     }
 
     size_type globalTotalMarked = 0;
-    ippl::Comm->allreduce(
-            localTotalMarked,
-            globalTotalMarked,
-            1,
-            std::plus<size_type>());
+    ippl::Comm->allreduce(localTotalMarked, globalTotalMarked, 1, std::plus<size_type>());
     return static_cast<size_t>(globalTotalMarked);
 }
 
@@ -1071,9 +1067,9 @@ void ParallelTracker::prepareSections() {
  * @copybrief ParallelTracker::selectDT
  */
 void ParallelTracker::selectDT() {
-    double selectedDt       = dtCurrentTrack_m;
-    double emissionDt       = std::numeric_limits<double>::max();
-    bool hasEmissionDt      = false;
+    double selectedDt        = dtCurrentTrack_m;
+    double emissionDt        = std::numeric_limits<double>::max();
+    bool hasEmissionDt       = false;
     const double currentTime = itsBunch_m->getT();
 
     for (const auto& samplers : emittingSamplers_m) {
@@ -1083,7 +1079,7 @@ void ParallelTracker::selectDT() {
             }
             const double samplerDt = sampler->getEmissionTimeStep();
             if (samplerDt > 0.0) {
-                emissionDt  = std::min(emissionDt, samplerDt);
+                emissionDt    = std::min(emissionDt, samplerDt);
                 hasEmissionDt = true;
             }
         }

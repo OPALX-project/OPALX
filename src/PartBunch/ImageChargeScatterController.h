@@ -1,8 +1,8 @@
 #ifndef OPALX_IMAGE_CHARGE_SCATTER_CONTROLLER_H
 #define OPALX_IMAGE_CHARGE_SCATTER_CONTROLLER_H
 
-#include "Ippl.h"
 #include "Interpolation/CIC.h"
+#include "Ippl.h"
 #include "PartBunch/Binning/AdaptBins.h"
 #include "PartBunch/ParticleContainer.hpp"
 

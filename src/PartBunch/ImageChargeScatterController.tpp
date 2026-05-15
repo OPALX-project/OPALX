@@ -22,7 +22,7 @@ void ImageChargeScatterController<T, Dim>::scatterScaledDtAll(
     Kokkos::parallel_for(
             "ImageChargeScatterController::scatterScaledDtAllCIC", nLocal,
             KOKKOS_LAMBDA(const size_t i) {
-                const auto l = (rView(i) - origin) * invdx + 0.5;
+                const auto l                 = (rView(i) - origin) * invdx + 0.5;
                 ippl::Vector<int, Dim> index = l;
                 ippl::Vector<T, Dim> whi     = l - index;
                 ippl::Vector<T, Dim> wlo     = 1.0 - whi;
@@ -76,18 +76,17 @@ void ImageChargeScatterController<T, Dim>::accumulateScalarHaloHostStaged(RhoFie
         return buffer;
     };
 
-    const auto addRange =
-            [&](const typename RhoField_t::Layout_t::bound_type& range,
-                const std::vector<T>& buffer) {
-                size_t n = 0;
-                for (long k = range.lo[2]; k < range.hi[2]; ++k) {
-                    for (long j = range.lo[1]; j < range.hi[1]; ++j) {
-                        for (long i = range.lo[0]; i < range.hi[0]; ++i) {
-                            host(i, j, k) += buffer[n++];
-                        }
-                    }
+    const auto addRange = [&](const typename RhoField_t::Layout_t::bound_type& range,
+                              const std::vector<T>& buffer) {
+        size_t n = 0;
+        for (long k = range.lo[2]; k < range.hi[2]; ++k) {
+            for (long j = range.lo[1]; j < range.hi[1]; ++j) {
+                for (long i = range.lo[0]; i < range.hi[0]; ++i) {
+                    host(i, j, k) += buffer[n++];
                 }
-            };
+            }
+        }
+    };
 
     size_t totalRequests = 0;
     for (const auto& componentNeighbors : neighbors) {
@@ -101,7 +100,7 @@ void ImageChargeScatterController<T, Dim>::accumulateScalarHaloHostStaged(RhoFie
 
     constexpr size_t cubeCount = ippl::detail::countHypercubes(Dim) - 1;
     for (size_t index = 0; index < cubeCount; ++index) {
-        const int tag = ippl::mpi::tag::HALO + static_cast<int>(index);
+        const int tag                  = ippl::mpi::tag::HALO + static_cast<int>(index);
         const auto& componentNeighbors = neighbors[index];
         for (size_t i = 0; i < componentNeighbors.size(); ++i) {
             const int targetRank = componentNeighbors[i];
@@ -109,8 +108,7 @@ void ImageChargeScatterController<T, Dim>::accumulateScalarHaloHostStaged(RhoFie
             MPI_Request request;
             const auto& buffer = sendBuffers.back();
             MPI_Isend(
-                    const_cast<T*>(buffer.data()),
-                    static_cast<int>(buffer.size() * sizeof(T)),
+                    const_cast<T*>(buffer.data()), static_cast<int>(buffer.size() * sizeof(T)),
                     MPI_BYTE, targetRank, tag, comm, &request);
             requests.push_back(request);
         }
@@ -126,9 +124,8 @@ void ImageChargeScatterController<T, Dim>::accumulateScalarHaloHostStaged(RhoFie
             std::vector<T> recvBuffer(static_cast<size_t>(range.size()));
             MPI_Status status;
             MPI_Recv(
-                    recvBuffer.data(),
-                    static_cast<int>(recvBuffer.size() * sizeof(T)),
-                    MPI_BYTE, sourceRank, tag, comm, &status);
+                    recvBuffer.data(), static_cast<int>(recvBuffer.size() * sizeof(T)), MPI_BYTE,
+                    sourceRank, tag, comm, &status);
             addRange(range, recvBuffer);
         }
     }
@@ -171,7 +168,7 @@ void ImageChargeScatterController<T, Dim>::scatterScaledDtSubset(
                     return;
                 }
 
-                const auto l = (rView(idx) - origin) * invdx + 0.5;
+                const auto l                 = (rView(idx) - origin) * invdx + 0.5;
                 ippl::Vector<int, Dim> index = l;
                 ippl::Vector<T, Dim> whi     = l - index;
                 ippl::Vector<T, Dim> wlo     = 1.0 - whi;

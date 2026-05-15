@@ -672,10 +672,10 @@ void BinnedFieldSolver<T, Dim>::prepareRhoForBin(
     const size_type pEnd    = static_cast<size_type>(policy.end());
     const size_type hExtent = static_cast<size_type>(hash.extent(0));
     const size_type nLocal  = pc->getLocalNum();
-    const char* modeName    = mode == ImageScatterMode::PrimaryOnly
-                                   ? "PrimaryOnly"
-                                   : (mode == ImageScatterMode::ImageOnly ? "ImageOnly"
-                                                                          : "PrimaryAndImage");
+    const char* modeName =
+            mode == ImageScatterMode::PrimaryOnly
+                    ? "PrimaryOnly"
+                    : (mode == ImageScatterMode::ImageOnly ? "ImageOnly" : "PrimaryAndImage");
 
     if (pEnd > hExtent) {
         throw OpalException(
@@ -690,9 +690,9 @@ void BinnedFieldSolver<T, Dim>::prepareRhoForBin(
     // AWAGun early-emission case after 128 bins merge down to one bin.
     const bool scatterAllLocal = (pBegin == 0 && pEnd == nLocal);
     m << level5 << "prepareRho: scatter mode=" << modeName
-      << ", path=" << (scatterAllLocal ? "all-local" : "subset") << ", localP="
-      << static_cast<unsigned long long>(nLocal) << ", policy=[" << pBegin << "," << pEnd
-      << "), hashExtent=" << static_cast<unsigned long long>(hExtent) << endl;
+      << ", path=" << (scatterAllLocal ? "all-local" : "subset")
+      << ", localP=" << static_cast<unsigned long long>(nLocal) << ", policy=[" << pBegin << ","
+      << pEnd << "), hashExtent=" << static_cast<unsigned long long>(hExtent) << endl;
 
     if (mode == ImageScatterMode::PrimaryOnly) {
         if (scatterAllLocal) {

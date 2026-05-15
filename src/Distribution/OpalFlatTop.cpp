@@ -78,8 +78,7 @@ void OpalFlatTop::setInternalVariables(
 
     fallTime_m = sigmaTFall_m * cutoffR_m[2];
     flattopTime_m =
-            tPulseLengthFWHM
-            - std::sqrt(2.0 * std::log(2.0)) * (sigmaTRise_m + sigmaTFall_m);
+            tPulseLengthFWHM - std::sqrt(2.0 * std::log(2.0)) * (sigmaTRise_m + sigmaTFall_m);
     if (flattopTime_m < 0.0) {
         flattopTime_m = 0.0;
     }
@@ -152,12 +151,11 @@ void OpalFlatTop::buildBirthTimeInventory(size_t numberOfParticles) {
             } else {
                 bool allow = false;
                 while (!allow) {
-                    tFlat = flattopTime_m * unit(host_rng_m);
+                    tFlat                      = flattopTime_m * unit(host_rng_m);
                     const double randFuncValue = unit(host_rng_m);
                     const double funcValue =
                             (1.0
-                             + modulationAmp
-                                       * std::sin(Physics::two_pi * tFlat / modulationPeriod))
+                             + modulationAmp * std::sin(Physics::two_pi * tFlat / modulationPeriod))
                             / (1.0 + modulationAmp);
                     allow = randFuncValue <= funcValue;
                 }
@@ -234,8 +232,8 @@ std::pair<size_t, size_t> OpalFlatTop::computeLocalEmitRange(size_t totalToEmit)
     std::vector<size_t> nlocal(nranksU, 0);
     size_t assigned = 0;
     for (int r = 0; r < nranks; ++r) {
-        const size_t ideal = base + (static_cast<size_t>(r) < rem ? 1 : 0);
-        const size_t cap   = static_cast<size_t>(spaceLeftAll[static_cast<size_t>(r)]);
+        const size_t ideal             = base + (static_cast<size_t>(r) < rem ? 1 : 0);
+        const size_t cap               = static_cast<size_t>(spaceLeftAll[static_cast<size_t>(r)]);
         nlocal[static_cast<size_t>(r)] = std::min(ideal, cap);
         assigned += nlocal[static_cast<size_t>(r)];
     }
@@ -309,8 +307,8 @@ void OpalFlatTop::generateLocalParticles(
     }
 
     Kokkos::View<double*> stepDt("OpalFlatTop_stepDt", nNew);
-    auto hStepDt      = Kokkos::create_mirror_view(stepDt);
-    const double tEnd = tStart + dt;
+    auto hStepDt                  = Kokkos::create_mirror_view(stepDt);
+    const double tEnd             = tStart + dt;
     const double overdueTolerance = std::max(1.0e-18, std::abs(dt) * 1.0e-12);
     for (size_t i = 0; i < nNew; ++i) {
         const double birthTime = birthTimes_m[globalBegin + i];
@@ -334,9 +332,9 @@ void OpalFlatTop::generateLocalParticles(
     const Vector_t<double, 3> sigmaR = sigmaR_m;
     const Vector_t<double, 3> R0     = R0_m;
     const Vector_t<double, 3> P0     = P0_m;
-    const double pTot   = euclidean_norm(P0);
-    const bool useAstra = emissionModel_m == "ASTRA";
-    const bool useNone  = emissionModel_m == "NONE";
+    const double pTot                = euclidean_norm(P0);
+    const bool useAstra              = emissionModel_m == "ASTRA";
+    const bool useNone               = emissionModel_m == "NONE";
     if (!useAstra && !useNone) {
         throw OpalException(
                 "OpalFlatTop::generateLocalParticles",
@@ -349,8 +347,8 @@ void OpalFlatTop::generateLocalParticles(
     const double c         = Physics::c;
     Kokkos::parallel_for(
             "OpalFlatTop_generateLocalParticles", nNew, KOKKOS_LAMBDA(const size_t i) {
-                auto generator = randPool.get_state();
-                const double r = Kokkos::sqrt(generator.drand(0.0, 1.0));
+                auto generator     = randPool.get_state();
+                const double r     = Kokkos::sqrt(generator.drand(0.0, 1.0));
                 const double theta = twoPi * generator.drand(0.0, 1.0);
 
                 Vector_t<double, 3> p = P0;
@@ -372,8 +370,8 @@ void OpalFlatTop::generateLocalParticles(
                 Pview(j)       = p;
                 dtView(j)      = stepDt(i);
 
-                const double gamma  = Kokkos::sqrt(1.0 + p[0] * p[0] + p[1] * p[1] + p[2] * p[2]);
-                const double drift  = 0.5 * c * stepDt(i) / gamma;
+                const double gamma = Kokkos::sqrt(1.0 + p[0] * p[0] + p[1] * p[1] + p[2] * p[2]);
+                const double drift = 0.5 * c * stepDt(i) / gamma;
                 Rview(j)[0] += p[0] * drift;
                 Rview(j)[1] += p[1] * drift;
                 Rview(j)[2] += p[2] * drift;
@@ -413,7 +411,7 @@ void OpalFlatTop::setWithDomainDecomp(bool withDomainDecomp) {
 void OpalFlatTop::setBirthTimesForTest(std::vector<double> birthTimes) {
     birthTimes_m = std::move(birthTimes);
     std::sort(birthTimes_m.begin(), birthTimes_m.end());
-    totalN_m           = birthTimes_m.size();
-    nextGlobalIndex_m  = 0;
-    inventoryBuilt_m = true;
+    totalN_m          = birthTimes_m.size();
+    nextGlobalIndex_m = 0;
+    inventoryBuilt_m  = true;
 }

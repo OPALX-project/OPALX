@@ -43,7 +43,7 @@ protected:
         Mesh_t<3> mesh(domain, hr, origin);
         FieldLayout_t<3> fl(MPI_COMM_WORLD, domain, decomp, isAllPeriodic_m);
 
-        pc = std::make_shared<ParticleContainer<double, 3>>(mesh, fl);
+        pc                = std::make_shared<ParticleContainer<double, 3>>(mesh, fl);
         bunchStateHandler = std::make_shared<BunchStateHandler>();
         pc->setBunchStateHandler(bunchStateHandler);
         tempFilename = "emittedfromfile_test_input.dat";
@@ -56,8 +56,8 @@ protected:
     }
 
     void allocate(size_t globalCapacity) {
-        const int nranks     = std::max(1, ippl::Comm->size());
-        const size_t nranksU = static_cast<size_t>(nranks);
+        const int nranks           = std::max(1, ippl::Comm->size());
+        const size_t nranksU       = static_cast<size_t>(nranks);
         const size_t localCapacity = globalCapacity / nranksU + 2 * nranksU + 1;
         pc->allocateParticles(localCapacity);
     }
@@ -102,8 +102,7 @@ TEST_F(EmittedFromFileTest, ParsesOldOpalDumpAndProvidesReferenceMomentum) {
     auto fc = std::shared_ptr<FieldContainer_t>();
     EmittedFromFile sampler(pc, fc, tempFilename);
     sampler.setEmissionOffsets(
-            Vector_t<double, 3>(0.0, 0.0, 0.0),
-            Vector_t<double, 3>(0.01, 0.02, 0.03), 0.0, "NONE");
+            Vector_t<double, 3>(0.0, 0.0, 0.0), Vector_t<double, 3>(0.01, 0.02, 0.03), 0.0, "NONE");
 
     size_t requested = 0;
     sampler.generateParticles(requested, nr);
@@ -128,8 +127,7 @@ TEST_F(EmittedFromFileTest, EmitsSortedRecordsWithFractionalDtAndHalfStepDrift) 
     auto fc = std::shared_ptr<FieldContainer_t>();
     EmittedFromFile sampler(pc, fc, tempFilename);
     sampler.setEmissionOffsets(
-            Vector_t<double, 3>(0.1, 0.2, 0.3), Vector_t<double, 3>(0.0), 0.0,
-            "NONE");
+            Vector_t<double, 3>(0.1, 0.2, 0.3), Vector_t<double, 3>(0.0), 0.0, "NONE");
 
     size_t requested = 0;
     sampler.generateParticles(requested, nr);
@@ -150,9 +148,9 @@ TEST_F(EmittedFromFileTest, EmitsSortedRecordsWithFractionalDtAndHalfStepDrift) 
         Kokkos::deep_copy(Pview, Pview_d);
         Kokkos::deep_copy(dtView, dtView_d);
 
-        const double firstDt  = 1.0e-12;
-        const double secondDt = 0.5e-12;
-        const double firstGamma = std::sqrt(1.0 + 0.4 * 0.4);
+        const double firstDt     = 1.0e-12;
+        const double secondDt    = 0.5e-12;
+        const double firstGamma  = std::sqrt(1.0 + 0.4 * 0.4);
         const double secondGamma = std::sqrt(1.0 + 0.6 * 0.6);
 
         EXPECT_NEAR(dtView(0), firstDt, 1.0e-18);
@@ -162,12 +160,8 @@ TEST_F(EmittedFromFileTest, EmitsSortedRecordsWithFractionalDtAndHalfStepDrift) 
         EXPECT_DOUBLE_EQ(Pview(1)[2], 0.6);
         EXPECT_NEAR(Rview(0)[0], 0.103, 1.0e-15);
         EXPECT_NEAR(Rview(0)[1], 0.204, 1.0e-15);
-        EXPECT_NEAR(
-                Rview(0)[2],
-                0.3 + 0.5 * Physics::c * firstDt * 0.4 / firstGamma, 1.0e-15);
-        EXPECT_NEAR(
-                Rview(1)[2],
-                0.3 + 0.5 * Physics::c * secondDt * 0.6 / secondGamma, 1.0e-15);
+        EXPECT_NEAR(Rview(0)[2], 0.3 + 0.5 * Physics::c * firstDt * 0.4 / firstGamma, 1.0e-15);
+        EXPECT_NEAR(Rview(1)[2], 0.3 + 0.5 * Physics::c * secondDt * 0.6 / secondGamma, 1.0e-15);
     }
 
     sampler.emitParticles(tStart + 1.0e-12, 1.0e-12);

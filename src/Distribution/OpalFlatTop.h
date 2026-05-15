@@ -31,8 +31,8 @@ public:
     OpalFlatTop(
             std::shared_ptr<ParticleContainer_t> pc, std::shared_ptr<FieldContainer_t> fc,
             bool emitting, double sigmaTFall, double sigmaTRise, Vector_t<double, 3> cutoff,
-            double tPulseLengthFWHM, Vector_t<double, 3> sigmaR,
-            double ftOscAmplitude = 0.0, double ftOscPeriods = 0.0);
+            double tPulseLengthFWHM, Vector_t<double, 3> sigmaR, double ftOscAmplitude = 0.0,
+            double ftOscPeriods = 0.0);
 
     void generateParticles(size_t& numberOfParticles, Vector_t<double, 3> nr) override;
     void emitParticles(double t, double dt) override;

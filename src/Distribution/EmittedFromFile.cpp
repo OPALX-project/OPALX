@@ -42,10 +42,8 @@ namespace {
     bool looksLikeHeader(const std::string& line) {
         const std::string lower = lowercase(line);
         return lower.find("x") != std::string::npos && lower.find("px") != std::string::npos
-               && lower.find("y") != std::string::npos
-               && lower.find("py") != std::string::npos
-               && lower.find("t") != std::string::npos
-               && lower.find("pz") != std::string::npos;
+               && lower.find("y") != std::string::npos && lower.find("py") != std::string::npos
+               && lower.find("t") != std::string::npos && lower.find("pz") != std::string::npos;
     }
 
     bool parseRecordValues(const std::string& line, std::array<double, 6>& record) {
@@ -70,7 +68,7 @@ EmittedFromFile::EmittedFromFile(
         std::shared_ptr<ParticleContainer_t> pc, std::shared_ptr<FieldContainer_t> fc,
         Distribution_t* opalDist)
     : SamplingBase(pc, fc, opalDist) {
-    filename_m = opalDist->getFilename();
+    filename_m      = opalDist->getFilename();
     emissionSteps_m = opalDist->getEmissionSteps();
     if (filename_m.empty()) {
         throw OpalException(
@@ -115,11 +113,11 @@ void EmittedFromFile::readFile(const std::string& filename) {
     }
 
     rawRecords_m.clear();
-    bool sawFirstPayload      = false;
-    bool expectHeaderAfterN   = false;
-    bool hasDeclaredCount     = false;
-    size_t declaredCount      = 0;
-    size_t lineNumber         = 0;
+    bool sawFirstPayload    = false;
+    bool expectHeaderAfterN = false;
+    bool hasDeclaredCount   = false;
+    size_t declaredCount    = 0;
+    size_t lineNumber       = 0;
 
     std::string line;
     while (std::getline(file, line)) {
@@ -143,10 +141,10 @@ void EmittedFromFile::readFile(const std::string& filename) {
                             "EmittedFromFile::readFile",
                             "Declared particle count in '" + filename + "' must be non-negative.");
                 }
-                declaredCount    = static_cast<size_t>(count);
-                hasDeclaredCount = true;
+                declaredCount      = static_cast<size_t>(count);
+                hasDeclaredCount   = true;
                 expectHeaderAfterN = true;
-                sawFirstPayload  = true;
+                sawFirstPayload    = true;
                 continue;
             }
             sawFirstPayload = true;
@@ -170,9 +168,9 @@ void EmittedFromFile::readFile(const std::string& filename) {
         std::array<double, 6> values;
         if (!parseRecordValues(stripped, values)) {
             throw OpalException(
-                    "EmittedFromFile::readFile",
-                    "Line " + std::to_string(lineNumber) + " in '" + filename
-                            + "' has fewer than six numeric columns.");
+                    "EmittedFromFile::readFile", "Line " + std::to_string(lineNumber) + " in '"
+                                                         + filename
+                                                         + "' has fewer than six numeric columns.");
         }
         RawRecord record;
         record.x        = values[0];
@@ -245,10 +243,10 @@ void EmittedFromFile::buildInventory(size_t requested) {
     double maxPulseTime = minPulseTime;
     for (size_t i = 1; i < selected; ++i) {
         const double pulseTime = -rawRecords_m[i].fileTime;
-        minPulseTime = std::min(minPulseTime, pulseTime);
-        maxPulseTime = std::max(maxPulseTime, pulseTime);
+        minPulseTime           = std::min(minPulseTime, pulseTime);
+        maxPulseTime           = std::max(maxPulseTime, pulseTime);
     }
-    emissionTime_m = std::max(0.0, maxPulseTime - minPulseTime);
+    emissionTime_m           = std::max(0.0, maxPulseTime - minPulseTime);
     const double pulseCenter = 0.5 * (minPulseTime + maxPulseTime);
     if (opalDist_m) {
         opalDist_m->setTEmission(emissionTime_m);
@@ -275,7 +273,7 @@ void EmittedFromFile::buildInventory(size_t requested) {
     initialRefP_m[0]         = pxSum * invSelected;
     initialRefP_m[1]         = pySum * invSelected;
     initialRefP_m[2]         = pzSum * invSelected;
-    inventoryBuilt_m = true;
+    inventoryBuilt_m         = true;
 }
 
 std::pair<size_t, size_t> EmittedFromFile::computeLocalEmitRange(size_t totalToEmit) const {
@@ -306,8 +304,8 @@ std::pair<size_t, size_t> EmittedFromFile::computeLocalEmitRange(size_t totalToE
     std::vector<size_t> nlocal(nranksU, 0);
     size_t assigned = 0;
     for (int r = 0; r < nranks; ++r) {
-        const size_t ideal = base + (static_cast<size_t>(r) < rem ? 1 : 0);
-        const size_t cap   = static_cast<size_t>(spaceLeftAll[static_cast<size_t>(r)]);
+        const size_t ideal             = base + (static_cast<size_t>(r) < rem ? 1 : 0);
+        const size_t cap               = static_cast<size_t>(spaceLeftAll[static_cast<size_t>(r)]);
         nlocal[static_cast<size_t>(r)] = std::min(ideal, cap);
         assigned += nlocal[static_cast<size_t>(r)];
     }
@@ -350,7 +348,9 @@ void EmittedFromFile::emitParticles(double t, double dt) {
     const double tEnd = t + dt;
     auto emitEndIt    = std::upper_bound(
             records_m.begin() + nextGlobalIndex_m, records_m.end(), tEnd,
-            [](double value, const Record& record) { return value < record.birthTime; });
+            [](double value, const Record& record) {
+                return value < record.birthTime;
+            });
     const size_t globalEnd = static_cast<size_t>(emitEndIt - records_m.begin());
     const size_t totalNew  = globalEnd - nextGlobalIndex_m;
     if (totalNew == 0) {
@@ -381,8 +381,8 @@ void EmittedFromFile::generateLocalParticles(
 
     using HostView = Kokkos::View<double**, Kokkos::HostSpace>;
     HostView hostData("EmittedFromFile_hostData", nNew, 6);
-    const double tEnd              = tStart + dt;
-    const double overdueTolerance  = std::max(1.0e-18, std::abs(dt) * 1.0e-12);
+    const double tEnd             = tStart + dt;
+    const double overdueTolerance = std::max(1.0e-18, std::abs(dt) * 1.0e-12);
 
     for (size_t i = 0; i < nNew; ++i) {
         const Record& record = records_m[globalBegin + i];
@@ -392,9 +392,8 @@ void EmittedFromFile::generateLocalParticles(
                     "EMITTEDFROMFILE would need to pre-age a particle born before "
                     "the current step.");
         }
-        const double effectiveBirthTime =
-                record.birthTime < tStart ? tStart : record.birthTime;
-        const double stepDt = tEnd - effectiveBirthTime;
+        const double effectiveBirthTime = record.birthTime < tStart ? tStart : record.birthTime;
+        const double stepDt             = tEnd - effectiveBirthTime;
 
         hostData(i, 0) = record.raw.x;
         hostData(i, 1) = record.raw.y;
@@ -408,9 +407,9 @@ void EmittedFromFile::generateLocalParticles(
             Kokkos::create_mirror(Kokkos::DefaultExecutionSpace::memory_space(), hostData);
     Kokkos::deep_copy(deviceData, hostData);
 
-    auto Rview      = pc_m->R.getView();
-    auto Pview      = pc_m->P.getView();
-    auto dtView     = pc_m->dt.getView();
+    auto Rview                   = pc_m->R.getView();
+    auto Pview                   = pc_m->P.getView();
+    auto dtView                  = pc_m->dt.getView();
     const Vector_t<double, 3> R0 = R0_m;
     const Vector_t<double, 3> P0 = P0_m;
     const size_type offset       = nlocalBefore;
@@ -430,8 +429,7 @@ void EmittedFromFile::generateLocalParticles(
                 Pview(j)    = p;
                 dtView(j)   = stepDt;
 
-                const double gamma =
-                        Kokkos::sqrt(1.0 + p[0] * p[0] + p[1] * p[1] + p[2] * p[2]);
+                const double gamma = Kokkos::sqrt(1.0 + p[0] * p[0] + p[1] * p[1] + p[2] * p[2]);
                 const double drift = 0.5 * c * stepDt / gamma;
                 Rview(j)[0] += p[0] * drift;
                 Rview(j)[1] += p[1] * drift;

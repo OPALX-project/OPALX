@@ -678,9 +678,8 @@ void TrackRun::setupDistributionsAndSamplers(
 
         // File-based distributions carry absolute momenta - the BEAM's
         // PC/ENERGY/GAMMA would be silently ignored, so forbid the combination.
-        const bool usesFileMomentum =
-                opalDist->getType() == DistributionType::FROMFILE
-                || opalDist->getType() == DistributionType::EMITTEDFROMFILE;
+        const bool usesFileMomentum = opalDist->getType() == DistributionType::FROMFILE
+                                      || opalDist->getType() == DistributionType::EMITTEDFROMFILE;
         if (usesFileMomentum) {
             if (beam->hasExplicitEnergy()) {
                 throw OpalException(
@@ -741,9 +740,8 @@ void TrackRun::setupDistributionsAndSamplers(
         // emission structures irrespective of t0.
         sampler->generateParticles(Nmutable, nr);
 
-        const double globalShift =
-                std::max(OpalData::getInstance()->getGlobalPhaseShift(),
-                         sampler->getGlobalTimeShift());
+        const double globalShift = std::max(
+                OpalData::getInstance()->getGlobalPhaseShift(), sampler->getGlobalTimeShift());
         OpalData::getInstance()->setGlobalPhaseShift(globalShift);
 
         // Time-dependent (emitted) distributions (e.g. FlatTop) and delayed
