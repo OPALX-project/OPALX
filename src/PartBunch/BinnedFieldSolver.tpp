@@ -451,15 +451,6 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(PartBunch_t& bunch) {
             prepareRhoForBin(
                     bunch, bins, binIndex, nPartGlobal, gammaBin, ImageScatterMode::PrimaryOnly);
 
-            // Invert the charge density for the image pass: image charges have
-            // opposite polarity to the real bunch, which is the whole point of
-            // the Dirichlet correction (phi = 0 at the cathode plane). This is
-            // the equivalent of OPAL's `imgrho2tr_m = -rho2tr_m * grntr_m` in
-            // FFTPoissonSolver.cpp:242 (applied at the rho level here because
-            // IPPL's shiftedGreensFunction + solve path doesn't carry an image-
-            // sign multiplier of its own).
-            scaleAndShiftScalarField(*(this->getRho()), -1.0, 0.0);
-
             setVectorField(*(this->getE()), Vector_t<T, Dim>(0.0));
             mesh.setMeshSpacing(hrStretched);
 
@@ -482,8 +473,11 @@ void BinnedFieldSolver<T, Dim>::computeBinnedSelfFields(PartBunch_t& bunch) {
             m << level4 << "binIndex=" << static_cast<int>(binIndex)
               << " shifted-GF runSolver done; accumulate->Etmp (B negated, z-flip)" << endl;
 
-            // Axis-flip + component-wise sign is handled inside
-            // accumulateFieldToTemp when flipAxis >= 0 (see method doc).
+            // Keep the real charge sign for the shifted solve. The image-charge
+            // sign enters through the z-flip/component-sign rule in
+            // accumulateFieldToTemp. Pre-negating rho here would invert the
+            // image field a second time and reinforce the near-cathode
+            // transverse field instead of cancelling it.
             constexpr int zFlipAxis = static_cast<int>(Dim) - 1;
             accumulateFieldToTemp(gammaBin, kinematics.pmean, EtmpSP, BtmpSP, -1.0, zFlipAxis);
 
