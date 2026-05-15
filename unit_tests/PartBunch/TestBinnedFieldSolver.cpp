@@ -298,7 +298,7 @@ namespace {
 
     TEST_F(BinnedFieldSolverSmokeTest, BinnedPath_AdaptiveBinningFalseKeepsUniformMaxBins) {
         constexpr AdaptBins_t::bin_index_type maxBins = 6;
-        const std::string binsName = "UNIT_TEST_UNIFORM_BINNING";
+        const std::string binsName                    = "UNIT_TEST_UNIFORM_BINNING";
         defineBinningCommand(binsName, maxBins, /*adaptiveBinning=*/false);
 
         fsCmd->setType("OPEN");

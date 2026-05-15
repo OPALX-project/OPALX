@@ -37,15 +37,15 @@ enum class BinningParameter : short { VELOCITYZ = 0, POSITIONZ = 1, PZ = 2, GAMM
 // The attributes of class BinningCmd.
 namespace BINNING {
     enum {
-        MAXBINS,         // Maximum number of bins for adaptive binning
-        DESIREDWIDTH,    // Target / bias for bin width
-        BINNINGALPHA,    // Aggressiveness of bin-number reduction
-        BINNINGBETA,     // Aggressiveness of using wider bins
-        PARAMETER,       // Which bunch attribute is used for binning
-        ADAPTIVEBINNING, // Enable adaptive bin merging after uniform rebinning
-        DUMPBINSFILE,    // File name for dumping bins
-        DUMPBINSFREQ,    // Frequency of dumping bins to a file (only used if DUMPBINSFILE is set)
-        TABLEPRINTFREQ,  // Frequency of printing bin stats table to console (binned mode only)
+        MAXBINS,          // Maximum number of bins for adaptive binning
+        DESIREDWIDTH,     // Target / bias for bin width
+        BINNINGALPHA,     // Aggressiveness of bin-number reduction
+        BINNINGBETA,      // Aggressiveness of using wider bins
+        PARAMETER,        // Which bunch attribute is used for binning
+        ADAPTIVEBINNING,  // Enable adaptive bin merging after uniform rebinning
+        DUMPBINSFILE,     // File name for dumping bins
+        DUMPBINSFREQ,     // Frequency of dumping bins to a file (only used if DUMPBINSFILE is set)
+        TABLEPRINTFREQ,   // Frequency of printing bin stats table to console (binned mode only)
         SIZE
     };
 }

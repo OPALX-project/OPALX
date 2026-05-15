@@ -90,8 +90,7 @@ public:
      */
     BinnedFieldSolver(
             std::string solver, Field_t<Dim>* rho, VField_t<T, Dim>* E, Field_t<Dim>* phi,
-            std::shared_ptr<BCHandler_t> bcHandler, int tablePrintFrequency,
-            bool adaptiveBinning);
+            std::shared_ptr<BCHandler_t> bcHandler, int tablePrintFrequency, bool adaptiveBinning);
 
     /**
      * @brief Compute space-charge self-fields for the given particle bunch.

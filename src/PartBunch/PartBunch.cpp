@@ -250,7 +250,7 @@ void PartBunch<T, Dim>::setSolver() {
     setBins();
 
     BinningCmd* binningCmd = OPALFieldSolver_m->getBinningCmd();
-    auto binnedSolver = std::make_shared<BinnedFieldSolver<T, Dim>>(
+    auto binnedSolver      = std::make_shared<BinnedFieldSolver<T, Dim>>(
             this->solver_m, &this->fcontainer_m->getRho(), &this->fcontainer_m->getE(),
             &this->fcontainer_m->getPhi(), this->getBCHandler(),
             binningCmd ? binningCmd->getTablePrintFrequency() : 0,
