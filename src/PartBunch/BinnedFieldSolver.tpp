@@ -525,7 +525,6 @@ void BinnedFieldSolver<T, Dim>::computeLegacySelfFields(PartBunch_t& bunch) {
 
     Field_t<Dim>& rho = *(this->getRho());
     setScalarField(rho, 0.0);
-    m << level5 << "Legacy mode: rho cleared." << endl;
 
     // Scatter charge to mesh rho using dt-weighted deposition (master approach):
     // scale dt by Q, scatter dt, then restore dt.
@@ -654,7 +653,6 @@ void BinnedFieldSolver<T, Dim>::prepareRhoForBin(
 
     Field_t<Dim>& rho = *(this->getRho());
     setScalarField(rho, 0.0);
-    m << level5 << "prepareRho: rho cleared." << endl;
 
     // access particle views and validate scatter support.
     std::shared_ptr<ParticleCtr_t> pc                     = bunch.getParticleContainer();
@@ -679,10 +677,6 @@ void BinnedFieldSolver<T, Dim>::prepareRhoForBin(
                                    : (mode == ImageScatterMode::ImageOnly ? "ImageOnly"
                                                                           : "PrimaryAndImage");
 
-    m << level5 << "prepareRho: scatter setup mode=" << modeName << ", localP="
-      << static_cast<unsigned long long>(nLocal) << ", policy=[" << pBegin << "," << pEnd
-      << "), hashExtent=" << static_cast<unsigned long long>(hExtent) << endl;
-
     if (pEnd > hExtent) {
         throw OpalException(
                 "BinnedFieldSolver::prepareRhoForBin",
@@ -695,29 +689,30 @@ void BinnedFieldSolver<T, Dim>::prepareRhoForBin(
     // dereferencing the bin hash view in the hot scatter kernel and is the common
     // AWAGun early-emission case after 128 bins merge down to one bin.
     const bool scatterAllLocal = (pBegin == 0 && pEnd == nLocal);
+    m << level5 << "prepareRho: scatter mode=" << modeName
+      << ", path=" << (scatterAllLocal ? "all-local" : "subset") << ", localP="
+      << static_cast<unsigned long long>(nLocal) << ", policy=[" << pBegin << "," << pEnd
+      << "), hashExtent=" << static_cast<unsigned long long>(hExtent) << endl;
+
     if (mode == ImageScatterMode::PrimaryOnly) {
         if (scatterAllLocal) {
-            m << level5 << "prepareRho: using all-local primary scatter." << endl;
             imageScatterController_m.scatterPrimaryOnly(pc, *R, rho);
         } else {
             imageScatterController_m.scatterPrimaryOnly(pc, *R, rho, policy, hash);
         }
     } else if (mode == ImageScatterMode::ImageOnly) {
         if (scatterAllLocal) {
-            m << level5 << "prepareRho: using all-local image scatter." << endl;
             imageScatterController_m.scatterImageOnly(pc, *R, rho);
         } else {
             imageScatterController_m.scatterImageOnly(pc, *R, rho, policy, hash);
         }
     } else {
         if (scatterAllLocal) {
-            m << level5 << "prepareRho: using all-local primary+image scatter." << endl;
             imageScatterController_m.scatterPrimaryAndImage(pc, *R, rho);
         } else {
             imageScatterController_m.scatterPrimaryAndImage(pc, *R, rho, policy, hash);
         }
     }
-    m << level5 << "prepareRho: scatter done." << endl;
 
     // normalize rho for fractional time steps and mesh conventions.
     const std::string stype = this->getStype();
@@ -745,7 +740,6 @@ void BinnedFieldSolver<T, Dim>::prepareRhoForBin(
     // Lorentz transform of charge density to the bin rest frame (thesis Eq. step 7).
     normalizer *= gammaBin;
     scaleAndShiftScalarField(rho, this->getCouplingConstant() / normalizer, shift);
-    m << level5 << "prepareRho: normalization done." << endl;
 }
 
 template <typename T, unsigned Dim>
