@@ -265,7 +265,7 @@ public:
      *
      * The function computes the global mean momentum vector `pmean` across all
      * particles in the merged bin and derives:
-     * `gammaBin = sqrt(1 + dot(pmean, pmean))`.
+     * `gammaBin = mean(sqrt(1 + dot(p_i, p_i)))`.
      *
      * @param bunch        Bunch providing particle data.
      * @param bins         Bins providing the merged-bin iteration policy and indexing.
