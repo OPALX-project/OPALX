@@ -610,7 +610,7 @@ typename BinnedFieldSolver<T, Dim>::BinKinematics BinnedFieldSolver<T, Dim>::com
     typename particle_position_type::view_type pView = bunch.getParticleContainer()->P.getView();
     typename AdaptBins_t::hash_type indices          = bins->getHashArray();
 
-    // compute local momentum sums over particles in this bin.
+    // compute local momentum and gamma sums over particles in this bin.
     Vector_t<double, Dim> localPsum(0.0);
     Kokkos::parallel_reduce(
             "BinnedFieldSolver::pmeanPerBin", bins->getBinIterationPolicy(binIndex),
@@ -619,10 +619,21 @@ typename BinnedFieldSolver<T, Dim>::BinKinematics BinnedFieldSolver<T, Dim>::com
             },
             localPsum);
 
+    double localGammaSum = 0.0;
+    Kokkos::parallel_reduce(
+            "BinnedFieldSolver::gammaMeanPerBin", bins->getBinIterationPolicy(binIndex),
+            KOKKOS_LAMBDA(const size_type i, double& sum) {
+                const Vector_t<double, Dim> p = pView(indices(i));
+                sum += Kokkos::sqrt(1.0 + p.dot(p));
+            },
+            localGammaSum);
+
     // reduce momentum sums across MPI ranks and normalize by `nPartGlobal`.
     Vector_t<double, Dim> globalPsum(0.0);
     ippl::Comm->allreduce(localPsum, 1, std::plus<Vector_t<double, Dim>>());
     globalPsum = localPsum;
+
+    ippl::Comm->allreduce(localGammaSum, 1, std::plus<double>());
 
     BinKinematics kinematics;
     if (nPartGlobal == 0) {
@@ -630,7 +641,7 @@ typename BinnedFieldSolver<T, Dim>::BinKinematics BinnedFieldSolver<T, Dim>::com
     }
 
     kinematics.pmean    = globalPsum / static_cast<double>(nPartGlobal);
-    kinematics.gammaBin = Kokkos::sqrt(1.0 + kinematics.pmean.dot(kinematics.pmean));
+    kinematics.gammaBin = localGammaSum / static_cast<double>(nPartGlobal);
     return kinematics;
 }
 
