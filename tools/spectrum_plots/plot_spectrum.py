@@ -1,0 +1,152 @@
+#!/usr/bin/env python3
+"""
+plot_spectrum.py - Plot decay-spectrum CSVs emitted by OPALX physics unit tests.
+
+The CSV format (written by unit_tests/Physics/SpectrumTestSupport.h) is:
+
+    # x_label: <axis label string>
+    # columns: bin_low,bin_high,bin_center,density,count,analytic_pdf
+    <bin_low>,<bin_high>,<bin_center>,<density>,<count>,<analytic_pdf>
+    ...
+
+Renders the histogram density as bars with the analytic PDF overlaid.
+
+Usage:
+    python plot_spectrum.py muon_michel_spectrum.csv --out muon_michel.png
+    python plot_spectrum.py --all *.csv --outdir plots/
+
+Dependencies: numpy, matplotlib (no project-specific deps).
+"""
+
+from __future__ import annotations
+
+import argparse
+import csv
+import os
+import sys
+from pathlib import Path
+
+import matplotlib.pyplot as plt
+import numpy as np
+
+
+def parse_csv(path: Path):
+    """Return (x_label, bin_low, bin_high, bin_center, density, count, analytic)."""
+    x_label = ""
+    rows = []
+    with path.open() as f:
+        reader = csv.reader(f)
+        for row in reader:
+            if not row:
+                continue
+            first = row[0]
+            if first.startswith("#"):
+                comment = ",".join(row).lstrip("#").strip()
+                if comment.startswith("x_label:"):
+                    x_label = comment.split(":", 1)[1].strip()
+                continue
+            rows.append(row)
+
+    arr = np.array(rows, dtype=float)
+    if arr.ndim != 2 or arr.shape[1] != 6:
+        raise ValueError(
+            f"{path}: expected 6 columns, got shape {arr.shape}"
+        )
+    return (
+        x_label,
+        arr[:, 0],  # bin_low
+        arr[:, 1],  # bin_high
+        arr[:, 2],  # bin_center
+        arr[:, 3],  # density
+        arr[:, 4],  # count
+        arr[:, 5],  # analytic_pdf
+    )
+
+
+def plot_one(path: Path, out: Path, dpi: int = 150) -> None:
+    x_label, lo, hi, ctr, density, count, analytic = parse_csv(path)
+
+    fig, ax = plt.subplots(figsize=(7.5, 5.0))
+    widths = hi - lo
+    ax.bar(
+        ctr,
+        density,
+        width=widths,
+        align="center",
+        color="#4c72b0",
+        alpha=0.55,
+        edgecolor="#1f3a68",
+        linewidth=0.6,
+        label="sampled (density)",
+    )
+    ax.plot(
+        ctr,
+        analytic,
+        color="#c0392b",
+        linewidth=2.0,
+        label="analytic PDF",
+    )
+
+    ax.set_xlabel(x_label or "x")
+    ax.set_ylabel("density")
+    ax.set_title(path.stem)
+    ax.set_xlim(lo[0], hi[-1])
+    ax.set_ylim(bottom=0.0)
+    ax.grid(True, alpha=0.3)
+    ax.legend(frameon=False)
+
+    n_total = int(count.sum())
+    ax.text(
+        0.99,
+        0.97,
+        f"N = {n_total}",
+        transform=ax.transAxes,
+        ha="right",
+        va="top",
+        fontsize=9,
+        color="#444",
+    )
+
+    fig.tight_layout()
+    fig.savefig(out, dpi=dpi)
+    plt.close(fig)
+    print(f"wrote {out}")
+
+
+def main(argv: list[str] | None = None) -> int:
+    p = argparse.ArgumentParser(description=__doc__.split("\n")[1])
+    p.add_argument("csv", nargs="*", help="CSV file(s) to plot")
+    p.add_argument("--out", help="output PNG path (single CSV mode)")
+    p.add_argument(
+        "--outdir",
+        default=".",
+        help="output directory when plotting multiple CSVs (default: cwd)",
+    )
+    p.add_argument(
+        "--all",
+        action="store_true",
+        help="treat all positional arguments as CSVs and emit one PNG each",
+    )
+    p.add_argument("--dpi", type=int, default=150, help="output DPI (default 150)")
+    args = p.parse_args(argv)
+
+    if not args.csv:
+        p.error("at least one CSV file is required")
+
+    if args.all or len(args.csv) > 1:
+        outdir = Path(args.outdir)
+        outdir.mkdir(parents=True, exist_ok=True)
+        for csv_path in args.csv:
+            csv_path = Path(csv_path)
+            out = outdir / (csv_path.stem + ".png")
+            plot_one(csv_path, out, dpi=args.dpi)
+        return 0
+
+    csv_path = Path(args.csv[0])
+    out = Path(args.out) if args.out else csv_path.with_suffix(".png")
+    plot_one(csv_path, out, dpi=args.dpi)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
