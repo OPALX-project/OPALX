@@ -3,9 +3,9 @@ void ImageChargeScatterController<T, Dim>::scatterScaledDtAll(
         std::shared_ptr<ParticleCtr_t> pc, PositionAttr_t& positions, RhoField_t& rho) const {
     Inform m("ImageChargeScatterController::scatterScaledDtAll");
     const size_t nLocal = pc->getLocalNum();
-    m << level5 << "all-local scatter entry: localP=" << nLocal << endl;
+    m << level5 << "scatter all local particles: localP=" << nLocal << endl;
+
     pc->scaleDtByCharge();
-    m << level5 << "all-local scatter: dt scaled by charge." << endl;
 
     using view_type    = typename RhoField_t::view_type;
     view_type rhoView  = rho.getView();
@@ -19,26 +19,6 @@ void ImageChargeScatterController<T, Dim>::scatterScaledDtAll(
     const auto& lDom   = layout.getLocalNDIndex();
     const int nghost   = rho.getNghost();
 
-    int outOfBounds = 0;
-    Kokkos::parallel_reduce(
-            "ImageChargeScatterController::validateScatterBounds", nLocal,
-            KOKKOS_LAMBDA(const size_t i, int& update) {
-                const auto l = (rView(i) - origin) * invdx + 0.5;
-                ippl::Vector<int, Dim> index = l;
-                ippl::Vector<int, Dim> args  = index - lDom.first() + nghost;
-                bool inBounds                = true;
-                for (unsigned d = 0; d < Dim; ++d) {
-                    inBounds = inBounds && args[d] > 0
-                               && args[d] < static_cast<int>(rhoView.extent(d));
-                }
-                if (!inBounds) {
-                    update += 1;
-                }
-            },
-            outOfBounds);
-    m << level5 << "all-local scatter: out-of-bounds CIC particles=" << outOfBounds << endl;
-
-    m << level5 << "all-local scatter: CIC kernel start." << endl;
     Kokkos::parallel_for(
             "ImageChargeScatterController::scatterScaledDtAllCIC", nLocal,
             KOKKOS_LAMBDA(const size_t i) {
@@ -64,21 +44,15 @@ void ImageChargeScatterController<T, Dim>::scatterScaledDtAll(
                 }
             });
     Kokkos::fence();
-    m << level5 << "all-local scatter: CIC kernel done." << endl;
 
-    m << level5 << "all-local scatter: host-staged accumulateHalo start." << endl;
     accumulateScalarHaloHostStaged(rho);
-    m << level5 << "all-local scatter: host-staged accumulateHalo done." << endl;
 
     pc->unscaleDtByCharge();
-    m << level5 << "all-local scatter: dt restored." << endl;
 }
 
 template <typename T, unsigned Dim>
 void ImageChargeScatterController<T, Dim>::accumulateScalarHaloHostStaged(RhoField_t& rho) const {
     static_assert(Dim == 3, "Host-staged scalar halo accumulation currently supports Dim == 3.");
-
-    Inform m("ImageChargeScatterController::accumulateScalarHaloHostStaged");
 
     auto rhoView = rho.getView();
     auto host    = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), rhoView);
@@ -119,7 +93,6 @@ void ImageChargeScatterController<T, Dim>::accumulateScalarHaloHostStaged(RhoFie
     for (const auto& componentNeighbors : neighbors) {
         totalRequests += componentNeighbors.size();
     }
-    m << level5 << "host-staged halo: neighbor exchanges=" << totalRequests << endl;
 
     std::vector<std::vector<T>> sendBuffers;
     std::vector<MPI_Request> requests;
@@ -173,10 +146,10 @@ void ImageChargeScatterController<T, Dim>::scatterScaledDtSubset(
         const BinPolicy_t& policy, const Hash_t& hash) const {
     Inform m("ImageChargeScatterController::scatterScaledDtSubset");
     const size_t nLocal = pc->getLocalNum();
-    m << level5 << "subset scatter entry: localP=" << pc->getLocalNum() << ", policy=["
-      << policy.begin() << "," << policy.end() << "), hashExtent=" << hash.extent(0) << endl;
+    m << level5 << "scatter subset: localP=" << nLocal << ", policy=[" << policy.begin() << ","
+      << policy.end() << "), hashExtent=" << hash.extent(0) << endl;
+
     pc->scaleDtByCharge();
-    m << level5 << "subset scatter: dt scaled by charge." << endl;
 
     using view_type    = typename RhoField_t::view_type;
     view_type rhoView  = rho.getView();
@@ -190,42 +163,6 @@ void ImageChargeScatterController<T, Dim>::scatterScaledDtSubset(
     const auto& lDom   = layout.getLocalNDIndex();
     const int nghost   = rho.getNghost();
 
-    int invalidHash = 0;
-    Kokkos::parallel_reduce(
-            "ImageChargeScatterController::validateSubsetHash", policy,
-            KOKKOS_LAMBDA(const size_t i, int& update) {
-                const size_t idx = hash(i);
-                if (idx >= nLocal) {
-                    update += 1;
-                }
-            },
-            invalidHash);
-    m << level5 << "subset scatter: invalid hash entries=" << invalidHash << endl;
-
-    int outOfBounds = 0;
-    Kokkos::parallel_reduce(
-            "ImageChargeScatterController::validateSubsetScatterBounds", policy,
-            KOKKOS_LAMBDA(const size_t i, int& update) {
-                const size_t idx = hash(i);
-                if (idx >= nLocal) {
-                    return;
-                }
-                const auto l = (rView(idx) - origin) * invdx + 0.5;
-                ippl::Vector<int, Dim> index = l;
-                ippl::Vector<int, Dim> args  = index - lDom.first() + nghost;
-                bool inBounds                = true;
-                for (unsigned d = 0; d < Dim; ++d) {
-                    inBounds = inBounds && args[d] > 0
-                               && args[d] < static_cast<int>(rhoView.extent(d));
-                }
-                if (!inBounds) {
-                    update += 1;
-                }
-            },
-            outOfBounds);
-    m << level5 << "subset scatter: out-of-bounds CIC particles=" << outOfBounds << endl;
-
-    m << level5 << "subset scatter: CIC kernel start." << endl;
     Kokkos::parallel_for(
             "ImageChargeScatterController::scatterScaledDtSubsetCIC", policy,
             KOKKOS_LAMBDA(const size_t i) {
@@ -256,14 +193,10 @@ void ImageChargeScatterController<T, Dim>::scatterScaledDtSubset(
                 }
             });
     Kokkos::fence();
-    m << level5 << "subset scatter: CIC kernel done." << endl;
 
-    m << level5 << "subset scatter: host-staged accumulateHalo start." << endl;
     accumulateScalarHaloHostStaged(rho);
-    m << level5 << "subset scatter: host-staged accumulateHalo done." << endl;
 
     pc->unscaleDtByCharge();
-    m << level5 << "subset scatter: dt restored." << endl;
 }
 
 template <typename T, unsigned Dim>
