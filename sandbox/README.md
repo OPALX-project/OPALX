@@ -210,6 +210,52 @@ If OPALX is run from inside `sandbox/` instead, replace `data/sandbox/` in the
 commands above with `sandbox/data/` or with the directory where the dumps were
 written.
 
+## ASCII Diagnostics
+
+The current BeamBeam diagnostics workflow is based on ASCII scalar/vector dumps,
+not on a required HDF5 diagnostics file.  Use
+`beam-beam-manufactured-solution.py` with one matched dump triplet from the same
+OPALX step:
+
+- `RHO_scalar-beambeam_rho_pre-*.dat`: binned source charge density.
+- `PHI_scalar-beambeam_phi-*.dat`: solved electrostatic potential.
+- `EF_vector-beambeam_e-*.dat`: solved electric field.
+
+Example:
+
+```bash
+cd /path/to/opalx-beambeam
+source .venv-h6/bin/activate
+
+python sandbox/python/beam-beam-manufactured-solution.py \
+  --compare-rho-dump data/sandbox/BeamBeam-2-RHO_scalar-beambeam_rho_pre-000005.dat \
+  --compare-phi-dump data/sandbox/BeamBeam-2-PHI_scalar-beambeam_phi-000005.dat \
+  --compare-e-dump data/sandbox/BeamBeam-2-EF_vector-beambeam_e-000005.dat \
+  --output data/sandbox/BeamBeam-2-ascii-diagnostics.png
+```
+
+The script prints scalar error metrics and writes the requested output image plus
+five derived line-profile figures:
+
+- `BeamBeam-2-ascii-diagnostics.png`: central `x-z` slice comparison for
+  `rho` and `phi`.  Each row shows analytic, OPALX, and OPALX-minus-analytic
+  panels with max, L2, and relative L2 difference annotations.
+- `BeamBeam-2-ascii-diagnostics-rho-z-axis.png`: `rho(z)` on the central beam
+  axis and the corresponding difference curve.
+- `BeamBeam-2-ascii-diagnostics-phi-z-axis.png`: `phi(z)` on the central beam
+  axis and the corresponding difference curve.
+- `BeamBeam-2-ascii-diagnostics-ez-z-axis.png`: `E_z(z)` on the central beam
+  axis and the corresponding difference curve.  This is the main longitudinal
+  field diagnostic near the interaction point.
+- `BeamBeam-2-ascii-diagnostics-ex-x-axis.png`: `E_x(x)` through the grid plane
+  nearest the interaction point and the corresponding difference curve.
+- `BeamBeam-2-ascii-diagnostics-ey-y-axis.png`: `E_y(y)` through the grid plane
+  nearest the interaction point and the corresponding difference curve.
+
+For active BeamBeam-window snapshots, the script reconstructs the mirrored
+Gaussian source from the dump metadata and uses the local interaction-point
+position as the symmetry plane.
+
 ## Optional Diagnostics HDF5
 
 Recent simple BeamBeam examples may not write a `*-beambeam_diagnostics.h5`

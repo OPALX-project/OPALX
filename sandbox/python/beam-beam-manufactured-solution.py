@@ -331,10 +331,9 @@ def manufactured_setup_from_ascii(np, rho_path: Path, phi_path: Path, e_path: Pa
     centers = [primary_center]
 
     snapshot_kind = str(metadata.get("snapshot_kind", ""))
+    ip_local_z = float(metadata.get("interaction_point_local_z", "nan"))
     if snapshot_kind == "active_beambeam_field_diagnostics":
-        if "interaction_point_local_z" in metadata:
-            ip_local_z = float(metadata["interaction_point_local_z"])
-        else:
+        if not math.isfinite(ip_local_z):
             ip_local_z = float(metadata["interaction_point_s"]) - float(metadata["path_length_s"])
         centers.append((primary_center[0], primary_center[1], 2.0 * ip_local_z - primary_center[2]))
 
@@ -344,7 +343,7 @@ def manufactured_setup_from_ascii(np, rho_path: Path, phi_path: Path, e_path: Pa
         "spacing": rho_dump["spacing"],
         "shape": rho_dump["shape"],
         "charge": float(metadata["particle_total_charge"]),
-        "interaction_point_local_z": float(metadata.get("interaction_point_local_z", "nan")),
+        "interaction_point_local_z": ip_local_z,
         "centers": centers,
         "opalx": {
             "rho": rho_dump["field"],
@@ -891,6 +890,73 @@ def main() -> int:
             f"Ez(nearest grid sample to IP) on axis: analytic={analytic_ez_line[ip_index]:.6e}, "
             f"OPALX={opalx_ez_line[ip_index]:.6e} [V/m]"
         )
+
+        if args.output is not None:
+            args.output.parent.mkdir(parents=True, exist_ok=True)
+            plt = load_matplotlib()
+            title = (
+                f"Manufactured solution vs OPALX ASCII | "
+                f"{setup['snapshot_kind']} | "
+                f"$Q$={charge:.2e} C, $\\sigma$={args.sigma:.2e} m"
+            )
+            plot_comparison(np, plt, analytic, setup["opalx"], origin, spacing, title, args.output)
+            rho_line_output = derived_output_path(args.output, "-rho-z-axis")
+            plot_rho_z_axis_diagnostic(
+                np,
+                plt,
+                analytic,
+                setup["opalx"],
+                origin,
+                spacing,
+                f"{title}",
+                rho_line_output,
+            )
+            phi_line_output = derived_output_path(args.output, "-phi-z-axis")
+            plot_phi_z_axis_diagnostic(
+                np,
+                plt,
+                analytic,
+                setup["opalx"],
+                origin,
+                spacing,
+                f"{title}",
+                phi_line_output,
+            )
+            ez_line_output = derived_output_path(args.output, "-ez-z-axis")
+            plot_ez_z_axis_diagnostic(
+                np,
+                plt,
+                analytic,
+                setup["opalx"],
+                origin,
+                spacing,
+                f"{title}",
+                ez_line_output,
+            )
+            ex_line_output = derived_output_path(args.output, "-ex-x-axis")
+            plot_ex_x_axis_diagnostic(
+                np,
+                plt,
+                analytic,
+                setup["opalx"],
+                origin,
+                spacing,
+                f"{title}",
+                ex_line_output,
+                float(z_coords[ip_index]),
+            )
+            ey_line_output = derived_output_path(args.output, "-ey-y-axis")
+            plot_ey_y_axis_diagnostic(
+                np,
+                plt,
+                analytic,
+                setup["opalx"],
+                origin,
+                spacing,
+                f"{title}",
+                ey_line_output,
+                float(z_coords[ip_index]),
+            )
         return 0
 
     if args.compare_h5 is not None:
