@@ -356,6 +356,14 @@ def metadata_vector(metadata: dict[str, str], key: str) -> tuple[float, ...] | N
     return tuple(parse_vector(value))
 
 
+def metadata_interaction_point_local_z(metadata: dict[str, str]) -> float | None:
+    for key in ("interaction_point_beam_z", "interaction_point_local_z", "interaction_point_local_z[m]"):
+        value = metadata_float(metadata, key)
+        if value is not None:
+            return value
+    return None
+
+
 def primary_center_from_bounds(metadata: dict[str, str]) -> np.ndarray | None:
     rmin = metadata_vector(metadata, "bunch_bounds_rmin")
     rmax = metadata_vector(metadata, "bunch_bounds_rmax")
@@ -456,11 +464,7 @@ def convert_primary_center_to_local_z(
     if ip_s is None:
         return primary_local
 
-    interaction_point_local_z = (
-        metadata_float(metadata, "interaction_point_beam_z")
-        if "interaction_point_beam_z" in metadata
-        else metadata_float(metadata, "interaction_point_local_z[m]")
-    )
+    interaction_point_local_z = metadata_interaction_point_local_z(metadata)
     path_length_s = metadata_float(metadata, "path_length_s")
     if path_length_s is None and interaction_point_local_z is not None:
         path_length_s = ip_s - interaction_point_local_z
@@ -546,11 +550,7 @@ def derive_overlay_geometry(dump: dict, geometry: dict[str, float]) -> dict[str,
     if ip_s is None:
         return overlay
 
-    interaction_point_local_z = (
-        metadata_float(metadata, "interaction_point_beam_z")
-        if "interaction_point_beam_z" in metadata
-        else metadata_float(metadata, "interaction_point_local_z[m]")
-    )
+    interaction_point_local_z = metadata_interaction_point_local_z(metadata)
     path_length_s = metadata_float(metadata, "path_length_s")
     interaction_window_active = int(parse_numeric(metadata.get("interaction_window_active", "0")))
 
@@ -859,7 +859,7 @@ def draw_longitudinal_band(
     import matplotlib.patches as patches
 
     xmin, xmax, _, _ = x_extent
-    zmin, zmax = z_range
+    zmin, zmax = sorted(z_range)
     rect = patches.Rectangle(
         (xmin, zmin),
         xmax - xmin,
@@ -883,6 +883,56 @@ def draw_longitudinal_band(
     )
 
 
+def draw_collision_window(
+    ax,
+    x_extent: list[float],
+    z_range: tuple[float, float],
+    *,
+    same_as_element: bool,
+) -> None:
+    import matplotlib.patches as patches
+
+    xmin, xmax, _, _ = x_extent
+    zmin, zmax = sorted(z_range)
+    label = "collision window = BeamBeam" if same_as_element else "collision window"
+    rect = patches.Rectangle(
+        (xmin, zmin),
+        xmax - xmin,
+        zmax - zmin,
+        fill=True,
+        facecolor="crimson",
+        edgecolor="crimson",
+        linewidth=1.6,
+        linestyle="-",
+        alpha=0.12,
+    )
+    ax.add_patch(rect)
+    ax.axhline(zmin, color="crimson", linewidth=1.7, alpha=0.95)
+    ax.axhline(zmax, color="crimson", linewidth=1.7, alpha=0.95)
+
+    label_x = xmin + 0.02 * max(xmax - xmin, 1.0e-12)
+    ax.text(
+        label_x,
+        zmin,
+        " window start",
+        color="crimson",
+        fontsize=8,
+        va="top",
+        ha="left",
+        bbox={"facecolor": "white", "edgecolor": "none", "alpha": 0.7, "pad": 0.2},
+    )
+    ax.text(
+        label_x,
+        zmax,
+        f" window end ({label})",
+        color="crimson",
+        fontsize=8,
+        va="bottom",
+        ha="left",
+        bbox={"facecolor": "white", "edgecolor": "none", "alpha": 0.7, "pad": 0.2},
+    )
+
+
 def same_z_range(
     left: tuple[float, float] | None,
     right: tuple[float, float] | None,
@@ -891,6 +941,38 @@ def same_z_range(
     if left is None or right is None:
         return False
     return abs(left[0] - right[0]) <= tol and abs(left[1] - right[1]) <= tol
+
+
+def display_length_scale(use_grid: bool) -> float:
+    return 1.0 if use_grid else 1.0e3
+
+
+def scale_point_for_display(point: np.ndarray | None, use_grid: bool) -> np.ndarray | None:
+    if point is None or use_grid:
+        return point
+    return np.asarray(point, dtype=float) * display_length_scale(use_grid)
+
+
+def scale_z_range_for_display(
+    z_range: tuple[float, float] | None,
+    use_grid: bool,
+) -> tuple[float, float] | None:
+    if z_range is None or use_grid:
+        return z_range
+    scale = display_length_scale(use_grid)
+    return (float(z_range[0]) * scale, float(z_range[1]) * scale)
+
+
+def format_mm(value_m: float | None, digits: int = 3) -> str | None:
+    if value_m is None:
+        return None
+    return f"{float(value_m) * 1.0e3:.{digits}f}"
+
+
+def format_mm_range(values_m: tuple[float, float] | None, digits: int = 3) -> str | None:
+    if values_m is None:
+        return None
+    return f"[{format_mm(values_m[0], digits)}, {format_mm(values_m[1], digits)}]"
 
 
 def transformed_overlay(
@@ -970,12 +1052,14 @@ def compute_global_limits(
     ymaxs: list[float] = []
     zmins: list[float] = []
     zmaxs: list[float] = []
+    scale = display_length_scale(use_grid)
 
     for dump, overlay in zip(dumps, overlays):
-        xs = dump["is"] if use_grid else dump["xs"]
-        ys = dump["js"] if use_grid else dump["ys"]
-        zs = dump["ks"] if use_grid else (np.asarray(dump["zs"], dtype=float) +
-                                          longitudinal_display_delta(dump, use_grid))
+        xs = dump["is"] if use_grid else np.asarray(dump["xs"], dtype=float) * scale
+        ys = dump["js"] if use_grid else np.asarray(dump["ys"], dtype=float) * scale
+        zs = dump["ks"] if use_grid else (
+            np.asarray(dump["zs"], dtype=float) + longitudinal_display_delta(dump, use_grid)
+        ) * scale
         xmins.append(float(xs[0]))
         xmaxs.append(float(xs[-1]))
         ymins.append(float(ys[0]))
@@ -990,6 +1074,12 @@ def compute_global_limits(
             primary_center,
             mirrored_center,
         ) = transformed_overlay(dump, overlay, use_grid)
+        if not use_grid:
+            interaction_point = scale_point_for_display(interaction_point, use_grid)
+            ip_element_z_range = scale_z_range_for_display(ip_element_z_range, use_grid)
+            collision_window_z_range = scale_z_range_for_display(collision_window_z_range, use_grid)
+            primary_center = scale_point_for_display(primary_center, use_grid)
+            mirrored_center = scale_point_for_display(mirrored_center, use_grid)
         if interaction_point is not None:
             xmins.append(float(interaction_point[0]))
             xmaxs.append(float(interaction_point[0]))
@@ -1029,40 +1119,57 @@ def compute_global_limits(
         ylim = axis_interval_from_centers(global_j)
         zlim = axis_interval_from_centers(global_k)
     else:
-        xlim = (-0.01, 0.01)
-        ylim = (-0.01, 0.01)
+        xlim = (-10.0, 10.0)
+        ylim = (-10.0, 10.0)
     return {"cmap": cmap, "vmin": vmin, "vmax": vmax, "xlim": xlim, "ylim": ylim, "zlim": zlim}
 
 
 def build_title(dump: dict, overlay: dict[str, object]) -> str:
     metadata = dump["metadata"]
-    details: list[str] = []
+    state_details: list[str] = []
+    geometry_details: list[str] = []
+    mesh_details: list[str] = []
 
     if "global_step" in metadata:
-        details.append(f"frame={int(parse_numeric(metadata['global_step']))}")
+        state_details.append(f"step={int(parse_numeric(metadata['global_step']))}")
+    time_s = metadata_float(metadata, "time")
+    if time_s is not None:
+        state_details.append(f"t={time_s * 1.0e12:.3f} ps")
+    snapshot_kind = metadata.get("snapshot_kind")
+    if snapshot_kind is not None:
+        state_details.append(f"snapshot={snapshot_kind}")
+    active_flag = int(parse_numeric(metadata.get("interaction_window_active", "0")))
+    state_details.append(f"window active={'yes' if active_flag == 1 else 'no'}")
+
+    path_length_s = metadata_float(metadata, "path_length_s")
+    if path_length_s is not None:
+        geometry_details.append(f"path={format_mm(path_length_s)} mm")
+    particle_mean_s = metadata_float(metadata, "particle_mean_s")
+    if particle_mean_s is not None:
+        geometry_details.append(f"beam center s={format_mm(particle_mean_s)} mm")
+    interaction_point_s = overlay.get("interaction_point_s")
+    if interaction_point_s is not None:
+        geometry_details.append(f"IP s={format_mm(float(interaction_point_s))} mm")
+    ip_element_s_range = overlay.get("ip_element_s_range")
+    if ip_element_s_range is not None:
+        geometry_details.append(f"BeamBeam s={format_mm_range(ip_element_s_range)} mm")
+    collision_window_s_range = overlay.get("collision_window_s_range")
+    if collision_window_s_range is not None:
+        geometry_details.append(f"window s={format_mm_range(collision_window_s_range)} mm")
 
     field_origin, mesh_spacing, total_charge = compute_mesh_diagnostics(dump, use_grid=False)
     if field_origin is not None:
-        details.append(
-            "origin=(%s, %s, %s)"
-            % (
-                format_sci(field_origin[0]),
-                format_sci(field_origin[1]),
-                format_sci(field_origin[2]),
-            )
+        mesh_details.append(
+            "mesh origin=(%s, %s, %s) mm"
+            % tuple(format_mm(value) for value in field_origin)
         )
     if mesh_spacing is not None:
-        details.append(
-            "h=(%s, %s, %s)"
-            % (
-                format_sci(mesh_spacing[0]),
-                format_sci(mesh_spacing[1]),
-                format_sci(mesh_spacing[2]),
-            )
-        )
-    details.append("Q=%s C" % format_sci(total_charge))
+        mesh_details.append("h=(%s, %s, %s) mm" % tuple(format_mm(value) for value in mesh_spacing))
+    mesh_details.append("Q=%s C" % format_sci(total_charge))
 
-    return " | ".join(details)
+    return "\n".join(
+        line for line in (" | ".join(state_details), " | ".join(geometry_details), " | ".join(mesh_details)) if line
+    )
 
 
 def bunch_position_lab(dump: dict, center: np.ndarray | None) -> float | None:
@@ -1082,7 +1189,7 @@ def format_bunch_position(dump: dict, center: np.ndarray | None) -> str | None:
     position = bunch_position_lab(dump, center)
     if position is None:
         return None
-    return format_float(position, 4)
+    return f"s={format_mm(position)} mm"
 
 
 def compute_mesh_diagnostics(
@@ -1140,10 +1247,12 @@ def render_dump_figure(
     import matplotlib.pyplot as plt
 
     rho = dump["rho"]
-    xs = dump["is"] if use_grid else dump["xs"]
-    ys = dump["js"] if use_grid else dump["ys"]
-    zs = dump["ks"] if use_grid else (np.asarray(dump["zs"], dtype=float) +
-                                      longitudinal_display_delta(dump, use_grid))
+    scale = display_length_scale(use_grid)
+    xs = dump["is"] if use_grid else np.asarray(dump["xs"], dtype=float) * scale
+    ys = dump["js"] if use_grid else np.asarray(dump["ys"], dtype=float) * scale
+    zs = dump["ks"] if use_grid else (
+        np.asarray(dump["zs"], dtype=float) + longitudinal_display_delta(dump, use_grid)
+    ) * scale
 
     (
         interaction_point,
@@ -1152,6 +1261,12 @@ def render_dump_figure(
         primary_center,
         mirrored_center,
     ) = transformed_overlay(dump, overlay, use_grid)
+    if not use_grid:
+        interaction_point = scale_point_for_display(interaction_point, use_grid)
+        ip_element_z_range = scale_z_range_for_display(ip_element_z_range, use_grid)
+        collision_window_z_range = scale_z_range_for_display(collision_window_z_range, use_grid)
+        primary_center = scale_point_for_display(primary_center, use_grid)
+        mirrored_center = scale_point_for_display(mirrored_center, use_grid)
 
     if render_context is None:
         cmap, vmin, vmax = color_limits(rho)
@@ -1170,10 +1285,10 @@ def render_dump_figure(
     iy = len(ys) // 2
     iz = len(zs) // 2
 
-    x_label = "i" if use_grid else "x [m]"
-    y_label = "j" if use_grid else "y [m]"
-    z_label = "k" if use_grid else "s [m]"
-    label_x_offset = 1.5 if use_grid else 0.003
+    x_label = "i" if use_grid else "x [mm]"
+    y_label = "j" if use_grid else "y [mm]"
+    z_label = "k" if use_grid else "s [mm]"
+    label_x_offset = 1.5 if use_grid else 0.8
     raw_primary_center = overlay["primary_center"]
     raw_mirrored_center = overlay["mirrored_center"]
     b1_text = format_bunch_position(dump, raw_primary_center)
@@ -1181,7 +1296,7 @@ def render_dump_figure(
     b1_label = "b1" if b1_text is None else f"b1 {b1_text}"
     b2_label = "b2" if b2_text is None else f"b2 {b2_text}"
 
-    fig = plt.figure(figsize=(13, 4.5), constrained_layout=True)
+    fig = plt.figure(figsize=(15, 6.0), constrained_layout=True)
     gs = fig.add_gridspec(1, 4, width_ratios=[1.0, 1.0, 1.0, 0.06])
 
     ax_xy = fig.add_subplot(gs[0, 0])
@@ -1272,16 +1387,16 @@ def render_dump_figure(
             linestyle="--",
             label="BeamBeam",
         )
-    if collision_window_z_range is not None and not same_z_range(
-        collision_window_z_range, ip_element_z_range
-    ):
-        draw_longitudinal_band(
+    if collision_window_z_range is not None:
+        if ip_element_z_range is not None:
+            same_as_element = same_z_range(collision_window_z_range, ip_element_z_range)
+        else:
+            same_as_element = False
+        draw_collision_window(
             ax_xz,
             extent_xz,
             collision_window_z_range,
-            edgecolor="crimson",
-            linestyle="-.",
-            label="collision window",
+            same_as_element=same_as_element,
         )
     ax_xz.set_xlim(*render_context["xlim"])
     ax_xz.set_ylim(*render_context["zlim"])
@@ -1333,23 +1448,23 @@ def render_dump_figure(
             linestyle="--",
             label="BeamBeam",
         )
-    if collision_window_z_range is not None and not same_z_range(
-        collision_window_z_range, ip_element_z_range
-    ):
-        draw_longitudinal_band(
+    if collision_window_z_range is not None:
+        if ip_element_z_range is not None:
+            same_as_element = same_z_range(collision_window_z_range, ip_element_z_range)
+        else:
+            same_as_element = False
+        draw_collision_window(
             ax_yz,
             extent_yz,
             collision_window_z_range,
-            edgecolor="crimson",
-            linestyle="-.",
-            label="collision window",
+            same_as_element=same_as_element,
         )
     ax_yz.set_xlim(*render_context["ylim"])
     ax_yz.set_ylim(*render_context["zlim"])
 
     cax = fig.add_subplot(gs[0, 3])
     fig.colorbar(im, cax=cax, label="rho [C/m^3]")
-    fig.suptitle(build_title(dump, overlay))
+    fig.suptitle(build_title(dump, overlay), fontsize=10)
     return fig
 
 
@@ -1381,7 +1496,7 @@ def render_gif(
         fig = render_dump_figure(dump, overlay, use_grid, render_context=render_context, force_agg=True)
         if save_frames:
             frame_number = frame_number_for_dump(dump, frame_index)
-            frame_path = output.with_name(f"frame-{frame_number:05d}.png")
+            frame_path = output.with_name(f"{output.stem}-frame-{frame_index:03d}-step-{frame_number:06d}.png")
             fig.savefig(frame_path, dpi=150)
         buffer = io.BytesIO()
         fig.savefig(buffer, format="png", dpi=150)
@@ -1434,7 +1549,7 @@ def main() -> None:
     parser.add_argument(
         "--all-states",
         action="store_true",
-        help="When rendering a step range, include all snapshot kinds instead of filtering to the seed file state.",
+        help="Compatibility option; collision-window ranges already include every selected dump state.",
     )
     parser.add_argument(
         "--input",
@@ -1501,7 +1616,6 @@ def main() -> None:
         return
 
     paths = resolve_step_paths(seed, args.start, args.end)
-    paths = filter_paths_by_unique_global_step(paths)
     dumps = [parse_dump(path) for path in paths]
     overlays = [empty_overlay() if args.no_geometry else derive_overlay_geometry(dump, geometry)
                 for dump in dumps]

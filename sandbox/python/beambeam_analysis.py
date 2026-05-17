@@ -270,7 +270,6 @@ def run_collision_window(
         raise SystemExit("--start and --end must be given together")
 
     paths = collwin.resolve_step_paths(filename, start, end)
-    paths = collwin.filter_paths_by_unique_global_step(paths)
     dumps = [collwin.parse_dump(path) for path in paths]
     overlays = [
         collwin.empty_overlay() if no_geometry else collwin.derive_overlay_geometry(dump, geometry)

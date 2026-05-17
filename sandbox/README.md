@@ -183,18 +183,41 @@ source .venv-h6/bin/activate
 python sandbox/python/checkCollWin.py \
   data/sandbox/BeamBeam-static-1V-RHO_scalar-collwin_vis-000005.dat \
   --start 5 --end 6 \
+  --physical \
   --output data/sandbox/BeamBeam-static-1V-collwin.gif \
   --input sandbox/BeamBeam-static-1V.in \
-  --duration 120
+  --duration 120 \
+  --save-frames
 ```
 
 Useful options:
 
-- `--physical`: plot physical coordinates instead of grid indices.
+- `--physical`: plot physical coordinates in mm.  This is the preferred view
+  for checking the BeamBeam element and collision-window positions.
+- `--grid`: plot raw grid indices `i,j,k`; useful for debugging the mesh dump
+  itself, but less useful for checking the longitudinal window location.
 - `--no-geometry`: hide BeamBeam/window overlays.
 - `--save-frames`: also write one PNG per movie frame.
 - `--input path/to/input.in`: explicitly provide the OPALX input file used to
   infer BeamBeam geometry.
+
+The collision-window figure shows:
+
+- Three central slices of the dumped charge density: `x-y`, `x-s`, and `y-s`.
+- Green dashed lines and the gold marker: the interaction point.
+- Orange dashed rectangle: the full BeamBeam element span.
+- Crimson shaded band and solid horizontal lines: the active collision-window
+  interval.  The lower and upper lines are labelled `window start` and
+  `window end`.  If the window is the full BeamBeam element, the label states
+  `collision window = BeamBeam`.
+- Cyan `b1` marker: the simulated bunch center.  Magenta `b2` marker: the
+  mirrored bunch used for the symmetric collision-window visualization.
+
+The title records the OPALX step, time, dump state, active-window flag, bunch
+center, IP position, BeamBeam `s` range, collision-window `s` range, mesh
+spacing, and integrated dumped charge.  If the dump range contains before/after
+snapshots with the same OPALX `global_step`, both frames are kept in the GIF so
+the transition into the collision window remains visible.
 
 The combined front-end can run the same path:
 
@@ -202,6 +225,7 @@ The combined front-end can run the same path:
 python sandbox/python/beambeam_analysis.py collwin \
   data/sandbox/BeamBeam-static-1V-RHO_scalar-collwin_vis-000005.dat \
   --start 5 --end 6 \
+  --physical \
   --output data/sandbox/BeamBeam-static-1V-collwin.gif \
   --input sandbox/BeamBeam-static-1V.in
 ```
