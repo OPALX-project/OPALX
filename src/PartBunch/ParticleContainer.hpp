@@ -642,12 +642,26 @@ public:
         this->create(numParticles, true);  // non_destructive = true
         size_type newCapacity = this->R.size();
 
-        // If numParticles > 0, reset the InvalidMask for the newly created particles to false
-        // (valid).
+        // Initialize newly active slots.  Emitted particles are created after
+        // the per-step field reset, so E/B must be explicitly cleared here.
+        /// \todo: can probably be removed later, after my flattop debugging
         auto invalid = InvalidMask.getView();
+        auto dtView  = dt.getView();
+        auto phiView = Phi.getView();
+        auto binView = Bin.getView();
+        auto eView   = E.getView();
+        auto bView   = B.getView();
         Kokkos::parallel_for(
-                "ParticleContainer::createParticles::resetInvalidMask", numParticles,
-                KOKKOS_LAMBDA(const size_type i) { invalid(oldLocalNum + i) = false; });
+                "ParticleContainer::createParticles::initializeNewSlots", numParticles,
+                KOKKOS_LAMBDA(const size_type i) {
+                    const size_type idx = oldLocalNum + i;
+                    invalid(idx)        = false;
+                    dtView(idx)         = 0.0;
+                    phiView(idx)        = 0.0;
+                    binView(idx)        = 0;
+                    eView(idx)          = Vector_t<double, Dim>(0.0);
+                    bView(idx)          = Vector_t<double, Dim>(0.0);
+                });
         Kokkos::fence();
 
         // Pretty print numParticles, newCapacity and new totalNum + localNum after creation
