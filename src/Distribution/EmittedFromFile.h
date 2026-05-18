@@ -149,8 +149,8 @@ private:
      * @brief Selected file row plus its converted tracker birth time.
      */
     struct Record {
-        RawRecord raw;          ///< Original parsed file row.
-        double birthTime = 0.0; ///< Birth time in the OPALX tracker convention.
+        RawRecord raw;           ///< Original parsed file row.
+        double birthTime = 0.0;  ///< Birth time in the OPALX tracker convention.
     };
 
     /**
@@ -184,14 +184,14 @@ private:
      */
     std::pair<size_t, size_t> computeLocalEmitRange(size_t totalToEmit) const;
 
-    std::string filename_m;                ///< File path to read emitted particle data from.
-    std::vector<RawRecord> rawRecords_m;   ///< Parsed file rows before selection and sorting.
-    std::vector<Record> records_m;         ///< Selected records sorted by tracker birth time.
-    size_t nextGlobalIndex_m          = 0; ///< First global record index not emitted yet.
-    bool inventoryBuilt_m             = false; ///< True once records_m is ready for emission.
-    Vector_t<double, 3> initialRefP_m = 0.0;   ///< Average initial reference momentum.
-    double emissionTime_m             = 0.0;   ///< Total emission time spanned by records_m.
-    size_t emissionSteps_m            = 100;   ///< Number of steps used to derive emission dt.
+    std::string filename_m;                     ///< File path to read emitted particle data from.
+    std::vector<RawRecord> rawRecords_m;        ///< Parsed file rows before selection and sorting.
+    std::vector<Record> records_m;              ///< Selected records sorted by tracker birth time.
+    size_t nextGlobalIndex_m          = 0;      ///< First global record index not emitted yet.
+    bool inventoryBuilt_m             = false;  ///< True once records_m is ready for emission.
+    Vector_t<double, 3> initialRefP_m = 0.0;    ///< Average initial reference momentum.
+    double emissionTime_m             = 0.0;    ///< Total emission time spanned by records_m.
+    size_t emissionSteps_m            = 100;    ///< Number of steps used to derive emission dt.
 };
 
 #endif  // OPALX_EMITTED_FROM_FILE_H
