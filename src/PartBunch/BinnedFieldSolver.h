@@ -85,10 +85,12 @@ public:
      * @param bcHandler  Shared pointer to the boundary-condition handler.
      * @param tablePrintFrequency Global timestep frequency of printing the bin stats table
      *                             to console in binned mode. If `0`, printing is disabled.
+     * @param adaptiveBinning If true, merge uniform bins adaptively after rebinning. If false,
+     *                        keep the uniform MAXBINS histogram.
      */
     BinnedFieldSolver(
             std::string solver, Field_t<Dim>* rho, VField_t<T, Dim>* E, Field_t<Dim>* phi,
-            std::shared_ptr<BCHandler_t> bcHandler, int tablePrintFrequency);
+            std::shared_ptr<BCHandler_t> bcHandler, int tablePrintFrequency, bool adaptiveBinning);
 
     /**
      * @brief Compute space-charge self-fields for the given particle bunch.
@@ -156,6 +158,7 @@ private:
     ScatterAttribute scatterAttribute_m;
     GatherAttribute gatherAttribute_m;
     int tablePrintFrequency_m        = 0;
+    bool adaptiveBinning_m           = true;
     int zeroFacePlaneDumpFrequency_m = 0;
     int zerofaceMaxSteps_m           = 0;
     ImageChargeScatterController<T, Dim> imageScatterController_m;
@@ -195,6 +198,22 @@ private:
      */
     void printBinStatsTable(
             const std::string& binningCmdName, const std::vector<BinStatsRow>& rows);
+
+public:
+    /**
+     * @brief Set all scalar field entries, including ghosts, without IPPL expression templates.
+     */
+    static void setScalarField(Field_t<Dim>& field, double value);
+
+    /**
+     * @brief Apply @c field = field * scale + shift on owned cells without expression templates.
+     */
+    static void scaleAndShiftScalarField(Field_t<Dim>& field, double scale, double shift);
+
+    /**
+     * @brief Set all vector field entries, including ghosts, without IPPL expression templates.
+     */
+    static void setVectorField(VField_t<T, Dim>& field, const Vector_t<T, Dim>& value);
 
 private:
     /**
@@ -245,7 +264,7 @@ public:
      *
      * The function computes the global mean momentum vector `pmean` across all
      * particles in the merged bin and derives:
-     * `gammaBin = sqrt(1 + dot(pmean, pmean))`.
+     * `gammaBin = mean(sqrt(1 + dot(p_i, p_i)))`.
      *
      * @param bunch        Bunch providing particle data.
      * @param bins         Bins providing the merged-bin iteration policy and indexing.
