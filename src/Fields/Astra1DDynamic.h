@@ -1,5 +1,5 @@
-#ifndef CLASSIC_AstraFIELDMAP1DDYNAMIC_HH
-#define CLASSIC_AstraFIELDMAP1DDYNAMIC_HH
+#ifndef OPALX_AstraFIELDMAP1DDYNAMIC_HH
+#define OPALX_AstraFIELDMAP1DDYNAMIC_HH
 
 #include "Fields/Fieldmap.h"
 #include "Physics/Physics.h"
@@ -131,6 +131,28 @@ public:
     }
 
     template <class ViewType>
+    KOKKOS_INLINE_FUNCTION static void computeRFField(
+            const Vector_t<double, 3>& R, Vector_t<double, 3>& E, Vector_t<double, 3>& B,
+            const ViewType& FourCoefs, double zbegin, double zend, double length, double xlrep,
+            int accuracy, double electricScale, double magneticScale, double startField,
+            double endField) {
+        if (R(2) < startField || R(2) >= endField) {
+            return;
+        }
+
+        if (R(2) < zbegin || R(2) >= zend) {
+            return;
+        }
+
+        Vector_t<double, 3> tmpE(0.0), tmpB(0.0);
+
+        computeField(R, tmpE, tmpB, FourCoefs, zbegin, length, xlrep, accuracy);
+
+        E += electricScale * tmpE;
+        B += magneticScale * tmpB;
+    }
+
+    template <class ViewType>
     KOKKOS_INLINE_FUNCTION static void computeTravelingWaveField(
             const Vector_t<double, 3>& R, Vector_t<double, 3>& E, Vector_t<double, 3>& B,
             const ViewType& FourCoefs, double zbegin, double zend, double length, double xlrep,
@@ -202,6 +224,22 @@ public:
      * @param pc Particle container
      */
     void applyField(std::shared_ptr<ParticleContainer_t> pc, double) override;
+
+    /**
+     * @brief Apply RF-scaled Astra1DDynamic field to all particles.
+     *
+     * Used by RFCavity. The static fieldmap is evaluated on device and then
+     * scaled with the RF electric and magnetic phase factors.
+     *
+     * @param pc Particle container.
+     * @param electricScale Scale factor applied to E.
+     * @param magneticScale Scale factor applied to B.
+     * @param startField Longitudinal start of the cavity field region.
+     * @param endField Longitudinal end of the cavity field region.
+     */
+    void applyRFField(
+            std::shared_ptr<ParticleContainer_t> pc, double electricScale, double magneticScale,
+            double startField, double endField);
 
     /**
      * @brief Apply the traveling-wave RF field map to all particles.
