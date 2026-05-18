@@ -101,16 +101,14 @@ namespace {
 
     /// Closed-form normalization of the Michel spectrum on [a, 1]:
     ///   Z(a) = integral_a^1 2 x^2 (3 - 2 x) dx = (2 x^3 - x^4)|_a^1 = 1 - 2 a^3 + a^4.
-    double michelNormalization(double a) {
-        return 1.0 - 2.0 * a * a * a + a * a * a * a;
-    }
+    double michelNormalization(double a) { return 1.0 - 2.0 * a * a * a + a * a * a * a; }
 
     /// Closed-form mean of the Michel spectrum on [a, 1]:
     ///   E[x] = integral_a^1 x f(x) dx / Z = ((6/4) x^4 - (4/5) x^5)|_a^1 / Z
     double michelMean(double a) {
-        const double a4   = a * a * a * a;
-        const double a5   = a4 * a;
-        const double num  = (1.5 - 0.8) - (1.5 * a4 - 0.8 * a5);
+        const double a4  = a * a * a * a;
+        const double a5  = a4 * a;
+        const double num = (1.5 - 0.8) - (1.5 * a4 - 0.8 * a5);
         return num / michelNormalization(a);
     }
 
@@ -125,11 +123,11 @@ namespace {
         createParticlesAtRest(muons, nMuons);
 
         Options::seed = 20260515;
-        /** 
+        /**
          * Intentionally chosen timestep so all particles decay.
          * We are testing the daughter particle energy spectrum, not the decay
          * time.
-         */  
+         */
         MuonDecay decay(1.0e-12, 0, Physics::m_mu);
         decay.setDaughterContainer(electrons, Physics::m_e);
 
@@ -159,14 +157,14 @@ namespace {
         const double Z = michelNormalization(xMin);
         std::vector<double> analyticPdf(nBins, 0.0);
         for (std::size_t i = 0; i < nBins; ++i) {
-            const double x  = hist.center(i);
+            const double x = hist.center(i);
             analyticPdf[i] = Physics::MuonDecay::michelSpectrum(x) / Z;
         }
 
-        const double l1       = opalx::test::l1Distance(hist, analyticPdf);
-        const double meanX    = opalx::test::sampleMean(xSamples);
-        const double area     = opalx::test::histogramArea(hist);
-        const double meanRef  = michelMean(xMin);
+        const double l1      = opalx::test::l1Distance(hist, analyticPdf);
+        const double meanX   = opalx::test::sampleMean(xSamples);
+        const double area    = opalx::test::histogramArea(hist);
+        const double meanRef = michelMean(xMin);
 
         std::cout << "[MuonDecaySpectrum] L1=" << l1 << " mean=" << meanX
                   << " (analytic=" << meanRef << ") area=" << area << '\n';
