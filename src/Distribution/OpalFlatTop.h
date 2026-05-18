@@ -183,28 +183,28 @@ private:
     OpalFlatTopGeneratorPool rand_pool_m;  ///< Device random number generator pool.
     std::mt19937_64 host_rng_m;            ///< Host generator used to sample birth times.
 
-    double flattopTime_m         = 0.0;    ///< Time duration of the flat profile section.
-    double normalizedFlankArea_m = 0.0;    ///< Area of one normalized truncated Gaussian flank.
-    double distArea_m            = 0.0;    ///< Total area of the flat-top distribution.
-    double sigmaTFall_m          = 0.0;    ///< Standard deviation of the falling flank.
-    double sigmaTRise_m          = 0.0;    ///< Standard deviation of the rising flank.
-    Vector_t<double, 3> cutoffR_m;         ///< Cutoff multipliers for distribution support.
-    double fallTime_m       = 0.0;         ///< Duration represented by the falling flank.
-    double riseTime_m       = 0.0;         ///< Duration represented by the rising flank.
-    bool emitting_m         = false;       ///< Flag for particle emission status.
-    size_t totalN_m         = 0;           ///< Total number of particles in the inventory.
-    bool withDomainDecomp_m = false;       ///< Flag for domain decomposition.
-    double emissionTime_m   = 0.0;         ///< Total emission time.
-    Vector_t<double, 3> nr_m;              ///< Number of grid points per direction.
-    Vector_t<double, 3> hr_m;              ///< Grid spacing.
-    Vector_t<double, 3> sigmaR_m;          ///< Semi-axis lengths of the transverse disk.
-    double ftOscAmplitude_m = 0.0;         ///< Flat-top oscillation amplitude in percent.
-    double ftOscPeriods_m   = 0.0;         ///< Number of oscillation periods across the flat top.
-    size_t emissionSteps_m  = 100;         ///< Number of steps used to derive emission dt.
+    double flattopTime_m         = 0.0;  ///< Time duration of the flat profile section.
+    double normalizedFlankArea_m = 0.0;  ///< Area of one normalized truncated Gaussian flank.
+    double distArea_m            = 0.0;  ///< Total area of the flat-top distribution.
+    double sigmaTFall_m          = 0.0;  ///< Standard deviation of the falling flank.
+    double sigmaTRise_m          = 0.0;  ///< Standard deviation of the rising flank.
+    Vector_t<double, 3> cutoffR_m;       ///< Cutoff multipliers for distribution support.
+    double fallTime_m       = 0.0;       ///< Duration represented by the falling flank.
+    double riseTime_m       = 0.0;       ///< Duration represented by the rising flank.
+    bool emitting_m         = false;     ///< Flag for particle emission status.
+    size_t totalN_m         = 0;         ///< Total number of particles in the inventory.
+    bool withDomainDecomp_m = false;     ///< Flag for domain decomposition.
+    double emissionTime_m   = 0.0;       ///< Total emission time.
+    Vector_t<double, 3> nr_m;            ///< Number of grid points per direction.
+    Vector_t<double, 3> hr_m;            ///< Grid spacing.
+    Vector_t<double, 3> sigmaR_m;        ///< Semi-axis lengths of the transverse disk.
+    double ftOscAmplitude_m = 0.0;       ///< Flat-top oscillation amplitude in percent.
+    double ftOscPeriods_m   = 0.0;       ///< Number of oscillation periods across the flat top.
+    size_t emissionSteps_m  = 100;       ///< Number of steps used to derive emission dt.
 
-    std::vector<double> birthTimes_m;      ///< Sorted global particle birth times.
-    size_t nextGlobalIndex_m = 0;          ///< First global birth-time index not emitted yet.
-    bool inventoryBuilt_m    = false;      ///< True once birthTimes_m is ready for emission.
+    std::vector<double> birthTimes_m;  ///< Sorted global particle birth times.
+    size_t nextGlobalIndex_m = 0;      ///< First global birth-time index not emitted yet.
+    bool inventoryBuilt_m    = false;  ///< True once birthTimes_m is ready for emission.
 
     /**
      * @brief Determines the device random seed initialization.
