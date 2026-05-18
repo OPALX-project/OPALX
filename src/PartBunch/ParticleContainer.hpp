@@ -95,6 +95,12 @@ public:
     /// View types of Q and M values
     using qm_view_type = typename ippl::ParticleAttrib<double>::view_type;
 
+    /// Per-particle spin: 3D unit vector in single precision. Polarization observables are
+    /// typically ~1% accurate, so `float` storage is sufficient and halves the memory footprint
+    /// versus the codebase's standard `double` attributes. Dynamics kernels should still compute
+    /// in `double` and cast back on store.
+    using spin_vector_type = ippl::Vector<float, 3>;
+
 public:
     /// Charge view in [Cb].
     /// In `SingleValue` mode this is a rank-1 view of length 1.
@@ -143,6 +149,10 @@ public:
     /// particle deletion mask (indicates which particles are deleted every timestep)
     ippl::ParticleAttrib<bool> InvalidMask;
 
+    /// Returns true when per-particle spin storage was enabled at construction
+    /// (via `Options::useSpinAttribute`).
+    bool hasSpin() const { return spinEnabled_m; }
+
     ParticleContainer(Mesh_t<Dim>& mesh, FieldLayout_t<Dim>& FL)
         : pl_m(FL, mesh),
           qmStorageMode_m(
@@ -150,7 +160,8 @@ public:
                                            : QMStorageMode::SingleValue),
           distMoments_m(),
           QView_m("ParticleContainer::QView_m", 1),
-          MView_m("ParticleContainer::MView_m", 1) {
+          MView_m("ParticleContainer::MView_m", 1),
+          spinEnabled_m(Options::useSpinAttribute) {
         this->initialize(pl_m);
         registerAttributes();
         setupBCs();
@@ -172,6 +183,9 @@ public:
         if (qmStorageMode_m == QMStorageMode::Attributes) {
             this->addAttribute(QAttr);
             this->addAttribute(MAttr);
+        }
+        if (spinEnabled_m) {
+            this->addAttribute(SAttr);
         }
     }
 
@@ -765,6 +779,12 @@ private:
     // Per-particle attributes mode
     ippl::ParticleAttrib<double> QAttr;
     ippl::ParticleAttrib<double> MAttr;
+
+    // Per-particle spin attribute (registered only when spinEnabled_m is true).
+    ippl::ParticleAttrib<spin_vector_type> SAttr;
+
+    // Whether the spin attribute is registered on this container.
+    bool spinEnabled_m = false;
 
     // Reference particle information
     Vector_t<double, Dim> refPartR_m;
