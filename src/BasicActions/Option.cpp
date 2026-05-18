@@ -94,6 +94,7 @@ namespace {
         MINSTEPFORREBIN,
         COMPUTEPERCENTILES,
         QM_MODE,
+        SPIN_MODE,
         AGGRESSIVE_STATE_SYNC,
         SIZE
     };
@@ -337,6 +338,14 @@ Option::Option()
             "`Q`/`M` views).",
             useQMAttributes ? std::string("ATTRIBUTES") : std::string("SINGLE"));
 
+    itsAttr[SPIN_MODE] = Attributes::makeString(
+            "SPIN_MODE",
+            "Storage mode for the per-particle spin attribute. "
+            "NONE (default) disables spin storage entirely; "
+            "ATTRIBUTES registers a per-particle 3D unit-vector spin "
+            "(single precision) on every particle container.",
+            useSpinAttribute ? std::string("ATTRIBUTES") : std::string("NONE"));
+
     itsAttr[AGGRESSIVE_STATE_SYNC] = Attributes::makeBool(
             "AGGRESSIVE_STATE_SYNC",
             "If true, every mutation of the shared BunchStateHandler flags "
@@ -394,6 +403,9 @@ Option::Option(const std::string& name, Option* parent) : Action(name, parent) {
     Attributes::setBool(itsAttr[COMPUTEPERCENTILES], computePercentiles);
     Attributes::setString(
             itsAttr[QM_MODE], useQMAttributes ? std::string("ATTRIBUTES") : std::string("SINGLE"));
+    Attributes::setString(
+            itsAttr[SPIN_MODE],
+            useSpinAttribute ? std::string("ATTRIBUTES") : std::string("NONE"));
     Attributes::setBool(itsAttr[AGGRESSIVE_STATE_SYNC], aggressiveStateSync);
 }
 
@@ -432,6 +444,17 @@ void Option::execute() {
         throw OpalException(
                 "Option::execute",
                 "Unsupported QM_MODE '" + qmMode + "'. Use \"SINGLE\" or \"ATTRIBUTES\".");
+    }
+
+    const std::string spinMode = Attributes::getString(itsAttr[SPIN_MODE]);
+    if (spinMode == "ATTRIBUTES") {
+        useSpinAttribute = true;
+    } else if (spinMode == "NONE") {
+        useSpinAttribute = false;
+    } else {
+        throw OpalException(
+                "Option::execute",
+                "Unsupported SPIN_MODE '" + spinMode + "'. Use \"NONE\" or \"ATTRIBUTES\".");
     }
 
     aggressiveStateSync = Attributes::getBool(itsAttr[AGGRESSIVE_STATE_SYNC]);
