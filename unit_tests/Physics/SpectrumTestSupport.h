@@ -1,12 +1,6 @@
 /**
  * @file SpectrumTestSupport.h
  * @brief Lightweight histogram + CSV utilities shared by decay spectrum tests.
- *
- * Header-only, test-only. Models the in-memory pattern used by the existing
- * LinearBreitWheelerBenchmarkCommon.h: linear binning, density normalization
- * via counts / total / binWidth, CSV output with 17-digit precision.
- *
- * The CSV format is consumed by tools/spectrum_plots/plot_spectrum.py.
  */
 
 #ifndef OPALX_UNIT_TESTS_PHYSICS_SPECTRUM_TEST_SUPPORT_H

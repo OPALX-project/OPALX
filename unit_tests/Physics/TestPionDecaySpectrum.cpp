@@ -179,6 +179,11 @@ namespace {
         createParticles(pions, nPions, parentBetaGam);
 
         Options::seed = 20260517;
+        /** 
+         * Intentionally chosen timestep so all particles decay.
+         * We are testing the daughter particle energy spectrum, not the decay
+         * time.
+         */  
         PionDecay decay(1.0e-12, 0, Physics::m_pi);
         decay.setDaughterContainer(muons, Physics::m_mu);
 
