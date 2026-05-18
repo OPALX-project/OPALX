@@ -24,6 +24,7 @@
 #include <cfloat>
 #include <cmath>
 #include <fstream>
+#include <functional>
 #include <iomanip>
 #include <iostream>
 #include <limits>
@@ -194,7 +195,8 @@ void ParallelTracker::execute() {
     // Per-container: lab transform and reference orbit state (each beam's PartData for P0
     // fallback).
     const auto& particleContainers = itsBunch_m->getParticleContainers();
-    for (const auto& pc : particleContainers) {
+    for (size_t ci = 0; ci < particleContainers.size(); ++ci) {
+        const auto& pc = particleContainers[ci];
         if (!pc) {
             continue;
         }
@@ -208,9 +210,30 @@ void ParallelTracker::execute() {
         if (pc->getTotalNum() > 0) {
             pc->getRefPartP() = beamlineToLab.rotateTo(pc->getMeanP());
         } else {
-            const PartData& pref = *pc->getReference();
-            const double P0      = pref.getP() / pref.getM();  // beta*gamma from BEAM pc
-            pc->getRefPartP()    = beamlineToLab.rotateTo(Vector_t<double, 3>(0.0, 0.0, P0));
+            bool useSamplerReference        = false;
+            Vector_t<double, 3> samplerRefP = 0.0;
+            if (ci < emittingSamplers_m.size()) {
+                for (const auto& sampler : emittingSamplers_m[ci]) {
+                    if (sampler && sampler->hasInitialReferenceMomentum()) {
+                        samplerRefP         = sampler->getInitialReferenceMomentum();
+                        useSamplerReference = true;
+                        break;
+                    }
+                }
+            }
+
+            if (useSamplerReference) {
+                if (dot(samplerRefP, samplerRefP) <= 0.0) {
+                    throw OpalException(
+                            "ParallelTracker::execute",
+                            "Sampler-provided initial reference momentum is zero.");
+                }
+                pc->getRefPartP() = beamlineToLab.rotateTo(samplerRefP);
+            } else {
+                const PartData& pref = *pc->getReference();
+                const double P0      = pref.getP() / pref.getM();  // beta*gamma from BEAM pc
+                pc->getRefPartP()    = beamlineToLab.rotateTo(Vector_t<double, 3>(0.0, 0.0, P0));
+            }
         }
     }
 
@@ -275,8 +298,10 @@ void ParallelTracker::execute() {
     setTime();
     m << level4 << "Set time view of particle bunch." << endl;
 
-    // Reset the bunch time?
-    double time = itsBunch_m->getT();
+    // Legacy OPAL emission starts the tracker before the RF reference time for centered
+    // flat-top pulses, so the early half is accelerated before statistics reach t = 0.
+    const double globalTimeShift = OpalData::getInstance()->getGlobalPhaseShift();
+    double time                  = itsBunch_m->getT() - globalTimeShift;
     itsBunch_m->setT(time);
     m << level4 << "Reset bunch time to " << time << "." << endl;
 
@@ -341,6 +366,10 @@ void ParallelTracker::execute() {
             // First half of the time integration
             timeIntegration1(pusher);
             m << level4 << "timeIntegration1 done at step " << step << "." << endl;
+            const size_t nSourceMarkedAfterPush = markBackwardParticlesAtSourcePlane();
+            if (nSourceMarkedAfterPush > 0) {
+                deleteInvalidParticles(true, m, "backward source-plane particles after first push");
+            }
             itsBunch_m->bunchUpdate();
             m << level5 << "Bunch updated after timeIntegration1." << endl;
 
@@ -373,6 +402,10 @@ void ParallelTracker::execute() {
             emitFromEmissionSources(itsBunch_m->getT(), itsBunch_m->getdT());
             m << level4 << "Emit particles from emission sources done at step " << step << "."
               << endl;
+            const size_t nSourceMarkedAfterEmission = markBackwardParticlesAtSourcePlane();
+            if (nSourceMarkedAfterEmission > 0) {
+                deleteInvalidParticles(true, m, "backward source-plane particles after emission");
+            }
             itsBunch_m->bunchUpdate();
             m << level5 << "Bunch updated after emission." << endl;
 
@@ -383,6 +416,10 @@ void ParallelTracker::execute() {
             // Second half of the time integration
             timeIntegration2(pusher);
             m << level4 << "timeIntegration2 done at step " << step << "." << endl;
+            const size_t nSourceMarkedAfterStep = markBackwardParticlesAtSourcePlane();
+            if (nSourceMarkedAfterStep > 0) {
+                deleteInvalidParticles(true, m, "backward source-plane particles");
+            }
             itsBunch_m->bunchUpdate();
             m << level5 << "Bunch updated after timeIntegration2." << endl;
 
@@ -569,6 +606,7 @@ void ParallelTracker::timeIntegration2(BorisPusher& pusher) {
         }
         kickParticles(pusher, *pc);
         pushParticles(pusher, *pc);
+        pc->dt = itsBunch_m->getdT();
     }
     m << level4 << "Kick/push particles done for all containers." << endl;
 
@@ -839,6 +877,71 @@ size_t ParallelTracker::deleteInvalidParticles(
     return nDeleted;
 }
 
+size_t ParallelTracker::markBackwardParticlesAtSourcePlane() {
+    /// \todo this function should probably be integrated as a GunSource element similar to old
+    /// OPAL!!!
+    auto* bsolver = itsBunch_m->getFieldSolver();
+    if (!bsolver) {
+        return 0;
+    }
+
+    const bool imageChargeConfigured   = bsolver->isImageChargeEnabled();
+    const bool shiftedGreensConfigured = bsolver->isShiftedGreensEnabled();
+    if (!imageChargeConfigured && !shiftedGreensConfigured) {
+        return 0;
+    }
+
+    const double sourcePlaneZ = imageChargeConfigured ? bsolver->getImageChargePlaneZ()
+                                                      : bsolver->getShiftedGreensPlaneZ();
+
+    size_type localTotalMarked = 0;
+    const size_t nContainers   = itsBunch_m->getNumParticleContainers();
+    for (size_t ci = 0; ci < nContainers; ++ci) {
+        if (!itsBunch_m->isPcActive(ci)) {
+            continue;
+        }
+
+        auto pc = itsBunch_m->getParticleContainer(ci);
+        if (!pc || pc->getLocalNum() == 0) {
+            continue;
+        }
+
+        const CoordinateSystemTrafo refToSource =
+                itsOpalBeamline_m.getCSTrafoLab2Local() * pc->getToLabTrafo();
+        const matrix3x3_t rotation       = refToSource.getRotationMatrix();
+        const Vector_t<double, 3> origin = refToSource.getOrigin();
+
+        auto Rview   = pc->R.getView();
+        auto Pview   = pc->P.getView();
+        auto invalid = pc->InvalidMask.getView();
+
+        size_type localMarked  = 0;
+        const size_type nLocal = static_cast<size_type>(pc->getLocalNum());
+        Kokkos::parallel_reduce(
+                "ParallelTracker::markBackwardParticlesAtSourcePlane", nLocal,
+                KOKKOS_LAMBDA(const size_type i, size_type& count) {
+                    Vector_t<double, 3> delta(0.0);
+                    for (unsigned d = 0; d < 3; ++d) {
+                        delta[d] = Rview(i)[d] - origin[d];
+                    }
+                    const Vector_t<double, 3> localR = prod_vector(rotation, delta);
+                    const Vector_t<double, 3> localP = prod_vector(rotation, Pview(i));
+                    const bool backwards             = localR[2] < sourcePlaneZ && localP[2] < 0.0;
+                    const bool newlyMarked           = backwards && !invalid(i);
+                    invalid(i)                       = invalid(i) || backwards;
+                    count += newlyMarked ? 1 : 0;
+                },
+                localMarked);
+        Kokkos::fence();
+
+        localTotalMarked += localMarked;
+    }
+
+    size_type globalTotalMarked = 0;
+    ippl::Comm->allreduce(localTotalMarked, globalTotalMarked, 1, std::plus<size_type>());
+    return static_cast<size_t>(globalTotalMarked);
+}
+
 /**
  * @copybrief ParallelTracker::resetFields
  */
@@ -963,7 +1066,30 @@ void ParallelTracker::prepareSections() {
 /**
  * @copybrief ParallelTracker::selectDT
  */
-void ParallelTracker::selectDT() { itsBunch_m->setdT(dtCurrentTrack_m); }
+void ParallelTracker::selectDT() {
+    double selectedDt        = dtCurrentTrack_m;
+    double emissionDt        = std::numeric_limits<double>::max();
+    bool hasEmissionDt       = false;
+    const double currentTime = itsBunch_m->getT();
+
+    for (const auto& samplers : emittingSamplers_m) {
+        for (const auto& sampler : samplers) {
+            if (!sampler || sampler->isEmissionDone(currentTime)) {
+                continue;
+            }
+            const double samplerDt = sampler->getEmissionTimeStep();
+            if (samplerDt > 0.0) {
+                emissionDt    = std::min(emissionDt, samplerDt);
+                hasEmissionDt = true;
+            }
+        }
+    }
+
+    if (hasEmissionDt) {
+        selectedDt = emissionDt;
+    }
+    itsBunch_m->setdT(selectedDt);
+}
 
 /**
  * @copybrief ParallelTracker::changeDT
