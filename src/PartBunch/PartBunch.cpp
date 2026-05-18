@@ -249,10 +249,12 @@ void PartBunch<T, Dim>::setSolver() {
     // Needs to happen before setting the field solver, since the field solver needs the bins.
     setBins();
 
-    auto binnedSolver = std::make_shared<BinnedFieldSolver<T, Dim>>(
+    BinningCmd* binningCmd = OPALFieldSolver_m->getBinningCmd();
+    auto binnedSolver      = std::make_shared<BinnedFieldSolver<T, Dim>>(
             this->solver_m, &this->fcontainer_m->getRho(), &this->fcontainer_m->getE(),
             &this->fcontainer_m->getPhi(), this->getBCHandler(),
-            hasBinning() ? OPALFieldSolver_m->getBinningCmd()->getTablePrintFrequency() : 0);
+            binningCmd ? binningCmd->getTablePrintFrequency() : 0,
+            binningCmd ? binningCmd->getAdaptiveBinning() : true);
     this->setFieldSolver(binnedSolver);
     m << level4 << "Binned field solver set (binned or legacy at runtime)." << endl;
 
@@ -435,7 +437,8 @@ template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::pre_run() {
     Inform m("PartBunch::pre_run");
     m << level2 << "Starting pre_run..." << endl;
-    this->fcontainer_m->getRho() = 0.0;
+    auto rhoView = this->fcontainer_m->getRho().getView();
+    Kokkos::deep_copy(rhoView, 0.0);
     m << level4 << "Rho initialized to zero." << endl;
 
     /*
