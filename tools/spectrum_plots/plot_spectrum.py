@@ -113,21 +113,68 @@ def plot_one(path: Path, out: Path, dpi: int = 150) -> None:
     print(f"wrote {out}")
 
 
+EXAMPLES = """\
+examples:
+  # Single CSV -> single PNG (named explicitly):
+  python plot_spectrum.py muon_michel_spectrum.csv --out muon_michel.png
+
+  # Single CSV -> single PNG (default name muon_michel_spectrum.png):
+  python plot_spectrum.py muon_michel_spectrum.csv
+
+  # Many CSVs at once, written to a target directory:
+  python plot_spectrum.py --all *.csv --outdir plots/
+
+  # Higher-resolution output:
+  python plot_spectrum.py spectrum.csv --out spectrum.png --dpi 300
+
+CSV format expected (written by unit_tests/Physics/SpectrumTestSupport.h):
+  # x_label: <axis label string>
+  # columns: bin_low,bin_high,bin_center,density,count,analytic_pdf
+  <bin_low>,<bin_high>,<bin_center>,<density>,<count>,<analytic_pdf>
+  ...
+"""
+
+
 def main(argv: list[str] | None = None) -> int:
-    p = argparse.ArgumentParser(description=__doc__.split("\n")[1])
-    p.add_argument("csv", nargs="*", help="CSV file(s) to plot")
-    p.add_argument("--out", help="output PNG path (single CSV mode)")
+    p = argparse.ArgumentParser(
+        prog="plot_spectrum.py",
+        description=(
+            "Plot decay-spectrum CSVs emitted by OPALX physics unit tests. "
+            "Renders the sampled histogram density as bars with the analytic "
+            "PDF overlaid as a line."
+        ),
+        epilog=EXAMPLES,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    p.add_argument(
+        "csv",
+        nargs="*",
+        metavar="CSV",
+        help="one or more CSV files to plot",
+    )
+    p.add_argument(
+        "--out",
+        metavar="PATH",
+        help="output PNG path (single-CSV mode only; default: <csv>.png next to the CSV)",
+    )
     p.add_argument(
         "--outdir",
         default=".",
-        help="output directory when plotting multiple CSVs (default: cwd)",
+        metavar="DIR",
+        help="output directory when plotting multiple CSVs (default: current directory)",
     )
     p.add_argument(
         "--all",
         action="store_true",
-        help="treat all positional arguments as CSVs and emit one PNG each",
+        help="treat every positional argument as a CSV and emit one PNG each into --outdir",
     )
-    p.add_argument("--dpi", type=int, default=150, help="output DPI (default 150)")
+    p.add_argument(
+        "--dpi",
+        type=int,
+        default=150,
+        metavar="N",
+        help="output resolution in dots per inch (default: 150)",
+    )
     args = p.parse_args(argv)
 
     if not args.csv:
