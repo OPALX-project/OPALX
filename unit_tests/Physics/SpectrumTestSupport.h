@@ -16,9 +16,9 @@
 namespace opalx::test {
 
     struct Histogram1D {
-        double low                 = 0.0;
-        double high                = 0.0;
-        std::size_t nBins          = 0;
+        double low        = 0.0;
+        double high       = 0.0;
+        std::size_t nBins = 0;
         std::vector<double> counts;   ///< raw sample counts per bin (out-of-range excluded)
         std::vector<double> density;  ///< counts / total / binWidth (PDF estimate)
 
@@ -28,9 +28,7 @@ namespace opalx::test {
             return low + (static_cast<double>(i) + 0.5) * binWidth();
         }
 
-        double edgeLow(std::size_t i) const {
-            return low + static_cast<double>(i) * binWidth();
-        }
+        double edgeLow(std::size_t i) const { return low + static_cast<double>(i) * binWidth(); }
 
         double edgeHigh(std::size_t i) const {
             return low + static_cast<double>(i + 1) * binWidth();
@@ -55,8 +53,7 @@ namespace opalx::test {
             if (s < low || s >= high) {
                 continue;
             }
-            const std::size_t idx =
-                    static_cast<std::size_t>((s - low) / width);
+            const std::size_t idx = static_cast<std::size_t>((s - low) / width);
             if (idx < nBins) {
                 h.counts[idx] += 1.0;
                 totalIn += 1.0;
@@ -106,10 +103,11 @@ namespace opalx::test {
     }
 
     /// Write a CSV consumable by tools/spectrum_plots/plot_spectrum.py.
-    /// Header: "# x_label: <xLabel>\n# columns: bin_low,bin_high,bin_center,density,count,analytic_pdf\n"
+    /// Header: "# x_label: <xLabel>\n# columns:
+    /// bin_low,bin_high,bin_center,density,count,analytic_pdf\n"
     inline void writeSpectrumCsv(
-            const std::string& path, const Histogram1D& h,
-            const std::vector<double>& analyticPdf, const std::string& xLabel) {
+            const std::string& path, const Histogram1D& h, const std::vector<double>& analyticPdf,
+            const std::string& xLabel) {
         if (analyticPdf.size() != h.nBins) {
             throw std::invalid_argument("writeSpectrumCsv: analyticPdf size mismatch");
         }
@@ -121,8 +119,8 @@ namespace opalx::test {
         out << "# x_label: " << xLabel << "\n";
         out << "# columns: bin_low,bin_high,bin_center,density,count,analytic_pdf\n";
         for (std::size_t i = 0; i < h.nBins; ++i) {
-            out << h.edgeLow(i) << ',' << h.edgeHigh(i) << ',' << h.center(i) << ','
-                << h.density[i] << ',' << h.counts[i] << ',' << analyticPdf[i] << '\n';
+            out << h.edgeLow(i) << ',' << h.edgeHigh(i) << ',' << h.center(i) << ',' << h.density[i]
+                << ',' << h.counts[i] << ',' << analyticPdf[i] << '\n';
         }
     }
 

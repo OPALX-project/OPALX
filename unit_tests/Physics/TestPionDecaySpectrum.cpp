@@ -137,16 +137,14 @@ namespace {
         cosThetaSamples.reserve(nPions);
         double maxRelDev = 0.0;
         for (std::size_t i = 0; i < nPions; ++i) {
-            const double bgx = muP_host(i)[0];
-            const double bgy = muP_host(i)[1];
-            const double bgz = muP_host(i)[2];
-            const double pmag =
-                    Physics::m_mu * std::sqrt(bgx * bgx + bgy * bgy + bgz * bgz);
-            maxRelDev = std::max(maxRelDev, std::abs(pmag - pFixed) / pFixed);
+            const double bgx  = muP_host(i)[0];
+            const double bgy  = muP_host(i)[1];
+            const double bgz  = muP_host(i)[2];
+            const double pmag = Physics::m_mu * std::sqrt(bgx * bgx + bgy * bgy + bgz * bgz);
+            maxRelDev         = std::max(maxRelDev, std::abs(pmag - pFixed) / pFixed);
             cosThetaSamples.push_back(Physics::m_mu * bgz / pmag);
         }
-        std::cout << "[PionDecayRestFrame] |p|=" << pFixed
-                  << " max rel dev=" << maxRelDev << '\n';
+        std::cout << "[PionDecayRestFrame] |p|=" << pFixed << " max rel dev=" << maxRelDev << '\n';
         EXPECT_LT(maxRelDev, 1.0e-12);
 
         const auto hist = opalx::test::makeHistogram(cosThetaSamples, -1.0, 1.0, nBins);
@@ -179,11 +177,11 @@ namespace {
         createParticles(pions, nPions, parentBetaGam);
 
         Options::seed = 20260517;
-        /** 
+        /**
          * Intentionally chosen timestep so all particles decay.
          * We are testing the daughter particle energy spectrum, not the decay
          * time.
-         */  
+         */
         PionDecay decay(1.0e-12, 0, Physics::m_pi);
         decay.setDaughterContainer(muons, Physics::m_mu);
 
@@ -224,9 +222,8 @@ namespace {
         const double mean    = opalx::test::sampleMean(labEnergies);
         const double meanRef = 0.5 * (eMinus + ePlus);
         const double area    = opalx::test::histogramArea(hist);
-        std::cout << "[PionDecayBoosted] E in [" << eMinus << ", " << ePlus
-                  << "] GeV, L1=" << l1 << " mean=" << mean
-                  << " (analytic=" << meanRef << ") area=" << area << '\n';
+        std::cout << "[PionDecayBoosted] E in [" << eMinus << ", " << ePlus << "] GeV, L1=" << l1
+                  << " mean=" << mean << " (analytic=" << meanRef << ") area=" << area << '\n';
 
         EXPECT_LT(l1, 0.10);
         EXPECT_NEAR(mean, meanRef, 0.005 * (ePlus - eMinus));
