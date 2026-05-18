@@ -125,6 +125,11 @@ namespace {
         createParticlesAtRest(muons, nMuons);
 
         Options::seed = 20260515;
+        /** 
+         * Intentionally chosen timestep so all particles decay.
+         * We are testing the daughter particle energy spectrum, not the decay
+         * time.
+         */  
         MuonDecay decay(1.0e-12, 0, Physics::m_mu);
         decay.setDaughterContainer(electrons, Physics::m_e);
 
