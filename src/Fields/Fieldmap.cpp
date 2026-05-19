@@ -6,8 +6,8 @@
 /* To be ported from OPAL
 #include "Fields/Astra1DElectroStatic.h"
 #include "Fields/Astra1DElectroStatic_fast.h"
-#include "Fields/Astra1DMagnetoStatic.h"
 #include "Fields/Astra1DMagnetoStatic_fast.h"
+#include "Fields/Astra1DDynamic_fast.h"
 #include "Fields/FM1DDynamic.h"
 #include "Fields/FM1DDynamic_fast.h"
 #include "Fields/FM1DElectroStatic.h"
@@ -28,23 +28,26 @@
 */
 
 #include "Fields/Astra1DDynamic.h"
-// #include "Fields/Astra1DDynamic_fast.h"
+#include "Fields/Astra1DMagnetoStatic.h"
 #include "Fields/FM2DDynamic.h"
 #include "Fields/FM2DMagnetoStatic.h"
 
 #include "Physics/Physics.h"
 #include "Utilities/GeneralOpalException.h"
-#include "Utilities/Options.h"
 #include "Utilities/Util.h"
 
 #include "H5hut.h"
 
 #include <filesystem>
 
+#include <cctype>
 #include <cmath>
+#include <cstring>
 #include <fstream>
+#include <iomanip>
 #include <ios>
 #include <iostream>
+#include <sstream>
 
 namespace fs = std::filesystem;
 
@@ -114,6 +117,23 @@ Fieldmap* Fieldmap::getFieldmap(std::string Filename, bool /*fast*/) {
                         std::make_pair(
                                 Filename,
                                 FieldmapDescription(TAstraDynamic, new Astra1DDynamic(Filename))));
+                // }
+                return (*position.first).second.Map;
+                break;
+
+            case TAstraMagnetoStatic:
+                // if (fast) {
+                //     position = FieldmapDictionary.insert(
+                //             std::make_pair(
+                //                 Filename,
+                //                 FieldmapDescription(TAstraMagnetoStatic,
+                //                 Astra1DMagnetoStatic_fast(Filename))));
+                // } else {
+                position = FieldmapDictionary.insert(
+                        std::make_pair(
+                                Filename,
+                                FieldmapDescription(
+                                        TAstraMagnetoStatic, new Astra1DMagnetoStatic(Filename))));
                 // }
                 return (*position.first).second.Map;
                 break;
