@@ -139,7 +139,6 @@ namespace {
         opal->create(new OpalLaser());
         opal->create(new OpalMonitor());
         opal->create(new OpalMarker());
-        opal->create(new OpalMonitor());
         opal->create(new OpalProbe());
         opal->create(new OpalMultipole());
         opal->create(new OpalQuadrupole());

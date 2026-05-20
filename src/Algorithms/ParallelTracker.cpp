@@ -57,6 +57,7 @@
 #include "Utilities/Util.h"
 #include "ValueDefinitions/RealVariable.h"
 
+#include "AbsBeamline/BendBase.h"
 #include "AbsBeamline/PluginElement.h"
 #include "AbsBeamline/VerticalFFAMagnet.h"
 
@@ -740,12 +741,37 @@ void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
             }
         }
 
+        const double queryCenter    = pc->get_sPos() + 0.5 * (rmax(2) + rmin(2));
+        const double queryHalfWidth = rmax(2) - rmin(2);
+        const double queryBegin     = queryCenter - queryHalfWidth;
+        const double queryEnd       = queryCenter + queryHalfWidth;
+
         // Get elements at bunch position.
         IndexMap::value_t elements;
+        bool indexMapOutOfBounds = false;
         try {
-            elements = oth.query(pc->get_sPos() + 0.5 * (rmax(2) + rmin(2)), rmax(2) - rmin(2));
+            elements = oth.query(queryCenter, queryHalfWidth);
         } catch (IndexMap::OutOfBounds& e) {
-            globalEOL_m = true;
+            indexMapOutOfBounds = true;
+        }
+
+        for (const auto& segment : oth.getActionRangeRegistrationModel().getSegments()) {
+            if (segment.getEnd() < queryBegin || segment.getBegin() > queryEnd) {
+                continue;
+            }
+
+            for (const auto& element : segment.getActiveElements()) {
+                if (element->getType() == ElementType::SBEND
+                    || element->getType() == ElementType::RBEND) {
+                    elements.insert(element);
+                }
+            }
+        }
+
+        if (elements.empty()) {
+            if (indexMapOutOfBounds) {
+                globalEOL_m = true;
+            }
             continue;
         }
 
@@ -753,19 +779,43 @@ void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
         IndexMap::value_t::const_iterator it        = elements.begin();
         const IndexMap::value_t::const_iterator end = elements.end();
         for (; it != end; ++it) {
+            (*it)->setCurrentSCoordinate(pc->get_sPos() + rmin(2));
+
+            if ((*it)->getType() == ElementType::SBEND || (*it)->getType() == ElementType::RBEND) {
+                BendBase* bend = dynamic_cast<BendBase*>((*it).get());
+                if (bend == nullptr) {
+                    throw OpalException(
+                            "ParallelTracker::computeExternalFields",
+                            "Encountered bend element without BendBase runtime type.");
+                }
+
+                const CoordinateSystemTrafo nominalEntryToLocal =
+                        itsOpalBeamline_m.getNominalEntryTransform((*it));
+                const CoordinateSystemTrafo nominalToActual =
+                        itsOpalBeamline_m.getMisalignment((*it));
+                const auto slices = bend->buildTrackingSlices();
+
+                for (const auto& slice : slices) {
+                    CoordinateSystemTrafo refToSliceLocal =
+                            slice.entryToSliceLocal
+                            * (nominalToActual * (nominalEntryToLocal * pc->getToLabTrafo()));
+                    CoordinateSystemTrafo sliceLocalToRef = refToSliceLocal.inverted();
+
+                    pc->transformBunch(refToSliceLocal);
+                    bend->applySlice(pc, slice);
+                    pc->transformBunch(sliceLocalToRef);
+                }
+                continue;
+            }
+
             CoordinateSystemTrafo refToLocalCSTrafo =
                     (itsOpalBeamline_m.getMisalignment((*it))
-                     * (itsOpalBeamline_m.getCSTrafoLab2Local((*it)) * pc->getToLabTrafo()));
+                     * (itsOpalBeamline_m.getFieldCSTrafoLab2Local((*it)) * pc->getToLabTrafo()));
 
             CoordinateSystemTrafo localToRefCSTrafo = refToLocalCSTrafo.inverted();
 
-            (*it)->setCurrentSCoordinate(pc->get_sPos() + rmin(2));
-
             pc->transformBunch(refToLocalCSTrafo);
-
-            // Apply element to this iteration's particle container.
             (*it)->apply(pc);
-
             pc->transformBunch(localToRefCSTrafo);
         }
     }
@@ -1235,17 +1285,32 @@ void ParallelTracker::updateReferenceParticles(const BorisPusher& pusher) {
         pusher.push(pc.getRefPartR(), pc.getRefPartP(), dt);
         pc.getRefPartR() *= scaleFactor;
 
-        IndexMap::value_t elements           = itsOpalBeamline_m.getElements(pc.getRefPartR());
+        IndexMap::value_t elements = itsOpalBeamline_m.getElements(pc.getRefPartR());
+        const auto allElements     = itsOpalBeamline_m.getElements();
+        for (const auto& element : allElements) {
+            if (element->getType() == ElementType::MONITOR && element->Online()) {
+                elements.insert(element);
+            }
+        }
         IndexMap::value_t::const_iterator it = elements.begin();
         const IndexMap::value_t::const_iterator end = elements.end();
 
         for (; it != end; ++it) {
-            const CoordinateSystemTrafo& refToLocalCSTrafo =
-                    itsOpalBeamline_m.getCSTrafoLab2Local((*it));
-
-            Vector_t<double, 3> localR = refToLocalCSTrafo.transformTo(pc.getRefPartR());
-            Vector_t<double, 3> localP = refToLocalCSTrafo.rotateTo(pc.getRefPartP());
+            Vector_t<double, 3> localR =
+                    itsOpalBeamline_m.transformToFieldLocalCS((*it), pc.getRefPartR());
+            Vector_t<double, 3> localP =
+                    itsOpalBeamline_m.rotateToFieldLocalCS((*it), pc.getRefPartP());
             Vector_t<double, 3> localE(0.0), localB(0.0);
+            BendBase* bend = nullptr;
+            if ((*it)->getType() == ElementType::SBEND || (*it)->getType() == ElementType::RBEND) {
+                bend = dynamic_cast<BendBase*>((*it).get());
+                if (bend == nullptr) {
+                    throw OpalException(
+                            "ParallelTracker::updateReferenceParticles",
+                            "Encountered bend element without BendBase runtime type.");
+                }
+                localP = bend->rotateEntryCartesianVectorToFieldLocal(localP, localR(2));
+            }
 
             if ((*it)->applyToReferenceParticle(
                         localR, localP, itsBunch_m->getT() - 0.5 * dt, localE, localB)) {
@@ -1253,8 +1318,13 @@ void ParallelTracker::updateReferenceParticles(const BorisPusher& pusher) {
                 globalEOL_m = true;
             }
 
-            Ef += refToLocalCSTrafo.rotateFrom(localE);
-            Bf += refToLocalCSTrafo.rotateFrom(localB);
+            if (bend != nullptr) {
+                localE = bend->rotateFieldLocalVectorToEntryCartesian(localE, localR(2));
+                localB = bend->rotateFieldLocalVectorToEntryCartesian(localB, localR(2));
+            }
+
+            Ef += itsOpalBeamline_m.rotateFromFieldLocalCS((*it), localE);
+            Bf += itsOpalBeamline_m.rotateFromFieldLocalCS((*it), localB);
         }
 
         pusher.kick(pc.getRefPartR(), pc.getRefPartP(), Ef, Bf, dt, refKick.getM(), refKick.getQ());
