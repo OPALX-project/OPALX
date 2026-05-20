@@ -137,6 +137,7 @@ namespace {
         opal->create(new OpalConstantEFieldCavity());
         opal->create(new OpalDrift());
         opal->create(new OpalLaser());
+        opal->create(new OpalMonitor());
         opal->create(new OpalMarker());
         opal->create(new OpalMonitor());
         opal->create(new OpalProbe());

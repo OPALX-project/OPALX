@@ -60,6 +60,7 @@ namespace {
         TELL,
         PSDUMPFREQ,
         STATDUMPFREQ,
+        STEPINFOFQ,
         PSDUMPEACHTURN,
         PSDUMPFRAME,
         SPTDUMPFREQ,
@@ -135,6 +136,12 @@ Option::Option()
             "(e.g. RMS beam quantities), i.e. dump data when step%statDumpFreq == 0, "
             "its default value is 10.",
             statDumpFreq);
+
+    itsAttr[STEPINFOFQ] = Attributes::makeReal(
+            "STEPINFOFQ",
+            "The frequency to print per-step tracking status lines. "
+            "A value of 0 disables these status lines; its default value is 1.",
+            stepInfoFreq);
 
     itsAttr[PSDUMPEACHTURN] = Attributes::makeBool(
             "PSDUMPEACHTURN",
@@ -352,6 +359,7 @@ Option::Option(const std::string& name, Option* parent) : Action(name, parent) {
     Attributes::setReal(itsAttr[SEED], seed);
     Attributes::setReal(itsAttr[PSDUMPFREQ], psDumpFreq);
     Attributes::setReal(itsAttr[STATDUMPFREQ], statDumpFreq);
+    Attributes::setReal(itsAttr[STEPINFOFQ], stepInfoFreq);
     Attributes::setBool(itsAttr[PSDUMPEACHTURN], psDumpEachTurn);
     Attributes::setPredefinedString(itsAttr[PSDUMPFRAME], getDumpFrameString(psDumpFrame));
     Attributes::setReal(itsAttr[SPTDUMPFREQ], sptDumpFreq);
@@ -463,6 +471,11 @@ void Option::execute() {
         if (statDumpFreq == 0) statDumpFreq = std::numeric_limits<int>::max();
     }
 
+    if (itsAttr[STEPINFOFQ]) {
+        stepInfoFreq = int(Attributes::getReal(itsAttr[STEPINFOFQ]));
+        if (stepInfoFreq < 0) stepInfoFreq = 0;
+    }
+
     if (itsAttr[SPTDUMPFREQ]) {
         sptDumpFreq = int(Attributes::getReal(itsAttr[SPTDUMPFREQ]));
         if (sptDumpFreq == 0) sptDumpFreq = std::numeric_limits<int>::max();
@@ -512,10 +525,10 @@ void Option::execute() {
     if (itsAttr[BOUNDPDESTROY]) {
         /*
          * Historically, BOUNDPDESTROYFQ was used as a positive frequency and
-         * clamped to values >= 1 here. In OPAL-X, the same parameter now also
+         * clamped to values >= 1 here. In OPALX, the same parameter now also
          * encodes the N-sigma boundary used in ParticleContainer::
-         * deleteParticlesOutside(N). A value <= 0 is treated as "disabled"
-         * by deleteParticlesOutside, so we must *not* clamp it to 1 anymore.
+         * markParticlesOutside(N). A value <= 0 is treated as "disabled"
+         * by markParticlesOutside, so we must *not* clamp it to 1 anymore.
          */
         boundpDestroy = Attributes::getReal(itsAttr[BOUNDPDESTROY]);
     }

@@ -16,7 +16,7 @@ class SamplingBase {
 protected:
     std::shared_ptr<ParticleContainer_t> pc_m;
     std::shared_ptr<FieldContainer_t> fc_m;
-    Distribution_t* opalDist_m;
+    Distribution_t* opalDist_m = nullptr;
     std::string samplingMethod_m;
     /// Emission source offset: position R0, momentum P0, start time t0 (applied in sample step).
     Vector_t<double, 3> R0_m    = 0.0;
@@ -61,6 +61,19 @@ public:
         (void)t;
         return hasEmittedOnce_m;
     }
+
+    /// @brief Optional tracker time shift needed before the first emitted particles are born.
+    virtual double getGlobalTimeShift() const { return 0.0; }
+
+    /// @brief Optional initial reference momentum in the source-local frame.
+    virtual bool hasInitialReferenceMomentum() const { return false; }
+
+    virtual Vector_t<double, 3> getInitialReferenceMomentum() const {
+        return Vector_t<double, 3>(0.0);
+    }
+
+    /// @brief Optional OPAL-like tracker time step while this sampler is still emitting.
+    virtual double getEmissionTimeStep() const { return 0.0; }
 
     // testNumEmitParticles is purely made for testing and should be removed
     virtual void testNumEmitParticles(size_t /*nsteps*/, double /*dt*/) {}

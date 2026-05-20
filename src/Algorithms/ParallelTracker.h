@@ -78,7 +78,7 @@ private:
     StepSizeConfig stepSizes_m;
 
     double dtCurrentTrack_m;          ///< Global @f$\Delta t@f$ for the current track segment.
-    unsigned long long repartFreq_m;  ///< Space-charge repartition period (steps); off on one rank.
+    unsigned long long repartFreq_m;  ///< Space-charge repartition period (steps); 0 disables it.
     std::vector<std::vector<std::shared_ptr<SamplingBase>>>
             emittingSamplers_m;  ///< Per-container emitters.
 
@@ -137,11 +137,11 @@ public:
     /// @brief Reject laser tracking until dedicated laser tracking is implemented.
     virtual void visitLaser(const Laser&);
 
-    /// @brief Apply the algorithm to a marker.
-    virtual void visitMarker(const Marker&);
-
     /// @brief Apply the algorithm to a monitor.
     virtual void visitMonitor(const Monitor&);
+
+    /// @brief Apply the algorithm to a marker.
+    virtual void visitMarker(const Marker&);
 
     /// @brief Apply the algorithm to a multipole.
     virtual void visitMultipole(const Multipole&);
@@ -202,8 +202,8 @@ public:
     /// @param dt Global time step (s).
     void emitFromEmissionSources(double t, double dt);
 
-    /// @brief Apply global processes
-    void applyGlobalProcesses(double dt);
+    /// @brief Apply global processes and return the global number of particles marked invalid.
+    size_t applyGlobalProcesses(double dt);
 
     /// @brief Zero E and B on all active particle containers.
     void resetFields();
@@ -258,6 +258,14 @@ private:
     /// @brief Trigger binary repartition for the field solver if configured.
     void doBinaryRepartition();
 
+    /// @brief Delete particles marked invalid by the central per-container mask.
+    size_t deleteInvalidParticles(bool activeOnly, Inform& m, const std::string& reason);
+
+public:
+    /// @brief Mark particles moving backward behind an active source/cathode plane.
+    size_t markBackwardParticlesAtSourcePlane();
+
+private:
     /// @brief Force-activate containers whose emitting samplers have not yet finished.
     void activateEmittingContainers(double t);
 
@@ -302,12 +310,12 @@ inline void ParallelTracker::visitDrift(const Drift& drift) {
     itsOpalBeamline_m.visit(drift, *this, *itsBunch_m);
 }
 
-inline void ParallelTracker::visitMarker(const Marker& marker) {
-    itsOpalBeamline_m.visit(marker, *this, *itsBunch_m);
+inline void ParallelTracker::visitMonitor(const Monitor& monitor) {
+    itsOpalBeamline_m.visit(monitor, *this, *itsBunch_m);
 }
 
-inline void ParallelTracker::visitMonitor(const Monitor& mon) {
-    itsOpalBeamline_m.visit(mon, *this, *itsBunch_m);
+inline void ParallelTracker::visitMarker(const Marker& marker) {
+    itsOpalBeamline_m.visit(marker, *this, *itsBunch_m);
 }
 
 inline void ParallelTracker::visitMultipole(const Multipole& mult) {

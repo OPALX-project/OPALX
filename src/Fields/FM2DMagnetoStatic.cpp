@@ -110,7 +110,7 @@ FM2DMagnetoStatic::FM2DMagnetoStatic(std::string aFilename) : Fieldmap(aFilename
 FM2DMagnetoStatic::~FM2DMagnetoStatic() { freeMap(); }
 
 void FM2DMagnetoStatic::readMap() {
-    if (FieldstrengthBz_m.h_view.data() == nullptr) {
+    if (FieldstrengthBz_m.extent(0) == 0) {
         // declare variables and allocate memory
         std::ifstream in;
         std::string tmpString;
@@ -178,7 +178,7 @@ void FM2DMagnetoStatic::readMap() {
 }
 
 void FM2DMagnetoStatic::freeMap() {
-    if (FieldstrengthBz_m.h_view.data() != nullptr) {
+    if (FieldstrengthBz_m.extent(0) != 0) {
         FieldstrengthBz_m = Kokkos::DualView<double*>();
         FieldstrengthBr_m = Kokkos::DualView<double*>();
 
@@ -237,8 +237,8 @@ bool FM2DMagnetoStatic::getFieldstrength(
         const Vector_t<double, 3>& R, Vector_t<double, 3>& /*E*/, Vector_t<double, 3>& B) const {
     if (isInside(R)) {
         computeField(
-                R, B, FieldstrengthBz_m.h_view, FieldstrengthBr_m.h_view, hr_m, hz_m, zbegin_m,
-                num_gridpr_m, num_gridpz_m);
+                R, B, FieldstrengthBz_m.view_host(), FieldstrengthBr_m.view_host(), hr_m, hz_m,
+                zbegin_m, num_gridpr_m, num_gridpz_m);
         return false;
     } else {
         return true;

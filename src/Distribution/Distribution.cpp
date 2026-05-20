@@ -80,6 +80,7 @@ namespace DISTRIBUTION {
         FTOSCAMPLITUDE,
         FTOSCPERIODS,
         EMITTED,
+        EMISSIONSTEPS,
         /// Optional per-distribution particle count (macroparticles).
         /// If <= 0, this distribution does not specify its own N and
         /// TrackRun/BEAM logic is used instead.
@@ -108,7 +109,9 @@ Distribution::Distribution()
       distrTypeT_m(DistributionType::NODIST),
       avrgpz_m(0.0) {
     itsAttr[DISTRIBUTION::TYPE] = Attributes::makePredefinedString(
-            "TYPE", "Distribution type.", {"GAUSS", "MULTIVARIATEGAUSS", "FLATTOP", "FROMFILE"});
+            "TYPE", "Distribution type.",
+            {"GAUSS", "MULTIVARIATEGAUSS", "FLATTOP", "OPALFLATTOP", "FROMFILE",
+             "EMITTEDFROMFILE"});
 
     itsAttr[DISTRIBUTION::FNAME] =
             Attributes::makeString("FNAME", "File for reading in 6D particle coordinates.", "");
@@ -174,6 +177,12 @@ Distribution::Distribution()
             "Emitted beam, from cathode, as opposed to "
             "an injected beam.",
             false);
+
+    itsAttr[DISTRIBUTION::EMISSIONSTEPS] = Attributes::makeReal(
+            "EMISSIONSTEPS",
+            "Number of OPAL-like time steps to use during OPALFLATTOP or EMITTEDFROMFILE "
+            "emission.",
+            100.0);
 
     itsAttr[DISTRIBUTION::NPARTDIST] = Attributes::makeReal(
             "NPARTDIST",
@@ -244,9 +253,11 @@ Inform& Distribution::printInfo(Inform& os) const {
                 printDistMultiVariateGauss(os);
                 break;
             case DistributionType::FLATTOP:
+            case DistributionType::OPALFLATTOP:
                 printDistFlatTop(os);
                 break;
             case DistributionType::FROMFILE:
+            case DistributionType::EMITTEDFROMFILE:
                 printDistFromFile(os);
                 break;
             default:
@@ -267,6 +278,14 @@ void Distribution::setAvrgPz(double avrgpz) { avrgpz_m = avrgpz; }
 void Distribution::setTEmission(double tEmission) { tEmission_m = tEmission; }
 
 double Distribution::getTEmission() const { return tEmission_m; }
+
+size_t Distribution::getEmissionSteps() const {
+    const double raw = Attributes::getReal(itsAttr[DISTRIBUTION::EMISSIONSTEPS]);
+    if (raw <= 0.0) {
+        return 100;
+    }
+    return static_cast<size_t>(std::ceil(raw));
+}
 
 void Distribution::setDistParametersGauss() {
     /*
@@ -443,7 +462,7 @@ void Distribution::printDistMultiVariateGauss(Inform& os) const {
 }
 
 void Distribution::printDistFlatTop(Inform& os) const {
-    os << "* Distribution type: FLATTOP" << endl;
+    os << "* Distribution type: " << distT_m << endl;
     os << "* " << endl;
     os << "* SIGMAX     = " << sigmaR_m[0] << " [m]" << endl;
     os << "* SIGMAY     = " << sigmaR_m[1] << " [m]" << endl;
@@ -466,7 +485,7 @@ void Distribution::printDistFlatTop(Inform& os) const {
 }
 
 void Distribution::printDistFromFile(Inform& os) const {
-    os << "* Distribution type: FROMFILE" << endl;
+    os << "* Distribution type: " << distT_m << endl;
     os << "* " << endl;
     std::string fname = getFilename();
     if (!fname.empty()) {
@@ -503,11 +522,12 @@ void Distribution::setDist() {
             setDistParametersMultiVariateGauss();
             break;
         case DistributionType::FLATTOP:
+        case DistributionType::OPALFLATTOP:
             setDistParametersFlatTop();
             break;
         case DistributionType::FROMFILE:
-            // FROMFILE doesn't need special parameter setting
-            // File will be read by FromFile class
+        case DistributionType::EMITTEDFROMFILE:
+            // File-based distributions read their records in the sampler class.
             break;
         default:
             throw OpalException("Distribution Param", "Unknown \"TYPE\" of \"DISTRIBUTION\"");
@@ -520,7 +540,9 @@ void Distribution::setDistType() {
             {"GAUSS", DistributionType::GAUSS},
             {"MULTIVARIATEGAUSS", DistributionType::MULTIVARIATEGAUSS},
             {"FLATTOP", DistributionType::FLATTOP},
-            {"FROMFILE", DistributionType::FROMFILE}};
+            {"OPALFLATTOP", DistributionType::OPALFLATTOP},
+            {"FROMFILE", DistributionType::FROMFILE},
+            {"EMITTEDFROMFILE", DistributionType::EMITTEDFROMFILE}};
 
     distT_m = Attributes::getString(itsAttr[DISTRIBUTION::TYPE]);
 
