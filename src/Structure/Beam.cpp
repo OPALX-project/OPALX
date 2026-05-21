@@ -102,9 +102,10 @@ Beam::Beam()
             "POLARIZATION",
             "Initial polarization vector P = {Px, Py, Pz} for this beam "
             "(rest-frame Pauli expectation values along lab-frame axes). "
-            "Must be length-3 with |P| in [0, 1]. Only meaningful when "
-            "OPTION SPIN_MODE=TRACK. Ignored for beams whose particles are "
-            "produced by an upstream decay (e.g. muons from PionDecay).");
+            "Must be length-3 with |P| in [0, 1]. Only valid for PARTICLE=MUON; "
+            "setting POLARIZATION on any other species is rejected. A nonzero "
+            "value also requires OPTION SPIN_MODE=TRACK. Ignored for beams whose "
+            "muons are produced by an upstream decay (e.g. PionDecay).");
 
     // Set up default beam.
     Beam* defBeam    = clone("UNNAMED_BEAM");
@@ -214,11 +215,30 @@ void Beam::validatePolarization() const {
     }
     const std::vector<double> pol = Attributes::getRealArray(itsAttr[POLARIZATION]);
     if (pol.empty()) {
+        // Attribute exists in the registry but the user did not specify a value;
+        // treat as "not set" and skip all polarization-specific validation.
         return;
     }
     if (pol.size() != 3) {
         throw OpalException(
                 "Beam::execute()", "\"POLARIZATION\" must be a length-3 vector {Px, Py, Pz}.");
+    }
+    // Only muons are currently spin-tracked. Reject POLARIZATION on any other
+    // species regardless of magnitude — setting it (even to zero) is meaningless
+    // for spin-0 particles and for species whose g-factor isn't wired into T-BMT.
+    if (!itsAttr[PARTICLE]) {
+        throw OpalException(
+                "Beam::execute()",
+                "\"POLARIZATION\" can only be set when \"PARTICLE\" is also set.");
+    }
+    const ParticleType pType = ParticleProperties::getParticleType(getParticleName());
+    if (pType != ParticleType::MUON) {
+        throw OpalException(
+                "Beam::execute()",
+                "\"POLARIZATION\" is only supported for PARTICLE=MUON; got \""
+                        + getParticleName()
+                        + "\". For muons produced by PionDecay, leave POLARIZATION unset — "
+                          "the daughter polarization is determined by the pion decay.");
     }
     const double pMag2 = pol[0] * pol[0] + pol[1] * pol[1] + pol[2] * pol[2];
     if (pMag2 > 1.0 + 1.0e-12) {
@@ -227,8 +247,7 @@ void Beam::validatePolarization() const {
                 "\"POLARIZATION\" magnitude must be in [0, 1]; got |P| = "
                         + std::to_string(std::sqrt(pMag2)) + ".");
     }
-    const bool nonzero = pMag2 > 0.0;
-    if (nonzero && !Options::useSpinAttribute) {
+    if (pMag2 > 0.0 && !Options::useSpinAttribute) {
         throw OpalException(
                 "Beam::execute()",
                 "\"POLARIZATION\" is set with a nonzero magnitude but spin tracking is "
