@@ -1389,14 +1389,11 @@ void ParallelTracker::dumpStats(long long step, bool psDump, bool statDump) {
     const long long globalStep = itsBunch_m->getGlobalTrackStep();
     const bool printStepInfo = Options::stepInfoFreq > 0 && globalStep % Options::stepInfoFreq == 0;
 
-    if (totalAll == 0) {
-        if (printStepInfo) {
-            *gmsg << level1 << "* " << myt2.time() << " "
-                  << "Step " << std::setw(6) << globalStep << "; "
-                  << "   -- no emission yet --     "
-                  << "t= " << Util::getTimeString(itsBunch_m->getT()) << endl;
-        }
-        return;
+    if (totalAll == 0 && printStepInfo) {
+        *gmsg << level1 << "* " << myt2.time() << " "
+              << "Step " << std::setw(6) << globalStep << "; "
+              << "   -- no emission yet --     "
+              << "t= " << Util::getTimeString(itsBunch_m->getT()) << endl;
     }
 
     bool anyLogged         = false;
@@ -1424,7 +1421,7 @@ void ParallelTracker::dumpStats(long long step, bool psDump, bool statDump) {
         anyLogged = true;
     }
 
-    if (anyLogged) {
+    if (anyLogged || statDump) {
         writePhaseSpace(step, psDump, statDump);
     }
 }
