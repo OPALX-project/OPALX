@@ -279,11 +279,11 @@ void StatWriter::write(
         temperature     = pc->getTemperature();
     }
 
-    columns_m.addColumnValue("t", beam.getT() * Units::s2ns);        // 1
-    columns_m.addColumnValue("s", pathLength);                       // 2
-    columns_m.addColumnValue("numParticles", numParticles);          // 3
-    columns_m.addColumnValue("charge", Q);                           // 4
-    columns_m.addColumnValue("energy", energy);                      // 5
+    columns_m.addColumnValue("t", beam.getT() * Units::s2ns);  // 1
+    columns_m.addColumnValue("s", pathLength);                 // 2
+    columns_m.addColumnValue("numParticles", numParticles);    // 3
+    columns_m.addColumnValue("charge", Q);                     // 4
+    columns_m.addColumnValue("energy", energy);                // 5
 
     columns_m.addColumnValue("rms_x", rmsR(0));  // 6
     columns_m.addColumnValue("rms_y", rmsR(1));  // 7
@@ -338,9 +338,9 @@ void StatWriter::write(
     columns_m.addColumnValue("partsOutside", npOutside);  // 42 number of particles outside n*sigma
 
     columns_m.addColumnValue("DebyeLength", debyeLength);           // 43 Debye length
-    columns_m.addColumnValue("plasmaParameter", plasmaParameter);  // 43 plasma parameter
-    columns_m.addColumnValue("temperature", temperature);          // 44 Temperature
-    columns_m.addColumnValue("rmsDensity", beam.get_rmsDensity());          // 45 RMS number density
+    columns_m.addColumnValue("plasmaParameter", plasmaParameter);   // 43 plasma parameter
+    columns_m.addColumnValue("temperature", temperature);           // 44 Temperature
+    columns_m.addColumnValue("rmsDensity", beam.get_rmsDensity());  // 45 RMS number density
     columns_m.addColumnValue("nBins", beam.getCurrentNBins());
 
     /*
