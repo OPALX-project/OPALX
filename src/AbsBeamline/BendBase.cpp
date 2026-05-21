@@ -41,14 +41,24 @@ namespace {
      * sign of \f$\rho\f$ keeps the branch consistent with the signed bend
      * curvature and therefore recovers the correct local path coordinate.
      */
-    double recoverReferencePhaseFromEntryCartesian(
+    KOKKOS_INLINE_FUNCTION double recoverReferencePhaseFromEntryCartesian(
             const Vector_t<double, 3>& entryCartesian, const double curvature) {
         const double radius = 1.0 / curvature;
-        const double sign   = std::copysign(1.0, radius);
-        return std::atan2(sign * entryCartesian(2), sign * (entryCartesian(0) + radius));
+        const double sign   = (radius >= 0.0) ? 1.0 : -1.0;
+        return Kokkos::atan2(sign * entryCartesian(2), sign * (entryCartesian(0) + radius));
     }
 
-    double evaluateFieldScale(
+    KOKKOS_INLINE_FUNCTION double clampUnitInterval(const double value) {
+        if (value < 0.0) {
+            return 0.0;
+        }
+        if (value > 1.0) {
+            return 1.0;
+        }
+        return value;
+    }
+
+    KOKKOS_INLINE_FUNCTION double evaluateFieldScale(
             const double z, const double fieldBegin, const double bodyLength,
             const double fieldEnd) {
         if (z < fieldBegin || z > fieldEnd) {
@@ -59,14 +69,14 @@ namespace {
             if (entryFringe <= 0.0) {
                 return 1.0;
             }
-            return std::clamp((z - fieldBegin) / entryFringe, 0.0, 1.0);
+            return clampUnitInterval((z - fieldBegin) / entryFringe);
         }
         if (z >= bodyLength) {
             const double exitFringe = fieldEnd - bodyLength;
             if (exitFringe <= 0.0) {
                 return 1.0;
             }
-            return std::clamp((fieldEnd - z) / exitFringe, 0.0, 1.0);
+            return clampUnitInterval((fieldEnd - z) / exitFringe);
         }
         return 1.0;
     }
@@ -545,14 +555,14 @@ bool BendBase::applySlice(
                 const Vector_t<double, 3> entryCartesian =
                         prod_vector_transpose(entryToSliceRotation, Rview(i)) + entryOrigin;
                 Vector_t<double, 3> entryChartPosition = entryCartesian;
-                if (std::abs(referenceCurvature) > 1.0e-15) {
+                if (Kokkos::abs(referenceCurvature) > 1.0e-15) {
                     const double radius = 1.0 / referenceCurvature;
                     const double phi    = recoverReferencePhaseFromEntryCartesian(
                             entryCartesian, referenceCurvature);
                     const double s = phi / referenceCurvature;
                     const double radialDistance =
-                            std::hypot(entryCartesian(0) + radius, entryCartesian(2))
-                            - std::abs(radius);
+                            Kokkos::hypot(entryCartesian(0) + radius, entryCartesian(2))
+                            - Kokkos::abs(radius);
                     entryChartPosition(0) = radialDistance;
                     entryChartPosition(1) = entryCartesian(1);
                     entryChartPosition(2) = s;
