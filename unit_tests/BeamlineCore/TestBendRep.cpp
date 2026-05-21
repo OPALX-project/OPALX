@@ -285,6 +285,37 @@ namespace {
         return state;
     }
 
+    void kickParticleContainer(
+            ParticleContainer_t& pc, const char* label, const double massEV, const double charge) {
+        BorisPusher pusher;
+        auto Pview  = pc.P.getView();
+        auto dtview = pc.dt.getView();
+        auto Eview  = pc.E.getView();
+        auto Bview  = pc.B.getView();
+        Kokkos::parallel_for(
+                label, pc.getLocalNum(), KOKKOS_LAMBDA(const size_t i) {
+                    Vector_t<double, 3> p = Pview(i);
+                    pusher.kick(
+                            Vector_t<double, 3>(0.0), p, Eview(i), Bview(i), dtview(i), massEV,
+                            charge);
+                    Pview(i) = p;
+                });
+        Kokkos::fence();
+    }
+
+    void pushParticleContainer(ParticleContainer_t& pc, const char* label, const double dt) {
+        BorisPusher pusher;
+        auto Rview = pc.R.getView();
+        auto Pview = pc.P.getView();
+        Kokkos::parallel_for(
+                label, pc.getLocalNum(), KOKKOS_LAMBDA(const size_t i) {
+                    Vector_t<double, 3> r = Rview(i);
+                    pusher.push(r, Pview(i), dt);
+                    Rview(i) = r;
+                });
+        Kokkos::fence();
+    }
+
     TEST(SBendRep, GeometryAndDesignPathFollowPlanarArc) {
         SBendRep bend("SBEND");
         bend.getGeometry() = PlanarArcGeometry(2.0, M_PI / 12.0);
@@ -905,32 +936,11 @@ namespace {
             pc->transformBunch(slice.entryToSliceLocal.inverted());
         }
 
-        BorisPusher pusher;
-        auto Pview  = pc->P.getView();
-        auto dtview = pc->dt.getView();
-        auto Eview  = pc->E.getView();
-        auto Bview  = pc->B.getView();
-        Kokkos::parallel_for(
-                "BendRepParticleContainerTest::kickDeterministicSet", pc->getLocalNum(),
-                KOKKOS_LAMBDA(const size_t i) {
-                    Vector_t<double, 3> p = Pview(i);
-                    pusher.kick(
-                            Vector_t<double, 3>(0.0), p, Eview(i), Bview(i), dtview(i), massEV,
-                            charge);
-                    Pview(i) = p;
-                });
-        Kokkos::fence();
+        kickParticleContainer(
+                *pc, "BendRepParticleContainerTest::kickDeterministicSet", massEV, charge);
 
         pc->switchToUnitlessPositions();
-        auto Rview = pc->R.getView();
-        Kokkos::parallel_for(
-                "BendRepParticleContainerTest::pushDeterministicSet", pc->getLocalNum(),
-                KOKKOS_LAMBDA(const size_t i) {
-                    Vector_t<double, 3> r = Rview(i);
-                    pusher.push(r, Pview(i), 0.0);
-                    Rview(i) = r;
-                });
-        Kokkos::fence();
+        pushParticleContainer(*pc, "BendRepParticleContainerTest::pushDeterministicSet", 0.0);
         pc->switchOffUnitlessPositions();
 
         auto RhostView = pc->R.getHostMirror();
@@ -938,6 +948,7 @@ namespace {
         Kokkos::deep_copy(RhostView, pc->R.getView());
         Kokkos::deep_copy(Pafter, pc->P.getView());
 
+        BorisPusher pusher;
         for (std::size_t i = 0; i < fieldLocalPositions.size(); ++i) {
             Vector_t<double, 3> Eexpected(0.0);
             Vector_t<double, 3> Bexpected(0.0);
@@ -1011,21 +1022,8 @@ namespace {
             pc->transformBunch(slice.entryToSliceLocal.inverted());
         }
 
-        BorisPusher pusher;
-        auto Pview  = pc->P.getView();
-        auto dtview = pc->dt.getView();
-        auto Eview  = pc->E.getView();
-        auto Bview  = pc->B.getView();
-        Kokkos::parallel_for(
-                "BendRepParticleContainerTest::protonLikeEntryFringeKick", 1,
-                KOKKOS_LAMBDA(const size_t i) {
-                    Vector_t<double, 3> p = Pview(i);
-                    pusher.kick(
-                            Vector_t<double, 3>(0.0), p, Eview(i), Bview(i), dtview(i), massEV,
-                            charge);
-                    Pview(i) = p;
-                });
-        Kokkos::fence();
+        kickParticleContainer(
+                *pc, "BendRepParticleContainerTest::protonLikeEntryFringeKick", massEV, charge);
 
         auto Pafter = pc->P.getHostMirror();
         Kokkos::deep_copy(Pafter, pc->P.getView());
@@ -1084,21 +1082,9 @@ namespace {
             pc->transformBunch(slice.entryToSliceLocal.inverted());
         }
 
-        BorisPusher pusher;
-        auto Pview  = pc->P.getView();
-        auto dtview = pc->dt.getView();
-        auto Eview  = pc->E.getView();
-        auto Bview  = pc->B.getView();
-        Kokkos::parallel_for(
-                "BendRepParticleContainerTest::runtimeNormalizedEntryFringeKick", 1,
-                KOKKOS_LAMBDA(const size_t i) {
-                    Vector_t<double, 3> p = Pview(i);
-                    pusher.kick(
-                            Vector_t<double, 3>(0.0), p, Eview(i), Bview(i), dtview(i), massEV,
-                            charge);
-                    Pview(i) = p;
-                });
-        Kokkos::fence();
+        kickParticleContainer(
+                *pc, "BendRepParticleContainerTest::runtimeNormalizedEntryFringeKick", massEV,
+                charge);
 
         auto Pafter = pc->P.getHostMirror();
         Kokkos::deep_copy(Pafter, pc->P.getView());
@@ -1150,21 +1136,8 @@ namespace {
             pc->transformBunch(sliceLocalToRef);
         }
 
-        BorisPusher pusher;
-        auto Pview  = pc->P.getView();
-        auto dtview = pc->dt.getView();
-        auto Eview  = pc->E.getView();
-        auto Bview  = pc->B.getView();
-        Kokkos::parallel_for(
-                "BendRepParticleContainerTest::benchmarkStyleLineStartKick", 1,
-                KOKKOS_LAMBDA(const size_t i) {
-                    Vector_t<double, 3> p = Pview(i);
-                    pusher.kick(
-                            Vector_t<double, 3>(0.0), p, Eview(i), Bview(i), dtview(i), massEV,
-                            charge);
-                    Pview(i) = p;
-                });
-        Kokkos::fence();
+        kickParticleContainer(
+                *pc, "BendRepParticleContainerTest::benchmarkStyleLineStartKick", massEV, charge);
 
         auto Pafter = pc->P.getHostMirror();
         Kokkos::deep_copy(Pafter, pc->P.getView());
@@ -1218,21 +1191,8 @@ namespace {
             pc->transformBunch(sliceLocalToRef);
         }
 
-        BorisPusher pusher;
-        auto Pview  = pc->P.getView();
-        auto dtview = pc->dt.getView();
-        auto Eview  = pc->E.getView();
-        auto Bview  = pc->B.getView();
-        Kokkos::parallel_for(
-                "BendRepParticleContainerTest::benchmarkStyleHalfStepKick", 1,
-                KOKKOS_LAMBDA(const size_t i) {
-                    Vector_t<double, 3> p = Pview(i);
-                    pusher.kick(
-                            Vector_t<double, 3>(0.0), p, Eview(i), Bview(i), dtview(i), massEV,
-                            charge);
-                    Pview(i) = p;
-                });
-        Kokkos::fence();
+        kickParticleContainer(
+                *pc, "BendRepParticleContainerTest::benchmarkStyleHalfStepKick", massEV, charge);
 
         auto Pafter = pc->P.getHostMirror();
         Kokkos::deep_copy(Pafter, pc->P.getView());
@@ -1295,21 +1255,9 @@ namespace {
             pc->transformBunch(sliceLocalToRef);
         }
 
-        BorisPusher pusher;
-        auto Pview  = pc->P.getView();
-        auto dtview = pc->dt.getView();
-        auto Eview  = pc->E.getView();
-        auto Bview  = pc->B.getView();
-        Kokkos::parallel_for(
-                "BendRepParticleContainerTest::benchmarkExplicitPlacementHalfStepKick", 1,
-                KOKKOS_LAMBDA(const size_t i) {
-                    Vector_t<double, 3> p = Pview(i);
-                    pusher.kick(
-                            Vector_t<double, 3>(0.0), p, Eview(i), Bview(i), dtview(i), massEV,
-                            charge);
-                    Pview(i) = p;
-                });
-        Kokkos::fence();
+        kickParticleContainer(
+                *pc, "BendRepParticleContainerTest::benchmarkExplicitPlacementHalfStepKick",
+                massEV, charge);
 
         auto Pafter = pc->P.getHostMirror();
         Kokkos::deep_copy(Pafter, pc->P.getView());
@@ -1362,18 +1310,9 @@ namespace {
         Kokkos::deep_copy(pc->dt.getView(), dthost);
         Kokkos::fence();
 
-        BorisPusher pusher;
         pc->switchToUnitlessPositions();
-        auto Rview = pc->R.getView();
-        auto Pview = pc->P.getView();
-        Kokkos::parallel_for(
-                "BendRepParticleContainerTest::benchmarkExplicitPlacementHalfDrift", 2,
-                KOKKOS_LAMBDA(const size_t i) {
-                    Vector_t<double, 3> r = Rview(i);
-                    pusher.push(r, Pview(i), 0.0);
-                    Rview(i) = r;
-                });
-        Kokkos::fence();
+        pushParticleContainer(
+                *pc, "BendRepParticleContainerTest::benchmarkExplicitPlacementHalfDrift", 0.0);
         pc->switchOffUnitlessPositions();
 
         const CoordinateSystemTrafo lineStartToEntryLocal =
@@ -1387,29 +1326,14 @@ namespace {
             pc->transformBunch(sliceLocalToRef);
         }
 
-        auto dtview = pc->dt.getView();
-        auto Eview  = pc->E.getView();
-        auto Bview  = pc->B.getView();
-        Kokkos::parallel_for(
-                "BendRepParticleContainerTest::benchmarkExplicitPlacementKick", 2,
-                KOKKOS_LAMBDA(const size_t i) {
-                    Vector_t<double, 3> p = Pview(i);
-                    pusher.kick(
-                            Vector_t<double, 3>(0.0), p, Eview(i), Bview(i), dtview(i), massEV,
-                            charge);
-                    Pview(i) = p;
-                });
-        Kokkos::fence();
+        kickParticleContainer(
+                *pc, "BendRepParticleContainerTest::benchmarkExplicitPlacementKick", massEV,
+                charge);
 
         pc->switchToUnitlessPositions();
-        Kokkos::parallel_for(
-                "BendRepParticleContainerTest::benchmarkExplicitPlacementSecondHalfDrift", 2,
-                KOKKOS_LAMBDA(const size_t i) {
-                    Vector_t<double, 3> r = Rview(i);
-                    pusher.push(r, Pview(i), 0.0);
-                    Rview(i) = r;
-                });
-        Kokkos::fence();
+        pushParticleContainer(
+                *pc, "BendRepParticleContainerTest::benchmarkExplicitPlacementSecondHalfDrift",
+                0.0);
         pc->switchOffUnitlessPositions();
 
         auto Pafter = pc->P.getHostMirror();
