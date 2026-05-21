@@ -59,6 +59,10 @@ public:
     /// Return the mean rest-frame lifetime [s].  Throws if the particle is stable.
     static double getParticleLifetime(const ParticleType& type);
 
+    /// Return the magnetic moment anomaly G = (g-2)/2. Zero for species that are
+    /// spin-0, not yet tabulated, or unsupported.
+    static double getParticleAnomaly(const ParticleType& type);
+
 private:
     static const BiMap<ParticleType, std::string> bmParticleType_s;
 

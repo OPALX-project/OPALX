@@ -55,6 +55,21 @@ double ParticleProperties::getParticleLifetime(const ParticleType& type) {
             + getParticleTypeString(type) + "\" (stable or unsupported).");
 }
 
+double ParticleProperties::getParticleAnomaly(const ParticleType& type) {
+    switch (type) {
+        case ParticleType::ELECTRON: // jumps to POSITRON case
+        case ParticleType::POSITRON:
+            return Physics::a_e;
+        case ParticleType::MUON:
+            return Physics::a_mu;
+        case ParticleType::PROTON: // jumps to ANTIPROTON case
+        case ParticleType::ANTIPROTON:
+            return Physics::a_p;
+        default:
+            return 0.0;
+    }
+}
+
 const BiMap<ParticleType, std::string> ParticleProperties::bmParticleType_s = []() {
     BiMap<ParticleType, std::string> bimap;
     bimap.insert(ParticleType::UNNAMED, "UNNAMED");
