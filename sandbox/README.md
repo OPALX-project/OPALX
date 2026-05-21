@@ -252,9 +252,9 @@ cd /path/to/opalx-beambeam
 source .venv-h6/bin/activate
 
 python sandbox/python/beam-beam-manufactured-solution.py \
-  --compare-rho-dump data/sandbox/BeamBeam-2-RHO_scalar-beambeam_rho_pre-000005.dat \
-  --compare-phi-dump data/sandbox/BeamBeam-2-PHI_scalar-beambeam_phi-000005.dat \
-  --compare-e-dump data/sandbox/BeamBeam-2-EF_vector-beambeam_e-000005.dat \
+  --compare-rho-dump data/sandbox/BeamBeam-2-RHO_scalar-beambeam_rho_pre-000003.dat \
+  --compare-phi-dump data/sandbox/BeamBeam-2-PHI_scalar-beambeam_phi-000004.dat \
+  --compare-e-dump data/sandbox/BeamBeam-2-EF_vector-beambeam_e-000004.dat \
   --output data/sandbox/BeamBeam-2-ascii-diagnostics.png
 ```
 
