@@ -25,6 +25,7 @@
 #include "Algorithms/StepSizeConfig.h"
 #include "Algorithms/Tracker.h"
 #include "Steppers/BorisPusher.h"
+#include "Steppers/SpinTBMTPusher.h"
 #include "Structure/DataSink.h"
 
 #include "BasicActions/Option.h"
@@ -186,6 +187,12 @@ public:
 
     /// @brief Second half: kick then push all active containers.
     void timeIntegration2(BorisPusher& pusher);
+
+    /// @brief Thomas-BMT spin precession across all active containers that store Pol.
+    /// Must be called after external + space-charge fields have been accumulated and
+    /// before the momentum kick (so E, B at the particle are the lab-frame fields the
+    /// particle sees during this step).
+    void evolveSpinTBMT();
 
     /**
      * @brief Self-fields in beam frame (primary container); optional binary repartition.
