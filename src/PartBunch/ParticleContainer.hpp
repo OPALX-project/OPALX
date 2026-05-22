@@ -95,10 +95,10 @@ public:
     /// View types of Q and M values
     using qm_view_type = typename ippl::ParticleAttrib<double>::view_type;
 
-    /// Per-particle spin: 3D unit vector in single precision. Polarization observables are
-    /// typically ~1% accurate, so `float` storage is sufficient and halves the memory footprint
-    /// versus the codebase's standard `double` attributes. Dynamics kernels should still compute
-    /// in `double` and cast back on store.
+    /// Per-particle polarization vector type: 3D vector in single precision, |Pol| in [0, 1].
+    /// Polarization observables are typically ~1% accurate, so `float` storage is sufficient and
+    /// halves the memory footprint versus the codebase's standard `double` attributes. Dynamics
+    /// kernels should still compute in `double` and cast back on store.
     using spin_vector_type = ippl::Vector<float, 3>;
 
 public:
@@ -149,6 +149,11 @@ public:
     /// particle deletion mask (indicates which particles are deleted every timestep)
     ippl::ParticleAttrib<bool> InvalidMask;
 
+    /// Per-particle polarization vector P (rest-frame Pauli expectation values along
+    /// lab-frame axes; |Pol| in [0, 1]). Registered only when spinEnabled_m is true.
+    /// Storage is float to halve memory; kernels should compute in double and cast.
+    ippl::ParticleAttrib<spin_vector_type> Pol;
+
     /// Returns true when per-particle spin storage was enabled at construction
     /// (via `Options::useSpinAttribute`).
     bool hasSpin() const { return spinEnabled_m; }
@@ -185,7 +190,7 @@ public:
             this->addAttribute(MAttr);
         }
         if (spinEnabled_m) {
-            this->addAttribute(SAttr);
+            this->addAttribute(Pol);
         }
     }
 
@@ -779,9 +784,6 @@ private:
     // Per-particle attributes mode
     ippl::ParticleAttrib<double> QAttr;
     ippl::ParticleAttrib<double> MAttr;
-
-    // Per-particle spin attribute (registered only when spinEnabled_m is true).
-    ippl::ParticleAttrib<spin_vector_type> SAttr;
 
     // Whether the spin attribute is registered on this container.
     bool spinEnabled_m = false;
