@@ -115,7 +115,7 @@ namespace opalx {
                 // Pack r's src data at `intersect` (r's src global coords) and send to p.
                 // p will unpack the buffer with the mirror-axis flip flag, placing
                 // the data at the reflected dst range.
-                ippl::detail::solver_send_field<value_type, value_type, Dim>(
+                ippl::detail::solver_send_field<value_type, view_type, Dim>(
                         base_tag, 0, p, intersect, ldom_r, nghost, srcView, fd_send, requests);
             }
 
@@ -130,9 +130,14 @@ namespace opalx {
                 }
                 ippl::NDIndex<Dim> intersect = ldom_r.intersect(ldom_p_mirror);
 
-                ippl::detail::solver_recv<value_type, value_type, Dim>(
-                        base_tag, 0, p, intersect, ldom_r, nghost, dstView, fd_recv, flipX, flipY,
-                        flipZ);
+                // recv
+                ippl::Vector<bool, Dim> coordBool = false;
+                if constexpr (Dim > 0) coordBool[0] = flipX;
+                if constexpr (Dim > 1) coordBool[1] = flipY;
+                if constexpr (Dim > 2) coordBool[2] = flipZ;
+
+                ippl::detail::solver_recv<value_type, view_type, Dim>(
+                        base_tag, 0, p, intersect, ldom_r, nghost, dstView, fd_recv, coordBool);
             }
 
             // Self overlap: r holds both src and dst cells that participate in its
