@@ -24,6 +24,11 @@ protected:
     double t0_m                 = 0.0;
     std::string emissionModel_m = "NONE";
 
+    /// Initial polarization vector P applied to every particle this sampler creates.
+    /// Rest-frame Pauli expectations along lab-frame axes; |Pol| in [0, 1].
+    /// Ignored when the container does not have a spin attribute (hasSpin() == false).
+    Vector_t<double, 3> initialPol_m = 0.0;
+
     /// For one-shot emitters (e.g. Gaussian at delayed t0): guard to avoid double sampling.
     bool hasEmittedOnce_m = false;
 
@@ -47,6 +52,28 @@ public:
         P0_m            = P0;
         t0_m            = t0;
         emissionModel_m = emissionModel;
+    }
+
+    void setInitialPolarization(const ippl::Vector<double, 3>& pol) { initialPol_m = pol; }
+
+    /// Fill the Pol particle attribute with initialPol_m on the half-open range
+    /// [startIdx, startIdx + count). No-op when the container does not store spin.
+    /// Must be called *after* the particles have been created and before they are
+    /// pushed downstream.
+    void fillPolarization(size_t startIdx, size_t count) {
+        if (count == 0 || !pc_m->hasSpin()) {
+            return;
+        }
+        auto Polview = pc_m->Pol.getView();
+        using spin_t = typename ParticleContainer_t::spin_vector_type;
+        const auto px = static_cast<float>(initialPol_m[0]);
+        const auto py = static_cast<float>(initialPol_m[1]);
+        const auto pz = static_cast<float>(initialPol_m[2]);
+        Kokkos::parallel_for(
+                "SamplingBase::fillPolarization", count, KOKKOS_LAMBDA(const size_t k) {
+                    Polview(startIdx + k) = spin_t{px, py, pz};
+                });
+        Kokkos::fence();
     }
 
     Vector_t<double, 3> getEmissionR0() const { return R0_m; }
