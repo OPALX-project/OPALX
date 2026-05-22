@@ -134,6 +134,13 @@ namespace {
 
                 switch (pType) {
                     case ParticleType::MUON:
+                        if (!Options::useSpinAttribute) {
+                            throw OpalException(
+                                    "TrackRun::execute",
+                                    "Muon decay requires spin tracking: the differential decay "
+                                    "rate is polarization-dependent. Set OPTION SPIN_MODE=TRACK "
+                                    "and supply BEAM, POLARIZATION = {Px, Py, Pz}.");
+                        }
                         processes.push_back(std::make_unique<MuonDecay>(tau, containerIndex, mass));
                         break;
                     case ParticleType::PION:
@@ -717,6 +724,10 @@ void TrackRun::setupDistributionsAndSamplers(
         const auto P0   = src->getP0();
         const double t0 = src->getT0();
         sampler->setEmissionOffsets(R0, P0, t0, src->getEmissionModel());
+
+        // Initial polarization from BEAM (ignored if container has no spin attribute).
+        const std::vector<double> pol = beam->getPolarization();
+        sampler->setInitialPolarization({pol[0], pol[1], pol[2]});
 
         const size_t Ndist = opalDist->getNumParticles();
         size_t Nmutable    = Ndist;
