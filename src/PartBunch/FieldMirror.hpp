@@ -115,7 +115,7 @@ namespace opalx {
                 // Pack r's src data at `intersect` (r's src global coords) and send to p.
                 // p will unpack the buffer with the mirror-axis flip flag, placing
                 // the data at the reflected dst range.
-                ippl::detail::solver_send_field<value_type, view_type, Dim>(
+                ippl::detail::solver_send_field(
                         base_tag, 0, p, intersect, ldom_r, nghost, srcView, fd_send, requests);
             }
 
@@ -136,7 +136,7 @@ namespace opalx {
                 if constexpr (Dim > 1) coordBool[1] = flipY;
                 if constexpr (Dim > 2) coordBool[2] = flipZ;
 
-                ippl::detail::solver_recv<value_type, view_type, Dim>(
+                ippl::detail::solver_recv(
                         base_tag, 0, p, intersect, ldom_r, nghost, dstView, fd_recv, coordBool);
             }
 
