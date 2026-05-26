@@ -90,9 +90,19 @@ endif()
 # Disable compile time assert (used by IPPL)
 add_definitions (-DNOCTAssert)
 
-# Allow user to specify branch/tag, default to master
-set(IPPL_GIT_TAG "master" CACHE STRING "Branch or tag for IPPL (default: master)")
-message(STATUS "Fetching IPPL branch/tag: ${IPPL_GIT_TAG}")
+# Allow user to specify branch/tag, default to master. Numeric release versions such as
+# 3.2.0 are accepted as shorthand for IPPL-3.2.0.
+set(IPPL_GIT_TAG "master" CACHE STRING "Branch, tag, commit, or release version for IPPL (default: master)")
+set(_opalx_ippl_fetch_ref "${IPPL_GIT_TAG}")
+if("${_opalx_ippl_fetch_ref}" MATCHES "^[0-9]+(\\.[0-9]+)*$")
+    set(_opalx_ippl_fetch_ref "IPPL-${_opalx_ippl_fetch_ref}")
+endif()
+
+if("${_opalx_ippl_fetch_ref}" STREQUAL "${IPPL_GIT_TAG}")
+    message(STATUS "Fetching IPPL ref: ${_opalx_ippl_fetch_ref}")
+else()
+    message(STATUS "Fetching IPPL ref: ${_opalx_ippl_fetch_ref} (from IPPL_GIT_TAG=${IPPL_GIT_TAG})")
+endif()
 
 if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     set(CMAKE_BUILD_TYPE Debug CACHE STRING "Choose build type" FORCE)
@@ -102,22 +112,19 @@ message(STATUS "Build type is: ${CMAKE_BUILD_TYPE}")
 FetchContent_Declare(
     IPPL
     GIT_REPOSITORY https://github.com/IPPL-framework/ippl.git
-    GIT_TAG ${IPPL_GIT_TAG}
+    GIT_TAG "${_opalx_ippl_fetch_ref}"
     GIT_SHALLOW TRUE
     DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
 
 FetchContent_MakeAvailable(IPPL)
+message(STATUS "IPPL fetched ref: ${_opalx_ippl_fetch_ref}")
 message(STATUS "IPPL include path: ${IPPL_SOURCE_DIR}/src")
 
 # set(IPPL_INCLUDE_DIR "${IPPL_SOURCE_DIR}/src")
 set(IPPL_LIBRARY ippl)
 
 message(STATUS "Found IPPL_DIR: ${IPPL_DIR}")
-if(NOT IPPL_VERSION)
-    set(IPPL_VERSION "3.2.0")
-    message(STATUS "Defaulting to IPPL-${IPPL_VERSION}")
-endif()
 
 # ------------------------------------------------------------------------------
 # HDF5
