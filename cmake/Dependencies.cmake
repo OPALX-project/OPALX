@@ -97,12 +97,19 @@ set(_opalx_ippl_fetch_ref "${IPPL_GIT_TAG}")
 if("${_opalx_ippl_fetch_ref}" MATCHES "^[0-9]+(\\.[0-9]+)*$")
     set(_opalx_ippl_fetch_ref "IPPL-${_opalx_ippl_fetch_ref}")
 endif()
+string(REGEX MATCH "^[0-9a-fA-F]+$" _opalx_ippl_fetch_ref_hex "${_opalx_ippl_fetch_ref}")
+string(LENGTH "${_opalx_ippl_fetch_ref}" _opalx_ippl_fetch_ref_length)
+set(_opalx_ippl_git_shallow TRUE)
+if(_opalx_ippl_fetch_ref_hex AND _opalx_ippl_fetch_ref_length EQUAL 40)
+    set(_opalx_ippl_git_shallow FALSE)
+endif()
 
 if("${_opalx_ippl_fetch_ref}" STREQUAL "${IPPL_GIT_TAG}")
     message(STATUS "Fetching IPPL ref: ${_opalx_ippl_fetch_ref}")
 else()
     message(STATUS "Fetching IPPL ref: ${_opalx_ippl_fetch_ref} (from IPPL_GIT_TAG=${IPPL_GIT_TAG})")
 endif()
+message(STATUS "IPPL shallow fetch: ${_opalx_ippl_git_shallow}")
 
 if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     set(CMAKE_BUILD_TYPE Debug CACHE STRING "Choose build type" FORCE)
@@ -113,7 +120,7 @@ FetchContent_Declare(
     IPPL
     GIT_REPOSITORY https://github.com/IPPL-framework/ippl.git
     GIT_TAG "${_opalx_ippl_fetch_ref}"
-    GIT_SHALLOW TRUE
+    GIT_SHALLOW ${_opalx_ippl_git_shallow}
     DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
 
