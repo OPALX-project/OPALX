@@ -124,7 +124,13 @@ FetchContent_Declare(
     DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
 
+# Exact SHA pins may require fetching objects that are not present in an existing checkout.
+set(_opalx_fetchcontent_updates_disconnected "${FETCHCONTENT_UPDATES_DISCONNECTED}")
+if(NOT _opalx_ippl_git_shallow)
+    set(FETCHCONTENT_UPDATES_DISCONNECTED OFF)
+endif()
 FetchContent_MakeAvailable(IPPL)
+set(FETCHCONTENT_UPDATES_DISCONNECTED "${_opalx_fetchcontent_updates_disconnected}")
 message(STATUS "IPPL fetched ref: ${_opalx_ippl_fetch_ref}")
 message(STATUS "IPPL include path: ${IPPL_SOURCE_DIR}/src")
 
