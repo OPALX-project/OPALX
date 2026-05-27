@@ -155,10 +155,10 @@ public:
     ippl::ParticleAttrib<spin_vector_type> Pol;
 
     /// Returns true when per-particle spin storage was enabled at construction
-    /// (via `Options::useSpinAttribute`).
+    /// (set per beam via the BEAM SPINTRACKING attribute).
     bool hasSpin() const { return spinEnabled_m; }
 
-    ParticleContainer(Mesh_t<Dim>& mesh, FieldLayout_t<Dim>& FL)
+    ParticleContainer(Mesh_t<Dim>& mesh, FieldLayout_t<Dim>& FL, bool spinEnabled = false)
         : pl_m(FL, mesh),
           qmStorageMode_m(
                   Options::useQMAttributes ? QMStorageMode::Attributes
@@ -166,7 +166,7 @@ public:
           distMoments_m(),
           QView_m("ParticleContainer::QView_m", 1),
           MView_m("ParticleContainer::MView_m", 1),
-          spinEnabled_m(Options::useSpinAttribute) {
+          spinEnabled_m(spinEnabled) {
         this->initialize(pl_m);
         registerAttributes();
         setupBCs();

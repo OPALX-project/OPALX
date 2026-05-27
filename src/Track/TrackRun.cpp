@@ -136,12 +136,12 @@ namespace {
 
                 switch (pType) {
                     case ParticleType::MUON:
-                        if (!Options::useSpinAttribute) {
+                        if (!beam.getSpinTracking()) {
                             throw OpalException(
                                     "TrackRun::execute",
                                     "Muon decay requires spin tracking: the differential decay "
-                                    "rate is polarization-dependent. Set OPTION SPIN_MODE=TRACK "
-                                    "and supply BEAM, POLARIZATION = {Px, Py, Pz}.");
+                                    "rate is polarization-dependent. Set SPINTRACKING=TRUE "
+                                    "and supply POLARIZATION = {Px, Py, Pz} on the muon BEAM.");
                         }
                         processes.push_back(std::make_unique<MuonDecay>(
                                 tau, containerIndex, mass, parentSign));
