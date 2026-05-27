@@ -99,8 +99,9 @@ public:
     /// Caller must check |Pol| in [0, 1]; validation is performed in execute().
     std::vector<double> getPolarization() const;
 
-    /// True if per-particle spin tracking is enabled for this beam (SPINTRACKING).
-    bool getSpinTracking() const;
+    /// True if POLARIZATION was explicitly set on this beam. Used both as the initial
+    /// polarization source and as the switch that enables per-particle spin tracking.
+    bool hasPolarization() const;
 
     /// True if PC, ENERGY, or GAMMA was explicitly provided by the user.
     bool hasExplicitEnergy() const;
@@ -118,7 +119,7 @@ private:
     // Clone constructor.
     Beam(const std::string& name, Beam* parent);
 
-    // Validate the POLARIZATION attribute (length, magnitude, SPINTRACKING consistency).
+    // Validate the POLARIZATION attribute (length, magnitude, muon-only).
     void validatePolarization() const;
 
     // The particle reference data.

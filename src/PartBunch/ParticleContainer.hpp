@@ -155,7 +155,7 @@ public:
     ippl::ParticleAttrib<spin_vector_type> Pol;
 
     /// Returns true when per-particle spin storage was enabled at construction
-    /// (set per beam via the BEAM SPINTRACKING attribute).
+    /// (enabled per beam when the BEAM has POLARIZATION set).
     bool hasSpin() const { return spinEnabled_m; }
 
     ParticleContainer(Mesh_t<Dim>& mesh, FieldLayout_t<Dim>& FL, bool spinEnabled = false)
