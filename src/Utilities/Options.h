@@ -74,11 +74,6 @@ namespace Options {
     /// save memory.
     extern bool useQMAttributes;
 
-    /// If true, register a per-particle spin attribute (3D unit vector, single precision) on each
-    /// particle container. Defaults to false to avoid allocating spin storage for runs that don't
-    /// track polarization.
-    extern bool useSpinAttribute;
-
     /// The frequency to dump single particle trajectory of particles with ID = 0 & 1
     extern int sptDumpFreq;
 

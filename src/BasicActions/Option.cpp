@@ -94,7 +94,6 @@ namespace {
         MINSTEPFORREBIN,
         COMPUTEPERCENTILES,
         QM_MODE,
-        SPIN_MODE,
         AGGRESSIVE_STATE_SYNC,
         SIZE
     };
@@ -338,15 +337,6 @@ Option::Option()
             "`Q`/`M` views).",
             useQMAttributes ? std::string("ATTRIBUTES") : std::string("SINGLE"));
 
-    itsAttr[SPIN_MODE] = Attributes::makeString(
-            "SPIN_MODE",
-            "Spin-tracking mode. "
-            "NONE (default) disables spin tracking entirely; "
-            "TRACK registers a per-particle polarization vector (Pol) on every "
-            "particle container, integrates the Thomas-BMT equation along the "
-            "trajectory, and uses Pol in spin-dependent processes such as muon decay.",
-            useSpinAttribute ? std::string("TRACK") : std::string("NONE"));
-
     itsAttr[AGGRESSIVE_STATE_SYNC] = Attributes::makeBool(
             "AGGRESSIVE_STATE_SYNC",
             "If true, every mutation of the shared BunchStateHandler flags "
@@ -404,9 +394,6 @@ Option::Option(const std::string& name, Option* parent) : Action(name, parent) {
     Attributes::setBool(itsAttr[COMPUTEPERCENTILES], computePercentiles);
     Attributes::setString(
             itsAttr[QM_MODE], useQMAttributes ? std::string("ATTRIBUTES") : std::string("SINGLE"));
-    Attributes::setString(
-            itsAttr[SPIN_MODE],
-            useSpinAttribute ? std::string("ATTRIBUTES") : std::string("NONE"));
     Attributes::setBool(itsAttr[AGGRESSIVE_STATE_SYNC], aggressiveStateSync);
 }
 
@@ -445,17 +432,6 @@ void Option::execute() {
         throw OpalException(
                 "Option::execute",
                 "Unsupported QM_MODE '" + qmMode + "'. Use \"SINGLE\" or \"ATTRIBUTES\".");
-    }
-
-    const std::string spinMode = Attributes::getString(itsAttr[SPIN_MODE]);
-    if (spinMode == "TRACK") {
-        useSpinAttribute = true;
-    } else if (spinMode == "NONE") {
-        useSpinAttribute = false;
-    } else {
-        throw OpalException(
-                "Option::execute",
-                "Unsupported SPIN_MODE '" + spinMode + "'. Use \"NONE\" or \"TRACK\".");
     }
 
     aggressiveStateSync = Attributes::getBool(itsAttr[AGGRESSIVE_STATE_SYNC]);

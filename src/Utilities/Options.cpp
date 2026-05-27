@@ -108,8 +108,6 @@ namespace Options {
 
     bool useQMAttributes = false;  // corresponds to QM_MODE=SINGLE
 
-    bool useSpinAttribute = false;  // corresponds to SPIN_MODE=NONE
-
     bool aggressiveStateSync = false;
 
 }  // namespace Options
