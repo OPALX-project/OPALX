@@ -53,7 +53,15 @@ class Beam;
 class Beamline;
 class H5PartWrapper;
 
-enum class DistributionType : short { NODIST = -1, GAUSS, MULTIVARIATEGAUSS, FLATTOP, FROMFILE };
+enum class DistributionType : short {
+    NODIST = -1,
+    GAUSS,
+    MULTIVARIATEGAUSS,
+    FLATTOP,
+    OPALFLATTOP,
+    FROMFILE,
+    EMITTEDFROMFILE
+};
 
 using ParticleContainer_t = ParticleContainer<double, 3>;
 using FieldContainer_t    = FieldContainer<double, 3>;
@@ -98,6 +106,7 @@ public:
     double getSigmaTRise() const;
     double getSigmaTFall() const;
     double getTPulseLengthFWHM() const;
+    size_t getEmissionSteps() const;
 
     double getFTOSCAmplitude() const;
     double getFTOSCPeriods() const;

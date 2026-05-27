@@ -14,7 +14,8 @@
  * - Uniform on-axis field correctness
  * - Static computeField() correctness for simple coefficients
  * - Reconstructed on-axis field via getOnaxisEz()
- * - Device-safe traveling-wave application via applyTravelingWave()
+ * - Device-safe RF cavity helper via computeRFField()
+ * - Device-safe traveling-wave helper via computeTravelingWaveField()
  *
  * Geometry & bounds:
  * - Behaviour outside z-range
@@ -643,6 +644,111 @@ TEST_F(Astra1DDynamicTest, ComputeTravelingWaveFieldOutsideRange) {
     EXPECT_NEAR(E[0], 1.0, 1e-12);
     EXPECT_NEAR(E[1], 2.0, 1e-12);
     EXPECT_NEAR(E[2], 3.0, 1e-12);
+    EXPECT_NEAR(B[0], 4.0, 1e-12);
+    EXPECT_NEAR(B[1], 5.0, 1e-12);
+    EXPECT_NEAR(B[2], 6.0, 1e-12);
+}
+
+// ===========================================================================
+// Test: computeRFField applies RF scaling inside longitudinal range
+// ===========================================================================
+TEST_F(Astra1DDynamicTest, ComputeRFFieldInsideRange) {
+    Kokkos::View<double*, Kokkos::HostSpace> coefs("coefs", 3);
+    coefs(0) = 1.0;
+    coefs(1) = 0.0;
+    coefs(2) = 0.0;
+
+    Vector_t<double, 3> R = {0.0, 0.0, 0.05};
+    Vector_t<double, 3> E = {0.0, 0.0, 0.0};
+    Vector_t<double, 3> B = {0.0, 0.0, 0.0};
+
+    Astra1DDynamic::computeRFField(
+            R, E, B, coefs,
+            0.0,   // zbegin
+            0.10,  // zend
+            0.20,  // length
+            1.0,   // xlrep
+            2,     // accuracy
+            2.0,   // electricScale
+            0.0,   // magneticScale
+            0.0,   // startField
+            0.10   // endField
+    );
+
+    EXPECT_NEAR(E[0], 0.0, 1e-12);
+    EXPECT_NEAR(E[1], 0.0, 1e-12);
+    EXPECT_NEAR(E[2], 2.0, 1e-12);
+
+    EXPECT_NEAR(B[0], 0.0, 1e-12);
+    EXPECT_NEAR(B[1], 0.0, 1e-12);
+    EXPECT_NEAR(B[2], 0.0, 1e-12);
+}
+
+// ===========================================================================
+// Test: computeRFField does nothing outside RFCavity longitudinal range
+// ===========================================================================
+TEST_F(Astra1DDynamicTest, ComputeRFFieldOutsideStartEndRange) {
+    Kokkos::View<double*, Kokkos::HostSpace> coefs("coefs", 3);
+    coefs(0) = 1.0;
+    coefs(1) = 0.0;
+    coefs(2) = 0.0;
+
+    Vector_t<double, 3> R = {0.0, 0.0, 0.05};
+    Vector_t<double, 3> E = {1.0, 2.0, 3.0};
+    Vector_t<double, 3> B = {4.0, 5.0, 6.0};
+
+    Astra1DDynamic::computeRFField(
+            R, E, B, coefs,
+            0.0,   // zbegin
+            0.10,  // zend
+            0.20,  // length
+            1.0,   // xlrep
+            2,     // accuracy
+            2.0,   // electricScale
+            3.0,   // magneticScale
+            0.06,  // startField
+            0.10   // endField
+    );
+
+    EXPECT_NEAR(E[0], 1.0, 1e-12);
+    EXPECT_NEAR(E[1], 2.0, 1e-12);
+    EXPECT_NEAR(E[2], 3.0, 1e-12);
+
+    EXPECT_NEAR(B[0], 4.0, 1e-12);
+    EXPECT_NEAR(B[1], 5.0, 1e-12);
+    EXPECT_NEAR(B[2], 6.0, 1e-12);
+}
+
+// ===========================================================================
+// Test: computeRFField does nothing outside fieldmap z range
+// ===========================================================================
+TEST_F(Astra1DDynamicTest, ComputeRFFieldOutsideFieldmapRange) {
+    Kokkos::View<double*, Kokkos::HostSpace> coefs("coefs", 3);
+    coefs(0) = 1.0;
+    coefs(1) = 0.0;
+    coefs(2) = 0.0;
+
+    Vector_t<double, 3> R = {0.0, 0.0, 0.11};
+    Vector_t<double, 3> E = {1.0, 2.0, 3.0};
+    Vector_t<double, 3> B = {4.0, 5.0, 6.0};
+
+    Astra1DDynamic::computeRFField(
+            R, E, B, coefs,
+            0.0,   // zbegin
+            0.10,  // zend
+            0.20,  // length
+            1.0,   // xlrep
+            2,     // accuracy
+            2.0,   // electricScale
+            3.0,   // magneticScale
+            0.0,   // startField
+            0.20   // endField
+    );
+
+    EXPECT_NEAR(E[0], 1.0, 1e-12);
+    EXPECT_NEAR(E[1], 2.0, 1e-12);
+    EXPECT_NEAR(E[2], 3.0, 1e-12);
+
     EXPECT_NEAR(B[0], 4.0, 1e-12);
     EXPECT_NEAR(B[1], 5.0, 1e-12);
     EXPECT_NEAR(B[2], 6.0, 1e-12);

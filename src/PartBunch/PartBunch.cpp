@@ -302,22 +302,11 @@ void PartBunch<T, Dim>::refreshPcActiveAfterEmit() {
  */
 template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::do_binaryRepart() {
-    throw OpalException(
-            "PartBunch::do_binaryRepart",
-            "Not implemented yet. The load-balancer repartition path is still being "
-            "re-wired against the unified BunchStateHandler and multi-container "
-            "setup; callers must not invoke this until it is properly hooked up.");
-
-    using FieldContainer_t               = FieldContainer<T, Dim>;
-    std::shared_ptr<FieldContainer_t> fc = this->fcontainer_m;
-
-    size_type totalP = this->getParticleContainer()->getTotalNum();
-
-    if (this->loadbalancer_m->balance(totalP)) {
-        auto* mesh = &fc->getRho().get_mesh();
-        auto* FL   = &fc->getFL();
-        this->loadbalancer_m->repartition(FL, mesh, isFirstRepartition_m);
-    }
+    Inform m("PartBunch::do_binaryRepart");
+    m << level2
+      << "Binary load-balancer repartition is disabled while the ORB path is "
+         "not wired for the current multi-container bunch state; skipping."
+      << endl;
 }
 
 /**
@@ -347,10 +336,12 @@ void PartBunch<T, Dim>::setSolver() {
     // Needs to happen before setting the field solver, since the field solver needs the bins.
     setBins();
 
-    auto binnedSolver = std::make_shared<BinnedFieldSolver<T, Dim>>(
+    BinningCmd* binningCmd = OPALFieldSolver_m->getBinningCmd();
+    auto binnedSolver      = std::make_shared<BinnedFieldSolver<T, Dim>>(
             this->solver_m, &this->fcontainer_m->getRho(), &this->fcontainer_m->getE(),
             &this->fcontainer_m->getPhi(), this->getBCHandler(),
-            hasBinning() ? OPALFieldSolver_m->getBinningCmd()->getTablePrintFrequency() : 0);
+            binningCmd ? binningCmd->getTablePrintFrequency() : 0,
+            binningCmd ? binningCmd->getAdaptiveBinning() : true);
     this->setFieldSolver(binnedSolver);
     m << level4 << "Binned field solver set (binned or legacy at runtime)." << endl;
 
@@ -533,7 +524,8 @@ template <typename T, unsigned Dim>
 void PartBunch<T, Dim>::pre_run() {
     Inform m("PartBunch::pre_run");
     m << level2 << "Starting pre_run..." << endl;
-    this->fcontainer_m->getRho() = 0.0;
+    auto rhoView = this->fcontainer_m->getRho().getView();
+    Kokkos::deep_copy(rhoView, 0.0);
     m << level4 << "Rho initialized to zero." << endl;
 
     /*
@@ -674,9 +666,7 @@ void PartBunch<T, Dim>::bunchUpdate() {
     applyGridUpdate(lower, upper);
 
     isFirstRepartition_m = true;
-    // this->loadbalancer_m->initializeORB(FL, mesh);
-    // this->loadbalancer_m->repartition(FL, mesh, isFirstRepartition_m);
-    m << level5 << "Load balancer repartitioning done." << endl;
+    m << level5 << "Bunch grid update done without load-balancer repartitioning." << endl;
 
     // Always request moments update; DistributionMoments decides whether it
     // actually needs to recompute based on the dirty flag.

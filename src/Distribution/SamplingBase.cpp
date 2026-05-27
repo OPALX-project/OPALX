@@ -16,7 +16,7 @@ size_t SamplingBase::computeLocalEmitCount(size_t totalToSample) const {
         return 0;
     }
 
-    const size_t capacity  = pc_m->R.getView().extent(0);
+    const size_t capacity  = pc_m->R.size();
     const size_t localNum  = pc_m->getLocalNum();
     const size_t spaceLeft = (localNum <= capacity) ? (capacity - localNum) : size_t(0);
 

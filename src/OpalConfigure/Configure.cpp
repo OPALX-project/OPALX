@@ -68,6 +68,7 @@
 #include "Elements/OpalDrift.h"
 #include "Elements/OpalLaser.h"
 #include "Elements/OpalMarker.h"
+#include "Elements/OpalMonitor.h"
 #include "Elements/OpalMultipole.h"
 #include "Elements/OpalMultipoleT.h"
 #include "Elements/OpalPolynomialTimeDependence.h"
@@ -138,6 +139,7 @@ namespace {
         opal->create(new OpalDrift());
         opal->create(new OpalBeamBeam());
         opal->create(new OpalLaser());
+        opal->create(new OpalMonitor());
         opal->create(new OpalMarker());
         opal->create(new OpalProbe());
         opal->create(new OpalMultipole());
