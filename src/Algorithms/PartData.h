@@ -94,11 +94,11 @@ public:
 
 protected:
     // The reference information.
-    double charge;        // Particle charge.
-    double mass;          // Particle mass.
-    double beta;          // particle velocity divided by c.
-    double gamma;         // particle energy divided by particle mass
-    double anomaly = 0.0; // Magnetic moment anomaly G = (g-2)/2.
+    double charge;         // Particle charge.
+    double mass;           // Particle mass.
+    double beta;           // particle velocity divided by c.
+    double gamma;          // particle energy divided by particle mass
+    double anomaly = 0.0;  // Magnetic moment anomaly G = (g-2)/2.
 };
 
 // Inline functions.

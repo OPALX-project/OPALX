@@ -52,7 +52,7 @@ TEST_F(SpinTBMTPusherTest, PrecessesAtCorrectFrequencyInStaticBz) {
     const Vector_t<double, 3> P{0.0, 0.0, 0.0};
     const Vector_t<double, 3> E{0.0, 0.0, 0.0};
     const Vector_t<double, 3> B{0.0, 0.0, 1.0};  // 1 T
-    const double dt = 1.0e-12;  // 1 ps
+    const double dt = 1.0e-12;                   // 1 ps
 
     ippl::Vector<float, 3> Pol{1.0f, 0.0f, 0.0f};
 
@@ -63,15 +63,14 @@ TEST_F(SpinTBMTPusherTest, PrecessesAtCorrectFrequencyInStaticBz) {
     const double expectedPhi = (1.0 + anom_mu) * omegaC * dt;
     // For q<0 the rotation is in the +Bf-aligned axis sense per our prefactor sign convention.
     // We just check magnitude of the rotation angle here.
-    const double cosX = static_cast<double>(Pol[0]);
-    const double sinY = static_cast<double>(Pol[1]);
+    const double cosX      = static_cast<double>(Pol[0]);
+    const double sinY      = static_cast<double>(Pol[1]);
     const double actualPhi = std::atan2(std::fabs(sinY), cosX);
     EXPECT_NEAR(actualPhi, expectedPhi, 1.0e-9);
 
     // |Pol| must remain 1.
-    const double mag2 =
-            static_cast<double>(Pol[0]) * Pol[0] + static_cast<double>(Pol[1]) * Pol[1]
-            + static_cast<double>(Pol[2]) * Pol[2];
+    const double mag2 = static_cast<double>(Pol[0]) * Pol[0] + static_cast<double>(Pol[1]) * Pol[1]
+                        + static_cast<double>(Pol[2]) * Pol[2];
     EXPECT_NEAR(std::sqrt(mag2), 1.0, 1.0e-6);
 
     // z-component must remain 0 (rotation is about z).
@@ -122,8 +121,7 @@ TEST_F(SpinTBMTPusherTest, PreservesMagnitudeOverManySteps) {
     for (int i = 0; i < 1000; ++i) {
         pusher.evolve(Pol, P, E, B, dt, mass_mu_eV, charge_mu, anom_mu);
     }
-    const double mag2 = static_cast<double>(Pol[0]) * Pol[0]
-                        + static_cast<double>(Pol[1]) * Pol[1]
+    const double mag2 = static_cast<double>(Pol[0]) * Pol[0] + static_cast<double>(Pol[1]) * Pol[1]
                         + static_cast<double>(Pol[2]) * Pol[2];
     EXPECT_NEAR(std::sqrt(mag2), 1.0, 1.0e-5);
 }

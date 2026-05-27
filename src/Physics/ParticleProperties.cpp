@@ -57,12 +57,12 @@ double ParticleProperties::getParticleLifetime(const ParticleType& type) {
 
 double ParticleProperties::getParticleAnomaly(const ParticleType& type) {
     switch (type) {
-        case ParticleType::ELECTRON: // jumps to POSITRON case
+        case ParticleType::ELECTRON:  // jumps to POSITRON case
         case ParticleType::POSITRON:
             return Physics::a_e;
         case ParticleType::MUON:
             return Physics::a_mu;
-        case ParticleType::PROTON: // jumps to ANTIPROTON case
+        case ParticleType::PROTON:  // jumps to ANTIPROTON case
         case ParticleType::ANTIPROTON:
             return Physics::a_p;
         default:

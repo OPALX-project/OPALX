@@ -246,9 +246,8 @@ void Beam::validatePolarization() const {
     const double pMag2 = pol[0] * pol[0] + pol[1] * pol[1] + pol[2] * pol[2];
     if (pMag2 > 1.0 + 1.0e-12) {
         throw OpalException(
-                "Beam::execute()",
-                "\"POLARIZATION\" magnitude must be in [0, 1]; got |P| = "
-                        + std::to_string(std::sqrt(pMag2)) + ".");
+                "Beam::execute()", "\"POLARIZATION\" magnitude must be in [0, 1]; got |P| = "
+                                           + std::to_string(std::sqrt(pMag2)) + ".");
     }
 }
 

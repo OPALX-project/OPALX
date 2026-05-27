@@ -64,15 +64,14 @@ public:
         if (count == 0 || !pc_m->hasSpin()) {
             return;
         }
-        auto Polview = pc_m->Pol.getView();
-        using spin_t = typename ParticleContainer_t::spin_vector_type;
+        auto Polview  = pc_m->Pol.getView();
+        using spin_t  = typename ParticleContainer_t::spin_vector_type;
         const auto px = static_cast<float>(initialPol_m[0]);
         const auto py = static_cast<float>(initialPol_m[1]);
         const auto pz = static_cast<float>(initialPol_m[2]);
         Kokkos::parallel_for(
-                "SamplingBase::fillPolarization", count, KOKKOS_LAMBDA(const size_t k) {
-                    Polview(startIdx + k) = spin_t{px, py, pz};
-                });
+                "SamplingBase::fillPolarization", count,
+                KOKKOS_LAMBDA(const size_t k) { Polview(startIdx + k) = spin_t{px, py, pz}; });
         Kokkos::fence();
     }
 

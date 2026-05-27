@@ -113,8 +113,8 @@ protected:
     /// Rest mass of the parent particle [GeV].
     double parentMassGeV_m;
 
-    /// Sign of parent particle. Either +1, 0, -1. 
-    /// Necessary because the Muon decay is charge dependent. 
+    /// Sign of parent particle. Either +1, 0, -1.
+    /// Necessary because the Muon decay is charge dependent.
     int parentChargeSign_m;
 };
 
