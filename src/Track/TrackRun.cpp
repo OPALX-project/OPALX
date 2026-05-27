@@ -143,12 +143,12 @@ namespace {
                                     "rate is polarization-dependent. Set POLARIZATION = "
                                     "{Px, Py, Pz} on the muon BEAM (this enables spin tracking).");
                         }
-                        processes.push_back(std::make_unique<MuonDecay>(
-                                tau, containerIndex, mass, parentSign));
+                        processes.push_back(
+                                std::make_unique<MuonDecay>(tau, containerIndex, mass, parentSign));
                         break;
                     case ParticleType::PION:
-                        processes.push_back(std::make_unique<PionDecay>(
-                                tau, containerIndex, mass, parentSign));
+                        processes.push_back(
+                                std::make_unique<PionDecay>(tau, containerIndex, mass, parentSign));
                         break;
                     default:
                         throw OpalException(
@@ -626,8 +626,8 @@ void TrackRun::wireDaughterContainers(const std::vector<Beam*>& beams) {
                 // A muon daughter (e.g. from pion decay) receives a per-particle
                 // polarization from the decay, so its container must have spin storage —
                 // which is enabled by setting POLARIZATION on the daughter muon BEAM.
-                const ParticleType daughterType = ParticleProperties::getParticleType(
-                        beams[daughterIdx]->getParticleName());
+                const ParticleType daughterType =
+                        ParticleProperties::getParticleType(beams[daughterIdx]->getParticleName());
                 if (daughterType == ParticleType::MUON && !beams[daughterIdx]->hasPolarization()) {
                     throw OpalException(
                             "TrackRun::wireDaughterContainers",

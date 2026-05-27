@@ -120,8 +120,8 @@ namespace {
 
         /// Set the same polarization vector on every particle in the container.
         void setUniformPolarization(std::shared_ptr<PC_t>& pc, const std::array<float, 3>& pol) {
-            using spin_t      = typename PC_t::spin_vector_type;
-            auto Pol_host     = pc->Pol.getHostMirror();
+            using spin_t        = typename PC_t::spin_vector_type;
+            auto Pol_host       = pc->Pol.getHostMirror();
             const std::size_t n = pc->getLocalNum();
             for (std::size_t i = 0; i < n; ++i) {
                 Pol_host(i) = spin_t{pol[0], pol[1], pol[2]};
@@ -173,7 +173,7 @@ namespace {
                 }
             }
 
-            const double xMin    = Physics::MuonDecay::minElectronX();
+            const double xMin     = Physics::MuonDecay::minElectronX();
             const double asymSign = (parentSign < 0) ? +1.0 : -1.0;
             const double A        = asymSign * polMag * integratedAsymmetry(xMin);
 
@@ -183,10 +183,10 @@ namespace {
                 analyticPdf[i] = 0.5 * (1.0 + A * hist.center(i));
             }
 
-            const double l1       = opalx::test::l1Distance(hist, analyticPdf);
-            const double meanCos  = opalx::test::sampleMean(cosSamples);
-            const double area     = opalx::test::histogramArea(hist);
-            const double meanRef  = A / 3.0;  // <cos> for p(c) = 1/2 (1 + A c) on [-1, 1]
+            const double l1      = opalx::test::l1Distance(hist, analyticPdf);
+            const double meanCos = opalx::test::sampleMean(cosSamples);
+            const double area    = opalx::test::histogramArea(hist);
+            const double meanRef = A / 3.0;  // <cos> for p(c) = 1/2 (1 + A c) on [-1, 1]
 
             std::cout << "[MuonAngularSpectrum sign=" << parentSign << "] L1=" << l1
                       << " mean=" << meanCos << " (analytic=" << meanRef << ") area=" << area

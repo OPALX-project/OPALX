@@ -13,8 +13,9 @@
  */
 class PionDecay : public Decay {
 public:
-    PionDecay(double restLifetimeSeconds, std::size_t containerIndex, double parentMassGeV,
-              int parentChargeSign)
+    PionDecay(
+            double restLifetimeSeconds, std::size_t containerIndex, double parentMassGeV,
+            int parentChargeSign)
         : Decay(restLifetimeSeconds, containerIndex, parentMassGeV, parentChargeSign) {
         allowedDaughterSpecies_m = static_cast<short>(ParticleProperties::getParticleType("MUON"));
     }

@@ -57,11 +57,11 @@ public:
         //
         // OPALX convention: mass is rest energy in eV (i.e. m*c^2 numerically),
         // so q/m becomes charge*c^2/mass — same idiom used in BorisPusher.
-        const double bg2   = dot(P, P);
-        const double gamma = Kokkos::sqrt(1.0 + bg2);
+        const double bg2               = dot(P, P);
+        const double gamma             = Kokkos::sqrt(1.0 + bg2);
         const Vector_t<double, 3> beta = P / gamma;
 
-        const double betaDotB = dot(beta, Bf);
+        const double betaDotB             = dot(beta, Bf);
         const Vector_t<double, 3> bcrossE = cross(beta, Ef);
 
         const double k1 = anom + 1.0 / gamma;
@@ -70,8 +70,7 @@ public:
 
         const double prefactor = -charge * Physics::c * Physics::c / mass;
         const Vector_t<double, 3> Omega =
-                prefactor
-                * (k1 * Bf - k2 * betaDotB * beta - (k3 / Physics::c) * bcrossE);
+                prefactor * (k1 * Bf - k2 * betaDotB * beta - (k3 / Physics::c) * bcrossE);
 
         const double omegaMag = Kokkos::sqrt(dot(Omega, Omega));
         const double phi      = omegaMag * dt;
@@ -83,15 +82,16 @@ public:
         // Sub-stepping for large rotations: split phi into N steps of size <= maxAngle_m.
         // Rodrigues' formula is exact at any angle, but float precision and the
         // assumption of constant Omega across the step degrade for large phi.
-        const int nSub = static_cast<int>(Kokkos::ceil(phi / maxAngle_m));
-        const double dphi = phi / static_cast<double>(nSub);
+        const int nSub       = static_cast<int>(Kokkos::ceil(phi / maxAngle_m));
+        const double dphi    = phi / static_cast<double>(nSub);
         const double cosDphi = Kokkos::cos(dphi);
         const double sinDphi = Kokkos::sin(dphi);
 
         const Vector_t<double, 3> axis = Omega / omegaMag;
 
-        Vector_t<double, 3> S{static_cast<double>(Pol[0]), static_cast<double>(Pol[1]),
-                              static_cast<double>(Pol[2])};
+        Vector_t<double, 3> S{
+                static_cast<double>(Pol[0]), static_cast<double>(Pol[1]),
+                static_cast<double>(Pol[2])};
         for (int i = 0; i < nSub; ++i) {
             // Rodrigues: S' = cos(dphi) S + sin(dphi) (axis x S) + (1-cos(dphi))(axis.S) axis
             const Vector_t<double, 3> axisCrossS = cross(axis, S);

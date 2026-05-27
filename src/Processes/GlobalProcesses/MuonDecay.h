@@ -14,8 +14,9 @@
  */
 class MuonDecay : public Decay {
 public:
-    MuonDecay(double restLifetimeSeconds, std::size_t containerIndex, double parentMassGeV,
-              int parentChargeSign)
+    MuonDecay(
+            double restLifetimeSeconds, std::size_t containerIndex, double parentMassGeV,
+            int parentChargeSign)
         : Decay(restLifetimeSeconds, containerIndex, parentMassGeV, parentChargeSign) {
         allowedDaughterSpecies_m =
                 static_cast<short>(ParticleProperties::getParticleType("ELECTRON"));

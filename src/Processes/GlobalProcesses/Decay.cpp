@@ -22,8 +22,9 @@ namespace {
 
 }  // namespace
 
-Decay::Decay(double restLifetimeSeconds, std::size_t containerIndex, double parentMassGeV,
-             int parentChargeSign)
+Decay::Decay(
+        double restLifetimeSeconds, std::size_t containerIndex, double parentMassGeV,
+        int parentChargeSign)
     : tau0_m(restLifetimeSeconds),
       randPool_m(decayRngSeed(containerIndex)),
       parentMassGeV_m(parentMassGeV),

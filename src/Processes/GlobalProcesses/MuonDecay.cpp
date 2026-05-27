@@ -19,7 +19,7 @@ void MuonDecay::createDaughterParticles(
     const double daughterMass = daughterMassGeV_m;
     // V-A asymmetry sign: +1 for mu-, -1 for mu+. Set in Decay::apply from the
     // parent container's reference charge.
-    const int chargeSign = parentChargeSign_m;
+    const int chargeSign  = parentChargeSign_m;
     const double asymSign = (chargeSign < 0) ? +1.0 : -1.0;
 
     /* Kinematics of mu -> e + nu_e + nu_mu (three-body decay).
@@ -92,11 +92,11 @@ void MuonDecay::createDaughterParticles(
                     polY = static_cast<double>(parentPol(j)[1]);
                     polZ = static_cast<double>(parentPol(j)[2]);
                 }
-                const double polMag  = Kokkos::sqrt(polX * polX + polY * polY + polZ * polZ);
+                const double polMag = Kokkos::sqrt(polX * polX + polY * polY + polZ * polZ);
 
                 const double alpha = (polMag > 0.0)
-                        ? asymSign * polMag * (2.0 * x - 1.0) / (3.0 - 2.0 * x)
-                        : 0.0;
+                                             ? asymSign * polMag * (2.0 * x - 1.0) / (3.0 - 2.0 * x)
+                                             : 0.0;
 
                 const double u = gen.drand(0.0, 1.0);
                 double cosTheta;
@@ -104,9 +104,9 @@ void MuonDecay::createDaughterParticles(
                     cosTheta = 2.0 * u - 1.0;
                 } else {
                     // Solve (alpha/4) c^2 + (1/2) c + (1/2 - alpha/4 - u) = 0 for c in [-1, 1].
-                    const double aQ = alpha / 4.0;
-                    const double bQ = 0.5;
-                    const double cQ = 0.5 - alpha / 4.0 - u;
+                    const double aQ   = alpha / 4.0;
+                    const double bQ   = 0.5;
+                    const double cQ   = 0.5 - alpha / 4.0 - u;
                     const double disc = bQ * bQ - 4.0 * aQ * cQ;
                     const double sq   = Kokkos::sqrt(disc > 0.0 ? disc : 0.0);
                     const double r1   = (-bQ + sq) / (2.0 * aQ);
@@ -117,7 +117,7 @@ void MuonDecay::createDaughterParticles(
                 }
                 const double sinTheta = Kokkos::sqrt(
                         1.0 - cosTheta * cosTheta > 0.0 ? 1.0 - cosTheta * cosTheta : 0.0);
-                const double phi  = 2.0 * Physics::pi * gen.drand(0.0, 1.0);
+                const double phi = 2.0 * Physics::pi * gen.drand(0.0, 1.0);
 
                 // Daughter momentum in the muon rest frame, expressed in the
                 // spin-aligned local frame: z along Pol-hat (polar angle theta),
@@ -139,21 +139,27 @@ void MuonDecay::createDaughterParticles(
                     if (Kokkos::fabs(nz_x) <= Kokkos::fabs(nz_y)
                         && Kokkos::fabs(nz_x) <= Kokkos::fabs(nz_z)) {
                         const double n = Kokkos::sqrt(nz_y * nz_y + nz_z * nz_z);
-                        ex_x = 0.0;       ex_y = -nz_z / n; ex_z = nz_y / n;
+                        ex_x           = 0.0;
+                        ex_y           = -nz_z / n;
+                        ex_z           = nz_y / n;
                     } else if (Kokkos::fabs(nz_y) <= Kokkos::fabs(nz_z)) {
                         const double n = Kokkos::sqrt(nz_x * nz_x + nz_z * nz_z);
-                        ex_x = nz_z / n;  ex_y = 0.0;       ex_z = -nz_x / n;
+                        ex_x           = nz_z / n;
+                        ex_y           = 0.0;
+                        ex_z           = -nz_x / n;
                     } else {
                         const double n = Kokkos::sqrt(nz_x * nz_x + nz_y * nz_y);
-                        ex_x = -nz_y / n; ex_y = nz_x / n;  ex_z = 0.0;
+                        ex_x           = -nz_y / n;
+                        ex_y           = nz_x / n;
+                        ex_z           = 0.0;
                     }
                     // ey = nz x ex
                     const double ey_x = nz_y * ex_z - nz_z * ex_y;
                     const double ey_y = nz_z * ex_x - nz_x * ex_z;
                     const double ey_z = nz_x * ex_y - nz_y * ex_x;
-                    pxRF = pLoc_x * ex_x + pLoc_y * ey_x + pLoc_z * nz_x;
-                    pyRF = pLoc_x * ex_y + pLoc_y * ey_y + pLoc_z * nz_y;
-                    pzRF = pLoc_x * ex_z + pLoc_y * ey_z + pLoc_z * nz_z;
+                    pxRF              = pLoc_x * ex_x + pLoc_y * ey_x + pLoc_z * nz_x;
+                    pyRF              = pLoc_x * ex_y + pLoc_y * ey_y + pLoc_z * nz_y;
+                    pzRF              = pLoc_x * ex_z + pLoc_y * ey_z + pLoc_z * nz_z;
                 } else {
                     pxRF = pLoc_x;
                     pyRF = pLoc_y;
