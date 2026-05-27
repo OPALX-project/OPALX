@@ -129,6 +129,8 @@ namespace {
                 const ParticleType pType       = ParticleProperties::getParticleType(particleName);
                 const double tau               = ParticleProperties::getParticleLifetime(pType);
                 const double mass              = ParticleProperties::getParticleMass(pType);
+                const double parentQ           = beam.getCharge();
+                const int parentSign           = (parentQ > 0.0) - (parentQ < 0.0);
 
                 requireUnitMacroWeight(beam, "parent");
 
@@ -141,10 +143,12 @@ namespace {
                                     "rate is polarization-dependent. Set OPTION SPIN_MODE=TRACK "
                                     "and supply BEAM, POLARIZATION = {Px, Py, Pz}.");
                         }
-                        processes.push_back(std::make_unique<MuonDecay>(tau, containerIndex, mass));
+                        processes.push_back(std::make_unique<MuonDecay>(
+                                tau, containerIndex, mass, parentSign));
                         break;
                     case ParticleType::PION:
-                        processes.push_back(std::make_unique<PionDecay>(tau, containerIndex, mass));
+                        processes.push_back(std::make_unique<PionDecay>(
+                                tau, containerIndex, mass, parentSign));
                         break;
                     default:
                         throw OpalException(

@@ -22,10 +22,12 @@ namespace {
 
 }  // namespace
 
-Decay::Decay(double restLifetimeSeconds, std::size_t containerIndex, double parentMassGeV)
+Decay::Decay(double restLifetimeSeconds, std::size_t containerIndex, double parentMassGeV,
+             int parentChargeSign)
     : tau0_m(restLifetimeSeconds),
       randPool_m(decayRngSeed(containerIndex)),
-      parentMassGeV_m(parentMassGeV) {}
+      parentMassGeV_m(parentMassGeV),
+      parentChargeSign_m(parentChargeSign) {}
 
 size_t Decay::apply(
         ParticleContainer<double, 3>& pc, double dt, [[maybe_unused]] long long globalTrackStep,
@@ -56,8 +58,14 @@ size_t Decay::apply(
 
     if (daughterPC_m) {
         /* Phase 2: Gather kinematics of decayed parents into compact views. */
+        // parentPolView is empty for containers not tracking spin.
+        Kokkos::View<ippl::Vector<float, 3>*> parentPolView;
+        if (pc.hasSpin()) {
+            parentPolView = pc.Pol.getView();
+        }
         const DecayedParentViews parents = collectDecayedParents(
-                nLocal, localDestroyNum, decayed, pc.R.getView(), pc.P.getView(), pc.dt.getView());
+                nLocal, localDestroyNum, decayed, pc.R.getView(), pc.P.getView(), pc.dt.getView(),
+                parentPolView);
 
         /* Phase 3: Create daughters — subclass-specific momentum sampling. */
         // createParticles() is non-destructive and warns if the daughter buffer must grow.
@@ -66,7 +74,8 @@ size_t Decay::apply(
 
         if (localDestroyNum > 0) {
             createDaughterParticles(
-                    localDestroyNum, oldDaughterLocal, parents.R, parents.P, parents.dt);
+                    localDestroyNum, oldDaughterLocal, parents.R, parents.P, parents.dt,
+                    parents.Pol);
         }
     }
 
@@ -105,7 +114,8 @@ ippl::detail::size_type Decay::markDecayedParticles(
 Decay::DecayedParentViews Decay::collectDecayedParents(
         ippl::detail::size_type nLocal, ippl::detail::size_type localDestroyNum,
         Kokkos::View<bool*> decayed, Kokkos::View<ippl::Vector<double, 3>*> Rview,
-        Kokkos::View<ippl::Vector<double, 3>*> Pview, Kokkos::View<double*> dtView) {
+        Kokkos::View<ippl::Vector<double, 3>*> Pview, Kokkos::View<double*> dtView,
+        Kokkos::View<ippl::Vector<float, 3>*> PolView) {
     using pc_size_type = ippl::detail::size_type;
 
     Kokkos::View<pc_size_type*> compactIdx("Decay::compactIdx", nLocal);
@@ -121,10 +131,13 @@ Decay::DecayedParentViews Decay::collectDecayedParents(
             });
     Kokkos::fence();
 
+    const bool hasPol = PolView.extent(0) > 0;
     DecayedParentViews out{
             Kokkos::View<ippl::Vector<double, 3>*>("Decay::parentR", localDestroyNum),
             Kokkos::View<ippl::Vector<double, 3>*>("Decay::parentP", localDestroyNum),
-            Kokkos::View<double*>("Decay::parentDt", localDestroyNum)};
+            Kokkos::View<double*>("Decay::parentDt", localDestroyNum),
+            Kokkos::View<ippl::Vector<float, 3>*>(
+                    "Decay::parentPol", hasPol ? localDestroyNum : 0)};
 
     Kokkos::parallel_for(
             "Decay::collectParents", nLocal, KOKKOS_LAMBDA(const pc_size_type i) {
@@ -133,6 +146,11 @@ Decay::DecayedParentViews Decay::collectDecayedParents(
                     out.R(j)             = Rview(i);
                     out.P(j)             = Pview(i);
                     out.dt(j)            = dtView(i);
+                    // Does not cause thread divergence because hasPol is always either
+                    // true of false -> All threads do the same thing.
+                    if (hasPol) {
+                        out.Pol(j) = PolView(i);
+                    }
                 }
             });
     Kokkos::fence();
