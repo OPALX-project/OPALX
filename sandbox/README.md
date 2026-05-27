@@ -149,6 +149,44 @@ PY
 - `python/boosted_gaussian_witness.py`: Lorentz-transformed boosted-Gaussian
   manufactured witness calculation used by the LaTeX note.
 - `note/boosted_gaussian_witness.tex`: current physics note.
+- `regression/run_sandbox_regressions.py`: one-command regression checks for
+  the BeamBeam field dumps, gamma-gamma e-/e+ pair tracking summaries,
+  and the OPALX-IMPACT drift comparison.
+
+## Regression Checks
+
+Run all sandbox regression checks from the repository root:
+
+```bash
+source .venv-h6/bin/activate
+python sandbox/regression/run_sandbox_regressions.py
+```
+
+The checks compare compact numeric/file metrics with the accepted baseline in
+`sandbox/regression/sandbox_regression_baseline.json` and write the latest-run
+flattened metric table to `sandbox/regression/current_metrics.csv`.  To rerun
+the sandbox OPALX inputs before checking, provide an OPALX executable:
+
+```bash
+python sandbox/regression/run_sandbox_regressions.py \
+  --run-opalx \
+  --opalx-exe /path/to/opalx
+```
+
+Update the JSON baseline only after accepting an intentional physics or
+numerics change.  The baseline records the current git branch, commit, dirty
+flag, and `git status --short` output:
+
+```bash
+python sandbox/regression/run_sandbox_regressions.py --update-baseline
+```
+
+Build a formatted overview PDF of the comparisons, selected latest-run metrics,
+accepted-baseline provenance, and the OPALX-vs-IMPACT drift overlay:
+
+```bash
+python sandbox/regression/make_overview_pdf.py
+```
 
 ## Combined GUI
 
@@ -354,15 +392,22 @@ The current gamma-gamma pair sandbox lives in `track-e-p/`.  It contains the
 OPALX inputs, low-energy `e-/e+` FROMFILE distributions, and generated
 visualization output.
 
-Main files:
+Main active files:
 
-- `track-e-p/gamma_gamma_pairs.in`: baseline run without witness space-charge
-  kicks.
-- `track-e-p/gamma_gamma_pairs-2.in`: comparison run with witness-container
-  space-charge sampling enabled.
+- `track-e-p/gamma_gamma_pairs-2.in`: active regression input with
+  witness-container space-charge sampling enabled.
 - `track-e-p/fort98.txt`: original pair list from the gamma-gamma process.
 - `track-e-p/gamma_gamma_electrons.fromfile`: electron FROMFILE distribution.
 - `track-e-p/gamma_gamma_positrons.fromfile`: positron FROMFILE distribution.
+- `track-e-p/gamma_gamma_electrons-t.fromfile`: optional electron FROMFILE
+  distribution with fort98 creation time preserved as `t=ct/c` in seconds and
+  `bin_number=1`.
+- `track-e-p/gamma_gamma_positrons-t.fromfile`: optional positron FROMFILE
+  distribution with fort98 creation time preserved as `t=ct/c` in seconds and
+  `bin_number=1`.
+
+The older no-witness input and its generated outputs are kept under
+`track-e-p/attic/`.
 
 Regenerate the FROMFILE distributions:
 
@@ -373,12 +418,39 @@ source ../../.venv-h6/bin/activate
 python convert_fort98_to_fromfile.py fort98.txt
 ```
 
+`convert_fort98_to_fromfile.py` reads `fort98.txt` columns
+`species weight ct x y z energy px py pz`, splits species `2` and `3` into
+electron and positron files, and converts momenta from eV/c to OPALX
+`beta*gamma`.  By default it writes only the six OPALX FROMFILE phase-space
+columns:
+
+```text
+x y z px py pz
+```
+
+Use `--add-time` to regenerate the time-preserving variants:
+
+```bash
+python convert_fort98_to_fromfile.py fort98.txt --add-time
+```
+
+With `--add-time`, the converter writes `gamma_gamma_electrons-t.fromfile` and
+`gamma_gamma_positrons-t.fromfile` with two extra machine-readable columns:
+
+```text
+x y z px py pz t bin_number
+```
+
+Here `t=ct/c` is the fort98 creation time in seconds and `bin_number` is a
+constant integer column set to `1` for every particle.  The analyzer ignores
+`bin_number` but preserves and uses `t` when present.
+
 Run OPALX from `track-e-p/` so generated output lands under `track-e-p/data/`:
 
 ```bash
 cd sandbox/track-e-p
 
-/path/to/opalx gamma_gamma_pairs.in
+/path/to/opalx gamma_gamma_pairs-2.in
 ```
 
 For MPI:
@@ -386,14 +458,13 @@ For MPI:
 ```bash
 cd sandbox/track-e-p
 
-mpirun -np 2 /path/to/opalx gamma_gamma_pairs.in
+mpirun -np 2 /path/to/opalx gamma_gamma_pairs-2.in
 ```
 
 OPALX writes generated element visualization scripts next to the output, for
 example:
 
 ```text
-track-e-p/data/gamma_gamma_pairs_ElementPositions.py
 track-e-p/data/gamma_gamma_pairs-2_ElementPositions.py
 ```
 
@@ -467,4 +538,21 @@ python analyze_pair_momenta.py --plot
 
 By default the momentum script reads `gamma_gamma_electrons.fromfile` and
 `gamma_gamma_positrons.fromfile`, then writes figures and CSV summaries into
-`track-e-p/data/`.
+`track-e-p/data/`.  It accepts `--electron-file`, `--positron-file`,
+`--output-dir`, `--plot`, and `--pair-index`.
+
+To include the fort98 creation-time diagnostics and a time histogram, point the
+analyzer at the time-preserving files:
+
+```bash
+python analyze_pair_momenta.py \
+  --electron-file gamma_gamma_electrons-t.fromfile \
+  --positron-file gamma_gamma_positrons-t.fromfile \
+  --plot
+```
+
+When both inputs contain a `t` column, the script also writes
+`pair_time_species_summary.csv`, `pair_time_pair_summary.csv`, and
+`pair_momentum_time_histogram.png`.  The time summaries are reported in
+picoseconds only and include count, minimum, maximum, span, mean, and standard
+deviation.  `bin_number` is allowed in the input and ignored by the analyzer.

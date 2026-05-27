@@ -1,4 +1,5 @@
 TITLE, string="Gaussian bunch drift test comparison IMPACT";
+OPTION, SEED = 42;
 
 REAL Edes    = 0.001; // GeV
 REAL CURRENT = 0.01;  // A
@@ -30,9 +31,9 @@ ES1: EMISSIONSOURCE, DISTRIBUTION = Dist1;
 
 mySources: EMISSIONSOURCELIST = (ES1);
 
-Beam1: BEAM, PARTICLE = PROTON, CHARGE = 1.0, BFREQ = 1.0,
+Beam1: BEAM, PARTICLE = PROTON, CHARGE = 1.0,
        PC = P0, SOURCES = mySources,
-       NPART = n_parts, BCURRENT = CURRENT;
+       NALLOC = n_parts, BCHARGE = 1.0e-8;
 
 TRACK, LINE = L1, BEAM = Beam1, MAXSTEPS = 1000, ZSTOP = 1.0, DT = 1.0e-10;
  RUN, METHOD = "PARALLEL", FIELDSOLVER = Fs1;

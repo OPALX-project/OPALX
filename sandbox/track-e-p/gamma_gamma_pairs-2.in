@@ -2,6 +2,7 @@ OPTION, PSDUMPFREQ = 1;
 OPTION, STATDUMPFREQ = 1;
 OPTION, BOUNDPDESTROY = 10;
 OPTION, VERSION = 10900;
+OPTION, SEED = 42;
 
 TITLE, STRING = "Gamma-gamma low-energy e-/e+ pair tracking from IP";
 
@@ -27,8 +28,8 @@ REAL primary_bunch_charge = primary_electrons_per_bunch * elementary_charge;
 
 // ---------------------------------------------------------------------------
 // Pair data converted from fort98.txt.
-// FROMFILE momenta are beta*gamma = p/(m_e c); weight and creation time are
-// ignored in the current converter.
+// FROMFILE momenta are beta*gamma = p/(m_e c).  The converter can also
+// preserve fort98 creation times as t=ct/c in gamma_gamma_*-t.fromfile.
 REAL n_pairs_per_species = 1297;
 REAL pair_bunch_charge = n_pairs_per_species * elementary_charge;
 

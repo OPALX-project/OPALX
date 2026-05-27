@@ -1,0 +1,75 @@
+metric,value
+fields.Ex.l2,16.25829412733158
+fields.Ex.max_abs,0.867636864378099
+fields.Ex.rel_l2,0.015030244723860295
+fields.Ey.l2,17.113017109185286
+fields.Ey.max_abs,0.8807831775551911
+fields.Ey.rel_l2,0.01582186867410125
+fields.Ez.l2,26.561793917331702
+fields.Ez.max_abs,1.0313546288518793
+fields.Ez.rel_l2,0.02427368611764224
+fields.charge_c,-1.112650055e-14
+fields.n_centers,2.0
+fields.phi.l2,0.0234759707933805
+fields.phi.max_abs,0.0010874507206220102
+fields.phi.rel_l2,0.0030422483971396385
+fields.rho.l2,8.144620072039586e-07
+fields.rho.max_abs,5.746384300512339e-08
+fields.rho.rel_l2,0.05221858580825394
+fields.rho_integral_c,-2.225180774546805e-14
+fields.snapshot_kind,active_beambeam_field_diagnostics
+impact.digitized_rows,71.0
+impact.final.OPALX_epsx_mm_mr,1.892710694410985
+impact.final.OPALX_x_m,0.03478512908471119
+impact.final.t_ns,72.29999999999963
+impact.max_abs_epsx_diff_mm_mr,0.13101914854478158
+impact.max_abs_x_diff_m,0.002221940257458685
+impact.opalx_rows,73.0
+impact.rms_epsx_diff_mm_mr,0.08641334104906384
+impact.rms_x_diff_m,0.0007656174663305566
+pairs.fromfile.electron.<K> keV,313.6014804946139
+pairs.fromfile.electron.<p_abs> beta_gamma,1.2374984381109004
+pairs.fromfile.electron.<px> beta_gamma,0.030947337881681754
+pairs.fromfile.electron.<py> beta_gamma,-0.0031412324048766265
+pairs.fromfile.electron.<pz> beta_gamma,0.03897777926399449
+pairs.fromfile.electron.<theta_z> deg,88.70483002436045
+pairs.fromfile.electron.N,1297.0
+pairs.fromfile.electron.median theta_z deg,86.65825320209831
+pairs.fromfile.positron.<K> keV,313.61464674324816
+pairs.fromfile.positron.<p_abs> beta_gamma,1.2386950189045132
+pairs.fromfile.positron.<px> beta_gamma,-0.031077421826373866
+pairs.fromfile.positron.<py> beta_gamma,0.0034335788757727265
+pairs.fromfile.positron.<pz> beta_gamma,-0.0032319144241394885
+pairs.fromfile.positron.<theta_z> deg,89.5021801297148
+pairs.fromfile.positron.N,1297.0
+pairs.fromfile.positron.median theta_z deg,89.62571705214643
+pairs.pair_summary.<u_e dot u_p>,-0.8397740827936788
+pairs.pair_summary.fraction opening < 30 deg,0.002313030069390902
+pairs.pair_summary.fraction opening > 150 deg,0.7548188126445644
+pairs.pair_summary.median opening angle deg,168.90710440687806
+pairs.pair_summary.median |p_e+p_p| beta_gamma,0.37924062198276975
+pairs.pair_summary.median |p_e+p_p|/sum|p|,0.162992964900918
+pairs.track_stat.gamma_gamma_pairs-2.c0.final_energy_MeV,248.047497802065
+pairs.track_stat.gamma_gamma_pairs-2.c0.final_mean_s_m,-0.0004726161547863739
+pairs.track_stat.gamma_gamma_pairs-2.c0.final_numParticles,10000.0
+pairs.track_stat.gamma_gamma_pairs-2.c0.final_rms_x_m,0.004253527578411803
+pairs.track_stat.gamma_gamma_pairs-2.c0.final_rms_y_m,0.004276753057533046
+pairs.track_stat.gamma_gamma_pairs-2.c0.final_s_m,0.03897293512247028
+pairs.track_stat.gamma_gamma_pairs-2.c0.final_t_ns,0.1299999999999998
+pairs.track_stat.gamma_gamma_pairs-2.c0.rows,130.0
+pairs.track_stat.gamma_gamma_pairs-2.c1.final_energy_MeV,0.3160792683915825
+pairs.track_stat.gamma_gamma_pairs-2.c1.final_mean_s_m,0.03516608241206453
+pairs.track_stat.gamma_gamma_pairs-2.c1.final_numParticles,1297.0
+pairs.track_stat.gamma_gamma_pairs-2.c1.final_rms_x_m,0.003397430576040133
+pairs.track_stat.gamma_gamma_pairs-2.c1.final_rms_y_m,0.00323729851115963
+pairs.track_stat.gamma_gamma_pairs-2.c1.final_s_m,7.626829671553206e-08
+pairs.track_stat.gamma_gamma_pairs-2.c1.final_t_ns,0.1299999999999998
+pairs.track_stat.gamma_gamma_pairs-2.c1.rows,130.0
+pairs.track_stat.gamma_gamma_pairs-2.c2.final_energy_MeV,0.3111313465776389
+pairs.track_stat.gamma_gamma_pairs-2.c2.final_mean_s_m,0.03501694947703168
+pairs.track_stat.gamma_gamma_pairs-2.c2.final_numParticles,1297.0
+pairs.track_stat.gamma_gamma_pairs-2.c2.final_rms_x_m,0.00338457149276078
+pairs.track_stat.gamma_gamma_pairs-2.c2.final_rms_y_m,0.003236842106359146
+pairs.track_stat.gamma_gamma_pairs-2.c2.final_s_m,7.626829671553206e-08
+pairs.track_stat.gamma_gamma_pairs-2.c2.final_t_ns,0.1299999999999998
+pairs.track_stat.gamma_gamma_pairs-2.c2.rows,130.0

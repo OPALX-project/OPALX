@@ -4,6 +4,7 @@ OPTION, BOUNDPDESTROY=10;    // Delete lost particles, if any
 OPTION, AUTOPHASE=4;           // Autophase is on, and phase of max energy
                                // gain will be found automatically for cavities
 OPTION, VERSION=10900;
+OPTION, SEED=42;
 
 TITLE, STRING="BeamBeam test 1 ";
 

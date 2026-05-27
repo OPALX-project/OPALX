@@ -1,0 +1,125 @@
+{
+  "_metadata": {
+    "checks": [
+      "fields",
+      "impact",
+      "pairs"
+    ],
+    "git": {
+      "branch": "271-implement-interation-point-element",
+      "commit": "6ca2425c6eb2fdfe6591eb4e05bdad8a36fcbc0c",
+      "dirty": true,
+      "status_short": "M sandbox/BeamBeam-1.in\n M sandbox/BeamBeam-2.in\n M sandbox/BeamBeam-static-1V.in\n M sandbox/OPALX-IMPACT/drift-1.in\n M sandbox/README.md\n M sandbox/track-e-p/analyze_pair_momenta.py\n M sandbox/track-e-p/convert_fort98_to_fromfile.py\n D sandbox/track-e-p/e-e+.gpl\n M sandbox/track-e-p/gamma_gamma_pairs-2.in\n D sandbox/track-e-p/gamma_gamma_pairs.in\n?? sandbox/regression/\n?? sandbox/track-e-p/attic/\n?? sandbox/track-e-p/gamma_gamma_electrons-t.fromfile\n?? sandbox/track-e-p/gamma_gamma_positrons-t.fromfile"
+    }
+  },
+  "fields": {
+    "Ex": {
+      "l2": 16.25829412733158,
+      "max_abs": 0.867636864378099,
+      "rel_l2": 0.015030244723860295
+    },
+    "Ey": {
+      "l2": 17.113017109185286,
+      "max_abs": 0.8807831775551911,
+      "rel_l2": 0.01582186867410125
+    },
+    "Ez": {
+      "l2": 26.561793917331702,
+      "max_abs": 1.0313546288518793,
+      "rel_l2": 0.02427368611764224
+    },
+    "charge_c": -1.112650055e-14,
+    "n_centers": 2,
+    "phi": {
+      "l2": 0.0234759707933805,
+      "max_abs": 0.0010874507206220102,
+      "rel_l2": 0.0030422483971396385
+    },
+    "rho": {
+      "l2": 8.144620072039586e-07,
+      "max_abs": 5.746384300512339e-08,
+      "rel_l2": 0.05221858580825394
+    },
+    "rho_integral_c": -2.225180774546805e-14,
+    "snapshot_kind": "active_beambeam_field_diagnostics"
+  },
+  "impact": {
+    "digitized_rows": 71.0,
+    "final": {
+      "OPALX_epsx_mm_mr": 1.892710694410985,
+      "OPALX_x_m": 0.03478512908471119,
+      "t_ns": 72.29999999999963
+    },
+    "max_abs_epsx_diff_mm_mr": 0.13101914854478158,
+    "max_abs_x_diff_m": 0.002221940257458685,
+    "opalx_rows": 73.0,
+    "rms_epsx_diff_mm_mr": 0.08641334104906384,
+    "rms_x_diff_m": 0.0007656174663305566
+  },
+  "pairs": {
+    "fromfile": {
+      "electron": {
+        "<K> keV": 313.6014804946139,
+        "<p_abs> beta_gamma": 1.2374984381109004,
+        "<px> beta_gamma": 0.030947337881681754,
+        "<py> beta_gamma": -0.0031412324048766265,
+        "<pz> beta_gamma": 0.03897777926399449,
+        "<theta_z> deg": 88.70483002436045,
+        "N": 1297.0,
+        "median theta_z deg": 86.65825320209831
+      },
+      "positron": {
+        "<K> keV": 313.61464674324816,
+        "<p_abs> beta_gamma": 1.2386950189045132,
+        "<px> beta_gamma": -0.031077421826373866,
+        "<py> beta_gamma": 0.0034335788757727265,
+        "<pz> beta_gamma": -0.0032319144241394885,
+        "<theta_z> deg": 89.5021801297148,
+        "N": 1297.0,
+        "median theta_z deg": 89.62571705214643
+      }
+    },
+    "pair_summary": {
+      "<u_e dot u_p>": -0.8397740827936788,
+      "fraction opening < 30 deg": 0.002313030069390902,
+      "fraction opening > 150 deg": 0.7548188126445644,
+      "median opening angle deg": 168.90710440687806,
+      "median |p_e+p_p| beta_gamma": 0.37924062198276975,
+      "median |p_e+p_p|/sum|p|": 0.162992964900918
+    },
+    "track_stat": {
+      "gamma_gamma_pairs-2": {
+        "c0": {
+          "final_energy_MeV": 248.047497802065,
+          "final_mean_s_m": -0.0004726161547863739,
+          "final_numParticles": 10000.0,
+          "final_rms_x_m": 0.004253527578411803,
+          "final_rms_y_m": 0.004276753057533046,
+          "final_s_m": 0.03897293512247028,
+          "final_t_ns": 0.1299999999999998,
+          "rows": 130.0
+        },
+        "c1": {
+          "final_energy_MeV": 0.3160792683915825,
+          "final_mean_s_m": 0.03516608241206453,
+          "final_numParticles": 1297.0,
+          "final_rms_x_m": 0.003397430576040133,
+          "final_rms_y_m": 0.00323729851115963,
+          "final_s_m": 7.626829671553206e-08,
+          "final_t_ns": 0.1299999999999998,
+          "rows": 130.0
+        },
+        "c2": {
+          "final_energy_MeV": 0.3111313465776389,
+          "final_mean_s_m": 0.03501694947703168,
+          "final_numParticles": 1297.0,
+          "final_rms_x_m": 0.00338457149276078,
+          "final_rms_y_m": 0.003236842106359146,
+          "final_s_m": 7.626829671553206e-08,
+          "final_t_ns": 0.1299999999999998,
+          "rows": 130.0
+        }
+      }
+    }
+  }
+}
