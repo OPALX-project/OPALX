@@ -106,14 +106,14 @@ PartBunch<T, Dim>::PartBunch(
     this->setParticleContainer(
             std::make_shared<ParticleContainer_t>(
                     this->fcontainer_m->getMesh(), this->fcontainer_m->getFL(),
-                    beams[0]->getSpinTracking()));
+                    beams[0]->hasPolarization()));
     this->pcontainer_m->setBunchStateHandler(bunchState_m);
     /// \todo if we want, we could also have a separate BunchStateHandler for each container later?
     /// But I think it could also make sense to only have one global handler.
     for (size_t i = 1; i < num_containers; ++i) {
         auto pc = std::make_shared<ParticleContainer_t>(
                 this->fcontainer_m->getMesh(), this->fcontainer_m->getFL(),
-                beams[i]->getSpinTracking());
+                beams[i]->hasPolarization());
         pc->setBunchStateHandler(bunchState_m);
         this->addParticleContainer(pc);
     }

@@ -54,7 +54,6 @@ namespace {
         GLOBALPROCESSES,  // Global physics processes active for this beam
         DAUGHTERBEAM,     // Name of the beam that receives decay daughter particles
         POLARIZATION,     // Initial polarization vector P (rest-frame, lab-frame axes)
-        SPINTRACKING,     // Enable per-particle spin tracking for this beam's container
         SIZE
     };
 }  // namespace
@@ -104,17 +103,12 @@ Beam::Beam()
             "Initial polarization vector P = {Px, Py, Pz} for this beam "
             "(rest-frame Pauli expectation values along lab-frame axes). "
             "Must be length-3 with |P| in [0, 1]. Only valid for PARTICLE=MUON; "
-            "setting POLARIZATION on any other species is rejected. A nonzero "
-            "value also requires SPINTRACKING=TRUE on this beam. Ignored for beams "
-            "whose muons are produced by an upstream decay (e.g. PionDecay).");
-
-    itsAttr[SPINTRACKING] = Attributes::makeBool(
-            "SPINTRACKING",
-            "Enable per-particle spin tracking for this beam's particle container "
-            "(allocates the polarization attribute and integrates the Thomas-BMT "
-            "equation). Default false. Required for a MUON beam running "
-            "GLOBALPROCESSES={DECAY} and for any beam with a nonzero POLARIZATION.",
-            false);
+            "setting POLARIZATION on any other species is rejected. Setting "
+            "POLARIZATION (even {0,0,0}) enables per-particle spin tracking for this "
+            "beam (Thomas-BMT integration); leaving it unset disables spin tracking. "
+            "For muons produced by an upstream decay (e.g. PionDecay) the per-particle "
+            "value is overwritten by the decay, but POLARIZATION must still be set to "
+            "enable the spin storage that receives it.");
 
     // Set up default beam.
     Beam* defBeam    = clone("UNNAMED_BEAM");
@@ -256,12 +250,6 @@ void Beam::validatePolarization() const {
                 "\"POLARIZATION\" magnitude must be in [0, 1]; got |P| = "
                         + std::to_string(std::sqrt(pMag2)) + ".");
     }
-    if (pMag2 > 0.0 && !getSpinTracking()) {
-        throw OpalException(
-                "Beam::execute()",
-                "\"POLARIZATION\" is set with a nonzero magnitude but spin tracking is "
-                "disabled for this beam. Set SPINTRACKING=TRUE or remove POLARIZATION.");
-    }
 }
 
 std::string Beam::getEmissionSourceListName() const {
@@ -296,8 +284,8 @@ std::vector<double> Beam::getPolarization() const {
     return pol;
 }
 
-bool Beam::getSpinTracking() const {
-    return Attributes::getBool(itsAttr[SPINTRACKING]);
+bool Beam::hasPolarization() const {
+    return !Attributes::getRealArray(itsAttr[POLARIZATION]).empty();
 }
 
 Beam* Beam::find(const std::string& name) {
