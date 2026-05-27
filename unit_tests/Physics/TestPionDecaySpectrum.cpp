@@ -118,7 +118,7 @@ namespace {
         createParticles(pions, nPions, 0.0);
 
         Options::seed = 20260516;
-        PionDecay decay(1.0e-12, 0, Physics::m_pi);
+        PionDecay decay(1.0e-12, 0, Physics::m_pi, +1);  // pi+
         decay.setDaughterContainer(muons, Physics::m_mu);
 
         const std::size_t marked    = decay.apply(*pions, 1.0, 0, 0);
@@ -182,7 +182,7 @@ namespace {
          * We are testing the daughter particle energy spectrum, not the decay
          * time.
          */
-        PionDecay decay(1.0e-12, 0, Physics::m_pi);
+        PionDecay decay(1.0e-12, 0, Physics::m_pi, +1);  // pi+
         decay.setDaughterContainer(muons, Physics::m_mu);
 
         const std::size_t marked    = decay.apply(*pions, 1.0, 0, 0);
