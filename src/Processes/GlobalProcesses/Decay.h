@@ -27,7 +27,8 @@
  */
 class Decay : public GlobalProcess {
 public:
-    Decay(double restLifetimeSeconds, std::size_t containerIndex, double parentMassGeV);
+    Decay(double restLifetimeSeconds, std::size_t containerIndex, double parentMassGeV,
+          int parentChargeSign);
 
     ~Decay() override = default;
 
@@ -58,13 +59,16 @@ public:
             std::size_t localDestroyNum, std::size_t oldDaughterLocal,
             const Kokkos::View<ippl::Vector<double, 3>*>& parentR,
             const Kokkos::View<ippl::Vector<double, 3>*>& parentP,
-            const Kokkos::View<double*>& parentDt) = 0;
+            const Kokkos::View<double*>& parentDt,
+            const Kokkos::View<ippl::Vector<float, 3>*>& parentPol) = 0;
 
     /// Compact views of the kinematics of parents marked for decay.
+    /// Pol is length-0 when the parent container does not track spin.
     struct DecayedParentViews {
         Kokkos::View<ippl::Vector<double, 3>*> R;
         Kokkos::View<ippl::Vector<double, 3>*> P;
         Kokkos::View<double*> dt;
+        Kokkos::View<ippl::Vector<float, 3>*> Pol;
     };
 
     /**
@@ -86,7 +90,8 @@ public:
     DecayedParentViews collectDecayedParents(
             ippl::detail::size_type nLocal, ippl::detail::size_type localDestroyNum,
             Kokkos::View<bool*> decayed, Kokkos::View<ippl::Vector<double, 3>*> Rview,
-            Kokkos::View<ippl::Vector<double, 3>*> Pview, Kokkos::View<double*> dtView);
+            Kokkos::View<ippl::Vector<double, 3>*> Pview, Kokkos::View<double*> dtView,
+            Kokkos::View<ippl::Vector<float, 3>*> PolView);
 
 protected:
     /// Mean lifetime at rest [s].
@@ -107,6 +112,10 @@ protected:
 
     /// Rest mass of the parent particle [GeV].
     double parentMassGeV_m;
+
+    /// Sign of parent particle. Either +1, 0, -1. 
+    /// Necessary because the Muon decay is charge dependent. 
+    int parentChargeSign_m;
 };
 
 #endif
