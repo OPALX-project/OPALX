@@ -232,7 +232,8 @@ void StatWriter::write(
     // File vs. container: this object was constructed with the stem for particleContainerIndex;
     // pc must be beam->getParticleContainer(particleContainerIndex) (caller responsibility).
 
-    double Q = pc->getTotalCharge();
+    const size_t numParticles = pc->getTotalNum();
+    double Q                  = numParticles == 0 ? 0.0 : pc->getTotalCharge();
 
     if (ippl::Comm->rank() != 0) {
         return;
@@ -244,27 +245,61 @@ void StatWriter::write(
 
     this->writeHeader();
 
-    columns_m.addColumnValue("t", beam.getT() * Units::s2ns);        // 1
-    columns_m.addColumnValue("s", pathLength);                       // 2
-    columns_m.addColumnValue("numParticles", pc->getTotalNum());     // 3
-    columns_m.addColumnValue("charge", Q);                           // 4
-    columns_m.addColumnValue("energy", pc->getMeanKineticEnergy());  // 5
+    Vector_t<double, 3> rmsR(0.0);
+    Vector_t<double, 3> rmsP(0.0);
+    Vector_t<double, 3> normEmit(0.0);
+    Vector_t<double, 3> meanR(0.0);
+    Vector_t<double, 3> maxR(0.0);
+    Vector_t<double, 3> rmsRP(0.0);
+    double energy          = 0.0;
+    double dE              = 0.0;
+    double dx              = 0.0;
+    double ddx             = 0.0;
+    double dy              = 0.0;
+    double ddy             = 0.0;
+    double debyeLength     = 0.0;
+    double plasmaParameter = 0.0;
+    double temperature     = 0.0;
 
-    columns_m.addColumnValue("rms_x", pc->getRmsR()(0));  // 6
-    columns_m.addColumnValue("rms_y", pc->getRmsR()(1));  // 7
-    columns_m.addColumnValue("rms_s", pc->getRmsR()(2));  // 8
+    if (numParticles > 0) {
+        energy          = pc->getMeanKineticEnergy();
+        rmsR            = pc->getRmsR();
+        rmsP            = pc->getRmsP();
+        normEmit        = pc->getNormEmit();
+        meanR           = pc->getMeanR();
+        maxR            = pc->getMaxR();
+        rmsRP           = pc->getRmsRP();
+        dE              = pc->getStdKineticEnergy();
+        dx              = pc->getDx();
+        ddx             = pc->getDDx();
+        dy              = pc->getDy();
+        ddy             = pc->getDDy();
+        debyeLength     = pc->getDebyeLength();
+        plasmaParameter = pc->getPlasmaParameter();
+        temperature     = pc->getTemperature();
+    }
 
-    columns_m.addColumnValue("rms_px", pc->getRmsP()(0));  // 9
-    columns_m.addColumnValue("rms_py", pc->getRmsP()(1));  // 10
-    columns_m.addColumnValue("rms_ps", pc->getRmsP()(2));  // 11
+    columns_m.addColumnValue("t", beam.getT() * Units::s2ns);  // 1
+    columns_m.addColumnValue("s", pathLength);                 // 2
+    columns_m.addColumnValue("numParticles", numParticles);    // 3
+    columns_m.addColumnValue("charge", Q);                     // 4
+    columns_m.addColumnValue("energy", energy);                // 5
 
-    columns_m.addColumnValue("emit_x", pc->getNormEmit()(0));  // 12
-    columns_m.addColumnValue("emit_y", pc->getNormEmit()(1));  // 13
-    columns_m.addColumnValue("emit_s", pc->getNormEmit()(2));  // 14
+    columns_m.addColumnValue("rms_x", rmsR(0));  // 6
+    columns_m.addColumnValue("rms_y", rmsR(1));  // 7
+    columns_m.addColumnValue("rms_s", rmsR(2));  // 8
 
-    columns_m.addColumnValue("mean_x", pc->getMeanR()(0));  // 15
-    columns_m.addColumnValue("mean_y", pc->getMeanR()(1));  // 16
-    columns_m.addColumnValue("mean_s", pc->getMeanR()(2));  // 17
+    columns_m.addColumnValue("rms_px", rmsP(0));  // 9
+    columns_m.addColumnValue("rms_py", rmsP(1));  // 10
+    columns_m.addColumnValue("rms_ps", rmsP(2));  // 11
+
+    columns_m.addColumnValue("emit_x", normEmit(0));  // 12
+    columns_m.addColumnValue("emit_y", normEmit(1));  // 13
+    columns_m.addColumnValue("emit_s", normEmit(2));  // 14
+
+    columns_m.addColumnValue("mean_x", meanR(0));  // 15
+    columns_m.addColumnValue("mean_y", meanR(1));  // 16
+    columns_m.addColumnValue("mean_s", meanR(2));  // 17
 
     columns_m.addColumnValue("ref_x", pc->getRefPartR()(0));  // 18
     columns_m.addColumnValue("ref_y", pc->getRefPartR()(1));  // 19
@@ -274,20 +309,20 @@ void StatWriter::write(
     columns_m.addColumnValue("ref_py", pc->getRefPartP()(1));  // 22
     columns_m.addColumnValue("ref_pz", pc->getRefPartP()(2));  // 23
 
-    columns_m.addColumnValue("max_x", pc->getMaxR()(0));  // 24
-    columns_m.addColumnValue("max_y", pc->getMaxR()(1));  // 25
-    columns_m.addColumnValue("max_s", pc->getMaxR()(2));  // 26
+    columns_m.addColumnValue("max_x", maxR(0));  // 24
+    columns_m.addColumnValue("max_y", maxR(1));  // 25
+    columns_m.addColumnValue("max_s", maxR(2));  // 26
 
     // Write out Courant Snyder parameters.
-    columns_m.addColumnValue("xpx", pc->getRmsRP()(0));  // 27
-    columns_m.addColumnValue("ypy", pc->getRmsRP()(1));  // 28
-    columns_m.addColumnValue("zpz", pc->getRmsRP()(2));  // 29
+    columns_m.addColumnValue("xpx", rmsRP(0));  // 27
+    columns_m.addColumnValue("ypy", rmsRP(1));  // 28
+    columns_m.addColumnValue("zpz", rmsRP(2));  // 29
 
     // Write out dispersion.
-    columns_m.addColumnValue("Dx", pc->getDx());    // 30
-    columns_m.addColumnValue("DDx", pc->getDDx());  // 31
-    columns_m.addColumnValue("Dy", pc->getDy());    // 32
-    columns_m.addColumnValue("DDy", pc->getDDy());  // 33
+    columns_m.addColumnValue("Dx", dx);    // 30
+    columns_m.addColumnValue("DDx", ddx);  // 31
+    columns_m.addColumnValue("Dy", dy);    // 32
+    columns_m.addColumnValue("DDy", ddy);  // 33
 
     // Write head/reference particle/tail field information.
     columns_m.addColumnValue("Bx_ref", FDext[0](0));  // 34 B-ref x
@@ -298,15 +333,14 @@ void StatWriter::write(
     columns_m.addColumnValue("Ey_ref", FDext[1](1));  // 38 E-ref y
     columns_m.addColumnValue("Ez_ref", FDext[1](2));  // 39 E-ref z
 
-    columns_m.addColumnValue("dE", pc->getStdKineticEnergy());   // 40 dE energy spread
+    columns_m.addColumnValue("dE", dE);                          // 40 dE energy spread
     columns_m.addColumnValue("dt", beam.getdT() * Units::s2ns);  // 41 dt time step size
     columns_m.addColumnValue("partsOutside", npOutside);  // 42 number of particles outside n*sigma
 
-    columns_m.addColumnValue(
-            "DebyeLength", pc->getDebyeLength());  // 43 Debye length in the boosted frame
-    columns_m.addColumnValue("plasmaParameter", pc->getPlasmaParameter());  // 43 plasma parameter
-    columns_m.addColumnValue("temperature", pc->getTemperature());          // 44 Temperature
-    columns_m.addColumnValue("rmsDensity", beam.get_rmsDensity());          // 45 RMS number density
+    columns_m.addColumnValue("DebyeLength", debyeLength);           // 43 Debye length
+    columns_m.addColumnValue("plasmaParameter", plasmaParameter);   // 43 plasma parameter
+    columns_m.addColumnValue("temperature", temperature);           // 44 Temperature
+    columns_m.addColumnValue("rmsDensity", beam.get_rmsDensity());  // 45 RMS number density
     columns_m.addColumnValue("nBins", beam.getCurrentNBins());
 
     /*

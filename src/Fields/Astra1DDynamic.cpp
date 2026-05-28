@@ -306,6 +306,31 @@ void Astra1DDynamic::applyField(std::shared_ptr<ParticleContainer_t> pc, double)
             });
 }
 
+void Astra1DDynamic::applyRFField(
+        std::shared_ptr<ParticleContainer_t> pc, double electricScale, double magneticScale,
+        double startField, double endField) {
+    const double zbegin = zbegin_m;
+    const double zend   = zend_m;
+    const double length = length_m;
+    const double xlrep  = xlrep_m;
+    const int accuracy  = accuracy_m;
+
+    auto FourCoefs_device = FourCoefs_m.view_device();
+
+    auto Rview = pc->R.getView();
+    auto Eview = pc->E.getView();
+    auto Bview = pc->B.getView();
+
+    const size_t nLocal = pc->getLocalNum();
+
+    Kokkos::parallel_for(
+            "Astra1DDynamic::applyRFField", nLocal, KOKKOS_LAMBDA(const size_t i) {
+                computeRFField(
+                        Rview(i), Eview(i), Bview(i), FourCoefs_device, zbegin, zend, length, xlrep,
+                        accuracy, electricScale, magneticScale, startField, endField);
+            });
+}
+
 void Astra1DDynamic::applyTravelingWave(
         std::shared_ptr<ParticleContainer_t> pc, double entryElectricScale,
         double entryMagneticScale, double core1ElectricScale, double core1MagneticScale,

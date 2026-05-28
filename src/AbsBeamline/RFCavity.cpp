@@ -10,6 +10,7 @@
 #include <filesystem>
 #include "AbsBeamline/BeamlineVisitor.h"
 #include "Component.h"
+#include "Fields/Astra1DDynamic.h"
 #include "Fields/FM2DDynamic.h"
 #include "Fields/Fieldmap.h"
 #include "PartBunch/PartBunch.h"
@@ -132,14 +133,19 @@ bool RFCavity::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     const double cosphi = Kokkos::cos(phi);
     const double sinphi = Kokkos::sin(phi);
 
-    auto* dynamicFieldmap = dynamic_cast<FM2DDynamic*>(fieldmap_m);
-    if (dynamicFieldmap == nullptr) {
+    const double electricScale = scale * cosphi;
+    const double magneticScale = -scale * sinphi;
+
+    if (auto* dynamicFieldmap = dynamic_cast<FM2DDynamic*>(fieldmap_m)) {
+        dynamicFieldmap->applyRFField(pc, electricScale, magneticScale, startField, endField);
+    } else if (auto* astraFieldmap = dynamic_cast<Astra1DDynamic*>(fieldmap_m)) {
+        astraFieldmap->applyRFField(pc, electricScale, magneticScale, startField, endField);
+    } else {
         throw GeneralOpalException(
                 "RFCavity::apply",
-                "RFCavity particle application currently requires an FM2DDynamic field map.");
+                "RFCavity particle application currently requires an FM2DDynamic or Astra1DDynamic "
+                "field map.");
     }
-
-    dynamicFieldmap->applyRFField(pc, scale * cosphi, -scale * sinphi, startField, endField);
 
     return false;
 }
