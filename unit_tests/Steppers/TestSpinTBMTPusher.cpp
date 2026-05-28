@@ -1,6 +1,62 @@
-//
-// Tests for SpinTBMTPusher: Thomas-BMT spin precession via Rodrigues rotation.
-//
+/**
+ * \file TestSpinTBMTPusher.cpp
+ * \brief Unit tests for the Thomas-BMT spin pusher (Rodrigues-rotation kernel).
+ *
+ * The SpinTBMTPusher evolves the per-particle polarization vector
+ * @f$\vec P@f$ over a timestep @f$\Delta t@f$ by the Thomas-BMT equation
+ * @f$d\vec P / dt = \vec\Omega \times \vec P@f$, with the lab-frame angular
+ * velocity
+ * @f[
+ *   \vec\Omega = -\frac{q}{m}\Big[\,
+ *     \big(G + \frac{1}{\gamma}\big)\,\vec B
+ *     - \frac{G\,\gamma}{\gamma+1}\,(\vec\beta \cdot \vec B)\,\vec\beta
+ *     - \big(G + \frac{1}{\gamma+1}\big)\,\frac{\vec\beta \times \vec E}{c}
+ *   \,\Big],
+ * @f]
+ * applied as an analytic rotation by angle @f$\phi = |\vec\Omega|\,\Delta t@f$
+ * about @f$\hat n = \vec\Omega / |\vec\Omega|@f$ via Rodrigues' formula.
+ * The rotation form preserves @f$|\vec P|@f$ exactly per step.
+ *
+ * Here @f$G = (g - 2) / 2@f$ is the magnetic moment anomaly: the dimensionless
+ * deviation of the particle's gyromagnetic ratio @f$g@f$ from the Dirac value
+ * @f$g = 2@f$. For the muon, @f$G = a_\mu \approx 1.166 \times 10^{-3}@f$;
+ * for the proton, @f$G \approx 1.793@f$. @f$G = 0@f$ recovers pure Larmor
+ * precession at @f$\omega = qB/(\gamma m)@f$, so the contribution
+ * @f$G\,\vec B@f$ in @f$\vec\Omega@f$ is precisely the part the BMT equation
+ * adds beyond the Dirac result.
+ *
+ * References:
+ *  - V. Bargmann, L. Michel, V. L. Telegdi, *"Precession of the Polarization of
+ *    Particles Moving in a Homogeneous Electromagnetic Field"*,
+ *    Phys. Rev. Lett. 2, 435 (1959).
+ *  - J. D. Jackson, *Classical Electrodynamics*, 3rd ed., §11.11 (T-BMT eq.).
+ *  - PDG listings for the muon (used here for @f$a_\mu = (g-2)/2@f$):
+ *    https://pdg.lbl.gov/2024/listings/rpp2024-list-muon.pdf
+ *
+ * The cyclotron-frequency reference used in the precession check is
+ * @f$\omega_c = q\,c^2\,B / (\gamma\,m_{\text{eV}})@f$, which in OPALX
+ * conventions equals the SI @f$qB/(\gamma m)@f$ because mass is stored as
+ * rest energy @f$m c^2@f$ in eV.
+ *
+ * Tests in this file:
+ *  - **SpinTBMTPusherTest::PrecessesAtCorrectFrequencyInStaticBz** — at rest in
+ *    a uniform @f$B_z@f$ with @f$\vec E = 0@f$, T-BMT reduces to Larmor
+ *    precession at @f$\omega_S = (1 + a_\mu)\,\omega_c@f$. Pol starts along
+ *    @f$\hat x@f$; after one step the rotation angle in the @f$xy@f$ plane is
+ *    compared to @f$\omega_S\,\Delta t@f$, and @f$|\vec P|@f$ is verified to
+ *    remain 1.
+ *  - **SpinTBMTPusherTest::NoEvolutionWhenPolParallelToBAndNoE** — with
+ *    @f$\vec P \parallel \vec B@f$ and @f$\vec E = 0@f$, the cross product
+ *    @f$\vec\Omega \times \vec P@f$ vanishes; Pol must be unchanged.
+ *  - **SpinTBMTPusherTest::NoEvolutionWhenFieldsAreZero** — with
+ *    @f$\vec E = \vec B = 0@f$, @f$\vec\Omega = 0@f$ regardless of momentum;
+ *    Pol must be unchanged.
+ *  - **SpinTBMTPusherTest::PreservesMagnitudeOverManySteps** — drives 1000
+ *    rotations under uniform @f$B_z@f$ and checks that @f$|\vec P|@f$ stays
+ *    1 to float-storage precision, validating that the Rodrigues form does
+ *    not let @f$|\vec P|@f$ drift across many steps.
+ */
+
 #include <gtest/gtest.h>
 
 #include "Physics/Physics.h"
