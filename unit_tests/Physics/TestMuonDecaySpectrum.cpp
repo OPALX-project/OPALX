@@ -1,16 +1,42 @@
 /**
- * @file TestMuonDecaySpectrum.cpp
- * @brief Distribution-level test of MuonDecay against the polarized V-A angular spectrum.
+ * \file TestMuonDecaySpectrum.cpp
+ * \brief Distribution-level test of MuonDecay against the polarized V-A angular spectrum.
  *
- * Fires fully-polarized muons (|P| = 1, spin along +z) at rest through the full
- * MuonDecay::createDaughterParticles pipeline (ParticleContainer + Kokkos pool
- * seeded from Options::seed), reads the daughter electron momenta back to the
- * host, and compares the cos(theta) distribution (theta measured from the muon
- * spin) against the analytic angular marginal
- *   p(c) = 1/2 (1 + A c),   A = s |P| N/Z,
- *   N = \int_a^1 2 x^2 (2x - 1) dx,   Z = \int_a^1 2 x^2 (3 - 2x) dx,   a = x_min,
- * where s = asymSign is +1 for mu- and -1 for mu+. The energy (x) marginal is the
- * polarization-independent Michel spectrum and is covered elsewhere.
+ * Fires fully-polarized muons (|P| = 1, spin along @f$+\hat z@f$) at rest through
+ * the full MuonDecay::createDaughterParticles pipeline (ParticleContainer + Kokkos
+ * pool seeded from Options::seed), reads the daughter electron momenta back to
+ * the host, and compares the @f$\cos\theta@f$ distribution (@f$\theta@f$ measured
+ * from the muon spin) against the analytic V-A angular marginal
+ * @f[
+ *   p(c) = \frac{1}{2}\left(1 + A\,c\right),
+ *   \quad
+ *   A = s\,|P|\,\frac{N}{Z},
+ *   \quad
+ *   N = \int_{a}^{1} 2 x^2 (2x - 1)\,dx,
+ *   \quad
+ *   Z = \int_{a}^{1} 2 x^2 (3 - 2x)\,dx,
+ *   \quad a = x_{\min},
+ * @f]
+ * where @f$s = \mathrm{asymSign}@f$ is @f$+1@f$ for @f$\mu^-@f$ and @f$-1@f$ for
+ * @f$\mu^+@f$. The energy marginal @f$f(x) = 2 x^2 (3 - 2x)@f$ is the
+ * polarization-independent Michel spectrum and is covered elsewhere
+ * (TestMuonDecay).
+ *
+ * References:
+ *  - Particle Data Group review of muon decay parameters:
+ *    https://pdg.lbl.gov/2024/reviews/rpp2024-rev-muon-decay-params.pdf
+ *  - PDG listings for the muon (lifetime, mass):
+ *    https://pdg.lbl.gov/2024/listings/rpp2024-list-muon.pdf
+ *
+ * Tests in this file:
+ *  - **MuonDecaySpectrumTest::MuMinusAngularSpectrumMatchesPolarization** —
+ *    drives the full pipeline with @f$\mu^-@f$ (asymmetry sign @f$s = +1@f$) and
+ *    checks the daughter @f$\cos\theta@f$ histogram against the linear analytic
+ *    form @f$p(c) \propto 1 + A c@f$ with the slope @f$A@f$ predicted by the
+ *    integrals above.
+ *  - **MuonDecaySpectrumTest::MuPlusAngularSpectrumMatchesPolarization** —
+ *    same setup with @f$\mu^+@f$ (@f$s = -1@f$), checking that the slope
+ *    @f$A@f$ flips sign relative to @f$\mu^-@f$ — the V-A signature.
  *
  * Writes muon_angular_spectrum_mu_minus.csv and muon_angular_spectrum_mu_plus.csv
  * into the test working directory; those CSVs are consumed by

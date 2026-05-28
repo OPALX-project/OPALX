@@ -1,20 +1,38 @@
 /**
- * @file TestPionDecaySpectrum.cpp
- * @brief Distribution-level tests of PionDecay (deterministic two-body kinematics).
+ * \file TestPionDecaySpectrum.cpp
+ * \brief Distribution-level tests of PionDecay (deterministic two-body kinematics).
  *
- * Drives PionDecay::createDaughterParticles through the full ParticleContainer
- * + Kokkos pool pipeline. Two checks:
+ * Drives PionDecay::createDaughterParticles through the full ParticleContainer +
+ * Kokkos pool pipeline and validates the two-body kinematics of
+ * @f$\pi^+ \to \mu^+ + \nu_\mu@f$. The pion is spin-0, so the rest-frame decay
+ * direction is isotropic and the daughter momentum magnitude in the pion rest
+ * frame is fixed:
+ * @f[
+ *   p^* = \frac{M_\pi^2 - m_\mu^2}{2\,M_\pi},
+ *   \qquad
+ *   E^* = \frac{M_\pi^2 + m_\mu^2}{2\,M_\pi}.
+ * @f]
+ * For a pion boosted along @f$\hat z@f$ with @f$\gamma, \beta@f$, the lab-frame
+ * daughter energy spectrum is uniform on @f$[E_-, E_+]@f$:
+ * @f[
+ *   E_\pm = \gamma E^* \pm \beta\gamma\,p^*.
+ * @f]
  *
- *  1. PionDecayRestFrameMomentumIsFixed:
- *     With pions at rest, every daughter muon must have |p| = (M_pi^2 - m_mu^2) / (2 M_pi),
- *     and the cos(theta) distribution of the decay direction must be uniform on [-1, 1].
+ * References:
+ *  - PDG listings for the charged pion (mass, lifetime, decay modes):
+ *    https://pdg.lbl.gov/2024/listings/rpp2024-list-pi-plus-minus.pdf
+ *  - PDG kinematics review (two-body decay formulas):
+ *    https://pdg.lbl.gov/2024/reviews/rpp2024-rev-kinematics.pdf
  *
- *  2. PionDecayBoostedLabEnergyIsFlatBox:
- *     With boosted pions (pz = 5 in beta*gamma units), the lab-frame muon energy
- *     spectrum is uniform on [E_-, E_+] where
- *        E_+- = gamma * E* +- beta*gamma * p*,
- *        E*   = (M_pi^2 + m_mu^2) / (2 M_pi),
- *        p*   = (M_pi^2 - m_mu^2) / (2 M_pi).
+ * Tests in this file:
+ *  - **PionDecaySpectrumTest::PionDecayRestFrameMomentumIsFixed** — with pions
+ *    at rest, every daughter muon must have @f$|\vec p| = p^*@f$ and the
+ *    @f$\cos\theta@f$ distribution of the decay direction must be uniform on
+ *    @f$[-1, 1]@f$ (isotropy from the pion's spin-0 nature).
+ *  - **PionDecaySpectrumTest::PionDecayBoostedLabEnergyIsFlatBox** — with
+ *    boosted pions (@f$p_z = 5@f$ in @f$\beta\gamma@f$ units), the lab-frame
+ *    muon energy spectrum is uniform on @f$[E_-, E_+]@f$ from the rest-frame
+ *    isotropy plus the longitudinal Lorentz boost.
  *
  * CSVs (consumed by tools/spectrum_plots/plot_spectrum.py):
  *   - pion_rest_costheta.csv
