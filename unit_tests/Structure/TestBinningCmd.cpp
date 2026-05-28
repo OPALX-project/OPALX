@@ -51,6 +51,10 @@ public:
 
     void setBinningBeta(double value) { Attributes::setReal(itsAttr[BINNING::BINNINGBETA], value); }
 
+    void setAdaptiveBinning(bool value) {
+        Attributes::setBool(itsAttr[BINNING::ADAPTIVEBINNING], value);
+    }
+
     void setParameterString(const std::string& value) {
         // PARAMETER is declared as a predefined string; this helper mirrors normal usage.
         Attributes::setPredefinedString(itsAttr[BINNING::PARAMETER], value);
@@ -141,6 +145,7 @@ TEST_F(BinningCmdTest, ConstructionDefaults) {
     EXPECT_DOUBLE_EQ(cmd.getDesiredWidth(), 0.1);
     EXPECT_DOUBLE_EQ(cmd.getBinningAlpha(), 1.0);
     EXPECT_DOUBLE_EQ(cmd.getBinningBeta(), 1.5);
+    EXPECT_TRUE(cmd.getAdaptiveBinning());
 
     EXPECT_EQ(cmd.getParameter(), "VELOCITYZ");
     EXPECT_EQ(cmd.getParameterType(), BinningParameter::VELOCITYZ);
@@ -157,6 +162,7 @@ TEST_F(BinningCmdTest, GettersReflectAttributes) {
     cmd.setDesiredWidth(0.25);
     cmd.setBinningAlpha(0.5);
     cmd.setBinningBeta(1.75);
+    cmd.setAdaptiveBinning(false);
     cmd.setParameterString("PZ");
     cmd.setTablePrintFrequency(3.0);
 
@@ -167,6 +173,7 @@ TEST_F(BinningCmdTest, GettersReflectAttributes) {
     EXPECT_DOUBLE_EQ(cmd.getDesiredWidth(), 0.25);
     EXPECT_DOUBLE_EQ(cmd.getBinningAlpha(), 0.5);
     EXPECT_DOUBLE_EQ(cmd.getBinningBeta(), 1.75);
+    EXPECT_FALSE(cmd.getAdaptiveBinning());
 
     EXPECT_EQ(cmd.getParameter(), "PZ");
 
@@ -217,6 +224,7 @@ TEST_F(BinningCmdTest, CloneCopiesState) {
     original.setDesiredWidth(0.3);
     original.setBinningAlpha(0.8);
     original.setBinningBeta(1.2);
+    original.setAdaptiveBinning(false);
     original.setParameterString("POSITIONZ");
 
     original.execute();  // ensure parameterType_m is updated
@@ -230,6 +238,7 @@ TEST_F(BinningCmdTest, CloneCopiesState) {
     EXPECT_DOUBLE_EQ(copy->getDesiredWidth(), original.getDesiredWidth());
     EXPECT_DOUBLE_EQ(copy->getBinningAlpha(), original.getBinningAlpha());
     EXPECT_DOUBLE_EQ(copy->getBinningBeta(), original.getBinningBeta());
+    EXPECT_EQ(copy->getAdaptiveBinning(), original.getAdaptiveBinning());
 
     EXPECT_EQ(copy->getParameter(), original.getParameter());
     EXPECT_EQ(copy->getParameterType(), original.getParameterType());
