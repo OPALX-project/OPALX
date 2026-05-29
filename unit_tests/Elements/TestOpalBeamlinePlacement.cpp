@@ -400,6 +400,10 @@ TEST_F(OpalBeamlinePlacementTest, Save3DInputNormalizesExplicitBodyPoseAndAngles
     beamline.visit(drift, visitor, *bunch);
     beamline.save3DInput();
 
+    if (ippl::Comm->rank() != 0) {
+        return;
+    }
+
     std::ifstream output(outputPath("_3D.opal"));
     ASSERT_TRUE(output.is_open());
     const std::string rewritten(
@@ -511,7 +515,10 @@ TEST_F(OpalBeamlinePlacementTest, CompatibilitySBendExitMatchesAnalyticLabGeomet
  *
  * Fixed parameters:
  * \f$L = 1\,\mathrm{m}\f$, \f$\mathrm{HGAP} = 0.02\,\mathrm{m}\f$,
- * \f$\mathrm{FINT} = 0.5\f$.
+ * and \f$\mathrm{FINT} = 0.5\f$. With no explicit `GAP`, the OPAL
+ * `FM1DProfile1` default fringe uses full gap
+ * \f$g = 2\,\mathrm{HGAP} = 0.04\,\mathrm{m}\f$ and profile half width
+ * \f$a = 5g = 0.2\,\mathrm{m}\f$.
  *
  * Sector-bend design orbit:
  * \f[
@@ -520,11 +527,12 @@ TEST_F(OpalBeamlinePlacementTest, CompatibilitySBendExitMatchesAnalyticLabGeomet
  *   \quad t(s)=(-\sin\phi,0,\cos\phi).
  * \f]
  *
- * Pole-face support model:
+ * OPAL Enge pole-face support model:
  * \f[
- *   \ell_1 = \frac{\mathrm{HGAP}\,\mathrm{FINT}}{|\cos E_1|}, \quad
- *   \ell_2 = \frac{\mathrm{HGAP}\,\mathrm{FINT}}{|\cos E_2|}, \quad
- *   L_\mathrm{eff} = L + \frac{\ell_1 + \ell_2}{2}.
+ *   \ell_1 = \frac{a}{|\cos E_1|}, \quad
+ *   \ell_2 = \frac{a}{|\cos E_2|}, \quad
+ *   L_\mathrm{eff} =
+ *   \int_{-\ell_1}^{L+\ell_2} F_\mathrm{Enge}(s)\,ds \simeq L .
  * \f]
  *
  * Expected sector geometry for the four bend angles:
@@ -540,19 +548,10 @@ TEST_F(OpalBeamlinePlacementTest, CompatibilitySBendExitMatchesAnalyticLabGeomet
  *
  * | case | E1 [deg] | E2 [deg] | ell_entry [m] | ell_exit [m] | L_eff [m]  |
  * |:-----|---------:|---------:|--------------:|-------------:|-----------:|
- * | F0   |   0.0    |   0.0    | 0.010000000   | 0.010000000  | 1.010000000 |
- * | F1   |   5.0    |   5.0    | 0.010038198   | 0.010038198  | 1.010038198 |
- * | F2   |  10.0    |   5.0    | 0.010154266   | 0.010038198  | 1.010096232 |
- * | F3   |  -7.5    |  12.5    | 0.010086290   | 0.010242795  | 1.010164542 |
- *
- * Combined effective curvature \f$h_\mathrm{eff}=\theta/L_\mathrm{eff}\f$:
- *
- * | theta [deg] | F0 [1/m]    | F1 [1/m]    | F2 [1/m]    | F3 [1/m]    |
- * |------------:|------------:|------------:|------------:|------------:|
- * | -45         | -0.777621944 | -0.777592535 | -0.777547860 | -0.777495280 |
- * | -15         | -0.259207315 | -0.259197512 | -0.259182620 | -0.259165093 |
- * |  15         |  0.259207315 |  0.259197512 |  0.259182620 |  0.259165093 |
- * |  45         |  0.777621944 |  0.777592535 |  0.777547860 |  0.777495280 |
+ * | F0   |   0.0    |   0.0    | 0.200000000   | 0.200000000  | about 1.0 |
+ * | F1   |   5.0    |   5.0    | 0.200763956   | 0.200763956  | about 1.0 |
+ * | F2   |  10.0    |   5.0    | 0.203085322   | 0.200763956  | about 1.0 |
+ * | F3   |  -7.5    |  12.5    | 0.201725803   | 0.204855900  | about 1.0 |
  *
  * In the current OPALX compatibility placement, \f$E_1\f$ rotates the entry
  * face frame and therefore the placed body frame; \f$E_2\f$ affects the exit
@@ -608,20 +607,23 @@ TEST_F(OpalBeamlinePlacementTest, SBendAnalyticSectorOrbitMapsToFieldArcLengthFo
             const auto* bendElement = dynamic_cast<const BendBase*>(component.get());
             ASSERT_NE(bendElement, nullptr);
 
+            const double profileGap          = 2.0 * fringeHalfGap;
+            const double fringeHalfWidth     = 5.0 * profileGap;
             const double expectedEntryFringe =
-                    fringeHalfGap * fringeIntegral / std::abs(std::cos(poleFace.entryAngle));
+                    fringeHalfWidth / std::abs(std::cos(poleFace.entryAngle));
             const double expectedExitFringe =
-                    fringeHalfGap * fringeIntegral / std::abs(std::cos(poleFace.exitAngle));
-            const double expectedEffectiveLength =
-                    length + 0.5 * (expectedEntryFringe + expectedExitFringe);
+                    fringeHalfWidth / std::abs(std::cos(poleFace.exitAngle));
+            const double edgeScale = 1.0 / (1.0 + std::exp(0.478959));
             EXPECT_NEAR(bendElement->getEntryFringeSupportLength(), expectedEntryFringe, tol);
             EXPECT_NEAR(bendElement->getExitFringeSupportLength(), expectedExitFringe, tol);
-            EXPECT_NEAR(bendElement->getEffectiveFieldLength(), expectedEffectiveLength, tol);
+            EXPECT_NEAR(bendElement->getEffectiveFieldLength(), length, 2.0e-6);
 
             EXPECT_NEAR(bendElement->getFieldScale(-expectedEntryFringe), 0.0, tol);
-            EXPECT_NEAR(bendElement->getFieldScale(-0.5 * expectedEntryFringe), 0.5, tol);
+            EXPECT_LT(bendElement->getFieldScale(-0.5 * expectedEntryFringe), edgeScale);
+            EXPECT_NEAR(bendElement->getFieldScale(0.0), edgeScale, tol);
             EXPECT_NEAR(bendElement->getFieldScale(0.5 * length), 1.0, tol);
-            EXPECT_NEAR(bendElement->getFieldScale(length + 0.5 * expectedExitFringe), 0.5, tol);
+            EXPECT_NEAR(bendElement->getFieldScale(length), edgeScale, tol);
+            EXPECT_LT(bendElement->getFieldScale(length + 0.5 * expectedExitFringe), edgeScale);
             EXPECT_NEAR(bendElement->getFieldScale(length + expectedExitFringe), 0.0, tol);
 
             const CoordinateSystemTrafo entryTransform =

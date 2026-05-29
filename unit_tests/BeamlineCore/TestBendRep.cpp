@@ -164,9 +164,24 @@ namespace {
     }
 
     Vector_t<double, 3> fieldLocalToEntryCartesian(
-            const Vector_t<double, 3>& fieldLocal, const double curvature) {
+            const Vector_t<double, 3>& fieldLocal, const double curvature,
+            const double bodyLength) {
         if (std::abs(curvature) <= 1.0e-15) {
             return fieldLocal;
+        }
+
+        if (fieldLocal(2) <= 0.0) {
+            return fieldLocal;
+        }
+
+        if (fieldLocal(2) >= bodyLength) {
+            const double exitPhi = curvature * bodyLength;
+            const double c       = std::cos(exitPhi);
+            const double sinExit = std::sin(exitPhi);
+            const double ds      = fieldLocal(2) - bodyLength;
+            return Vector_t<double, 3>(
+                    (c - 1.0) / curvature + c * fieldLocal(0) - sinExit * ds,
+                    fieldLocal(1), sinExit / curvature + sinExit * fieldLocal(0) + c * ds);
         }
 
         const double radius = 1.0 / curvature;
@@ -177,21 +192,43 @@ namespace {
     }
 
     Vector_t<double, 3> fieldLocalVectorToEntryCartesian(
-            const Vector_t<double, 3>& fieldVector, const double curvature, const double s) {
+            const Vector_t<double, 3>& fieldVector, const double curvature, const double s,
+            const double bodyLength) {
         if (std::abs(curvature) <= 1.0e-15) {
             return fieldVector;
         }
 
-        const double phi = curvature * s;
+        const double phi = curvature * ((s >= bodyLength) ? bodyLength : s);
+        if (s <= 0.0) {
+            return fieldVector;
+        }
         return Vector_t<double, 3>(
                 std::cos(phi) * fieldVector(0) - std::sin(phi) * fieldVector(2), fieldVector(1),
                 std::sin(phi) * fieldVector(0) + std::cos(phi) * fieldVector(2));
     }
 
     Vector_t<double, 3> entryCartesianToFieldLocal(
-            const Vector_t<double, 3>& entryCartesian, const double curvature) {
+            const Vector_t<double, 3>& entryCartesian, const double curvature,
+            const double bodyLength) {
         if (std::abs(curvature) <= 1.0e-15) {
             return entryCartesian;
+        }
+
+        if (entryCartesian(2) <= 0.0) {
+            return entryCartesian;
+        }
+
+        const double exitPhi = curvature * bodyLength;
+        const double c       = std::cos(exitPhi);
+        const double sinExit = std::sin(exitPhi);
+        const double exitX   = (c - 1.0) / curvature;
+        const double exitZ   = sinExit / curvature;
+        const double dx      = entryCartesian(0) - exitX;
+        const double dz      = entryCartesian(2) - exitZ;
+        const double exitLocalX = c * dx + sinExit * dz;
+        const double exitLocalZ = -sinExit * dx + c * dz;
+        if (exitLocalZ >= 0.0) {
+            return Vector_t<double, 3>(exitLocalX, entryCartesian(1), bodyLength + exitLocalZ);
         }
 
         const double radius = 1.0 / curvature;
@@ -427,17 +464,17 @@ namespace {
 
         const double referencePathLength =
                 bodyLength * (bendAngle / 2.0) / std::sin(bendAngle / 2.0);
-        const double expectedEntrySupport = fringeHalfGap * fringeIntegral;
+        const double profileGap           = 2.0 * fringeHalfGap;
+        const double fringeHalfWidth      = 5.0 * profileGap;
+        const double expectedEntrySupport = fringeHalfWidth;
         const double expectedExitSupport =
-                fringeHalfGap * fringeIntegral / std::cos(bend.getExitAngle());
-        const double expectedEffectiveLength =
-                referencePathLength + 0.5 * (expectedEntrySupport + expectedExitSupport);
+                fringeHalfWidth / std::abs(std::cos(bend.getExitAngle()));
 
         EXPECT_NEAR(bend.getChordLength(), bodyLength, 1.0e-12);
         EXPECT_NEAR(bend.getGeometry().getArcLength(), referencePathLength, 1.0e-12);
         EXPECT_NEAR(bend.getEntryFringeSupportLength(), expectedEntrySupport, 1.0e-12);
         EXPECT_NEAR(bend.getExitFringeSupportLength(), expectedExitSupport, 1.0e-12);
-        EXPECT_NEAR(bend.getEffectiveFieldLength(), expectedEffectiveLength, 1.0e-12);
+        EXPECT_NEAR(bend.getEffectiveFieldLength(), referencePathLength, 2.0e-6);
         EXPECT_GT(bend.getEffectiveFieldLength(), bend.getElementLength());
     }
 
@@ -542,7 +579,7 @@ namespace {
         const BendBase::TrackingSlice& slice = slices.front();
         const Vector_t<double, 3> fieldLocalPosition(1.5e-3, -0.8e-3, slice.sCenter);
         const Vector_t<double, 3> entryCartesian =
-                fieldLocalToEntryCartesian(fieldLocalPosition, curvature);
+                fieldLocalToEntryCartesian(fieldLocalPosition, curvature, bodyLength);
         const Vector_t<double, 3> sliceLocalPosition =
                 slice.entryToSliceLocal.transformTo(entryCartesian);
 
@@ -556,8 +593,8 @@ namespace {
         Vector_t<double, 3> Eexpected(0.0);
         Vector_t<double, 3> Bexpected(0.0);
         bend.apply(fieldLocalPosition, Vector_t<double, 3>(0.0), 0.0, Eexpected, Bexpected);
-        const Vector_t<double, 3> BexpectedEntry =
-                fieldLocalVectorToEntryCartesian(Bexpected, curvature, fieldLocalPosition(2));
+        const Vector_t<double, 3> BexpectedEntry = fieldLocalVectorToEntryCartesian(
+                Bexpected, curvature, fieldLocalPosition(2), bodyLength);
         const Vector_t<double, 3> BexpectedSlice = slice.entryToSliceLocal.rotateTo(BexpectedEntry);
 
         EXPECT_NEAR(BhostView(0)(0), BexpectedSlice(0), 1.0e-12);
@@ -598,8 +635,8 @@ namespace {
                 {0.0, -1.0e-3, slice.sCenter}};
         std::vector<std::array<double, 3>> sliceLocalPositions;
         for (const auto& fieldLocalPosition : fieldLocalPositions) {
-            const Vector_t<double, 3> entryCartesian =
-                    fieldLocalToEntryCartesian(fieldLocalPosition, curvature);
+            const Vector_t<double, 3> entryCartesian = fieldLocalToEntryCartesian(
+                    fieldLocalPosition, curvature, bodyLength);
             const Vector_t<double, 3> sliceLocal =
                     slice.entryToSliceLocal.transformTo(entryCartesian);
             sliceLocalPositions.push_back({sliceLocal(0), sliceLocal(1), sliceLocal(2)});
@@ -616,7 +653,7 @@ namespace {
             Vector_t<double, 3> Bexpected(0.0);
             bend.apply(fieldLocalPositions[i], Vector_t<double, 3>(0.0), 0.0, Eexpected, Bexpected);
             const Vector_t<double, 3> BexpectedEntry = fieldLocalVectorToEntryCartesian(
-                    Bexpected, curvature, fieldLocalPositions[i](2));
+                    Bexpected, curvature, fieldLocalPositions[i](2), bodyLength);
             const Vector_t<double, 3> BexpectedSlice =
                     slice.entryToSliceLocal.rotateTo(BexpectedEntry);
 
@@ -645,14 +682,14 @@ namespace {
         bend.setNSlices(nSlices);
         bend.setB(1.2);
 
-        const double curvature   = bendAngle / bodyLength;
+        const double curvature = bendAngle / bodyLength;
         const double entryFringe = bend.getEntryFringeSupportLength();
         const auto slices        = bend.buildTrackingSlices();
         ASSERT_FALSE(slices.empty());
 
         const Vector_t<double, 3> fieldLocalPosition(0.0, 1.0e-3, -0.5 * entryFringe);
         const Vector_t<double, 3> entryCartesian =
-                fieldLocalToEntryCartesian(fieldLocalPosition, curvature);
+                fieldLocalToEntryCartesian(fieldLocalPosition, curvature, bodyLength);
 
         const BendBase::TrackingSlice* containingSlice = nullptr;
         for (const auto& slice : slices) {
@@ -676,8 +713,8 @@ namespace {
         Vector_t<double, 3> Eexpected(0.0);
         Vector_t<double, 3> Bexpected(0.0);
         bend.apply(fieldLocalPosition, Vector_t<double, 3>(0.0), 0.0, Eexpected, Bexpected);
-        const Vector_t<double, 3> BexpectedEntry =
-                fieldLocalVectorToEntryCartesian(Bexpected, curvature, fieldLocalPosition(2));
+        const Vector_t<double, 3> BexpectedEntry = fieldLocalVectorToEntryCartesian(
+                Bexpected, curvature, fieldLocalPosition(2), bodyLength);
         const Vector_t<double, 3> BexpectedSlice =
                 containingSlice->entryToSliceLocal.rotateTo(BexpectedEntry);
 
@@ -706,14 +743,14 @@ namespace {
         bend.setNSlices(nSlices);
         bend.setB(-1.2);
 
-        const double curvature   = bendAngle / bodyLength;
+        const double curvature = bendAngle / bodyLength;
         const double entryFringe = bend.getEntryFringeSupportLength();
         const auto slices        = bend.buildTrackingSlices();
         ASSERT_FALSE(slices.empty());
 
         const Vector_t<double, 3> fieldLocalPosition(0.0, 1.0e-3, -0.5 * entryFringe);
         const Vector_t<double, 3> entryCartesian =
-                fieldLocalToEntryCartesian(fieldLocalPosition, curvature);
+                fieldLocalToEntryCartesian(fieldLocalPosition, curvature, bodyLength);
 
         const BendBase::TrackingSlice* containingSlice = nullptr;
         for (const auto& slice : slices) {
@@ -737,8 +774,8 @@ namespace {
         Vector_t<double, 3> Eexpected(0.0);
         Vector_t<double, 3> Bexpected(0.0);
         bend.apply(fieldLocalPosition, Vector_t<double, 3>(0.0), 0.0, Eexpected, Bexpected);
-        const Vector_t<double, 3> BexpectedEntry =
-                fieldLocalVectorToEntryCartesian(Bexpected, curvature, fieldLocalPosition(2));
+        const Vector_t<double, 3> BexpectedEntry = fieldLocalVectorToEntryCartesian(
+                Bexpected, curvature, fieldLocalPosition(2), bodyLength);
         const Vector_t<double, 3> BexpectedSlice =
                 containingSlice->entryToSliceLocal.rotateTo(BexpectedEntry);
 
@@ -768,15 +805,16 @@ namespace {
         bend.setNSlices(nSlices);
         bend.setB(1.2);
 
-        const double curvature   = bendAngle / bodyLength;
+        const double curvature = bendAngle / bodyLength;
         const double entryFringe = bend.getEntryFringeSupportLength();
         const double referenceS  = -0.5 * entryFringe;
         const Vector_t<double, 3> localReferenceParticle(0.0, 1.0e-3, 0.0);
 
-        const Vector_t<double, 3> referenceOrigin =
-                fieldLocalToEntryCartesian(Vector_t<double, 3>(0.0, 0.0, referenceS), curvature);
+        const Vector_t<double, 3> referenceOrigin = fieldLocalToEntryCartesian(
+                Vector_t<double, 3>(0.0, 0.0, referenceS), curvature, bodyLength);
         const Vector_t<double, 3> tangentInEntry = fieldLocalVectorToEntryCartesian(
-                Vector_t<double, 3>(0.0, 0.0, 1.0), curvature, referenceS);
+                Vector_t<double, 3>(0.0, 0.0, 1.0), curvature, referenceS,
+                bodyLength);
         CoordinateSystemTrafo entryToReference(
                 referenceOrigin, getQuaternion(tangentInEntry, Vector_t<double, 3>(0.0, 0.0, 1.0)));
         CoordinateSystemTrafo referenceToEntry = entryToReference.inverted();
@@ -800,12 +838,12 @@ namespace {
         const Vector_t<double, 3> entryCartesian =
                 pc->getToLabTrafo().transformTo(localReferenceParticle);
         const Vector_t<double, 3> fieldLocalPosition =
-                entryCartesianToFieldLocal(entryCartesian, curvature);
+                entryCartesianToFieldLocal(entryCartesian, curvature, bodyLength);
         Vector_t<double, 3> Eexpected(0.0);
         Vector_t<double, 3> Bexpected(0.0);
         bend.apply(fieldLocalPosition, Vector_t<double, 3>(0.0), 0.0, Eexpected, Bexpected);
-        const Vector_t<double, 3> BexpectedEntry =
-                fieldLocalVectorToEntryCartesian(Bexpected, curvature, fieldLocalPosition(2));
+        const Vector_t<double, 3> BexpectedEntry = fieldLocalVectorToEntryCartesian(
+                Bexpected, curvature, fieldLocalPosition(2), bodyLength);
         const Vector_t<double, 3> BexpectedRef = pc->getToLabTrafo().rotateFrom(BexpectedEntry);
 
         EXPECT_GT(std::abs(BexpectedRef(0)), 1.0e-12);
@@ -847,8 +885,8 @@ namespace {
                 {0.8e-3, -0.6e-3, bodyLength + 0.5 * exitFringe}};
         std::vector<std::array<double, 3>> entryPositions;
         for (const auto& fieldLocalPosition : fieldLocalPositions) {
-            const Vector_t<double, 3> entryCartesian =
-                    fieldLocalToEntryCartesian(fieldLocalPosition, curvature);
+            const Vector_t<double, 3> entryCartesian = fieldLocalToEntryCartesian(
+                    fieldLocalPosition, curvature, bodyLength);
             entryPositions.push_back({entryCartesian(0), entryCartesian(1), entryCartesian(2)});
         }
         auto pc = makeContainer(entryPositions);
@@ -868,7 +906,7 @@ namespace {
             Vector_t<double, 3> Bexpected(0.0);
             bend.apply(fieldLocalPositions[i], Vector_t<double, 3>(0.0), 0.0, Eexpected, Bexpected);
             const Vector_t<double, 3> BexpectedEntry = fieldLocalVectorToEntryCartesian(
-                    Bexpected, curvature, fieldLocalPositions[i](2));
+                    Bexpected, curvature, fieldLocalPositions[i](2), bodyLength);
 
             EXPECT_NEAR(BhostView(i)(0), BexpectedEntry(0), 1.0e-12) << "particle " << i;
             EXPECT_NEAR(BhostView(i)(1), BexpectedEntry(1), 1.0e-12) << "particle " << i;
@@ -913,8 +951,8 @@ namespace {
         const Vector_t<double, 3> initialMomentum(1.0e-3, -2.0e-3, 1.2);
         std::vector<std::array<double, 3>> entryPositions;
         for (const auto& fieldLocalPosition : fieldLocalPositions) {
-            const Vector_t<double, 3> entryCartesian =
-                    fieldLocalToEntryCartesian(fieldLocalPosition, curvature);
+            const Vector_t<double, 3> entryCartesian = fieldLocalToEntryCartesian(
+                    fieldLocalPosition, curvature, bodyLength);
             entryPositions.push_back({entryCartesian(0), entryCartesian(1), entryCartesian(2)});
         }
         auto pc = makeContainer(entryPositions);
@@ -954,7 +992,7 @@ namespace {
             Vector_t<double, 3> Bexpected(0.0);
             bend.apply(fieldLocalPositions[i], initialMomentum, 0.0, Eexpected, Bexpected);
             const Vector_t<double, 3> BexpectedEntry = fieldLocalVectorToEntryCartesian(
-                    Bexpected, curvature, fieldLocalPositions[i](2));
+                    Bexpected, curvature, fieldLocalPositions[i](2), bodyLength);
             const Vector_t<double, 3> initialPositionEntry(
                     entryPositions[i][0], entryPositions[i][1], entryPositions[i][2]);
 
@@ -999,11 +1037,11 @@ namespace {
         bend.setNSlices(nSlices);
         bend.setB(-1.2);
 
-        const double curvature   = bendAngle / bodyLength;
+        const double curvature = bendAngle / bodyLength;
         const double entryFringe = bend.getEntryFringeSupportLength();
         const Vector_t<double, 3> fieldLocalPosition(0.0, 1.0e-3, -0.5 * entryFringe);
         const Vector_t<double, 3> entryCartesian =
-                fieldLocalToEntryCartesian(fieldLocalPosition, curvature);
+                fieldLocalToEntryCartesian(fieldLocalPosition, curvature, bodyLength);
         const Vector_t<double, 3> initialMomentum(0.0, 0.0, betaGamma);
 
         auto pc     = makeContainer({entryCartesian(0), entryCartesian(1), entryCartesian(2)});
@@ -1062,8 +1100,8 @@ namespace {
 
         const double entryFringe = bend.getEntryFringeSupportLength();
         const Vector_t<double, 3> fieldLocalPosition(0.0, 1.0e-3, -0.5 * entryFringe);
-        const Vector_t<double, 3> entryCartesian =
-                fieldLocalToEntryCartesian(fieldLocalPosition, bendAngle / bodyLength);
+        const Vector_t<double, 3> entryCartesian = fieldLocalToEntryCartesian(
+                fieldLocalPosition, bendAngle / bodyLength, bodyLength);
         const Vector_t<double, 3> initialMomentum(0.0, 0.0, betaGamma);
 
         auto pc     = makeContainer({entryCartesian(0), entryCartesian(1), entryCartesian(2)});
@@ -1556,34 +1594,36 @@ namespace {
         EXPECT_NEAR(state.r(2), radius * std::sin(angle), 1.0e-6);
     }
 
-    TEST(SBendRep, FringeSupportProducesExpectedLinearFieldRamp) {
+    TEST(SBendRep, FringeSupportProducesExpectedOpalEngeProfile) {
         constexpr double bodyLength = 1.0;
         constexpr double angle      = Physics::pi / 4.0;
+        constexpr double halfGap    = 0.02;
+        const double edgeScale      = 1.0 / (1.0 + std::exp(0.478959));
         SBendRep bend("SBEND");
         bend.getGeometry() = PlanarArcGeometry(bodyLength, angle / bodyLength);
         bend.setLength(bodyLength);
         bend.setBendAngle(angle);
-        bend.setFringeHalfGap(0.02);
+        bend.setFringeHalfGap(halfGap);
         bend.setFringeIntegral(0.5);
         bend.setB(-1.0);
-
         double fieldBegin = 0.0;
         double fieldEnd   = 0.0;
         bend.getFieldExtend(fieldBegin, fieldEnd);
 
         Vector_t<double, 3> E(0.0);
         Vector_t<double, 3> B(0.0);
-        EXPECT_NEAR(fieldBegin, -0.01, 1.0e-12);
-        EXPECT_NEAR(fieldEnd, 1.01, 1.0e-12);
+        EXPECT_NEAR(fieldBegin, -10.0 * halfGap, 1.0e-12);
+        EXPECT_NEAR(fieldEnd, bodyLength + 10.0 * halfGap, 1.0e-12);
+        EXPECT_NEAR(bend.getEffectiveFieldLength(), bodyLength, 2.0e-6);
 
         EXPECT_FALSE(bend.applyToReferenceParticle(
-                Vector_t<double, 3>(0.0, 0.0, -0.02), Vector_t<double, 3>(0.0), 0.0, E, B));
+                Vector_t<double, 3>(0.0, 0.0, -0.21), Vector_t<double, 3>(0.0), 0.0, E, B));
         EXPECT_NEAR(B(1), 0.0, 1.0e-12);
 
         B = Vector_t<double, 3>(0.0);
         EXPECT_FALSE(bend.applyToReferenceParticle(
-                Vector_t<double, 3>(0.0, 0.0, -0.005), Vector_t<double, 3>(0.0), 0.0, E, B));
-        EXPECT_NEAR(B(1), -0.5, 1.0e-12);
+                Vector_t<double, 3>(0.0, 0.0, 0.0), Vector_t<double, 3>(0.0), 0.0, E, B));
+        EXPECT_NEAR(B(1), -edgeScale, 1.0e-12);
 
         B = Vector_t<double, 3>(0.0);
         EXPECT_FALSE(bend.applyToReferenceParticle(
@@ -1592,8 +1632,25 @@ namespace {
 
         B = Vector_t<double, 3>(0.0);
         EXPECT_FALSE(bend.applyToReferenceParticle(
-                Vector_t<double, 3>(0.0, 0.0, 1.005), Vector_t<double, 3>(0.0), 0.0, E, B));
-        EXPECT_NEAR(B(1), -0.5, 1.0e-12);
+                Vector_t<double, 3>(0.0, 0.0, bodyLength),
+                Vector_t<double, 3>(0.0), 0.0, E, B));
+        EXPECT_NEAR(B(1), -edgeScale, 1.0e-12);
+
+        B = Vector_t<double, 3>(0.0);
+        EXPECT_FALSE(bend.applyToReferenceParticle(
+                Vector_t<double, 3>(0.0, 0.0, 1.21),
+                Vector_t<double, 3>(0.0), 0.0, E, B));
+        EXPECT_NEAR(B(1), 0.0, 1.0e-12);
+
+        const double expAtEdge           = std::exp(0.478959);
+        const double profileGap          = 2.0 * halfGap;
+        const double entryScaleDerivative = 1.911289 * expAtEdge
+                                           / (profileGap * std::pow(1.0 + expAtEdge, 2.0));
+        const double yOffset = 1.0e-3;
+        B                    = Vector_t<double, 3>(0.0);
+        EXPECT_FALSE(bend.applyToReferenceParticle(
+                Vector_t<double, 3>(0.0, yOffset, 0.0), Vector_t<double, 3>(0.0), 0.0, E, B));
+        EXPECT_NEAR(B(2), -entryScaleDerivative * yOffset, 1.0e-12);
     }
 
     TEST(SBendRep, EntryFringeProducesEdgeFocusingKick) {

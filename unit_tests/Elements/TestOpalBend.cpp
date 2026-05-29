@@ -22,6 +22,8 @@
 #include "ValueDefinitions/RealVariable.h"
 #include "gtest/gtest.h"
 
+#include <cmath>
+
 extern Inform* gmsg;
 
 class TestOpalBend : public testing::Test {
@@ -52,6 +54,33 @@ protected:
 
 std::unique_ptr<RealVariable> TestOpalBend::realVariableFactory_m;
 
+namespace {
+
+double opalSbendNormalizationLength(const double length, const double angle) {
+    const double halfAngle = 0.5 * angle;
+    if (std::abs(halfAngle) <= 1.0e-12) {
+        return length;
+    }
+
+    const double sine = std::sin(halfAngle);
+    if (std::abs(sine) <= 1.0e-15) {
+        return length;
+    }
+
+    return length * halfAngle / sine;
+}
+
+class TestableSBendRep : public SBendRep {
+public:
+    explicit TestableSBendRep(const std::string& name) : SBendRep(name) {}
+
+    using BendBase::getEntryEdgeVerticalFieldCoefficient;
+    using BendBase::getEntryEdgeVerticalStrength;
+    using BendBase::getSignedCurvature;
+};
+
+}  // namespace
+
 TEST_F(TestOpalBend, SBendRejectsK0OnlyDefinition) {
     OpalSBend ui;
     std::unique_ptr<OpalSBend> instance(ui.clone("SB1"));
@@ -74,24 +103,31 @@ TEST_F(TestOpalBend, SBendRejectsInconsistentK0) {
 TEST_F(TestOpalBend, SBendAcceptsConsistentK0ButUsesAngleAsPrimaryDefinition) {
     OpalSBend ui;
     std::unique_ptr<OpalSBend> instance(ui.clone("SB1"));
-    Attributes::setReal(instance->itsAttr[OpalSBend::LENGTH], 2.0);
-    Attributes::setReal(instance->itsAttr[OpalSBend::ANGLE], 0.4);
-    Attributes::setReal(instance->itsAttr[OpalSBend::K0], 0.2);
+    const double length       = 2.0;
+    const double angle        = 0.4;
+    const double consistentK0 = angle / opalSbendNormalizationLength(length, angle);
+    Attributes::setReal(instance->itsAttr[OpalSBend::LENGTH], length);
+    Attributes::setReal(instance->itsAttr[OpalSBend::ANGLE], angle);
+    Attributes::setReal(instance->itsAttr[OpalSBend::K0], consistentK0);
 
     EXPECT_NO_THROW(instance->update());
 
     const auto* bend = dynamic_cast<const SBendRep*>(instance->getElement());
     ASSERT_NE(bend, nullptr);
-    EXPECT_NEAR(bend->getGeometry().getElementLength(), 2.0, 1.0e-12);
+    EXPECT_NEAR(
+            bend->getGeometry().getElementLength(), opalSbendNormalizationLength(length, angle),
+            1.0e-12);
     EXPECT_NEAR(bend->getGeometry().getBendAngle(), 0.4, 1.0e-12);
-    EXPECT_NEAR(bend->getFieldAmplitude(), 0.2, 1.0e-12);
+    EXPECT_NEAR(bend->getFieldAmplitude(), consistentK0, 1.0e-12);
 }
 
-TEST_F(TestOpalBend, SBendFringeSupportExtendsFieldExtentAndRenormalizesDipoleCoefficient) {
+TEST_F(TestOpalBend, SBendUsesOpalChordToArcDipoleNormalizationWithFringeSupport) {
     OpalSBend ui;
     std::unique_ptr<OpalSBend> instance(ui.clone("SB4"));
-    Attributes::setReal(instance->itsAttr[OpalSBend::LENGTH], 1.0);
-    Attributes::setReal(instance->itsAttr[OpalSBend::ANGLE], 0.4);
+    const double length = 1.0;
+    const double angle  = 0.4;
+    Attributes::setReal(instance->itsAttr[OpalSBend::LENGTH], length);
+    Attributes::setReal(instance->itsAttr[OpalSBend::ANGLE], angle);
     Attributes::setReal(instance->itsAttr[OpalSBend::HGAP], 0.02);
     Attributes::setReal(instance->itsAttr[OpalSBend::FINT], 0.5);
 
@@ -103,10 +139,38 @@ TEST_F(TestOpalBend, SBendFringeSupportExtendsFieldExtentAndRenormalizesDipoleCo
     double zBegin = 0.0;
     double zEnd   = 0.0;
     bend->getFieldExtend(zBegin, zEnd);
-    EXPECT_NEAR(zBegin, -0.01, 1.0e-12);
-    EXPECT_NEAR(zEnd, 1.01, 1.0e-12);
-    EXPECT_NEAR(bend->getEffectiveFieldLength(), 1.01, 1.0e-12);
-    EXPECT_NEAR(bend->getFieldAmplitude(), 0.4 / 1.01, 1.0e-12);
+    const double referencePathLength = opalSbendNormalizationLength(length, angle);
+    EXPECT_NEAR(zBegin, -0.2, 1.0e-12);
+    EXPECT_NEAR(zEnd, referencePathLength + 0.2, 1.0e-12);
+    EXPECT_NEAR(bend->getEffectiveFieldLength(), referencePathLength, 2.0e-6);
+    EXPECT_NEAR(bend->getFieldScale(0.0), 1.0 / (1.0 + std::exp(0.478959)), 1.0e-12);
+    EXPECT_NEAR(
+            bend->getFieldAmplitude(), angle / opalSbendNormalizationLength(length, angle),
+            1.0e-12);
+}
+
+TEST_F(TestOpalBend, SBendVerticalEdgeFieldCoefficientPreservesKickSign) {
+    TestableSBendRep bend("SBEDGE");
+    bend.setLength(opalSbendNormalizationLength(1.0, Physics::pi / 4.0));
+    bend.setBendAngle(Physics::pi / 4.0);
+    bend.setEntranceAngle(-49.99 * Physics::pi / 180.0);
+    bend.setExitAngle(0.0);
+    bend.setFringeHalfGap(0.02);
+    bend.setFringeIntegral(0.5);
+
+    constexpr double rigidityScale = -2.0;
+    bend.setB(rigidityScale * bend.getSignedCurvature());
+
+    const double kickCoefficient = bend.getEntryEdgeVerticalStrength();
+    ASSERT_GT(kickCoefficient, 0.0);
+
+    const double fieldCoefficient = bend.getEntryEdgeVerticalFieldCoefficient();
+    const double fieldScaleSpan   = std::abs(
+            bend.getFieldScale(bend.getEntryFringeSupportLength())
+            - bend.getFieldScale(-bend.getEntryFringeSupportLength()));
+    const double reconstructedKick =
+            fieldCoefficient * fieldScaleSpan / rigidityScale;
+    EXPECT_NEAR(reconstructedKick, kickCoefficient, 1.0e-12);
 }
 
 TEST_F(TestOpalBend, RBendRequiresAngleAndUsesAngleOverK0) {
@@ -224,7 +288,8 @@ TEST_F(TestOpalBend, NegativeSBendRecoversReferencePathCoordinateFromEntryCartes
     const auto* bend = dynamic_cast<const SBendRep*>(instance->getElement());
     ASSERT_NE(bend, nullptr);
 
-    const double curvature = angle / length;
+    const double referencePathLength = opalSbendNormalizationLength(length, angle);
+    const double curvature           = angle / referencePathLength;
     const double s         = 0.1;
     const double phi       = curvature * s;
     const Vector_t<double, 3> entryCartesian(
@@ -249,9 +314,10 @@ TEST_F(TestOpalBend, NegativeSBendRecoversDownstreamDriftCoordinateBeyondExitFra
     const auto* bend = dynamic_cast<const SBendRep*>(instance->getElement());
     ASSERT_NE(bend, nullptr);
 
-    const double curvature = angle / length;
-    const double ds        = 0.01;
-    const double exitPhi   = curvature * length;
+    const double referencePathLength = opalSbendNormalizationLength(length, angle);
+    const double curvature           = angle / referencePathLength;
+    const double ds                  = 0.01;
+    const double exitPhi             = curvature * referencePathLength;
     const Vector_t<double, 3> entryCartesian(
             (std::cos(exitPhi) - 1.0) / curvature - std::sin(exitPhi) * ds, 0.0,
             std::sin(exitPhi) / curvature + std::cos(exitPhi) * ds);
@@ -259,7 +325,7 @@ TEST_F(TestOpalBend, NegativeSBendRecoversDownstreamDriftCoordinateBeyondExitFra
     const Vector_t<double, 3> fieldLocal = bend->convertEntryCartesianToFieldLocal(entryCartesian);
     EXPECT_NEAR(fieldLocal(0), 0.0, 1.0e-12);
     EXPECT_NEAR(fieldLocal(1), 0.0, 1.0e-12);
-    EXPECT_NEAR(fieldLocal(2), length + ds, 1.0e-12);
+    EXPECT_NEAR(fieldLocal(2), referencePathLength + ds, 1.0e-12);
 }
 
 TEST_F(TestOpalBend, ExemplarUpdateDoesNotEnforceInstanceOnlyAngleChecks) {

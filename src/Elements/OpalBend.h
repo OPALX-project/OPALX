@@ -74,22 +74,23 @@ protected:
     /**
      * @brief Return the dipole coefficient implied by an analytic bend angle.
      *
-     * For the first OPALX-native analytic bend model the geometry is defined by
-     * the total bend angle \f$\theta\f$ and the effective integrated field
-     * length \f$L_\mathrm{eff}\f$. The corresponding ideal dipole coefficient
-     * is therefore
+     * The geometry is defined by the total bend angle \f$\theta\f$ and an
+     * element-specific field normalization length \f$L_\mathrm{norm}\f$. The
+     * corresponding ideal dipole coefficient is therefore
      * \f[
-     * k_0 = \frac{\theta}{L_\mathrm{eff}}.
+     * k_0 = \frac{\theta}{L_\mathrm{norm}}.
      * \f]
+     * `SBEND` uses the historical OPAL chord-to-arc normalization, while
+     * `RBEND` uses the integrated Enge field-envelope length.
      *
      * When no positive body length is available, the angle itself is returned
      * as the legacy zero-length fallback used by the historical OPAL parser.
      *
-     * @param effectiveFieldLength Effective integrated field length.
+     * @param fieldNormalizationLength Element-specific field normalization length.
      * @param angle Total bend angle in radians.
      * @return Ideal analytic dipole coefficient.
      */
-    static double deriveAnalyticDipoleCoefficient(double effectiveFieldLength, double angle);
+    static double deriveAnalyticDipoleCoefficient(double fieldNormalizationLength, double angle);
 
     /**
      * @brief Validate the analytic bend-definition inputs.
@@ -97,17 +98,18 @@ protected:
      * The OPALX analytic `SBEND`/`RBEND` model uses `ANGLE` as the primary
      * geometric quantity. `K0` is treated as a secondary quantity that may be
      * supplied only for consistency checking against
-     * \f$k_0 = \theta / L_\mathrm{eff}\f$.
+     * \f$k_0 = \theta / L_\mathrm{norm}\f$.
      *
      * @param elementName Name used in exception messages.
      * @param hasAngle True if the input explicitly defines `ANGLE`.
      * @param hasK0 True if the input explicitly defines `K0`.
-     * @param effectiveFieldLength Effective integrated field length.
+     * @param fieldNormalizationLength Element-specific field normalization length.
      * @param angle Total bend angle in radians.
      * @param k0Input User-provided dipole coefficient.
      */
     static void validateAnalyticBendDefinition(
-            const std::string& elementName, bool hasAngle, bool hasK0, double effectiveFieldLength,
+            const std::string& elementName, bool hasAngle, bool hasK0,
+            double fieldNormalizationLength,
             double angle, double k0Input);
 
 private:

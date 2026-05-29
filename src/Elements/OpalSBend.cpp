@@ -23,6 +23,41 @@
 #include "Physics/Physics.h"
 #include "Utilities/OpalException.h"
 
+namespace {
+
+/**
+ * @brief Return the OPAL-compatible SBEND dipole normalization length.
+ *
+ * Historical OPAL interprets the `SBEND` `L` attribute as the magnet chord
+ * length when it derives the design radius:
+ * \f[
+ *   R = \frac{L}{2\sin(\theta/2)} .
+ * \f]
+ * The dipole coefficient is therefore normalized with the corresponding arc
+ * length
+ * \f[
+ *   L_\mathrm{norm} = R\theta
+ *                  = L\frac{\theta}{2\sin(\theta/2)},
+ *   \qquad k_0 = \frac{\theta}{L_\mathrm{norm}} .
+ * \f]
+ * The small-angle limit returns `L`, preserving the straight-element limit.
+ */
+double getOpalChordToArcNormalizationLength(const double chordLength, const double angle) {
+    const double halfAngle = 0.5 * angle;
+    if (std::abs(halfAngle) <= 1.0e-12) {
+        return chordLength;
+    }
+
+    const double sine = std::sin(halfAngle);
+    if (std::abs(sine) <= 1.0e-15) {
+        return chordLength;
+    }
+
+    return chordLength * halfAngle / sine;
+}
+
+}  // namespace
+
 OpalSBend::OpalSBend()
     : OpalBend("SBEND", "The \"SBEND\" element defines a sector bending magnet.") {
     registerOwnership();
@@ -57,15 +92,16 @@ void OpalSBend::update() {
     const double halfGap =
             itsAttr[HGAP] ? Attributes::getReal(itsAttr[HGAP]) : 0.5 * std::abs(fullGap);
     const double fringeIntegral = Attributes::getReal(itsAttr[FINT]);
+    const double fieldNormalizationLength = getOpalChordToArcNormalizationLength(length, angle);
     PlanarArcGeometry& geometry = bend->getGeometry();
 
     if (length) {
-        geometry = PlanarArcGeometry(length, angle / length);
+        geometry = PlanarArcGeometry(
+                fieldNormalizationLength, angle / fieldNormalizationLength);
     } else {
         geometry = PlanarArcGeometry(angle);
     }
 
-    bend->setLength(length);
     bend->setBendAngle(angle);
     bend->setEntranceAngle(e1);
     bend->setExitAngle(e2);
@@ -75,7 +111,7 @@ void OpalSBend::update() {
 
     validateAnalyticBendDefinition(
             "OpalSBend::update(" + getOpalName() + ")", !itsAttr[ANGLE].defaultUsed(),
-            !itsAttr[K0].defaultUsed(), bend->getEffectiveFieldLength(), angle,
+            !itsAttr[K0].defaultUsed(), fieldNormalizationLength, angle,
             Attributes::getReal(itsAttr[K0]));
 
     bend->setNSlices(Attributes::getReal(itsAttr[NSLICES]));
@@ -92,7 +128,7 @@ void OpalSBend::update() {
 
     // Define field.
     BMultipoleField field;
-    double k0  = deriveAnalyticDipoleCoefficient(bend->getEffectiveFieldLength(), angle);
+    double k0  = deriveAnalyticDipoleCoefficient(fieldNormalizationLength, angle);
     double k0s = itsAttr[K0S] ? Attributes::getReal(itsAttr[K0S]) : 0.0;
 
     field.setNormalComponent(0, k0);

@@ -28,21 +28,57 @@
  *
  * The bend body extent remains the nominal placed hardware extent \f$[0, L]\f$
  * in the local chart, while the analytic field support may extend beyond the
- * body through hard-edge fringe regions
+ * body through the same default Enge fringe profile used by OPAL's
+ * `Bend2D`/`FM1DProfile1` model for `1DPROFILE1-DEFAULT`:
  * \f[
  * z \in [-\ell_\mathrm{entry},\, L + \ell_\mathrm{exit}] .
  * \f]
- * The fringe support lengths are modeled from the half gap \f$h\f$, fringe
- * integral \f$F_\mathrm{int}\f$, and pole-face angles \f$E_1, E_2\f$ as
+ * OPAL's default map defines field-profile points
+ * \f$p_1=-0.1\,\mathrm{m}\f$, \f$p_2=0\f$, and
+ * \f$p_3=0.1\,\mathrm{m}\f$ for a
+ * \f$g_0=0.02\,\mathrm{m}\f$ full gap. OPALX scales these points by the
+ * configured full gap \f$g\f$ (`GAP`, or \f$2\,\mathrm{HGAP}\f$ if `GAP` is
+ * absent), so the physical half width of one fringe is
  * \f[
- * \ell_\mathrm{entry} = \frac{h F_\mathrm{int}}{|\cos E_1|}, \qquad
- * \ell_\mathrm{exit} = \frac{h F_\mathrm{int}}{|\cos E_2|}.
+ * a = 0.1\,\mathrm{m}\,\frac{g}{g_0} = 5g .
  * \f]
- * The corresponding effective integrated field length of the linear-ramp
- * hard-edge model is
+ * The corresponding local support lengths are projected through the pole-face
+ * angles,
  * \f[
- * L_\mathrm{eff} = L_\mathrm{ref}
- *                + \frac{\ell_\mathrm{entry} + \ell_\mathrm{exit}}{2},
+ * \ell_\mathrm{entry} = \frac{a}{|\cos E_1|}, \qquad
+ * \ell_\mathrm{exit} = \frac{a}{|\cos E_2|}.
+ * \f]
+ *
+ * In the fringe regions the longitudinal field envelope is the OPAL default
+ * Enge function
+ * \f[
+ * f(u) = \frac{1}{1 + \exp\!\left(\sum_{i=0}^{5} c_i u^i\right)},
+ * \f]
+ * with
+ * \f[
+ * (c_0,\ldots,c_5) =
+ * (0.478959,\;1.911289,\;-1.185953,\;1.630554,\;-1.082657,\;0.318111).
+ * \f]
+ * If \f$\chi_1=|\cos E_1|\f$ and \f$\chi_2=|\cos E_2|\f$, the entry and exit
+ * envelopes are
+ * \f[
+ * F_\mathrm{entry}(z)=f\!\left(-\frac{\chi_1 z}{g}\right), \qquad
+ * F_\mathrm{exit}(z)=f\!\left(\frac{\chi_2(z-L_\mathrm{ref})}{g}\right).
+ * \f]
+ * OPALX uses the smaller of the applicable entry/exit envelopes for short
+ * bends where the fringe regions overlap. The on-axis dipole field is
+ * multiplied by \f$F(z)\f$ and the leading source-free fringe correction
+ * \f[
+ * B_y(x,y,z) = B_0\!\left(F(z) - \frac{1}{2}F''(z)y^2\right), \qquad
+ * B_z(x,y,z) = B_0 F'(z)y
+ * \f]
+ * is applied to the normal dipole term.
+ *
+ * The corresponding effective integrated field length is now computed from the
+ * Enge envelope itself,
+ * \f[
+ * L_\mathrm{eff} = \int_{-\ell_\mathrm{entry}}^{L_\mathrm{ref}
+ *                   + \ell_\mathrm{exit}} F(z)\,dz ,
  * \f]
  * where \f$L_\mathrm{ref}\f$ is the body length measured along the design
  * reference path. For sector bends this equals the placed arc length, while
@@ -64,9 +100,9 @@
  * \qquad
  * y'_\mathrm{out} = y'_\mathrm{in} - h \tan(E - \psi)\,y.
  * \f]
- * OPALX realizes these first-order optics effects through an equivalent
- * distributed fringe-field correction across the entry and exit support
- * regions while keeping the bend body-placement semantics unchanged.
+ * The `FINT` parameter remains part of the first-order pole-face focusing
+ * correction. It does not set the Enge field-profile width in OPAL's
+ * `FM1DProfile1` model.
  *
  * The analytic multipole strengths are stored internally in the normalized
  * lattice convention \f$k_n\f$ and converted to physical Tesla coefficients
@@ -137,19 +173,23 @@ public:
     /**
      * @brief Set the half gap used for analytic fringe support.
      *
-     * The half gap \f$h\f$ determines the extent of the hard-edge fringe
-     * support together with the fringe integral and pole-face angles.
+     * If no full `GAP` is provided, the OPAL default Enge fringe model uses
+     * \f$g=2h\f$ as the full gap when scaling the `FM1DProfile1` profile
+     * points.
      */
     void setFringeHalfGap(double halfGap);
     double getFringeHalfGap() const;
 
     /**
-     * @brief Set the hard-edge fringe integral used for support extension.
+     * @brief Set the pole-face fringe integral used by the edge-focusing model.
      *
-     * The analytic fringe model uses the thin-lens hard-edge convention
+     * `FINT` enters the first-order vertical edge-angle correction
      * \f[
-     * \ell = \frac{h F_\mathrm{int}}{|\cos E|}.
+     * \psi = h_\mathrm{eff}\,h_\mathrm{gap}\,F_\mathrm{int}
+     *        \frac{1 + \sin^2 E}{\cos E}.
      * \f]
+     * It does not define the longitudinal Enge field-support width; that width
+     * follows OPAL's `FM1DProfile1` default profile and the configured gap.
      */
     void setFringeIntegral(double fringeIntegral);
     double getFringeIntegral() const;
@@ -418,32 +458,32 @@ public:
             const std::shared_ptr<ParticleContainer_t>& pc, const TrackingSlice& slice) const;
 
     /**
-     * @brief Return the local hard-edge fringe support in front of the body.
+     * @brief Return the OPAL Enge fringe support in front of the body.
      */
     double getEntryFringeSupportLength() const;
 
     /**
-     * @brief Return the local hard-edge fringe support behind the body.
+     * @brief Return the OPAL Enge fringe support behind the body.
      */
     double getExitFringeSupportLength() const;
 
     /**
      * @brief Return the effective integrated field length of the fringe model.
      *
-     * The effective length is defined on the design reference path used to
-     * normalize the analytic dipole field. For sector bends this is the arc
-     * length of the body. For rectangular bends it is the design-path length
-     * between the rotated entrance and exit faces, which differs from the
-     * straight body length.
+     * The value is the numerical integral of the OPAL default Enge envelope
+     * over the full local support. It is cached whenever the bend length, gap,
+     * bend angle, or pole-face angles change. Rectangular bends use this
+     * integral for field normalization; sector-bend parsers may use a
+     * chord-to-arc normalization instead to match historical OPAL input.
      */
     double getEffectiveFieldLength() const;
 
     /**
-     * @brief Return the local field scale for the hard-edge fringe model.
+     * @brief Return the local OPAL Enge field scale.
      *
-     * The scale is zero outside the field support, ramps linearly from zero to
-     * one across the entry fringe, remains one on the body interval, and ramps
-     * linearly back to zero across the exit fringe.
+     * The scale is zero outside the field support. At each pole face it follows
+     * OPAL's default `FM1DProfile1` Enge function and equals approximately
+     * \f$f(0)=0.3825\f$ at the nominal edge.
      */
     double getFieldScale(double z) const;
 
@@ -497,8 +537,7 @@ protected:
      *
      * This quantity is a kick coefficient, not a magnetic-field gradient. The
      * distributed fringe-field model converts it into \f$B_x\f$ using the local
-     * reference rigidity, which introduces the additional sign implied by the
-     * Lorentz force law.
+     * reference rigidity.
      */
     double getEntryEdgeVerticalStrength() const;
     /**
@@ -514,6 +553,35 @@ protected:
      * be converted to a field gradient through the local rigidity.
      */
     double getExitEdgeVerticalStrength() const;
+    /**
+     * @brief Return the entry-fringe coefficient for vertical edge focusing.
+     *
+     * The vertical edge-strength methods return the optics kick coefficient
+     * \f$k_y\f$ in
+     * \f[
+     *   y'_\mathrm{out} = y'_\mathrm{in} + k_y y .
+     * \f]
+     * OPAL's analytic fringe model spreads this equivalent force over the same
+     * Enge ramp used for the main dipole field.  With local field scale
+     * \f$\lambda(s)\f$ and support \f$[s_-,s_+]\f$, the entry field is
+     * \f[
+     *   B_x^\mathrm{edge}(s,y) =
+     *   \frac{B_0}{h}\,
+     *   \frac{k_y}{\lambda(s_+)-\lambda(s_-)}
+     *   \frac{d\lambda}{ds}\,y .
+     * \f]
+     * This preserves the integrated hard-edge kick while placing the force
+     * over the physical fringe instead of upstream of the nominal edge only.
+     */
+    double getEntryEdgeVerticalFieldCoefficient() const;
+    /**
+     * @brief Return the exit-fringe coefficient for vertical edge focusing.
+     *
+     * At the exit \f$d\lambda/ds < 0\f$, so callers apply the returned
+     * coefficient with the opposite derivative sign in order to preserve the
+     * signed exit kick.
+     */
+    double getExitEdgeVerticalFieldCoefficient() const;
     void updateFieldSupportExtent();
     void updatePhysicalFieldFromReference();
     /**
@@ -536,6 +604,7 @@ private:
     double endField_m;
     double fieldBegin_m;
     double fieldEnd_m;
+    double effectiveFieldLength_m;
     double angle_m;
     double entranceAngle_m;
     double exitAngle_m;
@@ -588,7 +657,10 @@ inline void BendBase::setExitAngle(double exitAngle) {
     updateFieldSupportExtent();
 }
 
-inline void BendBase::setFullGap(double gap) { gap_m = std::abs(gap); }
+inline void BendBase::setFullGap(double gap) {
+    gap_m = std::abs(gap);
+    updateFieldSupportExtent();
+}
 
 inline double BendBase::getFullGap() const { return gap_m; }
 
@@ -638,7 +710,10 @@ inline double BendBase::resolveReferenceMomentumEV(
     return bunchReferenceMomentumEV;
 }
 
-inline void BendBase::setFieldMapFN(std::string fileName) { fileName_m = std::move(fileName); }
+inline void BendBase::setFieldMapFN(std::string fileName) {
+    fileName_m = std::move(fileName);
+    updateFieldSupportExtent();
+}
 
 inline std::string BendBase::getFieldMapFN() const { return fileName_m; }
 
@@ -683,14 +758,13 @@ inline int BendBase::getRequiredNumberOfTimeSteps() const { return 10; }
 inline double BendBase::getEntryFringeSupportLength() const { return -fieldBegin_m; }
 
 inline double BendBase::getExitFringeSupportLength() const {
-    return std::max(0.0, fieldEnd_m - getElementLength());
+    return std::max(0.0, fieldEnd_m - getReferencePathLength());
 }
 
 inline double BendBase::getReferencePathLength() const { return getElementLength(); }
 
 inline double BendBase::getEffectiveFieldLength() const {
-    return getReferencePathLength()
-           + 0.5 * (getEntryFringeSupportLength() + getExitFringeSupportLength());
+    return effectiveFieldLength_m;
 }
 
 inline double BendBase::getStoredExitAngle() const { return exitAngle_m; }
