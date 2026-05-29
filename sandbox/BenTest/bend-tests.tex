@@ -1,0 +1,572 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=22mm]{geometry}
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{tikz}
+\usepackage{url}
+\usetikzlibrary{arrows.meta,calc,positioning}
+
+\title{Single-SBEND Analytic Placement Tests}
+\author{OPALX element placing sandbox}
+\date{\today}
+
+\newcommand{\degree}{^\circ}
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\vect}[1]{\boldsymbol{#1}}
+
+\tikzset{
+  axis/.style={-{Latex[length=2mm]}, thin, black!70},
+  design/.style={very thick, blue!70!black},
+  fringe/.style={thick, dashed, orange!80!black},
+  pose/.style={-{Latex[length=2mm]}, thick, green!45!black},
+  poleface/.style={thick, green!45!black},
+  poleangle/.style={-{Latex[length=1.4mm]}, thick, green!45!black},
+  monitor/.style={thick, red!70!black},
+  marker/.style={circle, fill=black, inner sep=1.4pt},
+  note/.style={font=\scriptsize, align=left, fill=white, inner sep=1.5pt}
+}
+
+\begin{document}
+\maketitle
+
+\section{Purpose}
+
+The two sandbox inputs
+\[
+  \code{sandbox/test-sbend-1/test-sbend-1.in},\qquad
+  \code{sandbox/test-sbend-2/test-sbend-2.in}
+\]
+exercise the OPALX-native analytic \code{SBEND} without field maps, using the
+native analytic bend model and explicit poses.  The first test is a placement
+consistency test.  The second test adds a vertical offset and checks that the
+implemented pole-face fringe model produces the expected focusing.
+
+Both tests use explicit element posing:
+\[
+  (X,Y,Z,\Theta,\Phi,\Psi),
+\]
+where \((X,Y,Z)\) is the placed body-frame origin and \(\Theta\) is the body
+rotation about the global \(Y\)-axis in the \(X\)-\(Z\) drawing plane.  The
+figures use this global \(X\)-\(Z\) projection; for these horizontal-bend tests
+the body pose has \(Y=0\), normal to the drawing plane.
+
+\section{Common analytic SBEND geometry}
+
+For both tests
+\[
+  L_\mathrm{chord} = 1.0\ \mathrm{m},\qquad
+  \theta = 45\degree = \frac{\pi}{4},\qquad
+  R = \frac{L_\mathrm{chord}}{2\sin(\theta/2)}
+    = 1.3065629649\ \mathrm{m}.
+\]
+For parser-created \code{SBEND}, OPALX follows old OPAL and treats \code{L} as
+the chord.  The placed sector arc length and curvature are therefore
+\[
+  L_\mathrm{ref} = R\theta = 1.0261721530\ \mathrm{m},
+  \qquad
+  h = \frac{\theta}{L_\mathrm{ref}} = \frac{1}{R}
+    = 0.7653668647\ \mathrm{m}^{-1}.
+\]
+OPALX's \code{PlanarArcGeometry} places the body-frame origin at the arc
+midpoint, so the body coordinate \(s\) runs from \(-L_\mathrm{ref}/2\) to
+\(+L_\mathrm{ref}/2\).  The local sector orbit is the standard sector-bend
+reference-orbit convention used in first-order beam dynamics
+\cite{holzer2018,bmad}:
+\[
+  \vect r(s) =
+  \begin{pmatrix}
+    \dfrac{\cos(hs)-1}{h}\\[1.0ex]
+    0\\[0.5ex]
+    \dfrac{\sin(hs)}{h}
+  \end{pmatrix},
+  \qquad
+  \vect t(s) =
+  \begin{pmatrix}
+    -\sin(hs)\\
+    0\\
+    \cos(hs)
+  \end{pmatrix}.
+\]
+For \(L_\mathrm{chord}=1\ \mathrm{m}\) and \(\theta=45\degree\),
+\[
+  \vect r_\mathrm{entry}
+  = (-0.0994561837,\,0,\,-0.5000000000)\ \mathrm{m},
+  \qquad
+  \vect r_\mathrm{exit}
+  = (-0.0994561837,\,0,\,0.5000000000)\ \mathrm{m}.
+\]
+
+The longitudinal field support follows OPAL's default \code{FM1DProfile1} Enge
+profile.  With no explicit \code{GAP}, the inputs use
+\(g=2\,\mathrm{HGAP}=0.04\ \mathrm{m}\), so the default Enge half width is
+\(a=5g=0.2\ \mathrm{m}\):
+\[
+  \ell_i = \frac{a}{|\cos E_i|},
+  \qquad
+  L_\mathrm{eff} =
+  \int_{-\ell_1}^{L_\mathrm{ref}+\ell_2} F_\mathrm{Enge}(s)\,ds.
+\]
+The vertical pole-face correction used for the thin-edge estimate is
+\[
+  \psi(E)
+    = h_\mathrm{eff}\,\mathrm{HGAP}\,F_\mathrm{int}
+      \frac{1+\sin^2 E}{\cos E},
+  \qquad
+  k_y(E) = -h_\mathrm{eff}\tan\!\left(E-\psi(E)\right).
+\]
+The thin-entry-edge vertical map used to design the second test is
+\[
+  y_\mathrm{exit}
+    = \left(1 + L_\mathrm{ref}\,k_y(E_1)\right)y_\mathrm{entry}
+      + L_\mathrm{ref}\,y'_\mathrm{entry}.
+\]
+
+\section{\code{test-sbend-1}: placement consistency test}
+
+This test checks the first explicitly posed analytic \code{SBEND} pole-face
+case: a \(45\degree\) entrance face, zero exit face, a \(0.3\ \mathrm{m}\)
+upstream drift, and the initial particle exactly at \((0,0,0)\).
+Because the particle is on the reference point, the entrance pole face should
+not deflect it away from the design exit.  The exit monitor shown in Fig.~1 is
+placed at the exported \code{B1} exit edge.  The input deck derives the body
+and monitor poses from the same sector geometry used by old OPAL.  With
+\[
+  \vect r_0 = (X_0,\,0,\,Z_0), \qquad X_0=0,\qquad Z_0=d,
+  \qquad d=0.3\ \mathrm{m},
+\]
+the formulas used in \code{test-sbend-1.in} are
+\[
+\begin{aligned}
+  R &= \frac{L_\mathrm{chord}}{2\sin(\theta/2)},\\
+  \vect r_\mathrm{body}
+    &= \vect r_0 +
+       \begin{pmatrix}
+         R\left(\cos(\theta/2)-1\right)\\
+         0\\
+         R\sin(\theta/2)
+       \end{pmatrix},
+  &
+  \Theta_\mathrm{body} &= -\frac{\theta}{2},\\[1.0ex]
+  \vect r_\mathrm{exit}
+    &= \vect r_0 +
+       \begin{pmatrix}
+         R\left(\cos\theta-1\right)\\
+         0\\
+         R\sin\theta
+       \end{pmatrix},
+  &
+  \Theta_\mathrm{exit} &= -\theta,\\[1.0ex]
+  \vect t_\mathrm{exit}
+    &= \begin{pmatrix}-\sin\theta\\0\\\cos\theta\end{pmatrix}.
+\end{aligned}
+\]
+For the present \(45\degree\) case this gives
+\[
+\begin{aligned}
+  \vect r_\mathrm{entry}
+    &= (0,\,0,\,0.3000000000)\ \mathrm{m},\\
+  \vect r_\mathrm{body}
+    &= (-0.0994561837,\,0,\,0.8000000000)\ \mathrm{m},\\
+  \vect r_\mathrm{exit}
+    &= (-0.3826834324,\,0,\,1.2238795325)\ \mathrm{m},\\
+  \Theta_\mathrm{body}
+    &= -22.5\degree,\\
+  \Theta_\mathrm{exit}
+    &= -45\degree .
+\end{aligned}
+\]
+
+\begin{center}
+\begin{tabular}{@{}ll@{}}
+\toprule
+quantity & value \\
+\midrule
+\code{ANGLE} & \(45\degree\) \\
+\code{E1}, \code{E2} & \(45\degree,\ 0\degree\) \\
+\code{HGAP}, \code{FINT} & \(0.02\ \mathrm{m},\ 0.5\) \\
+\(\ell_1,\ell_2\) & \(0.2828427125,\ 0.2000000000\ \mathrm{m}\) \\
+\(L_\mathrm{ref}\) & \(1.0261721530\ \mathrm{m}\) \\
+\(L_\mathrm{eff}\) & \(1.0261728620\ \mathrm{m}\) \\
+\(h_\mathrm{eff}\) & \(0.7653663359\ \mathrm{m}^{-1}\) \\
+SBEND body pose & \(X=-0.0994561837,\ Y=0,\ Z=0.8000000000,\ \Theta=-22.5\degree\) \\
+exit monitor pose & \(X=-0.3826834324,\ Z=1.2238795325,\ \Theta=-45\degree\) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The practical placement criterion is based on the monitor local coordinates:
+\[
+  r_\perp = \sqrt{\bar{x}^{\,2} + \bar{s}^{\,2}} < 5\times 10^{-5}\ \mathrm{m}.
+\]
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[x=6.5cm,y=6.5cm]
+  \def\h{0.7653668647301796}
+  \def\hdeg{43.85229112819947}
+  \def\Xb{-0.0994561837}
+  \def\Zb{0.8000000000}
+  \def\Tb{-22.5}
+
+  \coordinate (O) at (0,0);
+
+  \draw[axis] (-0.56,0) -- (0.08,0) node[right] {$X$};
+  \draw[axis] (0,-0.04) -- (0,1.42) node[above] {$Z$};
+  \node[marker,label={[note]below right:global origin}] at (O) {};
+  \draw[black!70] (0.047,0.155) circle (0.010);
+  \fill[black!70] (0.047,0.155) circle (0.0025);
+  \node[note,anchor=west] at (0.060,0.155) {$Y$};
+
+  \draw[design]
+    plot[domain=-0.5130860765:0.5130860765,samples=90,variable=\s]
+    ({\Xb + cos(\Tb)*((cos(\hdeg*\s)-1)/\h) + sin(\Tb)*(sin(\hdeg*\s)/\h)},
+     {\Zb - sin(\Tb)*((cos(\hdeg*\s)-1)/\h) + cos(\Tb)*(sin(\hdeg*\s)/\h)});
+
+  \coordinate (FB) at (0.0000000000,0.0171572875);
+  \coordinate (EN) at (0.0000000000,0.3000000000);
+  \coordinate (BO) at (-0.0994561837,0.8000000000);
+  \coordinate (EX) at (-0.3826834324,1.2238795325);
+  \coordinate (FE) at (-0.5241047886,1.3653008887);
+  \coordinate (MO) at (-0.3826834324,1.2238795325);
+
+  \draw[fringe] (FB) -- (EN);
+  \draw[fringe] (EX) -- (FE);
+
+  \node[marker,label={[note]left:field begin}] at (FB) {};
+  \node[marker,label={[note]below right:entry edge\\particle start}] at (EN) {};
+  \node[marker,label={[note]right:body origin}] at (BO) {};
+  \node[marker,label={[note]right:exit edge / monitor}] at (EX) {};
+  \node[marker,label={[note]right:field end}] at (FE) {};
+
+  \draw[gray!70,densely dashed] (O) -- (\Xb,0) -- (BO);
+  \draw[{Latex[length=1.4mm]}-{Latex[length=1.4mm]}, gray!70] (O) -- (\Xb,0)
+    node[midway,below,note] {$X_\mathrm{body}$};
+  \draw[{Latex[length=1.4mm]}-{Latex[length=1.4mm]}, gray!70] (\Xb,0) -- (BO)
+    node[midway,left,note] {$Z_\mathrm{body}$};
+
+  \draw[pose] (BO) -- ++({0.13*sin(\Tb)},{0.13*cos(\Tb)})
+    node[note,above right] {$\Theta=-22.5\degree$};
+
+  \draw[poleface,densely dotted] ($(EN)+(-0.055,0)$) -- ($(EN)+(0.055,0)$);
+  \draw[poleface]
+    ($(EN)+({-0.055*cos(45)},{-0.055*sin(45)})$) --
+    ($(EN)+({0.055*cos(45)},{0.055*sin(45)})$);
+  \draw[poleangle] ($(EN)+(0.045,0)$)
+    arc[start angle=0,end angle=45,radius=0.045];
+  \node[note,text=green!45!black,anchor=west] at (0.040,0.034)
+    {$E_1=45\degree$};
+
+  \draw[poleface]
+    ($(EX)+({-0.070*cos(45)},{-0.070*sin(45)})$) --
+    ($(EX)+({0.070*cos(45)},{0.070*sin(45)})$);
+  \node[note,text=green!45!black,anchor=east] at (-0.500,1.145)
+    {$E_2=0\degree$};
+
+  \draw[monitor] (MO) -- ++({0.08*cos(-45)},{-0.08*sin(-45)});
+  \draw[monitor] (MO) -- ++({-0.08*cos(-45)},{0.08*sin(-45)});
+
+  \node[note,anchor=west] at (-0.53,0.98)
+    {$\theta=45\degree$\\$E_1=45\degree$\\$E_2=0\degree$};
+  \node[note,anchor=west] at (-0.08,0.43)
+    {solid: exported body arc\\dashed: straight Enge support};
+\end{tikzpicture}
+\caption{\code{test-sbend-1}: placed body arc, field support, and temporal monitor plane.
+The grey dimensions mark the OPALX body pose in the global \(X\)-\(Z\) projection;
+the circled-dot axis marks global \(+Y\) normal to the page.  The entrance
+pole face is \(45\degree\), but the on-axis start particle remains on the
+design exit.}
+\end{figure}
+
+\section{\code{test-sbend-1}: OPAL 2022.1 comparison}
+
+The old-OPAL comparison uses \code{test-sbend-1\_opal.in} with the same
+\code{SBEND} length, angle, pole-face angles, gap, and fringe integral.  The
+comparison script runs OPALX and OPAL 2022.1 in separate work directories and
+compares only the \code{DesignPath.dat} and \code{.stat} diagnostics; HDF5 and
+load-balance files are ignored.
+
+In the 30 cm drift comparison used for these figures, the reference-particle
+\(B_y\) peak agrees exactly at the sampled precision.  The \code{.stat}
+reference-field support starts at the same longitudinal coordinate and ends
+within \(3\times 10^{-4}\ \mathrm{m}\).  The remaining path differences are
+small compared with the bend scale: the maximum design-path differences are
+\(4.4\times10^{-4}\ \mathrm{m}\) in \(x\) and
+\(2.1\times10^{-4}\ \mathrm{m}\) in relative \(z\).
+
+\begin{figure}[htbp]
+\centering
+\begin{minipage}{0.49\textwidth}
+\centering
+\includegraphics[width=\linewidth]{figures/test-sbend-1-design-path-xz.png}
+\end{minipage}\hfill
+\begin{minipage}{0.49\textwidth}
+\centering
+\includegraphics[width=\linewidth]{figures/test-sbend-1-stat-by-ref.png}
+\end{minipage}
+\caption{\code{test-sbend-1} OPALX versus OPAL 2022.1: design-path
+\(X\)-\(Z\) orbit (left) and \code{.stat} reference \(B_y\) (right).}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\begin{minipage}{0.49\textwidth}
+\centering
+\includegraphics[width=\linewidth]{figures/test-sbend-1-design-path-by.png}
+\end{minipage}\hfill
+\begin{minipage}{0.49\textwidth}
+\centering
+\includegraphics[width=\linewidth]{figures/test-sbend-1-design-path-momentum.png}
+\end{minipage}
+\caption{\code{test-sbend-1} design-path diagnostic comparison.  Left: sampled
+\(B_y\) from \code{DesignPath.dat}.  Right: design-path momentum components.}
+\end{figure}
+
+\section{\code{test-sbend-2}: OPALX/OPAL vertical edge-focusing comparison}
+
+This test keeps the same chord-to-arc SBEND placement formulas as
+\code{test-sbend-1}, but launches a particle with
+\[
+  y_0 = 1.0\ \mathrm{mm},\qquad y'_0 = 0.
+\]
+The OPALX input is \code{sandbox/test-sbend-2/test-sbend-2.in}; the old OPAL
+reference input is \code{sandbox/test-sbend-2/test-sbend-2\_opal.in}.  OPALX
+uses explicit element placement, while old OPAL uses \code{ELEMEDGE}.  The old
+OPAL distribution is replicated to \(10^4\) identical macro-particles so that
+OPAL 2022.1 writes the standard \code{.stat} diagnostics; OPALX uses a single
+particle and no self field.
+
+\begin{center}
+\begin{tabular}{@{}ll@{}}
+\toprule
+quantity & value \\
+\midrule
+upstream drift & \(0.4\ \mathrm{m}\) \\
+\code{ANGLE} & \(45\degree\) \\
+\code{E1}, \code{E2} & \(-49.99\degree,\ 0\degree\) \\
+\code{HGAP}, \code{FINT} & \(0.02\ \mathrm{m},\ 0.5\) \\
+OPAL full \code{GAP} & \(0.04\ \mathrm{m}\) \\
+Enge half width \(a=5\,\code{GAP}\) & \(0.2\ \mathrm{m}\) \\
+\(\ell_\mathrm{entry}=a/|\cos E_1|\) & \(0.3110798769\ \mathrm{m}\) \\
+\(\ell_\mathrm{exit}=a/\cos E_2\) & \(0.2\ \mathrm{m}\) \\
+upstream Enge support start & \(0.0889199346\ \mathrm{m}\) \\
+nominal entrance edge & \(0.4\ \mathrm{m}\) \\
+nominal exit edge & \(1.4261721530\ \mathrm{m}\) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The comparison run uses
+\[
+  s_\mathrm{rel}^{\mathrm{OPAL}} = s^{\mathrm{OPAL}} - 1\ \mathrm{m},
+  \qquad
+  z_\mathrm{rel}^{\mathrm{OPAL}} = z^{\mathrm{OPAL}} - 1\ \mathrm{m}.
+\]
+The apparent bend start near \(0.2\ \mathrm{m}\) is not a different OPALX
+element placement.  It is the visible part of the upstream Enge fringe.  The
+full OPAL-style support begins at \(0.4-\ell_\mathrm{entry}
+=0.0889199346\ \mathrm{m}\), where the field is still numerically tiny, and
+the nominal bend entrance remains at \(0.4\ \mathrm{m}\) in both OPALX and old
+OPAL.  With the comparison script's \(10^{-6}\) peak-field support threshold,
+the design-path \(B_y\) fringe starts at \(0.2401337\ \mathrm{m}\) in OPALX
+and \(0.2399838\ \mathrm{m}\) in old OPAL.
+
+The reference geometry and field profile agree at the same level as the
+placement test: \(B_y\) peak differences are zero in the sampled output, the
+design-path \(B_y\) integral differs by \(1.12\times 10^{-3}\), and the
+\code{.stat} reference-particle field support ends within \(6.0\times 10^{-4}\)
+m.  The OPALX vertical edge force is now weighted with the same Enge
+derivative as the fringe field, so the equivalent kick is applied at the same
+longitudinal centroid as old OPAL's map.  At the final common sample OPALX has
+\(\bar y=2.168092\times 10^{-3}\ \mathrm{m}\), while old OPAL has
+\(\bar y=2.161588\times 10^{-3}\ \mathrm{m}\).  The remaining final difference
+is \(6.50\times 10^{-6}\ \mathrm{m}\), so this case is now a useful
+vertical-focusing regression diagnostic.
+
+\begin{figure}[htbp]
+\centering
+\begin{minipage}{0.49\textwidth}
+\centering
+\includegraphics[width=\linewidth]{figures/test-sbend-2-design-path-xz.png}
+\end{minipage}\hfill
+\begin{minipage}{0.49\textwidth}
+\centering
+\includegraphics[width=\linewidth]{figures/test-sbend-2-stat-by-ref.png}
+\end{minipage}
+\caption{\code{test-sbend-2} OPALX versus OPAL 2022.1: design-path
+\(X\)-\(Z\) orbit (left) and \code{.stat} reference \(B_y\) (right).  The
+dotted vertical marker is the upstream Enge support start; dashed and
+dash-dotted markers are the nominal entrance and exit edges.}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\begin{minipage}{0.49\textwidth}
+\centering
+\includegraphics[width=\linewidth]{figures/test-sbend-2-design-path-by.png}
+\end{minipage}\hfill
+\begin{minipage}{0.49\textwidth}
+\centering
+\includegraphics[width=\linewidth]{figures/test-sbend-2-design-path-momentum.png}
+\end{minipage}
+\caption{\code{test-sbend-2} design-path diagnostic comparison.  Left: sampled
+\(B_y\) from \code{DesignPath.dat}.  Right: design-path momentum components.
+The same geometry markers show that the visible fringe precedes the nominal
+\(0.4\ \mathrm{m}\) entrance edge in both codes.}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.78\linewidth]{figures/test-sbend-2-vertical-particle-motion.png}
+\caption{\code{test-sbend-2} vertical particle motion from the \code{.stat}
+\(\bar y\) column.  Both distributions are monoenergetic replicated particles,
+so \(\bar y\) is the tracked particle's vertical coordinate.}
+\end{figure}
+
+\section{Next candidate: symmetric C-shape four-bend chicane}
+
+A short web search did not turn up a clean accelerator-school exercise sheet
+with a worked numerical solution for exactly the OPALX use case.  Two school
+sources are nevertheless immediately useful for a regression design.  The
+USPAS bunch-compression slides give the standard four-rectangular-dipole
+chicane model and the small-angle expression for \(R_{56}\)
+\cite{uspas2014bunchcompression}.  The CAS FEL/ERL proceedings discuss the
+symmetric C-shape chicane as a common FEL compressor geometry and give the
+same small-angle model together with the usual higher-order longitudinal
+coefficients \cite{dimitri2018}.
+
+\begin{center}
+\begin{tabular}{@{}lll@{}}
+\toprule
+source & useful content & benchmark role \\
+\midrule
+USPAS 2014 & four rectangular dipoles, \(R_{56}\), compression map &
+primary analytic seed \\
+CAS FEL/ERL & C-shape geometry, \(T_{566}\), \(U_{5666}\), timing model &
+cross-check and context \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The intended OPALX benchmark is a symmetric C-shape chicane with four equal
+hard-edge dipoles,
+\[
+  (+\theta,\,-\theta,\,-\theta,\,+\theta),
+\]
+magnetic length \(L_b\), lateral drift \(D\) between dipoles 1--2 and 3--4,
+and central drift \(C\) between dipoles 2--3.  To leading order in
+\(\theta\), the central drift does not contribute to the longitudinal
+dispersion.  The school-formula target is therefore
+\[
+  R_{56}
+    \simeq
+    -\theta^2\left(\frac{4}{3}L_b + 2D\right)
+    =
+    -2\theta^2\left(D+\frac{2}{3}L_b\right).
+\]
+For the same small-angle model one can use
+\[
+  T_{566} \simeq -\frac{3}{2}R_{56},
+  \qquad
+  U_{5666} \simeq 2R_{56},
+\]
+as optional higher-order checks once the linear regression is stable.
+
+The executable OPALX realization is
+\[
+  \code{sandbox/test-chicane-1/test-chicane-1.in}.
+\]
+It keeps the survey formulas symbolic in the input file.  With
+\[
+  \rho=\frac{L_b}{2\sin(\theta/2)},
+\]
+where \(L_b\) is the OPAL/OPALX \code{SBEND} chord length, not the circular arc
+length, the reused survey increments are
+\[
+\begin{aligned}
+  \Delta x_b &= \rho(1-\cos\theta),
+  &\Delta z_b &= \rho\sin\theta,\\
+  \Delta x_{b/2} &= \rho\left(1-\cos\frac{\theta}{2}\right),
+  &\Delta z_{b/2} &= \rho\sin\frac{\theta}{2},\\
+  \Delta x_{r/2} &= \rho\left(\cos\frac{\theta}{2}-\cos\theta\right),
+  &\Delta z_{r/2} &= \rho\left(\sin\theta-\sin\frac{\theta}{2}\right),\\
+  \Delta x_D &= D\sin\theta,
+  &\Delta z_D &= D\cos\theta .
+\end{aligned}
+\]
+The \code{REAL} symbols \code{B1\_X}, \code{B1\_Z}, \ldots,
+\code{MEXIT\_X}, \code{MEXIT\_Z} in the input are assembled from these
+increments and are then used directly in the element \code{X}, \code{Y},
+\code{Z}, and \code{THETA} attributes.
+
+For OPALX the first useful regression should stay purely geometric and
+single-particle:
+
+\begin{enumerate}
+\item place the four analytic \code{SBEND}s explicitly, without field maps;
+\item use monitors after each dipole and at the chicane exit;
+\item require the final monitor to be parallel to the entrance axis and
+      centered on the design exit;
+\item compare the exported element positions with the analytic C-chicane
+      survey.
+\end{enumerate}
+
+The second regression should introduce three single-particle runs or three
+separate particles with
+\[
+  \delta = -10^{-3},\quad 0,\quad +10^{-3},
+\]
+and measure the arrival/path-length shift at the exit monitor.  The expected
+linear fit is
+\[
+  \Delta z_f(\delta) - \Delta z_f(0) \simeq R_{56}\,\delta .
+\]
+This turns the C-chicane into a direct test of both element placing and the
+time-of-flight/path-length model.
+
+\begin{thebibliography}{9}
+
+\bibitem{holzer2018}
+B.~J. Holzer,
+\emph{Transverse Beam Dynamics},
+CERN Yellow Reports: School Proceedings, Vol.~5 (2018),
+\url{https://doi.org/10.23730/CYRSP-2018-005.1}.
+
+\bibitem{brown1982}
+K.~L. Brown,
+\emph{A First- and Second-Order Matrix Theory for the Design of Beam Transport
+Systems and Charged Particle Spectrometers},
+SLAC-R-075, Rev.~4, June 1982,
+\url{https://www.slac.stanford.edu/pubs/slacreports/reports01/slac-r-075.pdf}.
+
+\bibitem{madx}
+H.~Grote, F.~Schmidt, L.~Deniau, and G.~Roy,
+\emph{The MAD-X Program: User's Reference Manual},
+CERN, Version 5.02 series, sections on reference-system poses, \code{SBEND}, and
+dipole-edge focusing,
+\url{https://madx.web.cern.ch/}.
+
+\bibitem{bmad}
+D.~Sagan,
+\emph{Bmad Manual},
+Cornell CLASSE, sections on \code{SBEND}/\code{RBEND}, bend coordinates, and
+fringe-field integrals,
+\url{https://www.classe.cornell.edu/bmad/bmad-manual.pdf}.
+
+\bibitem{uspas2014bunchcompression}
+D.~Nguyen, J.~Lewellen, and L.~Duffy,
+\emph{RF Linac for High-Gain FEL: Bunch Compression},
+US Particle Accelerator School, June 2014,
+\url{https://uspas.fnal.gov/materials/14UNM/E_Bunch_Compression.pdf}.
+
+\bibitem{dimitri2018}
+S.~Di Mitri,
+\emph{Bunch-Length Compressors},
+Proceedings of the CAS-CERN Accelerator School on Free Electron Lasers and
+Energy Recovery Linacs, CERN Yellow Reports: School Proceedings, Vol.~1 (2018),
+\url{https://doi.org/10.23730/CYRSP-2018-001.361}.
+
+\end{thebibliography}
+
+\end{document}
