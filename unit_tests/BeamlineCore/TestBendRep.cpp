@@ -163,6 +163,22 @@ namespace {
         return betaGamma * massEV / (Physics::c * std::abs(charge) * radius);
     }
 
+    double defaultOpalNominalEdgeScale() {
+        return 1.0 / (1.0 + std::exp(0.478959));
+    }
+
+    double expectedVerticalEdgeStrength(
+            const double signedCurvature, const double edgeAngle, const double fringeHalfGap,
+            const double fringeIntegral) {
+        const double cosEdge = std::cos(edgeAngle);
+        const double safeCos =
+                (std::abs(cosEdge) > 1.0e-6) ? cosEdge : std::copysign(1.0e-6, cosEdge);
+        const double sinEdge = std::sin(edgeAngle);
+        const double psi     = signedCurvature * fringeHalfGap * fringeIntegral
+                           * (1.0 + sinEdge * sinEdge) / safeCos;
+        return -signedCurvature * std::tan(edgeAngle - psi);
+    }
+
     Vector_t<double, 3> fieldLocalToEntryCartesian(
             const Vector_t<double, 3>& fieldLocal, const double curvature,
             const double bodyLength) {
@@ -725,7 +741,7 @@ namespace {
     }
 
     TEST_F(BendRepParticleContainerTest,
-           ProtonLikeEntryFringeVerticalOffsetProducesNegativeHorizontalFieldComponent) {
+           ProtonLikeEntryFringeVerticalOffsetProducesPositiveHorizontalFieldComponent) {
         constexpr double bodyLength     = 1.0;
         constexpr double bendAngle      = Physics::pi / 4.0;
         constexpr double fringeHalfGap  = 0.015;
@@ -779,8 +795,8 @@ namespace {
         const Vector_t<double, 3> BexpectedSlice =
                 containingSlice->entryToSliceLocal.rotateTo(BexpectedEntry);
 
-        EXPECT_LT(BexpectedSlice(0), 0.0);
-        EXPECT_LT(BhostView(0)(0), 0.0);
+        EXPECT_GT(BexpectedSlice(0), 0.0);
+        EXPECT_GT(BhostView(0)(0), 0.0);
         EXPECT_NEAR(BhostView(0)(0), BexpectedSlice(0), 1.0e-12);
         EXPECT_NEAR(BhostView(0)(1), BexpectedSlice(1), 1.0e-12);
         EXPECT_NEAR(BhostView(0)(2), BexpectedSlice(2), 1.0e-12);
@@ -1015,7 +1031,7 @@ namespace {
     }
 
     TEST_F(BendRepParticleContainerTest,
-           ProtonLikeEntryFringeBorisKickProducesNegativeVerticalMomentumChange) {
+           ProtonLikeEntryFringeBorisKickProducesPositiveVerticalMomentumChange) {
         constexpr double bodyLength     = 1.0;
         constexpr double bendAngle      = Physics::pi / 4.0;
         constexpr double fringeHalfGap  = 0.015;
@@ -1066,11 +1082,11 @@ namespace {
         auto Pafter = pc->P.getHostMirror();
         Kokkos::deep_copy(Pafter, pc->P.getView());
 
-        EXPECT_LT(Pafter(0)(1), 0.0);
+        EXPECT_GT(Pafter(0)(1), 0.0);
     }
 
     TEST_F(BendRepParticleContainerTest,
-           RuntimeNormalizedEntryFringeSliceKickProducesPositiveVerticalMomentumChange) {
+           RuntimeNormalizedEntryFringeSliceKickProducesNegativeVerticalMomentumChange) {
         constexpr double bodyLength      = 1.0;
         constexpr double bendAngle       = Physics::pi / 4.0;
         constexpr double fringeHalfGap   = 0.015;
@@ -1127,11 +1143,11 @@ namespace {
         auto Pafter = pc->P.getHostMirror();
         Kokkos::deep_copy(Pafter, pc->P.getView());
 
-        EXPECT_GT(Pafter(0)(1), 0.0);
+        EXPECT_LT(Pafter(0)(1), 0.0);
     }
 
     TEST_F(BendRepParticleContainerTest,
-           BenchmarkStyleLineStartFrameKickProducesNegativeVerticalMomentumChange) {
+           BenchmarkStyleLineStartFrameKickProducesPositiveVerticalMomentumChange) {
         constexpr double bodyLength     = 1.0;
         constexpr double bendAngle      = Physics::pi / 4.0;
         constexpr double fringeHalfGap  = 0.015;
@@ -1154,7 +1170,7 @@ namespace {
         bend.setB(-1.2);
 
         const double entryFringe = bend.getEntryFringeSupportLength();
-        auto pc                  = makeContainer({0.0, 1.0e-3, 0.0});
+        auto pc                  = makeContainer({0.0, 1.0e-3, 0.5 * entryFringe});
         auto Phost               = pc->P.getHostMirror();
         auto dthost              = pc->dt.getHostMirror();
         Phost(0)                 = Vector_t<double, 3>(0.0, 0.0, betaGamma);
@@ -1180,11 +1196,11 @@ namespace {
         auto Pafter = pc->P.getHostMirror();
         Kokkos::deep_copy(Pafter, pc->P.getView());
 
-        EXPECT_LT(Pafter(0)(1), 0.0);
+        EXPECT_GT(Pafter(0)(1), 0.0);
     }
 
     TEST_F(BendRepParticleContainerTest,
-           BenchmarkStyleHalfStepKickProducesNegativeVerticalMomentumChange) {
+           BenchmarkStyleHalfStepKickProducesPositiveVerticalMomentumChange) {
         constexpr double bodyLength     = 1.0;
         constexpr double bendAngle      = Physics::pi / 4.0;
         constexpr double fringeHalfGap  = 0.015;
@@ -1209,7 +1225,7 @@ namespace {
         const double entryFringe = bend.getEntryFringeSupportLength();
         const double beta        = betaGamma / std::sqrt(1.0 + betaGamma * betaGamma);
         const double halfStepZ   = 0.5 * beta * Physics::c * dt;
-        auto pc                  = makeContainer({0.0, 1.0e-3, halfStepZ});
+        auto pc                  = makeContainer({0.0, 1.0e-3, 0.5 * entryFringe + halfStepZ});
         auto Phost               = pc->P.getHostMirror();
         auto dthost              = pc->dt.getHostMirror();
         Phost(0)                 = Vector_t<double, 3>(0.0, 0.0, betaGamma);
@@ -1235,11 +1251,11 @@ namespace {
         auto Pafter = pc->P.getHostMirror();
         Kokkos::deep_copy(Pafter, pc->P.getView());
 
-        EXPECT_LT(Pafter(0)(1), 0.0);
+        EXPECT_GT(Pafter(0)(1), 0.0);
     }
 
     TEST_F(BendRepParticleContainerTest,
-           BenchmarkExplicitPlacementHalfStepKickUsesNegativeVerticalMomentumChange) {
+           BenchmarkExplicitPlacementHalfStepKickUsesPositiveVerticalMomentumChange) {
         constexpr double bodyLength     = 1.0;
         constexpr double bendAngle      = Physics::pi / 4.0;
         constexpr double fringeHalfGap  = 0.015;
@@ -1265,15 +1281,16 @@ namespace {
         bend.setB(-1.2);
 
         Quaternion rotTheta(std::cos(0.5 * theta), 0.0, std::sin(0.5 * theta), 0.0);
+        const double entryFringe = bend.getEntryFringeSupportLength();
         CoordinateSystemTrafo globalToLocal(
-                Vector_t<double, 3>(bodyX, 0.0, bodyZNominal + bend.getEntryFringeSupportLength()),
+                Vector_t<double, 3>(bodyX, 0.0, bodyZNominal + entryFringe),
                 rotTheta.conjugate());
         bend.setCSTrafoGlobal2Local(globalToLocal);
         bend.fixPosition();
 
         const double beta      = betaGamma / std::sqrt(1.0 + betaGamma * betaGamma);
         const double halfStepZ = 0.5 * beta * Physics::c * dt;
-        auto pc                = makeContainer({0.0, 1.0e-3, halfStepZ});
+        auto pc                = makeContainer({0.0, 1.0e-3, 0.5 * entryFringe + halfStepZ});
         auto Phost             = pc->P.getHostMirror();
         auto dthost            = pc->dt.getHostMirror();
         Phost(0)               = Vector_t<double, 3>(0.0, 0.0, betaGamma);
@@ -1300,11 +1317,11 @@ namespace {
         auto Pafter = pc->P.getHostMirror();
         Kokkos::deep_copy(Pafter, pc->P.getView());
 
-        EXPECT_LT(Pafter(0)(1), 0.0);
+        EXPECT_GT(Pafter(0)(1), 0.0);
     }
 
     TEST_F(BendRepParticleContainerTest,
-           BenchmarkExplicitPlacementFullPicStepUsesNegativeVerticalMomentumChange) {
+           BenchmarkExplicitPlacementFullPicStepUsesPositiveVerticalMomentumChange) {
         constexpr double bodyLength     = 1.0;
         constexpr double bendAngle      = Physics::pi / 4.0;
         constexpr double fringeHalfGap  = 0.015;
@@ -1330,14 +1347,17 @@ namespace {
         bend.setB(-1.2);
 
         Quaternion rotTheta(std::cos(0.5 * theta), 0.0, std::sin(0.5 * theta), 0.0);
+        const double entryFringe = bend.getEntryFringeSupportLength();
         CoordinateSystemTrafo globalToLocal(
-                Vector_t<double, 3>(bodyX, 0.0, bodyZNominal + bend.getEntryFringeSupportLength()),
+                Vector_t<double, 3>(bodyX, 0.0, bodyZNominal + entryFringe),
                 rotTheta.conjugate());
         bend.setCSTrafoGlobal2Local(globalToLocal);
         bend.fixPosition();
 
         auto pc = makeContainer(
-                std::vector<std::array<double, 3>>{{0.0, 0.0, 0.0}, {0.0, 1.0e-3, 0.0}});
+                std::vector<std::array<double, 3>>{
+                        {0.0, 0.0, 0.5 * entryFringe},
+                        {0.0, 1.0e-3, 0.5 * entryFringe}});
         auto Phost  = pc->P.getHostMirror();
         auto dthost = pc->dt.getHostMirror();
         for (std::size_t i = 0; i < 2; ++i) {
@@ -1378,7 +1398,7 @@ namespace {
         Kokkos::deep_copy(Pafter, pc->P.getView());
 
         EXPECT_NEAR(Pafter(0)(1), 0.0, 1.0e-15);
-        EXPECT_LT(Pafter(1)(1), 0.0);
+        EXPECT_GT(Pafter(1)(1), 0.0);
     }
 
     TEST(SBendRep, ProtonOnAxisIntegratesToNegativeFortyFiveDegreeDeflection) {
@@ -1509,11 +1529,11 @@ namespace {
                 integrateReferenceParticle(bend, massEV, charge, yState, integrationTime, steps);
 
         const double signedCurvature = bendAngle / bend.getEffectiveFieldLength();
-        const double psi             = signedCurvature * fringeHalfGap * fringeIntegral
-                           * (1.0 + std::sin(entryAngle) * std::sin(entryAngle))
-                           / std::cos(entryAngle);
-        const double expectedVertical = signedCurvature * std::tan(entryAngle - psi);
-        const double deltaYP          = (yFocused.p(1) - base.p(1)) / (momentumEV / massEV);
+        const double expectedVertical =
+                expectedVerticalEdgeStrength(
+                        signedCurvature, entryAngle, fringeHalfGap, fringeIntegral)
+                * defaultOpalNominalEdgeScale();
+        const double deltaYP = (yFocused.p(1) - base.p(1)) / (momentumEV / massEV);
 
         EXPECT_NEAR(deltaYP / yOffset, expectedVertical, 5.0e-4);
     }
@@ -1704,11 +1724,11 @@ namespace {
                 integrateReferenceParticle(bend, massEV, charge, yState, integrationTime, steps);
 
         const double signedCurvature = bendAngle / effectiveLength;
-        const double psi             = signedCurvature * fringeHalfGap * fringeIntegral
-                           * (1.0 + std::sin(entryAngle) * std::sin(entryAngle))
-                           / std::cos(entryAngle);
         const double expectedHorizontal = -signedCurvature * std::tan(entryAngle);
-        const double expectedVertical   = signedCurvature * std::tan(entryAngle - psi);
+        const double expectedVertical =
+                expectedVerticalEdgeStrength(
+                        signedCurvature, entryAngle, fringeHalfGap, fringeIntegral)
+                * defaultOpalNominalEdgeScale();
         const double deltaXP            = (xFocused.p(0) - base.p(0)) / betaGamma;
         const double deltaYP            = (yFocused.p(1) - base.p(1)) / betaGamma;
 
@@ -1768,11 +1788,11 @@ namespace {
                 integrateReferenceParticle(bend, massEV, charge, yState, integrationTime, steps);
 
         const double signedCurvature = bendAngle / effectiveLength;
-        const double psi             = signedCurvature * fringeHalfGap * fringeIntegral
-                           * (1.0 + std::sin(exitAngle) * std::sin(exitAngle))
-                           / std::cos(exitAngle);
         const double expectedHorizontal = -signedCurvature * std::tan(exitAngle);
-        const double expectedVertical   = signedCurvature * std::tan(exitAngle - psi);
+        const double expectedVertical =
+                expectedVerticalEdgeStrength(
+                        signedCurvature, exitAngle, fringeHalfGap, fringeIntegral)
+                * defaultOpalNominalEdgeScale();
         const double deltaXP            = (xFocused.p(0) - base.p(0)) / betaGamma;
         const double deltaYP            = (yFocused.p(1) - base.p(1)) / betaGamma;
 
@@ -1832,11 +1852,11 @@ namespace {
                 integrateReferenceParticle(bend, massEV, charge, yState, integrationTime, steps);
 
         const double signedCurvature = bendAngle / effectiveLength;
-        const double psi             = signedCurvature * fringeHalfGap * fringeIntegral
-                           * (1.0 + std::sin(entryAngle) * std::sin(entryAngle))
-                           / std::cos(entryAngle);
         const double expectedHorizontal = -signedCurvature * std::tan(entryAngle);
-        const double expectedVertical   = signedCurvature * std::tan(entryAngle - psi);
+        const double expectedVertical =
+                expectedVerticalEdgeStrength(
+                        signedCurvature, entryAngle, fringeHalfGap, fringeIntegral)
+                * defaultOpalNominalEdgeScale();
         const double deltaXP            = (xFocused.p(0) - base.p(0)) / betaGamma;
         const double deltaYP            = (yFocused.p(1) - base.p(1)) / betaGamma;
 
@@ -1878,29 +1898,31 @@ namespace {
         double fieldEnd   = 0.0;
         bend.getFieldExtend(fieldBegin, fieldEnd);
         const double beta            = betaGamma / std::sqrt(1.0 + betaGamma * betaGamma);
-        const double integrationTime = (fieldEnd - bodyLength) / (beta * Physics::c);
+        const double referenceLength =
+                bodyLength * (bendAngle / 2.0) / std::sin(bendAngle / 2.0);
+        const double integrationTime = (fieldEnd - referenceLength) / (beta * Physics::c);
 
         const ReferenceState base = integrateReferenceParticle(
-                bend, massEV, charge, kineticEnergyEV, integrationTime, steps, bodyLength);
+                bend, massEV, charge, kineticEnergyEV, integrationTime, steps, referenceLength);
 
         ReferenceState xState{};
-        xState.r = Vector_t<double, 3>(xOffset, 0.0, bodyLength);
+        xState.r = Vector_t<double, 3>(xOffset, 0.0, referenceLength);
         xState.p = Vector_t<double, 3>(0.0, 0.0, betaGamma);
         const ReferenceState xFocused =
                 integrateReferenceParticle(bend, massEV, charge, xState, integrationTime, steps);
 
         ReferenceState yState{};
-        yState.r = Vector_t<double, 3>(0.0, yOffset, bodyLength);
+        yState.r = Vector_t<double, 3>(0.0, yOffset, referenceLength);
         yState.p = Vector_t<double, 3>(0.0, 0.0, betaGamma);
         const ReferenceState yFocused =
                 integrateReferenceParticle(bend, massEV, charge, yState, integrationTime, steps);
 
         const double signedCurvature = bendAngle / effectiveLength;
-        const double psi             = signedCurvature * fringeHalfGap * fringeIntegral
-                           * (1.0 + std::sin(exitAngle) * std::sin(exitAngle))
-                           / std::cos(exitAngle);
         const double expectedHorizontal = -signedCurvature * std::tan(exitAngle);
-        const double expectedVertical   = signedCurvature * std::tan(exitAngle - psi);
+        const double expectedVertical =
+                expectedVerticalEdgeStrength(
+                        signedCurvature, exitAngle, fringeHalfGap, fringeIntegral)
+                * defaultOpalNominalEdgeScale();
         const double deltaXP            = (xFocused.p(0) - base.p(0)) / betaGamma;
         const double deltaYP            = (yFocused.p(1) - base.p(1)) / betaGamma;
 

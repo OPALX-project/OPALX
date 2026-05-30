@@ -578,7 +578,7 @@ TEST_F(OrbitThreaderTest, RegistersSBendActionRangeFromFieldSupportExtent) {
     ASSERT_EQ(registrationModel.size(), 1u);
 
     const auto& segment              = registrationModel.getSegments().front();
-    const double expectedEntryFringe = 0.015 * 0.50 / std::abs(std::cos(Physics::pi / 8.0));
+    const double expectedEntryFringe = 10.0 * 0.015 / std::abs(std::cos(Physics::pi / 8.0));
     EXPECT_TRUE(segment.hasLegacyElementEdge());
     ASSERT_TRUE(segment.getLegacyElementEdge().has_value());
     EXPECT_NEAR(segment.getLegacyElementEdge().value(), 0.0, 1.0e-12);
@@ -629,7 +629,7 @@ TEST_F(OrbitThreaderTest, RegistersExplicitPositionedSBendActionRangeWithoutElem
     ASSERT_EQ(registrationModel.size(), 1u);
 
     const auto& segment              = registrationModel.getSegments().front();
-    const double expectedEntryFringe = halfGap * fringeIntegral / std::abs(std::cos(edgeAngle));
+    const double expectedEntryFringe = 10.0 * halfGap / std::abs(std::cos(edgeAngle));
     ASSERT_EQ(segment.getActiveElements().size(), 1u);
     EXPECT_EQ((*segment.getActiveElements().begin())->getName(), "B1");
     EXPECT_NEAR(segment.getEnd() - segment.getBegin(), length + 2.0 * expectedEntryFringe, 1.0e-6);
