@@ -2,6 +2,7 @@
 
 \usepackage[margin=22mm]{geometry}
 \usepackage{amsmath}
+\usepackage{array}
 \usepackage{booktabs}
 \usepackage{graphicx}
 \usepackage{tikz}
@@ -57,9 +58,31 @@ rotation about the global \(Y\)-axis in the \(X\)-\(Z\) drawing plane.  The
 figures use this global \(X\)-\(Z\) projection; for these horizontal-bend tests
 the body pose has \(Y=0\), normal to the drawing plane.
 
-\section{Common analytic SBEND geometry}
+\section{Bend Models}
 
-For both tests
+The two analytic bend elements describe the same physical dipole problem from
+different geometric conventions.  Both are intended to give the design bend
+angle \(\theta\) from the integrated dipole field.  The distinction is the
+reference frame used to define the magnet body, the meaning of the length
+attribute, and therefore the pole-face angles at which the circular reference
+orbit enters and leaves the magnet.
+
+\subsection{Physical distinction}
+
+\code{SBEND} is a sector bend.  The reference orbit is a circular arc and the
+natural hard-edge pole faces are radial.  With no additional pole-face angles
+the beam enters and exits normal to the pole faces, so no thin-edge focusing is
+introduced by the geometry itself.
+
+\code{RBEND} is a rectangular bend.  The magnet body is straight, while the
+reference orbit is still a circular arc through the dipole field.  The orbit
+therefore crosses the entrance and exit pole faces at nonzero edge angles.  For
+the same \(\theta\), this makes edge and fringe focusing part of the natural
+rectangular-bend model.
+
+\subsection{OPALX \code{SBEND} model}
+
+For the sandbox \code{SBEND} tests
 \[
   L_\mathrm{chord} = 1.0\ \mathrm{m},\qquad
   \theta = 45\degree = \frac{\pi}{4},\qquad
@@ -69,16 +92,18 @@ For both tests
 For parser-created \code{SBEND}, OPALX follows old OPAL and treats \code{L} as
 the chord.  The placed sector arc length and curvature are therefore
 \[
-  L_\mathrm{ref} = R\theta = 1.0261721530\ \mathrm{m},
+  L_\mathrm{ref} = R\theta
+  = L_\mathrm{chord}\frac{\theta}{2\sin(\theta/2)}
+  = 1.0261721530\ \mathrm{m},
   \qquad
   h = \frac{\theta}{L_\mathrm{ref}} = \frac{1}{R}
     = 0.7653668647\ \mathrm{m}^{-1}.
 \]
-OPALX's \code{PlanarArcGeometry} places the body-frame origin at the arc
-midpoint, so the body coordinate \(s\) runs from \(-L_\mathrm{ref}/2\) to
-\(+L_\mathrm{ref}/2\).  The local sector orbit is the standard sector-bend
-reference-orbit convention used in first-order beam dynamics
-\cite{holzer2018,bmad}:
+OPALX stores this as a \code{PlanarArcGeometry}.  The body-frame origin is at
+the arc midpoint, so the body coordinate \(s\) runs from
+\(-L_\mathrm{ref}/2\) to \(+L_\mathrm{ref}/2\).  The local sector orbit is the
+standard sector-bend reference-orbit convention used in first-order beam
+dynamics \cite{holzer2018,bmad}:
 \[
   \vect r(s) =
   \begin{pmatrix}
@@ -103,10 +128,101 @@ For \(L_\mathrm{chord}=1\ \mathrm{m}\) and \(\theta=45\degree\),
   = (-0.0994561837,\,0,\,0.5000000000)\ \mathrm{m}.
 \]
 
-The longitudinal field support follows OPAL's default \code{FM1DProfile1} Enge
-profile.  With no explicit \code{GAP}, the inputs use
-\(g=2\,\mathrm{HGAP}=0.04\ \mathrm{m}\), so the default Enge half width is
-\(a=5g=0.2\ \mathrm{m}\):
+\subsection{OPALX \code{RBEND} model}
+
+The \code{RBEND} tests use the same bend angle and field model as the
+\code{SBEND} tests, but the body geometry is rectangular.  The input length is
+the straight body length,
+\[
+  L_\mathrm{rect}=1.0\ \mathrm{m},\qquad
+  \theta=45\degree,\qquad
+  E_1=0,\qquad E_2=\theta .
+\]
+Old OPAL uses the pole-face chord radius for a rectangular bend,
+\[
+  R_\mathrm{CH} =
+    \frac{L_\mathrm{rect}}{\sin E_1+\sin E_2},
+  \qquad
+  L_\mathrm{ref}=|\theta|\,|R_\mathrm{CH}|.
+\]
+For \(E_1=0\) and \(E_2=\theta=45\degree\),
+\[
+  R_\mathrm{CH}=1.4142135624\ \mathrm{m},\qquad
+  L_\mathrm{ref}=1.1107207345\ \mathrm{m},\qquad
+  h=0.7071067812\ \mathrm{m}^{-1}.
+\]
+OPALX stores the magnet body as an \code{RBendGeometry} with the straight
+length \(L_\mathrm{rect}\), while the field chart and reference-particle
+tracking use the OPAL-compatible pole-face reference path \(L_\mathrm{ref}\).
+The body frame is rotated by
+\[
+  \Theta_\mathrm{body}=-\frac{\theta}{2}.
+\]
+The local coordinate of the entrance edge relative to the rectangular body
+origin is
+\[
+  \vect q_\mathrm{entry}
+    =
+    \begin{pmatrix}
+      -\frac{L_\mathrm{rect}}{2}\tan(\theta/4)\\
+      0\\
+      \frac{L_\mathrm{rect}}{2}
+    \end{pmatrix}.
+\]
+With an entrance edge at
+\[
+  \vect r_0=(X_0,0,Z_0),\qquad X_0=0,\qquad Z_0=d,
+\]
+and the OPALX input-file \(X\)-\(Z\) rotation convention
+\[
+  \mathcal R_Y(\Theta)
+    \begin{pmatrix}x\\0\\z\end{pmatrix}
+  =
+    \begin{pmatrix}
+      \cos\Theta\,x+\sin\Theta\,z\\
+      0\\
+      -\sin\Theta\,x+\cos\Theta\,z
+    \end{pmatrix},
+\]
+the explicit body pose and exit monitor are
+\[
+\begin{aligned}
+  \vect r_\mathrm{body}
+    &= \vect r_0 - \mathcal R_Y(\Theta_\mathrm{body})\vect q_\mathrm{entry},
+  &
+  \Theta_\mathrm{body} &= -\frac{\theta}{2},\\[1.0ex]
+  \vect r_\mathrm{exit}
+    &= \vect r_0 +
+       \begin{pmatrix}
+         -L_\mathrm{rect}\tan(\theta/2)\\
+         0\\
+         L_\mathrm{rect}
+       \end{pmatrix},
+  &
+  \Theta_\mathrm{exit} &= -\theta .
+\end{aligned}
+\]
+For the present \(45\degree\) geometry,
+\[
+  \mathcal R_Y(-22.5\degree)\vect q_\mathrm{entry}
+    = (-0.2832272487,\,0,\,0.4238795325)\ \mathrm{m},
+\]
+so the body pose is shifted upstream of the entrance edge even though the
+nominal entrance edge itself remains at \(z=d\).
+
+\subsection{Field and edge model}
+
+Both bend types use \code{ANGLE} as the primary geometric input.  \code{K0} is
+accepted only as a consistency check against
+\[
+  k_0 = \frac{\theta}{L_\mathrm{norm}},
+\]
+where \(L_\mathrm{norm}\) is the OPAL-compatible field-normalization length for
+the specific bend model.  The shared OPALX field code evaluates the normalized
+multipole field in the bend field chart and applies the OPAL-style
+\code{FM1DProfile1} Enge fringe envelope.  With no explicit \code{GAP}, the
+inputs use \(g=2\,\mathrm{HGAP}=0.04\ \mathrm{m}\), so the default Enge half
+width is \(a=5g=0.2\ \mathrm{m}\):
 \[
   \ell_i = \frac{a}{|\cos E_i|},
   \qquad
@@ -121,12 +237,51 @@ The vertical pole-face correction used for the thin-edge estimate is
   \qquad
   k_y(E) = -h_\mathrm{eff}\tan\!\left(E-\psi(E)\right).
 \]
-The thin-entry-edge vertical map used to design the second test is
+The thin-entry-edge vertical map used to design the second test of each bend
+family is
 \[
   y_\mathrm{exit}
     = \left(1 + L_\mathrm{ref}\,k_y(E_1)\right)y_\mathrm{entry}
       + L_\mathrm{ref}\,y'_\mathrm{entry}.
 \]
+
+\subsection{Relation to other codes}
+
+\begin{center}
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.17\linewidth}
+                  >{\raggedright\arraybackslash}p{0.37\linewidth}
+                  >{\raggedright\arraybackslash}p{0.37\linewidth}@{}}
+\toprule
+code & sector bend convention & rectangular bend convention \\
+\midrule
+OPALX/OPAL &
+\code{SBEND} is tracked as a sector bend, but parser input \code{L} is treated
+as a chord for old-OPAL compatibility and converted to \(L_\mathrm{ref}\). &
+\code{RBEND} keeps \code{L} as the straight rectangular body length and uses
+the pole-face chord relation \(R_\mathrm{CH}\) for the circular reference
+path. \\
+MAD-X &
+\code{SBEND} uses the sector-bend convention; \code{L} is the reference arc
+length in the MAD-X sequence model. &
+\code{RBEND} represents a rectangular magnet through edge angles; a rectangular
+bend can be made sector-like, and a sector bend can be made rectangular-like,
+by the corresponding choices of \(E_1\) and \(E_2\) \cite{madx}. \\
+elegant &
+\code{CSBEND} is the high-accuracy canonical sector bend with symplectic
+integration and detailed edge/fringe options. &
+\code{RBEN} is a rectangular dipole model implemented through sector-bend
+machinery with edge angles; the manual recommends \code{CSBEND} for
+symplectic tracking \cite{elegant}. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The main practical difference is therefore the length convention.  MAD-X and
+the elegant code generally use an arc-length sector bend as the primary
+high-order tracking object.  OPALX keeps the old OPAL input semantics in the parser:
+\code{SBEND} converts the user chord to a sector reference path, while
+\code{RBEND} preserves the straight rectangular body length and separately
+constructs the pole-face reference path used by the field chart.
 
 \section{\code{test-sbend-1}: placement consistency test}
 
@@ -429,87 +584,6 @@ The same geometry markers show that the visible fringe precedes the nominal
 so \(\bar y\) is the tracked particle's vertical coordinate.}
 \end{figure}
 
-\section{Common analytic RBEND geometry}
-
-The \code{RBEND} tests use the same bend angle and field model as the
-\code{SBEND} tests, but the geometry is rectangular.  The input length is the
-straight rectangular body length,
-\[
-  L_\mathrm{rect}=1.0\ \mathrm{m},\qquad
-  \theta=45\degree,\qquad
-  E_1=0,\qquad E_2=\theta .
-\]
-The reference trajectory is still compared with a circular arc.  Old OPAL uses
-the pole-face chord radius for a rectangular bend,
-\[
-  R_\mathrm{CH} =
-    \frac{L_\mathrm{rect}}{\sin E_1+\sin E_2},
-  \qquad
-  L_\mathrm{ref}=|\theta|\,|R_\mathrm{CH}|.
-\]
-For \(E_1=0\) and \(E_2=\theta=45\degree\),
-\[
-  R_\mathrm{CH}=1.4142135624\ \mathrm{m},\qquad
-  L_\mathrm{ref}=1.1107207345\ \mathrm{m},\qquad
-  h=0.7071067812\ \mathrm{m}^{-1}.
-\]
-The OPALX body pose is the rectangular body frame.  With the requested entrance
-edge at
-\[
-  \vect r_0=(X_0,0,Z_0),\qquad X_0=0,\qquad Z_0=d,
-\]
-the body frame is rotated by
-\[
-  \Theta_\mathrm{body}=-\frac{\theta}{2}.
-\]
-The local coordinate of the entrance edge relative to the rectangular body
-origin is
-\[
-  \vect q_\mathrm{entry}
-    =
-    \begin{pmatrix}
-      -\frac{L_\mathrm{rect}}{2}\tan(\theta/4)\\
-      0\\
-      \frac{L_\mathrm{rect}}{2}
-    \end{pmatrix}.
-\]
-Using the same \(X\)-\(Z\) rotation convention as the OPALX input files,
-\[
-  \mathcal R_Y(\Theta)
-    \begin{pmatrix}x\\0\\z\end{pmatrix}
-  =
-    \begin{pmatrix}
-      \cos\Theta\,x+\sin\Theta\,z\\
-      0\\
-      -\sin\Theta\,x+\cos\Theta\,z
-    \end{pmatrix},
-\]
-the explicit body pose and exit monitor are
-\[
-\begin{aligned}
-  \vect r_\mathrm{body}
-    &= \vect r_0 - \mathcal R_Y(\Theta_\mathrm{body})\vect q_\mathrm{entry},
-  &
-  \Theta_\mathrm{body} &= -\frac{\theta}{2},\\[1.0ex]
-  \vect r_\mathrm{exit}
-    &= \vect r_0 +
-       \begin{pmatrix}
-         -L_\mathrm{rect}\tan(\theta/2)\\
-         0\\
-         L_\mathrm{rect}
-       \end{pmatrix},
-  &
-  \Theta_\mathrm{exit} &= -\theta .
-\end{aligned}
-\]
-For the present \(45\degree\) geometry,
-\[
-  \mathcal R_Y(-22.5\degree)\vect q_\mathrm{entry}
-    = (-0.2832272487,\,0,\,0.4238795325)\ \mathrm{m},
-\]
-so the body pose is shifted upstream of the entrance edge even though the
-nominal entrance edge itself remains at \(z=d\).
-
 \section{\code{test-rbend-1}: placement consistency test}
 
 This test is the RBEND analogue of \code{test-sbend-1}: a single on-axis
@@ -653,7 +727,7 @@ and the straight rectangular body length for \(z_\mathrm{rel}\).}
 \(1.30\times10^{-6}\ \mathrm{m}\).}
 \end{figure}
 
-\section{Next candidate: symmetric C-shape four-bend chicane}
+\section{\code{test-chicane-1}: symmetric C-shape four-bend chicane}
 
 Two sources are useful for a regression design.  The
 USPAS bunch-compression slides give the standard four-rectangular-dipole
@@ -676,8 +750,8 @@ cross-check and context \\
 \end{tabular}
 \end{center}
 
-The intended OPALX benchmark is a symmetric C-shape chicane with four equal
-hard-edge dipoles,
+The OPALX benchmark is a symmetric C-shape chicane with four equal hard-edge
+dipoles,
 \[
   (+\theta,\,-\theta,\,-\theta,\,+\theta),
 \]
@@ -698,7 +772,8 @@ For the same small-angle model one can use
   \qquad
   U_{5666} \simeq 2R_{56},
 \]
-as optional higher-order checks once the linear regression is stable.
+as optional higher-order checks once the linear regression is promoted beyond
+the present linear \(R_{56}\) probe.
 
 The executable OPALX realization is
 \[
@@ -727,30 +802,101 @@ The \code{REAL} symbols \code{B1\_X}, \code{B1\_Z}, \ldots,
 increments and are then used directly in the element \code{X}, \code{Y},
 \code{Z}, and \code{THETA} attributes.
 
-For OPALX the first useful regression should stay purely geometric and
-single-particle:
-
-\begin{enumerate}
-\item place the four analytic \code{SBEND}s explicitly, without field maps;
-\item use monitors after each dipole and at the chicane exit;
-\item require the final monitor to be parallel to the entrance axis and
-      centered on the design exit;
-\item compare the exported element positions with the analytic C-chicane
-      survey.
-\end{enumerate}
-
-The second regression should introduce three single-particle runs or three
-separate particles with
+The old OPAL comparison input is
 \[
-  \delta = -10^{-3},\quad 0,\quad +10^{-3},
+  \code{sandbox/test-chicane-1/test-chicane-1\_opal.in}.
 \]
-and measure the arrival/path-length shift at the exit monitor.  The expected
-linear fit is
+It uses old OPAL 2022.1 \code{PARALLEL-T} tracking with the same bend signs and
+the same five-particle momentum scan.  In the old OPAL deck the chicane starts
+at \(s=1\ \mathrm{m}\); this shifts the absolute monitor \code{SPOS}, but not
+the fitted local monitor \(z\) slope used for \(R_{56}\).
+
+\subsection{Placement result}
+
+The OPALX run exports the requested C-chicane survey in the generated
+element-position text file.  The useful placement rows are the
+\code{ENTRY EDGE} and \code{EXIT EDGE} rows for the four bends:
+
+\begin{center}
+\begin{tabular}{@{}lrr@{}}
+\toprule
+point & \(z\) [m] & \(x\) [m] \\
+\midrule
+\code{B1} entry & 0.000000000 & 0.000000000 \\
+\code{B1} exit / \code{D12} begin & 0.998750260 & 0.049979169 \\
+\code{B2} entry & 2.491256508 & 0.199729294 \\
+\code{B2} exit / \code{D23} begin & 3.490006768 & 0.249708463 \\
+\code{B3} entry & 5.490006768 & 0.249708463 \\
+\code{B3} exit / \code{D34} begin & 6.488757029 & 0.199729294 \\
+\code{B4} entry & 7.981263276 & 0.049979169 \\
+\code{B4} exit / \code{MEXIT} & 8.980013537 & 0.000000000 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Compared with the symbolic survey formulas above, the largest residuals in the
+exported OPALX edge table are
 \[
-  \Delta z_f(\delta) - \Delta z_f(0) \simeq R_{56}\,\delta .
+  \max|\Delta z| = 8.28\times10^{-10}\ \mathrm{m},
+  \qquad
+  \max|\Delta x| = 8.33\times10^{-11}\ \mathrm{m}.
 \]
-This turns the C-chicane into a direct test of both element placing and the
-time-of-flight/path-length model.
+The final exit monitor is therefore centered on the design exit and parallel to
+the entrance axis at the precision of the exported table.
+
+\subsection{\(R_{56}\) result}
+
+The input carries five particles with
+\[
+  \delta = -2\times10^{-3},\,-10^{-3},\,0,\,+10^{-3},\,+2\times10^{-3}.
+\]
+The exit temporal monitor writes one local \(z\) coordinate for each particle.
+The fit uses the local monitor coordinate
+\[
+  z_\mathrm{monitor}(\delta) - z_\mathrm{monitor}(0)
+    \simeq -R_{56}\,\delta .
+\]
+The local monitor convention has the opposite sign from the usual transport
+coefficient for this chicane, so the reported number is
+\[
+  R_{56} = -\frac{d z_\mathrm{monitor}}{d\delta}.
+\]
+
+\begin{center}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+case & \code{SPOS} [m] & \(d z_\mathrm{monitor}/d\delta\) [m]
+     & \(R_{56}\) [m] & \(R_{56}-R_{56}^{\mathrm{target}}\) [m] \\
+\midrule
+small-angle target & -- & -- & \(-4.333333333333\times10^{-2}\) & -- \\
+OPALX & 9.001701201 & \(+4.334628765519\times10^{-2}\)
+      & \(-4.334628765519\times10^{-2}\) & \(-1.295432185213\times10^{-5}\) \\
+OPAL 2022.1 & 10.003564372 & \(+4.337546378253\times10^{-2}\)
+            & \(-4.337546378253\times10^{-2}\) & \(-4.213044919685\times10^{-5}\) \\
+\bottomrule
+\end{tabular}
+}
+\end{center}
+
+The OPALX result differs from the old OPAL result by
+\[
+  R_{56,\mathrm{OPALX}} - R_{56,\mathrm{OPAL}}
+    = 2.92\times10^{-5}\ \mathrm{m}.
+\]
+Both codes are close to the small-angle school formula; the remaining
+difference is expected at this level because the comparison uses finite
+\(\theta=0.1\ \mathrm{rad}\), finite integration steps, and a monitor-based
+local-coordinate extraction rather than a strict first-order transfer map.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\linewidth]{figures/test-chicane-1-survey-r56.png}
+\caption{\code{test-chicane-1} results.  Left: OPALX exported C-chicane survey
+from the bend edge and midpoint rows.  Right: exit temporal-monitor \(z\)
+versus initial \(\delta\) for OPALX and OPAL 2022.1.  The dashed line is the
+small-angle \(R_{56}\) target with the monitor-sign convention applied.}
+\end{figure}
 
 \begin{thebibliography}{9}
 
@@ -780,6 +926,12 @@ D.~Sagan,
 Cornell CLASSE, sections on \code{SBEND}/\code{RBEND}, bend coordinates, and
 fringe-field integrals,
 \url{https://www.classe.cornell.edu/bmad/bmad-manual.pdf}.
+
+\bibitem{elegant}
+M.~Borland,
+\emph{elegant: A Flexible SDDS-Compliant Code for Accelerator Simulation},
+Advanced Photon Source, sections on \code{CSBEND} and \code{RBEN},
+\url{https://ops.aps.anl.gov/manuals/elegant_latest/elegant.html}.
 
 \bibitem{uspas2014bunchcompression}
 D.~Nguyen, J.~Lewellen, and L.~Duffy,
