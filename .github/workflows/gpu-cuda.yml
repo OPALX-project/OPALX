@@ -51,10 +51,10 @@ jobs:
           mkdir -p build_cuda
           cd build_cuda
           cmake .. \
-            -DBUILD_TYPE=Release \
+            -DBUILD_TYPE=Debug \
             -DPLATFORMS=CUDA \
             -DARCH=AMPERE80 \
-            -DOPALX_ENABLE_UNIT_TESTS=OFF
+            -DOPALX_ENABLE_UNIT_TESTS=ON
 
       - name: Build
         run: |
