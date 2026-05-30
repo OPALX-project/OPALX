@@ -56,28 +56,37 @@ std::unique_ptr<RealVariable> TestOpalBend::realVariableFactory_m;
 
 namespace {
 
-double opalSbendNormalizationLength(const double length, const double angle) {
-    const double halfAngle = 0.5 * angle;
-    if (std::abs(halfAngle) <= 1.0e-12) {
-        return length;
+    double opalSbendNormalizationLength(const double length, const double angle) {
+        const double halfAngle = 0.5 * angle;
+        if (std::abs(halfAngle) <= 1.0e-12) {
+            return length;
+        }
+
+        const double sine = std::sin(halfAngle);
+        if (std::abs(sine) <= 1.0e-15) {
+            return length;
+        }
+
+        return length * halfAngle / sine;
     }
 
-    const double sine = std::sin(halfAngle);
-    if (std::abs(sine) <= 1.0e-15) {
-        return length;
+    double opalRbendReferencePathLength(const double length, const double angle) {
+        const double denominator = std::sin(angle);
+        if (std::abs(angle) <= 1.0e-12 || std::abs(denominator) <= 1.0e-15) {
+            return length;
+        }
+
+        return std::abs(angle) * length / std::abs(denominator);
     }
 
-    return length * halfAngle / sine;
-}
+    class TestableSBendRep : public SBendRep {
+    public:
+        explicit TestableSBendRep(const std::string& name) : SBendRep(name) {}
 
-class TestableSBendRep : public SBendRep {
-public:
-    explicit TestableSBendRep(const std::string& name) : SBendRep(name) {}
-
-    using BendBase::getEntryEdgeVerticalFieldCoefficient;
-    using BendBase::getEntryEdgeVerticalStrength;
-    using BendBase::getSignedCurvature;
-};
+        using BendBase::getEntryEdgeVerticalFieldCoefficient;
+        using BendBase::getEntryEdgeVerticalStrength;
+        using BendBase::getSignedCurvature;
+    };
 
 }  // namespace
 
@@ -168,8 +177,7 @@ TEST_F(TestOpalBend, SBendVerticalEdgeFieldCoefficientPreservesKickSign) {
     const double fieldScaleSpan   = std::abs(
             bend.getFieldScale(bend.getEntryFringeSupportLength())
             - bend.getFieldScale(-bend.getEntryFringeSupportLength()));
-    const double reconstructedKick =
-            fieldCoefficient * fieldScaleSpan / rigidityScale;
+    const double reconstructedKick = fieldCoefficient * fieldScaleSpan / rigidityScale;
     EXPECT_NEAR(reconstructedKick, kickCoefficient, 1.0e-12);
 }
 
@@ -183,7 +191,7 @@ TEST_F(TestOpalBend, RBendRequiresAngleAndUsesAngleOverK0) {
     std::unique_ptr<OpalRBend> validInstance(ui.clone("RB2"));
     const double length       = 1.5;
     const double angle        = 0.3;
-    const double consistentK0 = angle / (length * (angle / 2.0) / std::sin(angle / 2.0));
+    const double consistentK0 = angle / opalRbendReferencePathLength(length, angle);
     Attributes::setReal(validInstance->itsAttr[OpalRBend::LENGTH], 1.5);
     Attributes::setReal(validInstance->itsAttr[OpalRBend::ANGLE], 0.3);
     Attributes::setReal(validInstance->itsAttr[OpalRBend::K0], consistentK0);
@@ -290,8 +298,8 @@ TEST_F(TestOpalBend, NegativeSBendRecoversReferencePathCoordinateFromEntryCartes
 
     const double referencePathLength = opalSbendNormalizationLength(length, angle);
     const double curvature           = angle / referencePathLength;
-    const double s         = 0.1;
-    const double phi       = curvature * s;
+    const double s                   = 0.1;
+    const double phi                 = curvature * s;
     const Vector_t<double, 3> entryCartesian(
             (std::cos(phi) - 1.0) / curvature, 0.0, std::sin(phi) / curvature);
 

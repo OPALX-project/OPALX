@@ -69,26 +69,24 @@ namespace {
             return entryCartesian;
         }
 
-        const double exitPhi = curvature * bodyLength;
-        const double cosExit = Kokkos::cos(exitPhi);
-        const double sinExit = Kokkos::sin(exitPhi);
-        const double exitX   = (cosExit - 1.0) / curvature;
-        const double exitZ   = sinExit / curvature;
-        const double dx      = entryCartesian(0) - exitX;
-        const double dz      = entryCartesian(2) - exitZ;
+        const double exitPhi    = curvature * bodyLength;
+        const double cosExit    = Kokkos::cos(exitPhi);
+        const double sinExit    = Kokkos::sin(exitPhi);
+        const double exitX      = (cosExit - 1.0) / curvature;
+        const double exitZ      = sinExit / curvature;
+        const double dx         = entryCartesian(0) - exitX;
+        const double dz         = entryCartesian(2) - exitZ;
         const double exitLocalX = cosExit * dx + sinExit * dz;
         const double exitLocalZ = -sinExit * dx + cosExit * dz;
         if (exitLocalZ >= 0.0) {
-            return Vector_t<double, 3>(
-                    exitLocalX, entryCartesian(1), bodyLength + exitLocalZ);
+            return Vector_t<double, 3>(exitLocalX, entryCartesian(1), bodyLength + exitLocalZ);
         }
 
         const double radius = 1.0 / curvature;
         const double phi    = recoverReferencePhaseFromEntryCartesian(entryCartesian, curvature);
         const double s      = phi / curvature;
         const double radialDistance =
-                Kokkos::hypot(entryCartesian(0) + radius, entryCartesian(2))
-                - Kokkos::abs(radius);
+                Kokkos::hypot(entryCartesian(0) + radius, entryCartesian(2)) - Kokkos::abs(radius);
         return Vector_t<double, 3>(radialDistance, entryCartesian(1), s);
     }
 
@@ -115,23 +113,21 @@ namespace {
             return entryCartesian;
         }
 
-        const double halfAngle   = 0.5 * bendAngle;
-        const double exitOriginX = -chordLength * Kokkos::tan(halfAngle);
-        const double exitOriginZ = chordLength;
-        const double dx          = entryCartesian(0) - exitOriginX;
-        const double dz          = entryCartesian(2) - exitOriginZ;
-        const double cosAngle    = Kokkos::cos(bendAngle);
-        const double sinAngle    = Kokkos::sin(bendAngle);
-        const double exitLocalX  = cosAngle * dx + sinAngle * dz;
-        const double exitLocalZ  = -sinAngle * dx + cosAngle * dz;
+        const double halfAngle     = 0.5 * bendAngle;
+        const double exitOriginX   = -chordLength * Kokkos::tan(halfAngle);
+        const double exitOriginZ   = chordLength;
+        const double dx            = entryCartesian(0) - exitOriginX;
+        const double dz            = entryCartesian(2) - exitOriginZ;
+        const double cosAngle      = Kokkos::cos(bendAngle);
+        const double sinAngle      = Kokkos::sin(bendAngle);
+        const double exitLocalX    = cosAngle * dx + sinAngle * dz;
+        const double exitLocalZ    = -sinAngle * dx + cosAngle * dz;
         const double exitThreshold = (exitFringe > 0.0) ? -exitFringe : 0.0;
         if (exitLocalZ >= exitThreshold) {
-            return Vector_t<double, 3>(
-                    exitLocalX, entryCartesian(1), referenceLength + exitLocalZ);
+            return Vector_t<double, 3>(exitLocalX, entryCartesian(1), referenceLength + exitLocalZ);
         }
 
-        return convertEntryCartesianToFieldLocalDevice(
-                entryCartesian, referenceLength, curvature);
+        return convertEntryCartesianToFieldLocalDevice(entryCartesian, referenceLength, curvature);
     }
 
     KOKKOS_INLINE_FUNCTION double clampUnitInterval(const double value) {
@@ -169,8 +165,8 @@ namespace {
         return 5.0 * profileGap;
     }
 
-    KOKKOS_INLINE_FUNCTION FringeFieldScale evaluateDefaultOpalEngeProfile(
-            const double longitudinalCoordinate, const double profileGap) {
+    KOKKOS_INLINE_FUNCTION FringeFieldScale
+    evaluateDefaultOpalEngeProfile(const double longitudinalCoordinate, const double profileGap) {
         if (profileGap <= 0.0) {
             return FringeFieldScale{1.0, 0.0, 0.0};
         }
@@ -196,11 +192,10 @@ namespace {
             return FringeFieldScale{1.0, 0.0, 0.0};
         }
 
-        const double invGap             = 1.0 / profileGap;
-        const double polynomialPrime    = a1 + 2.0 * a2 * u + 3.0 * a3 * u2
-                                       + 4.0 * a4 * u3 + 5.0 * a5 * u4;
-        const double polynomialSecond   = 2.0 * a2 + 6.0 * a3 * u + 12.0 * a4 * u2
-                                        + 20.0 * a5 * u3;
+        const double invGap = 1.0 / profileGap;
+        const double polynomialPrime =
+                a1 + 2.0 * a2 * u + 3.0 * a3 * u2 + 4.0 * a4 * u3 + 5.0 * a5 * u4;
+        const double polynomialSecond   = 2.0 * a2 + 6.0 * a3 * u + 12.0 * a4 * u2 + 20.0 * a5 * u3;
         const double exponentDerivative = polynomialPrime * invGap;
         const double exponentSecond     = polynomialSecond * invGap * invGap;
         const double engeExp            = Kokkos::exp(exponent);
@@ -209,17 +204,17 @@ namespace {
         const double expDerivative      = exponentDerivative * engeExp;
         const double expSecond =
                 (exponentSecond + exponentDerivative * exponentDerivative) * engeExp;
-        const double derivative       = -expDerivative * scaleSquared;
-        const double secondDerivative = -expSecond * scaleSquared
-                                      + 2.0 * expDerivative * expDerivative * scaleSquared
-                                                * scale;
+        const double derivative = -expDerivative * scaleSquared;
+        const double secondDerivative =
+                -expSecond * scaleSquared
+                + 2.0 * expDerivative * expDerivative * scaleSquared * scale;
 
         return FringeFieldScale{scale, derivative, secondDerivative};
     }
 
     KOKKOS_INLINE_FUNCTION FringeFieldScale evaluateFieldScale(
-            const double z, const double fieldBegin, const double bodyLength,
-            const double fieldEnd, const double profileGap) {
+            const double z, const double fieldBegin, const double bodyLength, const double fieldEnd,
+            const double profileGap) {
         const FringeFieldScale zero{0.0, 0.0, 0.0};
         if (z < fieldBegin || z > fieldEnd) {
             return zero;
@@ -237,21 +232,19 @@ namespace {
         if (entryFringe > 0.0 && z < entryFringe) {
             const double entryProjection =
                     (fringeHalfWidth > 0.0) ? fringeHalfWidth / entryFringe : 1.0;
-            const double coordinate = -z * entryProjection;
-            const FringeFieldScale entry =
-                    evaluateDefaultOpalEngeProfile(coordinate, profileGap);
-            field.scale            = clampUnitInterval(entry.scale);
-            field.derivative       = -entryProjection * entry.derivative;
+            const double coordinate      = -z * entryProjection;
+            const FringeFieldScale entry = evaluateDefaultOpalEngeProfile(coordinate, profileGap);
+            field.scale                  = clampUnitInterval(entry.scale);
+            field.derivative             = -entryProjection * entry.derivative;
             field.secondDerivative = entryProjection * entryProjection * entry.secondDerivative;
         }
 
         if (exitFringe > 0.0 && z > bodyLength - exitFringe) {
             const double exitProjection =
                     (fringeHalfWidth > 0.0) ? fringeHalfWidth / exitFringe : 1.0;
-            const double coordinate = (z - bodyLength) * exitProjection;
-            const FringeFieldScale exit =
-                    evaluateDefaultOpalEngeProfile(coordinate, profileGap);
-            const double exitScale = clampUnitInterval(exit.scale);
+            const double coordinate     = (z - bodyLength) * exitProjection;
+            const FringeFieldScale exit = evaluateDefaultOpalEngeProfile(coordinate, profileGap);
+            const double exitScale      = clampUnitInterval(exit.scale);
             if (exitScale < field.scale) {
                 field.scale            = exitScale;
                 field.derivative       = exitProjection * exit.derivative;
@@ -269,22 +262,21 @@ namespace {
             return 0.0;
         }
 
-        const double span      = fieldEnd - fieldBegin;
-        const double stepGoal  = (profileGap > 0.0) ? 0.02 * profileGap : 1.0e-3;
-        int intervals          = std::max(256, static_cast<int>(std::ceil(span / stepGoal)));
-        intervals              = std::min(intervals, 16384);
+        const double span     = fieldEnd - fieldBegin;
+        const double stepGoal = (profileGap > 0.0) ? 0.02 * profileGap : 1.0e-3;
+        int intervals         = std::max(256, static_cast<int>(std::ceil(span / stepGoal)));
+        intervals             = std::min(intervals, 16384);
         intervals += intervals % 2;
         const double dz = span / static_cast<double>(intervals);
 
-        double integral = evaluateFieldScale(fieldBegin, fieldBegin, bodyLength, fieldEnd, profileGap)
-                                  .scale
-                        + evaluateFieldScale(fieldEnd, fieldBegin, bodyLength, fieldEnd, profileGap)
-                                  .scale;
+        double integral =
+                evaluateFieldScale(fieldBegin, fieldBegin, bodyLength, fieldEnd, profileGap).scale
+                + evaluateFieldScale(fieldEnd, fieldBegin, bodyLength, fieldEnd, profileGap).scale;
         for (int i = 1; i < intervals; ++i) {
             const double z      = fieldBegin + static_cast<double>(i) * dz;
             const double weight = (i % 2 == 0) ? 2.0 : 4.0;
             integral += weight
-                      * evaluateFieldScale(z, fieldBegin, bodyLength, fieldEnd, profileGap).scale;
+                        * evaluateFieldScale(z, fieldBegin, bodyLength, fieldEnd, profileGap).scale;
         }
 
         return integral * dz / 3.0;
@@ -416,12 +408,12 @@ bool BendBase::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     Kokkos::deep_copy(normal, normalHost);
     Kokkos::deep_copy(skew, skewHost);
 
-    const double fieldBegin       = fieldBegin_m;
-    const double elemLength       = getReferencePathLength();
-    const double fieldEnd         = fieldEnd_m;
-    const double entryFringe      = -fieldBegin;
-    const double exitFringe       = fieldEnd - elemLength;
-    const double profileGap       = resolveFringeProfileGap(gap_m, fringeHalfGap_m);
+    const double fieldBegin                   = fieldBegin_m;
+    const double elemLength                   = getReferencePathLength();
+    const double fieldEnd                     = fieldEnd_m;
+    const double entryFringe                  = -fieldBegin;
+    const double exitFringe                   = fieldEnd - elemLength;
+    const double profileGap                   = resolveFringeProfileGap(gap_m, fringeHalfGap_m);
     const double entryEdgeVerticalCoefficient = getEntryEdgeVerticalFieldCoefficient();
     const double exitEdgeVerticalCoefficient  = getExitEdgeVerticalFieldCoefficient();
 
@@ -433,10 +425,10 @@ bool BendBase::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
                 }
 
                 Vector_t<double, 3> Bf(0.0);
-                const double x               = Rview(i)(0);
-                const double y               = Rview(i)(1);
-                const FringeFieldScale fringe = evaluateFieldScale(
-                        z, fieldBegin, elemLength, fieldEnd, profileGap);
+                const double x = Rview(i)(0);
+                const double y = Rview(i)(1);
+                const FringeFieldScale fringe =
+                        evaluateFieldScale(z, fieldBegin, elemLength, fieldEnd, profileGap);
                 const double scale = fringe.scale;
 
                 if (normal.extent(0) > 0) {
@@ -561,8 +553,8 @@ Vector_t<double, 3> BendBase::convertBodyCartesianToFieldLocal(
 
         const CoordinateSystemTrafo exitLocal   = getEdgeToEnd();
         const Vector_t<double, 3> exitCartesian = exitLocal.transformTo(bodyCartesian);
-        const double exitFringe                  = getExitFringeSupportLength();
-        const double exitThreshold               = (exitFringe > 0.0) ? -exitFringe : 0.0;
+        const double exitFringe                 = getExitFringeSupportLength();
+        const double exitThreshold              = (exitFringe > 0.0) ? -exitFringe : 0.0;
         if (exitCartesian(2) >= exitThreshold) {
             return Vector_t<double, 3>(
                     exitCartesian(0), exitCartesian(1), bodyLength + exitCartesian(2));
@@ -610,17 +602,17 @@ Vector_t<double, 3> BendBase::rotateBodyCartesianVectorToFieldLocal(
         const Vector_t<double, 3>& bodyVector, const double s) const {
     const double bodyLength                = getReferencePathLength();
     const double curvature                 = getReferencePathCurvature();
-    const CoordinateSystemTrafo entryLocal =
-            (getType() == ElementType::RBEND) ? getEdgeToBegin()
-                                              : toCoordinateSystemTrafo(getEntranceFrame());
+    const CoordinateSystemTrafo entryLocal = (getType() == ElementType::RBEND)
+                                                     ? getEdgeToBegin()
+                                                     : toCoordinateSystemTrafo(getEntranceFrame());
     const Vector_t<double, 3> entryVector  = entryLocal.rotateTo(bodyVector);
     if (std::abs(curvature) <= 1.0e-15 || s <= 0.0) {
         return entryVector;
     }
 
-    const CoordinateSystemTrafo exitLocal =
-            (getType() == ElementType::RBEND) ? getEdgeToEnd()
-                                              : toCoordinateSystemTrafo(getExitFrame());
+    const CoordinateSystemTrafo exitLocal = (getType() == ElementType::RBEND)
+                                                    ? getEdgeToEnd()
+                                                    : toCoordinateSystemTrafo(getExitFrame());
     const double exitThreshold =
             (getType() == ElementType::RBEND && getExitFringeSupportLength() > 0.0)
                     ? bodyLength - getExitFringeSupportLength()
@@ -704,32 +696,31 @@ bool BendBase::applySlice(
     Kokkos::deep_copy(normal, normalHost);
     Kokkos::deep_copy(skew, skewHost);
 
-    const double bodyLength         = getReferencePathLength();
-    const double fieldBegin         = -getEntryFringeSupportLength();
-    const double fieldEnd           = bodyLength + getExitFringeSupportLength();
-    const double entryFringe        = getEntryFringeSupportLength();
-    const double exitFringe         = getExitFringeSupportLength();
-    const double profileGap         = resolveFringeProfileGap(gap_m, fringeHalfGap_m);
-    const double referenceCurvature = getReferencePathCurvature();
-    const double chordLength        = getElementLength();
-    const double bendAngle          = getBendAngle();
-    const bool isRectangularBend    = getType() == ElementType::RBEND;
+    const double bodyLength                   = getReferencePathLength();
+    const double fieldBegin                   = -getEntryFringeSupportLength();
+    const double fieldEnd                     = bodyLength + getExitFringeSupportLength();
+    const double entryFringe                  = getEntryFringeSupportLength();
+    const double exitFringe                   = getExitFringeSupportLength();
+    const double profileGap                   = resolveFringeProfileGap(gap_m, fringeHalfGap_m);
+    const double referenceCurvature           = getReferencePathCurvature();
+    const double chordLength                  = getElementLength();
+    const double bendAngle                    = getBendAngle();
+    const bool isRectangularBend              = getType() == ElementType::RBEND;
     const double entryEdgeVerticalCoefficient = getEntryEdgeVerticalFieldCoefficient();
     const double exitEdgeVerticalCoefficient  = getExitEdgeVerticalFieldCoefficient();
-    const matrix3x3_t entryToSliceRotation = slice.entryToSliceRotation;
-    const Vector_t<double, 3> entryOrigin  = slice.entryOrigin;
+    const matrix3x3_t entryToSliceRotation    = slice.entryToSliceRotation;
+    const Vector_t<double, 3> entryOrigin     = slice.entryOrigin;
 
     Kokkos::parallel_for(
             "BendBase::applySlice", nLocal, KOKKOS_LAMBDA(const size_t i) {
                 const Vector_t<double, 3> entryCartesian =
                         prod_vector_transpose(entryToSliceRotation, Rview(i)) + entryOrigin;
                 const Vector_t<double, 3> entryChartPosition =
-                        isRectangularBend
-                                ? convertRBendEntryCartesianToFieldLocalDevice(
-                                          entryCartesian, bodyLength, referenceCurvature,
-                                          chordLength, bendAngle, exitFringe)
-                                : convertEntryCartesianToFieldLocalDevice(
-                                          entryCartesian, bodyLength, referenceCurvature);
+                        isRectangularBend ? convertRBendEntryCartesianToFieldLocalDevice(
+                                                    entryCartesian, bodyLength, referenceCurvature,
+                                                    chordLength, bendAngle, exitFringe)
+                                          : convertEntryCartesianToFieldLocalDevice(
+                                                    entryCartesian, bodyLength, referenceCurvature);
 
                 const double zEntry = entryChartPosition(2);
                 if (zEntry < slice.sBegin || zEntry > slice.sEnd) {
@@ -740,10 +731,10 @@ bool BendBase::applySlice(
                 }
 
                 Vector_t<double, 3> Bf(0.0);
-                const double x               = entryChartPosition(0);
-                const double y               = entryChartPosition(1);
-                const FringeFieldScale fringe = evaluateFieldScale(
-                        zEntry, fieldBegin, bodyLength, fieldEnd, profileGap);
+                const double x = entryChartPosition(0);
+                const double y = entryChartPosition(1);
+                const FringeFieldScale fringe =
+                        evaluateFieldScale(zEntry, fieldBegin, bodyLength, fieldEnd, profileGap);
                 const double scale = fringe.scale;
 
                 if (normal.extent(0) > 0) {
@@ -775,22 +766,20 @@ bool BendBase::applySlice(
                 }
 
                 Vector_t<double, 3> Bentry = Bf;
-                if (isRectangularBend && zEntry >= bodyLength - exitFringe
-                    && exitFringe > 0.0) {
+                if (isRectangularBend && zEntry >= bodyLength - exitFringe && exitFringe > 0.0) {
                     const double cosAngle = Kokkos::cos(bendAngle);
                     const double sinAngle = Kokkos::sin(bendAngle);
                     Bentry(0)             = cosAngle * Bf(0) - sinAngle * Bf(2);
                     Bentry(1)             = Bf(1);
                     Bentry(2)             = sinAngle * Bf(0) + cosAngle * Bf(2);
                 } else if (Kokkos::abs(referenceCurvature) > 1.0e-15 && zEntry > 0.0) {
-                    const double rotationS =
-                            (zEntry >= bodyLength) ? bodyLength : zEntry;
-                    const double phi  = referenceCurvature * rotationS;
-                    const double cphi = Kokkos::cos(phi);
-                    const double sphi = Kokkos::sin(phi);
-                    Bentry(0)         = cphi * Bf(0) - sphi * Bf(2);
-                    Bentry(1)         = Bf(1);
-                    Bentry(2)         = sphi * Bf(0) + cphi * Bf(2);
+                    const double rotationS = (zEntry >= bodyLength) ? bodyLength : zEntry;
+                    const double phi       = referenceCurvature * rotationS;
+                    const double cphi      = Kokkos::cos(phi);
+                    const double sphi      = Kokkos::sin(phi);
+                    Bentry(0)              = cphi * Bf(0) - sphi * Bf(2);
+                    Bentry(1)              = Bf(1);
+                    Bentry(2)              = sphi * Bf(0) + cphi * Bf(2);
                 }
 
                 const Vector_t<double, 3> Bslice = prod_vector(entryToSliceRotation, Bentry);
@@ -1134,13 +1123,11 @@ void BendBase::updateFieldSupportExtent() {
     const double fringeHalfWidth  = defaultOpalFringeHalfWidth(profileGap);
     const double entryDenominator = safeAbsCos(getEntranceAngle());
     const double exitDenominator  = safeAbsCos(getExitAngle());
-    const double entryFringe =
-            (fringeHalfWidth > 0.0) ? fringeHalfWidth / entryDenominator : 0.0;
-    const double exitFringe =
-            (fringeHalfWidth > 0.0) ? fringeHalfWidth / exitDenominator : 0.0;
-    fieldBegin_m            = -entryFringe;
-    fieldEnd_m              = bodyLength + exitFringe;
-    effectiveFieldLength_m  = integrateFieldScale(fieldBegin_m, bodyLength, fieldEnd_m, profileGap);
+    const double entryFringe = (fringeHalfWidth > 0.0) ? fringeHalfWidth / entryDenominator : 0.0;
+    const double exitFringe  = (fringeHalfWidth > 0.0) ? fringeHalfWidth / exitDenominator : 0.0;
+    fieldBegin_m             = -entryFringe;
+    fieldEnd_m               = bodyLength + exitFringe;
+    effectiveFieldLength_m = integrateFieldScale(fieldBegin_m, bodyLength, fieldEnd_m, profileGap);
     if (effectiveFieldLength_m <= 0.0) {
         effectiveFieldLength_m = bodyLength;
     }

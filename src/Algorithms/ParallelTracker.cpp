@@ -1292,7 +1292,7 @@ void ParallelTracker::updateReferenceParticles(const BorisPusher& pusher) {
                 elements.insert(element);
             }
         }
-        IndexMap::value_t::const_iterator it = elements.begin();
+        IndexMap::value_t::const_iterator it        = elements.begin();
         const IndexMap::value_t::const_iterator end = elements.end();
 
         for (; it != end; ++it) {

@@ -131,7 +131,12 @@ OPALX uses GitHub Actions for required and non-required pull request checks. The
 
 - `Check clang-format`: checks the formatting of changed source and unit test files in the pull request using clang-format 21.1.8. This check is **not required**.
 
-See [IPPL's formatting documentation](https://github.com/IPPL-framework/ippl/blob/master/doc/extras/CodeFormattingSetup.md) for instructions on setting up pre-commit hooks.
+The repository hook path is `hooks/`.  The `post-index-change` hook runs after
+`git add` and applies `clang-format` to staged C++ files under `src/` and
+`unit_tests/`, then stages the formatted result.  The hook uses
+`CLANG_FORMAT` when set, otherwise it looks for the Homebrew LLVM 21 formatter
+and then `clang-format` in `PATH`.  Files with partially staged edits are
+skipped to avoid replacing a selected hunk with the whole formatted file.
 
 ### Compilation
 

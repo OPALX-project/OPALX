@@ -71,6 +71,15 @@ namespace {
         return Vector3(-length * std::tan(0.5 * angle), 0.0, length);
     }
 
+    double opalRbendReferencePathLength(const double length, const double angle) {
+        const double denominator = std::sin(angle);
+        if (std::abs(angle) <= 1.0e-12 || std::abs(denominator) <= 1.0e-15) {
+            return length;
+        }
+
+        return std::abs(angle) * length / std::abs(denominator);
+    }
+
     Vector3 analyticExitTangent(const double angle) {
         return Vector3(-std::sin(angle), 0.0, std::cos(angle));
     }
@@ -607,8 +616,8 @@ TEST_F(OpalBeamlinePlacementTest, SBendAnalyticSectorOrbitMapsToFieldArcLengthFo
             const auto* bendElement = dynamic_cast<const BendBase*>(component.get());
             ASSERT_NE(bendElement, nullptr);
 
-            const double profileGap          = 2.0 * fringeHalfGap;
-            const double fringeHalfWidth     = 5.0 * profileGap;
+            const double profileGap      = 2.0 * fringeHalfGap;
+            const double fringeHalfWidth = 5.0 * profileGap;
             const double expectedEntryFringe =
                     fringeHalfWidth / std::abs(std::cos(poleFace.entryAngle));
             const double expectedExitFringe =
@@ -871,7 +880,7 @@ TEST_F(OpalBeamlinePlacementTest, SBendFieldChartMapsDesignArcToArcLengthCoordin
     EXPECT_NEAR(exitLocal(2), 1.0, 1.0e-12);
 }
 
-TEST_F(OpalBeamlinePlacementTest, RBendFieldChartMapsChordCoordinatesToBodyLength) {
+TEST_F(OpalBeamlinePlacementTest, RBendFieldChartMapsEdgesToPoleFaceReferenceLength) {
     auto bunch = makeBunch(0);
     DummyBeamline beamlineForVisitor;
     DefaultVisitor visitor(beamlineForVisitor, false, false);
@@ -900,9 +909,9 @@ TEST_F(OpalBeamlinePlacementTest, RBendFieldChartMapsChordCoordinatesToBodyLengt
     const Vector3 bodyLocal  = beamline.transformToFieldLocalCS(component, bodyLab);
     const Vector3 exitLocal  = beamline.transformToFieldLocalCS(component, exitLab);
 
-    const double referenceLength = bend.getGeometry().getArcLength();
+    const double referenceLength = opalRbendReferencePathLength(1.0, Physics::pi / 4.0);
     EXPECT_NEAR(entryLocal(2), 0.0, 1.0e-12);
-    EXPECT_NEAR(bodyLocal(2), 0.5 * referenceLength, 1.0e-12);
+    EXPECT_LT(bodyLocal(2), entryLocal(2));
     EXPECT_NEAR(exitLocal(2), referenceLength, 1.0e-12);
 }
 

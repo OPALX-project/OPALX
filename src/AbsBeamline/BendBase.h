@@ -790,9 +790,7 @@ inline double BendBase::getExitFringeSupportLength() const {
 
 inline double BendBase::getReferencePathLength() const { return getElementLength(); }
 
-inline double BendBase::getEffectiveFieldLength() const {
-    return effectiveFieldLength_m;
-}
+inline double BendBase::getEffectiveFieldLength() const { return effectiveFieldLength_m; }
 
 inline double BendBase::getStoredExitAngle() const { return exitAngle_m; }
 

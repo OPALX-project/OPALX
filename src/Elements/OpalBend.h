@@ -109,8 +109,7 @@ protected:
      */
     static void validateAnalyticBendDefinition(
             const std::string& elementName, bool hasAngle, bool hasK0,
-            double fieldNormalizationLength,
-            double angle, double k0Input);
+            double fieldNormalizationLength, double angle, double k0Input);
 
 private:
     // Not implemented.

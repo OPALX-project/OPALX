@@ -25,36 +25,36 @@
 
 namespace {
 
-/**
- * @brief Return the OPAL-compatible SBEND dipole normalization length.
- *
- * Historical OPAL interprets the `SBEND` `L` attribute as the magnet chord
- * length when it derives the design radius:
- * \f[
- *   R = \frac{L}{2\sin(\theta/2)} .
- * \f]
- * The dipole coefficient is therefore normalized with the corresponding arc
- * length
- * \f[
- *   L_\mathrm{norm} = R\theta
- *                  = L\frac{\theta}{2\sin(\theta/2)},
- *   \qquad k_0 = \frac{\theta}{L_\mathrm{norm}} .
- * \f]
- * The small-angle limit returns `L`, preserving the straight-element limit.
- */
-double getOpalChordToArcNormalizationLength(const double chordLength, const double angle) {
-    const double halfAngle = 0.5 * angle;
-    if (std::abs(halfAngle) <= 1.0e-12) {
-        return chordLength;
-    }
+    /**
+     * @brief Return the OPAL-compatible SBEND dipole normalization length.
+     *
+     * Historical OPAL interprets the `SBEND` `L` attribute as the magnet chord
+     * length when it derives the design radius:
+     * \f[
+     *   R = \frac{L}{2\sin(\theta/2)} .
+     * \f]
+     * The dipole coefficient is therefore normalized with the corresponding arc
+     * length
+     * \f[
+     *   L_\mathrm{norm} = R\theta
+     *                  = L\frac{\theta}{2\sin(\theta/2)},
+     *   \qquad k_0 = \frac{\theta}{L_\mathrm{norm}} .
+     * \f]
+     * The small-angle limit returns `L`, preserving the straight-element limit.
+     */
+    double getOpalChordToArcNormalizationLength(const double chordLength, const double angle) {
+        const double halfAngle = 0.5 * angle;
+        if (std::abs(halfAngle) <= 1.0e-12) {
+            return chordLength;
+        }
 
-    const double sine = std::sin(halfAngle);
-    if (std::abs(sine) <= 1.0e-15) {
-        return chordLength;
-    }
+        const double sine = std::sin(halfAngle);
+        if (std::abs(sine) <= 1.0e-15) {
+            return chordLength;
+        }
 
-    return chordLength * halfAngle / sine;
-}
+        return chordLength * halfAngle / sine;
+    }
 
 }  // namespace
 
@@ -91,13 +91,12 @@ void OpalSBend::update() {
     const double fullGap = Attributes::getReal(itsAttr[GAP]);
     const double halfGap =
             itsAttr[HGAP] ? Attributes::getReal(itsAttr[HGAP]) : 0.5 * std::abs(fullGap);
-    const double fringeIntegral = Attributes::getReal(itsAttr[FINT]);
+    const double fringeIntegral           = Attributes::getReal(itsAttr[FINT]);
     const double fieldNormalizationLength = getOpalChordToArcNormalizationLength(length, angle);
-    PlanarArcGeometry& geometry = bend->getGeometry();
+    PlanarArcGeometry& geometry           = bend->getGeometry();
 
     if (length) {
-        geometry = PlanarArcGeometry(
-                fieldNormalizationLength, angle / fieldNormalizationLength);
+        geometry = PlanarArcGeometry(fieldNormalizationLength, angle / fieldNormalizationLength);
     } else {
         geometry = PlanarArcGeometry(angle);
     }
