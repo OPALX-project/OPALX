@@ -2,6 +2,8 @@
 
 #include "AbsBeamline/BeamlineVisitor.h"
 
+#include <cmath>
+
 namespace {
     CoordinateSystemTrafo toCoordinateSystemTrafo(const Euclid3D& frame) {
         matrix3x3_t rotation;
@@ -55,4 +57,12 @@ CoordinateSystemTrafo RBend::getEdgeToEnd() const {
 
 double RBend::getExitAngle() const { return getBendAngle() - getEntranceAngle(); }
 
-double RBend::getReferencePathLength() const { return getGeometry().getArcLength(); }
+double RBend::getReferencePathLength() const {
+    const double angle       = getBendAngle();
+    const double denominator = std::sin(getEntranceAngle()) + std::sin(getExitAngle());
+    if (std::abs(angle) <= 1.0e-15 || std::abs(denominator) <= 1.0e-15) {
+        return getGeometry().getArcLength();
+    }
+
+    return std::abs(angle) * getElementLength() / std::abs(denominator);
+}

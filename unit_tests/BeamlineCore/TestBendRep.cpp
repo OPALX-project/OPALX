@@ -167,6 +167,16 @@ namespace {
         return 1.0 / (1.0 + std::exp(0.478959));
     }
 
+    double expectedRBendReferencePathLength(
+            const double bodyLength, const double bendAngle, const double entranceAngle = 0.0) {
+        const double exitAngle   = bendAngle - entranceAngle;
+        const double denominator = std::sin(entranceAngle) + std::sin(exitAngle);
+        if (std::abs(bendAngle) <= 1.0e-15 || std::abs(denominator) <= 1.0e-15) {
+            return bodyLength;
+        }
+        return std::abs(bendAngle) * bodyLength / std::abs(denominator);
+    }
+
     double expectedVerticalEdgeStrength(
             const double signedCurvature, const double edgeAngle, const double fringeHalfGap,
             const double fringeIntegral) {
@@ -464,7 +474,7 @@ namespace {
         EXPECT_FALSE(visitor.visitedComponent);
     }
 
-    TEST(RBendRep, EffectiveFieldLengthUsesReferencePathInsteadOfStraightBody) {
+    TEST(RBendRep, EffectiveFieldLengthUsesOpalPoleFaceReferencePath) {
         constexpr double bodyLength     = 1.0;
         constexpr double bendAngle      = Physics::pi / 4.0;
         constexpr double fringeHalfGap  = 0.02;
@@ -479,6 +489,8 @@ namespace {
         bend.setFringeIntegral(fringeIntegral);
 
         const double referencePathLength =
+                expectedRBendReferencePathLength(bodyLength, bendAngle);
+        const double symmetricArcLength =
                 bodyLength * (bendAngle / 2.0) / std::sin(bendAngle / 2.0);
         const double profileGap           = 2.0 * fringeHalfGap;
         const double fringeHalfWidth      = 5.0 * profileGap;
@@ -487,11 +499,109 @@ namespace {
                 fringeHalfWidth / std::abs(std::cos(bend.getExitAngle()));
 
         EXPECT_NEAR(bend.getChordLength(), bodyLength, 1.0e-12);
-        EXPECT_NEAR(bend.getGeometry().getArcLength(), referencePathLength, 1.0e-12);
+        EXPECT_NEAR(bend.getGeometry().getArcLength(), symmetricArcLength, 1.0e-12);
         EXPECT_NEAR(bend.getEntryFringeSupportLength(), expectedEntrySupport, 1.0e-12);
         EXPECT_NEAR(bend.getExitFringeSupportLength(), expectedExitSupport, 1.0e-12);
         EXPECT_NEAR(bend.getEffectiveFieldLength(), referencePathLength, 2.0e-6);
         EXPECT_GT(bend.getEffectiveFieldLength(), bend.getElementLength());
+    }
+
+    TEST(RBendRep, BodyFieldConversionUsesRectangularEdgeFrames) {
+        constexpr double chordLength = 1.0;
+        constexpr double bendAngle   = Physics::pi / 4.0;
+        constexpr double drift       = 0.05;
+
+        RBendRep bend("RBEND");
+        bend.getGeometry().setElementLength(chordLength);
+        bend.getGeometry().setBendAngle(bendAngle);
+        bend.setElementLength(chordLength);
+        bend.setBendAngle(bendAngle);
+
+        const double referencePathLength =
+                expectedRBendReferencePathLength(chordLength, bendAngle);
+        const double curvature = bendAngle / referencePathLength;
+
+        const CoordinateSystemTrafo bodyToEntry = bend.getEdgeToBegin();
+        const CoordinateSystemTrafo bodyToExit  = bend.getEdgeToEnd();
+
+        const Vector_t<double, 3> upstreamBody =
+                bodyToEntry.transformFrom(Vector_t<double, 3>(0.0, 0.0, -drift));
+        const Vector_t<double, 3> upstreamField =
+                bend.convertBodyCartesianToFieldLocal(upstreamBody);
+        EXPECT_NEAR(upstreamField(0), 0.0, 1.0e-12);
+        EXPECT_NEAR(upstreamField(1), 0.0, 1.0e-12);
+        EXPECT_NEAR(upstreamField(2), -drift, 1.0e-12);
+
+        const Vector_t<double, 3> entryBody =
+                bodyToEntry.transformFrom(Vector_t<double, 3>(0.0));
+        const Vector_t<double, 3> entryField =
+                bend.convertBodyCartesianToFieldLocal(entryBody);
+        EXPECT_NEAR(entryField(0), 0.0, 1.0e-12);
+        EXPECT_NEAR(entryField(1), 0.0, 1.0e-12);
+        EXPECT_NEAR(entryField(2), 0.0, 1.0e-12);
+
+        const Vector_t<double, 3> midpointEntry = fieldLocalToEntryCartesian(
+                Vector_t<double, 3>(0.0, 0.0, 0.5 * referencePathLength), curvature,
+                referencePathLength);
+        const Vector_t<double, 3> midpointBody = bodyToEntry.transformFrom(midpointEntry);
+        const Vector_t<double, 3> midpointField =
+                bend.convertBodyCartesianToFieldLocal(midpointBody);
+        EXPECT_NEAR(midpointField(0), 0.0, 1.0e-12);
+        EXPECT_NEAR(midpointField(1), 0.0, 1.0e-12);
+        EXPECT_NEAR(midpointField(2), 0.5 * referencePathLength, 1.0e-12);
+
+        const Vector_t<double, 3> exitBody =
+                bodyToExit.transformFrom(Vector_t<double, 3>(0.0));
+        const Vector_t<double, 3> exitField = bend.convertBodyCartesianToFieldLocal(exitBody);
+        EXPECT_NEAR(exitField(0), 0.0, 1.0e-12);
+        EXPECT_NEAR(exitField(1), 0.0, 1.0e-12);
+        EXPECT_NEAR(exitField(2), referencePathLength, 1.0e-12);
+
+        const Vector_t<double, 3> downstreamBody =
+                bodyToExit.transformFrom(Vector_t<double, 3>(0.0, 0.0, drift));
+        const Vector_t<double, 3> downstreamField =
+                bend.convertBodyCartesianToFieldLocal(downstreamBody);
+        EXPECT_NEAR(downstreamField(0), 0.0, 1.0e-12);
+        EXPECT_NEAR(downstreamField(1), 0.0, 1.0e-12);
+        EXPECT_NEAR(downstreamField(2), referencePathLength + drift, 1.0e-12);
+    }
+
+    TEST(RBendRep, BodyFieldConversionMeasuresExitFringeFromRectangularFace) {
+        constexpr double chordLength   = 1.0;
+        constexpr double bendAngle     = Physics::pi / 4.0;
+        constexpr double fringeHalfGap = 0.02;
+        constexpr double fringeOffset  = 0.01;
+
+        RBendRep bend("RBEND");
+        bend.getGeometry().setElementLength(chordLength);
+        bend.getGeometry().setBendAngle(bendAngle);
+        bend.setElementLength(chordLength);
+        bend.setBendAngle(bendAngle);
+        bend.setFringeHalfGap(fringeHalfGap);
+
+        const double referencePathLength =
+                expectedRBendReferencePathLength(chordLength, bendAngle);
+        ASSERT_GT(bend.getExitFringeSupportLength(), fringeOffset);
+
+        const CoordinateSystemTrafo bodyToExit = bend.getEdgeToEnd();
+        const Vector_t<double, 3> beforeExitBody =
+                bodyToExit.transformFrom(Vector_t<double, 3>(0.0, 0.0, -fringeOffset));
+        const Vector_t<double, 3> beforeExitField =
+                bend.convertBodyCartesianToFieldLocal(beforeExitBody);
+        EXPECT_NEAR(beforeExitField(0), 0.0, 1.0e-12);
+        EXPECT_NEAR(beforeExitField(1), 0.0, 1.0e-12);
+        EXPECT_NEAR(beforeExitField(2), referencePathLength - fringeOffset, 1.0e-12);
+
+        const Vector_t<double, 3> afterExitBody =
+                bodyToExit.transformFrom(Vector_t<double, 3>(0.0, 0.0, fringeOffset));
+        const Vector_t<double, 3> afterExitField =
+                bend.convertBodyCartesianToFieldLocal(afterExitBody);
+        EXPECT_NEAR(afterExitField(0), 0.0, 1.0e-12);
+        EXPECT_NEAR(afterExitField(1), 0.0, 1.0e-12);
+        EXPECT_NEAR(afterExitField(2), referencePathLength + fringeOffset, 1.0e-12);
+
+        EXPECT_GT(bend.getFieldScale(beforeExitField(2)), 0.0);
+        EXPECT_GT(bend.getFieldScale(afterExitField(2)), 0.0);
     }
 
     TEST(SBendRep, TrackingSlicesCoverBodyAndFringeSupport) {
@@ -1596,8 +1706,8 @@ namespace {
         bend.setElementLength(chordLength);
         bend.setBendAngle(angle);
 
-        const double radius    = chordLength / (2.0 * std::sin(angle / 2.0));
-        const double arcLength = radius * angle;
+        const double arcLength = expectedRBendReferencePathLength(chordLength, angle);
+        const double radius    = arcLength / angle;
         const double betaGamma = betaGammaFromKineticEnergy(kineticEnergyEV, massEV);
         const double by        = -dipoleFieldMagnitude(betaGamma, massEV, charge, radius);
         bend.setB(by);
@@ -1673,7 +1783,7 @@ namespace {
         EXPECT_NEAR(B(2), -entryScaleDerivative * yOffset, 1.0e-12);
     }
 
-    TEST(SBendRep, EntryFringeProducesEdgeFocusingKick) {
+    TEST(SBendRep, EntryFringeProducesVerticalFocusingKick) {
         constexpr double bodyLength      = 1.0;
         constexpr double bendAngle       = 0.2;
         constexpr double entryAngle      = 0.15;
@@ -1683,7 +1793,6 @@ namespace {
         constexpr double massEV          = Physics::m_p * Units::GeV2eV;
         constexpr double charge          = 1.0;
         constexpr std::size_t steps      = 20000;
-        constexpr double xOffset         = 1.0e-4;
         constexpr double yOffset         = 1.0e-4;
 
         SBendRep bend("SBEND");
@@ -1711,12 +1820,6 @@ namespace {
         const ReferenceState base = integrateReferenceParticle(
                 bend, massEV, charge, kineticEnergyEV, integrationTime, steps, fieldBegin);
 
-        ReferenceState xState{};
-        xState.r = Vector_t<double, 3>(xOffset, 0.0, fieldBegin);
-        xState.p = Vector_t<double, 3>(0.0, 0.0, betaGamma);
-        const ReferenceState xFocused =
-                integrateReferenceParticle(bend, massEV, charge, xState, integrationTime, steps);
-
         ReferenceState yState{};
         yState.r = Vector_t<double, 3>(0.0, yOffset, fieldBegin);
         yState.p = Vector_t<double, 3>(0.0, 0.0, betaGamma);
@@ -1724,20 +1827,16 @@ namespace {
                 integrateReferenceParticle(bend, massEV, charge, yState, integrationTime, steps);
 
         const double signedCurvature = bendAngle / effectiveLength;
-        const double expectedHorizontal = -signedCurvature * std::tan(entryAngle);
         const double expectedVertical =
                 expectedVerticalEdgeStrength(
                         signedCurvature, entryAngle, fringeHalfGap, fringeIntegral)
                 * defaultOpalNominalEdgeScale();
-        const double deltaXP            = (xFocused.p(0) - base.p(0)) / betaGamma;
         const double deltaYP            = (yFocused.p(1) - base.p(1)) / betaGamma;
 
-        EXPECT_NEAR(deltaXP / xOffset, expectedHorizontal, 5.0e-4);
         EXPECT_NEAR(deltaYP / yOffset, expectedVertical, 5.0e-4);
-        EXPECT_LT(std::abs(expectedVertical), std::abs(expectedHorizontal));
     }
 
-    TEST(SBendRep, ExitFringeProducesEdgeFocusingKick) {
+    TEST(SBendRep, ExitFringeProducesVerticalFocusingKick) {
         constexpr double bodyLength      = 1.0;
         constexpr double bendAngle       = 0.2;
         constexpr double exitAngle       = 0.14;
@@ -1747,7 +1846,6 @@ namespace {
         constexpr double massEV          = Physics::m_p * Units::GeV2eV;
         constexpr double charge          = 1.0;
         constexpr std::size_t steps      = 20000;
-        constexpr double xOffset         = 1.0e-4;
         constexpr double yOffset         = 1.0e-4;
 
         SBendRep bend("SBEND");
@@ -1775,12 +1873,6 @@ namespace {
         const ReferenceState base = integrateReferenceParticle(
                 bend, massEV, charge, kineticEnergyEV, integrationTime, steps, bodyLength);
 
-        ReferenceState xState{};
-        xState.r = Vector_t<double, 3>(xOffset, 0.0, bodyLength);
-        xState.p = Vector_t<double, 3>(0.0, 0.0, betaGamma);
-        const ReferenceState xFocused =
-                integrateReferenceParticle(bend, massEV, charge, xState, integrationTime, steps);
-
         ReferenceState yState{};
         yState.r = Vector_t<double, 3>(0.0, yOffset, bodyLength);
         yState.p = Vector_t<double, 3>(0.0, 0.0, betaGamma);
@@ -1788,20 +1880,16 @@ namespace {
                 integrateReferenceParticle(bend, massEV, charge, yState, integrationTime, steps);
 
         const double signedCurvature = bendAngle / effectiveLength;
-        const double expectedHorizontal = -signedCurvature * std::tan(exitAngle);
         const double expectedVertical =
                 expectedVerticalEdgeStrength(
                         signedCurvature, exitAngle, fringeHalfGap, fringeIntegral)
                 * defaultOpalNominalEdgeScale();
-        const double deltaXP            = (xFocused.p(0) - base.p(0)) / betaGamma;
         const double deltaYP            = (yFocused.p(1) - base.p(1)) / betaGamma;
 
-        EXPECT_NEAR(deltaXP / xOffset, expectedHorizontal, 5.0e-4);
         EXPECT_NEAR(deltaYP / yOffset, expectedVertical, 5.0e-4);
-        EXPECT_LT(std::abs(expectedVertical), std::abs(expectedHorizontal));
     }
 
-    TEST(RBendRep, EntryFringeProducesEdgeFocusingKick) {
+    TEST(RBendRep, EntryFringeProducesVerticalFocusingKick) {
         constexpr double bodyLength      = 1.0;
         constexpr double bendAngle       = 0.2;
         constexpr double entryAngle      = 0.12;
@@ -1811,7 +1899,6 @@ namespace {
         constexpr double massEV          = Physics::m_e * Units::GeV2eV;
         constexpr double charge          = -1.0;
         constexpr std::size_t steps      = 20000;
-        constexpr double xOffset         = 1.0e-4;
         constexpr double yOffset         = 1.0e-4;
 
         RBendRep bend("RBEND");
@@ -1839,12 +1926,6 @@ namespace {
         const ReferenceState base = integrateReferenceParticle(
                 bend, massEV, charge, kineticEnergyEV, integrationTime, steps, fieldBegin);
 
-        ReferenceState xState{};
-        xState.r = Vector_t<double, 3>(xOffset, 0.0, fieldBegin);
-        xState.p = Vector_t<double, 3>(0.0, 0.0, betaGamma);
-        const ReferenceState xFocused =
-                integrateReferenceParticle(bend, massEV, charge, xState, integrationTime, steps);
-
         ReferenceState yState{};
         yState.r = Vector_t<double, 3>(0.0, yOffset, fieldBegin);
         yState.p = Vector_t<double, 3>(0.0, 0.0, betaGamma);
@@ -1852,20 +1933,16 @@ namespace {
                 integrateReferenceParticle(bend, massEV, charge, yState, integrationTime, steps);
 
         const double signedCurvature = bendAngle / effectiveLength;
-        const double expectedHorizontal = -signedCurvature * std::tan(entryAngle);
         const double expectedVertical =
                 expectedVerticalEdgeStrength(
                         signedCurvature, entryAngle, fringeHalfGap, fringeIntegral)
                 * defaultOpalNominalEdgeScale();
-        const double deltaXP            = (xFocused.p(0) - base.p(0)) / betaGamma;
         const double deltaYP            = (yFocused.p(1) - base.p(1)) / betaGamma;
 
-        EXPECT_NEAR(deltaXP / xOffset, expectedHorizontal, 5.0e-4);
         EXPECT_NEAR(deltaYP / yOffset, expectedVertical, 5.0e-4);
-        EXPECT_LT(std::abs(expectedVertical), std::abs(expectedHorizontal));
     }
 
-    TEST(RBendRep, ExitFringeProducesEdgeFocusingKick) {
+    TEST(RBendRep, ExitFringeProducesVerticalFocusingKick) {
         constexpr double bodyLength      = 1.0;
         constexpr double bendAngle       = 0.2;
         constexpr double exitAngle       = 0.11;
@@ -1875,7 +1952,6 @@ namespace {
         constexpr double massEV          = Physics::m_e * Units::GeV2eV;
         constexpr double charge          = -1.0;
         constexpr std::size_t steps      = 20000;
-        constexpr double xOffset         = 1.0e-4;
         constexpr double yOffset         = 1.0e-4;
 
         RBendRep bend("RBEND");
@@ -1898,18 +1974,11 @@ namespace {
         double fieldEnd   = 0.0;
         bend.getFieldExtend(fieldBegin, fieldEnd);
         const double beta            = betaGamma / std::sqrt(1.0 + betaGamma * betaGamma);
-        const double referenceLength =
-                bodyLength * (bendAngle / 2.0) / std::sin(bendAngle / 2.0);
+        const double referenceLength = effectiveLength;
         const double integrationTime = (fieldEnd - referenceLength) / (beta * Physics::c);
 
         const ReferenceState base = integrateReferenceParticle(
                 bend, massEV, charge, kineticEnergyEV, integrationTime, steps, referenceLength);
-
-        ReferenceState xState{};
-        xState.r = Vector_t<double, 3>(xOffset, 0.0, referenceLength);
-        xState.p = Vector_t<double, 3>(0.0, 0.0, betaGamma);
-        const ReferenceState xFocused =
-                integrateReferenceParticle(bend, massEV, charge, xState, integrationTime, steps);
 
         ReferenceState yState{};
         yState.r = Vector_t<double, 3>(0.0, yOffset, referenceLength);
@@ -1918,17 +1987,13 @@ namespace {
                 integrateReferenceParticle(bend, massEV, charge, yState, integrationTime, steps);
 
         const double signedCurvature = bendAngle / effectiveLength;
-        const double expectedHorizontal = -signedCurvature * std::tan(exitAngle);
         const double expectedVertical =
                 expectedVerticalEdgeStrength(
                         signedCurvature, exitAngle, fringeHalfGap, fringeIntegral)
                 * defaultOpalNominalEdgeScale();
-        const double deltaXP            = (xFocused.p(0) - base.p(0)) / betaGamma;
         const double deltaYP            = (yFocused.p(1) - base.p(1)) / betaGamma;
 
-        EXPECT_NEAR(deltaXP / xOffset, expectedHorizontal, 5.0e-4);
         EXPECT_NEAR(deltaYP / yOffset, expectedVertical, 5.0e-4);
-        EXPECT_LT(std::abs(expectedVertical), std::abs(expectedHorizontal));
     }
 
 }  // namespace

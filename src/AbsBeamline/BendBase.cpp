@@ -92,6 +92,48 @@ namespace {
         return Vector_t<double, 3>(radialDistance, entryCartesian(1), s);
     }
 
+    /**
+     * @brief Convert an RBEND entry-frame point into the OPAL rectangular field chart.
+     *
+     * Old OPAL's `Bend2D` treats a rectangular bend as a circular central
+     * region with entrance and exit fringe regions measured perpendicular to
+     * the physical pole faces.  The circular reference orbit exits upstream of
+     * the rectangular exit face for nonzero bend angle, so using the circular
+     * exit tangent inside the exit fringe makes the field decay too early and
+     * introduces a branch discontinuity at the rectangular exit plane.  This
+     * helper switches to the rectangular exit-face coordinate throughout the
+     * exit fringe support.
+     */
+    KOKKOS_INLINE_FUNCTION Vector_t<double, 3> convertRBendEntryCartesianToFieldLocalDevice(
+            const Vector_t<double, 3>& entryCartesian, const double referenceLength,
+            const double curvature, const double chordLength, const double bendAngle,
+            const double exitFringe) {
+        if (Kokkos::abs(curvature) <= 1.0e-15) {
+            return entryCartesian;
+        }
+        if (entryCartesian(2) <= 0.0) {
+            return entryCartesian;
+        }
+
+        const double halfAngle   = 0.5 * bendAngle;
+        const double exitOriginX = -chordLength * Kokkos::tan(halfAngle);
+        const double exitOriginZ = chordLength;
+        const double dx          = entryCartesian(0) - exitOriginX;
+        const double dz          = entryCartesian(2) - exitOriginZ;
+        const double cosAngle    = Kokkos::cos(bendAngle);
+        const double sinAngle    = Kokkos::sin(bendAngle);
+        const double exitLocalX  = cosAngle * dx + sinAngle * dz;
+        const double exitLocalZ  = -sinAngle * dx + cosAngle * dz;
+        const double exitThreshold = (exitFringe > 0.0) ? -exitFringe : 0.0;
+        if (exitLocalZ >= exitThreshold) {
+            return Vector_t<double, 3>(
+                    exitLocalX, entryCartesian(1), referenceLength + exitLocalZ);
+        }
+
+        return convertEntryCartesianToFieldLocalDevice(
+                entryCartesian, referenceLength, curvature);
+    }
+
     KOKKOS_INLINE_FUNCTION double clampUnitInterval(const double value) {
         if (value < 0.0) {
             return 0.0;
@@ -380,16 +422,6 @@ bool BendBase::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     const double entryFringe      = -fieldBegin;
     const double exitFringe       = fieldEnd - elemLength;
     const double profileGap       = resolveFringeProfileGap(gap_m, fringeHalfGap_m);
-    const double signedCurvature  = getSignedCurvature();
-    const double dipoleFieldTesla = getField().getNormalComponent(0);
-    const double bendRigidityScale =
-            (std::abs(signedCurvature) > 1.0e-15) ? dipoleFieldTesla / signedCurvature : 0.0;
-    const double entryEdgeHorizontalGradient =
-            (entryFringe > 0.0) ? bendRigidityScale * getEntryEdgeHorizontalStrength() / entryFringe
-                                : 0.0;
-    const double exitEdgeHorizontalGradient =
-            (exitFringe > 0.0) ? bendRigidityScale * getExitEdgeHorizontalStrength() / exitFringe
-                               : 0.0;
     const double entryEdgeVerticalCoefficient = getEntryEdgeVerticalFieldCoefficient();
     const double exitEdgeVerticalCoefficient  = getExitEdgeVerticalFieldCoefficient();
 
@@ -423,13 +455,7 @@ bool BendBase::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
                     Bf(1) += scale * skew(1) * y;
                 }
 
-                double horizontalGradient = 0.0;
-                double verticalGradient   = 0.0;
-                if (z <= 0.0 && entryFringe > 0.0) {
-                    horizontalGradient = entryEdgeHorizontalGradient;
-                } else if (z >= elemLength && exitFringe > 0.0) {
-                    horizontalGradient = exitEdgeHorizontalGradient;
-                }
+                double verticalGradient = 0.0;
                 if (z <= entryFringe && entryFringe > 0.0) {
                     // Weight the vertical edge force with the same Enge derivative as OPAL's
                     // fringe map; this preserves the integrated kick and its longitudinal centroid.
@@ -437,9 +463,8 @@ bool BendBase::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
                 } else if (z >= elemLength - exitFringe && exitFringe > 0.0) {
                     verticalGradient = -exitEdgeVerticalCoefficient * fringe.derivative;
                 }
-                if (horizontalGradient != 0.0 || verticalGradient != 0.0) {
+                if (verticalGradient != 0.0) {
                     Bf(0) += verticalGradient * y;
-                    Bf(1) += horizontalGradient * x;
                 }
 
                 for (unsigned d = 0; d < 3; ++d) {
@@ -528,48 +553,41 @@ Vector_t<double, 3> BendBase::convertBodyCartesianToFieldLocal(
     const double curvature  = getReferencePathCurvature();
 
     if (getType() == ElementType::RBEND) {
-        const double entryZ                      = getEdgeToBegin().getOrigin()(2);
-        const double exitZ                       = getEdgeToEnd().getOrigin()(2);
-        const CoordinateSystemTrafo entryLocal   = toCoordinateSystemTrafo(getEntranceFrame());
+        const CoordinateSystemTrafo entryLocal   = getEdgeToBegin();
         const Vector_t<double, 3> entryCartesian = entryLocal.transformTo(bodyCartesian);
-        if (std::abs(curvature) <= 1.0e-15 || bodyCartesian(2) < 0.0) {
+        if (std::abs(curvature) <= 1.0e-15 || entryCartesian(2) <= 0.0) {
             return entryCartesian;
         }
 
-        const CoordinateSystemTrafo exitLocal   = toCoordinateSystemTrafo(getExitFrame());
+        const CoordinateSystemTrafo exitLocal   = getEdgeToEnd();
         const Vector_t<double, 3> exitCartesian = exitLocal.transformTo(bodyCartesian);
-        if (bodyCartesian(2) > exitZ + 1.0e-12) {
+        const double exitFringe                  = getExitFringeSupportLength();
+        const double exitThreshold               = (exitFringe > 0.0) ? -exitFringe : 0.0;
+        if (exitCartesian(2) >= exitThreshold) {
             return Vector_t<double, 3>(
                     exitCartesian(0), exitCartesian(1), bodyLength + exitCartesian(2));
         }
 
         /**
          * For an RBEND the hardware body remains straight while the design
-         * reference path is curved. The placed body chart is therefore matched
-         * to the actual rectangular-bend body origin, entry port, and exit port
-         * coordinates \f$(0, z_\mathrm{entry}, z_\mathrm{exit})\f$. The
-         * longitudinal field coordinate is interpolated through the three
-         * physically distinguished points
+         * reference path is curved.  The entrance fringe and central region use
+         * the entry-based circular chart, while the exit fringe uses the
+         * rectangular exit-face chart.  The physical pole face sits downstream
+         * of the circular reference-orbit exit, so using the exit-face chart for
+         * the whole exit-fringe support avoids an artificial branch switch at
+         * the rectangular exit plane:
          * \f[
-         *   (0, L_\mathrm{ref}/2), \qquad (z_\mathrm{entry}, 0), \qquad
-         *   (z_\mathrm{exit}, L_\mathrm{ref}),
+         *   \mathbf r_\mathrm{entry}
+         *     = T_{b\rightarrow e}\,\mathbf r_\mathrm{body}, \qquad
+         *   \mathbf r_\mathrm{exit}
+         *     = T_{b\rightarrow x}\,\mathbf r_\mathrm{body}, \qquad
+         *   s = L_\mathrm{ref} + z_\mathrm{exit}
          * \f]
-         * which yields a quadratic map in the body longitudinal coordinate.
-         * This keeps the entry and exit ports exact while preserving the
-         * midpoint-body convention used by placement/export.
+         * for \f$z_\mathrm{exit}\ge -\ell_\mathrm{fringe,exit}\f$.  This keeps
+         * upstream and downstream drift extensions outside the finite field
+         * support instead of projecting them through the straight body midpoint.
          */
-        const double z = bodyCartesian(2);
-        double s       = 0.5 * bodyLength * (z - entryZ) * (z - exitZ) / (entryZ * exitZ)
-                   + bodyLength * z * (z - entryZ) / (exitZ * (exitZ - entryZ));
-        if (std::abs(z - entryZ) <= 1.0e-12) {
-            s = 0.0;
-        } else if (std::abs(z - exitZ) <= 1.0e-12) {
-            s = bodyLength;
-        }
-        const CoordinateSystemTrafo entryToSliceLocal = toCoordinateSystemTrafo(
-                makeReferencePathTransformFromEntry(s, bodyLength, curvature));
-        const Vector_t<double, 3> sliceLocal = entryToSliceLocal.transformTo(entryCartesian);
-        return Vector_t<double, 3>(sliceLocal(0), sliceLocal(1), s);
+        return convertEntryCartesianToFieldLocal(entryCartesian);
     }
 
     const CoordinateSystemTrafo entryLocal   = toCoordinateSystemTrafo(getEntranceFrame());
@@ -592,14 +610,22 @@ Vector_t<double, 3> BendBase::rotateBodyCartesianVectorToFieldLocal(
         const Vector_t<double, 3>& bodyVector, const double s) const {
     const double bodyLength                = getReferencePathLength();
     const double curvature                 = getReferencePathCurvature();
-    const CoordinateSystemTrafo entryLocal = toCoordinateSystemTrafo(getEntranceFrame());
+    const CoordinateSystemTrafo entryLocal =
+            (getType() == ElementType::RBEND) ? getEdgeToBegin()
+                                              : toCoordinateSystemTrafo(getEntranceFrame());
     const Vector_t<double, 3> entryVector  = entryLocal.rotateTo(bodyVector);
     if (std::abs(curvature) <= 1.0e-15 || s <= 0.0) {
         return entryVector;
     }
 
-    const CoordinateSystemTrafo exitLocal = toCoordinateSystemTrafo(getExitFrame());
-    if (s >= bodyLength) {
+    const CoordinateSystemTrafo exitLocal =
+            (getType() == ElementType::RBEND) ? getEdgeToEnd()
+                                              : toCoordinateSystemTrafo(getExitFrame());
+    const double exitThreshold =
+            (getType() == ElementType::RBEND && getExitFringeSupportLength() > 0.0)
+                    ? bodyLength - getExitFringeSupportLength()
+                    : bodyLength;
+    if (s >= exitThreshold) {
         return exitLocal.rotateTo(bodyVector);
     }
 
@@ -685,16 +711,9 @@ bool BendBase::applySlice(
     const double exitFringe         = getExitFringeSupportLength();
     const double profileGap         = resolveFringeProfileGap(gap_m, fringeHalfGap_m);
     const double referenceCurvature = getReferencePathCurvature();
-    const double signedCurvature    = getSignedCurvature();
-    const double dipoleFieldTesla   = getField().getNormalComponent(0);
-    const double bendRigidityScale =
-            (std::abs(signedCurvature) > 1.0e-15) ? dipoleFieldTesla / signedCurvature : 0.0;
-    const double entryEdgeHorizontalGradient =
-            (entryFringe > 0.0) ? bendRigidityScale * getEntryEdgeHorizontalStrength() / entryFringe
-                                : 0.0;
-    const double exitEdgeHorizontalGradient =
-            (exitFringe > 0.0) ? bendRigidityScale * getExitEdgeHorizontalStrength() / exitFringe
-                               : 0.0;
+    const double chordLength        = getElementLength();
+    const double bendAngle          = getBendAngle();
+    const bool isRectangularBend    = getType() == ElementType::RBEND;
     const double entryEdgeVerticalCoefficient = getEntryEdgeVerticalFieldCoefficient();
     const double exitEdgeVerticalCoefficient  = getExitEdgeVerticalFieldCoefficient();
     const matrix3x3_t entryToSliceRotation = slice.entryToSliceRotation;
@@ -705,8 +724,12 @@ bool BendBase::applySlice(
                 const Vector_t<double, 3> entryCartesian =
                         prod_vector_transpose(entryToSliceRotation, Rview(i)) + entryOrigin;
                 const Vector_t<double, 3> entryChartPosition =
-                        convertEntryCartesianToFieldLocalDevice(
-                                entryCartesian, bodyLength, referenceCurvature);
+                        isRectangularBend
+                                ? convertRBendEntryCartesianToFieldLocalDevice(
+                                          entryCartesian, bodyLength, referenceCurvature,
+                                          chordLength, bendAngle, exitFringe)
+                                : convertEntryCartesianToFieldLocalDevice(
+                                          entryCartesian, bodyLength, referenceCurvature);
 
                 const double zEntry = entryChartPosition(2);
                 if (zEntry < slice.sBegin || zEntry > slice.sEnd) {
@@ -739,13 +762,7 @@ bool BendBase::applySlice(
                     Bf(1) += scale * skew(1) * y;
                 }
 
-                double horizontalGradient = 0.0;
-                double verticalGradient   = 0.0;
-                if (zEntry <= 0.0 && entryFringe > 0.0) {
-                    horizontalGradient = entryEdgeHorizontalGradient;
-                } else if (zEntry >= bodyLength && exitFringe > 0.0) {
-                    horizontalGradient = exitEdgeHorizontalGradient;
-                }
+                double verticalGradient = 0.0;
                 if (zEntry <= entryFringe && entryFringe > 0.0) {
                     // Weight the vertical edge force with the same Enge derivative as OPAL's
                     // fringe map; this preserves the integrated kick and its longitudinal centroid.
@@ -753,13 +770,19 @@ bool BendBase::applySlice(
                 } else if (zEntry >= bodyLength - exitFringe && exitFringe > 0.0) {
                     verticalGradient = -exitEdgeVerticalCoefficient * fringe.derivative;
                 }
-                if (horizontalGradient != 0.0 || verticalGradient != 0.0) {
+                if (verticalGradient != 0.0) {
                     Bf(0) += verticalGradient * y;
-                    Bf(1) += horizontalGradient * x;
                 }
 
                 Vector_t<double, 3> Bentry = Bf;
-                if (Kokkos::abs(referenceCurvature) > 1.0e-15 && zEntry > 0.0) {
+                if (isRectangularBend && zEntry >= bodyLength - exitFringe
+                    && exitFringe > 0.0) {
+                    const double cosAngle = Kokkos::cos(bendAngle);
+                    const double sinAngle = Kokkos::sin(bendAngle);
+                    Bentry(0)             = cosAngle * Bf(0) - sinAngle * Bf(2);
+                    Bentry(1)             = Bf(1);
+                    Bentry(2)             = sinAngle * Bf(0) + cosAngle * Bf(2);
+                } else if (Kokkos::abs(referenceCurvature) > 1.0e-15 && zEntry > 0.0) {
                     const double rotationS =
                             (zEntry >= bodyLength) ? bodyLength : zEntry;
                     const double phi  = referenceCurvature * rotationS;
@@ -803,23 +826,12 @@ bool BendBase::apply(
         B(1) += -0.5 * dipole * fringe.secondDerivative * R(1) * R(1);
         B(2) += dipole * fringe.derivative * R(1);
     }
-    const double entryFringe   = getEntryFringeSupportLength();
-    const double exitFringe    = getExitFringeSupportLength();
-    const double rigidityScale = (std::abs(getSignedCurvature()) > 1.0e-15)
-                                         ? getField().getNormalComponent(0) / getSignedCurvature()
-                                         : 0.0;
-    if (R(2) <= 0.0 && entryFringe > 0.0) {
-        const double horizontalGradient =
-                rigidityScale * (getEntryEdgeHorizontalStrength() / entryFringe);
-        B(1) += horizontalGradient * R(0);
-    } else if (R(2) >= getElementLength() && exitFringe > 0.0) {
-        const double horizontalGradient =
-                rigidityScale * (getExitEdgeHorizontalStrength() / exitFringe);
-        B(1) += horizontalGradient * R(0);
-    }
+    const double entryFringe     = getEntryFringeSupportLength();
+    const double exitFringe      = getExitFringeSupportLength();
+    const double referenceLength = getReferencePathLength();
     if (R(2) <= entryFringe && entryFringe > 0.0) {
         B(0) += getEntryEdgeVerticalFieldCoefficient() * fringe.derivative * R(1);
-    } else if (R(2) >= getElementLength() - exitFringe && exitFringe > 0.0) {
+    } else if (R(2) >= referenceLength - exitFringe && exitFringe > 0.0) {
         B(0) += -getExitEdgeVerticalFieldCoefficient() * fringe.derivative * R(1);
     }
     (void)E;
@@ -846,23 +858,12 @@ bool BendBase::apply(
         B(1) += -0.5 * dipole * fringe.secondDerivative * R(1) * R(1);
         B(2) += dipole * fringe.derivative * R(1);
     }
-    const double entryFringe   = getEntryFringeSupportLength();
-    const double exitFringe    = getExitFringeSupportLength();
-    const double rigidityScale = (std::abs(getSignedCurvature()) > 1.0e-15)
-                                         ? getField().getNormalComponent(0) / getSignedCurvature()
-                                         : 0.0;
-    if (R(2) <= 0.0 && entryFringe > 0.0) {
-        const double horizontalGradient =
-                rigidityScale * (getEntryEdgeHorizontalStrength() / entryFringe);
-        B(1) += horizontalGradient * R(0);
-    } else if (R(2) >= getElementLength() && exitFringe > 0.0) {
-        const double horizontalGradient =
-                rigidityScale * (getExitEdgeHorizontalStrength() / exitFringe);
-        B(1) += horizontalGradient * R(0);
-    }
+    const double entryFringe     = getEntryFringeSupportLength();
+    const double exitFringe      = getExitFringeSupportLength();
+    const double referenceLength = getReferencePathLength();
     if (R(2) <= entryFringe && entryFringe > 0.0) {
         B(0) += getEntryEdgeVerticalFieldCoefficient() * fringe.derivative * R(1);
-    } else if (R(2) >= getElementLength() - exitFringe && exitFringe > 0.0) {
+    } else if (R(2) >= referenceLength - exitFringe && exitFringe > 0.0) {
         B(0) += -getExitEdgeVerticalFieldCoefficient() * fringe.derivative * R(1);
     }
     (void)E;
@@ -889,23 +890,12 @@ bool BendBase::applyToReferenceParticle(
         B(1) += -0.5 * dipole * fringe.secondDerivative * R(1) * R(1);
         B(2) += dipole * fringe.derivative * R(1);
     }
-    const double entryFringe   = getEntryFringeSupportLength();
-    const double exitFringe    = getExitFringeSupportLength();
-    const double rigidityScale = (std::abs(getSignedCurvature()) > 1.0e-15)
-                                         ? getField().getNormalComponent(0) / getSignedCurvature()
-                                         : 0.0;
-    if (R(2) <= 0.0 && entryFringe > 0.0) {
-        const double horizontalGradient =
-                rigidityScale * (getEntryEdgeHorizontalStrength() / entryFringe);
-        B(1) += horizontalGradient * R(0);
-    } else if (R(2) >= getElementLength() && exitFringe > 0.0) {
-        const double horizontalGradient =
-                rigidityScale * (getExitEdgeHorizontalStrength() / exitFringe);
-        B(1) += horizontalGradient * R(0);
-    }
+    const double entryFringe     = getEntryFringeSupportLength();
+    const double exitFringe      = getExitFringeSupportLength();
+    const double referenceLength = getReferencePathLength();
     if (R(2) <= entryFringe && entryFringe > 0.0) {
         B(0) += getEntryEdgeVerticalFieldCoefficient() * fringe.derivative * R(1);
-    } else if (R(2) >= getElementLength() - exitFringe && exitFringe > 0.0) {
+    } else if (R(2) >= referenceLength - exitFringe && exitFringe > 0.0) {
         B(0) += -getExitEdgeVerticalFieldCoefficient() * fringe.derivative * R(1);
     }
     (void)E;

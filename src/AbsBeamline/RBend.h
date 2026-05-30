@@ -33,12 +33,20 @@ public:
 
 protected:
     /**
-     * @brief Return the rectangular-bend design-path body length.
+     * @brief Return the OPAL-compatible rectangular-bend reference path length.
      *
-     * For an `RBEND` the placed hardware body is straight, but the analytic
-     * dipole field is normalized on the curved design reference path tangent to
-     * the rotated entrance and exit faces. The corresponding path length is the
-     * arc-equivalent length reported by `RBendGeometry`.
+     * For an `RBEND` the input length \f$L\f$ is the straight distance between
+     * the rectangular pole faces.  OPAL's `Bend2D` computes the design radius
+     * from the pole-face angles,
+     * \f[
+     *   R = \frac{L}{\sin E_1 + \sin E_2}, \qquad E_2 = \theta - E_1,
+     * \f]
+     * and normalizes the analytic field with
+     * \f[
+     *   L_\mathrm{ref} = |\theta|\,|R|.
+     * \f]
+     * The symmetric case \f$E_1=E_2=\theta/2\f$ reduces to the usual
+     * chord-to-arc expression \f$L_\mathrm{ref}=L\,\theta/(2\sin(\theta/2))\f$.
      */
     double getReferencePathLength() const override;
 };

@@ -85,24 +85,22 @@
  * for rectangular bends it is the reference-path length between the rotated
  * entrance and exit faces rather than the straight body chord.
  *
- * The first optics-level fringe model starts from the standard hard-edge
- * edge-focusing relations
- * \f[
- * x'_\mathrm{out} = x'_\mathrm{in} + h \tan(E)\,x, \qquad
- * y'_\mathrm{out} = y'_\mathrm{in} - h \tan(E)\,y,
- * \f]
- * with signed curvature \f$h = \theta / L_\mathrm{eff}\f$. The fringe
- * integral modifies the vertical edge focusing through the standard effective
- * edge-angle correction
+ * The distributed fringe model follows OPAL's `Bend2D` field shape: no
+ * additional hard-edge \f$B_y \propto x\f$ term is superposed on the Enge
+ * field. The optics-level correction retained here is the vertical edge
+ * focusing term. With signed curvature \f$h=\theta/L_\mathrm{eff}\f$, the
+ * fringe integral modifies the vertical edge focusing through the standard
+ * effective edge-angle correction
  * \f[
  * \psi = h\,h_\mathrm{gap}\,F_\mathrm{int}\,
  *        \frac{1 + \sin^2(E)}{\cos(E)},
  * \qquad
  * y'_\mathrm{out} = y'_\mathrm{in} - h \tan(E - \psi)\,y.
  * \f]
- * The `FINT` parameter remains part of the first-order pole-face focusing
+ * The `FINT` parameter remains part of this first-order pole-face focusing
  * correction. It does not set the Enge field-profile width in OPAL's
- * `FM1DProfile1` model.
+ * `FM1DProfile1` model, and it does not introduce a separate horizontal field
+ * gradient in the OPAL-compatible map.
  *
  * The analytic multipole strengths are stored internally in the normalized
  * lattice convention \f$k_n\f$ and converted to physical Tesla coefficients
@@ -375,21 +373,34 @@ public:
     /**
      * @brief Convert a midpoint-body Cartesian point into the bend field chart.
      *
-     * Explicitly placed sector bends are rendered and positioned through the
-     * rigid body frame located at the reference-path midpoint. For those
-     * placement queries the point first has to be transported from the midpoint
-     * body frame back into the rigid entry frame before the curvilinear field
-     * chart \f$(x, y, s)\f$ can be recovered. If \f$T_{e\rightarrow m}\f$
-     * denotes the reference-path transform from the entry frame to the midpoint
-     * frame, the conversion is
+     * Explicitly placed bends are rendered and positioned through a rigid body
+     * frame, while the analytic field is evaluated in the entry-based curved
+     * reference chart. Sector bends use the reference-path midpoint transform.
+     * Rectangular bends use their actual pole-face transforms because the
+     * straight hardware body is not the same chart as the circular reference
+     * orbit. The entrance fringe is measured in the entrance-face chart and the
+     * exit fringe is measured in the exit-face chart, matching OPAL `Bend2D`:
      * \f[
      * \mathbf{r}_\mathrm{entry}
-     *   = T_{e\rightarrow m}^{-1}\,\mathbf{r}_\mathrm{body},
+     *   = T_{b\rightarrow e}\,\mathbf{r}_\mathrm{body},
+     * \qquad
+     * \mathbf{r}_\mathrm{exit}
+     *   = T_{b\rightarrow x}\,\mathbf{r}_\mathrm{body},
      * \qquad
      * \mathbf{r}_\mathrm{field}
-     *   = \mathcal{C}\!\left(\mathbf{r}_\mathrm{entry}\right),
+     *   =
+     *   \begin{cases}
+     *     \mathcal{C}(\mathbf{r}_\mathrm{entry}), &
+     *       z_\mathrm{exit}<-\ell_{\mathrm{fringe},x},\\
+     *     (x_\mathrm{exit}, y_\mathrm{exit},
+     *       L_\mathrm{ref}+z_\mathrm{exit}), &
+     *       z_\mathrm{exit}\ge-\ell_{\mathrm{fringe},x},
+     *   \end{cases}
      * \f]
-     * where \f$\mathcal{C}\f$ is convertEntryCartesianToFieldLocal().
+     * where \f$\mathcal{C}\f$ is convertEntryCartesianToFieldLocal(). This
+     * prevents the RBEND exit fringe from being measured from the upstream
+     * circular-arc exit and removes the field discontinuity at the rectangular
+     * exit plane.
      */
     Vector_t<double, 3> convertBodyCartesianToFieldLocal(
             const Vector_t<double, 3>& bodyCartesian) const;
@@ -517,7 +528,23 @@ protected:
     double getReferencePathCurvature() const;
 
     double getSignedCurvature() const;
+    /**
+     * @brief Return the hard-edge horizontal entry coefficient.
+     *
+     * This diagnostic coefficient is the textbook \f$h\tan(E_1)\f$ value. The
+     * OPAL-compatible distributed Enge field does not add it as a separate
+     * \f$B_y \propto x\f$ term; the runtime field keeps the same one-dimensional
+     * longitudinal field shape as OPAL `Bend2D`.
+     */
     double getEntryEdgeHorizontalStrength() const;
+    /**
+     * @brief Return the hard-edge horizontal exit coefficient.
+     *
+     * This is the exit-face counterpart of
+     * `getEntryEdgeHorizontalStrength()` and is retained for diagnostics and
+     * possible future optics models, not applied as an extra distributed field
+     * gradient in the OPAL-compatible fringe map.
+     */
     double getExitEdgeHorizontalStrength() const;
     /**
      * @brief Return the signed entry-edge vertical kick strength.
