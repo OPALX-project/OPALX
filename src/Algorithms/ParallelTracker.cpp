@@ -366,7 +366,7 @@ void ParallelTracker::execute() {
             // First half of the time integration
             timeIntegration1(pusher);
             m << level4 << "timeIntegration1 done at step " << step << "." << endl;
-            const size_t nSourceMarkedAfterPush = 0; //markBackwardParticlesAtSourcePlane();
+            const size_t nSourceMarkedAfterPush = markBackwardParticlesAtSourcePlane();
             if (nSourceMarkedAfterPush > 0) {
                 deleteInvalidParticles(true, m, "backward source-plane particles after first push");
             }
@@ -402,7 +402,7 @@ void ParallelTracker::execute() {
             emitFromEmissionSources(itsBunch_m->getT(), itsBunch_m->getdT());
             m << level4 << "Emit particles from emission sources done at step " << step << "."
               << endl;
-            const size_t nSourceMarkedAfterEmission = 0; // markBackwardParticlesAtSourcePlane();
+            const size_t nSourceMarkedAfterEmission = markBackwardParticlesAtSourcePlane();
             if (nSourceMarkedAfterEmission > 0) {
                 deleteInvalidParticles(true, m, "backward source-plane particles after emission");
             }
@@ -416,7 +416,7 @@ void ParallelTracker::execute() {
             // Second half of the time integration
             timeIntegration2(pusher);
             m << level4 << "timeIntegration2 done at step " << step << "." << endl;
-            const size_t nSourceMarkedAfterStep = 0; // markBackwardParticlesAtSourcePlane();
+            const size_t nSourceMarkedAfterStep = markBackwardParticlesAtSourcePlane();
             if (nSourceMarkedAfterStep > 0) {
                 deleteInvalidParticles(true, m, "backward source-plane particles");
             }
