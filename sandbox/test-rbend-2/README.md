@@ -21,6 +21,13 @@ For `RBEND`, the exit edge angle is fixed by `ANGLE - E1`.  This test therefore
 keeps `E1 = 0` and uses the `45 deg` exit edge as the main vertical-focusing
 diagnostic.
 
+The old-OPAL-compatible reference path uses the pole-face chord radius:
+
+```text
+R_CH = L / (sin(E1) + sin(E2))
+L_ref = abs(ANGLE) * abs(R_CH)
+```
+
 The OPALX deck derives the explicit rectangular body pose instead of inserting
 raw numbers:
 
@@ -54,4 +61,3 @@ It defaults to `/tmp/opalx-rbend-2-compare`, runs OPALX and old OPAL in
 separate directories, and writes CSV/Markdown summaries plus PNG diagnostics in
 `comparison/`.  The plots include the vertical particle motion from the `.stat`
 `mean_y` column.
-

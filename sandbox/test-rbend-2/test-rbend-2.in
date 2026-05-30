@@ -12,6 +12,11 @@ Title, string = "test-rbend-2 single analytic RBEND vertical edge focusing";
 // analytic RBEND geometry as test-rbend-1.  With E1=0 the rectangular bend's
 // edge focusing is dominated by the exit edge E2=ANGLE, because for RBEND the
 // exit edge angle is fixed by ANGLE - E1.
+//
+// Old OPAL normalizes the rectangular bend field with the pole-face chord
+// radius:
+//   R_CH  = L / (sin(E1) + sin(E2))
+//   L_ref = abs(ANGLE) * abs(R_CH)
 
 REAL DRIFT_LENGTH = 0.4;
 REAL BEND_LENGTH  = 1.0;

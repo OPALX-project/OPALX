@@ -24,7 +24,8 @@ Title, string = "test-rbend-1 single analytic RBEND placement regression";
 // and the single-particle distribution starts exactly at (0, 0, 0).
 //
 // Old-OPAL-compatible rectangular chart with the entrance tangent along +Z:
-//   L_ref   = L * (ANGLE / 2) / sin(ANGLE / 2)
+//   R_CH    = L / (sin(E1) + sin(E2))
+//   L_ref   = abs(ANGLE) * abs(R_CH)
 //   r_exit  = r_entry + (-L tan(ANGLE / 2), 0, L)
 //   t_exit  = (-sin(ANGLE), 0, cos(ANGLE))
 //

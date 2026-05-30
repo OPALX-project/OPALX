@@ -16,11 +16,12 @@ This directory mirrors `sandbox/test-sbend-1` for the OPALX-native analytic
 | `HGAP` | `0.02 m` |
 | `FINT` | `0.5` |
 
-For an `RBEND`, `L` is the straight rectangular body length.  The design
-reference path length is
+For an `RBEND`, `L` is the straight rectangular body length.  OPAL uses the
+pole-face chord radius and design reference path length
 
 ```text
-L_ref = L * (ANGLE / 2) / sin(ANGLE / 2)
+R_CH = L / (sin(E1) + sin(E2))
+L_ref = abs(ANGLE) * abs(R_CH)
 ```
 
 and the hard-edge exit point for an entrance edge at `(0, 0, DRIFT_LENGTH)` is
@@ -59,4 +60,3 @@ The helper defaults to `/tmp/opalx-rbend-compare`, writes CSV/Markdown summaries
 under `comparison/`, and generates PNG diagnostics for the design path,
 momentum, and sampled `B_y`.  The comparison intentionally ignores `.h5` and
 `.lbal` and uses only `*_DesignPath.dat` and `.stat`.
-

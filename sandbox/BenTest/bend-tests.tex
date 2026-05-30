@@ -379,14 +379,14 @@ and \(0.2399838\ \mathrm{m}\) in old OPAL.
 
 The reference geometry and field profile agree at the same level as the
 placement test: \(B_y\) peak differences are zero in the sampled output, the
-design-path \(B_y\) integral differs by \(1.12\times 10^{-3}\), and the
+design-path \(B_y\) integral differs by \(1.21\times 10^{-3}\), and the
 \code{.stat} reference-particle field support ends within \(6.0\times 10^{-4}\)
 m.  The OPALX vertical edge force is now weighted with the same Enge
 derivative as the fringe field, so the equivalent kick is applied at the same
 longitudinal centroid as old OPAL's map.  At the final common sample OPALX has
-\(\bar y=2.168092\times 10^{-3}\ \mathrm{m}\), while old OPAL has
+\(\bar y=2.168074\times 10^{-3}\ \mathrm{m}\), while old OPAL has
 \(\bar y=2.161588\times 10^{-3}\ \mathrm{m}\).  The remaining final difference
-is \(6.50\times 10^{-6}\ \mathrm{m}\), so this case is now a useful
+is \(6.49\times 10^{-6}\ \mathrm{m}\), so this case is now a useful
 vertical-focusing regression diagnostic.
 
 \begin{figure}[htbp]
@@ -439,14 +439,19 @@ straight rectangular body length,
   \theta=45\degree,\qquad
   E_1=0,\qquad E_2=\theta .
 \]
-The reference trajectory is still compared with a circular arc.  For a
-rectangular bend the arc radius and arc length are derived from the straight
-body length,
+The reference trajectory is still compared with a circular arc.  Old OPAL uses
+the pole-face chord radius for a rectangular bend,
 \[
-  R = \frac{L_\mathrm{rect}}{2\sin(\theta/2)},\qquad
-  L_\mathrm{ref} = R\theta
-    = L_\mathrm{rect}\frac{\theta/2}{\sin(\theta/2)}
-    = 1.0261721530\ \mathrm{m}.
+  R_\mathrm{CH} =
+    \frac{L_\mathrm{rect}}{\sin E_1+\sin E_2},
+  \qquad
+  L_\mathrm{ref}=|\theta|\,|R_\mathrm{CH}|.
+\]
+For \(E_1=0\) and \(E_2=\theta=45\degree\),
+\[
+  R_\mathrm{CH}=1.4142135624\ \mathrm{m},\qquad
+  L_\mathrm{ref}=1.1107207345\ \mathrm{m},\qquad
+  h=0.7071067812\ \mathrm{m}^{-1}.
 \]
 The OPALX body pose is the rectangular body frame.  With the requested entrance
 edge at
@@ -531,14 +536,15 @@ field support & \(Z=0.1\) to \(1.609014865\ \mathrm{m}\) \\
 \end{center}
 
 The placement export is therefore consistent with the analytic rectangular
-survey.  The physics comparison is not yet at the SBEND level.  In the
-\code{DesignPath.dat} comparison the largest orbit differences are
-\(6.09\times10^{-2}\ \mathrm{m}\) in \(X\) and
-\(4.97\times10^{-2}\ \mathrm{m}\) in relative \(Z\).  The sampled
-\(B_y\) peak is \(4.749971\) in OPALX and \(2.359859\) in OPAL, and the visible
-field support starts at \(s_\mathrm{rel}=0\) in OPALX but near
-\(0.201\ \mathrm{m}\) in OPAL.  This points to the RBEND field/local-coordinate
-evaluation, not the exported element placement, as the remaining issue.
+survey.  With the RBEND field evaluated in the OPAL-compatible rectangular edge
+frames and normalized with \(R_\mathrm{CH}\), the physics comparison is now at
+the same level as the SBEND checks.  In the \code{DesignPath.dat} comparison
+the largest orbit differences are \(2.22\times10^{-5}\ \mathrm{m}\) in \(X\)
+and \(2.28\times10^{-5}\ \mathrm{m}\) in relative \(Z\).  The sampled \(B_y\)
+peaks are \(2.3598578\) in OPALX and \(2.3598593\) in OPAL, and the
+design-path \(B_y\) integral differs by \(4.35\times10^{-4}\).  The
+\code{.stat} reference-particle field support ends within
+\(3.0\times10^{-4}\ \mathrm{m}\).
 
 \begin{figure}[htbp]
 \centering
@@ -565,8 +571,8 @@ evaluation, not the exported element placement, as the remaining issue.
 \includegraphics[width=\linewidth]{figures/test-rbend-1-design-path-momentum.png}
 \end{minipage}
 \caption{\code{test-rbend-1} design-path diagnostic comparison.  The RBEND
-\(B_y\) peak is too large in OPALX and the momentum components diverge from
-old OPAL across the bend.}
+\(B_y\) peak and longitudinal support now match old OPAL at the sampled
+precision needed for the placement regression.}
 \end{figure}
 
 \section{\code{test-rbend-2}: OPALX/OPAL vertical comparison}
@@ -591,25 +597,24 @@ The comparison markers are
 \begin{array}{@{}lll@{}}
 \text{upstream Enge support start} & s_\mathrm{rel}=0.2000000 & z_\mathrm{rel}=0.2000000,\\
 \text{nominal entrance edge}       & s_\mathrm{rel}=0.4000000 & z_\mathrm{rel}=0.4000000,\\
-\text{nominal exit edge}           & s_\mathrm{rel}=1.4261722 & z_\mathrm{rel}=1.4000000,\\
-\text{downstream support end}      & s_\mathrm{rel}=1.7090149 & z_\mathrm{rel}=1.6000000 .
+\text{nominal exit edge}           & s_\mathrm{rel}=1.5107207 & z_\mathrm{rel}=1.4000000,\\
+\text{downstream support end}      & s_\mathrm{rel}=1.7935634 & z_\mathrm{rel}=1.6000000 .
 \end{array}
 \]
 
-The current RBEND vertical test does not yet provide a clean edge-focusing
-regression, because the field discrepancy dominates the vertical dynamics.
-The \code{DesignPath.dat} \(B_y\) peak is \(4.216923\) in OPALX and
-\(2.359859\) in OPAL; the \code{.stat} reference-particle peak is
-\(4.402652\) in OPALX and \(2.359859\) in OPAL.  At the final common
-\code{.stat} sample the mean vertical positions are
+The RBEND vertical test now provides a clean edge-focusing regression.  The
+\code{DesignPath.dat} \(B_y\) peaks are \(2.3598578\) in OPALX and
+\(2.3598593\) in OPAL; the design-path \(B_y\) integral differs by
+\(4.35\times10^{-4}\), and the visible field support starts and ends within
+\(1.5\times10^{-4}\ \mathrm{m}\).  At the final common \code{.stat} sample the
+mean vertical positions are
 \[
-  \bar y_\mathrm{OPALX}=8.094384\times10^{-4}\ \mathrm{m},\qquad
+  \bar y_\mathrm{OPALX}=8.817085\times10^{-4}\ \mathrm{m},\qquad
   \bar y_\mathrm{OPAL}=8.804121\times10^{-4}\ \mathrm{m},
 \]
-for a final difference of \(-7.10\times10^{-5}\ \mathrm{m}\).  This case is
-therefore useful as a diagnostic for the remaining RBEND field-coordinate
-problem, but it should not be promoted to a strict regression until the
-reference field agrees with old OPAL.
+for a final difference of \(1.30\times10^{-6}\ \mathrm{m}\).  This makes the
+case suitable as the RBEND counterpart of the \code{test-sbend-2} vertical
+edge-focusing regression.
 
 \begin{figure}[htbp]
 \centering
@@ -636,16 +641,16 @@ reference field agrees with old OPAL.
 \includegraphics[width=\linewidth]{figures/test-rbend-2-design-path-momentum.png}
 \end{minipage}
 \caption{\code{test-rbend-2} design-path diagnostic comparison.  The marker
-positions use the rectangular RBEND arc length for \(s_\mathrm{rel}\) and the
-straight body length for \(z_\mathrm{rel}\).}
+positions use the OPAL pole-face RBEND reference path for \(s_\mathrm{rel}\)
+and the straight rectangular body length for \(z_\mathrm{rel}\).}
 \end{figure}
 
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.78\linewidth]{figures/test-rbend-2-vertical-particle-motion.png}
 \caption{\code{test-rbend-2} vertical particle motion from the \code{.stat}
-\(\bar y\) column.  The visible vertical difference is measured while the
-RBEND field magnitude and support still disagree with old OPAL.}
+\(\bar y\) column.  The final OPALX--OPAL difference is
+\(1.30\times10^{-6}\ \mathrm{m}\).}
 \end{figure}
 
 \section{Next candidate: symmetric C-shape four-bend chicane}

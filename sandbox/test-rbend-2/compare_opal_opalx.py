@@ -48,7 +48,8 @@ BEND_ENGE_HALF_WIDTH = 5.0 * BEND_GAP
 
 
 def bend_geometry_markers(*, coordinate: str) -> dict[str, float]:
-    reference_length = BEND_LENGTH * (BEND_ANGLE / 2.0) / np.sin(BEND_ANGLE / 2.0)
+    pole_face_sum = np.sin(BEND_E1) + np.sin(BEND_E2)
+    reference_length = abs(BEND_ANGLE) * BEND_LENGTH / abs(pole_face_sum)
     entry_support = BEND_ENGE_HALF_WIDTH / abs(np.cos(BEND_E1))
     exit_support = BEND_ENGE_HALF_WIDTH / abs(np.cos(BEND_E2))
     nominal_entry = BEND_DRIFT_LENGTH
