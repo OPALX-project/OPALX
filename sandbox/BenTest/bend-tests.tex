@@ -8,7 +8,7 @@
 \usepackage{url}
 \usetikzlibrary{arrows.meta,calc,positioning}
 
-\title{Single-SBEND Analytic Placement Tests}
+\title{Single-Bend Analytic Placement Tests}
 \author{OPALX element placing sandbox}
 \date{\today}
 
@@ -33,15 +33,20 @@
 
 \section{Purpose}
 
-The two sandbox inputs
-\[
-  \code{sandbox/test-sbend-1/test-sbend-1.in},\qquad
-  \code{sandbox/test-sbend-2/test-sbend-2.in}
-\]
-exercise the OPALX-native analytic \code{SBEND} without field maps, using the
-native analytic bend model and explicit poses.  The first test is a placement
-consistency test.  The second test adds a vertical offset and checks that the
-implemented pole-face fringe model produces the expected focusing.
+The sandbox inputs
+\begin{center}
+\begin{tabular}{@{}ll@{}}
+\code{SBEND} placement & \code{sandbox/test-sbend-1/test-sbend-1.in} \\
+\code{SBEND} vertical focusing & \code{sandbox/test-sbend-2/test-sbend-2.in} \\
+\code{RBEND} placement & \code{sandbox/test-rbend-1/test-rbend-1.in} \\
+\code{RBEND} vertical focusing & \code{sandbox/test-rbend-2/test-rbend-2.in}
+\end{tabular}
+\end{center}
+exercise the OPALX-native analytic \code{SBEND} and \code{RBEND} without field
+maps, using the native analytic bend model and explicit poses.  The first test
+of each bend type is a placement consistency test.  The second test adds a
+vertical offset and checks the pole-face/fringe-field focusing against old
+OPAL 2022.1.
 
 Both tests use explicit element posing:
 \[
@@ -422,6 +427,225 @@ The same geometry markers show that the visible fringe precedes the nominal
 \caption{\code{test-sbend-2} vertical particle motion from the \code{.stat}
 \(\bar y\) column.  Both distributions are monoenergetic replicated particles,
 so \(\bar y\) is the tracked particle's vertical coordinate.}
+\end{figure}
+
+\section{Common analytic RBEND geometry}
+
+The \code{RBEND} tests use the same bend angle and field model as the
+\code{SBEND} tests, but the geometry is rectangular.  The input length is the
+straight rectangular body length,
+\[
+  L_\mathrm{rect}=1.0\ \mathrm{m},\qquad
+  \theta=45\degree,\qquad
+  E_1=0,\qquad E_2=\theta .
+\]
+The reference trajectory is still compared with a circular arc.  For a
+rectangular bend the arc radius and arc length are derived from the straight
+body length,
+\[
+  R = \frac{L_\mathrm{rect}}{2\sin(\theta/2)},\qquad
+  L_\mathrm{ref} = R\theta
+    = L_\mathrm{rect}\frac{\theta/2}{\sin(\theta/2)}
+    = 1.0261721530\ \mathrm{m}.
+\]
+The OPALX body pose is the rectangular body frame.  With the requested entrance
+edge at
+\[
+  \vect r_0=(X_0,0,Z_0),\qquad X_0=0,\qquad Z_0=d,
+\]
+the body frame is rotated by
+\[
+  \Theta_\mathrm{body}=-\frac{\theta}{2}.
+\]
+The local coordinate of the entrance edge relative to the rectangular body
+origin is
+\[
+  \vect q_\mathrm{entry}
+    =
+    \begin{pmatrix}
+      -\frac{L_\mathrm{rect}}{2}\tan(\theta/4)\\
+      0\\
+      \frac{L_\mathrm{rect}}{2}
+    \end{pmatrix}.
+\]
+Using the same \(X\)-\(Z\) rotation convention as the OPALX input files,
+\[
+  \mathcal R_Y(\Theta)
+    \begin{pmatrix}x\\0\\z\end{pmatrix}
+  =
+    \begin{pmatrix}
+      \cos\Theta\,x+\sin\Theta\,z\\
+      0\\
+      -\sin\Theta\,x+\cos\Theta\,z
+    \end{pmatrix},
+\]
+the explicit body pose and exit monitor are
+\[
+\begin{aligned}
+  \vect r_\mathrm{body}
+    &= \vect r_0 - \mathcal R_Y(\Theta_\mathrm{body})\vect q_\mathrm{entry},
+  &
+  \Theta_\mathrm{body} &= -\frac{\theta}{2},\\[1.0ex]
+  \vect r_\mathrm{exit}
+    &= \vect r_0 +
+       \begin{pmatrix}
+         -L_\mathrm{rect}\tan(\theta/2)\\
+         0\\
+         L_\mathrm{rect}
+       \end{pmatrix},
+  &
+  \Theta_\mathrm{exit} &= -\theta .
+\end{aligned}
+\]
+For the present \(45\degree\) geometry,
+\[
+  \mathcal R_Y(-22.5\degree)\vect q_\mathrm{entry}
+    = (-0.2832272487,\,0,\,0.4238795325)\ \mathrm{m},
+\]
+so the body pose is shifted upstream of the entrance edge even though the
+nominal entrance edge itself remains at \(z=d\).
+
+\section{\code{test-rbend-1}: placement consistency test}
+
+This test is the RBEND analogue of \code{test-sbend-1}: a single on-axis
+particle, a \(0.3\ \mathrm{m}\) upstream drift, and an explicit \code{RBEND}
+body pose derived from the formulas above.  The input decks are
+\[
+  \code{sandbox/test-rbend-1/test-rbend-1.in},\qquad
+  \code{sandbox/test-rbend-1/test-rbend-1\_opal.in}.
+\]
+The exported OPALX element positions confirm the requested rectangular
+geometry:
+
+\begin{center}
+\begin{tabular}{@{}ll@{}}
+\toprule
+quantity & OPALX export \\
+\midrule
+entrance edge & \(X=5.6\times10^{-17},\ Z=0.3000000000\ \mathrm{m}\) \\
+body pose & \(X=0.2832272487,\ Z=-0.1238795325,\ \Theta=-22.5\degree\) \\
+exit edge & \(X=-0.4142135624,\ Z=1.3000000000\ \mathrm{m}\) \\
+field support & \(Z=0.1\) to \(1.609014865\ \mathrm{m}\) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The placement export is therefore consistent with the analytic rectangular
+survey.  The physics comparison is not yet at the SBEND level.  In the
+\code{DesignPath.dat} comparison the largest orbit differences are
+\(6.09\times10^{-2}\ \mathrm{m}\) in \(X\) and
+\(4.97\times10^{-2}\ \mathrm{m}\) in relative \(Z\).  The sampled
+\(B_y\) peak is \(4.749971\) in OPALX and \(2.359859\) in OPAL, and the visible
+field support starts at \(s_\mathrm{rel}=0\) in OPALX but near
+\(0.201\ \mathrm{m}\) in OPAL.  This points to the RBEND field/local-coordinate
+evaluation, not the exported element placement, as the remaining issue.
+
+\begin{figure}[htbp]
+\centering
+\begin{minipage}{0.49\textwidth}
+\centering
+\includegraphics[width=\linewidth]{figures/test-rbend-1-design-path-xz.png}
+\end{minipage}\hfill
+\begin{minipage}{0.49\textwidth}
+\centering
+\includegraphics[width=\linewidth]{figures/test-rbend-1-stat-by-ref.png}
+\end{minipage}
+\caption{\code{test-rbend-1} OPALX versus OPAL 2022.1: design-path
+\(X\)-\(Z\) orbit (left) and \code{.stat} reference \(B_y\) (right).}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\begin{minipage}{0.49\textwidth}
+\centering
+\includegraphics[width=\linewidth]{figures/test-rbend-1-design-path-by.png}
+\end{minipage}\hfill
+\begin{minipage}{0.49\textwidth}
+\centering
+\includegraphics[width=\linewidth]{figures/test-rbend-1-design-path-momentum.png}
+\end{minipage}
+\caption{\code{test-rbend-1} design-path diagnostic comparison.  The RBEND
+\(B_y\) peak is too large in OPALX and the momentum components diverge from
+old OPAL across the bend.}
+\end{figure}
+
+\section{\code{test-rbend-2}: OPALX/OPAL vertical comparison}
+
+This test is the RBEND counterpart of \code{test-sbend-2}.  It uses a
+\(0.4\ \mathrm{m}\) upstream drift and launches the particle with
+\[
+  y_0=1.0\ \mathrm{mm},\qquad y'_0=0.
+\]
+The OPALX input is \code{sandbox/test-rbend-2/test-rbend-2.in}; the old OPAL
+reference input is \code{sandbox/test-rbend-2/test-rbend-2\_opal.in}.  The
+same rectangular formulas give
+\[
+\begin{aligned}
+  \vect r_\mathrm{entry} &= (0,\,0,\,0.4000000000)\ \mathrm{m},\\
+  \vect r_\mathrm{body}  &= (0.2832272487,\,0,\,-0.0238795325)\ \mathrm{m},\\
+  \vect r_\mathrm{exit}  &= (-0.4142135624,\,0,\,1.4000000000)\ \mathrm{m}.
+\end{aligned}
+\]
+The comparison markers are
+\[
+\begin{array}{@{}lll@{}}
+\text{upstream Enge support start} & s_\mathrm{rel}=0.2000000 & z_\mathrm{rel}=0.2000000,\\
+\text{nominal entrance edge}       & s_\mathrm{rel}=0.4000000 & z_\mathrm{rel}=0.4000000,\\
+\text{nominal exit edge}           & s_\mathrm{rel}=1.4261722 & z_\mathrm{rel}=1.4000000,\\
+\text{downstream support end}      & s_\mathrm{rel}=1.7090149 & z_\mathrm{rel}=1.6000000 .
+\end{array}
+\]
+
+The current RBEND vertical test does not yet provide a clean edge-focusing
+regression, because the field discrepancy dominates the vertical dynamics.
+The \code{DesignPath.dat} \(B_y\) peak is \(4.216923\) in OPALX and
+\(2.359859\) in OPAL; the \code{.stat} reference-particle peak is
+\(4.402652\) in OPALX and \(2.359859\) in OPAL.  At the final common
+\code{.stat} sample the mean vertical positions are
+\[
+  \bar y_\mathrm{OPALX}=8.094384\times10^{-4}\ \mathrm{m},\qquad
+  \bar y_\mathrm{OPAL}=8.804121\times10^{-4}\ \mathrm{m},
+\]
+for a final difference of \(-7.10\times10^{-5}\ \mathrm{m}\).  This case is
+therefore useful as a diagnostic for the remaining RBEND field-coordinate
+problem, but it should not be promoted to a strict regression until the
+reference field agrees with old OPAL.
+
+\begin{figure}[htbp]
+\centering
+\begin{minipage}{0.49\textwidth}
+\centering
+\includegraphics[width=\linewidth]{figures/test-rbend-2-design-path-xz.png}
+\end{minipage}\hfill
+\begin{minipage}{0.49\textwidth}
+\centering
+\includegraphics[width=\linewidth]{figures/test-rbend-2-stat-by-ref.png}
+\end{minipage}
+\caption{\code{test-rbend-2} OPALX versus OPAL 2022.1: design-path
+\(X\)-\(Z\) orbit (left) and \code{.stat} reference \(B_y\) (right).}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\begin{minipage}{0.49\textwidth}
+\centering
+\includegraphics[width=\linewidth]{figures/test-rbend-2-design-path-by.png}
+\end{minipage}\hfill
+\begin{minipage}{0.49\textwidth}
+\centering
+\includegraphics[width=\linewidth]{figures/test-rbend-2-design-path-momentum.png}
+\end{minipage}
+\caption{\code{test-rbend-2} design-path diagnostic comparison.  The marker
+positions use the rectangular RBEND arc length for \(s_\mathrm{rel}\) and the
+straight body length for \(z_\mathrm{rel}\).}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.78\linewidth]{figures/test-rbend-2-vertical-particle-motion.png}
+\caption{\code{test-rbend-2} vertical particle motion from the \code{.stat}
+\(\bar y\) column.  The visible vertical difference is measured while the
+RBEND field magnitude and support still disagree with old OPAL.}
 \end{figure}
 
 \section{Next candidate: symmetric C-shape four-bend chicane}

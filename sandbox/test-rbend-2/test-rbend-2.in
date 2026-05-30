@@ -1,0 +1,117 @@
+OPTION, PSDUMPFREQ = 50000;
+OPTION, STATDUMPFREQ = 1;
+OPTION, BOUNDPDESTROY = 10;
+OPTION, VERSION = 10900;
+OPTION, ASCIIDUMP = TRUE;
+
+Title, string = "test-rbend-2 single analytic RBEND vertical edge focusing";
+
+// Single-RBEND edge-focusing comparison seed.
+//
+// A 1 mm vertical offset is launched with zero vertical angle through the same
+// analytic RBEND geometry as test-rbend-1.  With E1=0 the rectangular bend's
+// edge focusing is dominated by the exit edge E2=ANGLE, because for RBEND the
+// exit edge angle is fixed by ANGLE - E1.
+
+REAL DRIFT_LENGTH = 0.4;
+REAL BEND_LENGTH  = 1.0;
+REAL BEND_ANGLE   = PI / 4;
+REAL BEND_E1      = 0.0;
+REAL BEND_E2      = BEND_ANGLE - BEND_E1;
+REAL BEND_HGAP    = 0.02;
+REAL BEND_FINT    = 0.5;
+
+REAL ENTRY_X      = 0.0;
+REAL ENTRY_Z      = DRIFT_LENGTH;
+REAL BODY_THETA   = -BEND_ANGLE / 2;
+REAL ENTRY_LOCAL_X = -0.5 * BEND_LENGTH * tan(BEND_ANGLE / 4);
+REAL ENTRY_LOCAL_Z = 0.5 * BEND_LENGTH;
+REAL ENTRY_FROM_BODY_X =
+    cos(BODY_THETA) * ENTRY_LOCAL_X + sin(BODY_THETA) * ENTRY_LOCAL_Z;
+REAL ENTRY_FROM_BODY_Z =
+    -sin(BODY_THETA) * ENTRY_LOCAL_X + cos(BODY_THETA) * ENTRY_LOCAL_Z;
+REAL BODY_X       = ENTRY_X - ENTRY_FROM_BODY_X;
+REAL BODY_Z       = ENTRY_Z - ENTRY_FROM_BODY_Z;
+REAL EXIT_X       = ENTRY_X - BEND_LENGTH * tan(BEND_ANGLE / 2);
+REAL EXIT_Z       = ENTRY_Z + BEND_LENGTH;
+REAL EXIT_THETA   = -BEND_ANGLE;
+
+DPRE: DRIFT,
+    L = DRIFT_LENGTH,
+    X = 0.0,
+    Y = 0.0,
+    Z = DRIFT_LENGTH / 2,
+    THETA = 0.0,
+    PHI = 0.0,
+    PSI = 0.0;
+
+B1: RBEND,
+    L = BEND_LENGTH,
+    ANGLE = BEND_ANGLE,
+    E1 = BEND_E1,
+    E2 = BEND_E2,
+    HGAP = BEND_HGAP,
+    FINT = BEND_FINT,
+    X = BODY_X,
+    Y = 0.0,
+    Z = BODY_Z,
+    THETA = BODY_THETA,
+    PHI = 0.0,
+    PSI = 0.0;
+
+MEXIT: MONITOR,
+    L = 0.0,
+    X = EXIT_X,
+    Y = 0.0,
+    Z = EXIT_Z,
+    THETA = EXIT_THETA,
+    PHI = 0.0,
+    PSI = 0.0,
+    TYPE = TEMPORAL,
+    OUTFN = "test-rbend-2_exit_monitor";
+
+Line1: LINE = (DPRE, B1, MEXIT);
+
+Dist0: DISTRIBUTION,
+    TYPE = FROMFILE,
+    FNAME = "test-rbend-2_distribution.txt",
+    NPARTDIST = 1;
+
+ES0: EMISSIONSOURCE, DISTRIBUTION = Dist0;
+Sources0: EMISSIONSOURCELIST = (ES0);
+
+FS0: FIELDSOLVER,
+    TYPE = NONE,
+    NX = 16,
+    NY = 16,
+    NZ = 16,
+    PARFFTX = false,
+    PARFFTY = false,
+    PARFFTZ = true,
+    BCFFTX = open,
+    BCFFTY = open,
+    BCFFTZ = open,
+    BBOXINCR = 1,
+    GREENSF = INTEGRATED;
+
+BEAM0: BEAM,
+    PARTICLE = ELECTRON,
+    NALLOC = 1,
+    BCHARGE = 1.6021766339999998e-19,
+    SOURCES = Sources0,
+    CHARGE = -1;
+
+TRACK,
+    LINE = Line1,
+    BEAM = BEAM0,
+    MAXSTEPS = 20000,
+    DT = 1.0e-12,
+    ZSTOP = 1.7;
+
+RUN,
+    METHOD = "PARALLEL",
+    FIELDSOLVER = FS0;
+
+ENDTRACK;
+
+QUIT;
