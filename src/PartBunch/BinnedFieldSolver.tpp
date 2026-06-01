@@ -267,27 +267,30 @@ void BinnedFieldSolver<T, Dim>::printBinStatsTable(
 
 template <typename T, unsigned Dim>
 void BinnedFieldSolver<T, Dim>::setScalarField(Field_t<Dim>& field, double value) {
-    auto view = field.getView();
-    Kokkos::deep_copy(view, value);
+    field = value;
+    //auto view = field.getView();
+    //Kokkos::deep_copy(view, value);
 }
 
 template <typename T, unsigned Dim>
 void BinnedFieldSolver<T, Dim>::scaleAndShiftScalarField(
         Field_t<Dim>& field, double scale, double shift) {
-    auto view = field.getView();
+    field = field * scale + shift;
+    /*auto view = field.getView();
 
     ippl::parallel_for(
             "BinnedFieldSolver::scaleAndShiftScalarField", field.getFieldRangePolicy(),
             KOKKOS_LAMBDA(const typename ippl::RangePolicy<Dim>::index_array_type& idx) {
                 apply(view, idx) = apply(view, idx) * scale + shift;
-            });
+            });*/
 }
 
 template <typename T, unsigned Dim>
 void BinnedFieldSolver<T, Dim>::setVectorField(
         VField_t<T, Dim>& field, const Vector_t<T, Dim>& value) {
-    auto view = field.getView();
-    Kokkos::deep_copy(view, value);
+    field = value;
+    //auto view = field.getView();
+    //Kokkos::deep_copy(view, value);
 }
 
 template <typename T, unsigned Dim>
