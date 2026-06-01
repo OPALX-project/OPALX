@@ -6,8 +6,10 @@ void ImageChargeScatterController<T, Dim>::scatterScaledDtAll(
     m << level5 << "scatter all local particles: localP=" << nLocal << endl;
 
     pc->scaleDtByCharge();
+    ippl::ParticleAttrib<T>* dtAttrib = &pc->dt;
+    scatter(*dtAttrib, rho, positions);
 
-    using view_type    = typename RhoField_t::view_type;
+    /*using view_type    = typename RhoField_t::view_type;
     view_type rhoView  = rho.getView();
     auto dtView        = pc->dt.getView();
     auto rView         = positions.getView();
@@ -45,7 +47,7 @@ void ImageChargeScatterController<T, Dim>::scatterScaledDtAll(
             });
     Kokkos::fence();
 
-    accumulateScalarHaloHostStaged(rho);
+    accumulateScalarHaloHostStaged(rho);*/
 
     pc->unscaleDtByCharge();
 }
@@ -147,8 +149,9 @@ void ImageChargeScatterController<T, Dim>::scatterScaledDtSubset(
       << policy.end() << "), hashExtent=" << hash.extent(0) << endl;
 
     pc->scaleDtByCharge();
+    scatter(*pc->dt, rho, positions, policy, hash);
 
-    using view_type    = typename RhoField_t::view_type;
+    /*using view_type    = typename RhoField_t::view_type;
     view_type rhoView  = rho.getView();
     auto dtView        = pc->dt.getView();
     auto rView         = positions.getView();
@@ -191,7 +194,7 @@ void ImageChargeScatterController<T, Dim>::scatterScaledDtSubset(
             });
     Kokkos::fence();
 
-    accumulateScalarHaloHostStaged(rho);
+    accumulateScalarHaloHostStaged(rho);*/
 
     pc->unscaleDtByCharge();
 }
