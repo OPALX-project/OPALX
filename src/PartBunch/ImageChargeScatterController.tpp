@@ -149,7 +149,7 @@ void ImageChargeScatterController<T, Dim>::scatterScaledDtSubset(
       << policy.end() << "), hashExtent=" << hash.extent(0) << endl;
 
     pc->scaleDtByCharge();
-    scatter(*pc->dt, rho, positions, policy, hash);
+    scatter(pc->dt, rho, positions, policy, hash);
 
     /*using view_type    = typename RhoField_t::view_type;
     view_type rhoView  = rho.getView();
