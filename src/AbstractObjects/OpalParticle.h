@@ -40,6 +40,12 @@ public:
             int64_t id, Vector_t<double, 3> const& R, Vector_t<double, 3> const& P, double time,
             double q, double m);
 
+    /// Constructor including the per-particle polarization vector.
+    /// Sets the hasPol flag so the loss sink emits the polx/poly/polz columns.
+    OpalParticle(
+            int64_t id, Vector_t<double, 3> const& R, Vector_t<double, 3> const& P, double time,
+            double q, double m, Vector_t<double, 3> const& Pol);
+
     OpalParticle();
 
     /// Set the horizontal position in m.
@@ -109,6 +115,16 @@ public:
     /// Get mass in GeV/c^2
     double getMass() const;
 
+    /// Whether a polarization vector was attached to this particle.
+    bool hasPol() const;
+
+    /// Get the rest-frame polarization vector (rest-frame components along lab axes).
+    /// Only meaningful when hasPol() is true.
+    const Vector_t<double, 3>& getPol() const;
+
+    /// Attach a polarization vector to this particle.
+    void setPol(Vector_t<double, 3> const&);
+
 private:
     int64_t id_m;
     Vector_t<double, 3> R_m;
@@ -116,6 +132,8 @@ private:
     double time_m;
     double charge_m;
     double mass_m;
+    Vector_t<double, 3> Pol_m{0.0, 0.0, 0.0};
+    bool hasPol_m = false;
 };
 
 inline void OpalParticle::setX(double val) { R_m[X] = val; }
@@ -164,5 +182,14 @@ inline double OpalParticle::getTime() const { return time_m; }
 inline double OpalParticle::getCharge() const { return charge_m; }
 
 inline double OpalParticle::getMass() const { return mass_m; }
+
+inline bool OpalParticle::hasPol() const { return hasPol_m; }
+
+inline const Vector_t<double, 3>& OpalParticle::getPol() const { return Pol_m; }
+
+inline void OpalParticle::setPol(Vector_t<double, 3> const& Pol) {
+    Pol_m    = Pol;
+    hasPol_m = true;
+}
 
 #endif  // OPALX_OpalParticle_HH
