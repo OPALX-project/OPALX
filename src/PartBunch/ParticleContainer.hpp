@@ -243,6 +243,10 @@ public:
         size_t Nlocal = this->getLocalNum();
 
         distMoments_m.computeMoments(this->R.getView(), this->P.getView(), getMView(), Np, Nlocal);
+
+        if (spinEnabled_m) {
+            distMoments_m.computePolarizationMoments(Pol.getView(), Np, Nlocal);
+        }
     }
 
     void setEnergyReferenceMass(double referenceMassGeV, bool rescaleToReference = true) {
@@ -260,76 +264,15 @@ public:
     Vector_t<double, 3> getRmsRP() const { return distMoments_m.getStandardDeviationRP(); }
 
     /// Mean polarization vector across the bunch: $\langle \vec P \rangle$.
-    /// Returns the zero vector when the container does not track spin.
-    Vector_t<double, 3> getMeanPol() const {
-        Vector_t<double, 3> mean(0.0);
-        if (!spinEnabled_m) {
-            return mean;
-        }
-        const size_t nLocal = this->getLocalNum();
-        auto Polview        = Pol.getView();
-        double sx = 0.0, sy = 0.0, sz = 0.0;
-        Kokkos::parallel_reduce(
-                "ParticleContainer::getMeanPol", nLocal,
-                KOKKOS_LAMBDA(const size_t i, double& lsx, double& lsy, double& lsz) {
-                    lsx += static_cast<double>(Polview(i)[0]);
-                    lsy += static_cast<double>(Polview(i)[1]);
-                    lsz += static_cast<double>(Polview(i)[2]);
-                },
-                sx, sy, sz);
-        Kokkos::fence();
-        double localSum[3]  = {sx, sy, sz};
-        double globalSum[3] = {0.0, 0.0, 0.0};
-        ippl::Comm->allreduce(&localSum[0], &globalSum[0], 3, std::plus<double>());
-        const size_t Nglob = this->getTotalNum();
-        const double Norm  = Nglob == 0 ? 1.0 : static_cast<double>(Nglob);
-        mean[0]            = globalSum[0] / Norm;
-        mean[1]            = globalSum[1] / Norm;
-        mean[2]            = globalSum[2] / Norm;
-        return mean;
-    }
+    /// Returns the zero vector when the container does not track spin (the
+    /// moments are then never computed and stay zeroed by reset()).
+    Vector_t<double, 3> getMeanPol() const { return distMoments_m.getMeanPolarization(); }
 
     /// Per-component RMS of the polarization vector across the bunch.
     /// Defined as $\sqrt{\langle P_i^2\rangle - \langle P_i\rangle^2}$. Returns
     /// the zero vector when the container does not track spin.
     Vector_t<double, 3> getRmsPol() const {
-        Vector_t<double, 3> rms(0.0);
-        if (!spinEnabled_m) {
-            return rms;
-        }
-        const size_t nLocal = this->getLocalNum();
-        auto Polview        = Pol.getView();
-        double s1x = 0.0, s1y = 0.0, s1z = 0.0;
-        double s2x = 0.0, s2y = 0.0, s2z = 0.0;
-        Kokkos::parallel_reduce(
-                "ParticleContainer::getRmsPol", nLocal,
-                KOKKOS_LAMBDA(
-                        const size_t i, double& l1x, double& l1y, double& l1z, double& l2x,
-                        double& l2y, double& l2z) {
-                    const double px = static_cast<double>(Polview(i)[0]);
-                    const double py = static_cast<double>(Polview(i)[1]);
-                    const double pz = static_cast<double>(Polview(i)[2]);
-                    l1x += px;
-                    l1y += py;
-                    l1z += pz;
-                    l2x += px * px;
-                    l2y += py * py;
-                    l2z += pz * pz;
-                },
-                s1x, s1y, s1z, s2x, s2y, s2z);
-        Kokkos::fence();
-        double localSums[6]  = {s1x, s1y, s1z, s2x, s2y, s2z};
-        double globalSums[6] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-        ippl::Comm->allreduce(&localSums[0], &globalSums[0], 6, std::plus<double>());
-        const size_t Nglob = this->getTotalNum();
-        const double Norm  = Nglob == 0 ? 1.0 : static_cast<double>(Nglob);
-        for (int k = 0; k < 3; ++k) {
-            const double mean  = globalSums[k] / Norm;
-            const double mean2 = globalSums[k + 3] / Norm;
-            const double var   = mean2 - mean * mean;
-            rms[k]             = var > 0.0 ? Kokkos::sqrt(var) : 0.0;
-        }
-        return rms;
+        return distMoments_m.getStandardDeviationPolarization();
     }
 
     /// Magnitude of the mean polarization vector, $|\langle \vec P \rangle|$.
