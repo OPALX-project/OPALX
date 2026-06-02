@@ -414,6 +414,11 @@ void ParallelTracker::execute() {
             computeExternalFields(oth);
             m << level4 << "External field computation done at step " << step << "." << endl;
 
+            // Thomas-BMT spin precession using the lab-frame E, B at the particle.
+            // No-op for containers that have not registered the Pol attribute.
+            evolveSpinTBMT();
+            m << level5 << "Spin T-BMT update done at step " << step << "." << endl;
+
             // Second half of the time integration
             timeIntegration2(pusher);
             m << level4 << "timeIntegration2 done at step " << step << "." << endl;
@@ -1087,6 +1092,39 @@ void ParallelTracker::kickParticles(
     m << level5 << "Completed parallel kick operation." << endl;
 }
 
+void ParallelTracker::evolveSpinTBMT() {
+    const size_t n = itsBunch_m->getNumParticleContainers();
+    for (size_t i = 0; i < n; ++i) {
+        if (!itsBunch_m->isPcActive(i)) {
+            continue;
+        }
+        auto pc = itsBunch_m->getParticleContainer(i);
+        if (!pc || !pc->hasSpin()) {
+            continue;
+        }
+
+        const PartData& ref = *pc->getReference();
+        const double mass   = ref.getM();
+        const double charge = ref.getQ();
+        const double anom   = ref.getAnomaly();
+
+        auto Polview = pc->Pol.getView();
+        auto Pview   = pc->P.getView();
+        auto Efview  = pc->E.getView();
+        auto Bfview  = pc->B.getView();
+        auto dtview  = pc->dt.getView();
+
+        SpinTBMTPusher spinPusher;
+        Kokkos::parallel_for(
+                "evolveSpinTBMT", pc->getLocalNum(), KOKKOS_LAMBDA(const size_t j) {
+                    spinPusher.evolve(
+                            Polview(j), Pview(j), Efview(j), Bfview(j), dtview(j), mass, charge,
+                            anom);
+                });
+        Kokkos::fence();
+    }
+}
+
 // --- Helpers (beamline, dt, bounds, I/O) ---
 
 /**
@@ -1459,14 +1497,11 @@ void ParallelTracker::dumpStats(long long step, bool psDump, bool statDump) {
     const long long globalStep = itsBunch_m->getGlobalTrackStep();
     const bool printStepInfo = Options::stepInfoFreq > 0 && globalStep % Options::stepInfoFreq == 0;
 
-    if (totalAll == 0) {
-        if (printStepInfo) {
-            *gmsg << level1 << "* " << myt2.time() << " "
-                  << "Step " << std::setw(6) << globalStep << "; "
-                  << "   -- no emission yet --     "
-                  << "t= " << Util::getTimeString(itsBunch_m->getT()) << endl;
-        }
-        return;
+    if (totalAll == 0 && printStepInfo) {
+        *gmsg << level1 << "* " << myt2.time() << " "
+              << "Step " << std::setw(6) << globalStep << "; "
+              << "   -- no emission yet --     "
+              << "t= " << Util::getTimeString(itsBunch_m->getT()) << endl;
     }
 
     bool anyLogged         = false;
@@ -1494,7 +1529,7 @@ void ParallelTracker::dumpStats(long long step, bool psDump, bool statDump) {
         anyLogged = true;
     }
 
-    if (anyLogged) {
+    if (anyLogged || statDump) {
         writePhaseSpace(step, psDump, statDump);
     }
 }

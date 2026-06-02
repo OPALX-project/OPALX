@@ -143,15 +143,17 @@ void DataSink::dumpSDDS(
             break;
         }
         auto pc = beam.getParticleContainer(i);
-        if (!pc || pc->getTotalNum() == 0) {
+        if (!pc) {
             continue;
         }
 
-        pc->updateMoments();
-
         size_t npOutside = 0;
-        if (Options::beamHaloBoundary > 0) {
-            npOutside = beam.calcNumPartsOutside(Options::beamHaloBoundary * pc->getRmsR());
+        if (pc->getTotalNum() > 0) {
+            pc->updateMoments();
+
+            if (Options::beamHaloBoundary > 0) {
+                npOutside = beam.calcNumPartsOutside(Options::beamHaloBoundary * pc->getRmsR());
+            }
         }
 
         Vector_t<double, 3> fd[2] = {fdextPerContainer[i][0], fdextPerContainer[i][1]};
@@ -159,7 +161,10 @@ void DataSink::dumpSDDS(
     }
 
     beam.gatherLoadBalanceStatistics();
-    beam.calcBeamParameters();
+    auto primary = beam.getParticleContainer(0);
+    if (primary && primary->getTotalNum() > 0) {
+        beam.calcBeamParameters();
+    }
 
     IpplTimings::stopTimer(StatMarkerTimer_m);
 }
