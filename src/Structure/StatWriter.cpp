@@ -40,7 +40,7 @@
 
 StatWriter::StatWriter(const std::string& fname, bool restart) : StatBaseWriter(fname, restart) {}
 
-void StatWriter::fillHeader(const losses_t& losses, const std::string& species) {
+void StatWriter::fillHeader(const losses_t& losses, const std::string& species, bool hasSpin) {
     if (this->hasColumns()) {
         return;
     }
@@ -110,6 +110,17 @@ void StatWriter::fillHeader(const losses_t& losses, const std::string& species) 
     columns_m.addColumn(
             "nBins", "int", "1",
             "Number of field solver bins, potentially after adaptive binning.");
+
+    if (hasSpin) {
+        columns_m.addColumn("mean_polx", "double", "1", "Mean polarization x");
+        columns_m.addColumn("mean_poly", "double", "1", "Mean polarization y");
+        columns_m.addColumn("mean_polz", "double", "1", "Mean polarization z");
+        columns_m.addColumn(
+                "mean_pol_mag", "double", "1", "Magnitude of mean polarization vector");
+        columns_m.addColumn("rms_polx", "double", "1", "RMS polarization x");
+        columns_m.addColumn("rms_poly", "double", "1", "RMS polarization y");
+        columns_m.addColumn("rms_polz", "double", "1", "RMS polarization z");
+    }
 
     /// \todo Options::computePercentiles needs to be brought back
     /*
@@ -239,7 +250,7 @@ void StatWriter::write(
         return;
     }
 
-    fillHeader(losses, species);
+    fillHeader(losses, species, pc->hasSpin());
 
     this->open();
 
@@ -342,6 +353,18 @@ void StatWriter::write(
     columns_m.addColumnValue("temperature", temperature);           // 44 Temperature
     columns_m.addColumnValue("rmsDensity", beam.get_rmsDensity());  // 45 RMS number density
     columns_m.addColumnValue("nBins", beam.getCurrentNBins());
+
+    if (pc->hasSpin()) {
+        const Vector_t<double, 3> meanPol = pc->getMeanPol();
+        const Vector_t<double, 3> rmsPol  = pc->getRmsPol();
+        columns_m.addColumnValue("mean_polx", meanPol(0));
+        columns_m.addColumnValue("mean_poly", meanPol(1));
+        columns_m.addColumnValue("mean_polz", meanPol(2));
+        columns_m.addColumnValue("mean_pol_mag", pc->getMeanPolMagnitude());
+        columns_m.addColumnValue("rms_polx", rmsPol(0));
+        columns_m.addColumnValue("rms_poly", rmsPol(1));
+        columns_m.addColumnValue("rms_polz", rmsPol(2));
+    }
 
     /*
     if (Options::computePercentiles) {
