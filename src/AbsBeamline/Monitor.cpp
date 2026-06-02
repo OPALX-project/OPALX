@@ -131,8 +131,7 @@ bool Monitor::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
                 const Vector_t<double, 3> pol(
                         static_cast<double>(hPol(i)[0]), static_cast<double>(hPol(i)[1]),
                         static_cast<double>(hPol(i)[2]));
-                lossDs_m->addParticle(
-                        OpalParticle(id, crossingR, P, crossingTime, q, m, pol));
+                lossDs_m->addParticle(OpalParticle(id, crossingR, P, crossingTime, q, m, pol));
             } else {
                 lossDs_m->addParticle(OpalParticle(id, crossingR, P, crossingTime, q, m));
             }

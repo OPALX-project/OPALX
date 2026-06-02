@@ -115,8 +115,7 @@ void StatWriter::fillHeader(const losses_t& losses, const std::string& species, 
         columns_m.addColumn("mean_polx", "double", "1", "Mean polarization x");
         columns_m.addColumn("mean_poly", "double", "1", "Mean polarization y");
         columns_m.addColumn("mean_polz", "double", "1", "Mean polarization z");
-        columns_m.addColumn(
-                "mean_pol_mag", "double", "1", "Magnitude of mean polarization vector");
+        columns_m.addColumn("mean_pol_mag", "double", "1", "Magnitude of mean polarization vector");
         columns_m.addColumn("rms_polx", "double", "1", "RMS polarization x");
         columns_m.addColumn("rms_poly", "double", "1", "RMS polarization y");
         columns_m.addColumn("rms_polz", "double", "1", "RMS polarization z");
