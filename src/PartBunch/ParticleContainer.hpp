@@ -243,6 +243,10 @@ public:
         size_t Nlocal = this->getLocalNum();
 
         distMoments_m.computeMoments(this->R.getView(), this->P.getView(), getMView(), Np, Nlocal);
+
+        if (spinEnabled_m) {
+            distMoments_m.computePolarizationMoments(Pol.getView(), Np, Nlocal);
+        }
     }
 
     void setEnergyReferenceMass(double referenceMassGeV, bool rescaleToReference = true) {
@@ -258,6 +262,26 @@ public:
     Vector_t<double, 3> getRmsR() const { return distMoments_m.getStandardDeviationPosition(); }
 
     Vector_t<double, 3> getRmsRP() const { return distMoments_m.getStandardDeviationRP(); }
+
+    /// Mean polarization vector across the bunch: $\langle \vec P \rangle$.
+    /// Returns the zero vector when the container does not track spin (the
+    /// moments are then never computed and stay zeroed by reset()).
+    Vector_t<double, 3> getMeanPol() const { return distMoments_m.getMeanPolarization(); }
+
+    /// Per-component RMS of the polarization vector across the bunch.
+    /// Defined as $\sqrt{\langle P_i^2\rangle - \langle P_i\rangle^2}$. Returns
+    /// the zero vector when the container does not track spin.
+    Vector_t<double, 3> getRmsPol() const {
+        return distMoments_m.getStandardDeviationPolarization();
+    }
+
+    /// Magnitude of the mean polarization vector, $|\langle \vec P \rangle|$.
+    /// This is the standard depolarization observable — distinct from
+    /// $\langle |\vec P|\rangle$.
+    double getMeanPolMagnitude() const {
+        const Vector_t<double, 3> mean = getMeanPol();
+        return Kokkos::sqrt(mean[0] * mean[0] + mean[1] * mean[1] + mean[2] * mean[2]);
+    }
 
     void computeMinMaxR() {
         size_t Nlocal = this->getLocalNum();
