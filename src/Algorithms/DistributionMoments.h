@@ -212,9 +212,7 @@ inline Vector_t<double, 3> DistributionMoments::getStandardDeviationMomentum() c
     return stdP_m;
 }
 
-inline Vector_t<double, 3> DistributionMoments::getMeanPolarization() const {
-    return meanPol_m;
-}
+inline Vector_t<double, 3> DistributionMoments::getMeanPolarization() const { return meanPol_m; }
 
 inline Vector_t<double, 3> DistributionMoments::getStandardDeviationPolarization() const {
     return stdPol_m;

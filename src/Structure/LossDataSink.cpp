@@ -967,11 +967,11 @@ void LossDataSink::saveASCII() {
             data[nDblColumns * i + 5] = particle.getPz();
             data[nDblColumns * i + 6] = particle.getTime();
             if (hasPolData_m) {
-                const bool has         = particle.hasPol();
+                const bool has               = particle.hasPol();
                 const Vector_t<double, 3>& p = particle.getPol();
-                data[nDblColumns * i + 7] = has ? p(0) : 0.0;
-                data[nDblColumns * i + 8] = has ? p(1) : 0.0;
-                data[nDblColumns * i + 9] = has ? p(2) : 0.0;
+                data[nDblColumns * i + 7]    = has ? p(0) : 0.0;
+                data[nDblColumns * i + 8]    = has ? p(1) : 0.0;
+                data[nDblColumns * i + 9]    = has ? p(2) : 0.0;
             }
         }
 
