@@ -28,6 +28,7 @@
 #include "Physics/Physics.h"
 #include "Physics/Units.h"
 #include "Utilities/OpalException.h"
+#include "Utilities/Options.h"
 
 #include <cmath>
 #include <iterator>
@@ -52,6 +53,7 @@ namespace {
         SOURCES,          // Name of EMISSIONSOURCELIST
         GLOBALPROCESSES,  // Global physics processes active for this beam
         DAUGHTERBEAM,     // Name of the beam that receives decay daughter particles
+        POLARIZATION,     // Initial polarization vector P (rest-frame, lab-frame axes)
         SIZE
     };
 }  // namespace
@@ -95,6 +97,18 @@ Beam::Beam()
 
     itsAttr[DAUGHTERBEAM] = Attributes::makeString(
             "DAUGHTERBEAM", "Name of the BEAM that receives decay daughter particles.");
+
+    itsAttr[POLARIZATION] = Attributes::makeRealArray(
+            "POLARIZATION",
+            "Initial polarization vector P = {Px, Py, Pz} for this beam "
+            "(rest-frame Pauli expectation values along lab-frame axes). "
+            "Must be length-3 with |P| in [0, 1]. Only valid for PARTICLE=MUON; "
+            "setting POLARIZATION on any other species is rejected. Setting "
+            "POLARIZATION (even {0,0,0}) enables per-particle spin tracking for this "
+            "beam (Thomas-BMT integration); leaving it unset disables spin tracking. "
+            "For muons produced by an upstream decay (e.g. PionDecay) the per-particle "
+            "value is overwritten by the decay, but POLARIZATION must still be set to "
+            "enable the spin storage that receives it.");
 
     // Set up default beam.
     Beam* defBeam    = clone("UNNAMED_BEAM");
@@ -194,6 +208,47 @@ void Beam::execute() {
                                                + "\". Supported values: DECAY.");
         }
     }
+
+    validatePolarization();
+}
+
+void Beam::validatePolarization() const {
+    if (!itsAttr[POLARIZATION]) {
+        return;
+    }
+    const std::vector<double> pol = Attributes::getRealArray(itsAttr[POLARIZATION]);
+    if (pol.empty()) {
+        // Attribute exists in the registry but the user did not specify a value;
+        // treat as "not set" and skip all polarization-specific validation.
+        return;
+    }
+    if (pol.size() != 3) {
+        throw OpalException(
+                "Beam::execute()", "\"POLARIZATION\" must be a length-3 vector {Px, Py, Pz}.");
+    }
+    // Only muons are currently spin-tracked. Reject POLARIZATION on any other
+    // species regardless of magnitude — setting it (even to zero) is meaningless
+    // for spin-0 particles and for species whose g-factor isn't wired into T-BMT.
+    if (!itsAttr[PARTICLE]) {
+        throw OpalException(
+                "Beam::execute()",
+                "\"POLARIZATION\" can only be set when \"PARTICLE\" is also set.");
+    }
+    const ParticleType pType = ParticleProperties::getParticleType(getParticleName());
+    if (pType != ParticleType::MUON) {
+        throw OpalException(
+                "Beam::execute()",
+                "\"POLARIZATION\" is only supported for PARTICLE=MUON; got \""
+                        + getParticleName()
+                        + "\". For muons produced by PionDecay, leave POLARIZATION unset — "
+                          "the daughter polarization is determined by the pion decay.");
+    }
+    const double pMag2 = pol[0] * pol[0] + pol[1] * pol[1] + pol[2] * pol[2];
+    if (pMag2 > 1.0 + 1.0e-12) {
+        throw OpalException(
+                "Beam::execute()", "\"POLARIZATION\" magnitude must be in [0, 1]; got |P| = "
+                                           + std::to_string(std::sqrt(pMag2)) + ".");
+    }
 }
 
 std::string Beam::getEmissionSourceListName() const {
@@ -218,6 +273,18 @@ std::vector<std::string> Beam::getGlobalProcessNames() const {
 
 std::string Beam::getDaughterBeamName() const {
     return Attributes::getString(itsAttr[DAUGHTERBEAM]);
+}
+
+std::vector<double> Beam::getPolarization() const {
+    std::vector<double> pol = Attributes::getRealArray(itsAttr[POLARIZATION]);
+    if (pol.empty()) {
+        return {0.0, 0.0, 0.0};
+    }
+    return pol;
+}
+
+bool Beam::hasPolarization() const {
+    return !Attributes::getRealArray(itsAttr[POLARIZATION]).empty();
 }
 
 Beam* Beam::find(const std::string& name) {
@@ -296,6 +363,12 @@ void Beam::update() {
     double charge = itsAttr[CHARGE] ? getCharge() : 1.0;
 
     reference = PartData(charge, mass, 1.0);
+
+    // Magnetic moment anomaly G = (g-2)/2 for the species (used by T-BMT).
+    if (itsAttr[PARTICLE]) {
+        const ParticleType pType = ParticleProperties::getParticleType(getParticleName());
+        reference.setAnomaly(ParticleProperties::getParticleAnomaly(pType));
+    }
 
     if (itsAttr[GAMMA]) {
         double gamma = Attributes::getReal(itsAttr[GAMMA]);

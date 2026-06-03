@@ -13,8 +13,10 @@
  */
 class PionDecay : public Decay {
 public:
-    PionDecay(double restLifetimeSeconds, std::size_t containerIndex, double parentMassGeV)
-        : Decay(restLifetimeSeconds, containerIndex, parentMassGeV) {
+    PionDecay(
+            double restLifetimeSeconds, std::size_t containerIndex, double parentMassGeV,
+            int parentChargeSign)
+        : Decay(restLifetimeSeconds, containerIndex, parentMassGeV, parentChargeSign) {
         allowedDaughterSpecies_m = static_cast<short>(ParticleProperties::getParticleType("MUON"));
     }
 
@@ -22,7 +24,8 @@ public:
             std::size_t localDestroyNum, std::size_t oldDaughterLocal,
             const Kokkos::View<ippl::Vector<double, 3>*>& parentR,
             const Kokkos::View<ippl::Vector<double, 3>*>& parentP,
-            const Kokkos::View<double*>& parentDt) override;
+            const Kokkos::View<double*>& parentDt,
+            const Kokkos::View<ippl::Vector<float, 3>*>& parentPol) override;
 };
 
 #endif
