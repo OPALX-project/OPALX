@@ -293,9 +293,9 @@ void Distribution::setDistParametersGauss() {
      * on the input attributes.
      * In case of DistributionType::MATCHEDGAUSS we only need to set the cutoff parameters
      */
-
-    cutoffR_m = 3.;
-    cutoffP_m = 3.;
+    emitting_m = true;
+    cutoffR_m  = 3.;
+    cutoffP_m  = 3.;
     /*
     cutoffP_m = ippl::Vector<double, 3>(Attributes::getReal(itsAttr[DISTRIBUTION::CUTOFFPX]),
                          Attributes::getReal(itsAttr[DISTRIBUTION::CUTOFFPY]),

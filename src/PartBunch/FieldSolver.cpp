@@ -19,7 +19,8 @@ void FieldSolver<double, 3>::initSolverWithParams(const ippl::ParameterList& sp)
     this->getSolver().template emplace<Solver>();
     Solver& solver = std::get<Solver>(this->getSolver());
     solver.mergeParameters(sp);
-    m << level3 << "Initialized solver with params: " << this->getStype() << endl;
+    // m << level3 << "Initialized solver with params: " << endl;
+    // m << level3 << "Initialized solver with params: " << this->getStype() << endl;
 
     // test if rho_m exists (just in case)
     if (!rho_m) {
@@ -406,14 +407,17 @@ void FieldSolver<double, 3>::runSolver(bool force_skip_field_dump) {
     } else if (this->getStype() == "FFT") {
         if constexpr (Dim == 2 || Dim == 3) {
 #ifdef OPALX_FIELD_DEBUG
-            if (!force_skip_field_dump) this->dumpScalField("rho");
+            if (!force_skip_field_dump)
+                this->dumpScalField("rho");
 #endif
 
             std::get<FFTSolver_t<double, 3>>(this->getSolver()).solve();
 #ifdef OPALX_FIELD_DEBUG
             /// \todo do to not print phi/E depenging on output_type!
-            if (!force_skip_field_dump) this->dumpScalField("phi");
-            if (!force_skip_field_dump) this->dumpVectField("ef");
+            if (!force_skip_field_dump)
+                this->dumpScalField("phi");
+            if (!force_skip_field_dump)
+                this->dumpVectField("ef");
 #endif
         }
     } else if (this->getStype() == "P3M") {
@@ -423,12 +427,15 @@ void FieldSolver<double, 3>::runSolver(bool force_skip_field_dump) {
     } else if (this->getStype() == "OPEN") {
         if constexpr (Dim == 3) {
 #ifdef OPALX_FIELD_DEBUG
-            if (!force_skip_field_dump) this->dumpScalField("rho");
+            if (!force_skip_field_dump)
+                this->dumpScalField("rho");
 #endif
             std::get<OpenSolver_t<double, 3>>(this->getSolver()).solve();
 #ifdef OPALX_FIELD_DEBUG
-            if (!force_skip_field_dump) this->dumpScalField("phi");
-            if (!force_skip_field_dump) this->dumpVectField("ef");
+            if (!force_skip_field_dump)
+                this->dumpScalField("phi");
+            if (!force_skip_field_dump)
+                this->dumpVectField("ef");
 #endif
         }
     } else if (this->getStype() == "NONE") {
