@@ -93,6 +93,14 @@ bool Monitor::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     auto hQ  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), Qview);
     auto hM  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), Mview);
 
+    const bool hasSpin = pc->hasSpin();
+    using SpinHostView = Kokkos::View<ippl::Vector<float, 3>*, Kokkos::HostSpace>;
+    SpinHostView hPol;
+    if (hasSpin) {
+        auto Polview = pc->Pol.getView();
+        hPol         = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), Polview);
+    }
+
     const bool qmAreAttributes =
             (pc->getQMStorageMode() == ParticleContainer_t::QMStorageMode::Attributes);
 
@@ -119,7 +127,14 @@ bool Monitor::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
             const double q       = qmAreAttributes ? hQ(i) : hQ(0);
             const double m       = qmAreAttributes ? hM(i) : hM(0);
 
-            lossDs_m->addParticle(OpalParticle(id, crossingR, P, crossingTime, q, m));
+            if (hasSpin) {
+                const Vector_t<double, 3> pol(
+                        static_cast<double>(hPol(i)[0]), static_cast<double>(hPol(i)[1]),
+                        static_cast<double>(hPol(i)[2]));
+                lossDs_m->addParticle(OpalParticle(id, crossingR, P, crossingTime, q, m, pol));
+            } else {
+                lossDs_m->addParticle(OpalParticle(id, crossingR, P, crossingTime, q, m));
+            }
         }
     }
 
@@ -170,7 +185,16 @@ bool Monitor::apply(
         const double q       = qmAreAttributes ? Qview(i) : Qview(0);
         const double m       = qmAreAttributes ? Mview(i) : Mview(0);
 
-        lossDs_m->addParticle(OpalParticle(id, crossingR, P, crossingTime, q, m));
+        if (pc->hasSpin()) {
+            auto Polview      = pc->Pol.getView();
+            const auto polRaw = Polview(i);
+            const Vector_t<double, 3> pol(
+                    static_cast<double>(polRaw[0]), static_cast<double>(polRaw[1]),
+                    static_cast<double>(polRaw[2]));
+            lossDs_m->addParticle(OpalParticle(id, crossingR, P, crossingTime, q, m, pol));
+        } else {
+            lossDs_m->addParticle(OpalParticle(id, crossingR, P, crossingTime, q, m));
+        }
     }
 
     return false;
@@ -225,6 +249,14 @@ void Monitor::driftToCorrectPositionAndSave(
     auto hQ  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), Qview);
     auto hM  = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), Mview);
 
+    const bool hasSpin = pc->hasSpin();
+    using SpinHostView = Kokkos::View<ippl::Vector<float, 3>*, Kokkos::HostSpace>;
+    SpinHostView hPol;
+    if (hasSpin) {
+        auto Polview = pc->Pol.getView();
+        hPol         = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), Polview);
+    }
+
     const auto nLoc = pc->getLocalNum();
 
     const bool qmAreAttributes =
@@ -252,7 +284,14 @@ void Monitor::driftToCorrectPositionAndSave(
         const double m = macroWeight > 0.0 ? macroMassGeV * Units::GeV2MeV / macroWeight
                                            : macroMassGeV * Units::GeV2MeV;
 
-        lossDs_m->addParticle(OpalParticle(id, localR, globalP, particleTime, q, m));
+        if (hasSpin) {
+            const Vector_t<double, 3> pol(
+                    static_cast<double>(hPol(i)[0]), static_cast<double>(hPol(i)[1]),
+                    static_cast<double>(hPol(i)[2]));
+            lossDs_m->addParticle(OpalParticle(id, localR, globalP, particleTime, q, m, pol));
+        } else {
+            lossDs_m->addParticle(OpalParticle(id, localR, globalP, particleTime, q, m));
+        }
     }
 }
 

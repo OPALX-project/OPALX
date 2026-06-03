@@ -95,6 +95,12 @@ public:
     /// View types of Q and M values
     using qm_view_type = typename ippl::ParticleAttrib<double>::view_type;
 
+    /// Per-particle polarization vector type: 3D vector in single precision, |Pol| in [0, 1].
+    /// Polarization observables are typically ~1% accurate, so `float` storage is sufficient and
+    /// halves the memory footprint versus the codebase's standard `double` attributes. Dynamics
+    /// kernels should still compute in `double` and cast back on store.
+    using spin_vector_type = ippl::Vector<float, 3>;
+
 public:
     /// Charge view in [Cb].
     /// In `SingleValue` mode this is a rank-1 view of length 1.
@@ -143,14 +149,24 @@ public:
     /// particle deletion mask (indicates which particles are deleted every timestep)
     ippl::ParticleAttrib<bool> InvalidMask;
 
-    ParticleContainer(Mesh_t<Dim>& mesh, FieldLayout_t<Dim>& FL)
+    /// Per-particle polarization vector P (rest-frame Pauli expectation values along
+    /// lab-frame axes; |Pol| in [0, 1]). Registered only when spinEnabled_m is true.
+    /// Storage is float to halve memory; kernels should compute in double and cast.
+    ippl::ParticleAttrib<spin_vector_type> Pol;
+
+    /// Returns true when per-particle spin storage was enabled at construction
+    /// (enabled per beam when the BEAM has POLARIZATION set).
+    bool hasSpin() const { return spinEnabled_m; }
+
+    ParticleContainer(Mesh_t<Dim>& mesh, FieldLayout_t<Dim>& FL, bool spinEnabled = false)
         : pl_m(FL, mesh),
           qmStorageMode_m(
                   Options::useQMAttributes ? QMStorageMode::Attributes
                                            : QMStorageMode::SingleValue),
           distMoments_m(),
           QView_m("ParticleContainer::QView_m", 1),
-          MView_m("ParticleContainer::MView_m", 1) {
+          MView_m("ParticleContainer::MView_m", 1),
+          spinEnabled_m(spinEnabled) {
         this->initialize(pl_m);
         registerAttributes();
         setupBCs();
@@ -172,6 +188,9 @@ public:
         if (qmStorageMode_m == QMStorageMode::Attributes) {
             this->addAttribute(QAttr);
             this->addAttribute(MAttr);
+        }
+        if (spinEnabled_m) {
+            this->addAttribute(Pol);
         }
     }
 
@@ -224,6 +243,10 @@ public:
         size_t Nlocal = this->getLocalNum();
 
         distMoments_m.computeMoments(this->R.getView(), this->P.getView(), getMView(), Np, Nlocal);
+
+        if (spinEnabled_m) {
+            distMoments_m.computePolarizationMoments(Pol.getView(), Np, Nlocal);
+        }
     }
 
     void setEnergyReferenceMass(double referenceMassGeV, bool rescaleToReference = true) {
@@ -239,6 +262,26 @@ public:
     Vector_t<double, 3> getRmsR() const { return distMoments_m.getStandardDeviationPosition(); }
 
     Vector_t<double, 3> getRmsRP() const { return distMoments_m.getStandardDeviationRP(); }
+
+    /// Mean polarization vector across the bunch: $\langle \vec P \rangle$.
+    /// Returns the zero vector when the container does not track spin (the
+    /// moments are then never computed and stay zeroed by reset()).
+    Vector_t<double, 3> getMeanPol() const { return distMoments_m.getMeanPolarization(); }
+
+    /// Per-component RMS of the polarization vector across the bunch.
+    /// Defined as $\sqrt{\langle P_i^2\rangle - \langle P_i\rangle^2}$. Returns
+    /// the zero vector when the container does not track spin.
+    Vector_t<double, 3> getRmsPol() const {
+        return distMoments_m.getStandardDeviationPolarization();
+    }
+
+    /// Magnitude of the mean polarization vector, $|\langle \vec P \rangle|$.
+    /// This is the standard depolarization observable — distinct from
+    /// $\langle |\vec P|\rangle$.
+    double getMeanPolMagnitude() const {
+        const Vector_t<double, 3> mean = getMeanPol();
+        return Kokkos::sqrt(mean[0] * mean[0] + mean[1] * mean[1] + mean[2] * mean[2]);
+    }
 
     void computeMinMaxR() {
         size_t Nlocal = this->getLocalNum();
@@ -779,6 +822,9 @@ private:
     // Per-particle attributes mode
     ippl::ParticleAttrib<double> QAttr;
     ippl::ParticleAttrib<double> MAttr;
+
+    // Whether the spin attribute is registered on this container.
+    bool spinEnabled_m = false;
 
     // Reference particle information
     Vector_t<double, Dim> refPartR_m;

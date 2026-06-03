@@ -297,6 +297,46 @@ void DistributionMoments::computeMinMaxPosition(
 }
 
 // ---------------------------------------------------------------------------
+// computePolarizationMoments -- per-component mean + RMS of the spin vector
+// ---------------------------------------------------------------------------
+void DistributionMoments::computePolarizationMoments(
+        ippl::ParticleAttrib<ippl::Vector<float, 3>>::view_type Polview, size_t Np, size_t Nlocal) {
+    // Pol is stored as float to save memory; reduce in double and cast on read.
+    // Np is the global particle count (>= 1, guarded by the caller); it normalizes
+    // both sums and sums-of-squares so the result matches R/P moment conventions.
+    Np = (Np == 0) ? 1 : Np;
+
+    // Reduce 6 quantities: [0..2] sums (x, y, z), [3..5] sums-of-squares.
+    SumArray<6> loc;
+    Kokkos::parallel_reduce(
+            "computePolarizationMoments", Nlocal,
+            KOKKOS_LAMBDA(const size_t k, SumArray<6>& upd) {
+                const double px = static_cast<double>(Polview(k)[0]);
+                const double py = static_cast<double>(Polview(k)[1]);
+                const double pz = static_cast<double>(Polview(k)[2]);
+                upd.data[0] += px;
+                upd.data[1] += py;
+                upd.data[2] += pz;
+                upd.data[3] += px * px;
+                upd.data[4] += py * py;
+                upd.data[5] += pz * pz;
+            },
+            Kokkos::Sum<SumArray<6>>(loc));
+    Kokkos::fence();
+
+    double glob[6];
+    ippl::Comm->allreduce(&loc.data[0], &glob[0], 6, std::plus<double>());
+
+    for (size_t i = 0; i < Dim; ++i) {
+        const double mean  = glob[i] / Np;
+        const double mean2 = glob[i + Dim] / Np;
+        const double var   = mean2 - mean * mean;
+        meanPol_m(i)       = mean;
+        stdPol_m(i)        = var > 0.0 ? std::sqrt(var) : 0.0;
+    }
+}
+
+// ---------------------------------------------------------------------------
 
 void DistributionMoments::compute(
         const std::vector<OpalParticle>::const_iterator& /*first*/,
@@ -609,6 +649,8 @@ void DistributionMoments::reset() {
     meanP_m         = 0.0;
     stdR_m          = 0.0;
     stdP_m          = 0.0;
+    meanPol_m       = 0.0;
+    stdPol_m        = 0.0;
     stdRP_m         = 0.0;
     normalizedEps_m = 0.0;
     geometricEps_m  = 0.0;

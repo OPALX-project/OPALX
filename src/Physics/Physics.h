@@ -131,6 +131,9 @@ namespace Physics {
     /// Muon mean lifetime at rest [s] (PDG)
     constexpr double tau_mu = 2.1969811e-6;
 
+    /// The magnetic moment anomaly for muons, no dimension (PDG, (g-2)/2)
+    constexpr double a_mu = 1.16592061e-03;
+
     /// The charged pion rest mass in GeV (PDG)
     constexpr double m_pi = 0.13957039;
 
