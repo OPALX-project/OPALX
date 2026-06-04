@@ -87,12 +87,18 @@ public:
     /// Set reference charge expressed in proton charges,
     inline void setQ(double q) { charge = q; }
 
+    /// The magnetic moment anomaly G = (g - 2) / 2 for this species.
+    /// Zero by default; populated by Beam::update() when PARTICLE is set.
+    inline double getAnomaly() const { return anomaly; }
+    inline void setAnomaly(double a) { anomaly = a; }
+
 protected:
     // The reference information.
-    double charge;  // Particle charge.
-    double mass;    // Particle mass.
-    double beta;    // particle velocity divided by c.
-    double gamma;   // particle energy divided by particle mass
+    double charge;         // Particle charge.
+    double mass;           // Particle mass.
+    double beta;           // particle velocity divided by c.
+    double gamma;          // particle energy divided by particle mass
+    double anomaly = 0.0;  // Magnetic moment anomaly G = (g-2)/2.
 };
 
 // Inline functions.
