@@ -119,13 +119,13 @@ unsigned long OpalBeamline::getFieldAt(
         if (type == ElementType::MARKER) continue;
 
         Vector_t<double, 3> localR = transformToFieldLocalCS(*it, position);
-        Vector_t<double, 3> localP = rotateToFieldLocalCS(*it, momentum);
+        Vector_t<double, 3> localP = rotateToFieldLocalCS(*it, localR, momentum);
         Vector_t<double, 3> localE(0.0), localB(0.0);
 
         (*it)->applyToReferenceParticle(localR, localP, t, localE, localB);
 
-        Ef += rotateFromFieldLocalCS(*it, localE);
-        Bf += rotateFromFieldLocalCS(*it, localB);
+        Ef += rotateFromFieldLocalCS(*it, localR, localE);
+        Bf += rotateFromFieldLocalCS(*it, localR, localB);
     }
 
     //         if(section.hasWake()) {

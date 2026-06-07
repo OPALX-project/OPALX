@@ -79,6 +79,14 @@ public:
     //  and magnetic fields at point [b]P[/b] for time [b]t[/b].
     EBVectors EBfield(const Point3D& P, double t) const;
     /* ========================================================================== */
+    /* ======================== Field-Chart Functions =========================== */
+    virtual CoordinateSystemTrafo getFieldCSTrafoLab2Local(const PlacedElement& placed) const;
+    virtual Vector_t<double, 3> transformFieldFrameToLocal(const Vector_t<double, 3>& r) const;
+    virtual Vector_t<double, 3> rotateFieldFrameToLocal(
+            const Vector_t<double, 3>& v, const Vector_t<double, 3>& fieldLocalPosition) const;
+    virtual Vector_t<double, 3> rotateFieldLocalToFieldFrame(
+            const Vector_t<double, 3>& v, const Vector_t<double, 3>& fieldLocalPosition) const;
+    /* ========================================================================== */
     /* ============================== Apply Functions =========================== */
     /**
      * Apply functions apply the components electromagnetic field to the

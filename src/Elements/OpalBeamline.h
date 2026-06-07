@@ -88,8 +88,14 @@ public:
             const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r) const;
     Vector_t<double, 3> rotateToFieldLocalCS(
             const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r) const;
+    Vector_t<double, 3> rotateToFieldLocalCS(
+            const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& fieldLocalPosition,
+            const Vector_t<double, 3>& r) const;
     Vector_t<double, 3> rotateFromFieldLocalCS(
             const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r) const;
+    Vector_t<double, 3> rotateFromFieldLocalCS(
+            const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& fieldLocalPosition,
+            const Vector_t<double, 3>& r) const;
 
     /**
      * @brief Return the placed-element view used by the bridge stage.
@@ -278,32 +284,12 @@ inline Vector_t<double, 3> OpalBeamline::rotateFromLocalCS(
 
 inline CoordinateSystemTrafo OpalBeamline::getFieldCSTrafoLab2Local(
         const std::shared_ptr<Component>& comp) const {
-    const ElementType type = comp->getType();
-    if (type == ElementType::SBEND || type == ElementType::RBEND || type == ElementType::RBEND3D) {
-        return getPlacedElement(comp).getNominalEntryTransform();
-    }
-
-    return getPlacedElement(comp).getNominalBodyTransform();
+    return comp->getFieldCSTrafoLab2Local(getPlacedElement(comp));
 }
 
 inline Vector_t<double, 3> OpalBeamline::transformToFieldLocalCS(
         const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r) const {
-    const ElementType type = comp->getType();
-    if (type == ElementType::SBEND || type == ElementType::RBEND) {
-        const auto* bend = dynamic_cast<const BendBase*>(comp.get());
-        if (bend != nullptr) {
-            if (type == ElementType::RBEND) {
-                const Vector_t<double, 3> bodyCartesian =
-                        getPlacedElement(comp).getNominalBodyTransform().transformTo(r);
-                return bend->convertBodyCartesianToFieldLocal(bodyCartesian);
-            }
-            const Vector_t<double, 3> entryCartesian =
-                    getPlacedElement(comp).getNominalEntryTransform().transformTo(r);
-            return bend->convertEntryCartesianToFieldLocal(entryCartesian);
-        }
-    }
-
-    return getFieldCSTrafoLab2Local(comp).transformTo(r);
+    return comp->transformFieldFrameToLocal(getFieldCSTrafoLab2Local(comp).transformTo(r));
 }
 
 inline Vector_t<double, 3> OpalBeamline::transformFromFieldLocalCS(
@@ -313,12 +299,26 @@ inline Vector_t<double, 3> OpalBeamline::transformFromFieldLocalCS(
 
 inline Vector_t<double, 3> OpalBeamline::rotateToFieldLocalCS(
         const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r) const {
-    return getFieldCSTrafoLab2Local(comp).rotateTo(r);
+    return rotateToFieldLocalCS(comp, Vector_t<double, 3>(0.0), r);
+}
+
+inline Vector_t<double, 3> OpalBeamline::rotateToFieldLocalCS(
+        const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& fieldLocalPosition,
+        const Vector_t<double, 3>& r) const {
+    return comp->rotateFieldFrameToLocal(
+            getFieldCSTrafoLab2Local(comp).rotateTo(r), fieldLocalPosition);
 }
 
 inline Vector_t<double, 3> OpalBeamline::rotateFromFieldLocalCS(
         const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r) const {
-    return getFieldCSTrafoLab2Local(comp).rotateFrom(r);
+    return rotateFromFieldLocalCS(comp, Vector_t<double, 3>(0.0), r);
+}
+
+inline Vector_t<double, 3> OpalBeamline::rotateFromFieldLocalCS(
+        const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& fieldLocalPosition,
+        const Vector_t<double, 3>& r) const {
+    return getFieldCSTrafoLab2Local(comp).rotateFrom(
+            comp->rotateFieldLocalToFieldFrame(r, fieldLocalPosition));
 }
 
 inline PlacedElement OpalBeamline::getPlacedElement(const std::shared_ptr<Component>& comp) const {

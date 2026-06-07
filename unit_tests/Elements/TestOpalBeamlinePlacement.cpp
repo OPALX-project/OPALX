@@ -880,6 +880,41 @@ TEST_F(OpalBeamlinePlacementTest, SBendFieldChartMapsDesignArcToArcLengthCoordin
     EXPECT_NEAR(exitLocal(2), 1.0, 1.0e-12);
 }
 
+TEST_F(OpalBeamlinePlacementTest, SBendFieldChartRotatesLabTangentIntoLocalLongitudinalAxis) {
+    auto bunch = makeBunch(0);
+    DummyBeamline beamlineForVisitor;
+    DefaultVisitor visitor(beamlineForVisitor, false, false);
+
+    constexpr double length = 1.0;
+    constexpr double angle  = Physics::pi / 4.0;
+
+    SBendRep bend("B5");
+    bend.getGeometry() = PlanarArcGeometry(length, angle / length);
+    bend.setElementLength(length);
+    bend.setBendAngle(angle);
+    bend.setElementPosition(0.0);
+
+    OpalBeamline beamline;
+    beamline.visit(bend, visitor, *bunch);
+    beamline.prepareSections();
+
+    const auto elements = beamline.getElements();
+    ASSERT_EQ(elements.size(), 1u);
+    const auto component = *elements.begin();
+
+    const CoordinateSystemTrafo entryTransform = beamline.getNominalEntryTransform(component);
+    const double s                             = 0.5 * length;
+    const Vector3 labPoint = entryTransform.transformFrom(analyticSbendPointAtS(length, angle, s));
+    const Vector3 tangentLab = entryTransform.rotateFrom(analyticSbendTangentAtS(length, angle, s));
+
+    const Vector3 localR = beamline.transformToFieldLocalCS(component, labPoint);
+    const Vector3 localP = beamline.rotateToFieldLocalCS(component, localR, tangentLab);
+
+    expectVectorNear(localP, Vector3(0.0, 0.0, 1.0));
+    expectVectorNear(
+            beamline.rotateFromFieldLocalCS(component, localR, Vector3(0.0, 0.0, 1.0)), tangentLab);
+}
+
 TEST_F(OpalBeamlinePlacementTest, RBendFieldChartMapsEdgesToPoleFaceReferenceLength) {
     auto bunch = makeBunch(0);
     DummyBeamline beamlineForVisitor;
@@ -913,6 +948,41 @@ TEST_F(OpalBeamlinePlacementTest, RBendFieldChartMapsEdgesToPoleFaceReferenceLen
     EXPECT_NEAR(entryLocal(2), 0.0, 1.0e-12);
     EXPECT_LT(bodyLocal(2), entryLocal(2));
     EXPECT_NEAR(exitLocal(2), referenceLength, 1.0e-12);
+}
+
+TEST_F(OpalBeamlinePlacementTest, RBendFieldChartRotatesExitTangentIntoLocalLongitudinalAxis) {
+    auto bunch = makeBunch(0);
+    DummyBeamline beamlineForVisitor;
+    DefaultVisitor visitor(beamlineForVisitor, false, false);
+
+    constexpr double length = 1.0;
+    constexpr double angle  = Physics::pi / 4.0;
+
+    RBendRep bend("RB5");
+    bend.getGeometry().setElementLength(length);
+    bend.getGeometry().setBendAngle(angle);
+    bend.setElementLength(length);
+    bend.setBendAngle(angle);
+    bend.setElementPosition(0.0);
+
+    OpalBeamline beamline;
+    beamline.visit(bend, visitor, *bunch);
+    beamline.prepareSections();
+
+    const auto elements = beamline.getElements();
+    ASSERT_EQ(elements.size(), 1u);
+    const auto component = *elements.begin();
+
+    const Vector3 exitLab = beamline.getNominalExitTransform(component).getOrigin();
+    const Vector3 tangentLab =
+            beamline.getNominalExitTransform(component).rotateFrom(Vector3(0.0, 0.0, 1.0));
+
+    const Vector3 localR = beamline.transformToFieldLocalCS(component, exitLab);
+    const Vector3 localP = beamline.rotateToFieldLocalCS(component, localR, tangentLab);
+
+    expectVectorNear(localP, Vector3(0.0, 0.0, 1.0));
+    expectVectorNear(
+            beamline.rotateFromFieldLocalCS(component, localR, Vector3(0.0, 0.0, 1.0)), tangentLab);
 }
 
 TEST_F(OpalBeamlinePlacementTest, ElementPositionsScriptStaysValidWithEmptyTriangleMeshBlocks) {

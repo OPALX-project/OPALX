@@ -224,13 +224,14 @@ void OrbitThreader::execute() {
         std::string names("\t");
         for (const auto& element : elementSet) {
             Vector_t<double, 3> localR = itsOpalBeamline_m.transformToFieldLocalCS(element, r_m);
-            Vector_t<double, 3> localP = itsOpalBeamline_m.rotateToFieldLocalCS(element, p_m);
+            Vector_t<double, 3> localP =
+                    itsOpalBeamline_m.rotateToFieldLocalCS(element, localR, p_m);
             Vector_t<double, 3> localE(0.0), localB(0.0);
 
             if (!element->applyToReferenceParticle(localR, localP, time_m, localE, localB)) {
                 names += element->getName() + ", ";
-                Ef += itsOpalBeamline_m.rotateFromLocalCS(element, localE);
-                Bf += itsOpalBeamline_m.rotateFromLocalCS(element, localB);
+                Ef += itsOpalBeamline_m.rotateFromFieldLocalCS(element, localR, localE);
+                Bf += itsOpalBeamline_m.rotateFromFieldLocalCS(element, localR, localB);
             }
         }
         logDesignPathRow(pathLength_m, r_m, p_m, Ef, Bf, time_m, names);
@@ -320,19 +321,8 @@ void OrbitThreader::integrate(const IndexMap::value_t& activeSet, double /*maxDr
         std::string names("\t");
         for (; it != end; ++it) {
             Vector_t<double, 3> localR = itsOpalBeamline_m.transformToFieldLocalCS(*it, r_m);
-            Vector_t<double, 3> localP = itsOpalBeamline_m.rotateToFieldLocalCS(*it, p_m);
+            Vector_t<double, 3> localP = itsOpalBeamline_m.rotateToFieldLocalCS(*it, localR, p_m);
             Vector_t<double, 3> localE(0.0), localB(0.0);
-            BendBase* bend = nullptr;
-
-            if ((*it)->getType() == ElementType::SBEND || (*it)->getType() == ElementType::RBEND) {
-                bend = dynamic_cast<BendBase*>((*it).get());
-                if (bend == nullptr) {
-                    throw OpalException(
-                            "OrbitThreader::integrate",
-                            "Encountered bend element without BendBase runtime type.");
-                }
-                localP = bend->rotateEntryCartesianVectorToFieldLocal(localP, localR(2));
-            }
 
             if ((*it)->applyToReferenceParticle(
                         localR, localP, time_m + 0.5 * dt_m, localE, localB)) {
@@ -341,13 +331,8 @@ void OrbitThreader::integrate(const IndexMap::value_t& activeSet, double /*maxDr
             }
             names += (*it)->getName() + ", ";
 
-            if (bend != nullptr) {
-                localE = bend->rotateFieldLocalVectorToEntryCartesian(localE, localR(2));
-                localB = bend->rotateFieldLocalVectorToEntryCartesian(localB, localR(2));
-            }
-
-            Ef += itsOpalBeamline_m.rotateFromFieldLocalCS(*it, localE);
-            Bf += itsOpalBeamline_m.rotateFromFieldLocalCS(*it, localB);
+            Ef += itsOpalBeamline_m.rotateFromFieldLocalCS(*it, localR, localE);
+            Bf += itsOpalBeamline_m.rotateFromFieldLocalCS(*it, localR, localB);
         }
 
         const bool shouldLog = currentStep_m % loggingFrequency_m == 0 && ippl::Comm->rank() == 0
@@ -417,7 +402,8 @@ void OrbitThreader::autophaseCavities(
              || (*it)->getType() == ElementType::RFCAVITY)
             && visitedElements.find((*it)->getName()) == visitedElements.end()) {
             Vector_t<double, 3> initialR = itsOpalBeamline_m.transformToFieldLocalCS(*it, r_m);
-            Vector_t<double, 3> initialP = itsOpalBeamline_m.rotateToFieldLocalCS(*it, p_m);
+            Vector_t<double, 3> initialP =
+                    itsOpalBeamline_m.rotateToFieldLocalCS(*it, initialR, p_m);
 
             CavityAutophaser ap(reference_m, *it);
             ap.getPhaseAtMaxEnergy(initialR, initialP, time_m, dt_m);
@@ -490,7 +476,7 @@ void OrbitThreader::registerElement(
         if (found) continue;
 
         Vector_t<double, 3> initialR = itsOpalBeamline_m.transformToFieldLocalCS(*it, R);
-        Vector_t<double, 3> initialP = itsOpalBeamline_m.rotateToFieldLocalCS(*it, P);
+        Vector_t<double, 3> initialP = itsOpalBeamline_m.rotateToFieldLocalCS(*it, initialR, P);
         double elementEdge           = start - initialR(2) * euclidean_norm(initialP) / initialP(2);
 
         elementPosition ep = {start, pathLength_m, elementEdge};

@@ -122,6 +122,15 @@ public:
     void initialise(PartBunch_t* bunch, double& startField, double& endField) override;
     void finalise() override;
 
+    CoordinateSystemTrafo getFieldCSTrafoLab2Local(const PlacedElement& placed) const override;
+    Vector_t<double, 3> transformFieldFrameToLocal(const Vector_t<double, 3>& r) const override;
+    Vector_t<double, 3> rotateFieldFrameToLocal(
+            const Vector_t<double, 3>& v, const Vector_t<double, 3>& fieldLocalPosition)
+            const override;
+    Vector_t<double, 3> rotateFieldLocalToFieldFrame(
+            const Vector_t<double, 3>& v, const Vector_t<double, 3>& fieldLocalPosition)
+            const override;
+
     bool apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
     bool apply(const size_t& i, const double& t, Vector_t<double, 3>& E, Vector_t<double, 3>& B)
             override;

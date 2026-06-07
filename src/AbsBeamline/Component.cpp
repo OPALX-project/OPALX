@@ -48,6 +48,27 @@ bool Component::Online() { return online_m; }
 
 ElementType Component::getType() const { return ElementType::ANY; }
 
+CoordinateSystemTrafo Component::getFieldCSTrafoLab2Local(const PlacedElement& placed) const {
+    if (getType() == ElementType::RBEND3D) {
+        return placed.getNominalEntryTransform();
+    }
+    return placed.getNominalBodyTransform();
+}
+
+Vector_t<double, 3> Component::transformFieldFrameToLocal(const Vector_t<double, 3>& r) const {
+    return r;
+}
+
+Vector_t<double, 3> Component::rotateFieldFrameToLocal(
+        const Vector_t<double, 3>& v, const Vector_t<double, 3>&) const {
+    return v;
+}
+
+Vector_t<double, 3> Component::rotateFieldLocalToFieldFrame(
+        const Vector_t<double, 3>& v, const Vector_t<double, 3>&) const {
+    return v;
+}
+
 /* ============================== Apply Functions =========================== */
 /**
  * @brief Apply to all particles. Kernel launch moved inside the function.

@@ -1337,18 +1337,8 @@ void ParallelTracker::updateReferenceParticles(const BorisPusher& pusher) {
             Vector_t<double, 3> localR =
                     itsOpalBeamline_m.transformToFieldLocalCS((*it), pc.getRefPartR());
             Vector_t<double, 3> localP =
-                    itsOpalBeamline_m.rotateToFieldLocalCS((*it), pc.getRefPartP());
+                    itsOpalBeamline_m.rotateToFieldLocalCS((*it), localR, pc.getRefPartP());
             Vector_t<double, 3> localE(0.0), localB(0.0);
-            BendBase* bend = nullptr;
-            if ((*it)->getType() == ElementType::SBEND || (*it)->getType() == ElementType::RBEND) {
-                bend = dynamic_cast<BendBase*>((*it).get());
-                if (bend == nullptr) {
-                    throw OpalException(
-                            "ParallelTracker::updateReferenceParticles",
-                            "Encountered bend element without BendBase runtime type.");
-                }
-                localP = bend->rotateEntryCartesianVectorToFieldLocal(localP, localR(2));
-            }
 
             if ((*it)->applyToReferenceParticle(
                         localR, localP, itsBunch_m->getT() - 0.5 * dt, localE, localB)) {
@@ -1356,13 +1346,8 @@ void ParallelTracker::updateReferenceParticles(const BorisPusher& pusher) {
                 globalEOL_m = true;
             }
 
-            if (bend != nullptr) {
-                localE = bend->rotateFieldLocalVectorToEntryCartesian(localE, localR(2));
-                localB = bend->rotateFieldLocalVectorToEntryCartesian(localB, localR(2));
-            }
-
-            Ef += itsOpalBeamline_m.rotateFromFieldLocalCS((*it), localE);
-            Bf += itsOpalBeamline_m.rotateFromFieldLocalCS((*it), localB);
+            Ef += itsOpalBeamline_m.rotateFromFieldLocalCS((*it), localR, localE);
+            Bf += itsOpalBeamline_m.rotateFromFieldLocalCS((*it), localR, localB);
         }
 
         pusher.kick(pc.getRefPartR(), pc.getRefPartP(), Ef, Bf, dt, refKick.getM(), refKick.getQ());

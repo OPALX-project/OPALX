@@ -389,6 +389,24 @@ void BendBase::initialise(PartBunch_t* bunch, double& startField, double& endFie
 
 void BendBase::finalise() { online_m = false; }
 
+CoordinateSystemTrafo BendBase::getFieldCSTrafoLab2Local(const PlacedElement& placed) const {
+    return placed.getNominalEntryTransform();
+}
+
+Vector_t<double, 3> BendBase::transformFieldFrameToLocal(const Vector_t<double, 3>& r) const {
+    return convertEntryCartesianToFieldLocal(r);
+}
+
+Vector_t<double, 3> BendBase::rotateFieldFrameToLocal(
+        const Vector_t<double, 3>& v, const Vector_t<double, 3>& fieldLocalPosition) const {
+    return rotateEntryCartesianVectorToFieldLocal(v, fieldLocalPosition(2));
+}
+
+Vector_t<double, 3> BendBase::rotateFieldLocalToFieldFrame(
+        const Vector_t<double, 3>& v, const Vector_t<double, 3>& fieldLocalPosition) const {
+    return rotateFieldLocalVectorToEntryCartesian(v, fieldLocalPosition(2));
+}
+
 bool BendBase::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     auto Rview          = pc->R.getView();
     auto Eview          = pc->E.getView();
@@ -522,6 +540,12 @@ Vector_t<double, 3> BendBase::convertEntryCartesianToFieldLocal(
 
     if (entryCartesian(2) <= 0.0) {
         return entryCartesian;
+    }
+
+    if (getType() == ElementType::RBEND) {
+        return convertRBendEntryCartesianToFieldLocalDevice(
+                entryCartesian, bodyLength, curvature, getElementLength(), getBendAngle(),
+                getExitFringeSupportLength());
     }
 
     const CoordinateSystemTrafo entryToExitLocal = toCoordinateSystemTrafo(
