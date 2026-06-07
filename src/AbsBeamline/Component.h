@@ -80,10 +80,43 @@ public:
     EBVectors EBfield(const Point3D& P, double t) const;
     /* ========================================================================== */
     /* ======================== Field-Chart Functions =========================== */
+    /**
+     * @brief Return the rigid lab-to-field-frame transform used by runtime field evaluation.
+     *
+     * Most components evaluate fields directly in their placed body frame, so the default
+     * implementation returns the nominal body transform from `placed`. Curvilinear elements may
+     * override this to expose the rigid frame from which their field chart is derived.
+     */
     virtual CoordinateSystemTrafo getFieldCSTrafoLab2Local(const PlacedElement& placed) const;
+
+    /**
+     * @brief Map a point from the rigid field frame into the component's field chart.
+     *
+     * The input position is already expressed in the rigid field frame returned by
+     * `getFieldCSTrafoLab2Local()`. Straight elements use the identity map; curved elements may
+     * override this to introduce a non-rigid longitudinal coordinate.
+     */
     virtual Vector_t<double, 3> transformFieldFrameToLocal(const Vector_t<double, 3>& r) const;
+
+    /**
+     * @brief Rotate a vector from the rigid field frame into the local field-chart basis.
+     *
+     * @param v Vector expressed in the rigid field frame.
+     * @param fieldLocalPosition Position in the final field chart where the basis is evaluated.
+     *
+     * The default implementation is the identity map.
+     */
     virtual Vector_t<double, 3> rotateFieldFrameToLocal(
             const Vector_t<double, 3>& v, const Vector_t<double, 3>& fieldLocalPosition) const;
+
+    /**
+     * @brief Rotate a vector from the field-chart basis back into the rigid field frame.
+     *
+     * @param v Vector expressed in the field chart basis.
+     * @param fieldLocalPosition Position in the field chart where the basis is evaluated.
+     *
+     * The default implementation is the identity map.
+     */
     virtual Vector_t<double, 3> rotateFieldLocalToFieldFrame(
             const Vector_t<double, 3>& v, const Vector_t<double, 3>& fieldLocalPosition) const;
     /* ========================================================================== */
@@ -100,6 +133,15 @@ public:
      * @returns true if particle is out-of-bounds (lost), false otherwise
      */
     virtual bool apply(const std::shared_ptr<ParticleContainer_t>& pc);
+
+    /**
+     * @brief Apply the component field to a particle container after transforming to field frame.
+     *
+     * The input transform maps the current container frame into the component's rigid runtime
+     * field frame. The default implementation performs that rigid transform, delegates to
+     * `apply(pc)`, and then restores the original frame. Components with non-rigid many-particle
+     * tracking may override this method.
+     */
     virtual bool applyToBunch(
             const std::shared_ptr<ParticleContainer_t>& pc,
             const CoordinateSystemTrafo& refToFieldCSTrafo);

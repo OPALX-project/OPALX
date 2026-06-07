@@ -82,17 +82,62 @@ public:
      * curvilinear, as implemented in `transformToFieldLocalCS()`.
      */
     CoordinateSystemTrafo getFieldCSTrafoLab2Local(const std::shared_ptr<Component>& comp) const;
+
+    /**
+     * @brief Transform a lab-space position into the component's runtime field chart.
+     *
+     * This first applies the rigid field-frame transform returned by
+     * `getFieldCSTrafoLab2Local()` and then lets the component convert that rigid-frame point into
+     * its final field chart.
+     */
     Vector_t<double, 3> transformToFieldLocalCS(
             const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r) const;
+
+    /**
+     * @brief Transform a rigid field-frame point back to lab coordinates.
+     *
+     * This helper only inverts the rigid field-frame transform. For curvilinear components the
+     * caller must provide a point already expressed in the rigid frame, not in the final field
+     * chart.
+     */
     Vector_t<double, 3> transformFromFieldLocalCS(
             const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r) const;
+
+    /**
+     * @brief Rotate a lab-space vector into the component field basis using the default chart
+     * origin.
+     *
+     * This convenience overload preserves the historical rigid behavior for callers that do not
+     * have a field-local position available.
+     */
     Vector_t<double, 3> rotateToFieldLocalCS(
             const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r) const;
+
+    /**
+     * @brief Rotate a lab-space vector into the component field basis at a given field-local point.
+     *
+     * The supplied `fieldLocalPosition` is used by curvilinear elements to evaluate the local
+     * tangent basis.
+     */
     Vector_t<double, 3> rotateToFieldLocalCS(
             const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& fieldLocalPosition,
             const Vector_t<double, 3>& r) const;
+
+    /**
+     * @brief Rotate a field-basis vector back to lab space using the default chart origin.
+     *
+     * This convenience overload preserves the historical rigid behavior for callers that do not
+     * have a field-local position available.
+     */
     Vector_t<double, 3> rotateFromFieldLocalCS(
             const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r) const;
+
+    /**
+     * @brief Rotate a field-basis vector back to lab space at a given field-local point.
+     *
+     * The supplied `fieldLocalPosition` is used by curvilinear elements to evaluate the inverse
+     * tangent-basis rotation.
+     */
     Vector_t<double, 3> rotateFromFieldLocalCS(
             const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& fieldLocalPosition,
             const Vector_t<double, 3>& r) const;

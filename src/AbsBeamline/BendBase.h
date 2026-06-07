@@ -122,16 +122,51 @@ public:
     void initialise(PartBunch_t* bunch, double& startField, double& endField) override;
     void finalise() override;
 
+    /**
+     * @brief Return the rigid entry-frame transform used by the bend field chart.
+     *
+     * Analytic bends evaluate fields in a curvilinear chart derived from the nominal entrance
+     * frame, so the runtime field frame is the placed-element entry transform rather than the body
+     * frame.
+     */
     CoordinateSystemTrafo getFieldCSTrafoLab2Local(const PlacedElement& placed) const override;
+
+    /**
+     * @brief Convert an entry-frame Cartesian point into the bend field chart.
+     *
+     * This bridges the generic component hook to the bend-specific curvilinear
+     * `convertEntryCartesianToFieldLocal()` logic.
+     */
     Vector_t<double, 3> transformFieldFrameToLocal(const Vector_t<double, 3>& r) const override;
+
+    /**
+     * @brief Rotate an entry-frame vector into the local tangent basis of the bend field chart.
+     *
+     * The field-local position supplies the curvilinear longitudinal coordinate used to select the
+     * tangent basis.
+     */
     Vector_t<double, 3> rotateFieldFrameToLocal(
             const Vector_t<double, 3>& v,
             const Vector_t<double, 3>& fieldLocalPosition) const override;
+
+    /**
+     * @brief Rotate a field-chart vector back into the rigid bend entry frame.
+     *
+     * The inverse rotation is evaluated at the supplied field-local longitudinal coordinate.
+     */
     Vector_t<double, 3> rotateFieldLocalToFieldFrame(
             const Vector_t<double, 3>& v,
             const Vector_t<double, 3>& fieldLocalPosition) const override;
 
     bool apply(const std::shared_ptr<ParticleContainer_t>& pc) override;
+
+    /**
+     * @brief Apply the bend field to a bunch by traversing the rigid tangent-frame slice sequence.
+     *
+     * The container enters in the rigid bend field frame; the bend then steps through the
+     * precomputed slices, transforms into each slice-local tangent frame, applies `applySlice()`,
+     * and restores the caller frame.
+     */
     bool applyToBunch(
             const std::shared_ptr<ParticleContainer_t>& pc,
             const CoordinateSystemTrafo& refToFieldCSTrafo) override;
