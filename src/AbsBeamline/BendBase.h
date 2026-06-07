@@ -128,6 +128,13 @@ public:
      * Analytic bends evaluate fields in a curvilinear chart derived from the nominal entrance
      * frame, so the runtime field frame is the placed-element entry transform rather than the body
      * frame.
+     *
+     * The rigid runtime frame is therefore
+     * \f[
+     * \mathbf r_{\mathrm{entry}} =
+     * T_{\mathrm{bend}}^{\mathrm{entry}}\,\mathbf r_{\mathrm{lab}},
+     * \f]
+     * and the subsequent field-chart map is built relative to this entry frame.
      */
     CoordinateSystemTrafo getFieldCSTrafoLab2Local(const PlacedElement& placed) const override;
 
@@ -136,6 +143,15 @@ public:
      *
      * This bridges the generic component hook to the bend-specific curvilinear
      * `convertEntryCartesianToFieldLocal()` logic.
+     *
+     * In the Physics Manual notation, the bend field chart is
+     * \f[
+     * \mathbf u_{\mathrm{bend}} = (x,y,s)
+     * = \chi_{\mathrm{bend}}\!\left(\mathbf r_{\mathrm{entry}}\right),
+     * \f]
+     * where \f$s\f$ is the longitudinal coordinate along the bend design reference path. The map
+     * is piecewise: straight entry tangent, curved body, and straight exit tangent, with the
+     * rectangular-bend exit fringe measured from the rotated exit face.
      */
     Vector_t<double, 3> transformFieldFrameToLocal(const Vector_t<double, 3>& r) const override;
 
@@ -144,6 +160,14 @@ public:
      *
      * The field-local position supplies the curvilinear longitudinal coordinate used to select the
      * tangent basis.
+     *
+     * If \f$\phi(s)\f$ denotes the reference-path phase, this applies the bend-basis rotation
+     * \f[
+     * \mathbf v_{\mathrm{field}} =
+     * \mathcal R_{\mathrm{bend}}(s)\,\mathbf v_{\mathrm{entry}},
+     * \f]
+     * with \f$\mathcal R_{\mathrm{bend}}(s)=R_y(\phi(s))\f$ on the curved interior. Outside the
+     * body the map reduces to the appropriate straight tangent frame.
      */
     Vector_t<double, 3> rotateFieldFrameToLocal(
             const Vector_t<double, 3>& v,
@@ -153,6 +177,12 @@ public:
      * @brief Rotate a field-chart vector back into the rigid bend entry frame.
      *
      * The inverse rotation is evaluated at the supplied field-local longitudinal coordinate.
+     *
+     * This applies
+     * \f[
+     * \mathbf v_{\mathrm{entry}} =
+     * \mathcal R_{\mathrm{bend}}(s)^{-1}\,\mathbf v_{\mathrm{field}} .
+     * \f]
      */
     Vector_t<double, 3> rotateFieldLocalToFieldFrame(
             const Vector_t<double, 3>& v,
@@ -166,6 +196,18 @@ public:
      * The container enters in the rigid bend field frame; the bend then steps through the
      * precomputed slices, transforms into each slice-local tangent frame, applies `applySlice()`,
      * and restores the caller frame.
+     *
+     * The implemented many-particle path is therefore
+     * \f[
+     * \mathcal P \xrightarrow{\,T_{\mathrm{entry}\to j}\,}
+     * \mathcal P_j
+     * \xrightarrow{\,\mathrm{applySlice}_j\,}
+     * \mathcal P_j
+     * \xrightarrow{\,T_{\mathrm{entry}\to j}^{-1}\,}
+     * \mathcal P ,
+     * \f]
+     * repeated over the slice stack \f$j=0,\dots,N-1\f$, where each slice frame is tangent to the
+     * design path at its midpoint \f$s_{j+\frac12}\f$.
      */
     bool applyToBunch(
             const std::shared_ptr<ParticleContainer_t>& pc,

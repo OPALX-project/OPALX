@@ -86,6 +86,14 @@ public:
      * Most components evaluate fields directly in their placed body frame, so the default
      * implementation returns the nominal body transform from `placed`. Curvilinear elements may
      * override this to expose the rigid frame from which their field chart is derived.
+     *
+     * In the Physics Manual language, this is the rigid part of the runtime map
+     * \f[
+     * \mathbf r_{\mathrm{field\;frame}} =
+     * T_i^{\mathrm{field}} \, \mathbf r_{\mathrm{lab}},
+     * \f]
+     * where \f$T_i^{\mathrm{field}}\in SE(3)\f$ maps laboratory coordinates into the element's
+     * rigid runtime field frame. For straight elements this coincides with the placed body frame.
      */
     virtual CoordinateSystemTrafo getFieldCSTrafoLab2Local(const PlacedElement& placed) const;
 
@@ -95,6 +103,14 @@ public:
      * The input position is already expressed in the rigid field frame returned by
      * `getFieldCSTrafoLab2Local()`. Straight elements use the identity map; curved elements may
      * override this to introduce a non-rigid longitudinal coordinate.
+     *
+     * Mathematically this implements the chart map
+     * \f[
+     * \mathbf u_i = \chi_i\!\left(\mathbf r_{\mathrm{field\;frame}}\right),
+     * \f]
+     * where \f$\mathbf u_i\f$ are the final local field coordinates used by the field law. For a
+     * straight element, \f$\chi_i\f$ is the identity. For a bend, \f$\chi_i\f$ may convert a
+     * rigid entry-frame Cartesian point into curvilinear coordinates \f$(x,y,s)\f$.
      */
     virtual Vector_t<double, 3> transformFieldFrameToLocal(const Vector_t<double, 3>& r) const;
 
@@ -105,6 +121,15 @@ public:
      * @param fieldLocalPosition Position in the final field chart where the basis is evaluated.
      *
      * The default implementation is the identity map.
+     *
+     * If \f$R_i^{\mathrm{field}}\f$ denotes the rotation part of
+     * \f$T_i^{\mathrm{field}}\f$, this method implements
+     * \f[
+     * \mathbf v_i =
+     * \mathcal R_i(\mathbf u_i)\,R_i^{\mathrm{field}}\,\mathbf v_{\mathrm{lab}},
+     * \f]
+     * where \f$\mathcal R_i(\mathbf u_i)\f$ is the additional basis rotation induced by the final
+     * field chart \f$\chi_i\f$. For straight elements \f$\mathcal R_i = I\f$.
      */
     virtual Vector_t<double, 3> rotateFieldFrameToLocal(
             const Vector_t<double, 3>& v, const Vector_t<double, 3>& fieldLocalPosition) const;
@@ -116,6 +141,13 @@ public:
      * @param fieldLocalPosition Position in the field chart where the basis is evaluated.
      *
      * The default implementation is the identity map.
+     *
+     * This applies the inverse of `rotateFieldFrameToLocal()`:
+     * \f[
+     * \mathbf v_{\mathrm{lab}} =
+     * \left(R_i^{\mathrm{field}}\right)^{-1}
+     * \mathcal R_i(\mathbf u_i)^{-1}\,\mathbf v_i .
+     * \f]
      */
     virtual Vector_t<double, 3> rotateFieldLocalToFieldFrame(
             const Vector_t<double, 3>& v, const Vector_t<double, 3>& fieldLocalPosition) const;
@@ -141,6 +173,18 @@ public:
      * field frame. The default implementation performs that rigid transform, delegates to
      * `apply(pc)`, and then restores the original frame. Components with non-rigid many-particle
      * tracking may override this method.
+     *
+     * In formulas, the default container path is
+     * \f[
+     * \mathcal P \xrightarrow{\,T_i^{\mathrm{field}}\,}
+     * \mathcal P_i^{\mathrm{field}}
+     * \xrightarrow{\,\mathrm{apply}\,}
+     * \mathcal P_i^{\mathrm{field}}
+     * \xrightarrow{\,\left(T_i^{\mathrm{field}}\right)^{-1}\,}
+     * \mathcal P ,
+     * \f]
+     * while curvilinear elements such as bends may replace the single rigid field frame by a
+     * sequence of slice-local rigid frames.
      */
     virtual bool applyToBunch(
             const std::shared_ptr<ParticleContainer_t>& pc,

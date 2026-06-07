@@ -80,6 +80,12 @@ public:
      * bends use this rigid transform only as an auxiliary frame; the actual
      * longitudinal coordinate used for runtime field queries may be
      * curvilinear, as implemented in `transformToFieldLocalCS()`.
+     *
+     * In formulas, this method returns \f$T_i^{\mathrm{field}}\f$ such that
+     * \f[
+     * \mathbf r_{\mathrm{field\;frame}} =
+     * T_i^{\mathrm{field}}\,\mathbf r_{\mathrm{lab}} .
+     * \f]
      */
     CoordinateSystemTrafo getFieldCSTrafoLab2Local(const std::shared_ptr<Component>& comp) const;
 
@@ -89,6 +95,13 @@ public:
      * This first applies the rigid field-frame transform returned by
      * `getFieldCSTrafoLab2Local()` and then lets the component convert that rigid-frame point into
      * its final field chart.
+     *
+     * Equivalently,
+     * \f[
+     * \mathbf u_i =
+     * \chi_i\!\left(T_i^{\mathrm{field}}\,\mathbf r_{\mathrm{lab}}\right),
+     * \f]
+     * where \f$\chi_i\f$ is the element-specific field-chart map.
      */
     Vector_t<double, 3> transformToFieldLocalCS(
             const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r) const;
@@ -109,6 +122,12 @@ public:
      *
      * This convenience overload preserves the historical rigid behavior for callers that do not
      * have a field-local position available.
+     *
+     * It evaluates the generic vector map at \f$\mathbf u_i=\mathbf 0\f$:
+     * \f[
+     * \mathbf v_i =
+     * \mathcal R_i(\mathbf 0)\,R_i^{\mathrm{field}}\,\mathbf v_{\mathrm{lab}}.
+     * \f]
      */
     Vector_t<double, 3> rotateToFieldLocalCS(
             const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r) const;
@@ -118,6 +137,13 @@ public:
      *
      * The supplied `fieldLocalPosition` is used by curvilinear elements to evaluate the local
      * tangent basis.
+     *
+     * In the general case this computes
+     * \f[
+     * \mathbf v_i =
+     * \mathcal R_i(\mathbf u_i)\,R_i^{\mathrm{field}}\,\mathbf v_{\mathrm{lab}},
+     * \f]
+     * with \f$\mathbf u_i\f$ given explicitly by `fieldLocalPosition`.
      */
     Vector_t<double, 3> rotateToFieldLocalCS(
             const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& fieldLocalPosition,
@@ -128,6 +154,13 @@ public:
      *
      * This convenience overload preserves the historical rigid behavior for callers that do not
      * have a field-local position available.
+     *
+     * It applies the inverse map at \f$\mathbf u_i=\mathbf 0\f$:
+     * \f[
+     * \mathbf v_{\mathrm{lab}} =
+     * \left(R_i^{\mathrm{field}}\right)^{-1}
+     * \mathcal R_i(\mathbf 0)^{-1}\,\mathbf v_i.
+     * \f]
      */
     Vector_t<double, 3> rotateFromFieldLocalCS(
             const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& r) const;
@@ -137,6 +170,13 @@ public:
      *
      * The supplied `fieldLocalPosition` is used by curvilinear elements to evaluate the inverse
      * tangent-basis rotation.
+     *
+     * In the general case this computes
+     * \f[
+     * \mathbf v_{\mathrm{lab}} =
+     * \left(R_i^{\mathrm{field}}\right)^{-1}
+     * \mathcal R_i(\mathbf u_i)^{-1}\,\mathbf v_i .
+     * \f]
      */
     Vector_t<double, 3> rotateFromFieldLocalCS(
             const std::shared_ptr<Component>& comp, const Vector_t<double, 3>& fieldLocalPosition,
