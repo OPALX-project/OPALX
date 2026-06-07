@@ -1032,6 +1032,68 @@ namespace {
     }
 
     TEST_F(BendRepParticleContainerTest,
+           ApplyToBunchMatchesExplicitSliceSequenceForDeterministicManyParticleSet) {
+        constexpr double bodyLength     = 1.0;
+        constexpr double bendAngle      = Physics::pi / 4.0;
+        constexpr double fringeHalfGap  = 0.02;
+        constexpr double fringeIntegral = 0.5;
+        constexpr std::size_t nSlices   = 64;
+
+        SBendRep bend("SBEND");
+        bend.getGeometry() = PlanarArcGeometry(bodyLength, bendAngle / bodyLength);
+        bend.setElementLength(bodyLength);
+        bend.setBendAngle(bendAngle);
+        bend.setEntranceAngle(Physics::pi / 8.0);
+        bend.setExitAngle(Physics::pi / 8.0);
+        bend.setFringeHalfGap(fringeHalfGap);
+        bend.setFringeIntegral(fringeIntegral);
+        bend.setNSlices(nSlices);
+        bend.setB(1.2);
+        bend.getField().setNormalComponent(1, 0.4);
+        bend.getField().setSkewComponent(1, -0.2);
+        const double curvature = bendAngle / bodyLength;
+
+        const double entryFringe = bend.getEntryFringeSupportLength();
+        const double exitFringe  = bend.getExitFringeSupportLength();
+        const std::vector<Vector_t<double, 3>> fieldLocalPositions = {
+                {0.0, 0.0, -0.5 * entryFringe},
+                {1.0e-3, 0.0, 0.05 * bodyLength},
+                {-1.0e-3, 0.0, 0.35 * bodyLength},
+                {0.0, 1.0e-3, 0.65 * bodyLength},
+                {0.0, -1.0e-3, 0.75 * bodyLength},
+                {0.8e-3, -0.6e-3, bodyLength + 0.5 * exitFringe}};
+        std::vector<std::array<double, 3>> entryPositions;
+        for (const auto& fieldLocalPosition : fieldLocalPositions) {
+            const Vector_t<double, 3> entryCartesian =
+                    fieldLocalToEntryCartesian(fieldLocalPosition, curvature, bodyLength);
+            entryPositions.push_back({entryCartesian(0), entryCartesian(1), entryCartesian(2)});
+        }
+
+        auto pcExplicit = makeContainer(entryPositions);
+        auto pcGeneric  = makeContainer(entryPositions);
+
+        const auto slices = bend.buildTrackingSlices();
+        for (const auto& slice : slices) {
+            pcExplicit->transformBunch(slice.entryToSliceLocal);
+            bend.applySlice(pcExplicit, slice);
+            pcExplicit->transformBunch(slice.entryToSliceLocal.inverted());
+        }
+
+        bend.applyToBunch(pcGeneric, CoordinateSystemTrafo());
+
+        auto Bexplicit = pcExplicit->B.getHostMirror();
+        auto Bgeneric  = pcGeneric->B.getHostMirror();
+        Kokkos::deep_copy(Bexplicit, pcExplicit->B.getView());
+        Kokkos::deep_copy(Bgeneric, pcGeneric->B.getView());
+
+        for (std::size_t i = 0; i < fieldLocalPositions.size(); ++i) {
+            EXPECT_NEAR(Bgeneric(i)(0), Bexplicit(i)(0), 1.0e-12) << "particle " << i;
+            EXPECT_NEAR(Bgeneric(i)(1), Bexplicit(i)(1), 1.0e-12) << "particle " << i;
+            EXPECT_NEAR(Bgeneric(i)(2), Bexplicit(i)(2), 1.0e-12) << "particle " << i;
+        }
+    }
+
+    TEST_F(BendRepParticleContainerTest,
            FullSliceSequenceBorisUpdateMatchesScalarHostUpdateForDeterministicManyParticleSet) {
         constexpr double bodyLength     = 1.0;
         constexpr double bendAngle      = Physics::pi / 4.0;

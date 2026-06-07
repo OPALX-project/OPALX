@@ -486,6 +486,20 @@ bool BendBase::apply(const std::shared_ptr<ParticleContainer_t>& pc) {
     return false;
 }
 
+bool BendBase::applyToBunch(
+        const std::shared_ptr<ParticleContainer_t>& pc,
+        const CoordinateSystemTrafo& refToFieldCSTrafo) {
+    const auto slices = buildTrackingSlices();
+    for (const auto& slice : slices) {
+        const CoordinateSystemTrafo refToSliceLocal = slice.entryToSliceLocal * refToFieldCSTrafo;
+        const CoordinateSystemTrafo sliceLocalToRef = refToSliceLocal.inverted();
+        pc->transformBunch(refToSliceLocal);
+        applySlice(pc, slice);
+        pc->transformBunch(sliceLocalToRef);
+    }
+    return false;
+}
+
 std::vector<BendBase::TrackingSlice> BendBase::buildTrackingSlices() const {
     const double bodyLength  = getReferencePathLength();
     const double sBegin      = -getEntryFringeSupportLength();

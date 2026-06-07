@@ -11,6 +11,7 @@
  */
 
 #include "AbsBeamline/Component.h"
+#include "PartBunch/ParticleContainer.hpp"
 #include "Utilities/LogicalError.h"
 #include "Utility/Inform.h"
 
@@ -76,6 +77,16 @@ Vector_t<double, 3> Component::rotateFieldLocalToFieldFrame(
  * @returns true if particle is out-of-bounds (lost), false otherwise
  */
 bool Component::apply(const std::shared_ptr<ParticleContainer_t>& /*pc*/) { return false; }
+
+bool Component::applyToBunch(
+        const std::shared_ptr<ParticleContainer_t>& pc,
+        const CoordinateSystemTrafo& refToFieldCSTrafo) {
+    const CoordinateSystemTrafo fieldToRefCSTrafo = refToFieldCSTrafo.inverted();
+    pc->transformBunch(refToFieldCSTrafo);
+    const bool lost = apply(pc);
+    pc->transformBunch(fieldToRefCSTrafo);
+    return lost;
+}
 
 /**
  * @brief Apply to particle i

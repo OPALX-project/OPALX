@@ -57,7 +57,6 @@
 #include "Utilities/Util.h"
 #include "ValueDefinitions/RealVariable.h"
 
-#include "AbsBeamline/BendBase.h"
 #include "AbsBeamline/PluginElement.h"
 #include "AbsBeamline/VerticalFFAMagnet.h"
 
@@ -785,43 +784,10 @@ void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
         const IndexMap::value_t::const_iterator end = elements.end();
         for (; it != end; ++it) {
             (*it)->setCurrentSCoordinate(pc->get_sPos() + rmin(2));
-
-            if ((*it)->getType() == ElementType::SBEND || (*it)->getType() == ElementType::RBEND) {
-                BendBase* bend = dynamic_cast<BendBase*>((*it).get());
-                if (bend == nullptr) {
-                    throw OpalException(
-                            "ParallelTracker::computeExternalFields",
-                            "Encountered bend element without BendBase runtime type.");
-                }
-
-                const CoordinateSystemTrafo nominalEntryToLocal =
-                        itsOpalBeamline_m.getNominalEntryTransform((*it));
-                const CoordinateSystemTrafo nominalToActual =
-                        itsOpalBeamline_m.getMisalignment((*it));
-                const auto slices = bend->buildTrackingSlices();
-
-                for (const auto& slice : slices) {
-                    CoordinateSystemTrafo refToSliceLocal =
-                            slice.entryToSliceLocal
-                            * (nominalToActual * (nominalEntryToLocal * pc->getToLabTrafo()));
-                    CoordinateSystemTrafo sliceLocalToRef = refToSliceLocal.inverted();
-
-                    pc->transformBunch(refToSliceLocal);
-                    bend->applySlice(pc, slice);
-                    pc->transformBunch(sliceLocalToRef);
-                }
-                continue;
-            }
-
-            CoordinateSystemTrafo refToLocalCSTrafo =
+            const CoordinateSystemTrafo refToFieldCSTrafo =
                     (itsOpalBeamline_m.getMisalignment((*it))
                      * (itsOpalBeamline_m.getFieldCSTrafoLab2Local((*it)) * pc->getToLabTrafo()));
-
-            CoordinateSystemTrafo localToRefCSTrafo = refToLocalCSTrafo.inverted();
-
-            pc->transformBunch(refToLocalCSTrafo);
-            (*it)->apply(pc);
-            pc->transformBunch(localToRefCSTrafo);
+            (*it)->applyToBunch(pc, refToFieldCSTrafo);
         }
     }
 

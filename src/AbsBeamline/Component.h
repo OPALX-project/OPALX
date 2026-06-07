@@ -100,6 +100,9 @@ public:
      * @returns true if particle is out-of-bounds (lost), false otherwise
      */
     virtual bool apply(const std::shared_ptr<ParticleContainer_t>& pc);
+    virtual bool applyToBunch(
+            const std::shared_ptr<ParticleContainer_t>& pc,
+            const CoordinateSystemTrafo& refToFieldCSTrafo);
 
     /**
      * @brief Apply to particle i
