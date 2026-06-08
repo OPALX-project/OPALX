@@ -35,8 +35,8 @@
 
 namespace {
     double normalizeSignedRadians(double angle) {
-        const double pi    = std::acos(-1.0);
-        const double twoPi = 2.0 * pi;
+        const double pi    = 0.5 * Physics::two_pi;
+        const double twoPi = Physics::two_pi;
         angle              = std::fmod(angle + pi, twoPi);
         if (angle < 0.0) {
             angle += twoPi;
@@ -44,10 +44,7 @@ namespace {
         return angle - pi;
     }
 
-    double radiansToDegrees(double angle) { return angle * 180.0 / std::acos(-1.0); }
-
     double cleanAngleDegrees(double value) { return std::abs(value) < 5.0e-13 ? 0.0 : value; }
-
     std::string fixedOneDecimal(double value) {
         std::ostringstream out;
         out << std::fixed << std::setprecision(1) << value;
@@ -203,7 +200,7 @@ bool OpalBeamline::reportPortContinuityDiagnostics(std::ostream& out) const {
         rotationDelta.normalize();
         Vector_t<double, 3> angles = Util::getTaitBryantAngles(rotationDelta);
         for (unsigned int d = 0; d < 3; ++d) {
-            angles(d) = cleanAngleDegrees(radiansToDegrees(normalizeSignedRadians(angles(d))));
+            angles(d) = cleanAngleDegrees(Units::rad2deg * angles(d));
         }
 
         const bool hasGap      = gapNorm > gapTolerance;
