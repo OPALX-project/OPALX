@@ -45,6 +45,8 @@ public:
     void execute();
 
     IndexMap::value_t query(IndexMap::key_t::first_type step, IndexMap::key_t::second_type length);
+    IndexMap::value_t queryActionRangeElements(
+            IndexMap::key_t::first_type step, IndexMap::key_t::second_type length) const;
 
     IndexMap::key_t getRange(const IndexMap::value_t::value_type& element, double position) const;
     IndexMap::value_t getTouchingElements(const IndexMap::key_t& range) const;
@@ -176,6 +178,11 @@ private:
 inline IndexMap::value_t OrbitThreader::query(
         IndexMap::key_t::first_type pathLength, IndexMap::key_t::second_type length) {
     return imap_m.query(pathLength, length);
+}
+
+inline IndexMap::value_t OrbitThreader::queryActionRangeElements(
+        IndexMap::key_t::first_type pathLength, IndexMap::key_t::second_type length) const {
+    return actionRangeRegistrationModel_m.query(pathLength - length, pathLength + length);
 }
 
 inline IndexMap::key_t OrbitThreader::getRange(

@@ -85,6 +85,18 @@ std::set<std::shared_ptr<Component>> OpalBeamline::getElements(const Vector_t<do
     return elementSet;
 }
 
+std::set<std::shared_ptr<Component>> OpalBeamline::getReferenceElements(
+        const Vector_t<double, 3>& x) {
+    std::set<std::shared_ptr<Component>> elementSet = getElements(x);
+    for (auto& item : elements_m) {
+        const std::shared_ptr<Component>& element = item.getElement();
+        if (element->getType() == ElementType::MONITOR && element->Online()) {
+            elementSet.insert(element);
+        }
+    }
+    return elementSet;
+}
+
 std::set<std::shared_ptr<Component>> OpalBeamline::getElements() {
     std::set<std::shared_ptr<Component>> elementSet;
     for (auto& item : elements_m) {

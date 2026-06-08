@@ -584,6 +584,14 @@ TEST_F(OrbitThreaderTest, RegistersSBendActionRangeFromFieldSupportExtent) {
     EXPECT_NEAR(segment.getLegacyElementEdge().value(), 0.0, 1.0e-12);
     EXPECT_NEAR(segment.getBegin(), -expectedEntryFringe, 1.0e-6);
     EXPECT_NEAR(segment.getEnd(), 1.0 + expectedEntryFringe, 1.0e-6);
+
+    const auto tracedBeforeEntry = threader.query(-0.5 * expectedEntryFringe, 0.0);
+    EXPECT_TRUE(tracedBeforeEntry.empty());
+
+    const auto registeredBeforeEntry =
+            threader.queryActionRangeElements(-0.5 * expectedEntryFringe, 0.0);
+    ASSERT_EQ(registeredBeforeEntry.size(), 1u);
+    EXPECT_EQ((*registeredBeforeEntry.begin())->getName(), "B1");
 }
 
 TEST_F(OrbitThreaderTest, RegistersExplicitPositionedSBendActionRangeWithoutElementEdge) {

@@ -747,9 +747,6 @@ void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
 
         const double queryCenter    = pc->get_sPos() + 0.5 * (rmax(2) + rmin(2));
         const double queryHalfWidth = rmax(2) - rmin(2);
-        const double queryBegin     = queryCenter - queryHalfWidth;
-        const double queryEnd       = queryCenter + queryHalfWidth;
-
         // Get elements at bunch position.
         IndexMap::value_t elements;
         bool indexMapOutOfBounds = false;
@@ -759,18 +756,8 @@ void ParallelTracker::computeExternalFields(OrbitThreader& oth) {
             indexMapOutOfBounds = true;
         }
 
-        for (const auto& segment : oth.getActionRangeRegistrationModel().getSegments()) {
-            if (segment.getEnd() < queryBegin || segment.getBegin() > queryEnd) {
-                continue;
-            }
-
-            for (const auto& element : segment.getActiveElements()) {
-                if (element->getType() == ElementType::SBEND
-                    || element->getType() == ElementType::RBEND) {
-                    elements.insert(element);
-                }
-            }
-        }
+        const auto actionRangeElements = oth.queryActionRangeElements(queryCenter, queryHalfWidth);
+        elements.insert(actionRangeElements.begin(), actionRangeElements.end());
 
         if (elements.empty()) {
             if (indexMapOutOfBounds) {
@@ -1289,13 +1276,7 @@ void ParallelTracker::updateReferenceParticles(const BorisPusher& pusher) {
         pusher.push(pc.getRefPartR(), pc.getRefPartP(), dt);
         pc.getRefPartR() *= scaleFactor;
 
-        IndexMap::value_t elements = itsOpalBeamline_m.getElements(pc.getRefPartR());
-        const auto allElements     = itsOpalBeamline_m.getElements();
-        for (const auto& element : allElements) {
-            if (element->getType() == ElementType::MONITOR && element->Online()) {
-                elements.insert(element);
-            }
-        }
+        IndexMap::value_t elements = itsOpalBeamline_m.getReferenceElements(pc.getRefPartR());
         IndexMap::value_t::const_iterator it        = elements.begin();
         const IndexMap::value_t::const_iterator end = elements.end();
 

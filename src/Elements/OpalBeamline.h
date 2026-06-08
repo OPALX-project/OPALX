@@ -50,6 +50,14 @@ public:
 
     void activateElements();
     std::set<std::shared_ptr<Component>> getElements(const Vector_t<double, 3>& x);
+    /**
+     * @brief Return elements that act on the reference particle at the given lab position.
+     *
+     * This includes the usual geometric containment query and any online monitor elements, which
+     * remain logically active as thin diagnostics even when their nominal body support is not used
+     * as the sole activation mechanism.
+     */
+    std::set<std::shared_ptr<Component>> getReferenceElements(const Vector_t<double, 3>& x);
 
     /**
      * Get all elements in the beamline, regardless of their position.
