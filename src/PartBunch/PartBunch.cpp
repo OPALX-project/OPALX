@@ -9,6 +9,7 @@
 #include "PartBunch/BinnedFieldSolver.h"
 #include "Particle/ParticleAttrib.h"
 #include "Physics/ParticleProperties.h"
+#include "Solve2d5.h"
 #include "Structure/Beam.h"
 #include "Structure/DataSink.h"
 #include "Utilities/Util.h"
@@ -249,14 +250,23 @@ void PartBunch<T, Dim>::setSolver() {
     // Needs to happen before setting the field solver, since the field solver needs the bins.
     setBins();
 
-    BinningCmd* binningCmd = OPALFieldSolver_m->getBinningCmd();
-    auto binnedSolver      = std::make_shared<BinnedFieldSolver<T, Dim>>(
-            this->solver_m, &this->fcontainer_m->getRho(), &this->fcontainer_m->getE(),
-            &this->fcontainer_m->getPhi(), this->getBCHandler(),
-            binningCmd ? binningCmd->getTablePrintFrequency() : 0,
-            binningCmd ? binningCmd->getAdaptiveBinning() : true);
-    this->setFieldSolver(binnedSolver);
-    m << level4 << "Binned field solver set (binned or legacy at runtime)." << endl;
+    if (Dim == 3
+        && (solver_m == "OPEN2D5" || solver_m == "CIRCULAR2D5" || solver_m == "PLATES2D5")) {
+        auto solver2d5 = std::make_shared<Solve2d5<T>>(
+                this->solver_m, &this->fcontainer_m->getRho(), &this->fcontainer_m->getE(),
+                &this->fcontainer_m->getPhi(), this->getBCHandler());
+        this->setFieldSolver(solver2d5);
+        m << level4 << "2.5D field solver set." << endl;
+    } else {
+        BinningCmd* binningCmd = OPALFieldSolver_m->getBinningCmd();
+        auto binnedSolver      = std::make_shared<BinnedFieldSolver<T, Dim>>(
+                this->solver_m, &this->fcontainer_m->getRho(), &this->fcontainer_m->getE(),
+                &this->fcontainer_m->getPhi(), this->getBCHandler(),
+                binningCmd ? binningCmd->getTablePrintFrequency() : 0,
+                binningCmd ? binningCmd->getAdaptiveBinning() : true);
+        this->setFieldSolver(binnedSolver);
+        m << level4 << "Binned field solver set (binned or legacy at runtime)." << endl;
+    }
 
     this->fsolver_m->initSolver();
     m << level4 << "Field solver initialized." << endl;

@@ -42,7 +42,8 @@ FieldSolverCmd::FieldSolverCmd()
               "The \"FIELDSOLVER\" statement defines data for a the field solver") {
     itsAttr[FIELDSOLVER::TYPE] = Attributes::makePredefinedString(
             "TYPE", "Name of the attached field solver.",
-            {"NONE", "FFT", "OPEN", "CG"});  // removed, since not implemented: "P3M"
+            {"NONE", "FFT", "OPEN", "CG", "OPEN2D5", "CIRCULAR2D5", "PLATES2D5"});
+    // removed, since not implemented: "P3M"
 
     itsAttr[FIELDSOLVER::BINS] = Attributes::makeString(
             "BINS", "Name of BINNING definition to be used, or NONE for no binning.", "NONE");
@@ -159,7 +160,11 @@ void FieldSolverCmd::setFieldSolverCmdType() {
             {"NONE", FieldSolverCmdType::NONE},
             {"FFT", FieldSolverCmdType::FFT},
             {"OPEN", FieldSolverCmdType::OPEN},
-            {"CG", FieldSolverCmdType::CG}};
+            {"CG", FieldSolverCmdType::CG},
+            {"OPEN2D5", FieldSolverCmdType::OPEN2D5},
+            {"CIRCULAR2D5", FieldSolverCmdType::CIRCULAR2D5},
+            {"PLATES2D5", FieldSolverCmdType::PLATES2D5},
+    };
 
     fsName_m = getType();
 

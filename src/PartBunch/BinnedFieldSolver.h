@@ -154,7 +154,7 @@ public:
         double gammaBin             = 1.0;
     };
 
-private:
+protected:
     ScatterAttribute scatterAttribute_m;
     GatherAttribute gatherAttribute_m;
     int tablePrintFrequency_m        = 0;

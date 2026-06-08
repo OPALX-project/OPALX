@@ -118,7 +118,7 @@ public:
      * `runSolver()` routine is defined in the base class as not taking any
      * arguments.
      */
-    void runSolver(bool force_skip_field_dump);
+    virtual void runSolver(bool force_skip_field_dump);
 
     /**
      * @brief Run an Open-solver solve with a shifted free-space Green's function.

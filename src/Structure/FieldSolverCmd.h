@@ -30,7 +30,9 @@
 
 #include "Ippl.h"
 
-enum class FieldSolverCmdType : short { NONE = -1, FFT = 0, OPEN = 1, CG = 2 };
+enum class FieldSolverCmdType : short { NONE = -1, FFT = 0, OPEN = 1, CG = 2,
+    OPEN2D5 = 3, CIRCULAR2D5 = 4, PLATES2D5 = 5
+};
 
 // The attributes of class FieldSolverCmd.
 namespace FIELDSOLVER {

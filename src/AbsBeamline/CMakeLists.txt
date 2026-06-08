@@ -31,6 +31,7 @@ set(_SRCS
     RBend.cpp
     VariableRFCavity.cpp
     SBend.cpp
+
 )
 
 set(_HDRS
@@ -60,6 +61,7 @@ set(_HDRS
     RBend.h
     SBend.h
     VariableRFCavity.h
+    MultipoleTConfig.h
 )
 
 # Add local include directory
