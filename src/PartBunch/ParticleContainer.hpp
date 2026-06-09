@@ -203,6 +203,7 @@ public:
         trafo.rotateBunchTo(this->P.getView(), nLoc);
         trafo.rotateBunchTo(this->E.getView(), nLoc);
         trafo.rotateBunchTo(this->B.getView(), nLoc);
+        markMomentsDirty();
     }
     PLayout_t<T, Dim>& getPL() { return pl_m; }
 
@@ -502,11 +503,12 @@ public:
         pusher.push(refPartR_m, refPartP_m, tau);
         refPartR_m *= (Physics::c * 2 * tau);
 
-        sPos_m                = pathLengthTarget;
-        Vector_t<double, 3> R = toLabTrafo_m.transformFrom(refPartR_m);
-        Vector_t<double, 3> P = toLabTrafo_m.rotateFrom(refPartP_m);
+        sPos_m = pathLengthTarget;
+        toLabTrafo_m.transformFrom(refPartR_m);
+        Vector_t<double, 3> R = refPartR_m;
+        toLabTrafo_m.rotateFrom(refPartP_m);
+        Vector_t<double, 3> P = refPartP_m;
         CoordinateSystemTrafo update(R, getQuaternion(P, Vector_t<double, 3>(0, 0, 1)));
-        transformBunch(update);
         toLabTrafo_m = toLabTrafo_m * update.inverted();
     }
 
