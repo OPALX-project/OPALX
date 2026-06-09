@@ -71,6 +71,8 @@ void Solve2d5<T>::initSolver() {
         twoDSolvers_m[z].solver_m = std::make_shared<OpenSolver2D_t>(
                 *twoDSolvers_m[z].E_m, *twoDSolvers_m[z].rho_m, params);
     }
+    lineDensity_m         = LineDensityView_t("lineDensity", numSlices);
+    lineDensityGradient_m = LineDensityView_t("lineDensityGradient", numSlices);
 }
 
 template <typename T>
@@ -147,7 +149,7 @@ void Solve2d5<T>::scatterToGrid(const PartBunch_t& bunch, DiagnosticPolicy diagn
             const auto& layout  = rho_m->getLayout();
             const auto& lDom    = layout.getLocalNDIndex();
             const auto rhoView  = rho_m->getView();
-            const auto& origin = mesh.getOrigin();
+            const auto& origin  = mesh.getOrigin();
             Kokkos::deep_copy(rhoView, 0.0);
             Kokkos::parallel_for(
                     "Solve2d5::scatterToGrid()", pc->getLocalNum(), KOKKOS_LAMBDA(const size_t n) {
@@ -263,31 +265,173 @@ KOKKOS_FUNCTION void Solve2d5<T>::scatterToRho(
 
 template <typename T>
 template <typename DiagnosticPolicy>
-void Solve2d5<T>::solvePoissons(DiagnosticPolicy /*diagnostic*/) {
+void Solve2d5<T>::calculateLineDensity(DiagnosticPolicy diagnostic) {
+    using Policy2D   = Kokkos::MDRangePolicy<Kokkos::Rank<2>>;
+    const auto rho3d = rho_m->getView();
+    auto lineDensity = Kokkos::create_mirror_view(lineDensity_m);
+    // Calculate the total charge density for each z slice
+    for (size_t k = 0; k < rho3d.extent(2); ++k) {
+        T sum{};
+        Kokkos::parallel_reduce(
+                Policy2D({0, 0}, {rho3d.extent(0), rho3d.extent(1)}),
+                KOKKOS_LAMBDA(const size_t i, const size_t j, T& localSum) {
+                    localSum += rho3d(i, j, k);
+                },
+                sum);
+        lineDensity(k) = sum;
+    }
+    Kokkos::deep_copy(lineDensity_m, lineDensity);
+    diagnostic.totalDensity(lineDensity_m);
+    // Convert this to line density
+    auto dx = sliceMesh_m->getMeshSpacing().data_m[0];
+    auto dy = sliceMesh_m->getMeshSpacing().data_m[1];
+    Kokkos::parallel_for(
+            rho3d.extent(2), KOKKOS_LAMBDA(const size_t k) { lineDensity(k) *= dx * dy; });
+    Kokkos::fence();
+    diagnostic.lineDensity(lineDensity_m);
+    // Find the gradient
+    auto lineDensityGradient = lineDensityGradient_m;
+    const auto nz            = rho3d.extent(2);
+    const auto dz            = rho_m->get_mesh().getMeshSpacing().data_m[2];
+    Kokkos::parallel_for(
+            Kokkos::RangePolicy(0, nz), KOKKOS_LAMBDA(const size_t k) {
+                if (k == 0) {
+                    lineDensityGradient(k) = (lineDensity(1) - lineDensity(0)) / dz;
+                } else if (k == nz - 1) {
+                    lineDensityGradient(k) = (lineDensity(k) - lineDensity(k - 1)) / dz;
+                } else {
+                    lineDensityGradient(k) = (lineDensity(k + 1) - lineDensity(k - 1)) / (2.0 * dz);
+                }
+            });
+    Kokkos::fence();
+    diagnostic.lineDensityGradient(lineDensityGradient_m);
+}
+
+template <typename T>
+template <typename DiagnosticPolicy>
+void Solve2d5<T>::solvePoissons(DiagnosticPolicy diagnostic) {
+    using Policy = Kokkos::MDRangePolicy<Kokkos::Rank<2>>;
+    auto e3d     = E_m->getView();
     // Copy the 3D charge density grid into the array of 2D grids, solve the 2D poisson on each,
     // then copy the E field results into the 3D E field grid.
     for (size_t z = 0; z < twoDSolvers_m.size(); ++z) {
         auto& s = twoDSolvers_m[z];
         // Do the 2D solve to get phi, Ex and Ey
         Kokkos::deep_copy(
-            s.rho_m->getView(), Kokkos::subview(rho_m->getView(), Kokkos::ALL(), Kokkos::ALL(), z));
-        s.solver_m->solve();   // 2D E is now filled in, the 2D rho array now contains 2D phi
+                s.rho_m->getView(),
+                Kokkos::subview(rho_m->getView(), Kokkos::ALL(), Kokkos::ALL(), z));
+        s.solver_m->solve();  // 2D E is now filled in, the 2D rho array now contains 2D phi
         Kokkos::fence();
-        // Copy into the 3D E field grid
-        using Policy = Kokkos::MDRangePolicy<Kokkos::Rank<2>>;
-        auto e3d = E_m->getView();
         auto e2d = s.E_m->getView();
+        // Copy into the 3D E field grid
         Kokkos::parallel_for(
-            "Zero Z",
-            Policy({0,0}, {e2d.extent(0), e2d.extent(1)}),
-            KOKKOS_LAMBDA(const int i, const int j) {
-                e3d(i,j,z)[0] = e2d(i,j)[0];
-                e3d(i,j,z)[1] = e2d(i,j)[1];
-                e3d(i,j,z)[2] = 0.0;
-            });
+                "Zero Z", Policy({0, 0}, {e2d.extent(0), e2d.extent(1)}),
+                KOKKOS_LAMBDA(const size_t i, const size_t j) {
+                    e3d(i, j, z)[0] = e2d(i, j)[0];
+                    e3d(i, j, z)[1] = e2d(i, j)[1];
+                    e3d(i, j, z)[2] = 0.0;
+                });
         Kokkos::fence();
+    }
+    diagnostic.eField(e3d);
+}
+
+template <typename T>
+template <typename DiagnosticPolicy>
+void Solve2d5<T>::gatherFromGrid(const PartBunch_t& bunch, DiagnosticPolicy diagnostic) {
+    if (referencePath_m.extent(0) > 1) {
+        for (auto& pcs = bunch.getParticleContainers(); const auto& pc : pcs) {
+            const auto& r       = pc->R.getView();
+            const auto& p       = pc->P.getView();
+            const auto& ref     = referencePath_m;
+            const auto meanPs   = pc->getMeanP().data_m[2];
+            const auto& dt      = pc->dt.getView();
+            const auto& invalid = pc->InvalidMask.getView();
+            const auto& mesh    = rho_m->get_mesh();
+            const auto& dr      = mesh.getMeshSpacing();
+            const auto invDr    = 1.0 / dr;
+            const int nghost    = rho_m->getNghost();
+            const auto& layout  = rho_m->getLayout();
+            const auto& lDom    = layout.getLocalNDIndex();
+            const auto rhoView  = rho_m->getView();
+            const auto& origin  = mesh.getOrigin();
+            Kokkos::deep_copy(rhoView, 0.0);
+            Kokkos::parallel_for(
+                    "Solve2d5::gatherFromGrid()", pc->getLocalNum(), KOKKOS_LAMBDA(const size_t n) {
+                        doGatherFromGrid(
+                                n, r, p, ref, meanPs, dt, invalid, invDr, nghost, lDom, rhoView,
+                                origin, diagnostic);
+                    });
+            Kokkos::fence();
+        }
     }
 }
 
+template <typename T>
+template <typename DiagnosticPolicy>
+KOKKOS_FUNCTION void Solve2d5<T>::doGatherFromGrid(
+        const size_t n, const VectorView_t& r, const VectorView_t& p, const ReferenceView_t& ref,
+        const T meanPs, const VectorView_t& e, const VectorView_t& b, const BooleanView_t& invalid,
+        Vector3D_t invDr, const int nghost, const ippl::NDIndex<3> lDom, VectorGridView3D_t eField,
+        Vector3D_t origin, DiagnosticPolicy diagnostic) {
+    if (!invalid(n)) {
+        // Into Frenet-Serret coordinates
+        Vector3D_t fsR, fsP, bUnit, nUnit, tUnit;
+        convertToFrenetSerret(n, r, p, ref, fsR, fsP, bUnit, nUnit, tUnit);
+        diagnostic.frenetSerret(n, fsR, fsP, invalid(n));
+        // CiC Gather the boosted E field
+        gatherFromEField(n, fsR, e, invDr, nghost, lDom, eField, origin);
+        // Unboost from the beam frame
+        unBoostFromBeamFrame(n, meanPs, e, b);
+        // And finally back into lab coordinates
+        convertFromFrenetSerret(n, bUnit, nUnit, tUnit, e, b);
+    }
+}
+
+template <typename T>
+KOKKOS_FUNCTION void Solve2d5<T>::gatherFromEField(
+        const size_t n, Vector3D_t fsR, const VectorView_t& e, Vector3D_t invDr, const int nghost,
+        const ippl::NDIndex<3>& lDom, VectorGridView3D_t eField, Vector3D_t origin) {
+    // CiC gather the boosted E field to the 3D E field grid
+    const auto l                 = (fsR - origin) * invDr + 0.5;
+    ippl::Vector<int, Dim> index = l;
+    ippl::Vector<T, Dim> whi     = l - index;
+    ippl::Vector<T, Dim> wlo     = 1.0 - whi;
+    ippl::Vector<int, Dim> args  = index - lDom.first() + nghost;
+    bool inBounds                = true;
+    for (unsigned d = 0; d < Dim; ++d) {
+        // CIC touches args[d] and args[d] - 1, so valid args are
+        // [1, extent - 1]. Anything outside would underflow or
+        // overrun the field view on the device.
+        inBounds = inBounds && args[d] > 0 && args[d] < static_cast<int>(eField.extent(d));
+    }
+    if (inBounds) {
+        e(n) = ippl::detail::gatherFromField(
+                std::make_index_sequence<1 << Dim>{}, eField, wlo, whi, args);
+    }
+}
+
+template <typename T>
+KOKKOS_FUNCTION void Solve2d5<T>::unboostFromBeamFrame(
+        size_t n, T meanPs, VectorView_t& e, VectorView_t& b) {
+    // Transform the E field from the boosted beam frame into E and B fields
+    auto gammaB    = Kokkos::sqrt(1.0 + meanPs * meanPs);
+    auto betaB = meanPs / gammaB;
+    e(n).data_m[0] *= gammaB;
+    e(n).data_m[1] *= gammaB;
+    b(n).data_m[0] = betaB * e(n).data_m[1] / Physics::c;
+    b(n).data_m[1] = -betaB * e(n).data_m[0] / Physics::c;
+    b(n).data_m[2] = 0.0;
+}
+
+template <typename T>
+KOKKOS_FUNCTION void Solve2d5<T>::convertFromFrenetSerret(
+        size_t n, const Vector3D_t& bUnit, const Vector3D_t& nUnit,
+        const Vector3D_t& tUnit, VectorView_t& e, VectorView_t& b) {
+    e(n) = e(n).data_m[0] * nUnit + e(n).data_m[1] * bUnit + e(n).data_m[2] * tUnit;
+    b(n) = b(n).data_m[0] * nUnit + b(n).data_m[1] * bUnit + b(n).data_m[2] * tUnit;
+}
+
+READY FOR TESTING
 
 #endif

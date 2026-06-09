@@ -24,6 +24,7 @@
 #include "AbstractObjects/OpalData.h"
 #include "Attributes/Attributes.h"
 #include "Ippl.h"
+#include "Lines/Line.h"
 #include "PartBunch/PartBunch.h"
 #include "PartBunch/Solve2d5.h"
 #include "PartBunch/SubField.h"
@@ -34,6 +35,8 @@
 #include "Utility/Inform.h"
 
 namespace {
+
+    constexpr bool VerboseTest = true;
 
     class TestableFieldSolverCmd : public FieldSolverCmd {
     public:
@@ -118,6 +121,63 @@ namespace {
         }
 
         Field_t<3>::view_type rhoView;
+    };
+
+    class TotalDensityDiagnostic : public Solve2d5_t::NullDiagnostic {
+    public:
+        explicit TotalDensityDiagnostic(const Solve2d5_t::LineDensityView_t& lineDensity)
+            : NullDiagnostic() {
+            lineDensityView_m =
+                    Solve2d5_t::LineDensityView_t(lineDensity.label(), lineDensity.extent(0));
+        }
+
+        KOKKOS_FUNCTION void totalDensity(const Solve2d5_t::LineDensityView_t& lineDensity) const {
+            Kokkos::deep_copy(lineDensityView_m, lineDensity);
+        }
+
+        Solve2d5_t::LineDensityView_t lineDensityView_m;
+    };
+
+    class LineDensityDiagnostic : public Solve2d5_t::NullDiagnostic {
+    public:
+        explicit LineDensityDiagnostic(const Solve2d5_t::LineDensityView_t& lineDensity)
+            : NullDiagnostic() {
+            Kokkos::resize(lineDensityView_m, lineDensity.extent(0));
+        }
+
+        KOKKOS_FUNCTION void lineDensity(const Solve2d5_t::LineDensityView_t& lineDensity) const {
+            Kokkos::deep_copy(lineDensityView_m, lineDensity);
+        }
+
+        Solve2d5_t::LineDensityView_t lineDensityView_m;
+    };
+
+    class LineDensityGradientDiagnostic : public Solve2d5_t::NullDiagnostic {
+    public:
+        explicit LineDensityGradientDiagnostic(const Solve2d5_t::LineDensityView_t& lineDensity)
+            : NullDiagnostic() {
+            Kokkos::resize(lineDensityView_m, lineDensity.extent(0));
+        }
+
+        KOKKOS_FUNCTION void lineDensityGradient(
+                const Solve2d5_t::LineDensityView_t& lineDensity) const {
+            Kokkos::deep_copy(lineDensityView_m, lineDensity);
+        }
+
+        Solve2d5_t::LineDensityView_t lineDensityView_m;
+    };
+
+    class EFieldDiagnostic : public Solve2d5_t::NullDiagnostic {
+    public:
+        explicit EFieldDiagnostic(const VField_t<T, 3>::view_type& eField) : NullDiagnostic() {
+            Kokkos::resize(eFieldView_m, eField.extent(0), eField.extent(1), eField.extent(2));
+        }
+
+        KOKKOS_FUNCTION void eField(const VField_t<T, 3>::view_type& eField) const {
+            Kokkos::deep_copy(eFieldView_m, eField);
+        }
+
+        VField_t<T, 3>::view_type eFieldView_m;
     };
 
     class TestSolve2d5 : public testing::Test {
@@ -240,56 +300,6 @@ namespace {
             return std::make_tuple(r, p);
         }
 
-        void createParticles(size_t nPart, double pzMin, double pzMax) {
-            pc->createParticles(nPart);
-
-            std::mt19937_64 eng(42 + ippl::Comm->rank());
-
-            const auto R_host  = pc->R.getHostMirror();
-            const auto P_host  = pc->P.getHostMirror();
-            const auto dt_host = pc->dt.getHostMirror();
-            const auto E_host  = pc->E.getHostMirror();
-
-            // Match mesh extents from the bunch' field container.
-            const auto rmin = bunch->rmin_m;
-            const auto rmax = bunch->rmax_m;
-
-            std::uniform_real_distribution unifR_x(rmin[0] + 0.1, rmax[0] - 0.1);
-            std::uniform_real_distribution unifR_y(rmin[1] + 0.1, rmax[1] - 0.1);
-            std::uniform_real_distribution unifR_z(rmin[2] + 0.1, rmax[2] - 0.1);
-            std::uniform_real_distribution unifP_z(pzMin, pzMax);
-
-            const double dt = bunch->getdT();
-            const double qi = pc->getChargePerParticle();
-
-            for (size_t i = 0; i < nPart; ++i) {
-                R_host(i)[0] = unifR_x(eng);
-                R_host(i)[1] = unifR_y(eng);
-                R_host(i)[2] = unifR_z(eng);
-
-                P_host(i)[0] = 0.0;
-                P_host(i)[1] = 0.0;
-                P_host(i)[2] = unifP_z(eng);
-
-                dt_host(i) = dt;
-
-                // Initialize particle E to zero; solver should leave it zero in NONE mode.
-                E_host(i)[0] = 0.0;
-                E_host(i)[1] = 0.0;
-                E_host(i)[2] = 0.0;
-            }
-
-            Kokkos::deep_copy(pc->R.getView(), R_host);
-            Kokkos::deep_copy(pc->P.getView(), P_host);
-            Kokkos::deep_copy(pc->dt.getView(), dt_host);
-            Kokkos::deep_copy(pc->E.getView(), E_host);
-            pc->setQ(qi);
-
-            ippl::Comm->barrier();
-            Kokkos::fence();
-            pc->update();
-        }
-
         void rebuildBunch() {
             Beam* testBeam = Beam::find("UNNAMED_BEAM");
             bunch          = std::make_shared<PartBunch_t>(
@@ -300,20 +310,6 @@ namespace {
                     /*lbt=*/1.0,
                     /*integration_method=*/"LF2", fsCmd.get(), dataSink.get());
             pc = bunch->getParticleContainer();
-        }
-
-        void expectAllParticleEZeroAndFinite(const double tol) {
-            const auto E_host = pc->E.getHostMirror();
-            Kokkos::deep_copy(E_host, pc->E.getView());
-
-            const size_t localN = pc->getLocalNum();
-            for (size_t i = 0; i < localN; ++i) {
-                for (unsigned d = 0; d < 3; ++d) {
-                    const double val = E_host(i)[d];
-                    EXPECT_TRUE(isfinite(val)) << "E[" << i << "][" << d << "]=" << val;
-                    EXPECT_NEAR(val, 0.0, tol) << "E[" << i << "][" << d << "]";
-                }
-            }
         }
 
         void makeReferencePathFile(
@@ -370,19 +366,42 @@ namespace {
             const auto hostView = Kokkos::create_mirror_view(rho);
             Kokkos::deep_copy(hostView, rho);
             // Print
-            for (size_t k = 0; k < rho.extent(2); ++k) {
-                for (size_t j = 0; j < rho.extent(1); ++j) {
-                    std::cout << k << "," << j << ": ";
-                    for (size_t i = 0; i < rho.extent(0); ++i) {
-                        std::cout << hostView(i, j, k) << " ";
+            if (VerboseTest) {
+                for (size_t k = 0; k < rho.extent(2); ++k) {
+                    for (size_t j = 0; j < rho.extent(1); ++j) {
+                        std::cout << k << "," << j << ": ";
+                        for (size_t i = 0; i < rho.extent(0); ++i) {
+                            std::cout << hostView(i, j, k) << " ";
+                        }
+                        std::cout << std::endl;
                     }
-                    std::cout << std::endl;
                 }
             }
             // Check values
             for (const auto& e : expected) {
                 SCOPED_TRACE(std::format("Index: {},{},{}", e.i, e.j, e.k));
                 EXPECT_NEAR(hostView(e.i, e.j, e.k), e.value, 1e-6);
+            }
+        }
+
+        static void expectLineDensity(
+                const Solve2d5_t::LineDensityView_t& lineDensity,
+                const std::vector<double> expected) {
+            // Transfer to host
+            const auto hostView = Kokkos::create_mirror_view(lineDensity);
+            Kokkos::deep_copy(hostView, lineDensity);
+            // Print
+            if (VerboseTest) {
+                for (size_t k = 0; k < lineDensity.extent(0); ++k) {
+                    std::cout << hostView(k) << " ";
+                }
+            }
+            std::cout << std::endl;
+            // Check values
+            ASSERT_EQ(hostView.extent(0), expected.size());
+            for (size_t i = 0; i < expected.size(); ++i) {
+                SCOPED_TRACE(std::format("Index: {}", i));
+                EXPECT_NEAR(hostView(i), expected[i], 1e-6);
             }
         }
 
@@ -400,13 +419,15 @@ namespace {
             const auto hostView = Kokkos::create_mirror_view(eField);
             Kokkos::deep_copy(hostView, eField);
             // Print the magnitudes
-            for (size_t k = 0; k < hostView.extent(2); ++k) {
-                for (size_t j = 0; j < hostView.extent(1); ++j) {
-                    std::cout << k << "," << j << ": ";
-                    for (size_t i = 0; i < hostView.extent(0); ++i) {
-                        std::cout << hostView(i, j, k) << " ";
+            if (VerboseTest) {
+                for (size_t k = 0; k < hostView.extent(2); ++k) {
+                    for (size_t j = 0; j < hostView.extent(1); ++j) {
+                        std::cout << k << "," << j << ": ";
+                        for (size_t i = 0; i < hostView.extent(0); ++i) {
+                            std::cout << hostView(i, j, k) << " ";
+                        }
+                        std::cout << std::endl;
                     }
-                    std::cout << std::endl;
                 }
             }
             // Check values
@@ -633,6 +654,58 @@ namespace {
                                {8, 7, 7, 0.00000}});
     }
 
+    TEST_F(TestSolve2d5, TotalDensity_Simple) {
+        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 3}});
+        fsCmd->setType("OPEN2D5");
+        fsCmd->setNX(12);
+        fsCmd->setNY(12);
+        fsCmd->setNZ(12);
+        rebuildBunch();
+        auto* solver = dynamic_cast<Solve2d5_t*>(bunch->getFieldSolver());
+        createParticles({{0, 0, 0}}, {{0, 0, 0}});
+        solver->loadReferencePath();
+        solver->scatterToGrid(*bunch);
+        const TotalDensityDiagnostic totalInfo(solver->getLineDensity());
+        solver->calculateLineDensity<TotalDensityDiagnostic>(totalInfo);
+        expectLineDensity(
+                totalInfo.lineDensityView_m, {0, 0, 0, 0, 0, 0, 0.0208333, 0.0208333, 0, 0, 0, 0});
+    }
+
+    TEST_F(TestSolve2d5, LineDensity_Simple) {
+        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 3}});
+        fsCmd->setType("OPEN2D5");
+        fsCmd->setNX(12);
+        fsCmd->setNY(12);
+        fsCmd->setNZ(12);
+        rebuildBunch();
+        auto* solver = dynamic_cast<Solve2d5_t*>(bunch->getFieldSolver());
+        createParticles({{0, 0, 0}}, {{0, 0, 0}});
+        solver->loadReferencePath();
+        solver->scatterToGrid(*bunch);
+        const LineDensityDiagnostic lineInfo(solver->getLineDensity());
+        solver->calculateLineDensity<LineDensityDiagnostic>(lineInfo);
+        expectLineDensity(
+                lineInfo.lineDensityView_m, {0, 0, 0, 0, 0, 0, 0.00520833, 0.00520833, 0, 0, 0, 0});
+    }
+
+    TEST_F(TestSolve2d5, LineDensityGradient_Simple) {
+        makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 3}});
+        fsCmd->setType("OPEN2D5");
+        fsCmd->setNX(12);
+        fsCmd->setNY(12);
+        fsCmd->setNZ(12);
+        rebuildBunch();
+        auto* solver = dynamic_cast<Solve2d5_t*>(bunch->getFieldSolver());
+        createParticles({{0, 0, 0}}, {{0, 0, 0}});
+        solver->loadReferencePath();
+        solver->scatterToGrid(*bunch);
+        const LineDensityGradientDiagnostic lineInfo(solver->getLineDensityGradient());
+        solver->calculateLineDensity<LineDensityGradientDiagnostic>(lineInfo);
+        expectLineDensity(
+                lineInfo.lineDensityView_m,
+                {0, 0, 0, 0, 0, 0.00520833, 0.00520833, -0.00520833, -0.00520833, 0, 0, 0});
+    }
+
     TEST_F(TestSolve2d5, SolvePoissons_Simple) {
         makeReferencePathFile("data/unit_test_DesignPath.dat", {{0, 0, 0}, {0, 0, 3}});
         fsCmd->setType("OPEN2D5");
@@ -644,12 +717,13 @@ namespace {
         createParticles({{0, 0, 0}}, {{0, 0, 0}});
         solver->loadReferencePath();
         solver->scatterToGrid(*bunch);
-        solver->solvePoissons();
+        const EFieldDiagnostic info(solver->getEField()->getView());
+        solver->solvePoissons<EFieldDiagnostic>(info);
         expectEField(
-                solver->getEField()->getView(), {{1, 1, 6, -0.000150, -0.000150, 0},
-                                                 {2, 1, 6, -0.000148, -0.000180, 0},
-                                                 {4, 4, 6, -0.000333, -0.000333, 0},
-                                                 {4, 8, 6, -0.000487, 0.000291, 0}});
+                info.eFieldView_m, {{1, 1, 6, -0.000150, -0.000150, 0},
+                                    {2, 1, 6, -0.000148, -0.000180, 0},
+                                    {4, 4, 6, -0.000333, -0.000333, 0},
+                                    {4, 8, 6, -0.000487, 0.000291, 0}});
     }
 
 }  // namespace

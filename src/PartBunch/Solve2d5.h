@@ -48,10 +48,11 @@ public:
     using BooleanView_t      = ParticleAttrib<bool>::view_type;
     using PartBunch_t        = PartBunch<double, 3>;
     using ReferenceView_t    = Kokkos::View<Vector3D_t*>;
+    using LineDensityView_t  = Kokkos::View<T*>;
     using ScalarGridView3D_t = Field<T, 3>::view_type;
     using VectorGridView3D_t = Field<Vector3D_t, 3>::view_type;
     using ScalarGridView2D_t = Field<T, 2>::view_type;
-    using VectorGridView2D_t = Field<Vector3D_t, 2>::view_type;
+    using VectorGridView2D_t = Field<Vector2D_t, 2>::view_type;
     using VField2D_t         = Field<Vector_t<T, 2>, 2>;
 
     struct Solver {
@@ -76,14 +77,21 @@ public:
                 const size_t, const Vector3D_t&, const Vector3D_t&, bool) const {}
         KOKKOS_FUNCTION void boostToBeam(
                 const size_t, const Vector3D_t&, const Vector3D_t&, bool) const {}
-        KOKKOS_FUNCTION void scatterCharge(const ScalarGridView3D_t&) {}
+        KOKKOS_FUNCTION void scatterCharge(const ScalarGridView3D_t&) const {}
+        KOKKOS_FUNCTION void eField(const VField_t<T, 3>::view_type&) const {}
+        KOKKOS_FUNCTION void totalDensity(const LineDensityView_t&) const {}
+        KOKKOS_FUNCTION void lineDensity(const LineDensityView_t&) const {}
+        KOKKOS_FUNCTION void lineDensityGradient(const LineDensityView_t&) const {}
     };
     void loadReferencePath();
     template <typename DiagnosticPolicy = NullDiagnostic>
     void scatterToGrid(const PartBunch_t& bunch, DiagnosticPolicy = {});
     template <typename DiagnosticPolicy = NullDiagnostic>
     void solvePoissons(DiagnosticPolicy = {});
-    void gatherFromGrid(const PartBunch_t& bunch);
+    template <typename DiagnosticPolicy = NullDiagnostic>
+    void calculateLineDensity(DiagnosticPolicy = {});
+    template <typename DiagnosticPolicy = NullDiagnostic>
+    void gatherFromGrid(const PartBunch_t& bunch, DiagnosticPolicy = {});
 
 private:
     // Helper functions
@@ -101,6 +109,20 @@ private:
     KOKKOS_FUNCTION static void scatterToRho(
             size_t n, Vector3D_t fsR, const ScalarView_t& dt, Vector3D_t invDr, int nghost,
             const ippl::NDIndex<3>& lDom, ScalarGridView3D_t rho, Vector3D_t origin);
+    template <typename DiagnosticPolicy = NullDiagnostic>
+    KOKKOS_FUNCTION static void doGatherFromGrid(
+            size_t n, const VectorView_t& r, const VectorView_t& p, const ReferenceView_t& ref,
+            T meanPs, const VectorView_t& e, const VectorView_t& b, const BooleanView_t& invalid,
+            Vector3D_t invDr, int nghost, ippl::NDIndex<3> lDom, VectorGridView3D_t eField,
+            Vector3D_t origin, DiagnosticPolicy diagnostic);
+    KOKKOS_FUNCTION static void gatherFromEField(
+            size_t n, Vector3D_t fsR, const VectorView_t& e, Vector3D_t invDr, int nghost,
+            const ippl::NDIndex<3>& lDom, VectorGridView3D_t eField, Vector3D_t origin);
+    KOKKOS_FUNCTION static void unboostFromBeamFrame(
+            size_t n, T meanPs, VectorView_t& e, VectorView_t& b);
+    KOKKOS_FUNCTION static void convertFromFrenetSerret(
+            size_t n, const Vector3D_t& bUnit, const Vector3D_t& nUnit,
+            const Vector3D_t& tUnit, VectorView_t& e, VectorView_t& b);
 
 public:
     // Test case API
@@ -110,6 +132,8 @@ public:
     const ReferenceView_t& getReferencePath() const { return referencePath_m; }
     Field_t<3>* getRho() const { return rho_m; }
     VField_t<T, 3>* getEField() const { return E_m; }
+    const LineDensityView_t& getLineDensity() const { return lineDensity_m; }
+    const LineDensityView_t& getLineDensityGradient() const { return lineDensityGradient_m; }
 
 private:
     std::vector<Solver> twoDSolvers_m;
@@ -119,6 +143,8 @@ private:
     std::shared_ptr<Mesh2D_t> sliceMesh_m;
     std::shared_ptr<Layout2D_t> sliceLayout_m;
     ReferenceView_t referencePath_m;
+    LineDensityView_t lineDensity_m;
+    LineDensityView_t lineDensityGradient_m;
 };
 
 #include "Solve2d5.tpp"
